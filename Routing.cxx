@@ -720,7 +720,7 @@ void VirtualQueue::OnReload()
 	m_requestTimeout = GkConfig()->GetInteger(
 		CTIsection, 
 		GkConfig()->HasKey(CTIsection,"RequestTimeout")
-			?"RequestTimeout":"CTI_Timeout", 
+			? "RequestTimeout" : "CTI_Timeout", 
 		DEFAULT_ROUTE_REQUEST_TIMEOUT
 		) * 1000;
 	m_requestTimeout = PMAX(100,m_requestTimeout);	// min wait: 100 msec
@@ -1069,7 +1069,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 				if (!arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
 					arq.IncludeOptionalField(H225_AdmissionRequest::e_destCallSignalAddress);
 				}
-				PStringArray adr_parts = callSigAdr->Tokenise(":", FALSE);
+				PStringArray adr_parts = callSigAdr->Tokenise(":", FALSE);	// TODO: IPv6 bug
 				PString ip = adr_parts[0];
 				WORD port = (WORD)(adr_parts[1].AsInteger());
 				if (port == 0)
@@ -1135,7 +1135,7 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 			request.SetCallerID(*callerID);
 			if (!reject && !callSigAdr->IsEmpty()) {
 				// 'explicit' policy can't handle LRQs, so we do it directly
-				PStringArray adr_parts = callSigAdr->Tokenise(":", FALSE);
+				PStringArray adr_parts = callSigAdr->Tokenise(":", FALSE);	// TODO: IPv6 bug
 				PString ip = adr_parts[0];
 				WORD port = (WORD)(adr_parts[1].AsInteger());
 				if (port == 0)
@@ -1225,7 +1225,7 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 			if (!setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
 				setup.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 			}
-			PStringArray adr_parts = callSigAdr->Tokenise(":", FALSE);
+			PStringArray adr_parts = callSigAdr->Tokenise(":", FALSE);	// TODO: IPv6 bug
 			PString ip = adr_parts[0];
 			WORD port = (WORD)(adr_parts[1].AsInteger());
 			if (port == 0)
@@ -1672,7 +1672,7 @@ void SqlPolicy::DatabaseLookup(
 			int row = 0;
 			do {
 				PString destinationIp = resultRow[0].first;
-				PStringArray adr_parts = destinationIp.Tokenise(":", FALSE);
+				PStringArray adr_parts = destinationIp.Tokenise(":", FALSE);	// TODO: IPv6 bug
 				PString ip = adr_parts[0];
 				WORD port = (WORD)(adr_parts[1].AsInteger());
 				if (port == 0)
@@ -1710,7 +1710,7 @@ void SqlPolicy::DatabaseLookup(
 			do {
 				PString destinationAlias = resultRow[0].first;
 				PString destinationIp = resultRow[1].first;
-				PStringArray adr_parts = destinationIp.Tokenise(":", FALSE);
+				PStringArray adr_parts = destinationIp.Tokenise(":", FALSE);	// TODO: IPv6 bug
 				PString ip = adr_parts[0];
 				WORD port = (WORD)(adr_parts[1].AsInteger());
 				if (port == 0)

@@ -3622,7 +3622,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 		}
 		if (!destip.IsEmpty()) {
 			setup.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
-			PStringArray adr_parts = destip.Tokenise(":", FALSE);
+			PStringArray adr_parts = destip.Tokenise(":", FALSE);	// TODO: IPv6 bug
 			PString ip = adr_parts[0];
 			WORD port = (WORD)(adr_parts[1].AsInteger());
 			if (port == 0)
@@ -4409,7 +4409,7 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 						uuie.IncludeOptionalField(H225_Facility_UUIE::e_alternativeAddress);
 						uuie.m_alternativeAddress = destaddr;
 					} else {
-						PTRACE(2, "Warning: Invalid transport address (" << ip << ":" << destport << ")");
+						PTRACE(2, "Warning: Invalid transport address (" << AsString(ip, destport) << ")");
 					}
 				} else {
 					alias = destination;
@@ -4502,7 +4502,7 @@ void CallSignalSocket::BuildSetupPDU(Q931 & SetupPDU, const H225_CallIdentifier 
 	}
 	if (!destip.IsEmpty()) {
 		setup.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
-		PStringArray adr_parts = destip.Tokenise(":", FALSE);
+		PStringArray adr_parts = destip.Tokenise(":", FALSE);	// TODO: IPv6 bug
 		PString ip = adr_parts[0];
 		WORD port = (WORD)(adr_parts[1].AsInteger());
 		if (port == 0)
@@ -5422,7 +5422,7 @@ PBoolean H245Socket::Accept(PSocket & socket)
 		Address addr;
 		WORD p;
 		GetLocalAddress(addr, p);
-		PTRACE(3, "H245\tConnected from " << GetName() << " on " << addr << ":" << p);
+		PTRACE(3, "H245\tConnected from " << GetName() << " on " << AsString(addr, p));
 	} else if (peerH245Addr) {
 		result = H245Socket::ConnectRemote();
 	}
@@ -5683,7 +5683,7 @@ void MultiplexRTPListener::ReceiveData()
 	if (buflen >= 5)
 		version = (((int)wbuffer[4] & 0xc0) >> 6);
 
-	PTRACE(0, "JW received multiplexed RTP on port " << localPort << " : " << buflen << " bytes from " << fromIP << ":" << fromPort
+	PTRACE(0, "JW received multiplexed RTP on port " << localPort << " : " << buflen << " bytes from " << AsString(fromIP, fromPort)
 		<< " multiplexID=0x" << PString(PString::Unsigned, (long)multiplexID, 16) << " version=" << version);
 
 /*
@@ -5916,10 +5916,10 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		seq = (((int)wbuffer[2] << 8) & 0x7f) + ((int)wbuffer[3] & 0x7f);
 	if (buflen >= 8)
 		timestamp = ((int)wbuffer[4] * 16777216) + ((int)wbuffer[5] * 65536) + ((int)wbuffer[6] * 256) + (int)wbuffer[7];
-	PTRACE(0, "JW RTP IN on " << localport << " from " << fromIP << ":" << fromPort << " pType=" << payloadType
+	PTRACE(0, "JW RTP IN on " << localport << " from " << AsString(fromIP, fromPort) << " pType=" << payloadType
 		<< " seq=" << seq << " timestamp=" << timestamp << " len=" << buflen
-		<< " fSrc=" << fSrcIP << ":" << fSrcPort << " fDest=" << fDestIP <<":" << fDestPort
-		<< " rSrc=" << rSrcIP << ":" << rSrcPort << " rDest=" << rDestIP <<":" << rDestPort
+		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
+		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort)
 		);
 	PTRACE(0, "JW RTP DB on " << localport << " type=" << Type() << " this=" << this << " H.460.19=" << UsesH46019() << " fc=" << m_h46019fc << " m_h46019uni=" << m_h46019uni);
 #endif // RTP_DEBUG
@@ -5934,17 +5934,17 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			// combine IP+port for easier comparison
 			H323TransportAddress fDestAddr(fDestIP, fDestPort);
 			H323TransportAddress rDestAddr(rDestIP, rDestPort);
-			PTRACE(5, "H46018\tRTP/RTCP keepAlive from " << fromIP << ":" << fromPort);
+			PTRACE(5, "H46018\tRTP/RTCP keepAlive from " << AsString(fromIP, fromPort));
 			if ((fDestIP == 0) && (fromAddr != rDestAddr)) {
 				// fwd dest was unset and packet didn't come from other side
-				PTRACE(5, "H46018\tSetting forward destination to " << fromIP << ":" << fromPort << " based on " << Type() << " keepAlive");
+				PTRACE(5, "H46018\tSetting forward destination to " << AsString(fromIP, fromPort) << " based on " << Type() << " keepAlive");
 				fDestIP = fromIP; fDestPort = fromPort;
 				rSrcIP = fromIP; rSrcPort = fromPort;
 				SetMediaIP("SRC", fDestIP);
 			}
 			else if ((rDestIP == 0) && (fromAddr != fDestAddr)) {
 				// reverse dest was unset and packet didn't come from other side
-				PTRACE(5, "H46018\tSetting reverse destination to " << fromIP << ":" << fromPort << " based on " << Type() << " keepAlive");
+				PTRACE(5, "H46018\tSetting reverse destination to " << AsString(fromIP, fromPort) << " based on " << Type() << " keepAlive");
 				rDestIP = fromIP; rDestPort = fromPort;
 				fSrcIP = fromIP; fSrcPort = fromPort;
 				SetMediaIP("DST", rDestIP);
@@ -5960,9 +5960,9 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 #endif	// HAS_H46024B
 			}
 #ifdef RTP_DEBUG
-			PTRACE(0, "JW RTP IN2 on " << localport << " from " << fromIP << ":" << fromPort
-				<< " fSrc=" << fSrcIP << ":" << fSrcPort << " fDest=" << fDestIP <<":" << fDestPort
-				<< " rSrc=" << rSrcIP << ":" << rSrcPort << " rDest=" << rDestIP <<":" << rDestPort
+			PTRACE(0, "JW RTP IN2 on " << localport << " from " << AsString(fromIP, fromPort)
+				<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
+				<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort)
 			);
 #endif // RTP_DEBUG
 		}
@@ -5976,7 +5976,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		// fix for H.239 from H.460.19 client
 		if (m_h46019uni
 			&& fSrcIP == 0 && fDestIP != 0 && rDestIP == 0) {
-			PTRACE(5, "H46018\tSetting forward source on unidirectional channel to " << fromIP << ":" << fromPort);
+			PTRACE(5, "H46018\tSetting forward source on unidirectional channel to " << AsString(fromIP, fromPort));
 			fSrcIP = fromIP, fSrcPort = fromPort;
 			m_h46019DetectionDone = true;
 		}
@@ -5985,12 +5985,12 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			// TODO: should we wait for a number of RTP packets before we do H.460.19 auto-detection without keepalives ?
 			H323TransportAddress rSrcAddr(rSrcIP, rSrcPort);
 			if (fSrcIP == 0 && rDestIP == 0 && fDestIP != 0 && rSrcIP != 0 && fromAddr != rSrcAddr) {
-				PTRACE(5, "H46018\tAuto-detecting forward source on H.460.19 channel to " << fromIP << ":" << fromPort);
+				PTRACE(5, "H46018\tAuto-detecting forward source on H.460.19 channel to " << AsString(fromIP, fromPort));
 				fSrcIP = fromIP, fSrcPort = fromPort;
 			}
 			H323TransportAddress fSrcAddr(fSrcIP, fSrcPort);
 			if (fSrcIP != 0 && rDestIP != 0 && fDestIP == 0 && rSrcIP == 0 && fromAddr != fSrcAddr) {
-				PTRACE(5, "H46018\tAuto-detecting reverse source on H.460.19 channel to " << fromIP << ":" << fromPort);
+				PTRACE(5, "H46018\tAuto-detecting reverse source on H.460.19 channel to " << AsString(fromIP, fromPort));
 				rSrcIP = fromIP, rSrcPort = fromPort;
 			}
 		}
@@ -5998,11 +5998,11 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		// (we only saved it as source IP form the OLC and didn't set the dest IP)
 		// JW TODO: move to Handle... where the source is set ?
 		if (m_isRTCPType && fSrcIP != 0 && fDestIP == 0 && rSrcIP == 0 && rDestIP == 0) {
-			PTRACE(5, "H46018\tSet RTCP reverse dest from forward source to " << fSrcIP << ":" << fSrcPort);
+			PTRACE(5, "H46018\tSet RTCP reverse dest from forward source to " << AsString(fSrcIP, fSrcPort));
 			rDestIP = fSrcIP, rDestPort = fSrcPort;
 		}
 		if (m_isRTCPType && fSrcIP == 0 && fDestIP == 0 && rSrcIP != 0 && rDestIP == 0) {
-			PTRACE(5, "H46018\tSet RTCP forward dest from reverse source to " << rSrcIP << ":" << rSrcPort);
+			PTRACE(5, "H46018\tSet RTCP forward dest from reverse source to " << AsString(rSrcIP, rSrcPort));
 			fDestIP = rSrcIP, fDestPort = rSrcPort;
 		}
 	}

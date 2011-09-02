@@ -224,7 +224,7 @@ GatekeeperMessage *RasListener::ReadRas()
 	if (PTrace::CanTrace(3))
 		PTRACE(3, "RAS\n" << setprecision(2) << msg->m_recvRAS);
 	else
-		PTRACE(2, "RAS\tReceived " << msg->GetTagName() << " from " << msg->m_peerAddr << ":" << msg->m_peerPort);
+		PTRACE(2, "RAS\tReceived " << msg->GetTagName() << " from " << AsString(msg->m_peerAddr, msg->m_peerPort));
 	}
 #endif
 	msg->m_localAddr = GetLocalAddr(msg->m_peerAddr);
@@ -356,7 +356,7 @@ bool MulticastListener::Filter(GatekeeperMessage *msg) const
 // class RasMsg
 void RasMsg::Exec()
 {
-	PTRACE(1, "RAS\t" << m_msg->GetTagName() << " Received from " << m_msg->m_peerAddr << ":" << m_msg->m_peerPort);
+	PTRACE(1, "RAS\t" << m_msg->GetTagName() << " Received from " << AsString(m_msg->m_peerAddr, m_msg->m_peerPort));
 	if (Process())
 		Reply();
 }
@@ -1406,7 +1406,7 @@ void RasServer::GetAlternateGK()
 	PStringArray svrs(sendto.Tokenise(" ,;\t", FALSE));
 	if ((altGKsSize = svrs.GetSize()) > 0)
 		for (PINDEX i = 0; i < altGKsSize; ++i) {
-			PStringArray tokens(svrs[i].Tokenise(":", FALSE));
+			PStringArray tokens(svrs[i].Tokenise(":", FALSE));	// TODO: IPv6 bug
 			altGKsAddr.push_back(Address(tokens[0]));
 			altGKsPort.push_back((tokens.GetSize() > 1) ? WORD(tokens[1].AsUnsigned()) : GK_DEF_UNICAST_RAS_PORT);
 		}
@@ -1418,7 +1418,7 @@ H225_ArrayOf_AlternateGK RasServer::ParseAltGKConfig(const PString & altGkSettin
 	alternateGKs.SetSize(altgks.GetSize());
 
 	for (PINDEX idx = 0; idx < altgks.GetSize(); ++idx) {
-		const PStringArray tokens = altgks[idx].Tokenise(":;", FALSE);	// TODO: IPv6 problem
+		const PStringArray tokens = altgks[idx].Tokenise(":;", FALSE);	// TODO: IPv6 bug
 		if (tokens.GetSize() < 4) {
 			PTRACE(1,"GK\tFormat error in AlternateGKs");
 			continue;
@@ -1565,7 +1565,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		PIPSocket::Address rasIP;
 		WORD rasPort;
 		if (GetIPAndPortFromTransportAddr(request.m_rasAddress, rasIP, rasPort)) {
-			PTRACE(3, "Reply to rasAddress from request:" << rasIP << ":" << rasPort);
+			PTRACE(3, "Reply to rasAddress from request:" << AsString(rasIP, rasPort));
 			m_msg->m_peerAddr = rasIP;
 			m_msg->m_peerPort = rasPort;
 		} else {
@@ -1871,7 +1871,7 @@ bool RegistrationRequestPDU::Process()
 		PIPSocket::Address rasIP;
 		WORD rasPort;
 		if (GetIPAndPortFromTransportAddr(request.m_rasAddress[0], rasIP, rasPort)) {
-			PTRACE(3, "Reply to rasAddress from request:" << rasIP << ":" << rasPort);
+			PTRACE(3, "Reply to rasAddress from request:" << AsString(rasIP, rasPort));
 			m_msg->m_peerAddr = rasIP;
 			m_msg->m_peerPort = rasPort;
 		} else {
@@ -2487,7 +2487,7 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 	if (ep) {
 		if (RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
 			if (GetIPAndPortFromTransportAddr(ep->GetRasAddress(), m_msg->m_peerAddr, m_msg->m_peerPort)) {
-				PTRACE(3, "Reply to saved rasAddress:" << m_msg->m_peerAddr << ":" << m_msg->m_peerPort);
+				PTRACE(3, "Reply to saved rasAddress:" << AsString(m_msg->m_peerAddr, m_msg->m_peerPort));
 			} else {
 				PTRACE(1, "Unable to parse saved rasAddress " << ep->GetRasAddress());
 			}
@@ -2681,7 +2681,7 @@ bool AdmissionRequestPDU::Process()
 
 	if (RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
 		if (GetIPAndPortFromTransportAddr(RequestingEP->GetRasAddress(), m_msg->m_peerAddr, m_msg->m_peerPort)) {
-			PTRACE(3, "Reply to saved rasAddress:" << m_msg->m_peerAddr << ":" << m_msg->m_peerPort);
+			PTRACE(3, "Reply to saved rasAddress:" << AsString(m_msg->m_peerAddr, m_msg->m_peerPort));
 		} else {
 			PTRACE(1, "Unable to parse saved rasAddress " << RequestingEP->GetRasAddress());
 		}
@@ -3218,7 +3218,7 @@ template<> bool RasPDU<H225_BandwidthRequest>::Process()
 	endptr RequestingEP = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
 	if (RequestingEP && RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
 		if (GetIPAndPortFromTransportAddr(RequestingEP->GetRasAddress(), m_msg->m_peerAddr, m_msg->m_peerPort)) {
-			PTRACE(3, "Reply to saved rasAddress:" << m_msg->m_peerAddr << ":" << m_msg->m_peerPort);
+			PTRACE(3, "Reply to saved rasAddress:" << AsString(m_msg->m_peerAddr, m_msg->m_peerPort));
 		} else {
 			PTRACE(1, "Unable to parse saved rasAddress " << RequestingEP->GetRasAddress());
 		}
@@ -3307,7 +3307,7 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 
 	if (ep && RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
 		if (GetIPAndPortFromTransportAddr(ep->GetRasAddress(), m_msg->m_peerAddr, m_msg->m_peerPort)) {
-			PTRACE(3, "Reply to saved rasAddress:" << m_msg->m_peerAddr << ":" << m_msg->m_peerPort);
+			PTRACE(3, "Reply to saved rasAddress:" << AsString(m_msg->m_peerAddr, m_msg->m_peerPort));
 		} else {
 			PTRACE(1, "Unable to parse saved rasAddress " << ep->GetRasAddress());
 		}
@@ -3410,7 +3410,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 	// reply to the replyAddress if ReplyToRasAddress is configured
 	if (RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
 		if (GetIPAndPortFromTransportAddr(request.m_replyAddress, m_msg->m_peerAddr, m_msg->m_peerPort)) {
-			PTRACE(3, "Reply to saved rasAddress:" << m_msg->m_peerAddr << ":" << m_msg->m_peerPort);
+			PTRACE(3, "Reply to saved rasAddress:" << AsString(m_msg->m_peerAddr, m_msg->m_peerPort));
 		} else {
 			PTRACE(1, "Unable to parse saved rasAddress " << request.m_replyAddress);
 		}
@@ -3602,7 +3602,7 @@ template<> bool RasPDU<H225_InfoRequestResponse>::Process()
 				PIPSocket::Address rasIP;
 				WORD rasPort;
 				if (GetIPAndPortFromTransportAddr(request.m_rasAddress, rasIP, rasPort)) {
-					PTRACE(3, "Reply to rasAddress from request:" << rasIP << ":" << rasPort);
+					PTRACE(3, "Reply to rasAddress from request:" << AsString(rasIP, rasPort));
 					m_msg->m_peerAddr = rasIP;
 					m_msg->m_peerPort = rasPort;
 				} else {
@@ -3624,7 +3624,7 @@ template<> bool RasPDU<H225_ResourcesAvailableIndicate>::Process()
 	endptr ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
 	if (ep && RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
 		if (GetIPAndPortFromTransportAddr(ep->GetRasAddress(), m_msg->m_peerAddr, m_msg->m_peerPort)) {
-			PTRACE(3, "Reply to saved rasAddress:" << m_msg->m_peerAddr << ":" << m_msg->m_peerPort);
+			PTRACE(3, "Reply to saved rasAddress:" << AsString(m_msg->m_peerAddr, m_msg->m_peerPort));
 		} else {
 			PTRACE(1, "Unable to parse saved rasAddress " << ep->GetRasAddress());
 		}

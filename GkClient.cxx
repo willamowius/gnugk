@@ -683,7 +683,7 @@ bool STUNClient::OpenSocketA(UDPSocket & socket, PortInfo & portInfo, const PIPS
       if (status)
         break;
       if (portInfo.currentPort == startPort) {
-        PTRACE(3, "STUN\tListen failed on " << m_interface << ":" << portInfo.currentPort);
+        PTRACE(3, "STUN\tListen failed on " << AsString(m_interface, portInfo.currentPort));
         return false;
       }
     } 

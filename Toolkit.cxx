@@ -2113,11 +2113,11 @@ bool Toolkit::AssignedGatekeepers::QueryAssignedGK(const PString & alias, const 
 #ifdef hasSRV
 static PString DNStoIP(const PString & dns)
 {
-   H323TransportAddress iface(dns);
-   PIPSocket::Address ip;
-   WORD port = GK_DEF_UNICAST_RAS_PORT;
-   iface.GetIpAndPort(ip, port);
-   return PString(ip + ":" + port);
+	H323TransportAddress iface(dns);
+	PIPSocket::Address ip;
+	WORD port = GK_DEF_UNICAST_RAS_PORT;
+	iface.GetIpAndPort(ip, port);
+	return AsString(ip, port);
 }
 #endif
 
@@ -2177,7 +2177,7 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias, const PI
 		for (PINDEX k = 0; k < ipaddresses.GetSize(); k++) {
            PString num = ipaddresses[k];
            WORD port = GK_DEF_UNICAST_RAS_PORT;
-		   PStringArray tokens = num.Tokenise(":", FALSE);
+		   PStringArray tokens = num.Tokenise(":", FALSE);	// TODO: IPv6 bug
 		   if (tokens.GetSize() == 2)
                port = (WORD)tokens[1].AsUnsigned();
 

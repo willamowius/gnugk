@@ -1884,7 +1884,7 @@ void RadiusClient::GetServersFromString(
 {
 	const PStringArray tokens = servers.Tokenise(" ;,", FALSE);
 	for (PINDEX i = 0; i < tokens.GetSize(); i++) {
-		const PStringArray serverTokens = tokens[i].Tokenise(":");
+		const PStringArray serverTokens = tokens[i].Tokenise(":");	// TODO: IPv6 bug
 		if (serverTokens.GetSize() > 0) {
 			const PString serverAddress = serverTokens[0].Trim();
 			if (!serverAddress) {
