@@ -1730,7 +1730,9 @@ bool Toolkit::CreateH350Session(H350_Session * session)
 {
 	PString ldap = GkConfig()->GetString(H350Section, "ServerName", "127.0.0.1");
 	PString port = GkConfig()->GetString(H350Section, "ServerPort", "389");
-	PString server = ldap + ":" + port;
+	PString server = ldap + ":" + port;	// IPv4
+	if (IsIPv6Address(ldap))
+		server = "[" + ldap + "]:" + port;	// IPv6
 
 	PString user = GkConfig()->GetString(H350Section, "BindUserDN", "");
 	PString password = Toolkit::Instance()->ReadPassword(H350Section, "BindUserPW");
@@ -1745,7 +1747,7 @@ bool Toolkit::CreateH350Session(H350_Session * session)
 	bool startTLS = Toolkit::AsBool(GkConfig()->GetString(H350Section, "StartTLS", "0"));
 
 	if (!session->Open(server)) {
-		PTRACE(1,"H350\tCannot locate H.350 Server");
+		PTRACE(1,"H350\tCannot locate H.350 Server " << server);
 		return false;
 	}
 	if (startTLS) {
