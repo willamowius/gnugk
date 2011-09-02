@@ -1005,7 +1005,9 @@ bool EndpointRec::AddH350ServiceControl(
 		if (ldap.IsEmpty()) return false;
 
 	PString port = GkConfig()->GetString("GkH350::Settings", "ServerPort", "389");
-	PString server = ldap + ":" + port;
+	PString server = ldap + ":" + port;		// IPv4
+	if (IsIPv6Address(ldap))
+		server = "[" + ldap + "]:" + port;	// IPv6
 
 	// TODO: this SearchBaseDN is also used for lookup of the commObjects,
 	// so its probably not the right SearchBaseDN for white page lookup
