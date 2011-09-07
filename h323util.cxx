@@ -421,7 +421,7 @@ bool IsLoopback(const PIPSocket::Address & addr)
 }
 
 PString GetGUIDString(
-	const H225_GloballyUniqueID& id, /// 128-bit identifier to convert
+	const H225_GloballyUniqueID & id, /// 128-bit identifier to convert
 	bool fixedLength /// skip leading zeros (false) or not (true)
 	)
 {
@@ -457,7 +457,7 @@ H225_CallIdentifier StringToCallId(PString CallId)
 }
 
 PINDEX GetBestAliasAddressIndex(
-	const H225_ArrayOf_AliasAddress& aliases, /// aliases to be searched
+	const H225_ArrayOf_AliasAddress & aliases, /// aliases to be searched
 	bool exactMatch, /// search only specified tags or find any alias
 	unsigned primaryTags, /// ORed tag flags (BestAliasTagMask)
 	unsigned secondaryTags /// ORed tag flags (BestAliasTagMask)
@@ -480,15 +480,13 @@ PINDEX GetBestAliasAddressIndex(
 }
 
 PString GetBestAliasAddressString(
-	const H225_ArrayOf_AliasAddress& aliases, /// aliases to be searched
+	const H225_ArrayOf_AliasAddress & aliases, /// aliases to be searched
 	bool exactMatch, /// search only specified tags or find any alias
 	unsigned primaryTags, /// ORed tag flags (BestAliasTagMask)
 	unsigned secondaryTags /// ORed tag flags (BestAliasTagMask)
 	)
 {
-	const PINDEX i = GetBestAliasAddressIndex(aliases, exactMatch,
-		primaryTags, secondaryTags
-		);
+	const PINDEX i = GetBestAliasAddressIndex(aliases, exactMatch, primaryTags, secondaryTags);
 	if (i != P_MAX_INDEX)
 		return AsString(aliases[i], FALSE);
 	else
@@ -496,8 +494,8 @@ PString GetBestAliasAddressString(
 }
 
 PINDEX FindAlias(
-	const H225_ArrayOf_AliasAddress& aliases, /// the list of aliases to check
-	const PString& alias /// alias to find on the list
+	const H225_ArrayOf_AliasAddress & aliases, /// the list of aliases to check
+	const PString & alias /// alias to find on the list
 	)
 {
 	const PINDEX sz = aliases.GetSize();
@@ -533,9 +531,9 @@ int MatchPrefix(
 }
 
 PString RewriteString(
-	const PString& s, /// original string to rewrite
-	const char *prefix, /// prefix string that matched
-	const char *value /// new string that replaces the prefix string
+	const PString & s, /// original string to rewrite
+	const char* prefix, /// prefix string that matched
+	const char* value /// new string that replaces the prefix string
 	)
 {
 	if (prefix == NULL || value == NULL)
