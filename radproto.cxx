@@ -250,7 +250,7 @@ RadiusAttr::RadiusAttr(
 
 	const DWORD addr = (DWORD)addressValue;
 	
-	m_value[0] = ((const BYTE*)&addr)[0];
+	m_value[0] = ((const BYTE*)&addr)[0];	// TODO: IPv6 bug
 	m_value[1] = ((const BYTE*)&addr)[1];
 	m_value[2] = ((const BYTE*)&addr)[2];
 	m_value[3] = ((const BYTE*)&addr)[3];
@@ -302,7 +302,7 @@ RadiusAttr::RadiusAttr(
 	
 	const DWORD addr = (DWORD)addressValue;
 	
-	m_vendorValue[0] = ((BYTE*)&addr)[0];
+	m_vendorValue[0] = ((BYTE*)&addr)[0];	// TODO: IPv6 bug
 	m_vendorValue[1] = ((BYTE*)&addr)[1];
 	m_vendorValue[2] = ((BYTE*)&addr)[2];
 	m_vendorValue[3] = ((BYTE*)&addr)[3];
@@ -578,7 +578,7 @@ PIPSocket::Address RadiusAttr::AsAddress() const
 
 	DWORD addr = 0;
 	
-	((BYTE*)&addr)[0] = m_value[0];
+	((BYTE*)&addr)[0] = m_value[0];	// TODO: IPv6 bug
 	((BYTE*)&addr)[1] = m_value[1];
 	((BYTE*)&addr)[2] = m_value[2];
 	((BYTE*)&addr)[3] = m_value[3];
@@ -641,7 +641,7 @@ PIPSocket::Address RadiusAttr::AsVsaAddress() const
 	
 	DWORD addr = 0;
 	
-	((BYTE*)&addr)[0] = m_vendorValue[0];
+	((BYTE*)&addr)[0] = m_vendorValue[0];	// TODO: IPv6 bug
 	((BYTE*)&addr)[1] = m_vendorValue[1];
 	((BYTE*)&addr)[2] = m_vendorValue[2];
 	((BYTE*)&addr)[3] = m_vendorValue[3];
@@ -927,7 +927,7 @@ bool RadiusPDU::AppendAttr(
 	RadiusAttr* const attr = reinterpret_cast<RadiusAttr*>(m_data + len);
 	attr->m_type = attrType;
 	attr->m_length = attrLen;
-	attr->m_value[0] = ((const BYTE*)&addr)[0];
+	attr->m_value[0] = ((const BYTE*)&addr)[0];	// TODO: IPv6 bug
 	attr->m_value[1] = ((const BYTE*)&addr)[1];
 	attr->m_value[2] = ((const BYTE*)&addr)[2];
 	attr->m_value[3] = ((const BYTE*)&addr)[3];
@@ -1025,7 +1025,7 @@ bool RadiusPDU::AppendVsaAttr(
 	SetRadiusInteger(attr->m_vendorId, vendorId);
 	attr->m_vendorType = vendorType;
 	attr->m_vendorLength = 4 + 2;
-	attr->m_vendorValue[0] = ((const BYTE*)&addr)[0];
+	attr->m_vendorValue[0] = ((const BYTE*)&addr)[0];	// TODO: IPv6 bug
 	attr->m_vendorValue[1] = ((const BYTE*)&addr)[1];
 	attr->m_vendorValue[2] = ((const BYTE*)&addr)[2];
 	attr->m_vendorValue[3] = ((const BYTE*)&addr)[3];
@@ -1956,7 +1956,7 @@ bool RadiusClient::MakeRequest(
 		PIPSocket::Address serverAddress;
 		if (!PIPSocket::GetHostAddress(server->m_serverAddress, serverAddress)
 			|| !serverAddress.IsValid()) {
-			PTRACE(3, "RADIUS\tCould not get IPv4 address for RADIUS server "
+			PTRACE(3, "RADIUS\tCould not get IP address for RADIUS server "
 				"host: " << server->m_serverAddress
 				);
 			continue;
@@ -2085,7 +2085,7 @@ bool RadiusClient::SendRequest(
 	PIPSocket::Address serverAddress;
 	if (!PIPSocket::GetHostAddress(server->m_serverAddress, serverAddress)
 			|| !serverAddress.IsValid()) {
-		PTRACE(3, "RADIUS\tCould not get IPv4 address for RADIUS server host: "
+		PTRACE(3, "RADIUS\tCould not get IP address for RADIUS server host: "
 			<< server->m_serverAddress
 			);
 		return false;
