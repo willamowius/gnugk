@@ -67,7 +67,9 @@ public:
 
 	bool SendLRQ(H225_RasMessage &);
 	bool IsFrom(const PIPSocket::Address *ip) const { return GetIP() == *ip; }
+	bool IsTraversalUser(const PString * user) const { return m_H46018Server && (m_authUser == *user); }
 	bool IsTraversalZone(const PIPSocket::Address *ip) const { return (GetIP() == *ip) && (m_H46018Server || m_H46018Client); }
+	void SetApparentIP(const PIPSocket::Address & ip) { m_ip = ip; }
 	bool ForwardResponse() const { return m_forwardResponse; }
 	int ForwardLRQ() const { return m_forwardto; }
 	WORD GetDefaultHopCount() const { return m_forwardHopCount; }

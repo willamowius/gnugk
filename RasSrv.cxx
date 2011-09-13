@@ -910,6 +910,8 @@ void RasServer::LoadConfig()
 		&& Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
 		m_multiplexHandler = MultiplexHandler::Instance();
 	}
+	if (m_multiplexHandler)
+		m_multiplexHandler->OnReload();
 #endif
 
 	if (listeners)
@@ -1001,7 +1003,7 @@ GkInterface *RasServer::SelectDefaultInterface()
 		if (intface->GetRasListener()->GetPhysicalAddr(defIP) == defIP)
 			return intface;
 	}
-    PTRACE(5,"RasSrv\tWARNING: No route detected using First Interface");
+    PTRACE(2, "RasSrv\tWARNING: No route detected using First Interface");
     return interfaces.front();
 }
  
@@ -3674,7 +3676,7 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 							<< " callID=" << incomingIndication.m_callID);
 						CallSignalSocket * outgoingSocket = new CallSignalSocket();
 						outgoingSocket->OnSCICall(incomingIndication.m_callID, incomingIndication.m_callSignallingAddress);
-		} else {
+					} else {
 						PTRACE(1, "Error decoding IncomingIndication");
 					}
 				}
@@ -3688,6 +3690,22 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 	if (!incomingCall && request.HasOptionalField(H225_ServiceControlIndication::e_featureSet)) {
 		H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
 		if (fs.HasFeature(18) && Toolkit::Instance()->IsH46018Enabled()) {
+			if (!from_neighbor
+				&& request.HasOptionalField(H225_ServiceControlIndication::e_cryptoTokens)) {
+				// check if this is from a traversal client, so we can update the IP
+				if ((request.m_cryptoTokens.GetSize() > 0)
+					&& (request.m_cryptoTokens[0].GetTag() == H225_CryptoH323Token::e_cryptoGKPwdHash)) {
+					H225_CryptoH323Token_cryptoGKPwdHash & token = request.m_cryptoTokens[0];
+					PString gkid = token.m_gatekeeperId;
+					NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind2nd(mem_fun(&Neighbors::Neighbor::IsTraversalUser), &gkid));
+					if (iter != neighbors.end()) {
+						from_neighbor = (*iter);
+						neighbor_authenticated = from_neighbor->Authenticate(this);
+						if (neighbor_authenticated)
+							from_neighbor->SetApparentIP(m_msg->m_peerAddr);
+					}
+				}
+			}
 			// set interval
 			if (from_neighbor && neighbor_authenticated) {
 				from_neighbor->SetH46018Server(true);	// remember to use H.460.18 with this neighbor

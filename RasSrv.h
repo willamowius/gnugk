@@ -47,7 +47,7 @@ class GkAcctLoggerList;
 class GkClient;
 class ProxyHandler;
 class HandlerList;
-class MultiplexHandler;
+class H46019Handler;
 
 namespace Neighbors {
 	class NeighborList;
@@ -290,7 +290,7 @@ private:
 	TCPServer *listeners;
 	RasListener *broadcastListener;
 #ifdef HAS_H46018
-	MultiplexHandler *m_multiplexHandler;
+	H46019Handler *m_multiplexHandler;
 #endif
 
 	HandlerList *sigHandler;
