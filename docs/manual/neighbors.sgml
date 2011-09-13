@@ -255,10 +255,16 @@ hop count is greater than 1.
 <item><tt/H46018Client=1/<newline>
 Default: <tt/0/<newline>
 <p>
-Enable H.460.18 keep-alive messages to this neighbor.
-The H.460.18 server doesn't need this switch, it will automatically detect
-the keep-alives and activate H.460.18 for the neighbor sending them
-(if H.460.18 is enabled in [RoutedMode]).
+Enable H.460.18 keep-alive messages to this neighbor and act as a traversal client.
+
+<item><tt/H46018Server=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Act as a traversal server for another gatekeeper which is configured as traversal client.
+<p>
+No two neighbors for which we are acting as traversal server should have the same AuthUser name.
+Since the IP of the traversal client can be unknown or changing, the user name is used to update
+the IP for this neighbor.
 
 <item><tt/SendPassword=secret/<newline>
 Default: <tt>N/A</tt><newline>
@@ -288,9 +294,11 @@ Enable H.323, set the Protocol to H.460.18 (not Assent) and the port to 1719.
 
 Add the IP of your GnuGk server as the Peer 1 address in the VCS.
 
-Set H46018Client=0 in the [Neighbor::..] section. If H.460.18 is globally enabled,
+Set H46018Client=0 and H46018Server=1 in the [Neighbor::..] section. If H.460.18 is globally enabled,
 GnuGk will automatically detect that a neighbor is acting like a H.460.18 traversal zone client
-and it needs to act as a traversal server.
+and it needs to act as a traversal server. But since traversal clients may come from unknown or
+changing IPs, setting the H46018Server flag explicitely allows GnuGk to update the client's IP on
+the first keepAlive SCI message.
 
 <descrip>
 <tag/Example:/
@@ -303,6 +311,7 @@ and it needs to act as a traversal server.
 <tt/SendPrefixes=02/<newline>
 <tt/AcceptPrefixes=*/<newline>
 <tt/H46018Client=0/<newline>
+<tt/H46018Server=1/<newline>
 <tt/AuthUser=clientuser/<newline>
 <tt/Password=&lt;encoded client pw&gt;/<newline>
 <newline>
