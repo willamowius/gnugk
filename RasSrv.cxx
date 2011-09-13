@@ -910,8 +910,8 @@ void RasServer::LoadConfig()
 		&& Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
 		m_multiplexHandler = MultiplexHandler::Instance();
 	}
-	if (m_multiplexHandler)
-		m_multiplexHandler->OnReload();
+	//if (m_multiplexHandler)
+	//	m_multiplexHandler->OnReload();
 #endif
 
 	if (listeners)
