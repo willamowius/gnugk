@@ -269,6 +269,7 @@ public:
 	bool UsesH46018() const { return m_usesH46018; }
 	bool IsTraversalServer() const { return m_isTraversalServer; }
 	void SetTraversalServer(bool val) { m_isTraversalServer = val; }
+	bool IsTraversalClient() const { return UsesH46018() && !IsTraversalServer(); }
 
 	// smart pointer for EndpointRec
 	typedef SmartPtr<EndpointRec> Ptr;
