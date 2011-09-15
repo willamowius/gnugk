@@ -419,8 +419,6 @@ public:
 	void SetH46019UniDirectional(bool uni);
 	void SetRTPSessionID(WORD id);
 
-	WORD GetRTPListenPort() const { return rtp ? rtp->GetListenPort() : 0; }
-	WORD GetRTCPListenPort() const { return rtcp ? rtcp->GetListenPort() : 0; }
 	int GetRTPOSSocket() const { return rtp ? rtp->GetOSSocket() : 0; }
 	int GetRTCPOSSocket() const { return rtcp ? rtcp->GetOSSocket() : 0; }
 
@@ -2517,12 +2515,6 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			call->SetH46018ReverseSetup(true);
 			m_call->SetCallSignalSocketCalling(NULL);
 			m_call->SetCallSignalSocketCalled(NULL);
-if (remote) {
-	PTRACE(0, "JW about to delete remote=" << remote << " from this=" << this << " remote->remote=" << ((CallSignalSocket*)remote)->remote);
-	PTRACE(0, "JW m_h245handle=" << m_h245handler << " remote->m_h245handler=" << ((CallSignalSocket*)remote)->m_h245handler);
-} else {
-	PTRACE(0, "JW remote=NULL");
-}
 			delete m_h245handler;
 			m_h245handler = NULL;
 			delete m_h245socket;
@@ -3085,9 +3077,6 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE &setupBody)
 		remote = new CallSignalSocket(this, peerPort);
 		m_result = Connecting;
 	}
-else {
-PTRACE(0, "JW already have a remote socket: remote=" << remote << " name=" << remote->GetName() << " this=" << this);
-}
 
 	HandleH245Address(setupBody);
 	HandleFastStart(setupBody, true);
@@ -5661,7 +5650,7 @@ MultiplexRTPListener::MultiplexRTPListener(WORD pt, WORD buffSize)
 	if (home.size() == 1)
 		localAddr = home[0];
 
-	PTRACE(0, "JW will open multiplex RTP listener on " << AsString(localAddr, pt) << " this=" << this);
+	PTRACE(0, "Opening multiplex RTP listener on " << AsString(localAddr, pt) << " this=" << this);
 	if (!Listen(localAddr, 0, pt)) {
 		PTRACE(0, "Can't open multiplex RTP listener on " << AsString(localAddr, pt));
 		return;
@@ -5770,8 +5759,8 @@ H46019Handler::H46019Handler() : Singleton<H46019Handler>("H46019Handler")
 
 H46019Handler::~H46019Handler()
 {
-//	delete m_multiplexRTPListener;
-//	delete m_multiplexRTCPListener;
+	delete m_multiplexRTPListener;
+	delete m_multiplexRTCPListener;
 }
 
 void H46019Handler::OnStart()
@@ -5801,7 +5790,6 @@ void H46019Handler::OnStart()
 
 void H46019Handler::Stop()
 {
-	PTRACE(0, "JW H46019Handler Stop()");
 	if (m_multiplexRTPListener) {
 		m_multiplexRTPListener->Close();
 	}
