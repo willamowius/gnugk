@@ -17,8 +17,10 @@
 
 #include <vector>
 #include <list>
+#include <map>
 #include "yasocket.h"
 #include "RasTbl.h"
+#include "gktimer.h"
 
 
 class Q931;
@@ -358,33 +360,72 @@ protected:
 	WORD wbufsize, buflen;
 };
 
-class MultiplexDestination
+const PInt32 INVALID_MULTIPLEX_ID = 0xdeadbeef;
+
+class H46019Destination : public PObject
 {
 public:
-	MultiplexDestination(PInt32 multiplexID) { m_multiplexID = multiplexID; m_detectionDone = false; m_destMultipled = false; }
-	bool IsDetectionDone() const { return m_detectionDone; }
-//	Adr GetDestination() const { return m_destination; }
-//	void SetDestination(Adr dest) { m_destination = dest; }
-	bool IsDestinationMultiplexed() const { return m_destMultipled; }
-	PInt32 GetDestinationMultiplexID() const { return m_destMultiplexID; }
-	void SetDestinationMultiplexID(PInt32 id) { m_destMultiplexID = id; m_destMultipled = true; }
+	H46019Destination(unsigned lc) { m_lc = lc; m_srcMultiplexID = INVALID_MULTIPLEX_ID; m_readyToSend = false; m_destMultiplexed = false; }
+	virtual PString AsString() const;
 
-protected:
-	PInt32 m_multiplexID;
-	bool m_detectionDone;
-//	Adr m_destination;
-	bool m_destMultipled;
+	bool IsReadyToSend() const { return m_readyToSend; }
+	PIPSocket::Address GetDestination() const { return m_destination; }
+	void SetDestination(PIPSocket::Address dest) { m_destination = dest; }
+	bool IsDestinationMultiplexed() const { return m_destMultiplexed; }
+	PInt32 GetDestinationMultiplexID() const { return m_destMultiplexID; }
+	void SetDestinationMultiplexID(PInt32 id) { m_srcMultiplexID = id; m_destMultiplexed = true; }
+	void SendRTPKeepAlive(GkTimer* timer);
+	void SendRTCPKeepAlive(GkTimer* timer);
+
+//protected:
+	unsigned m_lc;
+	int m_srcSocket;
+	PIPSocket::Address m_destination;
+	// multiplexing
+	PInt32 m_srcMultiplexID;
 	PInt32 m_destMultiplexID;
+	bool m_readyToSend;
+	bool m_destMultiplexed;
+	// keepAlive
+	unsigned keepAliveInterval;
 };
 
-class MultiplexHandler : public Singleton<MultiplexHandler>, public SocketsReader {
-public:
-	MultiplexHandler();
-	virtual ~MultiplexHandler();
+enum KeepALiveType { RTP, RTCP };
 
-//	virtual MultiplexDestination * GetDestination(PInt32 multiplexID) const;
-//	virtual void AddDestination(MultiplexDestination dest);
-//	virtual void RemoveDestination(PInt32 multiplexID);
+class H46019KeepAlive
+{
+public:
+	H46019KeepAlive();
+	~H46019KeepAlive();
+
+	void SendKeepAlive(GkTimer* timer);
+
+	unsigned flcn;
+	KeepALiveType type;
+	PIPSocket::Address dest;
+	unsigned interval;
+	int ossocket;
+	GkTimerManager::GkTimerHandle timer;
+};
+
+// handles multiplexed RTP and keepAlives
+class H46019Handler : public Singleton<H46019Handler>, public SocketsReader {
+public:
+	H46019Handler();
+	virtual ~H46019Handler();
+
+	virtual void OnReload() { /* TODO: update ports etc. */ }
+
+	virtual void AddRTPKeepAlive(unsigned flcn, PIPSocket::Address keepAliveRTPAddr, unsigned keepAliveInterval);
+	virtual void StartRTPKeepAlive(unsigned flcn, int RTPOSSocket);
+	virtual void AddRTCPKeepAlive(unsigned flcn, PIPSocket::Address keepAliveRTCPAddr, unsigned keepAliveInterval);
+	virtual void StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket);
+	virtual void RemoveKeepAlives(unsigned flcn);
+
+	virtual void AddDestination(const H46019Destination & dest);
+	virtual void RemoveDestination(unsigned lc, unsigned session);
+	virtual H46019Destination * GetDestination(PInt32 srcMultiplexID) const;
+	virtual void UpdateDestination(const H46019Destination & dest);
 
 protected:
 	virtual void OnStart();
@@ -393,6 +434,10 @@ protected:
 
 	MultiplexRTPListener * m_multiplexRTPListener;
 	MultiplexRTPListener * m_multiplexRTCPListener;
+
+	map<unsigned, H46019KeepAlive> m_RTPkeepalives;
+	map<unsigned, H46019KeepAlive> m_RTCPkeepalives;
+	list<H46019Destination> m_destinations;
 };
 
 #endif

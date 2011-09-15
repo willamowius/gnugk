@@ -293,6 +293,7 @@ public:
 	typedef void (UDPProxySocket::*pMem)(const Address &, WORD, const H245_UnicastAddress_iPAddress &, callptr &);
 
 	bool Bind(const Address &localAddr, WORD pt);
+	int GetOSSocket() const { return os_handle; }
 	void SetNAT(bool);
 	bool isMute() { return mute; }
 	void SetMute(bool toMute) { mute = toMute; }
@@ -380,9 +381,12 @@ public:
 	WORD GetChannelNumber() const { return channelNumber; }
 	void SetChannelNumber(WORD cn) { channelNumber = cn; }
 
-	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *, callptr &, bool fromH46019) = 0;
+	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *, callptr &, bool fromTraversalClient) = 0;
 	virtual void StartReading(ProxyHandler *) = 0;
 	virtual void SetRTPMute(bool toMute) = 0;
+
+	virtual int GetRTPOSSocket() const { return 0; }
+	virtual int GetRTCPOSSocket() const { return 0; }
 
 protected:
 	WORD channelNumber;
@@ -398,11 +402,11 @@ public:
 
 	void SetMediaChannelSource(const H245_UnicastAddress_iPAddress &);
 	void SetMediaControlChannelSource(const H245_UnicastAddress_iPAddress &);
-	void HandleMediaChannel(H245_UnicastAddress_iPAddress *, H245_UnicastAddress_iPAddress *, const PIPSocket::Address &, bool, callptr &, bool fromH46019);
+	void HandleMediaChannel(H245_UnicastAddress_iPAddress *, H245_UnicastAddress_iPAddress *, const PIPSocket::Address &, bool, callptr &, bool fromTraversalClient);
 	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters &, const PIPSocket::Address &, bool, callptr &, bool);
 
 	// override from class LogicalChannel
-	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *, callptr &, bool fromH46019);
+	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *, callptr &, bool fromTraversalClient);
 	virtual void StartReading(ProxyHandler *);
 	virtual void SetRTPMute(bool toMute);
 
@@ -415,6 +419,11 @@ public:
 	void SetH46019UniDirectional(bool uni);
 	void SetRTPSessionID(WORD id);
 
+	WORD GetRTPListenPort() const { return rtp ? rtp->GetListenPort() : 0; }
+	WORD GetRTCPListenPort() const { return rtcp ? rtcp->GetListenPort() : 0; }
+	int GetRTPOSSocket() const { return rtp ? rtp->GetOSSocket() : 0; }
+	int GetRTCPOSSocket() const { return rtcp ? rtcp->GetOSSocket() : 0; }
+
 private:
 	void SetNAT(bool);
 
@@ -424,7 +433,7 @@ private:
 	PIPSocket::Address SrcIP;
 	WORD SrcPort;
 
-	static WORD GetPortNumber();
+	static WORD GetPortNumber();	// get a new port number to use
 };
 
 class T120LogicalChannel : public LogicalChannel {
@@ -433,7 +442,7 @@ public:
 	virtual ~T120LogicalChannel();
 
 	// override from class LogicalChannel
-	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *, callptr &, bool /*fromH46019*/);
+	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *, callptr &, bool /*fromTraversalClient*/);
 	virtual void StartReading(ProxyHandler *);
 	virtual void SetRTPMute(bool /*toMute*/) { }   /// We do not Mute T.120 Channels
 
@@ -506,6 +515,8 @@ private:
 	bool isH245ended;
 };
 
+enum H46019TraversalType { None, TraversalClient, TraversalServer };
+
 class H245ProxyHandler : public H245Handler {
 public:
 	typedef std::map<WORD, LogicalChannel *>::iterator iterator;
@@ -525,6 +536,9 @@ public:
 	RTPLogicalChannel *FindRTPLogicalChannelBySessionID(WORD);
 	void SetUsesH46019(bool use) { m_useH46019 = use; }
 	bool UsesH46019() const { return m_useH46019; }
+	void SetTraversalType(H46019TraversalType type) { m_traversalType = type; }
+	bool IsTraversalServer() const { return m_traversalType == TraversalServer; }
+	bool IsTraversalClient() const { return m_traversalType == TraversalClient; }
 	void SetUsesH46019fc(bool use) { m_useH46019fc = use; }
 	bool UsesH46019fc() const { return m_useH46019fc; }
 	void SetH46019fcState(int use) { m_H46019fcState = use; }
@@ -558,6 +572,7 @@ private:
 	H225_CallIdentifier callid;
 	bool isMute;
 	bool m_useH46019;
+	H46019TraversalType m_traversalType;
 	bool m_useH46019fc;
 	int m_H46019fcState;
 	int m_H46019dir;
@@ -871,6 +886,10 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 #ifdef HAS_H46018
 		if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018()) {
 			proxyhandler->SetUsesH46019(true);
+			if (m_call->GetCallingParty()->IsTraversalServer())
+				proxyhandler->SetTraversalType(TraversalServer);
+			else
+				proxyhandler->SetTraversalType(TraversalClient);
 		}
 		proxyhandler->SetH46019Direction(m_call->GetH46019Direction());
 #endif
@@ -879,6 +898,10 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 #ifdef HAS_H46018
 		if (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018()) {
 			((H245ProxyHandler*)m_h245handler)->SetUsesH46019(true);
+			if (m_call->GetCalledParty()->IsTraversalServer())
+				((H245ProxyHandler*)m_h245handler)->SetTraversalType(TraversalServer);
+			else
+				((H245ProxyHandler*)m_h245handler)->SetTraversalType(TraversalClient);
 		}
 		((H245ProxyHandler*)m_h245handler)->SetH46019Direction(m_call->GetH46019Direction());
 #endif
@@ -2512,39 +2535,41 @@ if (remote) {
 		}
 #endif
 
-		// if the peer address is a public address, but the advertised source address is a private address
-		// then there is a good chance the remote endpoint is behind a NAT.
-		PIPSocket::Address srcAddr;
-		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)) {
-			H323TransportAddress sourceAddress(setupBody.m_sourceCallSignalAddress);
-			sourceAddress.GetIpAddress(srcAddr);
+		if (!callFromTraversalZone) {
+			// if the peer address is a public address, but the advertised source address is a private address
+			// then there is a good chance the remote endpoint is behind a NAT.
+			PIPSocket::Address srcAddr;
+			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)) {
+				H323TransportAddress sourceAddress(setupBody.m_sourceCallSignalAddress);
+				sourceAddress.GetIpAddress(srcAddr);
 
-			if (_peerAddr != srcAddr) {  // do we have a NAT?
-				if (Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "SupportNATedEndpoints", "0"))) {
-					PTRACE(4, Type() << "\tSource address " <<  srcAddr
-						<< " peer address " << _peerAddr << " caller is behind NAT");
-					call->SetSrcNATed(srcAddr);
+				if (_peerAddr != srcAddr) {  // do we have a NAT?
+					if (Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "SupportNATedEndpoints", "0"))) {
+						PTRACE(4, Type() << "\tSource address " <<  srcAddr
+							<< " peer address " << _peerAddr << " caller is behind NAT");
+						call->SetSrcNATed(srcAddr);
+					} else {
+						// if unregistered caller is NATed & no policy then reject.
+						PTRACE(4, Type() << "\tUnregistered party is NATed. Not supported by policy.");
+						authData.m_rejectReason = Q931::NoRouteToDestination;
+						rejectCall = true;
+					}
+					// If the called Party is not NATed then the called EP must support NAT'd callers
+					// latter versions of OpenH323 and GnomeMeeting do also allow this condition.
 				} else {
-					// if unregistered caller is NATed & no policy then reject.
-					PTRACE(4, Type() << "\tUnregistered party is NATed. Not supported by policy.");
-					authData.m_rejectReason = Q931::NoRouteToDestination;
-					rejectCall = true;
+					PTRACE(4, Type() << "\tUnregistered party is not NATed");
 				}
-				// If the called Party is not NATed then the called EP must support NAT'd callers
-				// latter versions of OpenH323 and GnomeMeeting do also allow this condition.
 			} else {
-                PTRACE(4, Type() << "\tUnregistered party is not NATed");
+				   // If the party cannot be determined if behind NAT and we have support then just treat as being NAT
+					 if (Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "SupportNATedEndpoints", "0")) &&
+						Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "TreatUnregisteredNAT", "0"))) {
+						PTRACE(4, Type() << "\tUnregistered party " << _peerAddr << " cannot detect if NATed. Treated as if NATed");
+						srcAddr = "192.168.1.1";  // just an arbitrary internal address
+						call->SetSrcNATed(srcAddr);
+					} else {
+						PTRACE(4, Type() << "\tWARNING: Unregistered party " << _peerAddr << " cannot detect if NATed");
+					}
 			}
-		} else {
-			   // If the party cannot be determined if behind NAT and we have support then just treat as being NAT
-			     if (Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "SupportNATedEndpoints", "0")) &&
-				    Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "TreatUnregisteredNAT", "0"))) {
-					PTRACE(4, Type() << "\tUnregistered party " << _peerAddr << " cannot detect if NATed. Treated as if NATed");
-					srcAddr = "192.168.1.1";  // just an arbitrary internal address
-					call->SetSrcNATed(srcAddr);
-				} else {
-					PTRACE(4, Type() << "\tWARNING: Unregistered party " << _peerAddr << " cannot detect if NATed");
-				}
 		}
 
 		if (called)
@@ -4069,11 +4094,16 @@ void CallSignalSocket::OnFacility(
 					proxyhandler->SetH46019Direction(m_call->GetH46019Direction());
 					if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018()) {
 						proxyhandler->SetUsesH46019(true);
+						if (m_call->GetCallingParty()->IsTraversalServer())
+							proxyhandler->SetTraversalType(TraversalServer);
+						else
+							proxyhandler->SetTraversalType(TraversalClient);
 					}
 					callingSocket->m_h245handler = proxyhandler;
 					m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(), localAddr, called, masqAddr, proxyhandler);
 					proxyhandler->SetHandler(GetHandler());
 					((H245ProxyHandler*)m_h245handler)->SetUsesH46019(true);
+					((H245ProxyHandler*)m_h245handler)->SetTraversalType(TraversalClient);
 					((H245ProxyHandler*)m_h245handler)->SetH46019Direction(m_call->GetH46019Direction());
 
 					H225_H323_UserInformation *uuie = NULL;
@@ -5687,60 +5717,91 @@ void MultiplexRTPListener::ReceiveData()
 	PTRACE(0, "JW received multiplexed RTP on port " << localPort << " : " << buflen << " bytes from " << AsString(fromIP, fromPort)
 		<< " multiplexID=0x" << PString(PString::Unsigned, (long)multiplexID, 16) << " version=" << version);
 
-/*
-	destination = MultiplexHandler::Instance()->GetDestination(multiplexID);
+	H46019Destination * destination = H46019Handler::Instance()->GetDestination(multiplexID);
 	if (destination) {
-		if (destination->DetectionDone()) {
+		if (destination->IsReadyToSend()) {
+/*
 			// if (isRTCP)	sniff QoS stats
-			Send(destination);	// decides whether to send as multiplexed or regular RTP
+			Send(destination, startPtr, len);	// decides whether to send as multiplexed or regular RTP
+												// regular goes out old-fashion socket
+*/
 		}
 		else {
-			// use packet for auto-detect or ignore
+			// TODO: use packet for auto-detect or ignore
+			PTRACE(0, "JW TODO: use packet for auto-detect or ignore");
 		}
 	} else {
 		PTRACE(0, "JW ignoring multiplexed RTP packet - unknown multiplexID");
 	}
-*/
 }
 
-MultiplexHandler::MultiplexHandler() : Singleton<MultiplexHandler>("MultiplexHandler")
+PString H46019Destination::AsString() const
 {
-	SetName("MultiplexHandler");
+	return PString(PString::Printf, "H46019Dest: lc=%d srcMultID=%d destMultID=%d",
+				m_lc, m_srcMultiplexID, m_destMultiplexID);
+}
+
+H46019KeepAlive::H46019KeepAlive()
+{
+	timer = GkTimerManager::INVALID_HANDLE;;
+}
+
+H46019KeepAlive::~H46019KeepAlive()
+{
+	Toolkit::Instance()->GetTimerManager()->UnregisterTimer(timer);
+}
+
+void H46019KeepAlive::SendKeepAlive(GkTimer*)
+{
+	if (type == RTP) {
+		PTRACE(0, "JW Send RTP keepalive on socket " << ossocket << " to " << dest);
+	} else {
+		PTRACE(0, "JW Send RTCP keepalive on socket " << ossocket << " to " << dest);
+	}
+}
+	
+H46019Handler::H46019Handler() : Singleton<H46019Handler>("H46019Handler")
+{
+	m_multiplexRTPListener = NULL;
+	m_multiplexRTCPListener = NULL;
+	SetName("H46019Handler");
 	Execute();
 }
 
-MultiplexHandler::~MultiplexHandler()
+H46019Handler::~H46019Handler()
 {
 //	delete m_multiplexRTPListener;
 //	delete m_multiplexRTCPListener;
 }
 
-void MultiplexHandler::OnStart()
+void H46019Handler::OnStart()
 {
-	// create mutiplex RTP listeners
-	 m_multiplexRTPListener = new MultiplexRTPListener((WORD)GkConfig()->GetInteger(ProxySection, "RTPMultiplexPort", GK_DEF_MULTIPLEX_RTP_PORT));
-	 if (m_multiplexRTPListener->IsOpen()) {
-		PTRACE(1, "RTPM\tMultiplex RTP listener listening on port " << m_multiplexRTPListener->GetPort());
-		AddSocket(m_multiplexRTPListener);
-	} else {
-		PTRACE(1, "RTPM\tCannot start multiplex RTP listener on port " << m_multiplexRTPListener->GetPort());
-		delete m_multiplexRTPListener;
-		m_multiplexRTPListener = NULL;
-	}
-	 m_multiplexRTCPListener = new MultiplexRTPListener((WORD)GkConfig()->GetInteger(ProxySection, "RTCPMultiplexPort", GK_DEF_MULTIPLEX_RTCP_PORT));
-	 if (m_multiplexRTCPListener->IsOpen()) {
-		PTRACE(1, "RTPM\tMultiplex RTCP listener listening on port " << m_multiplexRTCPListener->GetPort());
-		AddSocket(m_multiplexRTCPListener);
-	} else {
-		PTRACE(1, "RTPM\tCannot start multiplex RTCP listener on port " << m_multiplexRTCPListener->GetPort());
-		delete m_multiplexRTCPListener;
-		m_multiplexRTCPListener = NULL;
+	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
+		// create mutiplex RTP listeners
+		 m_multiplexRTPListener = new MultiplexRTPListener((WORD)GkConfig()->GetInteger(ProxySection, "RTPMultiplexPort", GK_DEF_MULTIPLEX_RTP_PORT));
+		 if (m_multiplexRTPListener->IsOpen()) {
+			PTRACE(1, "RTPM\tMultiplex RTP listener listening on port " << m_multiplexRTPListener->GetPort());
+			AddSocket(m_multiplexRTPListener);
+		} else {
+			PTRACE(1, "RTPM\tCannot start multiplex RTP listener on port " << m_multiplexRTPListener->GetPort());
+			delete m_multiplexRTPListener;
+			m_multiplexRTPListener = NULL;
+		}
+		 m_multiplexRTCPListener = new MultiplexRTPListener((WORD)GkConfig()->GetInteger(ProxySection, "RTCPMultiplexPort", GK_DEF_MULTIPLEX_RTCP_PORT));
+		 if (m_multiplexRTCPListener->IsOpen()) {
+			PTRACE(1, "RTPM\tMultiplex RTCP listener listening on port " << m_multiplexRTCPListener->GetPort());
+			AddSocket(m_multiplexRTCPListener);
+		} else {
+			PTRACE(1, "RTPM\tCannot start multiplex RTCP listener on port " << m_multiplexRTCPListener->GetPort());
+			delete m_multiplexRTCPListener;
+			m_multiplexRTCPListener = NULL;
+		}
 	}
 }
 
-void MultiplexHandler::Stop()
+void H46019Handler::Stop()
 {
-	PTRACE(0, "JW MultiplexHandler Stop()");
+	PTRACE(0, "JW H46019Handler Stop()");
 	if (m_multiplexRTPListener) {
 		m_multiplexRTPListener->Close();
 	}
@@ -5750,7 +5811,7 @@ void MultiplexHandler::Stop()
 	RemoveClosed(false);
 }
 
-void MultiplexHandler::ReadSocket(IPSocket * socket)
+void H46019Handler::ReadSocket(IPSocket * socket)
 {
 	MultiplexRTPListener *psocket = dynamic_cast<MultiplexRTPListener *>(socket);
 	if (psocket == NULL) {
@@ -5758,6 +5819,79 @@ void MultiplexHandler::ReadSocket(IPSocket * socket)
 		return;
 	}
 	psocket->ReceiveData();
+}
+
+void H46019Handler::AddRTPKeepAlive(unsigned flcn, PIPSocket::Address keepAliveRTPAddr, unsigned keepAliveInterval)
+{
+	PTRACE(0, "JW AddRTPKeepAlive lc=" << flcn << " dest=" << keepAliveRTPAddr << " interval=" << keepAliveInterval);
+	H46019KeepAlive ka;
+	ka.type = RTP;
+	ka.flcn = flcn;
+	ka.dest = keepAliveRTPAddr;
+	ka.interval = keepAliveInterval;
+	m_RTPkeepalives[flcn] = ka;
+}
+
+void H46019Handler::StartRTPKeepAlive(unsigned flcn, int RTPOSSocket)
+{
+	map<unsigned, H46019KeepAlive>::iterator iter = m_RTPkeepalives.find(flcn);
+	if (iter != m_RTPkeepalives.end()) {
+		PTRACE(0, "JW Starting RTP keepAlive OS socket=" << RTPOSSocket);
+		iter->second.ossocket = RTPOSSocket;
+		PTime now;
+		iter->second.timer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
+				&(iter->second), &H46019KeepAlive::SendKeepAlive, now, iter->second.interval);	// do it now and every n seconds
+
+	}
+}
+
+void H46019Handler::AddRTCPKeepAlive(unsigned flcn, PIPSocket::Address keepAliveRTCPAddr, unsigned keepAliveInterval)
+{
+	PTRACE(0, "JW AddRTCPKeepAlive lc=" << flcn << " dest=" << keepAliveRTCPAddr << " interval=" << keepAliveInterval);
+	H46019KeepAlive ka;
+	ka.type = RTCP;
+	ka.flcn = flcn;
+	ka.dest = keepAliveRTCPAddr;
+	ka.interval = keepAliveInterval;
+	m_RTCPkeepalives[flcn] = ka;
+}
+
+void H46019Handler::StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket)
+{
+	map<unsigned, H46019KeepAlive>::iterator iter = m_RTCPkeepalives.find(flcn);
+	if (iter != m_RTCPkeepalives.end()) {
+		PTRACE(0, "JW Starting RTCP keepAlive OS socket=" << RTCPOSSocket);
+		iter->second.ossocket = RTCPOSSocket;
+		PTime now;
+		iter->second.timer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
+				&(iter->second), &H46019KeepAlive::SendKeepAlive, now, iter->second.interval);	// do it now and every n seconds
+
+	}
+}
+
+void H46019Handler::RemoveKeepAlives(unsigned flcn)
+{
+	m_RTPkeepalives.erase(flcn);
+	m_RTCPkeepalives.erase(flcn);
+}
+
+void H46019Handler::AddDestination(const H46019Destination & dest)
+{
+	PTRACE(0, "JW ADD destination " << dest);
+	m_destinations.push_back(dest);
+}
+
+void H46019Handler::RemoveDestination(unsigned lc, unsigned session)
+{
+}
+
+H46019Destination * H46019Handler::GetDestination(PInt32 srcMultiplexID) const
+{
+	return NULL;
+}
+
+void H46019Handler::UpdateDestination(const H46019Destination & dest)
+{
 }
 
 #endif
@@ -6476,7 +6610,7 @@ void RTPLogicalChannel::SetMediaChannelSource(const H245_UnicastAddress_iPAddres
 	addr >> SrcIP >> SrcPort;
 }
 
-void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress * mediaControlChannel, H245_UnicastAddress_iPAddress * mediaChannel, const PIPSocket::Address & local, bool rev, callptr & mcall, bool fromH46019)
+void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress * mediaControlChannel, H245_UnicastAddress_iPAddress * mediaChannel, const PIPSocket::Address & local, bool rev, callptr & mcall, bool fromTraversalClient)
 {
 	H245_UnicastAddress_iPAddress tmp, tmpmedia, tmpmediacontrol, *dest = mediaControlChannel;
 	PIPSocket::Address tmpSrcIP = SrcIP;
@@ -6508,7 +6642,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress * media
 	UDPProxySocket::pMem SetDest = (reversed) ? &UDPProxySocket::SetReverseDestination : &UDPProxySocket::SetForwardDestination;
 	(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, *dest, mcall);
 #ifdef HAS_H46018
-	if (fromH46019) {
+	if (fromTraversalClient) {
 		PTRACE(5, "H46018\tSetting control channel destination to 0");
 		(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, 0, mcall);
 	}
@@ -6526,7 +6660,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress_iPAddress * media
 			tmpSrcPort -= 1;
 		(rtp->*SetDest)(tmpSrcIP, tmpSrcPort, *dest, mcall);
 #ifdef HAS_H46018
-		if (fromH46019) {
+		if (fromTraversalClient) {
 			PTRACE(5, "H46018\tSetting media channel destination to 0");
 			(rtp->*SetDest)(tmpSrcIP, tmpSrcPort, 0, mcall);
 		}
@@ -6541,24 +6675,24 @@ void RTPLogicalChannel::SetRTPMute(bool toMute)
 		rtp->SetMute(toMute);
 }
 
-bool RTPLogicalChannel::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters & h225Params, const PIPSocket::Address & local, bool rev, callptr & mcall, bool fromH46019)
+bool RTPLogicalChannel::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters & h225Params, const PIPSocket::Address & local, bool rev, callptr & mcall, bool fromTraversalClient)
 {
 	if (!h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel))
 		return false;
 	H245_UnicastAddress_iPAddress *mediaControlChannel = GetH245UnicastAddress(h225Params.m_mediaControlChannel);
 	H245_UnicastAddress_iPAddress *mediaChannel = h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel) ? GetH245UnicastAddress(h225Params.m_mediaChannel) : NULL;
-	HandleMediaChannel(mediaControlChannel, mediaChannel, local, rev, mcall, fromH46019);
+	HandleMediaChannel(mediaControlChannel, mediaChannel, local, rev, mcall, fromTraversalClient);
 	return true;
 }
 
-bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler *handler, callptr & mcall, bool fromH46019)
+bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler *handler, callptr & mcall, bool fromTraversalClient)
 {
 	H245_UnicastAddress_iPAddress *mediaControlChannel, *mediaChannel;
 	GetChannelsFromOLCA(olca, mediaControlChannel, mediaChannel);
 	if (mediaControlChannel == NULL && mediaChannel == NULL) {
 		return false;
 	}
-	HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetMasqAddr(), false, mcall, fromH46019);
+	HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetMasqAddr(), false, mcall, fromTraversalClient);
 	return true;
 }
 
@@ -6620,7 +6754,7 @@ T120LogicalChannel::~T120LogicalChannel()
 	PTRACE(4, "T120\tDelete logical channel " << channelNumber);
 }
 
-bool T120LogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler * _handler, callptr & mcall, bool /*fromH46019*/)
+bool T120LogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler * _handler, callptr & mcall, bool /*fromTraversalClient*/)
 {
 	return (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_separateStack)) ?
 		OnSeparateStack(olca.m_separateStack, _handler) : false;
@@ -6799,7 +6933,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 		lc->SetMediaControlChannelSource(*addr);
 		*addr << GetMasqAddr() << (lc->GetPort() + 1);
 #ifdef HAS_H46018
-		if (UsesH46019()) {
+		if (IsTraversalClient()) {
 			PTRACE(5, "H46018\tSetting control channel to 0");
 			lc->SetMediaControlChannelSource(0);
 		}
@@ -6813,7 +6947,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 			lc->SetMediaChannelSource(*addr);
 			*addr << GetMasqAddr() << lc->GetPort();
 #ifdef HAS_H46018
-			if (UsesH46019()) {
+			if (IsTraversalClient()) {
 				PTRACE(5, "H46018\tSetting media channel to 0");
 				lc->SetMediaChannelSource(0);
 			}
@@ -6825,6 +6959,41 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 	}
 
 	return changed;
+}
+
+bool /*H245ProxyHandler::*/ ParseTraversalParameters(
+	/* in */
+	const H245_GenericInformation & genericInfo,
+	/* out */
+	unsigned & payloadtype,
+	H323TransportAddress & keepAliveRTPAddr,
+	unsigned & keepAliveInterval)
+{
+	// get the keepalive information (if present)
+	H46019_TraversalParameters params;
+	PASN_OctetString & raw = genericInfo.m_messageContent[0].m_parameterValue;
+	if (raw.DecodeSubType(params)) {
+		payloadtype = 0;	// TODO: better default ?
+		keepAliveInterval = 0;
+		if (params.HasOptionalField(H46019_TraversalParameters::e_keepAlivePayloadType)) {
+			payloadtype = params.m_keepAlivePayloadType;
+			PTRACE(5, "H46018\tReceived KeepAlive PayloadType=" << payloadtype);
+		}
+		// JW TODO: remember keepAliveChannel+Interval: we must send keepAlives to it if we are a traversal client
+		// do we know at this stage what the sender address is going to be ?
+		// one thread per channel ? or one thread for all channels with keepalives ?
+		if (params.HasOptionalField(H46019_TraversalParameters::e_keepAliveChannel)) {
+			keepAliveRTPAddr = params.m_keepAliveChannel;
+			PTRACE(0, "JW H46018\tReceived KeepAlive Channel=" << keepAliveRTPAddr);
+		}
+		if (params.HasOptionalField(H46019_TraversalParameters::e_keepAliveInterval)) {
+			keepAliveInterval = params.m_keepAliveInterval;
+			PTRACE(0, "JW H46018\tReceived KeepAlive Interval=" << keepAliveInterval);
+		}
+		return true;
+	} else {
+		return false;
+	}
 }
 
 bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
@@ -6866,45 +7035,40 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 
 #ifdef HAS_H46018
 		// parse incoming traversal parameters for H.460.19
+		WORD sessionID = (WORD)h225Params->m_sessionID;
+		H46019Destination src(flcn);
+		H46019Destination dest(flcn);
 		bool m_h46019uni = false;
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_genericInformation)) {
 			// remove traversal parameters from sender before forwarding
 			for(PINDEX i = 0; i < olc.m_genericInformation.GetSize(); i++) {
 				PASN_ObjectId & gid = olc.m_genericInformation[i].m_messageIdentifier;
-				if (gid == H46019OID) {
-					// get the keepalive information (if present)
-					H46019_TraversalParameters params;
-					PASN_OctetString & raw = olc.m_genericInformation[i].m_messageContent[0].m_parameterValue;
-					if (raw.DecodeSubType(params)) {
-						unsigned payloadtype = 0;	// TODO: better default ?
-						H323TransportAddress keepAliveRTPAddr;
-						H245_UnicastAddress_iPAddress keepAliveRTCPAddr;
-						unsigned keepAliveInterval = 19;
-						if (params.HasOptionalField(H46019_TraversalParameters::e_keepAlivePayloadType)) {
-							payloadtype = params.m_keepAlivePayloadType;
-							PTRACE(5, "H46018\tReceived KeepAlive PayloadType=" << payloadtype);
-						}
-						// JW TODO: remember keepAliveChannel+Interval: we must send keepAlives to it if we are a traversal client
-						// do we know at this stage what the sender address is going to be ?
-						// one thread per channel ? or one thread for all channels with keepalives ?
-						if (params.HasOptionalField(H46019_TraversalParameters::e_keepAliveChannel)) {
-							keepAliveRTPAddr = params.m_keepAliveChannel;
-							PTRACE(0, "JW H46018\tReceived KeepAlive Channel=" << keepAliveRTPAddr);
-						}
-						if (params.HasOptionalField(H46019_TraversalParameters::e_keepAliveInterval)) {
-							keepAliveInterval = params.m_keepAliveInterval;
-							PTRACE(0, "JW H46018\tReceived KeepAlive Interval=" << keepAliveInterval);
-						}
+				// TODO: if GetSize() > 0
+				H245_ParameterIdentifier & ident = olc.m_genericInformation[i].m_messageContent[0].m_parameterIdentifier;
+				PASN_Integer & n = ident;
+				if (gid == H46019OID && n == 1) {
+					unsigned payloadtype;
+					H323TransportAddress keepAliveRTPAddr;
+					H245_UnicastAddress_iPAddress keepAliveRTCPAddr;
+					unsigned keepAliveInterval;
+					if (ParseTraversalParameters(olc.m_genericInformation[i], payloadtype, keepAliveRTPAddr, keepAliveInterval)) {
 						bool isReverseLC = false;
 						H245_H2250LogicalChannelParameters * h225Params = GetLogicalChannelParameters(olc, isReverseLC);
-						H245_UnicastAddress_iPAddress * control;
+						H245_UnicastAddress_iPAddress * control = NULL;
 						if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)
 							&& (control = GetH245UnicastAddress(h225Params->m_mediaControlChannel)) ) {
 							keepAliveRTCPAddr = *control;
 							PTRACE(0, "JW H46018\tUsing RTCP KeepAlive Addr=" << keepAliveRTCPAddr);
 						} else {
 							PTRACE(0, "JW H46018\tError: H.460.19 server didn't provide mediaControlChannel");
+							// TODO: calculate ?
 						}
+						// TODO: if multiplexing: use that for keepAlive addrs
+						if (keepAliveInterval > 0) {
+							H46019Handler::Instance()->AddRTPKeepAlive(flcn, keepAliveRTPAddr, keepAliveInterval);
+							// JW TODO: convert addr H46019Handler::Instance()->AddRTCPKeepAlive(flcn, keepAliveRTCPAddr, keepAliveInterval);
+						}
+						// H46019Handler::Instance()->AddDestination(src);
 					}
 					// move remaining elements down
 					for(PINDEX j = i+1; j < olc.m_genericInformation.GetSize(); j++) {
@@ -6921,7 +7085,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 		if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_videoData) {
 			H245_VideoCapability & vid = olc.m_forwardLogicalChannelParameters.m_dataType;
 			m_h46019uni = (vid.GetTag() == H245_VideoCapability::e_extendedVideoCapability);
-			if (UsesH46019() && m_h46019uni) {
+			if (IsTraversalClient() && m_h46019uni) {
 				LogicalChannel * lc = FindLogicalChannel(flcn);
 				if (lc) {
 					((RTPLogicalChannel*)lc)->SetH46019UniDirectional(m_h46019uni);
@@ -6933,7 +7097,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 		if (UsesH46019fc() && isReverseLC)
 			return true;
 
-		if (peer && peer->UsesH46019()) {
+		// add if peer is traversal client), don't add if we are traversal client
+		if (peer && peer->IsTraversalClient()) {
 			// We need to move any generic Information messages up 1 so H.460.19 will ALWAYS be in position 0.
 			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_genericInformation)) {
 				olc.m_genericInformation.SetSize(olc.m_genericInformation.GetSize()+1);
@@ -6956,24 +7121,28 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 			PASN_Integer & n = ident;
 			n = 1;
 			H46019_TraversalParameters params;
-			params.IncludeOptionalField(H46019_TraversalParameters::e_keepAliveChannel);
-			LogicalChannel * lc;
-			if (UsesH46019fc()) {
-				WORD sessionID = (WORD)h225Params->m_sessionID;
-				lc = fastStartLCs[sessionID];
-			} else {
-				lc = FindLogicalChannel(flcn);
-			}
-			if (lc) {
-				params.m_keepAliveChannel = IPToH245TransportAddr(GetMasqAddr(), lc->GetPort()); // use RTP port for keepAlives
-				((RTPLogicalChannel*)lc)->SetUsesH46019fc(UsesH46019fc());
-				((RTPLogicalChannel*)lc)->SetH46019Direction(GetH46019Direction());
-				((RTPLogicalChannel*)lc)->SetRTPSessionID((WORD)h225Params->m_sessionID);
-			} else {
-				PTRACE(1, "Can't find RTP port for logical channel " << flcn);
-			}
-			params.IncludeOptionalField(H46019_TraversalParameters::e_keepAliveInterval);
-			params.m_keepAliveInterval = 19;
+//			if (toServer) {
+//				params.IncludeOptionalField(H46019_TraversalParameters::e_keepAlivePayloadType);
+//				params.m_keepAlivePayloadType = 127;
+//			} else {
+				params.IncludeOptionalField(H46019_TraversalParameters::e_keepAliveChannel);
+				LogicalChannel * lc;
+				if (UsesH46019fc()) {
+					lc = fastStartLCs[sessionID];
+				} else {
+					lc = FindLogicalChannel(flcn);
+				}
+				if (lc) {
+					params.m_keepAliveChannel = IPToH245TransportAddr(GetMasqAddr(), lc->GetPort()); // use RTP port for keepAlives
+					((RTPLogicalChannel*)lc)->SetUsesH46019fc(UsesH46019fc());
+					((RTPLogicalChannel*)lc)->SetH46019Direction(GetH46019Direction());
+					((RTPLogicalChannel*)lc)->SetRTPSessionID((WORD)h225Params->m_sessionID);
+				} else {
+					PTRACE(1, "Can't find RTP port for logical channel " << flcn);
+				}
+				params.IncludeOptionalField(H46019_TraversalParameters::e_keepAliveInterval);
+				params.m_keepAliveInterval = 19;
+//			}
 			if (m_useRTPMultiplexing) {
 				// TODO JW: check if .19 client supports it (should, but some don't, servers may also not)
 				params.IncludeOptionalField(H46019_TraversalParameters::e_multiplexID);
@@ -6981,11 +7150,9 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 				params.m_multiplexID = 0xbadbad;
 
 				params.IncludeOptionalField(H46019_TraversalParameters::e_multiplexedMediaControlChannel);
-				// TODO: use the global multiplex ports later on (m_multiplexedRTCPPort)
-				//params.m_multiplexedMediaControlChannel = IPToH245TransportAddr(GetMasqAddr(), lc->GetPort()+1);
 				params.m_multiplexedMediaControlChannel = IPToH245TransportAddr(GetMasqAddr(), m_multiplexedRTCPPort);
 			}
-			PTRACE(0, "JW TraversalParams=" << params);
+			PTRACE(0, "JW Add TraversalParams=" << params);
 			H245_ParameterValue & octetValue = genericParameter.m_parameterValue;
 			octetValue.SetTag(H245_ParameterValue::e_octetString);
 			PASN_OctetString & raw = octetValue;
@@ -6993,6 +7160,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 			olc.m_genericInformation[0].m_messageContent[0] = genericParameter;
 			changed = true;
 		}
+		//H46019Handler::Instance()->AddDestination(dest);
 #endif
 		return changed;
 	}
@@ -7017,20 +7185,25 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 	}
 
 #ifdef HAS_H46018
-	// parse traversal parameters for PayloadType used by client
+	// parse traversal parameters from sender
 	if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_genericInformation)) {
 		for (PINDEX i = 0; i < olca.m_genericInformation.GetSize(); i++) {
 			if (olca.m_genericInformation[i].m_messageContent.GetSize() > 0) {
 				PASN_ObjectId & gid = olca.m_genericInformation[i].m_messageIdentifier;
+				// TODO: if GetSize() > 0
 				H245_ParameterIdentifier & ident = olca.m_genericInformation[i].m_messageContent[0].m_parameterIdentifier;
 				PASN_Integer & n = ident;
 				if (gid == H46019OID && n == 1) {
-					H46019_TraversalParameters params;
-					PASN_OctetString & raw = olca.m_genericInformation[i].m_messageContent[0].m_parameterValue;
-					if (raw.DecodeSubType(params)) {
-						PTRACE(0, "JW Received OLCA Params=" << params);
-						if (params.HasOptionalField(H46019_TraversalParameters::e_keepAlivePayloadType)) {
-							PTRACE(5, "H46018\tExpecting KeepAlive PayloadType=" << params.m_keepAlivePayloadType << " for channel " << flcn);
+					unsigned payloadtype;
+					H323TransportAddress keepAliveRTPAddr;
+					H245_UnicastAddress_iPAddress keepAliveRTCPAddr;
+					unsigned keepAliveInterval;
+					if (ParseTraversalParameters(olca.m_genericInformation[i], payloadtype, keepAliveRTPAddr, keepAliveInterval)) {
+						// JW TODO: start keepAlive if traversal client
+						// TODO: 2. case wo wir OLCA von non-.19 bekommen und dann keepAlive an andere seite starten können!
+						if (keepAliveInterval > 0) {
+							H46019Handler::Instance()->AddRTPKeepAlive(flcn, keepAliveRTPAddr, keepAliveInterval);
+							//H46019Handler::Instance()->AddRTCPKeepAlive(flcn, keepAliveRTCPAddr, keepAliveInterval);
 						}
 					}
 				}
@@ -7054,6 +7227,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		changed = true;
 	}
 	// add traversal parameters, if needed
+	// JW BUG: also add traversal params to non-multiplexing clients
 	if (m_useRTPMultiplexing && peer && peer->UsesH46019()) {
 		// we need to move any generic Information messages up 1 so H.460.19 will ALWAYS be in position 0.
 		if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_genericInformation)) {
@@ -7102,9 +7276,16 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 	}
 #endif
 
-	bool result = lc->SetDestination(olca, this, mcall, UsesH46019());
+	bool result = lc->SetDestination(olca, this, mcall, IsTraversalClient());
 	if (result)
 		lc->StartReading(handler);
+
+#ifdef HAS_H46018
+	// if we are traversal client, start keepAlive here
+	// will be ignored, if no keepAlive is needed
+	H46019Handler::Instance()->StartRTPKeepAlive(flcn, lc->GetRTPOSSocket());
+	H46019Handler::Instance()->StartRTCPKeepAlive(flcn, lc->GetRTPOSSocket());
+#endif
 	return result | changed;
 }
 
@@ -7177,6 +7358,7 @@ bool H245ProxyHandler::HandleCloseLogicalChannel(H245_CloseLogicalChannel & clc)
 		if (second)
 			second->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber);
 	}
+	H46019Handler::Instance()->RemoveKeepAlives(clc.m_forwardLogicalChannelNumber);
 	return false; // nothing changed
 }
 
@@ -7284,7 +7466,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc,cal
 				peer->logicalChannels[flcn] = peer->sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != 0);
 		}
 	}
-	if (lc && (changed = lc->OnLogicalChannelParameters(*h225Params, GetMasqAddr(), isReverseLC, mcall, UsesH46019())))
+	if (lc && (changed = lc->OnLogicalChannelParameters(*h225Params, GetMasqAddr(), isReverseLC, mcall, IsTraversalClient())))
 		lc->StartReading(handler);
 	return changed;
 }

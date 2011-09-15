@@ -908,10 +908,10 @@ void RasServer::LoadConfig()
 	// create mutiplex RTP listeners
 	if (!m_multiplexHandler
 		&& Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
-		m_multiplexHandler = MultiplexHandler::Instance();
+		m_multiplexHandler = H46019Handler::Instance();
 	}
-	//if (m_multiplexHandler)
-	//	m_multiplexHandler->OnReload();
+	if (m_multiplexHandler)
+		m_multiplexHandler->OnReload();
 #endif
 
 	if (listeners)
@@ -3369,11 +3369,20 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 {
 	// OnLRQ
 	PString log;
+	bool fromTraversalClient = false;
 
 	if (request.m_destinationInfo.GetSize() > 0) {
 		// do GWRewriteE164 for neighbor befor processing
 		PString neighbor_id = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(request.m_replyAddress);
 		PString neighbor_gkid = RasSrv->GetNeighbors()->GetNeighborGkIdBySigAdr(request.m_replyAddress);
+		// if we didn't find the neighbor by SigIP, check if is a traversal client
+		if (neighbor_id.IsEmpty()) {
+			fromTraversalClient = RasSrv->GetNeighbors()->IsTraversalClient(m_msg->m_peerAddr);
+			if (fromTraversalClient)
+				neighbor_id = RasSrv->GetNeighbors()->GetNeighborGkIdBySigAdr(m_msg->m_peerAddr);
+		}
+
+		// do the rewrites
 		if (!neighbor_id.IsEmpty()) {
 			Kit->GWRewriteE164(neighbor_id, GW_REWRITE_IN, request.m_destinationInfo[0]);
 		}
@@ -3564,8 +3573,8 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				+ ";";
 	}
 
-	// for a regsistered endpoint, reply to the sent address
-	if (!(fromRegEndpoint || replyAddrMatch))
+	// for a registered endpoint, reply to the sent address
+	if (!(fromRegEndpoint || replyAddrMatch || fromTraversalClient))
 		m_msg->m_peerAddr = ipaddr, m_msg->m_peerPort = port;
 
 	PrintStatus(log);
@@ -3658,7 +3667,7 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 	// check the password, if set
 	if (from_neighbor)
 		neighbor_authenticated = from_neighbor->Authenticate(this);
- 
+
 	// accept incomingIndication from neighbor without an entry in supportedFeatures
 	if (request.HasOptionalField(H225_ServiceControlIndication::e_genericData)) {
 		for (PINDEX i=0; i < request.m_genericData.GetSize(); i++) {
