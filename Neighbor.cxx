@@ -1207,6 +1207,11 @@ bool NeighborList::IsTraversalZone(const PIPSocket::Address & addr) const
 	return find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsTraversalZone), &addr)) != m_neighbors.end();
 }
 
+bool NeighborList::IsTraversalClient(const PIPSocket::Address & addr) const
+{
+	return find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsTraversalClient), &addr)) != m_neighbors.end();
+}
+
 PString NeighborList::GetNeighborIdBySigAdr(const H225_TransportAddress & sigAd)
 {
 	PIPSocket::Address ipaddr;
@@ -1243,7 +1248,7 @@ PString NeighborList::GetNeighborGkIdBySigAdr(const PIPSocket::Address & sigAd)
 
 	return (*findNeighbor)->GetGkId();
 }
- 
+
 PString NeighborList::GetNeighborGkIdBySigAdr(const H225_TransportAddress & sigAd)
 {
 	PIPSocket::Address ipaddr;

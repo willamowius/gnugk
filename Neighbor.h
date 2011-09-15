@@ -69,6 +69,7 @@ public:
 	bool IsFrom(const PIPSocket::Address *ip) const { return GetIP() == *ip; }
 	bool IsTraversalUser(const PString * user) const { return m_H46018Server && (m_authUser == *user); }
 	bool IsTraversalZone(const PIPSocket::Address *ip) const { return (GetIP() == *ip) && (m_H46018Server || m_H46018Client); }
+	bool IsTraversalClient(const PIPSocket::Address *ip) const { return (GetIP() == *ip) && m_H46018Server; }	// it is from a client, if we are the server
 	void SetApparentIP(const PIPSocket::Address & ip) { m_ip = ip; }
 	bool ForwardResponse() const { return m_forwardResponse; }
 	int ForwardLRQ() const { return m_forwardto; }
@@ -149,6 +150,7 @@ public:
 	bool CheckLRQ(RasMsg *) const;
 	bool CheckIP(const PIPSocket::Address &) const;
 	bool IsTraversalZone(const PIPSocket::Address &) const;
+	bool IsTraversalClient(const PIPSocket::Address &) const;
 
 	// return the neighbor's ID from the list by signal address
 	PString GetNeighborIdBySigAdr(const H225_TransportAddress & sigAd);
