@@ -282,7 +282,10 @@ bool YaSocket::Bind(const Address & addr, WORD pt)
 	if (IsOpen()) {
 		sockaddr_in inaddr;
 		memset(&inaddr, 0, sizeof(inaddr));
-		inaddr.sin_family = AF_INET;
+		if (addr.GetVerson() == 6)
+			inaddr.sin_family = AF_INET6;
+		else
+			inaddr.sin_family = AF_INET;
 		inaddr.sin_addr.s_addr = addr;
 		inaddr.sin_port = htons(pt);
 		if (ConvertOSError(::bind(os_handle, (struct sockaddr *)&inaddr, sizeof(inaddr)))) {
@@ -300,7 +303,7 @@ bool YaSocket::Bind(const Address & addr, WORD pt)
 // class YaTCPSocket
 YaTCPSocket::YaTCPSocket(WORD pt)
 {
-	peeraddr.sin_family = AF_INET;
+	peeraddr.sin_family = AF_INET6;		// TODO
 	SetPort(pt);
 }
 
@@ -324,12 +327,15 @@ bool YaTCPSocket::SetLinger()
 
 bool YaTCPSocket::Listen(unsigned qs, WORD pt, PSocket::Reusability reuse)
 {
-	return Listen(INADDR_ANY, qs, pt, reuse);
+	return Listen(GNUGK_INADDR_ANY, qs, pt, reuse);
 }
 
 bool YaTCPSocket::Listen(const Address & addr, unsigned qs, WORD pt, PSocket::Reusability reuse)
 {
-	os_handle = ::socket(PF_INET, SOCK_STREAM, 0);
+	if (addr.GetVersion() == 6)
+		os_handle = ::socket(PF_INET6, SOCK_STREAM, 0);
+	else
+		os_handle = ::socket(PF_INET, SOCK_STREAM, 0);
 	if (!ConvertOSError(os_handle))
 		return false;
 
@@ -379,7 +385,10 @@ bool YaTCPSocket::Accept(YaTCPSocket & socket)
 bool YaTCPSocket::Connect(const Address & iface, WORD localPort, const Address & addr)
 {
 	if (os_handle < 0) {
-		os_handle = ::socket(PF_INET, SOCK_STREAM, 0);
+		if (iface.GetVersion() == 6)
+			os_handle = ::socket(PF_INET6, SOCK_STREAM, 0);
+		else
+			os_handle = ::socket(PF_INET, SOCK_STREAM, 0);
 		if (!ConvertOSError(os_handle))
 			return false;
 	}
@@ -391,7 +400,7 @@ bool YaTCPSocket::Connect(const Address & iface, WORD localPort, const Address &
 
 	WORD peerPort = port;
 	// bind local interface and port
-	if (iface != INADDR_ANY || localPort != 0)
+	if (iface != INADDR_ANY || localPort != 0)	// TOCO: check against "::", too ?
 		if (!Bind(iface, localPort))
 			return false;
 
@@ -434,7 +443,7 @@ bool YaTCPSocket::Connect(const Address & iface, WORD localPort, const Address &
 
 bool YaTCPSocket::Connect(const Address & addr)
 {
-	return YaTCPSocket::Connect(INADDR_ANY, 0, addr);
+	return YaTCPSocket::Connect(GNUGK_INADDR_ANY, 0, addr);
 }
 
 int YaTCPSocket::os_recv(void *buf, int sz)
@@ -459,18 +468,21 @@ int YaTCPSocket::os_send(const void *buf, int sz)
 // class YaUDPSocket
 YaUDPSocket::YaUDPSocket()
 {
-	sendaddr.sin_family = AF_INET;
+	sendaddr.sin_family = AF_INET6;		// TODO
 	sendaddr.sin_port = 0;
 }
 
 bool YaUDPSocket::Listen(unsigned, WORD pt, PSocket::Reusability reuse)
 {
-	return Listen(INADDR_ANY, 0, pt, reuse);
+	return Listen(GNUGK_INADDR_ANY, 0, pt, reuse);
 }
 
 bool YaUDPSocket::Listen(const Address & addr, unsigned, WORD pt, PSocket::Reusability reuse)
 {
-	os_handle = ::socket(PF_INET, SOCK_DGRAM, 0);
+	if (addr.GetVersion() == 6)
+		os_handle = ::socket(PF_INET6, SOCK_DGRAM, 0);
+	else
+		os_handle = ::socket(PF_INET, SOCK_DGRAM, 0);
 	if (!ConvertOSError(os_handle))
 		return false;
 

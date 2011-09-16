@@ -372,11 +372,18 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 	}
 
 	PTRACE(4, "InterfaceTable:\n" << setfill('\n') << if_table << setfill(' '));
+for(PINDEX i=0; i < if_table.GetSize(); ++i) {
+	PTRACE(0, "JW if entry << " << i << ". " << if_table[i].GetName() << " " << ::AsString(if_table[i].GetAddress()) << "/" << if_table[i].GetNetMask());
+}
 	PIPSocket::RouteTable r_table;
 	if (!PIPSocket::GetRouteTable(r_table)) {
 		PTRACE(1, "Error: Can't get route table");
 		return false;
 	}
+PTRACE(0, "JW route table size=" << r_table.GetSize());
+for(PINDEX i=0; i < r_table.GetSize(); ++i) {
+	PTRACE(0, "JW entry " << i << ": net=" << r_table[i].GetNetwork() << " mask=" << r_table[i].GetNetMask() << " dest=" << r_table[i].GetDestination() << " metric=" << r_table[i].GetMetric());
+}
 
 	if (/*!extroute &&*/ AsBool(GkConfig()->GetString(ProxySection, "Enable", "0"))) {
 	  for (PINDEX i = 0; i < r_table.GetSize(); ++i) {
@@ -397,8 +404,7 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 			::new (rtable_end++) RouteEntry(extroute);
 		} else {
 			PIPSocket::RouteEntry & r_entry = r_table[r];
-			//if (r_entry.GetNetMask() != INADDR_ANY && r_entry.GetNetwork().GetVersion() == 4 && r_entry.GetDestination().GetVersion() == 4) {
-			if (r_entry.GetNetMask() != INADDR_ANY && r_entry.GetNetwork().GetVersion() != 6) {
+			if (r_entry.GetNetMask() != INADDR_ANY) {		// JW TODO: IPv6 check
 				::new (rtable_end++) RouteEntry(r_entry, if_table);
 			}
 		}
@@ -1500,7 +1506,7 @@ PConfig* Toolkit::ReloadConfig()
 		GKHome = "";
 	}
 	if (m_GKHome.empty() || !GKHome)
-		SetGKHome(GKHome.Tokenise(",:;", false));
+		SetGKHome(GKHome.Tokenise(",;", false));
 	
 	m_RouteTable.InitTable();
 	m_VirtualRouteTable.InitTable();
@@ -2179,7 +2185,7 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias, const PI
 		for (PINDEX k = 0; k < ipaddresses.GetSize(); k++) {
            PString num = ipaddresses[k];
            WORD port = GK_DEF_UNICAST_RAS_PORT;
-		   PStringArray tokens = num.Tokenise(":", FALSE);	// TODO: IPv6 bug
+		   PStringArray tokens = SplitIPAndPort(num);
 		   if (tokens.GetSize() == 2)
                port = (WORD)tokens[1].AsUnsigned();
 
@@ -2449,6 +2455,15 @@ std::vector<NetworkAddress> Toolkit::GetInternalNetworks() {
     return !GkConfig()->GetString("ExternalIP", "").IsEmpty() ? m_VirtualRouteTable.GetInternalNetworks() : m_RouteTable.GetInternalNetworks();
 }
 
+bool Toolkit::IsIPv6Enabled() const
+{
+#ifdef hasIPV6
+	return AsBool(GkConfig()->GetString("EnableIPv6", 0));
+#else
+	return false;
+#endif
+}
+
 PString Toolkit::GetGKHome(vector<PIPSocket::Address> & GKHome) const
 {
 	GKHome = m_GKHome;
@@ -2484,14 +2499,29 @@ void Toolkit::SetGKHome(const PStringArray & home)
 		}
 
 		// if no home interfaces specified, set all IPs from interface table
-		// except INADDR_ANY and any non IPv4 adresses
+		// except INADDR_ANY
 		if (m_GKHome.empty()) {
 			for (PINDEX n = 0; n < it.GetSize(); ++n) {
-				const PIPSocket::Address addr = it[n].GetAddress();
-				if (addr != INADDR_ANY && addr.GetVersion() == 4) {
-					m_GKHome.push_back(addr);
-				}
+				m_GKHome.push_back(it[n].GetAddress());
 			}
+		}
+		// remove INADDR_ANY
+		for (size_t n = 0; n < m_GKHome.size(); ++n) {
+			if (m_GKHome[n] == INADDR_ANY
+				|| m_GKHome[n].IsLinkLocal()    // TODO: maybe keep listeninig on link local addrs ?
+				) {
+				m_GKHome.erase(m_GKHome.begin() + n);
+				--n;    // re-test the new element on position n
+			}
+		}
+		// if IPv6 is not enabled, remove _all_ IPv6 addresses
+		if (!IsIPv6Enabled()) {
+			for (size_t n = 0; n < m_GKHome.size(); ++n) {
+				if (m_GKHome[n].GetVersion() == 6) {
+					m_GKHome.erase(m_GKHome.begin() + n);
+					--n;    // re-test the new element on position n
+				}
+            }
 		}
 	}
 
@@ -2506,7 +2536,7 @@ void Toolkit::SetGKHome(const PStringArray & home)
 			sortedHomes.push_back(m_GKHome[j]);
 		} else {
 			sortedHomes.push_front(m_GKHome[j]);
-		}		
+		}
 	}
 	m_GKHome.assign(sortedHomes.begin(), sortedHomes.end());
 }
@@ -2576,7 +2606,7 @@ void Toolkit::GetNetworkFromString(
 	)
 {
 	if (s *= "ALL") {
-		network = netmask = INADDR_ANY;
+		network = netmask = GNUGK_INADDR_ANY;
 		return;
 	}
 

@@ -52,7 +52,7 @@ RadAcct::RadAcct(
 	m_radiusClient = new RadiusClient(*cfg, cfgSec);
 
 	m_nasIpAddress = m_radiusClient->GetLocalAddress();
-	if (m_nasIpAddress == INADDR_ANY) {
+	if (m_nasIpAddress == GNUGK_INADDR_ANY) {
 		vector<PIPSocket::Address> interfaces;
 		Toolkit::Instance()->GetGKHome(interfaces);
 		if (!interfaces.empty())

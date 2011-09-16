@@ -379,6 +379,7 @@ class Toolkit : public Singleton<Toolkit>
 	bool IsH460PEnabled() const;
 	GkPresence & GetPresenceHandler();
 #endif
+	bool IsIPv6Enabled() const;
 
 	// accessors
 	/** Accessor and 'Factory' to the static Toolkit.

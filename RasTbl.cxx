@@ -111,7 +111,7 @@ EndpointRec::EndpointRec(
 	{
 		case H225_RasMessage::e_registrationRequest:
 			SetEndpointRec((H225_RegistrationRequest &)m_RasMsg);
-			PTRACE(1, "New EP|" << PrintOn(false));
+			PTRACE(1, "New EP|" << PrintOn(false).Trim());
 			break;
 		case H225_RasMessage::e_admissionRequest:
 			SetEndpointRec((H225_AdmissionRequest &)m_RasMsg);
@@ -1535,7 +1535,7 @@ private:
 
 bool operator==(const H225_TransportAddress & adr, PIPSocket::Address ip)
 {
-	if (ip == INADDR_ANY)
+	if (ip == INADDR_ANY)	// TODO: also check against "::" and do *=
 		return true;
 	PIPSocket::Address ipaddr;
 	return GetIPFromTransportAddr(adr, ipaddr) ? (ip == ipaddr) : false;
@@ -2012,7 +2012,7 @@ CallRec::CallRec(
 	m_unregNAT(false), m_h245Routed(RasServer::Instance()->IsH245Routed()),
 	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
-	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(false),
+	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
 	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalZone(false)
 {
 	const H225_AdmissionRequest& arq = arqPdu;
@@ -2064,7 +2064,7 @@ CallRec::CallRec(
 	m_unregNAT(false), m_h245Routed(routeH245),
 	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
-	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(false),
+	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
 	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalZone(false)
 {
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
@@ -2104,7 +2104,7 @@ CallRec::CallRec(H225_CallIdentifier callID, H225_TransportAddress sigAdr)
 	m_usedCount(0), m_nattype(none),m_natstrategy(e_natUnknown), m_unregNAT(false), m_h245Routed(true),
 	m_toParent(false), m_forwarded(false), m_proxyMode(ProxyEnabled),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
-	m_singleFailoverCDR(true), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(false),
+	m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
 	m_h46018ReverseSetup(true), m_callfromTraversalZone(true)
 {
 }
@@ -2138,7 +2138,7 @@ CallRec::CallRec(
 	m_failedRoutes(oldCall->m_failedRoutes), m_newRoutes(oldCall->m_newRoutes),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_failoverActive(oldCall->m_failoverActive),
-	m_singleFailoverCDR(oldCall->m_singleFailoverCDR), m_mediaOriginatingIp(INADDR_ANY), m_proceedingSent(oldCall->m_proceedingSent),
+	m_singleFailoverCDR(oldCall->m_singleFailoverCDR), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(oldCall->m_proceedingSent),
 	m_clientAuthId(0), m_rerouteState(oldCall->m_rerouteState), m_h46018ReverseSetup(oldCall->m_h46018ReverseSetup),
 	m_callfromTraversalZone(oldCall->m_callfromTraversalZone)
 	// TODO: add new fields, bind hint etc. ? + c'tor ?

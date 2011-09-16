@@ -133,6 +133,11 @@ Default: <tt/OpenH323GK/<newline>
 Gatekeeper identifier of this gatekeeper. The gatekeeper will only respond to
 GRQs for this ID and will use it in a number of messages to its endpoints.
 
+<item><tt/EnableIPv6=1/<newline>
+Default: <tt/0/<newline>
+<p>
+If GnuGk has been compiled with IPv6 support, you can use this switch to turn it on.
+
 <item><tt/Home=192.168.1.1/<newline>
 Default: <tt/listen to all IPs/<newline>
 <p>

@@ -4,7 +4,7 @@
  * Generic interface to access SQL databases
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
- * Copyright (c) 2006-2010, Jan Willamowius
+ * Copyright (c) 2006-2011, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.

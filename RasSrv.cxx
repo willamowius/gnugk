@@ -184,10 +184,10 @@ bool GatekeeperMessage::Reply() const
 
 
 // class RasListener
-RasListener::RasListener(const Address & addr, WORD pt) : m_ip(addr)
+RasListener::RasListener(const Address & addr, WORD pt) : UDPSocket(0, addr.GetVersion() == 6 ? PF_INET6 : PF_INET), m_ip(addr)
 {
 	if (!Listen(addr, 0, pt, PSocket::CanReuseAddress)) {
-		PTRACE(1, "RAS\tCould not open listening socket at " << addr << ':' << pt
+		PTRACE(1, "RAS\tCould not open listening socket at " << AsString(addr, pt)
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
 			<< GetErrorNumber(PSocket::LastGeneralError) << ": " 
 			<< GetErrorText(PSocket::LastGeneralError)
@@ -199,7 +199,7 @@ RasListener::RasListener(const Address & addr, WORD pt) : m_ip(addr)
 	m_signalPort = 0;
 	// note: this won't be affected by reloading
 	m_virtualInterface = (!GkConfig()->GetString("NetworkInterfaces", "").IsEmpty());
-    // Check if we have external IP setting 
+	// Check if we have external IP setting 
 	if (!m_virtualInterface) {
 		m_virtualInterface = (!GkConfig()->GetString("ExternalIP", "").IsEmpty());
 	}
@@ -512,7 +512,16 @@ bool GkInterface::CreateListeners(RasServer *RasSrv)
 
 bool GkInterface::IsReachable(const Address *addr) const
 {
-	return Toolkit::Instance()->GetRouteTable(false)->GetLocalAddress(*addr) == m_address;
+	// return Toolkit::Instance()->GetRouteTable(false)->GetLocalAddress(*addr) == m_address;
+	bool result = false;
+	if (addr->GetVersion() == 4) {
+		result = (Toolkit::Instance()->GetRouteTable(false)->GetLocalAddress(*addr) == m_address);
+	} else {
+		// TODO: for now, use any IPv6 interface to reach a IPv6 destination, later, maybe fix GetLocalAddress with IPv6 parameter ?
+		result = (addr->GetVersion() == m_address.GetVersion());
+	}
+	PTRACE(0, "JW IsReachable " << *addr << " on " << m_address << " = " << result << " because GetLocalAddress=" << Toolkit::Instance()->GetRouteTable(false)->GetLocalAddress(*addr));
+	return result;
 }
 
 bool GkInterface::ValidateSocket(IPSocket *socket, WORD & port)
@@ -539,7 +548,8 @@ RasListener *GkInterface::CreateRasListener()
 
 MulticastListener *GkInterface::CreateMulticastListener()
 {
-	return (m_multicastPort && !IsLoopback(m_address)) ? new MulticastListener(m_address, m_multicastPort) : 0;
+	// TODO: IPv6 version of multicast listener ? additional check if this is a IPv6 maped IPv4 address !
+	return (m_multicastPort && !IsLoopback(m_address) && (m_address.GetVersion() != 6)) ? new MulticastListener(m_address, m_multicastPort) : 0;
 }
 
 CallSignalListener *GkInterface::CreateCallSignalListener()
@@ -580,7 +590,7 @@ void RasHandler::ProcessRAS(RasMsg *ras)
 }
 
 // class RasRequester
-RasRequester::RasRequester(H225_RasMessage & req) : m_request(&req), m_loAddr(INADDR_ANY)
+RasRequester::RasRequester(H225_RasMessage & req) : m_request(&req), m_loAddr(GNUGK_INADDR_ANY)
 {
 	Init();
 }
@@ -891,7 +901,8 @@ void RasServer::LoadConfig()
 	}
 
 #if NEED_BROADCASTLISTENER
-	if (bUseBroadcastListener && !broadcastListener) {
+	// TODO: IPv6 doesn't have broadcast, open IPv4 broadcast listener on another interface if first is IPv6 ?
+	if (bUseBroadcastListener && !broadcastListener && (interfaces.front()->GetAddress().GetVersion() != 6)) {
 		broadcastListener = new BroadcastListener(interfaces.front()->GetRasPort());
 		if (broadcastListener->IsOpen()) {
 			PTRACE(1, "RAS\tBroadcast listener listening at " << broadcastListener->GetName());
@@ -1003,7 +1014,7 @@ GkInterface *RasServer::SelectDefaultInterface()
 		if (intface->GetRasListener()->GetPhysicalAddr(defIP) == defIP)
 			return intface;
 	}
-    PTRACE(2, "RasSrv\tWARNING: No route detected using First Interface");
+    PTRACE(1, "RasSrv\tWARNING: No route detected using first interface");
     return interfaces.front();
 }
  
@@ -1015,9 +1026,8 @@ GkInterface *RasServer::SelectInterface(const Address & addr)
 	iter = find_if(interfaces.begin(), eiter, bind2nd(mem_fun(&GkInterface::IsReachable), &addr));
 	if (iter != eiter) 
         return *iter;
-    else 
+    else
         return SelectDefaultInterface();
- 
 }
 
 const GkInterface *RasServer::SelectInterface(const Address & addr) const
@@ -1408,7 +1418,7 @@ void RasServer::GetAlternateGK()
 	PStringArray svrs(sendto.Tokenise(" ,;\t", FALSE));
 	if ((altGKsSize = svrs.GetSize()) > 0)
 		for (PINDEX i = 0; i < altGKsSize; ++i) {
-			PStringArray tokens(svrs[i].Tokenise(":", FALSE));	// TODO: IPv6 bug
+			PStringArray tokens = SplitIPAndPort(svrs[i]);
 			altGKsAddr.push_back(Address(tokens[0]));
 			altGKsPort.push_back((tokens.GetSize() > 1) ? WORD(tokens[1].AsUnsigned()) : GK_DEF_UNICAST_RAS_PORT);
 		}
@@ -1593,7 +1603,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		grj.m_gatekeeperIdentifier = Toolkit::GKName();
 		if (rsn == H225_GatekeeperRejectReason::e_resourceUnavailable)
 			RasSrv->SetAltGKInfo(grj, m_msg->m_peerAddr);
-		log = "GRJ|" + PString(inet_ntoa(m_msg->m_peerAddr))
+		log = "GRJ|" + m_msg->m_peerAddr.AsString()
 				+ "|" + alias
 				+ "|" + AsString(request.m_endpointType)
 				+ "|" + grj.m_rejectReason.GetTagName()
@@ -1705,7 +1715,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		  RasSrv->SelectH235Capability(request, gcf);
 		}
 
-		log = "GCF|" + PString(inet_ntoa(m_msg->m_peerAddr))
+		log = "GCF|" + m_msg->m_peerAddr.AsString()
 				+ "|" + alias
 				+ "|" + AsString(request.m_endpointType)
 				+ ";";
@@ -1730,7 +1740,7 @@ bool RegistrationRequestPDU::Process()
 		WORD port = 0;
 		if (!GetIPAndPortFromTransportAddr(request.m_callSignalAddress[i], addr, port)
 				|| !addr.IsValid() || port == 0) {
-			PTRACE(5, "RAS\tRemoving signaling address " 
+			PTRACE(5, "RAS\tRemoving signaling address "
 				<< AsString(request.m_callSignalAddress[i]) << " from RRQ"
 				);
 			request.m_callSignalAddress.RemoveAt(i--);
@@ -2213,7 +2223,7 @@ bool RegistrationRequestPDU::Process()
 		if (iec == Toolkit::iecNATTraversal) {
 			PString ipdata = request.m_nonStandardData.m_data.AsString();
 			if (strncmp(ipdata, "IP=", 3) == 0) {
-				PStringArray ips(ipdata.Mid(3).Tokenise(",:;", false));
+				PStringArray ips(ipdata.Mid(3).Tokenise(",:;", false));	 // TODO: IPv6 bug
 				PINDEX k;
 				for (k = 0; k < ips.GetSize(); ++k)
 					if (PIPSocket::Address(ips[k]) == rx_addr)
@@ -2226,7 +2236,7 @@ bool RegistrationRequestPDU::Process()
 	request.m_callSignalAddress.SetSize(1);
 	request.m_callSignalAddress[0] = SignalAddr;
 
-	endptr ep = EndpointTbl->InsertRec(m_msg->m_recvRAS, nated ? rx_addr : PIPSocket::Address(INADDR_ANY));
+	endptr ep = EndpointTbl->InsertRec(m_msg->m_recvRAS, nated ? rx_addr : PIPSocket::Address(GNUGK_INADDR_ANY));
 	if (!ep) {
 		PTRACE(3, "RAS\tRRQ rejected by unknown reason from " << rx_addr);
 		return BuildRRJ(H225_RegistrationRejectReason::e_undefinedReason);
@@ -2465,7 +2475,7 @@ bool RegistrationRequestPDU::BuildRRJ(unsigned reason, bool alt)
 	}
 	
 	PString alias(request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) ? AsString(request.m_terminalAlias) : PString(" "));
-	PString log = "RRJ|" + PString(inet_ntoa(m_msg->m_peerAddr))
+	PString log = "RRJ|" + m_msg->m_peerAddr.AsString()
 					+ "|" + alias
 					+ "|" + AsString(request.m_terminalType)
 					+ "|" + rrj.m_rejectReason.GetTagName()
@@ -2503,13 +2513,13 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 		// Return UCF
 		BuildConfirm();
 
-		log = "UCF|" + PString(inet_ntoa(m_msg->m_peerAddr))
+		log = "UCF|" + m_msg->m_peerAddr.AsString()
 				+ "|" + endpointId
 				+ ";";
 	} else {
 		// Return URJ
 		H225_UnregistrationReject & urj = BuildReject(H225_UnregRejectReason::e_notCurrentlyRegistered);
-		log = "URJ|" + PString(inet_ntoa(m_msg->m_peerAddr))
+		log = "URJ|" + m_msg->m_peerAddr.AsString()
 				+ "|" + endpointId
 				+ "|" + urj.m_rejectReason.GetTagName()
 				+ ";";
@@ -3274,7 +3284,7 @@ template<> bool RasPDU<H225_BandwidthRequest>::Process()
 			RasSrv->SetAltGKInfo(brj, m_msg->m_peerAddr);
 		}
 		log = PString(PString::Printf, "BRJ|%s|%s|%u|%s;",
-			inet_ntoa(m_msg->m_peerAddr),
+			(const char *)m_msg->m_peerAddr.AsString(),
 			(const unsigned char *) request.m_endpointIdentifier.GetValue(),
 			bandwidth,
 			(const unsigned char *) brj.m_rejectReason.GetTagName()
@@ -3283,7 +3293,7 @@ template<> bool RasPDU<H225_BandwidthRequest>::Process()
 		H225_BandwidthConfirm & bcf = BuildConfirm();
 		bcf.m_bandWidth = (int)bandwidth;
 		log = PString(PString::Printf, "BCF|%s|%s|%u;",
-			inet_ntoa(m_msg->m_peerAddr),
+			(const char *)m_msg->m_peerAddr.AsString(),
 			(const unsigned char *) request.m_endpointIdentifier.GetValue(),
 			bandwidth
 		      );
@@ -3335,7 +3345,7 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 	if (bReject) {
 		H225_DisengageReject & drj = BuildReject(rsn);
 		log = PString(PString::Printf, "DRJ|%s|%s|%u|%s",
-				inet_ntoa(m_msg->m_peerAddr),
+				(const char *)m_msg->m_peerAddr.AsString(),
 				(const unsigned char *) request.m_endpointIdentifier.GetValue(),
 				(unsigned) request.m_callReferenceValue,
 				(const unsigned char *) drj.m_rejectReason.GetTagName()
@@ -3348,7 +3358,7 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 		BuildConfirm();
 		// always signal DCF
 		log = PString(PString::Printf, "DCF|%s|%s|%u|%s",
-				inet_ntoa(m_msg->m_peerAddr),
+				(const char *)m_msg->m_peerAddr.AsString(),
 				(const unsigned char *) request.m_endpointIdentifier.GetValue(),
 				(unsigned) request.m_callReferenceValue,
 				(const unsigned char *) request.m_disengageReason.GetTagName()
@@ -3527,7 +3537,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				} else 
 #endif		            
 				{
-					log = "LCF|" + PString(inet_ntoa(m_msg->m_peerAddr))
+					log = "LCF|" + m_msg->m_peerAddr.AsString()
 							+ "|" + (WantedEndPoint ? WantedEndPoint->GetEndpointIdentifier().GetValue() : AsDotString(route.m_destAddr))
 							+ "|" + AsString(request.m_destinationInfo),
 							+ "|" + sourceInfoString
@@ -3551,7 +3561,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 					if (iec == Toolkit::iecNeighborId)
 						ripData = rip.m_nonStandardData.m_data.AsString();
 				}
-				log = "RIP|" + PString(inet_ntoa(m_msg->m_peerAddr))
+				log = "RIP|" + m_msg->m_peerAddr.AsString()
 						+ "|" + ripData
 						+ "|" + AsString(request.m_destinationInfo)
 						+ "|" + sourceInfoString
@@ -3566,7 +3576,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 	if (bReject) {
 		// Alias not found
 		H225_LocationReject & lrj = BuildReject(reason);
-		log = "LRJ|" + PString(inet_ntoa(m_msg->m_peerAddr))
+		log = "LRJ|" + m_msg->m_peerAddr.AsString()
 				+ "|" + AsString(request.m_destinationInfo),
 				+ "|" + sourceInfoString,
 				+ "|" + lrj.m_rejectReason.GetTagName()
@@ -3621,7 +3631,7 @@ template<> bool RasPDU<H225_InfoRequestResponse>::Process()
 				}
 			}
 			BuildConfirm();
-			PrintStatus(PString(PString::Printf, "IACK|%s;", inet_ntoa(m_msg->m_peerAddr)));
+			PrintStatus(PString(PString::Printf, "IACK|%s;", (const char *)m_msg->m_peerAddr.AsString()));
 			return true;
 		}
 	}
@@ -3645,7 +3655,7 @@ template<> bool RasPDU<H225_ResourcesAvailableIndicate>::Process()
 	H225_ResourcesAvailableConfirm & rac = BuildConfirm();
 	rac.m_protocolIdentifier = request.m_protocolIdentifier;
 
-	PrintStatus(PString(PString::Printf, "RAC|%s;", inet_ntoa(m_msg->m_peerAddr)));
+	PrintStatus(PString(PString::Printf, "RAC|%s;", (const char *)m_msg->m_peerAddr.AsString()));
 	return true;
 }
 
@@ -3760,7 +3770,7 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 	}
 #endif
 
-	PrintStatus(PString(PString::Printf, "SCR|%s;", inet_ntoa(m_msg->m_peerAddr)));
+	PrintStatus(PString(PString::Printf, "SCR|%s;", (const char *)m_msg->m_peerAddr.AsString()));
 	return true;
 }
 

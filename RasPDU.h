@@ -6,7 +6,7 @@
 // Avoid including large h225.h in RasSrv.h
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2006-2010, Jan Willamowius
+// Copyright (c) 2006-2011, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -174,6 +174,7 @@ public:
 
 	WORD GetRasPort() const { return m_rasPort; }
 	WORD GetSignalPort() const { return m_signalPort; }
+	Address GetAddress() const { return m_address; }
 
 protected:
 	bool ValidateSocket(IPSocket *, WORD &);

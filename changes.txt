@@ -1,5 +1,7 @@
 Changes from 2.3.5 to 3.0.0
 ===========================
+- IPv4-IPv6 proxying
+- IPv6 support
 - massive performance improvement when (re-)loading large numbers of GW rewrites
 - support for RTP multiplexing (with H.460.19) - work in progress
 - improved H.235 password authentication with neighbors

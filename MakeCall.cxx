@@ -41,7 +41,7 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 	// Establish link with gatekeeper
 	H323TransportUDP * rasChannel;
 	if (GkConfig()->GetString("CTI::MakeCall", "Interface", "").IsEmpty())
-		rasChannel = new H323TransportUDP(*this, INADDR_ANY, 1722);
+		rasChannel = new H323TransportUDP(*this, GNUGK_INADDR_ANY, 1722);
 	else {
 		PIPSocket::Address interfaceAddress(GkConfig()->GetString("CTI::MakeCall", "Interface", ""));
 		rasChannel = new H323TransportUDP(*this, interfaceAddress);

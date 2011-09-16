@@ -21,6 +21,7 @@
 #include <ptclib/cypher.h>
 #include <ptclib/random.h>
 #include "Toolkit.h"
+#include "h323util.h"
 #include "radproto.h"
 
 // ignore overflow warnings
@@ -1755,7 +1756,7 @@ RadiusClient::RadiusClient(
 	m_idCacheTimeout(DefaultIdCacheTimeout),
 	m_socketDeleteTimeout(DefaultSocketDeleteTimeout),
 	m_numRetries(DefaultRetries), m_roundRobinServers(false),
-	m_localAddress(INADDR_ANY)
+	m_localAddress(GNUGK_INADDR_ANY)
 {
 	GetServersFromString(servers);
 	
@@ -1806,7 +1807,7 @@ RadiusClient::RadiusClient(
 		DefaultRetries)),
 	m_roundRobinServers(config.GetBoolean(
 		sectionName, "RoundRobinServers", TRUE)),
-	m_localAddress(INADDR_ANY)
+	m_localAddress(GNUGK_INADDR_ANY)
 {
 	GetServersFromString(config.GetString(sectionName, "Servers", ""));
 		
@@ -1884,7 +1885,7 @@ void RadiusClient::GetServersFromString(
 {
 	const PStringArray tokens = servers.Tokenise(" ;,", FALSE);
 	for (PINDEX i = 0; i < tokens.GetSize(); i++) {
-		const PStringArray serverTokens = tokens[i].Tokenise(":");	// TODO: IPv6 bug
+		const PStringArray serverTokens = SplitIPAndPort(tokens[i]);
 		if (serverTokens.GetSize() > 0) {
 			const PString serverAddress = serverTokens[0].Trim();
 			if (!serverAddress) {
@@ -2253,7 +2254,7 @@ bool RadiusClient::GetSocket(RadiusSocket*& socket, unsigned char& id)
 			delete newSocket;
 			newSocket = NULL;
 
-			if (m_localAddress == INADDR_ANY)
+			if (m_localAddress == GNUGK_INADDR_ANY)
 				newSocket = CreateSocket((WORD)(m_portBase + portIndex));
 			else
 				newSocket = CreateSocket(m_localAddress, (WORD)(m_portBase + portIndex));
@@ -2264,7 +2265,7 @@ bool RadiusClient::GetSocket(RadiusSocket*& socket, unsigned char& id)
 			delete newSocket;
 			newSocket = NULL;
 
-			if (m_localAddress == INADDR_ANY)
+			if (m_localAddress == GNUGK_INADDR_ANY)
 				newSocket = CreateSocket(p);
 			else
 				newSocket = CreateSocket(m_localAddress, p);

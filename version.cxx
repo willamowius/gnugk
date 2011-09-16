@@ -3,7 +3,7 @@
 // PURPOSE OF THIS FILE: Give version info
 //
 // Copyright (C) 2003 Nils.Bokermann@mediaways.net
-// Copyright (c) 2006-2010, Jan Willamowius
+// Copyright (c) 2006-2011, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -22,7 +22,7 @@
 const PString Toolkit::GKVersion()
 {
 	return PString(PString::Printf,
-		       "Gatekeeper(%s) Version(%s) Ext(pthreads=%d,radius=%d,mysql=%d,pgsql=%d,firebird=%d,odbc=%d,sqlite=%d,large_fdset=%d,crypto/ssl=%d,h46018=%d,h46023=%d,ldap=%d,ssh=%d)"
+		       "Gatekeeper(%s) Version(%s) Ext(pthreads=%d,radius=%d,mysql=%d,pgsql=%d,firebird=%d,odbc=%d,sqlite=%d,large_fdset=%d,crypto/ssl=%d,h46018=%d,h46023=%d,ldap=%d,ssh=%d,ipv6=%d)"
 		       " H323Plus(%d.%d.%d) PTLib(%d.%d.%d) Build(%s, %s) Sys(%s %s %s)\r\n",
 		       (const unsigned char*)(PProcess::Current().GetManufacturer()),
 		       (const unsigned char*)(PProcess::Current().GetVersion(true)),
@@ -87,6 +87,11 @@ const PString Toolkit::GKVersion()
 				(int)0,
 #endif
 #if HAS_LIBSSH
+				(int)1,
+#else
+				(int)0,
+#endif
+#ifdef hasIPV6
 				(int)1,
 #else
 				(int)0,

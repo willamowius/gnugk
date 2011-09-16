@@ -246,9 +246,9 @@ protected:
 	template<class UUIE> bool HandleH245Address(UUIE & uu)
 	{
 		if (uu.HasOptionalField(UUIE::e_h245Address)) {
-			 if (m_call)
+			if (m_call)
 				m_call->SetH245ResponseReceived();
-			 if (SetH245Address(uu.m_h245Address))
+			if (SetH245Address(uu.m_h245Address))
 				return (m_h245handler != 0);
 			uu.RemoveOptionalField(UUIE::e_h245Address);
 			return true;

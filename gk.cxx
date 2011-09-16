@@ -38,9 +38,7 @@ using std::vector;
 
 PCREATE_PROCESS(Gatekeeper)
 
-/*
- * many things here should be members of Gatekeeper
- */
+PIPSocket::Address GNUGK_INADDR_ANY(INADDR_ANY);
 
 PReadWriteMutex ConfigReloadMutex;
 
@@ -178,6 +176,9 @@ static const char * KnowConfigEntries[][2] = {
 	{ "Gatekeeper::Main", "CompareAliasType" },
 	{ "Gatekeeper::Main", "DefaultDomain" },
 	{ "Gatekeeper::Main", "DisconnectCallsOnShutdown" },
+#ifdef hasIPV6
+	{ "Gatekeeper::Main", "EnableIPv6" },
+#endif
 	{ "Gatekeeper::Main", "EncryptAllPasswords" },
 	{ "Gatekeeper::Main", "EndpointIDSuffix" },
 	{ "Gatekeeper::Main", "EndpointSignalPort" },
@@ -1087,6 +1088,13 @@ void Gatekeeper::Main()
 	PString welcome("GNU Gatekeeper with ID '" + Toolkit::GKName() + "' started\n" + Toolkit::GKVersion());
 	cout << welcome << '\n';
 	PTRACE(1, welcome);
+
+#ifdef hasIPV6
+	if (Toolkit::Instance()->IsIPv6Enabled()) {
+		PTRACE(1, "IPv6 enabled");
+		GNUGK_INADDR_ANY = PIPSocket::Address("::");
+	}
+#endif
 
 	vector<PIPSocket::Address> GKHome;
 	PString home(Toolkit::Instance()->GetGKHome(GKHome));

@@ -106,6 +106,12 @@
 	#if PTLIB_MINOR >= 8
 		#define hasDynaLinkGetLastError 1
 	#endif
+	#if PTLIB_MINOR >= 10
+		#ifdef P_HAS_IPV6
+			// IPv6 support before 2.10.0 is too buggy
+			#define hasIPV6     1
+		#endif
+	#endif
 	#if PTLIB_MINOR >= 11
 		#define hasLDAPStartTLS 1
         #define hasNewSTUN      1

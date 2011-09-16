@@ -114,12 +114,12 @@ private:
 	YaTCPSocket& operator=(const YaTCPSocket&);
 	
 private:
-	sockaddr_in peeraddr;
+	sockaddr peeraddr;
 };
 
 class YaUDPSocket : public YaSocket, public PObject {
 public:
-	YaUDPSocket();
+	YaUDPSocket(WORD port=0, int iAddressFamily=AF_INET);
 
 	bool Listen(unsigned, WORD, PSocket::Reusability reuse = PSocket::AddressIsExclusive);
 	bool Listen(const Address &, unsigned, WORD, PSocket::Reusability reuse = PSocket::AddressIsExclusive);
@@ -225,7 +225,7 @@ typedef YaSocket IPSocket;
 typedef YaTCPSocket TCPSocket;
 typedef YaUDPSocket UDPSocket;
 
-#else
+#else // LARGE_FDSET
 
 class SocketSelectList : public PSocket::SelectList {
 public:
@@ -251,7 +251,7 @@ typedef PIPSocket IPSocket;
 class TCPSocket : public PTCPSocket, public NamedObject {
 public:
 	PCLASSINFO( TCPSocket, PTCPSocket )
-	TCPSocket(WORD pt = 0) : PTCPSocket(pt) {}
+	TCPSocket(WORD pt = 0) : PTCPSocket(pt) { }
 	virtual ~TCPSocket() {}
 	// override from class PIPSocket
 	PString GetName() const { return (const char *)NamedObject::GetName(); }
@@ -265,7 +265,7 @@ class UDPSocket : public PUDPSocket, public NamedObject {
 public:
 	PCLASSINFO( UDPSocket, PUDPSocket )
 	
-	UDPSocket() {}
+	UDPSocket(WORD port=0, int iAddressFamily=AF_INET) : PUDPSocket(port, iAddressFamily) { }
 	virtual ~UDPSocket() {}
 
 	// override from class PIPSocket

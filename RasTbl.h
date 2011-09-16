@@ -491,12 +491,12 @@ public:
 	RegistrationTable();
 	~RegistrationTable();
 
-	endptr InsertRec(H225_RasMessage & rrq, PIPSocket::Address = INADDR_ANY);
+	endptr InsertRec(H225_RasMessage & rrq, PIPSocket::Address = GNUGK_INADDR_ANY);
 	void RemoveByEndptr(const endptr & eptr);
 
 	endptr FindByEndpointId(const H225_EndpointIdentifier & endpointId) const;
-	endptr FindBySignalAdr(const H225_TransportAddress &, PIPSocket::Address = INADDR_ANY) const;
-	endptr FindBySignalAdrIgnorePort(const H225_TransportAddress &, PIPSocket::Address = INADDR_ANY) const;
+	endptr FindBySignalAdr(const H225_TransportAddress &, PIPSocket::Address = GNUGK_INADDR_ANY) const;
+	endptr FindBySignalAdrIgnorePort(const H225_TransportAddress &, PIPSocket::Address = GNUGK_INADDR_ANY) const;
 	endptr FindOZEPBySignalAdr(const H225_TransportAddress &) const;
 	endptr FindByAliases(const H225_ArrayOf_AliasAddress & alias) const;
 	endptr FindFirstEndpoint(const H225_ArrayOf_AliasAddress & alias);

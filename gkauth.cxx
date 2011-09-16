@@ -1687,7 +1687,7 @@ bool AliasAuth::CheckAuthRule(
 	const PString& authrule
 	)
 {
-	const PStringArray rule = authrule.Tokenise(":", false);
+	const PStringArray rule = authrule.Tokenise(":", false);	// TODO: check for IPv6
 	if (rule.GetSize() < 1) {
 		PTRACE(1, "GKAUTH\t" << GetName() << " found invalid empty auth rule '"
 			<< authrule << '\''

@@ -15,6 +15,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H "@(#) $Id$"
 
+#include <ptlib.h>
+#include <ptlib/ipsock.h>
 #include "pwlib_compat.h"
 
 #ifdef _WIN32
@@ -39,6 +41,8 @@
 #if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD || HAS_ODBC || HAS_SQLITE
 #define		HAS_DATABASE 1
 #endif
+
+extern PIPSocket::Address GNUGK_INADDR_ANY;
 
 #endif // CONFIG_H
 
