@@ -2487,8 +2487,9 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		// if I'm behind NAT and the call is from parent, always use H.245 routed,
 		// also make sure all calls from endpoints with H.460.18 are H.245 routed
 		bool h245Routed = rassrv->IsH245Routed() || (useParent && gkClient->IsNATed());
+		bool callFromTraversalZone = false;
 #ifdef HAS_H46018
-		bool callFromTraversalZone = rassrv->IsCallFromTraversalZone(_peerAddr);
+		callFromTraversalZone = rassrv->IsCallFromTraversalZone(_peerAddr);
 		if ((m_call && m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018())
 			|| (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018())
 			|| (m_call && m_call->IsH46018ReverseSetup()) || callFromTraversalZone) {
@@ -6949,6 +6950,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 	return changed;
 }
 
+#ifdef HAS_H46018
 bool /*H245ProxyHandler::*/ ParseTraversalParameters(
 	/* in */
 	const H245_GenericInformation & genericInfo,
@@ -6983,6 +6985,7 @@ bool /*H245ProxyHandler::*/ ParseTraversalParameters(
 		return false;
 	}
 }
+#endif
 
 bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 {
@@ -7346,7 +7349,9 @@ bool H245ProxyHandler::HandleCloseLogicalChannel(H245_CloseLogicalChannel & clc)
 		if (second)
 			second->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber);
 	}
+#ifdef HAS_H46018
 	H46019Handler::Instance()->RemoveKeepAlives(clc.m_forwardLogicalChannelNumber);
+#endif
 	return false; // nothing changed
 }
 
