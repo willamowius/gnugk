@@ -1742,7 +1742,7 @@ CatchAllPolicy::CatchAllPolicy()
 	PConfig* cfg = GkConfig();
 	m_catchAllAlias = cfg->GetString(defaultPolicySection, "CatchAllAlias", "catchall");
 	m_catchAllIP = cfg->GetString(defaultPolicySection, "CatchAllIP", "");
-	if (!m_catchAllIP.IsEmpty() && (m_catchAllIP.Find(':') == P_MAX_INDEX)) {
+	if (!m_catchAllIP.IsEmpty() && (m_catchAllIP.Find(':') == P_MAX_INDEX)) {	// TODO: IPv6 bug
 		m_catchAllIP += ":1720";	// assume default port if none specified
 	}
 }
