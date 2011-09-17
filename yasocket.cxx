@@ -216,7 +216,7 @@ PBoolean YaSocket::GetLocalAddress(Address & addr) const
 
 PBoolean YaSocket::GetLocalAddress(Address & addr, WORD & pt) const
 {
-	sockaddr_in inaddr;
+	sockaddr_in inaddr;	// TODO: check IPv6
 	socklen_t insize = sizeof(inaddr);
 	if (::getsockname(os_handle, (struct sockaddr*)&inaddr, &insize) == 0) {
 		addr = inaddr.sin_addr;
@@ -280,9 +280,9 @@ bool YaSocket::SetNonBlockingMode()
 bool YaSocket::Bind(const Address & addr, WORD pt)
 {
 	if (IsOpen()) {
-		sockaddr_in inaddr;
+		sockaddr_in inaddr;	// TODO: check IPv6
 		memset(&inaddr, 0, sizeof(inaddr));
-		if (addr.GetVerson() == 6)
+		if (addr.GetVersion() == 6)
 			inaddr.sin_family = AF_INET6;
 		else
 			inaddr.sin_family = AF_INET;
@@ -303,19 +303,27 @@ bool YaSocket::Bind(const Address & addr, WORD pt)
 // class YaTCPSocket
 YaTCPSocket::YaTCPSocket(WORD pt)
 {
-	peeraddr.sin_family = AF_INET6;		// TODO
+	peeraddr.sa_family = AF_INET;		// overwritten in Connect()
 	SetPort(pt);
 }
 
 void YaTCPSocket::GetPeerAddress(Address & addr) const
 {
-	addr = peeraddr.sin_addr;
+	if (peeraddr.sa_family == AF_INET6)
+		addr = ((struct sockaddr_in6*)&peeraddr)->sin6_addr;
+	else
+		addr = ((struct sockaddr_in*)&peeraddr)->sin_addr;
 }
 
 void YaTCPSocket::GetPeerAddress(Address & addr, WORD & pt) const
 {
-	addr = peeraddr.sin_addr;
-	pt = ntohs(peeraddr.sin_port);
+	if (peeraddr.sa_family == AF_INET6) {
+		addr = ((struct sockaddr_in6*)&peeraddr)->sin6_addr;
+		pt = ntohs(((struct sockaddr_in6*)&peeraddr)->sin6_port);
+	} else {
+		addr = ((struct sockaddr_in*)&peeraddr)->sin_addr;
+		pt = ntohs(((struct sockaddr_in*)&peeraddr)->sin_port);
+	}
 }
 
 bool YaTCPSocket::SetLinger()
@@ -375,7 +383,10 @@ bool YaTCPSocket::Accept(YaTCPSocket & socket)
 		SetLinger();
 		SetNonBlockingMode();
 		SetWriteTimeout(PTimeInterval(10));
-		SetName(AsString(peeraddr.sin_addr, ntohs(peeraddr.sin_port)));
+		if (peeraddr.sa_family == AF_INET6)
+			SetName(AsString(((struct sockaddr_in6*)&peeraddr)->sin6_addr, ntohs(((struct sockaddr_in6*)&peeraddr)->sin6_port)));
+		else
+			SetName(AsString(((struct sockaddr_in*)&peeraddr)->sin_addr, ntohs(((struct sockaddr_in*)&peeraddr)->sin_port)));
 		port = socket.GetPort();
 		return true;
 	}
@@ -394,24 +405,31 @@ bool YaTCPSocket::Connect(const Address & iface, WORD localPort, const Address &
 	}
 
 	SetOption(SO_REUSEADDR, 0);
-	
+
 	int optval;
 	socklen_t optlen = sizeof(optval);
 
 	WORD peerPort = port;
 	// bind local interface and port
-	if (iface != INADDR_ANY || localPort != 0)	// TOCO: check against "::", too ?
+	if (iface != INADDR_ANY || localPort != 0)	// TODO: check against "::", too ?
 		if (!Bind(iface, localPort))
 			return false;
 
 	// connect in non-blocking mode
 	SetNonBlockingMode();
 	SetWriteTimeout(PTimeInterval(10));
-	peeraddr.sin_addr = addr;
-	peeraddr.sin_port = htons(port = peerPort);
+	if (addr.GetVersion() == 6) {
+		peeraddr.sa_family = AF_INET6;
+		((struct sockaddr_in6*)&peeraddr)->sin6_addr = addr;
+		((struct sockaddr_in6*)&peeraddr)->sin6_port = htons(port = peerPort);
+	} else {
+		peeraddr.sa_family = AF_INET;
+		((struct sockaddr_in*)&peeraddr)->sin_addr = addr;
+		((struct sockaddr_in*)&peeraddr)->sin_port = htons(port = peerPort);
+	}
 	SetName(AsString(addr, port));
 
-	int r = ::connect(os_handle, (struct sockaddr *)&peeraddr, sizeof(peeraddr));
+	int r = ::connect(os_handle, &peeraddr, sizeof(peeraddr));
 #ifdef _WIN32
 	if ((r != 0) && (WSAGetLastError() != WSAEWOULDBLOCK))
 #else
@@ -466,10 +484,10 @@ int YaTCPSocket::os_send(const void *buf, int sz)
 
 
 // class YaUDPSocket
-YaUDPSocket::YaUDPSocket()
+YaUDPSocket::YaUDPSocket(WORD port, int iAddressFamily)
 {
-	sendaddr.sin_family = AF_INET6;		// TODO
-	sendaddr.sin_port = 0;
+	sendaddr.sin_family = iAddressFamily;
+	sendaddr.sin_port = port;
 }
 
 bool YaUDPSocket::Listen(unsigned, WORD pt, PSocket::Reusability reuse)
@@ -501,6 +519,10 @@ void YaUDPSocket::GetLastReceiveAddress(Address & addr, WORD & pt) const
 
 void YaUDPSocket::SetSendAddress(const Address & addr, WORD pt)
 {
+	if (addr.GetVersion() == 6)
+		sendaddr.sin_family = AF_INET6;
+	else
+		sendaddr.sin_family = AF_INET;
 	sendaddr.sin_addr = addr;
 	sendaddr.sin_port = htons(pt);
 }
