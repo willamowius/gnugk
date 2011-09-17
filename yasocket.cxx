@@ -3,7 +3,7 @@
 // yasocket.cxx
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2010, Jan Willamowius
+// Copyright (c) 2004-2011, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -148,14 +148,14 @@ bool YaSocket::Close()
 	return true;
 }
 
-bool YaSocket::Read(void *buf, int sz)
+bool YaSocket::Read(void * buf, int sz)
 {
 	int r = os_recv(buf, sz);
 	lastReadCount = ConvertOSError(r, PSocket::LastReadError) ? r : 0;
 	return lastReadCount > 0;
 }
 
-bool YaSocket::ReadBlock(void *buf, int len)
+bool YaSocket::ReadBlock(void * buf, int len)
 {
 	// lazy implementation, but it is enough for us...
 	return Read(buf, len) && lastReadCount == len;
@@ -195,7 +195,7 @@ bool YaSocket::CanWrite(
 	return ::select(h + 1, NULL, (fd_set*)fdset, NULL, &tval) > 0;
 }
 
-bool YaSocket::Write(const void *buf, int sz)
+bool YaSocket::Write(const void * buf, int sz)
 {
 	lastWriteCount = 0;
 	if (!CanWrite(writeTimeout.GetInterval())) {
@@ -216,11 +216,16 @@ PBoolean YaSocket::GetLocalAddress(Address & addr) const
 
 PBoolean YaSocket::GetLocalAddress(Address & addr, WORD & pt) const
 {
-	sockaddr_in inaddr;	// TODO: check IPv6
+	sockaddr inaddr;
 	socklen_t insize = sizeof(inaddr);
-	if (::getsockname(os_handle, (struct sockaddr*)&inaddr, &insize) == 0) {
-		addr = inaddr.sin_addr;
-		pt = ntohs(inaddr.sin_port);
+	if (::getsockname(os_handle, &inaddr, &insize) == 0) {
+		if (inaddr.sa_family == AF_INET6) {
+			addr = ((struct sockaddr_in6*)&inaddr)->sin6_addr;
+			pt = ntohs(((struct sockaddr_in6*)&inaddr)->sin6_port);
+		} else {
+			addr = ((struct sockaddr_in*)&inaddr)->sin_addr;
+			pt = ntohs(((struct sockaddr_in*)&inaddr)->sin_port);
+		}
 	}
 	return true;
 }
@@ -280,18 +285,25 @@ bool YaSocket::SetNonBlockingMode()
 bool YaSocket::Bind(const Address & addr, WORD pt)
 {
 	if (IsOpen()) {
-		sockaddr_in inaddr;	// TODO: check IPv6
+		sockaddr inaddr;
 		memset(&inaddr, 0, sizeof(inaddr));
-		if (addr.GetVersion() == 6)
-			inaddr.sin_family = AF_INET6;
-		else
-			inaddr.sin_family = AF_INET;
-		inaddr.sin_addr.s_addr = addr;
-		inaddr.sin_port = htons(pt);
-		if (ConvertOSError(::bind(os_handle, (struct sockaddr *)&inaddr, sizeof(inaddr)))) {
+		if (addr.GetVersion() == 6) {
+			inaddr.sa_family = AF_INET6;
+			((struct sockaddr_in6*)&inaddr)->sin6_addr = addr;
+			((struct sockaddr_in6*)&inaddr)->sin6_port = htons(pt);
+		} else {
+			inaddr.sa_family = AF_INET;
+			((struct sockaddr_in*)&inaddr)->sin_addr = addr;
+			((struct sockaddr_in*)&inaddr)->sin_port = htons(pt);
+		}
+		if (ConvertOSError(::bind(os_handle, &inaddr, sizeof(inaddr)))) {
 			socklen_t insize = sizeof(inaddr);
-			if (::getsockname(os_handle, (struct sockaddr *)&inaddr, &insize) == 0) {
-				port = ntohs(inaddr.sin_port);
+			if (::getsockname(os_handle, &inaddr, &insize) == 0) {
+				if (inaddr.sa_family == AF_INET6) {
+					port = ntohs(((struct sockaddr_in6*)&inaddr)->sin6_port);
+				} else {
+					port = ntohs(((struct sockaddr_in*)&inaddr)->sin_port);
+				}
 				return true;
 			}
 		}
@@ -376,7 +388,7 @@ bool YaTCPSocket::Accept(YaTCPSocket & socket)
 			continue;
 
 		socklen_t addrsize = sizeof(peeraddr);
-		os_handle = ::accept(fd, (struct sockaddr *)&peeraddr, &addrsize);
+		os_handle = ::accept(fd, &peeraddr, &addrsize);
 		if (os_handle < 0)
 			break;
 
@@ -464,7 +476,7 @@ bool YaTCPSocket::Connect(const Address & addr)
 	return YaTCPSocket::Connect(GNUGK_INADDR_ANY, 0, addr);
 }
 
-int YaTCPSocket::os_recv(void *buf, int sz)
+int YaTCPSocket::os_recv(void * buf, int sz)
 {
 #if HAS_MSG_NOSIGNAL
 	return ::recv(os_handle, buf, sz, MSG_NOSIGNAL);
@@ -473,7 +485,7 @@ int YaTCPSocket::os_recv(void *buf, int sz)
 #endif
 }
 
-int YaTCPSocket::os_send(const void *buf, int sz)
+int YaTCPSocket::os_send(const void * buf, int sz)
 {
 #if HAS_MSG_NOSIGNAL
 	return ::send(os_handle, buf, sz, MSG_NOSIGNAL);
@@ -486,8 +498,10 @@ int YaTCPSocket::os_send(const void *buf, int sz)
 // class YaUDPSocket
 YaUDPSocket::YaUDPSocket(WORD port, int iAddressFamily)
 {
-	sendaddr.sin_family = iAddressFamily;
-	sendaddr.sin_port = port;
+	sendaddr.sa_family = iAddressFamily;
+	// TODO: is this ok ?
+	((struct sockaddr_in6*)&sendaddr)->sin6_port = port;
+	((struct sockaddr_in*)&sendaddr)->sin_port = port;
 }
 
 bool YaUDPSocket::Listen(unsigned, WORD pt, PSocket::Reusability reuse)
@@ -513,30 +527,43 @@ bool YaUDPSocket::Listen(const Address & addr, unsigned, WORD pt, PSocket::Reusa
 
 void YaUDPSocket::GetLastReceiveAddress(Address & addr, WORD & pt) const
 {
-	addr = recvaddr.sin_addr;
-	pt = ntohs(recvaddr.sin_port);
+	if (recvaddr.sa_family == AF_INET6) {
+		addr = ((struct sockaddr_in6*)&recvaddr)->sin6_addr;
+		pt = ntohs(((struct sockaddr_in6*)&recvaddr)->sin6_port);
+	} else {
+		addr = ((struct sockaddr_in*)&recvaddr)->sin_addr;
+		pt = ntohs(((struct sockaddr_in*)&recvaddr)->sin_port);
+	}
 }
 
 void YaUDPSocket::SetSendAddress(const Address & addr, WORD pt)
 {
-	if (addr.GetVersion() == 6)
-		sendaddr.sin_family = AF_INET6;
-	else
-		sendaddr.sin_family = AF_INET;
-	sendaddr.sin_addr = addr;
-	sendaddr.sin_port = htons(pt);
+	if (addr.GetVersion() == 6) {
+		sendaddr.sa_family = AF_INET6;
+		((struct sockaddr_in6*)&sendaddr)->sin6_addr = addr;
+		((struct sockaddr_in6*)&sendaddr)->sin6_port = htons(pt);
+	} else {
+		sendaddr.sa_family = AF_INET;
+		((struct sockaddr_in*)&sendaddr)->sin_addr = addr;
+		((struct sockaddr_in*)&sendaddr)->sin_port = htons(pt);
+	}
 }
 
 void YaUDPSocket::GetSendAddress(
-	Address& address, /// IP address to send packets.
-	WORD& port /// Port to send packets.
+	Address & address, /// IP address to send packets.
+	WORD & port /// Port to send packets.
 	)
 {
-	address = sendaddr.sin_addr;
-	port = ntohs(sendaddr.sin_port);
+	if (sendaddr.sa_family == AF_INET6) {
+		address = ((struct sockaddr_in6*)&sendaddr)->sin6_addr;
+		port = ntohs(((struct sockaddr_in6*)&sendaddr)->sin6_port);
+	} else {
+		address = ((struct sockaddr_in*)&sendaddr)->sin_addr;
+		port = ntohs(((struct sockaddr_in*)&sendaddr)->sin_port);
+	}
 }
 
-bool YaUDPSocket::ReadFrom(void *buf, PINDEX len, Address & addr, WORD pt)
+bool YaUDPSocket::ReadFrom(void * buf, PINDEX len, Address & addr, WORD pt)
 {
 	bool result = Read(buf, len);
 	if (result)
@@ -544,21 +571,21 @@ bool YaUDPSocket::ReadFrom(void *buf, PINDEX len, Address & addr, WORD pt)
 	return result;
 }
 
-bool YaUDPSocket::WriteTo(const void *buf, PINDEX len, const Address & addr, WORD pt)
+bool YaUDPSocket::WriteTo(const void * buf, PINDEX len, const Address & addr, WORD pt)
 {
 	SetSendAddress(addr, pt);
 	return Write(buf, len);
 }
 
-int YaUDPSocket::os_recv(void *buf, int sz)
+int YaUDPSocket::os_recv(void * buf, int sz)
 {
 	socklen_t addrlen = sizeof(recvaddr);
-	return ::recvfrom(os_handle, buf, sz, 0, (struct sockaddr *)&recvaddr, &addrlen);
+	return ::recvfrom(os_handle, buf, sz, 0, &recvaddr, &addrlen);
 }
 
-int YaUDPSocket::os_send(const void *buf, int sz)
+int YaUDPSocket::os_send(const void * buf, int sz)
 {
-	return ::sendto(os_handle, buf, sz, 0, (struct sockaddr *)&sendaddr, sizeof(sendaddr));
+	return ::sendto(os_handle, buf, sz, 0, &sendaddr, sizeof(sendaddr));
 }
 
 #else // LARGE_FDSET
@@ -590,7 +617,7 @@ PSocket *SocketSelectList::operator[](int i) const
 
 
 // class USocket
-USocket::USocket(IPSocket *s, const char *t)
+USocket::USocket(IPSocket * s, const char * t)
 	: self(s), qsize(0), blocked(false), type(t)
 {
 }
@@ -620,7 +647,7 @@ bool USocket::TransmitData(const PString & str)
 	return WriteData(str, str.GetLength());
 }
 
-bool USocket::TransmitData(const BYTE *buf, int len)
+bool USocket::TransmitData(const BYTE * buf, int len)
 {
 	return WriteData(buf, len);
 }
@@ -642,7 +669,7 @@ bool USocket::Flush()
 	return result;
 }
 
-bool USocket::WriteData(const BYTE *buf, int len)
+bool USocket::WriteData(const BYTE * buf, int len)
 {
 	if (!IsSocketOpen())
 		return false;
@@ -705,7 +732,7 @@ bool USocket::ErrorHandler(PSocket::ErrorGroup group)
 	return false;
 }
 
-bool USocket::InternalWriteData(const BYTE *buf, int len)
+bool USocket::InternalWriteData(const BYTE * buf, int len)
 {
 	if (self->Write(buf, len)) {
 		PTRACE(6, Name() << ' ' << len << " bytes sent");
@@ -771,7 +798,7 @@ void SocketsReader::Stop()
 	RegularJob::Stop();
 }
 
-void SocketsReader::AddSocket(IPSocket *socket)
+void SocketsReader::AddSocket(IPSocket * socket)
 {
 	if (socket == NULL)
 		return;
@@ -877,7 +904,7 @@ TCPListenSocket::~TCPListenSocket()
 	PTRACE(3, "TCP\tDelete listener " << GetName());
 }
 
-bool TCPListenSocket::IsTimeout(const PTime *now) const
+bool TCPListenSocket::IsTimeout(const PTime * now) const
 {
 	if (readTimeout < PMaxTimeInterval)
 		return IsOpen() ? ((readTimeout > 0) ? ((*now - start) > readTimeout) : false) : true;
@@ -907,7 +934,7 @@ void TCPServer::LoadConfig()
 	}
 }
 
-bool TCPServer::CloseListener(TCPListenSocket *socket)
+bool TCPServer::CloseListener(TCPListenSocket * socket)
 {
 	WriteLock lock(m_listmutex);
 	iterator iter = find(m_sockets.begin(), m_sockets.end(), socket);
@@ -919,7 +946,7 @@ bool TCPServer::CloseListener(TCPListenSocket *socket)
 		return false;
 }
 
-void TCPServer::ReadSocket(IPSocket *socket)
+void TCPServer::ReadSocket(IPSocket * socket)
 {
 	if (ShutdownMutex.WillBlock()) {
 		PTRACE(4, GetName() << "\tShutdown: Rejecting call on " << socket->GetName());

@@ -144,7 +144,7 @@ private:
 	YaUDPSocket& operator=(const YaUDPSocket&);
 	
 private:
-	sockaddr_in recvaddr, sendaddr;	// TODO: check IPv6
+	sockaddr recvaddr, sendaddr;
 };
 
 class YaSelectList {
