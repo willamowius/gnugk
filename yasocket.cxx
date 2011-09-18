@@ -54,7 +54,7 @@ bool YaSelectList::Select(SelectType t, const PTimeInterval & timeout)
 
 	const unsigned long msec = timeout.GetInterval();
 	struct timeval tval;
-	tval.tv_sec  = msec / 1000;
+	tval.tv_sec = msec / 1000;
 	tval.tv_usec = (msec - tval.tv_sec * 1000) * 1000;
 	int r = ::select(maxfd + 1, readfds, writefds, 0, &tval);
 	if (r > 0) {
@@ -173,7 +173,7 @@ bool YaSocket::CanRead(
 	fdset.add(h);
 
 	struct timeval tval;
-	tval.tv_sec  = timeout / 1000;
+	tval.tv_sec = timeout / 1000;
 	tval.tv_usec = (timeout - tval.tv_sec * 1000) * 1000;
 	return ::select(h + 1, (fd_set*)fdset, NULL, NULL, &tval) > 0;
 }
@@ -190,7 +190,7 @@ bool YaSocket::CanWrite(
 	fdset.add(h);
 
 	struct timeval tval;
-	tval.tv_sec  = timeout / 1000;
+	tval.tv_sec = timeout / 1000;
 	tval.tv_usec = (timeout - tval.tv_sec * 1000) * 1000;
 	return ::select(h + 1, NULL, (fd_set*)fdset, NULL, &tval) > 0;
 }
@@ -968,7 +968,7 @@ void TCPServer::ReadSocket(IPSocket * socket)
 		one_sec.remove_if(bind2nd(not_equal_to<time_t>(), now));
 		many_sec.remove_if(bind2nd(less<time_t>(), now - check_interval));
 		PTRACE(4, GetName() << "\tcurrent cps=" << one_sec.size() << " calls in interval=" << many_sec.size());
-		if ((many_sec.size() > (cps_limit *  check_interval)) && (one_sec.size() > cps_limit)) {
+		if ((many_sec.size() > (cps_limit * check_interval)) && (one_sec.size() > cps_limit)) {
 			// reject call
 			PTRACE(1, GetName() << "\tRate limit reached (max " << cps_limit << " cps) - rejecting call on " << socket->GetName());
 			int rej = ::accept(socket->GetHandle(), NULL, NULL);

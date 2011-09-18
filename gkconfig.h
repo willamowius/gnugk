@@ -29,7 +29,7 @@ public:
 		const PFilePath& filename, /// Explicit name of the configuration file.
 		const PString& section, /// Default section to search for variables.
 		PConfig* chainedConfig = NULL /// a next config in the chain
-    	);
+		);
 
 	virtual ~GatekeeperConfig();
 	

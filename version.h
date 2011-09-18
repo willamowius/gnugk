@@ -37,4 +37,4 @@
 # define GNUGK_BUILD_NUMBER 0
 #endif
 
-#endif  /* GNUGK_VERSION_H */
+#endif	/* GNUGK_VERSION_H */

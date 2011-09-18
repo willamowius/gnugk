@@ -237,20 +237,20 @@ protected:
 	*/
 	void CommandError(const PString & msg);
 
-    // Adds regular expression filter
-    void AddFilter(
+	// Adds regular expression filter
+	void AddFilter(
 	// filter vector
-	std::vector<PString>& regexFilters,
+	std::vector<PString> & regexFilters,
 	// Regex to be matched against messages
 	const PString& regex
 	);
 
-    /** Remove regular expression filter located
+	/** Remove regular expression filter located
 	at the given index from the specified vector
-    */
+	*/
     void RemoveFilter(
 	// filter vector
-	std::vector<PString>& regexFilters,
+	std::vector<PString> & regexFilters,
 	// Index of filter to be removed
 	unsigned int index
 	);
@@ -258,25 +258,25 @@ protected:
     // Checks whether the given string is to be exclude
     bool IsExcludeMessage(
 	// String to be check against the exclude regular expressions
-	const PString &msg
+	const PString & msg
 	) const;
 
     // Print a list of all filters in the specified vector
     void PrintFilters(
 	// filter vector
-	std::vector<PString>& regexFilters
+	std::vector<PString> & regexFilters
 	);
 
     // Checks whether the given string is to be include
     bool IsIncludeMessage(
 	// String to be check against the include regular expressions
-	const PString &msg
+	const PString & msg
 	) const;
     
     // Match the given string against filters held by the specified vector
     bool MatchFilter(
 	// filter vector
-	const std::vector<PString>& regexFilters,
+	const std::vector<PString> & regexFilters,
 	// String to be matched
 	const PString &msg
 	) const;
@@ -286,7 +286,7 @@ protected:
 	/// command being currently entered (and not yet completed)
 	PString m_currentCmd;
 	/// GkStatus instance that created this client
-	GkStatus* m_gkStatus;
+	GkStatus * m_gkStatus;
 	/// status interface user that is logged in
 	PString	m_user;
 	/// for atomic access to the m_numExecutingCommands counter
@@ -407,7 +407,7 @@ PBoolean SSHStatusClient::Accept(PSocket & socket)
 		return false;
     }
 	ssh_bind_set_fd(sshbind, socket.GetHandle());
-    if(ssh_bind_accept(sshbind, session) == SSH_ERROR) {
+	if(ssh_bind_accept(sshbind, session) == SSH_ERROR) {
 		PTRACE(1, "ssh_bind_accept() failed: " << ssh_get_error(sshbind));
 		return false;
     }
@@ -436,7 +436,7 @@ bool SSHStatusClient::Authenticate()
 			PTRACE(1, "ssh read error: " << ssh_get_error(session));
             break;
 		}
-        switch(ssh_message_type(message)) {
+		switch(ssh_message_type(message)) {
             case SSH_REQUEST_AUTH:
                 switch(ssh_message_subtype(message)) {
                     case SSH_AUTH_METHOD_PASSWORD:
@@ -519,7 +519,7 @@ bool SSHStatusClient::Authenticate()
             }
             ssh_message_free(message);
         }
-    } while(message && !shell);
+	} while(message && !shell);
 	if (!message)
 		return false;
 

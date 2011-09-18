@@ -53,9 +53,9 @@ PStringList GatekeeperConfig::GetKeys(const PString & theSection) const
 
 	if (m_chainedConfig != NULL) {
 		PStringList chainedList = m_chainedConfig->GetKeys(theSection);
-    	for (PINDEX i = 0; i < chainedList.GetSize(); i++)
+		for (PINDEX i = 0; i < chainedList.GetSize(); i++)
 			if (list.GetValuesIndex(chainedList[i]) == P_MAX_INDEX)
-      			list.AppendString(chainedList[i]);
+				list.AppendString(chainedList[i]);
 	}
 
 	return list;
@@ -116,7 +116,7 @@ PBoolean GatekeeperConfig::GetBoolean(const PString & section, const PString & k
 long GatekeeperConfig::GetInteger(const PString & section, const PString & key, long dflt) const
 {
 	if (m_chainedConfig == NULL || PConfig::HasKey(section, key))
-  		return PConfig::GetInteger(section, key, dflt);
+		return PConfig::GetInteger(section, key, dflt);
 	else
 		return m_chainedConfig->GetInteger(section, key, dflt);
 }
@@ -124,7 +124,7 @@ long GatekeeperConfig::GetInteger(const PString & section, const PString & key, 
 PInt64 GatekeeperConfig::GetInt64(const PString & section, const PString & key, PInt64 dflt) const
 {
 	if (m_chainedConfig == NULL || PConfig::HasKey(section, key))
-  		return PConfig::GetInt64(section, key, dflt);
+		return PConfig::GetInt64(section, key, dflt);
 	else
 		return m_chainedConfig->GetInt64(section, key, dflt);
 }
@@ -132,7 +132,7 @@ PInt64 GatekeeperConfig::GetInt64(const PString & section, const PString & key, 
 double GatekeeperConfig::GetReal(const PString & section, const PString & key, double dflt) const
 {
 	if (m_chainedConfig == NULL || PConfig::HasKey(section, key))
-  		return PConfig::GetReal(section, key, dflt);
+		return PConfig::GetReal(section, key, dflt);
 	else
 		return m_chainedConfig->GetReal(section, key, dflt);
 }
@@ -140,7 +140,7 @@ double GatekeeperConfig::GetReal(const PString & section, const PString & key, d
 PTime GatekeeperConfig::GetTime(const PString & section, const PString & key) const
 {
 	if (m_chainedConfig == NULL || PConfig::HasKey(section, key))
-  		return PConfig::GetTime(section, key);
+		return PConfig::GetTime(section, key);
 	else
 		return m_chainedConfig->GetTime(section, key);
 }
@@ -148,7 +148,7 @@ PTime GatekeeperConfig::GetTime(const PString & section, const PString & key) co
 PTime GatekeeperConfig::GetTime(const PString & section, const PString & key, const PTime & dflt) const
 {
 	if (m_chainedConfig == NULL || PConfig::HasKey(section, key))
-  		return PConfig::GetTime(section, key, dflt);
+		return PConfig::GetTime(section, key, dflt);
 	else
 		return m_chainedConfig->GetTime(section, key, dflt);
 }

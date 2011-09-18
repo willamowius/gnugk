@@ -296,7 +296,7 @@ void CapacityControl::LoadConfig()
 
 PString CapacityControl::PrintRules()
 {
-//	std::stringstream strm;   VS2005 version leaks memory!!
+//	std::stringstream strm; // VS2005 version leaks memory!!
 	PStringStream strm;
 	
 	strm << "Per IP call volume rules:" << endl;

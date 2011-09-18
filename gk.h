@@ -59,7 +59,7 @@ class Gatekeeper : public PProcess
 	virtual void Terminate();
 	virtual PBoolean OnPause();
 	virtual void OnContinue();
-    virtual void OnControl();
+	virtual void OnControl();
 #endif
 
 #if PTRACING

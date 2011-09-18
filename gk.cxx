@@ -1043,8 +1043,8 @@ void Gatekeeper::Main()
 
 		if ( !SetUserAndGroup(username) ) {
 			cout << "GNU Gatekeeper could not run as user "
-			     << username
-			     << endl;
+				<< username
+				<< endl;
 			return;
 		}
 	}
@@ -1108,7 +1108,7 @@ void Gatekeeper::Main()
 	if (Toolkit::Instance()->isBehindNAT(addr))
 		cout << "Public IP: " << addr.AsString() << "\n\n";
 	else
-	    cout << "\n";
+		cout << "\n";
 
 	// Copyright notice
 	cout <<
@@ -1116,7 +1116,7 @@ void Gatekeeper::Main()
 		"modify it under the terms of the GNU General Public License version 2.\n"
 		"We also explicitly grant the right to link this code\n"
 		"with the OpenH323/H323Plus and OpenSSL library.\n"
-	     << endl;
+		<< endl;
 
 #ifdef HAS_H46018
 	cout << "This program contains H.460.18 and H.460.19 technology patented by Tandberg\n"

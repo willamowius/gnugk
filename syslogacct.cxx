@@ -68,7 +68,6 @@ GkAcctLogger::Status SyslogAcct::Log(
 	PString sysloglevelconfig = GkConfig()->GetString(SyslogSec, "SyslogLevel", "LOG_INFO");
 	PString syslogfacilityconfig = GkConfig()->GetString(SyslogSec, "SyslogFacility", "LOG_USER");
 
-	
 	if (sysloglevelconfig == "LOG_EMERG") {
 		syslog_level = LOG_EMERG;
 	} else if (sysloglevelconfig == "LOG_ALERT") {
@@ -76,41 +75,41 @@ GkAcctLogger::Status SyslogAcct::Log(
 	} else if (sysloglevelconfig == "LOG_CRIT") {
 		syslog_level = LOG_CRIT;
 	} else if (sysloglevelconfig == "LOG_ERR") {
-	        syslog_level = LOG_ERR;
+		syslog_level = LOG_ERR;
 	} else if (sysloglevelconfig == "LOG_WARNING") {
-	        syslog_level = LOG_WARNING;
+		syslog_level = LOG_WARNING;
 	} else if (sysloglevelconfig == "LOG_NOTICE") {
-	        syslog_level = LOG_NOTICE;
+		syslog_level = LOG_NOTICE;
 	} else if (sysloglevelconfig == "LOG_INFO") {
-	        syslog_level = LOG_INFO;
+		syslog_level = LOG_INFO;
 	} else if (sysloglevelconfig == "LOG_DEBUG") {
-	        syslog_level = LOG_DEBUG;
+		syslog_level = LOG_DEBUG;
 	} else {
 		syslog_level = LOG_INFO;
 	}
 
 	if (syslogfacilityconfig == "LOG_DAEMON") {
-	        syslog_facility = LOG_DAEMON;
+		syslog_facility = LOG_DAEMON;
 	} else if (syslogfacilityconfig == "LOG_USER") {
-	        syslog_facility = LOG_USER;
+		syslog_facility = LOG_USER;
 	} else if (syslogfacilityconfig == "LOG_AUTH") {
-	        syslog_facility = LOG_AUTH;
+		syslog_facility = LOG_AUTH;
 	} else if (syslogfacilityconfig == "LOG_LOCAL0") {
-	        syslog_facility = LOG_LOCAL0;
+		syslog_facility = LOG_LOCAL0;
 	} else if (syslogfacilityconfig == "LOG_LOCAL1") {
-        	syslog_facility = LOG_LOCAL1;
+		syslog_facility = LOG_LOCAL1;
 	} else if (syslogfacilityconfig == "LOG_LOCAL2") {
-	        syslog_facility = LOG_LOCAL2;
+		syslog_facility = LOG_LOCAL2;
 	} else if (syslogfacilityconfig == "LOG_LOCAL3") {
-	        syslog_facility = LOG_LOCAL3;
+		syslog_facility = LOG_LOCAL3;
 	} else if (syslogfacilityconfig == "LOG_LOCAL4") {
-	        syslog_facility = LOG_LOCAL4;
+		syslog_facility = LOG_LOCAL4;
 	} else if (syslogfacilityconfig == "LOG_LOCAL5") {
-	        syslog_facility = LOG_LOCAL5;
+		syslog_facility = LOG_LOCAL5;
 	} else if (syslogfacilityconfig == "LOG_LOCAL6") {
-	        syslog_facility = LOG_LOCAL6;
+		syslog_facility = LOG_LOCAL6;
 	} else if (syslogfacilityconfig == "LOG_LOCAL7") {
-	        syslog_facility = LOG_LOCAL7;
+		syslog_facility = LOG_LOCAL7;
 	} else {
 		syslog_facility = LOG_USER;
 	}

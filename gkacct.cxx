@@ -831,12 +831,12 @@ PTextFile* FileAcct::OpenCDRFile(
 		PFile::Create | PFile::DenySharedWrite
 		);
 	if (!cdrFile->IsOpen()) {
-   	    PTRACE(1, "GKACCT\t" << GetName() << " could not open file"
+		PTRACE(1, "GKACCT\t" << GetName() << " could not open file"
 			" required for plain text accounting \""
 			<< fn << "\" :" << cdrFile->GetErrorText()
 			);
 		delete cdrFile;
-	    return NULL;
+		return NULL;
 	}
 	cdrFile->SetPermissions(PFileInfo::UserRead | PFileInfo::UserWrite);
 	cdrFile->SetPosition(cdrFile->GetLength());

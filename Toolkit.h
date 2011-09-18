@@ -584,7 +584,7 @@ protected:
 
 	RewriteTool m_Rewrite;
 	GWRewriteTool m_GWRewrite; // GW Based RewriteTool
-	AssignedAliases m_AssignedEPAliases;  // Assigned Aliases
+	AssignedAliases m_AssignedEPAliases;	// Assigned Aliases
 #ifdef h323v6
 	AssignedGatekeepers m_AssignedGKs;
 #endif

@@ -644,19 +644,20 @@ GkAuthenticatorList::GkAuthenticatorList()
 #ifdef OpenH323Factory
 	PStringList authlist = Toolkit::Instance()->GetAuthenticatorList();
 
-    PFactory<H235Authenticator>::KeyList_T keyList = PFactory<H235Authenticator>::GetKeyList();
-    PFactory<H235Authenticator>::KeyList_T::const_iterator r;
-    for (r = keyList.begin(); r != keyList.end(); ++r) {
-      H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
-      if (authlist.GetSize() > 0) {
-		for (PINDEX i=0; i< authlist.GetSize(); i++) {
-			if (PString(Auth->GetName()) == authlist[i]) {
-			   PTRACE(4,"GKAUTH\tLoaded Authenticator " << Auth->GetName() << " from Policy");
-               m_h235authenticators.Append(Auth);
+	PFactory<H235Authenticator>::KeyList_T keyList = PFactory<H235Authenticator>::GetKeyList();
+	PFactory<H235Authenticator>::KeyList_T::const_iterator r;
+	for (r = keyList.begin(); r != keyList.end(); ++r) {
+		H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
+		if (authlist.GetSize() > 0) {
+			for (PINDEX i=0; i< authlist.GetSize(); i++) {
+				if (PString(Auth->GetName()) == authlist[i]) {
+					PTRACE(4,"GKAUTH\tLoaded Authenticator " << Auth->GetName() << " from Policy");
+					m_h235authenticators.Append(Auth);
+				}
 			}
-		}
-	  } else
+		} else {
 	        m_h235authenticators.Append(Auth);
+		}
 	}
 #endif
 }

@@ -133,7 +133,7 @@ protected:
 	/** Create a new SQL connection using parameters stored in this object.
 	    When the connection is to be closed, the object is simply deleted
 	    using delete operator.
-	    
+
 	    @return
 	    NULL if database connection could not be established 
 	    or an object of GkSQLiteConnWrapper class.

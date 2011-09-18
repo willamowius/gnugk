@@ -30,7 +30,7 @@ public:
 
 	template<class Derived>
 	struct Init : public Factory<SampleBase>::Creator0 {
-		Init(const char *n) :  Factory<SampleBase>::Creator0(n), n_(n) {}
+		Init(const char *n) : Factory<SampleBase>::Creator0(n), n_(n) {}
 		virtual SampleBase *operator()() const { return new Derived(n_); }
 
 		const char *n_;

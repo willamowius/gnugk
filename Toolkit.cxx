@@ -286,7 +286,7 @@ void Toolkit::RouteTable::InitTable()
 			// use the default gateway
 			defAddr = GetLocalAddress(defGW);
 		}
-    }
+	}
 	// if we have a list of Home IPs and the default address is not in it, use the first Home IP,
 	// unless the default IP was explicitely specified in Bind=
 	if (bind.IsEmpty() &&
@@ -297,7 +297,7 @@ void Toolkit::RouteTable::InitTable()
 #if PTRACING
 	for (RouteEntry *entry = rtable_begin; entry != rtable_end; ++entry) {
 		PTRACE(2, "Network=" << entry->GetNetwork() << '/' << entry->GetNetMask() <<
-			  ", IP=" << entry->GetDestination());
+				", IP=" << entry->GetDestination());
 	}
 	PTRACE(2, "Default IP=" << defAddr);
 	if (defAddr.IsLoopback()) {
@@ -338,24 +338,24 @@ PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(const Address & addr) co
 	}
 
 	// if external IP is configured
-    if (!ExtIP) {
-      if (DynExtIP) {  // if dynamic resolve DNS entry
-        PIPSocket::Address extip;
-		H323TransportAddress ex = H323TransportAddress(ExtIP);
-		ex.GetIpAddress(extip);
-          if (extip.IsValid()) {
-              return extip;
-          } else {
-              PTRACE(2,"NAT\tERROR: ExtIP " << ExtIP << " unresolvable." );
-          }
-      } else {  // If valid IP then use the ExtIP value
-          PIPSocket::Address extip(ExtIP);
-          if (extip.IsValid()) {
-              return extip;
-          } else {
-              PTRACE(2,"NAT\tERROR: ExtIP " << ExtIP << " unuseable." );
-          }
-      }
+	if (!ExtIP) {
+		if (DynExtIP) {  // if dynamic resolve DNS entry
+			PIPSocket::Address extip;
+			H323TransportAddress ex = H323TransportAddress(ExtIP);
+			ex.GetIpAddress(extip);
+			if (extip.IsValid()) {
+				return extip;
+			} else {
+				PTRACE(2,"NAT\tERROR: ExtIP " << ExtIP << " unresolvable." );
+			}
+		} else {  // If valid IP then use the ExtIP value
+			PIPSocket::Address extip(ExtIP);
+			if (extip.IsValid()) {
+				return extip;
+			} else {
+				PTRACE(2,"NAT\tERROR: ExtIP " << ExtIP << " unuseable." );
+			}
+		}
 	}
 
 	RouteEntry *entry = find_if(rtable_begin, rtable_end,
@@ -386,14 +386,14 @@ for(PINDEX i=0; i < r_table.GetSize(); ++i) {
 }
 
 	if (/*!extroute &&*/ AsBool(GkConfig()->GetString(ProxySection, "Enable", "0"))) {
-	  for (PINDEX i = 0; i < r_table.GetSize(); ++i) {
-		if (r_table[i].GetNetwork().IsRFC1918() && r_table[i].GetNetMask().AsString() != "255.255.255.255") {
-		  PString intAddr = r_table[i].GetNetwork().AsString() + "/" + r_table[i].GetNetMask().AsString();
-		  m_internalnetworks.resize( m_internalnetworks.size() + 1);
-		  m_internalnetworks[m_internalnetworks.size() - 1] = NetworkAddress(intAddr);
-		  PTRACE(2, "Internal Network Detected " << m_internalnetworks.back().AsString()); 
-		} 
-	  }
+		for (PINDEX i = 0; i < r_table.GetSize(); ++i) {
+			if (r_table[i].GetNetwork().IsRFC1918() && r_table[i].GetNetMask().AsString() != "255.255.255.255") {
+				PString intAddr = r_table[i].GetNetwork().AsString() + "/" + r_table[i].GetNetMask().AsString();
+				m_internalnetworks.resize( m_internalnetworks.size() + 1);
+				m_internalnetworks[m_internalnetworks.size() - 1] = NetworkAddress(intAddr);
+				PTRACE(2, "Internal Network Detected " << m_internalnetworks.back().AsString()); 
+			}
+		}
 	}
 
 	int i = (!extroute) ? r_table.GetSize()+1 : r_table.GetSize();
@@ -439,13 +439,13 @@ bool Toolkit::VirtualRouteTable::CreateTable()
 		ExtIP = extip;
 		PString extroute;
 		if (!DynExtIP) 
-		  extroute = ext.AsString() + "/0";
+			extroute = ext.AsString() + "/0";
 
 		CreateRouteTable(extroute);
 		PTRACE(1,"External IP = " << ExtIP << " dynamic " << DynExtIP);
 		return true;
 	} else
-        DynExtIP = false;
+		DynExtIP = false;
 
 	return false;
 }
@@ -453,9 +453,9 @@ bool Toolkit::VirtualRouteTable::CreateTable()
 bool Toolkit::VirtualRouteTable::IsMasquerade(PIPSocket::Address & addr) const
 {
 	if (!ExtIP) {
-	  H323TransportAddress ex = H323TransportAddress(ExtIP);
-	  ex.GetIpAddress(addr);
-	  return true;
+		H323TransportAddress ex = H323TransportAddress(ExtIP);
+		ex.GetIpAddress(addr);
+		return true;
 	}
 
 	return false;
@@ -624,14 +624,14 @@ int Toolkit::ProxyCriterion::SelectRoutingMode(const Address & ip1, const Addres
 
 int Toolkit::ProxyCriterion::IsInternal(const Address & ip) const
 {
-   // Return the network Id. Addresses may be on different internal networks
+	// Return the network Id. Addresses may be on different internal networks
 	int retval = 0;
 	std::vector<NetworkAddress>::const_iterator i = m_internalnetworks.begin();
 	while (i != m_internalnetworks.end()) {
 		retval++;
 		if (ip << *i++)
 			return retval;
-    }
+	}
 	return 0;
 }
 
@@ -660,9 +660,9 @@ void Toolkit::RewriteData::AddSection(PConfig *config, const PString & section)
 		if ((n_size = rules.size()) > 0) {
 			// Add any existing rules to be resorted
 			if (m_size > 0) {
-             for (PINDEX j = 0; j < m_size; ++j) {
-				 rules[Key(j)] = Value(j);
-			 }
+				for (PINDEX j = 0; j < m_size; ++j) {
+					rules[Key(j)] = Value(j);
+				}
 			}
 			m_size = m_size + n_size;
 			// replace array constructor with explicit memory allocation
@@ -710,12 +710,12 @@ void Toolkit::RewriteTool::LoadConfig(PConfig *config)
 
 bool Toolkit::IsNumeric(const PString & s) 
 {
-	 PINDEX j;
-     for (j = 0; j < s.GetLength(); ++j)
-	       if (!isdigit(static_cast<unsigned char>(s[j])))
-	   	         break;
+	PINDEX j;
+	for (j = 0; j < s.GetLength(); ++j)
+		if (!isdigit(static_cast<unsigned char>(s[j])))
+			break;
 
-	 return (j >= s.GetLength());
+	return (j >= s.GetLength());
 }
 
 bool Toolkit::RewriteTool::RewritePString(PString & s) const
@@ -723,29 +723,29 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 	bool changed = false;
 
 	// If URL remove the domain if default domain
-	 PINDEX at = s.Find('@');
-	 if (at != P_MAX_INDEX) {
-		 PString num = s.Left(at);
-		 PString domain = s.Mid(at+1);
-		 PIPSocket::Address domIP(domain);
+	PINDEX at = s.Find('@');
+	if (at != P_MAX_INDEX) {
+		PString num = s.Left(at);
+		PString domain = s.Mid(at+1);
+		PIPSocket::Address domIP(domain);
 
-         // Check if we have a default domain and strip it
-		 for (PINDEX i=0; i < m_defaultDomain.GetSize(); i++) {
-			 if (domain == m_defaultDomain[i]) {
-			   PTRACE(2, "\tRewriteDomain: " << s << " to " << num);
-			   s = num;
-			   changed = true;
-			   break;
-			 }
-		 }
+		// Check if we have a default domain and strip it
+		for (PINDEX i=0; i < m_defaultDomain.GetSize(); i++) {
+			if (domain == m_defaultDomain[i]) {
+				PTRACE(2, "\tRewriteDomain: " << s << " to " << num);
+				s = num;
+				changed = true;
+				break;
+			}
+		}
 
-	     // Check that the domain is not a local IP address.
-		 if (!changed && domIP.IsValid() && Toolkit::Instance()->IsGKHome(domIP)) {
- 		   PTRACE(2, "\tRemoveDomain: " << domain << " to " << num);
-		   s = num;
-		   changed = true;
-		 }
-	 }
+		// Check that the domain is not a local IP address.
+		if (!changed && domIP.IsValid() && Toolkit::Instance()->IsGKHome(domIP)) {
+			PTRACE(2, "\tRemoveDomain: " << domain << " to " << num);
+			s = num;
+			changed = true;
+		}
+	}
 
 	// remove trailing character
 	if (s.GetLength() > 1 && s[s.GetLength() - 1] == m_TrailingChar) {
@@ -761,7 +761,7 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 		const char *prefix = m_Rewrite->Key(i);
 		if (prefix == s){
 			s = m_Rewrite->Value(i);
-            return true;
+			return true;
 		}
 		const int len = MatchPrefix(s, prefix);
 		// try a prefix match through all keys
@@ -1663,8 +1663,7 @@ bool Toolkit::AssignedAliases::LoadSQL(PConfig * cfg)
 
 bool Toolkit::AssignedAliases::DatabaseLookup(
 		const PString & alias,
-		PStringArray & newAliases	
-        )
+		PStringArray & newAliases)
 {
 	if (!m_sqlactive)
 		return false;
@@ -1685,7 +1684,7 @@ bool Toolkit::AssignedAliases::DatabaseLookup(
 		delete result;
 		return false;
 	}
-	
+
 	bool success = false;
 
 	if (result->GetNumRows() < 1)
@@ -1717,19 +1716,19 @@ void Toolkit::AssignedAliases::LoadConfig(PConfig * m_config)
 	gkAssignedAliases.clear();
 
 #if HAS_DATABASE
-  if (LoadSQL(m_config)) {
-	  m_sqlactive = true;
-  } else
+	if (LoadSQL(m_config)) {
+		m_sqlactive = true;
+	} else
 #endif
-  {
-   	const PStringToString kv = m_config->GetAllKeyValues(AssignedAliasSection);
-	for (PINDEX i=0; i < kv.GetSize(); i++) {
-		PString data = kv.GetDataAt(i);
-		PStringArray datalines = data.Tokenise(" ,;\t");
-		for (PINDEX j=0; j < datalines.GetSize(); j++)
-		   gkAssignedAliases.push_back(std::pair<PString, PString>(kv.GetKeyAt(i),datalines[j]));
+	{
+		const PStringToString kv = m_config->GetAllKeyValues(AssignedAliasSection);
+		for (PINDEX i=0; i < kv.GetSize(); i++) {
+			PString data = kv.GetDataAt(i);
+			PStringArray datalines = data.Tokenise(" ,;\t");
+			for (PINDEX j=0; j < datalines.GetSize(); j++)
+				gkAssignedAliases.push_back(std::pair<PString, PString>(kv.GetKeyAt(i),datalines[j]));
+		}
 	}
-  }
 }
 
 #ifdef H323_H350
@@ -1804,16 +1803,16 @@ bool Toolkit::AssignedAliases::QueryH350Directory(const PString & alias, PString
 
 	H350_Session session;
 	if (!Toolkit::Instance()->CreateH350Session(&session)) {
-	   PTRACE(1, "H350\tAssigned Alias: Could not connect to directory server");
-	   return false;
+		PTRACE(1, "H350\tAssigned Alias: Could not connect to directory server");
+		return false;
 	}
 
 	H350_Session::LDAP_RecordList rec;
 	int count = session.Search(search,filter,rec);
 	if (count <= 0) {
-	   PTRACE(4, "H350\tAssigned Alias: No Record Found");
-	   session.Close();
-	   return false;
+		PTRACE(4, "H350\tAssigned Alias: No Record Found");
+		session.Close();
+		return false;
 	}
 
 	// locate the record
@@ -1866,43 +1865,41 @@ bool Toolkit::AssignedAliases::QueryAssignedAliases(const PString & alias, PStri
 
 bool Toolkit::AssignedAliases::GetAliases(const H225_ArrayOf_AliasAddress & alias, H225_ArrayOf_AliasAddress & aliaslist)
 {
-
 	if (alias.GetSize() == 0)
-		    return false;
+		return false;
 
-    PStringArray newaliases;
+	PStringArray newaliases;
 	bool found = false;
 	for (PINDEX h=0; h < alias.GetSize(); h++) {
-	  if (QueryAssignedAliases(H323GetAliasAddressString(alias[h]), newaliases))
-		    found = true;
+		if (QueryAssignedAliases(H323GetAliasAddressString(alias[h]), newaliases))
+			found = true;
 	}
 
 	if (!found) {
 		for (PINDEX i=0; i < alias.GetSize(); i++) {
-		  PString search = H323GetAliasAddressString(alias[i]);
-
-		  for (unsigned j=0; j < gkAssignedAliases.size(); j++) {
-             PTRACE(5,"Alias\tCompare " << gkAssignedAliases[j].first << " to " << search);
-			  if (gkAssignedAliases[j].first == search) {
-				   newaliases.AppendString(gkAssignedAliases[j].second);
-				   if (!found) found = true;
-			  }
-		  }
+			PString search = H323GetAliasAddressString(alias[i]);
+			for (unsigned j=0; j < gkAssignedAliases.size(); j++) {
+				PTRACE(5,"Alias\tCompare " << gkAssignedAliases[j].first << " to " << search);
+				if (gkAssignedAliases[j].first == search) {
+					newaliases.AppendString(gkAssignedAliases[j].second);
+					if (!found) found = true;
+				}
+			}
 		}
 	}
 
 	// Create the Assigned Alias List
 	if (found) {
-	  // add existing items to the end of the list
+		// add existing items to the end of the list
 		if (aliaslist.GetSize() > 0) {
 			for (PINDEX l=0; l < aliaslist.GetSize(); l++) {
-			  PString a = H323GetAliasAddressString(aliaslist[l]);
-			    bool located = false;
+				PString a = H323GetAliasAddressString(aliaslist[l]);
+				bool located = false;
 			    for (PINDEX m=0; m < newaliases.GetSize(); m++) {
-                       if (newaliases[m] == a) located = true;
+					if (newaliases[m] == a) located = true;
 				}
-			   if (!located)
-                  newaliases.AppendString(a);
+				if (!located)
+					newaliases.AppendString(a);
 			}
 		}
 
@@ -1935,7 +1932,7 @@ bool Toolkit::AssignedGatekeepers::LoadSQL(PConfig * cfg)
 	delete m_sqlConn;
 	PString authName = "AssignedGatekeepers::SQL";
 
-   if (cfg->GetSections().GetStringsIndex(authName) == P_MAX_INDEX)
+	if (cfg->GetSections().GetStringsIndex(authName) == P_MAX_INDEX)
 		return false;
 
 	const PString driverName = cfg->GetString(authName, "Driver", "");
@@ -2016,39 +2013,39 @@ bool Toolkit::AssignedGatekeepers::DatabaseLookup(
 				PTRACE(1, "AssignSQL\tQuery Invalid value found.");
 				continue;
 			}
-		    if (!success) success = true;
+			if (!success) success = true;
 		    PTRACE(5, "AssignSQL\tQuery result: " << retval[0]);
-		    newGks.AppendString(retval[0]);
+			newGks.AppendString(retval[0]);
 		}
 	}
 	delete result;
 
-   return success;
+	return success;
 }
-#endif   // HAS_DATABASE
+#endif	// HAS_DATABASE
 
 void Toolkit::AssignedGatekeepers::LoadConfig(PConfig * m_config)
 {
 	assignedGKList.clear();
 
 #if HAS_DATABASE
-  if (LoadSQL(m_config)) {
-	  m_sqlactive = true;
-  } else
+	if (LoadSQL(m_config)) {
+		m_sqlactive = true;
+	} else
 #endif
-  {
-	const PStringToString kv = m_config->GetAllKeyValues(AssignedGatekeeperSection);
-	for (PINDEX i=0; i < kv.GetSize(); i++)
-		   assignedGKList.push_back(std::pair<PString, PString>(kv.GetKeyAt(i),kv.GetDataAt(i)));
-  }
+	{
+		const PStringToString kv = m_config->GetAllKeyValues(AssignedGatekeeperSection);
+		for (PINDEX i=0; i < kv.GetSize(); i++)
+			assignedGKList.push_back(std::pair<PString, PString>(kv.GetKeyAt(i),kv.GetDataAt(i)));
+	}
 }
 
 #ifdef H323_H350
 bool Toolkit::AssignedGatekeepers::QueryH350Directory(const PString & alias, const PIPSocket::Address & ip, PStringArray & addresses)
 {
 	// support gatekeeper discovery
-    if (!Toolkit::AsBool(GkConfig()->GetString(H350Section, "GatekeeperDiscovery", "0")))
-	   return false;
+	if (!Toolkit::AsBool(GkConfig()->GetString(H350Section, "GatekeeperDiscovery", "0")))
+		return false;
 
 	// search the directory
 	PString search = GkConfig()->GetString(H350Section, "SearchBaseDN", "");
@@ -2058,24 +2055,24 @@ bool Toolkit::AssignedGatekeepers::QueryH350Directory(const PString & alias, con
 
 	PString filter;
 	switch (aliasaddress.GetTag()) {
-	  case H225_AliasAddress::e_dialedDigits:
+		case H225_AliasAddress::e_dialedDigits:
             filter = "h323IdentitydialedDigits=" + alias;
-            break;
-	  case H225_AliasAddress::e_h323_ID:
+			break;
+		case H225_AliasAddress::e_h323_ID:
             filter = "h323Identityh323-ID=" + alias;
-            break;
-	  case H225_AliasAddress::e_url_ID:
+			break;
+		case H225_AliasAddress::e_url_ID:
 		    filter = "h323IdentityURL-ID=" + alias;
-		    break;
-	  default:
+			break;
+		default:
 			PTRACE(4, "H350\tAssigned GK: unhandled alias type " << aliasaddress.GetTagName());
 			return false;
 	}
 
 	H350_Session session;
 	if (!Toolkit::Instance()->CreateH350Session(&session)) {
-	   PTRACE(1, "H350\tAssigned GK: Could not connect to Server.");
-	   return false;
+		PTRACE(1, "H350\tAssigned GK: Could not connect to Server.");
+		return false;
 	}
 
 	H350_Session::LDAP_RecordList rec;
@@ -2136,28 +2133,28 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias, const PI
 	found = QueryAssignedGK(alias, ip, assignedGK);
 
 	if (!found) {
-		  for (unsigned j=0; j < assignedGKList.size(); j++) {
-		    PString match = assignedGKList[j].first.Trim();
+		for (unsigned j=0; j < assignedGKList.size(); j++) {
+			PString match = assignedGKList[j].first.Trim();
 			if (match.Left(1) != "^") {
-			  // prefix match
-			  if (MatchPrefix(alias,assignedGKList[j].first)) {
-				   assignedGK.AppendString(assignedGKList[j].second);
-				   if (!found) found = true;
-			  }
+				// prefix match
+				if (MatchPrefix(alias,assignedGKList[j].first)) {
+					assignedGK.AppendString(assignedGKList[j].second);
+					if (!found) found = true;
+				}
 			} else {
-	          // regex match for IP address
-			  if (MatchRegex(ip.AsString(), match)) {
-				   assignedGK.AppendString(assignedGKList[j].second);
-				   if (!found) found = true;
-		      }
+				// regex match for IP address
+				if (MatchRegex(ip.AsString(), match)) {
+					assignedGK.AppendString(assignedGKList[j].second);
+					if (!found) found = true;
+				}
 			}
-		  }
+		}
 	}
 
 	if (found) {
-      PStringArray ipaddresses;
+		PStringArray ipaddresses;
 		for (PINDEX k=0; k < assignedGK.GetSize(); k++) {
-           PString number = assignedGK[k];
+			PString number = assignedGK[k];
 
 			if (IsIPAddress(number))
 				ipaddresses.AppendString(number);
@@ -2183,17 +2180,17 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias, const PI
 		}
 
 		for (PINDEX k = 0; k < ipaddresses.GetSize(); k++) {
-           PString num = ipaddresses[k];
-           WORD port = GK_DEF_UNICAST_RAS_PORT;
-		   PStringArray tokens = SplitIPAndPort(num);
-		   if (tokens.GetSize() == 2)
-               port = (WORD)tokens[1].AsUnsigned();
+			PString num = ipaddresses[k];
+			WORD port = GK_DEF_UNICAST_RAS_PORT;
+			PStringArray tokens = SplitIPAndPort(num);
+			if (tokens.GetSize() == 2)
+				port = (WORD)tokens[1].AsUnsigned();
 
-		   H225_AlternateGK * alt = new H225_AlternateGK;
-		     alt->m_rasAddress = SocketToH225TransportAddr(PIPSocket::Address(tokens[0]),port);
-		     alt->m_needToRegister = true;
-		     alt->m_priority = k;
-		   gklist.Append(alt);
+			H225_AlternateGK * alt = new H225_AlternateGK;
+			alt->m_rasAddress = SocketToH225TransportAddr(PIPSocket::Address(tokens[0]),port);
+			alt->m_needToRegister = true;
+			alt->m_priority = k;
+			gklist.Append(alt);
 		}
 	}
 		
@@ -2218,7 +2215,7 @@ void Toolkit::QoSMonitor::LoadConfig(PConfig * cfg)
 	delete m_sqlConn;
 	PString authName = "GkQoSMonitor::SQL";
 
-   if (cfg->GetSections().GetStringsIndex(authName) == P_MAX_INDEX)
+	if (cfg->GetSections().GetStringsIndex(authName) == P_MAX_INDEX)
 		return;
 
 	const PString driverName = cfg->GetString(authName, "Driver", "");
@@ -2296,8 +2293,8 @@ bool Toolkit::QoSMonitor::PostRecord(const std::map<PString, PString>& params)
 bool Toolkit::RewriteE164(H225_AliasAddress & alias)
 {
 	if ((alias.GetTag() != H225_AliasAddress::e_dialedDigits) &&
-         (alias.GetTag() != H225_AliasAddress::e_h323_ID) &&
-		 (alias.GetTag() != H225_AliasAddress::e_url_ID)) {
+		(alias.GetTag() != H225_AliasAddress::e_h323_ID) &&
+		(alias.GetTag() != H225_AliasAddress::e_url_ID)) {
 		if (alias.GetTag() != H225_AliasAddress::e_partyNumber)
 			return false;
 		H225_PartyNumber & partyNumber = alias;
@@ -2382,17 +2379,17 @@ bool Toolkit::GWRewriteE164(const PString & gw, bool direction, H225_ArrayOf_Ali
 
 bool Toolkit::isBehindNAT(PIPSocket::Address & externalIP) const
 {
-   return (m_VirtualRouteTable.IsMasquerade(externalIP));
+	return (m_VirtualRouteTable.IsMasquerade(externalIP));
 }
 
 #ifdef HAS_H46023
 bool Toolkit::IsH46023Enabled() const
 {
-	return (m_H46023Enabled && (             // is enabled and
+	return (m_H46023Enabled && (		// is enabled and
 #ifdef HAS_H46018
-		   m_H46018Enabled ||              // used with H.460.18 or
+			m_H46018Enabled ||			// used with H.460.18 or
 #endif
-		   m_Config->GetBoolean(RoutedSec, "SupportCallingNATedEndpoints",1))); // GnuGk Native NAT Support
+			m_Config->GetBoolean(RoutedSec, "SupportCallingNATedEndpoints",1))); // GnuGk Native NAT Support
 }
 
 void Toolkit::LoadH46023STUN()
@@ -2403,17 +2400,17 @@ void Toolkit::LoadH46023STUN()
 	PStringArray stunlist = stun.Tokenise(",");
 
 	for (PINDEX i = 0; i < stunlist.GetSize(); i++) {
-	    PIPSocket::Address ip; WORD port;
+		PIPSocket::Address ip; WORD port;
 		GetTransportAddress(stunlist[i], GK_DEF_STUN_PORT, ip, port);
 		if (ip.IsValid()) {
-		     int intID = m_ProxyCriterion.IsInternal(ip);
-			 std::map<int,H323TransportAddress>::const_iterator inf = m_H46023STUN.find(intID);
-			 if (inf == m_H46023STUN.end()) {
-				 if (intID > 0) {
-				    PTRACE(4,"Std23\tSTUN Internal " << ip << " IF " << intID-1);
-				 } else {
+			int intID = m_ProxyCriterion.IsInternal(ip);
+			std::map<int,H323TransportAddress>::const_iterator inf = m_H46023STUN.find(intID);
+			if (inf == m_H46023STUN.end()) {
+				if (intID > 0) {
+					PTRACE(4,"Std23\tSTUN Internal " << ip << " IF " << intID-1);
+				} else {
 					PTRACE(4,"Std23\tSTUN Public Server " << stunlist[i] << " (" << ip << ")");
-				 }
+				}
 				m_H46023STUN.insert(pair<int, H323TransportAddress>(intID, H323TransportAddress(ip,port)));
 			 }
 		}
@@ -2450,9 +2447,9 @@ GkPresence & Toolkit::GetPresenceHandler()
 }
 #endif
 
-std::vector<NetworkAddress> Toolkit::GetInternalNetworks() {
-
-    return !GkConfig()->GetString("ExternalIP", "").IsEmpty() ? m_VirtualRouteTable.GetInternalNetworks() : m_RouteTable.GetInternalNetworks();
+std::vector<NetworkAddress> Toolkit::GetInternalNetworks()
+{
+	return !GkConfig()->GetString("ExternalIP", "").IsEmpty() ? m_VirtualRouteTable.GetInternalNetworks() : m_RouteTable.GetInternalNetworks();
 }
 
 bool Toolkit::IsIPv6Enabled() const
@@ -2508,10 +2505,10 @@ void Toolkit::SetGKHome(const PStringArray & home)
 		// remove INADDR_ANY
 		for (size_t n = 0; n < m_GKHome.size(); ++n) {
 			if (m_GKHome[n] == INADDR_ANY
-				|| m_GKHome[n].IsLinkLocal()    // TODO: maybe keep listeninig on link local addrs ?
+				|| m_GKHome[n].IsLinkLocal()	// TODO: maybe keep listeninig on link local addrs ?
 				) {
 				m_GKHome.erase(m_GKHome.begin() + n);
-				--n;    // re-test the new element on position n
+				--n;	// re-test the new element on position n
 			}
 		}
 		// if IPv6 is not enabled, remove _all_ IPv6 addresses
@@ -2519,9 +2516,9 @@ void Toolkit::SetGKHome(const PStringArray & home)
 			for (size_t n = 0; n < m_GKHome.size(); ++n) {
 				if (m_GKHome[n].GetVersion() == 6) {
 					m_GKHome.erase(m_GKHome.begin() + n);
-					--n;    // re-test the new element on position n
+					--n;	// re-test the new element on position n
 				}
-            }
+			}
 		}
 	}
 
@@ -2679,7 +2676,7 @@ PString Toolkit::AsString(
 	if (localtime_r(&t, tmptr) != tmptr) {
 #else
 	tmptr = localtime(&t);
-	if (tmptr  == NULL) {
+	if (tmptr == NULL) {
 #endif
 		PTRACE(0, "TOOLKIT\tCould not apply timestamp formatting - using default");
 		return tm.AsString( "hh:mm:ss.uuu z www MMM d yyyy" );
@@ -2818,9 +2815,9 @@ unsigned Toolkit::TranslateSentCause(unsigned cause) const
 #ifdef OpenH323Factory
 PStringList Toolkit::GetAuthenticatorList()
 {
-  PString auth = GkConfig()->GetString("Gatekeeper::Main", "Authenticators", "");
-  PStringArray authlist(auth.Tokenise(" ,;\t"));
+	PString auth = GkConfig()->GetString("Gatekeeper::Main", "Authenticators", "");
+	PStringArray authlist(auth.Tokenise(" ,;\t"));
 
-  return authlist;
+	return authlist;
 }
 #endif
