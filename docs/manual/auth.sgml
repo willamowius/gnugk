@@ -156,7 +156,7 @@ together with an IP address. Supported Gatekeeper::Auth events are:
 of a single entry is:
 <p><tt/IP=[allow | reject][;prefix[,prefix...]]/
 <p>
-where IP is a single IP address, a network address (in A.B.C.D/M.M.M.M or A.B.C.D/LENGTH format) or a string <tt/'any'/ or <tt/'*'/ to match any address.
+where IP is a single IP address, a network address (in A.B.C.D/M.M.M.M or A.B.C.D/LENGTH format or IPv6 format) or a string <tt/'any'/ or <tt/'*'/ to match any address.
 The access list can also be loaded from an external file using <tt/include/ directive. During authentication, network mask length defines a priority for each
 entry, so rule 192.168.1.1=allow takes precedence over 192.168.1.0/24=reject.
 <p>
@@ -172,6 +172,9 @@ FileIPAuth=required;RRQ,LRQ,Setup
 192.168.1.240=reject
 192.168.1.0/24=allow
 192.168.2.0/255.255.255.0=allow;48,49,44
+2a01:4f8:61:2243::2=allow
+2a01:4f8:61:2243::10/128=allow
+2a01:4f8:61:2243::/64=allow
 any=reject
 </verb></tscreen>
 </descrip>
@@ -322,7 +325,6 @@ Examples:
 <tscreen><verb>
 sigip:192.168.242.165:1720
 sigip:[2a01:4f8:61:2243::2]:1720
-</verb></tscreen>
 sigip:2a01:4f8:61:2243::2
 </verb></tscreen>
 
