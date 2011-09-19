@@ -1430,7 +1430,7 @@ H225_ArrayOf_AlternateGK RasServer::ParseAltGKConfig(const PString & altGkSettin
 	alternateGKs.SetSize(altgks.GetSize());
 
 	for (PINDEX idx = 0; idx < altgks.GetSize(); ++idx) {
-		const PStringArray tokens = altgks[idx].Tokenise(":;", FALSE);	// TODO: IPv6 bug
+		const PStringArray tokens = altgks[idx].Tokenise(";", FALSE);
 		if (tokens.GetSize() < 4) {
 			PTRACE(1,"GK\tFormat error in AlternateGKs");
 			continue;
@@ -2223,7 +2223,7 @@ bool RegistrationRequestPDU::Process()
 		if (iec == Toolkit::iecNATTraversal) {
 			PString ipdata = request.m_nonStandardData.m_data.AsString();
 			if (strncmp(ipdata, "IP=", 3) == 0) {
-				PStringArray ips(ipdata.Mid(3).Tokenise(",:;", false));	 // TODO: IPv6 bug
+				PStringArray ips(ipdata.Mid(3).Tokenise(",;", false));
 				PINDEX k;
 				for (k = 0; k < ips.GetSize(); ++k)
 					if (PIPSocket::Address(ips[k]) == rx_addr)

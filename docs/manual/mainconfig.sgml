@@ -296,8 +296,7 @@ This global definition can be overriden by a per IP specification in
 <ref id="rassrvalternategatekeeper" name="[RasSrv::AlternateGatekeeper]">.
 
 <bf>NOTE:</bf> In older versions of GnuGk, the fields were separated by colons.
-This will continue to work for now, but it is deprecated.
-Please change your old configurations to use semicolons.
+Since version 2.3.3 this is deprecated and you must change your configurations to use semicolons.
 
 <item><tt/SendTo=1.2.3.4:1719/<newline>
 Default: <tt>N/A</tt><newline>

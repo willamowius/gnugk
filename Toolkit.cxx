@@ -404,7 +404,7 @@ for(PINDEX i=0; i < r_table.GetSize(); ++i) {
 			::new (rtable_end++) RouteEntry(extroute);
 		} else {
 			PIPSocket::RouteEntry & r_entry = r_table[r];
-			if (r_entry.GetNetMask() != INADDR_ANY) {		// JW TODO: IPv6 check
+			if (r_entry.GetNetMask() != INADDR_ANY) {
 				::new (rtable_end++) RouteEntry(r_entry, if_table);
 			}
 		}
