@@ -5449,20 +5449,19 @@ bool H245Handler::HandleCommand(H245_CommandMessage & Command)
 H245Socket::H245Socket(CallSignalSocket *sig)
       : TCPProxySocket("H245d"), sigSocket(sig), listener(new TCPSocket)
 {
-	peerH245Addr = 0;
+	peerH245Addr = NULL;
 	const int numPorts = min(H245PortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS);
 	for (int i = 0; i < numPorts; ++i) {
 		WORD pt = H245PortRange.GetPort();
-PTRACE(0, "JW H245Socket port=" << pt);
-		if (listener->Listen(1, pt, PSocket::CanReuseAddress)) {
-			PIPSocket::Address unused;
+		if (listener->Listen(GNUGK_INADDR_ANY, 1, pt, PSocket::CanReuseAddress)) {
+			PIPSocket::Address localAddr;
 			WORD port;
-			listener->GetLocalAddress(unused, port);
-			PTRACE(0, "JW listen OK -> port = " << listener->GetPort() << " v2 port=" << port);
+			listener->GetLocalAddress(localAddr, port);
+			PTRACE(0, "JW listen OK -> local addr=" << localAddr << " port=" << port);
 			break;
 		}
 		int errorNumber = listener->GetErrorNumber(PSocket::LastGeneralError);
-		PTRACE(1, Type() << "\tCould not open H.245 listener at 0.0.0.0:" << pt
+		PTRACE(1, Type() << "\tCould not open H.245 listener at " << AsString(GNUGK_INADDR_ANY, pt)
 			<< " - error " << listener->GetErrorCode(PSocket::LastGeneralError) << '/'
 			<< errorNumber << ": " << listener->GetErrorText(PSocket::LastGeneralError)
 			);
@@ -5482,7 +5481,7 @@ PTRACE(0, "JW H245Socket port=" << pt);
 H245Socket::H245Socket(H245Socket *socket, CallSignalSocket *sig)
       : TCPProxySocket("H245s", socket), sigSocket(sig), listener(0)
 {
-	peerH245Addr = 0;
+	peerH245Addr = NULL;
 	socket->remote = this;
 }
 
@@ -7001,7 +7000,7 @@ T120LogicalChannel::T120Listener::T120Listener(T120LogicalChannel *lc) : t120lc(
 		if (Listen(5, pt, PSocket::CanReuseAddress))
 			break;
 		int errorNumber = GetErrorNumber(PSocket::LastGeneralError);
-		PTRACE(1, GetName() << "Could not open listening T.120 socket at 0.0.0.0:" << pt
+		PTRACE(1, GetName() << "Could not open listening T.120 socket at " << AsString(GNUGK_INADDR_ANY, pt)
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
 			<< errorNumber << ": " << GetErrorText(PSocket::LastGeneralError)
 			);
@@ -7030,7 +7029,7 @@ void T120LogicalChannel::Create(T120ProxySocket *socket)
 		WORD pt = T120PortRange.GetPort();
 		if (remote->Connect(GNUGK_INADDR_ANY, pt, peerAddr)) {
 			PTRACE(3, "T120\tConnect to " << remote->GetName()
-				<< " from 0.0.0.0:" << pt << " successful"
+				<< " from " << AsString(GNUGK_INADDR_ANY, pt) << " successful"
 				);
 			socket->SetConnected(true);
 			remote->SetConnected(true);
@@ -7041,7 +7040,7 @@ void T120LogicalChannel::Create(T120ProxySocket *socket)
 			return;
 		}
 		int errorNumber = remote->GetErrorNumber(PSocket::LastGeneralError);
-		PTRACE(1, remote->Type() << "\tCould not open/connect T.120 socket at 0.0.0.0:" << pt
+		PTRACE(1, remote->Type() << "\tCould not open/connect T.120 socket at " << AsString(GNUGK_INADDR_ANY, pt)
 			<< " - error " << remote->GetErrorCode(PSocket::LastGeneralError) << '/'
 			<< errorNumber << ": " << remote->GetErrorText(PSocket::LastGeneralError)
 			);
