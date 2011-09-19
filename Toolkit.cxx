@@ -1490,7 +1490,7 @@ PConfig* Toolkit::ReloadConfig()
 
 	// update the gatekeeper name, in case it was set in the SQL config
 	m_GKName = m_Config->GetString("Name", "OpenH323GK");
-#ifdef HAS_H235
+#ifdef HAS_H235_MEDIA
 	m_H235MediaEnabled	= m_Config->GetBoolean(RoutedSec, "EnableH235Media", 0);
 #endif
 #ifdef HAS_H46018

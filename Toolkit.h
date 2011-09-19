@@ -364,7 +364,7 @@ class Toolkit : public Singleton<Toolkit>
 	void SetGKHome(const PStringArray &);
 	bool IsGKHome(const PIPSocket::Address & addr) const;
 
-#ifdef HAS_H235
+#ifdef HAS_H235_MEDIA
 	bool IsH235MediaEnabled() const { return m_H235MediaEnabled; }
 #endif
 
@@ -627,7 +627,7 @@ private:
 	/// global cause code translation
 	std::map<unsigned, unsigned> m_receivedCauseMap;
 	std::map<unsigned, unsigned> m_sentCauseMap;
-#ifdef HAS_H235
+#ifdef HAS_H235_MEDIA
 	bool m_H235MediaEnabled;
 #endif
 	// is H460.18 enabled ?
