@@ -2184,10 +2184,8 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias, const PI
 
 		for (PINDEX k = 0; k < ipaddresses.GetSize(); k++) {
 			PString num = ipaddresses[k];
-			WORD port = GK_DEF_UNICAST_RAS_PORT;
-			PStringArray tokens = SplitIPAndPort(num);
-			if (tokens.GetSize() == 2)
-				port = (WORD)tokens[1].AsUnsigned();
+			PStringArray tokens = SplitIPAndPort(num, GK_DEF_UNICAST_RAS_PORT);
+			WORD port = (WORD)tokens[1].AsUnsigned();
 
 			H225_AlternateGK * alt = new H225_AlternateGK;
 			alt->m_rasAddress = SocketToH225TransportAddr(PIPSocket::Address(tokens[0]),port);

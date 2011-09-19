@@ -3870,11 +3870,9 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 		}
 		if (!destip.IsEmpty()) {
 			setup.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
-			PStringArray adr_parts = SplitIPAndPort(destip);
+			PStringArray adr_parts = SplitIPAndPort(destip, GK_DEF_ENDPOINT_SIGNAL_PORT);
 			PString ip = adr_parts[0];
 			WORD port = (WORD)(adr_parts[1].AsInteger());
-			if (port == 0)
-				port = GK_DEF_ENDPOINT_SIGNAL_PORT;
 			setup.m_destCallSignalAddress = SocketToH225TransportAddr(ip, port);
 		}
 		if (!alias.IsEmpty()) {
@@ -4756,11 +4754,9 @@ void CallSignalSocket::BuildSetupPDU(Q931 & SetupPDU, const H225_CallIdentifier 
 	}
 	if (!destip.IsEmpty()) {
 		setup.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
-		PStringArray adr_parts = SplitIPAndPort(destip);
+		PStringArray adr_parts = SplitIPAndPort(destip, GK_DEF_ENDPOINT_SIGNAL_PORT);
 		PString ip = adr_parts[0];
 		WORD port = (WORD)(adr_parts[1].AsInteger());
-		if (port == 0)
-			port = GK_DEF_ENDPOINT_SIGNAL_PORT;
 		setup.m_destCallSignalAddress = SocketToH225TransportAddr(ip, port);
 	}
 	if (!alias.IsEmpty()) {

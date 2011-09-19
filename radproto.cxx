@@ -1885,7 +1885,7 @@ void RadiusClient::GetServersFromString(
 {
 	const PStringArray tokens = servers.Tokenise(" ;,", FALSE);
 	for (PINDEX i = 0; i < tokens.GetSize(); i++) {
-		const PStringArray serverTokens = SplitIPAndPort(tokens[i]);
+		const PStringArray serverTokens = SplitIPAndPort(tokens[i], 0);	// TODO: default port
 		if (serverTokens.GetSize() > 0) {
 			const PString serverAddress = serverTokens[0].Trim();
 			if (!serverAddress) {
@@ -1895,9 +1895,9 @@ void RadiusClient::GetServersFromString(
 				server->m_acctPort = 0;
 				if (serverTokens.GetSize() >= 2)
 					server->m_authPort = (WORD)(serverTokens[1].AsInteger());
-				if (serverTokens.GetSize() >= 3)
+				if (serverTokens.GetSize() >= 3)	// TODO: SplitIPAndPort() only returns 2 parts max
 					server->m_acctPort = (WORD)(serverTokens[2].AsInteger());
-				if (serverTokens.GetSize() >= 4)
+				if (serverTokens.GetSize() >= 4)	// TODO: SplitIPAndPort() only returns 2 parts max
 					server->m_sharedSecret = serverTokens[3].Trim();
 				m_radiusServers.push_back(server);
 			}

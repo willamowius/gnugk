@@ -1418,9 +1418,9 @@ void RasServer::GetAlternateGK()
 	PStringArray svrs(sendto.Tokenise(" ,;\t", FALSE));
 	if ((altGKsSize = svrs.GetSize()) > 0)
 		for (PINDEX i = 0; i < altGKsSize; ++i) {
-			PStringArray tokens = SplitIPAndPort(svrs[i]);
+			PStringArray tokens = SplitIPAndPort(svrs[i], GK_DEF_UNICAST_RAS_PORT);
 			altGKsAddr.push_back(Address(tokens[0]));
-			altGKsPort.push_back((tokens.GetSize() > 1) ? WORD(tokens[1].AsUnsigned()) : GK_DEF_UNICAST_RAS_PORT);
+			altGKsPort.push_back(WORD(tokens[1].AsUnsigned()));
 		}
 }
 H225_ArrayOf_AlternateGK RasServer::ParseAltGKConfig(const PString & altGkSetting) const

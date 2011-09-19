@@ -324,8 +324,8 @@ H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr,
 
 bool GetTransportAddress(const PString & addr, WORD def_port, PIPSocket::Address & ip, WORD & port)
 {
-	PStringArray adr_parts = SplitIPAndPort(addr.Trim());
-	port = (adr_parts.GetSize() > 1) ? WORD(adr_parts[1].AsUnsigned()) : def_port;
+	PStringArray adr_parts = SplitIPAndPort(addr.Trim(), def_port);
+	port = WORD(adr_parts[1].AsUnsigned());
 	return PIPSocket::GetHostAddress(adr_parts[0], ip) != 0;
 }
 
@@ -364,7 +364,7 @@ bool GetIPAndPortFromTransportAddr(const H225_TransportAddress & addr, PIPSocket
 	 return false;
 }
 
-PStringArray SplitIPAndPort(const PString & str)
+PStringArray SplitIPAndPort(const PString & str, WORD default_port)
 {
 	if (!IsIPv6Address(str)) {
 		return str.Tokenise(":", FALSE);
@@ -378,10 +378,11 @@ PStringArray SplitIPAndPort(const PString & str)
 			result[0].Replace("]", "", true);
 			result[1] = str.Mid(n+1);
 			if (result[1].GetLength() == 0)
-				result.SetSize(1);
+				result[1] = default_port;
 		} else {
-			result.SetSize(1);
+			result.SetSize(2);
 			result[0] = str;
+			result[1] = default_port;
 		}
 		return result;
 	}

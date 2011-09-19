@@ -77,7 +77,7 @@ bool GetIPFromTransportAddr(const H225_TransportAddress & addr, PIPSocket::Addre
 
 bool GetIPAndPortFromTransportAddr(const H225_TransportAddress & addr, PIPSocket::Address & ip, WORD & port);
 
-PStringArray SplitIPAndPort(const PString & str);
+PStringArray SplitIPAndPort(const PString & str, WORD default_port);
 
 WORD GetH245Port(const H245_UnicastAddress & addr);
 void SetH245Port(H245_UnicastAddress & addr, WORD port);
