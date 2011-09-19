@@ -315,12 +315,15 @@ sigaddr:.*ipAddress .* ip = .* c0 a8 e2 a5 .*port = 1720.*
 </verb></tscreen>
 
 <item><tt/sigip/ - specialized form of `<tt/sigaddr/'.
-Write the signaling IP address using (commonly used) decimal notation:
-``<tt/byteA.byteB.byteC.byteD:port/''.
+Write the signaling IP address. If the port is omitted, 1720 is assumed.
+
 <p>
-Example:
+Examples:
 <tscreen><verb>
 sigip:192.168.242.165:1720
+sigip:[2a01:4f8:61:2243::2]:1720
+</verb></tscreen>
+sigip:2a01:4f8:61:2243::2
 </verb></tscreen>
 
 <item><tt/allow/ - always accept the alias.
@@ -336,6 +339,8 @@ Example:
 cwhuang=sigip:10.0.1.10:1720
 ; The endpoint with alias 'gw1' must register from 10.0.1.0/24
 gw1=sigaddr:.*ipAddress .* ip = .* 0a 00 01 .*port = 1720.*
+; The endpoint with alias 'gw2' must register from [2a01:4f8:61:2243::2]:1720
+gw2=sigip:[2a01:4f8:61:2243::2]:1720
 </verb></tscreen>
 
 <sect1>Section &lsqb;SQLAliasAuth&rsqb;

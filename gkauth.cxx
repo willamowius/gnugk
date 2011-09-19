@@ -1683,16 +1683,14 @@ bool AliasAuth::doCheck(
 
 bool AliasAuth::CheckAuthRule(
 	/// a signaling address for the endpoint that sent the request
-	const H225_TransportAddress& sigaddr,
+	const H225_TransportAddress & sigaddr,
 	/// the auth rule to be used for checking
-	const PString& authrule
+	const PString & authrule
 	)
 {
 	const PStringArray rule = authrule.Tokenise(":", false);	// TODO: check for IPv6
 	if (rule.GetSize() < 1) {
-		PTRACE(1, "GKAUTH\t" << GetName() << " found invalid empty auth rule '"
-			<< authrule << '\''
-			);
+		PTRACE(1, "GKAUTH\t" << GetName() << " found invalid empty auth rule '" << authrule << '\'');
 		return false;
 	}
 	
@@ -1709,8 +1707,7 @@ bool AliasAuth::CheckAuthRule(
 		//   sigaddr:.*ipAddress .* ip = .* c3 47 e2 a2 .*port = 1720.*
 		if (rule.GetSize() < 2) {
 			PTRACE(1, "GKAUTH\t" << GetName() << " found invalid empty sigaddr "
-				"auth rule '" << authrule << '\''
-				);
+				"auth rule '" << authrule << '\'');
 			return false;
 		}
 		return Toolkit::MatchRegex(AsString(sigaddr), rule[1].Trim()) != 0;
@@ -1719,27 +1716,22 @@ bool AliasAuth::CheckAuthRule(
 		//   sigip:195.71.129.69:1720
 		if (rule.GetSize() < 2) {
 			PTRACE(1, "GKAUTH\t" << GetName() << " found invalid empty sigip "
-				"auth rule '" << authrule << '\''
-				);
+				"auth rule '" << authrule << '\'');
 			return false;
 		}
+		PString allowed_ip = authrule.Mid(authrule.Find("sigip:")+6).Trim();
+		PStringArray ip_parts = SplitIPAndPort(allowed_ip, GK_DEF_ENDPOINT_SIGNAL_PORT);
 		PIPSocket::Address ip;
-		PIPSocket::GetHostAddress(rule[1].Trim(), ip);
-		const WORD port = (WORD)((rule.GetSize() < 3) 
-			? GK_DEF_ENDPOINT_SIGNAL_PORT : rule[2].Trim().AsInteger());
+		PIPSocket::GetHostAddress(ip_parts[0], ip);
+		const WORD port = (WORD)(ip_parts[1].AsUnsigned());
 		return (sigaddr == SocketToH225TransportAddr(ip, port));
 	} else {
-		PTRACE(1, "GKAUTH\t" << GetName() << " found unknown auth rule '"
-			<< rName << '\''
-			);
+		PTRACE(1, "GKAUTH\t" << GetName() << " found unknown auth rule '" << rName << '\'');
 		return false;
 	}
 }
 
 // class PrefixAuth
-
-// Initial author: Michael Rubashenkkov  2002/01/14 (GkAuthorize)
-// Completely rewrite by Chih-Wei Huang  2002/05/01
 
 class AuthRule;
 class AuthObj;

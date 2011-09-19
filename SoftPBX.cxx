@@ -214,7 +214,7 @@ void SoftPBX::DisconnectIp(const PString & Ip)
 
 	callptr Call;
 	if ((IsIPv4Address(Ip) && Ip.Find(':') == P_MAX_INDEX)
-		|| (IsIPv6Address(Ip) && Ip.Find(']:') == P_MAX_INDEX)
+		|| (IsIPv6Address(Ip) && Ip.Find("]:") == P_MAX_INDEX)
 		) {
 		// no port specified
 		while (Call = CallTable::Instance()->FindBySignalAdrIgnorePort(callSignalAddress)) {
