@@ -24,7 +24,7 @@
 #include "config.h"
 #include "h323util.h"
 
-#ifdef HAS_H235
+#ifdef HAS_H235_MEDIA
 #include "h235auth.h"
 #endif
 
@@ -1223,7 +1223,7 @@ public:
 	int GetH46019Direction() const;
 #endif
 
-#ifdef HAS_H235
+#ifdef HAS_H235_MEDIA
     typedef NATType EncDir;
     H235Authenticators & GetAuthenticators() { return m_authenticators; }
     void SetMediaEncryption(EncDir dir);
@@ -1432,7 +1432,7 @@ private:
 	CallLeg m_rerouteDirection;
 	PString m_callerID;	// forced caller ID or empty
 
-#ifdef HAS_H235
+#ifdef HAS_H235_MEDIA
     H235Authenticators m_authenticators;
     EncDir m_encyptDir;
 #endif

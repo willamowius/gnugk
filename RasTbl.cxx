@@ -2014,7 +2014,7 @@ CallRec::CallRec(
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
 	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalZone(false)
-#ifdef HAS_H235
+#ifdef HAS_H235_MEDIA
     ,m_encyptDir(none)
 #endif
 {
@@ -2069,7 +2069,7 @@ CallRec::CallRec(
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
 	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalZone(false)
-#ifdef HAS_H235
+#ifdef HAS_H235_MEDIA
     ,m_encyptDir(none)
 #endif
 {
@@ -2112,7 +2112,7 @@ CallRec::CallRec(H225_CallIdentifier callID, H225_TransportAddress sigAdr)
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
 	m_h46018ReverseSetup(true), m_callfromTraversalZone(true)
-#ifdef HAS_H235
+#ifdef HAS_H235_MEDIA
     ,m_encyptDir(none)
 #endif
 {
@@ -2150,7 +2150,7 @@ CallRec::CallRec(
 	m_singleFailoverCDR(oldCall->m_singleFailoverCDR), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(oldCall->m_proceedingSent),
 	m_clientAuthId(0), m_rerouteState(oldCall->m_rerouteState), m_h46018ReverseSetup(oldCall->m_h46018ReverseSetup),
 	m_callfromTraversalZone(oldCall->m_callfromTraversalZone)
-#ifdef HAS_H235
+#ifdef HAS_H235_MEDIA
     ,m_encyptDir(none)
 #endif
 	// TODO: add new fields, bind hint etc. ? + c'tor ?
@@ -3505,7 +3505,7 @@ int CallRec::GetH46019Direction() const
 }
 #endif
 
-#ifdef HAS_H235
+#ifdef HAS_H235_MEDIA
 void CallRec::SetMediaEncryption(CallRec::EncDir dir) 
 { 
     m_encyptDir = dir;

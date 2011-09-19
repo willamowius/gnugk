@@ -1404,7 +1404,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 			&& ((H245_RequestMessage&)h245msg).GetTag() == H245_RequestMessage::e_openLogicalChannel) {
 		H245_OpenLogicalChannel &olc = (H245_RequestMessage&)h245msg;
 
-#if HAS_H235
+#if HAS_H235_MEDIA
            // TODO OLC Handling to go here
 #endif
 		if (m_callerSocket) {
@@ -1518,7 +1518,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		&& ((H245_RequestMessage&)h245msg).GetTag() == H245_RequestMessage::e_terminalCapabilitySet) {
 
 		H245_TerminalCapabilitySet & tcs = (H245_RequestMessage&)h245msg;
-#ifdef H323_H235
+#ifdef H323_H235_MEDIA
         if (!HandleH235TCS(tcs))
             return false;
 #endif	
@@ -1617,7 +1617,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 	return true;
 }
 
-#ifdef HAS_H235
+#ifdef HAS_H235_MEDIA
 
 bool RemoveH235Capability(unsigned _entryNo,
                           H245_ArrayOf_CapabilityTableEntry & _capTable, 
@@ -2527,7 +2527,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 		bool useParent = gkClient->IsRegistered() && gkClient->CheckFrom(_peerAddr);
 
-#ifdef HAS_H235
+#ifdef HAS_H235_MEDIA
      H235Authenticators & auth = m_call->GetAuthenticators();
      if (Toolkit::Instance()->IsH235MediaEnabled()) {
           if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)
@@ -3464,7 +3464,7 @@ void CallSignalSocket::OnConnect(
 		msg->SetUUIEChanged();
 	}
 
-#ifdef HAS_H235
+#ifdef HAS_H235_MEDIA
     H235Authenticators & auth = m_call->GetAuthenticators();
     if (Toolkit::Instance()->IsH235MediaEnabled() && m_call->IsMediaEncryption()
         && connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens)) {
