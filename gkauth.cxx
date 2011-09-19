@@ -1674,8 +1674,7 @@ bool AliasAuth::doCheck(
 			if (CheckAuthRule(sigaddr[j], authrules[i])) {
 				PTRACE(5, "GKAUTH\t" << GetName() << " auth rule '"
 					<< authrules[i] << "' applied successfully to RRQ "
-					" from " << AsDotString(sigaddr[j])
-					);
+					" from " << AsDotString(sigaddr[j]));
 				return true;
 			}
 	return false;
@@ -1688,7 +1687,7 @@ bool AliasAuth::CheckAuthRule(
 	const PString & authrule
 	)
 {
-	const PStringArray rule = authrule.Tokenise(":", false);	// TODO: check for IPv6
+	const PStringArray rule = authrule.Tokenise(":", false);
 	if (rule.GetSize() < 1) {
 		PTRACE(1, "GKAUTH\t" << GetName() << " found invalid empty auth rule '" << authrule << '\'');
 		return false;
