@@ -154,6 +154,8 @@ TEST_F(H323UtilTest, IsIPv6Address) {
 	EXPECT_TRUE(IsIPv6Address("2001:0db8:85a3:08d3:1319:8a2e:0370:7344"));
 	EXPECT_TRUE(IsIPv6Address("2001:0db8:0000:08d3:0000:8a2e:0070:7344"));
 	EXPECT_TRUE(IsIPv6Address("2001:db8:0:8d3:0:8a2e:70:7344"));
+	EXPECT_TRUE(IsIPv6Address("[2001:0db8:85a3:08d3:1319:8a2e:0370:7344]"));
+	EXPECT_TRUE(IsIPv6Address("[2001:0db8:85a3:08d3:1319:8a2e:0370:7344]:1234"));
 	EXPECT_TRUE(IsIPv6Address("::1"));
 	EXPECT_FALSE(IsIPv6Address("1.2.3.4"));
 	EXPECT_FALSE(IsIPv6Address("abcd"));
@@ -163,6 +165,22 @@ TEST_F(H323UtilTest, IsIPv6Address) {
 TEST_F(H323UtilTest, IsLoopback) {
 	PIPSocket::Address ip;
 	EXPECT_TRUE(IsLoopback(ip));
+}
+
+TEST_F(H323UtilTest, SplitIPAndPort) {
+	PStringArray parts;
+	parts = SplitIPAndPort("1.2.3.4", 1234);
+	EXPECT_STREQ(parts[0], "1.2.3.4");
+	EXPECT_STREQ(parts[1], "1234");
+	parts = SplitIPAndPort("1.2.3.4:1234", 1235);
+	EXPECT_STREQ(parts[0], "1.2.3.4");
+	EXPECT_STREQ(parts[1], "1234");
+	parts = SplitIPAndPort("2001:0db8:85a3:08d3:1319:8a2e:0370:7344", 1234);
+	EXPECT_STREQ(parts[0], "2001:0db8:85a3:08d3:1319:8a2e:0370:7344");
+	EXPECT_STREQ(parts[1], "1234");
+	parts = SplitIPAndPort("[2001:0db8:85a3:08d3:1319:8a2e:0370:7344]:1234", 1235);
+	EXPECT_STREQ(parts[0], "2001:0db8:85a3:08d3:1319:8a2e:0370:7344");
+	EXPECT_STREQ(parts[1], "1234");
 }
 
 TEST_F(H323UtilTest, GetGUIDString) {

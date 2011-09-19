@@ -366,23 +366,28 @@ bool GetIPAndPortFromTransportAddr(const H225_TransportAddress & addr, PIPSocket
 
 PStringArray SplitIPAndPort(const PString & str, WORD default_port)
 {
+	PStringArray result;
 	if (!IsIPv6Address(str)) {
-		return str.Tokenise(":", FALSE);
+		result = str.Tokenise(":", FALSE);
+		if (result.GetSize() == 1) {
+			result.SetSize(2);
+			result[1] = PString(PString::Unsigned, default_port);
+		}
+		return result;
 	} else {
-		PStringArray result;
 		if (str.Left(1) == "[") {
 			result.SetSize(2);
 			PINDEX n = str.FindLast(']');
 			result[0] = str.Left(n);
 			result[0].Replace("[", "", true);
 			result[0].Replace("]", "", true);
-			result[1] = str.Mid(n+1);
+			result[1] = str.Mid(n+2);
 			if (result[1].GetLength() == 0)
-				result[1] = default_port;
+				result[1] = PString(PString::Unsigned, default_port);
 		} else {
 			result.SetSize(2);
 			result[0] = str;
-			result[1] = default_port;
+			result[1] = PString(PString::Unsigned, default_port);
 		}
 		return result;
 	}
@@ -401,8 +406,16 @@ bool IsIPv4Address(const PString & addr)
 	return ((addr.FindRegEx(ipPattern) != P_MAX_INDEX) || (addr.FindRegEx(ipAndPortPattern) != P_MAX_INDEX));
 }
 
-bool IsIPv6Address(const PString & addr)
+bool IsIPv6Address(PString addr)
 {
+	static PRegularExpression ipV6PortPattern("\\]:[0-9]+$", PRegularExpression::Extended);
+	if (addr.Left(1) == "[") {
+		if (addr.Right(1) == "]") {
+			addr = addr.Mid(1, addr.GetLength() - 2);
+		} else if (addr.FindRegEx(ipV6PortPattern) != P_MAX_INDEX) {
+			addr = addr.Mid(1, addr.FindLast(']') - 1);
+		}
+	}
 	struct addrinfo * result = NULL;
 	struct addrinfo hints;
 	memset(&hints, 0, sizeof(hints));

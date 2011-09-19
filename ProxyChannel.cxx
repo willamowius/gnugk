@@ -4646,13 +4646,10 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 					alias = destination.Left(at);
 					destination = destination.Right(destination.GetLength() - (at + 1));
 				}
-				// TODO: unify with regex in h323util.cxx
-				if (destination.FindRegEx(PRegularExpression("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX) {
-					ip = destination;
-				} else if (destination.FindRegEx(PRegularExpression("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+:[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX) {
-					PINDEX colon = destination.Find(':');	// TODO: IPv6 bug
-					ip = destination.Left(colon);
-					destport = (WORD)destination.Right(destination.GetLength() - (colon + 1)).AsInteger();
+				if (IsIPAddress(destination)) {
+					PStringArray adr_parts = SplitIPAndPort(destination, GK_DEF_ENDPOINT_SIGNAL_PORT);
+					ip = adr_parts[0];
+					destport = (WORD)adr_parts[0].AsUnsigned();
 				}
 
 				if (!ip.IsEmpty()) {

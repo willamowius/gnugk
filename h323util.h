@@ -86,7 +86,7 @@ bool IsIPAddress(const PString & addr);
 
 bool IsIPv4Address(const PString & addr);
 
-bool IsIPv6Address(const PString & addr);
+bool IsIPv6Address(PString addr);
 
 bool IsLoopback(const PIPSocket::Address &);
 
