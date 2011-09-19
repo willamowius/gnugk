@@ -2534,10 +2534,16 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
               || setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens)) { 
                 auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
 
-             // TODO Caller Admission. -SH
               H235Authenticator::ValidationResult result = auth.ValidateSignalPDU( 
                     H225_H323_UU_PDU_h323_message_body::e_setup, 
                     setupBody.m_tokens, setupBody.m_cryptoTokens, m_rawSetup);
+                
+              if (result != H235Authenticator::e_OK &&
+                  result != H235Authenticator::e_Absent &&
+                  result != H235Authenticator::e_Disabled) {
+                      PTRACE(5,"H235 Caller Admission failed");
+                      // TODO Caller Admission. -SH
+              }
           }
 
           if (!auth.SupportsEncryption() && auth.CreateAuthenticator("Std6")) {
@@ -3470,10 +3476,9 @@ void CallSignalSocket::OnConnect(
         && connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens)) {
 
       PBYTEArray nonce;
-      H235Authenticator::ValidationResult result = auth.ValidateSignalPDU( 
-                             H225_H323_UU_PDU_h323_message_body::e_connect, 
-                             connectBody.m_tokens, connectBody.m_cryptoTokens, nonce);
-
+      auth.ValidateSignalPDU(H225_H323_UU_PDU_h323_message_body::e_connect, 
+                       connectBody.m_tokens, connectBody.m_cryptoTokens, nonce);
+   
     } else if (m_call->IsMediaEncryption()) {
          m_call->SetMediaEncryption(CallRec::none);
     } else {
