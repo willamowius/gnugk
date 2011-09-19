@@ -2014,6 +2014,9 @@ CallRec::CallRec(
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
 	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalZone(false)
+#ifdef HAS_H235
+    ,m_encyptDir(none)
+#endif
 {
 	const H225_AdmissionRequest& arq = arqPdu;
 
@@ -2066,6 +2069,9 @@ CallRec::CallRec(
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
 	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalZone(false)
+#ifdef HAS_H235
+    ,m_encyptDir(none)
+#endif
 {
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
 		m_sourceAddress = setup.m_sourceAddress;
@@ -2106,6 +2112,9 @@ CallRec::CallRec(H225_CallIdentifier callID, H225_TransportAddress sigAdr)
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
 	m_h46018ReverseSetup(true), m_callfromTraversalZone(true)
+#ifdef HAS_H235
+    ,m_encyptDir(none)
+#endif
 {
 }
 
@@ -2141,6 +2150,9 @@ CallRec::CallRec(
 	m_singleFailoverCDR(oldCall->m_singleFailoverCDR), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(oldCall->m_proceedingSent),
 	m_clientAuthId(0), m_rerouteState(oldCall->m_rerouteState), m_h46018ReverseSetup(oldCall->m_h46018ReverseSetup),
 	m_callfromTraversalZone(oldCall->m_callfromTraversalZone)
+#ifdef HAS_H235
+    ,m_encyptDir(none)
+#endif
 	// TODO: add new fields, bind hint etc. ? + c'tor ?
 {
 	m_timer = m_acctUpdateTime = m_creationTime = time(NULL);
@@ -3490,6 +3502,13 @@ int CallRec::GetH46019Direction() const
 	if (m_Called && m_Called->UsesH46018())
 			dir += H46019_CALLED;
 	return dir;
+}
+#endif
+
+#ifdef HAS_H235
+void CallRec::SetMediaEncryption(CallRec::EncDir dir) 
+{ 
+    m_encyptDir = dir;
 }
 #endif
 

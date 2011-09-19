@@ -364,6 +364,10 @@ class Toolkit : public Singleton<Toolkit>
 	void SetGKHome(const PStringArray &);
 	bool IsGKHome(const PIPSocket::Address & addr) const;
 
+#ifdef HAS_H235
+	bool IsH235MediaEnabled() const { return m_H235MediaEnabled; }
+#endif
+
 	bool isBehindNAT(PIPSocket::Address &) const;
 	std::vector<NetworkAddress> GetInternalNetworks();
 #ifdef HAS_H46018
@@ -623,6 +627,9 @@ private:
 	/// global cause code translation
 	std::map<unsigned, unsigned> m_receivedCauseMap;
 	std::map<unsigned, unsigned> m_sentCauseMap;
+#ifdef HAS_H235
+	bool m_H235MediaEnabled;
+#endif
 	// is H460.18 enabled ?
 #ifdef HAS_H46018
 	bool m_H46018Enabled;

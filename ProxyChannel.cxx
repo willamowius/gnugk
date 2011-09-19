@@ -1403,6 +1403,10 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request
 			&& ((H245_RequestMessage&)h245msg).GetTag() == H245_RequestMessage::e_openLogicalChannel) {
 		H245_OpenLogicalChannel &olc = (H245_RequestMessage&)h245msg;
+
+#if HAS_H235
+           // TODO OLC Handling to go here
+#endif
 		if (m_callerSocket) {
 			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
 					&& olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData
@@ -1514,7 +1518,11 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		&& ((H245_RequestMessage&)h245msg).GetTag() == H245_RequestMessage::e_terminalCapabilitySet) {
 
 		H245_TerminalCapabilitySet & tcs = (H245_RequestMessage&)h245msg;
-		H245_ArrayOf_CapabilityTableEntry & CapabilityTables = tcs.m_capabilityTable;
+#ifdef H323_H235
+        if (!HandleH235TCS(tcs))
+            return false;
+#endif	
+        H245_ArrayOf_CapabilityTableEntry & CapabilityTables = tcs.m_capabilityTable;
 
 		// save TCS (only works for non-tunneled right now)
 		if (m_call && h245sock && tcs.m_capabilityTable.GetSize() > 0) {
@@ -1535,6 +1543,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		}
 
 		// filter the audio capabilities
+        // TODO: Remove the associated SecurityCapability if call is encrypted!
 		for (PINDEX i = 0; i < CapabilityTables.GetSize(); i++) {
 			// PTRACE(4, "CapabilityTable: " << setprecision(2) << CapabilityTables[i]);
 			unsigned int cten = CapabilityTables[i].m_capabilityTableEntryNumber.GetValue();
@@ -1607,6 +1616,122 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 
 	return true;
 }
+
+#ifdef HAS_H235
+
+bool RemoveH235Capability(unsigned _entryNo,
+                          H245_ArrayOf_CapabilityTableEntry & _capTable, 
+                          H245_ArrayOf_CapabilityDescriptor & _capDesc) {
+
+    PTRACE(5, "Removing H.235 capability no: " << _entryNo);
+
+    for (PINDEX i=0; i< _capTable.GetSize(); ++i) {
+       if (_capTable[i].m_capabilityTableEntryNumber.GetValue() == _entryNo) {
+          _capTable.RemoveAt(i);
+          break;
+       }
+    }
+    for (PINDEX n = 0; n < _capDesc.GetSize(); n++){
+        for (PINDEX j = 0; j < _capDesc[n].m_simultaneousCapabilities.GetSize(); j++) {
+	        for (PINDEX m = 0; m < _capDesc[n].m_simultaneousCapabilities[j].GetSize(); m++) {
+		        if (_capDesc[n].m_simultaneousCapabilities[j][m].GetValue() == _entryNo) {
+			        _capDesc[n].m_simultaneousCapabilities[j].RemoveAt(m);
+		        }
+	        }
+        }
+    }
+   return true;
+}
+
+bool AddH235Capability(unsigned _entryNo,
+                       const PStringList & _capList,
+                          H245_ArrayOf_CapabilityTableEntry & _capTable, 
+                          H245_ArrayOf_CapabilityDescriptor & _capDesc) {
+
+    if (_capList.GetSize() == 0)
+        return false;
+
+    PTRACE(5, "Add H.235 Support for: " << _entryNo);
+    unsigned secCapNo = 100+_entryNo;  
+
+    int sz = _capTable.GetSize();
+    _capTable.SetSize(sz+1);
+    H245_CapabilityTableEntry & entry = _capTable[sz];
+        entry.m_capabilityTableEntryNumber.SetValue(secCapNo);
+        entry.IncludeOptionalField(H245_CapabilityTableEntry::e_capability);
+        H245_Capability & cap = entry.m_capability;
+            cap.SetTag(H245_Capability::e_h235SecurityCapability);
+            H245_H235SecurityCapability & sec = cap;
+                sec.m_mediaCapability.SetValue(_entryNo);
+                sec.m_encryptionAuthenticationAndIntegrity.IncludeOptionalField(
+                                                  H245_EncryptionAuthenticationAndIntegrity::e_encryptionCapability);
+                H245_EncryptionCapability & enc = sec.m_encryptionAuthenticationAndIntegrity.m_encryptionCapability;
+                    enc.SetSize(_capList.GetSize());
+                    for (PINDEX i=0; i < _capList.GetSize(); ++i) {
+                        H245_MediaEncryptionAlgorithm & alg = enc[i];
+                        alg.SetTag(H245_MediaEncryptionAlgorithm::e_algorithm);
+                        PASN_ObjectId & id = alg;
+                        id.SetValue(_capList[i]);
+                    }
+
+    for (PINDEX n = 0; n < _capDesc.GetSize(); n++){
+        for (PINDEX j = 0; j < _capDesc[n].m_simultaneousCapabilities.GetSize(); j++) {
+            H245_AlternativeCapabilitySet & alternate = _capDesc[n].m_simultaneousCapabilities[j];
+            int ns = alternate.GetSize();
+	        for (PINDEX m = 0; m < ns; m++) {
+		        if (alternate[m].GetValue() == _entryNo) {
+                   alternate.SetSize(ns+1);
+                   alternate[ns] = secCapNo;
+                   break;
+		        }
+	        }
+        }
+    }
+   return true;
+}
+
+bool CallSignalSocket::HandleH235TCS(H245_TerminalCapabilitySet & tcs)
+{
+    if (m_call && m_call->GetEncryptDirection() == CallRec::none)
+        return true;
+
+    if ((m_callerSocket && (m_call->GetEncryptDirection() != CallRec::callingParty)) ||
+        (!m_callerSocket && (m_call->GetEncryptDirection() != CallRec::calledParty))) {
+            PTRACE(4,"H235 TCS LOGIC ERROR!!");
+            return false;
+    }
+    
+    bool toRemove = (m_callerSocket && m_call->GetEncryptDirection() == CallRec::callingParty);
+
+    PStringList m_capList;
+    if (!m_call->GetAuthenticators().GetAlgorithms(m_capList)) {
+        PTRACE(4,"H235 Encryption support but no common algorithm!");
+        return true;
+    }
+
+    H245_ArrayOf_CapabilityDescriptor & m_capDesc = tcs.m_capabilityDescriptors; 
+    H245_ArrayOf_CapabilityTableEntry & m_capTable = tcs.m_capabilityTable;
+
+    H245_ArrayOf_CapabilityTableEntry m_capStat = *(H245_ArrayOf_CapabilityTableEntry *)m_capTable.Clone();
+    for (PINDEX i=0; i<m_capStat.GetSize(); ++i) {
+        if (m_capStat[i].HasOptionalField(H245_CapabilityTableEntry::e_capability)) {
+            H245_CapabilityTableEntryNumber & entryNumber = m_capStat[i].m_capabilityTableEntryNumber;
+            H245_Capability & cap =  m_capStat[i].m_capability;
+            if (toRemove) {
+              if (cap.GetTag() == H245_Capability::e_h235SecurityCapability)
+                  RemoveH235Capability(entryNumber.GetValue(), m_capTable, m_capDesc);
+            } else {
+                // We only support Audio and Video currently - TODO support data. - SH
+                if ((cap.GetTag() >= H245_Capability::e_receiveVideoCapability)
+                    && (cap.GetTag() <= H245_Capability::e_receiveAndTransmitAudioCapability)) {
+                        AddH235Capability(entryNumber.GetValue(),m_capList, m_capTable, m_capDesc);
+                }
+            }
+        }
+    }
+    return true;
+}
+#endif
 
 bool CallSignalSocket::EndSession()
 {
@@ -2401,6 +2526,28 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		}
 
 		bool useParent = gkClient->IsRegistered() && gkClient->CheckFrom(_peerAddr);
+
+#ifdef HAS_H235
+     H235Authenticators & auth = m_call->GetAuthenticators();
+     if (Toolkit::Instance()->IsH235MediaEnabled()) {
+          if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)
+              || setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens)) { 
+                auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
+
+             // TODO Caller Admission. -SH
+              H235Authenticator::ValidationResult result = auth.ValidateSignalPDU( 
+                    H225_H323_UU_PDU_h323_message_body::e_setup, 
+                    setupBody.m_tokens, setupBody.m_cryptoTokens, m_rawSetup);
+          }
+
+          if (!auth.SupportsEncryption() && auth.CreateAuthenticator("Std6")) {
+              auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_setup, 
+                                      setupBody.m_tokens, setupBody.m_cryptoTokens);
+              setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
+              m_call->SetMediaEncryption(CallRec::calledParty);
+          }
+     }
+#endif
 
 #ifdef HAS_H46023
 		CallRec::NatStrategy natoffloadsupport = CallRec::e_natUnknown;
@@ -3316,6 +3463,27 @@ void CallSignalSocket::OnConnect(
 		connectBody.m_maintainConnection = FALSE;
 		msg->SetUUIEChanged();
 	}
+
+#ifdef HAS_H235
+    H235Authenticators & auth = m_call->GetAuthenticators();
+    if (Toolkit::Instance()->IsH235MediaEnabled() && m_call->IsMediaEncryption()
+        && connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens)) {
+
+      PBYTEArray nonce;
+      H235Authenticator::ValidationResult result = auth.ValidateSignalPDU( 
+                             H225_H323_UU_PDU_h323_message_body::e_connect, 
+                             connectBody.m_tokens, connectBody.m_cryptoTokens, nonce);
+
+    } else if (m_call->IsMediaEncryption()) {
+         m_call->SetMediaEncryption(CallRec::none);
+    } else {
+        auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_connect, 
+                              connectBody.m_tokens, connectBody.m_cryptoTokens);
+        connectBody.IncludeOptionalField(H225_Connect_UUIE::e_tokens);
+        m_call->SetMediaEncryption(CallRec::callingParty);
+    }
+
+#endif
 
 #ifdef HAS_H46018
 	if (m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled()) {

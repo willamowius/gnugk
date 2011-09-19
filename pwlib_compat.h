@@ -147,6 +147,10 @@
 ///////////////////////////////////////////////
 
 // OpenH323/H323Plus version matching
+#ifdef H323_H235
+   #define HAS_H235 1      // H235 Media Encryptuon Support
+#endif
+
 #ifdef H323_H460
 	#define HAS_H460 1    // H460 support
 #endif
