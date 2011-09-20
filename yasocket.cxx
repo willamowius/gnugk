@@ -216,10 +216,14 @@ PBoolean YaSocket::GetLocalAddress(Address & addr) const
 
 PBoolean YaSocket::GetLocalAddress(Address & addr, WORD & pt) const
 {
-	sockaddr inaddr;
+#ifdef hasIPV6
+	sockaddr_in6 inaddr;
+#else
+	sockaddr_in inaddr;
+#endif
 	socklen_t insize = sizeof(inaddr);
-	if (::getsockname(os_handle, &inaddr, &insize) == 0) {
-		if (inaddr.sa_family == AF_INET6) {
+	if (::getsockname(os_handle, (struct sockaddr*)&inaddr, &insize) == 0) {
+		if (((struct sockaddr*)&inaddr)->sa_family == AF_INET6) {
 			addr = ((struct sockaddr_in6*)&inaddr)->sin6_addr;
 			pt = ntohs(((struct sockaddr_in6*)&inaddr)->sin6_port);
 		} else {
@@ -285,26 +289,31 @@ bool YaSocket::SetNonBlockingMode()
 bool YaSocket::Bind(const Address & addr, WORD pt)
 {
 	if (IsOpen()) {
-		sockaddr inaddr;
-		memset(&inaddr, 0, sizeof(inaddr));
 		if (addr.GetVersion() == 6) {
-			inaddr.sa_family = AF_INET6;
-			((struct sockaddr_in6*)&inaddr)->sin6_addr = addr;
-			((struct sockaddr_in6*)&inaddr)->sin6_port = htons(pt);
-		} else {
-			inaddr.sa_family = AF_INET;
-			((struct sockaddr_in*)&inaddr)->sin_addr = addr;
-			((struct sockaddr_in*)&inaddr)->sin_port = htons(pt);
-		}
-		if (ConvertOSError(::bind(os_handle, &inaddr, sizeof(inaddr)))) {
-			socklen_t insize = sizeof(inaddr);
-			if (::getsockname(os_handle, &inaddr, &insize) == 0) {
-				if (inaddr.sa_family == AF_INET6) {
-					port = ntohs(((struct sockaddr_in6*)&inaddr)->sin6_port);
-				} else {
-					port = ntohs(((struct sockaddr_in*)&inaddr)->sin_port);
+			struct sockaddr_in6 inaddr;
+			memset(&inaddr, 0, sizeof(inaddr));
+			inaddr.sin6_family = AF_INET6;
+			inaddr.sin6_addr = addr;
+			inaddr.sin6_port = htons(pt);
+			if (ConvertOSError(::bind(os_handle, (struct sockaddr*)&inaddr, sizeof(inaddr)))) {
+				socklen_t insize = sizeof(inaddr);
+				if (::getsockname(os_handle, (struct sockaddr*)&inaddr, &insize) == 0) {
+					port = ntohs(inaddr.sin6_port);
+					return true;
 				}
-				return true;
+			}
+		} else {
+			struct sockaddr_in inaddr;
+			memset(&inaddr, 0, sizeof(inaddr));
+			inaddr.sin_family = AF_INET;
+			inaddr.sin_addr = addr;
+			inaddr.sin_port = htons(pt);
+			if (ConvertOSError(::bind(os_handle, (struct sockaddr*)&inaddr, sizeof(inaddr)))) {
+				socklen_t insize = sizeof(inaddr);
+				if (::getsockname(os_handle, (struct sockaddr*)&inaddr, &insize) == 0) {
+					port = ntohs(inaddr.sin_port);
+					return true;
+				}
 			}
 		}
 	}
@@ -315,13 +324,13 @@ bool YaSocket::Bind(const Address & addr, WORD pt)
 // class YaTCPSocket
 YaTCPSocket::YaTCPSocket(WORD pt)
 {
-	peeraddr.sa_family = AF_INET;		// overwritten in Connect()
+	((struct sockaddr*)&peeraddr)->sa_family = AF_INET;		// overwritten in Connect()
 	SetPort(pt);
 }
 
 void YaTCPSocket::GetPeerAddress(Address & addr) const
 {
-	if (peeraddr.sa_family == AF_INET6)
+	if (((struct sockaddr*)&peeraddr)->sa_family == AF_INET6)
 		addr = ((struct sockaddr_in6*)&peeraddr)->sin6_addr;
 	else
 		addr = ((struct sockaddr_in*)&peeraddr)->sin_addr;
@@ -329,7 +338,7 @@ void YaTCPSocket::GetPeerAddress(Address & addr) const
 
 void YaTCPSocket::GetPeerAddress(Address & addr, WORD & pt) const
 {
-	if (peeraddr.sa_family == AF_INET6) {
+	if (((struct sockaddr*)&peeraddr)->sa_family == AF_INET6) {
 		addr = ((struct sockaddr_in6*)&peeraddr)->sin6_addr;
 		pt = ntohs(((struct sockaddr_in6*)&peeraddr)->sin6_port);
 	} else {
@@ -388,14 +397,14 @@ bool YaTCPSocket::Accept(YaTCPSocket & socket)
 			continue;
 
 		socklen_t addrsize = sizeof(peeraddr);
-		os_handle = ::accept(fd, &peeraddr, &addrsize);
+		os_handle = ::accept(fd, (struct sockaddr *)&peeraddr, &addrsize);
 		if (os_handle < 0)
 			break;
 
 		SetLinger();
 		SetNonBlockingMode();
 		SetWriteTimeout(PTimeInterval(10));
-		if (peeraddr.sa_family == AF_INET6)
+		if (((struct sockaddr *)&peeraddr)->sa_family == AF_INET6)
 			SetName(AsString(((struct sockaddr_in6*)&peeraddr)->sin6_addr, ntohs(((struct sockaddr_in6*)&peeraddr)->sin6_port)));
 		else
 			SetName(AsString(((struct sockaddr_in*)&peeraddr)->sin_addr, ntohs(((struct sockaddr_in*)&peeraddr)->sin_port)));
@@ -431,17 +440,17 @@ bool YaTCPSocket::Connect(const Address & iface, WORD localPort, const Address &
 	SetNonBlockingMode();
 	SetWriteTimeout(PTimeInterval(10));
 	if (addr.GetVersion() == 6) {
-		peeraddr.sa_family = AF_INET6;
+		((struct sockaddr_in6*)&peeraddr)->sin6_family = AF_INET6;
 		((struct sockaddr_in6*)&peeraddr)->sin6_addr = addr;
 		((struct sockaddr_in6*)&peeraddr)->sin6_port = htons(port = peerPort);
 	} else {
-		peeraddr.sa_family = AF_INET;
+		((struct sockaddr_in*)&peeraddr)->sin_family = AF_INET;
 		((struct sockaddr_in*)&peeraddr)->sin_addr = addr;
 		((struct sockaddr_in*)&peeraddr)->sin_port = htons(port = peerPort);
 	}
 	SetName(AsString(addr, port));
 
-	int r = ::connect(os_handle, &peeraddr, sizeof(peeraddr));
+	int r = ::connect(os_handle, (struct sockaddr*)&peeraddr, sizeof(peeraddr));
 #ifdef _WIN32
 	if ((r != 0) && (WSAGetLastError() != WSAEWOULDBLOCK))
 #else
@@ -498,7 +507,7 @@ int YaTCPSocket::os_send(const void * buf, int sz)
 // class YaUDPSocket
 YaUDPSocket::YaUDPSocket(WORD port, int iAddressFamily)
 {
-	sendaddr.sa_family = iAddressFamily;
+	((struct sockaddr*)&sendaddr)->sa_family = iAddressFamily;
 	// TODO: is this ok ?
 	((struct sockaddr_in6*)&sendaddr)->sin6_port = port;
 	((struct sockaddr_in*)&sendaddr)->sin_port = port;
@@ -527,7 +536,7 @@ bool YaUDPSocket::Listen(const Address & addr, unsigned, WORD pt, PSocket::Reusa
 
 void YaUDPSocket::GetLastReceiveAddress(Address & addr, WORD & pt) const
 {
-	if (recvaddr.sa_family == AF_INET6) {
+	if (((struct sockaddr*)&recvaddr)->sa_family == AF_INET6) {
 		addr = ((struct sockaddr_in6*)&recvaddr)->sin6_addr;
 		pt = ntohs(((struct sockaddr_in6*)&recvaddr)->sin6_port);
 	} else {
@@ -539,11 +548,11 @@ void YaUDPSocket::GetLastReceiveAddress(Address & addr, WORD & pt) const
 void YaUDPSocket::SetSendAddress(const Address & addr, WORD pt)
 {
 	if (addr.GetVersion() == 6) {
-		sendaddr.sa_family = AF_INET6;
+		((struct sockaddr_in6*)&sendaddr)->sin6_family = AF_INET6;
 		((struct sockaddr_in6*)&sendaddr)->sin6_addr = addr;
 		((struct sockaddr_in6*)&sendaddr)->sin6_port = htons(pt);
 	} else {
-		sendaddr.sa_family = AF_INET;
+		((struct sockaddr_in*)&sendaddr)->sin_family = AF_INET;
 		((struct sockaddr_in*)&sendaddr)->sin_addr = addr;
 		((struct sockaddr_in*)&sendaddr)->sin_port = htons(pt);
 	}
@@ -554,7 +563,7 @@ void YaUDPSocket::GetSendAddress(
 	WORD & port /// Port to send packets.
 	)
 {
-	if (sendaddr.sa_family == AF_INET6) {
+	if (((struct sockaddr*)&sendaddr)->sa_family == AF_INET6) {
 		address = ((struct sockaddr_in6*)&sendaddr)->sin6_addr;
 		port = ntohs(((struct sockaddr_in6*)&sendaddr)->sin6_port);
 	} else {
@@ -580,12 +589,12 @@ bool YaUDPSocket::WriteTo(const void * buf, PINDEX len, const Address & addr, WO
 int YaUDPSocket::os_recv(void * buf, int sz)
 {
 	socklen_t addrlen = sizeof(recvaddr);
-	return ::recvfrom(os_handle, buf, sz, 0, &recvaddr, &addrlen);
+	return ::recvfrom(os_handle, buf, sz, 0, (struct sockaddr *)&recvaddr, &addrlen);
 }
 
 int YaUDPSocket::os_send(const void * buf, int sz)
 {
-	return ::sendto(os_handle, buf, sz, 0, &sendaddr, sizeof(sendaddr));
+	return ::sendto(os_handle, buf, sz, 0, (struct sockaddr *)&sendaddr, sizeof(sendaddr));
 }
 
 #else // LARGE_FDSET

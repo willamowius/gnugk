@@ -114,7 +114,11 @@ private:
 	YaTCPSocket& operator=(const YaTCPSocket&);
 	
 private:
-	sockaddr peeraddr;
+#ifdef hasIPV6
+	sockaddr_in6 peeraddr;
+#else
+	sockaddr_in peeraddr;
+#endif
 };
 
 class YaUDPSocket : public YaSocket, public PObject {
@@ -144,7 +148,11 @@ private:
 	YaUDPSocket& operator=(const YaUDPSocket&);
 	
 private:
-	sockaddr recvaddr, sendaddr;
+#ifdef hasIPV6
+	sockaddr_in6 recvaddr, sendaddr;
+#else
+	sockaddr_in recvaddr, sendaddr;
+#endif
 };
 
 class YaSelectList {

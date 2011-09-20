@@ -184,7 +184,7 @@ bool GatekeeperMessage::Reply() const
 
 
 // class RasListener
-RasListener::RasListener(const Address & addr, WORD pt) : UDPSocket(0, addr.GetVersion() == 6 ? PF_INET6 : PF_INET), m_ip(addr)
+RasListener::RasListener(const Address & addr, WORD pt) : UDPSocket(0, addr.GetVersion() == 6 ? AF_INET6 : AF_INET), m_ip(addr)
 {
 	if (!Listen(addr, 0, pt, PSocket::CanReuseAddress)) {
 		PTRACE(1, "RAS\tCould not open listening socket at " << AsString(addr, pt)
