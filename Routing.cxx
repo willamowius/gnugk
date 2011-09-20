@@ -382,13 +382,18 @@ void ExplicitPolicy::OnReload()
 	for (PINDEX i = 0; i < mappings.GetSize(); ++i) {
 		PString src = mappings.GetKeyAt(i);
 		PString dest = mappings.GetDataAt(i);
-		if (!dest.IsEmpty()) {
-			H225_TransportAddress addr;
-			if (GetTransportAddress(dest, 1720, addr)) {
-				m_destMap[src] = addr;
-			} else {
-				PTRACE(1, "Error parsing entry in [Routing::Explicit]: " << src << "=" << dest);
+		H225_TransportAddress srcAddr;
+		if (GetTransportAddress(src, 1720, srcAddr)) {
+			if (!dest.IsEmpty()) {
+				H225_TransportAddress destAddr;
+				if (GetTransportAddress(dest, 1720, destAddr)) {
+					m_destMap[AsDotString(srcAddr, false)] = destAddr;
+				} else {
+					PTRACE(1, "Error parsing dest entry in [Routing::Explicit]: " << src << "=" << dest);
+				}
 			}
+		} else {
+			PTRACE(1, "Error parsing src entry in [Routing::Explicit]: " << src << "=" << dest);
 		}
 	}
 }
@@ -586,10 +591,7 @@ DNSPolicy::DNSPolicy()
 	m_resolveNonLocalLRQs = Toolkit::AsBool(GkConfig()->GetString("Routing::DNS", "ResolveNonLocalLRQ", "1"));
 }
 
-bool DNSPolicy::FindByAliases(
-	RoutingRequest &request,
-	H225_ArrayOf_AliasAddress &aliases
-	)
+bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
 		// don't apply DNS to dialedDigits
