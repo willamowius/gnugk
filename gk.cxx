@@ -1184,7 +1184,10 @@ void Gatekeeper::Main()
 
 	// graceful shutdown
 	cerr << "\nShutting down gatekeeper . . . ";
-	ShutdownHandler();
+
+#if !defined(_WIN32) || PTLIB_VER < 2110
+	ShutdownHandler();    // <-- On Windows PTLIB v2.11 the process is already deleted! - segfaults!!!! - SH 
+#endif
 	cerr << "done\n";
 
 #ifdef _WIN32
