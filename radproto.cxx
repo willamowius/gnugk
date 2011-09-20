@@ -4,7 +4,7 @@
  * RADIUS protocol classes.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2003-2010, Jan Willamowius
+ * Copyright (c) 2003-2011, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -1372,7 +1372,7 @@ RadiusSocket::RadiusSocket(
 	m_idCacheTimeout(RadiusClient::DefaultIdCacheTimeout)
 {
 	if (!Listen(addr, 0, _port)) {
-		PTRACE(1, "RADIUS\tCould not bind socket to " << addr << ':' << _port
+		PTRACE(1, "RADIUS\tCould not bind socket to " << AsString(addr, _port)
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
 			<< GetErrorNumber(PSocket::LastGeneralError) << ": " 
 			<< GetErrorText(PSocket::LastGeneralError)
@@ -1446,7 +1446,7 @@ void RadiusSocket::FreeReadSyncPoint(PINDEX syncPointIndex)
 	}
 }
 
-bool RadiusSocket::MakeRequest( 
+bool RadiusSocket::MakeRequest(
 	const RadiusPDU* request, 
 	const Address& serverAddress, 
 	WORD serverPort,
@@ -1590,8 +1590,7 @@ bool RadiusSocket::MakeRequest(
 			if (remoteAddress != *(m_pendingRequests[newId]->m_addr) 
 				|| remotePort != m_pendingRequests[newId]->m_port) {
 				PTRACE(5, "RADIUS\tReceived PDU from unknown address: "
-					<< remoteAddress << ':' << remotePort
-					);
+					<< AsString(remoteAddress, remotePort));
 				delete response;
 				response = NULL;
 				continue;
@@ -1997,7 +1996,7 @@ bool RadiusClient::MakeRequest(
 			if( PTrace::CanTrace(3) ) {
 				ostream& strm = PTrace::Begin(3, __FILE__, __LINE__);
 				strm << "RADIUS\tSending PDU to RADIUS server "
-					<< server->m_serverAddress << " (" << serverAddress << ':' << serverPort
+					<< server->m_serverAddress << " (" << AsString(serverAddress, serverPort)
 					<< ')' << " from " << (*socket) << ", PDU: ";
 				if( PTrace::CanTrace(5) )
 					strm << *clonedRequestPDU;
@@ -2036,7 +2035,7 @@ bool RadiusClient::MakeRequest(
 			if (PTrace::CanTrace(3)) {
 				ostream& strm = PTrace::Begin(3, __FILE__, __LINE__);
 				strm << "RADIUS\tReceived PDU from RADIUS server "
-					<< server->m_serverAddress << " (" << serverAddress << ':' << serverPort
+					<< server->m_serverAddress << " (" << AsString(serverAddress, serverPort)
 					<< ')' << " by socket " << (*socket) << ", PDU: ";
 				if (PTrace::CanTrace(5))
 					strm << (*response);
@@ -2122,7 +2121,7 @@ bool RadiusClient::SendRequest(
 	if (PTrace::CanTrace(3)) {
 		ostream& strm = PTrace::Begin(3, __FILE__, __LINE__);
 		strm << "RADIUS\tSending PDU to RADIUS server "
-			<< server->m_serverAddress << " (" << serverAddress << ':' << serverPort
+			<< server->m_serverAddress << " (" << AsString(serverAddress, serverPort)
 			<< ')' << " from " << (*socket) << ", PDU: ";
 		if (PTrace::CanTrace(5))
 			strm << *clonedRequestPDU;

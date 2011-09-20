@@ -134,10 +134,13 @@ void SoftPBX::UnregisterIp(const PString & Ip)
 	PTRACE(3, "GK\tSoftPBX: UnregisterIp " << Ip);
 
 	endptr ep;
-	if (Ip.Find(':') == P_MAX_INDEX)
+	if ((IsIPv4Address(Ip) && Ip.Find(':') == P_MAX_INDEX)
+		|| (IsIPv6Address(Ip) && Ip.Find("]:") == P_MAX_INDEX)
+		) {
 		ep = RegistrationTable::Instance()->FindBySignalAdrIgnorePort(callSignalAddress);	// no port specified
-	else
+	} else {
 		ep = RegistrationTable::Instance()->FindBySignalAdr(callSignalAddress);	// port specify, search for it
+	}
 	if (!ep) {
 		PString msg("IP " + Ip + " not found!");
 		PTRACE(1, "GK\tSoftPBX: " + msg);

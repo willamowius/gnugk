@@ -170,10 +170,10 @@ bool GatekeeperMessage::Read(RasListener *socket)
 		return false;
 	}
 	socket->GetLastReceiveAddress(m_peerAddr, m_peerPort);
-	PTRACE(2, "RAS\tRead from " << m_peerAddr << ':' << m_peerPort);
+	PTRACE(2, "RAS\tRead from " << AsString(m_peerAddr, m_peerPort));
 	m_rasPDU = PPER_Stream(buffer, socket->GetLastReadCount());
 	bool result = m_recvRAS.Decode(m_rasPDU);
-	PTRACE_IF(1, !result, "RAS\tCould not decode message from " << m_peerAddr << ':' << m_peerPort);
+	PTRACE_IF(1, !result, "RAS\tCould not decode message from " << AsString(m_peerAddr, m_peerPort));
 	return result;
 }
 
@@ -236,9 +236,9 @@ bool RasListener::SendRas(const H225_RasMessage & rasobj, const Address & addr, 
 #if PTRACING
 	if ( ((rasobj.GetTag() != H225_RasMessage::e_serviceControlIndication && rasobj.GetTag() != H225_RasMessage::e_serviceControlResponse) && PTrace::CanTrace(3))
 		|| PTrace::CanTrace(5))
-		PTRACE(3, "RAS\tSend to " << addr << ':' << pt << '\n' << setprecision(2) << rasobj);
+		PTRACE(3, "RAS\tSend to " << AsString(addr, pt) << '\n' << setprecision(2) << rasobj);
 	else
-		PTRACE(2, "RAS\tSend " << RasName[rasobj.GetTag()] << " to " << addr << ':' << pt);
+		PTRACE(2, "RAS\tSend " << RasName[rasobj.GetTag()] << " to " << AsString(addr, pt));
 #endif
 
 	PPER_Stream wtstrm;
@@ -1215,7 +1215,7 @@ void RasServer::ForwardRasMsg(H225_RasMessage & msg)
 	h221.m_manufacturerCode = Toolkit::t35mOpenOrg;
 
 	for (int i = 0; i < altGKsSize; ++i) {
-		PTRACE(4, "Forwarding RAS to " << altGKsAddr[i] << ':' << altGKsPort[i]);
+		PTRACE(4, "Forwarding RAS to " << AsString(altGKsAddr[i], altGKsPort[i]));
 		SendRas(msg, altGKsAddr[i], altGKsPort[i]);
 	}
 

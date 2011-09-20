@@ -6184,7 +6184,7 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 	} else {
 		SetName("(To be autodetected)");
 	}
-	PTRACE(5, Type() << "\tForward " << AsString(srcIP, srcPort)  << " to " << fDestIP << ':' << fDestPort);
+	PTRACE(5, Type() << "\tForward " << AsString(srcIP, srcPort)  << " to " << AsString(fDestIP, fDestPort));
 
 	SetConnected(true);
 
@@ -6378,7 +6378,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	if ((fromIP == fSrcIP && fromPort == fSrcPort)
 		|| (fromIP == rDestIP && fromIP != rSrcIP)) {
 		if (fDestPort) {
-			PTRACE(6, Type() << "\tforward " << fromIP << ':' << fromPort << " to " << fDestIP << ':' << fDestPort);
+			PTRACE(6, Type() << "\tforward " << fromIP << ':' << fromPort << " to " << AsString(fDestIP, fDestPort));
 #ifdef HAS_H46024B
             if (isRTP && m_call && (*m_call)->GetNATStrategy() == CallRec::e_natAnnexB) {
 #ifdef HAS_H46018
