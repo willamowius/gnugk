@@ -72,7 +72,10 @@ public:
 		AcctTunnelConnectionId = 68, TunnelPassword, 
 		PasswordRetry = 75, 
 		Prompt = 76, ConnectInfo, ConfigurationToken,
-		AcctInterimInterval = 85, AcctTunnelPacketsLost, NasPortId
+		AcctInterimInterval = 85, AcctTunnelPacketsLost, NasPortId,
+		// RFC 3162
+		NasIpv6Address = 95, FramedInterfaceId, FramedIpv6Prefix,
+		LoginIpv6Host = 98, FramedIpv6Route, FramedIpv6Pool
 	};
 
 	/// Constants for Service-Type attribute values
@@ -905,7 +908,7 @@ public:
 	*/
 	RadiusSocket( 
 		/// local network interface address
-		const PIPSocket::Address& addr, 
+		const PIPSocket::Address & addr, 
 		/// port number to send requests from
 		WORD port = 0
 		);

@@ -109,7 +109,10 @@ GkAcctLogger::Status RadAcct::Log(
 	PIPSocket::Address addr;
 					
 	// Gk works as NAS point, so append NAS IP
-	pdu->AppendAttr(RadiusAttr::NasIpAddress, m_nasIpAddress);
+	if (m_nasIpAddress.GetVersion() == 6)
+		pdu->AppendAttr(RadiusAttr::NasIpv6Address, m_nasIpAddress);
+	else
+		pdu->AppendAttr(RadiusAttr::NasIpAddress, m_nasIpAddress);
 	pdu->AppendAttr(m_attrNasIdentifier);
 	pdu->AppendAttr(RadiusAttr::NasPortType, RadiusAttr::NasPort_Virtual);
 		

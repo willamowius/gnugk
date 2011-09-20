@@ -119,7 +119,10 @@ int RadAuthBase::Check(
 	}
 	
 	// Gk works as NAS point, so append NAS IP
-	pdu->AppendAttr(RadiusAttr::NasIpAddress, m_nasIpAddress);
+	if (m_nasIpAddress.GetVersion() == 6)
+		pdu->AppendAttr(RadiusAttr::NasIpv6Address, m_nasIpAddress);
+	else
+		pdu->AppendAttr(RadiusAttr::NasIpAddress, m_nasIpAddress);
 	// NAS-Identifier as Gk name
 	pdu->AppendAttr(m_attrNasIdentifier);
 	// Gk does not have a concept of physical ports,
@@ -379,7 +382,10 @@ int RadAuthBase::Check(
 	}
 	
 	// Gk acts as NAS, so include NAS IP
-	pdu->AppendAttr(RadiusAttr::NasIpAddress, m_nasIpAddress);
+	if (m_nasIpAddress.GetVersion() == 6)
+		pdu->AppendAttr(RadiusAttr::NasIpv6Address, m_nasIpAddress);
+	else
+		pdu->AppendAttr(RadiusAttr::NasIpAddress, m_nasIpAddress);
 	// NAS-Identifier as Gk name
 	pdu->AppendAttr(m_attrNasIdentifier);
 	// NAS-Port-Type as Virtual, since Gk does
@@ -757,7 +763,10 @@ int RadAuthBase::Check(
 	}
 	
 	// Gk acts as NAS, so include NAS IP
-	pdu->AppendAttr(RadiusAttr::NasIpAddress, m_nasIpAddress);
+	if (m_nasIpAddress.GetVersion() == 6)
+		pdu->AppendAttr(RadiusAttr::NasIpv6Address, m_nasIpAddress);
+	else
+		pdu->AppendAttr(RadiusAttr::NasIpAddress, m_nasIpAddress);
 	// NAS-Identifier as Gk name
 	pdu->AppendAttr(m_attrNasIdentifier);
 	// NAS-Port-Type as Virtual, since Gk does

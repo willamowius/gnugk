@@ -56,8 +56,11 @@ const char* const radiusAttributeNames[] =
 /* 76*/	"Prompt", "Connect-Info", "Configuration-Token", "EAP-Message",
 /* 80*/	"Message-Authenticator", "Unknown", "Unknown", "Unknown",
 /* 84*/	"ARAP-Challenge-Response", "Acct-Interim-Interval", "Unknown", "NAS-Port-Id",
-/* 88*/	"Framed-Pool",
-/* 89*/	"Unknown"
+/* 88*/	"Framed-Pool", "Unknown", "Unknown", "Unknown", "Unknown", "Unknown", "Unknown",
+/* RFC 3162 */
+/* 95*/ "NAS-IPv6-Address", "Framed-Interface-Id", "Framed-IPv6-Prefix",
+/* 98*/	"Login-IPv6-Host", "Framed-IPv6-Route", "Framed-IPv6-Pool",
+/*101*/	"Unknown",
 };
 
 /// Human readable RADIUS packet code names
@@ -241,20 +244,30 @@ RadiusAttr::RadiusAttr(
 	SetRadiusInteger(m_value, intValue);
 }
 
+static unsigned _addrLen(const PIPSocket::Address & addr)
+{
+	return (addr.GetVersion() == 6) ? 16 : 4;
+}
+
 RadiusAttr::RadiusAttr( 
 	unsigned char attrType, /// Attribute Type (see #enum AttrTypes#)
-	const PIPSocket::Address& addressValue /// IPv4 address to be stored in the attribute Value
-	) : m_type(attrType), m_length(FixedHeaderLength + 4)
+	const PIPSocket::Address & addressValue /// IP address to be stored in the attribute Value
+	) : m_type(attrType), m_length(FixedHeaderLength + _addrLen(addressValue))
 {
 	if (attrType == VendorSpecific)
 		PAssertAlways(PInvalidParameter);
 
-	const DWORD addr = (DWORD)addressValue;
-	
-	m_value[0] = ((const BYTE*)&addr)[0];	// TODO: IPv6 bug
-	m_value[1] = ((const BYTE*)&addr)[1];
-	m_value[2] = ((const BYTE*)&addr)[2];
-	m_value[3] = ((const BYTE*)&addr)[3];
+	if (addressValue.GetVersion() == 6) {
+		for (unsigned i=0; i < 15; i++)
+			m_value[i] = addressValue[i];
+	} else {
+		const DWORD addr = (DWORD)addressValue;
+
+		m_value[0] = ((const BYTE*)&addr)[0];
+		m_value[1] = ((const BYTE*)&addr)[1];
+		m_value[2] = ((const BYTE*)&addr)[2];
+		m_value[3] = ((const BYTE*)&addr)[3];
+	}
 }
 
 RadiusAttr::RadiusAttr( 
@@ -292,21 +305,25 @@ RadiusAttr::RadiusAttr(
 	SetRadiusInteger(m_vendorValue, intValue);
 }
 
-RadiusAttr::RadiusAttr( 
-	const PIPSocket::Address& addressValue, /// IPv4 address to be stored in the attribute Value
+RadiusAttr::RadiusAttr(
+	const PIPSocket::Address& addressValue, /// IP address to be stored in the attribute Value
 	int vendorId, /// 32 bit vendor identifier
 	unsigned char vendorType /// vendor-specific attribute type
-	) : m_type(VendorSpecific), m_length(VsaRfc2865FixedHeaderLength + 4),
-		m_vendorType(vendorType), m_vendorLength(2 + 4)
+	) : m_type(VendorSpecific), m_length(VsaRfc2865FixedHeaderLength + _addrLen(addressValue)),
+		m_vendorType(vendorType), m_vendorLength(2 + _addrLen(addressValue))
 {
 	SetRadiusInteger(m_vendorId, vendorId);
 	
-	const DWORD addr = (DWORD)addressValue;
-	
-	m_vendorValue[0] = ((BYTE*)&addr)[0];	// TODO: IPv6 bug
-	m_vendorValue[1] = ((BYTE*)&addr)[1];
-	m_vendorValue[2] = ((BYTE*)&addr)[2];
-	m_vendorValue[3] = ((BYTE*)&addr)[3];
+	if (addressValue.GetVersion() == 6) {
+		for (unsigned i=0; i < 15; i++)
+			m_vendorValue[i] = addressValue[i];
+	} else {
+		const DWORD addr = (DWORD)addressValue;
+		m_vendorValue[0] = ((BYTE*)&addr)[0];
+		m_vendorValue[1] = ((BYTE*)&addr)[1];
+		m_vendorValue[2] = ((BYTE*)&addr)[2];
+		m_vendorValue[3] = ((BYTE*)&addr)[3];
+	}
 }
 
 RadiusAttr::RadiusAttr(
@@ -577,14 +594,16 @@ PIPSocket::Address RadiusAttr::AsAddress() const
 	if (m_length < (FixedHeaderLength+4) || m_type == VendorSpecific)
 		return 0;
 
-	DWORD addr = 0;
-	
-	((BYTE*)&addr)[0] = m_value[0];	// TODO: IPv6 bug
-	((BYTE*)&addr)[1] = m_value[1];
-	((BYTE*)&addr)[2] = m_value[2];
-	((BYTE*)&addr)[3] = m_value[3];
-	
-	return addr;
+	if (m_length == (FixedHeaderLength+16)) {
+		return PIPSocket::Address(16, (const BYTE*)m_value);
+	} else {
+		DWORD addr = 0;
+		((BYTE*)&addr)[0] = m_value[0];
+		((BYTE*)&addr)[1] = m_value[1];
+		((BYTE*)&addr)[2] = m_value[2];
+		((BYTE*)&addr)[3] = m_value[3];
+		return addr;
+	}
 }
 
 PString RadiusAttr::AsVsaString() const
@@ -640,14 +659,16 @@ PIPSocket::Address RadiusAttr::AsVsaAddress() const
 	if (m_length < (VsaRfc2865FixedHeaderLength+4) || m_type != VendorSpecific)
 		return 0;
 	
-	DWORD addr = 0;
-	
-	((BYTE*)&addr)[0] = m_vendorValue[0];	// TODO: IPv6 bug
-	((BYTE*)&addr)[1] = m_vendorValue[1];
-	((BYTE*)&addr)[2] = m_vendorValue[2];
-	((BYTE*)&addr)[3] = m_vendorValue[3];
-	
-	return addr;
+	if (m_length == (VsaRfc2865FixedHeaderLength + 16)) {
+		return PIPSocket::Address(16, (const BYTE*)m_vendorValue);
+	} else {
+		DWORD addr = 0;
+		((BYTE*)&addr)[0] = m_vendorValue[0];
+		((BYTE*)&addr)[1] = m_vendorValue[1];
+		((BYTE*)&addr)[2] = m_vendorValue[2];
+		((BYTE*)&addr)[3] = m_vendorValue[3];
+		return addr;
+	}
 }
 
 
@@ -916,22 +937,27 @@ bool RadiusPDU::AppendAttr(
 
 bool RadiusPDU::AppendAttr( 
 	unsigned char attrType, /// Attribute Type
-	const PIPSocket::Address& addressValue /// IPv4 address to be stored in the attribute Value
+	const PIPSocket::Address & addressValue /// IP address to be stored in the attribute Value
 	)
 {
 	const PINDEX len = GetLength();
-	const PINDEX attrLen = RadiusAttr::FixedHeaderLength + 4;
+	const PINDEX attrLen = RadiusAttr::FixedHeaderLength + _addrLen(addressValue);
 	if (attrLen > RadiusAttr::MaxLength || (len + attrLen) > MaxPduLength)
 		return false;
-		
-	const DWORD addr = (DWORD)addressValue;
+
 	RadiusAttr* const attr = reinterpret_cast<RadiusAttr*>(m_data + len);
 	attr->m_type = attrType;
 	attr->m_length = attrLen;
-	attr->m_value[0] = ((const BYTE*)&addr)[0];	// TODO: IPv6 bug
-	attr->m_value[1] = ((const BYTE*)&addr)[1];
-	attr->m_value[2] = ((const BYTE*)&addr)[2];
-	attr->m_value[3] = ((const BYTE*)&addr)[3];
+	if (addressValue.GetVersion() == 6) {
+		for (unsigned i=0; i < 15; i++)
+			attr->m_value[i] = addressValue[i];
+	} else {
+		const DWORD addr = (DWORD)addressValue;
+		attr->m_value[0] = ((const BYTE*)&addr)[0];
+		attr->m_value[1] = ((const BYTE*)&addr)[1];
+		attr->m_value[2] = ((const BYTE*)&addr)[2];
+		attr->m_value[3] = ((const BYTE*)&addr)[3];
+	}
 	SetLength(len + attrLen);
 	
 	return true;
@@ -1015,21 +1041,26 @@ bool RadiusPDU::AppendVsaAttr(
 	)
 {
 	const PINDEX len = GetLength();
-	const PINDEX attrLen = RadiusAttr::VsaRfc2865FixedHeaderLength + 4;
+	const PINDEX attrLen = RadiusAttr::VsaRfc2865FixedHeaderLength + _addrLen(addressValue);
 	if (attrLen > RadiusAttr::MaxLength || (len + attrLen) > MaxPduLength)
 		return false;
-		
-	const DWORD addr = (DWORD)addressValue;
+
 	RadiusAttr* const attr = reinterpret_cast<RadiusAttr*>(m_data + len);
 	attr->m_type = RadiusAttr::VendorSpecific;
 	attr->m_length = attrLen;
 	SetRadiusInteger(attr->m_vendorId, vendorId);
 	attr->m_vendorType = vendorType;
-	attr->m_vendorLength = 4 + 2;
-	attr->m_vendorValue[0] = ((const BYTE*)&addr)[0];	// TODO: IPv6 bug
-	attr->m_vendorValue[1] = ((const BYTE*)&addr)[1];
-	attr->m_vendorValue[2] = ((const BYTE*)&addr)[2];
-	attr->m_vendorValue[3] = ((const BYTE*)&addr)[3];
+	attr->m_vendorLength = _addrLen(addressValue) + 2;
+	if (addressValue.GetVersion() == 6) {
+		for (unsigned i=0; i < 15; i++)
+			attr->m_vendorValue[i] = addressValue[i];
+	} else {
+		const DWORD addr = (DWORD)addressValue;
+		attr->m_vendorValue[0] = ((const BYTE*)&addr)[0];
+		attr->m_vendorValue[1] = ((const BYTE*)&addr)[1];
+		attr->m_vendorValue[2] = ((const BYTE*)&addr)[2];
+		attr->m_vendorValue[3] = ((const BYTE*)&addr)[3];
+	}
 	SetLength(len + attrLen);
 	
 	return true;
@@ -1330,13 +1361,13 @@ bool RadiusPDU::EncryptPasswords(
 #define DEFAULT_PERMANENT_SYNCPOINTS 8
 #endif
 
-RadiusSocket::RadiusSocket( 
-	WORD _port 
+RadiusSocket::RadiusSocket(
+	WORD _port
 	) : m_permanentSyncPoints(DEFAULT_PERMANENT_SYNCPOINTS),
-	m_isReading(false), m_nestedCount(0), 
+	m_isReading(false), m_nestedCount(0),
 	m_idCacheTimeout(RadiusClient::DefaultIdCacheTimeout)
 {
-	if (!Listen(0, _port)) {
+	if (!Listen(GNUGK_INADDR_ANY, 0, _port)) {
 		PTRACE(1, "RADIUS\tCould not bind socket to the port " << _port
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
 			<< GetErrorNumber(PSocket::LastGeneralError) << ": " 
@@ -1364,8 +1395,8 @@ RadiusSocket::RadiusSocket(
 	}
 }
 
-RadiusSocket::RadiusSocket( 
-	const PIPSocket::Address& addr, 
+RadiusSocket::RadiusSocket(
+	const PIPSocket::Address & addr,
 	WORD _port
 	) : m_permanentSyncPoints(DEFAULT_PERMANENT_SYNCPOINTS),
 	m_isReading(false), m_nestedCount(0),
@@ -1379,7 +1410,7 @@ RadiusSocket::RadiusSocket(
 			);
 		Close();
 	}
-	
+
 	PRandom random;
 	const unsigned _id_ = random;
 	m_oldestId = m_nextId = (BYTE)(_id_^(_id_>>8)^(_id_>>16)^(_id_>>24));
@@ -1403,7 +1434,7 @@ RadiusSocket::RadiusSocket(
 RadiusSocket::~RadiusSocket()
 {
 	PWaitAndSignal lock(m_readMutex);
-	
+
 	for (int i = 0; i < 256; i++)
 		delete m_readSyncPoints[i];
 }
@@ -1418,26 +1449,26 @@ void RadiusSocket::PrintOn(ostream& strm) const
 PINDEX RadiusSocket::AllocReadSyncPoint()
 {
 	PINDEX idx = 0;
-	
+
 	for (PINDEX k = 0; k < 8; k++)
 		if (m_syncPointMap[k] != 0xffffffff) {
 			for (PINDEX i = 0, j = 1; i < 32; i++, j <<= 1, idx++)
 				if ((m_syncPointMap[k] & ((DWORD)j)) == 0) {
 					m_syncPointMap[k] |= (DWORD)j;
-					if (m_readSyncPoints[idx] == NULL )
+					if (m_readSyncPoints[idx] == NULL)
 						m_readSyncPoints[idx] = new PSyncPoint();
 					return idx;
 				}
 		} else
 			idx += 32;
-			
+
 	return P_MAX_INDEX;
 }
 
 void RadiusSocket::FreeReadSyncPoint(PINDEX syncPointIndex)
 {
 	if (syncPointIndex < 256 && syncPointIndex >= 0) {
-		m_syncPointMap[(syncPointIndex >> 5) & 7] 
+		m_syncPointMap[(syncPointIndex >> 5) & 7]
 			&= ~(DWORD)(((DWORD)1)<<(syncPointIndex & 31));
 		if (syncPointIndex >= m_permanentSyncPoints) {
 			delete m_readSyncPoints[syncPointIndex];
@@ -1447,37 +1478,33 @@ void RadiusSocket::FreeReadSyncPoint(PINDEX syncPointIndex)
 }
 
 bool RadiusSocket::MakeRequest(
-	const RadiusPDU* request, 
-	const Address& serverAddress, 
+	const RadiusPDU* request,
+	const Address& serverAddress,
 	WORD serverPort,
 	RadiusPDU*& pdu
 	)
 {
 	if (!IsOpen() || request == NULL || !request->IsValid())
 		return false;
-	
-	const PINDEX length = request->GetLength();	
+
+	const PINDEX length = request->GetLength();
 	const unsigned char id = request->GetId();
 	const PTimeInterval timeout = GetReadTimeout();
 	const PTime startTime;
 	bool shouldRead = false;
 	PSyncPoint* syncPoint = NULL;
 	RadiusRequest* requestInfo = NULL;
-	
+
 	{
 		if (!m_readMutex.Wait(timeout)) {
-			PTRACE(4, "RADIUS\tMutex timed out for the request (id:" 
-				<< (PINDEX)id << ')'
-				);
+			PTRACE(4, "RADIUS\tMutex timed out for the request (id:" << (PINDEX)id << ')');
 			return false;
 		}
 
 		PWaitAndSignal lock(m_readMutex, FALSE);
 
 		if (m_pendingRequests[id] != NULL) {
-			PTRACE(1, "RADIUS\tDuplicate RADIUS socket request (id:" 
-				<< (PINDEX)id << ')'
-				);
+			PTRACE(1, "RADIUS\tDuplicate RADIUS socket request (id:" << (PINDEX)id << ')');
 			return false;
 		}
 
@@ -1486,23 +1513,19 @@ bool RadiusSocket::MakeRequest(
 		else {
 			const PINDEX index = AllocReadSyncPoint();
 			if (index == P_MAX_INDEX) {
-				PTRACE(1, "RADIUS\tFailed to allocate a new mutex for "
-					"the request (id:" << (PINDEX)id << ')'
-					);
+				PTRACE(1, "RADIUS\tFailed to allocate a new mutex for the request (id:" << (PINDEX)id << ')');
 				return false;
 			}
 			syncPoint = m_readSyncPoints[index];
 			if (syncPoint == NULL) {
-				PTRACE(1, "RADIUS\tFailed to allocate a new mutex for "
-					"the request (id:" << (PINDEX)id << ')'
-					);
+				PTRACE(1, "RADIUS\tFailed to allocate a new mutex for the request (id:" << (PINDEX)id << ')');
 				FreeReadSyncPoint(index);
 				return false;
 			}
 			m_readSyncPointIndices[id] = index;
 			m_nestedCount++;
 		}
-		
+	
 		requestInfo = m_pendingRequests[id] 
 			= new RadiusRequest(request, pdu, &serverAddress, serverPort);
 	}
@@ -1513,23 +1536,20 @@ bool RadiusSocket::MakeRequest(
 		PTRACE(5, "RADIUS\tError sending UDP packet ("
 			<< GetErrorCode(LastWriteError) << '/'
 			<< GetErrorNumber(LastWriteError) << ": "
-			<< GetErrorText(LastWriteError) << " (id:" << (PINDEX)id << ')'
-			);
+			<< GetErrorText(LastWriteError) << " (id:" << (PINDEX)id << ')');
 	}
 	m_writeMutex.Signal();
-	
+
 	if (result)
 	do {
 		result = FALSE;
-		
+
 		if (shouldRead) {
 			PIPSocket::Address remoteAddress;
 			WORD remotePort;
 
 			RadiusPDU* response = new RadiusPDU();
-			result = ReadFrom(response, sizeof(RadiusPDU), 
-				remoteAddress, remotePort 
-				);
+			result = ReadFrom(response, sizeof(RadiusPDU), remoteAddress, remotePort);
 			if (!result) {
 				if (GetErrorCode(LastReadError) == Timeout)
 					PTRACE(6, "RADIUS\tTimed out reading socket " << *this);
@@ -1537,44 +1557,39 @@ bool RadiusSocket::MakeRequest(
 					PTRACE(5, "RADIUS\tError reading socket " << *this
 						<< " (" << GetErrorCode(LastReadError) << '/'
 						<< GetErrorNumber(LastReadError) << ": "
-						<< GetErrorText(LastReadError) << ')'
-						);
+						<< GetErrorText(LastReadError) << ')');
 				delete response;
 				response = NULL;
 				break;
 			}
-			
+
 			result = FALSE;
-				
+
 			PINDEX bytesRead = GetLastReadCount();
 
 			if (bytesRead < RadiusPDU::MinPduLength) {
-				PTRACE(5, "RADIUS\tReceived packet is too small ("
-					<< bytesRead << ')'
-					);
+				PTRACE(5, "RADIUS\tReceived packet is too small ("<< bytesRead << ')');
 				delete response;
 				response = NULL;
 				continue;
 			}
-	
+
 			if (!response->IsValid()) {
 				PTRACE(5, "RADIUS\tReceived packet is not a valid Radius PDU");
 				delete response;
 				response = NULL;
 				continue;
 			}
-				
+
 			const BYTE newId = response->GetId();
-			
+
 			if (!m_readMutex.Wait(timeout)) {
-				PTRACE(5, "RADIUS\tTimed out (mutex) - dropping PDU (id:"
-					<< (PINDEX)newId
-					);
+				PTRACE(5, "RADIUS\tTimed out (mutex) - dropping PDU (id:" << (PINDEX)newId);
 				delete response;
 				response = NULL;
 				continue;
 			}
-				
+
 			PWaitAndSignal lock(m_readMutex, FALSE);
 
 			if (m_pendingRequests[newId] == NULL) {
@@ -1589,17 +1604,16 @@ bool RadiusSocket::MakeRequest(
 
 			if (remoteAddress != *(m_pendingRequests[newId]->m_addr) 
 				|| remotePort != m_pendingRequests[newId]->m_port) {
-				PTRACE(5, "RADIUS\tReceived PDU from unknown address: "
-					<< AsString(remoteAddress, remotePort));
+				PTRACE(5, "RADIUS\tReceived PDU from unknown address: " << AsString(remoteAddress, remotePort));
 				delete response;
 				response = NULL;
 				continue;
 			}
-			
+
 			m_pendingRequests[newId]->m_response = response;
 			m_pendingRequests[newId] = NULL;
 			response = NULL;
-					
+
 			if (newId == id) {
 				m_isReading = false;
 
@@ -1611,7 +1625,7 @@ bool RadiusSocket::MakeRequest(
 							m_readSyncPoints[m_readSyncPointIndices[j] & 0xff]->Signal();
 							break;
 						}
-					
+
 				delete requestInfo;
 				requestInfo = NULL;
 				return true;
@@ -1701,7 +1715,7 @@ bool RadiusSocket::SendRequest(
 	PWaitAndSignal lock(m_writeMutex);
 	if (WriteTo(request, request->GetLength(), serverAddress, serverPort))
 		return true;
-		
+
 	PTRACE(5, "RADIUS\tError sending UDP packet ("
 		<< GetErrorCode(LastWriteError) << '/'
 		<< GetErrorNumber(LastWriteError) << ": "
