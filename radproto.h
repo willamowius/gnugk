@@ -194,12 +194,12 @@ public:
 		);
 
 	/** Create TLV RADIUS attribute of a given type,
-		initializing #value# field with 32 bit IPv4 address
+		initializing #value# field with 32 bit IPv4 or 128 bit IPv6 address
 		value passed with 'addressValue' parameter.
 	*/
 	RadiusAttr( 
 		unsigned char attrType, /// Attribute Type (see #enum AttrTypes#)
-		const PIPSocket::Address& addressValue /// IPv4 address to be stored in the attribute Value
+		const PIPSocket::Address& addressValue /// IP address to be stored in the attribute Value
 		);
 
 	/** Create TLV RADIUS vendor-specific (26) attribute of a given 
@@ -245,7 +245,7 @@ public:
 		#vsaVendorId# is set to 'vendorId'.
 	*/
 	RadiusAttr( 
-		const PIPSocket::Address& addressValue, /// IPv4 address to be stored in the attribute Value
+		const PIPSocket::Address& addressValue, /// IP address to be stored in the attribute Value
 		int vendorId, /// 32 bit vendor identifier
 		unsigned char vendorType /// vendor-specific attribute type
 		);
@@ -416,23 +416,23 @@ public:
 	*/
 	time_t AsVsaTime() const { return (time_t)AsVsaInteger(); }
 
-	/** Get attribute Value as a 32 bit IPv4 address. 
-		For VSA attributes this call will build the IPv4 address
-		from 4 bytes of data contained after vendorId field.
+	/** Get attribute Value as IPv4 or IPv6 address. 
+		For VSA attributes this call will build the IPv4 or IPv6 address
+		from 4 / 16 bytes of data contained after vendorId field.
 		If RFC 2865 guidelines conformant VSA value is to be retrieved
 		use rather #AsVsaAddress()#.
 		
 		@return
-		IPv4 address representing attribute Value.
+		IP address representing attribute Value.
 	*/
 	PIPSocket::Address AsAddress() const;
 
-	/** Get RFC 2865 guidelines conformant VSA Value as a 32 bit IPv4 address. 
-		This call will build the IPv4 address from 4 bytes of data contained 
+	/** Get RFC 2865 guidelines conformant VSA Value as IPv4 or IPv6 address. 
+		This call will build the IP address from 4 or 16 bytes of data contained 
 		after vendorId, vendorType and vendorLength fields.
 		
 		@return
-		IPv4 address representing attribute Value.
+		IP address representing attribute Value.
 	*/
 	PIPSocket::Address AsVsaAddress() const;
 
@@ -710,7 +710,7 @@ public:
 	/// Append an IP address attribute
 	bool AppendAttr( 
 		unsigned char attrType, /// Attribute Type
-		const PIPSocket::Address& addressValue /// IPv4 address to be stored in the attribute Value
+		const PIPSocket::Address& addressValue /// IP address to be stored in the attribute Value
 		);
 	/// Append a generic VSA attribute
 	bool AppendVsaAttr( 
@@ -733,7 +733,7 @@ public:
 		);
 	/// Append an IP address VSA attribute
 	bool AppendVsaAttr( 
-		const PIPSocket::Address& addressValue, /// IPv4 address to be stored in the attribute Value
+		const PIPSocket::Address& addressValue, /// IP address to be stored in the attribute Value
 		int vendorId, /// 32 bit vendor identifier
 		unsigned char vendorType /// vendor-specific attribute type
 		);

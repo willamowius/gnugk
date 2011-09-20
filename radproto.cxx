@@ -1035,7 +1035,7 @@ bool RadiusPDU::AppendVsaAttr(
 }
 
 bool RadiusPDU::AppendVsaAttr( 
-	const PIPSocket::Address& addressValue, /// IPv4 address to be stored in the attribute Value
+	const PIPSocket::Address& addressValue, /// IP address to be stored in the attribute Value
 	int vendorId, /// 32 bit vendor identifier
 	unsigned char vendorType /// vendor-specific attribute type
 	)
