@@ -942,10 +942,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 #ifdef HAS_H46018
 		if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018()) {
 			proxyhandler->SetUsesH46019(true);
-			if (m_call->GetCallingParty()->IsTraversalServer())
-				proxyhandler->SetTraversalType(TraversalServer);
-			else
-				proxyhandler->SetTraversalType(TraversalClient);
+			proxyhandler->SetTraversalType(m_call->GetCallingParty()->GetTraversalRole());
 		}
 		proxyhandler->SetH46019Direction(m_call->GetH46019Direction());
 #endif
@@ -954,10 +951,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 #ifdef HAS_H46018
 		if (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018()) {
 			((H245ProxyHandler*)m_h245handler)->SetUsesH46019(true);
-			if (m_call->GetCalledParty()->IsTraversalServer())
-				((H245ProxyHandler*)m_h245handler)->SetTraversalType(TraversalServer);
-			else
-				((H245ProxyHandler*)m_h245handler)->SetTraversalType(TraversalClient);
+			((H245ProxyHandler*)m_h245handler)->SetTraversalType(m_call->GetCallingParty()->GetTraversalRole());
 		}
 		((H245ProxyHandler*)m_h245handler)->SetH46019Direction(m_call->GetH46019Direction());
 #endif
@@ -4434,7 +4428,8 @@ void CallSignalSocket::OnFacility(
 					m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(), localAddr, called, masqAddr, proxyhandler);
 					proxyhandler->SetHandler(GetHandler());
 					((H245ProxyHandler*)m_h245handler)->SetUsesH46019(true);
-					((H245ProxyHandler*)m_h245handler)->SetTraversalType(TraversalClient);
+					if (m_call->GetCalledParty())
+						((H245ProxyHandler*)m_h245handler)->SetTraversalType(m_call->GetCalledParty()->GetTraversalRole());   // <--- ? Check if right should be Called Party? - SH
 					((H245ProxyHandler*)m_h245handler)->SetH46019Direction(m_call->GetH46019Direction());
 
 					H225_H323_UserInformation *uuie = NULL;
