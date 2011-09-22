@@ -4419,10 +4419,7 @@ void CallSignalSocket::OnFacility(
 					proxyhandler->SetH46019Direction(m_call->GetH46019Direction());
 					if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018()) {
 						proxyhandler->SetUsesH46019(true);
-						if (m_call->GetCallingParty()->IsTraversalServer())
-							proxyhandler->SetTraversalType(TraversalServer);
-						else
-							proxyhandler->SetTraversalType(TraversalClient);
+						proxyhandler->SetTraversalType(m_call->GetCallingParty()->GetTraversalRole());
 					}
 					callingSocket->m_h245handler = proxyhandler;
 					m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(), localAddr, called, masqAddr, proxyhandler);
