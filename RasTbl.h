@@ -67,6 +67,7 @@ private:
 	T *pt;
 };
 
+enum H46019TraversalType { None, TraversalClient, TraversalServer };
 
 class EndpointRec
 {
@@ -271,9 +272,9 @@ public:
 	bool IsH46018Disabled() const { return m_h46018disabled; }
 	void SetUsesH46018(bool uses) { m_usesH46018 = uses; m_nat = uses; }
 	bool UsesH46018() const { return m_usesH46018; }
-	bool IsTraversalServer() const { return m_isTraversalServer; }
-	void SetTraversalServer(bool val) { m_isTraversalServer = val; }
-	bool IsTraversalClient() const { return UsesH46018() && !IsTraversalServer(); }
+	bool IsTraversalServer() const { return m_traversalType == TraversalServer; }
+	void SetTraversalRole(H46019TraversalType val) { m_traversalType = val; }
+	bool IsTraversalClient() const { return UsesH46018() && m_traversalType == TraversalClient; }
 
 	// smart pointer for EndpointRec
 	typedef SmartPtr<EndpointRec> Ptr;
@@ -354,7 +355,7 @@ protected:
 	bool m_h46018disabled;
 	bool m_usesH46018;
 	bool m_usesH460P;
-	bool m_isTraversalServer;
+	H46019TraversalType m_traversalType;
 	
 	long m_bandwidth;	// bandwidth currently occupied by this endpoint
 	long m_maxBandwidth; // maximum bandwidth allowed for this endpoint

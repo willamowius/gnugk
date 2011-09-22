@@ -573,8 +573,6 @@ private:
 	bool isH245ended;
 };
 
-enum H46019TraversalType { None, TraversalClient, TraversalServer };
-
 class H245ProxyHandler : public H245Handler {
 public:
 	typedef std::map<WORD, LogicalChannel *>::iterator iterator;
@@ -3118,6 +3116,7 @@ PTRACE(0, "JW about to delete savedPtr=" << savedPtr);
 			int sz = setupBody.m_supportedFeatures.GetSize();
 			for (PINDEX i = 0; i < sz; i++) {
 				if (setupBody.m_supportedFeatures[i].m_id == H460_FeatureID(19)) {
+                    // TODO Detect if multiplexing EP - SH
 					numRemoved = i;
 					break;
 				}

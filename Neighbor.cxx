@@ -1392,10 +1392,11 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 				if (request.IsTraversalClient()) {
 					route.m_destEndpoint->SetUsesH46018(true);
 					// if we are the client, then the call goes to a traversal server
-					route.m_destEndpoint->SetTraversalServer(true);
+					route.m_destEndpoint->SetTraversalRole(TraversalServer);
 				}
 				if (request.IsTraversalServer()) {
 					route.m_destEndpoint->SetUsesH46018(true);
+                    route.m_destEndpoint->SetTraversalRole(TraversalClient);
 				}
 			}
 #endif
@@ -1490,10 +1491,11 @@ bool NeighborPolicy::OnRequest(LocationRequest & lrq_obj)
 					if (request.IsTraversalClient()) {
 						route.m_destEndpoint->SetUsesH46018(true);
 						// if we are the client, then the call goes to a traversal server
-						route.m_destEndpoint->SetTraversalServer(true);
+						route.m_destEndpoint->SetTraversalRole(TraversalServer);
 					}
 					if (request.IsTraversalServer()) {
 						route.m_destEndpoint->SetUsesH46018(true);
+                        route.m_destEndpoint->SetTraversalRole(TraversalClient);
 					}
 				}
 #endif
@@ -1538,10 +1540,11 @@ bool NeighborPolicy::OnRequest(SetupRequest & setup_obj)
 				if (request.IsTraversalClient()) {
 					route.m_destEndpoint->SetUsesH46018(true);
 					// if we are the client, then the call goes to a traversal server
-					route.m_destEndpoint->SetTraversalServer(true);
+					route.m_destEndpoint->SetTraversalRole(TraversalServer);
 				}
 				if (request.IsTraversalServer()) {
 					route.m_destEndpoint->SetUsesH46018(true);
+                    route.m_destEndpoint->SetTraversalRole(TraversalClient);
 				}
 			}
 #endif
@@ -1581,10 +1584,11 @@ bool NeighborPolicy::OnRequest(FacilityRequest & facility_obj)
 				if (request.IsTraversalClient()) {
 					route.m_destEndpoint->SetUsesH46018(true);
 					// if we are the client, then the call goes to a traversal server
-					route.m_destEndpoint->SetTraversalServer(true);
+					route.m_destEndpoint->SetTraversalRole(TraversalServer);
 				}
 				if (request.IsTraversalServer()) {
 					route.m_destEndpoint->SetUsesH46018(true);
+                    route.m_destEndpoint->SetTraversalRole(TraversalClient);
 				}
 			}
 #endif
