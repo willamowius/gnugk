@@ -1745,8 +1745,8 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
     } else
 		rawCap = *(H245_DataType*)olc.m_forwardLogicalChannelParameters.m_dataType.Clone();
 
-    if (toRemove && (rawCap.GetTag() != H245_DataType::e_h235Media) ||
-       !toRemove && (rawCap.GetTag() == H245_DataType::e_h235Media)) {
+    if ((toRemove && (rawCap.GetTag() != H245_DataType::e_h235Media)) ||
+       (!toRemove && (rawCap.GetTag() == H245_DataType::e_h235Media))) {
           PTRACE(3, "H235\tOLC Logic Error! ABORTIING REWRITE!");
           return false;
     }
