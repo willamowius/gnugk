@@ -1159,7 +1159,11 @@ void Gatekeeper::Main()
 		RasSrv->SetRoutedMode(true, (args.GetOptionCount('r') > 1 || args.HasOption("h245routed")));
 	else if (args.HasOption('d'))
 		RasSrv->SetRoutedMode(false, false);
-	else
+#ifdef HAS_H235_MEDIA
+    else if (Toolkit::Instance()->IsH235MediaEnabled()) 
+        RasSrv->SetRoutedMode(true, true);
+#endif 
+	else 
 		RasSrv->SetRoutedMode();
 
 	// Load ENUM servers

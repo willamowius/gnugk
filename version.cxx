@@ -22,7 +22,7 @@
 const PString Toolkit::GKVersion()
 {
 	return PString(PString::Printf,
-		       "Gatekeeper(%s) Version(%s) Ext(pthreads=%d,radius=%d,mysql=%d,pgsql=%d,firebird=%d,odbc=%d,sqlite=%d,large_fdset=%d,crypto/ssl=%d,h46018=%d,h46023=%d,ldap=%d,ssh=%d,ipv6=%d)"
+		       "Gatekeeper(%s) Version(%s) Ext(pthreads=%d,radius=%d,mysql=%d,pgsql=%d,firebird=%d,odbc=%d,sqlite=%d,large_fdset=%d,H235SSL=%d,H235Media=%d,h46018=%d,h46023=%d,ldap=%d,ssh=%d,ipv6=%d)"
 		       " H323Plus(%d.%d.%d) PTLib(%d.%d.%d) Build(%s, %s) Sys(%s %s %s)\r\n",
 		       (const unsigned char*)(PProcess::Current().GetManufacturer()),
 		       (const unsigned char*)(PProcess::Current().GetVersion(true)),
@@ -67,6 +67,11 @@ const PString Toolkit::GKVersion()
 				(int)0,
 #endif
 #if P_SSL
+				(int)1,
+#else
+				(int)0,
+#endif
+#if HAS_H235_MEDIA
 				(int)1,
 #else
 				(int)0,

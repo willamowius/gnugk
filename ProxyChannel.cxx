@@ -1404,10 +1404,10 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 			&& ((H245_RequestMessage&)h245msg).GetTag() == H245_RequestMessage::e_openLogicalChannel) {
 		H245_OpenLogicalChannel &olc = (H245_RequestMessage&)h245msg;
 
-#if HAS_H235_MEDIA
-           // TODO OLC Handling to go here
+#ifdef HAS_H235_MEDIA
+        changed = HandleH235OLC(olc);    
 #endif
-		if (m_callerSocket) {
+		if (m_callerSocket) {  // TODO This code may not work if media encrypted - SH 
 			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
 					&& olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData
 					&& olc.m_reverseLogicalChannelParameters.HasOptionalField(H245_OpenLogicalChannel_reverseLogicalChannelParameters::e_multiplexParameters)
@@ -1423,7 +1423,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 				}
 			}
 		}
-		H245_AudioCapability *audioCap = NULL;
+		H245_AudioCapability *audioCap = NULL;  // TODO This code does not work if media encrypted - SH 
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
 				&& olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData) {
 			audioCap = &((H245_AudioCapability&)olc.m_reverseLogicalChannelParameters.m_dataType);
@@ -1518,9 +1518,8 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		&& ((H245_RequestMessage&)h245msg).GetTag() == H245_RequestMessage::e_terminalCapabilitySet) {
 
 		H245_TerminalCapabilitySet & tcs = (H245_RequestMessage&)h245msg;
-#ifdef H323_H235_MEDIA
-        if (!HandleH235TCS(tcs))
-            return false;
+#ifdef HAS_H235_MEDIA
+        changed = HandleH235TCS(tcs);
 #endif	
         H245_ArrayOf_CapabilityTableEntry & CapabilityTables = tcs.m_capabilityTable;
 
@@ -1693,20 +1692,17 @@ bool AddH235Capability(unsigned _entryNo,
 bool CallSignalSocket::HandleH235TCS(H245_TerminalCapabilitySet & tcs)
 {
     if (m_call && m_call->GetEncryptDirection() == CallRec::none)
-        return true;
-
-    if ((m_callerSocket && (m_call->GetEncryptDirection() != CallRec::callingParty)) ||
-        (!m_callerSocket && (m_call->GetEncryptDirection() != CallRec::calledParty))) {
-            PTRACE(4,"H235 TCS LOGIC ERROR!!");
-            return false;
-    }
+        return false;
     
-    bool toRemove = (m_callerSocket && m_call->GetEncryptDirection() == CallRec::callingParty);
+    bool toRemove = ((m_callerSocket && (m_call->GetEncryptDirection() == CallRec::callingParty))
+                 || (!m_callerSocket && (m_call->GetEncryptDirection() == CallRec::calledParty)));
 
     PStringList m_capList;
     if (!m_call->GetAuthenticators().GetAlgorithms(m_capList)) {
-        PTRACE(4,"H235 Encryption support but no common algorithm!");
-        return true;
+        PTRACE(4,"H235 Encryption support but no common algorithm! DISABLING!!");
+        m_call->SetMediaEncryption(CallRec::none);
+        m_call->GetAuthenticators().SetSize(0);
+        return false;
     }
 
     H245_ArrayOf_CapabilityDescriptor & m_capDesc = tcs.m_capabilityDescriptors; 
@@ -1730,6 +1726,95 @@ bool CallSignalSocket::HandleH235TCS(H245_TerminalCapabilitySet & tcs)
         }
     }
     return true;
+}
+
+bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
+{
+    if (m_call && m_call->GetEncryptDirection() == CallRec::none)
+        return false;
+    
+    bool toRemove = ((m_callerSocket && (m_call->GetEncryptDirection() == CallRec::callingParty))
+                 || (!m_callerSocket && (m_call->GetEncryptDirection() == CallRec::calledParty)));
+
+    bool isReverse = false;
+    H245_DataType newCap;
+    H245_DataType rawCap;
+    if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)) {
+		rawCap = *(H245_DataType*)olc.m_reverseLogicalChannelParameters.m_dataType.Clone();
+        isReverse = true;
+    } else
+		rawCap = *(H245_DataType*)olc.m_forwardLogicalChannelParameters.m_dataType.Clone();
+
+    if (toRemove && (rawCap.GetTag() != H245_DataType::e_h235Media) ||
+       !toRemove && (rawCap.GetTag() == H245_DataType::e_h235Media)) {
+          PTRACE(3, "H235\tOLC Logic Error! ABORTIING REWRITE!");
+          return false;
+    }
+
+    if (toRemove) {
+//=============================
+        // Handle the OLC here
+//=============================
+        
+        H245_H235Media_mediaType & cType = ((H245_H235Media &)rawCap).m_mediaType;
+            if (cType.GetTag() == H245_H235Media_mediaType::e_audioData) {
+                    newCap.SetTag(H245_DataType::e_audioData);
+                    (H245_AudioCapability &)newCap = (H245_AudioCapability &)cType;
+            } else if (cType.GetTag() == H245_H235Media_mediaType::e_videoData) {
+                    newCap.SetTag(H245_DataType::e_videoData);
+                    (H245_VideoCapability &)newCap = (H245_VideoCapability &)cType;
+            } else if (cType.GetTag() == H245_H235Media_mediaType::e_data) {
+                    newCap.SetTag(H245_DataType::e_data);
+                    (H245_DataApplicationCapability &)newCap = (H245_DataApplicationCapability &)cType;
+            }
+
+        olc.RemoveOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
+    } else {
+
+        PStringList m_capList;
+        if (!m_call->GetAuthenticators().GetAlgorithms(m_capList)) {
+            PTRACE(3, "H235\tOLC No Algorithms! ABORTIING REWRITE!");
+            return false;
+        }
+
+        newCap.SetTag(H245_DataType::e_h235Media);
+        H245_H235Media & h235Media = newCap;
+           
+        H245_EncryptionAuthenticationAndIntegrity & encAuth =
+                      h235Media.m_encryptionAuthenticationAndIntegrity;
+            encAuth.IncludeOptionalField(H245_EncryptionAuthenticationAndIntegrity::e_encryptionCapability);
+            H245_EncryptionCapability & enc = encAuth.m_encryptionCapability;
+              enc.SetSize(1);
+              H245_MediaEncryptionAlgorithm & alg = enc[0];
+              alg.SetTag(H245_MediaEncryptionAlgorithm::e_algorithm);
+              PASN_ObjectId & id = alg;
+              id.SetValue(m_capList[0]);
+       
+        H245_H235Media_mediaType & cType = h235Media.m_mediaType;
+            if (rawCap.GetTag() == H245_DataType::e_audioData) {
+                cType.SetTag(H245_H235Media_mediaType::e_audioData); 
+                (H245_AudioCapability &)cType = (H245_AudioCapability &)rawCap;
+            } else if (rawCap.GetTag() ==  H245_DataType::e_videoData) {
+                cType.SetTag(H245_H235Media_mediaType::e_videoData); 
+                (H245_VideoCapability &)cType = (H245_VideoCapability &)rawCap;
+            } else if (rawCap.GetTag() == H245_DataType::e_data) { 
+                cType.SetTag(H245_H235Media_mediaType::e_data);
+                (H245_DataApplicationCapability &)cType = (H245_DataApplicationCapability &)rawCap;
+            }
+//=============================
+       // Handle the OLC here
+//=============================
+       // Load Sync Material (if used)
+       // olc.IncludeOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
+    }
+
+    if (isReverse) {
+	    olc.m_reverseLogicalChannelParameters.m_dataType = newCap;
+    } else
+	    olc.m_forwardLogicalChannelParameters.m_dataType = newCap;
+
+    return true;
+
 }
 #endif
 
@@ -2391,6 +2476,39 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				gkClient->RewriteE164(*setup, true);
 		}
 
+#ifdef HAS_H235_MEDIA
+     H235Authenticators & auth = m_call->GetAuthenticators();
+     if (Toolkit::Instance()->IsH235MediaEnabled()) {
+          if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)
+              || setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens)) { 
+              auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
+       // TODO Caller Admission. -SH
+              H235Authenticator::ValidationResult result = auth.ValidateSignalPDU( 
+                    H225_H323_UU_PDU_h323_message_body::e_setup, 
+                    setupBody.m_tokens, setupBody.m_cryptoTokens, m_rawSetup);
+               
+              if (result != H235Authenticator::e_OK &&
+                  result != H235Authenticator::e_Absent &&
+                  result != H235Authenticator::e_Disabled) {
+                      PTRACE(5,"H235 Caller Admission failed");
+                      m_call->SetDisconnectCause(Q931::CallRejected);
+                      rejectCall = true;
+              }
+
+              // Remove hop-by-hop cryptoTokens...
+              setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
+              setupBody.m_cryptoTokens.RemoveAll();
+          }
+
+          if (!rejectCall && !auth.SupportsEncryption() && auth.CreateAuthenticator("Std6")) {
+              auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_setup, 
+                                      setupBody.m_tokens, setupBody.m_cryptoTokens);
+              setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
+              m_call->SetMediaEncryption(CallRec::calledParty);
+          }
+     }
+#endif
+
 		const H225_ArrayOf_CryptoH323Token & tokens = m_call->GetAccessTokens();
 		if (!rejectCall && tokens.GetSize() > 0) {
 			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_cryptoTokens);
@@ -2526,34 +2644,6 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		}
 
 		bool useParent = gkClient->IsRegistered() && gkClient->CheckFrom(_peerAddr);
-
-#ifdef HAS_H235_MEDIA
-     H235Authenticators & auth = m_call->GetAuthenticators();
-     if (Toolkit::Instance()->IsH235MediaEnabled()) {
-          if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)
-              || setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens)) { 
-                auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
-
-              H235Authenticator::ValidationResult result = auth.ValidateSignalPDU( 
-                    H225_H323_UU_PDU_h323_message_body::e_setup, 
-                    setupBody.m_tokens, setupBody.m_cryptoTokens, m_rawSetup);
-                
-              if (result != H235Authenticator::e_OK &&
-                  result != H235Authenticator::e_Absent &&
-                  result != H235Authenticator::e_Disabled) {
-                      PTRACE(5,"H235 Caller Admission failed");
-                      // TODO Caller Admission. -SH
-              }
-          }
-
-          if (!auth.SupportsEncryption() && auth.CreateAuthenticator("Std6")) {
-              auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_setup, 
-                                      setupBody.m_tokens, setupBody.m_cryptoTokens);
-              setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
-              m_call->SetMediaEncryption(CallRec::calledParty);
-          }
-     }
-#endif
 
 #ifdef HAS_H46023
 		CallRec::NatStrategy natoffloadsupport = CallRec::e_natUnknown;
@@ -3472,22 +3562,43 @@ void CallSignalSocket::OnConnect(
 
 #ifdef HAS_H235_MEDIA
     H235Authenticators & auth = m_call->GetAuthenticators();
-    if (Toolkit::Instance()->IsH235MediaEnabled() && m_call->IsMediaEncryption()
-        && connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens)) {
+    if (Toolkit::Instance()->IsH235MediaEnabled()) {
+      if (m_call && !m_call->IsMediaEncryption() 
+          && connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens)) {
+           PTRACE(4, "H235\tMedia Encrypted End to End : No Assistance");
+           m_call->GetAuthenticators().SetSize(0);
 
-      PBYTEArray nonce;
-      auth.ValidateSignalPDU(H225_H323_UU_PDU_h323_message_body::e_connect, 
-                       connectBody.m_tokens, connectBody.m_cryptoTokens, nonce);
-   
-    } else if (m_call->IsMediaEncryption()) {
-         m_call->SetMediaEncryption(CallRec::none);
-    } else {
-        auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_connect, 
-                              connectBody.m_tokens, connectBody.m_cryptoTokens);
-        connectBody.IncludeOptionalField(H225_Connect_UUIE::e_tokens);
-        m_call->SetMediaEncryption(CallRec::callingParty);
+      } else if ((m_call && m_call->GetEncryptDirection() == CallRec::calledParty)
+          && connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens)) {
+
+            PBYTEArray nonce;
+            auth.ValidateSignalPDU(H225_H323_UU_PDU_h323_message_body::e_connect, 
+                           connectBody.m_tokens, connectBody.m_cryptoTokens, nonce);
+
+            connectBody.RemoveOptionalField(H225_Connect_UUIE::e_cryptoTokens);
+            connectBody.RemoveOptionalField(H225_Connect_UUIE::e_tokens);
+            connectBody.m_tokens.RemoveAll();
+            connectBody.m_cryptoTokens.RemoveAll();
+            msg->SetUUIEChanged();
+                PTRACE(3, "H235\tMedia Encrypted Support added for Called Party");
+
+      } else if (m_call && m_call->IsMediaEncryption()) {
+             m_call->SetMediaEncryption(CallRec::none);
+             m_call->GetAuthenticators().SetSize(0);
+                PTRACE(3, "H235\tNo Media Encryption Support Detected: Disabling!");
+
+      } else {
+            auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_connect, 
+                                  connectBody.m_tokens, connectBody.m_cryptoTokens);
+            connectBody.RemoveOptionalField(H225_Connect_UUIE::e_cryptoTokens);
+            connectBody.IncludeOptionalField(H225_Connect_UUIE::e_tokens);
+            if (m_call)
+                m_call->SetMediaEncryption(CallRec::callingParty);
+            msg->SetUUIEChanged();
+                PTRACE(3, "H235\tMedia Encrypted Support added for Calling Party");
+
+      }
     }
-
 #endif
 
 #ifdef HAS_H46018

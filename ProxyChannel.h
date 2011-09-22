@@ -209,6 +209,7 @@ public:
 	H245_TerminalCapabilitySet GetSavedTCS() const { return m_savedTCS; }
 #ifdef HAS_H235_MEDIA
     bool HandleH235TCS(H245_TerminalCapabilitySet & tcs);
+    bool HandleH235OLC(H245_OpenLogicalChannel & olc);
 #endif
 	bool CompareH245Socket(H245Socket * sock) const { return sock == m_h245socket; }	// compare pointers !
 	
