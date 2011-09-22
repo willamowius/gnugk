@@ -248,7 +248,7 @@ Toolkit::RouteTable::RouteEntry::RouteEntry(
 
 inline bool Toolkit::RouteTable::RouteEntry::Compare(const Address *ip) const
 {
-	return (*ip == destination) || ((*ip & net_mask) == network);
+	return (*ip == destination) || (((*ip & net_mask) == network) && (ip->GetVersion() == network.GetVersion()));
 }
 
 // class Toolkit::RouteTable
@@ -330,15 +330,17 @@ PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(const Address & addr) co
 			// check if internal network is in route table, but don't use the default route
 			RouteEntry *entry = find_if(rtable_begin, rtable_end,
 				bind2nd(mem_fun_ref(&RouteEntry::Compare), &addr));
-			if ((entry != rtable_end) && (entry->GetNetMask() != INADDR_ANY))
+			if ((entry != rtable_end) && (entry->GetNetMask() != INADDR_ANY)) {
 				return entry->GetDestination();
-			else
+			}
+			else {
 				return defAddr;
+			}
 		}
 	}
 
 	// if external IP is configured
-	if (!ExtIP) {
+	if (!ExtIP.IsEmpty()) {
 		if (DynExtIP) {  // if dynamic resolve DNS entry
 			PIPSocket::Address extip;
 			H323TransportAddress ex = H323TransportAddress(ExtIP);
