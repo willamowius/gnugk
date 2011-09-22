@@ -1742,7 +1742,6 @@ CatchAllPolicy::CatchAllPolicy()
 			m_catchAllIP = parts[0] + ":" + parts[1];
 		}
 	}
-	PTRACE(0, "JW CatchallIP=" << m_catchAllIP);
 }
 
 bool CatchAllPolicy::CatchAllRoute(RoutingRequest & request) const
