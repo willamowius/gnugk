@@ -272,8 +272,9 @@ public:
 	bool IsH46018Disabled() const { return m_h46018disabled; }
 	void SetUsesH46018(bool uses) { m_usesH46018 = uses; m_nat = uses; }
 	bool UsesH46018() const { return m_usesH46018; }
-	bool IsTraversalServer() const { return m_traversalType == TraversalServer; }
 	void SetTraversalRole(H46019TraversalType val) { m_traversalType = val; }
+	H46019TraversalType GetTraversalRole() { return m_traversalType; }
+	bool IsTraversalServer() const { return m_traversalType == TraversalServer; }
 	bool IsTraversalClient() const { return UsesH46018() && m_traversalType == TraversalClient; }
 
 	// smart pointer for EndpointRec
