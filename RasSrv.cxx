@@ -520,7 +520,6 @@ bool GkInterface::IsReachable(const Address *addr) const
 		// TODO: for now, use any IPv6 interface to reach a IPv6 destination, later, maybe fix GetLocalAddress with IPv6 parameter ?
 		result = (addr->GetVersion() == m_address.GetVersion());
 	}
->GetRouteTable(false)->GetLocalAddress(*addr));
 	return result;
 }
 
