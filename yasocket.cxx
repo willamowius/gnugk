@@ -508,7 +508,7 @@ int YaTCPSocket::os_send(const void * buf, int sz)
 YaUDPSocket::YaUDPSocket(WORD port, int iAddressFamily)
 {
 	((struct sockaddr*)&sendaddr)->sa_family = iAddressFamily;
-	((struct sockaddr_in*)&sendaddr)->sin_port = port;
+	((struct sockaddr_in*)&sendaddr)->sin_port = htons(port);
 }
 
 bool YaUDPSocket::Listen(unsigned, WORD pt, PSocket::Reusability reuse)
