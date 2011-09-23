@@ -76,7 +76,7 @@ inline unsigned GetH225Version(const UUIE &uuie)
 //		if (uniaddr.GetTag() == H245_UnicastAddress::e_iPAddress)
 //			return &((H245_UnicastAddress_iPAddress &)uniaddr);
 //	}
-//	return 0;
+//	return NULL;
 //}
 //
 //inline H245_UnicastAddress_iPAddress & operator<<(H245_UnicastAddress_iPAddress & addr, const PIPSocket::Address & ip)
@@ -6087,7 +6087,7 @@ H46019KeepAlive::~H46019KeepAlive()
 	Toolkit::Instance()->GetTimerManager()->UnregisterTimer(timer);
 }
 
-struct KeepAliveFrame
+struct RTPKeepAliveFrame
 {
 	BYTE b1;
 	BYTE pt;
@@ -6097,10 +6097,23 @@ struct KeepAliveFrame
 	//PInt32 padding;
 };
 
+struct RTCPKeepAliveFrame
+{
+	BYTE b1;
+	BYTE pt;
+	WORD len;
+	PInt32 ssrc;
+	PInt32 msw_ts;
+	PInt32 lsw_ts;
+	PInt32 rtp_ts;
+	PInt32 packet_count;
+	PInt32 byte_count;
+};
+
 void H46019KeepAlive::SendKeepAlive(GkTimer*)
 {
 	if (type == RTP) {
-		KeepAliveFrame rtpKeepAlive;
+		RTPKeepAliveFrame rtpKeepAlive;
 		rtpKeepAlive.b1 = 0x80;
 		rtpKeepAlive.pt = 127;
 		rtpKeepAlive.seq = htons(seq++);
@@ -6109,9 +6122,25 @@ void H46019KeepAlive::SendKeepAlive(GkTimer*)
 		//rtpKeepAlive.padding = 0;
 		PTRACE(0, "JW Send RTP keepalive on socket " << ossocket << " size=" << sizeof(rtpKeepAlive));
 		size_t sent = ::sendto(ossocket, &rtpKeepAlive, sizeof(rtpKeepAlive), 0, (struct sockaddr *)&dest, sizeof(dest));
+		if (sent != sizeof(rtpKeepAlive)) {
+			PTRACE(1, "Error sending RTP keepAlive");
+		}
 	} else {
-		PTRACE(0, "JW Send RTCP keepalive on socket " << ossocket);
-		//size_t written = ::write(ossocket, &rtcpKeepAlive, sizeof(rtcpKeepAlive));
+		RTCPKeepAliveFrame rtcpKeepAlive;
+		rtcpKeepAlive.b1 = 0x80;
+		rtcpKeepAlive.pt = 200;	// SR
+		rtcpKeepAlive.len = htons(6);
+		rtcpKeepAlive.ssrc = 0;
+		rtcpKeepAlive.msw_ts = 0;
+		rtcpKeepAlive.lsw_ts = 0;
+		rtcpKeepAlive.rtp_ts = 0;
+		rtcpKeepAlive.packet_count = 0;
+		rtcpKeepAlive.byte_count = 0;
+		PTRACE(0, "JW Send RTCP keepalive on socket " << ossocket << " size=" << sizeof(rtcpKeepAlive));
+		size_t sent = ::sendto(ossocket, &rtcpKeepAlive, sizeof(rtcpKeepAlive), 0, (struct sockaddr *)&dest, sizeof(dest));
+		if (sent != sizeof(rtcpKeepAlive)) {
+			PTRACE(1, "Error sending RTCP keepAlive");
+		}
 	}
 }
 	
@@ -6177,7 +6206,7 @@ void H46019Handler::ReadSocket(IPSocket * socket)
 
 void H46019Handler::AddRTPKeepAlive(unsigned flcn, const H323TransportAddress & keepAliveRTPAddr, unsigned keepAliveInterval)
 {
-	PTRACE(0, "JW AddRTPKeepAlive lc=" << flcn << " dest=" << keepAliveRTPAddr << " interval=" << keepAliveInterval);
+	PTRACE(0, "JW AddRTPKeepAlive lc=" << flcn << " dest=" << AsString(keepAliveRTPAddr) << " interval=" << keepAliveInterval);
 	H46019KeepAlive ka;
 	ka.type = RTP;
 	ka.flcn = flcn;
@@ -6206,7 +6235,7 @@ void H46019Handler::StartRTPKeepAlive(unsigned flcn, int RTPOSSocket)
 	if (iter != m_RTPkeepalives.end()) {
 		PTRACE(0, "JW Starting RTP keepAlive OS socket=" << RTPOSSocket);
 		iter->second.ossocket = RTPOSSocket;
-		iter->second.SendKeepAlive(NULL);	// send the keepAlive once now, time doesn't seem to do it
+		//iter->second.SendKeepAlive(NULL);	// send the keepAlive once now, time doesn't seem to do it
 		PTime now;
 		iter->second.timer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 				&(iter->second), &H46019KeepAlive::SendKeepAlive, now, iter->second.interval);	// do it now and every n seconds
@@ -6215,13 +6244,28 @@ void H46019Handler::StartRTPKeepAlive(unsigned flcn, int RTPOSSocket)
 	}
 }
 
-void H46019Handler::AddRTCPKeepAlive(unsigned flcn, const H323TransportAddress & keepAliveRTCPAddr, unsigned keepAliveInterval)
+void H46019Handler::AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAliveRTCPAddr, unsigned keepAliveInterval)
 {
-	PTRACE(0, "JW AddRTCPKeepAlive lc=" << flcn << " dest=" << keepAliveRTCPAddr << " interval=" << keepAliveInterval);
+	PTRACE(0, "JW AddRTCPKeepAlive lc=" << flcn << " dest=" << AsString(keepAliveRTCPAddr) << " interval=" << keepAliveInterval);
 	H46019KeepAlive ka;
 	ka.type = RTCP;
 	ka.flcn = flcn;
-	// JW TODO ka.dest = keepAliveRTCPAddr;
+
+	PStringArray parts = SplitIPAndPort(AsString(keepAliveRTCPAddr), 0);
+	PIPSocket::Address addr(parts[0]);
+	WORD port = parts[1].AsUnsigned();
+	PTRACE(0, "JW AddRTCPKeepAlive 2 dest=" << AsString(addr, port));
+	memset(&ka.dest, 0, sizeof(ka.dest));
+	if (addr.GetVersion() == 6) {
+		((struct sockaddr_in6*)&ka.dest)->sin6_family = AF_INET6;
+		((struct sockaddr_in6*)&ka.dest)->sin6_addr = addr;
+		((struct sockaddr_in6*)&ka.dest)->sin6_port = htons(port);
+	} else {
+		((struct sockaddr_in*)&ka.dest)->sin_family = AF_INET;
+		((struct sockaddr_in*)&ka.dest)->sin_addr = addr;
+		((struct sockaddr_in*)&ka.dest)->sin_port = htons(port);
+	}
+
 	ka.interval = keepAliveInterval;
 	m_RTCPkeepalives[flcn] = ka;
 }
@@ -6232,7 +6276,7 @@ void H46019Handler::StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket)
 	if (iter != m_RTCPkeepalives.end()) {
 		PTRACE(0, "JW Starting RTCP keepAlive OS socket=" << RTCPOSSocket);
 		iter->second.ossocket = RTCPOSSocket;
-		iter->second.SendKeepAlive(NULL);	// send the keepAlive once now, time doesn't seem to do it
+		//iter->second.SendKeepAlive(NULL);	// send the keepAlive once now, time doesn't seem to do it
 		PTime now;
 		iter->second.timer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 				&(iter->second), &H46019KeepAlive::SendKeepAlive, now, iter->second.interval);	// do it now and every n seconds
@@ -7468,7 +7512,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 						// TODO: if multiplexing: use that for keepAlive addrs
 						if (keepAliveInterval > 0) {
 							H46019Handler::Instance()->AddRTPKeepAlive(flcn, keepAliveRTPAddr, keepAliveInterval);
-							// JW TODO: convert address H46019Handler::Instance()->AddRTCPKeepAlive(flcn, keepAliveRTCPAddr, keepAliveInterval);
+							H46019Handler::Instance()->AddRTCPKeepAlive(flcn, keepAliveRTCPAddr, keepAliveInterval);
 						}
 						// H46019Handler::Instance()->AddDestination(src);
 					}
@@ -7591,22 +7635,10 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 				H245_ParameterIdentifier & ident = olca.m_genericInformation[i].m_messageContent[0].m_parameterIdentifier;
 				PASN_Integer & n = ident;
 				if (gid == H46019OID && n == 1) {
-// there should be no need to look at these:
-// - we ignore the payload type anyway
-// - it should never contain a keepAliveChannel / interval
-// - is there anything in there for multiplexing ?
-//					unsigned payloadtype;
-//					H323TransportAddress keepAliveRTPAddr;
-//					H245_UnicastAddress keepAliveRTCPAddr;
-//					unsigned keepAliveInterval;
-//					if (ParseTraversalParameters(olca.m_genericInformation[i], payloadtype, keepAliveRTPAddr, keepAliveInterval)) {
-//						// JW TODO: start keepAlive if traversal client
-//						// TODO: 2. case wo wir OLCA von non-.19 bekommen und dann keepAlive an andere seite starten können!
-//						if (keepAliveInterval > 0) {
-//							H46019Handler::Instance()->AddRTPKeepAlive(flcn, keepAliveRTPAddr, keepAliveInterval);
-//							//H46019Handler::Instance()->AddRTCPKeepAlive(flcn, keepAliveRTCPAddr, keepAliveInterval);
-//						}
-//					}
+					// there should be no need to look at these:
+					// - we ignore the payload type anyway
+					// - it should never contain a keepAliveChannel / interval
+					// - is there anything in there for multiplexing ?
 				}
 			}
 		}
