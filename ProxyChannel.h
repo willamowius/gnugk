@@ -406,8 +406,13 @@ public:
 
 	unsigned flcn;
 	KeepALiveType type;
-	PIPSocket::Address dest;
+#ifdef hasIPv6
+	sockaddr_in6 dest
+#else
+	sockaddr_in dest;
+#endif
 	unsigned interval;
+	unsigned seq;
 	int ossocket;
 	GkTimerManager::GkTimerHandle timer;
 };
@@ -420,9 +425,9 @@ public:
 
 	virtual void OnReload() { /* TODO: update ports etc. */ }
 
-	virtual void AddRTPKeepAlive(unsigned flcn, PIPSocket::Address keepAliveRTPAddr, unsigned keepAliveInterval);
+	virtual void AddRTPKeepAlive(unsigned flcn, const H323TransportAddress & keepAliveRTPAddr, unsigned keepAliveInterval);
 	virtual void StartRTPKeepAlive(unsigned flcn, int RTPOSSocket);
-	virtual void AddRTCPKeepAlive(unsigned flcn, PIPSocket::Address keepAliveRTCPAddr, unsigned keepAliveInterval);
+	virtual void AddRTCPKeepAlive(unsigned flcn, const H323TransportAddress & keepAliveRTCPAddr, unsigned keepAliveInterval);
 	virtual void StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket);
 	virtual void RemoveKeepAlives(unsigned flcn);
 
