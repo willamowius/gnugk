@@ -520,7 +520,7 @@ bool GkInterface::IsReachable(const Address *addr) const
 		// TODO: for now, use any IPv6 interface to reach a IPv6 destination, later, maybe fix GetLocalAddress with IPv6 parameter ?
 		result = (addr->GetVersion() == m_address.GetVersion());
 	}
-	PTRACE(0, "JW IsReachable " << *addr << " on " << m_address << " = " << result << " because GetLocalAddress=" << Toolkit::Instance()->GetRouteTable(false)->GetLocalAddress(*addr));
+>GetRouteTable(false)->GetLocalAddress(*addr));
 	return result;
 }
 
