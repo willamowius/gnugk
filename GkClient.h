@@ -3,7 +3,7 @@
 // GkClient.h
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2002-2010, Jan Willamowius
+// Copyright (c) 2002-2011, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.

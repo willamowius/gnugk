@@ -4,7 +4,7 @@
  * RADIUS protocol accounting module for GNU Gatekeeper. 
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2005-2010, Jan Willamowius
+ * Copyright (c) 2005-2011, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
