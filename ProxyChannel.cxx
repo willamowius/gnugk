@@ -7360,10 +7360,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 		return false;
 
 #ifdef HAS_H46018
-	lc->SetUsesH46019(IsTraversalClient() || IsTraversalClient());
-	if (!IsTraversalClient() && !IsTraversalClient()) {
-		PTRACE(0, "JW WARNING: flcn=" << flcn << " is neither client nor server");
-	}
+	lc->SetUsesH46019(IsTraversalServer() || IsTraversalClient());
 #endif
 	lc->SetRTPSessionID((WORD)h225Params->m_sessionID);
 
