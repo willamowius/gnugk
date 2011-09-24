@@ -6121,7 +6121,11 @@ void H46019KeepAlive::SendKeepAlive(GkTimer*)
 		rtpKeepAlive.ssrc = 0;
 		//rtpKeepAlive.padding = 0;
 		PTRACE(0, "JW Send RTP keepalive on socket " << ossocket << " size=" << sizeof(rtpKeepAlive));
+#ifdef _WIN32
+		size_t sent = ::sendto(ossocket, (const char *)&rtpKeepAlive, sizeof(rtpKeepAlive), 0, (struct sockaddr *)&dest, sizeof(dest));
+#else
 		size_t sent = ::sendto(ossocket, &rtpKeepAlive, sizeof(rtpKeepAlive), 0, (struct sockaddr *)&dest, sizeof(dest));
+#endif
 		if (sent != sizeof(rtpKeepAlive)) {
 			PTRACE(1, "Error sending RTP keepAlive");
 		}
@@ -6137,7 +6141,11 @@ void H46019KeepAlive::SendKeepAlive(GkTimer*)
 		rtcpKeepAlive.packet_count = 0;
 		rtcpKeepAlive.byte_count = 0;
 		PTRACE(0, "JW Send RTCP keepalive on socket " << ossocket << " size=" << sizeof(rtcpKeepAlive));
+#ifdef _WIN32
+		size_t sent = ::sendto(ossocket, (const char *)&rtcpKeepAlive, sizeof(rtcpKeepAlive), 0, (struct sockaddr *)&dest, sizeof(dest));
+#else
 		size_t sent = ::sendto(ossocket, &rtcpKeepAlive, sizeof(rtcpKeepAlive), 0, (struct sockaddr *)&dest, sizeof(dest));
+#endif
 		if (sent != sizeof(rtcpKeepAlive)) {
 			PTRACE(1, "Error sending RTCP keepAlive");
 		}
@@ -6253,7 +6261,7 @@ void H46019Handler::AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & 
 
 	PStringArray parts = SplitIPAndPort(AsString(keepAliveRTCPAddr), 0);
 	PIPSocket::Address addr(parts[0]);
-	WORD port = parts[1].AsUnsigned();
+	WORD port = (WORD)parts[1].AsUnsigned();
 	PTRACE(0, "JW AddRTCPKeepAlive 2 dest=" << AsString(addr, port));
 	memset(&ka.dest, 0, sizeof(ka.dest));
 	if (addr.GetVersion() == 6) {
