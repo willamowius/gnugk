@@ -361,7 +361,7 @@ public:
 	void SetRTPSessionID(WORD id) { m_sessionID = id; }
 #ifdef HAS_H46018
 	void SetUsesH46019fc(bool fc) { m_h46019fc = fc; }
-	void SetUsesH46019(bool val) { m_useH46019 = val; }
+	void SetUsesH46019() { m_useH46019 = true; }
 	bool UsesH46019() const { return m_useH46019; }
 	void SetH46019UniDirectional(bool val) { m_h46019uni = val; }
 #endif
@@ -477,7 +477,7 @@ public:
 
 	bool IsOpen() const;
 	void SetUsesH46019fc(bool);
-	void SetUsesH46019(bool);
+	void SetUsesH46019();
 	void SetH46019UniDirectional(bool uni);
 	void SetRTPSessionID(WORD id);
 
@@ -592,7 +592,7 @@ public:
 	void SetHandler(ProxyHandler *);
 	LogicalChannel *FindLogicalChannel(WORD);
 	RTPLogicalChannel *FindRTPLogicalChannelBySessionID(WORD);
-	void SetUsesH46019(bool use) { m_useH46019 = use; }
+	void SetUsesH46019() { m_useH46019 = true; }
 	bool UsesH46019() const { return m_useH46019; }
 	void SetTraversalType(H46019TraversalType type) { m_traversalType = type; PTRACE(0, "JW PROXY SetTraversalType=" << type << " this=" << this); }
 	bool IsTraversalServer() const { return m_traversalType == TraversalServer; }
@@ -947,13 +947,13 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 		H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), socket->localAddr, calling, socket->masqAddr);
 #ifdef HAS_H46018
 		if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018()) {
-			proxyhandler->SetUsesH46019(true);
+			proxyhandler->SetUsesH46019();
 			proxyhandler->SetTraversalType(m_call->GetCallingParty()->GetTraversalRole());
 			PTRACE(0, "JW SetTraversalType=" << m_call->GetCallingParty()->GetTraversalRole() << " for " << proxyhandler);
 		}
 		if (RasServer::Instance()->IsCallFromTraversalZone(peerAddr)) {
 			// if we get a Setup from a traversal zone, it must me from a traversal client and we won't have an EPRec for it
-			proxyhandler->SetUsesH46019(true);
+			proxyhandler->SetUsesH46019();
 			proxyhandler->SetTraversalType(TraversalClient);
 			PTRACE(0, "JW fromTravZone SetTraversalType=" << TraversalClient << " for " << proxyhandler);
 		}
@@ -963,7 +963,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 		m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(),localAddr, called, masqAddr, proxyhandler);
 #ifdef HAS_H46018
 		if (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018()) {
-			((H245ProxyHandler*)m_h245handler)->SetUsesH46019(true);
+			((H245ProxyHandler*)m_h245handler)->SetUsesH46019();
 			((H245ProxyHandler*)m_h245handler)->SetTraversalType(m_call->GetCalledParty()->GetTraversalRole());
 			PTRACE(0, "JW SetTraversalType=" << m_call->GetCalledParty()->GetTraversalRole() << " for " << ((H245ProxyHandler*)m_h245handler));
 		}
@@ -4445,13 +4445,13 @@ void CallSignalSocket::OnFacility(
 					if (m_call->GetCallingParty() && !m_call->GetCallingParty()->UsesH46018()) {
 							PTRACE (1, "Error traversal call from non-H.460.18 endpoint");
 					}
-					proxyhandler->SetUsesH46019(true);
+					proxyhandler->SetUsesH46019();
 					proxyhandler->SetTraversalType(TraversalServer);
 					PTRACE(0, "JW SetTraversalType=" << TraversalServer << " for " << proxyhandler);
 					callingSocket->m_h245handler = proxyhandler;
 					m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(), localAddr, called, masqAddr, proxyhandler);
 					proxyhandler->SetHandler(GetHandler());
-					((H245ProxyHandler*)m_h245handler)->SetUsesH46019(true);
+					((H245ProxyHandler*)m_h245handler)->SetUsesH46019();
 					if (m_call->GetCalledParty()) {
 						((H245ProxyHandler*)m_h245handler)->SetTraversalType(m_call->GetCalledParty()->GetTraversalRole());   // <--- ? Check if right should be Called Party? - SH
 						PTRACE(0, "JW ??? SetTraversalType=" << m_call->GetCalledParty()->GetTraversalRole() << " for " << ((H245ProxyHandler*)m_h245handler));
@@ -7028,13 +7028,12 @@ void RTPLogicalChannel::SetUsesH46019fc(bool fc)
 		rtcp->SetUsesH46019fc(fc);
 }
 
-void RTPLogicalChannel::SetUsesH46019(bool val)
+void RTPLogicalChannel::SetUsesH46019()
 {
-PTRACE(0, "JW RTP SetUsesH46019=" << val << " this=" << this);
 	if (rtp)
-		rtp->SetUsesH46019(val);
+		rtp->SetUsesH46019();
 	if (rtcp)
-		rtcp->SetUsesH46019(val);
+		rtcp->SetUsesH46019();
 }
 
 void RTPLogicalChannel::SetH46019UniDirectional(bool uni)
@@ -7388,7 +7387,8 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 		return false;
 
 #ifdef HAS_H46018
-	lc->SetUsesH46019(IsTraversalServer() || IsTraversalClient());
+	if(IsTraversalServer() || IsTraversalClient())
+		lc->SetUsesH46019();
 #endif
 	lc->SetRTPSessionID((WORD)h225Params->m_sessionID);
 
