@@ -406,8 +406,8 @@ public:
 
 	unsigned flcn;
 	KeepALiveType type;
-#ifdef hasIPv6
-	sockaddr_in6 dest
+#ifdef hasIPV6
+	sockaddr_in6 dest;
 #else
 	sockaddr_in dest;
 #endif
