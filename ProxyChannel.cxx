@@ -594,7 +594,7 @@ public:
 	RTPLogicalChannel *FindRTPLogicalChannelBySessionID(WORD);
 	void SetUsesH46019(bool use) { m_useH46019 = use; }
 	bool UsesH46019() const { return m_useH46019; }
-	void SetTraversalType(H46019TraversalType type) { m_traversalType = type; }
+	void SetTraversalType(H46019TraversalType type) { m_traversalType = type; PTRACE(0, "JW PROXY SetTraversalType=" << type << " this=" << this); }
 	bool IsTraversalServer() const { return m_traversalType == TraversalServer; }
 	bool IsTraversalClient() const { return m_traversalType == TraversalClient; }
 	void SetUsesH46019fc(bool use) { m_useH46019fc = use; }
@@ -723,6 +723,7 @@ PBoolean TCPProxySocket::Accept(PSocket & socket)
 		Address raddr;
 		WORD rport = 0;
 		GetPeerAddress(raddr, rport);
+		UnmapIPv4Address(raddr);
 		SetName(AsString(raddr, rport));
 	}
 	return result;
@@ -884,8 +885,11 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 	m_crv = (socket->m_crv & 0x7fffu);
 	m_h245Tunneling = socket->m_h245Tunneling;
 	socket->GetPeerAddress(peerAddr, peerPort);
+	UnmapIPv4Address(peerAddr);
 	localAddr = RasServer::Instance()->GetLocalAddress(peerAddr);
+	UnmapIPv4Address(localAddr);
 	masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
+	UnmapIPv4Address(masqAddr);
 
 	SetHandler(socket->GetHandler());
 	SetName(AsString(socket->peerAddr, GetPort()));
@@ -1016,6 +1020,7 @@ PBoolean CallSignalSocket::Connect(const Address & addr)
 #endif
 {
 	Address local = RasServer::Instance()->GetLocalAddress(addr);
+	UnmapIPv4Address(local);
 	int numPorts = min(Q931PortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS);
 	for (int i = 0; i < numPorts; ++i) {
 		WORD pt = Q931PortRange.GetPort();
@@ -1100,7 +1105,9 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	PIPSocket::Address _localAddr, _peerAddr;
 	WORD _localPort = 0, _peerPort = 0;
 	GetLocalAddress(_localAddr, _localPort);
+	UnmapIPv4Address(_localAddr);
 	GetPeerAddress(_peerAddr, _peerPort);
+	UnmapIPv4Address(_peerAddr);
 
 	PTRACE(3, Type() << "\tReceived: " << q931pdu->GetMessageTypeName()
 		<< " CRV=" << q931pdu->GetCallReference() << " from " << GetName()
@@ -3153,7 +3160,9 @@ PTRACE(0, "JW about to delete savedPtr=" << savedPtr);
 	else {
 		// can't connect the 2 sockets now, remember the calling socket until the called has pinholed throuth the NAT
 		localAddr = RasServer::Instance()->GetLocalAddress(peerAddr);
+		UnmapIPv4Address(localAddr);
 		masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
+		UnmapIPv4Address(peerAddr);
 		m_call->SetCallSignalSocketCalling(this);
 		SetConnected(true);	// avoid deletion
 
@@ -3277,7 +3286,9 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE &setupBody)
 		PTRACE(5, "Using BindHint=" << localAddr);
 	} else {
 		localAddr = RasServer::Instance()->GetLocalAddress(peerAddr);
+		UnmapIPv4Address(localAddr);
 		masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
+		UnmapIPv4Address(masqAddr);
 	}
 	// only rewrite sourceCallSignalAddress if we are proxying,
 	// otherwise leave the receiving endpoint the option to deal with NATed caller itself
@@ -3407,7 +3418,9 @@ bool CallSignalSocket::CreateRemote(const H225_TransportAddress & addr)
 	}
 
 	localAddr = RasServer::Instance()->GetLocalAddress(peerAddr);
+	UnmapIPv4Address(localAddr);
     masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
+    UnmapIPv4Address(masqAddr);
 
 	remote = new CallSignalSocket(this, peerPort);
 
@@ -4409,8 +4422,11 @@ void CallSignalSocket::OnFacility(
 					m_callerSocket = false;
 					remote = callingSocket;
 					remote->GetPeerAddress(peerAddr, peerPort);
+					UnmapIPv4Address(peerAddr);
 					localAddr = RasServer::Instance()->GetLocalAddress(peerAddr);
+					UnmapIPv4Address(localAddr);
 					masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
+					UnmapIPv4Address(masqAddr);
 					callingSocket->remote = this;
 					callingSocket->SetConnected(true);
 					SetConnected(true);
@@ -5066,7 +5082,9 @@ ProxySocket::Result CallSignalSocket::RetrySetup()
 	PIPSocket::Address _localAddr, _peerAddr;
 	WORD _localPort = 0, _peerPort = 0;
 	GetLocalAddress(_localAddr, _localPort);
+	UnmapIPv4Address(_localAddr);
 	GetPeerAddress(_peerAddr, _peerPort);
+	UnmapIPv4Address(_peerAddr);
 
 	PTRACE(3, Type() << "\tRetrying " << q931pdu->GetMessageTypeName()
 		<< " CRV=" << q931pdu->GetCallReference() << " from " << GetName()
@@ -5570,6 +5588,7 @@ H245Socket::H245Socket(CallSignalSocket *sig)
 			PIPSocket::Address localAddr;
 			WORD port;
 			listener->GetLocalAddress(localAddr, port);
+			UnmapIPv4Address(localAddr);
 			PTRACE(0, "JW listen OK -> local addr=" << localAddr << " port=" << port);
 			break;
 		}
@@ -5789,6 +5808,7 @@ PBoolean H245Socket::Accept(PSocket & socket)
 		Address addr;
 		WORD p;
 		GetLocalAddress(addr, p);
+		UnmapIPv4Address(addr);
 		PTRACE(3, "H245\tConnected from " << GetName() << " on " << AsString(addr, p));
 	} else if (peerH245Addr) {
 		result = H245Socket::ConnectRemote();
@@ -5811,8 +5831,10 @@ bool H245Socket::ConnectRemote()
 		return false;
 	}
 	SetPort(peerPort);
-	if (sigSocket != NULL)
+	if (sigSocket != NULL) {
 		sigSocket->GetLocalAddress(localAddr);
+		UnmapIPv4Address(localAddr);
+	}
 	m_signalingSocketMutex.Signal();
 
 	int numPorts = min(H245PortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS);
@@ -6038,9 +6060,11 @@ void MultiplexRTPListener::ReceiveData()
 	Address fromIP;
 	WORD fromPort;
 	GetLastReceiveAddress(fromIP, fromPort);
+	UnmapIPv4Address(fromIP);
 	Address localAddr;
 	WORD localPort = 0;
 	GetLocalAddress(localAddr, localPort);
+	UnmapIPv4Address(localAddr);
 	buflen = (WORD)GetLastReadCount();
 	PInt32 multiplexID = 0;
 	if (buflen >= 4)
@@ -6382,6 +6406,7 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 		Address laddr;
 		WORD lport = 0;
 		GetLocalAddress(laddr, lport);
+		UnmapIPv4Address(laddr);
 		SetName(AsString(srcIP, srcPort) + "<=>" + AsString(laddr, lport) + "<=>" + AsString(fDestIP, fDestPort));
 	} else {
 		SetName("(To be autodetected)");
@@ -6452,6 +6477,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	Address fromIP;
 	WORD fromPort;
 	GetLastReceiveAddress(fromIP, fromPort);
+	UnmapIPv4Address(fromIP);
 	H323TransportAddress fromAddr(fromIP, fromPort);	// for easier comparison
 	buflen = (WORD)GetLastReadCount();
 	unsigned int version = 0;	// RTP version
@@ -6471,6 +6497,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	Address localaddr;
 	WORD localport = 0;
 	GetLocalAddress(localaddr, localport);
+	UnmapIPv4Address(localaddr);
 	unsigned int seq = 0;
 	unsigned int timestamp = 0;
 	if (buflen >= 4)
@@ -6578,6 +6605,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		Address laddr;
 		WORD lport = 0;
 		GetLocalAddress(laddr, lport);
+		UnmapIPv4Address(laddr);
 		SetName(AsString(fSrcIP, fSrcPort) + "=>" + AsString(laddr, lport));
 	}
 
@@ -7002,7 +7030,7 @@ void RTPLogicalChannel::SetUsesH46019fc(bool fc)
 
 void RTPLogicalChannel::SetUsesH46019(bool val)
 {
-PTRACE(0, "JW RTP SetUsesH46019=" << val);
+PTRACE(0, "JW RTP SetUsesH46019=" << val << " this=" << this);
 	if (rtp)
 		rtp->SetUsesH46019(val);
 	if (rtcp)

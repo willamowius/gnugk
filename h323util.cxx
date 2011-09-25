@@ -14,6 +14,7 @@
 #include <ptlib.h>
 #include <h323pdu.h>
 #include "gk_const.h"
+#include "config.h"
 #include "h323util.h"
 
 
@@ -427,6 +428,17 @@ bool IsIPv6Address(PString addr)
 	if (result)
 		freeaddrinfo(result);
 	return isValid;
+}
+
+// convert an IPv4-mapped-IPv6 address into an IPv4 address, otherwise leave unchanged
+void UnmapIPv4Address(PIPSocket::Address & addr)
+{
+#ifdef hasIPV6
+	if ((addr.GetVersion() == 6) && addr.IsV4Mapped()) {
+		PIPSocket::Address newAddr(addr[12], addr[13], addr[14], addr[15]);
+		addr = newAddr;
+	}
+#endif
 }
 
 bool IsLoopback(const PIPSocket::Address & addr)

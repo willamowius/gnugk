@@ -88,6 +88,9 @@ bool IsIPv4Address(const PString & addr);
 
 bool IsIPv6Address(PString addr);
 
+// convert an IPv4-mapped-IPv6 address into an IPv4 address, otherwise leave unchanged
+void UnmapIPv4Address(PIPSocket::Address & addr);
+
 bool IsLoopback(const PIPSocket::Address &);
 
 /** Find an alias which tag is of type specified by #primaryTags#.

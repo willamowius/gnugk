@@ -170,6 +170,7 @@ bool GatekeeperMessage::Read(RasListener *socket)
 		return false;
 	}
 	socket->GetLastReceiveAddress(m_peerAddr, m_peerPort);
+	UnmapIPv4Address(m_peerAddr);
 	PTRACE(2, "RAS\tRead from " << AsString(m_peerAddr, m_peerPort));
 	m_rasPDU = PPER_Stream(buffer, socket->GetLastReadCount());
 	bool result = m_recvRAS.Decode(m_rasPDU);
@@ -513,6 +514,7 @@ bool GkInterface::CreateListeners(RasServer *RasSrv)
 bool GkInterface::IsReachable(const Address *addr) const
 {
 	// return Toolkit::Instance()->GetRouteTable(false)->GetLocalAddress(*addr) == m_address;
+	// TODO: do we need  to call UnmapIPv4Address() here ?
 	bool result = false;
 	if (addr->GetVersion() == 4) {
 		result = (Toolkit::Instance()->GetRouteTable(false)->GetLocalAddress(*addr) == m_address);

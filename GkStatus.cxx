@@ -639,7 +639,9 @@ PBoolean TelnetSocket::Accept(PSocket & socket)
 	Address raddr, laddr;
 	WORD rport = 0, lport = 0;
 	GetPeerAddress(raddr, rport);
+	UnmapIPv4Address(raddr);
 	GetLocalAddress(laddr, lport);
+	UnmapIPv4Address(laddr);
 	SetName(AsString(raddr, rport) + "=>" + AsString(laddr, lport));
 	SetReadTimeout(0);
 #else
@@ -1352,6 +1354,7 @@ bool StatusClient::CheckAuthRule(
 {
 	PIPSocket::Address peerAddress;
 	GetPeerAddress(peerAddress);
+	UnmapIPv4Address(peerAddress);
 	const PString peer = peerAddress.AsString();
 
 	bool result = false;

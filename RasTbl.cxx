@@ -2362,7 +2362,8 @@ void CallRec::SetSocket(
 		if( !m_srcSignalAddress.IsValid() ) {
 			PIPSocket::Address addr(0);
 			WORD port = 0;
-			calling->GetPeerAddress(addr,port);
+			calling->GetPeerAddress(addr, port);
+			UnmapIPv4Address(addr);
 			m_srcSignalAddress = SocketToH225TransportAddr(addr,port);
 		}
 	}
@@ -2380,6 +2381,7 @@ void CallRec::SetCallSignalSocketCalling(
 			PIPSocket::Address addr(0);
 			WORD port = 0;
 			m_callingSocket->GetPeerAddress(addr, port);
+			UnmapIPv4Address(addr);
 			m_srcSignalAddress = SocketToH225TransportAddr(addr, port);
 		}
 	}
