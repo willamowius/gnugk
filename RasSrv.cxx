@@ -814,9 +814,14 @@ bool RasServer::AcceptUnregisteredCalls(const PIPSocket::Address & addr) const
 	return Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "AcceptNeighborsCalls", "1")) ? neighbors->CheckIP(addr) : false;
 }
 
-bool RasServer::IsCallFromTraversalZone(const PIPSocket::Address & addr) const
+bool RasServer::IsCallFromTraversalClient(const PIPSocket::Address & addr) const
 {
-	return neighbors->IsTraversalZone(addr);
+	return neighbors->IsTraversalClient(addr);
+}
+
+bool RasServer::IsCallFromTraversalServer(const PIPSocket::Address & addr) const
+{
+	return neighbors->IsTraversalServer(addr);
 }
 
 bool RasServer::RegisterHandler(RasHandler *handler)
@@ -3003,17 +3008,20 @@ bool AdmissionRequestPDU::Process()
 
 		pCallRec->SetBindHint(arq.GetSourceIP());
 		pCallRec->SetCallerID(arq.GetCallerID());
-		if (CalledEP)
+		if (CalledEP) {
 			pCallRec->SetCalled(CalledEP);
-		else {
-			if (answer)
+		} else {
+			if (answer) {
 				pCallRec->SetCalled(RequestingEP);
+			}
 			pCallRec->SetDestSignalAddr(CalledAddress);
 		}
-		if (!answer)
+		if (!answer) {
 			pCallRec->SetCalling(RequestingEP);
-		if (toParent)
+		}
+		if (toParent) {
 			pCallRec->SetToParent(true);
+		}
 #ifdef HAS_H46023
 		if (natoffloadsupport == CallRec::e_natNoassist) { // If no assistance then No NAT type
 			PTRACE(4,"RAS\tNAT Type reset to none"); 

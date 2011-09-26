@@ -361,6 +361,7 @@ public:
 	void SetRTPSessionID(WORD id) { m_sessionID = id; }
 #ifdef HAS_H46018
 	void SetUsesH46019fc(bool fc) { m_h46019fc = fc; }
+	// same socket is used for all directions; set if at least one side uses H.460.19
 	void SetUsesH46019() { m_useH46019 = true; }
 	bool UsesH46019() const { return m_useH46019; }
 	void SetH46019UniDirectional(bool val) { m_h46019uni = val; }
@@ -951,7 +952,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 			proxyhandler->SetTraversalType(m_call->GetCallingParty()->GetTraversalRole());
 			PTRACE(0, "JW SetTraversalType=" << m_call->GetCallingParty()->GetTraversalRole() << " for " << proxyhandler);
 		}
-		if (RasServer::Instance()->IsCallFromTraversalZone(peerAddr)) {
+		if (RasServer::Instance()->IsCallFromTraversalClient(peerAddr)) {
 			// if we get a Setup from a traversal zone, it must me from a traversal client and we won't have an EPRec for it
 			proxyhandler->SetUsesH46019();
 			proxyhandler->SetTraversalType(TraversalClient);
@@ -2205,9 +2206,8 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "TranslateSorensonSourceInfo", "0"))) {
-
        // Viable VPAD (Viable firmware, SBN Tech device), remove the CallingPartyNumber information 
-       // (its under the sorenson switch even though not sorenson can be moved later to own switch - SH)
+       // (its under the sorenson switch, even though not sorenson, can be moved later to own switch - SH)
        if (setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_vendor)
             && setupBody.m_sourceInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)
             && setupBody.m_sourceInfo.m_vendor.m_productId.AsString().Left(11) == "viable vpad") {
@@ -2799,12 +2799,14 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		// if I'm behind NAT and the call is from parent, always use H.245 routed,
 		// also make sure all calls from endpoints with H.460.18 are H.245 routed
 		bool h245Routed = rassrv->IsH245Routed() || (useParent && gkClient->IsNATed());
-		bool callFromTraversalZone = false;
+		bool callFromTraversalClient = false;
+		bool callFromTraversalServer = false;
 #ifdef HAS_H46018
-		callFromTraversalZone = rassrv->IsCallFromTraversalZone(_peerAddr);
+		callFromTraversalClient = rassrv->IsCallFromTraversalClient(_peerAddr);
+		callFromTraversalServer = rassrv->IsCallFromTraversalServer(_peerAddr);
 		if ((m_call && m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018())
 			|| (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018())
-			|| (m_call && m_call->IsH46018ReverseSetup()) || callFromTraversalZone) {
+			|| (m_call && m_call->IsH46018ReverseSetup()) || callFromTraversalClient) {
 			h245Routed = true;
 		}
 #endif
@@ -2821,8 +2823,8 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		call->SetCallerID(request.GetCallerID());
 
 #ifdef HAS_H46018
-		if (callFromTraversalZone)
-			call->SetCallFromTraversalZone(true);
+		if (callFromTraversalClient)
+			call->SetCallFromTraversalClient();
 		// special case for reverse H.460.18 Setup
 		if (m_call && m_call->IsH46018ReverseSetup()) {
 			call->SetH46018ReverseSetup(true);
@@ -2840,7 +2842,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		}
 #endif
 
-		if (!callFromTraversalZone) {
+		if (!callFromTraversalClient && !callFromTraversalServer) {
 			// if the peer address is a public address, but the advertised source address is a private address
 			// then there is a good chance the remote endpoint is behind a NAT.
 			PIPSocket::Address srcAddr;
@@ -3109,7 +3111,7 @@ PTRACE(0, "JW about to delete savedPtr=" << savedPtr);
 	// proxy if calling or called use H.460.18
 	if ((m_call->H46019Required() && ((m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018())
 		|| (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46018())))
-		|| m_call->IsH46018ReverseSetup() || m_call->IsCallFromTraversalZone()) {
+		|| m_call->IsH46018ReverseSetup() || m_call->IsCallFromTraversalClient()) {
 		m_call->SetProxyMode(CallRec::ProxyEnabled);
 		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled (H.460.18/.19)");
 	}
@@ -3183,10 +3185,13 @@ PTRACE(0, "JW about to delete savedPtr=" << savedPtr);
 		if (Toolkit::Instance()->IsH46018Enabled())
 		{
 			H460_FeatureStd feat = H460_FeatureStd(19);
-			// starting with H323Plus 1.21.0 we can create a feature by a numeric ID and this code can get simplified
-			H460_FeatureID * feat_id = new H460_FeatureID(2);	// mediaTraversalServer
-			feat.AddParameter(feat_id);
-			delete feat_id;
+			H460_FeatureID * feat_id = NULL;
+			if (m_call->GetCallingParty() && m_call->GetCalledParty()->IsTraversalClient()) {
+				// starting with H323Plus 1.21.0 we can create a feature by a numeric ID and this code can get simplified
+				feat_id = new H460_FeatureID(2);	// mediaTraversalServer
+				feat.AddParameter(feat_id);
+				delete feat_id;
+			}
 			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
 				feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
 				feat.AddParameter(feat_id);
@@ -3473,12 +3478,15 @@ void CallSignalSocket::OnCallProceeding(
 			cpBody.RemoveOptionalField(H225_CallProceeding_UUIE::e_featureSet);
 		}
 		if ((m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018())
-			|| m_call->IsCallFromTraversalZone() )
+			|| m_call->IsCallFromTraversalClient() )
 		{
 			H460_FeatureStd feat = H460_FeatureStd(19);
-			H460_FeatureID * feat_id = new H460_FeatureID(2);	// mediaTraversalServer
-			feat.AddParameter(feat_id);
-			delete feat_id;
+			H460_FeatureID * feat_id = NULL;
+			if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalClient()) {
+				feat_id = new H460_FeatureID(2);	// mediaTraversalServer
+				feat.AddParameter(feat_id);
+				delete feat_id;
+			}
 			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
 				feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
 				feat.AddParameter(feat_id);
@@ -3538,9 +3546,7 @@ void CallSignalSocket::OnCallProceeding(
 	}
 }
 
-void CallSignalSocket::OnConnect(
-	SignalingMsg *msg
-	)
+void CallSignalSocket::OnConnect(SignalingMsg *msg)
 {
 	ConnectMsg *connect = dynamic_cast<ConnectMsg*>(msg);
 	if (connect == NULL) {
@@ -3624,13 +3630,16 @@ void CallSignalSocket::OnConnect(
 			connectBody.RemoveOptionalField(H225_Connect_UUIE::e_featureSet);
 		}
 		if ((m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018())
-			|| m_call->IsCallFromTraversalZone() )
+			|| m_call->IsCallFromTraversalClient() )
 		{
 			// add H.460.19 indicator
 			H460_FeatureStd feat = H460_FeatureStd(19);
-			H460_FeatureID * feat_id = new H460_FeatureID(2);	// mediaTraversalServer
-			feat.AddParameter(feat_id);
-			delete feat_id;
+			H460_FeatureID * feat_id = NULL;
+			if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalClient()) {
+				feat_id = new H460_FeatureID(2);	// mediaTraversalServer
+				feat.AddParameter(feat_id);
+				delete feat_id;
+			}
 			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
 				feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
 				feat.AddParameter(feat_id);
@@ -3691,13 +3700,16 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 			alertingBody.RemoveOptionalField(H225_Alerting_UUIE::e_featureSet);
 		}
 		if ((m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46018())
-			|| m_call->IsCallFromTraversalZone() )
+			|| m_call->IsCallFromTraversalClient() )
 		{
 			// add H.460.19 indicator
 			H460_FeatureStd feat = H460_FeatureStd(19);
-			H460_FeatureID * feat_id = new H460_FeatureID(2);	// mediaTraversalServer
-			feat.AddParameter(feat_id);
-			delete feat_id;
+			H460_FeatureID * feat_id = NULL;
+			if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalClient()) {
+				feat_id = new H460_FeatureID(2);	// mediaTraversalServer
+				feat.AddParameter(feat_id);
+				delete feat_id;
+			}
 			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
 				feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
 				feat.AddParameter(feat_id);
@@ -4153,6 +4165,7 @@ bool CallSignalSocket::OnSCICall(H225_CallIdentifier callID, H225_TransportAddre
 {
 	CallRec* call = new CallRec(callID, sigAdr);
 	m_call = callptr(call);
+	m_call->SetCallFromTraversalClient();
 	if (CreateRemote(sigAdr)) {
 		GetHandler()->Insert(this, remote);
 		Q931 FacilityPDU;
@@ -4332,9 +4345,7 @@ void CallSignalSocket::TryNextRoute()
 	m_result = NoData;
 }
 
-void CallSignalSocket::OnFacility(
-	SignalingMsg *msg
-	)
+void CallSignalSocket::OnFacility(SignalingMsg *msg)
 {
 	FacilityMsg *facility = dynamic_cast<FacilityMsg*>(msg);
 	if (facility == NULL)
@@ -4443,7 +4454,9 @@ void CallSignalSocket::OnFacility(
 					H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), callingSocket->localAddr, calling, callingSocket->masqAddr);
 					proxyhandler->SetH46019Direction(m_call->GetH46019Direction());
 					if (m_call->GetCallingParty() && !m_call->GetCallingParty()->UsesH46018()) {
-							PTRACE (1, "Error traversal call from non-H.460.18 endpoint");
+							PTRACE (1, "Error traversal call from non-H.460.18 endpoint - setting now");
+							m_call->GetCallingParty()->SetUsesH46018(true);
+							m_call->GetCallingParty()->SetTraversalRole(TraversalServer);
 					}
 					proxyhandler->SetUsesH46019();
 					proxyhandler->SetTraversalType(TraversalServer);
@@ -4477,22 +4490,33 @@ void CallSignalSocket::OnFacility(
 					setup->Decode(rawSetup);
 					H225_Setup_UUIE & setupBody = setup->GetUUIEBody();
 
+					setupBody.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
+					// TODO: update destCallSignalAddress (was previously unknown for client, OOZ EPRec has possibly privare IP as destSigAddr), m100 needs it
+//					if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
+//						PIPSocket::Address destAddr;
+//						WORD destPort = 0;
+//						m_call->GetDestSignalAddr(destAddr, destPort);
+//						setupBody.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
+//						setupBody.m_destCallSignalAddress = SocketToH225TransportAddr(destAddr, destPort);
+//					}
+					setup->SetUUIEChanged();
+
 					if (HandleH245Address(setupBody))
-							setup->SetUUIEChanged();
+						setup->SetUUIEChanged();
 
 					if (HandleFastStart(setupBody, true))
-							setup->SetUUIEChanged();
+						setup->SetUUIEChanged();
 
 #if H225_PROTOCOL_VERSION >= 4
 				if (setupBody.HasOptionalField(H225_Setup_UUIE::e_parallelH245Control) && m_h245handler) {
 					bool suppress = false;	// ignore for now
 					if (OnTunneledH245(setupBody.m_parallelH245Control, suppress))
-							setup->SetUUIEChanged();
+						setup->SetUUIEChanged();
 				}
 #endif
 					// re-encode with changes made here
 					if (setup->IsChanged())
-							SetUUIE(*q931pdu,*uuie);
+						SetUUIE(*q931pdu,*uuie);
 
 					PrintQ931(4, "Send to ", this->GetName(), &setup->GetQ931(), setup->GetUUIE());
 
@@ -4521,9 +4545,12 @@ void CallSignalSocket::OnFacility(
 			{
 				// add H.460.19 indicator to Facility with reason forwardedElements
 				H460_FeatureStd feat = H460_FeatureStd(19);
-				H460_FeatureID * feat_id = new H460_FeatureID(2);	// mediaTraversalServer
-				feat.AddParameter(feat_id);
-				delete feat_id;
+				H460_FeatureID * feat_id = NULL;
+				if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalClient()) {
+					feat_id = new H460_FeatureID(2);	// mediaTraversalServer
+					feat.AddParameter(feat_id);
+					delete feat_id;
+				}
 				if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
 					feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
 					feat.AddParameter(feat_id);
@@ -4736,9 +4763,12 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 				uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
 				uuie.RemoveOptionalField(H225_Facility_UUIE::e_conferenceID);
 				H460_FeatureStd feat = H460_FeatureStd(19);
-				H460_FeatureID * feat_id = new H460_FeatureID(2);	// mediaTraversalServer
-				feat.AddParameter(feat_id);
-				delete feat_id;
+				H460_FeatureID * feat_id = NULL;
+				if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalClient()) {
+					feat_id = new H460_FeatureID(2);	// mediaTraversalServer
+					feat.AddParameter(feat_id);
+					delete feat_id;
+				}
 				if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
 					feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
 					feat.AddParameter(feat_id);
@@ -6311,6 +6341,7 @@ void H46019Handler::StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket)
 
 void H46019Handler::RemoveKeepAlives(unsigned flcn)
 {
+	PTRACE(0, "JW removing keepalives for flcn=" << flcn);
 	m_RTPkeepalives.erase(flcn);
 	m_RTCPkeepalives.erase(flcn);
 }
@@ -7342,6 +7373,7 @@ H245ProxyHandler::~H245ProxyHandler()
 	if (UsesH46019fc())
 		return;
 
+	// TODO JW: delete all keepalives for this call
 	DeleteObjectsInMap(logicalChannels);
 	DeleteObjectsInMap(fastStartLCs);
 }

@@ -1217,8 +1217,10 @@ public:
 #ifdef HAS_H46018
 	bool IsH46018ReverseSetup() const { return m_h46018ReverseSetup; }	
 	void SetH46018ReverseSetup(bool val) { m_h46018ReverseSetup = val; }
-	bool IsCallFromTraversalZone() const { return m_callfromTraversalZone; }	
-	void SetCallFromTraversalZone(bool val) { m_callfromTraversalZone = val; }
+	void SetCallFromTraversalClient() { m_callfromTraversalClient = true; }
+	bool IsCallFromTraversalClient() const { return m_callfromTraversalClient; }
+	void SetCallFromTraversalServer() { m_callfromTraversalServer = true; }
+	bool IsCallFromTraversalServer() const { return m_callfromTraversalServer; }
 	bool H46019Required() const;
 	void StoreSetup(SignalingMsg * msg);
 	PBYTEArray RetrieveSetup();
@@ -1430,7 +1432,8 @@ private:
 	PString m_bindHint;	// outgoing IP or empty
 	RerouteState m_rerouteState;	// is Pause&Reroute transfer in progress ?
 	bool m_h46018ReverseSetup;
-	bool m_callfromTraversalZone;
+	bool m_callfromTraversalClient;
+	bool m_callfromTraversalServer;
 	CallLeg m_rerouteDirection;
 	PString m_callerID;	// forced caller ID or empty
 

@@ -70,6 +70,7 @@ public:
 	bool IsTraversalUser(const PString * user) const { return m_H46018Server && (m_authUser == *user); }
 	bool IsTraversalZone(const PIPSocket::Address *ip) const { return (GetIP() == *ip) && (m_H46018Server || m_H46018Client); }
 	bool IsTraversalClient(const PIPSocket::Address *ip) const { return (GetIP() == *ip) && m_H46018Server; }	// it is from a client, if we are the server
+	bool IsTraversalServer(const PIPSocket::Address *ip) const { return (GetIP() == *ip) && m_H46018Client; }	// it is from a server, if we are the client
 	void SetApparentIP(const PIPSocket::Address & ip) { m_ip = ip; }
 	bool ForwardResponse() const { return m_forwardResponse; }
 	int ForwardLRQ() const { return m_forwardto; }
@@ -77,6 +78,7 @@ public:
 	PString GetId() const { return m_id; }
 	PString GetGkId() const { return m_gkid; }
 	PIPSocket::Address GetIP() const;
+	WORD GetPort() const;
 	H225_LocationRequest & BuildLRQ(H225_RasMessage &, WORD, const H225_ArrayOf_AliasAddress &);
 
 	// new virtual functions
@@ -151,6 +153,7 @@ public:
 	bool CheckIP(const PIPSocket::Address &) const;
 	bool IsTraversalZone(const PIPSocket::Address &) const;
 	bool IsTraversalClient(const PIPSocket::Address &) const;
+	bool IsTraversalServer(const PIPSocket::Address &) const;
 
 	// return the neighbor's ID from the list by signal address
 	PString GetNeighborIdBySigAdr(const H225_TransportAddress & sigAd);

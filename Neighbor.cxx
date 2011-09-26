@@ -224,6 +224,18 @@ PIPSocket::Address Neighbor::GetIP() const
 	return m_ip;
 }
 
+WORD Neighbor::GetPort() const
+{
+	if (m_dynamic) {
+		PIPSocket::ClearNameCache();
+		// Retrieve the ip address at this time
+		if (!GetTransportAddress(m_name, GK_DEF_UNICAST_RAS_PORT, m_ip, m_port)) {
+			PTRACE(1, "NB\tCan't get neighbor port for " << m_name);
+		}
+	}
+	return m_port;
+}
+
 H225_LocationRequest & Neighbor::BuildLRQ(H225_RasMessage & lrq_ras, WORD seqnum, const H225_ArrayOf_AliasAddress & dest)
 {
 	lrq_ras.SetTag(H225_RasMessage::e_locationRequest);
@@ -1081,6 +1093,11 @@ void LRQRequester::Process(RasMsg *ras)
 				m_neighbor_used = req.m_neighbor->GetId(); // record neighbor used
 				m_h46018_client = req.m_neighbor->IsH46018Client();
 				m_h46018_server = req.m_neighbor->IsH46018Server();
+				if (m_h46018_server) {
+					// if we are traversal server we must use the apparent RAS IP of the client
+					H225_LocationConfirm & lcf = (*ras)->m_recvRAS;
+					lcf.m_rasAddress = SocketToH225TransportAddr(req.m_neighbor->GetIP(), req.m_neighbor->GetPort());
+				}
 				if (m_result)
 					m_sync.Signal();
 			} else { // should be H225_RasMessage::e_locationReject
@@ -1210,6 +1227,11 @@ bool NeighborList::IsTraversalZone(const PIPSocket::Address & addr) const
 bool NeighborList::IsTraversalClient(const PIPSocket::Address & addr) const
 {
 	return find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsTraversalClient), &addr)) != m_neighbors.end();
+}
+
+bool NeighborList::IsTraversalServer(const PIPSocket::Address & addr) const
+{
+	return find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsTraversalServer), &addr)) != m_neighbors.end();
 }
 
 PString NeighborList::GetNeighborIdBySigAdr(const H225_TransportAddress & sigAd)

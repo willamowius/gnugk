@@ -85,7 +85,8 @@ public:
 	bool IsGKRouted() const { return GKRoutedSignaling; }
 	bool IsH245Routed() const { return GKRoutedH245; }
 	bool AcceptUnregisteredCalls(const PIPSocket::Address &) const;
-	bool IsCallFromTraversalZone(const PIPSocket::Address &) const;
+	bool IsCallFromTraversalClient(const PIPSocket::Address &) const;
+	bool IsCallFromTraversalServer(const PIPSocket::Address &) const;
 
 	// customized handler
 	bool RegisterHandler(RasHandler *);

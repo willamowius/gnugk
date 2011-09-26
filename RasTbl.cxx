@@ -2013,7 +2013,7 @@ CallRec::CallRec(
 	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
-	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalZone(false)
+	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalClient(false), m_callfromTraversalServer(false)
 #ifdef HAS_H235_MEDIA
     ,m_encyptDir(none)
 #endif
@@ -2068,7 +2068,7 @@ CallRec::CallRec(
 	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
-	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalZone(false)
+	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalClient(false), m_callfromTraversalServer(false)
 #ifdef HAS_H235_MEDIA
     ,m_encyptDir(none)
 #endif
@@ -2111,7 +2111,7 @@ CallRec::CallRec(H225_CallIdentifier callID, H225_TransportAddress sigAdr)
 	m_toParent(false), m_forwarded(false), m_proxyMode(ProxyEnabled),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
-	m_h46018ReverseSetup(true), m_callfromTraversalZone(true)
+	m_h46018ReverseSetup(true), m_callfromTraversalClient(true), m_callfromTraversalServer(false)
 #ifdef HAS_H235_MEDIA
     ,m_encyptDir(none)
 #endif
@@ -2149,7 +2149,7 @@ CallRec::CallRec(
 	m_failoverActive(oldCall->m_failoverActive),
 	m_singleFailoverCDR(oldCall->m_singleFailoverCDR), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(oldCall->m_proceedingSent),
 	m_clientAuthId(0), m_rerouteState(oldCall->m_rerouteState), m_h46018ReverseSetup(oldCall->m_h46018ReverseSetup),
-	m_callfromTraversalZone(oldCall->m_callfromTraversalZone)
+	m_callfromTraversalClient(oldCall->m_callfromTraversalClient),	m_callfromTraversalServer(oldCall->m_callfromTraversalServer)
 #ifdef HAS_H235_MEDIA
     ,m_encyptDir(none)
 #endif
