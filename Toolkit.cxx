@@ -2507,8 +2507,10 @@ void Toolkit::SetGKHome(const PStringArray & home)
 		}
 		// remove INADDR_ANY
 		for (size_t n = 0; n < m_GKHome.size(); ++n) {
-			if (m_GKHome[n] == INADDR_ANY
+			if ((m_GKHome[n] == INADDR_ANY)
+#ifdef hasIPV6
 				|| m_GKHome[n].IsLinkLocal()	// TODO: maybe keep listeninig on link local addrs ?
+#endif
 				) {
 				m_GKHome.erase(m_GKHome.begin() + n);
 				--n;	// re-test the new element on position n
