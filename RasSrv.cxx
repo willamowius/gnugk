@@ -1911,7 +1911,7 @@ bool RegistrationRequestPDU::Process()
 		}
 		// check if the RRQ was sent from the registered endpoint
 		if (ep && bShellSendReply) { // not forwarded RRQ
-			if (ep->IsNATed() || ep->UsesH46018()) {
+			if (ep->IsNATed() || ep->IsTraversalClient()) {
 				// for nated endpoint, only check rx_addr
 			    bReject = (ep->GetNATIP() != rx_addr);
 			    if (bReject) {
@@ -1968,8 +1968,8 @@ bool RegistrationRequestPDU::Process()
 					    ep->SetUsesH46023(false);
 					} else {
 						PTRACE(4, "Std23\tEndpoint reports itself as not behind a NAT/FW! " 
-										<< (ep->UsesH46018() ? "H.460.18 Disabled" : ""));
-						ep->SetUsesH46018(false);
+										<< (ep->IsTraversalClient() ? "H.460.18 Disabled" : ""));
+						ep->SetTraversalRole(None);
 						ep->SetNAT(false);
 					}
 				}
@@ -1994,7 +1994,7 @@ bool RegistrationRequestPDU::Process()
 #ifdef HAS_H46018
 				// H.460.18
 				if (Toolkit::Instance()->IsH46018Enabled()) {
-					if (ep->UsesH46018()) {
+					if (ep->IsTraversalClient()) {
 						H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
 						rcf.IncludeOptionalField(H225_RegistrationConfirm::e_featureSet);
 						H460_FeatureStd H46018 = H460_FeatureStd(18);
@@ -2251,7 +2251,7 @@ bool RegistrationRequestPDU::Process()
 #ifdef HAS_H46018
 	if (supportH46018 && !ep->IsH46018Disabled()) {	// check endpoint specific switch, too
 		PTRACE(3, "H46018\tEP on " << rx_addr << " supports H.460.18");
-		ep->SetUsesH46018(true);
+		ep->SetTraversalRole(TraversalClient);
 		ep->SetNATAddress(rx_addr);
 	}
 	if (supportH46018 && ep->IsH46018Disabled()) {
@@ -2268,7 +2268,7 @@ bool RegistrationRequestPDU::Process()
  
 #endif // HAS_H460P
 
-	if (nated || (ep->UsesH46018() && !validaddress))
+	if (nated || (ep->IsTraversalClient() && !validaddress))
 		ep->SetNATAddress(rx_addr);
 	else {
 		ep->SetNAT(false);
@@ -2286,7 +2286,7 @@ bool RegistrationRequestPDU::Process()
 		//
 		BuildRCF(ep);
 		H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
-		if (supportcallingNAT && !ep->UsesH46018()) {
+		if (supportcallingNAT && !ep->IsTraversalClient()) {
 			// tell the endpoint its translated address
 			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_nonStandardData);
 		    rcf.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
@@ -2307,7 +2307,7 @@ bool RegistrationRequestPDU::Process()
 #ifdef HAS_H46018
 		// H.460.18
 		if (Toolkit::Instance()->IsH46018Enabled()) {
-			if (ep->UsesH46018()) {
+			if (ep->IsTraversalClient()) {
 				H460_FeatureStd H46018 = H460_FeatureStd(18);
 				gd.SetSize(1);
 				gd[0] = H46018;
@@ -2906,7 +2906,7 @@ bool AdmissionRequestPDU::Process()
 	// enforce max bandwidth per call
 	if ((CallTbl->GetMaximumBandwidthPerCall() > 0) && (BWRequest > CallTbl->GetMaximumBandwidthPerCall()))
 		BWRequest = CallTbl->GetMaximumBandwidthPerCall();
- 
+
 	if (BWRequest > 0) {
 		// check if it is the first arrived ARQ
 		if (pExistingCallRec) {

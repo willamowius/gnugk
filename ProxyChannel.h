@@ -394,29 +394,6 @@ public:
 	unsigned keepAliveInterval;
 };
 
-enum KeepALiveType { RTP, RTCP };
-
-class H46019KeepAlive
-{
-public:
-	H46019KeepAlive();
-	~H46019KeepAlive();
-
-	void SendKeepAlive(GkTimer* timer);
-
-	unsigned flcn;
-	KeepALiveType type;
-#ifdef hasIPV6
-	sockaddr_in6 dest;
-#else
-	sockaddr_in dest;
-#endif
-	unsigned interval;
-	unsigned seq;
-	int ossocket;
-	GkTimerManager::GkTimerHandle timer;
-};
-
 // handles multiplexed RTP and keepAlives
 class H46019Handler : public Singleton<H46019Handler>, public SocketsReader {
 public:
@@ -424,12 +401,6 @@ public:
 	virtual ~H46019Handler();
 
 	virtual void OnReload() { /* TODO: update ports etc. */ }
-
-	virtual void AddRTPKeepAlive(unsigned flcn, const H323TransportAddress & keepAliveRTPAddr, unsigned keepAliveInterval);
-	virtual void StartRTPKeepAlive(unsigned flcn, int RTPOSSocket);
-	virtual void AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAliveRTCPAddr, unsigned keepAliveInterval);
-	virtual void StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket);
-	virtual void RemoveKeepAlives(unsigned flcn);
 
 	virtual void AddDestination(const H46019Destination & dest);
 	virtual void RemoveDestination(unsigned lc, unsigned session);
@@ -444,8 +415,6 @@ protected:
 	MultiplexRTPListener * m_multiplexRTPListener;
 	MultiplexRTPListener * m_multiplexRTCPListener;
 
-	map<unsigned, H46019KeepAlive> m_RTPkeepalives;
-	map<unsigned, H46019KeepAlive> m_RTCPkeepalives;
 	list<H46019Destination> m_destinations;
 };
 

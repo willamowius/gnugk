@@ -22,6 +22,7 @@
 #include "h225.h"
 #include "sigmsg.h"
 #include "config.h"
+#include "gktimer.h"
 #include "h323util.h"
 
 #ifdef HAS_H235_MEDIA
@@ -270,12 +271,10 @@ public:
 	PString GetAdditionalDestinationAlias() const { return m_additionalDestAlias; }
 
 	bool IsH46018Disabled() const { return m_h46018disabled; }
-	void SetUsesH46018(bool uses) { m_usesH46018 = uses; m_nat = uses; }
-	bool UsesH46018() const { return m_usesH46018; }
-	void SetTraversalRole(H46019TraversalType val) { m_traversalType = val; }
+	void SetTraversalRole(H46019TraversalType val) { m_traversalType = val; m_nat = (val == TraversalClient); }
 	H46019TraversalType GetTraversalRole() { return m_traversalType; }
 	bool IsTraversalServer() const { return m_traversalType == TraversalServer; }
-	bool IsTraversalClient() const { return UsesH46018() && m_traversalType == TraversalClient; }
+	bool IsTraversalClient() const { return m_traversalType == TraversalClient; }
 
 	// smart pointer for EndpointRec
 	typedef SmartPtr<EndpointRec> Ptr;
@@ -354,9 +353,8 @@ protected:
 	EPNatTypes m_epnattype;
 	bool m_usesH46023, m_H46024, m_H46024a, m_H46024b, m_natproxy, m_internal, m_remote;
 	bool m_h46018disabled;
-	bool m_usesH46018;
 	bool m_usesH460P;
-	H46019TraversalType m_traversalType;
+	H46019TraversalType m_traversalType;	// this is not what GnuGk acts like, but what this EPRec is a proxy for
 	
 	long m_bandwidth;	// bandwidth currently occupied by this endpoint
 	long m_maxBandwidth; // maximum bandwidth allowed for this endpoint
@@ -498,6 +496,7 @@ public:
 	~RegistrationTable();
 
 	endptr InsertRec(H225_RasMessage & rrq, PIPSocket::Address = GNUGK_INADDR_ANY);
+	endptr InsertRec(const H225_Setup_UUIE & setupBody, H225_TransportAddress addr);
 	void RemoveByEndptr(const endptr & eptr);
 
 	endptr FindByEndpointId(const H225_EndpointIdentifier & endpointId) const;
@@ -536,6 +535,7 @@ private:
 	endptr InternalInsertEP(H225_RasMessage &);
 	endptr InternalInsertOZEP(H225_RasMessage &, H225_LocationConfirm &);
 	endptr InternalInsertOZEP(H225_RasMessage &, H225_AdmissionConfirm &);
+	endptr InternalInsertOZEP(const H225_Setup_UUIE & setupBody, H225_TransportAddress addr);
 
 	void InternalPrint(USocket *, bool, std::list<EndpointRec *> *, PString &);
 	void InternalStatistics(const std::list<EndpointRec *> *, unsigned & s, unsigned & t, unsigned & g, unsigned & n) const;
@@ -578,6 +578,32 @@ private:
 
 
 template<class> class RasPDU;
+
+#ifdef HAS_H46018
+enum KeepALiveType { RTP, RTCP };
+
+class H46019KeepAlive
+{
+public:
+	H46019KeepAlive();
+	~H46019KeepAlive();
+
+	void SendKeepAlive(GkTimer* timer);
+	void StopKeepAlive();
+
+	unsigned flcn;
+	KeepALiveType type;
+#ifdef hasIPV6
+	sockaddr_in6 dest;
+#else
+	sockaddr_in dest;
+#endif
+	unsigned interval;
+	unsigned seq;
+	int ossocket;
+	GkTimerManager::GkTimerHandle timer;
+};
+#endif
 
 // record of one active call
 #ifdef HAS_H460
@@ -1217,14 +1243,17 @@ public:
 #ifdef HAS_H46018
 	bool IsH46018ReverseSetup() const { return m_h46018ReverseSetup; }	
 	void SetH46018ReverseSetup(bool val) { m_h46018ReverseSetup = val; }
-	void SetCallFromTraversalClient() { m_callfromTraversalClient = true; }
-	bool IsCallFromTraversalClient() const { return m_callfromTraversalClient; }
-	void SetCallFromTraversalServer() { m_callfromTraversalServer = true; }
-	bool IsCallFromTraversalServer() const { return m_callfromTraversalServer; }
 	bool H46019Required() const;
 	void StoreSetup(SignalingMsg * msg);
 	PBYTEArray RetrieveSetup();
 	int GetH46019Direction() const;
+
+	void AddRTPKeepAlive(unsigned flcn, const H323TransportAddress & keepAliveRTPAddr, unsigned keepAliveInterval);
+	void StartRTPKeepAlive(unsigned flcn, int RTPOSSocket);
+	void AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAliveRTCPAddr, unsigned keepAliveInterval);
+	void StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket);
+	void RemoveKeepAlives(unsigned flcn);
+	void RemoveKeepAllAlives();
 #endif
 
 #ifdef HAS_H235_MEDIA
@@ -1427,6 +1456,8 @@ private:
 #ifdef HAS_H46018
 	/// processed Setup data ready to be sent to the callee (for H.460.18)
 	PBYTEArray m_processedSetup;
+	map<unsigned, H46019KeepAlive> m_RTPkeepalives;
+	map<unsigned, H46019KeepAlive> m_RTCPkeepalives;
 #endif
 	PUInt64 m_clientAuthId;
 	PString m_bindHint;	// outgoing IP or empty
@@ -1615,7 +1646,7 @@ inline H225_EndpointIdentifier EndpointRec::GetEndpointIdentifier() const
   
 inline int EndpointRec::GetTimeToLive() const
 {
-	if (m_nat || UsesH46018()) {
+	if (m_nat || IsTraversalClient()) {
 		// force timeToLive to 5 - 30 sec, 19 sec if not set
 		return m_timeToLive == 0 ? 19 : max(5, min(30, m_timeToLive));
 	}

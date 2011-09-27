@@ -101,9 +101,9 @@ EndpointRec::EndpointRec(
 	m_capacity(-1), m_calledTypeOfNumber(-1), m_callingTypeOfNumber(-1),
 	m_calledPlanOfNumber(-1), m_callingPlanOfNumber(-1), m_proxy(0),
 	m_registrationPriority(0), m_registrationPreemption(false),
-    m_epnattype(NatUnknown),m_usesH46023(false), m_H46024(Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023PublicIP",0))),
-	m_H46024a(false),m_H46024b(false),m_natproxy(Toolkit::AsBool(GkConfig()->GetString(proxysection, "ProxyForNAT", "1"))),
-	m_internal(false),m_remote(false),m_h46018disabled(false),m_usesH46018(false),m_usesH460P(false), m_traversalType(None),
+    m_epnattype(NatUnknown), m_usesH46023(false), m_H46024(Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023PublicIP",0))),
+	m_H46024a(false), m_H46024b(false), m_natproxy(Toolkit::AsBool(GkConfig()->GetString(proxysection, "ProxyForNAT", "1"))),
+	m_internal(false), m_remote(false), m_h46018disabled(false), m_usesH460P(false), m_traversalType(None),
 	m_bandwidth(0), m_maxBandwidth(-1)
 
 {
@@ -277,7 +277,7 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 			NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind2nd(mem_fun(&Neighbors::Neighbor::IsFrom), &socketAddr));
 			if (iter != neighbors.end()) {
 				if ((*iter)->IsH46018Server()) {
-					m_usesH46018 = true;
+					m_traversalType = TraversalServer;
 				}
 			}
 		}
@@ -595,7 +595,7 @@ void EndpointRec::SetTimeToLive(int seconds)
 
 	if (m_timeToLive > 0 && !m_permanent) {
 		// To avoid bloated RRQ traffic, don't allow ttl < 60 for non-H.460.18 endpoints
-		if (seconds < 60 && !UsesH46018())
+		if (seconds < 60 && !IsTraversalClient())
 			seconds = 60;
 		m_timeToLive = (SoftPBX::TimeToLive > 0) ?
 			std::min(SoftPBX::TimeToLive, seconds) : 0;
@@ -806,7 +806,7 @@ PString EndpointRec::PrintOn(bool verbose) const
 			msg += " (permanent)";
 		PString natstring(IsNATed() ? m_natip.AsString() : PString::Empty());
 		msg += PString(PString::Printf, " C(%d/%d/%d) %s <%d>", m_activeCall, m_connectedCall, m_totalCall, (const unsigned char *)natstring, m_usedCount);
-		if (UsesH46018()) {
+		if (IsTraversalClient() || IsTraversalServer()) {
 			msg += " (H.460.18)";
 		}
 		msg += " bw:" + PString(m_bandwidth) + "/" + PString(m_maxBandwidth);
@@ -1389,6 +1389,14 @@ endptr RegistrationTable::InsertRec(H225_RasMessage & ras_msg, PIPSocket::Addres
 	return ep;
 }
 
+endptr RegistrationTable::InsertRec(const H225_Setup_UUIE & setupBody, H225_TransportAddress addr)
+{
+	// TODO: check if we have an EPRec for that addr already ? or always create a new one ?
+	endptr ep = InternalInsertOZEP(setupBody, addr);
+	RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctRegister, ep);
+	return ep;
+}
+
 endptr RegistrationTable::InternalInsertEP(H225_RasMessage & ras_msg)
 {
 	H225_RegistrationRequest & rrq = ras_msg;
@@ -1439,6 +1447,29 @@ endptr RegistrationTable::InternalInsertOZEP(H225_RasMessage & ras_msg, H225_Loc
 		ep = new OutOfZoneGWRec(ras_msg, epID);
 	else
 		ep = new OutOfZoneEPRec(ras_msg, epID);
+
+	WriteLock lock(listLock);
+	OutOfZoneList.push_front(ep);
+	return endptr(ep);
+}
+
+endptr RegistrationTable::InternalInsertOZEP(const H225_Setup_UUIE & setupBody, H225_TransportAddress addr)
+{
+	H225_RasMessage ras;
+	ras.SetTag(H225_RasMessage::e_registrationRequest);
+	H225_RegistrationRequest rrq = (H225_RegistrationRequest &)ras;	// fake RRQ to create the EPRec
+
+	H225_EndpointIdentifier epID;
+	epID = "oz_" + PString(PString::Unsigned, ozCnt++) + endpointIdSuffix;
+	rrq.m_endpointIdentifier = epID;
+	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
+		rrq.IncludeOptionalField(H225_RegistrationRequest::e_terminalAlias);
+		rrq.m_terminalAlias = setupBody.m_sourceAddress;
+	}
+	rrq.m_callSignalAddress.SetSize(1);
+	rrq.m_callSignalAddress[0] = addr;
+
+	EndpointRec * ep  = new OutOfZoneEPRec(ras, epID);
 
 	WriteLock lock(listLock);
 	OutOfZoneList.push_front(ep);
@@ -1986,6 +2017,85 @@ void RegistrationTable::CheckEndpoints()
 	RemovedList.erase(Iter, RemovedList.end());
 }
 
+
+H46019KeepAlive::H46019KeepAlive()
+{
+	seq = 1;
+	timer = GkTimerManager::INVALID_HANDLE;
+}
+
+H46019KeepAlive::~H46019KeepAlive()
+{
+	StopKeepAlive();
+}
+
+void H46019KeepAlive::StopKeepAlive()
+{
+	ossocket = 0;
+	if (timer != GkTimerManager::INVALID_HANDLE) {
+		Toolkit::Instance()->GetTimerManager()->UnregisterTimer(timer);
+		PTRACE(0, "JW KeepAlive stopped: " << timer);
+		timer = GkTimerManager::INVALID_HANDLE;
+	}
+}
+
+struct RTPKeepAliveFrame
+{
+	BYTE b1;
+	BYTE pt;
+	WORD seq;
+	PInt32 ts;
+	PInt32 ssrc;
+};
+
+struct RTCPKeepAliveFrame
+{
+	BYTE b1;
+	BYTE pt;
+	WORD len;
+	PInt32 ssrc;
+	PInt32 msw_ts;
+	PInt32 lsw_ts;
+	PInt32 rtp_ts;
+	PInt32 packet_count;
+	PInt32 byte_count;
+};
+
+void H46019KeepAlive::SendKeepAlive(GkTimer * t)
+{
+	if (type == RTP) {
+		RTPKeepAliveFrame rtpKeepAlive;
+		rtpKeepAlive.b1 = 0x80;
+		rtpKeepAlive.pt = 127;
+		rtpKeepAlive.seq = htons(seq++);
+		rtpKeepAlive.ts = 0;
+		rtpKeepAlive.ssrc = 0;
+		//rtpKeepAlive.padding = 0;
+		PTRACE(0, "JW Send RTP keepalive on socket " << ossocket << " size=" << sizeof(rtpKeepAlive));
+		size_t sent = ::sendto(ossocket, (const char *)&rtpKeepAlive, sizeof(rtpKeepAlive), 0, (struct sockaddr *)&dest, sizeof(dest));
+		if (sent != sizeof(rtpKeepAlive)) {
+			PTRACE(1, "JW Error sending RTP keepAlive " << timer << " t=" << t);
+		}
+	} else {
+		RTCPKeepAliveFrame rtcpKeepAlive;
+		rtcpKeepAlive.b1 = 0x80;
+		rtcpKeepAlive.pt = 200;	// SR
+		rtcpKeepAlive.len = htons(6);
+		rtcpKeepAlive.ssrc = 0;
+		rtcpKeepAlive.msw_ts = 0;
+		rtcpKeepAlive.lsw_ts = 0;
+		rtcpKeepAlive.rtp_ts = 0;
+		rtcpKeepAlive.packet_count = 0;
+		rtcpKeepAlive.byte_count = 0;
+		PTRACE(0, "JW Send RTCP keepalive on socket " << ossocket << " size=" << sizeof(rtcpKeepAlive));
+		size_t sent = ::sendto(ossocket, (const char *)&rtcpKeepAlive, sizeof(rtcpKeepAlive), 0, (struct sockaddr *)&dest, sizeof(dest));
+		if (sent != sizeof(rtcpKeepAlive)) {
+			PTRACE(1, "JW Error sending RTCP keepAlive " << timer << " t=" << t);
+		}
+	}
+}
+	
+
 CallRec::CallRec(
 	/// ARQ with call information
 	const RasPDU<H225_AdmissionRequest>& arqPdu,
@@ -2149,7 +2259,7 @@ CallRec::CallRec(
 	m_failoverActive(oldCall->m_failoverActive),
 	m_singleFailoverCDR(oldCall->m_singleFailoverCDR), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(oldCall->m_proceedingSent),
 	m_clientAuthId(0), m_rerouteState(oldCall->m_rerouteState), m_h46018ReverseSetup(oldCall->m_h46018ReverseSetup),
-	m_callfromTraversalClient(oldCall->m_callfromTraversalClient),	m_callfromTraversalServer(oldCall->m_callfromTraversalServer)
+	m_callfromTraversalClient(oldCall->m_callfromTraversalClient), m_callfromTraversalServer(oldCall->m_callfromTraversalServer)
 #ifdef HAS_H235_MEDIA
     ,m_encyptDir(none)
 #endif
@@ -2174,6 +2284,7 @@ CallRec::CallRec(
 
 CallRec::~CallRec()
 {
+	RemoveKeepAllAlives();
 	PTRACE(3, "Gk\tDelete Call No. " << m_CallNumber);
 }
  
@@ -2279,7 +2390,7 @@ void CallRec::SetCalling(const endptr & NewCalling)
 {
 	InternalSetEP(m_Calling, NewCalling);
 	if (NewCalling) {
-		if (NewCalling->IsNATed() || NewCalling->UsesH46018()) {
+		if (NewCalling->IsNATed() || NewCalling->IsTraversalClient()) {
 			m_nattype |= callingParty;
 			m_h245Routed = true;
 		}
@@ -2292,7 +2403,7 @@ void CallRec::SetCalled(const endptr & NewCalled)
 {
 	InternalSetEP(m_Called, NewCalled);
 	if (NewCalled) {
-		if ((NewCalled->IsNATed() || NewCalled->UsesH46018()) && !NewCalled->IsTraversalServer()) {
+		if (NewCalled->IsNATed() || NewCalled->IsTraversalClient()) {
 			m_nattype |= calledParty;
 			m_h245Routed = true;
 		}
@@ -3497,19 +3608,111 @@ int CallRec::GetH46019Direction() const
 {
 	if (!H46019Required())
 		return 0;
- 
+
 	int dir = 0;
-	if (m_Calling && m_Calling->UsesH46018())
+	if (m_Calling && m_Calling->GetTraversalRole() != None)
 			dir += H46019_CALLER;
-	if (m_Called && m_Called->UsesH46018())
+	if (m_Called && m_Called->GetTraversalRole() != None)
 			dir += H46019_CALLED;
 	return dir;
+}
+
+void CallRec::AddRTPKeepAlive(unsigned flcn, const H323TransportAddress & keepAliveRTPAddr, unsigned keepAliveInterval)
+{
+	PTRACE(0, "JW AddRTPKeepAlive lc=" << flcn << " dest=" << keepAliveRTPAddr << " interval=" << keepAliveInterval);
+	H46019KeepAlive ka;
+	ka.type = RTP;
+	ka.flcn = flcn;
+
+	PIPSocket::Address addr;
+	WORD port;
+	keepAliveRTPAddr.GetIpAndPort(addr, port);
+	memset(&ka.dest, 0, sizeof(ka.dest));
+	if (addr.GetVersion() == 6) {
+		((struct sockaddr_in6*)&ka.dest)->sin6_family = AF_INET6;
+		((struct sockaddr_in6*)&ka.dest)->sin6_addr = addr;
+		((struct sockaddr_in6*)&ka.dest)->sin6_port = htons(port);
+	} else {
+		((struct sockaddr_in*)&ka.dest)->sin_family = AF_INET;
+		((struct sockaddr_in*)&ka.dest)->sin_addr = addr;
+		((struct sockaddr_in*)&ka.dest)->sin_port = htons(port);
+	}
+
+	ka.interval = keepAliveInterval;
+	m_RTPkeepalives[flcn] = ka;
+}
+
+void CallRec::StartRTPKeepAlive(unsigned flcn, int RTPOSSocket)
+{
+	map<unsigned, H46019KeepAlive>::iterator iter = m_RTPkeepalives.find(flcn);
+	if ((iter != m_RTPkeepalives.end()) && (iter->second.timer != GkTimerManager::INVALID_HANDLE)) {
+		iter->second.ossocket = RTPOSSocket;
+		//iter->second.SendKeepAlive(NULL);	// send the keepAlive once now, time doesn't seem to do it
+		PTime now;
+		iter->second.timer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
+				&(iter->second), &H46019KeepAlive::SendKeepAlive, now, iter->second.interval);	// do it now and every n seconds
+		PTRACE(0, "JW Starting RTP keepAlive OS socket=" << RTPOSSocket << " timer=" << iter->second.timer);
+	} else {
+		PTRACE(0, "JW RTP keepAlive data not found for flcn=" << flcn);
+	}
+}
+
+void CallRec::AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAliveRTCPAddr, unsigned keepAliveInterval)
+{
+	PTRACE(0, "JW AddRTCPKeepAlive lc=" << flcn << " dest=" << AsString(keepAliveRTCPAddr) << " interval=" << keepAliveInterval);
+	H46019KeepAlive ka;
+	ka.type = RTCP;
+	ka.flcn = flcn;
+
+	PStringArray parts = SplitIPAndPort(AsString(keepAliveRTCPAddr), 0);
+	PIPSocket::Address addr(parts[0]);
+	WORD port = (WORD)parts[1].AsUnsigned();
+	memset(&ka.dest, 0, sizeof(ka.dest));
+	if (addr.GetVersion() == 6) {
+		((struct sockaddr_in6*)&ka.dest)->sin6_family = AF_INET6;
+		((struct sockaddr_in6*)&ka.dest)->sin6_addr = addr;
+		((struct sockaddr_in6*)&ka.dest)->sin6_port = htons(port);
+	} else {
+		((struct sockaddr_in*)&ka.dest)->sin_family = AF_INET;
+		((struct sockaddr_in*)&ka.dest)->sin_addr = addr;
+		((struct sockaddr_in*)&ka.dest)->sin_port = htons(port);
+	}
+
+	ka.interval = keepAliveInterval;
+	m_RTCPkeepalives[flcn] = ka;
+}
+
+void CallRec::StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket)
+{
+	map<unsigned, H46019KeepAlive>::iterator iter = m_RTCPkeepalives.find(flcn);
+	if ((iter != m_RTCPkeepalives.end()) && (iter->second.timer != GkTimerManager::INVALID_HANDLE)) {
+		iter->second.ossocket = RTCPOSSocket;
+		//iter->second.SendKeepAlive(NULL);	// send the keepAlive once now, time doesn't seem to do it
+		PTime now;
+		iter->second.timer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
+				&(iter->second), &H46019KeepAlive::SendKeepAlive, now, iter->second.interval);	// do it now and every n seconds
+		PTRACE(0, "JW Starting RTCP keepAlive OS socket=" << RTCPOSSocket << " timer=" << iter->second.timer);
+	} else {
+		PTRACE(0, "JW RTCP keepAlive data not found for flcn=" << flcn);
+	}
+}
+
+void CallRec::RemoveKeepAlives(unsigned flcn)
+{
+	m_RTPkeepalives.erase(flcn);
+	m_RTCPkeepalives.erase(flcn);
+}
+
+void CallRec::RemoveKeepAllAlives()
+{
+	m_RTPkeepalives.clear();
+	m_RTCPkeepalives.clear();
 }
 #endif
 
 #ifdef HAS_H235_MEDIA
 void CallRec::SetMediaEncryption(CallRec::EncDir dir) 
-{ 
+{
     m_encyptDir = dir;
 }
 #endif
