@@ -712,6 +712,7 @@ In this example calls into and out of the 1.2.3.0/24 network are proxied, but ca
 1.2.3.0/24=PROXY,ROUTED
 3.4.5.0/24=PROXY,PROXY
 3.4.5.6=ROUTED
+2005:4dd0:ff00:99a::9/64=PROXY
 </verb></tscreen>
 
 </descrip>
