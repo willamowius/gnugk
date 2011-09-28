@@ -573,12 +573,14 @@ prefix=authrule[|authrule|...]
 &lt;authrule&gt; :=  &lt;result&gt; &lt;authrule&gt;
 
   &lt;result&gt;    := deny | allow
-  &lt;authrule&gt;  := [!]ipv4:&lt;iprule&gt; | [!]alias:&lt;aliasrule&gt;
+  &lt;authrule&gt;  := [!]ip:&lt;iprule&gt; | [!]ipv4:&lt;iprule&gt; | [!]ipv6:&lt;iprule&gt; | [!]alias:&lt;aliasrule&gt;
 </verb></tscreen>
 </descrip>
 Where <tt/&lt;iprule&gt;/ can be specified in decimal dot notation or
-CIDR notation, <tt/&lt;aliasrule&gt;/ is expressed in regular expression.
+CIDR notation or IPv6 notation, <tt/&lt;aliasrule&gt;/ is expressed in regular expression.
 If the `<tt/!/' flag precedes the rule, the sense is inverted.
+Rules for IP numbers with <tt/ip:/, <tt/ipv4:/, <tt/ipv6:/ all behave the same.
+The different prefixes are just for documentation and compatibility with older versions of GnuGk.
 
 <descrip>
 <tag/Example:/
@@ -587,7 +589,8 @@ If the `<tt/!/' flag precedes the rule, the sense is inverted.
 5555=allow ipv4:192.168.1.1|deny ipv4:192.168.1.0/255.255.255.0
 86=deny !ipv4:172.16.0.0/24
 09=deny alias:^188884.*
-ALL=allow ipv4:ALL
+99=deny ipv6:2021:4ad0:ff00:99a::/64
+ALL=allow ipv4:0/0|allow ipv6:::/0
 </verb></tscreen>
 </descrip>
 
@@ -597,7 +600,9 @@ Endpoints from <tt>192.168.1.0/24</tt> are not allowed to call prefix 5555,
 except <tt/192.168.1.1/.
 Endpoints <bf/not/ from <tt>172.16.0.0/24</tt> are denied to call prefix 86.
 Endpoints having an alias beginning with 188884 are not allowed to call
-prefix 09. All other situations are allowed.
+prefix 09.
+IPv6 endpoints from 2021:4ad0:ff00:99a::/64 are not allowed to call prefix 99.
+All other situations are allowed.
 
 <sect1>Section &lsqb;RadAuth&rsqb;
 <label id="radauth">

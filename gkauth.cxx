@@ -2,7 +2,7 @@
 //
 // gkauth.cxx
 //
-// Copyright (c) 2001-2010, Jan Willamowius
+// Copyright (c) 2001-2011, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1771,9 +1771,7 @@ public:
 		);
 
 protected:
-	virtual int doCheck(
-		const AuthObj& aobj
-		);
+	virtual int doCheck(const AuthObj& aobj);
 
 private:
 	PrefixAuth();
@@ -1802,9 +1800,7 @@ public:
 class ARQAuthObj : public AuthObj 
 {
 public:
-	ARQAuthObj(
-		const H225_AdmissionRequest& arq
-		);
+	ARQAuthObj(const H225_AdmissionRequest & arq);
 
 	virtual bool IsValid() const { return m_ep; }
 
@@ -1826,9 +1822,7 @@ private:
 class LRQAuthObj : public AuthObj 
 {
 public:
-	LRQAuthObj(
-		const H225_LocationRequest& lrq
-		);
+	LRQAuthObj(const H225_LocationRequest& lrq);
 
 	virtual PStringArray GetPrefixes() const;
 
@@ -1841,7 +1835,7 @@ private:
 	LRQAuthObj& operator=(const LRQAuthObj&);
 	
 private:
-	const H225_LocationRequest& m_lrq;
+	const H225_LocationRequest & m_lrq;
 	PIPSocket::Address m_ipAddress;
 };
 
@@ -1861,21 +1855,13 @@ public:
 	
 	virtual ~AuthRule() { delete m_next; }
 
-	virtual bool Match(
-		const AuthObj& aobj
-		) = 0;
-		
-	int Check(
-		const AuthObj& aobj
-		);
-	
-	bool operator<(
-		const AuthRule& obj
-		) const { return m_priority < obj.m_priority; }
-	
-	void SetNext(
-		AuthRule* next
-		) { m_next = next; }
+	virtual bool Match(const AuthObj& aobj) = 0;
+
+	int Check(const AuthObj& aobj);
+
+	bool operator<(const AuthRule & obj) const { return m_priority < obj.m_priority; }
+
+	void SetNext(AuthRule* next) { m_next = next; }
 
 private:
 	AuthRule();
@@ -1897,32 +1883,24 @@ class NullRule : public AuthRule
 public:
 	NullRule() : AuthRule(e_nomatch, false) { SetName("NULL"); }
 	
-	virtual bool Match(
-		const AuthObj& /*aobj*/
-		) { return false; }
+	virtual bool Match(const AuthObj& /*aobj*/) { return false; }
 
 private:
 	NullRule(const NullRule&);
 	NullRule& operator=(const NullRule&);
 };
 
-class IPv4AuthRule : public AuthRule 
+class IPAuthRule : public AuthRule 
 {
 public:
-	IPv4AuthRule(
-		Result fate, 
-		const PString& ipStr, 
-		bool inverted
-		);
+	IPAuthRule(Result fate, const PString & ipStr, bool inverted);
 
-	virtual bool Match(
-		const AuthObj& aobj
-		);
+	virtual bool Match(const AuthObj& aobj);
 
 private:
-	IPv4AuthRule();
-	IPv4AuthRule(const IPv4AuthRule&);
-	IPv4AuthRule& operator=(const IPv4AuthRule&);
+	IPAuthRule();
+	IPAuthRule(const IPAuthRule&);
+	IPAuthRule& operator=(const IPAuthRule&);
 	
 private:
 	PIPSocket::Address m_network, m_netmask;
@@ -2045,11 +2023,7 @@ inline void delete_rule(PrefixAuth::Rules::value_type r)
 	r.second = NULL;
 }
 
-IPv4AuthRule::IPv4AuthRule(
-	Result fate, 
-	const PString& ipStr, 
-	bool inverted
-	) 
+IPAuthRule::IPAuthRule(Result fate, const PString & ipStr, bool inverted) 
 	: AuthRule(fate, inverted)
 {
 	Toolkit::GetNetworkFromString(ipStr, m_network, m_netmask);
@@ -2057,22 +2031,17 @@ IPv4AuthRule::IPv4AuthRule(
 	for (m_priority = 0; n; n >>= 1)
 		++m_priority;
 #if PTRACING
-	SetName(PString((fate == e_allow) ? "allow ipv4(" : "deny ipv4(")
-		+ PString(m_priority) + (inverted ? "):!" : "):") + ipStr
-		);
+	SetName(PString((fate == e_allow) ? "allow ip(" : "deny ip(")
+		+ PString(m_priority) + (inverted ? "):!" : "):") + ipStr);
 #endif
 }
 
-bool IPv4AuthRule::Match(
-	const AuthObj& aobj
-	)
+bool IPAuthRule::Match(const AuthObj & aobj)
 {
-	return ((aobj.GetIP() & m_netmask) == m_network);
+	return ((aobj.GetIP().GetVersion() == m_network.GetVersion()) && ((aobj.GetIP() & m_netmask) == m_network));
 }
 
-bool AliasAuthRule::Match(
-	const AuthObj& aobj
-	)
+bool AliasAuthRule::Match(const AuthObj& aobj)
 {
 	return aobj.GetAliases().FindRegEx(m_pattern) != P_MAX_INDEX;
 }
@@ -2088,11 +2057,12 @@ inline bool comp_authrule_priority(AuthRule *a1, AuthRule *a2)
 }
 
 namespace {
-const char* const prfflag="prf:";
-const char* const allowflag="allow";
-const char* const denyflag="deny";
-const char* const ipflag="ipv4:";
-const char* const aliasflag="alias:";
+const char* const allowflag = "allow";
+const char* const denyflag  = "deny";
+const char* const ipflag    = "ip:";
+const char* const ipv4flag  = "ipv4:";
+const char* const ipv6flag  = "ipv6:";
+const char* const aliasflag = "alias:";
 }
 
 // class PrefixAuth
@@ -2106,6 +2076,8 @@ PrefixAuth::PrefixAuth(
 	m_defaultRule = GetDefaultStatus();
 
 	const int ipfl = strlen(ipflag);
+	const int ipv4fl = strlen(ipv4flag);
+	const int ipv6fl = strlen(ipv6flag);
 	const int aliasfl = strlen(aliasflag);
 	
 	const PStringToString cfgs = GetConfig()->GetAllKeyValues(name);
@@ -2141,7 +2113,15 @@ PrefixAuth::PrefixAuth(
 				? AuthRule::e_allow : AuthRule::e_deny;
 			PINDEX pp;
 			if ((pp = rules[j].Find(ipflag)) != P_MAX_INDEX)
-				rls[j] = new IPv4AuthRule(fate, rules[j].Mid(pp + ipfl).Trim(), 
+				rls[j] = new IPAuthRule(fate, rules[j].Mid(pp + ipfl).Trim(), 
+					is_inverted(rules[j], pp)
+					);
+			else if ((pp = rules[j].Find(ipv4flag)) != P_MAX_INDEX)
+				rls[j] = new IPAuthRule(fate, rules[j].Mid(pp + ipv4fl).Trim(), 
+					is_inverted(rules[j], pp)
+					);
+			else if ((pp = rules[j].Find(ipv6flag)) != P_MAX_INDEX)
+				rls[j] = new IPAuthRule(fate, rules[j].Mid(pp + ipv6fl).Trim(), 
 					is_inverted(rules[j], pp)
 					);
 			else if ((pp = rules[j].Find(aliasflag)) != P_MAX_INDEX)
@@ -2249,7 +2229,7 @@ int PrefixAuth::doCheck(
 			default: // try next prefix...
 				j = iter;
 				PTRACE(4, "GKAUTH\t" << GetName() << " rule matched and "
-					" could not reject or accept destination prefix '" 
+					"could not reject or accept destination prefix '" 
 					<< ((iter->first == " ") ? PString("ALL") : iter->first)
 					<< "' for alias '" << destinationInfo[i] << '\''
 					);
