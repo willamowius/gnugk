@@ -4719,6 +4719,7 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 
 void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PObject *parm)
 {
+	PBoolean fromDest = m_crv & 0x8000u;
 	H225_H323_UserInformation signal;
 	H225_H323_UU_PDU_h323_message_body & body = signal.m_h323_uu_pdu.m_h323_message_body;
 	body.SetTag(H225_H323_UU_PDU_h323_message_body::e_facility);
@@ -4773,8 +4774,11 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 #ifdef HAS_H46018
 		case H225_FacilityReason::e_undefinedReason:
 			if (parm) {
+				fromDest = PTrue;
 				uuie.IncludeOptionalField(H225_Facility_UUIE::e_callIdentifier);
 				uuie.m_callIdentifier = *dynamic_cast<const H225_CallIdentifier *>(parm);
+				//uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
+				uuie.m_protocolIdentifier.SetValue("0.0.8.2250.0.6");
 				uuie.RemoveOptionalField(H225_Facility_UUIE::e_conferenceID);
 			}
 			break;
@@ -4825,7 +4829,10 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 			break;
 	}
 
-	FacilityPDU.BuildFacility(m_crv, m_crv & 0x8000u);
+	FacilityPDU.BuildFacility(m_crv, fromDest);
+	if (reason == H225_FacilityReason::e_undefinedReason) {
+		FacilityPDU.RemoveIE(Q931::FacilityIE);
+	}
 	SetUUIE(FacilityPDU, signal);
 }
 
