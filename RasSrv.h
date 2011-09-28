@@ -290,9 +290,6 @@ private:
 
 	TCPServer *listeners;
 	RasListener *broadcastListener;
-#ifdef HAS_H46018
-	H46019Handler *m_multiplexHandler;
-#endif
 
 	HandlerList *sigHandler;
 	GkAuthenticatorList *authList;

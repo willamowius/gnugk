@@ -698,9 +698,6 @@ RasServer::RasServer() : Singleton<RasServer>("RasSrv")
 	requestSeqNum = 0;
 	listeners = NULL;
 	broadcastListener = NULL;
-#ifdef HAS_H46018
-	m_multiplexHandler = NULL;
-#endif
 	sigHandler = NULL;
 	authList = NULL;
 	acctList = NULL;
@@ -922,12 +919,13 @@ void RasServer::LoadConfig()
 
 #ifdef HAS_H46018
 	// create mutiplex RTP listeners
-	if (!m_multiplexHandler
-		&& Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
-		m_multiplexHandler = H46019Handler::Instance();
+	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
+		H46019Handler::Instance()->OnReload();
+	} else {
+		// if we had a multiplex listener configured before the reload, but not anymore, then delete it
+		if (H46019Handler::InstanceExists())
+			delete H46019Handler::Instance();
 	}
-	if (m_multiplexHandler)
-		m_multiplexHandler->OnReload();
 #endif
 
 	if (listeners)

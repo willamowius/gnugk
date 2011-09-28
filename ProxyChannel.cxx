@@ -4481,11 +4481,8 @@ void CallSignalSocket::OnFacility(SignalingMsg *msg)
 					setupBody.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 					// TODO: update destCallSignalAddress (was previously unknown for client, OOZ EPRec has possibly privare IP as destSigAddr), m100 needs it
 //					if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
-//						PIPSocket::Address destAddr;
-//						WORD destPort = 0;
-//						m_call->GetDestSignalAddr(destAddr, destPort);
 //						setupBody.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
-//						setupBody.m_destCallSignalAddress = SocketToH225TransportAddr(destAddr, destPort);
+//						setupBody.m_destCallSignalAddress = m_call->GetDestSignalAddr();
 //					}
 					setup->SetUUIEChanged();
 
@@ -6135,7 +6132,9 @@ H46019Handler::H46019Handler() : Singleton<H46019Handler>("H46019Handler")
 H46019Handler::~H46019Handler()
 {
 	delete m_multiplexRTPListener;
+	m_multiplexRTPListener = NULL;
 	delete m_multiplexRTCPListener;
+	m_multiplexRTCPListener = NULL;
 }
 
 void H46019Handler::OnStart()
@@ -7211,7 +7210,6 @@ H245ProxyHandler::~H245ProxyHandler()
 	if (UsesH46019fc())
 		return;
 
-	// TODO JW: delete all keepalives for this call
 	DeleteObjectsInMap(logicalChannels);
 	DeleteObjectsInMap(fastStartLCs);
 }
@@ -7393,7 +7391,6 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 							PTRACE(0, "JW H46018\tError: H.460.19 server didn't provide mediaControlChannel");
 							// TODO: calculate ?
 						}
-						// TODO: if multiplexing: use that for keepAlive addrs
 						if (keepAliveInterval > 0) {
 							call->AddRTPKeepAlive(flcn, keepAliveRTPAddr, keepAliveInterval);
 							call->AddRTCPKeepAlive(flcn, keepAliveRTCPAddr, keepAliveInterval);
@@ -7470,7 +7467,6 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 			if (lc) {
 				params.m_keepAliveChannel = IPToH245TransportAddr(GetMasqAddr(), lc->GetPort()); // use RTP port for keepAlives
 				((RTPLogicalChannel*)lc)->SetUsesH46019fc(UsesH46019fc());
-				//((RTPLogicalChannel*)lc)->SetH46019Direction(GetH46019Direction());	// redundant should have been set in HandleLogicalParameters()
 				((RTPLogicalChannel*)lc)->SetRTPSessionID((WORD)h225Params->m_sessionID);
 			} else {
 				PTRACE(1, "Can't find RTP port for logical channel " << flcn);
@@ -7481,10 +7477,12 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 				// TODO JW: check if .19 client supports it (should, but some don't, servers may also not)
 				params.IncludeOptionalField(H46019_TraversalParameters::e_multiplexID);
 				// TODO JW : multiplexID table
-				params.m_multiplexID = 0xbadbad;
+				params.m_multiplexID = 12345678;
 
 				params.IncludeOptionalField(H46019_TraversalParameters::e_multiplexedMediaControlChannel);
 				params.m_multiplexedMediaControlChannel = IPToH245TransportAddr(GetMasqAddr(), m_multiplexedRTCPPort);
+				// set keepAliveChannel to multiplex media channel
+				params.m_keepAliveChannel = IPToH245TransportAddr(GetMasqAddr(), m_multiplexedRTPPort);
 			}
 			PTRACE(0, "JW Add TraversalParams to OLC=" << params);
 			H245_ParameterValue & octetValue = genericParameter.m_parameterValue;
