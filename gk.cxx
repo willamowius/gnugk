@@ -72,13 +72,18 @@ void ShutdownHandler()
 	PTRACE(3, "GK\tDeleting global reference tables");
 
 	Job::StopAll();
-	delete CapacityControl::Instance();
-	delete CallTable::Instance();
-	delete RegistrationTable::Instance();
-	delete RasServer::Instance();
+	if (CapacityControl::InstanceExists())
+		delete CapacityControl::Instance();
+	if (CallTable::InstanceExists())
+		delete CallTable::Instance();
+	if (RegistrationTable::InstanceExists())
+		delete RegistrationTable::Instance();
+	if (RasServer::InstanceExists())
+		delete RasServer::Instance();
 	if (MakeCallEndPoint::InstanceExists())
 		delete MakeCallEndPoint::Instance();
-	delete Toolkit::Instance();
+	if (Toolkit::InstanceExists())
+		delete Toolkit::Instance();
 	PTRACE(3, "GK\tdelete ok");
 
 #if PTRACING
