@@ -603,7 +603,6 @@ RasRequester::RasRequester(H225_RasMessage & req, const Address & addr) : m_requ
 
 void RasRequester::Init()
 {
-	m_request = NULL;
 	m_seqNum = m_rasSrv->GetRequestSeqNum();
 	m_timeout = 0;
 	m_retry = 0;
@@ -1026,11 +1025,10 @@ GkInterface *RasServer::SelectDefaultInterface()
  
 GkInterface *RasServer::SelectInterface(const Address & addr)
 {
-	ifiterator iter, eiter = interfaces.end();
 	if (interfaces.empty())
 		return NULL;
-	iter = find_if(interfaces.begin(), eiter, bind2nd(mem_fun(&GkInterface::IsReachable), &addr));
-	if (iter != eiter) 
+	ifiterator iter = find_if(interfaces.begin(), interfaces.end(), bind2nd(mem_fun(&GkInterface::IsReachable), &addr));
+	if (iter != interfaces.end()) 
         return *iter;
     else
         return SelectDefaultInterface();
@@ -1056,7 +1054,7 @@ PIPSocket::Address RasServer::GetLocalAddress(const Address & addr) const
 PIPSocket::Address RasServer::GetMasqAddress(const Address & addr) const
 {
 	RasListener * listener = GetRasListener(addr);
-	return listener ? listener->GetLocalAddr(addr) : PIPSocket::Address(0);	
+	return listener ? listener->GetLocalAddr(addr) : PIPSocket::Address(0);
 }
 
 H225_TransportAddress RasServer::GetRasAddress(const Address & addr) const
