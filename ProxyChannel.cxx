@@ -7310,6 +7310,7 @@ bool /*H245ProxyHandler::*/ ParseTraversalParameters(
 	H46019_TraversalParameters params;
 	PASN_OctetString & raw = genericInfo.m_messageContent[0].m_parameterValue;
 	if (raw.DecodeSubType(params)) {
+		PTRACE(0, "JW Received TraversalParameters = " << params);
 		payloadtype = 0;	// TODO: better default ?
 		keepAliveInterval = 0;
 		if (params.HasOptionalField(H46019_TraversalParameters::e_keepAlivePayloadType)) {
@@ -7373,35 +7374,35 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 			// remove traversal parameters from sender before forwarding
 			for(PINDEX i = 0; i < olc.m_genericInformation.GetSize(); i++) {
 				PASN_ObjectId & gid = olc.m_genericInformation[i].m_messageIdentifier;
-				// TODO: if GetSize() > 0
-				H245_ParameterIdentifier & ident = olc.m_genericInformation[i].m_messageContent[0].m_parameterIdentifier;
-				PASN_Integer & n = ident;
-				if (gid == H46019OID && n == 1) {
-					unsigned payloadtype;
-					H323TransportAddress keepAliveRTPAddr;
-					H245_UnicastAddress keepAliveRTCPAddr;
-					unsigned keepAliveInterval;
-					if (ParseTraversalParameters(olc.m_genericInformation[i], payloadtype, keepAliveRTPAddr, keepAliveInterval)) {
-						H245_UnicastAddress * control = NULL;
-						if (h225Params && h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)
-							&& (control = GetH245UnicastAddress(h225Params->m_mediaControlChannel)) ) {
-							keepAliveRTCPAddr = *control;
-							PTRACE(0, "JW H46018\tUsing RTCP KeepAlive Addr=" << keepAliveRTCPAddr << " ctl=" << *control << " H245TA=" << h225Params->m_mediaControlChannel);
-						} else {
-							PTRACE(0, "JW H46018\tError: H.460.19 server didn't provide mediaControlChannel");
-							// TODO: calculate ?
+				if (olc.m_genericInformation[i].m_messageContent.GetSize() > 0) {
+					H245_ParameterIdentifier & ident = olc.m_genericInformation[i].m_messageContent[0].m_parameterIdentifier;
+					PASN_Integer & n = ident;
+					if (gid == H46019OID && n == 1) {
+						unsigned payloadtype;
+						H323TransportAddress keepAliveRTPAddr;
+						H245_UnicastAddress keepAliveRTCPAddr;
+						unsigned keepAliveInterval;
+						if (ParseTraversalParameters(olc.m_genericInformation[i], payloadtype, keepAliveRTPAddr, keepAliveInterval)) {
+							H245_UnicastAddress * control = NULL;
+							if (h225Params && h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)
+								&& (control = GetH245UnicastAddress(h225Params->m_mediaControlChannel)) ) {
+								keepAliveRTCPAddr = *control;
+							} else {
+								PTRACE(0, "JW H46018\tError: H.460.19 server didn't provide mediaControlChannel");
+								// TODO: calculate ?
+							}
+							if (keepAliveInterval > 0) {
+								call->AddRTPKeepAlive(flcn, keepAliveRTPAddr, keepAliveInterval);
+								call->AddRTCPKeepAlive(flcn, keepAliveRTCPAddr, keepAliveInterval);
+							}
+							// H46019Handler::Instance()->AddDestination(src);
 						}
-						if (keepAliveInterval > 0) {
-							call->AddRTPKeepAlive(flcn, keepAliveRTPAddr, keepAliveInterval);
-							call->AddRTCPKeepAlive(flcn, keepAliveRTCPAddr, keepAliveInterval);
+						// move remaining elements down
+						for(PINDEX j = i+1; j < olc.m_genericInformation.GetSize(); j++) {
+							olc.m_genericInformation[j-1] = olc.m_genericInformation[j];
 						}
-						// H46019Handler::Instance()->AddDestination(src);
+						olc.m_genericInformation.SetSize(olc.m_genericInformation.GetSize()-1);
 					}
-					// move remaining elements down
-					for(PINDEX j = i+1; j < olc.m_genericInformation.GetSize(); j++) {
-						olc.m_genericInformation[j-1] = olc.m_genericInformation[j];
-					}
-					olc.m_genericInformation.SetSize(olc.m_genericInformation.GetSize()-1);
 				}
 			}
 			if (olc.m_genericInformation.GetSize() == 0)
@@ -7522,14 +7523,15 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		for (PINDEX i = 0; i < olca.m_genericInformation.GetSize(); i++) {
 			if (olca.m_genericInformation[i].m_messageContent.GetSize() > 0) {
 				PASN_ObjectId & gid = olca.m_genericInformation[i].m_messageIdentifier;
-				// TODO: if GetSize() > 0
-				H245_ParameterIdentifier & ident = olca.m_genericInformation[i].m_messageContent[0].m_parameterIdentifier;
-				PASN_Integer & n = ident;
-				if (gid == H46019OID && n == 1) {
-					// there should be no need to look at these:
-					// - we ignore the payload type anyway
-					// - it should never contain a keepAliveChannel / interval
-					// - is there anything in there for multiplexing ?
+				if (olca.m_genericInformation[i].m_messageContent.GetSize() > 0 {
+					H245_ParameterIdentifier & ident = olca.m_genericInformation[i].m_messageContent[0].m_parameterIdentifier;
+					PASN_Integer & n = ident;
+					if (gid == H46019OID && n == 1) {
+						// there should be no need to look at these:
+						// - we ignore the payload type anyway
+						// - it should never contain a keepAliveChannel / interval
+						// - is there anything in there for multiplexing ?
+					}
 				}
 			}
 		}
