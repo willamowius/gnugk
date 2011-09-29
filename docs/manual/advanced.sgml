@@ -21,7 +21,6 @@ Get and compile PTLib from SourceForge:
 <verb>
 $ cd ~
 $ svn co http://opalvoip.svn.sourceforge.net/svnroot/opalvoip/ptlib/tags/v2_10_1 ptlib-v2.10.1/
-<!-- $ svn co http://opalvoip.svn.sourceforge.net/svnroot/opalvoip/ptlib/trunk ptlib -->
 $ cd ptlib-v2.10.1
 $ export PTLIBDIR=~/ptlib-v2.10.1
 $ ./configure
