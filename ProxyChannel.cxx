@@ -7523,7 +7523,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		for (PINDEX i = 0; i < olca.m_genericInformation.GetSize(); i++) {
 			if (olca.m_genericInformation[i].m_messageContent.GetSize() > 0) {
 				PASN_ObjectId & gid = olca.m_genericInformation[i].m_messageIdentifier;
-				if (olca.m_genericInformation[i].m_messageContent.GetSize() > 0 {
+				if (olca.m_genericInformation[i].m_messageContent.GetSize() > 0) {
 					H245_ParameterIdentifier & ident = olca.m_genericInformation[i].m_messageContent[0].m_parameterIdentifier;
 					PASN_Integer & n = ident;
 					if (gid == H46019OID && n == 1) {
@@ -7531,6 +7531,13 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 						// - we ignore the payload type anyway
 						// - it should never contain a keepAliveChannel / interval
 						// - is there anything in there for multiplexing ?
+						unsigned payloadtype;
+						H323TransportAddress keepAliveRTPAddr;
+						H245_UnicastAddress keepAliveRTCPAddr;
+						unsigned keepAliveInterval;
+						if (ParseTraversalParameters(olca.m_genericInformation[i], payloadtype, keepAliveRTPAddr, keepAliveInterval)) {
+							// ignore
+						}
 					}
 				}
 			}
