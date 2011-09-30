@@ -222,6 +222,8 @@ public:
 #ifdef HAS_H46018
 	bool CreateRemote(const H225_TransportAddress & addr);
 	bool OnSCICall(H225_CallIdentifier callID, H225_TransportAddress sigAdr);
+	bool IsCallFromTraversalServer() const { return m_callFromTraversalServer; }
+	H225_CallIdentifier GetCallIdentifier() const { return m_call ? m_call->GetCallIdentifier() : 0; }
 #endif
 protected:
 	CallSignalSocket * GetRemote() const { return (CallSignalSocket *)remote; }
@@ -335,6 +337,7 @@ private:
 	PBYTEArray m_rawSetup;
 	PMutex infomutex;    // Information PDU processing Mutex
 	H245_TerminalCapabilitySet m_savedTCS;	// saved tcs to re-send
+	bool m_callFromTraversalServer; // is this call from a traversal server ?
 };
 
 class CallSignalListener : public TCPListenSocket {

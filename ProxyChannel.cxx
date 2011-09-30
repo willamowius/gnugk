@@ -290,6 +290,9 @@ public:
 	virtual bool EndSession();
 
 	void SendEndSessionCommand();
+#ifdef HAS_H46018
+	void SendH46018Indication();
+#endif
 	void SendTCS(H245_TerminalCapabilitySet * tcs);
 	H225_TransportAddress GetH245Address(const Address &);
 	bool SetH245Address(H225_TransportAddress & h245addr, const Address &);
@@ -874,6 +877,7 @@ void CallSignalSocket::InternalInit()
 	m_isnatsocket = false;
 	m_result = NoData;
 	m_setupPdu = NULL;
+	m_callFromTraversalServer = false;
 	// m_callerSocket is always initialized in init list
 	m_h225Version = 0;
 }
@@ -4172,6 +4176,8 @@ bool CallSignalSocket::OnSCICall(H225_CallIdentifier callID, H225_TransportAddre
 	m_call = callptr(call);
 	if (CreateRemote(sigAdr)) {
 		GetHandler()->Insert(this, remote);
+		m_callFromTraversalServer = true;
+		((CallSignalSocket*)remote)->m_callFromTraversalServer = true;
 		Q931 FacilityPDU;
 		BuildFacilityPDU(FacilityPDU, H225_FacilityReason::e_undefinedReason, &callID);
 		PBYTEArray buf;
@@ -5683,6 +5689,9 @@ void H245Socket::ConnectTo()
 			remote->SetConnected(true);
 			GetHandler()->Insert(this, remote);
 			ConfigReloadMutex.EndRead();
+			if (sigSocket && sigSocket->IsCallFromTraversalServer()) {
+				SendH46018Indication();
+			}
 			return;
 		}
 	}
@@ -5809,6 +5818,49 @@ void H245Socket::SendEndSessionCommand()
 	}
 	PTRACE(4, "H245\tSend endSessionCommand to " << GetName());
 }
+
+#ifdef HAS_H46018
+void H245Socket::SendH46018Indication()
+{
+	if (!IsConnected())
+		return;
+	H245_MultimediaSystemControlMessage h245msg;
+	h245msg.SetTag(H245_MultimediaSystemControlMessage::e_indication);
+	H245_IndicationMessage & h245ind = h245msg;
+	h245ind.SetTag(H245_IndicationMessage::e_genericIndication);
+	H245_GenericMessage & genericInd = h245ind;
+	H245_CapabilityIdentifier id;
+	id.SetTag(H245_CapabilityIdentifier::e_standard);
+	PASN_ObjectId & val = id;
+	val = "0.0.8.460.18.0.1";
+	genericInd.m_messageIdentifier = id;
+	genericInd.IncludeOptionalField(H245_GenericMessage::e_subMessageIdentifier);
+	genericInd.m_subMessageIdentifier = 1;
+	genericInd.IncludeOptionalField(H245_GenericMessage::e_messageContent);
+	genericInd.m_messageContent.SetSize(2);
+	genericInd.m_messageContent[0].m_parameterIdentifier.SetTag(H245_ParameterIdentifier::e_standard);
+	PASN_Integer & n = genericInd.m_messageContent[0].m_parameterIdentifier;
+	n = 1;
+	if (sigSocket) {
+		genericInd.m_messageContent[0].m_parameterValue.SetTag(H245_ParameterValue::e_octetString);
+		PASN_OctetString & cid = genericInd.m_messageContent[0].m_parameterValue;
+		cid.EncodeSubType(sigSocket->GetCallIdentifier().m_guid);
+	}
+	genericInd.m_messageContent[1].m_parameterIdentifier.SetTag(H245_ParameterIdentifier::e_standard);
+	PASN_Integer & m = genericInd.m_messageContent[1].m_parameterIdentifier;
+	m = 2;
+	genericInd.m_messageContent[1].m_parameterValue.SetTag(H245_ParameterValue::e_logical);
+	PASN_Null & answer = genericInd.m_messageContent[1].m_parameterValue;
+	answer = true;
+	PPER_Stream wtstrm;
+	h245msg.Encode(wtstrm);
+	wtstrm.CompleteEncoding();
+	if (!TransmitData(wtstrm)) {
+		PTRACE(1, "H245\tSending of H.460.18 Indication to " << GetName() << " failed");
+	}
+	PTRACE(4, "H245\tSend H.460.18 Indication to " << GetName());
+}
+#endif
 
 void H245Socket::SendTCS(H245_TerminalCapabilitySet * tcs)
 {
