@@ -289,6 +289,8 @@ The user name and password configured in the VCS should be set as AuthUser= and 
 [Neighbor::..] section.
 The password must be encoded with the addpasswd tool if the Keyfilled= switch is used,
 otherwise it is entered as plain text in the config.
+Please note that for any password authentication to work, both neighbors must use a syncronized time,
+so they both should have an NTP server configured.
 
 Enable H.323, set the Protocol to H.460.18 (not Assent) and the port to 1719.
 
@@ -324,4 +326,6 @@ To configure a traversal zone with a Tandberg VCS, add a Zone of type "Traversal
 
 Set H46018Client=1 in the [Neighbor::..] section.
 
+Please note that for any password authentication to work, both neighbors must use a syncronized time,
+so they both should have an NTP server configured.
 
