@@ -4450,7 +4450,7 @@ void CallSignalSocket::OnFacility(SignalingMsg *msg)
 					callingSocket->localAddr = RasServer::Instance()->GetLocalAddress(remote_peerAddr);
 					UnmapIPv4Address(callingSocket->localAddr);
 					callingSocket->masqAddr = RasServer::Instance()->GetMasqAddress(remote_peerAddr);
-					UnmapIPv4Address(masqAddr);
+					UnmapIPv4Address(callingSocket->masqAddr);
 
 					callingSocket->SetConnected(true);
 					SetConnected(true);
