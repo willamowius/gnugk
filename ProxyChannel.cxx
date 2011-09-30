@@ -2422,6 +2422,14 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				&& _destAddr == _localAddr && _destPort == _localPort) {
 			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 		}
+#ifdef HAS_H46018
+		// only compare IP for calls from Traversal server:
+		// it knows our callSigIP, but because of the reverse connection establishment,
+		// this socket probably runs on a different port
+		if (rassrv->IsCallFromTraversalServer(_peerAddr) && (_destAddr == _localAddr)) {
+			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
+		}
+#endif
 		//  also remove destCallSigAddr if its the ExternalIP
 		PString extip = GkConfig()->GetString("ExternalIP", "");
 		if (!extip.IsEmpty()) {
@@ -3161,10 +3169,11 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	else {
 		// call to traversal client
 		// can't connect the 2 sockets now, remember the calling socket until the called has pinholed throuth the NAT
+		// this may set the wrong localAddr, because we don't know the peerAddr, yet, updated later in OnFacility()
 		localAddr = RasServer::Instance()->GetLocalAddress(peerAddr);
 		UnmapIPv4Address(localAddr);
 		masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
-		UnmapIPv4Address(peerAddr);
+		UnmapIPv4Address(masqAddr);
 		m_call->SetCallSignalSocketCalling(this);
 		SetConnected(true);	// avoid deletion
 
@@ -4434,6 +4443,15 @@ void CallSignalSocket::OnFacility(SignalingMsg *msg)
 					masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
 					UnmapIPv4Address(masqAddr);
 					callingSocket->remote = this;
+					// update localAddr and masqAddr in remote, now that we know their peerAddr
+					Address remote_peerAddr;
+					WORD remote_peerPort;
+					GetPeerAddress(remote_peerAddr, remote_peerPort);
+					callingSocket->localAddr = RasServer::Instance()->GetLocalAddress(remote_peerAddr);
+					UnmapIPv4Address(callingSocket->localAddr);
+					callingSocket->masqAddr = RasServer::Instance()->GetMasqAddress(remote_peerAddr);
+					UnmapIPv4Address(masqAddr);
+
 					callingSocket->SetConnected(true);
 					SetConnected(true);
 					GetHandler()->MoveTo(callingSocket->GetHandler(), this);
@@ -4445,7 +4463,7 @@ void CallSignalSocket::OnFacility(SignalingMsg *msg)
 					}
 					// always proxy H.245 for H.460.18/19
 					Address calling = GNUGK_INADDR_ANY, called = GNUGK_INADDR_ANY;
-					/*int nat_type = */ m_call->GetNATType(calling, called);
+					/* int nat_type = */ m_call->GetNATType(calling, called);
 					// H.245 proxy hander for calling (doesn't have to use H.460.18/.19)
 					H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), callingSocket->localAddr, calling, callingSocket->masqAddr);
 					if (m_call->GetCalledParty() && !m_call->GetCalledParty()->IsTraversalClient()) {
@@ -4478,12 +4496,13 @@ void CallSignalSocket::OnFacility(SignalingMsg *msg)
 					setup->Decode(rawSetup);
 					H225_Setup_UUIE & setupBody = setup->GetUUIEBody();
 
-					setupBody.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
-					// TODO: update destCallSignalAddress (was previously unknown for client, OOZ EPRec has possibly privare IP as destSigAddr), m100 needs it
-//					if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
-//						setupBody.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
-//						setupBody.m_destCallSignalAddress = m_call->GetDestSignalAddr();
-//					}
+					// update destCallSignalAddress and sourceCallSignalAddress (previously unknown for traversal client)
+					if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
+						setupBody.m_destCallSignalAddress = m_call->GetDestSignalAddr();
+					}
+					if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)) {
+						setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(callingSocket->masqAddr, callingSocket->GetPort());
+					}
 					setup->SetUUIEChanged();
 
 					if (HandleH245Address(setupBody))

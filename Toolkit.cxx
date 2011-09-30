@@ -159,7 +159,7 @@ bool NetworkAddress::operator>>(const PIPSocket::Address &addr) const
 	return true;
 }
 
-int NetworkAddress::Compare(const NetworkAddress &addr) const
+int NetworkAddress::Compare(const NetworkAddress & addr) const
 {
 	int diff = m_address.GetSize() - addr.m_address.GetSize();
 	if (diff == 0) {
@@ -256,6 +256,9 @@ void Toolkit::RouteTable::InitTable()
 {
 	// workaround for OS that don't support GetRouteTable
 	PIPSocket::GetHostAddress(defAddr);
+#ifdef hasIPV6
+	PIPSocket::GetHostAddress(defAddrV6);
+#endif
 
 	ClearTable();
 	if (!CreateTable())
@@ -267,43 +270,89 @@ void Toolkit::RouteTable::InitTable()
 	// if we only have 1 Home IP, then thats also the default IP
 	if (home.size() == 1) {
 		defAddr = home[0];
+#ifdef hasIPV6
+		defAddrV6 = home[0];
+#endif
 	}
 	// Bind= always sets the default IP
 	PString bind = GkConfig()->GetString("Bind", "");
 	if (!bind.IsEmpty()) {
 		defAddr = bind;
+#ifdef hasIPV6
+		defAddrV6 = bind;
+#endif
 	}
 
 	// if we do not already have a valid entry, try and retrieve the default interface
-	if (defAddr.IsLoopback() || !defAddr.IsValid()) {
+	if ((defAddr.GetVersion() != 4) || defAddr.IsLoopback() || !defAddr.IsValid()) {
 		// Set default IP according to route table
-		PIPSocket::Address defGW;
-		PIPSocket::GetGatewayAddress(defGW);
-		if (defGW.AsString() == "0.0.0.0") {
+		defAddr = GetDefaultIP(4);
+		if ((defAddr.GetVersion() != 4) || defAddr.IsLoopback() || !defAddr.IsValid()) {
 			// no default gateway, use first interface as default
 			PIPSocket::GetNetworkInterface(defAddr);
-		} else {
-			// use the default gateway
-			defAddr = GetLocalAddress(defGW);
 		}
 	}
-	// if we have a list of Home IPs and the default address is not in it, use the first Home IP,
+#ifdef hasIPV6
+	// if we do not already have a valid entry, try and retrieve the default interface
+	if ((defAddrV6.GetVersion() != 6) || defAddrV6.IsLoopback() || !defAddrV6.IsValid()) {
+		// Set default IP according to route table
+		defAddrV6 = GetDefaultIP(6);
+		if ((defAddrV6.GetVersion() != 6) || defAddrV6.IsLoopback() || !defAddrV6.IsValid()) {
+			// no default gateway, use first interface as default
+			PIPSocket::GetNetworkInterface(defAddrV6);
+		}
+	}
+#endif
+
+	// if we have a list of Home IPs and the default address is not in it, use the first IPv4 Home IP,
 	// unless the default IP was explicitely specified in Bind=
 	if (bind.IsEmpty() &&
 		!home.empty() && (find(home.begin(), home.end(), defAddr) == home.end())) {
-		defAddr = home[0];
-	} 
+		for (unsigned i=0; i < home.size(); ++i) {
+			if (home[i].GetVersion() == 4) {
+				defAddr = home[i];
+				break;
+			}
+		}
+	}
+#ifdef hasIPV6
+	if (bind.IsEmpty() &&
+		!home.empty() && (find(home.begin(), home.end(), defAddrV6) == home.end())) {
+		for (unsigned i=0; i < home.size(); ++i) {
+			if (home[i].GetVersion() == 6) {
+				defAddrV6 = home[i];
+				break;
+			}
+		}
+	}
+#endif
 
 #if PTRACING
 	for (RouteEntry *entry = rtable_begin; entry != rtable_end; ++entry) {
 		PTRACE(2, "Network=" << entry->GetNetwork() << '/' << entry->GetNetMask() <<
 				", IP=" << entry->GetDestination());
 	}
-	PTRACE(2, "Default IP=" << defAddr);
+#ifdef hasIPV6
+	if (Toolkit::Instance()->IsIPv6Enabled())
+		PTRACE(2, "Default IP IPv4=" << defAddr << " IPv6=" << defAddrV6);
+	else
+#else
+		PTRACE(2, "Default IP=" << defAddr);
+#endif
 	if (defAddr.IsLoopback()) {
 		PTRACE(1, "WARNING: Your default IP=" << defAddr << " is a loopback address. That probably won't work!");
 	}
 #endif
+}
+
+// get default route from route table, because GetGatewayAddress() is broken until PTLib 2.11.1
+PIPSocket::Address Toolkit::RouteTable::GetDefaultIP(unsigned version)
+{
+	for (RouteEntry *entry = rtable_begin; entry != rtable_end; ++entry) {
+		if ((entry->GetNetMask() == 0) && (entry->GetDestination().GetVersion() == version))
+			return GetLocalAddress(entry->GetDestination());
+	}
+	return Address(0);
 }
 
 void Toolkit::RouteTable::ClearTable()
@@ -330,10 +379,18 @@ PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(const Address & addr) co
 			// check if internal network is in route table, but don't use the default route
 			RouteEntry *entry = find_if(rtable_begin, rtable_end,
 				bind2nd(mem_fun_ref(&RouteEntry::Compare), &addr));
-			if ((entry != rtable_end) && (entry->GetNetMask() != INADDR_ANY)) {
+			if ((entry != rtable_end) && (entry->GetNetMask() != INADDR_ANY)
+#ifdef hasIPV6
+				&& (entry->GetNetMask() != in6addr_any)
+#endif
+				) {
 				return entry->GetDestination();
 			}
 			else {
+#ifdef hasIPV6
+				if (addr.GetVersion() == 6)
+					return defAddrV6;
+#endif
 				return defAddr;
 			}
 		}
@@ -362,7 +419,15 @@ PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(const Address & addr) co
 
 	RouteEntry *entry = find_if(rtable_begin, rtable_end,
 		bind2nd(mem_fun_ref(&RouteEntry::Compare), &addr));
-	return (entry != rtable_end) ? entry->GetDestination() : defAddr;
+	if (entry != rtable_end) {
+		return entry->GetDestination();
+	}
+#ifdef hasIPV6
+	if (addr.GetVersion() == 6) {
+		return defAddrV6;
+	}
+#endif
+	return defAddr;
 }
 
 bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
@@ -2509,7 +2574,8 @@ void Toolkit::SetGKHome(const PStringArray & home)
 		for (size_t n = 0; n < m_GKHome.size(); ++n) {
 			if ((m_GKHome[n] == INADDR_ANY)
 #ifdef hasIPV6
-				|| m_GKHome[n].IsLinkLocal()	// TODO: maybe keep listeninig on link local addrs ?
+				|| m_GKHome[n].IsLinkLocal()
+				|| ((m_GKHome[n].GetVersion() == 6) && m_GKHome[n].IsLoopback())
 #endif
 				) {
 				m_GKHome.erase(m_GKHome.begin() + n);

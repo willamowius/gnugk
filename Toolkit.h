@@ -65,9 +65,7 @@ public:
 	    @return <0 if this address is lesser than #addr#, 0 if both are equal,
 	            >0 if this address is greater than #addr#.
 	*/
-	int Compare(
-		const NetworkAddress &addr
-		) const;
+	int Compare(const NetworkAddress & addr) const;
 
 	/// @return	A string representation of the address in the form A.B.C.D/netmasklen
 	PString AsString() const;
@@ -128,6 +126,7 @@ class Toolkit : public Singleton<Toolkit>
 		virtual ~RouteTable() { ClearTable(); }
 		Address GetLocalAddress() const { return defAddr; }
 		Address GetLocalAddress(const Address & dest) const;
+		Address GetDefaultIP(unsigned version);
 
 		void InitTable();
 		void ClearTable();
@@ -149,6 +148,9 @@ class Toolkit : public Singleton<Toolkit>
 
 		RouteEntry *rtable_begin, *rtable_end;
 		Address defAddr;
+#ifdef hasIPV6
+		Address defAddrV6;
+#endif
 
 		std::vector<NetworkAddress> m_internalnetworks;
     	bool DynExtIP;

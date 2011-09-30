@@ -513,16 +513,16 @@ bool GkInterface::CreateListeners(RasServer *RasSrv)
 
 bool GkInterface::IsReachable(const Address *addr) const
 {
-	// return Toolkit::Instance()->GetRouteTable(false)->GetLocalAddress(*addr) == m_address;
-	// TODO: do we need  to call UnmapIPv4Address() here ?
-	bool result = false;
-	if (addr->GetVersion() == 4) {
-		result = (Toolkit::Instance()->GetRouteTable(false)->GetLocalAddress(*addr) == m_address);
-	} else {
-		// TODO: for now, use any IPv6 interface to reach a IPv6 destination, later, maybe fix GetLocalAddress with IPv6 parameter ?
-		result = (addr->GetVersion() == m_address.GetVersion());
-	}
-	return result;
+	return Toolkit::Instance()->GetRouteTable(false)->GetLocalAddress(*addr) == m_address;
+//	// TODO: do we need  to call UnmapIPv4Address() here ?
+//	bool result = false;
+//	if (addr->GetVersion() == 4) {
+//		result = (Toolkit::Instance()->GetRouteTable(false)->GetLocalAddress(*addr) == m_address);
+//	} else {
+//		// TODO: for now, use any IPv6 interface to reach a IPv6 destination, later, maybe fix GetLocalAddress with IPv6 parameter ?
+//		result = (addr->GetVersion() == m_address.GetVersion());
+//	}
+//	return result;
 }
 
 bool GkInterface::ValidateSocket(IPSocket *socket, WORD & port)
