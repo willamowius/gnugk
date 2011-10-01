@@ -7991,6 +7991,7 @@ bool H245ProxyHandler::RemoveLogicalChannel(WORD flcn)
 // class NATHandler
 void NATHandler::TranslateH245Address(H225_TransportAddress & h245addr)
 {
+	// TODO: IPv6 bug
 	if (h245addr.GetTag() == H225_TransportAddress::e_ipAddress) {
 		H225_TransportAddress_ipAddress & addr = h245addr;
 		for (int i = 0; i < 4; ++i)

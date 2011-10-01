@@ -708,6 +708,7 @@ void EndpointRec::SetNATAddress(const PIPSocket::Address & ip)
 	// we keep the original private IP in signaling address,
 	// because we have to use it to identify different endpoints
 	// but from the same NAT box
+	// TODO: IPv6 bug
 	if (m_rasAddress.GetTag() != H225_TransportAddress::e_ipAddress)
 		m_rasAddress.SetTag(H225_TransportAddress::e_ipAddress);
 	H225_TransportAddress_ipAddress & rasip = m_rasAddress;
@@ -817,6 +818,7 @@ PString EndpointRec::PrintOn(bool verbose) const
 
 bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason,  int preemption)
 {
+	// TODO: IPv6 bug
 	if (GetRasAddress().GetTag() != H225_TransportAddress::e_ipAddress)
 		return false;  // no valid ras address
 
@@ -870,6 +872,7 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason,  int preempti
 
 bool EndpointRec::SendIRQ()
 {
+	// TODO: IPv6 bug
 	if (m_pollCount <= 0 || GetRasAddress().GetTag() != H225_TransportAddress::e_ipAddress)
 		return false;
 	--m_pollCount;
@@ -1534,6 +1537,7 @@ public:
 		if (!ep)
 			return false;
 		H225_TransportAddress other = ep->GetCallSignalAddress();	// make a copy, we'll modify it temporarily!
+		// TODO: IPv6 bug
 		if ((SigAdr.GetTag() == H225_TransportAddress::e_ipAddress)
 			&& (other.GetTag() == H225_TransportAddress::e_ipAddress)) {
 			// set same port on copy as on other adr
@@ -2034,7 +2038,6 @@ void H46019KeepAlive::StopKeepAlive()
 	ossocket = 0;
 	if (timer != GkTimerManager::INVALID_HANDLE) {
 		Toolkit::Instance()->GetTimerManager()->UnregisterTimer(timer);
-		PTRACE(0, "JW KeepAlive stopped: " << timer);
 		timer = GkTimerManager::INVALID_HANDLE;
 	}
 }
@@ -2291,6 +2294,7 @@ CallRec::~CallRec()
 bool CallRec::CompareSigAdrIgnorePort(const H225_TransportAddress *adr) const
 {
 	H225_TransportAddress cmpAdr;
+	// TODO: IPv6 bug
 	if (!adr || (adr->GetTag() != H225_TransportAddress::e_ipAddress))
 		return false;
 	cmpAdr = *adr;	// make a copy, we'll temporarily modify it
@@ -3652,8 +3656,6 @@ void CallRec::StartRTPKeepAlive(unsigned flcn, int RTPOSSocket)
 		iter->second.timer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 				&(iter->second), &H46019KeepAlive::SendKeepAlive, now, iter->second.interval);	// do it now and every n seconds
 		PTRACE(0, "JW Starting RTP keepAlive OS socket=" << RTPOSSocket << " timer=" << iter->second.timer);
-	} else {
-		PTRACE(0, "JW RTP keepAlive data not found for flcn=" << flcn);
 	}
 }
 
@@ -3692,8 +3694,6 @@ void CallRec::StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket)
 		iter->second.timer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 				&(iter->second), &H46019KeepAlive::SendKeepAlive, now, iter->second.interval);	// do it now and every n seconds
 		PTRACE(0, "JW Starting RTCP keepAlive OS socket=" << RTCPOSSocket << " timer=" << iter->second.timer);
-	} else {
-		PTRACE(0, "JW RTCP keepAlive data not found for flcn=" << flcn);
 	}
 }
 
