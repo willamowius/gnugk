@@ -869,6 +869,8 @@ bool GRQRequester::SendRequest(const Address & addr, WORD pt, int r)
 	for (std::vector<Address>::iterator i = GKHome.begin(); i != GKHome.end(); ++i) {
 		if ((IsLoopback(addr) || IsLoopback(*i)) && addr != *i)
 			continue;
+		if (addr.GetVersion() != i->GetVersion())
+			continue;
 		GkInterface * inter = m_rasSrv->SelectInterface(*i);
 		if (inter == NULL)
 			return false;
