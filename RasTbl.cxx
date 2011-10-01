@@ -816,10 +816,10 @@ PString EndpointRec::PrintOn(bool verbose) const
 	return msg;
 }
 
-bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason,  int preemption)
+bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemption)
 {
-	// TODO: IPv6 bug
-	if (GetRasAddress().GetTag() != H225_TransportAddress::e_ipAddress)
+	if ((GetRasAddress().GetTag() != H225_TransportAddress::e_ipAddress)
+		&& (GetRasAddress().GetTag() != H225_TransportAddress::e_ip6Address))
 		return false;  // no valid ras address
 
 	RasServer *RasSrv = RasServer::Instance();
@@ -872,9 +872,12 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason,  int preempti
 
 bool EndpointRec::SendIRQ()
 {
-	// TODO: IPv6 bug
-	if (m_pollCount <= 0 || GetRasAddress().GetTag() != H225_TransportAddress::e_ipAddress)
+	if (m_pollCount <= 0)
 		return false;
+	if ((GetRasAddress().GetTag() != H225_TransportAddress::e_ipAddress)
+		&& (GetRasAddress().GetTag() != H225_TransportAddress::e_ip6Address)) {
+		return false;
+	}
 	--m_pollCount;
 	
 	RasServer *RasSrv = RasServer::Instance();
@@ -1537,11 +1540,14 @@ public:
 		if (!ep)
 			return false;
 		H225_TransportAddress other = ep->GetCallSignalAddress();	// make a copy, we'll modify it temporarily!
-		// TODO: IPv6 bug
 		if ((SigAdr.GetTag() == H225_TransportAddress::e_ipAddress)
 			&& (other.GetTag() == H225_TransportAddress::e_ipAddress)) {
 			// set same port on copy as on other adr
 			((H225_TransportAddress_ipAddress &)other).m_port = ((const H225_TransportAddress_ipAddress &)SigAdr).m_port;
+		} else if ((SigAdr.GetTag() == H225_TransportAddress::e_ip6Address)
+			&& (other.GetTag() == H225_TransportAddress::e_ip6Address)) {
+			// set same port on copy as on other adr
+			((H225_TransportAddress_ip6Address &)other).m_port = ((const H225_TransportAddress_ip6Address &)SigAdr).m_port;
 		}
 		return other == SigAdr;
 	}
@@ -2294,8 +2300,10 @@ CallRec::~CallRec()
 bool CallRec::CompareSigAdrIgnorePort(const H225_TransportAddress *adr) const
 {
 	H225_TransportAddress cmpAdr;
-	// TODO: IPv6 bug
-	if (!adr || (adr->GetTag() != H225_TransportAddress::e_ipAddress))
+	if (!adr)
+		return false;
+	if ((adr->GetTag() != H225_TransportAddress::e_ipAddress)
+		&& (adr->GetTag() != H225_TransportAddress::e_ip6Address))
 		return false;
 	cmpAdr = *adr;	// make a copy, we'll temporarily modify it
 	if (m_Calling && (m_Calling->GetCallSignalAddress().GetTag() == H225_TransportAddress::e_ipAddress)) {
@@ -2304,9 +2312,21 @@ bool CallRec::CompareSigAdrIgnorePort(const H225_TransportAddress *adr) const
 		if (m_Calling->GetCallSignalAddress() == cmpAdr)
 			return true;
 	}
+	if (m_Calling && (m_Calling->GetCallSignalAddress().GetTag() == H225_TransportAddress::e_ip6Address)) {
+		// set same port on copy as on other adr
+		((H225_TransportAddress_ip6Address &)cmpAdr).m_port = ((const H225_TransportAddress_ip6Address &)m_Calling->GetCallSignalAddress()).m_port;
+		if (m_Calling->GetCallSignalAddress() == cmpAdr)
+			return true;
+	}
 	if (m_Called && (m_Called->GetCallSignalAddress().GetTag() == H225_TransportAddress::e_ipAddress)) {
 		// set same port on copy as on other adr
 		((H225_TransportAddress_ipAddress &)cmpAdr).m_port = ((const H225_TransportAddress_ipAddress &)m_Called->GetCallSignalAddress()).m_port;
+		if (m_Calling->GetCallSignalAddress() == cmpAdr)
+			return true;
+	}
+	if (m_Called && (m_Called->GetCallSignalAddress().GetTag() == H225_TransportAddress::e_ip6Address)) {
+		// set same port on copy as on other adr
+		((H225_TransportAddress_ip6Address &)cmpAdr).m_port = ((const H225_TransportAddress_ip6Address &)m_Called->GetCallSignalAddress()).m_port;
 		if (m_Calling->GetCallSignalAddress() == cmpAdr)
 			return true;
 	}

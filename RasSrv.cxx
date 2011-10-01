@@ -1614,8 +1614,8 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		H225_GatekeeperConfirm & gcf = BuildConfirm();
 		gcf.m_protocolIdentifier = request.m_protocolIdentifier;
 		GetRasAddress(gcf.m_rasAddress);
-		// TODO: IPv6 bug
-		if (gcf.m_rasAddress.GetTag() == H225_TransportAddress::e_ipAddress) {
+		if ((gcf.m_rasAddress.GetTag() == H225_TransportAddress::e_ipAddress)
+			|| (gcf.m_rasAddress.GetTag() == H225_TransportAddress::e_ipAddress)) {
 			// make sure we respond with the unicast RAS IP and port, even if the GRQ came in through multicast
 			WORD unicastRasPort = (WORD)GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT);
 			H225_TransportAddress_ipAddress & rasip = gcf.m_rasAddress;
