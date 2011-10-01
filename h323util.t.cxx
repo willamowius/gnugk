@@ -37,9 +37,7 @@ protected:
 		ipv6socket_localhost = "::1";
 		// H.225 IPs
 		h225transport_withipv4 = SocketToH225TransportAddr(ipv4socket, 999);
-		h225transportipv4 = h225transport_withipv4;
 		h225transport_withipv6 = SocketToH225TransportAddr(ipv6socket, 1111);
-		h225transportipv6 = h225transport_withipv6;
 		h225transport_withipv6localhost = SocketToH225TransportAddr(ipv6socket_localhost, 1111);
 	}
 
@@ -51,8 +49,6 @@ protected:
 	H225_TransportAddress h225transport_withipv4;
 	H225_TransportAddress h225transport_withipv6;
 	H225_TransportAddress h225transport_withipv6localhost;
-	H225_TransportAddress_ipAddress h225transportipv4;
-	H225_TransportAddress_ip6Address h225transportipv6;
 };
 
 
@@ -60,6 +56,7 @@ TEST_F(H323UtilTest, PIPSocketAddressAsString) {
 	EXPECT_STREQ("3.4.5.6:777", AsString(ipv4socket, 777));
 	EXPECT_STREQ("[2001:db8:85a3:8d3:1319:8a2e:370:7344]:888", AsString(ipv6socket, 888));
 	EXPECT_STREQ("[::1]:888", AsString(ipv6socket_localhost, 888));
+	EXPECT_STREQ("::1", AsString(ipv6socket_localhost));
 }
 
 TEST_F(H323UtilTest, H245UnicastIPAddressAsString) {
@@ -70,14 +67,13 @@ TEST_F(H323UtilTest, H245UnicastIPAddressAsString) {
 TEST_F(H323UtilTest, H225TransportAddressAsString) {
 	EXPECT_TRUE(AsString(h225transport_withipv4).Find("03 04 05 06") != P_MAX_INDEX);
 	EXPECT_STREQ("3.4.5.6:999", AsDotString(h225transport_withipv4));
-	EXPECT_STREQ("3.4.5.6:999", AsString(h225transportipv4));
-	EXPECT_STREQ("3.4.5.6:999", AsString(h225transportipv4, true));
-	EXPECT_STREQ("3.4.5.6",     AsString(h225transportipv4, false));
-	EXPECT_TRUE(AsString(h225transport_withipv6).Find("20 01 0d b8 85 a3 08 d3") != P_MAX_INDEX);
+	EXPECT_STREQ("3.4.5.6:999", AsDotString(h225transport_withipv4));
+	EXPECT_STREQ("3.4.5.6:999", AsDotString(h225transport_withipv4, true));
+	EXPECT_STREQ("3.4.5.6",     AsDotString(h225transport_withipv4, false));
 	EXPECT_STREQ("[2001:db8:85a3:8d3:1319:8a2e:370:7344]:1111", AsDotString(h225transport_withipv6));
 	EXPECT_STREQ("[::1]:1111", AsDotString(h225transport_withipv6localhost));
-	EXPECT_STREQ("[2001:db8:85a3:8d3:1319:8a2e:370:7344]:1111", AsString(h225transportipv6, true));
-	EXPECT_STREQ("2001:db8:85a3:8d3:1319:8a2e:370:7344",     AsString(h225transportipv6, false));
+	EXPECT_STREQ("[2001:db8:85a3:8d3:1319:8a2e:370:7344]:1111", AsDotString(h225transport_withipv6, true));
+	EXPECT_STREQ("2001:db8:85a3:8d3:1319:8a2e:370:7344",        AsDotString(h225transport_withipv6, false));
 }
 
 TEST_F(H323UtilTest, EndpointTypeAsString) {

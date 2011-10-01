@@ -22,16 +22,15 @@ PString AsString(const PIPSocket::Address & ip)
 {
 	if (ip.GetVersion() == 4)
 		return PString(PString::Printf, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
-	if (ip.GetVersion() == 6)
-		return PString(PString::Printf, "%x:%x:%x:%x:%x:%x:%x:%x",
-			ip[0] * 256 + ip[1],
-			ip[2] * 256 + ip[3],
-			ip[4] * 256 + ip[5],
-			ip[6] * 256 + ip[7],
-			ip[8] * 256 + ip[9],
-			ip[10] * 256 + ip[11],
-			ip[12] * 256 + ip[13],
-			ip[14] * 256 + ip[15]);
+#ifdef hasIPV6
+  	if (ip.GetVersion() == 6) {
+		char buf[INET6_ADDRSTRLEN];
+		sockaddr_in6 ipv6addr;
+		memset(&ipv6addr, 0, sizeof(ipv6addr));
+		ipv6addr.sin6_addr = ip;
+		return inet_ntop(AF_INET6, &ipv6addr.sin6_addr, buf, INET6_ADDRSTRLEN);
+	}
+#endif
 	return ip.AsString();
 }
 
@@ -39,17 +38,9 @@ PString AsString(const PIPSocket::Address & ip, WORD pt)
 {
 	if (ip.GetVersion() == 4)
 		return PString(PString::Printf, "%d.%d.%d.%d:%u", ip[0], ip[1], ip[2], ip[3], pt);
-	if (ip.GetVersion() == 6)
-		return PString(PString::Printf, "[%x:%x:%x:%x:%x:%x:%x:%x]:%u",
-			ip[0] * 256 + ip[1],
-			ip[2] * 256 + ip[3],
-			ip[4] * 256 + ip[5],
-			ip[6] * 256 + ip[7],
-			ip[8] * 256 + ip[9],
-			ip[10] * 256 + ip[11],
-			ip[12] * 256 + ip[13],
-			ip[14] * 256 + ip[15],
-			pt);
+	if (ip.GetVersion() == 6) {
+		return "[" + AsString(ip) + "]:" + PString(pt);
+	}
 	return "[" + ip.AsString() + "]:" + PString(pt);
 }
 
@@ -111,47 +102,17 @@ PString AsString(const H225_TransportAddress & ta)
 	return stream;
 }
 
-PString AsDotString(const H225_TransportAddress & ip, bool showPort)
+PString AsDotString(const H225_TransportAddress & addr, bool showPort)
 {
-	PString result = "unknown transport";
-	if (ip.IsValid() && ip.GetTag() == H225_TransportAddress::e_ipAddress)
-		result = AsString((const H225_TransportAddress_ipAddress &)ip, showPort);
-	if (ip.IsValid() && ip.GetTag() == H225_TransportAddress::e_ip6Address)
-		result = AsString((const H225_TransportAddress_ip6Address &)ip, showPort);
-	return result;
-}
-
-PString AsString(const H225_TransportAddress_ipAddress & ip, bool showPort)
-{
-	if (showPort) {
-		return PString(PString::Printf, "%d.%d.%d.%d:%u",
-			ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3],
-			ip.m_port.GetValue());
-	} else {
-		return PString(PString::Printf, "%d.%d.%d.%d",
-			ip.m_ip[0], ip.m_ip[1], ip.m_ip[2], ip.m_ip[3]);
+	PString result = "invalid address";
+	PIPSocket::Address ip;
+	WORD port = 0;
+	if (GetIPAndPortFromTransportAddr(addr, ip, port)) {
+		if (showPort)
+			result = AsString(ip, port);
+		else
+			result = AsString(ip);
 	}
-}
-
-PString AsString(const H225_TransportAddress_ip6Address & ip, bool showPort)
-{
-	PString result = PString(PString::Printf, "%x:%x:%x:%x:%x:%x:%x:%x",
-		ip.m_ip[0] * 256 + ip.m_ip[1],
-		ip.m_ip[2] * 256 + ip.m_ip[3],
-		ip.m_ip[4] * 256 + ip.m_ip[5],
-		ip.m_ip[6] * 256 + ip.m_ip[7],
-		ip.m_ip[8] * 256 + ip.m_ip[9],
-		ip.m_ip[10] * 256 + ip.m_ip[11],
-		ip.m_ip[12] * 256 + ip.m_ip[13],
-		ip.m_ip[14] * 256 + ip.m_ip[15]
-	);
-	// JW TODO: optimize to leave out consecutive blocks of zeros
-//	result.Replace(":0:", "::", true);
-//	result.Replace(":0:", "::", true);
-//	result.Replace(":::", "::", true);
-//	result.Replace(":::", "::", true);
-	if (showPort)
-		result = "[" + result + PString("]:") + PString(ip.m_port.GetValue());
 	return result;
 }
 

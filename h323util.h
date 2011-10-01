@@ -45,10 +45,6 @@ PString AsString(const H225_TransportAddress & ta);
 
 PString AsDotString(const H225_TransportAddress & ip, bool showPort=true);
 
-PString AsString(const H225_TransportAddress_ipAddress & ip, bool showPort=true);
-
-PString AsString(const H225_TransportAddress_ip6Address & ip, bool showPort=true);
-
 PString AsString(const H225_EndpointType & terminalType);
 
 PString AsString(const H225_AliasAddress & terminalAlias, bool includeAliasName = TRUE);
