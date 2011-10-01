@@ -708,12 +708,17 @@ void EndpointRec::SetNATAddress(const PIPSocket::Address & ip)
 	// we keep the original private IP in signaling address,
 	// because we have to use it to identify different endpoints
 	// but from the same NAT box
-	// TODO: IPv6 bug
-	if (m_rasAddress.GetTag() != H225_TransportAddress::e_ipAddress)
+	if (ip.GetVersion() == 6) {
+		m_rasAddress.SetTag(H225_TransportAddress::e_ip6Address);
+		H225_TransportAddress_ip6Address & rasip = m_rasAddress;
+		for (int i = 0; i < 16; ++i)
+			rasip.m_ip[i] = ip[i];
+	} else {
 		m_rasAddress.SetTag(H225_TransportAddress::e_ipAddress);
-	H225_TransportAddress_ipAddress & rasip = m_rasAddress;
-	for (int i = 0; i < 4; ++i)
-		rasip.m_ip[i] = ip[i];
+		H225_TransportAddress_ipAddress & rasip = m_rasAddress;
+		for (int i = 0; i < 4; ++i)
+			rasip.m_ip[i] = ip[i];
+	}
 }
 
 
