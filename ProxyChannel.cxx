@@ -7991,15 +7991,15 @@ bool H245ProxyHandler::RemoveLogicalChannel(WORD flcn)
 // class NATHandler
 void NATHandler::TranslateH245Address(H225_TransportAddress & h245addr)
 {
-	// TODO: IPv6 bug ? set address tags ?
-	if (h245addr.GetTag() == H225_TransportAddress::e_ipAddress) {
+	if (remoteAddr.GetVersion() == 6) {
+		h245addr.SetTag(H225_TransportAddress::e_ip6Address);
+		H225_TransportAddress_ip6Address & addr = h245addr;
+		for (int i = 0; i < 16; ++i)
+			addr.m_ip[i] = remoteAddr[i];
+	} else {
+		h245addr.SetTag(H225_TransportAddress::e_ipAddress);
 		H225_TransportAddress_ipAddress & addr = h245addr;
 		for (int i = 0; i < 4; ++i)
-			addr.m_ip[i] = remoteAddr[i];
-	}
-	if (h245addr.GetTag() == H225_TransportAddress::e_ip6Address) {
-		H225_TransportAddress_ipAddress & addr = h245addr;
-		for (int i = 0; i < 16; ++i)
 			addr.m_ip[i] = remoteAddr[i];
 	}
 }
