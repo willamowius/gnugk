@@ -313,7 +313,7 @@ bool BroadcastListener::Filter(GatekeeperMessage *msg) const
 	if (tag == H225_RasMessage::e_gatekeeperRequest
 		|| tag == H225_RasMessage::e_locationRequest)
 		return true;
-	PTRACE(1, "RAS\tUnknown broadcasted RAS message " << msg->GetTagName());
+	PTRACE(1, "RAS\tIgnoring broadcasted RAS message " << msg->GetTagName());
 	return false;
 }
 
@@ -514,15 +514,6 @@ bool GkInterface::CreateListeners(RasServer *RasSrv)
 bool GkInterface::IsReachable(const Address *addr) const
 {
 	return Toolkit::Instance()->GetRouteTable(false)->GetLocalAddress(*addr) == m_address;
-//	// TODO: do we need  to call UnmapIPv4Address() here ?
-//	bool result = false;
-//	if (addr->GetVersion() == 4) {
-//		result = (Toolkit::Instance()->GetRouteTable(false)->GetLocalAddress(*addr) == m_address);
-//	} else {
-//		// TODO: for now, use any IPv6 interface to reach a IPv6 destination, later, maybe fix GetLocalAddress with IPv6 parameter ?
-//		result = (addr->GetVersion() == m_address.GetVersion());
-//	}
-//	return result;
 }
 
 bool GkInterface::ValidateSocket(IPSocket *socket, WORD & port)
@@ -549,7 +540,6 @@ RasListener *GkInterface::CreateRasListener()
 
 MulticastListener *GkInterface::CreateMulticastListener()
 {
-	// TODO: IPv6 version of multicast listener ? additional check if this is a IPv6 maped IPv4 address !
 	return (m_multicastPort && !IsLoopback(m_address) && (m_address.GetVersion() != 6)) ? new MulticastListener(m_address, m_multicastPort) : 0;
 }
 
@@ -903,9 +893,9 @@ void RasServer::LoadConfig()
 	}
 
 #if NEED_BROADCASTLISTENER
-	// TODO: IPv6 doesn't have broadcast, open IPv4 broadcast listener on another interface if first is IPv6 ?
-	if (bUseBroadcastListener && !broadcastListener && (interfaces.front()->GetAddress().GetVersion() != 6)) {
-		broadcastListener = new BroadcastListener(interfaces.front()->GetRasPort());
+	if (bUseBroadcastListener && !broadcastListener) {
+		WORD rasPort = (WORD)GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT);
+		broadcastListener = new BroadcastListener(rasPort);
 		if (broadcastListener->IsOpen()) {
 			PTRACE(1, "RAS\tBroadcast listener listening at " << broadcastListener->GetName());
 			AddSocket(broadcastListener);
