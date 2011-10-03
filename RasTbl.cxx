@@ -2033,6 +2033,7 @@ void RegistrationTable::CheckEndpoints()
 }
 
 
+#ifdef HAS_H46018
 H46019KeepAlive::H46019KeepAlive()
 {
 	seq = 1;
@@ -2108,6 +2109,7 @@ void H46019KeepAlive::SendKeepAlive(GkTimer * t)
 		}
 	}
 }
+#endif
 	
 
 CallRec::CallRec(
@@ -2298,7 +2300,9 @@ CallRec::CallRec(
 
 CallRec::~CallRec()
 {
+#ifdef HAS_H46018
 	RemoveKeepAllAlives();
+#endif
 	PTRACE(3, "Gk\tDelete Call No. " << m_CallNumber);
 }
  

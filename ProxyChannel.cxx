@@ -5689,9 +5689,11 @@ void H245Socket::ConnectTo()
 			remote->SetConnected(true);
 			GetHandler()->Insert(this, remote);
 			ConfigReloadMutex.EndRead();
+#ifdef HAS_H46018
 			if (sigSocket && sigSocket->IsCallFromTraversalServer()) {
 				SendH46018Indication();
 			}
+#endif
 			return;
 		}
 	}
