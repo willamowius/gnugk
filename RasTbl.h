@@ -38,6 +38,7 @@ class USocket;
 class CallSignalSocket;
 class RasServer;
 class Q931;
+class H323TransportAddress;
 
 enum CallLeg { Caller, Called };
 enum RerouteState { NoReroute, RerouteInitiated, Rerouting };

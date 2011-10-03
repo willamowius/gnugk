@@ -2232,8 +2232,11 @@ CallRec::CallRec(H225_CallIdentifier callID, H225_TransportAddress sigAdr)
 	m_bandwidth(1280), m_setupTime(0), m_alertingTime(0), m_connectTime(0), 
 	m_disconnectTime(0), m_disconnectCause(0), m_disconnectCauseTranslated(0), m_releaseSource(-1),
 	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
-	m_callingSocket(NULL), m_calledSocket(NULL),
-	m_usedCount(0), m_nattype(none),m_natstrategy(e_natUnknown), m_unregNAT(false), m_h245Routed(true),
+	m_callingSocket(NULL), m_calledSocket(NULL), m_usedCount(0), m_nattype(none),
+#if HAS_H46023
+	m_natstrategy(e_natUnknown),
+#endif
+	m_unregNAT(false), m_h245Routed(true),
 	m_toParent(false), m_forwarded(false), m_proxyMode(ProxyEnabled),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
