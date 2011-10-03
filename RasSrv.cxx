@@ -3658,7 +3658,16 @@ template<> bool RasPDU<H225_ResourcesAvailableIndicate>::Process()
 template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 {
 	// OnSCI
+	endptr ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
+	if (ep && RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
+		if (GetIPAndPortFromTransportAddr(ep->GetRasAddress(), m_msg->m_peerAddr, m_msg->m_peerPort)) {
+			PTRACE(3, "Reply to saved rasAddress:" << m_msg->m_peerAddr << ":" << m_msg->m_peerPort);
+		} else {
+			PTRACE(1, "Unable to parse saved rasAddress " << ep->GetRasAddress());
+		}
+	} 
 	H225_ServiceControlResponse & scr = BuildConfirm();
+	scr.m_requestSeqNum = request.m_requestSeqNum; // redundant, just to avoid compiler warning when H.460.18 is disabled
  
 #ifdef HAS_H46018
 	bool incomingCall = false;
