@@ -1,6 +1,6 @@
 <sect>Advanced Topics
 <p>
-This portion of the manual will cover advanced topics, such as compiling GnuGk.
+This portion of the manual will cover advanced topics, such as compiling and debugging GnuGk.
 
 <sect1>Compiling GnuGk from CVS
 <label id="compile">
@@ -71,6 +71,43 @@ $ cd ~/openh323gk
 $ cvs update
 </verb>
 If any of the source files are changed, you have to recompile.
+
+<sect1>Tracing GnuGk
+<label id="tracing">
+<p>
+If GnuGk doesn't handle calls like you expect, you can enable tracing to see what GnuGk does internally.
+Don't confuse this with connection to the status port and looking at the events ("telnet 127.0.0.1 7000").
+Creating a trace file will reveal a lot more of the internal workings.
+
+On the command line, start GnuGk with -ttttt and -o to write the trace to a file:
+<verb>
+gnugk -c gnugk.ini -ttttt -o trace.log
+</verb> 
+
+If you have a lot of calls, trace.log can grow quite large, so make sure you disable it after you
+are done with testing, or at least reduce the trace level to 2 or 3 for production.
+
+You can also enable tracing in your config file:
+<verb>
+[Gatekeeper::Main]
+TraceLevel=5
+
+[LogFile]
+Filename=trace.log
+</verb> 
+
+Or you can enable tracing through the status port:
+<verb>
+setlog trace.log
+debug trc 5
+</verb> 
+
+Doing it through the status port has the advantage that you won't interrupt ongoing calls
+and you can quickly turn it on or off.
+
+The trace file will contain information al everything GnuGk does. To reduce it to a single call,
+you can eg. search for the callID or write a small Perl script to extract only those messages
+you are interested in.
 
 <sect1>Debugging GnuGk (on Linux)
 <label id="debug">
