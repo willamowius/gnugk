@@ -315,7 +315,7 @@ the first keepAlive SCI message.
 <tt/H46018Client=0/<newline>
 <tt/H46018Server=1/<newline>
 <tt/AuthUser=clientuser/<newline>
-<tt/Password=&lt;encoded client pw&gt;/<newline>
+<tt/Password=clientpw/<newline>
 <newline>
 </descrip>
 
@@ -323,9 +323,22 @@ the first keepAlive SCI message.
 <label id="traversalserver">
 <p>
 To configure a traversal zone with a Tandberg VCS, add a Zone of type "Traversal server" in the VCS.
-
+For being a traversal server, the VCS usually uses a different port, so make sure you add the port to the Host switch.
 Set H46018Client=1 in the [Neighbor::..] section.
 
 Please note that for any password authentication to work, both neighbors must use a syncronized time,
 so they both should have an NTP server configured.
+
+<descrip>
+<tag/Example:/
+<tt/[Neighbor::VCSServer]/<newline>
+<tt/Host=20.75.127.30:6007/<newline>
+<tt/SendPrefixes=*/<newline>
+<tt/AcceptPrefixes=*/<newline>
+<tt/H46018Client=1/<newline>
+<tt/H46018Server=1/<newline>
+<tt/SendAuthUser=serveruser/<newline>
+<tt/SendPassword=serverpw/<newline>
+<newline>
+</descrip>
 
