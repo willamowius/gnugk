@@ -154,7 +154,7 @@ public:
 	PString PrintPrefixCapacities() const;
 
 	void SetNAT(bool nat);
-	void SetNATAddress(const PIPSocket::Address &);
+	void SetNATAddress(const PIPSocket::Address &, WORD port = 0);
 	void SetSocket(CallSignalSocket *);
 	void SetH46024(bool support);
 	void SetH46024A(bool support);

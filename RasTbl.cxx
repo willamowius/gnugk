@@ -698,7 +698,7 @@ void EndpointRec::SetEndpointType(const H225_EndpointType &t)
 	LoadConfig(); // update settings for the new endpoint type
 }
 
-void EndpointRec::SetNATAddress(const PIPSocket::Address & ip)
+void EndpointRec::SetNATAddress(const PIPSocket::Address & ip, WORD port)
 {
 	PWaitAndSignal lock(m_usedLock);
 
@@ -713,11 +713,13 @@ void EndpointRec::SetNATAddress(const PIPSocket::Address & ip)
 		H225_TransportAddress_ip6Address & rasip = m_rasAddress;
 		for (int i = 0; i < 16; ++i)
 			rasip.m_ip[i] = ip[i];
+		rasip.m_port = port;
 	} else {
 		m_rasAddress.SetTag(H225_TransportAddress::e_ipAddress);
 		H225_TransportAddress_ipAddress & rasip = m_rasAddress;
 		for (int i = 0; i < 4; ++i)
 			rasip.m_ip[i] = ip[i];
+		rasip.m_port = port;
 	}
 }
 
