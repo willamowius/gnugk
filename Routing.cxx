@@ -585,10 +585,28 @@ bool ParentPolicy::OnRequest(FacilityRequest & facility_obj)
 	return !(facility_obj.GetFlags() & RoutingRequest::e_fromParent) && m_gkClient->SendARQ(facility_obj);
 }
 
+
 DNSPolicy::DNSPolicy()
 {
 	m_name = "DNS";
 	m_resolveNonLocalLRQs = Toolkit::AsBool(GkConfig()->GetString("Routing::DNS", "ResolveNonLocalLRQ", "1"));
+}
+
+bool DNSPolicy::DNSLookup(const PString & hostname, PIPSocket::Address & addr) const
+{
+	struct addrinfo hints;
+	struct addrinfo * result = NULL;
+	bzero(&hints, sizeof(hints));
+	if (Toolkit::Instance()->IsIPv6Enabled()) {
+		hints.ai_family = AF_UNSPEC;
+	} else {
+		hints.ai_family = AF_INET;
+	}
+	if (getaddrinfo(hostname, NULL, &hints, &result) != 0)
+		return false;
+	addr = PIPSocket::Address(result->ai_family, result->ai_addrlen, result->ai_addr);
+	freeaddrinfo(result);
+	return true;
 }
 
 bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
@@ -603,11 +621,9 @@ bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 		PString domain = (at != P_MAX_INDEX) ? alias.Mid(at + 1) : alias;
 		if (domain.Find("ip$") == 0)
 			domain.Replace("ip$", "", false);
-		H225_TransportAddress dest;
-		if (GetTransportAddress(domain, GK_DEF_ENDPOINT_SIGNAL_PORT, dest)) {
-			PIPSocket::Address addr;
-			if (!(GetIPFromTransportAddr(dest, addr) && addr.IsValid()))
-				continue;
+		PIPSocket::Address addr;
+		if (DNSLookup(domain, addr) && addr.IsValid()) {
+			H225_TransportAddress dest = SocketToH225TransportAddr(addr, GK_DEF_ENDPOINT_SIGNAL_PORT);
 			if (Toolkit::Instance()->IsGKHome(addr)) {
 				// check if the domain is my IP, if so route to local endpoint if available
 				H225_ArrayOf_AliasAddress find_aliases;
@@ -645,11 +661,9 @@ bool DNSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 		PString domain = (at != P_MAX_INDEX) ? alias.Mid(at + 1) : alias;
 		if (domain.Find("ip$") == 0)
 			domain.Replace("ip$", "", false);
-		H225_TransportAddress dest;
-		if (GetTransportAddress(domain, GK_DEF_ENDPOINT_SIGNAL_PORT, dest)) {
-			PIPSocket::Address addr;
-			if (!(GetIPFromTransportAddr(dest, addr) && addr.IsValid()))
-				continue;
+		PIPSocket::Address addr;
+		if (DNSLookup(domain, addr) && addr.IsValid()) {
+			H225_TransportAddress dest = SocketToH225TransportAddr(addr, GK_DEF_ENDPOINT_SIGNAL_PORT);
 			if (Toolkit::Instance()->IsGKHome(addr)) {
 				// only apply DNS policy to LRQs that resolve locally
 				H225_ArrayOf_AliasAddress find_aliases;

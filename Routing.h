@@ -329,6 +329,8 @@ protected:
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
 	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
 
+	virtual bool DNSLookup(const PString & hostname, PIPSocket::Address & addr) const;
+
 	static bool m_resolveNonLocalLRQs;
 };
 
