@@ -41,7 +41,7 @@ PString AsString(const PIPSocket::Address & ip, WORD pt)
 	if (ip.GetVersion() == 6) {
 		return "[" + AsString(ip) + "]:" + PString(pt);
 	}
-	return "[" + ip.AsString() + "]:" + PString(pt);
+	return ip.AsString() + ":" + PString(pt);
 }
 
 PString AsString(const H245_UnicastAddress & ip)
