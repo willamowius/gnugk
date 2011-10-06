@@ -336,9 +336,10 @@ void Toolkit::RouteTable::InitTable()
 	if (Toolkit::Instance()->IsIPv6Enabled())
 		PTRACE(2, "Default IP IPv4=" << defAddr << " IPv6=" << defAddrV6);
 	else
-#else
-		PTRACE(2, "Default IP=" << defAddr);
 #endif
+	{
+		PTRACE(2, "Default IP=" << defAddr);
+	}
 	if (defAddr.IsLoopback()) {
 		PTRACE(1, "WARNING: Your default IP=" << defAddr << " is a loopback address. That probably won't work!");
 	}
@@ -447,6 +448,13 @@ for(PINDEX i=0; i < if_table.GetSize(); ++i) {
 		PTRACE(1, "Error: Can't get route table");
 		return false;
 	}
+	// filter out IPv6 networks if IPv6 is not enabled
+	for(PINDEX i=0; i < r_table.GetSize(); ++i) {
+		if ((r_table[i].GetNetwork().GetVersion() == 6)
+			&& !Toolkit::Instance()->IsIPv6Enabled()) {
+				r_table.RemoveAt(i--);
+			}
+	}
 PTRACE(0, "JW route table size=" << r_table.GetSize());
 for(PINDEX i=0; i < r_table.GetSize(); ++i) {
 	PTRACE(0, "JW entry " << i << ": net=" << r_table[i].GetNetwork() << " mask=" << r_table[i].GetNetMask() << " dest=" << r_table[i].GetDestination() << " metric=" << r_table[i].GetMetric());
@@ -454,7 +462,7 @@ for(PINDEX i=0; i < r_table.GetSize(); ++i) {
 
 	if (/*!extroute &&*/ AsBool(GkConfig()->GetString(ProxySection, "Enable", "0"))) {
 		for (PINDEX i = 0; i < r_table.GetSize(); ++i) {
-			if (r_table[i].GetNetwork().IsRFC1918() && r_table[i].GetNetMask().AsString() != "255.255.255.255") {
+			if (r_table[i].GetNetwork().IsRFC1918()	&& (r_table[i].GetNetMask().AsString() != "255.255.255.255")) {
 				PString intAddr = r_table[i].GetNetwork().AsString() + "/" + r_table[i].GetNetMask().AsString();
 				m_internalnetworks.resize( m_internalnetworks.size() + 1);
 				m_internalnetworks[m_internalnetworks.size() - 1] = NetworkAddress(intAddr);
