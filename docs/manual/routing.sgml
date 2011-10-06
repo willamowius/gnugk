@@ -549,7 +549,8 @@ is removed only when the call is sent to a terminal, not a gateway.
 <tt>in:CALLER_IP=[pi=[allow|restrict][,forward|apply|applyforterminals]] [cli:|dno:]number_prefix(=|*=|~=|^=|/=)NEW_CLI[,NEW_CLI]...</tt>
 <p>
 The <tt/in:/ prefix tells that this is an inbound rule and the <tt/CALLER_IP/
-will be used to match the rule (it can be a single IP or an entire subnet).<newline>
+will be used to match the rule (it can be a single IP or an entire subnet).
+You can use IPv4 or IPv6 addresses for the <tt/CALLER_IP/.<newline>
 
 The optional <tt/pi=/ parameter controls CLIR (Calling Line Identification Restriction)
 features. Specifying either <tt/allow/ or <tt/restrict/ forces presentation indicator
@@ -608,13 +609,15 @@ These rules state that for calls from the IP 192.168.1.1:
 [RewriteCLI]
 in:192.168.1.0/24=any=18001111
 in:192.168.2.0/24=any=18002222
+in:2002:4ad0:ff00:79a::2/64=any=18003333
 in:any=any=0
 </verb></tscreen>
 <p>
 These rules state that:
 1) for calls from the network 192.168.1.0/24, set CLI to 18001111,
 2) for calls from the network 192.168.2.0/24, set CLI to 18002222,
-3) for other calls, set CLI to 0.
+3) for calls from the network 2002:4ad0:ff00:79a::2/64, set CLI to 18003333,
+4) for other calls, set CLI to 0.
 
 <tag/Example 3:/
 <tscreen><verb>
