@@ -28,7 +28,13 @@ PString AsString(const PIPSocket::Address & ip)
 		sockaddr_in6 ipv6addr;
 		memset(&ipv6addr, 0, sizeof(ipv6addr));
 		ipv6addr.sin6_addr = ip;
+#ifdef _WIN32
+		DWORD socksize = sizeof(ipv6addr);
+		WSAAddressToString((LPSOCKADDR)&ipv6addr.sin6_addr, sizeof(ipv6addr), NULL, (LPSTR)buf, &socksize);
+		return PString(buf);
+#else
 		return inet_ntop(AF_INET6, &ipv6addr.sin6_addr, buf, INET6_ADDRSTRLEN);
+#endif
 	}
 #endif
 	return ip.AsString();
