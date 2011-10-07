@@ -596,7 +596,7 @@ bool DNSPolicy::DNSLookup(const PString & hostname, PIPSocket::Address & addr) c
 {
 	struct addrinfo hints;
 	struct addrinfo * result = NULL;
-	bzero(&hints, sizeof(hints));
+	memset(&hints, 0, sizeof(hints));
 	if (Toolkit::Instance()->IsIPv6Enabled()) {
 		hints.ai_family = AF_UNSPEC;
 	} else {
