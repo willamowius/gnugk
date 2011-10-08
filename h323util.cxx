@@ -361,6 +361,86 @@ PStringArray SplitIPAndPort(const PString & str, WORD default_port)
 	}
 }
 
+void SetSockaddr(sockaddr_in & sin, const PIPSocket::Address & ip, WORD port)
+{
+	memset(&sin, 0, sizeof(sin));
+	sin.sin_family = AF_INET;
+	sin.sin_addr = ip;
+	sin.sin_port = htons(port);
+}
+
+void SetSockaddr(sockaddr_in & sin, const H323TransportAddress & addr)
+{
+	PIPSocket::Address ip;
+	WORD port = 0;
+	addr.GetIpAndPort(ip, port);
+	memset(&sin, 0, sizeof(sin));
+	sin.sin_family = AF_INET;
+	sin.sin_addr = ip;
+	sin.sin_port = htons(port);
+}
+
+void SetSockaddr(sockaddr_in & sin, const H245_UnicastAddress & addr)
+{
+	PStringArray parts = SplitIPAndPort(AsString(addr), 0);
+	PIPSocket::Address ip(parts[0]);
+	WORD port = (WORD)parts[1].AsUnsigned();
+	memset(&sin, 0, sizeof(sin));
+	sin.sin_family = AF_INET;
+	sin.sin_addr = ip;
+	sin.sin_port = htons(port);
+}
+
+#ifdef hasIPV6
+void SetSockaddr(sockaddr_in6 & sin6, const PIPSocket::Address & ip, WORD port)
+{
+	memset(&sin6, 0, sizeof(sin6));
+	if (ip.GetVersion() == 6) {
+		sin6.sin6_family = AF_INET6;
+		sin6.sin6_addr = ip;
+		sin6.sin6_port = htons(port);
+	} else {
+		((struct sockaddr_in*)&sin6)->sin_family = AF_INET;
+		((struct sockaddr_in*)&sin6)->sin_addr = ip;
+		((struct sockaddr_in*)&sin6)->sin_port = htons(port);
+	}
+}
+
+void SetSockaddr(sockaddr_in6 & sin6, const H323TransportAddress & addr)
+{
+	PIPSocket::Address ip;
+	WORD port = 0;
+	addr.GetIpAndPort(ip, port);
+	memset(&sin6, 0, sizeof(sin6));
+	if (ip.GetVersion() == 6) {
+		sin6.sin6_family = AF_INET6;
+		sin6.sin6_addr = ip;
+		sin6.sin6_port = htons(port);
+	} else {
+		((struct sockaddr_in*)&sin6)->sin_family = AF_INET;
+		((struct sockaddr_in*)&sin6)->sin_addr = ip;
+		((struct sockaddr_in*)&sin6)->sin_port = htons(port);
+	}
+}
+
+void SetSockaddr(sockaddr_in6 & sin6, const H245_UnicastAddress & addr)
+{
+	PStringArray parts = SplitIPAndPort(AsString(addr), 0);
+	PIPSocket::Address ip(parts[0]);
+	WORD port = (WORD)parts[1].AsUnsigned();
+	memset(&sin6, 0, sizeof(sin6));
+	if (ip.GetVersion() == 6) {
+		sin6.sin6_family = AF_INET6;
+		sin6.sin6_addr = ip;
+		sin6.sin6_port = htons(port);
+	} else {
+		((struct sockaddr_in*)&sin6)->sin_family = AF_INET;
+		((struct sockaddr_in*)&sin6)->sin_addr = ip;
+		((struct sockaddr_in*)&sin6)->sin_port = htons(port);
+	}
+}
+#endif
+
 bool IsIPAddress(const PString & addr)
 {
 	return (IsIPv4Address(addr) || IsIPv6Address(addr));

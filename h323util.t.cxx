@@ -12,6 +12,7 @@
  *
  */
 
+#include "config.h"
 #include "h323util.h"
 #include <h323pdu.h>
 #include "gtest/gtest.h"
@@ -39,6 +40,8 @@ protected:
 		h225transport_withipv4 = SocketToH225TransportAddr(ipv4socket, 999);
 		h225transport_withipv6 = SocketToH225TransportAddr(ipv6socket, 1111);
 		h225transport_withipv6localhost = SocketToH225TransportAddr(ipv6socket_localhost, 1111);
+		h323transport_withipv4 = H323TransportAddress(PIPSocket::Address("6.7.8.9"), 4567);
+		h323transport_withipv6 = H323TransportAddress(PIPSocket::Address("2001:0db8:85a3:08d3:1319:8a2e:0370:7344"), 5678);
 	}
 
 	H245_UnicastAddress h245unicast;
@@ -49,6 +52,8 @@ protected:
 	H225_TransportAddress h225transport_withipv4;
 	H225_TransportAddress h225transport_withipv6;
 	H225_TransportAddress h225transport_withipv6localhost;
+	H323TransportAddress h323transport_withipv4;
+	H323TransportAddress h323transport_withipv6;
 };
 
 
@@ -133,6 +138,36 @@ TEST_F(H323UtilTest, ByteArrayAsString) {
 	bytes[2] = 07;
 	bytes[3] = 'c';
 	EXPECT_STREQ("abc", AsString(bytes));
+}
+
+TEST_F(H323UtilTest, SetSockaddr) {
+	// H323TransportAddress IPv4 version
+	struct sockaddr_in sin;
+	SetSockaddr(sin, h323transport_withipv4);
+	WORD port = ntohs(sin.sin_port);
+	EXPECT_EQ(port, 4567);
+	// H245_UnicastAddress IPv4 version
+	SetSockaddr(sin, h245unicast);
+	port = ntohs(sin.sin_port);
+	EXPECT_EQ(port, 555);
+	// PIPSocket::Address IPv4 version
+	SetSockaddr(sin, ipv4socket, 333);
+	port = ntohs(sin.sin_port);
+	EXPECT_EQ(port, 333);
+#ifdef hasIPV6
+	// H323TransportAddress IPv6 version
+	struct sockaddr_in6 sin6;
+	SetSockaddr(sin6, h323transport_withipv4);
+	port = ntohs(sin6.sin6_port);
+	EXPECT_EQ(port, 4567);
+	SetSockaddr(sin6, h323transport_withipv6);
+	port = ntohs(sin6.sin6_port);
+	EXPECT_EQ(port, 5678);
+	// PIPSocket::Address IPv6 version
+	SetSockaddr(sin6, ipv6socket, 444);
+	port = ntohs(sin6.sin6_port);
+	EXPECT_EQ(port, 444);
+#endif
 }
 
 TEST_F(H323UtilTest, IsIPAddress) {

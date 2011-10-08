@@ -17,7 +17,10 @@
 
 #include <ptlib.h>
 #include <ptlib/sockets.h>
-#include "h245.h"
+#include <h245.h>
+#include <h323pdu.h>
+#include "config.h"
+
 
 class H225_CallIdentifier;
 class H225_GloballyUniqueID;
@@ -77,6 +80,16 @@ PStringArray SplitIPAndPort(const PString & str, WORD default_port);
 
 WORD GetH245Port(const H245_UnicastAddress & addr);
 void SetH245Port(H245_UnicastAddress & addr, WORD port);
+
+void SetSockaddr(sockaddr_in & sin, const PIPSocket::Address & ip, WORD port);
+void SetSockaddr(sockaddr_in & sin, const H323TransportAddress & addr);
+void SetSockaddr(sockaddr_in & sin, const H245_UnicastAddress & addr);
+
+#ifdef hasIPV6
+void SetSockaddr(sockaddr_in6 & sin6, const PIPSocket::Address & ip, WORD port);
+void SetSockaddr(sockaddr_in6 & sin6, const H323TransportAddress & addr);
+void SetSockaddr(sockaddr_in6 & sin6, const H245_UnicastAddress & addr);
+#endif
 
 bool IsIPAddress(const PString & addr);
 
