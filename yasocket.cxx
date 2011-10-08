@@ -291,10 +291,7 @@ bool YaSocket::Bind(const Address & addr, WORD pt)
 	if (IsOpen()) {
 		if (addr.GetVersion() == 6) {
 			struct sockaddr_in6 inaddr;
-			memset(&inaddr, 0, sizeof(inaddr));
-			inaddr.sin6_family = AF_INET6;
-			inaddr.sin6_addr = addr;
-			inaddr.sin6_port = htons(pt);
+			SetSockaddr(inaddr, addr, pt);
 			if (ConvertOSError(::bind(os_handle, (struct sockaddr*)&inaddr, sizeof(inaddr)))) {
 				socklen_t insize = sizeof(inaddr);
 				if (::getsockname(os_handle, (struct sockaddr*)&inaddr, &insize) == 0) {
@@ -304,10 +301,7 @@ bool YaSocket::Bind(const Address & addr, WORD pt)
 			}
 		} else {
 			struct sockaddr_in inaddr;
-			memset(&inaddr, 0, sizeof(inaddr));
-			inaddr.sin_family = AF_INET;
-			inaddr.sin_addr = addr;
-			inaddr.sin_port = htons(pt);
+			SetSockaddr(inaddr, addr, pt);
 			if (ConvertOSError(::bind(os_handle, (struct sockaddr*)&inaddr, sizeof(inaddr)))) {
 				socklen_t insize = sizeof(inaddr);
 				if (::getsockname(os_handle, (struct sockaddr*)&inaddr, &insize) == 0) {
@@ -439,15 +433,8 @@ bool YaTCPSocket::Connect(const Address & iface, WORD localPort, const Address &
 	// connect in non-blocking mode
 	SetNonBlockingMode();
 	SetWriteTimeout(PTimeInterval(10));
-	if (addr.GetVersion() == 6) {
-		((struct sockaddr_in6*)&peeraddr)->sin6_family = AF_INET6;
-		((struct sockaddr_in6*)&peeraddr)->sin6_addr = addr;
-		((struct sockaddr_in6*)&peeraddr)->sin6_port = htons(port = peerPort);
-	} else {
-		((struct sockaddr_in*)&peeraddr)->sin_family = AF_INET;
-		((struct sockaddr_in*)&peeraddr)->sin_addr = addr;
-		((struct sockaddr_in*)&peeraddr)->sin_port = htons(port = peerPort);
-	}
+	port = peerPort;
+	SetSockaddr(peeraddr, addr, peerPort);
 	SetName(AsString(addr, port));
 
 	int r = ::connect(os_handle, (struct sockaddr*)&peeraddr, sizeof(peeraddr));
@@ -545,15 +532,7 @@ void YaUDPSocket::GetLastReceiveAddress(Address & addr, WORD & pt) const
 
 void YaUDPSocket::SetSendAddress(const Address & addr, WORD pt)
 {
-	if (addr.GetVersion() == 6) {
-		((struct sockaddr_in6*)&sendaddr)->sin6_family = AF_INET6;
-		((struct sockaddr_in6*)&sendaddr)->sin6_addr = addr;
-		((struct sockaddr_in6*)&sendaddr)->sin6_port = htons(pt);
-	} else {
-		((struct sockaddr_in*)&sendaddr)->sin_family = AF_INET;
-		((struct sockaddr_in*)&sendaddr)->sin_addr = addr;
-		((struct sockaddr_in*)&sendaddr)->sin_port = htons(pt);
-	}
+	SetSockaddr(sendaddr, addr, pt);
 }
 
 void YaUDPSocket::GetSendAddress(

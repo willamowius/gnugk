@@ -3661,21 +3661,7 @@ void CallRec::AddRTPKeepAlive(unsigned flcn, const H323TransportAddress & keepAl
 	H46019KeepAlive ka;
 	ka.type = RTP;
 	ka.flcn = flcn;
-
-	PIPSocket::Address addr;
-	WORD port;
-	keepAliveRTPAddr.GetIpAndPort(addr, port);
-	memset(&ka.dest, 0, sizeof(ka.dest));
-	if (addr.GetVersion() == 6) {
-		((struct sockaddr_in6*)&ka.dest)->sin6_family = AF_INET6;
-		((struct sockaddr_in6*)&ka.dest)->sin6_addr = addr;
-		((struct sockaddr_in6*)&ka.dest)->sin6_port = htons(port);
-	} else {
-		((struct sockaddr_in*)&ka.dest)->sin_family = AF_INET;
-		((struct sockaddr_in*)&ka.dest)->sin_addr = addr;
-		((struct sockaddr_in*)&ka.dest)->sin_port = htons(port);
-	}
-
+	SetSockaddr(ka.dest, keepAliveRTPAddr);
 	ka.interval = keepAliveInterval;
 	m_RTPkeepalives[flcn] = ka;
 }
@@ -3699,21 +3685,7 @@ void CallRec::AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAl
 	H46019KeepAlive ka;
 	ka.type = RTCP;
 	ka.flcn = flcn;
-
-	PStringArray parts = SplitIPAndPort(AsString(keepAliveRTCPAddr), 0);
-	PIPSocket::Address addr(parts[0]);
-	WORD port = (WORD)parts[1].AsUnsigned();
-	memset(&ka.dest, 0, sizeof(ka.dest));
-	if (addr.GetVersion() == 6) {
-		((struct sockaddr_in6*)&ka.dest)->sin6_family = AF_INET6;
-		((struct sockaddr_in6*)&ka.dest)->sin6_addr = addr;
-		((struct sockaddr_in6*)&ka.dest)->sin6_port = htons(port);
-	} else {
-		((struct sockaddr_in*)&ka.dest)->sin_family = AF_INET;
-		((struct sockaddr_in*)&ka.dest)->sin_addr = addr;
-		((struct sockaddr_in*)&ka.dest)->sin_port = htons(port);
-	}
-
+	SetSockaddr(ka.dest, keepAliveRTCPAddr);
 	ka.interval = keepAliveInterval;
 	m_RTCPkeepalives[flcn] = ka;
 }

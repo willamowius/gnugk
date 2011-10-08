@@ -581,7 +581,7 @@ private:
 template<class> class RasPDU;
 
 #ifdef HAS_H46018
-enum KeepALiveType { RTP, RTCP };
+enum KeepAliveType { RTP, RTCP };
 
 class H46019KeepAlive
 {
@@ -593,7 +593,7 @@ public:
 	void StopKeepAlive();
 
 	unsigned flcn;
-	KeepALiveType type;
+	KeepAliveType type;
 #ifdef hasIPV6
 	sockaddr_in6 dest;
 #else
