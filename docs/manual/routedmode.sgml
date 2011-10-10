@@ -474,7 +474,6 @@ Default: <tt>0</tt><newline>
 Force all call signalling for NAT to be GK routed. There are a number of conditions where call signalling may be 
 offloaded when using H.460.23/.24 This switch will force all the signalling to be Gatekeeper routed.
 
-
 <item><tt/NATStdMin=18/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
@@ -504,6 +503,15 @@ Default: <tt>1</tt><newline>
 When set to false or 0, GnuGk will not rewrite the sourceCallSignalAddress to its own IP in
 routed mode. This helps some endpoints to get through NATs.
 In proxy mode, the IP is always rewritten to GnuGk's IP, regardles of this switch.
+
+<item><tt/AutoProxyIPv4ToIPv6Calls=0/<newline>
+Default: <tt/1/<newline>
+<p>
+Automatically put calls between different IP versions into full proxy mode.
+Note that this auto detection only looks at the call signal addresses to make the decision.
+It is possible that one endpoint decides to use H.245 or media IPs with a different IP version
+later on and the call will fail if the receiving endpoint isn't capable of handling multiple
+IP versions.
 
 </itemize>
 

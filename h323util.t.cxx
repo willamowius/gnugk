@@ -86,6 +86,13 @@ TEST_F(H323UtilTest, H323TransportAddressAsString) {
 	EXPECT_STREQ("[2001:0db8:85a3:08d3:1319:8a2e:0370:7344]:5678", AsString(h323transport_withipv6));
 }
 
+TEST_F(H323UtilTest, H225TransportAddressGetVersion) {
+	EXPECT_EQ(4u, GetVersion(h225transport_withipv4));
+	EXPECT_EQ(4u, GetVersion(H225_TransportAddress()));	// empty H225_TransportAddress defaults to IPv4
+	EXPECT_EQ(6u, GetVersion(h225transport_withipv6));
+	EXPECT_EQ(6u, GetVersion(h225transport_withipv6localhost));
+}
+
 TEST_F(H323UtilTest, EndpointTypeAsString) {
 	H225_EndpointType ep_type;
 	EXPECT_STREQ("unknown", AsString(ep_type));

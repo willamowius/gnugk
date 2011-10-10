@@ -3132,6 +3132,14 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			}
 		}
 	}
+	bool proxyIPv4ToIPv6 = Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "AutoProxyIPv4ToIPv6Calls", "1"));
+	unsigned callingIPVersion = GetVersion(m_call->GetSrcSignalAddr());
+	unsigned calledIPVersion = GetVersion(m_call->GetDestSignalAddr());
+	if (proxyIPv4ToIPv6 && (callingIPVersion != calledIPVersion)) {
+		m_call->SetH245Routed(true);
+		m_call->SetProxyMode(CallRec::ProxyEnabled);
+		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled (IPv4-to-IPv6)");
+	}
 
 #ifdef HAS_H46018
 	// proxy if calling or called use H.460.18
@@ -6218,7 +6226,7 @@ H46019Channel::H46019Channel(const H225_CallIdentifier & callid, unsigned lc, WO
 
 void H46019Channel::Dump() const
 {
-	PTRACE(0, "JW H46019Channel: this=" << this << " lc=" << m_lc
+	PTRACE(0, "JW H46019Channel: this=" << this << " lc=" << m_lc << " session=" << m_sessionID
 			<< " IDfromA=" << m_multiplexID_fromA << " IDtoA=" << m_multiplexID_toA
 			<< " IDfromB=" << m_multiplexID_fromB << " IDtoB=" << m_multiplexID_toB
 			<< " addrA=" << m_addrA << " addrA_RTCP=" << m_addrA_RTCP
@@ -7669,7 +7677,6 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 								call->AddRTCPKeepAlive(flcn, keepAliveRTCPAddr, keepAliveInterval);
 							}
 							if (multiplexID != INVALID_MULTIPLEX_ID) {
-								PTRACE(0, "JW OLC sender wants multiplexID=" << multiplexID);
 								h46019chan.m_multiplexID_toA = multiplexID;
 								if (IsTraversalServer()) {
 									h46019chan.m_addrA = keepAliveRTPAddr;

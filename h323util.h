@@ -97,6 +97,8 @@ bool IsIPv4Address(const PString & addr);
 
 bool IsIPv6Address(PString addr);
 
+unsigned GetVersion(const H225_TransportAddress & ta);
+
 // convert an IPv4-mapped-IPv6 address into an IPv4 address, otherwise leave unchanged
 void UnmapIPv4Address(PIPSocket::Address & addr);
 

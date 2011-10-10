@@ -477,6 +477,17 @@ bool IsIPv6Address(PString addr)
 	return isValid;
 }
 
+unsigned GetVersion(const H225_TransportAddress & ta)
+{
+	if (ta.GetTag() == H225_TransportAddress::e_ipAddress) {
+		return 4;
+	}
+	if (ta.GetTag() == H225_TransportAddress::e_ip6Address) {
+		return 6;
+	}
+	return 0;
+}
+
 // convert an IPv4-mapped-IPv6 address into an IPv4 address, otherwise leave unchanged
 void UnmapIPv4Address(PIPSocket::Address & addr)
 {

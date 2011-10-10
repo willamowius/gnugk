@@ -331,6 +331,7 @@ static const char * KnowConfigEntries[][2] = {
 	{ "RoutedMode", "AcceptUnregisteredCalls" },
 	{ "RoutedMode", "ActivateFailover" },
 	{ "RoutedMode", "AlertingTimeout" },
+	{ "RoutedMode", "AutoProxyIPv4ToIPv6Calls" },
 	{ "RoutedMode", "CallSignalHandlerNumber" },
 	{ "RoutedMode", "CallSignalPort" },
 	{ "RoutedMode", "CpsCheckInterval" },
