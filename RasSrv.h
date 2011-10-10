@@ -47,7 +47,6 @@ class GkAcctLoggerList;
 class GkClient;
 class ProxyHandler;
 class HandlerList;
-class H46019Handler;
 
 namespace Neighbors {
 	class NeighborList;

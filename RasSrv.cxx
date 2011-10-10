@@ -910,11 +910,11 @@ void RasServer::LoadConfig()
 #ifdef HAS_H46018
 	// create mutiplex RTP listeners
 	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
-		H46019Handler::Instance()->OnReload();
+		MultiplexedRTPHandler::Instance()->OnReload();
 	} else {
 		// if we had a multiplex listener configured before the reload, but not anymore, then delete it
-		if (H46019Handler::InstanceExists())
-			delete H46019Handler::Instance();
+		if (MultiplexedRTPHandler::InstanceExists())
+			delete MultiplexedRTPHandler::Instance();
 	}
 #endif
 
@@ -1723,6 +1723,7 @@ bool RegistrationRequestPDU::Process()
 	// OnRRQ
 	H225_TransportAddress SignalAddr;
 	const PIPSocket::Address & rx_addr = m_msg->m_peerAddr;
+	const WORD rx_port = m_msg->m_peerPort;
 	bool bShellSendReply, bShellForwardRequest;
 	bShellSendReply = bShellForwardRequest = !RasSrv->IsForwardedRas(request, rx_addr);
 
@@ -1798,7 +1799,6 @@ bool RegistrationRequestPDU::Process()
 					if (h46018nat || Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "H46018NoNAT", "1"))) {
 						supportH46018 = true;
 						// ignore rasAddr and use apparent address
-						const WORD rx_port = m_msg->m_peerPort;
 						request.m_rasAddress.SetSize(1);
 						request.m_rasAddress[0] = SocketToH225TransportAddr(rx_addr, rx_port);
 						// callSignallAddress will be ignored later on, just avoid the error about an invalid callSigAdr when registering
@@ -1948,7 +1948,7 @@ bool RegistrationRequestPDU::Process()
 				  PTRACE(4, "Std23\tNAT/FW reported as being " << ep->GetEPNATTypeString((EndpointRec::EPNatTypes)ntype));
 				  ep->SetNAT(true);
 				  ep->SetH46024(false);
-				  ep->SetNATAddress(rx_addr);
+				  ep->SetNATAddress(rx_addr, rx_port);
 				} else {
 					if (ntype == 0) {
 						PTRACE(4, "Std23\tEndpoint instructs H.460.23/.24 to be disabled (BAD NAT)");
@@ -2239,7 +2239,7 @@ bool RegistrationRequestPDU::Process()
 	if (supportH46018 && !ep->IsH46018Disabled()) {	// check endpoint specific switch, too
 		PTRACE(3, "H46018\tEP on " << rx_addr << " supports H.460.18");
 		ep->SetTraversalRole(TraversalClient);
-		ep->SetNATAddress(rx_addr);
+		ep->SetNATAddress(rx_addr, rx_port);
 	}
 	if (supportH46018 && ep->IsH46018Disabled()) {
 		// if the endpoint wanted H.460.18, we had overwritten its callSignalAddr above
@@ -2255,9 +2255,9 @@ bool RegistrationRequestPDU::Process()
  
 #endif // HAS_H460P
 
-	if (nated || (ep->IsTraversalClient() && !validaddress))
-		ep->SetNATAddress(rx_addr);
-	else {
+	if (nated || (ep->IsTraversalClient() && !validaddress)) {
+		ep->SetNATAddress(rx_addr, rx_port);
+	} else {
 		ep->SetNAT(false);
 		ep->SetH46024(supportH46024);
 		ep->SetH46024A(supportH46024A);
