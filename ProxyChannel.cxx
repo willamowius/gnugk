@@ -7764,6 +7764,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 
 				params.IncludeOptionalField(H46019_TraversalParameters::e_multiplexedMediaControlChannel);
 				params.m_multiplexedMediaControlChannel = IPToH245TransportAddr(GetMasqAddr(), m_multiplexedRTCPPort);
+				params.IncludeOptionalField(H46019_TraversalParameters::e_multiplexedMediaChannel);
+				params.m_multiplexedMediaChannel = IPToH245TransportAddr(GetMasqAddr(), m_multiplexedRTPPort);
 				// set keepAliveChannel to multiplex media channel
 				params.m_keepAliveChannel = IPToH245TransportAddr(GetMasqAddr(), m_multiplexedRTPPort);
 				// set mediaControlChannel to multiplexed port, LifeSize seems to use that instead of multiplexedMediaControlPort
