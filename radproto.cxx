@@ -1911,8 +1911,6 @@ void RadiusClient::GetServersFromString(const PString & servers)
 			// IPv4 or DNS names
 			PStringArray serverTokens = tokens[i].Tokenise(":", FALSE);
 		}
-		for (PINDEX k=0; k < serverTokens.GetSize(); ++k)
-			PTRACE(0, "JW serverTokens[" << k << "] = " << serverTokens[k]);
 		if (serverTokens.GetSize() > 0) {
 			const PString serverAddress = serverTokens[0].Trim();
 			if (!serverAddress) {
