@@ -81,6 +81,11 @@ TEST_F(H323UtilTest, H225TransportAddressAsString) {
 	EXPECT_STREQ("2001:db8:85a3:8d3:1319:8a2e:370:7344",        AsDotString(h225transport_withipv6, false));
 }
 
+TEST_F(H323UtilTest, H323TransportAddressAsString) {
+	EXPECT_STREQ("6.7.8.9:4567", AsString(h323transport_withipv4));
+	EXPECT_STREQ("[2001:0db8:85a3:08d3:1319:8a2e:0370:7344]:5678", AsString(h323transport_withipv6));
+}
+
 TEST_F(H323UtilTest, EndpointTypeAsString) {
 	H225_EndpointType ep_type;
 	EXPECT_STREQ("unknown", AsString(ep_type));
