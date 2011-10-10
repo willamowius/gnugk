@@ -346,7 +346,7 @@ Default: <tt>N/A</tt><newline>
 RADIUS servers to send accounting data to. If no port information is given,
 a port number from <tt/DefaultAcctPort/ is be used. If no secret is set, 
 the default shared secret from <tt/SharedSecret/ is used. Server names may be
-specified by IP address or DNS name.
+specified by IP address or DNS name. IPv6 addresses must always be written in brackets.
 
 <descrip>
 <tag>Sample <tt/Servers/ lines:</tag>
@@ -356,6 +356,11 @@ specified by IP address or DNS name.
 <tt>Servers=radius1.mycompany.com:1812:1813</tt><newline>
 <tt>Servers=radius1.mycompany.com;radius2.mycompany.com</tt><newline>
 <tt>Servers=radius1.mycompany.com:1812:1813:secret1;radius2.mycompany.com:1812:1813:secret2</tt><newline>
+<tt>Servers=[2501:4f3:61:2143::2]</tt><newline>
+<tt>Servers=[2501:4f3:61:2143::2]:1645</tt><newline>
+<tt>Servers=[2501:4f3:61:2143::2]:1645:1646</tt><newline>
+<tt>Servers=[2501:4f3:61:2143::2]:1645:1646:secret1</tt><newline>
+<tt>Servers=[2501:4f3:61:2143::2]:1645:1646:secret1;[2501:4f3:61:2143::3]:1645:1646:secret2</tt><newline>
 </descrip>
 
 <item><tt/LocalInterface=IP_OR_FQDN/<newline>

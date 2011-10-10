@@ -619,7 +619,7 @@ number of servers. The order of servers is important, because servers will
 be queried by the RADIUS module in the given order. If no port information 
 is provided, port number from <tt/DefaultAuthPort/ will be used. If no secret is set, 
 the default shared secret from <tt/SharedSecret/ is taken. 
-Servers names can be IP addresses or DNS names.
+Servers names can be IP addresses or DNS names. IPv6 addresses must always be written in brackets.
 
 <descrip>
 <tag>Sample <tt/Servers/ lines:</tag>
@@ -629,6 +629,11 @@ Servers names can be IP addresses or DNS names.
 <tt>Servers=radius1.mycompany.com:1812</tt><newline>
 <tt>Servers=radius1.mycompany.com;radius2.mycompany.com</tt><newline>
 <tt>Servers=radius1.mycompany.com:1812:1813:secret1;radius2.mycompany.com:1812:1813:secret2</tt><newline>
+<tt>Servers=[2501:4f3:61:2143::2]</tt><newline>
+<tt>Servers=[2501:4f3:61:2143::2]:1645</tt><newline>
+<tt>Servers=[2501:4f3:61:2143::2]:1645:1646</tt><newline>
+<tt>Servers=[2501:4f3:61:2143::2]:1645:1646:secret1</tt><newline>
+<tt>Servers=[2501:4f3:61:2143::2]:1645:1646:secret1;[2501:4f3:61:2143::3]:1645:1646:secret2</tt><newline>
 </descrip>
 
 <item><tt/LocalInterface=IP_OR_FQDN/<newline>
