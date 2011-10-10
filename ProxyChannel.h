@@ -225,6 +225,7 @@ public:
 	bool IsCallFromTraversalServer() const { return m_callFromTraversalServer; }
 	H225_CallIdentifier GetCallIdentifier() const { return m_call ? m_call->GetCallIdentifier() : 0; }
 #endif
+
 protected:
 	CallSignalSocket * GetRemote() const { return (CallSignalSocket *)remote; }
 
@@ -361,54 +362,69 @@ public:
 	MultiplexRTPListener(WORD pt, WORD buffSize = 1536);
 	virtual ~MultiplexRTPListener();
 
-	void ReceiveData();
+	virtual int GetOSSocket() const { return os_handle; }
+
+	virtual void ReceiveData();
 protected:
 	BYTE * wbuffer;
 	WORD wbufsize, buflen;
 };
 
-const PInt32 INVALID_MULTIPLEX_ID = 0xdeadbeef;
+const PUInt32b INVALID_MULTIPLEX_ID = 0;
 
-class H46019Destination : public PObject
+class H46019Channel : public PObject
 {
 public:
-	H46019Destination(unsigned lc) { m_lc = lc; m_srcMultiplexID = INVALID_MULTIPLEX_ID; m_readyToSend = false; m_destMultiplexed = false; }
-	virtual PString AsString() const;
+	H46019Channel(const H225_CallIdentifier & callid, unsigned lc, WORD sessionID);
 
-	bool IsReadyToSend() const { return m_readyToSend; }
-	PIPSocket::Address GetDestination() const { return m_destination; }
-	void SetDestination(PIPSocket::Address dest) { m_destination = dest; }
-	bool IsDestinationMultiplexed() const { return m_destMultiplexed; }
-	PInt32 GetDestinationMultiplexID() const { return m_destMultiplexID; }
-	void SetDestinationMultiplexID(PInt32 id) { m_srcMultiplexID = id; m_destMultiplexed = true; }
-	void SendRTPKeepAlive(GkTimer* timer);
-	void SendRTCPKeepAlive(GkTimer* timer);
+	void Dump() const;
+
+	bool sideAReady(bool isRTCP) const { return isRTCP ? IsSet(m_addrA_RTCP) : IsSet(m_addrA); }
+	bool sideBReady(bool isRTCP) const { return isRTCP ? IsSet(m_addrB_RTCP) : IsSet(m_addrB); }
+
+	bool IsSet(const H323TransportAddress & addr) const;
+	bool IsKeepAlive(void * data, unsigned len, bool isRTCP) { return isRTCP ? true : (len == 12); };
+
+	void HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP);
+	void Send(PUInt32b sendMultiplexID, const H323TransportAddress & toAddress, int ossocket, void * data, unsigned len);
 
 //protected:
+	H225_CallIdentifier m_callid;
 	unsigned m_lc;
-	int m_srcSocket;
-	PIPSocket::Address m_destination;
-	// multiplexing
-	PInt32 m_srcMultiplexID;
-	PInt32 m_destMultiplexID;
-	bool m_readyToSend;
-	bool m_destMultiplexed;
-	// keepAlive
-	unsigned keepAliveInterval;
+	WORD m_sessionID;
+	H323TransportAddress m_addrA;
+	H323TransportAddress m_addrA_RTCP;
+	H323TransportAddress m_addrB;
+	H323TransportAddress m_addrB_RTCP;
+	PUInt32b m_multiplexID_fromA;
+	PUInt32b m_multiplexID_toA;
+	PUInt32b m_multiplexID_fromB;
+	PUInt32b m_multiplexID_toB;
+	int m_osSocketToA;
+	int m_osSocketToA_RTCP;
+	int m_osSocketToB;
+	int m_osSocketToB_RTCP;
 };
 
 // handles multiplexed RTP and keepAlives
-class H46019Handler : public Singleton<H46019Handler>, public SocketsReader {
+class MultiplexedRTPHandler : public Singleton<MultiplexedRTPHandler>, public SocketsReader {
 public:
-	H46019Handler();
-	virtual ~H46019Handler();
+	MultiplexedRTPHandler();
+	virtual ~MultiplexedRTPHandler();
 
 	virtual void OnReload() { /* TODO: update ports etc. */ }
 
-	virtual void AddDestination(const H46019Destination & dest);
-	virtual void RemoveDestination(unsigned lc, unsigned session);
-	virtual H46019Destination * GetDestination(PInt32 srcMultiplexID) const;
-	virtual void UpdateDestination(const H46019Destination & dest);
+	virtual void AddChannel(const H46019Channel & cha);
+	virtual void UpdateChannel(const H46019Channel & cha);
+	virtual H46019Channel GetChannel(const H225_CallIdentifier & callid, unsigned lc, WORD sessionID) const;
+	virtual void RemoveChannel(const H225_CallIdentifier & callid, unsigned lc, WORD sessionID);
+	virtual void RemoveChannels(const H225_CallIdentifier & callid);
+	virtual void HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP);
+
+	virtual int GetRTPOSSocket() const { return m_multiplexRTPListener ? m_multiplexRTPListener->GetOSSocket() : 0; }
+	virtual int GetRTCPOSSocket() const { return m_multiplexRTCPListener ? m_multiplexRTCPListener->GetOSSocket() : 0; }
+
+	virtual PUInt32b GetNewMultiplexID();
 
 protected:
 	virtual void OnStart();
@@ -418,7 +434,8 @@ protected:
 	MultiplexRTPListener * m_multiplexRTPListener;
 	MultiplexRTPListener * m_multiplexRTCPListener;
 
-	list<H46019Destination> m_destinations;
+	list<H46019Channel> m_h46019channels;
+	PUInt32b idCounter; // we should make sure this counter is _not_ reset on reload
 };
 
 #endif
