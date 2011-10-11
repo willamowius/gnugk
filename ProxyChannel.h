@@ -406,13 +406,31 @@ public:
 	int m_osSocketToB_RTCP;
 };
 
+class MultiplexedRTPReader : public SocketsReader {
+public:
+	MultiplexedRTPReader();
+	virtual ~MultiplexedRTPReader();
+
+	virtual void OnReload() { /* TODO: update ports etc. */ }
+
+	virtual int GetRTPOSSocket() const { return m_multiplexRTPListener ? m_multiplexRTPListener->GetOSSocket() : INVALID_OSSOCKET; }
+	virtual int GetRTCPOSSocket() const { return m_multiplexRTCPListener ? m_multiplexRTCPListener->GetOSSocket() : INVALID_OSSOCKET; }
+
+protected:
+	virtual void OnStart();
+	virtual void ReadSocket(IPSocket * socket);
+
+	MultiplexRTPListener * m_multiplexRTPListener;
+	MultiplexRTPListener * m_multiplexRTCPListener;
+};
+
 // handles multiplexed RTP and keepAlives
-class MultiplexedRTPHandler : public Singleton<MultiplexedRTPHandler>, public SocketsReader {
+class MultiplexedRTPHandler : public Singleton<MultiplexedRTPHandler> {
 public:
 	MultiplexedRTPHandler();
 	virtual ~MultiplexedRTPHandler();
 
-	virtual void OnReload() { /* TODO: update ports etc. */ }
+	virtual void OnReload() { if (m_reader) m_reader->OnReload(); }
 
 	virtual void AddChannel(const H46019Channel & cha);
 	virtual void UpdateChannel(const H46019Channel & cha);
@@ -421,23 +439,16 @@ public:
 	virtual void RemoveChannels(const H225_CallIdentifier & callid);
 	virtual void HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP);
 
-	virtual int GetRTPOSSocket() const { return m_multiplexRTPListener ? m_multiplexRTPListener->GetOSSocket() : INVALID_OSSOCKET; }
-	virtual int GetRTCPOSSocket() const { return m_multiplexRTCPListener ? m_multiplexRTCPListener->GetOSSocket() : INVALID_OSSOCKET; }
+	virtual int GetRTPOSSocket() const { return m_reader ? m_reader->GetRTPOSSocket() : INVALID_OSSOCKET; }
+	virtual int GetRTCPOSSocket() const { return m_reader ? m_reader->GetRTCPOSSocket() : INVALID_OSSOCKET; }
 
 	virtual PUInt32b GetNewMultiplexID();
 
 protected:
-	virtual void OnStart();
-	virtual void Stop();
-	virtual void ReadSocket(IPSocket * socket);
-
-	MultiplexRTPListener * m_multiplexRTPListener;
-	MultiplexRTPListener * m_multiplexRTCPListener;
-
+	MultiplexedRTPReader * m_reader;
 	list<H46019Channel> m_h46019channels;
 	PUInt32b idCounter; // we should make sure this counter is _not_ reset on reload
 };
-
 #endif
 
 class ProxyHandler : public SocketsReader {

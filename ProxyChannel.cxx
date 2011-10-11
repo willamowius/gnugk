@@ -6126,7 +6126,7 @@ MultiplexRTPListener::MultiplexRTPListener(WORD pt, WORD buffSize)
 		localAddr = home[0];
 
 	if (!Listen(localAddr, 0, pt)) {
-		PTRACE(0, "JW Can't open multiplex RTP listener on " << AsString(localAddr, pt));
+		PTRACE(1, "RTPM\tCan't open multiplex RTP listener on " << AsString(localAddr, pt));
 		return;
 	}
 	SetName(AsString(localAddr, pt) + "(Multiplex)");
@@ -6152,8 +6152,6 @@ MultiplexRTPListener::MultiplexRTPListener(WORD pt, WORD buffSize)
 
 MultiplexRTPListener::~MultiplexRTPListener()
 {
-	PTRACE(0, "JW d'tor multiplex RTP this=" << this);
-	
 	delete [] wbuffer;
 }
 
@@ -6180,11 +6178,11 @@ void MultiplexRTPListener::ReceiveData()
 		version = (((int)wbuffer[4] & 0xc0) >> 6);
 
 	if (multiplexID == INVALID_MULTIPLEX_ID) {
-		PTRACE(1, "Invalid multiplexID reveived - ignoring packet");
+		PTRACE(1, "RTPM\tInvalid multiplexID reveived - ignoring packet");
 		return;
 	}
 	if (version != 2) {
-		PTRACE(1, "Invalid RTP version: " << version << " - ignoring packet");
+		PTRACE(1, "RTPM\tInvalid RTP version: " << version << " - ignoring packet");
 		return;
 	}
 
@@ -6245,7 +6243,6 @@ void H46019Channel::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 		// for calls with a non-multiplexed partner, we have to update the destination in the non-multiplex socket
 		if ( !( ((m_multiplexID_fromA != INVALID_MULTIPLEX_ID) || (m_multiplexID_toA != INVALID_MULTIPLEX_ID))
 			  &&((m_multiplexID_fromB != INVALID_MULTIPLEX_ID) || (m_multiplexID_toB != INVALID_MULTIPLEX_ID))) ) {
-			PTRACE(0, "JW port detected on a H.460.19 channel with one side NOT going through multiplex socket");
 			callptr call = CallTable::Instance()->FindCallRec(m_callid);
 			if (call) {
 				PUInt32b multiplexID = (receivedMultiplexID == m_multiplexID_fromA) ? m_multiplexID_toA : m_multiplexID_toB;
@@ -6283,7 +6280,7 @@ void H46019Channel::Send(PUInt32b sendMultiplexID, const H323TransportAddress & 
 	size_t sent = 0;
 
 	if (osSocket == INVALID_OSSOCKET) {
-		PTRACE(1, "Error: OSSocket to " << toAddress << " not set");
+		PTRACE(1, "RTPM\tError: OSSocket to " << toAddress << " not set");
 		return;
 	}
 	SetSockaddr(dest, toAddress);
@@ -6299,28 +6296,29 @@ void H46019Channel::Send(PUInt32b sendMultiplexID, const H323TransportAddress & 
 		sent = ::sendto(osSocket, data, lenToSend, 0, (struct sockaddr *)&dest, sizeof(dest));
 	}
 	if (sent != lenToSend) {
-		PTRACE(1, "JW Error sending RTP to " << toAddress << ": should send=" << lenToSend << " did send=" << sent << " errno=" << errno);
+		PTRACE(1, "RTPM\tError sending RTP to " << toAddress << ": should send=" << lenToSend << " did send=" << sent << " errno=" << errno);
 	}
 }
 
-MultiplexedRTPHandler::MultiplexedRTPHandler() : Singleton<MultiplexedRTPHandler>("MultiplexedRTPHandler")
+MultiplexedRTPReader::MultiplexedRTPReader()
 {
 	m_multiplexRTPListener = NULL;
 	m_multiplexRTCPListener = NULL;
-	idCounter = 0;
-	SetName("MultiplexedRTPHandler");
+	SetName("MultiplexedRTPReader");
 	Execute();
 }
 
-MultiplexedRTPHandler::~MultiplexedRTPHandler()
+MultiplexedRTPReader::~MultiplexedRTPReader()
 {
-	delete m_multiplexRTPListener;
-	m_multiplexRTPListener = NULL;
-	delete m_multiplexRTCPListener;
-	m_multiplexRTCPListener = NULL;
+	if (m_multiplexRTPListener) {
+		m_multiplexRTPListener->Close();
+	}
+	if (m_multiplexRTCPListener) {
+		m_multiplexRTCPListener->Close();
+	}
 }
 
-void MultiplexedRTPHandler::OnStart()
+void MultiplexedRTPReader::OnStart()
 {
 	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
 		// create mutiplex RTP listeners
@@ -6345,25 +6343,26 @@ void MultiplexedRTPHandler::OnStart()
 	}
 }
 
-void MultiplexedRTPHandler::Stop()
-{
-	if (m_multiplexRTPListener) {
-		m_multiplexRTPListener->Close();
-	}
-	if (m_multiplexRTCPListener) {
-		m_multiplexRTCPListener->Close();
-	}
-	RemoveClosed(false);
-}
-
-void MultiplexedRTPHandler::ReadSocket(IPSocket * socket)
+void MultiplexedRTPReader::ReadSocket(IPSocket * socket)
 {
 	MultiplexRTPListener *psocket = dynamic_cast<MultiplexRTPListener *>(socket);
 	if (psocket == NULL) {
-		PTRACE(1, "Error\tInvalid socket");
+		PTRACE(1, "RTPM\tError: Invalid socket");
 		return;
 	}
 	psocket->ReceiveData();
+}
+
+MultiplexedRTPHandler::MultiplexedRTPHandler() : Singleton<MultiplexedRTPHandler>("MultiplexedRTPHandler")
+{
+	idCounter = 0;
+	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
+		m_reader = new MultiplexedRTPReader();
+	}
+}
+
+MultiplexedRTPHandler::~MultiplexedRTPHandler()
+{
 }
 
 void MultiplexedRTPHandler::AddChannel(const H46019Channel & chan)
@@ -6445,8 +6444,8 @@ PUInt32b MultiplexedRTPHandler::GetNewMultiplexID()
 	}
 	return idCounter = idCounter + 1;
 }
-
 #endif
+
 
 // class UDPProxySocket
 UDPProxySocket::UDPProxySocket(const char *t)
