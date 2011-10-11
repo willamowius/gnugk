@@ -224,6 +224,7 @@ public:
 	bool OnSCICall(H225_CallIdentifier callID, H225_TransportAddress sigAdr);
 	bool IsCallFromTraversalServer() const { return m_callFromTraversalServer; }
 	H225_CallIdentifier GetCallIdentifier() const { return m_call ? m_call->GetCallIdentifier() : 0; }
+	bool SetLCMultiplexDestination(unsigned lc, WORD sessionID, bool isRTCP, const H323TransportAddress & toAddress, PUInt32b multiplexID);
 #endif
 
 protected:
@@ -382,11 +383,10 @@ public:
 	bool sideAReady(bool isRTCP) const { return isRTCP ? IsSet(m_addrA_RTCP) : IsSet(m_addrA); }
 	bool sideBReady(bool isRTCP) const { return isRTCP ? IsSet(m_addrB_RTCP) : IsSet(m_addrB); }
 
-	bool IsSet(const H323TransportAddress & addr) const;
 	bool IsKeepAlive(void * data, unsigned len, bool isRTCP) { return isRTCP ? true : (len == 12); };
 
 	void HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP);
-	void Send(PUInt32b sendMultiplexID, const H323TransportAddress & toAddress, int ossocket, void * data, unsigned len);
+	static void Send(PUInt32b sendMultiplexID, const H323TransportAddress & toAddress, int ossocket, void * data, unsigned len);
 
 //protected:
 	H225_CallIdentifier m_callid;
@@ -421,8 +421,8 @@ public:
 	virtual void RemoveChannels(const H225_CallIdentifier & callid);
 	virtual void HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP);
 
-	virtual int GetRTPOSSocket() const { return m_multiplexRTPListener ? m_multiplexRTPListener->GetOSSocket() : 0; }
-	virtual int GetRTCPOSSocket() const { return m_multiplexRTCPListener ? m_multiplexRTCPListener->GetOSSocket() : 0; }
+	virtual int GetRTPOSSocket() const { return m_multiplexRTPListener ? m_multiplexRTPListener->GetOSSocket() : INVALID_OSSOCKET; }
+	virtual int GetRTCPOSSocket() const { return m_multiplexRTCPListener ? m_multiplexRTCPListener->GetOSSocket() : INVALID_OSSOCKET; }
 
 	virtual PUInt32b GetNewMultiplexID();
 

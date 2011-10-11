@@ -42,6 +42,9 @@ class H323TransportAddress;
 
 enum CallLeg { Caller, Called };
 enum RerouteState { NoReroute, RerouteInitiated, Rerouting };
+const int INVALID_OSSOCKET = -1;
+const unsigned GNUGK_KEEPALIVE_RTP_PAYLOADTYPE = 127;	// GnuGk always sends this fixed payload type
+
  
 // Template of smart pointer
 // The class T must have Lock() & Unlock() methods
@@ -1255,6 +1258,8 @@ public:
 	void StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket);
 	void RemoveKeepAlives(unsigned flcn);
 	void RemoveKeepAllAlives();
+	
+	void SetLCMultiplexDestination(unsigned lc, WORD sessionID, bool isRTCP, const H323TransportAddress & toAddress, PUInt32b multiplexID);
 #endif
 
 #ifdef HAS_H235_MEDIA

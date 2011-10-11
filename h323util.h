@@ -104,6 +104,8 @@ void UnmapIPv4Address(PIPSocket::Address & addr);
 
 bool IsLoopback(const PIPSocket::Address &);
 
+bool IsSet(const H323TransportAddress & addr);
+
 /** Find an alias which tag is of type specified by #primaryTags#.
     If no such aliases are found, #secondaryTags# are examined.
     If still no match is found and #exactMatch# is false, the first

@@ -71,41 +71,6 @@ inline unsigned GetH225Version(const UUIE &uuie)
 		return uuie.m_protocolIdentifier[5];
 }
 
-//H245_UnicastAddress_iPAddress * GetH245UnicastAddress(H245_TransportAddress & tsap)
-//{
-//	if (tsap.GetTag() == H245_TransportAddress::e_unicastAddress) {
-//		H245_UnicastAddress & uniaddr = tsap;
-//		if (uniaddr.GetTag() == H245_UnicastAddress::e_iPAddress)
-//			return &((H245_UnicastAddress_iPAddress &)uniaddr);
-//	}
-//	return NULL;
-//}
-//
-//inline H245_UnicastAddress_iPAddress & operator<<(H245_UnicastAddress_iPAddress & addr, const PIPSocket::Address & ip)
-//{
-//	for (int i = 0; i < 4; ++i)
-//		addr.m_network[i] = ip[i];
-//	return addr;
-//}
-//
-//inline H245_UnicastAddress_iPAddress & operator<<(H245_UnicastAddress_iPAddress & addr, WORD port)
-//{
-//	addr.m_tsapIdentifier = port;
-//	return addr;
-//}
-//
-//inline const H245_UnicastAddress_iPAddress & operator>>(const H245_UnicastAddress_iPAddress & addr, PIPSocket::Address & ip)
-//{
-//	ip = PIPSocket::Address(addr.m_network[0], addr.m_network[1], addr.m_network[2], addr.m_network[3]);
-//	return addr;
-//}
-//
-//inline const H245_UnicastAddress_iPAddress & operator>>(const H245_UnicastAddress_iPAddress & addr, WORD & port)
-//{
-//	port = (WORD)addr.m_tsapIdentifier;
-//	return addr;
-//}
-
 H245_UnicastAddress *GetH245UnicastAddress(H245_TransportAddress & tsap)
 {
 	if (tsap.GetTag() == H245_TransportAddress::e_unicastAddress) {
@@ -370,6 +335,7 @@ public:
 	void SetUsesH46019() { m_useH46019 = true; }
 	bool UsesH46019() const { return m_useH46019; }
 	void SetH46019UniDirectional(bool val) { m_h46019uni = val; }
+	void SetMultiplexDestination(const H323TransportAddress & toAddress, PUInt32b multiplexID);
 #endif
 
 	// override from class ProxySocket
@@ -408,6 +374,9 @@ private:
 	bool m_h46019uni;
 	bool m_h46019DetectionDone;
 	PMutex m_h46019DetectionLock;
+	// one or zero parties in a call through a UDPPProxySocket may by multiplexed
+	H323TransportAddress m_multiplexDestination;
+	PUInt32b m_multiplexID;	// only valid if m_multiplexDestination is set
 #endif
 };
 
@@ -451,8 +420,8 @@ public:
 	virtual void StartReading(ProxyHandler *) = 0;
 	virtual void SetRTPMute(bool toMute) = 0;
 
-	virtual int GetRTPOSSocket() const { return 0; }
-	virtual int GetRTCPOSSocket() const { return 0; }
+	virtual int GetRTPOSSocket() const { return INVALID_OSSOCKET; }
+	virtual int GetRTCPOSSocket() const { return INVALID_OSSOCKET; }
 
 protected:
 	WORD channelNumber;
@@ -466,6 +435,7 @@ public:
 	RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nated);
 	virtual ~RTPLogicalChannel();
 
+	void SetRTPSessionID(WORD id);
 	void SetMediaChannelSource(const H245_UnicastAddress &);
 	void ZeroMediaChannelSource();
 	void SetMediaControlChannelSource(const H245_UnicastAddress &);
@@ -483,13 +453,17 @@ public:
 	void OnHandlerSwapped(bool);
 
 	bool IsOpen() const;
+
+#ifdef HAS_H46018
 	void SetUsesH46019fc(bool);
 	void SetUsesH46019();
 	void SetH46019UniDirectional(bool uni);
-	void SetRTPSessionID(WORD id);
 
-	int GetRTPOSSocket() const { return rtp ? rtp->GetOSSocket() : 0; }
-	int GetRTCPOSSocket() const { return rtcp ? rtcp->GetOSSocket() : 0; }
+	int GetRTPOSSocket() const { return rtp ? rtp->GetOSSocket() : INVALID_OSSOCKET; }
+	int GetRTCPOSSocket() const { return rtcp ? rtcp->GetOSSocket() : INVALID_OSSOCKET; }
+
+	void SetLCMultiplexDestination(bool isRTCP, const H323TransportAddress & toAddress, PUInt32b multiplexID);
+#endif
 
 private:
 	void SetNAT(bool);
@@ -597,13 +571,14 @@ public:
 	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &,callptr &);
 
 	void SetHandler(ProxyHandler *);
-	LogicalChannel *FindLogicalChannel(WORD);
-	RTPLogicalChannel *FindRTPLogicalChannelBySessionID(WORD);
+	LogicalChannel * FindLogicalChannel(WORD flcn);
+	RTPLogicalChannel * FindRTPLogicalChannelBySessionID(WORD id);
 	bool UsesH46019() const { return m_useH46019; }
 	void SetTraversalRole(H46019TraversalType type) { m_traversalType = type; m_useH46019 = (type != None); }
 	H46019TraversalType GetTraversalRole() const { return m_traversalType; }
 	bool IsTraversalServer() const { return m_traversalType == TraversalServer; }
 	bool IsTraversalClient() const { return m_traversalType == TraversalClient; }
+	bool IsTraversalZone() const { return IsTraversalServer() || IsTraversalClient(); }
 	void SetUsesH46019fc(bool use) { m_useH46019fc = use; }
 	bool UsesH46019fc() const { return m_useH46019fc; }
 	void SetH46019fcState(int use) { m_H46019fcState = use; }
@@ -1021,7 +996,8 @@ CallSignalSocket::~CallSignalSocket()
 				);
 		}
 	}
-	MultiplexedRTPHandler::Instance()->RemoveChannels(m_call->GetCallIdentifier());
+	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0")))
+		MultiplexedRTPHandler::Instance()->RemoveChannels(m_call->GetCallIdentifier());
 
 	delete m_h245handler;
 	m_h245handler = NULL;
@@ -4217,6 +4193,21 @@ bool CallSignalSocket::OnSCICall(H225_CallIdentifier callID, H225_TransportAddre
 	}
 	return true;
 }
+
+bool CallSignalSocket::SetLCMultiplexDestination(unsigned lc, WORD sessionID, bool isRTCP, const H323TransportAddress & toAddress, PUInt32b multiplexID)
+{
+	H245ProxyHandler * handler = dynamic_cast<H245ProxyHandler*>(m_h245handler);
+	if (handler) {
+		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel*>(handler->FindLogicalChannel(lc));
+		// check if its the correct session ID, TODO: check if same pointer ?
+		if (rtplc && handler->FindRTPLogicalChannelBySessionID(sessionID)) {
+			// found correct LC
+			rtplc->SetLCMultiplexDestination(isRTCP, toAddress, multiplexID);
+			return true;
+		}
+	}
+	return false;
+}
 #endif
 
 void CallSignalSocket::OnReleaseComplete(SignalingMsg *msg)
@@ -6104,7 +6095,7 @@ bool GetChannelsFromOLCA(H245_OpenLogicalChannelAck & olca, H245_UnicastAddress 
 	if (h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaControlChannel))
 		mediaControlChannel = GetH245UnicastAddress(h225Params.m_mediaControlChannel);
 	if (h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel))
-		mediaChannel =  GetH245UnicastAddress(h225Params.m_mediaChannel);
+		mediaChannel = GetH245UnicastAddress(h225Params.m_mediaChannel);
 
 	return mediaControlChannel != NULL;
 }
@@ -6134,9 +6125,8 @@ MultiplexRTPListener::MultiplexRTPListener(WORD pt, WORD buffSize)
 	if (home.size() == 1)
 		localAddr = home[0];
 
-	PTRACE(0, "Opening multiplex RTP listener on " << AsString(localAddr, pt) << " this=" << this);
 	if (!Listen(localAddr, 0, pt)) {
-		PTRACE(0, "Can't open multiplex RTP listener on " << AsString(localAddr, pt));
+		PTRACE(0, "JW Can't open multiplex RTP listener on " << AsString(localAddr, pt));
 		return;
 	}
 	SetName(AsString(localAddr, pt) + "(Multiplex)");
@@ -6213,15 +6203,10 @@ H46019Channel::H46019Channel(const H225_CallIdentifier & callid, unsigned lc, WO
 	m_multiplexID_toA = INVALID_MULTIPLEX_ID;
 	m_multiplexID_fromB = INVALID_MULTIPLEX_ID;
 	m_multiplexID_toB = INVALID_MULTIPLEX_ID;
-//	m_osSocketToA = 0;
-//	m_osSocketToA_RTCP = 0;
-//	m_osSocketToB = 0;
-//	m_osSocketToB_RTCP = 0;
-	// TODO: assuming all is multiplexing for now
-	m_osSocketToA = MultiplexedRTPHandler::Instance()->GetRTPOSSocket();
-	m_osSocketToA_RTCP = MultiplexedRTPHandler::Instance()->GetRTCPOSSocket();
-	m_osSocketToB = MultiplexedRTPHandler::Instance()->GetRTPOSSocket();
-	m_osSocketToB_RTCP = MultiplexedRTPHandler::Instance()->GetRTCPOSSocket();
+	m_osSocketToA = INVALID_OSSOCKET;
+	m_osSocketToA_RTCP = INVALID_OSSOCKET;
+	m_osSocketToB = INVALID_OSSOCKET;
+	m_osSocketToB_RTCP = INVALID_OSSOCKET;
 }
 
 void H46019Channel::Dump() const
@@ -6233,17 +6218,13 @@ void H46019Channel::Dump() const
 			<< " addrB=" << m_addrB << " addrB_RTCP=" << m_addrB_RTCP);
 }
 
-bool H46019Channel::IsSet(const H323TransportAddress & addr) const
-{
-	return (addr != H323TransportAddress());
-}
-
 void H46019Channel::HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP)
 {
-	// TODO: save ossocket when detecting addr ? or in HandleOLC(A) ?
+#ifdef RTP_DEBUG
 	PTRACE(0, "JW RTP DB: this=" << this << " addrA=" << m_addrA << " addrA_RTCP=" << m_addrA_RTCP
 					 << " addrB=" << m_addrB << " addrB_RTCP=" << m_addrB_RTCP
 					 << " isRTCP=" << isRTCP << " ka=" << IsKeepAlive(data, len, isRTCP));
+#endif
 	if (IsKeepAlive(data, len, isRTCP)) {
 		if (receivedMultiplexID == m_multiplexID_fromA) {
 			if (isRTCP) {
@@ -6258,7 +6239,19 @@ void H46019Channel::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 				m_addrB = fromAddress;
 			}
 		}
+#ifdef RTP_DEBUG
 		Dump();
+#endif
+		// for calls with a non-multiplexed partner, we have to update the destination in the non-multiplex socket
+		if ( !( ((m_multiplexID_fromA != INVALID_MULTIPLEX_ID) || (m_multiplexID_toA != INVALID_MULTIPLEX_ID))
+			  &&((m_multiplexID_fromB != INVALID_MULTIPLEX_ID) || (m_multiplexID_toB != INVALID_MULTIPLEX_ID))) ) {
+			PTRACE(0, "JW port detected on a H.460.19 channel with one side NOT going through multiplex socket");
+			callptr call = CallTable::Instance()->FindCallRec(m_callid);
+			if (call) {
+				PUInt32b multiplexID = (receivedMultiplexID == m_multiplexID_fromA) ? m_multiplexID_toA : m_multiplexID_toB;
+				call->SetLCMultiplexDestination(m_lc, m_sessionID, isRTCP, fromAddress, multiplexID);
+			}
+		}
 		if (!isRTCP)
 			return;	// don't forward RTP keepalives
 	}
@@ -6289,6 +6282,10 @@ void H46019Channel::Send(PUInt32b sendMultiplexID, const H323TransportAddress & 
 	size_t lenToSend = len;
 	size_t sent = 0;
 
+	if (osSocket == INVALID_OSSOCKET) {
+		PTRACE(1, "Error: OSSocket to " << toAddress << " not set");
+		return;
+	}
 	SetSockaddr(dest, toAddress);
 	if (sendMultiplexID != INVALID_MULTIPLEX_ID) {
 		lenToSend += 4;
@@ -6371,8 +6368,11 @@ void MultiplexedRTPHandler::ReadSocket(IPSocket * socket)
 
 void MultiplexedRTPHandler::AddChannel(const H46019Channel & chan)
 {
+#ifdef RTP_DEBUG
 	chan.Dump();
-	m_h46019channels.push_back(chan);
+#endif
+	if (chan.m_lc != 0)
+		m_h46019channels.push_back(chan);
 }
 
 void MultiplexedRTPHandler::UpdateChannel(const H46019Channel & chan)
@@ -6380,7 +6380,9 @@ void MultiplexedRTPHandler::UpdateChannel(const H46019Channel & chan)
 	for (list<H46019Channel>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; ++iter ) {
 		if (iter->m_callid == chan.m_callid && iter->m_lc == chan.m_lc) {
+#ifdef RTP_DEBUG
 			chan.Dump();
+#endif
 			*iter = chan;
 			return;
 		}
@@ -6424,6 +6426,7 @@ void MultiplexedRTPHandler::RemoveChannels(const H225_CallIdentifier & callid)
 
 void MultiplexedRTPHandler::HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP)
 {
+	// find the matching channel for the multiplex ID and let it handle the packet
 	for (list<H46019Channel>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; ++iter ) {
 		if ((iter->m_multiplexID_fromA == receivedMultiplexID)
@@ -6558,6 +6561,15 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 
 	m_call = &mcall;
 }
+
+#ifdef HAS_H46018
+void UDPProxySocket::SetMultiplexDestination(const H323TransportAddress & toAddress, PUInt32b multiplexID)
+{
+	m_multiplexDestination = toAddress;
+	m_multiplexID = multiplexID;
+}
+#endif
+
 void UDPProxySocket::SetMediaIP(const PString & direction, const Address & ip)
 {
 	if (m_call && *m_call) {
@@ -6618,7 +6630,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort)
 		);
-	PTRACE(0, "JW RTP DB on " << localport << " type=" << Type() << " this=" << this << " H.460.19=" << UsesH46019() << " fc=" << m_h46019fc << " m_h46019uni=" << m_h46019uni);
+	PTRACE(0, "JW RTP DB on " << localport << " type=" << Type() << " this=" << this << " H.460.19=" << UsesH46019() << " fc=" << m_h46019fc << " m_h46019uni=" << m_h46019uni << " multiplexDest=" << m_multiplexDestination << " multiplexID=" << m_multiplexID);
 #endif // RTP_DEBUG
 
 	// detecting ports for H.460.19
@@ -6703,6 +6715,17 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			fDestIP = rSrcIP, fDestPort = rSrcPort;
 		}
 	}
+
+	// send packets for a multiplexing destination out through multiplexing socket
+	if (IsSet(m_multiplexDestination)) {
+		// TODO: RTCP sniffing
+		H46019Channel::Send(m_multiplexID, m_multiplexDestination,
+							isRTCP  ? MultiplexedRTPHandler::Instance()->GetRTCPOSSocket()
+									: MultiplexedRTPHandler::Instance()->GetRTPOSSocket(),
+							wbuffer, buflen);
+		return NoData;	// already forwarded through multiplex socket
+	}
+
 #endif	// HAS_H46018
 	// fSrcIP = forward-Source-IP, fDest-IP = forward destination IP, rDestIP = reverse destination IP
 	/* autodetect channel source IP:PORT that was not specified by OLCs */
@@ -7151,6 +7174,14 @@ void RTPLogicalChannel::SetH46019UniDirectional(bool uni)
 		rtp->SetH46019UniDirectional(uni);
 	if (rtcp)
 		rtcp->SetH46019UniDirectional(uni);
+}
+
+void RTPLogicalChannel::SetLCMultiplexDestination(bool isRTCP, const H323TransportAddress & toAddress, PUInt32b multiplexID)
+{
+	if (isRTCP && rtcp)
+		rtcp->SetMultiplexDestination(toAddress, multiplexID);
+	if (!isRTCP && rtp)
+		rtp->SetMultiplexDestination(toAddress, multiplexID);
 }
 #endif
 
@@ -7645,6 +7676,9 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 #ifdef HAS_H46018
 		WORD sessionID = (WORD)h225Params->m_sessionID;
 		H46019Channel h46019chan(call->GetCallIdentifier(), flcn, sessionID);
+		if (h225Params && h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)) {
+			h46019chan.m_addrA_RTCP = h225Params->m_mediaControlChannel;
+		}
 		// parse incoming traversal parameters for H.460.19
 		bool m_h46019uni = false;
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_genericInformation)) {
@@ -7676,7 +7710,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 								call->AddRTPKeepAlive(flcn, keepAliveRTPAddr, keepAliveInterval);
 								call->AddRTCPKeepAlive(flcn, keepAliveRTCPAddr, keepAliveInterval);
 							}
-							if (multiplexID != INVALID_MULTIPLEX_ID) {
+							if (m_useRTPMultiplexing && (multiplexID != INVALID_MULTIPLEX_ID)) {
 								h46019chan.m_multiplexID_toA = multiplexID;
 								if (IsTraversalServer()) {
 									h46019chan.m_addrA = keepAliveRTPAddr;
@@ -7685,6 +7719,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 								} else {
 									PTRACE(0, "JW IGNORING multiplexing addrs from client: RTP=" << keepAliveRTPAddr << " RTCP=" << multiplexedRTCPAddr);
 								}
+								h46019chan.m_osSocketToA = MultiplexedRTPHandler::Instance()->GetRTPOSSocket();
+								h46019chan.m_osSocketToA_RTCP = MultiplexedRTPHandler::Instance()->GetRTCPOSSocket();
 							}
 						}
 						// move remaining elements down
@@ -7782,6 +7818,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 					}
 				}
 				h46019chan.m_multiplexID_fromB = params.m_multiplexID;
+				h46019chan.m_osSocketToB = MultiplexedRTPHandler::Instance()->GetRTPOSSocket();
+				h46019chan.m_osSocketToB_RTCP = MultiplexedRTPHandler::Instance()->GetRTCPOSSocket();
 			}
 
 			PTRACE(0, "JW Add TraversalParams to OLC=" << params);
@@ -7792,7 +7830,18 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 			olc.m_genericInformation[0].m_messageContent[0] = genericParameter;
 			changed = true;
 		}
-		MultiplexedRTPHandler::Instance()->AddChannel(h46019chan);
+		// save parameters for mixed multiplex/non-multiplexed call
+		LogicalChannel * lc = FindLogicalChannel(flcn);
+		if ((h46019chan.m_multiplexID_toA == INVALID_MULTIPLEX_ID) && lc) {
+			h46019chan.m_osSocketToA = lc->GetRTPOSSocket();
+			h46019chan.m_osSocketToA_RTCP = lc->GetRTCPOSSocket();
+		}
+		if ((h46019chan.m_multiplexID_fromB == INVALID_MULTIPLEX_ID) && lc) {
+			h46019chan.m_osSocketToB = lc->GetRTPOSSocket();
+			h46019chan.m_osSocketToB_RTCP = lc->GetRTCPOSSocket();
+		}
+		if (m_useRTPMultiplexing)
+			MultiplexedRTPHandler::Instance()->AddChannel(h46019chan);
 #endif
 		return changed;
 	}
@@ -7803,6 +7852,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelReject(H245_OpenLogicalChannelRej
 	WORD flcn = (WORD)olcr.m_forwardLogicalChannelNumber;
 	peer->RemoveLogicalChannel(flcn);
 	// can't remove the H46019Channel, here without sessionID, will be removed when call ends
+	//if (m_useRTPMultiplexing)
 	//MultiplexedRTPHandler::Instance()->RemoveChannel(call->GetCallIdentifier(), flcn, sessionID);
 	return false; // nothing changed
 }
@@ -7824,7 +7874,9 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 	if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)
 		&& olca.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters)
 		sessionID = ((H245_H2250LogicalChannelAckParameters&)olca.m_forwardMultiplexAckParameters).m_sessionID;
-	H46019Channel h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(call->GetCallIdentifier(), flcn, sessionID);
+	H46019Channel h46019chan(0,0,0);
+	if (m_useRTPMultiplexing)
+		h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(call->GetCallIdentifier(), flcn, sessionID);
 	// parse traversal parameters from sender
 	if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_genericInformation)) {
 		for (PINDEX i = 0; i < olca.m_genericInformation.GetSize(); i++) {
@@ -7843,16 +7895,14 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 						PUInt32b multiplexID;
 						if (ParseTraversalParameters(olca.m_genericInformation[i], payloadtype, keepAliveRTPAddr, keepAliveInterval,
 								multiplexedRTPAddr, multiplexedRTCPAddr, multiplexID)) {
-							if (multiplexID != INVALID_MULTIPLEX_ID) {
-								PTRACE(0, "JW OLC receiver wants multiplexID=" << multiplexID);
+							if (m_useRTPMultiplexing && (multiplexID != INVALID_MULTIPLEX_ID)) {
 								h46019chan.m_multiplexID_toB = multiplexID;
-								if (IsTraversalServer()) {
+								if (IsTraversalServer()) {  // only save multiplex addresses if from server
 									h46019chan.m_addrB = keepAliveRTPAddr;
 									h46019chan.m_addrB_RTCP = multiplexedRTCPAddr;
-									PTRACE(0, "JW saving multiplexing addrs from server: RTP=" << keepAliveRTPAddr << " RTCP=" << multiplexedRTCPAddr);
-								} else {
-									PTRACE(0, "JW IGNORING multiplexing addrs from client: RTP=" << keepAliveRTPAddr << " RTCP=" << multiplexedRTCPAddr);
 								}
+								h46019chan.m_osSocketToB = MultiplexedRTPHandler::Instance()->GetRTPOSSocket();
+								h46019chan.m_osSocketToB_RTCP = MultiplexedRTPHandler::Instance()->GetRTCPOSSocket();
 							}
 						}
 					}
@@ -7877,7 +7927,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		changed = true;
 	}
 	// add traversal parameters, if needed
-	if (peer && (peer->IsTraversalServer() || m_useRTPMultiplexing)) {
+	if (peer && (peer->IsTraversalServer() || (peer->IsTraversalClient() && m_useRTPMultiplexing))) {
 		// we need to move any generic Information messages up 1 so H.460.19 will ALWAYS be in position 0.
 		if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_genericInformation)) {
 			olca.m_genericInformation.SetSize(olca.m_genericInformation.GetSize()+1);
@@ -7902,7 +7952,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		H46019_TraversalParameters params;
 		if (peer && peer->IsTraversalServer()) {
 			params.IncludeOptionalField(H46019_TraversalParameters::e_keepAlivePayloadType);
-			params.m_keepAlivePayloadType = 127;	// TODO: can we always use this fixed PayloadType ?
+			params.m_keepAlivePayloadType = GNUGK_KEEPALIVE_RTP_PAYLOADTYPE;
 		}
 		if (m_useRTPMultiplexing) {
 			// tell originator of this channel, that GnuGk wants RTP multiplexing
@@ -7915,6 +7965,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 			params.m_multiplexedMediaChannel = IPToH245TransportAddr(GetMasqAddr(), m_multiplexedRTPPort);
 
 			h46019chan.m_multiplexID_fromA = params.m_multiplexID;
+			h46019chan.m_osSocketToA = MultiplexedRTPHandler::Instance()->GetRTPOSSocket();
+			h46019chan.m_osSocketToA_RTCP = MultiplexedRTPHandler::Instance()->GetRTCPOSSocket();
 		}
 
 		H245_ParameterValue & octetValue = genericParameter.m_parameterValue;
@@ -7926,10 +7978,26 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		PTRACE(0, "JW Adding Params to OLCA=" << params);
 		changed = true;
 	}
-	MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
+	// save parameters for mixed multiplex/non-multiplexed call
+	if ((h46019chan.m_multiplexID_toB == INVALID_MULTIPLEX_ID) && lc) {
+		if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)) {
+			H245_OpenLogicalChannelAck_forwardMultiplexAckParameters & ackparams = olca.m_forwardMultiplexAckParameters;
+			if (ackparams.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters) {
+				H245_H2250LogicalChannelAckParameters & h225Params = ackparams;
+				if (h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaControlChannel))
+					h46019chan.m_addrB_RTCP = h225Params.m_mediaControlChannel;
+				if (h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel))
+					h46019chan.m_addrB = h225Params.m_mediaChannel;
+			}
+		}
+		h46019chan.m_osSocketToB = lc->GetRTPOSSocket();
+		h46019chan.m_osSocketToB_RTCP = lc->GetRTCPOSSocket();
+	}
+	if (m_useRTPMultiplexing)
+		MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
 #endif
 
-	bool result = lc->SetDestination(olca, this, call, IsTraversalClient(), m_useRTPMultiplexing);
+	bool result = lc->SetDestination(olca, this, call, IsTraversalClient(), (peer && peer->IsTraversalZone() && m_useRTPMultiplexing));
 	if (result)
 		lc->StartReading(handler);
 
@@ -8014,6 +8082,7 @@ bool H245ProxyHandler::HandleCloseLogicalChannel(H245_CloseLogicalChannel & clc,
 #ifdef HAS_H46018
 	call->RemoveKeepAlives(clc.m_forwardLogicalChannelNumber);
 	// can't remove the H46019Channel, here without sessionID, will be removed when call ends
+	//if (m_useRTPMultiplexing)
 	//MultiplexedRTPHandler::Instance()->RemoveChannel(call->GetCallIdentifier(), clc.m_forwardLogicalChannelNumber, sessionID);
 #endif
 	return false; // nothing changed
@@ -8135,19 +8204,19 @@ void H245ProxyHandler::SetHandler(ProxyHandler *h)
 		peer->handler = h;
 }
 
-LogicalChannel *H245ProxyHandler::FindLogicalChannel(WORD flcn)
+LogicalChannel * H245ProxyHandler::FindLogicalChannel(WORD flcn)
 {
 	iterator iter = logicalChannels.find(flcn);
 	return (iter != logicalChannels.end()) ? iter->second : 0;
 }
 
-RTPLogicalChannel *H245ProxyHandler::FindRTPLogicalChannelBySessionID(WORD id)
+RTPLogicalChannel * H245ProxyHandler::FindRTPLogicalChannelBySessionID(WORD id)
 {
 	siterator iter = sessionIDs.find(id);
-	return (iter != sessionIDs.end()) ? iter->second : 0;
+	return (iter != sessionIDs.end()) ? iter->second : NULL;
 }
 
-RTPLogicalChannel *H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn)
+RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn)
 {
 	if (FindLogicalChannel(flcn)) {
 		PTRACE(3, "Proxy\tRTP logical channel " << flcn << " already exist?");

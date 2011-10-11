@@ -2038,6 +2038,7 @@ void RegistrationTable::CheckEndpoints()
 #ifdef HAS_H46018
 H46019KeepAlive::H46019KeepAlive()
 {
+	ossocket = INVALID_OSSOCKET;
 	seq = 1;
 	timer = GkTimerManager::INVALID_HANDLE;
 }
@@ -2049,7 +2050,7 @@ H46019KeepAlive::~H46019KeepAlive()
 
 void H46019KeepAlive::StopKeepAlive()
 {
-	ossocket = 0;
+	ossocket = INVALID_OSSOCKET;
 	if (timer != GkTimerManager::INVALID_HANDLE) {
 		Toolkit::Instance()->GetTimerManager()->UnregisterTimer(timer);
 		timer = GkTimerManager::INVALID_HANDLE;
@@ -2080,18 +2081,22 @@ struct RTCPKeepAliveFrame
 
 void H46019KeepAlive::SendKeepAlive(GkTimer * t)
 {
+	if (ossocket == INVALID_OSSOCKET) {
+		PTRACE(1, "Error sending RTCP keepAlive: ossocket not set");
+		return;
+	}
+
 	if (type == RTP) {
 		RTPKeepAliveFrame rtpKeepAlive;
 		rtpKeepAlive.b1 = 0x80;
-		rtpKeepAlive.pt = 127;
+		rtpKeepAlive.pt = GNUGK_KEEPALIVE_RTP_PAYLOADTYPE;
 		rtpKeepAlive.seq = htons(seq++);
 		rtpKeepAlive.ts = 0;
 		rtpKeepAlive.ssrc = 0;
-		//rtpKeepAlive.padding = 0;
 		PTRACE(0, "JW Send RTP keepalive on socket " << ossocket << " size=" << sizeof(rtpKeepAlive));
 		size_t sent = ::sendto(ossocket, (const char *)&rtpKeepAlive, sizeof(rtpKeepAlive), 0, (struct sockaddr *)&dest, sizeof(dest));
 		if (sent != sizeof(rtpKeepAlive)) {
-			PTRACE(1, "JW Error sending RTP keepAlive " << timer << " t=" << t);
+			PTRACE(1, "Error sending RTP keepAlive " << timer);
 		}
 	} else {
 		RTCPKeepAliveFrame rtcpKeepAlive;
@@ -2107,7 +2112,7 @@ void H46019KeepAlive::SendKeepAlive(GkTimer * t)
 		PTRACE(0, "JW Send RTCP keepalive on socket " << ossocket << " size=" << sizeof(rtcpKeepAlive));
 		size_t sent = ::sendto(ossocket, (const char *)&rtcpKeepAlive, sizeof(rtcpKeepAlive), 0, (struct sockaddr *)&dest, sizeof(dest));
 		if (sent != sizeof(rtcpKeepAlive)) {
-			PTRACE(1, "JW Error sending RTCP keepAlive " << timer << " t=" << t);
+			PTRACE(1, "Error sending RTCP keepAlive " << timer);
 		}
 	}
 }
@@ -3713,6 +3718,13 @@ void CallRec::RemoveKeepAllAlives()
 {
 	m_RTPkeepalives.clear();
 	m_RTCPkeepalives.clear();
+}
+
+void CallRec::SetLCMultiplexDestination(unsigned lc, WORD sessionID, bool isRTCP, const H323TransportAddress & toAddress, PUInt32b multiplexID)
+{
+	// try to find LC on caller, else try called
+	if (!m_callingSocket->SetLCMultiplexDestination(lc, sessionID, isRTCP, toAddress, multiplexID))
+		m_calledSocket->SetLCMultiplexDestination(lc, sessionID, isRTCP, toAddress, multiplexID);
 }
 #endif
 

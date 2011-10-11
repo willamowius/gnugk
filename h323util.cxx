@@ -504,6 +504,11 @@ bool IsLoopback(const PIPSocket::Address & addr)
 	return addr.IsLoopback() != 0;
 }
 
+bool IsSet(const H323TransportAddress & addr)
+{
+	return (addr != H323TransportAddress());
+}
+
 PString GetGUIDString(
 	const H225_GloballyUniqueID & id, /// 128-bit identifier to convert
 	bool fixedLength /// skip leading zeros (false) or not (true)
