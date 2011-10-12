@@ -329,7 +329,7 @@ void Toolkit::RouteTable::InitTable()
 
 #if PTRACING
 	for (RouteEntry *entry = rtable_begin; entry != rtable_end; ++entry) {
-		PTRACE(2, "Network=" << entry->GetNetwork() << '/' << entry->GetNetMask() <<
+		PTRACE(2, "Network=" << NetworkAddress(entry->GetNetwork(), entry->GetNetMask()).AsString() <<
 				", IP=" << entry->GetDestination());
 	}
 #ifdef hasIPV6
@@ -455,17 +455,17 @@ for(PINDEX i=0; i < if_table.GetSize(); ++i) {
 				r_table.RemoveAt(i--);
 			}
 	}
-PTRACE(0, "JW route table size=" << r_table.GetSize());
 for(PINDEX i=0; i < r_table.GetSize(); ++i) {
 	PTRACE(0, "JW entry " << i << ": net=" << r_table[i].GetNetwork() << " mask=" << r_table[i].GetNetMask() << " dest=" << r_table[i].GetDestination() << " metric=" << r_table[i].GetMetric());
 }
 
 	if (/*!extroute &&*/ AsBool(GkConfig()->GetString(ProxySection, "Enable", "0"))) {
 		for (PINDEX i = 0; i < r_table.GetSize(); ++i) {
-			if (r_table[i].GetNetwork().IsRFC1918()	&& (r_table[i].GetNetMask().AsString() != "255.255.255.255")) {
-				PString intAddr = r_table[i].GetNetwork().AsString() + "/" + r_table[i].GetNetMask().AsString();
+			if (r_table[i].GetNetwork().IsRFC1918()
+				&& (r_table[i].GetNetMask().AsString() != "255.255.255.255")
+				&& (r_table[i].GetNetMask().AsString() != "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")) {
 				m_internalnetworks.resize( m_internalnetworks.size() + 1);
-				m_internalnetworks[m_internalnetworks.size() - 1] = NetworkAddress(intAddr);
+				m_internalnetworks[m_internalnetworks.size() - 1] = NetworkAddress(r_table[i].GetNetwork(), r_table[i].GetNetMask());
 				PTRACE(2, "Internal Network Detected " << m_internalnetworks.back().AsString()); 
 			}
 		}
