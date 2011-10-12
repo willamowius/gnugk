@@ -7760,7 +7760,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 			return true;
 
 		// add if peer is traversal client, don't add if we are traversal client
-		if (peer && (peer->IsTraversalClient() || m_useRTPMultiplexing)) {
+		if (peer && (peer->IsTraversalClient() || (peer->IsTraversalServer() && m_useRTPMultiplexing))) {
 			// We need to move any generic Information messages up 1 so H.460.19 will ALWAYS be in position 0.
 			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_genericInformation)) {
 				olc.m_genericInformation.SetSize(olc.m_genericInformation.GetSize()+1);
@@ -7783,22 +7783,24 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 			PASN_Integer & n = ident;
 			n = 1;
 			H46019_TraversalParameters params;
-			params.IncludeOptionalField(H46019_TraversalParameters::e_keepAliveChannel);
-			LogicalChannel * lc;
-			if (UsesH46019fc()) {
-				lc = fastStartLCs[sessionID];
-			} else {
-				lc = FindLogicalChannel(flcn);
+			if (peer->IsTraversalClient()) {
+				params.IncludeOptionalField(H46019_TraversalParameters::e_keepAliveChannel);
+				LogicalChannel * lc;
+				if (UsesH46019fc()) {
+					lc = fastStartLCs[sessionID];
+				} else {
+					lc = FindLogicalChannel(flcn);
+				}
+				if (lc) {
+					params.m_keepAliveChannel = IPToH245TransportAddr(GetMasqAddr(), lc->GetPort()); // use RTP port for keepAlives
+					((RTPLogicalChannel*)lc)->SetUsesH46019fc(UsesH46019fc());
+					((RTPLogicalChannel*)lc)->SetRTPSessionID((WORD)h225Params->m_sessionID);
+				} else {
+					PTRACE(1, "Can't find RTP port for logical channel " << flcn);
+				}
+				params.IncludeOptionalField(H46019_TraversalParameters::e_keepAliveInterval);
+				params.m_keepAliveInterval = 19;
 			}
-			if (lc) {
-				params.m_keepAliveChannel = IPToH245TransportAddr(GetMasqAddr(), lc->GetPort()); // use RTP port for keepAlives
-				((RTPLogicalChannel*)lc)->SetUsesH46019fc(UsesH46019fc());
-				((RTPLogicalChannel*)lc)->SetRTPSessionID((WORD)h225Params->m_sessionID);
-			} else {
-				PTRACE(1, "Can't find RTP port for logical channel " << flcn);
-			}
-			params.IncludeOptionalField(H46019_TraversalParameters::e_keepAliveInterval);
-			params.m_keepAliveInterval = 19;
 			if (m_useRTPMultiplexing) {
 				// TODO JW: check if .19 client supports it (should, but some don't, servers may also not)
 				params.IncludeOptionalField(H46019_TraversalParameters::e_multiplexID);
@@ -7874,8 +7876,10 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		&& olca.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters)
 		sessionID = ((H245_H2250LogicalChannelAckParameters&)olca.m_forwardMultiplexAckParameters).m_sessionID;
 	H46019Channel h46019chan(0,0,0);
-	if (m_useRTPMultiplexing)
+	if (m_useRTPMultiplexing) {
 		h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(call->GetCallIdentifier(), flcn, sessionID);
+		h46019chan.Dump();
+	}
 	// parse traversal parameters from sender
 	if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_genericInformation)) {
 		for (PINDEX i = 0; i < olca.m_genericInformation.GetSize(); i++) {
