@@ -332,7 +332,8 @@ so they both should have an NTP server configured.
 <descrip>
 <tag/Example:/
 <tt/[Neighbor::VCSServer]/<newline>
-<tt/Host=20.75.127.30:6007/<newline>
+<tt/;from unknown IP/<newline>
+<tt/Host=1.2.3.4/<newline>
 <tt/SendPrefixes=*/<newline>
 <tt/AcceptPrefixes=*/<newline>
 <tt/H46018Client=1/<newline>
