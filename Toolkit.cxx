@@ -372,6 +372,15 @@ void Toolkit::RouteTable::AddInternalNetwork(const NetworkAddress & network)
 		m_internalnetworks.push_back(network);
 }
 
+PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(unsigned version) const
+{
+#ifdef hasIPV6
+	if (version == 6)
+		return defAddrV6;
+#endif
+	return defAddr;
+}
+
 PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(const Address & addr) const
 {
 	// look through internal networks and make sure we don't return the external IP for them

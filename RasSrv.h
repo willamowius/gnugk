@@ -101,7 +101,7 @@ public:
 	WORD GetRequestSeqNum();
 
 	GkInterface *SelectInterface(const Address &);
-    GkInterface *SelectDefaultInterface();
+    GkInterface *SelectDefaultInterface(unsigned version);
 	const GkInterface *SelectInterface(const Address &) const;
 	RasListener * GetRasListener(const Address & addr) const;
 	Address GetLocalAddress(const Address &) const;

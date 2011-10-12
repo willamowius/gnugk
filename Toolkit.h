@@ -124,7 +124,7 @@ class Toolkit : public Singleton<Toolkit>
 	public:
 		RouteTable() : rtable_begin(0), rtable_end(0), DynExtIP(false), ExtIP("") { /* initialize later */ }
 		virtual ~RouteTable() { ClearTable(); }
-		Address GetLocalAddress() const { return defAddr; }
+		Address GetLocalAddress(unsigned version) const;
 		Address GetLocalAddress(const Address & dest) const;
 		Address GetDefaultIP(unsigned version);
 

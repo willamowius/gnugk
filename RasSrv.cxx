@@ -995,12 +995,12 @@ WORD RasServer::GetRequestSeqNum()
 	return ++requestSeqNum;
 }
 
-GkInterface *RasServer::SelectDefaultInterface()
+GkInterface *RasServer::SelectDefaultInterface(unsigned version)
 {
 	if (interfaces.empty())
 		return NULL;
  
-    PIPSocket::Address defIP = Toolkit::Instance()->GetRouteTable(false)->GetLocalAddress();
+    PIPSocket::Address defIP = Toolkit::Instance()->GetRouteTable(false)->GetLocalAddress(version);
     ifiterator iter = interfaces.begin();
 	while (iter != interfaces.end()) {
 		GkInterface * intface = *iter++;
@@ -1019,7 +1019,7 @@ GkInterface *RasServer::SelectInterface(const Address & addr)
 	if (iter != interfaces.end()) 
         return *iter;
     else
-        return SelectDefaultInterface();
+        return SelectDefaultInterface(addr.GetVersion());
 }
 
 const GkInterface *RasServer::SelectInterface(const Address & addr) const
