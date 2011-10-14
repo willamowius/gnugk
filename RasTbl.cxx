@@ -2039,6 +2039,7 @@ void RegistrationTable::CheckEndpoints()
 H46019KeepAlive::H46019KeepAlive()
 {
 	ossocket = INVALID_OSSOCKET;
+	multiplexID = INVALID_MULTIPLEX_ID;
 	seq = 1;
 	timer = GkTimerManager::INVALID_HANDLE;
 }
@@ -2066,8 +2067,32 @@ struct RTPKeepAliveFrame
 	PInt32 ssrc;
 };
 
+struct MultiplexedRTPKeepAliveFrame
+{
+	PUInt32b multiplexID;
+	BYTE b1;
+	BYTE pt;
+	WORD seq;
+	PInt32 ts;
+	PInt32 ssrc;
+};
+
 struct RTCPKeepAliveFrame
 {
+	BYTE b1;
+	BYTE pt;
+	WORD len;
+	PInt32 ssrc;
+	PInt32 msw_ts;
+	PInt32 lsw_ts;
+	PInt32 rtp_ts;
+	PInt32 packet_count;
+	PInt32 byte_count;
+};
+
+struct MultiplexedRTCPKeepAliveFrame
+{
+	PUInt32b multiplexID;
 	BYTE b1;
 	BYTE pt;
 	WORD len;
@@ -2088,30 +2113,66 @@ void H46019KeepAlive::SendKeepAlive(GkTimer * t)
 
 	if (type == RTP) {
 		RTPKeepAliveFrame rtpKeepAlive;
-		rtpKeepAlive.b1 = 0x80;
-		rtpKeepAlive.pt = GNUGK_KEEPALIVE_RTP_PAYLOADTYPE;
-		rtpKeepAlive.seq = htons(seq++);
-		rtpKeepAlive.ts = 0;
-		rtpKeepAlive.ssrc = 0;
-		PTRACE(0, "JW Send RTP keepalive on socket " << ossocket << " size=" << sizeof(rtpKeepAlive));
-		size_t sent = ::sendto(ossocket, (const char *)&rtpKeepAlive, sizeof(rtpKeepAlive), 0, (struct sockaddr *)&dest, sizeof(dest));
-		if (sent != sizeof(rtpKeepAlive)) {
+		MultiplexedRTPKeepAliveFrame multiplexedRtpKeepAlive;
+		char * ka_ptr = NULL;
+		size_t ka_size = 0;
+		if (multiplexID == INVALID_MULTIPLEX_ID) {
+			rtpKeepAlive.b1 = 0x80;
+			rtpKeepAlive.pt = GNUGK_KEEPALIVE_RTP_PAYLOADTYPE;
+			rtpKeepAlive.seq = htons(seq++);
+			rtpKeepAlive.ts = 0;
+			rtpKeepAlive.ssrc = 0;
+			ka_ptr = (char*)&rtpKeepAlive;
+			ka_size = sizeof(rtpKeepAlive);
+		} else {
+			multiplexedRtpKeepAlive.multiplexID = multiplexID;
+			multiplexedRtpKeepAlive.b1 = 0x80;
+			multiplexedRtpKeepAlive.pt = GNUGK_KEEPALIVE_RTP_PAYLOADTYPE;
+			multiplexedRtpKeepAlive.seq = htons(seq++);
+			multiplexedRtpKeepAlive.ts = 0;
+			multiplexedRtpKeepAlive.ssrc = 0;
+			ka_ptr = (char*)&multiplexedRtpKeepAlive;
+			ka_size = sizeof(multiplexedRtpKeepAlive);
+		}
+		PTRACE(0, "JW Send RTP keepalive on socket " << ossocket << " size=" << ka_size);
+		size_t sent = ::sendto(ossocket, ka_ptr, ka_size, 0, (struct sockaddr *)&dest, sizeof(dest));
+		if (sent != ka_size) {
 			PTRACE(1, "Error sending RTP keepAlive " << timer);
 		}
 	} else {
 		RTCPKeepAliveFrame rtcpKeepAlive;
-		rtcpKeepAlive.b1 = 0x80;
-		rtcpKeepAlive.pt = 200;	// SR
-		rtcpKeepAlive.len = htons(6);
-		rtcpKeepAlive.ssrc = 0;
-		rtcpKeepAlive.msw_ts = 0;
-		rtcpKeepAlive.lsw_ts = 0;
-		rtcpKeepAlive.rtp_ts = 0;
-		rtcpKeepAlive.packet_count = 0;
-		rtcpKeepAlive.byte_count = 0;
-		PTRACE(0, "JW Send RTCP keepalive on socket " << ossocket << " size=" << sizeof(rtcpKeepAlive));
-		size_t sent = ::sendto(ossocket, (const char *)&rtcpKeepAlive, sizeof(rtcpKeepAlive), 0, (struct sockaddr *)&dest, sizeof(dest));
-		if (sent != sizeof(rtcpKeepAlive)) {
+		MultiplexedRTCPKeepAliveFrame multiplexedRtcpKeepAlive;
+		char * ka_ptr = NULL;
+		size_t ka_size = 0;
+		if (multiplexID == INVALID_MULTIPLEX_ID) {
+			rtcpKeepAlive.b1 = 0x80;
+			rtcpKeepAlive.pt = 200;	// SR
+			rtcpKeepAlive.len = htons(6);
+			rtcpKeepAlive.ssrc = 0;
+			rtcpKeepAlive.msw_ts = 0;
+			rtcpKeepAlive.lsw_ts = 0;
+			rtcpKeepAlive.rtp_ts = 0;
+			rtcpKeepAlive.packet_count = 0;
+			rtcpKeepAlive.byte_count = 0;
+			ka_ptr = (char*)&rtcpKeepAlive;
+			ka_size = sizeof(rtcpKeepAlive);
+		} else {
+			multiplexedRtcpKeepAlive.multiplexID = multiplexID;
+			multiplexedRtcpKeepAlive.b1 = 0x80;
+			multiplexedRtcpKeepAlive.pt = 200;	// SR
+			multiplexedRtcpKeepAlive.len = htons(6);
+			multiplexedRtcpKeepAlive.ssrc = 0;
+			multiplexedRtcpKeepAlive.msw_ts = 0;
+			multiplexedRtcpKeepAlive.lsw_ts = 0;
+			multiplexedRtcpKeepAlive.rtp_ts = 0;
+			multiplexedRtcpKeepAlive.packet_count = 0;
+			multiplexedRtcpKeepAlive.byte_count = 0;
+			ka_ptr = (char*)&multiplexedRtcpKeepAlive;
+			ka_size = sizeof(multiplexedRtcpKeepAlive);
+		}
+		PTRACE(0, "JW Send RTCP keepalive on socket " << ossocket << " size=" << ka_size);
+		size_t sent = ::sendto(ossocket, ka_ptr, ka_size, 0, (struct sockaddr *)&dest, sizeof(dest));
+		if (sent != ka_size) {
 			PTRACE(1, "Error sending RTCP keepAlive " << timer);
 		}
 	}
@@ -3671,16 +3732,17 @@ void CallRec::AddRTPKeepAlive(unsigned flcn, const H323TransportAddress & keepAl
 	m_RTPkeepalives[flcn] = ka;
 }
 
-void CallRec::StartRTPKeepAlive(unsigned flcn, int RTPOSSocket)
+void CallRec::StartRTPKeepAlive(unsigned flcn, int RTPOSSocket, PUInt32b multiplexID)
 {
 	map<unsigned, H46019KeepAlive>::iterator iter = m_RTPkeepalives.find(flcn);
-	if ((iter != m_RTPkeepalives.end()) && (iter->second.timer != GkTimerManager::INVALID_HANDLE)) {
+	// only start if it isn't running already
+	if ((iter != m_RTPkeepalives.end()) && (iter->second.timer == GkTimerManager::INVALID_HANDLE)) {
 		iter->second.ossocket = RTPOSSocket;
-		//iter->second.SendKeepAlive(NULL);	// send the keepAlive once now, time doesn't seem to do it
+		iter->second.multiplexID = multiplexID;
 		PTime now;
 		iter->second.timer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 				&(iter->second), &H46019KeepAlive::SendKeepAlive, now, iter->second.interval);	// do it now and every n seconds
-		PTRACE(0, "JW Starting RTP keepAlive OS socket=" << RTPOSSocket << " timer=" << iter->second.timer);
+		PTRACE(0, "JW Starting RTP keepAlive OS socket=" << RTPOSSocket << " multiplexID=" << multiplexID);
 	}
 }
 
@@ -3695,16 +3757,17 @@ void CallRec::AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAl
 	m_RTCPkeepalives[flcn] = ka;
 }
 
-void CallRec::StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket)
+void CallRec::StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket, PUInt32b multiplexID)
 {
 	map<unsigned, H46019KeepAlive>::iterator iter = m_RTCPkeepalives.find(flcn);
-	if ((iter != m_RTCPkeepalives.end()) && (iter->second.timer != GkTimerManager::INVALID_HANDLE)) {
+	// only start if it isn't running already
+	if ((iter != m_RTCPkeepalives.end()) && (iter->second.timer == GkTimerManager::INVALID_HANDLE)) {
 		iter->second.ossocket = RTCPOSSocket;
-		//iter->second.SendKeepAlive(NULL);	// send the keepAlive once now, time doesn't seem to do it
+		iter->second.multiplexID = multiplexID;
 		PTime now;
 		iter->second.timer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 				&(iter->second), &H46019KeepAlive::SendKeepAlive, now, iter->second.interval);	// do it now and every n seconds
-		PTRACE(0, "JW Starting RTCP keepAlive OS socket=" << RTCPOSSocket << " timer=" << iter->second.timer);
+		PTRACE(0, "JW Starting RTCP keepAlive OS socket=" << RTCPOSSocket << " multiplexID=" << multiplexID);
 	}
 }
 
@@ -3720,11 +3783,28 @@ void CallRec::RemoveKeepAllAlives()
 	m_RTCPkeepalives.clear();
 }
 
-void CallRec::SetLCMultiplexDestination(unsigned lc, WORD sessionID, bool isRTCP, const H323TransportAddress & toAddress, PUInt32b multiplexID)
+void CallRec::SetLCMultiplexDestination(unsigned lc, void * openedBy, bool isRTCP, const H323TransportAddress & toAddress)
 {
-	// try to find LC on caller, else try called
-	if (!m_callingSocket->SetLCMultiplexDestination(lc, sessionID, isRTCP, toAddress, multiplexID))
-		m_calledSocket->SetLCMultiplexDestination(lc, sessionID, isRTCP, toAddress, multiplexID);
+	// try to find LC
+	if (m_callingSocket && (m_callingSocket->GetH245Handler() == openedBy)) {
+		m_callingSocket->SetLCMultiplexDestination(lc, isRTCP, toAddress);
+	} else if (m_calledSocket && (m_calledSocket->GetH245Handler() == openedBy)) {
+		m_calledSocket->SetLCMultiplexDestination(lc, isRTCP, toAddress);
+	} else {
+		PTRACE(0, "JW Error: Can't find LC to set destination!");
+	}
+}
+
+void CallRec::SetLCMultiplexID(unsigned lc, void * openedBy, bool isRTCP, PUInt32b multiplexID)
+{
+	// try to find LC
+	if (m_callingSocket && (m_callingSocket->GetH245Handler() == openedBy)) {
+		m_callingSocket->SetLCMultiplexID(lc, isRTCP, multiplexID);
+	} else if (m_calledSocket && (m_calledSocket->GetH245Handler() == openedBy)) {
+		m_calledSocket->SetLCMultiplexID(lc, isRTCP, multiplexID);
+	} else {
+		PTRACE(0, "JW Error: Can't find LC to set multiplex ID!");
+	}
 }
 #endif
 

@@ -224,7 +224,9 @@ public:
 	bool OnSCICall(H225_CallIdentifier callID, H225_TransportAddress sigAdr);
 	bool IsCallFromTraversalServer() const { return m_callFromTraversalServer; }
 	H225_CallIdentifier GetCallIdentifier() const { return m_call ? m_call->GetCallIdentifier() : 0; }
-	bool SetLCMultiplexDestination(unsigned lc, WORD sessionID, bool isRTCP, const H323TransportAddress & toAddress, PUInt32b multiplexID);
+	void SetLCMultiplexDestination(unsigned lc, bool isRTCP, const H323TransportAddress & toAddress);
+	void SetLCMultiplexID(unsigned lc, bool isRTCP, PUInt32b multiplexID);
+	const H245Handler * GetH245Handler() const { return m_h245handler; }
 #endif
 
 protected:
@@ -371,12 +373,10 @@ protected:
 	WORD wbufsize, buflen;
 };
 
-const PUInt32b INVALID_MULTIPLEX_ID = 0;
-
 class H46019Channel : public PObject
 {
 public:
-	H46019Channel(const H225_CallIdentifier & callid, unsigned lc, WORD sessionID);
+	H46019Channel(const H225_CallIdentifier & callid, unsigned lc, void * openedBy);
 
 	void Dump() const;
 
@@ -391,7 +391,7 @@ public:
 //protected:
 	H225_CallIdentifier m_callid;
 	unsigned m_lc;
-	WORD m_sessionID;
+	void * m_openedBy;	// pointer to H245ProxyHandler used as an ID
 	H323TransportAddress m_addrA;
 	H323TransportAddress m_addrA_RTCP;
 	H323TransportAddress m_addrB;
@@ -434,9 +434,11 @@ public:
 
 	virtual void AddChannel(const H46019Channel & cha);
 	virtual void UpdateChannel(const H46019Channel & cha);
-	virtual H46019Channel GetChannel(const H225_CallIdentifier & callid, unsigned lc, WORD sessionID) const;
-	virtual void RemoveChannel(const H225_CallIdentifier & callid, unsigned lc, WORD sessionID);
+	virtual H46019Channel GetChannel(const H225_CallIdentifier & callid, unsigned lc, void * openedBy) const;
+	virtual void RemoveChannel(const H225_CallIdentifier & callid, unsigned lc, void * openedBy);
 	virtual void RemoveChannels(const H225_CallIdentifier & callid);
+	virtual void DumpChannels(const PString & msg = "") const;
+
 	virtual void HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP);
 
 	virtual int GetRTPOSSocket() const { return m_reader ? m_reader->GetRTPOSSocket() : INVALID_OSSOCKET; }
@@ -446,6 +448,7 @@ public:
 
 protected:
 	MultiplexedRTPReader * m_reader;
+	mutable PReadWriteMutex listLock;
 	list<H46019Channel> m_h46019channels;
 	PUInt32b idCounter; // we should make sure this counter is _not_ reset on reload
 };

@@ -43,6 +43,7 @@ class H323TransportAddress;
 enum CallLeg { Caller, Called };
 enum RerouteState { NoReroute, RerouteInitiated, Rerouting };
 const int INVALID_OSSOCKET = -1;
+const PUInt32b INVALID_MULTIPLEX_ID = 0;
 const unsigned GNUGK_KEEPALIVE_RTP_PAYLOADTYPE = 127;	// GnuGk always sends this fixed payload type
 
  
@@ -605,6 +606,7 @@ public:
 	unsigned interval;
 	unsigned seq;
 	int ossocket;
+	PUInt32b multiplexID;
 	GkTimerManager::GkTimerHandle timer;
 };
 #endif
@@ -1253,13 +1255,14 @@ public:
 	int GetH46019Direction() const;
 
 	void AddRTPKeepAlive(unsigned flcn, const H323TransportAddress & keepAliveRTPAddr, unsigned keepAliveInterval);
-	void StartRTPKeepAlive(unsigned flcn, int RTPOSSocket);
+	void StartRTPKeepAlive(unsigned flcn, int RTPOSSocket, PUInt32b multiplexID = INVALID_MULTIPLEX_ID);
 	void AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAliveRTCPAddr, unsigned keepAliveInterval);
-	void StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket);
+	void StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket, PUInt32b multiplexID = INVALID_MULTIPLEX_ID);
 	void RemoveKeepAlives(unsigned flcn);
 	void RemoveKeepAllAlives();
 	
-	void SetLCMultiplexDestination(unsigned lc, WORD sessionID, bool isRTCP, const H323TransportAddress & toAddress, PUInt32b multiplexID);
+	void SetLCMultiplexDestination(unsigned lc, void * openedBy, bool isRTCP, const H323TransportAddress & toAddress);
+	void SetLCMultiplexID(unsigned lc, void * openedBy, bool isRTCP, PUInt32b multiplexID);
 #endif
 
 #ifdef HAS_H235_MEDIA
