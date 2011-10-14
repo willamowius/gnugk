@@ -184,6 +184,33 @@ void AddH460Feature(H225_ArrayOf_FeatureDescriptor & desc, const H460_Feature & 
 	desc.SetSize(lastpos+1);
 	desc[lastpos] = newFeat;
 }
+
+void RemoveH46019Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures, bool & senderSupportsH46019Multiplexing)
+{
+	senderSupportsH46019Multiplexing = false;
+	for(PINDEX i=0; i < supportedFeatures.GetSize(); i++) {
+		H225_GenericIdentifier & id = supportedFeatures[i].m_id;
+		if (id.GetTag() == H225_GenericIdentifier::e_standard) {
+			PASN_Integer & asnInt = id;
+			if (asnInt.GetValue() == 19) {
+				for(PINDEX p=0; p < supportedFeatures[i].m_parameters.GetSize(); p++) {
+					if (supportedFeatures[i].m_parameters[p].m_id.GetTag()  == H225_GenericIdentifier::e_standard) {
+						PASN_Integer & pInt = supportedFeatures[i].m_parameters[p].m_id;
+						if (pInt == 1) {
+							senderSupportsH46019Multiplexing = true;
+						}
+					}
+				}
+				// delete, move others 1 up
+				for(PINDEX j=i+1; j < supportedFeatures.GetSize(); j++) {
+					supportedFeatures[j-1] = supportedFeatures[j];
+				}
+				supportedFeatures.SetSize(supportedFeatures.GetSize() - 1);
+				return;
+			}	
+		}
+	}
+}
 #endif
 
 struct PortRange {
@@ -3484,10 +3511,12 @@ void CallSignalSocket::OnCallProceeding(
 
 #ifdef HAS_H46018
 	if (Toolkit::Instance()->IsH46018Enabled()) {
-		// remove H.460.19 indicator from sender TODO: leave other features intact
+		// remove H.460.19 descriptor from sender
+		bool senderSupportsH46019Multiplexing = false;
 		if (cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_featureSet)) {
-			cpBody.m_featureSet.m_supportedFeatures.SetSize(0);
-			cpBody.RemoveOptionalField(H225_CallProceeding_UUIE::e_featureSet);
+			RemoveH46019Descriptor(cpBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing);
+			if (cpBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
+				cpBody.RemoveOptionalField(H225_CallProceeding_UUIE::e_featureSet);
 		}
 		if (m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None)
 		{
@@ -3635,10 +3664,12 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 
 #ifdef HAS_H46018
 	if (m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled()) {
-		// remove H.460.19 indicator from sender TODO: leave other features intact
+		// remove H.460.19 descriptor from sender
+		bool senderSupportsH46019Multiplexing = false;
 		if (connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet)) {
-			connectBody.m_featureSet.m_supportedFeatures.SetSize(0);
-			connectBody.RemoveOptionalField(H225_Connect_UUIE::e_featureSet);
+			RemoveH46019Descriptor(connectBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing);
+			if (connectBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
+				connectBody.RemoveOptionalField(H225_Connect_UUIE::e_featureSet);
 		}
 		if (m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None)
 		{
@@ -3704,10 +3735,12 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 
 #ifdef HAS_H46018
 	if (m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled()) {
-		// remove H.460.19 indicator from sender TODO: leave other features intact
+		// remove H.460.19 descriptor from sender
+		bool senderSupportsH46019Multiplexing = false;
 		if (alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet)) {
-			alertingBody.m_featureSet.m_supportedFeatures.SetSize(0);
-			alertingBody.RemoveOptionalField(H225_Alerting_UUIE::e_featureSet);
+			RemoveH46019Descriptor(alertingBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing);
+			if (alertingBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
+				alertingBody.RemoveOptionalField(H225_Alerting_UUIE::e_featureSet);
 		}
 		if (m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None)
 		{
@@ -4567,10 +4600,12 @@ void CallSignalSocket::OnFacility(SignalingMsg *msg)
 
 	case H225_FacilityReason::e_forwardedElements:
 		if (Toolkit::Instance()->IsH46018Enabled()) {
-			// remove H.460.19 indicator from sender TODO: leave other features intact
+			// remove H.460.19 descriptor from sender
+			bool senderSupportsH46019Multiplexing = false;
 			if (facilityBody.HasOptionalField(H225_Facility_UUIE::e_featureSet)) {
-				facilityBody.m_featureSet.m_supportedFeatures.SetSize(0);
-				facilityBody.RemoveOptionalField(H225_Facility_UUIE::e_featureSet);
+				RemoveH46019Descriptor(facilityBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing);
+				if (facilityBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
+					facilityBody.RemoveOptionalField(H225_Facility_UUIE::e_featureSet);
 			}
 			if (m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None)
 			{
