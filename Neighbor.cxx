@@ -686,6 +686,12 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
 		lrq.m_canMapAlias = arq.m_canMapAlias;
 	}
 
+	// must include callID to traversal servers and clients, no harm to always include it
+	if (arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier)) {
+		lrq.IncludeOptionalField(H225_LocationRequest::e_callIdentifier);
+		lrq.m_callIdentifier = arq.m_callIdentifier;
+	}
+
 #ifdef HAS_H46023
     /// STD24  NAT Support
     if (Toolkit::Instance()->IsH46023Enabled()) {
@@ -728,6 +734,12 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & reques
 	
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 	lrq.m_canMapAlias = TRUE;
+
+	// must include callID to traversal servers and clients, no harm to always include it
+	if (setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
+		lrq.IncludeOptionalField(H225_LocationRequest::e_callIdentifier);
+		lrq.m_callIdentifier = setup.m_callIdentifier;
+	}
 
 	return true;
 }
