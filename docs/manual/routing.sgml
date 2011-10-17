@@ -548,7 +548,7 @@ is removed only when the call is sent to a terminal, not a gateway.
 <tag/Format for an inbound rule:/
 <tt>in:CALLER_IP=[pi=[allow|restrict][,forward|apply|applyforterminals]] [cli:|dno:]number_prefix(=|*=|~=|^=|/=)NEW_CLI[,NEW_CLI]...</tt>
 <p>
-The <tt/in:/ prefix tells that this is an inbound rule and the <tt/CALLER_IP/
+The <tt/in:/ prefix specifies that this is an inbound rule and the <tt/CALLER_IP/
 will be used to match the rule (it can be a single IP or an entire subnet).
 You can use IPv4 or IPv6 addresses for the <tt/CALLER_IP/.<newline>
 
@@ -557,7 +557,7 @@ features. Specifying either <tt/allow/ or <tt/restrict/ forces presentation indi
 to be set to "presentation allowed" or "presentation restricted". <tt/forward/, <tt/apply/
 and <tt/applyforterminals/ controls how the received (if any) presentation indicator
 is processed by the gatekeeper. <tt/forward/ means forward it to the callee as-is,
-<tt/apply/ means hiding CLI if the PI is set to "presentation restricted", <tt/applyforterminals/
+<tt/apply/ is used to hide the CLI if the PI is set to "presentation restricted", <tt/applyforterminals/
 is similar to <tt/apply/, except that CLI is hidden only when sending the call to a terminal,
 not a gateway.<newline>
 
@@ -586,9 +586,9 @@ After the equality (=/~=/*=/^=//=) sign, there follows a list of new CLI values 
 If more than one value is specified, one will be chosen on a random basis.
 It's possible to specify whole number ranges, like 49173600000-49173699999
 (for number ranges CLIs should have a fixed length).
-There is a special string constant "any", that can be used in place
+There is a special string constant "any" which may be used in place
 of the <tt/CALLER_IP/ or the <tt/number_prefix/. To enable <tt/CLIR/ for this rule,
-use a special string constant <tt/"hide"/ instead of the list of new CLI values.
+use the special string constant <tt/"hide"/ instead of the list of new CLI values.
 Note that CLIR is far more useful for outbound rules.
 
 <tag/Example 1:/

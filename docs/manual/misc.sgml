@@ -10,7 +10,7 @@ Default: <tt/1/<newline>
 Generate CDRs for calls from neighbor zones on the status port.
 The IP and endpoint ID of the calling party is printed as empty.
 This is usually used for debugging purposes.
-The accounting modules will always get CDR data for all call.
+The accounting modules will always get CDR data for all calls.
 
 <item><tt/GenerateUCCDR=0/<newline>
 Default: <tt/0/<newline>
@@ -54,7 +54,7 @@ Set the irrFrequency in ACF messages. 0 turns it off.
 Default: <tt/FALSE/<newline>
 <p>
 Check if both endpoints in a call send the requested IRRs.
-A call will be terminated if one of the endpoints didn't send
+A call will be terminated if one of the endpoints do not send
 an IRR after 2 * irrFrequency.
 
 <item><tt/SingleFailoverCDR=FALSE/<newline>
@@ -106,7 +106,7 @@ uses a conversion table. Using this section you can change this mapping.
 <sect1>Section &lsqb;GkQoSMonitor&rsqb;
 <label id="gkqosmonitor">
 <p>
-Use H.460.9 to collect quality of service information from endpoints. 
+Use H.460.9 to collect Quality of Service information from endpoints.
 Endpoints must support H.460.9 for this service to function.
 
 <itemize>
@@ -114,20 +114,20 @@ Endpoints must support H.460.9 for this service to function.
 Default: <tt/0/<newline>
 <p>
 Defines whether to enable or disable the feature. If enabled, this function
-with respond to supportedFeature requests from clients so clients know to
+will respond to supportedFeature requests from clients so clients know to
 send QoS statistics to the gatekeeper.
 
 <item><tt/CallEndOnly=0/<newline>
 Default: <tt/1/<newline>
 <p>
-Define whether to collect the information via IRR messages or to only collect 
+Defines whether to collect the information via IRR messages or only collect
 QoS information at the end of a call. 
 
 <item><tt/DetailFile=qos.txt/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 Define the output file for QoS logs. If a file is not defined the
-QoS information is output as an item in the Trace File at trace level 4
+QoS information is output as an item in the Trace File at trace level 4.
 </itemize>
 
 <sect1>Section &lsqb;GkQoSMonitor::SQL&rsqb;
@@ -179,7 +179,7 @@ This section defines the endpoint features for the gatekeeper.
 Default: <tt/no/<newline>
 <p>
 Define a parent gatekeeper for <htmlurl url="http://www.gnugk.org/" name="GnuGk"> to register with.
-When call in the routing process reaches the 'parent' routing policy,
+When a call in the routing process reaches the 'parent' routing policy,
 it will route all calls to this gatekeeper.
 If you set this to <tt/auto/, GnuGk will send an IPv4 broadcast GRQ.
 
@@ -201,13 +201,13 @@ extensions.
 Default: <tt>&lt;Name&gt;</tt><newline>
 <p>
 Specify the H.323 ID aliases for the endpoint.
-Multiple aliases can be separated by comma.
+Multiple aliases can be separated with a comma.
 
 <item><tt/E164=18888600000,18888700000/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 Define the E.164 (dialedDigits) aliases for the endpoint.
-Multiple aliases can be separated by comma.
+Multiple aliases can be separated with a comma.
 
 <item><tt/Password=123456/<newline>
 Default: <tt>N/A</tt><newline>
@@ -217,7 +217,7 @@ Specify a password to be sent to the parent gatekeeper.
 All RAS requests will contain the password in the <bf/cryptoTokens/ field
 (MD5 & HMAC-SHA1-96) and the <bf/tokens/ field (CAT).
 To send RAS requests without the <bf/cryptoTokens/ and <bf/tokens/ fields,
-set the password to be empty.
+configure an empty password.
 If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
 in this section, the password is in encrypted form and should be created using
 the <tt/addpasswd/ utility.
@@ -233,7 +233,7 @@ Only takes effect when the Type is <tt/Gateway/.
 <item><tt/TimeToLive=900/<newline>
 Default: <tt>60</tt><newline>
 <p>
-Suggest a time-to-live value in seconds for the registration.
+Suggest a time-to-live value (in seconds) for the registration.
 Note that the real time-to-live timer is assigned by the parent
 gatekeeper in the RCF is sends to us in response to our RRQ.
 
@@ -306,10 +306,10 @@ Forward the destCallSignalAddress in ARQs to the parent gatekeeper.
 
 <sect1>Section &lsqb;CTI::Agents&rsqb;
 <p>
-This section allows the configuration of a so called virtual queue to
+This section allows the configuration of a so-called virtual queue to
 allow inbound call distribution by an external application via the
 status port.
-A virtual queue has an H.323 alias that can be called like an endpoint
+A virtual queue has a H.323 alias that can be called like an endpoint
 or it can answer to a set of aliases.
 
 Once a call arrives on the virtual queue, the gatekeeper signals
@@ -630,7 +630,7 @@ GWPrefixesQuery=SELECT gwalias, gwpfx FROM gwprefix WHERE gk = '%1'
 <sect1>Section &lsqb;PortNotifications&rsqb;
 <p>
 GnuGk can execute a system command whenever it opens a new port for listening.
-This can for example be used to automatically update the firewall configuration.
+For example, this can be used to automatically update the firewall configuration.
 <p>
 The following placeholder are available:
 <itemize>
@@ -640,7 +640,7 @@ The following placeholder are available:
 </itemize>
 <p>
 By configuring a command to run for some types of ports, but not for others,
-you can easily choose which ports to handle which to ignore.
+you can easily choose which ports to handle and which to ignore.
 <p>
 <itemize>
 <item><tt>Q931PortOpen=/usr/local/bin/ports.sh %p %n %i</tt><newline>
