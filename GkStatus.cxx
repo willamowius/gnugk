@@ -1950,6 +1950,13 @@ StatusListener::StatusListener(const Address & addr, WORD lport)
 		Close();
 	}
 	SetName(AsString(addr, GetPort()));
+	m_addr = addr;
+	Toolkit::Instance()->PortNotification(StatusPort, PortOpen, "tcp", m_addr, lport);
+}
+
+StatusListener::~StatusListener()
+{
+	Toolkit::Instance()->PortNotification(StatusPort, PortClose, "tcp", m_addr, GetPort());
 }
 
 ServerSocket * StatusListener::CreateAcceptor() const

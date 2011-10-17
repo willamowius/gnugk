@@ -627,3 +627,80 @@ GWPrefixesQuery=SELECT gwalias, gwpfx FROM gwprefix WHERE gk = '%1'
 
 </itemize>
 
+<sect1>Section &lsqb;PortNotifications&rsqb;
+<p>
+GnuGk can execute a system command whenever it opens a new port for listening.
+This can for example be used to automatically update the firewall configuration.
+<p>
+The following placeholder are available:
+<itemize>
+<item><tt/%p/ - protocol ("udp" or "tcp")
+<item><tt/%n/ - port number
+<item><tt/%i/ - IP
+</itemize>
+<p>
+By configuring a command to run for some types of ports, but not for others,
+you can easily choose which ports to handle which to ignore.
+<p>
+<itemize>
+<item><tt>Q931PortOpen=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+Default: <tt/none/<newline>
+<p>
+<item><tt>Q931PortClose=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+Default: <tt/none/<newline>
+<p>
+<item><tt>H245PortOpen=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+Default: <tt/none/<newline>
+<p>
+<item><tt>H245PortClose=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+Default: <tt/none/<newline>
+<p>
+<item><tt>RTPPortOpen=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+Default: <tt/none/<newline>
+<p>
+<item><tt>RTPPortClose=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+Default: <tt/none/<newline>
+<p>
+<item><tt>T120PortOpen=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+Default: <tt/none/<newline>
+<p>
+<item><tt>T120PortClose=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+Default: <tt/none/<newline>
+<p>
+<item><tt>RASPortOpen=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+Default: <tt/none/<newline>
+<p>
+<item><tt>RASPortClose=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+Default: <tt/none/<newline>
+<p>
+<item><tt>StatusPortOpen=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+Default: <tt/none/<newline>
+<p>
+<item><tt>StatusPortClose=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+Default: <tt/none/<newline>
+<p>
+<item><tt>RadiusPortOpen=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+Default: <tt/none/<newline>
+<p>
+<item><tt>RadiusPortClose=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+Default: <tt/none/<newline>
+<p>
+</itemize>
+
+<descrip>
+Example:
+<tscreen><verb>
+[PortNotifications]
+Q931PortOpen=/usr/local/bin/ports.sh %p %n %i
+Q931PortClose=/usr/local/bin/ports.sh %p %n %i
+H245PortOpen=/usr/local/bin/ports.sh %p %n %i
+H245PortClose=/usr/local/bin/ports.sh %p %n %i
+RTPPortOpen=/usr/local/bin/ports.sh %p %n %i
+RTPPortClose=/usr/local/bin/ports.sh %p %n %i
+RASPortOpen=/usr/local/bin/ports.sh %p %n %i
+RASPortClose=/usr/local/bin/ports.sh %p %n %i
+T120PortOpen=/usr/local/bin/ports.sh %p %n %i
+T120PortClose=/usr/local/bin/ports.sh %p %n %i
+</verb></tscreen>
+</descrip>
+

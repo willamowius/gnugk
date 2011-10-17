@@ -1047,6 +1047,9 @@ private:
 	PTime m_recentRequestTime;
 	/// time interval over that generated IDs must be unique
 	PTimeInterval m_idCacheTimeout;
+	/// save listen address for port notifications
+	Address m_addr;
+	WORD m_port;
 };
 
 class RadiusClient

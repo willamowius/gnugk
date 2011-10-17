@@ -352,6 +352,7 @@ class CallSignalListener : public TCPListenSocket {
 #endif
 public:
 	CallSignalListener(const Address &, WORD);
+	~CallSignalListener();
 
 	// override from class TCPListenSocket
 	virtual ServerSocket *CreateAcceptor() const;

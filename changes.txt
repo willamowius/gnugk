@@ -1,5 +1,6 @@
 Changes from 2.3.5 to 3.0.0
 ===========================
+- new config section [PortNotifications] to run scripts whenever GnuGk opens or closes a port
 - H.235 Media encryption/decryption support - work in progress
 - stop accepting the old config format for [Gatekeeper::Main] AlternateGKs= (deprecated since 2.3.3)
 - IPv4-IPv6 proxying

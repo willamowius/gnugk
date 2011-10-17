@@ -1628,7 +1628,24 @@ PConfig* Toolkit::ReloadConfig()
 
 	ParseTranslationMap(m_receivedCauseMap, m_Config->GetString(RoutedSec, "TranslateReceivedQ931Cause", ""));
 	ParseTranslationMap(m_sentCauseMap, m_Config->GetString(RoutedSec, "TranslateSentQ931Cause", ""));
-	
+
+	// read [PortNotifications]
+	m_portOpenNotifications[RASPort] = m_Config->GetString("PortNotifications", "RASPortOpen", "");
+	m_portOpenNotifications[Q931Port] = m_Config->GetString("PortNotifications", "Q931PortOpen", "");
+	m_portOpenNotifications[H245Port] = m_Config->GetString("PortNotifications", "H245PortOpen", "");
+	m_portOpenNotifications[RTPPort] = m_Config->GetString("PortNotifications", "RTPPortOpen", "");
+	m_portOpenNotifications[T120Port] = m_Config->GetString("PortNotifications", "T120PortOpen", "");
+	m_portOpenNotifications[StatusPort] = m_Config->GetString("PortNotifications", "StatusPortOpen", "");
+	m_portOpenNotifications[RadiusPort] = m_Config->GetString("PortNotifications", "RadiusPortOpen", "");
+
+	m_portCloseNotifications[RASPort] = m_Config->GetString("PortNotifications", "RASPortClose", "");
+	m_portCloseNotifications[Q931Port] = m_Config->GetString("PortNotifications", "Q931PortClose", "");
+	m_portCloseNotifications[H245Port] = m_Config->GetString("PortNotifications", "H245PortClose", "");
+	m_portCloseNotifications[RTPPort] = m_Config->GetString("PortNotifications", "RTPPortClose", "");
+	m_portCloseNotifications[T120Port] = m_Config->GetString("PortNotifications", "T120PortClose", "");
+	m_portCloseNotifications[StatusPort] = m_Config->GetString("PortNotifications", "StatusPortClose", "");
+	m_portCloseNotifications[RadiusPort] = m_Config->GetString("PortNotifications", "RadiusPortClose", "");
+
 	return m_Config;
 }
 
@@ -2545,6 +2562,48 @@ bool Toolkit::IsIPv6Enabled() const
 	return false;
 #endif
 }
+
+namespace {
+
+void SetPortArguments(PString & cmd, const PString & proto, WORD port, const PIPSocket::Address & addr)
+{
+	cmd.Replace("%p", proto);
+	cmd.Replace("%n", PString(port));
+	cmd.Replace("%i", AsString(addr));
+}
+
+void Exec(const PString & cmd)
+{
+	if(system(cmd) == -1) {
+		PTRACE(1, "Error executing: " << cmd);
+	}
+}
+
+}
+
+// TODO: callid + call no for status port cmd
+void Toolkit::PortNotification(PortType type, PortAction action, const PString & protocol,
+								const PIPSocket::Address & addr, WORD port)
+{
+	PTRACE(0, "JW Port Notification " << ((action == PortOpen) ? "OPEN " : "CLOSE ") << type << " " << protocol << " " << ::AsString(addr, port));
+	// TODO: book keeping for status port command
+
+	// execute notification command
+	if (action == PortOpen) {
+		PString cmd = m_portOpenNotifications[type];
+		if (cmd.IsEmpty())
+			return;
+		SetPortArguments(cmd, protocol, port, addr);
+		Exec(cmd);
+	} else if (action == PortClose) {
+		PString cmd = m_portCloseNotifications[type];
+		if (cmd.IsEmpty())
+			return;
+		SetPortArguments(cmd, protocol, port, addr);
+		Exec(cmd);
+	}
+}
+
 
 PString Toolkit::GetGKHome(vector<PIPSocket::Address> & GKHome) const
 {

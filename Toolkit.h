@@ -110,6 +110,9 @@ class CLIRewrite;
 #define GW_REWRITE_IN		true
 #define GW_REWRITE_OUT	false
 
+enum PortType { RASPort=1, Q931Port=2, H245Port=3, RTPPort=4, T120Port=5, RadiusPort=6, StatusPort=7 };
+enum PortAction { PortOpen=1, PortClose=2 };
+
 class Toolkit : public Singleton<Toolkit>
 {
  public:
@@ -386,6 +389,8 @@ class Toolkit : public Singleton<Toolkit>
 	GkPresence & GetPresenceHandler();
 #endif
 	bool IsIPv6Enabled() const;
+	void PortNotification(PortType type, PortAction action, const PString & protocol,
+							const PIPSocket::Address & addr, WORD port);
 
 	// accessors
 	/** Accessor and 'Factory' to the static Toolkit.
@@ -645,7 +650,8 @@ private:
 #ifdef HAS_H460P
 	GkPresence m_presence;
 #endif
-
+	std::map<PortType, PString> m_portOpenNotifications;
+	std::map<PortType, PString> m_portCloseNotifications;
 };
 
 

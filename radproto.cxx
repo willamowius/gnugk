@@ -1375,7 +1375,10 @@ RadiusSocket::RadiusSocket(
 			);
 		Close();
 	}
-	
+	m_addr = GNUGK_INADDR_ANY;
+	m_port = _port;
+	Toolkit::Instance()->PortNotification(RadiusPort, PortOpen, "udp", GNUGK_INADDR_ANY, _port);
+
 	PRandom random;
 	const unsigned _id_ = random;
 	m_oldestId = m_nextId = (BYTE)(_id_^(_id_>>8)^(_id_>>16)^(_id_>>24));
@@ -1410,6 +1413,9 @@ RadiusSocket::RadiusSocket(
 			);
 		Close();
 	}
+	m_addr = addr;
+	m_port = _port;
+	Toolkit::Instance()->PortNotification(RadiusPort, PortOpen, "udp", addr, _port);
 
 	PRandom random;
 	const unsigned _id_ = random;
@@ -1433,6 +1439,8 @@ RadiusSocket::RadiusSocket(
 
 RadiusSocket::~RadiusSocket()
 {
+	Toolkit::Instance()->PortNotification(RadiusPort, PortClose, "udp", m_addr, m_port);
+
 	PWaitAndSignal lock(m_readMutex);
 
 	for (int i = 0; i < 256; i++)

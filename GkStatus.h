@@ -195,13 +195,16 @@ public:
 		WORD port
 		);
 		
-	virtual ~StatusListener() {}
+	virtual ~StatusListener();
 
 	/** Create a new StatusClient socket that will be used
 		to accept a next incoming connection.
 		Override from class TCPListenSocket.
 	*/
 	virtual ServerSocket *CreateAcceptor() const;
+
+protected:
+	Address m_addr;
 };
 
 #endif // GKSTATUS_H

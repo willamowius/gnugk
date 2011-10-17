@@ -202,7 +202,7 @@ void RemoveH46019Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures, 
 							senderSupportsH46019Multiplexing = true;
 						}
 						if (pInt == 2) {
-							isH46019Client = false;;
+							isH46019Client = false;
 						}
 					}
 				}
@@ -318,6 +318,7 @@ private:
 	virtual void Dispatch() { /* useless */ }
 
 protected:
+	WORD m_port;
 	CallSignalSocket *sigSocket;
 	H225_TransportAddress *peerH245Addr;
 	TCPSocket *listener;
@@ -348,6 +349,7 @@ public:
 #endif
 
 	UDPProxySocket(const char *);
+	~UDPProxySocket();
 
 	void SetDestination(H245_UnicastAddress &,callptr &);
 	void SetForwardDestination(const Address &, WORD, H245_UnicastAddress *, callptr &);
@@ -1033,8 +1035,10 @@ CallSignalSocket::~CallSignalSocket()
 				);
 		}
 	}
+#ifdef HAS_H46018
 	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0")))
 		MultiplexedRTPHandler::Instance()->RemoveChannels(m_call->GetCallIdentifier());
+#endif
 
 	delete m_h245handler;
 	m_h245handler = NULL;
@@ -5708,15 +5712,16 @@ bool H245Handler::HandleCommand(H245_CommandMessage & Command)
 H245Socket::H245Socket(CallSignalSocket *sig)
       : TCPProxySocket("H245d"), sigSocket(sig), listener(new TCPSocket)
 {
+	m_port = 0;
 	peerH245Addr = NULL;
 	const int numPorts = min(H245PortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS);
 	for (int i = 0; i < numPorts; ++i) {
 		WORD pt = H245PortRange.GetPort();
 		if (listener->Listen(GNUGK_INADDR_ANY, 1, pt, PSocket::CanReuseAddress)) {
 			PIPSocket::Address localAddr;
-			WORD port;
-			listener->GetLocalAddress(localAddr, port);
+			listener->GetLocalAddress(localAddr, m_port);
 			UnmapIPv4Address(localAddr);
+			Toolkit::Instance()->PortNotification(H245Port, PortOpen, "tcp", GNUGK_INADDR_ANY, m_port);
 			break;
 		}
 		int errorNumber = listener->GetErrorNumber(PSocket::LastGeneralError);
@@ -5740,12 +5745,15 @@ H245Socket::H245Socket(CallSignalSocket *sig)
 H245Socket::H245Socket(H245Socket *socket, CallSignalSocket *sig)
       : TCPProxySocket("H245s", socket), sigSocket(sig), listener(0)
 {
+	m_port = 0;
 	peerH245Addr = NULL;
 	socket->remote = this;
 }
 
 H245Socket::~H245Socket()
 {
+	if (m_port != 0)
+		Toolkit::Instance()->PortNotification(H245Port, PortClose, "tcp", GNUGK_INADDR_ANY, m_port);
 	delete listener;
 	delete peerH245Addr;
 	PWaitAndSignal lock(m_signalingSocketMutex);
@@ -6198,6 +6206,7 @@ MultiplexRTPListener::MultiplexRTPListener(WORD pt, WORD buffSize)
 		return;
 	}
 	SetName(AsString(localAddr, pt) + "(Multiplex)");
+	Toolkit::Instance()->PortNotification(RTPPort, PortOpen, "udp", GNUGK_INADDR_ANY, pt);
 
 	// Set the IP Type Of Service field for prioritisation of media UDP / RTP packets
 #ifdef _WIN32
@@ -6220,6 +6229,7 @@ MultiplexRTPListener::MultiplexRTPListener(WORD pt, WORD buffSize)
 
 MultiplexRTPListener::~MultiplexRTPListener()
 {
+	Toolkit::Instance()->PortNotification(RTPPort, PortClose, "udp", GNUGK_INADDR_ANY, GetPort());
 	delete [] wbuffer;
 }
 
@@ -6567,6 +6577,11 @@ UDPProxySocket::UDPProxySocket(const char *t)
 	m_EnableRTCPStats = Toolkit::AsBool(GkConfig()->GetString(ProxySection, "EnableRTCPStats", "0"));
 }
 
+UDPProxySocket::~UDPProxySocket()
+{
+	Toolkit::Instance()->PortNotification(RTPPort, PortClose, "udp", GNUGK_INADDR_ANY, GetPort());
+}
+
 bool UDPProxySocket::Bind(const Address &localAddr, WORD pt)
 {
 	if (!Listen(localAddr, 0, pt))
@@ -6586,6 +6601,7 @@ bool UDPProxySocket::Bind(const Address &localAddr, WORD pt)
 			<< GetErrorText(PSocket::LastGeneralError)
 			);
 	}
+	Toolkit::Instance()->PortNotification(RTPPort, PortOpen, "udp", GNUGK_INADDR_ANY, pt);
 	return true;
 }
 
@@ -7491,6 +7507,9 @@ T120LogicalChannel::T120LogicalChannel(WORD flcn) : LogicalChannel(flcn)
 
 T120LogicalChannel::~T120LogicalChannel()
 {
+	if (listener)
+		Toolkit::Instance()->PortNotification(T120Port, PortClose, "udp", GNUGK_INADDR_ANY, listener->GetPort());
+
 	if (used) {
 		RasServer::Instance()->CloseListener(listener);
 		ForEachInContainer(sockets, mem_vfun(&T120ProxySocket::SetDeletable));
@@ -7521,8 +7540,10 @@ T120LogicalChannel::T120Listener::T120Listener(T120LogicalChannel *lc) : t120lc(
 	for (int i = 0; i < numPorts; ++i) {
 		WORD pt = T120PortRange.GetPort();
 		SetName("T120:" + PString(pt));
-		if (Listen(5, pt, PSocket::CanReuseAddress))
+		if (Listen(5, pt, PSocket::CanReuseAddress)) {
+			Toolkit::Instance()->PortNotification(T120Port, PortOpen, "udp", GNUGK_INADDR_ANY, pt);
 			break;
+		}
 		int errorNumber = GetErrorNumber(PSocket::LastGeneralError);
 		PTRACE(1, GetName() << "Could not open listening T.120 socket at " << AsString(GNUGK_INADDR_ANY, pt)
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
@@ -7980,8 +8001,10 @@ bool H245ProxyHandler::HandleOpenLogicalChannelReject(H245_OpenLogicalChannelRej
 {
 	WORD flcn = (WORD)olcr.m_forwardLogicalChannelNumber;
 	peer->RemoveLogicalChannel(flcn);
+#ifdef HAS_H46018
 	if (m_useRTPMultiplexing)
 		MultiplexedRTPHandler::Instance()->RemoveChannel(call->GetCallIdentifier(), flcn, peer);
+#endif
 	return false; // nothing changed
 }
 
@@ -8546,6 +8569,16 @@ CallSignalListener::CallSignalListener(const Address & addr, WORD pt)
 		Close();
 	}
 	SetName(AsString(addr, GetPort()));
+	Toolkit::Instance()->PortNotification(Q931Port, PortOpen, "tcp", addr, pt);
+}
+
+CallSignalListener::~CallSignalListener()
+{
+	PIPSocket::Address localAddr;
+	WORD port;
+	GetLocalAddress(localAddr, port);
+	UnmapIPv4Address(localAddr);
+	Toolkit::Instance()->PortNotification(Q931Port, PortClose, "tcp", localAddr, port);
 }
 
 ServerSocket *CallSignalListener::CreateAcceptor() const
