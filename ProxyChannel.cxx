@@ -185,19 +185,24 @@ void AddH460Feature(H225_ArrayOf_FeatureDescriptor & desc, const H460_Feature & 
 	desc[lastpos] = newFeat;
 }
 
-void RemoveH46019Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures, bool & senderSupportsH46019Multiplexing)
+void RemoveH46019Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures, bool & senderSupportsH46019Multiplexing, bool & isH46019Client)
 {
 	senderSupportsH46019Multiplexing = false;
+	isH46019Client = false;
 	for(PINDEX i=0; i < supportedFeatures.GetSize(); i++) {
 		H225_GenericIdentifier & id = supportedFeatures[i].m_id;
 		if (id.GetTag() == H225_GenericIdentifier::e_standard) {
 			PASN_Integer & asnInt = id;
 			if (asnInt.GetValue() == 19) {
+				isH46019Client = true;
 				for(PINDEX p=0; p < supportedFeatures[i].m_parameters.GetSize(); p++) {
 					if (supportedFeatures[i].m_parameters[p].m_id.GetTag()  == H225_GenericIdentifier::e_standard) {
 						PASN_Integer & pInt = supportedFeatures[i].m_parameters[p].m_id;
 						if (pInt == 1) {
 							senderSupportsH46019Multiplexing = true;
+						}
+						if (pInt == 2) {
+							isH46019Client = false;;
 						}
 					}
 				}
@@ -614,6 +619,7 @@ public:
 	int GetH46019fcState() const { return m_H46019fcState; }
 	void SetH46019Direction(int dir) { m_H46019dir = dir; }
 	int GetH46019Direction() const { return m_H46019dir; }
+	void SetUseRTPMultiplexing(bool epSupportsMultiplexing);
 
 protected:
 	// override from class H245Handler
@@ -894,7 +900,9 @@ void CallSignalSocket::InternalInit()
 	m_isnatsocket = false;
 	m_result = NoData;
 	m_setupPdu = NULL;
+#ifdef HAS_H46018
 	m_callFromTraversalServer = false;
+#endif
 	// m_callerSocket is always initialized in init list
 	m_h225Version = 0;
 }
@@ -3512,9 +3520,13 @@ void CallSignalSocket::OnCallProceeding(
 #ifdef HAS_H46018
 	if (Toolkit::Instance()->IsH46018Enabled()) {
 		// remove H.460.19 descriptor from sender
-		bool senderSupportsH46019Multiplexing = false;
 		if (cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_featureSet)) {
-			RemoveH46019Descriptor(cpBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing);
+			bool isH46019Client = false;
+			bool senderSupportsH46019Multiplexing = false;
+			RemoveH46019Descriptor(cpBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing, isH46019Client);
+			if ((isH46019Client || senderSupportsH46019Multiplexing)
+				&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
+				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetUseRTPMultiplexing(true);
 			if (cpBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				cpBody.RemoveOptionalField(H225_CallProceeding_UUIE::e_featureSet);
 		}
@@ -3665,9 +3677,13 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 #ifdef HAS_H46018
 	if (m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled()) {
 		// remove H.460.19 descriptor from sender
-		bool senderSupportsH46019Multiplexing = false;
 		if (connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet)) {
-			RemoveH46019Descriptor(connectBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing);
+			bool isH46019Client = false;
+			bool senderSupportsH46019Multiplexing = false;
+			RemoveH46019Descriptor(connectBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing, isH46019Client);
+			if ((isH46019Client || senderSupportsH46019Multiplexing)
+				&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
+				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetUseRTPMultiplexing(true);
 			if (connectBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				connectBody.RemoveOptionalField(H225_Connect_UUIE::e_featureSet);
 		}
@@ -3736,9 +3752,13 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 #ifdef HAS_H46018
 	if (m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled()) {
 		// remove H.460.19 descriptor from sender
-		bool senderSupportsH46019Multiplexing = false;
 		if (alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet)) {
-			RemoveH46019Descriptor(alertingBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing);
+			bool isH46019Client = false;
+			bool senderSupportsH46019Multiplexing = false;
+			RemoveH46019Descriptor(alertingBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing, isH46019Client);
+			if ((isH46019Client || senderSupportsH46019Multiplexing)
+				&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
+				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetUseRTPMultiplexing(true);
 			if (alertingBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				alertingBody.RemoveOptionalField(H225_Alerting_UUIE::e_featureSet);
 		}
@@ -4601,9 +4621,13 @@ void CallSignalSocket::OnFacility(SignalingMsg *msg)
 	case H225_FacilityReason::e_forwardedElements:
 		if (Toolkit::Instance()->IsH46018Enabled()) {
 			// remove H.460.19 descriptor from sender
-			bool senderSupportsH46019Multiplexing = false;
 			if (facilityBody.HasOptionalField(H225_Facility_UUIE::e_featureSet)) {
-				RemoveH46019Descriptor(facilityBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing);
+				bool isH46019Client = false;
+				bool senderSupportsH46019Multiplexing = false;
+				RemoveH46019Descriptor(facilityBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing, isH46019Client);
+				if ((isH46019Client || senderSupportsH46019Multiplexing)
+					&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
+					dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetUseRTPMultiplexing(true);
 				if (facilityBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 					facilityBody.RemoveOptionalField(H225_Facility_UUIE::e_featureSet);
 			}
@@ -7582,8 +7606,8 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 {
 	if (peer)
 		peer->peer = this;
-	// TODO: also check if other side supports sending multiplexed and correct this flag
-	m_useRTPMultiplexing = Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"));
+
+	m_useRTPMultiplexing = false;	// only enable in SetUseRTPMultiplexing() if endpoint supports it
 	m_multiplexedRTPPort = (WORD)GkConfig()->GetInteger(ProxySection, "RTPMultiplexPort", GK_DEF_MULTIPLEX_RTP_PORT);
 	m_multiplexedRTCPPort = (WORD)GkConfig()->GetInteger(ProxySection, "RTCPMultiplexPort", GK_DEF_MULTIPLEX_RTCP_PORT);
 }
@@ -8423,6 +8447,13 @@ bool H245ProxyHandler::RemoveLogicalChannel(WORD flcn)
 	delete lc;
 	return true;
 }
+
+void H245ProxyHandler::SetUseRTPMultiplexing(bool epSupportsMultiplexing)
+{
+	m_useRTPMultiplexing = epSupportsMultiplexing &&
+		Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"));
+}
+
 
 // class NATHandler
 void NATHandler::TranslateH245Address(H225_TransportAddress & h245addr)

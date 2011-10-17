@@ -341,7 +341,9 @@ private:
 	PBYTEArray m_rawSetup;
 	PMutex infomutex;    // Information PDU processing Mutex
 	H245_TerminalCapabilitySet m_savedTCS;	// saved tcs to re-send
+#ifdef HAS_H46018
 	bool m_callFromTraversalServer; // is this call from a traversal server ?
+#endif
 };
 
 class CallSignalListener : public TCPListenSocket {
