@@ -931,5 +931,16 @@ addexcludefilter .RQ
 filter 1
 </verb></tscreen>
 <p>
-Note that enable filtering when there are no filters defined will automatically exclude all message output.
+Note that if you enable filtering when there are no include filters defined this will automatically exclude all message output!
+<p>
+<descrip>
+<tag/Example to hide Tandberg's neighbor check and traversal zone keepalive messages:/
+<tscreen><verb>
+[GkStatus::Filtering]
+Enable=1
+IncludeFilter=.+
+ExcludeFilter=gatekeeper-monitoring-check
+ExcludeFilter=SCR
+</verb></tscreen>
+</descrip>
 
