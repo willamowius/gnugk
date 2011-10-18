@@ -919,6 +919,7 @@ introduced. You may specify predefined filters to be loaded when the status port
 [GkStatus::Filtering]
 IncludeFilter=.+
 ExcludeFilter=.RQ
+Enable=1
 </verb></tscreen>
 </descrip>
 <p>

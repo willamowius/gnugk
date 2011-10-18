@@ -1126,6 +1126,7 @@ StatusClient::StatusClient(
 		    AddFilter(m_excludeFilterRegex, regexArray[k]);
 	    }
 	}
+	m_isFilteringActive = Toolkit::AsBool(GkConfig()->GetString(filteringsec, "Enable", "0"));
 }
 
 bool StatusClient::ReadCommand(
@@ -1780,24 +1781,32 @@ void StatusClient::ExecCommand(
 	case GkStatus::e_AddIncludeFilter:
 	    if (args.GetSize() == 2) {
 			AddFilter(m_includeFilterRegex, args[1]);
+			PString msg("IncludeFilter added\r\n");
+			WriteData(msg, msg.GetLength());
 	    } else
 			CommandError("Syntax Error: addincludefilter REGEX");
 	    break;
 	case GkStatus::e_RemoveIncludeFilter:
 	    if (args.GetSize() == 2) {
 			RemoveFilter(m_includeFilterRegex, atoi(args[1]));
+			PString msg("IncludeFilter removed\r\n");
+			WriteData(msg, msg.GetLength());
 	    } else
 			CommandError("Syntax Error: removeincludefilter FILTER_INDEX");
 	    break;
 	case GkStatus::e_AddExcludeFilter:
 	    if (args.GetSize() == 2) {
 			AddFilter(m_excludeFilterRegex, args[1]);
+			PString msg("ExcludeFilter added\r\n");
+			WriteData(msg, msg.GetLength());
 	    } else
 			CommandError("Syntax Error: addexcludefilter REGEX");
 	    break;
 	case GkStatus::e_RemoveExcludeFilter:
 	    if (args.GetSize() == 2) {
 			RemoveFilter(m_excludeFilterRegex, atoi(args[1]));
+			PString msg("ExcludeFilter removed\r\n");
+			WriteData(msg, msg.GetLength());
 	    } else
 			CommandError("Syntax Error: removeincludefilter FILTER_INDEX");
 	    break;
