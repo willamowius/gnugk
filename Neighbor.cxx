@@ -1718,7 +1718,6 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 						if (H225_LocationConfirm *lcf = Request.WaitForDestination(m_neighborTimeout)) {
 							Route * route = new Route(m_name, lcf->m_callSignalAddress);
 #ifdef HAS_H460
-							// JW TODO: also create an EPRec if we must use .18 ?
 							if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
 								H225_RasMessage ras;
 								ras.SetTag(H225_RasMessage::e_locationConfirm);
