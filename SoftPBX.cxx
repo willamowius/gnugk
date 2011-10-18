@@ -78,6 +78,12 @@ void SoftPBX::PrintCurrentCalls(USocket *client, bool verbose)
 	CallTable::Instance()->PrintCurrentCalls(client, verbose);
 }
 
+void SoftPBX::PrintCurrentCallsPorts(USocket *client)
+{
+	PTRACE(3, "GK\tSoftPBX: PrintCurrentCallsPorts");
+	CallTable::Instance()->PrintCurrentCallsPorts(client);
+}
+
 void SoftPBX::PrintStatistics(USocket *client, bool)
 {
 	PTRACE(3, "GK\tSoftPBX: PrintStatistics");

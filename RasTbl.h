@@ -46,6 +46,21 @@ const int INVALID_OSSOCKET = -1;
 const PUInt32b INVALID_MULTIPLEX_ID = 0;
 const unsigned GNUGK_KEEPALIVE_RTP_PAYLOADTYPE = 127;	// GnuGk always sends this fixed payload type
 
+enum PortType { RASPort=1, Q931Port=2, H245Port=3, RTPPort=4, T120Port=5, RadiusPort=6, StatusPort=7 };
+enum PortAction { PortOpen=1, PortClose=2 };
+
+class DynamicPort
+{
+public:
+	DynamicPort(PortType type, PIPSocket::Address ip, WORD port) { m_type = type; m_ip = ip; m_port = port; }
+
+	bool operator==(const DynamicPort & other) const { return m_type == other.m_type && m_ip == other.m_ip && m_port == other.m_port; }
+
+	PortType m_type;
+	PIPSocket::Address m_ip;
+	WORD m_port;
+};
+
  
 // Template of smart pointer
 // The class T must have Lock() & Unlock() methods
@@ -846,6 +861,7 @@ public:
 		const PString & timestampFormat = PString::Empty()
 		) const;
 	PString PrintOn(bool verbose) const;
+	PString PrintPorts() const;
 
 	void Lock();
 	void Unlock();
@@ -1245,7 +1261,10 @@ public:
  
 	void SetCallerID(const PString & id) { m_callerID = id; }
 	PString GetCallerID() const { return m_callerID; }
- 
+
+	void AddDynamicPort(const DynamicPort & port) { m_dynamicPorts.push_back(port); }
+	void RemoveDynamicPort(const DynamicPort & port) { m_dynamicPorts.erase(find(m_dynamicPorts.begin(), m_dynamicPorts.end(), port)); }
+
 #ifdef HAS_H46018
 	bool IsH46018ReverseSetup() const { return m_h46018ReverseSetup; }	
 	void SetH46018ReverseSetup(bool val) { m_h46018ReverseSetup = val; }
@@ -1476,6 +1495,7 @@ private:
 	bool m_callfromTraversalServer;
 	CallLeg m_rerouteDirection;
 	PString m_callerID;	// forced caller ID or empty
+	list<DynamicPort> m_dynamicPorts;
 
 #ifdef HAS_H235_MEDIA
     H235Authenticators m_authenticators;
@@ -1529,6 +1549,7 @@ public:
 	void DropCalledParty();
 
 	void PrintCurrentCalls(USocket *client, bool verbose=FALSE) const;
+	void PrintCurrentCallsPorts(USocket *client) const;
 	PString PrintStatistics() const;
 
 #ifdef HAS_H460

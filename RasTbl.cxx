@@ -3021,6 +3021,26 @@ PString CallRec::PrintOn(bool verbose) const
 	return result;
 }
 
+PString CallRec::PrintPorts() const
+{
+	PString result = PString(PString::Printf,
+		"Call No. %d | CallID %s | Dial %s\r\n",
+		m_CallNumber, (const char *)AsString(m_callIdentifier.m_guid), (const char *)m_destInfo);
+	for (list<DynamicPort>::const_iterator iter = m_dynamicPorts.begin(); iter != m_dynamicPorts.end(); ++iter) {
+		switch (iter->m_type) {
+			case H245Port: result += "  H.245 ";
+				break;
+			case RTPPort: result += "  RTP ";
+				break;
+			case T120Port: result += "  T.120 ";
+				break;
+			default: result += "  Other ";
+		}
+		result += AsString(iter->m_ip, iter->m_port) + "\r\n";
+	}
+	return result;
+}
+
 void CallRec::SetSetupTime(time_t tm)
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -4520,6 +4540,17 @@ void CallTable::PrintCurrentCalls(USocket *client, bool verbose) const
 	if (m_capacity >= 0)
 		bandstr = PString(PString::Printf, "\r\nAvailable Bandwidth: %u", m_capacity);
 	msg += PString(PString::Printf, "Number of Calls: %u Active: %u From Neighbor: %u From Parent: %u%s\r\n;\r\n", n, act, nb, np, (const char *)bandstr);
+	client->TransmitData(msg);
+}
+
+void CallTable::PrintCurrentCallsPorts(USocket *client) const
+{
+	PString msg = "CurrentCallsPorts\r\n";
+	ReadLock lock(listLock);
+	for (const_iterator Iter = CallList.begin(); Iter != CallList.end(); ++Iter) {
+		msg += (*Iter)->PrintPorts();
+	}
+	msg += ";\r\n";
 	client->TransmitData(msg);
 }
 

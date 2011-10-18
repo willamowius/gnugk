@@ -28,7 +28,6 @@
 #include "clirw.h"
 #include "capctrl.h"
 #include "RasSrv.h"
-#include "RasTbl.h"
 #include "Toolkit.h"
 #include "gk_const.h"
 
@@ -2563,44 +2562,41 @@ bool Toolkit::IsIPv6Enabled() const
 #endif
 }
 
-namespace {
-
-void SetPortArguments(PString & cmd, const PString & proto, WORD port, const PIPSocket::Address & addr)
-{
-	cmd.Replace("%p", proto);
-	cmd.Replace("%n", PString(port));
-	cmd.Replace("%i", AsString(addr));
-}
-
-void Exec(const PString & cmd)
-{
-	if(system(cmd) == -1) {
-		PTRACE(1, "Error executing: " << cmd);
-	}
-}
-
-}
-
-// TODO: callid + call no for status port cmd
 void Toolkit::PortNotification(PortType type, PortAction action, const PString & protocol,
-								const PIPSocket::Address & addr, WORD port)
+								const PIPSocket::Address & addr, WORD port,
+								const H225_CallIdentifier & callID)
 {
-	PTRACE(0, "JW Port Notification " << ((action == PortOpen) ? "OPEN " : "CLOSE ") << type << " " << protocol << " " << ::AsString(addr, port));
-	// TODO: book keeping for status port command
+	PTRACE(5, "Port Notification " << ((action == PortOpen) ? "OPEN " : "CLOSE ") << type << " " << protocol << " " << ::AsString(addr, port));
+
+	// book keeping for status port command
+	if (callID != H225_CallIdentifier(0)) {
+		callptr call = CallTable::Instance()->FindCallRec(callID);
+		if (call) {
+			if (action == PortOpen)
+				call->AddDynamicPort(DynamicPort(type, addr, port));
+			else
+				call->RemoveDynamicPort(DynamicPort(type, addr, port));
+		}
+	}
 
 	// execute notification command
+	PString cmd;
 	if (action == PortOpen) {
-		PString cmd = m_portOpenNotifications[type];
-		if (cmd.IsEmpty())
-			return;
-		SetPortArguments(cmd, protocol, port, addr);
-		Exec(cmd);
+		cmd = m_portOpenNotifications[type];
 	} else if (action == PortClose) {
-		PString cmd = m_portCloseNotifications[type];
-		if (cmd.IsEmpty())
-			return;
-		SetPortArguments(cmd, protocol, port, addr);
-		Exec(cmd);
+		cmd = m_portCloseNotifications[type];
+	}
+
+	if (cmd.IsEmpty())
+		return;
+
+	// set port arguments
+	cmd.Replace("%p", protocol);
+	cmd.Replace("%n", PString(port));
+	cmd.Replace("%i", ::AsString(addr));
+
+	if(system(cmd) == -1) {
+		PTRACE(1, "Error executing: " << cmd);
 	}
 }
 

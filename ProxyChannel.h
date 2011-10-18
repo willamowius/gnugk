@@ -189,6 +189,8 @@ public:
 	Address GetLocalAddr() { return localAddr; }
 	Address GetPeerAddr() { return peerAddr; }
 	Address GetMasqAddr() { return masqAddr; }
+	PINDEX GetCallNumber() const { return m_call ? m_call->GetCallNumber() : 0; }
+	H225_CallIdentifier GetCallIdentifier() const { return m_call ? m_call->GetCallIdentifier() : 0; }
 	void BuildFacilityPDU(Q931 &, int, const PObject * = NULL);
 	void BuildProgressPDU(Q931 &, PBoolean fromDestination);
 	void BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallIdentifier & callId, unsigned crv);
@@ -223,7 +225,6 @@ public:
 	bool CreateRemote(const H225_TransportAddress & addr);
 	bool OnSCICall(H225_CallIdentifier callID, H225_TransportAddress sigAdr);
 	bool IsCallFromTraversalServer() const { return m_callFromTraversalServer; }
-	H225_CallIdentifier GetCallIdentifier() const { return m_call ? m_call->GetCallIdentifier() : 0; }
 	void SetLCMultiplexDestination(unsigned lc, bool isRTCP, const H323TransportAddress & toAddress);
 	void SetLCMultiplexID(unsigned lc, bool isRTCP, PUInt32b multiplexID);
 	const H245Handler * GetH245Handler() const { return m_h245handler; }

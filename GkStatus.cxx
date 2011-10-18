@@ -1006,6 +1006,7 @@ void GkStatus::OnStart()
 	m_commands["printcurrentcallsverbose"] = e_PrintCurrentCallsVerbose;
 	m_commands["cv"] = e_PrintCurrentCallsVerbose;
 	m_commands["!!"] = e_PrintCurrentCallsVerbose;
+	m_commands["printcurrentcallsports"] = e_PrintCurrentCallsPorts;
 	m_commands["find"] = e_Find;
 	m_commands["f"] = e_Find;
 	m_commands["findverbose"] = e_FindVerbose;
@@ -1540,6 +1541,10 @@ void StatusClient::ExecCommand(
 	case GkStatus::e_PrintCurrentCallsVerbose:
 		// print list of currently ongoing calls
 		SoftPBX::PrintCurrentCalls(this, TRUE);
+		break;
+	case GkStatus::e_PrintCurrentCallsPorts:
+		// print list of currently ongoing calls with their dynamic ports
+		SoftPBX::PrintCurrentCallsPorts(this);
 		break;
 	case GkStatus::e_Statistics:
 		SoftPBX::PrintStatistics(this, TRUE);

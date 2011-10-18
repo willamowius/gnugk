@@ -348,7 +348,7 @@ public:
 	PCLASSINFO( UDPProxySocket, UDPSocket )
 #endif
 
-	UDPProxySocket(const char *);
+	UDPProxySocket(const char * t, const H225_CallIdentifier & id);
 	~UDPProxySocket();
 
 	void SetDestination(H245_UnicastAddress &,callptr &);
@@ -386,6 +386,7 @@ protected:
 	// RTCP handler
 	void BuildReceiverReport(const RTP_ControlFrame & frame, PINDEX offset, bool dst);
 
+	H225_CallIdentifier m_callID;
 	callptr * m_call;
 
 private:
@@ -466,7 +467,7 @@ protected:
 
 class RTPLogicalChannel : public LogicalChannel {
 public:
-	RTPLogicalChannel(H225_CallIdentifier id,WORD flcn, bool nated);
+	RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, bool nated);
 	RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nated);
 	virtual ~RTPLogicalChannel();
 
@@ -5721,7 +5722,7 @@ H245Socket::H245Socket(CallSignalSocket *sig)
 			PIPSocket::Address localAddr;
 			listener->GetLocalAddress(localAddr, m_port);
 			UnmapIPv4Address(localAddr);
-			Toolkit::Instance()->PortNotification(H245Port, PortOpen, "tcp", GNUGK_INADDR_ANY, m_port);
+			Toolkit::Instance()->PortNotification(H245Port, PortOpen, "tcp", GNUGK_INADDR_ANY, m_port, sig->GetCallIdentifier());
 			break;
 		}
 		int errorNumber = listener->GetErrorNumber(PSocket::LastGeneralError);
@@ -5752,8 +5753,13 @@ H245Socket::H245Socket(H245Socket *socket, CallSignalSocket *sig)
 
 H245Socket::~H245Socket()
 {
-	if (m_port != 0)
-		Toolkit::Instance()->PortNotification(H245Port, PortClose, "tcp", GNUGK_INADDR_ANY, m_port);
+	if (m_port != 0) {
+		H225_CallIdentifier callID;
+		if (sigSocket) {
+			callID = sigSocket->GetCallIdentifier();
+		}
+		Toolkit::Instance()->PortNotification(H245Port, PortClose, "tcp", GNUGK_INADDR_ANY, m_port, callID);
+	}
 	delete listener;
 	delete peerH245Addr;
 	PWaitAndSignal lock(m_signalingSocketMutex);
@@ -6559,8 +6565,8 @@ PUInt32b MultiplexedRTPHandler::GetNewMultiplexID()
 
 
 // class UDPProxySocket
-UDPProxySocket::UDPProxySocket(const char *t)
-	: ProxySocket(this, t),
+UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
+	: ProxySocket(this, t), m_callID(id),
 		m_call(NULL), fSrcIP(0), fDestIP(0), rSrcIP(0), rDestIP(0),
 		fSrcPort(0), fDestPort(0), rSrcPort(0), rDestPort(0), m_sessionID(0)
 #ifdef HAS_H46018
@@ -6579,7 +6585,7 @@ UDPProxySocket::UDPProxySocket(const char *t)
 
 UDPProxySocket::~UDPProxySocket()
 {
-	Toolkit::Instance()->PortNotification(RTPPort, PortClose, "udp", GNUGK_INADDR_ANY, GetPort());
+	Toolkit::Instance()->PortNotification(RTPPort, PortClose, "udp", GNUGK_INADDR_ANY, GetPort(), m_callID);
 }
 
 bool UDPProxySocket::Bind(const Address &localAddr, WORD pt)
@@ -6601,7 +6607,7 @@ bool UDPProxySocket::Bind(const Address &localAddr, WORD pt)
 			<< GetErrorText(PSocket::LastGeneralError)
 			);
 	}
-	Toolkit::Instance()->PortNotification(RTPPort, PortOpen, "udp", GNUGK_INADDR_ANY, pt);
+	Toolkit::Instance()->PortNotification(RTPPort, PortOpen, "udp", GNUGK_INADDR_ANY, pt, m_callID);
 	return true;
 }
 
@@ -7179,7 +7185,7 @@ void T120ProxySocket::Dispatch()
 
 
 // class RTPLogicalChannel
-RTPLogicalChannel::RTPLogicalChannel(H225_CallIdentifier id,WORD flcn, bool nated) : LogicalChannel(flcn), reversed(false), peer(0)
+RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, bool nated) : LogicalChannel(flcn), reversed(false), peer(0)
 {
 	SrcIP = 0;
 	SrcPort = 0;
@@ -7191,11 +7197,11 @@ RTPLogicalChannel::RTPLogicalChannel(H225_CallIdentifier id,WORD flcn, bool nate
 	// don't create the socket pair by STUN then
 	// create the socket pair here
 	GkClient *gkClient = RasServer::Instance()->GetGkClient();
-	if (!nated || !gkClient->H46023_CreateSocketPair(id,rtp,rtcp,nated))
+	if (!nated || !gkClient->H46023_CreateSocketPair(id, rtp, rtcp, nated))
 #endif
 	{
-			rtp = new UDPProxySocket("RTP");
-			rtcp = new UDPProxySocket("RTCP");
+		rtp = new UDPProxySocket("RTP", id);
+		rtcp = new UDPProxySocket("RTCP", id);
 	}
     SetNAT(nated);
 

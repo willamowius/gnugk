@@ -31,6 +31,7 @@ namespace SoftPBX
 	void PrintAllCached(USocket *client, bool verbose=false);
 	void PrintRemoved(USocket *client, bool verbose=false);
 	void PrintCurrentCalls(USocket *client, bool verbose=false);
+	void PrintCurrentCallsPorts(USocket *client);
 	void PrintStatistics(USocket *client, bool verbose=false);
 	void ResetCallCounters(USocket *client);
 	void UnregisterAllEndpoints();

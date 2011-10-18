@@ -101,6 +101,7 @@ public:
 		e_PrintAllCached,
 		e_PrintCurrentCalls,
 		e_PrintCurrentCallsVerbose,    /// extra line per call starting with '#'.
+		e_PrintCurrentCallsPorts,
 		e_Find,                        /// find an endpoint
 		e_FindVerbose,
 		e_DisconnectIp,                /// disconnect a call by endpoint IP number
