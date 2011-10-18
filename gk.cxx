@@ -1116,6 +1116,7 @@ void Gatekeeper::Main()
 	if (Toolkit::Instance()->IsIPv6Enabled()) {
 		PTRACE(1, "IPv6 enabled");
 		GNUGK_INADDR_ANY = PIPSocket::Address("::");
+		PIPSocket::SetDefaultIpAddressFamily(AF_INET6);
 	}
 #endif
 
