@@ -1,18 +1,5 @@
 --- ptlib-2.10.1/src/ptclib/pdns.cxx.orig	2011-06-14 09:38:33.000000000 +0200
 +++ ptlib-2.10.1/src/ptclib/pdns.cxx	2011-10-18 09:42:22.000000000 +0200
-@@ -23,9 +23,9 @@
-  *
-  * Copyright 2003 Equivalence Pty. Ltd.
-  *
-- * $Revision$
-- * $Author$
-- * $Date$
-+ * $Revision$
-+ * $Author$
-+ * $Date$
-  */
- 
- #ifdef __GNUC__
 @@ -186,6 +186,15 @@
          GETLONG(newRecord->Data.A.IpAddress, data);
          break;
