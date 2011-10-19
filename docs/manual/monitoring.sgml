@@ -293,7 +293,7 @@ Number of Calls: 1 Active: 1 From NB: 0
 </descrip>
 
 <item><tt/PrintCurrentCallsPorts/<newline>
-<p>Show the dynamically allocated ports for each ongoing call.
+<p>Show the dynamically allocated ports for each ongoing call that are used for <bf>incoming</bf> packets.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
