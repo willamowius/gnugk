@@ -1,0 +1,182 @@
+--- ptlib-2.10.1/src/ptclib/pdns.cxx.orig	2011-06-14 09:38:33.000000000 +0200
++++ ptlib-2.10.1/src/ptclib/pdns.cxx	2011-10-18 09:42:22.000000000 +0200
+@@ -23,9 +23,9 @@
+  *
+  * Copyright 2003 Equivalence Pty. Ltd.
+  *
+- * $Revision$
+- * $Author$
+- * $Date$
++ * $Revision$
++ * $Author$
++ * $Date$
+  */
+ 
+ #ifdef __GNUC__
+@@ -186,6 +186,15 @@
+         GETLONG(newRecord->Data.A.IpAddress, data);
+         break;
+ 
++      case T_AAAA:
++        newRecord = (PDNS_RECORD)malloc(sizeof(DnsRecord)); 
++        memset(newRecord, 0, sizeof(DnsRecord));
++        GETLONG(newRecord->Data.AAAA.Ip6Address[0], data);
++        GETLONG(newRecord->Data.AAAA.Ip6Address[1], data);
++        GETLONG(newRecord->Data.AAAA.Ip6Address[2], data);
++        GETLONG(newRecord->Data.AAAA.Ip6Address[3], data);
++        break;
++
+       case T_NS:
+         newRecord = (PDNS_RECORD)malloc(sizeof(DnsRecord)); 
+         memset(newRecord, 0, sizeof(DnsRecord));
+@@ -345,17 +354,21 @@
+     record->priority = dnsRecord->Data.SRV.wPriority;
+     record->weight   = dnsRecord->Data.SRV.wWeight;
+ 
+-    // see if any A records match this hostname
++    // see if any A or AAAA records match this hostname
+     PDNS_RECORD aRecord = results;
+     while (aRecord != NULL) {
+       if ((dnsRecord->Flags.S.Section == DnsSectionAdditional) && (dnsRecord->wType == DNS_TYPE_A)) {
+         record->hostAddress = PIPSocket::Address(dnsRecord->Data.A.IpAddress);
+         break;
+       }
++      if ((dnsRecord->Flags.S.Section == DnsSectionAdditional) && (dnsRecord->wType == DNS_TYPE_AAAA)) {
++        record->hostAddress = PIPSocket::Address(16, (BYTE *)dnsRecord->Data.AAAA.Ip6Address);
++        break;
++      }
+       aRecord = aRecord->pNext;
+     }
+ 
+-    // if no A record found, then get address the hard way
++    // if no A or AAAA record found, then get address the hard way
+     if (aRecord == NULL)
+       PIPSocket::GetHostAddress(record->hostName, record->hostAddress);
+   }
+@@ -506,8 +519,12 @@
+     user = user + "@";
+ 
+   PIPSocketAddressAndPortVector::const_iterator r;
+-  for (r = info.begin(); r != info.end(); ++r) 
+-    returnList.AppendString(user + r->AsString(':'));
++  for (r = info.begin(); r != info.end(); ++r) {
++    if (r->GetAddress().GetVersion() == 6)
++      returnList.AppendString(user + "[" + r->GetAddress().AsString() + "]:" + PString(r->GetPort()));
++    else
++      returnList.AppendString(user + r->AsString(':'));
++  }
+ 
+   return returnList.GetSize() != 0;;
+ }
+@@ -547,7 +564,8 @@
+     PTRACE(5,"DNS\tSRV Record found " << srvLookupStr);
+     PDNS::SRVRecord * recPtr = srvRecords.GetFirst();
+     while (recPtr != NULL) {
+-      PIPSocketAddressAndPort addrAndPort(recPtr->hostAddress, recPtr->port > 0 ? recPtr->port : defaultPort);
++      PIPSocketAddressAndPort addrAndPort;
++      addrAndPort.SetAddress(recPtr->hostAddress, recPtr->port > 0 ? recPtr->port : defaultPort);
+       addrList.push_back(addrAndPort);
+ 
+       recPtr = srvRecords.GetNext();
+@@ -605,6 +623,10 @@
+         record->hostAddress = PIPSocket::Address(dnsRecord->Data.A.IpAddress);
+         break;
+       }
++      if ((dnsRecord->Flags.S.Section == DnsSectionAdditional) && (dnsRecord->wType == DNS_TYPE_AAAA)) {
++        record->hostAddress = PIPSocket::Address(16, (BYTE *)dnsRecord->Data.AAAA.Ip6Address);
++        break;
++      }
+       aRecord = aRecord->pNext;
+     }
+ 
+--- ptlib-2.10.1/src/ptclib/pdns.cxx.orig	2011-06-14 09:38:33.000000000 +0200
++++ ptlib-2.10.1/src/ptclib/pdns.cxx	2011-10-18 09:42:22.000000000 +0200
+@@ -23,9 +23,9 @@
+  *
+  * Copyright 2003 Equivalence Pty. Ltd.
+  *
+- * $Revision$
+- * $Author$
+- * $Date$
++ * $Revision$
++ * $Author$
++ * $Date$
+  */
+ 
+ #ifdef __GNUC__
+@@ -186,6 +186,15 @@
+         GETLONG(newRecord->Data.A.IpAddress, data);
+         break;
+ 
++      case T_AAAA:
++        newRecord = (PDNS_RECORD)malloc(sizeof(DnsRecord)); 
++        memset(newRecord, 0, sizeof(DnsRecord));
++        GETLONG(newRecord->Data.AAAA.Ip6Address[0], data);
++        GETLONG(newRecord->Data.AAAA.Ip6Address[1], data);
++        GETLONG(newRecord->Data.AAAA.Ip6Address[2], data);
++        GETLONG(newRecord->Data.AAAA.Ip6Address[3], data);
++        break;
++
+       case T_NS:
+         newRecord = (PDNS_RECORD)malloc(sizeof(DnsRecord)); 
+         memset(newRecord, 0, sizeof(DnsRecord));
+@@ -345,17 +354,21 @@
+     record->priority = dnsRecord->Data.SRV.wPriority;
+     record->weight   = dnsRecord->Data.SRV.wWeight;
+ 
+-    // see if any A records match this hostname
++    // see if any A or AAAA records match this hostname
+     PDNS_RECORD aRecord = results;
+     while (aRecord != NULL) {
+       if ((dnsRecord->Flags.S.Section == DnsSectionAdditional) && (dnsRecord->wType == DNS_TYPE_A)) {
+         record->hostAddress = PIPSocket::Address(dnsRecord->Data.A.IpAddress);
+         break;
+       }
++      if ((dnsRecord->Flags.S.Section == DnsSectionAdditional) && (dnsRecord->wType == DNS_TYPE_AAAA)) {
++        record->hostAddress = PIPSocket::Address(16, (BYTE *)dnsRecord->Data.AAAA.Ip6Address);
++        break;
++      }
+       aRecord = aRecord->pNext;
+     }
+ 
+-    // if no A record found, then get address the hard way
++    // if no A or AAAA record found, then get address the hard way
+     if (aRecord == NULL)
+       PIPSocket::GetHostAddress(record->hostName, record->hostAddress);
+   }
+@@ -506,8 +519,12 @@
+     user = user + "@";
+ 
+   PIPSocketAddressAndPortVector::const_iterator r;
+-  for (r = info.begin(); r != info.end(); ++r) 
+-    returnList.AppendString(user + r->AsString(':'));
++  for (r = info.begin(); r != info.end(); ++r) {
++    if (r->GetAddress().GetVersion() == 6)
++      returnList.AppendString(user + "[" + r->GetAddress().AsString() + "]:" + PString(r->GetPort()));
++    else
++      returnList.AppendString(user + r->AsString(':'));
++  }
+ 
+   return returnList.GetSize() != 0;;
+ }
+@@ -547,7 +564,8 @@
+     PTRACE(5,"DNS\tSRV Record found " << srvLookupStr);
+     PDNS::SRVRecord * recPtr = srvRecords.GetFirst();
+     while (recPtr != NULL) {
+-      PIPSocketAddressAndPort addrAndPort(recPtr->hostAddress, recPtr->port > 0 ? recPtr->port : defaultPort);
++      PIPSocketAddressAndPort addrAndPort;
++      addrAndPort.SetAddress(recPtr->hostAddress, recPtr->port > 0 ? recPtr->port : defaultPort);
+       addrList.push_back(addrAndPort);
+ 
+       recPtr = srvRecords.GetNext();
+@@ -605,6 +623,10 @@
+         record->hostAddress = PIPSocket::Address(dnsRecord->Data.A.IpAddress);
+         break;
+       }
++      if ((dnsRecord->Flags.S.Section == DnsSectionAdditional) && (dnsRecord->wType == DNS_TYPE_AAAA)) {
++        record->hostAddress = PIPSocket::Address(16, (BYTE *)dnsRecord->Data.AAAA.Ip6Address);
++        break;
++      }
+       aRecord = aRecord->pNext;
+     }
+ 
