@@ -1450,7 +1450,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 #ifdef HAS_H235_MEDIA
         changed = HandleH235OLC(olc);    
 #endif
-		if (m_callerSocket) {  // TODO This code may not work if media encrypted - SH 
+		if (m_callerSocket) {  // TODO This code may not work if media encrypted - SH
 			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
 					&& olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData
 					&& olc.m_reverseLogicalChannelParameters.HasOptionalField(H245_OpenLogicalChannel_reverseLogicalChannelParameters::e_multiplexParameters)
@@ -1466,7 +1466,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 				}
 			}
 		}
-		H245_AudioCapability *audioCap = NULL;  // TODO This code does not work if media encrypted - SH 
+		H245_AudioCapability *audioCap = NULL;  // TODO This code does not work if media encrypted - SH
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
 				&& olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData) {
 			audioCap = &((H245_AudioCapability&)olc.m_reverseLogicalChannelParameters.m_dataType);
@@ -1479,20 +1479,20 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 
     if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_indication) {
 #ifdef HAS_H46024B
-		    H245_IndicationMessage & imsg  = h245msg;
-		    if (imsg.GetTag() == H245_IndicationMessage::e_genericIndication) {
-			    const char * H46024B_OID = "0.0.8.460.24.2";
- 			    H245_GenericMessage & gmsg = imsg;
-			    H245_CapabilityIdentifier & id = gmsg.m_messageIdentifier;
-				    if (id.GetTag() == H245_CapabilityIdentifier::e_standard) {
-					    PASN_ObjectId & val = id;
-					    if (val.AsString() == H46024B_OID) {
-                            // TBD Signal to shutdown proxy support - SH
-						    suppress = true;
-						    return false;
-					    }
-				    }
-            }
+		H245_IndicationMessage & imsg  = h245msg;
+		if (imsg.GetTag() == H245_IndicationMessage::e_genericIndication) {
+		const char * H46024B_OID = "0.0.8.460.24.2";
+		H245_GenericMessage & gmsg = imsg;
+		H245_CapabilityIdentifier & id = gmsg.m_messageIdentifier;
+			if (id.GetTag() == H245_CapabilityIdentifier::e_standard) {
+				PASN_ObjectId & val = id;
+				if (val.AsString() == H46024B_OID) {
+					// TODO Signal to shutdown proxy support - SH
+					suppress = true;
+					return false;
+				}
+			}
+		}
 #endif
     }
 
@@ -1503,14 +1503,14 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 			const char * H46024B_OID = "0.0.8.460.24.2";
  			H245_GenericMessage & gmsg = rmsg;
 			H245_CapabilityIdentifier & id = gmsg.m_messageIdentifier;
-				if (id.GetTag() == H245_CapabilityIdentifier::e_standard) {
-					PASN_ObjectId & val = id;
-					if (val.AsString() == H46024B_OID) {
-						m_call->H46024BRespond();
-						suppress = true;
-						return false;
-					}
+			if (id.GetTag() == H245_CapabilityIdentifier::e_standard) {
+				PASN_ObjectId & val = id;
+				if (val.AsString() == H46024B_OID) {
+					m_call->H46024BRespond();
+					suppress = true;
+					return false;
 				}
+			}
 		}
 #endif
 		if (rmsg.GetTag() == H245_ResponseMessage::e_openLogicalChannelAck) {
@@ -1554,7 +1554,6 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 				}
 			}
 		}
-
 	}
 
 	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request
@@ -1563,7 +1562,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		H245_TerminalCapabilitySet & tcs = (H245_RequestMessage&)h245msg;
 #ifdef HAS_H235_MEDIA
         changed = HandleH235TCS(tcs);
-#endif	
+#endif
         H245_ArrayOf_CapabilityTableEntry & CapabilityTables = tcs.m_capabilityTable;
 
 		// save TCS (only works for non-tunneled right now)
@@ -1699,22 +1698,22 @@ bool AddH235Capability(unsigned _entryNo,
     int sz = _capTable.GetSize();
     _capTable.SetSize(sz+1);
     H245_CapabilityTableEntry & entry = _capTable[sz];
-        entry.m_capabilityTableEntryNumber.SetValue(secCapNo);
-        entry.IncludeOptionalField(H245_CapabilityTableEntry::e_capability);
-        H245_Capability & cap = entry.m_capability;
-            cap.SetTag(H245_Capability::e_h235SecurityCapability);
-            H245_H235SecurityCapability & sec = cap;
-                sec.m_mediaCapability.SetValue(_entryNo);
-                sec.m_encryptionAuthenticationAndIntegrity.IncludeOptionalField(
-                                                  H245_EncryptionAuthenticationAndIntegrity::e_encryptionCapability);
-                H245_EncryptionCapability & enc = sec.m_encryptionAuthenticationAndIntegrity.m_encryptionCapability;
-                    enc.SetSize(_capList.GetSize());
-                    for (PINDEX i=0; i < _capList.GetSize(); ++i) {
-                        H245_MediaEncryptionAlgorithm & alg = enc[i];
-                        alg.SetTag(H245_MediaEncryptionAlgorithm::e_algorithm);
-                        PASN_ObjectId & id = alg;
-                        id.SetValue(_capList[i]);
-                    }
+	entry.m_capabilityTableEntryNumber.SetValue(secCapNo);
+	entry.IncludeOptionalField(H245_CapabilityTableEntry::e_capability);
+	H245_Capability & cap = entry.m_capability;
+	cap.SetTag(H245_Capability::e_h235SecurityCapability);
+	H245_H235SecurityCapability & sec = cap;
+	sec.m_mediaCapability.SetValue(_entryNo);
+	sec.m_encryptionAuthenticationAndIntegrity.IncludeOptionalField(
+		H245_EncryptionAuthenticationAndIntegrity::e_encryptionCapability);
+	H245_EncryptionCapability & enc = sec.m_encryptionAuthenticationAndIntegrity.m_encryptionCapability;
+	enc.SetSize(_capList.GetSize());
+	for (PINDEX i=0; i < _capList.GetSize(); ++i) {
+		H245_MediaEncryptionAlgorithm & alg = enc[i];
+		alg.SetTag(H245_MediaEncryptionAlgorithm::e_algorithm);
+		PASN_ObjectId & id = alg;
+		id.SetValue(_capList[i]);
+	}
 
     for (PINDEX n = 0; n < _capDesc.GetSize(); n++){
         for (PINDEX j = 0; j < _capDesc[n].m_simultaneousCapabilities.GetSize(); j++) {
@@ -1796,20 +1795,20 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 
     if (toRemove) {
 //=============================
-        // Handle the OLC here
+// Handle the OLC here
 //=============================
         
         H245_H235Media_mediaType & cType = ((H245_H235Media &)rawCap).m_mediaType;
-            if (cType.GetTag() == H245_H235Media_mediaType::e_audioData) {
-                    newCap.SetTag(H245_DataType::e_audioData);
-                    (H245_AudioCapability &)newCap = (H245_AudioCapability &)cType;
-            } else if (cType.GetTag() == H245_H235Media_mediaType::e_videoData) {
-                    newCap.SetTag(H245_DataType::e_videoData);
-                    (H245_VideoCapability &)newCap = (H245_VideoCapability &)cType;
-            } else if (cType.GetTag() == H245_H235Media_mediaType::e_data) {
-                    newCap.SetTag(H245_DataType::e_data);
-                    (H245_DataApplicationCapability &)newCap = (H245_DataApplicationCapability &)cType;
-            }
+		if (cType.GetTag() == H245_H235Media_mediaType::e_audioData) {
+			newCap.SetTag(H245_DataType::e_audioData);
+			(H245_AudioCapability &)newCap = (H245_AudioCapability &)cType;
+		} else if (cType.GetTag() == H245_H235Media_mediaType::e_videoData) {
+			newCap.SetTag(H245_DataType::e_videoData);
+			(H245_VideoCapability &)newCap = (H245_VideoCapability &)cType;
+		} else if (cType.GetTag() == H245_H235Media_mediaType::e_data) {
+			newCap.SetTag(H245_DataType::e_data);
+			(H245_DataApplicationCapability &)newCap = (H245_DataApplicationCapability &)cType;
+		}
 
         olc.RemoveOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
     } else {
@@ -1824,28 +1823,28 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
         H245_H235Media & h235Media = newCap;
            
         H245_EncryptionAuthenticationAndIntegrity & encAuth =
-                      h235Media.m_encryptionAuthenticationAndIntegrity;
-            encAuth.IncludeOptionalField(H245_EncryptionAuthenticationAndIntegrity::e_encryptionCapability);
-            H245_EncryptionCapability & enc = encAuth.m_encryptionCapability;
-              enc.SetSize(1);
-              H245_MediaEncryptionAlgorithm & alg = enc[0];
-              alg.SetTag(H245_MediaEncryptionAlgorithm::e_algorithm);
-              PASN_ObjectId & id = alg;
-              id.SetValue(m_capList[0]);
-       
+			h235Media.m_encryptionAuthenticationAndIntegrity;
+		encAuth.IncludeOptionalField(H245_EncryptionAuthenticationAndIntegrity::e_encryptionCapability);
+		H245_EncryptionCapability & enc = encAuth.m_encryptionCapability;
+		enc.SetSize(1);
+		H245_MediaEncryptionAlgorithm & alg = enc[0];
+		alg.SetTag(H245_MediaEncryptionAlgorithm::e_algorithm);
+		PASN_ObjectId & id = alg;
+		id.SetValue(m_capList[0]);
+
         H245_H235Media_mediaType & cType = h235Media.m_mediaType;
-            if (rawCap.GetTag() == H245_DataType::e_audioData) {
-                cType.SetTag(H245_H235Media_mediaType::e_audioData); 
-                (H245_AudioCapability &)cType = (H245_AudioCapability &)rawCap;
-            } else if (rawCap.GetTag() ==  H245_DataType::e_videoData) {
-                cType.SetTag(H245_H235Media_mediaType::e_videoData); 
-                (H245_VideoCapability &)cType = (H245_VideoCapability &)rawCap;
-            } else if (rawCap.GetTag() == H245_DataType::e_data) { 
-                cType.SetTag(H245_H235Media_mediaType::e_data);
-                (H245_DataApplicationCapability &)cType = (H245_DataApplicationCapability &)rawCap;
-            }
+		if (rawCap.GetTag() == H245_DataType::e_audioData) {
+			cType.SetTag(H245_H235Media_mediaType::e_audioData); 
+			(H245_AudioCapability &)cType = (H245_AudioCapability &)rawCap;
+		} else if (rawCap.GetTag() ==  H245_DataType::e_videoData) {
+			cType.SetTag(H245_H235Media_mediaType::e_videoData); 
+			(H245_VideoCapability &)cType = (H245_VideoCapability &)rawCap;
+		} else if (rawCap.GetTag() == H245_DataType::e_data) { 
+			cType.SetTag(H245_H235Media_mediaType::e_data);
+			(H245_DataApplicationCapability &)cType = (H245_DataApplicationCapability &)rawCap;
+		}
 //=============================
-       // Handle the OLC here
+// Handle the OLC here
 //=============================
        // Load Sync Material (if used)
        // olc.IncludeOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
@@ -1857,7 +1856,6 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 	    olc.m_forwardLogicalChannelParameters.m_dataType = newCap;
 
     return true;
-
 }
 #endif
 
