@@ -225,6 +225,7 @@ public:
 	bool CreateRemote(const H225_TransportAddress & addr);
 	bool OnSCICall(H225_CallIdentifier callID, H225_TransportAddress sigAdr);
 	bool IsCallFromTraversalServer() const { return m_callFromTraversalServer; }
+	bool IsCallToTraversalServer() const { return m_callToTraversalServer; }
 	void SetLCMultiplexDestination(unsigned lc, bool isRTCP, const H323TransportAddress & toAddress);
 	void SetLCMultiplexID(unsigned lc, bool isRTCP, PUInt32b multiplexID);
 	const H245Handler * GetH245Handler() const { return m_h245handler; }
@@ -344,6 +345,7 @@ private:
 	H245_TerminalCapabilitySet m_savedTCS;	// saved tcs to re-send
 #ifdef HAS_H46018
 	bool m_callFromTraversalServer; // is this call from a traversal server ?
+	bool m_callToTraversalServer;
 #endif
 };
 

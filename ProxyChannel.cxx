@@ -905,6 +905,7 @@ void CallSignalSocket::InternalInit()
 	m_setupPdu = NULL;
 #ifdef HAS_H46018
 	m_callFromTraversalServer = false;
+	m_callToTraversalServer = false;
 #endif
 	// m_callerSocket is always initialized in init list
 	m_h225Version = 0;
@@ -3446,6 +3447,9 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE &setupBody)
 	}
 	if (!remote) {
 		remote = new CallSignalSocket(this, peerPort);
+		if (m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalServer()) {
+			((CallSignalSocket*)remote)->m_callToTraversalServer = true;
+		}
 		m_result = Connecting;
 	}
 
@@ -5783,7 +5787,8 @@ void H245Socket::ConnectTo()
 			GetHandler()->Insert(this, remote);
 			ConfigReloadMutex.EndRead();
 #ifdef HAS_H46018
-			if (sigSocket && sigSocket->IsCallFromTraversalServer()) {
+			PTRACE(0, "JW check if we need to send H.460.18 indication when H.245 channel starts");
+			if (sigSocket && (sigSocket->IsCallFromTraversalServer() || sigSocket->IsCallToTraversalServer())) {
 				SendH46018Indication();
 			}
 #endif
