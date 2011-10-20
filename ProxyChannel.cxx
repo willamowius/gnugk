@@ -3447,9 +3447,11 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE &setupBody)
 	}
 	if (!remote) {
 		remote = new CallSignalSocket(this, peerPort);
+#ifdef HAS_H46018
 		if (m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalServer()) {
 			((CallSignalSocket*)remote)->m_callToTraversalServer = true;
 		}
+#endif
 		m_result = Connecting;
 	}
 
