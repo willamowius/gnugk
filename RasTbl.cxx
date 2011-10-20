@@ -3024,8 +3024,14 @@ PString CallRec::PrintOn(bool verbose) const
 PString CallRec::PrintPorts() const
 {
 	PString result = PString(PString::Printf,
-		"Call No. %d | CallID %s | Dial %s\r\n",
-		m_CallNumber, (const char *)AsString(m_callIdentifier.m_guid), (const char *)m_destInfo);
+		"Call No. %d | CallID %s | %ld | Dial %s\r\n",
+		m_CallNumber, (const char *)AsString(m_callIdentifier.m_guid),
+		(unsigned long)(time(0) - m_timer), (const char *)m_destInfo)
+		+ m_callerAddr
+		+ "|" + m_srcInfo
+		+ "|" + m_calleeAddr
+		+ "|" + m_destInfo
+		+ "\r\n";
 	for (list<DynamicPort>::const_iterator iter = m_dynamicPorts.begin(); iter != m_dynamicPorts.end(); ++iter) {
 		switch (iter->m_type) {
 			case H245Port: result += "  H.245 ";

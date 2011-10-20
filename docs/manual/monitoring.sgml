@@ -298,14 +298,16 @@ Number of Calls: 1 Active: 1 From NB: 0
 <tag/Format:/
 <tscreen><verb>
 CurrentCallsPorts
-Call No. # | CallID | Dialed_Number
+Call No. # | CallID | Call_Duration | Dialed_Number
+Caller_IP:Port|SrcInfo|Callee_IP:Port|DestinationInfo
   PortType IP:port
 ;
 </verb></tscreen>
 <tag/Example:/
 <tscreen><verb>
 CurrentCallsPorts
-Call No. 1 | CallID b4 ef 4a e3 2a f8 e0 11 9f c6 00 1e c9 7e 69 ec | Dial peter:h323_ID
+Call No. 1 | CallID b4 ef 4a e3 2a f8 e0 11 9f c6 00 1e c9 7e 69 ec | 62 | Dial peter:h323_ID
+10.0.1.200:1720|frank:h323_ID|10.0.1.7:1720|gunter:h323_ID
   RTP 0.0.0.0:1024
   RTP 0.0.0.0:1025
   H.245 0.0.0.0:55674
