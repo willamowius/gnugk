@@ -89,10 +89,9 @@ PString EPQoS::AsString() const
 
 EndpointRec::EndpointRec(
 	/// RRQ, ARQ, ACF or LCF that contains a description of the endpoint
-	const H225_RasMessage& ras, 
+	const H225_RasMessage& ras,
 	/// permanent endpoint flag
-	bool permanent
-	)
+	bool permanent)
 	: m_RasMsg(ras), m_endpointVendor(NULL), m_timeToLive(1),
 	m_activeCall(0), m_connectedCall(0), m_totalCall(0),
 	m_pollCount(GkConfig()->GetInteger(RRQFeaturesSection, "IRQPollCount", DEFAULT_IRQ_POLL_COUNT)),
@@ -724,12 +723,17 @@ void EndpointRec::SetNATAddress(const PIPSocket::Address & ip, WORD port)
 }
 
 
-// due to strange bug of gcc, I have to pass pointer instead of reference
+// due to strange bug in gcc, I have to pass pointer instead of reference
 bool EndpointRec::CompareAlias(const H225_ArrayOf_AliasAddress *a) const
 {
 	bool compareAliasType = GkConfig()->GetBoolean("CompareAliasType", true);
 	bool compareAliasCase = GkConfig()->GetBoolean("CompareAliasCase", true);
 	PWaitAndSignal lock(m_usedLock);
+	// don't find out-of-zone EPRecs from traversal servers by alias
+	// we must send a new LRQ (with CallID) so the traversal server will recognize
+	// the call as a traversal call (VCS 6.x behavior)
+	if (IsTraversalServer())
+		return false;
 	for (PINDEX i = 0; i < a->GetSize(); i++) {
 		for (PINDEX j = 0; j < m_terminalAliases.GetSize(); j++) {
 			bool typeMatch = compareAliasType ? ((*a)[i].GetTag() == m_terminalAliases[j].GetTag()) : true;
@@ -1619,11 +1623,10 @@ endptr RegistrationTable::FindFirstEndpoint(const H225_ArrayOf_AliasAddress & al
 }
 
 bool RegistrationTable::FindEndpoint(
-	const H225_ArrayOf_AliasAddress &aliases,
+	const H225_ArrayOf_AliasAddress & aliases,
 	bool roundRobin,
 	bool searchOutOfZone,
-	list<Route> &routes
-	)
+	list<Route> & routes)
 {
 	bool found = InternalFindEP(aliases, &EndpointList, roundRobin, routes);
 	if (searchOutOfZone && InternalFindEP(aliases, &OutOfZoneList, roundRobin, routes))
@@ -1679,11 +1682,10 @@ endptr RegistrationTable::InternalFindFirstEP(const H225_ArrayOf_AliasAddress & 
 }
 
 bool RegistrationTable::InternalFindEP(
-	const H225_ArrayOf_AliasAddress &aliases,
-	list<EndpointRec*> *endpoints,
+	const H225_ArrayOf_AliasAddress & aliases,
+	list<EndpointRec*> * endpoints,
 	bool roundRobin,
-	list<Route> &routes
-	)
+	list<Route> & routes)
 {
 	endptr ep = InternalFind(bind2nd(mem_fun(&EndpointRec::CompareAlias), &aliases), endpoints);
 	if (ep) {
