@@ -346,6 +346,7 @@ private:
 #ifdef HAS_H46018
 	bool m_callFromTraversalServer; // is this call from a traversal server ?
 	bool m_callToTraversalServer;
+	bool m_senderSupportsH46019Multiplexing;
 #endif
 };
 
