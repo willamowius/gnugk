@@ -228,6 +228,7 @@ public:
 	bool IsCallToTraversalServer() const { return m_callToTraversalServer; }
 	void SetLCMultiplexDestination(unsigned lc, bool isRTCP, const H323TransportAddress & toAddress);
 	void SetLCMultiplexID(unsigned lc, bool isRTCP, PUInt32b multiplexID);
+	void SetLCMultiplexSocket(unsigned lc, bool isRTCP, int multiplexSocket);
 	const H245Handler * GetH245Handler() const { return m_h245handler; }
 #endif
 

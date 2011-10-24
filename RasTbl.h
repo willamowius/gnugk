@@ -1262,8 +1262,8 @@ public:
 	void SetCallerID(const PString & id) { m_callerID = id; }
 	PString GetCallerID() const { return m_callerID; }
 
-	void AddDynamicPort(const DynamicPort & port) { m_dynamicPorts.push_back(port); }
-	void RemoveDynamicPort(const DynamicPort & port) { m_dynamicPorts.erase(find(m_dynamicPorts.begin(), m_dynamicPorts.end(), port)); }
+	void AddDynamicPort(const DynamicPort & port);
+	void RemoveDynamicPort(const DynamicPort & port);
 
 #ifdef HAS_H46018
 	bool IsH46018ReverseSetup() const { return m_h46018ReverseSetup; }	
@@ -1273,15 +1273,16 @@ public:
 	PBYTEArray RetrieveSetup();
 	int GetH46019Direction() const;
 
-	void AddRTPKeepAlive(unsigned flcn, const H323TransportAddress & keepAliveRTPAddr, unsigned keepAliveInterval);
-	void StartRTPKeepAlive(unsigned flcn, int RTPOSSocket, PUInt32b multiplexID = INVALID_MULTIPLEX_ID);
-	void AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAliveRTCPAddr, unsigned keepAliveInterval);
-	void StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket, PUInt32b multiplexID = INVALID_MULTIPLEX_ID);
+	void AddRTPKeepAlive(unsigned flcn, const H323TransportAddress & keepAliveRTPAddr, unsigned keepAliveInterval, PUInt32b multiplexID);
+	void StartRTPKeepAlive(unsigned flcn, int RTPOSSocket);
+	void AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAliveRTCPAddr, unsigned keepAliveInterval, PUInt32b multiplexID);
+	void StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket);
 	void RemoveKeepAlives(unsigned flcn);
 	void RemoveKeepAllAlives();
 	
 	void SetLCMultiplexDestination(unsigned lc, void * openedBy, bool isRTCP, const H323TransportAddress & toAddress);
 	void SetLCMultiplexID(unsigned lc, void * openedBy, bool isRTCP, PUInt32b multiplexID);
+	void SetLCMultiplexSocket(unsigned lc, void * openedBy, bool isRTCP, int multiplexSocket);
 #endif
 
 #ifdef HAS_H235_MEDIA
@@ -1495,6 +1496,7 @@ private:
 	bool m_callfromTraversalServer;
 	CallLeg m_rerouteDirection;
 	PString m_callerID;	// forced caller ID or empty
+	PMutex m_portListMutex;
 	list<DynamicPort> m_dynamicPorts;
 
 #ifdef HAS_H235_MEDIA

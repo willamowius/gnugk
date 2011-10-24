@@ -2373,10 +2373,12 @@ CallRec::CallRec(
 
 CallRec::~CallRec()
 {
+	PTRACE(3, "Gk\tDelete Call No. " << m_CallNumber);
 #ifdef HAS_H46018
 	RemoveKeepAllAlives();
 #endif
-	PTRACE(3, "Gk\tDelete Call No. " << m_CallNumber);
+	PWaitAndSignal lock(m_portListMutex);
+	m_dynamicPorts.clear();
 }
  
 bool CallRec::CompareSigAdrIgnorePort(const H225_TransportAddress *adr) const
@@ -3710,6 +3712,18 @@ PBYTEArray CallRec::GetRADIUSClass() const
 	return m_radiusClass;
 }
 
+void CallRec::AddDynamicPort(const DynamicPort & port)
+{
+	PWaitAndSignal lock(m_portListMutex);
+	m_dynamicPorts.push_back(port);
+}
+
+void CallRec::RemoveDynamicPort(const DynamicPort & port)
+{
+	PWaitAndSignal lock(m_portListMutex);
+	m_dynamicPorts.remove(port);
+}
+
 #ifdef HAS_H46018
 bool CallRec::H46019Required() const
 {
@@ -3735,7 +3749,7 @@ PBYTEArray CallRec::RetrieveSetup() // for H.460.18
 	m_processedSetup.SetSize(0);	// delete stored Setup
 	return processedSetup;
 }
- 
+
 int CallRec::GetH46019Direction() const
 {
 	if (!H46019Required())
@@ -3749,53 +3763,53 @@ int CallRec::GetH46019Direction() const
 	return dir;
 }
 
-void CallRec::AddRTPKeepAlive(unsigned flcn, const H323TransportAddress & keepAliveRTPAddr, unsigned keepAliveInterval)
+void CallRec::AddRTPKeepAlive(unsigned flcn, const H323TransportAddress & keepAliveRTPAddr, unsigned keepAliveInterval, PUInt32b multiplexID)
 {
-	PTRACE(0, "JW AddRTPKeepAlive lc=" << flcn << " dest=" << keepAliveRTPAddr << " interval=" << keepAliveInterval);
+	PTRACE(0, "JW AddRTPKeepAlive lc=" << flcn << " dest=" << keepAliveRTPAddr << " interval=" << keepAliveInterval << " multiplexID=" << multiplexID);
 	H46019KeepAlive ka;
 	ka.type = RTP;
 	ka.flcn = flcn;
 	SetSockaddr(ka.dest, keepAliveRTPAddr);
 	ka.interval = keepAliveInterval;
+	ka.multiplexID = multiplexID;
 	m_RTPkeepalives[flcn] = ka;
 }
 
-void CallRec::StartRTPKeepAlive(unsigned flcn, int RTPOSSocket, PUInt32b multiplexID)
+void CallRec::StartRTPKeepAlive(unsigned flcn, int RTPOSSocket)
 {
 	map<unsigned, H46019KeepAlive>::iterator iter = m_RTPkeepalives.find(flcn);
 	// only start if it isn't running already
 	if ((iter != m_RTPkeepalives.end()) && (iter->second.timer == GkTimerManager::INVALID_HANDLE)) {
 		iter->second.ossocket = RTPOSSocket;
-		iter->second.multiplexID = multiplexID;
 		PTime now;
 		iter->second.timer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 				&(iter->second), &H46019KeepAlive::SendKeepAlive, now, iter->second.interval);	// do it now and every n seconds
-		PTRACE(0, "JW Starting RTP keepAlive OS socket=" << RTPOSSocket << " multiplexID=" << multiplexID);
+		PTRACE(0, "JW Starting RTP keepAlive OS socket=" << RTPOSSocket);
 	}
 }
 
-void CallRec::AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAliveRTCPAddr, unsigned keepAliveInterval)
+void CallRec::AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAliveRTCPAddr, unsigned keepAliveInterval, PUInt32b multiplexID)
 {
-	PTRACE(0, "JW AddRTCPKeepAlive lc=" << flcn << " dest=" << AsString(keepAliveRTCPAddr) << " interval=" << keepAliveInterval);
+	PTRACE(0, "JW AddRTCPKeepAlive lc=" << flcn << " dest=" << AsString(keepAliveRTCPAddr) << " interval=" << keepAliveInterval << " mulktiplexID=" << multiplexID);
 	H46019KeepAlive ka;
 	ka.type = RTCP;
 	ka.flcn = flcn;
 	SetSockaddr(ka.dest, keepAliveRTCPAddr);
 	ka.interval = keepAliveInterval;
+	ka.multiplexID = multiplexID;
 	m_RTCPkeepalives[flcn] = ka;
 }
 
-void CallRec::StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket, PUInt32b multiplexID)
+void CallRec::StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket)
 {
 	map<unsigned, H46019KeepAlive>::iterator iter = m_RTCPkeepalives.find(flcn);
 	// only start if it isn't running already
 	if ((iter != m_RTCPkeepalives.end()) && (iter->second.timer == GkTimerManager::INVALID_HANDLE)) {
 		iter->second.ossocket = RTCPOSSocket;
-		iter->second.multiplexID = multiplexID;
 		PTime now;
 		iter->second.timer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 				&(iter->second), &H46019KeepAlive::SendKeepAlive, now, iter->second.interval);	// do it now and every n seconds
-		PTRACE(0, "JW Starting RTCP keepAlive OS socket=" << RTCPOSSocket << " multiplexID=" << multiplexID);
+		PTRACE(0, "JW Starting RTCP keepAlive OS socket=" << RTCPOSSocket);
 	}
 }
 
@@ -3832,6 +3846,18 @@ void CallRec::SetLCMultiplexID(unsigned lc, void * openedBy, bool isRTCP, PUInt3
 		m_calledSocket->SetLCMultiplexID(lc, isRTCP, multiplexID);
 	} else {
 		PTRACE(0, "JW Error: Can't find LC to set multiplex ID!");
+	}
+}
+
+void CallRec::SetLCMultiplexSocket(unsigned lc, void * openedBy, bool isRTCP, int multiplexSocket)
+{
+	// try to find LC
+	if (m_callingSocket && (m_callingSocket->GetH245Handler() == openedBy)) {
+		m_callingSocket->SetLCMultiplexSocket(lc, isRTCP, multiplexSocket);
+	} else if (m_calledSocket && (m_calledSocket->GetH245Handler() == openedBy)) {
+		m_calledSocket->SetLCMultiplexSocket(lc, isRTCP, multiplexSocket);
+	} else {
+		PTRACE(0, "JW Error: Can't find LC to set multiplex socket!");
 	}
 }
 #endif
