@@ -1,6 +1,6 @@
 <sect>Advanced Topics
 <p>
-This portion of the manual will cover advanced topics, such as compiling and debugging GnuGk.
+This portion of the manual will cover advanced topics, such as compiling and debugging the GNU Gatekeeper.
 
 <sect1>Compiling GnuGk from CVS
 <label id="compile">
