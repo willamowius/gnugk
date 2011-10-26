@@ -384,7 +384,7 @@ protected:
 class H46019Channel : public PObject
 {
 public:
-	H46019Channel(const H225_CallIdentifier & callid, unsigned lc, void * openedBy);
+	H46019Channel(const H225_CallIdentifier & callid, unsigned lc, WORD session, void * openedBy);
 
 	void Dump() const;
 
@@ -399,6 +399,7 @@ public:
 //protected:
 	H225_CallIdentifier m_callid;
 	unsigned m_lc;
+	WORD m_session;
 	void * m_openedBy;	// pointer to H245ProxyHandler used as an ID
 	H323TransportAddress m_addrA;
 	H323TransportAddress m_addrA_RTCP;
@@ -452,6 +453,7 @@ public:
 	virtual int GetRTPOSSocket() const { return m_reader ? m_reader->GetRTPOSSocket() : INVALID_OSSOCKET; }
 	virtual int GetRTCPOSSocket() const { return m_reader ? m_reader->GetRTCPOSSocket() : INVALID_OSSOCKET; }
 
+	virtual PUInt32b GetMultiplexID(const H225_CallIdentifier & callid, WORD session, void * to);
 	virtual PUInt32b GetNewMultiplexID();
 
 protected:
