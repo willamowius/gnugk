@@ -3825,6 +3825,18 @@ void CallRec::RemoveKeepAllAlives()
 	m_RTCPkeepalives.clear();
 }
 
+void CallRec::SetSessionMultiplexDestination(WORD session, void * openedBy, bool isRTCP, const H323TransportAddress & toAddress)
+{
+	// try to find LCs for this session
+	if (m_callingSocket && (m_callingSocket->GetH245Handler() == openedBy)) {
+		m_callingSocket->SetSessionMultiplexDestination(session, isRTCP, toAddress);
+	} else if (m_calledSocket && (m_calledSocket->GetH245Handler() == openedBy)) {
+		m_calledSocket->SetSessionMultiplexDestination(session, isRTCP, toAddress);
+	} else {
+		PTRACE(0, "JW Error: Can't find LCs for session to set destination!");
+	}
+}
+
 void CallRec::SetLCMultiplexDestination(unsigned lc, void * openedBy, bool isRTCP, const H323TransportAddress & toAddress)
 {
 	// try to find LC

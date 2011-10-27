@@ -43,6 +43,7 @@ class H323TransportAddress;
 enum CallLeg { Caller, Called };
 enum RerouteState { NoReroute, RerouteInitiated, Rerouting };
 const int INVALID_OSSOCKET = -1;
+const WORD INVALID_RTP_SESSION = 0;
 const PUInt32b INVALID_MULTIPLEX_ID = 0;
 const unsigned GNUGK_KEEPALIVE_RTP_PAYLOADTYPE = 127;	// GnuGk always sends this fixed payload type
 
@@ -1280,6 +1281,7 @@ public:
 	void RemoveKeepAlives(unsigned flcn);
 	void RemoveKeepAllAlives();
 	
+	void SetSessionMultiplexDestination(WORD session, void * openedBy, bool isRTCP, const H323TransportAddress & toAddress);
 	void SetLCMultiplexDestination(unsigned lc, void * openedBy, bool isRTCP, const H323TransportAddress & toAddress);
 	void SetLCMultiplexID(unsigned lc, void * openedBy, bool isRTCP, PUInt32b multiplexID);
 	void SetLCMultiplexSocket(unsigned lc, void * openedBy, bool isRTCP, int multiplexSocket);

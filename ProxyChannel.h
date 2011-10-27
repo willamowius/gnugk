@@ -226,6 +226,7 @@ public:
 	bool OnSCICall(H225_CallIdentifier callID, H225_TransportAddress sigAdr);
 	bool IsCallFromTraversalServer() const { return m_callFromTraversalServer; }
 	bool IsCallToTraversalServer() const { return m_callToTraversalServer; }
+	void SetSessionMultiplexDestination(WORD session, bool isRTCP, const H323TransportAddress & toAddress);
 	void SetLCMultiplexDestination(unsigned lc, bool isRTCP, const H323TransportAddress & toAddress);
 	void SetLCMultiplexID(unsigned lc, bool isRTCP, PUInt32b multiplexID);
 	void SetLCMultiplexSocket(unsigned lc, bool isRTCP, int multiplexSocket);
@@ -381,10 +382,10 @@ protected:
 	WORD wbufsize, buflen;
 };
 
-class H46019Channel : public PObject
+class H46019Channel
 {
 public:
-	H46019Channel(const H225_CallIdentifier & callid, unsigned lc, WORD session, void * openedBy);
+	H46019Channel(const H225_CallIdentifier & callid, WORD session, void * openedBy);
 
 	void Dump() const;
 
@@ -398,7 +399,6 @@ public:
 
 //protected:
 	H225_CallIdentifier m_callid;
-	unsigned m_lc;
 	WORD m_session;
 	void * m_openedBy;	// pointer to H245ProxyHandler used as an ID
 	H323TransportAddress m_addrA;
@@ -443,8 +443,7 @@ public:
 
 	virtual void AddChannel(const H46019Channel & cha);
 	virtual void UpdateChannel(const H46019Channel & cha);
-	virtual H46019Channel GetChannel(const H225_CallIdentifier & callid, unsigned lc, void * openedBy) const;
-	virtual void RemoveChannel(const H225_CallIdentifier & callid, unsigned lc, void * openedBy);
+	virtual H46019Channel GetChannel(const H225_CallIdentifier & callid, WORD session, void * openedBy) const;
 	virtual void RemoveChannels(const H225_CallIdentifier & callid);
 	virtual void DumpChannels(const PString & msg = "") const;
 
