@@ -2040,6 +2040,9 @@ void RegistrationTable::CheckEndpoints()
 #ifdef HAS_H46018
 H46019KeepAlive::H46019KeepAlive()
 {
+	flcn = 0;
+	interval = 0;
+	type = RTP;
 	ossocket = INVALID_OSSOCKET;
 	multiplexID = INVALID_MULTIPLEX_ID;
 	seq = 1;
