@@ -3827,13 +3827,13 @@ void CallRec::RemoveKeepAllAlives()
 
 void CallRec::SetSessionMultiplexDestination(WORD session, void * openedBy, bool isRTCP, const H323TransportAddress & toAddress)
 {
-	// try to find LCs for this session
+	// try to find LC for this session
 	if (m_callingSocket && (m_callingSocket->GetH245Handler() == openedBy)) {
 		m_callingSocket->SetSessionMultiplexDestination(session, isRTCP, toAddress);
 	} else if (m_calledSocket && (m_calledSocket->GetH245Handler() == openedBy)) {
 		m_calledSocket->SetSessionMultiplexDestination(session, isRTCP, toAddress);
 	} else {
-		PTRACE(0, "JW Error: Can't find LCs for session to set destination!");
+		PTRACE(1, "Error: Can't find LC for session " << session << " to set multiplex destination!");
 	}
 }
 
@@ -3845,7 +3845,7 @@ void CallRec::SetLCMultiplexDestination(unsigned lc, void * openedBy, bool isRTC
 	} else if (m_calledSocket && (m_calledSocket->GetH245Handler() == openedBy)) {
 		m_calledSocket->SetLCMultiplexDestination(lc, isRTCP, toAddress);
 	} else {
-		PTRACE(0, "JW Error: Can't find LC to set destination!");
+		PTRACE(1, "Error: Can't find LC << " << lc << " to set multiplex destination!");
 	}
 }
 
@@ -3857,7 +3857,7 @@ void CallRec::SetLCMultiplexID(unsigned lc, void * openedBy, bool isRTCP, PUInt3
 	} else if (m_calledSocket && (m_calledSocket->GetH245Handler() == openedBy)) {
 		m_calledSocket->SetLCMultiplexID(lc, isRTCP, multiplexID);
 	} else {
-		PTRACE(0, "JW Error: Can't find LC to set multiplex ID!");
+		PTRACE(1, "Error: Can't find LC << " << lc << " to set multiplex ID!");
 	}
 }
 
@@ -3869,7 +3869,7 @@ void CallRec::SetLCMultiplexSocket(unsigned lc, void * openedBy, bool isRTCP, in
 	} else if (m_calledSocket && (m_calledSocket->GetH245Handler() == openedBy)) {
 		m_calledSocket->SetLCMultiplexSocket(lc, isRTCP, multiplexSocket);
 	} else {
-		PTRACE(0, "JW Error: Can't find LC to set multiplex socket!");
+		PTRACE(1, "Error: Can't find LC << " << lc << " to set multiplex socket!");
 	}
 }
 #endif

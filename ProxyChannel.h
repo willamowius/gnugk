@@ -391,6 +391,7 @@ public:
 
 	bool sideAReady(bool isRTCP) const { return isRTCP ? IsSet(m_addrA_RTCP) : IsSet(m_addrA); }
 	bool sideBReady(bool isRTCP) const { return isRTCP ? IsSet(m_addrB_RTCP) : IsSet(m_addrB); }
+	H46019Channel SwapSides() const; // return a copy with side A and B swapped
 
 	bool IsKeepAlive(void * data, unsigned len, bool isRTCP) { return isRTCP ? true : (len == 12); };
 
@@ -401,6 +402,7 @@ public:
 	H225_CallIdentifier m_callid;
 	WORD m_session;
 	void * m_openedBy;	// pointer to H245ProxyHandler used as an ID
+	void * m_otherSide;	// pointer to H245ProxyHandler used as an ID
 	H323TransportAddress m_addrA;
 	H323TransportAddress m_addrA_RTCP;
 	H323TransportAddress m_addrB;
