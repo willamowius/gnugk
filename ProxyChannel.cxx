@@ -2944,7 +2944,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		if (useParent)
 			call->SetToParent(true);
 
-//		// the first CallRec for a reverse H.460.18 Setup is not inserted into the CallTable and needs to be manually deleted here
+		// the first CallRec for a reverse H.460.18 Setup is not inserted into the CallTable and needs to be manually deleted here
 		CallRec * savedPtr = NULL;
 		if (m_call)
 			savedPtr = m_call.operator->();
@@ -3160,6 +3160,9 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	}
 	bool proxyIPv4ToIPv6 = Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "AutoProxyIPv4ToIPv6Calls", "1"));
 	unsigned callingIPVersion = GetVersion(m_call->GetSrcSignalAddr());
+	// for traversal or neighbor calls we might not have the SrcSignalAddr
+	if (callingIPVersion == 0)
+		callingIPVersion = _peerAddr.GetVersion();	
 	unsigned calledIPVersion = GetVersion(m_call->GetDestSignalAddr());
 	if (proxyIPv4ToIPv6 && (callingIPVersion != calledIPVersion)) {
 		m_call->SetH245Routed(true);
