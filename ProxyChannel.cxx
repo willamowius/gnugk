@@ -6422,10 +6422,10 @@ void H46019Channel::Send(PUInt32b sendMultiplexID, const H323TransportAddress & 
 		BYTE * multiplexMsg = (BYTE*)malloc(len+4);
 		*((PUInt32b*)multiplexMsg) = sendMultiplexID;
 		memcpy(multiplexMsg+4, data, len);
-		sent = ::sendto(osSocket, multiplexMsg, lenToSend, 0, (struct sockaddr *)&dest, sizeof(dest));
+		sent = ::sendto(osSocket, (char*)multiplexMsg, lenToSend, 0, (struct sockaddr *)&dest, sizeof(dest));
 		free(multiplexMsg);
 	} else {
-		sent = ::sendto(osSocket, data, lenToSend, 0, (struct sockaddr *)&dest, sizeof(dest));
+		sent = ::sendto(osSocket, (char*)data, lenToSend, 0, (struct sockaddr *)&dest, sizeof(dest));
 	}
 	if (sent != lenToSend) {
 		PTRACE(1, "RTPM\tError sending RTP to " << toAddress << ": should send=" << lenToSend << " did send=" << sent << " errno=" << errno);
