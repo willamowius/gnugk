@@ -226,10 +226,10 @@ public:
 	bool OnSCICall(H225_CallIdentifier callID, H225_TransportAddress sigAdr);
 	bool IsCallFromTraversalServer() const { return m_callFromTraversalServer; }
 	bool IsCallToTraversalServer() const { return m_callToTraversalServer; }
-	void SetSessionMultiplexDestination(WORD session, bool isRTCP, const H323TransportAddress & toAddress);
-	void SetLCMultiplexDestination(unsigned lc, bool isRTCP, const H323TransportAddress & toAddress);
-	void SetLCMultiplexID(unsigned lc, bool isRTCP, PUInt32b multiplexID);
-	void SetLCMultiplexSocket(unsigned lc, bool isRTCP, int multiplexSocket);
+	void SetSessionMultiplexDestination(WORD session, bool isRTCP, const H323TransportAddress & toAddress, H46019Side side);
+	void SetLCMultiplexDestination(unsigned lc, bool isRTCP, const H323TransportAddress & toAddress, H46019Side side);
+	void SetLCMultiplexID(unsigned lc, bool isRTCP, PUInt32b multiplexID, H46019Side side);
+	void SetLCMultiplexSocket(unsigned lc, bool isRTCP, int multiplexSocket, H46019Side side);
 	const H245Handler * GetH245Handler() const { return m_h245handler; }
 #endif
 

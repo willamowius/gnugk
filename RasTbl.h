@@ -42,6 +42,7 @@ class H323TransportAddress;
 
 enum CallLeg { Caller, Called };
 enum RerouteState { NoReroute, RerouteInitiated, Rerouting };
+enum H46019Side { SideA, SideB };
 const int INVALID_OSSOCKET = -1;
 const WORD INVALID_RTP_SESSION = 0;
 const PUInt32b INVALID_MULTIPLEX_ID = 0;
@@ -1281,10 +1282,10 @@ public:
 	void RemoveKeepAlives(unsigned flcn);
 	void RemoveKeepAllAlives();
 	
-	void SetSessionMultiplexDestination(WORD session, void * openedBy, bool isRTCP, const H323TransportAddress & toAddress);
-	void SetLCMultiplexDestination(unsigned lc, void * openedBy, bool isRTCP, const H323TransportAddress & toAddress);
-	void SetLCMultiplexID(unsigned lc, void * openedBy, bool isRTCP, PUInt32b multiplexID);
-	void SetLCMultiplexSocket(unsigned lc, void * openedBy, bool isRTCP, int multiplexSocket);
+	void SetSessionMultiplexDestination(WORD session, void * openedBy, bool isRTCP, const H323TransportAddress & toAddress, H46019Side side);
+	void SetLCMultiplexDestination(unsigned lc, void * openedBy, bool isRTCP, const H323TransportAddress & toAddress, H46019Side side);
+	void SetLCMultiplexID(unsigned lc, void * openedBy, bool isRTCP, PUInt32b multiplexID, H46019Side side);
+	void SetLCMultiplexSocket(unsigned lc, void * openedBy, bool isRTCP, int multiplexSocket, H46019Side side);
 #endif
 
 #ifdef HAS_H235_MEDIA
