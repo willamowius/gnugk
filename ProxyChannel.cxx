@@ -6935,7 +6935,6 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	}
 
 	// send packets for a multiplexing destination out through multiplexing socket
-	// TODO: add check which source addr this is from, in case both sides send here and one sides needs to receive multiplexed
 	if (IsSet(m_multiplexDestination_A) && (m_multiplexDestination_A != fromAddr)) {
 		// TODO: RTCP sniffing
 		PTRACE(0, "JW forwarding non-multiplexed RTP as multiplexed to " << m_multiplexDestination_A << " with ID=" << m_multiplexID_A);
@@ -7962,8 +7961,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 								&& (control = GetH245UnicastAddress(h225Params->m_mediaControlChannel)) ) {
 								keepAliveRTCPAddr = *control;
 							} else {
-								PTRACE(0, "JW H46018\tError: H.460.19 server didn't provide mediaControlChannel");
-								// TODO: calculate ?
+								PTRACE(1, "H46018\tError: H.460.19 server didn't provide mediaControlChannel");
 							}
 							if (keepAliveInterval > 0) {
 								call->AddRTPKeepAlive(flcn, keepAliveRTPAddr, keepAliveInterval, multiplexID);

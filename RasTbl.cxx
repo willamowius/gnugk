@@ -2355,7 +2355,6 @@ CallRec::CallRec(
 #ifdef HAS_H235_MEDIA
     ,m_encyptDir(none)
 #endif
-	// TODO: add new fields, bind hint etc. ? + c'tor ?
 {
 	m_timer = m_acctUpdateTime = m_creationTime = time(NULL);
 	m_calleeId = m_calleeAddr = " ";
@@ -2947,7 +2946,7 @@ void CallRec::SendDRQ()
 	drq.IncludeOptionalField(H225_DisengageRequest::e_gatekeeperIdentifier);
 	drq.m_gatekeeperIdentifier = Toolkit::GKName();
 
-	// TODO: for an out of zone endpoint, the endpoint identifier may not be correct
+	// for an out of zone endpoint, the endpoint identifier is not correct
 	if (m_Called) {
 		drq.m_endpointIdentifier = m_Called->GetEndpointIdentifier();
 		RasSrv->SendRas(drq_ras, m_Called->GetRasAddress());
