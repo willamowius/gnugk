@@ -415,6 +415,7 @@ public:
 	int m_osSocketToA_RTCP;
 	int m_osSocketToB;
 	int m_osSocketToB_RTCP;
+	bool m_EnableRTCPStats;
 };
 
 class MultiplexedRTPReader : public SocketsReader {
