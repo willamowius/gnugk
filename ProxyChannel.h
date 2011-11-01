@@ -423,8 +423,6 @@ public:
 	MultiplexedRTPReader();
 	virtual ~MultiplexedRTPReader();
 
-	virtual void OnReload() { /* TODO: update ports etc. */ }
-
 	virtual int GetRTPOSSocket() const { return m_multiplexRTPListener ? m_multiplexRTPListener->GetOSSocket() : INVALID_OSSOCKET; }
 	virtual int GetRTCPOSSocket() const { return m_multiplexRTCPListener ? m_multiplexRTCPListener->GetOSSocket() : INVALID_OSSOCKET; }
 
@@ -442,7 +440,7 @@ public:
 	MultiplexedRTPHandler();
 	virtual ~MultiplexedRTPHandler();
 
-	virtual void OnReload() { if (m_reader) m_reader->OnReload(); }
+	virtual void OnReload() { /* currently not runtime changable */ }
 
 	virtual void AddChannel(const H46019Channel & cha);
 	virtual void UpdateChannel(const H46019Channel & cha);

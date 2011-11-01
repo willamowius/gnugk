@@ -664,6 +664,9 @@ Sleep time between updating of H.460 Presence information.
 Default: <tt/0/<newline>
 <p>
 Enable H.460.19 RTP multiplexing.
+<p>
+NOTE: To change RTP multiplexing settings, including ports, you have to restart GnuGk.
+This can't be done with a conguration reload.
 
 <item><tt/RTPMultiplexPort=4000/<newline>
 Default: <tt/3000/<newline>
