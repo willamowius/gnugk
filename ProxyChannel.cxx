@@ -4015,6 +4015,7 @@ void CallSignalSocket::RerouteCalled(PString destination)
 {
 	RerouteCall(Called, destination, true);
 }
+
 // to be called on the remaining socket !!!
 bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, bool h450transfer)
 {
@@ -8870,12 +8871,11 @@ void ProxyHandler::ReadSocket(IPSocket *socket)
 		case ProxySocket::Connecting:
 #ifdef HAS_H46018
 			{
-				// TODO JW: without ifdef in Dispatch()
 				CallSignalSocket * css = dynamic_cast<CallSignalSocket *>(socket);
 				if (css) {
 					css->PerformConnecting();
 				} else {
-					PTRACE(0, "JW no CallSignalSocket ??? socket=" << socket);
+					PTRACE(1, "Error: No CallSignalSocket ??? socket=" << socket);
 				}
 			}
 #else
