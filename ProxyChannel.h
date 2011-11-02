@@ -362,6 +362,9 @@ public:
 
 	// override from class TCPListenSocket
 	virtual ServerSocket *CreateAcceptor() const;
+
+protected:
+	Address m_addr;
 };
 
 #ifdef HAS_H46018

@@ -8726,15 +8726,12 @@ CallSignalListener::CallSignalListener(const Address & addr, WORD pt)
 	}
 	SetName(AsString(addr, GetPort()));
 	Toolkit::Instance()->PortNotification(Q931Port, PortOpen, "tcp", addr, pt);
+	m_addr = addr;
 }
 
 CallSignalListener::~CallSignalListener()
 {
-	PIPSocket::Address localAddr;
-	WORD port;
-	GetLocalAddress(localAddr, port);
-	UnmapIPv4Address(localAddr);
-	Toolkit::Instance()->PortNotification(Q931Port, PortClose, "tcp", localAddr, port);
+	Toolkit::Instance()->PortNotification(Q931Port, PortClose, "tcp", m_addr, port);
 }
 
 ServerSocket *CallSignalListener::CreateAcceptor() const
