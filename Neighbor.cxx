@@ -260,8 +260,9 @@ H225_LocationRequest & Neighbor::BuildLRQ(H225_RasMessage & lrq_ras, WORD seqnum
 	H323SetAliasAddress(Toolkit::GKName(), lrq.m_sourceInfo[0], H225_AliasAddress::e_h323_ID);
 
 	// TODO: is this right ?
-	if (m_externalGK)
-	   m_rasSrv->GetGkClient()->SetNBPassword(lrq, Toolkit::GKName());
+	if (m_externalGK) {
+		m_rasSrv->GetGkClient()->SetNBPassword(lrq, Toolkit::GKName());
+	}
 
 	if (!m_sendPassword.IsEmpty()) {
 		lrq.IncludeOptionalField(H225_LocationRequest::e_cryptoTokens);
@@ -463,7 +464,7 @@ PrefixInfo Neighbor::GetPrefixInfo(const H225_ArrayOf_AliasAddress & aliases, H2
 	return PrefixInfo(0, (short)iter->second);
 }
 
-bool Neighbor::OnSendingLRQ(H225_LocationRequest &)
+bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq)
 {
 	return true;
 }
@@ -586,9 +587,6 @@ bool Neighbor::Authenticate(RasMsg *ras) const
  
 bool Neighbor::IsAcceptable(RasMsg *ras) const
 {
-	if (!Authenticate(ras))
-		return false;
- 
 	if (ras->IsFrom(GetIP(), 0 /*m_port*/)) {
 		// ras must be an LRQ
 		H225_LocationRequest & lrq = (*ras)->m_recvRAS;
@@ -596,9 +594,11 @@ bool Neighbor::IsAcceptable(RasMsg *ras) const
 		H225_ArrayOf_AliasAddress & aliases = lrq.m_destinationInfo;
 		for (j = 0; j < aliases.GetSize(); ++j) {
 			H225_AliasAddress & alias = aliases[j];
-			for (i = 0; i < sz; ++i)
-				if (m_acceptPrefixes[i] == alias.GetTagName())
+			for (i = 0; i < sz; ++i) {
+				if (m_acceptPrefixes[i] == alias.GetTagName()) {
 					return true;
+				}
+			}
 			PString destination(AsString(alias, false));
 			int maxlen = 0;
 			for (i = 0; i < sz; ++i) {
@@ -612,9 +612,11 @@ bool Neighbor::IsAcceptable(RasMsg *ras) const
 			if (maxlen > 0)
 				return true;
 		}
-		for (i = 0; i < sz; ++i)
-			if (m_acceptPrefixes[i] == "*")
+		for (i = 0; i < sz; ++i) {
+			if (m_acceptPrefixes[i] == "*") {
 				return true;
+			}
+		}
 	}
 	return false;
 }
@@ -1223,7 +1225,13 @@ void NeighborList::OnReload()
 
 bool NeighborList::CheckLRQ(RasMsg *ras) const
 {
-     return find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsAcceptable), ras)) != m_neighbors.end();
+	List::const_iterator iter = m_neighbors.begin();
+	while (iter != m_neighbors.end()) {
+		if ((*iter)->IsAcceptable(ras) && (*iter)->Authenticate(ras))
+			return true;
+		++iter;
+	}
+	return false;
 }
 
 bool NeighborList::CheckIP(const PIPSocket::Address & addr) const
@@ -1455,7 +1463,7 @@ bool NeighborPolicy::OnRequest(LocationRequest & lrq_obj)
 {
 	RasMsg *ras = lrq_obj.GetWrapper();
 	List::iterator iter = find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsAcceptable), ras));
-	Neighbor *requester = (iter != m_neighbors.end()) ? *iter : 0;
+	Neighbor *requester = (iter != m_neighbors.end()) ? *iter : NULL;
 	int hopCount = 0;
 	if (requester) {
 		if (requester->ForwardLRQ() < 0) {
