@@ -292,7 +292,7 @@ otherwise it is entered as plain text in the config.
 Please note that for any password authentication to work, both neighbors must use a syncronized time,
 so they both should have an NTP server configured.
 
-Enable H.323, set the Protocol to H.460.18 (not Assent) and the port to 1719.
+Enable H.323 in the VCS settings, set the Protocol to H.460.18 (not Assent) and the port to 1719.
 
 Add the IP of your GnuGk server as the Peer 1 address in the VCS.
 
@@ -324,7 +324,11 @@ the first keepAlive SCI message.
 <p>
 To configure a traversal zone with a Tandberg VCS, add a Zone of type "Traversal server" in the VCS.
 For being a traversal server, the VCS usually uses a different port, so make sure you add the port to the Host switch.
-Set H46018Client=1 in the [Neighbor::..] section.
+<p>
+Enable H.323 in the VCS settings, set the Protocol to H.460.18 (not Assent) and select a port (you can't use 1719!). You must specify this port in your GnuGk config for this neighbor.
+Set a username and password in the VCS and put them into SendAuthUser= and SendPaswword= in your GnuGk config.
+<p>
+In the GnuGk config, set H46018Client=1 in the [Neighbor::..] section.
 
 Please note that for any password authentication to work, both neighbors must use a syncronized time,
 so they both should have an NTP server configured.
@@ -333,11 +337,11 @@ so they both should have an NTP server configured.
 <tag/Example:/
 <tt/[Neighbor::VCSServer]/<newline>
 <tt/;from unknown IP/<newline>
-<tt/Host=1.2.3.4/<newline>
+<tt/Host=211.211.10.10/<newline>
 <tt/SendPrefixes=*/<newline>
 <tt/AcceptPrefixes=*/<newline>
 <tt/H46018Client=1/<newline>
-<tt/H46018Server=1/<newline>
+<tt/H46018Server=0/<newline>
 <tt/SendAuthUser=serveruser/<newline>
 <tt/SendPassword=serverpw/<newline>
 <newline>
