@@ -289,8 +289,9 @@ The user name and password configured in the VCS should be set as AuthUser= and 
 [Neighbor::..] section.
 The password must be encoded with the addpasswd tool if the Keyfilled= switch is used,
 otherwise it is entered as plain text in the config.
-Please note that for any password authentication to work, both neighbors must use a syncronized time,
-so they both should have an NTP server configured.
+Please note that for any password authentication to work, both systems
+must have accurate and synchronized time, so it is strongly recommended that
+you configure NTP.
 
 Enable H.323 in the VCS settings, set the Protocol to H.460.18 (not Assent) and the port to 1719.
 
@@ -299,7 +300,7 @@ Add the IP of your GnuGk server as the Peer 1 address in the VCS.
 Set H46018Client=0 and H46018Server=1 in the [Neighbor::..] section. If H.460.18 is globally enabled,
 GnuGk will automatically detect that a neighbor is acting like a H.460.18 traversal zone client
 and it needs to act as a traversal server. But since traversal clients may come from unknown or
-changing IPs, setting the H46018Server flag explicitely allows GnuGk to update the client's IP on
+changing IPs, setting the H46018Server flag explicitly allows GnuGk to update the client's IP on
 the first keepAlive SCI message.
 
 <descrip>
@@ -323,15 +324,18 @@ the first keepAlive SCI message.
 <label id="traversalserver">
 <p>
 To configure a traversal zone with a Tandberg VCS, add a Zone of type "Traversal server" in the VCS.
-For being a traversal server, the VCS usually uses a different port, so make sure you add the port to the Host switch.
+When functioning as a traversal server, the VCS usually uses a different port, so make sure you add the port to the Host switch.
 <p>
-Enable H.323 in the VCS settings, set the Protocol to H.460.18 (not Assent) and select a port (you can't use 1719!). You must specify this port in your GnuGk config for this neighbor.
-Set a username and password in the VCS and put them into SendAuthUser= and SendPaswword= in your GnuGk config.
+Enable H.323 in the VCS settings, set the Protocol to H.460.18 (not Assent)
+and select a port (you can't use 1719!).  You must specify this port in your
+GnuGk config for this neighbor.  Set a username and password in the VCS and
+put them into SendAuthUser= and SendPaswword= in your GnuGk config.
 <p>
 In the GnuGk config, set H46018Client=1 in the [Neighbor::..] section.
 
-Please note that for any password authentication to work, both neighbors must use a syncronized time,
-so they both should have an NTP server configured.
+Please note that for any password authentication to work, both systems
+must have accurate and synchronized time, so it is strongly recommended that
+you configure NTP.
 
 <descrip>
 <tag/Example:/
