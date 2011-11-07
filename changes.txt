@@ -1,5 +1,6 @@
 Changes from 2.3.5 to 3.0.0
 ===========================
+- TraceLevel switch in config now re-read on config reload
 - new switch [GkStatus::Filtering] Enable=1
 - new config section [PortNotifications] to run scripts whenever GnuGk opens or closes a port
   and new status port command PrintCurrentCallsPorts
