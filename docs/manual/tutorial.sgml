@@ -306,7 +306,7 @@ On Linux this feature is enabled by default, but can be disabled,
 so make sure <tt/net.ipv6.bindv6only/ is set to 0.
 
 <tscreen><verb>
-jan@server1> sysctl net.ipv6.bindv6only
+jan@server1> /sbin/sysctl net.ipv6.bindv6only
 net.ipv6.bindv6only = 0
 </verb></tscreen>
 
