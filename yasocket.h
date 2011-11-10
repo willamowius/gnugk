@@ -233,7 +233,7 @@ typedef YaSocket IPSocket;
 typedef YaTCPSocket TCPSocket;
 typedef YaUDPSocket UDPSocket;
 
-#else // LARGE_FDSET
+#else // not LARGE_FDSET
 
 class SocketSelectList : public PSocket::SelectList {
 public:
@@ -274,7 +274,7 @@ public:
 	PCLASSINFO( UDPSocket, PUDPSocket )
 	
 	UDPSocket(WORD port=0, int iAddressFamily=AF_INET) : PUDPSocket(port, iAddressFamily) { }
-	virtual ~UDPSocket() {}
+	virtual ~UDPSocket() { }
 
 	// override from class PIPSocket
 	PString GetName() const { return (const char *)NamedObject::GetName(); }
