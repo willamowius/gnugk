@@ -1,41 +1,50 @@
 <sect>Getting Started (Tutorial)
 <p>
-<sect1>A first simple experiment
+<sect1>A simple first attempt
 <p>
-To confirm that all components are up and running, get
-2 Linux workstations, both connected to the LAN.
-In addition to GnuGk the examples use a softphone called "OhPhone".
-On the first server run the <htmlurl url="http://www.gnugk.org/" name="gatekeeper">
+To confirm that all components are up and running, we will use
+two Linux workstations, both connected to the same LAN.
+In the examples, the H.323 client is a softphone called "OhPhone".
+
+On the first server start the <htmlurl url="http://www.gnugk.org/" name="gatekeeper">
 in direct mode:
 
 <tscreen><verb>
 jan@server1> gnugk -ttt
 </verb></tscreen>
 
-The "<tt/-ttt/" option tells the gatekeeper that it should be verbose with the debug output
-to the console. You can direct the output to a file with "<tt/-o logfilename.log/"
+The "<tt/-ttt/" option tells the gatekeeper that it should be verbose and
+print extra debug output to the console.  You can direct the output to a
+file with "<tt/-o logfilename.log/"
 
-Now start OhPhone on another console:
+Now, start OhPhone on another console on the same system:
 <tscreen><verb>
 jan@server1> ohphone -l -a -u jan
 </verb></tscreen>
 
 OhPhone is now listening (<tt/-l/) for calls and will automatically accept
-them (<tt/-a/).  It has also registered with the gatekeeper as user jan.  OhPhone
-will attempt to automatically locate the gatekeeper, but if the auto
-detect fails, use "<tt/-g 1.2.3.4/" to specify the IP address of the gatekeeper.
+them (<tt/-a/).  It has also registered with the gatekeeper as user "jan"
+thereby allowing the gatekeeper to creating an association between the user
+"jan" and their IP address.  
 
-On the second server run ohphone this way:
+OhPhone will attempt to automatically locate the gatekeeper, but if the auto
+detection fails, use "<tt/-g 1.2.3.4/" to specify the IP address of the
+gatekeeper.
+
+On the second client run ohphone this way:
 
 <tscreen><verb>
-peter@server2> ohphone -u peter jan
+peter@client2> ohphone -u peter jan
 </verb></tscreen>
 
-The second instance of OhPhone registers with the auto detected
-gatekeeper as user peter and tries to call user jan.
-The gatekeeper will resolve the username to the IP address from
-where user jan has registered (server1 in this case) and OhPhone
-will call the other instance of OhPhone on server1.
+This instance of OhPhone registers with the auto-detected gatekeeper as user
+"peter" and tries to call user "jan".  The gatekeeper will accept the
+request from "peter" and will determine if it can locate the IP address of a
+user name "jan".  
+
+Because "jan" has already registered with the gatekeeper, it will send
+"jan"s IP address to "peter".  "peter"s ohphone will then use that IP
+address to setup a direct session to "jan"s ohphone running on server1.
 
 The instance of OhPhone on server1 will automatically accept the call and Peter and Jan can chat.
 
@@ -49,7 +58,7 @@ On a new console we use telnet to connect to the gatekeeper:
 jan@server1> telnet localhost 7000
 </verb></tscreen>
 
-You should receive an "Access forbidden!" message because access to the status port is restricted by default.
+You should receive an "Access forbidden!" message because by default, access to the status port is restricted.
 
 Create a file called <tt/gatekeeper.ini/ in the
 directory where we start the gatekeeper.
@@ -76,8 +85,8 @@ Trying 127.0.0.1...
 Connected to localhost.
 Escape character is '^]'.
 Version:
-Gatekeeper(GNU) Version(2.3.1) Ext(pthreads=1,radius=1,mysql=0,pgsql=0,firebird=0,odbc=0,sqlite=0,large_fdset=0,crypto/ssl=1,h46018=1,h46023=1) Build(Aug 12 2009, 09:30:37) Sys(Linux i686 2.6.28-14-generic)
-Startup: Tue, 25 Aug 2009 15:30:44 -0500   Running: 2 days 21:30:50
+Gatekeeper(GNU) Version(2.3.5) Ext(pthreads=1,radius=1,mysql=0,pgsql=0,firebird=0,odbc=0,sqlite=0,large_fdset=0,crypto/ssl=0,h46018=1,h46023=1,ldap=0,ssh=0) H323Plus(1.22.2) PTLib(2.8.5) Build(Jul 31 2011, 09:03:11) Sys(Linux x86_64 2.6.32-33-generic)
+Startup: Sun, 31 Jul 2011 08:07:36 -0600   Running: 102 days 01:08:15
 ;
 </verb></tscreen>
 
@@ -88,8 +97,8 @@ There are a number of commands that can be issued in the telnet session - type "
 
 To end the telnet session with the gatekeeper type "quit" and hit Enter.
 
-However, the example configuration file we created is very insecure because it has a default <bf/allow/ rule, so there are no
-restrictions on who can connect and which commands they may execute.
+The example configuration file we created is very insecure because it has a default <bf/allow/ rule, so there are no
+restrictions on who can connect to the status port and which commands they may execute.
 
 Change the configuration file to:
 
@@ -116,8 +125,8 @@ Escape character is '^]'.
 GnuGk login: gkadmin
 Password: secret
 Version:
-Gatekeeper(GNU) Version(2.3.1) Ext(pthreads=1,radius=1,mysql=0,pgsql=0,firebird=0,odbc=0,sqlite=0,large_fdset=0,crypto/ssl=1,h46018=1,h46023=1) Build(Aug 12 2009, 09:30:37) Sys(Linux i686 2.6.28-14-generic)
-Startup: Tue, 25 Aug 2009 15:30:44 -0500   Running: 2 days 21:33:32
+Gatekeeper(GNU) Version(2.3.5) Ext(pthreads=1,radius=1,mysql=0,pgsql=0,firebird=0,odbc=0,sqlite=0,large_fdset=0,crypto/ssl=0,h46018=1,h46023=1,ldap=0,ssh=0) H323Plus(1.22.2) PTLib(2.8.5) Build(Jul 31 2011, 09:03:11) Sys(Linux x86_64 2.6.32-33-generic)
+Startup: Sun, 31 Jul 2011 08:07:36 -0600   Running: 102 days 01:10:15
 ;
 </verb></tscreen>
 
@@ -289,7 +298,7 @@ A few simple examples:
 
 <sect1>Using IPv6
 <p>
-To use IPv6 with GnuGk, you have to switch it on in the config file:
+To use IPv6 with GnuGk, you must enable it in the config file:
 
 <tscreen><verb>
 [Gatekeeper::Main]
@@ -297,24 +306,27 @@ EnableIPv6=1
 </verb></tscreen>
 
 Calls between IPv4 and IPv6 endpoints are automatically put into proxy-mode
-so GnuGk can do the address translation.
-If you happen to have endpoints that are smart enough to handle mixed
-IPv4-IPv6 calls by themselves this can be switched off using the
-<tt/AutoProxyIPv4ToIPv6Calls/ switch in the [RoutedMode] section,
-but currently such endpoints don't seem to exist.
+to allow GnuGk to perform address translation.
+If your endpoints can automatically handle mixed
+IPv4-IPv6 calls the auto-proxying can be disabled using the
+<tt/AutoProxyIPv4ToIPv6Calls/ switch in the [RoutedMode] section.
+As of 2011-11-10 there don't appear to be any endpoints which can do this.
 
-To be able to handle IPv4 and IPv6 endpoints at the same time, GnuGk relies
-on the operating system to handle IPv4 mapped IPv6 addresses.
+To support IPv4 and IPv6 endpoints at the same time, GnuGk relies
+on the operating system to manage IPv4 mapped IPv6 addresses.
 
 On Linux this feature is enabled by default, but can be disabled,
-so make sure <tt/net.ipv6.bindv6only/ is set to 0.
+so make sure <tt/net.ipv6.bindv6only/ is set to 0:
 
 <tscreen><verb>
 jan@server1> /sbin/sysctl net.ipv6.bindv6only
 net.ipv6.bindv6only = 0
 </verb></tscreen>
 
-On FreeBSD you have to switch it on exlicitely by adding this to /etc/rc.conf:
+If you find that it is set to "1", please check <tt>/etc/sysctl.conf</tt>
+and any files within the <tt>/etc/sysctl.d</tt> directory.
+
+On FreeBSD you have to switch it on explicitly by adding this to /etc/rc.conf:
 
 <tscreen><verb>
 # enable IPv4 mapped IPv6 addresses for GnuGk
