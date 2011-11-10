@@ -6669,7 +6669,6 @@ bool UDPProxySocket::Bind(const Address & localAddr, WORD pt)
 	// TODO: set IPTOS_PREC_CRITIC_ECP if we happen to run as root ?
 	int rtpIpTypeofService = IPTOS_LOWDELAY;
 #endif
-	// TODO: check if we have to do this before the Listen on FreeBSD
 	if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IP, IP_TOS, (char *)&rtpIpTypeofService, sizeof(int)))) {
 		PTRACE(1, Type() << "\tCould not set TOS field in IP header: "
 			<< GetErrorCode(PSocket::LastGeneralError) << '/'

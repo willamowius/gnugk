@@ -355,10 +355,14 @@ bool YaTCPSocket::Listen(unsigned qs, WORD pt, PSocket::Reusability reuse)
 
 bool YaTCPSocket::Listen(const Address & addr, unsigned qs, WORD pt, PSocket::Reusability reuse)
 {
-	if (addr.GetVersion() == 6)
+	if (addr.GetVersion() == 6) {
 		os_handle = ::socket(PF_INET6, SOCK_STREAM, 0);
-	else
+		if (addr.IsAny() && !SetOption(IPV6_V6ONLY, 0, IPPROTO_IPV6)) {
+			PTRACE(1, "Removing of IPV6_V6ONLY failed");
+		}
+	} else {
 		os_handle = ::socket(PF_INET, SOCK_STREAM, 0);
+	}
 	if (!ConvertOSError(os_handle))
 		return false;
 
@@ -426,7 +430,7 @@ bool YaTCPSocket::Connect(const Address & iface, WORD localPort, const Address &
 
 	WORD peerPort = port;
 	// bind local interface and port
-	if (iface != INADDR_ANY || localPort != 0)	// TODO: check against "::", too ?
+	if (!iface.IsAny() || localPort != 0)
 		if (!Bind(iface, localPort))
 			return false;
 
@@ -437,7 +441,13 @@ bool YaTCPSocket::Connect(const Address & iface, WORD localPort, const Address &
 	SetSockaddr(peeraddr, addr, peerPort);
 	SetName(AsString(addr, port));
 
+#ifdef P_FREEBSD
+	// FreeBSD is extra picky about the size argument, not sure if thats the correct size for Linux
+	int r = ::connect(os_handle, (struct sockaddr*)&peeraddr, sizeof(struct sockaddr));
+#else
 	int r = ::connect(os_handle, (struct sockaddr*)&peeraddr, sizeof(peeraddr));
+#endif
+
 #ifdef _WIN32
 	if ((r != 0) && (WSAGetLastError() != WSAEWOULDBLOCK))
 #else
