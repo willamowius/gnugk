@@ -6494,6 +6494,8 @@ MultiplexedRTPHandler::MultiplexedRTPHandler() : Singleton<MultiplexedRTPHandler
 	idCounter = 0;
 	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
 		m_reader = new MultiplexedRTPReader();
+	} else {
+		m_reader = NULL;
 	}
 }
 
@@ -8331,7 +8333,6 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 #ifdef HAS_H46018
 	// if we are traversal client, start keepAlive here
 	// will be ignored, if no keepAlive is needed
-	PTRACE(0, "JW socket for Keepalive=" << lc->GetRTPOSSocket() << " multiplexsocket=" << MultiplexedRTPHandler::Instance()->GetRTPOSSocket());
 	call->StartRTPKeepAlive(flcn, lc->GetRTPOSSocket());
 	call->StartRTCPKeepAlive(flcn, lc->GetRTCPOSSocket());
 #endif
