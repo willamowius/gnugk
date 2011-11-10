@@ -5,11 +5,11 @@
 To confirm that all components are up and running, get
 2 Linux workstations, both connected to the LAN.
 In addition to GnuGk the examples use a softphone called "OhPhone".
-On the first machine run the <htmlurl url="http://www.gnugk.org/" name="gatekeeper">
+On the first server run the <htmlurl url="http://www.gnugk.org/" name="gatekeeper">
 in direct mode:
 
 <tscreen><verb>
-jan@machine1 > gnugk -ttt
+jan@server1> gnugk -ttt
 </verb></tscreen>
 
 The "<tt/-ttt/" option tells the gatekeeper that it should be verbose with the debug output
@@ -17,7 +17,7 @@ to the console. You can direct the output to a file with "<tt/-o logfilename.log
 
 Now start OhPhone on another console:
 <tscreen><verb>
-jan@machine1 > ohphone -l -a -u jan
+jan@server1> ohphone -l -a -u jan
 </verb></tscreen>
 
 OhPhone is now listening (<tt/-l/) for calls and will automatically accept
@@ -25,28 +25,28 @@ them (<tt/-a/).  It has also registered with the gatekeeper as user jan.  OhPhon
 will attempt to automatically locate the gatekeeper, but if the auto
 detect fails, use "<tt/-g 1.2.3.4/" to specify the IP address of the gatekeeper.
 
-On the second machine run ohphone this way:
+On the second server run ohphone this way:
 
 <tscreen><verb>
-peter@machine2 > ohphone -u peter jan
+peter@server2> ohphone -u peter jan
 </verb></tscreen>
 
 The second instance of OhPhone registers with the auto detected
 gatekeeper as user peter and tries to call user jan.
 The gatekeeper will resolve the username to the IP address from
-where user jan has registered (machine1 in this case) and OhPhone
-will call the other instance of OhPhone on machine1.
+where user jan has registered (server1 in this case) and OhPhone
+will call the other instance of OhPhone on server1.
 
-The instance of OhPhone on machine1 will automatically accept the call and Peter and Jan can chat.
+The instance of OhPhone on server1 will automatically accept the call and Peter and Jan can chat.
 
 <sect1>Using the Status interface to monitor the gatekeeper
 <p>
 The status interface presents a text-based means of interacting with an already-running gatekeeper.
 
-On a new console on machine1 we use telnet to connect to the gatekeeper:
+On a new console we use telnet to connect to the gatekeeper:
 
 <tscreen><verb>
-jan@machine1 > telnet machine1 7000
+jan@server1> telnet localhost 7000
 </verb></tscreen>
 
 You should receive an "Access forbidden!" message because access to the status port is restricted by default.
@@ -65,13 +65,13 @@ rule=allow
 Stop the gatekeeper with Ctrl-C and restart it, but specify that it should use the <tt/gatekeeper.ini/ we just created:
 
 <tscreen><verb>
-jan@machine1 > gnugk -ttt -c ./gatekeeper.ini
+jan@server1> gnugk -ttt -c ./gatekeeper.ini
 </verb></tscreen>
 
 Use telnet to connect to port 7000 and you should now be allowed to connect to the gatekeeper:
 
 <tscreen><verb>
-jan@machine1 >  telnet localhost 7000
+jan@server1>  telnet localhost 7000
 Trying 127.0.0.1...
 Connected to localhost.
 Escape character is '^]'.
@@ -108,7 +108,7 @@ Restart the gatekeeper with this new configuration and perform the telnet again.
 You should now be prompted for a username and password:
 
 <tscreen><verb>
-jan@machine1 >  telnet localhost 7000
+jan@server1>  telnet localhost 7000
 Trying 127.0.0.1...
 Connected to localhost.
 Escape character is '^]'.
@@ -132,7 +132,7 @@ much greater control over the calls.
 
 Start GnuGk like this:
 <tscreen><verb>
-jan@machine1 > gnugk -r
+jan@server2> gnugk -r
 </verb></tscreen>
 
 will put the gatekeeper in routed mode. Telnet to the status port
@@ -285,5 +285,35 @@ A few simple examples:
 ....48=....0048
 ; even this is possible (415161 => 041051061)
 4.5.6=04.05.06
+</verb></tscreen>
+
+<sect1>Using IPv6
+<p>
+To use IPv6 with GnuGk, you have to switch it on in the config file:
+
+<tscreen><verb>
+[Gatekeeper::Main]
+EnableIPv6=1
+</verb></tscreen>
+
+Calls between IPv4 and IPv6 endpoints are automatically put into proxy-mode
+so GnuGk can do the address translation.
+
+To be able to handle IPv4 and IPv6 endpoints at the same time, GnuGk relies
+on the operating system to handle IPv4 mapped IPv6 addresses.
+
+On Linux this feature is enabled by default, but can be disabled,
+so make sure <tt/net.ipv6.bindv6only/ is set to 0.
+
+<tscreen><verb>
+jan@server1> sysctl net.ipv6.bindv6only
+net.ipv6.bindv6only = 0
+</verb></tscreen>
+
+On FreeBSD you have to switch it on exlicitely by adding this to /etc/rc.conf:
+
+<tscreen><verb>
+# enable IPv4 mapped IPv6 addresses for GnuGk
+ipv6_ipv4mapping="YES"
 </verb></tscreen>
 
