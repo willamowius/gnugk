@@ -6656,7 +6656,7 @@ UDPProxySocket::~UDPProxySocket()
 	Toolkit::Instance()->PortNotification(RTPPort, PortClose, "udp", GNUGK_INADDR_ANY, GetPort(), m_callID);
 }
 
-bool UDPProxySocket::Bind(const Address &localAddr, WORD pt)
+bool UDPProxySocket::Bind(const Address & localAddr, WORD pt)
 {
 	if (!Listen(localAddr, 0, pt))
 		return false;
@@ -6666,8 +6666,10 @@ bool UDPProxySocket::Bind(const Address &localAddr, WORD pt)
 	int rtpIpTypeofService = IPTOS_PREC_CRITIC_ECP | IPTOS_LOWDELAY;
 #else
 	// Don't use IPTOS_PREC_CRITIC_ECP on Unix platforms as then need to be root
+	// TODO: set IPTOS_PREC_CRITIC_ECP if we happen to run as root ?
 	int rtpIpTypeofService = IPTOS_LOWDELAY;
 #endif
+	// TODO: check if we have to do this before the Listen on FreeBSD
 	if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IP, IP_TOS, (char *)&rtpIpTypeofService, sizeof(int)))) {
 		PTRACE(1, Type() << "\tCould not set TOS field in IP header: "
 			<< GetErrorCode(PSocket::LastGeneralError) << '/'

@@ -1054,15 +1054,17 @@ bool LRQRequester::Send(Neighbor * nb)
 	return true;
 }
 
-H225_LocationConfirm *LRQRequester::WaitForDestination(int timeout)
+H225_LocationConfirm * LRQRequester::WaitForDestination(int timeout)
 {
-	while (WaitForResponse(timeout))
-		if (m_result)
+	while (WaitForResponse(timeout)) {
+		if (m_result) {
 			break;
-		else
+		} else {
 			GetReply(); // ignore and increase iterator
+		}
+	}
 
-	return m_result ? &(H225_LocationConfirm &)(*m_result)->m_recvRAS : 0;
+	return m_result ? &(H225_LocationConfirm &)(*m_result)->m_recvRAS : NULL;
 }
 
 bool LRQRequester::IsExpected(const RasMsg *ras) const
@@ -1082,6 +1084,7 @@ void LRQRequester::Process(RasMsg *ras)
 				<< ':' << req.m_neighbor->GetIP() );
 			unsigned tag = ras->GetTag();
 			if (tag == H225_RasMessage::e_requestInProgress) {
+				// TODO: honor the delay specified in the RIP ?
 				if (H225_NonStandardParameter *param = ras->GetNonStandardParam()) {
 					int iec = Toolkit::iecUnknown;
 					if (param->m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
