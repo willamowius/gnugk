@@ -298,6 +298,10 @@ EnableIPv6=1
 
 Calls between IPv4 and IPv6 endpoints are automatically put into proxy-mode
 so GnuGk can do the address translation.
+If you happen to have endpoints that are smart enough to handle mixed
+IPv4-IPv6 calls by themselves this can be switched off using the
+<tt/AutoProxyIPv4ToIPv6Calls/ switch in the [RoutedMode] section,
+but currently such endpoints don't seem to exist.
 
 To be able to handle IPv4 and IPv6 endpoints at the same time, GnuGk relies
 on the operating system to handle IPv4 mapped IPv6 addresses.
