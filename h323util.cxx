@@ -19,7 +19,6 @@
 
 
 #if defined(_WIN32) && defined(hasIPV6)
-
 // Windows doesn't have inet_ntop, so we fake it
 const char * inet_ntop(int family, const void *src, char *dst, socklen_t cnt)
 {
@@ -41,9 +40,7 @@ const char * inet_ntop(int family, const void *src, char *dst, socklen_t cnt)
 	}
 	return NULL;
 }
-
 #endif
-
 
 PString AsString(const PIPSocket::Address & ip)
 {
