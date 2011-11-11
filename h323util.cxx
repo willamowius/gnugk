@@ -18,6 +18,33 @@
 #include "h323util.h"
 
 
+#if defined(_WIN32) && defined(hasIPV6)
+
+// Windows doesn't have inet_ntop, so we fake it
+const char * inet_ntop(int family, const void *src, char *dst, socklen_t cnt)
+{
+	if (family == AF_INET) {
+		struct sockaddr_in in;
+		memset(&in, 0, sizeof(in));
+		in.sin_family = AF_INET;
+		memcpy(&in.sin_addr, src, sizeof(struct in_addr));
+		getnameinfo((struct sockaddr *)&in, sizeof(struct sockaddr_in), dst, cnt, NULL, 0, NI_NUMERICHOST);
+		return dst;
+	} else if (family == AF_INET6) {
+		struct sockaddr_in6 in;
+		memset(&in, 0, sizeof(in));
+		in.sin6_family = AF_INET6;
+		memcpy(&in.sin6_addr, src, sizeof(struct in_addr6));
+		getnameinfo((struct sockaddr *)&in, sizeof(struct
+		sockaddr_in6), dst, cnt, NULL, 0, NI_NUMERICHOST);
+		return dst;
+	}
+	return NULL;
+}
+
+#endif
+
+
 PString AsString(const PIPSocket::Address & ip)
 {
 	if (ip.GetVersion() == 4)
@@ -28,13 +55,7 @@ PString AsString(const PIPSocket::Address & ip)
 		sockaddr_in6 ipv6addr;
 		memset(&ipv6addr, 0, sizeof(ipv6addr));
 		ipv6addr.sin6_addr = ip;
-#ifdef _WIN32
-		DWORD socksize = sizeof(ipv6addr);
-		WSAAddressToString((LPSOCKADDR)&ipv6addr.sin6_addr, sizeof(ipv6addr), NULL, (LPSTR)buf, &socksize);
-		return PString(buf);
-#else
 		return inet_ntop(AF_INET6, &ipv6addr.sin6_addr, buf, INET6_ADDRSTRLEN);
-#endif
 	}
 #endif
 	return ip.AsString();
