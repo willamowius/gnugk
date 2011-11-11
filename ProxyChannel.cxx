@@ -6267,7 +6267,7 @@ MultiplexRTPListener::~MultiplexRTPListener()
 void MultiplexRTPListener::ReceiveData()
 {
 	if (!Read(wbuffer, wbufsize)) {
-		// ErrorHandler(PSocket::LastReadError);
+		// TODO: ErrorHandler(PSocket::LastReadError);
 		return;
 	}
 	Address fromIP;
@@ -6419,7 +6419,15 @@ void H46019Channel::Send(PUInt32b sendMultiplexID, const H323TransportAddress & 
 		PTRACE(1, "RTPM\tError: OSSocket to " << toAddress << " not set");
 		return;
 	}
-	SetSockaddr(dest, toAddress);
+	if (Toolkit::Instance()->IsIPv6Enabled()) {
+		PIPSocket::Address toIP;
+		WORD toPort = 0;
+		toAddress.GetIpAndPort(toIP, toPort);
+		MapIPv4Address(toIP);
+		SetSockaddr(dest, toIP, toPort);
+	} else {
+		SetSockaddr(dest, toAddress);
+	}
 	if (sendMultiplexID != INVALID_MULTIPLEX_ID) {
 		lenToSend += 4;
 		// prepend multiplexID for A
@@ -6663,6 +6671,7 @@ bool UDPProxySocket::Bind(const Address & localAddr, WORD pt)
 	if (!Listen(localAddr, 0, pt))
 		return false;
 
+#if !(defined(P_FREEBSD) && defined(hasIPV6))
 	// Set the IP Type Of Service field for prioritisation of media UDP / RTP packets
 #ifdef _WIN32
 	int rtpIpTypeofService = IPTOS_PREC_CRITIC_ECP | IPTOS_LOWDELAY;
@@ -6678,6 +6687,7 @@ bool UDPProxySocket::Bind(const Address & localAddr, WORD pt)
 			<< GetErrorText(PSocket::LastGeneralError)
 			);
 	}
+#endif
 	Toolkit::Instance()->PortNotification(RTPPort, PortOpen, "udp", GNUGK_INADDR_ANY, pt, m_callID);
 	return true;
 }
@@ -6989,6 +6999,8 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			    (*m_call)->H46024BInitiate(m_sessionID, H323TransportAddress(fDestIP, fDestPort), H323TransportAddress(fromIP, fromPort));
             }
 #endif
+			if (Toolkit::Instance()->IsIPv6Enabled())
+				MapIPv4Address(fDestIP);
 			SetSendAddress(fDestIP, fDestPort);
 		} else {
 			PTRACE(6, Type() << "\tForward from " << AsString(fromIP, fromPort)
@@ -7006,6 +7018,8 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			PTRACE(6, Type() << "\tForward " << AsString(fromIP, fromPort)
 				<< " to " << AsString(rDestIP, rDestPort)
 				);
+			if (Toolkit::Instance()->IsIPv6Enabled())
+				MapIPv4Address(rDestIP);
 			SetSendAddress(rDestIP, rDestPort);
 		} else {
 			PTRACE(6, Type() << "\tForward from " << AsString(fromIP, fromPort)

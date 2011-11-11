@@ -220,6 +220,17 @@ TEST_F(H323UtilTest, UnmapIPv4Address) {
 	EXPECT_EQ(6u, ip.GetVersion());
 }
 
+TEST_F(H323UtilTest, MapIPv4Address) {
+	PIPSocket::Address ip = ipv4socket;
+	MapIPv4Address(ip);
+	EXPECT_EQ(6u, ip.GetVersion());
+	UnmapIPv4Address(ip);
+	EXPECT_EQ(ip, ipv4socket);
+	ip = ipv6socket;
+	MapIPv4Address(ip);
+	EXPECT_EQ(6u, ip.GetVersion());
+}
+
 TEST_F(H323UtilTest, IsLoopback) {
 	PIPSocket::Address ip;
 	EXPECT_TRUE(IsLoopback(ip));

@@ -499,6 +499,27 @@ void UnmapIPv4Address(PIPSocket::Address & addr)
 #endif
 }
 
+// convert an IPv4 address into an IPv4-mapped-IPv6 address,
+// leave unchanged if IPv6 disabled or is already an IPv6 address
+void MapIPv4Address(PIPSocket::Address & addr)
+{
+#ifdef hasIPV6
+	if (addr.GetVersion() == 4) {
+		BYTE mappedIP[16];
+		memset(mappedIP, 0, sizeof(mappedIP));
+		mappedIP[10] = 0xff;
+		mappedIP[11] = 0xff;
+		mappedIP[12] = addr[0];
+		mappedIP[13] = addr[1];
+		mappedIP[14] = addr[2];
+		mappedIP[15] = addr[3];
+		PIPSocket::Address newAddr(16, mappedIP);
+		addr = newAddr;
+	}
+#endif
+}
+
+
 bool IsLoopback(const PIPSocket::Address & addr)
 {
 	return addr.IsLoopback() != 0;

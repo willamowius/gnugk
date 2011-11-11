@@ -102,6 +102,10 @@ unsigned GetVersion(const H225_TransportAddress & ta);
 // convert an IPv4-mapped-IPv6 address into an IPv4 address, otherwise leave unchanged
 void UnmapIPv4Address(PIPSocket::Address & addr);
 
+// convert an IPv4 address into an IPv4-mapped-IPv6 address,
+// leave unchanged if IPv6 disabled or is already an IPv6 address
+void MapIPv4Address(PIPSocket::Address & addr);
+
 bool IsLoopback(const PIPSocket::Address &);
 
 bool IsSet(const H323TransportAddress & addr);
