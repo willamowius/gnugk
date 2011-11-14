@@ -704,12 +704,6 @@ bool UDPSocket::DualStackListen(const PIPSocket::Address & localAddr, WORD newPo
 		return false;
 	}
 
-	if (!ConvertOSError(::listen(os_handle, 1))) {
-		PTRACE(4, "Socket\tlisten failed: " << GetErrorText());
-		os_close();
-		return false;
-	}
-
 	if (port != 0)
 		return true;
 
