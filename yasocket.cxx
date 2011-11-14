@@ -380,6 +380,14 @@ bool YaTCPSocket::Listen(const Address & addr, unsigned qs, WORD pt, PSocket::Re
 	return false;
 }
 
+#ifdef hasIPV6
+bool YaTCPSocket::DualStackListen(WORD port)
+{
+	return Listen(GNUGK_INADDR_ANY, 1, port, PSocket::CanReuseAddress);
+}
+#endif
+
+
 bool YaTCPSocket::Accept(YaTCPSocket & socket)
 {
 	while (true) {
@@ -519,9 +527,14 @@ bool YaUDPSocket::Listen(unsigned, WORD pt, PSocket::Reusability reuse)
 
 bool YaUDPSocket::Listen(const Address & addr, unsigned, WORD pt, PSocket::Reusability reuse)
 {
-	if (addr.GetVersion() == 6)
+#ifdef hasIPV6
+	if (addr.GetVersion() == 6) {
 		os_handle = ::socket(PF_INET6, SOCK_DGRAM, 0);
-	else
+		if (addr.IsAny() && !SetOption(IPV6_V6ONLY, 0, IPPROTO_IPV6)) {
+			PTRACE(1, "Removing of IPV6_V6ONLY failed");
+		}
+	} else
+#endif
 		os_handle = ::socket(PF_INET, SOCK_DGRAM, 0);
 	if (!ConvertOSError(os_handle))
 		return false;
@@ -532,6 +545,13 @@ bool YaUDPSocket::Listen(const Address & addr, unsigned, WORD pt, PSocket::Reusa
 		return false;
 	return Bind(addr, pt);
 }
+
+#ifdef hasIPV6
+bool YaUDPSocket::DualStackListen(const Address & addr, WORD pt)
+{
+	return Listen(addr, 0, pt, PSocket::CanReuseAddress);
+}
+#endif
 
 void YaUDPSocket::GetLastReceiveAddress(Address & addr, WORD & pt) const
 {

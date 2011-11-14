@@ -99,6 +99,10 @@ public:
 	bool Listen(unsigned, WORD, PSocket::Reusability reuse = PSocket::AddressIsExclusive);
 	bool Listen(const Address &, unsigned, WORD, PSocket::Reusability reuse = PSocket::AddressIsExclusive);
 
+#ifdef hasIPV6
+	bool DualStackListen(WORD port);
+#endif
+
 	// new virtual function
 	virtual bool Accept(YaTCPSocket &);
 	virtual bool Connect(const Address &, WORD, const Address &);
@@ -127,6 +131,9 @@ public:
 
 	bool Listen(unsigned, WORD, PSocket::Reusability reuse = PSocket::AddressIsExclusive);
 	bool Listen(const Address &, unsigned, WORD, PSocket::Reusability reuse = PSocket::AddressIsExclusive);
+#ifdef hasIPV6
+	bool DualStackListen(const Address & localAddr, WORD port);
+#endif
 	void GetLastReceiveAddress(Address &, WORD &) const;
 	void SetSendAddress(const Address &, WORD);
 	/// Get the address to use for connectionless Write().
