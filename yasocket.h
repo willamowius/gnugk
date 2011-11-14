@@ -282,6 +282,10 @@ public:
 
 	// override from class PIPSocket
 	PString GetName() const { return (const char *)NamedObject::GetName(); }
+
+#ifdef hasIPV6
+	bool DualStackListen(const PIPSocket::Address & localAddr, WORD port);
+#endif
 	
 private:
 	UDPSocket(const UDPSocket&);

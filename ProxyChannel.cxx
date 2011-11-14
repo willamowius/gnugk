@@ -6681,10 +6681,14 @@ UDPProxySocket::~UDPProxySocket()
 
 bool UDPProxySocket::Bind(const Address & localAddr, WORD pt)
 {
+#ifdef hasIPV6
+	if (!DualStackListen(localAddr, pt))
+#else
 	if (!Listen(localAddr, 0, pt))
+#endif
 		return false;
 
-#if !(defined(P_FREEBSD) && defined(hasIPV6))
+#if !((defined(P_FREEBSD) || defined(_WIN32)) && defined(hasIPV6))
 	// Set the IP Type Of Service field for prioritisation of media UDP / RTP packets
 #ifdef _WIN32
 	int rtpIpTypeofService = IPTOS_PREC_CRITIC_ECP | IPTOS_LOWDELAY;

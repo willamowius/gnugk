@@ -650,6 +650,60 @@ bool TCPSocket::DualStackListen(WORD newPort)
 	port = ntohs(sa.sin6_port);
 	return true;
 }
+
+bool UDPSocket::DualStackListen(const PIPSocket::Address & localAddr, WORD newPort)
+{
+	if (!Toolkit::Instance()->IsIPv6Enabled() || !localAddr.IsAny())
+		return Listen(localAddr, 0, newPort);
+
+	// make sure we have a port
+	if (newPort != 0)
+		port = newPort;
+
+	// Always close and re-open as the bindAddr address family might change.
+	os_close();
+
+	// attempt to create a socket
+	if (!OpenSocket(PF_INET6)) {
+		PTRACE(4, "Socket\tOpenSocket failed");
+		return false;
+	}
+
+	// allow IPv4 connects
+	if (!SetOption(IPV6_V6ONLY, 0, IPPROTO_IPV6)) {
+		PTRACE(4, "Socket\tSetOption(IPV6_V6ONLY) failed");
+	}
+
+	sockaddr_in6 sa;
+	memset(&sa, 0, sizeof(sa));
+	sa.sin6_family = AF_INET6;
+	sa.sin6_addr = in6addr_any;
+	sa.sin6_port = htons(newPort);
+	if (!ConvertOSError(::bind(os_handle, (sockaddr*)&sa, sizeof(sa)))) {
+		os_close();
+		return false;
+	}
+
+	if (!ConvertOSError(::listen(os_handle, 1))) {
+		PTRACE(4, "Socket\tlisten failed: " << GetErrorText());
+		os_close();
+		return false;
+	}
+
+	if (port != 0)
+		return true;
+
+	socklen_t size = sizeof(sa);
+	if (!ConvertOSError(::getsockname(os_handle, (sockaddr*)&sa, &size))) {
+		PTRACE(4, "Socket\tgetsockname failed: " << GetErrorText());
+		os_close();
+		return false;
+	}
+
+	port = ntohs(sa.sin6_port);
+	return true;
+}
+
 #endif
 
 bool SocketSelectList::Select(SelectType t, const PTimeInterval & timeout)

@@ -314,22 +314,7 @@ As of 2011-11-10 there don't appear to be any endpoints which can do this.
 
 To support IPv4 and IPv6 endpoints at the same time, GnuGk relies
 on the operating system to manage IPv4 mapped IPv6 addresses.
-
-On Linux this feature is enabled by default, but can be disabled,
-so make sure <tt/net.ipv6.bindv6only/ is set to 0:
-
-<tscreen><verb>
-jan@server1> /sbin/sysctl net.ipv6.bindv6only
-net.ipv6.bindv6only = 0
-</verb></tscreen>
-
-If you find that it is set to "1", please check <tt>/etc/sysctl.conf</tt>
-and any files within the <tt>/etc/sysctl.d</tt> directory.
-
-On FreeBSD you have to switch it on explicitly by adding this to /etc/rc.conf:
-
-<tscreen><verb>
-# enable IPv4 mapped IPv6 addresses for GnuGk
-ipv6_ipv4mapping="YES"
-</verb></tscreen>
+Current versions of Linux and FreeBSD support this, but for Windows,
+you need at least Windows Vista, Windows Server 2008, Windows 7 or newer.
+On Windows XP GnuGk will run as a IPv6-only gatekeeper if you enable IPv6 support.
 
