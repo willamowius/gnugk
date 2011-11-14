@@ -6688,7 +6688,7 @@ bool UDPProxySocket::Bind(const Address & localAddr, WORD pt)
 #endif
 		return false;
 
-#if !((defined(P_FREEBSD) || defined(_WIN32)) && defined(hasIPV6))
+#if !(defined(P_FREEBSD) && defined(hasIPV6))
 	// Set the IP Type Of Service field for prioritisation of media UDP / RTP packets
 #ifdef _WIN32
 	int rtpIpTypeofService = IPTOS_PREC_CRITIC_ECP | IPTOS_LOWDELAY;
