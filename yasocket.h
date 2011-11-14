@@ -263,7 +263,11 @@ public:
 	virtual ~TCPSocket() {}
 	// override from class PIPSocket
 	PString GetName() const { return (const char *)NamedObject::GetName(); }
-	
+
+#ifdef hasIPV6
+	bool DualStackListen(WORD port);
+#endif
+
 private:
 	TCPSocket(const TCPSocket&);
 	TCPSocket& operator=(const TCPSocket&);

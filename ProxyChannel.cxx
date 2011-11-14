@@ -767,6 +767,12 @@ PBoolean TCPProxySocket::Accept(PSocket & socket)
 		GetPeerAddress(raddr, rport);
 		UnmapIPv4Address(raddr);
 		SetName(AsString(raddr, rport));
+	} else {
+		int errorNumber = GetErrorNumber(PSocket::LastGeneralError);
+		PTRACE(1, Type() << "\tCould not accept TCP socket"
+			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
+			<< errorNumber << ": " << GetErrorText(PSocket::LastGeneralError)
+			);
 	}
 	return result;
 }
@@ -5743,10 +5749,13 @@ H245Socket::H245Socket(CallSignalSocket *sig)
 	const int numPorts = min(H245PortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS);
 	for (int i = 0; i < numPorts; ++i) {
 		WORD pt = H245PortRange.GetPort();
+#ifdef hasIPV6
+		if (listener->DualStackListen(pt)) {
+#else
 		if (listener->Listen(GNUGK_INADDR_ANY, 1, pt, PSocket::CanReuseAddress)) {
-			PIPSocket::Address localAddr;
-			listener->GetLocalAddress(localAddr, m_port);
-			UnmapIPv4Address(localAddr);
+#endif
+			PIPSocket::Address notused;
+			listener->GetLocalAddress(notused, m_port);
 			Toolkit::Instance()->PortNotification(H245Port, PortOpen, "tcp", GNUGK_INADDR_ANY, m_port, sig->GetCallIdentifier());
 			break;
 		}
@@ -5816,12 +5825,15 @@ void H245Socket::ConnectTo()
 #endif
 			return;
 		}
+	} else {
+		PTRACE(1, "Error: H.245 Accept() failed");
 	}
 
 	ReadLock lockConfig(ConfigReloadMutex);
 
 	m_signalingSocketMutex.Wait();
 	// establish H.245 channel failed, disconnect the call
+	PTRACE(1, "Error: Establishing the H.245 channel failed, disconnecting");
 	CallSignalSocket *socket = sigSocket; // use a copy to avoid race conditions with OnSignalingChannelClosed
 	if (socket) {
 		socket->SetConnected(false);
@@ -5872,6 +5884,7 @@ void H245Socket::ConnectToRerouteDestination()
 
 	m_signalingSocketMutex.Wait();
 	// establish H.245 channel failed, disconnect the call
+	PTRACE(1, "Error: Establishing the H.245 channel failed, disconnecting");
 	CallSignalSocket *socket = sigSocket; // use a copy to avoid race conditions with OnSignalingChannelClosed
 	if (socket) {
 		socket->SetConnected(false);
