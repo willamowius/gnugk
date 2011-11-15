@@ -63,16 +63,20 @@ NetworkAddress::NetworkAddress(
 }
 
 NetworkAddress::NetworkAddress(
-	const PIPSocket::Address &addr,
-	const PIPSocket::Address &nm
+	const PIPSocket::Address & addr,
+	const PIPSocket::Address & nm
 	) : m_netmask(nm)
 {
 	// normalize the address
 	BYTE rawdata[16];
-	const unsigned sz = addr.GetSize();
-	for (unsigned i = 0; i < sz; i++)
-		rawdata[i] = addr[i] & nm[i];
-	m_address = PIPSocket::Address(sz, rawdata);
+	if (addr.GetSize() == nm.GetSize()) {
+		const unsigned sz = addr.GetSize();
+		for (unsigned i = 0; i < sz; i++)
+			rawdata[i] = addr[i] & nm[i];
+		m_address = PIPSocket::Address(sz, rawdata);
+	} else {
+		PTRACE(1, "Error: Non-matching network and netmask");
+	}
 }
 	
 NetworkAddress::NetworkAddress(
