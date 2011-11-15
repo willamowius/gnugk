@@ -161,9 +161,7 @@ bool YaSocket::ReadBlock(void * buf, int len)
 	return Read(buf, len) && lastReadCount == len;
 }
 
-bool YaSocket::CanRead(
-	long timeout
-	) const
+bool YaSocket::CanRead(long timeout) const
 {
 	const int h = os_handle;
 	if (h < 0)
@@ -178,9 +176,7 @@ bool YaSocket::CanRead(
 	return ::select(h + 1, (fd_set*)fdset, NULL, NULL, &tval) > 0;
 }
 
-bool YaSocket::CanWrite(
-	long timeout
-	) const
+bool YaSocket::CanWrite(long timeout) const
 {
 	const int h = os_handle;
 	if (h < 0)
@@ -223,10 +219,13 @@ PBoolean YaSocket::GetLocalAddress(Address & addr, WORD & pt) const
 #endif
 	socklen_t insize = sizeof(inaddr);
 	if (::getsockname(os_handle, (struct sockaddr*)&inaddr, &insize) == 0) {
+#ifdef hasIPV6
 		if (((struct sockaddr*)&inaddr)->sa_family == AF_INET6) {
 			addr = ((struct sockaddr_in6*)&inaddr)->sin6_addr;
 			pt = ntohs(((struct sockaddr_in6*)&inaddr)->sin6_port);
-		} else {
+		} else
+#endif
+		{
 			addr = ((struct sockaddr_in*)&inaddr)->sin_addr;
 			pt = ntohs(((struct sockaddr_in*)&inaddr)->sin_port);
 		}
@@ -289,6 +288,7 @@ bool YaSocket::SetNonBlockingMode()
 bool YaSocket::Bind(const Address & addr, WORD pt)
 {
 	if (IsOpen()) {
+#ifdef hasIPV6
 		if (addr.GetVersion() == 6) {
 			struct sockaddr_in6 inaddr;
 			SetSockaddr(inaddr, addr, pt);
@@ -299,7 +299,9 @@ bool YaSocket::Bind(const Address & addr, WORD pt)
 					return true;
 				}
 			}
-		} else {
+		} else
+#endif
+		{
 			struct sockaddr_in inaddr;
 			SetSockaddr(inaddr, addr, pt);
 			if (ConvertOSError(::bind(os_handle, (struct sockaddr*)&inaddr, sizeof(inaddr)))) {
@@ -324,18 +326,23 @@ YaTCPSocket::YaTCPSocket(WORD pt)
 
 void YaTCPSocket::GetPeerAddress(Address & addr) const
 {
+#ifdef hasIPV6
 	if (((struct sockaddr*)&peeraddr)->sa_family == AF_INET6)
 		addr = ((struct sockaddr_in6*)&peeraddr)->sin6_addr;
 	else
+#endif
 		addr = ((struct sockaddr_in*)&peeraddr)->sin_addr;
 }
 
 void YaTCPSocket::GetPeerAddress(Address & addr, WORD & pt) const
 {
+#ifdef hasIPV6
 	if (((struct sockaddr*)&peeraddr)->sa_family == AF_INET6) {
 		addr = ((struct sockaddr_in6*)&peeraddr)->sin6_addr;
 		pt = ntohs(((struct sockaddr_in6*)&peeraddr)->sin6_port);
-	} else {
+	} else
+#endif
+	{
 		addr = ((struct sockaddr_in*)&peeraddr)->sin_addr;
 		pt = ntohs(((struct sockaddr_in*)&peeraddr)->sin_port);
 	}
@@ -414,9 +421,11 @@ bool YaTCPSocket::Accept(YaTCPSocket & socket)
 		SetLinger();
 		SetNonBlockingMode();
 		SetWriteTimeout(PTimeInterval(10));
+#ifdef hasIPV6
 		if (((struct sockaddr *)&peeraddr)->sa_family == AF_INET6)
 			SetName(AsString(((struct sockaddr_in6*)&peeraddr)->sin6_addr, ntohs(((struct sockaddr_in6*)&peeraddr)->sin6_port)));
 		else
+#endif
 			SetName(AsString(((struct sockaddr_in*)&peeraddr)->sin_addr, ntohs(((struct sockaddr_in*)&peeraddr)->sin_port)));
 		port = socket.GetPort();
 		return true;
@@ -427,9 +436,11 @@ bool YaTCPSocket::Accept(YaTCPSocket & socket)
 bool YaTCPSocket::Connect(const Address & iface, WORD localPort, const Address & addr)
 {
 	if (os_handle < 0) {
+#ifdef hasIPV6
 		if (iface.GetVersion() == 6)
 			os_handle = ::socket(PF_INET6, SOCK_STREAM, 0);
 		else
+#endif
 			os_handle = ::socket(PF_INET, SOCK_STREAM, 0);
 		if (!ConvertOSError(os_handle))
 			return false;
@@ -555,10 +566,13 @@ bool YaUDPSocket::DualStackListen(const Address & addr, WORD pt)
 
 void YaUDPSocket::GetLastReceiveAddress(Address & addr, WORD & pt) const
 {
+#ifdef hasIPV6
 	if (((struct sockaddr*)&recvaddr)->sa_family == AF_INET6) {
 		addr = ((struct sockaddr_in6*)&recvaddr)->sin6_addr;
 		pt = ntohs(((struct sockaddr_in6*)&recvaddr)->sin6_port);
-	} else {
+	} else
+#endif
+	{
 		addr = ((struct sockaddr_in*)&recvaddr)->sin_addr;
 		pt = ntohs(((struct sockaddr_in*)&recvaddr)->sin_port);
 	}
@@ -574,10 +588,13 @@ void YaUDPSocket::GetSendAddress(
 	WORD & port /// Port to send packets.
 	)
 {
+#ifdef hasIPV6
 	if (((struct sockaddr*)&sendaddr)->sa_family == AF_INET6) {
 		address = ((struct sockaddr_in6*)&sendaddr)->sin6_addr;
 		port = ntohs(((struct sockaddr_in6*)&sendaddr)->sin6_port);
-	} else {
+	} else
+#endif
+	{
 		address = ((struct sockaddr_in*)&sendaddr)->sin_addr;
 		port = ntohs(((struct sockaddr_in*)&sendaddr)->sin_port);
 	}
