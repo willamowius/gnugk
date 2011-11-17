@@ -693,7 +693,7 @@ bool DNSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 		}
 	}
 	if (!m_resolveNonLocalLRQs) {
-		PTRACE(4, "ROUTING\tPolicy DNS only routes LRQs that resolve locally");
+		PTRACE(4, "ROUTING\tPolicy DNS configured to only route LRQs that resolve locally");
 	}
 	return false;
 }
