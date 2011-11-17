@@ -16,8 +16,8 @@
 #
 ### BEGIN INIT INFO
 # Provides: gnugk
-# Required-Start: i4l $network $remote_fs
-# Required-Stop:  i4l network
+# Required-Start: $network $remote_fs
+# Required-Stop:  network
 # Default-Start:  3 5
 # Default-Stop:   0 1 2 6
 # Short-Description: GNU Gatekeeper daemon
