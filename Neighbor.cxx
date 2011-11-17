@@ -1904,7 +1904,7 @@ bool SRVPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 	return false;
 }
 
-// usd for LRQs
+// used for LRQs
 bool SRVPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
 { 
 	Route * route = CSLookup(aliases, true);
