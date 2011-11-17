@@ -4217,8 +4217,9 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 	} 
 
 	for (PINDEX i=0; i < report.GetSize(); i++) {
-		int worstdelay = -1; int meandelay = -1; int packetslost = -1; int packetlossrate = -1; 
-		int packetlosspercent = -1; int bandwidth = -1; int maxjitter = -1; int meanjitter = -1;
+		// int worstdelay = -1; int packetlossrate = -1; int maxjitter = -1;
+		int meandelay = -1; int packetslost = -1;
+		int packetlosspercent = -1; int bandwidth = -1; int meanjitter = -1;
 		H323TransportAddress sendAddr; H323TransportAddress recvAddr; PIPSocket::Address send; 
 		WORD sport = 0; PIPSocket::Address recv; WORD rport = 0; int session = 0;
 
@@ -4240,8 +4241,8 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 		if (info.HasOptionalField(H4609_RTCPMeasures::e_mediaSenderMeasures)) {
 			H4609_RTCPMeasures_mediaSenderMeasures & sender = info.m_mediaSenderMeasures;
 
-			if (sender.HasOptionalField(H4609_RTCPMeasures_mediaSenderMeasures::e_worstEstimatedEnd2EndDelay))
-				worstdelay = sender.m_worstEstimatedEnd2EndDelay;
+//			if (sender.HasOptionalField(H4609_RTCPMeasures_mediaSenderMeasures::e_worstEstimatedEnd2EndDelay))
+//				worstdelay = sender.m_worstEstimatedEnd2EndDelay;
 			if (sender.HasOptionalField(H4609_RTCPMeasures_mediaSenderMeasures::e_meanEstimatedEnd2EndDelay))
 				meandelay = sender.m_meanEstimatedEnd2EndDelay;
 		}
@@ -4251,10 +4252,10 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 
 			if (receiver.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_cumulativeNumberOfPacketsLost))
 				packetslost = receiver.m_cumulativeNumberOfPacketsLost;
-			if (receiver.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_packetLostRate))
-				packetlossrate = receiver.m_packetLostRate;
-			if (receiver.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_worstJitter))
-				maxjitter = receiver.m_worstJitter;
+//			if (receiver.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_packetLostRate))
+//				packetlossrate = receiver.m_packetLostRate;
+//			if (receiver.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_worstJitter))
+//				maxjitter = receiver.m_worstJitter;
 			if (receiver.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_estimatedThroughput))
 				bandwidth = receiver.m_estimatedThroughput;
 			if (receiver.HasOptionalField(H4609_RTCPMeasures_mediaReceiverMeasures::e_fractionLostRate))
