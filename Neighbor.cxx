@@ -1643,7 +1643,7 @@ bool NeighborPolicy::OnRequest(FacilityRequest & facility_obj)
 #ifdef hasSRV
 class SRVPolicy : public AliasesPolicy {
 public:
-	SRVPolicy() { m_name = "SRV"; }
+	SRVPolicy();
 
 protected:
     virtual bool OnRequest(FacilityRequest &) { return false; }
@@ -1654,7 +1654,15 @@ protected:
 	virtual Route * CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly);
 	virtual Route * LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases);
 	virtual Route * LSLocalLookup(H225_ArrayOf_AliasAddress & aliases);
+
+	bool m_resolveNonLocalLRQs;
 };
+
+SRVPolicy::SRVPolicy()
+{
+	m_name = "SRV";
+	m_resolveNonLocalLRQs = Toolkit::AsBool(GkConfig()->GetString("Routing::SRV", "ResolveNonLocalLRQ", "0"));
+}
 
 Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
@@ -1806,6 +1814,9 @@ Route * SRVPolicy::LSLocalLookup(H225_ArrayOf_AliasAddress & aliases)
 						Route * route = new Route("srv", ep);
 						return route;
 					}
+				} else if (m_resolveNonLocalLRQs) {
+					// just rewrite the destination based on the SRV record and let the following policies handle it
+					H323SetAliasAddress(number, aliases[0]);
 				} else {
 					PTRACE(3, "ROUTING\tSkipped, using only local LS for LRQs");
 				}
@@ -1931,26 +1942,29 @@ bool SRVPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 }
 #endif
 
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 // RDS policy
 #ifdef hasRDS
 
 class RDSPolicy : public AliasesPolicy {
 public:
-	RDSPolicy() { m_name = "RDS"; }
+	RDSPolicy();
 
 protected:
-    virtual bool OnRequest(SetupRequest &) { return false; }
-    virtual bool OnRequest(FacilityRequest &) { return false; }
-
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
 	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
+
+	bool m_resolveLRQs;
 };
 
-bool RDSPolicy::FindByAliases(
-	RoutingRequest &request,
-	H225_ArrayOf_AliasAddress &aliases
-	)
+RDSPolicy::RDSPolicy()
+{
+	m_name = "RDS";
+	m_resolveLRQs = Toolkit::AsBool(GkConfig()->GetString("Routing::RDS", "ResolveLRQ", "0"));
+}
+
+bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
 	for (PINDEX a = 0; a < aliases.GetSize(); ++a) {
 		PString alias(AsString(aliases[a], FALSE));
@@ -2014,11 +2028,14 @@ bool RDSPolicy::FindByAliases(
 	return false;
 }
 
-
-bool RDSPolicy::FindByAliases(LocationRequest & /* request */, H225_ArrayOf_AliasAddress & /* aliases */)
-{ 
-    PTRACE(4, "ROUTING\tPolicy RDS not supported for LRQ");
-	return false;
+bool RDSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
+{
+	if (m_resolveLRQs) {
+		return RDSPolicy::FindByAliases((RoutingRequest&)request, aliases);
+	} else {
+		PTRACE(4, "ROUTING\tPolicy RDS configured not to resolve LRQs");
+		return false;
+	}
 }
 #endif
 

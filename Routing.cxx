@@ -50,7 +50,7 @@ const char *SectionName[] = {
 const long DEFAULT_ROUTE_REQUEST_TIMEOUT = 10;
 const char* const CTIsection = "CTI::Agents";
 
-bool DNSPolicy::m_resolveNonLocalLRQs = false;
+bool DNSPolicy::m_resolveNonLocalLRQs = true;
 
 Route::Route() : m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_priority(1)
 {
@@ -1372,6 +1372,12 @@ bool NumberAnalysisPolicy::OnRequest(SetupRequest & request)
 }
 
 
+ENUMPolicy::ENUMPolicy()
+{
+	m_name = "ENUM";
+	m_resolveLRQs = Toolkit::AsBool(GkConfig()->GetString("Routing::ENUM", "ResolveLRQ", "0"));
+}
+
 bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
 #if P_DNS
@@ -1408,10 +1414,14 @@ bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddre
 	return false;
 }
 
-bool ENUMPolicy::FindByAliases(LocationRequest & /* request */, H225_ArrayOf_AliasAddress & /* aliases */)
+bool ENUMPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
-    PTRACE(4, "ROUTING\tPolicy ENUM not supported for LRQ");
-	return false; // ENUMPolicy::FindByAliases((RoutingRequest&)request, aliases);
+	if (m_resolveLRQs) {
+		return ENUMPolicy::FindByAliases((RoutingRequest&)request, aliases);
+	} else {
+		PTRACE(4, "ROUTING\tPolicy ENUM configured not to resolve LRQs");
+		return false;
+	}
 }
 
 

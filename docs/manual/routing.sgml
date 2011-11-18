@@ -1,6 +1,10 @@
 <sect>Routing Configuration
 <p>
 The following sections in the config file can be used to configure how calls are routed.
+A bit simplified, "routing" means that the gatekeeper must find
+a destination IP where to send each incomming call.
+Usually this is done by looking at the called name or number,
+but there are also other possibilities.
 <p>
 Each call gets passed down a chain of routing policies.
 Each policy may route the call and terminate the chain or modify it and
@@ -42,7 +46,8 @@ Route the call using neighbors by exchanging LRQ messages.
 
 <item><tt/dns/<newline>
 <p>
-The destination is resolved from DNS A records or plain IP adresses in the called alias. This policy can be configured in the <ref id="routingdns" name="Routing::DNS"> section.
+The destination is resolved from DNS A records or plain IP adresses in the called alias.
+This policy can be configured in the <ref id="routingdns" name="Routing::DNS"> section.
 
 <item><tt/sql/<newline>
 <p>
@@ -64,10 +69,7 @@ This also partially supports Setup messages (no overlapped sending
 ENUM (RFC3761) is a method to use DNS lookups to convert
 real International Direct Dialing E.164 numbers into H.323 dialing information. The default servers
 are <tt/e164.voxgratia.net/, <tt/e164.org/ and <tt/e164.arpa/.
-To specify your own server you may either specify the list via the ENUMserver variable in
-the RoutedMode section or specify an environmental variable PWLIB_ENUM_PATH with the address of your preferred
-enum servers.  Multiple servers should be separated by a colon(:) on Linux and a semicolon (;) on Windows. 
-(PWLIB_ENUM_PATH is supported starting with PWLib 1.8.0)
+To specify your own list of servers use the <tt/ENUMservers/ switch in the RoutedMode section.
 
 The enum policy replaces the destination with the information returned by the ENUM server, 
 so you must have the appropriate routing policies to continue processing the call after the enum policy. 
@@ -77,11 +79,15 @@ returned in the form of 'number@gatekeeper' and the srv and dns policies are nee
 Finally, keep in mind that each routing check with the enum policy requires a DNS lookup. 
 To speed up your routing, make sure you resolve internal destinations before the enum policy is applied.
 
+This policy can be configured in the <ref id="routingenum" name="Routing::ENUM"> section.
+
 <item><tt/srv/<newline>
 <p>
 DNS SRV or H.323 Annex O allows for the routing of calls using a H.323 URI. 
 Addresses can be configured as user (at) domain. H.323 URIs are stored in the 
 SRV DNS records of the domain and are queried to find the destination. 
+
+This policy can be configured in the <ref id="routingsrv" name="Routing::SRV"> section.
 
 <item><tt/rds/<newline>
 <p>
@@ -89,6 +95,8 @@ URN RDS or Universal resources name resolver discovery system is a system (as de
 whereby domain names SRV records are hosted on other domains. In this policy the servers set by 
 [RoutedMode] RDSServers are queried to resolve URI's whose domains do not have SRV records. This can be used
 to virtually host URL domains or centralize the control of SRV records.
+
+This policy can be configured in the <ref id="routingrds" name="Routing::RDS"> section.
 
 <item><tt/catchall/<newline>
 <p>
@@ -360,6 +368,40 @@ Default: <tt>1</tt><newline>
 <p>
 This switch selects if the DNS policy should resolve hostnames or IPs in LRQs that don't terminate locally.
 </itemize>
+
+
+<sect1>Section &lsqb;Routing::ENUM&rsqb;
+<label id="routingenum">
+<p>
+<itemize>
+<item><tt/ResolveLRQ=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+This switch selects if the 'enum' policy should resolve LRQs.
+</itemize>
+
+
+<sect1>Section &lsqb;Routing::SRV&rsqb;
+<label id="routingsrv">
+<p>
+<itemize>
+<item><tt/ResolveNonLocalLRQ=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+This switch selects if the 'srv' policy should resolve hostnames in LRQs that don't terminate locally.
+</itemize>
+
+
+<sect1>Section &lsqb;Routing::RDS&rsqb;
+<label id="routingrds">
+<p>
+<itemize>
+<item><tt/ResolveLRQ=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+This switch selects if the 'rds' policy should resolve hostnames in LRQs.
+</itemize>
+
 
 <sect1>Section &lsqb;Routing::Explicit&rsqb;
 <label id="routingexplicit">

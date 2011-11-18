@@ -380,10 +380,13 @@ private:
 // a policy to look up the destination from ENUM Name Server
 class ENUMPolicy : public AliasesPolicy {
 public:
-	ENUMPolicy() { m_name = "ENUM"; }
+	ENUMPolicy();
+
 protected:
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
 	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
+
+	bool m_resolveLRQs;
 };
 
 class DestinationRoutes {
