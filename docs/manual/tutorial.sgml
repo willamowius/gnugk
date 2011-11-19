@@ -4,7 +4,8 @@
 <p>
 To confirm that all components are up and running, we will use
 two Linux workstations, both connected to the same LAN.
-In the examples, the H.323 client is a softphone called "OhPhone".
+In the examples, the H.323 client is a softphone called "SimpH323"
+which comes as a sample application with H323Plus in the samples/simple/ folder.
 
 On the first server start the <htmlurl url="http://www.gnugk.org/" name="gatekeeper">
 in direct mode:
@@ -17,36 +18,36 @@ The "<tt/-ttt/" option tells the gatekeeper that it should be verbose and
 print extra debug output to the console.  You can direct the output to a
 file with "<tt/-o logfilename.log/"
 
-Now, start OhPhone on another console on the same system:
+Now, start SimpH323 on another console on the same system:
 <tscreen><verb>
-jan@server1> ohphone -l -a -u jan
+jan@server1> simph323 -l -a -u jan
 </verb></tscreen>
 
-OhPhone is now listening (<tt/-l/) for calls and will automatically accept
+SimpH323 is now listening (<tt/-l/) for calls and will automatically accept
 them (<tt/-a/).  It has also registered with the gatekeeper as user "jan"
 thereby allowing the gatekeeper to creating an association between the user
 "jan" and their IP address.  
 
-OhPhone will attempt to automatically locate the gatekeeper, but if the auto
+SimpH323 will attempt to automatically locate the gatekeeper, but if the auto
 detection fails, use "<tt/-g 1.2.3.4/" to specify the IP address of the
 gatekeeper.
 
-On the second client run ohphone this way:
+On the second client run simph323 this way:
 
 <tscreen><verb>
-peter@client2> ohphone -u peter jan
+peter@client2> simph323 -u peter jan
 </verb></tscreen>
 
-This instance of OhPhone registers with the auto-detected gatekeeper as user
+This instance of SimpH323 registers with the auto-detected gatekeeper as user
 "peter" and tries to call user "jan".  The gatekeeper will accept the
 request from "peter" and will determine if it can locate the IP address of a
 user name "jan".  
 
 Because "jan" has already registered with the gatekeeper, it will send
-"jan"s IP address to "peter".  "peter"s ohphone will then use that IP
-address to setup a direct session to "jan"s ohphone running on server1.
+"jan"s IP address to "peter".  "peter"s SimpH323 will then use that IP
+address to setup a direct session to "jan"s SimpH323 running on server1.
 
-The instance of OhPhone on server1 will automatically accept the call and Peter and Jan can chat.
+The instance of SimpH323 on server1 will automatically accept the call and Peter and Jan can chat.
 
 <sect1>Using the Status interface to monitor the gatekeeper
 <p>
@@ -148,7 +149,7 @@ will put the gatekeeper in routed mode. Telnet to the status port
 and make a call to see what messages are now handled by the gatekeeper.
 
 Note that all media packets (audio and video) are still sent
-directly between the endpoints (the 2 instances of ohphone).
+directly between the endpoints (the 2 instances of SimpH323).
 
 <sect1>A virtual PBX: Disconnecting calls
 <p>
