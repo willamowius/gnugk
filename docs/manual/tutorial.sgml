@@ -314,7 +314,7 @@ As of 2011-11-10 there don't appear to be any endpoints which can do this.
 
 To support IPv4 and IPv6 endpoints at the same time, GnuGk relies
 on the operating system to manage IPv4 mapped IPv6 addresses.
-Current versions of Linux and FreeBSD support this, but for Windows,
+Current versions of Linux, FreeBSD and NetBSD support this, but for Windows,
 you need at least Windows Vista, Windows Server 2008, Windows 7 or newer.
 On Windows XP GnuGk will run as a IPv6-only gatekeeper if you enable IPv6 support.
 OpenBSD doesn't support IPv4 mapped addresses at all (latest version tested: OpenBSD 5.0),
