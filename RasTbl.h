@@ -1488,8 +1488,8 @@ private:
 #ifdef HAS_H46018
 	/// processed Setup data ready to be sent to the callee (for H.460.18)
 	PBYTEArray m_processedSetup;
-	map<unsigned, H46019KeepAlive> m_RTPkeepalives;
-	map<unsigned, H46019KeepAlive> m_RTCPkeepalives;
+	std::map<unsigned, H46019KeepAlive> m_RTPkeepalives;
+	std::map<unsigned, H46019KeepAlive> m_RTCPkeepalives;
 #endif
 	PUInt64 m_clientAuthId;
 	PString m_bindHint;	// outgoing IP or empty

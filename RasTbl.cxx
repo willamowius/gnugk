@@ -3779,7 +3779,7 @@ void CallRec::AddRTPKeepAlive(unsigned flcn, const H323TransportAddress & keepAl
 
 void CallRec::StartRTPKeepAlive(unsigned flcn, int RTPOSSocket)
 {
-	map<unsigned, H46019KeepAlive>::iterator iter = m_RTPkeepalives.find(flcn);
+	std::map<unsigned, H46019KeepAlive>::iterator iter = m_RTPkeepalives.find(flcn);
 	// only start if it isn't running already
 	if ((iter != m_RTPkeepalives.end()) && (iter->second.timer == GkTimerManager::INVALID_HANDLE)) {
 		iter->second.ossocket = RTPOSSocket;
@@ -3804,7 +3804,7 @@ void CallRec::AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAl
 
 void CallRec::StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket)
 {
-	map<unsigned, H46019KeepAlive>::iterator iter = m_RTCPkeepalives.find(flcn);
+	std::map<unsigned, H46019KeepAlive>::iterator iter = m_RTCPkeepalives.find(flcn);
 	// only start if it isn't running already
 	if ((iter != m_RTCPkeepalives.end()) && (iter->second.timer == GkTimerManager::INVALID_HANDLE)) {
 		iter->second.ossocket = RTCPOSSocket;
