@@ -284,7 +284,7 @@ class UDPSocket : public PUDPSocket, public NamedObject {
 public:
 	PCLASSINFO( UDPSocket, PUDPSocket )
 	
-	UDPSocket(WORD port=0, int iAddressFamily=AF_INET) : PUDPSocket(port, iAddressFamily) { }
+	UDPSocket(WORD port=0, int iAddressFamily=AF_INET);
 	virtual ~UDPSocket() { }
 
 	// override from class PIPSocket

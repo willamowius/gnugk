@@ -687,7 +687,17 @@ bool TCPSocket::DualStackListen(WORD newPort)
 	port = ntohs(sa.sin6_port);
 	return true;
 }
+#endif
 
+UDPSocket::UDPSocket(WORD port, int iAddressFamily)
+#ifdef hasIPV6
+	// can use always, because old PTLib versions (eg. 2.4.5) didn't have 2nd argument
+	: PUDPSocket(port, iAddressFamily)
+#endif
+{
+}
+
+#ifdef hasIPV6
 bool UDPSocket::DualStackListen(const PIPSocket::Address & localAddr, WORD newPort)
 {
 	if (!Toolkit::Instance()->IsIPv6Enabled() || !localAddr.IsAny())
