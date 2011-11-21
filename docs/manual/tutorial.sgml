@@ -320,4 +320,6 @@ you need at least Windows Vista, Windows Server 2008, Windows 7 or newer.
 On Windows XP GnuGk will run as a IPv6-only gatekeeper if you enable IPv6 support.
 OpenBSD doesn't support IPv4 mapped addresses at all (latest version tested: OpenBSD 5.0),
 so it can only run GnuGk as either IPv4 or IPv6 gatekeeper.
+Solaris supports IPv4 mapped addresses, but PTLib can't read the operating system's
+IPv6 route table, so you currently can't enable IPv6 on Solaris.
 
