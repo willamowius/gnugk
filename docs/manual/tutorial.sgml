@@ -86,8 +86,9 @@ Trying 127.0.0.1...
 Connected to localhost.
 Escape character is '^]'.
 Version:
-Gatekeeper(GNU) Version(2.3.5) Ext(pthreads=1,radius=1,mysql=0,pgsql=0,firebird=0,odbc=0,sqlite=0,large_fdset=0,crypto/ssl=0,
-h46018=1,h46023=1,ldap=0,ssh=0) H323Plus(1.22.2) PTLib(2.8.5) Build(Jul 31 2011, 09:03:11) Sys(Linux x86_64 2.6.32-33-generic)
+Gatekeeper(GNU) Version(2.3.5) Ext(pthreads=1,radius=1,mysql=0,pgsql=0,firebird=0,odbc=0,sqlite=0,
+large_fdset=0,crypto/ssl=0,h46018=1,h46023=1,ldap=0,ssh=0) H323Plus(1.22.2) PTLib(2.8.5)
+Build(Jul 31 2011, 09:03:11) Sys(Linux x86_64 2.6.32-33-generic)
 Startup: Sun, 31 Jul 2011 08:07:36 -0600   Running: 102 days 01:08:15
 ;
 </verb></tscreen>
@@ -127,8 +128,9 @@ Escape character is '^]'.
 GnuGk login: gkadmin
 Password: secret
 Version:
-Gatekeeper(GNU) Version(2.3.5) Ext(pthreads=1,radius=1,mysql=0,pgsql=0,firebird=0,odbc=0,sqlite=0,large_fdset=0,crypto/ssl=0,
-h46018=1,h46023=1,ldap=0,ssh=0) H323Plus(1.22.2) PTLib(2.8.5) Build(Jul 31 2011, 09:03:11) Sys(Linux x86_64 2.6.32-33-generic)
+Gatekeeper(GNU) Version(2.3.5) Ext(pthreads=1,radius=1,mysql=0,pgsql=0,firebird=0,odbc=0,sqlite=0,
+large_fdset=0,crypto/ssl=0,h46018=1,h46023=1,ldap=0,ssh=0) H323Plus(1.22.2) PTLib(2.8.5)
+Build(Jul 31 2011, 09:03:11) Sys(Linux x86_64 2.6.32-33-generic)
 Startup: Sun, 31 Jul 2011 08:07:36 -0600   Running: 102 days 01:10:15
 ;
 </verb></tscreen>

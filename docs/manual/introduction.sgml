@@ -11,10 +11,10 @@ The English version is the master document and will get updated first.
 </bf>
 is an open-source project that implements a H.323 gatekeeper. A gatekeeper
 provides call control services to H.323 endpoints and is an integral part of
-most useful Internet telephony installations that are based on the H.323
+most telephony or video conferencing installations that are based on the H.323
 standard.
 
-According to Recommendation H.323, a gatekeeper shall provide the
+According to the H.323 standard, a gatekeeper shall provide the
 following services:
 <itemize>
 <item>Address Translation
@@ -27,12 +27,13 @@ following services:
 <item>Call Management
 </itemize>
 
-The GNU Gatekeeper implements most of these functions
-based on the
-<url url="http://sourceforge.net/projects/openh323" name="OpenH323">
-protocol stack.
+The GNU Gatekeeper implements all of these functions and a number of additional features.
+For the protocol handling and encoding and decoding of the messages, it uses the
+<url url="http://sourceforge.net/projects/h323plus" name="H323Plus"> library
+(a continuation of the now defunct
+<url url="http://sourceforge.net/projects/openh323" name="OpenH323 project">).
 
-Recommendation H.323 is an international standard published by the <url
+H.323 is an international standard published by the <url
 url="http://www.itu.int/" name="ITU">.  It is a communications standard for
 audio, video, and data over the Internet.  See also Paul Jones' <url
 url="http://www.packetizer.com/voip/h323/papers/primer/" name="A Primer on
@@ -67,7 +68,7 @@ that) but keep other parts of your application private.
 <p>
 The full name of this project is <em>GNU Gatekeeper</em>, but it may also be
 referred to as <em>GnuGk</em>.  The use of "GNU" in the name is to emphasize
-that this is free software.
+that this is free software. Early versions where called the <em>OpenH323 Gatekeeper</em>.
 
 <sect1>Download
 <label id="download">
@@ -105,20 +106,17 @@ name="join the developers mailing list">.
 
 <sect1>Contributors
 <p>
-The current project coordinator is
+The project founder and current maintainer is
 <url url="http://www.willamowius.com/gnugk-support.html" name="Jan Willamowius">
 <tt><htmlurl url="mailto:jan@willamowius.de" name="&lt;jan@willamowius.de&gt;"></tt>
 
-The main features and functions of version 2.0 are contributed by Chih-Wei
+Many features of version 2.0 were contributed by Chih-Wei
 Huang <tt><htmlurl url="mailto:cwhuang@linux.org.tw"
-name="&lt;cwhuang@linux.org.tw&gt;"></tt> and Citron Network Inc., including
-thread-safe registration and call tables, new routed mode architecture,
-H.323 proxy, H.235 authentication and MySQL backend.
+name="&lt;cwhuang@linux.org.tw&gt;"></tt> and Citron Network Inc.
 
 Michal Zygmuntowicz <tt><htmlurl url="mailto:m.zygmuntowicz@onet.pl"
-name="&lt;m.zygmuntowicz@onet.pl&gt;"></tt> has done some great work on
-Radius support and other improvements.
+name="&lt;m.zygmuntowicz@onet.pl&gt;"></tt> has done great work to improve the GNU Gatekeeper.
 
-The initial version of the gatekeeper had been developed by
+The initial version of a proof-of-concet gatekeeper based on OpenH323 had been developed by
 Xiang Ping Chen, Joe Metzger and Rajat Todi.
 
