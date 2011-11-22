@@ -1857,8 +1857,11 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly)
 					PTRACE(1, "ROUTING\tERROR in CS SRV lookup (" << cs[j] << ")");
 					continue;
 				}
+				PStringArray parts = SplitIPAndPort(dom, GK_DEF_ENDPOINT_SIGNAL_PORT);
+				dom = parts[0];
+				WORD port = parts[1].AsUnsigned();
 				PTRACE(4, "ROUTING\tSRV CS converted remote party " << alias << " to " << cs[j]);
-				if (GetTransportAddress(dom, GK_DEF_ENDPOINT_SIGNAL_PORT, dest)) {
+				if (GetTransportAddress(dom, port, dest)) {
 					PIPSocket::Address addr;
 					if (!(GetIPFromTransportAddr(dest, addr) && addr.IsValid()))
 						continue;
@@ -1918,7 +1921,7 @@ bool SRVPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 // used for LRQs
 bool SRVPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
 { 
-	Route * route = CSLookup(aliases, true);
+	Route * route = CSLookup(aliases, !m_resolveNonLocalLRQs);
 	if (route) {
 		if (route->m_flags & Route::e_Reject) {
 			request.SetFlag(RoutingRequest::e_Reject);
