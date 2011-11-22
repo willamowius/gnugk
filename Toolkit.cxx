@@ -452,13 +452,18 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 	}
 
 	PTRACE(4, "InterfaceTable:\n" << setfill('\n') << if_table << setfill(' '));
-for(PINDEX i=0; i < if_table.GetSize(); ++i) {
-	PTRACE(0, "JW if entry << " << i << ". " << if_table[i].GetName() << " " << ::AsString(if_table[i].GetAddress()) << "/" << if_table[i].GetNetMask());
-}
 	PIPSocket::RouteTable r_table;
 	if (!PIPSocket::GetRouteTable(r_table)) {
 		PTRACE(1, "Error: Can't get route table");
 		return false;
+	}
+	// filter out route with destination localhost
+	// we can't use those for routing calls, unless the net itself is localhost
+	for(PINDEX i=0; i < r_table.GetSize(); ++i) {
+		if ((r_table[i].GetDestination().IsLoopback())
+			&& !r_table[i].GetNetwork().IsLoopback()) {
+				r_table.RemoveAt(i--);
+			}
 	}
 	// filter out IPv6 networks if IPv6 is not enabled
 	for(PINDEX i=0; i < r_table.GetSize(); ++i) {
@@ -467,9 +472,6 @@ for(PINDEX i=0; i < if_table.GetSize(); ++i) {
 				r_table.RemoveAt(i--);
 			}
 	}
-for(PINDEX i=0; i < r_table.GetSize(); ++i) {
-	PTRACE(0, "JW entry " << i << ": net=" << r_table[i].GetNetwork() << " mask=" << r_table[i].GetNetMask() << " dest=" << r_table[i].GetDestination() << " metric=" << r_table[i].GetMetric());
-}
 
 	if (/*!extroute &&*/ AsBool(GkConfig()->GetString(ProxySection, "Enable", "0"))) {
 		for (PINDEX i = 0; i < r_table.GetSize(); ++i) {
@@ -491,7 +493,7 @@ for(PINDEX i=0; i < r_table.GetSize(); ++i) {
 			::new (rtable_end++) RouteEntry(extroute);
 		} else {
 			PIPSocket::RouteEntry & r_entry = r_table[r];
-			if (r_entry.GetNetMask() != INADDR_ANY) {
+			if (!r_entry.GetNetMask().IsAny()) {
 				::new (rtable_end++) RouteEntry(r_entry, if_table);
 			}
 		}
