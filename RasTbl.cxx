@@ -2139,7 +2139,6 @@ void H46019KeepAlive::SendKeepAlive(GkTimer * t)
 			ka_ptr = (char*)&multiplexedRtpKeepAlive;
 			ka_size = sizeof(multiplexedRtpKeepAlive);
 		}
-		PTRACE(0, "JW Send RTP keepalive on socket " << ossocket << " size=" << ka_size);
 		size_t sent = ::sendto(ossocket, ka_ptr, ka_size, 0, (struct sockaddr *)&dest, sizeof(dest));
 		if (sent != ka_size) {
 			PTRACE(1, "Error sending RTP keepAlive " << timer);
@@ -2175,7 +2174,6 @@ void H46019KeepAlive::SendKeepAlive(GkTimer * t)
 			ka_ptr = (char*)&multiplexedRtcpKeepAlive;
 			ka_size = sizeof(multiplexedRtcpKeepAlive);
 		}
-		PTRACE(0, "JW Send RTCP keepalive on socket " << ossocket << " size=" << ka_size);
 		size_t sent = ::sendto(ossocket, ka_ptr, ka_size, 0, (struct sockaddr *)&dest, sizeof(dest));
 		if (sent != ka_size) {
 			PTRACE(1, "Error sending RTCP keepAlive " << timer);
@@ -3767,7 +3765,6 @@ int CallRec::GetH46019Direction() const
 
 void CallRec::AddRTPKeepAlive(unsigned flcn, const H323TransportAddress & keepAliveRTPAddr, unsigned keepAliveInterval, PUInt32b multiplexID)
 {
-	PTRACE(0, "JW AddRTPKeepAlive lc=" << flcn << " dest=" << keepAliveRTPAddr << " interval=" << keepAliveInterval << " multiplexID=" << multiplexID);
 	H46019KeepAlive ka;
 	ka.type = RTP;
 	ka.flcn = flcn;
@@ -3786,13 +3783,11 @@ void CallRec::StartRTPKeepAlive(unsigned flcn, int RTPOSSocket)
 		PTime now;
 		iter->second.timer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 				&(iter->second), &H46019KeepAlive::SendKeepAlive, now, iter->second.interval);	// do it now and every n seconds
-		PTRACE(0, "JW Starting RTP keepAlive OS socket=" << RTPOSSocket);
 	}
 }
 
 void CallRec::AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAliveRTCPAddr, unsigned keepAliveInterval, PUInt32b multiplexID)
 {
-	PTRACE(0, "JW AddRTCPKeepAlive lc=" << flcn << " dest=" << AsString(keepAliveRTCPAddr) << " interval=" << keepAliveInterval << " mulktiplexID=" << multiplexID);
 	H46019KeepAlive ka;
 	ka.type = RTCP;
 	ka.flcn = flcn;
@@ -3811,7 +3806,6 @@ void CallRec::StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket)
 		PTime now;
 		iter->second.timer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 				&(iter->second), &H46019KeepAlive::SendKeepAlive, now, iter->second.interval);	// do it now and every n seconds
-		PTRACE(0, "JW Starting RTCP keepAlive OS socket=" << RTCPOSSocket);
 	}
 }
 
