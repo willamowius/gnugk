@@ -661,9 +661,12 @@ bool DNSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 		PString domain = (at != P_MAX_INDEX) ? alias.Mid(at + 1) : alias;
 		if (domain.Find("ip$") == 0)
 			domain.Replace("ip$", "", false);
+		PStringArray parts = SplitIPAndPort(domain, GK_DEF_ENDPOINT_SIGNAL_PORT);
+		domain = parts[0];
+		WORD port = parts[1].AsUnsigned();
 		PIPSocket::Address addr;
 		if (DNSLookup(domain, addr) && addr.IsValid()) {
-			H225_TransportAddress dest = SocketToH225TransportAddr(addr, GK_DEF_ENDPOINT_SIGNAL_PORT);
+			H225_TransportAddress dest = SocketToH225TransportAddr(addr, port);
 			if (Toolkit::Instance()->IsGKHome(addr)) {
 				// only apply DNS policy to LRQs that resolve locally
 				H225_ArrayOf_AliasAddress find_aliases;

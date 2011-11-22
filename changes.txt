@@ -1,5 +1,6 @@
 Changes from 2.3.5 to 3.0.0
 ===========================
+- BUGFIX(Routing.cxx) the DNS policy didn't properly handle ports (eg. joe@company.com:1720)
 - new switch [Routing::ENUM] ResolveLRQ=
 - rds policy now supports routing unregistered calls
 - new switch [Routing::RDS] ResolveLRQ=
