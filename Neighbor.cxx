@@ -1859,7 +1859,7 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly)
 				}
 				PStringArray parts = SplitIPAndPort(dom, GK_DEF_ENDPOINT_SIGNAL_PORT);
 				dom = parts[0];
-				WORD port = parts[1].AsUnsigned();
+				WORD port = (WORD)parts[1].AsUnsigned();
 				PTRACE(4, "ROUTING\tSRV CS converted remote party " << alias << " to " << cs[j]);
 				if (GetTransportAddress(dom, port, dest)) {
 					PIPSocket::Address addr;

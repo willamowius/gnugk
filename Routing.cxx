@@ -623,7 +623,7 @@ bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 			domain.Replace("ip$", "", false);
 		PStringArray parts = SplitIPAndPort(domain, GK_DEF_ENDPOINT_SIGNAL_PORT);
 		domain = parts[0];
-		WORD port = parts[1].AsUnsigned();
+		WORD port = (WORD)parts[1].AsUnsigned();
 		PIPSocket::Address addr;
 		if (DNSLookup(domain, addr) && addr.IsValid()) {
 			H225_TransportAddress dest = SocketToH225TransportAddr(addr, port);
@@ -666,7 +666,7 @@ bool DNSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 			domain.Replace("ip$", "", false);
 		PStringArray parts = SplitIPAndPort(domain, GK_DEF_ENDPOINT_SIGNAL_PORT);
 		domain = parts[0];
-		WORD port = parts[1].AsUnsigned();
+		WORD port = (WORD)parts[1].AsUnsigned();
 		PIPSocket::Address addr;
 		if (DNSLookup(domain, addr) && addr.IsValid()) {
 			H225_TransportAddress dest = SocketToH225TransportAddr(addr, port);
