@@ -345,13 +345,13 @@ MulticastListener::MulticastListener(const Address & addr, WORD pt) : RasListene
 	port = pt;
 }
 
-bool MulticastListener::Filter(GatekeeperMessage *msg) const
+bool MulticastListener::Filter(GatekeeperMessage * msg) const
 {
 	unsigned tag = msg->GetTag();
 	if (tag == H225_RasMessage::e_gatekeeperRequest
 		|| tag == H225_RasMessage::e_locationRequest)
 		return true;
-	PTRACE(1, "RAS\tInvalid multicasted RAS message tag " << tag);
+	PTRACE(1, "RAS\tInvalid multicasted RAS message tag " << msg->GetTagName());
 	return false;
 }
 
