@@ -1796,20 +1796,20 @@ bool RegistrationRequestPDU::Process()
 		if (Toolkit::Instance()->IsH46018Enabled()) {
 			if (fs.HasFeature(18)) {
 				PIPSocket::Address remoteRAS;
-				if (GetIPFromTransportAddr(request.m_rasAddress[0], remoteRAS)) {
-					h46018nat = ((rx_addr != remoteRAS) && !IsLoopback(rx_addr));
-					if (h46018nat || Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "H46018NoNAT", "1"))) {
-						supportH46018 = true;
-						// ignore rasAddr and use apparent address
-						request.m_rasAddress.SetSize(1);
-						request.m_rasAddress[0] = SocketToH225TransportAddr(rx_addr, rx_port);
-						// callSignallAddress will be ignored later on, just avoid the error about an invalid callSigAdr when registering
-						// this needs to be reversed if we disable H.460.18 for this endpoint later on
-						if (request.m_callSignalAddress.GetSize() > 0)
-							originalCallSigAddress = request.m_callSignalAddress[0];
-						request.m_callSignalAddress.SetSize(1);
-						request.m_callSignalAddress[0] = SocketToH225TransportAddr(rx_addr, rx_port);
-					}
+				if (request.m_rasAddress.GetSize() > 0)
+					GetIPFromTransportAddr(request.m_rasAddress[0], remoteRAS);	// ignore possible errors, will be overwritten anyway
+				h46018nat = ((rx_addr != remoteRAS) && !IsLoopback(rx_addr));
+				if (h46018nat || Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "H46018NoNAT", "1"))) {
+					supportH46018 = true;
+					// ignore rasAddr and use apparent address
+					request.m_rasAddress.SetSize(1);
+					request.m_rasAddress[0] = SocketToH225TransportAddr(rx_addr, rx_port);
+					// callSignallAddress will be ignored later on, just avoid the error about an invalid callSigAdr when registering
+					// this needs to be reversed if we disable H.460.18 for this endpoint later on
+					if (request.m_callSignalAddress.GetSize() > 0)
+						originalCallSigAddress = request.m_callSignalAddress[0];
+					request.m_callSignalAddress.SetSize(1);
+					request.m_callSignalAddress[0] = SocketToH225TransportAddr(rx_addr, rx_port);
 				}
 			}
 		}

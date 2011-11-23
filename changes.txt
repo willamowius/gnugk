@@ -1,5 +1,6 @@
 Changes from 2.3.5 to 3.0.0
 ===========================
+- BUGFIX(RasSrv.cxx) fix crash if H.460.18 client sends only invalid RAS addresses in RRQ
 - BUGFIX(Routing.cxx) the DNS policy didn't properly handle ports (eg. joe@company.com:1720)
 - new switch [Routing::ENUM] ResolveLRQ=
 - rds policy now supports routing unregistered calls
