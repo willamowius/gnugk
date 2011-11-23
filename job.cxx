@@ -19,6 +19,7 @@
 #include "stl_supp.h"
 #include "rwlock.h"
 #include "singleton.h"
+#include "config.h"
 #include "job.h"
 
 // timeout (seconds) for an idle Worker to be deleted
@@ -71,7 +72,7 @@ private:
 	Worker();
 	Worker(const Worker&);
 	Worker& operator=(const Worker&);
-	
+
 private:
 	/// idle timeout (seconds), after which the Worker is destoyed
 	PTimeInterval m_idleTimeout;
@@ -159,6 +160,7 @@ Worker::~Worker()
 	if (m_job) {
 		PTRACE(1, "JOB\tDestroying Worker " << m_id << " with active Job " << m_job->GetName());
 		delete m_job;
+		m_job = NULL;
 	}
 	PTRACE(5, "JOB\tWorker " << m_id << " destroyed");
 }
@@ -243,7 +245,6 @@ void Worker::Destroy()
 	
 	PTRACE(5, "JOB\tWaiting for Worker thread " << m_id << " termination");
 	WaitForTermination(5 * 1000);	// max. wait 5 sec.
-	delete this;
 }
 
 
@@ -285,16 +286,20 @@ Agent::~Agent()
 		);
 #endif
 
-	// destroy all workers
-	ForEachInContainer(workers, mem_vfun(&Worker::Destroy));
+	std::list<Worker*>::iterator iter = workers.begin();
+	while (iter != workers.end()) {
+		Worker * w = *iter;
+		workers.erase(iter++);
+		w->Destroy();
+#if !defined(_WIN32) || (PTLIB_VER <= 2100)
+		delete w;	// don't delete on Windows, issue with PTLib 2.10.1+
+#endif
+	}
 	
 	PTRACE(5, "JOB\tAgent and its Workers destroyed");
 }
 
-void Agent::Exec(
-	/// the job to be executed
-	Job* job
-	)
+void Agent::Exec(Job * job)
 {
 	Worker* worker = NULL;
 #if PTRACING

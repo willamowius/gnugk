@@ -1217,9 +1217,7 @@ void Gatekeeper::Main()
 	// graceful shutdown
 	cerr << "\nShutting down gatekeeper . . . ";
 
-#if !defined(_WIN32) || PTLIB_VER < 2102
-	ShutdownHandler();    // <-- on Windows PTLIB 2.10.2 and 2.11.x shuting down worker threads segfaults
-#endif
+	ShutdownHandler();
 	cerr << "done\n";
 
 #ifdef _WIN32
