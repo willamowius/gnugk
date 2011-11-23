@@ -527,8 +527,7 @@ class SimplePasswordAuth : public GkAuthenticator
 public:
 	enum SupportedRasChecks {
 		/// bitmask of RAS checks implemented by this module
-		SimplePasswordAuthRasChecks = RasInfo<H225_GatekeeperRequest>::flag
-			| RasInfo<H225_RegistrationRequest>::flag
+		SimplePasswordAuthRasChecks = RasInfo<H225_RegistrationRequest>::flag
 			| RasInfo<H225_UnregistrationRequest>::flag
 			| RasInfo<H225_BandwidthRequest>::flag
 			| RasInfo<H225_DisengageRequest>::flag
@@ -546,7 +545,6 @@ public:
 	virtual ~SimplePasswordAuth();
 
 	// overriden from class GkAuthenticator
-	virtual int Check(RasPDU<H225_GatekeeperRequest>& req, unsigned& rejectReason);
 	virtual int Check(RasPDU<H225_UnregistrationRequest>& req, unsigned& rejectReason);
 	virtual int Check(RasPDU<H225_BandwidthRequest>& req, unsigned& rejectReason);
 	virtual int Check(RasPDU<H225_DisengageRequest>& req, unsigned& rejectReason);

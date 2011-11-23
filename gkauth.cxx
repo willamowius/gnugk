@@ -1165,11 +1165,6 @@ SimplePasswordAuth::~SimplePasswordAuth()
 	delete m_cache;
 }
 
-int SimplePasswordAuth::Check(RasPDU<H225_GatekeeperRequest> & request, unsigned &)
-{
-	return doCheck(request);
-}
-
 int SimplePasswordAuth::Check(
 	RasPDU<H225_RegistrationRequest> & request, 
 	RRQAuthData& /*authData*/
