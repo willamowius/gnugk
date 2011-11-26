@@ -368,7 +368,7 @@ class Toolkit : public Singleton<Toolkit>
 	bool IsGKHome(const PIPSocket::Address & addr) const;
 
 #ifdef HAS_H235_MEDIA
-	bool IsH235MediaEnabled() const { return m_H235MediaEnabled; }
+	bool IsH235HalfCallMediaEnabled() const { return m_H235HalfCallMediaEnabled; }
 #endif
 
 	bool isBehindNAT(PIPSocket::Address &) const;
@@ -634,7 +634,7 @@ private:
 	std::map<unsigned, unsigned> m_receivedCauseMap;
 	std::map<unsigned, unsigned> m_sentCauseMap;
 #ifdef HAS_H235_MEDIA
-	bool m_H235MediaEnabled;
+	bool m_H235HalfCallMediaEnabled;
 #endif
 	// is H460.18 enabled ?
 #ifdef HAS_H46018

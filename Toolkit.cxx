@@ -63,8 +63,8 @@ NetworkAddress::NetworkAddress(
 }
 
 NetworkAddress::NetworkAddress(
-	const PIPSocket::Address & addr,
-	const PIPSocket::Address & nm
+	const PIPSocket::Address &addr,
+	const PIPSocket::Address &nm
 	) : m_netmask(nm)
 {
 	// normalize the address
@@ -1581,7 +1581,7 @@ PConfig* Toolkit::ReloadConfig()
 	// update the gatekeeper name, in case it was set in the SQL config
 	m_GKName = m_Config->GetString("Name", "OpenH323GK");
 #ifdef HAS_H235_MEDIA
-	m_H235MediaEnabled	= m_Config->GetBoolean(RoutedSec, "EnableH235Media", 0);
+	m_H235HalfCallMediaEnabled	= m_Config->GetBoolean(RoutedSec, "EnableH235HalfCallMedia", 0);
 #endif
 #ifdef HAS_H46018
 	m_H46018Enabled	= m_Config->GetBoolean(RoutedSec, "EnableH46018", 0);

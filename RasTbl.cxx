@@ -3596,6 +3596,13 @@ void CallRec::BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemContro
 			addr.m_rtpAddress = i->second.forward;
 		else
 			addr.m_rtpAddress = i->second.reverse;
+
+#if H323PLUS_VER > 1231
+        if (i->second.multiplexID > 0) {
+            addr.IncludeOptionalField(H46024B_AlternateAddress::e_multiplexID);
+            addr.m_multiplexID = i->second.multiplexID;
+        }
+#endif
 		addrs[sz] = addr;
 		i++;
 	}
@@ -3640,7 +3647,7 @@ void CallRec::H46024BSessionFlag(WORD sessionID)
 		m_h46024Bflag.push_back(sessionID);
 }
  
-void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, const H323TransportAddress & rev)
+void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, const H323TransportAddress & rev, unsigned muxID)
 {
 	PWaitAndSignal m(m_H46024Bmutex);
  
@@ -3651,11 +3658,12 @@ void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, 
 	if (i != m_H46024Balternate.end())
 		return;
  
-	PTRACE(5,"H46024B\tNAT offload probes S:" << sessionID << " F:" << fwd << " R:" << rev);
+	PTRACE(5,"H46024B\tNAT offload probes S:" << sessionID << " F:" << fwd << " R:" << rev << " mux " << muxID);
  
 	H46024Balternate alt;
 	fwd.SetPDU(alt.forward);
 	rev.SetPDU(alt.reverse);
+    alt.multiplexID = muxID; 
 	m_H46024Balternate.insert(pair<WORD,H46024Balternate>(sessionID,alt));
  
 	m_h46024Bflag.remove(sessionID);

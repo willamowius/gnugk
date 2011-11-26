@@ -678,13 +678,14 @@ Default: <tt/3001/<newline>
 <p>
 Set the RTCP port for H.460.19 RTP multiplexing.
 
-<item><tt/EnableH235Media=1/<newline>
+<item><tt/EnableH235HalfCallMedia=1/<newline>
 Default: <tt/0/<newline>
 <p>
 Where an endpoint supports encryption on one leg and does not on the other, the gatekeeper
 will enable encryption for the side that supports encryption and decode the media for the 
 side that does not. In this way you may allow media on a protected system to be 
-unencrypted while media on the public internet be encrypted where supported.
+unencrypted while media on the public internet be encrypted where supported. Enabling this
+feature will also force all signalling to be GKRouted.
 WARNING: This is still experimental.
 
 </itemize>
