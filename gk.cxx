@@ -355,7 +355,7 @@ static const char * KnowConfigEntries[][2] = {
 	{ "RoutedMode", "DisableRetryChecks" },
 	{ "RoutedMode", "DropCallsByReleaseComplete" },
 	{ "RoutedMode", "ENUMservers" },
-    { "RoutedMode", "EnableH235Media" },
+    { "RoutedMode", "EnableH235HalfCallMedia" },
 	{ "RoutedMode", "EnableH450.2" },
 	{ "RoutedMode", "EnableH46018" },
 	{ "RoutedMode", "EnableH46023" },
