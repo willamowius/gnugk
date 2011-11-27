@@ -393,8 +393,7 @@ bool RasMsg::EqualTo(const RasMsg *other) const
 
 void RasMsg::Release()
 {
-	m_msg = 0;
-	delete this;
+	m_msg = NULL;
 }
 
 bool RasMsg::PrintStatus(const PString & log)
