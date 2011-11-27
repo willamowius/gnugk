@@ -2547,7 +2547,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 #ifdef HAS_H235_MEDIA
      H235Authenticators & auth = m_call->GetAuthenticators();
-     if (Toolkit::Instance()->IsH235MediaEnabled()) {
+     if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
           if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)
               || setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens)) { 
               auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
@@ -3638,7 +3638,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 
 #ifdef HAS_H235_MEDIA
     H235Authenticators & auth = m_call->GetAuthenticators();
-    if (Toolkit::Instance()->IsH235MediaEnabled()) {
+    if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
       if (m_call && !m_call->IsMediaEncryption() 
           && connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens)) {
            PTRACE(4, "H235\tMedia Encrypted End to End : No Assistance");

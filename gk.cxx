@@ -1188,7 +1188,7 @@ void Gatekeeper::Main()
 	else if (args.HasOption('d'))
 		RasSrv->SetRoutedMode(false, false);
 #ifdef HAS_H235_MEDIA
-    else if (Toolkit::Instance()->IsH235MediaEnabled()) 
+    else if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) 
         RasSrv->SetRoutedMode(true, true);
 #endif 
 	else 
