@@ -789,9 +789,9 @@ dnl  Check for libssh
 dnl ########################################################################
 
 dnl MSWIN_DISPLAY    libssh,libSSH
-dnl MSWIN_CHECK_FILE libssh,libssh\server.h,HAS_LIBSSH=1
+dnl MSWIN_CHECK_FILE libssh,include\libssh\server.h,HAS_LIBSSH=1
 dnl MSWIN_DIR_SYMBOL libssh,LIBSSH_DIR
-dnl MSWIN_CHECK_DIR  libssh,\libssh\include\
+dnl MSWIN_CHECK_DIR  libssh,\libssh\
 
 AC_ARG_ENABLE(libssh, 
 [  --enable-libssh                enable libssh support (default=yes)], 
