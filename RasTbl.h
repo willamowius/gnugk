@@ -1444,7 +1444,7 @@ private:
 	struct H46024Balternate {
 		 H245_TransportAddress forward;
 		 H245_TransportAddress reverse;
-         unsigned multiplexID;
+		 unsigned multiplexID;
 	};
  
 	std::map<WORD,H46024Balternate> m_H46024Balternate;
