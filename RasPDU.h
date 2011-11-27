@@ -336,7 +336,7 @@ template<class RAS>
 class HookedPDU : public RasPDU<RAS> {
 public:
 	HookedPDU(GatekeeperMessage *m, RasMsg *p) : RasPDU<RAS>(m), m_opdu(p) {}
-	~HookedPDU() { m_opdu->Release(); }
+	~HookedPDU() { m_opdu->Release(); delete m_opdu; }
 
 	virtual bool Process() { return m_opdu->Process(); }
 
