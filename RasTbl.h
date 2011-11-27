@@ -829,7 +829,7 @@ public:
 
 	void SetConnected();
 
-	void Disconnect(bool = false); // Send Release Complete?
+	void Disconnect(bool = false); // send ReleaseComplete ?
 	void RemoveAll();
 	void RemoveSocket();
 	void SendReleaseComplete(const H225_CallTerminationCause * = 0);
