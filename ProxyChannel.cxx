@@ -2528,8 +2528,10 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 #ifdef HAS_H235_MEDIA
 	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
 		H235Authenticators & auth = m_call->GetAuthenticators();
-		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)
-		  || setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens)) { 
+		// BUG: checking for tokens OR cryptoTokens and then always using cryptoTpkens will crash!
+		if (/*setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)
+		  ||*/ setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens)) { 
+
 			auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
 			// TODO Caller Admission. -SH
 			H235Authenticator::ValidationResult result = auth.ValidateSignalPDU( 
@@ -2554,6 +2556,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 									setupBody.m_tokens, setupBody.m_cryptoTokens);
 			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
 			m_call->SetMediaEncryption(CallRec::calledParty);
+			// TODO: force call to proxy mode ?
 		}
 	}
 #endif
@@ -3614,6 +3617,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 		} else if ((m_call && m_call->GetEncryptDirection() == CallRec::calledParty)
 		  && connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens)) {
 
+			// BUG: check if connect contains cryptoTokens before using them
 			PBYTEArray nonce;
 			auth.ValidateSignalPDU(H225_H323_UU_PDU_h323_message_body::e_connect, 
 						   connectBody.m_tokens, connectBody.m_cryptoTokens, nonce);

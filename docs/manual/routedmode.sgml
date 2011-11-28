@@ -521,7 +521,7 @@ will enable encryption for the side that supports encryption and decode the medi
 side that does not. In this way you may allow media on a protected system to be 
 unencrypted while media on the public internet be encrypted where supported. Enabling this
 feature will also force all signalling for all call to routed-mode.
-WARNING: This feature is still experimental.
+WARNING: This feature is still experimental and doesn't work, yet.
 
 </itemize>
 
