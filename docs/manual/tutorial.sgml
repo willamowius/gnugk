@@ -29,8 +29,7 @@ thereby allowing the gatekeeper to creating an association between the user
 "jan" and their IP address.  
 
 SimpH323 will attempt to automatically locate the gatekeeper, but if the auto
-detection fails, use "<tt/-g 1.2.3.4/" to specify the IP address of the
-gatekeeper.
+detection fails, use "<tt/-g 1.2.3.4/" to specify the IP address.
 
 On the second client run simph323 this way:
 
@@ -63,11 +62,10 @@ You should receive an "Access forbidden!" message because by default, access to 
 
 Create a file called <tt/gatekeeper.ini/ in the
 directory where we start the gatekeeper.
-<tt/gatekeeper.ini/ will contain the following 4 lines:
+<tt/gatekeeper.ini/ will contain the following three lines:
 
 <tscreen><verb>
 [Gatekeeper::Main]
-Fortytwo=42
 [GkStatus::Auth]
 rule=allow
 </verb></tscreen>
@@ -107,13 +105,12 @@ Change the configuration file to:
 
 <tscreen><verb>
 [Gatekeeper::Main]
-Fortytwo=42
 [GkStatus::Auth]
 rule=password
 gkadmin=QC7VyAo5jEw=
 </verb></tscreen>
 
-The 5th line was added by the addpasswd utility, which was used to create a user "gkadmin" with 
+The fourth line was added by the addpasswd utility, which was used to create a user "gkadmin" with 
 password "secret".  This change now enforces authentication to the status port.
 
 Restart the gatekeeper with this new configuration and perform the telnet again.
@@ -323,7 +320,7 @@ Current versions of Linux, FreeBSD and NetBSD support this, but for Windows,
 you need at least Windows Vista, Windows Server 2008, Windows 7 or newer.
 On Windows XP GnuGk will run as a IPv6-only gatekeeper if you enable IPv6 support.
 OpenBSD doesn't support IPv4 mapped addresses at all (latest version tested: OpenBSD 5.0),
-so it can only run GnuGk as either IPv4 or IPv6 gatekeeper.
+so it can only run GnuGk as either an IPv4 or IPv6 gatekeeper.
 Solaris supports IPv4 mapped addresses, but PTLib can't read the operating system's
 IPv6 route table, so you currently can't enable IPv6 on Solaris.
 

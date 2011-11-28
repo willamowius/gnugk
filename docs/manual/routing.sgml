@@ -1,10 +1,17 @@
 <sect>Routing Configuration
 <p>
 The following sections in the config file can be used to configure how calls are routed.
-A bit simplified, "routing" means that the gatekeeper must find
-a destination IP where to send each incomming call.
-Usually this is done by looking at the called name or number,
-but there are also other possibilities.
+
+For GnuGk, "routing" means that the gatekeeper must find a destination IP
+for each new call.
+
+For example GnuGk may need to decide where to send a
+voice call given a particular E.164 destination; there may be multiple
+IP-to-ISDN gateways which it may choose from for that E.164 address.
+
+Routing decisions are typically made by examining the called name or number,
+but GnuGk has flexibility in what it evaluates in order to successfully
+route the call.
 <p>
 Each call gets passed down a chain of routing policies.
 Each policy may route the call and terminate the chain or modify it and
@@ -14,24 +21,24 @@ specify which policies to use and modify their behavior.
 <sect1>Section &lsqb;RoutingPolicy&rsqb;
 <label id="routingpolicy">
 <p>
-This section explains how the various potential routing
-policies within the <htmlurl url="http://www.gnugk.org/" name="GNU Gatekeeper"> work.
+This section explains how <htmlurl url="http://www.gnugk.org/" name="GNU
+Gatekeeper"> routing policies are configured.
 
-The incoming call requests can be routed using the following
-possibilities:
+An incoming call request can be routed using the following
+methods:
 
 <itemize>
 
 <item><tt/explicit/<newline>
 <p>
 The destination is explicitly specified in the call to be routed.
-This policy is needed for dialing by IP number.
+This policy is needed for dialing by IP address.
 You can define mappings for the destination IP in the
 <ref id="routingexplicit" name="Routing::Explicit"> section.
 
 <item><tt/internal/<newline>
 <p>
-The classical rule; search the destination in
+The classic rule; search for the destination in
 RegistrationTable
 
 <item><tt/parent/<newline>
@@ -46,7 +53,7 @@ Route the call using neighbors by exchanging LRQ messages.
 
 <item><tt/dns/<newline>
 <p>
-The destination is resolved from DNS A records or plain IP adresses in the called alias.
+The destination is resolved using DNS A records or IP addresses in the called alias.
 This policy can be configured in the <ref id="routingdns" name="Routing::DNS"> section.
 
 <item><tt/sql/<newline>
@@ -56,7 +63,7 @@ Route calls by rewriting the called alias with a database query or send them dir
 <item><tt/vqueue/<newline>
 <p>
 Use the virtual queue mechanism and generate a RouteRequest
-event to let an external application do the routing.
+event to allow an external application to make a routing decision.
 
 <item><tt/numberanalysis/<newline>
 <p>
@@ -91,8 +98,8 @@ This policy can be configured in the <ref id="routingsrv" name="Routing::SRV"> s
 
 <item><tt/rds/<newline>
 <p>
-URN RDS or Universal resources name resolver discovery system is a system (as defined in RFC 2915 Sect 7.2 
-whereby domain names SRV records are hosted on other domains. In this policy the servers set by 
+URN RDS or Universal Resources Name Resolver Discovery System is a technique (as defined in RFC 2915 Sect 7.2 
+whereby domain name SRV records are hosted on other domains. In this policy the servers set by 
 [RoutedMode] RDSServers are queried to resolve URI's whose domains do not have SRV records. This can be used
 to virtually host URL domains or centralize the control of SRV records.
 
@@ -272,8 +279,8 @@ before further action is taken.
 
 <tag/Neighbor Example 1:/
 <p>
-In this example the neighbor is identified by it's ID and incoming calls from NbGk
-will have their 01 prefix replaced by an 04 prefix and the reverse for outgoing calls.
+In this example the neighbor is identified by its ID and incoming calls from NbGk
+will have their 01 prefix replaced by a 04 prefix.  Outgoing calls will have 04 replaced with 01.
 <tscreen><verb>
 [RasSrv::Neighbors]
 NbGk=GnuGk
@@ -290,9 +297,13 @@ NbGk=in=01=04;out=04=01
 
 <tag/Neighbor Example 2:/
 <p>
-In this example the neighbor is identified by it's gatekeeper identifier and incoming calls from
-GK-PW-Prox that don't have a 0049 prefix get this prefix prepended. Eg. a call to 1234 would be
-rewritten to 00491234 while a call to 00496789 would proceed unchanged.
+In this example the neighbor is identified by its gatekeeper identifier and
+incoming calls from GK-PW-Prox that don't have a 0049 prefix get the prefix
+prepended.  A call to "1234" would be rewritten to "00491234", while a call
+to "00496789" would proceed unchanged because the "If incoming does not
+start with 0049 and any number of digits after 0049, then prepend 0049"
+logic would be false (because we already have 0049 at the beginning.)
+
 <tscreen><verb>
 [RasSrv::Neighbors]
 NbGk=GnuGk
@@ -366,7 +377,7 @@ though the latter will take effect first.
 <item><tt/ResolveNonLocalLRQ=0/<newline>
 Default: <tt>1</tt><newline>
 <p>
-This switch selects if the DNS policy should resolve hostnames or IPs in LRQs that don't terminate locally.
+This switch determines whether the DNS policy should resolve hostnames or IPs in LRQs that don't terminate locally.
 </itemize>
 
 
@@ -377,7 +388,7 @@ This switch selects if the DNS policy should resolve hostnames or IPs in LRQs th
 <item><tt/ResolveLRQ=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
-This switch selects if the 'enum' policy should resolve LRQs.
+This switch toggles whether the 'enum' policy should resolve LRQs.
 </itemize>
 
 
