@@ -68,7 +68,7 @@ that) but keep other parts of your application private.
 <p>
 The full name of this project is <em>GNU Gatekeeper</em>, but it may also be
 referred to as <em>GnuGk</em>.  The use of "GNU" in the name is to emphasize
-that this is free software. Early versions where called the <em>OpenH323 Gatekeeper</em>.
+that this is free software. Early versions were called the <em>OpenH323 Gatekeeper</em>.
 
 <sect1>Download
 <label id="download">
@@ -117,6 +117,6 @@ name="&lt;cwhuang@linux.org.tw&gt;"></tt> and Citron Network Inc.
 Michal Zygmuntowicz <tt><htmlurl url="mailto:m.zygmuntowicz@onet.pl"
 name="&lt;m.zygmuntowicz@onet.pl&gt;"></tt> has done great work to improve the GNU Gatekeeper.
 
-The initial version of a proof-of-concet gatekeeper based on OpenH323 had been developed by
+The initial version of a proof-of-concept gatekeeper based on OpenH323 had been developed by
 Xiang Ping Chen, Joe Metzger and Rajat Todi.
 
