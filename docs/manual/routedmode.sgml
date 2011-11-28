@@ -521,11 +521,14 @@ Default: <tt/0/<newline>
 <p>
 WARNING: This feature is still experimental and doesn't work, yet.
 <p>
-Where the endpoint on one side of the call supports encryption and the endpoint on the other side does not,
-the gatekeeper
-will enable encryption for the side that supports it and decode the media for the 
-side that does not. In this way you may allow media on a protected system to be 
-unencrypted while media on the public Internet be encrypted where supported. Enabling this
+When the endpoint on one side of a call supports encryption and the endpoint
+on the other side does not, the gatekeeper will act as a "man-in-the-middle"
+and encrypt the media stream to the encryption-capable system.  A decrypted
+media stream will be sent to the endpoint which is otherwise unable to
+encrypt / decrypt traffic because of licensing issues, lack of encryption
+chip support in the hardware, obsolescence, etc.  This may be useful if the
+system you are trying to reach is on the Internet; your internal traffic can
+remain unencrypted, but your external traffic will be secure.  Enabling this
 feature will also force call signaling for all calls to routed-mode.
 
 </itemize>
