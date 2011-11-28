@@ -230,16 +230,16 @@ else
 fi
 
 if test ${OPENH323_MAJOR_VERSION} -lt 1; then
-  echo "Error: at leat OpenH323 version 1.14.4.2 (Pandora) required"
+  echo "Error: at leat OpenH323/H323Plus version 1.14.4.2 (Pandora) required"
   exit
 fi
 if test ${OPENH323_MAJOR_VERSION} -eq 1; then
   if test ${OPENH323_MINOR_VERSION} -lt 14; then
-    echo "Error: at leat OpenH323 version 1.14.4.2 (Pandora) required"
+    echo "Error: at leat OpenH323/H323Plus version 1.14.4.2 (Pandora) required"
     exit
   elif test ${OPENH323_MINOR_VERSION} -eq 14; then
     if test ${OPENH323_BUILD_NUMBER} -lt 4; then
-      echo "Error: at leat OpenH323 version 1.14.4.2 (Pandora) required"
+      echo "Error: at leat OpenH323/H323Plus version 1.14.4.2 (Pandora) required"
       exit
     fi
   fi
