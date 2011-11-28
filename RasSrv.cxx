@@ -710,7 +710,9 @@ RasServer::~RasServer()
 
 void RasServer::Stop()
 {
+#if PTLIB_VER >= 2110
 	PTRACE(1, "GK\tStopping RasServer...");
+#endif
 	PWaitAndSignal lock(m_deletionPreventer);
 	ForEachInContainer(handlers, mem_vfun(&RasHandler::Stop));
 	delete vqueue;	// delete virtual queues before Jobs, otherwise the jobs will wait for the queues
