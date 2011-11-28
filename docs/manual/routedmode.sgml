@@ -519,13 +519,15 @@ IP versions.
 <item><tt/EnableH235HalfCallMedia=1/<newline>
 Default: <tt/0/<newline>
 <p>
+WARNING: This feature is still experimental and doesn't work, yet.
+<p>
 Where the endpoint on one side of the call supports encryption and the endpoint on the other side does not,
 the gatekeeper
 will enable encryption for the side that supports it and decode the media for the 
 side that does not. In this way you may allow media on a protected system to be 
 unencrypted while media on the public Internet be encrypted where supported. Enabling this
 feature will also force call signaling for all calls to routed-mode.
-WARNING: This feature is still experimental and doesn't work, yet.
+
 </itemize>
 
 <p>
