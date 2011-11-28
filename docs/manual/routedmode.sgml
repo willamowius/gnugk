@@ -344,16 +344,16 @@ This overrides the PWLIB_ENUM_PATH environmental variable.
 <item><tt/RDSservers=myvirtualhost.com/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Use this to set RDS server to query for rds routing policy. 
+Use this to specify a RDS server to query for rds routing policy. 
 This set the domains to use to resolve URI's which do not have SRV records and 
-maybe virtually hosted or SRV records are stored in another host.
+may be virtually hosted or where SRV records are stored in another host.
 This overrides the PWLIB_RDS_PATH environmental variable.
 
 <item><tt/CpsLimit=10/<newline>
 Default: <tt>0</tt><newline>
 <p>
 Limit the rate of incoming calls to n calls per second. If more calls are received they are
-rejected on TCP level without H.323 error messages and they won't show up in CDRs.
+rejected at the TCP level without H.323 error messages, so they won't show up in CDRs.
 A value of zero (default) disables the feature.
 <p>
 The limit only applies if the calls in the check interval are greater than check-interval * CPS-rate. This allows small call spikes on a machine without much load, but will apply strict limits when the overall load is high.
@@ -361,7 +361,7 @@ The limit only applies if the calls in the check interval are greater than check
 This feature is meant to shield the gatekeeper from overload and to avoid as much resource usage a possible in an overload situation.
 <p>
 Currently the calls are blocked when the first message comes in on the signaling port. This makes it
-very effective for unregistered calls. But so far ARQs are not blocked, so it will be less effective with
+very effective for unregistered calls. However, ARQs are not blocked, so it will be less effective with
 registered calls.
 
 <item><tt/CpsCheckInterval=1/<newline>
@@ -471,8 +471,8 @@ from behind NAT and not routed via the gatekeeper.
 <item><tt/H46023SignalGKRouted=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
-Force all call signalling for NAT to be GK routed. There are a number of conditions where call signalling may be 
-offloaded when using H.460.23/.24 This switch will force all the signalling to be Gatekeeper routed.
+Force all call signaling for NAT to be GK routed. There are a number of conditions where call signaling may be 
+offloaded when using H.460.23/.24 This switch will force all the signaling to be Gatekeeper routed.
 
 <item><tt/NATStdMin=18/<newline>
 Default: <tt>N/A</tt><newline>
@@ -490,11 +490,14 @@ Translate the non-standard caller information from a Sorenson VP200 into sourceA
 <item><tt/RemoveFaxUDPOptionsFromRM=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
-Avaya Communication Manager 3.1 equipped by TN2602AP media processor becomes confused
-when it receives t38FaxUdpOptions in t38FaxProfile of H.245 RequestMode. For example,
-AddPac VoiceFinder does so. After that TN2602AP starts to send larger T.38 packets than
-receiver can process. This results in facsimile document distortion. So we need to remove
-t38FaxUdpOptions from RM to make ACM3.1+TN2602AP become compatible with endpoints which send
+An Avaya Communication Manager 3.1 system equipped with TN2602AP media
+processors becomes confused when it receives t38FaxUdpOptions in
+t38FaxProfile of H.245 RequestMode.  AddPac VoiceFinder is an example of an
+application which does this.  At that point, the TN2602AP will begin to send
+larger T.38 packets than the receiver can process, resulting in facsimile
+document distortion.  This switch will remove t38FaxUdpOptions from
+RequestMode, making the combination of Avaya Communication Manager 3.1
+equipped and TN2602AP media processors compatible with endpoints which send
 t38FaxUdpOptions in RM.
 
 <item><tt/AlwaysRewriteSourceCallSignalAddress=0/<newline>
@@ -502,7 +505,7 @@ Default: <tt>1</tt><newline>
 <p>
 When set to false or 0, GnuGk will not rewrite the sourceCallSignalAddress to its own IP in
 routed mode. This helps some endpoints to get through NATs.
-In proxy mode, the IP is always rewritten to GnuGk's IP, regardles of this switch.
+In proxy mode, the IP is always rewritten to GnuGk's IP, regardless of this switch.
 
 <item><tt/AutoProxyIPv4ToIPv6Calls=0/<newline>
 Default: <tt/1/<newline>
@@ -516,13 +519,13 @@ IP versions.
 <item><tt/EnableH235HalfCallMedia=1/<newline>
 Default: <tt/0/<newline>
 <p>
-Where an endpoint supports encryption on one leg and does not on the other, the gatekeeper
-will enable encryption for the side that supports encryption and decode the media for the 
+Where the endpoint on one side of the call supports encryption and the endpoint on the other side does not,
+the gatekeeper
+will enable encryption for the side that supports it and decode the media for the 
 side that does not. In this way you may allow media on a protected system to be 
-unencrypted while media on the public internet be encrypted where supported. Enabling this
-feature will also force all signalling for all call to routed-mode.
+unencrypted while media on the public Internet be encrypted where supported. Enabling this
+feature will also force call signaling for all calls to routed-mode.
 WARNING: This feature is still experimental and doesn't work, yet.
-
 </itemize>
 
 <p>
@@ -611,7 +614,7 @@ this feature with caution.
 <item><tt/RemoveH235Call=1/<newline>
 Default: <tt/0/<newline>
 <p>
-This setting removes the cryptoTokens and clearTokens off the Setup message.
+This setting removes the cryptoTokens and clearTokens from the Setup message.
 Use this when working with IP phones that do not support large Setup messages
 
 <item><tt/RemoveH460Call=1/<newline>
@@ -647,7 +650,7 @@ Default: <tt/0/<newline>
 <p>
 Remove the mediaChannel from fastStart transmit offers.
 For unicast transmit channels, mediaChannel should not be sent on offer;
-it is responsibility of callee to provide mediaChannel in an answer.
+it is the responsibility of the callee to provide mediaChannel in an answer.
 
 <item><tt/SearchBothSidesOnCLC=1/<newline>
 Default: <tt/0/<newline>
@@ -738,7 +741,7 @@ In this example calls into and out of the 1.2.3.0/24 network are proxied, but ca
 
 </descrip>
 
-If no rules matches the settings [RoutedMode]GkRouted=, H245Routed= or [Proxy]Enable= are used to determine the routing mode.
+If no rules match the settings then [RoutedMode]GkRouted=, H245Routed= or [Proxy]Enable= are used to determine the routing mode.
 <p>
 There are a few cases where these rules don't apply, because
 <htmlurl url="http://www.gnugk.org/" name="the GNU Gatekeeper">
