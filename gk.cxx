@@ -710,7 +710,7 @@ BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 	else if( dwCtrlType == CTRL_SHUTDOWN_EVENT )
 		eventName = "CTRL_SHUTDOWN_EVENT";
 
-#if PTLIB_VER >= 2110 && defined(PTRACING)
+#if PTLIB_VER >= 2100 && defined(PTRACING)
 	PTRACE(1,"GK\tGatekeeper shutdown due to "<<eventName);
 #endif
 

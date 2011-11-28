@@ -710,7 +710,7 @@ RasServer::~RasServer()
 
 void RasServer::Stop()
 {
-#if PTLIB_VER >= 2110
+#if PTLIB_VER >= 2100
 	PTRACE(1, "GK\tStopping RasServer...");
 #endif
 	PWaitAndSignal lock(m_deletionPreventer);
