@@ -1099,7 +1099,6 @@ PBoolean CallSignalSocket::Connect(const Address & addr)
 	return false;
 }
 
-#if PTRACING
 void PrintQ931(int tlevel, const char *msg1, const char *msg2, const Q931 *q931, const H225_H323_UserInformation *uuie)
 {
 	PStringStream pstrm;
@@ -1109,12 +1108,6 @@ void PrintQ931(int tlevel, const char *msg1, const char *msg2, const Q931 *q931,
 	pstrm << "\n}";
 	PTRACE(tlevel, pstrm);
 }
-#else
-inline void PrintQ931(int, const char *, const char *, const Q931 *, const H225_H323_UserInformation *)
-{
-	// nothing to do
-}
-#endif
 
 bool GetUUIE(const Q931 & q931, H225_H323_UserInformation & uuie)
 {
@@ -2394,24 +2387,18 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
 		// Do inbound per GWRewrite if we can before global rewrite
-		#if PTRACING
 		PString rewrite_type;
-		#endif
 
 		// Try lookup on neighbor list for rewrite source first
 		in_rewrite_id = rassrv->GetNeighbors()->GetNeighborIdBySigAdr(_peerAddr);
-		#if PTRACING
 		if (!in_rewrite_id)
 			rewrite_type = "neighbor or explicit IP";
-		#endif
 
 		// Try call record rewrite identifier next
 		if (in_rewrite_id.IsEmpty() && m_call) {
 			in_rewrite_id = m_call->GetInboundRewriteId();
-			#if PTRACING
 			if (!in_rewrite_id)
 				rewrite_type = "call record";
-			#endif
 		}
 
 		// Try the Setup's source field if this exists
@@ -2423,24 +2410,17 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
 					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
 				);
-			#if PTRACING
 			if (!in_rewrite_id)
 				rewrite_type = "setup H323 ID or E164";
-			#endif
 		}
 
 		if (in_rewrite_id.IsEmpty() && q931.GetCallingPartyNumber(in_rewrite_id)) {
-			#if PTRACING
 			if (!in_rewrite_id)
 				rewrite_type = "setup CLI";
-			#endif
 		}
 
 		if (!in_rewrite_id) {
-			#if PTRACING
 			PTRACE(4, Type() << "\tGWRewrite source for " << Name() << ": " << rewrite_type);
-			#endif
-
 			toolkit->GWRewriteE164(in_rewrite_id, GW_REWRITE_IN, setupBody.m_destinationAddress);
 		}
 
@@ -3025,9 +3005,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	// Do outbound per GW rewrite
 	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
 		if (!m_call->GetNewRoutes().empty() && !m_call->GetNewRoutes().front().m_destOutNumber.IsEmpty()) {
-			#if PTRACING
 			PTRACE(4, Type() << "\tGWRewrite source for " << Name() << ": auth module");
-			#endif
 			for (PINDEX i = 0; i < setupBody.m_destinationAddress.GetSize(); ++i)
 				if (setupBody.m_destinationAddress[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
 					PTRACE(2, Type() << "\tAuth out rewrite: " << ::AsString(setupBody.m_destinationAddress[i]) << " to " << m_call->GetNewRoutes().front().m_destOutNumber);
@@ -3047,26 +3025,20 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		} else {
 			PIPSocket::Address neighbor_addr;
 			WORD port;
-			#if PTRACING
 			PString rewrite_type;
-			#endif
 
 			// Try neighbor list first
 			if (m_call->GetDestSignalAddr(neighbor_addr, port)) {
 				out_rewrite_id = rassrv->GetNeighbors()->GetNeighborIdBySigAdr(neighbor_addr);
-				#if PTRACING
 				if (!out_rewrite_id)
 					rewrite_type = "neighbor or explicit IP";
-				#endif
 			}
 
 			// Try call record rewrite id
 			if (out_rewrite_id.IsEmpty()) {
 				out_rewrite_id = m_call->GetOutboundRewriteId();
-				#if PTRACING
 				if (!out_rewrite_id)
 					rewrite_type = "call record";
-				#endif
 			}
 
 			// Try configured endpoint
@@ -3079,17 +3051,13 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 						AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
 							| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
 						);
-					#if PTRACING
 					if (!out_rewrite_id)
 						rewrite_type = "setup H323 ID or E164";
-					#endif
 				}
 			}
 
 			if (!out_rewrite_id) {
-				#if PTRACING
 				PTRACE(4, Type() << "\tGWRewrite source for " << Name() << ": " << rewrite_type);
-				#endif
 			    toolkit->GWRewriteE164(out_rewrite_id, GW_REWRITE_OUT, setupBody.m_destinationAddress);
 			}
 		}
@@ -5586,9 +5554,7 @@ void CallSignalSocket::SetCallTypePlan(Q931 *q931)
 				int proxy = called->GetProxyType();
 				if (proxy > 0) {
 					m_call->SetProxyMode(proxy);
-					#if PTRACING
 					PTRACE(4, Type() << "Proxy mode set " << proxy);
-					#endif
 				}
 				dtype = called->GetCallTypeOfNumber(true);
 				if (dtype != -1)
@@ -5608,9 +5574,7 @@ void CallSignalSocket::SetCallTypePlan(Q931 *q931)
 					plan = dplan;
 			}
 			q931->SetCalledPartyNumber(Number, plan, type);
-			#if PTRACING
 			PTRACE(4, Type() << "\tSet Called Numbering Plan " << plan << " Type Of Number " << type);
-			#endif
 		}
 	}
 
@@ -5638,9 +5602,7 @@ void CallSignalSocket::SetCallTypePlan(Q931 *q931)
 					plan = dplan;
 			}
 			q931->SetCallingPartyNumber(Number, plan, type, presentation, screening);
-			#if PTRACING
 			PTRACE(4, Type() << "\tSet Calling Numbering Plan " << plan << " Type Of Number " << type);
-			#endif
 		}
 	}
 }

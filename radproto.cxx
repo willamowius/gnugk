@@ -30,7 +30,6 @@
 #endif
 
 namespace {
-#if PTRACING
 /// Human-readable attribute names
 const char* const radiusAttributeNames[] =
 {
@@ -94,7 +93,6 @@ const char* const PMAP_CODE_TO_NAME(unsigned code)
 		: radiusPacketCodeNames[code];
 }
 
-#endif /* #if PTRACING */
 
 // Cisco VSA attributes together with names and name lengths for fast lookup
 #define CISCO_ATTR_NAME(namestr) namestr, strlen(namestr)
@@ -441,13 +439,9 @@ void RadiusAttr::PrintOn(
 	}
 	
 	strm << "{\n";
-		
-#if PTRACING
+
 	strm << setw(indent+7) << "type = " << (unsigned)m_type
 		<< " (" << PMAP_ATTR_TYPE_TO_NAME(m_type) << ")\n";
-#else
-	strm << setw(indent+7) << "type = " << (unsigned)m_type << '\n';
-#endif
 	const PINDEX totalLen = m_length;
 	
 	strm << setw(indent+9) << "length = " << totalLen << " octets\n";
@@ -710,13 +704,9 @@ void RadiusPDU::PrintOn(
 	const std::streamsize indent = strm.precision() + 2;
 
 	strm << ((!IsValid()) ? "(Invalid) {\n" : "{\n");
-	
-#if PTRACING
+
 	strm << setw(indent+7) << "code = " << (unsigned)m_code
 		<< " (" << PMAP_CODE_TO_NAME(m_code) << ")\n";
-#else
-	strm << setw(indent+7) << "code = " << (unsigned)m_code << '\n';
-#endif
 	strm << setw(indent+5) << "id = " << (unsigned)m_id << '\n';
 	strm << setw(indent+9) << "length = " << GetLength() << " octets\n";
 
@@ -1790,7 +1780,6 @@ RadiusClient::RadiusClient(
 		}
 	}
 
-#if PTRACING
 	if (PTrace::CanTrace(4)) {
 		ostream& s = PTrace::Begin(4, __FILE__, __LINE__);
 		const std::streamsize indent = s.precision() + 2;
@@ -1805,7 +1794,6 @@ RadiusClient::RadiusClient(
 				<< ')';
 		PTrace::End(s);
 	}
-#endif
 }
 
 RadiusClient::RadiusClient( 
@@ -1868,7 +1856,6 @@ RadiusClient::RadiusClient(
 		}
 	}
 
-#if PTRACING
 	if (PTrace::CanTrace(4)) {
 		ostream& os = PTrace::Begin(4, __FILE__, __LINE__);
 		const std::streamsize indent = os.precision() + 2;
@@ -1883,7 +1870,6 @@ RadiusClient::RadiusClient(
 				<< ')';
 		PTrace::End(os);
 	}
-#endif
 }
 
 RadiusClient::~RadiusClient()
@@ -2026,7 +2012,6 @@ bool RadiusClient::MakeRequest(
 				return false;
 			}
 	
-#if PTRACING
 			if( PTrace::CanTrace(3) ) {
 				ostream& strm = PTrace::Begin(3, __FILE__, __LINE__);
 				strm << "RADIUS\tSending PDU to RADIUS server "
@@ -2039,7 +2024,6 @@ bool RadiusClient::MakeRequest(
 						<< ", id " << (PINDEX)(clonedRequestPDU->GetId());
 				PTrace::End(strm);
 			}
-#endif
 			RadiusPDU* response = NULL;
 			
 			retransmission = true;
@@ -2065,7 +2049,6 @@ bool RadiusClient::MakeRequest(
 
 			delete clonedRequestPDU;
 
-#if PTRACING
 			if (PTrace::CanTrace(3)) {
 				ostream& strm = PTrace::Begin(3, __FILE__, __LINE__);
 				strm << "RADIUS\tReceived PDU from RADIUS server "
@@ -2078,7 +2061,7 @@ bool RadiusClient::MakeRequest(
 						<< (PINDEX)(response->GetId());
 				PTrace::End(strm);
 			}
-#endif
+
 			if (!OnReceivedPDU(*response)) {
 				delete response;
 				response = NULL;
@@ -2150,8 +2133,7 @@ bool RadiusClient::SendRequest(
 		delete clonedRequestPDU;
 		return false;
 	}
-	
-#if PTRACING
+
 	if (PTrace::CanTrace(3)) {
 		ostream& strm = PTrace::Begin(3, __FILE__, __LINE__);
 		strm << "RADIUS\tSending PDU to RADIUS server "
@@ -2164,7 +2146,6 @@ bool RadiusClient::SendRequest(
 				<< (PINDEX)(clonedRequestPDU->GetId());
 		PTrace::End(strm);
 	}
-#endif
 
 	if (!socket->SendRequest(clonedRequestPDU, serverAddress, serverPort)) {
 		PTRACE(3, "RADIUS\tError sending RADIUS request (id:" << (PINDEX)id << ')');

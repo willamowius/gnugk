@@ -62,7 +62,6 @@ class Gatekeeper : public PProcess
 	virtual void OnControl();
 #endif
 
-#if PTRACING
 	enum RotationIntervals {
 		Hourly,
 		Daily,
@@ -88,7 +87,6 @@ class Gatekeeper : public PProcess
 	static void RotateOnTimer(
 		GkTimer * timer /// timer object that triggered rotation
 		);
-#endif // PTRACING
 
  protected:
 	/** returns the template string for which the cmommand line is parsed */
@@ -120,16 +118,13 @@ class Gatekeeper : public PProcess
 	//@}
 
 private:
-#if PTRACING
 	/// parse rotation interval from the config
 	static void GetRotateInterval(
 		PConfig & cfg, /// the config
 		const PString & section /// name of the config section to check
 		);
-#endif
 
 private:
-#if PTRACING
 	/// rotate file after the specified period of time (if >= 0)
 	static int m_rotateInterval;
 	/// a minute when the interval based rotation should occur
@@ -148,7 +143,6 @@ private:
 	static PMutex m_logFileMutex;
 	/// human readable names for rotation intervals
 	static const char* const m_intervalNames[];
-#endif // PTRACING
 
 #ifdef COMPILE_AS_SERVICE
 	PString savedArguments;

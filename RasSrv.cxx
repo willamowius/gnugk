@@ -221,7 +221,6 @@ GatekeeperMessage *RasListener::ReadRas()
 		delete msg;
 		return 0;
 	}
-#if PTRACING
 	if ((msg->GetTag() != H225_RasMessage::e_serviceControlIndication && msg->GetTag() != H225_RasMessage::e_serviceControlResponse)
 		||  PTrace::CanTrace(5)) {
 	if (PTrace::CanTrace(3))
@@ -229,20 +228,17 @@ GatekeeperMessage *RasListener::ReadRas()
 	else
 		PTRACE(2, "RAS\tReceived " << msg->GetTagName() << " from " << AsString(msg->m_peerAddr, msg->m_peerPort));
 	}
-#endif
 	msg->m_localAddr = GetLocalAddr(msg->m_peerAddr);
 	return msg;
 }
 
 bool RasListener::SendRas(const H225_RasMessage & rasobj, const Address & addr, WORD pt)
 {
-#if PTRACING
 	if ( ((rasobj.GetTag() != H225_RasMessage::e_serviceControlIndication && rasobj.GetTag() != H225_RasMessage::e_serviceControlResponse) && PTrace::CanTrace(3))
 		|| PTrace::CanTrace(5))
 		PTRACE(3, "RAS\tSend to " << AsString(addr, pt) << '\n' << setprecision(2) << rasobj);
 	else
 		PTRACE(2, "RAS\tSend " << RasName[rasobj.GetTag()] << " to " << AsString(addr, pt));
-#endif
 
 	PPER_Stream wtstrm;
 	rasobj.Encode(wtstrm);
@@ -251,7 +247,6 @@ bool RasListener::SendRas(const H225_RasMessage & rasobj, const Address & addr, 
 	m_wmutex.Wait();
 	bool result = WriteTo(wtstrm.GetPointer(), wtstrm.GetSize(), addr, pt);
 	m_wmutex.Signal();
-#if PTRACING
 	if (result)
 		PTRACE(5, "RAS\tSent Successful");
 	else
@@ -259,7 +254,6 @@ bool RasListener::SendRas(const H225_RasMessage & rasobj, const Address & addr, 
 			<< GetErrorNumber(PSocket::LastWriteError) << ": "
 			<< GetErrorText(PSocket::LastWriteError)
 			);
-#endif
 	return result;
 }
 
@@ -710,7 +704,7 @@ RasServer::~RasServer()
 
 void RasServer::Stop()
 {
-#if PTLIB_VER >= 2100
+#ifndef hasPTLibTraceOnShutdownBug
 	PTRACE(1, "GK\tStopping RasServer...");
 #endif
 	PWaitAndSignal lock(m_deletionPreventer);
@@ -746,7 +740,6 @@ void RasServer::SetRoutedMode(bool routedSignaling, bool routedH245)
 	}
 	GKRoutedH245 = GKRoutedSignaling ? routedH245 : false;
 
-#if PTRACING
 	const char *modemsg = GKRoutedSignaling ? "Routed" : "Direct";
 	const char *h245msg = GKRoutedH245 ? "Enabled" : "Disabled";
 	PTRACE(2, "GK\tUsing " << modemsg << " Signalling");
@@ -754,7 +747,6 @@ void RasServer::SetRoutedMode(bool routedSignaling, bool routedH245)
 #ifdef HAS_H46018
 	const char *h46018msg = Toolkit::AsBool(GkConfig()->GetString("RoutedMode", "EnableH46018", "0")) ? "Enabled" : "Disabled";
 	PTRACE(2, "GK\tH.460.18 Registrations " << h46018msg);
-#endif
 #endif
 }
 

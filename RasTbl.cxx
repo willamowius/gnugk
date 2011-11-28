@@ -1735,7 +1735,6 @@ bool RegistrationTable::InternalFindEP(
 		endpoints->push_back(routes.front().m_destEndpoint.operator->());
 	}
 
-#if PTRACING
 	if (PTrace::CanTrace(4)) {
 		ostream &strm = PTrace::Begin(4, __FILE__, __LINE__);
 		strm << "RASTBL\tPrefix match for gateways: ";
@@ -1746,7 +1745,6 @@ bool RegistrationTable::InternalFindEP(
 		}
 		PTrace::End(strm);
 	}
-#endif
 
 	return true;
 }
@@ -2022,11 +2020,9 @@ void RegistrationTable::CheckEndpoints()
 
 	Iter = partition(OutOfZoneList.begin(), OutOfZoneList.end(),
 		bind2nd(mem_fun(&EndpointRec::IsUpdated), &now));
-#if PTRACING
 	if (ptrdiff_t s = distance(Iter, OutOfZoneList.end())) {
 		PTRACE(2, s << " out-of-zone endpoint(s) expired.");
 	}
-#endif
 	copy(Iter, OutOfZoneList.end(), back_inserter(RemovedList));
 	OutOfZoneList.erase(Iter, OutOfZoneList.end());
 
@@ -3417,7 +3413,6 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	bool callingSupport = (m_Calling->SupportH46024() || (m_Calling->IsNATed() && (m_Calling->GetEPNATType() > 0)));
 	bool calledSupport = (m_Called->SupportH46024() || (m_Called->IsNATed() && (m_Called->GetEPNATType() > 0)));
 	
-#if PTRACING
 	PStringStream natinfo;
     natinfo << "NAT Offload (H460.23/.24) calculation inputs for Call No: " << GetCallNumber() << "\n" 
             << " Rule : " << (goDirect ? "Go Direct (if possible)" : "Must Proxy Media");
@@ -3449,7 +3444,6 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	}
 
 	PTRACE(5,"RAS\t\n" << natinfo);
-#endif
 
 	// If neither party supports H.460.24 then exit
 	if (!callingSupport && !calledSupport) {
@@ -4495,13 +4489,11 @@ void CallTable::InternalRemove(iterator Iter)
 		PString cdrString(call->GenerateCDR(m_timestampFormat) + "\r\n");
 		GkStatus::Instance()->SignalStatus(cdrString, STATUS_TRACE_LEVEL_CDR);
 		PTRACE(1, cdrString);
-#if PTRACING
 	} else {
 		if (!call->IsConnected())
 			PTRACE(2, "CDR\tignore not connected call");
 		else	
 			PTRACE(2, "CDR\tignore caller from neighbor");
-#endif
 	}
 
 	RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctStop, call);
@@ -4536,13 +4528,11 @@ void CallTable::InternalRemoveFailedLeg(iterator Iter)
 			PString cdrString(call->GenerateCDR(m_timestampFormat) + "\r\n");
 			GkStatus::Instance()->SignalStatus(cdrString, STATUS_TRACE_LEVEL_CDR);
 			PTRACE(1, cdrString);
-#if PTRACING
 		} else {
 			if (!call->IsConnected())
 				PTRACE(2, "CDR\tignore not connected call");
 			else	
 				PTRACE(2, "CDR\tignore caller from neighbor");
-#endif
 		}
 
 		RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctStop, call);

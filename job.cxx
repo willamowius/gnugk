@@ -257,19 +257,15 @@ Agent::~Agent()
 	PTRACE(5, "JOB\tDestroying active Workers for the Agent");
 
 	std::list<Worker*> workers;
-#if PTRACING
 	int numIdleWorkers = -1;
 	int numBusyWorkers = -1;
-#endif
 	
 	{
 		// move all workers to the local list
 		PWaitAndSignal lock(m_wlistMutex);
 		m_active = false;
-#if PTRACING
 		numIdleWorkers = m_idleWorkers.size();
 		numBusyWorkers = m_busyWorkers.size();
-#endif
 		while (!m_busyWorkers.empty()) {
 			workers.push_front(m_busyWorkers.front());
 			m_busyWorkers.pop_front();
@@ -280,11 +276,8 @@ Agent::~Agent()
 		}
 	}
 
-#if PTRACING
 	PTRACE(5, "JOB\tWorker threads to cleanup: " << (numBusyWorkers+numIdleWorkers) 
-		<< " total - " << numBusyWorkers << " busy, " << numIdleWorkers << " idle"
-		);
-#endif
+		<< " total - " << numBusyWorkers << " busy, " << numIdleWorkers << " idle");
 
 	std::list<Worker*>::iterator iter = workers.begin();
 	while (iter != workers.end()) {
@@ -302,10 +295,8 @@ Agent::~Agent()
 void Agent::Exec(Job * job)
 {
 	Worker* worker = NULL;
-#if PTRACING
 	int numIdleWorkers = -1;
 	int numBusyWorkers = -1;
-#endif
 	// pop the first idle worker and move it to the busy list	
 	if (job) {
 		PWaitAndSignal lock(m_wlistMutex);
@@ -320,10 +311,8 @@ void Agent::Exec(Job * job)
 			worker = m_idleWorkers.front();
 			m_idleWorkers.pop_front();
 			m_busyWorkers.push_front(worker);
-#if PTRACING
 			numIdleWorkers = m_idleWorkers.size();
 			numBusyWorkers = m_busyWorkers.size();
-#endif
 		}
 	} else
 		return;
@@ -339,10 +328,8 @@ void Agent::Exec(Job * job)
 			m_busyWorkers.push_front(worker);
 		else
 			destroyWorker = true;
-#if PTRACING
 		numIdleWorkers = m_idleWorkers.size();
 		numBusyWorkers = m_busyWorkers.size();
-#endif
 	}
 	
 	// execute the job by the worker
@@ -356,17 +343,12 @@ void Agent::Exec(Job * job)
 			m_idleWorkers.push_front(worker);
 		else
 			destroyWorker = true;
-#if PTRACING
 		numIdleWorkers = m_idleWorkers.size();
 		numBusyWorkers = m_busyWorkers.size();
-#endif
 	}
 
-#if PTRACING
 	PTRACE_IF(5, m_active, "JOB\tWorker threads: " << (numBusyWorkers+numIdleWorkers) 
-		<< " total - " << numBusyWorkers << " busy, " << numIdleWorkers << " idle"
-		);
-#endif
+		<< " total - " << numBusyWorkers << " busy, " << numIdleWorkers << " idle");
 
 	if (destroyWorker) {
 		PTRACE(5, "JOB\tAgent did not accept Job " << job->GetName());
@@ -378,23 +360,18 @@ void Agent::Remove(
 	Worker* worker
 	)
 {
-#if PTRACING
 	int numIdleWorkers;
 	int numBusyWorkers;
 	{
-#endif
 		PWaitAndSignal lock(m_wlistMutex);
 		// check both lists for the worker
 		m_idleWorkers.remove(worker);
 		m_busyWorkers.remove(worker);
-#if PTRACING
 		numIdleWorkers = m_idleWorkers.size();
 		numBusyWorkers = m_busyWorkers.size();
 	}
 	PTRACE_IF(5, m_active, "JOB\tWorker threads: " << (numBusyWorkers+numIdleWorkers) 
-		<< " total - " << numBusyWorkers << " busy, " << numIdleWorkers << " idle"
-		);
-#endif
+		<< " total - " << numBusyWorkers << " busy, " << numIdleWorkers << " idle");
 }
 
 void Agent::JobDone(
@@ -402,23 +379,18 @@ void Agent::JobDone(
 	Worker* worker
 	)
 {
-#if PTRACING
 	int numIdleWorkers;
 	int numBusyWorkers;
 	{
-#endif
 		PWaitAndSignal lock(m_wlistMutex);
 		m_busyWorkers.remove(worker);
 		if (m_active)
 			m_idleWorkers.push_front(worker);
-#if PTRACING
 		numIdleWorkers = m_idleWorkers.size();
 		numBusyWorkers = m_busyWorkers.size();
 	}
 	PTRACE_IF(5, m_active, "JOB\tWorker threads: " << (numBusyWorkers+numIdleWorkers) 
-		<< " total - " << numBusyWorkers << " busy, " << numIdleWorkers << " idle"
-		);
-#endif
+		<< " total - " << numBusyWorkers << " busy, " << numIdleWorkers << " idle");
 }
 
 

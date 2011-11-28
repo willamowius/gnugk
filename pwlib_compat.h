@@ -26,6 +26,10 @@
 	#endif
 #endif
 
+#ifndef PTRACING
+	#error "Enable PTRACING in PTLIB to compile GnuGk"
+#endif
+
 // check for PConfig support
 #ifndef P_CONFIG_FILE
 	#error "Make sure PTLib has config file support enabled, avoid --disable-configfile or --enable-openh323 or --enable-minsize etc."
@@ -105,6 +109,9 @@
 	// availability of GetLastError in PDynaLink
 	#if PTLIB_MINOR >= 8
 		#define hasDynaLinkGetLastError 1
+	#endif
+	#if PTLIB_MINOR == 9
+		#define hasPTLibTraceOnShutdownBug	1
 	#endif
 	#if PTLIB_MINOR >= 10
 		#ifdef P_HAS_IPV6

@@ -226,7 +226,6 @@ FileIPAuth::FileIPAuth(
 	
 	PTRACE(5, GetName() << "\t" << m_authList.size() << " entries loaded");
 
-#if PTRACING
 	if (PTrace::CanTrace(6)) {
 		ostream &strm = PTrace::Begin(6, __FILE__, __LINE__);
 		strm << GetName() << " entries:\n";
@@ -239,7 +238,6 @@ FileIPAuth::FileIPAuth(
 		}
 		PTrace::End(strm);
 	}
-#endif
 
 	if (dynamicCfg) {
 		delete cfg;

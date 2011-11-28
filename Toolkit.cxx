@@ -330,7 +330,6 @@ void Toolkit::RouteTable::InitTable()
 	}
 #endif
 
-#if PTRACING
 	for (RouteEntry *entry = rtable_begin; entry != rtable_end; ++entry) {
 		PTRACE(2, "Network=" << NetworkAddress(entry->GetNetwork(), entry->GetNetMask()).AsString() <<
 				", IP=" << entry->GetDestination());
@@ -346,7 +345,6 @@ void Toolkit::RouteTable::InitTable()
 	if (defAddr.IsLoopback()) {
 		PTRACE(1, "WARNING: Your default IP=" << defAddr << " is a loopback address. That probably won't work!");
 	}
-#endif
 }
 
 // get default route from route table, because GetGatewayAddress() is broken until PTLib 2.11.1

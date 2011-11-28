@@ -18,7 +18,6 @@
 #ifndef NAME_H
 #define NAME_H "@(#) $Id$"
 
-#if PTRACING
 
 class NamedObject 
 {
@@ -66,17 +65,5 @@ private:
 	/// object name
 	PString m_name;
 };
-
-#else
-
-struct NamedObject {
-	NamedObject(
-		/// name to set for the object
-		const char* name = NULL
-		) {}
-	void SetName(const char*) {}
-};
-
-#endif
 
 #endif // NAME_H

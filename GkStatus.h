@@ -132,10 +132,8 @@ public:
 		e_BindAndRouteToGateway,       /// Route a call to a specified alias + destinationCallSignalAddr + specify bind IP
 		e_RouteReject,                 /// Reject to Route a call upon ARQ (send ARJ)
 		e_Trace,                       /// change trace level for status interface output
-#if PTRACING
 		e_RotateLog,                   /// Force log file rotation
 		e_SetLogFilename,              /// Change log file location
-#endif
 		e_AddIncludeFilter,            /// Add include filter
 		e_RemoveIncludeFilter,         /// Remove include filter
 		e_AddExcludeFilter,            /// Add exclude filter

@@ -456,7 +456,6 @@ CLIRewrite::CLIRewrite()
 	}
 	
 	PTRACE(5, "CLIRW\t" << inboundRules << " inbound rules loaded");
-#if PTRACING
 	if (PTrace::CanTrace(6)) {
 		ostream &strm = PTrace::Begin(6, __FILE__, __LINE__);
 		strm << "Inbound CLI rewrite rules:" << endl;
@@ -467,10 +466,8 @@ CLIRewrite::CLIRewrite()
 		}
 		PTrace::End(strm);
 	}
-#endif
 
 	PTRACE(5, "CLIRW\t" << outboundRules << " outbound rules loaded");
-#if PTRACING
 	if (PTrace::CanTrace(6)) {
 		ostream &strm = PTrace::Begin(6, __FILE__, __LINE__);
 		strm << "Outbound CLI rewrite rules:" << endl;
@@ -483,7 +480,6 @@ CLIRewrite::CLIRewrite()
 			}
 		PTrace::End(strm);
 	}
-#endif
 
 	m_processSourceAddress = Toolkit::AsBool(
 		cfg->GetString(CLIRewriteSection, ProcessSourceAddress, "1")

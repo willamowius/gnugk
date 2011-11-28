@@ -231,7 +231,6 @@ GkAuthenticator::GkAuthenticator(
 		}
 	}
 
-#if PTRACING
 	// convert bit flags to human readable names
 	PString rasFlagsStr, miscFlagsStr;
 	
@@ -263,7 +262,6 @@ GkAuthenticator::GkAuthenticator(
 	PTRACE(1, "GKAUTH\t" << GetName() << " rule added to check RAS: "
 		<< rasFlagsStr << ", OTHER: " << miscFlagsStr
 		);
-#endif	
 
 	m_h235Authenticators = NULL;
 }
@@ -832,7 +830,6 @@ void GkAuthenticatorList::OnReload()
 
 	if (mechanisms.GetSize() > 0 && algorithmOIDs.GetSize() > 0) {
 		if (PTrace::CanTrace(4)) {
-#if PTRACING
 			ostream& strm = PTrace::Begin(4,__FILE__,__LINE__);
 			strm <<"GkAuth\tH.235 capabilities selected for GCF:\n";
 			strm <<"\tAuthentication mechanisms: \n";
@@ -842,7 +839,6 @@ void GkAuthenticatorList::OnReload()
 			for (i = 0; i < algorithmOIDs.GetSize(); i++)
 				strm << "\t\t" << algorithmOIDs[i] << '\n';
 			PTrace::End(strm);
-#endif
 		}
 #ifdef OpenH323Factory
 	}
@@ -1658,12 +1654,10 @@ bool AliasAuth::doCheck(
 	)
 {
 	const PStringArray authrules(condition.Tokenise("&|", FALSE));
-#if PTRACING
 	if (authrules.GetSize() < 1) {
 		PTRACE(2, "GKAUTH\t" << GetName() << " contains an empty auth condition");
 		return false;
 	}
-#endif
 	for (PINDEX i = 0; i < authrules.GetSize(); ++i)
 		for (PINDEX j = 0; j < sigaddr.GetSize(); ++j)
 			if (CheckAuthRule(sigaddr[j], authrules[i])) {
@@ -1911,11 +1905,9 @@ public:
 		) : AuthRule(fate, inverted), m_pattern(aliasStr) 
 	{ 
 		m_priority = -1;
-#if PTRACING
 		SetName(PString((fate == e_allow) ? "allow alias" : "deny alias")
 			+ (inverted ? ":!" : ":") + aliasStr
 			);
-#endif
 	}
 
 	virtual bool Match(
@@ -2025,10 +2017,8 @@ IPAuthRule::IPAuthRule(Result fate, const PString & ipStr, bool inverted)
 	DWORD n = ~PIPSocket::Net2Host(DWORD(m_netmask));
 	for (m_priority = 0; n; n >>= 1)
 		++m_priority;
-#if PTRACING
 	SetName(PString((fate == e_allow) ? "allow ip(" : "deny ip(")
 		+ PString(m_priority) + (inverted ? "):!" : "):") + ipStr);
-#endif
 }
 
 bool IPAuthRule::Match(const AuthObj & aobj)
@@ -2231,7 +2221,6 @@ int PrefixAuth::doCheck(
 			}
 		}
 	}
-#if PTRACING
 	if (m_defaultRule == e_ok)
 		PTRACE(4, "GKAUTH\t" << GetName() << " default rule accepted "
 			"the request"
@@ -2244,7 +2233,6 @@ int PrefixAuth::doCheck(
 		PTRACE(4, "GKAUTH\t" << GetName() << " could not reject or "
 			"accept the request"
 			);
-#endif
 	return m_defaultRule;
 }
 

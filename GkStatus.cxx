@@ -1046,10 +1046,8 @@ void GkStatus::OnStart()
 	m_commands["quit"] = e_Exit;
 	m_commands["q"] = e_Exit;
 	m_commands["trace"] = e_Trace;
-#if PTRACING
 	m_commands["rotatelog"] = e_RotateLog;
 	m_commands["setlog"] = e_SetLogFilename;
-#endif
 	m_commands["addincludefilter"] = e_AddIncludeFilter;
 	m_commands["removeincludefilter"] = e_RemoveIncludeFilter;
 	m_commands["addexcludefilter"] = e_AddExcludeFilter;
@@ -1759,7 +1757,6 @@ void StatusClient::ExecCommand(
 		WriteString("Output trace level is " + PString(m_traceLevel) + "\r\n");
 		break;
 
-#if PTRACING
 	case GkStatus::e_RotateLog:
 	    if (Gatekeeper::RotateLogFile())
 			WriteString("Log file rotation succeeded\r\n");
@@ -1776,7 +1773,6 @@ void StatusClient::ExecCommand(
 		} else
 			CommandError("Syntax Error: setlog <logfilepath>");
 		break;				
-#endif
 
 	case GkStatus::e_AddIncludeFilter:
 	    if (args.GetSize() == 2) {

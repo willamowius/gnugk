@@ -194,19 +194,13 @@ template<> H225_ArrayOf_AliasAddress *FacilityRequest::GetAliases()
 bool Policy::Handle(SetupRequest& request)
 {
 	if( IsActive() ) {
-#if PTRACING
 		const PString tagname = request.GetWrapper()->GetTagName();
 		const unsigned crv = request.GetWrapper()->GetCallReference();
 		PTRACE(5, "ROUTING\tChecking policy " << m_name
-			<< " for request " << tagname << " CRV=" << crv
-			);
-#endif
+			<< " for request " << tagname << " CRV=" << crv);
 		if (OnRequest(request)) {
-#if PTRACING
 			PTRACE(5, "ROUTING\tPolicy " << m_name
-				<< " applied to the request " << tagname << " CRV=" << crv
-				);
-#endif
+				<< " applied to the request " << tagname << " CRV=" << crv);
 			return true;
 		}
 	}
@@ -216,19 +210,14 @@ bool Policy::Handle(SetupRequest& request)
 bool Policy::Handle(FacilityRequest& request)
 {
 	if( IsActive() ) {
-#if PTRACING
 		const PString tagname = request.GetWrapper()->GetTagName();
 		const unsigned crv = request.GetWrapper()->GetCallReference();
 		PTRACE(5, "ROUTING\tChecking policy " << m_name
 			<< " for request " << tagname << " CRV=" << crv
 			);
-#endif
 		if (OnRequest(request)) {
-#if PTRACING
 			PTRACE(5, "ROUTING\tPolicy " << m_name
-				<< " applied to the request " << tagname << " CRV=" << crv
-				);
-#endif
+				<< " applied to the request " << tagname << " CRV=" << crv);
 			return true;
 		}
 	}
@@ -1301,10 +1290,8 @@ NumberAnalysisPolicy::NumberAnalysisPolicy()
 	stable_sort(m_prefixes.begin(), m_prefixes.end(), PrefixGreater());
 	
 	PTRACE(5, "ROUTING\t" << m_name << " policy loaded with " << m_prefixes.size()
-		<< " prefix entries"
-		);
-		
-#if PTRACING
+		<< " prefix entries");
+
 	if (PTrace::CanTrace(6)) {
 		ostream &strm = PTrace::Begin(6, __FILE__, __LINE__);
 		strm << "ROUTING\t" << m_name << " policy prefixes:" << endl;
@@ -1314,7 +1301,6 @@ NumberAnalysisPolicy::NumberAnalysisPolicy()
 				<< m_prefixes[i].m_maxLength << endl;
 		PTrace::End(strm);
 	}
-#endif /* PTRACING */
 }
 
 bool NumberAnalysisPolicy::OnRequest(AdmissionRequest & request)

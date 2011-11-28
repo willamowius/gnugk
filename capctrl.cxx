@@ -255,7 +255,6 @@ void CapacityControl::LoadConfig()
 	m_cliCallVolumes = cliCallVolumes;
 
 	PTRACE(5, "CAPCTRL\t" << ipRules << " IP rules loaded");
-#if PTRACING
 	if (PTrace::CanTrace(6)) {
 		ostream &strm = PTrace::Begin(6, __FILE__, __LINE__);
 		strm << "Per IP call volume rules:" << endl;
@@ -265,10 +264,8 @@ void CapacityControl::LoadConfig()
 		}
 		PTrace::End(strm);
 	}
-#endif
 
 	PTRACE(5, "CAPCTRL\t" << h323IdRules << " H.323 ID rules loaded");
-#if PTRACING
 	if (PTrace::CanTrace(6)) {
 		ostream &strm = PTrace::Begin(6, __FILE__, __LINE__);
 		strm << "Per H.323 ID call volume rules:" << endl;
@@ -278,10 +275,8 @@ void CapacityControl::LoadConfig()
 		}
 		PTrace::End(strm);
 	}
-#endif
 
 	PTRACE(5, "CAPCTRL\t" << cliRules << " CLI rules loaded");
-#if PTRACING
 	if (PTrace::CanTrace(6)) {
 		ostream &strm = PTrace::Begin(6, __FILE__, __LINE__);
 		strm << "Per CLI call volume rules:" << endl;
@@ -291,7 +286,6 @@ void CapacityControl::LoadConfig()
 		}
 		PTrace::End(strm);
 	}
-#endif
 }
 
 PString CapacityControl::PrintRules()

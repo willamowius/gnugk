@@ -183,20 +183,14 @@ public:
 	template <class R> bool HandleRas(Request<R,RasMsg> & request)
 	{
 		if( IsActive() ) {
-#if PTRACING
 			const char* tagname = request.GetWrapper()
 				? request.GetWrapper()->GetTagName() : "unknown";
 			const unsigned seqnum = request.GetRequest().m_requestSeqNum.GetValue();
 			PTRACE(5,"ROUTING\tChecking policy "<<m_name
-				<<" for the request "<<tagname<<' '<<seqnum
-				);
-#endif
+				<<" for the request "<<tagname<<' '<<seqnum);
 			if( OnRequest(request) ) {
-#if PTRACING
 				PTRACE(5,"ROUTING\tPolicy "<<m_name
-					<<" applied to the request "<<tagname<<' '<<seqnum
-					);
-#endif
+					<<" applied to the request "<<tagname<<' '<<seqnum);
 				return true;
 			}
 		}

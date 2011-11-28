@@ -910,7 +910,6 @@ bool GkAcctLoggerList::LogAcctEvent(
 		switch (status)
 		{
 		case GkAcctLogger::Ok:
-#if PTRACING
 			if (PTrace::CanTrace(3)) {
 				ostream& strm = PTrace::Begin(3,__FILE__,__LINE__);
 				strm << "GKACCT\t" << logger->GetName() << " logged event " << evt;
@@ -918,11 +917,9 @@ bool GkAcctLoggerList::LogAcctEvent(
 					strm << " for call no. " << call->GetCallNumber();
 				PTrace::End(strm);
 			}
-#endif
 			break;
 			
 		default:
-#if PTRACING
 			if (PTrace::CanTrace(3)) {
 				ostream& strm = PTrace::Begin(3, __FILE__, __LINE__);
 				strm << "GKACCT\t" << logger->GetName() << " failed to log event "
@@ -931,7 +928,6 @@ bool GkAcctLoggerList::LogAcctEvent(
 					strm << " for call no. " << call->GetCallNumber();
 				PTrace::End(strm);
 			}
-#endif
 			// required and sufficient rules always determine 
 			// status of the request
 			if (logger->GetControlFlag() == GkAcctLogger::Required
@@ -950,7 +946,6 @@ bool GkAcctLoggerList::LogAcctEvent(
 	if (finalResult && status != GkAcctLogger::Ok)
 		finalResult = false;
 		
-#if PTRACING
 	if (PTrace::CanTrace(2)) {
 		ostream& strm = PTrace::Begin(2, __FILE__, __LINE__);
 		strm << "GKACCT\t" << (finalResult ? "Successfully logged event " 
@@ -959,7 +954,6 @@ bool GkAcctLoggerList::LogAcctEvent(
 			strm << " for call no. " << call->GetCallNumber();
 		PTrace::End(strm);
 	}
-#endif
 	return finalResult;
 }
 
@@ -982,7 +976,6 @@ bool GkAcctLoggerList::LogAcctEvent(
 		switch (status)
 		{
 		case GkAcctLogger::Ok:
-#if PTRACING
 			if (PTrace::CanTrace(3)) {
 				ostream& strm = PTrace::Begin(3,__FILE__,__LINE__);
 				strm << "GKACCT\t" << logger->GetName() << " logged event " << evt;
@@ -990,11 +983,9 @@ bool GkAcctLoggerList::LogAcctEvent(
 					strm << " for endpoint " << ep->GetEndpointIdentifier().GetValue();
 				PTrace::End(strm);
 			}
-#endif
 			break;
 			
 		default:
-#if PTRACING
 			if (PTrace::CanTrace(3)) {
 				ostream& strm = PTrace::Begin(3, __FILE__, __LINE__);
 				strm << "GKACCT\t" << logger->GetName() << " failed to log event "
@@ -1003,7 +994,6 @@ bool GkAcctLoggerList::LogAcctEvent(
 					strm << " for endpoint " << ep->GetEndpointIdentifier().GetValue();
 				PTrace::End(strm);
 			}
-#endif
 			// required and sufficient rules always determine 
 			// status of the request
 			if (logger->GetControlFlag() == GkAcctLogger::Required
@@ -1022,7 +1012,6 @@ bool GkAcctLoggerList::LogAcctEvent(
 	if (finalResult && status != GkAcctLogger::Ok)
 		finalResult = false;
 		
-#if PTRACING
 	if (PTrace::CanTrace(2)) {
 		ostream& strm = PTrace::Begin(2, __FILE__, __LINE__);
 		strm << "GKACCT\t" << (finalResult ? "Successfully logged event " 
@@ -1031,7 +1020,6 @@ bool GkAcctLoggerList::LogAcctEvent(
 			strm << " for endpoint " << ep->GetEndpointIdentifier().GetValue();
 		PTrace::End(strm);
 	}
-#endif
 	return finalResult;
 }
 

@@ -42,7 +42,6 @@ PIPSocket::Address GNUGK_INADDR_ANY(INADDR_ANY);
 
 PReadWriteMutex ConfigReloadMutex;
 
-#if PTRACING
 PTextFile* Gatekeeper::m_logFile = NULL;
 PFilePath Gatekeeper::m_logFilename;
 PMutex Gatekeeper::m_logFileMutex;
@@ -51,7 +50,6 @@ int Gatekeeper::m_rotateMinute = 0;
 int Gatekeeper::m_rotateHour = 0;
 int Gatekeeper::m_rotateDay = 0;
 GkTimer* Gatekeeper::m_rotateTimer = GkTimerManager::INVALID_HANDLE;
-#endif // PTRACING
 
 PSemaphore ShutdownMutex(1,1);
 
@@ -65,9 +63,7 @@ PString pidfile("/var/run/gnugk.pid");
 
 void ShutdownHandler()
 {
-#if PTRACING
 	Gatekeeper::EnableLogFileRotation(false);
-#endif
 	// delete singleton objects
 	PTRACE(3, "GK\tDeleting global reference tables");
 
@@ -86,9 +82,7 @@ void ShutdownHandler()
 		delete Toolkit::Instance();
 	PTRACE(3, "GK\tdelete ok");
 
-#if PTRACING
 	Gatekeeper::CloseLogFile();
-#endif
 }
 
 static const char * KnowConfigEntries[][2] = {
@@ -615,15 +609,11 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 // or we get core dump
 void ExitGK()
 {
-#if PTRACING
 	Gatekeeper::EnableLogFileRotation(false);
-#endif
 
 	delete Toolkit::Instance();
 
-#if PTRACING
 	Gatekeeper::CloseLogFile();
-#endif
 	exit(0);
 }
 
@@ -694,9 +684,7 @@ BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 
 	if( dwCtrlType == CTRL_LOGOFF_EVENT ) {
 		eventName = "CTRL_LOGOFF_EVENT";
-#if PTRACING
 		PTRACE(2,"GK\tGatekeeper received " <<eventName);
-#endif
 		// prevent shut down
 		return FALSE;
 	}
@@ -710,7 +698,7 @@ BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 	else if( dwCtrlType == CTRL_SHUTDOWN_EVENT )
 		eventName = "CTRL_SHUTDOWN_EVENT";
 
-#if PTLIB_VER >= 2100 && defined(PTRACING)
+#ifndef hasPTLibTraceOnShutdownBug
 	PTRACE(1,"GK\tGatekeeper shutdown due to "<<eventName);
 #endif
 
@@ -896,10 +884,8 @@ const PString Gatekeeper::GetArgumentsParseString() const
 #ifdef HAS_SETUSERNAME
 		 "u-user:"
 #endif
-#if PTRACING
 		 "t-trace."
 		 "o-output:"
-#endif
 		 "c-config:"
 		 "s-section:"
 		 "-pid:"
@@ -959,7 +945,6 @@ bool Gatekeeper::InitHandlers(const PArgList & args)
 
 bool Gatekeeper::InitLogging(const PArgList & args)
 {
-#if PTRACING
 	// Syslog is the default when compiled as service, but we don't want that
 	PTrace::ClearOptions(PTrace::SystemLogStream);
 	PTrace::SetOptions(PTrace::DateAndTime | PTrace::TraceLevel | PTrace::FileAndLine);
@@ -971,7 +956,6 @@ bool Gatekeeper::InitLogging(const PArgList & args)
 			return FALSE;
 		}
 	}
-#endif
 
 	return TRUE;
 }
@@ -1016,10 +1000,8 @@ void Gatekeeper::PrintOpts()
 #ifdef HAS_SETUSERNAME
 		"  -u  --user name    : Run as this user\n"
 #endif
-#if PTRACING
 		"  -t  --trace        : Set trace verbosity\n"
 		"  -o  --output file  : Write trace to this file\n"
-#endif
 		"  -c  --config file  : Specify which config file to use\n"
 		"  -s  --section sec  : Specify which main section to use in the config file\n"
 		"      --pid file     : Specify the pid file\n"
@@ -1227,7 +1209,6 @@ void Gatekeeper::Main()
 #endif // _WIN32
 }
 
-#if PTRACING
 namespace {
 const char* const logConfigSectionName = "Logfile";
 }
@@ -1569,4 +1550,3 @@ void Gatekeeper::CloseLogFile()
 #endif
 	m_logFile = NULL;
 }
-#endif // PTRACING
