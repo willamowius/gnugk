@@ -1,5 +1,6 @@
 Changes from 2.3.5 to 3.0.0
 ===========================
+- support for H.460.23/.24 Multiplexing (req h323plus 1.24+)
 - BUGFIX(gkauth.h,gkauth.cxx) don't check GRQ in password auth modules
 - BUGFIX(RasSrv.cxx) fix crash if H.460.18 client sends only invalid RAS addresses in RRQ
 - BUGFIX(Routing.cxx) the DNS policy didn't properly handle ports (eg. joe@company.com:1720)
