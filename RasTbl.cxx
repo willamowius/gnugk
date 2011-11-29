@@ -831,7 +831,7 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 {
 	if ((GetRasAddress().GetTag() != H225_TransportAddress::e_ipAddress)
 		&& (GetRasAddress().GetTag() != H225_TransportAddress::e_ip6Address))
-		return false;  // no valid ras address
+		return false;  // no valid RAS address
 
 	RasServer *RasSrv = RasServer::Instance();
 	H225_RasMessage ras_msg;
@@ -1062,7 +1062,7 @@ bool EndpointRec::AddH350ServiceControl(
 
 
 
-GatewayRec::GatewayRec(const H225_RasMessage &completeRRQ, bool Permanent)
+GatewayRec::GatewayRec(const H225_RasMessage & completeRRQ, bool Permanent)
       : EndpointRec(completeRRQ, Permanent), defaultGW(false), priority(1)
 {
 	LoadGatewayConfig(); // static binding
@@ -1114,14 +1114,12 @@ void GatewayRec::LoadGatewayConfig()
 	SortPrefixes();
 }
 
-void GatewayRec::SetPriority(
-	int newPriority
-	) 
+void GatewayRec::SetPriority(int newPriority)
 {
 	priority = newPriority;
 }
 
-void GatewayRec::SetEndpointType(const H225_EndpointType &t)
+void GatewayRec::SetEndpointType(const H225_EndpointType & t)
 {
 	if (!t.HasOptionalField(H225_EndpointType::e_gateway) ||
 		!t.HasOptionalField(H225_EndpointType::e_mcu)) {
@@ -1146,7 +1144,7 @@ void GatewayRec::Update(const H225_RasMessage & ras_msg)
 	EndpointRec::Update(ras_msg);
 }
 
-void GatewayRec::AddPrefixes(const H225_ArrayOf_SupportedProtocols &protocols)
+void GatewayRec::AddPrefixes(const H225_ArrayOf_SupportedProtocols & protocols)
 {
 	for (PINDEX i = 0; i < protocols.GetSize(); ++i) {
 		H225_SupportedProtocols &p = protocols[i];
@@ -4125,9 +4123,7 @@ void CallTable::ClearTable()
 	}
 }
 
-void CallTable::CheckCalls(
-	RasServer* rassrv
-	)
+void CallTable::CheckCalls(RasServer * rassrv)
 {
 	std::list<callptr> m_callsToDisconnect;
 	std::list<callptr> m_callsToUpdate;
@@ -4177,9 +4173,7 @@ void CallTable::CheckCalls(
 
 #ifdef HAS_H460
 
-static PTextFile* OpenQoSFile(
-	const PFilePath& fn
-	)
+static PTextFile* OpenQoSFile(const PFilePath & fn)
 {
 	PTextFile* qosFile = new PTextFile(fn, PFile::ReadWrite, 
 		PFile::Create | PFile::DenySharedWrite
