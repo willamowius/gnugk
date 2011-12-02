@@ -1088,6 +1088,8 @@ void Gatekeeper::Main()
 			fake_cmdline += " -o " + log_trace_file;
 	}
 	if (!fake_cmdline.IsEmpty()) {
+		for (int t=0; t < args.GetOptionCount('t'); t++)
+			fake_cmdline += " -t";
 		PArgList fake_args(fake_cmdline);
 		fake_args.Parse(GetArgumentsParseString());
 		InitLogging(fake_args);
