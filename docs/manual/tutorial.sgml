@@ -338,3 +338,12 @@ so it can only run GnuGk as either an IPv4 or IPv6 gatekeeper.
 Solaris supports IPv4 mapped addresses, but currently PTLib can't read the operating system's
 IPv6 route table, so you currently can't enable IPv6 on Solaris.
 
+As of December 2011, IPv6 support in endpoints is still scarce and support for
+using an IPv6 gatekeeper is even more rare.
+It seems most Tandberg devices with a recent firmware support IPv6
+(eg. C series, EX90 or VCS).
+Some Polycom endpoints with the latest firnmware support IPv6
+(eg. HDX 9004 with firmware 3.0.3), but LifeSize endpoints don't support IPv6 with
+a gatekeeper at all.
+So make sure you are using an endpoint with full IPv6 support when trying IPv6 with GnuGk.
+
