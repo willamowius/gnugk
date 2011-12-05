@@ -335,15 +335,18 @@ For Windows, you need at least Windows Vista, Windows Server 2008, Windows 7 or 
 On Windows XP GnuGk will run as a IPv6-only gatekeeper if you enable IPv6 support.
 OpenBSD doesn't support IPv4 mapped addresses at all (latest version tested: OpenBSD 5.0),
 so it can only run GnuGk as either an IPv4 or IPv6 gatekeeper.
-Solaris supports IPv4 mapped addresses, but currently PTLib can't read the operating system's
-IPv6 route table, so you currently can't enable IPv6 on Solaris.
+Solaris supports IPv4 mapped addresses, but PTLib (2.11.0) can't read the operating system's
+IPv6 route table, so IPv6 is not available on Solaris.
 
-As of December 2011, IPv6 support in endpoints is still scarce and support for
-using an IPv6 gatekeeper is even more rare.
-It seems most Tandberg devices with a recent firmware support IPv6
+As of December 2011, IPv6 support in endpoints is known to work with the following:
+<itemize>
+<item>Most Tandberg devices with a recent firmware support IPv6
 (eg. C series, EX90 or VCS).
-Some Polycom endpoints with the latest firnmware support IPv6
-(eg. HDX 9004 with firmware 3.0.3), but LifeSize endpoints don't support IPv6 with
-a gatekeeper at all.
-So make sure you are using an endpoint with full IPv6 support when trying IPv6 with GnuGk.
+<item>Polycom HDX endpoints with firmware 3.0 or higher.
+<item>Spranto 2.6.0.14 or higher.
+</itemize>
 
+Known to not work:
+<itemize>
+<item>LifeSize endpoints do not support an IPv6 gatekeeper.
+</itemize>
