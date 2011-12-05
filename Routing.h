@@ -225,7 +225,9 @@ class ExplicitPolicy : public Policy {
 public:
 	ExplicitPolicy();
 
-	static void MapDestination(H225_TransportAddress & addr);
+	static void MapDestination(H225_AdmissionRequest & arq);
+	static void MapDestination(H225_Setup_UUIE & setupBody);
+	static void MapDestination(H225_Facility_UUIE & facility);
 	static void OnReload();
 
 protected:
@@ -234,7 +236,7 @@ protected:
 	virtual bool OnRequest(SetupRequest &);
 	virtual bool OnRequest(FacilityRequest &);
 
-	static std::map<PString, H225_TransportAddress> m_destMap;
+	static std::map<PString, PString> m_destMap;
 };
 
 

@@ -418,17 +418,23 @@ This switch selects if the 'rds' policy should resolve hostnames in LRQs.
 <label id="routingexplicit">
 <p>
 You can define a mapping where calls to certain IPs should be routed by the 'explicit' policy.
+The new destination can either be another IP or an alias destination of any type.
+If you rewrite the destination to something other than an IP, make sure you have other
+routing policies in the chain behind the 'explicit' policy that can handle the new destination.
 
 <descrip>
 <tag/Format:/
-<tt/IP=newIP[:port]/
+<tt/IP=newIP[:port] | E.164 | alias/
 </descrip>
 
 <descrip>
 <tag/Example:/
 <quote><tt>[Routing::Explicit]<newline>
 192.168.1.100=10.10.1.100<newline>
-192.168.1.101=10.10.1.101:1720</tt></quote>
+192.168.1.101=10.10.1.101:1720<newline>
+192.168.1.102=654251<newline>
+192.168.1.103=peter<newline>
+192.168.1.104=joe@company.com</tt></quote>
 </descrip>
 
 

@@ -2449,7 +2449,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
 		// rewrite destination IP here (can't do it in Explicit policy, because local IPs are removed before they get there)
-		Routing::ExplicitPolicy::MapDestination(setupBody.m_destCallSignalAddress);
+		Routing::ExplicitPolicy::MapDestination(setupBody);
 		// remove the destination signaling address of the gatekeeper
 		PIPSocket::Address _destAddr;
 		WORD _destPort = 0;

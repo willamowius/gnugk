@@ -1,5 +1,7 @@
 Changes from 2.3.5 to 3.0.0
 ===========================
+- BUGFIX(gk.cxx) fix trace level if the trace file is in the config file and the trace level on the command line
+- [Routing::Explicit] rules now allow IP destinations to be mapped to any kind of alias destination
 - support for H.460.23/.24 Multiplexing (req h323plus 1.24+)
 - BUGFIX(gkauth.h,gkauth.cxx) don't check GRQ in password auth modules
 - BUGFIX(RasSrv.cxx) fix crash if H.460.18 client sends only invalid RAS addresses in RRQ

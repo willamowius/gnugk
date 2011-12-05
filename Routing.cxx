@@ -357,7 +357,7 @@ bool AliasesPolicy::OnRequest(FacilityRequest & request)
 }
 
 
-std::map<PString, H225_TransportAddress> ExplicitPolicy::m_destMap;
+std::map<PString, PString> ExplicitPolicy::m_destMap;
 
 ExplicitPolicy::ExplicitPolicy()
 {
@@ -372,14 +372,22 @@ void ExplicitPolicy::OnReload()
 		PString src = mappings.GetKeyAt(i);
 		PString dest = mappings.GetDataAt(i);
 		H225_TransportAddress srcAddr;
-		if (GetTransportAddress(src, 1720, srcAddr)) {
+		if (GetTransportAddress(src, GK_DEF_ENDPOINT_SIGNAL_PORT, srcAddr)) {
 			if (!dest.IsEmpty()) {
-				H225_TransportAddress destAddr;
-				if (GetTransportAddress(dest, 1720, destAddr)) {
-					m_destMap[AsDotString(srcAddr, false)] = destAddr;
+				if (IsIPAddress(dest)) {
+					// test parse IP, but store again as string
+					H225_TransportAddress destAddr;
+					if (GetTransportAddress(dest, GK_DEF_ENDPOINT_SIGNAL_PORT, destAddr)) {
+						m_destMap[AsDotString(srcAddr, false)] = AsDotString(destAddr, false);
+					} else {
+						PTRACE(1, "Error parsing dest entry in [Routing::Explicit]: " << src << "=" << dest);
+					}
 				} else {
-					PTRACE(1, "Error parsing dest entry in [Routing::Explicit]: " << src << "=" << dest);
+					// store anything else as string, will be used as alias
+					m_destMap[AsDotString(srcAddr, false)] = dest;
 				}
+			} else {
+				PTRACE(1, "Error: Empty dest entry in [Routing::Explicit]: " << src << "=");
 			}
 		} else {
 			PTRACE(1, "Error parsing src entry in [Routing::Explicit]: " << src << "=" << dest);
@@ -387,13 +395,72 @@ void ExplicitPolicy::OnReload()
 	}
 }
 
-void ExplicitPolicy::MapDestination(H225_TransportAddress & addr)
+void ExplicitPolicy::MapDestination(H225_AdmissionRequest & arq)
 {
+	H225_TransportAddress & addr = arq.m_destCallSignalAddress;
 	PString orig = AsDotString(addr, false);	// original IP without port
-	std::map<PString, H225_TransportAddress>::const_iterator i = m_destMap.find(orig);
+	std::map<PString, PString>::const_iterator i = m_destMap.find(orig);
 	if (i != m_destMap.end()) {
-		addr = i->second;
-		PTRACE(4, "[Routing::Explicit]: map destination " << orig << " to " << AsDotString(i->second));
+		PString newDest = i->second;
+		if (IsIPAddress(newDest)) {
+			// just rewrite the IP
+			H225_TransportAddress destAddr;
+			GetTransportAddress(newDest, GK_DEF_ENDPOINT_SIGNAL_PORT, destAddr); // ignore result, we have parsed these before
+			addr = destAddr;
+		} else {
+			// delete IP and set a new destination alias
+			arq.RemoveOptionalField(H225_AdmissionRequest::e_destCallSignalAddress);
+			arq.IncludeOptionalField(H225_AdmissionRequest::e_destinationInfo);
+			arq.m_destinationInfo.SetSize(1);
+			H323SetAliasAddress(newDest, arq.m_destinationInfo[0]);
+		}
+		PTRACE(4, "[Routing::Explicit]: map destination " << orig << " to " << newDest);
+	}
+}
+
+void ExplicitPolicy::MapDestination(H225_Setup_UUIE & setupBody)
+{
+	H225_TransportAddress & addr = setupBody.m_destCallSignalAddress;
+	PString orig = AsDotString(addr, false);	// original IP without port
+	std::map<PString, PString>::const_iterator i = m_destMap.find(orig);
+	if (i != m_destMap.end()) {
+		PString newDest = i->second;
+		if (IsIPAddress(newDest)) {
+			// just rewrite the IP
+			H225_TransportAddress destAddr;
+			GetTransportAddress(newDest, GK_DEF_ENDPOINT_SIGNAL_PORT, destAddr); // ignore result, we have parsed these before
+			addr = destAddr;
+		} else {
+			// delete IP and set a new destination alias
+			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
+			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
+			setupBody.m_destinationAddress.SetSize(1);
+			H323SetAliasAddress(newDest, setupBody.m_destinationAddress[0]);
+		}
+		PTRACE(4, "[Routing::Explicit]: map destination " << orig << " to " << newDest);
+	}
+}
+
+void ExplicitPolicy::MapDestination(H225_Facility_UUIE & facilityBody)
+{
+	H225_TransportAddress & addr = facilityBody.m_alternativeAddress;
+	PString orig = AsDotString(addr, false);	// original IP without port
+	std::map<PString, PString>::const_iterator i = m_destMap.find(orig);
+	if (i != m_destMap.end()) {
+		PString newDest = i->second;
+		if (IsIPAddress(newDest)) {
+			// just rewrite the IP
+			H225_TransportAddress destAddr;
+			GetTransportAddress(newDest, GK_DEF_ENDPOINT_SIGNAL_PORT, destAddr); // ignore result, we have parsed these before
+			addr = destAddr;
+		} else {
+			// delete IP and set a new destination alias
+			facilityBody.RemoveOptionalField(H225_Facility_UUIE::e_alternativeAddress);
+			facilityBody.IncludeOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress);
+			facilityBody.m_alternativeAliasAddress.SetSize(1);
+			H323SetAliasAddress(newDest, facilityBody.m_alternativeAliasAddress[0]);
+		}
+		PTRACE(4, "[Routing::Explicit]: map destination " << orig << " to " << newDest);
 	}
 }
 
@@ -401,11 +468,12 @@ bool ExplicitPolicy::OnRequest(AdmissionRequest & request)
 {
 	H225_AdmissionRequest & arq = request.GetRequest();
 	if (arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
-		MapDestination(arq.m_destCallSignalAddress);
+		MapDestination(arq);
+		// check if the mapping removed the destination IP
+		if (!arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress))
+			return false;
 		Route route(m_name, arq.m_destCallSignalAddress);
-		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
-			route.m_destAddr
-			);
+		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
 #ifdef HAS_H46023
         if (!route.m_destEndpoint && 
            arq.HasOptionalField(H225_AdmissionRequest::e_genericData) &&
@@ -428,9 +496,7 @@ bool ExplicitPolicy::OnRequest(SetupRequest & request)
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
 		// don't map IP here, for Setup already done in OnSetup()
 		Route route(m_name, setup.m_destCallSignalAddress);
-		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
-			route.m_destAddr
-			);
+		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
 		return request.AddRoute(route);
 	}
 	return false;
@@ -440,11 +506,12 @@ bool ExplicitPolicy::OnRequest(FacilityRequest & request)
 {
 	H225_Facility_UUIE & facility = request.GetRequest();
 	if (facility.HasOptionalField(H225_Facility_UUIE::e_alternativeAddress)) {
-		MapDestination(facility.m_alternativeAddress);
+		MapDestination(facility);
+		// check if the mapping removed the destination IP
+		if (!facility.HasOptionalField(H225_Facility_UUIE::e_alternativeAddress))
+			return false;
 		Route route(m_name, facility.m_alternativeAddress);
-		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
-			route.m_destAddr
-			);
+		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
 		return request.AddRoute(route);
 	}
 	return false;
