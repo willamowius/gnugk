@@ -369,6 +369,7 @@ static const char * KnowConfigEntries[][2] = {
 	{ "RoutedMode", "NATStdMin" },
 	{ "RoutedMode", "Q931PortRange" },
 	{ "RoutedMode", "RemoveCallOnDRQ" },
+	{ "RoutedMode", "RemoveFaxUDPOptionsFromRM" },
 	{ "RoutedMode", "RemoveH235Call" },
 	{ "RoutedMode", "RemoveH245AddressOnTunneling" },
 	{ "RoutedMode", "RemoveH460Call" },
