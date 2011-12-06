@@ -81,6 +81,11 @@ However, you can still unregister it via the status port.
 Special characters <tt/./ and <tt/!/
 can be used with prefixes here to match any digit and disable the prefix.
 You may use := syntax to set a prefix priority in the same manner as in <ref id="gwprefixes" name="[RasSrv::GWPrefixes]"> section.
+
+Make sure you add at least one prefix for all gateways,
+even if you assign the prefixes elsewhere (eg. in the [EP::...] section),
+otherwise the endpoint won't be considered a gateway and those settings won't apply!
+
 <descrip>
 <tag/Format:/
 <tt>IP[:port]=alias[,alias,...;prefix[:=priority][,prefix[:=priority]]...]</tt>
