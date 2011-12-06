@@ -2251,10 +2251,10 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "TranslateSorensonSourceInfo", "0"))) {
-       // Viable VPAD (Viable firmware, SBN Tech device), remove the CallingPartyNumber information 
-       // (its under the sorenson switch, even though not sorenson, can be moved later to own switch - SH)
-       if (setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_vendor)
-            && setupBody.m_sourceInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)
+		// Viable VPAD (Viable firmware, SBN Tech device), remove the CallingPartyNumber information 
+		// (its under the sorenson switch, even though not sorenson, can be moved later to own switch - SH)
+		if (setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_vendor)
+			&& setupBody.m_sourceInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)
             && setupBody.m_sourceInfo.m_vendor.m_productId.AsString().Left(11) == "viable vpad") {
                 if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
                     unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType;
@@ -2263,32 +2263,31 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
                         AliasAddressTagMask(H225_AliasAddress::e_dialedDigits) | AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
                     q931.SetCallingPartyNumber(callingNumber, plan, type, presentation, screening);
                 }
-       }
+		}
 
-       if (q931.HasIE(Q931::CalledPartyNumberIE)) {
-           PString dialedNumber;
-           q931.GetCalledPartyNumber(dialedNumber);
-           if (! Toolkit::Instance()->IsNumeric(dialedNumber)) {
-               PTRACE(4,"WARNING: Removed Called Party Number IE as it's not numeric!");
-               q931.RemoveIE(Q931::CalledPartyNumberIE);
-           }
-       }
+		if (q931.HasIE(Q931::CalledPartyNumberIE)) {
+			PString dialedNumber;
+			q931.GetCalledPartyNumber(dialedNumber);
+			if (! Toolkit::Instance()->IsNumeric(dialedNumber)) {
+				PTRACE(4,"WARNING: Removed Called Party Number IE as it's not numeric!");
+				q931.RemoveIE(Q931::CalledPartyNumberIE);
+			}
+		}
 
-       // Sorenson nTouch fix to provide a CalledPartyNumber as well if destinationAddress dialedDigits are provided
-       if (!q931.HasIE(Q931::CalledPartyNumberIE)) {
-          PString calledNumber;
-          unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType;
-          if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
-            calledNumber = GetBestAliasAddressString(setupBody.m_destinationAddress,false, 
-                           AliasAddressTagMask(H225_AliasAddress::e_dialedDigits) | AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
-            PTRACE(1, "Setting the Q.931 CalledPartyNumber to: " << calledNumber);
-            if (Toolkit::Instance()->IsNumeric(calledNumber))                
-                  q931.SetCalledPartyNumber(calledNumber, plan, type);
+		// Sorenson nTouch fix to provide a CalledPartyNumber as well if destinationAddress dialedDigits are provided
+		if (!q931.HasIE(Q931::CalledPartyNumberIE)) {
+			PString calledNumber;
+			unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType;
+			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
+				calledNumber = GetBestAliasAddressString(setupBody.m_destinationAddress,false, 
+				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits) | AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
+				PTRACE(1, "Setting the Q.931 CalledPartyNumber to: " << calledNumber);
+				if (Toolkit::Instance()->IsNumeric(calledNumber))
+					q931.SetCalledPartyNumber(calledNumber, plan, type);
+			}
+		}
 
-          }
-       }
-
-	   if (setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_terminal)
+		if (setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_terminal)
 			&&  setupBody.m_sourceInfo.m_terminal.HasOptionalField(H225_TerminalInfo::e_nonStandardData) 
             &&  setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_vendor)
             &&  setupBody.m_sourceInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)
@@ -2320,7 +2319,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 									q931.SetCallingPartyNumber(e164, plan, type, presentation, screening);
 								}
 							} else {
-								PTRACE(1, "Invalid character in Sorensen source info: " << e164);
+								PTRACE(1, "Invalid character in Sorenson source info: " << e164);
 							}
 						} else if (tokens[i].Left(4) == "0008") {
 							PString ip = tokens[i].Mid(4);
@@ -2329,7 +2328,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 								setupBody.m_sourceAddress.SetSize( sourceAdrSize + 1 );
 								H323SetAliasAddress(ip, setupBody.m_sourceAddress[sourceAdrSize], H225_AliasAddress::e_transportID);
 							} else {
-								PTRACE(1, "Invalid IP in Sorensen source info: " << ip);
+								PTRACE(1, "Invalid IP in Sorenson source info: " << ip);
 							}
 						}
 					}

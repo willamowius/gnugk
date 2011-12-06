@@ -388,6 +388,7 @@ static const char * KnowConfigEntries[][2] = {
 	{ "RoutedMode", "TranslateReceivedQ931Cause" },
 	{ "RoutedMode", "TreatUnregisteredNAT" },
 	{ "RoutedMode", "TranslateSentQ931Cause" },
+	{ "RoutedMode", "TranslateSorensonSourceInfo" },
 	{ "RoutedMode", "UseProvisionalRespToH245Tunneling" },
 	{ "Routing::CatchAll", "CatchAllAlias" },
 	{ "Routing::CatchAll", "CatchAllIP" },
