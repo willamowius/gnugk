@@ -575,6 +575,7 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 			j++;
 		}
 		if (!found) {
+			cerr << "WARNING: Config section [" << sect << "] unknown" << endl;
 			PTRACE(0, "WARNING: Config section [" << sect << "] unknown");
 			warnings++;
 		} else if (!section_checkable) {
@@ -586,6 +587,7 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 				PCaselessString key = entries.GetKeyAt(j);
 				PString value = entries.GetDataAt(j);
 				if (value.IsEmpty()) {
+					cerr << "WARNING: Empty switch: [" << sect << "] " << key << "=" << endl;
 					PTRACE(0, "WARNING: Empty switch: [" << sect << "] " << key << "=");
 				}
 				unsigned k = 0;
@@ -599,6 +601,7 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 					}
 				}
 				if (!entry_found) {
+					cerr << "WARNING: Config entry [" << sect << "] " << key << "=" << value << " unknown" << endl;
 					PTRACE(0, "WARNING: Config entry [" << sect << "] " << key << "=" << value << " unknown");
 					warnings++;
 				}
