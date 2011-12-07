@@ -170,10 +170,6 @@ int RadAuthBase::Check(
 			);
 	}
 	
-	if (!OnSendPDU(*pdu, rrqPdu, authData)) {
-		delete pdu;
-		return e_fail;
-	}
 	// send request and wait for response
 	RadiusPDU* response = NULL;
 	bool result = m_radiusClient->MakeRequest(*pdu, response) && response;
@@ -320,9 +316,7 @@ int RadAuthBase::Check(
 		}
 	}
 
-	if (result)
-		result = OnReceivedPDU(*response, rrqPdu, authData);
-	else
+	if (!result)
 		authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
 				
 	delete response;
@@ -463,10 +457,6 @@ int RadAuthBase::Check(
 		pdu->AppendAttr(m_attrH323GwId);
 	}
 				
-	if (!OnSendPDU(*pdu, arqPdu, authData)) {
-		delete pdu;
-		return e_fail;
-	}
 	// send the request and wait for a response
 	RadiusPDU* response = NULL;
 	bool result = m_radiusClient->MakeRequest(*pdu, response) && response;
@@ -723,9 +713,7 @@ int RadAuthBase::Check(
 		}
 	}
 
-	if (result)
-		result = OnReceivedPDU(*response, arqPdu, authData);
-	else
+	if (!result)
 		authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
 					
 	delete response;
@@ -835,10 +823,6 @@ int RadAuthBase::Check(
 		pdu->AppendAttr(m_attrH323GwId);
 	}
 				
-	if (!OnSendPDU(*pdu, setup, authData)) {
-		delete pdu;
-		return e_fail;
-	}
 	// send the request and wait for a response
 	RadiusPDU* response = NULL;
 	bool result = m_radiusClient->MakeRequest(*pdu, response) && response;
@@ -1043,69 +1027,13 @@ int RadAuthBase::Check(
 		}
 	}
 
-	if (result)
-		result = OnReceivedPDU(*response, setup, authData);
-	else
+	if (!result)
 		authData.m_rejectCause = Q931::CallRejected;
 					
 	delete response;
 	response = NULL;
 	return result ? e_ok : e_fail;
 }		
-
-bool RadAuthBase::OnSendPDU(
-	RadiusPDU& /*pdu*/,
-	RasPDU<H225_RegistrationRequest>& /*rrqPdu*/,
-	RRQAuthData& /*authData*/
-	)
-{
-	return true;
-}
-
-bool RadAuthBase::OnSendPDU(
-	RadiusPDU& /*pdu*/,
-	RasPDU<H225_AdmissionRequest>& /*arqPdu*/,
-	ARQAuthData& /*authData*/
-	)
-{
-	return true;
-}
-
-bool RadAuthBase::OnSendPDU(
-	RadiusPDU& /*pdu*/,
-	SetupMsg &/*setup*/,
-	SetupAuthData& /*authData*/
-	)
-{
-	return true;
-}
-
-bool RadAuthBase::OnReceivedPDU(
-	RadiusPDU& /*pdu*/,
-	RasPDU<H225_RegistrationRequest>& /*rrqPdu*/,
-	RRQAuthData& /*authData*/
-	)
-{
-	return true;
-}
-
-bool RadAuthBase::OnReceivedPDU(
-	RadiusPDU& /*pdu*/,
-	RasPDU<H225_AdmissionRequest>& /*arqPdu*/,
-	ARQAuthData& /*authData*/
-	)
-{
-	return true;
-}
-
-bool RadAuthBase::OnReceivedPDU(
-	RadiusPDU& /*pdu*/,
-	SetupMsg &/*setup*/,
-	SetupAuthData& /*authData*/
-	)
-{
-	return true;
-}
 
 int RadAuthBase::AppendUsernameAndPassword(
 	RadiusPDU& /*pdu*/,

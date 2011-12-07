@@ -1155,37 +1155,6 @@ public:
 	static WORD GetDefaultAcctPort() { return DefaultAcctPort; }
 
 protected:
-	/** Callback called before a request is sent to the RADIUS server.
-	    It gives the possibility to do something with the request PDU.
-	    The callback is supplied with information whether the packet
-	    is being retransmitted - and can trigger an update of some attributes.
-	    Set requireNewId if attributes with some dynamic contents have been
-	    added, so the request cannot be simply retransmitted with the same ID.
-
-	    @return
-	    True if proceed with this request
-	*/
-	virtual bool OnSendPDU( 
-		/// PDU that is to be sent
-		RadiusPDU& pdu, 
-		/// true if this is PDU retransmission
-		bool retransmision, 
-		/// set to true if a new ID and authenticator should be generated
-		/// for this request upon retransmission
-		bool& generateNewId
-		);
-
-	/** Callback called after response PDU had been received from RADIUS server
-		and before it is returned to the calling application.
-		It gives the possibility to do something with the PDU.
-	
-		@return
-		True if proceed with this response
-	*/
-	virtual bool OnReceivedPDU( 
-		RadiusPDU& pdu /// PDU that was received
-		);
-
 	/** Determine if the #pdu# should be send to auth port
 		of RADIUS server (FALSE) or acct port (TRUE).
 

@@ -57,31 +57,6 @@ public:
 		const callptr& call
 		);
 		
-protected:
-	/** Called before Accounting-Request PDU is send.
-		Can be used to introduce additional attributes etc.
-		
-		@return
-		True to proceed, false to fail and not send this pdu.
-	*/
-	virtual bool OnSendPDU(
-		RadiusPDU& pdu, /// PDU to be sent
-		AcctEvent evt, /// accounting event being processed
-		const callptr& call /// call associated with this request (if any)
-		);
-
-	/** Called after Accounting-Response PDU is received.
-		Can be used to check for some additional attributes etc.
-		
-		@return
-		True to accept the response, false to return failure for this event.
-	*/
-	virtual bool OnReceivedPDU(
-		RadiusPDU& pdu, /// PDU received from RADIUS server
-		AcctEvent evt, /// accounting event being processed
-		const callptr& call /// call associated with this response (if any)
-		);
-		
 private:
 	RadAcct();
 	/* No copy constructor allowed */

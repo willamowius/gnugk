@@ -671,9 +671,7 @@ RadiusPDU::RadiusPDU() : m_code(Invalid), m_id(0)
 	SetLength(FixedHeaderLength);
 }
 
-RadiusPDU::RadiusPDU( 
-	const RadiusPDU& pdu 
-	)
+RadiusPDU::RadiusPDU(const RadiusPDU & pdu)
 {
 	CopyContents(pdu);
 }
@@ -687,7 +685,7 @@ RadiusPDU::RadiusPDU(
 }
 
 RadiusPDU::RadiusPDU(
-	const void* rawData, /// raw data buffer
+	const void * rawData, /// raw data buffer
 	PINDEX rawLength /// raw data length
 	)
 {
@@ -766,7 +764,7 @@ bool RadiusPDU::IsValid() const
 	return currLen == len;
 }
 
-void RadiusPDU::GetAuthenticator(PBYTEArray& vector, PINDEX offset) const
+void RadiusPDU::GetAuthenticator(PBYTEArray & vector, PINDEX offset) const
 {
 	if (offset == P_MAX_INDEX)
 		offset = vector.GetSize();
@@ -775,7 +773,7 @@ void RadiusPDU::GetAuthenticator(PBYTEArray& vector, PINDEX offset) const
 		);
 }
 
-bool RadiusPDU::SetAuthenticator(const PBYTEArray& vector, PINDEX offset)
+bool RadiusPDU::SetAuthenticator(const PBYTEArray & vector, PINDEX offset)
 {
 	PINDEX len = vector.GetSize();
 	if (offset >= len)
@@ -791,7 +789,7 @@ bool RadiusPDU::SetAuthenticator(const PBYTEArray& vector, PINDEX offset)
 	return true;
 }
 
-bool RadiusPDU::SetAuthenticator(const void* data)
+bool RadiusPDU::SetAuthenticator(const void * data)
 {
 #ifdef _DEBUG
 	PAssertNULL(data);
@@ -803,7 +801,7 @@ bool RadiusPDU::SetAuthenticator(const void* data)
 	return true;
 }
 
-void RadiusPDU::SetAuthenticator(PRandom& random)
+void RadiusPDU::SetAuthenticator(PRandom & random)
 {
 	DWORD r = (DWORD)random;
 	m_authenticator[0] = ((const BYTE*)&r)[0];
@@ -828,8 +826,8 @@ void RadiusPDU::SetAuthenticator(PRandom& random)
 }
 
 void RadiusPDU::SetAuthenticator( 
-	const PString& secret,
-	PMessageDigest5& md5 
+	const PString & secret,
+	PMessageDigest5 & md5 
 	)
 {
 	if (m_code == AccountingRequest) {
@@ -853,7 +851,7 @@ void RadiusPDU::SetAuthenticator(
 }
 
 bool RadiusPDU::AppendAttr( 
-	const RadiusAttr& attr /// attribute to be appended
+	const RadiusAttr & attr /// attribute to be appended
 	)
 {
 	const PINDEX len = GetLength();
@@ -1118,9 +1116,7 @@ PINDEX RadiusPDU::GetNumAttributes() const
 	return count;
 }
 
-const RadiusAttr* RadiusPDU::GetAttr(
-	const RadiusAttr* prevAttr
-	) const
+const RadiusAttr* RadiusPDU::GetAttr(const RadiusAttr * prevAttr) const
 {
 	const PINDEX len = GetLength();
 	PINDEX offset = FixedHeaderLength;
@@ -1241,8 +1237,8 @@ void RadiusPDU::CopyContents(const RadiusPDU& pdu)
 }
 
 bool RadiusPDU::EncryptPasswords( 
-	const PString& secret,
-	PMessageDigest5& md5 
+	const PString & secret,
+	PMessageDigest5 & md5 
 	)
 {
 	RadiusAttr* const pwdAttr = const_cast<RadiusAttr*>(FindAttr(RadiusAttr::UserPassword));
@@ -1723,9 +1719,7 @@ bool RadiusSocket::SendRequest(
 	return false;
 }
 
-void RadiusSocket::RefreshIdCache(
-	const time_t now
-	)
+void RadiusSocket::RefreshIdCache(const time_t now)
 {
 	const PINDEX lastId = ((m_nextId >= m_oldestId) 
 		? m_nextId : ((PINDEX)m_nextId + 256));
@@ -1984,13 +1978,9 @@ bool RadiusClient::MakeRequest(
 
 		for (unsigned j = 0; j < (m_roundRobinServers ? 1 : m_numRetries); j++) {
  			RadiusPDU* const clonedRequestPDU = new RadiusPDU(requestPDU);
-			
+
 			bool requireNewId = false;
-			if (!OnSendPDU(*clonedRequestPDU, retransmission, requireNewId)) {
-				delete clonedRequestPDU;
-				return false;
-			}
-				
+
 			if (secretChanged || requireNewId || !retransmission)
 				if (!GetSocket(socket, id)) {
 					PTRACE(3, "RADIUS\tSocket allocation failed");
@@ -2062,12 +2052,6 @@ bool RadiusClient::MakeRequest(
 				PTrace::End(strm);
 			}
 
-			if (!OnReceivedPDU(*response)) {
-				delete response;
-				response = NULL;
-				continue;
-			}
-			
 			responsePDU = response;
 			return true;
 		}
@@ -2109,13 +2093,7 @@ bool RadiusClient::SendRequest(
 	}
 
 	clonedRequestPDU = new RadiusPDU(requestPDU);
-	
-	bool dummy;
-	if (!OnSendPDU(*clonedRequestPDU, false, dummy)) {
-		delete clonedRequestPDU;
-		return false;
-	}
-				
+
 	if (!GetSocket(socket, id)) {
 		PTRACE(3, "RADIUS\tSocket allocation failed");
 		delete clonedRequestPDU;
@@ -2186,23 +2164,7 @@ bool RadiusClient::VerifyResponseAuthenticator(
 			RadiusPDU::AuthenticatorLength) == 0;
 }
 
-bool RadiusClient::OnSendPDU( 
-	RadiusPDU& /*pdu*/,
-	bool /*retransmission*/,
-	bool& /*requireNewId*/
-	)
-{
-	return true;
-}
-
-bool RadiusClient::OnReceivedPDU( 
-	RadiusPDU& /*pdu*/
-	)
-{
-	return true;
-}
-
-bool RadiusClient::IsAcctPDU(const RadiusPDU& pdu) const
+bool RadiusClient::IsAcctPDU(const RadiusPDU & pdu) const
 {
 	const unsigned char c = pdu.GetCode();
 	return (c == RadiusPDU::AccountingRequest) 
@@ -2312,17 +2274,12 @@ bool RadiusClient::GetSocket(RadiusSocket*& socket, unsigned char& id)
 	return true;
 }
 
-RadiusSocket* RadiusClient::CreateSocket( 
-	const PIPSocket::Address& addr, 
-	WORD port
-	)
+RadiusSocket* RadiusClient::CreateSocket(const PIPSocket::Address & addr, WORD port)
 {
 	return new RadiusSocket(addr, port);
 }
 	
-RadiusSocket* RadiusClient::CreateSocket( 
-	WORD port
-	)
+RadiusSocket* RadiusClient::CreateSocket(WORD port)
 {
 	return new RadiusSocket(port);
 }

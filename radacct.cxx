@@ -276,16 +276,14 @@ GkAcctLogger::Status RadAcct::Log(
 		
 	// send request and wait for response
 	RadiusPDU * response = NULL;
-	bool result = OnSendPDU(*pdu, evt, call);
-	
+	bool result = true;
+
 	// accounting updates must be fast, so we are just sending
 	// the request to the server and are not waiting for a response
-	if (result) {
-		if (evt & AcctUpdate) {
-			result = m_radiusClient->SendRequest(*pdu);
-		} else {
-			result = m_radiusClient->MakeRequest(*pdu, response) && (response != NULL);
-		}
+	if (evt & AcctUpdate) {
+		result = m_radiusClient->SendRequest(*pdu);
+	} else {
+		result = m_radiusClient->MakeRequest(*pdu, response) && (response != NULL);
 	}
 			
 	delete pdu;
@@ -298,33 +296,14 @@ GkAcctLogger::Status RadAcct::Log(
 	if (response) {
 		// check if Access-Request has been accepted
 		result = (response->GetCode() == RadiusPDU::AccountingResponse);
-		if (result)
-			result = OnReceivedPDU(*response, evt, call);
-		else
+		if (!result) {
 			PTRACE(4, "RADACCT\t" << GetName() << " - received response is not "
 				" an AccountingResponse, event " << evt << ", call no. "
 				<< (call ? call->GetCallNumber() : 0));
+		}
 		delete response;
 	}
 	return result ? Ok : Fail;
-}
-
-bool RadAcct::OnSendPDU(
-	RadiusPDU& /*pdu*/,
-	GkAcctLogger::AcctEvent /*evt*/,
-	const callptr& /*call*/
-	)
-{
-	return true;
-}
-
-bool RadAcct::OnReceivedPDU(
-	RadiusPDU& /*pdu*/,
-	GkAcctLogger::AcctEvent /*evt*/,
-	const callptr& /*call*/
-	)
-{
-	return true;
 }
 
 namespace {
