@@ -1797,7 +1797,7 @@ RadiusClient::RadiusClient(
 }
 
 RadiusClient::RadiusClient( 
-	PConfig& config, /// config that contains RADIUS settings
+	PConfig & config, /// config that contains RADIUS settings
 	const PString& sectionName /// config section with the settings
 	)
 	: m_sharedSecret(Toolkit::Instance()->ReadPassword(sectionName, "SharedSecret")),
@@ -1903,7 +1903,7 @@ void RadiusClient::GetServersFromString(const PString & servers)
 			}
 		} else {
 			// IPv4 or DNS names
-			PStringArray serverTokens = tokens[i].Tokenise(":", FALSE);
+			serverTokens = tokens[i].Tokenise(":", FALSE);
 		}
 		if (serverTokens.GetSize() > 0) {
 			const PString serverAddress = serverTokens[0].Trim();
@@ -1925,7 +1925,7 @@ void RadiusClient::GetServersFromString(const PString & servers)
 }
 
 bool RadiusClient::SetIdCacheTimeout( 
-	const PTimeInterval& timeout /// new time interval
+	const PTimeInterval & timeout /// new time interval
 	)
 {
 	PWaitAndSignal lock(m_socketMutex);
@@ -1944,8 +1944,8 @@ bool RadiusClient::SetIdCacheTimeout(
 }
 
 bool RadiusClient::MakeRequest( 
-	const RadiusPDU& requestPDU, /// PDU with request packet
-	RadiusPDU*& responsePDU /// filled with PDU received from RADIUS server
+	const RadiusPDU & requestPDU, /// PDU with request packet
+	RadiusPDU * & responsePDU /// filled with PDU received from RADIUS server
 	)
 {
 	if (!requestPDU.IsValid())
@@ -1955,7 +1955,7 @@ bool RadiusClient::MakeRequest(
 	RadiusSocket* socket = NULL;
 	unsigned char id;
 	const unsigned numServers = m_radiusServers.size();
-	const PString* secret = NULL;
+	const PString * secret = NULL;
 	
 	for (unsigned i = 0; i < (m_roundRobinServers ? m_numRetries * numServers : numServers); i++)
 	{
@@ -2077,7 +2077,7 @@ bool RadiusClient::MakeRequest(
 }
 
 bool RadiusClient::SendRequest( 
-	const RadiusPDU& requestPDU /// PDU with request packet
+	const RadiusPDU & requestPDU /// PDU with request packet
 	)
 {
 	if (!requestPDU.IsValid())

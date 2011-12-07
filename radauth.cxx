@@ -101,9 +101,9 @@ RadAuthBase::~RadAuthBase()
 
 int RadAuthBase::Check(
 	/// RRQ RAS message to be authenticated
-	RasPDU<H225_RegistrationRequest>& rrqPdu, 
+	RasPDU<H225_RegistrationRequest> & rrqPdu, 
 	/// authorization data (reject reason, ...)
-	RRQAuthData& authData
+	RRQAuthData & authData
 	)
 {
 	H225_RegistrationRequest& rrq = (H225_RegistrationRequest&)rrqPdu;
