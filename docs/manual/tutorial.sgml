@@ -328,15 +328,13 @@ Operating System Overview:
 <item><bf/FreeBSD/ OK
 <item><bf/NetBSD/ OK
 <item><bf/OpenBSD/ either IPv4 or IPv6
-<item><bf/Solaris/ IPv4 only
+<item><bf/Solaris/ OK
 </itemize>
 
 For Windows, you need at least Windows Vista, Windows Server 2008, Windows 7 or newer.
 On Windows XP GnuGk will run as a IPv6-only gatekeeper if you enable IPv6 support.
 OpenBSD doesn't support IPv4 mapped addresses at all (latest version tested: OpenBSD 5.0),
 so it can only run GnuGk as either an IPv4 or IPv6 gatekeeper.
-Solaris supports IPv4 mapped addresses, but PTLib (2.11.0) can't read the operating system's
-IPv6 route table, so IPv6 is not available on Solaris.
 
 As of December 2011, IPv6 support in endpoints is known to work with the following:
 <itemize>
