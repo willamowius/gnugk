@@ -7488,7 +7488,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 				SetH245Port(tmpmedia, (WORD)GkConfig()->GetInteger(ProxySection, "RTPMultiplexPort", GK_DEF_MULTIPLEX_RTP_PORT));
 			} else {
 				if (GetH245Port(tmpmedia) > 0)
-					SetH245Port(tmp, GetH245Port(tmp) - 1);
+					SetH245Port(tmpmedia, GetH245Port(tmpmedia) - 1);
 			}
 			mediaChannel = &tmpmedia;
 		}
@@ -7785,7 +7785,7 @@ bool H245ProxyHandler::HandleResponse(H245_ResponseMessage & Response, callptr &
 
 bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters *h225Params, WORD flcn)
 {
-	RTPLogicalChannel *lc = (flcn) ?
+	RTPLogicalChannel *lc = flcn ?
 		CreateRTPLogicalChannel((WORD)h225Params->m_sessionID, flcn) :
 		CreateFastStartLogicalChannel((WORD)h225Params->m_sessionID);
 	if (!lc)
@@ -8418,7 +8418,8 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 		SetH46019fcState(3);
     }
 
-	bool changed = false, isReverseLC;
+	bool changed = false;
+	bool isReverseLC = false;
 	if (hnat && (peer->GetTraversalRole() == None))
 		changed = hnat->HandleOpenLogicalChannel(olc);
 
@@ -8469,10 +8470,11 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 			}
 		} else if ((lc = FindRTPLogicalChannelBySessionID(id))) {
 			LogicalChannel *akalc = peer->FindLogicalChannel(flcn);
-			if (akalc)
+			if (akalc) {
 				lc = static_cast<RTPLogicalChannel *>(akalc);
-			else
+			} else {
 				peer->logicalChannels[flcn] = peer->sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != 0);
+			}
 		}
 	}
 	if (lc && (changed = lc->OnLogicalChannelParameters(*h225Params, GetMasqAddr(), isReverseLC, call, IsTraversalClient(), m_useRTPMultiplexing)))
