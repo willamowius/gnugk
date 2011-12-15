@@ -331,6 +331,8 @@ You can specify virtual queues in three ways:
   alias matches the expression, the virtual queue is activated.
 </itemize>
 
+To apply the virtual queue to all calls, specify a regular expression that matches everything, see the example below.
+
 See the monitoring section for details on the messages and responses.
 
 <itemize>
@@ -367,6 +369,9 @@ This defines a regular expression for the virtual queues (used with the vqueue R
 <descrip>
 <tag/Example (numbers starting with 001215 or 1215):/
 <quote/<tt/VirtualQueueRegex=^(001|1)215[0-9]*$//
+<newline>
+<tag/Example to match all calls:/
+<quote/<tt/VirtualQueueRegex=^.*$//
 <newline>
 </descrip>
 

@@ -936,20 +936,20 @@ bool VirtualQueue::IsDestinationVirtualQueue(
 bool VirtualQueue::RouteToAlias(
 	/// aliases for the routing target (an agent that the call will be routed to) 
 	/// that will replace the original destination info
-	const H225_ArrayOf_AliasAddress& agent,
+	const H225_ArrayOf_AliasAddress & agent,
 	/// ip that will replace the destinationCallSignalAddress (RouteToGateway)
 	/// used only if set (!= NULL)
-	const PString& destinationip,
+	const PString & destinationip,
 	/// identifier of the endpoint associated with the route request
-	const PString& callingEpId, 
+	const PString & callingEpId, 
 	/// CRV of the call associated with the route request
 	unsigned crv,
 	/// callID of the call associated with the route request
-	const PString& callID,
+	const PString & callID,
 	// outgoing IP or empty
-	const PString& bindIP,
+	const PString & bindIP,
 	// caller ID or empty
-	const PString& callerID,
+	const PString & callerID,
 	/// should this call be rejected
 	bool reject
 	)
@@ -1023,7 +1023,7 @@ bool VirtualQueue::RouteToAlias(
 	)
 {
 	H225_ArrayOf_AliasAddress alias;
-	if (targetAlias != "") {
+	if (targetAlias != "" && targetAlias != "-") {
 		alias.SetSize(1);
 		H323SetAliasAddress(targetAlias, alias[0]);
 	}

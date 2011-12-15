@@ -643,10 +643,14 @@ RouteToAlias Suzi endp_4711 1234
 <item><tt/RouteToGateway/, <tt/rtg/<newline>
 <p>Route this call on a virtual queue to the specified alias and set the destinationSignalAddress.
 This command is used as a response to a RouteRequest event (see below).
-You can use this command to route calls to out-of-zone gateways or MCUs not registered with the gatekeeper. Make sure that the 'vqueue' and 'explicit' policy is in effect for these calls.
+You can use this command to route calls to out-of-zone gateways or MCUs not registered with the gatekeeper.
+Make sure that the 'vqueue' and 'explicit' policy is in effect for these calls.
 CallingEndpointID and CallRef must be passed back as they are in the corresponding RouteRequest.
 The CallID parameter is optional; if it is given it must be the same format as
 signaled by RouteRequest. As additional parameter you can set the CLI for the caling party.
+The alias parameter is required, but if you use a dash ("-") as alias name,
+no alias will be set in the destination, just the IP.
+
 <descrip>
 <tag/Format:/
 <tscreen><verb>
