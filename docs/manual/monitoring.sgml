@@ -705,7 +705,7 @@ end of the call shall be transferred.
 
 You can choose the transfer method with the optional last parameter.
 The call transfer works only with endpoints that properly support
-Q.931 Facility callForwarded or raouteCallToMC messages (so it doesn't work with Netmeeting).
+Q.931 Facility callForwarded or routeCallToMC messages (so it doesn't work with Netmeeting).
 <descrip>
 <tag/Format:/
 <tscreen><verb>
