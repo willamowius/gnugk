@@ -1,5 +1,7 @@
 Changes from 2.3.5 to 3.0.0
 ===========================
+- BUGFIX(RasTbl.cxx) fix possibility of stale calls when using failover
+- when using alias "-" in RouteToGateway, no destination alias will be set
 - BUGFIX(gk.cxx) fix trace level if the trace file is in the config file and the trace level on the command line
 - [Routing::Explicit] rules now allow IP destinations to be mapped to any kind of alias destination
 - support for H.460.23/.24 Multiplexing (req h323plus 1.24+)

@@ -4147,7 +4147,7 @@ void CallTable::CheckCalls(RasServer * rassrv)
 		DeleteObjects(Iter, RemovedList.end());
 		RemovedList.erase(Iter, RemovedList.end());
 	}
-	
+
 	std::list<callptr>::iterator call = m_callsToDisconnect.begin();
 	while (call != m_callsToDisconnect.end()) {
 		(*call)->SetDisconnectCause((*call)->IsConnected()
@@ -4155,14 +4155,16 @@ void CallTable::CheckCalls(RasServer * rassrv)
 			);
 		(*call)->SetReleaseSource(CallRec::ReleasedByGatekeeper);
 		(*call)->Disconnect();
-		if (((*call)->GetNoRemainingRoutes() == 0) || (! (*call)->IsFailoverActive())) {
+		if (((*call)->GetNoRemainingRoutes() == 0)
+			|| (! (*call)->IsFailoverActive())
+			|| (now - (*call)->GetSetupTime() > (GetSignalTimeout() / 1000) * 5)) {
 			RemoveCall((*call));
 		} else {
 			(*call)->SetCallInProgress(false);	// not necessary with DisableRetryChecks=1
 		}
 		call++;
 	}
-	
+
 	call = m_callsToUpdate.begin();
 	while (call != m_callsToUpdate.end()) {
 		if ((*call)->IsConnected())
