@@ -653,7 +653,8 @@ The syntax and parameters are the same as for <tt/StartQuery/.
 Default: <tt>N/A</tt><newline>
 <p>
 Defines a SQL query used to update a call record in the database with the current 
-call state. The syntax and parameters are the same as for <tt/StartQuery/.
+call state. It is used for connect and update accounting events.
+The syntax and parameters are the same as for <tt/StartQuery/.
 <p>
 Sample query string:
 <tscreen><verb>
