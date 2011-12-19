@@ -3075,6 +3075,8 @@ bool AdmissionRequestPDU::Process()
 		}
 
 		signalOffload = pCallRec->NATSignallingOffload(answer);
+		if (signalOffload)
+			pCallRec->ResetTimeOut();
  
 		pCallRec->GetRemoteInfo(vendor, version);
 #endif

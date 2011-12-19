@@ -1040,6 +1040,12 @@ public:
 		m_acctUpdateTime = tm;
 	}
 
+	/* Reset timeout.
+		Used when switching from GKRouted to Direct call model to 
+		avoid Signalling timeouts
+	*/ 
+	void ResetTimeOut();
+
 	/** Check if:
 		- a signaling channel associated with this call is not timed out
 		  and the call should be disconnected (removed from CallTable);
@@ -2014,6 +2020,11 @@ inline unsigned CallRec::GetDisconnectCauseTranslated() const
 inline void CallRec::SetDisconnectCauseTranslated( unsigned causeCode )
 {
 	m_disconnectCauseTranslated = causeCode;
+}
+
+inline void CallRec::ResetTimeOut()
+{
+	m_timeout = 0;
 }
 
 inline bool CallRec::IsTimeout(const time_t now) const
