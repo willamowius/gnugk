@@ -1949,9 +1949,7 @@ bool RegistrationRequestPDU::Process()
 						PTRACE(4, "Std23\tEndpoint instructs H.460.23/.24 to be disabled (BAD NAT)");
 					    ep->SetUsesH46023(false);
 					} else {
-						PTRACE(4, "Std23\tEndpoint reports itself as not behind a NAT/FW! " 
-										<< (ep->IsTraversalClient() ? "H.460.18 Disabled" : ""));
-						ep->SetTraversalRole(None);
+						PTRACE(4, "Std23\tEndpoint reports itself as not behind a NAT/FW!");
 						ep->SetNAT(false);
 					}
 				}
