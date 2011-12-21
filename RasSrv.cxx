@@ -1936,6 +1936,7 @@ bool RegistrationRequestPDU::Process()
 			return BuildRRJ(H225_RegistrationRejectReason::e_fullRegistrationRequired);
 		} else {
 			 if (ntype < 8) {
+#ifdef HAS_H46023
 				if (ntype > 1) {
 				  PTRACE(4, "Std23\tEndpoint reports itself as being behind a NAT/FW!");
 				  PTRACE(4, "Std23\tNAT/FW reported as being " << ep->GetEPNATTypeString((EndpointRec::EPNatTypes)ntype));
@@ -1952,7 +1953,7 @@ bool RegistrationRequestPDU::Process()
 						ep->SetNAT(false);
 					}
 				}
-				
+#endif
 				ep->SetEPNATType(ntype);
 			}
 
