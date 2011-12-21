@@ -110,6 +110,9 @@ bool IsLoopback(const PIPSocket::Address &);
 
 bool IsSet(const H323TransportAddress & addr);
 
+// check if s only contains characters that are valid for E.164s (1234567890*#+,)
+bool IsValidE164(const PString & s);
+
 /** Find an alias which tag is of type specified by #primaryTags#.
     If no such aliases are found, #secondaryTags# are examined.
     If still no match is found and #exactMatch# is false, the first

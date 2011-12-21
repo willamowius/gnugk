@@ -795,16 +795,6 @@ void Toolkit::RewriteTool::LoadConfig(PConfig *config)
 	m_Rewrite->AddSection(config,AliasRewriteSection);
 }
 
-bool Toolkit::IsNumeric(const PString & s) 
-{
-	PINDEX j;
-	for (j = 0; j < s.GetLength(); ++j)
-		if (!isdigit(static_cast<unsigned char>(s[j])))
-			break;
-
-	return (j >= s.GetLength());
-}
-
 bool Toolkit::RewriteTool::RewritePString(PString & s) const
 {
 	bool changed = false;
@@ -2414,7 +2404,7 @@ bool Toolkit::RewriteE164(H225_AliasAddress & alias)
 	if (changed) {
 		if (E164.Find("@") != P_MAX_INDEX)
 			H323SetAliasAddress(E164, alias,H225_AliasAddress::e_url_ID);
-		else if (IsNumeric(E164))
+		else if (IsValidE164(E164))
 			H323SetAliasAddress(E164, alias, H225_AliasAddress::e_dialedDigits);
 		else if (alias.GetTag() != H225_AliasAddress::e_partyNumber)
 			H323SetAliasAddress(E164, alias, H225_AliasAddress::e_h323_ID);

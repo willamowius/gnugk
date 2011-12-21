@@ -548,6 +548,12 @@ bool IsSet(const H323TransportAddress & addr)
 	return (addr != H323TransportAddress());
 }
 
+bool IsValidE164(const PString & s) 
+{
+	return (!s.IsEmpty() && strspn(s, "1234567890*#+,") == strlen(s));
+}
+
+
 PString GetGUIDString(
 	const H225_GloballyUniqueID & id, /// 128-bit identifier to convert
 	bool fixedLength /// skip leading zeros (false) or not (true)

@@ -2268,8 +2268,8 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		if (q931.HasIE(Q931::CalledPartyNumberIE)) {
 			PString dialedNumber;
 			q931.GetCalledPartyNumber(dialedNumber);
-			if (! Toolkit::Instance()->IsNumeric(dialedNumber)) {
-				PTRACE(4,"WARNING: Removed Called Party Number IE as it's not numeric!");
+			if (!IsValidE164(dialedNumber)) {
+				PTRACE(4,"WARNING: Removed Called Party Number IE as it's not a valid E.164!");
 				q931.RemoveIE(Q931::CalledPartyNumberIE);
 			}
 		}
@@ -2282,7 +2282,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				calledNumber = GetBestAliasAddressString(setupBody.m_destinationAddress,false, 
 				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits) | AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
 				PTRACE(1, "Setting the Q.931 CalledPartyNumber to: " << calledNumber);
-				if (Toolkit::Instance()->IsNumeric(calledNumber))
+				if (IsValidE164(calledNumber))
 					q931.SetCalledPartyNumber(calledNumber, plan, type);
 			}
 		}
@@ -2306,7 +2306,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 						int sourceAdrSize = setupBody.m_sourceAddress.GetSize();
 						if (tokens[i].Left(4) == "0007") {
 							PString e164 = tokens[i].Mid(4);
-							if (strspn(e164, "1234567890*#+,") == strlen(e164)) {
+							if (IsValidE164(e164)) {
 								setupBody.m_sourceAddress.SetSize( sourceAdrSize + 1 );
 								H323SetAliasAddress(e164, setupBody.m_sourceAddress[sourceAdrSize], H225_AliasAddress::e_dialedDigits);
 								sourceAdrSize++;
@@ -2591,7 +2591,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 			const PString alias = AsString(setupBody.m_destinationAddress[0], FALSE);
 			if (q931.HasIE(Q931::CalledPartyNumberIE)) {
-				if (!alias && strspn(alias, "1234567890*#+,") == strlen(alias)) {
+				if (IsValidE164(alias)) {
 					unsigned plan, type;
 					PString calledNumber;
 					if (q931.GetCalledPartyNumber(calledNumber, &plan, &type))
@@ -2648,7 +2648,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 			const PString alias = AsString(setupBody.m_destinationAddress[0], FALSE);
 			if (q931.HasIE(Q931::CalledPartyNumberIE)) {
-				if (!alias && strspn(alias, "1234567890*#+,") == strlen(alias)) {
+				if (IsValidE164(alias)) {
 					unsigned plan, type;
 					PString calledNumber;
 					if (q931.GetCalledPartyNumber(calledNumber, &plan, &type))
@@ -2800,7 +2800,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 							setupBody.m_destinationAddress = request.GetRequest().m_destinationAddress;
 							const PString newCalledParty = AsString(setupBody.m_destinationAddress[0], FALSE);
 							if (q931.HasIE(Q931::CalledPartyNumberIE)) {
-								if (!newCalledParty && strspn(newCalledParty, "1234567890*#+,") == strlen(newCalledParty)) {
+								if (IsValidE164(newCalledParty)) {
 									unsigned plan, type;
 									PString calledNumber;
 									if (q931.GetCalledPartyNumber(calledNumber, &plan, &type))
