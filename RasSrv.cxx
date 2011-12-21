@@ -2233,6 +2233,11 @@ bool RegistrationRequestPDU::Process()
 		ep->SetTraversalRole(TraversalClient);
 		ep->SetNATAddress(rx_addr, rx_port);
 	}
+	if (supportH46018 && ep->IsH46018Disabled()) {
+		// if the endpoint wanted H.460.18, we had overwritten its callSignalAddr above
+		// we have to restore it here if we disable H.460.18 for this endpoint
+		ep->SetCallSignalAddress(originalCallSigAddress);
+	}
 #endif // HAS_H46018
 #ifdef HAS_H460P
 	// If we have some presence information
