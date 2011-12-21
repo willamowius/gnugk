@@ -1758,12 +1758,12 @@ bool RegistrationRequestPDU::Process()
 	unsigned ntype = 100;  // UnAllocated NAT Type
 #ifdef HAS_H46018
 	PBoolean supportH46018 = false;
-	H225_TransportAddress originalCallSigAddress;	// original call signal address (to restore if H.460.18 is disabled)
 #endif
 #ifdef HAS_H46023
 	PBoolean supportH46023 = false;
 #endif
 #if (HAS_H46018 || HAS_H46023)
+	H225_TransportAddress originalCallSigAddress;	// original call signal address (to restore if H.460.18 is disabled)
 	PBoolean h46018nat = false;
 #endif
 
@@ -1777,8 +1777,8 @@ bool RegistrationRequestPDU::Process()
 	PASN_OctetString preFeature;
 #endif // HAS_H460P
 	
-// Registration Priority and Pre-emption
-// This allows the unregistration of duplicate aliases with lower priority 
+	// Registration Priority and Pre-emption
+	// This allows the unregistration of duplicate aliases with lower priority 
 	OpalOID rPriFS = OpalOID(OID6);    
 
 	if (request.HasOptionalField(H225_RegistrationRequest::e_featureSet)) {
