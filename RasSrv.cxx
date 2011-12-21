@@ -1758,7 +1758,7 @@ bool RegistrationRequestPDU::Process()
 	unsigned ntype = 100;  // UnAllocated NAT Type
 #ifdef HAS_H46018
 	PBoolean supportH46018 = false;
-	//H225_TransportAddress originalCallSigAddress;	// original call signal address (to restore if H.460.18 is disabled)
+	H225_TransportAddress originalCallSigAddress;	// original call signal address (to restore if H.460.18 is disabled)
 #endif
 #ifdef HAS_H46023
 	PBoolean supportH46023 = false;
@@ -1797,13 +1797,10 @@ bool RegistrationRequestPDU::Process()
 					// ignore rasAddr and use apparent address
 					request.m_rasAddress.SetSize(1);
 					request.m_rasAddress[0] = SocketToH225TransportAddr(rx_addr, rx_port);
-/* H.460.18 does not use signalling address. It just gets in the way of H.460.23 Signal Offloading. -SH
-					// callSignallAddress will be ignored later on, just avoid the error about an invalid callSigAdr when registering
-					// this needs to be reversed if we disable H.460.18 for this endpoint later on
 					if (request.m_callSignalAddress.GetSize() > 0)
-					   originalCallSigAddress = request.m_callSignalAddress[0];
+						originalCallSigAddress = request.m_callSignalAddress[0];
 					request.m_callSignalAddress.SetSize(1);
-					request.m_callSignalAddress[0] = SocketToH225TransportAddr(rx_addr, rx_port); */
+					request.m_callSignalAddress[0] = SocketToH225TransportAddr(rx_addr, rx_port);
 				}
 			}
 		}
@@ -1851,7 +1848,7 @@ bool RegistrationRequestPDU::Process()
 			}
 			if (feat->Contains(OID6_Preempt)) {
 				preemptsupport = true;
-                preempt = feat->Value(PString(OID6_Preempt));
+				preempt = feat->Value(PString(OID6_Preempt));
 			}
 		}
  
@@ -1951,6 +1948,7 @@ bool RegistrationRequestPDU::Process()
 					    ep->SetUsesH46023(false);
 					} else {
 						PTRACE(4, "Std23\tEndpoint reports itself as not behind a NAT/FW!");
+						ep->SetCallSignalAddress(originalCallSigAddress);
 						ep->SetNAT(false);
 					}
 				}
@@ -2158,11 +2156,11 @@ bool RegistrationRequestPDU::Process()
 						if ((preemptsupport) && (RegPrior == ep->Priority())) {
 							rrj.IncludeOptionalField(H225_RegistrationReject::e_genericData);
 							H460_FeatureOID pre = H460_FeatureOID(rPriFS);
-                            pre.Add(PString(OID6_PreNot),H460_FeatureContent(TRUE));
-		                    H225_ArrayOf_GenericData & data = rrj.m_genericData;
-				               PINDEX lastPos = data.GetSize();
-				               data.SetSize(lastPos+1);
-				               data[lastPos] = pre;
+							pre.Add(PString(OID6_PreNot),H460_FeatureContent(TRUE));
+							H225_ArrayOf_GenericData & data = rrj.m_genericData;
+								PINDEX lastPos = data.GetSize();
+								data.SetSize(lastPos+1);
+							data[lastPos] = pre;
 						}
 #endif // HAS_H460
 						H225_ArrayOf_AliasAddress & duplicateAlias = rrj.m_rejectReason;
@@ -2235,11 +2233,6 @@ bool RegistrationRequestPDU::Process()
 		ep->SetTraversalRole(TraversalClient);
 		ep->SetNATAddress(rx_addr, rx_port);
 	}
-/*	if (supportH46018 && ep->IsH46018Disabled()) {  // Not required if we don't change the signalling address - SH
-		// if the endpoint wanted H.460.18, we had overwritten its callSignalAddr above
-		// we have to restore it here if we disable H.460.18 for this endpoint
-		ep->SetCallSignalAddress(originalCallSigAddress);
-	} */
 #endif // HAS_H46018
 #ifdef HAS_H460P
 	// If we have some presence information
