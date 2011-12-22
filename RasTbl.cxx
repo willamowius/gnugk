@@ -3458,7 +3458,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 			natinst = CallRec::e_natFullProxy;
 
 	// If the calling can proxy for NAT use it
-    else if (!goDirect && GetProxyMode() == CallRec::ProxyEnabled)
+    else if (!goDirect && GetProxyMode() != CallRec::ProxyDisabled)
 			natinst = CallRec::e_natLocalProxy;
 
 	// If can go direct and both are not NAT then no assistance required.
