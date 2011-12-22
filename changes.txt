@@ -1,15 +1,14 @@
-Changes from 2.3.5 to 3.0.0
-===========================
+Changes from 2.3.5 to 3.0
+=========================
 - BUGFIX(RasTbl.cxx) fix possibility of stale calls when using failover
 - when using alias "-" in RouteToGateway, no destination alias will be set
 - BUGFIX(gk.cxx) fix trace level if the trace file is in the config file and the trace level on the command line
 - [Routing::Explicit] rules now allow IP destinations to be mapped to any kind of alias destination
-- support for H.460.23/.24 Multiplexing (req h323plus 1.24+)
 - BUGFIX(gkauth.h,gkauth.cxx) don't check GRQ in password auth modules
 - BUGFIX(RasSrv.cxx) fix crash if H.460.18 client sends only invalid RAS addresses in RRQ
 - BUGFIX(Routing.cxx) the DNS policy didn't properly handle ports (eg. joe@company.com:1720)
-- new switch [Routing::ENUM] ResolveLRQ=
 - rds policy now supports routing unregistered calls
+- new switch [Routing::ENUM] ResolveLRQ=
 - new switch [Routing::RDS] ResolveLRQ=
 - new switch [Routing::SRV] ResolveNonLocalLRQ=
 - TraceLevel switch in config now re-read on config reload
@@ -29,8 +28,7 @@ Changes from 2.3.5 to 3.0.0
   has been disabled per endpoint
 - BUGFIX(ProxyChannel.cxx) fix crash when handling a OLCA without mediaControlChannel
   on a NATed connection
-- BUGFIX(ProxyChannel.cxx) always include destCallSignalAddress in Setup to avoid
-  crash in Polycom m100
+- always include destCallSignalAddress in Setup to avoid crash in Polycom m100
 - BUGFIX(ProxyChannel.cxx) remove endpointIdentifier from Setup before forwarding
 - new switch [Routed::H46023SignalGKRouted] to force all signalling to be Gatekeeper routed for H.460.23/.24
 - added more interop support for Sorenson equipment
