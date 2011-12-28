@@ -1764,12 +1764,12 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
  
 Route * SRVPolicy::LSLocalLookup(H225_ArrayOf_AliasAddress & aliases)
 {
-	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
+	for (PINDEX a = 0; a < aliases.GetSize(); ++a) {
 		// only apply to urlID and h323ID
-		if ((aliases[i].GetTag() != H225_AliasAddress::e_url_ID)
-			&& (aliases[i].GetTag() != H225_AliasAddress::e_h323_ID))
+		if ((aliases[a].GetTag() != H225_AliasAddress::e_url_ID)
+			&& (aliases[a].GetTag() != H225_AliasAddress::e_h323_ID))
 			continue;
-		PString alias(AsString(aliases[i], FALSE));
+		PString alias(AsString(aliases[a], FALSE));
 		PINDEX at = alias.Find('@');
 		// skip empty aliases or those without at-sign
 	    if ((alias.GetLength() == 0) || (at == P_MAX_INDEX))
@@ -1865,6 +1865,7 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly)
 					PIPSocket::Address addr;
 					if (!(GetIPFromTransportAddr(dest, addr) && addr.IsValid()))
 						continue;
+					H323SetAliasAddress(cs[j].Left(in), aliases[i]);
 					Route * route = NULL;
 					if (Toolkit::Instance()->IsGKHome(addr)) {
 						H225_ArrayOf_AliasAddress find_aliases;
