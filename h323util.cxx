@@ -299,7 +299,6 @@ H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr,
 	} else {
 		Result.SetTag( H225_TransportAddress::e_ipAddress );
 		H225_TransportAddress_ipAddress & ResultIP = Result;
-
 		for (int i = 0; i < 4; ++i)
 			ResultIP.m_ip[i] = Addr[i];
 		ResultIP.m_port = Port;
@@ -347,7 +346,7 @@ bool GetIPAndPortFromTransportAddr(const H225_TransportAddress & addr, PIPSocket
 		port = (WORD)ipaddr.m_port;
 		return true;
 	}
-	 return false;
+	return false;
 }
 
 PStringArray SplitIPAndPort(const PString & str, WORD default_port)
