@@ -653,7 +653,7 @@ protected:
 
 		if (m_h235Authenticators == NULL) {
 			PTRACE(4, "GKAUTH\tSuccess: No Loaded Authenticators");
-			return e_ok;
+			return e_ok;		// TODO/BUG: shoudln't we e_fail if we don't have authenticators ?
 		}
 
 		PString username = PString::Empty();
@@ -674,38 +674,37 @@ protected:
 		}
 
         for (PINDEX i = 0; i < m_h235Authenticators->GetSize();  i++) {
-          H235Authenticator * authenticator = (H235Authenticator *)(*m_h235Authenticators)[i].Clone();
+			H235Authenticator * authenticator = (H235Authenticator *)(*m_h235Authenticators)[i].Clone();
 
-		  authenticator->SetLocalId(Toolkit::GKName());
-		  authenticator->SetRemoteId(username);
-		  authenticator->SetPassword(password);
+			authenticator->SetLocalId(Toolkit::GKName());
+			authenticator->SetRemoteId(username);
+			authenticator->SetPassword(password);
 
-          H235Authenticator::ValidationResult result = authenticator->ValidateTokens(req.m_tokens, 
-			                                                        req.m_cryptoTokens, request->m_rasPDU);
-          switch (result) {
-             case H235Authenticator::e_OK :
-               PTRACE(4, "GKAUTH\tAuthenticator " << authenticator->GetName() << " succeeded");
-               return e_ok;
+			H235Authenticator::ValidationResult result = authenticator->ValidateTokens(req.m_tokens,
+																	req.m_cryptoTokens, request->m_rasPDU);
+			switch (result) {
+				case H235Authenticator::e_OK :
+					PTRACE(4, "GKAUTH\tAuthenticator " << authenticator->GetName() << " succeeded");
+					return e_ok;
 
-             case H235Authenticator::e_Absent :
-               PTRACE(6, "GKAUTH\tAuthenticator " << authenticator->GetName() << " absent from PDU");
-               break;
+				case H235Authenticator::e_Absent :
+					PTRACE(6, "GKAUTH\tAuthenticator " << authenticator->GetName() << " absent from PDU");
+					break;
 
-             case H235Authenticator::e_Disabled :
-               PTRACE(6, "GKAUTH\tAuthenticator " << authenticator->GetName() << " disabled");
-               break;
+				case H235Authenticator::e_Disabled :
+					PTRACE(6, "GKAUTH\tAuthenticator " << authenticator->GetName() << " disabled");
+					break;
 
-             default : // Various other failure modes
-               PTRACE(6, "GKAUTH\tAuthenticator " << authenticator->GetName() << " failed: " << (int)result);
-               return e_fail;
-           }
+				default : // Various other failure modes
+					PTRACE(6, "GKAUTH\tAuthenticator " << authenticator->GetName() << " failed: " << (int)result);
+					return e_fail;
+			}
 
-         }
+		}
 #else
 		int result;
 		if (req.HasOptionalField(RAS::e_cryptoTokens)) {
-			if ((result = CheckCryptoTokens(req.m_cryptoTokens, aliases, 
-					request->m_rasPDU)) == e_fail)
+			if ((result = CheckCryptoTokens(req.m_cryptoTokens, aliases, request->m_rasPDU)) == e_fail)
 				return e_fail;
 			finalResult = (result == e_ok);
 		}
@@ -719,9 +718,7 @@ protected:
 	}
 
 	/// Set new timeout for username/password pairs cache
-	void SetCacheTimeout(
-		long newTimeout
-		) { m_cache->SetTimeout(newTimeout); }
+	void SetCacheTimeout(long newTimeout) { m_cache->SetTimeout(newTimeout); }
 
 	/** @return
 	    True if usernames should match one of endpoint aliases.
