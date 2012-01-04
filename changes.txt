@@ -1,5 +1,6 @@
 Changes from 3.0 to 3.1
 =======================
+- BUGFIX(RasTbl.cxx) fix crash when handling IRRs
 - BUGFIX(Neighbor.cxx) rewrite destination to alias part if we find a matching SRV CS records
 
 Changes from 2.3.5 to 3.0

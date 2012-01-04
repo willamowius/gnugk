@@ -3202,8 +3202,9 @@ void CallRec::SetDialedNumber(
 
 void CallRec::Update(const H225_InfoRequestResponse & irr)
 {
-	if (irr.HasOptionalField(H225_InfoRequestResponse::e_perCallInfo) &&
-		irr.m_perCallInfo[0].HasOptionalField(H225_InfoRequestResponse_perCallInfo_subtype::e_originator)) {
+	if (irr.HasOptionalField(H225_InfoRequestResponse::e_perCallInfo)
+		&& (irr.m_perCallInfo.GetSize() > 0)
+		&& irr.m_perCallInfo[0].HasOptionalField(H225_InfoRequestResponse_perCallInfo_subtype::e_originator)) {
 		if (irr.m_perCallInfo[0].m_originator)
 			m_irrCallerTimer = time(NULL);
 		else
