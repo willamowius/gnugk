@@ -1,5 +1,7 @@
 Changes from 3.0 to 3.1
 =======================
+- changed behavior of H.235 auth modules: allow call if one token matches, don't reject call
+  if first token is unknown
 - BUGFIX(RasTbl.cxx) fix crash when handling IRRs
 - BUGFIX(Neighbor.cxx) rewrite destination to alias part if we find a matching SRV CS records
 

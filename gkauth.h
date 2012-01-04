@@ -612,21 +612,30 @@ protected:
 		/// an array of cryptoTokens to be checked
 		const H225_ArrayOf_CryptoH323Token& cryptoTokens, 
 		/// aliases for the endpoint that generated the tokens
-		const H225_ArrayOf_AliasAddress* aliases,
+		const H225_ArrayOf_AliasAddress * aliases,
 		/// raw data for RAS PDU - required to validate some tokens
 		/// like H.235 Auth Procedure I
-		const PBYTEArray& rawPDU
+		const PBYTEArray & rawPDU
 		);
 
-	/** Retrieve username carried inside the tokens. 
+	/** Retrieve username carried inside the token. 
 	    @return
 	    username carried inside the token
 	*/
 	bool ResolveUserName(
 		/// an array of tokens to be checked
-		const H225_ArrayOf_ClearToken& tokens,
-		/// aliases for the endpoint that generated the tokens
-	    const H225_ArrayOf_CryptoH323Token& crytotokens,
+		const H235_ClearToken & token,
+		/// UserName detected.
+		PString & username
+		);
+
+	/** Retrieve username carried inside the token. 
+	    @return
+	    username carried inside the token
+	*/
+	bool ResolveUserName(
+		/// an array of tokens to be checked
+		const H225_CryptoH323Token & crytotoken,
 		/// UserName detected.
 		PString & username
 		);
@@ -641,65 +650,70 @@ protected:
 	*/
 	template<class RAS> int doCheck(
 		/// RAS request to be authenticated
-		const RasPDU<RAS>& request,
+		const RasPDU<RAS> & request,
 		/// list of aliases for the endpoint sending the request
-		const H225_ArrayOf_AliasAddress* aliases = NULL
-		)
+		const H225_ArrayOf_AliasAddress* aliases = NULL)
 	{
-		const RAS& req = request;
+		const RAS & req = request;
 		bool finalResult = false;
 		
 #ifdef OpenH323Factory
-
 		if (m_h235Authenticators == NULL) {
-			PTRACE(4, "GKAUTH\tSuccess: No Loaded Authenticators");
-			return e_ok;		// TODO/BUG: shoudln't we e_fail if we don't have authenticators ?
-		}
-
-		PString username = PString::Empty();
-		PString password = PString::Empty();
-		if (!ResolveUserName(req.m_tokens, req.m_cryptoTokens,username)) {
-            PTRACE(4, "GKAUTH\t" << GetName() << " No username resolved from tokens.");
-			return e_fail;
-		}
-
-		if ((aliases == NULL) || (FindAlias(*aliases, username) == P_MAX_INDEX)) {
-            PTRACE(4, "GKAUTH\t" << GetName() << " Token username " << username << " does not match aliases for Endpoint");
-			return e_fail;
-		}
-
-		if (!InternalGetPassword(username, password)) {
-				PTRACE(4, "GKAUTH\t" << GetName() << " password not found for " << username );
-			// do not return false let the authenticator decide whether it requires a password or not.
+			PTRACE(4, "GKAUTH\tNo Loaded Authenticators");
+			return GetDefaultStatus();
 		}
 
         for (PINDEX i = 0; i < m_h235Authenticators->GetSize();  i++) {
 			H235Authenticator * authenticator = (H235Authenticator *)(*m_h235Authenticators)[i].Clone();
-
 			authenticator->SetLocalId(Toolkit::GKName());
-			authenticator->SetRemoteId(username);
-			authenticator->SetPassword(password);
 
-			H235Authenticator::ValidationResult result = authenticator->ValidateTokens(req.m_tokens,
-																	req.m_cryptoTokens, request->m_rasPDU);
-			switch (result) {
-				case H235Authenticator::e_OK :
+			H235Authenticator::ValidationResult result;
+			for (PINDEX t = 0; t < req.m_tokens.GetSize(); t++) {
+				PString username = PString::Empty();
+				PString password = PString::Empty();
+				if (!ResolveUserName(req.m_tokens[t], username)) {
+		            PTRACE(4, "GKAUTH\t" << GetName() << " No username resolved from tokens.");
+					continue;	// skip to next token
+				}
+				if ((aliases == NULL) || (FindAlias(*aliases, username) == P_MAX_INDEX)) {
+					PTRACE(4, "GKAUTH\t" << GetName() << " Token username " << username << " does not match aliases for Endpoint");
+					continue;	// skip to next token
+				}
+				if (!InternalGetPassword(username, password)) {
+					PTRACE(4, "GKAUTH\t" << GetName() << " password not found for " << username );
+					// do not return false let the authenticator decide whether it requires a password or not.
+				}
+				authenticator->SetRemoteId(username);
+				authenticator->SetPassword(password);
+				result = authenticator->ValidateClearToken(req.m_tokens[t]);
+				if (result == H235Authenticator::e_OK) {
 					PTRACE(4, "GKAUTH\tAuthenticator " << authenticator->GetName() << " succeeded");
 					return e_ok;
-
-				case H235Authenticator::e_Absent :
-					PTRACE(6, "GKAUTH\tAuthenticator " << authenticator->GetName() << " absent from PDU");
-					break;
-
-				case H235Authenticator::e_Disabled :
-					PTRACE(6, "GKAUTH\tAuthenticator " << authenticator->GetName() << " disabled");
-					break;
-
-				default : // Various other failure modes
-					PTRACE(6, "GKAUTH\tAuthenticator " << authenticator->GetName() << " failed: " << (int)result);
-					return e_fail;
+				}
 			}
-
+			for (PINDEX t = 0; t < req.m_cryptoTokens.GetSize(); t++) {
+				PString username = PString::Empty();
+				PString password = PString::Empty();
+				if (!ResolveUserName(req.m_cryptoTokens[t], username)) {
+		            PTRACE(4, "GKAUTH\t" << GetName() << " No username resolved from tokens.");
+					continue;	// skip to next token
+				}
+				if ((aliases == NULL) || (FindAlias(*aliases, username) == P_MAX_INDEX)) {
+					PTRACE(4, "GKAUTH\t" << GetName() << " Token username " << username << " does not match aliases for Endpoint");
+					continue;	// skip to next token
+				}
+				if (!InternalGetPassword(username, password)) {
+					PTRACE(4, "GKAUTH\t" << GetName() << " password not found for " << username );
+					// do not return false let the authenticator decide whether it requires a password or not.
+				}
+				authenticator->SetRemoteId(username);
+				authenticator->SetPassword(password);
+				result = authenticator->ValidateCryptoToken(req.m_cryptoTokens[t], request->m_rasPDU);
+				if (result == H235Authenticator::e_OK) {
+					PTRACE(4, "GKAUTH\tAuthenticator " << authenticator->GetName() << " succeeded");
+					return e_ok;
+				}
+			}
 		}
 #else
 		int result;
