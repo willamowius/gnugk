@@ -3578,8 +3578,10 @@ void CallRec::BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemContro
  
 	H46024B_ArrayOf_AlternateAddress addrs;
  
-	std::map<WORD,H46024Balternate>::const_iterator i = m_H46024Balternate.begin();
+	std::map<WORD,H46024Balternate>::iterator i = m_H46024Balternate.begin();
 	while (i != m_H46024Balternate.end()) {
+		if (i->second.sent >= (initiate ? 1 : 2))
+			continue;
 		int sz = addrs.GetSize();
 		addrs.SetSize(sz+1);
 		H46024B_AlternateAddress addr;
@@ -3591,10 +3593,14 @@ void CallRec::BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemContro
 			addr.m_rtpAddress = i->second.reverse;
 
 #if H323PLUS_VER > 1231
-        if (i->second.multiplexID > 0) {
-            addr.IncludeOptionalField(H46024B_AlternateAddress::e_multiplexID);
-            addr.m_multiplexID = i->second.multiplexID;
-        }
+		if (initiate && i->second.multiplexID_fwd > 0) {
+			addr.IncludeOptionalField(H46024B_AlternateAddress::e_multiplexID);
+			addr.m_multiplexID = i->second.multiplexID_fwd;
+		} else if (!initiate && i->second.multiplexID_rev > 0) {
+			addr.IncludeOptionalField(H46024B_AlternateAddress::e_multiplexID);
+			addr.m_multiplexID = i->second.multiplexID_rev;
+		}
+		i->second.sent = initiate ? 1 : 2;
 #endif
 		addrs[sz] = addr;
 		i++;
@@ -3640,10 +3646,15 @@ void CallRec::H46024BSessionFlag(WORD sessionID)
 		m_h46024Bflag.push_back(sessionID);
 }
  
-void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, const H323TransportAddress & rev, unsigned muxID)
+void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, const H323TransportAddress & rev, unsigned muxID_fwd, unsigned muxID_rev)
 {
-	PWaitAndSignal m(m_H46024Bmutex);
- 
+	//PWaitAndSignal m(m_H46024Bmutex);
+
+	if (fwd.IsEmpty() || rev.IsEmpty()) {
+		PTRACE(4,"H46024B\tSession " << sessionID << " NAT offload probe not ready");
+		return;
+	}
+
     if (m_h46024Bflag.empty())
 		return;
  
@@ -3651,31 +3662,40 @@ void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, 
 	if (i != m_H46024Balternate.end())
 		return;
  
-	PTRACE(5,"H46024B\tNAT offload probes S:" << sessionID << " F:" << fwd << " R:" << rev << " mux " << muxID);
+	PTRACE(5,"H46024B\tNAT offload probes S:" << sessionID << " F:" << fwd << " R:" << rev << " mux " << muxID_fwd << " " << muxID_rev);
  
 	H46024Balternate alt;
-	fwd.SetPDU(alt.forward);
-	rev.SetPDU(alt.reverse);
-    alt.multiplexID = muxID; 
+	bool callerIsSymmetric = (m_Calling->GetEPNATType() > 5);
+	if (!callerIsSymmetric) {
+		fwd.SetPDU(alt.reverse);
+		alt.multiplexID_fwd = muxID_rev;
+		rev.SetPDU(alt.forward);
+		alt.multiplexID_rev = muxID_fwd;
+	} else {
+		fwd.SetPDU(alt.forward);
+		alt.multiplexID_fwd = muxID_fwd;
+		rev.SetPDU(alt.reverse);
+		alt.multiplexID_rev = muxID_rev;
+	}
+	alt.sent = 0;
+
 	m_H46024Balternate.insert(pair<WORD,H46024Balternate>(sessionID,alt));
  
-	m_h46024Bflag.remove(sessionID);
- 
-	if (m_h46024Bflag.empty()) {
+	if (m_h46024Bflag.size() == m_H46024Balternate.size()) {
 		// Build the Generic Request
 		H245_MultimediaSystemControlMessage h245msg;
 		BuildH46024AnnexBMessage(true,h245msg,m_H46024Balternate);
  
 		PTRACE(4,"H46024B\tRequest Message\n" << h245msg);
  
-		// If we are tunnning
+		// If we are tunnneling
 		SendH46024BFacility(H46024BSignalSocket(false), h245msg);
 	}
 }
  
 void CallRec::H46024BRespond()
 {
-	PWaitAndSignal m(m_H46024Bmutex);
+	//PWaitAndSignal m(m_H46024Bmutex);
  
 	if (m_H46024Balternate.size() == 0)
 		return;
@@ -3685,9 +3705,9 @@ void CallRec::H46024BRespond()
 	// Build the Generic response
 	H245_MultimediaSystemControlMessage h245msg;
 	BuildH46024AnnexBMessage(false,h245msg,m_H46024Balternate);
-	m_H46024Balternate.clear();
+	//m_H46024Balternate.clear();
  
-    // If we are tunnning
+	// If we are tunneling
 	SendH46024BFacility(H46024BSignalSocket(true), h245msg);
  
 }

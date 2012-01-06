@@ -6307,7 +6307,7 @@ H46019Channel H46019Channel::SwapSides() const
 
 void H46019Channel::Dump() const
 {
-	PTRACE(0, "JW H46019Channel: session=" << m_session << " openedBy=" << m_openedBy
+	PTRACE(1, "JW H46019Channel: session=" << m_session << " openedBy=" << m_openedBy
 			<< " IDfromA=" << m_multiplexID_fromA << " IDtoA=" << m_multiplexID_toA
 			<< " IDfromB=" << m_multiplexID_fromB << " IDtoB=" << m_multiplexID_toB
 			<< " addrA=" << m_addrA << " addrA_RTCP=" << m_addrA_RTCP
@@ -6343,6 +6343,12 @@ void H46019Channel::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 #ifdef RTP_DEBUG
 		MultiplexedRTPHandler::Instance()->DumpChannels(" keepAlive handled ");
 #endif
+
+#ifdef HAS_H46024B
+		if (call && call->GetNATStrategy() == CallRec::e_natAnnexB)
+			call->H46024BInitiate(m_session, m_addrA, m_addrB, m_multiplexID_toA, m_multiplexID_toB);
+#endif	// HAS_H46024B
+
 		if (!isRTCP)
 			return;	// don't forward RTP keepalives
 	}
@@ -8101,6 +8107,10 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 				h46019chan.m_osSocketToB_RTCP = lc->GetRTCPOSSocket();
 			}
 			MultiplexedRTPHandler::Instance()->AddChannel(h46019chan);
+#if defined(HAS_H46024B)
+			if (call && call->GetNATStrategy() == CallRec::e_natAnnexB) 
+				call->H46024BSessionFlag(sessionID);
+#endif
 		}
 		// start KeepAlives if we are client (will be ignored if we are server and no KeepALive has been added above)
 		call->StartRTPKeepAlive(flcn, h46019chan.m_osSocketToA);

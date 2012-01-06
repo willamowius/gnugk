@@ -776,7 +776,7 @@ public:
     CallSignalSocket * H46024BSignalSocket(bool response);
  
 	/** Initiate Probe */
-	void H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, const H323TransportAddress & rev, unsigned muxID=0);
+	void H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, const H323TransportAddress & rev, unsigned muxID_fwd=0, unsigned muxID_rev=0);
  
 	/** Response Probe */
 	void H46024BRespond();
@@ -1450,7 +1450,9 @@ private:
 	struct H46024Balternate {
 		 H245_TransportAddress forward;
 		 H245_TransportAddress reverse;
-		 unsigned multiplexID;
+		 unsigned multiplexID_fwd;
+		 unsigned multiplexID_rev;
+		 int sent;
 	};
  
 	std::map<WORD,H46024Balternate> m_H46024Balternate;
