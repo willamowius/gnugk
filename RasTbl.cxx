@@ -3580,8 +3580,10 @@ void CallRec::BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemContro
  
 	std::map<WORD,H46024Balternate>::iterator i = m_H46024Balternate.begin();
 	while (i != m_H46024Balternate.end()) {
-		if (i->second.sent >= (initiate ? 1 : 2))
+		if (i->second.sent >= (initiate ? 1 : 2)) {
+			i++;
 			continue;
+		}
 		int sz = addrs.GetSize();
 		addrs.SetSize(sz+1);
 		H46024B_AlternateAddress addr;
@@ -3648,7 +3650,6 @@ void CallRec::H46024BSessionFlag(WORD sessionID)
  
 void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, const H323TransportAddress & rev, unsigned muxID_fwd, unsigned muxID_rev)
 {
-	//PWaitAndSignal m(m_H46024Bmutex);
 
 	if (fwd.IsEmpty() || rev.IsEmpty()) {
 		PTRACE(4,"H46024B\tSession " << sessionID << " NAT offload probe not ready");
@@ -3695,8 +3696,6 @@ void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, 
  
 void CallRec::H46024BRespond()
 {
-	//PWaitAndSignal m(m_H46024Bmutex);
- 
 	if (m_H46024Balternate.size() == 0)
 		return;
  
@@ -3705,7 +3704,8 @@ void CallRec::H46024BRespond()
 	// Build the Generic response
 	H245_MultimediaSystemControlMessage h245msg;
 	BuildH46024AnnexBMessage(false,h245msg,m_H46024Balternate);
-	//m_H46024Balternate.clear();
+	m_H46024Balternate.clear();
+	m_h46024Bflag.clear();
  
 	// If we are tunneling
 	SendH46024BFacility(H46024BSignalSocket(true), h245msg);
