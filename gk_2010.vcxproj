@@ -242,7 +242,7 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>OpenH323s.lib;ptclib.lib;ptlibs.lib;snmpapi.lib;odbc32.lib;odbccp32.lib;wsock32.lib;mpr.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>h323plus.lib;ptclib.lib;ptlibs.lib;snmpapi.lib;odbc32.lib;odbccp32.lib;wsock32.lib;mpr.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>Release/gnugk.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ProgramDatabaseFile>.\Release/gnugk.pdb</ProgramDatabaseFile>
