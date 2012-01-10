@@ -6807,7 +6807,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	if (buflen >= 1)
 		version = (((int)wbuffer[0] & 0xc0) >> 6);
 	bool isRTCP = m_isRTCPType && (version == 2);
-#if (HAS_H46018 || HAS_H46023)
+#if (HAS_H46018 || HAS_H46024B)
 	bool isRTP = m_isRTPType && (version == 2);
 #endif
 #ifdef HAS_H46018
