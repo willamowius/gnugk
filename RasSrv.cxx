@@ -1776,14 +1776,14 @@ bool RegistrationRequestPDU::Process()
 	PBoolean presencePDU = false;
 	PASN_OctetString preFeature;
 #endif // HAS_H460P
-	
+
 	// Registration Priority and Pre-emption
-	// This allows the unregistration of duplicate aliases with lower priority 
-	OpalOID rPriFS = OpalOID(OID6);    
+	// This allows the unregistration of duplicate aliases with lower priority
+	OpalOID rPriFS = OpalOID(OID6);
 
 	if (request.HasOptionalField(H225_RegistrationRequest::e_featureSet)) {
 		H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
-		
+
 #ifdef HAS_H46018
 		// H.460.18
 		if (Toolkit::Instance()->IsH46018Enabled()) {
@@ -2029,14 +2029,14 @@ bool RegistrationRequestPDU::Process()
 					desc.SetSize(sz+1);
 					desc[sz] = H460_FeatureOID(rPriFS);
 				}
- 
+
 				// H.460.9
 				if (EPSupportsQoSReporting
 					&& Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0"))) {
 					H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
 					rcf.IncludeOptionalField(H225_RegistrationConfirm::e_featureSet);
-					rcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
-					H225_ArrayOf_FeatureDescriptor & desc = rcf.m_featureSet.m_supportedFeatures;
+					rcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_desiredFeatures);
+					H225_ArrayOf_FeatureDescriptor & desc = rcf.m_featureSet.m_desiredFeatures;
 					PINDEX sz = desc.GetSize();
 					desc.SetSize(sz+1);
 					desc[sz] = H460_FeatureStd(9);
@@ -2351,9 +2351,12 @@ bool RegistrationRequestPDU::Process()
 		// H.460.9
 		if (EPSupportsQoSReporting
 			&& Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0"))) {
-			PINDEX lPos = gd.GetSize();
-			gd.SetSize(lPos+1);
-			gd[lPos] = H460_FeatureStd(9);
+			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_featureSet);
+			rcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_desiredFeatures);
+			H225_ArrayOf_FeatureDescriptor & desc = rcf.m_featureSet.m_desiredFeatures;
+			PINDEX sz = desc.GetSize();
+			desc.SetSize(sz+1);
+			desc[sz] = H460_FeatureStd(9);
 		}
 
 		if (gd.GetSize() > 0)	{
