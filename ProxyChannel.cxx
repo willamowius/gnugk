@@ -7987,7 +7987,16 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 			if (olc.m_genericInformation.GetSize() == 0)
 				olc.RemoveOptionalField(H245_OpenLogicalChannel::e_genericInformation);
 		}
+#endif
 
+		// create LC objects, rewrite for forwarding after H.460.19 parameters have been parsed
+	    if (UsesH46019fc()) {
+			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, 0) : false;
+		} else {
+			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, flcn) : false;
+		}
+
+#ifdef HAS_H46018
 		// check if we are doing unidirectional H.239 from a H.460.19 client
 		if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_videoData) {
 			H245_VideoCapability & vid = olc.m_forwardLogicalChannelParameters.m_dataType;
@@ -7999,16 +8008,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 				}
 			}
 		}
-#endif
 
-		// rewrite for forwarding after H.460.19 parameters have been parsed
-	    if (UsesH46019fc()) {
-			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, 0) : false;
-		} else {
-			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, flcn) : false;
-		}
-
-#ifdef HAS_H46018
 		// We don't put the generic identifier on the reverse OLC.
 		if (UsesH46019fc() && isReverseLC)
 			return true;
