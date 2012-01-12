@@ -356,6 +356,7 @@ public:
 	UDPProxySocket(const char * t, const H225_CallIdentifier & id);
 	~UDPProxySocket();
 
+	void UpdateSocketName();
 	void SetDestination(H245_UnicastAddress &,callptr &);
 	void SetForwardDestination(const Address &, WORD, H245_UnicastAddress *, callptr &);
 	void SetReverseDestination(const Address &, WORD, H245_UnicastAddress *, callptr &);
@@ -6686,6 +6687,21 @@ void UDPProxySocket::SetNAT(bool rev)
 	PTRACE(5, Type() << "\tfnat=" << fnat << " rnat=" << rnat);
 }
 
+void UDPProxySocket::UpdateSocketName()
+{
+	PString src = "(to be detected)";
+	PString dst = "(to be detected)";
+	Address laddr;
+	WORD lport = 0;
+	GetLocalAddress(laddr, lport);
+	UnmapIPv4Address(laddr);
+	if ((DWORD)fSrcIP)
+		src = AsString(fSrcIP, fSrcPort);
+	if ((DWORD)fDestIP)
+		dst = AsString(fDestIP, fDestPort);
+	SetName(src + "<=>" + AsString(laddr, lport) + "<=>" + dst);
+}
+
 void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * addr, callptr & mcall)
 {
 	if ((DWORD)srcIP != 0) {
@@ -6698,15 +6714,7 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 		fDestPort = 0;
 	}
 
-	if ((DWORD)srcIP) {
-		Address laddr;
-		WORD lport = 0;
-		GetLocalAddress(laddr, lport);
-		UnmapIPv4Address(laddr);
-		SetName(AsString(srcIP, srcPort) + "<=>" + AsString(laddr, lport) + "<=>" + AsString(fDestIP, fDestPort));
-	} else {
-		SetName("(To be autodetected)");
-	}
+	UpdateSocketName();
 	PTRACE(5, Type() << "\tForward " << AsString(srcIP, srcPort)  << " to " << AsString(fDestIP, fDestPort));
 
 	SetConnected(true);
@@ -6736,6 +6744,7 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 		rDestPort = 0;
 	}
 
+	UpdateSocketName();
 	PTRACE(5, Type() << "\tReverse " << AsString(srcIP, srcPort) << " to " << AsString(rDestIP, rDestPort));
 
 	SetConnected(true);
@@ -6855,6 +6864,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				fDestIP = fromIP; fDestPort = fromPort;
 				rSrcIP = fromIP; rSrcPort = fromPort;
 				SetMediaIP("SRC", fDestIP);
+				UpdateSocketName();
 			}
 			else if ((rDestIP == 0) && (fromAddr != fDestAddr)) {
 				// reverse dest was unset and packet didn't come from other side
@@ -6862,6 +6872,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				rDestIP = fromIP; rDestPort = fromPort;
 				fSrcIP = fromIP; fSrcPort = fromPort;
 				SetMediaIP("DST", rDestIP);
+				UpdateSocketName();
 			}
 			if ((fDestIP != 0) && (rDestIP != 0)) {
 				m_h46019DetectionDone = true;
