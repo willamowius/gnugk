@@ -898,15 +898,6 @@ CallSignalSocket::CallSignalSocket()
 	SetHandler(RasServer::Instance()->GetSigProxyHandler());
 }
 
-CallSignalSocket::CallSignalSocket(CallSignalSocket *socket)
-	: TCPProxySocket("Q931d", socket), m_callerSocket(false)
-{
-	InternalInit();
-	remote = socket;
-	m_call = socket->m_call;
-	m_h245Tunneling = socket->m_h245Tunneling;
-}
-
 CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD _port)
 	: TCPProxySocket("Q931d", socket, _port), m_callerSocket(false)
 {

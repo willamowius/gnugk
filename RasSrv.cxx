@@ -819,11 +819,6 @@ bool RasServer::UnregisterHandler(RasHandler *handler)
 	return true;
 }
 
-void RasServer::Check()
-{
-	gkClient->CheckRegistration();
-}
-
 void RasServer::LoadConfig()
 {
 	GetAlternateGK();

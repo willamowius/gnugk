@@ -104,6 +104,8 @@ endif
 
 include $(OPENH323MAKEDIR)/openh323u.mak
 
+#CXX = callcatcher g++
+
 ### Remove -fdata-sections gcc option that cause problems during link step
 temp_STDCCFLAGS := $(subst -fdata-sections,,$(STDCCFLAGS))
 STDCCFLAGS = $(temp_STDCCFLAGS)
@@ -162,7 +164,6 @@ libgtest.a:
 test: libgtest.a testrunner.cxx $(TESTCASES) $(TESTOBJS)
 	$(CXX) -I${GTEST_DIR}/include $(STDCCFLAGS) testrunner.cxx $(TESTCASES) -o testrunner libgtest.a $(TESTOBJS) $(LDFLAGS) -lh323_linux_x86_64__s -lpt_s $(ENDLDLIBS)
 	./testrunner
-	
 
 #
 # By this command the build number may be incremented

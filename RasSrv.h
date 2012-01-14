@@ -91,7 +91,6 @@ public:
 	bool RegisterHandler(RasHandler *);
 	bool UnregisterHandler(RasHandler *);
 
-	void Check();
 	void LoadConfig();
 	void AddListener(RasListener *);
 	void AddListener(TCPListenSocket *);

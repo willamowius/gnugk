@@ -443,11 +443,6 @@ public:
 	    a dialed number.
 	*/
 	int GetPriority() const { return priority; }
-	
-	/// Set the priority for this gateway.
-	void SetPriority(
-		int newPriority
-		);
 
 	//void DumpPriorities() const;
 

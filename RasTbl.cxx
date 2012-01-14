@@ -1114,11 +1114,6 @@ void GatewayRec::LoadGatewayConfig()
 	SortPrefixes();
 }
 
-void GatewayRec::SetPriority(int newPriority)
-{
-	priority = newPriority;
-}
-
 void GatewayRec::SetEndpointType(const H225_EndpointType & t)
 {
 	if (!t.HasOptionalField(H225_EndpointType::e_gateway) ||

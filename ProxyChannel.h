@@ -216,10 +216,9 @@ public:
 	bool CompareH245Socket(H245Socket * sock) const { return sock == m_h245socket; }	// compare pointers !
 	
 protected:
-	CallSignalSocket(CallSignalSocket *);
-	
 	void SetRemote(CallSignalSocket *);
 	bool CreateRemote(H225_Setup_UUIE &setupBody);
+
 public:
 #ifdef HAS_H46018
 	bool CreateRemote(const H225_TransportAddress & addr);
