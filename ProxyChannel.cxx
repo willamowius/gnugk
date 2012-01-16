@@ -6246,9 +6246,9 @@ void MultiplexRTPListener::ReceiveData()
 	PUInt32b multiplexID = INVALID_MULTIPLEX_ID;
 	if (buflen >= 4)
 		multiplexID = ((int)wbuffer[0] * 16777216) + ((int)wbuffer[1] * 65536) + ((int)wbuffer[2] * 256) + (int)wbuffer[3];
-	int version = 0;
-	if (buflen >= 5)
-		version = (((int)wbuffer[4] & 0xc0) >> 6);
+//	int version = 0;
+//	if (buflen >= 5)
+//		version = (((int)wbuffer[4] & 0xc0) >> 6);
 
 	if (multiplexID == INVALID_MULTIPLEX_ID) {
 		PTRACE(1, "RTPM\tInvalid multiplexID reveived - ignoring packet on port " << localPort << " from " << AsString(fromIP, fromPort));
