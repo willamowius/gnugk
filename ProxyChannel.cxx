@@ -2269,13 +2269,14 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		// Sorenson nTouch fix to provide a CalledPartyNumber as well if destinationAddress dialedDigits are provided
 		if (!q931.HasIE(Q931::CalledPartyNumberIE)) {
 			PString calledNumber;
-			unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType;
 			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
 				calledNumber = GetBestAliasAddressString(setupBody.m_destinationAddress,false, 
 				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits) | AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
 				PTRACE(1, "Setting the Q.931 CalledPartyNumber to: " << calledNumber);
-				if (IsValidE164(calledNumber))
+				if (IsValidE164(calledNumber)) {
+					unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType;
 					q931.SetCalledPartyNumber(calledNumber, plan, type);
+				}
 			}
 		}
 
