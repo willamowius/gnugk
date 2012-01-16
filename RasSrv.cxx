@@ -385,11 +385,6 @@ bool RasMsg::EqualTo(const RasMsg *other) const
 	return true;
 }
 
-void RasMsg::Release()
-{
-	m_msg = NULL;
-}
-
 bool RasMsg::PrintStatus(const PString & log)
 {
 	PTRACE(2, log);
@@ -566,13 +561,6 @@ bool RasHandler::IsExpected(const RasMsg *ras) const
 void RasHandler::AddFilter(unsigned tag)
 {
 	m_tagArray[tag] = true;
-}
-
-void RasHandler::ProcessRAS(RasMsg *ras)
-{
-	ras->Exec();
-	delete ras;
-	ras = NULL;
 }
 
 // class RasRequester

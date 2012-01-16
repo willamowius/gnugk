@@ -106,7 +106,6 @@ public:
 
 	GatekeeperMessage *operator->() { return m_msg; }
 	const GatekeeperMessage *operator->() const { return m_msg; }
-	void Release();
 
 	static void Initialize();
 protected:
@@ -228,7 +227,6 @@ public:
 
 	// give the derived class an opportunity to create customized PDU
 	// default behavior: return the original one
-	// Note: call RasMsg::Release() if new one is created
 	virtual RasMsg *CreatePDU(RasMsg *ras) { return ras; }
 
 	// stop the handler
@@ -240,9 +238,6 @@ protected:
 	RasServer *m_rasSrv;
 
 private:
-	// delete the object after running RasMsg::Exec()
-	static void ProcessRAS(RasMsg *);
-
 	bool m_tagArray[MaxRasTag + 1];
 };
 
@@ -308,47 +303,5 @@ Requester<RAS>::Requester(H225_RasMessage & obj_ras, const Address & ip) : RasRe
 	AddFilter(RejectTag());
 	this->m_rasSrv->RegisterHandler(this); // fix for GCC 3.4.2
 }
-
-/*****************************************************************
-
-The template class let you to modify the default handler of a
-given RAS message. Just explicitly specialize the Process method.
-For example,
-
-template<> bool HookedPDU<H225_RegistrationRequest>::Process()
-{
-	do_something_before_process();
-	// call the default handler
-	bool result = m_opdu->Process();
-	do_something_after_process();
-	return result;
-}
-
-Then add a creator to hook the interested messages
-
-	HookedPDU<H225_RegistrationRequest>::Creator HookedRRQ;
-
-Note the creator must be executed after RasServer::Run().
-
-*****************************************************************/
-
-template<class RAS>
-class HookedPDU : public RasPDU<RAS> {
-public:
-	HookedPDU(GatekeeperMessage *m, RasMsg *p) : RasPDU<RAS>(m), m_opdu(p) {}
-	~HookedPDU() { m_opdu->Release(); delete m_opdu; }
-
-	virtual bool Process() { return m_opdu->Process(); }
-
-	typedef typename RasPDU<RAS>::RasCreator RasCreator;
-	struct Creator : public RasPDU<RAS>::Creator {
-		Creator() { PAssert(this->m_old, "Error: Hook failed"); } // fix for GCC 3.4.2
-		virtual RasMsg *operator()(GatekeeperMessage *m) const
-		{ return new HookedPDU<RAS>(m, dynamic_cast<RasCreator &>(*(this->m_old))(m)); } // fix for GCC 3.4.2
-	};
-
-private:
-	RasMsg *m_opdu;
-};
 
 #endif // RASPDU_H
