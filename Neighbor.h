@@ -151,7 +151,6 @@ public:
 
 	bool CheckLRQ(RasMsg *) const;
 	bool CheckIP(const PIPSocket::Address &) const;
-	bool IsTraversalZone(const PIPSocket::Address &) const;
 	bool IsTraversalClient(const PIPSocket::Address &) const;
 	bool IsTraversalServer(const PIPSocket::Address &) const;
 

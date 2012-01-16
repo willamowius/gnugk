@@ -1247,8 +1247,6 @@ public:
 	void SetMediaOriginatingIp(const PIPSocket::Address &addr);
 	bool GetMediaOriginatingIp(PIPSocket::Address &addr) const;
 
-	void SetRADIUSClass(const PBYTEArray &bytes);
-	void SetRADIUSClass(void * bytes, PINDEX len);
 	PBYTEArray GetRADIUSClass() const;
 	
 	bool IsProceedingSent() const { return m_proceedingSent; }
@@ -1602,7 +1600,6 @@ private:
 	}
 
 	bool InternalRemovePtr(CallRec *call);
-	void InternalRemove(const H225_CallIdentifier & CallId);
 	void InternalRemove(iterator);
 	void InternalRemoveFailedLeg(iterator);
 

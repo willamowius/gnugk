@@ -751,16 +751,6 @@ void GkPresence::ProcessPresenceElement(const PASN_OctetString & pdu)
 	}
 }
 
-void GkPresence::ProcessPresenceElement(const PASN_OctetString & pdu, const H225_TransportAddress & ip)
-{
-	PWaitAndSignal m(m_AliasMutex);
-
-	if (!ReceivedPDU(pdu)) {
-		PTRACE(4,"H460P\tError processing PDU");
-	}
-}
-
-
 bool GkPresence::BuildPresenceElement(unsigned msgtag, const H225_EndpointIdentifier & ep, PASN_OctetString & pdu)
 {
 	PWaitAndSignal m(m_AliasMutex);

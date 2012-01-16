@@ -1242,11 +1242,6 @@ bool NeighborList::CheckIP(const PIPSocket::Address & addr) const
 	return find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsFrom), &addr)) != m_neighbors.end();
 }
 
-bool NeighborList::IsTraversalZone(const PIPSocket::Address & addr) const
-{
-	return find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsTraversalZone), &addr)) != m_neighbors.end();
-}
-
 bool NeighborList::IsTraversalClient(const PIPSocket::Address & addr) const
 {
 	return find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsTraversalClient), &addr)) != m_neighbors.end();

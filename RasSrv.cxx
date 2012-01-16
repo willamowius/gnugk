@@ -974,11 +974,6 @@ bool RasServer::CloseListener(TCPListenSocket *socket)
 	return listeners->CloseListener(socket);
 }
 
-void RasServer::AddListener(UDPSocket *socket)
-{
-	AddSocket(socket);
-}
-
 WORD RasServer::GetRequestSeqNum()
 {
 	PWaitAndSignal lock(seqNumMutex);

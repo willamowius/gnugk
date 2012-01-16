@@ -3710,18 +3710,6 @@ void CallRec::H46024BRespond()
  
 #endif  // HAS_H46023
 
-void CallRec::SetRADIUSClass(const PBYTEArray &bytes)
-{
-	PWaitAndSignal lock(m_usedLock);
-	m_radiusClass = bytes;
-}
-
-void CallRec::SetRADIUSClass(void * bytes, PINDEX len)
-{
-	PWaitAndSignal lock(m_usedLock);
-	m_radiusClass = PBYTEArray(static_cast<const BYTE*>(bytes), len);
-}
-
 PBYTEArray CallRec::GetRADIUSClass() const
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -4459,16 +4447,6 @@ void CallTable::RemoveFailedLeg(const callptr & call)
 		WriteLock lock(listLock);
 		InternalRemoveFailedLeg(find(CallList.begin(), CallList.end(), callrec));
 	}
-}
-
-void CallTable::InternalRemove(const H225_CallIdentifier & CallId)
-{
-	PTRACE(5, "GK\tRemoving CallId: " << AsString(CallId.m_guid));
-	WriteLock lock(listLock);
-	InternalRemove(
-		find_if(CallList.begin(), CallList.end(),
-		bind2nd(mem_fun(&CallRec::CompareCallId), &CallId))
-	);
 }
 
 void CallTable::InternalRemove(iterator Iter)

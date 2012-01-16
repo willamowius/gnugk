@@ -95,7 +95,6 @@ public:
 	void AddListener(RasListener *);
 	void AddListener(TCPListenSocket *);
 	bool CloseListener(TCPListenSocket *);
-	void AddListener(UDPSocket *);
 
 	WORD GetRequestSeqNum();
 

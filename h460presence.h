@@ -42,7 +42,6 @@ public:
 	bool BuildPresenceElement(unsigned msgtag, const H225_EndpointIdentifier & ep, PASN_OctetString & pdu);
 	bool BuildPresenceElement(unsigned msgtag, const H225_TransportAddress & ip, PASN_OctetString & pdu);
 	void ProcessPresenceElement(const PASN_OctetString & pdu);
-	void ProcessPresenceElement(const PASN_OctetString & pdu, const H225_TransportAddress & ip);
 
 	bool GetPendingIdentifiers(list<H225_EndpointIdentifier> & epid);
 	bool GetPendingAddresses(list<H225_TransportAddress> & gkip);
