@@ -2017,7 +2017,7 @@ bool Toolkit::AssignedAliases::GetAliases(const H225_ArrayOf_AliasAddress & alia
 #ifdef h323v6
 #if HAS_DATABASE
 Toolkit::AssignedGatekeepers::AssignedGatekeepers()
-  : m_sqlactive(false), m_sqlConn(NULL)
+  : m_sqlactive(false), m_sqlConn(NULL), m_timeout(-1)
 {
 }
 
