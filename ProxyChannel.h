@@ -380,7 +380,7 @@ public:
 	virtual void ReceiveData();
 protected:
 	BYTE * wbuffer;
-	WORD wbufsize, buflen;
+	WORD wbufsize;
 };
 
 class H46019Channel

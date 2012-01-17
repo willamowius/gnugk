@@ -454,7 +454,7 @@ private:
 
 class LogicalChannel {
 public:
-	LogicalChannel(WORD flcn = 0) : channelNumber(flcn), used(false) {}
+	LogicalChannel(WORD flcn = 0) : channelNumber(flcn), port(0), used(false) {}
 	virtual ~LogicalChannel() {}
 
 	bool IsUsed() const { return used; }
@@ -894,6 +894,7 @@ CallSignalSocket::CallSignalSocket()
 {
 	InternalInit();
 	localAddr = peerAddr = masqAddr = GNUGK_INADDR_ANY;
+	peerPort = 0;
 	m_h245Tunneling = true;
 	SetHandler(RasServer::Instance()->GetSigProxyHandler());
 }
@@ -6243,7 +6244,7 @@ void MultiplexRTPListener::ReceiveData()
 	WORD localPort = 0;
 	GetLocalAddress(localAddr, localPort);
 	UnmapIPv4Address(localAddr);
-	buflen = (WORD)GetLastReadCount();
+	WORD buflen = (WORD)GetLastReadCount();
 	PUInt32b multiplexID = INVALID_MULTIPLEX_ID;
 	if (buflen >= 4)
 		multiplexID = ((int)wbuffer[0] * 16777216) + ((int)wbuffer[1] * 65536) + ((int)wbuffer[2] * 256) + (int)wbuffer[3];
@@ -7611,6 +7612,7 @@ T120LogicalChannel::T120LogicalChannel(WORD flcn) : LogicalChannel(flcn)
 	handler = NULL;
 	listener = new T120Listener(this);
 	port = listener->GetPort();
+	peerPort = 0;
 	if (listener->IsOpen())
 		PTRACE(4, "T120\tOpen logical channel " << flcn << " port " << port);
 	else
