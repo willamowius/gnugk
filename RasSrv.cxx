@@ -679,6 +679,10 @@ RasServer::RasServer() : Singleton<RasServer>("RasSrv")
 	vqueue = NULL;
 	GKRoutedSignaling = false;
 	GKRoutedH245 = false;
+	bRemoveCallOnDRQ = true;
+	altGKsSize = 0;
+	epLimit = callLimit = P_MAX_INDEX;
+	redirectGK = e_noRedirect;
 }
 
 RasServer::~RasServer()
