@@ -246,6 +246,7 @@ static const char * KnowConfigEntries[][2] = {
 	{ "GkStatus::Filtering", "Enable" },
 	{ "GkStatus::Filtering", "ExcludeFilter" },
 	{ "GkStatus::Filtering", "IncludeFilter" },
+	{ "GkStatus::Filtering", "NewRCFOnly" },
 	{ "LogFile", "Filename" },
 	{ "LogFile", "Rotate" },
 	{ "LogFile", "RotateDay" },

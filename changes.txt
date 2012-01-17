@@ -1,5 +1,6 @@
 Changes from 3.0 to 3.1
 =======================
+- new switch [GkStatus::Filtering] NewRCFOnly=1
 - BUGFIX(Routing.cxx) check if Setup contains sourceAddress before using it
 - BUGFIX(ProxyChannel.cxx) fix H.239 where only one sides uses H.460.19
 - signal H.460.9 as desired feature if QoS monitoring is enabled

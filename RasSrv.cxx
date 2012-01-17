@@ -2399,7 +2399,13 @@ bool RegistrationRequestPDU::Process()
 		+ "|" + AsString(request.m_terminalType)
 		+ "|" + ep->GetEndpointIdentifier().GetValue()
 		+ ";";
-	PrintStatus(log);
+	if (Toolkit::AsBool(GkConfig()->GetString("GkStatus::Filtering", "NewRCFOnly", "0"))) {
+	    if (bNewEP) {
+		PrintStatus(log);
+	    }} else {
+			PrintStatus(log);
+	}
+
 	return bShellSendReply;
 }
 

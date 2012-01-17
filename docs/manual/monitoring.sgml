@@ -950,3 +950,11 @@ ExcludeFilter=SCR
 </verb></tscreen>
 </descrip>
 
+<descrip>
+<tag/There is an additional switch to only print RCF events for previously unregistered endpoints and supress the refereh RCFs:/
+<tscreen><verb>
+[GkStatus::Filtering]
+NewRCFOnly=1
+</verb></tscreen>
+</descrip>
+

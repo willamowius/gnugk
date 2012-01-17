@@ -106,7 +106,7 @@ public:
 	};
 	
 	RoutingRequest();
-	RoutingRequest(const std::list<Route> &failedRoutes);
+	RoutingRequest(const std::list<Route> & failedRoutes);
 	virtual ~RoutingRequest();
 
 	bool AddRoute(const Route &route);
