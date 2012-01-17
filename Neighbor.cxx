@@ -194,6 +194,13 @@ PrefixInfo LRQForwarder::operator()(Neighbor *nb, WORD /*seqnum*/) const
 Neighbor::Neighbor()
 {
 	m_rasSrv = RasServer::Instance();
+	m_port = 0;
+	m_forwardHopCount = 0;
+	m_dynamic = false;
+	m_acceptForwarded = true;
+	m_forwardResponse = false;
+	m_forwardto = 0;
+	m_externalGK = false;
 	m_keepAliveTimer = GkTimerManager::INVALID_HANDLE;
 	m_keepAliveTimerInterval = 0;
 	m_H46018Server = false;
