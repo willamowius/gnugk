@@ -279,8 +279,6 @@ class STUNchangeRequest : public STUNattribute
 public:
   BYTE flags[4];
   
-  STUNchangeRequest() { }
-
   STUNchangeRequest(bool changeIP, bool changePort)
   {
     Initialise();
