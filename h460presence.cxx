@@ -199,8 +199,8 @@ H460P_PresenceSubscription & BuildSubscriptionMsg(const H460P_PresenceSubscripti
 	return msg;
 }
 
-H460P_PresenceSubscription & BuildSubscriptionMsg(const OpalGloballyUniqueID & id, const H225_AliasAddress remote,
-												const H225_AliasAddress local, H460P_PresencePDU & msg)
+H460P_PresenceSubscription & BuildSubscriptionMsg(const OpalGloballyUniqueID & id, const H225_AliasAddress & remote,
+												const H225_AliasAddress & local, H460P_PresencePDU & msg)
 {
 	H323PresenceSubscription sub;
 	sub.SetSubscription(id);
