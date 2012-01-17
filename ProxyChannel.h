@@ -135,7 +135,6 @@ private:
 
 protected:
 	struct TPKTV3 {
-		TPKTV3() {}
 		TPKTV3(WORD);
 
 		BYTE header, padding;
