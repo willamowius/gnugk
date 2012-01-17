@@ -1249,7 +1249,7 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 		vq = AsString((*request.GetAliases())[0], false);
 	}
 	if (m_vqueue->IsDestinationVirtualQueue(vq)) {
-		H225_Setup_UUIE &setup = request.GetRequest();
+		H225_Setup_UUIE & setup = request.GetRequest();
 		PString callerip = AsDotString(setup.m_sourceCallSignalAddress);
 		PString epid = "unregistered";
 		const unsigned crv = request.GetWrapper()->GetCallReference();
@@ -1257,7 +1257,9 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 		PString * bindIP = new PString();
 		PString * callerID = new PString();
 		PString callid = AsString(setup.m_callIdentifier.m_guid);
-		PString src = AsString(setup.m_sourceAddress);
+		PString src;
+		if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress))
+			src = AsString(setup.m_sourceAddress);
 		PIPSocket::Address localAddr;
 		WORD localPort;
 		request.GetWrapper()->GetLocalAddr(localAddr, localPort);
@@ -1654,7 +1656,9 @@ bool SqlPolicy::OnRequest(SetupRequest & request)
 	WORD localPort;
 	request.GetWrapper()->GetLocalAddr(localAddr, localPort);
 	PString calledIP = localAddr;	// TODO: only correct if a gatekeeper IP was called, should we use explicit IP if present ?
-	PString caller = AsString(setup.m_sourceAddress, FALSE);
+	PString caller;
+	if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress))
+		caller = AsString(setup.m_sourceAddress, FALSE);
 	PString callingStationId = request.GetCallingStationId();
 	PString callid = AsString(setup.m_callIdentifier.m_guid);
 	PString messageType = "Setup";
