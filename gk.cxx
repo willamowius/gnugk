@@ -309,6 +309,7 @@ static const char * KnowConfigEntries[][2] = {
 	{ "RadAliasAuth", "SharedSecret" },
 	{ "RadAliasAuth", "SocketDeleteTimeout" },
 	{ "RadAliasAuth", "UseDialedNumber" },
+	{ "RadAliasAuth", "EmptyUsername" },
 	{ "RadAuth", "AppendCiscoAttributes" },
 	{ "RadAuth", "DefaultAuthPort" },
 	{ "RadAuth", "IdCacheTimeout" },

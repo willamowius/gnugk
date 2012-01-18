@@ -1174,6 +1174,12 @@ Example:
 	Cisco-AV-Pair = "h323-ivr-out=terminal-alias:helpdesk,support,77771;"
 </verb></tscreen>
 
+<item><tt/EmptyUsername/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+If this parameter is set, the value is used if the call doesn't provide
+a username for authentication.
+
 <item><tt/FixedUsername/<newline>
 Default: <tt>N/A</tt><newline>
 <p>

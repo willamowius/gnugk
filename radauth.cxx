@@ -1170,8 +1170,7 @@ int RadAuth::AppendUsernameAndPassword(
 	// RRQ has to carry at least one terminalAlias
 	if (!rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
 		PTRACE(3, "RADAUTH\t" << GetName() << " RRQ auth failed: "
-			"no m_terminalAlias field"
-			);
+			"no m_terminalAlias field");
 		authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
 		return GetDefaultStatus();
 	}
@@ -1179,8 +1178,7 @@ int RadAuth::AppendUsernameAndPassword(
 	// check for ClearTokens (CAT uses ClearTokens)
 	if (!rrq.HasOptionalField(H225_RegistrationRequest::e_tokens)) {
 		PTRACE(3, "RADAUTH\t" << GetName() << " RRQ auth failed: "
-			"tokens not found"
-			);
+			"tokens not found");
 		authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
 		return GetDefaultStatus();
 	}
@@ -1192,10 +1190,10 @@ int RadAuth::AppendUsernameAndPassword(
 }
 
 int RadAuth::AppendUsernameAndPassword(
-	RadiusPDU& pdu,
-	RasPDU<H225_AdmissionRequest>& arqPdu,
-	ARQAuthData& authData,
-	PString* username
+	RadiusPDU & pdu,
+	RasPDU<H225_AdmissionRequest> & arqPdu,
+	ARQAuthData & authData,
+	PString * username
 	) const
 {
 	H225_AdmissionRequest& arq = (H225_AdmissionRequest&)arqPdu;
@@ -1203,8 +1201,7 @@ int RadAuth::AppendUsernameAndPassword(
 	// check for ClearTokens
 	if (!arq.HasOptionalField(H225_AdmissionRequest::e_tokens)) {
 		PTRACE(3, "RADAUTH\t" << GetName() << " ARQ auth failed: "
-			"tokens not found"
-			);
+			"tokens not found");
 		authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
 		return GetDefaultStatus();
 	}
@@ -1216,11 +1213,11 @@ int RadAuth::AppendUsernameAndPassword(
 }
 
 int RadAuth::AppendUsernameAndPassword(
-	RadiusPDU& pdu,
-	SetupMsg &setup,
-	endptr& /*callingEP*/,
-	SetupAuthData& authData,
-	PString* username
+	RadiusPDU & pdu,
+	SetupMsg & setup,
+	endptr & /*callingEP*/,
+	SetupAuthData & authData,
+	PString * username
 	) const
 {
 	H225_Setup_UUIE &setupBody = setup.GetUUIEBody();
@@ -1238,17 +1235,16 @@ int RadAuth::AppendUsernameAndPassword(
 }
 
 RadAliasAuth::RadAliasAuth( 
-	const char* authName 
-	)
+	const char * authName)
 	:
 	RadAuthBase(authName, RadAliasAuthConfigSectionName)
 {
 	m_fixedUsername = GetConfig()->GetString(
-		RadAliasAuthConfigSectionName, "FixedUsername", ""
-		);
+		RadAliasAuthConfigSectionName, "FixedUsername", "");
 	m_fixedPassword = Toolkit::Instance()->ReadPassword(
-		RadAliasAuthConfigSectionName, "FixedPassword"
-		);
+		RadAliasAuthConfigSectionName, "FixedPassword");
+	m_emptyUsername = GetConfig()->GetString(
+		RadAliasAuthConfigSectionName, "EmptyUsername", "");
 }
 
 RadAliasAuth::~RadAliasAuth()
@@ -1256,25 +1252,23 @@ RadAliasAuth::~RadAliasAuth()
 }
 
 int RadAliasAuth::AppendUsernameAndPassword(
-	RadiusPDU& pdu,
-	RasPDU<H225_RegistrationRequest>& rrqPdu, 
-	RRQAuthData& authData,
-	PString* username
+	RadiusPDU & pdu,
+	RasPDU<H225_RegistrationRequest> & rrqPdu, 
+	RRQAuthData & authData,
+	PString * username
 	) const
 {
 	const PString id = GetUsername(rrqPdu);
 	if (id.IsEmpty() && m_fixedUsername.IsEmpty()) {
 		PTRACE(3, "RADAUTH\t" << GetName() << " RRQ check failed: "
-			"neither FixedUsername nor alias inside RRQ were found"
-			);
+			"neither FixedUsername nor alias inside RRQ were found");
 		authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
 		return GetDefaultStatus();
 	}
 	
 	// append User-Name
    	pdu.AppendAttr(RadiusAttr::UserName, 
-		m_fixedUsername.IsEmpty() ? id : m_fixedUsername
-		);
+		m_fixedUsername.IsEmpty() ? id : m_fixedUsername);
 	
 	if (username != NULL)
 		*username = (const char*)id;
@@ -1284,17 +1278,16 @@ int RadAliasAuth::AppendUsernameAndPassword(
 		pdu.AppendAttr(RadiusAttr::UserPassword, m_fixedPassword);
 	else 
 		pdu.AppendAttr(RadiusAttr::UserPassword, 
-			m_fixedUsername.IsEmpty() ? id : m_fixedUsername
-			);
+			m_fixedUsername.IsEmpty() ? id : m_fixedUsername);
 		
 	return e_ok;			
 }
 
 int RadAliasAuth::AppendUsernameAndPassword(
-	RadiusPDU& pdu,
-	RasPDU<H225_AdmissionRequest>& arqPdu,
-	ARQAuthData& authData,
-	PString* username
+	RadiusPDU & pdu,
+	RasPDU<H225_AdmissionRequest> & arqPdu,
+	ARQAuthData & authData,
+	PString * username
 	) const
 {
 	const PString id = GetUsername(arqPdu, authData);
@@ -1308,8 +1301,7 @@ int RadAliasAuth::AppendUsernameAndPassword(
 	
 	// append User-Name
    	pdu.AppendAttr(RadiusAttr::UserName, 
-		m_fixedUsername.IsEmpty() ? id : m_fixedUsername
-		);
+		m_fixedUsername.IsEmpty() ? id : m_fixedUsername);
 
 	if (username != NULL)
 		*username = (const char*)id;
@@ -1318,33 +1310,36 @@ int RadAliasAuth::AppendUsernameAndPassword(
 		pdu.AppendAttr(RadiusAttr::UserPassword, m_fixedPassword);
 	else
 		pdu.AppendAttr(RadiusAttr::UserPassword, 
-			m_fixedUsername.IsEmpty() ? id : m_fixedUsername
-			);
+			m_fixedUsername.IsEmpty() ? id : m_fixedUsername);
 			
 	return e_ok;
 }
 
 int RadAliasAuth::AppendUsernameAndPassword(
-	RadiusPDU& pdu,
-	SetupMsg &setup,
-	endptr& /*callingEP*/,
-	SetupAuthData& authData,
-	PString* username
+	RadiusPDU & pdu,
+	SetupMsg & setup,
+	endptr& /* callingEP*/,
+	SetupAuthData & authData,
+	PString * username
 	) const
 {
 	const PString id = GetUsername(setup, authData);
-	if (id.IsEmpty() && m_fixedUsername.IsEmpty()) {
+	if (id.IsEmpty() && m_fixedUsername.IsEmpty() && m_emptyUsername.IsEmpty()) {
 		PTRACE(3, "RADAUTH\t" << GetName() << " Setup check failed: "
-			"neither FixedUsername nor alias inside Setup were found"
+			"neither EmptyUsername nor FixedUsername nor alias inside Setup were found"
 			);
 		authData.m_rejectReason = H225_ReleaseCompleteReason::e_badFormatAddress;
 		return GetDefaultStatus();
 	}
-	
+
+	// append EmptyUsername
+	if (id.IsEmpty() && !m_emptyUsername.IsEmpty()) {
+		pdu.AppendAttr(RadiusAttr::UserName, m_emptyUsername);
+	}
+
 	// append User-Name
    	pdu.AppendAttr(RadiusAttr::UserName, 
-		m_fixedUsername.IsEmpty() ? id : m_fixedUsername
-		);
+		m_fixedUsername.IsEmpty() ? id : m_fixedUsername);
 
 	if (username != NULL)
 		*username = (const char*)id;
@@ -1353,8 +1348,7 @@ int RadAliasAuth::AppendUsernameAndPassword(
 		pdu.AppendAttr(RadiusAttr::UserPassword, m_fixedPassword);
 	else
 		pdu.AppendAttr(RadiusAttr::UserPassword, 
-			m_fixedUsername.IsEmpty() ? id : m_fixedUsername
-			);
+			m_fixedUsername.IsEmpty() ? id : m_fixedUsername);
 			
 	return e_ok;
 }

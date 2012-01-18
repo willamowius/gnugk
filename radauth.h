@@ -288,6 +288,8 @@ private:
 protected:
 	/// fixed value for User-Name attribute, read from config
 	PString m_fixedUsername;
+	/// fixed value for User-Name attribute for unregistered calls with empty h323 id
+	PString m_emptyUsername;
 	/// fixed valud for User-Password attribute, read from config
 	PString m_fixedPassword;
 };
