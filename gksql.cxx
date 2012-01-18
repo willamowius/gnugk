@@ -35,29 +35,24 @@ GkSQLResult::~GkSQLResult()
 
 GkSQLConnection::GkSQLConnection(
 	/// name to use in the log
-	const char* name
-	)
-	: NamedObject(name),
+	const char * name)
+	: NamedObject(name), m_port(0),
 	m_minPoolSize(GKSQL_DEFAULT_MIN_POOL_SIZE), 
 	m_maxPoolSize(GKSQL_DEFAULT_MAX_POOL_SIZE),
 	m_destroying(false), m_connected(false)
 {
 }
 
-GkSQLConnection* GkSQLConnection::Create(
-	const char* driverName,
-	const char* connectionName
-	)
+GkSQLConnection* GkSQLConnection::Create( const char * driverName, const char * connectionName)
 {
 	return Factory<GkSQLConnection>::Create(driverName, connectionName);
 }
 
 bool GkSQLConnection::Initialize(
 	/// config to be read
-	PConfig* cfg,
+	PConfig * cfg,
 	/// name of the config section with SQL settings
-	const char* cfgSectionName
-	)
+	const char * cfgSectionName)
 {
 	PWaitAndSignal lock(m_connectionsMutex);
 	

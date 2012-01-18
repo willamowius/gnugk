@@ -45,9 +45,9 @@ using std::greater;
 
 ARQAuthData::ARQAuthData(
 	/// an endpoint requesting admission
-	const endptr& ep,
+	const endptr & ep,
 	/// call record matching this ARQ (if any)
-	const callptr& call
+	const callptr & call
 	) : m_rejectReason(-1), m_callDurationLimit(-1), 
 	m_requestingEP(ep),	m_call(call), m_billingMode(-1),
 	m_proxyMode(CallRec::ProxyDetect),
@@ -56,7 +56,7 @@ ARQAuthData::ARQAuthData(
 }
 
 ARQAuthData::ARQAuthData(
-	const ARQAuthData& obj
+	const ARQAuthData & obj
 	) : m_rejectReason(obj.m_rejectReason),
 	m_callDurationLimit(obj.m_callDurationLimit), 
 	m_requestingEP(obj.m_requestingEP), m_call(obj.m_call), 
