@@ -1242,7 +1242,7 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 {
 	bool reject = false;
-	H225_ArrayOf_AliasAddress *aliases = new H225_ArrayOf_AliasAddress;
+	H225_ArrayOf_AliasAddress * aliases = new H225_ArrayOf_AliasAddress;
 	aliases->SetSize(1);
 	PString vq = "";
 	if (request.GetAliases()) {
@@ -1257,9 +1257,10 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 		PString * bindIP = new PString();
 		PString * callerID = new PString();
 		PString callid = AsString(setup.m_callIdentifier.m_guid);
-		PString src;
-		if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress))
-			src = AsString(setup.m_sourceAddress);
+		H225_AliasAddress srcAlias;
+		// convert caller string back to alias to get alias type
+		H323SetAliasAddress(request.GetCallingStationId(), srcAlias);
+		PString src = AsString(srcAlias);
 		PIPSocket::Address localAddr;
 		WORD localPort;
 		request.GetWrapper()->GetLocalAddr(localAddr, localPort);
@@ -1645,7 +1646,7 @@ bool SqlPolicy::OnRequest(LocationRequest & request)
 
 bool SqlPolicy::OnRequest(SetupRequest & request)
 {
-	H225_Setup_UUIE &setup = request.GetRequest();
+	H225_Setup_UUIE & setup = request.GetRequest();
 
 	PString source = AsDotString(setup.m_sourceCallSignalAddress);
 	PString calledAlias = "";
@@ -1656,9 +1657,7 @@ bool SqlPolicy::OnRequest(SetupRequest & request)
 	WORD localPort;
 	request.GetWrapper()->GetLocalAddr(localAddr, localPort);
 	PString calledIP = localAddr;	// TODO: only correct if a gatekeeper IP was called, should we use explicit IP if present ?
-	PString caller;
-	if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress))
-		caller = AsString(setup.m_sourceAddress, FALSE);
+	PString caller = request.GetCallingStationId();
 	PString callingStationId = request.GetCallingStationId();
 	PString callid = AsString(setup.m_callIdentifier.m_guid);
 	PString messageType = "Setup";
