@@ -1515,7 +1515,7 @@ bool Gatekeeper::RotateLogFile()
 
 	m_logFile->SetPosition(0, PFile::End);
 	PTrace::SetStream(m_logFile);
-	PTRACEX(1, "GK\tLogging restarted.");
+	PTRACEX(1, "GK\tLogging restarted\n" + Toolkit::GKVersion());
 	return true;
 }
 
@@ -1555,7 +1555,7 @@ bool Gatekeeper::ReopenLogFile()
 	}
 	m_logFile->SetPosition(0, PFile::End);
 	PTrace::SetStream(m_logFile);
-	PTRACEX(1, "GK\tLogging restarted");
+	PTRACEX(1, "GK\tLogging restarted\n" + Toolkit::GKVersion());
 	return true;
 }
 
