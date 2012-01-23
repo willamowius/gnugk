@@ -1503,8 +1503,7 @@ SqlPolicy::SqlPolicy()
 	const PString driverName = cfg->GetString(sqlsection, "Driver", "");
 	if (driverName.IsEmpty()) {
 		PTRACE(2, m_name << "\tmodule creation failed: "
-			"no SQL driver selected"
-			);
+			"no SQL driver selected");
 		m_active = false;
 		return;
 	}
@@ -1512,8 +1511,7 @@ SqlPolicy::SqlPolicy()
 	m_sqlConn = GkSQLConnection::Create(driverName, m_name);
 	if (m_sqlConn == NULL) {
 		PTRACE(2, m_name << "\tmodule creation failed: "
-			"could not find " << driverName << " database driver"
-			);
+			"could not find " << driverName << " database driver");
 		m_active = false;
 		return;
 	}
@@ -1521,8 +1519,7 @@ SqlPolicy::SqlPolicy()
 	m_query = cfg->GetString(sqlsection, "Query", "");
 	if (m_query.IsEmpty()) {
 		PTRACE(2, m_name << "\tmodule creation failed: "
-			"no query configured"
-			);
+			"no query configured");
 		m_active = false;
 		return;
 	} else
@@ -1530,8 +1527,7 @@ SqlPolicy::SqlPolicy()
 		
 	if (!m_sqlConn->Initialize(cfg, sqlsection)) {
 		PTRACE(2, m_name << "\tmodule creation failed: "
-			"could not connect to the database"
-			);
+			"could not connect to the database");
 		return;
 	}
 #else
@@ -1562,7 +1558,7 @@ bool SqlPolicy::OnRequest(AdmissionRequest & request)
 		PString clientauthid = request.GetClientAuthId();
 		DestinationRoutes destination;
 
-		DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callingStationId, callid, messageType, clientauthid,
+		RunPolicy(	/* in */ source, calledAlias, calledIP, caller, callingStationId, callid, messageType, clientauthid,
 						/* out: */ destination);
 
 		if (destination.RejectCall()) {
@@ -1616,7 +1612,7 @@ bool SqlPolicy::OnRequest(LocationRequest & request)
 	PString clientauthid = "";	/* not available for LRQs */
 	DestinationRoutes destination;
 
-	DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callingStationId,callid, messageType, clientauthid,
+	RunPolicy(	/* in */ source, calledAlias, calledIP, caller, callingStationId,callid, messageType, clientauthid,
 					/* out: */ destination);
 
 	if (destination.RejectCall()) {
@@ -1664,7 +1660,7 @@ bool SqlPolicy::OnRequest(SetupRequest & request)
 	PString clientauthid = request.GetClientAuthId();
 	DestinationRoutes destination;
 
-	DatabaseLookup(	/* in */ source, calledAlias, calledIP, caller, callingStationId, callid, messageType, clientauthid,
+	RunPolicy(	/* in */ source, calledAlias, calledIP, caller, callingStationId, callid, messageType, clientauthid,
 					/* out: */ destination);
 
 	if (destination.RejectCall()) {
@@ -1698,7 +1694,7 @@ bool SqlPolicy::OnRequest(SetupRequest & request)
 	return false;
 }
 
-void SqlPolicy::DatabaseLookup(
+void SqlPolicy::RunPolicy(
 		/* in */
 		const PString & source,
 		const PString & calledAlias,
@@ -1813,6 +1809,92 @@ void SqlPolicy::DatabaseLookup(
 }
 
 
+#ifdef hasLUA
+LuaPolicy::LuaPolicy()
+{
+	static const char * luasection = "Routing::Lua";
+	m_name = "LuaPolicy";
+	m_active = false;
+
+	PConfig* cfg = GkConfig();
+
+	m_script = cfg->GetString(luasection, "Script", "");
+	if (m_script.IsEmpty()) {
+		PTRACE(2, m_name << "\tmodule creation failed: "
+			<< "\tempty LUA script");
+		return;
+	}
+	m_active = true;
+}
+
+LuaPolicy::~LuaPolicy()
+{
+}
+
+void LuaPolicy::RunPolicy(
+		/* in */
+		const PString & source,
+		const PString & calledAlias,
+		const PString & calledIP,
+		const PString & caller,
+		const PString & callingStationId,
+		const PString & callid,
+		const PString & messageType,
+		const PString & clientauthid,
+		/* out: */
+		DestinationRoutes & destination)
+{
+	m_lua.SetValue("source", source);
+	m_lua.SetValue("calledAlias", calledAlias);
+	m_lua.SetValue("calledIP", calledIP);
+	m_lua.SetValue("caller", caller);
+	m_lua.SetValue("callingStationId", callingStationId);
+	m_lua.SetValue("callid", callid);
+	m_lua.SetValue("messageType", messageType);
+	m_lua.SetValue("clientauthid", clientauthid);
+
+	m_lua.Run(m_script);
+
+	PString action = m_lua.GetValue("action");
+	PString rejectCode = m_lua.GetValue("rejectCode");
+	PString destAlias = m_lua.GetValue("destAlias");
+	PString destIP = m_lua.GetValue("destIP");
+
+	if (action.ToUpper() == "SKIP") {
+		return;
+	}
+
+	if (action.ToUpper() == "REJECT") {
+		destination.SetRejectCall(true);
+		if (!rejectCode.IsEmpty()) {
+			destination.SetRejectReason(rejectCode.AsInteger());
+		}
+		return;
+	}
+
+	if (!destAlias.IsEmpty()) {
+		H225_ArrayOf_AliasAddress newAliases;
+		newAliases.SetSize(1);
+		H323SetAliasAddress(destAlias, newAliases[0]);
+		destination.SetNewAliases(newAliases);
+	}
+
+	if (!destIP.IsEmpty()) {
+		PStringArray adr_parts = SplitIPAndPort(destIP, GK_DEF_ENDPOINT_SIGNAL_PORT);
+		PString ip = adr_parts[0];
+		WORD port = (WORD)(adr_parts[1].AsInteger());
+
+		Route route("Lua", SocketToH225TransportAddr(ip, port));
+		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
+		if (!destAlias.IsEmpty())
+			route.m_destNumber = destAlias;
+		destination.AddRoute(route);
+	}
+}
+
+#endif // hasLUA
+
+
 CatchAllPolicy::CatchAllPolicy()
 {
 	m_name = "CatchAllPolicy";
@@ -1866,6 +1948,9 @@ namespace { // anonymous namespace
 	SimpleCreator<NumberAnalysisPolicy> NumberAnalysisPolicyCreator("numberanalysis");
 	SimpleCreator<ENUMPolicy> ENUMPolicyCreator("enum");
 	SimpleCreator<SqlPolicy> SqlPolicyCreator("sql");
+#ifdef hasLUA
+	SimpleCreator<LuaPolicy> LuaPolicyCreator("lua");
+#endif
 	SimpleCreator<CatchAllPolicy> CatchAllPolicyCreator("catchall");
 }
 

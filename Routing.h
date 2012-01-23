@@ -23,7 +23,9 @@
 #include "singleton.h"
 #include "RasTbl.h"
 #include "stl_supp.h"
-
+#ifdef hasLUA
+#include <ptclib/lua.h>
+#endif
 
 // forward references to avoid includes
 class H225_AdmissionRequest;
@@ -424,7 +426,7 @@ protected:
 	virtual bool OnRequest(LocationRequest &);
 	virtual bool OnRequest(SetupRequest &);
 
-	virtual void DatabaseLookup(
+	virtual void RunPolicy(
 		/*in */
 		const PString & source,
 		const PString & calledAlias,
@@ -447,6 +449,35 @@ protected:
 	// query timeout
 	long m_timeout;
 };
+
+#ifdef hasLUA
+// a policy to route calls with LUA
+class LuaPolicy : public SqlPolicy {
+public:
+	LuaPolicy();
+	virtual ~LuaPolicy();
+
+protected:
+	virtual void RunPolicy(
+		/*in */
+		const PString & source,
+		const PString & calledAlias,
+		const PString & calledIP,
+		const PString & caller,
+		const PString & callingStationId,
+		const PString & callid,
+		const PString & messageType,
+		const PString & clientauthid,
+		/* out: */
+		DestinationRoutes & destination);
+
+protected:
+	// LUA interpreter
+	PLua m_lua;
+	// script to run
+	PString m_script;
+};
+#endif
 
 // a policy to route all calls to one default endpoint
 class CatchAllPolicy : public Policy {
