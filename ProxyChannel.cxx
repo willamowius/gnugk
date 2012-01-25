@@ -3374,7 +3374,7 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE &setupBody)
 					fsn[lastpos] = std24;
 				} else if (!m_calledh46023 && natfound) {  // Remove H460.23 from Supported Features.
 					for (PINDEX j=id; j < fsn.GetSize()-1; ++j) {
-						fsn[j] == fsn[j+1];
+						fsn[j] = fsn[j+1];
 					}
 					fsn.SetSize(fsn.GetSize()-1);
 					if (fsn.GetSize() == 0)

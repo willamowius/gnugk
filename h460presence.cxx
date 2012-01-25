@@ -1329,7 +1329,7 @@ bool GkPresence::HandleNewInstruction(unsigned tag, const H225_AliasAddress & ad
 			idx.m_Updated = PTime();
 			idx.m_Active = false;
 
-			if ((tag == H460P_PresenceInstruction::e_subscribe)) {
+			if (tag == H460P_PresenceInstruction::e_subscribe) {
 				//Build Remote Subscription message
 					idx.m_isSubscriber = false;
 					idx.m_subscriber = a;
@@ -1343,7 +1343,7 @@ bool GkPresence::HandleNewInstruction(unsigned tag, const H225_AliasAddress & ad
 				HandleStatusUpdates(pid, addr, e_pending, a, &idx);
 			}
 
-			if ((tag == H460P_PresenceInstruction::e_block)) {
+			if (tag == H460P_PresenceInstruction::e_block) {
 				idx.m_isSubscriber = true;
 				idx.m_subscriber = addr;
 				idx.m_Alias = a;
