@@ -147,7 +147,7 @@ void MakeCallEndPoint::OnConnectionEstablished(H323Connection & connection,
 	}
 }
 
-void MakeCallEndPoint::OnRegistrationConfirm()
+void MakeCallEndPoint::OnRegistrationConfirm(const H323TransportAddress & /* rasAddress */)
 {
 	isRegistered = TRUE;
 }

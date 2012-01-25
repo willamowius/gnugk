@@ -30,7 +30,7 @@ public:
     virtual PBoolean OnConnectionForwarded(H323Connection &, const PString &, const H323SignalPDU &);
     virtual void OnConnectionEstablished(H323Connection & connection, const PString & token);
     virtual PBoolean OpenAudioChannel(H323Connection &, PBoolean, unsigned, H323AudioCodec &);
-	virtual void OnRegistrationConfirm();
+	virtual void OnRegistrationConfirm(const H323TransportAddress & rasAddress);
 	virtual void OnRegistrationReject();
 
 	virtual void ThirdPartyMakeCall(const PString & user1, const PString & user2);
