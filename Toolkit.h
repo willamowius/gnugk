@@ -549,15 +549,17 @@ class Toolkit : public Singleton<Toolkit>
 
 	/// Inbound rewrite for ANI/CLI
 	void RewriteCLI(
-		SetupMsg &msg /// Q.931 Setup message to be rewritten
+		SetupMsg & msg /// Q.931 Setup message to be rewritten
 		) const;
 		
 	/// Outbound rewrite for ANI/CLI
 	void RewriteCLI(
 		SetupMsg &msg, /// Q.931 Setup message to be rewritten
-		SetupAuthData &authData, /// additional data
+		SetupAuthData & authData, /// additional data
 		const PIPSocket::Address &destAddr /// callee's IP
 		) const;
+
+	void RewriteSourceAddress(SetupMsg & msg) const;
 
 	void SetRerouteCauses(unsigned char *causeMap);
 

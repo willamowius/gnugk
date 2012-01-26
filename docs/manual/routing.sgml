@@ -842,3 +842,25 @@ from the key name before loading rules:
 %r1% in:192.168.1.1=1001=2001
 %r2% in:192.168.1.1=any=2000
 </verb></tscreen>
+
+<sect1>Section &lsqb;RewriteSourceAddress&rsqb;
+<label id="rewritesourceaddr">
+<p>
+With the switches in this section you can filter the sourceAddress elements that are
+transported in a Setup message. (Please note that the
+<ref id="clirewrite" name="RewriteCLI"> rules may also influence the sourceAddress.)
+
+<itemize>
+<item><tt/OnlyE164=1/<newline>
+Default: <tt/0/<newline>
+<p>
+With this switch you can filter out all elements that are not of type E.164.
+
+<item><tt/OnlyValid10Dand11D=1/<newline>
+Default: <tt/0/<newline>
+<p>
+With this switch you can filter out all elements that are not valid 10-digit or 11-digit US numbers.
+They may be of any alias type (unless OnlyE164 is set), but no formatting characters are allowed.
+11-digit numbers must start with 1 and area codes must start with 2..9.
+</itemize>
+

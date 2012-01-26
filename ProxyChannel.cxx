@@ -2178,8 +2178,8 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		return;
 	}
 
-	Q931 &q931 = msg->GetQ931();
-	H225_Setup_UUIE &setupBody = setup->GetUUIEBody();
+	Q931 & q931 = msg->GetQ931();
+	H225_Setup_UUIE & setupBody = setup->GetUUIEBody();
 
 	m_h225Version = GetH225Version(setupBody);
 
@@ -2371,6 +2371,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 	// perform inbound ANI/CLI rewrite
 	toolkit->RewriteCLI(*setup);
+	toolkit->RewriteSourceAddress(*setup);
 
 	// store dialed number
 	const PString dialedNumber = GetDialedNumber(*setup);

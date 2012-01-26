@@ -245,6 +245,32 @@ PString StripAliasType(const PString & alias)
 	}
 }
 
+// check if an alias is a valid US 10D or 11D number
+bool Is10Dor11Dnumber(const H225_AliasAddress & alias)
+{
+	PString num = AsString(alias, false);
+	if (num.GetLength() < 10 || num.GetLength() > 11)
+		return false;
+	// must start with 1 if its 11D
+	if (num.GetLength() == 11) {
+		if (num.Left(1) != "1")
+			return false;
+		else
+			num = num.Right(10);
+	}
+	// check parts
+	PString area = num.Left(3);
+	PString local = num.Right(7);
+	// area code must start with 2..9
+	if (area.Left(1) == "0" || area.Left(1) == "1")
+		return false;
+	if (local == "0000000")
+		return false;
+
+	// OK, all checks passed
+	return true;
+}
+
 H245_TransportAddress IPToH245TransportAddr(const PIPSocket::Address & ip, WORD Port)
 {
 	H245_TransportAddress Result;

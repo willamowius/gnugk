@@ -60,6 +60,9 @@ PString AsString(const PASN_OctetString & Octets);
 
 PString StripAliasType(const PString & alias);
 
+// check if an alias is a valid US 10 digit or 11 digit number (no formatting allowed)
+bool Is10Dor11Dnumber(const H225_AliasAddress & alias);
+
 H245_TransportAddress IPToH245TransportAddr(const PIPSocket::Address & ip, WORD Port);
 
 // convert a string (dot notation without port) into an H245 transport address

@@ -155,6 +155,28 @@ TEST_F(H323UtilTest, ByteArrayAsString) {
 	EXPECT_STREQ("abc", AsString(bytes));
 }
 
+TEST_F(H323UtilTest, Is10Dor11Dnumber) {
+	H225_AliasAddress alias;
+	H323SetAliasAddress(PString("jan"), alias);
+	EXPECT_FALSE(Is10Dor11Dnumber(alias));
+	H323SetAliasAddress(PString("123456789"), alias);
+	EXPECT_FALSE(Is10Dor11Dnumber(alias));
+	H323SetAliasAddress(PString("123456789012"), alias);
+	EXPECT_FALSE(Is10Dor11Dnumber(alias));
+	H323SetAliasAddress(PString("10000000000"), alias);
+	EXPECT_FALSE(Is10Dor11Dnumber(alias));
+	H323SetAliasAddress(PString("0000000000"), alias);
+	EXPECT_FALSE(Is10Dor11Dnumber(alias));
+	H323SetAliasAddress(PString("1238888777"), alias);
+	EXPECT_FALSE(Is10Dor11Dnumber(alias));
+	H323SetAliasAddress(PString("2238888777"), alias);
+	EXPECT_TRUE(Is10Dor11Dnumber(alias));
+	H323SetAliasAddress(PString("2008888777"), alias);
+	EXPECT_TRUE(Is10Dor11Dnumber(alias));
+	H323SetAliasAddress(PString("2008000000"), alias);
+	EXPECT_TRUE(Is10Dor11Dnumber(alias));
+}
+
 TEST_F(H323UtilTest, SetSockaddr) {
 	// H323TransportAddress IPv4 version
 	struct sockaddr_in sin;

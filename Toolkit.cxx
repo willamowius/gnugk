@@ -2895,13 +2895,33 @@ void Toolkit::RewriteCLI(SetupMsg & msg) const
 	m_cliRewrite->InRewrite(msg);
 }
 
-void Toolkit::RewriteCLI(
-	SetupMsg &msg,
-	SetupAuthData &authData,
-	const PIPSocket::Address &addr
-	) const
+void Toolkit::RewriteCLI(SetupMsg & msg, SetupAuthData & authData, const PIPSocket::Address & addr) const
 {
 	m_cliRewrite->OutRewrite(msg, authData, addr);
+}
+
+void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
+{
+	H225_Setup_UUIE & setupBody = setup.GetUUIEBody();
+	if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress))
+		return;
+
+	bool onlyE164 = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "OnlyE164", "0"));
+	bool only10Dand11D = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "OnlyValid10Dand11D", "0"));
+
+	PINDEX i = 0;
+	while(i < setupBody.m_sourceAddress.GetSize()) {
+		bool remove = false;
+		if (onlyE164 && setupBody.m_sourceAddress[i].GetTag() != H225_AliasAddress::e_dialedDigits)
+			remove = true;
+		if (only10Dand11D && !Is10Dor11Dnumber(setupBody.m_sourceAddress[i]))
+			remove = true;
+		if (remove) {
+			setupBody.m_sourceAddress.RemoveAt(i);
+		} else {
+			++i;
+		}
+	}
 }
 
 void Toolkit::SetRerouteCauses(unsigned char *causeMap)
