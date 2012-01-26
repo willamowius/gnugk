@@ -413,11 +413,11 @@ protected:
 	H225_ArrayOf_AliasAddress m_newAliases;
 };
 
-// a policy to route calls via an SQL database
-class SqlPolicy : public Policy {
+// superclass for dynamic policies like sql and lua scripring
+class DynamicPolicy : public Policy {
 public:
-	SqlPolicy();
-	virtual ~SqlPolicy();
+	DynamicPolicy();
+	virtual ~DynamicPolicy() { }
 
 protected:
 	virtual bool IsActive() const { return m_active; }
@@ -437,11 +437,34 @@ protected:
 		const PString & messageType,
 		const PString & clientauthid,
 		/* out: */
-		DestinationRoutes & destination);
+		DestinationRoutes & destination) = 0;
 
 protected:
 	// active ?
 	bool m_active;
+};
+
+// a policy to route calls via an SQL database
+class SqlPolicy : public DynamicPolicy {
+public:
+	SqlPolicy();
+	virtual ~SqlPolicy();
+
+protected:
+	virtual void RunPolicy(
+		/*in */
+		const PString & source,
+		const PString & calledAlias,
+		const PString & calledIP,
+		const PString & caller,
+		const PString & callingStationId,
+		const PString & callid,
+		const PString & messageType,
+		const PString & clientauthid,
+		/* out: */
+		DestinationRoutes & destination);
+
+protected:
 	// connection to the SQL database
 	GkSQLConnection* m_sqlConn;
 	// parametrized query string for the routing query
@@ -452,7 +475,7 @@ protected:
 
 #ifdef hasLUA
 // a policy to route calls with LUA
-class LuaPolicy : public SqlPolicy {
+class LuaPolicy : public DynamicPolicy {
 public:
 	LuaPolicy();
 	virtual ~LuaPolicy();

@@ -1488,59 +1488,12 @@ bool ENUMPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddr
 
 
 
-SqlPolicy::SqlPolicy()
+DynamicPolicy::DynamicPolicy()
 {
 	m_active = false;
-	m_sqlConn = NULL;
-#if HAS_DATABASE
-	m_active = true;
-	static const char *sqlsection = "Routing::Sql";
-	m_name = "SqlPolicy";
-	m_timeout = -1;
-
-	PConfig* cfg = GkConfig();
-
-	const PString driverName = cfg->GetString(sqlsection, "Driver", "");
-	if (driverName.IsEmpty()) {
-		PTRACE(2, m_name << "\tmodule creation failed: "
-			"no SQL driver selected");
-		m_active = false;
-		return;
-	}
-
-	m_sqlConn = GkSQLConnection::Create(driverName, m_name);
-	if (m_sqlConn == NULL) {
-		PTRACE(2, m_name << "\tmodule creation failed: "
-			"could not find " << driverName << " database driver");
-		m_active = false;
-		return;
-	}
-
-	m_query = cfg->GetString(sqlsection, "Query", "");
-	if (m_query.IsEmpty()) {
-		PTRACE(2, m_name << "\tmodule creation failed: "
-			"no query configured");
-		m_active = false;
-		return;
-	} else
-		PTRACE(4, m_name << "\tQuery: " << m_query);
-		
-	if (!m_sqlConn->Initialize(cfg, sqlsection)) {
-		PTRACE(2, m_name << "\tmodule creation failed: "
-			"could not connect to the database");
-		return;
-	}
-#else
-	PTRACE(1, m_name << " not available - no database driver compiled into GnuGk");
-#endif // HAS_DATABASE
 }
 
-SqlPolicy::~SqlPolicy()
-{
-	delete m_sqlConn;
-}
-
-bool SqlPolicy::OnRequest(AdmissionRequest & request)
+bool DynamicPolicy::OnRequest(AdmissionRequest & request)
 {
 	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
 	H225_AdmissionRequest & arq = request.GetRequest();
@@ -1589,7 +1542,7 @@ bool SqlPolicy::OnRequest(AdmissionRequest & request)
 	return false;
 }
 
-bool SqlPolicy::OnRequest(LocationRequest & request)
+bool DynamicPolicy::OnRequest(LocationRequest & request)
 {
 	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
 	H225_LocationRequest & lrq = request.GetRequest();
@@ -1640,7 +1593,7 @@ bool SqlPolicy::OnRequest(LocationRequest & request)
 	return false;
 }
 
-bool SqlPolicy::OnRequest(SetupRequest & request)
+bool DynamicPolicy::OnRequest(SetupRequest & request)
 {
 	H225_Setup_UUIE & setup = request.GetRequest();
 
@@ -1692,6 +1645,58 @@ bool SqlPolicy::OnRequest(SetupRequest & request)
 		return true;
 
 	return false;
+}
+
+SqlPolicy::SqlPolicy()
+{
+	m_active = false;
+	m_sqlConn = NULL;
+#if HAS_DATABASE
+	m_active = true;
+	static const char *sqlsection = "Routing::Sql";
+	m_name = "SqlPolicy";
+	m_timeout = -1;
+
+	PConfig* cfg = GkConfig();
+
+	const PString driverName = cfg->GetString(sqlsection, "Driver", "");
+	if (driverName.IsEmpty()) {
+		PTRACE(2, m_name << "\tmodule creation failed: "
+			"no SQL driver selected");
+		m_active = false;
+		return;
+	}
+
+	m_sqlConn = GkSQLConnection::Create(driverName, m_name);
+	if (m_sqlConn == NULL) {
+		PTRACE(2, m_name << "\tmodule creation failed: "
+			"could not find " << driverName << " database driver");
+		m_active = false;
+		return;
+	}
+
+	m_query = cfg->GetString(sqlsection, "Query", "");
+	if (m_query.IsEmpty()) {
+		PTRACE(2, m_name << "\tmodule creation failed: "
+			"no query configured");
+		m_active = false;
+		return;
+	} else
+		PTRACE(4, m_name << "\tQuery: " << m_query);
+		
+	if (!m_sqlConn->Initialize(cfg, sqlsection)) {
+		PTRACE(2, m_name << "\tmodule creation failed: "
+			"could not connect to the database");
+		return;
+	}
+#else
+	PTRACE(1, m_name << " not available - no database driver compiled into GnuGk");
+#endif // HAS_DATABASE
+}
+
+SqlPolicy::~SqlPolicy()
+{
+	delete m_sqlConn;
 }
 
 void SqlPolicy::RunPolicy(
@@ -1799,7 +1804,6 @@ void SqlPolicy::RunPolicy(
 				if (row < result->GetNumRows()) {
 					result->FetchRow(resultRow);	// fetch next row
 					PTRACE(5, m_name << "\tResult cont'd: " << resultRow[0].first << ", " << resultRow[1].first);
-				
 				}
 			} while (row < result->GetNumRows());
 		}
@@ -1820,8 +1824,23 @@ LuaPolicy::LuaPolicy()
 
 	m_script = cfg->GetString(luasection, "Script", "");
 	if (m_script.IsEmpty()) {
+		PString scriptFile = cfg->GetString(luasection, "ScriptFile", "");
+		if (!scriptFile.IsEmpty()) {
+			PTextFile f(scriptFile, PFile::ReadOnly);
+			if (!f.IsOpen()) {
+				PTRACE(1, "Can't read LUA script " << scriptFile);
+			} else {
+				PString line;
+				while (f.ReadLine(line)) {
+					m_script += (line + "\n"); 
+				}
+			}
+		}
+	}
+
+	if (m_script.IsEmpty()) {
 		PTRACE(2, m_name << "\tmodule creation failed: "
-			<< "\tempty LUA script");
+			<< "\tno LUA script");
 		return;
 	}
 	m_active = true;
@@ -1861,10 +1880,12 @@ void LuaPolicy::RunPolicy(
 	PString destIP = m_lua.GetValue("destIP");
 
 	if (action.ToUpper() == "SKIP") {
+		PTRACE(5, m_name << "\tSkipping to next policy");
 		return;
 	}
 
 	if (action.ToUpper() == "REJECT") {
+		PTRACE(5, m_name << "\tRejecting call");
 		destination.SetRejectCall(true);
 		if (!rejectCode.IsEmpty()) {
 			destination.SetRejectReason(rejectCode.AsInteger());
@@ -1873,6 +1894,7 @@ void LuaPolicy::RunPolicy(
 	}
 
 	if (!destAlias.IsEmpty()) {
+		PTRACE(5, m_name << "\tSet new destination alias " << destAlias);
 		H225_ArrayOf_AliasAddress newAliases;
 		newAliases.SetSize(1);
 		H323SetAliasAddress(destAlias, newAliases[0]);
@@ -1880,6 +1902,7 @@ void LuaPolicy::RunPolicy(
 	}
 
 	if (!destIP.IsEmpty()) {
+		PTRACE(5, m_name << "\tSet new destination IP " << destIP);
 		PStringArray adr_parts = SplitIPAndPort(destIP, GK_DEF_ENDPOINT_SIGNAL_PORT);
 		PString ip = adr_parts[0];
 		WORD port = (WORD)(adr_parts[1].AsInteger());
