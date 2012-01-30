@@ -1895,7 +1895,8 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 	ReadLock configLock(ConfigReloadMutex);
 	MarkSocketBlocked lock(this);
 
-	H225_Facility_UUIE &facilityBody = msg->GetUUIEBody();
+	H225_TransportAddress oldDestSignalAddr = m_call->GetDestSignalAddr();
+	H225_Facility_UUIE & facilityBody = msg->GetUUIEBody();
 
 	endptr forwarded;
 	Routing::FacilityRequest request(facilityBody, msg);
@@ -1937,8 +1938,7 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 	m_call->SetCallerID(request.GetCallerID());
 
 	PTRACE(3, Type() << "\tCall " << m_call->GetCallNumber() << " is forwarded to "
-		<< altDestInfo << (!forwarder ? (" by " + forwarder) : PString::Empty())
-		);
+		<< altDestInfo << (!forwarder ? (" by " + forwarder) : PString::Empty()));
 
 	// disconnect from forwarder
 	SendReleaseComplete(H225_ReleaseCompleteReason::e_facilityCallDeflection);
@@ -1969,21 +1969,31 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 		return;
 	}
 
-	H225_Setup_UUIE &setupUUIE = suuie.m_h323_uu_pdu.m_h323_message_body;
+	H225_Setup_UUIE & setupUUIE = suuie.m_h323_uu_pdu.m_h323_message_body;
 	if (facilityBody.HasOptionalField(H225_Facility_UUIE::e_cryptoTokens)) {
 		setupUUIE.IncludeOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 		setupUUIE.m_cryptoTokens = facilityBody.m_cryptoTokens;
 	}
+
+	// delete destCallSignalAddr from saved Setup
+	setupUUIE.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
+
 	if (aliases) {
-		const H225_ArrayOf_AliasAddress & a = *aliases;
-		for (PINDEX n = 0; n < a.GetSize(); ++n)
-			if (a[n].GetTag() == H225_AliasAddress::e_dialedDigits) {
-				fakeSetup.SetCalledPartyNumber(AsString(a[n], FALSE));
+		// set called-party to first E.164
+		for (PINDEX n = 0; n < aliases->GetSize(); ++n)
+			if (aliases[n].GetTag() == H225_AliasAddress::e_dialedDigits) {
+				fakeSetup.SetCalledPartyNumber(AsString(aliases[n], FALSE));
 				break;
 			}
 		setupUUIE.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
-		setupUUIE.m_destinationAddress = a;
+		setupUUIE.m_destinationAddress = *aliases;
+		// TODO: set destt IP to GK IP ?
+	} else {
+		// for calls that were dialed by IP, set the old destIP
+		setupUUIE.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
+		setupUUIE.m_destCallSignalAddress = oldDestSignalAddr;
 	}
+
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ShowForwarderNumber", "0")))
 		if (endptr fwd = m_call->GetForwarder()) {
 			const H225_ArrayOf_AliasAddress & a = fwd->GetAliases();
@@ -4452,13 +4462,6 @@ void CallSignalSocket::OnFacility(SignalingMsg *msg)
 		}
 		break;
 	case H225_FacilityReason::e_routeCallToGatekeeper:
-        // include orginal destination as an alternativeAlias if none is provided (fix for VCS)
-        if (!facilityBody.HasOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress)) {
-              facilityBody.IncludeOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress);
-              facilityBody.m_alternativeAliasAddress.SetSize(1);
-              H323SetAliasAddress(m_call->GetDestSignalAddr(),facilityBody.m_alternativeAliasAddress[0]);
-        }
-        // fall through intended
 	case H225_FacilityReason::e_callForwarded:
 	case H225_FacilityReason::e_routeCallToMC:
 		if (!Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ForwardOnFacility", "0")))
@@ -4473,8 +4476,7 @@ void CallSignalSocket::OnFacility(SignalingMsg *msg)
 		if (m_call && CallTable::Instance()->FindCallRec(m_call->GetCallNumber())) {
 			MarkBlocked(true);
 			CreateJob(this, &CallSignalSocket::ForwardCall,
-				dynamic_cast<FacilityMsg*>(facility->Clone()), "ForwardCall"
-				);
+				dynamic_cast<FacilityMsg*>(facility->Clone()), "ForwardCall");
 			m_result = NoData;
 			return;
 		}
@@ -4487,8 +4489,7 @@ void CallSignalSocket::OnFacility(SignalingMsg *msg)
 					&& sigSocket->m_h225Version < 4) {
 				H225_H323_UserInformation *uuie = facility->GetUUIE();
 				uuie->m_h323_uu_pdu.m_h323_message_body.SetTag(
-					H225_H323_UU_PDU_h323_message_body::e_empty
-					);
+					H225_H323_UU_PDU_h323_message_body::e_empty);
 				msg->SetUUIEChanged();
 				return;
 			}

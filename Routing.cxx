@@ -472,6 +472,7 @@ bool ExplicitPolicy::OnRequest(AdmissionRequest & request)
 		// check if the mapping removed the destination IP
 		if (!arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress))
 			return false;
+		// TODO: also check if one of the aliases is a transport-ID ?
 		Route route(m_name, arq.m_destCallSignalAddress);
 		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
 #ifdef HAS_H46023
@@ -499,6 +500,7 @@ bool ExplicitPolicy::OnRequest(SetupRequest & request)
 		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
 		return request.AddRoute(route);
 	}
+	// TODO: also check if one of the aliases is a transport-ID ?
 	return false;
 }
 
@@ -514,6 +516,7 @@ bool ExplicitPolicy::OnRequest(FacilityRequest & request)
 		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
 		return request.AddRoute(route);
 	}
+	// TODO: also check if one of the aliases is a transport-ID ?
 	return false;
 }
 
