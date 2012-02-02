@@ -348,3 +348,25 @@ Known to not work:
 <itemize>
 <item>LifeSize endpoints do not support an IPv6 gatekeeper.
 </itemize>
+
+<sect1>Using servers with multiple IPs
+<p>
+By default GnuGk will listen to all IPs on a server and will automatically
+select the correct sending IP to reach an endpoint. There are a number of config
+switches to select which IPs to use specifically.
+
+With Home= you can select the interfaces GnuGk should listen on.
+Usually you would select 1 or 2 interfaces on a machine with multiple
+IPs. Thats something every user might consider.
+
+With Bind= you can select which IP to use for outgoing messages. This
+can be useful if your gatekeeper listens to many IPs, but it can also
+have some non-obvious consequences and this switch should be avoided by
+most users.
+
+Another related switch is ExternalIP= which can be used to send
+different IPs inside of your messages than you are actually listening
+on. This can be usefull if you are doing port forwarding, but should
+also be avoided and you should use one of the firewall traversal
+protocols instead.
+
