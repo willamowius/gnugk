@@ -1180,8 +1180,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	PrintQ931(4, "Received:", "", q931pdu, uuie);
 
 	SignalingMsg *msg = SignalingMsg::Create(q931pdu, uuie,
-		_localAddr, _localPort, _peerAddr, _peerPort
-		);
+		_localAddr, _localPort, _peerAddr, _peerPort);
 
 #ifdef H323_H450
 	// Enable H.450.2 Call Transfer Emulator
@@ -1195,6 +1194,38 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 				return NoData;   // don't forward
 			}
     }
+#endif
+
+#ifdef HAS_H46017
+	// check for incoming H.460.17 RAS message
+	if (msg->GetTag() == Q931::FacilityMsg
+		&& uuie
+		&& uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_genericData)
+		&& Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "EnableH46017", 0)) {
+		bool h46017found = false;
+		for(PINDEX i=0; i < uuie->m_h323_uu_pdu.m_genericData.GetSize(); ++i) {
+			H460_Feature & feat = (H460_Feature &)uuie->m_h323_uu_pdu.m_genericData[i];
+			if (feat.GetFeatureID() == H460_FeatureID(17)) {
+				H460_FeatureStd & std17 = (H460_FeatureStd &)feat;
+				h46017found = true;
+				PTRACE(0, "JW found .17 msg " << std17);
+				// multiple RAS messages can be transmitted
+				for(PINDEX j=0; j < std17.GetParameterCount(); ++j) {
+					PTRACE(0, "JW checking .17 RAS msg " << j);
+					H460_FeatureParameter p = std17.GetFeatureParameter(j);
+					PTRACE(0, "JW checking .17 RAS msg " << j << " ID=" << p.ID());
+					if (p.ID() == 1 && p.hasContent()) {
+						PASN_OctetString data = p;
+						PBYTEArray ras = data.GetValue();
+						// hand RAS message to RasSserver for processing
+						RasServer::Instance()->ReadH46017Message(ras);
+					}
+				}
+			}
+		}
+		if (h46017found)
+			return NoData;	// don't forward
+	}
 #endif
 
 	if (m_h245Tunneling && uuie != NULL)
@@ -3765,9 +3796,7 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 #endif
 }
 
-void CallSignalSocket::OnInformation(
-	SignalingMsg *msg
-	)
+void CallSignalSocket::OnInformation(SignalingMsg * msg)
 {
 	if (remote != NULL)
 		return;
@@ -3783,9 +3812,9 @@ void CallSignalSocket::OnInformation(
 	if (!Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SupportCallingNATedEndpoints", "1")))
 		return;
 
-	Q931 &q931 = msg->GetQ931();
+	Q931 & q931 = msg->GetQ931();
 
-	// We are only interested in the GnuGk NAT message everything else ignore.
+	// look for GnuGk NAT messages, ignore everything else
 	if (!q931.HasIE(Q931::FacilityIE))
 		return;
 
@@ -4431,13 +4460,13 @@ void CallSignalSocket::TryNextRoute()
 	m_result = NoData;
 }
 
-void CallSignalSocket::OnFacility(SignalingMsg *msg)
+void CallSignalSocket::OnFacility(SignalingMsg * msg)
 {
 	FacilityMsg *facility = dynamic_cast<FacilityMsg*>(msg);
 	if (facility == NULL)
 		return;
 
-	H225_Facility_UUIE &facilityBody = facility->GetUUIEBody();
+	H225_Facility_UUIE & facilityBody = facility->GetUUIEBody();
 
 	if (m_h225Version == 0)
 		m_h225Version = GetH225Version(facilityBody);
@@ -4449,7 +4478,7 @@ void CallSignalSocket::OnFacility(SignalingMsg *msg)
 	}
 	if (facilityBody.HasOptionalField(H225_Facility_UUIE::e_maintainConnection)
 			&& facilityBody.m_maintainConnection) {
-		facilityBody.m_maintainConnection = FALSE;
+		facilityBody.m_maintainConnection = FALSE;	// TODO .17 ?
 		msg->SetUUIEChanged();
 	}
 

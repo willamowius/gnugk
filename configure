@@ -589,6 +589,7 @@ LARGE_FDSET
 HAS_RADIUS
 HAS_H46023
 HAS_H46018
+HAS_H46017
 INSTALLPREFIX
 OPENH323_VERSION
 OPENH323MAKEDIR
@@ -647,6 +648,7 @@ SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
+enable_h46017
 enable_h46018
 enable_h46023
 enable_radius
@@ -1291,6 +1293,7 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --enable-h46017         enable H.460.17 support (default=yes)
   --enable-h46018         enable H.460.18 / H.460.19 support (default=no) check patent license before enabling
   --enable-h46023         enable H.460.23 / H.460.24 support (default=yes)
   --enable-radius         enable RADIUS support (default=yes)
@@ -3676,6 +3679,38 @@ else
    INSTALLPREFIX="${prefix}"
 fi
 
+
+
+
+
+# Check whether --enable-h46017 was given.
+if test "${enable_h46017+set}" = set; then :
+  enableval=$enable_h46017;  h46017="${enableval}"
+else
+  h46017="yes"
+
+fi
+
+
+H460SUPPORT=`cat ${OPENH323DIR}/include/openh323buildopts.h | grep 'define H323_H460'`
+if test "${H460SUPPORT:-unset}" = "unset" ; then
+	if test "x${h46017}" != "xno" ; then
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: No H.460 support available" >&5
+$as_echo "No H.460 support available" >&6; }
+	fi
+	h46017="no"
+fi
+
+if test "x${h46017}" != "xno" ; then
+   HAS_H46017=1
+   $as_echo "#define HAS_H46017 1" >>confdefs.h
+
+   STDCCFLAGS="-DHAS_H46017=1 $STDCCFLAGS"
+   echo "H.460.17 support enabled"
+else
+   echo "H.460.17 support disabled"
+   HAS_H46017=0
+fi
 
 
 

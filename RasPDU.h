@@ -49,6 +49,9 @@ struct GatekeeperMessage {
 	unsigned GetTag() const { return m_recvRAS.GetTag(); }
 	const char *GetTagName() const;
 	bool Read(RasListener *);
+#ifdef HAS_H46017
+	bool Read(const PBYTEArray & buffer);
+#endif
 	bool Reply() const;
 };
 

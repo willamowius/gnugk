@@ -253,6 +253,10 @@ public:
 	// override from class RegularJob
 	virtual void Run();
 
+#ifdef HAS_H46017
+	virtual void ReadH46017Message(const PBYTEArray & ras);
+#endif
+
 private:
 	// override from class RegularJob
 	virtual void OnStop();

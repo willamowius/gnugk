@@ -434,6 +434,11 @@ Default: <tt>0</tt><newline>
 <p>
 Force ALL registrations to use a keepAlive TCP socket.
 
+<item><tt/EnableH46017=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Enable support for H.460.17.
+
 <item><tt/EnableH46018=1/<newline>
 Default: <tt>0</tt><newline>
 <p>

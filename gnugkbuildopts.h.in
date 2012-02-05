@@ -2,7 +2,7 @@
 //
 // gnugkbuidopts.h autoconfig results (currently only used on Windows)
 //
-// Copyright (c) 2008-2011, Jan Willamowius
+// Copyright (c) 2008-2012, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -13,6 +13,9 @@
 
 #ifndef GNUGKBUILDOPTS_H
 #define GNUGKBUILDOPTS_H 1
+
+// H.460.17
+#undef HAS_H46017
 
 // H.460.18/.19
 #undef HAS_H46018
