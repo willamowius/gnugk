@@ -38,18 +38,9 @@ class CallSignalSocket;
 
 const unsigned MaxRasTag = H225_RasMessage::e_serviceControlResponse;
 
-struct GatekeeperMessage {
-	PPER_Stream m_rasPDU;
-	H225_RasMessage m_recvRAS;
-	H225_RasMessage m_replyRAS;
-	PIPSocket::Address m_peerAddr;
-	WORD m_peerPort;
-	PIPSocket::Address m_localAddr;
-	RasListener *m_socket;
-#ifdef HAS_H46017
-	CallSignalSocket * m_h46017Socket;
-#endif
-
+class GatekeeperMessage {
+public:
+	GatekeeperMessage() : m_socket(NULL), m_h46017Socket(NULL) { }
 	unsigned GetTag() const { return m_recvRAS.GetTag(); }
 	const char *GetTagName() const;
 	bool Read(RasListener *);
@@ -57,6 +48,17 @@ struct GatekeeperMessage {
 	bool Read(const PBYTEArray & buffer);
 #endif
 	bool Reply() const;
+
+	PPER_Stream m_rasPDU;
+	H225_RasMessage m_recvRAS;
+	H225_RasMessage m_replyRAS;
+	PIPSocket::Address m_peerAddr;
+	WORD m_peerPort;
+	PIPSocket::Address m_localAddr;
+	RasListener * m_socket;
+#ifdef HAS_H46017
+	CallSignalSocket * m_h46017Socket;
+#endif
 };
 
 class RasListener : public UDPSocket {

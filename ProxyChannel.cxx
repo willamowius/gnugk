@@ -2018,7 +2018,7 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 			}
 		setupUUIE.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
 		setupUUIE.m_destinationAddress = *aliases;
-		// TODO: set destt IP to GK IP ?
+		// TODO: set dest IP to GK IP ?
 	} else {
 		// for calls that were dialed by IP, set the old destIP
 		setupUUIE.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
@@ -4231,7 +4231,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 }
 
 #ifdef HAS_H46017
-void CallSignalSocket::SendH46017Message(const H225_RasMessage & ras)
+bool CallSignalSocket::SendH46017Message(const H225_RasMessage & ras)
 {
 	PTRACE(0, "JW encapsulate H.460.17 RAS reply " << ras);
 	if (IsOpen()) {
@@ -4259,9 +4259,10 @@ void CallSignalSocket::SendH46017Message(const H225_RasMessage & ras)
 
 		PBYTEArray buf;
 		FacilityPDU.Encode(buf);
-		TransmitData(buf);
+		return TransmitData(buf);
 	} else {
 		PTRACE(1, "Error: Can't send H.460.17 reply - socket closed");
+		return false;
 	}
 }
 #endif
@@ -4514,7 +4515,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 	}
 	if (facilityBody.HasOptionalField(H225_Facility_UUIE::e_maintainConnection)
 			&& facilityBody.m_maintainConnection) {
-		facilityBody.m_maintainConnection = FALSE;	// TODO .17 ?
+		facilityBody.m_maintainConnection = FALSE;	// TODO17 ?
 		msg->SetUUIEChanged();
 	}
 

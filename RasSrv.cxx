@@ -189,7 +189,16 @@ bool GatekeeperMessage::Read(const PBYTEArray & buffer)
 
 bool GatekeeperMessage::Reply() const
 {
-	return m_socket->SendRas(m_replyRAS, m_peerAddr, m_peerPort);
+#ifdef HAS_H46017
+	if (m_h46017Socket) {
+		return m_h46017Socket->SendH46017Message(m_replyRAS);
+	}
+#endif
+	if (m_socket) {
+		return m_socket->SendRas(m_replyRAS, m_peerAddr, m_peerPort);
+	} else {
+		return false;
+	}
 }
 
 
@@ -1519,7 +1528,7 @@ void RasServer::ReadH46017Message(const PBYTEArray & ras, const PIPSocket::Addre
 		msg->m_peerPort = fromPort;
 		msg->m_h46017Socket = s;
 		PTRACE(0, "JW .17 message=" << setprecision(2) << msg->m_recvRAS);
-		// TODO: refactor duplication from ReadSocket()
+		// TODO17: refactor duplication from ReadSocket()
 		unsigned tag = msg->GetTag();
 		PWaitAndSignal lock(hmutex);
 		if (RasMsg *ras = RasFactory::Create(tag, msg)) {
@@ -1755,10 +1764,7 @@ bool RegistrationRequestPDU::Process()
 	bool bSendReply, bForwardRequest;
 	bSendReply = bForwardRequest = !RasSrv->IsForwardedRas(request, rx_addr);
 #ifdef HAS_H46017
-	// TODO: should we add a marker how we received the request ?
-	PBoolean usesH46017 = request.HasOptionalField(H225_RegistrationRequest::e_maintainConnection)
-							&& (request.m_callSignalAddress.GetSize() == 0)
-							&& (request.m_rasAddress.GetSize() == 0);
+	PBoolean usesH46017 = (m_msg->m_h46017Socket != NULL);
 	if (usesH46017) {
 		PTRACE(1, "RAS\tEndpoint uses H.460.17");
 		// add RAS and signal IP eg. for status port display, but they will never be used
@@ -2277,7 +2283,6 @@ bool RegistrationRequestPDU::Process()
 #ifdef HAS_H46017
 	if (usesH46017 && ep->IsH46017Disabled()) {
 		EndpointTbl->RemoveByEndptr(ep);
-		// TODO: fix all places with return BuildRRJ to send via TCP
 		return BuildRRJ(H225_RegistrationRejectReason::e_securityDenial);
 	}
 	ep->SetUsesH46017(usesH46017);
@@ -2340,6 +2345,7 @@ bool RegistrationRequestPDU::Process()
 		H225_ArrayOf_FeatureDescriptor & gd = rcf.m_featureSet.m_supportedFeatures;
 
 #ifdef HAS_H46017
+		ep->SetSocket(m_msg->m_h46017Socket);
 		rcf.m_callSignalAddress.SetSize(0);
 		rcf.IncludeOptionalField(H225_RegistrationConfirm::e_maintainConnection);
 		rcf.m_maintainConnection = true;
@@ -2490,16 +2496,6 @@ bool RegistrationRequestPDU::Process()
 		PrintStatus(log);
 	}
 
-#ifdef HAS_H46017
-	if (bSendReply && ep->UsesH46017()) {
-		ep->SetSocket(m_msg->m_h46017Socket);
-		CallSignalSocket * natSocket = ep->GetSocket();
-		if (natSocket)
-			natSocket->SendH46017Message(m_msg->m_replyRAS);
-		bSendReply = false;
-	}
-#endif
-
 	return bSendReply;
 }
 
@@ -2563,9 +2559,6 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 	endptr ep = request.HasOptionalField(H225_UnregistrationRequest::e_endpointIdentifier) ?
 		EndpointTbl->FindByEndpointId(request.m_endpointIdentifier) :
 		request.m_callSignalAddress.GetSize() ? EndpointTbl->FindBySignalAdr(request.m_callSignalAddress[0], m_msg->m_peerAddr) : endptr(0);
-#ifdef HAS_H46017
-	CallSignalSocket * natSocket = NULL;
-#endif
 	if (ep) {
 		if (RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
 			if (GetIPAndPortFromTransportAddr(ep->GetRasAddress(), m_msg->m_peerAddr, m_msg->m_peerPort)) {
@@ -2577,10 +2570,6 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
  
 		// Disconnect all calls of the endpoint
 		SoftPBX::DisconnectEndpoint(ep);
-#ifdef HAS_H46017
-		// save NAT socket for H.460.17 reply
-		natSocket = ep->GetSocket();
-#endif
 		// Remove from the table
 		EndpointTbl->RemoveByEndptr(ep);
 
@@ -2602,14 +2591,6 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 	if (bForwardRequest)
 		RasSrv->ForwardRasMsg(m_msg->m_recvRAS);
 	PrintStatus(log);
-
-#ifdef HAS_H46017	
-	if (bSendReply && ep->UsesH46017()) {
-		if (natSocket)
-			natSocket->SendH46017Message(m_msg->m_replyRAS);
-		bSendReply = false;
-	}
-#endif
 
 	return bSendReply;
 }

@@ -2527,8 +2527,7 @@ void CallRec::SetForward(
 	if (m_Forwarder) {
 		SetSrcSignalAddr(m_Forwarder->GetCallSignalAddress());
 		m_callerId = m_Forwarder->GetEndpointIdentifier().GetValue();
-	} // else TODO:
-	  // how to solve billing issue if forwarder is not a registered party?
+	} // else TODO: how to solve billing issue if forwarder is not a registered party?
 
 	if (!forwarder)
 		m_srcInfo += "=" + forwarder;

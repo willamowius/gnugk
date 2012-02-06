@@ -220,7 +220,7 @@ protected:
 
 public:
 #ifdef HAS_H46018
-	void SendH46017Message(const H225_RasMessage & ras);
+	bool SendH46017Message(const H225_RasMessage & ras);
 #endif
 
 #ifdef HAS_H46018
