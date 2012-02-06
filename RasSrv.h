@@ -254,7 +254,7 @@ public:
 	virtual void Run();
 
 #ifdef HAS_H46017
-	virtual void ReadH46017Message(const PBYTEArray & ras);
+	virtual void ReadH46017Message(const PBYTEArray & ras, const PIPSocket::Address & fromIP, WORD fromPort, CallSignalSocket * s);
 #endif
 
 private:

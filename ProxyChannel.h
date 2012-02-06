@@ -220,6 +220,10 @@ protected:
 
 public:
 #ifdef HAS_H46018
+	void SendH46017Message(const H225_RasMessage & ras);
+#endif
+
+#ifdef HAS_H46018
 	bool CreateRemote(const H225_TransportAddress & addr);
 	bool OnSCICall(H225_CallIdentifier callID, H225_TransportAddress sigAdr);
 	bool IsCallFromTraversalServer() const { return m_callFromTraversalServer; }

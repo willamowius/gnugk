@@ -102,7 +102,7 @@ EndpointRec::EndpointRec(
 	m_registrationPriority(0), m_registrationPreemption(false),
     m_epnattype(NatUnknown), m_usesH46023(false), m_H46024(Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023PublicIP",0))),
 	m_H46024a(false), m_H46024b(false), m_natproxy(Toolkit::AsBool(GkConfig()->GetString(proxysection, "ProxyForNAT", "1"))),
-	m_internal(false), m_remote(false), m_h46018disabled(false), m_usesH460P(false), m_traversalType(None),
+	m_internal(false), m_remote(false), m_h46017disabled(false), m_h46018disabled(false), m_usesH460P(false), m_usesH46017(false), m_traversalType(None),
 	m_bandwidth(0), m_maxBandwidth(-1)
 
 {
@@ -417,6 +417,7 @@ void EndpointRec::LoadEndpointConfig()
 				log += " Calling Type Of Number: " + PString(m_callingTypeOfNumber);
 			if (m_proxy > 0)
 				log += " proxy: " + PString(m_proxy);
+			m_h46017disabled = Toolkit::AsBool(cfg->GetString(key, "DisableH46017", "0"));
 			m_h46018disabled = Toolkit::AsBool(cfg->GetString(key, "DisableH46018", "0"));
 			PString numbersDef = cfg->GetString(key, "AddNumbers", "");
 			if (!numbersDef.IsEmpty()) {
@@ -593,8 +594,8 @@ void EndpointRec::SetTimeToLive(int seconds)
 	PWaitAndSignal lock(m_usedLock);
 
 	if (m_timeToLive > 0 && !m_permanent) {
-		// To avoid bloated RRQ traffic, don't allow ttl < 60 for non-H.460.18 endpoints
-		if (seconds < 60 && !IsTraversalClient())
+		// To avoid bloated RRQ traffic, don't allow ttl < 60 for non-H.460.17/.18 endpoints
+		if (seconds < 60 && !IsTraversalClient() && !UsesH46017())
 			seconds = 60;
 		m_timeToLive = (SoftPBX::TimeToLive > 0) ?
 			std::min(SoftPBX::TimeToLive, seconds) : 0;
@@ -818,6 +819,9 @@ PString EndpointRec::PrintOn(bool verbose) const
 			msg += " (permanent)";
 		PString natstring(IsNATed() ? m_natip.AsString() : PString::Empty());
 		msg += PString(PString::Printf, " C(%d/%d/%d) %s <%d>", m_activeCall, m_connectedCall, m_totalCall, (const unsigned char *)natstring, m_usedCount);
+		if (UsesH46017()) {
+			msg += " (H.460.17)";
+		}
 		if (IsTraversalClient() || IsTraversalServer()) {
 			msg += " (H.460.18)";
 		}
@@ -1350,8 +1354,8 @@ RegistrationTable::RegistrationTable() : Singleton<RegistrationTable>("Registrat
 RegistrationTable::~RegistrationTable()
 {
 	ClearTable();
-	// since the socket has been deleted, just get it away
-	ForEachInContainer(RemovedList, mem_fun(&EndpointRec::GetSocket));
+	// since the socket has been deleted, just remove it
+	ForEachInContainer(RemovedList, mem_fun(&EndpointRec::GetAndRemoveSocket));
 	DeleteObjectsInContainer(RemovedList);
 }
 

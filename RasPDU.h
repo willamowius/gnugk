@@ -34,6 +34,7 @@ class CallSignalListener;
 class StatusListener;
 class MultiplexRTPListener;
 class RasServer;
+class CallSignalSocket;
 
 const unsigned MaxRasTag = H225_RasMessage::e_serviceControlResponse;
 
@@ -45,6 +46,9 @@ struct GatekeeperMessage {
 	WORD m_peerPort;
 	PIPSocket::Address m_localAddr;
 	RasListener *m_socket;
+#ifdef HAS_H46017
+	CallSignalSocket * m_h46017Socket;
+#endif
 
 	unsigned GetTag() const { return m_recvRAS.GetTag(); }
 	const char *GetTagName() const;
@@ -84,11 +88,11 @@ protected:
 
 class RasMsg : public Task {
 public:
-	virtual ~RasMsg() { delete m_msg; } //PTRACE(1, "Delete " << m_msg->GetTagName()); }
+	virtual ~RasMsg() { delete m_msg; }
 
 	// new virtual function
 	virtual bool Process() = 0;
-
+   
 	virtual int GetSeqNum() const = 0;
 	virtual H225_NonStandardParameter *GetNonStandardParam() = 0;
 

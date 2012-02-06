@@ -119,6 +119,7 @@ public:
 	int GetTimeToLive() const;
 	PIPSocket::Address GetNATIP() const;
 	CallSignalSocket *GetSocket();
+	CallSignalSocket *GetAndRemoveSocket();
 
 	int GetCallTypeOfNumber(bool called = true) const { return called ? m_calledTypeOfNumber : m_callingTypeOfNumber; }
 	int GetCallPlanOfNumber(bool called = true) const { return called ? m_calledPlanOfNumber : m_callingPlanOfNumber; }
@@ -292,6 +293,9 @@ public:
 	// adding a fixed alias to all calls _to_ this endpoint
 	PString GetAdditionalDestinationAlias() const { return m_additionalDestAlias; }
 
+	bool IsH46017Disabled() const { return m_h46017disabled; }
+	void SetUsesH46017(bool val) {  m_usesH46017 = val; }
+	bool UsesH46017() const { return m_usesH46017; }
 	bool IsH46018Disabled() const { return m_h46018disabled; }
 	void SetTraversalRole(H46019TraversalType val) { m_traversalType = val; m_nat = (val == TraversalClient); }
 	H46019TraversalType GetTraversalRole() { return m_traversalType; }
@@ -374,8 +378,10 @@ protected:
 
 	EPNatTypes m_epnattype;
 	bool m_usesH46023, m_H46024, m_H46024a, m_H46024b, m_natproxy, m_internal, m_remote;
+	bool m_h46017disabled;
 	bool m_h46018disabled;
 	bool m_usesH460P;
+	bool m_usesH46017;
 	H46019TraversalType m_traversalType;	// this is not what GnuGk acts like, but what this EPRec is a proxy for
 	
 	long m_bandwidth;	// bandwidth currently occupied by this endpoint
@@ -1681,7 +1687,7 @@ inline H225_EndpointIdentifier EndpointRec::GetEndpointIdentifier() const
   
 inline int EndpointRec::GetTimeToLive() const
 {
-	if (m_nat || IsTraversalClient()) {
+	if (m_nat || IsTraversalClient() || UsesH46017()) {
 		// force timeToLive to 5 - 30 sec, 19 sec if not set
 		return m_timeToLive == 0 ? 19 : max(5, min(30, m_timeToLive));
 	}
@@ -1820,8 +1826,14 @@ inline PIPSocket::Address EndpointRec::GetNATIP() const
 inline CallSignalSocket *EndpointRec::GetSocket() 
 {
 	PWaitAndSignal lock(m_usedLock);
+	return m_natsocket;
+}
+
+inline CallSignalSocket *EndpointRec::GetAndRemoveSocket() 
+{
+	PWaitAndSignal lock(m_usedLock);
 	CallSignalSocket *socket = m_natsocket;
-	m_natsocket = 0;
+	m_natsocket = NULL;
 	return socket;
 }
 

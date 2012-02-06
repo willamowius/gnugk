@@ -1196,6 +1196,13 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
     }
 #endif
 
+	if (m_h245Tunneling && uuie != NULL)
+#if H225_PROTOCOL_VERSION >= 4
+		if(!uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_provisionalRespToH245Tunneling))
+#endif
+		m_h245Tunneling = (uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)
+			&& uuie->m_h323_uu_pdu.m_h245Tunneling.GetValue());
+
 #ifdef HAS_H46017
 	// check for incoming H.460.17 RAS message
 	if (msg->GetTag() == Q931::FacilityMsg
@@ -1208,17 +1215,17 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			if (feat.GetFeatureID() == H460_FeatureID(17)) {
 				H460_FeatureStd & std17 = (H460_FeatureStd &)feat;
 				h46017found = true;
-				PTRACE(0, "JW found .17 msg " << std17);
 				// multiple RAS messages can be transmitted
 				for(PINDEX j=0; j < std17.GetParameterCount(); ++j) {
-					PTRACE(0, "JW checking .17 RAS msg " << j);
 					H460_FeatureParameter p = std17.GetFeatureParameter(j);
-					PTRACE(0, "JW checking .17 RAS msg " << j << " ID=" << p.ID());
 					if (p.ID() == 1 && p.hasContent()) {
 						PASN_OctetString data = p;
 						PBYTEArray ras = data.GetValue();
+						// mark this socket as NAT socket
+						m_isnatsocket = true;
+						SetConnected(true); // avoid the socket be deleted	
 						// hand RAS message to RasSserver for processing
-						RasServer::Instance()->ReadH46017Message(ras);
+						RasServer::Instance()->ReadH46017Message(ras, _peerAddr, _peerPort, this);
 					}
 				}
 			}
@@ -1227,13 +1234,6 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			return NoData;	// don't forward
 	}
 #endif
-
-	if (m_h245Tunneling && uuie != NULL)
-#if H225_PROTOCOL_VERSION >= 4
-		if(!uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_provisionalRespToH245Tunneling))
-#endif
-		m_h245Tunneling = (uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)
-			&& uuie->m_h323_uu_pdu.m_h245Tunneling.GetValue());
 
 	switch (msg->GetTag()) {
 	case Q931::SetupMsg:
@@ -3430,7 +3430,7 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE &setupBody)
 	endptr calledep = m_call->GetCalledParty();
 	if (calledep) {
 		// m_call->GetCalledParty() should not be null in the case
-		if (CallSignalSocket *socket = calledep->GetSocket()) {
+		if (CallSignalSocket *socket = calledep->GetAndRemoveSocket()) {
 			PTRACE(3, Type() << "\tUsing NAT socket " << socket->GetName());
 
 			// it's dangerous if the remote socket has
@@ -3807,8 +3807,8 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 	if (!Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SupportNATedEndpoints", "0")))
 		return;
 
-   // If calling NAT support disabled then ignore the message.
-   // Use this to block errant gateways that don't support NAT mechanism properly.
+	// If calling NAT support disabled then ignore the message.
+	// Use this to block errant gateways that don't support NAT mechanism properly.
 	if (!Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SupportCallingNATedEndpoints", "1")))
 		return;
 
@@ -3834,7 +3834,7 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 			buf = q931.GetIE(Q931::CallStateIE);
 			if (buf.GetSize() > 0 && buf[0] == Q931::CallState_DisconnectRequest) {
 				if (ep) {
-					CallSignalSocket *natsocket = ep->GetSocket();
+					CallSignalSocket *natsocket = ep->GetAndRemoveSocket();
 					if (natsocket != NULL && natsocket != this) {
 						natsocket->SetDeletable();
 						natsocket->Close();
@@ -4229,6 +4229,42 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 
 	return true;
 }
+
+#ifdef HAS_H46017
+void CallSignalSocket::SendH46017Message(const H225_RasMessage & ras)
+{
+	PTRACE(0, "JW encapsulate H.460.17 RAS reply " << ras);
+	if (IsOpen()) {
+		Q931 FacilityPDU;
+		H225_H323_UserInformation uuie;
+		BuildFacilityPDU(FacilityPDU, 0);
+		GetUUIE(FacilityPDU, uuie);
+		H225_H323_UU_PDU_h323_message_body & body = uuie.m_h323_uu_pdu.m_h323_message_body;
+		body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
+		uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+		uuie.m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
+		uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_genericData);
+		uuie.m_h323_uu_pdu.m_genericData.SetSize(1);
+		H460_FeatureStd feat = H460_FeatureStd(17);
+		PPER_Stream rasstrm;
+		ras.Encode (rasstrm);
+		rasstrm.CompleteEncoding();
+		PASN_OctetString encRAS;
+		encRAS.SetValue(rasstrm);
+		feat.Add(1, H460_FeatureContent(encRAS));
+		uuie.m_h323_uu_pdu.m_genericData[0] = feat;
+		SetUUIE(FacilityPDU, uuie);
+		
+		PrintQ931(3, "Send to ", GetName(), &FacilityPDU, &uuie);
+
+		PBYTEArray buf;
+		FacilityPDU.Encode(buf);
+		TransmitData(buf);
+	} else {
+		PTRACE(1, "Error: Can't send H.460.17 reply - socket closed");
+	}
+}
+#endif
 
 #ifdef HAS_H46018
 bool CallSignalSocket::OnSCICall(H225_CallIdentifier callID, H225_TransportAddress sigAdr)

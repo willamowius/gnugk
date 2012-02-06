@@ -379,7 +379,7 @@ void RasMsg::GetRasAddress(H225_TransportAddress & result) const
 
 void RasMsg::GetCallSignalAddress(H225_TransportAddress & result) const
 {
-	result = SocketToH225TransportAddr(m_msg->m_localAddr, m_msg->m_socket->GetSignalPort());
+	result = SocketToH225TransportAddr(m_msg->m_localAddr, m_msg->m_socket ? m_msg->m_socket->GetSignalPort() : 0);
 }
 
 bool RasMsg::EqualTo(const RasMsg *other) const
@@ -1510,11 +1510,15 @@ void RasServer::ReadSocket(IPSocket *socket)
 }
 
 #ifdef HAS_H46017
-void RasServer::ReadH46017Message(const PBYTEArray & ras)
+void RasServer::ReadH46017Message(const PBYTEArray & ras, const PIPSocket::Address & fromIP, WORD fromPort, CallSignalSocket * s)
 {
 	typedef Factory<RasMsg, unsigned> RasFactory;
 	GatekeeperMessage * msg = new GatekeeperMessage();
 	if (msg->Read(ras)) {
+		msg->m_peerAddr = fromIP;
+		msg->m_peerPort = fromPort;
+		msg->m_h46017Socket = s;
+		PTRACE(0, "JW .17 message=" << setprecision(2) << msg->m_recvRAS);
 		// TODO: refactor duplication from ReadSocket()
 		unsigned tag = msg->GetTag();
 		PWaitAndSignal lock(hmutex);
@@ -1587,7 +1591,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 			return false;
 		}
 
-	bool bShellSendReply = !RasSrv->IsForwardedRas(request, m_msg->m_peerAddr);
+	bool bSendReply = !RasSrv->IsForwardedRas(request, m_msg->m_peerAddr);
 
 	if (RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
 		PIPSocket::Address rasIP;
@@ -1739,7 +1743,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 	}
 
 	PrintStatus(log);
-	return bShellSendReply;
+	return bSendReply;
 }
 
 bool RegistrationRequestPDU::Process()
@@ -1748,8 +1752,22 @@ bool RegistrationRequestPDU::Process()
 	H225_TransportAddress SignalAddr;
 	const PIPSocket::Address & rx_addr = m_msg->m_peerAddr;
 	const WORD rx_port = m_msg->m_peerPort;
-	bool bShellSendReply, bShellForwardRequest;
-	bShellSendReply = bShellForwardRequest = !RasSrv->IsForwardedRas(request, rx_addr);
+	bool bSendReply, bForwardRequest;
+	bSendReply = bForwardRequest = !RasSrv->IsForwardedRas(request, rx_addr);
+#ifdef HAS_H46017
+	// TODO: should we add a marker how we received the request ?
+	PBoolean usesH46017 = request.HasOptionalField(H225_RegistrationRequest::e_maintainConnection)
+							&& (request.m_callSignalAddress.GetSize() == 0)
+							&& (request.m_rasAddress.GetSize() == 0);
+	if (usesH46017) {
+		PTRACE(1, "RAS\tEndpoint uses H.460.17");
+		// add RAS and signal IP eg. for status port display, but they will never be used
+		request.m_rasAddress.SetSize(1);
+		request.m_rasAddress[0] = SocketToH225TransportAddr(rx_addr, rx_port);
+		request.m_callSignalAddress.SetSize(1);
+		request.m_callSignalAddress[0] = SocketToH225TransportAddr(rx_addr, rx_port);
+	}
+#endif
 
 	PINDEX i;
 	/// remove invalid/unsupported entries from RAS and signaling addresses
@@ -1759,8 +1777,7 @@ bool RegistrationRequestPDU::Process()
 		if (!GetIPAndPortFromTransportAddr(request.m_callSignalAddress[i], addr, port)
 				|| !addr.IsValid() || port == 0) {
 			PTRACE(5, "RAS\tRemoving signaling address "
-				<< AsString(request.m_callSignalAddress[i]) << " from RRQ"
-				);
+				<< AsString(request.m_callSignalAddress[i]) << " from RRQ");
 			request.m_callSignalAddress.RemoveAt(i--);
 		}
 	}
@@ -1776,8 +1793,8 @@ bool RegistrationRequestPDU::Process()
 		}
 	}
 
-///////////////////////////////////////////////////////////////////////////////////////////
-// H460 support Code
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// H.460 support code
 	PBoolean supportH46024 = false;
 	PBoolean supportH46024A = false;
 	PBoolean supportH46024B = false;
@@ -1854,7 +1871,7 @@ bool RegistrationRequestPDU::Process()
 			}
 		}
 #endif
- 
+
 #ifdef HAS_H460P
 		if (Toolkit::Instance()->IsH460PEnabled()) {
 			presenceSupport = fs.HasFeature(rPreFS);
@@ -1868,7 +1885,7 @@ bool RegistrationRequestPDU::Process()
 			}
 		}
 #endif // HAS_H460P
- 
+
 		if (fs.HasFeature(rPriFS)) {
 			H460_FeatureOID * feat = (H460_FeatureOID *)fs.GetFeature(rPriFS);
 			if (feat->Contains(OID6_Priority)) {
@@ -1880,7 +1897,7 @@ bool RegistrationRequestPDU::Process()
 				preempt = feat->Value(PString(OID6_Preempt));
 			}
 		}
- 
+
 		// H.460.9
 		if (fs.HasFeature(9)) {
 			EPSupportsQoSReporting = true;
@@ -1888,10 +1905,10 @@ bool RegistrationRequestPDU::Process()
 	}
 #endif // HAS_H460
  
-///////////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////
 
-   // If calling NAT support disabled. 
-   // Use this to block errant gateways that don't support NAT mechanism properly.
+	// If calling NAT support disabled. 
+	// Use this to block errant gateways that don't support NAT mechanism properly.
 	bool supportcallingNAT = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SupportCallingNATedEndpoints", "1"));
 
 	if (RasSrv->ReplyToRasAddress(m_msg->m_peerAddr) && request.m_rasAddress.GetSize() > 0) {
@@ -1919,7 +1936,7 @@ bool RegistrationRequestPDU::Process()
 			PTRACE(3, "RAS\tLightweight registration rejected, because endpoint isn't found (EPID=" << epid << ", IP=" << rx_addr << ")");
 		}
 		// check if the RRQ was sent from the registered endpoint
-		if (ep && bShellSendReply) { // not forwarded RRQ
+		if (ep && bSendReply) { // not forwarded RRQ
 			if (ep->IsNATed() || ep->IsTraversalClient()) {
 				// for nated endpoint, only check rx_addr
 			    bReject = (ep->GetNATIP() != rx_addr);
@@ -1950,7 +1967,7 @@ bool RegistrationRequestPDU::Process()
 			}
 		} 
 		if (bReject) {
-			if (ep && bShellSendReply) {
+			if (ep && bSendReply) {
 			 PTRACE(1, "RAS\tWarning: Possibly endpointId collide, security attack or IP change");
 			   if (Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "SupportDynamicIP", "0"))) {
 			     PTRACE(1, "RAS\tDynamic IP? Removing existing Endpoint record and force reregistration.");
@@ -1994,11 +2011,11 @@ bool RegistrationRequestPDU::Process()
 #endif
 
 			// forward lightweights, too
-			if (bShellForwardRequest)
+			if (bForwardRequest)
 				RasSrv->ForwardRasMsg(m_msg->m_recvRAS);
 			// endpoint was already registered
 			ep->Update(m_msg->m_recvRAS);
-			if (bShellSendReply) {
+			if (bSendReply) {
 				BuildRCF(ep);
 #ifdef HAS_H46018
 				// H.460.18
@@ -2073,7 +2090,7 @@ bool RegistrationRequestPDU::Process()
 #endif
  
 			}
-			return bShellSendReply;
+			return bSendReply;
 		}
 	}
 
@@ -2093,7 +2110,7 @@ bool RegistrationRequestPDU::Process()
 			}
 		}
 		//validaddress = PIPSocket::IsLocalHost(rx_addr.AsString());
-		if (!bShellSendReply) { // don't check forwarded RRQ
+		if (!bSendReply) { // don't check forwarded RRQ
 			validaddress = true;
 		} else if (!validaddress && !IsLoopback(ipaddr)) { // do not allow nated from loopback
 			nated = true;
@@ -2257,6 +2274,15 @@ bool RegistrationRequestPDU::Process()
 		return BuildRRJ(H225_RegistrationRejectReason::e_undefinedReason);
 	}
 
+#ifdef HAS_H46017
+	if (usesH46017 && ep->IsH46017Disabled()) {
+		EndpointTbl->RemoveByEndptr(ep);
+		// TODO: fix all places with return BuildRRJ to send via TCP
+		return BuildRRJ(H225_RegistrationRejectReason::e_securityDenial);
+	}
+	ep->SetUsesH46017(usesH46017);
+#endif
+
 #ifdef HAS_H46018
 	if (supportH46018 && !ep->IsH46018Disabled()) {	// check endpoint specific switch, too
 		PTRACE(3, "H46018\tEP on " << rx_addr << " supports H.460.18");
@@ -2264,7 +2290,7 @@ bool RegistrationRequestPDU::Process()
 		ep->SetNATAddress(rx_addr, rx_port);
 	}
 	if (supportH46018 && ep->IsH46018Disabled()) {
-		// if the endpoint wanted H.460.18, we had overwritten its callSignalAddr above
+		// if the endpoint wanted H.460.18, we have overwritten its callSignalAddr above
 		// we have to restore it here if we disable H.460.18 for this endpoint
 		ep->SetCallSignalAddress(originalCallSigAddress);
 	}
@@ -2289,13 +2315,13 @@ bool RegistrationRequestPDU::Process()
 	ep->SetPriority(RegPrior);
 	ep->SetPreemption(preemptsupport);
 
-	if (bShellSendReply) {
+	if (bSendReply) {
 		//
 		// OK, now send RCF
 		//
 		BuildRCF(ep);
 		H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
-		if (supportcallingNAT && !ep->IsTraversalClient()) {
+		if (supportcallingNAT && !ep->IsTraversalClient() && !usesH46017) {
 			// tell the endpoint its translated address
 			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_nonStandardData);
 		    rcf.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
@@ -2312,6 +2338,12 @@ bool RegistrationRequestPDU::Process()
 
 #ifdef HAS_H460
 		H225_ArrayOf_FeatureDescriptor & gd = rcf.m_featureSet.m_supportedFeatures;
+
+#ifdef HAS_H46017
+		rcf.m_callSignalAddress.SetSize(0);
+		rcf.IncludeOptionalField(H225_RegistrationConfirm::e_maintainConnection);
+		rcf.m_maintainConnection = true;
+#endif
 
 #ifdef HAS_H46018
 		// H.460.18
@@ -2433,7 +2465,7 @@ bool RegistrationRequestPDU::Process()
 			ep->SetNATAddress(rasip);
 	}
 	// forward heavyweight
-	if (bShellForwardRequest) {
+	if (bForwardRequest) {
 		request.IncludeOptionalField(H225_RegistrationRequest::e_endpointIdentifier);
 		request.m_endpointIdentifier = ep->GetEndpointIdentifier();
 		if (nated) {
@@ -2452,12 +2484,23 @@ bool RegistrationRequestPDU::Process()
 		+ ";";
 	if (Toolkit::AsBool(GkConfig()->GetString("GkStatus::Filtering", "NewRCFOnly", "0"))) {
 	    if (bNewEP) {
-		PrintStatus(log);
-	    }} else {
 			PrintStatus(log);
+	    }
+	} else {
+		PrintStatus(log);
 	}
 
-	return bShellSendReply;
+#ifdef HAS_H46017
+	if (bSendReply && ep->UsesH46017()) {
+		ep->SetSocket(m_msg->m_h46017Socket);
+		CallSignalSocket * natSocket = ep->GetSocket();
+		if (natSocket)
+			natSocket->SendH46017Message(m_msg->m_replyRAS);
+		bSendReply = false;
+	}
+#endif
+
+	return bSendReply;
 }
 
 bool RegistrationRequestPDU::BuildRCF(const endptr & ep)
@@ -2513,13 +2556,16 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 	// OnURQ
 	PString log;
 
-	bool bShellSendReply, bShellForwardRequest;
-	bShellSendReply = bShellForwardRequest = !RasSrv->IsForwardedRas(request, m_msg->m_peerAddr);
+	bool bSendReply, bForwardRequest;
+	bSendReply = bForwardRequest = !RasSrv->IsForwardedRas(request, m_msg->m_peerAddr);
 
 	PString endpointId(request.HasOptionalField(H225_UnregistrationRequest::e_endpointIdentifier) ? request.m_endpointIdentifier.GetValue() : PString(" "));
 	endptr ep = request.HasOptionalField(H225_UnregistrationRequest::e_endpointIdentifier) ?
 		EndpointTbl->FindByEndpointId(request.m_endpointIdentifier) :
 		request.m_callSignalAddress.GetSize() ? EndpointTbl->FindBySignalAdr(request.m_callSignalAddress[0], m_msg->m_peerAddr) : endptr(0);
+#ifdef HAS_H46017
+	CallSignalSocket * natSocket = NULL;
+#endif
 	if (ep) {
 		if (RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
 			if (GetIPAndPortFromTransportAddr(ep->GetRasAddress(), m_msg->m_peerAddr, m_msg->m_peerPort)) {
@@ -2531,6 +2577,10 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
  
 		// Disconnect all calls of the endpoint
 		SoftPBX::DisconnectEndpoint(ep);
+#ifdef HAS_H46017
+		// save NAT socket for H.460.17 reply
+		natSocket = ep->GetSocket();
+#endif
 		// Remove from the table
 		EndpointTbl->RemoveByEndptr(ep);
 
@@ -2549,10 +2599,19 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 				+ ";";
 	}
 
-	if (bShellForwardRequest)
+	if (bForwardRequest)
 		RasSrv->ForwardRasMsg(m_msg->m_recvRAS);
 	PrintStatus(log);
-	return bShellSendReply;
+
+#ifdef HAS_H46017	
+	if (bSendReply && ep->UsesH46017()) {
+		if (natSocket)
+			natSocket->SendH46017Message(m_msg->m_replyRAS);
+		bSendReply = false;
+	}
+#endif
+
+	return bSendReply;
 }
 
 PString AdmissionRequestPDU::GetCallingStationId(

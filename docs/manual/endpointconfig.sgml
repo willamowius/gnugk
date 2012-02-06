@@ -109,6 +109,11 @@ Default: <tt>N/A</tt><newline>
 Translate cause codes in ReleaseComplete messages sent out to this endpoint.
 In the above example code 21 and 27 will be translated into cause code 34, because this particular gateway might deal with error code 34 better than with others.
 
+<item><tt/DisableH46017=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Disable H.460.17 for this endpoint.
+
 <item><tt/DisableH46018=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
