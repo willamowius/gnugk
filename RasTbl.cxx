@@ -834,7 +834,8 @@ PString EndpointRec::PrintOn(bool verbose) const
 bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemption)
 {
 	if ((GetRasAddress().GetTag() != H225_TransportAddress::e_ipAddress)
-		&& (GetRasAddress().GetTag() != H225_TransportAddress::e_ip6Address))
+		&& (GetRasAddress().GetTag() != H225_TransportAddress::e_ip6Address)
+		&& !UsesH46017())
 		return false;  // no valid RAS address
 
 	RasServer *RasSrv = RasServer::Instance();
@@ -848,6 +849,10 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 	urq.m_endpointIdentifier = GetEndpointIdentifier();
 	urq.m_callSignalAddress.SetSize(1);
 	urq.m_callSignalAddress[0] = GetCallSignalAddress();
+#ifdef HAS_H46017
+	if (UsesH46017())
+		urq.m_callSignalAddress.SetSize(0);
+#endif
 	urq.IncludeOptionalField(H225_UnregistrationRequest::e_reason);
 	urq.m_reason.SetTag(reason);
 
@@ -890,7 +895,8 @@ bool EndpointRec::SendIRQ()
 	if (m_pollCount <= 0)
 		return false;
 	if ((GetRasAddress().GetTag() != H225_TransportAddress::e_ipAddress)
-		&& (GetRasAddress().GetTag() != H225_TransportAddress::e_ip6Address)) {
+		&& (GetRasAddress().GetTag() != H225_TransportAddress::e_ip6Address)
+		&& !UsesH46017()) {
 		return false;
 	}
 	--m_pollCount;

@@ -4237,7 +4237,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 #ifdef HAS_H46017
 bool CallSignalSocket::SendH46017Message(const H225_RasMessage & ras)
 {
-	PTRACE(0, "JW encapsulate H.460.17 RAS reply " << ras);
+	PTRACE(3, "RAS\tEncapsulating H.460.17 RAS reply\n" << ras);
 	if (IsOpen()) {
 		Q931 FacilityPDU;
 		H225_H323_UserInformation uuie;

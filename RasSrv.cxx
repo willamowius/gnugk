@@ -1532,7 +1532,7 @@ void RasServer::ReadH46017Message(const PBYTEArray & ras, const PIPSocket::Addre
 		msg->m_peerPort = fromPort;
 		msg->m_localAddr = localAddr;
 		msg->m_h46017Socket = s;
-		PTRACE(0, "JW .17 message=" << setprecision(2) << msg->m_recvRAS);
+		PTRACE(3, "RAS\tH460.17 RAS\n" << setprecision(2) << msg->m_recvRAS);
 		// TODO17: refactor duplication from ReadSocket()
 		unsigned tag = msg->GetTag();
 		PWaitAndSignal lock(hmutex);
@@ -2350,10 +2350,13 @@ bool RegistrationRequestPDU::Process()
 		H225_ArrayOf_FeatureDescriptor & gd = rcf.m_featureSet.m_supportedFeatures;
 
 #ifdef HAS_H46017
-		ep->SetSocket(m_msg->m_h46017Socket);
-		rcf.m_callSignalAddress.SetSize(0);
-		rcf.IncludeOptionalField(H225_RegistrationConfirm::e_maintainConnection);
-		rcf.m_maintainConnection = true;
+		if (m_msg->m_h46017Socket)
+			ep->SetSocket(m_msg->m_h46017Socket);
+		if (ep->UsesH46017()) {
+			rcf.m_callSignalAddress.SetSize(0);
+			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_maintainConnection);
+			rcf.m_maintainConnection = true;
+		}
 #endif
 
 #ifdef HAS_H46018
