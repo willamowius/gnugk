@@ -163,6 +163,10 @@
 
 #ifdef H323_H460
 	#define HAS_H460 1    // H460 support
+#else
+	#undef HAS_H46017
+	#undef HAS_H46018
+	#undef HAS_H46023
 #endif
 
 #ifdef HAS_H46023		// config switch if H.460.23 should be enabled

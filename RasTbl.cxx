@@ -886,7 +886,12 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 			RasSrv->SetAlternateGK(urq, ip);
 		}
 	}
-	RasSrv->SendRas(ras_msg, GetRasAddress());
+	if (UsesH46017()) {
+		CallSignalSocket * s = GetSocket();
+		if (s)
+			s->SendH46017Message(ras_msg);
+	} else
+		RasSrv->SendRas(ras_msg, GetRasAddress());
 	return true;
 }
 
@@ -912,16 +917,21 @@ bool EndpointRec::SendIRQ()
 			(const unsigned char *) AsDotString(GetRasAddress()),
 			(const unsigned char *) GetEndpointIdentifier().GetValue());
         GkStatus::Instance()->SignalStatus(msg, STATUS_TRACE_LEVEL_RAS);
-	RasSrv->SendRas(ras_msg, GetRasAddress());
+	if (UsesH46017()) {
+		CallSignalSocket * s = GetSocket();
+		if (s)
+			s->SendH46017Message(ras_msg);
+	} else
+		RasSrv->SendRas(ras_msg, GetRasAddress());
 
 	return true;
 }
 
 bool EndpointRec::AddCallCreditServiceControl(
-	H225_ArrayOf_ServiceControlSession& sessions, /// array to add the service control descriptor to
-	const PString& amountStr, /// user's account balance amount string
-	int billingMode, /// user's account billing mode (-1 if not set)
-	long callDurationLimit /// call duration limit (-1 if not set)
+	H225_ArrayOf_ServiceControlSession & sessions, /// array to add the service control descriptor to
+	const PString & amountStr,	/// user's account balance amount string
+	int billingMode,			/// user's account billing mode (-1 if not set)
+	long callDurationLimit 		/// call duration limit (-1 if not set)
 	)
 {
 
@@ -966,27 +976,25 @@ bool EndpointRec::AddCallCreditServiceControl(
 	return true;
 }
 
-bool EndpointRec::AddHTTPServiceControl(
-	H225_ArrayOf_ServiceControlSession& sessions 
-	)
+bool EndpointRec::AddHTTPServiceControl(H225_ArrayOf_ServiceControlSession & sessions)
 {
-		PString url = GkConfig()->GetString(RRQFeaturesSection, "AccHTTPLink", "");
-		if (url.IsEmpty())
-			return false;
+	PString url = GkConfig()->GetString(RRQFeaturesSection, "AccHTTPLink", "");
+	if (url.IsEmpty())
+		return false;
 
-	    const PINDEX sessionIndex = sessions.GetSize();
-	    sessions.SetSize(sessionIndex + 1);
+	const PINDEX sessionIndex = sessions.GetSize();
+	sessions.SetSize(sessionIndex + 1);
 
-	    H225_ServiceControlSession& session = sessions[sessionIndex];
-        // URL session ID is 1  
-		session.m_sessionId = 1;
-		session.m_reason = H225_ServiceControlSession_reason::e_open;
-		session.IncludeOptionalField(H225_ServiceControlSession::e_contents);
-		session.m_contents.SetTag(H225_ServiceControlDescriptor::e_url);
-		PASN_IA5String & pdu = session.m_contents;
-        pdu = url;   
+	H225_ServiceControlSession& session = sessions[sessionIndex];
+	// URL session ID is 1  
+	session.m_sessionId = 1;
+	session.m_reason = H225_ServiceControlSession_reason::e_open;
+	session.IncludeOptionalField(H225_ServiceControlSession::e_contents);
+	session.m_contents.SetTag(H225_ServiceControlDescriptor::e_url);
+	PASN_IA5String & pdu = session.m_contents;
+	pdu = url;   
 
-		return true;
+	return true;
 }
 
 void EndpointRec::SetUsesH460P(bool uses)
@@ -2945,12 +2953,22 @@ void CallRec::SendDRQ()
 	// for an out of zone endpoint, the endpoint identifier is not correct
 	if (m_Called) {
 		drq.m_endpointIdentifier = m_Called->GetEndpointIdentifier();
-		RasSrv->SendRas(drq_ras, m_Called->GetRasAddress());
+		if (m_Called->UsesH46017()) {
+			CallSignalSocket * s = m_Called->GetSocket();
+			if (s)
+				s->SendH46017Message(drq_ras);
+		} else
+			RasSrv->SendRas(drq_ras, m_Called->GetRasAddress());
 	}
 	if (m_Calling) {
 		drq.m_endpointIdentifier = m_Calling->GetEndpointIdentifier();
 		drq.m_callReferenceValue = m_crv;
-		RasSrv->SendRas(drq_ras, m_Calling->GetRasAddress());
+		if (m_Calling->UsesH46017()) {
+			CallSignalSocket * s = m_Calling->GetSocket();
+			if (s)
+				s->SendH46017Message(drq_ras);
+		} else
+			RasSrv->SendRas(drq_ras, m_Calling->GetRasAddress());
 	}
 }
 
