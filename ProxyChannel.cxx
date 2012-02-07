@@ -992,6 +992,9 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 	if (m_call->GetProxyMode() == CallRec::ProxyEnabled) {
 		H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), socket->localAddr, calling, socket->masqAddr);
 #ifdef HAS_H46018
+		if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46017()) {
+			proxyhandler->SetTraversalRole(TraversalClient);
+		}
 		if (m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None) {
 			proxyhandler->SetTraversalRole(m_call->GetCallingParty()->GetTraversalRole());
 		}
@@ -1008,6 +1011,9 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 		socket->m_h245handler = proxyhandler;
 		m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(),localAddr, called, masqAddr, proxyhandler);
 #ifdef HAS_H46018
+		if (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46017()) {
+			((H245ProxyHandler*)m_h245handler)->SetTraversalRole(TraversalClient);
+		}
 		if (m_call->GetCalledParty() && m_call->GetCalledParty()->GetTraversalRole() != None) {
 			((H245ProxyHandler*)m_h245handler)->SetTraversalRole(m_call->GetCalledParty()->GetTraversalRole());
 		}
@@ -2879,10 +2885,16 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			);
 
 		// if I'm behind NAT and the call is from parent, always use H.245 routed,
-		// also make sure all calls from endpoints with H.460.18 are H.245 routed
+		// also make sure all calls from endpoints with H.460.17/.18 are H.245 routed
 		bool h245Routed = rassrv->IsH245Routed() || (useParent && gkClient->IsNATed());
 		bool callFromTraversalClient = false;
 		bool callFromTraversalServer = false;
+#ifdef HAS_H46017
+		if ((m_call && m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46017())
+			|| (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46017()) ) {
+			h245Routed = true;
+		}
+#endif
 #ifdef HAS_H46018
 		callFromTraversalClient = rassrv->IsCallFromTraversalClient(_peerAddr);
 		callFromTraversalServer = rassrv->IsCallFromTraversalServer(_peerAddr);
@@ -3191,6 +3203,14 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled (IPv4-to-IPv6)");
 	}
 
+#ifdef HAS_H46017
+	// proxy if calling or called use H.460.17
+	if ((m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46017())
+		|| (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46017()) ) {
+		m_call->SetProxyMode(CallRec::ProxyEnabled);
+		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled (H.460.17)");
+	}
+#endif
 #ifdef HAS_H46018
 	// proxy if calling or called use H.460.18
 	if ((m_call->H46019Required() && ((m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None)
@@ -3224,7 +3244,23 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			}
 			AddH460Feature(setupBody.m_supportedFeatures, feat);
 		}
-#endif
+#ifdef HAS_H46017
+		if (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46017()
+			&& Toolkit::Instance()->IsH46018Enabled()) {
+			// offer H.460.19 to H.460.17 endpoints
+			H460_FeatureStd feat = H460_FeatureStd(19);
+			H460_FeatureID * feat_id = new H460_FeatureID(2);	// mediaTraversalServer
+			feat.AddParameter(feat_id);
+			delete feat_id;
+			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
+				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
+				setupBody.m_supportedFeatures.SetSize(0);
+			}
+			AddH460Feature(setupBody.m_supportedFeatures, feat);
+		}
+#endif	// HAS_H46017
+#endif	// HAS_H46018
+
 		CreateRemote(setupBody);
 	}
 #ifdef HAS_H46018
@@ -3257,7 +3293,6 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		{
 			H460_FeatureStd feat = H460_FeatureStd(19);
 			H460_FeatureID * feat_id = NULL;
-			// starting with H323Plus 1.21.0 we can create a feature by a numeric ID and this code can get simplified
 			feat_id = new H460_FeatureID(2);	// mediaTraversalServer
 			feat.AddParameter(feat_id);
 			delete feat_id;
@@ -3543,7 +3578,9 @@ void CallSignalSocket::OnCallProceeding(
 			if (cpBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				cpBody.RemoveOptionalField(H225_CallProceeding_UUIE::e_featureSet);
 		}
-		if (m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None)
+		if (m_call->GetCallingParty()
+			&& ((m_call->GetCallingParty()->GetTraversalRole() != None)
+				|| m_call->GetCallingParty()->UsesH46017() ) )
 		{
 			H460_FeatureStd feat = H460_FeatureStd(19);
 			H460_FeatureID * feat_id = NULL;
@@ -3700,7 +3737,9 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			if (connectBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				connectBody.RemoveOptionalField(H225_Connect_UUIE::e_featureSet);
 		}
-		if (m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None)
+		if (m_call->GetCallingParty()
+			&& ((m_call->GetCallingParty()->GetTraversalRole() != None)
+				|| m_call->GetCallingParty()->UsesH46017() ) )
 		{
 			// add H.460.19 indicator
 			H460_FeatureStd feat = H460_FeatureStd(19);
@@ -3775,7 +3814,9 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 			if (alertingBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				alertingBody.RemoveOptionalField(H225_Alerting_UUIE::e_featureSet);
 		}
-		if (m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None)
+		if (m_call->GetCallingParty()
+			&& ((m_call->GetCallingParty()->GetTraversalRole() != None)
+				|| m_call->GetCallingParty()->UsesH46017() ) )
 		{
 			// add H.460.19 indicator
 			H460_FeatureStd feat = H460_FeatureStd(19);
@@ -4698,7 +4739,9 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 				if (facilityBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 					facilityBody.RemoveOptionalField(H225_Facility_UUIE::e_featureSet);
 			}
-			if (m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None)
+			if (m_call->GetCallingParty()
+				&& ((m_call->GetCallingParty()->GetTraversalRole() != None)
+					|| m_call->GetCallingParty()->UsesH46017() ) )
 			{
 				// TODO: for Facility isn't not clear which direction it goes, we might have to check the CalledParty as well
 				// add H.460.19 indicator to Facility with reason forwardedElements
@@ -4917,7 +4960,10 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 			}
 #ifdef HAS_H46018
 			// add H.460.19 indicator if this is sent out to an endpoint that uses it
-			if (m_call && m_call->GetCalledParty() && m_call->H46019Required() && m_call->GetCalledParty()->GetTraversalRole() != None) {
+			if (m_call && m_call->GetCalledParty() && m_call->H46019Required()
+				&& ((m_call->GetCalledParty()->GetTraversalRole() != None)
+					|| m_call->GetCalledParty()->UsesH46017() ) )
+			{
 				// TODO: is this really always sent to the CalledParty ?
 				m_crv = m_call->GetCallRef();	// make sure m_crv is set
 				uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
