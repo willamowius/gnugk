@@ -383,12 +383,17 @@ bool RasMsg::IsFrom(const PIPSocket::Address & addr, WORD pt) const
 
 void RasMsg::GetRasAddress(H225_TransportAddress & result) const
 {
-	result = SocketToH225TransportAddr(m_msg->m_localAddr, m_msg->m_socket->GetPort());
+	result = SocketToH225TransportAddr(m_msg->m_localAddr, m_msg->m_socket ? m_msg->m_socket->GetPort() : 0);
 }
 
 void RasMsg::GetCallSignalAddress(H225_TransportAddress & result) const
 {
-	result = SocketToH225TransportAddr(m_msg->m_localAddr, m_msg->m_socket ? m_msg->m_socket->GetSignalPort() : 0);
+#ifdef HAS_H46017
+	if (m_msg->m_h46017Socket)
+		result = SocketToH225TransportAddr(m_msg->m_localAddr, m_msg->m_h46017Socket->GetPort());
+	else	
+#endif
+		result = SocketToH225TransportAddr(m_msg->m_localAddr, m_msg->m_socket ? m_msg->m_socket->GetSignalPort() : 0);
 }
 
 bool RasMsg::EqualTo(const RasMsg *other) const
@@ -1496,7 +1501,6 @@ void RasServer::ReadSocket(IPSocket *socket)
 				std::list<RasMsg *>::iterator i = find_if(requests.begin(), requests.end(), bind2nd(mem_fun(&RasMsg::EqualTo), ras));
 				if (i != requests.end() && !(*i)->IsDone()) {
 					PTRACE(2, "RAS\tDuplicate " << msg->GetTagName() << ", deleted");
-//					(*i)->SetNext(ras);
 					delete ras;
 					ras = NULL;
 				} else {
@@ -1519,13 +1523,14 @@ void RasServer::ReadSocket(IPSocket *socket)
 }
 
 #ifdef HAS_H46017
-void RasServer::ReadH46017Message(const PBYTEArray & ras, const PIPSocket::Address & fromIP, WORD fromPort, CallSignalSocket * s)
+void RasServer::ReadH46017Message(const PBYTEArray & ras, const PIPSocket::Address & fromIP, WORD fromPort, const PIPSocket::Address & localAddr, CallSignalSocket * s)
 {
 	typedef Factory<RasMsg, unsigned> RasFactory;
 	GatekeeperMessage * msg = new GatekeeperMessage();
 	if (msg->Read(ras)) {
 		msg->m_peerAddr = fromIP;
 		msg->m_peerPort = fromPort;
+		msg->m_localAddr = localAddr;
 		msg->m_h46017Socket = s;
 		PTRACE(0, "JW .17 message=" << setprecision(2) << msg->m_recvRAS);
 		// TODO17: refactor duplication from ReadSocket()
@@ -1537,9 +1542,9 @@ void RasServer::ReadH46017Message(const PBYTEArray & ras, const PIPSocket::Addre
 				std::list<RasMsg *>::iterator i = find_if(requests.begin(), requests.end(), bind2nd(mem_fun(&RasMsg::EqualTo), ras));
 				if (i != requests.end() && !(*i)->IsDone()) {
 					PTRACE(2, "RAS\tDuplicate " << msg->GetTagName() << ", deleted");
-//					(*i)->SetNext(ras);
-					delete ras;
-					ras = NULL;
+// TODO17: crash on ipv6test, now leak ?
+//					delete ras;
+//					ras = NULL;
 				} else {
 					requests.push_back(ras);
 					Job *job = new Jobs(ras);

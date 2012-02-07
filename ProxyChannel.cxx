@@ -1133,8 +1133,8 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	if (!ReadTPKT())
 		return IsOpen() ? NoData : Error;
 
-	H225_H323_UserInformation *uuie = NULL;
-	Q931 *q931pdu = new Q931();
+	H225_H323_UserInformation * uuie = NULL;
+	Q931 * q931pdu = new Q931();
 
 	if (!q931pdu->Decode(buffer)) {
 		PTRACE(1, Type() << "\t" << GetName() << " ERROR DECODING Q.931!");
@@ -1159,8 +1159,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		if (!GetUUIE(*q931pdu, *uuie)) {
 			PTRACE(1, Type() << "\tCould not decode User-User IE for message "
 				<< q931pdu->GetMessageTypeName() << " CRV="
-				<< q931pdu->GetCallReference() << " from " << GetName()
-				);
+				<< q931pdu->GetCallReference() << " from " << GetName());
 			if (q931pdu->GetMessageType() == Q931::NotifyMsg) {
 				PTRACE(1, "Unknown User-User IE in Notify, continuing");
 				uuie = NULL;
@@ -1225,13 +1224,18 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 						m_isnatsocket = true;
 						SetConnected(true); // avoid the socket be deleted	
 						// hand RAS message to RasSserver for processing
-						RasServer::Instance()->ReadH46017Message(ras, _peerAddr, _peerPort, this);
+						RasServer::Instance()->ReadH46017Message(ras, _peerAddr, _peerPort, _localAddr, this);
 					}
 				}
 			}
 		}
-		if (h46017found)
+		if (h46017found) {
+			delete uuie;
+			uuie = NULL;
+			delete q931pdu;
+			q931pdu = NULL;
 			return NoData;	// don't forward
+		}
 	}
 #endif
 
