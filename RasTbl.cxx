@@ -606,7 +606,7 @@ void EndpointRec::SetSocket(CallSignalSocket *socket)
 {
 	PWaitAndSignal lock(m_usedLock);
 
-	if (!socket->IsConnected())
+	if (!socket || !socket->IsConnected())
 		return;
 
 	if (m_natsocket != socket) {
