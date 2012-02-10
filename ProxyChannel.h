@@ -124,7 +124,8 @@ public:
 	virtual bool ForwardData();
 	virtual bool TransmitData(const PBYTEArray &);
 
-	void RemoveRemoteSocket();
+	void DetachRemote();
+  	void RemoveRemoteSocket();
 	void SetRemoteSocket(TCPProxySocket * ret) { remote=ret; }
 	//TCPProxySocket * GetRemoteSocket() const { return remote; }
 
@@ -219,9 +220,10 @@ protected:
 	bool CreateRemote(H225_Setup_UUIE &setupBody);
 
 public:
-#ifdef HAS_H46018
+#ifdef HAS_H46017
 	bool SendH46017Message(const H225_RasMessage & ras);
 #endif
+	bool MaintainConnection() const { return m_maintainConnection; }
 
 #ifdef HAS_H46018
 	bool CreateRemote(const H225_TransportAddress & addr);
@@ -336,6 +338,7 @@ private:
 	H245Socket *m_h245socket;
 	bool m_h245Tunneling;
 	bool m_isnatsocket;
+	bool m_maintainConnection;	// eg. for H.460.17
 	Result m_result;
 	/// stored for use by ForwardCall, NULL if ForwardOnFacility is disabled
 	Q931 *m_setupPdu;

@@ -358,8 +358,9 @@ EndpointRec::~EndpointRec()
 	SetUsesH460P(false);
 
 	if (m_natsocket) {
-		m_natsocket->SetDeletable();
 		m_natsocket->Close();
+		m_natsocket->SetConnected(false);
+		m_natsocket->SetDeletable();
 	}
 }
 
@@ -613,10 +614,9 @@ void EndpointRec::SetSocket(CallSignalSocket *socket)
 		PTRACE(3, "Q931\tNAT socket detected at " << socket->Name() << " for endpoint " << GetEndpointIdentifier().GetValue());
 		if (m_natsocket) {
 			PTRACE(1, "Q931\tWarning: natsocket " << m_natsocket->Name()
-				<< " is overwritten by " << socket->Name()
-				);
-			m_natsocket->SetDeletable();
+				<< " is overwritten by " << socket->Name());
 			m_natsocket->Close();
+			m_natsocket->SetDeletable();
 		}
 		m_natsocket = socket;
 	}
@@ -861,14 +861,14 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 		urq.IncludeOptionalField(H225_UnregistrationRequest::e_genericData);
 		H460_FeatureOID pre = H460_FeatureOID(OpalOID(OID6));
 		if (preemption == 1)  // Higher Priority 
-           pre.Add(PString(OID6_PriNot),H460_FeatureContent(TRUE));          
+           pre.Add(PString(OID6_PriNot), H460_FeatureContent(TRUE));          
 		else if (preemption == 2)  // Pre-empted
-           pre.Add(PString(OID6_PreNot),H460_FeatureContent(TRUE));
+           pre.Add(PString(OID6_PreNot), H460_FeatureContent(TRUE));
 
 		H225_ArrayOf_GenericData & data = urq.m_genericData;
-			PINDEX lastPos = data.GetSize();
-			data.SetSize(lastPos+1);
-			data[lastPos] = pre;
+		PINDEX lastPos = data.GetSize();
+		data.SetSize(lastPos+1);
+		data[lastPos] = pre;
 	}
 #endif
 
@@ -888,8 +888,10 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 	}
 	if (UsesH46017()) {
 		CallSignalSocket * s = GetSocket();
-		if (s)
+		if (s) {
 			s->SendH46017Message(ras_msg);
+			s->Close();
+		}
 	} else
 		RasSrv->SendRas(ras_msg, GetRasAddress());
 	return true;
@@ -2893,12 +2895,18 @@ void CallRec::RemoveSocket()
 
 	PWaitAndSignal lock(m_sockLock);
 	if (m_callingSocket) {
-		m_callingSocket->SetDeletable();
-		m_callingSocket = 0;
+		if (m_callingSocket->MaintainConnection())
+			m_callingSocket->DetachRemote();
+		else
+			m_callingSocket->SetDeletable();
+		m_callingSocket = NULL;
 	}
 	if (m_calledSocket) {
-		m_calledSocket->SetDeletable();
-		m_calledSocket = 0;
+		if (m_calledSocket->MaintainConnection())
+			m_calledSocket->DetachRemote();
+		else
+			m_calledSocket->SetDeletable();
+		m_calledSocket = NULL;
 	}
 }
 

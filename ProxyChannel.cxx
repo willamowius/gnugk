@@ -735,9 +735,16 @@ TCPProxySocket::TCPProxySocket(const char *t, TCPProxySocket *s, WORD p)
 
 TCPProxySocket::~TCPProxySocket()
 {
+	DetachRemote();
+}
+
+void TCPProxySocket::DetachRemote()
+{
 	if (remote) {
 		remote->remote = NULL; // detach myself from remote
-		remote->SetDeletable();
+		CallSignalSocket * css = dynamic_cast<CallSignalSocket *>(remote);
+		if (!css || !css->MaintainConnection())
+			remote->SetDeletable();
 		remote = NULL;
 	}
 }
@@ -912,6 +919,7 @@ void CallSignalSocket::InternalInit()
 	m_h245handler = NULL;
 	m_h245socket = NULL;
 	m_isnatsocket = false;
+	m_maintainConnection = false;
 	m_result = NoData;
 	m_setupPdu = NULL;
 #ifdef HAS_H46018
@@ -993,7 +1001,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 		H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), socket->localAddr, calling, socket->masqAddr);
 #ifdef HAS_H46018
 		if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46017()) {
-			proxyhandler->SetTraversalRole(TraversalClient);
+			//TODO17: proxyhandler->SetTraversalRole(TraversalClient);
 		}
 		if (m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None) {
 			proxyhandler->SetTraversalRole(m_call->GetCallingParty()->GetTraversalRole());
@@ -1012,7 +1020,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 		m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(),localAddr, called, masqAddr, proxyhandler);
 #ifdef HAS_H46018
 		if (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46017()) {
-			((H245ProxyHandler*)m_h245handler)->SetTraversalRole(TraversalClient);
+			//TODO17: ((H245ProxyHandler*)m_h245handler)->SetTraversalRole(TraversalClient);
 		}
 		if (m_call->GetCalledParty() && m_call->GetCalledParty()->GetTraversalRole() != None) {
 			((H245ProxyHandler*)m_h245handler)->SetTraversalRole(m_call->GetCalledParty()->GetTraversalRole());
@@ -1157,8 +1165,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	UnmapIPv4Address(_peerAddr);
 
 	PTRACE(3, Type() << "\tReceived: " << q931pdu->GetMessageTypeName()
-		<< " CRV=" << q931pdu->GetCallReference() << " from " << GetName()
-		);
+		<< " CRV=" << q931pdu->GetCallReference() << " from " << GetName());
 
 	if (q931pdu->HasIE(Q931::UserUserIE)) {
 		uuie = new H225_H323_UserInformation();
@@ -1228,6 +1235,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 						PBYTEArray ras = data.GetValue();
 						// mark this socket as NAT socket
 						m_isnatsocket = true;
+						m_maintainConnection = true;	// GnuGk NAT will close the TCP connection after the call, for H.460.17 we don't want that
 						SetConnected(true); // avoid the socket be deleted	
 						// hand RAS message to RasSserver for processing
 						RasServer::Instance()->ReadH46017Message(ras, _peerAddr, _peerPort, _localAddr, this);
@@ -4656,7 +4664,13 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					}
 					callingSocket->m_h245handler = proxyhandler;
 					if (m_call->GetCallingParty()) {
-						proxyhandler->SetTraversalRole(m_call->GetCallingParty()->GetTraversalRole());
+						if (m_call->GetCallingParty()->UsesH46017()) {
+							// set traversal role for H.460.17 caller
+							//TODO17: proxyhandler->SetTraversalRole(TraversalClient);
+						} else {
+							// set traversal role for H.460.18 caller
+							proxyhandler->SetTraversalRole(m_call->GetCallingParty()->GetTraversalRole());
+						}
 					}
 					if ((m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalClient())
 						|| callingSocket->m_senderSupportsH46019Multiplexing)
@@ -8982,8 +8996,14 @@ void ProxyHandler::ReadSocket(IPSocket *socket)
 			}
 			break;
 		case ProxySocket::Closing:
-			psocket->ForwardData();
-			socket->Close();
+			{
+				psocket->ForwardData();
+				CallSignalSocket * css = dynamic_cast<CallSignalSocket *>(socket);
+				if (!css || !css->MaintainConnection()) {
+					// only close the Q.931 socket if it's not also used for H.460.17
+					socket->Close();
+				}
+			}
 			break;
 		case ProxySocket::Error:
 			psocket->OnError();
