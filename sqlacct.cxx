@@ -188,10 +188,6 @@ GkAcctLogger::Status SQLAcct::Log(
 	else if (evt == AcctOff)
 		query = m_offQuery;
 
-	if (query.IsEmpty() && (evt == AcctAlert)) {
-		// FIXME Are we suppose to do something here? -SH
-	}
-
 	if (query.IsEmpty()) {
 		if (evt != AcctAlert) {
 			PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
