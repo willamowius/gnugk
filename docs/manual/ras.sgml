@@ -321,6 +321,30 @@ SELECT assignedgatekeeper FROM users WHERE alias = '%u' AND active
 </itemize>
 
 
+<sect1>Section &lsqb;AlternateGatekeepers::SQL&rsqb;
+<p>
+This section allows <htmlurl url="http://www.gnugk.org/" name="GnuGk"> to read the alternate gatekeepers from a database.
+You can use the same database parameters as defined in <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">.
+
+<itemize>
+<item><tt/Query=SELECT .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Defines the SQL query used to retrieve the alternate gatekeepers from the database.
+
+One parameter is defined:
+<itemize>
+<item><tt/%i/ - endpoint IP
+</itemize>
+<p>
+Sample query string:
+<tscreen><verb>
+SELECT alternategatekeeper FROM users WHERE ip = '%i' AND active
+</verb></tscreen>
+
+</itemize>
+
+
 <sect1>Section &lsqb;NATedEndpoints&rsqb;
 <p>
 The gatekeeper can automatically detect whether an endpoint is behind NAT.

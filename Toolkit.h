@@ -299,6 +299,28 @@ class Toolkit : public Singleton<Toolkit>
 #endif
 
 #if HAS_DATABASE
+	class AlternateGatekeepers {
+	 public:
+	    AlternateGatekeepers();
+		~AlternateGatekeepers();
+
+	    void LoadConfig(PConfig *);
+        bool GetAlternateGK(const PIPSocket::Address & ip, H225_ArrayOf_AlternateGK & gklist);
+		bool QueryAlternateGK(const PIPSocket::Address & ip, PStringArray & addresses);
+
+     private:
+	   bool m_sqlactive;
+	   // connection to the SQL database
+	   GkSQLConnection* m_sqlConn;
+	   // parametrized query string for the auth condition string retrieval
+	   PString m_query;
+	   // query timeout
+	   long m_timeout;
+	};
+	AlternateGatekeepers AlternateGKs() { return m_AlternateGKs; }
+#endif
+
+#if HAS_DATABASE
 	class QoSMonitor {
 	  public:
         QoSMonitor();
@@ -600,6 +622,7 @@ protected:
 	AssignedGatekeepers m_AssignedGKs;
 #endif
 #if HAS_DATABASE
+    AlternateGatekeepers m_AlternateGKs;
 	QoSMonitor m_qosMonitor;
 #endif
 	RouteTable m_RouteTable;

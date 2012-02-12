@@ -1606,6 +1606,7 @@ PConfig* Toolkit::ReloadConfig()
 	m_AssignedGKs.LoadConfig(m_Config);
 #endif
 #if HAS_DATABASE
+	m_AlternateGKs.LoadConfig(m_Config);
 	m_qosMonitor.LoadConfig(m_Config);
 #endif
 
@@ -2282,11 +2283,12 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias, const PI
 			PStringArray tokens = SplitIPAndPort(num, GK_DEF_UNICAST_RAS_PORT);
 			WORD port = (WORD)tokens[1].AsUnsigned();
 
-			H225_AlternateGK * alt = new H225_AlternateGK;
-			alt->m_rasAddress = SocketToH225TransportAddr(PIPSocket::Address(tokens[0]),port);
-			alt->m_needToRegister = true;
-			alt->m_priority = k;
-			gklist.Append(alt);
+			int sz = gklist.GetSize();
+			gklist.SetSize(sz+1);
+			H225_AlternateGK & alt = gklist[sz];
+			alt.m_rasAddress = SocketToH225TransportAddr(PIPSocket::Address(tokens[0]),port);
+			alt.m_needToRegister = true;
+			alt.m_priority = k;
 		}
 	}
 		
@@ -2295,6 +2297,129 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias, const PI
 #endif
 
 /////////////////////////////////////////////////////////////////////////////////////////
+#if HAS_DATABASE
+Toolkit::AlternateGatekeepers::AlternateGatekeepers()
+	: m_sqlactive(false), m_sqlConn(NULL), m_timeout(-1)
+{
+}
+
+Toolkit::AlternateGatekeepers::~AlternateGatekeepers()
+{
+}
+
+void Toolkit::AlternateGatekeepers::LoadConfig(PConfig * cfg)
+{
+	delete m_sqlConn;
+	PString authName = "AlternateGatekeepers::SQL";
+
+	if (cfg->GetSections().GetStringsIndex(authName) == P_MAX_INDEX)
+		return;
+
+	const PString driverName = cfg->GetString(authName, "Driver", "");
+	if (driverName.IsEmpty()) {
+		PTRACE(0, "AltGKSQL\tModule creation failed: "
+			"no SQL driver selected"
+			);
+		PTRACE(0, "AltGKSQL\tFATAL: Shutting down");
+		return;
+	}
+	
+	m_sqlConn = GkSQLConnection::Create(driverName, authName);
+	if (m_sqlConn == NULL) {
+		PTRACE(0, "AltGKSQL\tModule creation failed: "
+			"Could not find " << driverName << " database driver"
+			);
+		PTRACE(0, "AltGKSQL\tFATAL: Shutting down");
+		return;
+	}
+		
+	m_query = cfg->GetString(authName, "Query", "");
+	if (m_query.IsEmpty()) {
+		PTRACE(0, "AltGKSQL\tModule creation failed: No query configured"
+			);
+		PTRACE(0, "AltGKSQL\tFATAL: Shutting down");
+		return;
+	} else
+		PTRACE(4, "AltGKSQL\tQuery: " << m_query);
+		
+	if (!m_sqlConn->Initialize(cfg, authName)) {
+		PTRACE(0, "AltGKSQL\tModule creation failed: Could not connect to the database"
+			);
+		return;
+	}
+
+	m_sqlactive = true;
+
+}
+
+bool Toolkit::AlternateGatekeepers::GetAlternateGK(const PIPSocket::Address & ip, H225_ArrayOf_AlternateGK & gklist)
+{
+    PStringArray addresses;
+    if (QueryAlternateGK(ip, addresses)) {
+		for (PINDEX k = 0; k < addresses.GetSize(); k++) {
+			PString num = addresses[k];
+			PStringArray tokens = SplitIPAndPort(num, GK_DEF_UNICAST_RAS_PORT);
+			WORD port = (WORD)tokens[1].AsUnsigned();
+ 
+			int sz = gklist.GetSize();
+			gklist.SetSize(sz+1);
+			H225_AlternateGK & alt = gklist[sz];
+			alt.m_rasAddress = SocketToH225TransportAddr(PIPSocket::Address(tokens[0]),port);
+			alt.m_needToRegister = true;
+			alt.m_priority = k;
+		}
+        return true;
+    }
+    return false;
+}
+
+bool Toolkit::AlternateGatekeepers::QueryAlternateGK(const PIPSocket::Address & ip, PStringArray & addresses)
+{
+	if (!m_sqlactive)
+		return false;
+
+	GkSQLResult::ResultRow resultRow;
+	std::map<PString, PString> params;
+	params["i"] = ip.AsString();
+	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, params, m_timeout);
+	if (result == NULL) {
+		PTRACE(2, "AltGKSQL\tQuery failed - timeout or fatal error");
+		return false;
+	}
+
+	if (!result->IsValid()) {
+		PTRACE(2, "AltGKSQL\tQuery failed (" << result->GetErrorCode()
+			<< ") - " << result->GetErrorMessage()
+			);
+		delete result;
+		return false;
+	}
+	
+	bool success = false;
+
+	if (result->GetNumRows() < 1)
+		PTRACE(3, "AltGKSQL\tQuery returned no rows");
+	else if (result->GetNumFields() < 1)
+		PTRACE(2, "AltGKSQL\tBad-formed query - "
+			"no columns found in the result set"
+			);
+	else {
+		PStringArray retval;
+		while (result->FetchRow(retval)) {
+			if (retval[0].IsEmpty()) {
+				PTRACE(1, "AltGKSQL\tQuery Invalid value found.");
+				continue;
+			}
+			if (!success) success = true;
+		    PTRACE(5, "AltGKSQL\tQuery result: " << retval[0]);
+			addresses.AppendString(retval[0]);
+		}
+	}
+	delete result;
+
+	return success;
+}
+#endif
 
 #if HAS_DATABASE
 Toolkit::QoSMonitor::QoSMonitor()
