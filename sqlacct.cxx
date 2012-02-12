@@ -113,6 +113,16 @@ SQLAcct::SQLAcct(
 		PTRACE(4, "GKACCT\t" << GetName() << " un-registration query: " << m_unregisterQuery);
 	}
 
+	m_onQuery = cfg->GetString(cfgSec, "OnQuery", "");
+	if (!m_onQuery) {
+		PTRACE(4, "GKACCT\t" << GetName() << " On GK Startup query: " << m_onQuery);
+	}
+	m_offQuery = cfg->GetString(cfgSec, "OffQuery", "");
+	if (!m_offQuery) {
+		PTRACE(4, "GKACCT\t" << GetName() << " On Gk Shutdown query: " << m_offQuery);
+	}
+
+
 	vector<PIPSocket::Address> interfaces;
 	Toolkit::Instance()->GetGKHome(interfaces);
 	if (interfaces.empty()) {
@@ -147,12 +157,12 @@ GkAcctLogger::Status SQLAcct::Log(
 	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
 		return Next;
 		
-	if (!call) {
+	if (!call && (evt !=AcctOn || evt != AcctOff)) {
 		PTRACE(1, "GKACCT\t" << GetName() << " - missing call info for event " << evt);
 		return Fail;
 	}
 	
-	const long callNumber = call->GetCallNumber();
+	const long callNumber = !call ? 0 : call->GetCallNumber();
 		
 	if (m_sqlConn == NULL) {
 		PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
@@ -171,10 +181,15 @@ GkAcctLogger::Status SQLAcct::Log(
 	else if (evt == AcctStop) {
 		query = m_stopQuery;
 		queryAlt = m_stopQueryAlt;
-	} if (evt == AcctAlert)
+	} else if (evt == AcctAlert)
 		query = m_alertQuery;
+	else if (evt == AcctOn)
+		query = m_onQuery;
+	else if (evt == AcctOff)
+		query = m_offQuery;
 
 	if (query.IsEmpty() && (evt == AcctAlert)) {
+		// FIXME Are we suppose to do something here? -SH
 	}
 
 	if (query.IsEmpty()) {

@@ -91,6 +91,10 @@ private:
 	PString m_registerQuery;
 	/// parametrized query string for endpoint un-registration
 	PString m_unregisterQuery;
+	/// parametrized query string for gatekeeper coming online
+	PString m_onQuery;
+	/// parametrized query string for gatekeeper going offline
+	PString m_offQuery;
 	/// timestamp formatting string
 	PString m_timestampFormat;
 };

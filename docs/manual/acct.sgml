@@ -710,6 +710,16 @@ Default: <tt>N/A</tt><newline>
 <p>
 Defines SQL query used to update the database when an endpoint unregisters.
 
+<item><tt/OnQuery=UPDATE .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Defines SQL query used to update a record in the database when the gatekeeper is starting.
+
+<item><tt/OffQuery=UPDATE .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Defines SQL query used to update a record in the database when the gatekeeper is stopping.
+
 <item><tt/TimestampFormat=MySQL/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
