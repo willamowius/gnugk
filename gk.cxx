@@ -87,6 +87,15 @@ void ShutdownHandler()
 
 static const char * KnowConfigEntries[][2] = {
 	// valid config entries
+	{ "AlternateGatekeepers::SQL", "CacheTimeout" },
+	{ "AlternateGatekeepers::SQL", "Database" },
+	{ "AlternateGatekeepers::SQL", "Driver" },
+	{ "AlternateGatekeepers::SQL", "Host" },
+	{ "AlternateGatekeepers::SQL", "Library" },
+	{ "AlternateGatekeepers::SQL", "MinPoolSize" },
+	{ "AlternateGatekeepers::SQL", "Password" },
+	{ "AlternateGatekeepers::SQL", "Query" },
+	{ "AlternateGatekeepers::SQL", "Username" },
 	{ "AssignedAliases::SQL", "CacheTimeout" },
 	{ "AssignedAliases::SQL", "Database" },
 	{ "AssignedAliases::SQL", "Driver" },
@@ -424,6 +433,8 @@ static const char * KnowConfigEntries[][2] = {
 	{ "SQLAcct", "Host" },
 	{ "SQLAcct", "Library" },
 	{ "SQLAcct", "MinPoolSize" },
+	{ "SQLAcct", "OffQuery" },
+	{ "SQLAcct", "OnQuery" },
 	{ "SQLAcct", "Password" },
 	{ "SQLAcct", "RegisterQuery" },
 	{ "SQLAcct", "StartQuery" },
