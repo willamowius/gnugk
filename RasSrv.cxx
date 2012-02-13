@@ -714,6 +714,7 @@ RasServer::~RasServer()
 	delete acctList;
 	delete neighbors;
 	delete gkClient;
+	PWaitAndSignal lock(requests_mutex);
 	DeleteObjectsInContainer(requests);
 }
 
@@ -822,14 +823,14 @@ bool RasServer::IsCallFromTraversalServer(const PIPSocket::Address & addr) const
 
 bool RasServer::RegisterHandler(RasHandler *handler)
 {
-	PWaitAndSignal lock(hmutex);
+	PWaitAndSignal lock(handlers_mutex);
 	handlers.push_front(handler);
 	return true;
 }
 
 bool RasServer::UnregisterHandler(RasHandler *handler)
 {
-	PWaitAndSignal lock(hmutex);
+	PWaitAndSignal lock(handlers_mutex);
 	handlers.remove(handler);
 	return true;
 }
@@ -1494,7 +1495,8 @@ void RasServer::ReadSocket(IPSocket *socket)
 	RasListener *listener = static_cast<RasListener *>(socket);
 	if (GatekeeperMessage *msg = listener->ReadRas()) {
 		unsigned tag = msg->GetTag();
-		PWaitAndSignal lock(hmutex);
+		PWaitAndSignal rlock(requests_mutex);
+		PWaitAndSignal hlock(handlers_mutex);
 		if (RasMsg *ras = RasFactory::Create(tag, msg)) {
 			std::list<RasHandler *>::iterator iter = find_if(handlers.begin(), handlers.end(), bind2nd(mem_fun(&RasHandler::IsExpected), ras));
 			if (iter == handlers.end()) {
@@ -1535,7 +1537,8 @@ void RasServer::ReadH46017Message(const PBYTEArray & ras, const PIPSocket::Addre
 		PTRACE(3, "RAS\tH460.17 RAS\n" << setprecision(2) << msg->m_recvRAS);
 		// TODO17: refactor duplication from ReadSocket()
 		unsigned tag = msg->GetTag();
-		PWaitAndSignal lock(hmutex);
+		PWaitAndSignal rlock(requests_mutex);
+		PWaitAndSignal hlock(handlers_mutex);
 		if (RasMsg *ras = RasFactory::Create(tag, msg)) {
 			std::list<RasHandler *>::iterator iter = find_if(handlers.begin(), handlers.end(), bind2nd(mem_fun(&RasHandler::IsExpected), ras));
 			if (iter == handlers.end()) {
@@ -1567,6 +1570,7 @@ void RasServer::ReadH46017Message(const PBYTEArray & ras, const PIPSocket::Addre
 
 void RasServer::CleanUp()
 {
+	PWaitAndSignal lock(requests_mutex);
 	if (!requests.empty()) {
 		std::list<RasMsg *>::iterator iter = partition(requests.begin(), requests.end(), mem_fun(&RasMsg::IsDone));
 		DeleteObjects(requests.begin(), iter);

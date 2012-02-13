@@ -285,8 +285,9 @@ private:
 
 	std::list<GkInterface *> interfaces;
 
+	PMutex requests_mutex;
 	std::list<RasMsg *> requests;
-	PMutex hmutex;
+	PMutex handlers_mutex;
 	std::list<RasHandler *> handlers;
 
 	bool GKRoutedSignaling, GKRoutedH245;
