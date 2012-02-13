@@ -551,7 +551,7 @@ to 48 we require 10 digits and to all other destinations at least 6 and at most 
 <p>
 This routing policy performs a database lookup if calls to an endpoint
 should be forwarded to another endpoint.
-It supports routing OnARQ and OnSetup.
+It supports routing OnARQ, OnSetup and OnLRQ.
 
 There are different types of forwards:
 <itemize>
