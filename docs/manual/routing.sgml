@@ -105,6 +105,11 @@ to virtually host URL domains or centralize the control of SRV records.
 
 This policy can be configured in the <ref id="routingrds" name="Routing::RDS"> section.
 
+<item><tt/forwarding/<newline>
+<p>
+This policy will perform a database lookup if calls to this destination should be forwarded.
+The configuration for this policy must be in the <ref id="routingforwarding" name="Routing::Forwarding"> section.
+
 <item><tt/catchall/<newline>
 <p>
 This policy will route all calls that reach it to one endpoint specified in the <ref id="routingcatchall" name="Routing::CatchAll"> section.
@@ -539,6 +544,98 @@ default=numberanalysis,internal
 Calls to destinations starting with 0048 require at least 12 digits,
 to 48 we require 10 digits and to all other destinations at least 6 and at most 20 digits.
 </descrip>
+
+
+<sect1>Section &lsqb;Routing::Forwarding&rsqb;
+<label id="routingforwarding">
+<p>
+This routing policy performs a database lookup if calls to an endpoint
+should be forwarded to another endpoint.
+It supports routing OnARQ and OnSetup.
+
+There are different types of forwards:
+<itemize>
+<item><bf/Call Forwarding Unconditional/ (CFU, code 1): Calls are always forwarded.
+<item><bf/Call Forwarding on Busy/ (CFB, code 2): Calls are forwarded if the called endpoint is already in a call.
+<item><bf/Call Forwarding on No Answer/ (CFNA, code 3): Calls are forwarded if the called endpoint doesn't answer the call within the AlertingTimeout.
+<item><bf/Call Forwarding on Error/ (CFE, code 4): Calls are forwarded if there is an error routing the call to the endpoint. Currently this behaves like Call Forwarding on No Answer and only one of them should be defined.
+</itemize>
+
+Use the <ref id="database" name="common database configuration options">
+to define your database connection for this module.
+
+Specifically for this module, you can specify a query to read the forwarding rules:
+<itemize>
+<item><tt/Query=SELECT .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Define a SQL query to fetch the forwarding rules.
+The query must return 2 colums: First the code for the forwarding type and second the new destination.
+It must ensure that the results are ordered ascending by forwarding code.
+
+The query is parameterized - that means parameter
+replacement is made before each query is executed. The following parameters are defined:
+<itemize>
+<item><tt/%c/ - the called alias
+<item><tt/%p/ - the called IP (only available on Setup, empty otherwise)
+<item><tt/%s/ - the calling IP
+<item><tt/%r/ - the calling aliases
+<item><tt/%{Calling-Station-Id}/ - the calling station ID (same value as used in accounting and authentication events)
+<item><tt/%i/ - the call ID
+<item><tt/%m/ - the message type (ARQ or Setup)
+<item><tt/%{client-auth-id}/ - a 64 bit integer ID provided to GnuGk when authenticating the call (through SQLAuth)
+</itemize>
+Some of these can be empty if they aren't included in the ARQ or Setup message.
+In most cases you should only use the called alias in the SQL query,
+since they appy only to the incomming call and won't change when looking up chained forwarding rules.
+<p>
+</itemize>
+
+<descrip>
+<tag/Example:/
+<tscreen><verb>
+[RoutedMode]
+GKRouted=1
+AcceptUnregisteredCalls=1
+; failover must be on for forward on timeout
+ActivateFailover=1
+FailoverCauses=1-15,17-127
+; 10 sec alerting timeout (for forward on no answer)
+AlertingTimeout=10000
+
+[RoutingPolicy]
+default=forwarding,explicit,internal
+
+[Routing::Forwarding]
+Driver=MySQL
+Host=localhost
+Database=gnugk
+Username=gnugk
+Password=secret
+Query=SELECT forwardtype, destination FROM forwards WHERE called = '%c' order by forwardtype asc
+MinPoolSize=1
+</verb></tscreen>
+
+<tag/Sample MySQL Schema:/
+<tscreen><verb>
+create table gnugk.forwards (
+    called varchar(30) not null,
+    forwardtype smallint not null,
+    destination varchar(30) not null default "",
+    PRIMARY KEY (e164, forwardtype)
+);
+</verb></tscreen>
+
+<tag/Sample Forwarding Rules:/
+<tscreen><verb>
+"1234", 1, "2000"
+"5678", 2, "4000"
+"5678", 3, "4000"
+"9876", 4, "5000"
+</verb></tscreen>
+
+</descrip>
+
 
 <sect1>Section &lsqb;Routing::CatchAll&rsqb;
 <label id="routingcatchall">

@@ -1,5 +1,6 @@
 Changes from 3.0 to 3.1
 =======================
+- new routing policy 'forwarding' configured in [Routing::Forwarding]
 - [AlternateGatekeepers::SQL] switch to query DB for alternate gatekeepers
 - new OnQuery and OffQuery support (GK stop/start event) to SQLAcct
 - H.460.17 support (work in progress, needs H323Plus 1.24.1)
