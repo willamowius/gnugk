@@ -50,11 +50,11 @@ PString AsDotString(const H225_TransportAddress & ip, bool showPort=true);
 
 PString AsString(const H225_EndpointType & terminalType);
 
-PString AsString(const H225_AliasAddress & terminalAlias, bool includeAliasName = TRUE);
+PString AsString(const H225_AliasAddress & terminalAlias, bool includeAliasTypeName = true);
 
 PString AsString(const PBYTEArray & array);
 
-PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, bool includeAliasName = TRUE);
+PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, bool includeAliasTypeName = true);
 
 PString AsString(const PASN_OctetString & Octets);
 

@@ -198,13 +198,13 @@ PString AsString(const H225_AliasAddress & terminalAlias, bool includeAliasType)
 }
 
 
-PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, bool includeAliasName)
+PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, bool includeAliasTypeName)
 {
 	PString aliasListString = PString::Empty();
 
 	for(PINDEX cnt = 0; cnt < terminalAlias.GetSize(); cnt++ )
 	{
-		aliasListString += AsString(terminalAlias[cnt], includeAliasName);
+		aliasListString += AsString(terminalAlias[cnt], includeAliasTypeName);
 
 		if (cnt < (terminalAlias.GetSize() - 1)) {
 			aliasListString += "=";
