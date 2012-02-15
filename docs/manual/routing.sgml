@@ -98,10 +98,11 @@ This policy can be configured in the <ref id="routingsrv" name="Routing::SRV"> s
 
 <item><tt/rds/<newline>
 <p>
-URN RDS or Universal Resources Name Resolver Discovery System is a technique (as defined in RFC 2915 Sect 7.2 
-whereby domain name SRV records are hosted on other domains. In this policy the servers set by 
-[RoutedMode] RDSServers are queried to resolve URI's whose domains do not have SRV records. This can be used
-to virtually host URL domains or centralize the control of SRV records.
+RDS Resolver Discovery Service or DDDS Dynamic Delegation Discovery Service (examples in RFC3404 sect 5.2/5.3)
+This policy is a mechanism whereby domain name SRV records are hosted in central DNS servers. The 
+servers are set by [RoutedMode] RDSServers and are queried in order to resolve H323+D2U NAPTR records which
+contain H.323 Annex O SRV records for domains. This can be used to virtually host URL domains or 
+centralize the control of SRV records. 
 
 This policy can be configured in the <ref id="routingrds" name="Routing::RDS"> section.
 
