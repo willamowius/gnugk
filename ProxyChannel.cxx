@@ -1001,7 +1001,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 		H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), socket->localAddr, calling, socket->masqAddr);
 #ifdef HAS_H46018
 		if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46017()) {
-			//TODO17: proxyhandler->SetTraversalRole(TraversalClient);
+			proxyhandler->SetTraversalRole(TraversalClient);
 		}
 		if (m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None) {
 			proxyhandler->SetTraversalRole(m_call->GetCallingParty()->GetTraversalRole());
@@ -1020,7 +1020,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 		m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(),localAddr, called, masqAddr, proxyhandler);
 #ifdef HAS_H46018
 		if (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46017()) {
-			//TODO17: ((H245ProxyHandler*)m_h245handler)->SetTraversalRole(TraversalClient);
+			((H245ProxyHandler*)m_h245handler)->SetTraversalRole(TraversalClient);
 		}
 		if (m_call->GetCalledParty() && m_call->GetCalledParty()->GetTraversalRole() != None) {
 			((H245ProxyHandler*)m_h245handler)->SetTraversalRole(m_call->GetCalledParty()->GetTraversalRole());
@@ -4666,7 +4666,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					if (m_call->GetCallingParty()) {
 						if (m_call->GetCallingParty()->UsesH46017()) {
 							// set traversal role for H.460.17 caller
-							//TODO17: proxyhandler->SetTraversalRole(TraversalClient);
+							proxyhandler->SetTraversalRole(TraversalClient);
 						} else {
 							// set traversal role for H.460.18 caller
 							proxyhandler->SetTraversalRole(m_call->GetCallingParty()->GetTraversalRole());
