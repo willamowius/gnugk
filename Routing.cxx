@@ -62,10 +62,11 @@ Route::Route(
 	const PString & policyName,
 	const endptr & destEndpoint,
 	unsigned priority
-	) : m_destAddr(destEndpoint->GetCallSignalAddress()), m_destEndpoint(destEndpoint), m_policy(policyName),
+	) : m_destAddr(destEndpoint ? destEndpoint->GetCallSignalAddress() : H225_TransportAddress()), m_destEndpoint(destEndpoint), m_policy(policyName),
 	m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_priority(priority)
 {
 	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
+	PTRACE(1, "Error: Route created with NULL endpoint!");
 }
 
 Route::Route(
