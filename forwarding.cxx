@@ -203,7 +203,7 @@ bool ForwardingPolicy::FindEPForwardingRules(
 	else {
 		// fetch all rows now, recursive checks will invalidate result set
 		std::vector<GkSQLResult::ResultRow> rows(result->GetNumRows());
-		for (unsigned i = 0; i < result->GetNumRows(); ++i) {
+		for (long i = 0; i < result->GetNumRows(); ++i) {
 			if (!result->FetchRow(rows[i]) || rows[i].empty()) {
 				PTRACE(2, m_name << ": query failed - could not fetch the result row");
 				break;
