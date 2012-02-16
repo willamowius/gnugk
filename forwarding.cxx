@@ -27,6 +27,7 @@ enum ForwardingTypes {
 	FORWARD_ERROR=4 };
 
 const unsigned MAX_RECURSION_DEPTH = 25;
+const unsigned NO_ANSWER_PRIORITY = 900;
 
 namespace Routing {
 
@@ -164,6 +165,9 @@ void ForwardingPolicy::RunPolicy(
 	FindEPForwardingRules(params, 0, destination);
 	
 	PTRACE(0, "JW Lookup done: found " << destination.m_routes.size() << " routes added");
+	for(std::list<Route>::iterator it = destination.m_routes.begin(); it !=destination.m_routes.end(); ++it) {
+		PTRACE(0, "JW route=" << it->AsString());
+	}
 	PTRACE(0, "JW aliases changed=" << destination.ChangeAliases() << " new=" << destination.GetNewAliases());
 #endif // HAS_DATABASE
 }
@@ -229,7 +233,6 @@ bool ForwardingPolicy::FindEPForwardingRules(
 					WORD port = (WORD)(adr_parts[1].AsInteger());
 					if (port == 0)
 						port = GK_DEF_ENDPOINT_SIGNAL_PORT;
-
 					Route route("ForwardUnconditionalOrBusy", SocketToH225TransportAddr(ip, port));
 					route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
 					if ((forwardType == FORWARD_UNCONDITIONAL)
@@ -265,18 +268,33 @@ bool ForwardingPolicy::FindEPForwardingRules(
 					}
 				}
 			} else if ((forwardType == FORWARD_NOANSWER) || (forwardType == FORWARD_ERROR)) {
-				// TODO: add IP handling ?
-				H225_ArrayOf_AliasAddress forwardAliases;
-				forwardAliases.SetSize(1);
-				H323SetAliasAddress(forwardDestination, forwardAliases[0]);
-				endptr ep = RegistrationTable::Instance()->FindByAliases(forwardAliases);
-				PTRACE(0, "JW found ep=" << ep << " for forwarding to " << forwardAliases);
-				// TODO: check if destination also has uncond/busy forwarding rules (+ flag to add route and not rewrite)
-				// add a NoAnswer route, lower recursion depth is given more priority
-				Route route("ForwardNoAnswerOrError", ep, 900 + recursionDepth);
-				destination.AddRoute(route, false);
+				if (IsIPAddress(forwardDestination)) {
+					// set a route if forward to IP
+					PString destinationIp = forwardDestination;
+					PStringArray adr_parts = destinationIp.Tokenise(":", FALSE);
+					PString ip = adr_parts[0];
+					WORD port = (WORD)(adr_parts[1].AsInteger());
+					if (port == 0)
+						port = GK_DEF_ENDPOINT_SIGNAL_PORT;
+					Route route("ForwardNoAnswerOrError", SocketToH225TransportAddr(ip, port), NO_ANSWER_PRIORITY + recursionDepth);
+					destination.AddRoute(route);
+				} else {
+					H225_ArrayOf_AliasAddress forwardAliases;
+					forwardAliases.SetSize(1);
+					H323SetAliasAddress(forwardDestination, forwardAliases[0]);
+					endptr ep = RegistrationTable::Instance()->FindByAliases(forwardAliases);
+					PTRACE(0, "JW found ep=" << ep << " for forwarding to " << forwardAliases);
+					if (ep) {
+						// TODO: check if destination also has uncond/busy forwarding rules (+ flag to add route and not rewrite)
+						// add a NoAnswer route, lower recursion depth is given more priority
+						Route route("ForwardNoAnswerOrError", ep, NO_ANSWER_PRIORITY + recursionDepth);
+						destination.AddRoute(route, false);
+					} else {
+						PTRACE(1, "Fwd\tError: Forward on NoAnswer or Error to non-local alias");
+					}
+				}
 			} else {
-				PTRACE(1, "Forward\tUnsupported forward type " << forwardType);
+				PTRACE(1, "Fwd\tUnsupported forward type " << forwardType);
 			}
 		}
 	}

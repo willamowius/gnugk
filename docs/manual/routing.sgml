@@ -562,6 +562,9 @@ There are different types of forwards:
 <item><bf/Call Forwarding on Error/ (CFE, code 4): Calls are forwarded if there is an error routing the call to the endpoint. Currently this behaves like Call Forwarding on No Answer and only one of them should be defined.
 </itemize>
 
+The destination where calls are forwarded to should either be aliases of local endpoints (incl. permanent endpoints) or IP numbers.
+For local aliases, GnuGk will check if the destination also has forwarding configured and take it into account.
+
 Use the <ref id="database" name="common database configuration options">
 to define your database connection for this module.
 
