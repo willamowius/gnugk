@@ -2879,8 +2879,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 							useParent = route.m_flags & Route::e_toParent;
 					} else {
 						PTRACE(3, Type() << "\tNo destination for unregistered call "
-							<< callid << " from " << Name()
-							);
+							<< callid << " from " << Name());
 						authData.m_rejectReason = request.GetRejectReason();
 						rejectCall = true;
 					}
