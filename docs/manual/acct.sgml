@@ -699,6 +699,8 @@ Defines SQL query used to update the database when an endpoint registers.
 
 Register and Unregister queries can use the following parameters:
 <itemize>
+<item><tt/%g/ - gatekeeper name
+<item><tt/%u/ - H.323 ID of the registering party
 <item><tt/%{endpoint-ip}/ - IP number of the endpoint
 <item><tt/%{endpoint-port}/ - port number of the endpoint
 <item><tt/%{epid}/ - the endpoint ID
