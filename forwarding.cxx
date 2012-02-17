@@ -27,6 +27,7 @@ enum ForwardingTypes {
 	FORWARD_ERROR=4 };
 
 const unsigned MAX_RECURSION_DEPTH = 25;
+const unsigned DEFAULT_PRIORITY = 1;
 const unsigned NO_ANSWER_PRIORITY = 900;
 
 namespace Routing {
@@ -56,6 +57,7 @@ protected:
 		/* in */
 		std::map<PString, PString> params,
 		unsigned recursionDepth,
+		unsigned priority,
 		/* out: */
 		DestinationRoutes & destination);
 
@@ -162,7 +164,7 @@ void ForwardingPolicy::RunPolicy(
 		}
 	}
 
-	FindEPForwardingRules(params, 0, destination);
+	FindEPForwardingRules(params, 0, DEFAULT_PRIORITY, destination);
 	
 	PTRACE(0, "JW Lookup done: found " << destination.m_routes.size() << " routes added");
 	for(std::list<Route>::iterator it = destination.m_routes.begin(); it !=destination.m_routes.end(); ++it) {
@@ -177,6 +179,7 @@ bool ForwardingPolicy::FindEPForwardingRules(
 		/* in */
 		std::map<PString, PString> params,	// pass copies so they can be modified in recursion
 		unsigned recursionDepth,
+		unsigned priority,
 		/* out: */
 		DestinationRoutes & destination)
 {
@@ -200,11 +203,13 @@ bool ForwardingPolicy::FindEPForwardingRules(
 		return false;
 	}
 
-	if (result->GetNumRows() < 1)
+	if (result->GetNumRows() < 1) {
 		PTRACE(5, m_name << ": query returned no rows");
-	else if (result->GetNumFields() != 2)
+		return false;
+	} else if (result->GetNumFields() != 2) {
 		PTRACE(2, m_name << ": bad query - didn't return 2 fields");
-	else {
+		return false;
+	} else {
 		// fetch all rows now, recursive checks will invalidate result set
 		std::vector<GkSQLResult::ResultRow> rows(result->GetNumRows());
 		for (long i = 0; i < result->GetNumRows(); ++i) {
@@ -214,11 +219,11 @@ bool ForwardingPolicy::FindEPForwardingRules(
 			}
 		}
 
-		// look at all rules (ordered by priority)
+		// look at all rules (ordered by forwarding type)
 		for (unsigned i = 0; i < rows.size(); ++i) {
 			unsigned forwardType = rows[i][0].first.AsInteger();
 			PString forwardDestination = rows[i][1].first;
-			PTRACE(4, "Fwd\tForward type=" << forwardType << " for call to " << params["c"] << " new dest=" << forwardDestination);
+			PTRACE(4, "Fwd\tForward type=" << forwardType << " for call to " << params["c"] << ": new dest=" << forwardDestination);
 			if (forwardDestination.IsEmpty()) {
 				// skip rule, if forwardDestination is empty
 				continue;
@@ -233,11 +238,12 @@ bool ForwardingPolicy::FindEPForwardingRules(
 					WORD port = (WORD)(adr_parts[1].AsInteger());
 					if (port == 0)
 						port = GK_DEF_ENDPOINT_SIGNAL_PORT;
-					Route route("ForwardUnconditionalOrBusy", SocketToH225TransportAddr(ip, port));
+					PTRACE(0, "JW forward destination to " << forwardDestination << " prio=" << priority + recursionDepth);
+					Route route("ForwardUnconditionalOrBusy", SocketToH225TransportAddr(ip, port), priority + recursionDepth);
 					route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
 					if ((forwardType == FORWARD_UNCONDITIONAL)
 						|| (route.m_destEndpoint && CallTable::Instance()->FindCallRec(route.m_destEndpoint))) {
-						destination.AddRoute(route);
+						destination.AddRoute(route, false);
 						skipOrginalForward = true;
 					}
 				} else {
@@ -246,23 +252,33 @@ bool ForwardingPolicy::FindEPForwardingRules(
 					called.SetSize(1);
 					H323SetAliasAddress(params["c"], called[0]);
 					endptr ep = RegistrationTable::Instance()->FindByAliases(called);
-					PTRACE(0, "JW found ep=" << ep << " for call to " << called);
-					PTRACE(0, "JW found call=" << CallTable::Instance()->FindCallRec(ep));
+					PTRACE(0, "JW call to " << AsString(called, false) << " ep=" << ep << " call=" << CallTable::Instance()->FindCallRec(ep));
 					if ((forwardType == FORWARD_UNCONDITIONAL)
 						|| (ep && CallTable::Instance()->FindCallRec(ep))) {
 						// check if new destination is also forwarded
 						params["c"] = forwardDestination;
 						params["p"] = "";
-						if (FindEPForwardingRules(params, recursionDepth+1, destination)) {
+						if (FindEPForwardingRules(params, recursionDepth+1, DEFAULT_PRIORITY, destination)) {
 							PTRACE(0, "JW skipping forward to " << forwardDestination << " (also redirected uncond/busy)");
 							PTRACE(0, "JW destination aliases=" << destination.GetNewAliases());
 						} else {
-							// just rewrite the destination if forward to alias
-							PTRACE(0, "JW rewriting destination to " << forwardDestination);
-							H225_ArrayOf_AliasAddress newAliases;
-							newAliases.SetSize(1);
-							H323SetAliasAddress(forwardDestination, newAliases[0]);
-							destination.SetNewAliases(newAliases);
+							if (priority <= 1) {
+								// just rewrite the destination if forward to alias
+								PTRACE(0, "JW rewriting destination to " << forwardDestination);
+								H225_ArrayOf_AliasAddress newAliases;
+								newAliases.SetSize(1);
+								H323SetAliasAddress(forwardDestination, newAliases[0]);
+								destination.SetNewAliases(newAliases);
+							} else {
+								PTRACE(0, "JW forward destination to " << forwardDestination << " prio=" << priority);
+								// replace an NoAnswer or Error forward
+								if (ep) {
+									Route route("ForwardNoAnswerOrError", ep, priority + recursionDepth);
+									destination.AddRoute(route, false);
+								} else {
+									PTRACE(1, "Fwd\tError: Unconditional Forward or on Busy to non-local alias " << forwardDestination);
+								}
+							}
 						}
 						skipOrginalForward = true;
 					}
@@ -283,14 +299,20 @@ bool ForwardingPolicy::FindEPForwardingRules(
 					forwardAliases.SetSize(1);
 					H323SetAliasAddress(forwardDestination, forwardAliases[0]);
 					endptr ep = RegistrationTable::Instance()->FindByAliases(forwardAliases);
-					PTRACE(0, "JW found ep=" << ep << " for forwarding to " << forwardAliases);
-					if (ep) {
-						// TODO: check if destination also has uncond/busy forwarding rules (+ flag to add route and not rewrite)
-						// add a NoAnswer route, lower recursion depth is given more priority
-						Route route("ForwardNoAnswerOrError", ep, NO_ANSWER_PRIORITY + recursionDepth);
-						destination.AddRoute(route, false);
+					PTRACE(0, "JW forwarding NoAnswer to " << forwardDestination << " ep=" << ep);
+					// check if destination also has uncond/busy forwarding rules
+					params["c"] = forwardDestination;
+					params["p"] = "";
+					if (FindEPForwardingRules(params, recursionDepth+1, NO_ANSWER_PRIORITY, destination)) {
+						PTRACE(0, "JW skipping forward to " << forwardDestination << " (also redirected uncond/busy)");
 					} else {
-						PTRACE(1, "Fwd\tError: Forward on NoAnswer or Error to non-local alias");
+						if (ep) {
+							// add a NoAnswer route, lower recursion depth is given more priority
+							Route route("ForwardNoAnswerOrError", ep, NO_ANSWER_PRIORITY + recursionDepth);
+							destination.AddRoute(route, false);
+						} else {
+							PTRACE(1, "Fwd\tError: Forward on NoAnswer or Error to non-local alias " << forwardDestination);
+						}
 					}
 				}
 			} else {
