@@ -223,10 +223,17 @@ void GkAcctLogger::SetupAcctEndpointParams(
 		params["endpoint-ip"] = addr.AsString();
 		params["endpoint-port"] = port;
 	}
-	
-	params["aliases"] = AsString(ep->GetAliases(), false);
-	params["aliases"].Replace(PString("="), PString(","), true);	// make list comma separated
+
+	PString aliasString = AsString(ep->GetAliases(), false);
+	aliasString.Replace(PString("="), PString(","), true);	// make list comma separated
+	params["aliases"] = aliasString;
+
+	// The username is always the last in the Alias List
+	PStringArray aliasList = aliasString.Tokenise(",");
+	params["u"] = aliasList[aliasList.GetSize()-1];
+
 	params["epid"] = ep->GetEndpointIdentifier().GetValue();
+	params["g"] = Toolkit::GKName();
 }
 
 // avoid warning in PTLib object.h
