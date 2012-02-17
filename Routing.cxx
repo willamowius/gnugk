@@ -66,7 +66,8 @@ Route::Route(
 	m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_priority(priority)
 {
 	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
-	PTRACE(1, "Error: Route created with NULL endpoint!");
+	if (!destEndpoint)
+		PTRACE(1, "Error: Route created with NULL endpoint!");
 }
 
 Route::Route(
