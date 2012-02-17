@@ -5,7 +5,7 @@
 // Routing Mechanism for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2003
-// Copyright (c) 2004-2011, Jan Willamowius
+// Copyright (c) 2004-2012, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -78,10 +78,9 @@ public:
 
 	bool operator< (const Route & rhs) { return m_priority < rhs.m_priority; }
 
+	unsigned GetPriority() const { return m_priority; }
 	PString AsString() const;
-
 	bool IsFailoverActive(unsigned cause) const;
-
 
 	H225_TransportAddress m_destAddr; /// destination address for signaling
 	endptr m_destEndpoint; /// destination endpoint record (if available)
@@ -111,11 +110,12 @@ public:
 	RoutingRequest(const std::list<Route> & failedRoutes);
 	virtual ~RoutingRequest();
 
-	bool AddRoute(const Route &route);
-	bool GetFirstRoute(Route &route);
+	bool AddRoute(const Route & route);
+	bool GetFirstRoute(Route & route);
 	void RemoveAllRoutes();
+	bool HasRoutes() const { return !m_routes.empty(); }
 	std::list<Route> & GetRoutes() { return m_routes; }
-	
+
 	void SetRejectReason(unsigned reason) { m_reason = reason; }
 	void SetFlag(unsigned f) { m_flags |= f; }
 	unsigned GetRejectReason() const { return m_reason; }
@@ -179,28 +179,28 @@ typedef Request<H225_Facility_UUIE, FacilityMsg> FacilityRequest;
 
 class Policy : public SList<Policy> {
 public:
-	Policy() : m_name("Undefined") {}
-	virtual ~Policy() {}
+	Policy() : m_name("Undefined") { }
+	virtual ~Policy() { }
 
-	template <class R> bool HandleRas(Request<R,RasMsg> & request)
+	template <class R> bool HandleRas(Request<R, RasMsg> & request)
 	{
 		if( IsActive() ) {
-			const char* tagname = request.GetWrapper()
+			const char * tagname = request.GetWrapper()
 				? request.GetWrapper()->GetTagName() : "unknown";
 			const unsigned seqnum = request.GetRequest().m_requestSeqNum.GetValue();
-			PTRACE(5,"ROUTING\tChecking policy "<<m_name
-				<<" for the request "<<tagname<<' '<<seqnum);
+			PTRACE(5,"ROUTING\tChecking policy " << m_name
+				<< " for the request " << tagname << ' ' << seqnum);
 			if( OnRequest(request) ) {
-				PTRACE(5,"ROUTING\tPolicy "<<m_name
-					<<" applied to the request "<<tagname<<' '<<seqnum);
+				PTRACE(5, "ROUTING\tPolicy " << m_name
+					<< " applied to the request " << tagname << ' ' << seqnum);
 				return true;
 			}
 		}
 		return m_next && m_next->HandleRas(request);
 	}
 
-	bool Handle(SetupRequest &request);
-	bool Handle(FacilityRequest &request);
+	bool Handle(SetupRequest & request);
+	bool Handle(FacilityRequest & request);
 
 protected:
 	// new virtual function
@@ -258,6 +258,7 @@ protected:
 	virtual bool FindByAliases(LocationRequest&, H225_ArrayOf_AliasAddress&) = 0;
 };
 
+// this class passes incoming requests through the chain of routing policies
 class Analyzer : public Singleton<Analyzer> {
 public:
 	Analyzer();

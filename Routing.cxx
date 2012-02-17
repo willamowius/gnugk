@@ -3,7 +3,7 @@
 // Routing Mechanism for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2003
-// Copyright (c) 2004-2011, Jan Willamowius
+// Copyright (c) 2004-2012, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -66,8 +66,9 @@ Route::Route(
 	m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_priority(priority)
 {
 	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
-	if (!destEndpoint)
+	if (!destEndpoint) {
 		PTRACE(1, "Error: Route created with NULL endpoint!");
+	}
 }
 
 Route::Route(
