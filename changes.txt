@@ -3,7 +3,7 @@ Changes from 3.0 to 3.1
 - new routing policy 'forwarding' configured in [Routing::Forwarding]
 - [AlternateGatekeepers::SQL] switch to query DB for alternate gatekeepers
 - new OnQuery and OffQuery support (GK stop/start event) to SQLAcct
-- H.460.17 support (work in progress, needs H323Plus 1.24.1)
+- H.460.17 support (needs H323Plus 1.24.1)
 - BUGFIX(ProxyChannel.cxx) fix ForwardOnFacility for calls dialed by alias and by IP
 - new config section [RewriteSourceAddress]
 - BUGFIX(ProxyChannel.cxx) fix removal of H.460.23 feature
