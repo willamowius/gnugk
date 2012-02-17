@@ -275,6 +275,7 @@ private:
 	virtual void CleanUp();
 
 	// new virtual function
+	virtual void CreateRasJob(GatekeeperMessage * msg);
 	virtual GkInterface *CreateInterface(const Address &);
 
 	typedef std::list<GkInterface *>::iterator ifiterator;

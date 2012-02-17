@@ -4567,7 +4567,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 	}
 	if (facilityBody.HasOptionalField(H225_Facility_UUIE::e_maintainConnection)
 			&& facilityBody.m_maintainConnection) {
-		facilityBody.m_maintainConnection = FALSE;	// TODO17 ?
+		facilityBody.m_maintainConnection = FALSE;
 		msg->SetUUIEChanged();
 	}
 

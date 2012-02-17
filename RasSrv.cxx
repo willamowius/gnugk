@@ -1491,43 +1491,15 @@ void RasServer::HouseKeeping()
 
 void RasServer::ReadSocket(IPSocket *socket)
 {
-	typedef Factory<RasMsg, unsigned> RasFactory;
 	RasListener *listener = static_cast<RasListener *>(socket);
 	if (GatekeeperMessage *msg = listener->ReadRas()) {
-		unsigned tag = msg->GetTag();
-		PWaitAndSignal rlock(requests_mutex);
-		PWaitAndSignal hlock(handlers_mutex);
-		if (RasMsg *ras = RasFactory::Create(tag, msg)) {
-			std::list<RasHandler *>::iterator iter = find_if(handlers.begin(), handlers.end(), bind2nd(mem_fun(&RasHandler::IsExpected), ras));
-			if (iter == handlers.end()) {
-				std::list<RasMsg *>::iterator i = find_if(requests.begin(), requests.end(), bind2nd(mem_fun(&RasMsg::EqualTo), ras));
-				if (i != requests.end() && !(*i)->IsDone()) {
-					PTRACE(2, "RAS\tDuplicate " << msg->GetTagName() << ", deleted");
-					delete ras;
-					ras = NULL;
-				} else {
-					requests.push_back(ras);
-					Job *job = new Jobs(ras);
-					job->SetName(msg->GetTagName());
-					job->Execute();
-				}
-			} else {
-				PTRACE(2, "RAS\tTrapped " << msg->GetTagName());
-				// re-create RasMsg object by the handler
-				ras = (*iter)->CreatePDU(ras);
-				(*iter)->Process(ras);
-			}
-		} else {
-			PTRACE(1, "RAS\tUnknown RAS message " << msg->GetTagName());
-			delete msg;
-		}
+		CreateRasJob(msg);
 	}
 }
 
 #ifdef HAS_H46017
 void RasServer::ReadH46017Message(const PBYTEArray & ras, const PIPSocket::Address & fromIP, WORD fromPort, const PIPSocket::Address & localAddr, CallSignalSocket * s)
 {
-	typedef Factory<RasMsg, unsigned> RasFactory;
 	GatekeeperMessage * msg = new GatekeeperMessage();
 	if (msg->Read(ras)) {
 		msg->m_peerAddr = fromIP;
@@ -1535,38 +1507,42 @@ void RasServer::ReadH46017Message(const PBYTEArray & ras, const PIPSocket::Addre
 		msg->m_localAddr = localAddr;
 		msg->m_h46017Socket = s;
 		PTRACE(3, "RAS\tH460.17 RAS\n" << setprecision(2) << msg->m_recvRAS);
-		// TODO17: refactor duplication from ReadSocket()
-		unsigned tag = msg->GetTag();
-		PWaitAndSignal rlock(requests_mutex);
-		PWaitAndSignal hlock(handlers_mutex);
-		if (RasMsg *ras = RasFactory::Create(tag, msg)) {
-			std::list<RasHandler *>::iterator iter = find_if(handlers.begin(), handlers.end(), bind2nd(mem_fun(&RasHandler::IsExpected), ras));
-			if (iter == handlers.end()) {
-				std::list<RasMsg *>::iterator i = find_if(requests.begin(), requests.end(), bind2nd(mem_fun(&RasMsg::EqualTo), ras));
-				if (i != requests.end() && !(*i)->IsDone()) {
-					PTRACE(2, "RAS\tDuplicate " << msg->GetTagName() << ", deleted");
-// TODO17: crash on ipv6test, now leak ?
-//					delete ras;
-//					ras = NULL;
-				} else {
-					requests.push_back(ras);
-					Job *job = new Jobs(ras);
-					job->SetName(msg->GetTagName());
-					job->Execute();
-				}
-			} else {
-				PTRACE(2, "RAS\tTrapped " << msg->GetTagName());
-				// re-create RasMsg object by the handler
-				ras = (*iter)->CreatePDU(ras);
-				(*iter)->Process(ras);
-			}
-		} else {
-			PTRACE(1, "RAS\tUnknown RAS message " << msg->GetTagName());
-			delete msg;
-		}
+		CreateRasJob(msg);
 	}
 }
 #endif
+
+void RasServer::CreateRasJob(GatekeeperMessage * msg)
+{
+	typedef Factory<RasMsg, unsigned> RasFactory;
+	unsigned tag = msg->GetTag();
+	PWaitAndSignal rlock(requests_mutex);
+	PWaitAndSignal hlock(handlers_mutex);
+	if (RasMsg *ras = RasFactory::Create(tag, msg)) {
+		std::list<RasHandler *>::iterator iter = find_if(handlers.begin(), handlers.end(), bind2nd(mem_fun(&RasHandler::IsExpected), ras));
+		if (iter == handlers.end()) {
+			std::list<RasMsg *>::iterator i = find_if(requests.begin(), requests.end(), bind2nd(mem_fun(&RasMsg::EqualTo), ras));
+			if (i != requests.end() && !(*i)->IsDone()) {
+				PTRACE(2, "RAS\tDuplicate " << msg->GetTagName() << ", deleted");
+				delete ras;
+				ras = NULL;
+			} else {
+				requests.push_back(ras);
+				Job *job = new Jobs(ras);
+				job->SetName(msg->GetTagName());
+				job->Execute();
+			}
+		} else {
+			PTRACE(2, "RAS\tTrapped " << msg->GetTagName());
+			// re-create RasMsg object by the handler
+			ras = (*iter)->CreatePDU(ras);
+			(*iter)->Process(ras);
+		}
+	} else {
+		PTRACE(1, "RAS\tUnknown RAS message " << msg->GetTagName());
+		delete msg;
+	}
+}
 
 void RasServer::CleanUp()
 {
