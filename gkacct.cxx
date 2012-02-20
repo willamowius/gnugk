@@ -230,7 +230,8 @@ void GkAcctLogger::SetupAcctEndpointParams(
 
 	// The username is always the last in the Alias List
 	PStringArray aliasList = aliasString.Tokenise(",");
-	params["u"] = aliasList[aliasList.GetSize()-1];
+    if (aliasList.GetSize() > 0)
+	    params["u"] = aliasList[aliasList.GetSize()-1];
 
 	params["epid"] = ep->GetEndpointIdentifier().GetValue();
 	params["g"] = Toolkit::GKName();
