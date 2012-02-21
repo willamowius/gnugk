@@ -1508,6 +1508,8 @@ void RasServer::ReadH46017Message(const PBYTEArray & ras, const PIPSocket::Addre
 		msg->m_h46017Socket = s;
 		PTRACE(3, "RAS\tH460.17 RAS\n" << setprecision(2) << msg->m_recvRAS);
 		CreateRasJob(msg);
+		// TODO: better serilization without code duplication ?
+		PThread::Sleep(250);	// give RAS thread a chance to start working
 	}
 }
 #endif
