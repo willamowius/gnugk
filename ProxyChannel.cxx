@@ -1144,8 +1144,14 @@ void CallSignalSocket::RemoveCall()
 
 ProxySocket::Result CallSignalSocket::ReceiveData()
 {
-	if (!ReadTPKT())
+	if (!ReadTPKT()) {
+#ifdef HAS_H46017
+		if (m_isnatsocket && !IsOpen()) {
+			RegistrationTable::Instance()->OnNATSocketClosed(this);
+		}
+#endif
 		return IsOpen() ? NoData : Error;
+	}
 
 	H225_H323_UserInformation * uuie = NULL;
 	Q931 * q931pdu = new Q931();

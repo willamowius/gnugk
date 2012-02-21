@@ -538,6 +538,9 @@ public:
 	void ClearTable();
 	void CheckEndpoints();
 
+	// handle remote closing of a NAT socket
+	void OnNATSocketClosed(CallSignalSocket * s);
+
 	void PrintAllRegistrations(USocket *client, bool verbose=FALSE);
 	void PrintAllCached(USocket *client, bool verbose=FALSE);
 	void PrintRemoved(USocket *client, bool verbose=FALSE);

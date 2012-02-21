@@ -801,7 +801,7 @@ EndpointRec *EndpointRec::Unregister()
 
 EndpointRec *EndpointRec::Expired()
 {
-	SendURQ(H225_UnregRequestReason::e_ttlExpired,0);
+	SendURQ(H225_UnregRequestReason::e_ttlExpired, 0);
 	return this;
 }
 
@@ -2026,7 +2026,7 @@ void RegistrationTable::CheckEndpoints()
 			RemovedList.push_back(ep);
 			Iter = EndpointList.erase(Iter);
 			--regSize;
-			PTRACE(2, "Endpoint " << ep->GetEndpointIdentifier().GetValue() << " expired.");
+			PTRACE(2, "Endpoint " << ep->GetEndpointIdentifier().GetValue() << " expired");
 		}
 		else ++Iter;
 	}
@@ -2034,7 +2034,7 @@ void RegistrationTable::CheckEndpoints()
 	Iter = partition(OutOfZoneList.begin(), OutOfZoneList.end(),
 		bind2nd(mem_fun(&EndpointRec::IsUpdated), &now));
 	if (ptrdiff_t s = distance(Iter, OutOfZoneList.end())) {
-		PTRACE(2, s << " out-of-zone endpoint(s) expired.");
+		PTRACE(2, s << " out-of-zone endpoint(s) expired");
 	}
 	copy(Iter, OutOfZoneList.end(), back_inserter(RemovedList));
 	OutOfZoneList.erase(Iter, OutOfZoneList.end());
@@ -2043,6 +2043,27 @@ void RegistrationTable::CheckEndpoints()
 	Iter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&EndpointRec::IsUsed));
 	DeleteObjects(Iter, RemovedList.end());
 	RemovedList.erase(Iter, RemovedList.end());
+}
+
+
+// handle remote closing of a NAT socket
+void RegistrationTable::OnNATSocketClosed(CallSignalSocket * s)
+{
+	WriteLock lock(listLock);
+
+	iterator Iter = EndpointList.begin();
+	while (Iter != EndpointList.end()) {
+		EndpointRec *ep = *Iter;
+		if (ep->UsesH46017() && (ep->GetSocket() == s)) {
+			SoftPBX::DisconnectEndpoint(endptr(ep)); // disconnect ongoing calls
+			RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctUnregister, endptr(ep));
+			RemovedList.push_back(ep);
+			Iter = EndpointList.erase(Iter);
+			--regSize;
+			PTRACE(2, "Endpoint " << ep->GetEndpointIdentifier().GetValue() << " removed due to closed NAT socket");
+		}
+		else ++Iter;
+	}
 }
 
 
