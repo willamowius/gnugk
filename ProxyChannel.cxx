@@ -1250,10 +1250,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			}
 		}
 		if (h46017found) {
-			delete uuie;
-			uuie = NULL;
-			delete q931pdu;
-			q931pdu = NULL;
+			delete msg;
 			return NoData;	// don't forward
 		}
 	}
