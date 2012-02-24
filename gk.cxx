@@ -396,6 +396,7 @@ static const char * KnowConfigEntries[][2] = {
 	{ "RoutedMode", "RemoveH235Call" },
 	{ "RoutedMode", "RemoveH245AddressOnTunneling" },
 	{ "RoutedMode", "RemoveH460Call" },
+	{ "RoutedMode", "RemoveSorensonSourceInfo" },
 	{ "RoutedMode", "RtpHandlerNumber" },
 	{ "RoutedMode", "ScreenCallingPartyNumberIE" },
 	{ "RoutedMode", "ScreenDisplayIE" },

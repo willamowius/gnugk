@@ -2389,6 +2389,8 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 						}
 					}
 				}
+				if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveSorensonSourceInfo", "0")))
+					setupBody.m_sourceInfo.m_terminal.RemoveOptionalField(H225_TerminalInfo::e_nonStandardData);
 			}
 		}
 	}
