@@ -3551,8 +3551,10 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 							if (feat.GetFeatureID() == H460_FeatureID(24)) {
 								H460_FeatureStd std24 = H460_FeatureStd(24);
 
-								bool mustproxy = !Toolkit::Instance()->H46023SameNetwork(AsDotString(request.m_replyAddress),
-												WantedEndPoint->IsNATed() ? WantedEndPoint->GetNATIP() :WantedEndPoint->GetIP());
+								PIPSocket::Address remoteIP;
+								GetIPFromTransportAddr(request.m_replyAddress,remoteIP);
+								bool mustproxy = !Toolkit::Instance()->H46023SameNetwork(remoteIP,
+									  WantedEndPoint->IsNATed() ? WantedEndPoint->GetNATIP() :WantedEndPoint->GetIP());
 
 								std24.Add(Std24_RemoteNAT,H460_FeatureContent(WantedEndPoint->SupportH46024()));
 								if (mustproxy) {
