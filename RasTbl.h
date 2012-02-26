@@ -794,7 +794,7 @@ public:
 	/** Return whether the endpoints are registered at the same gatekeeper so
 	    only 1 gatekeeper is involved in the call
 	  */
-	bool SingleGatekeeper();
+	bool SingleGatekeeper() const;
 
 	/** Return remote party device information
 	  */

@@ -237,6 +237,10 @@ public:
 	const H245Handler * GetH245Handler() const { return m_h245handler; }
 #endif
 
+#ifdef HAS_H46023
+    bool IsH46024Call(const H225_Setup_UUIE & setupBody);
+#endif
+
 protected:
 	CallSignalSocket * GetRemote() const { return (CallSignalSocket *)remote; }
 

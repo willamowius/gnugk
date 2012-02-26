@@ -2231,6 +2231,22 @@ PString CallSignalSocket::GetDialedNumber(
 	return dialedNumber;
 }
 
+#ifdef HAS_H46023
+bool CallSignalSocket::IsH46024Call(const H225_Setup_UUIE & setupBody)
+{
+	if (Toolkit::Instance()->IsH46023Enabled()
+		&& setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
+		const H225_ArrayOf_FeatureDescriptor & data = setupBody.m_supportedFeatures;
+		for (PINDEX i =0; i < data.GetSize(); i++) {
+          H460_Feature & feat = (H460_Feature &)data[i];
+		  if (feat.GetFeatureID() == H460_FeatureID(24)) 
+              return true;
+        }
+    }
+    return false;
+}
+#endif
+
 void CallSignalSocket::OnSetup(SignalingMsg *msg)
 {
 	SetupMsg* setup = dynamic_cast<SetupMsg*>(msg);
@@ -2946,14 +2962,22 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 #endif
 
 		// make sure we have an EPRec for traversal calls from neighbor
-		if (!call->GetCallingParty()
-			&& (callFromTraversalClient || callFromTraversalServer)) {
+        if (!call->GetCallingParty()) {
+		  if (callFromTraversalClient || callFromTraversalServer) {
 			endptr callingEP = RegistrationTable::Instance()->InsertRec(setupBody, SocketToH225TransportAddr(_peerAddr, _peerPort));
 			if (callFromTraversalClient)
 				callingEP->SetTraversalRole(TraversalClient);
 			if (callFromTraversalServer)
 				callingEP->SetTraversalRole(TraversalServer);
 			call->SetCalling(callingEP);
+          } 
+#ifdef HAS_H46023
+          else if (IsH46024Call(setupBody)) {
+             callFromTraversalClient = true;
+			 endptr callingEP = RegistrationTable::Instance()->InsertRec(setupBody, SocketToH225TransportAddr(_peerAddr, _peerPort));
+             call->SetCalling(callingEP);
+          }
+#endif
 		}
 
 		if (!callFromTraversalClient && !callFromTraversalServer) {

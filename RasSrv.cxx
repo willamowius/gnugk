@@ -3116,7 +3116,8 @@ bool AdmissionRequestPDU::Process()
 			(natoffloadsupport == CallRec::e_natLocalMaster || 
 				natoffloadsupport == CallRec::e_natRemoteMaster ||
 				natoffloadsupport == CallRec::e_natNoassist ||
-			(!pCallRec->SingleGatekeeper() && natoffloadsupport == CallRec::e_natRemoteProxy))) {
+			(!pCallRec->SingleGatekeeper() && (natoffloadsupport == CallRec::e_natRemoteProxy ||
+                                               natoffloadsupport == CallRec::e_natAnnexB)))) {
 					PTRACE(4,"RAS\tNAT Proxy disabled due to offload support"); 
 					pCallRec->SetProxyMode(CallRec::ProxyDisabled);
 		}
@@ -3124,7 +3125,8 @@ bool AdmissionRequestPDU::Process()
         if (!pCallRec->SingleGatekeeper() &&
             pCallRec->GetProxyMode() == CallRec::ProxyDisabled &&
             (natoffloadsupport == CallRec::e_natRemoteMaster ||
-		     natoffloadsupport == CallRec::e_natRemoteProxy)) {
+		     natoffloadsupport == CallRec::e_natRemoteProxy ||
+             natoffloadsupport == CallRec::e_natAnnexB)) {
                // Where the remote will handle the NAT Traversal
                // the local gatekeeper may not receive any signalling so
                // set the call as connected.
@@ -3563,7 +3565,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 									std24.Add(Std24_IsNAT,H460_FeatureContent(true));
 									std24.Add(Std24_NATdet,H460_FeatureContent(WantedEndPoint->GetEPNATType(),8));
 									std24.Add(Std24_ProxyNAT,H460_FeatureContent(WantedEndPoint->HasNATProxy()));
-									std24.Add(Std24_SourceAddr,H460_FeatureContent(WantedEndPoint->GetNATIP().AsString()));
+									std24.Add(Std24_SourceAddr,H460_FeatureContent(H323TransportAddress(WantedEndPoint->GetNATIP(),0)));
 									std24.Add(Std24_AnnexA,H460_FeatureContent(WantedEndPoint->SupportH46024A()));
 									std24.Add(Std24_AnnexB,H460_FeatureContent(WantedEndPoint->SupportH46024B()));
 								}
