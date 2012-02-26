@@ -2313,7 +2313,11 @@ bool RegistrationRequestPDU::Process()
 		//
 		BuildRCF(ep);
 		H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
-		if (supportcallingNAT && !ep->IsTraversalClient() && !usesH46017) {
+		if (supportcallingNAT
+#ifdef HAS_H46017
+			&& !usesH46017
+#endif
+			&& !ep->IsTraversalClient()) {
 			// tell the endpoint its translated address
 			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_nonStandardData);
 		    rcf.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);

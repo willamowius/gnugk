@@ -888,6 +888,7 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 			RasSrv->SetAlternateGK(urq, ip);
 		}
 	}
+#ifdef HAS_H46017
 	if (UsesH46017()) {
 		CallSignalSocket * s = GetSocket();
 		if (s) {
@@ -895,6 +896,7 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 			s->Close();
 		}
 	} else
+#endif
 		RasSrv->SendRas(ras_msg, GetRasAddress());
 	return true;
 }
@@ -921,11 +923,13 @@ bool EndpointRec::SendIRQ()
 			(const unsigned char *) AsDotString(GetRasAddress()),
 			(const unsigned char *) GetEndpointIdentifier().GetValue());
         GkStatus::Instance()->SignalStatus(msg, STATUS_TRACE_LEVEL_RAS);
+#ifdef HAS_H46017
 	if (UsesH46017()) {
 		CallSignalSocket * s = GetSocket();
 		if (s)
 			s->SendH46017Message(ras_msg);
 	} else
+#endif
 		RasSrv->SendRas(ras_msg, GetRasAddress());
 
 	return true;
@@ -3024,21 +3028,25 @@ void CallRec::SendDRQ()
 	// for an out of zone endpoint, the endpoint identifier is not correct
 	if (m_Called) {
 		drq.m_endpointIdentifier = m_Called->GetEndpointIdentifier();
+#ifdef HAS_H46017
 		if (m_Called->UsesH46017()) {
 			CallSignalSocket * s = m_Called->GetSocket();
 			if (s)
 				s->SendH46017Message(drq_ras);
 		} else
+#endif
 			RasSrv->SendRas(drq_ras, m_Called->GetRasAddress());
 	}
 	if (m_Calling) {
 		drq.m_endpointIdentifier = m_Calling->GetEndpointIdentifier();
 		drq.m_callReferenceValue = m_crv;
+#ifdef HAS_H46017
 		if (m_Calling->UsesH46017()) {
 			CallSignalSocket * s = m_Calling->GetSocket();
 			if (s)
 				s->SendH46017Message(drq_ras);
 		} else
+#endif
 			RasSrv->SendRas(drq_ras, m_Calling->GetRasAddress());
 	}
 }

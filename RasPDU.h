@@ -40,7 +40,11 @@ const unsigned MaxRasTag = H225_RasMessage::e_serviceControlResponse;
 
 class GatekeeperMessage {
 public:
-	GatekeeperMessage() : m_socket(NULL), m_h46017Socket(NULL) { }
+	GatekeeperMessage() : m_socket(NULL)
+#ifdef HAS_H46017
+		, m_h46017Socket(NULL)
+#endif
+		{ }
 	unsigned GetTag() const { return m_recvRAS.GetTag(); }
 	const char *GetTagName() const;
 	bool Read(RasListener *);
