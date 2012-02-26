@@ -628,6 +628,11 @@ int YaUDPSocket::os_send(const void * buf, int sz)
 #else // LARGE_FDSET
 
 #ifdef hasIPV6
+
+#ifndef IPV6_V6ONLY
+  #define IPV6_V6ONLY 27
+#endif
+
 bool TCPSocket::DualStackListen(WORD newPort)
 {
 	if (!Toolkit::Instance()->IsIPv6Enabled())
