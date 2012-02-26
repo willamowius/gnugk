@@ -315,9 +315,9 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 					   SetNATProxy(supProxy);
 				   }
 				   if (std24.Contains(Std24_SourceAddr)) {               /// ApparentSourceAddress
-                       H323TransportAddress ta = std24.Value(Std24_SourceAddr);
-                       PIPSocket::Address addr; 
-                       ta.GetIpAddress(addr);
+					   H323TransportAddress ta = std24.Value(Std24_SourceAddr);
+					   PIPSocket::Address addr; 
+					   ta.GetIpAddress(addr);
 					   SetNATAddress(addr);
 				   }
 				   if (std24.Contains(Std24_MustProxy)) {				/// Whether this EP must proxy through GK
@@ -1508,33 +1508,33 @@ endptr RegistrationTable::InternalInsertOZEP(const H225_Setup_UUIE & setupBody, 
 		&& setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 		const H225_ArrayOf_FeatureDescriptor & data = setupBody.m_supportedFeatures;
 		for (PINDEX i =0; i < data.GetSize(); i++) {
-          H460_Feature & feat = (H460_Feature &)data[i];
+		H460_Feature & feat = (H460_Feature &)data[i];
 
-          if (feat.GetFeatureID() == H460_FeatureID(19)) {
-              ep->SetNAT(true);
-              PIPSocket::Address ip;  WORD port;
-              GetIPAndPortFromTransportAddr(addr, ip, port);
-              ep->SetNATAddress(ip, port);
-              ep->SetTraversalRole(TraversalClient);
-          }
+		 if (feat.GetFeatureID() == H460_FeatureID(19)) {
+			ep->SetNAT(true);
+			PIPSocket::Address ip;  WORD port;
+			GetIPAndPortFromTransportAddr(addr, ip, port);
+			ep->SetNATAddress(ip, port);
+			ep->SetTraversalRole(TraversalClient);
+		 }
 
-          if (feat.GetFeatureID() == H460_FeatureID(24)) {
-              ep->SetUsesH46023(true);
-	          ep->SetH46024(true);
-              unsigned natinst = feat.Value(Std24_NATInstruct);
-              switch (natinst) {
-                  case CallRec::e_natAnnexA:
-                      ep->SetH46024A(true);
-                      break;
-                  case CallRec::e_natAnnexB:
-	                  ep->SetH46024B(true);
-                      break;
-                  default:
-                      break;
-              }
-           }
-        }
-    }
+		 if (feat.GetFeatureID() == H460_FeatureID(24)) {
+			ep->SetUsesH46023(true);
+			ep->SetH46024(true);
+			unsigned natinst = feat.Value(Std24_NATInstruct);
+			switch (natinst) {
+				case CallRec::e_natAnnexA:
+					ep->SetH46024A(true);
+					break;
+				case CallRec::e_natAnnexB:
+					ep->SetH46024B(true);
+					break;
+				default:
+					break;
+			}
+		 }
+		}
+	}
 #endif
 
 	WriteLock lock(listLock);
@@ -2532,10 +2532,10 @@ int CallRec::GetNATType(
 		callingPartyNATIP = m_Calling->GetNATIP();
 	}
 	if (m_nattype & calledParty)
-        if (m_Called->IsRemote())
-          GetIPFromTransportAddr(m_Called->GetCallSignalAddress(), calledPartyNATIP);
-        else 
-          calledPartyNATIP = m_Called->GetNATIP();
+		if (m_Called->IsRemote())
+			GetIPFromTransportAddr(m_Called->GetCallSignalAddress(), calledPartyNATIP);
+	else 
+		calledPartyNATIP = m_Called->GetNATIP();
  
 	return m_nattype;
 }
@@ -3577,18 +3577,18 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	}
  
 	// Both parties are NAT and both and are either restricted or port restricted NAT
-    else if (goDirect && (m_Calling->UseH46024B() && m_Called->UseH46024B())) {
-          if (SingleGatekeeper() || !Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023SignalGKRouted", "0")))
+	else if (goDirect && (m_Calling->UseH46024B() && m_Called->UseH46024B())) {
+		if (SingleGatekeeper() || !Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023SignalGKRouted", "0")))
 				natinst = CallRec::e_natAnnexB;
-          else if (m_Called->HasNATProxy())
-                natinst = CallRec::e_natRemoteProxy;
-          else {
-                natinst = CallRec::e_natFailure;
-				m_natstrategy = natinst;
-				PTRACE(2, "H46024\tFAILURE: Signal Routed with no Remote Proxy!");
-				return false;
-          }
-    }
+		else if (m_Called->HasNATProxy())
+			natinst = CallRec::e_natRemoteProxy;
+		else {
+			natinst = CallRec::e_natFailure;
+			m_natstrategy = natinst;
+			PTRACE(2, "H46024\tFAILURE: Signal Routed with no Remote Proxy!");
+			return false;
+		}
+	}
  
 	else if (goDirect && 
 		(m_Calling->IsNATed() && m_Calling->GetEPNATType() > EndpointRec::NatCone) && 
@@ -3640,7 +3640,7 @@ bool CallRec::NATSignallingOffload(bool isAnswer) const
 	  && !Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023SignalGKRouted", "0"))
 	  && (m_natstrategy == e_natNoassist ||
 		 (!(m_Called && m_Called->IsNATed()) && (m_natstrategy == e_natRemoteMaster ||  m_natstrategy == e_natLocalMaster)) ||
-         (!SingleGatekeeper() && m_natstrategy == e_natAnnexB) ||
+		 (!SingleGatekeeper() && m_natstrategy == e_natAnnexB) ||
 		  m_natstrategy == e_natRemoteProxy));
 }
  
