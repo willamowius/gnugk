@@ -2526,16 +2526,19 @@ int CallRec::GetNATType(
 	) const
 {
 	if (m_nattype & callingParty) {
-	  if (m_unregNAT)
-		callingPartyNATIP = m_srcunregNATAddress;
-	  else
-		callingPartyNATIP = m_Calling->GetNATIP();
+		if (m_unregNAT) {
+			callingPartyNATIP = m_srcunregNATAddress;
+		} else {
+			callingPartyNATIP = m_Calling->GetNATIP();
+		}
 	}
-	if (m_nattype & calledParty)
-		if (m_Called->IsRemote())
+	if (m_nattype & calledParty) {
+		if (m_Called->IsRemote()) {
 			GetIPFromTransportAddr(m_Called->GetCallSignalAddress(), calledPartyNATIP);
-	else 
+		}
+	} else {
 		calledPartyNATIP = m_Called->GetNATIP();
+	}
  
 	return m_nattype;
 }
