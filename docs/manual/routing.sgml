@@ -626,7 +626,7 @@ create table gnugk.forwards (
     called varchar(30) not null,
     forwardtype smallint not null,
     destination varchar(30) not null default "",
-    PRIMARY KEY (e164, forwardtype)
+    PRIMARY KEY (called, forwardtype)
 );
 </verb></tscreen>
 
