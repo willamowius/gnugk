@@ -223,6 +223,49 @@ void RemoveH46019Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures, 
 }
 #endif
 
+#ifdef HAS_H46023
+bool HasH46024Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures)
+{
+	bool found = true;
+	bool senderSupportsH46019Multiplexing = false;
+	for(PINDEX i=0; i < supportedFeatures.GetSize(); i++) {
+		H225_GenericIdentifier & id = supportedFeatures[i].m_id;
+		if (id.GetTag() == H225_GenericIdentifier::e_standard) {
+			PASN_Integer & asnInt = id;
+			if (asnInt.GetValue() == 24)
+				found = true;
+		}
+	}
+	if (!found)
+		return false;
+
+	// if we are not interzone Multiplexing or don't support it remove the .19 Feature if it is there
+	for(PINDEX i=0; i < supportedFeatures.GetSize(); i++) {
+		H225_GenericIdentifier & id = supportedFeatures[i].m_id;
+		if (id.GetTag() == H225_GenericIdentifier::e_standard) {
+			PASN_Integer & asnInt = id;
+			if (asnInt.GetValue() == 19) {
+				for(PINDEX p=0; p < supportedFeatures[i].m_parameters.GetSize(); p++) {
+					if (supportedFeatures[i].m_parameters[p].m_id.GetTag()  == H225_GenericIdentifier::e_standard) {
+						PASN_Integer & pInt = supportedFeatures[i].m_parameters[p].m_id;
+						if (pInt == 1) 
+							senderSupportsH46019Multiplexing = true;
+					}
+				}
+				if (!senderSupportsH46019Multiplexing ||
+					!Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
+						for(PINDEX j=i+1; j < supportedFeatures.GetSize(); j++) {
+							supportedFeatures[j-1] = supportedFeatures[j];
+						}
+						supportedFeatures.SetSize(supportedFeatures.GetSize() - 1);
+				}
+			}
+		}
+	}
+	return found;
+}
+#endif
+
 struct PortRange {
 	PortRange() : port(0), minport(0), maxport(0) {}
 
@@ -3260,10 +3303,18 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	if (!(m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalClient()) )
 #endif
 	{
+
+#ifdef HAS_H46023
+		bool OZH46024 = (m_call->GetCalledParty() & m_call->GetCalledParty()->IsRemote() && 
+					setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures) &&
+					HasH46024Descriptor(setupBody.m_supportedFeatures));
+#else
+		bool OZH46024 = false;
+#endif
 		// no traversal client, send regular Setup
 #ifdef HAS_H46018
 		// remove H.460.19 indicator
-		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
+		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures) && !OZH46024) {
 			bool isH46019Client = false;
 			RemoveH46019Descriptor(setupBody.m_supportedFeatures, m_senderSupportsH46019Multiplexing, isH46019Client);
 		}
@@ -3332,6 +3383,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			feat_id = new H460_FeatureID(2);	// mediaTraversalServer
 			feat.AddParameter(feat_id);
 			delete feat_id;
+
 			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
 				feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
 				feat.AddParameter(feat_id);
@@ -3455,7 +3507,7 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE &setupBody)
 
 #ifdef HAS_H46023
 	} else {
-		if (Toolkit::Instance()->IsH46023Enabled() && m_call->GetCalledParty()) {
+		if (Toolkit::Instance()->IsH46023Enabled() && m_call->GetCalledParty() && !m_call->GetCalledParty()->IsRemote()) {
 			// Add NAT offload support to older non supporting Endpoints (>H323v4)
 			// This will allow NAT endpoints who support the NAT offload feature
 			// to avoid proxying twice (remote and local)
@@ -3601,8 +3653,16 @@ void CallSignalSocket::OnCallProceeding(
 		msg->SetUUIEChanged();
 	}
 
+
+#ifdef HAS_H46023
+		bool OZH46024 = (m_call->GetCalledParty() & m_call->GetCalledParty()->IsRemote() && 
+						cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_featureSet) &&
+						HasH46024Descriptor(cpBody.m_featureSet.m_supportedFeatures));
+#else
+		bool OZH46024 = false;
+#endif
 #ifdef HAS_H46018
-	if (Toolkit::Instance()->IsH46018Enabled()) {
+	if (Toolkit::Instance()->IsH46018Enabled() && !OZH46024) {
 		// remove H.460.19 descriptor from sender
 		if (cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_featureSet)) {
 			bool isH46019Client = false;
@@ -3760,8 +3820,15 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
     }
 #endif
 
+#ifdef HAS_H46023
+		bool OZH46024 = (m_call->GetCalledParty() & m_call->GetCalledParty()->IsRemote() && 
+						connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet) &&
+						HasH46024Descriptor(connectBody.m_featureSet.m_supportedFeatures));
+#else
+		bool OZH46024 = false;
+#endif
 #ifdef HAS_H46018
-	if (m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled()) {
+	if (m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled() && !OZH46024) {
 		// remove H.460.19 descriptor from sender
 		if (connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet)) {
 			bool isH46019Client = false;
@@ -3837,8 +3904,15 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 		msg->SetUUIEChanged();
 	}
 
+#ifdef HAS_H46023
+	bool OZH46024 = (m_call->GetCalledParty() & m_call->GetCalledParty()->IsRemote() && 
+					alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet) &&
+					HasH46024Descriptor(alertingBody.m_featureSet.m_supportedFeatures));
+#else
+	bool OZH46024 = false;
+#endif
 #ifdef HAS_H46018
-	if (m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled()) {
+	if (m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled() && !OZH46024) {
 		// remove H.460.19 descriptor from sender
 		if (alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet)) {
 			bool isH46019Client = false;
@@ -4769,7 +4843,14 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 		break;
 
 	case H225_FacilityReason::e_forwardedElements:
-		if (Toolkit::Instance()->IsH46018Enabled()) {
+#ifdef HAS_H46023
+		bool OZH46024 = (m_call->GetCalledParty() & m_call->GetCalledParty()->IsRemote() && 
+						facilityBody.HasOptionalField(H225_Facility_UUIE::e_featureSet) &&
+						HasH46024Descriptor(facilityBody.m_featureSet.m_supportedFeatures));
+#else
+		bool OZH46024 = false;
+#endif
+		if (Toolkit::Instance()->IsH46018Enabled() && OZH46024) {
 			// remove H.460.19 descriptor from sender
 			if (facilityBody.HasOptionalField(H225_Facility_UUIE::e_featureSet)) {
 				bool isH46019Client = false;
