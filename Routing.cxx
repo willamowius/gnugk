@@ -1493,6 +1493,36 @@ bool ENUMPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddr
 }
 
 
+DestinationRoutes::DestinationRoutes()
+{
+	m_endChain = false;
+	m_reject = false;
+	m_rejectReason = 0;
+	m_aliasesChanged = false;
+}
+
+void DestinationRoutes::AddRoute(const Route & route, bool endChain)
+{
+	if (endChain)
+		m_endChain = true;
+
+	// check if route already exists, only use highest prio route (== lowest value)
+	list<Route>::iterator it = m_routes.begin();
+	while (it != m_routes.end()) {
+		if (it->m_destAddr == route.m_destAddr) {
+			PTRACE(5, "ROUTING\tSkipping existing route route " << route.AsString());
+			// just update prio if we are lower
+			if (route.GetPriority() < it->GetPriority()) {
+				PTRACE(5, "ROUTING\tOnly update priority");
+				it->SetPriority(route.GetPriority());
+			}
+			return;
+		}
+		++it;
+	}
+	m_routes.push_back(route);
+}
+
 
 DynamicPolicy::DynamicPolicy()
 {

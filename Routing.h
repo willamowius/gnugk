@@ -79,6 +79,7 @@ public:
 	bool operator< (const Route & rhs) { return m_priority < rhs.m_priority; }
 
 	unsigned GetPriority() const { return m_priority; }
+	void SetPriority(unsigned p) { m_priority = p; }
 	PString AsString() const;
 	bool IsFailoverActive(unsigned cause) const;
 
@@ -390,7 +391,7 @@ protected:
 
 class DestinationRoutes {
 public:
-	DestinationRoutes() { m_endChain = false; m_reject = false; m_rejectReason = 0; m_aliasesChanged = false; }
+	DestinationRoutes();
 	~DestinationRoutes() { }
 	
 	bool EndPolicyChain() const { return m_endChain; }
@@ -401,8 +402,8 @@ public:
 	bool ChangeAliases() const { return m_aliasesChanged; }
 	H225_ArrayOf_AliasAddress GetNewAliases() const { return m_newAliases; }
 	void SetNewAliases(const H225_ArrayOf_AliasAddress & aliases) { m_newAliases = aliases; m_aliasesChanged = true; }
-	
-	void AddRoute(const Route & route, bool endChain = true) { m_routes.push_back(route); m_endChain = endChain; }
+
+	void AddRoute(const Route & route, bool endChain = true);
 
 	std::list<Route> m_routes;
 
