@@ -2524,24 +2524,26 @@ bool CallRec::GetDestSignalAddr(
 
 int CallRec::GetNATType(
 	/// filled with NAT IP of the calling party (if nat type is callingParty)
-	PIPSocket::Address& callingPartyNATIP, 
+	PIPSocket::Address & callingPartyNATIP, 
 	/// filled with NAT IP of the called party (if nat type is calledParty)
-	PIPSocket::Address& calledPartyNATIP
+	PIPSocket::Address & calledPartyNATIP
 	) const
 {
 	if (m_nattype & callingParty) {
 		if (m_unregNAT) {
 			callingPartyNATIP = m_srcunregNATAddress;
 		} else {
-			callingPartyNATIP = m_Calling->GetNATIP();
+			if (m_Calling)
+				callingPartyNATIP = m_Calling->GetNATIP();
 		}
 	}
 	if (m_nattype & calledParty) {
-		if (m_Called->IsRemote()) {
+		if (m_Called && m_Called->IsRemote()) {
 			GetIPFromTransportAddr(m_Called->GetCallSignalAddress(), calledPartyNATIP);
 		}
 	} else {
-		calledPartyNATIP = m_Called->GetNATIP();
+		if (m_Called)
+			calledPartyNATIP = m_Called->GetNATIP();
 	}
  
 	return m_nattype;

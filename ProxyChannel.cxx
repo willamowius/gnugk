@@ -2448,8 +2448,9 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 						}
 					}
 				}
-				if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveSorensonSourceInfo", "0")))
+				if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveSorensonSourceInfo", "0"))) {
 					setupBody.m_sourceInfo.m_terminal.RemoveOptionalField(H225_TerminalInfo::e_nonStandardData);
+				}
 			}
 		}
 	}
@@ -3305,7 +3306,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	{
 
 #ifdef HAS_H46023
-		bool OZH46024 = (m_call->GetCalledParty() & m_call->GetCalledParty()->IsRemote() && 
+		bool OZH46024 = (m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
 					setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures) &&
 					HasH46024Descriptor(setupBody.m_supportedFeatures));
 #else
@@ -3450,7 +3451,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 }
 
 // used for regular calls
-bool CallSignalSocket::CreateRemote(H225_Setup_UUIE &setupBody)
+bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 {
 	if (!m_call->GetDestSignalAddr(peerAddr, peerPort)) {
 		PTRACE(3, Type() << "\tINVALID DESTINATION ADDRESS for call from " << Name());
@@ -3655,7 +3656,7 @@ void CallSignalSocket::OnCallProceeding(
 
 
 #ifdef HAS_H46023
-		bool OZH46024 = (m_call->GetCalledParty() & m_call->GetCalledParty()->IsRemote() && 
+		bool OZH46024 = (m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
 						cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_featureSet) &&
 						HasH46024Descriptor(cpBody.m_featureSet.m_supportedFeatures));
 #else
@@ -3821,7 +3822,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 #endif
 
 #ifdef HAS_H46023
-		bool OZH46024 = (m_call->GetCalledParty() & m_call->GetCalledParty()->IsRemote() && 
+		bool OZH46024 = (m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
 						connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet) &&
 						HasH46024Descriptor(connectBody.m_featureSet.m_supportedFeatures));
 #else
@@ -3905,7 +3906,7 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 	}
 
 #ifdef HAS_H46023
-	bool OZH46024 = (m_call->GetCalledParty() & m_call->GetCalledParty()->IsRemote() && 
+	bool OZH46024 = (m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
 					alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet) &&
 					HasH46024Descriptor(alertingBody.m_featureSet.m_supportedFeatures));
 #else
@@ -4844,7 +4845,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 
 	case H225_FacilityReason::e_forwardedElements:
 #ifdef HAS_H46023
-		bool OZH46024 = (m_call->GetCalledParty() & m_call->GetCalledParty()->IsRemote() && 
+		bool OZH46024 = (m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
 						facilityBody.HasOptionalField(H225_Facility_UUIE::e_featureSet) &&
 						HasH46024Descriptor(facilityBody.m_featureSet.m_supportedFeatures));
 #else
