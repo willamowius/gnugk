@@ -2543,6 +2543,7 @@ int CallRec::GetNATType(
 		} else {
 			if (m_Called)
 				calledPartyNATIP = m_Called->GetNATIP();
+		}
 	}
  
 	return m_nattype;
