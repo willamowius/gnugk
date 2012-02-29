@@ -2540,10 +2540,9 @@ int CallRec::GetNATType(
 	if (m_nattype & calledParty) {
 		if (m_Called && m_Called->IsRemote()) {
 			GetIPFromTransportAddr(m_Called->GetCallSignalAddress(), calledPartyNATIP);
-		}
-	} else {
-		if (m_Called)
-			calledPartyNATIP = m_Called->GetNATIP();
+		} else {
+			if (m_Called)
+				calledPartyNATIP = m_Called->GetNATIP();
 	}
  
 	return m_nattype;
