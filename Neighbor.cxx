@@ -1733,10 +1733,22 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 					int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
 
 					// Send LRQ to retreive callers signaling address
-					LRQSender<AdmissionRequest> functor((AdmissionRequest &)request);
-					LRQRequester Request(functor);
-					if (Request.Send(nb)) {
-						if (H225_LocationConfirm *lcf = Request.WaitForDestination(m_neighborTimeout)) {
+					// Caution: we my only use the functor object of the right type and never touch the others!
+					LRQSender<AdmissionRequest> ArqFunctor((AdmissionRequest &)request);
+					LRQSender<SetupRequest> SetupFunctor((SetupRequest &)request);
+					LRQSender<FacilityRequest> FacilityFunctor((FacilityRequest &)request);
+					LRQRequester * pRequest = NULL;
+					if (dynamic_cast<AdmissionRequest *>(&request)) {
+						pRequest = new LRQRequester(ArqFunctor);
+					} else if (dynamic_cast<SetupRequest *>(&request)) {
+						pRequest = new LRQRequester(SetupFunctor);
+					} else if (dynamic_cast<FacilityRequest *>(&request)) {
+						pRequest = new LRQRequester(FacilityFunctor);
+					} else {
+						return NULL;	// should never happen
+					}
+					if (pRequest && pRequest->Send(nb)) {
+						if (H225_LocationConfirm *lcf = pRequest->WaitForDestination(m_neighborTimeout)) {
 							Route * route = new Route(m_name, lcf->m_callSignalAddress);
 #ifdef HAS_H460
 							if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
@@ -1747,10 +1759,12 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 								route->m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);
 							}
 #endif
+							delete pRequest;
 							delete nb;
 							return route;
 						}
 					}
+					delete pRequest;
 					delete nb;
 					PTRACE(4, "ROUTING\tDNS SRV LRQ Error for " << domain << " at " << ipaddr);
 					// we found the directory for this domain, but it didn't have a destination, so we fail the call
@@ -2002,16 +2016,29 @@ bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 				GnuGK * nb = new GnuGK();
 				if (!nb->SetProfile(domain,addr)) {
 					PTRACE(4, "ROUTING\tERROR setting RDS neighbor profile " << domain << " at " << addr);
+					delete nb;
 					return false;
 				}
 
 				int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
 
-				// Send LRQ to retreive callers signaling address 
-				LRQSender<AdmissionRequest> functor((AdmissionRequest &)request);
-				LRQRequester Request(functor);
-				if (Request.Send(nb)) {
-					if (H225_LocationConfirm *lcf = Request.WaitForDestination(m_neighborTimeout)) {
+				// Send LRQ to retreive callers signaling address
+				// Caution: we my only use the functor object of the right type and never touch the others!
+				LRQSender<AdmissionRequest> ArqFunctor((AdmissionRequest &)request);
+				LRQSender<SetupRequest> SetupFunctor((SetupRequest &)request);
+				LRQSender<FacilityRequest> FacilityFunctor((FacilityRequest &)request);
+				LRQRequester * pRequest = NULL;
+				if (dynamic_cast<AdmissionRequest *>(&request)) {
+					pRequest = new LRQRequester(ArqFunctor);
+				} else if (dynamic_cast<SetupRequest *>(&request)) {
+					pRequest = new LRQRequester(SetupFunctor);
+				} else if (dynamic_cast<FacilityRequest *>(&request)) {
+					pRequest = new LRQRequester(FacilityFunctor);
+				} else {
+					return NULL;	// should never happen
+				}
+				if (pRequest && pRequest->Send(nb)) {
+					if (H225_LocationConfirm *lcf = pRequest->WaitForDestination(m_neighborTimeout)) {
 						Route route(m_name, lcf->m_callSignalAddress);
 #ifdef HAS_H460
 						if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
@@ -2024,10 +2051,14 @@ bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 #endif
 						request.AddRoute(route);
 						request.SetFlag(RoutingRequest::e_aliasesChanged);
+						delete pRequest;
+						delete nb;
 						return true;
 					}
 				}
 				PTRACE(4, "ROUTING\tDNS RDS LRQ Error for " << domain << " at " << ipaddr);
+				delete pRequest;
+				delete nb;
 			}
 		}
 	}

@@ -1,5 +1,6 @@
 Changes from 3.0 to 3.1
 =======================
+- BUGFIX(Neighbor.cxx) fix crash in SRV and RDS lookups for unregistered calls, fix memleak in RDS
 - new switch RemoveSorensonSourceInfo=1
 - new routing policy 'forwarding' configured in [Routing::Forwarding]
 - [AlternateGatekeepers::SQL] switch to query DB for alternate gatekeepers
