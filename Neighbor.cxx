@@ -3,7 +3,7 @@
 // Neighboring System for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2011, Jan Willamowius
+// Copyright (c) 2004-2012, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -72,7 +72,7 @@ void SetCryptoGkTokens(H225_ArrayOf_CryptoH323Token & cryptoTokens, const PStrin
 	cryptoGKPwdHash.m_timeStamp = cryptoEPPwdHash.m_timeStamp;
 	cryptoGKPwdHash.m_token.m_algorithmOID = OID_MD5;
 	cryptoGKPwdHash.m_token.m_hash = cryptoEPPwdHash.m_token.m_hash;
-	
+
 	cryptoTokens.Append(finalCryptoToken);
 }
 
@@ -147,6 +147,7 @@ private:
 template<class R>
 PrefixInfo LRQSender<R>::operator()(Neighbor *nb, WORD seqnum) const
 {
+	// select neighbor based on dialed alias
 	if (const H225_ArrayOf_AliasAddress *dest = m_r.GetAliases()) {
 		H225_ArrayOf_AliasAddress aliases;
 		if (PrefixInfo info = nb->GetPrefixInfo(*dest, aliases)) {
@@ -154,6 +155,16 @@ PrefixInfo LRQSender<R>::operator()(Neighbor *nb, WORD seqnum) const
 			H225_LocationRequest & lrq = nb->BuildLRQ(lrq_ras, seqnum, aliases);
 			if (nb->OnSendingLRQ(lrq, m_r) && nb->SendLRQ(lrq_ras))
 				return info;
+		}
+	}
+	// select neighbor based on dialed IP
+	if (const H225_TransportAddress *dest = m_r.GetDestIP()) {
+		H225_ArrayOf_AliasAddress aliases;
+		if (PrefixInfo info = nb->GetIPInfo(*dest, aliases)) {
+			H225_RasMessage lrq_ras;
+			H225_LocationRequest & lrq = nb->BuildLRQ(lrq_ras, seqnum, aliases);
+			if (nb->OnSendingLRQ(lrq, m_r) && nb->SendLRQ(lrq_ras))
+				return PrefixInfo(100, 1);
 		}
 	}
 	return nomatch;
@@ -301,15 +312,16 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 	if (!m_dynamic && !GetTransportAddress(m_name, GK_DEF_UNICAST_RAS_PORT, m_ip, m_port))
 		return false;
 
-	PINDEX i;
 	m_sendPrefixes.clear();
 	PString sprefix(config->GetString(section, "SendPrefixes", ""));
 	PStringArray sprefixes(sprefix.Tokenise(",", false));
-	for (i = 0; i < sprefixes.GetSize(); ++i) {
+	for (PINDEX i = 0; i < sprefixes.GetSize(); ++i) {
 		PStringArray p(sprefixes[i].Tokenise(":=", false));
 		m_sendPrefixes[p[0]] = (p.GetSize() > 1) ? p[1].AsInteger() : 1;
 	}
- 
+
+	m_sendIPs = config->GetString(section, "SendIPs", "");
+
 	PString salias(config->GetString(section, "SendAliases", ""));
 	PStringArray defs(salias.Tokenise(",", FALSE));
 	m_sendAliases.SetSize(0);
@@ -341,7 +353,7 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 			m_sendAliases.AppendString(defs[i]);
 		}
 	}
- 
+
 	PString aprefix(config->GetString(section, "AcceptPrefixes", "*"));
 	m_acceptPrefixes = PStringArray(aprefix.Tokenise(",", false));
 	if (m_keepAliveTimer != GkTimerManager::INVALID_HANDLE)
@@ -413,19 +425,18 @@ void Neighbor::SetH46018GkKeepAliveInterval(int interval)
 // initialize neighbor object created by SRV policy
 bool Neighbor::SetProfile(const PString & name, const H323TransportAddress & addr)
 {
-  addr.GetIpAndPort(m_ip,m_port);
-  m_id = "SRVrec";
-  m_name = name;
-  m_dynamic = false;
-  m_externalGK = true;
+	addr.GetIpAndPort(m_ip,m_port);
+	m_id = "SRVrec";
+	m_name = name;
+	m_dynamic = false;
+	m_externalGK = true;
 
-  m_sendPrefixes.clear();
-  m_sendPrefixes["*"] = 1;
- 
-  SetForwardedInfo(LRQFeaturesSection);
+	m_sendPrefixes.clear();
+	m_sendPrefixes["*"] = 1;
 
-  return true;
+	SetForwardedInfo(LRQFeaturesSection);
 
+	return true;
 }
 
 PrefixInfo Neighbor::GetPrefixInfo(const H225_ArrayOf_AliasAddress & aliases, H225_ArrayOf_AliasAddress & dest)
@@ -469,6 +480,21 @@ PrefixInfo Neighbor::GetPrefixInfo(const H225_ArrayOf_AliasAddress & aliases, H2
 		return nomatch;
 	dest = aliases;
 	return PrefixInfo(0, (short)iter->second);
+}
+
+PrefixInfo Neighbor::GetIPInfo(const H225_TransportAddress & ip, H225_ArrayOf_AliasAddress & dest) const
+{
+	NetworkAddress network = NetworkAddress(m_sendIPs);
+	PIPSocket::Address addr;
+	bool validNetwork = GetIPFromTransportAddr(ip, addr);
+	if ((m_sendIPs == "*") || (validNetwork && (NetworkAddress(addr) << network)))
+	{
+		dest.SetSize(1);
+		H323SetAliasAddress(AsDotString(ip), dest[0], H225_AliasAddress::e_transportID);
+		return PrefixInfo(100, 1);
+	}
+
+	return nomatch;	// don't send to this neighbor
 }
 
 bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq)
@@ -530,7 +556,7 @@ bool Neighbor::CheckReply(RasMsg *ras) const
 		if (oid.GetDataLength() == 0)
 			iec = Toolkit::iecNeighborId;
 	}
-	
+
 	return iec == Toolkit::iecNeighborId
 		? strncmp(m_id, param->m_data.AsString(), m_id.GetLength()) == 0
 		: false;
@@ -591,7 +617,7 @@ bool Neighbor::Authenticate(RasMsg *ras) const
 		return false;	// no token found that allows access
 	}
 }
- 
+
 bool Neighbor::IsAcceptable(RasMsg *ras) const
 {
 	if (ras->IsFrom(GetIP(), 0 /*m_port*/)) {
@@ -740,7 +766,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & reques
 		lrq.IncludeOptionalField(H225_LocationRequest::e_sourceInfo);
 		lrq.m_sourceInfo = setup.m_sourceAddress;
 	}
-	
+
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 	lrq.m_canMapAlias = TRUE;
 
@@ -764,7 +790,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & /*r
 	t35.m_manufacturerCode = Toolkit::t35mGnuGk;
 	t35.m_t35Extension = Toolkit::t35eNeighborId;
 	lrq.m_nonStandardData.m_data.SetValue(m_id);
-	
+
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 	lrq.m_canMapAlias = TRUE;
 
@@ -789,7 +815,7 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const AdmissionRequest &re
 {
 	const H225_AdmissionRequest &arq = req.GetRequest();
 	Cisco_LRQnonStandardInfo nonStandardData;
-	
+
 	nonStandardData.m_ttl = m_forwardHopCount >= 1 ? m_forwardHopCount : 5;
 
 	nonStandardData.IncludeOptionalField(Cisco_LRQnonStandardInfo::e_gatewaySrcInfo);
@@ -801,7 +827,7 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const AdmissionRequest &re
 		nonStandardData.IncludeOptionalField(Cisco_LRQnonStandardInfo::e_callIdentifier);
 		nonStandardData.m_callIdentifier = arq.m_callIdentifier;
 	}
-		
+
 	// Cisco GK needs these
 	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
 	lrq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
@@ -809,12 +835,12 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const AdmissionRequest &re
 	h221.m_manufacturerCode = Toolkit::t35mCisco;
 	h221.m_t35CountryCode = Toolkit::t35cUSA;
 	h221.m_t35Extension = 0;
-	
+
 	PPER_Stream buff;
 	nonStandardData.Encode(buff);
 	buff.CompleteEncoding();
 	lrq.m_nonStandardData.m_data = buff;
-	
+
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 	lrq.m_canMapAlias = TRUE;
 	return true;
@@ -828,10 +854,10 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const LocationRequest & /*
 		const H225_H221NonStandard &h221 = lrq.m_nonStandardData.m_nonStandardIdentifier;
 		if (h221.m_manufacturerCode == Toolkit::t35mCisco && h221.m_t35CountryCode == Toolkit::t35cUSA)
 			return true;
-			
+
 		lrq.RemoveOptionalField(H225_LocationRequest::e_nonStandardData);
 	}
-	
+
 	Cisco_LRQnonStandardInfo nonStandardData;
 	nonStandardData.m_ttl = m_forwardHopCount >= 1 ? m_forwardHopCount : 5;
 
@@ -841,19 +867,19 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const LocationRequest & /*
 		for (PINDEX i = 0; i < lrq.m_sourceInfo.GetSize(); i++)
 			nonStandardData.m_gatewaySrcInfo[i] = lrq.m_sourceInfo[i];
 	}
-	
+
 	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
 	lrq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
 	H225_H221NonStandard & h221 = lrq.m_nonStandardData.m_nonStandardIdentifier;
 	h221.m_manufacturerCode = Toolkit::t35mCisco;
 	h221.m_t35CountryCode = Toolkit::t35cUSA;
 	h221.m_t35Extension = 0;
-	
+
 	PPER_Stream buff;
 	nonStandardData.Encode(buff);
 	buff.CompleteEncoding();
 	lrq.m_nonStandardData.m_data = buff;
-	
+
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 	lrq.m_canMapAlias = TRUE;
 	return true;
@@ -865,7 +891,7 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const SetupRequest &req)
 	const Q931 &setup = req.GetWrapper()->GetQ931();
 	const H225_Setup_UUIE &setupBody = req.GetRequest();
 	Cisco_LRQnonStandardInfo nonStandardData;
-	
+
 	nonStandardData.m_ttl = m_forwardHopCount >= 1 ? m_forwardHopCount : 5;
 
 	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
@@ -878,7 +904,7 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const SetupRequest &req)
 		nonStandardData.IncludeOptionalField(Cisco_LRQnonStandardInfo::e_callIdentifier);
 		nonStandardData.m_callIdentifier = setupBody.m_callIdentifier;
 	}
-	
+
 	if (setup.HasIE(Q931::CallingPartyNumberIE)) {
 		PBYTEArray data = setup.GetIE(Q931::CallingPartyNumberIE);
 		if ((data[0] & 0x80) == 0x80 && data.GetSize() >= 2) {
@@ -886,7 +912,7 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const SetupRequest &req)
 			nonStandardData.m_callingOctet3a = data[1];
 		}
 	}
-		
+
 	// Cisco GK needs these
 	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
 	lrq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
@@ -894,12 +920,12 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const SetupRequest &req)
 	h221.m_manufacturerCode = Toolkit::t35mCisco;
 	h221.m_t35CountryCode = Toolkit::t35cUSA;
 	h221.m_t35Extension = 0;
-	
+
 	PPER_Stream buff;
 	nonStandardData.Encode(buff);
 	buff.CompleteEncoding();
 	lrq.m_nonStandardData.m_data = buff;
-	
+
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 	lrq.m_canMapAlias = TRUE;
 	return true;
@@ -909,7 +935,7 @@ bool CiscoGK::CheckReply(RasMsg *msg) const
 {
 	if (msg->IsFrom(GetIP(), 0))
 		return true;
-		
+
 	if (msg->GetTag() != H225_RasMessage::e_locationConfirm
 			&& msg->GetTag() != H225_RasMessage::e_locationReject)
 		return false;
@@ -917,21 +943,21 @@ bool CiscoGK::CheckReply(RasMsg *msg) const
 	H225_NonStandardParameter *nonStandardData = msg->GetNonStandardParam();
 	if (nonStandardData == NULL)
 		return false;
-	
+
 	if (nonStandardData->m_nonStandardIdentifier.GetTag() != H225_NonStandardIdentifier::e_h221NonStandard)
 		return false;
-	
+
 	H225_H221NonStandard &h221 = nonStandardData->m_nonStandardIdentifier;
 	if (h221.m_manufacturerCode != Toolkit::t35mCisco || h221.m_t35CountryCode != Toolkit::t35cUSA)
 		return false;
-	
+
 	PPER_Stream strm(nonStandardData->m_data);
 	Cisco_LRQnonStandardInfo ciscoNonStandardData;
 	if (ciscoNonStandardData.Decode(strm)) {
 		// here should go additional checks to match callIdentifier, for example
 	} else
 		PTRACE(5, "NB\tFailed to decode Cisco nonStandardInfo field");
-		
+
 	return true;
 }
 
@@ -1032,9 +1058,11 @@ bool LRQRequester::Send(NeighborList::List & neighbors, Neighbor *requester)
 	NeighborList::List::iterator iter = neighbors.begin();
 	while (iter != neighbors.end()) {
 		Neighbor *nb = *iter++;
-		if (nb != requester)
-			if (PrefixInfo info = m_sendto(nb, m_seqNum))
+		if (nb != requester) {
+			if (PrefixInfo info = m_sendto(nb, m_seqNum)) {
 				m_requests.insert(make_pair(info, nb));
+			}
+		}
 	}
 	if (m_requests.empty())
 		return false;
@@ -1216,8 +1244,7 @@ void NeighborList::OnReload()
 		if (PCaselessString(type) == "GlonetGK")
 			type = "GlonetGK";
 		iter = find_if(m_neighbors.begin(), m_neighbors.end(),
-				compose1(bind2nd(equal_to<PString>(), nbid), mem_fun(&Neighbor::GetId))
-			      );
+				compose1(bind2nd(equal_to<PString>(), nbid), mem_fun(&Neighbor::GetId)));
 		bool newnb = (iter == m_neighbors.end());
 		Neighbor *nb = newnb ? Factory<Neighbor>::Create(type) : *iter;
 		if (nb->SetProfile(nbid, type)) {
@@ -1282,7 +1309,7 @@ PString NeighborList::GetNeighborIdBySigAdr(const PIPSocket::Address & sigAd)
 	}
 	return (*findNeighbor)->GetId();
 }
- 
+
 PString NeighborList::GetNeighborGkIdBySigAdr(const PIPSocket::Address & sigAd)
 {
 	// Attempt to find the neigbor in the list
@@ -1447,11 +1474,22 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 #endif
 			route.m_routeId = request.GetNeighborUsed();
 			route.m_flags |= Route::e_toNeighbor;
+			// check if we have to update the dialed alias (canMapAlias)
 			if ((lcf->HasOptionalField(H225_LocationConfirm::e_destinationInfo))
 				&& (lcf->m_destinationInfo.GetSize() > 0)) 
 			{
+				// new alias from neighbor
 				arq_obj.SetAliases(lcf->m_destinationInfo);
 				arq_obj.SetFlag(Routing::AdmissionRequest::e_aliasesChanged);
+			} else {
+				if (arq_obj.GetAliases() == NULL && arq_obj.GetDestIP() != NULL) {
+					// call dialed by IP
+					H225_ArrayOf_AliasAddress newAliases;
+					newAliases.SetSize(1);
+					H323SetAliasAddress(AsDotString(*arq_obj.GetDestIP()), newAliases[0], H225_AliasAddress::e_transportID);
+					arq_obj.SetAliases(newAliases);
+					arq_obj.SetFlag(Routing::AdmissionRequest::e_aliasesChanged);			
+				}
 			}
 			arq_obj.AddRoute(route);
 			RasMsg *ras = arq_obj.GetWrapper();
@@ -1486,7 +1524,6 @@ bool NeighborPolicy::OnRequest(LocationRequest & lrq_obj)
 	}
 	if (!hopCount)
 		return false;
-
 
 	if (requester && !requester->ForwardResponse()) {
 		LRQForwarder functor(lrq_obj);
@@ -1654,8 +1691,7 @@ protected:
 	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
 
 	virtual Route * CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly);
-	virtual Route * LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases);
-	virtual Route * LSLocalLookup(H225_ArrayOf_AliasAddress & aliases);
+	virtual Route * LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases, bool localonly);
 
 	bool m_resolveNonLocalLRQs;
 };
@@ -1666,7 +1702,7 @@ SRVPolicy::SRVPolicy()
 	m_resolveNonLocalLRQs = Toolkit::AsBool(GkConfig()->GetString("Routing::SRV", "ResolveNonLocalLRQ", "0"));
 }
 
-Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
+Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases, bool localonly)
 {
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
 		// only apply to urlID and h323ID
@@ -1721,10 +1757,10 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 					} else {
 						return NULL;
 					}
-				} else {
+				} else if (!localonly) {
 					// Create a SRV gatekeeper object
 					GnuGK * nb = new GnuGK();
-					if (!nb->SetProfile(domain,addr)) {
+					if (!nb->SetProfile(domain, addr)) {
 						PTRACE(4, "ROUTING\tERROR setting SRV neighbor profile " << domain << " at " << addr);
 						delete nb;
 						return NULL;
@@ -1737,6 +1773,7 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 					LRQSender<AdmissionRequest> ArqFunctor((AdmissionRequest &)request);
 					LRQSender<SetupRequest> SetupFunctor((SetupRequest &)request);
 					LRQSender<FacilityRequest> FacilityFunctor((FacilityRequest &)request);
+					LRQSender<LocationRequest> LrqFunctor((LocationRequest &)request);
 					LRQRequester * pRequest = NULL;
 					if (dynamic_cast<AdmissionRequest *>(&request)) {
 						pRequest = new LRQRequester(ArqFunctor);
@@ -1744,18 +1781,20 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 						pRequest = new LRQRequester(SetupFunctor);
 					} else if (dynamic_cast<FacilityRequest *>(&request)) {
 						pRequest = new LRQRequester(FacilityFunctor);
+					} else if (dynamic_cast<LocationRequest *>(&request)) {
+						pRequest = new LRQRequester(LrqFunctor);
 					} else {
 						return NULL;	// should never happen
 					}
 					if (pRequest && pRequest->Send(nb)) {
-						if (H225_LocationConfirm *lcf = pRequest->WaitForDestination(m_neighborTimeout)) {
+						if (H225_LocationConfirm * lcf = pRequest->WaitForDestination(m_neighborTimeout)) {
 							Route * route = new Route(m_name, lcf->m_callSignalAddress);
 #ifdef HAS_H460
 							if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
 								H225_RasMessage ras;
 								ras.SetTag(H225_RasMessage::e_locationConfirm);
-								H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
-								con = *lcf;
+								H225_LocationConfirm & conf = (H225_LocationConfirm &)ras;
+								conf = *lcf;
 								route->m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);
 							}
 #endif
@@ -1771,77 +1810,15 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 					Route * route = new Route();
 					route->m_flags |= Route::e_Reject;
 					return route;
-				}
-			}
-		}
-	}
-	return NULL;
-}
- 
-Route * SRVPolicy::LSLocalLookup(H225_ArrayOf_AliasAddress & aliases)
-{
-	for (PINDEX a = 0; a < aliases.GetSize(); ++a) {
-		// only apply to urlID and h323ID
-		if ((aliases[a].GetTag() != H225_AliasAddress::e_url_ID)
-			&& (aliases[a].GetTag() != H225_AliasAddress::e_h323_ID))
-			continue;
-		PString alias(AsString(aliases[a], FALSE));
-		PINDEX at = alias.Find('@');
-		// skip empty aliases or those without at-sign
-	    if ((alias.GetLength() == 0) || (at == P_MAX_INDEX))
-			continue;
- 
-		// DNS SRV Record lookup
-		PString number = "h323:" + alias;
-		PString domain = alias.Mid(at+1);
-		if (IsIPAddress(domain)
-			|| (domain.FindRegEx(PRegularExpression(":[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX))
-			continue;	// don't use SRV record if domain part is IP or has port (Annex O, O.9), let dns policy handle them
- 
-		// LS Record lookup
-		PStringList ls;
-		if (PDNS::LookupSRV(number, "_h323ls._udp.", ls)) {
-			for (PINDEX i=0; i < ls.GetSize(); i++) {
-				PINDEX at = ls[i].Find('@');
-				PString ipaddr = ls[i].Mid(at + 1);
-				if (ipaddr.Left(7) == "0.0.0.0") {
-					PTRACE(1, "ROUTING\tERROR in LS SRV lookup (" << ls[i] << ")");
-					continue;
-				}
-				PTRACE(4, "ROUTING\tSRV LS located domain " << domain << " at " << ipaddr);
-				H323TransportAddress addr = H323TransportAddress(ipaddr);
- 
-				PIPSocket::Address socketip;
-				WORD port;
-				if (!GetTransportAddress(ipaddr, GK_DEF_UNICAST_RAS_PORT, socketip, port) && socketip.IsValid()) {
-					PTRACE(1, "ROUTING\tERROR in SRV LS IP " << ipaddr);
-					continue;
-				}
-				if (Toolkit::Instance()->IsGKHome(socketip)) {
-					// this is my domain, no need to send LRQs, just look into the endpoint table
-					PINDEX numberat = number.Find('@');	// always has an @
-					H225_ArrayOf_AliasAddress find_aliases;
-					find_aliases.SetSize(1);
-					PString local_alias = number.Mid(5,numberat-5);
-					H323SetAliasAddress(local_alias, find_aliases[0]);
-					endptr ep = RegistrationTable::Instance()->FindByAliases(find_aliases);
-					if (ep) {
-						// endpoint found locally
-						Route * route = new Route("srv", ep);
-						return route;
-					}
-				} else if (m_resolveNonLocalLRQs) {
-					// just rewrite the destination based on the SRV record and let the following policies handle it
-					H323SetAliasAddress(number, aliases[0]);
 				} else {
-					PTRACE(3, "ROUTING\tSkipped, using only local LS for LRQs");
+					PTRACE(4, "ROUTING\tDNS SRV no applied to LRQ");
 				}
 			}
 		}
 	}
 	return NULL;
 }
- 
+
 Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly)
 {
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
@@ -1854,7 +1831,7 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly)
 		// skip empty aliases or those without at-sign
 	    if ((alias.GetLength() == 0) || (at == P_MAX_INDEX))
 			continue;
- 
+
 		// DNS SRV Record lookup
 		PString number = "h323:" + alias;
 		PString domain = alias.Mid(at+1);
@@ -1908,11 +1885,12 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly)
 	}
 	return NULL;
 }
- 
+
 // used for ARQs and Setups
 bool SRVPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
-	Route * route = CSLookup(aliases, false);
+	bool localonly = dynamic_cast<LocationRequest *>(&request) && !m_resolveNonLocalLRQs;
+	Route * route = CSLookup(aliases, localonly);
 	if (route) {
 		if (route->m_flags & Route::e_Reject) {
 			request.SetFlag(RoutingRequest::e_Reject);
@@ -1922,7 +1900,7 @@ bool SRVPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 		delete route;
 		return true;
 	}
-	route = LSLookup(request, aliases);
+	route = LSLookup(request, aliases, localonly);
 	if (route) {
 		if (route->m_flags & Route::e_Reject) {
 			request.SetFlag(RoutingRequest::e_Reject);
@@ -1937,28 +1915,8 @@ bool SRVPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 
 // used for LRQs
 bool SRVPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
-{ 
-	Route * route = CSLookup(aliases, !m_resolveNonLocalLRQs);
-	if (route) {
-		if (route->m_flags & Route::e_Reject) {
-			request.SetFlag(RoutingRequest::e_Reject);
-		} else {
-			request.AddRoute(*route);
-		}
-		delete route;
-		return true;
-	}
-	route = LSLocalLookup(aliases);
-	if (route) {
-		if (route->m_flags & Route::e_Reject) {
-			request.SetFlag(RoutingRequest::e_Reject);
-		} else {
-			request.AddRoute(*route);
-		}
-		delete route;
-		return true;
-	}
-	return false;
+{
+	return SRVPolicy::FindByAliases((RoutingRequest&)request, aliases);
 }
 #endif
 

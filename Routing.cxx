@@ -173,11 +173,22 @@ template<> void AdmissionRequest::SetAliases(H225_ArrayOf_AliasAddress & aliases
 	m_request.m_destinationInfo = aliases;
 }
 
+template<> const H225_TransportAddress *AdmissionRequest::GetDestIP() const
+{
+	return (m_request.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress))
+		? &m_request.m_destCallSignalAddress : NULL;
+}
+
 // class LocationRequest
 template<> H225_ArrayOf_AliasAddress *LocationRequest::GetAliases()
 {
 	return (m_request.m_destinationInfo.GetSize() > 0)
 		? &m_request.m_destinationInfo : NULL;
+}
+
+template<> const H225_TransportAddress *LocationRequest::GetDestIP() const
+{
+	return NULL;	// TODO: check if one alias is transportID or h323ID that matches IP number ?
 }
 
 // class SetupRequest
@@ -187,11 +198,23 @@ template<> H225_ArrayOf_AliasAddress *SetupRequest::GetAliases()
 		? &m_request.m_destinationAddress : NULL;
 }
 
+template<> const H225_TransportAddress *SetupRequest::GetDestIP() const
+{
+	return (m_request.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress))
+		? &m_request.m_destCallSignalAddress : NULL;
+}
+
 // class FacilityRequest
 template<> H225_ArrayOf_AliasAddress *FacilityRequest::GetAliases()
 {
 	return (m_request.HasOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress) && m_request.m_alternativeAliasAddress.GetSize() > 0)
 		? &m_request.m_alternativeAliasAddress : NULL;
+}
+
+template<> const H225_TransportAddress *FacilityRequest::GetDestIP() const
+{
+	return (m_request.HasOptionalField(H225_Facility_UUIE::e_alternativeAddress))
+		? &m_request.m_alternativeAddress : NULL;
 }
 
 bool Policy::Handle(SetupRequest& request)

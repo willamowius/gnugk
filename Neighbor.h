@@ -3,7 +3,7 @@
 // Neighboring System for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2011, Jan Willamowius
+// Copyright (c) 2004-2012, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -98,6 +98,7 @@ public:
 	// get PrefixInfo for a given aliases
 	// if an alias is matched, set dest to the alias
 	virtual PrefixInfo GetPrefixInfo(const H225_ArrayOf_AliasAddress &, H225_ArrayOf_AliasAddress & dest);
+	virtual PrefixInfo GetIPInfo(const H225_TransportAddress & ip, H225_ArrayOf_AliasAddress & dest) const;
 
 	// callbacks before sending LRQ
 	// LRQ will not be sent if false is returned
@@ -130,6 +131,7 @@ protected:
 	bool m_forwardResponse;
 	int m_forwardto;
 	Prefixes m_sendPrefixes;
+	PString m_sendIPs;
 	PStringArray m_sendAliases;
 	PStringArray m_acceptPrefixes;
 	bool m_externalGK;
