@@ -3305,6 +3305,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 #endif
 	{
 
+#ifdef HAS_H46018
 #ifdef HAS_H46023
 		bool OZH46024 = (m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
 					setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures) &&
@@ -3313,7 +3314,6 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		bool OZH46024 = false;
 #endif
 		// no traversal client, send regular Setup
-#ifdef HAS_H46018
 		// remove H.460.19 indicator
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures) && !OZH46024) {
 			bool isH46019Client = false;
@@ -3654,7 +3654,7 @@ void CallSignalSocket::OnCallProceeding(
 		msg->SetUUIEChanged();
 	}
 
-
+#ifdef HAS_H46018
 #ifdef HAS_H46023
 		bool OZH46024 = (m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
 						cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_featureSet) &&
@@ -3662,7 +3662,6 @@ void CallSignalSocket::OnCallProceeding(
 #else
 		bool OZH46024 = false;
 #endif
-#ifdef HAS_H46018
 	if (Toolkit::Instance()->IsH46018Enabled() && !OZH46024) {
 		// remove H.460.19 descriptor from sender
 		if (cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_featureSet)) {
@@ -3821,6 +3820,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
     }
 #endif
 
+#ifdef HAS_H46018
 #ifdef HAS_H46023
 		bool OZH46024 = (m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
 						connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet) &&
@@ -3828,7 +3828,6 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 #else
 		bool OZH46024 = false;
 #endif
-#ifdef HAS_H46018
 	if (m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled() && !OZH46024) {
 		// remove H.460.19 descriptor from sender
 		if (connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet)) {
@@ -3905,6 +3904,7 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 		msg->SetUUIEChanged();
 	}
 
+#ifdef HAS_H46018
 #ifdef HAS_H46023
 	bool OZH46024 = (m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
 					alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet) &&
@@ -3912,7 +3912,6 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 #else
 	bool OZH46024 = false;
 #endif
-#ifdef HAS_H46018
 	if (m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled() && !OZH46024) {
 		// remove H.460.19 descriptor from sender
 		if (alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet)) {
