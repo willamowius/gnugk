@@ -437,7 +437,7 @@ Force ALL registrations to use a keepAlive TCP socket.
 <item><tt/EnableH46017=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
-Enable support for H.460.17.
+Enable support for H.460.17. To enable H.460.19 for the media stream, you should also set EnableH46018=1.
 
 <item><tt/EnableH46018=1/<newline>
 Default: <tt>0</tt><newline>
