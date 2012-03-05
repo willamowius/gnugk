@@ -670,7 +670,6 @@ public:
 	H46019TraversalType GetTraversalRole() const { return m_traversalType; }
 	bool IsTraversalServer() const { return m_traversalType == TraversalServer; }
 	bool IsTraversalClient() const { return m_traversalType == TraversalClient; }
-	bool IsTraversalZone() const { return IsTraversalServer() || IsTraversalClient(); }
 	void SetUsesH46019fc(bool use) { m_useH46019fc = use; }
 	bool UsesH46019fc() const { return m_useH46019fc; }
 	void SetH46019fcState(int use) { m_H46019fcState = use; }
@@ -6246,7 +6245,7 @@ bool H245Socket::ConnectRemote()
 
 	// peerH245Addr may be accessed from multiple threads
 	m_signalingSocketMutex.Wait();
-	if (!peerH245Addr || !GetIPAndPortFromTransportAddr(*peerH245Addr, peerAddr, peerPort)) {
+	if (!peerH245Addr || !GetIPAndPortFromTransportAddr(*peerH245Addr, peerAddr, peerPort) || !peerPort) {
 		m_signalingSocketMutex.Signal();
 		PTRACE(3, "H245\tINVALID ADDRESS");
 		return false;
