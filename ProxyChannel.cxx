@@ -4000,7 +4000,7 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 				Close();
 			} else if (ep) {
 				m_isnatsocket = true;
-				ep->SetSocket(this);
+				ep->SetNATSocket(this);
 				SetConnected(true); // avoid the socket be deleted
 			}
 			m_result = NoData;

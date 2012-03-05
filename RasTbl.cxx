@@ -605,7 +605,7 @@ void EndpointRec::SetTimeToLive(int seconds)
 	}
 }
 
-void EndpointRec::SetSocket(CallSignalSocket *socket)
+void EndpointRec::SetNATSocket(CallSignalSocket * socket)
 {
 	PWaitAndSignal lock(m_usedLock);
 
@@ -621,6 +621,17 @@ void EndpointRec::SetSocket(CallSignalSocket *socket)
 			m_natsocket->SetDeletable();
 		}
 		m_natsocket = socket;
+	}
+}
+
+void EndpointRec::RemoveNATSocket()
+{
+	PWaitAndSignal lock(m_usedLock);
+
+	if (m_natsocket) {
+		m_natsocket->Close();
+		m_natsocket->SetConnected(false);
+		m_natsocket->SetDeletable();
 	}
 }
 
@@ -1551,6 +1562,7 @@ void RegistrationTable::RemoveByEndptr(const endptr & eptr)
 	RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctUnregister, eptr);
 	EndpointRec *ep = eptr.operator->(); // evil
 	ep->SetUsesH460P(false);
+	ep->RemoveNATSocket();
 	WriteLock lock(listLock);
 	InternalRemove(find(EndpointList.begin(), EndpointList.end(), ep));
 }

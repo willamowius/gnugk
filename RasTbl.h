@@ -177,7 +177,8 @@ public:
 
 	void SetNAT(bool nat);
 	void SetNATAddress(const PIPSocket::Address &, WORD port = 0);
-	void SetSocket(CallSignalSocket *);
+	void SetNATSocket(CallSignalSocket * socket);
+	void RemoveNATSocket();
 	void SetH46024(bool support);
 	void SetH46024A(bool support);
 	void SetH46024B(bool support);

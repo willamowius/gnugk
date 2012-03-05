@@ -2337,7 +2337,7 @@ bool RegistrationRequestPDU::Process()
 
 #ifdef HAS_H46017
 		if (m_msg->m_h46017Socket)
-			ep->SetSocket(m_msg->m_h46017Socket);
+			ep->SetNATSocket(m_msg->m_h46017Socket);
 		if (ep->UsesH46017()) {
 			rcf.m_callSignalAddress.SetSize(0);
 			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_maintainConnection);
