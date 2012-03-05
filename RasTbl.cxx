@@ -632,6 +632,7 @@ void EndpointRec::RemoveNATSocket()
 		m_natsocket->Close();
 		m_natsocket->SetConnected(false);
 		m_natsocket->SetDeletable();
+		m_natsocket = NULL;
 	}
 }
 
