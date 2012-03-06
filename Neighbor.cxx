@@ -1993,7 +1993,7 @@ bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 				} else if (dynamic_cast<FacilityRequest *>(&request)) {
 					pRequest = new LRQRequester(FacilityFunctor);
 				} else {
-					return NULL;	// should never happen
+					pRequest = NULL; // should never happen  TODO - Is this necessary? - SH
 				}
 				if (pRequest && pRequest->Send(nb)) {
 					if (H225_LocationConfirm *lcf = pRequest->WaitForDestination(m_neighborTimeout)) {
