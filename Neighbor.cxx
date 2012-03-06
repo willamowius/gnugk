@@ -484,14 +484,26 @@ PrefixInfo Neighbor::GetPrefixInfo(const H225_ArrayOf_AliasAddress & aliases, H2
 
 PrefixInfo Neighbor::GetIPInfo(const H225_TransportAddress & ip, H225_ArrayOf_AliasAddress & dest) const
 {
-	NetworkAddress network = NetworkAddress(m_sendIPs);
-	PIPSocket::Address addr;
-	bool validNetwork = GetIPFromTransportAddr(ip, addr);
-	if ((m_sendIPs == "*") || (validNetwork && (NetworkAddress(addr) << network)))
-	{
-		dest.SetSize(1);
-		H323SetAliasAddress(AsDotString(ip), dest[0], H225_AliasAddress::e_transportID);
-		return PrefixInfo(100, 1);
+	PStringArray sendNet(m_sendIPs.Tokenise(","));
+	for (PINDEX i=0; i < sendNet.GetSize(); ++i) {
+		bool noMatch = false;
+		if (sendNet[i].Left(1) == "!") {
+			noMatch = true;
+			sendNet[i] = sendNet[i].Mid(1); // cut away first char ("!")
+		}
+		NetworkAddress network = NetworkAddress(sendNet[i]);
+		PIPSocket::Address addr;
+		bool validNetwork = GetIPFromTransportAddr(ip, addr);
+		if ((sendNet[i] == "*")
+			|| ((sendNet[i] == "public") && !addr.IsRFC1918())
+			|| ((sendNet[i] == "private") && addr.IsRFC1918())
+			|| (validNetwork && !noMatch && (NetworkAddress(addr) << network))
+			|| (validNetwork && noMatch && !(NetworkAddress(addr) << network)) )
+		{
+			dest.SetSize(1);
+			H323SetAliasAddress(AsDotString(ip), dest[0], H225_AliasAddress::e_transportID);
+			return PrefixInfo(100, 1);
+		}
 	}
 
 	return nomatch;	// don't send to this neighbor

@@ -204,11 +204,17 @@ One can also direct the gatekeeper to send LRQ to this neighbor
 based on an alias type:<newline>
 SendPrefixes=h323_ID,dialedDigits,001<newline>
 
-<item><tt/SendIPs=192.168.1.0&sol;24/<newline>
+<item><tt/SendIPs=192.168.0.0&sol;16,172.16.0.0&sol;12/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Send calls dialed by IP to this neighbor. You can either specify one netmask
-or * to send all IP calls to this neighbor.
+Send calls dialed by IP to this neighbor.
+You can specify a list of networks with optional netmask.
+You can also put a ! in front of the network for negation.
+Special values are "*" to send all IP calls,
+"private" to send all IPv4 private networks and
+"public" to send all public IPv4 adresses to this neighbor.
+If one of the networks matches the dialed IP, the neighbor is selected.
+
 If the call comes from a registered endpoint, this endpoint must support canMapAlias for ARQs.
 
 <item><tt/SendAliases=4526354,2000-2010,frank/<newline>
