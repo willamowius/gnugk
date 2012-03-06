@@ -1787,13 +1787,11 @@ bool RegistrationRequestPDU::Process()
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////
-	// H.460 support code
+	// H.460 NAT support code
+	PBoolean h46018nat = false;
 	PBoolean supportH46024 = false;
 	PBoolean supportH46024A = false;
 	PBoolean supportH46024B = false;
-	int RegPrior = 0;
-	bool preemptsupport = false;
-	PBoolean preempt = false;
 	unsigned ntype = 100;  // UnAllocated NAT Type
 #ifdef HAS_H46018
 	PBoolean supportH46018 = false;
@@ -1803,8 +1801,12 @@ bool RegistrationRequestPDU::Process()
 #endif
 #if (HAS_H46018 || HAS_H46023)
 	H225_TransportAddress originalCallSigAddress;	// original call signal address (to restore if H.460.18 is disabled)
-	PBoolean h46018nat = false;
 #endif
+
+    // H.460 Registration pre-emption
+	int RegPrior = 0;
+	bool preemptsupport = false;
+	PBoolean preempt = false;
 
 #ifdef HAS_H460
 	bool EPSupportsQoSReporting = false;
@@ -2298,7 +2300,11 @@ bool RegistrationRequestPDU::Process()
 	if (nated || (ep->IsTraversalClient() && !validaddress)) {
 		ep->SetNATAddress(rx_addr, rx_port);
 	} else {
-		ep->SetNAT(false);
+        ep->SetNAT(h46018nat);
+        if (h46018nat && supportH46024) {
+            PTRACE(4, "RAS\tH46024 NAT detected set default PortRestricted: Wait for result of NAT Test");
+           ep->SetEPNATType(EndpointRec::NatPortRestricted);
+        }
 		ep->SetH46024(supportH46024);
 		ep->SetH46024A(supportH46024A);
 		ep->SetH46024B(supportH46024B);
