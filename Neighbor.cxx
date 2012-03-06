@@ -1769,7 +1769,7 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 					int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
 
 					// Send LRQ to retreive callers signaling address
-					// Caution: we my only use the functor object of the right type and never touch the others!
+					// Caution: we may only use the functor object of the right type and never touch the others!
 					LRQSender<AdmissionRequest> ArqFunctor((AdmissionRequest &)request);
 					LRQSender<SetupRequest> SetupFunctor((SetupRequest &)request);
 					LRQSender<FacilityRequest> FacilityFunctor((FacilityRequest &)request);
@@ -1783,8 +1783,6 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 						pRequest = new LRQRequester(FacilityFunctor);
 					} else if (dynamic_cast<LocationRequest *>(&request)) {
 						pRequest = new LRQRequester(LrqFunctor);
-					} else {
-						return NULL;	// should never happen
 					}
 					if (pRequest && pRequest->Send(nb)) {
 						if (H225_LocationConfirm * lcf = pRequest->WaitForDestination(m_neighborTimeout)) {
@@ -1981,7 +1979,7 @@ bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 				int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
 
 				// Send LRQ to retreive callers signaling address
-				// Caution: we my only use the functor object of the right type and never touch the others!
+				// Caution: we may only use the functor object of the right type and never touch the others!
 				LRQSender<AdmissionRequest> ArqFunctor((AdmissionRequest &)request);
 				LRQSender<SetupRequest> SetupFunctor((SetupRequest &)request);
 				LRQSender<FacilityRequest> FacilityFunctor((FacilityRequest &)request);
@@ -1992,8 +1990,6 @@ bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 					pRequest = new LRQRequester(SetupFunctor);
 				} else if (dynamic_cast<FacilityRequest *>(&request)) {
 					pRequest = new LRQRequester(FacilityFunctor);
-				} else {
-					pRequest = NULL; // should never happen  TODO - Is this necessary? - SH
 				}
 				if (pRequest && pRequest->Send(nb)) {
 					if (H225_LocationConfirm *lcf = pRequest->WaitForDestination(m_neighborTimeout)) {
