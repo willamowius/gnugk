@@ -3564,6 +3564,10 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 			// different handler than this
 			// so we move this socket to other handler
 			GetHandler()->MoveTo(socket->GetHandler(), this);
+			
+			// re-add the NAT socket for H.460.17 endpoints
+			if (calledep->UsesH46017())
+				calledep->SetNATSocket(socket);
 
 			remote = socket;
 			socket->SetRemote(this);
