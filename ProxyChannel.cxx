@@ -3,7 +3,7 @@
 // ProxyChannel.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2002
-// Copyright (c) 2002-2011, Jan Willamowius
+// Copyright (c) 2002-2012, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -2302,6 +2302,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	H225_Setup_UUIE & setupBody = setup->GetUUIEBody();
 
 	m_h225Version = GetH225Version(setupBody);
+	m_callerSocket = true;
 
 	// prevent from multiple calls over the same signaling channel
 	if (remote
@@ -3623,6 +3624,18 @@ bool CallSignalSocket::CreateRemote(const H225_TransportAddress & addr)
 
 	return true;
 }
+
+bool CallSignalSocket::IsTraversalClient() const
+{
+	return ((!m_callerSocket && m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalClient())
+		   || (m_callerSocket && m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalClient()));
+};
+
+bool CallSignalSocket::IsTraversalServer() const
+{
+	return ((!m_callerSocket && m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalServer())
+		   || (m_callerSocket && m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalServer()));
+};
 #endif
 
 void CallSignalSocket::OnCallProceeding(
@@ -4679,10 +4692,17 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 
 	switch (facilityBody.m_reason.GetTag()) {
 	case H225_FacilityReason::e_startH245:
-		if (facilityBody.HasOptionalField(H225_Facility_UUIE::e_h245Address)
-				&& facilityBody.m_protocolIdentifier.GetValue().IsEmpty()) {
-			if (m_h245socket && m_h245socket->Reverting(facilityBody.m_h245Address))
+		{
+			if (facilityBody.HasOptionalField(H225_Facility_UUIE::e_h245Address)
+					&& facilityBody.m_protocolIdentifier.GetValue().IsEmpty()) {
+				if (m_h245socket && m_h245socket->Reverting(facilityBody.m_h245Address))
+					m_result = NoData;
+			}
+			// don't forward startH245 to traversal server
+			CallSignalSocket * ret = dynamic_cast<CallSignalSocket *>(remote);
+			if (ret && ret->IsTraversalServer()) {
 				m_result = NoData;
+			}
 		}
 		break;
 	case H225_FacilityReason::e_routeCallToGatekeeper:
@@ -5674,13 +5694,14 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 	}
 	bool userevert = m_isnatsocket;
 #ifdef HAS_H46018
-	if (m_call->H46019Required()
-		&& m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalClient() )
+	if (m_call->H46019Required() && IsTraversalClient()) {
 		userevert = true;
+	}
 #endif
 	m_h245socket = userevert ? new NATH245Socket(this) : new H245Socket(this);
-	if (!m_call->GetRerouteState() == RerouteInitiated)
+	if (!m_call->GetRerouteState() == RerouteInitiated) {
 		ret->m_h245socket = new H245Socket(m_h245socket, ret);
+	}
 	m_h245socket->SetH245Address(h245addr, masqAddr);
 	// if in reroute, don't listen, actively connect to the other side, half of the H.245 connection is already up
 	if (m_call->GetRerouteState() == RerouteInitiated) {
@@ -6266,15 +6287,13 @@ bool H245Socket::ConnectRemote()
 		WORD pt = H245PortRange.GetPort();
 		if (Connect(localAddr, pt, peerAddr)) {
 			PTRACE(3, "H245\tConnect to " << GetName() << " from "
-				<< AsString(localAddr, pt) << " successful"
-				);
+				<< AsString(localAddr, pt) << " successful");
 			return true;
 		}
 		int errorNumber = GetErrorNumber(PSocket::LastGeneralError);
 		PTRACE(1, Type() << "\tCould not open/connect H.245 socket at " << AsString(localAddr, pt)
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
-			<< errorNumber << ": " << GetErrorText(PSocket::LastGeneralError)
-			);
+			<< errorNumber << ": " << GetErrorText(PSocket::LastGeneralError));
 		Close();
 		PTRACE(3, "H245\t" << AsString(peerAddr, peerPort) << " DIDN'T ACCEPT THE CALL");
 #ifdef _WIN32
@@ -6335,6 +6354,13 @@ bool H245Socket::Reverting(const H225_TransportAddress & h245addr)
 // class NATH245Socket
 bool NATH245Socket::ConnectRemote()
 {
+#ifdef HAS_H46018
+	// when connecting to a traversal server, we can't send startH245, but must connect directly
+	if (sigSocket && sigSocket->IsTraversalServer()) {
+		return H245Socket::ConnectRemote();
+	}
+#endif
+	
 	m_signalingSocketMutex.Wait();
 	if (!sigSocket || !listener) {
 		m_signalingSocketMutex.Signal();

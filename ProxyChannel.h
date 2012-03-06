@@ -3,7 +3,7 @@
 // ProxyChannel.h
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2002-2011, Jan Willamowius
+// Copyright (c) 2002-2012, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -226,6 +226,8 @@ public:
 	bool MaintainConnection() const { return m_maintainConnection; }
 
 #ifdef HAS_H46018
+	bool IsTraversalClient() const;
+	bool IsTraversalServer() const;
 	bool CreateRemote(const H225_TransportAddress & addr);
 	bool OnSCICall(H225_CallIdentifier callID, H225_TransportAddress sigAdr);
 	bool IsCallFromTraversalServer() const { return m_callFromTraversalServer; }
