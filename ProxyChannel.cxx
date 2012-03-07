@@ -2406,7 +2406,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			&&  setupBody.m_sourceInfo.m_terminal.HasOptionalField(H225_TerminalInfo::e_nonStandardData) 
             &&  setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_vendor)
             &&  setupBody.m_sourceInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)
-            &&  setupBody.m_sourceInfo.m_vendor.m_productId.AsString().Left(7) != "VidSoft") {
+            &&  setupBody.m_sourceInfo.m_vendor.m_productId.AsString().Left(7) != "VidSoft") {	// VidSoft includes invalid numbers
 			if (setupBody.m_sourceInfo.m_terminal.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
 				H225_H221NonStandard h221nst = setupBody.m_sourceInfo.m_terminal.m_nonStandardData.m_nonStandardIdentifier;
 				if (h221nst.m_manufacturerCode == 21334) {
@@ -2422,10 +2422,10 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 						if (tokens[i].Left(4) == "0007") {
 							PString e164 = tokens[i].Mid(4);
 							if (IsValidE164(e164)) {
-								setupBody.m_sourceAddress.SetSize( sourceAdrSize + 1 );
+								setupBody.m_sourceAddress.SetSize(sourceAdrSize + 1);
 								H323SetAliasAddress(e164, setupBody.m_sourceAddress[sourceAdrSize], H225_AliasAddress::e_dialedDigits);
 								sourceAdrSize++;
-								setupBody.m_sourceAddress.SetSize( sourceAdrSize + 1 );
+								setupBody.m_sourceAddress.SetSize(sourceAdrSize + 1);
 								H323SetAliasAddress(e164, setupBody.m_sourceAddress[sourceAdrSize], H225_AliasAddress::e_h323_ID);
 								// fill calling number IE
 								if (!q931.HasIE(Q931::CallingPartyNumberIE)) {
@@ -2440,7 +2440,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 							PString ip = tokens[i].Mid(4);
 							// check format of IP to avoid runtime error
 							if (ip.FindRegEx(PRegularExpression("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX) {
-								setupBody.m_sourceAddress.SetSize( sourceAdrSize + 1 );
+								setupBody.m_sourceAddress.SetSize(sourceAdrSize + 1);
 								H323SetAliasAddress(ip, setupBody.m_sourceAddress[sourceAdrSize], H225_AliasAddress::e_transportID);
 							} else {
 								PTRACE(1, "Invalid IP in Sorenson source info: " << ip);
@@ -2448,9 +2448,19 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 						}
 					}
 				}
-				if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveSorensonSourceInfo", "0"))) {
-					setupBody.m_sourceInfo.m_terminal.RemoveOptionalField(H225_TerminalInfo::e_nonStandardData);
-				}
+			}
+		}
+	}
+
+	// RemoveSorensonSourceInfo
+	if (setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_terminal)
+		&&  setupBody.m_sourceInfo.m_terminal.HasOptionalField(H225_TerminalInfo::e_nonStandardData) 
+		&&  setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_vendor)) {
+		if (setupBody.m_sourceInfo.m_terminal.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
+			H225_H221NonStandard h221nst = setupBody.m_sourceInfo.m_terminal.m_nonStandardData.m_nonStandardIdentifier;
+			if (h221nst.m_manufacturerCode == 21334
+				&& Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveSorensonSourceInfo", "0"))) {
+				setupBody.m_sourceInfo.m_terminal.RemoveOptionalField(H225_TerminalInfo::e_nonStandardData);
 			}
 		}
 	}

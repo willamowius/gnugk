@@ -490,13 +490,12 @@ Valid values are "18" for H.460.18/.19 and "23" for H.460.23/.24
 <item><tt/TranslateSorensonSourceInfo=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
-Translate the non-standard caller information from a Sorenson VP200 into sourceAddress and CallingPartyIE.
+Translate the non-standard caller information eg. from a Sorenson VP200 into sourceAddress and CallingPartyIE.
 
 <item><tt/RemoveSorensonSourceInfo=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
-Remove the non-standard caller information from a Sorenson VP200 after translation.
-Only effective if TranslateSorensonSourceInfo=1 is set.
+Remove the non-standard caller information eg. from a Sorenson VP200 after translation.
 
 <item><tt/RemoveFaxUDPOptionsFromRM=1/<newline>
 Default: <tt>0</tt><newline>
