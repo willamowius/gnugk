@@ -3,7 +3,7 @@
 // RAS Server for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2000-2011, Jan Willamowius
+// Copyright (c) 2000-2012, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1647,20 +1647,20 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 			if (request.HasOptionalField(H225_GatekeeperRequest::e_featureSet)) {
 				H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
 				if (fs.HasFeature(18)) {
-				 PIPSocket::Address remoteRAS;
-				 const PIPSocket::Address & rx_addr = m_msg->m_peerAddr;
-				 if (GetIPFromTransportAddr(request.m_rasAddress, remoteRAS)) {
-					bool h46018nat = ((rx_addr != remoteRAS) && !IsLoopback(rx_addr));
-					if (h46018nat || Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "H46018NoNAT", "1"))) {
-						// include H.460.18 in supported features
-						gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_featureSet);
-						H460_FeatureStd H46018 = H460_FeatureStd(18);
-						gcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
-						H225_ArrayOf_FeatureDescriptor & desc = gcf.m_featureSet.m_supportedFeatures;
-						desc.SetSize(1);
-						desc[0] = H46018;
+					PIPSocket::Address remoteRAS;
+					const PIPSocket::Address & rx_addr = m_msg->m_peerAddr;
+					if (GetIPFromTransportAddr(request.m_rasAddress, remoteRAS)) {
+						bool h46018nat = ((rx_addr != remoteRAS) && !IsLoopback(rx_addr));
+						if (h46018nat || Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "H46018NoNAT", "1"))) {
+							// include H.460.18 in supported features
+							gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_featureSet);
+							H460_FeatureStd H46018 = H460_FeatureStd(18);
+							gcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+							H225_ArrayOf_FeatureDescriptor & desc = gcf.m_featureSet.m_supportedFeatures;
+							desc.SetSize(1);
+							desc[0] = H46018;
+						}
 					}
-				 }
 				}
 			}
 		}
@@ -1722,14 +1722,14 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 #ifdef h323v6
 	    if (request.HasOptionalField(H225_GatekeeperRequest::e_supportsAssignedGK) &&
             RasSrv->HasAssignedGK(alias,m_msg->m_peerAddr,gcf))
-			  PTRACE(2, "GCF\t" << alias << " redirected to assigned Gatekeeper");
+			PTRACE(2, "GCF\t" << alias << " redirected to assigned Gatekeeper");
 		else
 #endif
 		{
-		  if (request.HasOptionalField(H225_GatekeeperRequest::e_supportsAltGK))
+			if (request.HasOptionalField(H225_GatekeeperRequest::e_supportsAltGK))
 			RasSrv->SetAlternateGK(gcf, m_msg->m_peerAddr);
 
-		  RasSrv->SelectH235Capability(request, gcf);
+			RasSrv->SelectH235Capability(request, gcf);
 		}
 
 		log = "GCF|" + m_msg->m_peerAddr.AsString()
