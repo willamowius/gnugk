@@ -3706,7 +3706,8 @@ void CallSignalSocket::OnCallProceeding(
 		{
 			H460_FeatureStd feat = H460_FeatureStd(19);
 			H460_FeatureID * feat_id = NULL;
-			if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalClient()) {
+			if (m_call->GetCallingParty()
+				&& (m_call->GetCallingParty()->IsTraversalClient() || m_call->GetCallingParty()->UsesH46017())) {
 				feat_id = new H460_FeatureID(2);	// mediaTraversalServer
 				feat.AddParameter(feat_id);
 				delete feat_id;
@@ -3873,7 +3874,8 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			// add H.460.19 indicator
 			H460_FeatureStd feat = H460_FeatureStd(19);
 			H460_FeatureID * feat_id = NULL;
-			if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalClient()) {
+			if (m_call->GetCallingParty()
+				&& (m_call->GetCallingParty()->IsTraversalClient() || m_call->GetCallingParty()->UsesH46017())) {
 				feat_id = new H460_FeatureID(2);	// mediaTraversalServer
 				feat.AddParameter(feat_id);
 				delete feat_id;
@@ -3957,7 +3959,8 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 			// add H.460.19 indicator
 			H460_FeatureStd feat = H460_FeatureStd(19);
 			H460_FeatureID * feat_id = NULL;
-			if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalClient()) {
+			if (m_call->GetCallingParty()
+				&& (m_call->GetCallingParty()->IsTraversalClient() || m_call->GetCallingParty()->UsesH46017())) {
 				feat_id = new H460_FeatureID(2);	// mediaTraversalServer
 				feat.AddParameter(feat_id);
 				delete feat_id;
@@ -4903,7 +4906,8 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 				// add H.460.19 indicator to Facility with reason forwardedElements
 				H460_FeatureStd feat = H460_FeatureStd(19);
 				H460_FeatureID * feat_id = NULL;
-				if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalClient()) {
+				if (m_call->GetCallingParty()
+					&& (m_call->GetCallingParty()->IsTraversalClient() || m_call->GetCallingParty()->UsesH46017())) {
 					feat_id = new H460_FeatureID(2);	// mediaTraversalServer
 					feat.AddParameter(feat_id);
 					delete feat_id;
@@ -5126,7 +5130,8 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 				uuie.RemoveOptionalField(H225_Facility_UUIE::e_conferenceID);
 				H460_FeatureStd feat = H460_FeatureStd(19);
 				H460_FeatureID * feat_id = NULL;
-				if (m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalClient()) {
+				if (m_call->GetCalledParty()
+					&& (m_call->GetCalledParty()->IsTraversalClient() || m_call->GetCallingParty()->UsesH46017())) {
 					feat_id = new H460_FeatureID(2);	// mediaTraversalServer
 					feat.AddParameter(feat_id);
 					delete feat_id;
