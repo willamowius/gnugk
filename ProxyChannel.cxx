@@ -4711,11 +4711,13 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 				if (m_h245socket && m_h245socket->Reverting(facilityBody.m_h245Address))
 					m_result = NoData;
 			}
+#ifdef HAS_H46018
 			// don't forward startH245 to traversal server
 			CallSignalSocket * ret = dynamic_cast<CallSignalSocket *>(remote);
 			if (ret && ret->IsTraversalServer()) {
 				m_result = NoData;
 			}
+#endif
 		}
 		break;
 	case H225_FacilityReason::e_routeCallToGatekeeper:
