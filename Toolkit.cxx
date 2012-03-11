@@ -2860,10 +2860,9 @@ bool Toolkit::AsBool(const PString & str)
 }
 
 void Toolkit::GetNetworkFromString(
-	const PString &s,
-	PIPSocket::Address &network,
-	PIPSocket::Address &netmask
-	)
+	const PString & s,
+	PIPSocket::Address & network,
+	PIPSocket::Address & netmask)
 {
 	if (s *= "ALL") {
 		network = netmask = GNUGK_INADDR_ANY;
@@ -2884,6 +2883,7 @@ void Toolkit::GetNetworkFromString(
 		
 		const PString netmaskString = s.Mid(slashPos + 1);
 		BYTE rawData[16];
+		memset(&rawData, 0, sizeof(rawData));
 		
 		if (netmaskString.FindOneOf(".:") != P_MAX_INDEX) {
 			// netmask as a network address
@@ -2910,7 +2910,7 @@ void Toolkit::GetNetworkFromString(
 PString Toolkit::GenerateAcctSessionId()
 {
 	PWaitAndSignal lock( m_acctSessionMutex );
-	return psprintf(PString("%08x%08x"),m_acctSessionBase,++m_acctSessionCounter);
+	return psprintf(PString("%08x%08x"), m_acctSessionBase, ++m_acctSessionCounter);
 }
 
 PString Toolkit::AsString(
