@@ -2246,7 +2246,7 @@ bool RadiusClient::GetSocket(RadiusSocket*& socket, unsigned char& id)
 			else
 				newSocket = CreateSocket(m_localAddress, p);
 				
-			if (newSocket->IsOpen())
+			if (newSocket && newSocket->IsOpen())
 				break;
 		}
 			

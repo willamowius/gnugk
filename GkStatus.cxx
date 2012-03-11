@@ -1085,7 +1085,7 @@ void GkStatus::CleanUp()
 		iterator iter = m_removed.begin();
 		while (iter != m_removed.end()) {
 			StatusClient *client = static_cast<StatusClient *>(*iter);
-			if (!client->IsBusy()) {
+			if (client && !client->IsBusy()) {
 				iter = m_removed.erase(iter);
 				--m_rmsize;
 				delete client;

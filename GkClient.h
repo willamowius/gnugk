@@ -121,7 +121,7 @@ public:
 		for (PINDEX i = 0; i < m_h235Authenticators->GetSize();  i++) {
 			H235Authenticator * authenticator = (H235Authenticator *)(*m_h235Authenticators)[i].Clone();
 
-			if (authenticator->IsSecuredPDU(rasmsg.GetTag(), FALSE)) {
+			if (authenticator && authenticator->IsSecuredPDU(rasmsg.GetTag(), FALSE)) {
 				authenticator->SetLocalId(id);
 				authenticator->SetPassword(m_password);
 

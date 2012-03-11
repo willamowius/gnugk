@@ -1259,7 +1259,7 @@ void NeighborList::OnReload()
 				compose1(bind2nd(equal_to<PString>(), nbid), mem_fun(&Neighbor::GetId)));
 		bool newnb = (iter == m_neighbors.end());
 		Neighbor *nb = newnb ? Factory<Neighbor>::Create(type) : *iter;
-		if (nb->SetProfile(nbid, type)) {
+		if (nb && nb->SetProfile(nbid, type)) {
 			if (newnb)
 				m_neighbors.push_back(nb);
 		} else {
