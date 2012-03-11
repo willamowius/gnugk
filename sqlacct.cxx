@@ -157,7 +157,7 @@ GkAcctLogger::Status SQLAcct::Log(
 	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
 		return Next;
 		
-	if (!call && (evt !=AcctOn || evt != AcctOff)) {
+	if (!call && (evt !=AcctOn && evt != AcctOff)) {
 		PTRACE(1, "GKACCT\t" << GetName() << " - missing call info for event " << evt);
 		return Fail;
 	}
