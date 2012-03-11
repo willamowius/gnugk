@@ -87,17 +87,21 @@
 	#endif
 #endif
 
-#if PWLIB_MAJOR == 1
-	#if PWLIB_MINOR == 12
-		#define hasRDS 1 
-		#define hasSETENUMSERVERS 1    
+#ifdef P_DNS
+	#if PWLIB_MAJOR == 1
+		#if PWLIB_MINOR == 12
+			#define hasRDS 1
+			#define hasSETENUMSERVERS 1
+		#endif
 	#endif
 #endif
 
 // for PTlib v2.x
 #ifdef PTLIB_MAJOR 
-	#define hasRDS 1 
-	#define hasSETENUMSERVERS 1    
+	#ifdef P_DNS
+		#define hasRDS 1
+		#define hasSETENUMSERVERS 1
+	#endif
 	#define hasDeletingSetStream 1
 #endif
 
