@@ -7187,7 +7187,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		}
 		// fix for H.224 connection: m100 doesn't send keepAlive, but we can see where it apparently comes from
 		if (!m_h46019uni) {
-			// TODO: should we wait for a number of RTP packets before we do H.460.19 auto-detection without keepalives ?
+			// TODO: should we wait for a number of RTP packets before we do H.460.19 auto-detection without keepAlives ?
 			H323TransportAddress rSrcAddr(rSrcIP, rSrcPort);
 			if (fSrcIP == 0 && rDestIP == 0 && fDestIP != 0 && rSrcIP != 0 && fromAddr != rSrcAddr) {
 				PTRACE(5, "H46018\tAuto-detecting forward source on H.460.19 channel to " << AsString(fromIP, fromPort));
@@ -8081,21 +8081,22 @@ bool H245ProxyHandler::HandleResponse(H245_ResponseMessage & Response, callptr &
 	return false;
 }
 
-bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters *h225Params, WORD flcn)
+bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters * h225Params, WORD flcn)
 {
-	RTPLogicalChannel *lc = flcn ?
+	RTPLogicalChannel * lc = flcn ?
 		CreateRTPLogicalChannel((WORD)h225Params->m_sessionID, flcn) :
 		CreateFastStartLogicalChannel((WORD)h225Params->m_sessionID);
 	if (!lc)
 		return false;
 
 #ifdef HAS_H46018
-	if(IsTraversalServer() || IsTraversalClient())
+	if(IsTraversalServer() || IsTraversalClient()) {
 		lc->SetUsesH46019();
+	}
 #endif
 	lc->SetRTPSessionID((WORD)h225Params->m_sessionID);
 
-	H245_UnicastAddress *addr = NULL;
+	H245_UnicastAddress * addr = NULL;
 	bool changed = false;
 
 	if( h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)
@@ -8293,7 +8294,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 		if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_videoData) {
 			H245_VideoCapability & vid = olc.m_forwardLogicalChannelParameters.m_dataType;
 			m_h46019uni = (vid.GetTag() == H245_VideoCapability::e_extendedVideoCapability);
-			if (GetTraversalRole() != None && m_h46019uni) {
+			if (((GetTraversalRole() != None) || (peer && peer->GetTraversalRole() != None)) && m_h46019uni) {
 				LogicalChannel * lc = FindLogicalChannel(flcn);
 				if (lc) {
 					((RTPLogicalChannel*)lc)->SetH46019UniDirectional(m_h46019uni);
@@ -8425,13 +8426,18 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 	if (hnat)
 		hnat->HandleOpenLogicalChannelAck(olca);
 	WORD flcn = (WORD)olca.m_forwardLogicalChannelNumber;
-	LogicalChannel *lc = peer->FindLogicalChannel(flcn);
+	LogicalChannel * lc = peer->FindLogicalChannel(flcn);
 	if (!lc) {
 		PTRACE(2, "Proxy\tWarning: logical channel " << flcn << " not found for opening");
 		return false;
 	}
 
 #ifdef HAS_H46018
+	if(IsTraversalServer() || IsTraversalClient()) {
+		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(lc);
+		if (rtplc)
+			rtplc->SetUsesH46019();
+	}
 	WORD sessionID = INVALID_RTP_SESSION;
 	if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)
 		&& olca.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters)
