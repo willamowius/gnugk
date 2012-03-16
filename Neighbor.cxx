@@ -1468,6 +1468,13 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 			Route route(m_name, lcf->m_callSignalAddress);
 #ifdef HAS_H460
 			if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData) || request.IsTraversalZone()) {
+				// overwrite callSignalAddress and replace with ours, we must proxy this call
+				endptr ep = RegistrationTable::Instance()->FindByEndpointId(arq_obj.GetRequest().m_endpointIdentifier); // should not be null
+				if (ep) {
+					 PIPSocket::Address epip;
+					if (GetIPFromTransportAddr(ep->GetCallSignalAddress(), epip))
+						route.m_destAddr = RasServer::Instance()->GetCallSignalAddress(epip);
+				}
 				// create an EPRec to remember the NAT settings for H.460.18 (traversal zone) or H.460.23/.24 (genericData)
 				H225_RasMessage ras;
 				ras.SetTag(H225_RasMessage::e_locationConfirm);

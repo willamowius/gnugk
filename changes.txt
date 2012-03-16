@@ -1,5 +1,6 @@
 Changes from 3.0 to 3.1
 =======================
+- BUGFIX(Neighbor.cxx) set travsersal server IP in ACF for calls through traversal zone
 - BUGFIX(ProxyChannel.cxx) fix H.239 between H.460.19 and regular endpoints
 - BUGFIX(ProxyChannel.cxx) fix bug sending startH245 to H.460.18 server
 - new switch [Neighbor::...] SendIPs=
