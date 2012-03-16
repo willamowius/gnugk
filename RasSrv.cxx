@@ -2762,7 +2762,7 @@ bool AdmissionRequestPDU::Process()
 			PTRACE(1, "Unable to parse saved rasAddress " << RequestingEP->GetRasAddress());
 		}
 	}
- 
+
 	if (RasSrv->IsRedirected(H225_RasMessage::e_admissionRequest) && !answer) {
 		PTRACE(1, "RAS\tWarning: Exceed call limit!!");
 		return BuildReply(H225_AdmissionRejectReason::e_resourceUnavailable);
@@ -2925,10 +2925,10 @@ bool AdmissionRequestPDU::Process()
 				arq.AddRoute(*i++);
 		} else
 			arq.Process();
-			
+
 		if (arq.GetRoutes().empty())
 			return BuildReply(arq.GetRejectReason());
-			
+
 		list<Route>::iterator r = arq.GetRoutes().begin();
 		while (r != arq.GetRoutes().end()) {
 			// PTRACE(1, "route = " << r->AsString() );
@@ -2936,10 +2936,10 @@ bool AdmissionRequestPDU::Process()
 				r->m_proxyMode = authData.m_proxyMode;
 			++r;
 		}
-		
+
 		Route route;
 		arq.GetFirstRoute(route);
-		
+
 		if ((arq.GetRoutes().size() == 1 || !Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ActivateFailover", "0")))
 				&& route.m_destEndpoint	&& !route.m_destEndpoint->HasAvailableCapacity(request.m_destinationInfo))
 			return BuildReply(H225_AdmissionRejectReason::e_resourceUnavailable);
@@ -2948,11 +2948,11 @@ bool AdmissionRequestPDU::Process()
 		CalledAddress = route.m_destAddr;
 		toParent = route.m_flags & Route::e_toParent;
 		aliasesChanged = aliasesChanged || (arq.GetFlags() & Routing::AdmissionRequest::e_aliasesChanged);
-	
+
 		// record neighbor used for rewriting purposes
 		if (route.m_flags & Route::e_toNeighbor)
 			out_rewrite_source = route.m_routeId;
-		
+
 		authData.m_proxyMode = route.m_proxyMode;
 	}
 
@@ -3112,51 +3112,53 @@ bool AdmissionRequestPDU::Process()
 		CallTbl->Insert(pCallRec);
 
 #ifdef HAS_H46023
-		// Std24 proxy offload. See if the media can go direct.
-		if (natoffloadsupport == CallRec::e_natUnknown) 
-		    if (!pCallRec->NATOffLoad(answer,natoffloadsupport))
-			 if (natoffloadsupport == CallRec::e_natFailure) {
-				PTRACE(2,"RAS\tWarning: NAT Media Failure detected " << (unsigned)request.m_callReferenceValue);
-				return BuildReply(H225_AdmissionRejectReason::e_noRouteToDestination,true);
-			 }
+		if (Toolkit::Instance()->IsH46023Enabled()) {
+			// Std24 proxy offload. See if the media can go direct.
+			if (natoffloadsupport == CallRec::e_natUnknown) 
+				if (!pCallRec->NATOffLoad(answer,natoffloadsupport))
+				 if (natoffloadsupport == CallRec::e_natFailure) {
+					PTRACE(2,"RAS\tWarning: NAT Media Failure detected " << (unsigned)request.m_callReferenceValue);
+					return BuildReply(H225_AdmissionRejectReason::e_noRouteToDestination,true);
+				 }
 
-			
-		// If not required disable the proxy support function for this call
-		if (pCallRec->GetProxyMode() != CallRec::ProxyDisabled &&
-			(natoffloadsupport == CallRec::e_natLocalMaster || 
-				natoffloadsupport == CallRec::e_natRemoteMaster ||
-				natoffloadsupport == CallRec::e_natNoassist ||
-			(!pCallRec->SingleGatekeeper() && (natoffloadsupport == CallRec::e_natRemoteProxy ||
-                                               natoffloadsupport == CallRec::e_natAnnexB)))) {
-					PTRACE(4,"RAS\tNAT Proxy disabled due to offload support"); 
-					pCallRec->SetProxyMode(CallRec::ProxyDisabled);
+
+			// If not required disable the proxy support function for this call
+			if (pCallRec->GetProxyMode() != CallRec::ProxyDisabled &&
+				(natoffloadsupport == CallRec::e_natLocalMaster || 
+					natoffloadsupport == CallRec::e_natRemoteMaster ||
+					natoffloadsupport == CallRec::e_natNoassist ||
+				(!pCallRec->SingleGatekeeper() && (natoffloadsupport == CallRec::e_natRemoteProxy ||
+												   natoffloadsupport == CallRec::e_natAnnexB)))) {
+						PTRACE(4,"RAS\tNAT Proxy disabled due to offload support"); 
+						pCallRec->SetProxyMode(CallRec::ProxyDisabled);
+			}
+
+			if (!pCallRec->SingleGatekeeper() &&
+				pCallRec->GetProxyMode() == CallRec::ProxyDisabled &&
+				(natoffloadsupport == CallRec::e_natRemoteMaster ||
+				 natoffloadsupport == CallRec::e_natRemoteProxy ||
+				 natoffloadsupport == CallRec::e_natAnnexB)) {
+				   // Where the remote will handle the NAT Traversal
+				   // the local gatekeeper may not receive any signalling so
+				   // set the call as connected.
+					pCallRec->SetConnected();  
+			}
+
+			pCallRec->SetNATStrategy(natoffloadsupport);
+			PTRACE(4,"RAS\tNAT strategy for Call No: " << pCallRec->GetCallNumber() << 
+						" set to " << pCallRec->GetNATOffloadString(natoffloadsupport));
+
+			if (natoffloadsupport == CallRec::e_natNoassist) { // If no assistance then No NAT type
+				PTRACE(4,"RAS\tNAT Type reset to none");
+				pCallRec->SetNATType(0);
+			}
+
+			signalOffload = pCallRec->NATSignallingOffload(answer);
+			if (signalOffload)
+				pCallRec->ResetTimeOut();
+
+			pCallRec->GetRemoteInfo(vendor, version);
 		}
-
-        if (!pCallRec->SingleGatekeeper() &&
-            pCallRec->GetProxyMode() == CallRec::ProxyDisabled &&
-            (natoffloadsupport == CallRec::e_natRemoteMaster ||
-		     natoffloadsupport == CallRec::e_natRemoteProxy ||
-             natoffloadsupport == CallRec::e_natAnnexB)) {
-               // Where the remote will handle the NAT Traversal
-               // the local gatekeeper may not receive any signalling so
-               // set the call as connected.
-                pCallRec->SetConnected();  
-        }
- 
-		pCallRec->SetNATStrategy(natoffloadsupport);
-		PTRACE(4,"RAS\tNAT strategy for Call No: " << pCallRec->GetCallNumber() << 
-					" set to " << pCallRec->GetNATOffloadString(natoffloadsupport));
-
-		if (natoffloadsupport == CallRec::e_natNoassist) { // If no assistance then No NAT type
-			PTRACE(4,"RAS\tNAT Type reset to none");
-			pCallRec->SetNATType(0);
-		}
-
-		signalOffload = pCallRec->NATSignallingOffload(answer);
-		if (signalOffload)
-			pCallRec->ResetTimeOut();
- 
-		pCallRec->GetRemoteInfo(vendor, version);
 #endif
 		// Put rewriting information into call record
 		pCallRec->SetInboundRewriteId(in_rewrite_source);
