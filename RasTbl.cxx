@@ -2114,11 +2114,6 @@ void RegistrationTable::OnNATSocketClosed(CallSignalSocket * s)
 			Iter = EndpointList.erase(Iter);
 			--regSize;
 			PTRACE(2, "Endpoint " << ep->GetEndpointIdentifier().GetValue() << " removed due to closed NAT socket");
-			PString msg(PString::Printf, "URQ|%s|%s|%s;\r\n", 
-				(const unsigned char *) AsDotString(ep->GetRasAddress()),
-				(const unsigned char *) ep->GetEndpointIdentifier().GetValue(),
-				"natSocketClosed");
-		    GkStatus::Instance()->SignalStatus(msg, STATUS_TRACE_LEVEL_RAS);
 		}
 		else ++Iter;
 	}
@@ -3109,6 +3104,9 @@ PString CallRec::PrintOn(bool verbose) const
 	const time_t timer = time(0) - m_timer;
 	const time_t left = m_timeout > timer ? m_timeout - timer : 0;
 
+    PString callid = AsString(m_callIdentifier.m_guid);
+	callid.Replace(" ", "-", true);
+
 	PString result = PString(PString::Printf,
 		"Call No. %d | CallID %s | %ld | %ld\r\nDial %s\r\n",
 		m_CallNumber, (const char *)AsString(m_callIdentifier.m_guid), (unsigned long)timer, (unsigned long)left,
@@ -3119,14 +3117,18 @@ PString CallRec::PrintOn(bool verbose) const
 		+ "|" + PString(m_crv)
 		+ "|" + m_destInfo
 		+ "|" + m_srcInfo
-		+ "|false;\r\n"
+		+ "|false"
+        + "|" + callid
+        + ";\r\n"
 		// 2nd ACF
 		+ "ACF|" + m_calleeAddr
 		+ "|" + m_calleeId
 		+ "|" + PString(m_crv | 0x8000u)
 		+ "|" + m_destInfo
 		+ "|" + m_srcInfo
-		+ "|true;\r\n";
+		+ "|true"
+        + "|" + callid
+        + ";\r\n";
 	if (verbose) {
 		result += "# " + ((m_Calling) ? AsString(m_Calling->GetAliases()) : m_callerAddr)
 				+ "|" + ((m_Called) ? AsString(m_Called->GetAliases()) : m_calleeAddr)
