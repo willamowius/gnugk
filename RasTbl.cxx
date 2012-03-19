@@ -2114,6 +2114,11 @@ void RegistrationTable::OnNATSocketClosed(CallSignalSocket * s)
 			Iter = EndpointList.erase(Iter);
 			--regSize;
 			PTRACE(2, "Endpoint " << ep->GetEndpointIdentifier().GetValue() << " removed due to closed NAT socket");
+			PString msg(PString::Printf, "URQ|%s|%s|%s;\r\n", 
+				(const unsigned char *) AsDotString(ep->GetRasAddress()),
+				(const unsigned char *) ep->GetEndpointIdentifier().GetValue(),
+				"natSocketClosed");
+		    GkStatus::Instance()->SignalStatus(msg, STATUS_TRACE_LEVEL_RAS);
 		}
 		else ++Iter;
 	}
