@@ -80,8 +80,6 @@ extern const char *H245_ProtocolID;
 
 ///////////////////////////////////////////
 // Presence
-
-#define OID3 "1.3.6.1.4.1.17090.0.3"  // Presence
 #define OID3_PDU	1	// PASN_OctetString Presence PDU
 
 
