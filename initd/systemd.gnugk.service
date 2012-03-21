@@ -1,0 +1,6 @@
+[Unit]
+Description=GNU Gatekeeper
+
+[Service]
+LimitRTPRIO=100
+
