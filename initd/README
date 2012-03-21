@@ -6,7 +6,7 @@ the folder /etc/rc.d or /etc/init.d .
 If you modify one of these scripts to work with your distribution,
 please send them in to jan@willamowius.de or post them on the mailinglist.
 
-OpenSuSE:   use gk.initd.suse12 for 12.x, gk.initd.suse10 for 10.x and gk.initd.suse for 9.x
+OpenSuSE:   use gk.initd.suse12 for 12.x (with SysVInit, not systemd), gk.initd.suse10 for 10.x and gk.initd.suse for 9.x
 CentOS:     use gk.initd.redhat
 
 
