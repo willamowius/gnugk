@@ -68,7 +68,7 @@ case "$1" in
 
 	# NOTE: startproc return 0, even if service is 
 	# already running to match LSB spec.
-	startproc $GNUGK_BIN -c /etc/gatekeeper.ini
+	startproc $GNUGK_BIN -c /etc/gatekeeper.ini -tt -o /var/log/gnugk.log
 
 	# Remember status and be verbose
 	rc_status -v
