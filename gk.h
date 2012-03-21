@@ -30,6 +30,7 @@
 #endif
 
 extern PSemaphore ShutdownMutex;
+extern const char * KnownConfigEntries[][2];
 
 class GkTimer;
 

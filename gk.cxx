@@ -53,39 +53,7 @@ GkTimer* Gatekeeper::m_rotateTimer = GkTimerManager::INVALID_HANDLE;
 
 PSemaphore ShutdownMutex(1,1);
 
-namespace { // keep the global objects private
-
-PTimedMutex ReloadMutex;
-
-#ifndef _WIN32
-PString pidfile("/var/run/gnugk.pid");
-#endif
-
-void ShutdownHandler()
-{
-	Gatekeeper::EnableLogFileRotation(false);
-	// delete singleton objects
-	PTRACE(3, "GK\tDeleting global reference tables");
-
-	Job::StopAll();
-	if (CapacityControl::InstanceExists())
-		delete CapacityControl::Instance();
-	if (CallTable::InstanceExists())
-		delete CallTable::Instance();
-	if (RegistrationTable::InstanceExists())
-		delete RegistrationTable::Instance();
-	if (RasServer::InstanceExists())
-		delete RasServer::Instance();
-	if (MakeCallEndPoint::InstanceExists())
-		delete MakeCallEndPoint::Instance();
-	if (Toolkit::InstanceExists())
-		delete Toolkit::Instance();
-	PTRACE(3, "GK\tdelete ok");
-
-	Gatekeeper::CloseLogFile();
-}
-
-static const char * KnowConfigEntries[][2] = {
+const char * KnownConfigEntries[][2] = {
 	// valid config entries
 	{ "AlternateGatekeepers::SQL", "CacheTimeout" },
 	{ "AlternateGatekeepers::SQL", "Database" },
@@ -574,6 +542,38 @@ static const char * KnowConfigEntries[][2] = {
 	{ NULL }	// the end
 };
 
+namespace { // keep the global objects private
+
+PTimedMutex ReloadMutex;
+
+#ifndef _WIN32
+PString pidfile("/var/run/gnugk.pid");
+#endif
+
+void ShutdownHandler()
+{
+	Gatekeeper::EnableLogFileRotation(false);
+	// delete singleton objects
+	PTRACE(3, "GK\tDeleting global reference tables");
+
+	Job::StopAll();
+	if (CapacityControl::InstanceExists())
+		delete CapacityControl::Instance();
+	if (CallTable::InstanceExists())
+		delete CallTable::Instance();
+	if (RegistrationTable::InstanceExists())
+		delete RegistrationTable::Instance();
+	if (RasServer::InstanceExists())
+		delete RasServer::Instance();
+	if (MakeCallEndPoint::InstanceExists())
+		delete MakeCallEndPoint::Instance();
+	if (Toolkit::InstanceExists())
+		delete Toolkit::Instance();
+	PTRACE(3, "GK\tdelete ok");
+
+	Gatekeeper::CloseLogFile();
+}
+
 bool CheckConfig(PConfig * cfg, const PString & mainsection)
 {
 	unsigned warnings = 0;
@@ -598,10 +598,10 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 		unsigned j = 0;
 		bool found = false;
 		bool section_checkable = true;
-		while ((ks = KnowConfigEntries[j][0])) {
+		while ((ks = KnownConfigEntries[j][0])) {
 			if (sect == ks) {
 				found = true;
-				section_checkable = (PString(KnowConfigEntries[j][1]) != "*");
+				section_checkable = (PString(KnownConfigEntries[j][1]) != "*");
 				break;
 			}
 			j++;
@@ -624,8 +624,8 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 				}
 				unsigned k = 0;
 				bool entry_found = false;
-				while ((ks = KnowConfigEntries[k][0])) {
-					const char * ke = KnowConfigEntries[k][1];
+				while ((ks = KnownConfigEntries[k][0])) {
+					const char * ke = KnownConfigEntries[k][1];
 					k++;
 					if ((sect == ks) && (key == ke)) {
 						entry_found = true;
