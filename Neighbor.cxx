@@ -553,7 +553,7 @@ bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest &)
 
 bool Neighbor::CheckReply(RasMsg *ras) const
 {
-	if( ras->IsFrom(GetIP(), 0 /*m_port*/) )
+	if( ras->IsFrom(GetIP(), 0) )
 		return true;
 
 	const H225_NonStandardParameter *param = ras->GetNonStandardParam();
@@ -632,7 +632,7 @@ bool Neighbor::Authenticate(RasMsg *ras) const
 
 bool Neighbor::IsAcceptable(RasMsg *ras) const
 {
-	if (ras->IsFrom(GetIP(), 0 /*m_port*/)) {
+	if (ras->IsFrom(GetIP(), 0)) {
 		// ras must be an LRQ
 		H225_LocationRequest & lrq = (*ras)->m_recvRAS;
 		PINDEX i, j, sz = m_acceptPrefixes.GetSize();

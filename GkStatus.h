@@ -148,6 +148,7 @@ public:
 		e_GetAcctInfo,                 /// Get acct module information
 		e_ResetCallCounters,           /// Reset the call counters
 		e_PrintEndpointQoS,            /// Print QoS values for all endpoints
+		e_PrintAllConfigSwitches,      /// print all known config switches
 		e_numCommands
 		/// Number of different strings
 	};

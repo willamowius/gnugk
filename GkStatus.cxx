@@ -1065,6 +1065,7 @@ void GkStatus::OnStart()
 	m_commands["gci"] = e_GetAcctInfo;
 	m_commands["resetcallcounters"] = e_ResetCallCounters;
 	m_commands["printendpointqos"] = e_PrintEndpointQoS;
+	m_commands["printallconfigswitches"] = e_PrintAllConfigSwitches;
 }
 
 void GkStatus::ReadSocket(
@@ -1854,6 +1855,17 @@ void StatusClient::ExecCommand(
 	case GkStatus::e_PrintEndpointQoS:
 		// print QoS values for all endpoints
 		SoftPBX::PrintEndpointQoS(this);
+		break;
+	case GkStatus::e_PrintAllConfigSwitches:
+		{
+			const char * sect = NULL;
+			unsigned j = 0;
+			while ((sect = KnownConfigEntries[j][0])) {
+				WriteString(PString(sect) + "," + PString(KnownConfigEntries[j][1]) + "\r\n");
+				j++;
+			}
+			WriteString(";\r\n");
+		}
 		break;
 	default:
 		// commmand not recognized

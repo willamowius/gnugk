@@ -2753,7 +2753,7 @@ bool AdmissionRequestPDU::Process()
 	// find the caller
 	RequestingEP = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
 	if (!RequestingEP)
-		return BuildReply(H225_AdmissionRejectReason::e_callerNotRegistered/*was :e_invalidEndpointIdentifier*/);
+		return BuildReply(H225_AdmissionRejectReason::e_callerNotRegistered);
 
 	if (RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
 		if (GetIPAndPortFromTransportAddr(RequestingEP->GetRasAddress(), m_msg->m_peerAddr, m_msg->m_peerPort)) {

@@ -4795,7 +4795,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					}
 					// always proxy H.245 for H.460.18/19
 					Address calling = GNUGK_INADDR_ANY, called = GNUGK_INADDR_ANY;
-					/* int nat_type = */ m_call->GetNATType(calling, called);
+					m_call->GetNATType(calling, called);
 					// H.245 proxy hander for calling (doesn't have to use H.460.18/.19)
 					H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), callingSocket->localAddr, calling, callingSocket->masqAddr);
 					if (m_call->GetCalledParty() && !m_call->GetCalledParty()->IsTraversalClient()) {

@@ -471,7 +471,7 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 			}
 	}
 
-	if (/*!extroute &&*/ AsBool(GkConfig()->GetString(ProxySection, "Enable", "0"))) {
+	if (AsBool(GkConfig()->GetString(ProxySection, "Enable", "0"))) {
 		for (PINDEX i = 0; i < r_table.GetSize(); ++i) {
 			if (r_table[i].GetNetwork().IsRFC1918()
 				&& (r_table[i].GetNetMask().AsString() != "255.255.255.255")

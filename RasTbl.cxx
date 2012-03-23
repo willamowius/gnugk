@@ -2425,7 +2425,7 @@ CallRec::CallRec(
 	m_srcSignalAddress(oldCall->m_srcSignalAddress),
 	m_callingStationId(oldCall->m_callingStationId), m_calledStationId(oldCall->m_calledStationId),
 	m_dialedNumber(oldCall->m_dialedNumber),
-	m_callingSocket(NULL /*oldCall->m_callingSocket*/), m_calledSocket(NULL),
+	m_callingSocket(NULL), m_calledSocket(NULL),
 	m_usedCount(0), m_nattype(oldCall->m_nattype & ~calledParty), 
 #if HAS_H46023
 	m_natstrategy(e_natUnknown),
