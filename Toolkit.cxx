@@ -529,7 +529,7 @@ bool Toolkit::VirtualRouteTable::CreateTable()
 			extroute = ext.AsString() + "/0";
 
 		CreateRouteTable(extroute);
-		PTRACE(1,"External IP = " << ExtIP << " dynamic " << DynExtIP);
+		PTRACE(1,"External IP=" << ExtIP << " dynamic=" << DynExtIP);
 		return true;
 	} else
 		DynExtIP = false;
@@ -1049,12 +1049,12 @@ Toolkit::~Toolkit()
 	delete m_cliRewrite;
 }
 
-Toolkit::RouteTable *Toolkit::GetRouteTable(bool real)
+Toolkit::RouteTable * Toolkit::GetRouteTable(bool real)
 {
 	return real ? &m_RouteTable : m_VirtualRouteTable.IsEmpty() ? &m_RouteTable : &m_VirtualRouteTable;
 }
 
-PConfig* Toolkit::Config()
+PConfig * Toolkit::Config()
 {
 	// Make sure the config would not be called before SetConfig
 	if (m_ConfigDefaultSection.IsEmpty()) {
@@ -1064,7 +1064,7 @@ PConfig* Toolkit::Config()
 	return (m_Config == NULL) ? ReloadConfig() : m_Config;
 }
 
-PConfig* Toolkit::Config(const char *section)
+PConfig * Toolkit::Config(const char * section)
 {
 	Config()->SetDefaultSection(section);
 	return m_Config;

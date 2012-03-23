@@ -3177,14 +3177,14 @@ bool AdmissionRequestPDU::Process()
 	long irrFrq = GkConfig()->GetInteger("CallTable", "IRRFrequency", 120);
 	if (irrFrq > 0) {
 		acf.IncludeOptionalField ( H225_AdmissionConfirm::e_irrFrequency );
-		acf.m_irrFrequency.SetValue( irrFrq );
+		acf.m_irrFrequency.SetValue(irrFrq);
 	}
 
 	if( !answer && aliasesChanged 
 		&& request.HasOptionalField(H225_AdmissionRequest::e_canMapAlias)
 		&& request.m_canMapAlias
 		&& request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo)
-		&& request.m_destinationInfo.GetSize() > 0 ) {
+		&& request.m_destinationInfo.GetSize() > 0) {
 		acf.IncludeOptionalField(H225_AdmissionConfirm::e_destinationInfo);
 		acf.m_destinationInfo = request.m_destinationInfo;
 	}

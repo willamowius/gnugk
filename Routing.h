@@ -57,7 +57,7 @@ public:
 		e_toNeighbor = 2,
 		e_Reject = 4
 	};
-	
+
 	Route();
 	Route(
 		const PString & policyName,
