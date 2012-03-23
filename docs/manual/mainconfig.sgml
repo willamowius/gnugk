@@ -444,10 +444,10 @@ Default: <tt>N/A</tt><newline>
 <p>
 When using GnuGk behind a NAT you can set the external IP address 
 that you wish the gatekeeper to masquerade as. This will allow external endpoints
-and other gatekeepers to contact the NATed gatekeeper. To work you must port
+and other gatekeepers to contact the NATed gatekeeper. To work you must enable proxy-mode and port
 forward the required ports to the gatekeeper IP or put the gatekeeper in the NAT box
 DMZ. This is different than the bind setting, which specifies a physical IP
-address on the GnuGk box.  
+address on the GnuGk box.
 
 You may specify an IP address or a fully-qualified domain name (FQDN).  If
 you use a FQDN and <tt>ExternalIsDynamic</tt> is set to false, it will be
