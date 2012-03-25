@@ -3519,9 +3519,14 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 		   natinst = CallRec::e_natLocalMaster;
 		   m_natstrategy = natinst;
 	       return true;
-		}
-        PTRACE(4,"RAS\tNo Called Endpoint for H460.24");
-        return false;
+        } else if (m_Calling->SupportH46024() && m_Calling->GetEPNATType() < EndpointRec::NatSymmetric) {
+            PTRACE(4,"RAS\tNo Called Endpoint Assume Public");
+            natinst = CallRec::e_natRemoteMaster;
+            return true;
+        } else {
+            PTRACE(4,"RAS\tNo Called Endpoint for H460.24");
+            return false;
+        }
 	}
 
 	// If both the calling and called are on the same network segment (interface)
