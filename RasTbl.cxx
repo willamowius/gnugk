@@ -2663,6 +2663,28 @@ void CallRec::RerouteDropCalled()
 	CallTable::Instance()->UpdateEPBandwidth(m_Called, -GetBandwidth());
 	m_Called = endptr(0);
 }
+
+// used for failover of GK terminated calls
+bool CallRec::DropCalledAndTryNextRoute()
+{
+	PWaitAndSignal lock(m_sockLock);
+	CallTable::Instance()->UpdateEPBandwidth(m_Called, -GetBandwidth());
+	m_Called = endptr(0);
+	if (m_calledSocket) {
+		m_calledSocket->SendReleaseComplete(H225_ReleaseCompleteReason::e_undefinedReason);
+		if (MoveToNextRoute()) {
+			if (!DisableRetryChecks() && (IsFastStartResponseReceived() || IsH245ResponseReceived())) {
+				PTRACE(5, "Q931\tFailover disabled for call " << GetCallNumber());
+				return false;
+			} else {
+				PTRACE(5, "Q931\tTrying failover for call " << GetCallNumber());
+				m_calledSocket->TryNextRoute();
+				return true;
+			}
+		}
+	}
+	return false;
+}
  
 void CallRec::SetSocket(
 	CallSignalSocket* calling, 
@@ -3013,12 +3035,10 @@ void CallRec::SendReleaseComplete(const H225_CallTerminationCause *cause)
 	if (m_callingSocket) {
 		PTRACE(4, "Sending ReleaseComplete to calling party ...");
 		m_callingSocket->SendReleaseComplete(cause);
-		//m_callingSocket->Close();
 	}
 	if (m_calledSocket) {
 		PTRACE(4, "Sending ReleaseComplete to called party ...");
 		m_calledSocket->SendReleaseComplete(cause);
-		//m_calledSocket->Close();
 	}
 	m_sockLock.Signal();
 
@@ -4307,13 +4327,15 @@ void CallTable::CheckCalls(RasServer * rassrv)
 			? Q931::ResourceUnavailable : Q931::TemporaryFailure
 			);
 		(*call)->SetReleaseSource(CallRec::ReleasedByGatekeeper);
-		(*call)->Disconnect();
 		if (((*call)->GetNoRemainingRoutes() == 0)
 			|| (! (*call)->IsFailoverActive())
 			|| (now - (*call)->GetSetupTime() > (GetSignalTimeout() / 1000) * 5)) {
+			(*call)->Disconnect();	// sends ReleaseComplete to both parties
 			RemoveCall((*call));
 		} else {
-			(*call)->SetCallInProgress(false);	// not necessary with DisableRetryChecks=1
+			(*call)->SetCallInProgress(false);
+			if (!(*call)->DropCalledAndTryNextRoute())
+				(*call)->Disconnect();	// sends ReleaseComplete to both parties
 		}
 		call++;
 	}

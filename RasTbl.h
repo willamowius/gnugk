@@ -823,6 +823,7 @@ public:
 	void SetForward(CallSignalSocket *, const H225_TransportAddress &, const endptr &, const PString &, const PString &);
 	void RerouteDropCalling();
 	void RerouteDropCalled();
+	bool DropCalledAndTryNextRoute();
 	void SetBandwidth(long bandwidth) { m_bandwidth = bandwidth; if (m_bandwidth < 0) m_bandwidth = 0; }
 	void SetSocket(CallSignalSocket *, CallSignalSocket *);
 	void SetCallSignalSocketCalling(CallSignalSocket* socket);
