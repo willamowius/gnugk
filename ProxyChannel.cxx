@@ -2656,16 +2656,24 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 #ifdef HAS_H235_MEDIA
 	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
 		H235Authenticators & auth = m_call->GetAuthenticators();
-		// TODO/BUG: checking for tokens OR cryptoTokens and then always using cryptoTpkens will crash!
-		if (/*setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)
-		  ||*/ setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens)) { 
+		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)
+		  || setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens)) {
+
+			// make sure clear and crypto token fields are pesent, at least with 0 size
+			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
+				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
+				setupBody.m_tokens.SetSize(0);
+			}
+			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens)) {
+				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_cryptoTokens);
+				setupBody.m_cryptoTokens.SetSize(0);
+			}
 
 			auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
 			// TODO Caller Admission. -SH
 			H235Authenticator::ValidationResult result = auth.ValidateSignalPDU( 
 				H225_H323_UU_PDU_h323_message_body::e_setup, 
 				setupBody.m_tokens, setupBody.m_cryptoTokens, m_rawSetup);
-
 			if (result != H235Authenticator::e_OK &&
 				result != H235Authenticator::e_Absent &&
 				result != H235Authenticator::e_Disabled) {
@@ -3816,7 +3824,12 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 		} else if ((m_call && m_call->GetEncryptDirection() == CallRec::calledParty)
 		  && connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens)) {
 
-			// TODO/BUG: check if connect contains cryptoTokens before using them
+			// make sure crypto token fields are pesent, at least with 0 size
+			if (!connectBody.HasOptionalField(H225_Connect_UUIE::e_cryptoTokens)) {
+				connectBody.IncludeOptionalField(H225_Connect_UUIE::e_cryptoTokens);
+				connectBody.m_cryptoTokens.SetSize(0);
+			}
+
 			PBYTEArray nonce;
 			auth.ValidateSignalPDU(H225_H323_UU_PDU_h323_message_body::e_connect, 
 						   connectBody.m_tokens, connectBody.m_cryptoTokens, nonce);
@@ -3826,12 +3839,12 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			connectBody.m_tokens.RemoveAll();
 			connectBody.m_cryptoTokens.RemoveAll();
 			msg->SetUUIEChanged();
-				PTRACE(3, "H235\tMedia Encrypted Support added for Called Party");
+			PTRACE(3, "H235\tMedia Encrypted Support added for Called Party");
 
 		} else if (m_call && m_call->IsMediaEncryption()) {
 			 m_call->SetMediaEncryption(CallRec::none);
 			 m_call->GetAuthenticators().SetSize(0);
-				PTRACE(3, "H235\tNo Media Encryption Support Detected: Disabling!");
+			PTRACE(3, "H235\tNo Media Encryption Support Detected: Disabling!");
 
 		} else {
 			auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_connect, 
@@ -3841,7 +3854,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			if (m_call)
 				m_call->SetMediaEncryption(CallRec::callingParty);
 			msg->SetUUIEChanged();
-				PTRACE(3, "H235\tMedia Encrypted Support added for Calling Party");
+			PTRACE(3, "H235\tMedia Encrypted Support added for Calling Party");
 
 		}
     }
