@@ -3835,7 +3835,8 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			connectBody.IncludeOptionalField(H225_Connect_UUIE::e_tokens);
 			msg->SetUUIEChanged();
 			PTRACE(3, "H235\tMedia Encrypted Support added for Called Party");
-			// TODO: force call to proxy mode ?
+			m_call->SetProxyMode(CallRec::ProxyEnabled);
+			PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled (H.235 HalfCallMedia)");
 
 		} else if (m_call && (m_call->GetEncryptDirection() == CallRec::none)
 			&& !connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens)) {
@@ -3864,7 +3865,8 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			m_call->SetMediaEncryption(CallRec::callingParty);
 			msg->SetUUIEChanged();
 			PTRACE(3, "H235\tMedia Encrypted Support added for Calling Party");
-			// TODO: force call to proxy mode ?
+			m_call->SetProxyMode(CallRec::ProxyEnabled);
+			PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled (H.235 HalfCallMedia)");
 
 		} else {
 			PTRACE(1, "H235\tThis shouldn't happen...");
