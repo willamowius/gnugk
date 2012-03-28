@@ -2675,7 +2675,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				H225_H323_UU_PDU_h323_message_body::e_setup, 
 				setupBody.m_tokens, setupBody.m_cryptoTokens, m_rawSetup);
 			if (result != H235Authenticator::e_OK &&
-				result != H235Authenticator::e_Absent &&
+				result != H235Authenticator::e_Absent &&	// TODO: why is it ok if expected params are absent ?
 				result != H235Authenticator::e_Disabled) {
 					PTRACE(5,"H235 Caller Admission failed");
 					m_call->SetDisconnectCause(Q931::CallRejected);
@@ -3818,11 +3818,11 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
 		H235Authenticators & auth = m_call->GetAuthenticators();
 		if (m_call && !m_call->IsMediaEncryption()
-		  && (connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens) && connectBody.m_cryptoTokens.GetSize() > 0)) {
+		  && (connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens) && connectBody.m_tokens.GetSize() > 0)) {
 			PTRACE(4, "H235\tMedia Encrypted End to End : No Assistance");
 			m_call->GetAuthenticators().SetSize(0);
 		} else if ((m_call && m_call->GetEncryptDirection() == CallRec::calledParty)
-		  && (connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens) && connectBody.m_cryptoTokens.GetSize() > 0)) {
+		  && (connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens) && connectBody.m_tokens.GetSize() > 0)) {
 
 			// make sure crypto token fields are pesent, at least with 0 size
 			if (!connectBody.HasOptionalField(H225_Connect_UUIE::e_cryptoTokens)) {
