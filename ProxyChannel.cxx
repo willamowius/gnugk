@@ -2658,6 +2658,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		H235Authenticators & auth = m_call->GetAuthenticators();
 		if ((setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens) && setupBody.m_tokens.GetSize() > 0)
 		  || (setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens) && setupBody.m_cryptoTokens.GetSize() > 0)) {
+			// TODO: better check if these are really the DH tokens we are expecting
 
 			// make sure clear and crypto token fields are pesent, at least with 0 size
 			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
@@ -2691,8 +2692,10 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_setup, 
 									setupBody.m_tokens, setupBody.m_cryptoTokens);
 			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
+			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_h245SecurityCapability);
+			setupBody.m_h245SecurityCapability.SetSize(1);
+			setupBody.m_h245SecurityCapability[0] = H225_H245Security::e_noSecurity;
 			m_call->SetMediaEncryption(CallRec::calledParty);
-			// TODO: force call to proxy mode ?
 		}
 	}
 #endif
@@ -3817,12 +3820,33 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 #ifdef HAS_H235_MEDIA
 	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
 		H235Authenticators & auth = m_call->GetAuthenticators();
-		if (m_call && !m_call->IsMediaEncryption()
+		if (m_call && (m_call->GetEncryptDirection() == CallRec::calledParty)
 		  && (connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens) && connectBody.m_tokens.GetSize() > 0)) {
+			// there were tokens in the Setup and now in the Connect, then our help isn't needed
 			PTRACE(4, "H235\tMedia Encrypted End to End : No Assistance");
 			m_call->GetAuthenticators().SetSize(0);
 		} else if ((m_call && m_call->GetEncryptDirection() == CallRec::calledParty)
+		  && !connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens)) {
+			// there were tokens in Setup, but none Connect
+
+			auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_connect, 
+								  connectBody.m_tokens, connectBody.m_cryptoTokens);
+			connectBody.RemoveOptionalField(H225_Connect_UUIE::e_cryptoTokens);
+			connectBody.IncludeOptionalField(H225_Connect_UUIE::e_tokens);
+			msg->SetUUIEChanged();
+			PTRACE(3, "H235\tMedia Encrypted Support added for Called Party");
+			// TODO: force call to proxy mode ?
+
+		} else if (m_call && (m_call->GetEncryptDirection() == CallRec::none)
+			&& !connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens)) {
+			// no tokens in Setup and none in Connect
+			//m_call->SetMediaEncryption(CallRec::none);
+			m_call->GetAuthenticators().SetSize(0);
+			PTRACE(3, "H235\tNo Media Encryption Support Detected: Disabling!");
+
+		} else if (m_call && (m_call->GetEncryptDirection() == CallRec::none)
 		  && (connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens) && connectBody.m_tokens.GetSize() > 0)) {
+			// there were no tokens in Setup (but we added some), but there are in Connect
 
 			// make sure crypto token fields are pesent, at least with 0 size
 			if (!connectBody.HasOptionalField(H225_Connect_UUIE::e_cryptoTokens)) {
@@ -3836,26 +3860,14 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 
 			connectBody.RemoveOptionalField(H225_Connect_UUIE::e_cryptoTokens);
 			connectBody.RemoveOptionalField(H225_Connect_UUIE::e_tokens);
-			connectBody.m_tokens.RemoveAll();
-			connectBody.m_cryptoTokens.RemoveAll();
-			msg->SetUUIEChanged();
-			PTRACE(3, "H235\tMedia Encrypted Support added for Called Party");
 
-		} else if (m_call && m_call->IsMediaEncryption()) {
-			 m_call->SetMediaEncryption(CallRec::none);
-			 m_call->GetAuthenticators().SetSize(0);
-			PTRACE(3, "H235\tNo Media Encryption Support Detected: Disabling!");
-
-		} else {
-			auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_connect, 
-								  connectBody.m_tokens, connectBody.m_cryptoTokens);
-			connectBody.RemoveOptionalField(H225_Connect_UUIE::e_cryptoTokens);
-			connectBody.IncludeOptionalField(H225_Connect_UUIE::e_tokens);
-			if (m_call)
-				m_call->SetMediaEncryption(CallRec::callingParty);
+			m_call->SetMediaEncryption(CallRec::callingParty);
 			msg->SetUUIEChanged();
 			PTRACE(3, "H235\tMedia Encrypted Support added for Calling Party");
+			// TODO: force call to proxy mode ?
 
+		} else {
+			PTRACE(1, "H235\tThis shouldn't happen...");
 		}
     }
 #endif
