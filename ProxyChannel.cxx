@@ -2654,50 +2654,51 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		}
 
 #ifdef HAS_H235_MEDIA
-	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
-		H235Authenticators & auth = m_call->GetAuthenticators();
-		if ((setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens) && setupBody.m_tokens.GetSize() > 0)
-		  || (setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens) && setupBody.m_cryptoTokens.GetSize() > 0)) {
-			// TODO: better check if these are really the DH tokens we are expecting
+		if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
+			H235Authenticators & auth = m_call->GetAuthenticators();
+			if ((setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens) && setupBody.m_tokens.GetSize() > 0)
+			  || (setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens) && setupBody.m_cryptoTokens.GetSize() > 0)) {
+				// TODO: better check if these are really the DH tokens we are expecting
 
-			// make sure clear and crypto token fields are pesent, at least with 0 size
-			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
+				// make sure clear and crypto token fields are pesent, at least with 0 size
+				if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
+					setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
+					setupBody.m_tokens.SetSize(0);
+				}
+				if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens)) {
+					setupBody.IncludeOptionalField(H225_Setup_UUIE::e_cryptoTokens);
+					setupBody.m_cryptoTokens.SetSize(0);
+				}
+
+				auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
+				// TODO Caller Admission. -SH
+				H235Authenticator::ValidationResult result = auth.ValidateSignalPDU( 
+					H225_H323_UU_PDU_h323_message_body::e_setup, 
+					setupBody.m_tokens, setupBody.m_cryptoTokens, m_rawSetup);
+				if (result != H235Authenticator::e_OK &&
+					result != H235Authenticator::e_Absent &&	// TODO: why is it ok if expected params are absent ?
+					result != H235Authenticator::e_Disabled) {
+						PTRACE(5,"H235 Caller Admission failed");
+						m_call->SetDisconnectCause(Q931::CallRejected);
+						rejectCall = true;
+				}
+
+				// Remove hop-by-hop cryptoTokens...
+				setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
+				setupBody.m_cryptoTokens.RemoveAll();
+				m_call->SetMediaEncryption(CallRec::calledParty);
+			}
+
+			if (!rejectCall && !auth.SupportsEncryption() && auth.CreateAuthenticator("Std6")) {
+				auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_setup, 
+										setupBody.m_tokens, setupBody.m_cryptoTokens);
 				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
-				setupBody.m_tokens.SetSize(0);
+				// don't mention that we don't support H.245 security, keeps the E20 from doing DH exchange
+//				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_h245SecurityCapability);
+//				setupBody.m_h245SecurityCapability.SetSize(1);
+//				setupBody.m_h245SecurityCapability[0] = H225_H245Security::e_noSecurity;
 			}
-			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens)) {
-				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_cryptoTokens);
-				setupBody.m_cryptoTokens.SetSize(0);
-			}
-
-			auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
-			// TODO Caller Admission. -SH
-			H235Authenticator::ValidationResult result = auth.ValidateSignalPDU( 
-				H225_H323_UU_PDU_h323_message_body::e_setup, 
-				setupBody.m_tokens, setupBody.m_cryptoTokens, m_rawSetup);
-			if (result != H235Authenticator::e_OK &&
-				result != H235Authenticator::e_Absent &&	// TODO: why is it ok if expected params are absent ?
-				result != H235Authenticator::e_Disabled) {
-					PTRACE(5,"H235 Caller Admission failed");
-					m_call->SetDisconnectCause(Q931::CallRejected);
-					rejectCall = true;
-			}
-
-			// Remove hop-by-hop cryptoTokens...
-			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
-			setupBody.m_cryptoTokens.RemoveAll();
 		}
-
-		if (!rejectCall && !auth.SupportsEncryption() && auth.CreateAuthenticator("Std6")) {
-			auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_setup, 
-									setupBody.m_tokens, setupBody.m_cryptoTokens);
-			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
-			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_h245SecurityCapability);
-			setupBody.m_h245SecurityCapability.SetSize(1);
-			setupBody.m_h245SecurityCapability[0] = H225_H245Security::e_noSecurity;
-			m_call->SetMediaEncryption(CallRec::calledParty);
-		}
-	}
 #endif
 
 		const H225_ArrayOf_CryptoH323Token & tokens = m_call->GetAccessTokens();
