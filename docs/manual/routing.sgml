@@ -604,6 +604,7 @@ AcceptUnregisteredCalls=1
 ; failover must be on for forward on timeout
 ActivateFailover=1
 FailoverCauses=1-15,17-127
+DisableRetryChecks=1
 ; 10 sec alerting timeout (for forward on no answer)
 AlertingTimeout=10000
 
