@@ -1302,8 +1302,8 @@ public:
     typedef NATType EncDir;
     H235Authenticators & GetAuthenticators() { return m_authenticators; }
     void SetMediaEncryption(EncDir dir);
-    bool IsMediaEncryption()                 { return m_encyptDir != none;  }
-    EncDir GetEncryptDirection()             { return m_encyptDir;      }
+    bool IsMediaEncryption() { return m_encyptDir != none; }
+    EncDir GetEncryptDirection() { return m_encyptDir; }
 #endif
 
 private:
@@ -1516,7 +1516,7 @@ private:
 
 #ifdef HAS_H235_MEDIA
     H235Authenticators m_authenticators;
-    EncDir m_encyptDir;
+    EncDir m_encyptDir;	// party for which we simulate encryption
 #endif
 };
 

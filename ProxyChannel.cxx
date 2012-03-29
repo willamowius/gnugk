@@ -1836,9 +1836,9 @@ bool CallSignalSocket::HandleH235TCS(H245_TerminalCapabilitySet & tcs)
 {
     if (m_call && m_call->GetEncryptDirection() == CallRec::none)
         return false;
-    
-    bool toRemove = ((m_callerSocket && (m_call->GetEncryptDirection() == CallRec::callingParty))
-                 || (!m_callerSocket && (m_call->GetEncryptDirection() == CallRec::calledParty)));
+
+    bool toRemove = ((!m_callerSocket && (m_call->GetEncryptDirection() == CallRec::callingParty))
+                 || (m_callerSocket && (m_call->GetEncryptDirection() == CallRec::calledParty)));
 
     PStringList m_capList;
     if (!m_call->GetAuthenticators().GetAlgorithms(m_capList)) {
@@ -1875,9 +1875,9 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 {
     if (m_call && m_call->GetEncryptDirection() == CallRec::none)
         return false;
-    
-    bool toRemove = ((m_callerSocket && (m_call->GetEncryptDirection() == CallRec::callingParty))
-                 || (!m_callerSocket && (m_call->GetEncryptDirection() == CallRec::calledParty)));
+
+    bool toRemove = ((!m_callerSocket && (m_call->GetEncryptDirection() == CallRec::callingParty))
+                 || (m_callerSocket && (m_call->GetEncryptDirection() == CallRec::calledParty)));
 
     bool isReverse = false;
     H245_DataType newCap;
@@ -1913,7 +1913,6 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 
         olc.RemoveOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
     } else {
-
         PStringList m_capList;
         if (!m_call->GetAuthenticators().GetAlgorithms(m_capList)) {
             PTRACE(3, "H235\tOLC No Algorithms! ABORTIING REWRITE!");
@@ -1922,9 +1921,8 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 
         newCap.SetTag(H245_DataType::e_h235Media);
         H245_H235Media & h235Media = newCap;
-           
-        H245_EncryptionAuthenticationAndIntegrity & encAuth =
-			h235Media.m_encryptionAuthenticationAndIntegrity;
+
+        H245_EncryptionAuthenticationAndIntegrity & encAuth = h235Media.m_encryptionAuthenticationAndIntegrity;
 		encAuth.IncludeOptionalField(H245_EncryptionAuthenticationAndIntegrity::e_encryptionCapability);
 		H245_EncryptionCapability & enc = encAuth.m_encryptionCapability;
 		enc.SetSize(1);
