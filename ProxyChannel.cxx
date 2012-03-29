@@ -2682,19 +2682,23 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				}
 
 				// Remove hop-by-hop cryptoTokens...
-				setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 				setupBody.m_cryptoTokens.RemoveAll();
+				setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 				m_call->SetMediaEncryption(CallRec::calledParty);
-			}
-
-			if (!rejectCall && !auth.SupportsEncryption() && auth.CreateAuthenticator("Std6")) {
+			} else if (!rejectCall && !auth.SupportsEncryption() && auth.CreateAuthenticator("Std6")) {
+				if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
+					setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
+					setupBody.m_tokens.SetSize(0);
+				}
+				if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens)) {
+					setupBody.IncludeOptionalField(H225_Setup_UUIE::e_cryptoTokens);
+					setupBody.m_cryptoTokens.SetSize(0);
+				}
 				auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_setup, 
 										setupBody.m_tokens, setupBody.m_cryptoTokens);
 				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
-				// don't mention that we don't support H.245 security, keeps the E20 from doing DH exchange
-//				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_h245SecurityCapability);
-//				setupBody.m_h245SecurityCapability.SetSize(1);
-//				setupBody.m_h245SecurityCapability[0] = H225_H245Security::e_noSecurity;
+				if (setupBody.m_cryptoTokens.GetSize() == 0)
+					setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 			}
 		}
 #endif
