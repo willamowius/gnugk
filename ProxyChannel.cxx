@@ -5163,7 +5163,7 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 				H460_FeatureStd feat = H460_FeatureStd(19);
 				H460_FeatureID * feat_id = NULL;
 				if (m_call->GetCalledParty()
-					&& (m_call->GetCalledParty()->IsTraversalClient() || m_call->GetCallingParty()->UsesH46017())) {
+					&& (m_call->GetCalledParty()->IsTraversalClient() || m_call->GetCalledParty()->UsesH46017())) {
 					feat_id = new H460_FeatureID(2);	// mediaTraversalServer
 					feat.AddParameter(feat_id);
 					delete feat_id;
