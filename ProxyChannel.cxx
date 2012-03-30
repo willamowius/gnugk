@@ -1761,10 +1761,24 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 
 #ifdef HAS_H235_MEDIA
 
+bool SupportsH235Media(const H225_ArrayOf_ClearToken & clearTokens)
+{
+	bool h235v3compatible = false;
+	bool supportedDHkey = false;
+
+	for(PINDEX i=0; i < clearTokens.GetSize(); ++i) {
+		if (clearTokens[i].m_tokenOID == "0.0.8.235.0.3.24")
+			h235v3compatible = true;
+		if (clearTokens[i].m_tokenOID == "0.0.8.235.0.3.43")	// TODO: automatically fetch list of supported keys from authenticator
+			supportedDHkey = true;
+	}
+	return (h235v3compatible && supportedDHkey);
+}
+
 bool RemoveH235Capability(unsigned _entryNo,
                           H245_ArrayOf_CapabilityTableEntry & _capTable, 
-                          H245_ArrayOf_CapabilityDescriptor & _capDesc) {
-
+                          H245_ArrayOf_CapabilityDescriptor & _capDesc)
+{
     PTRACE(5, "Removing H.235 capability no: " << _entryNo);
 
     for (PINDEX i=0; i< _capTable.GetSize(); ++i) {
@@ -2654,8 +2668,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 #ifdef HAS_H235_MEDIA
 		if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
 			H235Authenticators & auth = m_call->GetAuthenticators();
-			if ((setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens) && setupBody.m_tokens.GetSize() > 0)
-			  || (setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens) && setupBody.m_cryptoTokens.GetSize() > 0)) {
+			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens) && SupportsH235Media(setupBody.m_tokens)) {
 				// TODO: better check if these are really the DH tokens we are expecting
 
 				// make sure clear and crypto token fields are pesent, at least with 0 size
@@ -3824,7 +3837,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
 		H235Authenticators & auth = m_call->GetAuthenticators();
 		if (m_call && (m_call->GetEncryptDirection() == CallRec::calledParty)
-		  && (connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens) && connectBody.m_tokens.GetSize() > 0)) {
+		  && connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens) && SupportsH235Media(connectBody.m_tokens)) {
 			// there were tokens in the Setup and now in the Connect, then our help isn't needed
 			PTRACE(4, "H235\tMedia Encrypted End to End : No Assistance");
 			m_call->GetAuthenticators().SetSize(0);
@@ -3849,7 +3862,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			PTRACE(3, "H235\tNo Media Encryption Support Detected: Disabling!");
 
 		} else if (m_call && (m_call->GetEncryptDirection() == CallRec::none)
-		  && (connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens) && connectBody.m_tokens.GetSize() > 0)) {
+		  && connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens) && SupportsH235Media(connectBody.m_tokens)) {
 			// there were no tokens in Setup (but we added some), but there are in Connect
 
 			// make sure crypto token fields are pesent, at least with 0 size
