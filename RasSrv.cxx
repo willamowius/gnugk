@@ -760,8 +760,12 @@ void RasServer::SetRoutedMode(bool routedSignaling, bool routedH245)
 	const char *h245msg = GKRoutedH245 ? "Enabled" : "Disabled";
 	PTRACE(2, "GK\tUsing " << modemsg << " Signalling");
 	PTRACE(2, "GK\tH.245 Routed " << h245msg);
+#ifdef HAS_H46017
+	const char * h46017msg = Toolkit::AsBool(GkConfig()->GetString("RoutedMode", "EnableH46017", "0")) ? "Enabled" : "Disabled";
+	PTRACE(2, "GK\tH.460.17 Registrations " << h46017msg);
+#endif
 #ifdef HAS_H46018
-	const char *h46018msg = Toolkit::AsBool(GkConfig()->GetString("RoutedMode", "EnableH46018", "0")) ? "Enabled" : "Disabled";
+	const char * h46018msg = Toolkit::AsBool(GkConfig()->GetString("RoutedMode", "EnableH46018", "0")) ? "Enabled" : "Disabled";
 	PTRACE(2, "GK\tH.460.18 Registrations " << h46018msg);
 #endif
 }

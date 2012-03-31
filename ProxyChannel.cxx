@@ -1546,8 +1546,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 
 	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request
 			&& ((H245_RequestMessage&)h245msg).GetTag() == H245_RequestMessage::e_openLogicalChannel) {
-		H245_OpenLogicalChannel &olc = (H245_RequestMessage&)h245msg;
-
+		H245_OpenLogicalChannel & olc = (H245_RequestMessage&)h245msg;
 #ifdef HAS_H235_MEDIA
         changed = HandleH235OLC(olc);    
 #endif
@@ -1615,7 +1614,10 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		}
 #endif
 		if (rmsg.GetTag() == H245_ResponseMessage::e_openLogicalChannelAck) {
-			H245_OpenLogicalChannelAck &olcack = rmsg;
+			H245_OpenLogicalChannelAck & olcack = rmsg;
+#ifdef HAS_H235_MEDIA
+			changed = HandleH235OLCAck(olcack);    
+#endif
 			if (m_callerSocket) {
 				if (olcack.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)
 						&& olcack.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters) {
@@ -1802,8 +1804,8 @@ bool RemoveH235Capability(unsigned _entryNo,
 bool AddH235Capability(unsigned _entryNo,
                        const PStringList & _capList,
                           H245_ArrayOf_CapabilityTableEntry & _capTable, 
-                          H245_ArrayOf_CapabilityDescriptor & _capDesc) {
-
+                          H245_ArrayOf_CapabilityDescriptor & _capDesc)
+{
     if (_capList.GetSize() == 0)
         return false;
 
@@ -1909,10 +1911,6 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
     }
 
     if (toRemove) {
-		//=============================
-		// Handle the OLC here
-		//=============================
-
         H245_H235Media_mediaType & cType = ((H245_H235Media &)rawCap).m_mediaType;
 		if (cType.GetTag() == H245_H235Media_mediaType::e_audioData) {
 			newCap.SetTag(H245_DataType::e_audioData);
@@ -1956,17 +1954,28 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 			cType.SetTag(H245_H235Media_mediaType::e_data);
 			(H245_DataApplicationCapability &)cType = (H245_DataApplicationCapability &)rawCap;
 		}
-		//=============================
-		// Handle the OLC here
-		//=============================
-       // Load Sync Material (if used)
-       // olc.IncludeOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
+		// Load Sync Material (if used)
+		// TODO: only if master, fill the key
+		//olc.IncludeOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
     }
 
     if (isReverse) {
 	    olc.m_reverseLogicalChannelParameters.m_dataType = newCap;
     } else
 	    olc.m_forwardLogicalChannelParameters.m_dataType = newCap;
+
+    return true;
+}
+
+bool CallSignalSocket::HandleH235OLCAck(H245_OpenLogicalChannelAck & olcack)
+{
+    if (m_call && m_call->GetEncryptDirection() == CallRec::none)
+        return false;
+
+    bool toRemove = ((!m_callerSocket && (m_call->GetEncryptDirection() == CallRec::callingParty))
+                 || (m_callerSocket && (m_call->GetEncryptDirection() == CallRec::calledParty)));
+	// TODO: only if master, fill the key
+	//olcack.IncludeOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
 
     return true;
 }
@@ -4568,7 +4577,7 @@ void CallSignalSocket::SetLCMultiplexSocket(unsigned lc, bool isRTCP, int multip
 
 void CallSignalSocket::OnReleaseComplete(SignalingMsg *msg)
 {
-	ReleaseCompleteMsg *rc = dynamic_cast<ReleaseCompleteMsg*>(msg);
+	ReleaseCompleteMsg * rc = dynamic_cast<ReleaseCompleteMsg*>(msg);
 	if (rc == NULL) {
 		PTRACE(2, Type() << "\tWarning: ReleaseComplete message from " << Name() << " without associated UUIE");
 	}
@@ -9203,6 +9212,10 @@ void ProxyHandler::ReadSocket(IPSocket *socket)
 			{
 				psocket->ForwardData();
 				CallSignalSocket * css = dynamic_cast<CallSignalSocket *>(socket);
+				if (css && css->MaintainConnection()) {
+					// just detach H.460.17 from the call, don't close them
+					css->DetachRemote();
+				}
 				if (!css || !css->MaintainConnection()) {
 					// only close the Q.931 socket if it's not also used for H.460.17
 					socket->Close();

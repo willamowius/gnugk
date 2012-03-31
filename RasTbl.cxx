@@ -3004,16 +3004,12 @@ void CallRec::RemoveSocket()
 
 	PWaitAndSignal lock(m_sockLock);
 	if (m_callingSocket) {
-		if (m_callingSocket->MaintainConnection())
-			m_callingSocket->DetachRemote();
-		else
+		if (!m_callingSocket->MaintainConnection())
 			m_callingSocket->SetDeletable();
 		m_callingSocket = NULL;
 	}
 	if (m_calledSocket) {
-		if (m_calledSocket->MaintainConnection())
-			m_calledSocket->DetachRemote();
-		else
+		if (!m_calledSocket->MaintainConnection())
 			m_calledSocket->SetDeletable();
 		m_calledSocket = NULL;
 	}

@@ -212,6 +212,7 @@ public:
 #ifdef HAS_H235_MEDIA
     bool HandleH235TCS(H245_TerminalCapabilitySet & tcs);
     bool HandleH235OLC(H245_OpenLogicalChannel & olc);
+    bool HandleH235OLCAck(H245_OpenLogicalChannelAck & olcack);
 #endif
 	bool CompareH245Socket(H245Socket * sock) const { return sock == m_h245socket; }	// compare pointers !
 	
