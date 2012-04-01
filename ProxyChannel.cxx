@@ -390,13 +390,14 @@ private:
 	virtual bool ConnectRemote();
 };
 
+class RTPLogicalChannel;
 class UDPProxySocket : public UDPSocket, public ProxySocket {
 public:
 #ifndef LARGE_FDSET
 	PCLASSINFO( UDPProxySocket, UDPSocket )
 #endif
 
-	UDPProxySocket(const char * t, const H225_CallIdentifier & id);
+	UDPProxySocket(const char * t, const H225_CallIdentifier & id, RTPLogicalChannel * lc);
 	~UDPProxySocket();
 
 	void UpdateSocketName();
@@ -468,6 +469,7 @@ private:
 	PUInt32b m_multiplexID_B;	// only valid if m_multiplexDestination_B is set
 	int m_multiplexSocket_B;	// only valid if m_multiplexDestination_ is set
 #endif
+	RTPLogicalChannel * rtplc;
 };
 
 class T120LogicalChannel;
@@ -557,6 +559,12 @@ public:
 	void SetLCMultiplexSocket(bool isRTCP, int multiplexSocket, H46019Side side);
 #endif
 
+#ifdef HAS_H235_MEDIA
+	void CreateH235Session(H235Authenticators & auth, H245_EncryptionSync & m_encryptionSync, bool caller);
+	bool HasH235Encryption() { return m_H235Session; }
+	bool ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller);
+#endif
+
 private:
 	void SetNAT(bool);
 
@@ -565,6 +573,11 @@ private:
 	UDPProxySocket *rtp, *rtcp;
 	PIPSocket::Address SrcIP;
 	WORD SrcPort;
+
+#ifdef HAS_H235_MEDIA
+	H235Session * m_H235Session;
+	bool m_h235Caller;
+#endif
 
 	static WORD GetPortNumber();	// get a new port number to use
 };
@@ -648,6 +661,9 @@ private:
 	bool isH245ended;
 };
 
+#ifdef HAS_H235_MEDIA
+class H235Session;
+#endif
 class H245ProxyHandler : public H245Handler {
 public:
 	typedef std::map<WORD, LogicalChannel *>::iterator iterator;
@@ -1957,25 +1973,28 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 		// Load Sync Material (if used)
 		// TODO: only if master, fill the key
 		//olc.IncludeOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
-    }
+	}
 
-    if (isReverse) {
-	    olc.m_reverseLogicalChannelParameters.m_dataType = newCap;
-    } else
-	    olc.m_forwardLogicalChannelParameters.m_dataType = newCap;
+	if (isReverse) {
+		olc.m_reverseLogicalChannelParameters.m_dataType = newCap;
+	} else
+		olc.m_forwardLogicalChannelParameters.m_dataType = newCap;
 
-    return true;
+	return true;
 }
 
 bool CallSignalSocket::HandleH235OLCAck(H245_OpenLogicalChannelAck & olcack)
 {
-    if (m_call && m_call->GetEncryptDirection() == CallRec::none)
-        return false;
+	if (m_call && m_call->GetEncryptDirection() == CallRec::none)
+		return false;
 
-    bool toRemove = ((!m_callerSocket && (m_call->GetEncryptDirection() == CallRec::callingParty))
-                 || (m_callerSocket && (m_call->GetEncryptDirection() == CallRec::calledParty)));
-	// TODO: only if master, fill the key
-	//olcack.IncludeOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
+	bool toRemove = ((!m_callerSocket && (m_call->GetEncryptDirection() == CallRec::callingParty))
+				|| (m_callerSocket && (m_call->GetEncryptDirection() == CallRec::calledParty)));
+
+	if (!toRemove) {
+		// TODO: only if master, fill the key 
+		//olcack.IncludeOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
+	}
 
     return true;
 }
@@ -6951,10 +6970,10 @@ PUInt32b MultiplexedRTPHandler::GetNewMultiplexID()
 
 
 // class UDPProxySocket
-UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
+UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id, RTPLogicalChannel * lc)
 	: ProxySocket(this, t), m_callID(id),
 		m_call(NULL), fSrcIP(0), fDestIP(0), rSrcIP(0), rDestIP(0),
-		fSrcPort(0), fDestPort(0), rSrcPort(0), rDestPort(0), m_sessionID(0)
+		fSrcPort(0), fDestPort(0), rSrcPort(0), rDestPort(0), m_sessionID(0), rtplc(lc)
 #ifdef HAS_H46018
 	, m_h46019fc(false), m_useH46019(false), m_h46019uni(false), m_h46019DetectionDone(false),
 	m_multiplexID_A(INVALID_MULTIPLEX_ID), m_multiplexSocket_A(INVALID_OSSOCKET),
@@ -7340,6 +7359,10 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			fDestIP = fromIP, fDestPort = fromPort;
 		}
 	}
+#if HAS_H235_MEDIA
+	rtplc->ProcessH235Media(wbuffer, buflen,true); //-- TODO: Direction
+#endif
+
 	if (isRTCP && m_EnableRTCPStats && m_call && (*m_call))
 		return ParseRTCP(*m_call, m_sessionID, fromIP, wbuffer, buflen);
 	return Forwarding;
@@ -7627,6 +7650,9 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 	SrcPort = 0;
 	rtp = NULL;
 	rtcp = NULL;
+#if HAS_H235_MEDIA
+	m_H235Session = NULL;
+#endif
 
 #ifdef HAS_H46023
 	// If we do not have a GKClient (no parent) and we
@@ -7636,8 +7662,8 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 	if (!nated || !gkClient->H46023_CreateSocketPair(id, rtp, rtcp, nated))
 #endif
 	{
-		rtp = new UDPProxySocket("RTP", id);
-		rtcp = new UDPProxySocket("RTCP", id);
+		rtp = new UDPProxySocket("RTP", id, this);
+		rtcp = new UDPProxySocket("RTCP", id, this);
 	}
     SetNAT(nated);
 
@@ -7680,6 +7706,10 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 
 RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nated)
 {
+#if HAS_H235_MEDIA
+	m_H235Session = NULL;
+	m_h235Caller=false;
+#endif
 	port = flc->port;
 	used = flc->used;
 	rtp = flc->rtp;
@@ -7694,6 +7724,11 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nat
 
 RTPLogicalChannel::~RTPLogicalChannel()
 {
+#if HAS_H235_MEDIA
+	if (m_H235Session)
+		delete m_H235Session;
+#endif
+
 	if (peer) {
 		peer->peer = NULL;
 	} else {
@@ -7769,6 +7804,44 @@ void RTPLogicalChannel::SetLCMultiplexSocket(bool isRTCP, int multiplexSocket, H
 	if (!isRTCP && rtp) {
 		rtp->SetMultiplexSocket(multiplexSocket, side);
 	}
+}
+#endif
+
+#ifdef HAS_H235_MEDIA
+void RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, H245_EncryptionSync & m_encryptionSync, bool caller)
+{
+	if (m_H235Session)
+		return;
+
+	m_h235Caller = caller;
+	//m_H235Session = new H235Session();   -- TODO 
+}
+
+bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller) 
+{
+	if (!m_H235Session)
+		return false;
+
+	//TODO - handle multiplexing -- ?
+	//TODO - RTCP
+
+	RTP_DataFrame frame(len-12);
+	memcpy(frame.GetPointer(), buffer, len);
+
+	bool success = false;
+	DWORD dummy=0;
+	if (fromCaller && m_h235Caller)
+		success = m_H235Session->ReadFrame(dummy, frame);
+	else if (!fromCaller && !m_h235Caller)
+		success = m_H235Session->WriteFrame(frame);
+
+	if (success) {
+		len = frame.GetPayloadSize()+12;
+		memcpy(buffer, frame.GetPointer(), len);
+		return true;
+	}
+
+	return false;
 }
 #endif
 
@@ -8461,6 +8534,13 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 		call->StartRTPKeepAlive(flcn, h46019chan.m_osSocketToA);
 		call->StartRTCPKeepAlive(flcn, h46019chan.m_osSocketToA_RTCP);
 #endif
+
+#if HAS_H235_MEDIA
+	if (call->IsMediaEncryption() && olc.HasOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync)) {
+		RTPLogicalChannel * lc = (RTPLogicalChannel *)FindLogicalChannel(flcn);
+		lc->CreateH235Session(call->GetAuthenticators(), olc.m_encryptionSync , true);  // TODO - Direction
+	}
+#endif
 		return changed;
 	}
 }
@@ -8646,6 +8726,13 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 			call->SetLCMultiplexSocket(flcn, peer, false, h46019chan.m_osSocketToB, SideB);
 			call->SetLCMultiplexSocket(flcn, peer, true, h46019chan.m_osSocketToB_RTCP, SideB);
 		}
+	}
+#endif
+
+#if HAS_H235_MEDIA
+	// Encryption creation here...
+	if (call->IsMediaEncryption() && olca.HasOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync)) {
+		((RTPLogicalChannel *)lc)->CreateH235Session(call->GetAuthenticators(), olca.m_encryptionSync, true);  // -- TODO fix up direction
 	}
 #endif
 
