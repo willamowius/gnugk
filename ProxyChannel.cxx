@@ -455,6 +455,7 @@ private:
 	bool m_dontQueueRTP;
 	bool m_EnableRTCPStats;
 	WORD m_sessionID;
+	RTPLogicalChannel * rtplc;
 #ifdef HAS_H46018
 	bool m_h46019fc;
 	bool m_useH46019;
@@ -469,7 +470,6 @@ private:
 	PUInt32b m_multiplexID_B;	// only valid if m_multiplexDestination_B is set
 	int m_multiplexSocket_B;	// only valid if m_multiplexDestination_ is set
 #endif
-	RTPLogicalChannel * rtplc;
 };
 
 class T120LogicalChannel;
