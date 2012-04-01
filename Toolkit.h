@@ -27,6 +27,9 @@
 #ifdef HAS_H460P
 #include "h460presence.h"
 #endif
+#ifdef HAS_H235_MEDIA
+#include "h235/h235con.h"
+#endif
 
 class H225_AliasAddress;
 class H225_ArrayOf_AliasAddress;
@@ -390,6 +393,7 @@ class Toolkit : public Singleton<Toolkit>
 
 #ifdef HAS_H235_MEDIA
 	bool IsH235HalfCallMediaEnabled() const { return m_H235HalfCallMediaEnabled; }
+	H235Context & GetH235HalfCallMediaContext() { return m_H235MediaContext; }
 #endif
 
 	bool isBehindNAT(PIPSocket::Address &) const;
@@ -659,6 +663,7 @@ private:
 	std::map<unsigned, unsigned> m_sentCauseMap;
 #ifdef HAS_H235_MEDIA
 	bool m_H235HalfCallMediaEnabled;
+	H235Context   m_H235MediaContext;
 #endif
 	// is H460.18 enabled ?
 #ifdef HAS_H46018

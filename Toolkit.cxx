@@ -1570,6 +1570,8 @@ PConfig* Toolkit::ReloadConfig()
 	m_GKName = m_Config->GetString("Name", "OpenH323GK");
 #ifdef HAS_H235_MEDIA
 	m_H235HalfCallMediaEnabled	= m_Config->GetBoolean(RoutedSec, "EnableH235HalfCallMedia", 0);
+	if (m_H235HalfCallMediaEnabled)
+		m_H235MediaContext.Initialise();
 #endif
 #ifdef HAS_H46018
 	m_H46018Enabled	= m_Config->GetBoolean(RoutedSec, "EnableH46018", 0);
