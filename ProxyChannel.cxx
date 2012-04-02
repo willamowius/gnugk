@@ -561,7 +561,7 @@ public:
 
 #ifdef HAS_H235_MEDIA
 	void CreateH235Session(H235Authenticators & auth, H245_EncryptionSync & m_encryptionSync, bool caller);
-	bool HasH235Encryption() { return m_H235Session; }
+	bool HasH235Encryption() { return m_H235Session != NULL; }
 	bool ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller);
 #endif
 
@@ -576,7 +576,7 @@ private:
 
 #ifdef HAS_H235_MEDIA
 	H235Session * m_H235Session;
-	bool m_h235Caller;
+	bool m_simulateCallerSide;
 #endif
 
 	static WORD GetPortNumber();	// get a new port number to use
@@ -1991,10 +1991,14 @@ bool CallSignalSocket::HandleH235OLCAck(H245_OpenLogicalChannelAck & olcack)
 	bool toRemove = ((!m_callerSocket && (m_call->GetEncryptDirection() == CallRec::callingParty))
 				|| (m_callerSocket && (m_call->GetEncryptDirection() == CallRec::calledParty)));
 
-	if (!toRemove) {
+	if (toRemove) {
+		olcack.RemoveOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
+	} else {
 		// TODO: only if master, fill the key 
 		//olcack.IncludeOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
 	}
+#if HAS_H235_MEDIA
+#endif
 
     return true;
 }
@@ -2697,8 +2701,6 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
 			H235Authenticators & auth = m_call->GetAuthenticators();
 			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens) && SupportsH235Media(setupBody.m_tokens)) {
-				// TODO: better check if these are really the DH tokens we are expecting
-
 				// make sure clear and crypto token fields are pesent, at least with 0 size
 				if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
 					setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
@@ -7653,6 +7655,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 	rtcp = NULL;
 #if HAS_H235_MEDIA
 	m_H235Session = NULL;
+	m_simulateCallerSide = false;
 #endif
 
 #ifdef HAS_H46023
@@ -7709,7 +7712,7 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nat
 {
 #if HAS_H235_MEDIA
 	m_H235Session = NULL;
-	m_h235Caller=false;
+	m_simulateCallerSide = false;
 #endif
 	port = flc->port;
 	used = flc->used;
@@ -7809,13 +7812,13 @@ void RTPLogicalChannel::SetLCMultiplexSocket(bool isRTCP, int multiplexSocket, H
 #endif
 
 #ifdef HAS_H235_MEDIA
-void RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, H245_EncryptionSync & m_encryptionSync, bool caller)
+void RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, H245_EncryptionSync & m_encryptionSync, bool simulateCallerSide)
 {
 	if (m_H235Session)
 		return;
 
-	m_h235Caller = caller;
-	//m_H235Session = new H235Session();   -- TODO 
+	m_simulateCallerSide = simulateCallerSide;
+	//m_H235Session = new H235Session(Toolkit::Instance()->GetH235Context(), );   -- TODO 
 }
 
 bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller) 
@@ -7823,17 +7826,17 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCal
 	if (!m_H235Session)
 		return false;
 
-	//TODO - handle multiplexing -- ?
-	//TODO - RTCP
+	//TODO - handle multiplexing -- also call this from H46019Channel::HandlePacket()
+	//TODO - RTCP -- don't call this for RTCP packets ?
 
 	RTP_DataFrame frame(len-12);
 	memcpy(frame.GetPointer(), buffer, len);
 
 	bool success = false;
-	DWORD dummy=0;
-	if (fromCaller && m_h235Caller)
+	DWORD dummy = 0;
+	if (fromCaller && m_simulateCallerSide)
 		success = m_H235Session->ReadFrame(dummy, frame);
-	else if (!fromCaller && !m_h235Caller)
+	else if (!fromCaller && !m_simulateCallerSide)
 		success = m_H235Session->WriteFrame(frame);
 
 	if (success) {
@@ -8535,12 +8538,14 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 		call->StartRTPKeepAlive(flcn, h46019chan.m_osSocketToA);
 		call->StartRTCPKeepAlive(flcn, h46019chan.m_osSocketToA_RTCP);
 #endif
-
 #if HAS_H235_MEDIA
-	if (call->IsMediaEncryption() && olc.HasOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync)) {
-		RTPLogicalChannel * lc = (RTPLogicalChannel *)FindLogicalChannel(flcn);
-		lc->CreateH235Session(call->GetAuthenticators(), olc.m_encryptionSync , true);  // TODO - Direction
-	}
+    if (call->IsMediaEncryption() && olc.HasOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync)) {
+        RTPLogicalChannel * lc = (RTPLogicalChannel *)FindLogicalChannel(flcn);
+        if (lc) {
+	        lc->CreateH235Session(call->GetAuthenticators(), olc.m_encryptionSync,
+				(call->GetEncryptDirection() == CallRec::callingParty));
+		}
+    }
 #endif
 		return changed;
 	}
@@ -8729,12 +8734,12 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		}
 	}
 #endif
-
 #if HAS_H235_MEDIA
-	// Encryption creation here...
-	if (call->IsMediaEncryption() && olca.HasOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync)) {
-		((RTPLogicalChannel *)lc)->CreateH235Session(call->GetAuthenticators(), olca.m_encryptionSync, true);  // -- TODO fix up direction
-	}
+    // Encryption creation here
+    if (call->IsMediaEncryption() && olca.HasOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync)) {
+        ((RTPLogicalChannel *)lc)->CreateH235Session(call->GetAuthenticators(), olca.m_encryptionSync,
+			(call->GetEncryptDirection() == CallRec::callingParty));
+    }
 #endif
 
 	bool result = lc->SetDestination(olca, this, call, IsTraversalClient(), (peer && peer->m_requestRTPMultiplexing));
