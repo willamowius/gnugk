@@ -7360,7 +7360,8 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		}
 	}
 #if HAS_H235_MEDIA
-	rtplc->ProcessH235Media(wbuffer, buflen,true); //-- TODO: Direction
+	if (rtplc)
+		rtplc->ProcessH235Media(wbuffer, buflen, true); //-- TODO: Direction and only when enabled
 #endif
 
 	if (isRTCP && m_EnableRTCPStats && m_call && (*m_call))
@@ -9301,6 +9302,12 @@ void ProxyHandler::ReadSocket(IPSocket *socket)
 				CallSignalSocket * css = dynamic_cast<CallSignalSocket *>(socket);
 				if (css && css->MaintainConnection()) {
 					// just detach H.460.17 from the call, don't close them
+					// shut down the H.245 channel for H.460.17 connection, usually done on socket delete
+					H245Socket * h245socket = css->GetH245Socket();
+					if (h245socket) {
+						h245socket->OnSignalingChannelClosed();
+						css->SetH245Socket(NULL);	// TODO: detach from handler ?
+					}
 					css->DetachRemote();
 				}
 				if (!css || !css->MaintainConnection()) {

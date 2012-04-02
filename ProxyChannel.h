@@ -214,7 +214,9 @@ public:
     bool HandleH235OLC(H245_OpenLogicalChannel & olc);
     bool HandleH235OLCAck(H245_OpenLogicalChannelAck & olcack);
 #endif
-	bool CompareH245Socket(H245Socket * sock) const { return sock == m_h245socket; }	// compare pointers !
+	H245Socket * GetH245Socket() const { return m_h245socket; }
+	void SetH245Socket(H245Socket * sock) { m_h245socket = sock; }
+	bool CompareH245Socket(H245Socket * sock) const { return sock == m_h245socket; }	// intentionally comparing pointers
 	
 protected:
 	void SetRemote(CallSignalSocket *);
