@@ -986,6 +986,9 @@ void CallSignalSocket::InternalInit()
 	m_callToTraversalServer = false;
 	m_senderSupportsH46019Multiplexing = false;
 #endif
+#ifdef HAS_H235_MEDIA
+	m_isH245Master = false;
+#endif
 	// m_callerSocket is always initialized in init list
 	m_h225Version = 0;
 }
@@ -1565,7 +1568,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 			&& ((H245_RequestMessage&)h245msg).GetTag() == H245_RequestMessage::e_openLogicalChannel) {
 		H245_OpenLogicalChannel & olc = (H245_RequestMessage&)h245msg;
 #ifdef HAS_H235_MEDIA
-        changed = HandleH235OLC(olc);    
+        changed = HandleH235OLC(olc);
 #endif
 		if (m_callerSocket) {  // TODO This code may not work if media encrypted - SH
 			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
@@ -1630,10 +1633,18 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 			}
 		}
 #endif
+
+#ifdef HAS_H235_MEDIA
+		if (rmsg.GetTag() == H245_ResponseMessage::e_masterSlaveDeterminationAck) {
+			H245_MasterSlaveDeterminationAck msAck = rmsg;
+			m_isH245Master = (msAck.m_decision.GetTag() == H245_MasterSlaveDeterminationAck_decision::e_master);
+		}
+#endif
+
 		if (rmsg.GetTag() == H245_ResponseMessage::e_openLogicalChannelAck) {
 			H245_OpenLogicalChannelAck & olcack = rmsg;
 #ifdef HAS_H235_MEDIA
-			changed = HandleH235OLCAck(olcack);    
+			changed = HandleH235OLCAck(olcack);
 #endif
 			if (m_callerSocket) {
 				if (olcack.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)
@@ -1985,10 +1996,11 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 			cType.SetTag(H245_H235Media_mediaType::e_data);
 			(H245_DataApplicationCapability &)cType = (H245_DataApplicationCapability &)rawCap;
 		}
-		// Load Sync Material (if used)
-		// TODO: only if master, fill the key
-		//olc.IncludeOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
-		//BuildEncryptionSync(olc.m_encryptionSync, RTPPayloadType, m_H235Session);
+		if (m_isH245Master) {
+			olc.IncludeOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
+			// TODO: fill the key
+			//BuildEncryptionSync(olc.m_encryptionSync, RTPPayloadType, m_H235Session);
+		}
 	}
 
 	if (isReverse) {
@@ -2010,12 +2022,12 @@ bool CallSignalSocket::HandleH235OLCAck(H245_OpenLogicalChannelAck & olcack)
 	if (toRemove) {
 		olcack.RemoveOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
 	} else {
-		// TODO: only if master, fill the key 
-		//olcack.IncludeOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
-		//BuildEncryptionSync(olcack.m_encryptionSync, RTPPayloadType, m_H235Session);
+		if (m_isH245Master) {
+			olcack.IncludeOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
+			// TODO: fill the key 
+			//BuildEncryptionSync(olcack.m_encryptionSync, RTPPayloadType, m_H235Session);
+		}
 	}
-#if HAS_H235_MEDIA
-#endif
 
     return true;
 }
@@ -7378,7 +7390,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			fDestIP = fromIP, fDestPort = fromPort;
 		}
 	}
-#if HAS_H235_MEDIA
+#ifdef HAS_H235_MEDIA
 	if (rtplc)
 		rtplc->ProcessH235Media(wbuffer, buflen, true); //-- TODO: Direction and only when enabled
 #endif
@@ -7670,7 +7682,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 	SrcPort = 0;
 	rtp = NULL;
 	rtcp = NULL;
-#if HAS_H235_MEDIA
+#ifdef HAS_H235_MEDIA
 	m_H235Session = NULL;
 	m_simulateCallerSide = false;
 #endif
@@ -7727,7 +7739,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 
 RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nated)
 {
-#if HAS_H235_MEDIA
+#ifdef HAS_H235_MEDIA
 	m_H235Session = NULL;
 	m_simulateCallerSide = false;
 #endif
@@ -7745,7 +7757,7 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nat
 
 RTPLogicalChannel::~RTPLogicalChannel()
 {
-#if HAS_H235_MEDIA
+#ifdef HAS_H235_MEDIA
 	if (m_H235Session)
 		delete m_H235Session;
 #endif
@@ -8571,7 +8583,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 		call->StartRTPKeepAlive(flcn, h46019chan.m_osSocketToA);
 		call->StartRTCPKeepAlive(flcn, h46019chan.m_osSocketToA_RTCP);
 #endif
-#if HAS_H235_MEDIA
+#ifdef HAS_H235_MEDIA
     if (call->IsMediaEncryption() && olc.HasOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync)) {
         RTPLogicalChannel * lc = (RTPLogicalChannel *)FindLogicalChannel(flcn);
         if (lc) {
@@ -8767,7 +8779,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		}
 	}
 #endif
-#if HAS_H235_MEDIA
+#ifdef HAS_H235_MEDIA
     // Encryption creation here
     if (call->IsMediaEncryption() && olca.HasOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync)) {
         ((RTPLogicalChannel *)lc)->CreateH235Session(call->GetAuthenticators(), olca.m_encryptionSync,

@@ -364,6 +364,9 @@ private:
 	bool m_callToTraversalServer;
 	bool m_senderSupportsH46019Multiplexing;
 #endif
+#ifdef HAS_H235_MEDIA
+	bool m_isH245Master;
+#endif
 };
 
 class CallSignalListener : public TCPListenSocket {
