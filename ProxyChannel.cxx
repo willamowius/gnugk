@@ -1637,7 +1637,8 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 #ifdef HAS_H235_MEDIA
 		if (rmsg.GetTag() == H245_ResponseMessage::e_masterSlaveDeterminationAck) {
 			H245_MasterSlaveDeterminationAck msAck = rmsg;
-			m_isH245Master = (msAck.m_decision.GetTag() == H245_MasterSlaveDeterminationAck_decision::e_master);
+			// the master tells the other endpoint to be slave
+			m_isH245Master = (msAck.m_decision.GetTag() == H245_MasterSlaveDeterminationAck_decision::e_slave);
 		}
 #endif
 
@@ -3902,7 +3903,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			m_call->GetAuthenticators().SetSize(0);
 		} else if ((m_call && m_call->GetEncryptDirection() == CallRec::calledParty)
 		  && !connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens)) {
-			// there were tokens in Setup, but none Connect
+			// there were tokens in Setup, but none in Connect
 
 			auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_connect, 
 								  connectBody.m_tokens, connectBody.m_cryptoTokens);
@@ -6750,6 +6751,17 @@ void H46019Channel::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 			m_addrB = fromAddress;
 	}
 
+#ifdef HAS_H235_MEDIA
+	if (!isRTCP) {
+		RTPLogicalChannel * rtplc = NULL;	// TODO: find
+		if (rtplc) {
+			WORD wlen = len;
+			rtplc->ProcessH235Media((BYTE*)data, wlen, true); // TODO: fix direction
+			len = wlen;
+		}
+	}
+#endif
+
 	if (receivedMultiplexID == m_multiplexID_fromA) {
 		if (sideBReady(isRTCP)) {
 			Send(m_multiplexID_toB, (isRTCP ? m_addrB_RTCP : m_addrB), (isRTCP ? m_osSocketToB_RTCP : m_osSocketToB), data, len);
@@ -7391,8 +7403,9 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		}
 	}
 #ifdef HAS_H235_MEDIA
-	if (rtplc)
-		rtplc->ProcessH235Media(wbuffer, buflen, true); //-- TODO: Direction and only when enabled
+	// H.235.6 sect 9.3.3 says RTCP encryption is for further study, so we don't encrypt/decrypt it
+	if (rtplc && isRTP)
+		rtplc->ProcessH235Media(wbuffer, buflen, true); //-- TODO: fix direction
 #endif
 
 	if (isRTCP && m_EnableRTCPStats && m_call && (*m_call))
@@ -7849,7 +7862,7 @@ void RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, H245_Encryp
 	m_simulateCallerSide = simulateCallerSide;
 	/* TODO: fill remaining parameters
 	H235_DiffieHellman dh = ...
-	PString algorithm = ...
+	PString algorithm = auth[0]; // ???
 	m_H235Session = new H235Session(Toolkit::Instance()->GetH235Context(), dh, algorithm);
 	PTRACE(3, "H235\tNew session created");
 
@@ -7870,9 +7883,6 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCal
 {
 	if (!m_H235Session)
 		return false;
-
-	//TODO - handle multiplexing -- also call this from H46019Channel::HandlePacket()
-	//TODO - RTCP -- don't call this for RTCP packets ?
 
 	RTP_DataFrame frame(len-12);
 	memcpy(frame.GetPointer(), buffer, len);
