@@ -68,6 +68,8 @@ const int DEFAULT_NUM_SEQ_PORTS = 500;
 ProxySocket::Result ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & fromIP, BYTE * wbuffer, WORD buflen);
 void BuildReceiverReport(const callptr & call, WORD sessionID, const RTP_ControlFrame & frame, PINDEX offset, bool dst);
 
+H245_H2250LogicalChannelParameters *GetLogicalChannelParameters(H245_OpenLogicalChannel & olc, bool & isReverseLC);
+
 
 bool odd(unsigned n) { return (n % 2) != 0; }
 
@@ -565,6 +567,7 @@ public:
 
 #ifdef HAS_H235_MEDIA
 	void CreateH235Session(H235Authenticators & auth, H245_EncryptionSync & encryptionSync, bool caller);
+	H235Session * GetH235Session() const { return m_H235Session; }
 	bool HasH235Encryption() { return m_H235Session != NULL; }
 	bool ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller);
 #endif
@@ -680,6 +683,7 @@ public:
 	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &,callptr &);
 
 	void SetHandler(ProxyHandler *);
+	H245ProxyHandler * GetPeer() const { return peer; }
 	LogicalChannel * FindLogicalChannel(WORD flcn);
 	RTPLogicalChannel * FindRTPLogicalChannelBySessionID(WORD id);
 	bool UsesH46019() const { return m_useH46019; }
@@ -1965,8 +1969,8 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 			newCap.SetTag(H245_DataType::e_data);
 			(H245_DataApplicationCapability &)newCap = (H245_DataApplicationCapability &)cType;
 		}
-
-        olc.RemoveOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
+		// don't remove here, we need it in HandleOLC to create the session, will remove there
+		//olc.RemoveOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
     } else {
         PStringList m_capList;
         if (!m_call->GetAuthenticators().GetAlgorithms(m_capList)) {
@@ -1998,9 +2002,38 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 			(H245_DataApplicationCapability &)cType = (H245_DataApplicationCapability &)rawCap;
 		}
 		if (m_isH245Master) {
+			PTRACE(0, "JW adding encryptionSync");
 			olc.IncludeOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
-			// TODO: fill the key
-			//BuildEncryptionSync(olc.m_encryptionSync, RTPPayloadType, m_H235Session);
+			// TODO235: fill the key
+			WORD RTPPayloadType = 0;
+			H245_H2250LogicalChannelParameters * h225Params = GetLogicalChannelParameters(olc, isReverse);
+			if (h225Params && h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_dynamicRTPPayloadType)) {
+				RTPPayloadType = h225Params->m_dynamicRTPPayloadType;
+			} else {
+				// TODO: fix for cases when the OLC doesn't contain a dynamic payload type
+				RTPPayloadType = 127;
+				PTRACE(0, "JW ERROR don't know payload type, using " << RTPPayloadType);
+			}
+			WORD flcn = (WORD)olc.m_forwardLogicalChannelNumber;
+			H245ProxyHandler * h245proxyhandler = dynamic_cast<H245ProxyHandler*>(m_h245handler);
+			if (h245proxyhandler) {
+				LogicalChannel * lc = h245proxyhandler->FindLogicalChannel(flcn);
+				PTRACE(0, "JW flcn=" << flcn << " lc=" << lc);
+				// search peer if not found
+				if (!lc && h245proxyhandler->GetPeer())
+					lc = h245proxyhandler->GetPeer()->FindLogicalChannel(flcn);
+				PTRACE(0, "JW flcn=" << flcn << " lc=" << lc);
+				RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel*>(lc);
+				if (rtplc) {
+					H235Session * h235session = rtplc->GetH235Session();
+					if (h235session) {
+						BuildEncryptionSync(olc.m_encryptionSync, RTPPayloadType, *(h235session));
+						PTRACE(0, "JW added encryptionSync - done" << olc.m_encryptionSync);
+					} else {
+						PTRACE(0, "JW no H.235 session found");
+					}
+				}
+			}
 		}
 	}
 
@@ -2021,11 +2054,12 @@ bool CallSignalSocket::HandleH235OLCAck(H245_OpenLogicalChannelAck & olcack)
 				|| (m_callerSocket && (m_call->GetEncryptDirection() == CallRec::calledParty)));
 
 	if (toRemove) {
-		olcack.RemoveOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
+		// don't remove here, needed in HandleOLCA, will remove there
+		// olcack.RemoveOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
 	} else {
 		if (m_isH245Master) {
 			olcack.IncludeOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
-			// TODO: fill the key 
+			// TODO235: fill the key 
 			//BuildEncryptionSync(olcack.m_encryptionSync, RTPPayloadType, m_H235Session);
 		}
 	}
@@ -2759,8 +2793,12 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 				m_call->SetMediaEncryption(CallRec::calledParty);
 			} else if (!rejectCall && !auth.SupportsEncryption() && auth.CreateAuthenticator("Std6")) {
-				if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
+				if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
+					// remove the clear tokens in order no to get a mix with ours
+					setupBody.m_tokens.RemoveAll();
+				} else {
 					setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
+					setupBody.m_tokens.RemoveAll();
 					setupBody.m_tokens.SetSize(0);
 				}
 				if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens)) {
@@ -4585,7 +4623,7 @@ void CallSignalSocket::SetSessionMultiplexDestination(WORD session, bool isRTCP,
 {
 	H245ProxyHandler * handler = dynamic_cast<H245ProxyHandler*>(m_h245handler);
 	if (handler) {
-		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel*>(handler->FindRTPLogicalChannelBySessionID(session));
+		RTPLogicalChannel * rtplc = handler->FindRTPLogicalChannelBySessionID(session);
 		if (rtplc) {
 			rtplc->SetLCMultiplexDestination(isRTCP, toAddress, side);
 		}
@@ -6753,10 +6791,10 @@ void H46019Channel::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 
 #ifdef HAS_H235_MEDIA
 	if (!isRTCP) {
-		RTPLogicalChannel * rtplc = NULL;	// TODO: find
+		RTPLogicalChannel * rtplc = NULL;	// TODO235: find
 		if (rtplc) {
 			WORD wlen = len;
-			rtplc->ProcessH235Media((BYTE*)data, wlen, true); // TODO: fix direction
+			rtplc->ProcessH235Media((BYTE*)data, wlen, true); // TODO235: fix direction
 			len = wlen;
 		}
 	}
@@ -7404,8 +7442,10 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	}
 #ifdef HAS_H235_MEDIA
 	// H.235.6 sect 9.3.3 says RTCP encryption is for further study, so we don't encrypt/decrypt it
-	if (rtplc && isRTP)
-		rtplc->ProcessH235Media(wbuffer, buflen, true); //-- TODO: fix direction
+	if (rtplc && isRTP) {
+		// TODO235: fix direction (HACK with comparing IPs for now ?)
+		rtplc->ProcessH235Media(wbuffer, buflen, true); 
+	}
 #endif
 
 	if (isRTCP && m_EnableRTCPStats && m_call && (*m_call))
@@ -7860,10 +7900,11 @@ void RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, H245_Encryp
 		return;
 
 	m_simulateCallerSide = simulateCallerSide;
-	/* TODO: fill remaining parameters
-	H235_DiffieHellman dh = ...
-	PString algorithm = auth[0]; // ???
-	m_H235Session = new H235Session(Toolkit::Instance()->GetH235Context(), dh, algorithm);
+	// TODO235: fill remaining parameters
+	H235_DiffieHellman dh; // TODO = auth[0].Get...
+	PString algorithm; // TODO = auth[0].Get...
+	PTRACE(0, "JW using algo=" << algorithm);
+	m_H235Session = new H235Session(Toolkit::Instance()->GetH235HalfCallMediaContext(), dh, algorithm);
 	PTRACE(3, "H235\tNew session created");
 
 	H235_H235Key h235key;
@@ -7876,7 +7917,6 @@ void RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, H245_Encryp
 	} else {
 		PTRACE(1, "H235\tUnsupported key type " << h235key.GetTagName());
 	}
-	*/
 }
 
 bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller) 
@@ -8594,13 +8634,15 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 		call->StartRTCPKeepAlive(flcn, h46019chan.m_osSocketToA_RTCP);
 #endif
 #ifdef HAS_H235_MEDIA
-    if (call->IsMediaEncryption() && olc.HasOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync)) {
-        RTPLogicalChannel * lc = (RTPLogicalChannel *)FindLogicalChannel(flcn);
-        if (lc) {
-	        lc->CreateH235Session(call->GetAuthenticators(), olc.m_encryptionSync,
-				(call->GetEncryptDirection() == CallRec::callingParty));
+		if (call->IsMediaEncryption() && olc.HasOptionalField(H245_OpenLogicalChannel::e_encryptionSync)) {
+			RTPLogicalChannel * lc = (RTPLogicalChannel *)FindLogicalChannel(flcn);
+			PTRACE(0, "JW encryptionSync received must create session now: lc=" << lc);
+			if (lc) {
+				lc->CreateH235Session(call->GetAuthenticators(), olc.m_encryptionSync,
+					(call->GetEncryptDirection() == CallRec::callingParty));
+			}
+			olc.RemoveOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
 		}
-    }
 #endif
 		return changed;
 	}
@@ -8794,6 +8836,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
     if (call->IsMediaEncryption() && olca.HasOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync)) {
         ((RTPLogicalChannel *)lc)->CreateH235Session(call->GetAuthenticators(), olca.m_encryptionSync,
 			(call->GetEncryptDirection() == CallRec::callingParty));
+		olca.RemoveOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
     }
 #endif
 

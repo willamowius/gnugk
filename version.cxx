@@ -96,7 +96,7 @@ const PString Toolkit::GKVersion()
 #else
 				(int)0,
 #endif
-#if HAS_H235_MEDIA
+#ifdef HAS_H235_MEDIA
 				(int)1,
 #else
 				(int)0,
