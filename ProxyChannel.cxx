@@ -8846,15 +8846,36 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 	}
 #endif
 #ifdef HAS_H235_MEDIA
-    // Encryption creation here
-    if (call->IsMediaEncryption()) {
-		// TODO235: add key logic similar to OLC here
+	PTRACE(0, "JW HandleOLCAck: crypt=" << call->IsMediaEncryption()
+			<< " dir=" << call->GetEncryptDirection()
+			<< " isCaller=" << m_isCaller
+			<< " isMaster=" << m_isH245Master);
+	if (call->IsMediaEncryption()) {
+		// use the key sent by the other side
 		if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync)) {
-	        ((RTPLogicalChannel *)lc)->CreateH235Session(call->GetAuthenticators(), olca.m_encryptionSync,
-				(call->GetEncryptDirection() == CallRec::callingParty));
+			RTPLogicalChannel * lc = (RTPLogicalChannel *)FindLogicalChannel(flcn);
+			PTRACE(0, "JW encryptionSync received must create session now: lc=" << lc);
+			if (lc) {
+				lc->CreateH235Session(call->GetAuthenticators(), olca.m_encryptionSync,
+					(call->GetEncryptDirection() == CallRec::callingParty));
+			}
 			olca.RemoveOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
+		} else if (m_isH245Master
+					&& ( (m_isCaller && call->GetEncryptDirection() == CallRec::callingParty)
+						|| (!m_isCaller && call->GetEncryptDirection() == CallRec::calledParty))) {
+			// the message comes from the master and its in the direction we are simulating
+			PTRACE(0, "JW adding encryptionSync");
+			olca.IncludeOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
+			WORD RTPPayloadType = 0; // TODO235: remember pay load type from OLC
+			RTPLogicalChannel * lc = (RTPLogicalChannel *)FindLogicalChannel(flcn);
+			PTRACE(0, "JW flcn=" << flcn << " lc=" << lc);
+			if (lc) {
+				lc->CreateH235SessionAndKey(call->GetAuthenticators(), olca.m_encryptionSync, RTPPayloadType,
+					(call->GetEncryptDirection() == CallRec::callingParty));
+				PTRACE(0, "JW added encryptionSync - done" << olca.m_encryptionSync);
+			}
 		}
-    }
+	}
 #endif
 
 	bool result = lc->SetDestination(olca, this, call, IsTraversalClient(), (peer && peer->m_requestRTPMultiplexing));
