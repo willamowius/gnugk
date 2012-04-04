@@ -1909,7 +1909,7 @@ bool CallSignalSocket::HandleH235TCS(H245_TerminalCapabilitySet & tcs)
     H245_ArrayOf_CapabilityTableEntry & m_capTable = tcs.m_capabilityTable;
 
     H245_ArrayOf_CapabilityTableEntry m_capStat = *(H245_ArrayOf_CapabilityTableEntry *)m_capTable.Clone();
-    for (PINDEX i=0; i<m_capStat.GetSize(); ++i) {
+    for (PINDEX i = 0; i < m_capStat.GetSize(); ++i) {
         if (m_capStat[i].HasOptionalField(H245_CapabilityTableEntry::e_capability)) {
             H245_CapabilityTableEntryNumber & entryNumber = m_capStat[i].m_capabilityTableEntryNumber;
             H245_Capability & cap =  m_capStat[i].m_capability;
@@ -2720,7 +2720,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				if (result != H235Authenticator::e_OK &&
 					result != H235Authenticator::e_Absent &&	// TODO: why is it ok if expected params are absent ?
 					result != H235Authenticator::e_Disabled) {
-						PTRACE(5,"H235 Caller Admission failed");
+						PTRACE(5,"H235\tCaller Admission failed");
 						m_call->SetDisconnectCause(Q931::CallRejected);
 						rejectCall = true;
 				}
@@ -2729,6 +2729,14 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				setupBody.m_cryptoTokens.RemoveAll();
 				setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 				m_call->SetMediaEncryption(CallRec::calledParty);
+				if(!rejectCall && !auth.SupportsEncryption() && auth.CreateAuthenticator("Std6")) {
+					PTRACE(1, "H235\tCould not create authenticator");
+				} else {
+//					// make sure InitializeSecurity() runs, ignore the result
+//					H225_ArrayOf_ClearToken tokens = setupBody.m_tokens;
+//					H225_ArrayOf_CryptoH323Token cryptoTokens = setupBody.m_cryptoTokens;
+//					auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_setup, tokens, cryptoTokens);
+				}
 			} else if (!rejectCall && !auth.SupportsEncryption() && auth.CreateAuthenticator("Std6")) {
 				if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
 					// remove the clear tokens in order no to get a mix with ours
@@ -2748,6 +2756,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				if (setupBody.m_cryptoTokens.GetSize() == 0)
 					setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 			}
+			PTRACE(0, "JW after Setup processing #auth=" << auth.GetSize());
 		}
 #endif
 
@@ -7841,11 +7850,10 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 	m_simulateCallerSide = simulateCallerSide;
 	H235_DiffieHellman * dh = NULL;
 	PString algorithm;
-	if ((auth.GetSize() < 1) || !auth[0].GetMediaSessionInfo(algorithm, dh) || (dh == NULL)) {
+	if ((auth.GetSize() < 1) || !(dh = auth[0].GetMediaSessionInfo(algorithm))) {
 		PTRACE(1, "H235\tError: GetMediaSessionInfo failed");
 		return false;
 	}
-	PTRACE(0, "JW using algo=" << algorithm);
 	m_H235Session = new H235Session(Toolkit::Instance()->GetH235HalfCallMediaContext(), *dh, algorithm);
 	PTRACE(3, "H235\tNew session created");
 
@@ -7873,11 +7881,10 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	m_simulateCallerSide = simulateCallerSide;
 	H235_DiffieHellman * dh = NULL;
 	PString algorithm;
-	if ((auth.GetSize() < 1) || !auth[0].GetMediaSessionInfo(algorithm, dh) || (dh == NULL)) {
+	if ((auth.GetSize() < 1) || !(dh = auth[0].GetMediaSessionInfo(algorithm))) {
 		PTRACE(1, "H235\tError: GetMediaSessionInfo failed");
 		return false;
 	}
-	PTRACE(0, "JW using algo=" << algorithm);
 	m_H235Session = new H235Session(Toolkit::Instance()->GetH235HalfCallMediaContext(), *dh, algorithm);
 	PTRACE(3, "H235\tNew session created");
 
