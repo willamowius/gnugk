@@ -428,6 +428,8 @@ The multicast group for the RAS channel.
 Default: <tt/1720/<newline>
 <p>
 Default port for call signaling channel of endpoints.
+Used when searching for endpoints in the registration table
+when the actual call signaling port is unknown.
 
 <item><tt/ListenQueueLength=1024/<newline>
 Default: <tt/1024/<newline>
