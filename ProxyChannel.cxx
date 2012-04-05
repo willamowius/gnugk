@@ -6739,8 +6739,17 @@ void H46019Channel::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 	if (!isRTCP) {
 		RTPLogicalChannel * rtplc = NULL;	// TODO235: find
 		if (rtplc) {
+			bool fromCaller = true;
+			if (call) {
+				// HACK: this only works if caller and called are on different IPs and send media from the same IP as call signaling
+				PIPSocket::Address callerSignalIP, packetSource;
+				WORD notused;
+				call->GetSrcSignalAddr(callerSignalIP, notused);
+				fromAddress.GetIpAddress(packetSource);
+				fromCaller = (callerSignalIP == packetSource);
+			}
 			WORD wlen = len;
-			rtplc->ProcessH235Media((BYTE*)data, wlen, true); // TODO235: fix direction
+			rtplc->ProcessH235Media((BYTE*)data, wlen, fromCaller); // TODO235: detect direction in all cases
 			len = wlen;
 		}
 	}
@@ -7389,8 +7398,16 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 #ifdef HAS_H235_MEDIA
 	// H.235.6 sect 9.3.3 says RTCP encryption is for further study, so we don't encrypt/decrypt it
 	if (rtplc && isRTP) {
-		// TODO235: fix direction (HACK with comparing IPs for now ?)
-		rtplc->ProcessH235Media(wbuffer, buflen, true); 
+		// TODO235: detect RTP direction
+		bool fromCaller = true;
+		if (m_call && (*m_call)) {
+			// HACK: this only works if caller and called are on different IPs and send media from the same IP as call signaling
+			PIPSocket::Address callerSignalIP;
+			WORD notused;
+			(*m_call)->GetSrcSignalAddr(callerSignalIP, notused);
+			fromCaller = (callerSignalIP == fromIP);
+		}
+		rtplc->ProcessH235Media(wbuffer, buflen, fromCaller); 
 	}
 #endif
 
@@ -7868,10 +7885,12 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 		PTRACE(1, "H235\tUnsupported key type " << h235key.GetTagName());
 		return false;
 	}
+	m_H235Session->CreateSession();
+	PTRACE(3, "H235\tNew session created");
 	return true;
 }
 
-bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_EncryptionSync & sync, WORD RTPPayloadType, bool simulateCallerSide)
+bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_EncryptionSync & encryptionSync, WORD RTPPayloadType, bool simulateCallerSide)
 {
 	if (m_H235Session) {
 		PTRACE(1, "H235\tError: Session already created");
@@ -7888,15 +7907,21 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	m_H235Session = new H235Session(Toolkit::Instance()->GetH235HalfCallMediaContext(), *dh, algorithm);
 	PTRACE(3, "H235\tNew session created");
 
-	sync.m_synchFlag = RTPPayloadType;
+	encryptionSync.m_synchFlag = RTPPayloadType;
 
-	H235_H235Key h235key;
-	h235key.SetTag(H235_H235Key::e_secureSharedSecret);
-	H235_V3KeySyncMaterial & v3data = h235key;
-	v3data.IncludeOptionalField(H235_V3KeySyncMaterial::e_encryptedSessionKey);
-	m_H235Session->EncodeMasterKey(v3data.m_encryptedSessionKey);
-	sync.m_h235Key.EncodeSubType(h235key);
+	PBYTEArray sessionKey;
+	dh->ComputeSessionKey(sessionKey);
+	m_H235Session->SetMasterKey(sessionKey);
+
+	encryptionSync.m_h235Key.SetTag(H235_H235Key::e_secureSharedSecret);
+// TODO235: doesn't compile
+//	H235_V3KeySyncMaterial & v3data = (H235_H235Key&)encryptionSync.m_h235Key;
+//	v3data.IncludeOptionalField(H235_V3KeySyncMaterial::e_encryptedSessionKey);
+//	encryptionSync.m_h235Key.EncodeSubType(sessionKey);
 	PTRACE(3, "H235\tNew key generated");
+
+	m_H235Session->CreateSession();
+	PTRACE(3, "H235\tNew session created");
 
 	return true;
 }
