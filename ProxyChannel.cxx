@@ -49,6 +49,7 @@
 #endif
 
 #ifdef HAS_H235_MEDIA
+	#include "h235/h2356.h"
 	#include "h235/h235con.h"
 #endif
 
@@ -7870,6 +7871,7 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 		PTRACE(1, "H235\tError: GetMediaSessionInfo failed");
 		return false;
 	}
+	PTRACE(0, "JW algo=" << algorithm);
 	m_H235Session = new H235Session(Toolkit::Instance()->GetH235HalfCallMediaContext(), *dh, algorithm);
 	PTRACE(3, "H235\tNew session created");
 
@@ -7899,24 +7901,26 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 
 	m_simulateCallerSide = simulateCallerSide;
 	H235_DiffieHellman * dh = NULL;
-	PString algorithm;
-	if ((auth.GetSize() < 1) || !(dh = auth[0].GetMediaSessionInfo(algorithm))) {
+	PString sslAlgorithm;
+	if ((auth.GetSize() < 1) || !(dh = auth[0].GetMediaSessionInfo(sslAlgorithm))) {
 		PTRACE(1, "H235\tError: GetMediaSessionInfo failed");
 		return false;
 	}
-	m_H235Session = new H235Session(Toolkit::Instance()->GetH235HalfCallMediaContext(), *dh, algorithm);
+	PTRACE(0, "JW algo=" << sslAlgorithm);
+	m_H235Session = new H235Session(Toolkit::Instance()->GetH235HalfCallMediaContext(), *dh, sslAlgorithm);
 	PTRACE(3, "H235\tNew session created");
 
 	encryptionSync.m_synchFlag = RTPPayloadType;
 
 	PBYTEArray sessionKey;
 	dh->ComputeSessionKey(sessionKey);
+	PTRACE(0, "JW computed sessionKey=" << sessionKey);
 	m_H235Session->SetMasterKey(sessionKey);
 
 	encryptionSync.m_h235Key.SetTag(H235_H235Key::e_secureSharedSecret);
 	H235_V3KeySyncMaterial v3data;
 	v3data.IncludeOptionalField(H235_V3KeySyncMaterial::e_algorithmOID);
-	v3data.m_algorithmOID = algorithm;
+	v3data.m_algorithmOID = H2356_Authenticator::GetOIDFromAlg(sslAlgorithm);
 	v3data.IncludeOptionalField(H235_V3KeySyncMaterial::e_encryptedSessionKey);
 	v3data.m_encryptedSessionKey = sessionKey;
 	encryptionSync.m_h235Key.EncodeSubType(v3data);
