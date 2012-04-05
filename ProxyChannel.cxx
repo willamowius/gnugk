@@ -3901,7 +3901,6 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 		} else if (m_call && (m_call->GetEncryptDirection() == CallRec::none)
 			&& !connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens)) {
 			// no tokens in Setup and none in Connect
-			//m_call->SetMediaEncryption(CallRec::none);
 			m_call->GetAuthenticators().SetSize(0);
 			PTRACE(3, "H235\tNo Media Encryption Support Detected: Disabling!");
 
@@ -7397,16 +7396,14 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	}
 #ifdef HAS_H235_MEDIA
 	// H.235.6 sect 9.3.3 says RTCP encryption is for further study, so we don't encrypt/decrypt it
-	if (rtplc && isRTP) {
-		// TODO235: detect RTP direction
+	if (m_call && (*m_call) && (*m_call)->IsMediaEncryption() && rtplc && isRTP) {
+		// TODO235: detect RTP direction for all cases
 		bool fromCaller = true;
-		if (m_call && (*m_call)) {
-			// HACK: this only works if caller and called are on different IPs and send media from the same IP as call signaling
-			PIPSocket::Address callerSignalIP;
-			WORD notused;
-			(*m_call)->GetSrcSignalAddr(callerSignalIP, notused);
-			fromCaller = (callerSignalIP == fromIP);
-		}
+		// HACK: this only works if caller and called are on different IPs and send media from the same IP as call signaling
+		PIPSocket::Address callerSignalIP;
+		WORD notused;
+		(*m_call)->GetSrcSignalAddr(callerSignalIP, notused);
+		fromCaller = (callerSignalIP == fromIP);
 		rtplc->ProcessH235Media(wbuffer, buflen, fromCaller); 
 	}
 #endif
@@ -7774,8 +7771,10 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nat
 RTPLogicalChannel::~RTPLogicalChannel()
 {
 #ifdef HAS_H235_MEDIA
-	if (m_H235Session)
+	if (m_H235Session) {
 		delete m_H235Session;
+		m_H235Session = NULL;
+	}
 #endif
 
 	if (peer) {
@@ -7879,6 +7878,7 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
     if (h235key.GetTag() == H235_H235Key::e_secureSharedSecret)
 	{
 		const H235_V3KeySyncMaterial & v3data = h235key;
+	    PTRACE(0, "JW H235_V3KeySyncMaterial=" << v3data);
 		if (v3data.HasOptionalField(H235_V3KeySyncMaterial::e_encryptedSessionKey))
 			m_H235Session->DecodeMasterKey(v3data.m_encryptedSessionKey);
 	} else {
@@ -7914,11 +7914,13 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	m_H235Session->SetMasterKey(sessionKey);
 
 	encryptionSync.m_h235Key.SetTag(H235_H235Key::e_secureSharedSecret);
-// TODO235: doesn't compile
-//	H235_V3KeySyncMaterial & v3data = (H235_H235Key&)encryptionSync.m_h235Key;
-//	v3data.IncludeOptionalField(H235_V3KeySyncMaterial::e_encryptedSessionKey);
-//	encryptionSync.m_h235Key.EncodeSubType(sessionKey);
-	PTRACE(3, "H235\tNew key generated");
+	H235_V3KeySyncMaterial v3data;
+	v3data.IncludeOptionalField(H235_V3KeySyncMaterial::e_algorithmOID);
+	v3data.m_algorithmOID = algorithm;
+	v3data.IncludeOptionalField(H235_V3KeySyncMaterial::e_encryptedSessionKey);
+	v3data.m_encryptedSessionKey = sessionKey;
+	encryptionSync.m_h235Key.EncodeSubType(v3data);
+	PTRACE(3, "H235\tNew key generated " << v3data);
 
 	m_H235Session->CreateSession();
 	PTRACE(3, "H235\tNew session created");
