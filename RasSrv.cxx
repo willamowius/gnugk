@@ -110,7 +110,7 @@ private:
 
 template<> H225_NonStandardParameter *RasPDU<H225_UnknownMessageResponse>::GetNonStandardParam()
 {
-	return 0;
+	return NULL;
 }
 
 // RAS message abbreviations
@@ -237,7 +237,7 @@ GatekeeperMessage *RasListener::ReadRas()
 	GatekeeperMessage *msg = new GatekeeperMessage;
 	if (!(msg->Read(this) && Filter(msg))) {
 		delete msg;
-		return 0;
+		return NULL;
 	}
 	if ((msg->GetTag() != H225_RasMessage::e_serviceControlIndication && msg->GetTag() != H225_RasMessage::e_serviceControlResponse)
 		||  PTrace::CanTrace(5)) {

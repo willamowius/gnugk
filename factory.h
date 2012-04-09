@@ -273,7 +273,7 @@ Functor<Product *> *Factory<Product, Identifier>::FindCreator(Identifier n)
 	else if (m_default)
 		return m_default;
 	PTRACE(1, "Init\tCan't create unknown class " << n);
-	return 0;
+	return NULL;
 }
 
 template<class Product, typename Identifier>

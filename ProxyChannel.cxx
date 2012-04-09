@@ -3422,6 +3422,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			H460_FeatureID * feat_id = new H460_FeatureID(2);	// mediaTraversalServer
 			feat.AddParameter(feat_id);
 			delete feat_id;
+			feat_id = NULL;
 			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
 				setupBody.m_supportedFeatures.SetSize(0);
@@ -3466,6 +3467,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			feat_id = new H460_FeatureID(2);	// mediaTraversalServer
 			feat.AddParameter(feat_id);
 			delete feat_id;
+			feat_id = NULL;
 
 			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
 				feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
@@ -4959,6 +4961,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 
 					// deleting setup also disposes q931pdu and uuie
 					delete setup;
+					setup = NULL;
 				}
 				m_result = DelayedConnecting;	// don't forward, this was just to open the connection
 			} else {
@@ -6117,7 +6120,9 @@ H245Socket::~H245Socket()
 		Toolkit::Instance()->PortNotification(H245Port, PortClose, "tcp", GNUGK_INADDR_ANY, m_port, callID);
 	}
 	delete listener;
+	listener = NULL;
 	delete peerH245Addr;
+	peerH245Addr = NULL;
 	PWaitAndSignal lock(m_signalingSocketMutex);
 	if (sigSocket)
 		sigSocket->OnH245ChannelClosed();
@@ -6516,14 +6521,14 @@ H245_H2250LogicalChannelParameters *GetLogicalChannelParameters(H245_OpenLogical
 {
 	if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)) {
 		if (!olc.m_reverseLogicalChannelParameters.HasOptionalField(H245_OpenLogicalChannel_reverseLogicalChannelParameters::e_multiplexParameters))
-			return 0;
+			return NULL;
 		H245_OpenLogicalChannel_reverseLogicalChannelParameters_multiplexParameters & params = olc.m_reverseLogicalChannelParameters.m_multiplexParameters;
 		isReverseLC = true;
-		return (params.GetTag() == H245_OpenLogicalChannel_reverseLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters) ?  &((H245_H2250LogicalChannelParameters &)params) : 0;
+		return (params.GetTag() == H245_OpenLogicalChannel_reverseLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters) ?  &((H245_H2250LogicalChannelParameters &)params) : NULL;
 	} else {
 		H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters & params = olc.m_forwardLogicalChannelParameters.m_multiplexParameters;
 		isReverseLC = false;
-		return (params.GetTag() == H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters) ?  &((H245_H2250LogicalChannelParameters &)params) : 0;
+		return (params.GetTag() == H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters) ?  &((H245_H2250LogicalChannelParameters &)params) : NULL;
 	}
 }
 
@@ -7789,7 +7794,9 @@ RTPLogicalChannel::~RTPLogicalChannel()
 			rtcp->SetDeletable();
 		} else {
 			delete rtp;
+			rtp = NULL;
 			delete rtcp;
+			rtcp = NULL;
 		}
 	}
 	PTRACE(4, "RTP\tDelete logical channel " << channelNumber);
@@ -8153,6 +8160,7 @@ T120LogicalChannel::~T120LogicalChannel()
 		ForEachInContainer(sockets, mem_vfun(&T120ProxySocket::SetDeletable));
 	} else {
 		delete listener;
+		listener = NULL;
 	}
 	PTRACE(4, "T120\tDelete logical channel " << channelNumber);
 }
@@ -9125,7 +9133,7 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
 {
 	if (FindLogicalChannel(flcn)) {
 		PTRACE(3, "Proxy\tRTP logical channel " << flcn << " already exist?");
-		return 0;
+		return NULL;
 	}
 	RTPLogicalChannel *lc = peer->FindRTPLogicalChannelBySessionID(id);
 	if (lc && !lc->IsAttached()) {
@@ -9186,7 +9194,7 @@ T120LogicalChannel *H245ProxyHandler::CreateT120LogicalChannel(WORD flcn)
 {
 	if (FindLogicalChannel(flcn)) {
 		PTRACE(3, "Proxy\tT120 logical channel " << flcn << " already exist?");
-		return 0;
+		return NULL;
 	}
 	T120LogicalChannel *lc = new T120LogicalChannel(flcn);
 	logicalChannels[flcn] = lc;
