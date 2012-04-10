@@ -7894,18 +7894,31 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 
 	H235_H235Key h235key;
     encryptionSync.m_h235Key.DecodeSubType(h235key);
-    if (h235key.GetTag() == H235_H235Key::e_secureSharedSecret)
-	{
+    if (h235key.GetTag() == H235_H235Key::e_secureSharedSecret) {
 		const H235_V3KeySyncMaterial & v3data = h235key;
 	    PTRACE(0, "JW H235_V3KeySyncMaterial=" << v3data);
-		if (v3data.HasOptionalField(H235_V3KeySyncMaterial::e_encryptedSessionKey))
+		if (v3data.HasOptionalField(H235_V3KeySyncMaterial::e_encryptedSessionKey)) {
+			// TODO: this is the _media_key_ to be decrypted with the session key
+			// TODO: compute the session key (shared secret) from both half keys to decrypt the media key
 			m_H235Session->DecodeMasterKey(v3data.m_encryptedSessionKey);
+		}
+    } else if (h235key.GetTag() == H235_H235Key::e_secureChannel) {
+		// this is the _media_key_ in unencrypted form
+		const H235_KeyMaterial & mediaKeyBits = h235key;
+		PTRACE(0, "JW plain key size=" << mediaKeyBits.GetSize() << " data=" << mediaKeyBits);
+		PBYTEArray mediaKey(mediaKeyBits.GetDataPointer(), mediaKeyBits.GetSize());
+		m_H235Session->SetMasterKey(mediaKey);
 	} else {
 		PTRACE(1, "H235\tUnsupported key type " << h235key.GetTagName());
 		return false;
 	}
-	m_H235Session->CreateSession();
-	PTRACE(3, "H235\tNew session created");
+	if (m_H235Session->CreateSession()) {
+		PTRACE(3, "H235\tNew session created");
+	} else {
+		PTRACE(1, "H235\tError:Creation of session failed");
+		return false;
+	}
+
 	return true;
 }
 
@@ -7934,6 +7947,7 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	PTRACE(0, "JW computed sessionKey=" << sessionKey);
 	m_H235Session->SetMasterKey(sessionKey);
 
+	// TODO: generate media key and encrypt it with the session key (shared secreet)
 	encryptionSync.m_h235Key.SetTag(H235_H235Key::e_secureSharedSecret);
 	H235_V3KeySyncMaterial v3data;
 	v3data.IncludeOptionalField(H235_V3KeySyncMaterial::e_algorithmOID);
@@ -7943,8 +7957,12 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	encryptionSync.m_h235Key.EncodeSubType(v3data);
 	PTRACE(3, "H235\tNew key generated " << v3data);
 
-	m_H235Session->CreateSession();
-	PTRACE(3, "H235\tNew session created");
+	if (m_H235Session->CreateSession()) {
+		PTRACE(3, "H235\tNew session created");
+	} else {
+		PTRACE(1, "H235\tError:Creation of session failed");
+		return false;
+	}
 
 	return true;
 }
