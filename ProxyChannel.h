@@ -358,6 +358,9 @@ private:
 	PBYTEArray m_rawSetup;
 	PMutex infomutex;    // Information PDU processing Mutex
 	H245_TerminalCapabilitySet m_savedTCS;	// saved tcs to re-send
+#ifdef HAS_H46017
+	bool m_h46017Enabled;
+#endif
 #ifdef HAS_H46018
 	bool m_callFromTraversalServer; // is this call from a traversal server ?
 	bool m_callToTraversalServer;
@@ -519,6 +522,9 @@ private:
 	std::list<PTime *> m_removedTime;
 	/// time to wait before deleting a closed socket
 	PTimeInterval m_socketCleanupTimeout;
+#ifdef HAS_H46017
+	bool m_h46017Enabled;
+#endif
 };
 
 class HandlerList {

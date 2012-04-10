@@ -994,6 +994,9 @@ void CallSignalSocket::InternalInit()
 	m_maintainConnection = false;
 	m_result = NoData;
 	m_setupPdu = NULL;
+#ifdef HAS_H46017
+	m_h46017Enabled = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "EnableH46017", 0);
+#endif
 #ifdef HAS_H46018
 	m_callFromTraversalServer = false;
 	m_callToTraversalServer = false;
@@ -1301,7 +1304,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	if (msg->GetTag() == Q931::FacilityMsg
 		&& uuie
 		&& uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_genericData)
-		&& Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "EnableH46017", 0)) {
+		&& m_h46017Enabled) {
 		bool h46017found = false;
 		for(PINDEX i=0; i < uuie->m_h323_uu_pdu.m_genericData.GetSize(); ++i) {
 			H460_Feature & feat = (H460_Feature &)uuie->m_h323_uu_pdu.m_genericData[i];
@@ -5556,6 +5559,13 @@ void CallSignalSocket::Dispatch()
 
 	if (m_call)
 		m_call->SetSocket(NULL, NULL);
+
+#ifdef HAS_H46017
+	if (m_h46017Enabled) {
+		// if this is a H.460.17 socket, make sure its removed from the EPRec
+		RegistrationTable::Instance()->OnNATSocketClosed(this);
+	}
+#endif
 	delete this; // oh!
 }
 
@@ -9347,8 +9357,10 @@ ProxyHandler::~ProxyHandler()
 void ProxyHandler::LoadConfig()
 {
 	m_socketCleanupTimeout = GkConfig()->GetInteger(
-		RoutedSec, "SocketCleanupTimeout", DEFAULT_SOCKET_CLEANUP_TIMEOUT
-		);
+		RoutedSec, "SocketCleanupTimeout", DEFAULT_SOCKET_CLEANUP_TIMEOUT);
+#ifdef HAS_H46017
+	m_h46017Enabled = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "EnableH46017", 0);
+#endif
 }
 
 void ProxyHandler::Insert(TCPProxySocket *socket)
@@ -9608,6 +9620,15 @@ void ProxyHandler::CleanUp()
 			PTime * t = *m_removedTime.begin();
 			m_removed.erase(m_removed.begin());
 			m_removedTime.erase(m_removedTime.begin());
+#ifdef HAS_H46017
+			if (m_h46017Enabled) {
+				CallSignalSocket * css = dynamic_cast<CallSignalSocket *>(s);
+				if (css) {
+					// if this is a H.460.17 socket, make sure its removed from the EPRec
+					RegistrationTable::Instance()->OnNATSocketClosed(css);
+				}
+			}
+#endif
 			delete s;
 			delete t;
 			--m_rmsize;
