@@ -586,6 +586,7 @@ private:
 #ifdef HAS_H235_MEDIA
 	H235Session * m_H235Session;
 	bool m_simulateCallerSide;
+	PBYTEArray m_sessionKey;	// the shared DH secret used to encode media keys
 #endif
 
 	static WORD GetPortNumber();	// get a new port number to use
@@ -7892,22 +7893,31 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 	m_H235Session = new H235Session(Toolkit::Instance()->GetH235HalfCallMediaContext(), *dh, algorithm);
 	PTRACE(3, "H235\tNew session created");
 
+	// TODO: compute and store the session key (shared secret) from both half keys to decrypt the media key
+	if (dh->ComputeSessionKey(m_sessionKey)) {
+		PTRACE(0, "JW computed sessionKey=" << m_sessionKey);
+	} else {
+		PTRACE(1, "H235\tError: ComputeSessionKey failed");
+		return false;
+	}
+
 	H235_H235Key h235key;
     encryptionSync.m_h235Key.DecodeSubType(h235key);
     if (h235key.GetTag() == H235_H235Key::e_secureSharedSecret) {
 		const H235_V3KeySyncMaterial & v3data = h235key;
 	    PTRACE(0, "JW H235_V3KeySyncMaterial=" << v3data);
 		if (v3data.HasOptionalField(H235_V3KeySyncMaterial::e_encryptedSessionKey)) {
-			// TODO: this is the _media_key_ to be decrypted with the session key
-			// TODO: compute the session key (shared secret) from both half keys to decrypt the media key
-			m_H235Session->DecodeMasterKey(v3data.m_encryptedSessionKey);
+			// TODO: this is the _media_key_ to be decrypted with m_sessionKey
+			PBYTEArray mediaKey = v3data.m_encryptedSessionKey;
+			m_H235Session->DecodeMediaKey(mediaKey);
+			m_H235Session->SetMediaKey(mediaKey);
 		}
     } else if (h235key.GetTag() == H235_H235Key::e_secureChannel) {
 		// this is the _media_key_ in unencrypted form
 		const H235_KeyMaterial & mediaKeyBits = h235key;
 		PTRACE(0, "JW plain key size=" << mediaKeyBits.GetSize() << " data=" << mediaKeyBits);
 		PBYTEArray mediaKey(mediaKeyBits.GetDataPointer(), mediaKeyBits.GetSize());
-		m_H235Session->SetMasterKey(mediaKey);
+		m_H235Session->SetMediaKey(mediaKey);
 	} else {
 		PTRACE(1, "H235\tUnsupported key type " << h235key.GetTagName());
 		return false;
@@ -7940,20 +7950,28 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	m_H235Session = new H235Session(Toolkit::Instance()->GetH235HalfCallMediaContext(), *dh, sslAlgorithm);
 	PTRACE(3, "H235\tNew session created");
 
+	// TODO: compute and store the session key (shared secret) from both half keys to decrypt the media key
+	if (dh->ComputeSessionKey(m_sessionKey)) {
+		PTRACE(0, "JW computed sessionKey=" << m_sessionKey);
+	} else {
+		PTRACE(1, "H235\tError: ComputeSessionKey failed");
+		return false;
+	}
+
+	PBYTEArray mediaKey;
+	// TODO: generate media key
+	m_H235Session->SetMediaKey(mediaKey);
+
 	encryptionSync.m_synchFlag = RTPPayloadType;
-
-	PBYTEArray sessionKey;
-	dh->ComputeSessionKey(sessionKey);
-	PTRACE(0, "JW computed sessionKey=" << sessionKey);
-	m_H235Session->SetMasterKey(sessionKey);
-
-	// TODO: generate media key and encrypt it with the session key (shared secreet)
 	encryptionSync.m_h235Key.SetTag(H235_H235Key::e_secureSharedSecret);
 	H235_V3KeySyncMaterial v3data;
 	v3data.IncludeOptionalField(H235_V3KeySyncMaterial::e_algorithmOID);
 	v3data.m_algorithmOID = H2356_Authenticator::GetOIDFromAlg(sslAlgorithm);
 	v3data.IncludeOptionalField(H235_V3KeySyncMaterial::e_encryptedSessionKey);
-	v3data.m_encryptedSessionKey = sessionKey;
+	// encrypt media key with m_sessionKey (shared secret)
+	PBYTEArray encryptedMediaKey = mediaKey;
+	m_H235Session->EncodeMediaKey(encryptedMediaKey);
+	v3data.m_encryptedSessionKey = encryptedMediaKey;
 	encryptionSync.m_h235Key.EncodeSubType(v3data);
 	PTRACE(3, "H235\tNew key generated " << v3data);
 
