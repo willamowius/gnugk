@@ -1569,7 +1569,8 @@ PConfig* Toolkit::ReloadConfig()
 	// update the gatekeeper name, in case it was set in the SQL config
 	m_GKName = m_Config->GetString("Name", "OpenH323GK");
 #ifdef HAS_H235_MEDIA
-	m_H235HalfCallMediaEnabled	= m_Config->GetBoolean(RoutedSec, "EnableH235HalfCallMedia", 0);
+	m_H235HalfCallMediaEnabled = m_Config->GetBoolean(RoutedSec, "EnableH235HalfCallMedia", 0)
+		|| m_Config->GetBoolean(RoutedSec, "RequireH235HalfCallMedia", 0);
 	if (m_H235HalfCallMediaEnabled)
 		m_H235MediaContext.Initialise();
 #endif

@@ -568,10 +568,12 @@ public:
 
 #ifdef HAS_H235_MEDIA
 	bool CreateH235Session(H235Authenticators & auth, const H245_EncryptionSync & encryptionSync, bool caller);
-	bool CreateH235SessionAndKey(H235Authenticators & auth, H245_EncryptionSync & sync, WORD RTPPayloadType, bool simulateCallerSide);
+	bool CreateH235SessionAndKey(H235Authenticators & auth, H245_EncryptionSync & sync, bool simulateCallerSide);
 	H235Session * GetH235Session() const { return m_H235Session; }
 	bool HasH235Encryption() { return m_H235Session != NULL; }
 	bool ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller);
+	void SetPayloadType(WORD pt) { m_payloadType = pt; }
+	WORD GetPayloadType() const { return m_payloadType; }
 #endif
 
 private:
@@ -587,6 +589,7 @@ private:
 	H235Session * m_H235Session;
 	bool m_simulateCallerSide;
 	PBYTEArray m_sessionKey;	// the shared DH secret used to encode media keys
+	WORD m_payloadType;			// remember in OLC to use in OLCA
 #endif
 
 	static WORD GetPortNumber();	// get a new port number to use
@@ -3910,6 +3913,11 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			// no tokens in Setup and none in Connect
 			m_call->GetAuthenticators().SetSize(0);
 			PTRACE(3, "H235\tNo Media Encryption Support Detected: Disabling!");
+			if (Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "RequireH235HalfCallMedia", 0)) {
+				m_call->SetDisconnectCause(Q931::NormalUnspecified); //Q.931 code for reason=SecurityDenied
+				m_result = Error;
+				return;
+			}
 
 		} else if (m_call && (m_call->GetEncryptDirection() == CallRec::none)
 		  && connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens) && SupportsH235Media(connectBody.m_tokens)) {
@@ -7715,6 +7723,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 #ifdef HAS_H235_MEDIA
 	m_H235Session = NULL;
 	m_simulateCallerSide = false;
+	m_payloadType = 0;
 #endif
 
 #ifdef HAS_H46023
@@ -7771,7 +7780,8 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nat
 {
 #ifdef HAS_H235_MEDIA
 	m_H235Session = NULL;
-	m_simulateCallerSide = false;
+	m_simulateCallerSide = flc->m_simulateCallerSide;
+	m_payloadType = flc->m_payloadType;
 #endif
 	port = flc->port;
 	used = flc->used;
@@ -7884,55 +7894,72 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 
 	m_simulateCallerSide = simulateCallerSide;
 	H235_DiffieHellman * dh = NULL;
-	PString algorithm;
-	if ((auth.GetSize() < 1) || !(dh = auth[0].GetMediaSessionInfo(algorithm))) {
+	PString sslAlgorithm;
+	if ((auth.GetSize() < 1) || !(dh = auth[0].GetMediaSessionInfo(sslAlgorithm))) {
 		PTRACE(1, "H235\tError: GetMediaSessionInfo failed");
 		return false;
 	}
-	PTRACE(0, "JW algo=" << algorithm);
-	m_H235Session = new H235Session(Toolkit::Instance()->GetH235HalfCallMediaContext(), *dh, algorithm);
-	PTRACE(3, "H235\tNew session created");
+	PTRACE(0, "JW algo=" << sslAlgorithm);
 
-	// TODO: compute and store the session key (shared secret) from both half keys to decrypt the media key
-	if (dh->ComputeSessionKey(m_sessionKey)) {
-		PTRACE(0, "JW computed sessionKey=" << m_sessionKey);
+	// compute and store the session key (shared secret) from both half keys to decrypt the media key
+	if (m_sessionKey.GetSize() == 0) {
+		if (dh->ComputeSessionKey(m_sessionKey)) {
+			PTRACE(0, "JW computed sessionKey=" << endl << hex << m_sessionKey);
+		} else {
+			PTRACE(1, "H235\tError: ComputeSessionKey failed");
+			return false;
+		}
+	}
+
+	m_H235Session = new H235Session(Toolkit::Instance()->GetH235HalfCallMediaContext(), *dh, sslAlgorithm);
+	PTRACE(3, "H235\tNew key session created");
+	// use session key to decrypt the media key, replace before starting to use with media
+	m_H235Session->SetMediaKey(m_sessionKey);
+	if (m_H235Session->CreateSession()) {
+		PTRACE(3, "H235\tNew key session created");
 	} else {
-		PTRACE(1, "H235\tError: ComputeSessionKey failed");
+		PTRACE(1, "H235\tError: Creation of key session failed");
 		return false;
 	}
 
+	PBYTEArray mediaKey;
 	H235_H235Key h235key;
     encryptionSync.m_h235Key.DecodeSubType(h235key);
     if (h235key.GetTag() == H235_H235Key::e_secureSharedSecret) {
 		const H235_V3KeySyncMaterial & v3data = h235key;
 	    PTRACE(0, "JW H235_V3KeySyncMaterial=" << v3data);
 		if (v3data.HasOptionalField(H235_V3KeySyncMaterial::e_encryptedSessionKey)) {
-			// TODO: this is the _media_key_ to be decrypted with m_sessionKey
-			PBYTEArray mediaKey = v3data.m_encryptedSessionKey;
+			// this is the _media_key_ to be decrypted with m_sessionKey
+			mediaKey = v3data.m_encryptedSessionKey;
 			m_H235Session->DecodeMediaKey(mediaKey);
-			m_H235Session->SetMediaKey(mediaKey);
 		}
     } else if (h235key.GetTag() == H235_H235Key::e_secureChannel) {
 		// this is the _media_key_ in unencrypted form
 		const H235_KeyMaterial & mediaKeyBits = h235key;
 		PTRACE(0, "JW plain key size=" << mediaKeyBits.GetSize() << " data=" << mediaKeyBits);
-		PBYTEArray mediaKey(mediaKeyBits.GetDataPointer(), mediaKeyBits.GetSize());
-		m_H235Session->SetMediaKey(mediaKey);
+		mediaKey = PBYTEArray(mediaKeyBits.GetDataPointer(), mediaKeyBits.GetSize());
 	} else {
 		PTRACE(1, "H235\tUnsupported key type " << h235key.GetTagName());
 		return false;
 	}
+
+	// new session with media key after shared key was used to decrypt media key
+	delete m_H235Session;
+	m_H235Session = new H235Session(Toolkit::Instance()->GetH235HalfCallMediaContext(), *dh, sslAlgorithm);
+	PTRACE(3, "H235\tNew media session created");
+	m_H235Session->SetMediaKey(mediaKey);
+
 	if (m_H235Session->CreateSession()) {
-		PTRACE(3, "H235\tNew session created");
+		PTRACE(3, "H235\tNew media session created");
 	} else {
-		PTRACE(1, "H235\tError:Creation of session failed");
+		PTRACE(1, "H235\tError: Creation of media session failed");
 		return false;
 	}
 
 	return true;
 }
 
-bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_EncryptionSync & encryptionSync, WORD RTPPayloadType, bool simulateCallerSide)
+bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_EncryptionSync & encryptionSync, bool simulateCallerSide)
 {
 	if (m_H235Session) {
 		PTRACE(1, "H235\tError: Session already created");
@@ -7947,22 +7974,35 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 		return false;
 	}
 	PTRACE(0, "JW algo=" << sslAlgorithm);
+
+	// compute and store the session key (shared secret) from both half keys to decrypt the media key
+	if (m_sessionKey.GetSize() == 0) {
+		if (dh->ComputeSessionKey(m_sessionKey)) {
+			PTRACE(0, "JW computed sessionKey=" << endl << hex << m_sessionKey);
+		} else {
+			PTRACE(1, "H235\tError: ComputeSessionKey failed");
+			return false;
+		}
+	}
+
 	m_H235Session = new H235Session(Toolkit::Instance()->GetH235HalfCallMediaContext(), *dh, sslAlgorithm);
 	PTRACE(3, "H235\tNew session created");
-
-	// TODO: compute and store the session key (shared secret) from both half keys to decrypt the media key
-	if (dh->ComputeSessionKey(m_sessionKey)) {
-		PTRACE(0, "JW computed sessionKey=" << m_sessionKey);
+	// use session key to encrypt the media key, replace before starting to use with media
+	m_H235Session->SetMediaKey(m_sessionKey);
+	if (m_H235Session->CreateSession()) {
+		PTRACE(3, "H235\tNew key session created");
 	} else {
-		PTRACE(1, "H235\tError: ComputeSessionKey failed");
+		PTRACE(1, "H235\tError: Creation of key session failed");
 		return false;
 	}
 
 	PBYTEArray mediaKey;
-	// TODO: generate media key
-	m_H235Session->SetMediaKey(mediaKey);
+	// generate media key
+	mediaKey.SetSize(16);	// TODO: support other key sizes
+	for (PINDEX i = 0; i < mediaKey.GetSize(); i++)
+		mediaKey[i] = (BYTE)rand();		// TODO: use better random generator, like OpenSSL RAND_bytes(buf, len) ?
 
-	encryptionSync.m_synchFlag = RTPPayloadType;
+	encryptionSync.m_synchFlag = m_payloadType;
 	encryptionSync.m_h235Key.SetTag(H235_H235Key::e_secureSharedSecret);
 	H235_V3KeySyncMaterial v3data;
 	v3data.IncludeOptionalField(H235_V3KeySyncMaterial::e_algorithmOID);
@@ -7975,10 +8015,16 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	encryptionSync.m_h235Key.EncodeSubType(v3data);
 	PTRACE(3, "H235\tNew key generated " << v3data);
 
+	// new session with media key after shared key was used to encrypt media key for transmission
+	delete m_H235Session;
+	m_H235Session = new H235Session(Toolkit::Instance()->GetH235HalfCallMediaContext(), *dh, sslAlgorithm);
+	PTRACE(3, "H235\tNew session created");
+	m_H235Session->SetMediaKey(mediaKey);
+
 	if (m_H235Session->CreateSession()) {
-		PTRACE(3, "H235\tNew session created");
+		PTRACE(3, "H235\tNew media session created");
 	} else {
-		PTRACE(1, "H235\tError:Creation of session failed");
+		PTRACE(1, "H235\tError: Creation of media session failed");
 		return false;
 	}
 
@@ -8729,14 +8775,15 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 				if (h225Params && h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_dynamicRTPPayloadType)) {
 					RTPPayloadType = h225Params->m_dynamicRTPPayloadType;
 				} else {
-					// TODO235: fix for cases when the OLC doesn't contain a dynamic payload type
+					// TODO235: fix for static payload types
 					RTPPayloadType = 127;
 					PTRACE(0, "JW ERROR don't know payload type, using " << RTPPayloadType);
 				}
 				RTPLogicalChannel * lc = (RTPLogicalChannel *)FindLogicalChannel(flcn);
 				PTRACE(0, "JW flcn=" << flcn << " lc=" << lc);
 				if (lc) {
-					lc->CreateH235SessionAndKey(call->GetAuthenticators(), olc.m_encryptionSync, RTPPayloadType,
+					lc->SetPayloadType(RTPPayloadType);
+					lc->CreateH235SessionAndKey(call->GetAuthenticators(), olc.m_encryptionSync,
 						(call->GetEncryptDirection() == CallRec::callingParty));
 					PTRACE(0, "JW added encryptionSync - done" << olc.m_encryptionSync);
 				}
@@ -8951,11 +8998,10 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 			// the message comes from the master and its in the direction we are simulating
 			PTRACE(0, "JW adding encryptionSync");
 			olca.IncludeOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
-			WORD RTPPayloadType = 0; // TODO235: remember pay load type from OLC
 			RTPLogicalChannel * lc = (RTPLogicalChannel *)FindLogicalChannel(flcn);
 			PTRACE(0, "JW flcn=" << flcn << " lc=" << lc);
 			if (lc) {
-				lc->CreateH235SessionAndKey(call->GetAuthenticators(), olca.m_encryptionSync, RTPPayloadType,
+				lc->CreateH235SessionAndKey(call->GetAuthenticators(), olca.m_encryptionSync,
 					(call->GetEncryptDirection() == CallRec::callingParty));
 				PTRACE(0, "JW added encryptionSync - done" << olca.m_encryptionSync);
 			}

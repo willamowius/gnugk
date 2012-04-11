@@ -541,6 +541,11 @@ system you are trying to reach is on the Internet; your internal traffic can
 remain unencrypted, but your external traffic will be secure.  Enabling this
 feature will also force call signaling for all calls to routed-mode.
 
+<item><tt/RequireH235HalfCallMedia=1/<newline>
+Default: <tt/0/<newline>
+<p>
+EXPERIMENTAL: Terminate the call if not at least one leg can be encrypted.
+
 </itemize>
 
 <p>
