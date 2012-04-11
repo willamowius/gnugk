@@ -420,6 +420,7 @@ public:
 	void SetMute(bool toMute) { mute = toMute; }
 	void OnHandlerSwapped() { std::swap(fnat, rnat); }
 	void SetRTPSessionID(WORD id) { m_sessionID = id; }
+	void SetRTPLogicalChannel(RTPLogicalChannel * lc) { rtplc = lc; }
 #ifdef HAS_H46018
 	void SetUsesH46019fc(bool fc) { m_h46019fc = fc; }
 	// same socket is used for all directions; set if at least one side uses H.460.19
@@ -7799,6 +7800,10 @@ RTPLogicalChannel::~RTPLogicalChannel()
 {
 #ifdef HAS_H235_MEDIA
 	if (m_H235Session) {
+		if (rtp)
+			rtp->SetRTPLogicalChannel(NULL);
+		if (rtcp)
+			rtcp->SetRTPLogicalChannel(NULL);
 		delete m_H235Session;
 		m_H235Session = NULL;
 	}
@@ -7912,13 +7917,14 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 	}
 
 	m_H235Session = new H235Session(Toolkit::Instance()->GetH235HalfCallMediaContext(), *dh, sslAlgorithm);
-	PTRACE(3, "H235\tNew key session created");
 	// use session key to decrypt the media key, replace before starting to use with media
 	m_H235Session->SetMediaKey(m_sessionKey);
 	if (m_H235Session->CreateSession()) {
 		PTRACE(3, "H235\tNew key session created");
 	} else {
 		PTRACE(1, "H235\tError: Creation of key session failed");
+		delete m_H235Session;
+		m_H235Session = NULL;
 		return false;
 	}
 
@@ -7953,6 +7959,8 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 		PTRACE(3, "H235\tNew media session created");
 	} else {
 		PTRACE(1, "H235\tError: Creation of media session failed");
+		delete m_H235Session;
+		m_H235Session = NULL;
 		return false;
 	}
 
@@ -7986,13 +7994,14 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	}
 
 	m_H235Session = new H235Session(Toolkit::Instance()->GetH235HalfCallMediaContext(), *dh, sslAlgorithm);
-	PTRACE(3, "H235\tNew session created");
 	// use session key to encrypt the media key, replace before starting to use with media
 	m_H235Session->SetMediaKey(m_sessionKey);
 	if (m_H235Session->CreateSession()) {
 		PTRACE(3, "H235\tNew key session created");
 	} else {
 		PTRACE(1, "H235\tError: Creation of key session failed");
+		delete m_H235Session;
+		m_H235Session = NULL;
 		return false;
 	}
 
@@ -8025,6 +8034,8 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 		PTRACE(3, "H235\tNew media session created");
 	} else {
 		PTRACE(1, "H235\tError: Creation of media session failed");
+		delete m_H235Session;
+		m_H235Session = NULL;
 		return false;
 	}
 
