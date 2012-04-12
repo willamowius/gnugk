@@ -3323,9 +3323,10 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			&& setupBody.m_multipleCalls)
 		setupBody.m_multipleCalls = FALSE;
 
-	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_maintainConnection)
-			&& setupBody.m_maintainConnection)
-		setupBody.m_maintainConnection = FALSE;
+	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_maintainConnection)) {
+		CallSignalSocket * other = dynamic_cast<CallSignalSocket *>(remote);
+		setupBody.m_maintainConnection = (other && other->MaintainConnection());
+	}
 
 	const PString cli = toolkit->Config()->GetString(RoutedSec, "ScreenCallingPartyNumberIE", "");
 	if (!cli) {
@@ -3756,9 +3757,9 @@ void CallSignalSocket::OnCallProceeding(
 		cpBody.m_multipleCalls = FALSE;
 		msg->SetUUIEChanged();
 	}
-	if (cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_maintainConnection)
-			&& cpBody.m_maintainConnection) {
-		cpBody.m_maintainConnection = FALSE;
+	if (cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_maintainConnection)) {
+		CallSignalSocket * other = dynamic_cast<CallSignalSocket *>(remote);
+		cpBody.m_maintainConnection = (other && other->MaintainConnection());
 		msg->SetUUIEChanged();
 	}
 
@@ -3882,9 +3883,9 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 		connectBody.m_multipleCalls = FALSE;
 		msg->SetUUIEChanged();
 	}
-	if (connectBody.HasOptionalField(H225_Connect_UUIE::e_maintainConnection)
-			&& connectBody.m_maintainConnection) {
-		connectBody.m_maintainConnection = FALSE;
+	if (connectBody.HasOptionalField(H225_Connect_UUIE::e_maintainConnection)) {
+		CallSignalSocket * other = dynamic_cast<CallSignalSocket *>(remote);
+		connectBody.m_maintainConnection = (other && other->MaintainConnection());
 		msg->SetUUIEChanged();
 	}
 
@@ -4028,9 +4029,9 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 		alertingBody.m_multipleCalls = FALSE;
 		msg->SetUUIEChanged();
 	}
-	if (alertingBody.HasOptionalField(H225_Alerting_UUIE::e_maintainConnection)
-			&& alertingBody.m_maintainConnection) {
-		alertingBody.m_maintainConnection = FALSE;
+	if (alertingBody.HasOptionalField(H225_Alerting_UUIE::e_maintainConnection)) {
+		CallSignalSocket * other = dynamic_cast<CallSignalSocket *>(remote);
+		alertingBody.m_maintainConnection = (other && other->MaintainConnection());
 		msg->SetUUIEChanged();
 	}
 
@@ -4799,9 +4800,9 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 		facilityBody.m_multipleCalls = FALSE;
 		msg->SetUUIEChanged();
 	}
-	if (facilityBody.HasOptionalField(H225_Facility_UUIE::e_maintainConnection)
-			&& facilityBody.m_maintainConnection) {
-		facilityBody.m_maintainConnection = FALSE;
+	if (facilityBody.HasOptionalField(H225_Facility_UUIE::e_maintainConnection)) {
+		CallSignalSocket * other = dynamic_cast<CallSignalSocket *>(remote);
+		facilityBody.m_maintainConnection = (other && other->MaintainConnection());
 		msg->SetUUIEChanged();
 	}
 
@@ -5068,9 +5069,9 @@ void CallSignalSocket::OnProgress(
 		progressBody.m_multipleCalls = FALSE;
 		msg->SetUUIEChanged();
 	}
-	if (progressBody.HasOptionalField(H225_Progress_UUIE::e_maintainConnection)
-			&& progressBody.m_maintainConnection) {
-		progressBody.m_maintainConnection = FALSE;
+	if (progressBody.HasOptionalField(H225_Progress_UUIE::e_maintainConnection)) {
+		CallSignalSocket * other = dynamic_cast<CallSignalSocket *>(remote);
+		progressBody.m_maintainConnection = (other && other->MaintainConnection());
 		msg->SetUUIEChanged();
 	}
 
