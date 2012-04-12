@@ -1,5 +1,6 @@
 Changes from 3.0 to 3.1
 =======================
+- BUGFIX(ProxyChannel.cxx) fix port on Facility callForwarded
 - BUGFIX(RasTbl.cxx) fix failover for calls terminated by gatekeeper
 - BUGFIX(RasSrv.cxx) make sure H.460.23 is only active on ARQs when it is enabled
 - BUGFIX(Neighbor.cxx) set travsersal server IP in ACF for calls through traversal zone

@@ -5286,7 +5286,7 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 				if (IsIPAddress(destination)) {
 					PStringArray adr_parts = SplitIPAndPort(destination, GK_DEF_ENDPOINT_SIGNAL_PORT);
 					ip = adr_parts[0];
-					destport = (WORD)adr_parts[0].AsUnsigned();
+					destport = (WORD)adr_parts[1].AsUnsigned();
 				}
 
 				if (!ip.IsEmpty()) {
