@@ -2755,6 +2755,12 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 					setupBody.IncludeOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 					setupBody.m_cryptoTokens.SetSize(0);
 				}
+#if PTLIB_VER >= 2110  // Authenticators are created on demand by identifiers in token/cryptoTokens where supported 
+				auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
+#else			// Create all authenticators for both media encryption and caller authentication
+				auth.CreateAuthenticators(H235Authenticator::MediaEncryption);  
+				auth.CreateAuthenticators(H235Authenticator::EPAuthentication);   // TODO Need Caller Authenticators in H323plus to work - SH
+#endif
 				auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_setup, 
 										setupBody.m_tokens, setupBody.m_cryptoTokens);
 				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
