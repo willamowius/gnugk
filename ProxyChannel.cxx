@@ -2720,10 +2720,12 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 					setupBody.m_cryptoTokens.SetSize(0);
 				}
 
+#if PTLIB_VER >= 2110  // Authenticators are created on demand by identifiers in token/cryptoTokens where supported 
 				auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
-				if(!auth.CreateAuthenticator("Std6")) {	// TODO: move up before ValidateSignalPDU() ?
-					PTRACE(1, "H235\tCould not create authenticator");
-				}
+#else			// Create all authenticators for both media encryption and caller authentication
+				auth.CreateAuthenticators(H235Authenticator::MediaEncryption);  
+				auth.CreateAuthenticators(H235Authenticator::EPAuthentication);   // TODO Need Caller Authenticators in H323plus to work - SH
+#endif
 				// make sure authenticator gets received tokens, ignore the result
 				H235Authenticator::ValidationResult result = auth.ValidateSignalPDU( 
 					H225_H323_UU_PDU_h323_message_body::e_setup, 
@@ -2740,7 +2742,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				setupBody.m_cryptoTokens.RemoveAll();
 				setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 				m_call->SetMediaEncryption(CallRec::calledParty);
-			} else if (!rejectCall && !auth.SupportsEncryption() && auth.CreateAuthenticator("Std6")) {
+			} else if (!rejectCall && !auth.SupportsEncryption()) {
 				if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
 					// remove possible other clear tokens in order no to get a mix with ours
 					setupBody.m_tokens.RemoveAll();
