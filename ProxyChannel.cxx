@@ -572,7 +572,7 @@ public:
 	bool CreateH235SessionAndKey(H235Authenticators & auth, H245_EncryptionSync & sync, bool simulateCallerSide);
 	H235CryptoEngine * GetH235CryptoEngine() const { return m_H235CryptoEngine; }
 	bool HasH235Encryption() { return m_H235CryptoEngine != NULL; }
-	bool ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller);
+	bool ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller, unsigned char * ivsequence, bool rtpPadding);
 	void SetPayloadType(WORD pt) { m_payloadType = pt; }
 	WORD GetPayloadType() const { return m_payloadType; }
 #endif
@@ -6764,6 +6764,7 @@ void H46019Channel::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 			bool fromCaller = true;
 			if (call) {
 				// HACK: this only works if caller and called are on different IPs and send media from the same IP as call signaling
+				// TODO235: detect direction in all cases
 				PIPSocket::Address callerSignalIP, packetSource;
 				WORD notused;
 				call->GetSrcSignalAddr(callerSignalIP, notused);
@@ -6771,7 +6772,9 @@ void H46019Channel::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 				fromCaller = (callerSignalIP == packetSource);
 			}
 			WORD wlen = len;
-			rtplc->ProcessH235Media((BYTE*)data, wlen, fromCaller); // TODO235: detect direction in all cases
+			unsigned char * ivSeqence = NULL;
+			bool rtpPadding = false;
+			rtplc->ProcessH235Media((BYTE*)data, wlen, fromCaller, ivSeqence, rtpPadding);
 			len = wlen;
 		}
 	}
@@ -7228,6 +7231,15 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 #if (HAS_H46018 || HAS_H46024B)
 	bool isRTP = m_isRTPType && (version == 2);
 #endif
+#ifdef HAS_H235_MEDIA
+	unsigned char ivSeqence[6];
+	if (buflen >= 8)
+		memcpy(ivSeqence, wbuffer + 2, 6);
+	bool rtpPadding = false;
+	if (buflen >= 1)
+		rtpPadding = (wbuffer[0] & 0x20);
+	PTRACE(0, "JW RTP padding=" << rtpPadding << " ivSeqence=" << hex << ivSeqence);
+#endif
 #ifdef HAS_H46018
 	bool isRTPKeepAlive = isRTP && (buflen == 12);
 
@@ -7427,7 +7439,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		WORD notused;
 		(*m_call)->GetSrcSignalAddr(callerSignalIP, notused);
 		fromCaller = (callerSignalIP == fromIP);
-		rtplc->ProcessH235Media(wbuffer, buflen, fromCaller); 
+		rtplc->ProcessH235Media(wbuffer, buflen, fromCaller, ivSeqence, rtpPadding);
 	}
 #endif
 
@@ -7909,7 +7921,7 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 	    PTRACE(0, "JW H235_V3KeySyncMaterial=" << v3data);
 		if (v3data.HasOptionalField(H235_V3KeySyncMaterial::e_encryptedSessionKey)) {
 			// this is the _media_key_ to be decrypted with the session key
-			mediaKey = H235Session.Decrypt(v3data.m_encryptedSessionKey);
+			mediaKey = H235Session.Decrypt(v3data.m_encryptedSessionKey, NULL, false);	// TODO: fix IV + padding
 		}
     } else if (h235key.GetTag() == H235_H235Key::e_secureChannel) {
 		// this is the _media_key_ in unencrypted form
@@ -7959,7 +7971,7 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	v3data.m_algorithmOID = algorithmOID;
 	v3data.IncludeOptionalField(H235_V3KeySyncMaterial::e_encryptedSessionKey);
 	// encrypt media key with session key (shared secret)
-	v3data.m_encryptedSessionKey = H235Session.Encrypt(mediaKey);
+	v3data.m_encryptedSessionKey = H235Session.Encrypt(mediaKey, NULL, false);	// TODO: fix IV + padding
 	encryptionSync.m_h235Key.EncodeSubType(v3data);
 	PTRACE(3, "H235\tNew key generated " << v3data);
 
@@ -7970,7 +7982,7 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	return true;
 }
 
-bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller) 
+bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller, unsigned char * ivsequence, bool rtpPadding)
 {
 	if (!m_H235CryptoEngine)
 		return false;
@@ -7979,9 +7991,9 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCal
 	PBYTEArray processed;
 
 	if (fromCaller && m_simulateCallerSide)
-		processed = m_H235CryptoEngine->Encrypt(data);
+		processed = m_H235CryptoEngine->Encrypt(data, ivsequence, rtpPadding);
 	else if (!fromCaller && !m_simulateCallerSide)
-		processed = m_H235CryptoEngine->Decrypt(data);
+		processed = m_H235CryptoEngine->Decrypt(data, ivsequence, rtpPadding);
 
 	len = processed.GetSize();
 	// TODO235: buffer might need resizing !!!!
