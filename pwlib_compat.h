@@ -130,10 +130,6 @@
         #ifdef P_LUA
 			#define hasLUA          1
 		#endif
-		#ifdef H323_H235
-			// loading of the H.235.6 authenticator only works with PTLib 2.11.x
-			#define HAS_H235_MEDIA 1      // H.235.6 Media Encryption Support
-		#endif
 	#endif
 	// bug with no trailing NULL bytes in BMP strings, fixed in PTLib 2.7.1
 	#if ((PTLIB_MINOR == 2) || (PTLIB_MINOR == 4 && PTLIB_BUILD <= 5) || (PTLIB_MINOR == 5 && PTLIB_BUILD <= 2) || (PTLIB_MINOR == 6 && PTLIB_BUILD <= 4))
@@ -165,6 +161,11 @@
 ///////////////////////////////////////////////
 
 // OpenH323/H323Plus version matching
+#ifdef H323_H235
+	// loading of the H.235.6 authenticator only works with PTLib 2.11.x
+	#define HAS_H235_MEDIA 1      // H.235.6 Media Encryption Support
+#endif
+
 #ifdef H323_H460
 	#define HAS_H460 1    // H460 support
 #else
