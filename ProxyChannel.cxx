@@ -1013,6 +1013,26 @@ void CallSignalSocket::InternalInit()
 	m_h225Version = 0;
 }
 
+#ifdef HAS_H46017
+void CallSignalSocket::CleanupCall()
+{
+	m_call = callptr(NULL);
+	m_crv = 0;
+	m_h245handler = NULL;
+	m_h245socket = NULL;
+	m_setupPdu = NULL;
+#ifdef HAS_H46018
+	m_callFromTraversalServer = false;
+	m_callToTraversalServer = false;
+	m_senderSupportsH46019Multiplexing = false;
+#endif
+#ifdef HAS_H235_MEDIA
+	m_isH245Master = false;
+#endif
+	m_h225Version = 0;
+}
+#endif
+
 void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 {
 	remote = socket;
@@ -7239,12 +7259,11 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 #endif
 #ifdef HAS_H235_MEDIA
 	unsigned char ivSeqence[6];
-	if (buflen >= 8)
-		memcpy(ivSeqence, wbuffer + 2, 6);
 	bool rtpPadding = false;
 	if (buflen >= 1)
 		rtpPadding = (wbuffer[0] & 0x20);
-	PTRACE(0, "JW RTP padding=" << rtpPadding << " ivSeqence=" << hex << ivSeqence);
+	if (buflen >= 8)
+		memcpy(ivSeqence, wbuffer + 2, 6);
 #endif
 #ifdef HAS_H46018
 	bool isRTPKeepAlive = isRTP && (buflen == 12);
@@ -9546,6 +9565,7 @@ void ProxyHandler::ReadSocket(IPSocket *socket)
 						css->SetH245Socket(NULL);	// TODO: detach from handler ?
 					}
 					css->DetachRemote();
+					css->CleanupCall();
 				}
 				if (!css || !css->MaintainConnection()) {
 					// only close the Q.931 socket if it's not also used for H.460.17

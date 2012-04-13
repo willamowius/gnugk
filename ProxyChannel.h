@@ -224,6 +224,7 @@ protected:
 public:
 #ifdef HAS_H46017
 	bool SendH46017Message(const H225_RasMessage & ras);
+	void CleanupCall();
 #endif
 	bool MaintainConnection() const { return m_maintainConnection; }
 
@@ -296,7 +297,7 @@ protected:
 private:
 	CallSignalSocket(const CallSignalSocket&);
 	CallSignalSocket& operator=(const CallSignalSocket&);
-	
+
 	void InternalInit();
 	void BuildReleasePDU(Q931 &, const H225_CallTerminationCause *) const;
 	// if return false, the h245Address field will be removed
