@@ -7925,9 +7925,21 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
     if (h235key.GetTag() == H235_H235Key::e_secureSharedSecret) {
 		const H235_V3KeySyncMaterial & v3data = h235key;
 	    PTRACE(0, "JW H235_V3KeySyncMaterial=" << v3data);
+	    if (v3data.HasOptionalField(H235_V3KeySyncMaterial::e_algorithmOID)
+			&& (v3data.m_algorithmOID != algorithmOID)) {
+		    PTRACE(1, "H235\tError: Different algo for session an media key not supported " << v3data);
+		    return false;
+	    }
+	    if (v3data.m_paramS.HasOptionalField(H235_Params::e_iv)
+			|| v3data.m_paramS.HasOptionalField(H235_Params::e_iv16)) {
+		    PTRACE(1, "H235\tError: non-empty IV not supported, yet " << v3data);
+		    return false;
+		}
 		if (v3data.HasOptionalField(H235_V3KeySyncMaterial::e_encryptedSessionKey)) {
 			// this is the _media_key_ to be decrypted with the session key
-			mediaKey = H235Session.Decrypt(v3data.m_encryptedSessionKey, NULL, false);	// TODO: fix IV + padding
+			mediaKey = H235Session.Decrypt(v3data.m_encryptedSessionKey, NULL, false);	// TODO: fix padding
+		} else {
+		    PTRACE(1, "H235\tError: unsupported media key type: " << v3data);
 		}
     } else if (h235key.GetTag() == H235_H235Key::e_secureChannel) {
 		// this is the _media_key_ in unencrypted form
@@ -7977,7 +7989,7 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	v3data.m_algorithmOID = algorithmOID;
 	v3data.IncludeOptionalField(H235_V3KeySyncMaterial::e_encryptedSessionKey);
 	// encrypt media key with session key (shared secret)
-	v3data.m_encryptedSessionKey = H235Session.Encrypt(mediaKey, NULL, false);	// TODO: fix IV + padding
+	v3data.m_encryptedSessionKey = H235Session.Encrypt(mediaKey, NULL, false);	// TODO: fix padding
 	encryptionSync.m_h235Key.EncodeSubType(v3data);
 	PTRACE(3, "H235\tNew key generated " << v3data);
 
