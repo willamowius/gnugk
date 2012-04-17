@@ -3450,9 +3450,7 @@ bool CallRec::DisableRetryChecks() const
 	return Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "DisableRetryChecks", "0"));
 }
 
-void CallRec::SetCodec(
-	const PString &codec
-	)
+void CallRec::SetCodec(const PString & codec)
 {
 	PWaitAndSignal lock(m_usedLock);
 	m_codec = codec;
@@ -3464,15 +3462,13 @@ PString CallRec::GetCodec() const
 	return m_codec;
 }
 
-void CallRec::SetMediaOriginatingIp(
-	const PIPSocket::Address &addr
-	)
+void CallRec::SetMediaOriginatingIp(const PIPSocket::Address & addr)
 {
 	PWaitAndSignal lock(m_usedLock);
 	m_mediaOriginatingIp = addr;
 }
 
-bool CallRec::GetMediaOriginatingIp(PIPSocket::Address &addr) const
+bool CallRec::GetMediaOriginatingIp(PIPSocket::Address & addr) const
 {
 	PWaitAndSignal lock(m_usedLock);
 	if (m_mediaOriginatingIp.IsValid()) {

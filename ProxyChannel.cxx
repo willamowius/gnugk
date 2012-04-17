@@ -1663,7 +1663,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 #ifdef HAS_H235_MEDIA
         changed = HandleH235OLC(olc);
 #endif
-		if (m_callerSocket) {  // TODO This code may not work if media encrypted - SH
+		if (m_callerSocket) {  // TODO: This code will not work for encrypted media
 			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
 					&& olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData
 					&& olc.m_reverseLogicalChannelParameters.HasOptionalField(H245_OpenLogicalChannel_reverseLogicalChannelParameters::e_multiplexParameters)
@@ -1679,15 +1679,29 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 				}
 			}
 		}
-		H245_AudioCapability *audioCap = NULL;  // TODO This code does not work if media encrypted - SH
+		H245_AudioCapability *audioCap = NULL;
+		bool h235Audio = false;
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
 				&& olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData) {
 			audioCap = &((H245_AudioCapability&)olc.m_reverseLogicalChannelParameters.m_dataType);
 		} else if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData) {
 			audioCap = &((H245_AudioCapability&)olc.m_forwardLogicalChannelParameters.m_dataType);
+		} else if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
+				&& olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_h235Media) {
+			H245_H235Media & h235data = olc.m_reverseLogicalChannelParameters.m_dataType;
+			if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_audioData) {
+				audioCap = &((H245_AudioCapability&)h235data.m_mediaType);
+				h235Audio = true;
+			}
+		} else if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_h235Media) {
+			H245_H235Media & h235data = olc.m_forwardLogicalChannelParameters.m_dataType;
+			if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_audioData) {
+				audioCap = &((H245_AudioCapability&)h235data.m_mediaType);
+				h235Audio = true;
+			}
 		}
 		if (audioCap != NULL && m_call)
-			m_call->SetCodec(GetH245CodecName(*audioCap));
+			m_call->SetCodec(GetH245CodecName(*audioCap) + (h235Audio ? " (H.235)" : ""));
 	}
 
     if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_indication) {
@@ -1809,13 +1823,13 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		}
 
 		// filter the audio capabilities
-        // TODO: Remove the associated SecurityCapability if call is encrypted!
+        // TODO: Also remove the associated SecurityCapability if call is encrypted!
 		for (PINDEX i = 0; i < CapabilityTables.GetSize(); i++) {
 			// PTRACE(4, "CapabilityTable: " << setprecision(2) << CapabilityTables[i]);
 			unsigned int cten = CapabilityTables[i].m_capabilityTableEntryNumber.GetValue();
 			H245_Capability & H245Capability = CapabilityTables[i].m_capability;
 
-			if (H245Capability.GetTag() == H245_Capability::e_receiveAudioCapability ) {
+			if (H245Capability.GetTag() == H245_Capability::e_receiveAudioCapability) {
 				H245_AudioCapability & H245AudioCapability = H245Capability;
 				if (m_call->GetDisabledCodecs().Find(H245AudioCapability.GetTagName() + ";", 0) != P_MAX_INDEX) {
 					PTRACE(4, "Delete audio capability " << H245AudioCapability.GetTagName());
@@ -1844,7 +1858,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 			unsigned int cten = CapabilityTables[i].m_capabilityTableEntryNumber.GetValue();
 			H245_Capability & H245Capability = CapabilityTables[i].m_capability;
 
-			if (H245Capability.GetTag() == H245_Capability::e_receiveVideoCapability ) {
+			if (H245Capability.GetTag() == H245_Capability::e_receiveVideoCapability) {
 				H245_VideoCapability & H245VideoCapability = H245Capability;
 				if (m_call->GetDisabledCodecs().Find(H245VideoCapability.GetTagName() + ";", 0) != P_MAX_INDEX) {
 					PTRACE(4, "Delete video capability " << H245VideoCapability.GetTagName());
@@ -8015,7 +8029,7 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 		PTRACE(1, "H235\tError: GetMediaSessionInfo failed");
 		return false;
 	}
-	PTRACE(0, "JW algo=" << algorithmOID);
+	PTRACE(0, "JW algo=" << algorithmOID << " shared secret size=" << sessionKey.GetSize());
 
 	// use session key to decrypt the media key
 	H235CryptoEngine H235Session(algorithmOID, sessionKey);
@@ -8082,7 +8096,7 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 		PTRACE(1, "H235\tError: GetMediaSessionInfo failed");
 		return false;
 	}
-	PTRACE(0, "JW algo=" << algorithmOID);
+	PTRACE(0, "JW algo=" << algorithmOID << " shared secret size=" << sessionKey.GetSize());
 
 	// use session key to decrypt the media key
 	H235CryptoEngine H235Session(algorithmOID, sessionKey);
