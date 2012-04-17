@@ -8029,10 +8029,23 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 		PTRACE(1, "H235\tError: GetMediaSessionInfo failed");
 		return false;
 	}
-	PTRACE(0, "JW algo=" << algorithmOID << " shared secret size=" << sessionKey.GetSize());
+	PTRACE(0, "JW algo=" << algorithmOID);
+	
+	PTRACE(0, "JW full shared secret size=" << sessionKey.GetSize() << " data=" << endl << hex << sessionKey);
+
+
+	// using the 128 least significant bits of the shared secret to encode the media keys
+	// H.235.6 clause 7.6.1
+	PBYTEArray shortSessionKey;
+	shortSessionKey.SetSize(16);
+	for (int i=0; i < shortSessionKey.GetSize(); i++) {
+		shortSessionKey[i] = sessionKey[sessionKey.GetSize() - shortSessionKey.GetSize() + i];
+	}
+	PTRACE(0, "JW short session key size=" << shortSessionKey.GetSize() << " data=" << endl << hex << shortSessionKey);
+
 
 	// use session key to decrypt the media key
-	H235CryptoEngine H235Session(algorithmOID, sessionKey);
+	H235CryptoEngine H235Session(algorithmOID, shortSessionKey);
 
 	PBYTEArray mediaKey;
 	H235_H235Key h235key;
@@ -8096,10 +8109,23 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 		PTRACE(1, "H235\tError: GetMediaSessionInfo failed");
 		return false;
 	}
-	PTRACE(0, "JW algo=" << algorithmOID << " shared secret size=" << sessionKey.GetSize());
+	PTRACE(0, "JW algo=" << algorithmOID);
+	
+	PTRACE(0, "JW full shared secret size=" << sessionKey.GetSize() << " data=" << endl << hex << sessionKey);
+
+
+	// using the 128 least significant bits of the shared secret to encode the media keys
+	// H.235.6 clause 7.6.1
+	PBYTEArray shortSessionKey;
+	shortSessionKey.SetSize(16);
+	for (int i=0; i < shortSessionKey.GetSize(); i++) {
+		shortSessionKey[i] = sessionKey[sessionKey.GetSize() - shortSessionKey.GetSize() + i];
+	}
+	PTRACE(0, "JW short session key size=" << shortSessionKey.GetSize() << " data=" << endl << hex << shortSessionKey);
+
 
 	// use session key to decrypt the media key
-	H235CryptoEngine H235Session(algorithmOID, sessionKey);
+	H235CryptoEngine H235Session(algorithmOID, shortSessionKey);
 
 	// generate media key
 	PBYTEArray mediaKey = H235Session.GenerateRandomKey(algorithmOID);
