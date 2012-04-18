@@ -151,10 +151,15 @@ requested alias is not an h323_ID or an alias starting with
 registration table, then the neighbors, and if that fails the
 parent.
 
-For the ARQ, LRQ, Setup and Facility messages one would use the
+Routing policies are applied to the first message of a call:
+The ARQ for calls from registered endpoints,
+the Setup for calls from unregistered endpoints,
+the LRQ for calls from neighbors and certain Facility messages
+for calls that are forwarded by GnuGk using the ForwardOnFacility feature.
+You can specifydifferent routing policies for each type of call by using the
 [RoutingPolicy::OnARQ], [RoutingPolicy::OnLRQ],
 [RoutingPolicy::OnSetup] and [RoutingPolicy::OnFacility] sections
-using the syntax explained above.
+using the same syntax explained above.
 
 <descrip>
 <tag/Example:/
