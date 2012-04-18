@@ -8129,15 +8129,16 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	PTRACE(0, "JW media key size=" << mediaKey.GetSize() << " key=" << endl << hex << mediaKey);
 
 	encryptionSync.m_synchFlag = m_cipherPayloadType;
-	encryptionSync.m_h235Key.SetTag(H235_H235Key::e_secureSharedSecret);
-	H235_V3KeySyncMaterial v3data;
+	H235_H235Key h235key;
+	h235key.SetTag(H235_H235Key::e_secureSharedSecret);
+	H235_V3KeySyncMaterial & v3data = h235key;
 	v3data.IncludeOptionalField(H235_V3KeySyncMaterial::e_algorithmOID);
 	v3data.m_algorithmOID = algorithmOID;
 	v3data.IncludeOptionalField(H235_V3KeySyncMaterial::e_encryptedSessionKey);
 	// encrypt media key with session key (shared secret)
 	bool rtpPadding = false;
 	v3data.m_encryptedSessionKey = H235Session.Encrypt(mediaKey, NULL, rtpPadding);
-	encryptionSync.m_h235Key.EncodeSubType(v3data);
+	encryptionSync.m_h235Key.EncodeSubType(h235key);
 	PTRACE(3, "H235\tNew key generated " << v3data);
 
 	// new session with media key after shared key was used to encrypt media key for transmission
