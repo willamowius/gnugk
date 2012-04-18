@@ -1303,7 +1303,7 @@ public:
     H235Authenticators & GetAuthenticators() { return m_authenticators; }
     void SetMediaEncryption(EncDir dir);
     bool IsMediaEncryption() { return m_encyptDir != none; }
-    EncDir GetEncryptDirection() { return m_encyptDir; }
+    EncDir GetEncryptDirection() const { return m_encyptDir; }
 #endif
 
 private:
