@@ -2795,71 +2795,6 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				gkClient->RewriteE164(*setup, true);
 		}
 
-#ifdef HAS_H235_MEDIA
-		if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
-			H235Authenticators & auth = m_call->GetAuthenticators();
-			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens) && SupportsH235Media(setupBody.m_tokens)) {
-				// make sure clear and crypto token fields are pesent, at least with 0 size
-				if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
-					setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
-					setupBody.m_tokens.SetSize(0);
-				}
-				if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens)) {
-					setupBody.IncludeOptionalField(H225_Setup_UUIE::e_cryptoTokens);
-					setupBody.m_cryptoTokens.SetSize(0);
-				}
-
-#if PTLIB_VER >= 2110  // Authenticators are created on demand by identifiers in token/cryptoTokens where supported 
-				auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
-#else			// Create all authenticators for both media encryption and caller authentication
-				auth.CreateAuthenticators(H235Authenticator::MediaEncryption);  
-				auth.CreateAuthenticators(H235Authenticator::EPAuthentication);   // TODO Need Caller Authenticators in H323plus to work - SH
-#endif
-				// make sure authenticator gets received tokens, ignore the result
-				H235Authenticator::ValidationResult result = auth.ValidateSignalPDU( 
-					H225_H323_UU_PDU_h323_message_body::e_setup, 
-					setupBody.m_tokens, setupBody.m_cryptoTokens, m_rawSetup);
-				if (result != H235Authenticator::e_OK &&
-					result != H235Authenticator::e_Absent &&
-					result != H235Authenticator::e_Disabled) {
-						PTRACE(5,"H235\tCaller Admission failed");
-						m_call->SetDisconnectCause(Q931::CallRejected);
-						rejectCall = true;
-				}
-
-				// Remove hop-by-hop cryptoTokens...
-				setupBody.m_cryptoTokens.RemoveAll();
-				setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
-				m_call->SetMediaEncryption(CallRec::calledParty);
-			} else if (!rejectCall && !auth.SupportsEncryption()) {
-				if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
-					// remove possible other clear tokens in order no to get a mix with ours
-					setupBody.m_tokens.RemoveAll();
-				} else {
-					setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
-					setupBody.m_tokens.RemoveAll();
-					setupBody.m_tokens.SetSize(0);
-				}
-				if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens)) {
-					setupBody.IncludeOptionalField(H225_Setup_UUIE::e_cryptoTokens);
-					setupBody.m_cryptoTokens.SetSize(0);
-				}
-#if PTLIB_VER >= 2110  // Authenticators are created on demand by identifiers in token/cryptoTokens where supported 
-				auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
-#else			// Create all authenticators for both media encryption and caller authentication
-				auth.CreateAuthenticators(H235Authenticator::MediaEncryption);  
-				auth.CreateAuthenticators(H235Authenticator::EPAuthentication);   // TODO Need Caller Authenticators in H323plus to work - SH
-#endif
-				auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_setup, 
-										setupBody.m_tokens, setupBody.m_cryptoTokens);
-				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
-				if (setupBody.m_cryptoTokens.GetSize() == 0)
-					setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
-			}
-			PTRACE(0, "JW after Setup processing #auth=" << auth.GetSize());
-		}
-#endif
-
 		const H225_ArrayOf_CryptoH323Token & tokens = m_call->GetAccessTokens();
 		if (!rejectCall && tokens.GetSize() > 0) {
 			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_cryptoTokens);
@@ -2998,35 +2933,35 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 #ifdef HAS_H46023
 		CallRec::NatStrategy natoffloadsupport = CallRec::e_natUnknown;
-	if (Toolkit::Instance()->IsH46023Enabled()
-		&& setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)
-		&& authData.m_proxyMode != CallRec::ProxyDisabled) {
-		H225_ArrayOf_FeatureDescriptor & data = setupBody.m_supportedFeatures;
-		for (PINDEX i =0; i < data.GetSize(); i++) {
-          H460_Feature & feat = (H460_Feature &)data[i];	// TODO/BUG: this probably triggeres the H323Plus bug, too
-          /// Std 24
-		  if (feat.GetFeatureID() == H460_FeatureID(24)) {
-			 H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
-			 if (std24.Contains(Std24_NATInstruct)) {
-			   unsigned natstat = std24.Value(Std24_NATInstruct);
-			   natoffloadsupport = (CallRec::NatStrategy)natstat;
-			 }
-		  }
-		}
+		if (Toolkit::Instance()->IsH46023Enabled()
+			&& setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)
+			&& authData.m_proxyMode != CallRec::ProxyDisabled) {
+			H225_ArrayOf_FeatureDescriptor & data = setupBody.m_supportedFeatures;
+			for (PINDEX i =0; i < data.GetSize(); i++) {
+			  H460_Feature & feat = (H460_Feature &)data[i];	// TODO/BUG: this probably triggeres the H323Plus bug, too
+			  /// Std 24
+			  if (feat.GetFeatureID() == H460_FeatureID(24)) {
+				 H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
+				 if (std24.Contains(Std24_NATInstruct)) {
+				   unsigned natstat = std24.Value(Std24_NATInstruct);
+				   natoffloadsupport = (CallRec::NatStrategy)natstat;
+				 }
+			  }
+			}
 
-	    // If not already set disable the proxy support function for this call
-		// if using Parent you must proxy...
-		if (!useParent &&
-			(natoffloadsupport == CallRec::e_natLocalMaster ||
-			  natoffloadsupport == CallRec::e_natRemoteMaster ||
-			  natoffloadsupport == CallRec::e_natNoassist ||
-			  natoffloadsupport == CallRec::e_natRemoteProxy)) {
-			    PTRACE(4,"RAS\tNAT Proxy disabled due to offload support");
-				authData.m_proxyMode = CallRec::ProxyDisabled;
-	    }
-	}
+			// If not already set disable the proxy support function for this call
+			// if using Parent you must proxy...
+			if (!useParent &&
+				(natoffloadsupport == CallRec::e_natLocalMaster ||
+				  natoffloadsupport == CallRec::e_natRemoteMaster ||
+				  natoffloadsupport == CallRec::e_natNoassist ||
+				  natoffloadsupport == CallRec::e_natRemoteProxy)) {
+					PTRACE(4,"RAS\tNAT Proxy disabled due to offload support");
+					authData.m_proxyMode = CallRec::ProxyDisabled;
+			}
+		}
 #else
-	int natoffloadsupport = 0;
+		int natoffloadsupport = 0;
 #endif
 
 		if (!rejectCall && useParent) {
@@ -3292,6 +3227,72 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				m_call->SetDisconnectCause(Q931::CallRejected);
 		}
 	}	// else: no CallRec
+
+#ifdef HAS_H235_MEDIA
+	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
+		H235Authenticators & auth = m_call->GetAuthenticators();
+		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens) && SupportsH235Media(setupBody.m_tokens)) {
+			// make sure clear and crypto token fields are pesent, at least with 0 size
+			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
+				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
+				setupBody.m_tokens.SetSize(0);
+			}
+			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens)) {
+				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_cryptoTokens);
+				setupBody.m_cryptoTokens.SetSize(0);
+			}
+
+#if PTLIB_VER >= 2110  // Authenticators are created on demand by identifiers in token/cryptoTokens where supported 
+			auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
+#else			// Create all authenticators for both media encryption and caller authentication
+			auth.CreateAuthenticators(H235Authenticator::MediaEncryption);  
+			auth.CreateAuthenticators(H235Authenticator::EPAuthentication);   // TODO Need Caller Authenticators in H323plus to work - SH
+#endif
+			// make sure authenticator gets received tokens, ignore the result
+			H235Authenticator::ValidationResult result = auth.ValidateSignalPDU( 
+				H225_H323_UU_PDU_h323_message_body::e_setup, 
+				setupBody.m_tokens, setupBody.m_cryptoTokens, m_rawSetup);
+			if (result != H235Authenticator::e_OK &&
+				result != H235Authenticator::e_Absent &&
+				result != H235Authenticator::e_Disabled) {
+					PTRACE(5,"H235\tCaller Admission failed");
+					m_call->SetDisconnectCause(Q931::CallRejected);
+					rejectCall = true;
+			}
+
+			// Remove hop-by-hop cryptoTokens...
+			setupBody.m_cryptoTokens.RemoveAll();
+			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
+			m_call->SetMediaEncryption(CallRec::calledParty);
+		} else if (!rejectCall && !auth.SupportsEncryption()) {
+			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
+				// remove possible other clear tokens in order no to get a mix with ours
+				setupBody.m_tokens.RemoveAll();
+			} else {
+				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
+				setupBody.m_tokens.RemoveAll();
+				setupBody.m_tokens.SetSize(0);
+			}
+			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens)) {
+				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_cryptoTokens);
+				setupBody.m_cryptoTokens.SetSize(0);
+			}
+#if PTLIB_VER >= 2110  // Authenticators are created on demand by identifiers in token/cryptoTokens where supported 
+			auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
+#else			// Create all authenticators for both media encryption and caller authentication
+			auth.CreateAuthenticators(H235Authenticator::MediaEncryption);  
+			auth.CreateAuthenticators(H235Authenticator::EPAuthentication);   // TODO Need Caller Authenticators in H323plus to work - SH
+#endif
+			auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_setup, 
+									setupBody.m_tokens, setupBody.m_cryptoTokens);
+			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
+			if (setupBody.m_cryptoTokens.GetSize() == 0)
+				setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
+		}
+		PTRACE(0, "JW after Setup processing #auth=" << auth.GetSize() << " dir=" << m_call->GetEncryptDirection());
+	}
+#endif
+
 
 	if (rejectCall) {
 		m_result = Error;
@@ -4039,7 +4040,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled (H.235 HalfCallMedia)");
 
 		} else {
-			PTRACE(1, "H235\tThis shouldn't happen...");
+			PTRACE(0, "JW Error: This shouldn't happen...");
 		}
     }
 #endif
@@ -8037,10 +8038,8 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 	// using the 128 least significant bits of the shared secret to encode the media keys
 	// H.235.6 clause 7.6.1
 	PBYTEArray shortSessionKey;
-	shortSessionKey.SetSize(16);
-	for (int i=0; i < shortSessionKey.GetSize(); i++) {
-		shortSessionKey[i] = sessionKey[sessionKey.GetSize() - shortSessionKey.GetSize() + i];
-	}
+	shortSessionKey.SetSize(16);	// TODO: assume AES 128 for now
+	memcpy(shortSessionKey.GetPointer(), sessionKey.GetPointer() + sessionKey.GetSize() - shortSessionKey.GetSize(), shortSessionKey.GetSize());
 	PTRACE(0, "JW short session key size=" << shortSessionKey.GetSize() << " data=" << endl << hex << shortSessionKey);
 
 
@@ -8117,10 +8116,8 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	// using the 128 least significant bits of the shared secret to encode the media keys
 	// H.235.6 clause 7.6.1
 	PBYTEArray shortSessionKey;
-	shortSessionKey.SetSize(16);
-	for (int i=0; i < shortSessionKey.GetSize(); i++) {
-		shortSessionKey[i] = sessionKey[sessionKey.GetSize() - shortSessionKey.GetSize() + i];
-	}
+	shortSessionKey.SetSize(16);	// TODO: assume AES 128 for now
+	memcpy(shortSessionKey.GetPointer(), sessionKey.GetPointer() + sessionKey.GetSize() - shortSessionKey.GetSize(), shortSessionKey.GetSize());
 	PTRACE(0, "JW short session key size=" << shortSessionKey.GetSize() << " data=" << endl << hex << shortSessionKey);
 
 
