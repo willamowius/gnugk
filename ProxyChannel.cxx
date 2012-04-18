@@ -230,7 +230,6 @@ BYTE GetStaticPayloadType(const H245_DataType & type)
 	return UNDEFINED_PAYLOAD_TYPE;
 }
 
-
 } // end of anonymous namespace
 
 
@@ -3959,7 +3958,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 
 	m_h225Version = GetH225Version(connectBody);
 
-	if (m_call) {// hmm... it should not be null
+	if (m_call) { // hmm... it should not be null
 		m_call->SetConnected();
 		RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctConnect, m_call);
 	}
@@ -3995,6 +3994,12 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 
 			auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_connect, 
 								  connectBody.m_tokens, connectBody.m_cryptoTokens);
+
+//			// validate the tokens we just generated (pretend they are received tokens)
+//			PBYTEArray nonce;
+//			auth.ValidateSignalPDU(H225_H323_UU_PDU_h323_message_body::e_connect, 
+//						   connectBody.m_tokens, connectBody.m_cryptoTokens, nonce);
+
 			connectBody.RemoveOptionalField(H225_Connect_UUIE::e_cryptoTokens);
 			connectBody.IncludeOptionalField(H225_Connect_UUIE::e_tokens);
 			msg->SetUUIEChanged();
@@ -8877,12 +8882,12 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 		call->StartRTCPKeepAlive(flcn, h46019chan.m_osSocketToA_RTCP);
 #endif
 #ifdef HAS_H235_MEDIA
+		RTPLogicalChannel * rtplc = (RTPLogicalChannel *)FindLogicalChannel(flcn);
 		PTRACE(0, "JW HandleOLC: crypt=" << call->IsMediaEncryption()
 				<< " dir=" << call->GetEncryptDirection()
 				<< " isCaller=" << m_isCaller
 				<< " isMaster=" << m_isH245Master);
-		if (call->IsMediaEncryption()) {
-			RTPLogicalChannel * rtplc = (RTPLogicalChannel *)FindLogicalChannel(flcn);
+		if (call->IsMediaEncryption() && rtplc) {
 			// OLC is always set to encryption: either from sender or we have rewritten it
 			WORD RTPPayloadType = UNDEFINED_PAYLOAD_TYPE;
 			if (h225Params && h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_dynamicRTPPayloadType)) {
@@ -8911,12 +8916,12 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 							|| (!m_isCaller && call->GetEncryptDirection() == CallRec::calledParty);
 			PTRACE(0, "JW PT set to " << RTPPayloadType << " for rtplc=" << rtplc << " encrypt=" << encrypting);
 			// use the key sent by the other side
-			if (rtplc && olc.HasOptionalField(H245_OpenLogicalChannel::e_encryptionSync)) {
+			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_encryptionSync)) {
 				PTRACE(0, "JW encryptionSync received must create session now: rtplc=" << rtplc);
 				rtplc->CreateH235Session(call->GetAuthenticators(), olc.m_encryptionSync,
 						(call->GetEncryptDirection() == CallRec::callingParty), encrypting);
 				olc.RemoveOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
-			} else if (rtplc && m_isH245Master) {
+			} else if (m_isH245Master) {
 				// the message comes from the master and doesn't have encryptionSync
 				PTRACE(0, "JW adding encryptionSync");
 				olc.IncludeOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
@@ -9118,19 +9123,19 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 			<< " dir=" << call->GetEncryptDirection()
 			<< " isCaller=" << m_isCaller
 			<< " isMaster=" << m_isH245Master);
-	if (call->IsMediaEncryption()) {
-		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(lc);
+	RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(lc);
+	if (call->IsMediaEncryption() && rtplc) {
 		// is this the encryption or decryption direction ?
 		bool encrypting = (m_isCaller && call->GetEncryptDirection() == CallRec::calledParty)
 						|| (!m_isCaller && call->GetEncryptDirection() == CallRec::callingParty);
 		PTRACE(0, "JW encrypt=" << encrypting);
 		// use the key sent by the other side
-		if (rtplc && olca.HasOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync)) {
+		if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync)) {
 			PTRACE(0, "JW encryptionSync received must create session now: flcn=" << flcn<< " rtplc=" << rtplc);
 			rtplc->CreateH235Session(call->GetAuthenticators(), olca.m_encryptionSync,
 					(call->GetEncryptDirection() == CallRec::callingParty), encrypting);
 			olca.RemoveOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
-		} else if (rtplc && m_isH245Master) {
+		} else if (m_isH245Master) {
 			// the message comes from the master and its in the direction we are simulating
 			PTRACE(0, "JW adding encryptionSync");
 			olca.IncludeOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
