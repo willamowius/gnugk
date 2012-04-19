@@ -155,6 +155,7 @@ const char * KnownConfigEntries[][2] = {
 #ifdef hasIPV6
 	{ "Gatekeeper::Main", "EnableIPv6" },
 #endif
+	{ "Gatekeeper::Main", "EnableTTLRestrictions" },
 	{ "Gatekeeper::Main", "EncryptAllPasswords" },
 	{ "Gatekeeper::Main", "EndpointIDSuffix" },
 	{ "Gatekeeper::Main", "EndpointSignalPort" },

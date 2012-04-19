@@ -200,6 +200,17 @@ The endpoint must then re-register with the gatekeeper using a full RRQ message.
 
 To disable this feature, set it to <tt/-1/.
 
+<item><label id="ttl"><tt/EnableTTLRestrictions=0/<newline>
+Default: <tt/1/<newline>
+<p>
+By default the TimeToLive (TTL) set by the above switch does not apply
+to endpoints using a firewall traversal protocol, like H.460.17 and H.460.18.
+Since they usually have to keep a firewall pinhole open their TimeToLive
+defaults to 19 seconds and is forced to 5 to 30 seconds if they are configured
+otherwise to provide a keep-alive (in accordance with their respective standards).
+If you know for sure that there is no need for a keep-alive, you can disable
+these restrictions by setting this switch to 0.
+
 <item><tt/CompareAliasType=0/<newline>
 Default: <tt/1/<newline>
 <p>

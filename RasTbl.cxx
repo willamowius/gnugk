@@ -2507,6 +2507,18 @@ bool CallRec::CompareSigAdrIgnorePort(const H225_TransportAddress *adr) const
 	return false;
 }
 
+int EndpointRec::GetTimeToLive() const
+{
+	bool enableTTLRestrictions = Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "EnableTTLRestrictions", "1"));
+
+	if (enableTTLRestrictions && (m_nat || IsTraversalClient() || UsesH46017())) {
+		// force timeToLive to 5 - 30 sec, 19 sec if not set
+		return m_timeToLive == 0 ? 19 : max(5, min(30, m_timeToLive));
+	}
+	return m_timeToLive;
+}
+
+
 void CallRec::SetProxyMode(
 	int mode /// proxy mode flag (see #ProxyMode enum#)
 	)

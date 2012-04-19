@@ -1694,15 +1694,6 @@ inline H225_EndpointIdentifier EndpointRec::GetEndpointIdentifier() const
 	PWaitAndSignal lock(m_usedLock);
 	return m_endpointIdentifier;
 }
-  
-inline int EndpointRec::GetTimeToLive() const
-{
-	if (m_nat || IsTraversalClient() || UsesH46017()) {
-		// force timeToLive to 5 - 30 sec, 19 sec if not set
-		return m_timeToLive == 0 ? 19 : max(5, min(30, m_timeToLive));
-	}
-	return m_timeToLive;
-}
 
 inline H225_ArrayOf_AliasAddress EndpointRec::GetAliases() const
 {
