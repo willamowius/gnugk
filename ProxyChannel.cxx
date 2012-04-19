@@ -7517,7 +7517,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		if (fDestPort) {
 			PTRACE(6, Type() << "\tforward " << fromIP << ':' << fromPort << " to " << AsString(fDestIP, fDestPort));
 #ifdef HAS_H46024B
-            if (isRTP && m_call && (*m_call)->GetNATStrategy() == CallRec::e_natAnnexB) {
+            if (isRTP && m_call && (*m_call) && (*m_call)->GetNATStrategy() == CallRec::e_natAnnexB) {
 #ifdef HAS_H46018
                 m_h46019DetectionDone = true;  // We missed the probe packets but detection is done
 #endif
