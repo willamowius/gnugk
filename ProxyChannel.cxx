@@ -150,7 +150,7 @@ inline const H245_UnicastAddress & operator>>(const H245_UnicastAddress & addr, 
 	return addr;
 }
 
-PString GetH245CodecName(const H245_AudioCapability &cap)
+PString GetH245CodecName(const H245_AudioCapability & cap)
 {
 	switch (cap.GetTag()) {
 	case H245_AudioCapability::e_g711Alaw64k:
@@ -184,48 +184,71 @@ PString GetH245CodecName(const H245_AudioCapability &cap)
 	return "Unknown";
 }
 
+BYTE GetStaticAudioPayloadType(unsigned tag)
+{
+	switch (tag) {
+		case H245_AudioCapability::e_g711Alaw64k:
+		case H245_AudioCapability::e_g711Alaw56k:
+			return 8;
+		case H245_AudioCapability::e_g711Ulaw64k:
+		case H245_AudioCapability::e_g711Ulaw56k:
+			return 0;
+		case H245_AudioCapability::e_g722_64k:
+		case H245_AudioCapability::e_g722_56k:
+		case H245_AudioCapability::e_g722_48k:
+			return 9;
+		case H245_AudioCapability::e_g7231:
+		case H245_AudioCapability::e_g7231AnnexCCapability:
+			return 4;
+		case H245_AudioCapability::e_g728:
+			return 15;
+		case H245_AudioCapability::e_g729:
+		case H245_AudioCapability::e_g729AnnexA:
+		case H245_AudioCapability::e_g729wAnnexB:
+		case H245_AudioCapability::e_g729AnnexAwAnnexB:
+			return 18;
+		case H245_AudioCapability::e_gsmFullRate:
+		case H245_AudioCapability::e_gsmHalfRate:
+		case H245_AudioCapability::e_gsmEnhancedFullRate:
+			return 3;
+	};
+	PTRACE(1, "Can't determin RTP audio payload type for " << tag);
+	return UNDEFINED_PAYLOAD_TYPE;
+};
+
+BYTE GetStaticVideoPayloadType(unsigned tag)
+{
+	switch (tag) {
+		case H245_VideoCapability::e_h261VideoCapability:
+			return 31;
+		case H245_VideoCapability::e_h263VideoCapability:
+			return 34;
+	};
+	PTRACE(1, "Can't determin RTP video payload type for " << tag);
+	return UNDEFINED_PAYLOAD_TYPE;
+};
+
 BYTE GetStaticPayloadType(const H245_DataType & type)
 {
 	if (type.GetTag() == H245_DataType::e_audioData) {
 		const H245_AudioCapability & audioCap = type;
-		switch (audioCap.GetTag()) {
-			case H245_AudioCapability::e_g711Alaw64k:
-			case H245_AudioCapability::e_g711Alaw56k:
-				return 8;
-			case H245_AudioCapability::e_g711Ulaw64k:
-			case H245_AudioCapability::e_g711Ulaw56k:
-				return 0;
-			case H245_AudioCapability::e_g722_64k:
-			case H245_AudioCapability::e_g722_56k:
-			case H245_AudioCapability::e_g722_48k:
-				return 9;
-			case H245_AudioCapability::e_g7231:
-			case H245_AudioCapability::e_g7231AnnexCCapability:
-				return 4;
-			case H245_AudioCapability::e_g728:
-				return 15;
-			case H245_AudioCapability::e_g729:
-			case H245_AudioCapability::e_g729AnnexA:
-			case H245_AudioCapability::e_g729wAnnexB:
-			case H245_AudioCapability::e_g729AnnexAwAnnexB:
-				return 18;
-			case H245_AudioCapability::e_gsmFullRate:
-			case H245_AudioCapability::e_gsmHalfRate:
-			case H245_AudioCapability::e_gsmEnhancedFullRate:
-				return 3;
-		};
-	};
-
+		return GetStaticAudioPayloadType(audioCap.GetTag());
+	}
 	if (type.GetTag() == H245_DataType::e_videoData) {
 		const H245_VideoCapability & videoCap = type;
-		switch (videoCap.GetTag()) {
-			case H245_VideoCapability::e_h261VideoCapability:
-				return 31;
-			case H245_VideoCapability::e_h263VideoCapability:
-				return 34;
-		};
-	};
-
+		return GetStaticVideoPayloadType(videoCap.GetTag());
+	}
+	if (type.GetTag() == H245_DataType::e_h235Media) {
+		const H245_H235Media & h235data = type;
+		if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_audioData) {
+			const H245_AudioCapability & audioCap = h235data.m_mediaType;
+			return GetStaticAudioPayloadType(audioCap.GetTag());
+		}
+		if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_videoData) {
+			const H245_VideoCapability & videoCap = h235data.m_mediaType;
+			return GetStaticVideoPayloadType(videoCap.GetTag());
+		}
+	}
 	PTRACE(1, "Can't determin RTP payload type for " << type.GetTagName());
 	return UNDEFINED_PAYLOAD_TYPE;
 }
@@ -623,9 +646,9 @@ public:
 	bool CreateH235SessionAndKey(H235Authenticators & auth, H245_EncryptionSync & sync, bool simulateCallerSide, bool encrypting);
 	H235CryptoEngine * GetH235CryptoEngine() const { return m_H235CryptoEngine; }
 	bool HasH235Encryption() { return m_H235CryptoEngine != NULL; }
-	bool ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller, unsigned char * ivsequence, bool & rtpPadding, int & payloadType);
-	void SetPlainPayloadType(WORD pt) { m_plainPayloadType = pt; }
-	void SetCipherPayloadType(WORD pt) { m_cipherPayloadType = pt; }
+	bool ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller, unsigned char * ivsequence, bool & rtpPadding, BYTE & payloadType);
+	void SetPlainPayloadType(BYTE pt) { m_plainPayloadType = pt; }
+	void SetCipherPayloadType(BYTE pt) { m_cipherPayloadType = pt; }
 #endif
 
 private:
@@ -640,8 +663,8 @@ private:
 #ifdef HAS_H235_MEDIA
 	H235CryptoEngine * m_H235CryptoEngine;
 	bool m_simulateCallerSide;
-	WORD m_plainPayloadType;			// remember in OLC to use in OLCA
-	WORD m_cipherPayloadType;			// remember in OLC to use in OLCA
+	BYTE m_plainPayloadType;			// remember in OLC to use in OLCA
+	BYTE m_cipherPayloadType;			// remember in OLC to use in OLCA
 #endif
 
 	static WORD GetPortNumber();	// get a new port number to use
@@ -2081,15 +2104,14 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 		if (rawCap.GetTag() == H245_DataType::e_audioData) {
 			cType.SetTag(H245_H235Media_mediaType::e_audioData); 
 			(H245_AudioCapability &)cType = (H245_AudioCapability &)rawCap;
-		} else if (rawCap.GetTag() ==  H245_DataType::e_videoData) {
+		} else if (rawCap.GetTag() == H245_DataType::e_videoData) {
 			cType.SetTag(H245_H235Media_mediaType::e_videoData); 
 			(H245_VideoCapability &)cType = (H245_VideoCapability &)rawCap;
 		} else if (rawCap.GetTag() == H245_DataType::e_data) { 
 			cType.SetTag(H245_H235Media_mediaType::e_data);
 			(H245_DataApplicationCapability &)cType = (H245_DataApplicationCapability &)rawCap;
 		}
-		// TODO325: add and assign danamic payload type for codecs with static payload type
-		// old paload type needs to be saved in RTP-LC
+		// don't touch the dynamicRTPPayloadType here, all cases are handled in HandleOpenLogicaChannel()
 	}
 
 	if (isReverse) {
@@ -6878,7 +6900,7 @@ void H46019Channel::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 			WORD wlen = len;
 			unsigned char * ivSeqence = NULL;
 			bool rtpPadding = false;
-			int payloadType = 0;
+			BYTE payloadType = 0;
 			rtplc->ProcessH235Media((BYTE*)data, wlen, fromCaller, ivSeqence, rtpPadding, payloadType);
 			len = wlen;
 		}
@@ -7346,9 +7368,9 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		memcpy(ivSeqence, wbuffer + 2, 6);
 #endif
 #if (HAS_H235_MEDIA || RTP_DEBUG)
-	int payloadType = UNDEFINED_PAYLOAD_TYPE;
+	BYTE payloadType = UNDEFINED_PAYLOAD_TYPE;
 	if ((buflen >= 2) && isRTP)
-		payloadType = (int)wbuffer[1] & 0x7f;
+		payloadType = wbuffer[1] & 0x7f;
 #endif
 #ifdef HAS_H46018
 	bool isRTPKeepAlive = isRTP && (buflen == 12);
@@ -7537,11 +7559,11 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		}
 	}
 #ifdef HAS_H235_MEDIA
-	// H.235.6 sect 9.3.3 says RTCP encryption is for further study, so we don't encrypt/decrypt it
-	if (m_call && (*m_call) && (*m_call)->IsMediaEncryption() &&isRTP) {
-		// TODO235: detect RTP direction for all cases
+	// H.235.6 sect 9.3.3 says RTCP encryption is for further study, so we don't encrypt/decrypt RTCP
+	if (m_call && (*m_call) && (*m_call)->IsMediaEncryption() && isRTP) {
 		bool fromCaller = true;
 		// HACK: this only works if caller and called are on different IPs and send media from the same IP as call signaling
+		// TODO: detect RTP direction for all cases
 		PIPSocket::Address callerSignalIP;
 		WORD notused;
 		(*m_call)->GetSrcSignalAddr(callerSignalIP, notused);
@@ -8160,7 +8182,7 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	return true;
 }
 
-bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller, unsigned char * ivsequence, bool & rtpPadding, int & payloadType)
+bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller, unsigned char * ivsequence, bool & rtpPadding, BYTE & payloadType)
 {
 	if (!m_H235CryptoEngine)
 		return false;
@@ -8887,34 +8909,48 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 				<< " dir=" << call->GetEncryptDirection()
 				<< " isCaller=" << m_isCaller
 				<< " isMaster=" << m_isH245Master);
-		if (call->IsMediaEncryption() && rtplc) {
-			// OLC is always set to encryption: either from sender or we have rewritten it
-			WORD RTPPayloadType = UNDEFINED_PAYLOAD_TYPE;
-			if (h225Params && h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_dynamicRTPPayloadType)) {
-				RTPPayloadType = h225Params->m_dynamicRTPPayloadType;
-			} else {
-				if (isReverseLC)
-					RTPPayloadType = GetStaticPayloadType(olc.m_reverseLogicalChannelParameters.m_dataType);
-				else
-					RTPPayloadType = GetStaticPayloadType(olc.m_forwardLogicalChannelParameters.m_dataType);
-				PTRACE(0, "JW using static payload type " << RTPPayloadType);
-			}
+		if (call->IsMediaEncryption() && rtplc && h225Params) {
 			if ((m_isCaller && call->GetEncryptDirection() == CallRec::callingParty)
 				|| (!m_isCaller && call->GetEncryptDirection() == CallRec::calledParty)) {
 				// we add encryption, OLC has already been rewritten
-				rtplc->SetCipherPayloadType(RTPPayloadType);
-				rtplc->SetPlainPayloadType(RTPPayloadType);
+				if (!h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_dynamicRTPPayloadType)) {
+					h225Params->IncludeOptionalField(H245_H2250LogicalChannelParameters::e_dynamicRTPPayloadType);
+					if (isReverseLC) {
+						rtplc->SetPlainPayloadType(GetStaticPayloadType(olc.m_reverseLogicalChannelParameters.m_dataType));
+					} else {
+						rtplc->SetPlainPayloadType(GetStaticPayloadType(olc.m_forwardLogicalChannelParameters.m_dataType));
+					}
+					h225Params->m_dynamicRTPPayloadType = call->GetNewDynamicPayloadType();
+					rtplc->SetCipherPayloadType(h225Params->m_dynamicRTPPayloadType);
+				} else {
+					rtplc->SetCipherPayloadType(h225Params->m_dynamicRTPPayloadType);
+					rtplc->SetPlainPayloadType(h225Params->m_dynamicRTPPayloadType);
+				}
 			} else {
 				// we remove encryption, OLC has already been rewritten
-				// TODO: how do we find out the crypto payload type for codecs with static payload type ?
-				rtplc->SetCipherPayloadType(RTPPayloadType);
-				rtplc->SetPlainPayloadType(RTPPayloadType);
+				if (!h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_dynamicRTPPayloadType)) {
+					PTRACE(1, "H235\tError: dynamic PT missing");
+				} else {
+					BYTE mediaPayloadType = UNDEFINED_PAYLOAD_TYPE;
+					if (isReverseLC)
+						mediaPayloadType = GetStaticPayloadType(olc.m_reverseLogicalChannelParameters.m_dataType);
+					else
+						mediaPayloadType = GetStaticPayloadType(olc.m_forwardLogicalChannelParameters.m_dataType);
+					if (mediaPayloadType != UNDEFINED_PAYLOAD_TYPE) {
+						// plain media type has a static payload type
+						rtplc->SetCipherPayloadType(h225Params->m_dynamicRTPPayloadType);
+						rtplc->SetPlainPayloadType(mediaPayloadType);
+						h225Params->RemoveOptionalField(H245_H2250LogicalChannelParameters::e_dynamicRTPPayloadType);
+					} else {
+						rtplc->SetCipherPayloadType(h225Params->m_dynamicRTPPayloadType);
+						rtplc->SetPlainPayloadType(h225Params->m_dynamicRTPPayloadType);
+					}
+				}
 			}
 
 			// is this the encryption or decryption direction ?
 			bool encrypting = (m_isCaller && call->GetEncryptDirection() == CallRec::callingParty)
 							|| (!m_isCaller && call->GetEncryptDirection() == CallRec::calledParty);
-			PTRACE(0, "JW PT set to " << RTPPayloadType << " for rtplc=" << rtplc << " encrypt=" << encrypting);
 			// use the key sent by the other side
 			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_encryptionSync)) {
 				PTRACE(0, "JW encryptionSync received must create session now: rtplc=" << rtplc);

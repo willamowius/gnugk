@@ -46,7 +46,9 @@ enum H46019Side { SideA, SideB };
 const int INVALID_OSSOCKET = -1;
 const WORD INVALID_RTP_SESSION = 0;
 const PUInt32b INVALID_MULTIPLEX_ID = 0;
-const unsigned GNUGK_KEEPALIVE_RTP_PAYLOADTYPE = 127;	// GnuGk always sends this fixed payload type
+const BYTE GNUGK_KEEPALIVE_RTP_PAYLOADTYPE = 127;	// GnuGk always sends this fixed payload type
+const BYTE MIN_DYNAMIC_PAYLOAD_TYPE = 96;
+const BYTE MAX_DYNAMIC_PAYLOAD_TYPE = 127;
 
 enum PortType { RASPort=1, Q931Port=2, H245Port=3, RTPPort=4, T120Port=5, RadiusPort=6, StatusPort=7 };
 enum PortAction { PortOpen=1, PortClose=2 };
@@ -1304,6 +1306,7 @@ public:
     void SetMediaEncryption(EncDir dir);
     bool IsMediaEncryption() { return m_encyptDir != none; }
     EncDir GetEncryptDirection() const { return m_encyptDir; }
+	BYTE GetNewDynamicPayloadType();
 #endif
 
 private:
@@ -1517,6 +1520,8 @@ private:
 #ifdef HAS_H235_MEDIA
     H235Authenticators m_authenticators;
     EncDir m_encyptDir;	// party for which we simulate encryption
+	PMutex m_PTMutex;
+    BYTE m_dynamicPayloadTypeCounter;
 #endif
 };
 

@@ -2302,7 +2302,7 @@ CallRec::CallRec(
 	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
 	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalClient(false), m_callfromTraversalServer(false)
 #ifdef HAS_H235_MEDIA
-    ,m_encyptDir(none)
+    ,m_encyptDir(none), m_dynamicPayloadTypeCounter(MIN_DYNAMIC_PAYLOAD_TYPE)
 #endif
 {
 	const H225_AdmissionRequest& arq = arqPdu;
@@ -2357,7 +2357,7 @@ CallRec::CallRec(
 	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
 	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalClient(false), m_callfromTraversalServer(false)
 #ifdef HAS_H235_MEDIA
-    ,m_encyptDir(none)
+    ,m_encyptDir(none), m_dynamicPayloadTypeCounter(MIN_DYNAMIC_PAYLOAD_TYPE)
 #endif
 {
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
@@ -2403,7 +2403,7 @@ CallRec::CallRec(H225_CallIdentifier callID, H225_TransportAddress sigAdr)
 	m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
 	m_h46018ReverseSetup(true), m_callfromTraversalClient(true), m_callfromTraversalServer(false)
 #ifdef HAS_H235_MEDIA
-    ,m_encyptDir(none)
+    ,m_encyptDir(none), m_dynamicPayloadTypeCounter(MIN_DYNAMIC_PAYLOAD_TYPE)
 #endif
 {
 }
@@ -2441,7 +2441,7 @@ CallRec::CallRec(
 	m_clientAuthId(0), m_rerouteState(oldCall->m_rerouteState), m_h46018ReverseSetup(oldCall->m_h46018ReverseSetup),
 	m_callfromTraversalClient(oldCall->m_callfromTraversalClient), m_callfromTraversalServer(oldCall->m_callfromTraversalServer)
 #ifdef HAS_H235_MEDIA
-    ,m_encyptDir(none)
+    ,m_encyptDir(none), m_dynamicPayloadTypeCounter(MIN_DYNAMIC_PAYLOAD_TYPE)
 #endif
 {
 	m_timer = m_acctUpdateTime = m_creationTime = time(NULL);
@@ -3703,7 +3703,6 @@ bool CallRec::NATSignallingOffload(bool isAnswer) const
 #ifdef HAS_H46024B
 void CallRec::BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemControlMessage & h245msg, const std::map<WORD,H46024Balternate> & alt)
 {
- 
 	const char * H46024B_OID = "0.0.8.460.24.2";
 	h245msg.SetTag(H245_MultimediaSystemControlMessage::e_request);
 	H245_RequestMessage & msg = h245msg;
@@ -4041,6 +4040,16 @@ void CallRec::SetLCMultiplexSocket(unsigned lc, void * openedBy, bool isRTCP, in
 void CallRec::SetMediaEncryption(CallRec::EncDir dir) 
 {
     m_encyptDir = dir;
+}
+
+BYTE CallRec::GetNewDynamicPayloadType()
+{
+	PWaitAndSignal lock(m_PTMutex);
+
+	if (m_dynamicPayloadTypeCounter >= MAX_DYNAMIC_PAYLOAD_TYPE)
+		m_dynamicPayloadTypeCounter = MIN_DYNAMIC_PAYLOAD_TYPE;
+
+	return m_dynamicPayloadTypeCounter++;
 }
 #endif
 
