@@ -4035,6 +4035,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			m_call->GetAuthenticators().SetSize(0);
 			PTRACE(3, "H235\tNo Media Encryption Support Detected: Disabling!");
 			if (Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "RequireH235HalfCallMedia", 0)) {
+				PTRACE(1, "H235\tDiconnection call because of missing H.235 support");
 				m_call->SetDisconnectCause(Q931::NormalUnspecified); //Q.931 code for reason=SecurityDenied
 				m_result = Error;
 				return;
@@ -7386,7 +7387,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		seq = (((int)wbuffer[2] << 8) & 0x7f) + ((int)wbuffer[3] & 0x7f);
 	if (buflen >= 8)
 		timestamp = ((int)wbuffer[4] * 16777216) + ((int)wbuffer[5] * 65536) + ((int)wbuffer[6] * 256) + (int)wbuffer[7];
-	PTRACE(0, "JW RTP IN on " << localport << " from " << AsString(fromIP, fromPort) << " pType=" << payloadType
+	PTRACE(0, "JW RTP IN on " << localport << " from " << AsString(fromIP, fromPort) << " pType=" << (int)payloadType
 		<< " seq=" << seq << " timestamp=" << timestamp << " len=" << buflen
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort)
@@ -8054,21 +8055,15 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 	PString algorithmOID;
 	PBYTEArray sessionKey;
 	if ((auth.GetSize() < 1) || !auth[0].GetMediaSessionInfo(algorithmOID, sessionKey)) {
-		PTRACE(1, "H235\tError: GetMediaSessionInfo failed");
+		PTRACE(1, "H235\tError: GetMediaSessionInfo() failed");
 		return false;
 	}
-	PTRACE(0, "JW algo=" << algorithmOID);
-	
-	PTRACE(0, "JW full shared secret size=" << sessionKey.GetSize() << " data=" << endl << hex << sessionKey);
-
 
 	// using the 128 least significant bits of the shared secret to encode the media keys
 	// H.235.6 clause 7.6.1
 	PBYTEArray shortSessionKey;
 	shortSessionKey.SetSize(16);	// TODO: assume AES 128 for now
 	memcpy(shortSessionKey.GetPointer(), sessionKey.GetPointer() + sessionKey.GetSize() - shortSessionKey.GetSize(), shortSessionKey.GetSize());
-	PTRACE(0, "JW short session key size=" << shortSessionKey.GetSize() << " data=" << endl << hex << shortSessionKey);
-
 
 	// use session key to decrypt the media key
 	H235CryptoEngine H235Session(algorithmOID, shortSessionKey);
@@ -8081,7 +8076,7 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 	    PTRACE(0, "JW H235_V3KeySyncMaterial=" << v3data);
 	    if (v3data.HasOptionalField(H235_V3KeySyncMaterial::e_algorithmOID)
 			&& (v3data.m_algorithmOID != algorithmOID)) {
-		    PTRACE(1, "H235\tError: Different algo for session an media key not supported " << v3data);
+		    PTRACE(1, "H235\tError: Different algo for session and media key not supported " << v3data);
 		    return false;
 	    }
 	    if (v3data.m_paramS.HasOptionalField(H235_Params::e_iv)
@@ -8096,7 +8091,7 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 		} else {
 		    PTRACE(1, "H235\tError: unsupported media key type: " << v3data);
 		}
-    } else if (h235key.GetTag() == H235_H235Key::e_secureChannel) {
+	} else if (h235key.GetTag() == H235_H235Key::e_secureChannel) {
 		// this is the _media_key_ in unencrypted form
 		const H235_KeyMaterial & mediaKeyBits = h235key;
 		PTRACE(0, "JW plain key size=" << mediaKeyBits.GetSize() << " data=" << mediaKeyBits);
@@ -8114,7 +8109,7 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 
 	// new session with media key after shared key was used to decrypt media key
 	m_H235CryptoEngine = new H235CryptoEngine(algorithmOID, mediaKey);
-	PTRACE(3, "H235\tNew crypto engine created");
+	PTRACE(3, "H235\tNew crypto engine created: plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType);
 
 	if (encrypting) {
 		PTRACE(0, "JW Set encrypting LC=" << this << " in rtp=" << rtp);
@@ -8132,21 +8127,15 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	PString algorithmOID;
 	PBYTEArray sessionKey;
 	if ((auth.GetSize() < 1) || !auth[0].GetMediaSessionInfo(algorithmOID, sessionKey)) {
-		PTRACE(1, "H235\tError: GetMediaSessionInfo failed");
+		PTRACE(1, "H235\tError: GetMediaSessionInfo() failed");
 		return false;
 	}
-	PTRACE(0, "JW algo=" << algorithmOID);
-	
-	PTRACE(0, "JW full shared secret size=" << sessionKey.GetSize() << " data=" << endl << hex << sessionKey);
-
 
 	// using the 128 least significant bits of the shared secret to encode the media keys
 	// H.235.6 clause 7.6.1
 	PBYTEArray shortSessionKey;
 	shortSessionKey.SetSize(16);	// TODO: assume AES 128 for now
 	memcpy(shortSessionKey.GetPointer(), sessionKey.GetPointer() + sessionKey.GetSize() - shortSessionKey.GetSize(), shortSessionKey.GetSize());
-	PTRACE(0, "JW short session key size=" << shortSessionKey.GetSize() << " data=" << endl << hex << shortSessionKey);
-
 
 	// use session key to decrypt the media key
 	H235CryptoEngine H235Session(algorithmOID, shortSessionKey);
@@ -8170,7 +8159,7 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 
 	// new session with media key after shared key was used to encrypt media key for transmission
 	m_H235CryptoEngine = new H235CryptoEngine(algorithmOID, mediaKey);
-	PTRACE(3, "H235\tNew crypto engine created");
+	PTRACE(3, "H235\tNew crypto engine created: plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType);
 
 	if (encrypting) {
 		PTRACE(0, "JW Set encrypting LC=" << this << " in rtp=" << rtp);
@@ -8191,15 +8180,15 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCal
 	PBYTEArray processed;
 
 	if ((fromCaller && m_simulateCallerSide) || (!fromCaller && !m_simulateCallerSide)) {
-		PTRACE(0, "JW will encrypt: this=" << this << " size=" << data.GetSize() << " rtpPadding=" << rtpPadding << " PT=" << payloadType << " plainPT=" <<  m_plainPayloadType << " cipherPT=" << m_cipherPayloadType);
+		PTRACE(0, "JW will encrypt: this=" << this << " size=" << data.GetSize() << " rtpPadding=" << rtpPadding << " PT=" << (int)payloadType << " plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType);
 		processed = m_H235CryptoEngine->Encrypt(data, ivsequence, rtpPadding);
-		payloadType = m_plainPayloadType;
-		PTRACE(0, "JW done encrypt: this=" << this << " size=" << processed.GetSize() << " rtpPadding=" << rtpPadding << " PT=" << payloadType);
-	} else {
-		PTRACE(0, "JW will decrypt: this=" << this << " size=" << data.GetSize() << " rtpPadding=" << rtpPadding << " PT=" << payloadType  << " plainPT=" <<  m_plainPayloadType << " cipherPT=" << m_cipherPayloadType);
-		processed = m_H235CryptoEngine->Decrypt(data, ivsequence, rtpPadding);
 		payloadType = m_cipherPayloadType;
-		PTRACE(0, "JW done decrypt: this=" << this << " size=" << processed.GetSize() << " rtpPadding=" << rtpPadding << " PT=" << payloadType);
+		PTRACE(0, "JW done encrypt: this=" << this << " size=" << processed.GetSize() << " rtpPadding=" << rtpPadding << " PT=" << (int)payloadType);
+	} else {
+		PTRACE(0, "JW will decrypt: this=" << this << " size=" << data.GetSize() << " rtpPadding=" << rtpPadding << " PT=" << (int)payloadType << " plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType);
+		processed = m_H235CryptoEngine->Decrypt(data, ivsequence, rtpPadding);
+		payloadType = m_plainPayloadType;
+		PTRACE(0, "JW done decrypt: this=" << this << " size=" << processed.GetSize() << " rtpPadding=" << rtpPadding << " PT=" << (int)payloadType);
 	}
 
 	len = processed.GetSize() + 12;
