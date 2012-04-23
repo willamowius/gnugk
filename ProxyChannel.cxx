@@ -9967,7 +9967,9 @@ void ProxyHandler::ReadSocket(IPSocket *socket)
 						css->SetH245Socket(NULL);	// TODO: detach from handler ?
 					}
 					css->DetachRemote();
+#ifdef HAS_H46017
 					css->CleanupCall();
+#endif
 				}
 				if (!css || !css->MaintainConnection()) {
 					// only close the Q.931 socket if it's not also used for H.460.17
