@@ -212,7 +212,7 @@ BYTE GetStaticAudioPayloadType(unsigned tag)
 		case H245_AudioCapability::e_gsmEnhancedFullRate:
 			return 3;
 	};
-	PTRACE(1, "Can't determin RTP audio payload type for " << tag);
+	PTRACE(3, "Can't determin static RTP audio payload type for " << tag);
 	return UNDEFINED_PAYLOAD_TYPE;
 };
 
@@ -224,7 +224,7 @@ BYTE GetStaticVideoPayloadType(unsigned tag)
 		case H245_VideoCapability::e_h263VideoCapability:
 			return 34;
 	};
-	PTRACE(1, "Can't determin RTP video payload type for " << tag);
+	PTRACE(3, "Can't determin static RTP video payload type for " << tag);
 	return UNDEFINED_PAYLOAD_TYPE;
 };
 
@@ -249,7 +249,7 @@ BYTE GetStaticPayloadType(const H245_DataType & type)
 			return GetStaticVideoPayloadType(videoCap.GetTag());
 		}
 	}
-	PTRACE(1, "Can't determin RTP payload type for " << type.GetTagName());
+	PTRACE(3, "Can't determin static RTP payload type for " << type.GetTagName());
 	return UNDEFINED_PAYLOAD_TYPE;
 }
 
@@ -650,6 +650,8 @@ public:
 	bool ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller, unsigned char * ivsequence, bool & rtpPadding, BYTE & payloadType);
 	void SetPlainPayloadType(BYTE pt) { m_plainPayloadType = pt; }
 	void SetCipherPayloadType(BYTE pt) { m_cipherPayloadType = pt; }
+	void SetDataChannel(bool val) { m_isDataChannel = val; }
+	bool IsDataChannel() const { return m_isDataChannel; }
 #endif
 
 private:
@@ -669,6 +671,7 @@ private:
 	bool m_encrypting;
 	BYTE m_plainPayloadType;			// remember in OLC to use in OLCA
 	BYTE m_cipherPayloadType;			// remember in OLC to use in OLCA
+	bool m_isDataChannel;
 #endif
 
 	static WORD GetPortNumber();	// get a new port number to use
@@ -2074,9 +2077,15 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
     } else
 		rawCap = *(H245_DataType*)olc.m_forwardLogicalChannelParameters.m_dataType.Clone();
 
+	// we don't handle data, yet, pass unchanged
+	if (rawCap.GetTag() == H245_DataType::e_data) {
+		PTRACE(0, "JW no support for data encryption, yet");
+		return false;
+	}
+
     if ((toRemove && (rawCap.GetTag() != H245_DataType::e_h235Media)) ||
        (!toRemove && (rawCap.GetTag() == H245_DataType::e_h235Media))) {
-			PTRACE(3, "H235\tOLC Logic Error! ABORTIING REWRITE!");
+			PTRACE(1, "H235\tOLC Logic Error! ABORTIING REWRITE!");
 			return false;
     }
 
@@ -2095,7 +2104,7 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
     } else {
         PStringList m_capList;
         if (!m_call->GetAuthenticators().GetAlgorithms(m_capList)) {
-            PTRACE(3, "H235\tOLC No Algorithms! ABORTIING REWRITE!");
+            PTRACE(1, "H235\tOLC No Algorithms! ABORTIING REWRITE!");
             return false;
         }
 
@@ -7930,6 +7939,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 	m_encrypting = false;
 	m_plainPayloadType = UNDEFINED_PAYLOAD_TYPE;
 	m_cipherPayloadType = UNDEFINED_PAYLOAD_TYPE;
+	m_isDataChannel = false;
 #endif
 
 #ifdef HAS_H46023
@@ -7990,6 +8000,7 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nat
 	m_encrypting = false;
 	m_plainPayloadType = UNDEFINED_PAYLOAD_TYPE;
 	m_cipherPayloadType = UNDEFINED_PAYLOAD_TYPE;
+	m_isDataChannel = flc->m_isDataChannel;
 #endif
 	port = flc->port;
 	used = flc->used;
@@ -9016,11 +9027,20 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 #endif
 #ifdef HAS_H235_MEDIA
 		RTPLogicalChannel * rtplc = (RTPLogicalChannel *)FindLogicalChannel(flcn);
+		bool isData = false;	// we don't encrypt data channels, yet
+		if (isReverseLC) {
+			isData = olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_data;
+	    } else
+			isData = olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_data;
+		if (rtplc)
+			rtplc->SetDataChannel(isData);
 		PTRACE(0, "JW HandleOLC: crypt=" << call->IsMediaEncryption()
 				<< " dir=" << call->GetEncryptDirection()
 				<< " isCaller=" << m_isCaller
-				<< " isMaster=" << m_isH245Master);
-		if (call->IsMediaEncryption() && rtplc && h225Params) {
+				<< " isMaster=" << m_isH245Master
+				<< " isData=" << isData);
+
+		if (call->IsMediaEncryption() && rtplc && h225Params && !isData) {
 			if ((m_isCaller && call->GetEncryptDirection() == CallRec::callingParty)
 				|| (!m_isCaller && call->GetEncryptDirection() == CallRec::calledParty)) {
 				// we add encryption, OLC has already been rewritten
@@ -9271,7 +9291,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 			<< " isCaller=" << m_isCaller
 			<< " isMaster=" << m_isH245Master);
 	RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(lc);
-	if (call->IsMediaEncryption() && rtplc) {
+	// TODO: skip for data channels
+	if (call->IsMediaEncryption() && rtplc && !rtplc->IsDataChannel()) {
 		// is this the encryption or decryption direction ?
 		bool encrypting = (m_isCaller && call->GetEncryptDirection() == CallRec::calledParty)
 						|| (!m_isCaller && call->GetEncryptDirection() == CallRec::callingParty);
