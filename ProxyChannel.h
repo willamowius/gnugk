@@ -181,7 +181,7 @@ public:
 	virtual bool EndSession();
 	virtual void OnError();
 
-	void SendReleaseComplete(const H225_CallTerminationCause * = 0);
+	void SendReleaseComplete(const H225_CallTerminationCause * = NULL);
 	void SendReleaseComplete(H225_ReleaseCompleteReason::Choices);
 
 	bool HandleH245Mesg(PPER_Stream &, bool & suppress, H245Socket * h245sock = NULL);
@@ -209,6 +209,7 @@ public:
 	void RemoveH245Handler();
 	void SaveTCS(const H245_TerminalCapabilitySet & tcs) { m_savedTCS = tcs; }
 	H245_TerminalCapabilitySet GetSavedTCS() const { return m_savedTCS; }
+	bool SendTunneledH245(H245_MultimediaSystemControlMessage & h245msg);
 #ifdef HAS_H235_MEDIA
     bool HandleH235TCS(H245_TerminalCapabilitySet & tcs);
     bool HandleH235OLC(H245_OpenLogicalChannel & olc);
@@ -276,7 +277,7 @@ protected:
 			if (m_call)
 				m_call->SetH245ResponseReceived();
 			if (SetH245Address(uu.m_h245Address))
-				return (m_h245handler != 0);
+				return (m_h245handler != NULL);
 			uu.RemoveOptionalField(UUIE::e_h245Address);
 			return true;
 		}
@@ -500,7 +501,7 @@ public:
 	void LoadConfig();
 	bool Detach(TCPProxySocket *);
 	void Remove(TCPProxySocket *);
-	
+
 private:
 	// override from class RegularJob
 	virtual void OnStart();

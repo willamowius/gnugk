@@ -418,6 +418,7 @@ public:
 	void SendH46018Indication();
 #endif
 	void SendTCS(H245_TerminalCapabilitySet * tcs);
+	bool Send(H245_MultimediaSystemControlMessage & h245msg);
 	H225_TransportAddress GetH245Address(const Address &);
 	bool SetH245Address(H225_TransportAddress & h245addr, const Address &);
 	bool Reverting(const H225_TransportAddress &);
@@ -644,8 +645,8 @@ public:
 #ifdef HAS_H235_MEDIA
 	bool CreateH235Session(H235Authenticators & auth, const H245_EncryptionSync & encryptionSync, bool simulateCallerSide, bool encrypting);
 	bool CreateH235SessionAndKey(H235Authenticators & auth, H245_EncryptionSync & sync, bool simulateCallerSide, bool encrypting);
-	H235CryptoEngine * GetH235CryptoEngine() const { return m_H235CryptoEngine; }
-	bool HasH235Encryption() { return m_H235CryptoEngine != NULL; }
+	bool UpdateMediaKey(const H245_EncryptionSync & encryptionSync);
+	bool GenerateNewMediaKey(BYTE newPayloadType, H245_EncryptionSync & encryptionSync);
 	bool ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller, unsigned char * ivsequence, bool & rtpPadding, BYTE & payloadType);
 	void SetPlainPayloadType(BYTE pt) { m_plainPayloadType = pt; }
 	void SetCipherPayloadType(BYTE pt) { m_cipherPayloadType = pt; }
@@ -662,7 +663,9 @@ private:
 
 #ifdef HAS_H235_MEDIA
 	H235CryptoEngine * m_H235CryptoEngine;
+	H235Authenticators * m_auth;
 	bool m_simulateCallerSide;
+	bool m_encrypting;
 	BYTE m_plainPayloadType;			// remember in OLC to use in OLCA
 	BYTE m_cipherPayloadType;			// remember in OLC to use in OLCA
 #endif
@@ -726,7 +729,7 @@ public:
 	virtual ~H245Handler();
 
 	virtual void OnH245Address(H225_TransportAddress &);
-	virtual bool HandleMesg(H245_MultimediaSystemControlMessage &, bool & suppress, callptr & mcall);
+	virtual bool HandleMesg(H245_MultimediaSystemControlMessage &, bool & suppress, callptr & call, H245Socket * h245sock);
 	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &, callptr &);
 	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &, callptr &);
 	typedef bool (H245Handler::*pMem)(H245_OpenLogicalChannel &,callptr &);
@@ -739,7 +742,7 @@ public:
 protected:
 	virtual bool HandleRequest(H245_RequestMessage &, callptr &);
 	virtual bool HandleResponse(H245_ResponseMessage &, callptr &);
-	virtual bool HandleCommand(H245_CommandMessage &);
+	virtual bool HandleCommand(H245_CommandMessage &, bool & suppress, callptr &, H245Socket * h245sock);
 	virtual bool HandleIndication(H245_IndicationMessage &, bool & suppress);
 
 	NATHandler *hnat;
@@ -756,7 +759,7 @@ public:
 	typedef std::map<WORD, RTPLogicalChannel *>::iterator siterator;
 	typedef std::map<WORD, RTPLogicalChannel *>::const_iterator const_siterator;
 
-	H245ProxyHandler(const H225_CallIdentifier &, const PIPSocket::Address &, const PIPSocket::Address &, const PIPSocket::Address &, H245ProxyHandler * = 0);
+	H245ProxyHandler(const H225_CallIdentifier &, const PIPSocket::Address &, const PIPSocket::Address &, const PIPSocket::Address &, H245ProxyHandler * = NULL);
 	virtual ~H245ProxyHandler();
 
 	// override from class H245Handler
@@ -787,6 +790,7 @@ protected:
 	// override from class H245Handler
 	virtual bool HandleRequest(H245_RequestMessage &, callptr &);
 	virtual bool HandleResponse(H245_ResponseMessage &, callptr &);
+	virtual bool HandleCommand(H245_CommandMessage &, bool & suppress, callptr &, H245Socket * h245sock);
 	virtual bool HandleIndication(H245_IndicationMessage &, bool & suppress);
 
 	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters *, WORD flcn);
@@ -795,6 +799,12 @@ protected:
 	bool HandleOpenLogicalChannelReject(H245_OpenLogicalChannelReject &, callptr & call);
 	bool HandleCloseLogicalChannel(H245_CloseLogicalChannel &, callptr &);
 	void HandleMuteRTPChannel();
+#ifdef HAS_H235_MEDIA
+	bool HandleEncryptionUpdateRequest(H245_MiscellaneousCommand & cmd, bool & suppress, callptr & call, H245Socket * h245sock);
+	bool HandleEncryptionUpdateCommand(H245_MiscellaneousCommand & cmd, bool & suppress, callptr & call, H245Socket * h245sock);
+	bool HandleEncryptionUpdateAck(H245_MiscellaneousCommand & cmd, bool & suppress, callptr & call, H245Socket * h245sock);
+#endif
+
 	bool ParseTraversalParameters(
 		/* in */
 		const H245_GenericInformation & genericInfo,
@@ -1519,7 +1529,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			BuildFacilityPDU(q931, 0);
 			GetUUIE(q931, uuie);
 			uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
-			uuie.m_h323_uu_pdu.m_h245Tunneling = TRUE;	// for new this only works with tunneling
+			uuie.m_h323_uu_pdu.m_h245Tunneling = TRUE;
 			uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Control);
 			uuie.m_h323_uu_pdu.m_h245Control.SetSize(1);
 			H245_MultimediaSystemControlMessage h245msg;
@@ -1908,7 +1918,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		}
 	}
 
-	if ((!m_h245handler || !m_h245handler->HandleMesg(h245msg, suppress, m_call)) && !changed)
+	if ((!m_h245handler || !m_h245handler->HandleMesg(h245msg, suppress, m_call, h245sock)) && !changed)
 		return false;
 
 	strm.BeginEncoding();
@@ -2959,24 +2969,24 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			&& authData.m_proxyMode != CallRec::ProxyDisabled) {
 			H225_ArrayOf_FeatureDescriptor & data = setupBody.m_supportedFeatures;
 			for (PINDEX i =0; i < data.GetSize(); i++) {
-			  H460_Feature & feat = (H460_Feature &)data[i];	// TODO/BUG: this probably triggeres the H323Plus bug, too
-			  /// Std 24
-			  if (feat.GetFeatureID() == H460_FeatureID(24)) {
-				 H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
-				 if (std24.Contains(Std24_NATInstruct)) {
-				   unsigned natstat = std24.Value(Std24_NATInstruct);
-				   natoffloadsupport = (CallRec::NatStrategy)natstat;
-				 }
-			  }
+				H460_Feature & feat = (H460_Feature &)data[i];
+				/// Std 24
+				if (feat.GetFeatureID() == H460_FeatureID(24)) {
+					H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
+					if (std24.Contains(Std24_NATInstruct)) {
+						unsigned natstat = std24.Value(Std24_NATInstruct);
+						natoffloadsupport = (CallRec::NatStrategy)natstat;
+					}
+				}
 			}
 
 			// If not already set disable the proxy support function for this call
 			// if using Parent you must proxy...
 			if (!useParent &&
 				(natoffloadsupport == CallRec::e_natLocalMaster ||
-				  natoffloadsupport == CallRec::e_natRemoteMaster ||
-				  natoffloadsupport == CallRec::e_natNoassist ||
-				  natoffloadsupport == CallRec::e_natRemoteProxy)) {
+					natoffloadsupport == CallRec::e_natRemoteMaster ||
+					natoffloadsupport == CallRec::e_natNoassist ||
+					natoffloadsupport == CallRec::e_natRemoteProxy)) {
 					PTRACE(4,"RAS\tNAT Proxy disabled due to offload support");
 					authData.m_proxyMode = CallRec::ProxyDisabled;
 			}
@@ -5920,6 +5930,26 @@ void CallSignalSocket::DispatchNextRoute()
 	delete this; // oh!
 }
 
+bool CallSignalSocket::SendTunneledH245(H245_MultimediaSystemControlMessage & h245msg)
+{
+	Q931 q931;
+	H225_H323_UserInformation uuie;
+	PBYTEArray lBuffer;
+	BuildFacilityPDU(q931, 0);
+	GetUUIE(q931, uuie);
+	uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
+	uuie.m_h323_uu_pdu.m_h245Tunneling = TRUE;
+	uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Control);
+	uuie.m_h323_uu_pdu.m_h245Control.SetSize(1);
+	h245msg.SetTag(H245_MultimediaSystemControlMessage::e_request);
+	uuie.m_h323_uu_pdu.m_h245Control[0].EncodeSubType(h245msg);
+	SetUUIE(q931, uuie);
+	q931.Encode(lBuffer);
+
+	PrintQ931(3, "Send to ", GetName(), &q931, &uuie);
+	return TransmitData(lBuffer);
+}
+
 bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 {
 	if (m_h245Tunneling && Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH245AddressOnTunneling", "0")))
@@ -6137,7 +6167,7 @@ void H245Handler::OnH245Address(H225_TransportAddress & addr)
 		hnat->TranslateH245Address(addr);
 }
 
-bool H245Handler::HandleMesg(H245_MultimediaSystemControlMessage & h245msg, bool & suppress, callptr & call)
+bool H245Handler::HandleMesg(H245_MultimediaSystemControlMessage & h245msg, bool & suppress, callptr & call, H245Socket * h245sock)
 {
 	bool changed = false;
 
@@ -6150,7 +6180,7 @@ bool H245Handler::HandleMesg(H245_MultimediaSystemControlMessage & h245msg, bool
 			changed = HandleResponse(h245msg, call);
 			break;
 		case H245_MultimediaSystemControlMessage::e_command:
-			changed = HandleCommand(h245msg);
+			changed = HandleCommand(h245msg, suppress, call, h245sock);
 			break;
 		case H245_MultimediaSystemControlMessage::e_indication:
 			changed = HandleIndication(h245msg, suppress);
@@ -6167,7 +6197,7 @@ bool H245Handler::HandleFastStartSetup(H245_OpenLogicalChannel & olc,callptr & m
 	return hnat ? hnat->HandleOpenLogicalChannel(olc) : false;
 }
 
-bool H245Handler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, callptr & mcall)
+bool H245Handler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, callptr & call)
 {
 	return hnat ? hnat->HandleOpenLogicalChannel(olc) : false;
 }
@@ -6186,7 +6216,7 @@ bool H245Handler::HandleRequest(H245_RequestMessage & Request, callptr &)
 	}
 }
 
-bool H245Handler::HandleResponse(H245_ResponseMessage & Response, callptr & mcall)
+bool H245Handler::HandleResponse(H245_ResponseMessage & Response, callptr & call)
 {
 	PTRACE(4, "H245\tResponse: " << Response.GetTagName());
 	if (hnat && Response.GetTag() == H245_ResponseMessage::e_openLogicalChannelAck)
@@ -6201,7 +6231,7 @@ bool H245Handler::HandleIndication(H245_IndicationMessage & Indication, bool & s
 	return false;
 }
 
-bool H245Handler::HandleCommand(H245_CommandMessage & Command)
+bool H245Handler::HandleCommand(H245_CommandMessage & Command, bool & suppress, callptr & call, H245Socket * h245sock)
 {
 	PTRACE(4, "H245\tCommand: " << Command.GetTagName());
 	if (Command.GetTag() == H245_CommandMessage::e_endSessionCommand)
@@ -6247,7 +6277,7 @@ H245Socket::H245Socket(CallSignalSocket *sig)
 }
 
 H245Socket::H245Socket(H245Socket *socket, CallSignalSocket *sig)
-      : TCPProxySocket("H245s", socket), sigSocket(sig), listener(0)
+      : TCPProxySocket("H245s", socket), sigSocket(sig), listener(NULL)
 {
 	m_port = 0;
 	peerH245Addr = NULL;
@@ -6493,6 +6523,22 @@ void H245Socket::SendTCS(H245_TerminalCapabilitySet * tcs)
 		PTRACE(1, "H245\tSending of TerminalCapabilitySet to " << GetName() << " failed");
 	}
 	PTRACE(4, "H245\tSend TerminalCapabilitySet to " << GetName());
+}
+
+bool H245Socket::Send(H245_MultimediaSystemControlMessage & h245msg)
+{
+	if (!IsConnected()) {
+		return false;
+	}
+	PPER_Stream wtstrm;
+	h245msg.Encode(wtstrm);
+	wtstrm.CompleteEncoding();
+	if (!TransmitData(wtstrm)) {
+		PTRACE(1, "H245\tSending of H.245 message to " << GetName() << " failed");
+		return false;
+	}
+	PTRACE(4, "H245\tSend H.245 message to " << GetName());
+	return true;
 }
 
 #ifdef LARGE_FDSET
@@ -7879,7 +7925,9 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 	rtcp = NULL;
 #ifdef HAS_H235_MEDIA
 	m_H235CryptoEngine = NULL;
+	m_auth = NULL;
 	m_simulateCallerSide = false;
+	m_encrypting = false;
 	m_plainPayloadType = UNDEFINED_PAYLOAD_TYPE;
 	m_cipherPayloadType = UNDEFINED_PAYLOAD_TYPE;
 #endif
@@ -7939,7 +7987,9 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nat
 {
 #ifdef HAS_H235_MEDIA
 	m_H235CryptoEngine = NULL;
+	m_auth = NULL;
 	m_simulateCallerSide = !flc->m_simulateCallerSide;
+	m_encrypting = false;
 	m_plainPayloadType = UNDEFINED_PAYLOAD_TYPE;
 	m_cipherPayloadType = UNDEFINED_PAYLOAD_TYPE;
 #endif
@@ -8051,7 +8101,10 @@ void RTPLogicalChannel::SetLCMultiplexSocket(bool isRTCP, int multiplexSocket, H
 #ifdef HAS_H235_MEDIA
 bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_EncryptionSync & encryptionSync, bool simulateCallerSide, bool encrypting)
 {
+	m_auth = &auth;
 	m_simulateCallerSide = simulateCallerSide;
+	m_encrypting = encrypting;
+
 	PString algorithmOID;
 	PBYTEArray sessionKey;
 	if ((auth.GetSize() < 1) || !auth[0].GetMediaSessionInfo(algorithmOID, sessionKey)) {
@@ -8068,6 +8121,7 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 	// use session key to decrypt the media key
 	H235CryptoEngine H235Session(algorithmOID, shortSessionKey);
 
+	m_cipherPayloadType = encryptionSync.m_synchFlag;
 	PBYTEArray mediaKey;
 	H235_H235Key h235key;
     encryptionSync.m_h235Key.DecodeSubType(h235key);
@@ -8107,6 +8161,9 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 		return false;
 	}
 
+	// delete old crypto engine (if we are called from UpdateMediaKey()
+	if (m_H235CryptoEngine)
+		delete m_H235CryptoEngine;
 	// new session with media key after shared key was used to decrypt media key
 	m_H235CryptoEngine = new H235CryptoEngine(algorithmOID, mediaKey);
 	PTRACE(3, "H235\tNew crypto engine created: plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType);
@@ -8123,7 +8180,10 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 
 bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_EncryptionSync & encryptionSync, bool simulateCallerSide, bool encrypting)
 {
+	m_auth = &auth;
 	m_simulateCallerSide = simulateCallerSide;
+	m_encrypting = encrypting;
+
 	PString algorithmOID;
 	PBYTEArray sessionKey;
 	if ((auth.GetSize() < 1) || !auth[0].GetMediaSessionInfo(algorithmOID, sessionKey)) {
@@ -8157,6 +8217,9 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	encryptionSync.m_h235Key.EncodeSubType(h235key);
 	PTRACE(3, "H235\tNew key generated " << v3data);
 
+	// delete old crypto engine (if we are called from UpdateMediaKey()
+	if (m_H235CryptoEngine)
+		delete m_H235CryptoEngine;
 	// new session with media key after shared key was used to encrypt media key for transmission
 	m_H235CryptoEngine = new H235CryptoEngine(algorithmOID, mediaKey);
 	PTRACE(3, "H235\tNew crypto engine created: plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType);
@@ -8171,6 +8234,25 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	return true;
 }
 
+bool RTPLogicalChannel::UpdateMediaKey(const H245_EncryptionSync & encryptionSync)
+{
+	if (!m_auth || !m_H235CryptoEngine) {
+		PTRACE(1, "H235\tError: H.235 media key update before session initialization");
+		return false;
+	}
+	return CreateH235Session(*m_auth, encryptionSync, m_simulateCallerSide, m_encrypting);
+}
+
+bool RTPLogicalChannel::GenerateNewMediaKey(BYTE newPayloadType, H245_EncryptionSync & encryptionSync)
+{
+	if (!m_auth || !m_H235CryptoEngine) {
+		PTRACE(1, "H235\tError: H.235 media key update before session initialization");
+		return false;
+	}
+	SetCipherPayloadType(newPayloadType);
+	return CreateH235SessionAndKey(*m_auth, encryptionSync, m_simulateCallerSide, m_encrypting);
+}
+
 bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller, unsigned char * ivsequence, bool & rtpPadding, BYTE & payloadType)
 {
 	if (!m_H235CryptoEngine)
@@ -8181,12 +8263,20 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCal
 
 	if ((fromCaller && m_simulateCallerSide) || (!fromCaller && !m_simulateCallerSide)) {
 		PTRACE(0, "JW will encrypt: this=" << this << " size=" << data.GetSize() << " rtpPadding=" << rtpPadding << " PT=" << (int)payloadType << " plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType);
-		processed = m_H235CryptoEngine->Encrypt(data, ivsequence, rtpPadding);
+		if (payloadType == m_plainPayloadType) {
+			processed = m_H235CryptoEngine->Encrypt(data, ivsequence, rtpPadding);
+		} else {
+			PTRACE(1, "H235\tUnexpected plaintext payload type " << (int)payloadType << " expecting " << (int)m_plainPayloadType);
+		}
 		payloadType = m_cipherPayloadType;
 		PTRACE(0, "JW done encrypt: this=" << this << " size=" << processed.GetSize() << " rtpPadding=" << rtpPadding << " PT=" << (int)payloadType);
 	} else {
 		PTRACE(0, "JW will decrypt: this=" << this << " size=" << data.GetSize() << " rtpPadding=" << rtpPadding << " PT=" << (int)payloadType << " plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType);
-		processed = m_H235CryptoEngine->Decrypt(data, ivsequence, rtpPadding);
+		if (payloadType == m_cipherPayloadType) {
+			processed = m_H235CryptoEngine->Decrypt(data, ivsequence, rtpPadding);
+		} else {
+			PTRACE(1, "H235\tUnexpected chipher payload type " << (int)payloadType << " expecting " << (int)m_cipherPayloadType);
+		}
 		payloadType = m_plainPayloadType;
 		PTRACE(0, "JW done decrypt: this=" << this << " size=" << processed.GetSize() << " rtpPadding=" << rtpPadding << " PT=" << (int)payloadType);
 	}
@@ -8558,6 +8648,33 @@ bool H245ProxyHandler::HandleResponse(H245_ResponseMessage & Response, callptr &
 				return HandleOpenLogicalChannelAck(Response, call);
 			case H245_ResponseMessage::e_openLogicalChannelReject:
 				return HandleOpenLogicalChannelReject(Response, call);
+			default:
+				break;
+		}
+	return false;
+}
+
+bool H245ProxyHandler::HandleCommand(H245_CommandMessage & Command, bool & suppress, callptr & call, H245Socket * h245sock)
+{
+	PTRACE(4, "H245\tCommand: " << Command.GetTagName());
+	if (peer)
+		switch (Command.GetTag())
+		{
+			case H245_CommandMessage::e_miscellaneousCommand:
+			{
+				H245_MiscellaneousCommand miscCommand = Command;
+				switch (miscCommand.m_type.GetTag())
+				{
+					case H245_MiscellaneousCommand_type::e_encryptionUpdateRequest:
+						return HandleEncryptionUpdateRequest(Command, suppress, call, h245sock);
+					case H245_MiscellaneousCommand_type::e_encryptionUpdateCommand:
+						return HandleEncryptionUpdateCommand(Command, suppress, call, h245sock);
+					case H245_MiscellaneousCommand_type::e_encryptionUpdateAck:
+						return HandleEncryptionUpdateAck(Command, suppress, call, h245sock);
+					default:
+						break;
+				}
+			}
 			default:
 				break;
 		}
@@ -9177,6 +9294,84 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 	return result | changed;
 }
 
+#ifdef HAS_H235_MEDIA
+bool H245ProxyHandler::HandleEncryptionUpdateRequest(H245_MiscellaneousCommand & cmd, bool & suppress, callptr & call, H245Socket * h245sock)
+{
+	if (call->IsMediaEncryption() && m_isH245Master) {
+		// TODO: send new media key
+		H245_EncryptionUpdateRequest & request = cmd.m_type;
+		WORD flcn = (WORD)cmd.m_logicalChannelNumber;
+		BYTE newPayloadType = request.m_synchFlag;
+		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(FindLogicalChannel(flcn));
+		if (rtplc) {
+			H245_MultimediaSystemControlMessage h245msg;
+			h245msg.SetTag(H245_MultimediaSystemControlMessage::e_command);
+			H245_CommandMessage & h245cmd = h245msg;
+			h245cmd.SetTag(H245_CommandMessage::e_miscellaneousCommand);		
+			H245_MiscellaneousCommand & misc = h245cmd;
+			misc.m_type.SetTag(H245_MiscellaneousCommand_type::e_encryptionUpdateRequest);
+			H245_MiscellaneousCommand_type_encryptionUpdateCommand & update = misc.m_type;
+			misc.m_logicalChannelNumber = cmd.m_logicalChannelNumber;
+			misc.m_direction.SetTag(H245_EncryptionUpdateDirection::e_slaveToMaster); // this update was requested by the slave
+			rtplc->GenerateNewMediaKey(newPayloadType, update.m_encryptionSync);
+			if (h245sock)
+				h245sock->Send(h245msg);
+			else {
+				// send tunneled
+				if ((call->GetEncryptDirection() == CallRec::callingParty) && call->GetCallSignalSocketCalled()) {
+					call->GetCallSignalSocketCalled()->SendTunneledH245(h245msg);
+				} else if (call->GetCallSignalSocketCalling()) {
+					call->GetCallSignalSocketCalling()->SendTunneledH245(h245msg);
+				}
+			}
+		}
+		suppress = true;
+	}
+	return false;
+}
+
+bool H245ProxyHandler::HandleEncryptionUpdateCommand(H245_MiscellaneousCommand & cmd, bool & suppress, callptr & call, H245Socket * h245sock)
+{
+	if (call->IsMediaEncryption() && !m_isH245Master) {
+		// TODO: use this media key
+		H245_MiscellaneousCommand_type_encryptionUpdateCommand & update = cmd.m_type;
+		WORD flcn = (WORD)cmd.m_logicalChannelNumber;
+		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(FindLogicalChannel(flcn));
+		if (rtplc) {
+			rtplc->UpdateMediaKey(update.m_encryptionSync);
+
+			// TODO: send ACK only if channel is owed by master
+			H245_MultimediaSystemControlMessage h245msg;
+			h245msg.SetTag(H245_MultimediaSystemControlMessage::e_command);
+			H245_CommandMessage & h245cmd = h245msg;
+			h245cmd.SetTag(H245_CommandMessage::e_miscellaneousCommand);		
+			H245_MiscellaneousCommand & misc = h245cmd;
+			misc.m_type.SetTag(H245_MiscellaneousCommand_type::e_encryptionUpdateAck);
+			H245_MiscellaneousCommand_type_encryptionUpdateAck & ack = misc.m_type;
+			misc.m_logicalChannelNumber = cmd.m_logicalChannelNumber;
+			misc.m_direction.SetTag(H245_EncryptionUpdateDirection::e_slaveToMaster);
+			ack.m_synchFlag = update.m_encryptionSync.m_synchFlag;
+			if (h245sock)
+				h245sock->Send(h245msg);
+			else {
+				// send tunneled
+			}
+		}
+		suppress = true;
+	}
+	return false;
+}
+
+bool H245ProxyHandler::HandleEncryptionUpdateAck(H245_MiscellaneousCommand & cmd, bool & suppress, callptr & call, H245Socket * h245sock)
+{
+	if (call->IsMediaEncryption() && m_isH245Master) {
+		// TODO: now we can use the key we sent to the slave
+		suppress = true;
+	}
+	return false;
+}
+#endif
+
 bool H245ProxyHandler::HandleIndication(H245_IndicationMessage & Indication, bool & suppress)
 {
 	PString value = PString::Empty();
@@ -9312,11 +9507,11 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 	if (!h225Params)
 		return changed;
 	WORD id = (WORD)h225Params->m_sessionID;
-	RTPLogicalChannel *lc = NULL;
+	RTPLogicalChannel * lc = NULL;
 	siterator iter;
 	if (UsesH46019()) {
 	   iter = fastStartLCs.find(id);
-	   lc = (iter != fastStartLCs.end()) ? iter->second : 0;
+	   lc = (iter != fastStartLCs.end()) ? iter->second : NULL;
 	} else {
 	   iter = peer->fastStartLCs.find(id);
 	   lc = (iter != peer->fastStartLCs.end()) ? iter->second : 0;
