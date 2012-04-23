@@ -3787,10 +3787,10 @@ void SendH46024BFacility(CallSignalSocket *socket, const H245_MultimediaSystemCo
 	GetUUIE(q931, uuie);
 	uuie.m_h323_uu_pdu.m_h245Tunneling = true;
 	uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Control);
-	  PINDEX sz = uuie.m_h323_uu_pdu.m_h245Control.GetSize();
-	  uuie.m_h323_uu_pdu.m_h245Control.SetSize(sz+1);
-	  uuie.m_h323_uu_pdu.m_h245Control[sz].EncodeSubType(h245msg);
- 
+	PINDEX sz = uuie.m_h323_uu_pdu.m_h245Control.GetSize();
+	uuie.m_h323_uu_pdu.m_h245Control.SetSize(sz+1);
+	uuie.m_h323_uu_pdu.m_h245Control[sz].EncodeSubType(h245msg);
+
 	SetUUIE(q931, uuie);
     PBYTEArray lBuffer;
 	q931.Encode(lBuffer);
@@ -3853,7 +3853,7 @@ void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, 
 	if (m_h46024Bflag.size() == m_H46024Balternate.size()) {
 		// Build the Generic Request
 		H245_MultimediaSystemControlMessage h245msg;
-		BuildH46024AnnexBMessage(true,h245msg,m_H46024Balternate);
+		BuildH46024AnnexBMessage(true, h245msg, m_H46024Balternate);
  
 		PTRACE(4,"H46024B\tRequest Message\n" << h245msg);
  
@@ -3871,7 +3871,7 @@ void CallRec::H46024BRespond()
  
 	// Build the Generic response
 	H245_MultimediaSystemControlMessage h245msg;
-	BuildH46024AnnexBMessage(false,h245msg,m_H46024Balternate);
+	BuildH46024AnnexBMessage(false, h245msg, m_H46024Balternate);
 	m_H46024Balternate.clear();
 	m_h46024Bflag.clear();
  

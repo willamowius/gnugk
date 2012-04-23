@@ -50,7 +50,7 @@ SList<T>::~SList()
 template<class T>
 T *SList<T>::Create(const PStringArray & rules)
 {
-	T *next = 0;
+	T *next = NULL;
 	for (int i = rules.GetSize(); --i >= 0; )
 		if (T *current = Factory<T>::Create(rules[i])) {
 			current->m_next = next;

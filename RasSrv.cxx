@@ -467,10 +467,10 @@ inline H225_RasMessage & RasPDU<RAS>::BuildReject(unsigned reason)
 GkInterface::GkInterface(const PIPSocket::Address & addr) : m_address(addr)
 {
 	m_rasPort = m_multicastPort = m_signalPort = m_statusPort = 0;
-	m_rasListener = 0;
-	m_multicastListener = 0;
-	m_callSignalListener = 0;
-	m_statusListener = 0;
+	m_rasListener = NULL;
+	m_multicastListener = NULL;
+	m_callSignalListener = NULL;
+	m_statusListener = NULL;
 	m_rasSrv = NULL;
 }
 
@@ -512,7 +512,8 @@ bool GkInterface::CreateListeners(RasServer *RasSrv)
 				m_multicastListener->SetSignalPort(m_signalPort);
 			}
 		} else {
-			RasSrv->CloseListener(m_callSignalListener), m_callSignalListener = 0;
+			RasSrv->CloseListener(m_callSignalListener);
+			m_callSignalListener = NULL;
 		}
 	}
 
@@ -871,7 +872,7 @@ void RasServer::LoadConfig()
 	}
 	if (broadcastListener && !bUseBroadcastListener) {
 		broadcastListener->Close();
-		broadcastListener = 0;
+		broadcastListener = NULL;
 	}
 
 	RemoveClosed(false); // delete the closed sockets next time
@@ -1064,7 +1065,7 @@ H225_TransportAddress RasServer::GetCallSignalAddress(const Address & addr) cons
 
 bool RasServer::SendRas(const H225_RasMessage & rasobj, const Address & addr, WORD pt, RasListener *socket)
 {
-	if (socket == 0) {
+	if (socket == NULL) {
 		GkInterface * inter = SelectInterface(addr);
 		if (inter == NULL)
 			return false;
@@ -1632,8 +1633,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		H225_GatekeeperConfirm & gcf = BuildConfirm();
 		gcf.m_protocolIdentifier = request.m_protocolIdentifier;
 		GetRasAddress(gcf.m_rasAddress);
-		if ((gcf.m_rasAddress.GetTag() == H225_TransportAddress::e_ipAddress)
-			|| (gcf.m_rasAddress.GetTag() == H225_TransportAddress::e_ipAddress)) {
+		if (gcf.m_rasAddress.GetTag() == H225_TransportAddress::e_ipAddress) {
 			// make sure we respond with the unicast RAS IP and port, even if the GRQ came in through multicast
 			WORD unicastRasPort = (WORD)GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT);
 			H225_TransportAddress_ipAddress & rasip = gcf.m_rasAddress;

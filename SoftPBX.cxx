@@ -327,7 +327,7 @@ void SoftPBX::TransferCall(const PString & SourceAlias, const PString & Destinat
 	endptr lDestForward;
 	endptr lSrcForward;
 	callptr lCall;
-	CallSignalSocket *lForwardedSocket = 0;
+	CallSignalSocket *lForwardedSocket = NULL;
 
 	PStringList lBufferAliasArrayString;
 	H225_ArrayOf_AliasAddress lBufferAliasArray;

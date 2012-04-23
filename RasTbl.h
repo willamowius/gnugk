@@ -70,10 +70,10 @@ public:
 // The class T must have Lock() & Unlock() methods
 template<class T> class SmartPtr {
 public:
-	explicit SmartPtr(T *t = 0) : pt(t) { Inc(); }
+	explicit SmartPtr(T *t = NULL) : pt(t) { Inc(); }
 	SmartPtr(const SmartPtr<T> & p) : pt(p.pt) { Inc(); }
 	~SmartPtr() { Dec(); }
-	operator bool() const { return pt != 0; }
+	operator bool() const { return pt != NULL; }
 	T *operator->() const { return pt; }
 
 	bool operator==(const SmartPtr<T> & p) const { return pt == p.pt; }
@@ -840,7 +840,7 @@ public:
 	void Disconnect(bool = false); // send ReleaseComplete ?
 	void RemoveAll();
 	void RemoveSocket();
-	void SendReleaseComplete(const H225_CallTerminationCause * = 0);
+	void SendReleaseComplete(const H225_CallTerminationCause * = NULL);
 	void BuildDRQ(H225_DisengageRequest &, unsigned reason) const;
 
 	bool CompareCallId(const H225_CallIdentifier *CallId) const;
@@ -864,7 +864,7 @@ public:
 	bool IsH245Routed() const { return m_h245Routed; }
 	bool IsToParent() const { return m_toParent; }
 	bool IsForwarded() const { return m_forwarded; }
-	bool IsSocketAttached() const { return (m_callingSocket != 0); }
+	bool IsSocketAttached() const { return (m_callingSocket != NULL); }
 
 	PString GenerateCDR(
 		/// timestamp formatting string (empty for a default RFC822 format)

@@ -201,7 +201,7 @@ protected:
 			if (ValidateSocket(listener, oport))
 				return true;
 			else
-				listener = 0;
+				listener = NULL;
 		}
 		return false;
 	}

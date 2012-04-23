@@ -83,7 +83,7 @@ template<class T> class Singleton : public SingletonBase {
 
 template<class T> Singleton<T>::Singleton(const char *n) : SingletonBase(n)
 {
-	if (m_Instance != 0) {
+	if (m_Instance != NULL) {
 		PTRACE(0, "Runtime error: Duplicate singleton instances");
 	}
 }
@@ -91,16 +91,16 @@ template<class T> Singleton<T>::Singleton(const char *n) : SingletonBase(n)
 template<class T> Singleton<T>::~Singleton()
 {
 	PWaitAndSignal lock(m_CreationLock);
-	m_Instance = 0;
+	m_Instance = NULL;
 }
 
 // Function to access the singleton
 template<class T> T *Singleton<T>::Instance()
 {
-	if (m_Instance == 0) {
+	if (m_Instance == NULL) {
 		PWaitAndSignal lock(m_CreationLock);
 		// We have to check it again after we got the lock
-		if (m_Instance == 0)
+		if (m_Instance == NULL)
 			m_Instance = new T;
 	}
 	return m_Instance;
@@ -109,11 +109,11 @@ template<class T> T *Singleton<T>::Instance()
 // Function to check for existance of singleton
 template<class T> bool Singleton<T>::InstanceExists()
 {
-	return (m_Instance != 0);
+	return (m_Instance != NULL);
 }
 
 // static members
-template<class T> T *Singleton<T>::m_Instance = 0;
+template<class T> T *Singleton<T>::m_Instance = NULL;
 template<class T> PMutex Singleton<T>::m_CreationLock;
 
 
