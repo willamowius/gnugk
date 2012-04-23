@@ -662,6 +662,7 @@ private:
 	WORD SrcPort;
 
 #ifdef HAS_H235_MEDIA
+	PMutex m_cryptoEngineMutex;
 	H235CryptoEngine * m_H235CryptoEngine;
 	H235Authenticators * m_auth;
 	bool m_simulateCallerSide;
@@ -8005,6 +8006,7 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nat
 RTPLogicalChannel::~RTPLogicalChannel()
 {
 #ifdef HAS_H235_MEDIA
+	m_cryptoEngineMutex.Wait();
 	if (m_H235CryptoEngine) {
 		if (rtp) {
 			rtp->RemoveEncryptingRTPChannel(this);
@@ -8013,6 +8015,7 @@ RTPLogicalChannel::~RTPLogicalChannel()
 		delete m_H235CryptoEngine;
 		m_H235CryptoEngine = NULL;
 	}
+	m_cryptoEngineMutex.Signal();
 #endif
 
 	if (peer) {
@@ -8098,6 +8101,7 @@ void RTPLogicalChannel::SetLCMultiplexSocket(bool isRTCP, int multiplexSocket, H
 #ifdef HAS_H235_MEDIA
 bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_EncryptionSync & encryptionSync, bool simulateCallerSide, bool encrypting)
 {
+	PWaitAndSignal lock(m_cryptoEngineMutex);
 	m_auth = &auth;
 	m_simulateCallerSide = simulateCallerSide;
 	m_encrypting = encrypting;
@@ -8177,6 +8181,7 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 
 bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_EncryptionSync & encryptionSync, bool simulateCallerSide, bool encrypting)
 {
+	PWaitAndSignal lock(m_cryptoEngineMutex);
 	m_auth = &auth;
 	m_simulateCallerSide = simulateCallerSide;
 	m_encrypting = encrypting;
@@ -8252,6 +8257,7 @@ bool RTPLogicalChannel::GenerateNewMediaKey(BYTE newPayloadType, H245_Encryption
 
 bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller, unsigned char * ivsequence, bool & rtpPadding, BYTE & payloadType)
 {
+	PWaitAndSignal lock(m_cryptoEngineMutex);
 	if (!m_H235CryptoEngine)
 		return false;
 
