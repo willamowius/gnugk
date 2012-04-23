@@ -7625,16 +7625,20 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		(*m_call)->GetSrcSignalAddr(callerSignalIP, notused);
 		fromCaller = (callerSignalIP == fromIP);
 		bool simulateCaller = ((*m_call)->GetEncryptDirection() == CallRec::callingParty);
+		bool succesful = false;
 		PTRACE(0, "JW H235 en/de-crypt port=" << localport << " fromCaller=" << fromCaller << " simulateCaller=" << simulateCaller
 			<< " eLC=" << m_encryptingLC << " dLC=" << m_decryptingLC);
 		// TODO: simplify Process() ? decision already made here
 		if (m_encryptingLC && ((fromCaller && simulateCaller) || (!fromCaller && !simulateCaller))) {
 			PTRACE(0, "JW H235 encrypt rtp=" << this << " port=" << localport << " rtplc=" << m_encryptingLC);
-			m_encryptingLC->ProcessH235Media(wbuffer, buflen, fromCaller, ivSeqence, rtpPadding, payloadType);
+			succesful = m_encryptingLC->ProcessH235Media(wbuffer, buflen, fromCaller, ivSeqence, rtpPadding, payloadType);
 		} else if (m_decryptingLC) {
 			PTRACE(0, "JW H235 decrypt rtp=" << this << " port=" << localport << " rtplc=" << m_decryptingLC);
-			m_decryptingLC->ProcessH235Media(wbuffer, buflen, fromCaller, ivSeqence, rtpPadding, payloadType);
+			succesful =  m_decryptingLC->ProcessH235Media(wbuffer, buflen, fromCaller, ivSeqence, rtpPadding, payloadType);
 		}
+		if (!succesful)
+			return NoData;
+
 		// update RTP padding bit
 		if (rtpPadding)
 			wbuffer[0] |= 0x20;
@@ -8300,7 +8304,7 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCal
 	//if (m_H235CryptoEngine->IsMaxBlocksPerKeyReached()) {	// many 100 GB
 	// TODO: find call by CallID, send key update command or request
 	//}
-	return true;
+	return (processed.GetSize() > 0);
 }
 #endif
 
