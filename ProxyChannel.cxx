@@ -5824,8 +5824,7 @@ void CallSignalSocket::DispatchNextRoute()
 			if (GkConfig()->HasKey(RoutedSec, "TcpKeepAlive"))
 				remote->Self()->SetOption(SO_KEEPALIVE, Toolkit::AsBool(
 					GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "0")) ? 1 : 0,
-					SOL_SOCKET
-					);
+					SOL_SOCKET);
 
 			ConfigReloadMutex.EndRead();
 			const bool isReadable = remote->IsReadable(2*setupTimeout);
@@ -7961,8 +7960,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 			PTRACE(1, "RTP\tRTP socket " << AsString(laddr, port) << " not available - error "
 				<< rtp->GetErrorCode(PSocket::LastGeneralError) << '/'
 				<< rtp->GetErrorNumber(PSocket::LastGeneralError) << ": "
-				<< rtp->GetErrorText(PSocket::LastGeneralError)
-				);
+				<< rtp->GetErrorText(PSocket::LastGeneralError));
 			rtp->Close();
 			continue;
 		}
@@ -7970,8 +7968,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 			PTRACE(1, "RTP\tRTCP socket " << AsString(laddr, port + 1) << " not available - error "
 				<< rtcp->GetErrorCode(PSocket::LastGeneralError) << '/'
 				<< rtcp->GetErrorNumber(PSocket::LastGeneralError) << ": "
-				<< rtcp->GetErrorText(PSocket::LastGeneralError)
-				);
+				<< rtcp->GetErrorText(PSocket::LastGeneralError));
 			rtcp->Close();
 			rtp->Close();
 			continue;
@@ -8282,8 +8279,10 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCal
 	}
 
 	len = processed.GetSize() + 12;
-	// TODO: buffer might need resizing when rtpPadding is on !!!!
 	memcpy(buffer+12, processed.GetPointer(), processed.GetSize());
+	//if (m_H235CryptoEngine->IsMaxBlocksPerKeyReached()) {	// many 100 GB
+	// TODO: find call by CallID, send key update command or request
+	//}
 	return true;
 }
 #endif
