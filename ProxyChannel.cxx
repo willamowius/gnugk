@@ -8681,12 +8681,14 @@ bool H245ProxyHandler::HandleCommand(H245_CommandMessage & Command, bool & suppr
 				H245_MiscellaneousCommand miscCommand = Command;
 				switch (miscCommand.m_type.GetTag())
 				{
+#ifdef HAS_H235_MEDIA
 					case H245_MiscellaneousCommand_type::e_encryptionUpdateRequest:
 						return HandleEncryptionUpdateRequest(Command, suppress, call, h245sock);
 					case H245_MiscellaneousCommand_type::e_encryptionUpdateCommand:
 						return HandleEncryptionUpdateCommand(Command, suppress, call, h245sock);
 					case H245_MiscellaneousCommand_type::e_encryptionUpdateAck:
 						return HandleEncryptionUpdateAck(Command, suppress, call, h245sock);
+#endif
 					default:
 						break;
 				}
