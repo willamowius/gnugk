@@ -3598,8 +3598,11 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 		// For compatibility with endpoints which do not support large Setup messages or send incorrect tokens
 		if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH235Call", "0"))) {
-			 setupBody.RemoveOptionalField(H225_Setup_UUIE::e_tokens);
-			 setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
+			PTRACE(3, "Removing H.235 tokens");
+			setupBody.m_tokens.SetSize(0);
+			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_tokens);
+			setupBody.m_cryptoTokens.SetSize(0);
+			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 		}
 
 		if (Toolkit::Instance()->IsH46018Enabled())
@@ -3721,8 +3724,11 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 
 	// For compatibility with endpoints which do not support large Setup messages or send incorrect tokens
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH235Call", "0"))) {
-		 setupBody.RemoveOptionalField(H225_Setup_UUIE::e_tokens);
-		 setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
+			PTRACE(3, "Removing H.235 tokens");
+			setupBody.m_tokens.SetSize(0);
+			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_tokens);
+			setupBody.m_cryptoTokens.SetSize(0);
+			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 	}
 
 	// For compatibility to call pre-H323v4 devices that do not support H.460
@@ -4024,7 +4030,10 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 
 	// For compatibility with endpoints which do not support large Setup messages or send incorrect tokens
 	if (Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "RemoveH235Call", 0)) {
+		PTRACE(3, "Removing H.235 tokens");
+		connectBody.m_tokens.SetSize(0);
 		connectBody.RemoveOptionalField(H225_Connect_UUIE::e_tokens);
+		connectBody.m_cryptoTokens.SetSize(0);
 		connectBody.RemoveOptionalField(H225_Connect_UUIE::e_cryptoTokens);
 	}
 
