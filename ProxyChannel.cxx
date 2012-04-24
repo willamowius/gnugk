@@ -2079,7 +2079,7 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 
 	// we don't handle data, yet, pass unchanged
 	if (rawCap.GetTag() == H245_DataType::e_data) {
-		PTRACE(0, "JW no support for data encryption, yet");
+		PTRACE(5, "H235\tno support for data encryption, yet");
 		return false;
 	}
 
@@ -4105,7 +4105,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled (H.235 HalfCallMedia)");
 
 		} else {
-			PTRACE(0, "JW Error: This shouldn't happen...");
+			PTRACE(1, "H235\tLogic error, this shouldn't happen...");
 		}
     }
 #endif
@@ -8005,7 +8005,6 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 			rtp->Close();
 			continue;
 		}
-		PTRACE(0, "JW new RTPLC " << this << " rtp=" << rtp << " port=" << port);
 		return;
 	}
 
@@ -8160,7 +8159,7 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
     encryptionSync.m_h235Key.DecodeSubType(h235key);
     if (h235key.GetTag() == H235_H235Key::e_secureSharedSecret) {
 		const H235_V3KeySyncMaterial & v3data = h235key;
-	    PTRACE(0, "JW H235_V3KeySyncMaterial=" << v3data);
+	    PTRACE(5, "H235\tH235_V3KeySyncMaterial=" << v3data);
 	    if (v3data.HasOptionalField(H235_V3KeySyncMaterial::e_algorithmOID)
 			&& (v3data.m_algorithmOID != algorithmOID)) {
 		    PTRACE(1, "H235\tError: Different algo for session and media key not supported " << v3data);
@@ -8181,14 +8180,14 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 	} else if (h235key.GetTag() == H235_H235Key::e_secureChannel) {
 		// this is the _media_key_ in unencrypted form
 		const H235_KeyMaterial & mediaKeyBits = h235key;
-		PTRACE(0, "JW plain key size=" << mediaKeyBits.GetSize() << " data=" << mediaKeyBits);
+		PTRACE(3, "H235\tPlain key size=" << mediaKeyBits.GetSize() << " data=" << mediaKeyBits);
 		mediaKey = PBYTEArray(mediaKeyBits.GetDataPointer(), mediaKeyBits.GetSize());
 	} else {
 		PTRACE(1, "H235\tUnsupported key type " << h235key.GetTagName());
 		return false;
 	}
 
-	PTRACE(0, "JW media key size=" << mediaKey.GetSize() << " key=" << endl << hex << mediaKey);
+	PTRACE(3, "H235\tMedia key decoded:" << endl << hex << mediaKey);
 	if (mediaKey.GetSize() == 0) {
 		PTRACE(1, "H235\tMedia key decode failed");
 		return false;
@@ -8202,10 +8201,8 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 	PTRACE(3, "H235\tNew crypto engine created: plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType);
 
 	if (encrypting) {
-		PTRACE(0, "JW Set encrypting LC=" << this << " in rtp=" << rtp);
 		rtp->SetEncryptingRTPChannel(this);
 	} else {
-		PTRACE(0, "JW Set decrypting LC=" << this << " in rtp=" << rtp);
 		rtp->SetDecryptingRTPChannel(this);
 	}
 	return true;
@@ -8236,7 +8233,7 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 
 	// generate media key
 	PBYTEArray mediaKey = H235Session.GenerateRandomKey(algorithmOID);
-	PTRACE(0, "JW media key size=" << mediaKey.GetSize() << " key=" << endl << hex << mediaKey);
+	PTRACE(3, "H235\tMedia key generated:" << endl << hex << mediaKey);
 
 	encryptionSync.m_synchFlag = m_cipherPayloadType;
 	H235_H235Key h235key;
@@ -8249,7 +8246,6 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	bool rtpPadding = false;
 	v3data.m_encryptedSessionKey = H235Session.Encrypt(mediaKey, NULL, rtpPadding);
 	encryptionSync.m_h235Key.EncodeSubType(h235key);
-	PTRACE(3, "H235\tNew key generated " << v3data);
 
 	// delete old crypto engine (if we are called from UpdateMediaKey()
 	if (m_H235CryptoEngine)
@@ -8259,10 +8255,8 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	PTRACE(3, "H235\tNew crypto engine created: plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType);
 
 	if (encrypting) {
-		PTRACE(0, "JW Set encrypting LC=" << this << " in rtp=" << rtp);
 		rtp->SetEncryptingRTPChannel(this);
 	} else {
-		PTRACE(0, "JW Set decrypting LC=" << this << " in rtp=" << rtp);
 		rtp->SetDecryptingRTPChannel(this);
 	}
 	return true;
@@ -9108,17 +9102,14 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 							|| (!m_isCaller && call->GetEncryptDirection() == CallRec::calledParty);
 			// use the key sent by the other side
 			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_encryptionSync)) {
-				PTRACE(0, "JW encryptionSync received must create session now: rtplc=" << rtplc);
 				rtplc->CreateH235Session(call->GetAuthenticators(), olc.m_encryptionSync,
 						(call->GetEncryptDirection() == CallRec::callingParty), encrypting);
 				olc.RemoveOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
 			} else if (m_isH245Master) {
 				// the message comes from the master and doesn't have encryptionSync
-				PTRACE(0, "JW adding encryptionSync");
 				olc.IncludeOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
 				rtplc->CreateH235SessionAndKey(call->GetAuthenticators(), olc.m_encryptionSync,
 						(call->GetEncryptDirection() == CallRec::callingParty), encrypting);
-				PTRACE(0, "JW added encryptionSync - done " << olc.m_encryptionSync);
 			}
 		}
 #endif
@@ -9315,21 +9306,17 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 			<< " isCaller=" << m_isCaller
 			<< " isMaster=" << m_isH245Master);
 	RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(lc);
-	// TODO: skip for data channels
 	if (call->IsMediaEncryption() && rtplc && !rtplc->IsDataChannel()) {
 		// is this the encryption or decryption direction ?
 		bool encrypting = (m_isCaller && call->GetEncryptDirection() == CallRec::calledParty)
 						|| (!m_isCaller && call->GetEncryptDirection() == CallRec::callingParty);
-		PTRACE(0, "JW encrypt=" << encrypting);
 		// use the key sent by the other side
 		if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync)) {
-			PTRACE(0, "JW encryptionSync received must create session now: flcn=" << flcn<< " rtplc=" << rtplc);
 			rtplc->CreateH235Session(call->GetAuthenticators(), olca.m_encryptionSync,
 					(call->GetEncryptDirection() == CallRec::callingParty), encrypting);
 			olca.RemoveOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
 		} else if (m_isH245Master) {
 			// the message comes from the master and its in the direction we are simulating
-			PTRACE(0, "JW adding encryptionSync");
 			olca.IncludeOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
 			rtplc->CreateH235SessionAndKey(call->GetAuthenticators(), olca.m_encryptionSync,
 					(call->GetEncryptDirection() == CallRec::callingParty), encrypting);

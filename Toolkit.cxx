@@ -2910,7 +2910,7 @@ void Toolkit::GetNetworkFromString(
 
 PString Toolkit::GenerateAcctSessionId()
 {
-	PWaitAndSignal lock( m_acctSessionMutex );
+	PWaitAndSignal lock(m_acctSessionMutex);
 	return psprintf(PString("%08x%08x"), m_acctSessionBase, ++m_acctSessionCounter);
 }
 

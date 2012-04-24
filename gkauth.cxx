@@ -260,8 +260,7 @@ GkAuthenticator::GkAuthenticator(
 		miscFlagsStr = "NONE";
 	
 	PTRACE(1, "GKAUTH\t" << GetName() << " rule added to check RAS: "
-		<< rasFlagsStr << ", OTHER: " << miscFlagsStr
-		);
+		<< rasFlagsStr << ", OTHER: " << miscFlagsStr);
 
 	m_h235Authenticators = NULL;
 }
