@@ -3269,6 +3269,13 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		}
 	}	// else: no CallRec
 
+	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)
+		&& Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "RemoveH235ClearTokens", 0)) {
+		// TODO: be more careful which tokens we actually remove
+		setupBody.m_tokens.SetSize(0);
+		setupBody.RemoveOptionalField(H225_Setup_UUIE::e_tokens);
+	}
+
 #ifdef HAS_H235_MEDIA
 	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
 		H235Authenticators & auth = m_call->GetAuthenticators();
@@ -4020,6 +4027,13 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 		CallSignalSocket * other = dynamic_cast<CallSignalSocket *>(remote);
 		connectBody.m_maintainConnection = (other && other->MaintainConnection());
 		msg->SetUUIEChanged();
+	}
+
+	if (connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens)
+		&& Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "RemoveH235ClearTokens", 0)) {
+		// TODO: be more careful which tokens we actually remove
+		connectBody.m_tokens.SetSize(0);
+		connectBody.RemoveOptionalField(H225_Connect_UUIE::e_tokens);
 	}
 
 #ifdef HAS_H235_MEDIA
