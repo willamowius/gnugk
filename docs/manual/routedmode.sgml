@@ -419,8 +419,14 @@ In the above example code 21 and 27 will be translated into cause code 34, becau
 <item><tt/RemoveH235Call=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
-For compatibility with endpoints which do not support large Setup messages,
-this switch removes tokens and cryptoTokens from Setups to make them smaller.
+For compatibility with endpoints which do not support large Setup messages
+or if endpoints send incorrect H.235 tokens,
+this switch removes all clearTokens and cryptoTokens from Setup and Connect messages.
+
+<item><tt/RemoveH235ClearTokens=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+This switch removes all H.235 clear tokens from Setup and Connect messages.
 
 <item><tt/RemoveH460Call=1/<newline>
 Default: <tt>0</tt><newline>

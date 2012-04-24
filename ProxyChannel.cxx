@@ -3269,13 +3269,6 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		}
 	}	// else: no CallRec
 
-	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)
-		&& Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "RemoveH235ClearTokens", 0)) {
-		// TODO: be more careful which tokens we actually remove
-		setupBody.m_tokens.SetSize(0);
-		setupBody.RemoveOptionalField(H225_Setup_UUIE::e_tokens);
-	}
-
 #ifdef HAS_H235_MEDIA
 	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
 		H235Authenticators & auth = m_call->GetAuthenticators();
@@ -3603,7 +3596,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(masqAddr, GetPort());
 		}
 
-		// For compatibility with endpoints which do not support large Setup messages
+		// For compatibility with endpoints which do not support large Setup messages or send incorrect tokens
 		if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH235Call", "0"))) {
 			 setupBody.RemoveOptionalField(H225_Setup_UUIE::e_tokens);
 			 setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
@@ -3726,7 +3719,7 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
         }
     }
 
-	// For compatibility with endpoints which do not support large Setup messages
+	// For compatibility with endpoints which do not support large Setup messages or send incorrect tokens
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH235Call", "0"))) {
 		 setupBody.RemoveOptionalField(H225_Setup_UUIE::e_tokens);
 		 setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
@@ -4029,11 +4022,10 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 		msg->SetUUIEChanged();
 	}
 
-	if (connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens)
-		&& Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "RemoveH235ClearTokens", 0)) {
-		// TODO: be more careful which tokens we actually remove
-		connectBody.m_tokens.SetSize(0);
+	// For compatibility with endpoints which do not support large Setup messages or send incorrect tokens
+	if (Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "RemoveH235Call", 0)) {
 		connectBody.RemoveOptionalField(H225_Connect_UUIE::e_tokens);
+		connectBody.RemoveOptionalField(H225_Connect_UUIE::e_cryptoTokens);
 	}
 
 #ifdef HAS_H235_MEDIA
