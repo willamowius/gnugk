@@ -4030,6 +4030,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			// there were tokens in the Setup and now in the Connect, then our help isn't needed
 			PTRACE(4, "H235\tMedia Encrypted End to End : No Assistance");
 			m_call->GetAuthenticators().SetSize(0);
+			m_call->SetMediaEncryption(CallRec::none);
 		} else if ((m_call && m_call->GetEncryptDirection() == CallRec::calledParty)
 		  && !connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens)) {
 			// there were tokens in Setup, but none in Connect
@@ -4053,6 +4054,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			&& !connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens)) {
 			// no tokens in Setup and none in Connect
 			m_call->GetAuthenticators().SetSize(0);
+			m_call->SetMediaEncryption(CallRec::none);
 			PTRACE(3, "H235\tNo Media Encryption Support Detected: Disabling!");
 			if (Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "RequireH235HalfCallMedia", 0)) {
 				PTRACE(1, "H235\tDiconnection call because of missing H.235 support");
@@ -6941,7 +6943,7 @@ void H46019Channel::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 
 #ifdef HAS_H235_MEDIA
 	if (!isRTCP) {
-		RTPLogicalChannel * rtplc = NULL;	// TODO235: find
+		RTPLogicalChannel * rtplc = NULL;	// TODO235: will be in member variabl H46019Channel, decide en/decrypt
 		if (rtplc) {
 			bool fromCaller = true;
 			if (call) {
@@ -9003,6 +9005,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 		if (m_useRTPMultiplexing) {
 			// set sockets, depending if we will received as multiplexed or not
 			LogicalChannel * lc = FindLogicalChannel(flcn);
+			// TODO235: save lc in H46019 Channel for encryption
 			// side A
 			if (m_requestRTPMultiplexing) {
 				h46019chan.m_osSocketToA = MultiplexedRTPHandler::Instance()->GetRTPOSSocket();

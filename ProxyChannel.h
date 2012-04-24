@@ -440,6 +440,7 @@ public:
 	int m_osSocketToB;
 	int m_osSocketToB_RTCP;
 	bool m_EnableRTCPStats;
+	// TODO235: add pointers to encrypt and decrypting rtpLCs, set in HandleOLC, howto NULL ?
 };
 
 class MultiplexedRTPReader : public SocketsReader {
