@@ -7643,14 +7643,10 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		fromCaller = (callerSignalIP == fromIP);
 		bool simulateCaller = ((*m_call)->GetEncryptDirection() == CallRec::callingParty);
 		bool succesful = false;
-		PTRACE(0, "JW H235 en/de-crypt port=" << localport << " fromCaller=" << fromCaller << " simulateCaller=" << simulateCaller
-			<< " eLC=" << m_encryptingLC << " dLC=" << m_decryptingLC);
 		// TODO: simplify Process() ? decision already made here
 		if (m_encryptingLC && ((fromCaller && simulateCaller) || (!fromCaller && !simulateCaller))) {
-			PTRACE(0, "JW H235 encrypt rtp=" << this << " port=" << localport << " rtplc=" << m_encryptingLC);
 			succesful = m_encryptingLC->ProcessH235Media(wbuffer, buflen, fromCaller, ivSeqence, rtpPadding, payloadType);
 		} else if (m_decryptingLC) {
-			PTRACE(0, "JW H235 decrypt rtp=" << this << " port=" << localport << " rtplc=" << m_decryptingLC);
 			succesful =  m_decryptingLC->ProcessH235Media(wbuffer, buflen, fromCaller, ivSeqence, rtpPadding, payloadType);
 		}
 		if (!succesful)
@@ -8291,23 +8287,19 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCal
 	PBYTEArray processed;
 
 	if ((fromCaller && m_simulateCallerSide) || (!fromCaller && !m_simulateCallerSide)) {
-		PTRACE(0, "JW will encrypt: this=" << this << " size=" << data.GetSize() << " rtpPadding=" << rtpPadding << " PT=" << (int)payloadType << " plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType);
 		if (payloadType == m_plainPayloadType) {
 			processed = m_H235CryptoEngine->Encrypt(data, ivsequence, rtpPadding);
 		} else {
 			PTRACE(1, "H235\tUnexpected plaintext payload type " << (int)payloadType << " expecting " << (int)m_plainPayloadType);
 		}
 		payloadType = m_cipherPayloadType;
-		PTRACE(0, "JW done encrypt: this=" << this << " size=" << processed.GetSize() << " rtpPadding=" << rtpPadding << " PT=" << (int)payloadType);
 	} else {
-		PTRACE(0, "JW will decrypt: this=" << this << " size=" << data.GetSize() << " rtpPadding=" << rtpPadding << " PT=" << (int)payloadType << " plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType);
 		if (payloadType == m_cipherPayloadType) {
 			processed = m_H235CryptoEngine->Decrypt(data, ivsequence, rtpPadding);
 		} else {
 			PTRACE(1, "H235\tUnexpected chipher payload type " << (int)payloadType << " expecting " << (int)m_cipherPayloadType);
 		}
 		payloadType = m_plainPayloadType;
-		PTRACE(0, "JW done decrypt: this=" << this << " size=" << processed.GetSize() << " rtpPadding=" << rtpPadding << " PT=" << (int)payloadType);
 	}
 
 	len = processed.GetSize() + 12;
