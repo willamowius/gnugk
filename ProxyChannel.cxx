@@ -212,7 +212,6 @@ BYTE GetStaticAudioPayloadType(unsigned tag)
 		case H245_AudioCapability::e_gsmEnhancedFullRate:
 			return 3;
 	};
-	PTRACE(3, "Can't determin static RTP audio payload type for " << tag);
 	return UNDEFINED_PAYLOAD_TYPE;
 };
 
@@ -224,7 +223,6 @@ BYTE GetStaticVideoPayloadType(unsigned tag)
 		case H245_VideoCapability::e_h263VideoCapability:
 			return 34;
 	};
-	PTRACE(3, "Can't determin static RTP video payload type for " << tag);
 	return UNDEFINED_PAYLOAD_TYPE;
 };
 
@@ -249,7 +247,6 @@ BYTE GetStaticPayloadType(const H245_DataType & type)
 			return GetStaticVideoPayloadType(videoCap.GetTag());
 		}
 	}
-	PTRACE(3, "Can't determin static RTP payload type for " << type.GetTagName());
 	return UNDEFINED_PAYLOAD_TYPE;
 }
 
@@ -9064,8 +9061,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 					h225Params->m_dynamicRTPPayloadType = call->GetNewDynamicPayloadType();
 					rtplc->SetCipherPayloadType(h225Params->m_dynamicRTPPayloadType);
 				} else {
-					rtplc->SetCipherPayloadType(h225Params->m_dynamicRTPPayloadType);
 					rtplc->SetPlainPayloadType(h225Params->m_dynamicRTPPayloadType);
+					rtplc->SetCipherPayloadType(h225Params->m_dynamicRTPPayloadType);
 				}
 			} else {
 				// we remove encryption, OLC has already been rewritten
