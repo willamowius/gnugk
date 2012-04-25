@@ -3266,6 +3266,15 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		}
 	}	// else: no CallRec
 
+	// remove H.235 tokens from incoming Setup
+	if (Toolkit::Instance()->RemoveH235TokensFrom(_peerAddr)) {
+			PTRACE(3, "Removing H.235 tokens");
+			setupBody.m_tokens.SetSize(0);
+			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_tokens);
+			setupBody.m_cryptoTokens.SetSize(0);
+			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
+	}
+
 #ifdef HAS_H235_MEDIA
 	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
 		H235Authenticators & auth = m_call->GetAuthenticators();
@@ -3594,7 +3603,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		}
 
 		// For compatibility with endpoints which do not support large Setup messages or send incorrect tokens
-		if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH235Call", "0"))) {
+		if (Toolkit::Instance()->RemoveAllH235Tokens()) {
 			PTRACE(3, "Removing H.235 tokens");
 			setupBody.m_tokens.SetSize(0);
 			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_tokens);
@@ -3720,7 +3729,7 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
     }
 
 	// For compatibility with endpoints which do not support large Setup messages or send incorrect tokens
-	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH235Call", "0"))) {
+	if (Toolkit::Instance()->RemoveAllH235Tokens()) {
 			PTRACE(3, "Removing H.235 tokens");
 			setupBody.m_tokens.SetSize(0);
 			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_tokens);
@@ -4026,7 +4035,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 	}
 
 	// For compatibility with endpoints which do not support large Setup messages or send incorrect tokens
-	if (Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "RemoveH235Call", 0)) {
+	if (Toolkit::Instance()->RemoveH235TokensFrom(peerAddr)) {
 		PTRACE(3, "Removing H.235 tokens");
 		connectBody.m_tokens.SetSize(0);
 		connectBody.RemoveOptionalField(H225_Connect_UUIE::e_tokens);

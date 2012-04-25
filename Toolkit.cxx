@@ -1568,6 +1568,19 @@ PConfig* Toolkit::ReloadConfig()
 
 	// update the gatekeeper name, in case it was set in the SQL config
 	m_GKName = m_Config->GetString("Name", "OpenH323GK");
+
+	PString removeH235Call = m_Config->GetString(RoutedSec, "RemoveH235Call", "0");
+	m_alwaysRemoveH235Tokens = (removeH235Call.AsUnsigned() == 1);
+	m_removeH235TokensfromNetwork.clear();
+	if (removeH235Call.GetLength() >= 7) {
+		PStringArray networks = removeH235Call.Tokenise(",", FALSE);
+		for (PINDEX n=0; n < networks.GetSize(); ++n) {
+			if (networks[n].Find('/') == P_MAX_INDEX)
+				networks[n] += "/32";	// add netmask to pure IPs
+			NetworkAddress net = NetworkAddress(networks[n]);
+			m_removeH235TokensfromNetwork.push_back(net);
+		}
+	}
 #ifdef HAS_H235_MEDIA
 	m_H235HalfCallMediaEnabled = m_Config->GetBoolean(RoutedSec, "EnableH235HalfCallMedia", 0)
 		|| m_Config->GetBoolean(RoutedSec, "RequireH235HalfCallMedia", 0);
@@ -1577,7 +1590,7 @@ PConfig* Toolkit::ReloadConfig()
 #endif
 #ifdef HAS_H46023
 	m_H46023Enabled	= (m_Config->GetBoolean(RoutedSec, "EnableH46023", 0) &&
-						!m_Config->GetString(RoutedSec, "H46023STUN",""));
+						!m_Config->GetString(RoutedSec, "H46023STUN", ""));
 #endif
 
 	// TODO/BUG: always call SetGKHome() on reload, even if we don't have a Home= setting
@@ -2597,6 +2610,17 @@ bool Toolkit::GWRewriteE164(const PString & gw, bool direction, H225_ArrayOf_Ali
 	}
 
 	return changed;
+}
+
+bool Toolkit::RemoveH235TokensFrom(const PIPSocket::Address & addr) const
+{
+	if (m_alwaysRemoveH235Tokens)
+		return true;
+	for (unsigned i=0; i < m_removeH235TokensfromNetwork.size(); ++i) {
+		if (addr << m_removeH235TokensfromNetwork[i])
+			return true;
+	}
+	return false;
 }
 
 bool Toolkit::isBehindNAT(PIPSocket::Address & externalIP) const

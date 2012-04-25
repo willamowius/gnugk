@@ -388,6 +388,8 @@ class Toolkit : public Singleton<Toolkit>
 	void SetGKHome(const PStringArray &);
 	bool IsGKHome(const PIPSocket::Address & addr) const;
 
+	bool RemoveAllH235Tokens() const { return m_alwaysRemoveH235Tokens; }
+	bool RemoveH235TokensFrom(const PIPSocket::Address & addr) const;
 #ifdef HAS_H235_MEDIA
 	bool IsH235HalfCallMediaEnabled() const { return m_H235HalfCallMediaEnabled; }
 #endif
@@ -657,6 +659,8 @@ private:
 	/// global cause code translation
 	std::map<unsigned, unsigned> m_receivedCauseMap;
 	std::map<unsigned, unsigned> m_sentCauseMap;
+	bool m_alwaysRemoveH235Tokens;
+	std::vector<NetworkAddress> m_removeH235TokensfromNetwork;
 #ifdef HAS_H235_MEDIA
 	bool m_H235HalfCallMediaEnabled;
 #endif
