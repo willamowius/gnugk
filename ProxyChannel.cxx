@@ -6977,10 +6977,10 @@ void H46019Channel::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 				fromCaller = (callerSignalIP == packetSource);
 			}
 			WORD wlen = len;
-			unsigned char * ivSeqence = NULL;
+			unsigned char * ivSequence = NULL;
 			bool rtpPadding = false;
 			BYTE payloadType = 0;
-			rtplc->ProcessH235Media((BYTE*)data, wlen, fromCaller, ivSeqence, rtpPadding, payloadType);
+			rtplc->ProcessH235Media((BYTE*)data, wlen, fromCaller, ivSequence, rtpPadding, payloadType);
 			len = wlen;
 		}
 	}
@@ -7439,12 +7439,12 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	bool isRTP = m_isRTPType && (version == 2);
 #endif
 #ifdef HAS_H235_MEDIA
-	unsigned char ivSeqence[6];
+	unsigned char ivSequence[6];
 	bool rtpPadding = false;
 	if (buflen >= 1)
 		rtpPadding = (wbuffer[0] & 0x20);
 	if (buflen >= 8)
-		memcpy(ivSeqence, wbuffer + 2, 6);
+		memcpy(ivSequence, wbuffer + 2, 6);
 #endif
 #if (HAS_H235_MEDIA || RTP_DEBUG)
 	BYTE payloadType = UNDEFINED_PAYLOAD_TYPE;
@@ -7651,9 +7651,9 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		bool succesful = false;
 		// TODO: simplify Process() ? decision already made here
 		if (m_encryptingLC && ((fromCaller && simulateCaller) || (!fromCaller && !simulateCaller))) {
-			succesful = m_encryptingLC->ProcessH235Media(wbuffer, buflen, fromCaller, ivSeqence, rtpPadding, payloadType);
+			succesful = m_encryptingLC->ProcessH235Media(wbuffer, buflen, fromCaller, ivSequence, rtpPadding, payloadType);
 		} else if (m_decryptingLC) {
-			succesful =  m_decryptingLC->ProcessH235Media(wbuffer, buflen, fromCaller, ivSeqence, rtpPadding, payloadType);
+			succesful =  m_decryptingLC->ProcessH235Media(wbuffer, buflen, fromCaller, ivSequence, rtpPadding, payloadType);
 		}
 		if (!succesful)
 			return NoData;
