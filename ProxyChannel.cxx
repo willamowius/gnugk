@@ -4057,7 +4057,9 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 	}
 
 	// For compatibility with endpoints which do not support large Setup messages or send incorrect tokens
-	if (Toolkit::Instance()->RemoveH235TokensFrom(peerAddr)) {
+	PIPSocket::Address msgSource;
+	msg->GetPeerAddr(msgSource);
+	if (Toolkit::Instance()->RemoveH235TokensFrom(msgSource)) {
 		PTRACE(3, "Removing H.235 tokens");
 		connectBody.m_tokens.SetSize(0);
 		connectBody.RemoveOptionalField(H225_Connect_UUIE::e_tokens);
