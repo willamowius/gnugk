@@ -1940,10 +1940,24 @@ bool SupportsH235Media(const H225_ArrayOf_ClearToken & clearTokens)
 	for(PINDEX i=0; i < clearTokens.GetSize(); ++i) {
 		if (clearTokens[i].m_tokenOID == "0.0.8.235.0.3.24")
 			h235v3compatible = true;
-		if (clearTokens[i].m_tokenOID == "0.0.8.235.0.3.43")	// TODO: automatically fetch list of supported keys from authenticator
+		if (clearTokens[i].m_tokenOID == "0.0.8.235.0.3.43")
 			supportedDHkey = true;
 	}
 	return (h235v3compatible && supportedDHkey);
+}
+
+unsigned AlgorithmKeySize(const PString & oid)
+{
+	if (oid == OID_AES128) {
+		return 128 / 8;
+	} else if (oid == OID_AES192) {
+		return 192 / 8;
+#ifdef H323_H235_AES256
+	} else if (oid == OID_AES256) {
+		return 256 / 8;
+#endif
+	}
+	return 0;
 }
 
 bool RemoveH235Capability(unsigned _entryNo,
@@ -3301,7 +3315,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
 #else			// Create all authenticators for both media encryption and caller authentication
 			auth.CreateAuthenticators(H235Authenticator::MediaEncryption);  
-			auth.CreateAuthenticators(H235Authenticator::EPAuthentication);   // TODO Need Caller Authenticators in H323plus to work - SH
+			auth.CreateAuthenticators(H235Authenticator::EPAuthentication);
 #endif
 			// make sure authenticator gets received tokens, ignore the result
 			H235Authenticator::ValidationResult result = auth.ValidateSignalPDU( 
@@ -3336,7 +3350,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
 #else			// Create all authenticators for both media encryption and caller authentication
 			auth.CreateAuthenticators(H235Authenticator::MediaEncryption);  
-			auth.CreateAuthenticators(H235Authenticator::EPAuthentication);   // TODO Need Caller Authenticators in H323plus to work - SH
+			auth.CreateAuthenticators(H235Authenticator::EPAuthentication);
 #endif
 			auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_setup, 
 									setupBody.m_tokens, setupBody.m_cryptoTokens);
@@ -6972,7 +6986,7 @@ void H46019Channel::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 
 #ifdef HAS_H235_MEDIA
 	if (!isRTCP) {
-		RTPLogicalChannel * rtplc = NULL;	// TODO235: will be in member variabl H46019Channel, decide en/decrypt
+		RTPLogicalChannel * rtplc = NULL;	// TODO235: will be in member variable of H46019Channel, decide en/decrypt
 		if (rtplc) {
 			bool fromCaller = true;
 			if (call) {
@@ -7657,7 +7671,6 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		fromCaller = (callerSignalIP == fromIP);
 		bool simulateCaller = ((*m_call)->GetEncryptDirection() == CallRec::callingParty);
 		bool succesful = false;
-		// TODO: simplify Process() ? decision already made here
 		if (m_encryptingLC && ((fromCaller && simulateCaller) || (!fromCaller && !simulateCaller))) {
 			succesful = m_encryptingLC->ProcessH235Media(wbuffer, buflen, fromCaller, ivSequence, rtpPadding, payloadType);
 		} else if (m_decryptingLC) {
@@ -8157,7 +8170,7 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 	// using the 128 least significant bits of the shared secret to encode the media keys
 	// H.235.6 clause 7.6.1
 	PBYTEArray shortSessionKey;
-	shortSessionKey.SetSize(16);	// TODO: assume AES 128 for now
+	shortSessionKey.SetSize(AlgorithmKeySize(algorithmOID));
 	memcpy(shortSessionKey.GetPointer(), sessionKey.GetPointer() + sessionKey.GetSize() - shortSessionKey.GetSize(), shortSessionKey.GetSize());
 
 	// use session key to decrypt the media key
@@ -8235,7 +8248,7 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	// using the 128 least significant bits of the shared secret to encode the media keys
 	// H.235.6 clause 7.6.1
 	PBYTEArray shortSessionKey;
-	shortSessionKey.SetSize(16);	// TODO: assume AES 128 for now
+	shortSessionKey.SetSize(AlgorithmKeySize(algorithmOID));
 	memcpy(shortSessionKey.GetPointer(), sessionKey.GetPointer() + sessionKey.GetSize() - shortSessionKey.GetSize(), shortSessionKey.GetSize());
 
 	// use session key to decrypt the media key
@@ -9341,7 +9354,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 bool H245ProxyHandler::HandleEncryptionUpdateRequest(H245_MiscellaneousCommand & cmd, bool & suppress, callptr & call, H245Socket * h245sock)
 {
 	if (call->IsMediaEncryption() && m_isH245Master) {
-		// TODO: send new media key
+		// send new media key
 		H245_EncryptionUpdateRequest & request = cmd.m_type;
 		WORD flcn = (WORD)cmd.m_logicalChannelNumber;
 		BYTE newPayloadType = request.m_synchFlag;
@@ -9376,7 +9389,7 @@ bool H245ProxyHandler::HandleEncryptionUpdateRequest(H245_MiscellaneousCommand &
 bool H245ProxyHandler::HandleEncryptionUpdateCommand(H245_MiscellaneousCommand & cmd, bool & suppress, callptr & call, H245Socket * h245sock)
 {
 	if (call->IsMediaEncryption() && !m_isH245Master) {
-		// TODO: use this media key
+		// use this media key
 		H245_MiscellaneousCommand_type_encryptionUpdateCommand & update = cmd.m_type;
 		WORD flcn = (WORD)cmd.m_logicalChannelNumber;
 		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(FindLogicalChannel(flcn));
@@ -9408,7 +9421,7 @@ bool H245ProxyHandler::HandleEncryptionUpdateCommand(H245_MiscellaneousCommand &
 bool H245ProxyHandler::HandleEncryptionUpdateAck(H245_MiscellaneousCommand & cmd, bool & suppress, callptr & call, H245Socket * h245sock)
 {
 	if (call->IsMediaEncryption() && m_isH245Master) {
-		// TODO: now we can use the key we sent to the slave
+		// TODO: now we can oficially use the key we sent to the slave (curently we use it right away and discard all media with old PT)
 		suppress = true;
 	}
 	return false;
