@@ -2025,30 +2025,33 @@ bool CallSignalSocket::HandleH235TCS(H245_TerminalCapabilitySet & tcs)
     bool toRemove = ((!m_callerSocket && (m_call->GetEncryptDirection() == CallRec::callingParty))
                  || (m_callerSocket && (m_call->GetEncryptDirection() == CallRec::calledParty)));
 
-    PStringList m_capList;
-    if (!m_call->GetAuthenticators().GetAlgorithms(m_capList)) {
+    PStringList capList;
+    if (!m_call->GetAuthenticators().GetAlgorithms(capList)) {
         PTRACE(4,"H235 Encryption support but no common algorithm! DISABLING!!");
         m_call->SetMediaEncryption(CallRec::none);
         m_call->GetAuthenticators().SetSize(0);
         return false;
     }
 
-    H245_ArrayOf_CapabilityDescriptor & m_capDesc = tcs.m_capabilityDescriptors; 
-    H245_ArrayOf_CapabilityTableEntry & m_capTable = tcs.m_capabilityTable;
+    H245_ArrayOf_CapabilityDescriptor & capDesc = tcs.m_capabilityDescriptors; 
+    H245_ArrayOf_CapabilityTableEntry & capTable = tcs.m_capabilityTable;
 
-    H245_ArrayOf_CapabilityTableEntry m_capStat = *(H245_ArrayOf_CapabilityTableEntry *)m_capTable.Clone();
-    for (PINDEX i = 0; i < m_capStat.GetSize(); ++i) {
-        if (m_capStat[i].HasOptionalField(H245_CapabilityTableEntry::e_capability)) {
-            H245_CapabilityTableEntryNumber & entryNumber = m_capStat[i].m_capabilityTableEntryNumber;
-            H245_Capability & cap =  m_capStat[i].m_capability;
+    H245_ArrayOf_CapabilityTableEntry * tmpCapStatPtr = (H245_ArrayOf_CapabilityTableEntry *)capTable.Clone();
+    H245_ArrayOf_CapabilityTableEntry capStat = *tmpCapStatPtr;
+    delete tmpCapStatPtr;
+    tmpCapStatPtr = NULL;
+    for (PINDEX i = 0; i < capStat.GetSize(); ++i) {
+        if (capStat[i].HasOptionalField(H245_CapabilityTableEntry::e_capability)) {
+            H245_CapabilityTableEntryNumber & entryNumber = capStat[i].m_capabilityTableEntryNumber;
+            H245_Capability & cap =  capStat[i].m_capability;
             if (toRemove) {
               if (cap.GetTag() == H245_Capability::e_h235SecurityCapability)
-                  RemoveH235Capability(entryNumber.GetValue(), m_capTable, m_capDesc);
+                  RemoveH235Capability(entryNumber.GetValue(), capTable, capDesc);
             } else {
                 // We only support Audio and Video currently - TODO support data. - SH
                 if ((cap.GetTag() >= H245_Capability::e_receiveVideoCapability)
                     && (cap.GetTag() <= H245_Capability::e_receiveAndTransmitAudioCapability)) {
-                        AddH235Capability(entryNumber.GetValue(),m_capList, m_capTable, m_capDesc);
+                        AddH235Capability(entryNumber.GetValue(), capList, capTable, capDesc);
                 }
             }
         }
@@ -2066,13 +2069,17 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
                  || (m_callerSocket && (m_call->GetEncryptDirection() == CallRec::calledParty)));
 
     bool isReverse = false;
-    H245_DataType newCap;
+    H245_DataType * tmpCapPtr = NULL;
     H245_DataType rawCap;
     if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)) {
-		rawCap = *(H245_DataType*)olc.m_reverseLogicalChannelParameters.m_dataType.Clone();
+		tmpCapPtr = (H245_DataType*)olc.m_reverseLogicalChannelParameters.m_dataType.Clone();
         isReverse = true;
-    } else
-		rawCap = *(H245_DataType*)olc.m_forwardLogicalChannelParameters.m_dataType.Clone();
+    } else {
+		tmpCapPtr = (H245_DataType*)olc.m_forwardLogicalChannelParameters.m_dataType.Clone();
+	}
+	rawCap = *tmpCapPtr;
+	delete tmpCapPtr;
+	tmpCapPtr = NULL;
 
 	// we don't handle data, yet, pass unchanged
 	if (rawCap.GetTag() == H245_DataType::e_data) {
@@ -2086,6 +2093,7 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 			return false;
     }
 
+    H245_DataType newCap;
     if (toRemove) {
         H245_H235Media_mediaType & cType = ((H245_H235Media &)rawCap).m_mediaType;
 		if (cType.GetTag() == H245_H235Media_mediaType::e_audioData) {
