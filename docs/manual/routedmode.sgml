@@ -554,7 +554,8 @@ feature will also force call signaling for all calls to routed-mode.
 <item><tt/RequireH235HalfCallMedia=1/<newline>
 Default: <tt/0/<newline>
 <p>
-EXPERIMENTAL: Terminate the call if not at least one leg can be encrypted.
+EXPERIMENTAL: Require at least one leg of the call to be encrypted.
+(Terminate the call if both legs are unencrypted.)
 
 </itemize>
 
@@ -645,7 +646,7 @@ this feature with caution.
 Default: <tt/0/<newline>
 <p>
 This setting removes the cryptoTokens and clearTokens from the Setup message.
-Use this when working with IP phones that do not support large Setup messages
+Use this when working with IP phones that do not support large Setup messages.
 
 <item><tt/RemoveH460Call=1/<newline>
 Default: <tt/0/<newline>
@@ -657,7 +658,7 @@ pre-H.323v4 endpoints and gateways which cannot decode these messages.
 Default: <tt/1/<newline>
 <p>
 Sometimes GnuGk will receive RTP data before it knows where to forward it to.
-GnuGk can queue this data up to a certain amount and send it once
+GnuGk can buffer this data up to a certain amount and send it once
 the destination becomes available. In some cases this can cause a short loopback
 of RTP data.
 

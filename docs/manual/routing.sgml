@@ -144,11 +144,11 @@ When a message is received which requires a routing
 decision, all calls to an alias of the h323_ID type will be
 resolved using DNS. If DNS fails to resolve the alias, it is
 matched against the internal registration table. If a call is
-requested to an alias starting with 002, first the neighbors
-are checked and then the internal registration table. If the
+requested to an alias starting with 002, the neighbors will be checked first,
+then the internal registration table. If the
 requested alias is not an h323_ID or an alias starting with
 002, the default policy is used by querying the internal
-registration table, then the neighbors, and if that fails the
+registration table, then the neighbors, and if those fail, the
 parent.
 
 Routing policies are applied to the first message of a call:
@@ -156,7 +156,7 @@ The ARQ for calls from registered endpoints,
 the Setup for calls from unregistered endpoints,
 the LRQ for calls from neighbors and certain Facility messages
 for calls that are forwarded by GnuGk using the ForwardOnFacility feature.
-You can specifydifferent routing policies for each type of call by using the
+You can specify different routing policies for each type of call by using the
 [RoutingPolicy::OnARQ], [RoutingPolicy::OnLRQ],
 [RoutingPolicy::OnSetup] and [RoutingPolicy::OnFacility] sections
 using the same syntax explained above.
