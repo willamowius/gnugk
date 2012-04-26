@@ -122,13 +122,19 @@
 			// IPv6 support before 2.10.0 is too buggy
 			#define hasIPV6     1
 		#endif
+		#if PTLIB_BUILD >= 6
+			#define hasLDAPStartTLS 1
+			#ifdef P_LUA
+				#define hasLUA      1
+			#endif
+		#endif
 	#endif
 	#if PTLIB_MINOR >= 11
 		#define hasLDAPStartTLS 1
         #define hasNewSTUN      1
         #define hasPTRACE2      1
         #ifdef P_LUA
-			#define hasLUA          1
+			#define hasLUA      1
 		#endif
 	#endif
 	// bug with no trailing NULL bytes in BMP strings, fixed in PTLib 2.7.1
