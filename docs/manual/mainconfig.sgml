@@ -203,13 +203,17 @@ To disable this feature, set it to <tt/-1/.
 <item><label id="ttl"><tt/EnableTTLRestrictions=0/<newline>
 Default: <tt/1/<newline>
 <p>
-By default the TimeToLive (TTL) set by the above switch does not apply
-to endpoints using a firewall traversal protocol, like H.460.17 and H.460.18.
-Since they usually have to keep a firewall pinhole open their TimeToLive
-defaults to 19 seconds and is forced to 5 to 30 seconds if they are configured
-otherwise to provide a keep-alive (in accordance with their respective standards).
+The default TimeToLive (TTL) configured via the "TimeToLive" parameter does
+not apply to endpoints which use the H.460.17 and H.460.18 protocols to
+traverse a firewall.  In order to keep the firewall pinhole open the
+TimeToLive for those endpoints defaults to 19 seconds. The
+"TimeToLive" parameter would allow you to change this to as low as 5 seconds,
+and as high as 30 seconds.
+
 If you know for sure that there is no need for a keep-alive, you can disable
-these restrictions by setting this switch to 0.
+these restrictions by setting this switch to 0. If TTL restrictions
+are disabled, the TimeToLive becomes a global setting for all
+endpoints, including H.460.17 and H.460.18.
 
 <item><tt/CompareAliasType=0/<newline>
 Default: <tt/1/<newline>
