@@ -6927,8 +6927,8 @@ void H46019Channel::Dump() const
 	PTRACE(1, "JW H46019Channel: session=" << m_session << " openedBy=" << m_openedBy
 			<< " IDfromA=" << m_multiplexID_fromA << " IDtoA=" << m_multiplexID_toA
 			<< " IDfromB=" << m_multiplexID_fromB << " IDtoB=" << m_multiplexID_toB
-			<< " addrA=" << m_addrA << " addrA_RTCP=" << m_addrA_RTCP
-			<< " addrB=" << m_addrB << " addrB_RTCP=" << m_addrB_RTCP);
+			<< " addrA=" << AsString(m_addrA) << " addrA_RTCP=" << AsString(m_addrA_RTCP)
+			<< " addrB=" << AsString(m_addrB) << " addrB_RTCP=" << AsString(m_addrB_RTCP));
 }
 
 void H46019Channel::HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP)
