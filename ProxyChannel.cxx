@@ -8908,7 +8908,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 #ifdef HAS_H46018
 		WORD sessionID = (WORD)h225Params->m_sessionID;
 		H46019Channel h46019chan(0, 0, NULL);
-		if (m_requestRTPMultiplexing) {
+		if (m_requestRTPMultiplexing || peer->m_requestRTPMultiplexing) {
 			h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(call->GetCallIdentifier(), sessionID, this);
 			if (h46019chan.m_session == INVALID_RTP_SESSION) {
 				h46019chan = H46019Channel(call->GetCallIdentifier(), sessionID, this); // no existing found, create a new one
@@ -9067,7 +9067,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 			olc.m_genericInformation[0].m_messageContent[0] = genericParameter;
 			changed = true;
 		}
-		if (m_requestRTPMultiplexing) {
+		if (m_requestRTPMultiplexing || peer->m_requestRTPMultiplexing) {
 			// set sockets, depending if we will received as multiplexed or not
 			LogicalChannel * lc = FindLogicalChannel(flcn);
 #ifdef HAS_H235_MEDIA
@@ -9206,7 +9206,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		&& olca.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters)
 		sessionID = ((H245_H2250LogicalChannelAckParameters&)olca.m_forwardMultiplexAckParameters).m_sessionID;
 	H46019Channel h46019chan(0, 0, NULL);
-	if (m_requestRTPMultiplexing) {
+	if (m_requestRTPMultiplexing || peer->m_requestRTPMultiplexing) {
 		h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(call->GetCallIdentifier(), sessionID, peer);
 #ifdef RTP_DEBUG
 		if (h46019chan.m_session == INVALID_RTP_SESSION) {
@@ -9319,7 +9319,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		PTRACE(5, "Adding TraversalParams to OLCA=" << params);
 		changed = true;
 	}
-	if (m_requestRTPMultiplexing) {
+	if (m_requestRTPMultiplexing || peer->m_requestRTPMultiplexing) {
 		// save parameters for mixed multiplex/non-multiplexed call
 		if (  ((h46019chan.m_multiplexID_toB == INVALID_MULTIPLEX_ID)
 			|| (h46019chan.m_multiplexID_fromB == INVALID_MULTIPLEX_ID)) && lc) {
