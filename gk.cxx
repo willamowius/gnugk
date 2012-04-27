@@ -2,7 +2,7 @@
 //
 // gk.cxx for GNU Gatekeeper
 //
-// Copyright (c) 2000-2011, Jan Willamowius
+// Copyright (c) 2000-2012, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -196,7 +196,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "GkH350::Settings", "ServerName" },
 	{ "GkH350::Settings", "ServerPort" },
 	{ "GkH350::Settings", "ServiceControl" },
+#ifdef hasLDAPStartTLS
 	{ "GkH350::Settings", "StartTLS" },
+#endif
 	{ "GkPresence::SQL", "CacheTimeout" },
 	{ "GkPresence::SQL", "Database" },
 	{ "GkPresence::SQL", "Driver" },
@@ -338,12 +340,22 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "DisableRetryChecks" },
 	{ "RoutedMode", "DropCallsByReleaseComplete" },
 	{ "RoutedMode", "ENUMservers" },
+#ifdef HAS_H235_MEDIA
 	{ "RoutedMode", "EnableH235HalfCallMedia" },
+#endif
 	{ "RoutedMode", "EnableH450.2" },
+#ifdef HAS_H46017
 	{ "RoutedMode", "EnableH46017" },
+#endif
+#ifdef HAS_H46018
 	{ "RoutedMode", "EnableH46018" },
+#endif
+#ifdef HAS_H46023
 	{ "RoutedMode", "EnableH46023" },
+#endif
+#ifdef HAS_H460P
 	{ "RoutedMode", "EnableH460P" },
+#endif
 	{ "RoutedMode", "FailoverCauses" },
 	{ "RoutedMode", "ForceNATKeepAlive" },
 	{ "RoutedMode", "ForwardOnFacility" },
@@ -353,10 +365,14 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "H245PortRange" },
 	{ "RoutedMode", "H245Routed" },
 	{ "RoutedMode", "H4502EmulatorTransferMethod" },
+#ifdef HAS_H46018
 	{ "RoutedMode", "H46018NoNat" },
+#endif
+#ifdef HAS_H46023
 	{ "RoutedMode", "H46023PublicIP" },
 	{ "RoutedMode", "H46023SignalGKRouted" },
 	{ "RoutedMode", "H46023STUN" },
+#endif
 	{ "RoutedMode", "NATStdMin" },
 	{ "RoutedMode", "Q931PortRange" },
 	{ "RoutedMode", "RDSservers" },
@@ -366,7 +382,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "RemoveH245AddressOnTunneling" },
 	{ "RoutedMode", "RemoveH460Call" },
 	{ "RoutedMode", "RemoveSorensonSourceInfo" },
+#ifdef HAS_H235_MEDIA
 	{ "RoutedMode", "RequireH235HalfCallMedia" },
+#endif
 	{ "RoutedMode", "RtpHandlerNumber" },
 	{ "RoutedMode", "ScreenCallingPartyNumberIE" },
 	{ "RoutedMode", "ScreenDisplayIE" },
@@ -487,8 +505,12 @@ const char * KnownConfigEntries[][2] = {
 	{ "EP::", "CalledTypeOfNumber" },
 	{ "EP::", "CallingTypeOfNumber" },
 	{ "EP::", "Capacity" },
+#ifdef HAS_H46017
 	{ "EP::", "DisableH46017" },
+#endif
+#ifdef HAS_H46018
 	{ "EP::", "DisableH46018" },
+#endif
 	{ "EP::", "GatewayPrefixes" },
 	{ "EP::", "GatewayPriority" },
 	{ "EP::", "MaxBandwidth" },
@@ -504,7 +526,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "Neighbor::", "ForwardLRQ" },
 	{ "Neighbor::", "ForwardResponse" },
 	{ "Neighbor::", "GatekeeperIdentifier" },
+#ifdef HAS_H46018
 	{ "Neighbor::", "H46018Client" },
+#endif
 	{ "Neighbor::", "Host" },
 	{ "Neighbor::", "Password" },
 	{ "Neighbor::", "SendAuthUser" },
