@@ -653,6 +653,7 @@ public:
 
 private:
 	void SetNAT(bool);
+	static WORD GetPortNumber();	// get a new port number to use
 
 	bool reversed;
 	RTPLogicalChannel *peer;
@@ -669,9 +670,8 @@ private:
 	BYTE m_plainPayloadType;			// remember in OLC to use in OLCA
 	BYTE m_cipherPayloadType;			// remember in OLC to use in OLCA
 	bool m_isDataChannel;
+	H225_CallIdentifier m_callID;
 #endif
-
-	static WORD GetPortNumber();	// get a new port number to use
 };
 
 class T120LogicalChannel : public LogicalChannel {
@@ -1199,10 +1199,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 			proxyhandler->SetTraversalRole(TraversalClient);
 		}
 		proxyhandler->SetH46019Direction(m_call->GetH46019Direction());
-		if ((m_call->GetCallingParty() && (m_call->GetCallingParty()->GetTraversalRole() == TraversalClient))
-			|| m_senderSupportsH46019Multiplexing) {
-			proxyhandler->SetRequestRTPMultiplexing(true);
-		}
+		proxyhandler->SetRequestRTPMultiplexing(m_senderSupportsH46019Multiplexing);
 #endif
 		socket->m_h245handler = proxyhandler;
 		m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(),localAddr, called, masqAddr, proxyhandler);
@@ -3944,7 +3941,7 @@ void CallSignalSocket::OnCallProceeding(
 			bool isH46019Client = false;
 			bool senderSupportsH46019Multiplexing = false;
 			RemoveH46019Descriptor(cpBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing, isH46019Client);
-			if ((isH46019Client || senderSupportsH46019Multiplexing)
+			if (senderSupportsH46019Multiplexing
 				&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
 				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(true);
 			if (cpBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
@@ -4154,7 +4151,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			bool isH46019Client = false;
 			bool senderSupportsH46019Multiplexing = false;
 			RemoveH46019Descriptor(connectBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing, isH46019Client);
-			if ((isH46019Client || senderSupportsH46019Multiplexing)
+			if (senderSupportsH46019Multiplexing
 				&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
 				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(true);
 			if (connectBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
@@ -4239,7 +4236,7 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 			bool isH46019Client = false;
 			bool senderSupportsH46019Multiplexing = false;
 			RemoveH46019Descriptor(alertingBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing, isH46019Client);
-			if ((isH46019Client || senderSupportsH46019Multiplexing)
+			if (senderSupportsH46019Multiplexing
 				&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
 				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(true);
 			if (alertingBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
@@ -5105,9 +5102,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 							proxyhandler->SetTraversalRole(m_call->GetCallingParty()->GetTraversalRole());
 						}
 					}
-					if ((m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalClient())
-						|| callingSocket->m_senderSupportsH46019Multiplexing)
-						proxyhandler->SetRequestRTPMultiplexing(true);
+					proxyhandler->SetRequestRTPMultiplexing(callingSocket->m_senderSupportsH46019Multiplexing);
 					m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(), localAddr, called, masqAddr, proxyhandler);
 					proxyhandler->SetHandler(GetHandler());
 					((H245ProxyHandler*)m_h245handler)->SetTraversalRole(TraversalClient);
@@ -5188,7 +5183,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 				bool isH46019Client = false;
 				bool senderSupportsH46019Multiplexing = false;
 				RemoveH46019Descriptor(facilityBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing, isH46019Client);
-				if ((isH46019Client || senderSupportsH46019Multiplexing)
+				if (senderSupportsH46019Multiplexing
 					&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
 					dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(true);
 				if (facilityBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
@@ -6908,6 +6903,9 @@ H46019Channel::H46019Channel(const H225_CallIdentifier & callid, WORD session, v
 	m_osSocketToB = INVALID_OSSOCKET;
 	m_osSocketToB_RTCP = INVALID_OSSOCKET;
 	m_EnableRTCPStats = Toolkit::AsBool(GkConfig()->GetString(ProxySection, "EnableRTCPStats", "0"));
+#ifdef HAS_H235_MEDIA
+	m_rtplc = NULL;
+#endif
 }
 
 // return a copy with side A and B swapped
@@ -6988,8 +6986,7 @@ void H46019Channel::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 
 #ifdef HAS_H235_MEDIA
 	if (!isRTCP) {
-		RTPLogicalChannel * rtplc = NULL;	// TODO235: will be in member variable of H46019Channel, decide en/decrypt
-		if (rtplc) {
+		if (m_rtplc) {
 			bool fromCaller = true;
 			if (call) {
 				// HACK: this only works if caller and called are on different IPs and send media from the same IP as call signaling
@@ -7001,10 +6998,27 @@ void H46019Channel::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 				fromCaller = (callerSignalIP == packetSource);
 			}
 			WORD wlen = len;
-			unsigned char * ivSequence = NULL;
+			unsigned char ivSequence[6];
+			BYTE payloadType = UNDEFINED_PAYLOAD_TYPE;
 			bool rtpPadding = false;
-			BYTE payloadType = 0;
-			rtplc->ProcessH235Media((BYTE*)data, wlen, fromCaller, ivSequence, rtpPadding, payloadType);
+			if (len >= 1)
+				rtpPadding = (((BYTE*)data)[0] & 0x20);
+			if (len >= 2)
+				payloadType = ((BYTE*)data)[1] & 0x7f;
+			if (len >= 8)
+				memcpy(ivSequence, (BYTE*)data + 2, 6);
+
+			if (!m_rtplc->ProcessH235Media((BYTE*)data, wlen, fromCaller, ivSequence, rtpPadding, payloadType))
+				return;
+
+			// update RTP padding bit
+			if (rtpPadding)
+				((BYTE*)data)[0] |= 0x20;
+			else
+				((BYTE*)data)[0] &= 0xdf;
+			// update payload type, preserve marker bit
+			((BYTE*)data)[1] = (((BYTE*)data)[1] & 0x80) | (payloadType & 0x7f);
+
 			len = wlen;
 		}
 	}
@@ -7208,6 +7222,20 @@ void MultiplexedRTPHandler::RemoveChannels(const H225_CallIdentifier & callid)
 		}
 	}
 }
+
+#ifdef HAS_H235_MEDIA
+void MultiplexedRTPHandler::RemoveChannel(const H225_CallIdentifier & callid, RTPLogicalChannel * rtplc)
+{
+	WriteLock lock(listLock);
+	for (list<H46019Channel>::iterator iter = m_h46019channels.begin();
+			iter != m_h46019channels.end() ; /* nothing */ ) {
+		if ((iter->m_callid == callid) && (iter->m_rtplc == rtplc)) {
+			m_h46019channels.erase(iter++);
+			return;
+		}
+	}
+}
+#endif
 
 void MultiplexedRTPHandler::DumpChannels(const PString & msg) const
 {
@@ -7666,7 +7694,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	if (m_call && (*m_call) && (*m_call)->IsMediaEncryption() && isRTP) {
 		bool fromCaller = true;
 		// HACK: this only works if caller and called are on different IPs and send media from the same IP as call signaling
-		// TODO: detect RTP direction for all cases
+		// TODO235: detect RTP direction for all cases
 		PIPSocket::Address callerSignalIP;
 		WORD notused;
 		(*m_call)->GetSrcSignalAddr(callerSignalIP, notused);
@@ -7979,6 +8007,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 	rtp = NULL;
 	rtcp = NULL;
 #ifdef HAS_H235_MEDIA
+	m_callID = id;
 	m_H235CryptoEngine = NULL;
 	m_auth = NULL;
 	m_simulateCallerSide = false;
@@ -8046,6 +8075,7 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nat
 	m_plainPayloadType = UNDEFINED_PAYLOAD_TYPE;
 	m_cipherPayloadType = UNDEFINED_PAYLOAD_TYPE;
 	m_isDataChannel = flc->m_isDataChannel;
+	m_callID = flc->m_callID;
 #endif
 	port = flc->port;
 	used = flc->used;
@@ -8062,6 +8092,9 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nat
 RTPLogicalChannel::~RTPLogicalChannel()
 {
 #ifdef HAS_H235_MEDIA
+#ifdef HAS_H46018
+	MultiplexedRTPHandler::Instance()->RemoveChannel(m_callID, this);
+#endif
 	m_cryptoEngineMutex.Wait();
 	if (m_H235CryptoEngine) {
 		if (rtp) {
@@ -9035,7 +9068,10 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 		if (m_useRTPMultiplexing) {
 			// set sockets, depending if we will received as multiplexed or not
 			LogicalChannel * lc = FindLogicalChannel(flcn);
-			// TODO235: save lc in H46019 Channel for encryption
+#ifdef HAS_H235_MEDIA
+			// save lc in H46019 Channel for encryption
+			h46019chan.m_rtplc = dynamic_cast<RTPLogicalChannel*>(lc);
+#endif
 			// side A
 			if (m_requestRTPMultiplexing) {
 				h46019chan.m_osSocketToA = MultiplexedRTPHandler::Instance()->GetRTPOSSocket();

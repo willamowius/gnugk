@@ -406,6 +406,8 @@ protected:
 	WORD wbufsize;
 };
 
+class RTPLogicalChannel;
+
 class H46019Channel
 {
 public:
@@ -440,7 +442,9 @@ public:
 	int m_osSocketToB;
 	int m_osSocketToB_RTCP;
 	bool m_EnableRTCPStats;
-	// TODO235: add pointers to encrypt and decrypting rtpLCs, set in HandleOLC, howto NULL ?
+#ifdef HAS_H235_MEDIA
+	RTPLogicalChannel * m_rtplc;
+#endif
 };
 
 class MultiplexedRTPReader : public SocketsReader {
@@ -471,6 +475,9 @@ public:
 	virtual void UpdateChannel(const H46019Channel & cha);
 	virtual H46019Channel GetChannel(const H225_CallIdentifier & callid, WORD session, void * openedBy) const;
 	virtual void RemoveChannels(const H225_CallIdentifier & callid);
+#ifdef HAS_H235_MEDIA
+	virtual void RemoveChannel(const H225_CallIdentifier & callid, RTPLogicalChannel * rtplc);
+#endif
 	virtual void DumpChannels(const PString & msg = "") const;
 
 	virtual void HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP);
