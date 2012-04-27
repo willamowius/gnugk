@@ -2,7 +2,7 @@
 //
 // config.h configuration header
 //
-// Copyright (c) 2008-2011, Jan Willamowius
+// Copyright (c) 2008-2012, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -31,7 +31,7 @@
 // bound to a specific interface. For those we have to start
 // a listener just for those broadcasts.
 // On Windows NT we get all messages on the RAS socket, even
-// if it's bound to a specific interface and thus don't have
+// if it's bound to a specific interface and thus we don't have
 // to start a listener for broadcast.
 #define NEED_BROADCASTLISTENER 1
 #else
