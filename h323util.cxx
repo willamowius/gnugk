@@ -142,12 +142,15 @@ PString AsDotString(const H225_TransportAddress & addr, bool showPort)
 
 PString AsString(const H323TransportAddress & ta)
 {
+	if (!IsSet(ta))
+		return "";
+
 	PIPSocket::Address ip;
 	WORD port = 0;
 	if (ta.GetIpAndPort(ip, port))
 		return AsString(ip, port);
 	else
-		return "0.0.0.0:0";
+		return "";
 }
 
 PString AsString(const H225_EndpointType & terminalType)
