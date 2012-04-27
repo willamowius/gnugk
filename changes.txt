@@ -1,5 +1,6 @@
 Changes from 3.0 to 3.1
 =======================
+- the DisabledCodecs setting doesn't have to have a trailing semikolon anymore
 - only enable RTP multiplexing if both parties explicitely signal their support for it
 - extend RemoveH235Call=1 to also remove clear and crypto tokens from
   Connect or to set a list of network to remove the tokens from

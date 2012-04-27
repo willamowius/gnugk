@@ -2319,6 +2319,8 @@ CallRec::CallRec(
 	m_failoverActive = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ActivateFailover", "0"));
 	m_singleFailoverCDR = ctable->SingleFailoverCDR();
 	m_disabledcodecs = GkConfig()->GetString(CallTableSection, "DisabledCodecs", "");
+	if (!m_disabledcodecs.IsEmpty() && m_disabledcodecs.Right(1) != ";")
+		m_disabledcodecs += ";";
 
 	m_irrFrequency = GkConfig()->GetInteger(CallTableSection, "IRRFrequency", 120);
 	m_irrCheck = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "IRRCheck", "0"));
@@ -2376,7 +2378,9 @@ CallRec::CallRec(
 	m_durationLimit = ctable->GetDefaultDurationLimit();
 	m_failoverActive = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ActivateFailover", "0"));
 	m_singleFailoverCDR = ctable->SingleFailoverCDR();
-	m_disabledcodecs = GkConfig()->GetString(CallTableSection, "DisabledCodecs", "");
+	m_disabledcodecs = GkConfig()->GetString(CallTableSection, "DisabledCodecs", "") + ";";
+	if (!m_disabledcodecs.IsEmpty() && m_disabledcodecs.Right(1) != ";")
+		m_disabledcodecs += ";";
 
 	m_irrFrequency = GkConfig()->GetInteger(CallTableSection, "IRRFrequency", 120);
 	m_irrCheck = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "IRRCheck", "0"));
