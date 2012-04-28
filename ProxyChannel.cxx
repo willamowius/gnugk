@@ -1862,7 +1862,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 			if (H245Capability.GetTag() == H245_Capability::e_receiveAudioCapability) {
 				H245_AudioCapability & H245AudioCapability = H245Capability;
 				if (m_call->GetDisabledCodecs().Find(H245AudioCapability.GetTagName() + ";", 0) != P_MAX_INDEX) {
-					PTRACE(4, "Delete audio capability " << H245AudioCapability.GetTagName());
+					PTRACE(4, "H245\tDelete audio capability " << H245AudioCapability.GetTagName());
 					changed = true;
 					CapabilityTables.RemoveAt(i);
 					i--;
@@ -1872,7 +1872,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 						for (PINDEX j = 0; j < AlternativeCapabilitySet.GetSize(); j++) {
 							for (PINDEX m = 0; m < AlternativeCapabilitySet[j].GetSize(); m++) {
 								if (cten == AlternativeCapabilitySet[j][m].GetValue()) {
-									PTRACE(4, "Capability Descriptors Number");
+									PTRACE(4, "H245\tCapability Descriptors Number");
 									AlternativeCapabilitySet[j].RemoveAt(m);
 								}
 							}
@@ -1891,7 +1891,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 			if (H245Capability.GetTag() == H245_Capability::e_receiveVideoCapability) {
 				H245_VideoCapability & H245VideoCapability = H245Capability;
 				if (m_call->GetDisabledCodecs().Find(H245VideoCapability.GetTagName() + ";", 0) != P_MAX_INDEX) {
-					PTRACE(4, "Delete video capability " << H245VideoCapability.GetTagName());
+					PTRACE(4, "H245\tDelete video capability " << H245VideoCapability.GetTagName());
 					changed = true;
 					CapabilityTables.RemoveAt(i);
 					i--;
@@ -1901,7 +1901,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 						for (PINDEX j = 0; j < AlternativeCapabilitySet.GetSize(); j++) {
 							for (PINDEX m = 0; m < AlternativeCapabilitySet[j].GetSize(); m++) {
 								if (cten == AlternativeCapabilitySet[j][m].GetValue()) {
-									PTRACE(4, "Capability Descriptors Number");
+									PTRACE(4, "H245\tCapability Descriptors Number");
 									AlternativeCapabilitySet[j].RemoveAt(m);
 								}
 							}
@@ -1912,7 +1912,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		}
 
 		if (changed) {
-			PTRACE(4, "New Capability Table: " << setprecision(2) << tcs);
+			PTRACE(4, "H245\tNew Capability Table: " << setprecision(2) << tcs);
 		}
 	}
 
@@ -6935,7 +6935,8 @@ void H46019Channel::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 {
 #ifdef RTP_DEBUG
 	PTRACE(0, "JW RTP DB: multiplexID=" << receivedMultiplexID
-					 << " isRTCP=" << isRTCP << " ka=" << IsKeepAlive(data, len, isRTCP));
+					 << " isRTCP=" << isRTCP << " ka=" << IsKeepAlive(data, len, isRTCP)
+					 << " from=" << AsString(fromAddress));
 	Dump();
 #endif
 	callptr call = CallTable::Instance()->FindCallRec(m_callid);
@@ -9145,7 +9146,14 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 					else
 						mediaPayloadType = GetStaticPayloadType(olc.m_forwardLogicalChannelParameters.m_dataType);
 					if (mediaPayloadType != UNDEFINED_PAYLOAD_TYPE) {
-						// plain media type has a static payload type
+						// plain media type has a static payload type, check if packatization supplies a better one (eg for H.263+)
+						if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaPacketization)
+							&& (h225Params->m_mediaPacketization.GetTag() == H245_H2250LogicalChannelParameters_mediaPacketization::e_rtpPayloadType)) {
+							H245_RTPPayloadType & desc = h225Params->m_mediaPacketization;
+							if (desc.HasOptionalField(H245_RTPPayloadType::e_payloadType)) {
+								mediaPayloadType = desc.m_payloadType;
+							}
+						}
 						rtplc->SetCipherPayloadType(h225Params->m_dynamicRTPPayloadType);
 						rtplc->SetPlainPayloadType(mediaPayloadType);
 						h225Params->RemoveOptionalField(H245_H2250LogicalChannelParameters::e_dynamicRTPPayloadType);
@@ -9321,8 +9329,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 	}
 	if (m_requestRTPMultiplexing || peer->m_requestRTPMultiplexing) {
 		// save parameters for mixed multiplex/non-multiplexed call
-		if (  ((h46019chan.m_multiplexID_toB == INVALID_MULTIPLEX_ID)
-			|| (h46019chan.m_multiplexID_fromB == INVALID_MULTIPLEX_ID)) && lc) {
+		if (!IsTraversalClient() && lc) {
 			if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)) {
 				H245_OpenLogicalChannelAck_forwardMultiplexAckParameters & ackparams = olca.m_forwardMultiplexAckParameters;
 				if (ackparams.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters) {
