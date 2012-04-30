@@ -49,6 +49,7 @@
 #endif
 
 #ifdef HAS_H235_MEDIA
+	#include "h235/h2351.h"
 	#include "h235/h2356.h"
 	#include "h235/h235crypto.h"
 #endif
