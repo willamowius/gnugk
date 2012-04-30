@@ -1945,12 +1945,12 @@ bool SupportsH235Media(const H225_ArrayOf_ClearToken & clearTokens)
 
 unsigned AlgorithmKeySize(const PString & oid)
 {
-	if (oid == OID_AES128) {
+	if (oid == ID_AES128) {
 		return 128 / 8;
-	} else if (oid == OID_AES192) {
+	} else if (oid == ID_AES192) {
 		return 192 / 8;
 #ifdef H323_H235_AES256
-	} else if (oid == OID_AES256) {
+	} else if (oid == ID_AES256) {
 		return 256 / 8;
 #endif
 	}
