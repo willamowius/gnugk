@@ -123,7 +123,7 @@ namespace { // anonymous namespace
 	SimpleCreator<GlonetGK> GlonetGKCreator("GlonetGK");
 
 	int challenge;
-	const char OID_T[] = "0.0.8.235.0.2.5";
+	const char * const OID_T = "0.0.8.235.0.2.5";
 }
 
 // if we put nomatch into anonymous namespace,
