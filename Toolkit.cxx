@@ -487,10 +487,20 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 		}
 	}
 
+	PString tmpRoutes = GkConfig()->GetString(ProxySection, "ExplicitRoutes", "");
+	PStringArray explicitRoutes;
+	if (!tmpRoutes.IsEmpty())
+		explicitRoutes = tmpRoutes.Tokenise(",", FALSE);
+
 	int i = (!extroute) ? r_table.GetSize()+1 : r_table.GetSize();
+	i += explicitRoutes.GetSize();
 
 	rtable_end = rtable_begin = static_cast<RouteEntry *>(::malloc(i * sizeof(RouteEntry)));
-	for (PINDEX r = 0; r < i; ++r) {
+	// prepend explicit routes
+	for (PINDEX e = 0; e < explicitRoutes.GetSize(); ++e) {
+		::new (rtable_end++) RouteEntry(explicitRoutes[e]);
+	}
+	for (PINDEX r = 0; r < (i - explicitRoutes.GetSize()); ++r) {
 		if (!extroute && (r==r_table.GetSize())) {
 			::new (rtable_end++) RouteEntry(extroute);
 		} else {
