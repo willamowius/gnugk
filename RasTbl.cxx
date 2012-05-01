@@ -4014,42 +4014,6 @@ void CallRec::SetSessionMultiplexDestination(WORD session, void * openedBy, bool
 		PTRACE(1, "Error: Can't find LC for session " << session << " to set multiplex destination!");
 	}
 }
-
-void CallRec::SetLCMultiplexDestination(unsigned lc, void * openedBy, bool isRTCP, const H323TransportAddress & toAddress, H46019Side side)
-{
-	// try to find LC
-	if (m_callingSocket && (m_callingSocket->GetH245Handler() == openedBy)) {
-		m_callingSocket->SetLCMultiplexDestination(lc, isRTCP, toAddress, side);
-	} else if (m_calledSocket && (m_calledSocket->GetH245Handler() == openedBy)) {
-		m_calledSocket->SetLCMultiplexDestination(lc, isRTCP, toAddress, side);
-	} else {
-		PTRACE(1, "Error: Can't find LC << " << lc << " to set multiplex destination!");
-	}
-}
-
-void CallRec::SetLCMultiplexID(unsigned lc, void * openedBy, bool isRTCP, PUInt32b multiplexID, H46019Side side)
-{
-	// try to find LC
-	if (m_callingSocket && (m_callingSocket->GetH245Handler() == openedBy)) {
-		m_callingSocket->SetLCMultiplexID(lc, isRTCP, multiplexID, side);
-	} else if (m_calledSocket && (m_calledSocket->GetH245Handler() == openedBy)) {
-		m_calledSocket->SetLCMultiplexID(lc, isRTCP, multiplexID, side);
-	} else {
-		PTRACE(1, "Error: Can't find LC << " << lc << " to set multiplex ID!");
-	}
-}
-
-void CallRec::SetLCMultiplexSocket(unsigned lc, void * openedBy, bool isRTCP, int multiplexSocket, H46019Side side)
-{
-	// try to find LC
-	if (m_callingSocket && (m_callingSocket->GetH245Handler() == openedBy)) {
-		m_callingSocket->SetLCMultiplexSocket(lc, isRTCP, multiplexSocket, side);
-	} else if (m_calledSocket && (m_calledSocket->GetH245Handler() == openedBy)) {
-		m_calledSocket->SetLCMultiplexSocket(lc, isRTCP, multiplexSocket, side);
-	} else {
-		PTRACE(1, "Error: Can't find LC << " << lc << " to set multiplex socket!");
-	}
-}
 #endif
 
 #ifdef HAS_H235_MEDIA

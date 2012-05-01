@@ -1295,9 +1295,6 @@ public:
 	void RemoveKeepAllAlives();
 	
 	void SetSessionMultiplexDestination(WORD session, void * openedBy, bool isRTCP, const H323TransportAddress & toAddress, H46019Side side);
-	void SetLCMultiplexDestination(unsigned lc, void * openedBy, bool isRTCP, const H323TransportAddress & toAddress, H46019Side side);
-	void SetLCMultiplexID(unsigned lc, void * openedBy, bool isRTCP, PUInt32b multiplexID, H46019Side side);
-	void SetLCMultiplexSocket(unsigned lc, void * openedBy, bool isRTCP, int multiplexSocket, H46019Side side);
 #endif
 
 #ifdef HAS_H235_MEDIA

@@ -237,9 +237,6 @@ public:
 	bool IsCallFromTraversalServer() const { return m_callFromTraversalServer; }
 	bool IsCallToTraversalServer() const { return m_callToTraversalServer; }
 	void SetSessionMultiplexDestination(WORD session, bool isRTCP, const H323TransportAddress & toAddress, H46019Side side);
-	void SetLCMultiplexDestination(unsigned lc, bool isRTCP, const H323TransportAddress & toAddress, H46019Side side);
-	void SetLCMultiplexID(unsigned lc, bool isRTCP, PUInt32b multiplexID, H46019Side side);
-	void SetLCMultiplexSocket(unsigned lc, bool isRTCP, int multiplexSocket, H46019Side side);
 	const H245Handler * GetH245Handler() const { return m_h245handler; }
 #endif
 
@@ -408,16 +405,21 @@ protected:
 
 class RTPLogicalChannel;
 
-class H46019Channel
+// class for a H.460.19 session: it includes both directions (the full RTP session)
+// when stored in the channel list in MultiplexedRTPHandler,
+// side A is the OLC side, side B is the OLCAck side of the first channel in the session
+// when the channel is handed out via GetChannelSwapped(), side A is the OLC side of _that_ channel
+class H46019Session
 {
 public:
-	H46019Channel(const H225_CallIdentifier & callid, WORD session, void * openedBy);
+	H46019Session(const H225_CallIdentifier & callid, WORD session, void * openedBy);
 
 	void Dump() const;
 
+	bool IsValid() const { return m_session != INVALID_RTP_SESSION; }
 	bool sideAReady(bool isRTCP) const { return isRTCP ? IsSet(m_addrA_RTCP) : IsSet(m_addrA); }
 	bool sideBReady(bool isRTCP) const { return isRTCP ? IsSet(m_addrB_RTCP) : IsSet(m_addrB); }
-	H46019Channel SwapSides() const; // return a copy with side A and B swapped
+	H46019Session SwapSides() const; // return a copy with side A and B swapped
 
 	bool IsKeepAlive(void * data, unsigned len, bool isRTCP) { return isRTCP ? true : (len == 12); };
 
@@ -427,8 +429,8 @@ public:
 //protected:
 	H225_CallIdentifier m_callid;
 	WORD m_session;
-	void * m_openedBy;	// pointer to H245ProxyHandler used as an ID
-	void * m_otherSide;	// pointer to H245ProxyHandler used as an ID
+	void * m_openedBy;	// side A (pointer to H245ProxyHandler used as an ID)
+	void * m_otherSide;	// side B (pointer to H245ProxyHandler used as an ID)
 	H323TransportAddress m_addrA;
 	H323TransportAddress m_addrA_RTCP;
 	H323TransportAddress m_addrB;
@@ -443,7 +445,8 @@ public:
 	int m_osSocketToB_RTCP;
 	bool m_EnableRTCPStats;
 #ifdef HAS_H235_MEDIA
-	RTPLogicalChannel * m_rtplc;
+	RTPLogicalChannel * m_RTPChannelA;	// LC opened by first party in this session
+	RTPLogicalChannel * m_RTPChannelB;	// LC opened by other party in this session
 #endif
 };
 
@@ -471,9 +474,10 @@ public:
 
 	virtual void OnReload() { /* currently not runtime changable */ }
 
-	virtual void AddChannel(const H46019Channel & cha);
-	virtual void UpdateChannel(const H46019Channel & cha);
-	virtual H46019Channel GetChannel(const H225_CallIdentifier & callid, WORD session, void * openedBy) const;
+	virtual void AddChannel(const H46019Session & cha);
+	virtual void UpdateChannel(const H46019Session & cha);
+	virtual H46019Session GetChannel(const H225_CallIdentifier & callid, WORD session) const;
+	virtual H46019Session GetChannelSwapped(const H225_CallIdentifier & callid, WORD session, void * openedBy) const;
 	virtual void RemoveChannels(const H225_CallIdentifier & callid);
 #ifdef HAS_H235_MEDIA
 	virtual void RemoveChannel(const H225_CallIdentifier & callid, RTPLogicalChannel * rtplc);
@@ -491,7 +495,7 @@ public:
 protected:
 	MultiplexedRTPReader * m_reader;
 	mutable PReadWriteMutex listLock;
-	list<H46019Channel> m_h46019channels;
+	list<H46019Session> m_h46019channels;
 	PUInt32b idCounter; // we should make sure this counter is _not_ reset on reload
 };
 #endif
