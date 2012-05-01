@@ -32,9 +32,13 @@
 #include "gk_const.h"
 
 #if H323_H350
-const char *H350Section = "GkH350::Settings";
+const char * H350Section = "GkH350::Settings";
 #include <ptclib/pldap.h>
 #include "h350/h350.h"
+#endif
+
+#ifdef HAS_SNMP
+#include <ptclib/psnmp.h>
 #endif
 
 using namespace std;
@@ -2698,10 +2702,35 @@ std::vector<NetworkAddress> Toolkit::GetInternalNetworks()
 	return !GkConfig()->GetString("ExternalIP", "").IsEmpty() ? m_VirtualRouteTable.GetInternalNetworks() : m_RouteTable.GetInternalNetworks();
 }
 
+bool Toolkit::IsSNMPEnabled() const
+{
+#ifdef HAS_SNMP
+	return AsBool(GkConfig()->GetString("EnableSNMP", "0"));
+#else
+	return false;
+#endif
+}
+
+#ifdef HAS_SNMP
+void Toolkit::SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg)
+{
+	PString trapHost = GkConfig()->GetString(SNMPSection, "TrapHost", "");
+	if (!trapHost.IsEmpty()) {
+		PString trapCommunity = GkConfig()->GetString(SNMPSection, "TrapCommunity", "public");
+		PSNMPVarBindingList vars;
+		//PString msgOID = GnuGkMIB + PString(".0.") + PString(PString::Unsigned, trapNumber);
+		vars.Append(PString(severityOID), new PASNInteger(severity));
+		vars.Append(PString(groupOID), new PASNInteger(group));
+		vars.AppendString(displayMsgOID, msg);
+		PSNMP::SendEnterpriseTrap(PIPSocket::Address(trapHost), trapCommunity, GnuGkMIB, trapNumber, 0, vars);
+	}
+}
+#endif
+
 bool Toolkit::IsIPv6Enabled() const
 {
 #ifdef hasIPV6
-	return AsBool(GkConfig()->GetString("EnableIPv6", 0));
+	return AsBool(GkConfig()->GetString("EnableIPv6", "0"));
 #else
 	return false;
 #endif

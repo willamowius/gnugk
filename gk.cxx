@@ -33,6 +33,7 @@
 #include "gk.h"
 #include "config.h"
 #include "capctrl.h"
+#include "snmp.h"
 
 using std::vector;
 
@@ -154,6 +155,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "Gatekeeper::Main", "DisconnectCallsOnShutdown" },
 #ifdef hasIPV6
 	{ "Gatekeeper::Main", "EnableIPv6" },
+#endif
+#ifdef HAS_SNMP
+	{ "Gatekeeper::Main", "EnableSNMP" },
 #endif
 	{ "Gatekeeper::Main", "EnableTTLRestrictions" },
 	{ "Gatekeeper::Main", "EncryptAllPasswords" },
@@ -1165,6 +1169,7 @@ void Gatekeeper::Main()
 	PString welcome("GNU Gatekeeper with ID '" + Toolkit::GKName() + "' started\n" + Toolkit::GKVersion());
 	cout << welcome << '\n';
 	PTRACE(1, welcome);
+	SNMP_TRAP(1, Info, General, "GnuGk started");
 
 #ifdef hasIPV6
 	if (Toolkit::Instance()->IsIPv6Enabled()) {

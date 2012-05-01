@@ -708,3 +708,18 @@ T120PortClose=/usr/local/bin/ports.sh %p %n %i
 </verb></tscreen>
 </descrip>
 
+<sect1>Section &lsqb;SNMP&rsqb;
+<p>
+<itemize>
+<item><tt>TrapHost=192.168.1.100</tt><newline>
+Default: <tt/none/<newline>
+<p>
+Define the host where to send traps. No traps will be thrown if no host is defined.
+
+<item><tt>TrapCommunity=public</tt><newline>
+Default: <tt/public/<newline>
+<p>
+Define the community string for traps.
+
+</itemize>
+

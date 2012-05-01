@@ -1,5 +1,6 @@
 Changes from 3.0 to 3.1
 =======================
+- SNMP support: [Gatekeeper::Main] EnableSMP=1 (work in progress)
 - the DisabledCodecs setting doesn't have to have a trailing semikolon anymore
 - only enable RTP multiplexing if both parties explicitely signal their support for it
 - extend RemoveH235Call=1 to also remove clear and crypto tokens from

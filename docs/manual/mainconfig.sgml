@@ -520,6 +520,11 @@ Sets the maximum number of elements in an ASN encoded array, eg. the max. number
 PTLib up to 2.10.1 defaults to 128 elements. Beware of hitting the limits of other vendors if you
 increase this setting.
 
+<item><tt/EnableSNMP=1/<newline>
+Default: <tt>0</tt><newline>
+EXPERIMENTAL:
+Enable SNMP support.
+
 </itemize>
 
 

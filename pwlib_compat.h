@@ -235,4 +235,9 @@
    #define PTRACEX(level, args)  PTRACE(level,args)   
 #endif
 
+#ifdef P_SNMP
+// TODO: move to configure script
+#define HAS_SNMP 1
+#endif
+
 #endif
