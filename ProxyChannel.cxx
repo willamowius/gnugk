@@ -6902,6 +6902,9 @@ void H46019Session::Dump() const
 			<< " IDfromB=" << m_multiplexID_fromB << " IDtoB=" << m_multiplexID_toB
 			<< " addrA=" << AsString(m_addrA) << " addrA_RTCP=" << AsString(m_addrA_RTCP)
 			<< " addrB=" << AsString(m_addrB) << " addrB_RTCP=" << AsString(m_addrB_RTCP));
+#ifdef HAS_H235_MEDIA
+	PTRACE(0, "JW session=" << m_session << " lcA=" << m_RTPChannelA << " lcB=" << m_RTPChannelB);
+#endif
 }
 
 void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP)
@@ -6984,12 +6987,12 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 
 		PTRACE(0, "JW crypto A=" << AsString(m_addrA) << " B=" << AsString(m_addrB)
 			<< " simulateA=" << simulateA << " fromCaller=" << fromCaller);
-		PTRACE(0, "JW crypto lcA=" << m_RTPChannelA << " lcB=" << m_RTPChannelB);
+		PTRACE(0, "JW crypto session=" << m_session << " lcA=" << m_RTPChannelA << " lcB=" << m_RTPChannelB);
 		if (simulateA && m_RTPChannelA) {
-			if (!m_RTPChannelA->ProcessH235Media((BYTE*)data, wlen, fromCaller, ivSequence, rtpPadding, payloadType))
+			if (!m_RTPChannelB->ProcessH235Media((BYTE*)data, wlen, fromCaller, ivSequence, rtpPadding, payloadType))
 				return;
 		} else if (!simulateA && m_RTPChannelB) {
-			if (!m_RTPChannelB->ProcessH235Media((BYTE*)data, wlen, fromCaller, ivSequence, rtpPadding, payloadType))
+			if (!m_RTPChannelA->ProcessH235Media((BYTE*)data, wlen, fromCaller, ivSequence, rtpPadding, payloadType))
 				return;
 		}
 
@@ -8276,7 +8279,7 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 		delete m_H235CryptoEngine;
 	// new session with media key after shared key was used to decrypt media key
 	m_H235CryptoEngine = new H235CryptoEngine(algorithmOID, mediaKey);
-	PTRACE(3, "H235\tNew crypto engine created: plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType);
+	PTRACE(3, "H235\tNew crypto engine created: plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType << " rtplc=" << this);
 
 	if (encrypting) {
 		rtp->SetEncryptingRTPChannel(this);
@@ -8330,7 +8333,7 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 		delete m_H235CryptoEngine;
 	// new session with media key after shared key was used to encrypt media key for transmission
 	m_H235CryptoEngine = new H235CryptoEngine(algorithmOID, mediaKey);
-	PTRACE(3, "H235\tNew crypto engine created: plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType);
+	PTRACE(3, "H235\tNew crypto engine created: plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType << " rtplc=" << this);
 
 	if (encrypting) {
 		rtp->SetEncryptingRTPChannel(this);
@@ -8365,7 +8368,7 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCal
 	if (!m_H235CryptoEngine)
 		return false;
 
-	PBYTEArray data(buffer+12, len-12);	// skip RTP header
+	PBYTEArray data(buffer+12, len-12);	// skip RTP header TODO: skip more if header has CSRC or extensions
 	PBYTEArray processed;
 
 	if ((fromCaller && m_simulateCallerSide) || (!fromCaller && !m_simulateCallerSide)) {
