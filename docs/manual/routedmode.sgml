@@ -539,7 +539,7 @@ IP versions.
 <item><tt/EnableH235HalfCallMedia=1/<newline>
 Default: <tt/0/<newline>
 <p>
-WARNING: This feature is still experimental and doesn't work, yet.
+WARNING: This feature is still experimental.
 <p>
 When the endpoint on one side of a call supports encryption and the endpoint
 on the other side does not, the gatekeeper will act as a "man-in-the-middle"
@@ -548,8 +548,13 @@ media stream will be sent to the endpoint which is otherwise unable to
 encrypt / decrypt traffic because of licensing issues, lack of encryption
 chip support in the hardware, obsolescence, etc.  This may be useful if the
 system you are trying to reach is on the Internet; your internal traffic can
-remain unencrypted, but your external traffic will be secure.  Enabling this
-feature will also force call signaling for all calls to routed-mode.
+remain unencrypted, but your external traffic will be secure.
+
+Enabling this feature will force call signaling for all calls to routed-mode and for calls
+that use encryption to proxy mode.
+
+When using this feature, currently caller and called endpoint must be on
+different IPs and may not be behind the same NAT.
 
 <item><tt/RequireH235HalfCallMedia=1/<newline>
 Default: <tt/0/<newline>
