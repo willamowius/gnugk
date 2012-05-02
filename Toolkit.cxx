@@ -30,6 +30,7 @@
 #include "RasSrv.h"
 #include "Toolkit.h"
 #include "gk_const.h"
+#include "SoftPBX.h"
 
 #if H323_H350
 const char * H350Section = "GkH350::Settings";
@@ -2740,11 +2741,13 @@ void Toolkit::SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup gr
 	if (!trapHost.IsEmpty()) {
 		PString trapCommunity = GkConfig()->GetString(SNMPSection, "TrapCommunity", "public");
 		PSNMPVarBindingList vars;
-		//PString msgOID = GnuGkMIB + PString(".0.") + PString(PString::Unsigned, trapNumber);
 		vars.Append(PString(severityOID), new PASNInteger(severity));
 		vars.Append(PString(groupOID), new PASNInteger(group));
-		vars.AppendString(displayMsgOID, msg);
-		PSNMP::SendEnterpriseTrap(PIPSocket::Address(trapHost), trapCommunity, GnuGkMIB, trapNumber, 0, vars);
+		if (!msg.IsEmpty())
+			vars.AppendString(displayMsgOID, msg);
+		PSNMP::SendEnterpriseTrap(PIPSocket::Address(trapHost), trapCommunity,
+			GnuGkMIB + PString(".0"), trapNumber,
+			(PTime() - SoftPBX::StartUp).GetMilliSeconds() / 10, vars);
 	}
 }
 #endif

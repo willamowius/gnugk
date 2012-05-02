@@ -743,6 +743,8 @@ void ReloadHandler()
 	*/
 	PTRACE(3, "GK\tCarry on current calls.");
 
+	SNMP_TRAP(2, Info, General, "Full config reloaded");
+
 	/*
 	** Leave critical Section
 	*/
