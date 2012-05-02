@@ -445,8 +445,8 @@ public:
 	int m_osSocketToB_RTCP;
 	bool m_EnableRTCPStats;
 #ifdef HAS_H235_MEDIA
-	RTPLogicalChannel * m_RTPChannelA;	// LC opened by first party in this session
-	RTPLogicalChannel * m_RTPChannelB;	// LC opened by other party in this session
+	RTPLogicalChannel * m_encryptingLC;
+	RTPLogicalChannel * m_decryptingLC;
 #endif
 };
 
