@@ -1226,6 +1226,10 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 
 CallSignalSocket::~CallSignalSocket()
 {
+#ifdef HAS_H46018
+	if (m_call && Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0")))
+		MultiplexedRTPHandler::Instance()->RemoveChannels(m_call->GetCallIdentifier());
+#endif
 	if (m_h245socket) {
 		if (CallSignalSocket *ret = static_cast<CallSignalSocket *>(remote)) {
 			if (m_h245handler && !m_h245handler->IsSessionEnded() && ret->m_h245socket) {
@@ -1251,10 +1255,6 @@ CallSignalSocket::~CallSignalSocket()
 				);
 		}
 	}
-#ifdef HAS_H46018
-	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0")))
-		MultiplexedRTPHandler::Instance()->RemoveChannels(m_call->GetCallIdentifier());
-#endif
 
 	delete m_h245handler;
 	m_h245handler = NULL;
