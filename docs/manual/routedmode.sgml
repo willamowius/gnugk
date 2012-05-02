@@ -727,12 +727,15 @@ Default: <tt/3001/<newline>
 <p>
 Set the RTCP port for H.460.19 RTP multiplexing.
 
-<item><tt>ExplicitRoutes=10.2.1.5/16,10.6.1.3/16</tt><newline>
+<item><tt>ExplicitRoutes=10.2.1.5/16,10.6.1.3/16,11.0.0.0/8-20.1.1.1</tt><newline>
 Default: <tt>n/a</tt><newline>
 <p>
 Add explicit routing rules to GnuGk's internal routing table.
+Rules can have 2 formats: <tt>sourceIP/mask</tt> or <tt>network/mask-sourceIP</tt>.
 The above example would use 10.2.1.5 as sender IP for all messages
 to the 10.2.0.0/16 network and 10.6.1.3 for messages to the 10.6.0.0/16 network.
+Messages to the 11.0.0.0/8 network get 20.1.1.1 as sender IP.
+All sender IPs should be included in the list of Home IPs.
 
 </itemize>
 

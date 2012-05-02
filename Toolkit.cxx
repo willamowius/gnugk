@@ -229,8 +229,15 @@ Toolkit::RouteTable::RouteEntry::RouteEntry(
 	const PString & net
 ) : PIPSocket::RouteEntry(0)
 {
-	destination = net.Tokenise("/", FALSE)[0];
-	GetNetworkFromString(net, network, net_mask);
+	if (net.Find('-') != P_MAX_INDEX) {
+		// format: net/mask-dest eg. 10.0.0.0/8-20.1.1.1
+		destination = net.Tokenise("-", FALSE)[1];
+		GetNetworkFromString(net.Tokenise("-", FALSE)[0], network, net_mask);
+	} else {
+		// format: net/mask-dest eg. 10.1.1.1/8
+		destination = net.Tokenise("/", FALSE)[0];
+		GetNetworkFromString(net, network, net_mask);
+	}
 }
 
 Toolkit::RouteTable::RouteEntry::RouteEntry(
@@ -489,8 +496,13 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 
 	PString tmpRoutes = GkConfig()->GetString(ProxySection, "ExplicitRoutes", "");
 	PStringArray explicitRoutes;
-	if (!tmpRoutes.IsEmpty())
+	if (!tmpRoutes.IsEmpty()) {
 		explicitRoutes = tmpRoutes.Tokenise(",", FALSE);
+		for (PINDEX e=0; e < explicitRoutes.GetSize(); ++e) {
+			RouteEntry entry(explicitRoutes[e]);
+			PTRACE(2, "Adding explict route: " << entry.GetNetwork() << "/" << entry.GetNetMask() << "->" << entry.GetDestination());
+		}
+	}
 
 	int i = (!extroute) ? r_table.GetSize()+1 : r_table.GetSize();
 	i += explicitRoutes.GetSize();
