@@ -7561,11 +7561,15 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			// use keep-alive for multiplexing channel, too
 			// (it might have multiplexed RTP coming in to be forwarded as regular RTP)
 			PTRACE(0, "JW use regular KA for multiplex");
+			// set based on addr
 			if (IsSet(m_multiplexDestination_A) && (m_multiplexDestination_A != fromAddr)) {
 				PTRACE(0, "JW use regular KA for multiplex side B");
 				H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(m_callID, m_sessionID);
 				if (h46019chan.IsValid()) {
-					h46019chan.m_addrB = fromAddr;
+					if (isRTCP)
+						h46019chan.m_addrB_RTCP = fromAddr;
+					else
+						h46019chan.m_addrB = fromAddr;
 					MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
 				}
 			}
@@ -7573,8 +7577,35 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				PTRACE(0, "JW use regular KA for multiplex side A");
 				H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(m_callID, m_sessionID);
 				if (h46019chan.IsValid()) {
-					h46019chan.m_addrA = fromAddr;
+					if (isRTCP)
+						h46019chan.m_addrA_RTCP = fromAddr;
+					else
+						h46019chan.m_addrA = fromAddr;
 					MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
+				}
+			}
+			if (!IsSet(m_multiplexDestination_A) && !IsSet(m_multiplexDestination_B)) {
+				// set if only one side sends multiplexex to GnuGk
+				H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(m_callID, m_sessionID);
+				if ((h46019chan.m_multiplexID_fromA != INVALID_MULTIPLEX_ID) && (h46019chan.m_multiplexID_fromB == INVALID_MULTIPLEX_ID)) {
+					PTRACE(0, "JW use regular KA for multiplex side B (one-sided)");
+					if (h46019chan.IsValid()) {
+						if (isRTCP)
+							h46019chan.m_addrB_RTCP = fromAddr;
+						else
+							h46019chan.m_addrB = fromAddr;
+						MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
+					}
+				}
+				if ((h46019chan.m_multiplexID_fromA == INVALID_MULTIPLEX_ID) && (h46019chan.m_multiplexID_fromB != INVALID_MULTIPLEX_ID)) {
+					PTRACE(0, "JW use regular KA for multiplex side A (one-sided)");
+					if (h46019chan.IsValid()) {
+						if (isRTCP)
+							h46019chan.m_addrA_RTCP = fromAddr;
+						else
+							h46019chan.m_addrA = fromAddr;
+						MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
+					}
 				}
 			}
 
