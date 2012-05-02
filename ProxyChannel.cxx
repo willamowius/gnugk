@@ -6873,8 +6873,8 @@ H46019Session::H46019Session(const H225_CallIdentifier & callid, WORD session, v
 	m_osSocketToB_RTCP = INVALID_OSSOCKET;
 	m_EnableRTCPStats = Toolkit::AsBool(GkConfig()->GetString(ProxySection, "EnableRTCPStats", "0"));
 #ifdef HAS_H235_MEDIA
-	m_RTPChannelA = NULL;
-	m_RTPChannelB = NULL;
+	m_encryptingLC = NULL;
+	m_decryptingLC = NULL;
 #endif
 }
 
@@ -6889,9 +6889,6 @@ H46019Session H46019Session::SwapSides() const
 	swap(result.m_multiplexID_toA, result.m_multiplexID_toB);
 	swap(result.m_osSocketToA, result.m_osSocketToB);
 	swap(result.m_osSocketToA_RTCP, result.m_osSocketToB_RTCP);
-#ifdef HAS_H235_MEDIA
-	swap(result.m_RTPChannelA, result.m_RTPChannelB);
-#endif
 	return result;
 }
 
@@ -6903,7 +6900,7 @@ void H46019Session::Dump() const
 			<< " addrA=" << AsString(m_addrA) << " addrA_RTCP=" << AsString(m_addrA_RTCP)
 			<< " addrB=" << AsString(m_addrB) << " addrB_RTCP=" << AsString(m_addrB_RTCP));
 #ifdef HAS_H235_MEDIA
-	PTRACE(0, "JW session=" << m_session << " lcA=" << m_RTPChannelA << " lcB=" << m_RTPChannelB);
+	PTRACE(0, "JW session=" << m_session << " encryptLC=" << m_encryptingLC << " decryptLC=" << m_encryptingLC);
 #endif
 }
 
@@ -6915,9 +6912,11 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 					 << " from=" << AsString(fromAddress));
 	Dump();
 #endif
+	bool isFromA = (receivedMultiplexID == m_multiplexID_fromA);
+	bool isFromB = (receivedMultiplexID == m_multiplexID_fromB);
 	callptr call = CallTable::Instance()->FindCallRec(m_callid);
 	if (IsKeepAlive(data, len, isRTCP)) {
-		if (receivedMultiplexID == m_multiplexID_fromA) {
+		if (isFromA) {
 			if (isRTCP) {
 				m_addrA_RTCP = fromAddress;
 			} else {
@@ -6948,13 +6947,13 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 	}
 
 	// port detection by first media packet for channels from client to server that won't have a keepAlive
-	if (receivedMultiplexID == m_multiplexID_fromA) {
+	if (isFromA) {
 		if (isRTCP && !IsSet(m_addrA_RTCP))
 			m_addrA_RTCP = fromAddress;
 		if (!isRTCP && !IsSet(m_addrA))
 			m_addrA = fromAddress;
 	}
-	if (receivedMultiplexID == m_multiplexID_fromB) {
+	if (isFromB) {
 		if (isRTCP && !IsSet(m_addrB_RTCP))
 			m_addrB_RTCP = fromAddress;
 		if (!isRTCP && !IsSet(m_addrB))
@@ -6983,18 +6982,30 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 		fromAddress.GetIpAddress(packetSource);
 		m_addrA.GetIpAddress(IpA);
 		fromCaller = (callerSignalIP == packetSource);
-		bool simulateA = ((IpA == callerSignalIP) && (call->GetEncryptDirection() == CallRec::callingParty));
+		bool simulateA = (((IpA == callerSignalIP) && (call->GetEncryptDirection() == CallRec::callingParty))
+							|| ((IpA != callerSignalIP) && (call->GetEncryptDirection() == CallRec::calledParty)));
+		bool succesful = false;
 
 		PTRACE(0, "JW crypto A=" << AsString(m_addrA) << " B=" << AsString(m_addrB)
 			<< " simulateA=" << simulateA << " fromCaller=" << fromCaller);
-		PTRACE(0, "JW crypto session=" << m_session << " lcA=" << m_RTPChannelA << " lcB=" << m_RTPChannelB);
-		if (simulateA && m_RTPChannelA) {
-			if (!m_RTPChannelB->ProcessH235Media((BYTE*)data, wlen, fromCaller, ivSequence, rtpPadding, payloadType))
-				return;
-		} else if (!simulateA && m_RTPChannelB) {
-			if (!m_RTPChannelA->ProcessH235Media((BYTE*)data, wlen, fromCaller, ivSequence, rtpPadding, payloadType))
-				return;
+		PTRACE(0, "JW crypto session=" << m_session << " encryptLC=" << m_encryptingLC
+			<< " decryptLC=" << m_encryptingLC);
+
+
+		if ((isFromA && simulateA) || (!isFromA && !simulateA)) {
+			PTRACE(0, "JW need multiplex ENcryption");
+			if (m_encryptingLC) {
+				succesful = m_encryptingLC->ProcessH235Media((BYTE*)data, wlen, fromCaller, ivSequence, rtpPadding, payloadType);
+			}
+		} else {
+			PTRACE(0, "JW need multiplex DEcryption");
+			if (m_decryptingLC) {
+				succesful = m_decryptingLC->ProcessH235Media((BYTE*)data, wlen, fromCaller, ivSequence, rtpPadding, payloadType);
+			}
 		}
+
+		if (!succesful)
+			return;
 
 		// update RTP padding bit
 		if (rtpPadding)
@@ -7226,10 +7237,10 @@ void MultiplexedRTPHandler::RemoveChannel(H225_CallIdentifier callid, RTPLogical
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; /* nothing */ ) {
 		if (iter->m_callid == callid) {
-			if (iter->m_RTPChannelA == rtplc)
-				iter->m_RTPChannelA = NULL;
-			if (iter->m_RTPChannelB == rtplc)
-				iter->m_RTPChannelB = NULL;
+			if (iter->m_encryptingLC == rtplc)
+				iter->m_encryptingLC = NULL;
+			if (iter->m_decryptingLC == rtplc)
+				iter->m_decryptingLC = NULL;
 			++iter;
 		}
 	}
@@ -8310,7 +8321,7 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 		delete m_H235CryptoEngine;
 	// new session with media key after shared key was used to decrypt media key
 	m_H235CryptoEngine = new H235CryptoEngine(algorithmOID, mediaKey);
-	PTRACE(3, "H235\tNew crypto engine created: plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType << " rtplc=" << this);
+	PTRACE(3, "H235\tNew crypto engine created: plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType << " rtplc=" << this << " encrypt=" << m_encrypting);
 
 	if (encrypting) {
 		rtp->SetEncryptingRTPChannel(this);
@@ -8364,7 +8375,7 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 		delete m_H235CryptoEngine;
 	// new session with media key after shared key was used to encrypt media key for transmission
 	m_H235CryptoEngine = new H235CryptoEngine(algorithmOID, mediaKey);
-	PTRACE(3, "H235\tNew crypto engine created: plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType << " rtplc=" << this);
+	PTRACE(3, "H235\tNew crypto engine created: plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType << " rtplc=" << this << " encrypt=" << m_encrypting);
 
 	if (encrypting) {
 		rtp->SetEncryptingRTPChannel(this);
@@ -9124,10 +9135,6 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 		if (m_requestRTPMultiplexing || peer->m_requestRTPMultiplexing) {
 			// set sockets, depending if we will received as multiplexed or not
 			LogicalChannel * lc = FindLogicalChannel(flcn);
-#ifdef HAS_H235_MEDIA
-			// save lc in H46019 Session for encryption (the channel is swapped, so A and B will get set)
-			h46019chan.m_RTPChannelA = dynamic_cast<RTPLogicalChannel*>(lc);
-#endif
 			// side A
 			if (m_requestRTPMultiplexing) {
 				h46019chan.m_osSocketToA = MultiplexedRTPHandler::Instance()->GetRTPOSSocket();
@@ -9231,6 +9238,17 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 				rtplc->CreateH235SessionAndKey(call->GetAuthenticators(), olc.m_encryptionSync,
 						(call->GetEncryptDirection() == CallRec::callingParty), encrypting);
 			}
+#ifdef HAS_H46018
+			if (m_requestRTPMultiplexing || peer->m_requestRTPMultiplexing) {
+				// get the H46019Session object in standard (unswapped) format
+				H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(call->GetCallIdentifier(), sessionID);
+				if (encrypting)
+					h46019chan.m_encryptingLC = rtplc;
+				else
+					h46019chan.m_decryptingLC = rtplc;
+				MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
+			}
+#endif
 		}
 #endif
 		return changed;
@@ -9446,6 +9464,17 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 			rtplc->CreateH235SessionAndKey(call->GetAuthenticators(), olca.m_encryptionSync,
 					(call->GetEncryptDirection() == CallRec::callingParty), encrypting);
 		}
+#ifdef HAS_H46018
+		if (m_requestRTPMultiplexing || peer->m_requestRTPMultiplexing) {
+			// get the H46019Session object in standard (unswapped) format
+			H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(call->GetCallIdentifier(), sessionID);
+			if (encrypting)
+				h46019chan.m_encryptingLC = rtplc;
+			else
+				h46019chan.m_decryptingLC = rtplc;
+			MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
+		}
+#endif
 	}
 #endif
 
