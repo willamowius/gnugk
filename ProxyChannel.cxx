@@ -7206,7 +7206,7 @@ H46019Session MultiplexedRTPHandler::GetChannel(const H225_CallIdentifier & call
 	return H46019Session(0, 0, NULL);	// not found
 }
 
-void MultiplexedRTPHandler::RemoveChannels(const H225_CallIdentifier & callid)
+void MultiplexedRTPHandler::RemoveChannels(H225_CallIdentifier callid)
 {
 	WriteLock lock(listLock);
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
@@ -7220,7 +7220,7 @@ void MultiplexedRTPHandler::RemoveChannels(const H225_CallIdentifier & callid)
 }
 
 #ifdef HAS_H235_MEDIA
-void MultiplexedRTPHandler::RemoveChannel(const H225_CallIdentifier & callid, RTPLogicalChannel * rtplc)
+void MultiplexedRTPHandler::RemoveChannel(H225_CallIdentifier callid, RTPLogicalChannel * rtplc)
 {
 	WriteLock lock(listLock);
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();

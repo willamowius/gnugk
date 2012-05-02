@@ -478,9 +478,9 @@ public:
 	virtual void UpdateChannel(const H46019Session & cha);
 	virtual H46019Session GetChannel(const H225_CallIdentifier & callid, WORD session) const;
 	virtual H46019Session GetChannelSwapped(const H225_CallIdentifier & callid, WORD session, void * openedBy) const;
-	virtual void RemoveChannels(const H225_CallIdentifier & callid);
+	virtual void RemoveChannels(H225_CallIdentifier callid);	// pass by value in case call gets removed
 #ifdef HAS_H235_MEDIA
-	virtual void RemoveChannel(const H225_CallIdentifier & callid, RTPLogicalChannel * rtplc);
+	virtual void RemoveChannel(H225_CallIdentifier callid, RTPLogicalChannel * rtplc);
 #endif
 	virtual void DumpChannels(const PString & msg = "") const;
 
