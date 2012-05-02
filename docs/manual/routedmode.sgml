@@ -550,10 +550,10 @@ chip support in the hardware, obsolescence, etc.  This may be useful if the
 system you are trying to reach is on the Internet; your internal traffic can
 remain unencrypted, but your external traffic will be secure.
 
-Enabling this feature will force call signaling for all calls to routed-mode and for calls
-that use encryption to proxy mode.
+Enabling this feature will force call signaling for all calls to
+routed-mode, and will set it to proxy-mode for encrypted calls.
 
-When using this feature, currently caller and called endpoint must be on
+As of Version 3.x of GnuGk, the caller and called endpoint must be on
 different IPs and may not be behind the same NAT.
 
 <item><tt/RequireH235HalfCallMedia=1/<newline>
