@@ -430,6 +430,10 @@ const char * KnownConfigEntries[][2] = {
 	{ "Routing::Sql", "Password" },
 	{ "Routing::Sql", "Query" },
 	{ "Routing::Sql", "Username" },
+#ifdef HAS_SNMP
+	{ "SNMP", "TrapCommunity" },
+	{ "SNMP", "TrapHost" },
+#endif
 	{ "SQLAcct", "CacheTimeout" },
 	{ "SQLAcct", "AlertQuery" },
 	{ "SQLAcct", "Database" },
@@ -733,6 +737,10 @@ void ReloadHandler()
 	RasServer::Instance()->SetRDSServers();
 
 	RasServer::Instance()->LoadConfig();
+
+#ifdef HAS_SNMP
+	SNMPAgent::Instance()->LoadConfig();
+#endif
 
 	Gatekeeper::EnableLogFileRotation();
 
@@ -1172,7 +1180,6 @@ void Gatekeeper::Main()
 	PString welcome("GNU Gatekeeper with ID '" + Toolkit::GKName() + "' started\n" + Toolkit::GKVersion());
 	cout << welcome << '\n';
 	PTRACE(1, welcome);
-	SNMP_TRAP(1, Info, General, "GnuGk started");
 
 #ifdef hasIPV6
 	if (Toolkit::Instance()->IsIPv6Enabled()) {
@@ -1256,6 +1263,10 @@ void Gatekeeper::Main()
 
 	// Load RDS servers
 	RasSrv->SetRDSServers();
+
+#ifdef HAS_SNMP
+	SNMP_TRAP(1, Info, General, "GnuGk started");
+#endif
 
 #if defined(_WIN32)
 	// 1) prevent CTRL_CLOSE_EVENT, CTRL_LOGOFF_EVENT and CTRL_SHUTDOWN_EVENT

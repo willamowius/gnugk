@@ -23,6 +23,9 @@ enum SNMPGroup { General=1, Network=2, Database=3 };
 #ifdef HAS_SNMP
 
 #include "Toolkit.h"
+#include <net-snmp/net-snmp-config.h>
+#include <net-snmp/net-snmp-includes.h>
+#include <net-snmp/agent/net-snmp-agent-includes.h>
 
 const char * const SNMPSection = "SNMP";
 
@@ -31,8 +34,20 @@ const char * const SNMPSection = "SNMP";
 #define groupOID		"1.3.6.1.4.1.27938.11.1.2"
 #define displayMsgOID	"1.3.6.1.4.1.27938.11.1.3"
 
-
 #define SNMP_TRAP(NO,LEVEL,GROUP,MSG) if (Toolkit::Instance()->IsSNMPEnabled()) { Toolkit::Instance()->SendSNMPTrap(NO,LEVEL,GROUP,MSG); }
+
+class SNMPAgent : public Singleton<SNMPAgent>
+{
+public:
+	SNMPAgent();
+	virtual ~SNMPAgent();
+
+	virtual void LoadConfig();
+	virtual void Run();
+
+protected:
+	netsnmp_log_handler * logger;
+};
 
 #else // HAS_SNMP
 
