@@ -8809,7 +8809,8 @@ bool H245ProxyHandler::HandleResponse(H245_ResponseMessage & Response, callptr &
 bool H245ProxyHandler::HandleCommand(H245_CommandMessage & Command, bool & suppress, callptr & call, H245Socket * h245sock)
 {
 	PTRACE(4, "H245\tCommand: " << Command.GetTagName());
-	if (peer)
+#ifdef HAS_H235_MEDIA
+	if (peer) {
 		switch (Command.GetTag())
 		{
 			case H245_CommandMessage::e_miscellaneousCommand:
@@ -8817,14 +8818,12 @@ bool H245ProxyHandler::HandleCommand(H245_CommandMessage & Command, bool & suppr
 				H245_MiscellaneousCommand miscCommand = Command;
 				switch (miscCommand.m_type.GetTag())
 				{
-#ifdef HAS_H235_MEDIA
 					case H245_MiscellaneousCommand_type::e_encryptionUpdateRequest:
 						return HandleEncryptionUpdateRequest(Command, suppress, call, h245sock);
 					case H245_MiscellaneousCommand_type::e_encryptionUpdateCommand:
 						return HandleEncryptionUpdateCommand(Command, suppress, call, h245sock);
 					case H245_MiscellaneousCommand_type::e_encryptionUpdateAck:
 						return HandleEncryptionUpdateAck(Command, suppress, call, h245sock);
-#endif
 					default:
 						break;
 				}
@@ -8832,6 +8831,8 @@ bool H245ProxyHandler::HandleCommand(H245_CommandMessage & Command, bool & suppr
 			default:
 				break;
 		}
+	}
+#endif
 	return false;
 }
 
