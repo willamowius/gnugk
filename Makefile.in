@@ -97,7 +97,7 @@ ifdef PASN_NOPRINT
   STDCCFLAGS += -DPASN_NOPRINT
 endif
 
-ENDLDLIBS += -lnetsnmpagent
+#ENDLDLIBS += -lnetsnmpagent
 #ENDLDLIBS += -lnetsnmpagent -lnetsnmp
 #STDCCFLAGS += -DRTP_DEBUG=1
 
