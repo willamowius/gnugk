@@ -22,7 +22,7 @@ enum SNMPGroup { General=1, Network=2, Database=3 };
 
 const char * const SNMPSection = "SNMP";
 
-const char * const GnuGkMIB         = "1.3.6.1.4.1.27938.11";
+const char * const GnuGkMIBStr      = "1.3.6.1.4.1.27938.11";
 const char * const severityOIDStr   = "1.3.6.1.4.1.27938.11.1.1";
 const char * const groupOIDStr      = "1.3.6.1.4.1.27938.11.1.2";
 const char * const displayMsgOIDStr = "1.3.6.1.4.1.27938.11.1.3";
