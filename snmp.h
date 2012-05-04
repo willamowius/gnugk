@@ -11,8 +11,8 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#ifndef SNMP_H
-#define SNMP_H "@(#) $Id$"
+#ifndef GNUGKSNMP_H
+#define GNUGKSNMP_H "@(#) $Id$"
 
 #include "config.h"
 
@@ -66,4 +66,4 @@ protected:
 
 #endif	// HAS_SNMPAGENT
 
-#endif	// SNMP_H
+#endif	// GNUGKSNMP_H

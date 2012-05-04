@@ -17,7 +17,8 @@
 
 const char * subagent_name = "gnugk-agent";
 
-static oid RegOID[]	= { 1, 3, 6, 1, 4, 1, 27938, 11, 1 };
+static oid RegOID[]	     = { 1, 3, 6, 1, 4, 1, 27938, 11, 1 };
+static oid CatchAllOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 2 };
 
 extern "C" {
 
@@ -31,11 +32,25 @@ int ptrace_logger(netsnmp_log_handler * handler, int prio, const char * message)
 
 int registrations_handler(netsnmp_mib_handler *handler, netsnmp_handler_registration *reginfo, netsnmp_agent_request_info *reqinfo, netsnmp_request_info *requests)
 {
-	PTRACE(0, "JW handler called");
-    //if ( reqinfo->mode != MODE_GET ) return SNMPERR_SUCCESS;
+	PTRACE(0, "JW Registrations handler called");
+    if (reqinfo->mode != MODE_GET)
+		return SNMPERR_SUCCESS;
     for (netsnmp_request_info *request = requests; request; request = request->next) {
 		unsigned no_regs = RegistrationTable::Instance()->Size();
 		snmp_set_var_typed_integer(request->requestvb, ASN_INTEGER, no_regs);
+	}
+	return SNMPERR_SUCCESS;
+}
+
+int catchall_handler(netsnmp_mib_handler *handler, netsnmp_handler_registration *reginfo, netsnmp_agent_request_info *reqinfo, netsnmp_request_info *requests)
+{
+	PTRACE(0, "JW CatchAll handler called");
+    for (netsnmp_request_info *request = requests; request; request = request->next) {
+		if (reqinfo->mode == MODE_GET) {
+			snmp_set_var_typed_value(requests->requestvb, ASN_OCTET_STR, "Bar", strlen("Bar"));
+		} else if (reqinfo->mode == MODE_SET_ACTION) {
+			PTRACE(0, "JW CatchAll SET " << requests->requestvb->val.string);
+		}
 	}
 	return SNMPERR_SUCCESS;
 }
@@ -79,14 +94,10 @@ void SNMPAgent::Run()
 
 	init_agent(subagent_name);
 
-	m_handler = netsnmp_create_handler_registration("regs", registrations_handler, RegOID, OID_LENGTH(RegOID), HANDLER_CAN_RONLY);
-	if (m_handler) {
-		if (netsnmp_register_scalar(m_handler) != SNMPERR_SUCCESS) {
-			PTRACE(1, "SNMP\tHandler registration failed");
-		}
-	} else {
-		PTRACE(1, "SNMP\tHandler creation failed");
-	}
+	netsnmp_register_scalar(
+		netsnmp_create_handler_registration("registrations", registrations_handler, RegOID, OID_LENGTH(RegOID), HANDLER_CAN_RONLY));
+	netsnmp_register_scalar(
+		netsnmp_create_handler_registration("catchall", catchall_handler, CatchAllOID, OID_LENGTH(CatchAllOID), HANDLER_CAN_RWRITE));
 
 	init_snmp(subagent_name);   // reads $HOME/.snmp/gnugk-agent.conf + $HOME/.snmp/agentx.conf
 	while (true) {
