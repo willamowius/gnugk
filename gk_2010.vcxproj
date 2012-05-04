@@ -530,6 +530,7 @@
     <ClCompile Include="Routing.cxx" />
     <ClCompile Include="sigmsg.cxx" />
     <ClCompile Include="singleton.cxx" />
+    <ClCompile Include="snmp.cxx" />
     <ClCompile Include="SoftPBX.cxx" />
     <ClCompile Include="sqlacct.cxx" />
     <ClCompile Include="sqlauth.cxx" />
@@ -626,6 +627,7 @@ configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_
     <ClInclude Include="rwlock.h" />
     <ClInclude Include="sigmsg.h" />
     <ClInclude Include="singleton.h" />
+    <ClInclude Include="snmp.h" />
     <ClInclude Include="slist.h" />
     <ClInclude Include="SoftPBX.h" />
     <ClInclude Include="sqlacct.h" />

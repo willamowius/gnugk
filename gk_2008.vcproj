@@ -527,6 +527,10 @@
 				>
 			</File>
 			<File
+				RelativePath="snmp.cxx"
+				>
+			</File>
+			<File
 				RelativePath="SoftPBX.cxx"
 				>
 			</File>
@@ -785,6 +789,10 @@
 			</File>
 			<File
 				RelativePath="singleton.h"
+				>
+			</File>
+			<File
+				RelativePath="snmp.h"
 				>
 			</File>
 			<File
