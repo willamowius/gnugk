@@ -310,6 +310,7 @@ Enable H.323 in the VCS settings, set the Protocol to H.460.18 (not Assent) and 
 
 Add the IP of your GnuGk server as the Peer 1 address in the VCS.
 
+Enable H.460.18 in your GnuGk config with EnableH46018=1 in the [RoutedMode] section.
 Set H46018Client=0 and H46018Server=1 in the [Neighbor::..] section. If H.460.18 is globally enabled,
 GnuGk will automatically detect that a neighbor is acting like a H.460.18 traversal zone client
 and it needs to act as a traversal server. But since traversal clients may come from unknown or
@@ -318,8 +319,11 @@ the first keepAlive SCI message.
 
 <descrip>
 <tag/Example:/
+<tt/[RoutedMode]/<newline>
+<tt/EnableH46018=1/<newline>
+<newline>
 <tt/[RasSrv::Neighbors]/<newline>
-<tt/VCSClient=GnuGk/<newline>
+<tt/VCSClient=Generic/<newline>
 <newline>
 <tt/[Neighbor::VCSClient]/<newline>
 <tt/GatekeeperIdentifier=FooVCS/<newline>
@@ -344,7 +348,7 @@ and select a port (you can't use 1719!).  You must specify this port in your
 GnuGk config for this neighbor.  Set a username and password in the VCS and
 put them into SendAuthUser= and SendPaswword= in your GnuGk config.
 <p>
-In the GnuGk config, set H46018Client=1 in the [Neighbor::..] section.
+In the GnuGk config, set EnableH46018=1 in [RoutedMode] and set H46018Client=1 in the [Neighbor::..] section.
 
 Please note that for any password authentication to work, both systems
 must have accurate and synchronized time, so it is strongly recommended that
@@ -352,6 +356,12 @@ you configure NTP.
 
 <descrip>
 <tag/Example:/
+<tt/[RoutedMode]/<newline>
+<tt/EnableH46018=1/<newline>
+<newline>
+<tt/[RasSrv::Neighbors]/<newline>
+<tt/VCSServer=Generic/<newline>
+<newline>
 <tt/[Neighbor::VCSServer]/<newline>
 <tt/;from unknown IP/<newline>
 <tt/Host=211.211.10.10/<newline>
