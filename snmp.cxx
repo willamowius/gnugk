@@ -13,23 +13,40 @@
 
 #include "snmp.h"
 
-#ifdef HAS_SNMP
+#ifdef HAS_SNMPAGENT
 
 const char * subagent_name = "gnugk-agent";
 
-int ptrace_logger(netsnmp_log_handler * handler, int priority, const char * message)
+static oid RegOID[]	= { 1, 3, 6, 1, 4, 1, 27938, 11, 1 };
+
+extern "C" {
+
+int ptrace_logger(netsnmp_log_handler * handler, int prio, const char * message)
 {
-	// TODO: set trace level according to priority
 	if (message) {
-		PTRACE(1, "NetSNMP\t(" << priority << ") " << message);
+		PTRACE((prio <= LOG_WARNING ? 1 : 4), "NetSNMP\t" << message);
 	}
     return 1;
+}
+
+int registrations_handler(netsnmp_mib_handler *handler, netsnmp_handler_registration *reginfo, netsnmp_agent_request_info *reqinfo, netsnmp_request_info *requests)
+{
+	PTRACE(0, "JW handler called");
+    //if ( reqinfo->mode != MODE_GET ) return SNMPERR_SUCCESS;
+    for (netsnmp_request_info *request = requests; request; request = request->next) {
+		unsigned no_regs = RegistrationTable::Instance()->Size();
+		snmp_set_var_typed_integer(request->requestvb, ASN_INTEGER, no_regs);
+	}
+	return SNMPERR_SUCCESS;
+}
+
 }
 
 SNMPAgent::SNMPAgent() : Singleton<SNMPAgent>("SNMPAgent")
 {
 	PTRACE(1, "SNMP\tStarting SNMP agent");
-	logger = NULL;
+	m_logger = NULL;
+	m_handler = NULL;
 }
 
 SNMPAgent::~SNMPAgent()
@@ -47,9 +64,9 @@ void SNMPAgent::Run()
 {
 	// enable Net-SNMP logging via PTRACE
 	snmp_enable_calllog();
-	logger = netsnmp_register_loghandler(NETSNMP_LOGHANDLER_CALLBACK, LOG_DEBUG);
-	if (logger) {
-		logger->handler = ptrace_logger;
+	m_logger = netsnmp_register_loghandler(NETSNMP_LOGHANDLER_CALLBACK, LOG_DEBUG);
+	if (m_logger) {
+		m_logger->handler = ptrace_logger;
 		PTRACE(5, "SNMP\tLogger installed");
 	} else {
 		PTRACE(1, "SNMP\tError installing logger");
@@ -61,10 +78,20 @@ void SNMPAgent::Run()
 	netsnmp_enable_subagent();
 
 	init_agent(subagent_name);
+
+	m_handler = netsnmp_create_handler_registration("regs", registrations_handler, RegOID, OID_LENGTH(RegOID), HANDLER_CAN_RONLY);
+	if (m_handler) {
+		if (netsnmp_register_scalar(m_handler) != SNMPERR_SUCCESS) {
+			PTRACE(1, "SNMP\tHandler registration failed");
+		}
+	} else {
+		PTRACE(1, "SNMP\tHandler creation failed");
+	}
+
 	init_snmp(subagent_name);   // reads $HOME/.snmp/gnugk-agent.conf + $HOME/.snmp/agentx.conf
 	while (true) {
 		agent_check_and_process(1); // where 1==block
 	}
 }
 
-#endif	// HAS_SNMP
+#endif	// HAS_SNMPAGENT

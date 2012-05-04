@@ -235,9 +235,14 @@
    #define PTRACEX(level, args)  PTRACE(level,args)   
 #endif
 
-// TODO: move to configure script
-#ifdef P_SNMP
-//#define HAS_SNMP 1
+#if defined(P_SNMP) || defined(HAS_NETSNMP)
+#define HAS_SNMPTRAPS 1
+#endif
+#if defined(HAS_NETSNMP)
+#define HAS_SNMPAGENT 1
+#endif
+#if defined(HAS_SNMPTRAPS) || defined(HAS_SNMPAGENT)
+#define HAS_SNMP 1
 #endif
 
-#endif
+#endif // PWLIB_COMPAT_H

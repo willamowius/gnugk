@@ -413,7 +413,7 @@ class Toolkit : public Singleton<Toolkit>
 	GkPresence & GetPresenceHandler();
 #endif
 	bool IsSNMPEnabled() const;
-#ifdef HAS_SNMP
+#ifdef HAS_SNMPTRAPS
 	void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg = PString::Empty());
 #endif
 	bool IsIPv6Enabled() const;

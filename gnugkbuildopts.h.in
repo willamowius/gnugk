@@ -37,6 +37,10 @@
   #define LIBSSH_LIB	"@LIBSSH_DIR@/lib/ssh.lib"
 #endif
 
+// Net-SNMP
+
+#undef HAS_NETSNMP
+
 // MYSQL
 
 #undef HAS_MYSQL

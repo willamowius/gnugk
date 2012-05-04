@@ -1326,7 +1326,7 @@ void RasServer::Run()
 		acctList->LogAcctEvent(GkAcctLogger::AcctOn,nullcall);
 
 		CreateJob(this, &RasServer::HouseKeeping, "HouseKeeping");
-#ifdef HAS_SNMP
+#ifdef HAS_SNMPAGENT
 		if (Toolkit::Instance()->IsSNMPEnabled()) {
 			SNMPAgent::Instance()->LoadConfig();
 			CreateJob(SNMPAgent::Instance(), &SNMPAgent::Run, "SNMPAgent");

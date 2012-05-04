@@ -922,6 +922,113 @@ else
 fi
 AC_SUBST(HAS_LIBSSH)
 
+dnl #########################################################################
+dnl  Check for Net-SNMP
+dnl ########################################################################
+
+dnl MSWIN_DISPLAY    netsnmp,Net-SNMP
+dnl MSWIN_CHECK_FILE netsnmp,include\net-snmp\net-snmp-config.h,HAS_NETSNMP=1
+dnl MSWIN_DIR_SYMBOL netsnmp,NETSNMP_DIR
+dnl MSWIN_CHECK_DIR  netsnmp,\net-snmp\
+
+AC_ARG_ENABLE(netsnmp, 
+[  --enable-netsnmp                enable Net-SNMP support (default=yes)], 
+[ netsnmp="${enableval}" ], [ netsnmp="yes" ]
+)
+
+AC_ARG_WITH(netsnmp-include-dir,
+[  --with-netsnmp-include-dir=DIR  directory where Net-SNMP includes may be found ],
+[ netsnmp_include_dir="$withval" ]
+)
+
+AC_ARG_WITH(netsnmp-lib-dir,
+[  --with-netsnmp-lib-dir=DIR      directory where Net-SNMP libraries may be found ],
+[ netsnmp_lib_dir="$withval" ]
+)
+
+AC_ARG_WITH(netsnmp-dir,
+[  --with-netsnmp-dir=DIR          base directory where Net-SNMP is installed ],
+[ netsnmp_lib_dir="$withval/lib"
+  netsnmp_include_dir="$withval/include"
+]
+)
+
+if test "x${netsnmp}" != "xno"; then
+
+	AC_MSG_CHECKING([for net-snmp/net-snmp-config.h])
+
+	old_CFLAGS="$CFLAGS"
+
+	for try in /usr/include /usr/local/include $netsnmp_include_dir; do
+		if test -d $try; then
+			CFLAGS="$old_CFLAGS -I$try"
+			AC_TRY_COMPILE([#include <net-snmp/net-snmp-config.h>], [int a = 1;],
+				NETSNMP_INCLUDE="-I$try",
+				NETSNMP_INCLUDE=
+			)
+		fi
+	done
+	CFLAGS="$old_CFLAGS"
+
+	if test "x$NETSNMP_INCLUDE" = "x"; then
+		AC_MSG_RESULT(no)
+		AC_MSG_WARN([Net-SNMP headers not found. Use --with-netsnmp-include-dir=<path>])
+		netsnmp="no"
+	else
+		netsnmp_cflags="${netsnmp_cflags} ${NETSNMP_INCLUDE}"
+		AC_MSG_RESULT(yes)
+
+		AC_MSG_CHECKING([for Net-SNMP library])
+
+		old_LIBS="$LIBS"
+
+		for try in /usr/lib /usr/local/lib $netsnmp_lib_dir; do
+			if test -d $try; then
+				LIBS="$old_LIBS -lnetsnmpagent"
+				AC_TRY_LINK([extern netsnmp_enable_subagent();], [netsnmp_enable_subagent();],
+					[ NETSNMP_LIBS="-lnetsnmpagent"
+					  NETSNMP_LDFLAGS="-L$try"
+					]
+				)
+				if test "x$NETSNMP_LDFLAGS" != "x"; then
+					break;
+				fi
+			fi
+		done
+		LIBS="$old_LIBS"
+
+		if test "x$NETSNMP_LDFLAGS" = "x"; then
+			AC_MSG_RESULT(no)
+			NETSNMP_INCLUDE=
+			AC_MSG_WARN([NetSNMP lib not found. Use --with-netsnmp-lib-dir=<path>])
+			netsnmp="no"
+		else
+			AC_MSG_RESULT(yes) 
+			netsnmp_ldflags="$netsnmp_ldflags $NETSNMP_LDFLAGS"
+		fi
+	fi
+
+	netsnmp_ldflags="$netsnmp_ldflags $LIBS"
+
+	if test "x$netsnmp" = "xno"; then
+		AC_MSG_WARN([Net-SNMP disabled])
+	fi
+else
+	netsnmp="no"
+fi
+
+if test "x$netsnmp" != "xno"; then
+	HAS_NETSNMP=1
+	STDCCFLAGS="${netsnmp_cflags} -DHAS_NETSNMP=1 $STDCCFLAGS"
+	LDFLAGS="$NETSNMP_LDFLAGS $LDFLAGS"
+	ENDLDLIBS="$NETSNMP_LIBS $ENDLDLIBS"
+    echo "Net-SNMP support enabled"
+else
+    echo "Net-SNMP support disabled"
+	HAS_NETSNMP=0
+fi
+AC_SUBST(HAS_NETSNMP)
+
 dnl ########################################################################
 dnl make directives
 

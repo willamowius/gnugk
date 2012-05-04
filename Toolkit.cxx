@@ -38,7 +38,7 @@ const char * H350Section = "GkH350::Settings";
 #include "h350/h350.h"
 #endif
 
-#ifdef HAS_SNMP
+#ifdef P_SNMP
 #include <ptclib/psnmp.h>
 #endif
 
@@ -2734,9 +2734,10 @@ bool Toolkit::IsSNMPEnabled() const
 #endif
 }
 
-#ifdef HAS_SNMP
+#ifdef HAS_SNMPTRAPS
 void Toolkit::SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg)
 {
+#ifdef P_SNMP
 	PString trapHost = GkConfig()->GetString(SNMPSection, "TrapHost", "");
 	if (!trapHost.IsEmpty()) {
 		PString trapCommunity = GkConfig()->GetString(SNMPSection, "TrapCommunity", "public");
@@ -2747,8 +2748,11 @@ void Toolkit::SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup gr
 			vars.AppendString(displayMsgOID, msg);
 		PSNMP::SendEnterpriseTrap(PIPSocket::Address(trapHost), trapCommunity,
 			GnuGkMIB + PString(".0"), trapNumber,
-			(PTime() - SoftPBX::StartUp).GetMilliSeconds() / 10, vars);
+			PInt32((PTime() - SoftPBX::StartUp).GetMilliSeconds() / 10), vars);
 	}
+#else
+#warning ("Net-SNMP trap implementation missing");
+#endif
 }
 #endif
 
