@@ -22,15 +22,18 @@ enum SNMPGroup { General=1, Network=2, Database=3 };
 
 const char * const SNMPSection = "SNMP";
 
-#define GnuGkMIB		"1.3.6.1.4.1.27938.11"
-#define severityOID	"1.3.6.1.4.1.27938.11.1.1"
-#define groupOID		"1.3.6.1.4.1.27938.11.1.2"
-#define displayMsgOID	"1.3.6.1.4.1.27938.11.1.3"
+const char * const GnuGkMIB         = "1.3.6.1.4.1.27938.11";
+const char * const severityOIDStr   = "1.3.6.1.4.1.27938.11.1.1";
+const char * const groupOIDStr      = "1.3.6.1.4.1.27938.11.1.2";
+const char * const displayMsgOIDStr = "1.3.6.1.4.1.27938.11.1.3";
 
 
 #ifdef HAS_SNMPTRAPS
 
 #include "Toolkit.h"
+#ifdef P_SNMP
+#include <ptclib/psnmp.h>
+#endif
 
 #define SNMP_TRAP(NO,LEVEL,GROUP,MSG) if (Toolkit::Instance()->IsSNMPEnabled()) { Toolkit::Instance()->SendSNMPTrap(NO,LEVEL,GROUP,MSG); }
 

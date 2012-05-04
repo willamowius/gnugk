@@ -63,10 +63,10 @@ void SNMPAgent::LoadConfig()
 void SNMPAgent::Run()
 {
 	// enable Net-SNMP logging via PTRACE
-	snmp_enable_calllog();
 	m_logger = netsnmp_register_loghandler(NETSNMP_LOGHANDLER_CALLBACK, LOG_DEBUG);
 	if (m_logger) {
 		m_logger->handler = ptrace_logger;
+		snmp_enable_calllog();
 		PTRACE(5, "SNMP\tLogger installed");
 	} else {
 		PTRACE(1, "SNMP\tError installing logger");
