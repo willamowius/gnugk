@@ -237,7 +237,7 @@
 
 // TODO: move to configure script
 #ifdef P_SNMP
-#define HAS_SNMP 0
+//#define HAS_SNMP 1
 #endif
 
 #endif
