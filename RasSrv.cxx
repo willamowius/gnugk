@@ -1333,7 +1333,6 @@ void RasServer::Run()
 			CreateJob(SNMPAgent::Instance(), &SNMPAgent::Run, "SNMPAgent");
 		}
 #endif
-		SNMP_TRAP(1, Info, General, "GnuGk started");	// TODO: might not get through as net-snmp trap, because agent is not connected, yet
 
 		RegularJob::Run();
 

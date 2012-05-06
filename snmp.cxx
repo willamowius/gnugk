@@ -100,6 +100,8 @@ void SNMPAgent::Run()
 		netsnmp_create_handler_registration("catchall", catchall_handler, CatchAllOID, OID_LENGTH(CatchAllOID), HANDLER_CAN_RWRITE));
 
 	init_snmp(subagent_name);   // reads $HOME/.snmp/gnugk-agent.conf + $HOME/.snmp/agentx.conf
+	SNMP_TRAP(1, Info, General, "GnuGk started");	// when registering as agent, send started trap after connecting
+
 	while (true) {
 		agent_check_and_process(1); // where 1==block
 	}

@@ -4691,7 +4691,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 		fi
 	done
 	CFLAGS="$old_CFLAGS"
-	CFLAGS="$old_LDFLAGS"
+	LDFLAGS="$old_LDFLAGS"
 
 	if test "x$NETSNMP_INCLUDE" = "x"; then
 		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
@@ -4707,11 +4707,11 @@ $as_echo "yes" >&6; }
 		{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Net-SNMP library" >&5
 $as_echo_n "checking for Net-SNMP library... " >&6; }
 
-		old_LIBS="$LIBS"
+		old_LDFLAGS="$LIBS"
 
 		for try in /usr/lib /usr/local/lib $netsnmp_lib_dir; do
 			if test -d $try; then
-				LIBS="$old_LIBS -lnetsnmpagent"
+				LDFLAGS="$old_LDFLAGS -L$try -lnetsnmpagent"
 				cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 extern netsnmp_enable_subagent();
@@ -4736,7 +4736,7 @@ rm -f core conftest.err conftest.$ac_objext \
 				fi
 			fi
 		done
-		LIBS="$old_LIBS"
+		LDFLAGS="$old_LDFLAGS"
 
 		if test "x$NETSNMP_LDFLAGS" = "x"; then
 			{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5

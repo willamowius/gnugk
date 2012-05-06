@@ -1264,6 +1264,10 @@ void Gatekeeper::Main()
 	// Load RDS servers
 	RasSrv->SetRDSServers();
 
+#ifndef HAS_SNMPAGENT
+	SNMP_TRAP(1, Info, General, "GnuGk started");	// when NOT registering as agent, send started trap here already
+#endif
+
 #if defined(_WIN32)
 	// 1) prevent CTRL_CLOSE_EVENT, CTRL_LOGOFF_EVENT and CTRL_SHUTDOWN_EVENT
 	//    dialog box from being displayed.
