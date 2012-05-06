@@ -4664,10 +4664,12 @@ if test "x${netsnmp}" != "xno"; then
 $as_echo_n "checking for net-snmp/net-snmp-config.h... " >&6; }
 
 	old_CFLAGS="$CFLAGS"
+	old_LDFLAGS="$LDFLAGS"
 
 	for try in /usr/include /usr/local/include $netsnmp_include_dir; do
 		if test -d $try; then
 			CFLAGS="$old_CFLAGS -I$try"
+			LDFLAGS="$old_LDFLAGS -L$try/../lib"
 			cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 #include <net-snmp/net-snmp-config.h>
@@ -4689,6 +4691,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 		fi
 	done
 	CFLAGS="$old_CFLAGS"
+	CFLAGS="$old_LDFLAGS"
 
 	if test "x$NETSNMP_INCLUDE" = "x"; then
 		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5

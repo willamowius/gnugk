@@ -958,10 +958,12 @@ if test "x${netsnmp}" != "xno"; then
 	AC_MSG_CHECKING([for net-snmp/net-snmp-config.h])
 
 	old_CFLAGS="$CFLAGS"
+	old_LDFLAGS="$LDFLAGS"
 
 	for try in /usr/include /usr/local/include $netsnmp_include_dir; do
 		if test -d $try; then
 			CFLAGS="$old_CFLAGS -I$try"
+			LDFLAGS="$old_LDFLAGS -L$try/../lib"
 			AC_TRY_COMPILE([#include <net-snmp/net-snmp-config.h>], [int a = 1;],
 				NETSNMP_INCLUDE="-I$try",
 				NETSNMP_INCLUDE=
@@ -969,6 +971,7 @@ if test "x${netsnmp}" != "xno"; then
 		fi
 	done
 	CFLAGS="$old_CFLAGS"
+	CFLAGS="$old_LDFLAGS"
 
 	if test "x$NETSNMP_INCLUDE" = "x"; then
 		AC_MSG_RESULT(no)
