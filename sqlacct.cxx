@@ -36,8 +36,8 @@ SQLAcct::SQLAcct(
 	const PString driverName = cfg->GetString(cfgSec, "Driver", "");
 	if (driverName.IsEmpty()) {
 		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
-			"no SQL driver selected"
-			);
+			"no SQL driver selected");
+		SNMP_TRAP(4, SNMPError, Database, GetName() + " creation failed");
 		PTRACE(0, "GKACCT\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
@@ -46,8 +46,8 @@ SQLAcct::SQLAcct(
 	m_sqlConn = GkSQLConnection::Create(driverName, cfgSec);
 	if (m_sqlConn == NULL) {
 		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
-			"could not find " << driverName << " database driver"
-			);
+			"could not find " << driverName << " database driver");
+		SNMP_TRAP(4, SNMPError, Database, GetName() + " creation failed");
 		PTRACE(0, "GKACCT\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
@@ -57,8 +57,8 @@ SQLAcct::SQLAcct(
 	if (m_startQuery.IsEmpty() 
 		&& (GetEnabledEvents() & GetSupportedEvents() & AcctStart) == AcctStart) {
 		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
-			"no start query configured"
-			);
+			"no start query configured");
+		SNMP_TRAP(4, SNMPError, Database, GetName() + " creation failed");
 		PTRACE(0, "GKACCT\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
@@ -75,6 +75,7 @@ SQLAcct::SQLAcct(
 		&& (GetEnabledEvents() & GetSupportedEvents() & (AcctUpdate | AcctConnect)) != 0) {
 		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
 			"no update query configured");
+		SNMP_TRAP(4, SNMPError, Database, GetName() + " creation failed");
 		PTRACE(0, "GKACCT\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
@@ -87,6 +88,7 @@ SQLAcct::SQLAcct(
 		&& (GetEnabledEvents() & GetSupportedEvents() & AcctStop) == AcctStop) {
 		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
 			"no stop query configured");
+		SNMP_TRAP(4, SNMPError, Database, GetName() + " creation failed");
 		PTRACE(0, "GKACCT\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
@@ -128,6 +130,7 @@ SQLAcct::SQLAcct(
 	if (interfaces.empty()) {
 		PTRACE(0, "GKACCT\t" << GetName() << " cannot determine gatekeeper IP address");
 		PTRACE(0, "GKACCT\tFATAL: Shutting down");
+		SNMP_TRAP(10, SNMPError, Network, "Cannot determine gatekeeper IP");
 		RasServer::Instance()->Stop();
 		return;
 	}
@@ -159,6 +162,7 @@ GkAcctLogger::Status SQLAcct::Log(
 		
 	if (!call && (evt !=AcctOn && evt != AcctOff)) {
 		PTRACE(1, "GKACCT\t" << GetName() << " - missing call info for event " << evt);
+		SNMP_TRAP(5, SNMPError, Accounting, "No call for accouting event");
 		return Fail;
 	}
 	
@@ -167,8 +171,8 @@ GkAcctLogger::Status SQLAcct::Log(
 	if (m_sqlConn == NULL) {
 		PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
 			"data (event: " << evt << ", call: " << callNumber 
-			<< "): SQL connection not active"
-			);
+			<< "): SQL connection not active");
+		SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
 		return Fail;
 	}
 	
@@ -193,6 +197,7 @@ GkAcctLogger::Status SQLAcct::Log(
 			PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
 				"data (event: " << evt << ", call: " << callNumber 
 				<< "): SQL query is empty");
+			SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
 		}
 		return Fail;
 	}
@@ -204,6 +209,7 @@ GkAcctLogger::Status SQLAcct::Log(
 		PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
 			"data (event: " << evt << ", call: " << callNumber 
 			<< "): timeout or fatal error");
+		SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
 	}
 	
 	if (result) {
@@ -211,8 +217,8 @@ GkAcctLogger::Status SQLAcct::Log(
 			if (result->GetNumRows() < 1) {
 				PTRACE(4, "GKACCT\t" << GetName() << " failed to store accounting "
 					"data (event: " << evt << ", call: " << callNumber 
-					<< "): no rows have been updated"
-					);
+					<< "): no rows have been updated");
+				SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
 				delete result;
 				result = NULL;
 			}
@@ -220,8 +226,8 @@ GkAcctLogger::Status SQLAcct::Log(
 			PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
 				"data (event: " << evt << ", call: " << callNumber 
 				<< "): (" << result->GetErrorCode() << ") "
-				<< result->GetErrorMessage()
-				);
+				<< result->GetErrorMessage());
+			SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
 			delete result;
 			result = NULL;
 		}
@@ -229,24 +235,26 @@ GkAcctLogger::Status SQLAcct::Log(
 	
 	if (result == NULL && !queryAlt) {
 		result = m_sqlConn->ExecuteQuery(queryAlt, params);
-		if (result == NULL)
+		if (result == NULL) {
 			PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
 				"data (event: " << evt << ", call: " << callNumber 
-				<< "): timeout or fatal error"
-				);
-		else {
+				<< "): timeout or fatal error");
+			SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
+		} else {
 			if (result->IsValid()) {
 				if (result->GetNumRows() < 1) {
 					PTRACE(4, "GKACCT\t" << GetName() << " failed to store accounting "
 						"data (event: " << evt << ", call: " << callNumber 
 						<< "): no rows have been updated");
+					SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
 				}
-			} else
+			} else {
 				PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
 					"data (event: " << evt << ", call: " << callNumber 
 					<< "): (" << result->GetErrorCode() << ") "
-					<< result->GetErrorMessage()
-					);
+					<< result->GetErrorMessage());
+				SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
+			}
 		}
 	}
 
@@ -262,19 +270,19 @@ GkAcctLogger::Status SQLAcct::Log(
 {
 	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
 		return Next;
-		
+
 	if (!ep) {
 		PTRACE(1, "GKACCT\t" << GetName() << " - missing call info for event " << evt);
 		return Fail;
 	}
-	
+
 	const PString epid = ep->GetEndpointIdentifier().GetValue();
 
 	if (m_sqlConn == NULL) {
 		PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
 			"data (event: " << evt << ", endpoint: " << epid
-			<< "): SQL connection not active"
-			);
+			<< "): SQL connection not active");
+		SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
 		return Fail;
 	}
 	
@@ -295,6 +303,7 @@ GkAcctLogger::Status SQLAcct::Log(
 		PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
 			"data (event: " << evt << ", endpoint: " << epid
 			<< "): timeout or fatal error");
+		SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
 	}
 	
 	if (result) {
@@ -302,8 +311,8 @@ GkAcctLogger::Status SQLAcct::Log(
 			if (result->GetNumRows() < 1) {
 				PTRACE(4, "GKACCT\t" << GetName() << " failed to store accounting "
 					"data (event: " << evt << ", endpoint: " << epid
-					<< "): no rows have been updated"
-					);
+					<< "): no rows have been updated");
+				SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
 				delete result;
 				result = NULL;
 			}
@@ -311,8 +320,8 @@ GkAcctLogger::Status SQLAcct::Log(
 			PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
 				"data (event: " << evt << ", endpoint: " << epid
 				<< "): (" << result->GetErrorCode() << ") "
-				<< result->GetErrorMessage()
-				);
+				<< result->GetErrorMessage());
+			SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
 			delete result;
 			result = NULL;
 		}

@@ -207,11 +207,11 @@ namespace {
 
 /// a common wrapper for SELECT query execution and result retrieval
 bool RunQuery(
-	const PString &traceStr,
-	GkSQLConnection *conn,
-	const PString &query,
-	const std::map<PString, PString>& params,
-	GkSQLResult::ResultRow& resultRow,
+	const PString & traceStr,
+	GkSQLConnection * conn,
+	const PString & query,
+	const std::map<PString, PString> & params,
+	GkSQLResult::ResultRow & resultRow,
 	long timeout
 	)
 {
@@ -219,37 +219,41 @@ bool RunQuery(
 	
 	if (conn == NULL) {
 		PTRACE(2, traceStr << ": query failed - SQL connection not active");
+		SNMP_TRAP(5, SNMPError, Authentication, "SQL connection failed");
 		return false;
 	}
 	
 	if (query.IsEmpty()) {
 		PTRACE(2, traceStr << ": query failed - query string not configured");
+		SNMP_TRAP(5, SNMPError, Authentication, "SQL connection failed");
 		return false;
 	}
 	
 	GkSQLResult* result = conn->ExecuteQuery(query, params, timeout);
 	if (result == NULL) {
 		PTRACE(2, traceStr << ": query failed - timeout or fatal error");
+		SNMP_TRAP(5, SNMPError, Authentication, "SQL connection failed");
 		return false;
 	}
 
 	if (!result->IsValid()) {
 		PTRACE(2, traceStr << ": query failed (" << result->GetErrorCode()
-			<< ") - " << result->GetErrorMessage()
-			);
+			<< ") - " << result->GetErrorMessage());
+		SNMP_TRAP(5, SNMPError, Authentication, "SQL connection failed");
 		delete result;
 		return false;
 	}
 	
 	if (result->GetNumRows() < 1)
 		PTRACE(3, traceStr << ": query returned no rows");
-	else if (result->GetNumFields() < 1)
+	else if (result->GetNumFields() < 1) {
 		PTRACE(2, traceStr << ": bad query - "
-			"no columns found in the result set"
-			);
-	else if (!result->FetchRow(resultRow) || resultRow.empty())
+			"no columns found in the result set");
+		SNMP_TRAP(5, SNMPError, Authentication, "SQL query failed");
+	} else if (!result->FetchRow(resultRow) || resultRow.empty()) {
 		PTRACE(2, traceStr << ": query failed - could not fetch the result row");
-	else {
+		SNMP_TRAP(5, SNMPError, Authentication, "SQL query failed");
+	} else {
 		delete result;
 		return true;
 	}
@@ -282,8 +286,8 @@ SQLPasswordAuth::SQLPasswordAuth(
 	const PString driverName = cfg->GetString(authName, "Driver", "");
 	if (driverName.IsEmpty()) {
 		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"no SQL driver selected"
-			);
+			"no SQL driver selected");
+		SNMP_TRAP(4, SNMPError, Authentication, GetName() + " creation failed");
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
@@ -292,8 +296,8 @@ SQLPasswordAuth::SQLPasswordAuth(
 	m_sqlConn = GkSQLConnection::Create(driverName, authName);
 	if (m_sqlConn == NULL) {
 		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"could not find " << driverName << " database driver"
-			);
+			"could not find " << driverName << " database driver");
+		SNMP_TRAP(4, SNMPError, Authentication, GetName() + " creation failed");
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
@@ -304,8 +308,8 @@ SQLPasswordAuth::SQLPasswordAuth(
 	m_query = cfg->GetString(authName, "Query", "");
 	if (m_query.IsEmpty()) {
 		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"no query configured"
-			);
+			"no query configured");
+		SNMP_TRAP(4, SNMPError, Authentication, GetName() + " creation failed");
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
@@ -314,8 +318,8 @@ SQLPasswordAuth::SQLPasswordAuth(
 		
 	if (!m_sqlConn->Initialize(cfg, authName)) {
 		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"could not connect to the database"
-			);
+			"could not connect to the database");
+		SNMP_TRAP(5, SNMPError, Authentication, GetName() + " creation failed");
 		return;
 	}
 }
@@ -376,8 +380,8 @@ SQLAliasAuth::SQLAliasAuth(
 	const PString driverName = cfg->GetString(authName, "Driver", "");
 	if (driverName.IsEmpty()) {
 		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"no SQL driver selected"
-			);
+			"no SQL driver selected");
+		SNMP_TRAP(5, SNMPError, Authentication, GetName() + " creation failed");
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
@@ -386,8 +390,8 @@ SQLAliasAuth::SQLAliasAuth(
 	m_sqlConn = GkSQLConnection::Create(driverName, authName);
 	if (m_sqlConn == NULL) {
 		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"could not find " << driverName << " database driver"
-			);
+			"could not find " << driverName << " database driver");
+		SNMP_TRAP(5, SNMPError, Authentication, GetName() + " creation failed");
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
@@ -398,8 +402,8 @@ SQLAliasAuth::SQLAliasAuth(
 	m_query = cfg->GetString(authName, "Query", "");
 	if (m_query.IsEmpty()) {
 		PTRACE(1, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"no query configured"
-			);
+			"no query configured");
+		SNMP_TRAP(5, SNMPError, Authentication, GetName() + " creation failed");
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
@@ -408,8 +412,8 @@ SQLAliasAuth::SQLAliasAuth(
 		
 	if (!m_sqlConn->Initialize(cfg, authName)) {
 		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"could not connect to the database"
-			);
+			"could not connect to the database");
+		SNMP_TRAP(5, SNMPError, Authentication, GetName() + " creation failed");
 		return;
 	}
 }
@@ -474,8 +478,8 @@ SQLAuth::SQLAuth(
 	const PString driverName = cfg->GetString(authName, "Driver", "");
 	if (driverName.IsEmpty()) {
 		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"no SQL driver selected"
-			);
+			"no SQL driver selected");
+		SNMP_TRAP(5, SNMPError, Authentication, GetName() + " creation failed");
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
@@ -484,8 +488,8 @@ SQLAuth::SQLAuth(
 	m_sqlConn = GkSQLConnection::Create(driverName, authName);
 	if (m_sqlConn == NULL) {
 		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"could not find " << driverName << " database driver"
-			);
+			"could not find " << driverName << " database driver");
+		SNMP_TRAP(5, SNMPError, Authentication, GetName() + " creation failed");
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
@@ -494,8 +498,8 @@ SQLAuth::SQLAuth(
 	m_regQuery = cfg->GetString(authName, "RegQuery", "");
 	if (m_regQuery.IsEmpty() && IsRasCheckEnabled(RasInfo<H225_RegistrationRequest>::flag)) {
 		PTRACE(1, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"no RRQ query configured"
-			);
+			"no RRQ query configured");
+		SNMP_TRAP(5, SNMPError, Authentication, GetName() + " creation failed");
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
@@ -507,6 +511,7 @@ SQLAuth::SQLAuth(
 	if (m_nbQuery.IsEmpty() && IsRasCheckEnabled(RasInfo<H225_LocationRequest>::flag)) {
 		PTRACE(1, "SQLAUTH\t" << GetName() << " module creation failed: "
 			"no LRQ query configured");
+		SNMP_TRAP(5, SNMPError, Authentication, GetName() + " creation failed");
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
@@ -519,6 +524,7 @@ SQLAuth::SQLAuth(
 			|| IsMiscCheckEnabled(e_Setup) || IsMiscCheckEnabled(e_SetupUnreg))) {
 		PTRACE(1, "SQLAUTH\t" << GetName() << " module creation failed: "
 			"no ARQ/Setup query configured");
+		SNMP_TRAP(5, SNMPError, Authentication, GetName() + " creation failed");
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
@@ -529,6 +535,7 @@ SQLAuth::SQLAuth(
 	if (!m_sqlConn->Initialize(cfg, authName)) {
 		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
 			"could not connect to the database");
+		SNMP_TRAP(5, SNMPError, Authentication, GetName() + " creation failed");
 		return;
 	}
 }

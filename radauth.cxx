@@ -147,8 +147,8 @@ int RadAuthBase::Check(
 	}
 	if (!ipFound) {
 		PTRACE(2, "RADAUTH\t" << GetName() << " RRQ auth failed: "
-			"could not determine Framed-IP-Address"
-			);
+			"could not determine Framed-IP-Address");
+		SNMP_TRAP(8, SNMPError, Authentication, GetName() + " RRQ check failed");
 		authData.m_rejectReason = H225_RegistrationRejectReason::e_invalidCallSignalAddress;
 		delete pdu;
 		return e_fail;
@@ -178,8 +178,8 @@ int RadAuthBase::Check(
 			
 	if (!result) {
 		PTRACE(2, "RADAUTH\t" << GetName() << " RRQ auth failed: "
-			" could not receive or decode response from RADIUS"
-			);
+			" could not receive or decode response from RADIUS");
+		SNMP_TRAP(8, SNMPError, Authentication, GetName() + " RRQ check failed");
 		delete response;
 		response = NULL;
 		authData.m_rejectReason = H225_RegistrationRejectReason::e_undefinedReason;
@@ -202,15 +202,14 @@ int RadAuthBase::Check(
 				&& strspn((const char*)value, "0123456789") == (size_t)value.GetLength()) {
 				const unsigned retcode = value.AsUnsigned();
 				if (retcode != 0) {
-					PTRACE(3, "RADAUTH\t" << GetName() << " RRQ check failed: "
-						"return code " << retcode
-						);
+					PTRACE(3, "RADAUTH\t" << GetName() << " RRQ check failed: return code " << retcode);
+					SNMP_TRAP(8, SNMPError, Authentication, GetName() + " RRQ check failed");
 					result = false;
 				}
 			} else {
 				PTRACE(2, "RADAUTH\t" << GetName() << " RRQ check failed: "
-					"invalid h323-return-code attribute '" << value << '\''
-					);
+					"invalid h323-return-code attribute '" << value << '\'');
+				SNMP_TRAP(8, SNMPError, Authentication, GetName() + " RRQ check failed");
 				result = false;
 			}
 		}
@@ -359,8 +358,8 @@ int RadAuthBase::Check(
 		delete pdu;
 		PTRACE(3, "RADAUTH\t" << GetName() << " ARQ auth failed: "
 			"requesting endpoint " << arq.m_endpointIdentifier 
-			<< " not registered"
-			);
+			<< " not registered");
+		SNMP_TRAP(8, SNMPError, Authentication, GetName() + " ARQ check failed");
 		authData.m_rejectReason = arq.m_answerCall
 			? H225_AdmissionRejectReason::e_calledPartyNotRegistered
 			: H225_AdmissionRejectReason::e_callerNotRegistered;
@@ -416,8 +415,8 @@ int RadAuthBase::Check(
 	}
 	if (!ipFound) {
 		PTRACE(2, "RADAUTH\t" << GetName() << " ARQ auth failed: "
-			"could not setup Framed-IP-Address"
-			);
+			"could not setup Framed-IP-Address");
+		SNMP_TRAP(8, SNMPError, Authentication, GetName() + " ARQ check failed");
 		authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
 		delete pdu;
 		return e_fail;
@@ -437,8 +436,8 @@ int RadAuthBase::Check(
 	if (stationId.IsEmpty()) {
 		delete pdu;
 		PTRACE(2, "RADAUTH\t" << GetName() << " ARQ auth failed: "
-			"no suitable alias for Calling-Station-Id has been found"
-			);
+			"no suitable alias for Calling-Station-Id has been found");
+		SNMP_TRAP(8, SNMPError, Authentication, GetName() + " ARQ check failed");
 		authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
 		return e_fail;
 	} else
@@ -465,8 +464,8 @@ int RadAuthBase::Check(
 
 	if (!result) {
 		PTRACE(2, "RADAUTH\t" << GetName() << " ARQ auth failed: "
-			" could not receive or decode response from RADIUS"
-			);
+			" could not receive or decode response from RADIUS");
+		SNMP_TRAP(8, SNMPError, Authentication, GetName() + " ARQ check failed");
 		delete response;
 		response = NULL;
 		authData.m_rejectReason = H225_AdmissionRejectReason::e_undefinedReason;
@@ -501,14 +500,14 @@ int RadAuthBase::Check(
 				const unsigned retcode = value.AsUnsigned();
 				if (retcode != 0) {
 					PTRACE(3, "RADAUTH\t" << GetName() << " ARQ check failed: "
-						"return code " << retcode
-						);
+						"return code " << retcode);
+					SNMP_TRAP(8, SNMPError, Authentication, GetName() + " ARQ check failed");
 					result = false;
 				}
 			} else {
 				PTRACE(2, "RADAUTH\t" << GetName() << " ARQ check failed: "
-					"invalid h323-return-code attribute '" << value << '\''
-					);
+					"invalid h323-return-code attribute '" << value << '\'');
+				SNMP_TRAP(8, SNMPError, Authentication, GetName() + " ARQ check failed");
 				result = false;
 			}
 		}
@@ -548,8 +547,8 @@ int RadAuthBase::Check(
 					result = false;
 			} else {
 				PTRACE(2, "RADAUTH\t" << GetName() << " ARQ check failed: "
-					"invalid h323-credit-time attribute '" << value << '\''
-					);
+					"invalid h323-credit-time attribute '" << value << '\'');
+				SNMP_TRAP(8, SNMPError, Authentication, GetName() + " ARQ check failed");
 				result = false;
 			}
 		}
@@ -786,8 +785,8 @@ int RadAuthBase::Check(
 	}
 	if (!ipFound) {
 		PTRACE(2, "RADAUTH\t" << GetName() << " Setup auth failed: "
-			"could not setup Framed-IP-Address"
-			);
+			"could not setup Framed-IP-Address");
+		SNMP_TRAP(8, SNMPError, Authentication, GetName() + " Setup check failed");
 		delete pdu;
 		authData.m_rejectCause = Q931::CallRejected;
 		return e_fail;
@@ -807,8 +806,8 @@ int RadAuthBase::Check(
 	if (stationId.IsEmpty()) {
 		delete pdu;
 		PTRACE(2, "RADAUTH\t" << GetName() << " Setup check failed: "
-			"no called station id found"
-			);
+			"no called station id found");
+		SNMP_TRAP(8, SNMPError, Authentication, GetName() + " Setup check failed");
 		authData.m_rejectReason = H225_ReleaseCompleteReason::e_badFormatAddress;
 		return e_fail;
 	} else
@@ -831,8 +830,8 @@ int RadAuthBase::Check(
 			
 	if (!result) {
 		PTRACE(2, "RADAUTH\t" << GetName() << " Setup auth failed: "
-			" could not receive or decode response from RADIUS"
-			);
+			" could not receive or decode response from RADIUS");
+		SNMP_TRAP(8, SNMPError, Authentication, GetName() + " Setup check failed");
 		delete response;
 		response = NULL;
 		authData.m_rejectCause = Q931::TemporaryFailure;
@@ -867,14 +866,14 @@ int RadAuthBase::Check(
 				const unsigned retcode = value.AsUnsigned();
 				if (retcode != 0) {
 					PTRACE(5, "RADAUTH\t" << GetName() << " Setup check failed: "
-						"return code " << retcode
-						);
+						"return code " << retcode);
+					SNMP_TRAP(8, SNMPError, Authentication, GetName() + " Setup check failed");
 					result = false;
 				}
 			} else {
 				PTRACE(2, "RADAUTH\t" << GetName() << " Setup check failed: "
-					"invalid h323-return-code attribute '" << value << '\''
-					);
+					"invalid h323-return-code attribute '" << value << '\'');
+				SNMP_TRAP(8, SNMPError, Authentication, GetName() + " Setup check failed");
 				result = false;
 			}
 		}
@@ -914,8 +913,8 @@ int RadAuthBase::Check(
 					result = false;
 			} else {
 				PTRACE(2, "RADAUTH\t" << GetName() << " Setup check failed: "
-					"invalid h323-credit-time attribute '" << value << '\''
-					);
+					"invalid h323-credit-time attribute '" << value << '\'');
+				SNMP_TRAP(8, SNMPError, Authentication, GetName() + " Setup check failed");
 				result = false;
 			}
 		}
@@ -1109,8 +1108,8 @@ int RadAuth::CheckTokens(
 			&& token.HasOptionalField(H235_ClearToken::e_challenge))) 
 		{	
 			PTRACE(3, "RADAUTH\t" << GetName() << " auth failed: "
-				"CAT without all required fields"
-				);
+				"CAT without all required fields");
+			SNMP_TRAP(8, SNMPError, Authentication, GetName() + " failed");
 			return e_fail;
 		}
 				
@@ -1118,8 +1117,8 @@ int RadAuth::CheckTokens(
 		const PString id = token.m_generalID;
 		if (aliases && FindAlias(*aliases, id) == P_MAX_INDEX) {
 			PTRACE(3, "RADAUTH\t" << GetName() << " auth failed: "
-				"CAT m_generalID is not a valid alias"
-				);
+				"CAT m_generalID is not a valid alias");
+			SNMP_TRAP(8, SNMPError, Authentication, GetName() + " failed");
 			return e_fail;
 		}
 					
@@ -1127,16 +1126,16 @@ int RadAuth::CheckTokens(
 		const int randomInt = token.m_random;
 		if (randomInt < -127 || randomInt > 255) {
 			PTRACE(3, "RADAUTH\t" << GetName() << " auth failed: "
-				"CAT m_random out of range"
-				);
+				"CAT m_random out of range");
+			SNMP_TRAP(8, SNMPError, Authentication, GetName() + " failed");
 			return e_fail;
 		}
 					
 		// CAT challenge has to be 16 bytes
 		if (token.m_challenge.GetValue().GetSize() < 16) {
 			PTRACE(3, "RADAUTH\t" << GetName() << " auth failed: "
-				"m_challenge less than 16 bytes"
-				);
+				"m_challenge less than 16 bytes");
+			SNMP_TRAP(8, SNMPError, Authentication, GetName() + " failed");
 			return e_fail;
 		}
 					
@@ -1155,6 +1154,7 @@ int RadAuth::CheckTokens(
 		return e_ok;
 	}
 	PTRACE(3, "RADAUTH\t" << GetName() << " auth failed: no CAT token found");
+	SNMP_TRAP(8, SNMPError, Authentication, GetName() + " failed: no token");
 	return GetDefaultStatus();
 }
 
@@ -1171,6 +1171,7 @@ int RadAuth::AppendUsernameAndPassword(
 	if (!rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
 		PTRACE(3, "RADAUTH\t" << GetName() << " RRQ auth failed: "
 			"no m_terminalAlias field");
+		SNMP_TRAP(8, SNMPError, Authentication, GetName() + "RRQ check failed");
 		authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
 		return GetDefaultStatus();
 	}
@@ -1179,6 +1180,7 @@ int RadAuth::AppendUsernameAndPassword(
 	if (!rrq.HasOptionalField(H225_RegistrationRequest::e_tokens)) {
 		PTRACE(3, "RADAUTH\t" << GetName() << " RRQ auth failed: "
 			"tokens not found");
+		SNMP_TRAP(8, SNMPError, Authentication, GetName() + "RRQ check failed");
 		authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
 		return GetDefaultStatus();
 	}
@@ -1202,6 +1204,7 @@ int RadAuth::AppendUsernameAndPassword(
 	if (!arq.HasOptionalField(H225_AdmissionRequest::e_tokens)) {
 		PTRACE(3, "RADAUTH\t" << GetName() << " ARQ auth failed: "
 			"tokens not found");
+		SNMP_TRAP(8, SNMPError, Authentication, GetName() + " ARQ check failed");
 		authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
 		return GetDefaultStatus();
 	}
@@ -1224,6 +1227,7 @@ int RadAuth::AppendUsernameAndPassword(
 	// check for ClearTokens (CAT uses ClearTokens)
 	if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
 		PTRACE(3, "RADAUTH\t" << GetName() << " Setup auth failed: no tokens");
+		SNMP_TRAP(8, SNMPError, Authentication, GetName() + " Setup check failed");
 		authData.m_rejectReason = H225_ReleaseCompleteReason::e_securityDenied;
 		return GetDefaultStatus();
 	}
@@ -1262,6 +1266,7 @@ int RadAliasAuth::AppendUsernameAndPassword(
 	if (id.IsEmpty() && m_fixedUsername.IsEmpty()) {
 		PTRACE(3, "RADAUTH\t" << GetName() << " RRQ check failed: "
 			"neither FixedUsername nor alias inside RRQ were found");
+		SNMP_TRAP(8, SNMPError, Authentication, GetName() + " RRQ check failed");
 		authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
 		return GetDefaultStatus();
 	}
@@ -1293,8 +1298,8 @@ int RadAliasAuth::AppendUsernameAndPassword(
 	const PString id = GetUsername(arqPdu, authData);
 	if (id.IsEmpty() && m_fixedUsername.IsEmpty()) {
 		PTRACE(3, "RADAUTH\t" << GetName() << " ARQ check failed: "
-			"neither FixedUsername nor alias inside ARQ were found"
-			);
+			"neither FixedUsername nor alias inside ARQ were found");
+		SNMP_TRAP(8, SNMPError, Authentication, GetName() + " ARQ check failed");
 		authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
 		return GetDefaultStatus();
 	}
@@ -1326,8 +1331,8 @@ int RadAliasAuth::AppendUsernameAndPassword(
 	const PString id = GetUsername(setup, authData);
 	if (id.IsEmpty() && m_fixedUsername.IsEmpty() && m_emptyUsername.IsEmpty()) {
 		PTRACE(3, "RADAUTH\t" << GetName() << " Setup check failed: "
-			"neither EmptyUsername nor FixedUsername nor alias inside Setup were found"
-			);
+			"neither EmptyUsername nor FixedUsername nor alias inside Setup were found");
+		SNMP_TRAP(8, SNMPError, Authentication, GetName() + " Setup check failed");
 		authData.m_rejectReason = H225_ReleaseCompleteReason::e_badFormatAddress;
 		return GetDefaultStatus();
 	}

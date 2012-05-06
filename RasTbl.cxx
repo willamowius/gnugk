@@ -1573,7 +1573,7 @@ void RegistrationTable::RemoveByEndptr(const endptr & eptr)
 void RegistrationTable::InternalRemove(iterator Iter)
 {
 	if (Iter == EndpointList.end()) {
-	        PTRACE(1, "Warning: remove endpoint failed");
+		PTRACE(1, "Warning: remove endpoint failed");
 		return;
 	}
 	RemovedList.push_back(*Iter);

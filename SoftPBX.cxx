@@ -492,6 +492,7 @@ void SoftPBX::MakeCall(const PString & SourceAlias, const PString & DestinationA
 		MakeCallEndPoint::Instance()->ThirdPartyMakeCall(SourceAlias, DestinationAlias);
 	} else {
 		PTRACE(1, "GK\tSoftPBX: MakeCall registration of pseudo-endpoint failed");
+		SNMP_TRAP(7, SNMPError, General, "MakeCall endpoint registration failed");
 		delete MakeCallEndPoint::Instance();	// delete this failed instance, it will never work
 	}
 }

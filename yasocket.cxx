@@ -18,6 +18,7 @@
 #include "rwlock.h"
 #include "yasocket.h"
 #include "Toolkit.h"
+#include "snmp.h"
 #include "gk.h"
 
 using std::mem_fun;
@@ -367,6 +368,7 @@ bool YaTCPSocket::Listen(const Address & addr, unsigned qs, WORD pt, PSocket::Re
 		os_handle = ::socket(PF_INET6, SOCK_STREAM, 0);
 		if (addr.IsAny() && !SetOption(IPV6_V6ONLY, 0, IPPROTO_IPV6)) {
 			PTRACE(1, "Removing of IPV6_V6ONLY failed");
+			SNMP_TRAP(10, SNMPWarning, Network, "IPv6 error");
 		}
 	}
 	else
@@ -543,6 +545,7 @@ bool YaUDPSocket::Listen(const Address & addr, unsigned, WORD pt, PSocket::Reusa
 		os_handle = ::socket(PF_INET6, SOCK_DGRAM, 0);
 		if (addr.IsAny() && !SetOption(IPV6_V6ONLY, 0, IPPROTO_IPV6)) {
 			PTRACE(1, "Removing of IPV6_V6ONLY failed");
+			SNMP_TRAP(10, SNMPWarning, Network, "IPv6 error");
 		}
 	} else
 #endif
@@ -648,17 +651,20 @@ bool TCPSocket::DualStackListen(WORD newPort)
 	// attempt to create a socket
 	if (!OpenSocket(PF_INET6)) {
 		PTRACE(4, "Socket\tOpenSocket failed");
+		SNMP_TRAP(10, SNMPError, Network, "IPv6 error");
 		return false;
 	}
 
 	// allow IPv4 connects
 	if (!SetOption(IPV6_V6ONLY, 0, IPPROTO_IPV6)) {
 		PTRACE(4, "Socket\tSetOption(IPV6_V6ONLY) failed");
+		SNMP_TRAP(10, SNMPWarning, Network, "IPv6 error");
 	}
 
 	// attempt to listen
 	if (!SetOption(SO_REUSEADDR, 1)) {
 		PTRACE(4, "Socket\tSetOption(SO_REUSEADDR) failed");
+		SNMP_TRAP(10, SNMPWarning, Network, "IPv6 error");
 		os_close();
 		return false;
 	}
@@ -675,6 +681,7 @@ bool TCPSocket::DualStackListen(WORD newPort)
 
 	if (!ConvertOSError(::listen(os_handle, 1))) {
 		PTRACE(4, "Socket\tlisten failed: " << GetErrorText());
+		SNMP_TRAP(10, SNMPError, Network, "DualStack listen failed");
 		os_close();
 		return false;
 	}
@@ -685,6 +692,7 @@ bool TCPSocket::DualStackListen(WORD newPort)
 	socklen_t size = sizeof(sa);
 	if (!ConvertOSError(::getsockname(os_handle, (sockaddr*)&sa, &size))) {
 		PTRACE(4, "Socket\tgetsockname failed: " << GetErrorText());
+		SNMP_TRAP(10, SNMPError, Network, "getsockname() failed");
 		os_close();
 		return false;
 	}
@@ -718,12 +726,14 @@ bool UDPSocket::DualStackListen(const PIPSocket::Address & localAddr, WORD newPo
 	// attempt to create a socket
 	if (!OpenSocket(PF_INET6)) {
 		PTRACE(4, "Socket\tOpenSocket failed");
+		SNMP_TRAP(10, SNMPError, Network, "OpenSocket failed");
 		return false;
 	}
 
 	// allow IPv4 connects
 	if (!SetOption(IPV6_V6ONLY, 0, IPPROTO_IPV6)) {
 		PTRACE(4, "Socket\tSetOption(IPV6_V6ONLY) failed");
+		SNMP_TRAP(10, SNMPWarning, Network, "SetOption failed");
 	}
 
 	sockaddr_in6 sa;
@@ -742,6 +752,7 @@ bool UDPSocket::DualStackListen(const PIPSocket::Address & localAddr, WORD newPo
 	socklen_t size = sizeof(sa);
 	if (!ConvertOSError(::getsockname(os_handle, (sockaddr*)&sa, &size))) {
 		PTRACE(4, "Socket\tgetsockname failed: " << GetErrorText());
+		SNMP_TRAP(10, SNMPError, Network, "getsockname() failed");
 		os_close();
 		return false;
 	}
@@ -1150,6 +1161,7 @@ void TCPServer::ReadSocket(IPSocket * socket)
 		CreateJob(acceptor, &ServerSocket::Dispatch, "Acceptor");
 	} else {
 		PTRACE(4, GetName() << "\tAccept failed on " << socket->GetName());
+		SNMP_TRAP(10, SNMPError, Network, "Accept() failed");
 		delete acceptor;
 	}
 }

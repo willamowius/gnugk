@@ -1722,6 +1722,7 @@ SqlPolicy::SqlPolicy()
 	if (driverName.IsEmpty()) {
 		PTRACE(2, m_name << "\tmodule creation failed: "
 			"no SQL driver selected");
+		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
 		m_active = false;
 		return;
 	}
@@ -1730,6 +1731,7 @@ SqlPolicy::SqlPolicy()
 	if (m_sqlConn == NULL) {
 		PTRACE(2, m_name << "\tmodule creation failed: "
 			"could not find " << driverName << " database driver");
+		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
 		m_active = false;
 		return;
 	}
@@ -1738,6 +1740,7 @@ SqlPolicy::SqlPolicy()
 	if (m_query.IsEmpty()) {
 		PTRACE(2, m_name << "\tmodule creation failed: "
 			"no query configured");
+		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
 		m_active = false;
 		return;
 	} else
@@ -1746,6 +1749,7 @@ SqlPolicy::SqlPolicy()
 	if (!m_sqlConn->Initialize(cfg, sqlsection)) {
 		PTRACE(2, m_name << "\tmodule creation failed: "
 			"could not connect to the database");
+		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
 		return;
 	}
 #else
@@ -1785,13 +1789,14 @@ void SqlPolicy::RunPolicy(
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, params, m_timeout);
 	if (result == NULL) {
 		PTRACE(2, m_name << ": query failed - timeout or fatal error");
+		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " query failed");
 		return;
 	}
 
 	if (!result->IsValid()) {
 		PTRACE(2, m_name << ": query failed (" << result->GetErrorCode()
-			<< ") - " << result->GetErrorMessage()
-			);
+			<< ") - " << result->GetErrorMessage());
+		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " query failed");
 		delete result;
 		return;
 	}
@@ -1802,9 +1807,10 @@ void SqlPolicy::RunPolicy(
 		PTRACE(2, m_name << ": bad query - "
 			"no columns found in the result set"
 			);
-	else if (!result->FetchRow(resultRow) || resultRow.empty())
+	else if (!result->FetchRow(resultRow) || resultRow.empty()) {
 		PTRACE(2, m_name << ": query failed - could not fetch the result row");
-	else if ((result->GetNumFields() == 1)
+		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " query failed");
+	} else if ((result->GetNumFields() == 1)
 			|| ((result->GetNumFields() == 2) && (resultRow[1].first.ToUpper() == "IGNORE")) ) {
 		PString newDestination = resultRow[0].first;
 		PTRACE(5, m_name << "\tQuery result : " << newDestination);
@@ -1900,6 +1906,7 @@ LuaPolicy::LuaPolicy()
 	if (m_script.IsEmpty()) {
 		PTRACE(2, m_name << "\tmodule creation failed: "
 			<< "\tno LUA script");
+		SNMP_TRAP(4, SNMPError, General, PString(m_name) + " creation failed");
 		return;
 	}
 	m_active = true;

@@ -22,6 +22,7 @@
 #include <ptclib/random.h>
 #include "Toolkit.h"
 #include "h323util.h"
+#include "snmp.h"
 #include "radproto.h"
 
 // ignore overflow warnings
@@ -1508,11 +1509,13 @@ bool RadiusSocket::MakeRequest(
 			const PINDEX index = AllocReadSyncPoint();
 			if (index == P_MAX_INDEX) {
 				PTRACE(1, "RADIUS\tFailed to allocate a new mutex for the request (id:" << (PINDEX)id << ')');
+				SNMP_TRAP(8, SNMPError, Network, "Radius failed");
 				return false;
 			}
 			syncPoint = m_readSyncPoints[index];
 			if (syncPoint == NULL) {
 				PTRACE(1, "RADIUS\tFailed to allocate a new mutex for the request (id:" << (PINDEX)id << ')');
+				SNMP_TRAP(8, SNMPError, Network, "Radius failed");
 				FreeReadSyncPoint(index);
 				return false;
 			}
@@ -1984,6 +1987,7 @@ bool RadiusClient::MakeRequest(
 			if (secretChanged || requireNewId || !retransmission)
 				if (!GetSocket(socket, id)) {
 					PTRACE(3, "RADIUS\tSocket allocation failed");
+					SNMP_TRAP(8, SNMPError, Network, "Radius failed");
 					delete clonedRequestPDU;
 					return false;
 				}
@@ -2021,8 +2025,8 @@ bool RadiusClient::MakeRequest(
 			if (!socket->MakeRequest(clonedRequestPDU, serverAddress, 
 					serverPort, response)) {
 				PTRACE(3, "RADIUS\tReceive response from RADIUS server failed "
-					"(id:" << (PINDEX)(clonedRequestPDU->GetId()) << ')'
-					);
+					"(id:" << (PINDEX)(clonedRequestPDU->GetId()) << ')');
+				SNMP_TRAP(8, SNMPError, Network, "Radius server failed");
 				delete clonedRequestPDU;
 				continue;
 			}
@@ -2096,6 +2100,7 @@ bool RadiusClient::SendRequest(
 
 	if (!GetSocket(socket, id)) {
 		PTRACE(3, "RADIUS\tSocket allocation failed");
+		SNMP_TRAP(8, SNMPError, Network, "Radius failed");
 		delete clonedRequestPDU;
 		return false;
 	}
