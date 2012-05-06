@@ -15,10 +15,18 @@
 
 #ifdef HAS_SNMPAGENT
 
+#include "gk.h"
+
+void ReloadHandler();
+
 const char * subagent_name = "gnugk-agent";
 
-static oid RegOID[]	     = { 1, 3, 6, 1, 4, 1, 27938, 11, 1 };
-static oid CatchAllOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 2 };
+static oid ShortVersionOID[]  = { 1, 3, 6, 1, 4, 1, 27938, 11, 1 };
+static oid LongVersionOID[]   = { 1, 3, 6, 1, 4, 1, 27938, 11, 2 };
+static oid RegistrationsOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 3 };
+static oid CallsOID[]         = { 1, 3, 6, 1, 4, 1, 27938, 11, 4 };
+static oid TraceLevelOID[]    = { 1, 3, 6, 1, 4, 1, 27938, 11, 5 };
+static oid CatchAllOID[]      = { 1, 3, 6, 1, 4, 1, 27938, 11, 6 };
 
 extern "C" {
 
@@ -30,9 +38,38 @@ int ptrace_logger(netsnmp_log_handler * handler, int prio, const char * message)
     return 1;
 }
 
-int registrations_handler(netsnmp_mib_handler *handler, netsnmp_handler_registration *reginfo, netsnmp_agent_request_info *reqinfo, netsnmp_request_info *requests)
+int short_version_handler(netsnmp_mib_handler * /* handler */,
+							netsnmp_handler_registration * /* reg */,
+							netsnmp_agent_request_info * reqinfo,
+							netsnmp_request_info * requests)
 {
-	PTRACE(0, "JW Registrations handler called");
+    if (reqinfo->mode != MODE_GET)
+		return SNMPERR_SUCCESS;
+    for (netsnmp_request_info *request = requests; request; request = request->next) {
+	    PString version = PProcess::Current().GetVersion(true);
+		snmp_set_var_typed_value(requests->requestvb, ASN_OCTET_STR, (const char *)version, version.GetLength());
+	}
+	return SNMPERR_SUCCESS;
+}
+
+int long_version_handler(netsnmp_mib_handler * /* handler */,
+							netsnmp_handler_registration * /* reg */,
+							netsnmp_agent_request_info * reqinfo,
+							netsnmp_request_info * requests)
+{
+    if (reqinfo->mode != MODE_GET)
+		return SNMPERR_SUCCESS;
+    for (netsnmp_request_info *request = requests; request; request = request->next) {
+		snmp_set_var_typed_value(requests->requestvb, ASN_OCTET_STR, (const char *)Toolkit::GKVersion(), Toolkit::GKVersion().GetLength());
+	}
+	return SNMPERR_SUCCESS;
+}
+
+int registrations_handler(netsnmp_mib_handler * /* handler */,
+							netsnmp_handler_registration * /* reg */,
+							netsnmp_agent_request_info * reqinfo,
+							netsnmp_request_info * requests)
+{
     if (reqinfo->mode != MODE_GET)
 		return SNMPERR_SUCCESS;
     for (netsnmp_request_info *request = requests; request; request = request->next) {
@@ -42,14 +79,62 @@ int registrations_handler(netsnmp_mib_handler *handler, netsnmp_handler_registra
 	return SNMPERR_SUCCESS;
 }
 
-int catchall_handler(netsnmp_mib_handler *handler, netsnmp_handler_registration *reginfo, netsnmp_agent_request_info *reqinfo, netsnmp_request_info *requests)
+int calls_handler(netsnmp_mib_handler * /* handler */,
+							netsnmp_handler_registration * /* reg */,
+							netsnmp_agent_request_info * reqinfo,
+							netsnmp_request_info * requests)
 {
-	PTRACE(0, "JW CatchAll handler called");
+    if (reqinfo->mode != MODE_GET)
+		return SNMPERR_SUCCESS;
+    for (netsnmp_request_info *request = requests; request; request = request->next) {
+		unsigned no_calls = CallTable::Instance()->Size();
+		snmp_set_var_typed_integer(request->requestvb, ASN_INTEGER, no_calls);
+	}
+	return SNMPERR_SUCCESS;
+}
+
+int tracelevel_handler(netsnmp_mib_handler * /* handler */,
+							netsnmp_handler_registration * /* reg */,
+							netsnmp_agent_request_info * reqinfo,
+							netsnmp_request_info * requests)
+{
     for (netsnmp_request_info *request = requests; request; request = request->next) {
 		if (reqinfo->mode == MODE_GET) {
-			snmp_set_var_typed_value(requests->requestvb, ASN_OCTET_STR, "Bar", strlen("Bar"));
+			snmp_set_var_typed_integer(request->requestvb, ASN_INTEGER, PTrace::GetLevel());
 		} else if (reqinfo->mode == MODE_SET_ACTION) {
-			PTRACE(0, "JW CatchAll SET " << requests->requestvb->val.string);
+			if (requests->requestvb->val.integer) {
+				PTrace::SetLevel(*(requests->requestvb->val.integer));
+			} else {
+				return SNMPERR_GENERR;
+			}
+		}
+	}
+	return SNMPERR_SUCCESS;
+}
+
+int catchall_handler(netsnmp_mib_handler * /* handler */,
+							netsnmp_handler_registration * /* reg */,
+							netsnmp_agent_request_info * reqinfo,
+							netsnmp_request_info * requests)
+{
+    for (netsnmp_request_info *request = requests; request; request = request->next) {
+		if (reqinfo->mode == MODE_GET) {
+			PString catchAllDest = GkConfig()->GetString("Routing::CatchAll", "CatchAllIP", "");
+			if (catchAllDest.IsEmpty())
+				catchAllDest = GkConfig()->GetString("Routing::CatchAll", "CatchAllAlias", "catchall");
+			snmp_set_var_typed_value(requests->requestvb, ASN_OCTET_STR, (const char *)catchAllDest, catchAllDest.GetLength());
+		} else if (reqinfo->mode == MODE_SET_ACTION) {
+			PString dest = (const char *)requests->requestvb->val.string;
+			if (IsIPAddress(dest)) {
+				Toolkit::Instance()->SetConfig(1, "Routing::CatchAll", "CatchAllIP", dest);
+				Toolkit::Instance()->SetConfig(1, "Routing::CatchAll", "CatchAllAlias", "");
+			} else {
+				Toolkit::Instance()->SetConfig(1, "Routing::CatchAll", "CatchAllIP", "");
+				Toolkit::Instance()->SetConfig(1, "Routing::CatchAll", "CatchAllAlias", dest);
+			}
+			ConfigReloadMutex.StartWrite();
+			ReloadHandler();
+			ConfigReloadMutex.EndWrite();
 		}
 	}
 	return SNMPERR_SUCCESS;
@@ -95,14 +180,22 @@ void SNMPAgent::Run()
 	init_agent(subagent_name);
 
 	netsnmp_register_scalar(
-		netsnmp_create_handler_registration("registrations", registrations_handler, RegOID, OID_LENGTH(RegOID), HANDLER_CAN_RONLY));
+		netsnmp_create_handler_registration("short version", short_version_handler, ShortVersionOID, OID_LENGTH(ShortVersionOID), HANDLER_CAN_RONLY));
+	netsnmp_register_scalar(
+		netsnmp_create_handler_registration("long version", long_version_handler, LongVersionOID, OID_LENGTH(LongVersionOID), HANDLER_CAN_RONLY));
+	netsnmp_register_scalar(
+		netsnmp_create_handler_registration("registrations", registrations_handler, RegistrationsOID, OID_LENGTH(RegistrationsOID), HANDLER_CAN_RONLY));
+	netsnmp_register_scalar(
+		netsnmp_create_handler_registration("calls", calls_handler, CallsOID, OID_LENGTH(CallsOID), HANDLER_CAN_RONLY));
+	netsnmp_register_scalar(
+		netsnmp_create_handler_registration("catchall", tracelevel_handler, TraceLevelOID, OID_LENGTH(TraceLevelOID), HANDLER_CAN_RWRITE));
 	netsnmp_register_scalar(
 		netsnmp_create_handler_registration("catchall", catchall_handler, CatchAllOID, OID_LENGTH(CatchAllOID), HANDLER_CAN_RWRITE));
 
 	init_snmp(subagent_name);   // reads $HOME/.snmp/gnugk-agent.conf + $HOME/.snmp/agentx.conf
 	SNMP_TRAP(1, Info, General, "GnuGk started");	// when registering as agent, send started trap after connecting
 
-	while (true) {
+	while (!ShutdownMutex.WillBlock()) {
 		agent_check_and_process(1); // where 1==block
 	}
 }
