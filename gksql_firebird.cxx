@@ -373,8 +373,8 @@ bool GkIBSQLResult::FetchRow(
 				(*g_isc_sql_interprete)(static_cast<short>(errcode), errormsg, FB_BUFF_SIZE); 
 			}
 			PTRACE(2, "Firebird\tFailed to fetch query row (" << errcode
-				<< "): SQL:" << errormsg
-				);
+				<< "): SQL:" << errormsg);
+			SNMP_TRAP(5, SNMPError, Database, "Firebird query failed");
 		}
 		return false;
 	}
@@ -383,9 +383,9 @@ bool GkIBSQLResult::FetchRow(
 	
 	for (PINDEX i = 0; i < m_sqlResult->sqld; ++i)
 		result[i] = XSQLVARToPString(&(m_sqlResult->sqlvar[i]));
-	
+
 	m_sqlRow++;
-	
+
 	return true;
 }
 
@@ -418,8 +418,8 @@ bool GkIBSQLResult::FetchRow(
 				(*g_isc_sql_interprete)(static_cast<short>(errcode), errormsg, FB_BUFF_SIZE); 
 			}
 			PTRACE(2, "Firebird\tFailed to fetch query row (" << errcode
-				<< "): SQL:" << errormsg
-				);
+				<< "): SQL:" << errormsg);
+			SNMP_TRAP(5, SNMPError, Database, "Firebird query failed");
 		}
 		return false;
 	}
@@ -439,7 +439,7 @@ bool GkIBSQLResult::FetchRow(
 
 GkIBSQLConnection::GkIBSQLConnection(
 	/// name to use in the log
-	const char* name
+	const char * name
 	) : GkSQLConnection(name)
 {
 }
@@ -494,6 +494,7 @@ GkSQLConnection::SQLConnPtr GkIBSQLConnection::CreateNewConnection(
 			PTRACE (1, GetName() << "\tFailed to load shared database library: unknown error");
 #endif
 			g_sharedLibrary.Close();
+			SNMP_TRAP(5, SNMPError, Database, GetName() + " DLL load error");
 			return NULL;
 		}
 	}
@@ -534,8 +535,8 @@ GkSQLConnection::SQLConnPtr GkIBSQLConnection::CreateNewConnection(
   		const ISC_STATUS *pvector = status;
 		(*g_fb_interpret)(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
 		PTRACE(2, GetName() << "\tFirebird connection to " << m_username << '@' << dbname 
-			<< " failed (isc_attach_database failed): " << errormsg
-			);
+			<< " failed (isc_attach_database failed): " << errormsg);
+		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
 		return NULL;
 	}	
 	

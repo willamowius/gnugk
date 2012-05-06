@@ -967,8 +967,10 @@ bool CiscoGK::CheckReply(RasMsg *msg) const
 	Cisco_LRQnonStandardInfo ciscoNonStandardData;
 	if (ciscoNonStandardData.Decode(strm)) {
 		// here should go additional checks to match callIdentifier, for example
-	} else
+	} else {
 		PTRACE(5, "NB\tFailed to decode Cisco nonStandardInfo field");
+		SNMP_TRAP(9, SNMPWarning, Network, "Can't decode Cisco nonStandardInfo");
+	}
 
 	return true;
 }

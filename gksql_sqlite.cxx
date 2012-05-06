@@ -321,6 +321,7 @@ GkSQLConnection::SQLConnPtr GkSQLiteConnection::CreateNewConnection(
 			PTRACE (1, GetName() << "\tFailed to load shared database library: unknown error");
 #endif
 			g_sharedLibrary.Close();
+			SNMP_TRAP(5, SNMPError, Database, GetName() + " DLL load error");
 			return NULL;
 		}
 	}
@@ -329,15 +330,14 @@ GkSQLConnection::SQLConnPtr GkSQLiteConnection::CreateNewConnection(
 	int rc = (*g_sqlite3_open)(m_database, &conn);
 	if (rc) {
 		PTRACE(2, GetName() << "\tSQLite connection to " <<  m_database 
-			<< " failed (sqlite3_open failed): " << (*g_sqlite3_errmsg)(conn)
-			);
+			<< " failed (sqlite3_open failed): " << (*g_sqlite3_errmsg)(conn));
 		(*g_sqlite3_close)(conn);
+		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed")
 		return NULL;
 	}	
 	
 	PTRACE(5, GetName() << "\tSQLite connection to " << m_database
-		<< " established successfully"
-		);
+		<< " established successfully");
 	return new GkSQLiteConnWrapper(id, conn);
 }
 

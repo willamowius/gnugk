@@ -84,8 +84,8 @@ ForwardingPolicy::ForwardingPolicy()
 
 	const PString driverName = cfg->GetString(sqlsection, "Driver", "");
 	if (driverName.IsEmpty()) {
-		PTRACE(2, m_name << "\tmodule creation failed: "
-			"no SQL driver selected");
+		PTRACE(2, m_name << "\tmodule creation failed: no SQL driver selected");
+		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
 		m_active = false;
 		return;
 	}
@@ -94,6 +94,7 @@ ForwardingPolicy::ForwardingPolicy()
 	if (m_sqlConn == NULL) {
 		PTRACE(2, m_name << "\tmodule creation failed: "
 			"could not find " << driverName << " database driver");
+		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
 		m_active = false;
 		return;
 	}
@@ -102,6 +103,7 @@ ForwardingPolicy::ForwardingPolicy()
 	if (m_query.IsEmpty()) {
 		PTRACE(2, m_name << "\tmodule creation failed: "
 			"no query configured");
+		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
 		m_active = false;
 		return;
 	} else
@@ -110,6 +112,8 @@ ForwardingPolicy::ForwardingPolicy()
 	if (!m_sqlConn->Initialize(cfg, sqlsection)) {
 		PTRACE(2, m_name << "\tmodule creation failed: "
 			"could not connect to the database");
+		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
+		m_active = false;
 		return;
 	}
 #else
@@ -193,12 +197,14 @@ bool ForwardingPolicy::FindEPForwardingRules(
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, params, m_timeout);
 	if (result == NULL) {
 		PTRACE(2, m_name << ": query failed - timeout or fatal error");
+		SNMP_TRAP(5, SNMPError, Database, PString(m_name) + " query failed");
 		return false;
 	}
 
 	if (!result->IsValid()) {
 		PTRACE(2, m_name << ": query failed (" << result->GetErrorCode()
 			<< ") - " << result->GetErrorMessage());
+		SNMP_TRAP(5, SNMPError, Database, PString(m_name) + " query failed");
 		delete result;
 		return false;
 	}
@@ -208,6 +214,7 @@ bool ForwardingPolicy::FindEPForwardingRules(
 		return false;
 	} else if (result->GetNumFields() != 2) {
 		PTRACE(2, m_name << ": bad query - didn't return 2 fields");
+		SNMP_TRAP(5, SNMPError, Database, PString(m_name) + " query failed");
 		return false;
 	} else {
 		// fetch all rows now, recursive checks will invalidate result set
@@ -215,6 +222,7 @@ bool ForwardingPolicy::FindEPForwardingRules(
 		for (long i = 0; i < result->GetNumRows(); ++i) {
 			if (!result->FetchRow(rows[i]) || rows[i].empty()) {
 				PTRACE(2, m_name << ": query failed - could not fetch the result row");
+				SNMP_TRAP(5, SNMPError, Database, PString(m_name) + " query failed");
 				break;
 			}
 		}

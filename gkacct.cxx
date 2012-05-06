@@ -21,6 +21,7 @@
 #include "stl_supp.h"
 #include "Toolkit.h"
 #include "gktimer.h"
+#include "snmp.h"
 #include "gkacct.h"
 
 using std::find;
@@ -743,14 +744,13 @@ GkAcctLogger::Status FileAcct::Log(
 		} else
 			PTRACE(1, "GKACCT\t" << GetName() << " - write CDR text for event "
 				<< evt << ", call no. " << call->GetCallNumber()
-				<< " failed: " << m_cdrFile->GetErrorText()
-				);
+				<< " failed: " << m_cdrFile->GetErrorText());
 	} else
 		PTRACE(1, "GKACCT\t" << GetName() << " - write CDR text for event "
 			<< evt << ", for call no. " << call->GetCallNumber()
-			<< " failed: CDR file is closed"
-			);
-		
+			<< " failed: CDR file is closed");
+
+	SNMP_TRAP(6, SNMPError, Accounting, GetName() + " failed");
 	return Fail;
 }
 
@@ -824,9 +824,10 @@ void FileAcct::Rotate()
 		if (!PFile::Rename(fn, fn.GetFileName() + PTime().AsString(".yyyyMMdd-hhmmss"))) {
 			PTRACE(1, "GKACCT\t" << GetName() << " rotate failed - could not "
 				"rename the log file");
+			SNMP_TRAP(6, SNMPError, Accounting, GetName() + " failed");
 		}
 	}
-	
+
 	m_cdrFile = OpenCDRFile(fn);
 	m_cdrLines = 0;
 }
@@ -930,8 +931,8 @@ bool GkAcctLoggerList::LogAcctEvent(
 		default:
 			if (PTrace::CanTrace(3)) {
 				ostream& strm = PTrace::Begin(3, __FILE__, __LINE__);
-				strm << "GKACCT\t" << logger->GetName() << " failed to log event "
-					<< evt;
+				strm << "GKACCT\t" << logger->GetName() << " failed to log event " << evt;
+				SNMP_TRAP(7, SNMPError, Accounting, logger->GetName() + " failed");
 				if (call)
 					strm << " for call no. " << call->GetCallNumber();
 				PTrace::End(strm);
@@ -958,6 +959,7 @@ bool GkAcctLoggerList::LogAcctEvent(
 		ostream& strm = PTrace::Begin(2, __FILE__, __LINE__);
 		strm << "GKACCT\t" << (finalResult ? "Successfully logged event " 
 			: "Failed to log event ") << evt;
+		SNMP_TRAP(7, SNMPError, Accounting, "");
 		if (call)
 			strm << " for call no. " << call->GetCallNumber();
 		PTrace::End(strm);
@@ -996,11 +998,11 @@ bool GkAcctLoggerList::LogAcctEvent(
 		default:
 			if (PTrace::CanTrace(3)) {
 				ostream& strm = PTrace::Begin(3, __FILE__, __LINE__);
-				strm << "GKACCT\t" << logger->GetName() << " failed to log event "
-					<< evt;
+				strm << "GKACCT\t" << logger->GetName() << " failed to log event " << evt;
 				if (ep)
 					strm << " for endpoint " << ep->GetEndpointIdentifier().GetValue();
 				PTrace::End(strm);
+				SNMP_TRAP(7, SNMPError, Accounting, "");
 			}
 			// required and sufficient rules always determine 
 			// status of the request
@@ -1027,6 +1029,7 @@ bool GkAcctLoggerList::LogAcctEvent(
 		if (ep)
 			strm << " for endpoint " << ep->GetEndpointIdentifier().GetValue();
 		PTrace::End(strm);
+		SNMP_TRAP(7, SNMPError, Accounting, "");
 	}
 	return finalResult;
 }

@@ -27,9 +27,6 @@
 #ifdef HAS_H460P
 #include "h460presence.h"
 #endif
-#ifdef HAS_SNMP
-#include "snmp.h"
-#endif
 
 class H225_AliasAddress;
 class H225_ArrayOf_AliasAddress;
@@ -413,9 +410,6 @@ class Toolkit : public Singleton<Toolkit>
 	GkPresence & GetPresenceHandler();
 #endif
 	bool IsSNMPEnabled() const;
-#ifdef HAS_SNMPTRAPS
-	void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg = PString::Empty());
-#endif
 	bool IsIPv6Enabled() const;
 	void PortNotification(PortType type, PortAction action, const PString & protocol,
 							const PIPSocket::Address & addr, WORD port,

@@ -616,32 +616,32 @@ void STUNClient::Exec()
 {
 	ReadLock lockConfig(ConfigReloadMutex);
 
-        PTimedMutex mute;
+	PTimedMutex mute;
 
-		// Wait 500 ms until the RCF has been processed before running tests 
-		// to prevent blocking.
-		mute.Wait(500);
-	
-		// Get a valid NAT type....
-	    // We do the test 3 times as often the first test gives odd results
-	    // if after 3 attempts it gives odd results well it must be an odd NAT :)  S.H.
-		PINDEX i = 0;
-		do  {
-			m_nattype = GetNatType(TRUE);
-			i++;
-		} while ((i <= 3) && (m_nattype == RestrictedNat ||
-			     m_nattype == PortRestrictedNat ||
-			     m_nattype == BlockedNat ||
-			     m_nattype== PartialBlockedNat
-			));
+	// Wait 500 ms until the RCF has been processed before running tests 
+	// to prevent blocking.
+	mute.Wait(500);
 
-		OnDetectedNAT(m_nattype);
+	// Get a valid NAT type....
+	// We do the test 3 times as often the first test gives odd results
+	// if after 3 attempts it gives odd results well it must be an odd NAT :)  S.H.
+	PINDEX i = 0;
+	do  {
+		m_nattype = GetNatType(TRUE);
+		i++;
+	} while ((i <= 3) && (m_nattype == RestrictedNat ||
+			 m_nattype == PortRestrictedNat ||
+			 m_nattype == BlockedNat ||
+			 m_nattype== PartialBlockedNat
+		));
 
-		// Keep this job (thread) open so that creating STUN ports does not hold up 
-		// the processing of other calls
-		while (!m_shutdown) {
-			PThread::Sleep(100);
-		}
+	OnDetectedNAT(m_nattype);
+
+	// Keep this job (thread) open so that creating STUN ports does not hold up 
+	// the processing of other calls
+	while (!m_shutdown) {
+		PThread::Sleep(100);
+	}
 
 	ReadUnlock unlockConfig(ConfigReloadMutex);
 }
@@ -658,72 +658,72 @@ void STUNClient::OnDetectedNAT(int nattype)
 #ifdef hasNewSTUN
 bool STUNClient::OpenSocketA(UDPSocket & socket, PortInfo & portInfo, const PIPSocket::Address & binding)
 {
-  if (!m_serverAddress.IsValid()) {
-    PTRACE(1, "STUN\tServer port not set.");
-    return false;
-  }
+	if (!m_serverAddress.IsValid()) {
+		PTRACE(1, "STUN\tServer port not set.");
+		return false;
+	}
 
-  if (portInfo.basePort == 0) {
-    if (!socket.Listen(binding, 1)) {
-      PTRACE(3, "STUN\tCannot bind port to " << m_interface);
-      return false;
-    }
-  }  
-  else {
-    WORD startPort = portInfo.currentPort;
-    PTRACE(3, "STUN\tUsing ports " << portInfo.basePort << " through " << portInfo.maxPort << " starting at " << startPort);
-    for (;;) {
-      bool status = socket.Listen(binding, 1, portInfo.currentPort);
-      PWaitAndSignal mutex(portInfo.mutex);
-      portInfo.currentPort++;
-      if (portInfo.currentPort > portInfo.maxPort)
-        portInfo.currentPort = portInfo.basePort;
-      if (status)
-        break;
-      if (portInfo.currentPort == startPort) {
-        PTRACE(3, "STUN\tListen failed on " << AsString(m_interface, portInfo.currentPort));
-        return false;
-      }
-    } 
-  }
+	if (portInfo.basePort == 0) {
+		if (!socket.Listen(binding, 1)) {
+			PTRACE(3, "STUN\tCannot bind port to " << m_interface);
+			return false;
+		}
+	} else {
+		WORD startPort = portInfo.currentPort;
+		PTRACE(3, "STUN\tUsing ports " << portInfo.basePort << " through " << portInfo.maxPort << " starting at " << startPort);
+		for (;;) {
+			bool status = socket.Listen(binding, 1, portInfo.currentPort);
+			PWaitAndSignal mutex(portInfo.mutex);
+			portInfo.currentPort++;
+			if (portInfo.currentPort > portInfo.maxPort)
+				portInfo.currentPort = portInfo.basePort;
+			if (status)
+				break;
+			if (portInfo.currentPort == startPort) {
+				PTRACE(3, "STUN\tListen failed on " << AsString(m_interface, portInfo.currentPort));
+				SNMP_TRAP(7, SNMPError, Network, "STUN failure");
+				return false;
+			}
+		}
+	}
 
-  socket.SetSendAddress(m_serverAddress.GetAddress(), m_serverAddress.GetPort());
+	socket.SetSendAddress(m_serverAddress.GetAddress(), m_serverAddress.GetPort());
 
-  return true;
+	return true;
 }
 #else
 bool STUNClient::OpenSocketA(UDPSocket & socket, PortInfo & portInfo, const PIPSocket::Address & binding)
 {
-  if (serverPort == 0) {
-    PTRACE(1, "STUN\tServer port not set.");
-    return false;
-  }
+	if (serverPort == 0) {
+		PTRACE(1, "STUN\tServer port not set.");
+		return false;
+	}
 
-  if (!PIPSocket::GetHostAddress(serverHost, cachedServerAddress) || !cachedServerAddress.IsValid()) {
-    PTRACE(2, "STUN\tCould not find host \"" << serverHost << "\".");
-    return false;
-  }
+	if (!PIPSocket::GetHostAddress(serverHost, cachedServerAddress) || !cachedServerAddress.IsValid()) {
+		PTRACE(2, "STUN\tCould not find host \"" << serverHost << "\".");
+		return false;
+	}
 
-  PWaitAndSignal mutex(portInfo.mutex);
+	PWaitAndSignal mutex(portInfo.mutex);
 
-  WORD startPort = portInfo.currentPort;
+	WORD startPort = portInfo.currentPort;
 
-  do {
-    portInfo.currentPort++;
-    if (portInfo.currentPort > portInfo.maxPort)
-      portInfo.currentPort = portInfo.basePort;
+	do {
+		portInfo.currentPort++;
+		if (portInfo.currentPort > portInfo.maxPort)
+			portInfo.currentPort = portInfo.basePort;
 
-    if (socket.Listen(binding, 1, portInfo.currentPort)) {
-      socket.SetSendAddress(cachedServerAddress, serverPort);
-      socket.SetReadTimeout(replyTimeout);
-      return true;
-    }
+		if (socket.Listen(binding, 1, portInfo.currentPort)) {
+			socket.SetSendAddress(cachedServerAddress, serverPort);
+			socket.SetReadTimeout(replyTimeout);
+			return true;
+		}
+	} while (portInfo.currentPort != startPort);
 
-  } while (portInfo.currentPort != startPort);
-
-  PTRACE(1, "STUN\tFailed to bind to local UDP port in range "
-         << portInfo.currentPort << '-' << portInfo.maxPort);
-  return false;
+	PTRACE(1, "STUN\tFailed to bind to local UDP port in range "
+		<< portInfo.currentPort << '-' << portInfo.maxPort);
+	SNMP_TRAP(7, SNMPError, Network, "STUN failure");
+	return false;
 }
 #endif
 

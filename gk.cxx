@@ -751,7 +751,7 @@ void ReloadHandler()
 	*/
 	PTRACE(3, "GK\tCarry on current calls.");
 
-	SNMP_TRAP(2, Info, General, "Full config reloaded");
+	SNMP_TRAP(3, SNMPInfo, General, "Full config reloaded");
 
 	/*
 	** Leave critical Section
@@ -1265,7 +1265,7 @@ void Gatekeeper::Main()
 	RasSrv->SetRDSServers();
 
 #ifndef HAS_SNMPAGENT
-	SNMP_TRAP(1, Info, General, "GnuGk started");	// when NOT registering as agent, send started trap here already
+	SNMP_TRAP(1, SNMPInfo, General, "GnuGk started");	// when NOT registering as agent, send started trap here already
 #endif
 
 #if defined(_WIN32)

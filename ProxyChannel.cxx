@@ -16,6 +16,7 @@
 #include <q931.h>
 #include <h245.h>
 #include <h323pdu.h>
+#include "snmp.h"
 #include "gk.h"
 #include "gk_const.h"
 #include "h323util.h"
@@ -1500,6 +1501,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 
 	if (m_call && (m_call->GetRerouteState() == RerouteInitiated) && (msg->GetTag() == Q931::ReleaseCompleteMsg)) {
 		PTRACE(1, "Q931\tReroute failed, terminating call");
+		SNMP_TRAP(7, SNMPError, Network, "Reroute failed");
 		// don't end reroute on RC to dropped party		m_call->SetRerouteState(NoReroute);
 	}
 
@@ -2540,8 +2542,10 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			PBYTEArray buf;
 			if (releasePDU.Encode(buf))
 				TransmitData(buf);
-			else
+			else {
 				PTRACE(3, Type() << "\tFailed to encode ReleaseComplete message " << releasePDU);
+				SNMP_TRAP(7, SNMPError, Network, "Encoding failed");
+			}
 		}
 		m_result = NoData;
 		return;
@@ -3324,6 +3328,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				result != H235Authenticator::e_Absent &&
 				result != H235Authenticator::e_Disabled) {
 					PTRACE(5,"H235\tCaller Admission failed");
+					SNMP_TRAP(7, SNMPWarning, Network, PString() + "Admission failed");
 					m_call->SetDisconnectCause(Q931::CallRejected);
 					rejectCall = true;
 			}
@@ -3878,6 +3883,7 @@ bool CallSignalSocket::CreateRemote(const H225_TransportAddress & addr)
 
 	if (!InternalConnectTo()) {
 		PTRACE(1, "CreateRemote: InternalConnectTo() failed");
+		SNMP_TRAP(10, SNMPWarning, Network, PString() + "Connection failed");
 		return false;
 	}
 
@@ -4601,6 +4607,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 	authData.m_calledStationId = GetCalledStationId(*setup, authData);
 	if (!RasServer::Instance()->ValidatePDU(*setup, authData)) {
 		PTRACE(1, "Q931\tAutentication of reroute destination failed");
+		SNMP_TRAP(8, SNMPError, Authentication, "Reroute authentication failed");
 		return false;
 	}
 	// invoke routing policies for destination
@@ -4667,8 +4674,10 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 	}
 	if (droppedSocket->GetHandler()->Detach(this))
 		PTRACE(1, "Q931\tSocket " << droppedSocket->GetName() << " detached from its handler");
-	else
+	else {
 		PTRACE(1, "Q931\tFailed to detach socket " << droppedSocket->GetName() << " from its handler");
+		SNMP_TRAP(10, SNMPError, Network, "Socket detach failed");
+	}
 	remote = NULL;
 	if (m_h245socket)
 		m_h245socket->RemoveRemoteSocket();
@@ -4761,10 +4770,12 @@ bool CallSignalSocket::OnSCICall(H225_CallIdentifier callID, H225_TransportAddre
 		PrintQ931(5, "Send to ", GetName(), &FacilityPDU, &uuie);
  		if (!(remote && remote->TransmitData(buf))) {
 			PTRACE(2, "H46018\tTransmitting Facility to Neighbor GK " << AsString(sigAdr) << " failed");
+			SNMP_TRAP(11, SNMPError, Network, "Neighbor communication failed");
 			return false;
 		}
 	} else {
 		PTRACE(2, "H46018\tConnecting to Neighbor GK " << AsString(sigAdr) << " failed");
+		SNMP_TRAP(11, SNMPError, Network, "Neighbor communication failed with " + AsString(sigAdr));
 		return false;
 	}
 	return true;
@@ -4899,8 +4910,10 @@ void CallSignalSocket::TryNextRoute()
 		callingSocket->RemoveH245Handler();
 		if (callingSocket->GetHandler()->Detach(callingSocket))
 			PTRACE(6, "Q931\tSocket " << callingSocket->GetName() << " detached from its handler");
-		else
+		else {
 			PTRACE(1, "Q931\tFailed to detach socket " << callingSocket->GetName() << " from its handler");
+			SNMP_TRAP(10, SNMPError, Network, "Socket detach failed");
+		}
 
 		callingSocket->m_call = callptr(newCall);
 		callingSocket->buffer = callingSocket->m_rawSetup;
@@ -4909,6 +4922,7 @@ void CallSignalSocket::TryNextRoute()
 
 	if (newCall->GetNewRoutes().empty()) {
 		PTRACE(1, "Q931\tERROR: TryNextRoute() without a route");
+		SNMP_TRAP(7, SNMPError, Network, "Failover failed");
 		return;
 	}
 	const Route & newRoute = newCall->GetNewRoutes().front();
@@ -6348,6 +6362,7 @@ void H245Socket::ConnectTo()
 		}
 	} else {
 		PTRACE(1, "Error: H.245 Accept() failed");
+		SNMP_TRAP(10, SNMPError, Network, "H.245 accept failed");
 	}
 
 	ReadLock lockConfig(ConfigReloadMutex);
@@ -6355,6 +6370,7 @@ void H245Socket::ConnectTo()
 	m_signalingSocketMutex.Wait();
 	// establish H.245 channel failed, disconnect the call
 	PTRACE(1, "Error: Establishing the H.245 channel failed, disconnecting");
+	SNMP_TRAP(10, SNMPError, Network, "H.245 failed");
 	CallSignalSocket *socket = sigSocket; // use a copy to avoid race conditions with OnSignalingChannelClosed
 	if (socket) {
 		socket->SetConnected(false);
@@ -6406,6 +6422,7 @@ void H245Socket::ConnectToRerouteDestination()
 	m_signalingSocketMutex.Wait();
 	// establish H.245 channel failed, disconnect the call
 	PTRACE(1, "Error: Establishing the H.245 channel failed, disconnecting");
+	SNMP_TRAP(10, SNMPError, Network, "H.245 failed");
 	CallSignalSocket *socket = sigSocket; // use a copy to avoid race conditions with OnSignalingChannelClosed
 	if (socket) {
 		socket->SetConnected(false);
@@ -6513,6 +6530,7 @@ void H245Socket::SendH46018Indication()
 	wtstrm.CompleteEncoding();
 	if (!TransmitData(wtstrm)) {
 		PTRACE(1, "H245\tSending of H.460.18 Indication to " << GetName() << " failed");
+		SNMP_TRAP(10, SNMPError, Network, "Sending H.460.18 Indication failed");
 	}
 	PTRACE(4, "H245\tSend H.460.18 Indication to " << GetName());
 }
@@ -6541,6 +6559,7 @@ void H245Socket::SendTCS(H245_TerminalCapabilitySet * tcs)
 	wtstrm.CompleteEncoding();
 	if (!TransmitData(wtstrm)) {
 		PTRACE(1, "H245\tSending of TerminalCapabilitySet to " << GetName() << " failed");
+		SNMP_TRAP(10, SNMPError, Network, "Sending TCS to " + GetName() + " failed");
 	}
 	PTRACE(4, "H245\tSend TerminalCapabilitySet to " << GetName());
 }
@@ -6555,6 +6574,7 @@ bool H245Socket::Send(H245_MultimediaSystemControlMessage & h245msg)
 	wtstrm.CompleteEncoding();
 	if (!TransmitData(wtstrm)) {
 		PTRACE(1, "H245\tSending of H.245 message to " << GetName() << " failed");
+		SNMP_TRAP(10, SNMPError, Network, "Sending H.245 message to " + GetName() + " failed");
 		return false;
 	}
 	PTRACE(4, "H245\tSend H.245 message to " << GetName());
@@ -6615,6 +6635,7 @@ bool H245Socket::ConnectRemote()
 			<< errorNumber << ": " << GetErrorText(PSocket::LastGeneralError));
 		Close();
 		PTRACE(3, "H245\t" << AsString(peerAddr, peerPort) << " DIDN'T ACCEPT THE CALL");
+		SNMP_TRAP(10, SNMPError, Network, "H.245 connection to " + AsString(peerAddr, peerPort) + " failed");
 #ifdef _WIN32
 		if ((errorNumber & PWIN32ErrorFlag) == 0
 				|| (errorNumber & ~PWIN32ErrorFlag) != WSAEADDRINUSE)
@@ -8264,6 +8285,7 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 	PBYTEArray sessionKey;
 	if ((auth.GetSize() < 1) || !auth[0].GetMediaSessionInfo(algorithmOID, sessionKey)) {
 		PTRACE(1, "H235\tError: GetMediaSessionInfo() failed");
+		SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure");
 		return false;
 	}
 
@@ -8286,11 +8308,13 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 	    if (v3data.HasOptionalField(H235_V3KeySyncMaterial::e_algorithmOID)
 			&& (v3data.m_algorithmOID != algorithmOID)) {
 		    PTRACE(1, "H235\tError: Different algo for session and media key not supported " << v3data);
+			SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure");
 		    return false;
 	    }
 	    if (v3data.m_paramS.HasOptionalField(H235_Params::e_iv)
 			|| v3data.m_paramS.HasOptionalField(H235_Params::e_iv16)) {
 		    PTRACE(1, "H235\tError: non-empty IV not supported, yet " << v3data);
+			SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure");
 		    return false;
 		}
 		if (v3data.HasOptionalField(H235_V3KeySyncMaterial::e_encryptedSessionKey)) {
@@ -8299,6 +8323,7 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 			mediaKey = H235Session.Decrypt(v3data.m_encryptedSessionKey, NULL, rtpPadding);
 		} else {
 		    PTRACE(1, "H235\tError: unsupported media key type: " << v3data);
+			SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure");
 		}
 	} else if (h235key.GetTag() == H235_H235Key::e_secureChannel) {
 		// this is the _media_key_ in unencrypted form
@@ -8307,12 +8332,14 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 		mediaKey = PBYTEArray(mediaKeyBits.GetDataPointer(), mediaKeyBits.GetSize());
 	} else {
 		PTRACE(1, "H235\tUnsupported key type " << h235key.GetTagName());
+		SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure");
 		return false;
 	}
 
 	PTRACE(3, "H235\tMedia key decoded:" << endl << hex << mediaKey);
 	if (mediaKey.GetSize() == 0) {
 		PTRACE(1, "H235\tMedia key decode failed");
+		SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure");
 		return false;
 	}
 
@@ -8342,6 +8369,7 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	PBYTEArray sessionKey;
 	if ((auth.GetSize() < 1) || !auth[0].GetMediaSessionInfo(algorithmOID, sessionKey)) {
 		PTRACE(1, "H235\tError: GetMediaSessionInfo() failed");
+		SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure");
 		return false;
 	}
 
@@ -8389,6 +8417,7 @@ bool RTPLogicalChannel::UpdateMediaKey(const H245_EncryptionSync & encryptionSyn
 {
 	if (!m_auth || !m_H235CryptoEngine) {
 		PTRACE(1, "H235\tError: H.235 media key update before session initialization");
+		SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure");
 		return false;
 	}
 	return CreateH235Session(*m_auth, encryptionSync, m_simulateCallerSide, m_encrypting);
@@ -8398,6 +8427,7 @@ bool RTPLogicalChannel::GenerateNewMediaKey(BYTE newPayloadType, H245_Encryption
 {
 	if (!m_auth || !m_H235CryptoEngine) {
 		PTRACE(1, "H235\tError: H.235 media key update before session initialization");
+		SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure");
 		return false;
 	}
 	SetCipherPayloadType(newPayloadType);
@@ -8419,6 +8449,7 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCal
 			processed = m_H235CryptoEngine->Encrypt(data, ivsequence, rtpPadding);
 		} else {
 			PTRACE(1, "H235\tUnexpected plaintext payload type " << (int)payloadType << " expecting " << (int)m_plainPayloadType);
+			SNMP_TRAP(10, SNMPWarning, Authentication, "H.235.6 payload type mismatch");
 		}
 		payloadType = m_cipherPayloadType;
 	} else {
@@ -8427,6 +8458,7 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCal
 			processed = m_H235CryptoEngine->Decrypt(data, ivsequence, rtpPadding);
 		} else {
 			PTRACE(1, "H235\tUnexpected chipher payload type " << (int)payloadType << " expecting " << (int)m_cipherPayloadType);
+			SNMP_TRAP(10, SNMPWarning, Authentication, "H.235.6 payload type mismatch");
 		}
 		payloadType = m_plainPayloadType;
 	}
@@ -8622,8 +8654,10 @@ T120LogicalChannel::T120LogicalChannel(WORD flcn) : LogicalChannel(flcn)
 	peerPort = 0;
 	if (listener->IsOpen())
 		PTRACE(4, "T120\tOpen logical channel " << flcn << " port " << port);
-	else
+	else {
 		PTRACE(4, "T120\tFailed to open logical channel " << flcn << " port " << port);
+		SNMP_TRAP(10, SNMPError, Network, "T.120 failed");
+	}
 }
 
 T120LogicalChannel::~T120LogicalChannel()
@@ -10300,26 +10334,30 @@ void ProxyHandler::FlushSockets()
 		ProxySocket * s = dynamic_cast<ProxySocket *>(*i);
 		if (s == NULL) {
 			PTRACE(1, "Proxy\tCast of proxy socket failed");
+			SNMP_TRAP(7, SNMPError, Network, "Socket error");
 			continue;
 		}
 		if (s->CanFlush()) {
 #ifdef _WIN32
-			if (wlist.GetSize() >= FD_SETSIZE)
+			if (wlist.GetSize() >= FD_SETSIZE) {
 				PTRACE(0, "Proxy\tToo many sockets in this proxy handler "
-					"(limit=" << ((int)FD_SETSIZE) << ")"
-					);
+					"(limit=" << ((int)FD_SETSIZE) << ")");
+				SNMP_TRAP(7, SNMPError, Network, "Out of sockets");
+			}
 #else
 #ifdef LARGE_FDSET
 			const int large_fdset = (int)LARGE_FDSET;
-			if ((*i)->GetHandle() >= large_fdset)
+			if ((*i)->GetHandle() >= large_fdset) {
 				PTRACE(0, "Proxy\tToo many opened file handles, skipping handle #"
-					<< (*i)->GetHandle() << " (limit=" << large_fdset << ")"
-					);
+					<< (*i)->GetHandle() << " (limit=" << large_fdset << ")");
+				SNMP_TRAP(7, SNMPError, Network, "Out of sockets");
+			}
 #else
-			if ((*i)->GetHandle() >= (int)FD_SETSIZE)
+			if ((*i)->GetHandle() >= (int)FD_SETSIZE) {
 				PTRACE(0, "Proxy\tToo many opened file handles, skipping handle #"
-					<< (*i)->GetHandle() << " (limit=" << ((int)FD_SETSIZE) << ")"
-					);
+					<< (*i)->GetHandle() << " (limit=" << ((int)FD_SETSIZE) << ")");
+				SNMP_TRAP(7, SNMPError, Network, "Out of sockets");
+			}
 #endif
 #endif
 			else

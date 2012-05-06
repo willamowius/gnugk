@@ -13,6 +13,57 @@
 
 #include "snmp.h"
 
+#ifdef HAS_SNMPTRAPS
+
+#ifdef P_SNMP
+#include <ptclib/psnmp.h>
+#endif
+
+void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg)
+{
+#ifdef HAS_NETSNMP
+	static oid snmptrap_oid[] = { 1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0 };
+	static oid severityOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 1 };
+	static oid groupOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 2 };
+	static oid displayMsgOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 3 };
+	oid trapOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 0, 99999 };
+	
+	// insert trapNumber as last digit
+	trapOID[ OID_LENGTH(trapOID) - 1 ] = trapNumber;
+
+	netsnmp_variable_list *var_list = NULL;
+	// set snmpTrapOid.0 value
+    snmp_varlist_add_variable(&var_list,
+                              snmptrap_oid, OID_LENGTH(snmptrap_oid),
+                              ASN_OBJECT_ID, (u_char *)trapOID, sizeof(trapOID));
+	// add severity and group object
+	snmp_varlist_add_variable(&var_list, severityOID, OID_LENGTH(severityOID),
+                              ASN_INTEGER, (u_char *)&severity, sizeof(severity));
+	snmp_varlist_add_variable(&var_list, groupOID, OID_LENGTH(groupOID),
+                              ASN_INTEGER, (u_char *)&group, sizeof(group));
+	snmp_varlist_add_variable(&var_list, displayMsgOID, OID_LENGTH(displayMsgOID),
+                              ASN_OCTET_STR, (const char *)msg, msg.GetLength());
+	send_v2trap(var_list);
+	snmp_free_varbind(var_list);
+
+#else
+	PString trapHost = GkConfig()->GetString(SNMPSection, "TrapHost", "");
+	if (!trapHost.IsEmpty()) {
+		PString trapCommunity = GkConfig()->GetString(SNMPSection, "TrapCommunity", "public");
+		PSNMPVarBindingList vars;
+		vars.Append(PString(severityOIDStr), new PASNInteger(severity));
+		vars.Append(PString(groupOIDStr), new PASNInteger(group));
+		if (!msg.IsEmpty())
+			vars.AppendString(displayMsgOIDStr, msg);
+		PSNMP::SendEnterpriseTrap(PIPSocket::Address(trapHost), trapCommunity,
+			GnuGkMIBStr + PString(".0"), trapNumber,
+			PInt32((PTime() - SoftPBX::StartUp).GetMilliSeconds() / 10), vars);
+	}
+#endif
+}
+#endif
+
+
 #ifdef HAS_SNMPAGENT
 
 #include "gk.h"
@@ -193,7 +244,7 @@ void SNMPAgent::Run()
 		netsnmp_create_handler_registration("catchall", catchall_handler, CatchAllOID, OID_LENGTH(CatchAllOID), HANDLER_CAN_RWRITE));
 
 	init_snmp(subagent_name);   // reads $HOME/.snmp/gnugk-agent.conf + $HOME/.snmp/agentx.conf
-	SNMP_TRAP(1, Info, General, "GnuGk started");	// when registering as agent, send started trap after connecting
+	SNMP_TRAP(1, SNMPInfo, General, "GnuGk started");	// when registering as agent, send started trap after connecting
 
 	while (!ShutdownMutex.WillBlock()) {
 		agent_check_and_process(1); // where 1==block

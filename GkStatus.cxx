@@ -398,22 +398,26 @@ PBoolean SSHStatusClient::Accept(PSocket & socket)
 	}
 	if (!keyAvailable) {
 		PTRACE(1, "No DSA or RSA key file found");
+		SNMP_TRAP(7, SNMPError, Network, "No SSH keys");
 		socket.Close();
 		return false;
 	}
 
     if(ssh_init() < 0) {
 		PTRACE(1, "ssh_init() failed");
+		SNMP_TRAP(7, SNMPError, Network, "SSH init failed");
 		return false;
     }
 	ssh_bind_set_fd(sshbind, socket.GetHandle());
 	if(ssh_bind_accept(sshbind, session) == SSH_ERROR) {
 		PTRACE(1, "ssh_bind_accept() failed: " << ssh_get_error(sshbind));
+		SNMP_TRAP(7, SNMPError, Network, "SSH bind failed");
 		return false;
     }
 
     if(ssh_handle_key_exchange(session)) {
 		PTRACE(1, "ssh_handle_key_exchange failed: " << ssh_get_error(session));
+		SNMP_TRAP(7, SNMPError, Network, "SSH key exchange failed");
 		return false;
 	}
 	

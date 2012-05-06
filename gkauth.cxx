@@ -955,6 +955,7 @@ bool GkAuthenticatorList::Validate(
 					return true;
 			} else if (result == GkAuthenticator::e_fail) {
 				PTRACE(3, "GKAUTH\t" << auth->GetName() << " RRQ check failed");
+				SNMP_TRAP(8, SNMPError, Authentication, auth->GetName() + " RRQ check failed");
 				return false;
 			}
 		}
@@ -978,8 +979,8 @@ bool GkAuthenticatorList::Validate(
 			const int result = auth->Check(request, authData);
 			if (authData.m_callDurationLimit == 0) {
 				PTRACE(3, "GKAUTH\t" << auth->GetName() << " ARQ check failed: "
-					"call duration 0"
-					);
+					"call duration 0");
+				SNMP_TRAP(8, SNMPError, Authentication, auth->GetName() + " ARQ check failed");
 				return false;
 			}
 			if (authData.m_callDurationLimit >= 0 && oldDurationLimit >= 0)
@@ -997,6 +998,7 @@ bool GkAuthenticatorList::Validate(
 					return true;
 			} else if (result == GkAuthenticator::e_fail) {
 				PTRACE(3, "GKAUTH\t" << auth->GetName() << " ARQ check failed");
+				SNMP_TRAP(8, SNMPError, Authentication, auth->GetName() + " ARQ check failed");
 				return false;
 			}
 		}
@@ -1021,8 +1023,8 @@ bool GkAuthenticatorList::Validate(
 			const int result = auth->Check(setup, authData);
 			if (authData.m_callDurationLimit == 0) {
 				PTRACE(3, "GKAUTH\t" << auth->GetName() << " Setup check failed: "
-					"call duration limit 0"
-					);
+					"call duration limit 0");
+				SNMP_TRAP(8, SNMPError, Authentication, auth->GetName() + " Setup check failed");
 				return false;
 			}
 			if (authData.m_callDurationLimit >= 0 && oldDurationLimit >= 0)
@@ -1040,6 +1042,7 @@ bool GkAuthenticatorList::Validate(
 					return true;
 			} else if (result == GkAuthenticator::e_fail) {
 				PTRACE(3, "GKAUTH\t" << auth->GetName() << " Setup check failed");
+				SNMP_TRAP(8, SNMPError, Authentication, auth->GetName() + " Setup check failed");
 				return false;
 			}
 		}

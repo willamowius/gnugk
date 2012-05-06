@@ -16,10 +16,6 @@
 
 #include "config.h"
 
-// always define these type to avoid compile errors
-enum SNMPLevel { Error=1, Warning=2, Info=3 };
-enum SNMPGroup { General=1, Network=2, Database=3 };
-
 const char * const SNMPSection = "SNMP";
 
 const char * const GnuGkMIBStr      = "1.3.6.1.4.1.27938.11";
@@ -31,11 +27,13 @@ const char * const displayMsgOIDStr = "1.3.6.1.4.1.27938.11.1.3";
 #ifdef HAS_SNMPTRAPS
 
 #include "Toolkit.h"
-#ifdef P_SNMP
-#include <ptclib/psnmp.h>
-#endif
 
-#define SNMP_TRAP(NO,LEVEL,GROUP,MSG) if (Toolkit::Instance()->IsSNMPEnabled()) { Toolkit::Instance()->SendSNMPTrap(NO,LEVEL,GROUP,MSG); }
+enum SNMPLevel { SNMPError=1, SNMPWarning=2, SNMPInfo=3 };
+enum SNMPGroup { General=1, Network=2, Database=3, Accounting=4, Authentication=5 };
+
+void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg);
+
+#define SNMP_TRAP(NO,LEVEL,GROUP,MSG) if (Toolkit::Instance()->IsSNMPEnabled()) { SendSNMPTrap(NO,LEVEL,GROUP,MSG); }
 
 #else // HAS_SNMPTRAPS
 

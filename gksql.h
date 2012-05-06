@@ -20,6 +20,7 @@
 #include <map>
 #include <vector>
 #include "h323util.h"
+#include "snmp.h"
 #include "name.h"
 #include "factory.h"
 #include "config.h"

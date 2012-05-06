@@ -354,6 +354,7 @@ GkSQLConnection::SQLConnPtr GkPgSQLConnection::CreateNewConnection(
 			PTRACE (1, GetName() << "\tFailed to load shared database library: unknown error");
 #endif
 			g_sharedLibrary.Close();
+			SNMP_TRAP(5, SNMPError, Database, GetName() + " DLL load error");
 			return NULL;
 		}
 	}
@@ -374,8 +375,8 @@ GkSQLConnection::SQLConnPtr GkPgSQLConnection::CreateNewConnection(
 	} else {
 		PTRACE(2, GetName() << "\tPgSQL connection to " << m_username << '@' << m_host 
 			<< '[' << m_database << "] failed (PQsetdbLogin failed): " 
-			<< (conn ? (*g_PQerrorMessage)(conn) : "")
-			);
+			<< (conn ? (*g_PQerrorMessage)(conn) : ""));
+		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed")
 		if (conn)
 			(*g_PQfinish)(conn);
 	}

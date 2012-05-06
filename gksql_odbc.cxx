@@ -402,6 +402,7 @@ GkODBCConnection::GkODBCConnWrapper::~GkODBCConnWrapper()
 		SQLRETURN r = (*g_SQLDisconnect)(m_conn);
 		if (!SQL_SUCCEEDED(r)) {
 			PTRACE(1, "ODBC disconnect failed: " << GetODBCDiagMsg(r, SQL_HANDLE_DBC, m_conn));
+			SNMP_TRAP(5, SNMPError, Database, "ODBC disconnection failed");
 		}
 		(*g_SQLFreeHandle)(SQL_HANDLE_DBC, m_conn);
 		m_conn = SQL_NULL_HDBC;
@@ -448,6 +449,7 @@ GkSQLConnection::SQLConnPtr GkODBCConnection::CreateNewConnection(
 			PTRACE (1, GetName() << "\tFailed to load shared database library: unknown error");
 #endif
 			g_sharedLibrary.Close();
+			SNMP_TRAP(5, SNMPError, Database, GetName() + " DLL load error");
 			return NULL;
 		}
 
@@ -455,6 +457,7 @@ GkSQLConnection::SQLConnPtr GkODBCConnection::CreateNewConnection(
 		SQLRETURN r = (*g_SQLAllocHandle)(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &m_env);
 		if (!SQL_SUCCEEDED(r)) {
 			PTRACE(1, GetName() << "\tFailed to allocate an ODBC environment handle: " << GetODBCDiagMsg(r, SQL_HANDLE_ENV, SQL_NULL_HENV));
+			SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
 			return NULL;
 		}
 		r = (*g_SQLSetEnvAttr)(m_env, SQL_ATTR_ODBC_VERSION, reinterpret_cast<SQLPOINTER>(SQL_OV_ODBC3), 0); 
@@ -462,6 +465,7 @@ GkSQLConnection::SQLConnPtr GkODBCConnection::CreateNewConnection(
 			PTRACE(1, GetName() << "\tFailed to request ODBC interface version 3.0: " << GetODBCDiagMsg(r, SQL_HANDLE_ENV, m_env));
 			(*g_SQLFreeHandle)(SQL_HANDLE_ENV, m_env);
 			m_env = SQL_NULL_HENV;
+			SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
 			return NULL;
 		}
 		PTRACE(5, GetName() << "\tODBC environment created");
@@ -473,17 +477,20 @@ GkSQLConnection::SQLConnPtr GkODBCConnection::CreateNewConnection(
 	SQLRETURN r = (*g_SQLAllocHandle)(SQL_HANDLE_DBC, m_env, &conn); 
 	if (!SQL_SUCCEEDED(r)) {
 		PTRACE(1, GetName() << "\tFailed to allocate an ODBC connection handle: " << GetODBCDiagMsg(r, SQL_HANDLE_ENV, m_env));
+		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
 		return NULL;
 	}
 	
 	r = (g_SQLSetConnectAttr)(conn, SQL_ATTR_LOGIN_TIMEOUT, reinterpret_cast<SQLPOINTER>(10), 0);
 	if (!SQL_SUCCEEDED(r)) {
 		PTRACE(1, GetName() << "\tFailed to set ODBC connection login timeout: " << GetODBCDiagMsg(r, SQL_HANDLE_DBC, conn));
+		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
 	}
 	
 	r = (*g_SQLSetConnectAttr)(conn, SQL_ATTR_CONNECTION_TIMEOUT, reinterpret_cast<SQLPOINTER>(10), 0);
 	if (!SQL_SUCCEEDED(r)) {
 		PTRACE(1, GetName() << "\tFailed to set ODBC connection request timeout: " << GetODBCDiagMsg(r, SQL_HANDLE_DBC, conn));
+		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
 	}
 
 	// Connect to datasource
@@ -495,6 +502,7 @@ GkSQLConnection::SQLConnPtr GkODBCConnection::CreateNewConnection(
 	if (!SQL_SUCCEEDED(r)) {
 		PTRACE(1, GetName() << "\tODBC connect to " << m_database << " failed: " << GetODBCDiagMsg(r, SQL_HANDLE_DBC, conn));
 		(*g_SQLFreeHandle)(SQL_HANDLE_DBC, conn);
+		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
 		return NULL;
 	}
 
@@ -519,6 +527,7 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 	if (!SQL_SUCCEEDED(r)) {
 		PString errmsg(GetODBCDiagMsg(r, SQL_HANDLE_DBC, conn));
 		PTRACE(1, GetName() << "\tFailed to allocate an ODBC statement handle: " << errmsg);
+		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
 		Disconnect();
 		return new GkODBCResult(r, errmsg);
 	}
@@ -534,6 +543,7 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 		PString errmsg(GetODBCDiagMsg(r, SQL_HANDLE_STMT, stmt));
 		PTRACE(1, GetName() << "\tFailed to execute an ODBC query: " << errmsg);
 		(*g_SQLFreeHandle)(SQL_HANDLE_STMT, stmt);
+		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
 		Disconnect();
 		return new GkODBCResult(r, errmsg + ", query: " + queryStr);
 	}
@@ -544,6 +554,7 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 		PString errmsg(GetODBCDiagMsg(r, SQL_HANDLE_STMT, stmt));
 		PTRACE(1, GetName() << "\tFailed to get ODBC number of result columns: " << errmsg);
 		(*g_SQLFreeHandle)(SQL_HANDLE_STMT, stmt);
+		SNMP_TRAP(5, SNMPError, Database, GetName() + " query failed");
 		Disconnect();
 		return new GkODBCResult(r, errmsg + ", query: " + queryStr);
 	}
@@ -558,6 +569,7 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 			r = (*g_SQLRowCount)(stmt, &rows);
 			if (!SQL_SUCCEEDED(r)) {
 				PTRACE(1, GetName() << "\tFailed to get ODBC number of rows affected by a query: " << GetODBCDiagMsg(r, SQL_HANDLE_STMT, stmt));
+				SNMP_TRAP(5, SNMPError, Database, GetName() + " query failed")
 			}
 			(*g_SQLFreeHandle)(SQL_HANDLE_STMT, stmt);
 			return new GkODBCResult(rows, 0, NULL);
@@ -572,9 +584,10 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 	for (SQLUSMALLINT i = 1; i <= columns; ++i) {
 		SQLCHAR colname[64];
 		r = (*g_SQLDescribeCol)(stmt, i, colname, sizeof(colname), NULL, NULL, NULL, NULL, NULL);
-		if (!SQL_SUCCEEDED(r))
+		if (!SQL_SUCCEEDED(r)) {
 			PTRACE(1, GetName() << "\tFailed to get an ODBC result set column #" << i << " name: " << GetODBCDiagMsg(r, SQL_HANDLE_STMT, stmt));
-		else
+			SNMP_TRAP(5, SNMPError, Database, GetName() + " query failed")
+		} else
 			fieldNames[i-1] = PString(reinterpret_cast<const char*>(colname));
 	}
 
@@ -586,6 +599,7 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 			
 		if (!SQL_SUCCEEDED(r)) {
 			PTRACE(1, GetName() << "\tFailed to fetch an ODBC result row: " << GetODBCDiagMsg(r, SQL_HANDLE_STMT, stmt));
+			SNMP_TRAP(5, SNMPError, Database, GetName() + " query failed")
 			// we should return an error instead
 			break;
 		}
@@ -603,6 +617,7 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 					data[0] = 0;
 			} else {
 				PTRACE(1, GetName() << "\tFailed to get ODBC result set column #" << i << " data: " << GetODBCDiagMsg(r, SQL_HANDLE_STMT, stmt));
+				SNMP_TRAP(5, SNMPError, Database, GetName() + " query failed")
 				data[0] = 0;
 			}
 			(*row)[i-1] = pair<PString, PString>(data, fieldNames[i-1]);

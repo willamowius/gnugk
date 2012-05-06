@@ -357,6 +357,7 @@ GkSQLConnection::SQLConnPtr GkMySQLConnection::CreateNewConnection(
 			PTRACE (1, GetName() << "\tFailed to load shared database library: unknown error");
 #endif
 			g_sharedLibrary.Close();
+			SNMP_TRAP(5, SNMPError, Database, GetName() + " DLL load error");
 			return NULL;
 		}
 	}
@@ -366,6 +367,7 @@ GkSQLConnection::SQLConnPtr GkMySQLConnection::CreateNewConnection(
 	MYSQL* conn = (*g_mysql_init)(NULL);
 	if (conn == NULL) {
 		PTRACE(1, GetName() << "\tCannot allocate MySQL connection object (mysql_init failed)");
+		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
 		return NULL;
 	}
 	(*g_mysql_options)(conn, MYSQL_OPT_CONNECT_TIMEOUT, (const char*)&CONNECT_TIMEOUT);
@@ -384,13 +386,12 @@ GkSQLConnection::SQLConnPtr GkMySQLConnection::CreateNewConnection(
 			m_password.IsEmpty() ? (const char*)NULL : (const char*)m_password,
 			m_database, m_port, NULL, CLIENT_MULTI_STATEMENTS)) {
 		PTRACE(5, GetName() << "\tMySQL connection to " << m_username << '@' << m_host 
-			<< '[' << m_database << "] established successfully"
-			);
+			<< '[' << m_database << "] established successfully");
 		return new MySQLConnWrapper(id, m_host, conn);
 	} else {
 		PTRACE(2, GetName() << "\tMySQL connection to " << m_username << '@' << m_host 
-			<< '[' << m_database << "] failed (mysql_real_connect failed): " << (*g_mysql_error)(conn)
-			);
+			<< '[' << m_database << "] failed (mysql_real_connect failed): " << (*g_mysql_error)(conn));
+		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
 	}
 	return NULL;
 }

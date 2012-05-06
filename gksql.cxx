@@ -58,6 +58,7 @@ bool GkSQLConnection::Initialize(
 	
 	if (!(cfg && cfgSectionName)) {
 		PTRACE(1, GetName() << "\tInitialize failed: NULL config or config section not specified!");
+		SNMP_TRAP(4, SNMPError, Database, GetName() + " creation failed");
 		return false;
 	}
 
@@ -74,6 +75,7 @@ bool GkSQLConnection::Initialize(
 		
 	if (m_host.IsEmpty() || m_database.IsEmpty()) {
 		PTRACE(1, GetName() << "\tInitialize failed: database name or host not specified!");
+		SNMP_TRAP(4, SNMPError, Database, GetName() + " creation failed");
 		return false;
 	}
 
@@ -92,17 +94,15 @@ bool GkSQLConnection::Connect()
 	
 	if (m_idleConnections.empty() && m_minPoolSize) {
 		PTRACE(1, GetName() << "\tDatabase connection failed: " 
-			<< m_username << '@' << m_host << '[' << m_database << ']'
-			);
+			<< m_username << '@' << m_host << '[' << m_database << ']');
+		SNMP_TRAP(4, SNMPError, Database, GetName() + " connection failed");
 		return false;
 	} else {
 		PTRACE(3, GetName() << "\tDatabase connection pool created: " 
-			<< m_username << '@' << m_host << '[' << m_database << ']'
-			);
+			<< m_username << '@' << m_host << '[' << m_database << ']');
 		PTRACE(5, GetName() << "\tConnection pool: " 
 			<< m_idleConnections.size() << " SQL connections created, "
-			<< (m_minPoolSize - m_idleConnections.size()) << " failed"
-			);
+			<< (m_minPoolSize - m_idleConnections.size()) << " failed");
 		m_connected = true;
 		return true;
 	}
@@ -176,6 +176,7 @@ bool GkSQLConnection::AcquireSQLConnection(
 		Disconnect();
 		if (!Connect()) {
 			PTRACE(2, GetName() << "\tFailed to reconnect to the database");
+			SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
 			return false;
 		}
 	}
@@ -294,6 +295,7 @@ GkSQLResult* GkSQLConnection::ExecuteQuery(
 		return result;
 	} else {
 		PTRACE(2, GetName() << "\tQuery failed - no idle connection in the pool");
+		SNMP_TRAP(5, SNMPError, Database, GetName() + " query failed");
 		return NULL;
 	}
 }
@@ -320,6 +322,7 @@ GkSQLResult* GkSQLConnection::ExecuteQuery(
 		return result;
 	} else {
 		PTRACE(2, GetName() << "\tQuery failed - no idle connection in the pool");
+		SNMP_TRAP(5, SNMPError, Database, GetName() + " query failed");
 		return NULL;
 	}
 }

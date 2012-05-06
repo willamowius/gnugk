@@ -22,6 +22,7 @@
 #include "rwlock.h"
 #include <h235auth.h>
 #include "Toolkit.h"
+#include "snmp.h"
 #include "h323util.h"
 
 class H225_GatekeeperRequest;
@@ -947,8 +948,8 @@ public:
 						return true;
 				} else if (result == GkAuthenticator::e_fail) {
 					PTRACE(3, "GKAUTH\t" << auth->GetName() << ' '
-						<< request.GetTagName() << " check failed"
-						);
+						<< request.GetTagName() << " check failed");
+					SNMP_TRAP(8, SNMPError, Authentication, auth->GetName() + " check failed");
 					return false;
 				}
 			}

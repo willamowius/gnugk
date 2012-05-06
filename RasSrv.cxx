@@ -724,7 +724,7 @@ void RasServer::Stop()
 #ifndef hasPTLibTraceOnShutdownBug
 	PTRACE(1, "GK\tStopping RasServer...");
 #endif
-	SNMP_TRAP(3, Info, General, "GnuGk stopping");
+	SNMP_TRAP(2, SNMPInfo, General, "GnuGk stopping");
 	PWaitAndSignal lock(m_deletionPreventer);
 	ForEachInContainer(handlers, mem_vfun(&RasHandler::Stop));
 	delete vqueue;	// delete virtual queues before Jobs, otherwise the jobs will wait for the queues
