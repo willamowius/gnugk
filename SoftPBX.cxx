@@ -226,7 +226,7 @@ void SoftPBX::DisconnectIp(const PString & Ip)
 		|| (IsIPv6Address(Ip) && Ip.Find("]:") == P_MAX_INDEX)
 		) {
 		// no port specified
-		while (Call = CallTable::Instance()->FindBySignalAdrIgnorePort(callSignalAddress)) {
+		while ((Call = CallTable::Instance()->FindBySignalAdrIgnorePort(callSignalAddress))) {
 			unsigned CallNumber = Call->GetCallNumber();
 			Call->Disconnect(true);
 			CallTable::Instance()->RemoveCall(Call);
@@ -236,7 +236,7 @@ void SoftPBX::DisconnectIp(const PString & Ip)
 		}
 	} else {
 		// port specify, search for it
-		while (Call = CallTable::Instance()->FindBySignalAdr(callSignalAddress)) {
+		while ((Call = CallTable::Instance()->FindBySignalAdr(callSignalAddress))) {
 			unsigned CallNumber = Call->GetCallNumber();
 			Call->Disconnect(true);
 			CallTable::Instance()->RemoveCall(Call);
@@ -278,7 +278,7 @@ void SoftPBX::DisconnectEndpoint(const endptr &ep)
 	}
 	callptr Call;
 	// remove all calls of ep
-	while (Call = CallTable::Instance()->FindCallRec(ep)) {
+	while ((Call = CallTable::Instance()->FindCallRec(ep))) {
 		Call->Disconnect();
 		CallTable::Instance()->RemoveCall(Call);
 	}

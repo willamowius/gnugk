@@ -191,17 +191,17 @@ void GkAcctLogger::SetupAcctParams(
 	params["Dialed-Number"] = GetDialedNumber(call);
 
 	endptr caller;
-	if (caller = call->GetCallingParty()) {
+	if ((caller = call->GetCallingParty())) {
 		params["caller-epid"] = caller->GetEndpointIdentifier().GetValue();
 	}
 	endptr callee;
-	if (callee = call->GetCalledParty()) {
+	if ((callee = call->GetCalledParty())) {
 		params["callee-epid"] = callee->GetEndpointIdentifier().GetValue();
 	}
 	params["call-attempts"] = PString(call->GetNoCallAttempts());
 	params["last-cdr"] = call->GetNoRemainingRoutes() > 0 ? "0" : "1";
 
-	if (call->GetMediaOriginatingIp(addr))
+	if ((call->GetMediaOriginatingIp(addr)))
 		params["media-oip"] = addr.AsString();
 	params["codec"] = call->GetCodec();
 	params["bandwidth"] = call->GetBandwidth();

@@ -139,7 +139,7 @@ class Toolkit : public Singleton<Toolkit>
 		std::vector<NetworkAddress> GetInternalNetworks() const { return m_internalnetworks; }
 		void AddInternalNetwork(const NetworkAddress & network);
 
-	    virtual bool IsMasquerade(const PIPSocket::Address &) const { return false; }
+	    virtual bool IsMasquerade(PIPSocket::Address &) const { return false; }
 	protected:
 		class RouteEntry : public PIPSocket::RouteEntry {
 		public:

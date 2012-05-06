@@ -1402,7 +1402,7 @@ endptr RegistrationTable::InsertRec(H225_RasMessage & ras_msg, PIPSocket::Addres
 	{
 		case H225_RasMessage::e_registrationRequest: {
 			H225_RegistrationRequest & rrq = ras_msg;
-			if (ep = FindBySignalAdr(rrq.m_callSignalAddress[0], ip))
+			if ((ep = FindBySignalAdr(rrq.m_callSignalAddress[0], ip)))
 				ep->Update(ras_msg);
 			else
 				ep = InternalInsertEP(ras_msg);
