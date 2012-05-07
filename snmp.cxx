@@ -15,12 +15,20 @@
 
 #ifdef HAS_SNMPTRAPS
 
+#include "SoftPBX.h"
 #ifdef P_SNMP
 #include <ptclib/psnmp.h>
 #endif
 
+const char * const GnuGkMIBStr      = "1.3.6.1.4.1.27938.11";
+const char * const severityOIDStr   = "1.3.6.1.4.1.27938.11.1.1";
+const char * const groupOIDStr      = "1.3.6.1.4.1.27938.11.1.2";
+const char * const displayMsgOIDStr = "1.3.6.1.4.1.27938.11.1.3";
+
+
 void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg)
 {
+	PTRACE(5, "SNMP\tSendSNMPTrap " << trapNumber << ", " << severity << ", " << group << ", " << msg);
 #ifdef HAS_NETSNMP
 	static oid snmptrap_oid[] = { 1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0 };
 	static oid severityOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 1 };
@@ -49,13 +57,21 @@ void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, cons
 #else
 	PString trapHost = GkConfig()->GetString(SNMPSection, "TrapHost", "");
 	if (!trapHost.IsEmpty()) {
+		// DNS resolve TrapHost
+		PIPSocket::Address trapHostIP;
+		H323TransportAddress addr = H323TransportAddress(trapHost);
+		addr.GetIpAddress(trapHostIP);
+		if (!trapHostIP.IsValid()) {
+			PTRACE(1, "SNMP\tCan't resolve TrapHost " << trapHost);
+			return;
+		}
 		PString trapCommunity = GkConfig()->GetString(SNMPSection, "TrapCommunity", "public");
 		PSNMPVarBindingList vars;
 		vars.Append(PString(severityOIDStr), new PASNInteger(severity));
 		vars.Append(PString(groupOIDStr), new PASNInteger(group));
 		if (!msg.IsEmpty())
 			vars.AppendString(displayMsgOIDStr, msg);
-		PSNMP::SendEnterpriseTrap(PIPSocket::Address(trapHost), trapCommunity,
+		PSNMP::SendEnterpriseTrap(trapHostIP, trapCommunity,
 			GnuGkMIBStr + PString(".0"), trapNumber,
 			PInt32((PTime() - SoftPBX::StartUp).GetMilliSeconds() / 10), vars);
 	}
@@ -225,7 +241,7 @@ void SNMPAgent::Run()
 	// run as AgentX sub-agent
 	netsnmp_ds_set_boolean(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_ROLE, 1);
 	// use 127.0.0.1:705 by default, can be overriden in $HOME/.snmp/agentx.conf
-    netsnmp_ds_set_string(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_X_SOCKET, "tcp:localhost:705");
+	netsnmp_ds_set_string(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_X_SOCKET, "tcp:localhost:705");
 	netsnmp_enable_subagent();
 
 	init_agent(subagent_name);

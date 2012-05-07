@@ -18,18 +18,13 @@
 
 const char * const SNMPSection = "SNMP";
 
-const char * const GnuGkMIBStr      = "1.3.6.1.4.1.27938.11";
-const char * const severityOIDStr   = "1.3.6.1.4.1.27938.11.1.1";
-const char * const groupOIDStr      = "1.3.6.1.4.1.27938.11.1.2";
-const char * const displayMsgOIDStr = "1.3.6.1.4.1.27938.11.1.3";
-
 
 #ifdef HAS_SNMPTRAPS
 
 #include "Toolkit.h"
 
 enum SNMPLevel { SNMPError=1, SNMPWarning=2, SNMPInfo=3 };
-enum SNMPGroup { General=1, Network=2, Database=3, Accounting=4, Authentication=5 };
+enum SNMPGroup { General=1, Network=2, Database=3, Accounting=4, Authentication=5, Configuration=6 };
 
 void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg);
 

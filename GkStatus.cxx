@@ -2,7 +2,7 @@
 //
 // GkStatus.cxx
 //
-// Copyright (c) 2000-2011, Jan Willamowius
+// Copyright (c) 2000-2012, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -438,6 +438,7 @@ bool SSHStatusClient::Authenticate()
         message = ssh_message_get(session);
         if (!message) {
 			PTRACE(1, "ssh read error: " << ssh_get_error(session));
+			SNMP_TRAP(7, SNMPError, Network, PString("SSH read error: ") + ssh_get_error(session));
             break;
 		}
 		switch(ssh_message_type(message)) {
@@ -487,6 +488,7 @@ bool SSHStatusClient::Authenticate()
     } while(message && !chan);
     if (!chan) {
         PTRACE(1, "Error establishing SSH channel: " << ssh_get_error(session));
+		SNMP_TRAP(7, SNMPError, Network, PString("SSH error: ") + ssh_get_error(session));    
         return false;
     }
 
@@ -1393,11 +1395,11 @@ bool StatusClient::CheckAuthRule(
 		result = AuthenticateUser();
 	} else {
 		PTRACE(1, "STATUS\tERROR: Unrecognized [GkStatus::Auth] rule (" << rule << ')');
+		SNMP_TRAP(7, SNMPError, Configuration, "Invalid [GkStatus::Auth] rule: " + rule);    
 	}
 	
 	PTRACE(4, "STATUS\tAuthentication rule '" << rule 
-		<< (result?"' accepted":"' rejected") << " the client " << Name() 
-		);
+		<< (result ? "' accepted" : "' rejected") << " the client " << Name());
 	return result;
 }
 

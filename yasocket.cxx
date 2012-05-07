@@ -3,7 +3,7 @@
 // yasocket.cxx
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2011, Jan Willamowius
+// Copyright (c) 2004-2012, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -897,11 +897,11 @@ bool USocket::ErrorHandler(PSocket::ErrorGroup group)
 		default:
 			PTRACE(3, msg << " Error(" << group << "): "
 				<< PSocket::GetErrorText(e) << " (" << e << ':'
-				<< self->GetErrorNumber(group) << ')'
-				);
+				<< self->GetErrorNumber(group) << ')');
 			CloseSocket();
 			break;
 	}
+	SNMP_TRAP(10, SNMPError, Network, "Socket error " + PSocket::GetErrorText(e));
 	return false;
 }
 

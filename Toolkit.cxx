@@ -425,7 +425,8 @@ PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(const Address & addr) co
 			if (extip.IsValid()) {
 				return extip;
 			} else {
-				PTRACE(2,"NAT\tERROR: ExtIP " << ExtIP << " unresolvable." );
+				PTRACE(2,"NAT\tERROR: External IP " << ExtIP << " unresolvable." );
+				SNMP_TRAP(10, SNMPError, Configuration, "External IP " + ExtIP + " unresolvable");
 			}
 		} else {  // If valid IP then use the ExtIP value
 			PIPSocket::Address extip(ExtIP);
@@ -433,6 +434,7 @@ PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(const Address & addr) co
 				return extip;
 			} else {
 				PTRACE(2,"NAT\tERROR: ExtIP " << ExtIP << " unuseable." );
+				SNMP_TRAP(10, SNMPError, Configuration, "External IP " + ExtIP + " unusable");
 			}
 		}
 	}
@@ -455,6 +457,7 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 	InterfaceTable if_table;
 	if (!PIPSocket::GetInterfaceTable(if_table)) {
 		PTRACE(1, "Error: Can't get interface table");
+		SNMP_TRAP(10, SNMPError, Configuration, "Error feting interface table");
 		return false;
 	}
 
@@ -462,6 +465,7 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 	PIPSocket::RouteTable r_table;
 	if (!PIPSocket::GetRouteTable(r_table)) {
 		PTRACE(1, "Error: Can't get route table");
+		SNMP_TRAP(10, SNMPError, Configuration, "Error feting route table");
 		return false;
 	}
 	// filter out route with destination localhost
@@ -1012,8 +1016,8 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig *config)
 
 				if (tokenised_line.GetSize() < 3) {
 					PTRACE(0, "GK\tSyntax error in the GWRewriteE164 rule - missing =, rule: " 
-						<< key << " => " << lines[j]
-						);
+						<< key << " => " << lines[j]);
+					SNMP_TRAP(7, SNMPError, Configuration, "Invalid [GWRewriteE164] configuration");
 					continue;
 				}
 
@@ -1022,10 +1026,11 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig *config)
 					in_strings[tokenised_line[1]] = tokenised_line[2];
 				else if (tokenised_line[0] == "out")
 					out_strings[tokenised_line[1]] = tokenised_line[2];
-				else
+				else {
 					PTRACE(0, "GK\tSyntax error in the GWRewriteE164 rule - unknown rule type ("
-						<< tokenised_line[0] << ", rule: " << key << " => " << lines[j]
-						);
+						<< tokenised_line[0] << ", rule: " << key << " => " << lines[j]);
+					SNMP_TRAP(7, SNMPError, Configuration, "Invalid [GWRewriteE164] configuration");
+				}
 			}
 
 			// Put the map contents into reverse sorted vectors
@@ -1083,6 +1088,7 @@ PConfig * Toolkit::Config()
 	// Make sure the config would not be called before SetConfig
 	if (m_ConfigDefaultSection.IsEmpty()) {
 		PTRACE(0, "Error: Call Config() before SetConfig()!");
+		SNMP_TRAP(7, SNMPError, Configuration, "Call Config() before SetConfig()");
 		return NULL;
 	}
 	return (m_Config == NULL) ? ReloadConfig() : m_Config;
@@ -1624,6 +1630,7 @@ PConfig* Toolkit::ReloadConfig()
 	PString GKHome(m_Config->GetString("Home", ""));
 	if (GKHome == "0.0.0.0") {
 		PTRACE(1, "Config error: Invalid Home setting (0.0.0.0), ignoring");
+		SNMP_TRAP(10, SNMPError, Configuration, "Invalid Home setting (0.0.0.0)");
 		GKHome = "";
 	}
 	if (m_GKHome.empty() || !GKHome)
@@ -1737,6 +1744,7 @@ bool Toolkit::MatchRegex(const PString & str, const PString & regexStr)
 	PRegularExpression regex(regexStr, PRegularExpression::Extended);
 	if(regex.GetErrorCode() != PRegularExpression::NoError) {
 		PTRACE(2, "Errornous '"<< regex.GetErrorText() <<"' compiling regex: " << regexStr);
+		SNMP_TRAP(7, SNMPError, Configuration, "Invalid RegEx");
 		return FALSE;
 	}
 	if(!regex.Execute(str, pos)) {
@@ -2788,7 +2796,8 @@ void Toolkit::PortNotification(PortType type, PortAction action, const PString &
 	cmd.Replace("%i", ::AsString(addr));
 
 	if(system(cmd) == -1) {
-		PTRACE(1, "Error executing: " << cmd);
+		PTRACE(1, "Error executing port notification: " << cmd);
+		SNMP_TRAP(6, SNMPError, General, "Error executing port notification: " + cmd);
 	}
 }
 
@@ -3146,6 +3155,7 @@ void Toolkit::ParseTranslationMap(std::map<unsigned, unsigned> & cause_map, cons
 			cause_map.insert(pair<unsigned, unsigned>(causes[0].AsInteger(), causes[1].AsInteger()));
 		} else {
 			PTRACE(1, "Syntax error in cause mapping: " << causes[i]);
+			SNMP_TRAP(7, SNMPError, Configuration, "Invalid cause translation configuration");
 		}
 	}
 }

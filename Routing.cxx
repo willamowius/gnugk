@@ -68,6 +68,7 @@ Route::Route(
 	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
 	if (!destEndpoint) {
 		PTRACE(1, "Error: Route created with NULL endpoint!");
+		SNMP_TRAP(7, SNMPWarning, General, "Route created with NULL endpoint");
 	}
 }
 
@@ -407,6 +408,7 @@ void ExplicitPolicy::OnReload()
 						m_destMap[AsDotString(srcAddr, false)] = AsDotString(destAddr, false);
 					} else {
 						PTRACE(1, "Error parsing dest entry in [Routing::Explicit]: " << src << "=" << dest);
+						SNMP_TRAP(7, SNMPError, Configuration, "Invalid [Routing::Explicit] configuration");
 					}
 				} else {
 					// store anything else as string, will be used as alias
@@ -414,9 +416,11 @@ void ExplicitPolicy::OnReload()
 				}
 			} else {
 				PTRACE(1, "Error: Empty dest entry in [Routing::Explicit]: " << src << "=");
+				SNMP_TRAP(7, SNMPError, Configuration, "Invalid [Routing::Explicit] configuration");
 			}
 		} else {
 			PTRACE(1, "Error parsing src entry in [Routing::Explicit]: " << src << "=" << dest);
+			SNMP_TRAP(7, SNMPError, Configuration, "Invalid [Routing::Explicit] configuration");
 		}
 	}
 }
@@ -864,6 +868,7 @@ void VirtualQueue::OnReload()
 		PRegularExpression regex(m_virtualQueueRegex, PRegularExpression::Extended);
 		if(regex.GetErrorCode() != PRegularExpression::NoError) {
 			PTRACE(2, "Error '"<< regex.GetErrorText() <<"' compiling regex: " << m_virtualQueueRegex);
+			SNMP_TRAP(7, SNMPError, Configuration, "Invalid " + PString(CTIsection) + " configuration: compiling RegEx failed");
         } else {
 			PTRACE(2,"VQueue\t(CTI) Virtual queues enabled (regex:"<<m_virtualQueueRegex
 			<<"), request timeout: "<<m_requestTimeout/1000<<" s");

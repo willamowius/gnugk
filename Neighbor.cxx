@@ -1094,7 +1094,8 @@ bool LRQRequester::Send(Neighbor * nb)
 		   m_requests.insert(make_pair(info, nb));
 
 	if (m_requests.empty()) {
-		PTRACE(2, "SRV\tError Sending LRQ to " << nb->GetIP());
+		PTRACE(2, "SRV\tError sending LRQ to " << nb->GetIP());
+		SNMP_TRAP(11, SNMPError, Network, "Error sending LRQ to " + nb->GetIP());
 		return false;
 	}
 
@@ -1752,6 +1753,7 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 				PString ipaddr = ls[i].Mid(at + 1);
 				if (ipaddr.Left(7) == "0.0.0.0") {
 					PTRACE(1, "ROUTING\tERROR in LS SRV lookup (" << ls[i] << ")");
+					SNMP_TRAP(11, SNMPError, Network, "SRV LS lookup failed: " + ls[i]);
 					continue;
 				}
 				PTRACE(4, "ROUTING\tSRV LS located domain " << domain << " at " << ipaddr);
@@ -1761,6 +1763,7 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 				WORD port;
 				if (!GetTransportAddress(ipaddr, GK_DEF_UNICAST_RAS_PORT, socketip, port) && socketip.IsValid()) {
 					PTRACE(1, "ROUTING\tERROR in SRV LS IP " << ipaddr);
+					SNMP_TRAP(11, SNMPError, Network, "SRV LS lookup failed: " + ipaddr);
 					continue;
 				}
 				if (Toolkit::Instance()->IsGKHome(socketip)) {
@@ -1783,6 +1786,7 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 					GnuGK * nb = new GnuGK();
 					if (!nb->SetProfile(domain, addr)) {
 						PTRACE(4, "ROUTING\tERROR setting SRV neighbor profile " << domain << " at " << addr);
+						SNMP_TRAP(11, SNMPError, Configuration, "Error setting SRV neighbor profile " + domain + " at " + addr);
 						delete nb;
 						return NULL;
 					}
@@ -1825,6 +1829,7 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 					delete pRequest;
 					delete nb;
 					PTRACE(4, "ROUTING\tDNS SRV LRQ Error for " << domain << " at " << ipaddr);
+					SNMP_TRAP(11, SNMPError, Network, "SRV LRQ error for " + domain + " at " + ipaddr);
 					// we found the directory for this domain, but it didn't have a destination, so we fail the call
 					Route * route = new Route();
 					route->m_flags |= Route::e_Reject;
@@ -1867,6 +1872,7 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly)
 				PString dom = cs[j].Mid(in+1);
 				if (dom.Left(7) == "0.0.0.0") {
 					PTRACE(1, "ROUTING\tERROR in CS SRV lookup (" << cs[j] << ")");
+					SNMP_TRAP(11, SNMPError, Network, "SRV CS lookup failed: " + cs[i]);
 					continue;
 				}
 				PStringArray parts = SplitIPAndPort(dom, GK_DEF_ENDPOINT_SIGNAL_PORT);
@@ -1993,6 +1999,7 @@ bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 				GnuGK * nb = new GnuGK();
 				if (!nb->SetProfile(domain,addr)) {
 					PTRACE(4, "ROUTING\tERROR setting RDS neighbor profile " << domain << " at " << addr);
+					SNMP_TRAP(11, SNMPError, Configuration, "Error setting RDS neighbor profile " + domain + " at " + addr);
 					delete nb;
 					return false;
 				}
@@ -2032,6 +2039,7 @@ bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 					}
 				}
 				PTRACE(4, "ROUTING\tDNS RDS LRQ Error for " << domain << " at " << ipaddr);
+				SNMP_TRAP(11, SNMPError, Network, "RDS LRQ error for " + domain + " at " + ipaddr);
 				delete pRequest;
 				delete nb;
 			}

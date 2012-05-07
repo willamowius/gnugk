@@ -6,7 +6,7 @@
  * $Id$
  *
  * Copyright (c) 2005, Michal Zygmuntowicz
- * Copyright (c) 2007-2010, Jan Willamowius
+ * Copyright (c) 2007-2012, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -499,10 +499,11 @@ CLIRewrite::CLIRewrite()
 		m_CLIRPolicy = RewriteRule::ForwardCLIR;
 	else if (clirPolicy.IsEmpty())
 		m_CLIRPolicy = RewriteRule::IgnoreCLIR;
-	else
+	else {
 		PTRACE(1, "CLIRW\tSyntax error in the config - an unrecognized "
-			"CLIRPolicy value: '" << clirPolicy << "'"
-			);
+			"CLIRPolicy value: '" << clirPolicy << "'");
+		SNMP_TRAP(7, SNMPError, Configuration, "Invalid CLIRW rule");
+	}
 }
 
 void CLIRewrite::InRewrite(

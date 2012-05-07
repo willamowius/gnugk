@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2011, Jan Willamowius
+// Copyright (c) 2000-2012, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -460,6 +460,7 @@ void EndpointRec::AddPrefixCapacities(const PString & prefixes)
 			PTRACE(5, "RAS\tEndpoint prefix: " << cap_prefix << " capacity: " << capacity);
 		} else {
 			PTRACE(1, "RAS\tEndpoint Syntax error in PrefixCapacities " << prefix[i]);
+			SNMP_TRAP(7, SNMPError, Configuration, "Invalid PrefixCapacities configuration");
 		}
 	}
 }
@@ -527,6 +528,7 @@ PString EndpointRec::PrintPrefixCapacities() const
 			calls = calls_iter->second;
 		} else {
 			PTRACE(1, "CODING ERROR no stats for prefix " << prefix);
+			SNMP_TRAP(7, SNMPWarning, General, "no stats for prefix " + prefix);
 		}
 		msg += PString("prefix/capacity/curr: ") + prefix + "/" + PString(capacity) + "/" + PString(calls) + "\r\n";
 		++Iter;
@@ -2202,7 +2204,8 @@ struct MultiplexedRTCPKeepAliveFrame
 void H46019KeepAlive::SendKeepAlive(GkTimer * t)
 {
 	if (ossocket == INVALID_OSSOCKET) {
-		PTRACE(1, "Error sending RTCP keepAlive: ossocket not set");
+		PTRACE(1, "Error sending RTP/RTCP keepAlive: ossocket not set");
+		SNMP_TRAP(10, SNMPError, Network, "Sending multiplexed RTP/RTCP keepAlive failed: socket not set");
 		return;
 	}
 
@@ -2232,6 +2235,7 @@ void H46019KeepAlive::SendKeepAlive(GkTimer * t)
 		size_t sent = ::sendto(ossocket, ka_ptr, ka_size, 0, (struct sockaddr *)&dest, sizeof(dest));
 		if (sent != ka_size) {
 			PTRACE(1, "Error sending RTP keepAlive " << timer);
+			SNMP_TRAP(10, SNMPError, Network, "Sending multiplexed RTP keepAlive failed");
 		}
 	} else {
 		RTCPKeepAliveFrame rtcpKeepAlive;
@@ -2267,6 +2271,7 @@ void H46019KeepAlive::SendKeepAlive(GkTimer * t)
 		size_t sent = ::sendto(ossocket, ka_ptr, ka_size, 0, (struct sockaddr *)&dest, sizeof(dest));
 		if (sent != ka_size) {
 			PTRACE(1, "Error sending RTCP keepAlive " << timer);
+			SNMP_TRAP(10, SNMPError, Network, "Sending multiplexed RTCP keepAlive failed");
 		}
 	}
 }
@@ -4012,6 +4017,7 @@ void CallRec::SetSessionMultiplexDestination(WORD session, void * openedBy, bool
 		m_calledSocket->SetSessionMultiplexDestination(session, isRTCP, toAddress, side);
 	} else {
 		PTRACE(1, "Error: Can't find LC for session " << session << " to set multiplex destination!");
+		SNMP_TRAP(10, SNMPError, Network, "Can't find LC for multiplexed RTP session " + PString(PString::Unsigned, session));
 	}
 }
 #endif
@@ -4497,7 +4503,8 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 				 qosFile->WriteLine(headerstr);
 				}
 			} else {
-                PTRACE(4,"QoS\tError opening QoS output File");
+                PTRACE(4,"QoS\tError opening QoS output file " << fn);
+				SNMP_TRAP(6, SNMPError, General, "Error opening QoS output file " + fn);
 			}
 		}
 
@@ -4522,7 +4529,8 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 
 		if (qosFile && qosFile->IsOpen()) {
 			if (!qosFile->WriteLine(outstr)) {
-				PTRACE(4,"QoS\tError writing QoS information to File");
+				PTRACE(4,"QoS\tError writing QoS information to file " << fn);
+				SNMP_TRAP(6, SNMPError, General, "Error writing to QoS output file " + fn);
 			} 
 		   qosFile->Close();
 		   delete qosFile;

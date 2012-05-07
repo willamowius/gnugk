@@ -1346,6 +1346,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 
 	if (!q931pdu->Decode(buffer)) {
 		PTRACE(1, Type() << "\t" << GetName() << " ERROR DECODING Q.931!");
+		SNMP_TRAP(9, SNMPError, General, "Error decoding Q931 message from " + GetName());
 		delete q931pdu;
 		q931pdu = NULL;
 		return m_result = Error;
@@ -1367,6 +1368,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			PTRACE(1, Type() << "\tCould not decode User-User IE for message "
 				<< q931pdu->GetMessageTypeName() << " CRV="
 				<< q931pdu->GetCallReference() << " from " << GetName());
+			SNMP_TRAP(9, SNMPWarning, General, "Error decoding User-User IE message from " + GetName());
 			if (q931pdu->GetMessageType() == Q931::NotifyMsg) {
 				PTRACE(1, "Unknown User-User IE in Notify, continuing");
 				uuie = NULL;
@@ -2105,6 +2107,7 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
     if ((toRemove && (rawCap.GetTag() != H245_DataType::e_h235Media)) ||
        (!toRemove && (rawCap.GetTag() == H245_DataType::e_h235Media))) {
 			PTRACE(1, "H235\tOLC Logic Error! ABORTIING REWRITE!");
+			SNMP_TRAP(7, SNMPError, Authentication, "H.235 logic error in OLC");
 			return false;
     }
 
@@ -2244,6 +2247,7 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 	CallSignalSocket *remoteSocket = static_cast<CallSignalSocket *>(remote);
 	if (!remoteSocket) {
 		PTRACE(1, Type() << "\tWarning: " << GetName() << " has no remote party?");
+		SNMP_TRAP(10, SNMPWarning, Network, "No remote party for " + GetName());
 		delete msg;
 		msg = NULL;
 		return;
@@ -2251,6 +2255,7 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 	MarkSocketBlocked rlock(remoteSocket);
 	if (!remoteSocket->m_setupPdu) {
 		PTRACE(1, Type() << "\tError: " << GetName() << " has no Setup message stored!");
+		SNMP_TRAP(10, SNMPError, Network, "No Setup message stored for " + GetName());
 		delete msg;
 		msg = NULL;
 		return;
@@ -2261,6 +2266,7 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 	if (!GetUUIE(fakeSetup, suuie)
 			|| suuie.m_h323_uu_pdu.m_h323_message_body.GetTag() !=  H225_H323_UU_PDU_h323_message_body::e_setup) {
 		PTRACE(1, Type() << "\tError: " << GetName() << " has no Setup UUIE found!");
+		SNMP_TRAP(10, SNMPError, Network, "No Setup UUIE from " + GetName());
 		delete msg;
 		msg = NULL;
 		return;
@@ -2497,6 +2503,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	SetupMsg* setup = dynamic_cast<SetupMsg*>(msg);
 	if (setup == NULL) {
 		PTRACE(2, Type() << "\tError: Setup message from " << GetName() << " without associated UUIE");
+		SNMP_TRAP(9, SNMPError, Network, "Setup from " + GetName() + " has no UUIE");
 		m_result = Error;
 		return;
 	}
@@ -3910,6 +3917,7 @@ void CallSignalSocket::OnCallProceeding(
 	CallProceedingMsg *callProceeding = dynamic_cast<CallProceedingMsg*>(msg);
 	if (callProceeding == NULL) {
 		PTRACE(2, Type() << "\tError: CallProceeding message from " << Name() << " without associated UUIE");
+		SNMP_TRAP(9, SNMPError, Network, "CallProceeding from " + GetName() + " has no UUIE");
 		m_result = Error;
 		return;
 	}
@@ -4031,6 +4039,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 	ConnectMsg *connect = dynamic_cast<ConnectMsg*>(msg);
 	if (connect == NULL) {
 		PTRACE(2, Type() << "\tError: Connect message from " << Name() << " without associated UUIE");
+		SNMP_TRAP(9, SNMPError, Network, "Connect from " + GetName() + " has no UUIE");
 		m_result = Error;
 		return;
 	}
@@ -4203,6 +4212,7 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 	AlertingMsg * alerting = dynamic_cast<AlertingMsg*>(msg);
 	if (alerting == NULL) {
 		PTRACE(2, Type() << "\tError: Alerting message from " << Name() << " without associated UUIE");
+		SNMP_TRAP(9, SNMPError, Network, "Alerting from " + GetName() + " has no UUIE");
 		m_result = Error;
 		return;
 	}
@@ -4521,6 +4531,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 	}
 	if (this != remainingSocket) {
 		PTRACE(1, "Error: RerouteCall() called on wrong socket" << this);
+		SNMP_TRAP(7, SNMPError, Network, "RerouteCall() called on wrong socket");
 		return false;
 	}
 
@@ -4747,6 +4758,7 @@ bool CallSignalSocket::SendH46017Message(const H225_RasMessage & ras)
 		return TransmitData(buf);
 	} else {
 		PTRACE(1, "Error: Can't send H.460.17 reply - socket closed");
+		SNMP_TRAP(10, SNMPWarning, Network, "Can't send H.460.17 reply to " + GetName() + " - socket closed");
 		return false;
 	}
 }
@@ -4866,6 +4878,7 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg *msg)
 		}
 	} else {
 		PTRACE(1, "Error: ReleaseComplete is not associated with a call - dropping");
+		SNMP_TRAP(10, SNMPWarning, Network, "ReleaseComplete form " + GetName() +  " not associated with any call");
 		m_result = NoData;
 		return;
 	}
@@ -5095,6 +5108,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					Q931 *q931pdu = new Q931();
 					if (!q931pdu->Decode(rawSetup)) {
 						PTRACE(1, Type() << "\t" << GetName() << " ERROR DECODING saved Setup!");
+						SNMP_TRAP(9, SNMPError, Network, "Error decoding saved Setup from " + GetName());
 						delete q931pdu;
 						q931pdu = NULL;
 						return;
@@ -5218,6 +5232,7 @@ void CallSignalSocket::OnProgress(
 	ProgressMsg *progress = dynamic_cast<ProgressMsg*>(msg);
 	if (progress == NULL) {
 		PTRACE(2, Type() << "\tError: Progress message from " << Name() << " without associated UUIE");
+		SNMP_TRAP(9, SNMPError, Network, "Progress from " + GetName() + " has no UUIE");
 		m_result = Error;
 		return;
 	}
@@ -5266,6 +5281,7 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 		H245_OpenLogicalChannel olc;
 		if (!olc.Decode(strm)) {
 			PTRACE(4, "Q931\t" << GetName() << " ERROR DECODING FAST START ELEMENT " << i);
+			SNMP_TRAP(9, SNMPWarning, Network, "Error decofing fastStart element");
 			return false;
 		}
 		PTRACE(4, "Q931\nfastStart[" << i << "] received: " << setprecision(2) << olc);
@@ -5650,6 +5666,7 @@ void CallSignalSocket::Dispatch()
 
 				if (m_call->GetNewRoutes().empty()) {
 					PTRACE(1, "Q931\tERROR: Call retry without a route");
+					SNMP_TRAP(10, SNMPWarning, Network, "Call retry without route");
 					return;
 				}
 				CallRec * newCall = new CallRec(m_call.operator ->());
@@ -5758,6 +5775,7 @@ ProxySocket::Result CallSignalSocket::RetrySetup()
 
 	if (!q931pdu->Decode(buffer)) {
 		PTRACE(1, Type() << "\t" << GetName() << " ERROR DECODING Q.931!");
+		SNMP_TRAP(9, SNMPError, Network, "Error decoding Q931 from " + GetName());
 		delete q931pdu;
 		q931pdu = NULL;
 		return m_result = Error;
@@ -5881,6 +5899,7 @@ void CallSignalSocket::DispatchNextRoute()
 
 			if (m_call->GetNewRoutes().empty()) {
 				PTRACE(1, "Q931\tERROR: Call retry without a route");
+				SNMP_TRAP(10, SNMPWarning, Network, "Call retry without route");
 				return;
 			}
 			const Route &newRoute = m_call->GetNewRoutes().front();
@@ -7069,6 +7088,7 @@ void H46019Session::Send(PUInt32b sendMultiplexID, const H323TransportAddress & 
 
 	if (osSocket == INVALID_OSSOCKET) {
 		PTRACE(1, "RTPM\tError: OSSocket to " << toAddress << " not set");
+		SNMP_TRAP(10, SNMPError, Network, "Invalid multiplexing socket for " + AsString(toAddress));
 		return;
 	}
 	if (Toolkit::Instance()->IsIPv6Enabled()) {
@@ -7093,6 +7113,7 @@ void H46019Session::Send(PUInt32b sendMultiplexID, const H323TransportAddress & 
 	}
 	if (sent != lenToSend) {
 		PTRACE(1, "RTPM\tError sending RTP to " << toAddress << ": should send=" << lenToSend << " did send=" << sent << " errno=" << errno);
+		SNMP_TRAP(10, SNMPWarning, Network, "Sending multiplexed RTP to " + toAddress + " failed");
 	}
 }
 
@@ -7144,6 +7165,7 @@ void MultiplexedRTPReader::ReadSocket(IPSocket * socket)
 	MultiplexRTPListener *psocket = dynamic_cast<MultiplexRTPListener *>(socket);
 	if (psocket == NULL) {
 		PTRACE(1, "RTPM\tError: Invalid socket");
+		SNMP_TRAP(10, SNMPError, Network, "Invalid read on multiplex socket");
 		return;
 	}
 	psocket->ReceiveData();
@@ -8046,14 +8068,15 @@ bool UDPProxySocket::ErrorHandler(PSocket::ErrorGroup group)
 	//		break;
 		case PSocket::Timeout:
 			PTRACE(4, msg << " Error(" << group << "): Timeout");
+			SNMP_TRAP(10, SNMPWarning, Network, "UDP timeout: " + msg);
 			break;
 		case PSocket::NotOpen:
 			CloseSocket();
 		default:
 			PTRACE(3, msg << " Error(" << group << "): "
 				<< PSocket::GetErrorText(e) << " (" << e << ':'
-				<< GetErrorNumber(group) << ')'
-				);
+				<< GetErrorNumber(group) << ')');
+			SNMP_TRAP(10, SNMPWarning, Network, "UDP error: " + PSocket::GetErrorText(e));
 			break;
 	}
 	return false;
@@ -8133,6 +8156,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 				<< rtp->GetErrorCode(PSocket::LastGeneralError) << '/'
 				<< rtp->GetErrorNumber(PSocket::LastGeneralError) << ": "
 				<< rtp->GetErrorText(PSocket::LastGeneralError));
+			SNMP_TRAP(10, SNMPError, Network, "Can't bind to RTP port " + AsString(laddr, port));
 			rtp->Close();
 			continue;
 		}
@@ -8141,6 +8165,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 				<< rtcp->GetErrorCode(PSocket::LastGeneralError) << '/'
 				<< rtcp->GetErrorNumber(PSocket::LastGeneralError) << ": "
 				<< rtcp->GetErrorText(PSocket::LastGeneralError));
+			SNMP_TRAP(10, SNMPError, Network, "Can't bind to RTCP port " + AsString(laddr, port));
 			rtcp->Close();
 			rtp->Close();
 			continue;
@@ -9042,6 +9067,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 								keepAliveRTCPAddr = *control;
 							} else {
 								PTRACE(1, "H46018\tError: H.460.19 server didn't provide mediaControlChannel");
+								SNMP_TRAP(10, SNMPError, Network, "H.460.19 server didn't provide mediaControlChannel");
 							}
 							if (keepAliveInterval > 0) {
 								call->AddRTPKeepAlive(flcn, keepAliveRTPAddr, keepAliveInterval, multiplexID);
@@ -9234,6 +9260,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 				// we remove encryption, OLC has already been rewritten
 				if (!h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_dynamicRTPPayloadType)) {
 					PTRACE(1, "H235\tError: dynamic PT missing");
+					SNMP_TRAP(7, SNMPError, Authentication, "Dynamic H.235 PT missing");
 				} else {
 					BYTE mediaPayloadType = UNDEFINED_PAYLOAD_TYPE;
 					if (isReverseLC)
@@ -9759,6 +9786,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 				logicalChannels[flcn] = sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != 0);
 				if (!lc->IsOpen()) {
 					PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn);
+					SNMP_TRAP(10, SNMPWarning, Network, "Can't create RTP logical channel " + flcn);
 				}
 			}
 		}
@@ -9818,6 +9846,7 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
 		siterator iter = fastStartLCs.begin();
 		if (!(iter->second)) {
 			PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn << ": Invalid fastStart LC");
+			SNMP_TRAP(10, SNMPWarning, Network, "Can't create RTP logical channel " + flcn);
 			return NULL;
 		}
 		(lc = iter->second)->SetChannelNumber(flcn);
@@ -9826,6 +9855,7 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
 		siterator iter = peer->fastStartLCs.begin();
 		if (!(iter->second)) {
 			PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn << ": Invalid fastStart peer LC");
+			SNMP_TRAP(10, SNMPWarning, Network, "Can't create RTP logical channel " + flcn);
 			return NULL;
 		}
 		(lc = iter->second)->SetChannelNumber(flcn);
@@ -9835,6 +9865,7 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
 		lc = new RTPLogicalChannel(callid, flcn, hnat != 0);
 		if (!lc->IsOpen()) {
 			PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn);
+			SNMP_TRAP(10, SNMPWarning, Network, "Can't create RTP logical channel " + flcn);
 			delete lc;
 			return NULL;
 		}
@@ -9855,6 +9886,7 @@ RTPLogicalChannel *H245ProxyHandler::CreateFastStartLogicalChannel(WORD id)
 		lc = new RTPLogicalChannel(callid, 0, hnat != 0);
 		if (!lc->IsOpen()) {
 			PTRACE(1, "Proxy\tError: Can't create fast start logical channel id " << id);
+			SNMP_TRAP(10, SNMPWarning, Network, "Can't create fastStart logical channel " + id);
 			delete lc;
 			return NULL;
 		}
@@ -10126,6 +10158,7 @@ void ProxyHandler::ReadSocket(IPSocket *socket)
 	ProxySocket *psocket = dynamic_cast<ProxySocket *>(socket);
 	if (psocket == NULL) {
 		PTRACE(1, "Error\tInvalid socket");
+		SNMP_TRAP(10, SNMPWarning, Network, "Invalid socket");
 		return;
 	}
 	switch (psocket->ReceiveData())
@@ -10138,10 +10171,12 @@ void ProxyHandler::ReadSocket(IPSocket *socket)
 					css->PerformConnecting();
 				} else {
 					PTRACE(1, "Error: No CallSignalSocket ??? socket=" << socket);
+					SNMP_TRAP(10, SNMPWarning, Network, "Invalid socket");
 				}
 			}
 #else
 			PTRACE(1, "Error\tcheck the code " << psocket->Type());
+			SNMP_TRAP(7, SNMPError, Network, "Logic error in ReadSocket");
 #endif
 			break;
 		case ProxySocket::DelayedConnecting:
@@ -10226,6 +10261,7 @@ void CallSignalSocket::PerformConnecting()
 
 		if (newCall->GetNewRoutes().empty()) {
 			PTRACE(1, "Q931\tERROR: PerformConnecting() without a route");
+			SNMP_TRAP(10, SNMPWarning, Network, "Connecting without a route");
 			return;
 		}
 

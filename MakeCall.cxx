@@ -2,7 +2,7 @@
 //
 // MakeCall.cxx
 //
-// Copyright (c) 2007-2011, Jan Willamowius
+// Copyright (c) 2007-2012, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -13,6 +13,7 @@
 
 #include "MakeCall.h"
 #include "Toolkit.h"
+#include "snmp.h"
 #include "config.h"
 
 MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndPoint")
@@ -53,6 +54,7 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 		isRegistered = TRUE;
 	} else {
 		PTRACE(1, "MakeCallEndpoint: Error registering with gatekeeper at \"" << gkName << '"');
+		SNMP_TRAP(7, SNMPError, Network, "MakeCall endpoint failed to register with gatekeeper " + gkName);
 		isRegistered = FALSE;
 	}
 #ifdef H323_H46018
@@ -94,6 +96,7 @@ PString MakeCallEndPoint::GetDestination(PString token)
 		destinations.erase(it);
 	} else {
 		PTRACE(1, "MakeCallEndpoint: ERROR: No destination for call token " << token);
+		SNMP_TRAP(7, SNMPError, Network, "No destination for MakeCall found");
 	}
 	return dest;
 }
@@ -122,6 +125,7 @@ PBoolean MakeCallEndPoint::OnConnectionForwarded(H323Connection & connection,
 	}
 
 	PTRACE(1, "MakeCallEndpoint: Error forwarding call to \"" << forwardParty << '"');
+	SNMP_TRAP(7, SNMPError, Network, "MakeCall to " + forwardParty + " failed");
 	return FALSE;
 }
 

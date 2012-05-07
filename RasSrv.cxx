@@ -166,6 +166,7 @@ bool GatekeeperMessage::Read(RasListener *socket)
 		PTRACE(1, "RAS\tRead error " << socket->GetErrorCode(PSocket::LastReadError)
 			<< '/' << socket->GetErrorNumber(PSocket::LastReadError) << ": "
 			<< socket->GetErrorText(PSocket::LastReadError));
+		SNMP_TRAP(10, SNMPError, Network, "RAS read error : " + socket->GetErrorText(PSocket::LastReadError));
 		return false;
 	}
 	socket->GetLastReceiveAddress(m_peerAddr, m_peerPort);
@@ -267,11 +268,13 @@ bool RasListener::SendRas(const H225_RasMessage & rasobj, const Address & addr, 
 	m_wmutex.Signal();
 	if (result)
 		PTRACE(5, "RAS\tSent Successful");
-	else
+	else {
 		PTRACE(1, "RAS\tWrite error " << GetErrorCode(PSocket::LastWriteError) << '/'
 			<< GetErrorNumber(PSocket::LastWriteError) << ": "
 			<< GetErrorText(PSocket::LastWriteError)
 			);
+		SNMP_TRAP(10, SNMPError, Network, "RAS write error: " + GetErrorText(PSocket::LastWriteError));
+	}
 	return result;
 }
 
@@ -853,6 +856,7 @@ void RasServer::LoadConfig()
 	int hsize = GKHome.size();
 	if (hsize == 0) {
 		PTRACE(1, "Error: No interface for RAS?");
+		SNMP_TRAP(10, SNMPError, Configuration, "No RAS interface");
 		return;
 	}
 
@@ -901,6 +905,7 @@ void RasServer::LoadConfig()
 	}
 	if ((m_socksize == 0) || (interfaces.empty())) {
 		PTRACE(1, "Error: No valid RAS socket!");
+		SNMP_TRAP(10, SNMPError, Configuration, "No RAS socket");
 		return;
 	}
 
@@ -1440,6 +1445,7 @@ H225_ArrayOf_AlternateGK RasServer::ParseAltGKConfig(const PString & altGkSettin
 		const PStringArray tokens = altgks[idx].Tokenise(";", FALSE);
 		if (tokens.GetSize() < 4) {
 			PTRACE(1,"GK\tFormat error in AlternateGKs");
+			SNMP_TRAP(7, SNMPError, Configuration, "Invalid AlternateGK config");
 			continue;
 		}
 
@@ -3794,6 +3800,7 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 						outgoingSocket->OnSCICall(incomingIndication.m_callID, incomingIndication.m_callSignallingAddress);
 					} else {
 						PTRACE(1, "Error decoding IncomingIndication");
+						SNMP_TRAP(9, SNMPError, Network, "Error decoding IncomingIndication");
 					}
 				}
 			} else {
@@ -3894,6 +3901,7 @@ template<> bool RasPDU<H225_ServiceControlResponse>::Process()
 						}
 					} else {
 						PTRACE(1, "Error decoding LRQKeepAlive");
+						SNMP_TRAP(9, SNMPError, Network, "Error decoding LRQKeepAlive");
 					}
 				}
 			}

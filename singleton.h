@@ -84,7 +84,7 @@ template<class T> class Singleton : public SingletonBase {
 template<class T> Singleton<T>::Singleton(const char *n) : SingletonBase(n)
 {
 	if (m_Instance != NULL) {
-		PTRACE(0, "Runtime error: Duplicate singleton instances");
+		PTRACE(0, "Runtime error: Duplicate singleton instances of " << n);
 	}
 }
 

@@ -644,6 +644,7 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 		if (!found) {
 			cerr << "WARNING: Config section [" << sect << "] unknown" << endl;
 			PTRACE(0, "WARNING: Config section [" << sect << "] unknown");
+			SNMP_TRAP(7, SNMPError, Configuration, "Config section [" + sect + "] unknown");
 			warnings++;
 		} else if (!section_checkable) {
 			//PTRACE(0, "Section " << sect << " can't be checked in detail");
@@ -654,8 +655,7 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 				PCaselessString key = entries.GetKeyAt(j);
 				PString value = entries.GetDataAt(j);
 				if (value.IsEmpty()) {
-					cerr << "WARNING: Empty switch: [" << sect << "] " << key << "=" << endl;
-					PTRACE(0, "WARNING: Empty switch: [" << sect << "] " << key << "=");
+					PTRACE(2, "WARNING: Empty entry: [" << sect << "] " << key << "=");
 				}
 				unsigned k = 0;
 				bool entry_found = false;
@@ -670,6 +670,7 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 				if (!entry_found) {
 					cerr << "WARNING: Config entry [" << sect << "] " << key << "=" << value << " unknown" << endl;
 					PTRACE(0, "WARNING: Config entry [" << sect << "] " << key << "=" << value << " unknown");
+					SNMP_TRAP(7, SNMPError, Configuration, "Config entry [" + sect + "] " + key + " unknown");
 					warnings++;
 				}
 			}
@@ -677,6 +678,7 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 	}
 	if (!mainsectionfound) {
 		PTRACE(0, "WARNING: This doesn't look like a GNU Gatekeeper configuration file!");
+		SNMP_TRAP(7, SNMPError, Configuration, "No config file");
 	}
 
 	return (warnings == 0);

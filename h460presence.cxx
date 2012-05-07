@@ -3,7 +3,7 @@
 // Presence in H.323 gatekeeper
 //
 // Copyright (c) 2009-2010, Simon Horne
-// Copyright (c) 2009-2010, Jan Willamowius
+// Copyright (c) 2009-2012, Jan Willamowius
 //
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
@@ -477,6 +477,7 @@ bool GkPresence::DatabaseLoad()
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_queryList,params, m_timeout);
 	if (result == NULL) {
 		PTRACE(2, "H460PSQL\tSubList failed - timeout or fatal error");
+		SNMP_TRAP(5, SNMPError, Database, "Presense SQL query failed");
 		return false;
 	}
 #if H460P_VER < 2
@@ -486,8 +487,8 @@ bool GkPresence::DatabaseLoad()
 #endif
 	if (result->GetNumRows() > 0 && result->GetNumFields() < fieldCount) {
 		PTRACE(2, "H460PSQL\tBad-formed query - "
-			"insufficient columns found in the result set expect " << fieldCount
-			);
+			"insufficient columns found in the result set expect " << fieldCount);
+		SNMP_TRAP(5, SNMPError, Database, "Presense SQL query failed");
 		return false;
 	}
 	if (result->GetNumRows() == 0) {
@@ -504,20 +505,19 @@ bool GkPresence::DatabaseLoad()
 	while (result->FetchRow(retval)) {
 		if (retval[0].IsEmpty()) {
 			PTRACE(1, "H460PSQL\tQuery Invalid value found.");
+			SNMP_TRAP(5, SNMPError, Database, "Presense SQL query failed");
 			continue;
 		}
 #if H460P_VER < 2
 		PTRACE(6, "H460PSQL\tQuery result: " << retval[0] << " " << retval[1]
 								    << " " << retval[2] << " " << retval[3]
 									<< " " << retval[4] << " " << retval[5]
-									<< " " << retval[6]
-									);
+									<< " " << retval[6]);
 #else
 		PTRACE(6, "H460PSQL\tQuery result: '" << retval[0] << "', '" << retval[1]
 								    << "', ' " << retval[2] << "', ' " << retval[3]
 									<< "', '" << retval[4] << "', '" << retval[5]
-									<< "', '" << retval[6] << "', '" << retval[7]
-									);
+									<< "', '" << retval[6] << "', '" << retval[7]);
 #endif
 									
 		H460P_PresenceIdentifier & pid = AsPresenceId(retval[0]);
@@ -804,6 +804,7 @@ void GkPresence::ProcessPresenceElement(const PASN_OctetString & pdu)
 
 	if (!ReceivedPDU(pdu)) {
 		PTRACE(4,"H460P\tError processing PDU");
+		SNMP_TRAP(9, SNMPError, Network, "Error decoding Presense PDU");
 	}
 }
 
@@ -1299,6 +1300,7 @@ bool GkPresence::HandleSubscriptionLocal(const H460P_PresenceSubscription & subs
 	if (it != remoteIds.end()) {
 		if (!subscription.HasOptionalField(H460P_PresenceSubscription::e_approved)) {
 			PTRACE(4,"PRES\tLOGIC ERROR: Received a subscription reply but not subscriber and no approval indication");
+			SNMP_TRAP(7, SNMPError, Authentication, "Received a Presence subscription reply but not subscriber and no approval indication");
 			return false;
 		}
 		approved = subscription.m_approved;

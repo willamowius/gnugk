@@ -5,7 +5,7 @@
  * support for accounting to the gatekeeper.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2005-2010, Jan Willamowius
+ * Copyright (c) 2005-2012, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -959,10 +959,11 @@ bool GkAcctLoggerList::LogAcctEvent(
 		ostream& strm = PTrace::Begin(2, __FILE__, __LINE__);
 		strm << "GKACCT\t" << (finalResult ? "Successfully logged event " 
 			: "Failed to log event ") << evt;
-		SNMP_TRAP(7, SNMPError, Accounting, "");
 		if (call)
 			strm << " for call no. " << call->GetCallNumber();
 		PTrace::End(strm);
+		if (!finalResult)
+			SNMP_TRAP(7, SNMPError, Accounting, "Failed to log event " + evt);
 	}
 	return finalResult;
 }
@@ -1002,7 +1003,7 @@ bool GkAcctLoggerList::LogAcctEvent(
 				if (ep)
 					strm << " for endpoint " << ep->GetEndpointIdentifier().GetValue();
 				PTrace::End(strm);
-				SNMP_TRAP(7, SNMPError, Accounting, "");
+				SNMP_TRAP(7, SNMPError, Accounting, logger->GetName() + " failed to log event " + evt);
 			}
 			// required and sufficient rules always determine 
 			// status of the request
@@ -1029,7 +1030,8 @@ bool GkAcctLoggerList::LogAcctEvent(
 		if (ep)
 			strm << " for endpoint " << ep->GetEndpointIdentifier().GetValue();
 		PTrace::End(strm);
-		SNMP_TRAP(7, SNMPError, Accounting, "");
+		if (!finalResult)
+			SNMP_TRAP(7, SNMPError, Accounting, "Failed to log event " + evt);
 	}
 	return finalResult;
 }

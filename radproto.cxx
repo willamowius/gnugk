@@ -4,7 +4,7 @@
  * RADIUS protocol classes.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2003-2011, Jan Willamowius
+ * Copyright (c) 2003-2012, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -1534,6 +1534,7 @@ bool RadiusSocket::MakeRequest(
 			<< GetErrorCode(LastWriteError) << '/'
 			<< GetErrorNumber(LastWriteError) << ": "
 			<< GetErrorText(LastWriteError) << " (id:" << (PINDEX)id << ')');
+			SNMP_TRAP(10, SNMPError, Network, "Sending Radius message failed: " + GetErrorText(LastWriteError));
 	}
 	m_writeMutex.Signal();
 
@@ -1555,6 +1556,7 @@ bool RadiusSocket::MakeRequest(
 						<< " (" << GetErrorCode(LastReadError) << '/'
 						<< GetErrorNumber(LastReadError) << ": "
 						<< GetErrorText(LastReadError) << ')');
+				SNMP_TRAP(10, SNMPError, Network, "Radius read error: " + GetErrorText(LastReadError));
 				delete response;
 				response = NULL;
 				break;
@@ -1717,8 +1719,8 @@ bool RadiusSocket::SendRequest(
 		<< GetErrorCode(LastWriteError) << '/'
 		<< GetErrorNumber(LastWriteError) << ": "
 		<< GetErrorText(LastWriteError) << " (id:" 
-		<< (PINDEX)request->GetId() << ')'
-		);
+		<< (PINDEX)request->GetId() << ')');
+		SNMP_TRAP(10, SNMPError, Network, "Sending Radius message failed: " + GetErrorText(LastWriteError));
 	return false;
 }
 
@@ -2132,6 +2134,7 @@ bool RadiusClient::SendRequest(
 
 	if (!socket->SendRequest(clonedRequestPDU, serverAddress, serverPort)) {
 		PTRACE(3, "RADIUS\tError sending RADIUS request (id:" << (PINDEX)id << ')');
+		SNMP_TRAP(10, SNMPError, Network, "Sending Radius message failed");
 		delete clonedRequestPDU;
 		return false;
 	}
