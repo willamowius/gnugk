@@ -711,15 +711,14 @@ T120PortClose=/usr/local/bin/ports.sh %p %n %i
 <sect1>Section &lsqb;SNMP&rsqb;
 <label id="snmp">
 <p>
-If GnuGk was compiled with SNMP support from Net-SNMP and SMP is enabled, GnuGk will register as a AgentX sub-agent
-to the running Net-SNMP daemon (using TCP port 705 on localhost by default).
-It will use the Net-SNMP daemon to handle GET and SET requests as well as sending traps.
-Access control to the SNMP agent as well as the traps host (oand which version traps are preferred)
-will be configured in the Net-SNMP configuration.
+If GnuGk was compiled with SNMP support from Net-SNMP and SNMP is enabled, GnuGk will register as an AgentX sub-agent
+to the running Net-SNMP daemon. By default, it will use localhost and TCP port 705.
+All GET / SET requests and SNMP traps will be performed by the Net-SNMP daemon, so access control, trap destination and 
+SNMP version configuration must be done in that daemon's configuration.
 
-If Net-SNMP support wasn't compiled in, GnuGk will fall back onto PTLib's SNMP support if available.
-In this case only trap sending will be available. The switches for TrapHost and and TrapCommunity below
-are only used when using the PTLib implementation. PTlib will always send version 1 traps in a version 2c message.
+If Net-SNMP support wasn't compiled in, GnuGk will use PTLib's SNMP support if it is available, but only trap
+sending is possible. The switches for TrapHost and and TrapCommunity below
+are only used when configuring the PTLib implementation. PTlib will always send version 1 traps in a version 2c message.
 
 <sect2>GNU Gatekeeper Entrprise MIB
 <p>
@@ -735,7 +734,7 @@ The following OIDs are available:
 <item>1.3.6.1.4.1.27938.11.1.6 CatchAll destination (GET, SET)
 </itemize>
 
-The following traps my be sent:
+The following traps are defined:
 <itemize>
 <item>1 GnuGk started
 <item>2 GnuGk stopped
@@ -750,7 +749,7 @@ The following traps my be sent:
 <item>11 Neighbor error
 </itemize>
 
-Trap can have 3 optional data elements:
+Traps may have 3 optional data elements:
 <itemize>
 <item>Severity level (OID 1.3.6.1.4.1.27938.11.2.1): Error=1, Warning=2, Info=3
 <item>Group (OID 1.3.6.1.4.1.27938.11.2.2): General=1, Network=2, Database=3, Accounting=4, Authentication=5, Configuration=6
@@ -759,18 +758,20 @@ Trap can have 3 optional data elements:
 
 <sect2>Configuring Net-SNMP
 <p>
-Net-SNMP configuration is usually in /etc/snmp/snmpd.conf. Here you should define access rules for the SNMP manager that
-should be allowed to access GnuGk's SNMP agent (rocommunity and rwcommunity).
+Net-SNMP configuration is usually found in /etc/snmp/snmpd.conf.
+This configuration file is where access control rules are defined for the SNMP
+manager that should be allowed to access GnuGk's SNMP agent (rocommunity and
+rwcommunity).
 
-You can also define the hosts to recive traps. Depending on which trap host definition you use,
-Net-SNMP will convert the traps to the right version.
-Use 'trapsink' if you want to receive version 1 traps or 'trap2sink' if you want to receive
-version 2c traps. <!-- and 'informsink' if you want SNMP v3 Inform messages. -->
+You can also define the hosts to receive traps. Depending on which trap host
+definition you use, Net-SNMP will convert the traps to the correct version. 
+Use 'trapsink' if you want to receive version 1 traps or trap2sink if you want
+to receive version 2c traps. <!-- and informsink if you want SNMP v3 inform messages. -->
 
 Please make sure AgentX support is enabled in the Net-SNMP daemon.
 <p>
 <descrip>
-Simple example for a snmpd.conf for SNMP version 2c:
+Simple example of a snmpd.conf for SNMP version 2c:
 <tscreen><verb>
 # server location and contact
 syslocation Server Room
@@ -797,7 +798,7 @@ When using PTLib to send traps, you can use these switches:
 <item><tt>TrapHost=192.168.1.100</tt><newline>
 Default: <tt/none/<newline>
 <p>
-Define the host where to send traps. No traps will be thrown if no host is defined. This can be an IP or DNS name.
+Define the trap destination host. No traps will be sent if no host is defined. You may specify an IP or DNS name.
 
 <item><tt>TrapCommunity=public</tt><newline>
 Default: <tt/public/<newline>
@@ -805,4 +806,3 @@ Default: <tt/public/<newline>
 Define the community string for traps.
 
 </itemize>
-
