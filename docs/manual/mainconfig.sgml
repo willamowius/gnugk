@@ -522,9 +522,9 @@ increase this setting.
 
 <item><tt/EnableSNMP=1/<newline>
 Default: <tt>0</tt><newline>
-EXPERIMENTAL:
-Enable SNMP support.
-
+Enable SNMP support. GnuGk must be compiled with SNMP support from either
+Net-SNMP (traps and agent support) or PTLib (only trap support).
+See section <ref id="snmp" name="[SNMP]"> for details.
 </itemize>
 
 

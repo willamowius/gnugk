@@ -709,12 +709,55 @@ T120PortClose=/usr/local/bin/ports.sh %p %n %i
 </descrip>
 
 <sect1>Section &lsqb;SNMP&rsqb;
+<label id="snmp">
+<p>
+If GnuGk was compiled with SNMP support from Net-SNMP and SMP is enabled, GnuGk will register as a AgentX sub-agent
+to the running Net-SNMP daemon (using TCP port 705 on localhost by default).
+It will use the Net-SNMP daemon to handle GET and SET requests as well as sending traps.
+Access control to the SNMP agent as well as the traps host (oand which version traps are preferred)
+will be configured in the Net-SNMP configuration.
+
+If Net-SNMP support wasn't compiled in, GnuGk will fall back onto PTLib's SNMP support if available.
+In this case only trap sending will be available. The switches for TrapHost and and TrapCommunity below
+are only used when using the PTLib implementation. PTlib will always send version 1 traps in a version 2c message.
+
+<sect2>Configuring Net-SNMP
+<p>
+Net-SNMP configuration is usually in /etc/snmp/snmpd.conf. Here you should define access rules for the SNMP manager that
+should be allowed to access GnuGk's SNMP agent (rocommunity and rwcommunity).
+
+You can also define the hosts to recive traps. Depending on which trap host definition you use, Net_SNMP will convert the traps to the right version. Use 'trapsink' if you want to receive version 1 traps, trap2sink if you want to receive version 2c traps and informsink if you want SNMP v3 inform messages.
+
+Please make sure AgentX support is enabled in the Net-SNMP daemon.
+<p>
+<descrip>
+Simple example for a snmpd.conf for SNMP version 2c:
+<tscreen><verb>
+# server location and contact
+syslocation Server Room
+syscontact Sysadmin (root@example.com)
+
+# read-only access only from this network, access to all MIBs
+rocommunity public 192.168.1.0/24
+# read-write access only from this network, restricted to the GnuGk MIB
+rwcommunity mysecret 192.168.1.0/24	1.3.6.1.4.1.27938
+
+# send traps as version 2 to this host with community string 'public'
+trap2sink   192.168.1.64    public
+
+# enable AgentX support
+master agentx
+</verb></tscreen>
+</descrip>
+
+<p>
+<sect2>Configuring SNMP traps when using PTLib SNMP support
 <p>
 <itemize>
 <item><tt>TrapHost=192.168.1.100</tt><newline>
 Default: <tt/none/<newline>
 <p>
-Define the host where to send traps. No traps will be thrown if no host is defined.
+Define the host where to send traps. No traps will be thrown if no host is defined. This can be an IP or DNS name.
 
 <item><tt>TrapCommunity=public</tt><newline>
 Default: <tt/public/<newline>
