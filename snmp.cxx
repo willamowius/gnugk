@@ -21,9 +21,9 @@
 #endif
 
 const char * const GnuGkMIBStr      = "1.3.6.1.4.1.27938.11";
-const char * const severityOIDStr   = "1.3.6.1.4.1.27938.11.1.1";
-const char * const groupOIDStr      = "1.3.6.1.4.1.27938.11.1.2";
-const char * const displayMsgOIDStr = "1.3.6.1.4.1.27938.11.1.3";
+const char * const severityOIDStr   = "1.3.6.1.4.1.27938.11.2.1";
+const char * const groupOIDStr      = "1.3.6.1.4.1.27938.11.2.2";
+const char * const displayMsgOIDStr = "1.3.6.1.4.1.27938.11.2.3";
 
 
 void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg)
@@ -31,9 +31,9 @@ void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, cons
 	PTRACE(5, "SNMP\tSendSNMPTrap " << trapNumber << ", " << severity << ", " << group << ", " << msg);
 #ifdef HAS_NETSNMP
 	static oid snmptrap_oid[] = { 1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0 };
-	static oid severityOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 1 };
-	static oid groupOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 2 };
-	static oid displayMsgOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 3 };
+	static oid severityOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 1 };
+	static oid groupOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 2 };
+	static oid displayMsgOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 3 };
 	oid trapOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 0, 99999 };
 	
 	// insert trapNumber as last digit

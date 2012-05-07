@@ -721,6 +721,42 @@ If Net-SNMP support wasn't compiled in, GnuGk will fall back onto PTLib's SNMP s
 In this case only trap sending will be available. The switches for TrapHost and and TrapCommunity below
 are only used when using the PTLib implementation. PTlib will always send version 1 traps in a version 2c message.
 
+<sect2>GNU Gatekeeper Entrprise MIB
+<p>
+The GNU Gatekeeper Project was assigned the enterprise number 27938 by IANA (Internet Assigned Number Authority).
+
+The following OIDs are available:
+<itemize>
+<item>1.3.6.1.4.1.27938.11.1.1 GnuGk version (GET)
+<item>1.3.6.1.4.1.27938.11.1.2 GnuGk version with module flags (GET)
+<item>1.3.6.1.4.1.27938.11.1.3 Current number of endpoint registrations (GET)
+<item>1.3.6.1.4.1.27938.11.1.4 Number of ongoing calls (GET)
+<item>1.3.6.1.4.1.27938.11.1.5 Trace level (GET, SET)
+<item>1.3.6.1.4.1.27938.11.1.6 CatchAll destination (GET, SET)
+</itemize>
+
+The following traps my be sent:
+<itemize>
+<item>1 GnuGk started
+<item>2 GnuGk stopped
+<item>3 Config Reload
+<item>4 Module creation failed
+<item>5 Database operation failure
+<item>6 IO operation failure
+<item>7 General error
+<item>8 Authentication error
+<item>9 Message encoding/decoding error
+<item>10 Network error
+<item>11 Neighbor error
+</itemize>
+
+Trap can have 3 optional data elements:
+<itemize>
+<item>Severity level (OID 1.3.6.1.4.1.27938.11.2.1): Error=1, Warning=2, Info=3
+<item>Group (OID 1.3.6.1.4.1.27938.11.2.2): General=1, Network=2, Database=3, Accounting=4, Authentication=5, Configuration=6
+<item>Display string (OID 1.3.6.1.4.1.27938.11.2.3)
+</itemize>
+
 <sect2>Configuring Net-SNMP
 <p>
 Net-SNMP configuration is usually in /etc/snmp/snmpd.conf. Here you should define access rules for the SNMP manager that
@@ -753,6 +789,7 @@ master agentx
 <p>
 <sect2>Configuring SNMP traps when using PTLib SNMP support
 <p>
+When using PTLib to send traps, you can use these switches:
 <itemize>
 <item><tt>TrapHost=192.168.1.100</tt><newline>
 Default: <tt/none/<newline>
