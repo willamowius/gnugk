@@ -762,7 +762,10 @@ Trap can have 3 optional data elements:
 Net-SNMP configuration is usually in /etc/snmp/snmpd.conf. Here you should define access rules for the SNMP manager that
 should be allowed to access GnuGk's SNMP agent (rocommunity and rwcommunity).
 
-You can also define the hosts to recive traps. Depending on which trap host definition you use, Net_SNMP will convert the traps to the right version. Use 'trapsink' if you want to receive version 1 traps, trap2sink if you want to receive version 2c traps and informsink if you want SNMP v3 inform messages.
+You can also define the hosts to recive traps. Depending on which trap host definition you use,
+Net-SNMP will convert the traps to the right version.
+Use 'trapsink' if you want to receive version 1 traps or 'trap2sink' if you want to receive
+version 2c traps. <!-- and 'informsink' if you want SNMP v3 Inform messages. -->
 
 Please make sure AgentX support is enabled in the Net-SNMP daemon.
 <p>
