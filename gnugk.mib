@@ -68,21 +68,21 @@ gnugkRegistrations OBJECT-TYPE
         SYNTAX        Counter32
         MAX-ACCESS    read-only
         STATUS        current
-        DESCRIPTION   "Number endpoint registrations"
+        DESCRIPTION   "Number of endpoint registrations"
         ::= { gnugkStatusObjects 3 }
 
 gnugkOngoingCalls OBJECT-TYPE
         SYNTAX        Counter32
         MAX-ACCESS    read-only
         STATUS        current
-        DESCRIPTION   "Number ongoing calls"
+        DESCRIPTION   "Number of ongoing calls"
         ::= { gnugkStatusObjects 4 }
 
 gnugkTracelevel OBJECT-TYPE
         SYNTAX        Counter32
         MAX-ACCESS    read-only
         STATUS        current
-        DESCRIPTION   "Number ongoing calls"
+        DESCRIPTION   "Current GnuGk trace level"
         ::= { gnugkStatusObjects 5 }
 
 gnugkCatchAllDestination OBJECT-TYPE
