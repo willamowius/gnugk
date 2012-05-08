@@ -1003,7 +1003,7 @@ bool GkAcctLoggerList::LogAcctEvent(
 				if (ep)
 					strm << " for endpoint " << ep->GetEndpointIdentifier().GetValue();
 				PTrace::End(strm);
-				SNMP_TRAP(7, SNMPError, Accounting, logger->GetName() + " failed to log event " + evt);
+				SNMP_TRAP(7, SNMPError, Accounting, logger->GetName() + " failed to log event " + PString(evt));
 			}
 			// required and sufficient rules always determine 
 			// status of the request
