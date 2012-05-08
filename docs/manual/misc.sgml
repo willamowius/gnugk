@@ -722,7 +722,9 @@ are only used when configuring the PTLib implementation. PTlib will always send 
 
 <sect2>GNU Gatekeeper Entrprise MIB
 <p>
-The GNU Gatekeeper Project was assigned the enterprise number 27938 by IANA (Internet Assigned Number Authority).
+The GNU Gatekeeper Project was assigned the enterprise number 27938
+by IANA (Internet Assigned Number Authority),
+so all of GnuGk's OIDs are under 1.3.6.1.4.1.27938.
 
 The following OIDs are available:
 <itemize>
@@ -733,6 +735,7 @@ The following OIDs are available:
 <item>1.3.6.1.4.1.27938.11.1.5 Trace level (GET, SET)
 <item>1.3.6.1.4.1.27938.11.1.6 CatchAll destination (GET, SET)
 </itemize>
+All of these OIDs are scalars, so please remember to append '.0' when querying them eg. with 'snmpget'.
 
 The following traps are defined:
 <itemize>
