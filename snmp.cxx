@@ -241,7 +241,7 @@ void SNMPAgent::Run()
 	// run as AgentX sub-agent
 	netsnmp_ds_set_boolean(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_ROLE, 1);
 	// use 127.0.0.1:705 by default, can be overriden in $HOME/.snmp/agentx.conf
-	netsnmp_ds_set_string(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_X_SOCKET, "tcp:localhost:705");
+	netsnmp_ds_set_string(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_X_SOCKET, "tcp:127.0.01:705");
 	netsnmp_enable_subagent();
 
 	init_agent(subagent_name);
