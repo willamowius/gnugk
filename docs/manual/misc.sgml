@@ -717,17 +717,29 @@ GnuGk supports two methods of generating SNMP messages:
 <item>PTLib
 </itemize>
 
-If SNMP is enabled in GnuGk and it was compiled to use Net-SNMP, GnuGk will
-register as an AgentX sub-agent with the Net-SNMP daemon.  By default GnuGk
-will connect to "localhost" and TCP port 705.
+If the GnuGk configuration file enables SNMP, and the binary was compiled
+with Net-SNMP support, then GnuGk will register as an AgentX sub-agent with
+the Net-SNMP daemon.  By default GnuGk will connect to "localhost" and TCP
+port 705.
 
 All GET / SET requests and SNMP traps are performed by the Net-SNMP daemon,
-so configuaration of access control, trap destination and SNMP version
-configuration must be done in the Net-SNMP .conf file.
+so configuration of access control, trap destination and SNMP version
+information must be done in the Net-SNMP .conf file.
 
-If Net-SNMP support wasn't compiled into GnuGk, then it will use PTLib's SNMP support if it is available, but only trap
-sending is possible. The switches for TrapHost and and TrapCommunity below
-are only used when configuring the PTLib implementation. PTlib will always send version 1 traps in a version 2c message.
+If Net-SNMP support wasn't compiled into GnuGk, but SNMP is enabled in the
+GnuGk configuration file then PTLib's built-in SNMP capabilities will be
+used.
+
+<bf>NOTE</bf>: By default, PTLib enables SNMP during the configuration
+process, so if SNMP doesn't work ensure that your PTLib <tt>wasn't</tt>
+compiled with <tt>--disable-snmp</tt>
+
+Using PTLib rather than the fully-featured Net-SNMP means that only trap
+sending is possible.  The configuration switches for TrapHost and
+TrapCommunity in the GnuGk .conf file are only used when GnuGk must use
+PTLib for SNMP.
+
+PTlib will always send version 1 traps in a version 2c message.
 
 <sect2>GNU Gatekeeper Enterprise MIB
 <p>
@@ -779,7 +791,7 @@ where to send traps, etc.
 
 Depending on which trap host definition you use, Net-SNMP will convert the
 traps to the appropriate version.  Use 'trapsink' if you want to receive version
-1 traps or trap2sink if you want to receive version 2c traps.  <!-- and
+1 traps or 'trap2sink' if you want to receive version 2c traps.  <!-- and
 informsink if you want SNMP v3 inform messages.  -->
 
 Please make sure AgentX support is enabled in the Net-SNMP daemon.
