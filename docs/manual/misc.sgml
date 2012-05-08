@@ -711,16 +711,25 @@ T120PortClose=/usr/local/bin/ports.sh %p %n %i
 <sect1>Section &lsqb;SNMP&rsqb;
 <label id="snmp">
 <p>
-If GnuGk was compiled with SNMP support from Net-SNMP and SNMP is enabled, GnuGk will register as an AgentX sub-agent
-to the running Net-SNMP daemon. By default, it will use localhost and TCP port 705.
-All GET / SET requests and SNMP traps will be performed by the Net-SNMP daemon, so access control, trap destination and 
-SNMP version configuration must be done in that daemon's configuration.
+GnuGk supports two methods of generating SNMP messages:
+<itemize>
+<item>Net-SNMP
+<item>PTLib
+</itemize>
 
-If Net-SNMP support wasn't compiled in, GnuGk will use PTLib's SNMP support if it is available, but only trap
+If SNMP is enabled in GnuGk and it was compiled to use Net-SNMP, GnuGk will
+register as an AgentX sub-agent with the Net-SNMP daemon.  By default GnuGk
+will connect to "localhost" and TCP port 705.
+
+All GET / SET requests and SNMP traps are performed by the Net-SNMP daemon,
+so configuaration of access control, trap destination and SNMP version
+configuration must be done in the Net-SNMP .conf file.
+
+If Net-SNMP support wasn't compiled into GnuGk, then it will use PTLib's SNMP support if it is available, but only trap
 sending is possible. The switches for TrapHost and and TrapCommunity below
 are only used when configuring the PTLib implementation. PTlib will always send version 1 traps in a version 2c message.
 
-<sect2>GNU Gatekeeper Entrprise MIB
+<sect2>GNU Gatekeeper Enterprise MIB
 <p>
 The GNU Gatekeeper Project was assigned the enterprise number 27938
 by IANA (Internet Assigned Number Authority),
@@ -763,15 +772,15 @@ Traps may have 3 optional data elements:
 
 <sect2>Configuring Net-SNMP
 <p>
-Net-SNMP configuration is usually found in /etc/snmp/snmpd.conf.
-This configuration file is where access control rules are defined for the SNMP
-manager that should be allowed to access GnuGk's SNMP agent (rocommunity and
-rwcommunity).
+Net-SNMP configuration is usually found in /etc/snmp/snmpd.conf.  This
+configuration file defines access control rules for the SNMP manager and
+where settings such as readonly and read-write community names are defined,
+where to send traps, etc.
 
-You can also define the hosts to receive traps. Depending on which trap host
-definition you use, Net-SNMP will convert the traps to the correct version. 
-Use 'trapsink' if you want to receive version 1 traps or trap2sink if you want
-to receive version 2c traps. <!-- and informsink if you want SNMP v3 inform messages. -->
+Depending on which trap host definition you use, Net-SNMP will convert the
+traps to the appropriate version.  Use 'trapsink' if you want to receive version
+1 traps or trap2sink if you want to receive version 2c traps.  <!-- and
+informsink if you want SNMP v3 inform messages.  -->
 
 Please make sure AgentX support is enabled in the Net-SNMP daemon.
 <p>
