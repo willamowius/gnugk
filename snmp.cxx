@@ -50,7 +50,7 @@ void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, cons
 	snmp_varlist_add_variable(&var_list, groupOID, OID_LENGTH(groupOID),
                               ASN_INTEGER, (u_char *)&group, sizeof(group));
 	snmp_varlist_add_variable(&var_list, displayMsgOID, OID_LENGTH(displayMsgOID),
-                              ASN_OCTET_STR, (const char *)msg, msg.GetLength());
+                              ASN_OCTET_STR, (u_char *)((const char *)msg), msg.GetLength());
 	send_v2trap(var_list);
 	snmp_free_varbind(var_list);
 
@@ -114,7 +114,7 @@ int short_version_handler(netsnmp_mib_handler * /* handler */,
 		return SNMPERR_SUCCESS;
     for (netsnmp_request_info *request = requests; request; request = request->next) {
 	    PString version = PProcess::Current().GetVersion(true);
-		snmp_set_var_typed_value(requests->requestvb, ASN_OCTET_STR, (const char *)version, version.GetLength());
+		snmp_set_var_typed_value(requests->requestvb, ASN_OCTET_STR, (u_char *)((const char *)version), version.GetLength());
 	}
 	return SNMPERR_SUCCESS;
 }
@@ -127,7 +127,7 @@ int long_version_handler(netsnmp_mib_handler * /* handler */,
     if (reqinfo->mode != MODE_GET)
 		return SNMPERR_SUCCESS;
     for (netsnmp_request_info *request = requests; request; request = request->next) {
-		snmp_set_var_typed_value(requests->requestvb, ASN_OCTET_STR, (const char *)Toolkit::GKVersion(), Toolkit::GKVersion().GetLength());
+		snmp_set_var_typed_value(requests->requestvb, ASN_OCTET_STR, (u_char *)((const char *)Toolkit::GKVersion()), Toolkit::GKVersion().GetLength());
 	}
 	return SNMPERR_SUCCESS;
 }
@@ -189,7 +189,7 @@ int catchall_handler(netsnmp_mib_handler * /* handler */,
 			PString catchAllDest = GkConfig()->GetString("Routing::CatchAll", "CatchAllIP", "");
 			if (catchAllDest.IsEmpty())
 				catchAllDest = GkConfig()->GetString("Routing::CatchAll", "CatchAllAlias", "catchall");
-			snmp_set_var_typed_value(requests->requestvb, ASN_OCTET_STR, (const char *)catchAllDest, catchAllDest.GetLength());
+			snmp_set_var_typed_value(requests->requestvb, ASN_OCTET_STR, (u_char*)((const char *)catchAllDest), catchAllDest.GetLength());
 		} else if (reqinfo->mode == MODE_SET_ACTION) {
 			PString dest = (const char *)requests->requestvb->val.string;
 			if (IsIPAddress(dest)) {
