@@ -41,6 +41,7 @@ void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, cons
 
 #include <net-snmp/net-snmp-config.h>
 #include <net-snmp/net-snmp-includes.h>
+#include <net-snmp/agent/agent_module_config.h>
 #include <net-snmp/agent/net-snmp-agent-includes.h>
 
 class SNMPAgent : public Singleton<SNMPAgent>
