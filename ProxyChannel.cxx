@@ -7284,8 +7284,8 @@ void MultiplexedRTPHandler::RemoveChannel(H225_CallIdentifier callid, RTPLogical
 				iter->m_encryptingLC = NULL;
 			if (iter->m_decryptingLC == rtplc)
 				iter->m_decryptingLC = NULL;
-			++iter;
 		}
+		++iter;
 	}
 }
 #endif
