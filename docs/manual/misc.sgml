@@ -726,7 +726,7 @@ The GNU Gatekeeper Project was assigned the enterprise number 27938
 by IANA (Internet Assigned Number Authority),
 so all of GnuGk's OIDs are under 1.3.6.1.4.1.27938.
 
-The formal MIB specification can be found in the file gnugk.mib that is distributed with GnuGk.
+The formal MIB specification can be found in the file 'gnugk.mib' that is distributed with GnuGk.
 
 The following OIDs are available:
 <itemize>
