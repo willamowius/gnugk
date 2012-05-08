@@ -4711,7 +4711,7 @@ $as_echo_n "checking for Net-SNMP library... " >&6; }
 
 		for try in /usr/lib /usr/local/lib $netsnmp_lib_dir; do
 			if test -d $try; then
-				LDFLAGS="$old_LDFLAGS -L$try -lnetsnmpagent"
+				LDFLAGS="$old_LDFLAGS -L$try -lnetsnmpagent -lnetsnmp -lnetsnmphelpers"
 				cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 extern netsnmp_enable_subagent();
@@ -4724,7 +4724,7 @@ netsnmp_enable_subagent();
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-   NETSNMP_LIBS="-lnetsnmpagent"
+   NETSNMP_LIBS="-lnetsnmpagent -lnetsnmp -lnetsnmphelpers"
 					  NETSNMP_LDFLAGS="-L$try"
 
 

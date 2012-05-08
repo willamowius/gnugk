@@ -987,9 +987,9 @@ if test "x${netsnmp}" != "xno"; then
 
 		for try in /usr/lib /usr/local/lib $netsnmp_lib_dir; do
 			if test -d $try; then
-				LDFLAGS="$old_LDFLAGS -L$try -lnetsnmpagent"
+				LDFLAGS="$old_LDFLAGS -L$try -lnetsnmpagent -lnetsnmp -lnetsnmphelpers"
 				AC_TRY_LINK([extern netsnmp_enable_subagent();], [netsnmp_enable_subagent();],
-					[ NETSNMP_LIBS="-lnetsnmpagent"
+					[ NETSNMP_LIBS="-lnetsnmpagent -lnetsnmp -lnetsnmphelpers"
 					  NETSNMP_LDFLAGS="-L$try"
 					]
 				)
