@@ -1,0 +1,258 @@
+-- *****************************************************************
+-- A MIB for the GNU Gatekeeper (GnuGk)
+--
+-- May 2012, Jan Willamowius
+--
+-- Copyright (c) 2008-2012 by Jan Willamowius, http://www.willamowius.com
+-- All rights reserved.
+-- *****************************************************************
+--
+
+GNU-GATEKEEPER-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+                MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE, OBJECT-IDENTITY,
+                Counter32, enterprises
+                        FROM SNMPv2-SMI
+
+                OBJECT-GROUP, NOTIFICATION-GROUP, MODULE-COMPLIANCE
+                        FROM SNMPv2-CONF;
+
+gnugkMIB MODULE-IDENTITY
+        LAST-UPDATED    "201205070000Z"
+        ORGANIZATION    "GNU Gatekeeper Project"
+        CONTACT-INFO
+                "       Jan Willamowius
+                   Web: http://www.gnugk.org
+                 Email: jan@willamowius.de"
+        DESCRIPTION "SNMP MIB for the GNU Gatekeeper"
+        REVISION    "201205070000Z"
+        DESCRIPTION "Draft"
+        ::= { enterprises 27938 }
+
+gnugkMIBObjects OBJECT IDENTIFIER ::= { gnugkMIB 11 }
+
+gnugkTraps OBJECT-IDENTITY
+    STATUS  current
+    DESCRIPTION
+            "Traps for GnuGk MIB"
+    ::= { gnugkMIBObjects 0 }
+
+gnugkStatusObjects OBJECT-IDENTITY
+    STATUS  current
+    DESCRIPTION
+            "Status objects"
+    ::= { gnugkMIBObjects 1 }
+
+gnugkTrapObjects OBJECT-IDENTITY
+    STATUS  current
+    DESCRIPTION
+            "Data objects for traps"
+    ::= { gnugkMIBObjects 2 }
+
+gnugkVersion OBJECT-TYPE
+        SYNTAX        OCTET STRING (SIZE(0..10))
+        MAX-ACCESS    read-only
+        STATUS        current
+        DESCRIPTION   "GnuGk version"
+        ::= { gnugkStatusObjects 1 }
+
+gnugkFeatures OBJECT-TYPE
+        SYNTAX        OCTET STRING (SIZE(0..255))
+        MAX-ACCESS    read-only
+        STATUS        current
+        DESCRIPTION   "GnuGk feature string"
+        ::= { gnugkStatusObjects 2 }
+
+gnugkRegistrations OBJECT-TYPE
+        SYNTAX        Counter32
+        MAX-ACCESS    read-only
+        STATUS        current
+        DESCRIPTION   "Number endpoint registrations"
+        ::= { gnugkStatusObjects 3 }
+
+gnugkOngoingCalls OBJECT-TYPE
+        SYNTAX        Counter32
+        MAX-ACCESS    read-only
+        STATUS        current
+        DESCRIPTION   "Number ongoing calls"
+        ::= { gnugkStatusObjects 4 }
+
+gnugkTracelevel OBJECT-TYPE
+        SYNTAX        Counter32
+        MAX-ACCESS    read-only
+        STATUS        current
+        DESCRIPTION   "Number ongoing calls"
+        ::= { gnugkStatusObjects 5 }
+
+gnugkCatchAllDestination OBJECT-TYPE
+        SYNTAX        OCTET STRING (SIZE(0..255))
+        MAX-ACCESS    read-only
+        STATUS        current
+        DESCRIPTION   "Destination for the CatchAll routing policy"
+        ::= { gnugkStatusObjects 6 }
+
+-- data objects for traps / notifications
+
+gnugkTrapSeverity OBJECT-TYPE
+        SYNTAX        INTEGER { error(1), warning(2), info(3) }
+        MAX-ACCESS    read-only
+        STATUS        current
+        DESCRIPTION   "Trap severity"
+        ::= { gnugkTrapObjects 1 }
+
+gnugkTrapGroup OBJECT-TYPE
+        SYNTAX        INTEGER { general(1), network(2), database(3), accounting(4), authentication(5), configuration(6) }
+        MAX-ACCESS    read-only
+        STATUS        current
+        DESCRIPTION   "Trap group"
+        ::= { gnugkTrapObjects 2 }
+
+gnugkTrapDisplayString OBJECT-TYPE
+        SYNTAX        OCTET STRING (SIZE(0..255))
+        MAX-ACCESS    read-only
+        STATUS        current
+        DESCRIPTION   "Trap description for display"
+        ::= { gnugkTrapObjects 3 }
+
+-- traps / notifications
+
+gnugkStarted NOTIFICATION-TYPE
+        OBJECTS { gnugkTrapSeverity,
+                  gnugkTrapGroup,
+                  gnugkTrapDisplayString }
+        STATUS        current
+        DESCRIPTION   "GnuGk was started"
+        ::= { gnugkTraps 1 }
+
+gnugkStopped NOTIFICATION-TYPE
+        OBJECTS { gnugkTrapSeverity,
+                  gnugkTrapGroup,
+                  gnugkTrapDisplayString }
+        STATUS        current
+        DESCRIPTION   "GnuGk was stopped"
+        ::= { gnugkTraps 2 }
+
+gnugkConfigReload NOTIFICATION-TYPE
+        OBJECTS { gnugkTrapSeverity,
+                  gnugkTrapGroup,
+                  gnugkTrapDisplayString }
+        STATUS        current
+        DESCRIPTION   "Configuration was reloaded"
+        ::= { gnugkTraps 3 }
+
+gnugkModuleFailed NOTIFICATION-TYPE
+        OBJECTS { gnugkTrapSeverity,
+                  gnugkTrapGroup,
+                  gnugkTrapDisplayString }
+        STATUS        current
+        DESCRIPTION   "The creation of an internal module failed"
+        ::= { gnugkTraps 4 }
+
+gnugkDatabaseError NOTIFICATION-TYPE
+        OBJECTS { gnugkTrapSeverity,
+                  gnugkTrapGroup,
+                  gnugkTrapDisplayString }
+        STATUS        current
+        DESCRIPTION   "Database operation failure"
+        ::= { gnugkTraps 5 }
+
+gnugkIOError NOTIFICATION-TYPE
+        OBJECTS { gnugkTrapSeverity,
+                  gnugkTrapGroup,
+                  gnugkTrapDisplayString }
+        STATUS        current
+        DESCRIPTION   "IO operation failure"
+        ::= { gnugkTraps 6 }
+
+gnugkGeneralError NOTIFICATION-TYPE
+        OBJECTS { gnugkTrapSeverity,
+                  gnugkTrapGroup,
+                  gnugkTrapDisplayString }
+        STATUS        current
+        DESCRIPTION   "General error"
+        ::= { gnugkTraps 7 }
+
+gnugkAuthenticationError NOTIFICATION-TYPE
+        OBJECTS { gnugkTrapSeverity,
+                  gnugkTrapGroup,
+                  gnugkTrapDisplayString }
+        STATUS        current
+        DESCRIPTION   "Authentication error"
+        ::= { gnugkTraps 8 }
+
+gnugkEncodingError NOTIFICATION-TYPE
+        OBJECTS { gnugkTrapSeverity,
+                  gnugkTrapGroup,
+                  gnugkTrapDisplayString }
+        STATUS        current
+        DESCRIPTION   "Message encoding/decoding error"
+        ::= { gnugkTraps 9 }
+
+gnugkNetworkError NOTIFICATION-TYPE
+        OBJECTS { gnugkTrapSeverity,
+                  gnugkTrapGroup,
+                  gnugkTrapDisplayString }
+        STATUS        current
+        DESCRIPTION   "Network error"
+        ::= { gnugkTraps 10 }
+
+gnugkNeighborError NOTIFICATION-TYPE
+        OBJECTS { gnugkTrapSeverity,
+                  gnugkTrapGroup,
+                  gnugkTrapDisplayString }
+        STATUS        current
+        DESCRIPTION   "Neighbor error"
+        ::= { gnugkTraps 11 }
+
+-- conformance
+
+gnugkStatusConf OBJECT-GROUP
+    OBJECTS { gnugkVersion,
+              gnugkFeatures,
+              gnugkRegistrations,
+              gnugkOngoingCalls,
+              gnugkTracelevel,
+              gnugkCatchAllDestination }
+    STATUS  current
+    DESCRIPTION
+            "Conformance group for GnuGk MIB"
+    ::= { gnugkMIBObjects 999 }
+
+gnugkTrapObjectsConf OBJECT-GROUP
+    OBJECTS { gnugkTrapSeverity,
+              gnugkTrapGroup,
+              gnugkTrapDisplayString }
+    STATUS  current
+    DESCRIPTION
+            "Conformance group for GnuGk MIB"
+    ::= { gnugkMIBObjects 998 }
+
+gnugkTrapsConf NOTIFICATION-GROUP
+    NOTIFICATIONS { gnugkStarted,
+                    gnugkStopped,
+                    gnugkConfigReload,
+                    gnugkModuleFailed,
+                    gnugkDatabaseError,
+                    gnugkIOError,
+                    gnugkGeneralError,
+                    gnugkAuthenticationError,
+                    gnugkEncodingError,
+                    gnugkNetworkError,
+                    gnugkNeighborError }
+    STATUS  current
+    DESCRIPTION
+            "Conformance group for GnuGk MIB"
+    ::= { gnugkMIBObjects 997 }
+
+
+gnugkMIBConformance          OBJECT IDENTIFIER ::= {gnugkMIB 5}
+
+gnugkMIBCompliance MODULE-COMPLIANCE
+    STATUS current
+    DESCRIPTION "Compliance statement"
+    MODULE MANDATORY-GROUPS { gnugkStatusConf, gnugkTrapObjectsConf, gnugkTrapsConf }
+    ::= {gnugkMIBConformance 1}
+
+END
+
