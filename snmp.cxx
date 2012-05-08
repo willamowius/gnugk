@@ -30,11 +30,11 @@ void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, cons
 {
 	PTRACE(5, "SNMP\tSendSNMPTrap " << trapNumber << ", " << severity << ", " << group << ", " << msg);
 #ifdef HAS_NETSNMP
-	static oid snmptrap_oid[] = { 1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0 };
-	static oid severityOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 1 };
-	static oid groupOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 2 };
+	static oid snmptrap_oid[]  = { 1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0 };
+	static oid severityOID[]   = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 1 };
+	static oid groupOID[]      = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 2 };
 	static oid displayMsgOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 3 };
-	oid trapOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 0, 99999 };
+	oid trapOID[]              = { 1, 3, 6, 1, 4, 1, 27938, 11, 0, 99999 };
 	
 	// insert trapNumber as last digit
 	trapOID[ OID_LENGTH(trapOID) - 1 ] = trapNumber;
