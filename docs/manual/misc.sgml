@@ -722,13 +722,15 @@ Enable SNMP support. GnuGk must be compiled with SNMP support.
 GnuGk supports two methods of generating SNMP messages:
 <itemize>
 <item>Net-SNMP
-<item>PTLib
+<item>PTLib (as a fallback when Net-SNMP isn't available)
 </itemize>
 
 If the GnuGk configuration file enables SNMP, and the binary was compiled
 with Net-SNMP support, then GnuGk will register as an AgentX sub-agent with
 the Net-SNMP daemon.  By default GnuGk will connect to "localhost" and TCP
-port 705.
+port 705. Registering as a sub-agent allows you to still query Net-SNMP about
+the health of the server while adding GnuGk specific object, since only one
+SNMP agent can listen on the default UDP port 161.
 
 All GET / SET requests and SNMP traps are performed by the Net-SNMP daemon,
 so configuration of access control, trap destination and SNMP version
@@ -799,8 +801,8 @@ where to send traps, etc.
 
 Depending on which trap host definition you use, Net-SNMP will convert the
 traps to the appropriate version.  Use 'trapsink' if you want to receive version
-1 traps or 'trap2sink' if you want to receive version 2c traps.  <!-- and
-informsink if you want SNMP v3 inform messages.  -->
+1 traps or 'trap2sink' if you want to receive version 2 traps and
+informsink if you want SNMP v3 inform messages.
 
 Please make sure AgentX support is enabled in the Net-SNMP daemon.
 <p>
