@@ -16,48 +16,28 @@
 
 #include "config.h"
 
-const char * const SNMPSection = "SNMP";
-
-
-#ifdef HAS_SNMPTRAPS
+#ifdef HAS_SNMP
 
 #include "Toolkit.h"
 
+const char * const SNMPSection = "SNMP";
+
 enum SNMPLevel { SNMPError=1, SNMPWarning=2, SNMPInfo=3 };
 enum SNMPGroup { General=1, Network=2, Database=3, Accounting=4, Authentication=5, Configuration=6 };
+
+PCaselessString SelectSNMPImplementation();
+
+void StartSNMPAgent();
 
 void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg);
 
 #define SNMP_TRAP(NO,LEVEL,GROUP,MSG) if (Toolkit::Instance()->IsSNMPEnabled()) { SendSNMPTrap(NO,LEVEL,GROUP,MSG); }
 
-#else // HAS_SNMPTRAPS
+#else // HAS_SNMP
 
 #define SNMP_TRAP(NO,LEVEL,GROUP,MSG)
 
-#endif // HAS_SNMPTRAPS
+#endif // HAS_SNMP
 
-
-#ifdef HAS_SNMPAGENT
-
-#include <net-snmp/net-snmp-config.h>
-#include <net-snmp/net-snmp-includes.h>
-#include <net-snmp/agent/agent_module_config.h>
-#include <net-snmp/agent/net-snmp-agent-includes.h>
-
-class SNMPAgent : public Singleton<SNMPAgent>
-{
-public:
-	SNMPAgent();
-	virtual ~SNMPAgent();
-
-	virtual void LoadConfig();
-	virtual void Run();
-
-protected:
-	netsnmp_log_handler * m_logger;
-	netsnmp_handler_registration * m_handler;
-};
-
-#endif	// HAS_SNMPAGENT
 
 #endif	// GNUGKSNMP_H

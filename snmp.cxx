@@ -11,31 +11,44 @@
 //
 //////////////////////////////////////////////////////////////////
 
+#include "config.h"
+
+#ifdef HAS_SNMP
+
 #include "snmp.h"
-
-#ifdef HAS_SNMPTRAPS
-
+#include "gk.h"
 #include "SoftPBX.h"
-#ifdef P_SNMP
-#include <ptclib/psnmp.h>
-#endif
 
-const char * const GnuGkMIBStr      = "1.3.6.1.4.1.27938.11";
-const char * const severityOIDStr   = "1.3.6.1.4.1.27938.11.2.1";
-const char * const groupOIDStr      = "1.3.6.1.4.1.27938.11.2.2";
-const char * const displayMsgOIDStr = "1.3.6.1.4.1.27938.11.2.3";
+void ReloadHandler();
 
 
-void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg)
+#ifdef HAS_NETSNMP
+
+#include "job.h"
+#include <net-snmp/net-snmp-config.h>
+#include <net-snmp/net-snmp-includes.h>
+#include <net-snmp/agent/agent_module_config.h>
+#include <net-snmp/agent/net-snmp-agent-includes.h>
+
+const char * subagent_name = "gnugk-agent";
+
+static oid snmptrap_oid[]     = { 1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0 };
+static oid ShortVersionOID[]  = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 1 };
+static oid LongVersionOID[]   = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 2 };
+static oid RegistrationsOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 3 };
+static oid CallsOID[]         = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 4 };
+static oid TraceLevelOID[]    = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 5 };
+static oid CatchAllOID[]      = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 6 };
+static oid severityOID[]      = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 1 };
+static oid groupOID[]         = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 2 };
+static oid displayMsgOID[]    = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 3 };
+
+
+void SendNetSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg)
 {
 	PTRACE(5, "SNMP\tSendSNMPTrap " << trapNumber << ", " << severity << ", " << group << ", " << msg);
-#ifdef HAS_NETSNMP
-	static oid snmptrap_oid[]  = { 1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0 };
-	static oid severityOID[]   = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 1 };
-	static oid groupOID[]      = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 2 };
-	static oid displayMsgOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 3 };
 	oid trapOID[]              = { 1, 3, 6, 1, 4, 1, 27938, 11, 0, 99999 };
-	
+
 	// insert trapNumber as last digit
 	trapOID[ OID_LENGTH(trapOID) - 1 ] = trapNumber;
 
@@ -53,47 +66,7 @@ void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, cons
                               ASN_OCTET_STR, (u_char *)((const char *)msg), msg.GetLength());
 	send_v2trap(var_list);
 	snmp_free_varbind(var_list);
-
-#else
-	PString trapHost = GkConfig()->GetString(SNMPSection, "TrapHost", "");
-	if (!trapHost.IsEmpty()) {
-		// DNS resolve TrapHost
-		PIPSocket::Address trapHostIP;
-		H323TransportAddress addr = H323TransportAddress(trapHost);
-		addr.GetIpAddress(trapHostIP);
-		if (!trapHostIP.IsValid()) {
-			PTRACE(1, "SNMP\tCan't resolve TrapHost " << trapHost);
-			return;
-		}
-		PString trapCommunity = GkConfig()->GetString(SNMPSection, "TrapCommunity", "public");
-		PSNMPVarBindingList vars;
-		vars.Append(PString(severityOIDStr), new PASNInteger(severity));
-		vars.Append(PString(groupOIDStr), new PASNInteger(group));
-		if (!msg.IsEmpty())
-			vars.AppendString(displayMsgOIDStr, msg);
-		PSNMP::SendEnterpriseTrap(trapHostIP, trapCommunity,
-			GnuGkMIBStr + PString(".0"), trapNumber,
-			PInt32((PTime() - SoftPBX::StartUp).GetMilliSeconds() / 10), vars);
-	}
-#endif
 }
-#endif
-
-
-#ifdef HAS_SNMPAGENT
-
-#include "gk.h"
-
-void ReloadHandler();
-
-const char * subagent_name = "gnugk-agent";
-
-static oid ShortVersionOID[]  = { 1, 3, 6, 1, 4, 1, 27938, 11, 1 };
-static oid LongVersionOID[]   = { 1, 3, 6, 1, 4, 1, 27938, 11, 2 };
-static oid RegistrationsOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 3 };
-static oid CallsOID[]         = { 1, 3, 6, 1, 4, 1, 27938, 11, 4 };
-static oid TraceLevelOID[]    = { 1, 3, 6, 1, 4, 1, 27938, 11, 5 };
-static oid CatchAllOID[]      = { 1, 3, 6, 1, 4, 1, 27938, 11, 6 };
 
 extern "C" {
 
@@ -209,25 +182,34 @@ int catchall_handler(netsnmp_mib_handler * /* handler */,
 
 }
 
-SNMPAgent::SNMPAgent() : Singleton<SNMPAgent>("SNMPAgent")
+
+class NetSNMPAgent : public Singleton<NetSNMPAgent>
 {
-	PTRACE(1, "SNMP\tStarting SNMP agent");
+public:
+	NetSNMPAgent();
+	virtual ~NetSNMPAgent();
+
+	virtual void Run();
+
+protected:
+	netsnmp_log_handler * m_logger;
+	netsnmp_handler_registration * m_handler;
+};
+
+NetSNMPAgent::NetSNMPAgent() : Singleton<NetSNMPAgent>("NetSNMPAgent")
+{
+	PTRACE(1, "SNMP\tStarting SNMP agent (Net-SNMP)");
 	m_logger = NULL;
 	m_handler = NULL;
 }
 
-SNMPAgent::~SNMPAgent()
+NetSNMPAgent::~NetSNMPAgent()
 {
-	PTRACE(1, "SNMP\tStopping SNMP agent");
+	PTRACE(1, "SNMP\tStopping SNMP agent (Net-SNMP)");
 	snmp_shutdown(subagent_name);
 }
 
-void SNMPAgent::LoadConfig()
-{
-	PTRACE(5, "SNMP\tReading SNMP config");
-}
-
-void SNMPAgent::Run()
+void NetSNMPAgent::Run()
 {
 	// enable Net-SNMP logging via PTRACE
 	m_logger = netsnmp_register_loghandler(NETSNMP_LOGHANDLER_CALLBACK, LOG_DEBUG);
@@ -267,4 +249,209 @@ void SNMPAgent::Run()
 	}
 }
 
-#endif	// HAS_SNMPAGENT
+#endif // HAS_NETSNMP
+
+
+#ifdef P_SNMP
+
+#include <ptclib/psnmp.h>
+
+const char * const GnuGkMIBStr      = "1.3.6.1.4.1.27938.11";
+const char * const severityOIDStr   = "1.3.6.1.4.1.27938.11.2.1";
+const char * const groupOIDStr      = "1.3.6.1.4.1.27938.11.2.2";
+const char * const displayMsgOIDStr = "1.3.6.1.4.1.27938.11.2.3";
+
+
+void SendPTLibSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg)
+{
+	PTRACE(5, "SNMP\tSendSNMPTrap " << trapNumber << ", " << severity << ", " << group << ", " << msg);
+	PString trapHost = GkConfig()->GetString(SNMPSection, "TrapHost", "");
+	if (!trapHost.IsEmpty()) {
+		// DNS resolve TrapHost
+		PIPSocket::Address trapHostIP;
+		H323TransportAddress addr = H323TransportAddress(trapHost);
+		addr.GetIpAddress(trapHostIP);
+		if (!trapHostIP.IsValid()) {
+			PTRACE(1, "SNMP\tCan't resolve TrapHost " << trapHost);
+			return;
+		}
+		PString trapCommunity = GkConfig()->GetString(SNMPSection, "TrapCommunity", "public");
+		PSNMPVarBindingList vars;
+		vars.Append(PString(severityOIDStr), new PASNInteger(severity));
+		vars.Append(PString(groupOIDStr), new PASNInteger(group));
+		if (!msg.IsEmpty())
+			vars.AppendString(displayMsgOIDStr, msg);
+		PSNMP::SendEnterpriseTrap(trapHostIP, trapCommunity,
+			GnuGkMIBStr + PString(".0"), trapNumber,
+			PInt32((PTime() - SoftPBX::StartUp).GetMilliSeconds() / 10), vars);
+	}
+}
+
+class PTLibSNMPAgent : public PSNMPServer
+{
+public:
+	PTLibSNMPAgent();
+	virtual ~PTLibSNMPAgent();
+
+    virtual PBoolean Authorise(const PIPSocket::Address & received);
+    virtual PBoolean ConfirmCommunity(PASN_OctetString & community);
+    virtual PBoolean OnGetRequest(PINDEX reqID, PSNMP::BindingList & vars, PSNMP::ErrorType & errCode);
+    virtual PBoolean ConfirmVersion(PASN_Integer vers);
+	virtual PBoolean MIB_LocalMatch(PSNMP_PDU & pdu);
+
+  protected:
+    PRFC1155_SimpleSyntax sys_description;
+};
+
+
+PTLibSNMPAgent::PTLibSNMPAgent()
+	: PSNMPServer(PIPSocket::Address(GkConfig()->GetString(SNMPSection, "AgentListenIP", "127.0.0.1")),
+		GkConfig()->GetInteger(SNMPSection, "AgentListenPort", 161))
+{
+	PTRACE(1, "SNMP\tStarting SNMP agent (PTLib)");
+}
+
+PTLibSNMPAgent::~PTLibSNMPAgent()
+{
+	PTRACE(1, "SNMP\tStopping SNMP agent (PTLib)");
+}
+
+PBoolean PTLibSNMPAgent::Authorise(const PIPSocket::Address & received)
+{
+	PTRACE(1, "SNMP\tReceived request from " << received);
+	// TODO
+	return PTrue;
+}
+
+PBoolean PTLibSNMPAgent::ConfirmCommunity(PASN_OctetString & community)
+{
+	// community string security is a joke, just accept any community and rely on IP authorization
+	return PTrue;
+}
+
+PBoolean PTLibSNMPAgent::OnGetRequest(PINDEX reqID, PSNMP::BindingList & vars, PSNMP::ErrorType & errCode)
+{
+	return PTrue;
+}
+
+// 0=SNMPv1, 1=SNMPv2
+PBoolean PTLibSNMPAgent::ConfirmVersion(PASN_Integer vers)
+{
+	return (vers <= 1);	// only accept version 1 or 2
+}
+
+PBoolean PTLibSNMPAgent::MIB_LocalMatch(PSNMP_PDU & pdu)
+{
+	PTRACE(0, "JW MIB_LocalMatch pdu=" << pdu);
+	PSNMP_VarBindList & vars = pdu.m_variable_bindings;
+	bool found = false;
+
+	for(PINDEX i = 0 ;i < vars.GetSize(); i++){
+		PTRACE(0, "JW oid=" << vars[i].m_name);
+		if (vars[i].m_name == "1.3.6.1.4.1.27938.11.1.1.0") {
+			PRFC1155_SimpleSyntax answer(PRFC1155_SimpleSyntax::e_string);
+			PRFC1155_ObjectSyntax * obj = (PRFC1155_ObjectSyntax*)&answer;
+			PASN_OctetString * str = (PASN_OctetString *)&answer.GetObject();
+			str->SetValue(PProcess::Current().GetVersion(true));
+			vars[i].m_value = *obj;
+			found = true;
+		} else if (vars[i].m_name == "1.3.6.1.4.1.27938.11.1.2.0") {
+			PRFC1155_SimpleSyntax answer(PRFC1155_SimpleSyntax::e_string);
+			PRFC1155_ObjectSyntax * obj = (PRFC1155_ObjectSyntax*)&answer;
+			PASN_OctetString * str = (PASN_OctetString *)&answer.GetObject();
+			str->SetValue(Toolkit::GKVersion());
+			vars[i].m_value = *obj;
+			found = true;
+		} else if (vars[i].m_name == "1.3.6.1.4.1.27938.11.1.3.0") {
+			PRFC1155_SimpleSyntax answer(PRFC1155_SimpleSyntax::e_number);
+			PRFC1155_ObjectSyntax * obj = (PRFC1155_ObjectSyntax*)&answer;
+			PASN_Integer * num = (PASN_Integer *)&answer.GetObject();
+			num->SetValue(RegistrationTable::Instance()->Size());
+			vars[i].m_value = *obj;
+			found = true;
+		} else if (vars[i].m_name == "1.3.6.1.4.1.27938.11.1.4.0") {
+			PRFC1155_SimpleSyntax answer(PRFC1155_SimpleSyntax::e_number);
+			PRFC1155_ObjectSyntax * obj = (PRFC1155_ObjectSyntax*)&answer;
+			PASN_Integer * num = (PASN_Integer *)&answer.GetObject();
+			num->SetValue(CallTable::Instance()->Size());
+			vars[i].m_value = *obj;
+			found = true;
+		} else if (vars[i].m_name == "1.3.6.1.4.1.27938.11.1.5.0") {
+			PRFC1155_SimpleSyntax answer(PRFC1155_SimpleSyntax::e_number);
+			PRFC1155_ObjectSyntax * obj = (PRFC1155_ObjectSyntax*)&answer;
+			PASN_Integer * num = (PASN_Integer *)&answer.GetObject();
+			num->SetValue(PTrace::GetLevel());
+			vars[i].m_value = *obj;
+			found = true;
+		} else if (vars[i].m_name == "1.3.6.1.4.1.27938.11.1.6.0") {
+			PString catchAllDest = GkConfig()->GetString("Routing::CatchAll", "CatchAllIP", "");
+			if (catchAllDest.IsEmpty())
+				catchAllDest = GkConfig()->GetString("Routing::CatchAll", "CatchAllAlias", "catchall");
+			PRFC1155_SimpleSyntax answer(PRFC1155_SimpleSyntax::e_string);
+			PRFC1155_ObjectSyntax * obj = (PRFC1155_ObjectSyntax*)&answer;
+			PASN_OctetString * str = (PASN_OctetString *)&answer.GetObject();
+			str->SetValue(catchAllDest);
+			vars[i].m_value = *obj;
+			found = true;
+		}
+	}
+
+	return found; // not found
+}
+
+#endif	// P_SNMP
+
+
+PCaselessString SelectSNMPImplementation() 
+{
+	PCaselessString implementation = GkConfig()->GetString(SNMPSection, "Implementation", "NetSNMP");
+
+	// switch to other implementation if only one is available
+#ifndef HAS_NETSNMP
+	if (implementation == "Net-SNMP") {
+		PTRACE(1, "SNMP\tNet-SNMP implementation not available, using PTLib implementation");
+		implementation = "PTLib";
+	}
+#endif
+#ifndef P_SNMP
+	if (implementation == "PTLib") {
+		PTRACE(1, "SNMP\tPTLib implementation not available, using Net-SNMP implementation");
+		implementation = "Net-SNMP";
+	}
+#endif
+	return implementation;
+}
+
+void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg)
+{
+	PCaselessString implementation = SelectSNMPImplementation();
+#ifdef HAS_NETSNMP
+	if (implementation == "Net-SNMP") {
+		SendNetSNMPTrap(trapNumber, severity, group, msg);
+	}
+#endif
+#ifdef P_SNMP
+	if (implementation == "PTLib") {
+		SendPTLibSNMPTrap(trapNumber, severity, group, msg);
+	}
+#endif
+}
+
+void StartSNMPAgent() 
+{
+	PCaselessString implementation = SelectSNMPImplementation();
+#ifdef HAS_NETSNMP
+	if (implementation == "Net-SNMP") {
+		CreateJob(NetSNMPAgent::Instance(), &NetSNMPAgent::Run, "SNMPAgent");
+		return;
+	}
+#endif
+#ifdef P_SNMP
+	if (implementation == "PTLib") {
+		new PTLibSNMPAgent();
+		return;
+	}
+#endif
+}
+
+#endif	// HAS_SNMP

@@ -236,12 +236,6 @@
 #endif
 
 #if defined(P_SNMP) || defined(HAS_NETSNMP)
-#define HAS_SNMPTRAPS 1
-#endif
-#if defined(HAS_NETSNMP)
-#define HAS_SNMPAGENT 1
-#endif
-#if defined(HAS_SNMPTRAPS) || defined(HAS_SNMPAGENT)
 #define HAS_SNMP 1
 #endif
 

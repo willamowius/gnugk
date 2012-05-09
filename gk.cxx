@@ -428,7 +428,10 @@ const char * KnownConfigEntries[][2] = {
 	{ "Routing::Sql", "Query" },
 	{ "Routing::Sql", "Username" },
 #ifdef HAS_SNMP
+	{ "SNMP", "AgentListenIP" },
+	{ "SNMP", "AgentListenPort" },
 	{ "SNMP", "EnableSNMP" },
+	{ "SNMP", "Implementation" },
 	{ "SNMP", "TrapCommunity" },
 	{ "SNMP", "TrapHost" },
 #endif
@@ -737,10 +740,6 @@ void ReloadHandler()
 	RasServer::Instance()->SetRDSServers();
 
 	RasServer::Instance()->LoadConfig();
-
-#ifdef HAS_SNMPAGENT
-	SNMPAgent::Instance()->LoadConfig();
-#endif
 
 	Gatekeeper::EnableLogFileRotation();
 
@@ -1264,8 +1263,9 @@ void Gatekeeper::Main()
 	// Load RDS servers
 	RasSrv->SetRDSServers();
 
-#ifndef HAS_SNMPAGENT
-	SNMP_TRAP(1, SNMPInfo, General, "GnuGk started");	// when NOT registering as agent, send started trap here already
+#ifdef HAS_SNMP
+	if (SelectSNMPImplementation() != "Net-SNMP")
+		SNMP_TRAP(1, SNMPInfo, General, "GnuGk started");	// when NOT registering as agent, send started trap here already
 #endif
 
 #if defined(_WIN32)

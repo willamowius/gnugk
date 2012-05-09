@@ -1333,10 +1333,9 @@ void RasServer::Run()
 
 		CreateJob(this, &RasServer::HouseKeeping, "HouseKeeping");
 
-#ifdef HAS_SNMPAGENT
+#ifdef HAS_SNMP
 		if (Toolkit::Instance()->IsSNMPEnabled()) {
-			SNMPAgent::Instance()->LoadConfig();
-			CreateJob(SNMPAgent::Instance(), &SNMPAgent::Run, "SNMPAgent");
+			StartSNMPAgent();
 		}
 #endif
 

@@ -3545,7 +3545,7 @@ PString CallRec::GetNATOffloadString(NatStrategy type)
 bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 {
 	// If calling is missing or H.460 is disabled don't continue.
-	if (iscalled||!m_Calling)
+	if (iscalled || !m_Calling)
 	   return false;
 
 	// If we don't have a called and the calling is a cone nat then default local Master
