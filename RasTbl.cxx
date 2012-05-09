@@ -3667,7 +3667,17 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 			return false;
 		}
 	}
- 
+    // if both devices are behind a symmetric firewall then perhaps are on the same internal network. 
+    else if (goDirect && (m_Calling->GetEPNATType() == EndpointRec::FirewallSymmetric && 
+		           m_Called->GetEPNATType() == EndpointRec::FirewallSymmetric)) {
+        if (!m_Calling->HasNATProxy() && !m_Called->HasNATProxy())
+		    natinst = CallRec::e_natNoassist;
+		else if (m_Calling->SupportH46024A() && m_Called->SupportH46024A())  
+		    natinst = CallRec::e_natAnnexA;
+		else
+            natinst = CallRec::e_natFullProxy;
+	}
+
 	else if (goDirect && 
 		(m_Calling->IsNATed() && m_Calling->GetEPNATType() > EndpointRec::NatCone) && 
 		    (m_Called->IsNATed() && m_Called->GetEPNATType() > EndpointRec::NatCone) &&
