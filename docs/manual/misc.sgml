@@ -736,14 +736,14 @@ information must be done in the Net-SNMP .conf file.
 
 If PTLib's SNMP implementation is selected, GnuGk starts a standalone SNMP agent.
 Beware that only one SNMP agent may use port 161, so you might have to use a
-non-standard port if you already have an SMP agent trunning on your server.
+non-standard port if you already have an SMP agent running on your server.
 
 <bf>NOTE</bf>: By default, PTLib enables SNMP during the configuration
 process, so if SNMP doesn't work ensure that your PTLib <tt>wasn't</tt>
 compiled with <tt>--disable-snmp</tt>
 
-Using PTLib rather than the fully-featured Net-SNMP means that only trap
-sending and GET requests are possible.  See below for the additional switches
+Using PTLib rather than the fully-featured Net-SNMP means that only traps
+and GET requests are supported.  See below for the additional switches
 that are only used to the PTLib implementation.
 
 <sect2>GNU Gatekeeper Enterprise MIB
@@ -848,5 +848,10 @@ Define the IP the SNMP agent should listen on.
 Default: <tt>161</tt><newline>
 <p>
 Define the UDP port the SNMP agent should listen on.
+
+<item><tt>AllowRequestsFrom=192.168.1.0/22</tt><newline>
+Default: <tt>n/a</tt><newline>
+<p>
+A comma separated list of IPs or networks from which we accept SNMP requests.
 
 </itemize>

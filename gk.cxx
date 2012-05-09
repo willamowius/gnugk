@@ -428,6 +428,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Routing::Sql", "Query" },
 	{ "Routing::Sql", "Username" },
 #ifdef HAS_SNMP
+	{ "SNMP", "AllowRequestsFrom" },
 	{ "SNMP", "AgentListenIP" },
 	{ "SNMP", "AgentListenPort" },
 	{ "SNMP", "EnableSNMP" },

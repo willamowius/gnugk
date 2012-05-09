@@ -427,11 +427,6 @@ If you turn the feature on with setting the switch to 1, the H.235 tokens will b
 You can also specify a list of networks, the only calls from these networks get the H.235 token removed,
 eg. RemoveH235Call=192.168.1.0/24, 10.0.1.0/32.
 
-<item><tt/RemoveH235ClearTokens=1/<newline>
-Default: <tt>0</tt><newline>
-<p>
-This switch removes all H.235 clear tokens from Setup and Connect messages.
-
 <item><tt/RemoveH460Call=1/<newline>
 Default: <tt>0</tt><newline>
 <p>

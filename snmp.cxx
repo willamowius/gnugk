@@ -316,11 +316,18 @@ PTLibSNMPAgent::~PTLibSNMPAgent()
 	PTRACE(1, "SNMP\tStopping SNMP agent (PTLib)");
 }
 
-PBoolean PTLibSNMPAgent::Authorise(const PIPSocket::Address & received)
+PBoolean PTLibSNMPAgent::Authorise(const PIPSocket::Address & ip)
 {
-	PTRACE(1, "SNMP\tReceived request from " << received);
-	// TODO
-	return PTrue;
+	PStringArray networks = GkConfig()->GetString(SNMPSection, "AllowRequestsFrom", "").Tokenise(",", FALSE);
+	for (PINDEX n=0; n < networks.GetSize(); ++n) {
+		if (networks[n].Find('/') == P_MAX_INDEX)
+			networks[n] += "/32";	// add netmask to pure IPs
+		NetworkAddress net = NetworkAddress(networks[n]);
+		if (ip << net) {
+			return PTrue;
+		}
+	}
+	return PFalse;
 }
 
 PBoolean PTLibSNMPAgent::ConfirmCommunity(PASN_OctetString & community)
