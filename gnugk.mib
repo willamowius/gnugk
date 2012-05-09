@@ -12,8 +12,11 @@ GNU-GATEKEEPER-MIB DEFINITIONS ::= BEGIN
 
 IMPORTS
                 MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE, OBJECT-IDENTITY,
-                Counter32, enterprises
+                Unsigned32, enterprises
                         FROM SNMPv2-SMI
+
+                DisplayString
+                        FROM SNMPv2-TC
 
                 OBJECT-GROUP, NOTIFICATION-GROUP, MODULE-COMPLIANCE
                         FROM SNMPv2-CONF;
@@ -65,21 +68,21 @@ gnugkFeatures OBJECT-TYPE
         ::= { gnugkStatusObjects 2 }
 
 gnugkRegistrations OBJECT-TYPE
-        SYNTAX        Counter32
+        SYNTAX        Unsigned32
         MAX-ACCESS    read-only
         STATUS        current
         DESCRIPTION   "Number of endpoint registrations"
         ::= { gnugkStatusObjects 3 }
 
 gnugkOngoingCalls OBJECT-TYPE
-        SYNTAX        Counter32
+        SYNTAX        Unsigned32
         MAX-ACCESS    read-only
         STATUS        current
         DESCRIPTION   "Number of ongoing calls"
         ::= { gnugkStatusObjects 4 }
 
 gnugkTracelevel OBJECT-TYPE
-        SYNTAX        Counter32
+        SYNTAX        Unsigned32
         MAX-ACCESS    read-only
         STATUS        current
         DESCRIPTION   "Current GnuGk trace level"
@@ -96,21 +99,21 @@ gnugkCatchAllDestination OBJECT-TYPE
 
 gnugkTrapSeverity OBJECT-TYPE
         SYNTAX        INTEGER { error(1), warning(2), info(3) }
-        MAX-ACCESS    read-only
+        MAX-ACCESS    accessible-for-notify
         STATUS        current
         DESCRIPTION   "Trap severity"
         ::= { gnugkTrapObjects 1 }
 
 gnugkTrapGroup OBJECT-TYPE
         SYNTAX        INTEGER { general(1), network(2), database(3), accounting(4), authentication(5), configuration(6) }
-        MAX-ACCESS    read-only
+        MAX-ACCESS    accessible-for-notify
         STATUS        current
         DESCRIPTION   "Trap group"
         ::= { gnugkTrapObjects 2 }
 
 gnugkTrapDisplayString OBJECT-TYPE
-        SYNTAX        OCTET STRING (SIZE(0..255))
-        MAX-ACCESS    read-only
+        SYNTAX        DisplayString (SIZE(0..255))
+        MAX-ACCESS    accessible-for-notify
         STATUS        current
         DESCRIPTION   "Trap description for display"
         ::= { gnugkTrapObjects 3 }
