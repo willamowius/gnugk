@@ -2747,7 +2747,7 @@ std::vector<NetworkAddress> Toolkit::GetInternalNetworks()
 bool Toolkit::IsSNMPEnabled() const
 {
 #ifdef HAS_SNMP
-	return AsBool(GkConfig()->GetString("EnableSNMP", "0"));
+	return AsBool(GkConfig()->GetString(SNMPSection, "EnableSNMP", "0"));
 #else
 	return false;
 #endif

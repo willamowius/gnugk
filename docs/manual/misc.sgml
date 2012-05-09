@@ -711,6 +711,14 @@ T120PortClose=/usr/local/bin/ports.sh %p %n %i
 <sect1>Section &lsqb;SNMP&rsqb;
 <label id="snmp">
 <p>
+The Simple Network Management Protocol (SNMP) lets you monitor the GNU Gatekeeper
+during operation and you can register to receive notifications (traps) when an error occurs.
+<itemize>
+<item><tt/EnableSNMP=1/<newline>
+Default: <tt>0</tt><newline>
+Enable SNMP support. GnuGk must be compiled with SNMP support.
+</itemize>
+
 GnuGk supports two methods of generating SNMP messages:
 <itemize>
 <item>Net-SNMP
@@ -819,7 +827,7 @@ master agentx
 <p>
 <sect2>Configuring SNMP traps when using PTLib SNMP support
 <p>
-When using PTLib to send traps, you can use these switches:
+When using PTLib to send traps, you can use these additional switches:
 <itemize>
 <item><tt>TrapHost=192.168.1.100</tt><newline>
 Default: <tt/none/<newline>

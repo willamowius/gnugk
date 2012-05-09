@@ -156,9 +156,6 @@ const char * KnownConfigEntries[][2] = {
 #ifdef hasIPV6
 	{ "Gatekeeper::Main", "EnableIPv6" },
 #endif
-#ifdef HAS_SNMP
-	{ "Gatekeeper::Main", "EnableSNMP" },
-#endif
 	{ "Gatekeeper::Main", "EnableTTLRestrictions" },
 	{ "Gatekeeper::Main", "EncryptAllPasswords" },
 	{ "Gatekeeper::Main", "EndpointIDSuffix" },
@@ -431,6 +428,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Routing::Sql", "Query" },
 	{ "Routing::Sql", "Username" },
 #ifdef HAS_SNMP
+	{ "SNMP", "EnableSNMP" },
 	{ "SNMP", "TrapCommunity" },
 	{ "SNMP", "TrapHost" },
 #endif
