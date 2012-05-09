@@ -711,8 +711,9 @@ T120PortClose=/usr/local/bin/ports.sh %p %n %i
 <sect1>Section &lsqb;SNMP&rsqb;
 <label id="snmp">
 <p>
-The Simple Network Management Protocol (SNMP) lets you monitor the GNU Gatekeeper
-during operation and you can register to receive notifications (traps) when an error occurs.
+The Simple Network Management Protocol (SNMP) lets you monitor the GNU
+Gatekeeper during operation and allows you to configure a destination system
+for notifications ("traps") when an error occurs.
 <itemize>
 <item><tt/EnableSNMP=1/<newline>
 Default: <tt>0</tt><newline>
@@ -725,18 +726,17 @@ Select the SNMP implementation to use. Possible values are <tt>Net-SNMP</tt> and
 
 If the GnuGk configuration file enables SNMP, and the Net-SNMP implementation is selected,
 then GnuGk will register as an AgentX sub-agent with
-the Net-SNMP daemon.  By default GnuGk will connect to "localhost" and TCP
-port 705. Registering as a sub-agent allows you to still query Net-SNMP about
-the health of the server while adding GnuGk specific object, since only one
-SNMP agent can listen on the default UDP port 161.
+the Net-SNMP daemon.  By default GnuGk will connect to the localhost IP address (127.0.0.1) and TCP
+port 705. Registering as a sub-agent allows you to continue querying Net-SNMP about
+the general health of the server and adds a GnuGk specific object.
 
 All GET / SET requests and SNMP traps are performed by the Net-SNMP daemon,
 so configuration of access control, trap destination and SNMP version
 information must be done in the Net-SNMP .conf file.
 
 If PTLib's SNMP implementation is selected, GnuGk starts a standalone SNMP agent.
-Beware that only one SNMP agent may use port 161, so you might have to use a
-non-standard port if you already have an SMP agent running on your server.
+<bf>NOTE</bf>: Only one SNMP agent can bind to UDP/161, so you might have to use a
+non-standard port if you are using another SNMP agent on your server.
 
 <bf>NOTE</bf>: By default, PTLib enables SNMP during the configuration
 process, so if SNMP doesn't work ensure that your PTLib <tt>wasn't</tt>
@@ -744,7 +744,7 @@ compiled with <tt>--disable-snmp</tt>
 
 Using PTLib rather than the fully-featured Net-SNMP means that only traps
 and GET requests are supported.  See below for the additional switches
-that are only used to the PTLib implementation.
+which are required when using PTLib fir SNMP.
 
 <sect2>GNU Gatekeeper Enterprise MIB
 <p>
@@ -795,9 +795,9 @@ where settings such as readonly and read-write community names are defined,
 where to send traps, etc.
 
 Depending on which trap host definition you use, Net-SNMP will convert the
-traps to the appropriate version.  Use 'trapsink' if you want to receive version
-1 traps or 'trap2sink' if you want to receive version 2 traps and
-informsink if you want SNMP v3 inform messages.
+traps to the appropriate version.  Use 'trapsink' if you want to send version
+1 traps, 'trap2sink' if you want to send version 2 traps and
+'informsink' for SNMP v3 inform messages.
 
 Please make sure AgentX support is enabled in the Net-SNMP daemon.
 <p>
@@ -824,7 +824,7 @@ master agentx
 <p>
 <sect2>Using PTLib's SNMP implementation
 <p>
-PTlib only supports SNMP version 1 and 2 GET rerqiests and will always send version 1 traps in a version 2c message.
+PTlib supports SNMP version 1 and 2 GET requests and will always send version 1 traps in a version 2c message.
 SET requests are not supported.
 
 When using PTLib, you can use these additional switches:
@@ -852,6 +852,6 @@ Define the UDP port the SNMP agent should listen on.
 <item><tt>AllowRequestsFrom=192.168.1.0/22</tt><newline>
 Default: <tt>n/a</tt><newline>
 <p>
-A comma separated list of IPs or networks from which we accept SNMP requests.
+A comma separated list of IPs or networks which are allowed to send us SNMP requests.
 
 </itemize>
