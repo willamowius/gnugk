@@ -8437,7 +8437,7 @@ bool RTPLogicalChannel::UpdateMediaKey(const H245_EncryptionSync & encryptionSyn
 {
 	if (!m_auth || !m_H235CryptoEngine) {
 		PTRACE(1, "H235\tError: H.235 media key update before session initialization");
-		SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure");
+		SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 key update failure");
 		return false;
 	}
 	return CreateH235Session(*m_auth, encryptionSync, m_encrypting);
@@ -8447,7 +8447,7 @@ bool RTPLogicalChannel::GenerateNewMediaKey(BYTE newPayloadType, H245_Encryption
 {
 	if (!m_auth || !m_H235CryptoEngine) {
 		PTRACE(1, "H235\tError: H.235 media key update before session initialization");
-		SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure");
+		SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 key update before session initialization");
 		return false;
 	}
 	SetCipherPayloadType(newPayloadType);
