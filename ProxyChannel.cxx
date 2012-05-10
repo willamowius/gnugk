@@ -643,19 +643,17 @@ public:
 #endif
 
 #ifdef HAS_H235_MEDIA
-	bool CreateH235Session(H235Authenticators & auth, const H245_EncryptionSync & encryptionSync, bool simulateCallerSide, bool encrypting);
-	bool CreateH235SessionAndKey(H235Authenticators & auth, H245_EncryptionSync & sync, bool simulateCallerSide, bool encrypting);
+	bool CreateH235Session(H235Authenticators & auth, const H245_EncryptionSync & encryptionSync, bool encrypting);
+	bool CreateH235SessionAndKey(H235Authenticators & auth, H245_EncryptionSync & sync, bool encrypting);
 	bool UpdateMediaKey(const H245_EncryptionSync & encryptionSync);
 	bool GenerateNewMediaKey(BYTE newPayloadType, H245_EncryptionSync & encryptionSync);
-	bool ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller, unsigned char * ivsequence, bool & rtpPadding, BYTE & payloadType);
+	bool ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt, unsigned char * ivsequence, bool & rtpPadding, BYTE & payloadType);
 	void SetPlainPayloadType(BYTE pt) { m_plainPayloadType = pt; }
 	BYTE GetPlainPayloadType() const { return m_plainPayloadType; }
 	void SetCipherPayloadType(BYTE pt) { m_cipherPayloadType = pt; }
 	BYTE GetCipherPayloadType() const { return m_cipherPayloadType; }
 	void SetDataChannel(bool val) { m_isDataChannel = val; }
 	bool IsDataChannel() const { return m_isDataChannel; }
-	bool GetEncryptSide() const { return m_simulateCallerSide; }
-	bool GetDecryptSide() const { return !m_simulateCallerSide; }
 #endif
 
 private:
@@ -672,7 +670,6 @@ private:
 	PMutex m_cryptoEngineMutex;
 	H235CryptoEngine * m_H235CryptoEngine;
 	H235Authenticators * m_auth;
-	bool m_simulateCallerSide;
 	bool m_encrypting;
 	BYTE m_plainPayloadType;			// remember in OLC to use in OLCA
 	BYTE m_cipherPayloadType;			// remember in OLC to use in OLCA
@@ -7023,14 +7020,12 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 		if (receivedMultiplexID == m_encryptMultiplexID) {
 			PTRACE(0, "JW need multiplex ENcryption");
 			if (m_encryptingLC) {
-				bool fromCaller = m_encryptingLC->GetEncryptSide();
-				succesful = m_encryptingLC->ProcessH235Media((BYTE*)data, wlen, fromCaller, ivSequence, rtpPadding, payloadType);
+				succesful = m_encryptingLC->ProcessH235Media((BYTE*)data, wlen, true, ivSequence, rtpPadding, payloadType);
 			}
 		} else {
 			PTRACE(0, "JW need multiplex DEcryption");
 			if (m_decryptingLC) {
-				bool fromCaller = m_decryptingLC->GetDecryptSide();
-				succesful = m_decryptingLC->ProcessH235Media((BYTE*)data, wlen, fromCaller, ivSequence, rtpPadding, payloadType);
+				succesful = m_decryptingLC->ProcessH235Media((BYTE*)data, wlen, false, ivSequence, rtpPadding, payloadType);
 			}
 		}
 
@@ -7809,12 +7804,10 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 
 			if (encrypting) {
 				PTRACE(0, "JW need regular ENcryption");
-				bool fromCaller = m_encryptingLC->GetEncryptSide();
-				succesful = m_encryptingLC->ProcessH235Media(wbuffer, buflen, fromCaller, ivSequence, rtpPadding, payloadType);
+				succesful = m_encryptingLC->ProcessH235Media(wbuffer, buflen, encrypting, ivSequence, rtpPadding, payloadType);
 			} else {
 				PTRACE(0, "JW need regular DEcryption");
-				bool fromCaller = m_decryptingLC->GetDecryptSide();
-				succesful =  m_decryptingLC->ProcessH235Media(wbuffer, buflen, fromCaller, ivSequence, rtpPadding, payloadType);
+				succesful =  m_decryptingLC->ProcessH235Media(wbuffer, buflen, encrypting, ivSequence, rtpPadding, payloadType);
 			}
 		} else {
 			PTRACE(3, "H235\tNot both sides ready in encrypting channel");
@@ -8125,7 +8118,6 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 	m_callID = id;
 	m_H235CryptoEngine = NULL;
 	m_auth = NULL;
-	m_simulateCallerSide = false;
 	m_encrypting = false;
 	m_plainPayloadType = UNDEFINED_PAYLOAD_TYPE;
 	m_cipherPayloadType = UNDEFINED_PAYLOAD_TYPE;
@@ -8187,7 +8179,6 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nat
 #ifdef HAS_H235_MEDIA
 	m_H235CryptoEngine = NULL;
 	m_auth = NULL;
-	m_simulateCallerSide = !flc->m_simulateCallerSide;
 	m_encrypting = false;
 	m_plainPayloadType = UNDEFINED_PAYLOAD_TYPE;
 	m_cipherPayloadType = UNDEFINED_PAYLOAD_TYPE;
@@ -8305,11 +8296,10 @@ void RTPLogicalChannel::SetLCMultiplexSocket(bool isRTCP, int multiplexSocket, H
 #endif
 
 #ifdef HAS_H235_MEDIA
-bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_EncryptionSync & encryptionSync, bool simulateCallerSide, bool encrypting)
+bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_EncryptionSync & encryptionSync, bool encrypting)
 {
 	PWaitAndSignal lock(m_cryptoEngineMutex);
 	m_auth = &auth;
-	m_simulateCallerSide = simulateCallerSide;
 	m_encrypting = encrypting;
 
 	PString algorithmOID;
@@ -8389,11 +8379,10 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 	return true;
 }
 
-bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_EncryptionSync & encryptionSync, bool simulateCallerSide, bool encrypting)
+bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_EncryptionSync & encryptionSync, bool encrypting)
 {
 	PWaitAndSignal lock(m_cryptoEngineMutex);
 	m_auth = &auth;
-	m_simulateCallerSide = simulateCallerSide;
 	m_encrypting = encrypting;
 
 	PString algorithmOID;
@@ -8451,7 +8440,7 @@ bool RTPLogicalChannel::UpdateMediaKey(const H245_EncryptionSync & encryptionSyn
 		SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure");
 		return false;
 	}
-	return CreateH235Session(*m_auth, encryptionSync, m_simulateCallerSide, m_encrypting);
+	return CreateH235Session(*m_auth, encryptionSync, m_encrypting);
 }
 
 bool RTPLogicalChannel::GenerateNewMediaKey(BYTE newPayloadType, H245_EncryptionSync & encryptionSync)
@@ -8462,10 +8451,10 @@ bool RTPLogicalChannel::GenerateNewMediaKey(BYTE newPayloadType, H245_Encryption
 		return false;
 	}
 	SetCipherPayloadType(newPayloadType);
-	return CreateH235SessionAndKey(*m_auth, encryptionSync, m_simulateCallerSide, m_encrypting);
+	return CreateH235SessionAndKey(*m_auth, encryptionSync, m_encrypting);
 }
 
-bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller, unsigned char * ivsequence, bool & rtpPadding, BYTE & payloadType)
+bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt, unsigned char * ivsequence, bool & rtpPadding, BYTE & payloadType)
 {
 	PWaitAndSignal lock(m_cryptoEngineMutex);
 	if (!m_H235CryptoEngine)
@@ -8474,7 +8463,7 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCal
 	PBYTEArray data(buffer+12, len-12);	// skip RTP header TODO: skip more if header has CSRC or extensions
 	PBYTEArray processed;
 
-	if ((fromCaller && m_simulateCallerSide) || (!fromCaller && !m_simulateCallerSide)) {
+	if (encrypt) {
 		PTRACE(0, "JW crypto encrypt pt=" << (int)payloadType);
 		if (payloadType == m_plainPayloadType) {
 			processed = m_H235CryptoEngine->Encrypt(data, ivsequence, rtpPadding);
@@ -8497,7 +8486,7 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool fromCal
 	len = processed.GetSize() + 12;
 	memcpy(buffer+12, processed.GetPointer(), processed.GetSize());
 	//if (m_H235CryptoEngine->IsMaxBlocksPerKeyReached()) {	// many 100 GB
-	// TODO: find call by CallID, send key update command or request
+	// find call by CallID, send key update command or request
 	//}
 	return (processed.GetSize() > 0);
 }
@@ -9299,14 +9288,12 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 							|| (!m_isCaller && call->GetEncryptDirection() == CallRec::calledParty);
 			// use the key sent by the other side
 			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_encryptionSync)) {
-				rtplc->CreateH235Session(call->GetAuthenticators(), olc.m_encryptionSync,
-						(call->GetEncryptDirection() == CallRec::callingParty), encrypting);
+				rtplc->CreateH235Session(call->GetAuthenticators(), olc.m_encryptionSync, encrypting);
 				olc.RemoveOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
 			} else if (m_isH245Master) {
 				// the message comes from the master and doesn't have encryptionSync
 				olc.IncludeOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
-				rtplc->CreateH235SessionAndKey(call->GetAuthenticators(), olc.m_encryptionSync,
-						(call->GetEncryptDirection() == CallRec::callingParty), encrypting);
+				rtplc->CreateH235SessionAndKey(call->GetAuthenticators(), olc.m_encryptionSync, encrypting);
 			}
 #ifdef HAS_H46018
 			if (m_requestRTPMultiplexing || peer->m_requestRTPMultiplexing) {
@@ -9528,14 +9515,12 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 						|| (!m_isCaller && call->GetEncryptDirection() == CallRec::callingParty);
 		// use the key sent by the other side
 		if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync)) {
-			rtplc->CreateH235Session(call->GetAuthenticators(), olca.m_encryptionSync,
-					(call->GetEncryptDirection() == CallRec::callingParty), encrypting);
+			rtplc->CreateH235Session(call->GetAuthenticators(), olca.m_encryptionSync, encrypting);
 			olca.RemoveOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
 		} else if (m_isH245Master) {
 			// the message comes from the master and its in the direction we are simulating
 			olca.IncludeOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
-			rtplc->CreateH235SessionAndKey(call->GetAuthenticators(), olca.m_encryptionSync,
-					(call->GetEncryptDirection() == CallRec::callingParty), encrypting);
+			rtplc->CreateH235SessionAndKey(call->GetAuthenticators(), olca.m_encryptionSync, encrypting);
 		}
 #ifdef HAS_H46018
 		if (m_requestRTPMultiplexing || peer->m_requestRTPMultiplexing) {
