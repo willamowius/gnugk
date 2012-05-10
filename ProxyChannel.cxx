@@ -649,7 +649,9 @@ public:
 	bool GenerateNewMediaKey(BYTE newPayloadType, H245_EncryptionSync & encryptionSync);
 	bool ProcessH235Media(BYTE * buffer, WORD & len, bool fromCaller, unsigned char * ivsequence, bool & rtpPadding, BYTE & payloadType);
 	void SetPlainPayloadType(BYTE pt) { m_plainPayloadType = pt; }
+	BYTE GetPlainPayloadType() const { return m_plainPayloadType; }
 	void SetCipherPayloadType(BYTE pt) { m_cipherPayloadType = pt; }
+	BYTE GetCipherPayloadType() const { return m_cipherPayloadType; }
 	void SetDataChannel(bool val) { m_isDataChannel = val; }
 	bool IsDataChannel() const { return m_isDataChannel; }
 	bool GetEncryptSide() const { return m_simulateCallerSide; }
@@ -7788,20 +7790,36 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 #ifdef HAS_H235_MEDIA
 	// H.235.6 sect 9.3.3 says RTCP encryption is for further study, so we don't encrypt/decrypt RTCP
 	if (m_call && (*m_call) && (*m_call)->IsMediaEncryption() && isRTP) {
-		bool fromCaller = true;
-		// HACK: this only works if caller and called are on different IPs and send media from the same IP as call signaling
-		// TODO235: detect RTP direction for all cases
-		PIPSocket::Address callerSignalIP;
-		WORD notused;
-		(*m_call)->GetSrcSignalAddr(callerSignalIP, notused);
-		fromCaller = (callerSignalIP == fromIP);
-		bool simulateCaller = ((*m_call)->GetEncryptDirection() == CallRec::callingParty);
+		bool encrypting = false;
 		bool succesful = false;
-		if (m_encryptingLC && ((fromCaller && simulateCaller) || (!fromCaller && !simulateCaller))) {
-			succesful = m_encryptingLC->ProcessH235Media(wbuffer, buflen, fromCaller, ivSequence, rtpPadding, payloadType);
-		} else if (m_decryptingLC) {
-			succesful =  m_decryptingLC->ProcessH235Media(wbuffer, buflen, fromCaller, ivSequence, rtpPadding, payloadType);
+		if (m_encryptingLC && m_decryptingLC) {
+			if (m_encryptingLC->GetPlainPayloadType() == m_decryptingLC->GetCipherPayloadType()) {
+				PTRACE(0, "JW can't use PT to decide encryption direction -> fall back on IPs");
+				// HACK: this only works if caller and called are on different IPs and send media from the same IP as call signaling
+				bool fromCaller = true;
+				PIPSocket::Address callerSignalIP;
+				WORD notused;
+				(*m_call)->GetSrcSignalAddr(callerSignalIP, notused);
+				fromCaller = (callerSignalIP == fromIP);
+				bool simulateCaller = ((*m_call)->GetEncryptDirection() == CallRec::callingParty);
+				encrypting = ((fromCaller && simulateCaller) || (!fromCaller && !simulateCaller));
+			} else {
+				encrypting = (payloadType == m_encryptingLC->GetPlainPayloadType());
+			}
+
+			if (encrypting) {
+				PTRACE(0, "JW need regular ENcryption");
+				bool fromCaller = m_encryptingLC->GetEncryptSide();
+				succesful = m_encryptingLC->ProcessH235Media(wbuffer, buflen, fromCaller, ivSequence, rtpPadding, payloadType);
+			} else {
+				PTRACE(0, "JW need regular DEcryption");
+				bool fromCaller = m_decryptingLC->GetDecryptSide();
+				succesful =  m_decryptingLC->ProcessH235Media(wbuffer, buflen, fromCaller, ivSequence, rtpPadding, payloadType);
+			}
+		} else {
+			PTRACE(3, "H235\tNot both sides ready in encrypting channel");
 		}
+
 		if (!succesful)
 			return NoData;
 
