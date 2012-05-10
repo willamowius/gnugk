@@ -447,6 +447,8 @@ public:
 #ifdef HAS_H235_MEDIA
 	RTPLogicalChannel * m_encryptingLC;
 	RTPLogicalChannel * m_decryptingLC;
+	PUInt32b m_encryptMultiplexID;
+	PUInt32b m_decryptMultiplexID;
 #endif
 };
 

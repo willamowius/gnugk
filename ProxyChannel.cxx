@@ -652,6 +652,8 @@ public:
 	void SetCipherPayloadType(BYTE pt) { m_cipherPayloadType = pt; }
 	void SetDataChannel(bool val) { m_isDataChannel = val; }
 	bool IsDataChannel() const { return m_isDataChannel; }
+	bool GetEncryptSide() const { return m_simulateCallerSide; }
+	bool GetDecryptSide() const { return !m_simulateCallerSide; }
 #endif
 
 private:
@@ -6915,6 +6917,8 @@ H46019Session::H46019Session(const H225_CallIdentifier & callid, WORD session, v
 #ifdef HAS_H235_MEDIA
 	m_encryptingLC = NULL;
 	m_decryptingLC = NULL;
+	m_encryptMultiplexID = INVALID_MULTIPLEX_ID;
+	m_decryptMultiplexID = INVALID_MULTIPLEX_ID;
 #endif
 }
 
@@ -7003,6 +7007,7 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 #ifdef HAS_H235_MEDIA
 	if (!isRTCP && call && call->IsMediaEncryption() && IsSet(m_addrA) && IsSet(m_addrB)) {
 		WORD wlen = len;
+		bool succesful = false;
 		unsigned char ivSequence[6];
 		BYTE payloadType = UNDEFINED_PAYLOAD_TYPE;
 		bool rtpPadding = false;
@@ -7013,33 +7018,16 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 		if (len >= 8)
 			memcpy(ivSequence, (BYTE*)data + 2, 6);
 
-		bool fromCaller = true;
-		// HACK: this only works if caller and called are on different IPs and send media from the same IP as call signaling
-		// TODO235: detect direction in all cases
-		PIPSocket::Address callerSignalIP, packetSource, IpA;
-		WORD notused;
-		call->GetSrcSignalAddr(callerSignalIP, notused);
-		fromAddress.GetIpAddress(packetSource);
-		m_addrA.GetIpAddress(IpA);
-		fromCaller = (callerSignalIP == packetSource);
-		bool simulateA = (((IpA == callerSignalIP) && (call->GetEncryptDirection() == CallRec::callingParty))
-							|| ((IpA != callerSignalIP) && (call->GetEncryptDirection() == CallRec::calledParty)));
-		bool succesful = false;
-
-		PTRACE(0, "JW crypto A=" << AsString(m_addrA) << " B=" << AsString(m_addrB)
-			<< " simulateA=" << simulateA << " fromCaller=" << fromCaller);
-		PTRACE(0, "JW crypto session=" << m_session << " encryptLC=" << m_encryptingLC
-			<< " decryptLC=" << m_encryptingLC);
-
-
-		if ((isFromA && simulateA) || (!isFromA && !simulateA)) {
+		if (receivedMultiplexID == m_encryptMultiplexID) {
 			PTRACE(0, "JW need multiplex ENcryption");
 			if (m_encryptingLC) {
+				bool fromCaller = m_encryptingLC->GetEncryptSide();
 				succesful = m_encryptingLC->ProcessH235Media((BYTE*)data, wlen, fromCaller, ivSequence, rtpPadding, payloadType);
 			}
 		} else {
 			PTRACE(0, "JW need multiplex DEcryption");
 			if (m_decryptingLC) {
+				bool fromCaller = m_decryptingLC->GetDecryptSide();
 				succesful = m_decryptingLC->ProcessH235Media((BYTE*)data, wlen, fromCaller, ivSequence, rtpPadding, payloadType);
 			}
 		}
@@ -9256,6 +9244,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 					rtplc->SetPlainPayloadType(h225Params->m_dynamicRTPPayloadType);
 					rtplc->SetCipherPayloadType(h225Params->m_dynamicRTPPayloadType);
 				}
+				h46019chan.m_decryptMultiplexID = h46019chan.m_multiplexID_fromB;
 			} else {
 				// we remove encryption, OLC has already been rewritten
 				if (!h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_dynamicRTPPayloadType)) {
@@ -9284,6 +9273,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 						rtplc->SetPlainPayloadType(h225Params->m_dynamicRTPPayloadType);
 					}
 				}
+				h46019chan.m_encryptMultiplexID = h46019chan.m_multiplexID_fromB;
 			}
 
 			// is this the encryption or decryption direction ?
@@ -9304,10 +9294,11 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 			if (m_requestRTPMultiplexing || peer->m_requestRTPMultiplexing) {
 				// get the H46019Session object in standard (unswapped) format
 				H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(call->GetCallIdentifier(), sessionID);
-				if (encrypting)
+				if (encrypting) {
 					h46019chan.m_encryptingLC = rtplc;
-				else
+				} else {
 					h46019chan.m_decryptingLC = rtplc;
+				}
 				MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
 			}
 #endif
@@ -9347,7 +9338,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		&& olca.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters)
 		sessionID = ((H245_H2250LogicalChannelAckParameters&)olca.m_forwardMultiplexAckParameters).m_sessionID;
 	H46019Session h46019chan(0, 0, NULL);
-	if (m_requestRTPMultiplexing || peer->m_requestRTPMultiplexing) {
+	PUInt32b assignedMultiplexID = INVALID_MULTIPLEX_ID;
+ 	if (m_requestRTPMultiplexing || peer->m_requestRTPMultiplexing) {
 		h46019chan = MultiplexedRTPHandler::Instance()->GetChannelSwapped(call->GetCallIdentifier(), sessionID, peer);
 #ifdef RTP_DEBUG
 		if (!h46019chan.IsValid()) {
@@ -9449,6 +9441,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 			params.m_multiplexedMediaChannel = IPToH245TransportAddr(GetMasqAddr(), m_multiplexedRTPPort);
 
 			h46019chan.m_multiplexID_fromA = params.m_multiplexID;
+			assignedMultiplexID = params.m_multiplexID;
 		}
 
 		H245_ParameterValue & octetValue = genericParameter.m_parameterValue;
@@ -9530,10 +9523,13 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		if (m_requestRTPMultiplexing || peer->m_requestRTPMultiplexing) {
 			// get the H46019Session object in standard (unswapped) format
 			H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(call->GetCallIdentifier(), sessionID);
-			if (encrypting)
+			if (encrypting) {
 				h46019chan.m_encryptingLC = rtplc;
-			else
+				h46019chan.m_encryptMultiplexID = assignedMultiplexID;
+			} else {
 				h46019chan.m_decryptingLC = rtplc;
+				h46019chan.m_decryptMultiplexID = assignedMultiplexID;
+			}
 			MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
 		}
 #endif
