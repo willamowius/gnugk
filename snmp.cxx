@@ -285,8 +285,7 @@ void SendPTLibSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group,
 		PSNMPVarBindingList vars;
 		vars.Append(PString(severityOIDStr), new PASNInteger(severity));
 		vars.Append(PString(groupOIDStr), new PASNInteger(group));
-		if (!msg.IsEmpty())
-			vars.AppendString(displayMsgOIDStr, msg);
+		vars.AppendString(displayMsgOIDStr, msg);
 		PSNMP::SendEnterpriseTrap(trapHostIP, trapCommunity,
 			GnuGkMIBStr + PString(".0"), trapNumber,
 			PInt32((PTime() - SoftPBX::StartUp).GetMilliSeconds() / 10), vars);
