@@ -825,7 +825,7 @@ master agentx
 <sect2>Using PTLib's SNMP implementation
 <p>
 PTlib supports SNMP version 1 and 2 GET requests and will always send version 1 traps in a version 2c message.
-SET requests are not supported.
+GETNEXT and SET requests are not supported.
 
 When using PTLib, you can use these additional switches:
 <itemize>

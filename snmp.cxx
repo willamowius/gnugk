@@ -256,10 +256,16 @@ void NetSNMPAgent::Run()
 
 #include <ptclib/psnmp.h>
 
-const char * const GnuGkMIBStr      = "1.3.6.1.4.1.27938.11";
-const char * const severityOIDStr   = "1.3.6.1.4.1.27938.11.2.1";
-const char * const groupOIDStr      = "1.3.6.1.4.1.27938.11.2.2";
-const char * const displayMsgOIDStr = "1.3.6.1.4.1.27938.11.2.3";
+const char * const GnuGkMIBStr         = "1.3.6.1.4.1.27938.11";
+const char * const ShortVersionOIDStr  = "1.3.6.1.4.1.27938.11.1.1";
+const char * const LongVersionOIDStr   = "1.3.6.1.4.1.27938.11.1.2";
+const char * const RegistrationsOIDStr = "1.3.6.1.4.1.27938.11.1.3";
+const char * const CallsOIDStr         = "1.3.6.1.4.1.27938.11.1.4";
+const char * const TraceLevelOIDStr    = "1.3.6.1.4.1.27938.11.1.5";
+const char * const CatchAllOIDStr      = "1.3.6.1.4.1.27938.11.1.6";
+const char * const severityOIDStr      = "1.3.6.1.4.1.27938.11.2.1";
+const char * const groupOIDStr         = "1.3.6.1.4.1.27938.11.2.2";
+const char * const displayMsgOIDStr    = "1.3.6.1.4.1.27938.11.2.3";
 
 
 void SendPTLibSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg)
@@ -296,8 +302,10 @@ public:
     virtual PBoolean Authorise(const PIPSocket::Address & received);
     virtual PBoolean ConfirmCommunity(PASN_OctetString & community);
     virtual PBoolean OnGetRequest(PINDEX reqID, PSNMP::BindingList & vars, PSNMP::ErrorType & errCode);
+    virtual PBoolean OnGetNextRequest(PINDEX reqID, PSNMP::BindingList & vars, PSNMP::ErrorType & errCode);
+    virtual PBoolean OnSetRequest(PINDEX reqID, PSNMP::BindingList & vars, PSNMP::ErrorType & errCode);
     virtual PBoolean ConfirmVersion(PASN_Integer vers);
-	virtual PBoolean MIB_LocalMatch(PSNMP_PDU & pdu);
+	virtual PBoolean MIB_LocalMatch(PSNMP_PDU & answerPDU);
 
   protected:
     PRFC1155_SimpleSyntax sys_description;
@@ -338,7 +346,44 @@ PBoolean PTLibSNMPAgent::ConfirmCommunity(PASN_OctetString & community)
 
 PBoolean PTLibSNMPAgent::OnGetRequest(PINDEX reqID, PSNMP::BindingList & vars, PSNMP::ErrorType & errCode)
 {
-	return PTrue;
+	return PTrue; // allow GET requests
+}
+
+PBoolean PTLibSNMPAgent::OnGetNextRequest(PINDEX reqID, PSNMP::BindingList & vars, PSNMP::ErrorType & errCode)
+{
+	return PTrue; // allow GETNEXT requests
+}
+
+PBoolean PTLibSNMPAgent::OnSetRequest(PINDEX reqID, PSNMP::BindingList & vars, PSNMP::ErrorType & errCode)
+{
+	return PFalse;	// doesn't work
+
+/*
+	// TODO: PSNMPServer::ProcessPDU() must send a response and the decoding of SET values is broken
+	for(PSNMP::BindingList::iterator i = vars.begin(); i != vars.end(); ++i){
+		if (i->first == TraceLevelOIDStr + PString(".0")) {
+			if (i->second.GetObject().GetTag() == PASN_Object::UniversalInteger) {
+				PASN_Integer & num = (PASN_Integer &)(i->second.GetObject());
+				PTRACE(0, "JW SET " << i->first << " to " << num << " = " << num.GetValue());	// TODO / BUG
+				//PTrace::SetLevel(num.GetValue());
+				return PTrue;
+			} else {
+				PTRACE(1, "SNMP\tWrong data type for SET " << i->first);
+				return PFalse;
+			}
+		} else if (i->first == CatchAllOIDStr + PString(".0")) {
+			if (i->second.GetObject().GetTag() == PASN_Object::UniversalOctetString) {
+				PASN_OctetString & str = (PASN_OctetString &)(i->second.GetObject());
+				PTRACE(0, "JW SET " << i->first << " to " << str << " = " << str.GetValue());	// TODO / BUG
+				return PTrue;
+			} else {
+				PTRACE(1, "SNMP\tWrong data type for SET " << i->first);
+				return PFalse;
+			}
+		}
+	}
+	return PFalse;
+*/
 }
 
 // 0=SNMPv1, 1=SNMPv2
@@ -347,63 +392,55 @@ PBoolean PTLibSNMPAgent::ConfirmVersion(PASN_Integer vers)
 	return (vers <= 1);	// only accept version 1 or 2
 }
 
-PBoolean PTLibSNMPAgent::MIB_LocalMatch(PSNMP_PDU & pdu)
+void SetRFC1155Object(PRFC1155_ObjectSyntax & obj, unsigned i)
 {
-	PTRACE(0, "JW MIB_LocalMatch pdu=" << pdu);
-	PSNMP_VarBindList & vars = pdu.m_variable_bindings;
+	PRFC1155_SimpleSyntax simple(PRFC1155_SimpleSyntax::e_number);
+	PRFC1155_ObjectSyntax * newObj = (PRFC1155_ObjectSyntax*)&simple;
+	PASN_Integer * num = (PASN_Integer *)&simple.GetObject();
+	num->SetValue(i);
+	obj = *newObj;
+}
+
+void SetRFC1155Object(PRFC1155_ObjectSyntax & obj, const PString & str)
+{
+	PRFC1155_SimpleSyntax simple(PRFC1155_SimpleSyntax::e_string);
+	PRFC1155_ObjectSyntax * newObj = (PRFC1155_ObjectSyntax*)&simple;
+	PASN_OctetString * strObj = (PASN_OctetString *)&simple.GetObject();
+	strObj->SetValue(str);
+	obj = *newObj;
+}
+
+PBoolean PTLibSNMPAgent::MIB_LocalMatch(PSNMP_PDU & answerPDU)
+{
+	PSNMP_VarBindList & vars = answerPDU.m_variable_bindings;
 	bool found = false;
 
-	for(PINDEX i = 0 ;i < vars.GetSize(); i++){
-		PTRACE(0, "JW oid=" << vars[i].m_name);
-		if (vars[i].m_name == "1.3.6.1.4.1.27938.11.1.1.0") {
-			PRFC1155_SimpleSyntax answer(PRFC1155_SimpleSyntax::e_string);
-			PRFC1155_ObjectSyntax * obj = (PRFC1155_ObjectSyntax*)&answer;
-			PASN_OctetString * str = (PASN_OctetString *)&answer.GetObject();
-			str->SetValue(PProcess::Current().GetVersion(true));
-			vars[i].m_value = *obj;
+	for(PINDEX i = 0; i < vars.GetSize(); i++){
+		if (vars[i].m_name == ShortVersionOIDStr + PString(".0")) {
+			SetRFC1155Object(vars[i].m_value, PProcess::Current().GetVersion(true));
 			found = true;
-		} else if (vars[i].m_name == "1.3.6.1.4.1.27938.11.1.2.0") {
-			PRFC1155_SimpleSyntax answer(PRFC1155_SimpleSyntax::e_string);
-			PRFC1155_ObjectSyntax * obj = (PRFC1155_ObjectSyntax*)&answer;
-			PASN_OctetString * str = (PASN_OctetString *)&answer.GetObject();
-			str->SetValue(Toolkit::GKVersion());
-			vars[i].m_value = *obj;
+		} else if (vars[i].m_name == LongVersionOIDStr + PString(".0")) {
+			SetRFC1155Object(vars[i].m_value, Toolkit::GKVersion());
 			found = true;
-		} else if (vars[i].m_name == "1.3.6.1.4.1.27938.11.1.3.0") {
-			PRFC1155_SimpleSyntax answer(PRFC1155_SimpleSyntax::e_number);
-			PRFC1155_ObjectSyntax * obj = (PRFC1155_ObjectSyntax*)&answer;
-			PASN_Integer * num = (PASN_Integer *)&answer.GetObject();
-			num->SetValue(RegistrationTable::Instance()->Size());
-			vars[i].m_value = *obj;
+		} else if (vars[i].m_name == RegistrationsOIDStr + PString(".0")) {
+			SetRFC1155Object(vars[i].m_value, RegistrationTable::Instance()->Size());
 			found = true;
-		} else if (vars[i].m_name == "1.3.6.1.4.1.27938.11.1.4.0") {
-			PRFC1155_SimpleSyntax answer(PRFC1155_SimpleSyntax::e_number);
-			PRFC1155_ObjectSyntax * obj = (PRFC1155_ObjectSyntax*)&answer;
-			PASN_Integer * num = (PASN_Integer *)&answer.GetObject();
-			num->SetValue(CallTable::Instance()->Size());
-			vars[i].m_value = *obj;
+		} else if (vars[i].m_name == CallsOIDStr + PString(".0")) {
+			SetRFC1155Object(vars[i].m_value, CallTable::Instance()->Size());
 			found = true;
-		} else if (vars[i].m_name == "1.3.6.1.4.1.27938.11.1.5.0") {
-			PRFC1155_SimpleSyntax answer(PRFC1155_SimpleSyntax::e_number);
-			PRFC1155_ObjectSyntax * obj = (PRFC1155_ObjectSyntax*)&answer;
-			PASN_Integer * num = (PASN_Integer *)&answer.GetObject();
-			num->SetValue(PTrace::GetLevel());
-			vars[i].m_value = *obj;
+		} else if (vars[i].m_name == TraceLevelOIDStr + PString(".0")) {
+			SetRFC1155Object(vars[i].m_value, PTrace::GetLevel());
 			found = true;
-		} else if (vars[i].m_name == "1.3.6.1.4.1.27938.11.1.6.0") {
+		} else if (vars[i].m_name == CatchAllOIDStr + PString(".0")) {
 			PString catchAllDest = GkConfig()->GetString("Routing::CatchAll", "CatchAllIP", "");
 			if (catchAllDest.IsEmpty())
 				catchAllDest = GkConfig()->GetString("Routing::CatchAll", "CatchAllAlias", "catchall");
-			PRFC1155_SimpleSyntax answer(PRFC1155_SimpleSyntax::e_string);
-			PRFC1155_ObjectSyntax * obj = (PRFC1155_ObjectSyntax*)&answer;
-			PASN_OctetString * str = (PASN_OctetString *)&answer.GetObject();
-			str->SetValue(catchAllDest);
-			vars[i].m_value = *obj;
+			SetRFC1155Object(vars[i].m_value, catchAllDest);
 			found = true;
 		}
 	}
 
-	return found; // not found
+	return found;
 }
 
 #endif	// P_SNMP
