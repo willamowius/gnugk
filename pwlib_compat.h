@@ -235,7 +235,7 @@
    #define PTRACEX(level, args)  PTRACE(level,args)   
 #endif
 
-#if defined(P_SNMP) || defined(HAS_NETSNMP)
+#if defined(P_SNMP) || defined(HAS_NETSNMP) || defined(_WIN32)
 #define HAS_SNMP 1
 #endif
 

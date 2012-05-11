@@ -606,6 +606,9 @@ void ShutdownHandler()
 		delete MakeCallEndPoint::Instance();
 	if (Toolkit::InstanceExists())
 		delete Toolkit::Instance();
+#if defined(HAS_SNMP)
+	DeleteSNMPAgent();
+#endif
 	PTRACE(3, "GK\tdelete ok");
 
 	Gatekeeper::CloseLogFile();

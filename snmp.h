@@ -28,6 +28,8 @@ enum SNMPGroup { General=1, Network=2, Database=3, Accounting=4, Authentication=
 PCaselessString SelectSNMPImplementation();
 
 void StartSNMPAgent();
+void StopSNMPAgent();
+void DeleteSNMPAgent();
 
 void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg);
 

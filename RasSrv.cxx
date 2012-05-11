@@ -1369,6 +1369,10 @@ void RasServer::OnStop()
 
 	delete Routing::Analyzer::Instance();
 
+#ifdef HAS_SNMP
+	StopSNMPAgent();
+#endif
+
 	PTRACE(1, "GK\tRasServer stopped");
 }
 
