@@ -468,6 +468,7 @@ private:
 };
 
 class RTPLogicalChannel;
+
 class UDPProxySocket : public UDPSocket, public ProxySocket {
 public:
 #ifndef LARGE_FDSET
@@ -552,6 +553,7 @@ protected:
 	H323TransportAddress m_multiplexDestination_B;	// OLCAck side of first logical channel in this session
 	PUInt32b m_multiplexID_B;	// ID _to_ B side (only valid if m_multiplexDestination_B is set)
 	int m_multiplexSocket_B;	// only valid if m_multiplexDestination_ is set)
+	PMutex m_multiplexMutex;	// protect multiplex IDs, addresses and sockets against access from concurrent threads
 #endif
 };
 
@@ -7469,6 +7471,7 @@ void UDPProxySocket::SetMultiplexDestination(const H323TransportAddress & toAddr
 {
 PTRACE(0, "JW SetMultiplexDestination before: A=" << AsString(m_multiplexDestination_A) << " B=" << AsString(m_multiplexDestination_B));
 PTRACE(0, "JW SetMultiplexDestination new: side=" << side << " addr=" << AsString(toAddress));
+	PWaitAndSignal lock(m_multiplexMutex);
 	if (side == SideA)
 		m_multiplexDestination_A = toAddress;
 	else
@@ -7478,6 +7481,7 @@ PTRACE(0, "JW SetMultiplexDestination after: A=" << AsString(m_multiplexDestinat
 
 void UDPProxySocket::SetMultiplexID(PUInt32b multiplexID, H46019Side side)
 {
+	PWaitAndSignal lock(m_multiplexMutex);
 	if (side == SideA)
 		m_multiplexID_A = multiplexID;
 	else
@@ -7486,6 +7490,7 @@ void UDPProxySocket::SetMultiplexID(PUInt32b multiplexID, H46019Side side)
 
 void UDPProxySocket::SetMultiplexSocket(int multiplexSocket, H46019Side side)
 {
+	PWaitAndSignal lock(m_multiplexMutex);
 	if (side == SideA)
 		m_multiplexSocket_A = multiplexSocket;
 	else
@@ -7545,6 +7550,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		payloadType = wbuffer[1] & 0x7f;
 #endif
 #ifdef HAS_H46018
+	PWaitAndSignal lock(m_multiplexMutex);
 	bool isRTPKeepAlive = isRTP && (buflen == 12);
 
 	Address localaddr;
@@ -7695,7 +7701,6 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		}
 		// set RTCP destination in channels with only 1 H.460.19 client
 		// (we only saved it as source IP form the OLC and didn't set the dest IP)
-		// TODO: move to Handle... where the source is set ?
 		if (m_isRTCPType && fSrcIP != 0 && fDestIP == 0 && rSrcIP == 0 && rDestIP == 0) {
 			PTRACE(5, "H46018\tSet RTCP reverse dest from forward source to " << AsString(fSrcIP, fSrcPort));
 			rDestIP = fSrcIP, rDestPort = fSrcPort;
@@ -7705,6 +7710,50 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			fDestIP = rSrcIP, fDestPort = rSrcPort;
 		}
 	}
+
+#ifdef HAS_H235_MEDIA
+	// H.235.6 sect 9.3.3 says RTCP encryption is for further study, so we don't encrypt/decrypt RTCP
+	if (m_call && (*m_call) && (*m_call)->IsMediaEncryption() && isRTP) {
+		bool encrypting = false;
+		bool succesful = false;
+		if (m_encryptingLC && m_decryptingLC) {
+			if (m_encryptingLC->GetPlainPayloadType() == m_decryptingLC->GetCipherPayloadType()) {
+				PTRACE(0, "JW can't use PT to decide encryption direction -> fall back on IPs");
+				// HACK: this only works if caller and called are on different IPs and send media from the same IP as call signaling
+				bool fromCaller = true;
+				PIPSocket::Address callerSignalIP;
+				WORD notused;
+				(*m_call)->GetSrcSignalAddr(callerSignalIP, notused);
+				fromCaller = (callerSignalIP == fromIP);
+				bool simulateCaller = ((*m_call)->GetEncryptDirection() == CallRec::callingParty);
+				encrypting = ((fromCaller && simulateCaller) || (!fromCaller && !simulateCaller));
+			} else {
+				encrypting = (payloadType == m_encryptingLC->GetPlainPayloadType());
+			}
+
+			if (encrypting) {
+				PTRACE(0, "JW need regular ENcryption");
+				succesful = m_encryptingLC->ProcessH235Media(wbuffer, buflen, encrypting, ivSequence, rtpPadding, payloadType);
+			} else {
+				PTRACE(0, "JW need regular DEcryption");
+				succesful =  m_decryptingLC->ProcessH235Media(wbuffer, buflen, encrypting, ivSequence, rtpPadding, payloadType);
+			}
+		} else {
+			PTRACE(3, "H235\tNot both sides ready in encrypting channel");
+		}
+
+		if (!succesful)
+			return NoData;
+
+		// update RTP padding bit
+		if (rtpPadding)
+			wbuffer[0] |= 0x20;
+		else
+			wbuffer[0] &= 0xdf;
+		// update payload type, preserve marker bit
+		wbuffer[1] = (wbuffer[1] & 0x80) | (payloadType & 0x7f);
+	}
+#endif
 
 	// send packets for a multiplexing destination out through multiplexing socket
 	if (IsSet(m_multiplexDestination_A) && (m_multiplexDestination_A != fromAddr)) {
@@ -7782,49 +7831,6 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			fDestIP = fromIP, fDestPort = fromPort;
 		}
 	}
-#ifdef HAS_H235_MEDIA
-	// H.235.6 sect 9.3.3 says RTCP encryption is for further study, so we don't encrypt/decrypt RTCP
-	if (m_call && (*m_call) && (*m_call)->IsMediaEncryption() && isRTP) {
-		bool encrypting = false;
-		bool succesful = false;
-		if (m_encryptingLC && m_decryptingLC) {
-			if (m_encryptingLC->GetPlainPayloadType() == m_decryptingLC->GetCipherPayloadType()) {
-				PTRACE(0, "JW can't use PT to decide encryption direction -> fall back on IPs");
-				// HACK: this only works if caller and called are on different IPs and send media from the same IP as call signaling
-				bool fromCaller = true;
-				PIPSocket::Address callerSignalIP;
-				WORD notused;
-				(*m_call)->GetSrcSignalAddr(callerSignalIP, notused);
-				fromCaller = (callerSignalIP == fromIP);
-				bool simulateCaller = ((*m_call)->GetEncryptDirection() == CallRec::callingParty);
-				encrypting = ((fromCaller && simulateCaller) || (!fromCaller && !simulateCaller));
-			} else {
-				encrypting = (payloadType == m_encryptingLC->GetPlainPayloadType());
-			}
-
-			if (encrypting) {
-				PTRACE(0, "JW need regular ENcryption");
-				succesful = m_encryptingLC->ProcessH235Media(wbuffer, buflen, encrypting, ivSequence, rtpPadding, payloadType);
-			} else {
-				PTRACE(0, "JW need regular DEcryption");
-				succesful =  m_decryptingLC->ProcessH235Media(wbuffer, buflen, encrypting, ivSequence, rtpPadding, payloadType);
-			}
-		} else {
-			PTRACE(3, "H235\tNot both sides ready in encrypting channel");
-		}
-
-		if (!succesful)
-			return NoData;
-
-		// update RTP padding bit
-		if (rtpPadding)
-			wbuffer[0] |= 0x20;
-		else
-			wbuffer[0] &= 0xdf;
-		// update payload type, preserve marker bit
-		wbuffer[1] = (wbuffer[1] & 0x80) | (payloadType & 0x7f);
-	}
-#endif
 
 	if (isRTCP && m_EnableRTCPStats && m_call && (*m_call))
 		return ParseRTCP(*m_call, m_sessionID, fromIP, wbuffer, buflen);
