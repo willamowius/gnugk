@@ -470,10 +470,13 @@ public:
 	virtual void Stop();
 	virtual PString HandleRequest(const PString & request);
 
+	virtial void SendWindowsSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg);
+
 protected:
 	PString m_pipename;
 	HANDLE m_pipe;
 	bool m_shutdown;
+	PMutex m_pipeMutex;	// write lock for pipe
 };
 
 WindowsSNMPAgent::WindowsSNMPAgent() : Singleton<WindowsSNMPAgent>("WindowsSNMPAgent")
@@ -538,11 +541,12 @@ void WindowsSNMPAgent::Run()
 				PThread::Sleep(1000);	// sleep 1 sec. then try again
 			} else {
 				PString request((const char *)&buffer, bytesRead);
-				PTRACE(0, "JW request=" << request);
 				PString response = HandleRequest(request);
 				// Send response to the pipe server
 				DWORD bytesWritten;
+				m_pipeMutex.Wait();	// aquire pipe mutex
 				success = WriteFile(m_pipe, response.GetPointer(), response.GetLength(), &bytesWritten, NULL);
+				m_pipeMutex.Signal();	// aquire pipe mutex
 				if (!success) {
 					PTRACE(1, "SNMP\tDisconnecting from SNMP service.");
 					if (m_pipe != INVALID_HANDLE_VALUE)
@@ -603,6 +607,19 @@ PString WindowsSNMPAgent::HandleRequest(const PString & request)
 	return "ERROR";
 }
 
+void WindowsSNMPAgent::SendWindowsSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg)
+{
+	PTRACE(5, "SNMP\tSendSNMPTrap " << trapNumber << ", " << severity << ", " << group << ", " << msg);
+	PString trap = "TRAP " + PString(PString::Unsigned, trapNumber)
+					+ " " + PString(PString::Unsigned, severity)
+					+ " " + PString(PString::Unsigned, group)
+					+ " " + msg);
+	// Send response to the pipe server
+	DWORD bytesWritten;
+	PWaitAndSignal lock(m_pipeMutex);
+	WriteFile(m_pipe, trap.GetPointer(), trap.GetLength(), &bytesWritten, NULL);	// ignore success
+}
+
 #endif // _WIN32
 
 
@@ -646,7 +663,9 @@ void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, cons
 	}
 #endif
 #ifdef _WIN32
-	// TODO: native Win32 traps ?
+	if (implementation == "PTLib") {
+		WindowsSNMPAgent::Instance()->SendWindowsSNMPTrap(trapNumber, severity, group, msg);
+	}
 #endif
 }
 
