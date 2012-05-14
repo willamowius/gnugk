@@ -22,16 +22,18 @@
 
 void ReloadHandler();
 
-const char * const GnuGkMIBStr         = "1.3.6.1.4.1.27938.11";
-const char * const ShortVersionOIDStr  = "1.3.6.1.4.1.27938.11.1.1";
-const char * const LongVersionOIDStr   = "1.3.6.1.4.1.27938.11.1.2";
-const char * const RegistrationsOIDStr = "1.3.6.1.4.1.27938.11.1.3";
-const char * const CallsOIDStr         = "1.3.6.1.4.1.27938.11.1.4";
-const char * const TraceLevelOIDStr    = "1.3.6.1.4.1.27938.11.1.5";
-const char * const CatchAllOIDStr      = "1.3.6.1.4.1.27938.11.1.6";
-const char * const severityOIDStr      = "1.3.6.1.4.1.27938.11.2.1";
-const char * const groupOIDStr         = "1.3.6.1.4.1.27938.11.2.2";
-const char * const displayMsgOIDStr    = "1.3.6.1.4.1.27938.11.2.3";
+const char * const GnuGkMIBStr           = "1.3.6.1.4.1.27938.11";
+const char * const ShortVersionOIDStr    = "1.3.6.1.4.1.27938.11.1.1";
+const char * const LongVersionOIDStr     = "1.3.6.1.4.1.27938.11.1.2";
+const char * const RegistrationsOIDStr   = "1.3.6.1.4.1.27938.11.1.3";
+const char * const CallsOIDStr           = "1.3.6.1.4.1.27938.11.1.4";
+const char * const TraceLevelOIDStr      = "1.3.6.1.4.1.27938.11.1.5";
+const char * const CatchAllOIDStr        = "1.3.6.1.4.1.27938.11.1.6";
+const char * const TotalCallsOIDStr      = "1.3.6.1.4.1.27938.11.1.7";
+const char * const SuccessfulCallsOIDStr = "1.3.6.1.4.1.27938.11.1.8";
+const char * const severityOIDStr        = "1.3.6.1.4.1.27938.11.2.1";
+const char * const groupOIDStr           = "1.3.6.1.4.1.27938.11.2.2";
+const char * const displayMsgOIDStr      = "1.3.6.1.4.1.27938.11.2.3";
 
 
 #ifdef HAS_NETSNMP
@@ -43,16 +45,18 @@ const char * const displayMsgOIDStr    = "1.3.6.1.4.1.27938.11.2.3";
 
 const char * subagent_name = "gnugk-agent";
 
-static oid snmptrap_oid[]     = { 1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0 };
-static oid ShortVersionOID[]  = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 1 };
-static oid LongVersionOID[]   = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 2 };
-static oid RegistrationsOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 3 };
-static oid CallsOID[]         = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 4 };
-static oid TraceLevelOID[]    = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 5 };
-static oid CatchAllOID[]      = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 6 };
-static oid severityOID[]      = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 1 };
-static oid groupOID[]         = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 2 };
-static oid displayMsgOID[]    = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 3 };
+static oid snmptrap_oid[]       = { 1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0 };
+static oid ShortVersionOID[]    = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 1 };
+static oid LongVersionOID[]     = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 2 };
+static oid RegistrationsOID[]   = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 3 };
+static oid CallsOID[]           = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 4 };
+static oid TraceLevelOID[]      = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 5 };
+static oid CatchAllOID[]        = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 6 };
+static oid TotalCallsOID[]      = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 7 };
+static oid SuccessfulCallsOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 8 };
+static oid severityOID[]        = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 1 };
+static oid groupOID[]           = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 2 };
+static oid displayMsgOID[]      = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 3 };
 
 
 void SendNetSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg)
@@ -139,6 +143,34 @@ int calls_handler(netsnmp_mib_handler * /* handler */,
 		return SNMPERR_SUCCESS;
     for (netsnmp_request_info *request = requests; request; request = request->next) {
 		unsigned no_calls = CallTable::Instance()->Size();
+		snmp_set_var_typed_integer(request->requestvb, ASN_INTEGER, no_calls);
+	}
+	return SNMPERR_SUCCESS;
+}
+
+int totalcalls_handler(netsnmp_mib_handler * /* handler */,
+							netsnmp_handler_registration * /* reg */,
+							netsnmp_agent_request_info * reqinfo,
+							netsnmp_request_info * requests)
+{
+    if (reqinfo->mode != MODE_GET)
+		return SNMPERR_SUCCESS;
+    for (netsnmp_request_info *request = requests; request; request = request->next) {
+		unsigned no_calls = CallTable::Instance()->TotalCallCount();
+		snmp_set_var_typed_integer(request->requestvb, ASN_INTEGER, no_calls);
+	}
+	return SNMPERR_SUCCESS;
+}
+
+int successfulcalls_handler(netsnmp_mib_handler * /* handler */,
+							netsnmp_handler_registration * /* reg */,
+							netsnmp_agent_request_info * reqinfo,
+							netsnmp_request_info * requests)
+{
+    if (reqinfo->mode != MODE_GET)
+		return SNMPERR_SUCCESS;
+    for (netsnmp_request_info *request = requests; request; request = request->next) {
+		unsigned no_calls = CallTable::Instance()->SuccessfulCallCount();
 		snmp_set_var_typed_integer(request->requestvb, ASN_INTEGER, no_calls);
 	}
 	return SNMPERR_SUCCESS;
@@ -257,6 +289,10 @@ void NetSNMPAgent::Run()
 		netsnmp_create_handler_registration("registrations", registrations_handler, RegistrationsOID, OID_LENGTH(RegistrationsOID), HANDLER_CAN_RONLY));
 	netsnmp_register_scalar(
 		netsnmp_create_handler_registration("calls", calls_handler, CallsOID, OID_LENGTH(CallsOID), HANDLER_CAN_RONLY));
+	netsnmp_register_scalar(
+		netsnmp_create_handler_registration("total calls", totalcalls_handler, TotalCallsOID, OID_LENGTH(TotalCallsOID), HANDLER_CAN_RONLY));
+	netsnmp_register_scalar(
+		netsnmp_create_handler_registration("successful calls", successfulcalls_handler, SuccessfulCallsOID, OID_LENGTH(SuccessfulCallsOID), HANDLER_CAN_RONLY));
 	netsnmp_register_scalar(
 		netsnmp_create_handler_registration("catchall", tracelevel_handler, TraceLevelOID, OID_LENGTH(TraceLevelOID), HANDLER_CAN_RWRITE));
 	netsnmp_register_scalar(
@@ -440,6 +476,12 @@ PBoolean PTLibSNMPAgent::MIB_LocalMatch(PSNMP_PDU & answerPDU)
 		} else if (vars[i].m_name == CallsOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, CallTable::Instance()->Size());
 			found = true;
+		} else if (vars[i].m_name == TotalCallsOIDStr + PString(".0")) {
+			SetRFC1155Object(vars[i].m_value, CallTable::Instance()->TotalCallCount());
+			found = true;
+		} else if (vars[i].m_name == SuccessfulCallsOIDStr + PString(".0")) {
+			SetRFC1155Object(vars[i].m_value, CallTable::Instance()->SuccessfulCallCount());
+			found = true;
 		} else if (vars[i].m_name == TraceLevelOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, PTrace::GetLevel());
 			found = true;
@@ -575,6 +617,12 @@ PString WindowsSNMPAgent::HandleRequest(const PString & request)
 		}
 		if (token[1] == CallsOIDStr + PString(".0")) {
 			return "GET_RESPONSE " + token[1] + " i " + PString(PString::Unsigned, CallTable::Instance()->Size());
+		}
+		if (token[1] == TotalCallsOIDStr + PString(".0")) {
+			return "GET_RESPONSE " + token[1] + " i " + PString(PString::Unsigned, CallTable::Instance()->TotalCallCount());
+		}
+		if (token[1] == SuccessfulCallsOIDStr + PString(".0")) {
+			return "GET_RESPONSE " + token[1] + " i " + PString(PString::Unsigned, CallTable::Instance()->SuccessfulCallCount());
 		}
 		if (token[1] == TraceLevelOIDStr + PString(".0")) {
 			return "GET_RESPONSE " + token[1] + " i " + PString(PString::Unsigned, PTrace::GetLevel());

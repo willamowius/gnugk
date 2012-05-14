@@ -1581,7 +1581,9 @@ public:
 	void LoadConfig();
 	void UpdatePrefixCapacityCounters();    // after Reload
 
-	PINDEX Size() const { return m_activeCall; }
+	PINDEX Size() const { return m_activeCall; }	// number of currently active calls
+	unsigned TotalCallCount() const { return m_CallCount; }	// number of calls since startup
+	unsigned SuccessfulCallCount() const { return m_successCall; }	// number of succesfull calls since startup
 
 	/** @return
 	    Timeout value for a signaling channel to be opened after ACF
