@@ -823,6 +823,7 @@ trap2sink   192.168.1.64    public
 
 # enable AgentX support
 master agentx
+agentxsocket tcp:localhost:705
 </verb></tscreen>
 
 For SNMP version 3 the config file could look like this:
@@ -848,6 +849,7 @@ informsink   192.168.1.64    public
 
 # enable AgentX support
 master agentx
+agentxsocket tcp:localhost:705
 </verb></tscreen>
 </descrip>
 
