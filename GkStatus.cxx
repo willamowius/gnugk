@@ -1291,8 +1291,7 @@ void StatusClient::Dispatch()
 
 void StatusClient::DoDebug(
 	/// tokenized debug command
-	const PStringArray& args
-	)
+	const PStringArray & args)
 {
 	bool tmp = m_isFilteringActive;
 	m_isFilteringActive = false;
@@ -1335,7 +1334,11 @@ void StatusClient::DoDebug(
 				WriteString(result + ";\r\n");
 			}
 		} else if ((args[1] *= "set") && (args.GetSize() >= 5)) {
-			Toolkit::Instance()->SetConfig(1, args[2], args[3], args[4]);
+			// re-assemble config value
+			PString value = args[4];
+			for (PINDEX i = 5; i < args.GetSize(); ++i)
+				value += " " + args[i];
+			Toolkit::Instance()->SetConfig(1, args[2], args[3], value);
 			WriteString(GkConfig()->GetString(args[2],args[3],"") + "\r\n");
 		} else if (args[1] *= "remove") {
 			if (args.GetSize() >= 4) {
