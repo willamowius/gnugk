@@ -9633,8 +9633,6 @@ bool H245ProxyHandler::HandleEncryptionUpdateAck(H245_MiscellaneousCommand & cmd
 
 bool H245ProxyHandler::HandleIndication(H245_IndicationMessage & Indication, bool & suppress)
 {
-	PString value = PString::Empty();
-
 #ifdef HAS_H46018
 	// filter out genericIndications for H.460.18
 	if (Indication.GetTag() == H245_IndicationMessage::e_genericIndication) {
@@ -9652,7 +9650,7 @@ bool H245ProxyHandler::HandleIndication(H245_IndicationMessage & Indication, boo
 		return false;
 
 	const H245_UserInputIndication & ind = Indication;
-
+	PString value;
 	switch (ind.GetTag()) {
 		case H245_UserInputIndication::e_alphanumeric :
 			value = (const PASN_GeneralString &)ind;
@@ -9661,7 +9659,8 @@ bool H245ProxyHandler::HandleIndication(H245_IndicationMessage & Indication, boo
 		case H245_UserInputIndication::e_signal :
 		{
 			const H245_UserInputIndication_signal & sig = ind;
-			value = PString(sig.m_signalType[0]);
+			if (sig.m_signalType.GetDataLength() > 0)
+				value = PString(sig.m_signalType[0]);
 			break;
 		}
 	}
