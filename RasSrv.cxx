@@ -414,7 +414,7 @@ bool RasMsg::EqualTo(const RasMsg *other) const
 bool RasMsg::PrintStatus(const PString & log)
 {
 	PTRACE(2, log);
-	StatusPort->SignalStatus(log + "\r\n", STATUS_TRACE_LEVEL_RAS);
+	GkStatus::Instance()->SignalStatus(log + "\r\n", STATUS_TRACE_LEVEL_RAS);
 	return true; // reply after logged
 }
 
@@ -1587,7 +1587,6 @@ GkInterface *RasServer::CreateInterface(const Address & addr)
 
 
 Toolkit *RasMsg::Kit;
-GkStatus *RasMsg::StatusPort;
 RegistrationTable *RasMsg::EndpointTbl;
 CallTable *RasMsg::CallTbl;
 RasServer *RasMsg::RasSrv;
@@ -1595,7 +1594,6 @@ RasServer *RasMsg::RasSrv;
 void RasMsg::Initialize()
 {
 	Kit = Toolkit::Instance();
-	StatusPort = GkStatus::Instance();
 	EndpointTbl = RegistrationTable::Instance();
 	CallTbl = CallTable::Instance();
 	RasSrv = RasServer::Instance();

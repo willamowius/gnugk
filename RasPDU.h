@@ -132,7 +132,6 @@ protected:
 	// just pointers to global singleton objects
 	// cache for faster access
 	static Toolkit *Kit;
-	static GkStatus *StatusPort;
 	static RegistrationTable *EndpointTbl;
 	static CallTable *CallTbl;
 	static RasServer *RasSrv;
