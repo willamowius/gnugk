@@ -3022,6 +3022,7 @@ PString Toolkit::AsString(
 	tmptr = localtime(&t);
 	if (tmptr == NULL) {
 #endif
+		SNMP_TRAP(7, SNMPError, Configuration, "Invalid timestamp format - using default");
 		PTRACE(0, "TOOLKIT\tCould not apply timestamp formatting - using default");
 		return tm.AsString( "hh:mm:ss.uuu z www MMM d yyyy" );
 	}
@@ -3046,6 +3047,7 @@ PString Toolkit::AsString(
 	
 	char buf[128];
 	if (strftime(buf, sizeof(buf), (const char*)fmtStr, tmptr) == 0) {
+		SNMP_TRAP(7, SNMPError, Configuration, "Invalid timestamp format - using default");
 		PTRACE(0, "TOOLKIT\tCould not apply timestamp formatting - using default");
 		return tm.AsString( "hh:mm:ss.uuu z www MMM d yyyy" );
 	}

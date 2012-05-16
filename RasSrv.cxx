@@ -1343,6 +1343,7 @@ void RasServer::Run()
 
 		acctList->LogAcctEvent(GkAcctLogger::AcctOff,nullcall);
 	} else {
+		SNMP_TRAP(10, SNMPError, Network, "No valid interfaces to listen! Shutdown!");
 		cerr << "FATAL: No valid interfaces to listen! Shutdown!" << endl;
 		PTRACE(0, "FATAL: No valid interfaces to listen! Shutdown!");
 	}

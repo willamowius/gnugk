@@ -6420,24 +6420,23 @@ void H245Socket::ConnectTo()
 // called when in Reroute, don't listen, but connect directly and re-send TCS
 void H245Socket::ConnectToRerouteDestination()
 {
-			PTRACE(0, "ConnectToRerouteDestination()");
-		if (ConnectRemote()) {
-			ConfigReloadMutex.StartRead();
-			SetConnected(true);
-			remote->SetConnected(true);
-			GetHandler()->Insert(this, remote);
-			ConfigReloadMutex.EndRead();
+	if (ConnectRemote()) {
+		ConfigReloadMutex.StartRead();
+		SetConnected(true);
+		remote->SetConnected(true);
+		GetHandler()->Insert(this, remote);
+		ConfigReloadMutex.EndRead();
 
-			// re-send TCS
-			H245Socket * remote_h245socket = dynamic_cast<H245Socket*>(remote);
-			if (remote_h245socket && remote_h245socket->sigSocket) {
-				H245_TerminalCapabilitySet tcs = remote_h245socket->sigSocket->GetSavedTCS();
-				SendTCS(&tcs);
-			} else {
-				PTRACE(1, "Reroute: Can't retrieve TCS to re-send");
-			}
-			return;
+		// re-send TCS
+		H245Socket * remote_h245socket = dynamic_cast<H245Socket*>(remote);
+		if (remote_h245socket && remote_h245socket->sigSocket) {
+			H245_TerminalCapabilitySet tcs = remote_h245socket->sigSocket->GetSavedTCS();
+			SendTCS(&tcs);
+		} else {
+			PTRACE(1, "Reroute: Can't retrieve TCS to re-send");
 		}
+		return;
+	}
 
 	ReadLock lockConfig(ConfigReloadMutex);
 
@@ -6633,7 +6632,7 @@ bool H245Socket::ConnectRemote()
 	m_signalingSocketMutex.Wait();
 	if (!peerH245Addr || !GetIPAndPortFromTransportAddr(*peerH245Addr, peerAddr, peerPort) || !peerPort) {
 		m_signalingSocketMutex.Signal();
-		PTRACE(3, "H245\tINVALID ADDRESS");
+		PTRACE(3, "H245\tInvalid address");
 		return false;
 	}
 	SetPort(peerPort);
@@ -6753,7 +6752,7 @@ inline bool compare_lc(pair<const WORD, RTPLogicalChannel *> p, LogicalChannel *
 
 bool IsSeparateLANStack(const H245_DataType & data)
 {
-	if (data.GetTag() == H245_DataType::e_data ) {
+	if (data.GetTag() == H245_DataType::e_data) {
 		const H245_DataApplicationCapability & cap = data;
 		if (cap.m_application.GetTag() == H245_DataApplicationCapability_application::e_t120) {
 			const H245_DataProtocolCapability & proto_cap = cap.m_application;
@@ -6848,8 +6847,7 @@ MultiplexRTPListener::MultiplexRTPListener(WORD pt, WORD buffSize)
 		PTRACE(1, "RTPM\tCould not set TOS field in IP header: "
 			<< GetErrorCode(PSocket::LastGeneralError) << '/'
 			<< GetErrorNumber(PSocket::LastGeneralError) << ": "
-			<< GetErrorText(PSocket::LastGeneralError)
-			);
+			<< GetErrorText(PSocket::LastGeneralError));
 	}
 
 	SetReadTimeout(PTimeInterval(50));
@@ -10020,8 +10018,7 @@ CallSignalListener::CallSignalListener(const Address & addr, WORD pt)
 		PTRACE(1, "Q931\tCould not open Q.931 listening socket at " << AsString(addr, pt)
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
 			<< GetErrorNumber(PSocket::LastGeneralError) << ": "
-			<< GetErrorText(PSocket::LastGeneralError)
-			);
+			<< GetErrorText(PSocket::LastGeneralError));
 		Close();
 	}
 	SetName(AsString(addr, GetPort()));
@@ -10123,24 +10120,25 @@ bool ProxyHandler::BuildSelectList(SocketSelectList & slist)
 		if (!socket->IsBlocked()) {
 			if (socket->IsSocketOpen()) {
 #ifdef _WIN32
-				if (slist.GetSize() >= FD_SETSIZE)
+				if (slist.GetSize() >= FD_SETSIZE) {
 					PTRACE(0, "Proxy\tToo many sockets in this proxy handler "
-						"(FD_SETSIZE=" << ((int)FD_SETSIZE) << ")"
-						);
+						"(FD_SETSIZE=" << ((int)FD_SETSIZE) << ")");
+					SNMP_TRAP(10, SNMPError, Network, "Too many sockets in proxy handler");
+				}
 #else
 #ifdef LARGE_FDSET
 				const int large_fdset = (int)LARGE_FDSET;
-				if (socket->Self()->GetHandle() >= large_fdset)
+				if (socket->Self()->GetHandle() >= large_fdset) {
 					PTRACE(0, "Proxy\tToo many opened file handles, skipping handle #"
-						<< socket->Self()->GetHandle() << " (limit=" <<
-						large_fdset	<< ")"
-						);
+						<< socket->Self()->GetHandle() << " (limit=" << large_fdset	<< ")");
+					SNMP_TRAP(10, SNMPError, Network, "Too many sockets in proxy handler");
+				}
 #else
-				if (socket->Self()->GetHandle() >= (int)FD_SETSIZE)
+				if (socket->Self()->GetHandle() >= (int)FD_SETSIZE) {
 					PTRACE(0, "Proxy\tToo many opened file handles, skipping handle #"
-						<< socket->Self()->GetHandle() << " (limit=" <<
-						((int)FD_SETSIZE) << ")"
-						);
+						<< socket->Self()->GetHandle() << " (limit=" << ((int)FD_SETSIZE) << ")");
+					SNMP_TRAP(10, SNMPError, Network, "Too many sockets in proxy handler");
+				}
 #endif
 #endif
 				else
@@ -10383,7 +10381,7 @@ void ProxyHandler::FlushSockets()
 			if (wlist.GetSize() >= FD_SETSIZE) {
 				PTRACE(0, "Proxy\tToo many sockets in this proxy handler "
 					"(limit=" << ((int)FD_SETSIZE) << ")");
-				SNMP_TRAP(7, SNMPError, Network, "Out of sockets");
+				SNMP_TRAP(10, SNMPError, Network, "Out of sockets");
 			}
 #else
 #ifdef LARGE_FDSET
@@ -10391,13 +10389,13 @@ void ProxyHandler::FlushSockets()
 			if ((*i)->GetHandle() >= large_fdset) {
 				PTRACE(0, "Proxy\tToo many opened file handles, skipping handle #"
 					<< (*i)->GetHandle() << " (limit=" << large_fdset << ")");
-				SNMP_TRAP(7, SNMPError, Network, "Out of sockets");
+				SNMP_TRAP(10, SNMPError, Network, "Out of sockets");
 			}
 #else
 			if ((*i)->GetHandle() >= (int)FD_SETSIZE) {
 				PTRACE(0, "Proxy\tToo many opened file handles, skipping handle #"
 					<< (*i)->GetHandle() << " (limit=" << ((int)FD_SETSIZE) << ")");
-				SNMP_TRAP(7, SNMPError, Network, "Out of sockets");
+				SNMP_TRAP(10, SNMPError, Network, "Out of sockets");
 			}
 #endif
 #endif
