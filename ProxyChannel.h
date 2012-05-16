@@ -246,7 +246,7 @@ public:
 #endif
 
 protected:
-	CallSignalSocket * GetRemote() const { return (CallSignalSocket *)remote; }
+	CallSignalSocket * GetRemote() const { return dynamic_cast<CallSignalSocket *>(remote); }
 
 	void ForwardCall(FacilityMsg *msg);
 

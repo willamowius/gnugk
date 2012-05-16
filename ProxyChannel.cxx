@@ -6474,7 +6474,7 @@ ProxySocket::Result H245Socket::ReceiveData()
 	PPER_Stream strm(buffer);
 
 	bool suppress = false;
-	if (sigSocket && sigSocket->HandleH245Mesg(strm, suppress, (H245Socket *)this))
+	if (sigSocket && sigSocket->HandleH245Mesg(strm, suppress, this))
 		buffer = strm;
 
 	if (suppress)
@@ -9667,7 +9667,7 @@ bool H245ProxyHandler::HandleIndication(H245_IndicationMessage & Indication, boo
 	PTRACE(3, "Received Input: " << value);
 
 	if ((value == "*") &&
-		Toolkit::AsBool(GkConfig()->GetString(ProxySection, "EnableRTPMute", "0"))) {  // now we have to do something
+		Toolkit::AsBool(GkConfig()->GetString(ProxySection, "EnableRTPMute", "0"))) {
 		HandleMuteRTPChannel();
 	}
 	return false;

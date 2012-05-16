@@ -40,7 +40,7 @@ const unsigned MaxRasTag = H225_RasMessage::e_serviceControlResponse;
 
 class GatekeeperMessage {
 public:
-	GatekeeperMessage() : m_socket(NULL)
+	GatekeeperMessage() : m_peerPort(0), m_socket(NULL)
 #ifdef HAS_H46017
 		, m_h46017Socket(NULL)
 #endif
