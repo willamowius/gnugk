@@ -230,6 +230,7 @@ public:
 	bool MaintainConnection() const { return m_maintainConnection; }
 
 #ifdef HAS_H46018
+	bool IsCaller() const { return m_callerSocket; }
 	bool IsTraversalClient() const;
 	bool IsTraversalServer() const;
 	bool CreateRemote(const H225_TransportAddress & addr);

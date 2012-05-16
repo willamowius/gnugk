@@ -6058,8 +6058,7 @@ bool CallSignalSocket::InternalConnectTo()
 		WORD pt = Q931PortRange.GetPort();
 		if (remote->Connect(localAddr, pt, peerAddr)) {
 			PTRACE(3, "Q931\tConnect to " << remote->GetName() << " from "
-				<< AsString(localAddr, pt) << " successful"
-				);
+				<< AsString(localAddr, pt) << " successful");
 			SetConnected(true);
 			remote->SetConnected(true);
 			ForwardData();
@@ -6069,8 +6068,7 @@ bool CallSignalSocket::InternalConnectTo()
 		PTRACE(1, remote->Type() << "\tCould not open/connect Q.931 socket at "
 			<< AsString(localAddr, pt)
 			<< " - error " << remote->GetErrorCode(PSocket::LastGeneralError) << '/'
-			<< errorNumber << ": " << remote->GetErrorText(PSocket::LastGeneralError)
-			);
+			<< errorNumber << ": " << remote->GetErrorText(PSocket::LastGeneralError));
 		remote->Close();
 #ifdef _WIN32
 		if ((errorNumber & PWIN32ErrorFlag) == 0
@@ -6531,7 +6529,7 @@ void H245Socket::SendH46018Indication()
 	genericInd.IncludeOptionalField(H245_GenericMessage::e_subMessageIdentifier);
 	genericInd.m_subMessageIdentifier = 1;
 	genericInd.IncludeOptionalField(H245_GenericMessage::e_messageContent);
-	genericInd.m_messageContent.SetSize(2);
+	genericInd.m_messageContent.SetSize(1);
 	genericInd.m_messageContent[0].m_parameterIdentifier.SetTag(H245_ParameterIdentifier::e_standard);
 	PASN_Integer & n = genericInd.m_messageContent[0].m_parameterIdentifier;
 	n = 1;
@@ -6540,12 +6538,17 @@ void H245Socket::SendH46018Indication()
 		PASN_OctetString & cid = genericInd.m_messageContent[0].m_parameterValue;
 		cid.EncodeSubType(sigSocket->GetCallIdentifier().m_guid);
 	}
-	genericInd.m_messageContent[1].m_parameterIdentifier.SetTag(H245_ParameterIdentifier::e_standard);
-	PASN_Integer & m = genericInd.m_messageContent[1].m_parameterIdentifier;
-	m = 2;
-	genericInd.m_messageContent[1].m_parameterValue.SetTag(H245_ParameterValue::e_logical);
-	PASN_Null & answer = genericInd.m_messageContent[1].m_parameterValue;
-	answer = true;
+
+	// add Answer parameter if we send the indication to the caller
+	if (sigSocket && sigSocket->IsCaller()) {
+		genericInd.m_messageContent.SetSize(2);
+		genericInd.m_messageContent[1].m_parameterIdentifier.SetTag(H245_ParameterIdentifier::e_standard);
+		PASN_Integer & m = genericInd.m_messageContent[1].m_parameterIdentifier;
+		m = 2;
+		genericInd.m_messageContent[1].m_parameterValue.SetTag(H245_ParameterValue::e_logical);
+		PASN_Null & answer = genericInd.m_messageContent[1].m_parameterValue;
+		answer = true;
+	}
 	PPER_Stream wtstrm;
 	h245msg.Encode(wtstrm);
 	wtstrm.CompleteEncoding();
