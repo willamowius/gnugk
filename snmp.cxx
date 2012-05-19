@@ -512,7 +512,7 @@ public:
 	virtual void Stop();
 	virtual PString HandleRequest(const PString & request);
 
-	virtial void SendWindowsSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg);
+	virtual void SendWindowsSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg);
 
 protected:
 	PString m_pipename;
@@ -661,7 +661,7 @@ void WindowsSNMPAgent::SendWindowsSNMPTrap(unsigned trapNumber, SNMPLevel severi
 	PString trap = "TRAP " + PString(PString::Unsigned, trapNumber)
 					+ " " + PString(PString::Unsigned, severity)
 					+ " " + PString(PString::Unsigned, group)
-					+ " " + msg);
+					+ " " + msg;
 	// Send response to the pipe server
 	DWORD bytesWritten;
 	PWaitAndSignal lock(m_pipeMutex);
