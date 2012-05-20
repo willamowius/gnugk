@@ -9281,7 +9281,11 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 						}
 						rtplc->SetCipherPayloadType(h225Params->m_dynamicRTPPayloadType);
 						rtplc->SetPlainPayloadType(mediaPayloadType);
-						h225Params->RemoveOptionalField(H245_H2250LogicalChannelParameters::e_dynamicRTPPayloadType);
+						if (mediaPayloadType < MIN_DYNAMIC_PAYLOAD_TYPE) {
+							h225Params->RemoveOptionalField(H245_H2250LogicalChannelParameters::e_dynamicRTPPayloadType);
+						} else {
+							h225Params->m_dynamicRTPPayloadType = mediaPayloadType;
+						}
 					} else {
 						rtplc->SetCipherPayloadType(h225Params->m_dynamicRTPPayloadType);
 						rtplc->SetPlainPayloadType(h225Params->m_dynamicRTPPayloadType);
