@@ -2893,6 +2893,7 @@ bool AdmissionRequestPDU::Process()
 	bool signalOffload = false;
 #ifdef HAS_H460
     bool EPSupportsQoSReporting = false;
+    bool EPSupportsH46026 = false;
 	bool vendorInfo = false;
 	PString vendor, version = PString::Empty();
 #ifdef HAS_H46023
@@ -2924,6 +2925,9 @@ bool AdmissionRequestPDU::Process()
 		H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
 		if (fs.HasFeature(9)) {
 			EPSupportsQoSReporting = true;
+		}
+		if (fs.HasFeature(26)) {
+			EPSupportsH46026 = true;
 		}
 	}
 #endif
@@ -3260,7 +3264,20 @@ bool AdmissionRequestPDU::Process()
 		desc.SetSize(1);
 		desc[0] = feat;
 	}
-#endif
+#ifdef HAS_H46017
+	/// H.460.26 media tunneling
+	if (EPSupportsQoSReporting
+		&& Toolkit::AsBool(GkConfig()->GetString("RoutedMode", "EnableH46026", "0"))) {
+		H460_FeatureStd feat = H460_FeatureStd(26);
+		acf.IncludeOptionalField(H225_AdmissionConfirm::e_featureSet);
+		acf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_neededFeatures);
+		H225_ArrayOf_FeatureDescriptor & desc = acf.m_featureSet.m_neededFeatures;
+		PINDEX len = desc.GetSize();
+		desc.SetSize(len + 1);
+		desc[len] = feat;
+	}
+#endif	// HAS_H46017
+#endif	// HAS_H460
 
 	return BuildReply(e_acf);
 }
