@@ -2900,6 +2900,19 @@ bool AdmissionRequestPDU::Process()
 	bool natsupport = false;
 	CallRec::NatStrategy natoffloadsupport = CallRec::e_natUnknown;
 #endif
+
+	/// H.460.9 QoS Reporting
+	if (request.HasOptionalField(H225_AdmissionRequest::e_featureSet)) {
+		H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
+		if (fs.HasFeature(9)) {
+			EPSupportsQoSReporting = true;
+		}
+		if (fs.HasFeature(26) && 
+           Toolkit::AsBool(GkConfig()->GetString("RoutedMode", "EnableH46026", "0"))) {
+			EPSupportsH46026 = true;
+		}
+	}
+
 	if (request.HasOptionalField(H225_AdmissionRequest::e_genericData)) {
 		H225_ArrayOf_GenericData & data = request.m_genericData;
 		for (PINDEX i = 0; i < data.GetSize(); i++) {
@@ -2907,7 +2920,7 @@ bool AdmissionRequestPDU::Process()
 			if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID9))) 
 				vendorInfo = true;
 #ifdef HAS_H46023
-			if (Toolkit::Instance()->IsH46023Enabled()) {
+			if (Toolkit::Instance()->IsH46023Enabled() && !EPSupportsH46026) {
 				if (feat.GetFeatureID() == H460_FeatureID(24)) {
 					natsupport = true;
 					H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
@@ -2918,16 +2931,6 @@ bool AdmissionRequestPDU::Process()
 				}
 			}
 #endif
-		}
-	}
-	/// H.460.9 QoS Reporting
-	if (request.HasOptionalField(H225_AdmissionRequest::e_featureSet)) {
-		H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
-		if (fs.HasFeature(9)) {
-			EPSupportsQoSReporting = true;
-		}
-		if (fs.HasFeature(26)) {
-			EPSupportsH46026 = true;
 		}
 	}
 #endif
@@ -3266,8 +3269,7 @@ bool AdmissionRequestPDU::Process()
 	}
 #ifdef HAS_H46017
 	/// H.460.26 media tunneling
-	if (EPSupportsQoSReporting
-		&& Toolkit::AsBool(GkConfig()->GetString("RoutedMode", "EnableH46026", "0"))) {
+	if (EPSupportsH46026) {
 		H460_FeatureStd feat = H460_FeatureStd(26);
 		acf.IncludeOptionalField(H225_AdmissionConfirm::e_featureSet);
 		acf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_neededFeatures);
