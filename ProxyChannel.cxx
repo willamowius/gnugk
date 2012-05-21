@@ -3372,7 +3372,6 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			if (setupBody.m_cryptoTokens.GetSize() == 0)
 				setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 		}
-		PTRACE(0, "JW after Setup processing #auth=" << auth.GetSize() << " dir=" << m_call->GetEncryptDirection());
 	}
 #endif
 
@@ -7021,12 +7020,10 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 			memcpy(ivSequence, (BYTE*)data + 2, 6);
 
 		if (receivedMultiplexID == m_encryptMultiplexID) {
-			PTRACE(0, "JW need multiplex ENcryption");
 			if (m_encryptingLC) {
 				succesful = m_encryptingLC->ProcessH235Media((BYTE*)data, wlen, true, ivSequence, rtpPadding, payloadType);
 			}
 		} else {
-			PTRACE(0, "JW need multiplex DEcryption");
 			if (m_decryptingLC) {
 				succesful = m_decryptingLC->ProcessH235Media((BYTE*)data, wlen, false, ivSequence, rtpPadding, payloadType);
 			}
@@ -7470,14 +7467,11 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 #ifdef HAS_H46018
 void UDPProxySocket::SetMultiplexDestination(const H323TransportAddress & toAddress, H46019Side side)
 {
-PTRACE(0, "JW SetMultiplexDestination before: A=" << AsString(m_multiplexDestination_A) << " B=" << AsString(m_multiplexDestination_B));
-PTRACE(0, "JW SetMultiplexDestination new: side=" << side << " addr=" << AsString(toAddress));
 	PWaitAndSignal lock(m_multiplexMutex);
 	if (side == SideA)
 		m_multiplexDestination_A = toAddress;
 	else
 		m_multiplexDestination_B = toAddress;
-PTRACE(0, "JW SetMultiplexDestination after: A=" << AsString(m_multiplexDestination_A) << " B=" << AsString(m_multiplexDestination_B));
 }
 
 void UDPProxySocket::SetMultiplexID(PUInt32b multiplexID, H46019Side side)
@@ -7606,10 +7600,8 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 
 			// use keep-alive for multiplexing channel, too
 			// (it might have multiplexed RTP coming in to be forwarded as regular RTP)
-			PTRACE(0, "JW use regular KA for multiplex");
 			// set based on addr
 			if (IsSet(m_multiplexDestination_A) && (m_multiplexDestination_A != fromAddr)) {
-				PTRACE(0, "JW use regular KA for multiplex side B");
 				H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(m_callID, m_sessionID);
 				if (h46019chan.IsValid()) {
 					if (isRTCP)
@@ -7620,7 +7612,6 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				}
 			}
 			if (IsSet(m_multiplexDestination_B) && (m_multiplexDestination_B != fromAddr)) {
-				PTRACE(0, "JW use regular KA for multiplex side A");
 				H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(m_callID, m_sessionID);
 				if (h46019chan.IsValid()) {
 					if (isRTCP)
@@ -7634,7 +7625,6 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				// set if only one side sends multiplexex to GnuGk
 				H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(m_callID, m_sessionID);
 				if ((h46019chan.m_multiplexID_fromA != INVALID_MULTIPLEX_ID) && (h46019chan.m_multiplexID_fromB == INVALID_MULTIPLEX_ID)) {
-					PTRACE(0, "JW use regular KA for multiplex side B (one-sided)");
 					if (h46019chan.IsValid()) {
 						if (isRTCP)
 							h46019chan.m_addrB_RTCP = fromAddr;
@@ -7644,7 +7634,6 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 					}
 				}
 				if ((h46019chan.m_multiplexID_fromA == INVALID_MULTIPLEX_ID) && (h46019chan.m_multiplexID_fromB != INVALID_MULTIPLEX_ID)) {
-					PTRACE(0, "JW use regular KA for multiplex side A (one-sided)");
 					if (h46019chan.IsValid()) {
 						if (isRTCP)
 							h46019chan.m_addrA_RTCP = fromAddr;
@@ -7719,7 +7708,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		bool succesful = false;
 		if (m_encryptingLC && m_decryptingLC) {
 			if (m_encryptingLC->GetPlainPayloadType() == m_decryptingLC->GetCipherPayloadType()) {
-				PTRACE(0, "JW can't use PT to decide encryption direction -> fall back on IPs");
+				PTRACE(1, "WARNING: Can't use PT to decide encryption direction -> fall back on IPs");
 				// HACK: this only works if caller and called are on different IPs and send media from the same IP as call signaling
 				bool fromCaller = true;
 				PIPSocket::Address callerSignalIP;
@@ -7733,10 +7722,8 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			}
 
 			if (encrypting) {
-				PTRACE(0, "JW need regular ENcryption");
 				succesful = m_encryptingLC->ProcessH235Media(wbuffer, buflen, encrypting, ivSequence, rtpPadding, payloadType);
 			} else {
-				PTRACE(0, "JW need regular DEcryption");
 				succesful =  m_decryptingLC->ProcessH235Media(wbuffer, buflen, encrypting, ivSequence, rtpPadding, payloadType);
 			}
 		} else {
@@ -8471,7 +8458,6 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 	PBYTEArray processed;
 
 	if (encrypt) {
-		PTRACE(0, "JW crypto encrypt pt=" << (int)payloadType);
 		if (payloadType == m_plainPayloadType) {
 			processed = m_H235CryptoEngine->Encrypt(data, ivsequence, rtpPadding);
 		} else {
@@ -8480,7 +8466,6 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 		}
 		payloadType = m_cipherPayloadType;
 	} else {
-		PTRACE(0, "JW crypto decrypt pt=" << (int)payloadType);
 		if (payloadType == m_cipherPayloadType) {
 			processed = m_H235CryptoEngine->Decrypt(data, ivsequence, rtpPadding);
 		} else {
@@ -9235,11 +9220,6 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 			isData = olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_data;
 		if (rtplc)
 			rtplc->SetDataChannel(isData);
-		PTRACE(0, "JW HandleOLC: crypt=" << call->IsMediaEncryption()
-				<< " dir=" << call->GetEncryptDirection()
-				<< " isCaller=" << m_isCaller
-				<< " isMaster=" << m_isH245Master
-				<< " isData=" << isData);
 
 		if (call->IsMediaEncryption() && rtplc && h225Params && !isData) {
 			if ((m_isCaller && call->GetEncryptDirection() == CallRec::callingParty)
@@ -9515,10 +9495,6 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 	}
 #endif
 #ifdef HAS_H235_MEDIA
-	PTRACE(0, "JW HandleOLCAck:"
-			<< " dir=" << call->GetEncryptDirection()
-			<< " isCaller=" << m_isCaller
-			<< " isMaster=" << m_isH245Master);
 	RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(lc);
 	if (call->IsMediaEncryption() && rtplc && !rtplc->IsDataChannel()) {
 		// is this the encryption or decryption direction ?
