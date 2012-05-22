@@ -7132,13 +7132,13 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 
 	if (receivedMultiplexID == m_multiplexID_fromA) {
 		if (sideBReady(isRTCP)) {
-			Send(m_multiplexID_toB, (isRTCP ? m_addrB_RTCP : m_addrB), (isRTCP ? m_osSocketToB_RTCP : m_osSocketToB), data, len);
+			Send(m_multiplexID_toB, (isRTCP ? m_addrB_RTCP : m_addrB), (isRTCP ? m_osSocketToB_RTCP : m_osSocketToB), data, len, true);
 		} else {
 			PTRACE(5, "RTPM\tReceiver not ready");
 		}
 	} else if (receivedMultiplexID == m_multiplexID_fromB) {
 		if (sideAReady(isRTCP)) {
-			Send(m_multiplexID_toA, (isRTCP ? m_addrA_RTCP : m_addrA), (isRTCP ? m_osSocketToA_RTCP : m_osSocketToA), data, len);
+			Send(m_multiplexID_toA, (isRTCP ? m_addrA_RTCP : m_addrA), (isRTCP ? m_osSocketToA_RTCP : m_osSocketToA), data, len, true);
 		} else {
 			PTRACE(5, "RTPM\tReceiver not ready");
 		}
@@ -7147,7 +7147,7 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 		ParseRTCP(call, m_session, fromAddress, (BYTE*)data, len);
 }
 
-void H46019Session::Send(PUInt32b sendMultiplexID, const H323TransportAddress & toAddress, int osSocket, void * data, unsigned len)
+void H46019Session::Send(PUInt32b sendMultiplexID, const H323TransportAddress & toAddress, int osSocket, void * data, unsigned len, bool bufferHasRoomForID)
 {
 #ifdef hasIPV6
 	struct sockaddr_in6 dest;
@@ -7173,12 +7173,20 @@ void H46019Session::Send(PUInt32b sendMultiplexID, const H323TransportAddress & 
 	}
 	if (sendMultiplexID != INVALID_MULTIPLEX_ID) {
 		lenToSend += 4;
-		// prepend multiplexID for A
-		BYTE * multiplexMsg = (BYTE*)malloc(len+4);
+		BYTE * multiplexMsg = NULL;
+		// prepend multiplexID
+		if (bufferHasRoomForID) {
+			// this data came multiplexed, and we can write the ID in place of the old ID (_in front of_ the buffer)
+			multiplexMsg = (BYTE*)data - 4;
+		} else {
+			// this data came non multiplexed, we must allocate a buffer and copy the data
+			multiplexMsg = (BYTE*)malloc(len+4);
+			memcpy(multiplexMsg+4, data, len);
+		}
 		*((PUInt32b*)multiplexMsg) = sendMultiplexID;
-		memcpy(multiplexMsg+4, data, len);
 		sent = ::sendto(osSocket, (char*)multiplexMsg, lenToSend, 0, (struct sockaddr *)&dest, sizeof(dest));
-		free(multiplexMsg);
+		if (!bufferHasRoomForID)
+			free(multiplexMsg);
 	} else {
 		sent = ::sendto(osSocket, (char*)data, lenToSend, 0, (struct sockaddr *)&dest, sizeof(dest));
 	}
@@ -7375,7 +7383,7 @@ void MultiplexedRTPHandler::HandlePacket(PUInt32b receivedMultiplexID, const H32
 {
 	// find the matching channel for the multiplex ID and let it handle the packet
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
-			iter != m_h46019channels.end() ; ++iter ) {
+			iter != m_h46019channels.end() ; ++iter) {
 		if ((iter->m_multiplexID_fromA == receivedMultiplexID)
 			|| (iter->m_multiplexID_fromB == receivedMultiplexID)) {
 			iter->HandlePacket(receivedMultiplexID, fromAddress, data, len, isRTCP);
@@ -7388,7 +7396,7 @@ PUInt32b MultiplexedRTPHandler::GetMultiplexID(const H225_CallIdentifier & calli
 {
 	ReadLock lock(listLock);
 	for (list<H46019Session>::const_iterator iter = m_h46019channels.begin();
-			iter != m_h46019channels.end() ; ++iter ) {
+			iter != m_h46019channels.end() ; ++iter) {
 		if (iter->m_callid == callid && iter->m_session == session) {
 			if (iter->m_openedBy == to && iter->m_multiplexID_fromA != INVALID_MULTIPLEX_ID) {
 				return iter->m_multiplexID_fromA;
@@ -8540,7 +8548,8 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 	if (!m_H235CryptoEngine)
 		return false;
 
-	PBYTEArray data(buffer+12, len-12);	// skip RTP header TODO: skip more if header has CSRC or extensions
+	unsigned rtpHeaderLen = 12;	// TODO: skip more if header has CSRC or extensions
+	PBYTEArray data(buffer+rtpHeaderLen, len-rtpHeaderLen);	// skip RTP header
 	PBYTEArray processed;
 
 	if (encrypt) {
@@ -8561,8 +8570,8 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 		payloadType = m_plainPayloadType;
 	}
 
-	len = processed.GetSize() + 12;
-	memcpy(buffer+12, processed.GetPointer(), processed.GetSize());
+	len = processed.GetSize() + rtpHeaderLen;
+	memcpy(buffer+rtpHeaderLen, processed.GetPointer(), processed.GetSize());
 	//if (m_H235CryptoEngine->IsMaxBlocksPerKeyReached()) {	// many 100 GB
 	// find call by CallID, send key update command or request
 	//}
