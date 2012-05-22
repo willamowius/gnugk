@@ -1119,6 +1119,7 @@ void CallSignalSocket::InternalInit()
 	m_senderSupportsH46019Multiplexing = false;
 #endif
 #ifdef HAS_H235_MEDIA
+	m_setupClearTokens = NULL;
 	m_isH245Master = false;
 #endif
 	// m_callerSocket is always initialized in init list
@@ -1139,6 +1140,7 @@ void CallSignalSocket::CleanupCall()
 	m_senderSupportsH46019Multiplexing = false;
 #endif
 #ifdef HAS_H235_MEDIA
+	m_setupClearTokens = NULL;
 	m_isH245Master = false;
 #endif
 	m_h225Version = 0;
@@ -1278,6 +1280,10 @@ CallSignalSocket::~CallSignalSocket()
 	m_h245handler = NULL;
 	delete m_setupPdu;
 	m_setupPdu = NULL;
+#ifdef HAS_H235_MEDIA
+	delete m_setupClearTokens;
+	m_setupClearTokens = NULL;
+#endif
 }
 
 #ifdef LARGE_FDSET
@@ -2295,6 +2301,13 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 		setupUUIE.m_cryptoTokens = facilityBody.m_cryptoTokens;
 	}
 
+#ifdef HAS_H235_MEDIA
+	if (remoteSocket->m_setupClearTokens) {
+		setupUUIE.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
+		setupUUIE.m_tokens = *remoteSocket->m_setupClearTokens;
+	}
+#endif
+
 	// delete destCallSignalAddr from saved Setup
 	setupUUIE.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 
@@ -2711,7 +2724,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	}
 
 	m_crv = (WORD)(setup->GetCallReference() | 0x8000u);
-	if (Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "ForwardOnFacility", "1")) && m_setupPdu == NULL)
+	if (Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "ForwardOnFacility", "0")) && m_setupPdu == NULL)
 		m_setupPdu = new Q931(q931);
 
 	if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)
@@ -3407,6 +3420,10 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			if (setupBody.m_cryptoTokens.GetSize() == 0)
 				setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 		}
+	}
+	if (Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "ForwardOnFacility", "0"))
+		&& setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
+		m_setupClearTokens = new H225_ArrayOf_ClearToken(setupBody.m_tokens);	// save a copy of the tokens in case the call gets forwarded
 	}
 #endif
 

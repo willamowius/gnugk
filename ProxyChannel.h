@@ -353,7 +353,10 @@ private:
 	bool m_maintainConnection;	// eg. for H.460.17
 	Result m_result;
 	/// stored for use by ForwardCall, NULL if ForwardOnFacility is disabled
-	Q931 *m_setupPdu;
+	Q931 * m_setupPdu;
+#ifdef HAS_H235_MEDIA
+	H225_ArrayOf_ClearToken * m_setupClearTokens;
+#endif
 	/// true if the socket is connected to the caller, false if to the callee
 	bool m_callerSocket;
 	/// H.225.0 protocol version in use by the remote party
