@@ -1214,6 +1214,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 	if (m_call->GetProxyMode() == CallRec::ProxyEnabled) {
 		H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), socket->localAddr, calling, socket->masqAddr);
 #ifdef HAS_H46018
+		// TODO: only use .19 if endpoiint supports it
 		if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46017()) {
 			proxyhandler->SetTraversalRole(TraversalClient);
 		}
@@ -2524,7 +2525,7 @@ bool CallSignalSocket::IsH46024Call(const H225_Setup_UUIE & setupBody)
 #ifdef HAS_H46026
 bool CallSignalSocket::IsH46026Call(const H225_Setup_UUIE & setupBody)
 {
-	if (Toolkit::Instance()->IsH46023Enabled()
+	if (Toolkit::Instance()->IsH46026Enabled()
 		&& setupBody.HasOptionalField(H225_Setup_UUIE::e_neededFeatures)) {
 		const H225_ArrayOf_FeatureDescriptor & data = setupBody.m_neededFeatures;
 		for (PINDEX i =0; i < data.GetSize(); i++) {
@@ -3074,16 +3075,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 #endif
 
 #ifdef HAS_H46026
-    PBoolean H46026IsTunneled = false;
-		if (Toolkit::Instance()->IsH46026Enabled()
-			&& setupBody.HasOptionalField(H225_Setup_UUIE::e_neededFeatures)) {
-			H225_ArrayOf_FeatureDescriptor & data = setupBody.m_neededFeatures;
-			for (PINDEX i =0; i < data.GetSize(); i++) {
-				H460_Feature & feat = (H460_Feature &)data[i];
-				if (feat.GetFeatureID() == H460_FeatureID(26))
-					H46026IsTunneled = true;
-			}
-		}
+		PBoolean H46026IsTunneled = IsH46026Call(setupBody);
 #endif
 
 		if (!rejectCall && useParent) {
@@ -3205,9 +3197,9 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			h245Routed = true;
 #ifdef HAS_H46026
 			if (H46026IsTunneled) {
-				m_call->GetCallingParty()->SetTraversalRole(None);		// Disable Traversal Role
+				m_call->GetCallingParty()->SetTraversalRole(None);		// disable H.460.19
 			}
-#endif /// HAS_H46026
+#endif // HAS_H46026
 		}
 #endif
 
@@ -4023,12 +4015,14 @@ void CallSignalSocket::OnCallProceeding(
 			if (cpBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				cpBody.RemoveOptionalField(H225_CallProceeding_UUIE::e_featureSet);
 		}
+		// TODO: only use .19 if endpoint supports it
 		if (m_call->GetCallingParty()
 			&& ((m_call->GetCallingParty()->GetTraversalRole() != None)
 				|| (m_call->GetCallingParty()->UsesH46017() && !m_call->GetCallingParty()->UsesH46026())) )
 		{
 			H460_FeatureStd feat = H460_FeatureStd(19);
 			H460_FeatureID * feat_id = NULL;
+			// TODO: only use .19 if endpoint supports it
 			if (m_call->GetCallingParty()
 				&& (m_call->GetCallingParty()->IsTraversalClient() || m_call->GetCallingParty()->UsesH46017())) {
 				feat_id = new H460_FeatureID(2);	// mediaTraversalServer
@@ -4041,9 +4035,12 @@ void CallSignalSocket::OnCallProceeding(
 				delete feat_id;
 			}
 			// add H.460.19 indicator to CallProceeding
-			cpBody.IncludeOptionalField(H225_CallProceeding_UUIE::e_featureSet);
-			cpBody.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
-			cpBody.m_featureSet.m_supportedFeatures.SetSize(0);
+			if (!cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_featureSet))
+				cpBody.IncludeOptionalField(H225_CallProceeding_UUIE::e_featureSet);
+			if (!cpBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_supportedFeatures)) {
+				cpBody.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+				cpBody.m_featureSet.m_supportedFeatures.SetSize(0);
+			}
 			AddH460Feature(cpBody.m_featureSet.m_supportedFeatures, feat);
 		}
 		msg->SetUUIEChanged();
@@ -4055,9 +4052,12 @@ void CallSignalSocket::OnCallProceeding(
 	{
 		H460_FeatureStd feat = H460_FeatureStd(26);
 		// add H.460.26 indicator to CallProceeding
-		cpBody.IncludeOptionalField(H225_CallProceeding_UUIE::e_featureSet);
-		cpBody.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_neededFeatures);
-		cpBody.m_featureSet.m_neededFeatures.SetSize(0);
+		if (!cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_featureSet))
+			cpBody.IncludeOptionalField(H225_CallProceeding_UUIE::e_featureSet);
+		if (!cpBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_supportedFeatures)) {
+			cpBody.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+			cpBody.m_featureSet.m_supportedFeatures.SetSize(0);
+		}
 		AddH460Feature(cpBody.m_featureSet.m_neededFeatures, feat);
 		msg->SetUUIEChanged();
 	}
@@ -4247,6 +4247,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			if (connectBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				connectBody.RemoveOptionalField(H225_Connect_UUIE::e_featureSet);
 		}
+		// TODO: only offer .19 if the endpoint supports it
 		if (m_call->GetCallingParty()
 			&& ((m_call->GetCallingParty()->GetTraversalRole() != None)
 				|| (m_call->GetCallingParty()->UsesH46017() && !m_call->GetCallingParty()->UsesH46026())) )
@@ -4265,9 +4266,12 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 				feat.AddParameter(feat_id);
 				delete feat_id;
 			}
-			connectBody.IncludeOptionalField(H225_Connect_UUIE::e_featureSet);
-			connectBody.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
-			connectBody.m_featureSet.m_supportedFeatures.SetSize(0);
+			if (!connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet))
+				connectBody.IncludeOptionalField(H225_Connect_UUIE::e_featureSet);
+			if (!connectBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_supportedFeatures)) {
+				connectBody.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+				connectBody.m_featureSet.m_supportedFeatures.SetSize(0);
+			}
 			AddH460Feature(connectBody.m_featureSet.m_supportedFeatures, feat);
 		}
 		msg->SetUUIEChanged();
@@ -4278,9 +4282,12 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 		&& m_call->GetCallingParty()->UsesH46026())
 	{
 		H460_FeatureStd feat = H460_FeatureStd(26);
-		connectBody.IncludeOptionalField(H225_Connect_UUIE::e_featureSet);
-		connectBody.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_neededFeatures);
-		connectBody.m_featureSet.m_neededFeatures.SetSize(0);
+		if (!connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet))
+			connectBody.IncludeOptionalField(H225_Connect_UUIE::e_featureSet);
+		if (!connectBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_supportedFeatures)) {
+			connectBody.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+			connectBody.m_featureSet.m_supportedFeatures.SetSize(0);
+		}
 		AddH460Feature(connectBody.m_featureSet.m_neededFeatures, feat);
 	    msg->SetUUIEChanged();
 	}
@@ -4363,9 +4370,12 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 				feat.AddParameter(feat_id);
 				delete feat_id;
 			}
-			alertingBody.IncludeOptionalField(H225_Alerting_UUIE::e_featureSet);
-			alertingBody.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
-			alertingBody.m_featureSet.m_supportedFeatures.SetSize(0);
+			if (!alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet))
+				alertingBody.IncludeOptionalField(H225_Alerting_UUIE::e_featureSet);
+			if (!alertingBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_supportedFeatures)) {
+				alertingBody.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+				alertingBody.m_featureSet.m_supportedFeatures.SetSize(0);
+			}
 			AddH460Feature(alertingBody.m_featureSet.m_supportedFeatures, feat);
 		}
 		msg->SetUUIEChanged();
@@ -4376,9 +4386,12 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 		&& m_call->GetCallingParty()->UsesH46026())
 	{
 		H460_FeatureStd feat = H460_FeatureStd(26);
-		alertingBody.IncludeOptionalField(H225_Alerting_UUIE::e_featureSet);
-		alertingBody.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_neededFeatures);
-		alertingBody.m_featureSet.m_neededFeatures.SetSize(0);
+		if (!alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet))
+			alertingBody.IncludeOptionalField(H225_Alerting_UUIE::e_featureSet);
+		if (!alertingBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_supportedFeatures)) {
+			alertingBody.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+			alertingBody.m_featureSet.m_supportedFeatures.SetSize(0);
+		}
 		AddH460Feature(alertingBody.m_featureSet.m_neededFeatures, feat);
 	    msg->SetUUIEChanged();
 	}
