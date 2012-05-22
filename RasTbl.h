@@ -300,6 +300,8 @@ public:
 	void SetUsesH46017(bool val) {  m_usesH46017 = val; }
 	bool UsesH46017() const { return m_usesH46017; }
 	bool IsH46018Disabled() const { return m_h46018disabled; }
+	void SetUsesH46026(bool val) {  m_usesH46026 = val; }
+	bool UsesH46026() const { return m_usesH46026; }
 	void SetTraversalRole(H46019TraversalType val) { m_traversalType = val; m_nat = (val == TraversalClient); }
 	H46019TraversalType GetTraversalRole() { return m_traversalType; }
 	bool IsTraversalServer() const { return m_traversalType == TraversalServer; }
@@ -385,6 +387,7 @@ protected:
 	bool m_h46018disabled;
 	bool m_usesH460P;
 	bool m_usesH46017;
+    bool m_usesH46026;
 	H46019TraversalType m_traversalType;	// this is not what GnuGk acts like, but what this EPRec is a proxy for
 	
 	long m_bandwidth;	// bandwidth currently occupied by this endpoint
@@ -650,6 +653,7 @@ class H323TransportAddress;
 #define H46019_CALLED	2	// m_h46019dir = 2 ' Called needs H.460.19
 #define H46019_BOTH		(H46019_CALLER + H46019_CALLED)	// m_h46019dir = 3 ' Both need it
 #endif
+
 
 class CallRec {
 public:

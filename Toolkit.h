@@ -405,6 +405,9 @@ class Toolkit : public Singleton<Toolkit>
 	bool GetH46023STUN(const PIPSocket::Address & addr,  H323TransportAddress & stun);
 	bool H46023SameNetwork(const PIPSocket::Address & addr1, const PIPSocket::Address & addr2);
 #endif
+#ifdef HAS_H46026
+	bool IsH46026Enabled() const;
+#endif
 #ifdef HAS_H460P
 	bool IsH460PEnabled() const;
 	GkPresence & GetPresenceHandler();

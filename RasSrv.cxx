@@ -2893,7 +2893,7 @@ bool AdmissionRequestPDU::Process()
 	bool signalOffload = false;
 #ifdef HAS_H460
     bool EPSupportsQoSReporting = false;
-    bool EPSupportsH46026 = false;
+    bool EPRequiresH46026 = false;
 	bool vendorInfo = false;
 	PString vendor, version = PString::Empty();
 #ifdef HAS_H46023
@@ -2907,10 +2907,11 @@ bool AdmissionRequestPDU::Process()
 		if (fs.HasFeature(9)) {
 			EPSupportsQoSReporting = true;
 		}
-		if (fs.HasFeature(26) && 
-           Toolkit::AsBool(GkConfig()->GetString("RoutedMode", "EnableH46026", "0"))) {
-			EPSupportsH46026 = true;
-		}
+#ifdef HAS_H46026
+        if (fs.HasFeature(26) && Toolkit::Instance()->IsH46026Enabled()) 
+            EPRequiresH46026 = true;
+        RequestingEP->SetUsesH46026(EPRequiresH46026);
+#endif
 	}
 
 	if (request.HasOptionalField(H225_AdmissionRequest::e_genericData)) {
@@ -2920,7 +2921,7 @@ bool AdmissionRequestPDU::Process()
 			if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID9))) 
 				vendorInfo = true;
 #ifdef HAS_H46023
-			if (Toolkit::Instance()->IsH46023Enabled() && !EPSupportsH46026) {
+			if (Toolkit::Instance()->IsH46023Enabled() && !EPRequiresH46026) {
 				if (feat.GetFeatureID() == H460_FeatureID(24)) {
 					natsupport = true;
 					H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
@@ -3267,9 +3268,9 @@ bool AdmissionRequestPDU::Process()
 		desc.SetSize(1);
 		desc[0] = feat;
 	}
-#ifdef HAS_H46017
+#ifdef HAS_H46026
 	/// H.460.26 media tunneling
-	if (EPSupportsH46026) {
+	if (EPRequiresH46026) {
 		H460_FeatureStd feat = H460_FeatureStd(26);
 		acf.IncludeOptionalField(H225_AdmissionConfirm::e_featureSet);
 		acf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_neededFeatures);
@@ -3278,7 +3279,7 @@ bool AdmissionRequestPDU::Process()
 		desc.SetSize(len + 1);
 		desc[len] = feat;
 	}
-#endif	// HAS_H46017
+#endif	// HAS_H46026
 #endif	// HAS_H460
 
 	return BuildReply(e_acf);

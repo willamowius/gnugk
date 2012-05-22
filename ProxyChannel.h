@@ -242,7 +242,11 @@ public:
 #endif
 
 #ifdef HAS_H46023
-    bool IsH46024Call(const H225_Setup_UUIE & setupBody);
+	bool IsH46024Call(const H225_Setup_UUIE & setupBody);
+#endif
+
+#ifdef HAS_H46026
+	bool IsH46026Call(const H225_Setup_UUIE & setupBody);
 #endif
 
 protected:
