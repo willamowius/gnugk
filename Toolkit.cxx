@@ -1088,7 +1088,6 @@ PConfig * Toolkit::Config()
 	// Make sure the config would not be called before SetConfig
 	if (m_ConfigDefaultSection.IsEmpty()) {
 		PTRACE(0, "Error: Call Config() before SetConfig()!");
-		SNMP_TRAP(7, SNMPError, Configuration, "Call Config() before SetConfig()");
 		return NULL;
 	}
 	return (m_Config == NULL) ? ReloadConfig() : m_Config;
