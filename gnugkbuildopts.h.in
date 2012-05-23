@@ -18,7 +18,7 @@
 #undef HAS_H46017
 
 // H.460.18/.19
-#define HAS_H46018  1
+#undef HAS_H46018
 
 // H.460.23/.24
 #undef HAS_H46023
