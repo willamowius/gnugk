@@ -553,9 +553,11 @@ remain unencrypted, but your external traffic will be secure.
 Enabling this feature will force call signaling for all calls to
 routed-mode, and will set it to proxy-mode for encrypted calls.
 
-As of Version 3.x of GnuGk, the caller and called endpoint must be on
-different IPs and may not be behind the same NAT. The endpoints must send
+When not using RTP multiplexing, the caller and called endpoint must be on
+different IPs and may not be behind the same NAT. The endpoints also must send
 RTP from the same IP as their signalling messages.
+
+As of Version 3.x of GnuGk, H.239 and data channels are not suppoorted for encryption.
 
 <item><tt/RequireH235HalfCallMedia=1/<newline>
 Default: <tt/0/<newline>
