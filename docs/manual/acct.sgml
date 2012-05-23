@@ -209,7 +209,7 @@ parameters are recognized:
 <item><tt/%{callee-epid}/ - endpoint identifier of the called party
 <item><tt/%{call-attempts}/ - number of attempts to establish the calls (with failover this can be > 1)
 <item><tt/%{last-cdr}/ - is this the last CDR for this call ? (0 / 1) only when using failover this can be 0
-<item><tt/%{media-oip}/ - caller's RTP media IP (only for H.245 routed/tunneled calls)
+<item><tt/%{media-oip}/ - caller's RTP media IP (only for H.245 routed/tunneled calls, not for encrypted calls or when firewall traversal is used)
 <item><tt/%{codec}/ - audio codec used during the call (only for H.245 routed/tunneled calls)
 <item><tt/%{bandwidth}/ - bandwidth for this call
 <item><tt/%{client-auth-id}/ - a 64 bit integer ID provided to GnuGk when authenticating the call (through SQLAuth)
