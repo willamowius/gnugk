@@ -515,17 +515,21 @@ public:
 	virtual void SendWindowsSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg);
 
 protected:
-	PString m_pipename;
-	HANDLE m_pipe;
+	PString m_getPipename;
+	HANDLE m_getPipe;
+	PString m_trapPipename;
+	HANDLE m_trapPipe;
 	bool m_shutdown;
-	PMutex m_pipeMutex;	// write lock for pipe
+	PMutex m_pipeMutex;	// write lock for pipes
 };
 
 WindowsSNMPAgent::WindowsSNMPAgent() : Singleton<WindowsSNMPAgent>("WindowsSNMPAgent")
 {
 	PTRACE(1, "SNMP\tStarting SNMP agent (Windows)");
-	m_pipe = INVALID_HANDLE_VALUE;
-	m_pipename = "\\\\.\\pipe\\GnuGkSNMP";
+	m_getPipe = INVALID_HANDLE_VALUE;
+	m_getPipename = "\\\\.\\pipe\\GnuGkGetSNMP";
+	m_trapPipe = INVALID_HANDLE_VALUE;
+	m_trapPipename = "\\\\.\\pipe\\GnuGkTrapSNMP";
 	m_shutdown = false;
 }
 
@@ -538,9 +542,13 @@ void WindowsSNMPAgent::Stop()
 {
 	PTRACE(1, "SNMP\tStopping SNMP agent (Windows)");
 	m_shutdown = true;
-	if (m_pipe != INVALID_HANDLE_VALUE)
-		CloseHandle(m_pipe);
-	m_pipe = INVALID_HANDLE_VALUE;
+	PWaitAndSignal lock(m_pipeMutex);
+	if (m_getPipe != INVALID_HANDLE_VALUE)
+		CloseHandle(m_getPipe);
+	m_getPipe = INVALID_HANDLE_VALUE;
+	if (m_trapPipe != INVALID_HANDLE_VALUE)
+		CloseHandle(m_trapPipe);
+	m_trapPipe = INVALID_HANDLE_VALUE;
 }
 
 void WindowsSNMPAgent::Run()
@@ -549,36 +557,46 @@ void WindowsSNMPAgent::Run()
 	while (!m_shutdown) {	// main loop
 		// try to connect until shutdown
 		while (!connected && !m_shutdown) {	// connect loop
-			m_pipe = CreateFile(m_pipename, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-			if (m_pipe != INVALID_HANDLE_VALUE) {
+			m_getPipe = CreateFile(m_getPipename, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+			m_trapPipe = CreateFile(m_trapPipename, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+			if ((m_getPipe != INVALID_HANDLE_VALUE) && (m_trapPipe != INVALID_HANDLE_VALUE)) {
 				connected = true;
 			} else {
+				if (m_getPipe != INVALID_HANDLE_VALUE)
+					CloseHandle(m_getPipe);
+				if (m_trapPipe != INVALID_HANDLE_VALUE)
+					CloseHandle(m_trapPipe);
 				PThread::Sleep(5000);	// sleep 5 sec. then try again
 			}
 		}
 
 		// the pipe is connected; change to message-read mode.
 		DWORD dwMode = PIPE_READMODE_MESSAGE;
-		BOOL success = SetNamedPipeHandleState(m_pipe, &dwMode, NULL, NULL);
-		if (!success) {
+		BOOL successGet = SetNamedPipeHandleState(m_getPipe, &dwMode, NULL, NULL);
+		BOOL successTrap = SetNamedPipeHandleState(m_trapPipe, &dwMode, NULL, NULL);
+		if (!successGet || ! successTrap) {
 			PTRACE(1, "SNMP\tSetNamedPipeHandleState failed. GLE=" << GetLastError());
-			if (m_pipe != INVALID_HANDLE_VALUE)
-				CloseHandle(m_pipe);
-			m_pipe = INVALID_HANDLE_VALUE;
+			if (m_getPipe != INVALID_HANDLE_VALUE)
+				CloseHandle(m_getPipe);
+			m_getPipe = INVALID_HANDLE_VALUE;
+			if (m_trapPipe != INVALID_HANDLE_VALUE)
+				CloseHandle(m_trapPipe);
+			m_trapPipe = INVALID_HANDLE_VALUE;
 			connected = false;
 			PThread::Sleep(5000);	// sleep 5 sec. then try again
 		}
 
+		PTRACE(0, "JW connected SNMP extension DLL pipes");
 		// wait for server request and respond until shutdown
 		while (connected && !m_shutdown) {
 			char buffer[512];
 			DWORD bytesRead;
-			success = ReadFile(m_pipe, buffer, sizeof(buffer), &bytesRead, NULL);
+			BOOL success = ReadFile(m_getPipe, buffer, sizeof(buffer), &bytesRead, NULL);
 			if (!success) {
 				PTRACE(1, "SNMP\tDisconnecting from SNMP service.");
-				if (m_pipe != INVALID_HANDLE_VALUE)
-					CloseHandle(m_pipe);
-				m_pipe = INVALID_HANDLE_VALUE;
+				if (m_getPipe != INVALID_HANDLE_VALUE)
+					CloseHandle(m_getPipe);
+				m_getPipe = INVALID_HANDLE_VALUE;
 				connected = false;
 				PThread::Sleep(1000);	// sleep 1 sec. then try again
 			} else {
@@ -587,13 +605,13 @@ void WindowsSNMPAgent::Run()
 				// Send response to the pipe server
 				DWORD bytesWritten;
 				m_pipeMutex.Wait();	// aquire pipe mutex
-				success = WriteFile(m_pipe, response.GetPointer(), response.GetLength(), &bytesWritten, NULL);
+				success = WriteFile(m_getPipe, response.GetPointer(), response.GetLength(), &bytesWritten, NULL);
 				m_pipeMutex.Signal();	// aquire pipe mutex
 				if (!success) {
 					PTRACE(1, "SNMP\tDisconnecting from SNMP service.");
-					if (m_pipe != INVALID_HANDLE_VALUE)
-						CloseHandle(m_pipe);
-					m_pipe = INVALID_HANDLE_VALUE;
+					if (m_getPipe != INVALID_HANDLE_VALUE)
+						CloseHandle(m_getPipe);
+					m_getPipe = INVALID_HANDLE_VALUE;
 					connected = false;
 					PThread::Sleep(1000);	// sleep 1 sec. then try again
 				}
@@ -606,6 +624,7 @@ PString WindowsSNMPAgent::HandleRequest(const PString & request)
 {
 	PStringArray token = request.Tokenise(" ", FALSE);
 	if ((token.GetSize() == 2) && (token[0] == "GET")) {
+PTRACE(0, "JW " << request);
 		if (token[1] == ShortVersionOIDStr + PString(".0")) {
 			return "GET_RESPONSE " + token[1] + " s " + PProcess::Current().GetVersion(true);
 		}
@@ -657,6 +676,7 @@ PString WindowsSNMPAgent::HandleRequest(const PString & request)
 
 void WindowsSNMPAgent::SendWindowsSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg)
 {
+	PTRACE(0, "JW SendSNMPTrap " << trapNumber << ", " << severity << ", " << group << ", " << msg);
 	PTRACE(5, "SNMP\tSendSNMPTrap " << trapNumber << ", " << severity << ", " << group << ", " << msg);
 	PString trap = "TRAP " + PString(PString::Unsigned, trapNumber)
 					+ " " + PString(PString::Unsigned, severity)
@@ -665,7 +685,7 @@ void WindowsSNMPAgent::SendWindowsSNMPTrap(unsigned trapNumber, SNMPLevel severi
 	// Send response to the pipe server
 	DWORD bytesWritten;
 	PWaitAndSignal lock(m_pipeMutex);
-	WriteFile(m_pipe, trap.GetPointer(), trap.GetLength(), &bytesWritten, NULL);	// ignore success
+	WriteFile(m_trapPipe, trap.GetPointer(), trap.GetLength(), &bytesWritten, NULL); // ignore result
 }
 
 #endif // _WIN32
