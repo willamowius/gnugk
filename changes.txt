@@ -1,5 +1,6 @@
 Changes from 3.0 to 3.1
 =======================
+- removed command line switch -i, use Home= in config file instead
 - BUGFIX(GkStatus.cxx) fix DEBUG SET for parameter values with spaces
 - BUGFIX(ProxyChannel.cxx) fix possible crash accessing empty InputIndications
 - BUGFIX(ProxyChannel.cxx) fix Answer parameter in GenericIndication to traversal server

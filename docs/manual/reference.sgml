@@ -22,10 +22,6 @@ Show all available options and quit the program.
 Specify the configuration file to use.
 <tag/<tt/-s  --section section//
 Specify which main section to use in the configuration file. The default is [Gatekeeper::Main].
-<tag/<tt/-i  --interface IP//
-Specify the IP address that the gatekeeper listens to.
-By default, the gatekeeper will automatically determine which IP address(es) it should use.  This
-option will override the auto provisioning.
 <tag/<tt/-l  --timetolive n//
 Specify the time-to-live timer (in seconds) for endpoint registration.
 Overrides the setting <tt/TimeToLive/ in the configuration file.

@@ -964,7 +964,6 @@ const PString Gatekeeper::GetArgumentsParseString() const
 		("r-routed."
 		 "-h245routed."
 		 "d-direct."
-		 "i-interface:"
 		 "l-timetolive:"
 		 "b-bandwidth:"
 #ifdef HAS_SETUSERNAME
@@ -1080,7 +1079,6 @@ void Gatekeeper::PrintOpts()
 		"  -r  --routed       : Use gatekeeper routed call signaling\n"
 		"  -rr --h245routed   : Use H.245 control channel routed\n"
 		"  -d  --direct       : Use direct endpoint call signaling\n"
-		"  -i  --interface IP : The IP that the gatekeeper listen to\n"
 		"  -l  --timetolive n : Time to live for client registration\n"
 		"  -b  --bandwidth n  : Specify the total bandwidth\n"
 #ifdef HAS_SETUSERNAME
@@ -1154,12 +1152,8 @@ void Gatekeeper::Main()
 		ExitGK();
 	}
 
-	if (args.HasOption('i'))
-		Toolkit::Instance()->SetGKHome(args.GetOptionString('i').Lines());
-
 	if (!InitConfig(args) || !InitHandlers(args))
 		ExitGK();
-
 
 	// set trace level + output file from config , if not set on the command line (for service)
 	PString fake_cmdline;
