@@ -624,38 +624,37 @@ PString WindowsSNMPAgent::HandleRequest(const PString & request)
 {
 	PStringArray token = request.Tokenise(" ", FALSE);
 	if ((token.GetSize() == 2) && (token[0] == "GET")) {
-PTRACE(0, "JW " << request);
 		if (token[1] == ShortVersionOIDStr + PString(".0")) {
-			return "GET_RESPONSE " + token[1] + " s " + PProcess::Current().GetVersion(true);
+			return "GET_RESPONSE s " + PProcess::Current().GetVersion(true);
 		}
 		if (token[1] == LongVersionOIDStr + PString(".0")) {
-			return "GET_RESPONSE " + token[1] + " s " + Toolkit::GKVersion();
+			return "GET_RESPONSE s " + Toolkit::GKVersion();
 		}
 		if (token[1] == RegistrationsOIDStr + PString(".0")) {
-			return "GET_RESPONSE " + token[1] + " i " + PString(PString::Unsigned, RegistrationTable::Instance()->Size());
+			return "GET_RESPONSE u " + PString(PString::Unsigned, RegistrationTable::Instance()->Size());
 		}
 		if (token[1] == CallsOIDStr + PString(".0")) {
-			return "GET_RESPONSE " + token[1] + " i " + PString(PString::Unsigned, CallTable::Instance()->Size());
+			return "GET_RESPONSE u " + PString(PString::Unsigned, CallTable::Instance()->Size());
 		}
 		if (token[1] == TotalCallsOIDStr + PString(".0")) {
-			return "GET_RESPONSE " + token[1] + " i " + PString(PString::Unsigned, CallTable::Instance()->TotalCallCount());
+			return "GET_RESPONSE u " + PString(PString::Unsigned, CallTable::Instance()->TotalCallCount());
 		}
 		if (token[1] == SuccessfulCallsOIDStr + PString(".0")) {
-			return "GET_RESPONSE " + token[1] + " i " + PString(PString::Unsigned, CallTable::Instance()->SuccessfulCallCount());
+			return "GET_RESPONSE u " + PString(PString::Unsigned, CallTable::Instance()->SuccessfulCallCount());
 		}
 		if (token[1] == TraceLevelOIDStr + PString(".0")) {
-			return "GET_RESPONSE " + token[1] + " i " + PString(PString::Unsigned, PTrace::GetLevel());
+			return "GET_RESPONSE u " + PString(PString::Unsigned, PTrace::GetLevel());
 		}
 		if (token[1] == CatchAllOIDStr + PString(".0")) {
 			PString catchAllDest = GkConfig()->GetString("Routing::CatchAll", "CatchAllIP", "");
 			if (catchAllDest.IsEmpty())
 				catchAllDest = GkConfig()->GetString("Routing::CatchAll", "CatchAllAlias", "catchall");
-			return "GET_RESPONSE " + token[1] + " s " + catchAllDest;
-		}	
+			return "GET_RESPONSE s " + catchAllDest;
+		}
 	} else if ((token.GetSize() == 3) && (token[0] == "SET")) {
 		if (token[1] == TraceLevelOIDStr + PString(".0")) {
 			PTrace::SetLevel(token[2].AsUnsigned());
-			return "SET_RESPONSE " + token[1] + " i " + PString(PString::Unsigned, PTrace::GetLevel());
+			return "SET_RESPONSE u " + PString(PString::Unsigned, PTrace::GetLevel());
 		}
 		if (token[1] == CatchAllOIDStr + PString(".0")) {
 			if (IsIPAddress(token[2])) {
@@ -668,7 +667,7 @@ PTRACE(0, "JW " << request);
 			ConfigReloadMutex.StartWrite();
 			ReloadHandler();
 			ConfigReloadMutex.EndWrite();
-			return "SET_RESPONSE " + token[1] + " s " + token[2];
+			return "SET_RESPONSE s " + token[2];
 		}
 	}
 	return "ERROR";
@@ -731,7 +730,7 @@ void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, cons
 	}
 #endif
 #ifdef _WIN32
-	if (implementation == "PTLib") {
+	if (implementation == "Windows") {
 		WindowsSNMPAgent::Instance()->SendWindowsSNMPTrap(trapNumber, severity, group, msg);
 	}
 #endif
