@@ -825,7 +825,7 @@ bool GkPresence::BuildPresenceElement(unsigned msgtag, const H225_TransportAddre
 bool GkPresence::EnQueueFullNotification(const H225_AliasAddress & local, const H225_AliasAddress & remote)
 {
     H323PresenceStore::const_iterator itm = localStore.find(local);
-	if (itm != localStore.end()) {
+	if (itm != localStore.end() && itm->second.m_Notify.GetSize() > 0) {  // TODO Figure out why Notify size would be zero
 		H460P_PresencePDU msg;
 		H460P_PresenceNotification & notification = BuildNotificationMsg(itm->second.m_Notify[0],msg);
 		notification.IncludeOptionalField(H460P_PresenceNotification::e_aliasAddress);
