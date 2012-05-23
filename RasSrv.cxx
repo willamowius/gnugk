@@ -3141,7 +3141,7 @@ bool AdmissionRequestPDU::Process()
 		CallTbl->Insert(pCallRec);
 
 #ifdef HAS_H46023
-		if (Toolkit::Instance()->IsH46023Enabled()) {
+		if (Toolkit::Instance()->IsH46023Enabled() && !EPRequiresH46026) {
 			// Std24 proxy offload. See if the media can go direct.
 			if (natoffloadsupport == CallRec::e_natUnknown) 
 				if (!pCallRec->NATOffLoad(answer,natoffloadsupport))
