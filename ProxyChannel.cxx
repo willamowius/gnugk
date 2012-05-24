@@ -1976,9 +1976,9 @@ unsigned AlgorithmKeySize(const PString & oid)
 {
 	if (oid == ID_AES128) {
 		return 128 / 8;
+#ifdef H323_H235_AES256
 	} else if (oid == ID_AES192) {
 		return 192 / 8;
-#ifdef H323_H235_AES256
 	} else if (oid == ID_AES256) {
 		return 256 / 8;
 #endif
@@ -2067,7 +2067,7 @@ bool CallSignalSocket::HandleH235TCS(H245_TerminalCapabilitySet & tcs)
 
     PStringList capList;
     if (!m_call->GetAuthenticators().GetAlgorithms(capList)) {
-        PTRACE(4,"H235 Encryption support but no common algorithm! DISABLING!!");
+        PTRACE(1,"H235\tEncryption support but no common algorithm! DISABLING!!");
         m_call->SetMediaEncryption(CallRec::none);
         m_call->GetAuthenticators().SetSize(0);
         return false;
@@ -3361,6 +3361,8 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 #ifdef HAS_H235_MEDIA
 	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
 		H235Authenticators & auth = m_call->GetAuthenticators();
+		auth.SetEncryptionPolicy(1);	// request encryption
+		auth.SetMaxCipherLength(128);
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens) && SupportsH235Media(setupBody.m_tokens)) {
 			// make sure clear and crypto token fields are pesent, at least with 0 size
 			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
@@ -7798,8 +7800,8 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 #ifdef HAS_H235_MEDIA
 	// H.235.6 sect 9.3.3 says RTCP encryption is for further study, so we don't encrypt/decrypt RTCP
 	if (m_call && (*m_call) && (*m_call)->IsMediaEncryption() && isRTP) {
+		bool ready = false;
 		bool encrypting = false;
-		bool succesful = false;
 		if (m_encryptingLC && m_decryptingLC) {
 			if (m_encryptingLC->GetPlainPayloadType() == m_decryptingLC->GetCipherPayloadType()) {
 				PTRACE(1, "WARNING: Can't use PT to decide encryption direction -> fall back on IPs");
@@ -7814,14 +7816,27 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			} else {
 				encrypting = (payloadType == m_encryptingLC->GetPlainPayloadType());
 			}
+			ready = true;
+		}
+		// one-sided channel
+		if (!ready && m_encryptingLC && (payloadType == m_encryptingLC->GetPlainPayloadType())) {
+			encrypting = true;
+			ready = true;
+		}
+		if (!ready && m_decryptingLC && (payloadType == m_decryptingLC->GetCipherPayloadType())) {
+			encrypting = false;
+			ready = true;
+		}
 
+		bool succesful = false;
+		if (ready) {
 			if (encrypting) {
 				succesful = m_encryptingLC->ProcessH235Media(wbuffer, buflen, encrypting, ivSequence, rtpPadding, payloadType);
 			} else {
 				succesful =  m_decryptingLC->ProcessH235Media(wbuffer, buflen, encrypting, ivSequence, rtpPadding, payloadType);
 			}
 		} else {
-			PTRACE(3, "H235\tNot both sides ready in encrypting channel");
+			PTRACE(3, "H235\tCrypto channel not ready");
 		}
 
 		if (!succesful)
