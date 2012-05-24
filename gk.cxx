@@ -1265,7 +1265,7 @@ void Gatekeeper::Main()
 	RasSrv->SetRDSServers();
 
 #ifdef HAS_SNMP
-	if (SelectSNMPImplementation() != "Net-SNMP")
+	if (SelectSNMPImplementation() == "PTLib")
 		SNMP_TRAP(1, SNMPInfo, General, "GnuGk started");	// when NOT registering as agent, send started trap here already
 #endif
 
