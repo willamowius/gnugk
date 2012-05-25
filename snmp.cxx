@@ -129,7 +129,7 @@ int registrations_handler(netsnmp_mib_handler * /* handler */,
 		return SNMPERR_SUCCESS;
     for (netsnmp_request_info *request = requests; request; request = request->next) {
 		unsigned no_regs = RegistrationTable::Instance()->Size();
-		snmp_set_var_typed_integer(request->requestvb, ASN_INTEGER, no_regs);
+		snmp_set_var_typed_integer(request->requestvb, ASN_UNSIGNED, no_regs);
 	}
 	return SNMPERR_SUCCESS;
 }
@@ -143,7 +143,7 @@ int calls_handler(netsnmp_mib_handler * /* handler */,
 		return SNMPERR_SUCCESS;
     for (netsnmp_request_info *request = requests; request; request = request->next) {
 		unsigned no_calls = CallTable::Instance()->Size();
-		snmp_set_var_typed_integer(request->requestvb, ASN_INTEGER, no_calls);
+		snmp_set_var_typed_integer(request->requestvb, ASN_UNSIGNED, no_calls);
 	}
 	return SNMPERR_SUCCESS;
 }
@@ -157,7 +157,7 @@ int totalcalls_handler(netsnmp_mib_handler * /* handler */,
 		return SNMPERR_SUCCESS;
     for (netsnmp_request_info *request = requests; request; request = request->next) {
 		unsigned no_calls = CallTable::Instance()->TotalCallCount();
-		snmp_set_var_typed_integer(request->requestvb, ASN_INTEGER, no_calls);
+		snmp_set_var_typed_integer(request->requestvb, ASN_COUNTER, no_calls);
 	}
 	return SNMPERR_SUCCESS;
 }
@@ -171,7 +171,7 @@ int successfulcalls_handler(netsnmp_mib_handler * /* handler */,
 		return SNMPERR_SUCCESS;
     for (netsnmp_request_info *request = requests; request; request = request->next) {
 		unsigned no_calls = CallTable::Instance()->SuccessfulCallCount();
-		snmp_set_var_typed_integer(request->requestvb, ASN_INTEGER, no_calls);
+		snmp_set_var_typed_integer(request->requestvb, ASN_COUNTER, no_calls);
 	}
 	return SNMPERR_SUCCESS;
 }
@@ -183,7 +183,7 @@ int tracelevel_handler(netsnmp_mib_handler * /* handler */,
 {
     for (netsnmp_request_info *request = requests; request; request = request->next) {
 		if (reqinfo->mode == MODE_GET) {
-			snmp_set_var_typed_integer(request->requestvb, ASN_INTEGER, PTrace::GetLevel());
+			snmp_set_var_typed_integer(request->requestvb, ASN_UNSIGNED, PTrace::GetLevel());
 		} else if (reqinfo->mode == MODE_SET_ACTION) {
 			if (requests->requestvb->val.integer) {
 				PTrace::SetLevel(*(requests->requestvb->val.integer));
@@ -442,9 +442,18 @@ PBoolean PTLibSNMPAgent::ConfirmVersion(PASN_Integer vers)
 
 void SetRFC1155Object(PRFC1155_ObjectSyntax & obj, unsigned i)
 {
-	PRFC1155_SimpleSyntax simple(PRFC1155_SimpleSyntax::e_number);
-	PRFC1155_ObjectSyntax * newObj = (PRFC1155_ObjectSyntax*)&simple;
-	PASN_Integer * num = (PASN_Integer *)&simple.GetObject();
+	PRFC1155_ApplicationSyntax appl(PRFC1155_ApplicationSyntax::e_gauge);
+	PRFC1155_ObjectSyntax * newObj = (PRFC1155_ObjectSyntax*)&appl;
+	PASN_Integer * num = (PASN_Integer *)&appl.GetObject();
+	num->SetValue(i);
+	obj = *newObj;
+}
+
+void SetRFC1155CounterObject(PRFC1155_ObjectSyntax & obj, unsigned i)
+{
+	PRFC1155_ApplicationSyntax appl(PRFC1155_ApplicationSyntax::e_counter);
+	PRFC1155_ObjectSyntax * newObj = (PRFC1155_ObjectSyntax*)&appl;
+	PASN_Integer * num = (PASN_Integer *)&appl.GetObject();
 	num->SetValue(i);
 	obj = *newObj;
 }
@@ -477,10 +486,10 @@ PBoolean PTLibSNMPAgent::MIB_LocalMatch(PSNMP_PDU & answerPDU)
 			SetRFC1155Object(vars[i].m_value, CallTable::Instance()->Size());
 			found = true;
 		} else if (vars[i].m_name == TotalCallsOIDStr + PString(".0")) {
-			SetRFC1155Object(vars[i].m_value, CallTable::Instance()->TotalCallCount());
+			SetRFC1155CounterObject(vars[i].m_value, CallTable::Instance()->TotalCallCount());
 			found = true;
 		} else if (vars[i].m_name == SuccessfulCallsOIDStr + PString(".0")) {
-			SetRFC1155Object(vars[i].m_value, CallTable::Instance()->SuccessfulCallCount());
+			SetRFC1155CounterObject(vars[i].m_value, CallTable::Instance()->SuccessfulCallCount());
 			found = true;
 		} else if (vars[i].m_name == TraceLevelOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, PTrace::GetLevel());
@@ -651,10 +660,10 @@ PString WindowsSNMPAgent::HandleRequest(const PString & request)
 			return "GET_RESPONSE u " + PString(PString::Unsigned, CallTable::Instance()->Size());
 		}
 		if (token[1] == TotalCallsOIDStr + PString(".0")) {
-			return "GET_RESPONSE u " + PString(PString::Unsigned, CallTable::Instance()->TotalCallCount());
+			return "GET_RESPONSE c " + PString(PString::Unsigned, CallTable::Instance()->TotalCallCount());
 		}
 		if (token[1] == SuccessfulCallsOIDStr + PString(".0")) {
-			return "GET_RESPONSE u " + PString(PString::Unsigned, CallTable::Instance()->SuccessfulCallCount());
+			return "GET_RESPONSE c " + PString(PString::Unsigned, CallTable::Instance()->SuccessfulCallCount());
 		}
 		if (token[1] == TraceLevelOIDStr + PString(".0")) {
 			return "GET_RESPONSE u " + PString(PString::Unsigned, PTrace::GetLevel());
