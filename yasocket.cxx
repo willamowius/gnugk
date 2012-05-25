@@ -1161,7 +1161,6 @@ void TCPServer::ReadSocket(IPSocket * socket)
 		CreateJob(acceptor, &ServerSocket::Dispatch, "Acceptor");
 	} else {
 		PTRACE(4, GetName() << "\tAccept failed on " << socket->GetName());
-		SNMP_TRAP(10, SNMPError, Network, "Accept() failed");
 		delete acceptor;
 	}
 }
