@@ -3806,19 +3806,19 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 		|| Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "AlwaysRewriteSourceCallSignalAddress", "1"))) {
 		setupBody.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
 		setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(masqAddr, GetPort());
-    } else {
-        // check if we are calling from behind a NAT that no "Well Meaning" ALG 
-        // has fiddled with the source address breaking remote NAT detection.
-        if (nat_type == CallRec::callingParty 
-            && setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)) {
-             PIPSocket::Address sourceAddr;
-             GetIPFromTransportAddr(setupBody.m_sourceCallSignalAddress,sourceAddr);
-             if (sourceAddr == m_call->GetCallingParty()->GetNATIP()) {
-                 PTRACE(3, Type() << "\tSignal ALG DETECTED correcting source Address");
-                 setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(m_call->GetCallingParty()->GetIP(), GetPort());
-             }
-        }
-    }
+	} else {
+		// check if we are calling from behind a NAT that no "Well Meaning" ALG 
+		// has fiddled with the source address breaking remote NAT detection.
+		if (nat_type == CallRec::callingParty 
+			&& setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)) {
+			PIPSocket::Address sourceAddr;
+			GetIPFromTransportAddr(setupBody.m_sourceCallSignalAddress,sourceAddr);
+			if (sourceAddr == m_call->GetCallingParty()->GetNATIP()) {
+				PTRACE(3, Type() << "\tSignal ALG DETECTED correcting source Address");
+				setupBody.m_sourceCallSignalAddress = m_call->GetCallingParty()->GetCallSignalAddress();
+			}
+		}
+	}
 
 	// For compatibility with endpoints which do not support large Setup messages or send incorrect tokens
 	if (Toolkit::Instance()->RemoveAllH235Tokens()) {
