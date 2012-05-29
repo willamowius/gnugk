@@ -251,6 +251,8 @@ bool ForwardingPolicy::FindEPForwardingRules(
 					route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
 					if ((forwardType == FORWARD_UNCONDITIONAL)
 						|| (route.m_destEndpoint && CallTable::Instance()->FindCallRec(route.m_destEndpoint))) {
+						route.m_destNumber = forwardDestination;
+						route.m_destOutNumber = forwardDestination;
 						destination.AddRoute(route, false);
 						skipOrginalForward = true;
 					}
@@ -282,6 +284,8 @@ bool ForwardingPolicy::FindEPForwardingRules(
 								// replace an NoAnswer or Error forward
 								if (ep) {
 									Route route("ForwardNoAnswerOrError", ep, priority + recursionDepth);
+									route.m_destNumber = forwardDestination;
+									route.m_destOutNumber = forwardDestination;
 									destination.AddRoute(route, false);
 								} else {
 									PTRACE(1, "Fwd\tError: Unconditional Forward or on Busy to non-local alias " << forwardDestination);
@@ -302,6 +306,8 @@ bool ForwardingPolicy::FindEPForwardingRules(
 					if (port == 0)
 						port = GK_DEF_ENDPOINT_SIGNAL_PORT;
 					Route route("ForwardNoAnswerOrError", SocketToH225TransportAddr(ip, port), NO_ANSWER_PRIORITY + recursionDepth);
+					route.m_destNumber = forwardDestination;
+					route.m_destOutNumber = forwardDestination;
 					destination.AddRoute(route);
 				} else {
 					H225_ArrayOf_AliasAddress forwardAliases;
@@ -318,6 +324,8 @@ bool ForwardingPolicy::FindEPForwardingRules(
 						if (ep) {
 							// add a NoAnswer route, lower recursion depth is given more priority
 							Route route("ForwardNoAnswerOrError", ep, NO_ANSWER_PRIORITY + recursionDepth);
+							route.m_destNumber = forwardDestination;
+							route.m_destOutNumber = forwardDestination;
 							destination.AddRoute(route, false);
 						} else {
 							PTRACE(1, "Fwd\tError: Forward on NoAnswer or Error to non-local alias " << forwardDestination);
