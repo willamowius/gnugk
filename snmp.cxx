@@ -442,6 +442,7 @@ PBoolean PTLibSNMPAgent::ConfirmVersion(PASN_Integer vers)
 
 void SetRFC1155Object(PRFC1155_ObjectSyntax & obj, unsigned i)
 {
+	// according to RFC 1902 Gauge32 is identical ro Unsigned32; PTLib only has Gauge
 	PRFC1155_ApplicationSyntax appl(PRFC1155_ApplicationSyntax::e_gauge);
 	PRFC1155_ObjectSyntax * newObj = (PRFC1155_ObjectSyntax*)&appl;
 	PASN_Integer * num = (PASN_Integer *)&appl.GetObject();
@@ -511,6 +512,10 @@ PBoolean PTLibSNMPAgent::MIB_LocalMatch(PSNMP_PDU & answerPDU)
 
 #ifdef _WIN32
 
+#define BUFSIZE 512
+const char * const getPipename = "\\\\.\\pipe\\GnuGkGetSNMP";
+const char * const trapPipename = "\\\\.\\pipe\\GnuGkTrapSNMP";
+
 class WindowsSNMPAgent : public Singleton<WindowsSNMPAgent>
 {
 public:
@@ -524,122 +529,55 @@ public:
 	virtual void SendWindowsSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg);
 
 protected:
-	PString m_getPipename;
 	HANDLE m_getPipe;
-	PString m_trapPipename;
-	HANDLE m_trapPipe;
 	bool m_shutdown;
-	bool m_connected;
 };
 
 WindowsSNMPAgent::WindowsSNMPAgent() : Singleton<WindowsSNMPAgent>("WindowsSNMPAgent")
 {
 	PTRACE(1, "SNMP\tStarting SNMP agent (Windows)");
-	m_getPipe = INVALID_HANDLE_VALUE;
-	m_getPipename = "\\\\.\\pipe\\GnuGkGetSNMP";
-	m_trapPipe = INVALID_HANDLE_VALUE;
-	m_trapPipename = "\\\\.\\pipe\\GnuGkTrapSNMP";
 	m_shutdown = false;
-	m_connected = false;
+	m_getPipe = CreateNamedPipe(getPipename,
+		PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
+		1, BUFSIZE, BUFSIZE, 0, NULL);
 }
 
 WindowsSNMPAgent::~WindowsSNMPAgent()
 {
 	PTRACE(1, "SNMP\tDeleting SNMP agent (Windows)");
+	// CloseHandle(m_getPipe);	// don't close get pipe, will hang in blocking ConnectNamedPipe()
 }
 
 void WindowsSNMPAgent::Stop()
 {
 	PTRACE(1, "SNMP\tStopping SNMP agent (Windows)");
 	m_shutdown = true;
-#if (_WIN32_WINNT >= 0x0600)
-	// terminate nicely on Vista or newer (untested)
-	CancelIoEx(m_getPipe, NULL);	// only available on Vista or higher
-	CancelIoEx(m_trapPipe, NULL);	// only available on Vista or higher
-	if (m_getPipe != INVALID_HANDLE_VALUE) {
-		CloseHandle(m_getPipe);
-		m_getPipe = INVALID_HANDLE_VALUE;
-	}
-	if (m_trapPipe != INVALID_HANDLE_VALUE) {
-		CloseHandle(m_trapPipe);
-		m_trapPipe = INVALID_HANDLE_VALUE;
-	}
-#endif
 }
 
 void WindowsSNMPAgent::Run()
 {
-	bool first_registration = true;
-	while (!m_shutdown) {	// main loop: try to connect until shutdown
-		while (!m_connected && !m_shutdown) {	// connect loop
-			m_getPipe = CreateFile(m_getPipename, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-			m_trapPipe = CreateFile(m_trapPipename, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-			if ((m_getPipe != INVALID_HANDLE_VALUE) && (m_trapPipe != INVALID_HANDLE_VALUE)) {
-				m_connected = true;
-			} else {
-				if (m_getPipe != INVALID_HANDLE_VALUE)
-					CloseHandle(m_getPipe);
-				if (m_trapPipe != INVALID_HANDLE_VALUE)
-					CloseHandle(m_trapPipe);
-				if (!m_shutdown)
-					PThread::Sleep(500);	// sleep .5 sec. then try again
+	SNMP_TRAP(1, SNMPInfo, General, "GnuGk started");
+	while (!m_shutdown) {	// main loop: wait for connection from extension DLL until shutdown
+		if (ConnectNamedPipe(m_getPipe, NULL)) {	// wait for DLL to connect
+			// the pipe is connected; change to message-read mode.
+			DWORD dwMode = PIPE_READMODE_MESSAGE;
+			if (!SetNamedPipeHandleState(m_getPipe, &dwMode, NULL, NULL)) {
+				PTRACE(1, "SNMP\tSetNamedPipeHandleState failed. GLE=" << GetLastError());
 			}
-		}
 
-		// the pipe is connected; change to message-read mode.
-		DWORD dwMode = PIPE_READMODE_MESSAGE;
-		BOOL successGet = SetNamedPipeHandleState(m_getPipe, &dwMode, NULL, NULL);
-		BOOL successTrap = SetNamedPipeHandleState(m_trapPipe, &dwMode, NULL, NULL);
-		if (!successGet || ! successTrap) {
-			PTRACE(1, "SNMP\tSetNamedPipeHandleState failed. GLE=" << GetLastError());
-			if (m_getPipe != INVALID_HANDLE_VALUE)
-				CloseHandle(m_getPipe);
-			m_getPipe = INVALID_HANDLE_VALUE;
-			if (m_trapPipe != INVALID_HANDLE_VALUE)
-				CloseHandle(m_trapPipe);
-			m_trapPipe = INVALID_HANDLE_VALUE;
-			m_connected = false;
-			if (!m_shutdown)
-				PThread::Sleep(500);	// sleep .5 sec. then try again
-		}
-
-		// when registering as agent, send started trap after connecting for the first time
-		if (first_registration) {
-			SNMP_TRAP(1, SNMPInfo, General, "GnuGk started");
-			first_registration = false;
-		}
-
-		PTRACE(0, "JW connected SNMP extension DLL pipes");
-		// wait for server request and respond until shutdown or disconnect
-		while (m_connected && !m_shutdown) {
-			char buffer[512];
+			PTRACE(0, "JW connected SNMP extension DLL pipes");
+			// read server request and respond, then disconnect
+			char buffer[BUFSIZE];
 			DWORD bytesRead;
-			BOOL success = ReadFile(m_getPipe, buffer, sizeof(buffer), &bytesRead, NULL);
-			if (!success) {
-				PTRACE(1, "SNMP\tDisconnecting from SNMP service.");
-				if (m_getPipe != INVALID_HANDLE_VALUE)
-					CloseHandle(m_getPipe);
-				m_getPipe = INVALID_HANDLE_VALUE;
-				m_connected = false;
-				if (!m_shutdown)
-					PThread::Sleep(500);	// sleep .5 sec. then try again
-			} else {
+			if (ReadFile(m_getPipe, buffer, sizeof(buffer), &bytesRead, NULL)) {
 				PString request((const char *)&buffer, bytesRead);
 				PString response = HandleRequest(request);
 				// Send response to the pipe server
 				DWORD bytesWritten;
-				success = WriteFile(m_getPipe, response.GetPointer(), response.GetLength(), &bytesWritten, NULL);
-				if (!success) {
-					PTRACE(1, "SNMP\tDisconnecting from SNMP service.");
-					if (m_getPipe != INVALID_HANDLE_VALUE)
-						CloseHandle(m_getPipe);
-					m_getPipe = INVALID_HANDLE_VALUE;
-					m_connected = false;
-					if (!m_shutdown)
-						PThread::Sleep(500);	// sleep .5 sec. then try again
-				}
+				WriteFile(m_getPipe, response.GetPointer(), response.GetLength(), &bytesWritten, NULL);
 			}
-		} // while connected
+			DisconnectNamedPipe(m_getPipe);
+		}
 	} // while running
 }
 
@@ -699,18 +637,13 @@ PString WindowsSNMPAgent::HandleRequest(const PString & request)
 void WindowsSNMPAgent::SendWindowsSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg)
 {
 	PTRACE(5, "SNMP\tSendSNMPTrap " << trapNumber << ", " << severity << ", " << group << ", " << msg);
-	if (!m_connected  || m_shutdown) {
-		PTRACE(1, "SNMP\tCan't send trap, not connected to Windows SNMP service");
-		return;
+	if (!m_shutdown) {
+		PString trap = "TRAP " + PString(PString::Unsigned, trapNumber)
+						+ " " + PString(PString::Unsigned, severity)
+						+ " " + PString(PString::Unsigned, group)
+						+ " " + msg;
+		CallNamedPipe(trapPipename, trap.GetPointer(), trap.GetLength(), NULL, 0, NULL, 1000);
 	}
-
-	PString trap = "TRAP " + PString(PString::Unsigned, trapNumber)
-					+ " " + PString(PString::Unsigned, severity)
-					+ " " + PString(PString::Unsigned, group)
-					+ " " + msg;
-	// Send response to the pipe server
-	DWORD bytesWritten;
-	WriteFile(m_trapPipe, trap.GetPointer(), trap.GetLength(), &bytesWritten, NULL); // ignore result
 }
 
 #endif // _WIN32
