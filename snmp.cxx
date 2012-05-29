@@ -43,7 +43,7 @@ const char * const displayMsgOIDStr      = "1.3.6.1.4.1.27938.11.2.3";
 #include <net-snmp/agent/agent_module_config.h>
 #include <net-snmp/agent/net-snmp-agent-includes.h>
 
-const char * subagent_name = "gnugk-agent";
+const char * agent_name = "gnugk-agent";
 
 static oid snmptrap_oid[]       = { 1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0 };
 static oid ShortVersionOID[]    = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 1 };
@@ -259,11 +259,13 @@ void NetSNMPAgent::Stop()
 {
 	PTRACE(1, "SNMP\tStopping SNMP agent (Net-SNMP)");
 	m_shutdown = true;
-	snmp_shutdown(subagent_name);
+	snmp_shutdown(agent_name);
 }
 
 void NetSNMPAgent::Run()
 {
+	bool standalone = Toolkit::AsBool(GkConfig()->GetString(SNMPSection, "Standalone", "0"));
+
 	// enable Net-SNMP logging via PTRACE
 	m_logger = netsnmp_register_loghandler(NETSNMP_LOGHANDLER_CALLBACK, LOG_DEBUG);
 	if (m_logger) {
@@ -273,13 +275,24 @@ void NetSNMPAgent::Run()
 	} else {
 		PTRACE(1, "SNMP\tError installing logger");
 	}
-	// run as AgentX sub-agent
-	netsnmp_ds_set_boolean(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_ROLE, 1);
-	// use 127.0.0.1:705 by default, can be overriden in $HOME/.snmp/agentx.conf
-	netsnmp_ds_set_string(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_X_SOCKET, "tcp:127.0.0.1:705");
-	netsnmp_enable_subagent();
 
-	init_agent(subagent_name);
+	if (standalone) {
+		netsnmp_ds_set_boolean(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_NO_ROOT_ACCESS, 1);
+		netsnmp_ds_set_boolean(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_AGENTX_MASTER, 0);
+		netsnmp_ds_set_string(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_SMUX_SOCKET, "127.0.0.1:11199");
+		PString listenIP = "udp:" + GkConfig()->GetString(SNMPSection, "AgentListenIP", "127.0.0.1");
+		PString listenPort = PString(PString::Unsigned, GkConfig()->GetInteger(SNMPSection, "AgentListenPort", 161));
+		listenIP += ":" + listenPort;
+		netsnmp_ds_set_string(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_PORTS, (const char *)listenIP);
+	} else {
+		// run as AgentX sub-agent
+		netsnmp_ds_set_boolean(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_ROLE, 1);
+		// use 127.0.0.1:705 by default, can be overriden in $HOME/.snmp/agentx.conf
+		netsnmp_ds_set_string(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_X_SOCKET, "tcp:127.0.0.1:705");
+		netsnmp_enable_subagent();
+	}
+
+	init_agent(agent_name);
 
 	netsnmp_register_scalar(
 		netsnmp_create_handler_registration("short version", short_version_handler, ShortVersionOID, OID_LENGTH(ShortVersionOID), HANDLER_CAN_RONLY));
@@ -298,12 +311,19 @@ void NetSNMPAgent::Run()
 	netsnmp_register_scalar(
 		netsnmp_create_handler_registration("catchall", catchall_handler, CatchAllOID, OID_LENGTH(CatchAllOID), HANDLER_CAN_RWRITE));
 
-	init_snmp(subagent_name);   // reads $HOME/.snmp/gnugk-agent.conf + $HOME/.snmp/agentx.conf
+	init_snmp(agent_name);   // reads $HOME/.snmp/gnugk-agent.conf + $HOME/.snmp/agentx.conf
+
+	if (standalone)
+		init_master_agent();
+
 	SNMP_TRAP(1, SNMPInfo, General, "GnuGk started");	// when registering as agent, send started trap after connecting
 
 	while (!m_shutdown) {
-		agent_check_and_process(1); // where 1==block
+		agent_check_and_process(1); // 1 means block
 	}
+
+	if (standalone)
+		shutdown_master_agent();
 }
 
 #endif // HAS_NETSNMP

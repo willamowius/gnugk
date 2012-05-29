@@ -436,6 +436,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "SNMP", "AgentListenPort" },
 	{ "SNMP", "EnableSNMP" },
 	{ "SNMP", "Implementation" },
+	{ "SNMP", "Standalone" },
 	{ "SNMP", "TrapCommunity" },
 	{ "SNMP", "TrapHost" },
 #endif

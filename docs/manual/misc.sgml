@@ -854,6 +854,14 @@ agentxsocket tcp:localhost:705
 </verb></tscreen>
 </descrip>
 
+You can also configure the Net-SNMP based agent to run standalone without the Net-SNMP daemon, but this is not suggested.
+
+<itemize>
+<item><tt>Standalone=1</tt><newline>
+Default: <tt/0/<newline>
+Run SNMP-Agent standalone, and don't connect to AgentX master agent.
+</itemize>
+
 <p>
 <sect2>Using PTLib's SNMP implementation
 <p>
