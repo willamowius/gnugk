@@ -1719,7 +1719,7 @@ void Toolkit::LoadCauseMap(
 // load H.225 reason to Q.931 cause mapping
 void Toolkit::LoadReasonMap(PConfig *cfg)
 {
-	// default to ITU-T Recommendation H.225
+	// default to ITU-T Recommendation H.225 clause 7.2.2.8, table 5
 	unsigned DefaultH225ReasonToQ931Cause[] =	{
 		34, 47, 3, 16, 88, 111, 38, 42, 28, 41, 17, 31, 16, 31, 20, 31, 47, 127,
 		31, 31, 31, 127
