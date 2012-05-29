@@ -1145,7 +1145,7 @@ int RadAuth::CheckTokens(
 			*username = (const char*)id;
 				
 		// build CHAP-Password
-		char password[17] = { (BYTE)randomInt };
+		unsigned char password[17] = { (BYTE)randomInt };
 		memcpy(password + 1, (const BYTE*)(token.m_challenge), 16);
 				
 		pdu.AppendAttr(RadiusAttr::ChapPassword, password, sizeof(password));
