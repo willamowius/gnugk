@@ -288,8 +288,7 @@ bool ForwardingPolicy::FindEPForwardingRules(
 									route.m_destOutNumber = forwardDestination;
 									destination.AddRoute(route, false);
 								} else {
-									PTRACE(1, "Fwd\tError: Unconditional Forward or on Busy to non-local alias " << forwardDestination);
-									SNMP_TRAP(7, SNMPError, Configuration, "Unconditional Forward or on Busy to non-local alias " + forwardDestination);
+									PTRACE(3, "Fwd\tUnconditional Forward or on Busy to non-local or currently not registered alias " << forwardDestination);
 								}
 							}
 						}
@@ -328,8 +327,7 @@ bool ForwardingPolicy::FindEPForwardingRules(
 							route.m_destOutNumber = forwardDestination;
 							destination.AddRoute(route, false);
 						} else {
-							PTRACE(1, "Fwd\tError: Forward on NoAnswer or Error to non-local alias " << forwardDestination);
-							SNMP_TRAP(7, SNMPError, Configuration, "Forward on NoAnswer or Error to non-local alias " + forwardDestination);
+							PTRACE(3, "Fwd\tForward on NoAnswer or Error to non-local or currently not registered alias " << forwardDestination);
 						}
 					}
 				}
