@@ -111,7 +111,8 @@ This policy can be configured in the <ref id="routingrds" name="Routing::RDS"> s
 This policy will perform a database lookup if calls to this destination should be forwarded.
 The configuration for this policy must be in the <ref id="routingforwarding" name="Routing::Forwarding"> section.
 
-NOTE: The <tt>explicit</tt> policy may not be in the routing chain behind the <tt>forwarding</tt> policy, but in can be in front of it.
+NOTE: The <tt>explicit</tt> policy may not be in the routing chain
+behind the <tt>forwarding</tt> policy, but it can be in front of it.
 
 <item><tt/catchall/<newline>
 <p>
