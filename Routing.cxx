@@ -47,12 +47,13 @@ const char *SectionName[] = {
 	"RoutingPolicy"
 };
 
+const unsigned DEFAULT_ROUTE_PRIORITY = 1;
 const long DEFAULT_ROUTE_REQUEST_TIMEOUT = 10;
 const char* const CTIsection = "CTI::Agents";
 
 bool DNSPolicy::m_resolveNonLocalLRQs = true;
 
-Route::Route() : m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_priority(1)
+Route::Route() : m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_priority(DEFAULT_ROUTE_PRIORITY)
 {
 	m_destAddr.SetTag(H225_TransportAddress::e_nonStandardAddress);	// set to an invalid address
 	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
@@ -298,7 +299,17 @@ bool Analyzer::Parse(AdmissionRequest & request)
 	ReadLock lock(m_reloadMutex);
 	request.SetRejectReason(H225_AdmissionRejectReason::e_calledPartyNotRegistered);
 	Policy *policy = ChoosePolicy(request.GetAliases(), m_rules[0]);
-	return policy ? policy->HandleRas(request) : false;
+	bool policyApplied = policy ? policy->HandleRas(request) : false;
+	if (!policyApplied && request.HasRoutes()) {
+		Route fallback;
+		request.GetFirstRoute(fallback);
+		const char * tagname = request.GetWrapper()
+			? request.GetWrapper()->GetTagName() : "unknown";
+		const unsigned seqnum = request.GetRequest().m_requestSeqNum.GetValue();
+		PTRACE(5, "ROUTING\t" << fallback.m_policy
+					<< " applied as fallback to the request " << tagname << ' ' << seqnum);
+	}
+	return policyApplied || request.HasRoutes();
 }
 
 bool Analyzer::Parse(LocationRequest & request)
@@ -306,7 +317,17 @@ bool Analyzer::Parse(LocationRequest & request)
 	ReadLock lock(m_reloadMutex);
 	request.SetRejectReason(H225_LocationRejectReason::e_requestDenied);
 	Policy *policy = ChoosePolicy(request.GetAliases(), m_rules[1]);
-	return policy ? policy->HandleRas(request) : false;
+	bool policyApplied = policy ? policy->HandleRas(request) : false;
+	if (!policyApplied && request.HasRoutes()) {
+		Route fallback;
+		request.GetFirstRoute(fallback);
+		const char * tagname = request.GetWrapper()
+			? request.GetWrapper()->GetTagName() : "unknown";
+		const unsigned seqnum = request.GetRequest().m_requestSeqNum.GetValue();
+		PTRACE(5, "ROUTING\t" << fallback.m_policy
+					<< " applied as fallback to the request " << tagname << ' ' << seqnum);
+	}
+	return policyApplied || request.HasRoutes();
 }
 
 bool Analyzer::Parse(SetupRequest & request)
@@ -314,7 +335,16 @@ bool Analyzer::Parse(SetupRequest & request)
 	ReadLock lock(m_reloadMutex);
 	request.SetRejectReason(H225_ReleaseCompleteReason::e_calledPartyNotRegistered);
 	Policy *policy = ChoosePolicy(request.GetAliases(), m_rules[2]);
-	return policy ? policy->Handle(request) : false;
+	bool policyApplied = policy ? policy->Handle(request) : false;
+	if (!policyApplied && request.HasRoutes()) {
+		Route fallback;
+		request.GetFirstRoute(fallback);
+		const PString tagname = request.GetWrapper()->GetTagName();
+		const unsigned crv = request.GetWrapper()->GetCallReference();
+		PTRACE(5, "ROUTING\t" << fallback.m_policy
+					<< " applied as fallback to the request " << tagname << " CRV=" << crv);
+	}
+	return policyApplied || request.HasRoutes();
 }
 
 bool Analyzer::Parse(FacilityRequest & request)
@@ -322,7 +352,16 @@ bool Analyzer::Parse(FacilityRequest & request)
 	ReadLock lock(m_reloadMutex);
 	request.SetRejectReason(H225_ReleaseCompleteReason::e_calledPartyNotRegistered);
 	Policy *policy = ChoosePolicy(request.GetAliases(), m_rules[3]);
-	return policy ? policy->Handle(request) : false;
+	bool policyApplied = policy ? policy->Handle(request) : false;
+	if (!policyApplied && request.HasRoutes()) {
+		Route fallback;
+		request.GetFirstRoute(fallback);
+		const PString tagname = request.GetWrapper()->GetTagName();
+		const unsigned crv = request.GetWrapper()->GetCallReference();
+		PTRACE(5, "ROUTING\t" << fallback.m_policy
+					<< " applied as fallback to the request " << tagname << " CRV=" << crv);
+	}
+	return policyApplied || request.HasRoutes();
 }
 
 Policy *Analyzer::Create(const PString & cfg)
@@ -1588,16 +1627,17 @@ bool DynamicPolicy::OnRequest(AdmissionRequest & request)
 			arq.m_destinationInfo = destination.GetNewAliases();
 		}
 
-		if (!destination.m_routes.empty()) {
+		if (!destination.m_routes.empty()
+			&& destination.m_routes.front().GetPriority() <= DEFAULT_ROUTE_PRIORITY) {
 			request.SetFlag(RoutingRequest::e_aliasesChanged);
 			if (!arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
 				arq.IncludeOptionalField(H225_AdmissionRequest::e_destCallSignalAddress);
 			}
 			arq.m_destCallSignalAddress = destination.m_routes.front().m_destAddr;
-			while (!destination.m_routes.empty()) {
-				request.AddRoute(destination.m_routes.front());
-				destination.m_routes.pop_front();
-			}
+		}
+		while (!destination.m_routes.empty()) {
+			request.AddRoute(destination.m_routes.front());
+			destination.m_routes.pop_front();
 		}
 
 		if (m_next == NULL || destination.EndPolicyChain())
@@ -1693,16 +1733,17 @@ bool DynamicPolicy::OnRequest(SetupRequest & request)
 		setup.m_destinationAddress = destination.GetNewAliases();
 	}
 
-	if (!destination.m_routes.empty()) {
+	if (!destination.m_routes.empty()
+		&& destination.m_routes.front().GetPriority() <= DEFAULT_ROUTE_PRIORITY) {
 		request.SetFlag(RoutingRequest::e_aliasesChanged);
 		if (!setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
 			setup.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 		}
 		setup.m_destCallSignalAddress = destination.m_routes.front().m_destAddr;
-		while (!destination.m_routes.empty()) {
-			request.AddRoute(destination.m_routes.front());
-			destination.m_routes.pop_front();
-		}
+	}
+	while (!destination.m_routes.empty()) {
+		request.AddRoute(destination.m_routes.front());
+		destination.m_routes.pop_front();
 	}
 
 	if (m_next == NULL || destination.EndPolicyChain())
