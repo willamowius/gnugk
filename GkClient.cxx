@@ -1704,6 +1704,9 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 	}
 
 	H225_VendorIdentifier & vendor = rrq.m_endpointVendor;
+	vendor.m_vendor.m_t35CountryCode = Toolkit::t35cPoland;
+	vendor.m_vendor.m_manufacturerCode = Toolkit::t35mGnuGk;
+	vendor.m_vendor.m_t35Extension = 0;
 	vendor.IncludeOptionalField(H225_VendorIdentifier::e_productId);
 	vendor.m_productId = PString(PString::Printf, "GNU Gatekeeper on %s %s %s, %s %s", (const unsigned char*)(PProcess::GetOSName()), (const unsigned char*)(PProcess::GetOSHardware()), (const unsigned char*)(PProcess::GetOSVersion()) ,__DATE__, __TIME__);
 	vendor.IncludeOptionalField(H225_VendorIdentifier::e_versionId);
