@@ -579,6 +579,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutingPolicy::OnLRQ", "*" },
 	{ "RoutingPolicy::OnSetup", "*" },
 	{ "SimplePasswordAuth", "*" },
+	{ "H350PasswordAuth", "*" },
 
 	{ NULL }	// the end
 };
