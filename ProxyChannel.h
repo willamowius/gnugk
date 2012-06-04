@@ -56,6 +56,8 @@ struct SetupAuthData;
 extern const char *RoutedSec;
 extern const char *ProxySection;
 
+const WORD DEFAULT_PACKET_BUFFER_SIZE = 2048;
+
 void PrintQ931(int, const char *, const char *, const Q931 *, const H225_H323_UserInformation *);
 
 bool GetUUIE(const Q931 & q931, H225_H323_UserInformation & uuie);
@@ -76,7 +78,7 @@ public:
 	ProxySocket(
 		IPSocket *self,
 		const char *type,
-		WORD buffSize = 1536
+		WORD buffSize = DEFAULT_PACKET_BUFFER_SIZE
 	);
 	virtual ~ProxySocket() = 0; // abstract class
 
@@ -400,7 +402,7 @@ class MultiplexRTPListener : public UDPSocket {
 	PCLASSINFO ( MultiplexRTPListener, UDPSocket )
 #endif
 public:
-	MultiplexRTPListener(WORD pt, WORD buffSize = 1536);
+	MultiplexRTPListener(WORD pt, WORD buffSize = DEFAULT_PACKET_BUFFER_SIZE);
 	virtual ~MultiplexRTPListener();
 
 	virtual int GetOSSocket() const { return os_handle; }
