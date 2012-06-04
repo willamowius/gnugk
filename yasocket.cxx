@@ -887,6 +887,7 @@ bool USocket::ErrorHandler(PSocket::ErrorGroup group)
 	{
 		case PSocket::Timeout:
 			PTRACE(4, msg << " Error(" << group << "): Timeout");
+			SNMP_TRAP(10, SNMPError, Network, "Socket timeout: " + Name());
 			break;
 		case PSocket::NoError:
 			if (group == PSocket::LastReadError) {
@@ -898,10 +899,10 @@ bool USocket::ErrorHandler(PSocket::ErrorGroup group)
 			PTRACE(3, msg << " Error(" << group << "): "
 				<< PSocket::GetErrorText(e) << " (" << e << ':'
 				<< self->GetErrorNumber(group) << ')');
+			SNMP_TRAP(10, SNMPError, Network, "Socket error " + PSocket::GetErrorText(e));
 			CloseSocket();
 			break;
 	}
-	SNMP_TRAP(10, SNMPError, Network, "Socket error " + PSocket::GetErrorText(e));
 	return false;
 }
 
