@@ -8586,6 +8586,11 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 	}
 
 	len = processed.GetSize() + rtpHeaderLen;
+	if (len > DEFAULT_PACKET_BUFFER_SIZE) {
+		PTRACE(1, "H235\tRTP packet to large, truncating");
+		len = DEFAULT_PACKET_BUFFER_SIZE;
+		processed.SetSize(DEFAULT_PACKET_BUFFER_SIZE - rtpHeaderLen);
+	}
 	memcpy(buffer+rtpHeaderLen, processed.GetPointer(), processed.GetSize());
 	//if (m_H235CryptoEngine->IsMaxBlocksPerKeyReached()) {	// many 100 GB
 	// find call by CallID, send key update command or request
