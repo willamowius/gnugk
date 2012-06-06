@@ -2003,6 +2003,7 @@ bool GkClient::OnDRQ(RasMsg * ras)
 bool GkClient::OnBRQ(RasMsg *ras)
 {
 	// lazy implementation, just reply confirm
+	// TODO: integrate into bandwidth management
 	H225_BandwidthRequest & brq = (*ras)->m_recvRAS;
 	(*ras)->m_replyRAS.SetTag(H225_RasMessage::e_bandwidthConfirm);
 	H225_BandwidthConfirm & bcf = (*ras)->m_replyRAS;
