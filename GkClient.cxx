@@ -1508,10 +1508,7 @@ bool GkClient::RewriteE164(H225_ArrayOf_AliasAddress & aliases, bool fromInterna
 	return changed;
 }
 
-bool GkClient::RewriteE164(
-	SetupMsg &setup, 
-	bool fromInternal
-	)
+bool GkClient::RewriteE164(SetupMsg & setup, bool fromInternal)
 {
 	Q931 &q931 = setup.GetQ931();
 	H225_Setup_UUIE &setupBody = setup.GetUUIEBody();
@@ -1991,7 +1988,7 @@ bool GkClient::OnURQ(RasMsg *ras)
 	return true;
 }
 
-bool GkClient::OnDRQ(RasMsg *ras)
+bool GkClient::OnDRQ(RasMsg * ras)
 {
 	H225_DisengageRequest & drq = (*ras)->m_recvRAS;
 	if (callptr call = drq.HasOptionalField(H225_DisengageRequest::e_callIdentifier) ? CallTable::Instance()->FindCallRec(drq.m_callIdentifier) : CallTable::Instance()->FindCallRec(drq.m_callReferenceValue))
@@ -2014,7 +2011,7 @@ bool GkClient::OnBRQ(RasMsg *ras)
 	return true;
 }
 
-bool GkClient::OnIRQ(RasMsg *ras)
+bool GkClient::OnIRQ(RasMsg * ras)
 {
 	H225_InfoRequest & irq = (*ras)->m_recvRAS;
 	(*ras)->m_replyRAS.SetTag(H225_RasMessage::e_infoRequestResponse);
