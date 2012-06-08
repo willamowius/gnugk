@@ -195,7 +195,17 @@ Valid options are <tt/Gateway/ or <tt/Terminal/.
 Default: <tt/GnuGk/<newline>
 <p>
 Choose parent gatekeeper type to enable vendor specific
-extensions.
+extensions. You can also specify just a triple of IDs (&lt;country&gt;,&lt;vendor&gt;,&lt;extension&gt;) to set
+the vendor ID without enabling any extensions.
+
+<descrip>
+<tag/Examples:/
+<tscreen><verb>
+Vendor=GnuGk
+; Acculab ID
+Vendor=222,173,0
+</verb></tscreen>
+</descrip>
 
 <item><tt/H323ID=ProxyGK/<newline>
 Default: <tt>&lt;Name&gt;</tt><newline>

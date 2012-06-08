@@ -1008,6 +1008,8 @@ void GkClient::OnReload()
 	m_authMode = -1;
 
 	PCaselessString s = GkConfig()->GetString(EndpointSection, "Vendor", "GnuGk");
+	if (s.Find(',') != P_MAX_INDEX)
+		s = "Generic";	// only set vendor ID, no extensions
 	if (s == "Generic" ||  s == "Unknown")
 		m_parentVendor = ParentVendor_Generic;
 	else if (s == "Cisco")
@@ -1704,6 +1706,13 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 	vendor.m_vendor.m_t35CountryCode = Toolkit::t35cPoland;
 	vendor.m_vendor.m_manufacturerCode = Toolkit::t35mGnuGk;
 	vendor.m_vendor.m_t35Extension = 0;
+	PString vendorId(GkConfig()->GetString(EndpointSection, "Vendor", ""));
+	if (vendorId.Find(',') != P_MAX_INDEX) {
+		PStringArray ids = vendorId.Tokenise(",", FALSE);
+		vendor.m_vendor.m_t35CountryCode = ids[0].AsUnsigned();
+		vendor.m_vendor.m_manufacturerCode = ids[1].AsUnsigned();
+		vendor.m_vendor.m_t35Extension = ids[2].AsUnsigned();
+	}
 	vendor.IncludeOptionalField(H225_VendorIdentifier::e_productId);
 	vendor.m_productId = PString(PString::Printf, "GNU Gatekeeper on %s %s %s, %s %s", (const unsigned char*)(PProcess::GetOSName()), (const unsigned char*)(PProcess::GetOSHardware()), (const unsigned char*)(PProcess::GetOSVersion()) ,__DATE__, __TIME__);
 	vendor.IncludeOptionalField(H225_VendorIdentifier::e_versionId);
