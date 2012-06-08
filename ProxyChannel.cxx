@@ -2654,8 +2654,8 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	time_t setupTime = time(0); // record the timestamp here since processing may take much time
 
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "GenerateCallProceeding", "0"))
-		&& !Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "UseProvisionalRespToH245Tunneling", "0"))) {
-		// TODO245
+		&& !Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "UseProvisionalRespToH245Tunneling", "0"))
+		&& !m_h245TunnelingTranslation) {
 		// disable H.245 tunneling when the gatekeeper generates the CP
 		H225_H323_UserInformation * uuie = msg->GetUUIE();
 		if ((uuie != NULL) && uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)) {
@@ -4140,7 +4140,7 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 				if (m_h225Version > 0 && m_h225Version < 4)
 					uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
 			}
-			uuie.m_h323_uu_pdu.m_h245Tunneling = msg->GetUUIE()->m_h323_uu_pdu.m_h245Tunneling;	// TODO245
+			uuie.m_h323_uu_pdu.m_h245Tunneling = (GetRemote() && GetRemote()->IsH245Tunneling());
 			msg->GetQ931() = q931;
 			*msg->GetUUIE() = uuie;
 			msg->SetUUIEChanged();
@@ -5664,7 +5664,10 @@ void CallSignalSocket::BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallI
 		signal.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_provisionalRespToH245Tunneling);
 	} else {
 		signal.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
-		signal.m_h323_uu_pdu.m_h245Tunneling.SetValue(false);	// TODO245
+		if (m_h245TunnelingTranslation)
+			signal.m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
+		else
+			signal.m_h323_uu_pdu.m_h245Tunneling.SetValue(false);
 	}
 	ProceedingPDU.BuildCallProceeding(crv);
 	SetUUIE(ProceedingPDU, signal);
