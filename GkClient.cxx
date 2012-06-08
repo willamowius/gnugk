@@ -1706,7 +1706,7 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 	vendor.m_vendor.m_t35CountryCode = Toolkit::t35cPoland;
 	vendor.m_vendor.m_manufacturerCode = Toolkit::t35mGnuGk;
 	vendor.m_vendor.m_t35Extension = 0;
-	PString vendorId(GkConfig()->GetString(EndpointSection, "Vendor", ""));
+	PString vendorId = GkConfig()->GetString(EndpointSection, "Vendor", "");
 	if (vendorId.Find(',') != P_MAX_INDEX) {
 		PStringArray ids = vendorId.Tokenise(",", FALSE);
 		vendor.m_vendor.m_t35CountryCode = ids[0].AsUnsigned();
@@ -1717,6 +1717,12 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 	vendor.m_productId = PString(PString::Printf, "GNU Gatekeeper on %s %s %s, %s %s", (const unsigned char*)(PProcess::GetOSName()), (const unsigned char*)(PProcess::GetOSHardware()), (const unsigned char*)(PProcess::GetOSVersion()) ,__DATE__, __TIME__);
 	vendor.IncludeOptionalField(H225_VendorIdentifier::e_versionId);
 	vendor.m_versionId = "Version " + PProcess::Current().GetVersion();
+	PString productId = GkConfig()->GetString(EndpointSection, "ProductId", "");
+	if (!productId.IsEmpty())
+		vendor.m_productId = productId;
+	PString productVersion = GkConfig()->GetString(EndpointSection, "ProductVersion", "");
+	if (!productVersion.IsEmpty())
+		vendor.m_versionId = productVersion;
 
 	// set user provided endpointIdentifier, if any
 	PString endpointId(GkConfig()->GetString(EndpointSection, "EndpointIdentifier", ""));

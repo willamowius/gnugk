@@ -114,6 +114,8 @@ const char * KnownConfigEntries[][2] = {
 	{ "Endpoint", "NATRetryInterval" },
 	{ "Endpoint", "Password" },
 	{ "Endpoint", "Prefix" },
+	{ "Endpoint", "ProductId" },
+	{ "Endpoint", "ProductVersion" },
 	{ "Endpoint", "RRQRetryInterval" },
 	{ "Endpoint", "TimeToLive" },
 	{ "Endpoint", "Type" },

@@ -207,6 +207,16 @@ Vendor=222,173,0
 </verb></tscreen>
 </descrip>
 
+<item><tt/ProductId=Any Product Name/<newline>
+Default: <tt/GnuGk's name/<newline>
+<p>
+This allows to set the product ID string in the registration request to solve interoperability issues.
+
+<item><tt/ProductVersion=1.2.3/<newline>
+Default: <tt/GnuGk version/<newline>
+<p>
+This allows to set the product version string in the registration request to solve interoperability issues.
+
 <item><tt/H323ID=ProxyGK/<newline>
 Default: <tt>&lt;Name&gt;</tt><newline>
 <p>
