@@ -195,7 +195,7 @@ Valid options are <tt/Gateway/ or <tt/Terminal/.
 Default: <tt/GnuGk/<newline>
 <p>
 Choose parent gatekeeper type to enable vendor specific
-extensions. You can also specify just a triple of IDs (&lt;country&gt;,&lt;vendor&gt;,&lt;extension&gt;) to set
+extensions. You can also specify just a triple of IDs (&lt;country&gt;,&lt;manufacturer&gt;,&lt;extension&gt;) to set
 the vendor ID without enabling any extensions.
 
 <descrip>
