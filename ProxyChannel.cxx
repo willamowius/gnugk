@@ -2573,21 +2573,21 @@ bool CallSignalSocket::IsH46024Call(const H225_Setup_UUIE & setupBody)
 }
 #endif
 
-#ifdef HAS_H46026
-bool CallSignalSocket::IsH46026Call(const H225_Setup_UUIE & setupBody)
-{
-	if (Toolkit::Instance()->IsH46026Enabled()
-		&& setupBody.HasOptionalField(H225_Setup_UUIE::e_neededFeatures)) {
-		const H225_ArrayOf_FeatureDescriptor & data = setupBody.m_neededFeatures;
-		for (PINDEX i =0; i < data.GetSize(); i++) {
-			H460_Feature & feat = (H460_Feature &)data[i];
-			if (feat.GetFeatureID() == H460_FeatureID(26)) 
-				return true;
-		}
-	}
-	return false;
-}
-#endif
+//#ifdef HAS_H46026
+//bool CallSignalSocket::IsH46026Call(const H225_Setup_UUIE & setupBody)
+//{
+//	if (Toolkit::Instance()->IsH46026Enabled()
+//		&& setupBody.HasOptionalField(H225_Setup_UUIE::e_neededFeatures)) {
+//		const H225_ArrayOf_FeatureDescriptor & data = setupBody.m_neededFeatures;
+//		for (PINDEX i =0; i < data.GetSize(); i++) {
+//			H460_Feature & feat = (H460_Feature &)data[i];
+//			if (feat.GetFeatureID() == H460_FeatureID(26)) 
+//				return true;
+//		}
+//	}
+//	return false;
+//}
+//#endif
 
 void CallSignalSocket::OnSetup(SignalingMsg *msg)
 {
@@ -3126,9 +3126,9 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		int natoffloadsupport = 0;
 #endif
 
-#ifdef HAS_H46026
-		PBoolean H46026IsTunneled = IsH46026Call(setupBody);	// TODO: unused now, but we'll probably need it when handling media
-#endif
+//#ifdef HAS_H46026
+//		PBoolean H46026IsTunneled = IsH46026Call(setupBody);	// unused now, but we'll probably need it when handling media
+//#endif
 
 		if (!rejectCall && useParent) {
 			gkClient->RewriteE164(*setup, false);
