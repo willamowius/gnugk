@@ -339,6 +339,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "CallingTypeOfNumber" },
 	{ "RoutedMode", "CpsCheckInterval" },
 	{ "RoutedMode", "CpsLimit" },
+	{ "RoutedMode", "DisableH245Tunneling" },
 	{ "RoutedMode", "DisableRetryChecks" },
 	{ "RoutedMode", "DropCallsByReleaseComplete" },
 	{ "RoutedMode", "ENUMservers" },
@@ -369,6 +370,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "GkRouted" },
 	{ "RoutedMode", "H245PortRange" },
 	{ "RoutedMode", "H245Routed" },
+	{ "RoutedMode", "H245TunnelingTranslation" },
 	{ "RoutedMode", "H4502EmulatorTransferMethod" },
 #ifdef HAS_H46018
 	{ "RoutedMode", "H46018NoNat" },

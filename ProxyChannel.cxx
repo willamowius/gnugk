@@ -29,6 +29,7 @@
 #include "sigmsg.h"
 #include "ProxyChannel.h"
 #include "config.h"
+#include <queue>
 
 #ifdef H323_H450
  #ifdef h323pluslib
@@ -437,7 +438,8 @@ public:
 	void SendH46018Indication();
 #endif
 	void SendTCS(H245_TerminalCapabilitySet * tcs);
-	bool Send(H245_MultimediaSystemControlMessage & h245msg);
+	bool Send(const H245_MultimediaSystemControlMessage & h245msg);
+	bool Send(const PASN_OctetString & h245msg);
 	H225_TransportAddress GetH245Address(const Address &);
 	bool SetH245Address(H225_TransportAddress & h245addr, const Address &);
 	bool Reverting(const H225_TransportAddress &);
@@ -1074,7 +1076,7 @@ bool TCPProxySocket::SetMinBufSize(WORD len)
 		delete [] wbuffer;
 		wbuffer = new BYTE[wbufsize = len];
 	}
-	return (wbuffer != 0);
+	return (wbuffer != NULL);
 }
 
 void TCPProxySocket::RemoveRemoteSocket()
@@ -1098,6 +1100,7 @@ CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD _port)
 	: TCPProxySocket("Q931d", socket, _port), m_callerSocket(false)
 {
 	InternalInit();
+	m_h245Tunneling = true;
 	SetRemote(socket);
 }
 
@@ -1106,6 +1109,7 @@ void CallSignalSocket::InternalInit()
 	m_crv = 0;
 	m_h245handler = NULL;
 	m_h245socket = NULL;
+	m_h245TunnelingTranslation = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "H245TunnelingTranslation", 0);
 	m_isnatsocket = false;
 	m_maintainConnection = false;
 	m_result = NoData;
@@ -1153,7 +1157,8 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 	m_call = socket->m_call;
 	m_call->SetSocket(socket, this);
 	m_crv = (socket->m_crv & 0x7fffu);
-	m_h245Tunneling = socket->m_h245Tunneling;
+	if (!m_h245TunnelingTranslation)
+		m_h245Tunneling = socket->m_h245Tunneling;
 	socket->GetPeerAddress(peerAddr, peerPort);
 	UnmapIPv4Address(peerAddr);
 	localAddr = RasServer::Instance()->GetLocalAddress(peerAddr);
@@ -1434,6 +1439,52 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		m_h245Tunneling = (uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)
 			&& uuie->m_h323_uu_pdu.m_h245Tunneling.GetValue());
 
+	PTRACE(0, "JW tunnel this=" << m_h245Tunneling << " remote=" << (GetRemote() && GetRemote()->m_h245Tunneling));
+	bool disableH245Tunneling = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "DisableH245Tunneling", "0"));
+	if (disableH245Tunneling)
+		m_h245Tunneling = false;
+
+	if (m_h245TunnelingTranslation) {
+		// un-tunnel H.245 messages
+		if (m_h245Tunneling && GetRemote() && !GetRemote()->m_h245Tunneling) {
+			if (uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Control)
+				&& uuie->m_h323_uu_pdu.m_h245Control.GetSize() > 0) {
+				PTRACE(0, "JW untunnel now: h245socket=" << m_h245socket << " connected=" << (m_h245socket ? m_h245socket->IsConnected() : false)
+					<< " remote h245socket=" << GetRemote()->m_h245socket << " connected=" << (GetRemote()->m_h245socket ? GetRemote()->m_h245socket->IsConnected() : false));
+				bool remoteHasH245Connection = (GetRemote()->m_h245socket && GetRemote()->m_h245socket->IsConnected());
+				for (PINDEX i = 0; i < uuie->m_h323_uu_pdu.m_h245Control.GetSize(); ++i) {
+					if (remoteHasH245Connection) {
+						GetRemote()->m_h245socket->Send(uuie->m_h323_uu_pdu.m_h245Control[i]);
+					} else {
+						PTRACE(0, "JW queue H.245 messages until connected");
+						m_h245Queue.push(uuie->m_h323_uu_pdu.m_h245Control[i]);
+					}
+				}
+			}
+			if (msg->GetTag() == Q931::ConnectMsg) {
+				PTRACE(0, "JW inject H.245 address into Connect");
+				ConnectMsg * connect = dynamic_cast<ConnectMsg*>(msg);
+				if (connect != NULL) {
+					H225_Connect_UUIE & connectBody = connect->GetUUIEBody();
+					connectBody.IncludeOptionalField(H225_Connect_UUIE::e_h245Address);	// just include the field, will be rewritten in a moment
+				}
+			}
+			uuie->m_h323_uu_pdu.RemoveOptionalField(H225_H323_UU_PDU::e_h245Control);
+			uuie->m_h323_uu_pdu.m_h245Tunneling.SetValue(false);
+			msg->SetUUIEChanged();
+		}
+		if (!m_h245Tunneling
+			&& ((msg->GetTag() == Q931::SetupMsg) || (GetRemote() && GetRemote()->m_h245Tunneling))) {
+			// switch tunneling always on in Setup, so remote side has a chance to do tunneling
+			// or switch it on if the remote side has signalled it supports it
+			uuie->m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+			uuie->m_h323_uu_pdu.m_h245Tunneling.SetValue(true);
+			if (disableH245Tunneling)
+				uuie->m_h323_uu_pdu.m_h245Tunneling.SetValue(false);
+			msg->SetUUIEChanged();
+		}
+	}
+
 #ifdef HAS_H46017
 	// check for incoming H.460.17 RAS message
 	if (msg->GetTag() == Q931::FacilityMsg
@@ -1550,15 +1601,6 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			// when call is not tunneled, the TCS comes later and goes through automatically
 
 			// build TCS
-			Q931 q931;
-			H225_H323_UserInformation uuie;
-			PBYTEArray lBuffer;
-			BuildFacilityPDU(q931, 0);
-			GetUUIE(q931, uuie);
-			uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
-			uuie.m_h323_uu_pdu.m_h245Tunneling = TRUE;
-			uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Control);
-			uuie.m_h323_uu_pdu.m_h245Control.SetSize(1);
 			H245_MultimediaSystemControlMessage h245msg;
 			h245msg.SetTag(H245_MultimediaSystemControlMessage::e_request);
 			H245_RequestMessage & h245req = h245msg;
@@ -1566,17 +1608,12 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			H245_TerminalCapabilitySet & tcs = h245req;
 			tcs = GetSavedTCS();	// TODO: is this the right side, or should we use remote->GetSavedTCS() ?
 			tcs.m_protocolIdentifier.SetValue(H245_ProtocolID);
-			uuie.m_h323_uu_pdu.m_h245Control[0].EncodeSubType(h245msg);
-			SetUUIE(q931, uuie);
-			q931.Encode(lBuffer);
 
 			// send TCS to forwarded party
-			if (m_call->GetRerouteDirection() == Called) {
-				PrintQ931(3, "Send to ", m_call->GetCallSignalSocketCalled()->GetName(), &q931, &uuie);
-				m_call->GetCallSignalSocketCalled()->TransmitData(lBuffer);
-			} else {
-				PrintQ931(3, "Send to ", m_call->GetCallSignalSocketCalling()->GetName(), &q931, &uuie);
-				m_call->GetCallSignalSocketCalling()->TransmitData(lBuffer);
+			if ((m_call->GetRerouteDirection() == Called) && m_call->GetCallSignalSocketCalled()) {
+				m_call->GetCallSignalSocketCalled()->SendTunneledH245(h245msg);
+			} else if (m_call->GetCallSignalSocketCalling()) {
+				m_call->GetCallSignalSocketCalling()->SendTunneledH245(h245msg);
 			}
 		}
 
@@ -1680,6 +1717,17 @@ void CallSignalSocket::SendReleaseComplete(H225_ReleaseCompleteReason::Choices r
 	SendReleaseComplete(&cause);
 }
 
+// calling party must delete returned pointer
+PASN_OctetString * CallSignalSocket::GetNextQueuedH245Message()
+{
+	if (m_h245Queue.empty())
+		return NULL;
+	PASN_OctetString * result = new PASN_OctetString(m_h245Queue.front());
+	m_h245Queue.pop();
+	return result;
+}
+
+
 bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245Socket * h245sock)
 {
 	bool changed = false;
@@ -1694,30 +1742,27 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 	// remove t38FaxUdpOptions from t38FaxProfile eg. for Avaya Communication Manager
 	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request
 		&& ((H245_RequestMessage &) h245msg).GetTag() == H245_RequestMessage::e_requestMode
-	&& Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveFaxUDPOptionsFromRM", "0"))
-	) {
-			H245_RequestMode & rm = (H245_RequestMessage &) h245msg;
-			for(PINDEX i = 0; i < rm.m_requestedModes.GetSize(); i++) {
-					for(PINDEX j = 0; j < rm.m_requestedModes[i].GetSize(); j++) {
-							if(rm.m_requestedModes[i][j].m_type.GetTag() == H245_ModeElementType::e_dataMode) {
-									H245_DataMode & dm = (H245_DataMode &) rm.m_requestedModes[i][j].m_type;
-									if(dm.m_application.GetTag() == H245_DataMode_application::e_t38fax) {
-											H245_DataMode_application_t38fax & t38fax = (H245_DataMode_application_t38fax &) dm.m_application;
-											if(
-													t38fax.m_t38FaxProtocol.GetTag() == H245_DataProtocolCapability::e_udp
-													&& t38fax.m_t38FaxProfile.HasOptionalField(H245_T38FaxProfile::e_t38FaxUdpOptions)
-											) {
-													PTRACE(2, "H245\tRemoving t38FaxUdpOptions received in RM from " << GetName());
-													t38fax.m_t38FaxProfile.RemoveOptionalField(H245_T38FaxProfile::e_t38FaxUdpOptions);
-											}
-									}
-							}
+		&& Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveFaxUDPOptionsFromRM", "0"))) {
+		H245_RequestMode & rm = (H245_RequestMessage &) h245msg;
+		for(PINDEX i = 0; i < rm.m_requestedModes.GetSize(); i++) {
+			for(PINDEX j = 0; j < rm.m_requestedModes[i].GetSize(); j++) {
+				if(rm.m_requestedModes[i][j].m_type.GetTag() == H245_ModeElementType::e_dataMode) {
+					H245_DataMode & dm = (H245_DataMode &) rm.m_requestedModes[i][j].m_type;
+					if(dm.m_application.GetTag() == H245_DataMode_application::e_t38fax) {
+						H245_DataMode_application_t38fax & t38fax = (H245_DataMode_application_t38fax &) dm.m_application;
+						if (t38fax.m_t38FaxProtocol.GetTag() == H245_DataProtocolCapability::e_udp
+							&& t38fax.m_t38FaxProfile.HasOptionalField(H245_T38FaxProfile::e_t38FaxUdpOptions)) {
+								PTRACE(2, "H245\tRemoving t38FaxUdpOptions received in RM from " << GetName());
+								t38fax.m_t38FaxProfile.RemoveOptionalField(H245_T38FaxProfile::e_t38FaxUdpOptions);
+						}
 					}
+				}
 			}
+		}
 	}
 
 	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request
-			&& ((H245_RequestMessage&)h245msg).GetTag() == H245_RequestMessage::e_openLogicalChannel) {
+		&& ((H245_RequestMessage&)h245msg).GetTag() == H245_RequestMessage::e_openLogicalChannel) {
 		H245_OpenLogicalChannel & olc = (H245_RequestMessage&)h245msg;
 #ifdef HAS_H235_MEDIA
         changed = HandleH235OLC(olc);
@@ -2610,6 +2655,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "GenerateCallProceeding", "0"))
 		&& !Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "UseProvisionalRespToH245Tunneling", "0"))) {
+		// TODO245
 		// disable H.245 tunneling when the gatekeeper generates the CP
 		H225_H323_UserInformation * uuie = msg->GetUUIE();
 		if ((uuie != NULL) && uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)) {
@@ -3552,8 +3598,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		setupBody.m_multipleCalls = FALSE;
 
 	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_maintainConnection)) {
-		CallSignalSocket * other = dynamic_cast<CallSignalSocket *>(remote);
-		setupBody.m_maintainConnection = (other && other->MaintainConnection());
+		setupBody.m_maintainConnection = (GetRemote() && GetRemote()->MaintainConnection());
 	}
 
 	const PString cli = toolkit->Config()->GetString(RoutedSec, "ScreenCallingPartyNumberIE", "");
@@ -3969,11 +4014,9 @@ bool CallSignalSocket::IsTraversalServer() const
 };
 #endif
 
-void CallSignalSocket::OnCallProceeding(
-	SignalingMsg *msg
-	)
+void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 {
-	CallProceedingMsg *callProceeding = dynamic_cast<CallProceedingMsg*>(msg);
+	CallProceedingMsg * callProceeding = dynamic_cast<CallProceedingMsg*>(msg);
 	if (callProceeding == NULL) {
 		PTRACE(2, Type() << "\tError: CallProceeding message from " << Name() << " without associated UUIE");
 		SNMP_TRAP(9, SNMPError, Network, "CallProceeding from " + GetName() + " has no UUIE");
@@ -3997,8 +4040,7 @@ void CallSignalSocket::OnCallProceeding(
 		msg->SetUUIEChanged();
 	}
 	if (cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_maintainConnection)) {
-		CallSignalSocket * other = dynamic_cast<CallSignalSocket *>(remote);
-		cpBody.m_maintainConnection = (other && other->MaintainConnection());
+		cpBody.m_maintainConnection = (GetRemote() && GetRemote()->MaintainConnection());
 		msg->SetUUIEChanged();
 	}
 
@@ -4098,7 +4140,7 @@ void CallSignalSocket::OnCallProceeding(
 				if (m_h225Version > 0 && m_h225Version < 4)
 					uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
 			}
-			uuie.m_h323_uu_pdu.m_h245Tunneling = msg->GetUUIE()->m_h323_uu_pdu.m_h245Tunneling;
+			uuie.m_h323_uu_pdu.m_h245Tunneling = msg->GetUUIE()->m_h323_uu_pdu.m_h245Tunneling;	// TODO245
 			msg->GetQ931() = q931;
 			*msg->GetUUIE() = uuie;
 			msg->SetUUIEChanged();
@@ -4118,7 +4160,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 		return;
 	}
 
-	H225_Connect_UUIE &connectBody = connect->GetUUIEBody();
+	H225_Connect_UUIE & connectBody = connect->GetUUIEBody();
 
 	m_h225Version = GetH225Version(connectBody);
 
@@ -4139,8 +4181,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 		msg->SetUUIEChanged();
 	}
 	if (connectBody.HasOptionalField(H225_Connect_UUIE::e_maintainConnection)) {
-		CallSignalSocket * other = dynamic_cast<CallSignalSocket *>(remote);
-		connectBody.m_maintainConnection = (other && other->MaintainConnection());
+		connectBody.m_maintainConnection = (GetRemote() && GetRemote()->MaintainConnection());
 		msg->SetUUIEChanged();
 	}
 
@@ -4323,8 +4364,7 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 		msg->SetUUIEChanged();
 	}
 	if (alertingBody.HasOptionalField(H225_Alerting_UUIE::e_maintainConnection)) {
-		CallSignalSocket * other = dynamic_cast<CallSignalSocket *>(remote);
-		alertingBody.m_maintainConnection = (other && other->MaintainConnection());
+		alertingBody.m_maintainConnection = (GetRemote() && GetRemote()->MaintainConnection());
 		msg->SetUUIEChanged();
 	}
 
@@ -5086,8 +5126,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 		msg->SetUUIEChanged();
 	}
 	if (facilityBody.HasOptionalField(H225_Facility_UUIE::e_maintainConnection)) {
-		CallSignalSocket * other = dynamic_cast<CallSignalSocket *>(remote);
-		facilityBody.m_maintainConnection = (other && other->MaintainConnection());
+		facilityBody.m_maintainConnection = (GetRemote() && GetRemote()->MaintainConnection());
 		msg->SetUUIEChanged();
 	}
 
@@ -5098,6 +5137,10 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					&& facilityBody.m_protocolIdentifier.GetValue().IsEmpty()) {
 				if (m_h245socket && m_h245socket->Reverting(facilityBody.m_h245Address))
 					m_result = NoData;
+			}
+			if (m_h245TunnelingTranslation && !m_h245Tunneling && GetRemote() && GetRemote()->m_h245Tunneling) {
+				// don't forward to tunneling side TODO245 does the gk have to act here ?
+				m_result = NoData;
 			}
 #ifdef HAS_H46018
 			// don't forward startH245 to traversal server
@@ -5345,8 +5388,7 @@ void CallSignalSocket::OnProgress(
 		msg->SetUUIEChanged();
 	}
 	if (progressBody.HasOptionalField(H225_Progress_UUIE::e_maintainConnection)) {
-		CallSignalSocket * other = dynamic_cast<CallSignalSocket *>(remote);
-		progressBody.m_maintainConnection = (other && other->MaintainConnection());
+		progressBody.m_maintainConnection = (GetRemote() && GetRemote()->MaintainConnection());
 		msg->SetUUIEChanged();
 	}
 
@@ -5622,7 +5664,7 @@ void CallSignalSocket::BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallI
 		signal.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_provisionalRespToH245Tunneling);
 	} else {
 		signal.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
-		signal.m_h323_uu_pdu.m_h245Tunneling.SetValue(false);
+		signal.m_h323_uu_pdu.m_h245Tunneling.SetValue(false);	// TODO245
 	}
 	ProceedingPDU.BuildCallProceeding(crv);
 	SetUUIE(ProceedingPDU, signal);
@@ -6073,7 +6115,27 @@ void CallSignalSocket::DispatchNextRoute()
 	delete this; // oh!
 }
 
-bool CallSignalSocket::SendTunneledH245(H245_MultimediaSystemControlMessage & h245msg)
+bool CallSignalSocket::SendTunneledH245(const PPER_Stream & strm)
+{
+	// TODO: refactor to share code with other signature
+	Q931 q931;
+	H225_H323_UserInformation uuie;
+	PBYTEArray lBuffer;
+	BuildFacilityPDU(q931, 0);
+	GetUUIE(q931, uuie);
+	uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
+	uuie.m_h323_uu_pdu.m_h245Tunneling = TRUE;
+	uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Control);
+	uuie.m_h323_uu_pdu.m_h245Control.SetSize(1);
+	uuie.m_h323_uu_pdu.m_h245Control[0].SetValue(strm);
+	SetUUIE(q931, uuie);
+	q931.Encode(lBuffer);
+
+	PrintQ931(3, "Send to ", GetName(), &q931, &uuie);
+	return TransmitData(lBuffer);
+}
+
+bool CallSignalSocket::SendTunneledH245(const H245_MultimediaSystemControlMessage & h245msg)
 {
 	Q931 q931;
 	H225_H323_UserInformation uuie;
@@ -6084,7 +6146,6 @@ bool CallSignalSocket::SendTunneledH245(H245_MultimediaSystemControlMessage & h2
 	uuie.m_h323_uu_pdu.m_h245Tunneling = TRUE;
 	uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Control);
 	uuie.m_h323_uu_pdu.m_h245Control.SetSize(1);
-	h245msg.SetTag(H245_MultimediaSystemControlMessage::e_request);
 	uuie.m_h323_uu_pdu.m_h245Control[0].EncodeSubType(h245msg);
 	SetUUIE(q931, uuie);
 	q931.Encode(lBuffer);
@@ -6095,7 +6156,9 @@ bool CallSignalSocket::SendTunneledH245(H245_MultimediaSystemControlMessage & h2
 
 bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 {
-	if (m_h245Tunneling && Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH245AddressOnTunneling", "0")))
+	// TODO245 always do this when tunneling proxy is on, but also connect back to the H.245 address, nobody else will
+	if (GetRemote() && GetRemote()->m_h245Tunneling
+		&& Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH245AddressOnTunneling", "0")))
 		return false;
 	if (!m_h245handler) // not H.245 routed
 		return true;
@@ -6454,6 +6517,28 @@ void H245Socket::OnSignalingChannelClosed()
 void H245Socket::ConnectTo()
 {
 	if (remote->Accept(*listener)) {
+		PTRACE(0, "JW H.245 Connect tunnel this=" << (sigSocket && sigSocket->IsH245Tunneling())
+				<< " remote=" << (sigSocket && sigSocket->GetRemote() && sigSocket->GetRemote()->IsH245Tunneling()));
+		if (sigSocket && sigSocket->IsH245Tunneling() && sigSocket->IsH245TunnelingTranslation()) {
+			PTRACE(0, "JW H.245 connect for tunneling leg - must be mixed mode");
+			H245Socket * remoteH245Socket = dynamic_cast<H245Socket *>(remote);
+			if (remoteH245Socket && sigSocket->GetRemote()) {
+				ConfigReloadMutex.StartRead();
+				remote->SetConnected(true);
+				SetConnected(true);	// avoid deletion of this unconnected socket
+				GetHandler()->Insert(this, remote);
+				ConfigReloadMutex.EndRead();
+				// send all queued H.245 messages now
+				while (PASN_OctetString * h245msg = sigSocket->GetNextQueuedH245Message()) {
+					PTRACE(0, "JW dequeue");
+					if (!remoteH245Socket->Send(*h245msg)) {
+						PTRACE(0, "JW H.245 queued Send() failed");
+					}
+					delete h245msg;
+				}
+			}
+			return;
+		}
 		if (ConnectRemote()) {
 			ConfigReloadMutex.StartRead();
 			SetConnected(true);
@@ -6567,6 +6652,15 @@ ProxySocket::Result H245Socket::ReceiveData()
 	if (suppress)
 		return NoData;	// eg. H.460.18 genericIndication
 	else {
+		if (sigSocket && sigSocket->GetRemote()
+			&& sigSocket->GetRemote()->IsH245Tunneling()
+			&& sigSocket->GetRemote()->IsH245TunnelingTranslation()) {
+			PTRACE(0, "JW H.245 ReceiveData() - remote is tunneling must en-tunnel here");
+			if (!sigSocket->GetRemote()->SendTunneledH245(strm)) {
+				PTRACE(1, "Error: H.245 tunnel send failed");
+			}
+			return NoData;	// already forwarded through tunnel
+		}
 		return Forwarding;
 	}
 }
@@ -6675,7 +6769,7 @@ void H245Socket::SendTCS(H245_TerminalCapabilitySet * tcs)
 	PTRACE(4, "H245\tSend TerminalCapabilitySet to " << GetName());
 }
 
-bool H245Socket::Send(H245_MultimediaSystemControlMessage & h245msg)
+bool H245Socket::Send(const H245_MultimediaSystemControlMessage & h245msg)
 {
 	if (!IsConnected()) {
 		return false;
@@ -6690,6 +6784,18 @@ bool H245Socket::Send(H245_MultimediaSystemControlMessage & h245msg)
 	}
 	PTRACE(4, "H245\tSend H.245 message to " << GetName());
 	return true;
+}
+
+bool H245Socket::Send(const PASN_OctetString & octets)
+{
+	PPER_Stream strm(octets);
+	H245_MultimediaSystemControlMessage h245msg;
+	if (!h245msg.Decode(strm)) {
+		PTRACE(3, "H245\tERROR DECODING H.245");
+		SNMP_TRAP(7, SNMPError, General, "Decoding H.245 failed");
+		return false;
+	}
+	return Send(h245msg);
 }
 
 #ifdef LARGE_FDSET
@@ -8585,6 +8691,7 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 		payloadType = m_plainPayloadType;
 	}
 
+	// check max buffer size
 	len = processed.GetSize() + rtpHeaderLen;
 	if (len > DEFAULT_PACKET_BUFFER_SIZE) {
 		PTRACE(1, "H235\tRTP packet to large, truncating");

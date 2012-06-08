@@ -186,6 +186,9 @@ public:
 	void SendReleaseComplete(const H225_CallTerminationCause * = NULL);
 	void SendReleaseComplete(H225_ReleaseCompleteReason::Choices);
 
+	bool IsH245Tunneling() const { return m_h245Tunneling; }
+	bool IsH245TunnelingTranslation() const { return m_h245TunnelingTranslation; }
+	PASN_OctetString * GetNextQueuedH245Message();
 	bool HandleH245Mesg(PPER_Stream &, bool & suppress, H245Socket * h245sock = NULL);
 	void OnH245ChannelClosed() { m_h245socket = NULL; }
 	Address GetLocalAddr() { return localAddr; }
@@ -211,7 +214,8 @@ public:
 	void RemoveH245Handler();
 	void SaveTCS(const H245_TerminalCapabilitySet & tcs) { m_savedTCS = tcs; }
 	H245_TerminalCapabilitySet GetSavedTCS() const { return m_savedTCS; }
-	bool SendTunneledH245(H245_MultimediaSystemControlMessage & h245msg);
+	bool SendTunneledH245(const H245_MultimediaSystemControlMessage & h245msg);
+	bool SendTunneledH245(const PPER_Stream & strm);
 #ifdef HAS_H235_MEDIA
     bool HandleH235TCS(H245_TerminalCapabilitySet & tcs);
     bool HandleH235OLC(H245_OpenLogicalChannel & olc);
@@ -251,9 +255,9 @@ public:
 	bool IsH46026Call(const H225_Setup_UUIE & setupBody);
 #endif
 
-protected:
 	CallSignalSocket * GetRemote() const { return dynamic_cast<CallSignalSocket *>(remote); }
 
+protected:
 	void ForwardCall(FacilityMsg *msg);
 
 	/// signaling message handlers
@@ -348,9 +352,11 @@ protected:
 
 private:
 	WORD m_crv;
-	H245Handler *m_h245handler;
-	H245Socket *m_h245socket;
+	H245Handler * m_h245handler;
+	H245Socket * m_h245socket;
 	bool m_h245Tunneling;
+	bool m_h245TunnelingTranslation;
+	std::queue<PASN_OctetString> m_h245Queue;
 	bool m_isnatsocket;
 	bool m_maintainConnection;	// eg. for H.460.17
 	Result m_result;
