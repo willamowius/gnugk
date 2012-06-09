@@ -5538,7 +5538,7 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 		case H225_FacilityReason::e_startH245:
 			uuie.IncludeOptionalField(H225_Facility_UUIE::e_h245Address);
 			if (CallSignalSocket *ret = dynamic_cast<CallSignalSocket *>(remote)) {
-				uuie.m_h245Address = m_h245socket->GetH245Address(ret->localAddr);
+				uuie.m_h245Address = m_h245socket->GetH245Address(ret->masqAddr);
 			} else {
 				PTRACE(2, "Warning: " << GetName() << " has no remote party?");
 			}
