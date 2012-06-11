@@ -194,9 +194,10 @@ Valid options are <tt/Gateway/ or <tt/Terminal/.
 <item><tt/Vendor=Cisco | GnuGk | Generic/<newline>
 Default: <tt/GnuGk/<newline>
 <p>
-Choose parent gatekeeper type to enable vendor specific
-extensions. You can also specify just a triple of IDs (&lt;country&gt;,&lt;manufacturer&gt;,&lt;extension&gt;) to set
-the vendor ID without enabling any extensions.
+Choose parent gatekeeper type to enable vendor specific extensions.  This
+setting can also be configured by specifying the triplet of T.35 IDs
+(&lt;country&gt;,&lt;manufacturer&gt;,&lt;extension&gt;) for the vendor to
+set the vendor ID without enabling any extensions.
 
 <descrip>
 <tag/Examples:/
@@ -210,17 +211,20 @@ Vendor=222,173,0
 <item><tt/HideGk=1/<newline>
 Default: <tt/0/<newline>
 <p>
-Hide the fact taht a gatekeeper is registering, eg. don't set gatekeeper flag in terminal type.
+Hide the fact that a gatekeeper is registering, eg. don't set gatekeeper flag in terminal type.
 
 <item><tt/ProductId=Any Product Name/<newline>
 Default: <tt/GnuGk's name/<newline>
 <p>
-This allows to set the product ID string in the registration request to solve interoperability issues.
+This setting will allow you to configure the "product ID" string used in the
+registration request.  The primary use of this setting would be to solve
+interoperability issues.
 
 <item><tt/ProductVersion=1.2.3/<newline>
 Default: <tt/GnuGk version/<newline>
 <p>
-This allows to set the product version string in the registration request to solve interoperability issues.
+This setting allows you to configure the product version string in the
+registration request in order to solve interoperability issues.
 
 <item><tt/H323ID=ProxyGK/<newline>
 Default: <tt>&lt;Name&gt;</tt><newline>

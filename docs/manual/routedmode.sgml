@@ -114,9 +114,11 @@ Force both sides of a call to disable H.245 tunneling.
 <item><tt/H245TunnelingTranslation=1/<newline>
 Default: <tt/0/<newline>
 <p>
-Allow one side of a call to use H.245 tunneling while the other side is not using tunneling.
-The gatekeeper will convert the H245 message appropriately. This reduces the port usage for
-the tunneling side.
+Allow one side of a call to use H.245 tunneling even if the other side does
+not, with the gatekeeper performing the appropriate H.245 message
+conversion.  This will reduce the number of ports required on the tunneling
+side of the connection.
+
 
 <item><tt/RemoveCallOnDRQ=0/<newline>
 Default: <tt/1/<newline>
