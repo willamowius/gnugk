@@ -1028,9 +1028,7 @@ void GkClient::OnReload()
 	
 	m_discoverParent = Toolkit::AsBool(cfg->GetString(EndpointSection, "Discovery", "1"));
 
-	m_h323Id = cfg->GetString(
-		EndpointSection, "H323ID", (const char *)Toolkit::GKName()
-		).Tokenise(" ,;\t", FALSE);
+	m_h323Id = cfg->GetString(EndpointSection, "H323ID", (const char *)Toolkit::GKName()).Tokenise(" ,;\t", FALSE);
 	m_e164 = cfg->GetString(EndpointSection, "E164", "").Tokenise(" ,;\t", FALSE);
 	
 	PIPSocket::Address gkaddr = m_gkaddr;
@@ -1735,6 +1733,12 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 		rrq.m_gatekeeperIdentifier = m_gatekeeperId;
 	}
 	rrq.m_keepAlive = FALSE;
+	
+	// include passowrd as crypto token
+	if (!m_password.IsEmpty()) {
+		rrq.IncludeOptionalField(H225_RegistrationRequest::e_cryptoTokens);
+		SetCryptoTokens(rrq.m_cryptoTokens, rrq.m_terminalAlias.GetSize() ? AsString(rrq.m_terminalAlias[0], false) : "");
+	}
 }
 
 void GkClient::BuildLightWeightRRQ(H225_RegistrationRequest & rrq)
@@ -2094,8 +2098,8 @@ void GkClient::SetCallSignalAddress(H225_ArrayOf_TransportAddress & addr)
 }
 
 void GkClient::SetNBPassword(
-	H225_LocationRequest& lrq, /// LRQ message to be filled with tokens
-	const PString& id // login name
+	H225_LocationRequest & lrq, /// LRQ message to be filled with tokens
+	const PString & id // login name
 	)
 {
 	if (!m_password) {
