@@ -428,6 +428,7 @@ public:
 
 	void ConnectTo();
 	void ConnectToRerouteDestination();
+	void ConnectToDirectly();
 
 	// override from class ProxySocket
     virtual Result ReceiveData();
@@ -1466,7 +1467,8 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 				ConnectMsg * connect = dynamic_cast<ConnectMsg*>(msg);
 				if (connect != NULL) {
 					H225_Connect_UUIE & connectBody = connect->GetUUIEBody();
-					connectBody.IncludeOptionalField(H225_Connect_UUIE::e_h245Address);	// just include the field, will be rewritten in a moment
+					connectBody.IncludeOptionalField(H225_Connect_UUIE::e_h245Address);
+					connectBody.m_h245Address = SocketToH225TransportAddr(masqAddr, 1);
 				}
 			}
 			uuie->m_h323_uu_pdu.RemoveOptionalField(H225_H323_UU_PDU::e_h245Control);
@@ -6159,9 +6161,9 @@ bool CallSignalSocket::SendTunneledH245(const H245_MultimediaSystemControlMessag
 
 bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 {
-	// TODO245 always do this when tunneling proxy is on, but also connect back to the H.245 address, nobody else will
 	if (GetRemote() && GetRemote()->m_h245Tunneling
-		&& Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH245AddressOnTunneling", "0")))
+		&& Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH245AddressOnTunneling", "0"))
+		&& !m_h245TunnelingTranslation)
 		return false;
 	if (!m_h245handler) // not H.245 routed
 		return true;
@@ -6193,8 +6195,12 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 		ret->m_h245socket = new H245Socket(m_h245socket, ret);
 	}
 	m_h245socket->SetH245Address(h245addr, masqAddr);
-	// if in reroute, don't listen, actively connect to the other side, half of the H.245 connection is already up
+	if (m_h245TunnelingTranslation) {
+		CreateJob(m_h245socket, &H245Socket::ConnectToDirectly, "H245ActiveConnector");	// connnect directly
+		return (GetRemote() && !GetRemote()->m_h245Tunneling);	// remove H.245Addresss from message if it goes to non-tunneling side
+	}
 	if (m_call->GetRerouteState() == RerouteInitiated) {
+		// if in reroute, don't listen, actively connect to the other side, half of the H.245 connection is already up
 		m_h245socket->SetRemoteSocket(ret->m_h245socket);
 		ret->m_h245socket->SetRemoteSocket(m_h245socket);
 		CreateJob(m_h245socket, &H245Socket::ConnectToRerouteDestination, "H245RerouteConnector");
@@ -6641,6 +6647,18 @@ void H245Socket::ConnectToRerouteDestination()
 	GetHandler()->Insert(this, remote);
 }
 
+// called for H.245 tunneling translation
+void H245Socket::ConnectToDirectly()
+{
+	if (ConnectRemote()) {
+		ConfigReloadMutex.StartRead();
+		SetConnected(true);
+		remote->SetConnected(true);
+		GetHandler()->Insert(this, remote);
+		ConfigReloadMutex.EndRead();
+	}
+}
+
 ProxySocket::Result H245Socket::ReceiveData()
 {
 	if (!ReadTPKT())
@@ -6876,7 +6894,7 @@ H225_TransportAddress H245Socket::GetH245Address(const Address & myip)
 bool H245Socket::SetH245Address(H225_TransportAddress & h245addr, const Address & myip)
 {
 	bool swapped = false;
-	H245Socket *socket = NULL;
+	H245Socket * socket = NULL;
 
 	// peerH245Address may be accessed from multiple threads
 	m_signalingSocketMutex.Wait();
