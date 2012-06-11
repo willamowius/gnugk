@@ -1663,7 +1663,8 @@ void GkClient::BuildRRQ(H225_RegistrationRequest & rrq)
 
 void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 {
-	rrq.m_terminalType.IncludeOptionalField(H225_EndpointType::e_gatekeeper);
+	if (!Toolkit::AsBool(GkConfig()->GetInteger(EndpointSection, "HideGk", 0)))
+		rrq.m_terminalType.IncludeOptionalField(H225_EndpointType::e_gatekeeper);
 
 	PINDEX as;
 	if (m_endpointType == EndpointType_Terminal) {
@@ -1681,8 +1682,6 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 			for (PINDEX p = 0; p < as; ++p)
 				H323SetAliasAddress(m_prefixes[p].Trim(), voicecap.m_supportedPrefixes[p].m_prefix);
 		}
-//		rrq.IncludeOptionalField(H225_RegistrationRequest::e_multipleCalls);
-//		rrq.m_multipleCalls = FALSE;
 	}
 
 	rrq.IncludeOptionalField(H225_RegistrationRequest::e_terminalAlias);

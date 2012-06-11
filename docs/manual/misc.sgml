@@ -207,6 +207,11 @@ Vendor=222,173,0
 </verb></tscreen>
 </descrip>
 
+<item><tt/HideGk=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Hide the fact taht a gatekeeper is registering, eg. don't set gatekeeper flag in terminal type.
+
 <item><tt/ProductId=Any Product Name/<newline>
 Default: <tt/GnuGk's name/<newline>
 <p>
