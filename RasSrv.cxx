@@ -2003,12 +2003,12 @@ bool RegistrationRequestPDU::Process()
 				  PTRACE(4, "Std23\tEndpoint reports itself as being behind a NAT/FW!");
 				  PTRACE(4, "Std23\tNAT/FW reported as being " << ep->GetEPNATTypeString((EndpointRec::EPNatTypes)ntype));
 				  ep->SetNAT(true);
-				  ep->SetH46024(false);
 				  ep->SetNATAddress(rx_addr, rx_port);
 				} else {
 					if (ntype == 0) {
 						PTRACE(4, "Std23\tEndpoint instructs H.460.23/.24 to be disabled (BAD NAT)");
-					    ep->SetUsesH46023(false);
+						ep->SetH46024(false);
+						ep->SetUsesH46023(false);
 					} else {
 						PTRACE(4, "Std23\tEndpoint reports itself as not behind a NAT/FW!");
 						ep->SetCallSignalAddress(originalCallSigAddress);
