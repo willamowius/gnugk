@@ -286,8 +286,8 @@ protected:
 				m_call->SetH245ResponseReceived();
 			if (SetH245Address(uu.m_h245Address))
 				return (m_h245handler != NULL);
-			uu.RemoveOptionalField(UUIE::e_h245Address);
-			return true;
+			//uu.RemoveOptionalField(UUIE::e_h245Address);  - REMOVED TEMPORARILY to make things work! - SH
+			//return true;
 		}
 		return false;
 	}
