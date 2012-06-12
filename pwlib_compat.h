@@ -49,12 +49,6 @@
 	#endif
 #endif
 
-// define PWCharArray for PWLib < 2.x.x
-#if PTLIB_MAJOR < 2
-	#define PWCharArray PWORDArray
-#endif
-
-
 #if !defined(P_USE_STANDARD_CXX_BOOL) && !defined(P_USE_INTEGER_BOOL)
 	typedef int PBoolean;
 #endif
@@ -147,6 +141,12 @@
 	#endif
 #endif
 
+#if defined(hasPTRACE2)
+   #define PTRACEX(level, args)  PTRACE2(level,NULL,args)
+#else
+   #define PTRACEX(level, args)  PTRACE(level,args)   
+#endif
+
 #if !defined(PWLIB_MAJOR) && !defined(PTLIB_MAJOR)
 	#if _WIN32
 		#pragma message ("warning: Can't detect PTLib version")
@@ -157,7 +157,7 @@
 	#define hasDeletingSetStream 1
 #endif
 
-// store version numver it PT macros for dispaly later on
+// store version numver it PT macros for display later on
 #if !defined(PTLIB_MAJOR)
 	#define PTLIB_MAJOR	PWLIB_MAJOR
 	#define PTLIB_MINOR	PWLIB_MINOR
@@ -233,12 +233,6 @@
 			#define h323v6 1				// Version 6 features  
 		#endif
 	#endif	
-#endif
-
-#if defined(hasPTRACE2)
-   #define PTRACEX(level, args)  PTRACE2(level,NULL,args)
-#else
-   #define PTRACEX(level, args)  PTRACE(level,args)   
 #endif
 
 #if defined(P_SNMP) || defined(HAS_NETSNMP) || defined(_WIN32)
