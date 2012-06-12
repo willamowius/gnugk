@@ -203,7 +203,7 @@ set the vendor ID without enabling any extensions.
 <tag/Examples:/
 <tscreen><verb>
 Vendor=GnuGk
-; Acculab ID
+; Aculab ID
 Vendor=222,173,0
 </verb></tscreen>
 </descrip>
