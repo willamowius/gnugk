@@ -3183,8 +3183,10 @@ bool AdmissionRequestPDU::Process()
 			}
 
 			signalOffload = pCallRec->NATSignallingOffload(answer);
-			if (signalOffload)
+			if (signalOffload) {
+				PTRACE(4,"RAS\tNAT H46023 Signal Offload set by policy");
 				pCallRec->ResetTimeOut();
+			}
 
 			pCallRec->GetRemoteInfo(vendor, version);
 		}
