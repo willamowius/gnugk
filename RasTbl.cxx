@@ -3551,13 +3551,18 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 
 	// If we don't have a called and the calling is a cone nat then default local Master
 	if (!m_Called) {
-		PTRACE(4,"RAS\tNo Called Endpoint for H460.24");
+	    PStringStream info;
+        info << "Called Endpoint not define:\n";
+		info << "Calling Endpoint:\n";
+        info << "    Support H.460.24 " << (m_Calling->SupportH46024() ? "Yes" : "No") << "\n";
+		info << "    NAT Type:    " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Calling->GetEPNATType()) << "\n";
+        PTRACE(5,"RAS\t\n" << info);
 		if (m_Calling->GetEPNATType() == EndpointRec::NatCone) {
-			natinst = CallRec::e_natLocalMaster;
-			m_natstrategy = natinst;
+			PTRACE(5,"RAS\tSet strategy to Local Master.");
+			m_natstrategy = CallRec::e_natLocalMaster;
 			return true;
-		} else if (m_Calling->SupportH46024() && (m_Calling->GetEPNATType() < EndpointRec::NatSymmetric)) {
-			PTRACE(4,"RAS\tAssume Called is publicly accessable");
+		} else if (m_Calling->SupportH46024() && (m_Calling->GetEPNATType() < (int)EndpointRec::NatSymmetric)) {
+			PTRACE(5,"RAS\tSet strategy to Remote Master.");
 			natinst = CallRec::e_natRemoteMaster;
 			return true;
 		} else {
