@@ -3551,18 +3551,19 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 
 	// If we don't have a called and the calling is a cone nat then default local Master
 	if (!m_Called) {
+		PTRACE(4,"RAS\tNo Called Endpoint for H460.24");
 		if (m_Calling->GetEPNATType() == EndpointRec::NatCone) {
-		   natinst = CallRec::e_natLocalMaster;
-		   m_natstrategy = natinst;
-	       return true;
-        } else if (m_Calling->SupportH46024() && m_Calling->GetEPNATType() < EndpointRec::NatSymmetric) {
-            PTRACE(4,"RAS\tNo Called Endpoint Assume Public");
-            natinst = CallRec::e_natRemoteMaster;
-            return true;
-        } else {
-            PTRACE(4,"RAS\tNo Called Endpoint for H460.24");
-            return false;
-        }
+			natinst = CallRec::e_natLocalMaster;
+			m_natstrategy = natinst;
+			return true;
+		} else if (m_Calling->SupportH46024() && (m_Calling->GetEPNATType() < EndpointRec::NatSymmetric)) {
+			PTRACE(4,"RAS\tAssume Called is publicly accessable");
+			natinst = CallRec::e_natRemoteMaster;
+			return true;
+		} else {
+			PTRACE(4,"RAS\tH.460.24 Startegy Unresolvable.");
+			return false;
+		}
 	}
 
 	// If both the calling and called are on the same network segment (interface)
@@ -3572,18 +3573,18 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 				(m_Called->IsNATed() ?  m_Called->GetNATIP() : m_Called->GetIP()));
 
 #if 0 // Currently for testing only - SH
-    if (!goDirect && Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023ForceDirect", "0"))) {
-         PTRACE(4,"RAS\tH46024 Proxy Disabled. Force call to go direct");
-         goDirect = true;
-    }
+	if (!goDirect && Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023ForceDirect", "0"))) {
+		PTRACE(4,"RAS\tH46024 Proxy Disabled. Force call to go direct");
+		goDirect = true;
+	}
 #endif
  
 	bool callingSupport = (m_Calling->SupportH46024() || (m_Calling->IsNATed() && (m_Calling->GetEPNATType() > 0)));
 	bool calledSupport = (m_Called->SupportH46024() || (m_Called->IsNATed() && (m_Called->GetEPNATType() > 0)));
 	
 	PStringStream natinfo;
-    natinfo << "NAT Offload (H460.23/.24) calculation inputs for Call No: " << GetCallNumber() << "\n" 
-            << " Rule : " << (goDirect ? "Go Direct (if possible)" : "Must Proxy Media");
+	natinfo << "NAT Offload (H460.23/.24) calculation inputs for Call No: " << GetCallNumber() << "\n" 
+			<< " Rule : " << (goDirect ? "Go Direct (if possible)" : "Must Proxy Media");
 	// Calling Endpoint
 	natinfo << "\n  Calling Endpoint:\n";
 	if (goDirect && m_Calling->IsNATed()) {
