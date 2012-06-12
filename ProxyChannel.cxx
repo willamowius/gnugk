@@ -1443,7 +1443,6 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			GetRemote()->m_h245Tunneling = false;
 	}
 
-	PTRACE(0, "JW tunnel this=" << m_h245Tunneling << " remote=" << (GetRemote() && GetRemote()->m_h245Tunneling));
 	bool disableH245Tunneling = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "DisableH245Tunneling", "0"));
 	if (disableH245Tunneling) {
 		m_h245Tunneling = false;
@@ -1456,20 +1455,18 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		if (m_h245Tunneling && GetRemote() && !GetRemote()->m_h245Tunneling) {
 			if (uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Control)
 				&& uuie->m_h323_uu_pdu.m_h245Control.GetSize() > 0) {
-				PTRACE(0, "JW untunnel now: h245socket=" << m_h245socket << " connected=" << (m_h245socket ? m_h245socket->IsConnected() : false)
-					<< " remote h245socket=" << GetRemote()->m_h245socket << " connected=" << (GetRemote()->m_h245socket ? GetRemote()->m_h245socket->IsConnected() : false));
 				bool remoteHasH245Connection = (GetRemote()->m_h245socket && GetRemote()->m_h245socket->IsConnected());
 				for (PINDEX i = 0; i < uuie->m_h323_uu_pdu.m_h245Control.GetSize(); ++i) {
 					if (remoteHasH245Connection) {
 						GetRemote()->m_h245socket->Send(uuie->m_h323_uu_pdu.m_h245Control[i]);
 					} else {
-						PTRACE(0, "JW queue H.245 messages until connected");
+						PTRACE(4, "H245\tQueueing H.245 messages until connected");
 						m_h245Queue.push(uuie->m_h323_uu_pdu.m_h245Control[i]);
 					}
 				}
 			}
 			if (msg->GetTag() == Q931::ConnectMsg) {
-				PTRACE(0, "JW inject H.245 address into Connect");
+				// inject H.245 address into Connect for H.245 tunneling translation
 				ConnectMsg * connect = dynamic_cast<ConnectMsg*>(msg);
 				if (connect != NULL) {
 					H225_Connect_UUIE & connectBody = connect->GetUUIEBody();
@@ -6202,9 +6199,9 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 		ret->m_h245socket = new H245Socket(m_h245socket, ret);
 	}
 	m_h245socket->SetH245Address(h245addr, masqAddr);
-	if (m_h245TunnelingTranslation) {
+	if (m_h245TunnelingTranslation && !m_h245Tunneling && GetRemote() && GetRemote()->m_h245Tunneling) {
 		CreateJob(m_h245socket, &H245Socket::ConnectToDirectly, "H245ActiveConnector");	// connnect directly
-		return (GetRemote() && !GetRemote()->m_h245Tunneling);	// remove H.245Addresss from message if it goes to non-tunneling side
+		return false;	// remove H.245Addresss from message if it goes to tunneling side
 	}
 	if (m_call->GetRerouteState() == RerouteInitiated) {
 		// if in reroute, don't listen, actively connect to the other side, half of the H.245 connection is already up
@@ -6533,10 +6530,8 @@ void H245Socket::OnSignalingChannelClosed()
 void H245Socket::ConnectTo()
 {
 	if (remote->Accept(*listener)) {
-		PTRACE(0, "JW H.245 Connect tunnel this=" << (sigSocket && sigSocket->IsH245Tunneling())
-				<< " remote=" << (sigSocket && sigSocket->GetRemote() && sigSocket->GetRemote()->IsH245Tunneling()));
 		if (sigSocket && sigSocket->IsH245Tunneling() && sigSocket->IsH245TunnelingTranslation()) {
-			PTRACE(0, "JW H.245 connect for tunneling leg - must be mixed mode");
+			// H.245 connect for tunneling leg - must be mixed mode
 			H245Socket * remoteH245Socket = dynamic_cast<H245Socket *>(remote);
 			if (remoteH245Socket && sigSocket->GetRemote()) {
 				ConfigReloadMutex.StartRead();
@@ -6546,9 +6541,8 @@ void H245Socket::ConnectTo()
 				ConfigReloadMutex.EndRead();
 				// send all queued H.245 messages now
 				while (PASN_OctetString * h245msg = sigSocket->GetNextQueuedH245Message()) {
-					PTRACE(0, "JW dequeue");
 					if (!remoteH245Socket->Send(*h245msg)) {
-						PTRACE(0, "JW H.245 queued Send() failed");
+						PTRACE(1, "H.245\tSending queued messages failed");
 					}
 					delete h245msg;
 				}
@@ -6683,7 +6677,6 @@ ProxySocket::Result H245Socket::ReceiveData()
 		if (sigSocket && sigSocket->GetRemote()
 			&& sigSocket->GetRemote()->IsH245Tunneling()
 			&& sigSocket->GetRemote()->IsH245TunnelingTranslation()) {
-			PTRACE(0, "JW H.245 ReceiveData() - remote is tunneling must en-tunnel here");
 			if (!sigSocket->GetRemote()->SendTunneledH245(strm)) {
 				PTRACE(1, "Error: H.245 tunnel send failed");
 			}
