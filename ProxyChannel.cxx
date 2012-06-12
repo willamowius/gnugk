@@ -9453,7 +9453,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 		// start KeepAlives if we are client (will be ignored if we are server and no KeepALive has been added above)
 		call->StartRTPKeepAlive(flcn, h46019chan.m_osSocketToA);
 		call->StartRTCPKeepAlive(flcn, h46019chan.m_osSocketToA_RTCP);
-#endif
+#endif // HAS_H46018
 #ifdef HAS_H235_MEDIA
 		RTPLogicalChannel * rtplc = (RTPLogicalChannel *)FindLogicalChannel(flcn);
 		bool isData = false;	// we don't encrypt data channels, yet
@@ -9481,7 +9481,9 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 					rtplc->SetPlainPayloadType(h225Params->m_dynamicRTPPayloadType);
 					rtplc->SetCipherPayloadType(h225Params->m_dynamicRTPPayloadType);
 				}
+#ifdef HAS_H46018
 				h46019chan.m_decryptMultiplexID = h46019chan.m_multiplexID_fromB;
+#endif
 			} else {
 				// we remove encryption, OLC has already been rewritten
 				if (!h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_dynamicRTPPayloadType)) {
@@ -9514,7 +9516,9 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 						rtplc->SetPlainPayloadType(h225Params->m_dynamicRTPPayloadType);
 					}
 				}
+#ifdef HAS_H46018
 				h46019chan.m_encryptMultiplexID = h46019chan.m_multiplexID_fromB;
+#endif
 			}
 
 			// is this the encryption or decryption direction ?
