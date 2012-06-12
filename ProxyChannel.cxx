@@ -1433,17 +1433,23 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
     }
 #endif
 
-	if (m_h245Tunneling && uuie != NULL)
+	if (m_h245Tunneling && uuie != NULL) {
 #if H225_PROTOCOL_VERSION >= 4
 		if(!uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_provisionalRespToH245Tunneling))
 #endif
 		m_h245Tunneling = (uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)
 			&& uuie->m_h323_uu_pdu.m_h245Tunneling.GetValue());
+		if (!m_h245Tunneling && !m_h245TunnelingTranslation && GetRemote())
+			GetRemote()->m_h245Tunneling = false;
+	}
 
 	PTRACE(0, "JW tunnel this=" << m_h245Tunneling << " remote=" << (GetRemote() && GetRemote()->m_h245Tunneling));
 	bool disableH245Tunneling = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "DisableH245Tunneling", "0"));
-	if (disableH245Tunneling)
+	if (disableH245Tunneling) {
 		m_h245Tunneling = false;
+		if (GetRemote())
+			GetRemote()->m_h245Tunneling = false;
+	}
 
 	if (m_h245TunnelingTranslation) {
 		// un-tunnel H.245 messages
@@ -5416,11 +5422,11 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 		PPER_Stream strm = fastStart[i].GetValue();
 		H245_OpenLogicalChannel olc;
 		if (!olc.Decode(strm)) {
-			PTRACE(4, "Q931\t" << GetName() << " ERROR DECODING FAST START ELEMENT " << i);
+			PTRACE(1, "Q931\t" << GetName() << " ERROR DECODING FAST START ELEMENT " << i);
 			SNMP_TRAP(9, SNMPWarning, Network, "Error decofing fastStart element");
 			return false;
 		}
-		PTRACE(4, "Q931\nfastStart[" << i << "] received: " << setprecision(2) << olc);
+		PTRACE(6, "Q931\nfastStart[" << i << "] received: " << setprecision(2) << olc);
 
 		// remove disabled audio codecs
 		if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData && olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() != H245_DataType::e_nullData) {
@@ -5479,7 +5485,7 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 			wtstrm.CompleteEncoding();
 			fastStart[i].SetValue(wtstrm);
 			changed = true;
-			PTRACE(5, "Q931\nfastStart[" << i << "] to send " << setprecision(2) << olc);
+			PTRACE(6, "Q931\nfastStart[" << i << "] to send " << setprecision(2) << olc);
 		}
 
 		// save originating media IP and codec for accounting
@@ -6163,8 +6169,9 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 {
 	if (GetRemote() && GetRemote()->m_h245Tunneling
 		&& Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH245AddressOnTunneling", "0"))
-		&& !m_h245TunnelingTranslation)
+		&& !m_h245TunnelingTranslation) {
 		return false;
+	}
 	if (!m_h245handler) // not H.245 routed
 		return true;
 
