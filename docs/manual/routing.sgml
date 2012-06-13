@@ -116,6 +116,10 @@ The configuration for this policy must be in the <ref id="routingforwarding" nam
 This policy will route all calls that reach it to one endpoint specified in the <ref id="routingcatchall" name="Routing::CatchAll"> section.
 You can use it as a fallback at the end of the policy chain to route all calls which would otherwise fail.
 
+<item><tt/lua/<newline>
+<p>
+This policy runs the LUA script defined in <ref id="routingcatchall" name="Routing::Lua"> section to set a call destination. NOTE: This policy is still experimental!
+
 </itemize>
 
 <p>
@@ -661,6 +665,45 @@ Default: <tt>catchall</tt><newline>
 <p>
 If CatchAllIP is not specified, then route all calls to this alias.
 </itemize>
+
+<sect1>Section &lsqb;Routing::Lua&rsqb;
+<label id="routinglua">
+<p>
+NOTE: This policy is still experimental.
+
+The LUA script has the following <bf/input variables/ available:
+<itemize>
+<item>source
+<item>calledAlias
+<item>calledIP
+<item>caller
+<item>callingStationId
+<item>callid
+<item>messageType
+<item>clientauthid
+</itemize>
+
+The LUA script can set these <bf/output variables/ to specify a routing destination:
+<itemize>
+<item>action - set this to either 'SKIP' or 'REJECT' if you don' want to route the call, otherwise the call is routed to destAlias or destIp (see below)
+<item>rejectCode - reject reason to use with 'REJECT'
+<item>destAlias - call destination alias
+<item>destIP - call destination IP
+</itemize>
+
+<itemize>
+<item><tt/Script=destAlias=string.gsub(calledAlias, "#", "*")/<newline>
+Default: <tt>(empty)</tt><newline>
+<p>
+Define the LUA script to run, right in the config file.
+
+<item><tt/ScriptFile=script.lua/<newline>
+Default: <tt>(empty)</tt><newline>
+<p>
+Specify a file with a LUA script to run for the 'lua' policy.
+
+</itemize>
+
 
 
 <sect1>Section &lsqb;RewriteCLI&rsqb;
