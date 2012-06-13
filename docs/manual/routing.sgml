@@ -673,14 +673,14 @@ NOTE: This policy is still experimental.
 
 The LUA script has the following <bf/input variables/ available:
 <itemize>
-<item>source
-<item>calledAlias
-<item>calledIP
-<item>caller
-<item>callingStationId
-<item>callid
-<item>messageType
-<item>clientauthid
+<item>source - source IP
+<item>calledAlias - called alias (only first alias)
+<item>calledIP - called IP address if IP dialing was used
+<item>caller - aliasses of the caller
+<item>callingStationId - calling station ID
+<item>callid - the call ID
+<item>messageType - the message that triggered the routing process ('ARQ', 'LRQ', 'Setup' or 'Facility')
+<item>clientauthid - client auth ID
 </itemize>
 
 The LUA script can set these <bf/output variables/ to specify a routing destination:
@@ -690,6 +690,8 @@ The LUA script can set these <bf/output variables/ to specify a routing destinat
 <item>destAlias - call destination alias
 <item>destIP - call destination IP
 </itemize>
+
+To access external resources, LUA scripts can use LUA libraries, eg. LuaSocket.
 
 <itemize>
 <item><tt/Script=destAlias=string.gsub(calledAlias, "#", "*")/<newline>
