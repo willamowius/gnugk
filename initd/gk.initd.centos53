@@ -1,0 +1,61 @@
+#!/bin/sh
+# initd script for Redhat and CentOS (eg. 5.x)
+#
+# gnugk         This shell script takes care of starting and stopping \
+#               gnugk (the GNU Gatekeeper daemon)
+#
+# chkconfig: 345 60 60
+# description: gkgnugk is the gnu gatekeeper
+# processname: /usr/sbin/gnugk
+# config: /etc/gatekeeper.ini
+#
+# Maintained by Chih-Wei Huang <cwhuang@linux.org.tw>
+#               Citron Network Inc.
+#
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+GKEXE=/usr/sbin/gnugk
+GKPID=/var/run/gnugk.pid
+GKCONFIG=/etc/gatekeeper.ini
+LOGFILE=/var/log/gnugk/gnugk.log
+LOCKFILE=/var/lock/subsys/gnugk
+PTLIBDIR=/h323/ptlib
+OPENH323DIR=/h323/h323plus
+
+
+# Source networking configuration and check that networking is up.
+if [ -f /etc/sysconfig/network ] ; then
+        . /etc/sysconfig/network
+        [ ${NETWORKING} = "no" ] && exit 0
+fi
+
+[ -x $GKEXE ] || exit 0
+
+[ -f $GKCONFIG ] || exit 0
+
+prog=gnugk
+
+RETVAL=0
+
+start () {
+    [ -f $LOGFILE ] && mv -f $LOGFILE $LOGFILE.bak
+    echo -n $"Starting $prog: "
+    # start daemon
+    export LD_LIBRARY_PATH=$PTLIBDIR/lib_linux_x86:$OPENH323DIR/lib
+    #$GKEXE -c $GKCONFIG -o $LOGFILE > /dev/null 2>&1 &
+    $GKEXE -tt -c $GKCONFIG -o $LOGFILE > /dev/null 2>&1 &
+    RETVAL=$?
+    [ $RETVAL = 0 ] && touch $LOCKFILE && success
+    echo
+    return $RETVAL
+}
+
+stop () {
+    # stop daemon
+    echo -n $"Stopping $prog: "
+    killproc $GKEXE
+    RETVAL=$?
+
+
