@@ -49,8 +49,9 @@ At runtime, GnuGk will load the shared library (DLL) for the database you have c
 
 GnuGk supports version 3 of SQLite.
 
-Make sure your database is configured to support password based authentication.
-Especially Microsoft SQL Server needs to be configured to use "Mixed Mode".
+Make sure your database is configured to support password-based
+authentication - Microsoft SQL Server must use "Mixed Mode" for this feature
+to function properly.
 
 <item><tt>Library=c:/Program Files/Mysql/libmysql.dll</tt><newline>
 Default: <tt>N/A</tt><newline>
@@ -490,17 +491,18 @@ if it matches the <tt>DefaultDomain</tt> setting and will then process the
 request using just the "<bf>user</bf>" field.  This is useful when receiving
 interdomain calls placed via SRV routing policy where the full URI is
 received.  It can also be used in conjunction with the
-[RasSrv::RewriteAlias] section to convert the received URI into a E164
+[RasSrv::RewriteAlias] section to convert the received URI into an E.164
 number for further processing and routing. 
 
 <item><tt/Authenticators=H.235.1,CAT/<newline>
-Default: <tt>N/A</tt><newline>
+Default: <tt>H.235.1,MD5,CAT</tt><newline>
 <p>
 Selects the specific authenticators to use when authenticating endpoints. 
-The default options are: H.235.1 (HMAC SHA1 /  old H235AnnexD), MD5 (Digest Authentication) and CAT (Cisco Access Tokens ie RADIUS). 
-The order indicates the priority of the authenticaton mechanism.
+The default options are: H.235.1 (HMAC SHA1 / old H235AnnexD), MD5 (Digest Authentication) and CAT (Cisco Access Tokens ie RADIUS). 
+The order indicates the priority of the authentication mechanism.
 If this setting is omitted, all authenticators are loaded by default. 
 If you are using plugin authenticators, then you may want to disable the default authenticators to provide optimum security.
+<!-- How do you disable the authenticators? Can you say "NONE" to force it off? -->
 Note: H.235.1 requires OpenSSL support compiled into GnuGk.
 <bf/This switch is only available if GnuGk is compiled with H323Plus./
 
@@ -518,7 +520,7 @@ Default: <tt>128</tt><newline>
 <p>
 EXPERIMENTAL:
 Sets the maximum number of elements in an ASN encoded array, eg. the max. number of aliases in a list.
-PTLib up to 2.10.1 defaults to 128 elements. Beware of hitting the limits of other vendors if you
+Versions of PTLib through v2.10.1 default to 128 elements. Beware of hitting the limits of other vendors if you
 increase this setting.
 </itemize>
 
