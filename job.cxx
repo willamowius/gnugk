@@ -85,7 +85,7 @@ private:
 	/// actual Job being executed, NULL if the Worker is idle
 	Job* volatile m_job;
 	/// Worker thread identifier
-	PThreadIdentifer m_id;
+	PThreadIdentifier m_id;
 	/// Agent singleton pointer to avoid unnecessary Instance() calls
 	Agent* m_agent;
 };
