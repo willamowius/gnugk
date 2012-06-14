@@ -639,24 +639,28 @@ GkAuthenticatorList::GkAuthenticatorList()
 #endif
 {
 #ifdef OpenH323Factory
-	PStringList authlist = Toolkit::Instance()->GetAuthenticatorList();
 
 	PFactory<H235Authenticator>::KeyList_T keyList = PFactory<H235Authenticator>::GetKeyList();
 	PFactory<H235Authenticator>::KeyList_T::const_iterator r;
-	for (r = keyList.begin(); r != keyList.end(); ++r) {
-		H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
-		if (authlist.GetSize() > 0) {
-			for (PINDEX i=0; i< authlist.GetSize(); i++) {
-				if (PString(Auth->GetName()) == authlist[i]) {
-					PTRACE(4,"GKAUTH\tLoaded Authenticator " << Auth->GetName() << " from Policy");
-					m_h235authenticators.Append(Auth);
-				}
+
+	// if a global list of autenticators is configured, use it in the priority order supplied
+	PStringList authlist = Toolkit::Instance()->GetAuthenticatorList();
+	if (authlist.GetSize() > 0) {
+		for (PINDEX i = 0; i < authlist.GetSize(); ++i) {
+			for (r = keyList.begin(); r != keyList.end(); ++r) {
+			H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
+			if (PString(Auth->GetName()) == authlist[i])
+				m_h235authenticators.Append(Auth);
+			else delete Auth;
 			}
-		} else {
-	        m_h235authenticators.Append(Auth);
+		}
+	} else {
+		for (r = keyList.begin(); r != keyList.end(); ++r) {
+			H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
+			m_h235authenticators.Append(Auth);
 		}
 	}
-#endif
+#endif 
 }
 
 GkAuthenticatorList::~GkAuthenticatorList()
@@ -683,6 +687,7 @@ void GkAuthenticatorList::OnReload()
 	std::list<GkAuthenticator*> authenticators;	
 	GkAuthenticator *auth;
 	
+// TODO None of this works. Authenticators are never populated (is it needed?) - SH
 	const PStringArray authRules = GkConfig()->GetKeys(GkAuthSectionName);
 	for (PINDEX r = 0; r < authRules.GetSize(); r++) {
 		auth = Factory<GkAuthenticator>::Create(authRules[r]);
@@ -875,11 +880,11 @@ void GkAuthenticatorList::SelectH235Capability(
 		return;
 
 #ifdef OpenH323Factory
-    for (PINDEX auth = 0; auth < m_h235authenticators.GetSize(); auth++) {
-     for (PINDEX cap = 0; cap < grq.m_authenticationCapability.GetSize(); cap++) {
-      for (PINDEX alg = 0; alg < grq.m_algorithmOIDs.GetSize(); alg++) {
-        if (m_h235authenticators[auth].IsCapability(grq.m_authenticationCapability[cap],
-                                              grq.m_algorithmOIDs[alg])) {
+	for (PINDEX auth = 0; auth < m_h235authenticators.GetSize(); auth++) {
+	 for (PINDEX cap = 0; cap < grq.m_authenticationCapability.GetSize(); cap++) {
+	  for (PINDEX alg = 0; alg < grq.m_algorithmOIDs.GetSize(); alg++) {
+		if (m_h235authenticators[auth].IsCapability(grq.m_authenticationCapability[cap],
+						grq.m_algorithmOIDs[alg])) {
 			std::list<GkAuthenticator*>::const_iterator iter = m_authenticators.begin();
 			while (iter != m_authenticators.end()) {
 			 GkAuthenticator* gkauth = *iter++;
@@ -893,10 +898,10 @@ void GkAuthenticatorList::SelectH235Capability(
 				  return;
 			  }
 		   }
-        }
-      }
-    }
-   }
+		}
+	  }
+	 }
+	}
 
 #else
 	H225_ArrayOf_AuthenticationMechanism & mechanisms = *m_mechanisms;
@@ -1106,24 +1111,27 @@ SimplePasswordAuth::SimplePasswordAuth(
 	m_disabledAlgorithms = GetConfig()->GetString(name, "DisableAlgorithm", "").Tokenise(",;", FALSE);
 
 #ifdef OpenH323Factory
-	PStringList authlist = Toolkit::Instance()->GetAuthenticatorList();
-
     PFactory<H235Authenticator>::KeyList_T keyList = PFactory<H235Authenticator>::GetKeyList();
     PFactory<H235Authenticator>::KeyList_T::const_iterator r;
-    for (r = keyList.begin(); r != keyList.end(); ++r) {
-		H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
-		// only use, if it's not disabled for this GnuGk authentication method
-		if (m_disabledAlgorithms.GetStringsIndex(Auth->GetName()) == P_MAX_INDEX) {
-			if (authlist.GetSize() > 0) {
-				// if a global list of autenticators is configures, use it only if its on the list
-				for (PINDEX i=0; i< authlist.GetSize(); i++) {
-					if (PString(Auth->GetName()) == authlist[i])
-						AppendH235Authenticator(Auth);
-				}
-			} else {
-				// without global authenticator list: use all
+
+	PStringList authlist = Toolkit::Instance()->GetAuthenticatorList();
+	// if a global list of autenticators is configured, use it in the priority order supplied
+	if (authlist.GetSize() > 0) {
+		for (PINDEX i = 0; i < authlist.GetSize(); ++i) {
+		  for (r = keyList.begin(); r != keyList.end(); ++r) {
+			H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
+			if (PString(Auth->GetName()) == authlist[i])
 				AppendH235Authenticator(Auth);
-			}
+			else delete Auth;
+		  }
+		}
+	} else {
+		for (r = keyList.begin(); r != keyList.end(); ++r) {
+			H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
+			// only use, if it's not disabled for this GnuGk authentication method
+			if (m_disabledAlgorithms.GetStringsIndex(Auth->GetName()) == P_MAX_INDEX)
+				AppendH235Authenticator(Auth);
+			else delete Auth;
 		}
 	}
 #else
