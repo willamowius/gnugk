@@ -3549,25 +3549,33 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	if (iscalled || !m_Calling)
 	   return false;
 
-	// If we don't have a called and the calling is a cone nat then default local Master
+	// If we don't have a called (usually means direct IP calling) and the calling supports H.460.24 and no NAT detected 
+	// then allow call direct. If NAT is not symmetric then select remote master. This forces the Calling endpoint to 
+	// use STUN and provide public IP addresses in the OLC. If Symmetric then media MUST be proxied unless H46024ForceDirect=1.
 	if (!m_Called) {
-	    PStringStream info;
-        info << "Called Endpoint not define:\n";
+		PStringStream info;
+		info << "Called Endpoint not define:\n";
 		info << "Calling Endpoint:\n";
-        info << "    Support H.460.24 " << (m_Calling->SupportH46024() ? "Yes" : "No") << "\n";
+		info << "    Support H.460.24 " << (m_Calling->SupportH46024() ? "Yes" : "No") << "\n";
 		info << "    NAT Type:    " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Calling->GetEPNATType()) << "\n";
-        PTRACE(5,"RAS\t\n" << info);
-		if (m_Calling->GetEPNATType() == EndpointRec::NatCone) {
-			PTRACE(5,"RAS\tSet strategy to Local Master.");
-			m_natstrategy = CallRec::e_natLocalMaster;
+		PTRACE(5,"RAS\t\n" << info);
+		if (m_Calling->SupportH46024() && (m_Calling->GetEPNATType() < (int)EndpointRec::NatCone)) {
+			PTRACE(4,"RAS\tSet strategy to no Assistance");
+			natinst = CallRec::e_natNoassist;
 			return true;
 		} else if (m_Calling->SupportH46024() && (m_Calling->GetEPNATType() < (int)EndpointRec::NatSymmetric)) {
 			PTRACE(5,"RAS\tSet strategy to Remote Master.");
 			natinst = CallRec::e_natRemoteMaster;
 			return true;
 		} else {
-			PTRACE(4,"RAS\tH.460.24 Startegy Unresolvable.");
-			return false;
+			if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46024ForceDirect", "0"))) {
+				PTRACE(4,"RAS\tForce Direct Assume remote supports NAT");
+				natinst = CallRec::e_natNoassist;
+				return true;
+			} else {
+				PTRACE(4,"RAS\tH.460.24 Startegy Unresolvable revert to proxy media");
+				return false;
+			}
 		}
 	}
 
@@ -3577,16 +3585,17 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 				(m_Calling->IsNATed() ?  m_Calling->GetNATIP() : m_Calling->GetIP()),
 				(m_Called->IsNATed() ?  m_Called->GetNATIP() : m_Called->GetIP()));
 
-#if 0 // Currently for testing only - SH
-	if (!goDirect && Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023ForceDirect", "0"))) {
+	// If we have the H46024ForceDirect switch then we can override the need to proxy.
+	if (!goDirect && Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46024ForceDirect", "0"))) {
 		PTRACE(4,"RAS\tH46024 Proxy Disabled. Force call to go direct");
 		goDirect = true;
 	}
-#endif
  
+	// Determine whether the calling and called support H.406.24
 	bool callingSupport = (m_Calling->SupportH46024() || (m_Calling->IsNATed() && (m_Calling->GetEPNATType() > 0)));
 	bool calledSupport = (m_Called->SupportH46024() || (m_Called->IsNATed() && (m_Called->GetEPNATType() > 0)));
 	
+	// Document the input calculations.
 	PStringStream natinfo;
 	natinfo << "NAT Offload (H460.23/.24) calculation inputs for Call No: " << GetCallNumber() << "\n" 
 			<< " Rule : " << (goDirect ? "Go Direct (if possible)" : "Must Proxy Media");
@@ -3621,7 +3630,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 
 	// If neither party supports H.460.24 then exit
 	if (!callingSupport && !calledSupport) {
-         PTRACE(4,"RAS\tDisable H.460.24 Offload as neither party supports it.");
+		PTRACE(4,"RAS\tDisable H.460.24 Offload as neither party supports it.");
 		 return false;
 	}
  
@@ -3634,7 +3643,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 			natinst = CallRec::e_natFullProxy;
 
 	// If the calling can proxy for NAT use it
-    else if (!goDirect && GetProxyMode() != CallRec::ProxyDisabled)
+	else if (!goDirect && GetProxyMode() != CallRec::ProxyDisabled)
 			natinst = CallRec::e_natLocalProxy;
 
 	// If can go direct and both are not NAT then no assistance required.
@@ -3676,13 +3685,13 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	}
     // if both devices are behind a symmetric firewall then perhaps are on the same internal network. 
     else if (goDirect && (m_Calling->GetEPNATType() == EndpointRec::FirewallSymmetric && 
-		           m_Called->GetEPNATType() == EndpointRec::FirewallSymmetric)) {
-        if (!m_Calling->HasNATProxy() && !m_Called->HasNATProxy())
-		    natinst = CallRec::e_natNoassist;
+			m_Called->GetEPNATType() == EndpointRec::FirewallSymmetric)) {
+		if (!m_Calling->HasNATProxy() && !m_Called->HasNATProxy())
+			natinst = CallRec::e_natNoassist;
 		else if (m_Calling->SupportH46024A() && m_Called->SupportH46024A())  
-		    natinst = CallRec::e_natAnnexA;
+			natinst = CallRec::e_natAnnexA;
 		else
-            natinst = CallRec::e_natFullProxy;
+			natinst = CallRec::e_natFullProxy;
 	}
 
 	else if (goDirect && 
@@ -3702,15 +3711,15 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 		((!m_Calling->IsNATed() && m_Calling->SupportH46024()) || (m_Calling->GetEPNATType() == EndpointRec::NatCone)))
 		     natinst = CallRec::e_natLocalMaster;
 
-    // if can go direct and called supports Remote NAT and is not NAT or Cone NAT
-    else if (goDirect && 
+	// if can go direct and called supports Remote NAT and is not NAT or Cone NAT
+	else if (goDirect && 
 		((!m_Called->IsNATed() && m_Called->SupportH46024()) || (m_Called->GetEPNATType() == EndpointRec::NatCone)))
 			natinst = CallRec::e_natRemoteMaster;
 
     else if (goDirect && m_Calling->IsNATed() && m_Calling->HasNATProxy())
 			natinst = CallRec::e_natLocalProxy;
  
-    else if (goDirect && m_Called->IsNATed() && m_Called->HasNATProxy())
+	else if (goDirect && m_Called->IsNATed() && m_Called->HasNATProxy())
 			natinst = CallRec::e_natRemoteProxy;
  
 	// if 1 of the EP's do not support H.460.24 then full proxy

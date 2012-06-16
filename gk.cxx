@@ -381,6 +381,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "H46023PublicIP" },
 	{ "RoutedMode", "H46023SignalGKRouted" },
 	{ "RoutedMode", "H46023STUN" },
+	{ "RoutedMode", "H46024ForceDirect" },
 #endif
 	{ "RoutedMode", "NATStdMin" },
 	{ "RoutedMode", "Q931PortRange" },

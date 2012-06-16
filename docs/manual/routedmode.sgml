@@ -503,6 +503,12 @@ Default: <tt>0</tt><newline>
 Force all call signaling for NAT to be GK routed. There are a number of conditions where call signaling may be 
 offloaded when using H.460.23/.24 This switch will force all the signaling to be Gatekeeper routed.
 
+<item><tt/H46024ForceDirect=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Force all media to NOT proxy if the remote NAT status cannot be determined. Most (not all) H.323 devices are
+able if on a public IP to receive calls from endpoints that are behind NAT. Use this switch with caution.
+
 <item><tt/NATStdMin=18/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
