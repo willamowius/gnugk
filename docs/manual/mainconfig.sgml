@@ -499,10 +499,10 @@ Default: <tt>H.235.1,MD5,CAT</tt><newline>
 <p>
 Selects the specific authenticators to use when authenticating endpoints. 
 The default options are: H.235.1 (HMAC SHA1 / old H235AnnexD), MD5 (Digest Authentication) and CAT (Cisco Access Tokens ie RADIUS). 
+Setting a value of NONE will disable authenticators.
 The order indicates the priority of the authentication mechanism.
 If this setting is omitted, all authenticators are loaded by default. 
 If you are using plugin authenticators, then you may want to disable the default authenticators to provide optimum security.
-<!-- How do you disable the authenticators? Can you say "NONE" to force it off? -->
 Note: H.235.1 requires OpenSSL support compiled into GnuGk.
 <bf/This switch is only available if GnuGk is compiled with H323Plus./
 
