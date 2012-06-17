@@ -255,17 +255,18 @@ BYTE GetStaticPayloadType(const H245_DataType & type)
 
 } // end of anonymous namespace
 
-
-#ifdef HAS_H46018
-const char * const H46018_OID = "0.0.8.460.18.0.1";
-const char * const H46019_OID = "0.0.8.460.19.0.1";
-
+#ifdef HAS_H460
 void AddH460Feature(H225_ArrayOf_FeatureDescriptor & desc, const H460_Feature & newFeat)
 {
 	PINDEX lastpos = desc.GetSize();
 	desc.SetSize(lastpos+1);
 	desc[lastpos] = newFeat;
 }
+#endif
+
+#ifdef HAS_H46018
+const char * const H46018_OID = "0.0.8.460.18.0.1";
+const char * const H46019_OID = "0.0.8.460.19.0.1";
 
 void RemoveH46019Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures, bool & senderSupportsH46019Multiplexing, bool & isH46019Client)
 {
