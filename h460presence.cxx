@@ -80,11 +80,12 @@ void PresWorker::Main()
 {
 	while (!shutDown) {
 
-		// Go do the coding
-		ProcessMessages();
-
 		// Wait
 		m_delay.Delay(waitTime);
+
+		handler->DatabaseIncrementalUpdate();
+		ProcessMessages();
+
 	}
 }
 
@@ -184,13 +185,10 @@ H460P_PresenceInstruction & BuildInstructionMsg(const H460P_PresenceInstruction 
 	return msg;
 }
 
-H460P_PresenceInstruction & BuildInstructionMsg(unsigned type, const H225_AliasAddress & addr, H460P_PresencePDU & msg, const PString & display = PString())
+H460P_PresenceInstruction & BuildInstructionMsg(unsigned type, const H225_AliasAddress & addr, H460P_PresencePDU & msg, 
+												const PString & display = PString(), const PString & avatar = PString())
 {
-#if H460P_VER < 2
-	H323PresenceInstruction instruct((H323PresenceInstruction::Instruction)type, AsString(addr,0));
-#else
-	H323PresenceInstruction instruct((H323PresenceInstruction::Instruction)type, AsString(addr,0), display);
-#endif
+	H323PresenceInstruction instruct((H323PresenceInstruction::Instruction)type, AsString(addr,0), display, avatar);
 	return BuildInstructionMsg(instruct,msg);
 }
 
@@ -218,7 +216,7 @@ H460P_PresenceSubscription & BuildSubscriptionMsg(const OpalGloballyUniqueID & i
 {
 	H323PresenceSubscription sub;
 	sub.SetSubscription(id);
-	sub.SetSubscriptionDetails(pid.m_subscriber,pid.m_Alias,pid.m_Display);
+	sub.SetSubscriptionDetails(pid.m_subscriber,pid.m_Alias,pid.m_Display,pid.m_Avatar);
 	return BuildSubscriptionMsg(sub,msg);
 }
 #endif
@@ -369,7 +367,8 @@ PString PresMsgType(unsigned tag)
 GkPresence::GkPresence()
  : m_enabled(false), m_sqlactive(false), m_worker(NULL)
 #if HAS_DATABASE
-	, m_sqlConn(NULL), m_timeout(-1)
+	, m_sqlConn(NULL), m_timeout(-1), m_lastTimeStamp(0)
+	, m_incrementalUpdate(false)
 #endif
 {
 }
@@ -458,7 +457,9 @@ void GkPresence::LoadConfig(PConfig * cfg)
 		return;
 	}
 
-	m_sqlactive = DatabaseLoad();
+	m_incrementalUpdate = cfg->GetBoolean(authName, "IncrementalUpdate", "0");
+
+	m_sqlactive = DatabaseLoad(false);
 #endif
 
 	if (!m_sqlactive) {
@@ -469,22 +470,43 @@ void GkPresence::LoadConfig(PConfig * cfg)
 	m_worker = new PresWorker(this, cfg->GetInteger("RoutedMode", "H460PActThread", DEFAULT_PRESWORKER_TIMER)*1000);
 }
 
-bool GkPresence::DatabaseLoad()
+#if PTRACING
+PString presenceFieldName(int type)
+{
+	static const char * const fields[10] = {
+		"GUID",
+		"Subscriber",
+		"Alias",
+		"Local",
+		"Status",
+		"Active",
+		"Updated",
+		"Display",
+		"Avatar",
+		"Unknown"
+	};
+
+	if (type < 9)
+		return fields[type];
+
+	return fields[9];
+}
+#endif
+
+bool GkPresence::DatabaseLoad(PBoolean incremental)
 {
 #ifdef HAS_DATABASE
 	GkSQLResult::ResultRow resultRow;
 	std::map<PString, PString> params;
+	params["t"] = m_lastTimeStamp;
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_queryList,params, m_timeout);
 	if (result == NULL) {
 		PTRACE(2, "H460PSQL\tSubList failed - timeout or fatal error");
 		SNMP_TRAP(5, SNMPError, Database, "Presense SQL query failed");
 		return false;
 	}
-#if H460P_VER < 2
+
 	int fieldCount = 7;
-#else
-	int fieldCount = 8;
-#endif
 	if (result->GetNumRows() > 0 && result->GetNumFields() < fieldCount) {
 		PTRACE(2, "H460PSQL\tBad-formed query - "
 			"insufficient columns found in the result set expect " << fieldCount);
@@ -495,11 +517,14 @@ bool GkPresence::DatabaseLoad()
 		PTRACE(2, "H460PSQL\tDatabase returns 0 entries, assume table is empty.");
 		return true;
 	}
+	m_lastTimeStamp = PTime().GetTimestamp();
 
 	// Clear the cache.
-	localStore.clear();
-	remoteIds.clear();
-	remoteIdmap.clear();
+	if (!incremental) {
+		localStore.clear();
+		remoteIds.clear();
+	    remoteIdmap.clear();
+    }
 
 	PStringArray retval;
 	while (result->FetchRow(retval)) {
@@ -508,18 +533,17 @@ bool GkPresence::DatabaseLoad()
 			SNMP_TRAP(5, SNMPError, Database, "Presense SQL query failed");
 			continue;
 		}
-#if H460P_VER < 2
-		PTRACE(6, "H460PSQL\tQuery result: " << retval[0] << " " << retval[1]
-								    << " " << retval[2] << " " << retval[3]
-									<< " " << retval[4] << " " << retval[5]
-									<< " " << retval[6]);
-#else
-		PTRACE(6, "H460PSQL\tQuery result: '" << retval[0] << "', '" << retval[1]
-								    << "', ' " << retval[2] << "', ' " << retval[3]
-									<< "', '" << retval[4] << "', '" << retval[5]
-									<< "', '" << retval[6] << "', '" << retval[7]);
+
+#if PTRACING
+		PStringStream results;
+		for (PINDEX i=0; i < retval.GetSize(); ++i) {
+			results << " " << presenceFieldName(i) << " "; 
+			if (i == 4) results << H323PresenceInstruction::GetInstructionString(retval[i].AsInteger());
+			else results << retval[i];
+		}
+		PTRACE(6, "H460PSQL\tQuery result: " << results);
 #endif
-									
+
 		H460P_PresenceIdentifier & pid = AsPresenceId(retval[0]);
 
 		H323PresenceID id;
@@ -530,37 +554,41 @@ bool GkPresence::DatabaseLoad()
 			id.m_Active = Toolkit::AsBool(retval[5]);
 			id.m_Updated = PTime(retval[6]);
 #if H460P_VER >= 2
-			id.m_Display = retval[7];
+			if (retval.GetSize() >= 8) id.m_Display = retval[7];
+								else id.m_Display = PString();
+			if (retval.GetSize() >= 9) id.m_Avatar = retval[8];
+								else id.m_Avatar = PString();
 #endif
 		
+#if H460P_VER < 2
+			H323PresenceInstruction instruct(id.m_Status, retval[2]);
+#else
+			H323PresenceInstruction instruct(id.m_Status, retval[2], id.m_Display, id.m_Avatar);
+#endif
 		// Load the local Store with active or subscriber pending subscriptions
 		if (id.m_Active || (id.m_isSubscriber && (id.m_Status == H323PresenceInstruction::e_pending))) {
 			H323PresenceStore::iterator itx = localStore.find(id.m_subscriber);
 			if (itx != localStore.end()) {
-				if (id.m_subscriber != id.m_Alias) {
-#if H460P_VER < 2
-					H323PresenceInstruction instruct(id.m_Status, retval[2]);
-#else
-					H323PresenceInstruction instruct(id.m_Status, retval[2], retval[7]);
-#endif
+				if (id.m_subscriber != id.m_Alias) 
 					itx->second.m_Instruction.Add(instruct);
-				}
 			} else {
 				H323PresenceEndpoint store;
-				if (id.m_subscriber != id.m_Alias) {
-#if H460P_VER < 2
-					H323PresenceInstruction instruct(id.m_Status, retval[2]);
-#else
-					H323PresenceInstruction instruct(id.m_Status, retval[2], retval[7]);
-#endif
+				if (id.m_subscriber != id.m_Alias) { 
 					store.m_Instruction.Add(instruct);
+				    localStore.insert(pair<H225_AliasAddress,H323PresenceEndpoint>(id.m_subscriber,store));
 				}
-				localStore.insert(pair<H225_AliasAddress,H323PresenceEndpoint>(id.m_subscriber,store));
 			}
 		}
 
 		if (id.m_subscriber == id.m_Alias)
 			continue;
+
+		if (incremental && IsLocalAvailable(id.m_subscriber,aliasList)) {
+			// Queue up any new messages
+			H460P_PresencePDU msg;
+			BuildInstructionMsg(instruct,msg);
+			EnQueuePresence(id.m_subscriber,msg);
+		}
 
 		// Load the identifier store
 		AddPresenceMap(pid,id,remoteIds,remoteIdmap);
@@ -571,6 +599,11 @@ bool GkPresence::DatabaseLoad()
 #else
 	return false;
 #endif
+}
+
+void GkPresence::DatabaseIncrementalUpdate()
+{
+	if (m_incrementalUpdate) DatabaseLoad(true);
 }
 
 bool GkPresence::DatabaseAdd(const PString & identifier, const H323PresenceID & id)
@@ -587,6 +620,7 @@ bool GkPresence::DatabaseAdd(const PString & identifier, const H323PresenceID & 
 	params["s"] = (id.m_isSubscriber ? "1" : "0");
 #if H460P_VER >= 2
 	params["d"] = id.m_Display;
+	params["v"] = id.m_Avatar;
 #endif
 
 	return (m_sqlConn->ExecuteQuery(m_queryAdd, params, m_timeout) != NULL);

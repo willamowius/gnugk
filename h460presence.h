@@ -56,6 +56,7 @@ public:
 	bool GetLocalSubscriptions(const H225_AliasAddress & local,
 							list<H460P_PresenceIdentifier> & id);
 
+	void DatabaseIncrementalUpdate();
 
 protected:
 
@@ -137,7 +138,7 @@ protected:
 	bool RemoveSubscription(unsigned type, const H460P_PresenceIdentifier & pid);
 
   // Database Functions
-	bool DatabaseLoad();
+	bool DatabaseLoad(PBoolean incremental);
 	bool DatabaseAdd(const PString & identifier, const H323PresenceID & id);
 	bool DatabaseDelete(const PString & identifier);
 	bool DatabaseUpdate(unsigned tag, const PString & identifier);
@@ -174,6 +175,8 @@ private:
 
 	// query timeout
 	long					m_timeout;
+	PInt64					m_lastTimeStamp;
+	PBoolean				m_incrementalUpdate;
 #endif
 
 };
