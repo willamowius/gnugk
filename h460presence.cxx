@@ -603,7 +603,10 @@ bool GkPresence::DatabaseLoad(PBoolean incremental)
 
 void GkPresence::DatabaseIncrementalUpdate()
 {
-	if (m_incrementalUpdate) DatabaseLoad(true);
+#if HAS_DATABASE
+	if (m_incrementalUpdate)
+		DatabaseLoad(true);
+#endif
 }
 
 bool GkPresence::DatabaseAdd(const PString & identifier, const H323PresenceID & id)
