@@ -457,7 +457,7 @@ void GkPresence::LoadConfig(PConfig * cfg)
 		return;
 	}
 
-	m_incrementalUpdate = cfg->GetBoolean(authName, "IncrementalUpdate", "0");
+	m_incrementalUpdate = cfg->GetBoolean(authName, "IncrementalUpdate", false);
 
 	m_sqlactive = DatabaseLoad(false);
 #endif
