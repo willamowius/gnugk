@@ -969,7 +969,6 @@ bool CiscoGK::CheckReply(RasMsg *msg) const
 		// here should go additional checks to match callIdentifier, for example
 	} else {
 		PTRACE(5, "NB\tFailed to decode Cisco nonStandardInfo field");
-		SNMP_TRAP(9, SNMPWarning, Network, "Can't decode Cisco nonStandardInfo");
 	}
 
 	return true;
@@ -1785,7 +1784,7 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 					// Create a SRV gatekeeper object
 					GnuGK * nb = new GnuGK();
 					if (!nb->SetProfile(domain, addr)) {
-						PTRACE(4, "ROUTING\tERROR setting SRV neighbor profile " << domain << " at " << addr);
+						PTRACE(2, "ROUTING\tERROR setting SRV neighbor profile " << domain << " at " << addr);
 						SNMP_TRAP(11, SNMPError, Configuration, "Error setting SRV neighbor profile " + domain + " at " + addr);
 						delete nb;
 						return NULL;
@@ -1829,7 +1828,6 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 					delete pRequest;
 					delete nb;
 					PTRACE(4, "ROUTING\tDNS SRV LRQ Error for " << domain << " at " << ipaddr);
-					SNMP_TRAP(11, SNMPError, Network, "SRV LRQ error for " + domain + " at " + ipaddr);
 					// we found the directory for this domain, but it didn't have a destination, so we fail the call
 					Route * route = new Route();
 					route->m_flags |= Route::e_Reject;
@@ -1998,7 +1996,7 @@ bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 				// Create a RDS gatekeeper object
 				GnuGK * nb = new GnuGK();
 				if (!nb->SetProfile(domain,addr)) {
-					PTRACE(4, "ROUTING\tERROR setting RDS neighbor profile " << domain << " at " << addr);
+					PTRACE(2, "ROUTING\tERROR setting RDS neighbor profile " << domain << " at " << addr);
 					SNMP_TRAP(11, SNMPError, Configuration, "Error setting RDS neighbor profile " + domain + " at " + addr);
 					delete nb;
 					return false;
@@ -2039,7 +2037,6 @@ bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 					}
 				}
 				PTRACE(4, "ROUTING\tDNS RDS LRQ Error for " << domain << " at " << ipaddr);
-				SNMP_TRAP(11, SNMPError, Network, "RDS LRQ error for " + domain + " at " + ipaddr);
 				delete pRequest;
 				delete nb;
 			}

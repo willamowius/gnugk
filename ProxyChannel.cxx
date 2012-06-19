@@ -2647,7 +2647,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			if (releasePDU.Encode(buf))
 				TransmitData(buf);
 			else {
-				PTRACE(3, Type() << "\tFailed to encode ReleaseComplete message " << releasePDU);
+				PTRACE(1, Type() << "\tFailed to encode ReleaseComplete message " << releasePDU);
 				SNMP_TRAP(7, SNMPError, Network, "Encoding failed");
 			}
 		}
@@ -3440,7 +3440,6 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				result != H235Authenticator::e_Absent &&
 				result != H235Authenticator::e_Disabled) {
 					PTRACE(5,"H235\tCaller Admission failed");
-					SNMP_TRAP(7, SNMPWarning, Network, PString() + "Admission failed");
 					m_call->SetDisconnectCause(Q931::CallRejected);
 					rejectCall = true;
 			}
