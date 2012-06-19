@@ -804,6 +804,9 @@ The following OIDs are available:
 </itemize>
 All of these OIDs are scalars, so please remember to append '.0' when querying them eg. with 'snmpget'.
 
+Note: Setting the CatchAll destination via SNMP will update the config file
+to make the change permanent. Setting the trace level is a temporary setting.
+
 The following traps are defined:
 <itemize>
 <item>1 GnuGk started
