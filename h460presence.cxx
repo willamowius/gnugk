@@ -2,7 +2,7 @@
 //
 // Presence in H.323 gatekeeper
 //
-// Copyright (c) 2009-2010, Simon Horne
+// Copyright (c) 2009-2012, Simon Horne
 // Copyright (c) 2009-2012, Jan Willamowius
 //
 // This work is published under the GNU Public License (GPL)
@@ -216,7 +216,7 @@ H460P_PresenceSubscription & BuildSubscriptionMsg(const OpalGloballyUniqueID & i
 {
 	H323PresenceSubscription sub;
 	sub.SetSubscription(id);
-	sub.SetSubscriptionDetails(pid.m_subscriber,pid.m_Alias,pid.m_Display,pid.m_Avatar);
+	sub.SetSubscriptionDetails(pid.m_subscriber,pid.m_Alias,pid.m_Display,pid.m_Avatar,pid.m_Category);
 	return BuildSubscriptionMsg(sub,msg);
 }
 #endif
@@ -558,12 +558,14 @@ bool GkPresence::DatabaseLoad(PBoolean incremental)
 								else id.m_Display = PString();
 			if (retval.GetSize() >= 9) id.m_Avatar = retval[8];
 								else id.m_Avatar = PString();
+			if (retval.GetSize() >= 10) id.m_Category = (H323PresenceInstruction::Category)retval[9].AsInteger();
+								else id.m_Category = H323PresenceInstruction::e_UnknownCategory;
 #endif
 		
 #if H460P_VER < 2
 			H323PresenceInstruction instruct(id.m_Status, retval[2]);
 #else
-			H323PresenceInstruction instruct(id.m_Status, retval[2], id.m_Display, id.m_Avatar);
+			H323PresenceInstruction instruct(id.m_Status, retval[2], id.m_Display, id.m_Avatar, id.m_Category);
 #endif
 		// Load the local Store with active or subscriber pending subscriptions
 		if (id.m_Active || (id.m_isSubscriber && (id.m_Status == H323PresenceInstruction::e_pending))) {
@@ -624,6 +626,7 @@ bool GkPresence::DatabaseAdd(const PString & identifier, const H323PresenceID & 
 #if H460P_VER >= 2
 	params["d"] = id.m_Display;
 	params["v"] = id.m_Avatar;
+	params["c"] = id.m_Category;
 #endif
 
 	return (m_sqlConn->ExecuteQuery(m_queryAdd, params, m_timeout) != NULL);
