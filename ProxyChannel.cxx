@@ -1479,11 +1479,8 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			uuie->m_h323_uu_pdu.m_h245Tunneling.SetValue(false);
 			msg->SetUUIEChanged();
 		}
-		if (!m_h245Tunneling
-			&& ((msg->GetTag() == Q931::SetupMsg) || (GetRemote() && GetRemote()->m_h245Tunneling))) {
-			// switch tunneling always on in Setup, so remote side has a chance to do tunneling
-			// or switch it on if the remote side has signalled it supports it
-			uuie->m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+		if (!m_h245Tunneling && GetRemote() && GetRemote()->m_h245Tunneling) {
+			// if we haven't received a Q.931 message from the remote, yet, we assume it will be tunneling, so Setup messages will set it to TRUE here
 			uuie->m_h323_uu_pdu.m_h245Tunneling.SetValue(true);
 			if (disableH245Tunneling)
 				uuie->m_h323_uu_pdu.m_h245Tunneling.SetValue(false);
@@ -5274,6 +5271,10 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					}
 					if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)) {
 						setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(callingSocket->masqAddr, callingSocket->GetPort());
+					}
+					// update tunneling flag, in case this Facility has changed the tunneling state
+					if (!m_h245Tunneling && uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)) {
+						uuie->m_h323_uu_pdu.m_h245Tunneling.SetValue(false);
 					}
 					setup->SetUUIEChanged();
 
