@@ -3878,7 +3878,11 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 
 	// For compatibility to call pre-H323v4 devices that do not support H.460
 	// This strips the Feature Advertisements from the PDU.
-	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH460Call", "0"))) {
+	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH460Call", "0"))
+#ifdef HAS_H46023
+		&& (!m_call || m_call->GetCalledParty()->GetEPNATType() == (int)EndpointRec::NatUnknown)
+#endif
+		) {
 		   setupBody.RemoveOptionalField(H225_Setup_UUIE::e_desiredFeatures);
 		   setupBody.RemoveOptionalField(H225_Setup_UUIE::e_supportedFeatures);
 		   setupBody.RemoveOptionalField(H225_Setup_UUIE::e_neededFeatures);
@@ -6202,7 +6206,7 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 	m_h245socket->SetH245Address(h245addr, masqAddr);
 	if (m_h245TunnelingTranslation && !m_h245Tunneling && GetRemote() && GetRemote()->m_h245Tunneling) {
 		CreateJob(m_h245socket, &H245Socket::ConnectToDirectly, "H245ActiveConnector");	// connnect directly
-		return false;	// remove H.245Addresss from message if it goes to tunneling side
+		return false;	// remove H.245Address from message if it goes to tunneling side
 	}
 	if (m_call->GetRerouteState() == RerouteInitiated) {
 		// if in reroute, don't listen, actively connect to the other side, half of the H.245 connection is already up
