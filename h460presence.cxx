@@ -83,6 +83,9 @@ void PresWorker::Main()
 		// Wait
 		m_delay.Delay(waitTime);
 
+		if (shutDown)
+			continue;
+
 		handler->DatabaseIncrementalUpdate();
 		ProcessMessages();
 
@@ -92,7 +95,7 @@ void PresWorker::Main()
 void PresWorker::Close()
 {
 	if (!shutDown) {
-	    PTRACE(4,"PRES\tPresence Thread Shutdown");
+		PTRACE(4,"PRES\tPresence Thread Shutdown");
 		shutDown = true;
 	}
 }
