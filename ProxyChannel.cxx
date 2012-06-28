@@ -3879,8 +3879,8 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 	// For compatibility to call pre-H323v4 devices that do not support H.460
 	// This strips the Feature Advertisements from the PDU.
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH460Call", "0"))
-#ifdef HAS_H46023
-		&& (!m_call || m_call->GetCalledParty()->GetEPNATType() == (int)EndpointRec::NatUnknown)
+#ifdef HAS_H46023  
+		&& (!m_call->GetCalledParty() || (m_call->GetCalledParty()->GetEPNATType() == (int)EndpointRec::NatUnknown))
 #endif
 		) {
 		   setupBody.RemoveOptionalField(H225_Setup_UUIE::e_desiredFeatures);
