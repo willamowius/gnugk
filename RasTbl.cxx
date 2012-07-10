@@ -3869,8 +3869,8 @@ void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, 
 	PTRACE(5,"H46024B\tNAT offload probes S:" << sessionID << " F:" << fwd << " R:" << rev << " mux " << muxID_fwd << " " << muxID_rev);
     
     PIPSocket::Address addr;  rev.GetIpAddress(addr);
-    bool revDir  = (GetCallSignalSocketCalling()->GetMasqAddr() == addr);
-PTRACE(1,"SH\tNAT offload probe " << GetCallSignalSocketCalling()->GetMasqAddr() << " " << addr);
+    bool revDir  = (GetCallSignalSocketCalled()->GetPeerAddr() == addr);
+//PTRACE(1,"SH\tNAT offload probe " << GetCallSignalSocketCalled()->GetPeerAddr() << " " << addr << " " << revDir);
  
 	H46024Balternate alt;
 	bool callerIsSymmetric = (m_Calling->GetEPNATType() > 5);
