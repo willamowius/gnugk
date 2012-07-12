@@ -358,3 +358,66 @@ Specify that the endpoint with alias 601 is behind NAT.
 <quote/<tt/601=true//
 </descrip>
 
+
+<sect1>Section &lsqb;GkPresence::SQL&rsqb;
+<p>
+H323 SQL Presence system : Highly Experimental
+Use the <ref id="database" name="common database configuration options">
+to define your database connection for this module.
+<p>
+<item><tt/IncrementalUpdate=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Whether to poll the database to check for Presence updates
+
+<item><tt/UpdateWorkerTimer=10/<newline>
+Default: <tt/5/<newline>
+<p>
+Sleep time between updating of H.460 Presence information.
+
+<item><tt/QueryList=SELECT .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Define a SQL query to be used to perform database lookups to retreive 
+contact information (order is important)
+<itemize>
+<item><tt/%i/ - presence identifier  GUID value create externally.
+<item><tt/%u/ - alias to which the presence information belongs
+<item><tt/%a/ - contact alias
+<item><tt/%s/ - Is subscriber (default should be 0)
+<item><tt/%b/ - contact instruction values 0-subscribe 1-unsubscribe  2-block  3-unblock  4-waiting approval
+<item><tt/%y/ - Whether instruction active (default should be 1)
+<item><tt/%z/ - Update Time (should be current UNIX time)
+<item><tt/%d/ - Display name or friendly name of the alias  (optional)
+<item><tt/%v/ - Path to the contacts URL  (optional)
+<item><tt/%c/ - contact category (optional)  values 0-Audio 1-Video 2-data 3-H.239 4-generic
+<item><tt/%t/ - Incremental Timestamp for query (set by Gatekeeper)
+</itemize>
+<p>
+Example
+QueryList=SELECT subscriptionID,h323id,alias,0,status,1,updated,display,avatar,category FROM subscription WHERE timestamp > '%t' ORDER BY h323id,alias
+<p>
+
+item><tt/QueryAdd=INSERT .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Define a SQL query to Add contact record to the database
+Example
+QueryAdd=INSERT INTO subscription (subscriptionID,h323id,alias,isSubscriber,display) VALUES('%i','%u','%a','%s', '%d');
+<p>
+
+item><tt/QueryDelete=Delete .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Define a SQL query to delete a contact from the database
+Example
+QueryDelete=DELETE FROM subscription WHERE subscriptionID = '%i'
+<p>
+
+item><tt/QueryUpdate=UPDATE .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Define a SQL query to Update contact record status
+Example
+QueryUpdate=UPDATE subscription SET status = '%b' WHERE subscriptionID = '%i'
+<p>

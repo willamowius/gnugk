@@ -28,7 +28,7 @@
 #include <h323pdu.h>
 #include <ptclib/delaychan.h>
 
-#define DEFAULT_PRESWORKER_TIMER 2   // fire thread every 2 seconds;
+#define DEFAULT_PRESWORKER_TIMER 5   // fire thread every 5 seconds;
 
 
 ///////////////////////////////////////////////////////
@@ -470,7 +470,7 @@ void GkPresence::LoadConfig(PConfig * cfg)
 		return;
 	}
 
-	m_worker = new PresWorker(this, cfg->GetInteger("RoutedMode", "H460PActThread", DEFAULT_PRESWORKER_TIMER)*1000);
+	m_worker = new PresWorker(this, cfg->GetInteger(authName, "UpdateWorkerTimer", DEFAULT_PRESWORKER_TIMER)*1000);
 }
 
 #if PTRACING
@@ -496,6 +496,45 @@ PString presenceFieldName(int type)
 }
 #endif
 
+void UpdateLocalPresence(H460P_PresenceNotification & local, const H460P_PresenceNotification & received)
+{
+	H460P_Presentity & l = local.m_presentity;
+	const H460P_Presentity & r = received.m_presentity;
+
+	l.m_state = r.m_state;
+	if (r.HasOptionalField(H460P_Presentity::e_supportedFeatures)) {
+		l.IncludeOptionalField(H460P_Presentity::e_supportedFeatures);
+		l.m_supportedFeatures = r.m_supportedFeatures;
+	}
+	if (r.HasOptionalField(H460P_Presentity::e_geolocation)) {
+		l.IncludeOptionalField(H460P_Presentity::e_geolocation);
+		l.m_geolocation = r.m_geolocation;
+	}
+	if (r.HasOptionalField(H460P_Presentity::e_display)) {
+		l.IncludeOptionalField(H460P_Presentity::e_display);
+		l.m_display = r.m_display;
+	}
+	if (r.HasOptionalField(H460P_Presentity::e_genericData)) {
+		l.IncludeOptionalField(H460P_Presentity::e_genericData);
+		bool found;
+		for (PINDEX i=0; i < r.m_genericData.GetSize(); ++i) {
+		   found = false;
+			for (PINDEX j=0; i < l.m_genericData.GetSize(); ++j) {
+				if (r.m_genericData[i].m_id == l.m_genericData[j].m_id) {
+					l.m_genericData[j] = r.m_genericData[i];
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				int sz = l.m_genericData.GetSize();
+				l.m_genericData.SetSize(sz+1);
+				l.m_genericData[sz] = r.m_genericData[i];
+			}
+		}
+	}
+}
+
 bool GkPresence::DatabaseLoad(PBoolean incremental)
 {
 #ifdef HAS_DATABASE
@@ -517,18 +556,25 @@ bool GkPresence::DatabaseLoad(PBoolean incremental)
 		return false;
 	}
 	if (result->GetNumRows() == 0) {
-		PTRACE(2, "H460PSQL\tDatabase returns 0 entries, assume table is empty.");
+		if (!incremental) {
+		  PTRACE(4, "H460PSQL\tDatabase returns 0 entries, assume table is empty.");
+		}
 		return true;
 	}
-	m_lastTimeStamp = PTime().GetTimestamp();
+
+	PTRACE(4, "H460PSQL\tLoad fetched " << result->GetNumRows() << " entries. TimeStamp " << m_lastTimeStamp);
+	m_lastTimeStamp = PTime().GetTimeInSeconds();
 
 	// Clear the cache.
 	if (!incremental) {
 		localStore.clear();
 		remoteIds.clear();
-	    remoteIdmap.clear();
-    }
+		remoteIdmap.clear();
+	}
 
+#if PTRACING
+	PINDEX j=0;
+#endif
 	PStringArray retval;
 	while (result->FetchRow(retval)) {
 		if (retval[0].IsEmpty()) {
@@ -542,9 +588,13 @@ bool GkPresence::DatabaseLoad(PBoolean incremental)
 		for (PINDEX i=0; i < retval.GetSize(); ++i) {
 			results << " " << presenceFieldName(i) << " "; 
 			if (i == 4) results << H323PresenceInstruction::GetInstructionString(retval[i].AsInteger());
+#if H460P_VER >= 2
+			else if (i == 10) results << H323PresenceInstruction::GetCategoryString(retval[i].AsInteger());
+#endif
 			else results << retval[i];
 		}
-		PTRACE(6, "H460PSQL\tQuery result: " << results);
+		PTRACE(6, "H460PSQL\tR: " << j << " " << results);
+		j++;
 #endif
 
 		H460P_PresenceIdentifier & pid = AsPresenceId(retval[0]);
@@ -578,9 +628,15 @@ bool GkPresence::DatabaseLoad(PBoolean incremental)
 					itx->second.m_Instruction.Add(instruct);
 			} else {
 				H323PresenceEndpoint store;
-				if (id.m_subscriber != id.m_Alias) { 
-					store.m_Instruction.Add(instruct);
-				    localStore.insert(pair<H225_AliasAddress,H323PresenceEndpoint>(id.m_subscriber,store));
+				if (id.m_subscriber != id.m_Alias) {
+						// Set Default Notification
+						H460P_PresenceNotification n;
+						n.m_presentity.m_state = H460P_PresenceState::e_offline;
+						store.m_Notify.SetSize(1);
+						UpdateLocalPresence(store.m_Notify[0],n);
+						// Load Instructions
+						store.m_Instruction.Add(instruct);
+					localStore.insert(pair<H225_AliasAddress,H323PresenceEndpoint>(id.m_subscriber,store));
 				}
 			}
 		}
@@ -723,6 +779,12 @@ bool GkPresence::RegisterEndpoint(const H225_EndpointIdentifier & ep, const H225
 			continue;
 		}
 
+		// Change the status to Online....
+		if (itx->second.m_Notify.GetSize() > 0) {
+			H460P_PresenceNotification & n = itx->second.m_Notify[0];
+			n.m_presentity.m_state = H460P_PresenceState::e_online;
+		}
+
 		// Queue up any notifications of existing registrations
 		for (PINDEX i=0; i< itx->second.m_Instruction.GetSize(); i++) {
 		   // Queue up info from the datastore to supply to the endpoint
@@ -737,8 +799,7 @@ bool GkPresence::RegisterEndpoint(const H225_EndpointIdentifier & ep, const H225
 			const H460P_PresenceAlias & palias = itx->second.m_Instruction[i];
 			const H225_AliasAddress & alias = palias.m_alias;
 #endif
-			if ((itx->second.m_Instruction[i].GetTag() == e_subscribe) &&
-										(IsLocalAvailable(alias,aliasList)))
+			if (itx->second.m_Instruction[i].GetTag() == e_subscribe)
 						EnQueueFullNotification(alias,addr[j]);
 		}
 
@@ -867,16 +928,34 @@ bool GkPresence::BuildPresenceElement(unsigned msgtag, const H225_TransportAddre
 
 bool GkPresence::EnQueueFullNotification(const H225_AliasAddress & local, const H225_AliasAddress & remote)
 {
-    H323PresenceStore::const_iterator itm = localStore.find(local);
-	if (itm != localStore.end() && itm->second.m_Notify.GetSize() > 0) {  // TODO Figure out why Notify size would be zero
-		H460P_PresencePDU msg;
-		H460P_PresenceNotification & notification = BuildNotificationMsg(itm->second.m_Notify[0],msg);
-		notification.IncludeOptionalField(H460P_PresenceNotification::e_aliasAddress);
-		notification.m_aliasAddress = local;
-		EnQueuePresence(remote,msg);
+	// Send local status to remote
+    H323PresenceStore::iterator itm = localStore.find(local);
+	if (itm == localStore.end())
+        return false;
+
+	H460P_PresencePDU msg;
+    if (itm->second.m_Notify.GetSize() == 0) 
+		return false;
+
+	H460P_PresenceNotification & notification = BuildNotificationMsg(itm->second.m_Notify[0],msg);
+	notification.IncludeOptionalField(H460P_PresenceNotification::e_aliasAddress);
+	notification.m_aliasAddress = local;
+	EnQueuePresence(remote,msg);
+
+	// Send remote status to local
+	H323PresenceStore::iterator itx = localStore.find(remote);
+	if (itx == localStore.end())
 		return true;
-	}
-	return false;
+
+	H460P_PresencePDU msg2;
+	if (itx->second.m_Notify.GetSize() == 0)
+		return true;
+
+	H460P_PresenceNotification & notification2 = BuildNotificationMsg(itx->second.m_Notify[0],msg2);
+	notification2.IncludeOptionalField(H460P_PresenceNotification::e_aliasAddress);
+	notification2.m_aliasAddress = remote;
+	EnQueuePresence(local,msg2);
+	return true;
 }
 
 bool GkPresence::EnQueuePresence(const H225_AliasAddress & addr, const H460P_PresencePDU & msg)
@@ -1223,44 +1302,6 @@ PBoolean GkPresence::BuildIdentifiers(bool alive, const H225_TransportAddress & 
 	return found;
 }
 
-void UpdateLocalPresence(H460P_PresenceNotification & local, const H460P_PresenceNotification & received)
-{
-	H460P_Presentity & l = local.m_presentity;
-	const H460P_Presentity & r = received.m_presentity;
-
-	l.m_state = r.m_state;
-	if (r.HasOptionalField(H460P_Presentity::e_supportedFeatures)) {
-		l.IncludeOptionalField(H460P_Presentity::e_supportedFeatures);
-		l.m_supportedFeatures = r.m_supportedFeatures;
-	}
-	if (r.HasOptionalField(H460P_Presentity::e_geolocation)) {
-		l.IncludeOptionalField(H460P_Presentity::e_geolocation);
-		l.m_geolocation = r.m_geolocation;
-	}
-	if (r.HasOptionalField(H460P_Presentity::e_display)) {
-		l.IncludeOptionalField(H460P_Presentity::e_display);
-		l.m_display = r.m_display;
-	}
-	if (r.HasOptionalField(H460P_Presentity::e_genericData)) {
-		l.IncludeOptionalField(H460P_Presentity::e_genericData);
-		bool found;
-		for (PINDEX i=0; i < r.m_genericData.GetSize(); ++i) {
-		   found = false;
-			for (PINDEX j=0; i < l.m_genericData.GetSize(); ++j) {
-				if (r.m_genericData[i].m_id == l.m_genericData[j].m_id) {
-					l.m_genericData[j] = r.m_genericData[i];
-					found = true;
-					break;
-				}
-			}
-			if (!found) {
-				int sz = l.m_genericData.GetSize();
-				l.m_genericData.SetSize(sz+1);
-				l.m_genericData[sz] = r.m_genericData[i];
-			}
-		}
-	}
-}
 
 bool GkPresence::HandleStatusUpdates(const H460P_PresenceIdentifier & pid, const H225_AliasAddress & local,
 									 unsigned type, const H225_AliasAddress & remote,
@@ -1493,8 +1534,10 @@ void GkPresence::OnNotification(MsgType tag, const H460P_PresenceNotification & 
 		H323PresenceStore::iterator itx = localStore.find(addr);
 		if (itx != localStore.end()) {
 			H323PresenceEndpoint & ep = itx->second;
-			ep.m_Notify.SetSize(1);
-			UpdateLocalPresence(ep.m_Notify[0], notify);
+			if (ep.m_Notify.GetSize() == 0) {
+				ep.m_Notify.SetSize(1);
+				UpdateLocalPresence(ep.m_Notify[0], notify);
+			}
 
 			for (PINDEX i=0; i < ep.m_Instruction.GetSize(); i++) {
 				if (ep.m_Instruction[i].GetTag() == H460P_PresenceInstruction::e_subscribe) {
