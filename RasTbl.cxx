@@ -867,6 +867,8 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 	urq.m_endpointIdentifier = GetEndpointIdentifier();
 	urq.m_callSignalAddress.SetSize(1);
 	urq.m_callSignalAddress[0] = GetCallSignalAddress();
+
+	SetUsesH460P(false);
 #ifdef HAS_H46017
 	if (UsesH46017())
 		urq.m_callSignalAddress.SetSize(0);
