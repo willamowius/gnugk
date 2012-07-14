@@ -520,6 +520,8 @@ const char * KnownConfigEntries[][2] = {
 	{ "SyslogAcct", "ConnectEvent" },
 	{ "SyslogAcct", "StartEvent" },
 	{ "SyslogAcct", "StopEvent" },
+	{ "SyslogAcct", "SyslogFacility" },
+	{ "SyslogAcct", "SyslogLevel" },
 	{ "SyslogAcct", "TimestampFormat" },
 	{ "SyslogAcct", "UpdateEvent" },
 
