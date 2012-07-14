@@ -1529,7 +1529,7 @@ bool GkPresence::HandleNewInstruction(unsigned tag, const H225_AliasAddress & ad
 
 void GkPresence::OnNotification(MsgType tag, const H460P_PresenceNotification & notify, const H225_AliasAddress & addr)
 {
-	if (tag == e_Status) {
+	if (tag == e_Status || tag ==  e_Notify) {
 		// Update the local Store
 		H323PresenceStore::iterator itx = localStore.find(addr);
 		if (itx != localStore.end()) {
