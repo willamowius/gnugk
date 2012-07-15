@@ -7515,6 +7515,7 @@ void MultiplexedRTPHandler::DumpChannels(const PString & msg) const
 
 void MultiplexedRTPHandler::HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP)
 {
+	ReadLock lock(listLock);
 	// find the matching channel for the multiplex ID and let it handle the packet
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; ++iter) {
