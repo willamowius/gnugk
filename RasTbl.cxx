@@ -3710,8 +3710,11 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 
 	// if can go direct and calling supports Remote NAT and is not NAT or not symmetric
 	else if (goDirect && 
-		((!m_Calling->IsNATed() && m_Calling->SupportH46024()) || (m_Calling->GetEPNATType() < (int)EndpointRec::NatSymmetric)))
-			natinst = CallRec::e_natLocalMaster;
+		((!m_Calling->IsNATed() && m_Calling->SupportH46024()) || (m_Calling->GetEPNATType() == EndpointRec::NatCone)))
+			natinst = CallRec::e_natLocalMaster;  // Provide Assistance for Remote NAT
+	else if (goDirect && 
+		(!m_Called->IsNATed() && m_Calling->SupportH46024() && (m_Calling->GetEPNATType() < (int)EndpointRec::NatSymmetric)))
+			natinst = CallRec::e_natRemoteMaster; 
 
 	// if can go direct and called supports Remote NAT and is not NAT or not symmetric
 	else if (goDirect && 
