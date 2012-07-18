@@ -56,9 +56,10 @@ protected:
 	void ProcessMessages();
 
 private:
-	GkPresence * handler;
-	long waitTime;
-	bool shutDown;
+	GkPresence *	handler;
+	long			waitTime;
+	bool			shutDown;
+    PSyncPointAck	exitWorker;
 
 	PAdaptiveDelay m_delay;
 
@@ -78,18 +79,14 @@ PresWorker::~PresWorker()
 	
 void PresWorker::Main()
 {
-	while (!shutDown) {
-
-		// Wait
-		m_delay.Delay(waitTime);
-
-		if (shutDown)
-			continue;
-
+	while (!exitWorker.Wait(0)) {
 		handler->DatabaseIncrementalUpdate();
-		ProcessMessages();
-
+		if (shutDown) continue;
+			ProcessMessages();
+		if (shutDown) continue;
+			m_delay.Delay(waitTime);
 	}
+	exitWorker.Acknowledge();
 }
 
 void PresWorker::Close()
@@ -97,6 +94,7 @@ void PresWorker::Close()
 	if (!shutDown) {
 		PTRACE(4,"PRES\tPresence Thread Shutdown");
 		shutDown = true;
+		exitWorker.Signal();
 	}
 }
 
@@ -476,7 +474,7 @@ void GkPresence::LoadConfig(PConfig * cfg)
 #if PTRACING
 PString presenceFieldName(int type)
 {
-	static const char * const fields[10] = {
+	static const char * const fields[] = {
 		"GUID",
 		"Subscriber",
 		"Alias",
@@ -486,13 +484,14 @@ PString presenceFieldName(int type)
 		"Updated",
 		"Display",
 		"Avatar",
+		"Category",
 		"Unknown"
 	};
 
-	if (type < 9)
+	if (type < 10)
 		return fields[type];
 
-	return fields[9];
+	return fields[10];
 }
 #endif
 
@@ -589,7 +588,7 @@ bool GkPresence::DatabaseLoad(PBoolean incremental)
 			results << " " << presenceFieldName(i) << " "; 
 			if (i == 4) results << H323PresenceInstruction::GetInstructionString(retval[i].AsInteger());
 #if H460P_VER >= 2
-			else if (i == 10) results << H323PresenceInstruction::GetCategoryString(retval[i].AsInteger());
+			else if (i == 9) results << H323PresenceInstruction::GetCategoryString(retval[i].AsInteger());
 #endif
 			else results << retval[i];
 		}
