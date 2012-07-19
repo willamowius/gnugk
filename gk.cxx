@@ -1219,7 +1219,8 @@ void Gatekeeper::Main()
 		"This program is free software; you can redistribute it and/or\n"
 		"modify it under the terms of the GNU General Public License version 2.\n"
 		"We also explicitly grant the right to link this code\n"
-		"with the OpenH323/H323Plus and OpenSSL library.\n"
+		"with the OpenH323/H323Plus and OpenSSL library.\n\n"
+		"For documentation and updates please visit http://www.gnugk.org/.\n"
 		<< endl;
 
 #ifdef HAS_H46018
