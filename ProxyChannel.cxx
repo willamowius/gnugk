@@ -5277,8 +5277,8 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 						setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(callingSocket->masqAddr, callingSocket->GetPort());
 					}
 					// update tunneling flag, in case this Facility has changed the tunneling state
-					if (!m_h245Tunneling && uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)) {
-						uuie->m_h323_uu_pdu.m_h245Tunneling.SetValue(false);
+					if (uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)) {
+						uuie->m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
 					}
 					setup->SetUUIEChanged();
 
@@ -8546,7 +8546,7 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 		return false;
 	}
 
-	// using the 128 least significant bits of the shared secret to encode the media keys
+	// using the n least significant bits of the shared secret to encode the media keys
 	// H.235.6 clause 7.6.1
 	PBYTEArray shortSessionKey;
 	shortSessionKey.SetSize(AlgorithmKeySize(algorithmOID));
