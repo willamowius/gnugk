@@ -52,6 +52,7 @@ The ID and password are read from <ref id="password" name="[SimplePasswordAuth]"
 or a SQL database for <tt/SimplePasswordAuth/ and <tt/SQLPasswordAuth/
 modules. For H.350.2 authentication (<tt/H350PasswordAuth/)
 the <ref id="h350settings" name="[GkH350::Settings]"> section connection information must be completed.
+The <ref id="h350passwordauth" name="[H350PasswordAuth]"> section is optional
 
 <item><tt>AliasAuth/SQLAliasAuth</tt>
 <p>
@@ -201,7 +202,7 @@ any=reject
 <sect1>Section &lsqb;SimplePasswordAuth&rsqb;
 <label id="password">
 <p>
-The section defines the userid and password pairs used by
+This section defines the userid and password pairs used by
 <tt/SimplePasswordAuth/ module. All passwords are encrypted
 using the <tt/addpasswd/ utility.
 
@@ -283,6 +284,19 @@ SELECT h235password FROM users WHERE alias = '%1' AND active
 SELECT h235password FROM users WHERE alias = '%1' AND gk = '%2'
 </verb></tscreen>
 
+</itemize>
+
+<sect1>Section &lsqb;H350PasswordAuth&rsqb;
+<label id="h350passwordauth">
+<p>
+<itemize>
+<item><tt/PasswordTimeout=120/<newline>
+Default: <tt/-1/<newline>
+<p>
+The module <tt/SimplePasswordAuth/ and all its descendants will cache an
+authenticated password. This field defines the cache timeout value in seconds.
+<tt/0/ means never cache the password, while a negative value
+means the cache never expires.
 </itemize>
 
 <sect1>Section &lsqb;RasSrv::RRQAuth&rsqb;
