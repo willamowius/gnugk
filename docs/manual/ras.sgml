@@ -365,6 +365,7 @@ H323 SQL Presence system : Highly Experimental
 Use the <ref id="database" name="common database configuration options">
 to define your database connection for this module.
 <p>
+<itemize>
 <item><tt/IncrementalUpdate=1/<newline>
 Default: <tt/0/<newline>
 <p>
@@ -398,7 +399,7 @@ Example
 QueryList=SELECT subscriptionID,h323id,alias,0,status,1,updated,display,avatar,category FROM subscription WHERE timestamp > '%t' ORDER BY h323id,alias
 <p>
 
-item><tt/QueryAdd=INSERT .../<newline>
+<item><tt/QueryAdd=INSERT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 Define a SQL query to Add contact record to the database
@@ -406,7 +407,7 @@ Example
 QueryAdd=INSERT INTO subscription (subscriptionID,h323id,alias,isSubscriber,display) VALUES('%i','%u','%a','%s', '%d');
 <p>
 
-item><tt/QueryDelete=Delete .../<newline>
+<item><tt/QueryDelete=Delete .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 Define a SQL query to delete a contact from the database
@@ -421,3 +422,5 @@ Define a SQL query to Update contact record status
 Example
 QueryUpdate=UPDATE subscription SET status = '%b' WHERE subscriptionID = '%i'
 <p>
+</itemize>
+
