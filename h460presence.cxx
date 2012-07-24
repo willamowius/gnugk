@@ -868,7 +868,7 @@ bool GkPresence::GetSubscriptionIdentifier(const H225_AliasAddress & local, cons
 {
 	 H323PresenceIdMap::const_iterator i = remoteIdmap.find(local);
 	 if (i != remoteIdmap.end()) {
-		 H323PresencePending::const_iterator j = i->second.find(local);
+		 H323PresencePending::const_iterator j = i->second.find(remote);
 		 if (j != i->second.end()) {
 			id = j->second;
 			return true;
@@ -1320,9 +1320,10 @@ bool GkPresence::HandleStatusUpdates(const H460P_PresenceIdentifier & pid, const
 				  break;
 
 			  case H460P_PresenceInstruction::e_unsubscribe:
-				  DatabaseDelete(spid);
-				  RemovePresenceMap(pid, remoteIds, remoteIdmap);
-				  RemoveInstruction(remote,it->second.m_Instruction);
+				  DatabaseUpdate(type,spid);
+				  UpdateInstruction(inst,it->second.m_Instruction);
+				  //RemoveInstruction(remote,it->second.m_Instruction);
+				  //RemovePresenceMap(pid, remoteIds, remoteIdmap);
 				  break;
 
 			  case H460P_PresenceInstruction::e_block:
@@ -1335,9 +1336,10 @@ bool GkPresence::HandleStatusUpdates(const H460P_PresenceIdentifier & pid, const
 				  break;
 
 			  case H460P_PresenceInstruction::e_unblock:
-				  DatabaseDelete(spid);
-				  RemovePresenceMap(pid, remoteIds, remoteIdmap);
-  				  RemoveInstruction(remote,it->second.m_Instruction);
+				  DatabaseUpdate(type,spid);
+				  UpdateInstruction(inst,it->second.m_Instruction);
+				  //RemovePresenceMap(pid, remoteIds, remoteIdmap);
+				  //RemoveInstruction(remote,it->second.m_Instruction);
 				  break;
 
 			  case H460P_PresenceInstruction::e_pending:
@@ -1426,11 +1428,11 @@ bool GkPresence::RemoveSubscription(unsigned type,const H460P_PresenceIdentifier
 	if (it != remoteIds.end()) {
 		H323PresenceStore::iterator it1 = localStore.find(it->second.m_subscriber);
 		if (it1 != localStore.end())
-			HandleStatusUpdates(pid,it->second.m_subscriber, type, it->second.m_Alias);
+			HandleStatusUpdates(pid,it1->first, type, it->second.m_Alias);
 
 		H323PresenceStore::iterator it2 = localStore.find(it->second.m_Alias);
 		if (it2 != localStore.end())
-			HandleStatusUpdates(pid,it->second.m_Alias,type,it->second.m_subscriber);
+			HandleStatusUpdates(pid,it2->first,type,it->second.m_subscriber);
 
 	   PTRACE(4,"PRES\tRemoved Subscription " << PresMsgType(type) << " : " << it->second.m_subscriber << " to " << it->second.m_Alias);
 	   return true;
@@ -1465,15 +1467,15 @@ bool GkPresence::HandleNewInstruction(unsigned tag, const H225_AliasAddress & ad
 		}
 #endif
 		if (a == b) {
-			if (instruction.GetTag() == instructions[i].GetTag())
+			if (tag == instructions[i].GetTag())
 				return true;
 
-			if (instruction.GetTag() == H460P_PresenceInstruction::e_unsubscribe) {
+			if (tag == H460P_PresenceInstruction::e_unsubscribe) {
 				H460P_PresenceIdentifier pid;
 				if (GetSubscriptionIdentifier(addr, a, pid))
 					return RemoveSubscription(tag,pid);
 			}
-			if (instruction.GetTag() == H460P_PresenceInstruction::e_unblock) {
+			if (tag == H460P_PresenceInstruction::e_unblock) {
 				H460P_PresenceIdentifier pid;
 				if (GetSubscriptionIdentifier(addr, a, pid))
 					return HandleStatusUpdates(pid, addr, e_unblock, a);
