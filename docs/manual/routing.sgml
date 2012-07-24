@@ -118,7 +118,7 @@ You can use it as a fallback at the end of the policy chain to route all calls w
 
 <item><tt/lua/<newline>
 <p>
-This policy runs the LUA script defined in <ref id="routingcatchall" name="Routing::Lua"> section to set a call destination. NOTE: This policy is still experimental!
+This policy runs the LUA script defined in <ref id="routingcatchall" name="Routing::Lua"> section to set a call destination. NOTE: This policy is still experimental and may change!
 
 </itemize>
 
@@ -669,7 +669,8 @@ If CatchAllIP is not specified, then route all calls to this alias.
 <sect1>Section &lsqb;Routing::Lua&rsqb;
 <label id="routinglua">
 <p>
-NOTE: This policy is still experimental.
+NOTE: This policy is still experimental and may change in the next release.
+Please contact the GNU Gatekeeper authors if you want to use it in production.
 
 The LUA script has the following <bf/input variables/ available:
 <itemize>
