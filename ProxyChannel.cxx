@@ -5279,9 +5279,10 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 						setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(callingSocket->masqAddr, callingSocket->GetPort());
 					}
 					// update tunneling flag, in case this Facility has changed the tunneling state
-					if (uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)) {
-						uuie->m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
+					if (!uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)) {
+						uuie->m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
 					}
+					uuie->m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
 					setup->SetUUIEChanged();
 
 					if (HandleH245Address(setupBody))
