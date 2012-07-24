@@ -777,8 +777,9 @@ and GET requests are supported.  See below for the additional switches
 which are required when using PTLib for SNMP.
 
 The <tt>Windows</tt> implementation integrates as a sub-agent into
-Windows' SNMP service. This implementation is incomplete. Please contact
-the authors if you need full SNMP support on Windows.
+Windows' SNMP service. This implementation is incomplete.
+You can use the <tt>PTLib</tt> implementation on Windows, for the sam elimited SNMP support as on Unix.
+Please contact the authors if you need full SNMP support on Windows.
 
 <sect2>GNU Gatekeeper Enterprise MIB
 <p>
