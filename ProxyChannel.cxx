@@ -3426,6 +3426,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 #if PTLIB_VER >= 2110  // Authenticators are created on demand by identifiers in token/cryptoTokens where supported 
 			auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
 #else			// Create all authenticators for both media encryption and caller authentication
+			H235Authenticators::SetMaxCipherLength(toolkit->Config()->GetInteger(RoutedSec, "H235HalfCallMediaStrength", 128));
 			auth.CreateAuthenticators(H235Authenticator::MediaEncryption);  
 			auth.CreateAuthenticators(H235Authenticator::EPAuthentication);
 #endif
@@ -3461,6 +3462,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 #if PTLIB_VER >= 2110  // Authenticators are created on demand by identifiers in token/cryptoTokens where supported 
 			auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
 #else			// Create all authenticators for both media encryption and caller authentication
+			H235Authenticators::SetMaxCipherLength(toolkit->Config()->GetInteger(RoutedSec, "H235HalfCallMediaStrength", 128));
 			auth.CreateAuthenticators(H235Authenticator::MediaEncryption);  
 			auth.CreateAuthenticators(H235Authenticator::EPAuthentication);
 #endif

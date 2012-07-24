@@ -559,8 +559,6 @@ IP versions.
 <item><tt/EnableH235HalfCallMedia=1/<newline>
 Default: <tt/0/<newline>
 <p>
-WARNING: This feature is still experimental.
-<p>
 When the endpoint on one side of a call supports encryption and the endpoint
 on the other side does not, the gatekeeper will act as a "man-in-the-middle"
 and encrypt the media stream to the encryption-capable system.  A decrypted
@@ -582,8 +580,13 @@ As of Version 3.x of GnuGk, encryption of data channels is not supported.
 <item><tt/RequireH235HalfCallMedia=1/<newline>
 Default: <tt/0/<newline>
 <p>
-EXPERIMENTAL: Require at least one leg of the call to be encrypted.
+Require at least one leg of the call to be encrypted.
 (Terminate the call if both legs are unencrypted.)
+
+<item><tt/H235HalfCallMediaStrength=256/<newline>
+Default: <tt/128/<newline>
+<p>
+Set the maximum cypher length to support for H.235 half call media.
 
 <item><tt/EnableH460P=1/<newline>
 Default: <tt/0/<newline>
