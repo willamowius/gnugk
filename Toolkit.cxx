@@ -1209,8 +1209,10 @@ void Toolkit::CreateConfig()
 			}
 		}
 	} else { // Oops! Create temporary config file failed, use the original one
-		PTRACE(0, "CONFIG\tCould not create/link config to a temporary file " << m_tmpconfig);
-		SNMP_TRAP(6, SNMPError, General, "Failed to reload config");
+		if (PFile::Exists(m_ConfigFilePath)) {
+			PTRACE(0, "CONFIG\tCould not create/link config to a temporary file " << m_tmpconfig);
+			SNMP_TRAP(6, SNMPError, General, "Failed to load config");
+		}
 		delete m_Config;
 		m_Config = new PConfig(m_ConfigFilePath, m_ConfigDefaultSection);
 	}
@@ -1224,9 +1226,7 @@ void Toolkit::CreateConfig()
 		PTRACE(5, "GK\tTrying file name "<< m_extConfigFilePath << " for external config");
 	} while (PFile::Exists(m_extConfigFilePath));
 
-	m_Config = new GatekeeperConfig(
-		m_extConfigFilePath, m_ConfigDefaultSection, m_Config
-		);
+	m_Config = new GatekeeperConfig(m_extConfigFilePath, m_ConfigDefaultSection, m_Config);
 }
 
 void Toolkit::ReloadSQLConfig()
