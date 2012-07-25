@@ -2,18 +2,17 @@
 <p>
 <sect1>Pre-requisites for Compiling
 <p>
-To build the gatekeeper you need PWLib and OpenH323 or PTLib and H323Plus.
+To build the gatekeeper you need PTLib and H323Plus.
 Please see
 <url url="http://www.gnugk.org/compiling-gnugk.html" name="http://www.gnugk.org/compiling-gnugk.html">
 for up-to-date information on required library versions.
 <p>
-<bf>NOTE:</bf> In order to use any H.460 features, you must build with H323Plus.
 
 To successfully compile the GNU Gatekeeper you must first compile the pre-requisites in this order:
 <p>
 <enum>
-<item>PWLib or PTLib
-<item>OpenH323 or H323Plus
+<item>PTLib
+<item>H323Plus
 </enum>
 
 On Unix, run <tt/configure/ and <tt/make debugnoshared/ or <tt/make optnoshared/
@@ -56,9 +55,9 @@ build appropriate dependency lists, so any CVS updates to the source code will f
 all affected files to get recompiled and will prevent the resulting binary from being compiled
 with a mix of old and updated headers.
 
-Type <tt/configure --help/ to see a detailed list of all compile-time
+Type <tscreen><verb>configure --help</verb></tscreen> to see a detailed list of all compile-time
 options. You can use them to enable or disable features of the gatekeeper.
-For example, if you do not need RADIUS just type: <tt/configure --disable-radius/.<newline>
+For example, if you do not need RADIUS just type: <tscreen><verb>configure --disable-radius</verb></tscreen>
 
 In order to use the gatekeeper under heavy load, enabling the LARGE_FDSET feature
 (only available on Unix) is recommended (configure --with-large-fdset=4096). Some systems

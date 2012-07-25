@@ -30,8 +30,7 @@ following services:
 The GNU Gatekeeper implements all of these functions and a number of additional features.
 For the protocol handling and encoding and decoding of the messages, it uses the
 <url url="http://sourceforge.net/projects/h323plus" name="H323Plus"> library
-(a continuation of the now defunct
-<url url="http://sourceforge.net/projects/openh323" name="OpenH323 project">).
+(a continuation of the now defunct OpenH323 project).
 
 H.323 is an international standard published by the <url
 url="http://www.itu.int/" name="ITU">.  It is a communications standard for
@@ -110,13 +109,6 @@ The project founder and current maintainer is
 <url url="http://www.willamowius.com/gnugk-support.html" name="Jan Willamowius">
 <tt><htmlurl url="mailto:jan@willamowius.de" name="&lt;jan@willamowius.de&gt;"></tt>
 
-Many features of version 2.0 were contributed by Chih-Wei
-Huang <tt><htmlurl url="mailto:cwhuang@linux.org.tw"
-name="&lt;cwhuang@linux.org.tw&gt;"></tt> and Citron Network Inc.
-
-Michal Zygmuntowicz <tt><htmlurl url="mailto:m.zygmuntowicz@onet.pl"
-name="&lt;m.zygmuntowicz@onet.pl&gt;"></tt> has done great work to improve the GNU Gatekeeper.
-
-The initial version of a proof-of-concept gatekeeper based on OpenH323 had been developed by
-Xiang Ping Chen, Joe Metzger and Rajat Todi.
+Over the years many people have contributed, most notable Simon Horne,
+Michal Zygmuntowicz and Chih-Wei Huang.
 
