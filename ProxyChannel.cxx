@@ -1482,6 +1482,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 				if (connect != NULL) {
 					H225_Connect_UUIE & connectBody = connect->GetUUIEBody();
 					connectBody.IncludeOptionalField(H225_Connect_UUIE::e_h245Address);
+					// set a placeholder, will be overwritten when the H.245 listener is started
 					connectBody.m_h245Address = SocketToH225TransportAddr(masqAddr, 1);
 				}
 			}
@@ -3795,12 +3796,6 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				setupBody.m_supportedFeatures.SetSize(0);
 			}
 			AddH460Feature(setupBody.m_supportedFeatures, feat);
-
-			if (m_h245TunnelingTranslation) {  // Always make sure tunneling is set to true
-				msg->GetUUIE()->m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
-				msg->GetUUIE()->m_h323_uu_pdu.m_h245Tunneling=true;
-			}
-
 		}
 #ifdef HAS_H46023
 		if (Toolkit::Instance()->IsH46023Enabled() 
@@ -5271,6 +5266,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					GetHandler()->MoveTo(callingSocket->GetHandler(), this);
 
 					if (!m_call->H46019Required()) {  // we are using H.460.23/24
+						// TODO: corrections of the Setup elements missing and no H.245 handler installed!
 						this->TransmitData(rawSetup);
 						m_result = DelayedConnecting;
 						return;
@@ -5305,8 +5301,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					}
 					if (q931pdu->HasIE(Q931::UserUserIE)) {
 						uuie = new H225_H323_UserInformation();
-						if (!GetUUIE(*q931pdu, *uuie)) {
-						}
+						GetUUIE(*q931pdu, *uuie);
 					}
 					PIPSocket::Address _localAddr, _peerAddr;
 					WORD _localPort = 0, _peerPort = 0;
@@ -6384,7 +6379,7 @@ void CallSignalSocket::SetCallTypePlan(Q931 *q931)
 					plan = dplan;
 			}
 			q931->SetCalledPartyNumber(Number, plan, type);
-			PTRACE(4, Type() << "\tSet Called Numbering Plan " << plan << " Type Of Number " << type);
+			PTRACE(4, Type() << "\tSet Called Numbering Plan=" << plan << " TypeOfNumber=" << type);
 		}
 	}
 
