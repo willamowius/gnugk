@@ -3776,19 +3776,19 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			CallRec::NatStrategy strat = m_call->GetNATStrategy(); 
 			if (strat == CallRec::e_natUnknown) m_call->NATAssistCallerUnknown(strat);
 #endif
+			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
+				bool isH46019Client = false;
+				RemoveH46019Descriptor(setupBody.m_supportedFeatures, m_senderSupportsH46019Multiplexing, isH46019Client);
+			}
 
 			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))
 #ifdef HAS_H46023
-				&& (!HasH46024Descriptor(setupBody.m_supportedFeatures) && IsH46024ProxyStrategy(strat))
+				&& (m_senderSupportsH46019Multiplexing || (!HasH46024Descriptor(setupBody.m_supportedFeatures) && IsH46024ProxyStrategy(strat)))
 #endif
 			) {
 				feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
 				feat.AddParameter(feat_id);
 				delete feat_id;
-			}
-			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
-				bool isH46019Client = false;
-				RemoveH46019Descriptor(setupBody.m_supportedFeatures, m_senderSupportsH46019Multiplexing, isH46019Client);
 			}
 			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 				// add H.460.19 indicator to Setups
@@ -5265,12 +5265,6 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					SetConnected(true);
 					GetHandler()->MoveTo(callingSocket->GetHandler(), this);
 
-					if (!m_call->H46019Required()) {  // we are using H.460.23/24
-						// TODO: corrections of the Setup elements missing and no H.245 handler installed!
-						this->TransmitData(rawSetup);
-						m_result = DelayedConnecting;
-						return;
-					}
 					// always proxy H.245 for H.460.18/19
 					Address calling = GNUGK_INADDR_ANY, called = GNUGK_INADDR_ANY;
 					m_call->GetNATType(calling, called);
