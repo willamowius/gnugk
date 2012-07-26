@@ -304,7 +304,7 @@ void RemoveH46019Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures, 
 #ifdef HAS_H46023
 bool HasH46024Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures)
 {
-	bool found = true;
+	bool found = false;
 	bool senderSupportsH46019Multiplexing = false;
 	for(PINDEX i=0; i < supportedFeatures.GetSize(); i++) {
 		H225_GenericIdentifier & id = supportedFeatures[i].m_id;
@@ -341,6 +341,16 @@ bool HasH46024Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures)
 		}
 	}
 	return found;
+}
+
+bool IsH46024ProxyStrategy(CallRec::NatStrategy strat)
+{ 
+	if (strat == CallRec::e_natUnknown
+		|| strat == CallRec::e_natLocalProxy 
+		|| strat == CallRec::e_natFullProxy)
+			return true;
+
+	return false;
 }
 #endif
 
@@ -3761,7 +3771,16 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			delete feat_id;
 			feat_id = NULL;
 
-			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
+#ifdef HAS_H46023
+			CallRec::NatStrategy strat = m_call->GetNATStrategy(); 
+			if (strat == CallRec::e_natUnknown) m_call->NATAssistCallerUnknown(strat);
+#endif
+
+			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))
+#ifdef HAS_H46023
+				&& (!HasH46024Descriptor(setupBody.m_supportedFeatures) && IsH46024ProxyStrategy(strat))
+#endif
+			) {
 				feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
 				feat.AddParameter(feat_id);
 				delete feat_id;
@@ -3776,7 +3795,31 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				setupBody.m_supportedFeatures.SetSize(0);
 			}
 			AddH460Feature(setupBody.m_supportedFeatures, feat);
+
+			if (m_h245TunnelingTranslation) {  // Always make sure tunneling is set to true
+				msg->GetUUIE()->m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+				msg->GetUUIE()->m_h323_uu_pdu.m_h245Tunneling=true;
+			}
+
 		}
+#ifdef HAS_H46023
+		if (Toolkit::Instance()->IsH46023Enabled() 
+			&& m_call->GetCalledParty()->UsesH46023() 
+			&& !HasH46024Descriptor(setupBody.m_supportedFeatures)) {
+			// if remote does not support H.460.24 add Strategy to add local NAT Support.
+			CallRec::NatStrategy strat = m_call->GetNATStrategy();
+			H460_FeatureStd std24 = H460_FeatureStd(24);
+
+			if (strat == CallRec::e_natUnknown) m_call->NATAssistCallerUnknown(strat);
+			else if (strat == CallRec::e_natRemoteMaster) strat = CallRec::e_natLocalMaster;
+			else if (strat == CallRec::e_natLocalMaster) strat = CallRec::e_natRemoteMaster;
+			else if (strat == CallRec::e_natRemoteProxy) strat = CallRec::e_natLocalProxy;
+			else if (strat == CallRec::e_natLocalProxy)  strat = CallRec::e_natRemoteProxy;
+
+			std24.Add(Std24_NATInstruct,H460_FeatureContent((int)strat,8));
+			AddH460Feature(setupBody.m_supportedFeatures, std24);
+		}
+#endif
 	}
 #endif
 	msg->SetUUIEChanged();
