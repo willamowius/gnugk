@@ -3545,6 +3545,37 @@ PString CallRec::GetNATOffloadString(NatStrategy type)
 	return PString((unsigned)type);
 }
 
+bool CallRec::NATAssistCallerUnknown(NatStrategy & natinst)
+{
+	if (m_Called) {
+		PStringStream info;
+		info << "Unknown calling endpoint";
+		info << "Called Endpoint:\n";
+		info << "    Support H.460.24 " << (m_Called->SupportH46024() ? "Yes" : "No") << "\n";
+		info << "    NAT Type:    " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Called->GetEPNATType()) << "\n";
+		PTRACE(5,"RAS\t\n" << info);
+		if (m_Called->SupportH46024() && (m_Called->GetEPNATType() < (int)EndpointRec::NatCone)) {
+			PTRACE(4,"RAS\tSet strategy to no Assistance");
+			natinst = CallRec::e_natNoassist;
+			return true;
+		} else if (m_Called->SupportH46024() && (m_Called->GetEPNATType() < (int)EndpointRec::NatSymmetric)) {
+			PTRACE(5,"RAS\tSet strategy to Remote Master.");
+			natinst = CallRec::e_natRemoteMaster;
+			return true;
+		} else {
+			if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46024ForceDirect", "0"))) {
+				PTRACE(4,"RAS\tForce Direct Assume remote supports NAT");
+				natinst = CallRec::e_natNoassist;
+				return true;
+			} else {
+				PTRACE(4,"RAS\tH.460.24 Startegy Unresolvable revert to proxy media");
+			}
+		}
+	}
+	natinst = CallRec::e_natUnknown;
+	return false;
+}
+
 bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 {
 	// If calling is missing or H.460 is disabled don't continue.
@@ -3710,7 +3741,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 
 	// if can go direct and calling supports Remote NAT and is not NAT or not symmetric
 	else if (goDirect && 
-		((!m_Calling->IsNATed() && m_Calling->SupportH46024()) || (m_Calling->GetEPNATType() == EndpointRec::NatCone)))
+		((!m_Calling->IsNATed() /*&& m_Calling->SupportH46024()*/) || (m_Calling->GetEPNATType() == EndpointRec::NatCone)))
 			natinst = CallRec::e_natLocalMaster;  // Provide Assistance for Remote NAT
 	else if (goDirect && 
 		(!m_Called->IsNATed() && m_Calling->SupportH46024() && (m_Calling->GetEPNATType() < (int)EndpointRec::NatSymmetric)))

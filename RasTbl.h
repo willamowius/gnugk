@@ -768,6 +768,10 @@ public:
 	  */
 	bool NATOffLoad(bool iscalled, NatStrategy & natinst);
 
+	/** Return whether an unknown incoming call can be offloaded from having to proxy
+	  */
+	bool NATAssistCallerUnknown(NatStrategy & natinst);
+
 	/** Get String representation of the NATStrategy */
 	PString GetNATOffloadString(NatStrategy nat);
 
