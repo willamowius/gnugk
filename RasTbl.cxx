@@ -3549,7 +3549,7 @@ bool CallRec::NATAssistCallerUnknown(NatStrategy & natinst)
 {
 	if (m_Called) {
 		PStringStream info;
-		info << "Unknown calling endpoint";
+		info << "Unknown Calling Endpoint\n";
 		info << "Called Endpoint:\n";
 		info << "    Support H.460.24 " << (m_Called->SupportH46024() ? "Yes" : "No") << "\n";
 		info << "    NAT Type:    " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Called->GetEPNATType()) << "\n";
