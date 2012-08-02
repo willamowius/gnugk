@@ -461,14 +461,13 @@ void GkPresence::LoadConfig(PConfig * cfg)
 	m_incrementalUpdate = cfg->GetBoolean(authName, "IncrementalUpdate", false);
 
 	m_sqlactive = DatabaseLoad(false);
-#endif
-
 	if (!m_sqlactive) {
 		PTRACE(1, "H460P\tNo backend database support. Please recompile GnuGk with database support.");
 		return;
 	}
 
 	m_worker = new PresWorker(this, cfg->GetInteger(authName, "UpdateWorkerTimer", DEFAULT_PRESWORKER_TIMER)*1000);
+#endif
 }
 
 #if PTRACING
