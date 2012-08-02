@@ -135,10 +135,12 @@ void MakeCallEndPoint::OnConnectionEstablished(H323Connection & connection,
 {
 	// find second party by call token
 	PString second_party = GetDestination(token);
-	PTRACE(1, "MakeCallEndpoint: Transferring call to 2nd party " << second_party);
+	PTRACE(1, "MakeCallEndpoint: Transferring call to 2nd party " << second_party)
+#ifdef HAS_H450
 	if (transferMethod == "H.450.2") {
 		PTRACE(3, "MakeCallEndpoint: Using H.450.2 to transfer call");
 		connection.TransferCall(second_party);
+#endif
 #ifdef HAS_ROUTECALLTOMC
 	} else if (transferMethod == "FacilityRouteCallToMC") {
 		PTRACE(3, "MakeCallEndpoint: Using Facility(routeCalltoMC) to transfer call");

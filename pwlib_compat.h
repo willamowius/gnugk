@@ -195,13 +195,13 @@
 
 #ifdef H323_H460P
 	#define HAS_H460P	1  // Presence
-#ifdef H323_H460P_VER
-	#define H460P_VER H323_H460P_VER
+//#ifdef H323_H460P_VER
+	#define H460P_VER 2 // H323_H460P_VER
 	#define OID3 "1.3.6.1.4.1.17090.0.12"  // Presence v2
-#else
-	#define H460P_VER 1
-	#define OID3 "1.3.6.1.4.1.17090.0.3"  // Presence
-#endif
+//#else
+//	#define H460P_VER 1
+//	#define OID3 "1.3.6.1.4.1.17090.0.3"  // Presence
+//#endif
 #endif
 
 #if OPENH323_MAJOR == 1
@@ -237,6 +237,10 @@
 
 #if defined(P_SNMP) || defined(HAS_NETSNMP) || defined(_WIN32)
 #define HAS_SNMP 1
+#endif
+
+#if defined(H323_H450)
+#define HAS_H450 1
 #endif
 
 #endif // PWLIB_COMPAT_H
