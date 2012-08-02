@@ -135,7 +135,7 @@ void MakeCallEndPoint::OnConnectionEstablished(H323Connection & connection,
 {
 	// find second party by call token
 	PString second_party = GetDestination(token);
-	PTRACE(1, "MakeCallEndpoint: Transferring call to 2nd party " << second_party)
+	PTRACE(1, "MakeCallEndpoint: Transferring call to 2nd party " << second_party);
 
 	if (transferMethod == "H.450.2") {
 #ifdef HAS_H450
