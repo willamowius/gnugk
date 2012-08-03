@@ -46,7 +46,7 @@ public:
 	virtual void Stop();
 
 	/** Execute the job in a first idle Worker thread.
-		The function returns immediatelly and this object
+		The function returns immediately and this object
 		is delete automatically, when the job is finished.
 	*/
 	void Execute();

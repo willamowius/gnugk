@@ -38,7 +38,7 @@ class PresWorker : public PThread
 public:
 	PCLASSINFO(PresWorker, PThread)
 
-	/// create a new Worker thread and start it immediatelly
+	/// create a new Worker thread and start it immediately
 	PresWorker(
 		GkPresence * _handler,
 		int _waitTime

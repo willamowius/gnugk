@@ -932,7 +932,7 @@ public:
 		RadiusPDU*& pdu /// receives RADIUS Response PDU on success
 		);
 
-	/** Send RADIUS request and return immediatelly. It sends the #request#
+	/** Send RADIUS request and return immediately. It sends the #request#
 		to the host 'serverAddress:remotePort' and does not wait for a response.
 		
 		@return

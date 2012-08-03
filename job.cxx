@@ -37,7 +37,7 @@ class Worker : public PThread
 public:
 	PCLASSINFO(Worker, PThread)
 
-	/// create a new Worker thread and start it immediatelly
+	/// create a new Worker thread and start it immediately
 	Worker(
 		/// pointer to the Agent instance that is controlling this worker
 		Agent* agent,
@@ -48,7 +48,7 @@ public:
 	virtual ~Worker();
 
 	/** Tell this Worker to execute a new Job. The function returns
-		immediatelly and the job is executed under control of the Worker thread.
+		immediately and the job is executed under control of the Worker thread.
 		After the job is finished, its object is deleted.
 		
 		@return
