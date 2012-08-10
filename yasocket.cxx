@@ -920,7 +920,7 @@ bool USocket::InternalWriteData(const BYTE * buf, int len)
 		ErrorHandler(PSocket::LastWriteError);
 	if (IsSocketOpen()) {
 		PTRACE(4, type << '\t' << Name() << " blocked, " << wcount << " bytes written, " << len << " bytes queued");
-		// push_front used intentionally, as InternalWriteData can be called
+		// InternalWriteData can be called
 		// either when flushing the queue (so any remaining unflushed data
 		// should be put back at the queue front) or when the queue is epmty
 		PWaitAndSignal lock(queueMutex);
