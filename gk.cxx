@@ -1219,11 +1219,11 @@ void Gatekeeper::Main()
 
 	// Copyright notice
 	cout <<
-		"For documentation and updates please visit http://www.gnugk.org/.\n"
+		"For documentation and updates please visit http://www.gnugk.org/.\n\n"
 		"This program is free software; you can redistribute it and/or\n"
 		"modify it under the terms of the GNU General Public License version 2.\n"
 		"We also explicitly grant the right to link this code\n"
-		"with the OpenH323/H323Plus and OpenSSL library.\n\n"
+		"with the OpenH323/H323Plus and OpenSSL library.\n"
 		<< endl;
 
 #ifdef HAS_H46018
