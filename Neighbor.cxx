@@ -1094,7 +1094,7 @@ bool LRQRequester::Send(Neighbor * nb)
 
 	if (m_requests.empty()) {
 		PTRACE(2, "SRV\tError sending LRQ to " << nb->GetIP());
-		SNMP_TRAP(11, SNMPError, Network, "Error sending LRQ to " + nb->GetIP());
+		SNMP_TRAP(11, SNMPError, Network, "Error sending LRQ to " + AsString(nb->GetIP()));
 		return false;
 	}
 
