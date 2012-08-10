@@ -3500,7 +3500,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 	bool fromTraversalClient = false;
 
 	if (request.m_destinationInfo.GetSize() > 0) {
-		// do GWRewriteE164 for neighbor befor processing
+		// do GWRewriteE164 for neighbor before processing
 		PString neighbor_id = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(request.m_replyAddress);
 		PString neighbor_gkid = RasSrv->GetNeighbors()->GetNeighborGkIdBySigAdr(request.m_replyAddress);
 		// if we didn't find the neighbor by SigIP, check if is a traversal client
