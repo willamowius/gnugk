@@ -519,7 +519,7 @@ bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest &
 	return OnSendingLRQ(lrq);
 }
 
-bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq, const LocationRequest &orig_lrq)
+bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq, const LocationRequest & orig_lrq)
 {
 	// adjust hopCount to be lesser or equal to the original value
 	if (orig_lrq.GetRequest().HasOptionalField(H225_LocationRequest::e_hopCount)) {
@@ -959,7 +959,7 @@ bool CiscoGK::CheckReply(RasMsg *msg) const
 	if (nonStandardData->m_nonStandardIdentifier.GetTag() != H225_NonStandardIdentifier::e_h221NonStandard)
 		return false;
 
-	H225_H221NonStandard &h221 = nonStandardData->m_nonStandardIdentifier;
+	H225_H221NonStandard & h221 = nonStandardData->m_nonStandardIdentifier;
 	if (h221.m_manufacturerCode != Toolkit::t35mCisco || h221.m_t35CountryCode != Toolkit::t35cUSA)
 		return false;
 
