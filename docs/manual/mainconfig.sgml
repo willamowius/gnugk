@@ -338,6 +338,10 @@ Default: <tt/7000/<newline>
 Status port to monitor the gatekeeper.
 See <ref id="monitor" name="this section"> for details.
 
+The GNU Gatekeeper will listen to the status port on all IPs it is listening for call signaling.
+You should protect those ports in your firewall and set access control rules
+in the <ref id="gkstatusauth" name="[GkStatus::Auth]"> section for those you can't close completely.
+
 <item><tt/StatusTraceLevel=2/<newline>
 Default: <tt/2/<newline>
 <p>
@@ -530,6 +534,9 @@ increase this setting.
 <p>
 Defines a number of rules regarding who is allowed to connect to the status port.
 Access to the status port provides full control over your gatekeeper. Ensure that this is set correctly.
+The status port is active on all IPs GnuGk listens to. You should block as many status ports in your firewall
+as your setup allows. If you rely on password rules to secure the status port, you should add additional
+IP based rules ('explicit' or 'regex') to limit the IP range where logins are allowed from.
 <itemize>
 <item><tt/rule=allow/<newline>
 Default: <tt/forbid/<newline>
