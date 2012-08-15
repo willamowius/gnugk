@@ -369,6 +369,7 @@ SSHStatusClient::~SSHStatusClient()
 		ssh_bind_free(sshbind);
 	}
 	ssh_finalize();
+	GkStatus::Instance()->StatusClientDeleted();
 }
 
 #ifdef LARGE_FDSET
