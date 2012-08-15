@@ -348,6 +348,12 @@ Default: <tt/2/<newline>
 Default output trace level for new status interface clients.
 See <ref id="monitor" name="this section"> for details.
 
+<item><tt/MaxStatusClients=5/<newline>
+Default: <tt/20/<newline>
+<p>
+Specifies the maximum number of concurrent connections on the status port.
+To disable any connections to the status port, set this switch to 0.
+
 <item><tt/SshStatusPort=1/<newline>
 Default: <tt/0/<newline>
 <p>

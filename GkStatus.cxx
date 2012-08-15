@@ -107,7 +107,7 @@ public:
 		int instanceNo
 		);
 		
-	virtual ~StatusClient() {}
+	virtual ~StatusClient();
 
 	virtual bool ReadCommand(
 		/// command that has been read (if ReadCommand succeeded)
@@ -823,12 +823,14 @@ GkStatus::GkStatus() : Singleton<GkStatus>("GkStatus"), SocketsReader(500)
 #endif
 
 	SetName("GkStatus");
+	m_statusClients = 0;
+	m_maxStatusClients = GkConfig()->GetInteger("MaxStatusClients", 20);
 	Execute();
 }
 
 void GkStatus::AuthenticateClient(StatusClient* newClient)
 {
-	if (newClient->Authenticate()) {
+	if ((m_statusClients++ < m_maxStatusClients) && (newClient->Authenticate())) {
 		newClient->SetTraceLevel(GkConfig()->GetInteger("StatusTraceLevel", MAX_STATUS_TRACE_LEVEL));
 		PTRACE(1, "STATUS\tNew client authenticated successfully: " << newClient->WhoAmI()
 			<< ", login: " << newClient->GetUser()
@@ -838,9 +840,7 @@ void GkStatus::AuthenticateClient(StatusClient* newClient)
 		newClient->Flush();
 		AddSocket(newClient);
 	} else {
-		PTRACE(3, "STATUS\tNew client rejected: " << newClient->WhoAmI()
-			<< ", login: " << newClient->GetUser()
-			);
+		PTRACE(3, "STATUS\tNew client rejected: " << newClient->WhoAmI() << ", login: " << newClient->GetUser());
 		newClient->WriteString("\r\nAccess forbidden!\r\n");
 		// newClient->Flush();	// dont' flush when access is denied to avoid blocking
 		delete newClient;
@@ -1132,6 +1132,11 @@ StatusClient::StatusClient(
 	    }
 	}
 	m_isFilteringActive = Toolkit::AsBool(GkConfig()->GetString(filteringsec, "Enable", "0"));
+}
+
+StatusClient::~StatusClient()
+{
+	GkStatus::Instance()->StatusClientDeleted();
 }
 
 bool StatusClient::ReadCommand(

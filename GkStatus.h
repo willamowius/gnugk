@@ -79,6 +79,11 @@ public:
 		StatusClient* requestingClient
 		);
 
+
+	/** Notification form the status client that it has been deleted
+	*/
+	void StatusClientDeleted() { --m_statusClients; }
+
 	/** Print a list of all connected status interface users
 		to the requesting client.
 	*/
@@ -167,7 +172,7 @@ public:
 		PStringArray& args
 		);
 
-private:
+protected:
 	// override from class RegularJob
 	virtual void OnStart();
 
@@ -177,6 +182,9 @@ private:
 
 	/// map for fast (and easy) 'parsing' the commands from the user
 	std::map<PString, int> m_commands;
+
+	unsigned m_statusClients;
+	unsigned m_maxStatusClients;
 };
 
 /** Listen for incoming connections to the status interface port
