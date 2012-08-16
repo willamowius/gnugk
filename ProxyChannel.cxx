@@ -1389,7 +1389,15 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		SNMP_TRAP(9, SNMPError, General, "Error decoding Q931 message from " + GetName());
 		delete q931pdu;
 		q931pdu = NULL;
-		return m_result = Error;
+		PCaselessString action = Toolkit::Instance()->Config()->GetString(RoutedSec, "Q931DecodingError", "Disconnect");
+		if (action == "Drop") {
+			m_result = NoData;
+		} else if (action == "Forward") {
+			m_result = Forwarding;
+		} else {
+			m_result = Error;
+		}
+		return m_result;
 	}
 
 	PIPSocket::Address _localAddr, _peerAddr;

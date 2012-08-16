@@ -1,5 +1,6 @@
 Changes from 3.0 to 3.1
 =======================
+- new switch [RoutedMode] Q931DecodingError= to specify handling of non-decodable messages
 - new switch [Gatekeeper::Main] MaxStatusClients= to limit number of status port connections (default: 20)
 - H.235 Media encryption/decryption support for a single leg of a call (EnableH235HalfCallMedia=1)
 - BUGFIX(GkClient.cxx) include password in RRQ to parent

@@ -588,6 +588,16 @@ Default: <tt/128/<newline>
 <p>
 Set the maximum cypher length to support for H.235 half call media.
 
+<item><tt/Q931DecodingError=Drop/<newline>
+Default: <tt/Disconnect/<newline>
+<p>
+Specify GnuGk's reaction to invalid Q.931 messages that it cannot decode.
+Until version 3.1 GnuGk would "Disconnect" the connection to protect internal endpoints
+from possibly malicious messages, but if you have some buggy endpoints that you can't get
+fixed, it might be helpful just to "Drop" this Q.931 message that couldn't be decoded.
+The last option to simply "Forward" the messages should be used with great care, since
+invalid messages might cause your endpoints to crash or worse.
+
 <item><tt/EnableH460P=1/<newline>
 Default: <tt/0/<newline>
 <p>
