@@ -981,8 +981,10 @@ PBoolean TCPProxySocket::Accept(PSocket & socket)
 		int errorNumber = GetErrorNumber(PSocket::LastGeneralError);
 		PTRACE(1, Type() << "\tCould not accept TCP socket"
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
-			<< errorNumber << ": " << GetErrorText(PSocket::LastGeneralError)
-			);
+			<< errorNumber << ": " << GetErrorText(PSocket::LastGeneralError));
+		SNMP_TRAP(10, SNMPError, Network, "Could not accept TCP socket - error "
+			+ GetErrorCode(PSocket::LastGeneralError) + "/" + errorNumber + ": "
+			+ GetErrorText(PSocket::LastGeneralError));
 	}
 	return result;
 }
