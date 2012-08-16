@@ -983,7 +983,8 @@ PBoolean TCPProxySocket::Accept(PSocket & socket)
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
 			<< errorNumber << ": " << GetErrorText(PSocket::LastGeneralError));
 		SNMP_TRAP(10, SNMPError, Network, "Could not accept TCP socket - error "
-			+ GetErrorCode(PSocket::LastGeneralError) + "/" + errorNumber + ": "
+			+ GetErrorCode(PSocket::LastGeneralError) + PString("/")
+			+ PString(PString::Unsigned, errorNumber) + PString(": ")
 			+ GetErrorText(PSocket::LastGeneralError));
 	}
 	return result;
