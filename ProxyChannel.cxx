@@ -74,6 +74,9 @@ const long DEFAULT_SOCKET_CLEANUP_TIMEOUT = 5000;
 // if socket bind fails, try next DEFAULT_NUM_SEQ_PORTS subsequent port numbers
 const int DEFAULT_NUM_SEQ_PORTS = 500;
 
+// maximum number of handlder threads GnuGk will start (call signaling or RTP)
+const unsigned MAX_HANDLER_NUMBER = 200;
+
 // RTCP functions used in UDPProxySocket and H46019Session
 ProxySocket::Result ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & fromIP, BYTE * wbuffer, WORD buflen);
 void BuildReceiverReport(const callptr & call, WORD sessionID, const RTP_ControlFrame & frame, PINDEX offset, bool dst);
@@ -84,7 +87,7 @@ H245_H2250LogicalChannelParameters *GetLogicalChannelParameters(H245_OpenLogical
 bool odd(unsigned n) { return (n % 2) != 0; }
 
 template <class UUIE>
-inline unsigned GetH225Version(const UUIE &uuie)
+inline unsigned GetH225Version(const UUIE & uuie)
 {
 	if (uuie.m_protocolIdentifier.GetSize() < 6)
 		return 0;
@@ -739,8 +742,8 @@ private:
 		T120LogicalChannel *t120lc;
 	};
 
-	T120Listener *listener;
-	ProxyHandler *handler;
+	T120Listener * listener;
+	ProxyHandler * handler;
 	PIPSocket::Address peerAddr;
 	WORD peerPort;
 	std::list<T120ProxySocket *> sockets;
@@ -5953,7 +5956,7 @@ void CallSignalSocket::Dispatch()
 		RegistrationTable::Instance()->OnNATSocketClosed(this);
 	}
 #endif
-	delete this; // oh!
+	delete this;
 }
 
 ProxySocket::Result CallSignalSocket::RetrySetup()
@@ -8988,7 +8991,7 @@ bool T120LogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245H
 		OnSeparateStack(olca.m_separateStack, _handler) : false;
 }
 
-void T120LogicalChannel::StartReading(ProxyHandler *h)
+void T120LogicalChannel::StartReading(ProxyHandler * h)
 {
 	if (!used) {
 		used = true;
@@ -10096,7 +10099,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 	return changed;
 }
 
-void H245ProxyHandler::SetHandler(ProxyHandler *h)
+void H245ProxyHandler::SetHandler(ProxyHandler * h)
 {
 	handler = h;
 	if (peer)
@@ -10319,9 +10322,7 @@ ServerSocket *CallSignalListener::CreateAcceptor() const
 
 
 // class ProxyHandler
-ProxyHandler::ProxyHandler(
-	const PString& name
-	)
+ProxyHandler::ProxyHandler(const PString & name)
 	: SocketsReader(100), m_socketCleanupTimeout(DEFAULT_SOCKET_CLEANUP_TIMEOUT)
 {
 	SetName(name);
@@ -10342,9 +10343,9 @@ void ProxyHandler::LoadConfig()
 #endif
 }
 
-void ProxyHandler::Insert(TCPProxySocket *socket)
+void ProxyHandler::Insert(TCPProxySocket * socket)
 {
-	ProxyHandler *h = socket->GetHandler();
+	ProxyHandler * h = socket->GetHandler();
 	if (h == NULL) {
 		socket->SetHandler(this);
 		AddSocket(socket);
@@ -10365,14 +10366,12 @@ void ProxyHandler::Insert(TCPProxySocket *first, TCPProxySocket *second)
 	AddPairSockets(first, second);
 }
 
-void ProxyHandler::Insert(UDPProxySocket *rtp, UDPProxySocket *rtcp)
+void ProxyHandler::Insert(UDPProxySocket * rtp, UDPProxySocket * rtcp)
 {
-	//rtp->SetHandler(this);
-	//rtcp->SetHandler(this);
 	AddPairSockets(rtp, rtcp);
 }
 
-void ProxyHandler::MoveTo(ProxyHandler *dest, TCPProxySocket *socket)
+void ProxyHandler::MoveTo(ProxyHandler * dest, TCPProxySocket * socket)
 {
 	m_listmutex.StartWrite();
 	iterator iter = find(m_sockets.begin(), m_sockets.end(), socket);
@@ -10437,9 +10436,9 @@ bool ProxyHandler::BuildSelectList(SocketSelectList & slist)
 }
 
 // handle a new message on an existing connection
-void ProxyHandler::ReadSocket(IPSocket *socket)
+void ProxyHandler::ReadSocket(IPSocket * socket)
 {
-	ProxySocket *psocket = dynamic_cast<ProxySocket *>(socket);
+	ProxySocket * psocket = dynamic_cast<ProxySocket *>(socket);
 	if (psocket == NULL) {
 		PTRACE(1, "Error\tInvalid socket");
 		SNMP_TRAP(10, SNMPWarning, Network, "Invalid socket");
@@ -10514,8 +10513,7 @@ void CallSignalSocket::PerformConnecting()
 		if (GkConfig()->HasKey(RoutedSec, "TcpKeepAlive"))
 			remote->Self()->SetOption(SO_KEEPALIVE, Toolkit::AsBool(
 				GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "1")) ? 1 : 0,
-				SOL_SOCKET
-				);
+				SOL_SOCKET);
 
 		ConfigReloadMutex.EndRead();
 		const bool isReadable = remote->IsReadable(2*setupTimeout);
@@ -10781,7 +10779,7 @@ HandlerList::~HandlerList()
 	ForEachInContainer(m_rtpHandlers, mem_vfun(&ProxyHandler::Stop));
 }
 
-ProxyHandler *HandlerList::GetSigHandler()
+ProxyHandler * HandlerList::GetSigHandler()
 {
 	PWaitAndSignal lock(m_handlerMutex);
 	ProxyHandler* const result = m_sigHandlers[m_currentSigHandler];
@@ -10790,7 +10788,7 @@ ProxyHandler *HandlerList::GetSigHandler()
 	return result;
 }
 
-ProxyHandler *HandlerList::GetRtpHandler()
+ProxyHandler * HandlerList::GetRtpHandler()
 {
 	PWaitAndSignal lock(m_handlerMutex);
 	ProxyHandler* const result = m_rtpHandlers[m_currentRtpHandler];
@@ -10811,14 +10809,12 @@ void HandlerList::LoadConfig()
 	m_numSigHandlers = GkConfig()->GetInteger(RoutedSec, "CallSignalHandlerNumber", 5);
 	if (m_numSigHandlers < 1)
 		m_numSigHandlers = 1;
-	if (m_numSigHandlers > 200)
-		m_numSigHandlers = 200;
+	if (m_numSigHandlers > MAX_HANDLER_NUMBER)
+		m_numSigHandlers = MAX_HANDLER_NUMBER;
 	unsigned hs = m_sigHandlers.size();
 	if (hs <= m_numSigHandlers) {
 		for (unsigned i = hs; i < m_numSigHandlers; ++i)
-			m_sigHandlers.push_back(
-				new ProxyHandler(psprintf(PString("ProxyH(%d)"), i))
-				);
+			m_sigHandlers.push_back(new ProxyHandler(psprintf(PString("ProxyH(%d)"), i)));
 	} else {
 		m_currentSigHandler = 0;
 	}
@@ -10826,14 +10822,12 @@ void HandlerList::LoadConfig()
 	m_numRtpHandlers = GkConfig()->GetInteger(RoutedSec, "RtpHandlerNumber", 1);
 	if (m_numRtpHandlers < 1)
 		m_numRtpHandlers = 1;
-	if (m_numRtpHandlers > 200)
-		m_numRtpHandlers = 200;
+	if (m_numRtpHandlers > MAX_HANDLER_NUMBER)
+		m_numRtpHandlers = MAX_HANDLER_NUMBER;
 	hs = m_rtpHandlers.size();
 	if (hs <= m_numRtpHandlers) {
 		for (unsigned i = hs; i < m_numRtpHandlers; ++i)
-			m_rtpHandlers.push_back(
-				new ProxyHandler(psprintf(PString("ProxyRTP(%d)"), i))
-				);
+			m_rtpHandlers.push_back(new ProxyHandler(psprintf(PString("ProxyRTP(%d)"), i)));
 	} else {
 		m_currentRtpHandler = 0;
 	}

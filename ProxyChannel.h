@@ -92,8 +92,8 @@ public:
 	void SetConnected(bool c) { connected = c; }
 	bool IsDeletable() const { return deletable; }
 	void SetDeletable() { deletable = true; }
-	ProxyHandler *GetHandler() const { return handler; }
-	void SetHandler(ProxyHandler *h) { handler = h; }
+	ProxyHandler * GetHandler() const { return handler; }
+	void SetHandler(ProxyHandler * h) { handler = h; }
 
 private:
 	ProxySocket();

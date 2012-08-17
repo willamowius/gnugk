@@ -1241,12 +1241,12 @@ PString RasServer::GetParent() const
 	return gkClient->GetParent();
 }
 
-ProxyHandler *RasServer::GetSigProxyHandler()
+ProxyHandler * RasServer::GetSigProxyHandler()
 {
 	return sigHandler ? sigHandler->GetSigHandler() : NULL;
 }
 
-ProxyHandler *RasServer::GetRtpProxyHandler()
+ProxyHandler * RasServer::GetRtpProxyHandler()
 {
 	return sigHandler ? sigHandler->GetRtpHandler() : NULL;
 }
@@ -1256,33 +1256,22 @@ void RasServer::SelectH235Capability(const H225_GatekeeperRequest & grq, H225_Ga
 	authList->SelectH235Capability(grq, gcf);
 }
 
-bool RasServer::LogAcctEvent(
-	int evt,
-	callptr& call,
-	time_t now
-	)
+bool RasServer::LogAcctEvent(int evt, callptr & call, time_t now)
 {
-	return acctList->LogAcctEvent((GkAcctLogger::AcctEvent)evt,call,now);
+	return acctList->LogAcctEvent((GkAcctLogger::AcctEvent)evt, call, now);
 }
 
-bool RasServer::LogAcctEvent(
-	int evt,
-	const endptr& ep
-	)
+bool RasServer::LogAcctEvent(int evt, const endptr & ep)
 {
 	return acctList->LogAcctEvent((GkAcctLogger::AcctEvent)evt, ep);
 }
  
-PString RasServer::GetAuthInfo(
-	const PString &moduleName
-	)
+PString RasServer::GetAuthInfo(const PString & moduleName)
 {
 	return authList->GetInfo(moduleName);
 }
 
-PString RasServer::GetAcctInfo(
-	const PString &moduleName
-	)
+PString RasServer::GetAcctInfo(const PString & moduleName)
 {
 	return acctList->GetInfo(moduleName);
 }
