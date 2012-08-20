@@ -5313,7 +5313,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					}
 					PIPSocket::Address _localAddr, _peerAddr;
 					WORD _localPort = 0, _peerPort = 0;
-					SetupMsg *setup = (SetupMsg *)SetupMsg::Create(q931pdu, uuie, _localAddr, _localPort, _peerAddr, _peerPort);
+					SetupMsg * setup = (SetupMsg *)SetupMsg::Create(q931pdu, uuie, _localAddr, _localPort, _peerAddr, _peerPort);
 					setup->Decode(rawSetup);
 					H225_Setup_UUIE & setupBody = setup->GetUUIEBody();
 
@@ -7947,8 +7947,9 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	// set of fixes for H.460.19 port detection
 	if (UsesH46019() && !m_h46019DetectionDone) {
 		// fix for H.239 from H.460.19 client
-		if (m_h46019uni
-			&& fSrcIP == 0 && fDestIP != 0 && rDestIP == 0) {
+		if (m_h46019uni && !isRTCP
+			&& fSrcIP == 0 && fDestIP != 0 && rDestIP == 0
+			&& fromAddr != H323TransportAddress(fDestIP, fDestPort)) {
 			PTRACE(5, "H46018\tSetting forward source on unidirectional channel to " << AsString(fromIP, fromPort));
 			fSrcIP = fromIP, fSrcPort = fromPort;
 			m_h46019DetectionDone = true;
