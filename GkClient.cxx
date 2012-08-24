@@ -126,14 +126,14 @@ private:
 	PIPSocket::Address gkip;
 	WORD gkport;
 	PString endpointId;
-	CallSignalSocket *socket;
+	CallSignalSocket * socket;
 };
 
 NATClient::NATClient(const H225_TransportAddress & addr, const H225_EndpointIdentifier & id)
 {
 	GetIPAndPortFromTransportAddr(addr, gkip, gkport);
 	endpointId = id.GetValue();
-	socket = 0;
+	socket = NULL;
 	SetName("NATClient");
 	Execute();
 }
@@ -152,14 +152,14 @@ void NATClient::Exec()
 {
 	ReadLock lockConfig(ConfigReloadMutex);
 	
-	socket = new CallSignalSocket;
+	socket = new CallSignalSocket();
 	socket->SetPort(gkport);
 	if (socket->Connect(gkip)) {
 		PTRACE(2, "GKC\t" << socket->GetName() << " connected, waiting for incoming call");
 		if (DetectIncomingCall()) {
 			PTRACE(3, "GKC\tIncoming call detected");
 			CreateJob(socket, &CallSignalSocket::Dispatch, "NAT call");
-			socket = 0;
+			socket = NULL;
 			return;
 		}
 	}
