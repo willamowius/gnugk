@@ -235,7 +235,7 @@ RasListener::~RasListener()
 GatekeeperMessage *RasListener::ReadRas()
 {
 	PTRACE(4, "RAS\tReceiving on " << GetName());
-	GatekeeperMessage *msg = new GatekeeperMessage;
+	GatekeeperMessage *msg = new GatekeeperMessage();
 	if (!(msg->Read(this) && Filter(msg))) {
 		delete msg;
 		return NULL;
@@ -753,7 +753,7 @@ void RasServer::SetRoutedMode(bool routedSignaling, bool routedH245)
 		if (sigHandler)
 			sigHandler->LoadConfig();
 		else
-			sigHandler = new HandlerList;
+			sigHandler = new HandlerList();
 	} else {
 		// warning: dangerous
 		delete sigHandler;
@@ -1309,12 +1309,12 @@ void RasServer::Run()
 	RasPDU<H225_ServiceControlIndication>::Creator SCICreator;
 	RasPDU<H225_ServiceControlResponse>::Creator SCRCreator;
 
-	listeners = new TCPServer;
-	gkClient = new GkClient;
-	neighbors = new NeighborList;
-	authList = new GkAuthenticatorList;
-	acctList = new GkAcctLoggerList;
-	vqueue = new VirtualQueue;
+	listeners = new TCPServer();
+	gkClient = new GkClient();
+	neighbors = new NeighborList();
+	authList = new GkAuthenticatorList();
+	acctList = new GkAcctLoggerList();
+	vqueue = new VirtualQueue();
 
 	LoadConfig();
 

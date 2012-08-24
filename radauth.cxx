@@ -1075,7 +1075,7 @@ RadAuth::RadAuth(
 	// by this authenticator - this will make sure
 	// GCF H.235 alogirthm selection will not skip
 	// information required by this authenticator
-	H235AuthCAT* authenticator = new H235AuthCAT;
+	H235AuthCAT* authenticator = new H235AuthCAT();
 	authenticator->SetLocalId("dummy");
 	authenticator->SetRemoteId("dummy");
 	authenticator->SetPassword("dummy");

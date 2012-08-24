@@ -10318,7 +10318,7 @@ CallSignalListener::~CallSignalListener()
 
 ServerSocket *CallSignalListener::CreateAcceptor() const
 {
-	return new CallSignalSocket;
+	return new CallSignalSocket();
 }
 
 

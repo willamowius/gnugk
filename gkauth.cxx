@@ -1138,14 +1138,14 @@ SimplePasswordAuth::SimplePasswordAuth(
 	H235Authenticator* authenticator;
 
 	if (m_disabledAlgorithms.GetStringsIndex("MD5") == P_MAX_INDEX) {
-		authenticator = new H235AuthSimpleMD5;
+		authenticator = new H235AuthSimpleMD5();
 		authenticator->SetLocalId("dummy");
 		authenticator->SetRemoteId("dummy");
 		authenticator->SetPassword("dummy");
 		AppendH235Authenticator(authenticator);
 	}
 	if (m_disabledAlgorithms.GetStringsIndex("CAT") == P_MAX_INDEX) {
-		authenticator = new H235AuthCAT;
+		authenticator = new H235AuthCAT();
 		authenticator->SetLocalId("dummy");
 		authenticator->SetRemoteId("dummy");
 		authenticator->SetPassword("dummy");
@@ -1154,7 +1154,7 @@ SimplePasswordAuth::SimplePasswordAuth(
 
 #if P_SSL
 	if (m_disabledAlgorithms.GetStringsIndex("H.235.1") == P_MAX_INDEX) {
-		authenticator = new H235AuthProcedure1;
+		authenticator = new H235AuthProcedure1();
 		authenticator->SetLocalId("dummy");
 		authenticator->SetRemoteId("dummy");
 		authenticator->SetPassword("dummy");
@@ -2119,7 +2119,7 @@ PrefixAuth::PrefixAuth(
 					is_inverted(rules[j], pp)
 					);
 			else {
-				rls[j] = new NullRule;
+				rls[j] = new NullRule();
 			}
 		}
 

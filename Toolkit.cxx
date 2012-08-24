@@ -1659,7 +1659,7 @@ PConfig* Toolkit::ReloadConfig()
 	m_timestampFormatStr = m_Config->GetString("TimestampFormat", "Cisco");
 
 	delete m_cliRewrite;
-	m_cliRewrite = new CLIRewrite;
+	m_cliRewrite = new CLIRewrite();
 
 	CapacityControl::Instance()->LoadConfig();
 
@@ -2056,7 +2056,7 @@ bool Toolkit::AssignedAliases::GetAliases(const H225_ArrayOf_AliasAddress & alia
 		aliaslist.RemoveAll();
 
 		for (PINDEX k=0; k < newaliases.GetSize(); k++) {
-			H225_AliasAddress * aliasaddress = new H225_AliasAddress;
+			H225_AliasAddress * aliasaddress = new H225_AliasAddress();
 			H323SetAliasAddress(newaliases[k], *aliasaddress);
 			aliaslist.Append(aliasaddress);
 		}
