@@ -643,9 +643,7 @@ PString WindowsSNMPAgent::HandleRequest(const PString & request)
 				Toolkit::Instance()->SetConfig(1, "Routing::CatchAll", "CatchAllIP", "");
 				Toolkit::Instance()->SetConfig(1, "Routing::CatchAll", "CatchAllAlias", token[2]);
 			}
-			ConfigReloadMutex.StartWrite();
 			ReloadHandler();
-			ConfigReloadMutex.EndWrite();
 			return "SET_RESPONSE s " + token[2];
 		}
 	}
