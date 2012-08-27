@@ -616,11 +616,9 @@ void STUNClient::Exec()
 {
 	ReadLock lockConfig(ConfigReloadMutex);
 
-	PTimedMutex mute;
-
 	// Wait 500 ms until the RCF has been processed before running tests 
 	// to prevent blocking.
-	mute.Wait(500);
+	PThread::Sleep(500);
 
 	// Get a valid NAT type....
 	// We do the test 3 times as often the first test gives odd results
@@ -632,18 +630,17 @@ void STUNClient::Exec()
 	} while ((i <= 3) && (m_nattype == RestrictedNat ||
 			 m_nattype == PortRestrictedNat ||
 			 m_nattype == BlockedNat ||
-			 m_nattype== PartialBlockedNat
+			 m_nattype == PartialBlockedNat
 		));
 
 	OnDetectedNAT(m_nattype);
+	ReadUnlock unlockConfig(ConfigReloadMutex);	// make sure the STUN client doesn't permanently hog the mutex
 
 	// Keep this job (thread) open so that creating STUN ports does not hold up 
 	// the processing of other calls
 	while (!m_shutdown) {
 		PThread::Sleep(100);
 	}
-
-	ReadUnlock unlockConfig(ConfigReloadMutex);
 }
 
 void STUNClient::OnDetectedNAT(int nattype)
@@ -729,82 +726,81 @@ bool STUNClient::OpenSocketA(UDPSocket & socket, PortInfo & portInfo, const PIPS
 
 bool STUNClient::CreateSocketPair(UDPSocket * & rtp, UDPSocket * & rtcp, const PIPSocket::Address & binding)
 {
- 
-  // We only create port pairs, a pair at a time.
-  PWaitAndSignal m(m_portCreateMutex);
+	// We only create port pairs, a pair at a time.
+	PWaitAndSignal m(m_portCreateMutex);
 
-  rtp = NULL;
-  rtcp = NULL;
+	rtp = NULL;
+	rtcp = NULL;
 
-  if (GetNatType(FALSE) != ConeNat) {
-      PTRACE(1, "STUN\tCannot create socket pair using NAT type " << GetNatTypeName());
-      return FALSE;
-  }
-
-  PINDEX i;
-
-  PList<STUNsocket> stunSocket;
-  PList<STUNmessage> request;
-  PList<STUNmessage> response;
-
-  for (i = 0; i < m_socketsForPairing; i++)
-  {
-    PINDEX idx = stunSocket.Append(new STUNsocket);
-    if (!OpenSocketA(stunSocket[idx], pairedPortInfo, binding)) {
-      PTRACE(1, "STUN\tUnable to open socket to server " << GetServer());
-      return false;
+	if (GetNatType(FALSE) != ConeNat) {
+		PTRACE(1, "STUN\tCannot create socket pair using NAT type " << GetNatTypeName());
+		return FALSE;
 	}
 
-    idx = request.Append(new STUNmessage(STUNmessage::BindingRequest));
-    request[idx].AddAttribute(STUNchangeRequest(false, false));
+	PINDEX i;
 
-    response.Append(new STUNmessage);
-  }
+	PList<STUNsocket> stunSocket;
+	PList<STUNmessage> request;
+	PList<STUNmessage> response;
 
-  for (i = 0; i < m_socketsForPairing; i++)
-  {
-    if (!response[i].Poll(stunSocket[i], request[i], m_pollRetries))
-    {
-      PTRACE(1, "STUN\tServer unexpectedly went offline." << GetServer());
-      return false;
-    }
-  }
+	for (i = 0; i < m_socketsForPairing; i++)
+	{
+		PINDEX idx = stunSocket.Append(new STUNsocket);
+		if (!OpenSocketA(stunSocket[idx], pairedPortInfo, binding)) {
+			PTRACE(1, "STUN\tUnable to open socket to server " << GetServer());
+			return false;
+		}
 
-  for (i = 0; i < m_socketsForPairing; i++)
-  {
-    STUNmappedAddress * mappedAddress = (STUNmappedAddress *)response[i].FindAttribute(STUNattribute::MAPPED_ADDRESS);
-    if (mappedAddress == NULL)
-    {
-      PTRACE(2, "STUN\tExpected mapped address attribute from server " << GetServer());
-      return false;
-    }
-    if (GetNatType(FALSE) != SymmetricNat)
-      stunSocket[i].SetPort(mappedAddress->port);
-    stunSocket[i].externalIP = mappedAddress->GetIP();
-  }
+		idx = request.Append(new STUNmessage(STUNmessage::BindingRequest));
+		request[idx].AddAttribute(STUNchangeRequest(false, false));
 
-  for (i = 0; i < m_socketsForPairing; i++)
-  {
-    for (PINDEX j = 0; j < m_socketsForPairing; j++)
-    {
-      if ((stunSocket[i].GetPort()&1) == 0 && (stunSocket[i].GetPort()+1) == stunSocket[j].GetPort()) {
-        stunSocket[i].SetSendAddress(0, 0);
-        stunSocket[i].SetReadTimeout(PMaxTimeInterval);
-        stunSocket[j].SetSendAddress(0, 0);
-        stunSocket[j].SetReadTimeout(PMaxTimeInterval);
-        rtp = &stunSocket[i];
-        rtcp = &stunSocket[j];
-        stunSocket.DisallowDeleteObjects();
-        stunSocket.Remove(rtp);
-        stunSocket.Remove(rtcp);
-        stunSocket.AllowDeleteObjects();
-        return true;
-      }
-    }
-  }
+		response.Append(new STUNmessage);
+	}
 
-  PTRACE(2, "STUN\tCould not get a pair of adjacent port numbers from NAT");
-  return false;
+	for (i = 0; i < m_socketsForPairing; i++)
+	{
+		if (!response[i].Poll(stunSocket[i], request[i], m_pollRetries))
+		{
+			PTRACE(1, "STUN\tServer unexpectedly went offline." << GetServer());
+			return false;
+		}
+	}
+
+	for (i = 0; i < m_socketsForPairing; i++)
+	{
+		STUNmappedAddress * mappedAddress = (STUNmappedAddress *)response[i].FindAttribute(STUNattribute::MAPPED_ADDRESS);
+		if (mappedAddress == NULL)
+		{
+			PTRACE(2, "STUN\tExpected mapped address attribute from server " << GetServer());
+			return false;
+		}
+		if (GetNatType(FALSE) != SymmetricNat)
+			stunSocket[i].SetPort(mappedAddress->port);
+		stunSocket[i].externalIP = mappedAddress->GetIP();
+	}
+
+	for (i = 0; i < m_socketsForPairing; i++)
+	{
+		for (PINDEX j = 0; j < m_socketsForPairing; j++)
+		{
+			if ((stunSocket[i].GetPort()&1) == 0 && (stunSocket[i].GetPort()+1) == stunSocket[j].GetPort()) {
+				stunSocket[i].SetSendAddress(0, 0);
+				stunSocket[i].SetReadTimeout(PMaxTimeInterval);
+				stunSocket[j].SetSendAddress(0, 0);
+				stunSocket[j].SetReadTimeout(PMaxTimeInterval);
+				rtp = &stunSocket[i];
+				rtcp = &stunSocket[j];
+				stunSocket.DisallowDeleteObjects();
+				stunSocket.Remove(rtp);
+				stunSocket.Remove(rtcp);
+				stunSocket.AllowDeleteObjects();
+				return true;
+			}
+		}
+	}
+
+	PTRACE(2, "STUN\tCould not get a pair of adjacent port numbers from NAT");
+	return false;
 }
 
 #endif
@@ -1869,30 +1865,25 @@ void GkClient::OnRCF(RasMsg *ras)
 #ifdef HAS_H46023
 void GkClient::HandleP2P_RCF(H460_FeatureStd * feat)
 {
-//   PBoolean proxy = FALSE;
-   PBoolean NATdetect = FALSE;
+	PBoolean NATdetect = FALSE;
+	gk_H460_23 = true;
 
-   gk_H460_23 = true;
+	if (feat->Contains(Std23_IsNAT))
+		NATdetect = feat->Value(Std23_IsNAT);
 
-//   if (feat->Contains(Std24_ProxyNAT)) 
-//       proxy = feat->Value(Std24_ProxyNAT);
+	if (feat->Contains(Std23_DetRASAddr)) {
+		H323TransportAddress addr = feat->Value(Std23_DetRASAddr);
+		if (!NATdetect) {
+			PIPSocket::Address ip;
+			addr.GetIpAddress(ip);
+			// EP->OnDetectRASAddress(ip);
+		}
+	}
 
-   if (feat->Contains(Std23_IsNAT))
-       NATdetect = feat->Value(Std23_IsNAT);
-
-   if (feat->Contains(Std23_DetRASAddr)) {
-       H323TransportAddress addr = feat->Value(Std23_DetRASAddr);
-	   if (!NATdetect) {
-		   PIPSocket::Address ip;
-		   addr.GetIpAddress(ip);
-	 //      EP->OnDetectRASAddress(ip);
-	   }
-   }
-
-   if (NATdetect && feat->Contains(Std23_STUNAddr)) {
-           H323TransportAddress addr = feat->Value(Std23_STUNAddr);
-		   m_stunClient = new STUNClient(this,addr);
-   }
+	if (NATdetect && feat->Contains(Std23_STUNAddr)) {
+		H323TransportAddress addr = feat->Value(Std23_STUNAddr);
+		m_stunClient = new STUNClient(this,addr);
+	}
 }
 
 bool GkClient::H46023_TypeNotify(int & nattype)
