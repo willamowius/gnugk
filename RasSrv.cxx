@@ -2381,7 +2381,7 @@ bool RegistrationRequestPDU::Process()
 			// if behind Nat see if STUN server is available for the interface
 			// if not then disable Std23 for this endpoint
 			H323TransportAddress stunaddr;
-			bool ok23 = Toolkit::Instance()->GetH46023STUN(rx_addr,stunaddr);
+			bool ok23 = Toolkit::Instance()->GetH46023STUN(rx_addr, stunaddr);
 
 			// Build the message
 			if (ok23) {
@@ -2395,7 +2395,7 @@ bool RegistrationRequestPDU::Process()
 				} else {
 					// If not NAT then provide the RAS address to the client to determine
 					// whether there is an ALG (or someother device) making things appear as they are not
-					natfs.Add(Std23_DetRASAddr,H460_FeatureContent(H323TransportAddress(request.m_rasAddress[0])));
+					natfs.Add(Std23_DetRASAddr, H460_FeatureContent(H323TransportAddress(request.m_rasAddress[0])));
 				}
 
 				PINDEX lPos = gd.GetSize();

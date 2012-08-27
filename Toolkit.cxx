@@ -2698,18 +2698,19 @@ void Toolkit::LoadH46023STUN()
 	PStringArray stunlist = stun.Tokenise(",");
 
 	for (PINDEX i = 0; i < stunlist.GetSize(); i++) {
-		PIPSocket::Address ip; WORD port;
+		PIPSocket::Address ip;
+		WORD port;
 		GetTransportAddress(stunlist[i], GK_DEF_STUN_PORT, ip, port);
 		if (ip.IsValid()) {
 			int intID = m_ProxyCriterion.IsInternal(ip);
-			std::map<int,H323TransportAddress>::const_iterator inf = m_H46023STUN.find(intID);
+			std::map<int, H323TransportAddress>::const_iterator inf = m_H46023STUN.find(intID);
 			if (inf == m_H46023STUN.end()) {
 				if (intID > 0) {
-					PTRACE(4,"Std23\tSTUN Internal " << ip << " IF " << intID-1);
+					PTRACE(4, "Std23\tSTUN Internal " << ip << " IF " << intID-1);
 				} else {
-					PTRACE(4,"Std23\tSTUN Public Server " << stunlist[i] << " (" << ip << ")");
+					PTRACE(4, "Std23\tSTUN Public Server " << stunlist[i] << " (" << ip << ")");
 				}
-				m_H46023STUN.insert(pair<int, H323TransportAddress>(intID, H323TransportAddress(ip,port)));
+				m_H46023STUN.insert(pair<int, H323TransportAddress>(intID, H323TransportAddress(ip, port)));
 			 }
 		}
 	}
@@ -2718,12 +2719,12 @@ void Toolkit::LoadH46023STUN()
 bool Toolkit::GetH46023STUN(const PIPSocket::Address & addr, H323TransportAddress & stun)
 {
 	 int intID = m_ProxyCriterion.IsInternal(addr);
-	 std::map<int,H323TransportAddress>::const_iterator inf = m_H46023STUN.find(intID);
+	 std::map<int, H323TransportAddress>::const_iterator inf = m_H46023STUN.find(intID);
 	 if (inf != m_H46023STUN.end()) {
 		 stun = inf->second;
 		 return true;
 	 }
-	PTRACE(2,"Std23\tNo STUNserver for Interface " << intID << " disabling H.460.23");
+	PTRACE(2, "Std23\tNo STUNserver for Interface " << intID << " disabling H.460.23");
 	return false;
 }
 
