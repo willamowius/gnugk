@@ -215,9 +215,7 @@ int catchall_handler(netsnmp_mib_handler * /* handler */,
 				Toolkit::Instance()->SetConfig(1, "Routing::CatchAll", "CatchAllIP", "");
 				Toolkit::Instance()->SetConfig(1, "Routing::CatchAll", "CatchAllAlias", dest);
 			}
-			ConfigReloadMutex.StartWrite();
 			ReloadHandler();
-			ConfigReloadMutex.EndWrite();
 		}
 	}
 	return SNMPERR_SUCCESS;
