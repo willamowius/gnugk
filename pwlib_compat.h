@@ -157,7 +157,7 @@
 	#define hasDeletingSetStream 1
 #endif
 
-// store version numver it PT macros for display later on
+// store version number it PT macros for display later on
 #if !defined(PTLIB_MAJOR)
 	#define PTLIB_MAJOR	PWLIB_MAJOR
 	#define PTLIB_MINOR	PWLIB_MINOR
