@@ -1042,7 +1042,7 @@ void SocketsReader::Exec()
 	SocketSelectList slist(GetName());
 
 	if (BuildSelectList(slist)) {
-		if (SelectSockets(slist)) {
+		if (SelectSockets(slist)) {	// SelectSockets() will unlock ConfigReloadMutex while waiting
 			int ss = slist.GetSize();
 			for (int i = 0; i < ss; ++i)
 #ifdef LARGE_FDSET
