@@ -73,7 +73,7 @@ GkAcctLogger::GkAcctLogger(
 
 GkAcctLogger::~GkAcctLogger()
 {
-	PTRACE(1,"GKACCT\tDestroyed module "<<GetName());
+	PTRACE(1, "GKACCT\tDestroyed module "<<GetName());
 }
 
 int GkAcctLogger::GetEvents(

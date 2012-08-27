@@ -3553,22 +3553,22 @@ bool CallRec::NATAssistCallerUnknown(NatStrategy & natinst)
 		info << "Called Endpoint:\n";
 		info << "    Support H.460.24 " << (m_Called->SupportH46024() ? "Yes" : "No") << "\n";
 		info << "    NAT Type:    " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Called->GetEPNATType()) << "\n";
-		PTRACE(5,"RAS\t\n" << info);
+		PTRACE(5, "RAS\t\n" << info);
 		if (m_Called->SupportH46024() && (m_Called->GetEPNATType() < (int)EndpointRec::NatCone)) {
-			PTRACE(4,"RAS\tSet strategy to no Assistance");
+			PTRACE(4, "RAS\tSet strategy to no Assistance");
 			natinst = CallRec::e_natNoassist;
 			return true;
 		} else if (m_Called->SupportH46024() && (m_Called->GetEPNATType() < (int)EndpointRec::NatSymmetric)) {
-			PTRACE(5,"RAS\tSet strategy to Remote Master.");
+			PTRACE(5, "RAS\tSet strategy to Remote Master.");
 			natinst = CallRec::e_natRemoteMaster;
 			return true;
 		} else {
 			if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46024ForceDirect", "0"))) {
-				PTRACE(4,"RAS\tForce Direct Assume remote supports NAT");
+				PTRACE(4, "RAS\tForce Direct Assume remote supports NAT");
 				natinst = CallRec::e_natNoassist;
 				return true;
 			} else {
-				PTRACE(4,"RAS\tH.460.24 Startegy Unresolvable revert to proxy media");
+				PTRACE(4, "RAS\tH.460.24 Startegy Unresolvable revert to proxy media");
 			}
 		}
 	}
@@ -3591,22 +3591,22 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 		info << "Calling Endpoint:\n";
 		info << "    Support H.460.24 " << (m_Calling->SupportH46024() ? "Yes" : "No") << "\n";
 		info << "    NAT Type:    " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Calling->GetEPNATType()) << "\n";
-		PTRACE(5,"RAS\t\n" << info);
+		PTRACE(5, "RAS\t\n" << info);
 		if (m_Calling->SupportH46024() && (m_Calling->GetEPNATType() < (int)EndpointRec::NatCone)) {
-			PTRACE(4,"RAS\tSet strategy to no Assistance");
+			PTRACE(4, "RAS\tSet strategy to no Assistance");
 			natinst = CallRec::e_natNoassist;
 			return true;
 		} else if (m_Calling->SupportH46024() && (m_Calling->GetEPNATType() < (int)EndpointRec::NatSymmetric)) {
-			PTRACE(5,"RAS\tSet strategy to Remote Master.");
+			PTRACE(5, "RAS\tSet strategy to Remote Master.");
 			natinst = CallRec::e_natRemoteMaster;
 			return true;
 		} else {
 			if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46024ForceDirect", "0"))) {
-				PTRACE(4,"RAS\tForce Direct Assume remote supports NAT");
+				PTRACE(4, "RAS\tForce Direct Assume remote supports NAT");
 				natinst = CallRec::e_natNoassist;
 				return true;
 			} else {
-				PTRACE(4,"RAS\tH.460.24 Startegy Unresolvable revert to proxy media");
+				PTRACE(4, "RAS\tH.460.24 Startegy Unresolvable revert to proxy media");
 				return false;
 			}
 		}
@@ -3620,7 +3620,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 
 	// If we have the H46024ForceDirect switch then we can override the need to proxy.
 	if (!goDirect && Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46024ForceDirect", "0"))) {
-		PTRACE(4,"RAS\tH46024 Proxy Disabled. Force call to go direct");
+		PTRACE(4, "RAS\tH46024 Proxy Disabled. Force call to go direct");
 		goDirect = true;
 	}
  
@@ -3659,11 +3659,11 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 		natinfo << "    Support H.460.24: " << (m_Called->SupportH46024() ? "Yes" : "No");
 	}
 
-	PTRACE(5,"RAS\t\n" << natinfo);
+	PTRACE(5, "RAS\t\n" << natinfo);
 
 	// If neither party supports H.460.24 then exit
 	if (!callingSupport && !calledSupport) {
-		PTRACE(4,"RAS\tDisable H.460.24 Offload as neither party supports it.");
+		PTRACE(4, "RAS\tDisable H.460.24 Offload as neither party supports it.");
 		 return false;
 	}
  
@@ -3891,7 +3891,7 @@ void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, 
 {
 
 	if (fwd.IsEmpty() || rev.IsEmpty()) {
-		PTRACE(4,"H46024B\tSession " << sessionID << " NAT offload probe not ready");
+		PTRACE(4, "H46024B\tSession " << sessionID << " NAT offload probe not ready");
 		return;
 	}
 
@@ -3902,11 +3902,11 @@ void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, 
 	if (i != m_H46024Balternate.end())
 		return;
  
-	PTRACE(5,"H46024B\tNAT offload probes S:" << sessionID << " F:" << fwd << " R:" << rev << " mux " << muxID_fwd << " " << muxID_rev);
+	PTRACE(5, "H46024B\tNAT offload probes S:" << sessionID << " F:" << fwd << " R:" << rev << " mux " << muxID_fwd << " " << muxID_rev);
     
     PIPSocket::Address addr;  rev.GetIpAddress(addr);
     bool revDir  = (GetCallSignalSocketCalled()->GetPeerAddr() == addr);
-//PTRACE(1,"SH\tNAT offload probe " << GetCallSignalSocketCalled()->GetPeerAddr() << " " << addr << " " << revDir);
+	//PTRACE(1, "SH\tNAT offload probe " << GetCallSignalSocketCalled()->GetPeerAddr() << " " << addr << " " << revDir);
  
 	H46024Balternate alt;
 	bool callerIsSymmetric = (m_Calling->GetEPNATType() > 5);
@@ -3930,7 +3930,7 @@ void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, 
 		H245_MultimediaSystemControlMessage h245msg;
 		BuildH46024AnnexBMessage(true, h245msg, m_H46024Balternate);
  
-		PTRACE(4,"H46024B\tRequest Message\n" << h245msg);
+		PTRACE(4, "H46024B\tRequest Message\n" << h245msg);
  
 		// If we are tunnneling
 		SendH46024BFacility(H46024BSignalSocket(false), h245msg);
@@ -3942,7 +3942,7 @@ void CallRec::H46024BRespond()
 	if (m_H46024Balternate.size() == 0)
 		return;
  
-	PTRACE(5,"H46024B\tNAT offload respond");
+	PTRACE(5, "H46024B\tNAT offload respond");
  
 	// Build the Generic response
 	H245_MultimediaSystemControlMessage h245msg;
@@ -4118,7 +4118,7 @@ bool CallRec::IsTimeout(
 	// or for the call being connected in direct signaling mode
 	if( connectTimeout > 0 && m_setupTime == 0 && m_connectTime == 0 )
 		if( (now-m_creationTime)*1000 > connectTimeout ) {
-			PTRACE(2,"Q931\tCall #"<<m_CallNumber<<" timed out waiting for its signaling channel to be opened");
+			PTRACE(2, "Q931\tCall #"<<m_CallNumber<<" timed out waiting for its signaling channel to be opened");
 			return true;
 		} else
 			return false;
@@ -4126,14 +4126,14 @@ bool CallRec::IsTimeout(
 	// is signaling channel present?
 	if( m_setupTime && m_connectTime == 0 && connectTimeout > 0 )
 		if( (now-m_setupTime)*1000 > connectTimeout ) {
-			PTRACE(2,"Q931\tCall #"<<m_CallNumber<<" timed out waiting for a Connect message");
+			PTRACE(2, "Q931\tCall #"<<m_CallNumber<<" timed out waiting for a Connect message");
 			return true;
 		} else
 			return false;
 	
 	if( m_durationLimit > 0 && m_connectTime 
 		&& ((now - m_connectTime) >= m_durationLimit) ) {
-		PTRACE(4,"GK\tCall #"<<m_CallNumber<<" duration limit exceeded");
+		PTRACE(4, "GK\tCall #" << m_CallNumber << " duration limit exceeded");
 		return true;
 	}
 		
@@ -4447,7 +4447,7 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 
 		H4609_RTCPMeasures & info = report[i];	
 		session = info.m_sessionId;
-		PTRACE(4,"QoS\tPreparing QoS Report Session " << session);
+		PTRACE(4, "QoS\tPreparing QoS Report Session " << session);
 
 	    H225_TransportChannelInfo & rtp = info.m_rtpAddress;
 	    if (rtp.HasOptionalField(H225_TransportChannelInfo::e_sendAddress))
@@ -4569,7 +4569,7 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 				 qosFile->WriteLine(headerstr);
 				}
 			} else {
-                PTRACE(4,"QoS\tError opening QoS output file " << fn);
+                PTRACE(4, "QoS\tError opening QoS output file " << fn);
 				SNMP_TRAP(6, SNMPError, General, "Error opening QoS output file " + fn);
 			}
 		}
@@ -4591,11 +4591,11 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 						+ "|" + PString(meanjitter)
 						+ "|" + PString(bandwidth);
 
-		PTRACE(4,"QoS\tQoS Report" << "\r\n" << outstr);
+		PTRACE(4, "QoS\tQoS Report" << "\r\n" << outstr);
 
 		if (qosFile && qosFile->IsOpen()) {
 			if (!qosFile->WriteLine(outstr)) {
-				PTRACE(4,"QoS\tError writing QoS information to file " << fn);
+				PTRACE(4, " QoS\tError writing QoS information to file " << fn);
 				SNMP_TRAP(6, SNMPError, General, "Error writing to QoS output file " + fn);
 			} 
 		   qosFile->Close();

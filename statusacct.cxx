@@ -56,7 +56,7 @@ GkAcctLogger::Status StatusAcct::Log(
 		return Next;
 		
 	if (!call) {
-		PTRACE(1,"STATUSACCT\t"<<GetName()<<" - missing call info for event " << evt);
+		PTRACE(1, "STATUSACCT\t"<<GetName()<<" - missing call info for event " << evt);
 		return Fail;
 	}
 
@@ -94,7 +94,7 @@ GkAcctLogger::Status StatusAcct::Log(
 		return Next;
 		
 	if (!ep) {
-		PTRACE(1,"STATUSACCT\t"<<GetName()<<" - missing endpoint info for event " << evt);
+		PTRACE(1, "STATUSACCT\t"<<GetName()<<" - missing endpoint info for event " << evt);
 		return Fail;
 	}
 

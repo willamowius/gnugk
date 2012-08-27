@@ -61,7 +61,7 @@ GkAcctLogger::Status SyslogAcct::Log(
 		return Next;
 		
 	if (!call) {
-		PTRACE(1,"SYSLOGACCT\t"<<GetName()<<" - missing call info for event "<<evt);
+		PTRACE(1, "SYSLOGACCT\t" << GetName() << " - missing call info for event " << evt);
 		return Fail;
 	}
 

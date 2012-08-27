@@ -21,14 +21,14 @@ listptr<SingletonBase> SingletonBase::_instance_list;
 SingletonBase::SingletonBase(const char *n) : m_name(n)
 {
 	++singleton_cnt;
-	PTRACE(2,"Create instance: "<<m_name<<'('<<singleton_cnt<<')');
+	PTRACE(2, "Create instance: " << m_name << '(' << singleton_cnt << ')');
 	_instance_list.push_back(this);
 }
 
 SingletonBase::~SingletonBase()
 {
 	--singleton_cnt;
-	PTRACE(2,"Delete instance: "<<m_name<<'('<<singleton_cnt<<" objects left)");
+	PTRACE(2, "Delete instance: " << m_name << '(' << singleton_cnt << " objects left)");
 	if (!_instance_list.clear_list)
 		_instance_list.remove(this);
 }

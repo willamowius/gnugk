@@ -190,7 +190,7 @@ public:
 			const char * tagname = request.GetWrapper()
 				? request.GetWrapper()->GetTagName() : "unknown";
 			const unsigned seqnum = request.GetRequest().m_requestSeqNum.GetValue();
-			PTRACE(5,"ROUTING\tChecking policy " << m_name
+			PTRACE(5, "ROUTING\tChecking policy " << m_name
 				<< " for the request " << tagname << ' ' << seqnum);
 			if( OnRequest(request) ) {
 				PTRACE(5, "ROUTING\tPolicy " << m_name

@@ -846,7 +846,7 @@ VirtualQueue::~VirtualQueue()
 	
 	int numrequests = m_pendingRequests.size();
 	if( numrequests ) {
-		PTRACE(1,"VQueue\tDestroying virtual queue with "
+		PTRACE(1, "VQueue\tDestroying virtual queue with "
 			<< numrequests << " pending requests");
 	}
 	RouteRequests::iterator i = m_pendingRequests.begin();
@@ -884,8 +884,8 @@ void VirtualQueue::OnReload()
 	if( !vqueues.IsEmpty() ) {
 		m_virtualQueueAliases = vqueues.Tokenise(" ,;\t", false);
 		if( m_virtualQueueAliases.GetSize() > 0 ) {
-			PTRACE(2,"VQueue\t(CTI) Virtual queues enabled (aliases:"<<vqueues
-				<<"), request timeout: "<<m_requestTimeout/1000<<" s");
+			PTRACE(2, "VQueue\t(CTI) Virtual queues enabled (aliases:" << vqueues
+				<< "), request timeout: " << m_requestTimeout/1000 << " s");
 			m_active = true;
 		}
 	}
@@ -895,8 +895,8 @@ void VirtualQueue::OnReload()
 	if( !vqueues.IsEmpty() ) {
 		m_virtualQueuePrefixes = vqueues.Tokenise(" ,;\t", false);
 		if( m_virtualQueuePrefixes.GetSize() > 0 ) {
-			PTRACE(2,"VQueue\t(CTI) Virtual queues enabled (prefixes:"<<vqueues
-				<<"), request timeout: "<<m_requestTimeout/1000<<" s");
+			PTRACE(2, "VQueue\t(CTI) Virtual queues enabled (prefixes:" << vqueues
+				<< "), request timeout: " << m_requestTimeout/1000 << " s");
 			m_active = true;
 		}
 	}
@@ -909,14 +909,14 @@ void VirtualQueue::OnReload()
 			PTRACE(2, "Error '"<< regex.GetErrorText() <<"' compiling regex: " << m_virtualQueueRegex);
 			SNMP_TRAP(7, SNMPError, Configuration, "Invalid " + PString(CTIsection) + " configuration: compiling RegEx failed");
         } else {
-			PTRACE(2,"VQueue\t(CTI) Virtual queues enabled (regex:"<<m_virtualQueueRegex
-			<<"), request timeout: "<<m_requestTimeout/1000<<" s");
+			PTRACE(2, "VQueue\t(CTI) Virtual queues enabled (regex:" << m_virtualQueueRegex
+				<< "), request timeout: " << m_requestTimeout/1000 << " s");
 			m_active = true;
 		}
 	}
 	
 	if( !m_active ) {
-		PTRACE(2,"VQueue\t(CTI) Virtual queues disabled - no virtual queues configured");
+		PTRACE(2, "VQueue\t(CTI) Virtual queues disabled - no virtual queues configured");
 	}
 }
 
@@ -981,7 +981,7 @@ bool VirtualQueue::SendRouteRequest(
 		m_pendingRequests.remove(r);
 		m_listMutex.Signal();
 		if( !result ) {
-			PTRACE(5,"VQueue\tRoute request (EPID: " << r->m_callingEpId
+			PTRACE(5, "VQueue\tRoute request (EPID: " << r->m_callingEpId
 				<< ", CRV=" << r->m_crv << ") timed out");
 		}
 		delete r;
@@ -1056,10 +1056,10 @@ bool VirtualQueue::RouteToAlias(
 			if (!foundrequest) {
 				foundrequest = true;
 				if (!reject) {
-					PTRACE(2,"VQueue\tRoute request (EPID:" << callingEpId
+					PTRACE(2, "VQueue\tRoute request (EPID:" << callingEpId
 						<< ", CRV=" << crv << ") accepted by agent " << AsString(agent));
 				} else {
-					PTRACE(2,"VQueue\tRoute request (EPID:" << callingEpId
+					PTRACE(2, "VQueue\tRoute request (EPID:" << callingEpId
 						<< ", CRV=" << crv << ") rejected");
 				}
 			}
@@ -1153,10 +1153,9 @@ VirtualQueue::RouteRequest* VirtualQueue::InsertRequest(
 	
 	if( duprequests ) {
 		duplicate = true;
-		PTRACE(5,"VQueue\tRoute request (EPID: "<<callingEpId
-			<<", CRV="<<crv<<") is already active - duplicate requests"
-			" waiting: "<<duprequests
-			);
+		PTRACE(5, "VQueue\tRoute request (EPID: " << callingEpId
+			<< ", CRV=" << crv << ") is already active - duplicate requests"
+			" waiting: " << duprequests);
 	}
 
 	// insert the new pending route request
@@ -1186,7 +1185,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 		vq = AsString((*aliases)[0], FALSE);
 	if (m_vqueue->IsDestinationVirtualQueue(vq)) {
 		H225_AdmissionRequest & arq = request.GetRequest();
-		PTRACE(5,"Routing\tPolicy " << m_name << " destination matched "
+		PTRACE(5, "Routing\tPolicy " << m_name << " destination matched "
 			"a virtual queue " << vq << " (ARQ " << arq.m_requestSeqNum.GetValue() << ')');
 		endptr ep = RegistrationTable::Instance()->FindByEndpointId(arq.m_endpointIdentifier); // should not be null
 		if (ep) {
@@ -1247,10 +1246,9 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 		const PString vq(AsString((*aliases)[0], false));
 		if (m_vqueue->IsDestinationVirtualQueue(vq)) {
 			H225_LocationRequest & lrq = request.GetRequest();
-			PTRACE(5,"Routing\tPolicy " << m_name << " destination matched "
+			PTRACE(5, "Routing\tPolicy " << m_name << " destination matched "
 				"a virtual queue " << vq << " (LRQ "
-				<< lrq.m_requestSeqNum.GetValue() << ')'
-				);
+				<< lrq.m_requestSeqNum.GetValue() << ')');
 
 			// only use vqueue if sender is able to handle changed destination
 			if (!lrq.HasOptionalField(H225_LocationRequest::e_canMapAlias) || !lrq.m_canMapAlias) {
@@ -1348,10 +1346,9 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 			}
 			vendorInfo.Replace("|", "", true);
 		}
-		PTRACE(5,"Routing\tPolicy " << m_name << " destination matched "
+		PTRACE(5, "Routing\tPolicy " << m_name << " destination matched "
 			"a virtual queue " << vq << " (Setup "
-			<< crv << ')'
-			);
+			<< crv << ')');
 
 		if (m_vqueue->SendRouteRequest(callerip, epid, crv, aliases, callSigAdr, bindIP, callerID, reject, vq, src, callid, calledIP, vendorInfo))
 			request.SetFlag(RoutingRequest::e_aliasesChanged);

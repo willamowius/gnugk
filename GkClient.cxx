@@ -645,7 +645,7 @@ void STUNClient::Exec()
 
 void STUNClient::OnDetectedNAT(int nattype)
 {
-	PTRACE(3,"STUN\tDetected NAT as type " << nattype << " " << GetNatTypeString((NatTypes)nattype));
+	PTRACE(3, "STUN\tDetected NAT as type " << nattype << " " << GetNatTypeString((NatTypes)nattype));
 
 	// Call back to signal the GKClient to do a lightweight reregister
 	// to notify the gatekeeper
@@ -1899,7 +1899,7 @@ void GkClient::HandleP2P_ACF(callptr m_call, H460_FeatureStd * feat)
     if (feat->Contains(Std24_NATInstruct)) {
 		unsigned NATinst = feat->Value(Std24_NATInstruct);
 
-        PTRACE(4,"GKC\tH46024 strategy for call set to " << NATinst);
+        PTRACE(4, "GKC\tH46024 strategy for call set to " << NATinst);
 
 		if (m_call) 
 			m_call->SetNATStrategy((CallRec::NatStrategy)NATinst);
@@ -1931,7 +1931,7 @@ void GkClient::H46023_TypeDetected(int nattype)
 	m_registeredTime = PTime() - PTimeInterval(m_timer);
 
 	if (m_nattype != 2) {
-		PTRACE(4,"GKC\tSTUN client disabled: Not supported for NAT type: " << nattype);
+		PTRACE(4, "GKC\tSTUN client disabled: Not supported for NAT type: " << nattype);
 		m_stunClient->Stop();
 		m_stunClient = NULL;
 	}

@@ -425,7 +425,7 @@ PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(const Address & addr) co
 			if (extip.IsValid()) {
 				return extip;
 			} else {
-				PTRACE(2,"NAT\tERROR: External IP " << ExtIP << " unresolvable." );
+				PTRACE(2, "NAT\tERROR: External IP " << ExtIP << " unresolvable." );
 				SNMP_TRAP(10, SNMPError, Configuration, "External IP " + ExtIP + " unresolvable");
 			}
 		} else {  // If valid IP then use the ExtIP value
@@ -433,7 +433,7 @@ PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(const Address & addr) co
 			if (extip.IsValid()) {
 				return extip;
 			} else {
-				PTRACE(2,"NAT\tERROR: ExtIP " << ExtIP << " unuseable." );
+				PTRACE(2, "NAT\tERROR: ExtIP " << ExtIP << " unuseable." );
 				SNMP_TRAP(10, SNMPError, Configuration, "External IP " + ExtIP + " unusable");
 			}
 		}
@@ -557,7 +557,7 @@ bool Toolkit::VirtualRouteTable::CreateTable()
 			extroute = ext.AsString() + "/0";
 
 		CreateRouteTable(extroute);
-		PTRACE(1,"External IP=" << ExtIP << " dynamic=" << DynExtIP);
+		PTRACE(1, "External IP=" << ExtIP << " dynamic=" << DynExtIP);
 		return true;
 	} else
 		DynExtIP = false;
@@ -1902,13 +1902,13 @@ bool Toolkit::CreateH350Session(H350_Session * session)
 	bool startTLS = Toolkit::AsBool(GkConfig()->GetString(H350Section, "StartTLS", "0"));
 
 	if (!session->Open(server)) {
-		PTRACE(1,"H350\tCannot locate H.350 Server " << server);
+		PTRACE(1, "H350\tCannot locate H.350 Server " << server);
 		return false;
 	}
 	if (startTLS) {
 #ifdef hasLDAPStartTLS
 		if (!session->StartTLS()) {
-			PTRACE(1,"H350\tStartTLS failed");
+			PTRACE(1, "H350\tStartTLS failed");
 			SNMP_TRAP(7, SNMPWarning, Database, "H.350 StartTLS failed");
 			return false;
 		}
@@ -2029,7 +2029,7 @@ bool Toolkit::AssignedAliases::GetAliases(const H225_ArrayOf_AliasAddress & alia
 		for (PINDEX i=0; i < alias.GetSize(); i++) {
 			PString search = H323GetAliasAddressString(alias[i]);
 			for (unsigned j=0; j < gkAssignedAliases.size(); j++) {
-				PTRACE(5,"Alias\tCompare " << gkAssignedAliases[j].first << " to " << search);
+				PTRACE(5, "Alias\tCompare " << gkAssignedAliases[j].first << " to " << search);
 				if (gkAssignedAliases[j].first == search) {
 					newaliases.AppendString(gkAssignedAliases[j].second);
 					if (!found) found = true;

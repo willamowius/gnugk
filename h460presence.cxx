@@ -68,7 +68,7 @@ private:
 PresWorker::PresWorker(GkPresence * _handler , int _waitTime)
 : PThread(5000, AutoDeleteThread), handler(_handler), waitTime(_waitTime), shutDown(false)
 {
-	PTRACE(4,"PRES\tPresence Thread instance fire every " << waitTime << " sec");
+	PTRACE(4, "PRES\tPresence Thread instance fire every " << waitTime << " sec");
 	Resume();
 }
 
@@ -92,7 +92,7 @@ void PresWorker::Main()
 void PresWorker::Close()
 {
 	if (!shutDown) {
-		PTRACE(4,"PRES\tPresence Thread Shutdown");
+		PTRACE(4, "PRES\tPresence Thread Shutdown");
 		shutDown = true;
 		exitWorker.Signal();
 	}
@@ -906,7 +906,7 @@ void GkPresence::ProcessPresenceElement(const PASN_OctetString & pdu)
 	PWaitAndSignal m(m_AliasMutex);
 
 	if (!ReceivedPDU(pdu)) {
-		PTRACE(4,"H460P\tError processing PDU");
+		PTRACE(4, "H460P\tError processing PDU");
 		SNMP_TRAP(9, SNMPError, Network, "Error decoding Presense PDU");
 	}
 }
@@ -1008,7 +1008,7 @@ bool GkPresence::EnQueuePresence(const H225_AliasAddress & addr, const H460P_Pre
 	}
 
 	// neither registered remote or locally
-	PTRACE(2,"PRES\tPresence " << PresMsgType(msg.GetTag()) << " to " << addr << " dropped as no destination resolved.");
+	PTRACE(2, "PRES\tPresence " << PresMsgType(msg.GetTag()) << " to " << addr << " dropped as no destination resolved.");
 	return false;
 }
 
@@ -1352,7 +1352,7 @@ bool GkPresence::HandleStatusUpdates(const H460P_PresenceIdentifier & pid, const
 			}
 		}
 
-		PTRACE(4,"PRES\tChanged Subscription for " << local << " : " << PresMsgType(type) <<  " " << remote);
+		PTRACE(4, "PRES\tChanged Subscription for " << local << " : " << PresMsgType(type) <<  " " << remote);
 
 		if (!IsLocalAvailable(local,aliasList))
 			return true;
@@ -1368,10 +1368,10 @@ bool GkPresence::HandleForwardPresence(const H460P_PresenceIdentifier & identifi
 		m_Indication.push_back(msg);
 		H323PresenceInd xlist;
 		H225_AliasAddress a;
-		H323SetAliasAddress(PString("Relay"),a);
-		PTRACE(5,"PRES\tRelaying Identifier " << identifier << " to " << itx->second);
-		xlist.insert(pair<H225_AliasAddress,list<H460P_PresencePDU> >(a,m_Indication));	
-		remoteStore.insert(pair<H225_TransportAddress,H323PresenceInd>(itx->second,xlist));
+		H323SetAliasAddress(PString("Relay"), a);
+		PTRACE(5, "PRES\tRelaying Identifier " << identifier << " to " << itx->second);
+		xlist.insert(pair<H225_AliasAddress,list<H460P_PresencePDU> >(a, m_Indication));	
+		remoteStore.insert(pair<H225_TransportAddress,H323PresenceInd>(itx->second, xlist));
 		return true;
 	}
 	return false;
@@ -1384,7 +1384,7 @@ bool GkPresence::HandleSubscriptionLocal(const H460P_PresenceSubscription & subs
 	H323PresenceIds::const_iterator it = remoteIds.find(subscription.m_identifier);
 	if (it != remoteIds.end()) {
 		if (!subscription.HasOptionalField(H460P_PresenceSubscription::e_approved)) {
-			PTRACE(4,"PRES\tLOGIC ERROR: Received a subscription reply but not subscriber and no approval indication");
+			PTRACE(4, "PRES\tLOGIC ERROR: Received a subscription reply but not subscriber and no approval indication");
 			SNMP_TRAP(7, SNMPError, Authentication, "Received a Presence subscription reply but not subscriber and no approval indication");
 			return false;
 		}
@@ -1434,7 +1434,7 @@ bool GkPresence::RemoveSubscription(unsigned type,const H460P_PresenceIdentifier
 		if (it2 != localStore.end())
 			HandleStatusUpdates(pid,it2->first,type,it->second.m_subscriber);
 
-	   PTRACE(4,"PRES\tRemoved Subscription " << PresMsgType(type) << " : " << it->second.m_subscriber << " to " << it->second.m_Alias);
+	   PTRACE(4, "PRES\tRemoved Subscription " << PresMsgType(type) << " : " << it->second.m_subscriber << " to " << it->second.m_Alias);
 	   return true;
 	}
 	return false;
@@ -1480,7 +1480,7 @@ bool GkPresence::HandleNewInstruction(unsigned tag, const H225_AliasAddress & ad
 				if (GetSubscriptionIdentifier(addr, a, pid))
 					return HandleStatusUpdates(pid, addr, e_unblock, a);
 			}
-			PTRACE(4,"PRES\tPresence Instruction : " << instruction << " from " << addr << " not handled!");
+			PTRACE(4, "PRES\tPresence Instruction : " << instruction << " from " << addr << " not handled!");
 			return false;
 		}
 	}
@@ -1578,7 +1578,7 @@ void GkPresence::OnSubscription(MsgType tag, const H460P_PresenceSubscription & 
 		H460P_PresencePDU msg;
 		BuildSubscriptionMsg(subscription,msg);
 		if (!HandleForwardPresence(subscription.m_identifier, msg)) {
-			PTRACE(2,"PRES\tSubscription received " << subscription.m_identifier.m_guid << " from " << AsString(addr,0) << " not handled");
+			PTRACE(2, "PRES\tSubscription received " << subscription.m_identifier.m_guid << " from " << AsString(addr,0) << " not handled");
 			return;
 		}
 	}
@@ -1613,7 +1613,7 @@ void GkPresence::OnNotification(MsgType tag, const H460P_PresenceNotification & 
 		H323PresenceIds::const_iterator it = remoteIds.find(notify.m_subscribers[i]);
 		if (it != remoteIds.end()) {
 			H225_AliasAddress addr = it->second.m_subscriber;
-			PTRACE(5,"PRES\tReceived Notification " << notify.m_subscribers[i] << " for " << addr << " from " << ip);
+			PTRACE(5, "PRES\tReceived Notification " << notify.m_subscribers[i] << " for " << addr << " from " << ip);
 			H460P_PresencePDU msg;
 			H460P_PresenceNotification & notification = BuildNotificationMsg(notify,msg);
 			notification.RemoveOptionalField(H460P_PresenceNotification::e_subscribers);
@@ -1621,11 +1621,11 @@ void GkPresence::OnNotification(MsgType tag, const H460P_PresenceNotification & 
 		} else {
 			// not one of ours see if we are passing on.
 			H460P_PresencePDU msg;
-			H460P_PresenceNotification & notification = BuildNotificationMsg(notify,msg);
+			H460P_PresenceNotification & notification = BuildNotificationMsg(notify, msg);
 			notification.m_subscribers.SetSize(1);
 			notification.m_subscribers[0] = notify.m_subscribers[i];
 			if (!HandleForwardPresence(notification.m_subscribers[0], msg)) {
-				PTRACE(4,"PRES\tUnknown Notification received " << notification.m_subscribers[0] << " from " << ip << " disgarding.");
+				PTRACE(4, "PRES\tUnknown Notification received " << notification.m_subscribers[0] << " from " << ip << " disgarding.");
 			}
 		}
 	}
@@ -1638,7 +1638,7 @@ void GkPresence::OnSubscription(MsgType tag,const H460P_PresenceSubscription & s
 		H460P_PresencePDU msg;
 		BuildSubscriptionMsg(subscription,msg);
 		if (!HandleForwardPresence(subscription.m_identifier, msg)) {
-			PTRACE(4,"PRES\tUnknown Subscription received " << subscription.m_identifier << " from " << ip << " disgarding.");
+			PTRACE(4, "PRES\tUnknown Subscription received " << subscription.m_identifier << " from " << ip << " disgarding.");
 			return;
 		}
 	}
@@ -1653,7 +1653,7 @@ void GkPresence::OnIdentifiers(MsgType tag, const H460P_PresenceIdentifier & ide
 
 		if (tag == e_Alive) {
 			/// keepAlive
-  			PTRACE(5,"PRES\tReceived KeepAlive " << identifier << " for " << id.m_subscriber << " from " << ip);
+  			PTRACE(5, "PRES\tReceived KeepAlive " << identifier << " for " << id.m_subscriber << " from " << ip);
 		}
 
 		if (tag == e_Remove) {
@@ -1666,7 +1666,7 @@ void GkPresence::OnIdentifiers(MsgType tag, const H460P_PresenceIdentifier & ide
 		H460P_PresencePDU msg;
 		BuildIdentifierMsg(identifier,msg);
 		if (!HandleForwardPresence(identifier, msg)) {
-			PTRACE(4,"PRES\tUnknown Identifier received " << identifier << " from " << ip << " disgarding.");
+			PTRACE(4, "PRES\tUnknown Identifier received " << identifier << " from " << ip << " disgarding.");
 		}
 	}
 }

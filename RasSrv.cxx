@@ -1202,7 +1202,7 @@ void RasServer::ForwardRasMsg(H225_RasMessage & msg)
 			break;
 		}
 		default:
-			PTRACE(2,"Warning: unsupported RAS message type for forwarding: " << msg.GetTagName());
+			PTRACE(2, "Warning: unsupported RAS message type for forwarding: " << msg.GetTagName());
 			return;
 	}
 
@@ -1439,7 +1439,7 @@ H225_ArrayOf_AlternateGK RasServer::ParseAltGKConfig(const PString & altGkSettin
 	for (PINDEX idx = 0; idx < altgks.GetSize(); ++idx) {
 		const PStringArray tokens = altgks[idx].Tokenise(";", FALSE);
 		if (tokens.GetSize() < 4) {
-			PTRACE(1,"GK\tFormat error in AlternateGKs");
+			PTRACE(1, "GK\tFormat error in AlternateGKs");
 			SNMP_TRAP(7, SNMPError, Configuration, "Invalid AlternateGK config");
 			continue;
 		}
@@ -3102,7 +3102,7 @@ bool AdmissionRequestPDU::Process()
 		}
 #ifdef HAS_H46023
 		if (natoffloadsupport == CallRec::e_natNoassist) { // If no assistance then No NAT type
-			PTRACE(4,"RAS\tNAT Type reset to none"); 
+			PTRACE(4, "RAS\tNAT Type reset to none"); 
 			pCallRec->SetNATType(0);
 		}
 #endif
@@ -3137,7 +3137,7 @@ bool AdmissionRequestPDU::Process()
 			if (natoffloadsupport == CallRec::e_natUnknown) 
 				if (!pCallRec->NATOffLoad(answer,natoffloadsupport))
 				 if (natoffloadsupport == CallRec::e_natFailure) {
-					PTRACE(2,"RAS\tWarning: NAT Media Failure detected " << (unsigned)request.m_callReferenceValue);
+					PTRACE(2, "RAS\tWarning: NAT Media Failure detected " << (unsigned)request.m_callReferenceValue);
 					return BuildReply(H225_AdmissionRejectReason::e_noRouteToDestination,true);
 				 }
 
@@ -3149,7 +3149,7 @@ bool AdmissionRequestPDU::Process()
 					natoffloadsupport == CallRec::e_natNoassist ||
 				(!pCallRec->SingleGatekeeper() && (natoffloadsupport == CallRec::e_natRemoteProxy ||
 												   natoffloadsupport == CallRec::e_natAnnexB)))) {
-						PTRACE(4,"RAS\tNAT Proxy disabled due to offload support"); 
+						PTRACE(4, "RAS\tNAT Proxy disabled due to offload support"); 
 						pCallRec->SetProxyMode(CallRec::ProxyDisabled);
 			}
 
@@ -3165,17 +3165,17 @@ bool AdmissionRequestPDU::Process()
 			}
 
 			pCallRec->SetNATStrategy(natoffloadsupport);
-			PTRACE(4,"RAS\tNAT strategy for Call No: " << pCallRec->GetCallNumber() << 
+			PTRACE(4, "RAS\tNAT strategy for Call No: " << pCallRec->GetCallNumber() << 
 						" set to " << pCallRec->GetNATOffloadString(natoffloadsupport));
 
 			if (natoffloadsupport == CallRec::e_natNoassist) { // If no assistance then No NAT type
-				PTRACE(4,"RAS\tNAT Type reset to none");
+				PTRACE(4, "RAS\tNAT Type reset to none");
 				pCallRec->SetNATType(0);
 			}
 
 			signalOffload = pCallRec->NATSignallingOffload(answer);
 			if (signalOffload) {
-				PTRACE(4,"RAS\tNAT H46023 Signal Offload set by policy");
+				PTRACE(4, "RAS\tNAT H46023 Signal Offload set by policy");
 				pCallRec->ResetTimeOut();
 			}
 

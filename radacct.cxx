@@ -87,12 +87,12 @@ GkAcctLogger::Status RadAcct::Log(
 		return Next;
 		
 	if (m_radiusClient == NULL) {
-		PTRACE(1,"RADACCT\t"<<GetName()<<" - null RADIUS client instance");
+		PTRACE(1, "RADACCT\t"<<GetName()<<" - null RADIUS client instance");
 		return Fail;
 	}
 
 	if ((evt & (AcctStart | AcctStop | AcctUpdate)) && (!call)) {
-		PTRACE(1,"RADACCT\t"<<GetName()<<" - missing call info for event "<<evt);
+		PTRACE(1, "RADACCT\t"<<GetName()<<" - missing call info for event "<<evt);
 		return Fail;
 	}
 	

@@ -788,7 +788,7 @@ BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 
 	if( dwCtrlType == CTRL_LOGOFF_EVENT ) {
 		eventName = "CTRL_LOGOFF_EVENT";
-		PTRACE(2,"GK\tGatekeeper received " <<eventName);
+		PTRACE(2, "GK\tGatekeeper received " << eventName);
 		// prevent shut down
 		return FALSE;
 	}
@@ -803,7 +803,7 @@ BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 		eventName = "CTRL_SHUTDOWN_EVENT";
 
 #ifndef hasPTLibTraceOnShutdownBug
-	PTRACE(1,"GK\tGatekeeper shutdown due to "<<eventName);
+	PTRACE(1, "GK\tGatekeeper shutdown due to "<<eventName);
 #endif
 
 	PWaitAndSignal shutdown(ShutdownMutex);

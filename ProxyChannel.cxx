@@ -2140,7 +2140,7 @@ bool CallSignalSocket::HandleH235TCS(H245_TerminalCapabilitySet & tcs)
 
     PStringList capList;
     if (!m_call->GetAuthenticators().GetAlgorithms(capList)) {
-        PTRACE(1,"H235\tEncryption support but no common algorithm! DISABLING!!");
+        PTRACE(1, "H235\tEncryption support but no common algorithm! DISABLING!!");
         m_call->SetMediaEncryption(CallRec::none);
         m_call->GetAuthenticators().SetSize(0);
         return false;
@@ -2715,7 +2715,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			PString dialedNumber;
 			q931.GetCalledPartyNumber(dialedNumber);
 			if (!IsValidE164(dialedNumber)) {
-				PTRACE(4,"WARNING: Removed Called Party Number IE as it's not a valid E.164!");
+				PTRACE(4, "WARNING: Removed Called Party Number IE as it's not a valid E.164!");
 				q931.RemoveIE(Q931::CalledPartyNumberIE);
 			}
 		}
@@ -3146,7 +3146,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 					natoffloadsupport == CallRec::e_natRemoteMaster ||
 					natoffloadsupport == CallRec::e_natNoassist ||
 					natoffloadsupport == CallRec::e_natRemoteProxy)) {
-					PTRACE(4,"RAS\tNAT Proxy disabled due to offload support");
+					PTRACE(4, "RAS\tNAT Proxy disabled due to offload support");
 					authData.m_proxyMode = CallRec::ProxyDisabled;
 			}
 		}
@@ -3462,7 +3462,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			if (result != H235Authenticator::e_OK &&
 				result != H235Authenticator::e_Absent &&
 				result != H235Authenticator::e_Disabled) {
-					PTRACE(5,"H235\tCaller Admission failed");
+					PTRACE(5, "H235\tCaller Admission failed");
 					m_call->SetDisconnectCause(Q931::CallRejected);
 					rejectCall = true;
 			}
@@ -8212,7 +8212,7 @@ ProxySocket::Result ParseRTCP(const callptr & call, WORD sessionID, const PIPSoc
 									call->SetRTCP_sdes(direct, "note="+((PString)(item->data)).Left(item->length));
 									break;
 								default:
-									PTRACE(5,"RTCP\tSourceDescription unknown item type " << item->type);
+									PTRACE(5, "RTCP\tSourceDescription unknown item type " << item->type);
 									break;
 								}
 							}
