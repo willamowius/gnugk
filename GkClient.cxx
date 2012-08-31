@@ -1323,6 +1323,14 @@ bool GkClient::SendLRQ(Routing::LocationRequest & lrq_obj)
 		lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 		lrq.m_canMapAlias = olrq.m_canMapAlias;
 	}
+	if (olrq.HasOptionalField(H225_LocationRequest::e_hopCount)) {
+		lrq.IncludeOptionalField(H225_LocationRequest::e_hopCount);
+		lrq.m_hopCount = olrq.m_hopCount;
+		// decrement hopCount, but don't let it go below zero
+		if (lrq.m_hopCount > 0)
+			lrq.m_hopCount = lrq.m_hopCount - 1;
+	}
+
 	SetNBPassword(lrq);
 
 	if (!OnSendingLRQ(lrq, lrq_obj))
