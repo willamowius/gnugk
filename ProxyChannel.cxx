@@ -528,10 +528,12 @@ public:
 	void SetMute(bool toMute) { mute = toMute; }
 	void OnHandlerSwapped() { std::swap(fnat, rnat); }
 	void SetRTPSessionID(WORD id) { m_sessionID = id; }
+#ifdef HAS_H235_MEDIA
 	void SetEncryptingRTPChannel(RTPLogicalChannel * lc) { m_encryptingLC = lc; }
 	void RemoveEncryptingRTPChannel(RTPLogicalChannel * lc) { if (m_encryptingLC == lc) m_encryptingLC = NULL; }
 	void SetDecryptingRTPChannel(RTPLogicalChannel * lc) { m_decryptingLC = lc; }
 	void RemoveDecryptingRTPChannel(RTPLogicalChannel * lc) { if (m_decryptingLC == lc) m_decryptingLC = NULL; }
+#endif
 #ifdef HAS_H46018
 	void SetUsesH46019fc(bool fc) { m_h46019fc = fc; }
 	// same socket is used for all directions; set if at least one side uses H.460.19
@@ -7691,23 +7693,47 @@ void UDPProxySocket::UpdateSocketName()
 
 void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * addr, callptr & call)
 {
-	if ((DWORD)srcIP != 0) {
-		fSrcIP = srcIP, fSrcPort = srcPort;
-	}
+#ifdef RTP_DEBUG
+	Address localaddr;
+	WORD localport = 0;
+	GetLocalAddress(localaddr, localport);
+	UnmapIPv4Address(localaddr);
+	PTRACE(0, "JW RTP SetFwdDest on " << localport
+		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
+		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
+#endif
 	if (addr) {
-		*addr >> fDestIP >> fDestPort;
+		if (fDestIP != 0) {
+			// the other side was probably detected by a H.460.19 keepalive
+			PTRACE(1, "WARNING: Overwriting existing forward destination " << AsString(fDestIP, fDestPort) << " with " << AsString(*addr));
+			*addr >> rDestIP >> rDestPort;
+			if ((DWORD)srcIP != 0) {
+				rSrcIP = srcIP, rSrcPort = srcPort;
+			}
+			PTRACE(5, Type() << "\tReverse (switched) " << AsString(srcIP, srcPort)  << " to " << AsString(rDestIP, rDestPort));
+		} else {
+			*addr >> fDestIP >> fDestPort;
+			if ((DWORD)srcIP != 0) {
+				fSrcIP = srcIP, fSrcPort = srcPort;
+			}
+			PTRACE(5, Type() << "\tForward " << AsString(srcIP, srcPort)  << " to " << AsString(fDestIP, fDestPort));
+		}
 	} else {
 		fDestIP = 0;
 		fDestPort = 0;
 	}
 
 	UpdateSocketName();
-	PTRACE(5, Type() << "\tForward " << AsString(srcIP, srcPort)  << " to " << AsString(fDestIP, fDestPort));
 
 	SetConnected(true);
 
 	SetMediaIP("SRC", fDestIP);
 	SetMediaIP("DST", srcIP);
+#ifdef RTP_DEBUG
+	PTRACE(0, "JW RTP SetFwdDest2 on " << localport
+		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
+		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
+#endif
 
 #if defined(HAS_H46018) && defined(HAS_H46024B)
 	// If required begin Annex B probing
@@ -7721,23 +7747,47 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 
 void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * addr, callptr & call)
 {
-	if ( (DWORD)srcIP != 0 )
-		rSrcIP = srcIP, rSrcPort = srcPort;
-
+#ifdef RTP_DEBUG
+	Address localaddr;
+	WORD localport = 0;
+	GetLocalAddress(localaddr, localport);
+	UnmapIPv4Address(localaddr);
+	PTRACE(0, "JW RTP SetRevDest on " << localport
+		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
+		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
+#endif
 	if (addr) {
-		*addr >> rDestIP >> rDestPort;
+		if (rDestIP != 0) {
+			// the other side was probably detected by a H.460.19 keepalive
+			PTRACE(1, "WARNING: Overwriting existing reverse destination " << AsString(rDestIP, rDestPort) << " with " << AsString(*addr));
+			*addr >> fDestIP >> fDestPort;
+			if ((DWORD)srcIP != 0) {
+				fSrcIP = srcIP, fSrcPort = srcPort;
+			}
+			PTRACE(5, Type() << "\tForward (switched) " << AsString(srcIP, srcPort) << " to " << AsString(fDestIP, fDestPort));
+		} else {
+			*addr >> rDestIP >> rDestPort;
+			if ((DWORD)srcIP != 0) {
+				rSrcIP = srcIP, rSrcPort = srcPort;
+			}
+			PTRACE(5, Type() << "\tReverse " << AsString(srcIP, srcPort) << " to " << AsString(rDestIP, rDestPort));
+		}
 	} else {
 		rDestIP = 0;
 		rDestPort = 0;
 	}
 
 	UpdateSocketName();
-	PTRACE(5, Type() << "\tReverse " << AsString(srcIP, srcPort) << " to " << AsString(rDestIP, rDestPort));
 
 	SetConnected(true);
 
 	SetMediaIP("SRC", srcIP);
 	SetMediaIP("DST", rDestIP);
+#ifdef RTP_DEBUG
+	PTRACE(0, "JW RTP SetRevDest2 on " << localport
+		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
+		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
+#endif
 
 	m_call = &call;
 }
@@ -7840,8 +7890,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	PTRACE(0, "JW RTP IN on " << localport << " from " << AsString(fromIP, fromPort) << " pType=" << (int)payloadType
 		<< " seq=" << seq << " timestamp=" << timestamp << " len=" << buflen
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
-		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort)
-		);
+		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 	PTRACE(0, "JW RTP DB on " << localport << " type=" << Type() << " this=" << this << " H.460.19=" << UsesH46019()
 		<< " fc=" << m_h46019fc << " m_h46019uni=" << m_h46019uni
 		<< " multiplexDest A=" << AsString(m_multiplexDestination_A) << " multiplexID A=" << m_multiplexID_A << " multiplexSocket A=" << m_multiplexSocket_A
