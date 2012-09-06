@@ -6463,7 +6463,7 @@ bool H245Handler::HandleMesg(H245_MultimediaSystemControlMessage & h245msg, bool
 	return changed;
 }
 
-bool H245Handler::HandleFastStartSetup(H245_OpenLogicalChannel & olc,callptr & mcall)
+bool H245Handler::HandleFastStartSetup(H245_OpenLogicalChannel & olc, callptr & call)
 {
 	return hnat ? hnat->HandleOpenLogicalChannel(olc) : false;
 }
@@ -7689,7 +7689,7 @@ void UDPProxySocket::UpdateSocketName()
 	SetName(src + "<=>" + AsString(laddr, lport) + "<=>" + dst);
 }
 
-void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * addr, callptr & mcall)
+void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * addr, callptr & call)
 {
 	if ((DWORD)srcIP != 0) {
 		fSrcIP = srcIP, fSrcPort = srcPort;
@@ -7711,15 +7711,15 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 
 #if defined(HAS_H46018) && defined(HAS_H46024B)
 	// If required begin Annex B probing
-	if (mcall->GetNATStrategy() == CallRec::e_natAnnexB) {
-		mcall->H46024BSessionFlag(m_sessionID);
+	if (call->GetNATStrategy() == CallRec::e_natAnnexB) {
+		call->H46024BSessionFlag(m_sessionID);
 	}
 #endif
 
-	m_call = &mcall;
+	m_call = &call;
 }
 
-void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * addr, callptr & mcall)
+void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * addr, callptr & call)
 {
 	if ( (DWORD)srcIP != 0 )
 		rSrcIP = srcIP, rSrcPort = srcPort;
@@ -7739,7 +7739,7 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 	SetMediaIP("SRC", srcIP);
 	SetMediaIP("DST", rDestIP);
 
-	m_call = &mcall;
+	m_call = &call;
 }
 
 #ifdef HAS_H46018
@@ -8615,13 +8615,13 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 	    if (v3data.HasOptionalField(H235_V3KeySyncMaterial::e_algorithmOID)
 			&& (v3data.m_algorithmOID != algorithmOID)) {
 		    PTRACE(1, "H235\tError: Different algo for session and media key not supported " << v3data);
-			SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure");
+			SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure: different algo for session and media key");
 		    return false;
 	    }
 	    if (v3data.m_paramS.HasOptionalField(H235_Params::e_iv)
 			|| v3data.m_paramS.HasOptionalField(H235_Params::e_iv16)) {
 		    PTRACE(1, "H235\tError: non-empty IV not supported, yet " << v3data);
-			SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure");
+			SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure: non-empty IV");
 		    return false;
 		}
 		if (v3data.HasOptionalField(H235_V3KeySyncMaterial::e_encryptedSessionKey)) {
@@ -8630,7 +8630,7 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 			mediaKey = H235Session.Decrypt(v3data.m_encryptedSessionKey, NULL, rtpPadding);
 		} else {
 		    PTRACE(1, "H235\tError: unsupported media key type: " << v3data);
-			SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure");
+			SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure: unsupported media key type");
 		}
 	} else if (h235key.GetTag() == H235_H235Key::e_secureChannel) {
 		// this is the _media_key_ in unencrypted form
@@ -8639,14 +8639,14 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 		mediaKey = PBYTEArray(mediaKeyBits.GetDataPointer(), mediaKeyBits.GetSize());
 	} else {
 		PTRACE(1, "H235\tUnsupported key type " << h235key.GetTagName());
-		SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure");
+		SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure: unsupported key type");
 		return false;
 	}
 
 	PTRACE(3, "H235\tMedia key decoded:" << endl << hex << mediaKey);
 	if (mediaKey.GetSize() == 0) {
 		PTRACE(1, "H235\tMedia key decode failed");
-		SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure");
+		SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure: unable to decode media key");
 		return false;
 	}
 
@@ -8814,7 +8814,7 @@ void RTPLogicalChannel::ZeroMediaChannelSource()
 	SrcPort = 0;
 }
 
-void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlChannel, H245_UnicastAddress * mediaChannel, const PIPSocket::Address & local, bool rev, callptr & mcall, bool fromTraversalClient, bool useRTPMultiplexing)
+void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlChannel, H245_UnicastAddress * mediaChannel, const PIPSocket::Address & local, bool rev, callptr & call, bool fromTraversalClient, bool useRTPMultiplexing)
 {
 	H245_UnicastAddress tmp, tmpmedia, tmpmediacontrol, *dest = mediaControlChannel;
 	PIPSocket::Address tmpSrcIP = SrcIP;
@@ -8854,11 +8854,11 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 		}
 	}
 	UDPProxySocket::pMem SetDest = (reversed) ? &UDPProxySocket::SetReverseDestination : &UDPProxySocket::SetForwardDestination;
-	(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, dest, mcall);
+	(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, dest, call);
 #ifdef HAS_H46018
 	if (fromTraversalClient) {
 		PTRACE(5, "H46018\tSetting control channel destination to 0");
-		(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, mcall);
+		(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call);
 	}
 #endif
 	if (useRTPMultiplexing) {
@@ -8878,11 +8878,11 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 			tmpSrcPort -= 1;
 		if (useRTPMultiplexing)
 			tmpSrcPort = (WORD)GkConfig()->GetInteger(ProxySection, "RTPMultiplexPort", GK_DEF_MULTIPLEX_RTP_PORT);
-		(rtp->*SetDest)(tmpSrcIP, tmpSrcPort, dest, mcall);
+		(rtp->*SetDest)(tmpSrcIP, tmpSrcPort, dest, call);
 #ifdef HAS_H46018
 		if (fromTraversalClient) {
 			PTRACE(5, "H46018\tSetting media channel destination to 0");
-			(rtp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, mcall);
+			(rtp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call);
 		}
 #endif
 		if (useRTPMultiplexing) {
@@ -8899,17 +8899,17 @@ void RTPLogicalChannel::SetRTPMute(bool toMute)
 		rtp->SetMute(toMute);
 }
 
-bool RTPLogicalChannel::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters & h225Params, const PIPSocket::Address & local, bool rev, callptr & mcall, bool fromTraversalClient, bool useRTPMultiplexing)
+bool RTPLogicalChannel::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters & h225Params, const PIPSocket::Address & local, bool rev, callptr & call, bool fromTraversalClient, bool useRTPMultiplexing)
 {
 	if (!h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel))
 		return false;
 	H245_UnicastAddress *mediaControlChannel = GetH245UnicastAddress(h225Params.m_mediaControlChannel);
 	H245_UnicastAddress *mediaChannel = h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel) ? GetH245UnicastAddress(h225Params.m_mediaChannel) : NULL;
-	HandleMediaChannel(mediaControlChannel, mediaChannel, local, rev, mcall, fromTraversalClient, useRTPMultiplexing);
+	HandleMediaChannel(mediaControlChannel, mediaChannel, local, rev, call, fromTraversalClient, useRTPMultiplexing);
 	return true;
 }
 
-bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler *handler, callptr & mcall, bool fromTraversalClient, bool useRTPMultiplexing)
+bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler * handler, callptr & call, bool fromTraversalClient, bool useRTPMultiplexing)
 {
 	H245_UnicastAddress *mediaControlChannel = NULL;
 	H245_UnicastAddress *mediaChannel = NULL;
@@ -8917,7 +8917,7 @@ bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Ha
 	if (mediaControlChannel == NULL && mediaChannel == NULL) {
 		return false;
 	}
-	HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetMasqAddr(), false, mcall, fromTraversalClient, useRTPMultiplexing);
+	HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetMasqAddr(), false, call, fromTraversalClient, useRTPMultiplexing);
 	return true;
 }
 
@@ -8986,7 +8986,7 @@ T120LogicalChannel::~T120LogicalChannel()
 	PTRACE(4, "T120\tDelete logical channel " << channelNumber);
 }
 
-bool T120LogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler * _handler, callptr & mcall, bool /*fromTraversalClient*/, bool /*useRTPMultiplexing*/)
+bool T120LogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler * _handler, callptr & /*call*/, bool /*fromTraversalClient*/, bool /*useRTPMultiplexing*/)
 {
 	return (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_separateStack)) ?
 		OnSeparateStack(olca.m_separateStack, _handler) : false;
@@ -9687,7 +9687,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 				PASN_ObjectId & gid = olca.m_genericInformation[i].m_messageIdentifier;
 				if (gid == H46019_OID) {
 					// remove traversal parameters, move remaining elements down
-					for(PINDEX j = i+1; j < olca.m_genericInformation.GetSize(); j++) {
+					for (PINDEX j = i+1; j < olca.m_genericInformation.GetSize(); j++) {
 						olca.m_genericInformation[j-1] = olca.m_genericInformation[j];
 					}
 					olca.m_genericInformation.SetSize(olca.m_genericInformation.GetSize()-1);
@@ -9703,7 +9703,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		// we need to move any generic Information messages up 1 so H.460.19 will ALWAYS be in position 0.
 		if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_genericInformation)) {
 			olca.m_genericInformation.SetSize(olca.m_genericInformation.GetSize()+1);
-			for(PINDEX j = 0; j < olca.m_genericInformation.GetSize()-1; j++) {
+			for (PINDEX j = 0; j < olca.m_genericInformation.GetSize()-1; j++) {
 				olca.m_genericInformation[j+1] = olca.m_genericInformation[j];
 			}
 		} else {
