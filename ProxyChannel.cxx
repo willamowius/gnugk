@@ -3518,7 +3518,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	// remove endpointIdentifier from the forwarded Setup
 	setupBody.RemoveOptionalField(H225_Setup_UUIE::e_endpointIdentifier);
 
-	// include destCallSignalAddress (Polycom m100 1.0 crashes if its not present)
+	// include destCallSignalAddress (Polycom m100 1.0.0 crashes if its not present)
 	if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
 		setupBody.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 		setupBody.m_destCallSignalAddress = m_call->GetDestSignalAddr();
@@ -3622,6 +3622,14 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			setupBody.m_sourceAddress.SetSize(1);
 			H323SetAliasAddress(screenSourceAddress, setupBody.m_sourceAddress[0]);
 		}
+	}
+	// remove H.235 tokens from outgoing Setup
+	if (Toolkit::Instance()->RemoveH235TokensFrom(calleeAddr)) {
+		PTRACE(3, "Removing H.235 tokens (outgoing)");
+		setupBody.m_tokens.SetSize(0);
+		setupBody.RemoveOptionalField(H225_Setup_UUIE::e_tokens);
+		setupBody.m_cryptoTokens.SetSize(0);
+		setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 	}
 
 	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_multipleCalls)
@@ -5325,6 +5333,17 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					}
 					if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)) {
 						setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(callingSocket->masqAddr, callingSocket->GetPort());
+					}
+					// remove H.235 tokens from outgoing Setup
+					PIPSocket::Address calleeAddr;
+					WORD calleePort = 0;
+					m_call->GetDestSignalAddr(calleeAddr, calleePort);
+					if (Toolkit::Instance()->RemoveH235TokensFrom(calleeAddr)) {
+						PTRACE(3, "Removing H.235 tokens (outgoing)");
+						setupBody.m_tokens.SetSize(0);
+						setupBody.RemoveOptionalField(H225_Setup_UUIE::e_tokens);
+						setupBody.m_cryptoTokens.SetSize(0);
+						setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 					}
 					// update tunneling flag, in case this Facility has changed the tunneling state
 					if (!uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)) {
