@@ -282,7 +282,7 @@ void RemoveH46019Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures, 
 			if (asnInt.GetValue() == 19) {
 				isH46019Client = true;
 				for(PINDEX p=0; p < supportedFeatures[i].m_parameters.GetSize(); p++) {
-					if (supportedFeatures[i].m_parameters[p].m_id.GetTag()  == H225_GenericIdentifier::e_standard) {
+					if (supportedFeatures[i].m_parameters[p].m_id.GetTag() == H225_GenericIdentifier::e_standard) {
 						PASN_Integer & pInt = supportedFeatures[i].m_parameters[p].m_id;
 						if (pInt == 1) {
 							senderSupportsH46019Multiplexing = true;
@@ -1171,7 +1171,7 @@ void CallSignalSocket::CleanupCall()
 }
 #endif
 
-void CallSignalSocket::SetRemote(CallSignalSocket *socket)
+void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 {
 	remote = socket;
 	m_call = socket->m_call;
@@ -1249,7 +1249,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 			proxyhandler->SetTraversalRole(TraversalClient);
 		}
 		proxyhandler->SetH46019Direction(m_call->GetH46019Direction());
-		proxyhandler->SetRequestRTPMultiplexing(m_senderSupportsH46019Multiplexing);
+		proxyhandler->SetRequestRTPMultiplexing(socket->m_senderSupportsH46019Multiplexing);
 #endif
 		socket->m_h245handler = proxyhandler;
 		m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(),localAddr, called, masqAddr, proxyhandler);
@@ -1258,6 +1258,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket *socket)
 			((H245ProxyHandler*)m_h245handler)->SetTraversalRole(m_call->GetCalledParty()->GetTraversalRole());
 		}
 		((H245ProxyHandler*)m_h245handler)->SetH46019Direction(m_call->GetH46019Direction());
+		((H245ProxyHandler*)m_h245handler)->SetRequestRTPMultiplexing(m_senderSupportsH46019Multiplexing);
 #endif
 		proxyhandler->SetHandler(GetHandler());
 		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled");
@@ -4310,9 +4311,6 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 		} else if (m_call && (m_call->GetEncryptDirection() == CallRec::none)
 		  && connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens) && SupportsH235Media(connectBody.m_tokens)) {
 			// there were no tokens in Setup (but we added some), but there are in Connect
-			//PTRACE(0, "JW tokens found DH key accepted");	// DH token testing
-			//m_result = Error;
-			//return;
 
 			// make sure crypto token fields are pesent, at least with 0 size
 			if (!connectBody.HasOptionalField(H225_Connect_UUIE::e_cryptoTokens)) {
@@ -5346,10 +5344,12 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 						setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 					}
 					// update tunneling flag, in case this Facility has changed the tunneling state
-					if (!uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)) {
-						uuie->m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+					if (m_h245TunnelingTranslation || !m_h245Tunneling) {
+						if (!uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)) {
+							uuie->m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+						}
+						uuie->m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
 					}
-					uuie->m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
 					setup->SetUUIEChanged();
 
 					if (HandleH245Address(setupBody))
@@ -9766,6 +9766,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		}
 		changed = true;
 	}
+
 	// add traversal parameters, if needed
 	if (peer && (peer->IsTraversalServer() || (peer->IsTraversalClient() && peer->m_requestRTPMultiplexing))) {
 		// we need to move any generic Information messages up 1 so H.460.19 will ALWAYS be in position 0.
@@ -10279,9 +10280,9 @@ bool H245ProxyHandler::RemoveLogicalChannel(WORD flcn)
 	return true;
 }
 
-void H245ProxyHandler::SetRequestRTPMultiplexing(bool epCanTransmitMultipled)
+void H245ProxyHandler::SetRequestRTPMultiplexing(bool epCanTransmitMultiplexed)
 {
-	m_requestRTPMultiplexing = epCanTransmitMultipled && m_isRTPMultiplexingEnabled;
+	m_requestRTPMultiplexing = epCanTransmitMultiplexed && m_isRTPMultiplexingEnabled;
 }
 
 
