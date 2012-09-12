@@ -7721,28 +7721,18 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 #endif
+	if ((DWORD)srcIP != 0) {
+		fSrcIP = srcIP, fSrcPort = srcPort;
+	}
 	if (addr) {
-		if (fDestIP != 0) {
-			// the other side was probably detected by a H.460.19 keepalive
-			PTRACE(1, "WARNING: Overwriting existing forward destination " << AsString(fDestIP, fDestPort) << " with " << AsString(*addr));
-			*addr >> rDestIP >> rDestPort;
-			if ((DWORD)srcIP != 0) {
-				rSrcIP = srcIP, rSrcPort = srcPort;
-			}
-			PTRACE(5, Type() << "\tReverse (switched) " << AsString(srcIP, srcPort)  << " to " << AsString(rDestIP, rDestPort));
-		} else {
-			*addr >> fDestIP >> fDestPort;
-			if ((DWORD)srcIP != 0) {
-				fSrcIP = srcIP, fSrcPort = srcPort;
-			}
-			PTRACE(5, Type() << "\tForward " << AsString(srcIP, srcPort)  << " to " << AsString(fDestIP, fDestPort));
-		}
+		*addr >> fDestIP >> fDestPort;
 	} else {
 		fDestIP = 0;
 		fDestPort = 0;
 	}
 
 	UpdateSocketName();
+	PTRACE(5, Type() << "\tForward " << AsString(srcIP, srcPort)  << " to " << AsString(fDestIP, fDestPort));
 
 	SetConnected(true);
 
@@ -7775,28 +7765,18 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 #endif
+	if ((DWORD)srcIP != 0) {
+		rSrcIP = srcIP, rSrcPort = srcPort;
+	}
 	if (addr) {
-		if (rDestIP != 0) {
-			// the other side was probably detected by a H.460.19 keepalive
-			PTRACE(1, "WARNING: Overwriting existing reverse destination " << AsString(rDestIP, rDestPort) << " with " << AsString(*addr));
-			*addr >> fDestIP >> fDestPort;
-			if ((DWORD)srcIP != 0) {
-				fSrcIP = srcIP, fSrcPort = srcPort;
-			}
-			PTRACE(5, Type() << "\tForward (switched) " << AsString(srcIP, srcPort) << " to " << AsString(fDestIP, fDestPort));
-		} else {
-			*addr >> rDestIP >> rDestPort;
-			if ((DWORD)srcIP != 0) {
-				rSrcIP = srcIP, rSrcPort = srcPort;
-			}
-			PTRACE(5, Type() << "\tReverse " << AsString(srcIP, srcPort) << " to " << AsString(rDestIP, rDestPort));
-		}
+		*addr >> rDestIP >> rDestPort;
 	} else {
 		rDestIP = 0;
 		rDestPort = 0;
 	}
 
 	UpdateSocketName();
+	PTRACE(5, Type() << "\tReverse " << AsString(srcIP, srcPort) << " to " << AsString(rDestIP, rDestPort));
 
 	SetConnected(true);
 
@@ -10338,9 +10318,10 @@ bool NATHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & olca)
 
 bool NATHandler::SetAddress(H245_UnicastAddress * addr)
 {
-	if (!ChangeAddress(addr))
+	if (!ChangeAddress(addr)) {
+		// note: this is loosing the port number, but its probably invalid due to NAT anyway
 	    return addr ? (*addr << remoteAddr, true) : false;
-	else
+	} else
 		return true;
 }
 

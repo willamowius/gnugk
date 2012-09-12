@@ -3,7 +3,6 @@ Changes from 3.1 to 3.2
 - BUGFIX(ProxyChannel.cxx) fix update of H.245 tunneling flag in H.460.18 calls
 - BUGFIX(ProxyChannel.cxx) request RTP multiplexing even when other call leg doesn't want mutiplexing
 - BUGFIX(ProxyChannel.cxx) also remove outgoing H.235 tokens for IPs listen in H235RemoveCall=
-- BUGFIX(ProxyChannel.cxx) fix race condition in port detection between H.460.19 and regular RTP
 - BUGFIX(GkClient.cxx) forward LRQ hopCount from child to parent
 
 
