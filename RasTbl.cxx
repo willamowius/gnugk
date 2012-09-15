@@ -3704,17 +3704,11 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	}
  
 	// Both parties are NAT and both and are either restricted or port restricted NAT
-	else if (goDirect && (m_Calling->UseH46024B() && m_Called->UseH46024B())) {
-		if (SingleGatekeeper() || !Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023SignalGKRouted", "0")))
+	else if (goDirect
+			&& (m_Called->GetEPNATType() < (int)EndpointRec::NatSymmetric
+			&&  m_Calling->GetEPNATType() < (int)EndpointRec::NatSymmetric)
+			&& (m_Calling->UseH46024B() &&  m_Called->UseH46024B())) {
 				natinst = CallRec::e_natAnnexB;
-		else if (m_Called->HasNATProxy())
-			natinst = CallRec::e_natRemoteProxy;
-		else {
-			natinst = CallRec::e_natFailure;
-			m_natstrategy = natinst;
-			PTRACE(2, "H46024\tFAILURE: Signal Routed with no Remote Proxy!");
-			return false;
-		}
 	}
     // if both devices are behind a symmetric firewall then perhaps are on the same internal network. 
     else if (goDirect && (m_Calling->GetEPNATType() == EndpointRec::FirewallSymmetric && 
@@ -3726,19 +3720,6 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 		else
 			natinst = CallRec::e_natFullProxy;
 	}
-
-	else if (goDirect && 
-		(m_Calling->IsNATed() && m_Calling->GetEPNATType() > EndpointRec::NatCone) && 
-		    (m_Called->IsNATed() && m_Called->GetEPNATType() > EndpointRec::NatCone) &&
-			(!m_Calling->HasNATProxy() && (!m_Called->HasNATProxy()))) {
-				natinst = CallRec::e_natFailure;
-				m_natstrategy = natinst;
-				PTRACE(2, "H46024\tFAILURE: No Annex B Support!" 
-					<< " local: " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Calling->GetEPNATType())
-					<< " remote: " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Called->GetEPNATType()));
-				return false;
-	}
-
 	// if can go direct and calling supports Remote NAT and is not NAT or not symmetric
 	else if (goDirect && 
 		((!m_Calling->IsNATed() /*&& m_Calling->SupportH46024()*/) || (m_Calling->GetEPNATType() == EndpointRec::NatCone)))
