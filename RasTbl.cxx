@@ -3757,11 +3757,19 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 
 bool CallRec::NATSignallingOffload(bool isAnswer) const
 {
-   return (!isAnswer  
-	  && !Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023SignalGKRouted", "0"))
-	  && (m_natstrategy == e_natNoassist ||
-		 (!(m_Called && m_Called->IsNATed()) && (m_natstrategy == e_natRemoteMaster ||  m_natstrategy == e_natLocalMaster)) ||
-		 (!SingleGatekeeper() && m_natstrategy != e_natLocalProxy && m_natstrategy != e_natFullProxy)));
+	if (isAnswer)
+			return false;
+
+	if (!SingleGatekeeper() && m_natstrategy == e_natAnnexB)
+			return true;
+
+	if (!Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023SignalGKRouted", "0")) &&
+		(m_natstrategy == e_natNoassist ||
+		(!(m_Called && m_Called->IsNATed()) && (m_natstrategy == e_natRemoteMaster ||  m_natstrategy == e_natLocalMaster)) ||
+		(!SingleGatekeeper() && m_natstrategy != e_natLocalProxy && m_natstrategy != e_natFullProxy)))
+			return true;
+
+	return false;
 }
  
 #ifdef HAS_H46024B
