@@ -179,7 +179,7 @@
 	#undef HAS_H46023
 #endif
 
-#ifdef HAS_H46017			// config switch if H.460.17 should be enabled
+#ifdef HAS_H46017			// config switch H.460.17 must be enabled
 	#ifdef H323_H46026		// feature detection, if library supports H.460.26
 		#define HAS_H46026 1
 	#endif
