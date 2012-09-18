@@ -1187,7 +1187,10 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 	UnmapIPv4Address(masqAddr);
 
 	SetHandler(socket->GetHandler());
-	SetName(AsString(socket->peerAddr, GetPort()));
+	// don't rename the existing remote socket of a H.460.17 call
+	if (!(m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46017())) {
+		SetName(AsString(socket->peerAddr, GetPort()));
+	}
 
 	Address calling = GNUGK_INADDR_ANY, called = GNUGK_INADDR_ANY;
 	int nat_type = m_call->GetNATType(calling, called);

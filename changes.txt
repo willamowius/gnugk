@@ -1,5 +1,6 @@
 Changes from 3.1 to 3.2
 =======================
+- BUGFIX(ProxyChannel.cxx) fix H.460.17 IPs in trace
 - BUGFIX(RasSrv.cxx) relax check of sender ports for H.460.17 RRQs
 - BUGFIX(ProxyChannel.cxx) don't create the multiplex RTP listener when not needed
 - BUGFIX(ProxyChannel.cxx) fix update of H.245 tunneling flag in H.460.18 calls
