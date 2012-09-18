@@ -1944,7 +1944,7 @@ bool RegistrationRequestPDU::Process()
 		}
 		// check if the RRQ was sent from the registered endpoint
 		if (ep && bSendReply) { // not forwarded RRQ
-			if (ep->IsNATed() || ep->IsTraversalClient()) {
+			if (ep->IsNATed() || ep->IsTraversalClient() || ep->UsesH46017()) {
 				// for nated endpoint, only check rx_addr
 			    bReject = (ep->GetNATIP() != rx_addr);
 			    if (bReject) {
@@ -1969,7 +1969,7 @@ bool RegistrationRequestPDU::Process()
 				}
 				bReject = (oaddr != raddr) || (oport != rport) || (IsLoopback(rx_addr) ? false : (raddr != rx_addr));
 			    if (bReject) {
-					PTRACE(3, "RAS\tLightweight registration rejected, because IP or ports don't match");
+					PTRACE(3, "RAS\tLightweight registration rejected, because IP or ports don't match: old addr=" << AsString(oaddr, oport) << " receive addr=" << AsString(raddr, rport) << " rx_addr=" << rx_addr);
 				}
 			}
 		} 
@@ -2282,11 +2282,14 @@ bool RegistrationRequestPDU::Process()
 	}
 
 #ifdef HAS_H46017
-	if (usesH46017 && ep->IsH46017Disabled()) {
-		EndpointTbl->RemoveByEndptr(ep);
-		return BuildRRJ(H225_RegistrationRejectReason::e_securityDenial);
+	if (usesH46017) {
+		if (ep->IsH46017Disabled()) {
+			EndpointTbl->RemoveByEndptr(ep);
+			return BuildRRJ(H225_RegistrationRejectReason::e_securityDenial);
+		}
+		ep->SetUsesH46017(usesH46017);
+		ep->SetNATAddress(rx_addr, rx_port);
 	}
-	ep->SetUsesH46017(usesH46017);
 #endif
 
 #ifdef HAS_H46018
