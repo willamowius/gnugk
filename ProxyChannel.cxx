@@ -8535,7 +8535,8 @@ RTPLogicalChannel::~RTPLogicalChannel()
 {
 #ifdef HAS_H235_MEDIA
 #ifdef HAS_H46018
-	MultiplexedRTPHandler::Instance()->RemoveChannel(m_callID, this);
+	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0")))
+		MultiplexedRTPHandler::Instance()->RemoveChannel(m_callID, this);
 #endif
 	m_cryptoEngineMutex.Wait();
 	if (m_H235CryptoEngine) {
