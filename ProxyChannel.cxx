@@ -3741,6 +3741,35 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		}
 #endif	// HAS_H46018
 
+#ifdef HAS_H46017
+	if ((m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46017())
+		&& Toolkit::Instance()->IsH46018Enabled()) {
+			// offer H.460.19 to H.460.17 endpoints
+			H460_FeatureStd feat = H460_FeatureStd(19);
+			H460_FeatureID * feat_id = NULL;
+			feat_id = new H460_FeatureID(2);	// mediaTraversalServer
+			feat.AddParameter(feat_id);
+			delete feat_id;
+			feat_id = NULL;
+
+			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
+				bool isH46019Client = false;
+				RemoveH46019Descriptor(setupBody.m_supportedFeatures, m_senderSupportsH46019Multiplexing, isH46019Client);
+			}
+
+			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
+				feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
+				feat.AddParameter(feat_id);
+				delete feat_id;
+			}
+			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
+				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
+				setupBody.m_supportedFeatures.SetSize(0);
+			}
+			AddH460Feature(setupBody.m_supportedFeatures, feat);
+	}
+#endif
+
 #ifdef HAS_H46026
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_neededFeatures)) {
 			RemoveH46026Descriptor(setupBody.m_neededFeatures);
