@@ -86,12 +86,15 @@ Make sure you add at least one prefix for all gateways,
 even if you assign the prefixes elsewhere (eg. in the [EP::...] section),
 otherwise the endpoint won't be considered a gateway and those settings won't apply!
 
+Gateway entries may also optionally include vendor information which is stored with the gateway record
+
 <descrip>
 <tag/Format:/
-<tt>IP[:port]=alias[,alias,...;prefix[:=priority][,prefix[:=priority]]...]</tt>
+<tt>IP[:port]=alias[,alias,...;prefix[:=priority][,prefix[:=priority]]...;[vendor,product]</tt>
 <tag/Example:/
 For gateway,
 <quote/<tt/10.0.1.5=MyGW;009,008:=2,0.7:=3//
+<quote/<tt/10.0.1.5=MyGW;009,008:=2,0.7:=3;yate,4.1.0//
 For terminal,
 <quote/<tt/10.0.1.10:1720=700//
 </descrip>
