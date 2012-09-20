@@ -3725,6 +3725,9 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures) && !OZH46024) {
 			bool isH46019Client = false;
 			RemoveH46019Descriptor(setupBody.m_supportedFeatures, m_senderSupportsH46019Multiplexing, isH46019Client);
+			if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46017() && isH46019Client) {
+				m_call->GetCallingParty()->SetTraversalRole(TraversalClient);
+			}
 		}
 		if (m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalServer()) {
 			H460_FeatureStd feat = H460_FeatureStd(19);
