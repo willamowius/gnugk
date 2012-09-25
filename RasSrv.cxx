@@ -1089,7 +1089,8 @@ bool RasServer::SendRas(const H225_RasMessage & rasobj, const H225_TransportAddr
 	WORD pt;
 	if (GetIPAndPortFromTransportAddr(dest, addr, pt))
 		return SendRas(rasobj, addr, pt, socket);
-	PTRACE(1, "RAS\tInvalid address");
+	PTRACE(1, "RAS\tInvalid address when trying to send " << rasobj.GetTagName());
+	SNMP_TRAP(10, SNMPError, Network, "Invalid address when trying to send RAS message " + rasobj.GetTagName());
 	return false;
 }
 
