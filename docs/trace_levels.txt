@@ -45,3 +45,8 @@ Level 6
 =======
 *) extra data like binary message encoding or some extra debug info
    for developers
+
+Level 7
+=======
+*) RTP debugging
+

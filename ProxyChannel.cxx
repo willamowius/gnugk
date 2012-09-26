@@ -7276,12 +7276,11 @@ void H46019Session::Dump() const
 
 void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP)
 {
-#ifdef RTP_DEBUG
-	PTRACE(0, "JW RTP DB: multiplexID=" << receivedMultiplexID
+	PTRACE(7, "JW RTP DB: multiplexID=" << receivedMultiplexID
 					 << " isRTCP=" << isRTCP << " ka=" << IsKeepAlive(data, len, isRTCP)
 					 << " from=" << AsString(fromAddress));
 	Dump();
-#endif
+
 	bool isFromA = (receivedMultiplexID == m_multiplexID_fromA);
 	bool isFromB = (receivedMultiplexID == m_multiplexID_fromB);
 	callptr call = CallTable::Instance()->FindCallRec(m_callid);
@@ -7303,9 +7302,7 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 			if (call)
 				call->SetSessionMultiplexDestination(m_session, m_openedBy, isRTCP, fromAddress, SideB);
 		}
-#ifdef RTP_DEBUG
 		MultiplexedRTPHandler::Instance()->DumpChannels(" keepAlive handled ");
-#endif
 
 #ifdef HAS_H46024B
 		if (call && call->GetNATStrategy() == CallRec::e_natAnnexB)
@@ -7525,9 +7522,7 @@ void MultiplexedRTPHandler::AddChannel(const H46019Session & chan)
 		if (!found)
 			m_h46019channels.push_back(chan);
 	}
-#ifdef RTP_DEBUG
 	DumpChannels(" AddChannel() done ");
-#endif
 }
 
 void MultiplexedRTPHandler::UpdateChannel(const H46019Session & chan)
@@ -7542,9 +7537,7 @@ void MultiplexedRTPHandler::UpdateChannel(const H46019Session & chan)
 			} else {
 				*iter = chan.SwapSides();
 			}
-#ifdef RTP_DEBUG
 			DumpChannels(" UpdateChannel() done ");
-#endif
 			return;
 		}
 	}
@@ -7610,12 +7603,14 @@ void MultiplexedRTPHandler::RemoveChannel(H225_CallIdentifier callid, RTPLogical
 
 void MultiplexedRTPHandler::DumpChannels(const PString & msg) const
 {
-	PTRACE(0, "JW ===" << msg << "=== DumpChannels Begin (" <<  m_h46019channels.size() << " channels) ===");
-	for (list<H46019Session>::const_iterator iter = m_h46019channels.begin();
-			iter != m_h46019channels.end() ; ++iter ) {
-		iter->Dump();
+	if (PTrace::CanTrace(7)) {
+		PTRACE(7, "JW ===" << msg << "=== DumpChannels Begin (" <<  m_h46019channels.size() << " channels) ===");
+		for (list<H46019Session>::const_iterator iter = m_h46019channels.begin();
+				iter != m_h46019channels.end() ; ++iter ) {
+			iter->Dump();
+		}
+		PTRACE(7, "JW =================== DumpChannels End ====================");
 	}
-	PTRACE(0, "JW =================== DumpChannels End ====================");
 }
 
 void MultiplexedRTPHandler::HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP)
@@ -7747,15 +7742,15 @@ void UDPProxySocket::UpdateSocketName()
 
 void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * addr, callptr & call)
 {
-#ifdef RTP_DEBUG
+
 	Address localaddr;
 	WORD localport = 0;
 	GetLocalAddress(localaddr, localport);
 	UnmapIPv4Address(localaddr);
-	PTRACE(0, "JW RTP SetFwdDest on " << localport
+	PTRACE(7, "JW RTP SetFwdDest on " << localport
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
-#endif
+
 	if ((DWORD)srcIP != 0) {
 		fSrcIP = srcIP, fSrcPort = srcPort;
 	}
@@ -7773,11 +7768,10 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 
 	SetMediaIP("SRC", fDestIP);
 	SetMediaIP("DST", srcIP);
-#ifdef RTP_DEBUG
-	PTRACE(0, "JW RTP SetFwdDest2 on " << localport
+
+	PTRACE(7, "JW RTP SetFwdDest2 on " << localport
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
-#endif
 
 #if defined(HAS_H46018) && defined(HAS_H46024B)
 	// If required begin Annex B probing
@@ -7791,15 +7785,14 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 
 void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * addr, callptr & call)
 {
-#ifdef RTP_DEBUG
 	Address localaddr;
 	WORD localport = 0;
 	GetLocalAddress(localaddr, localport);
 	UnmapIPv4Address(localaddr);
-	PTRACE(0, "JW RTP SetRevDest on " << localport
+	PTRACE(7, "JW RTP SetRevDest on " << localport
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
-#endif
+
 	if ((DWORD)srcIP != 0) {
 		rSrcIP = srcIP, rSrcPort = srcPort;
 	}
@@ -7817,11 +7810,10 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 
 	SetMediaIP("SRC", srcIP);
 	SetMediaIP("DST", rDestIP);
-#ifdef RTP_DEBUG
-	PTRACE(0, "JW RTP SetRevDest2 on " << localport
+
+	PTRACE(7, "JW RTP SetRevDest2 on " << localport
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
-#endif
 
 	m_call = &call;
 }
@@ -7901,11 +7893,11 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	if (buflen >= 8)
 		memcpy(ivSequence, wbuffer + 2, 6);
 #endif
-#if (HAS_H235_MEDIA || RTP_DEBUG)
+
 	BYTE payloadType = UNDEFINED_PAYLOAD_TYPE;
 	if ((buflen >= 2) && isRTP)
 		payloadType = wbuffer[1] & 0x7f;
-#endif
+
 #ifdef HAS_H46018
 	PWaitAndSignal lock(m_multiplexMutex);
 	bool isRTPKeepAlive = isRTP && (buflen == 12);
@@ -7914,22 +7906,20 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	WORD localport = 0;
 	GetLocalAddress(localaddr, localport);
 	UnmapIPv4Address(localaddr);
-#ifdef RTP_DEBUG
 	unsigned int seq = 0;
 	unsigned int timestamp = 0;
 	if (buflen >= 4)
 		seq = (((int)wbuffer[2] << 8) & 0x7f) + ((int)wbuffer[3] & 0x7f);
 	if (buflen >= 8)
 		timestamp = ((int)wbuffer[4] * 16777216) + ((int)wbuffer[5] * 65536) + ((int)wbuffer[6] * 256) + (int)wbuffer[7];
-	PTRACE(0, "JW RTP IN on " << localport << " from " << AsString(fromIP, fromPort) << " pType=" << (int)payloadType
+	PTRACE(7, "JW RTP IN on " << localport << " from " << AsString(fromIP, fromPort) << " pType=" << (int)payloadType
 		<< " seq=" << seq << " timestamp=" << timestamp << " len=" << buflen
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
-	PTRACE(0, "JW RTP DB on " << localport << " type=" << Type() << " this=" << this << " H.460.19=" << UsesH46019()
+	PTRACE(7, "JW RTP DB on " << localport << " type=" << Type() << " this=" << this << " H.460.19=" << UsesH46019()
 		<< " fc=" << m_h46019fc << " m_h46019uni=" << m_h46019uni
 		<< " multiplexDest A=" << AsString(m_multiplexDestination_A) << " multiplexID A=" << m_multiplexID_A << " multiplexSocket A=" << m_multiplexSocket_A
 		<< " multiplexDest B=" << AsString(m_multiplexDestination_B) << " multiplexID B=" << m_multiplexID_B << " multiplexSocket B=" << m_multiplexSocket_B);
-#endif // RTP_DEBUG
 
 	// detecting ports for H.460.19
 	if (!m_h46019DetectionDone) {
@@ -8015,12 +8005,10 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				}
 #endif	// HAS_H46024B
 			}
-#ifdef RTP_DEBUG
-			PTRACE(0, "JW RTP IN2 on " << localport << " from " << AsString(fromIP, fromPort)
+			PTRACE(7, "JW RTP IN2 on " << localport << " from " << AsString(fromIP, fromPort)
 				<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 				<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort)
 			);
-#endif // RTP_DEBUG
 		}
 	}
 	if (isRTPKeepAlive) {
@@ -9724,13 +9712,11 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 	PUInt32b assignedMultiplexID = INVALID_MULTIPLEX_ID;
  	if (m_requestRTPMultiplexing || peer->m_requestRTPMultiplexing) {
 		h46019chan = MultiplexedRTPHandler::Instance()->GetChannelSwapped(call->GetCallIdentifier(), sessionID, peer);
-#ifdef RTP_DEBUG
 		if (!h46019chan.IsValid()) {
 			MultiplexedRTPHandler::Instance()->DumpChannels(" ERROR: channel not found! ");
 		} else {
 			h46019chan.Dump();
 		}
-#endif
 	}
 	// parse traversal parameters from sender
 	if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_genericInformation)) {
