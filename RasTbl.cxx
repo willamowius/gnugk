@@ -4380,12 +4380,15 @@ void CallTable::CheckCalls(RasServer * rassrv)
 		if (((*call)->GetNoRemainingRoutes() == 0)
 			|| (! (*call)->IsFailoverActive())
 			|| (now - (*call)->GetSetupTime() > (GetSignalTimeout() / 1000) * 5)) {
+			PTRACE(5, "Disconnecting call on signalling timeout");
 			(*call)->Disconnect();	// sends ReleaseComplete to both parties
 			RemoveCall((*call));
 		} else {
 			(*call)->SetCallInProgress(false);
-			if (!(*call)->DropCalledAndTryNextRoute())
+			if (!(*call)->DropCalledAndTryNextRoute()) {
 				(*call)->Disconnect();	// sends ReleaseComplete to both parties
+				PTRACE(5, "Disconnecting call on signalling timeout");
+			}
 		}
 		call++;
 	}
