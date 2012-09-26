@@ -326,6 +326,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RasSrv::RRQFeatures", "AcceptEndpointIdentifier" },
 	{ "RasSrv::RRQFeatures", "AcceptGatewayPrefixes" },
 	{ "RasSrv::RRQFeatures", "AcceptMCUPrefixes" },
+	{ "RasSrv::RRQFeatures", "AccHTTPLink" },
 	{ "RasSrv::RRQFeatures", "AliasTypeFilter" },
 	{ "RasSrv::RRQFeatures", "IRQPollCount" },
 	{ "RasSrv::RRQFeatures", "OverwriteEPOnSameAddress" },
