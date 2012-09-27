@@ -960,7 +960,6 @@ bool EndpointRec::AddCallCreditServiceControl(
 	long callDurationLimit 		/// call duration limit (-1 if not set)
 	)
 {
-
 	if (!HasCallCreditCapabilities()) 
 		return false;
 
@@ -1029,7 +1028,7 @@ void EndpointRec::SetUsesH460P(bool uses)
 		return;
  
 #ifdef HAS_H460P
-	GkPresence & handler  = Toolkit::Instance()->GetPresenceHandler();
+	GkPresence & handler = Toolkit::Instance()->GetPresenceHandler();
 	if (uses) 
 	   handler.RegisterEndpoint(m_endpointIdentifier,m_terminalAliases);
 	else
@@ -1055,12 +1054,10 @@ bool EndpointRec::BuildPresencePDU(unsigned msgtag, PASN_OctetString & pdu)
 #ifdef H323_H350
 static const char * LDAPServiceOID = "1.3.6.1.4.1.17090.2.1";
 
-bool EndpointRec::AddH350ServiceControl(
-	H225_ArrayOf_ServiceControlSession& sessions 
-	)
+bool EndpointRec::AddH350ServiceControl(H225_ArrayOf_ServiceControlSession & sessions)
 {
 	if (!Toolkit::AsBool(GkConfig()->GetString("GkH350::Settings", "ServiceControl", "1")))
-		   return false;
+		return false;
 
 	PString ldap = GkConfig()->GetString("GkH350::Settings", "ServerName", "");
 		if (ldap.IsEmpty()) return false;
