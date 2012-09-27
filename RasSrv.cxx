@@ -3161,10 +3161,11 @@ bool AdmissionRequestPDU::Process()
 				(natoffloadsupport == CallRec::e_natRemoteMaster ||
 				 natoffloadsupport == CallRec::e_natRemoteProxy ||
 				 natoffloadsupport == CallRec::e_natAnnexB)) {
-				   // Where the remote will handle the NAT Traversal
-				   // the local gatekeeper may not receive any signalling so
-				   // set the call as connected.
-					pCallRec->SetConnected();  
+					// Where the remote will handle the NAT Traversal
+					// the local gatekeeper may not receive any signalling so
+					// set the call as connected.
+					if (!RasSrv->IsGKRouted())
+						pCallRec->SetConnected();  
 			}
 
 			pCallRec->SetNATStrategy(natoffloadsupport);
