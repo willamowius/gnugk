@@ -3233,36 +3233,38 @@ void CallRec::SetSetupTime(time_t tm)
 
 void CallRec::SetAlertingTime(time_t tm)
 {
-	CallTable* const ctable = CallTable::Instance();
 	PWaitAndSignal lock(m_usedLock);
-	if( m_alertingTime == 0 ) {
-		m_timer = m_alertingTime = tm;
-		m_timeout = ctable->GetAlertingTimeout() / 1000;
+	if (m_alertingTime == 0) {
+		if (m_connectTime != 0) {
+			PTRACE(0, "Error: Setting alerting time after connect time");
+		} else {
+			m_timer = m_alertingTime = tm;
+			m_timeout = CallTable::Instance()->GetAlertingTimeout() / 1000;
+		}
 	}
 }
 
 void CallRec::SetConnectTime(time_t tm)
 {
 	PWaitAndSignal lock(m_usedLock);
-	if( m_connectTime == 0 ) {
+	if (m_connectTime == 0) {
 		m_timer = m_connectTime = tm;
 		m_timeout = m_durationLimit;
-		if( m_disconnectTime && m_disconnectTime <= m_connectTime )
+		if (m_disconnectTime && m_disconnectTime <= m_connectTime)
 			m_disconnectTime = m_connectTime + 1;
 	}
 	// can be the case for direct signaling mode, 
 	// because CallRec is usually created after ARQ message 
 	// has been received
-	if( m_creationTime > m_connectTime )
+	if (m_creationTime > m_connectTime)
 		m_creationTime = m_connectTime;
 }
 
 void CallRec::SetDisconnectTime(time_t tm)
 {
 	PWaitAndSignal lock(m_usedLock);
-	if( m_disconnectTime == 0 )
-		m_disconnectTime = (m_connectTime && m_connectTime >= tm)
-			? (m_connectTime + 1) : tm;
+	if (m_disconnectTime == 0)
+		m_disconnectTime = (m_connectTime && m_connectTime >= tm) ? (m_connectTime + 1) : tm;
 }
 
 time_t CallRec::GetPostDialDelay() const
