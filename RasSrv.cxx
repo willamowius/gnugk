@@ -78,7 +78,7 @@ private:
 		e_acf = -1,
 		e_routeRequest = -2
 	};
-	bool BuildReply(int, bool h460 = false);
+	bool BuildReply(int, bool h460 = false, CallRec * rec = NULL);
 
 	/** @return
 	    A string that can be used to identify a calling number.
@@ -2502,6 +2502,7 @@ bool RegistrationRequestPDU::Process()
 		+ "|" + AsString(ep->GetAliases())
 		+ "|" + AsString(request.m_terminalType)
 		+ "|" + ep->GetEndpointIdentifier().GetValue()
+		+ "|" + ep->PrintOnNatType()
 		+ ";";
 	if (Toolkit::AsBool(GkConfig()->GetString("GkStatus::Filtering", "NewRCFOnly", "0"))) {
 	    if (bNewEP) {
@@ -3069,7 +3070,8 @@ bool AdmissionRequestPDU::Process()
 				}
 			}
 	}
-	
+
+	CallRec *pCallRec =NULL;
 	if (pExistingCallRec) {
 		// duplicate or answer ARQ
 		PTRACE(3, "GK\tACF: found existing call no " << pExistingCallRec->GetCallNumber());
@@ -3085,7 +3087,7 @@ bool AdmissionRequestPDU::Process()
 	} else {
 
 		// the call is not in the table
-		CallRec *pCallRec = new CallRec(*this, BWRequest, destinationString, authData.m_proxyMode);
+		pCallRec = new CallRec(*this, BWRequest, destinationString, authData.m_proxyMode);
 
 		pCallRec->SetBindHint(arq.GetSourceIP());
 		pCallRec->SetCallerID(arq.GetCallerID());
@@ -3239,11 +3241,11 @@ bool AdmissionRequestPDU::Process()
 		/// OID9 Vendor Information
 		if (vendorInfo) {
 			H460_FeatureOID fs = H460_FeatureOID(OID9);
-            if (!vendor.IsEmpty()) {
-			    fs.Add(PString(VendorProdOID),H460_FeatureContent(vendor));
-			    fs.Add(PString(VendorVerOID),H460_FeatureContent(version));
-            }
-            lastPos++;
+			if (!vendor.IsEmpty()) {
+				fs.Add(PString(VendorProdOID),H460_FeatureContent(vendor));
+				fs.Add(PString(VendorVerOID),H460_FeatureContent(version));
+			}
+			lastPos++;
 			data.SetSize(lastPos);
 			data[lastPos-1] = fs;
 		}
@@ -3279,10 +3281,10 @@ bool AdmissionRequestPDU::Process()
 #endif	// HAS_H46026
 #endif	// HAS_H460
 
-	return BuildReply(e_acf);
+	return BuildReply(e_acf, false, pCallRec);
 }
 
-bool AdmissionRequestPDU::BuildReply(int reason, bool h460)
+bool AdmissionRequestPDU::BuildReply(int reason, bool h460, CallRec * rec)
 {
 	PString source = RequestingEP ? AsDotString(RequestingEP->GetCallSignalAddress()) : PString(" ");
 	PString srcInfo = AsString(request.m_srcInfo);
@@ -3298,6 +3300,7 @@ bool AdmissionRequestPDU::BuildReply(int reason, bool h460)
 		PString callid = AsString(request.m_callIdentifier.m_guid);
 		callid.Replace(" ", "-", true);
 		log += PString("|") + callid;
+		log += PString("|") + (rec ? rec->PrintOnMediaRoute() : " ");
 		log += PString(";");
 	} else if (reason < 0) {
 		log = "ACF|" + source
@@ -3309,6 +3312,7 @@ bool AdmissionRequestPDU::BuildReply(int reason, bool h460)
 		PString callid = AsString(request.m_callIdentifier.m_guid);
 		callid.Replace(" ", "-", true);
 		log += PString("|") + callid;
+		log += PString("|") + (rec ? rec->PrintOnMediaRoute() : " ");
 		log += PString(";");
 	} else {
 		H225_AdmissionReject & arj = BuildReject(reason);

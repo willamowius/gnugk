@@ -823,12 +823,25 @@ EndpointRec *EndpointRec::Expired()
 	return this;
 }
 
+PString EndpointRec::PrintOnNatType() const
+{
+	PString str;
+	if (m_usesH46017) str = (m_usesH46026 ? "17[26]" : "17");
+	else if (m_usesH46023) str = "23[" + GetEPNATTypeString(m_epnattype) + "]";
+	else if (IsTraversalClient()) str = "19";
+	else if (IsTraversalServer()) str = "19[S]";
+	else if (m_natsocket) str = "GnuGk";
+	else str = "-";
+	return str;
+}
+
 PString EndpointRec::PrintOn(bool verbose) const
 {
 	PString msg = AsDotString(GetCallSignalAddress())
-		    + "|" + AsString(GetAliases())
-		    + "|" + AsString(GetEndpointType())
-		    + "|" + GetEndpointIdentifier().GetValue()
+			+ "|" + AsString(GetAliases())
+			+ "|" + AsString(GetEndpointType())
+			+ "|" + GetEndpointIdentifier().GetValue()
+			+ "|" + PrintOnNatType()
 		    + "\r\n";
 	if (verbose) {
 		msg += GetUpdatedTime().AsString();
@@ -3149,6 +3162,16 @@ PString CallRec::GenerateCDR(const PString& timestampFormat) const
 	);
 }
 
+PString CallRec::PrintOnMediaRoute() const
+{
+	PString str;
+#ifdef HAS_H46023
+	if (m_natstrategy) str = "24 [" + GetNATOffloadString(m_natstrategy) + "]"
+	else 
+#endif
+	str = (m_proxyMode == ProxyEnabled ? "Media Proxy" : " ");
+}
+
 PString CallRec::PrintOn(bool verbose) const
 {
 	const time_t timer = time(0) - m_timer;
@@ -3168,8 +3191,9 @@ PString CallRec::PrintOn(bool verbose) const
 		+ "|" + m_destInfo
 		+ "|" + m_srcInfo
 		+ "|false"
-        + "|" + callid
-        + ";\r\n"
+		+ "|" + callid
+		+ "|" + PrintOnMediaRoute()
+		+ ";\r\n"
 		// 2nd ACF
 		+ "ACF|" + m_calleeAddr
 		+ "|" + m_calleeId
@@ -3177,8 +3201,9 @@ PString CallRec::PrintOn(bool verbose) const
 		+ "|" + m_destInfo
 		+ "|" + m_srcInfo
 		+ "|true"
-        + "|" + callid
-        + ";\r\n";
+		+ "|" + callid
+		+ "|" + PrintOnMediaRoute()
+		+ ";\r\n";
 	if (verbose) {
 		result += "# " + ((m_Calling) ? AsString(m_Calling->GetAliases()) : m_callerAddr)
 				+ "|" + ((m_Called) ? AsString(m_Called->GetAliases()) : m_calleeAddr)
@@ -3529,7 +3554,7 @@ bool CallRec::GetRemoteInfo(PString & vendor, PString & version)
 
 #ifdef HAS_H46023
 
-PString CallRec::GetNATOffloadString(NatStrategy type)
+PString CallRec::GetNATOffloadString(NatStrategy type) const
 {
 	static const char * const Names[10] = {
 		"Unknown Strategy",

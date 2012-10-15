@@ -184,6 +184,7 @@ public:
 	void SetH46024(bool support);
 	void SetH46024A(bool support);
 	void SetH46024B(bool support);
+	PString PrintOnNatType() const;
 
 	enum EPNatTypes {
             NatUnknown,
@@ -773,7 +774,7 @@ public:
 	bool NATAssistCallerUnknown(NatStrategy & natinst);
 
 	/** Get String representation of the NATStrategy */
-	PString GetNATOffloadString(NatStrategy nat);
+	PString GetNATOffloadString(NatStrategy nat) const;
 
 
 	/** Get the NATStrategy Default is Unknown */
@@ -879,6 +880,7 @@ public:
 		const PString & timestampFormat = PString::Empty()
 		) const;
 	PString PrintOn(bool verbose) const;
+	PString PrintOnMediaRoute() const;
 	PString PrintPorts() const;
 
 	void Lock();
