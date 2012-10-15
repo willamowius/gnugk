@@ -3166,10 +3166,12 @@ PString CallRec::PrintOnMediaRoute() const
 {
 	PString str;
 #ifdef HAS_H46023
-	if (m_natstrategy) str = "24 [" + GetNATOffloadString(m_natstrategy) + "]"
+	if (m_natstrategy) 
+		str = "24 [" + GetNATOffloadString(m_natstrategy) + "]";
 	else 
 #endif
-	str = (m_proxyMode == ProxyEnabled ? "Media Proxy" : " ");
+		str = (m_proxyMode == ProxyEnabled ? "Media Proxy" : " ");
+    return str;
 }
 
 PString CallRec::PrintOn(bool verbose) const
