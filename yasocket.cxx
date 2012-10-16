@@ -1055,7 +1055,7 @@ void SocketsReader::Exec()
 	} else {
 		CleanUp();
 		ConfigReloadMutex.EndRead();
-		PTRACE(6, GetName() << " waiting...");
+		//PTRACE(6, GetName() << " waiting...");
 		Wait(SOCKETSREADER_IDLE_TIMEOUT);
 		ConfigReloadMutex.StartRead();
 	}
