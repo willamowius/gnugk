@@ -8020,21 +8020,25 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		// fix for H.239 from H.460.19 client
 		if (m_h46019uni && !isRTCP
 			&& fSrcIP == 0 && fDestIP != 0 && rDestIP == 0
-			&& fromAddr != H323TransportAddress(fDestIP, fDestPort)) {
+			&& fromAddr != H323TransportAddress(fDestIP, fDestPort)) {	// never create a loop
 			PTRACE(5, "H46018\tSetting forward source on unidirectional channel to " << AsString(fromIP, fromPort));
 			fSrcIP = fromIP, fSrcPort = fromPort;
 			m_h46019DetectionDone = true;
 		}
 		// fix for H.224 connection: m100 doesn't send keepAlive, but we can see where it apparently comes from
 		if (!m_h46019uni) {
-			// TODO: should we wait for a number of RTP packets before we do H.460.19 auto-detection without keepAlives ?
+			// TODO: should we wait for a number of RTP packets before we do H.460.19 auto-detection without keepAlives ?!
 			H323TransportAddress rSrcAddr(rSrcIP, rSrcPort);
-			if (fSrcIP == 0 && rDestIP == 0 && fDestIP != 0 && rSrcIP != 0 && fromAddr != rSrcAddr) {
+			if (fSrcIP == 0 && rDestIP == 0 && fDestIP != 0
+				&& rSrcIP != 0 && fromAddr != rSrcAddr
+				&& fromAddr != H323TransportAddress(fDestIP, fDestPort)) {	// never create a loop
 				PTRACE(5, "H46018\tAuto-detecting forward source on H.460.19 channel to " << AsString(fromIP, fromPort));
 				fSrcIP = fromIP, fSrcPort = fromPort;
 			}
 			H323TransportAddress fSrcAddr(fSrcIP, fSrcPort);
-			if (fSrcIP != 0 && rDestIP != 0 && fDestIP == 0 && rSrcIP == 0 && fromAddr != fSrcAddr) {
+			if (fSrcIP != 0 && rDestIP != 0 && fDestIP == 0
+				&& rSrcIP == 0 && fromAddr != fSrcAddr
+				&& fromAddr != H323TransportAddress(rDestIP, rDestPort)) {	// never create a loop
 				PTRACE(5, "H46018\tAuto-detecting reverse source on H.460.19 channel to " << AsString(fromIP, fromPort));
 				rSrcIP = fromIP, rSrcPort = fromPort;
 			}
