@@ -291,6 +291,8 @@ bool ForwardingPolicy::FindEPForwardingRules(
 									destination.AddRoute(route, false);
 								} else {
 									PTRACE(3, "Fwd\tUnconditional Forward or on Busy to non-local or currently not registered alias " << forwardDestination);
+									// TODO - Be able to iterate through the routing policies and find a transport address for the forwarding address
+									// and add it as a failover destination. -SH
 								}
 							}
 						}
