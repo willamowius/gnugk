@@ -181,12 +181,12 @@ Startup: Fri, 21 Jun 2002 10:50:22 +0800   Running: 11 days 04:22:59
 <p>Reset the statistics counters for total calls, successful calls, neighbor calls and parent calls to zero.
 
 <item><tt/PrintAllRegistrations/, <tt/r/, <tt/?/<newline>
-<p>Show all registered endpoints.
+<p>Show all registered endpoints including any NAT Method being used. 
 <descrip>
 <tag/Format:/
 <tscreen><verb>
 AllRegistrations
-RCF|IP:Port|Aliases|Terminal_Type|EndpointID
+RCF|IP:Port|Aliases|Terminal_Type|EndpointID|NatType
 ...
 Number of Endpoints: n
 ;
@@ -194,9 +194,9 @@ Number of Endpoints: n
 <tag/Example:/
 <tscreen><verb>
 AllRegistrations
-RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp
-RCF|10.0.1.43:1720|613:dialedDigits=Jacky Tsai:h323_ID|terminal|1328_endp
-RCF|10.0.1.55:1720|705:dialedDigits=Sherry Liu:h323_ID|terminal|1333_endp
+RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp|-
+RCF|10.0.1.43:1720|613:dialedDigits=Jacky Tsai:h323_ID|terminal|1328_endp|18
+RCF|10.0.1.55:1720|705:dialedDigits=Sherry Liu:h323_ID|terminal|1333_endp|24[Cone Nat]
 Number of Endpoints: 3
 ;
 </verb></tscreen>
@@ -208,7 +208,7 @@ Number of Endpoints: 3
 <tag/Format:/
 <tscreen><verb>
 AllRegistrations
-RCF|IP:Port|Aliases|Terminal_Type|EndpointID
+RCF|IP:Port|Aliases|Terminal_Type|EndpointID|NatType
 Registration_Time C(Active_Call/Connected_Call/Total_Call) &lt;r&gt; bw:Bandwidth/Max_Bandwidth
 [Prefixes: ##] (gateway only)
 ...
@@ -218,12 +218,12 @@ Number of Endpoints: n
 <tag/Example:/
 <tscreen><verb>
 AllRegistrations
-RCF|10.0.1.8:1720|Accel-GW2:h323_ID|gateway|1322_endp
+RCF|10.0.1.8:1720|Accel-GW2:h323_ID|gateway|1322_endp|-
 Wed, 26 Jun 2002 16:40:03 +0800 C(1/5/33) &lt;1&gt; bw:0/10240
 Prefixes: 09,002
-RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp
+RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp|18
 Wed, 26 Jun 2002 16:40:55 +0800 C(0/32/39) &lt;1&gt; bw:7680/10240
-RCF|10.0.1.66:1720|716:dialedDigits=Vicky:h323_ID|terminal|1425_endp
+RCF|10.0.1.66:1720|716:dialedDigits=Vicky:h323_ID|terminal|1425_endp|17
 Wed, 26 Jun 2002 16:40:58 +0800 C(1/47/53) &lt;1&gt; bw:0/10240
 Number of Endpoints: 3
 ;
@@ -234,15 +234,15 @@ Number of Endpoints: 3
 <p>Print list of all cached out-of-zone endpoints.
 
 <item><tt/PrintCurrentCalls/, <tt/c/, <tt/!/<newline>
-<p>Show all current calls using the same ACF syntax as in call establishment.
+<p>Show all current calls using the same ACF syntax as in call establishment. Also shows how media is being routed.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
 CurrentCalls
 Call No. # | CallID | Call_Duration | Left_Time
 Dialed_Number
-ACF|Caller_IP:Port|Caller_EPID|CRV|DestinationInfo|SrcInfo|IsAnswered;
-ACF|Callee_IP:Port|Callee_EPID|CRV|DestinationInfo|SrcInfo|IsAnswered;
+ACF|Caller_IP:Port|Caller_EPID|CRV|DestinationInfo|SrcInfo|IsAnswered|MediaRoute;
+ACF|Callee_IP:Port|Callee_EPID|CRV|DestinationInfo|SrcInfo|IsAnswered|MediaRoute;
 ...
 Number of Calls: Current_Call Active: Active_Call From Neighbor: Call_From_Neighbor \
 From Parent: Call_From_Parent
@@ -253,12 +253,12 @@ From Parent: Call_From_Parent
 CurrentCalls
 Call No. 29 | CallID bd c6 17 ff aa ea 18 10 85 95 44 45 53 54 77 77 | 109 | 491
 Dial 0953378875:dialedDigits
-ACF|10.0.1.49:1720|4048_CGK1|25263|frank:h323_ID|gunter:h323_ID|false;
-ACF|10.1.1.1:1720|4037_CGK1|25263|gunter:h323_ID|frank:h323_ID|true;
+ACF|10.0.1.49:1720|4048_CGK1|25263|frank:h323_ID|gunter:h323_ID|false|Proxy;
+ACF|10.1.1.1:1720|4037_CGK1|25263|gunter:h323_ID|frank:h323_ID|true|Proxy;
 Call No. 30 | CallID 70 0e dd c0 9a cf 11 5e 00 01 00 05 5d f9 28 4d | 37 | 563
 Dial 0938736860:dialedDigits
-ACF|10.0.1.48:1032|4041_CGK1|11896|sue:h323_ID|peter:h323_ID|false;
-ACF|10.1.1.1:1720|4037_CGK1|11896|peter:h323_ID|sue:h323_ID|true;
+ACF|10.0.1.48:1032|4041_CGK1|11896|sue:h323_ID|peter:h323_ID|false|-;
+ACF|10.1.1.1:1720|4037_CGK1|11896|peter:h323_ID|sue:h323_ID|true|-;
 Number of Calls: 2 Active: 2 From Neighbor: 0 From Parent: 0
 ;
 </verb></tscreen>
@@ -272,8 +272,8 @@ Number of Calls: 2 Active: 2 From Neighbor: 0 From Parent: 0
 CurrentCalls
 Call No. # | CallID | Call_Duration | Left_Time
 Dialed_Number
-ACF|Caller_IP:Port|Caller_EPID|CRV|DestinationInfo|SrcInfo|IsAnswered;
-ACF|Callee_IP:Port|Callee_EPID|CRV|DestinationInfo|SrcInfo|IsAnswered;
+ACF|Caller_IP:Port|Caller_EPID|CRV|DestinationInfo|SrcInfo|IsAnswered|MediaRoute;
+ACF|Callee_IP:Port|Callee_EPID|CRV|DestinationInfo|SrcInfo|IsAnswered|MediaRoute;
 # Caller_Aliases|Callee_Aliases|Bandwidth|Connected_Time &lt;r&gt; bw:Bandwidth
 ...
 Number of Calls: Current_Call Active: Active_Call From NB: Call_From_Neighbor
@@ -284,8 +284,8 @@ Number of Calls: Current_Call Active: Active_Call From NB: Call_From_Neighbor
 CurrentCalls
 Call No. 48 | CallID 7d 5a f1 0a ad ea 18 10 89 16 00 50 fc 3f 0c f5 | 30 | 570
 Dial 0225067272:dialedDigits
-ACF|10.0.1.200:1720|1448_endp|19618|frank:h323_ID|gunter:h323_ID|false;
-ACF|10.0.1.7:1720|1325_endp|19618|gunter:h323_ID|frank:h323_ID|true;
+ACF|10.0.1.200:1720|1448_endp|19618|frank:h323_ID|gunter:h323_ID|false|26;
+ACF|10.0.1.7:1720|1325_endp|19618|gunter:h323_ID|frank:h323_ID|true|26;
 # Sherry:h323_ID|Accel-GW1:h323_ID|200000|Wed, 26 Jun 2002 17:29:55 +0800 &lt;2&gt; bw:3840
 Number of Calls: 1 Active: 1 From NB: 0
 ;
@@ -377,7 +377,7 @@ of the specified type (h323_ID, dialedDigits), prepend the alias type name
 <tag/Format:/
 <tscreen><verb>
 FindVerbose Alias
-RCF|IP:Port|Aliases|Terminal_Type|EndpointID
+RCF|IP:Port|Aliases|Terminal_Type|EndpointID|NatType
 Registration_Time C(Active_Call/Connected_Call/Total_Call) &lt;r&gt;
 [Prefixes: ##] (gateway only)
 ;
@@ -816,7 +816,7 @@ a GatekeeperConfirm (GCF).
 <p>The gatekeeper receives a GatekeeperRequest (GRQ) and responds with
 a GatekeeperReject (GRJ).
 
-<item><tt/RCF|IP:Port|Aliases|Endpoint_Type|EndpointID;/<newline>
+<item><tt/RCF|IP:Port|Aliases|Endpoint_Type|EndpointID|NatType;/<newline>
 <p>The gatekeeper receives a RegistrationRequest (RRQ) and responds with
 a RegistrationConfirm (RCF).
 
@@ -824,7 +824,7 @@ a RegistrationConfirm (RCF).
 <p>The gatekeeper receives a RegistrationRequest (RRQ) and responds with
 a RegistrationReject (RRJ).
 
-<item><tt/ACF|Caller_IP:Port|Caller_EndpointID|CRV|DestinationInfo|SrcInfo|IsAnswered|CallID;/<newline>
+<item><tt/ACF|Caller_IP:Port|Caller_EndpointID|CRV|DestinationInfo|SrcInfo|IsAnswered|CallID|MediaRoute;/<newline>
 <p>The gatekeeper receives an AdmissionRequest (ARQ) and responds with
 an AdmissionConfirm (ACF).
 

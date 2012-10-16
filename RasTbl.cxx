@@ -828,9 +828,10 @@ PString EndpointRec::PrintOnNatType() const
 	PString str;
 	if (m_usesH46017) str = (m_usesH46026 ? "17[26]" : "17");
 	else if (m_usesH46023) str = "23[" + GetEPNATTypeString(m_epnattype) + "]";
-	else if (IsTraversalClient()) str = "19";
-	else if (IsTraversalServer()) str = "19[S]";
+	else if (IsTraversalClient()) str = "18";
+	else if (IsTraversalServer()) str = "18[S]";
 	else if (m_natsocket) str = "GnuGk";
+	else if (m_nat) str = "Native";
 	else str = "-";
 	return str;
 }
@@ -3170,7 +3171,8 @@ PString CallRec::PrintOnMediaRoute() const
 		str = "24[" + GetNATOffloadString(m_natstrategy) + "]";
 	else 
 #endif
-		str = (m_proxyMode == ProxyEnabled ? "Media Proxy" : " ");
+		str = (m_proxyMode == ProxyEnabled ? "Proxy" : "Direct");
+	// TODO Add H.460.26 when supported - SH
     return str;
 }
 
