@@ -7929,10 +7929,12 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		if ((isRTCP || isRTPKeepAlive) && UsesH46019()) {
 			PWaitAndSignal mutexWait (m_h46019DetectionLock);
 			// combine IP+port for easier comparison
+			H323TransportAddress fSrcAddr(fSrcIP, fSrcPort);
 			H323TransportAddress fDestAddr(fDestIP, fDestPort);
+			H323TransportAddress rSrcAddr(rSrcIP, rSrcPort);
 			H323TransportAddress rDestAddr(rDestIP, rDestPort);
 			PTRACE(5, "H46018\tRTP/RTCP keepAlive from " << AsString(fromIP, fromPort));
-			if ((fDestIP == 0) && (fromAddr != rDestAddr)) {
+			if ((fDestIP == 0) && (fromAddr != rDestAddr) && ((rSrcIP == 0) || (rSrcAddr == fromAddr))) {
 				// fwd dest was unset and packet didn't come from other side
 				PTRACE(5, "H46018\tSetting forward destination to " << AsString(fromIP, fromPort) << " based on " << Type() << " keepAlive");
 				fDestIP = fromIP; fDestPort = fromPort;
@@ -7940,7 +7942,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				SetMediaIP("SRC", fDestIP);
 				UpdateSocketName();
 			}
-			else if ((rDestIP == 0) && (fromAddr != fDestAddr)) {
+			else if ((rDestIP == 0) && (fromAddr != fDestAddr) && ((fSrcIP == 0) || (fSrcAddr == fromAddr))) {
 				// reverse dest was unset and packet didn't come from other side
 				PTRACE(5, "H46018\tSetting reverse destination to " << AsString(fromIP, fromPort) << " based on " << Type() << " keepAlive");
 				rDestIP = fromIP; rDestPort = fromPort;
