@@ -3744,16 +3744,38 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 			&& (m_Calling->UseH46024B() &&  m_Called->UseH46024B())) {
 				natinst = CallRec::e_natAnnexB;
 	}
-    // if both devices are behind a symmetric firewall then perhaps are on the same internal network. 
-    else if (goDirect && (m_Calling->GetEPNATType() == EndpointRec::FirewallSymmetric && 
+	// if both devices are behind a symmetric firewall then perhaps are on the same internal network. 
+	else if (goDirect && (m_Calling->GetEPNATType() == EndpointRec::FirewallSymmetric && 
 			m_Called->GetEPNATType() == EndpointRec::FirewallSymmetric)) {
-		if (!m_Calling->HasNATProxy() && !m_Called->HasNATProxy())
-			natinst = CallRec::e_natNoassist;
-		else if (m_Calling->SupportH46024A() && m_Called->SupportH46024A())  
-			natinst = CallRec::e_natAnnexA;
-		else
-			natinst = CallRec::e_natFullProxy;
+			if (m_Calling->SupportH46024A() && m_Called->SupportH46024A())  
+				natinst = CallRec::e_natAnnexA;
+			else if (GetProxyMode() == CallRec::ProxyEnabled)
+				natinst = CallRec::e_natFullProxy;
+			else {
+				PTRACE(2, "H46024\tFAILURE: No resolvable route for Symmetric Firewall due to proxy disabled!");
+				natinst = CallRec::e_natFailure;
+			}
 	}
+
+	// Now deal with general Symmetric NAT.
+	else if (goDirect && 
+		((m_Calling->GetEPNATType() >= (int)EndpointRec::NatSymmetric) || 
+		(m_Called->GetEPNATType() >= (int)EndpointRec::NatSymmetric))) {
+			if (((m_Calling->GetEPNATType() <(int)EndpointRec::NatSymmetric) || 
+				(m_Called->GetEPNATType() <(int)EndpointRec::NatSymmetric)) && 
+				m_Calling->UseH46024B() &&  m_Called->UseH46024B())
+					natinst = CallRec::e_natAnnexB;   // Try direct probing.
+			else if (m_Calling->HasNATProxy() && 
+				((m_Calling->GetEPNATType() >=(int)EndpointRec::NatSymmetric) || !calledSupport || !m_Called->HasNATProxy()))
+					natinst = CallRec::e_natLocalProxy;
+			else if (m_Called->HasNATProxy())
+					natinst = CallRec::e_natRemoteProxy;
+			else {
+					PTRACE(2, "H46024\tFAILURE: No resolvable route for Symmetric Nat due to proxy disabled!");
+					natinst = CallRec::e_natFailure;
+			}
+	}
+
 	// if can go direct and calling supports Remote NAT and is not NAT or not symmetric
 	else if (goDirect && 
 		((!m_Calling->IsNATed() /*&& m_Calling->SupportH46024()*/) || (m_Calling->GetEPNATType() == EndpointRec::NatCone)))
@@ -3779,14 +3801,12 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
  
 	// Oops cannot proceed the media will Fail!!
 	else {
-		natinst = CallRec::e_natFailure;
-		m_natstrategy = natinst;
 		PTRACE(2, "H46024\tFAILURE: No resolvable routing policy!");
-		return false;
+		natinst = CallRec::e_natFailure;
 	}
 
 	m_natstrategy = natinst;
-	return true;
+	return (m_natstrategy != CallRec::e_natFailure);
 }
 
 bool CallRec::NATSignallingOffload(bool isAnswer) const
