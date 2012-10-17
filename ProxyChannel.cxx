@@ -1486,13 +1486,18 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		if (m_h245Tunneling && GetRemote() && !GetRemote()->m_h245Tunneling) {
 			if (uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Control)
 				&& uuie->m_h323_uu_pdu.m_h245Control.GetSize() > 0) {
-				bool remoteHasH245Connection = (GetRemote()->m_h245socket && GetRemote()->m_h245socket->IsConnected());
-				for (PINDEX i = 0; i < uuie->m_h323_uu_pdu.m_h245Control.GetSize(); ++i) {
-					if (remoteHasH245Connection) {
-						GetRemote()->m_h245socket->Send(uuie->m_h323_uu_pdu.m_h245Control[i]);
-					} else {
-						PTRACE(4, "H245\tQueueing H.245 messages until connected");
-						m_h245Queue.push(uuie->m_h323_uu_pdu.m_h245Control[i]);
+				// process tunneled H.245 messages before un-tunneling them
+				bool suppress = false;
+				OnTunneledH245(msg->GetUUIE()->m_h323_uu_pdu.m_h245Control, suppress);
+				if (!suppress) {
+					bool remoteHasH245Connection = (GetRemote()->m_h245socket && GetRemote()->m_h245socket->IsConnected());
+					for (PINDEX i = 0; i < uuie->m_h323_uu_pdu.m_h245Control.GetSize(); ++i) {
+						if (remoteHasH245Connection) {
+							GetRemote()->m_h245socket->Send(uuie->m_h323_uu_pdu.m_h245Control[i]);
+						} else {
+							PTRACE(4, "H245\tQueueing H.245 messages until connected");
+							m_h245Queue.push(uuie->m_h323_uu_pdu.m_h245Control[i]);
+						}
 					}
 				}
 			}
