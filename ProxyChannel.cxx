@@ -7269,13 +7269,13 @@ H46019Session H46019Session::SwapSides() const
 
 void H46019Session::Dump() const
 {
-	PTRACE(1, "JW H46019Session: session=" << m_session << " openedBy=" << m_openedBy
+	PTRACE(7, "JW H46019Session: session=" << m_session << " openedBy=" << m_openedBy
 			<< " IDfromA=" << m_multiplexID_fromA << " IDtoA=" << m_multiplexID_toA
 			<< " IDfromB=" << m_multiplexID_fromB << " IDtoB=" << m_multiplexID_toB
 			<< " addrA=" << AsString(m_addrA) << " addrA_RTCP=" << AsString(m_addrA_RTCP)
 			<< " addrB=" << AsString(m_addrB) << " addrB_RTCP=" << AsString(m_addrB_RTCP));
 #ifdef HAS_H235_MEDIA
-	PTRACE(0, "JW session=" << m_session << " encryptLC=" << m_encryptingLC << " decryptLC=" << m_encryptingLC);
+	PTRACE(7, "JW session=" << m_session << " encryptLC=" << m_encryptingLC << " decryptLC=" << m_encryptingLC);
 #endif
 }
 
