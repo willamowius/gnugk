@@ -2502,7 +2502,7 @@ bool RegistrationRequestPDU::Process()
 		+ "|" + AsString(ep->GetAliases())
 		+ "|" + AsString(request.m_terminalType)
 		+ "|" + ep->GetEndpointIdentifier().GetValue()
-		+ "|" + ep->PrintOnNatType()
+		+ "|" + ep->GetNatType()
 		+ ";";
 	if (Toolkit::AsBool(GkConfig()->GetString("GkStatus::Filtering", "NewRCFOnly", "0"))) {
 	    if (bNewEP) {
@@ -3300,7 +3300,7 @@ bool AdmissionRequestPDU::BuildReply(int reason, bool h460, CallRec * rec)
 		PString callid = AsString(request.m_callIdentifier.m_guid);
 		callid.Replace(" ", "-", true);
 		log += PString("|") + callid;
-		log += PString("|") + (rec ? rec->PrintOnMediaRoute() : " ");
+		log += PString("|") + (rec ? rec->MediaRouting() : " ");
 		log += PString(";");
 	} else if (reason < 0) {
 		log = "ACF|" + source
@@ -3312,7 +3312,7 @@ bool AdmissionRequestPDU::BuildReply(int reason, bool h460, CallRec * rec)
 		PString callid = AsString(request.m_callIdentifier.m_guid);
 		callid.Replace(" ", "-", true);
 		log += PString("|") + callid;
-		log += PString("|") + (rec ? rec->PrintOnMediaRoute() : " ");
+		log += PString("|") + (rec ? rec->MediaRouting() : " ");
 		log += PString(";");
 	} else {
 		H225_AdmissionReject & arj = BuildReject(reason);

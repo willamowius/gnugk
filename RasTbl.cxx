@@ -823,13 +823,13 @@ EndpointRec *EndpointRec::Expired()
 	return this;
 }
 
-PString EndpointRec::PrintOnNatType() const
+PString EndpointRec::GetNatType() const
 {
 	PString str;
-	if (m_usesH46017) str = (m_usesH46026 ? "17[26]" : "17");
-	else if (m_usesH46023) str = "23[" + GetEPNATTypeString(m_epnattype) + "]";
-	else if (IsTraversalClient()) str = "18";
-	else if (IsTraversalServer()) str = "18[S]";
+	if (m_usesH46017) str = (m_usesH46026 ? "H.460.17[26]" : "H.460.17");
+	else if (m_usesH46023) str = "H.460.23[" + GetEPNATTypeString(m_epnattype) + "]";
+	else if (IsTraversalClient()) str = "H.460.18";
+	else if (IsTraversalServer()) str = "H.460.18[S]";
 	else if (m_natsocket) str = "GnuGk";
 	else if (m_nat) str = "Native";
 	else str = "-";
@@ -842,7 +842,7 @@ PString EndpointRec::PrintOn(bool verbose) const
 			+ "|" + AsString(GetAliases())
 			+ "|" + AsString(GetEndpointType())
 			+ "|" + GetEndpointIdentifier().GetValue()
-			+ "|" + PrintOnNatType()
+			+ "|" + GetNatType()
 		    + "\r\n";
 	if (verbose) {
 		msg += GetUpdatedTime().AsString();
@@ -3163,13 +3163,13 @@ PString CallRec::GenerateCDR(const PString& timestampFormat) const
 	);
 }
 
-PString CallRec::PrintOnMediaRoute() const
+PString CallRec::MediaRouting() const
 {
 	PString str;
 #ifdef HAS_H46023
-	if (m_natstrategy) 
-		str = "24[" + GetNATOffloadString(m_natstrategy) + "]";
-	else 
+	if (m_natstrategy)
+		str = "H.460.24[" + GetNATOffloadString(m_natstrategy) + "]";
+	else
 #endif
 		str = (m_proxyMode == ProxyEnabled ? "Proxy" : "Direct");
 	// TODO Add H.460.26 when supported - SH
@@ -3196,7 +3196,7 @@ PString CallRec::PrintOn(bool verbose) const
 		+ "|" + m_srcInfo
 		+ "|false"
 		+ "|" + callid
-		+ "|" + PrintOnMediaRoute()
+		+ "|" + MediaRouting()
 		+ ";\r\n"
 		// 2nd ACF
 		+ "ACF|" + m_calleeAddr
@@ -3206,7 +3206,7 @@ PString CallRec::PrintOn(bool verbose) const
 		+ "|" + m_srcInfo
 		+ "|true"
 		+ "|" + callid
-		+ "|" + PrintOnMediaRoute()
+		+ "|" + MediaRouting()
 		+ ";\r\n";
 	if (verbose) {
 		result += "# " + ((m_Calling) ? AsString(m_Calling->GetAliases()) : m_callerAddr)

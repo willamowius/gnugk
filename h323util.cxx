@@ -606,7 +606,7 @@ PString GetGUIDString(
 		const unsigned hex = ((unsigned)(id[i])<<24) | ((unsigned)(id[i+1])<<16) 
 			| ((unsigned)(id[i+2])<<8) | ((unsigned)(id[i+3]));
 		i += 4;
-		
+
 		idstr += fixedLength ? PString(PString::Printf, "%08x", hex)
 			: PString(PString::Unsigned, (long)hex, 16);
 		if (j < 3)

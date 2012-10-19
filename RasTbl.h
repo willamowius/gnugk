@@ -184,7 +184,7 @@ public:
 	void SetH46024(bool support);
 	void SetH46024A(bool support);
 	void SetH46024B(bool support);
-	PString PrintOnNatType() const;
+	PString GetNatType() const;
 
 	enum EPNatTypes {
             NatUnknown,
@@ -880,7 +880,7 @@ public:
 		const PString & timestampFormat = PString::Empty()
 		) const;
 	PString PrintOn(bool verbose) const;
-	PString PrintOnMediaRoute() const;
+	PString MediaRouting() const;
 	PString PrintPorts() const;
 
 	void Lock();

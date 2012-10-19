@@ -195,8 +195,8 @@ Number of Endpoints: n
 <tscreen><verb>
 AllRegistrations
 RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp|-
-RCF|10.0.1.43:1720|613:dialedDigits=Jacky Tsai:h323_ID|terminal|1328_endp|18
-RCF|10.0.1.55:1720|705:dialedDigits=Sherry Liu:h323_ID|terminal|1333_endp|24[Cone Nat]
+RCF|10.0.1.43:1720|613:dialedDigits=Jacky Tsai:h323_ID|terminal|1328_endp|H.460.18
+RCF|10.0.1.55:1720|705:dialedDigits=Sherry Liu:h323_ID|terminal|1333_endp|H.460.24[Cone Nat]
 Number of Endpoints: 3
 ;
 </verb></tscreen>
@@ -221,9 +221,9 @@ AllRegistrations
 RCF|10.0.1.8:1720|Accel-GW2:h323_ID|gateway|1322_endp|-
 Wed, 26 Jun 2002 16:40:03 +0800 C(1/5/33) &lt;1&gt; bw:0/10240
 Prefixes: 09,002
-RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp|18
+RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp|H.460.18
 Wed, 26 Jun 2002 16:40:55 +0800 C(0/32/39) &lt;1&gt; bw:7680/10240
-RCF|10.0.1.66:1720|716:dialedDigits=Vicky:h323_ID|terminal|1425_endp|17
+RCF|10.0.1.66:1720|716:dialedDigits=Vicky:h323_ID|terminal|1425_endp|H.460.17
 Wed, 26 Jun 2002 16:40:58 +0800 C(1/47/53) &lt;1&gt; bw:0/10240
 Number of Endpoints: 3
 ;
@@ -284,8 +284,8 @@ Number of Calls: Current_Call Active: Active_Call From NB: Call_From_Neighbor
 CurrentCalls
 Call No. 48 | CallID 7d 5a f1 0a ad ea 18 10 89 16 00 50 fc 3f 0c f5 | 30 | 570
 Dial 0225067272:dialedDigits
-ACF|10.0.1.200:1720|1448_endp|19618|frank:h323_ID|gunter:h323_ID|false|26;
-ACF|10.0.1.7:1720|1325_endp|19618|gunter:h323_ID|frank:h323_ID|true|26;
+ACF|10.0.1.200:1720|1448_endp|19618|frank:h323_ID|gunter:h323_ID|false|Proxy;
+ACF|10.0.1.7:1720|1325_endp|19618|gunter:h323_ID|frank:h323_ID|true|Proxy;
 # Sherry:h323_ID|Accel-GW1:h323_ID|200000|Wed, 26 Jun 2002 17:29:55 +0800 &lt;2&gt; bw:3840
 Number of Calls: 1 Active: 1 From NB: 0
 ;
