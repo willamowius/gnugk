@@ -9858,7 +9858,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 				|| (h46019chan.m_multiplexID_fromA != INVALID_MULTIPLEX_ID)) {
 				if (IsSet(h46019chan.m_addrA)) {
 					rtplc->SetLCMultiplexDestination(false, h46019chan.m_addrA, SideA);
-					rtplc->SetLCMultiplexDestination(true, h46019chan.m_addrA, SideA);
+					rtplc->SetLCMultiplexDestination(true, h46019chan.m_addrA_RTCP, SideA);
 				}
 				rtplc->SetLCMultiplexID(false, h46019chan.m_multiplexID_toA, SideA);
 				rtplc->SetLCMultiplexID(true, h46019chan.m_multiplexID_toA, SideA);
@@ -9869,7 +9869,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 				|| (h46019chan.m_multiplexID_fromB != INVALID_MULTIPLEX_ID)) {
 				if (IsSet(h46019chan.m_addrB)) {
 					rtplc->SetLCMultiplexDestination(false, h46019chan.m_addrB, SideB);
-					rtplc->SetLCMultiplexDestination(true, h46019chan.m_addrB, SideB);
+					rtplc->SetLCMultiplexDestination(true, h46019chan.m_addrB_RTCP, SideB);
 				}
 				rtplc->SetLCMultiplexID(false, h46019chan.m_multiplexID_toB, SideB);
 				rtplc->SetLCMultiplexID(true, h46019chan.m_multiplexID_toB, SideB);
