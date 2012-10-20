@@ -817,7 +817,7 @@ EndpointRec *EndpointRec::Unregister()
 	return this;
 }
 
-EndpointRec *EndpointRec::Expired()
+EndpointRec * EndpointRec::Expired()
 {
 	SendURQ(H225_UnregRequestReason::e_ttlExpired, 0);
 	return this;
@@ -829,7 +829,7 @@ PString EndpointRec::GetNatType() const
 	if (m_usesH46017) str = (m_usesH46026 ? "H.460.17[26]" : "H.460.17");
 	else if (m_usesH46023) str = "H.460.23[" + GetEPNATTypeString(m_epnattype) + "]";
 	else if (IsTraversalClient()) str = "H.460.18";
-	else if (IsTraversalServer()) str = "H.460.18[S]";
+	else if (IsTraversalServer()) str = "H.460.18[Server]";
 	else if (m_natsocket) str = "GnuGk";
 	else if (m_nat) str = "Native";
 	else str = "-";
@@ -3163,7 +3163,7 @@ PString CallRec::GenerateCDR(const PString& timestampFormat) const
 	);
 }
 
-PString CallRec::MediaRouting() const
+PString CallRec::GetMediaRouting() const
 {
 	PString str;
 #ifdef HAS_H46023
@@ -3196,7 +3196,7 @@ PString CallRec::PrintOn(bool verbose) const
 		+ "|" + m_srcInfo
 		+ "|false"
 		+ "|" + callid
-		+ "|" + MediaRouting()
+		+ "|" + GetMediaRouting()
 		+ ";\r\n"
 		// 2nd ACF
 		+ "ACF|" + m_calleeAddr
@@ -3206,7 +3206,7 @@ PString CallRec::PrintOn(bool verbose) const
 		+ "|" + m_srcInfo
 		+ "|true"
 		+ "|" + callid
-		+ "|" + MediaRouting()
+		+ "|" + GetMediaRouting()
 		+ ";\r\n";
 	if (verbose) {
 		result += "# " + ((m_Calling) ? AsString(m_Calling->GetAliases()) : m_callerAddr)

@@ -880,7 +880,7 @@ public:
 		const PString & timestampFormat = PString::Empty()
 		) const;
 	PString PrintOn(bool verbose) const;
-	PString MediaRouting() const;
+	PString GetMediaRouting() const;
 	PString PrintPorts() const;
 
 	void Lock();

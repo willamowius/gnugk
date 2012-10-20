@@ -3300,7 +3300,7 @@ bool AdmissionRequestPDU::BuildReply(int reason, bool h460, CallRec * rec)
 		PString callid = AsString(request.m_callIdentifier.m_guid);
 		callid.Replace(" ", "-", true);
 		log += PString("|") + callid;
-		log += PString("|") + (rec ? rec->MediaRouting() : " ");
+		log += PString("|") + (rec ? rec->GetMediaRouting() : " ");
 		log += PString(";");
 	} else if (reason < 0) {
 		log = "ACF|" + source
@@ -3312,7 +3312,7 @@ bool AdmissionRequestPDU::BuildReply(int reason, bool h460, CallRec * rec)
 		PString callid = AsString(request.m_callIdentifier.m_guid);
 		callid.Replace(" ", "-", true);
 		log += PString("|") + callid;
-		log += PString("|") + (rec ? rec->MediaRouting() : " ");
+		log += PString("|") + (rec ? rec->GetMediaRouting() : " ");
 		log += PString(";");
 	} else {
 		H225_AdmissionReject & arj = BuildReject(reason);
