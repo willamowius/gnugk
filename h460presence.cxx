@@ -332,7 +332,7 @@ H460P_PresenceIdentifier & AsPresenceId(const PString & id)
 PString AsPresenceString(const H460P_PresenceIdentifier & pid)
 {
 	OpalGloballyUniqueID uid(pid.m_guid);
-	return uid.AsString();
+	return uid.AsString().ToUpper();
 }
 
 bool IsLocalPresence(const H225_AliasAddress & alias, const H323PresenceStore & store)
@@ -736,7 +736,7 @@ bool GkPresence::HandleNewAlias(const H225_AliasAddress & addr)
 		id.m_Active = true;
 		id.m_isSubscriber = true;
 
-	DatabaseAdd(uid.AsString(),id);
+	DatabaseAdd(uid.AsString().ToUpper(),id);
     DatabaseUpdate(H323PresenceInstruction::e_subscribe,uid.AsString());
 
 	// load the cache with empty store
@@ -1316,20 +1316,16 @@ bool GkPresence::HandleStatusUpdates(const H460P_PresenceIdentifier & pid, const
 			switch (type) {
 			  case H460P_PresenceInstruction::e_subscribe:
 				  DatabaseUpdate(type,spid);
-				  UpdateInstruction(inst,it->second.m_Instruction);
 				  break;
 
 			  case H460P_PresenceInstruction::e_unsubscribe:
 				  DatabaseUpdate(type,spid);
-				  UpdateInstruction(inst,it->second.m_Instruction);
-				  //RemoveInstruction(remote,it->second.m_Instruction);
-				  //RemovePresenceMap(pid, remoteIds, remoteIdmap);
 				  break;
 
 			  case H460P_PresenceInstruction::e_block:
 				  if (id) {
 					DatabaseAdd(spid,*id);
-					DatabaseUpdate(type,AsPresenceString(pid));
+					DatabaseUpdate(type,spid);
 					AddPresenceMap(pid, *id, remoteIds, remoteIdmap);
 					UpdateInstruction(inst,it->second.m_Instruction);
 				  }
@@ -1337,9 +1333,6 @@ bool GkPresence::HandleStatusUpdates(const H460P_PresenceIdentifier & pid, const
 
 			  case H460P_PresenceInstruction::e_unblock:
 				  DatabaseUpdate(type,spid);
-				  UpdateInstruction(inst,it->second.m_Instruction);
-				  //RemovePresenceMap(pid, remoteIds, remoteIdmap);
-				  //RemoveInstruction(remote,it->second.m_Instruction);
 				  break;
 
 			  case H460P_PresenceInstruction::e_pending:
@@ -1467,8 +1460,8 @@ bool GkPresence::HandleNewInstruction(unsigned tag, const H225_AliasAddress & ad
 		}
 #endif
 		if (a == b) {
-			if (tag == instructions[i].GetTag())
-				return true;
+//			if (tag == instructions[i].GetTag())
+//				return true;
 
 			if (tag == H460P_PresenceInstruction::e_unsubscribe) {
 				H460P_PresenceIdentifier pid;
