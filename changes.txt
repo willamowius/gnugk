@@ -8,7 +8,7 @@ Changes from 3.1 to 3.2
 - BUGFIX(RasSrv.cxx) fix H.460.24 3 min bug
 - RTP_DEBUG messages now always present on trace level 7
 - update switch [RasSrv::PermanentEndpoints] to support vendor information on gateways
-- BUGFIX(ProxyChannel.cxx) always offer H.460.19 to H.460.17 endpoints
+- BUGFIX(ProxyChannel.cxx) fix H.460.19 with H.460.17 endpoints
 - BUGFIX(ProxyChannel.cxx) fix H.460.17 IPs in trace
 - BUGFIX(RasSrv.cxx) relax check of sender ports for H.460.17 RRQs
 - BUGFIX(ProxyChannel.cxx) don't create the multiplex RTP listener when not needed

@@ -4169,6 +4169,14 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 			bool isH46019Client = false;
 			bool senderSupportsH46019Multiplexing = false;
 			RemoveH46019Descriptor(cpBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing, isH46019Client);
+			// set traversal role for called party (needed for H.460.17, doesn't hurt H.460.18)
+			if (isH46019Client
+				&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
+				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(TraversalClient);
+				if (m_call->GetCalledParty()) {
+					m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
+				}
+			}
 			if (senderSupportsH46019Multiplexing
 				&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
 				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(true);
@@ -4391,6 +4399,14 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			bool isH46019Client = false;
 			bool senderSupportsH46019Multiplexing = false;
 			RemoveH46019Descriptor(connectBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing, isH46019Client);
+			// set traversal role for called party (needed for H.460.17, doesn't hurt H.460.18)
+			if (isH46019Client
+				&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
+				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(TraversalClient);
+				if (m_call->GetCalledParty()) {
+					m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
+				}
+			}
 			if (senderSupportsH46019Multiplexing
 				&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
 				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(true);
@@ -4484,15 +4500,26 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 #else
 	bool OZH46024 = false;
 #endif
+	PTRACE(0, "JW Alerting: check .19");
 	if (m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled() && !OZH46024) {
+		PTRACE(0, "JW Alerting: .19 required");
 		// remove H.460.19 descriptor from sender
 		if (alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet)) {
 			bool isH46019Client = false;
 			bool senderSupportsH46019Multiplexing = false;
 			RemoveH46019Descriptor(alertingBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing, isH46019Client);
+			// set traversal role for called party (needed for H.460.17, doesn't hurt H.460.18)
+			if (isH46019Client
+				&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
+				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(TraversalClient);
+				if (m_call->GetCalledParty()) {
+					m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
+				}
+			}
 			if (senderSupportsH46019Multiplexing
-				&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
+				&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
 				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(true);
+			}
 			if (alertingBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				alertingBody.RemoveOptionalField(H225_Alerting_UUIE::e_featureSet);
 		}
@@ -9491,6 +9518,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 			return true;
 
 		// add if peer is traversal client, don't add if we are traversal client
+		PTRACE(6, "H46018\tPeer traversal role=" << (int)(peer ? peer->GetTraversalRole() : None));
 		if (peer && (peer->IsTraversalClient() || (peer->IsTraversalServer() && peer->m_requestRTPMultiplexing))) {
 			// We need to move any generic Information messages up 1 so H.460.19 will ALWAYS be in position 0.
 			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_genericInformation)) {
@@ -9781,6 +9809,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 	}
 
 	// add traversal parameters, if needed
+	PTRACE(6, "H46018\tPeer traversal role=" << (int)(peer ? peer->GetTraversalRole() : None));
 	if (peer && (peer->IsTraversalServer() || (peer->IsTraversalClient() && peer->m_requestRTPMultiplexing))) {
 		// we need to move any generic Information messages up 1 so H.460.19 will ALWAYS be in position 0.
 		if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_genericInformation)) {
