@@ -3713,7 +3713,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	}
 
 	// use delayed connecting if called party is a traversal client
-	if (!(m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalClient()) )
+	if (!(m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalClient() && !m_call->GetCalledParty()->UsesH46017()) )
 #endif
 	{
 
@@ -3725,7 +3725,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 #else
 		bool OZH46024 = false;
 #endif
-		// no traversal client, send regular Setup
+		// no traversal client (or traversal client using H.460.17) -> send regular Setup
 		// remove H.460.19 indicator
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures) && !OZH46024) {
 			bool isH46019Client = false;
@@ -3801,7 +3801,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	}
 #ifdef HAS_H46018
 	else {
-		// call to traversal client
+		// call to H.460.18 traversal client
 		// can't connect the 2 sockets now, remember the calling socket until the called has pinholed throuth the NAT
 		// this may set the wrong localAddr, because we don't know the peerAddr, yet, updated later in OnFacility()
 		localAddr = RasServer::Instance()->GetLocalAddress(peerAddr);
@@ -4173,9 +4173,9 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 			if (isH46019Client
 				&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
 				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(TraversalClient);
-				if (m_call->GetCalledParty()) {
-					m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
-				}
+//				if (m_call->GetCalledParty()) {
+//					m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
+//				}
 			}
 			if (senderSupportsH46019Multiplexing
 				&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
@@ -4403,9 +4403,9 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			if (isH46019Client
 				&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
 				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(TraversalClient);
-				if (m_call->GetCalledParty()) {
-					m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
-				}
+//				if (m_call->GetCalledParty()) {
+//					m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
+//				}
 			}
 			if (senderSupportsH46019Multiplexing
 				&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
@@ -4510,9 +4510,9 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 			if (isH46019Client
 				&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
 				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(TraversalClient);
-				if (m_call->GetCalledParty()) {
-					m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
-				}
+//				if (m_call->GetCalledParty()) {
+//					m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
+//				}
 			}
 			if (senderSupportsH46019Multiplexing
 				&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
