@@ -4500,9 +4500,7 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 #else
 	bool OZH46024 = false;
 #endif
-	PTRACE(0, "JW Alerting: check .19");
 	if (m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled() && !OZH46024) {
-		PTRACE(0, "JW Alerting: .19 required");
 		// remove H.460.19 descriptor from sender
 		if (alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet)) {
 			bool isH46019Client = false;
