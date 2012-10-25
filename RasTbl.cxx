@@ -3162,15 +3162,21 @@ PString CallRec::GenerateCDR(const PString& timestampFormat) const
 
 PString CallRec::GetMediaRouting() const
 {
-	PString str;
+	PString mode;
+	switch (m_proxyMode) {
+		case ProxyDetect: mode = "ToBeDecided";
+			break;
+		case ProxyEnabled: mode = "Proxy";
+			break;
+		case ProxyDisabled: mode = "Direct";
+			break;
+	}
 #ifdef HAS_H46023
 	if (m_natstrategy)
-		str = "H.460.24[" + GetNATOffloadString(m_natstrategy) + "]";
-	else
+		mode += ",H.460.24[" + GetNATOffloadString(m_natstrategy) + "]";
 #endif
-		str = (m_proxyMode == ProxyEnabled ? "Proxy" : "Direct");
 	// TODO Add H.460.26 when supported - SH
-    return str;
+    return mode;
 }
 
 PString CallRec::PrintOn(bool verbose) const
