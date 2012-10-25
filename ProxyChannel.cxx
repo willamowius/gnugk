@@ -3763,6 +3763,9 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 				bool isH46019Client = false;
 				RemoveH46019Descriptor(setupBody.m_supportedFeatures, m_senderSupportsH46019Multiplexing, isH46019Client);
+				if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46017() && isH46019Client) {
+					m_call->GetCallingParty()->SetTraversalRole(TraversalClient);
+				}
 			}
 
 			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
@@ -3839,11 +3842,15 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 #ifdef HAS_H46023
 			CallRec::NatStrategy strat = m_call->GetNATStrategy(); 
-			if (strat == CallRec::e_natUnknown) m_call->NATAssistCallerUnknown(strat);
+			if (strat == CallRec::e_natUnknown && Toolkit::Instance()->IsH46023Enabled())
+				m_call->NATAssistCallerUnknown(strat);
 #endif
 			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 				bool isH46019Client = false;
 				RemoveH46019Descriptor(setupBody.m_supportedFeatures, m_senderSupportsH46019Multiplexing, isH46019Client);
+				if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46017() && isH46019Client) {
+					m_call->GetCallingParty()->SetTraversalRole(TraversalClient);
+				}
 			}
 
 			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))
@@ -3863,8 +3870,8 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			AddH460Feature(setupBody.m_supportedFeatures, feat);
 		}
 #ifdef HAS_H46023
-		if (Toolkit::Instance()->IsH46023Enabled() 
-			&& m_call->GetCalledParty()->UsesH46023() 
+		if (Toolkit::Instance()->IsH46023Enabled()
+			&& m_call->GetCalledParty()->UsesH46023()
 			&& !HasH46024Descriptor(setupBody.m_supportedFeatures)) {
 			// if remote does not support H.460.24 add Strategy to add local NAT Support.
 			CallRec::NatStrategy strat = m_call->GetNATStrategy();
@@ -4173,9 +4180,9 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 			if (isH46019Client
 				&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
 				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(TraversalClient);
-//				if (m_call->GetCalledParty()) {
-//					m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
-//				}
+				if (m_call->GetCalledParty()) {
+					m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
+				}
 			}
 			if (senderSupportsH46019Multiplexing
 				&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
@@ -4403,9 +4410,9 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			if (isH46019Client
 				&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
 				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(TraversalClient);
-//				if (m_call->GetCalledParty()) {
-//					m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
-//				}
+				if (m_call->GetCalledParty()) {
+					m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
+				}
 			}
 			if (senderSupportsH46019Multiplexing
 				&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
@@ -4510,9 +4517,9 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 			if (isH46019Client
 				&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
 				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(TraversalClient);
-//				if (m_call->GetCalledParty()) {
-//					m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
-//				}
+				if (m_call->GetCalledParty()) {
+					m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
+				}
 			}
 			if (senderSupportsH46019Multiplexing
 				&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
