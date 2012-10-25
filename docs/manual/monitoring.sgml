@@ -181,12 +181,12 @@ Startup: Fri, 21 Jun 2002 10:50:22 +0800   Running: 11 days 04:22:59
 <p>Reset the statistics counters for total calls, successful calls, neighbor calls and parent calls to zero.
 
 <item><tt/PrintAllRegistrations/, <tt/r/, <tt/?/<newline>
-<p>Show all registered endpoints including any NAT Method being used. 
+<p>Show all registered endpoints. 
 <descrip>
 <tag/Format:/
 <tscreen><verb>
 AllRegistrations
-RCF|IP:Port|Aliases|Terminal_Type|EndpointID|NatType
+RCF|IP:Port|Aliases|Terminal_Type|EndpointID
 ...
 Number of Endpoints: n
 ;
@@ -194,9 +194,9 @@ Number of Endpoints: n
 <tag/Example:/
 <tscreen><verb>
 AllRegistrations
-RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp|-
-RCF|10.0.1.43:1720|613:dialedDigits=Jacky Tsai:h323_ID|terminal|1328_endp|H.460.18
-RCF|10.0.1.55:1720|705:dialedDigits=Sherry Liu:h323_ID|terminal|1333_endp|H.460.24[Cone Nat]
+RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp
+RCF|10.0.1.43:1720|613:dialedDigits=Jacky Tsai:h323_ID|terminal|1328_endp
+RCF|10.0.1.55:1720|705:dialedDigits=Sherry Liu:h323_ID|terminal|1333_endp
 Number of Endpoints: 3
 ;
 </verb></tscreen>
@@ -208,8 +208,8 @@ Number of Endpoints: 3
 <tag/Format:/
 <tscreen><verb>
 AllRegistrations
-RCF|IP:Port|Aliases|Terminal_Type|EndpointID|NatType
-Registration_Time C(Active_Call/Connected_Call/Total_Call) &lt;r&gt; bw:Bandwidth/Max_Bandwidth
+RCF|IP:Port|Aliases|Terminal_Type|EndpointID
+Registration_Time C(Active_Call/Connected_Call/Total_Call) &lt;r&gt; (NAT type) bw:Bandwidth/Max_Bandwidth
 [Prefixes: ##] (gateway only)
 ...
 Number of Endpoints: n
@@ -218,13 +218,13 @@ Number of Endpoints: n
 <tag/Example:/
 <tscreen><verb>
 AllRegistrations
-RCF|10.0.1.8:1720|Accel-GW2:h323_ID|gateway|1322_endp|-
+RCF|10.0.1.8:1720|Accel-GW2:h323_ID|gateway|1322_endp
 Wed, 26 Jun 2002 16:40:03 +0800 C(1/5/33) &lt;1&gt; bw:0/10240
 Prefixes: 09,002
-RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp|H.460.18
-Wed, 26 Jun 2002 16:40:55 +0800 C(0/32/39) &lt;1&gt; bw:7680/10240
-RCF|10.0.1.66:1720|716:dialedDigits=Vicky:h323_ID|terminal|1425_endp|H.460.17
-Wed, 26 Jun 2002 16:40:58 +0800 C(1/47/53) &lt;1&gt; bw:0/10240
+RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp
+Wed, 26 Jun 2002 16:40:55 +0800 C(0/32/39) &lt;1&gt; (H.460.18) bw:7680/10240
+RCF|10.0.1.66:1720|716:dialedDigits=Vicky:h323_ID|terminal|1425_endp
+Wed, 26 Jun 2002 16:40:58 +0800 C(1/47/53) &lt;1&gt; (H.460.17) bw:0/10240
 Number of Endpoints: 3
 ;
 </verb></tscreen>
@@ -377,7 +377,7 @@ of the specified type (h323_ID, dialedDigits), prepend the alias type name
 <tag/Format:/
 <tscreen><verb>
 FindVerbose Alias
-RCF|IP:Port|Aliases|Terminal_Type|EndpointID|NatType
+RCF|IP:Port|Aliases|Terminal_Type|EndpointID
 Registration_Time C(Active_Call/Connected_Call/Total_Call) &lt;r&gt;
 [Prefixes: ##] (gateway only)
 ;
@@ -816,7 +816,7 @@ a GatekeeperConfirm (GCF).
 <p>The gatekeeper receives a GatekeeperRequest (GRQ) and responds with
 a GatekeeperReject (GRJ).
 
-<item><tt/RCF|IP:Port|Aliases|Endpoint_Type|EndpointID|NatType;/<newline>
+<item><tt/RCF|IP:Port|Aliases|Endpoint_Type|EndpointID;/<newline>
 <p>The gatekeeper receives a RegistrationRequest (RRQ) and responds with
 a RegistrationConfirm (RCF).
 

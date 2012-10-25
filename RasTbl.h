@@ -184,7 +184,6 @@ public:
 	void SetH46024(bool support);
 	void SetH46024A(bool support);
 	void SetH46024B(bool support);
-	PString GetNatType() const;
 
 	enum EPNatTypes {
             NatUnknown,

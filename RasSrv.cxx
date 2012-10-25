@@ -2502,7 +2502,6 @@ bool RegistrationRequestPDU::Process()
 		+ "|" + AsString(ep->GetAliases())
 		+ "|" + AsString(request.m_terminalType)
 		+ "|" + ep->GetEndpointIdentifier().GetValue()
-		+ "|" + ep->GetNatType()
 		+ ";";
 	if (Toolkit::AsBool(GkConfig()->GetString("GkStatus::Filtering", "NewRCFOnly", "0"))) {
 	    if (bNewEP) {

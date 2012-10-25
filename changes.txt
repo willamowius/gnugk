@@ -3,7 +3,7 @@ Changes from 3.1 to 3.2
 - BUGFIX(ProxyChannel.cxx) fix RTCP port for multiplexed RTP in mixed-mode calls
 - BUGFIX(ProxyChannel.cxx) process all tunneled H.245 messages before un-tunneling them
 - improve speed of H.460.19 port detection (avoid reversing direction during detection)
-- new RCF and ARQ status item for NatMethod for registrations and MediaRoute for calls
+- new ACF status item for media routing for calls
 - BUGFIX(ProxyChannel.cxx) check for creating RTP loops when auto-detecting H.460.19 ports without keepAlive
 - BUGFIX(RasSrv.cxx) fix H.460.24 3 min bug
 - RTP_DEBUG messages now always present on trace level 7

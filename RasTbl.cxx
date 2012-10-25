@@ -823,26 +823,12 @@ EndpointRec * EndpointRec::Expired()
 	return this;
 }
 
-PString EndpointRec::GetNatType() const
-{
-	PString str;
-	if (m_usesH46017) str = (m_usesH46026 ? "H.460.17[26]" : "H.460.17");
-	else if (m_usesH46023) str = "H.460.23[" + GetEPNATTypeString(m_epnattype) + "]";
-	else if (IsTraversalClient()) str = "H.460.18";
-	else if (IsTraversalServer()) str = "H.460.18[Server]";
-	else if (m_natsocket) str = "GnuGk";
-	else if (m_nat) str = "Native";
-	else str = "-";
-	return str;
-}
-
 PString EndpointRec::PrintOn(bool verbose) const
 {
 	PString msg = AsDotString(GetCallSignalAddress())
 			+ "|" + AsString(GetAliases())
 			+ "|" + AsString(GetEndpointType())
 			+ "|" + GetEndpointIdentifier().GetValue()
-			+ "|" + GetNatType()
 		    + "\r\n";
 	if (verbose) {
 		msg += GetUpdatedTime().AsString();
@@ -851,12 +837,23 @@ PString EndpointRec::PrintOn(bool verbose) const
 			msg += " (permanent)";
 		PString natstring(IsNATed() ? m_natip.AsString() : PString::Empty());
 		msg += PString(PString::Printf, " C(%d/%d/%d) %s <%d>", m_activeCall, m_connectedCall, m_totalCall, (const unsigned char *)natstring, m_usedCount);
+		PString natType;
+		if (m_natsocket)
+			natType = "GnuGk";
 		if (UsesH46017()) {
-			msg += " (H.460.17)";
+			if (m_usesH46026)
+				natType = "H.460.17[26]";
+			else
+				natType = "H.460.17";
 		}
-		if (IsTraversalClient() || IsTraversalServer()) {
-			msg += " (H.460.18)";
-		}
+		if (IsTraversalClient())
+			natType = "H.460.18";
+		if (IsTraversalServer())
+			natType = "H.460.18[Server]";
+		if (m_usesH46023)
+			natType += ",H.460.23[" + GetEPNATTypeString(m_epnattype) + "]";
+		if (!natType.IsEmpty())
+			msg += " (" + natType + ")";
 		msg += " bw:" + PString(m_bandwidth) + "/" + PString(m_maxBandwidth);
 		msg += "\r\n";
 	}
