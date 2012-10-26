@@ -3893,7 +3893,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 #ifdef HAS_H46018
 	// if destination route/endpoint is a traversal client
-	if (m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalClient()) {
+	if (m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalClient() && !m_call->GetCalledParty()->UsesH46017()) {
 		// send SCI
 		RasServer *RasSrv = RasServer::Instance();
 		H225_RasMessage sci_ras;
