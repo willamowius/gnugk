@@ -840,16 +840,17 @@ PString EndpointRec::PrintOn(bool verbose) const
 		PString natType;
 		if (m_natsocket)
 			natType = "GnuGk";
-		if (UsesH46017()) {
-			if (m_usesH46026)
-				natType = "H.460.17[26]";
-			else
-				natType = "H.460.17";
-		}
 		if (IsTraversalClient())
 			natType = "H.460.18";
 		if (IsTraversalServer())
 			natType = "H.460.18[Server]";
+		// check for H.460.17 after H.460.18, because .17 endpoint can also be traversal clients
+		if (UsesH46017()) {
+			if (m_usesH46026)
+				natType = "H.460.17,H.460.26";
+			else
+				natType = "H.460.17";
+		}
 		if (m_usesH46023)
 			natType += ",H.460.23[" + GetEPNATTypeString(m_epnattype) + "]";
 		if (!natType.IsEmpty())
