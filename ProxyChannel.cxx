@@ -1153,6 +1153,7 @@ void CallSignalSocket::InternalInit()
 #ifdef HAS_H46017
 void CallSignalSocket::CleanupCall()
 {
+PTRACE(0, "JW CleanupCall: remote=" << remote);
 	m_call = callptr(NULL);
 	m_crv = 0;
 	m_h245handler = NULL;
@@ -2659,6 +2660,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				"(from " << Name() << ')'
 				);
 
+PTRACE(0, "JW remote=" << remote << " m_call=" << m_call);
 			/// we should perform accounting here for this new call
 			H225_H323_UserInformation userInfo;
 			H225_H323_UU_PDU_h323_message_body &msgBody = userInfo.m_h323_uu_pdu.m_h323_message_body;
@@ -5098,9 +5100,7 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg *msg)
 	if (m_call) {
 		// regular ReleaseComplete processing
 		m_call->SetDisconnectTime(time(NULL));
-		m_call->SetReleaseSource(m_callerSocket
-			? CallRec::ReleasedByCaller : CallRec::ReleasedByCallee
-			);
+		m_call->SetReleaseSource(m_callerSocket ? CallRec::ReleasedByCaller : CallRec::ReleasedByCallee);
 		if (msg->GetQ931().HasIE(Q931::CauseIE)) {
 			cause = msg->GetQ931().GetCause();
 			// translate cause codes
@@ -5166,6 +5166,7 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg *msg)
 	}
 
 	if (m_callerSocket) {
+PTRACE(0, "JW OnRC RemoveRemoteSocket");
 		if (remote != NULL) {
 			remote->RemoveRemoteSocket();
 		}
@@ -5180,6 +5181,7 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg *msg)
 			PTRACE(5, "Q931\tFailover disabled for call " << m_call->GetCallNumber());
 		} else if (m_call->GetFailedRoutes().back().IsFailoverActive(cause)) {
 			TryNextRoute();
+PTRACE(0, "JW OnRC Failover");
 			return;
 		} else
 			PTRACE(5, "Q931\tFailover inactive for call " << m_call->GetCallNumber() << ", Q931 cause " << cause);
@@ -5187,6 +5189,7 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg *msg)
 
 	if (m_call)
 		CallTable::Instance()->RemoveCall(m_call);
+PTRACE(0, "JW OnRC Closing");
 	m_result = Closing;
 }
 
@@ -10592,6 +10595,7 @@ void ProxyHandler::ReadSocket(IPSocket * socket)
 			{
 				psocket->ForwardData();
 				CallSignalSocket * css = dynamic_cast<CallSignalSocket *>(socket);
+PTRACE(0, "JW Closing: css=" << css << " maintain=" << css->MaintainConnection());
 				if (css && css->MaintainConnection()) {
 					// just detach H.460.17 from the call, don't close them
 					// shut down the H.245 channel for H.460.17 connection, usually done on socket delete
@@ -10604,6 +10608,12 @@ void ProxyHandler::ReadSocket(IPSocket * socket)
 #ifdef HAS_H46017
 					css->CleanupCall();
 #endif
+				} else if (css && css->GetRemote() && css->GetRemote()->MaintainConnection()) {
+					// if the other side uses H.460.17 clean up that end of the connection
+#ifdef HAS_H46017
+					css->GetRemote()->CleanupCall();
+#endif
+					css->DetachRemote();
 				}
 				if (!css || !css->MaintainConnection()) {
 					// only close the Q.931 socket if it's not also used for H.460.17
