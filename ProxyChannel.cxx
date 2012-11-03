@@ -7806,12 +7806,13 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 
 #if defined(HAS_H46018) && defined(HAS_H46024B)
 	// If required begin Annex B probing
-	if (call->GetNATStrategy() == CallRec::e_natAnnexB) {
+	if (call && call->GetNATStrategy() == CallRec::e_natAnnexB) {
 		call->H46024BSessionFlag(m_sessionID);
 	}
 #endif
 
-	m_call = &call;
+	if (call)
+		m_call = &call;
 }
 
 void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * addr, callptr & call)
