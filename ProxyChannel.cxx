@@ -4164,7 +4164,7 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 
 #ifdef HAS_H46018
 #ifdef HAS_H46023
-		bool OZH46024 = (m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
+		bool OZH46024 = (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
 						cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_featureSet) &&
 						HasH46024Descriptor(cpBody.m_featureSet.m_supportedFeatures));
 #else
@@ -4180,7 +4180,7 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 			if (isH46019Client
 				&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
 				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(TraversalClient);
-				if (m_call->GetCalledParty()) {
+				if (m_call && m_call->GetCalledParty()) {
 					m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
 				}
 			}
@@ -4190,7 +4190,7 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 			if (cpBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				cpBody.RemoveOptionalField(H225_CallProceeding_UUIE::e_featureSet);
 		}
-		if (m_call->GetCallingParty() && (m_call->GetCallingParty()->GetTraversalRole() != None)) {
+		if (m_call && m_call->GetCallingParty() && (m_call->GetCallingParty()->GetTraversalRole() != None)) {
 			H460_FeatureStd feat = H460_FeatureStd(19);
 			H460_FeatureID * feat_id = NULL;
 			if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalClient()) {
@@ -4216,8 +4216,7 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 	}
 #endif
 #ifdef HAS_H46026
-	if (m_call && m_call->GetCallingParty()
-		&& m_call->GetCallingParty()->UsesH46026())
+	if (m_call && m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46026())
 	{
 		H460_FeatureStd feat = H460_FeatureStd(26);
 		// add H.460.26 indicator to CallProceeding
@@ -4394,13 +4393,13 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 
 #ifdef HAS_H46018
 #ifdef HAS_H46023
-		bool OZH46024 = (m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
-						connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet) &&
-						HasH46024Descriptor(connectBody.m_featureSet.m_supportedFeatures));
+	bool OZH46024 = (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
+					connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet) &&
+					HasH46024Descriptor(connectBody.m_featureSet.m_supportedFeatures));
 #else
-		bool OZH46024 = false;
+	bool OZH46024 = false;
 #endif
-	if (m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled() && !OZH46024) {
+	if (m_call && m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled() && !OZH46024) {
 		// remove H.460.19 descriptor from sender
 		if (connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet)) {
 			bool isH46019Client = false;
@@ -4501,13 +4500,13 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 
 #ifdef HAS_H46018
 #ifdef HAS_H46023
-	bool OZH46024 = (m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
+	bool OZH46024 = (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
 					alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet) &&
 					HasH46024Descriptor(alertingBody.m_featureSet.m_supportedFeatures));
 #else
 	bool OZH46024 = false;
 #endif
-	if (m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled() && !OZH46024) {
+	if (m_call && m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled() && !OZH46024) {
 		// remove H.460.19 descriptor from sender
 		if (alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet)) {
 			bool isH46019Client = false;
@@ -4528,7 +4527,7 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 			if (alertingBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				alertingBody.RemoveOptionalField(H225_Alerting_UUIE::e_featureSet);
 		}
-		if (m_call->GetCallingParty() && (m_call->GetCallingParty()->GetTraversalRole() != None)) {
+		if (m_call && m_call->GetCallingParty() && (m_call->GetCallingParty()->GetTraversalRole() != None)) {
 			// add H.460.19 indicator
 			H460_FeatureStd feat = H460_FeatureStd(19);
 			H460_FeatureID * feat_id = NULL;
@@ -5087,7 +5086,7 @@ void CallSignalSocket::SetSessionMultiplexDestination(WORD session, bool isRTCP,
 }
 #endif
 
-void CallSignalSocket::OnReleaseComplete(SignalingMsg *msg)
+void CallSignalSocket::OnReleaseComplete(SignalingMsg * msg)
 {
 	ReleaseCompleteMsg * rc = dynamic_cast<ReleaseCompleteMsg*>(msg);
 	if (rc == NULL) {
@@ -5457,7 +5456,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 
 	case H225_FacilityReason::e_forwardedElements:
 #ifdef HAS_H46023
-		bool OZH46024 = (m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
+		bool OZH46024 = (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
 						facilityBody.HasOptionalField(H225_Facility_UUIE::e_featureSet) &&
 						HasH46024Descriptor(facilityBody.m_featureSet.m_supportedFeatures));
 #else
@@ -5475,7 +5474,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 				if (facilityBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 					facilityBody.RemoveOptionalField(H225_Facility_UUIE::e_featureSet);
 			}
-			if (m_call->GetCallingParty() && (m_call->GetCallingParty()->GetTraversalRole() != None)) {
+			if (m_call && m_call->GetCallingParty() && (m_call->GetCallingParty()->GetTraversalRole() != None)) {
 				// TODO: for Facility isn't not clear which direction it goes, we might have to check the CalledParty as well
 				// add H.460.19 indicator to Facility with reason forwardedElements
 				H460_FeatureStd feat = H460_FeatureStd(19);
@@ -5510,9 +5509,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 
 }
 
-void CallSignalSocket::OnProgress(
-	SignalingMsg *msg
-	)
+void CallSignalSocket::OnProgress(SignalingMsg * msg)
 {
 	ProgressMsg *progress = dynamic_cast<ProgressMsg*>(msg);
 	if (progress == NULL) {
@@ -5541,7 +5538,6 @@ void CallSignalSocket::OnProgress(
 		progressBody.m_maintainConnection = (GetRemote() && GetRemote()->MaintainConnection());
 		msg->SetUUIEChanged();
 	}
-
 }
 
 bool CallSignalSocket::OnTunneledH245(H225_ArrayOf_PASN_OctetString & h245Control, bool & suppress)
