@@ -256,6 +256,28 @@ BYTE GetStaticPayloadType(const H245_DataType & type)
 	return UNDEFINED_PAYLOAD_TYPE;
 }
 
+bool IsOldH263(const H245_DataType & type)
+{
+	if (type.GetTag() == H245_DataType::e_videoData) {
+		const H245_VideoCapability & videoCap = type;
+		if (videoCap.GetTag() == H245_VideoCapability::e_h263VideoCapability) {
+			const H245_H263VideoCapability & h263cap = videoCap;
+			return !h263cap.HasOptionalField(H245_H263VideoCapability::e_h263Options);
+		}
+	}
+	if (type.GetTag() == H245_DataType::e_h235Media) {
+		const H245_H235Media & h235data = type;
+		if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_videoData) {
+			const H245_VideoCapability & videoCap = h235data.m_mediaType;
+			if (videoCap.GetTag() == H245_VideoCapability::e_h263VideoCapability) {
+				const H245_H263VideoCapability & h263cap = videoCap;
+				return !h263cap.HasOptionalField(H245_H263VideoCapability::e_h263Options);
+			}
+		}
+	}
+	return false;
+}
+
 } // end of anonymous namespace
 
 #ifdef HAS_H460
@@ -9663,7 +9685,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 					else
 						mediaPayloadType = GetStaticPayloadType(olc.m_forwardLogicalChannelParameters.m_dataType);
 					if (mediaPayloadType != UNDEFINED_PAYLOAD_TYPE) {
-						// plain media type has a static payload type, check if packatization supplies a better one (eg for H.263+)
+						// plain media type has a static payload type, check if packatization supplies a better one
 						if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaPacketization)
 							&& (h225Params->m_mediaPacketization.GetTag() == H245_H2250LogicalChannelParameters_mediaPacketization::e_rtpPayloadType)) {
 							H245_RTPPayloadType & desc = h225Params->m_mediaPacketization;
@@ -9671,6 +9693,12 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 								mediaPayloadType = desc.m_payloadType;
 							}
 						}
+						// look at h263Options do make destinction between old H.263 and H.263+
+						if ( 	(isReverseLC && IsOldH263(olc.m_reverseLogicalChannelParameters.m_dataType))
+							|| (!isReverseLC && IsOldH263(olc.m_forwardLogicalChannelParameters.m_dataType)) ) {
+							mediaPayloadType = 34;	// use static payload type for H.263
+						}
+
 						rtplc->SetCipherPayloadType(h225Params->m_dynamicRTPPayloadType);
 						rtplc->SetPlainPayloadType(mediaPayloadType);
 						if (mediaPayloadType < MIN_DYNAMIC_PAYLOAD_TYPE) {
