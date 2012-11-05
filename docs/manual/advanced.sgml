@@ -128,7 +128,7 @@ Run GnuGk:
 <verb>
 ~/openh323/obj_linux_x86_64_d_s/gnugk -c your.ini
 # wait for crash
-gdb obj_linux_x86_64_d/gnugk core
+gdb obj_linux_x86_64_d_s/gnugk core
 bt
 </verb>
 
