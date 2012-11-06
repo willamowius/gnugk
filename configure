@@ -4714,7 +4714,7 @@ $as_echo_n "checking for Net-SNMP library... " >&6; }
 
 		for try in /usr/lib /usr/local/lib $netsnmp_lib_dir; do
 			if test -d $try; then
-				LDFLAGS="$old_LDFLAGS $baseLIBS $agentLIBS $externalLIBS"
+				LDFLAGS="-Xlinker --no-as-needed $old_LDFLAGS $baseLIBS $agentLIBS $externalLIBS"
 				cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 extern netsnmp_enable_subagent();
