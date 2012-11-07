@@ -4710,11 +4710,11 @@ $as_echo "yes" >&6; }
 		{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Net-SNMP library" >&5
 $as_echo_n "checking for Net-SNMP library... " >&6; }
 
-		old_LDFLAGS="$LIBS"
+		old_LIBS="$LIBS"
 
 		for try in /usr/lib /usr/local/lib $netsnmp_lib_dir; do
 			if test -d $try; then
-				LDFLAGS="-Xlinker --no-as-needed $old_LDFLAGS $baseLIBS $agentLIBS $externalLIBS"
+				LIBS="$old_LIBS $baseLIBS $externalLIBS $agentLIBS"
 				cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 extern netsnmp_enable_subagent();
@@ -4727,7 +4727,7 @@ netsnmp_enable_subagent();
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-   NETSNMP_LIBS="$baseLIBS $agentLIBS $externalLIBS"
+   NETSNMP_LIBS="$baseLIBS $externalLIBS $agentLIBS"
 					  NETSNMP_LDFLAGS="-L$try"
 
 
@@ -4739,7 +4739,7 @@ rm -f core conftest.err conftest.$ac_objext \
 				fi
 			fi
 		done
-		LDFLAGS="$old_LDFLAGS"
+		LIBS="$old_LIBS"
 
 		if test "x$NETSNMP_LDFLAGS" = "x"; then
 			{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5

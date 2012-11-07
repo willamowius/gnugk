@@ -986,13 +986,13 @@ if test "x${netsnmp}" != "xno"; then
 
 		AC_MSG_CHECKING([for Net-SNMP library])
 
-		old_LDFLAGS="$LIBS"
+		old_LIBS="$LIBS"
 
 		for try in /usr/lib /usr/local/lib $netsnmp_lib_dir; do
 			if test -d $try; then
-				LDFLAGS="-Xlinker --no-as-needed $old_LDFLAGS $baseLIBS $agentLIBS $externalLIBS"
+				LIBS="$old_LIBS $baseLIBS $externalLIBS $agentLIBS"
 				AC_TRY_LINK([extern netsnmp_enable_subagent();], [netsnmp_enable_subagent();],
-					[ NETSNMP_LIBS="$baseLIBS $agentLIBS $externalLIBS"
+					[ NETSNMP_LIBS="$baseLIBS $externalLIBS $agentLIBS"
 					  NETSNMP_LDFLAGS="-L$try"
 					]
 				)
@@ -1001,7 +1001,7 @@ if test "x${netsnmp}" != "xno"; then
 				fi
 			fi
 		done
-		LDFLAGS="$old_LDFLAGS"
+		LIBS="$old_LIBS"
 
 		if test "x$NETSNMP_LDFLAGS" = "x"; then
 			AC_MSG_RESULT(no)
