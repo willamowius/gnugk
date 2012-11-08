@@ -3169,6 +3169,9 @@ bool AdmissionRequestPDU::Process()
 						pCallRec->SetConnected();  
 			}
 
+			if (!RasSrv->IsGKRouted() && natoffloadsupport == CallRec::e_natUnknown)
+				pCallRec->SetConnected();
+
 			pCallRec->SetNATStrategy(natoffloadsupport);
 			PTRACE(4, "RAS\tNAT strategy for Call No: " << pCallRec->GetCallNumber() << 
 						" set to " << pCallRec->GetNATOffloadString(natoffloadsupport));
