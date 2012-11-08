@@ -3586,13 +3586,18 @@ PString CallRec::GetNATOffloadString(NatStrategy type) const
 bool CallRec::NATAssistCallerUnknown(NatStrategy & natinst)
 {
 	if (m_Called) {
+		PIPSocket::Address remAddr;
+		GetIPFromTransportAddr(m_srcSignalAddress, remAddr);
 		PStringStream info;
 		info << "Unknown Calling Endpoint\n";
+		info << "IP " << remAddr << "\n";
 		info << "Called Endpoint:\n";
 		info << "    Support H.460.24 " << (m_Called->SupportH46024() ? "Yes" : "No") << "\n";
 		info << "    NAT Type:    " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Called->GetEPNATType()) << "\n";
 		PTRACE(5, "RAS\t\n" << info);
-		if (m_Called->SupportH46024() && (m_Called->GetEPNATType() < (int)EndpointRec::NatCone)) {
+		if (m_Called->SupportH46024() && ((m_Called->GetIP().IsRFC1918() && remAddr.IsRFC1918()) ||   
+										m_Called->GetEPNATType() < (int)EndpointRec::NatCone || 
+										m_Called->GetEPNATType() == (int)EndpointRec::FirewallSymmetric)) {
 			PTRACE(4, "RAS\tSet strategy to no Assistance");
 			natinst = CallRec::e_natNoassist;
 			return true;
@@ -3624,13 +3629,18 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	// then allow call direct. If NAT is not symmetric then select remote master. This forces the Calling endpoint to 
 	// use STUN and provide public IP addresses in the OLC. If Symmetric then media MUST be proxied unless H46024ForceDirect=1.
 	if (!m_Called) {
+		PIPSocket::Address remAddr;
+		GetIPFromTransportAddr(m_destSignalAddress, remAddr);
 		PStringStream info;
 		info << "Called Endpoint not define:\n";
+		info << "IP " << remAddr << "\n";
 		info << "Calling Endpoint:\n";
 		info << "    Support H.460.24 " << (m_Calling->SupportH46024() ? "Yes" : "No") << "\n";
 		info << "    NAT Type:    " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Calling->GetEPNATType()) << "\n";
 		PTRACE(5, "RAS\t\n" << info);
-		if (m_Calling->SupportH46024() && (m_Calling->GetEPNATType() < (int)EndpointRec::NatCone)) {
+		if (m_Calling->SupportH46024() && ((m_Calling->GetIP().IsRFC1918() && remAddr.IsRFC1918()) ||   
+											m_Calling->GetEPNATType() < (int)EndpointRec::NatCone || 
+											m_Calling->GetEPNATType() == (int)EndpointRec::FirewallSymmetric)) {
 			PTRACE(4, "RAS\tSet strategy to no Assistance");
 			natinst = CallRec::e_natNoassist;
 			return true;
@@ -3740,6 +3750,19 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 				return false;
 			}
 	}
+
+	// Both parties are behind private NAT but the called has no detected NAT (direct IP calling)
+	// assume the parties can reach eachother.
+	else if (goDirect && 
+			(m_Calling->IsNATed() && m_Called->GetEPNATType() < EndpointRec::FirewallSymmetric && 
+            !m_Called->IsNATed() && m_Called->GetIP().IsRFC1918()))
+				natinst = CallRec::e_natNoassist;
+
+	// if caller is behind a symmetric firewall calling to a public IP.
+	else if (goDirect &&
+			(m_Calling->GetEPNATType() == (int)EndpointRec::FirewallSymmetric) &&  
+			!m_Called->GetIP().IsRFC1918() && m_Called->GetEPNATType() == (int)EndpointRec::NatUnknown)
+				natinst = CallRec::e_natNoassist;
  
 	// Both parties are NAT and both and are either restricted or port restricted NAT
 	else if (goDirect
@@ -3818,13 +3841,15 @@ bool CallRec::NATSignallingOffload(bool isAnswer) const
 	if (isAnswer)
 			return false;
 
+	if (m_natstrategy == e_natNoassist)
+			return true;
+
 	if (!SingleGatekeeper() && m_natstrategy == e_natAnnexB)
 			return true;
 
 	if (!Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023SignalGKRouted", "0")) &&
-		(m_natstrategy == e_natNoassist ||
-		(!(m_Called && m_Called->IsNATed()) && (m_natstrategy == e_natRemoteMaster ||  m_natstrategy == e_natLocalMaster)) ||
-		(!SingleGatekeeper() && m_natstrategy != e_natLocalProxy && m_natstrategy != e_natFullProxy)))
+		((!(m_Called && m_Called->IsNATed()) && (m_natstrategy == e_natRemoteMaster ||  m_natstrategy == e_natLocalMaster)) ||
+		(!SingleGatekeeper() && (m_natstrategy != e_natLocalProxy) && (m_natstrategy != e_natFullProxy))))
 			return true;
 
 	return false;
