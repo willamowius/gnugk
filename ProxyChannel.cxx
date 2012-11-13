@@ -2830,6 +2830,13 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		}
 	}
 
+	if (Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "RemoveH245AddressFromSetup", "0"))) {
+		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_h245Address)) {
+			PTRACE(3, "Removing H.245 address from Setup");
+			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_h245Address);
+		}
+	}
+
 	m_crv = (WORD)(setup->GetCallReference() | 0x8000u);
 	if (Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "ForwardOnFacility", "0")) && m_setupPdu == NULL)
 		m_setupPdu = new Q931(q931);
