@@ -80,7 +80,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "AssignedGatekeepers::SQL", "Host" },
 	{ "AssignedGatekeepers::SQL", "Library" },
 	{ "AssignedGatekeepers::SQL", "MinPoolSize" },
+	{ "AssignedGatekeepers::SQL", "Password" },
 	{ "AssignedGatekeepers::SQL", "Query" },
+	{ "AssignedGatekeepers::SQL", "Username" },
 	{ "CTI::Agents", "CTI_Timeout" },	// obsolete, but still accepted
 	{ "CTI::Agents", "RequestTimeout" },
 	{ "CTI::Agents", "VirtualQueue" },	// obsolete, but still accepted
@@ -423,6 +425,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Routing::CatchAll", "CatchAllIP" },
 	{ "Routing::DNS", "ResolveNonLocalLRQ" },
 	{ "Routing::ENUM", "ResolveLRQ" },
+	{ "Routing::Forwarding", "CacheTimeout" },
 	{ "Routing::Forwarding", "Database" },
 	{ "Routing::Forwarding", "Driver" },
 	{ "Routing::Forwarding", "Host" },
@@ -433,6 +436,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Routing::Forwarding", "Username" },
 	{ "Routing::RDS", "ResolveLRQ" },
 	{ "Routing::SRV", "ResolveNonLocalLRQ" },
+	{ "Routing::Sql", "CacheTimeout" },
 	{ "Routing::Sql", "Database" },
 	{ "Routing::Sql", "Driver" },
 	{ "Routing::Sql", "Host" },
