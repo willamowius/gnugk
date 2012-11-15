@@ -831,6 +831,7 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 	PINDEX at = s.Find('@');
 	if (at != P_MAX_INDEX) {
 		PString num = s.Left(at);
+		if (num.Left(5) *= "h323:") num = number.Mid(5);
 		PString domain = s.Mid(at+1);
 		PIPSocket::Address domIP(domain);
 
