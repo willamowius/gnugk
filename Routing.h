@@ -181,7 +181,7 @@ typedef Request<H225_Facility_UUIE, FacilityMsg> FacilityRequest;
 
 class Policy : public SList<Policy> {
 public:
-	Policy() : m_name("Undefined") { }
+	Policy() : m_name("Undefined"), m_iniSection("Routing::Undefined") { }
 	virtual ~Policy() { }
 
 	template <class R> bool HandleRas(Request<R, RasMsg> & request)
@@ -204,6 +204,8 @@ public:
 	bool Handle(SetupRequest & request);
 	bool Handle(FacilityRequest & request);
 
+	void SetInstance(int instance);
+
 protected:
 	// new virtual function
 	// if return false, the policy is disable
@@ -217,10 +219,14 @@ protected:
 	virtual bool OnRequest(SetupRequest &)	   { return false; }
 	virtual bool OnRequest(FacilityRequest &)  { return false; }
 
+	PString GetINISectionName() const;
+	virtual void OnSetInstance(int instance) {};
+
 protected:
 	/// human readable name for the policy - it should be set inside constructors
 	/// of derived policies, default value is "undefined"
 	const char* m_name;
+	const char* m_iniSection;
 };
 
 
@@ -387,7 +393,12 @@ protected:
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
 	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
 
+	virtual bool FindByAliasesInternal(const PString & schema, RoutingRequest &, H225_ArrayOf_AliasAddress &, PBoolean &);
+
+	virtual void OnSetInstance(int instance);
+
 	bool m_resolveLRQs;
+	PStringToString m_enum_schema;
 };
 
 class DestinationRoutes {

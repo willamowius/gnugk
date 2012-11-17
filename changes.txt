@@ -1,5 +1,6 @@
 Changes from 3.1 to 3.2
 =======================
+- new Allow RoutingPolicy multiple instances of policies with different settings (Work in progress only ENUM so far) 
 - BUGFIX(Toolkit.cxx) remove h323: prefix if DefaultDomain is set
 - new switch [RoutedMode] RemoveH245AddressFromSetup=
 - BUGFIX(ProxyChannel.cxx) fix RTCP port for multiplexed RTP in mixed-mode calls

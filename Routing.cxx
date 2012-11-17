@@ -252,6 +252,19 @@ bool Policy::Handle(FacilityRequest& request)
 	return m_next && m_next->Handle(request);
 }
 
+void Policy::SetInstance(int instance)
+{
+	m_name = m_name + PString(instance);
+	m_iniSection = "Routing::" + PString(m_name);
+
+	OnSetInstance(instance);
+}
+
+PString Policy::GetINISectionName() const
+{
+	return "Routing::" + PString(m_name);
+}
+
 // class Analyzer
 Analyzer::Analyzer() : Singleton<Analyzer>("Routing::Analyzer")
 {
@@ -1507,10 +1520,62 @@ bool NumberAnalysisPolicy::OnRequest(SetupRequest & request)
 ENUMPolicy::ENUMPolicy()
 {
 	m_name = "ENUM";
+	m_iniSection = "Routing::" + PString(m_name);
 	m_resolveLRQs = Toolkit::AsBool(GkConfig()->GetString("Routing::ENUM", "ResolveLRQ", "0"));
+	m_enum_schema.SetAt("E2U+h323","");
+}
+
+void ENUMPolicy::OnSetInstance(int instance)
+{
+	if (instance > 1) {
+		m_enum_schema.SetSize(0);
+		m_enum_schema = GkConfig()->GetAllKeyValues(m_iniSection);
+		m_resolveLRQs = Toolkit::AsBool(GkConfig()->GetString(m_iniSection, "ResolveLRQ", "0"));
+	}
 }
 
 bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
+{
+
+#if P_DNS
+	for (PINDEX i = 0; i < m_enum_schema.GetSize(); ++i) {
+		PString enum_schema = m_enum_schema.GetKeyAt(i);
+		PString gwDestination = m_enum_schema.GetDataAt(i);
+
+		PBoolean changed = false;
+		for (PINDEX j = 0; j < aliases.GetSize(); ++j) {
+			FindByAliasesInternal(enum_schema, request, aliases, changed);
+			if (!gwDestination && changed) {   // If we have a gateway destination and changed
+				PString alias(AsString(aliases[j], FALSE));
+				int at = alias.Find('@');
+				PString domain = alias.Mid(at+1);
+				if (IsIPAddress(domain) 
+					|| (domain.FindRegEx(PRegularExpression(":[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX)) {
+						// add a route and stop going any further
+						PStringArray parts = SplitIPAndPort(domain, GK_DEF_ENDPOINT_SIGNAL_PORT);
+						domain = parts[0];
+						WORD port = (WORD)parts[1].AsUnsigned();
+						H225_TransportAddress dest;
+						if (GetTransportAddress(domain, port, dest)) {
+						PTRACE(4, "ROUTING\tPolicy " << m_name << " " << enum_schema << " set destination for " << alias << " to " << dest);
+							Route * route = NULL;
+							route = new Route(m_name, dest);
+							route->m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
+							request.AddRoute(*route);
+							delete route;
+							return true;
+						}
+				}
+				changed = false;
+			}
+		}
+	}
+#endif
+	return false;
+}
+
+
+bool ENUMPolicy::FindByAliasesInternal(const PString & schema, RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases, PBoolean & changed)
 {
 #if P_DNS
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
@@ -1530,17 +1595,23 @@ bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddre
 
 		if (j >= alias.GetLength()) {
 			PString str;
-			if (PDNS::ENUMLookup(alias, "E2U+h323", str)) {
-				if (str.Left(5) *= "h323:")
-					str = str.Mid(5);
-				PTRACE(4, "\tENUM converted remote party " << alias << " to " << str);
+			if (PDNS::ENUMLookup(alias, schema, str)) {
+				// Remove any + or URI Schema at the front
+				PINDEX at = str.Find('@');
+				PINDEX sch = str.Find(':'); 
+				if (sch > 0 && sch < at)
+					str = str.Mid(sch+1);
+				str.Replace("+","", true);
+
+				PTRACE(4, "\t" << m_name << " " << schema << " converted remote party " << alias << " to " << str);
 				request.SetFlag(RoutingRequest::e_aliasesChanged);
 				H323SetAliasAddress(str, aliases[i]);
-		  	}
+				changed = true;
+			}
 		}
 	}
 #else
-	PTRACE(4, "\tENUM policy unavailable as no DNS support.");
+	PTRACE(4, "\t" << m_name << " policy unavailable as no DNS support.");
 #endif
 
 	return false;
@@ -1549,9 +1620,9 @@ bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddre
 bool ENUMPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
 	if (m_resolveLRQs) {
-		return ENUMPolicy::FindByAliases((RoutingRequest&)request, aliases);
+		return FindByAliases((RoutingRequest&)request, aliases);
 	} else {
-		PTRACE(4, "ROUTING\tPolicy ENUM configured not to resolve LRQs");
+		PTRACE(4, "ROUTING\tPolicy " << m_name << " configured not to resolve LRQs");
 		return false;
 	}
 }

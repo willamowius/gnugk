@@ -51,11 +51,15 @@ template<class T>
 T *SList<T>::Create(const PStringArray & rules)
 {
 	T *next = NULL;
-	for (int i = rules.GetSize(); --i >= 0; )
-		if (T *current = Factory<T>::Create(rules[i])) {
+	for (int i = rules.GetSize(); --i >= 0; ) {
+		PStringArray id = rules[i].Tokenise("_");
+		if (T *current = Factory<T>::Create(id[0])) {
+			if (id.GetSize() > 1)
+				current->SetInstance(id[1].AsInteger());
 			current->m_next = next;
 			next = current;
 		}
+	}
 	return next;
 }
 
