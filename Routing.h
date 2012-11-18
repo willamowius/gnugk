@@ -178,6 +178,7 @@ typedef Request<H225_LocationRequest, RasMsg> LocationRequest;
 typedef Request<H225_Setup_UUIE, SetupMsg> SetupRequest;
 typedef Request<H225_Facility_UUIE, FacilityMsg> FacilityRequest;
 
+
 template<class T>
 class PolicyList {
 public:
@@ -186,8 +187,8 @@ public:
 	PolicyList() : m_next(NULL) { }
 	virtual ~PolicyList() { delete m_next; }  // delete whole list recursively
 
-	static T * Create(const PStringArray &);
-	
+	static T * Create(const PStringArray & rules);
+
 protected:
 	T * m_next;
 };
@@ -201,10 +202,10 @@ protected:
 template<class T>
 T *PolicyList<T>::Create(const PStringArray & rules)
 {
-	T *next = NULL;
+	T * next = NULL;
 	for (int i = rules.GetSize(); --i >= 0; ) {
 		PStringArray id = rules[i].Tokenise("_");
-		if (T *current = Factory<T>::Create(id[0])) {
+		if (T * current = Factory<T>::Create(id[0])) {
 			if (id.GetSize() > 1)
 				current->SetInstance(id[1].AsInteger());
 			current->m_next = next;
