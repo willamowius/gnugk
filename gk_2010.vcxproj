@@ -628,7 +628,6 @@ configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_
     <ClInclude Include="sigmsg.h" />
     <ClInclude Include="singleton.h" />
     <ClInclude Include="snmp.h" />
-    <ClInclude Include="slist.h" />
     <ClInclude Include="SoftPBX.h" />
     <ClInclude Include="sqlacct.h" />
     <ClInclude Include="statusacct.h" />

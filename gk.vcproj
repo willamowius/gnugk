@@ -656,9 +656,6 @@
 				RelativePath="singleton.h">
 			</File>
 			<File
-				RelativePath="slist.h">
-			</File>
-			<File
 				RelativePath="SoftPBX.h">
 			</File>
 			<File

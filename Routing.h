@@ -19,8 +19,8 @@
 
 #include <map>
 #include <list>
-#include "slist.h"
 #include "singleton.h"
+#include "factory.h"
 #include "RasTbl.h"
 #include "stl_supp.h"
 #ifdef hasLUA
@@ -178,8 +178,44 @@ typedef Request<H225_LocationRequest, RasMsg> LocationRequest;
 typedef Request<H225_Setup_UUIE, SetupMsg> SetupRequest;
 typedef Request<H225_Facility_UUIE, FacilityMsg> FacilityRequest;
 
+template<class T>
+class PolicyList {
+public:
+	typedef T Base;	// for SimpleCreator template 
 
-class Policy : public SList<Policy> {
+	PolicyList() : m_next(NULL) { }
+	virtual ~PolicyList() { delete m_next; }  // delete whole list recursively
+
+	static T * Create(const PStringArray &);
+	
+protected:
+	T * m_next;
+};
+
+
+// ignore overflow warning when comparing size
+#if (!_WIN32) && (GCC_VERSION >= 40400)
+#pragma GCC diagnostic ignored "-Wstrict-overflow"
+#endif
+
+template<class T>
+T *PolicyList<T>::Create(const PStringArray & rules)
+{
+	T *next = NULL;
+	for (int i = rules.GetSize(); --i >= 0; ) {
+		PStringArray id = rules[i].Tokenise("_");
+		if (T *current = Factory<T>::Create(id[0])) {
+			if (id.GetSize() > 1)
+				current->SetInstance(id[1].AsInteger());
+			current->m_next = next;
+			next = current;
+		}
+	}
+	return next;
+}
+
+
+class Policy : public PolicyList<Policy> {
 public:
 	Policy() : m_name("Undefined"), m_iniSection("Routing::Undefined") { }
 	virtual ~Policy() { }
