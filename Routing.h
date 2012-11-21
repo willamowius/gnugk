@@ -263,7 +263,7 @@ protected:
 	/// human readable name for the policy - it should be set inside constructors
 	/// of derived policies, default value is "undefined"
 	const char* m_name;
-	const char* m_iniSection;
+	PString		m_iniSection;
 };
 
 

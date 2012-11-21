@@ -254,15 +254,16 @@ bool Policy::Handle(FacilityRequest& request)
 
 void Policy::SetInstance(int instance)
 {
-	m_name = m_name + PString(instance);
-	m_iniSection = "Routing::" + PString(m_name);
+	PString policyName = PString(m_name) + "_" + PString(instance);
+	m_name = policyName;
+	m_iniSection = "Routing::" + policyName;
 
 	OnSetInstance(instance);
 }
 
 PString Policy::GetINISectionName() const
 {
-	return "Routing::" + PString(m_name);
+	return m_iniSection;
 }
 
 // class Analyzer
@@ -1529,8 +1530,7 @@ void ENUMPolicy::OnSetInstance(int instance)
 {
 	if (instance > 1) {
 		m_enum_schema.SetSize(0);
-		m_enum_schema = GkConfig()->GetAllKeyValues(m_iniSection);
-		m_resolveLRQs = Toolkit::AsBool(GkConfig()->GetString(m_iniSection, "ResolveLRQ", "0"));
+		m_enum_schema = GkConfig()->GetAllKeyValues(GetINISectionName());
 	}
 }
 
@@ -1602,7 +1602,6 @@ bool ENUMPolicy::FindByAliasesInternal(const PString & schema, RoutingRequest & 
 				if (sch > 0 && sch < at)
 					str = str.Mid(sch+1);
 				str.Replace("+","", true);
-
 				PTRACE(4, "\t" << m_name << " " << schema << " converted remote party " << alias << " to " << str);
 				request.SetFlag(RoutingRequest::e_aliasesChanged);
 				H323SetAliasAddress(str, aliases[i]);

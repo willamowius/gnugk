@@ -1711,19 +1711,35 @@ protected:
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
 	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
 
-	virtual Route * CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly);
-	virtual Route * LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases, bool localonly);
+	virtual Route * CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly, const PString & schema, WORD schemaPort, const PString & gateway, PBoolean & changed);
+	virtual Route * LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases, bool localonly, const PString & schema);
+
+
+	virtual void OnSetInstance(int instance);
 
 	bool m_resolveNonLocalLRQs;
+    PStringToString m_ls_schema;
+    PStringToString m_cs_schema;
 };
 
 SRVPolicy::SRVPolicy()
 {
 	m_name = "SRV";
-	m_resolveNonLocalLRQs = Toolkit::AsBool(GkConfig()->GetString("Routing::SRV", "ResolveNonLocalLRQ", "0"));
+	m_resolveNonLocalLRQs = Toolkit::AsBool(GkConfig()->GetString(GetINISectionName(), "ResolveNonLocalLRQ", "0"));
+	m_ls_schema.SetAt("_h323ls._udp.","");
+	m_cs_schema.SetAt("_h323cs._tcp.","");
 }
 
-Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases, bool localonly)
+void SRVPolicy::OnSetInstance(int instance)
+{
+	if (instance > 1) {
+		m_ls_schema.SetSize(0);
+		m_cs_schema.SetSize(0);
+		m_cs_schema = GkConfig()->GetAllKeyValues(GetINISectionName());
+	}
+}
+
+Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases, bool localonly, const PString & schema)
 {
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
 		// only apply to urlID and h323ID
@@ -1746,7 +1762,7 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 
 		// LS Record lookup
 		PStringList ls;
-		if (PDNS::LookupSRV(number, "_h323ls._udp.", ls)) {
+		if (PDNS::LookupSRV(number, schema, ls)) {
 			for (PINDEX i=0; i < ls.GetSize(); i++) {
 				PINDEX at = ls[i].Find('@');
 				PString ipaddr = ls[i].Mid(at + 1);
@@ -1841,7 +1857,7 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 	return NULL;
 }
 
-Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly)
+Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly, const PString & schema, WORD schemaPort, const PString & gateway, PBoolean & changed)
 {
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
 		// only apply to urlID and h323ID
@@ -1859,11 +1875,11 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly)
 		PString domain = alias.Mid(at+1);
 		if (IsIPAddress(domain)
 			|| (domain.FindRegEx(PRegularExpression(":[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX))
-			continue;	// don't use SRV record if domain part is IP or has port (Annex O, O.9), let dns policy handle them
+				continue;	// don't use SRV record if domain part is IP or has port (Annex O, O.9), let dns policy handle them
 
 		// CS SRV Lookup
 		PStringList cs;
-		if (PDNS::LookupSRV(number, "_h323cs._tcp.", cs)) {
+		if (PDNS::LookupSRV(number, schema, cs)) {
 			for (PINDEX j = 0; j < cs.GetSize(); j++) {
 				H225_TransportAddress dest;
 				PINDEX in = cs[j].Find('@');
@@ -1873,6 +1889,11 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly)
 					SNMP_TRAP(11, SNMPError, Network, "SRV CS lookup failed: " + cs[i]);
 					continue;
 				}
+
+				// If we have a gateway destination replace destination with our destination.
+				if (!gateway) 
+					dom = gateway;
+
 				PStringArray parts = SplitIPAndPort(dom, GK_DEF_ENDPOINT_SIGNAL_PORT);
 				dom = parts[0];
 				WORD port = (WORD)parts[1].AsUnsigned();
@@ -1881,7 +1902,15 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly)
 					PIPSocket::Address addr;
 					if (!(GetIPFromTransportAddr(dest, addr) && addr.IsValid()))
 						continue;
-					H323SetAliasAddress(cs[j].Left(in), aliases[i]);
+
+					if (!gateway) {  // If we have a gateway destination send full URI
+						PStringArray parts = SplitIPAndPort(cs[j].Mid(in+1), schemaPort);
+						PString finalDest =  parts[0] + ":" + parts[1];
+						if (in > 0) finalDest = cs[j].Left(in) + "@" + finalDest;
+						H323SetAliasAddress(finalDest, aliases[i]);
+						changed = true;
+					} else
+						H323SetAliasAddress(cs[j].Left(in), aliases[i]);
 					Route * route = NULL;
 					if (Toolkit::Instance()->IsGKHome(addr)) {
 						H225_ArrayOf_AliasAddress find_aliases;
@@ -1913,17 +1942,36 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly)
 bool SRVPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
 	bool localonly = dynamic_cast<LocationRequest *>(&request) && !m_resolveNonLocalLRQs;
-	Route * route = CSLookup(aliases, localonly);
-	if (route) {
-		if (route->m_flags & Route::e_Reject) {
-			request.SetFlag(RoutingRequest::e_Reject);
-		} else {
-			request.AddRoute(*route);
+
+	Route * route = NULL;
+	for (PINDEX i = 0; i < m_cs_schema.GetSize(); ++i) {
+		PString cs_schema = m_cs_schema.GetKeyAt(i);
+		PStringArray dest = m_cs_schema.GetDataAt(i).Tokenise(",;");
+		PString gwDestination = dest[0];
+		WORD defSchemaPort = GK_DEF_ENDPOINT_SIGNAL_PORT;
+		if (dest.GetSize() > 1)
+			defSchemaPort = (WORD)dest[1].AsInteger();
+
+		PBoolean changed = false;
+		route = CSLookup(aliases, localonly, cs_schema, defSchemaPort, gwDestination, changed);
+		if (route) {
+			if (route->m_flags & Route::e_Reject) {
+				request.SetFlag(RoutingRequest::e_Reject);
+			} else {
+				if (changed)
+					request.SetFlag(RoutingRequest::e_aliasesChanged);
+				request.AddRoute(*route);
+			}
+			delete route;
+			return true;
 		}
-		delete route;
-		return true;
 	}
-	route = LSLookup(request, aliases, localonly);
+
+	if (m_ls_schema.GetSize() == 0)
+		return false;
+
+	PString ls_schema = m_cs_schema.GetKeyAt(0);
+	route = LSLookup(request, aliases, localonly, ls_schema);
 	if (route) {
 		if (route->m_flags & Route::e_Reject) {
 			request.SetFlag(RoutingRequest::e_Reject);
