@@ -2006,13 +2006,21 @@ protected:
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
 	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
 
+	virtual void LoadConfig();
+
 	bool m_resolveLRQs;
 };
 
 RDSPolicy::RDSPolicy()
 {
 	m_name = "RDS";
+	m_iniSection = "Routing::RDS";
 	m_resolveLRQs = Toolkit::AsBool(GkConfig()->GetString("Routing::RDS", "ResolveLRQ", "0"));
+}
+
+void RDSPolicy::LoadConfig() 
+{
+	m_resolveLRQs = Toolkit::AsBool(GkConfig()->GetString(m_iniSection, "ResolveLRQ", m_resolveLRQs));
 }
 
 bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
