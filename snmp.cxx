@@ -583,7 +583,7 @@ void WindowsSNMPAgent::Run()
 				PTRACE(1, "SNMP\tSetNamedPipeHandleState failed. GLE=" << GetLastError());
 			}
 
-			PTRACE(0, "JW connected SNMP extension DLL pipes");
+			PTRACE(3, "JW connected SNMP extension DLL pipes");
 			// read server request and respond, then disconnect
 			char buffer[BUFSIZE];
 			DWORD bytesRead;
