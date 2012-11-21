@@ -1725,6 +1725,7 @@ protected:
 SRVPolicy::SRVPolicy()
 {
 	m_name = "SRV";
+	m_iniSection = "Routing::" + PString(m_name);
 	m_resolveNonLocalLRQs = Toolkit::AsBool(GkConfig()->GetString(GetINISectionName(), "ResolveNonLocalLRQ", "0"));
 	m_ls_schema.SetAt("_h323ls._udp.","");
 	m_cs_schema.SetAt("_h323cs._tcp.","");
@@ -1732,6 +1733,9 @@ SRVPolicy::SRVPolicy()
 
 void SRVPolicy::OnSetInstance(const PString & instance)
 {
+	if (instance.IsEmpty())
+		return;
+
 	m_ls_schema.SetSize(0);
 	m_cs_schema.SetSize(0);
 	m_cs_schema = GkConfig()->GetAllKeyValues(GetINISectionName());

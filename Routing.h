@@ -206,9 +206,11 @@ T *PolicyList<T>::Create(const PStringArray & rules)
 	for (int i = rules.GetSize(); --i >= 0; ) {
 		PStringArray id = rules[i].Tokenise("::", false);	// check for <policy>::<ID>
 		if (T * current = Factory<T>::Create(id[0])) {
-			if (id.GetSize() > 1) {
+			if (id.GetSize() > 1) 
 				current->SetInstance(id[1]);
-			}
+			else
+				current->SetInstance("");
+
 			current->m_next = next;
 			next = current;
 		}

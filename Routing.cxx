@@ -254,8 +254,11 @@ bool Policy::Handle(FacilityRequest& request)
 
 void Policy::SetInstance(const PString & instance)
 {
-	PString policyName = PString(m_name) + "::" + instance;
-	m_name = policyName;
+	PString policyName = PString(m_name); 
+	if (!instance.IsEmpty()) {
+		policyName = PString(m_name) + "::" + instance;
+		m_name = policyName;
+	}
 	m_iniSection = "Routing::" + policyName;
 
 	OnSetInstance(instance);
@@ -1523,12 +1526,15 @@ ENUMPolicy::ENUMPolicy()
 {
 	m_name = "ENUM";
 	m_iniSection = "Routing::" + PString(m_name);
-	m_resolveLRQs = Toolkit::AsBool(GkConfig()->GetString("Routing::ENUM", "ResolveLRQ", "0"));
+	m_resolveLRQs = Toolkit::AsBool(GkConfig()->GetString(GetINISectionName(), "ResolveLRQ", "0"));
 	m_enum_schema.SetAt("E2U+h323","");
 }
 
 void ENUMPolicy::OnSetInstance(const PString & instance)
 {
+	if (instance.IsEmpty())
+		return;
+
 	m_enum_schema.SetSize(0);
 	m_enum_schema = GkConfig()->GetAllKeyValues(GetINISectionName());
 }
