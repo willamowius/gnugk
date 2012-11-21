@@ -1,7 +1,7 @@
 Changes from 3.1 to 3.2
 =======================
 - allow multiple instances of routing policies with different settings
-  (currently works for Sql, ENUM, SRV, DNS, NumberAnalysis, Lua) 
+  (currently works for sql, enum, srv, dns, numberanalysis, lua, forwarding) 
 - BUGFIX(Toolkit.cxx) remove h323: prefix if DefaultDomain is set
 - new switch [RoutedMode] RemoveH245AddressFromSetup=
 - BUGFIX(ProxyChannel.cxx) fix RTCP port for multiplexed RTP in mixed-mode calls

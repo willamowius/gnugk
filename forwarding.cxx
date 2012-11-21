@@ -39,6 +39,8 @@ public:
 	virtual ~ForwardingPolicy();
 
 protected:
+	virtual void LoadConfig(const PString & instance);
+
 	virtual void RunPolicy(
 		/*in */
 		const PString & source,
@@ -75,47 +77,9 @@ ForwardingPolicy::ForwardingPolicy()
 	m_active = false;
 	m_sqlConn = NULL;
 #if HAS_DATABASE
-	m_active = true;
-	static const char *sqlsection = "Routing::Forwarding";
 	m_name = "Forwarding";
+	m_iniSection = "Routing::Forwarding";
 	m_timeout = -1;
-
-	PConfig* cfg = GkConfig();
-
-	const PString driverName = cfg->GetString(sqlsection, "Driver", "");
-	if (driverName.IsEmpty()) {
-		PTRACE(2, m_name << "\tmodule creation failed: no SQL driver selected");
-		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
-		m_active = false;
-		return;
-	}
-
-	m_sqlConn = GkSQLConnection::Create(driverName, m_name);
-	if (m_sqlConn == NULL) {
-		PTRACE(2, m_name << "\tmodule creation failed: "
-			"could not find " << driverName << " database driver");
-		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
-		m_active = false;
-		return;
-	}
-
-	m_query = cfg->GetString(sqlsection, "Query", "");
-	if (m_query.IsEmpty()) {
-		PTRACE(2, m_name << "\tmodule creation failed: "
-			"no query configured");
-		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
-		m_active = false;
-		return;
-	} else
-		PTRACE(4, m_name << "\tQuery: " << m_query);
-
-	if (!m_sqlConn->Initialize(cfg, sqlsection)) {
-		PTRACE(2, m_name << "\tmodule creation failed: "
-			"could not connect to the database");
-		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
-		m_active = false;
-		return;
-	}
 #else
 	PTRACE(1, m_name << " not available - no database driver compiled into GnuGk");
 #endif // HAS_DATABASE
@@ -124,6 +88,41 @@ ForwardingPolicy::ForwardingPolicy()
 ForwardingPolicy::~ForwardingPolicy()
 {
 	delete m_sqlConn;
+}
+
+void ForwardingPolicy::LoadConfig(const PString & instance)
+{
+	const PString driverName = GkConfig()->GetString(m_iniSection, "Driver", "");
+	if (driverName.IsEmpty()) {
+		PTRACE(2, m_name << "\tmodule creation failed: no SQL driver selected");
+		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
+		return;
+	}
+
+	m_sqlConn = GkSQLConnection::Create(driverName, m_name);
+	if (m_sqlConn == NULL) {
+		PTRACE(2, m_name << "\tmodule creation failed: "
+			"could not find " << driverName << " database driver");
+		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
+		return;
+	}
+
+	m_query = GkConfig()->GetString(m_iniSection, "Query", "");
+	if (m_query.IsEmpty()) {
+		PTRACE(2, m_name << "\tmodule creation failed: "
+			"no query configured");
+		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
+		return;
+	} else
+		PTRACE(4, m_name << "\tQuery: " << m_query);
+
+	if (!m_sqlConn->Initialize(GkConfig(), m_iniSection)) {
+		PTRACE(2, m_name << "\tmodule creation failed: "
+			"could not connect to the database");
+		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
+		return;
+	}
+	m_active = true;
 }
 
 void ForwardingPolicy::RunPolicy(
