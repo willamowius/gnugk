@@ -259,14 +259,8 @@ void Policy::SetInstance(const PString & instance)
 	}
 	m_iniSection = "Routing::" + policyName;
 
-	OnSetInstance(instance);
+	LoadConfig(instance);
 }
-
-void Policy::OnSetInstance(const PString & instance)
-{
-	LoadConfig();
-}
-
 
 
 // class Analyzer
@@ -736,11 +730,9 @@ DNSPolicy::DNSPolicy()
 {
 	m_name = "DNS";
 	m_iniSection = "Routing::DNS";
-	
-	LoadConfig();
 }
 
-void DNSPolicy::LoadConfig()
+void DNSPolicy::LoadConfig(const PString & instance)
 {
 	m_resolveNonLocalLRQs = Toolkit::AsBool(GkConfig()->GetString(m_iniSection, "ResolveNonLocalLRQ", "1"));
 }
@@ -1434,11 +1426,9 @@ NumberAnalysisPolicy::NumberAnalysisPolicy()
 {
 	m_name = "NumberAnalysis";
 	m_iniSection = "Routing::NumberAnalysis";
-	
-	LoadConfig();
 }
 
-void NumberAnalysisPolicy::LoadConfig()
+void NumberAnalysisPolicy::LoadConfig(const PString & instance)
 {
 	PStringToString kv = GkConfig()->GetAllKeyValues(m_iniSection);
 	m_prefixes.resize(kv.GetSize());
@@ -1542,9 +1532,8 @@ ENUMPolicy::ENUMPolicy()
 	m_enum_schema.SetAt("E2U+h323", "");
 }
 
-void ENUMPolicy::OnSetInstance(const PString & instance)
+void ENUMPolicy::LoadConfig(const PString & instance)
 {
-	// TODO: switch over to LoadConfig() style ?
 	if (instance.IsEmpty())
 		return;
 
@@ -1845,14 +1834,12 @@ SqlPolicy::SqlPolicy()
 	m_name = "Sql";
 	m_iniSection = "Routing::Sql";
 	m_timeout = -1;
-
-	LoadConfig();
 #else
 	PTRACE(1, m_name << " not available - no database driver compiled into GnuGk");
 #endif // HAS_DATABASE
 }
 
-void SqlPolicy::LoadConfig()
+void SqlPolicy::LoadConfig(const PString & instance)
 {
 	if (GkConfig()->GetAllKeyValues(m_iniSection).GetSize() <= 0) {
 		PTRACE(0, m_name << "\tConfig section " << m_iniSection << " doesn't exist");
@@ -2020,11 +2007,9 @@ LuaPolicy::LuaPolicy()
 	m_name = "Lua";
 	m_iniSection = "Routing::Lua";
 	m_active = false;
-
-	LoadConfig();
 }
 
-void LuaPolicy::LoadConfig()
+void LuaPolicy::LoadConfig(const PString & instance)
 {
 	m_script = GkConfig()->GetString(m_iniSection, "Script", "");
 	if (m_script.IsEmpty()) {
@@ -2127,11 +2112,9 @@ CatchAllPolicy::CatchAllPolicy()
 {
 	m_name = "CatchAll";
 	m_iniSection = "Routing::CatchAll";
-
-	LoadConfig();
 }
 
-void CatchAllPolicy::LoadConfig()
+void CatchAllPolicy::LoadConfig(const PString & instance)
 {
 	m_catchAllAlias = GkConfig()->GetString(m_iniSection, "CatchAllAlias", "catchall");
 	m_catchAllIP = GkConfig()->GetString(m_iniSection, "CatchAllIP", "");

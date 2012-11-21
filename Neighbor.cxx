@@ -1715,7 +1715,7 @@ protected:
 	virtual Route * LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases, bool localonly, const PString & schema);
 
 
-	virtual void OnSetInstance(const PString & instance);
+	virtual void LoadConfig(const PString & instance);
 
 	bool m_resolveNonLocalLRQs;
     PStringToString m_ls_schema;
@@ -1731,7 +1731,7 @@ SRVPolicy::SRVPolicy()
 	m_cs_schema.SetAt("_h323cs._tcp.","");
 }
 
-void SRVPolicy::OnSetInstance(const PString & instance)
+void SRVPolicy::LoadConfig(const PString & instance)
 {
 	if (instance.IsEmpty())
 		return;
@@ -2006,7 +2006,7 @@ protected:
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
 	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
 
-	virtual void LoadConfig();
+	virtual void LoadConfig(const PString & instance);
 
 	bool m_resolveLRQs;
 };
@@ -2018,7 +2018,7 @@ RDSPolicy::RDSPolicy()
 	m_resolveLRQs = Toolkit::AsBool(GkConfig()->GetString("Routing::RDS", "ResolveLRQ", "0"));
 }
 
-void RDSPolicy::LoadConfig() 
+void RDSPolicy::LoadConfig(const PString & instance) 
 {
 	m_resolveLRQs = Toolkit::AsBool(GkConfig()->GetString(m_iniSection, "ResolveLRQ", m_resolveLRQs));
 }

@@ -259,9 +259,7 @@ protected:
 	virtual bool OnRequest(SetupRequest &)	   { return false; }
 	virtual bool OnRequest(FacilityRequest &)  { return false; }
 
-	virtual void LoadConfig() { }	// should be used to load config, automatically called by OnSetInstance()
-
-	virtual void OnSetInstance(const PString & instance);
+	virtual void LoadConfig(const PString & instance) { }	// should be used to load config, always called after the policy object is created
 
 protected:
 	/// human readable name for the policy - it should be set inside constructors
@@ -379,7 +377,7 @@ protected:
 
 	virtual bool DNSLookup(const PString & hostname, PIPSocket::Address & addr) const;
 
-	virtual void LoadConfig();
+	virtual void LoadConfig(const PString & instance);
 
 	bool m_resolveNonLocalLRQs;
 };
@@ -416,7 +414,7 @@ protected:
 	virtual bool OnRequest(AdmissionRequest &);
 	virtual bool OnRequest(SetupRequest &);
 
-	virtual void LoadConfig();
+	virtual void LoadConfig(const PString & instance);
 
 private:
 	NumberAnalysisPolicy(const NumberAnalysisPolicy &);
@@ -440,7 +438,7 @@ protected:
 
 	virtual bool FindByAliasesInternal(const PString & schema, RoutingRequest &, H225_ArrayOf_AliasAddress &, PBoolean &);
 
-	virtual void OnSetInstance(const PString & instance);
+	virtual void LoadConfig(const PString & instance);
 
 	bool m_resolveLRQs;
 	PStringToString m_enum_schema;
@@ -510,7 +508,7 @@ public:
 	virtual ~SqlPolicy();
 
 protected:
-	virtual void LoadConfig();
+	virtual void LoadConfig(const PString & instance);
 
 	virtual void RunPolicy(
 		/*in */
@@ -542,7 +540,7 @@ public:
 	virtual ~LuaPolicy();
 
 protected:
-	virtual void LoadConfig();
+	virtual void LoadConfig(const PString & instance);
 
 	virtual void RunPolicy(
 		/*in */
@@ -578,7 +576,7 @@ protected:
 
 	bool CatchAllRoute(RoutingRequest & request) const;
 
-	virtual void LoadConfig();
+	virtual void LoadConfig(const PString & instance);
 	
 	PString m_catchAllAlias;
 	PString m_catchAllIP;
