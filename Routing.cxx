@@ -1826,14 +1826,22 @@ bool DynamicPolicy::OnRequest(SetupRequest & request)
 
 SqlPolicy::SqlPolicy()
 {
-	m_active = false;
+	m_name = "SqlPolicy";
 	m_sqlConn = NULL;
+	m_query = PString();
+	m_timeout=-1;
+}
+
+void SqlPolicy::OnSetInstance(const PString & instance)
+{
+	InitialisePolicy();
+}
+
+void SqlPolicy::InitialisePolicy()
+{
 #if HAS_DATABASE
 	m_active = true;
-	static const char *sqlsection = "Routing::Sql";
-	m_name = "SqlPolicy";
-	m_timeout = -1;
-
+	PString sqlsection = GetINISectionName();
 	PConfig* cfg = GkConfig();
 
 	const PString driverName = cfg->GetString(sqlsection, "Driver", "");

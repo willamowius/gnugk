@@ -519,6 +519,12 @@ protected:
 		DestinationRoutes & destination);
 
 protected:
+	// Derived from Policy
+	virtual void OnSetInstance(const PString & instance);
+
+	// Initialise Policy instance
+	void InitialisePolicy();
+
 	// connection to the SQL database
 	GkSQLConnection* m_sqlConn;
 	// parametrized query string for the routing query
