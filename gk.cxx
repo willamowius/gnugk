@@ -588,9 +588,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RasSrv::RewriteE164", "*" },
 	{ "ReplyToRasAddress", "*" },
 	{ "RewriteCLI", "*" },
-	{ "Routing::ENUM_2", "*" },
 	{ "Routing::Explicit", "*" },
-	{ "Routing::SRV_2", "*" },
 	{ "Routing::NumberAnalysis", "*" },
 	{ "RoutingPolicy", "*" },
 	{ "RoutingPolicy::OnARQ", "*" },
@@ -654,6 +652,10 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 		}
 		if (sect.Left(10) == "Neighbor::") {
 			sect = "Neighbor::";
+		}
+		// strip off instance ID for routing sections
+		if (sect.Left(9) == "Routing::" && sect.Find("::", 9) != P_MAX_INDEX) {
+			sect = sect.Left(sect.Find("::", 9));
 		}
 		if (sect == mainsection) {
 			mainsectionfound = true;

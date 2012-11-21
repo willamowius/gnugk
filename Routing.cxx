@@ -252,9 +252,9 @@ bool Policy::Handle(FacilityRequest& request)
 	return m_next && m_next->Handle(request);
 }
 
-void Policy::SetInstance(int instance)
+void Policy::SetInstance(const PString & instance)
 {
-	PString policyName = PString(m_name) + "_" + PString(instance);
+	PString policyName = PString(m_name) + "::" + instance;
 	m_name = policyName;
 	m_iniSection = "Routing::" + policyName;
 
@@ -265,6 +265,7 @@ PString Policy::GetINISectionName() const
 {
 	return m_iniSection;
 }
+
 
 // class Analyzer
 Analyzer::Analyzer() : Singleton<Analyzer>("Routing::Analyzer")
@@ -1526,12 +1527,10 @@ ENUMPolicy::ENUMPolicy()
 	m_enum_schema.SetAt("E2U+h323","");
 }
 
-void ENUMPolicy::OnSetInstance(int instance)
+void ENUMPolicy::OnSetInstance(const PString & instance)
 {
-	if (instance > 1) {
-		m_enum_schema.SetSize(0);
-		m_enum_schema = GkConfig()->GetAllKeyValues(GetINISectionName());
-	}
+	m_enum_schema.SetSize(0);
+	m_enum_schema = GkConfig()->GetAllKeyValues(GetINISectionName());
 }
 
 bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)

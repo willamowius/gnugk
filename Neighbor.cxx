@@ -1715,7 +1715,7 @@ protected:
 	virtual Route * LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases, bool localonly, const PString & schema);
 
 
-	virtual void OnSetInstance(int instance);
+	virtual void OnSetInstance(const PString & instance);
 
 	bool m_resolveNonLocalLRQs;
     PStringToString m_ls_schema;
@@ -1730,13 +1730,11 @@ SRVPolicy::SRVPolicy()
 	m_cs_schema.SetAt("_h323cs._tcp.","");
 }
 
-void SRVPolicy::OnSetInstance(int instance)
+void SRVPolicy::OnSetInstance(const PString & instance)
 {
-	if (instance > 1) {
-		m_ls_schema.SetSize(0);
-		m_cs_schema.SetSize(0);
-		m_cs_schema = GkConfig()->GetAllKeyValues(GetINISectionName());
-	}
+	m_ls_schema.SetSize(0);
+	m_cs_schema.SetSize(0);
+	m_cs_schema = GkConfig()->GetAllKeyValues(GetINISectionName());
 }
 
 Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases, bool localonly, const PString & schema)

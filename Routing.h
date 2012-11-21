@@ -204,10 +204,11 @@ T *PolicyList<T>::Create(const PStringArray & rules)
 {
 	T * next = NULL;
 	for (int i = rules.GetSize(); --i >= 0; ) {
-		PStringArray id = rules[i].Tokenise("_");
+		PStringArray id = rules[i].Tokenise("::", false);	// check for <policy>::<ID>
 		if (T * current = Factory<T>::Create(id[0])) {
-			if (id.GetSize() > 1)
-				current->SetInstance(id[1].AsInteger());
+			if (id.GetSize() > 1) {
+				current->SetInstance(id[1]);
+			}
 			current->m_next = next;
 			next = current;
 		}
@@ -241,7 +242,7 @@ public:
 	bool Handle(SetupRequest & request);
 	bool Handle(FacilityRequest & request);
 
-	void SetInstance(int instance);
+	void SetInstance(const PString & instance);
 
 protected:
 	// new virtual function
@@ -257,7 +258,7 @@ protected:
 	virtual bool OnRequest(FacilityRequest &)  { return false; }
 
 	PString GetINISectionName() const;
-	virtual void OnSetInstance(int instance) {};
+	virtual void OnSetInstance(const PString & instance) { }
 
 protected:
 	/// human readable name for the policy - it should be set inside constructors
@@ -432,7 +433,7 @@ protected:
 
 	virtual bool FindByAliasesInternal(const PString & schema, RoutingRequest &, H225_ArrayOf_AliasAddress &, PBoolean &);
 
-	virtual void OnSetInstance(int instance);
+	virtual void OnSetInstance(const PString & instance);
 
 	bool m_resolveLRQs;
 	PStringToString m_enum_schema;

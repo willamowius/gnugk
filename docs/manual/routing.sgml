@@ -89,7 +89,7 @@ To speed up your routing, make sure you resolve internal destinations before the
 This policy can be configured in the <ref id="routingenum" name="Routing::ENUM"> section.
 
 Additional ENUM schemas for gateways aside from the default "E2U+h323" may be supported via
-the "enum_[2+]" Routing policy refer <ref id="routingenum" name="Routing::ENUM"> section.
+the "enum::id" Routing policy refer <ref id="routingenum" name="Routing::ENUM"> section.
 
 <item><tt/srv/<newline>
 <p>
@@ -100,7 +100,7 @@ SRV DNS records of the domain and are queried to find the destination.
 This policy can be configured in the <ref id="routingsrv" name="Routing::SRV"> section.
 
 Additional SRV schemas for gateways aside from the default "h323ls._udp." and "h323cs._tcp." may be supported via
-the "srv_[2+]" Routing policy refer <ref id="routingsrv" name="Routing::SRV"> section.
+the "srv::id" Routing policy refer <ref id="routingsrv" name="Routing::SRV"> section.
 
 <item><tt/rds/<newline>
 <p>
@@ -412,7 +412,7 @@ Default: <tt>0</tt><newline>
 This switch toggles whether the 'enum' policy should resolve LRQs.
 </itemize>
 
-Additional ENUM schemas may be configured by the [Routing::ENUM_(2+)] 
+Additional ENUM schemas may be configured by the [Routing::ENUM::id] 
 <descrip>
 <tag/Format:/
 <tt/<enum schema>=<protocol gateway>/
@@ -420,7 +420,7 @@ Additional ENUM schemas may be configured by the [Routing::ENUM_(2+)]
 
 <descrip>
 <tag/Example:/
-<quote><tt>[Routing::ENUM_2]<newline>
+<quote><tt>[Routing::ENUM::2]<newline>
 E2U+xmpp=mygateway@mydomain.com</tt></quote>
 </descrip>
 
@@ -435,7 +435,7 @@ Default: <tt>0</tt><newline>
 This switch selects if the 'srv' policy should resolve hostnames in LRQs that don't terminate locally.
 </itemize>
 
-Additional SRV schemas may be configured by the [Routing::SRV_(2+)] 
+Additional SRV schemas may be configured by the [Routing::SRV::id] 
 <descrip>
 <tag/Format:/
 <tt/<SRV schema>=<protocol gateway>[;default schema port]/
@@ -443,7 +443,7 @@ Additional SRV schemas may be configured by the [Routing::SRV_(2+)]
 
 <descrip>
 <tag/Example:/
-<quote><tt>[Routing::SRV_2]<newline>
+<quote><tt>[Routing::SRV::2]<newline>
 _xmpp-server._tcp=mygateway@mydomain.com</tt></quote>
 </descrip>
 
