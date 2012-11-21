@@ -259,14 +259,15 @@ protected:
 	virtual bool OnRequest(SetupRequest &)	   { return false; }
 	virtual bool OnRequest(FacilityRequest &)  { return false; }
 
-	PString GetINISectionName() const;
-	virtual void OnSetInstance(const PString & instance) { }
+	virtual void LoadConfig() { }	// should be used to load config, automatically called by OnSetInstance()
+
+	virtual void OnSetInstance(const PString & instance);
 
 protected:
 	/// human readable name for the policy - it should be set inside constructors
 	/// of derived policies, default value is "undefined"
 	const char* m_name;
-	PString		m_iniSection;
+	PString m_iniSection;
 };
 
 
@@ -378,7 +379,9 @@ protected:
 
 	virtual bool DNSLookup(const PString & hostname, PIPSocket::Address & addr) const;
 
-	static bool m_resolveNonLocalLRQs;
+	virtual void LoadConfig();
+
+	bool m_resolveNonLocalLRQs;
 };
 
 // a policy to route call via external program
@@ -412,6 +415,8 @@ public:
 protected:
 	virtual bool OnRequest(AdmissionRequest &);
 	virtual bool OnRequest(SetupRequest &);
+
+	virtual void LoadConfig();
 
 private:
 	NumberAnalysisPolicy(const NumberAnalysisPolicy &);
@@ -505,6 +510,8 @@ public:
 	virtual ~SqlPolicy();
 
 protected:
+	virtual void LoadConfig();
+
 	virtual void RunPolicy(
 		/*in */
 		const PString & source,
@@ -519,12 +526,6 @@ protected:
 		DestinationRoutes & destination);
 
 protected:
-	// Derived from Policy
-	virtual void OnSetInstance(const PString & instance);
-
-	// Initialise Policy instance
-	void InitialisePolicy();
-
 	// connection to the SQL database
 	GkSQLConnection* m_sqlConn;
 	// parametrized query string for the routing query
@@ -541,6 +542,8 @@ public:
 	virtual ~LuaPolicy();
 
 protected:
+	virtual void LoadConfig();
+
 	virtual void RunPolicy(
 		/*in */
 		const PString & source,
@@ -574,6 +577,8 @@ protected:
 	virtual bool OnRequest(SetupRequest & request) { return CatchAllRoute(request); }
 
 	bool CatchAllRoute(RoutingRequest & request) const;
+
+	virtual void LoadConfig();
 	
 	PString m_catchAllAlias;
 	PString m_catchAllIP;

@@ -51,8 +51,6 @@ const unsigned DEFAULT_ROUTE_PRIORITY = 1;
 const long DEFAULT_ROUTE_REQUEST_TIMEOUT = 10;
 const char* const CTIsection = "CTI::Agents";
 
-bool DNSPolicy::m_resolveNonLocalLRQs = true;
-
 Route::Route() : m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_priority(DEFAULT_ROUTE_PRIORITY)
 {
 	m_destAddr.SetTag(H225_TransportAddress::e_nonStandardAddress);	// set to an invalid address
@@ -264,10 +262,11 @@ void Policy::SetInstance(const PString & instance)
 	OnSetInstance(instance);
 }
 
-PString Policy::GetINISectionName() const
+void Policy::OnSetInstance(const PString & instance)
 {
-	return m_iniSection;
+	LoadConfig();
 }
+
 
 
 // class Analyzer
@@ -446,6 +445,7 @@ std::map<PString, PString> ExplicitPolicy::m_destMap;
 ExplicitPolicy::ExplicitPolicy()
 {
 	m_name = "Explicit";
+	m_iniSection = "Routing::Explicit";
 }
 
 void ExplicitPolicy::OnReload()
@@ -735,7 +735,14 @@ bool ParentPolicy::OnRequest(FacilityRequest & facility_obj)
 DNSPolicy::DNSPolicy()
 {
 	m_name = "DNS";
-	m_resolveNonLocalLRQs = Toolkit::AsBool(GkConfig()->GetString("Routing::DNS", "ResolveNonLocalLRQ", "1"));
+	m_iniSection = "Routing::DNS";
+	
+	LoadConfig();
+}
+
+void DNSPolicy::LoadConfig()
+{
+	m_resolveNonLocalLRQs = Toolkit::AsBool(GkConfig()->GetString(m_iniSection, "ResolveNonLocalLRQ", "1"));
 }
 
 bool DNSPolicy::DNSLookup(const PString & hostname, PIPSocket::Address & addr) const
@@ -1426,9 +1433,14 @@ struct PrefixGreater : public binary_function<NumberAnalysisPolicy::PrefixEntry,
 NumberAnalysisPolicy::NumberAnalysisPolicy()
 {
 	m_name = "NumberAnalysis";
+	m_iniSection = "Routing::NumberAnalysis";
+	
+	LoadConfig();
+}
 
-	PConfig *cfg = GkConfig();
-	PStringToString kv = cfg->GetAllKeyValues("Routing::NumberAnalysis");
+void NumberAnalysisPolicy::LoadConfig()
+{
+	PStringToString kv = GkConfig()->GetAllKeyValues(m_iniSection);
 	m_prefixes.resize(kv.GetSize());
 	for (PINDEX i = 0; i < kv.GetSize(); i++) {
 		const PString &val = kv.GetDataAt(i);
@@ -1525,18 +1537,19 @@ bool NumberAnalysisPolicy::OnRequest(SetupRequest & request)
 ENUMPolicy::ENUMPolicy()
 {
 	m_name = "ENUM";
-	m_iniSection = "Routing::" + PString(m_name);
-	m_resolveLRQs = Toolkit::AsBool(GkConfig()->GetString(GetINISectionName(), "ResolveLRQ", "0"));
-	m_enum_schema.SetAt("E2U+h323","");
+	m_iniSection = "Routing::ENUM";
+	m_resolveLRQs = Toolkit::AsBool(GkConfig()->GetString(m_iniSection, "ResolveLRQ", "0"));
+	m_enum_schema.SetAt("E2U+h323", "");
 }
 
 void ENUMPolicy::OnSetInstance(const PString & instance)
 {
+	// TODO: switch over to LoadConfig() style ?
 	if (instance.IsEmpty())
 		return;
 
 	m_enum_schema.SetSize(0);
-	m_enum_schema = GkConfig()->GetAllKeyValues(GetINISectionName());
+	m_enum_schema = GkConfig()->GetAllKeyValues(m_iniSection);
 }
 
 bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
@@ -1826,30 +1839,31 @@ bool DynamicPolicy::OnRequest(SetupRequest & request)
 
 SqlPolicy::SqlPolicy()
 {
-	m_name = "SqlPolicy";
+	m_active = false;
 	m_sqlConn = NULL;
-	m_query = PString();
-	m_timeout=-1;
-}
-
-void SqlPolicy::OnSetInstance(const PString & instance)
-{
-	InitialisePolicy();
-}
-
-void SqlPolicy::InitialisePolicy()
-{
 #if HAS_DATABASE
-	m_active = true;
-	PString sqlsection = GetINISectionName();
-	PConfig* cfg = GkConfig();
+	m_name = "Sql";
+	m_iniSection = "Routing::Sql";
+	m_timeout = -1;
 
-	const PString driverName = cfg->GetString(sqlsection, "Driver", "");
+	LoadConfig();
+#else
+	PTRACE(1, m_name << " not available - no database driver compiled into GnuGk");
+#endif // HAS_DATABASE
+}
+
+void SqlPolicy::LoadConfig()
+{
+	if (GkConfig()->GetAllKeyValues(m_iniSection).GetSize() <= 0) {
+		PTRACE(0, m_name << "\tConfig section " << m_iniSection << " doesn't exist");
+		return;
+	}
+
+	const PString driverName = GkConfig()->GetString(m_iniSection, "Driver", "");
 	if (driverName.IsEmpty()) {
 		PTRACE(2, m_name << "\tmodule creation failed: "
 			"no SQL driver selected");
 		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
-		m_active = false;
 		return;
 	}
 
@@ -1858,29 +1872,25 @@ void SqlPolicy::InitialisePolicy()
 		PTRACE(2, m_name << "\tmodule creation failed: "
 			"could not find " << driverName << " database driver");
 		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
-		m_active = false;
 		return;
 	}
 
-	m_query = cfg->GetString(sqlsection, "Query", "");
+	m_query = GkConfig()->GetString(m_iniSection, "Query", "");
 	if (m_query.IsEmpty()) {
 		PTRACE(2, m_name << "\tmodule creation failed: "
 			"no query configured");
 		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
-		m_active = false;
 		return;
 	} else
 		PTRACE(4, m_name << "\tQuery: " << m_query);
-		
-	if (!m_sqlConn->Initialize(cfg, sqlsection)) {
+
+	if (!m_sqlConn->Initialize(GkConfig(), m_iniSection)) {
 		PTRACE(2, m_name << "\tmodule creation failed: "
 			"could not connect to the database");
 		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
 		return;
 	}
-#else
-	PTRACE(1, m_name << " not available - no database driver compiled into GnuGk");
-#endif // HAS_DATABASE
+	m_active = true;
 }
 
 SqlPolicy::~SqlPolicy()
@@ -2007,15 +2017,18 @@ void SqlPolicy::RunPolicy(
 #ifdef hasLUA
 LuaPolicy::LuaPolicy()
 {
-	static const char * luasection = "Routing::Lua";
-	m_name = "LuaPolicy";
+	m_name = "Lua";
+	m_iniSection = "Routing::Lua";
 	m_active = false;
 
-	PConfig* cfg = GkConfig();
+	LoadConfig();
+}
 
-	m_script = cfg->GetString(luasection, "Script", "");
+void LuaPolicy::LoadConfig()
+{
+	m_script = GkConfig()->GetString(m_iniSection, "Script", "");
 	if (m_script.IsEmpty()) {
-		PString scriptFile = cfg->GetString(luasection, "ScriptFile", "");
+		PString scriptFile = GkConfig()->GetString(m_iniSection, "ScriptFile", "");
 		if (!scriptFile.IsEmpty()) {
 			PTextFile f(scriptFile, PFile::ReadOnly);
 			if (!f.IsOpen()) {
@@ -2112,11 +2125,16 @@ void LuaPolicy::RunPolicy(
 
 CatchAllPolicy::CatchAllPolicy()
 {
-	m_name = "CatchAllPolicy";
-	static const char *defaultPolicySection = "Routing::CatchAll";
-	PConfig* cfg = GkConfig();
-	m_catchAllAlias = cfg->GetString(defaultPolicySection, "CatchAllAlias", "catchall");
-	m_catchAllIP = cfg->GetString(defaultPolicySection, "CatchAllIP", "");
+	m_name = "CatchAll";
+	m_iniSection = "Routing::CatchAll";
+
+	LoadConfig();
+}
+
+void CatchAllPolicy::LoadConfig()
+{
+	m_catchAllAlias = GkConfig()->GetString(m_iniSection, "CatchAllAlias", "catchall");
+	m_catchAllIP = GkConfig()->GetString(m_iniSection, "CatchAllIP", "");
 	if (!m_catchAllIP.IsEmpty()) {
 		PStringArray parts = SplitIPAndPort(m_catchAllIP, GK_DEF_ENDPOINT_SIGNAL_PORT);
 		if (IsIPv6Address(parts[0])) {
