@@ -92,6 +92,7 @@ ForwardingPolicy::~ForwardingPolicy()
 
 void ForwardingPolicy::LoadConfig(const PString & instance)
 {
+#if HAS_DATABASE
 	const PString driverName = GkConfig()->GetString(m_iniSection, "Driver", "");
 	if (driverName.IsEmpty()) {
 		PTRACE(2, m_name << "\tmodule creation failed: no SQL driver selected");
@@ -123,6 +124,7 @@ void ForwardingPolicy::LoadConfig(const PString & instance)
 		return;
 	}
 	m_active = true;
+#endif
 }
 
 void ForwardingPolicy::RunPolicy(
