@@ -68,6 +68,14 @@ public:
 	bool IsNATed() const { return m_natClient != NULL; }
 	PString GetParent() const;
 
+	bool UsesAdditiveRegistration();
+	bool AdditiveRegister(H225_ArrayOf_AliasAddress & aliases, int & rejectReason, 
+						H225_ArrayOf_ClearToken * tokens, H225_ArrayOf_CryptoH323Token * cryptotokens);
+	bool AdditiveUnRegister(const H225_ArrayOf_AliasAddress & aliases);
+	void AppendLocalAlias(const H225_ArrayOf_AliasAddress & aliases);
+	void RemoveLocalAlias(const H225_ArrayOf_AliasAddress & aliases);
+
+	bool OnSendingGRQ(H225_GatekeeperRequest &grq);
 	bool OnSendingRRQ(H225_RegistrationRequest &rrq);
 	bool OnSendingARQ(H225_AdmissionRequest &arq, Routing::AdmissionRequest &req);
 	bool OnSendingLRQ(H225_LocationRequest &lrq, Routing::LocationRequest &req);
@@ -194,6 +202,9 @@ private:
 	H225_EndpointIdentifier m_endpointId;
 	H225_GatekeeperIdentifier m_gatekeeperId;
 	PMutex m_rrqMutex;
+
+	/// Use Additive Registration
+	PBoolean m_useAdditiveRegistration;
 
 	/// reregistration timeout (seconds)
 	long m_ttl;

@@ -131,7 +131,8 @@ public:
 	virtual void SetCallSignalAddress(const H225_TransportAddress &);
 	virtual void SetEndpointIdentifier(const H225_EndpointIdentifier &);
 	virtual void SetTimeToLive(int);
-	virtual void SetAliases(const H225_ArrayOf_AliasAddress &);
+	virtual void SetAliases(const H225_ArrayOf_AliasAddress &, PBoolean = false);
+	virtual bool RemoveAliases(const H225_ArrayOf_AliasAddress &);
 	virtual void AddNumbers(const PString & numbers);
 	virtual void SetEndpointType(const H225_EndpointType &);
     virtual void SetEndpointInfo(const PString & vendor, const PString & version);
@@ -141,6 +142,9 @@ public:
 
 	virtual void Update(const H225_RasMessage & lightweightRRQ);
 	virtual bool IsGateway() const { return false; }
+
+	virtual void SetAdditiveRegistrant() {};
+	virtual bool IsAdditiveRegistrant() const { return false; }
 
 	/** Find if one of the given aliases matches any alias for this endpoint.
 
@@ -409,6 +413,9 @@ public:
 	virtual void Update(const H225_RasMessage & lightweightRRQ);
 	virtual bool IsGateway() const { return true; }
 
+	virtual void SetAdditiveRegistrant();
+	virtual bool IsAdditiveRegistrant() const;
+
 	/// Overiden from EndpointRec
 	virtual bool LoadConfig();
 
@@ -472,6 +479,8 @@ protected:
 	bool defaultGW;
 	/// priority for this gateway (when more than one gw matches a dialed number)
 	int priority;
+
+	bool additiveRegistrant;
 };
 
 

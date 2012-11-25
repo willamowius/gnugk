@@ -120,6 +120,9 @@ public:
 	bool RemoveCallOnDRQ() const { return bRemoveCallOnDRQ; }
 
 	PString GetParent() const;
+	bool IsPassThroughRegistrant();
+	bool RemoveAdditiveRegistration(const H225_ArrayOf_AliasAddress &);
+
 	GkClient *GetGkClient() { return gkClient; }
 	NeighborList *GetNeighbors() { return neighbors; }
 	VirtualQueue *GetVirtualQueue() { return vqueue; }
@@ -137,6 +140,11 @@ public:
 	{
 		return authList->Validate(ras, reason);
 	}
+
+	bool ValidateAdditivePDU(
+		RasPDU<H225_RegistrationRequest>& ras, 
+		RRQAuthData& authData
+		);
 
 	bool ValidatePDU(
 		RasPDU<H225_RegistrationRequest>& ras, 

@@ -646,13 +646,47 @@ void EndpointRec::SetEndpointIdentifier(const H225_EndpointIdentifier &i)
 	m_endpointIdentifier = i;
 }
 
-void EndpointRec::SetAliases(const H225_ArrayOf_AliasAddress &a)
+void EndpointRec::SetAliases(const H225_ArrayOf_AliasAddress &a, PBoolean additive)
 {
-	{
-		PWaitAndSignal lock(m_usedLock);
+	PWaitAndSignal lock(m_usedLock);
+	if (additive) {
+		int sz = m_terminalAliases.GetSize();
+		m_terminalAliases.SetSize(sz + m_terminalAliases.GetSize());
+		for (PINDEX i=0; i < a.GetSize(); ++i)
+			m_terminalAliases[sz+i] = a[i];
+	} else {
 		m_terminalAliases = a;
+		LoadConfig(); // update settings for the new aliases
 	}
-	LoadConfig(); // update settings for the new aliases
+}
+
+bool EndpointRec::RemoveAliases(const H225_ArrayOf_AliasAddress & aliases)
+{
+	PWaitAndSignal lock(m_usedLock);
+
+	bool compareAliasType = GkConfig()->GetBoolean("CompareAliasType", true);
+	bool compareAliasCase = GkConfig()->GetBoolean("CompareAliasCase", true);
+
+	for(PINDEX i=0; i < aliases.GetSize(); i++) {
+		for(PINDEX j=0; j < m_terminalAliases.GetSize(); j++) {
+			bool typeMatch = compareAliasType ? (aliases[i].GetTag() == m_terminalAliases[j].GetTag()) : true;
+			bool contentMatch = false;
+			if (typeMatch) {
+				if (compareAliasCase) {
+					contentMatch = AsString(aliases[i], false) == AsString(m_terminalAliases[j], false);
+				} else {
+					contentMatch = PCaselessString(AsString(aliases[i], false)) == AsString(m_terminalAliases[j], false);
+				}
+			}
+			if (typeMatch && contentMatch) {
+				// delete, move others 1 up
+				for(PINDEX k=j+1; k < m_terminalAliases.GetSize(); k++)
+					m_terminalAliases[k-1] = m_terminalAliases[k];
+				m_terminalAliases.SetSize(m_terminalAliases.GetSize() - 1);
+			}
+		}
+	}
+	return (m_terminalAliases.GetSize() == 0);
 }
 
 void EndpointRec::AddNumbers(const PString & numbers)
@@ -1116,7 +1150,7 @@ bool EndpointRec::AddH350ServiceControl(H225_ArrayOf_ServiceControlSession & ses
 
 
 GatewayRec::GatewayRec(const H225_RasMessage & completeRRQ, bool Permanent)
-      : EndpointRec(completeRRQ, Permanent), defaultGW(false), priority(1)
+: EndpointRec(completeRRQ, Permanent), defaultGW(false), priority(1), additiveRegistrant(false)
 {
 	LoadGatewayConfig(); // static binding
 }
@@ -1371,6 +1405,16 @@ PString GatewayRec::PrintOn(bool verbose) const
 	return msg;
 }
 
+void GatewayRec::SetAdditiveRegistrant()
+{
+	additiveRegistrant = true;
+}
+
+bool GatewayRec::IsAdditiveRegistrant() const
+{ 
+	return additiveRegistrant; 
+}
+
 OutOfZoneEPRec::OutOfZoneEPRec(const H225_RasMessage & completeRAS, const H225_EndpointIdentifier &epID) : EndpointRec(completeRAS, false)
 {
 	m_endpointIdentifier = epID;
@@ -1577,6 +1621,8 @@ void RegistrationTable::RemoveByEndptr(const endptr & eptr)
 {
 	RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctUnregister, eptr);
 	EndpointRec *ep = eptr.operator->(); // evil
+	if (RasServer::Instance()->IsPassThroughRegistrant())
+		RasServer::Instance()->RemoveAdditiveRegistration(ep->GetAliases());
 	ep->SetUsesH460P(false);
 	ep->RemoveNATSocket();
 	WriteLock lock(listLock);

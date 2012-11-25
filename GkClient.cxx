@@ -815,6 +815,8 @@ public:
 	// override from class RasRequester
 	virtual bool SendRequest(const Address &, WORD, int = 2);
 
+	H225_RasMessage & GetMessage();
+
 private:
 	// override from class RasHandler
 	virtual bool IsExpected(const RasMsg *) const;
@@ -847,6 +849,11 @@ GRQRequester::GRQRequester(const PString & gkid, H225_EndpointType & type) : Ras
 	catauth.SetPassword("dummy"); // activate it
 	catauth.SetCapability(grq.m_authenticationCapability, grq.m_algorithmOIDs);
 	m_rasSrv->RegisterHandler(this);
+}
+
+H225_RasMessage & GRQRequester::GetMessage() 
+{
+	return grq_ras;
 }
 
 GRQRequester::~GRQRequester()
@@ -938,7 +945,8 @@ const long DEFAULT_RRQ_RETRY = 3;
 
 // class GkClient
 GkClient::GkClient() 
-	: m_rasSrv(RasServer::Instance()), m_registered(false), m_discoveryComplete(false),
+	: m_rasSrv(RasServer::Instance()), m_registered(false), 
+	m_discoveryComplete(false), m_useAdditiveRegistration(false),
 	m_ttl(GkConfig()->GetInteger(EndpointSection, "TimeToLive", DEFAULT_TTL)),
 	m_timer(0),
 	m_retry(GkConfig()->GetInteger(EndpointSection, "RRQRetryInterval", DEFAULT_RRQ_RETRY)),
@@ -1091,6 +1099,31 @@ PString GkClient::GetParent() const
 		"not registered\t" + m_rrjReason;
 }
 
+bool GkClient::OnSendingGRQ(H225_GatekeeperRequest &grq)
+{
+	if (m_h323Id.GetSize() > 0) {
+		int sz = m_h323Id.GetSize();
+		grq.IncludeOptionalField(H225_GatekeeperRequest::e_endpointAlias);
+		grq.m_endpointAlias.SetSize(sz);
+		for (PINDEX i = 0; i < sz; ++i)
+			H323SetAliasAddress(m_h323Id[i], grq.m_endpointAlias[i]);
+	}
+
+#ifdef HAS_H46023
+	// H.460.23 Feature
+	if (Toolkit::Instance()->IsH46023Enabled()) {
+		grq.IncludeOptionalField(H225_GatekeeperRequest::e_featureSet);
+		H460_FeatureStd feat = H460_FeatureStd(23); 
+			grq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+			H225_ArrayOf_FeatureDescriptor & desc = grq.m_featureSet.m_supportedFeatures;
+			int sz = desc.GetSize();
+			desc.SetSize(sz+1);
+			desc[sz] = feat;
+	}
+#endif
+	return true;
+}
+
 bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 {
 	if (m_parentVendor == ParentVendor_GnuGk) {
@@ -1127,8 +1160,9 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 			if (contents) {
 				rrq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 				H225_ArrayOf_FeatureDescriptor & desc = rrq.m_featureSet.m_supportedFeatures;
-				desc.SetSize(1);
-				desc[0] = feat;
+				int sz = desc.GetSize();
+				desc.SetSize(sz+1);
+				desc[sz] = feat;
 			}
 		}
 #endif
@@ -1561,6 +1595,8 @@ bool GkClient::Discovery()
 		eptype.IncludeOptionalField(H225_EndpointType::e_gateway);
 	}
 	GRQRequester request(GkConfig()->GetString(EndpointSection, "GatekeeperIdentifier", ""), eptype);
+	OnSendingGRQ(request.GetMessage());
+
 	// the spec: timeout value 5 sec, retry count 2
 	request.SendRequest(m_gkaddr, m_gkport);
 	while (request.WaitForResponse(5000)) {
@@ -1828,6 +1864,11 @@ void GkClient::OnRCF(RasMsg *ras)
 		m_gatekeeperId = rcf.m_gatekeeperIdentifier;
 		if (rcf.HasOptionalField(H225_RegistrationConfirm::e_alternateGatekeeper))
 			m_gkList->Set(rcf.m_alternateGatekeeper);
+		if ((m_endpointType == EndpointType_Gateway) &&
+			rcf.HasOptionalField(H225_RegistrationConfirm::e_supportsAdditiveRegistration) && 
+			Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "SupportAdditiveRegistration", "0")))
+				m_useAdditiveRegistration = true;
+
 		for_each(m_handlers, m_handlers + 4, bind1st(mem_fun(&RasServer::RegisterHandler), m_rasSrv));
 	}
 	
@@ -1861,8 +1902,8 @@ void GkClient::OnRCF(RasMsg *ras)
 
 #ifdef HAS_H46023
     if (Toolkit::Instance()->IsH46023Enabled()) {
-		if (rcf.HasOptionalField(H225_RegistrationConfirm::e_genericData)) {
-			H460_FeatureSet fs = H460_FeatureSet(rcf.m_genericData);
+		if (rcf.HasOptionalField(H225_RegistrationConfirm::e_featureSet)) {
+			H460_FeatureSet fs = H460_FeatureSet(rcf.m_featureSet);
 			if (fs.HasFeature(23)) 
 				HandleP2P_RCF((H460_FeatureStd *)fs.GetFeature(23));
 		}
@@ -2106,3 +2147,109 @@ void GkClient::SetNBPassword(
 		lrq.IncludeOptionalField(H225_LocationRequest::e_tokens), SetClearTokens(lrq.m_tokens, id);
 	}
 }
+
+bool GkClient::UsesAdditiveRegistration()
+{
+	return m_useAdditiveRegistration;
+}
+
+bool GkClient::AdditiveRegister(H225_ArrayOf_AliasAddress & aliases, int & rejectReason, H225_ArrayOf_ClearToken * tokens, H225_ArrayOf_CryptoH323Token * cryptotokens)
+{
+	PWaitAndSignal lock(m_rrqMutex);
+
+	m_rrjReason = "no response";
+	if (!m_useAdditiveRegistration || !IsRegistered()) {
+		rejectReason = H225_RegistrationRejectReason::e_undefinedReason;
+		return false;
+	}
+
+	H225_RasMessage rrq_ras;
+	Requester<H225_RegistrationRequest> request(rrq_ras, m_loaddr);
+	BuildRRQ(rrq_ras);
+
+	H225_RegistrationRequest & rrq =  rrq_ras;
+	rrq.IncludeOptionalField(H225_RegistrationRequest::e_additiveRegistration);
+
+	rrq.IncludeOptionalField(H225_RegistrationRequest::e_terminalAlias);
+	rrq.m_terminalAlias = aliases;
+
+	if (tokens) {
+		rrq.IncludeOptionalField(H225_RegistrationRequest::e_tokens);
+		rrq.m_tokens = *tokens;
+	}
+
+	if (cryptotokens) {
+		rrq.IncludeOptionalField(H225_RegistrationRequest::e_cryptoTokens);
+		rrq.m_cryptoTokens = *cryptotokens;
+	}
+
+	OnSendingRRQ(rrq_ras);
+	request.SendRequest(m_gkaddr, m_gkport);
+	m_registeredTime = PTime();
+	if (request.WaitForResponse(m_retry * 1000)) {
+		RasMsg *ras = request.GetReply();
+		switch (ras->GetTag())
+		{
+			case H225_RasMessage::e_registrationConfirm: 
+			{
+				H225_RegistrationConfirm & rcf = (*ras)->m_recvRAS;
+				AppendLocalAlias(rcf.m_terminalAlias);
+				aliases = rcf.m_terminalAlias;
+				return true;
+			}
+			case H225_RasMessage::e_registrationReject:
+			{
+				H225_RegistrationReject & rrj = (*ras)->m_recvRAS;
+				rejectReason = rrj.m_rejectReason.GetTag();
+				return false;
+			}
+		}
+	}
+	rejectReason = H225_RegistrationRejectReason::e_undefinedReason;
+	return false;
+}
+
+bool GkClient::AdditiveUnRegister(const H225_ArrayOf_AliasAddress & aliases)
+{
+	RemoveLocalAlias(aliases);
+
+	H225_RasMessage urq_ras;
+	urq_ras.SetTag(H225_RasMessage::e_unregistrationRequest);
+	H225_UnregistrationRequest & urq = urq_ras;
+	urq.m_requestSeqNum = m_rasSrv->GetRequestSeqNum();
+	urq.IncludeOptionalField(H225_UnregistrationRequest::e_gatekeeperIdentifier);
+	urq.m_gatekeeperIdentifier = m_gatekeeperId;
+	urq.IncludeOptionalField(H225_UnregistrationRequest::e_endpointIdentifier);
+	urq.m_endpointIdentifier = m_endpointId;
+	SetCallSignalAddress(urq.m_callSignalAddress);
+
+	urq.IncludeOptionalField(H225_UnregistrationRequest::e_endpointAlias);
+	urq.m_endpointAlias = aliases;
+
+	m_rasSrv->SendRas(urq_ras, m_gkaddr, m_gkport, m_loaddr);
+	return true;
+}
+
+void GkClient::AppendLocalAlias(const H225_ArrayOf_AliasAddress & aliases)
+{
+	for (PINDEX i=0; i < aliases.GetSize(); ++i)
+		m_h323Id.AppendString(AsString(aliases[i],false));
+}
+
+void GkClient::RemoveLocalAlias(const H225_ArrayOf_AliasAddress & aliases)
+{
+	PStringArray newAliasList;
+	for (PINDEX j=0; j < m_h323Id.GetSize(); ++j) {
+		int found = false;
+		for (PINDEX i=0; i < aliases.GetSize(); ++i) {
+			if (AsString(aliases[i],false) == m_h323Id[j]) {
+				found = true;
+				break;
+			}
+		}
+		if (!found)
+			newAliasList.AppendString(m_h323Id[j]);
+	}
+	m_h323Id = newAliasList;
+}
+

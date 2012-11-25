@@ -333,6 +333,14 @@ Default: <tt/1/<newline>
 Forward the destCallSignalAddress in ARQs to the parent gatekeeper.
 </itemize>
 
+<item><tt/SupportAdditiveRegistration=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Whether the child gatekeeper supports passing registration information
+to the parent. Use this if you wish to manage registrations including 
+authentication in the parent gatekeeper and not the child.
+</itemize>
+
 <sect1>Section &lsqb;CTI::Agents&rsqb;
 <p>
 This section allows the configuration of a so-called virtual queue to

@@ -59,8 +59,10 @@ public:
 		virtual RasMsg *operator()(GatekeeperMessage *m) const { return new RegistrationRequestPDU(m); }
 	};
 private:
-	bool BuildRCF(const endptr &);
+	bool BuildRCF(const endptr &, bool = false);
 	bool BuildRRJ(unsigned, bool = false);
+
+	bool HandleAdditiveRegistration(const endptr &);
 };
 
 class AdmissionRequestPDU : public RasPDU<H225_AdmissionRequest> {
@@ -464,7 +466,6 @@ inline H225_RasMessage & RasPDU<RAS>::BuildReject(unsigned reason)
 //	CopyNonStandardData(request, reject);
 	return m_msg->m_replyRAS;
 }
-
 
 // class GkInterface
 GkInterface::GkInterface(const PIPSocket::Address & addr) : m_address(addr)
@@ -1241,6 +1242,16 @@ PString RasServer::GetParent() const
 	return gkClient->GetParent();
 }
 
+bool RasServer::IsPassThroughRegistrant()
+{
+	return (gkClient && gkClient->UsesAdditiveRegistration());
+}
+
+bool RasServer::RemoveAdditiveRegistration(const H225_ArrayOf_AliasAddress & aliases)
+{
+	return (gkClient && gkClient->AdditiveUnRegister(aliases));
+}
+
 ProxyHandler * RasServer::GetSigProxyHandler()
 {
 	return sigHandler ? sigHandler->GetSigHandler() : NULL;
@@ -1254,6 +1265,14 @@ ProxyHandler * RasServer::GetRtpProxyHandler()
 void RasServer::SelectH235Capability(const H225_GatekeeperRequest & grq, H225_GatekeeperConfirm & gcf) const
 {
 	authList->SelectH235Capability(grq, gcf);
+}
+
+bool RasServer::ValidateAdditivePDU(RasPDU<H225_RegistrationRequest>& ras, RRQAuthData& authData)
+{ 
+	H225_RegistrationRequest & rrq = (ras)->m_recvRAS;
+	H225_ArrayOf_ClearToken * tokens = rrq.HasOptionalField(H225_RegistrationRequest::e_tokens) ?  &rrq.m_tokens : NULL;
+	H225_ArrayOf_CryptoH323Token * cryptotokens =  rrq.HasOptionalField(H225_RegistrationRequest::e_cryptoTokens) ?  &rrq.m_cryptoTokens : NULL; 
+	return (gkClient && gkClient->AdditiveRegister(rrq.m_terminalAlias, authData.m_rejectReason, tokens, cryptotokens)); 
 }
 
 bool RasServer::LogAcctEvent(int evt, callptr & call, time_t now)
@@ -2020,6 +2039,16 @@ bool RegistrationRequestPDU::Process()
 			// forward lightweights, too
 			if (bForwardRequest)
 				RasSrv->ForwardRasMsg(m_msg->m_recvRAS);
+
+			// Additive Registration lightweightRRQ
+			if (request.HasOptionalField(H225_RegistrationRequest::e_additiveRegistration)) {
+				if (!Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "SupportAdditiveRegistration", "0")) ||
+					!ep->IsGateway() || !request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias))
+					return BuildRRJ(H225_RegistrationRejectReason::e_additiveRegistrationNotSupported);
+				else
+					return HandleAdditiveRegistration(ep);
+			}
+
 			// endpoint was already registered
 			ep->Update(m_msg->m_recvRAS);
 			if (bSendReply) {
@@ -2097,6 +2126,7 @@ bool RegistrationRequestPDU::Process()
 #endif
  
 			}
+
 			return bSendReply;
 		}
 	}
@@ -2159,7 +2189,7 @@ bool RegistrationRequestPDU::Process()
 
 	RRQAuthData authData;
 	authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
-	if (!RasSrv->ValidatePDU(*this, authData))
+	if (!RasSrv->IsPassThroughRegistrant() && !RasSrv->ValidatePDU(*this, authData))
 		return BuildRRJ(authData.m_rejectReason);
 
 	bool bNewEP = true;
@@ -2274,6 +2304,9 @@ bool RegistrationRequestPDU::Process()
 	}
 	request.m_callSignalAddress.SetSize(1);
 	request.m_callSignalAddress[0] = SignalAddr;
+
+	if (RasSrv->IsPassThroughRegistrant() && !RasSrv->ValidateAdditivePDU(*this, authData)) 
+ 		return BuildRRJ(authData.m_rejectReason);
 
 	endptr ep = EndpointTbl->InsertRec(m_msg->m_recvRAS, nated ? rx_addr : PIPSocket::Address(GNUGK_INADDR_ANY));
 	if (!ep) {
@@ -2514,7 +2547,33 @@ bool RegistrationRequestPDU::Process()
 	return bSendReply;
 }
 
-bool RegistrationRequestPDU::BuildRCF(const endptr & ep)
+bool RegistrationRequestPDU::HandleAdditiveRegistration(const endptr & ep)
+{
+	// Authenticate the new registration
+	RRQAuthData authData;
+	authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
+	if (!RasSrv->ValidatePDU(*this, authData))
+		return BuildRRJ(authData.m_rejectReason);
+
+	// Check for existing aliases
+	const endptr lep = EndpointTbl->FindByAliases(request.m_terminalAlias);
+	if (lep && (lep->GetCallSignalAddress() != ep->GetCallSignalAddress()))
+		return BuildRRJ(H225_RegistrationRejectReason::e_invalidTerminalAliases);
+
+	// Set the flag to say we have additive registrations
+	ep->SetAdditiveRegistrant();
+
+	// Build reply
+	BuildRCF(ep,true);
+	H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
+	rcf.IncludeOptionalField(H225_RegistrationConfirm::e_terminalAlias);
+	rcf.m_terminalAlias = request.m_terminalAlias;
+	ep->SetAliases(rcf.m_terminalAlias, true);
+
+	return true;
+}
+
+bool RegistrationRequestPDU::BuildRCF(const endptr & ep, bool additiveRegistration)
 {
 	H225_RegistrationConfirm & rcf = BuildConfirm();
 	rcf.m_protocolIdentifier = request.m_protocolIdentifier;
@@ -2524,15 +2583,21 @@ bool RegistrationRequestPDU::BuildRCF(const endptr & ep)
 	} else {
 		rcf.m_callSignalAddress.SetSize(0);	// we don't have a call signal address in direct mode
 	}
-	rcf.IncludeOptionalField(H225_RegistrationConfirm::e_terminalAlias);
-	rcf.m_terminalAlias = ep->GetAliases();
+	if (!additiveRegistration) {
+		rcf.IncludeOptionalField(H225_RegistrationConfirm::e_terminalAlias);
+		rcf.m_terminalAlias = ep->GetAliases();
+	}
 	rcf.m_endpointIdentifier = ep->GetEndpointIdentifier();
 	rcf.IncludeOptionalField(H225_RegistrationConfirm::e_gatekeeperIdentifier);
 	rcf.m_gatekeeperIdentifier = Toolkit::GKName();
 	if (ep->GetTimeToLive() > 0) {
 		rcf.IncludeOptionalField(H225_RegistrationConfirm::e_timeToLive);
 		rcf.m_timeToLive = ep->GetTimeToLive();
-	}
+	} 
+
+	if (ep->IsGateway() && Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "SupportAdditiveRegistration", "0")))
+		rcf.IncludeOptionalField(H225_RegistrationConfirm::e_supportsAdditiveRegistration);
+
 	return true;
 }
 
@@ -2581,6 +2646,13 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 			} else {
 				PTRACE(1, "Unable to parse saved rasAddress " << ep->GetRasAddress());
 			}
+		}
+
+		if (ep->IsAdditiveRegistrant() && 
+			request.HasOptionalField(H225_UnregistrationRequest::e_endpointAlias) &&
+			!ep->RemoveAliases(request.m_endpointAlias)) {
+				BuildConfirm();
+				return bSendReply;
 		}
  
 		// Disconnect all calls of the endpoint
