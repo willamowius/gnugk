@@ -1,5 +1,7 @@
 Changes from 3.1 to 3.2
 =======================
+- New [Endpoint] EnableH46018 and EnableH46023 switches
+- New authentication control rule "Additive"
 - Added support for additive registration for gateways. new switch [RasSrv::RRQFeatures] SupportAdditiveRegistration <WIP>
 - allow multiple instances of routing policies with different settings
   (currently works for sql, enum, srv, dns, numberanalysis, lua, forwarding) 

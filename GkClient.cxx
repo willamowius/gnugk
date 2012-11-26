@@ -1041,17 +1041,20 @@ void GkClient::OnReload()
 
 	PStringList gkHost;
 #if P_DNS
-	PStringList str;
-    if (gk != "no" && PDNS::LookupSRV(gk, "_h323rs._udp.", str)) {
-		PTRACE(5, "EP\t" << str.GetSize() << " h323rs SRV Records found" );
-		  for (PINDEX i = 0; i < str.GetSize(); i++) {
-			PCaselessString newhost = str[i].Right(str[i].GetLength()-5);
-			PTRACE(4, "EP\th323rs SRV record " << newhost );
-			if (i == 0) 
-				gk = newhost;
-			else 
-				m_gkList->Set(newhost);
-		  }
+	if (gk != "no" ) {
+		PString number = "h323:user@" + gk;
+		PStringList str;
+		if (PDNS::LookupSRV(number, "_h323rs._udp.", str)) {
+			PTRACE(5, "EP\t" << str.GetSize() << " h323rs SRV Records found" );
+			  for (PINDEX i = 0; i < str.GetSize(); i++) {
+				PCaselessString newhost = str[i].Right(str[i].GetLength()-5);
+				PTRACE(4, "EP\th323rs SRV record " << newhost );
+				if (i == 0) 
+					gk = newhost;
+				else 
+					m_gkList->Set(newhost);
+			  }
+		}
 	} 
 #endif	
 	
@@ -1109,9 +1112,14 @@ bool GkClient::OnSendingGRQ(H225_GatekeeperRequest &grq)
 			H323SetAliasAddress(m_h323Id[i], grq.m_endpointAlias[i]);
 	}
 
+#ifdef HAS_H46018
+	if (Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableH46018", "0"))) {
+		// TODO Add Feature
+	}
+#endif
+
 #ifdef HAS_H46023
-	// H.460.23 Feature
-	if (Toolkit::Instance()->IsH46023Enabled()) {
+	if (Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableH46023", "0"))) {
 		grq.IncludeOptionalField(H225_GatekeeperRequest::e_featureSet);
 		H460_FeatureStd feat = H460_FeatureStd(23); 
 			grq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
@@ -1140,22 +1148,29 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 		}
 	}
 
+#ifdef HAS_H46018
+		if (Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableH46018", "0"))) {
+            // TODO Add Feature
+        }
+#endif
+
 #ifdef HAS_H46023
-		// H.460.23 Feature
-		if (Toolkit::Instance()->IsH46023Enabled()) {
+		if (Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableH46023", "0"))) {
 			bool contents = false;
 			rrq.IncludeOptionalField(H225_RegistrationRequest::e_featureSet);
 			H460_FeatureStd feat = H460_FeatureStd(23); 
 
 			if (!IsRegistered()) {
-					feat.Add(Std23_RemoteNAT,H460_FeatureContent(true));
-					contents = true;
+				feat.Add(Std23_RemoteNAT,H460_FeatureContent(true));
+				feat.Add(Std23_AnnexA   ,H460_FeatureContent(true));
+				feat.Add(Std23_AnnexB   ,H460_FeatureContent(true));
+				contents = true;
 			} else {
-					int natType = 0;
-					if (H46023_TypeNotify(natType)) {
-						feat.Add(Std23_NATdet,H460_FeatureContent(natType,8)); 
-						contents = true;
-					}
+				int natType = 0;
+				if (H46023_TypeNotify(natType)) {
+					feat.Add(Std23_NATdet,H460_FeatureContent(natType,8)); 
+					contents = true;
+				}
 			}
 			if (contents) {
 				rrq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);

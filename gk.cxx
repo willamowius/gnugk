@@ -107,6 +107,12 @@ const char * KnownConfigEntries[][2] = {
 	{ "CallTable", "TimestampFormat" },
 	{ "Endpoint", "Discovery" },
 	{ "Endpoint", "E164" },
+#ifdef HAS_H46018
+	{ "Endpoint", "EnableH46018" },
+#endif
+#ifdef HAS_H46023
+	{ "Endpoint", "EnableH46023" },
+#endif
 	{ "Endpoint", "EndpointIdentifier" },
 	{ "Endpoint", "ForwardDestIp" },
 	{ "Endpoint", "Gatekeeper" },

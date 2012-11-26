@@ -341,6 +341,18 @@ to the parent. Use this if you wish to manage registrations including
 authentication in the parent gatekeeper and not the child.
 </itemize>
 
+<item><tt/EnableH46018=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Whether the child offers H.460.18/.19 support to the parent.
+</itemize>
+
+<item><tt/EnableH46023=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Whether the child offers H.460.23/.24 support to the parent.
+</itemize>
+
 <sect1>Section &lsqb;CTI::Agents&rsqb;
 <p>
 This section allows the configuration of a so-called virtual queue to

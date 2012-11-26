@@ -214,7 +214,10 @@ public:
 		e_Sufficient,
 		/// if the request is accepted/rejected by this module, authentication
 		/// processing ends, otherwise the request is passed to a next rule
-		e_Alternative
+		e_Alternative,
+		/// Same function as Alternate but only applicable to 
+		/// Additive Registrations.
+		e_Additive
 	};
 
 	/// authentication status returned from Check methods
