@@ -2189,7 +2189,7 @@ bool RegistrationRequestPDU::Process()
 
 	RRQAuthData authData;
 	authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
-	if (!RasSrv->IsPassThroughRegistrant() || !RasSrv->ValidatePDU(*this, authData))
+	if (!RasSrv->IsPassThroughRegistrant() && !RasSrv->ValidatePDU(*this, authData))
 		return BuildRRJ(authData.m_rejectReason);
 
 	bool bNewEP = true;
