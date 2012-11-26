@@ -55,10 +55,7 @@ public:
 		true if this Worker is idle and has taken the Job, false otherwise 
 		(on failuer the job object is not deleted).
 	*/
-	bool Exec(
-		/// Job to be executed
-		Job* job
-		);
+	bool Exec(Job* job);
 		
 	/** Stop the Worker thread and any jobs being executed, 
 	    wait for Worker thread termination and delete this object.
@@ -103,18 +100,12 @@ public:
 	/** Execute the job by the first idle Worker or a new Worker.
 		Delete the Job object after it is done.
 	*/
-	void Exec(
-		/// the job to be executed
-		Job* job
-		);
+	void Exec(Job * job);
 		
 	/** Remove the Worker from busy and idle lists. 
 		Called by the Worker when it deletes itself.
 	*/
-	void Remove(
-		/// the worker to be removed from the lists
-		Worker* worker
-		);
+	void Remove(Worker * worker);
 
 	/** Move the Worker from the busy list to the idle list. 
 		Called by the Worker when it finishes each job.
@@ -186,9 +177,7 @@ void Worker::Main()
 		}
 		
 		if (m_job) {
-			PTRACE(5, "JOB\tStarting Job " << m_job->GetName() 
-				<< " at Worker thread " << m_id
-				);
+			PTRACE(5, "JOB\tStarting Job " << m_job->GetName() << " at Worker thread " << m_id);
 
 			m_job->Run();
 
@@ -212,10 +201,7 @@ void Worker::Main()
 	}
 }
 
-bool Worker::Exec(
-	/// Job to be executed
-	Job* job
-	)
+bool Worker::Exec(Job * job)
 {
 	// fast check if there is no job being executed
 	if (m_job == 0 && !m_closed) {
@@ -285,6 +271,7 @@ Agent::~Agent()
 		workers.erase(iter++);
 		w->Destroy();
 #if !defined(_WIN32) || (PTLIB_VER <= 2100)
+		// TODO: find a proper fix for deleting workers on Windows!
 		delete w;	// don't delete on Windows, issue with PTLib 2.10.1+
 #endif
 	}
@@ -356,9 +343,7 @@ void Agent::Exec(Job * job)
 	}
 }
 
-void Agent::Remove(
-	Worker* worker
-	)
+void Agent::Remove(Worker* worker)
 {
 	int numIdleWorkers;
 	int numBusyWorkers;
