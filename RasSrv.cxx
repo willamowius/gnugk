@@ -1541,14 +1541,13 @@ void RasServer::ReadH46017Message(PBYTEArray ras, const PIPSocket::Address & fro
 		msg->m_localAddr = localAddr;
 		msg->m_h46017Socket = s;
 		PTRACE(3, "RAS\tH460.17 RAS\n" << setprecision(2) << msg->m_recvRAS);
-		CreateRasJob(msg);
-		// TODO: better serilization without code duplication ?
-		PThread::Sleep(250);	// give RAS thread a chance to start working
+		// execute job syncronously, so we don't return to signalling thread before processing is done
+		CreateRasJob(msg, true);
 	}
 }
 #endif
 
-void RasServer::CreateRasJob(GatekeeperMessage * msg)
+void RasServer::CreateRasJob(GatekeeperMessage * msg, bool syncronous)
 {
 	typedef Factory<RasMsg, unsigned> RasFactory;
 	unsigned tag = msg->GetTag();
@@ -1563,10 +1562,16 @@ void RasServer::CreateRasJob(GatekeeperMessage * msg)
 				delete ras;
 				ras = NULL;
 			} else {
-				requests.push_back(ras);
-				Job *job = new Jobs(ras);
-				job->SetName(msg->GetTagName());
-				job->Execute();
+				if (syncronous) {
+					PTRACE(0, "JW executing RAS msg syncronously: " << msg->GetTagName());
+					ras->Exec();
+					delete msg;		
+				} else {
+					requests.push_back(ras);
+					Job *job = new Jobs(ras);
+					job->SetName(msg->GetTagName());
+					job->Execute();
+				}
 			}
 		} else {
 			PTRACE(2, "RAS\tTrapped " << msg->GetTagName());
