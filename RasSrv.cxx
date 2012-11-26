@@ -2189,7 +2189,7 @@ bool RegistrationRequestPDU::Process()
 
 	RRQAuthData authData;
 	authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
-	if (!RasSrv->IsPassThroughRegistrant() && !RasSrv->ValidatePDU(*this, authData))
+	if (!RasSrv->IsPassThroughRegistrant() || !RasSrv->ValidatePDU(*this, authData))
 		return BuildRRJ(authData.m_rejectReason);
 
 	bool bNewEP = true;
@@ -2570,6 +2570,10 @@ bool RegistrationRequestPDU::HandleAdditiveRegistration(const endptr & ep)
 	rcf.m_terminalAlias = request.m_terminalAlias;
 	ep->SetAliases(rcf.m_terminalAlias, true);
 
+	if (!Toolkit::AsBool(GkConfig()->GetString("GkStatus::Filtering", "NewRCFOnly", "0"))) {
+		PString log = "RCF|" + ep->PrintOn(false) + ";\r\n";
+		PrintStatus(log);
+	}
 	return true;
 }
 
@@ -2651,6 +2655,10 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 		if (ep->IsAdditiveRegistrant() && 
 			request.HasOptionalField(H225_UnregistrationRequest::e_endpointAlias) &&
 			!ep->RemoveAliases(request.m_endpointAlias)) {
+					log = "UCF|" + m_msg->m_peerAddr.AsString()
+					+ "|" + endpointId
+					+ "|" + AsString(request.m_endpointAlias);
+					PrintStatus(log);
 				BuildConfirm();
 				return bSendReply;
 		}
