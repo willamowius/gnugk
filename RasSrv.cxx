@@ -1532,7 +1532,7 @@ void RasServer::ReadSocket(IPSocket *socket)
 }
 
 #ifdef HAS_H46017
-void RasServer::ReadH46017Message(const PBYTEArray & ras, const PIPSocket::Address & fromIP, WORD fromPort, const PIPSocket::Address & localAddr, CallSignalSocket * s)
+void RasServer::ReadH46017Message(PBYTEArray ras, const PIPSocket::Address & fromIP, WORD fromPort, const PIPSocket::Address & localAddr, CallSignalSocket * s)
 {
 	GatekeeperMessage * msg = new GatekeeperMessage();
 	if (msg->Read(ras)) {
