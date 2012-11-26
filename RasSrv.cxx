@@ -1563,7 +1563,6 @@ void RasServer::CreateRasJob(GatekeeperMessage * msg, bool syncronous)
 				ras = NULL;
 			} else {
 				if (syncronous) {
-					PTRACE(0, "JW executing RAS msg syncronously: " << msg->GetTagName());
 					ras->Exec();
 					delete msg;		
 				} else {
