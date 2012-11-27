@@ -5067,7 +5067,7 @@ bool CallSignalSocket::SendH46017Message(const H225_RasMessage & ras)
 		FacilityPDU.Encode(buf);
 		return TransmitData(buf);
 	} else {
-		PTRACE(1, "Error: Can't send H.460.17 reply - socket closed");
+		PTRACE(1, "Error: Can't send H.460.17 reply to " << GetName() << " - socket closed");
 		SNMP_TRAP(10, SNMPWarning, Network, "Can't send H.460.17 reply to " + GetName() + " - socket closed");
 		return false;
 	}
