@@ -3685,8 +3685,8 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 		info << "    NAT Type:    " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Calling->GetEPNATType()) << "\n";
 		PTRACE(5, "RAS\t\n" << info);
 		if (m_Calling->SupportH46024() && ((m_Calling->GetIP().IsRFC1918() && remAddr.IsRFC1918()) ||   
-											m_Calling->GetEPNATType() < (int)EndpointRec::NatCone || 
-											m_Calling->GetEPNATType() == (int)EndpointRec::FirewallSymmetric)) {
+											m_Calling->GetEPNATType() < (int)EndpointRec::NatCone /*|| 
+											m_Calling->GetEPNATType() == (int)EndpointRec::FirewallSymmetric*/)) {
 			PTRACE(4, "RAS\tSet strategy to no Assistance");
 			natinst = CallRec::e_natNoassist;
 			return true;
