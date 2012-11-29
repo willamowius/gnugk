@@ -6642,7 +6642,8 @@ H245Socket::H245Socket(CallSignalSocket *sig)
 #endif
 			PIPSocket::Address notused;
 			listener->GetLocalAddress(notused, m_port);
-			Toolkit::Instance()->PortNotification(H245Port, PortOpen, "tcp", GNUGK_INADDR_ANY, m_port, sig->GetCallIdentifier());
+			if (Toolkit::Instance()->IsPortNotificationActive())
+				Toolkit::Instance()->PortNotification(H245Port, PortOpen, "tcp", GNUGK_INADDR_ANY, m_port, sig->GetCallIdentifier());
 			break;
 		}
 		int errorNumber = listener->GetErrorNumber(PSocket::LastGeneralError);
@@ -6673,7 +6674,7 @@ H245Socket::H245Socket(H245Socket *socket, CallSignalSocket *sig)
 
 H245Socket::~H245Socket()
 {
-	if (m_port != 0) {
+	if (Toolkit::Instance()->IsPortNotificationActive() && (m_port != 0)) {
 		H225_CallIdentifier callID;
 		if (sigSocket) {
 			callID = sigSocket->GetCallIdentifier();
@@ -7221,7 +7222,8 @@ MultiplexRTPListener::MultiplexRTPListener(WORD pt, WORD buffSize)
 		return;
 	}
 	SetName(AsString(localAddr, pt) + "(Multiplex)");
-	Toolkit::Instance()->PortNotification(RTPPort, PortOpen, "udp", GNUGK_INADDR_ANY, pt);
+	if (Toolkit::Instance()->IsPortNotificationActive())
+		Toolkit::Instance()->PortNotification(RTPPort, PortOpen, "udp", GNUGK_INADDR_ANY, pt);
 
 	// Set the IP Type Of Service field for prioritisation of media UDP / RTP packets
 #ifdef _WIN32
@@ -7243,7 +7245,8 @@ MultiplexRTPListener::MultiplexRTPListener(WORD pt, WORD buffSize)
 
 MultiplexRTPListener::~MultiplexRTPListener()
 {
-	Toolkit::Instance()->PortNotification(RTPPort, PortClose, "udp", GNUGK_INADDR_ANY, GetPort());
+	if (Toolkit::Instance()->IsPortNotificationActive())
+		Toolkit::Instance()->PortNotification(RTPPort, PortClose, "udp", GNUGK_INADDR_ANY, GetPort());
 	delete [] wbuffer;
 }
 
@@ -7739,7 +7742,8 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
 
 UDPProxySocket::~UDPProxySocket()
 {
-	Toolkit::Instance()->PortNotification(RTPPort, PortClose, "udp", GNUGK_INADDR_ANY, GetPort(), m_callID);
+	if (Toolkit::Instance()->IsPortNotificationActive())
+		Toolkit::Instance()->PortNotification(RTPPort, PortClose, "udp", GNUGK_INADDR_ANY, GetPort(), m_callID);
 }
 
 bool UDPProxySocket::Bind(const Address & localAddr, WORD pt)
@@ -7768,7 +7772,8 @@ bool UDPProxySocket::Bind(const Address & localAddr, WORD pt)
 			);
 	}
 #endif
-	Toolkit::Instance()->PortNotification(RTPPort, PortOpen, "udp", GNUGK_INADDR_ANY, pt, m_callID);
+	if (Toolkit::Instance()->IsPortNotificationActive())
+		Toolkit::Instance()->PortNotification(RTPPort, PortOpen, "udp", GNUGK_INADDR_ANY, pt, m_callID);
 	return true;
 }
 
@@ -9112,7 +9117,7 @@ T120LogicalChannel::T120LogicalChannel(WORD flcn) : LogicalChannel(flcn)
 
 T120LogicalChannel::~T120LogicalChannel()
 {
-	if (listener)
+	if (Toolkit::Instance()->IsPortNotificationActive() && listener)
 		Toolkit::Instance()->PortNotification(T120Port, PortClose, "udp", GNUGK_INADDR_ANY, listener->GetPort());
 
 	if (used) {
@@ -9147,7 +9152,8 @@ T120LogicalChannel::T120Listener::T120Listener(T120LogicalChannel *lc) : t120lc(
 		WORD pt = T120PortRange.GetPort();
 		SetName("T120:" + PString(pt));
 		if (Listen(5, pt, PSocket::CanReuseAddress)) {
-			Toolkit::Instance()->PortNotification(T120Port, PortOpen, "udp", GNUGK_INADDR_ANY, pt);
+			if (Toolkit::Instance()->IsPortNotificationActive())
+				Toolkit::Instance()->PortNotification(T120Port, PortOpen, "udp", GNUGK_INADDR_ANY, pt);
 			break;
 		}
 		int errorNumber = GetErrorNumber(PSocket::LastGeneralError);
@@ -10454,13 +10460,15 @@ CallSignalListener::CallSignalListener(const Address & addr, WORD pt)
 		Close();
 	}
 	SetName(AsString(addr, GetPort()));
-	Toolkit::Instance()->PortNotification(Q931Port, PortOpen, "tcp", addr, pt);
+	if (Toolkit::Instance()->IsPortNotificationActive())
+		Toolkit::Instance()->PortNotification(Q931Port, PortOpen, "tcp", addr, pt);
 	m_addr = addr;
 }
 
 CallSignalListener::~CallSignalListener()
 {
-	Toolkit::Instance()->PortNotification(Q931Port, PortClose, "tcp", m_addr, port);
+	if (Toolkit::Instance()->IsPortNotificationActive())
+		Toolkit::Instance()->PortNotification(Q931Port, PortClose, "tcp", m_addr, port);
 }
 
 ServerSocket *CallSignalListener::CreateAcceptor() const

@@ -1988,12 +1988,14 @@ StatusListener::StatusListener(const Address & addr, WORD lport)
 	}
 	SetName(AsString(addr, GetPort()));
 	m_addr = addr;
-	Toolkit::Instance()->PortNotification(StatusPort, PortOpen, "tcp", m_addr, lport);
+	if (Toolkit::Instance()->IsPortNotificationActive())
+		Toolkit::Instance()->PortNotification(StatusPort, PortOpen, "tcp", m_addr, lport);
 }
 
 StatusListener::~StatusListener()
 {
-	Toolkit::Instance()->PortNotification(StatusPort, PortClose, "tcp", m_addr, GetPort());
+	if (Toolkit::Instance()->IsPortNotificationActive())
+		Toolkit::Instance()->PortNotification(StatusPort, PortClose, "tcp", m_addr, GetPort());
 }
 
 ServerSocket * StatusListener::CreateAcceptor() const

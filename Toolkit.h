@@ -414,6 +414,7 @@ class Toolkit : public Singleton<Toolkit>
 #endif
 	bool IsSNMPEnabled() const;
 	bool IsIPv6Enabled() const;
+	bool IsPortNotificationActive();
 	void PortNotification(PortType type, PortAction action, const PString & protocol,
 							const PIPSocket::Address & addr, WORD port,
 							const H225_CallIdentifier & callID = 0);

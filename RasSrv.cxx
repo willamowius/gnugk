@@ -218,7 +218,8 @@ RasListener::RasListener(const Address & addr, WORD pt) : UDPSocket(0, addr.GetV
 	}
 	SetWriteTimeout(1000);
 	SetName(AsString(addr, pt) + "(U)");
-	Toolkit::Instance()->PortNotification(RASPort, PortOpen, "udp", addr, pt);
+	if (Toolkit::Instance()->IsPortNotificationActive())
+		Toolkit::Instance()->PortNotification(RASPort, PortOpen, "udp", addr, pt);
 	m_signalPort = 0;
 	// note: this won't be affected by reloading
 	m_virtualInterface = (!GkConfig()->GetString("NetworkInterfaces", "").IsEmpty());
@@ -230,7 +231,8 @@ RasListener::RasListener(const Address & addr, WORD pt) : UDPSocket(0, addr.GetV
 
 RasListener::~RasListener()
 {
-	Toolkit::Instance()->PortNotification(RASPort, PortClose, "udp", m_ip, GetPort());
+	if (Toolkit::Instance()->IsPortNotificationActive())
+		Toolkit::Instance()->PortNotification(RASPort, PortClose, "udp", m_ip, GetPort());
 	PTRACE(1, "RAS\tDelete listener " << GetName());
 }
 
@@ -1564,7 +1566,7 @@ void RasServer::CreateRasJob(GatekeeperMessage * msg, bool syncronous)
 			} else {
 				if (syncronous) {
 					ras->Exec();
-					delete msg;		
+					delete msg;
 				} else {
 					requests.push_back(ras);
 					Job *job = new Jobs(ras);

@@ -2770,6 +2770,25 @@ bool Toolkit::IsIPv6Enabled() const
 #endif
 }
 
+bool Toolkit::IsPortNotificationActive()	// not const to allow simple map access
+{
+	// the feature is active if at least one action is defined
+	return !m_portOpenNotifications[RASPort].IsEmpty()
+		|| !m_portOpenNotifications[Q931Port].IsEmpty()
+		|| !m_portOpenNotifications[H245Port].IsEmpty()
+		|| !m_portOpenNotifications[RTPPort].IsEmpty()
+		|| !m_portOpenNotifications[T120Port].IsEmpty()
+		|| !m_portOpenNotifications[StatusPort].IsEmpty()
+		|| !m_portOpenNotifications[RadiusPort].IsEmpty()
+		|| !m_portCloseNotifications[RASPort].IsEmpty()
+		|| !m_portCloseNotifications[Q931Port].IsEmpty()
+		|| !m_portCloseNotifications[H245Port].IsEmpty()
+		|| !m_portCloseNotifications[RTPPort].IsEmpty()
+		|| !m_portCloseNotifications[T120Port].IsEmpty()
+		|| !m_portCloseNotifications[StatusPort].IsEmpty()
+		|| !m_portCloseNotifications[RadiusPort].IsEmpty();
+}
+
 void Toolkit::PortNotification(PortType type, PortAction action, const PString & protocol,
 								const PIPSocket::Address & addr, WORD port,
 								const H225_CallIdentifier & callID)
