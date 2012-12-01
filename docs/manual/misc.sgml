@@ -331,7 +331,6 @@ by a parent gatekeeper in a GCF/RCF message.
 Default: <tt/1/<newline>
 <p>
 Forward the destCallSignalAddress in ARQs to the parent gatekeeper.
-</itemize>
 
 <item><tt/SupportAdditiveRegistration=1/<newline>
 Default: <tt/0/<newline>
@@ -339,14 +338,12 @@ Default: <tt/0/<newline>
 Whether the child gatekeeper supports passing registration information
 to the parent. Use this if you wish to manage registrations including 
 authentication in the parent gatekeeper and not the child.
-</itemize>
 
 <item><tt/EnableH46018=1/<newline>
 Default: <tt/0/<newline>
 <p>
 Note: This function is not yet implemented.
 Whether the child offers H.460.18/.19 support to the parent. 
-</itemize>
 
 <item><tt/EnableH46023=1/<newline>
 Default: <tt/0/<newline>

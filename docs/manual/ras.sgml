@@ -170,7 +170,6 @@ You must have separate AliasTypeFilter entries for each endpoint type.
 Valid endpoint types are: gatekeeper, gateway, mcu and terminal.
 Valid filters are: h323id, dialeddigits, url, transport, email and partynumber.
 NOTE: If no alias is found that match the filter then all aliases are registered.
-</itemize>
 
 <item><tt/SupportAdditiveRegistration=1/<newline>
 Default: <tt/0/<newline>

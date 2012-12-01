@@ -415,7 +415,7 @@ This switch toggles whether the 'enum' policy should resolve LRQs.
 Additional ENUM schemas may be configured by the [Routing::ENUM::id] 
 <descrip>
 <tag/Format:/
-<tt/<enum schema>=<protocol gateway>/
+<tt/&lt;enum schema&gt;=&lt;protocol gateway&gt;/
 </descrip>
 
 <descrip>
@@ -438,7 +438,7 @@ This switch selects if the 'srv' policy should resolve hostnames in LRQs that do
 Additional SRV schemas may be configured by the [Routing::SRV::id] 
 <descrip>
 <tag/Format:/
-<tt/<SRV schema>=<protocol gateway>[;default schema port]/
+<tt/&lt;SRV schema&gt;=&lt;protocol gateway&gt;[;default schema port]/
 </descrip>
 
 <descrip>
