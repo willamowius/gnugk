@@ -948,7 +948,6 @@ bool GkAuthenticatorList::Validate(
 	RRQAuthData& authData
 	)
 {
-	bool isAdditive = static_cast<H225_RegistrationRequest>(request).HasOptionalField(H225_RegistrationRequest::e_additiveRegistration);
 	ReadLock lock(m_reloadMutex);
 	std::list<GkAuthenticator*>::const_iterator i = m_authenticators.begin();
 	while (i != m_authenticators.end()) {
