@@ -17,7 +17,7 @@ authrule=actions
 
  <authrule> := SimplePasswordAuth | AliasAuth | FileIPAuth | PrefixAuth | RadAuth | RadAliasAuth | SQLAuth | SQLAliasAuth | SQLPasswordAuth | H350PasswordAuth | CapacityControl | ...
  <actions>  := <control>[;<ras>|<q931>,<ras>|<q931>,...]
- <control>  := optional | required | sufficient | alternative | additive
+ <control>  := optional | required | sufficient | alternative
  <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ
  <q931>     := Setup | SetupUnreg
 
@@ -36,7 +36,6 @@ There are also three ways to control a rule:
 <item><tt/required/ - The requests should be authenticated by this module, or it would be rejected. The authenticated request would then be passed to next rule.
 <item><tt/sufficient/ - If the request is authenticated, it is accepted, or it would be rejected. That is, the rule determines the fate of the request. No rule should be put after a sufficient rule, since it won't take effect.
 <item><tt/alternative/ - similar to the <tt/sufficient/ rule, except that if the module cannot determine request fate, the request is passed to a next module.
-<item><tt/additive/ - similar to the <tt/alternative/ rule, except only applies for additive registrations. 
 </itemize>
 
 Currently supported modules: (most only support a subset of the ras or q931 actions)
@@ -424,6 +423,7 @@ replacement is made before each query is executed. The following parameters are 
 <item><tt/%u/ - username associated with an endpoint (usually a H.323 ID)
 <item><tt/%{callerip}/ - caller's IP (the request has been received from - NAT IP for natted endpoints)
 <item><tt/%{aliases}/ - a comma separated list of endpoint aliases
+<item><tt/%{additive-rrq}/ - whether an additive rrq  0 - false 1 - true
 </itemize>
 <p>
 If the query returns no rows, the result is undefined, which basically

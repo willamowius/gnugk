@@ -175,8 +175,6 @@ GkAuthenticator::GkAuthenticator(
 			m_controlFlag = e_Sufficient, m_defaultStatus = e_fail;
 		else if (controlStr *= "alternative")
 			m_controlFlag = e_Alternative, m_defaultStatus = e_next;
-		else if (controlStr *= "additive")
-			m_controlFlag = e_Additive, m_defaultStatus = e_next;
 		else
 			PTRACE(1, "GKAUTH\tInvalid control flag '" << controlStr
 				<< "' specified in the config for " << GetName()
@@ -781,8 +779,7 @@ void GkAuthenticatorList::OnReload()
 			auth = *iter++;
 			if (auth->IsH235Capable() 
 					&& (auth->GetControlFlag() == GkAuthenticator::e_Optional
-						|| auth->GetControlFlag() == GkAuthenticator::e_Alternative
-						|| auth->GetControlFlag() == GkAuthenticator::e_Additive)
+						|| auth->GetControlFlag() == GkAuthenticator::e_Alternative)
 						) {
 				if (mechanisms.GetSize() == 0) {
 					auth->GetH235Capability(mechanisms, algorithmOIDs);
@@ -961,9 +958,7 @@ bool GkAuthenticatorList::Validate(
 			if (result == GkAuthenticator::e_ok) {
 				PTRACE(3, "GKAUTH\t" << auth->GetName() << " RRQ check ok");
 				if (auth->GetControlFlag() == GkAuthenticator::e_Sufficient
-						|| auth->GetControlFlag() == GkAuthenticator::e_Alternative
-						|| (isAdditive && auth->GetControlFlag() == GkAuthenticator::e_Additive)
-						)
+						|| auth->GetControlFlag() == GkAuthenticator::e_Alternative)
 					return true;
 			} else if (result == GkAuthenticator::e_fail) {
 				PTRACE(3, "GKAUTH\t" << auth->GetName() << " RRQ check failed");

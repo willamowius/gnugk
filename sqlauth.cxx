@@ -558,6 +558,9 @@ int SQLAuth::Check(
 	// get the username for User-Name attribute		
 	params["u"] = GetUsername(rrqPdu);
 	params["g"] = Toolkit::GKName();
+
+	// Whether a full or additive registration
+	params["additive-rrq"] = rrq.HasOptionalField(H225_RegistrationRequest::e_additiveRegistration) ? 1 : 0;
 	
 	PIPSocket::Address addr = (rrqPdu.operator->())->m_peerAddr;
 
