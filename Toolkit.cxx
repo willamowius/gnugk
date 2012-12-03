@@ -2416,11 +2416,12 @@ bool Toolkit::AlternateGatekeepers::GetAlternateGK(const PIPSocket::Address & ip
 			PString num = addresses[k];
 			PStringArray tokens = SplitIPAndPort(num, GK_DEF_UNICAST_RAS_PORT);
 			WORD port = (WORD)tokens[1].AsUnsigned();
- 
+			PIPSocket::Address ipAddress;
+			PIPSocket::GetHostAddress(tokens[0],ipAddress);
 			int sz = gklist.GetSize();
 			gklist.SetSize(sz+1);
 			H225_AlternateGK & alt = gklist[sz];
-			alt.m_rasAddress = SocketToH225TransportAddr(PIPSocket::Address(tokens[0]),port);
+			alt.m_rasAddress = SocketToH225TransportAddr(ipAddress,port);
 			alt.m_needToRegister = true;
 			alt.m_priority = k;
 		}
