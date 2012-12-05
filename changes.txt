@@ -1,9 +1,10 @@
 Changes from 3.1 to 3.2
 =======================
+- BUGFIX(Neighbor.cxx) don't try to proxy calls if gatekeeper in direct mode
 - BUGFIX(Toolkit.cxx) ip addresses in alternateGateekeepers::SQL
 - New [Endpoint] EnableH46018 and EnableH46023 switches
 - New Alias SQL variable "Additive-RRQ"
-- Added support for additive registration for gateways. new switch [RasSrv::RRQFeatures] SupportAdditiveRegistration <WIP>
+- Added support for additive registration for gateways. new switch [RasSrv::RRQFeatures] SupportAdditiveRegistration
 - allow multiple instances of routing policies with different settings
   (currently works for sql, enum, srv, dns, numberanalysis, lua, forwarding) 
 - BUGFIX(Toolkit.cxx) remove h323: prefix if DefaultDomain is set

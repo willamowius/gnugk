@@ -1469,7 +1469,8 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
 #ifdef HAS_H460
-			if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData) || request.IsTraversalZone()) {
+			// TODO: better check for H.460.23/.24 than just looking for genericData field
+			if ((lcf->HasOptionalField(H225_LocationConfirm::e_genericData) || request.IsTraversalZone()) && RasServer::Instance()->IsGKRouted()) {
 				// overwrite callSignalAddress and replace with ours, we must proxy this call
 				endptr ep = RegistrationTable::Instance()->FindByEndpointId(arq_obj.GetRequest().m_endpointIdentifier); // should not be null
 				if (ep) {
@@ -1630,6 +1631,7 @@ bool NeighborPolicy::OnRequest(SetupRequest & setup_obj)
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
 #ifdef HAS_H460
+			// TODO: better check for H.460.23/.24 than just looking for genericData field
 			if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData) || request.IsTraversalZone()) {
 				// create an EPRec to remember the NAT settings for H.460.18 (traversal zone) or H.460.23/.24 (genericData)
 				H225_RasMessage ras;
@@ -1672,6 +1674,7 @@ bool NeighborPolicy::OnRequest(FacilityRequest & facility_obj)
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
 #ifdef HAS_H460
+			// TODO: better check for H.460.23/.24 than just looking for genericData field
 			if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData) || request.IsTraversalZone()) {
 				// create an EPRec to remember the NAT settings for H.460.18 (traversal zone) or H.460.23/.24 (genericData)
 				H225_RasMessage ras;
@@ -1830,6 +1833,7 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 						if (H225_LocationConfirm * lcf = pRequest->WaitForDestination(m_neighborTimeout)) {
 							Route * route = new Route(m_name, lcf->m_callSignalAddress);
 #ifdef HAS_H460
+							// TODO: better check for H.460.23/.24 than just looking for genericData field
 							if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
 								H225_RasMessage ras;
 								ras.SetTag(H225_RasMessage::e_locationConfirm);
@@ -2079,6 +2083,7 @@ bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 					if (H225_LocationConfirm *lcf = pRequest->WaitForDestination(m_neighborTimeout)) {
 						Route route(m_name, lcf->m_callSignalAddress);
 #ifdef HAS_H460
+						// TODO: better check for H.460.23/.24 than just looking for genericData field
 						if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
 							H225_RasMessage ras;
 							ras.SetTag(H225_RasMessage::e_locationConfirm);
