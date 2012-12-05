@@ -969,6 +969,7 @@ TCPProxySocket::~TCPProxySocket()
 
 void TCPProxySocket::DetachRemote()
 {
+	PWaitAndSignal lock(m_remoteLock);
 	if (remote) {
 		remote->remote = NULL; // detach myself from remote
 		CallSignalSocket * css = dynamic_cast<CallSignalSocket *>(remote);
@@ -980,6 +981,7 @@ void TCPProxySocket::DetachRemote()
 
 bool TCPProxySocket::ForwardData()
 {
+	PWaitAndSignal lock(m_remoteLock);
 	return (remote) ? remote->InternalWrite(buffer) : false;
 }
 
@@ -2316,8 +2318,10 @@ void CallSignalSocket::OnError()
 		RemoveCall();
 	}
 	EndSession();
+	m_remoteLock.Wait();
 	if (remote)
 		remote->EndSession();
+	m_remoteLock.Signal();
 }
 
 void CallSignalSocket::ForwardCall(FacilityMsg * msg)
@@ -3349,11 +3353,13 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			m_h245handler = NULL;
 			delete m_h245socket;
 			m_h245socket = NULL;
+			m_remoteLock.Wait();
 			if (remote) {
 				remote->RemoveRemoteSocket();
 				GetHandler()->Remove(remote);	// will delete socket in CleanUp()
 				remote = NULL;
 			}
+			m_remoteLock.Signal();
 		}
 #endif
 
@@ -5193,9 +5199,11 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg * msg)
 	}
 
 	if (m_callerSocket) {
+		m_remoteLock.Wait();
 		if (remote != NULL) {
 			remote->RemoveRemoteSocket();
 		}
+		m_remoteLock.Signal();
 	}
 
 	if (m_call && remote != NULL && !m_callerSocket
@@ -5222,6 +5230,7 @@ void CallSignalSocket::TryNextRoute()
 	CallRec *newCall = new CallRec(m_call.operator ->());
 	CallTable::Instance()->RemoveFailedLeg(m_call);
 
+	m_remoteLock.Wait();
 	CallSignalSocket *callingSocket = static_cast<CallSignalSocket*>(remote);
 	if (callingSocket != NULL) {
 		callingSocket->RemoveRemoteSocket();
@@ -5241,6 +5250,7 @@ void CallSignalSocket::TryNextRoute()
 		callingSocket->buffer = callingSocket->m_rawSetup;
 		callingSocket->buffer.MakeUnique();
 	}
+	m_remoteLock.Signal();
 
 	if (newCall->GetNewRoutes().empty()) {
 		PTRACE(1, "Q931\tERROR: TryNextRoute() without a route");
@@ -6003,11 +6013,13 @@ void CallSignalSocket::Dispatch()
 
 				CallTable::Instance()->Insert(newCall);
 
+				m_remoteLock.Wait();
 				if (remote != NULL) {
 					remote->RemoveRemoteSocket();
 					delete remote;
 					remote = NULL;
 				}
+				m_remoteLock.Signal();
 
 				buffer = m_rawSetup;
 				buffer.MakeUnique();
@@ -6023,8 +6035,10 @@ void CallSignalSocket::Dispatch()
 					m_call->SetReleaseSource(CallRec::ReleasedByGatekeeper);
 				}
 				CallTable::Instance()->RemoveCall(m_call);
+				m_remoteLock.Wait();
 				delete remote;
 				remote = NULL;
+				m_remoteLock.Signal();
 				TCPProxySocket::EndSession();
 				timeout = 0;
 				break;
@@ -6237,11 +6251,13 @@ void CallSignalSocket::DispatchNextRoute()
 
 			CallTable::Instance()->Insert(newCall);
 
+			m_remoteLock.Wait();
 			if (remote != NULL) {
 				remote->RemoveRemoteSocket();
 				delete remote;
 				remote = NULL;
 			}
+			m_remoteLock.Signal();
 
 			buffer = m_rawSetup;
 			buffer.MakeUnique();
@@ -6257,8 +6273,10 @@ void CallSignalSocket::DispatchNextRoute()
 				m_call->SetReleaseSource(CallRec::ReleasedByGatekeeper);
 			}
 			CallTable::Instance()->RemoveCall(m_call);
+			m_remoteLock.Wait();
 			delete remote;
 			remote = NULL;
+			m_remoteLock.Signal();
 			TCPProxySocket::EndSession();
 			break;
 		}
@@ -6455,8 +6473,10 @@ bool CallSignalSocket::ForwardCallConnectTo()
 		m_call->SetReleaseSource(CallRec::ReleasedByGatekeeper);
 	}
 	CallTable::Instance()->RemoveCall(m_call);
+	m_remoteLock.Wait();
 	delete remote;
 	remote = NULL;
+	m_remoteLock.Signal();
 	return false;
 }
 
@@ -8526,6 +8546,7 @@ T120ProxySocket::T120ProxySocket(T120ProxySocket *socket, WORD pt)
 
 bool T120ProxySocket::ForwardData()
 {
+	PWaitAndSignal lock(m_remoteLock);
 	return remote ? remote->ProxySocket::TransmitData(wbuffer, buflen) : false;
 }
 
@@ -9181,7 +9202,7 @@ ServerSocket *T120LogicalChannel::T120Listener::CreateAcceptor() const
 
 void T120LogicalChannel::Create(T120ProxySocket *socket)
 {
-	T120ProxySocket *remote = new T120ProxySocket(socket, peerPort);
+	T120ProxySocket * remote = new T120ProxySocket(socket, peerPort);
 	int numPorts = min(T120PortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS);
 	for (int i = 0; i < numPorts; ++i) {
 		WORD pt = T120PortRange.GetPort();
@@ -10643,12 +10664,18 @@ void ProxyHandler::ReadSocket(IPSocket * socket)
 #ifdef HAS_H46017
 					css->CleanupCall();
 #endif
-				} else if (css && css->GetRemote() && css->GetRemote()->MaintainConnection()) {
-					// if the other side uses H.460.17 clean up that end of the connection
+				} else  {
+					if (css) {
+						css->LockRemote();
+						if (css->GetRemote() && css->GetRemote()->MaintainConnection()) {
+							// if the other side uses H.460.17 clean up that end of the connection
 #ifdef HAS_H46017
-					css->GetRemote()->CleanupCall();
+							css->GetRemote()->CleanupCall();
 #endif
-					css->DetachRemote();
+							css->DetachRemote();
+						}
+						css->UnlockRemote();
+					}
 				}
 				if (!css || !css->MaintainConnection()) {
 					// only close the Q.931 socket if it's not also used for H.460.17
@@ -10730,11 +10757,13 @@ void CallSignalSocket::PerformConnecting()
 
 		CallTable::Instance()->Insert(newCall);
 
+		m_remoteLock.Wait();
 		if (remote != NULL) {
 			remote->RemoveRemoteSocket();
 			delete remote;
 			remote = NULL;
 		}
+		m_remoteLock.Signal();
 
 		buffer = m_rawSetup;
 		buffer.MakeUnique();
@@ -10750,8 +10779,10 @@ void CallSignalSocket::PerformConnecting()
 			m_call->SetReleaseSource(CallRec::ReleasedByGatekeeper);
 		}
 		CallTable::Instance()->RemoveCall(m_call);
+		m_remoteLock.Wait();
 		delete remote;
 		remote = NULL;
+		m_remoteLock.Signal();
 		TCPProxySocket::EndSession();
 		return;
 	}

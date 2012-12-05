@@ -129,7 +129,8 @@ public:
 	void DetachRemote();
   	void RemoveRemoteSocket();
 	void SetRemoteSocket(TCPProxySocket * ret) { remote=ret; }
-	//TCPProxySocket * GetRemoteSocket() const { return remote; }
+	void LockRemote() { m_remoteLock.Wait(); }
+	void UnlockRemote() { m_remoteLock.Signal(); }
 
 private:
 	TCPProxySocket();
@@ -146,6 +147,7 @@ protected:
 
 	bool ReadTPKT();
 
+	PMutex m_remoteLock;	// protect the remote member
 	TCPProxySocket *remote;
 	PBYTEArray buffer;
 
