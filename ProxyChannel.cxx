@@ -8089,7 +8089,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				// note: we don't do port switching at this time, once the ports are set they stay
 #ifdef HAS_H46024B
 				// If required begin Annex B probing
-				if (isRTPKeepAlive && m_call && (*m_call)->GetNATStrategy() == CallRec::e_natAnnexB) {
+				if (isRTPKeepAlive && m_call && (*m_call) && (*m_call)->GetNATStrategy() == CallRec::e_natAnnexB) {
 					(*m_call)->H46024BInitiate(m_sessionID, H323TransportAddress(fDestIP, fDestPort), H323TransportAddress(rDestIP, rDestPort));
 				}
 #endif	// HAS_H46024B
