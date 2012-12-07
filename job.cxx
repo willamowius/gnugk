@@ -23,7 +23,7 @@
 #include "job.h"
 
 // timeout (seconds) for an idle Worker to be deleted
-#define DEFAULT_WORKER_IDLE_TIMEOUT (10*60)
+#define DEFAULT_WORKER_IDLE_TIMEOUT (10*60)		// 10 minutes
 
 /** This class represents a thread that performs jobs. It has two states:
     idle and busy. When it accepts a new Job, it becomes busy. When the job
