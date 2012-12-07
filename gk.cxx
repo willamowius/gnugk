@@ -940,6 +940,10 @@ Gatekeeper::Gatekeeper(const char * _manuf,
 	GetArguments().SetArgs("-d -p " + pidfile);
 #endif
 #endif
+#if (PTLIB_VER >= 2100) && (PTLIB_VER < 2120)
+	// work around a bug in PTLib 2.10.x that doesn't start the housekeeping thread to delete auto-delete threads
+	SignalTimerChange();
+#endif
 }
 
 #ifdef COMPILE_AS_SERVICE
