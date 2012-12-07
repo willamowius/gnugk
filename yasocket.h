@@ -3,7 +3,7 @@
 // yasocket.h
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2011, Jan Willamowius
+// Copyright (c) 2004-2012, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -90,7 +90,7 @@ protected:
 class YaTCPSocket : public YaSocket {
 public:
 	YaTCPSocket(WORD = 0);
-	virtual ~YaTCPSocket() {}
+	virtual ~YaTCPSocket() { }
 
 	void GetPeerAddress(Address &) const;
 	void GetPeerAddress(Address &, WORD &) const;
@@ -180,7 +180,7 @@ public:
 		/// estimated number of sockets to be put in this select list
 		size_t reserve = 512
 	) : maxfd(0), m_name(name) { fds.reserve(reserve); }
-	
+
 	/// build a select list for signle socket only
 	YaSelectList(
 		YaSocket* singleSocket /// socket to be put on the list
@@ -228,7 +228,7 @@ public:
 	};
 
 	PString GetName() const { return m_name; }
-	
+
 private:
 	std::vector<YaSocket *> fds;
 	int maxfd;
@@ -248,10 +248,10 @@ public:
 		Read,
 		Write
 	};
-	SocketSelectList(size_t) {}
-	SocketSelectList(PIPSocket *s = 0) { if (s && s->IsOpen()) Append(s); }
-	SocketSelectList(const PString &name, size_t) : m_name(name) {}
-	SocketSelectList(const PString &name, PIPSocket *s = NULL) : m_name(name) { if (s && s->IsOpen()) Append(s); }
+	SocketSelectList(size_t) { }
+	SocketSelectList(PIPSocket * s = NULL) { if (s && s->IsOpen()) Append(s); }
+	SocketSelectList(const PString &name, size_t) : m_name(name) { }
+	SocketSelectList(const PString &name, PIPSocket * s = NULL) : m_name(name) { if (s && s->IsOpen()) Append(s); }
 	bool Select(SelectType, const PTimeInterval &);
 	PSocket *operator[](int i) const;
 
