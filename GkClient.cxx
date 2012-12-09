@@ -621,17 +621,7 @@ void STUNClient::Exec()
 	PThread::Sleep(500);
 
 	// Get a valid NAT type....
-	// We do the test 3 times as often the first test gives odd results
-	// if after 3 attempts it gives odd results well it must be an odd NAT :)  S.H.
-	PINDEX i = 0;
-	do  {
-		m_nattype = GetNatType(TRUE);
-		i++;
-	} while ((i <= 3) && (m_nattype == RestrictedNat ||
-			 m_nattype == PortRestrictedNat ||
-			 m_nattype == BlockedNat ||
-			 m_nattype == PartialBlockedNat
-		));
+	m_nattype = GetNatType(TRUE);
 
 	OnDetectedNAT(m_nattype);
 	ReadUnlock unlockConfig(ConfigReloadMutex);	// make sure the STUN client doesn't permanently hog the mutex
@@ -954,7 +944,7 @@ GkClient::GkClient()
 	m_parentVendor(ParentVendor_GnuGk), m_endpointType(EndpointType_Gateway),
 	m_discoverParent(true)
 #ifdef HAS_H46023
-	, m_nattype(0), m_natnotify(false), gk_H460_23(false),  m_stunClient(NULL)
+	, m_nattype(0), m_natnotify(false), gk_H460_23(false),  m_stunClient(NULL), m_algDetected(false)
 #endif
 {
 	m_resend = m_retry;
@@ -1155,20 +1145,28 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 #endif
 
 #ifdef HAS_H46023
-		if (Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableH46023", "0"))) {
+		if (Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableH46023", "0")) && 
+			(!m_registered || gk_H460_23)) {
+
 			bool contents = false;
 			rrq.IncludeOptionalField(H225_RegistrationRequest::e_featureSet);
 			H460_FeatureStd feat = H460_FeatureStd(23); 
 
-			if (!IsRegistered()) {
+			if (!m_registered) {
 				feat.Add(Std23_RemoteNAT,H460_FeatureContent(true));
 				feat.Add(Std23_AnnexA   ,H460_FeatureContent(true));
 				feat.Add(Std23_AnnexB   ,H460_FeatureContent(true));
+				contents = true;
+			} else if (m_algDetected) {
+				feat.Add(Std23_RemoteNAT,H460_FeatureContent(false)); 
+				feat.Add(Std23_NATdet	,H460_FeatureContent(PSTUNClient::OpenNat,8)); 
+				m_algDetected = false;
 				contents = true;
 			} else {
 				int natType = 0;
 				if (H46023_TypeNotify(natType)) {
 					feat.Add(Std23_NATdet,H460_FeatureContent(natType,8)); 
+					m_natnotify = false;
 					contents = true;
 				}
 			}
@@ -1836,7 +1834,7 @@ bool GkClient::WaitForACF(H225_AdmissionRequest &arq, RasRequester & request, Ro
 						CallTable::Instance()->FindCallRec(arq.m_callIdentifier) : CallTable::Instance()->FindCallRec(arq.m_callReferenceValue);
 					H460_FeatureSet fs = H460_FeatureSet(acf.m_featureSet);
 					if (fs.HasFeature(24)) 
-						HandleP2P_ACF(call, (H460_FeatureStd *)fs.GetFeature(24));
+						H46023_ACF(call, (H460_FeatureStd *)fs.GetFeature(24));
 				 }
 			  }
 #endif
@@ -1920,33 +1918,51 @@ void GkClient::OnRCF(RasMsg *ras)
 		if (rcf.HasOptionalField(H225_RegistrationConfirm::e_featureSet)) {
 			H460_FeatureSet fs = H460_FeatureSet(rcf.m_featureSet);
 			if (fs.HasFeature(23)) 
-				HandleP2P_RCF((H460_FeatureStd *)fs.GetFeature(23));
+				H46023_RCF((H460_FeatureStd *)fs.GetFeature(23));
 		}
 	}
 #endif
 }
 
 #ifdef HAS_H46023
-void GkClient::HandleP2P_RCF(H460_FeatureStd * feat)
+void GkClient::RunSTUNTest(const H323TransportAddress & addr)
 {
-	PBoolean NATdetect = FALSE;
-	gk_H460_23 = true;
+	if (m_stunClient)
+		return;
 
-	if (feat->Contains(Std23_IsNAT))
-		NATdetect = feat->Value(Std23_IsNAT);
+	H323TransportAddress s;
+	PString server = AsString(addr);
+#ifdef P_DNS
+	PStringList SRVs;
+	PStringList x = server.Tokenise(":");
+	PString number = "h323:user@" + x[0];
+	if (PDNS::LookupSRV(number,"_stun._udp.",SRVs))
+		s = H323TransportAddress(SRVs[0]);
+	else
+#endif
+		s = addr;
 
+	m_stunClient = new STUNClient(this,s);
+}
+
+void GkClient::H46023_RCF(H460_FeatureStd * feat)
+{
 	if (feat->Contains(Std23_DetRASAddr)) {
 		H323TransportAddress addr = feat->Value(Std23_DetRASAddr);
-		if (!NATdetect) {
-			PIPSocket::Address ip;
-			addr.GetIpAddress(ip);
-			// EP->OnDetectRASAddress(ip);
+		PIPSocket::Address ip;
+		addr.GetIpAddress(ip);
+		if (m_loaddr != ip) {
+			PTRACE(4, "GKC\tH46024 ALG Detected local IP " << m_loaddr << " reported " << ip );
+			m_algDetected = true;
+			H46023_ForceReregistration();
+			return;
 		}
 	}
 
-	if (NATdetect && feat->Contains(Std23_STUNAddr)) {
+	gk_H460_23 = true;
+	if (feat->Contains(Std23_STUNAddr)) {
 		H323TransportAddress addr = feat->Value(Std23_STUNAddr);
-		m_stunClient = new STUNClient(this,addr);
+		RunSTUNTest(addr);
 	}
 }
 
@@ -1958,7 +1974,7 @@ bool GkClient::H46023_TypeNotify(int & nattype)
 	return m_natnotify;
 }
 
-void GkClient::HandleP2P_ACF(callptr m_call, H460_FeatureStd * feat)
+void GkClient::H46023_ACF(callptr m_call, H460_FeatureStd * feat)
 {
     if (feat->Contains(Std24_NATInstruct)) {
 		unsigned NATinst = feat->Value(Std24_NATInstruct);
@@ -1973,26 +1989,50 @@ void GkClient::HandleP2P_ACF(callptr m_call, H460_FeatureStd * feat)
 
 bool GkClient::H46023_CreateSocketPair(const H225_CallIdentifier & id, UDPProxySocket * & rtp, UDPProxySocket * & rtcp, bool & nated)
 {
+	if (!gk_H460_23)
+		return false;
 
-  if (!m_stunClient) 
-	  return false;
+	callptr call = CallTable::Instance()->FindCallRec(id);
+	if (!call)
+		return false;
 
-   callptr call = CallTable::Instance()->FindCallRec(id);
-   if (call && call->GetNATStrategy() == CallRec::e_natLocalMaster) {   // Local media master need to use STUN to open RTP ports
+	switch (call->GetNATStrategy()) {
+		case CallRec::e_natUnknown:
+		case CallRec::e_natNoassist:
+		case CallRec::e_natLocalProxy:
+		case CallRec::e_natRemoteProxy:
+		case CallRec::e_natFullProxy:
+		case CallRec::e_natAnnexA:
+		case CallRec::e_natAnnexB:
+			// All handled by the ProxySocket
+			return false;
+		case CallRec::e_natLocalMaster:
 			nated = true;
-			return m_stunClient->CreateSocketPair((UDPSocket * &)rtp,(UDPSocket * &)rtcp);
+			return (m_stunClient && 
+					m_stunClient->CreateSocketPair((UDPSocket * &)rtp,(UDPSocket * &)rtcp));
+		case CallRec::e_natRemoteMaster:
+			nated = false;
+			return (m_stunClient && 
+					m_stunClient->CreateSocketPair((UDPSocket * &)rtp,(UDPSocket * &)rtcp));
+		case CallRec::e_natFailure:
+			// TODO signal the call will fail!
+		default:
+			return false;
 	}
 
-	return false;
+}
+
+void GkClient::H46023_ForceReregistration()
+{
+	m_registeredTime = PTime() - PTimeInterval(m_timer);
 }
 
 void GkClient::H46023_TypeDetected(int nattype)
 {
 	m_nattype = nattype;
 	m_natnotify = true;
-	// This will cause the client to reregister
-	// We just advance the timer to force reregister
-	m_registeredTime = PTime() - PTimeInterval(m_timer);
+
+	H46023_ForceReregistration();
 
 	if (m_nattype != 2) {
 		PTRACE(4, "GKC\tSTUN client disabled: Not supported for NAT type: " << nattype);
