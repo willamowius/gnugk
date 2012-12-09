@@ -258,9 +258,13 @@ private:
 
 #ifdef HAS_H46023
 	// Handle H46023 RCF
-	void HandleP2P_RCF(H460_FeatureStd * feat);
+	void H46023_RCF(H460_FeatureStd * feat);
     // Handle H46023 ACF
-	void HandleP2P_ACF(callptr m_call, H460_FeatureStd * feat);
+	void H46023_ACF(callptr m_call, H460_FeatureStd * feat);
+    // Run STUN test
+	void RunSTUNTest(const H323TransportAddress & addr);
+    // Force Reregistration
+	void H46023_ForceReregistration();
     // Notify NAT type
     bool H46023_TypeNotify(int & nattype);
 	// detected NAT type
@@ -271,6 +275,8 @@ private:
 	bool gk_H460_23;
 	// STUN Client
 	STUNClient * m_stunClient;
+	// ALG Detected
+	bool m_algDetected;
 
 public:
 	// NAT type detected
