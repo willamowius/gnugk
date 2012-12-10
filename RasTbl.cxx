@@ -2834,7 +2834,7 @@ void CallRec::SetDurationLimit(long seconds)
 	PWaitAndSignal lock(m_usedLock);
 	// allow only to restrict duration limit
 	const time_t sec = (m_durationLimit && seconds) 
-		? PMIN(m_durationLimit,seconds) : PMAX(m_durationLimit,seconds);
+		? PMIN((long)m_durationLimit,seconds) : PMAX((long)m_durationLimit,seconds);
 	m_durationLimit = sec;
 	if (IsConnected())
 		m_timeout = sec;
@@ -3086,7 +3086,11 @@ void CallRec::RemoveAll()
 
 void CallRec::RemoveSocket()
 {
+#if PTLIB_VER < 2120
 	if (m_sockLock.WillBlock()) // locked by SendReleaseComplete()?
+#else
+	if (!m_sockLock.Try()) // locked by SendReleaseComplete()?
+#endif
 		return; // avoid deadlock
 
 	PWaitAndSignal lock(m_sockLock);
@@ -3488,7 +3492,11 @@ bool CallRec::MoveToNextRoute()
 	if (! IsFailoverActive())
 		return false;
 		
+#if PTLIB_VER < 2120
 	if (ShutdownMutex.WillBlock())
+#else
+	if (!ShutdownMutex.Wait(0))
+#endif
 		return false;
 
 	if (!m_newRoutes.empty()) {

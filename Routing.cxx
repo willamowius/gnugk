@@ -890,7 +890,7 @@ void VirtualQueue::OnReload()
 			? "RequestTimeout" : "CTI_Timeout", 
 		DEFAULT_ROUTE_REQUEST_TIMEOUT
 		) * 1000;
-	m_requestTimeout = PMAX(100,m_requestTimeout);	// min wait: 100 msec
+	m_requestTimeout = PMAX((long)100,m_requestTimeout);	// min wait: 100 msec
 
 	m_active = false;
 

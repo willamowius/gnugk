@@ -848,7 +848,13 @@ bool USocket::WriteData(const BYTE * buf, int len)
 		return false;
 		
 	int remaining = len;
-	if (qsize == 0 && !writeMutex.WillBlock()) {
+	if (qsize == 0 && 
+#if PTLIB_VER < 2120
+		!writeMutex.WillBlock()
+#else
+		writeMutex.Try()
+#endif
+		) {
 		PWaitAndSignal lock(writeMutex);
 		while (remaining > 0) {
 			int sendnow = remaining > MAX_SOCKET_CHUNK
@@ -1118,7 +1124,11 @@ bool TCPServer::CloseListener(TCPListenSocket * socket)
 
 void TCPServer::ReadSocket(IPSocket * socket)
 {
+#if PTLIB_VER < 2120
 	if (ShutdownMutex.WillBlock()) {
+#else
+	if (!ShutdownMutex.Wait(0)) {
+#endif
 		PTRACE(4, GetName() << "\tShutdown: Rejecting call on " << socket->GetName());
 		int rej = ::accept(socket->GetHandle(), NULL, NULL);
 		::shutdown(rej, 2 /* SHUT_RDWR */ );

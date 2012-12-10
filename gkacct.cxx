@@ -860,7 +860,7 @@ GkAcctLoggerList::GkAcctLoggerList()
 {
 	// should not be less than 10 seconds
 	if (m_acctUpdateInterval)
-		m_acctUpdateInterval = PMAX(10, m_acctUpdateInterval);
+		m_acctUpdateInterval = PMAX((long)10, m_acctUpdateInterval);
 }
 
 GkAcctLoggerList::~GkAcctLoggerList()
@@ -876,7 +876,7 @@ void GkAcctLoggerList::OnReload()
 		);
 	// should not be less than 10 seconds
 	if (m_acctUpdateInterval)
-		m_acctUpdateInterval = PMAX(10, m_acctUpdateInterval);
+		m_acctUpdateInterval = PMAX((long)10, m_acctUpdateInterval);
 
 	DeleteObjectsInContainer(m_loggers);
 	m_loggers.clear();

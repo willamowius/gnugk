@@ -605,7 +605,6 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutingPolicy::OnSetup", "*" },
 	{ "SimplePasswordAuth", "*" },
 	{ "H350PasswordAuth", "*" },
-
 	{ NULL }	// the end
 };
 
@@ -743,7 +742,11 @@ void ReloadHandler()
 	Gatekeeper::ReopenLogFile();
 
 	// only one thread must do this
+#if PTLIB_VER < 2120
 	if (ReloadMutex.WillBlock())
+#else
+	if (!ReloadMutex.Try())
+#endif
 		return;
 
 	/*
