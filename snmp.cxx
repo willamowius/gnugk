@@ -658,7 +658,7 @@ void WindowsSNMPAgent::SendWindowsSNMPTrap(unsigned trapNumber, SNMPLevel severi
 						+ " " + PString(PString::Unsigned, severity)
 						+ " " + PString(PString::Unsigned, group)
 						+ " " + msg;
-		CallNamedPipe(trapPipename, trap.GetPointer(), trap.GetLength(), NULL, 0, NULL, 1000);
+		CallNamedPipe(trapPipename, (void *)trap.GetPointer(), trap.GetLength(), NULL, 0, NULL, 1000);
 	}
 }
 
