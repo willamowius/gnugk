@@ -478,18 +478,18 @@ public:
 
 //
 
-class STUNsocket  : public UDPSocket
+class STUNsocket  : public UDPProxySocket
 {
 public:
-    STUNsocket();
+    STUNsocket(const char * t, const H225_CallIdentifier & id);
 	virtual PBoolean GetLocalAddress(PIPSocket::Address &);
 	virtual PBoolean GetLocalAddress(PIPSocket::Address &, WORD &);
 
 	PIPSocket::Address externalIP;
 };
 
-STUNsocket::STUNsocket()
-  : externalIP(0)
+STUNsocket::STUNsocket(const char * t, const H225_CallIdentifier & id)
+  : UDPProxySocket(t,id), externalIP(0)
 {
 }
 
@@ -549,8 +549,9 @@ class STUNClient   :  public  Job,
 	virtual void Run();
 
     virtual bool CreateSocketPair(
-			UDPSocket * & rtp,
-			UDPSocket * & rtcp,
+			const H225_CallIdentifier & id,
+			UDPProxySocket * & rtp,
+			UDPProxySocket * & rtcp,
 			const PIPSocket::Address & binding = PIPSocket::GetDefaultIpAny()
     );
 
@@ -714,7 +715,7 @@ bool STUNClient::OpenSocketA(UDPSocket & socket, PortInfo & portInfo, const PIPS
 }
 #endif
 
-bool STUNClient::CreateSocketPair(UDPSocket * & rtp, UDPSocket * & rtcp, const PIPSocket::Address & binding)
+bool STUNClient::CreateSocketPair(const H225_CallIdentifier & id, UDPProxySocket * & rtp, UDPProxySocket * & rtcp, const PIPSocket::Address & binding)
 {
 	// We only create port pairs, a pair at a time.
 	PWaitAndSignal m(m_portCreateMutex);
@@ -735,7 +736,8 @@ bool STUNClient::CreateSocketPair(UDPSocket * & rtp, UDPSocket * & rtcp, const P
 
 	for (i = 0; i < m_socketsForPairing; i++)
 	{
-		PINDEX idx = stunSocket.Append(new STUNsocket);
+		PString t = (i%2 == 0 ? "rtp" : "rtcp");
+		PINDEX idx = stunSocket.Append(new STUNsocket(t,id));
 		if (!OpenSocketA(stunSocket[idx], pairedPortInfo, binding)) {
 			PTRACE(1, "STUN\tUnable to open socket to server " << GetServer());
 			return false;
@@ -794,6 +796,52 @@ bool STUNClient::CreateSocketPair(UDPSocket * & rtp, UDPSocket * & rtcp, const P
 }
 
 #endif
+
+/////////////////////////////////////////////////////////////////////
+
+class GkClient;
+class H46024Socket  : public UDPProxySocket
+{
+public:
+    H46024Socket(GkClient * client, bool rtp, const H225_CallIdentifier & id, WORD flcn);
+
+	virtual bool OnReceiveData(void *, PINDEX, Address &, WORD &);
+
+    enum  probe_state {
+        e_notRequired,        ///< Polling has not started
+        e_initialising,        ///< We are initialising (local set but remote not)
+        e_idle,                ///< Idle (waiting for first packet from remote)
+        e_probing,            ///< Probing for direct route
+        e_verify_receiver,    ///< verified receive connectivity    
+        e_verify_sender,    ///< verified send connectivity
+        e_wait,                ///< we are waiting for direct media (to set address)
+        e_direct            ///< we are going direct to detected address
+    };
+
+private:
+    GkClient * m_client;
+	CallRec::NatStrategy m_natStrategy;
+	WORD m_flcn;
+	bool m_rtp;
+    probe_state m_probeState;
+};
+
+H46024Socket::H46024Socket(GkClient * client, bool rtp, const H225_CallIdentifier & id, WORD flcn)
+	:UDPProxySocket((rtp ? "rtp" : "rtcp"),id), m_client(client), 
+	m_natStrategy(client->H46023_GetNATStategy(id)), m_flcn(flcn),  
+	m_rtp(rtp), m_probeState(e_notRequired)
+{
+
+}
+
+bool H46024Socket::OnReceiveData(void * data, PINDEX datalen, Address & ipAddress, WORD & ipPort) 
+{
+	if (m_natStrategy != CallRec::e_natAnnexA || 
+		m_natStrategy != CallRec::e_natAnnexB)
+		return true;
+    
+	return true;
+}
 
 /////////////////////////////////////////////////////////////////////
 
@@ -977,6 +1025,9 @@ GkClient::~GkClient()
 {
 #ifdef OpenH323Factory
     delete m_h235Authenticators;
+#endif
+#ifdef HAS_H46023
+	m_natstrategy.clear();
 #endif
 	DeleteObjectsInArray(m_handlers, m_handlers + 4);
 	delete m_gkList;
@@ -1887,7 +1938,7 @@ void GkClient::OnRCF(RasMsg *ras)
 	
 	// Not all RCF contain TTL, in that case keep old value
 	if (rcf.HasOptionalField(H225_RegistrationConfirm::e_timeToLive)) {
-		m_ttl = PMAX(rcf.m_timeToLive - m_retry, 30);
+		m_ttl = PMAX((long)(rcf.m_timeToLive - m_retry), (long)30);
 		// Have it reregister at 3/4 of TimeToLive, otherwise the parent
 		// might go out of sync and ends up sending an URQ
 		m_ttl = (m_ttl / 4) * 3;
@@ -1981,13 +2032,12 @@ void GkClient::H46023_ACF(callptr m_call, H460_FeatureStd * feat)
 
         PTRACE(4, "GKC\tH46024 strategy for call set to " << NATinst);
 
-		if (m_call) 
-			m_call->SetNATStrategy((CallRec::NatStrategy)NATinst);
-
+		if (m_call)
+			H46023_SetNATStategy(m_call->GetCallIdentifier(),NATinst);
 	}
 }
 
-bool GkClient::H46023_CreateSocketPair(const H225_CallIdentifier & id, UDPProxySocket * & rtp, UDPProxySocket * & rtcp, bool & nated)
+bool GkClient::H46023_CreateSocketPair(const H225_CallIdentifier & id, WORD flcn, UDPProxySocket * & rtp, UDPProxySocket * & rtcp, bool & nated)
 {
 	if (!gk_H460_23)
 		return false;
@@ -2002,24 +2052,42 @@ bool GkClient::H46023_CreateSocketPair(const H225_CallIdentifier & id, UDPProxyS
 		case CallRec::e_natLocalProxy:
 		case CallRec::e_natRemoteProxy:
 		case CallRec::e_natFullProxy:
-		case CallRec::e_natAnnexA:
-		case CallRec::e_natAnnexB:
 			// All handled by the ProxySocket
 			return false;
+		case CallRec::e_natAnnexA:
+		case CallRec::e_natAnnexB:
+			nated = false;
+			rtp = new H46024Socket(this, true, id, flcn);
+			rtcp = new H46024Socket(this, false, id, flcn);
+			return true;
 		case CallRec::e_natLocalMaster:
 			nated = true;
 			return (m_stunClient && 
-					m_stunClient->CreateSocketPair((UDPSocket * &)rtp,(UDPSocket * &)rtcp));
+					m_stunClient->CreateSocketPair(id, rtp, rtcp));
 		case CallRec::e_natRemoteMaster:
 			nated = false;
 			return (m_stunClient && 
-					m_stunClient->CreateSocketPair((UDPSocket * &)rtp,(UDPSocket * &)rtcp));
+					m_stunClient->CreateSocketPair(id, rtp, rtcp));
 		case CallRec::e_natFailure:
 			// TODO signal the call will fail!
 		default:
 			return false;
 	}
+}
 
+void GkClient::H46023_SetNATStategy(const H225_CallIdentifier & id, unsigned nat)
+{
+	PWaitAndSignal m(m_strategyMutex);
+
+    m_natstrategy.insert(pair<H225_CallIdentifier, int>(id,nat));
+}
+
+CallRec::NatStrategy GkClient::H46023_GetNATStategy(const H225_CallIdentifier & id)
+{
+	PWaitAndSignal m(m_strategyMutex);
+
+	std::map<H225_CallIdentifier, unsigned>::const_iterator i = m_natstrategy.find(id);
+	return (CallRec::NatStrategy)((i != m_natstrategy.end()) ? i->second : 0);
 }
 
 void GkClient::H46023_ForceReregistration()

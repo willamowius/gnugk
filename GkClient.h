@@ -19,6 +19,7 @@
 #include "Toolkit.h"
 #include "Routing.h"
 #include "config.h"
+#include <map>
 
 class Q931;
 class H225_AliasAddress;
@@ -277,13 +278,19 @@ private:
 	STUNClient * m_stunClient;
 	// ALG Detected
 	bool m_algDetected;
+    // Call NAT Strategy Map
+	PMutex m_strategyMutex;
+	std::map<H225_CallIdentifier, unsigned> m_natstrategy;
 
 public:
 	// NAT type detected
 	void H46023_TypeDetected(int nattype);
     // Create socket pair
-    bool H46023_CreateSocketPair(const H225_CallIdentifier & id, UDPProxySocket * & rtp, UDPProxySocket * & rtcp, bool & nated);
-
+    bool H46023_CreateSocketPair(const H225_CallIdentifier & id, WORD flcn, UDPProxySocket * & rtp, UDPProxySocket * & rtcp, bool & nated);
+	// Set the NAT Strategy
+	void H46023_SetNATStategy(const H225_CallIdentifier & id, unsigned nat);
+	// Find the NAT Strategy
+	CallRec::NatStrategy H46023_GetNATStategy(const H225_CallIdentifier & id);
 #endif
 };
 

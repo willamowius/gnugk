@@ -160,6 +160,98 @@ private:
 	unsigned tpktlen;
 };
 
+class RTPLogicalChannel;
+class UDPProxySocket : public UDPSocket, public ProxySocket {
+public:
+#ifndef LARGE_FDSET
+	PCLASSINFO( UDPProxySocket, UDPSocket )
+#endif
+
+	UDPProxySocket(const char * t, const H225_CallIdentifier & id);
+	~UDPProxySocket();
+
+	void UpdateSocketName();
+	void SetDestination(H245_UnicastAddress &,callptr &);
+	void SetForwardDestination(const Address &, WORD, H245_UnicastAddress *, callptr &);
+	void SetReverseDestination(const Address &, WORD, H245_UnicastAddress *, callptr &);
+	typedef void (UDPProxySocket::*pMem)(const Address &, WORD, H245_UnicastAddress *, callptr &);
+
+	bool Bind(const Address &localAddr, WORD pt);
+	int GetOSSocket() const { return os_handle; }
+	void SetNAT(bool);
+	bool isMute() { return mute; }
+	void SetMute(bool toMute) { mute = toMute; }
+	void OnHandlerSwapped() { std::swap(fnat, rnat); }
+	void SetRTPSessionID(WORD id) { m_sessionID = id; }
+#ifdef HAS_H235_MEDIA
+	void SetEncryptingRTPChannel(RTPLogicalChannel * lc) { m_encryptingLC = lc; }
+	void RemoveEncryptingRTPChannel(RTPLogicalChannel * lc) { if (m_encryptingLC == lc) m_encryptingLC = NULL; }
+	void SetDecryptingRTPChannel(RTPLogicalChannel * lc) { m_decryptingLC = lc; }
+	void RemoveDecryptingRTPChannel(RTPLogicalChannel * lc) { if (m_decryptingLC == lc) m_decryptingLC = NULL; }
+#endif
+#ifdef HAS_H46018
+	void SetUsesH46019fc(bool fc) { m_h46019fc = fc; }
+	// same socket is used for all directions; set if at least one side uses H.460.19
+	void SetUsesH46019() { m_useH46019 = true; }
+	bool UsesH46019() const { return m_useH46019; }
+	void SetH46019UniDirectional(bool val) { m_h46019uni = val; }
+	void SetMultiplexDestination(const H323TransportAddress & toAddress, H46019Side side);
+	void SetMultiplexID(PUInt32b multiplexID, H46019Side side);
+	void SetMultiplexSocket(int multiplexSocket, H46019Side side);
+#endif
+
+	// override from class ProxySocket
+	virtual Result ReceiveData();
+	virtual bool OnReceiveData(void *, PINDEX, Address &, WORD &) { return true; }
+
+protected:
+	virtual bool WriteData(const BYTE *, int);
+	virtual bool Flush();
+	virtual bool ErrorHandler(PSocket::ErrorGroup);
+
+	void SetMediaIP(const PString & direction, const Address & ip);
+
+	// RTCP handler
+	void BuildReceiverReport(const RTP_ControlFrame & frame, PINDEX offset, bool dst);
+
+	H225_CallIdentifier m_callID;
+	callptr * m_call;
+
+private:
+	UDPProxySocket();
+	UDPProxySocket(const UDPProxySocket&);
+	UDPProxySocket& operator=(const UDPProxySocket&);
+
+protected:
+	Address fSrcIP, fDestIP, rSrcIP, rDestIP;
+	WORD fSrcPort, fDestPort, rSrcPort, rDestPort;
+	bool fnat, rnat;
+	bool mute;
+	bool m_isRTPType;
+	bool m_isRTCPType;
+	bool m_dontQueueRTP;
+	bool m_EnableRTCPStats;
+	WORD m_sessionID;
+	RTPLogicalChannel * m_encryptingLC;
+	RTPLogicalChannel * m_decryptingLC;
+#ifdef HAS_H46018
+	bool m_h46019fc;
+	bool m_useH46019;
+	bool m_h46019uni;
+	bool m_h46019DetectionDone;
+	PMutex m_h46019DetectionLock;
+	// two (!), one or zero parties in a call through a UDPProxySocket may by multiplexed
+	// UDPProxySocket always receives regular RTP, but may send out multiplexed
+	H323TransportAddress m_multiplexDestination_A;	// OLC side of first logical channel in this session
+	PUInt32b m_multiplexID_A;	// ID _to_ A side (only valid if m_multiplexDestination_A is set)
+	int m_multiplexSocket_A;	// only valid if m_multiplexDestination_A is set
+	H323TransportAddress m_multiplexDestination_B;	// OLCAck side of first logical channel in this session
+	PUInt32b m_multiplexID_B;	// ID _to_ B side (only valid if m_multiplexDestination_B is set)
+	int m_multiplexSocket_B;	// only valid if m_multiplexDestination_ is set)
+	PMutex m_multiplexMutex;	// protect multiplex IDs, addresses and sockets against access from concurrent threads
+#endif
+};
+
 #if H323_H450
 class X880_Invoke;
 class H4501_InterpretationApdu;
