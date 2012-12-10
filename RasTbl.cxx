@@ -470,6 +470,10 @@ bool EndpointRec::HasAvailableCapacity(const H225_ArrayOf_AliasAddress & aliases
 	string matched_prefix = "";
 	int prefix_capacity = -1;
 
+	// we can only send a single call over a H.460.17 connection
+	if (UsesH46017() && m_activeCall > 0)
+		return FALSE;
+
 	for (PINDEX i = 0; i < aliases.GetSize(); i++) {
 		const unsigned tag = aliases[i].GetTag();
 		if (tag == H225_AliasAddress::e_dialedDigits

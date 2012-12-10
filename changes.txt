@@ -1,5 +1,6 @@
 Changes from 3.1 to 3.2
 =======================
+- BUGFIX(RasTbl.cxx) avoid sending a 2nd call onto a H.460.17 connection
 - BUGFIX(neighbor.cxx) explicitly check the H.460.24 featureID in the LCF
 - BUGFIX(job.cxx) delete unused worker threads after 2 minutes idle time instead of 10 min
 - BUGFIX(gk.cxx) work around bug in PTLib 2.10.x where housekeeping thread isn't started causing a handle leak
