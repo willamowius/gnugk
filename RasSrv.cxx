@@ -1790,7 +1790,7 @@ bool RegistrationRequestPDU::Process()
 #ifdef HAS_H46017
 	PBoolean usesH46017 = (m_msg->m_h46017Socket != NULL);
 	if (usesH46017) {
-		PTRACE(1, "RAS\tEndpoint uses H.460.17");
+		PTRACE(3, "RAS\tEndpoint uses H.460.17");
 		// add RAS and signal IP eg. for status port display, but they will never be used
 		request.m_rasAddress.SetSize(1);
 		request.m_rasAddress[0] = SocketToH225TransportAddr(rx_addr, rx_port);
