@@ -1821,8 +1821,12 @@ bool RegistrationTable::InternalFindEP(
 	endptr ep = InternalFind(bind2nd(mem_fun(&EndpointRec::CompareAlias), &aliases), endpoints);
 	if (ep) {
 		PTRACE(4, "Alias match for EP " << AsDotString(ep->GetCallSignalAddress()));
-		routes.push_back(Route("internal", ep));
-        return true;
+		if (ep->UsesH46017() && ep->GetActiveCalls() > 0) {
+			PTRACE(4, "H.460.17 endpoint already has a call, skipping");
+		} else {
+			routes.push_back(Route("internal", ep));
+		    return true;
+		}
 	}
 
 	int maxlen = 0;

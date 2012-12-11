@@ -290,6 +290,7 @@ public:
 	    True if the endpoint can handle at least one more concurrent call.
 	*/
 	bool HasAvailableCapacity(const H225_ArrayOf_AliasAddress & aliases) const;
+	unsigned GetActiveCalls() const { return m_activeCall; }
 	// void DumpPrefixCapacity() const;
 	string LongestPrefixMatch(const PString & alias, int & capacity) const;
 	void UpdatePrefixStats(const PString & dest, int update);
