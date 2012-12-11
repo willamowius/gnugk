@@ -135,9 +135,7 @@ private:
 /// by all authenticators
 struct SetupAuthData
 {
-	SetupAuthData(
-		const SetupAuthData& obj
-		);
+	SetupAuthData(const SetupAuthData & obj);
 	SetupAuthData(
 		/// call associated with the message (if any)
 		const callptr& call,
