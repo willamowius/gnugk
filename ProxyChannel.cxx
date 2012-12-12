@@ -8578,6 +8578,11 @@ RTPLogicalChannel::~RTPLogicalChannel()
 	m_cryptoEngineMutex.Signal();
 #endif
 
+	if (rtp)
+		rtp->RemoveCallPtr();
+	if (rtcp)
+		rtcp->RemoveCallPtr();
+
 	if (peer) {
 		peer->peer = NULL;
 	} else {
@@ -10621,7 +10626,7 @@ void CallSignalSocket::PerformConnecting()
 		ConfigReloadMutex.StartRead();
 		if (!isReadable) {
 			PTRACE(3, "Q931\tTimed out waiting for a response to Setup or SCI message from " << remote->GetName());
-			if( m_call )
+			if (m_call)
 				m_call->SetDisconnectCause(Q931::TimerExpiry);
 			OnError();
 		}

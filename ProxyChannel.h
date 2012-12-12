@@ -171,7 +171,8 @@ public:
 	~UDPProxySocket();
 
 	void UpdateSocketName();
-	void SetDestination(H245_UnicastAddress &,callptr &);
+	void RemoveCallPtr() { m_call = NULL; }
+	void SetDestination(H245_UnicastAddress &, callptr &);
 	void SetForwardDestination(const Address &, WORD, H245_UnicastAddress *, callptr &);
 	void SetReverseDestination(const Address &, WORD, H245_UnicastAddress *, callptr &);
 	typedef void (UDPProxySocket::*pMem)(const Address &, WORD, H245_UnicastAddress *, callptr &);
