@@ -1307,8 +1307,8 @@ Optional Features:
   --enable-firebird       enable Interbase/Firebird support (default=yes)
   --enable-unixodbc       enable unixODBC support (default=yes)
   --enable-sqlite         enable SQLite support (default=yes)
-  --enable-libssh                enable libssh support (default=yes)
-  --enable-netsnmp                enable Net-SNMP support (default=yes)
+  --enable-libssh         enable libssh support (default=yes)
+  --enable-netsnmp        enable Net-SNMP support (default=yes)
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -1327,9 +1327,9 @@ Optional Packages:
   --with-libssh-include-dir=DIR  directory where libssh includes may be found
   --with-libssh-lib-dir=DIR      directory where libssh libraries may be found
   --with-libssh-dir=DIR          base directory where libssh is installed
-  --with-netsnmp-include-dir=DIR  directory where Net-SNMP includes may be found
-  --with-netsnmp-lib-dir=DIR      directory where Net-SNMP libraries may be found
-  --with-netsnmp-dir=DIR          base directory where Net-SNMP is installed
+  --with-netsnmp-include-dir=DIR directory where Net-SNMP includes may be found
+  --with-netsnmp-lib-dir=DIR     directory where Net-SNMP libraries may be found
+  --with-netsnmp-dir=DIR         base directory where Net-SNMP is installed
 
 Some influential environment variables:
   CXX         C++ compiler command

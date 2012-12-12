@@ -825,7 +825,7 @@ dnl MSWIN_DIR_SYMBOL libssh,LIBSSH_DIR
 dnl MSWIN_CHECK_DIR  libssh,\libssh\
 
 AC_ARG_ENABLE(libssh, 
-[  --enable-libssh                enable libssh support (default=yes)], 
+[  --enable-libssh         enable libssh support (default=yes)], 
 [ libssh="${enableval}" ], [ libssh="yes" ]
 )
 
@@ -932,22 +932,22 @@ dnl MSWIN_DIR_SYMBOL netsnmp,NETSNMP_DIR
 dnl MSWIN_CHECK_DIR  netsnmp,\net-snmp\
 
 AC_ARG_ENABLE(netsnmp, 
-[  --enable-netsnmp                enable Net-SNMP support (default=yes)], 
+[  --enable-netsnmp        enable Net-SNMP support (default=yes)], 
 [ netsnmp="${enableval}" ], [ netsnmp="yes" ]
 )
 
 AC_ARG_WITH(netsnmp-include-dir,
-[  --with-netsnmp-include-dir=DIR  directory where Net-SNMP includes may be found ],
+[  --with-netsnmp-include-dir=DIR directory where Net-SNMP includes may be found ],
 [ netsnmp_include_dir="$withval" ]
 )
 
 AC_ARG_WITH(netsnmp-lib-dir,
-[  --with-netsnmp-lib-dir=DIR      directory where Net-SNMP libraries may be found ],
+[  --with-netsnmp-lib-dir=DIR     directory where Net-SNMP libraries may be found ],
 [ netsnmp_lib_dir="$withval" ]
 )
 
 AC_ARG_WITH(netsnmp-dir,
-[  --with-netsnmp-dir=DIR          base directory where Net-SNMP is installed ],
+[  --with-netsnmp-dir=DIR         base directory where Net-SNMP is installed ],
 [ netsnmp_lib_dir="$withval/lib"
   netsnmp_include_dir="$withval/include"
 ]
