@@ -1,5 +1,6 @@
 Changes from 3.1 to 3.2
 =======================
+- BUGFIX(ProxyChannel.cxx) fix tracing of RTP sequence numbers
 - BUGFIX(ProxyChannel.cxx) set call pointer in UDP socket to NULL when closing the call
 - BUGFIX(RasTbl.cxx) avoid sending a 2nd call onto a H.460.17 connection
 - BUGFIX(neighbor.cxx) explicitly check the H.460.24 featureID in the LCF

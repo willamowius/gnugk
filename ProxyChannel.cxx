@@ -7909,7 +7909,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	unsigned int seq = 0;
 	unsigned int timestamp = 0;
 	if (buflen >= 4)
-		seq = (((int)wbuffer[2] << 8) & 0x7f) + ((int)wbuffer[3] & 0x7f);
+		seq = ((int)wbuffer[2] * 256) + (int)wbuffer[3];
 	if (buflen >= 8)
 		timestamp = ((int)wbuffer[4] * 16777216) + ((int)wbuffer[5] * 65536) + ((int)wbuffer[6] * 256) + (int)wbuffer[7];
 	PTRACE(7, "JW RTP IN on " << localport << " from " << AsString(fromIP, fromPort) << " pType=" << (int)payloadType
