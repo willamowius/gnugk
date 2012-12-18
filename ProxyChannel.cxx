@@ -1088,6 +1088,8 @@ void CallSignalSocket::CleanupCall()
 {
 	m_call = callptr(NULL);
 	m_crv = 0;
+	if (m_h245handler)
+		delete m_h245handler;
 	m_h245handler = NULL;
 	m_h245socket = NULL;
 	m_setupPdu = NULL;
