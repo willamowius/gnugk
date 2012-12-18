@@ -1102,7 +1102,7 @@ void GkStatus::CleanUp()
 			else ++iter;
 		}
 	}
-	RemoveClosed(false);
+	RemoveClosed(false);	// TODO: this runs every second, do we really need this here ? other SocketsReader don't do this
 }
 
 
