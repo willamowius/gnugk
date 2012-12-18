@@ -6810,10 +6810,11 @@ void H245Socket::SendEndSessionCommand()
 	PPER_Stream wtstrm;
 	h245msg.Encode(wtstrm);
 	wtstrm.CompleteEncoding();
-	if (!TransmitData(wtstrm)) {
+	if (TransmitData(wtstrm)) {
+		PTRACE(4, "H245\tSend endSessionCommand to " << GetName());
+	} else {
 		PTRACE(1, "H245\tSending of endSessionCommand to " << GetName() << " failed");
 	}
-	PTRACE(4, "H245\tSend endSessionCommand to " << GetName());
 }
 
 #ifdef HAS_H46018
@@ -6857,11 +6858,12 @@ void H245Socket::SendH46018Indication()
 	PPER_Stream wtstrm;
 	h245msg.Encode(wtstrm);
 	wtstrm.CompleteEncoding();
-	if (!TransmitData(wtstrm)) {
+	if (TransmitData(wtstrm)) {
+		PTRACE(4, "H245\tSend H.460.18 Indication to " << GetName());
+	} else {
 		PTRACE(1, "H245\tSending of H.460.18 Indication to " << GetName() << " failed");
 		SNMP_TRAP(10, SNMPError, Network, "Sending H.460.18 Indication failed");
 	}
-	PTRACE(4, "H245\tSend H.460.18 Indication to " << GetName());
 }
 #endif
 
@@ -6886,11 +6888,12 @@ void H245Socket::SendTCS(H245_TerminalCapabilitySet * tcs)
 	PPER_Stream wtstrm;
 	h245msg.Encode(wtstrm);
 	wtstrm.CompleteEncoding();
-	if (!TransmitData(wtstrm)) {
+	if (TransmitData(wtstrm)) {
+		PTRACE(4, "H245\tSend TerminalCapabilitySet to " << GetName());
+	} else {
 		PTRACE(1, "H245\tSending of TerminalCapabilitySet to " << GetName() << " failed");
 		SNMP_TRAP(10, SNMPError, Network, "Sending TCS to " + GetName() + " failed");
 	}
-	PTRACE(4, "H245\tSend TerminalCapabilitySet to " << GetName());
 }
 
 bool H245Socket::Send(const H245_MultimediaSystemControlMessage & h245msg)
@@ -6901,12 +6904,13 @@ bool H245Socket::Send(const H245_MultimediaSystemControlMessage & h245msg)
 	PPER_Stream wtstrm;
 	h245msg.Encode(wtstrm);
 	wtstrm.CompleteEncoding();
-	if (!TransmitData(wtstrm)) {
+	if (TransmitData(wtstrm)) {
+		PTRACE(4, "H245\tSend H.245 message to " << GetName());
+	} else {
 		PTRACE(1, "H245\tSending of H.245 message to " << GetName() << " failed");
 		SNMP_TRAP(10, SNMPError, Network, "Sending H.245 message to " + GetName() + " failed");
 		return false;
 	}
-	PTRACE(4, "H245\tSend H.245 message to " << GetName());
 	return true;
 }
 
