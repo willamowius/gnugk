@@ -8595,9 +8595,14 @@ RTPLogicalChannel::~RTPLogicalChannel()
 		if (used) {
 			// the sockets will be deleted by ProxyHandler,
 			// so we don't need to delete it here
-			// don't close the sockets, or it causes crashing
-			rtp->SetDeletable();
-			rtcp->SetDeletable();
+			if (rtp) {
+				rtp->Close();
+				rtp->SetDeletable();
+			}
+			if (rtcp) {
+				rtcp->Close();
+				rtcp->SetDeletable();
+			}
 		} else {
 			delete rtp;
 			rtp = NULL;
