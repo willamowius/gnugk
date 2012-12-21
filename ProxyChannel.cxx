@@ -1323,6 +1323,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 #ifdef HAS_H46017
 		if (m_isnatsocket && !IsOpen()) {
 			RegistrationTable::Instance()->OnNATSocketClosed(this);
+			CleanupCall();
 		}
 #endif
 		return IsOpen() ? NoData : Error;
@@ -5996,6 +5997,7 @@ void CallSignalSocket::Dispatch()
 	if (m_h46017Enabled) {
 		// if this is a H.460.17 socket, make sure its removed from the EPRec
 		RegistrationTable::Instance()->OnNATSocketClosed(this);
+		CleanupCall();
 	}
 #endif
 	delete this;
@@ -9202,6 +9204,7 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 H245ProxyHandler::~H245ProxyHandler()
 {
 	if (peer) {
+		// TODO: H.460.19 fastStart handing doesn't seem right and creates a leak
 		if (peer->UsesH46019fc())
 			return;
 		peer->peer = 0;
@@ -9209,6 +9212,7 @@ H245ProxyHandler::~H245ProxyHandler()
 	if (UsesH46019fc())
 		return;
 
+	// TODO: see above
 	DeleteObjectsInMap(logicalChannels);
 	DeleteObjectsInMap(fastStartLCs);
 }
@@ -10732,6 +10736,7 @@ void ProxyHandler::CleanUp()
 				if (css) {
 					// if this is a H.460.17 socket, make sure its removed from the EPRec
 					RegistrationTable::Instance()->OnNATSocketClosed(css);
+					css->CleanupCall();
 				}
 			}
 #endif
