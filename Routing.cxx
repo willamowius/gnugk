@@ -1962,6 +1962,8 @@ void SqlPolicy::RunPolicy(
 		} else {
 			H225_ArrayOf_AliasAddress newAliases;
 			newAliases.SetSize(1);
+			if (GkConfig()->GetBoolean(m_iniSection, "SupportRewrite", 0))
+				newDestination = RewriteWildcard(calledAlias,newDestination);
 			H323SetAliasAddress(newDestination, newAliases[0]);
 			destination.SetNewAliases(newAliases);
 		}

@@ -733,3 +733,49 @@ PString RewriteString(
 	
 	return result;
 }
+
+PString RewriteWildcard(
+	const PString & s,
+	const PString & expression 
+	)
+{
+	PString o = expression;
+
+	if (o.IsEmpty())
+		return s;
+	
+	int b1 = o.Find('{');
+	if (b1 == P_MAX_INDEX) return o; /// No rewrite
+
+	int b2 = o.Find('}');
+	if (b2 == P_MAX_INDEX || b1 > b2) return s;  /// Logic error ignore rewrite
+
+	PString exp = o.Mid(b1+1,b2-b1-1);
+
+	PString r;
+	if (exp *= "\\1")
+		r = s;
+	else {
+	   int start = -1;
+       if (exp.Find('^') != P_MAX_INDEX)  start = 0;
+	   else if (exp.Find('$') != P_MAX_INDEX) start = 1;
+	  
+	   if (start < 0) return s;   /// Logic error ignore rewrite
+
+	   int c1 = exp.Find('(');
+	   if (c1 == P_MAX_INDEX) return s;   /// Logic error ignore rewrite
+	   int c2 = exp.Find(')');
+	   if (c2 == P_MAX_INDEX || c1 > c2) return s;   /// Logic error ignore rewrite
+
+	   int i = exp.Mid(c1+1,c2-c1-1).AsInteger();
+	   if (i == 0) return s;   /// Logic error ignore rewrite
+
+       if (b1 > 0) r = s.Left(i);
+	   else r = s.Mid(s.GetLength()-i);
+	}
+
+    if (b1 > 0) 
+		return o.Left(b1-1) + r;
+	else
+		return r + o.Mid(b2+1);
+};

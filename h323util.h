@@ -221,5 +221,19 @@ PString RewriteString(
 	const char *value /// new string that replaces the prefix string
 	);
 	
+/** Rewrite Wildcard match 
+	Lightweight Regex match rewrite.
+	Only basic number matching supported at the moment
+	Example  
+		12345678  {\1}@mydomain.com  = 12345678@mydomain.com
+		12345678  {^\d(4)}@mydomain.com = 1234@mydomain.com
+		12345678  {\d(4)$}@mydomain.com = 5678@mydomain.com
+	
+	@return	Rewritten string.
+*/
+PString RewriteWildcard(
+	const PString & s,          /// original string to rewrite
+	const PString & expression /// prefix string that matched					
+	);
 	
 #endif // H323UTIL_H

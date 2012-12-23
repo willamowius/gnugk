@@ -547,6 +547,18 @@ SELECT concat(prefix,'%c'), gatewayip FROM routes WHERE route = LEFT('%c', 5) li
 
 </itemize>
 
+<itemize>
+<item><tt/SupportRewrite=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Switch to support basic regex rewrites. 
+<tag/Example:/
+{\1} all character ie  12345678  rewrite to 1234578@my.com, <newline>
+{^\d(4)} first 4 digits ie 12345678 rewrite to 1234@my.com, <newline>
+{\d(4)$} last 4 digits ie 12345678  rewrite to 4578@my.com.></quote>
+</itemize>
+
+
 <sect1>Section &lsqb;Routing::NumberAnalysis&rsqb;
 <label id="numberanalysis">
 <p>
