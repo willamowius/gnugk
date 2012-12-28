@@ -447,6 +447,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Routing::Sql", "CacheTimeout" },
 	{ "Routing::Sql", "Database" },
 	{ "Routing::Sql", "Driver" },
+	{ "Routing::Sql", "EnableRegexRewrite" },
 	{ "Routing::Sql", "Host" },
 	{ "Routing::Sql", "Library" },
 	{ "Routing::Sql", "MinPoolSize" },

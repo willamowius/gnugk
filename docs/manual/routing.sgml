@@ -545,16 +545,26 @@ SELECT gatewayip FROM routes WHERE prefix = LEFT('%c',5)
 SELECT concat(prefix,'%c'), gatewayip FROM routes WHERE route = LEFT('%c', 5) limit 3
 </verb></tscreen>
 
-<item><tt/SupportRewrite=1/<newline>
+<item><tt/EnableRegexRewrite=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
-Enable basic regex rewrites. 
+Enable basic regex rewriting where parts of the original called alias
+are inserted into the result of the database query.
 
-Example:
+Regular expressions:
 
-{\1} all character ie  12345678  rewrite to 1234578@my.com, <newline>
-{^\d(4)} first 4 digits ie 12345678 rewrite to 1234@my.com, <newline>
-{\d(4)$} last 4 digits ie 12345678  rewrite to 4578@my.com.<newline>
+<itemize>
+<item>{\1} - all of the original called alias
+<item>{^\d(4)} - first 4 digits
+<item>{\d(4)$} - last 4 digits
+</itemize>
+
+Examples:
+
+Assuming the called alias was "12345678" and the database returns
+"{\1}@my.com" then all character are inserted so the new destination is "1234578@my.com".
+
+If the database returns "{^\d(4)}@my.com" the first 4 digits are inserted so the new destination is "1234@my.com" and with "{\d(4)$}@my.com" from the database, the call is sent to "4578@my.com".
 </itemize>
 
 

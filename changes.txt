@@ -1,6 +1,6 @@
 Changes from 3.1 to 3.2
 =======================
-- New [Routing::Sql] SupportRewrite switch to support basic regex rewrite in SQL queries.
+- New [Routing::Sql] EnableRegexRewrite switch to support basic regex rewrite in SQL queries
 - BUGFIX(ProxyChannel.cxx) always close RTP sockets before marking them deletable
 - BUGFIX(ProxyChannel.cxx) clean up H.245 handler after H.460.17 calls
 - BUGFIX(ProxyChannel.cxx) fix tracing of RTP sequence numbers
