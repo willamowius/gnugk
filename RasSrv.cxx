@@ -2048,7 +2048,7 @@ bool RegistrationRequestPDU::Process()
 
 			// Additive Registration lightweightRRQ
 			if (request.HasOptionalField(H225_RegistrationRequest::e_additiveRegistration)) {
-				if (!Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "SupportAdditiveRegistration", "0")) ||
+				if (!Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "EnableAdditiveRegistration", "0")) ||
 					!ep->IsGateway() || !request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias))
 					return BuildRRJ(H225_RegistrationRejectReason::e_additiveRegistrationNotSupported);
 				else
@@ -2605,7 +2605,7 @@ bool RegistrationRequestPDU::BuildRCF(const endptr & ep, bool additiveRegistrati
 		rcf.m_timeToLive = ep->GetTimeToLive();
 	} 
 
-	if (ep->IsGateway() && Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "SupportAdditiveRegistration", "0")))
+	if (ep->IsGateway() && Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "EnableAdditiveRegistration", "0")))
 		rcf.IncludeOptionalField(H225_RegistrationConfirm::e_supportsAdditiveRegistration);
 
 	return true;

@@ -13,7 +13,7 @@ Changes from 3.1 to 3.2
 - BUGFIX(Toolkit.cxx) ip addresses in alternateGateekeepers::SQL
 - New [Endpoint] EnableH46018 and EnableH46023 switches
 - New Alias SQL variable "Additive-RRQ"
-- Added support for additive registration for gateways. new switch [RasSrv::RRQFeatures] SupportAdditiveRegistration
+- Added support for additive registration for gateways. new switch [RasSrv::RRQFeatures] EnableAdditiveRegistration
 - allow multiple instances of routing policies with different settings
   (currently works for sql, enum, srv, dns, numberanalysis, lua, forwarding) 
 - BUGFIX(Toolkit.cxx) remove h323: prefix if DefaultDomain is set

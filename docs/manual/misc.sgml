@@ -332,7 +332,7 @@ Default: <tt/1/<newline>
 <p>
 Forward the destCallSignalAddress in ARQs to the parent gatekeeper.
 
-<item><tt/SupportAdditiveRegistration=1/<newline>
+<item><tt/EnableAdditiveRegistration=1/<newline>
 Default: <tt/0/<newline>
 <p>
 Whether the child gatekeeper supports passing registration information

@@ -1930,7 +1930,7 @@ void GkClient::OnRCF(RasMsg *ras)
 			m_gkList->Set(rcf.m_alternateGatekeeper);
 		if ((m_endpointType == EndpointType_Gateway) &&
 			rcf.HasOptionalField(H225_RegistrationConfirm::e_supportsAdditiveRegistration) && 
-			Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "SupportAdditiveRegistration", "0")))
+			Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableAdditiveRegistration", "0")))
 				m_useAdditiveRegistration = true;
 
 		for_each(m_handlers, m_handlers + 4, bind1st(mem_fun(&RasServer::RegisterHandler), m_rasSrv));
