@@ -101,7 +101,7 @@ const PString Toolkit::GKVersion()
 #else
 				(int)0,
 #endif
-#ifdef hasLUA
+#ifdef HAS_LUA
 				(int)1,
 #else
 				(int)0,

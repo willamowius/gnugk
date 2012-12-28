@@ -442,8 +442,10 @@ const char * KnownConfigEntries[][2] = {
 	{ "Routing::Forwarding", "Password" },
 	{ "Routing::Forwarding", "Query" },
 	{ "Routing::Forwarding", "Username" },
+#ifdef HAS_LUA
 	{ "Routing::Lua", "Script" },
 	{ "Routing::Lua", "ScriptFile" },
+#endif
 	{ "Routing::RDS", "ResolveLRQ" },
 	{ "Routing::SRV", "ResolveNonLocalLRQ" },
 	{ "Routing::Sql", "CacheTimeout" },
@@ -584,6 +586,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "FileIPAuth", "*" },
 	{ "GkStatus::Auth", "*" },
 	{ "H225toQ931", "*" },
+	{ "H350PasswordAuth", "*" },
 	{ "ModeSelection", "*" },
 	{ "NATedEndpoints", "*" },
 	{ "PrefixAuth", "*" },
@@ -607,7 +610,6 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutingPolicy::OnLRQ", "*" },
 	{ "RoutingPolicy::OnSetup", "*" },
 	{ "SimplePasswordAuth", "*" },
-	{ "H350PasswordAuth", "*" },
 	{ NULL }	// the end
 };
 

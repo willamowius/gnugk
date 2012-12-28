@@ -29,7 +29,7 @@ SOURCES	 = singleton.cxx job.cxx yasocket.cxx h323util.cxx \
            gk.cxx version.cxx gkacct.cxx gktimer.cxx gkconfig.cxx \
            sigmsg.cxx clirw.cxx cisco.cxx ipauth.cxx statusacct.cxx \
            syslogacct.cxx capctrl.cxx MakeCall.cxx h460presence.cxx \
-           forwarding.cxx snmp.cxx \
+           forwarding.cxx snmp.cxx lua.cxx \
            @SOURCES@
 
 HEADERS  = GkClient.h GkStatus.h Neighbor.h ProxyChannel.h RasPDU.h \
