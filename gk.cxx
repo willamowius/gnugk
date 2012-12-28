@@ -442,6 +442,8 @@ const char * KnownConfigEntries[][2] = {
 	{ "Routing::Forwarding", "Password" },
 	{ "Routing::Forwarding", "Query" },
 	{ "Routing::Forwarding", "Username" },
+	{ "Routing::Lua", "Script" },
+	{ "Routing::Lua", "ScriptFile" },
 	{ "Routing::RDS", "ResolveLRQ" },
 	{ "Routing::SRV", "ResolveNonLocalLRQ" },
 	{ "Routing::Sql", "CacheTimeout" },
