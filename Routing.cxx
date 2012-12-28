@@ -2005,113 +2005,6 @@ void SqlPolicy::RunPolicy(
 }
 
 
-#ifdef hasLUA
-LuaPolicy::LuaPolicy()
-{
-	m_name = "Lua";
-	m_iniSection = "Routing::Lua";
-	m_active = false;
-}
-
-void LuaPolicy::LoadConfig(const PString & instance)
-{
-	m_script = GkConfig()->GetString(m_iniSection, "Script", "");
-	if (m_script.IsEmpty()) {
-		PString scriptFile = GkConfig()->GetString(m_iniSection, "ScriptFile", "");
-		if (!scriptFile.IsEmpty()) {
-			PTextFile f(scriptFile, PFile::ReadOnly);
-			if (!f.IsOpen()) {
-				PTRACE(1, "Can't read LUA script " << scriptFile);
-			} else {
-				PString line;
-				while (f.ReadLine(line)) {
-					m_script += (line + "\n"); 
-				}
-			}
-		}
-	}
-
-	if (m_script.IsEmpty()) {
-		PTRACE(2, m_name << "\tmodule creation failed: "
-			<< "\tno LUA script");
-		SNMP_TRAP(4, SNMPError, General, PString(m_name) + " creation failed");
-		return;
-	}
-	m_active = true;
-}
-
-LuaPolicy::~LuaPolicy()
-{
-}
-
-void LuaPolicy::RunPolicy(
-		/* in */
-		const PString & source,
-		const PString & calledAlias,
-		const PString & calledIP,
-		const PString & caller,
-		const PString & callingStationId,
-		const PString & callid,
-		const PString & messageType,
-		const PString & clientauthid,
-		/* out: */
-		DestinationRoutes & destination)
-{
-	m_lua.SetValue("source", source);
-	m_lua.SetValue("calledAlias", calledAlias);
-	m_lua.SetValue("calledIP", calledIP);
-	m_lua.SetValue("caller", caller);
-	m_lua.SetValue("callingStationId", callingStationId);
-	m_lua.SetValue("callid", callid);
-	m_lua.SetValue("messageType", messageType);
-	m_lua.SetValue("clientauthid", clientauthid);
-
-	m_lua.Run(m_script);
-
-	PString action = m_lua.GetValue("action");
-	PString rejectCode = m_lua.GetValue("rejectCode");
-	PString destAlias = m_lua.GetValue("destAlias");
-	PString destIP = m_lua.GetValue("destIP");
-
-	if (action.ToUpper() == "SKIP") {
-		PTRACE(5, m_name << "\tSkipping to next policy");
-		return;
-	}
-
-	if (action.ToUpper() == "REJECT") {
-		PTRACE(5, m_name << "\tRejecting call");
-		destination.SetRejectCall(true);
-		if (!rejectCode.IsEmpty()) {
-			destination.SetRejectReason(rejectCode.AsInteger());
-		}
-		return;
-	}
-
-	if (!destAlias.IsEmpty()) {
-		PTRACE(5, m_name << "\tSet new destination alias " << destAlias);
-		H225_ArrayOf_AliasAddress newAliases;
-		newAliases.SetSize(1);
-		H323SetAliasAddress(destAlias, newAliases[0]);
-		destination.SetNewAliases(newAliases);
-	}
-
-	if (!destIP.IsEmpty()) {
-		PTRACE(5, m_name << "\tSet new destination IP " << destIP);
-		PStringArray adr_parts = SplitIPAndPort(destIP, GK_DEF_ENDPOINT_SIGNAL_PORT);
-		PString ip = adr_parts[0];
-		WORD port = (WORD)(adr_parts[1].AsInteger());
-
-		Route route("Lua", SocketToH225TransportAddr(ip, port));
-		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
-		if (!destAlias.IsEmpty())
-			route.m_destNumber = destAlias;
-		destination.AddRoute(route);
-	}
-}
-
-#endif // hasLUA
-
-
 CatchAllPolicy::CatchAllPolicy()
 {
 	m_name = "CatchAll";
@@ -2168,9 +2061,6 @@ namespace { // anonymous namespace
 	SimpleCreator<NumberAnalysisPolicy> NumberAnalysisPolicyCreator("numberanalysis");
 	SimpleCreator<ENUMPolicy> ENUMPolicyCreator("enum");
 	SimpleCreator<SqlPolicy> SqlPolicyCreator("sql");
-#ifdef hasLUA
-	SimpleCreator<LuaPolicy> LuaPolicyCreator("lua");
-#endif
 	SimpleCreator<CatchAllPolicy> CatchAllPolicyCreator("catchall");
 }
 

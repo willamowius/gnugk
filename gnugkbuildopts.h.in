@@ -41,6 +41,10 @@
 
 #undef HAS_NETSNMP
 
+// LUA
+
+#undef HAS_LUA
+
 // MYSQL
 
 #undef HAS_MYSQL

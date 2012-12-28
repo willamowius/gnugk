@@ -23,9 +23,6 @@
 #include "factory.h"
 #include "RasTbl.h"
 #include "stl_supp.h"
-#ifdef hasLUA
-#include <ptclib/lua.h>
-#endif
 
 // forward references to avoid includes
 class H225_AdmissionRequest;
@@ -532,36 +529,6 @@ protected:
 	long m_timeout;
 };
 
-#ifdef hasLUA
-// a policy to route calls with LUA
-class LuaPolicy : public DynamicPolicy {
-public:
-	LuaPolicy();
-	virtual ~LuaPolicy();
-
-protected:
-	virtual void LoadConfig(const PString & instance);
-
-	virtual void RunPolicy(
-		/*in */
-		const PString & source,
-		const PString & calledAlias,
-		const PString & calledIP,
-		const PString & caller,
-		const PString & callingStationId,
-		const PString & callid,
-		const PString & messageType,
-		const PString & clientauthid,
-		/* out: */
-		DestinationRoutes & destination);
-
-protected:
-	// LUA interpreter
-	PLua m_lua;
-	// script to run
-	PString m_script;
-};
-#endif
 
 // a policy to route all calls to one default endpoint
 class CatchAllPolicy : public Policy {

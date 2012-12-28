@@ -1035,6 +1035,117 @@ else
 fi
 AC_SUBST(HAS_NETSNMP)
 
+dnl #########################################################################
+dnl  Check for LUA
+dnl ########################################################################
+
+dnl MSWIN_DISPLAY    lua,LUA
+dnl MSWIN_CHECK_FILE lua,include\lua.hpp,HAS_LUA=1
+dnl MSWIN_DIR_SYMBOL lua,LUA_DIR
+dnl MSWIN_CHECK_DIR  lua,\Program Files\Lua\5.1
+dnl MSWIN_CHECK_DIR  lua,\Program Files (x86)\Lua\5.1
+
+AC_ARG_ENABLE(lua, 
+[  --enable-lua        enable LUA support (default=yes)], 
+[ lua="${enableval}" ], [ lua="yes" ]
+)
+
+AC_ARG_WITH(lua-include-dir,
+[  --with-lua-include-dir=DIR directory where LUA includes may be found ],
+[ lua_include_dir="$withval" ]
+)
+
+AC_ARG_WITH(lua-lib-dir,
+[  --with-lua-lib-dir=DIR     directory where LUA libraries may be found ],
+[ lua_lib_dir="$withval" ]
+)
+
+AC_ARG_WITH(lua-dir,
+[  --with-lua-dir=DIR         base directory where LUA is installed ],
+[ lua_lib_dir="$withval/lib"
+  lua_include_dir="$withval/include"
+]
+)
+
+if test "x${lua}" != "xno"; then
+
+	AC_MSG_CHECKING([for lua.h])
+
+	old_CFLAGS="$CFLAGS"
+	old_LDFLAGS="$LDFLAGS"
+
+	for try in /usr/include /usr/local/include $lua_include_dir; do
+		if test -d $try; then
+			CFLAGS="$old_CFLAGS -I$try"
+			LDFLAGS="$old_LDFLAGS -L$try/../lib"
+			AC_TRY_COMPILE([#include <lua.h>], [int a = 1;],
+				LUA_INCLUDE="-I$try",
+				LUA_INCLUDE=
+			)
+		fi
+	done
+	CFLAGS="$old_CFLAGS"
+	LDFLAGS="$old_LDFLAGS"
+
+	if test "x$LUA_INCLUDE" = "x"; then
+		AC_MSG_RESULT(no)
+		AC_MSG_WARN([LUA headers not found. Use --with-lua-include-dir=<path>])
+		lua="no"
+	else
+		lua_cflags="${lua_cflags} ${LUA_INCLUDE}"
+		AC_MSG_RESULT(yes)
+
+		AC_MSG_CHECKING([for LUA library])
+
+		old_LIBS="$LIBS"
+
+		for try in /usr/lib /usr/local/lib $lua_lib_dir; do
+			if test -d $try; then
+				LIBS="$old_LIBS -llua"
+				AC_TRY_LINK([extern luaL_newstate();], [luaL_newstate();],
+					[ LUA_LIBS="-llua"
+					  LUA_LDFLAGS="-L$try"
+					]
+				)
+				if test "x$LUA_LDFLAGS" != "x"; then
+					break;
+				fi
+			fi
+		done
+		LIBS="$old_LIBS"
+
+		if test "x$LUA_LDFLAGS" = "x"; then
+			AC_MSG_RESULT(no)
+			LUA_INCLUDE=
+			AC_MSG_WARN([LUA lib not found. Use --with-lua-lib-dir=<path>])
+			lua="no"
+		else
+			AC_MSG_RESULT(yes) 
+			lua_ldflags="$lua_ldflags $LUA_LDFLAGS"
+		fi
+	fi
+
+	lua_ldflags="$lua_ldflags $LIBS"
+
+	if test "x$lua" = "xno"; then
+		AC_MSG_WARN([LUA disabled])
+	fi
+else
+	lua="no"
+fi
+
+if test "x$lua" != "xno"; then
+	HAS_LUA=1
+	STDCCFLAGS="${lua_cflags} -DHAS_LUA=1 $STDCCFLAGS"
+	LDFLAGS="$LUA_LDFLAGS $LDFLAGS"
+	ENDLDLIBS="$LUA_LIBS $ENDLDLIBS"
+    echo "LUA support enabled"
+else
+    echo "LUA support disabled"
+	HAS_LUA=0
+fi
+AC_SUBST(HAS_LUA)
+
 dnl ########################################################################
 dnl make directives
 

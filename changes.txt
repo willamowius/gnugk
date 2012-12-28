@@ -1,6 +1,6 @@
 Changes from 3.1 to 3.2
 =======================
-- New [Routing::Sql] EnableRegexRewrite switch to support basic regex rewrite in SQL queries
+- new [Routing::Sql] EnableRegexRewrite switch to support basic regex rewrite in SQL queries
 - BUGFIX(ProxyChannel.cxx) always close RTP sockets before marking them deletable
 - BUGFIX(ProxyChannel.cxx) clean up H.245 handler after H.460.17 calls
 - BUGFIX(ProxyChannel.cxx) fix tracing of RTP sequence numbers
@@ -11,9 +11,9 @@ Changes from 3.1 to 3.2
 - BUGFIX(gk.cxx) work around bug in PTLib 2.10.x where housekeeping thread isn't started causing a handle leak
 - BUGFIX(Neighbor.cxx) don't try to proxy calls if gatekeeper in direct mode
 - BUGFIX(Toolkit.cxx) ip addresses in alternateGateekeepers::SQL
-- New [Endpoint] EnableH46018 and EnableH46023 switches
-- New Alias SQL variable "Additive-RRQ"
-- Added support for additive registration for gateways. new switch [RasSrv::RRQFeatures] EnableAdditiveRegistration
+- new [Endpoint] EnableH46018 and EnableH46023 switches
+- new Alias SQL variable "Additive-RRQ"
+- support for additive registration for gateways. new switch [RasSrv::RRQFeatures] EnableAdditiveRegistration
 - allow multiple instances of routing policies with different settings
   (currently works for sql, enum, srv, dns, numberanalysis, lua, forwarding) 
 - BUGFIX(Toolkit.cxx) remove h323: prefix if DefaultDomain is set
@@ -25,7 +25,7 @@ Changes from 3.1 to 3.2
 - BUGFIX(ProxyChannel.cxx) check for creating RTP loops when auto-detecting H.460.19 ports without keepAlive
 - BUGFIX(RasSrv.cxx) fix H.460.24 3 min bug
 - RTP_DEBUG messages now always present on trace level 7
-- update switch [RasSrv::PermanentEndpoints] to support vendor information on gateways
+- extend [RasSrv::PermanentEndpoints] to support vendor information on gateways
 - BUGFIX(ProxyChannel.cxx) fix H.460.19 with H.460.17 endpoints
 - BUGFIX(ProxyChannel.cxx) fix H.460.17 IPs in trace
 - BUGFIX(RasSrv.cxx) relax check of sender ports for H.460.17 RRQs
