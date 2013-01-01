@@ -3748,6 +3748,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 		natinfo << "    IsNATed:     Yes\n";
 		natinfo << "    Detected IP: " << m_Calling->GetNATIP() << "\n";
 		natinfo << "    NAT Type:    " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Calling->GetEPNATType()) << "\n";
+		natinfo << "    H.460.24 Annex A: " << (m_Calling->SupportH46024A() ? "Yes" : "No");
 		natinfo << "    H.460.24 Annex B: " << (m_Calling->UseH46024B() ? "Yes" : "No");
 	} else if (!goDirect) {
 		natinfo << "    Proxy IP: " << m_Calling->GetIP() << "\n";
@@ -3761,6 +3762,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 		natinfo << "    IsNATed:      Yes\n";
 		natinfo << "    Detected IP: " << m_Called->GetNATIP() << "\n";
 		natinfo << "    NAT Type:    " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Called->GetEPNATType()) << "\n";
+		natinfo << "    H.460.24 Annex A: " << (m_Called->SupportH46024A() ? "Yes" : "No");
 		natinfo << "    H.460.24 Annex B: " << (m_Called->UseH46024B() ? "Yes" : "No");
 	} else if (!goDirect) {
 		natinfo << "    Proxy IP: " << m_Called->GetIP() << "\n";
