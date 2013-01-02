@@ -596,7 +596,7 @@ public:
 	virtual void StartReading(ProxyHandler *);
 	virtual void SetRTPMute(bool toMute);
 
-	bool IsAttached() const { return (peer != 0); }
+	bool IsAttached() const { return (peer != NULL); }
 	void OnHandlerSwapped(bool);
 
 	bool IsOpen() const;
@@ -1741,7 +1741,9 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		&& ((H245_RequestMessage&)h245msg).GetTag() == H245_RequestMessage::e_openLogicalChannel) {
 		H245_OpenLogicalChannel & olc = (H245_RequestMessage&)h245msg;
 #ifdef HAS_H235_MEDIA
-        changed = HandleH235OLC(olc);
+		if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
+			changed = HandleH235OLC(olc);
+		}
 #endif
 		if (m_callerSocket) {  // TODO: This code will not work for encrypted media
 			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
@@ -1880,7 +1882,9 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 
 		H245_TerminalCapabilitySet & tcs = (H245_RequestMessage&)h245msg;
 #ifdef HAS_H235_MEDIA
-        changed = HandleH235TCS(tcs);
+		if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
+			changed = HandleH235TCS(tcs);
+		}
 #endif
         H245_ArrayOf_CapabilityTableEntry & CapabilityTables = tcs.m_capabilityTable;
 
@@ -2080,14 +2084,17 @@ bool AddH235Capability(unsigned _entryNo,
 
 bool CallSignalSocket::HandleH235TCS(H245_TerminalCapabilitySet & tcs)
 {
+	if (!m_call)
+		return false;
+
     if (m_call && m_call->GetEncryptDirection() == CallRec::none)
         return false;
 
-    bool toRemove = ((!m_callerSocket && (m_call->GetEncryptDirection() == CallRec::callingParty))
-                 || (m_callerSocket && (m_call->GetEncryptDirection() == CallRec::calledParty)));
+    bool toRemove = ((!m_callerSocket && m_call && (m_call->GetEncryptDirection() == CallRec::callingParty))
+                 || (m_callerSocket && m_call && (m_call->GetEncryptDirection() == CallRec::calledParty)));
 
     PStringList capList;
-    if (!m_call->GetAuthenticators().GetAlgorithms(capList)) {
+    if (m_call && !m_call->GetAuthenticators().GetAlgorithms(capList)) {
         PTRACE(1, "H235\tEncryption support but no common algorithm! DISABLING!!");
         m_call->SetMediaEncryption(CallRec::none);
         m_call->GetAuthenticators().SetSize(0);
@@ -2123,11 +2130,14 @@ bool CallSignalSocket::HandleH235TCS(H245_TerminalCapabilitySet & tcs)
 // encryptionSync is handled in HandleOpenlogicalChannel
 bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 {
+    if (!m_call)
+        return false;
+
     if (m_call && m_call->GetEncryptDirection() == CallRec::none)
         return false;
 
-    bool toRemove = ((!m_callerSocket && (m_call->GetEncryptDirection() == CallRec::callingParty))
-                 || (m_callerSocket && (m_call->GetEncryptDirection() == CallRec::calledParty)));
+    bool toRemove = ((!m_callerSocket && m_call && (m_call->GetEncryptDirection() == CallRec::callingParty))
+                 || (m_callerSocket && m_call && (m_call->GetEncryptDirection() == CallRec::calledParty)));
 
     bool isReverse = false;
     H245_DataType * tmpCapPtr = NULL;
@@ -2170,7 +2180,7 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 		}
     } else {
         PStringList m_capList;
-        if (!m_call->GetAuthenticators().GetAlgorithms(m_capList)) {
+        if (m_call && !m_call->GetAuthenticators().GetAlgorithms(m_capList)) {
             PTRACE(1, "H235\tOLC No Algorithms! ABORTIING REWRITE!");
             return false;
         }
@@ -4069,14 +4079,14 @@ bool CallSignalSocket::CreateRemote(const H225_TransportAddress & addr)
 
 bool CallSignalSocket::IsTraversalClient() const
 {
-	return ((!m_callerSocket && m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalClient())
-		   || (m_callerSocket && m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalClient()));
+	return ((!m_callerSocket && m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalClient())
+		   || (m_callerSocket && m_call && m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalClient()));
 };
 
 bool CallSignalSocket::IsTraversalServer() const
 {
-	return ((!m_callerSocket && m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalServer())
-		   || (m_callerSocket && m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalServer()));
+	return ((!m_callerSocket && m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalServer())
+		   || (m_callerSocket && m_call && m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalServer()));
 };
 #endif
 
@@ -5636,7 +5646,9 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 		case H225_FacilityReason::e_startH245:
 			uuie.IncludeOptionalField(H225_Facility_UUIE::e_h245Address);
 			if (CallSignalSocket *ret = dynamic_cast<CallSignalSocket *>(remote)) {
-				uuie.m_h245Address = m_h245socket->GetH245Address(ret->masqAddr);
+				if (m_h245socket) {
+					uuie.m_h245Address = m_h245socket->GetH245Address(ret->masqAddr);
+				}
 			} else {
 				PTRACE(2, "Warning: " << GetName() << " has no remote party?");
 			}
@@ -8480,7 +8492,7 @@ void T120ProxySocket::Dispatch()
 
 
 // class RTPLogicalChannel
-RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, bool nated) : LogicalChannel(flcn), reversed(false), peer(0)
+RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, bool nated) : LogicalChannel(flcn), reversed(false), peer(NULL)
 {
 	SrcIP = 0;
 	SrcPort = 0;
@@ -8544,7 +8556,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 	PTRACE(2, "RTP\tLogical channel " << flcn << " could not be established - out of RTP sockets");
 }
 
-RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nated)
+RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool nated)
 {
 #ifdef HAS_H235_MEDIA
 	m_H235CryptoEngine = NULL;
@@ -9186,7 +9198,8 @@ bool T120LogicalChannel::OnSeparateStack(H245_NetworkAccessParameters & sepStack
 
 // class H245ProxyHandler
 H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSocket::Address & local, const PIPSocket::Address & remote, const PIPSocket::Address & masq, H245ProxyHandler * pr)
-      : H245Handler(local, remote, masq), peer(pr),callid(id), isMute(false), m_useH46019(false), m_traversalType(None), m_useH46019fc(false), m_H46019fcState(0), m_H46019dir(0)
+      : H245Handler(local, remote, masq), peer(pr), callid(id), isMute(false), m_useH46019(false), m_traversalType(None),
+		m_useH46019fc(false), m_H46019fcState(0), m_H46019dir(0)
 {
 	if (peer)
 		peer->peer = this;
@@ -9204,15 +9217,14 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 H245ProxyHandler::~H245ProxyHandler()
 {
 	if (peer) {
-		// TODO: H.460.19 fastStart handing doesn't seem right and creates a leak
+		// TODO: H.460.19 fastStart handling doesn't seem right and creates a leak - JW
 		if (peer->UsesH46019fc())
 			return;
-		peer->peer = 0;
+		peer->peer = NULL;
 	}
 	if (UsesH46019fc())
 		return;
 
-	// TODO: see above
 	DeleteObjectsInMap(logicalChannels);
 	DeleteObjectsInMap(fastStartLCs);
 }
@@ -10160,14 +10172,14 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 	   lc = (iter != fastStartLCs.end()) ? iter->second : NULL;
 	} else {
 	   iter = peer->fastStartLCs.find(id);
-	   lc = (iter != peer->fastStartLCs.end()) ? iter->second : 0;
+	   lc = (iter != peer->fastStartLCs.end()) ? iter->second : NULL;
 	}
 	if (isReverseLC) {
 		if (lc) {
 			if (!FindLogicalChannel(flcn)) {
 				logicalChannels[flcn] = sessionIDs[id] = lc;
 				lc->SetChannelNumber(flcn);
-				lc->OnHandlerSwapped(hnat != 0);
+				lc->OnHandlerSwapped(hnat != NULL);
 				if (!UsesH46019())
 					peer->fastStartLCs.erase(iter);
 			}
@@ -10176,7 +10188,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 			if (akalc) {
 				lc = static_cast<RTPLogicalChannel *>(akalc);
 			} else {
-				logicalChannels[flcn] = sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != 0);
+				logicalChannels[flcn] = sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != NULL);
 				if (!lc->IsOpen()) {
 					PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn);
 					SNMP_TRAP(10, SNMPWarning, Network, "Can't create RTP logical channel " + flcn);
@@ -10196,7 +10208,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 			if (akalc) {
 				lc = static_cast<RTPLogicalChannel *>(akalc);
 			} else {
-				peer->logicalChannels[flcn] = peer->sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != 0);
+				peer->logicalChannels[flcn] = peer->sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != NULL);
 			}
 		}
 	}
@@ -10230,9 +10242,9 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
 		PTRACE(3, "Proxy\tRTP logical channel " << flcn << " already exist?");
 		return NULL;
 	}
-	RTPLogicalChannel *lc = peer->FindRTPLogicalChannelBySessionID(id);
+	RTPLogicalChannel * lc = peer->FindRTPLogicalChannelBySessionID(id);
 	if (lc && !lc->IsAttached()) {
-		lc = new RTPLogicalChannel(lc, flcn, hnat != 0);
+		lc = new RTPLogicalChannel(lc, flcn, hnat != NULL);
 	} else if (!fastStartLCs.empty()) {
 		// if H.245 OpenLogicalChannel is received, the fast connect procedure
 		// should be disable. So we reuse the fast start logical channel here
@@ -10252,10 +10264,10 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
 			return NULL;
 		}
 		(lc = iter->second)->SetChannelNumber(flcn);
-		lc->OnHandlerSwapped(hnat != 0);
+		lc->OnHandlerSwapped(hnat != NULL);
 		peer->fastStartLCs.erase(iter);
 	} else {
-		lc = new RTPLogicalChannel(callid, flcn, hnat != 0);
+		lc = new RTPLogicalChannel(callid, flcn, hnat != NULL);
 		if (!lc->IsOpen()) {
 			PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn);
 			SNMP_TRAP(10, SNMPWarning, Network, "Can't create RTP logical channel " + flcn);
@@ -10272,11 +10284,11 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
 RTPLogicalChannel *H245ProxyHandler::CreateFastStartLogicalChannel(WORD id)
 {
 	siterator iter = fastStartLCs.find(id);
-	RTPLogicalChannel *lc = (iter != fastStartLCs.end()) ? iter->second : 0;
+	RTPLogicalChannel * lc = (iter != fastStartLCs.end()) ? iter->second : NULL;
 	if (!lc) {
 		// the LogicalChannelNumber of a fastStart logical channel is irrelevant
 		// it may be set later
-		lc = new RTPLogicalChannel(callid, 0, hnat != 0);
+		lc = new RTPLogicalChannel(callid, 0, hnat != NULL);
 		if (!lc->IsOpen()) {
 			PTRACE(1, "Proxy\tError: Can't create fast start logical channel id " << id);
 			SNMP_TRAP(10, SNMPWarning, Network, "Can't create fastStart logical channel " + id);
@@ -10583,29 +10595,29 @@ void ProxyHandler::ReadSocket(IPSocket * socket)
 			{
 				psocket->ForwardData();
 				CallSignalSocket * css = dynamic_cast<CallSignalSocket *>(socket);
-				if (css && css->MaintainConnection()) {
-					// just detach H.460.17 from the call, don't close them
-					// shut down the H.245 channel for H.460.17 connection, usually done on socket delete
-					H245Socket * h245socket = css->GetH245Socket();
-					if (h245socket) {
-						h245socket->OnSignalingChannelClosed();
-						css->SetH245Socket(NULL);	// TODO: detach from handler ?
-					}
-					css->DetachRemote();
-#ifdef HAS_H46017
-					css->CleanupCall();
-#endif
-				} else  {
-					if (css) {
-						css->LockRemote();
-						if (css->GetRemote() && css->GetRemote()->MaintainConnection()) {
-							// if the other side uses H.460.17 clean up that end of the connection
-#ifdef HAS_H46017
-							css->GetRemote()->CleanupCall();
-#endif
-							css->DetachRemote();
+				if (css) {
+					if (css->MaintainConnection()) {
+						// just detach H.460.17 from the call, don't close them
+						// shut down the H.245 channel for H.460.17 connection, usually done on socket delete
+						H245Socket * h245socket = css->GetH245Socket();
+						if (h245socket) {
+							h245socket->OnSignalingChannelClosed();
+							css->SetH245Socket(NULL);
 						}
-						css->UnlockRemote();
+#ifdef HAS_H46017
+						css->CleanupCall();
+#endif
+					}
+#ifdef HAS_H46017
+					css->LockRemote();
+					if (css->GetRemote() && css->GetRemote()->MaintainConnection()) {
+						// if the other side uses H.460.17 clean up that end of the connection
+						css->GetRemote()->CleanupCall();
+					}
+					css->UnlockRemote();
+#endif
+					if (css->MaintainConnection()) {
+						css->DetachRemote();
 					}
 				}
 				if (!css || !css->MaintainConnection()) {
