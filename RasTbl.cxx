@@ -4944,9 +4944,13 @@ void CallTable::PrintCurrentCalls(USocket *client, bool verbose) const
 void CallTable::PrintCurrentCallsPorts(USocket *client) const
 {
 	PString msg = "CurrentCallsPorts\r\n";
-	ReadLock lock(listLock);
-	for (const_iterator Iter = CallList.begin(); Iter != CallList.end(); ++Iter) {
-		msg += (*Iter)->PrintPorts();
+	if (Toolkit::Instance()->IsPortNotificationActive()) {
+		ReadLock lock(listLock);
+		for (const_iterator Iter = CallList.begin(); Iter != CallList.end(); ++Iter) {
+			msg += (*Iter)->PrintPorts();
+		}
+	} else {
+		msg += "Port accounting is only active when notifications are configured in [PortNotifications]\r\n";
 	}
 	msg += ";\r\n";
 	client->TransmitData(msg);
