@@ -1,5 +1,7 @@
 Changes from 3.1 to 3.2
 =======================
+- added AssignedGatekeeper support to child gatekeeper
+- BUGFIX(GkClient.cxx) ensure HideGk also applies on GRQ messages
 - new [Routing::Sql] EnableRegexRewrite switch to support basic regex rewrite in SQL queries
 - BUGFIX(ProxyChannel.cxx) always close RTP sockets before marking them deletable
 - BUGFIX(ProxyChannel.cxx) clean up H.245 handler after H.460.17 calls

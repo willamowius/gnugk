@@ -50,6 +50,7 @@ const char* const RewriteE164Section = "Endpoint::RewriteE164";
 class AlternateGKs {
 public:
 	AlternateGKs(const PIPSocket::Address &, WORD);
+	void Set(const H225_AlternateGK &);
 	void Set(const H225_ArrayOf_AlternateGK &);
 	void Set(const PString &);
 	bool Get(PIPSocket::Address &, WORD &);
@@ -58,12 +59,20 @@ private:
 	typedef multimap<int, H225_TransportAddress> GKList;
 	GKList AltGKs;
 	GKList::iterator index;
-	PIPSocket::Address pgkaddr, pgkport;
+	PIPSocket::Address pgkaddr;
+	WORD pgkport;
 };
 
 AlternateGKs::AlternateGKs(const PIPSocket::Address & gkaddr, WORD gkport)
 {
 	pgkaddr = gkaddr, pgkport = gkport;
+}
+
+void AlternateGKs::Set(const H225_AlternateGK & agk)
+{
+	AltGKs.clear();
+	AltGKs.insert(make_pair(int(agk.m_priority), agk.m_rasAddress));
+	index = AltGKs.begin();
 }
 
 void AlternateGKs::Set(const H225_ArrayOf_AlternateGK & agk)
@@ -868,12 +877,14 @@ GRQRequester::GRQRequester(const PString & gkid, H225_EndpointType & type) : Ras
 	H225_GatekeeperRequest & grq = grq_ras;
 	grq.m_requestSeqNum = GetSeqNum();
 	grq.m_protocolIdentifier.SetValue(H225_ProtocolID);
-	grq.m_endpointType.IncludeOptionalField(H225_EndpointType::e_gatekeeper);
+	if (!Toolkit::AsBool(GkConfig()->GetInteger(EndpointSection, "HideGk", 0)))
+		grq.m_endpointType.IncludeOptionalField(H225_EndpointType::e_gatekeeper);
 	if (type.HasOptionalField(H225_EndpointType::e_terminal))
 		grq.m_endpointType.IncludeOptionalField(H225_EndpointType::e_terminal);
 	if (type.HasOptionalField(H225_EndpointType::e_gateway))
 		grq.m_endpointType.IncludeOptionalField(H225_EndpointType::e_gateway);
 	grq.IncludeOptionalField(H225_GatekeeperRequest::e_supportsAltGK);
+	grq.IncludeOptionalField(H225_GatekeeperRequest::e_supportsAssignedGK);
 	if (!gkid) {
 		grq.IncludeOptionalField(H225_GatekeeperRequest::e_gatekeeperIdentifier);
 		grq.m_gatekeeperIdentifier = gkid;
@@ -1674,7 +1685,10 @@ bool GkClient::Discovery()
 			if (gcf.HasOptionalField(H225_GatekeeperConfirm::e_authenticationMode))
 				m_authMode = gcf.m_authenticationMode.GetTag();
 			PTRACE(2, "GKC\tDiscover GK " << AsString(m_gkaddr, m_gkport) << " at " << m_loaddr);
-			return true;
+			if (gcf.HasOptionalField(H225_RegistrationConfirm::e_assignedGatekeeper)) 
+					m_gkList->Set(gcf.m_assignedGatekeeper);
+			else
+				return true;
 		} else if (ras->GetTag() == H225_RasMessage::e_gatekeeperReject) {
 			H225_GatekeeperReject & grj = (*ras)->m_recvRAS;
 			if (grj.HasOptionalField(H225_GatekeeperReject::e_altGKInfo)) {
