@@ -118,6 +118,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Endpoint", "Gatekeeper" },
 	{ "Endpoint", "GatekeeperIdentifier" },
 	{ "Endpoint", "H323ID" },
+	{ "Endpoint", "HideGk" },
 	{ "Endpoint", "NATKeepaliveInterval" },
 	{ "Endpoint", "NATRetryInterval" },
 	{ "Endpoint", "Password" },
