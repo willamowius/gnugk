@@ -1088,10 +1088,12 @@ void CallSignalSocket::CleanupCall()
 {
 	m_call = callptr(NULL);
 	m_crv = 0;
+	if (m_h245socket)
+		m_h245socket->OnSignalingChannelClosed();	// close socket and set deletable
+	m_h245socket = NULL;
 	if (m_h245handler)
 		delete m_h245handler;
 	m_h245handler = NULL;
-	m_h245socket = NULL;
 	m_setupPdu = NULL;
 #ifdef HAS_H46018
 	m_callFromTraversalServer = false;

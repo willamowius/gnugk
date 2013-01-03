@@ -3103,13 +3103,23 @@ void CallRec::RemoveSocket()
 
 	PWaitAndSignal lock(m_sockLock);
 	if (m_callingSocket) {
-		if (!m_callingSocket->MaintainConnection())
+		if (m_callingSocket->MaintainConnection()) {
+#ifdef HAS_H46017
+			m_callingSocket->CleanupCall();
+#endif
+		} else {
 			m_callingSocket->SetDeletable();
+		}
 		m_callingSocket = NULL;
 	}
 	if (m_calledSocket) {
-		if (!m_calledSocket->MaintainConnection())
+		if (m_calledSocket->MaintainConnection()) {
+#ifdef HAS_H46017
+			m_calledSocket->CleanupCall();
+#endif
+		} else {
 			m_calledSocket->SetDeletable();
+		}
 		m_calledSocket = NULL;
 	}
 }
@@ -4786,7 +4796,7 @@ void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq, const endptr &
 		if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SendReleaseCompleteOnDRQ", "0"))) {
 			if( obj_drq.m_disengageReason.GetTag() == H225_DisengageReason::e_normalDrop )
 				call->SetDisconnectCause(Q931::NormalCallClearing);
-			call->SendReleaseComplete(obj_drq.HasOptionalField(H225_DisengageRequest::e_terminationCause) ? &obj_drq.m_terminationCause : 0);
+			call->SendReleaseComplete(obj_drq.HasOptionalField(H225_DisengageRequest::e_terminationCause) ? &obj_drq.m_terminationCause : NULL);
 		}
 		RemoveCall(call);
 	}
