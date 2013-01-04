@@ -218,6 +218,7 @@ public:
 	bool IsPermanent() const;
 	bool IsUsed() const;
 	bool IsUpdated(const PTime *) const;
+	void DeferTTL();
 	bool IsNATed() const;
 	bool SupportH46024() const;
 	bool SupportH46024A() const;
@@ -1872,6 +1873,12 @@ inline bool EndpointRec::IsUpdated(const PTime *now) const
 	PWaitAndSignal lock(m_usedLock);
 	int ttl = GetTimeToLive();
 	return (!ttl || (*now - m_updatedTime).GetSeconds() < ttl);
+}
+
+inline void EndpointRec::DeferTTL()
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_updatedTime = PTime();
 }
 
 inline PTime EndpointRec::GetUpdatedTime() const

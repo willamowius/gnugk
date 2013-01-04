@@ -1,5 +1,6 @@
 Changes from 3.1 to 3.2
 =======================
+- BUGFIX(RasTbl.cxx) Do not TTL expire registration if on a call
 - added AssignedGatekeeper support to child gatekeeper
 - BUGFIX(GkClient.cxx) ensure HideGk also applies on GRQ messages
 - new [Routing::Sql] EnableRegexRewrite switch to support basic regex rewrite in SQL queries
