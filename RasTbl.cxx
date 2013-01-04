@@ -2149,10 +2149,10 @@ void RegistrationTable::CheckEndpoints()
 		EndpointRec *ep = *Iter;
 		if (!ep->IsUpdated(&now) && !ep->SendIRQ()) {
 			if (CallTable::Instance()->FindCallRec(endptr(ep))) {
-				    ep->DeferTTL();
-					PTRACE(2, "Endpoint " << ep->GetEndpointIdentifier().GetValue() << " TTL expiry deferred as current call.");
-					++Iter;
-					continue;
+				ep->DeferTTL();
+				PTRACE(2, "Endpoint " << ep->GetEndpointIdentifier().GetValue() << " TTL expiry deferred as current call.");
+				++Iter;
+				continue;
 			}
 			SoftPBX::DisconnectEndpoint(endptr(ep));
 			ep->Expired();
