@@ -534,6 +534,14 @@ Versions of PTLib through v2.10.1 default to 128 elements. Beware of hitting the
 increase this setting.
 </itemize>
 
+<item><tt/TTLExpireDropCall=0/<newline>
+Default: <tt>1</tt><newline>
+<p>
+Set whether to drop a registration on TTL expiry even if there appears to be a current call for the endpoint. 
+By default it will force the drop of the call before unregistering the endpoint. 
+A situation may occur if there are bandwidth congestion, RRQ packets are being lost but an active call (likely causing the congestion) is still in progress.
+By enabling this switch the registration remains current until a RRQ is received or the apparent call either times out or is dropped. 
+
 
 <sect1>Section &lsqb;GkStatus::Auth&rsqb;
 <label id="gkstatusauth">

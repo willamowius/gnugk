@@ -2148,7 +2148,8 @@ void RegistrationTable::CheckEndpoints()
 	while (Iter != EndpointList.end()) {
 		EndpointRec *ep = *Iter;
 		if (!ep->IsUpdated(&now) && !ep->SendIRQ()) {
-			if (CallTable::Instance()->FindCallRec(endptr(ep))) {
+			if (!Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "TTLExpireDropCall", "1")) &&
+				CallTable::Instance()->FindCallRec(endptr(ep))) {
 				ep->DeferTTL();
 				PTRACE(2, "Endpoint " << ep->GetEndpointIdentifier().GetValue() << " TTL expiry deferred as current call.");
 				++Iter;

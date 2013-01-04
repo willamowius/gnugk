@@ -197,6 +197,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Gatekeeper::Main", "TimestampFormat" },
 	{ "Gatekeeper::Main", "TotalBandwidth" },
 	{ "Gatekeeper::Main", "TraceLevel" },
+	{ "Gatekeeper::Main", "TTLExpireDropCall" },
 	{ "Gatekeeper::Main", "UnicastRasPort" },
 	{ "Gatekeeper::Main", "UseBroadcastListener" },
 	{ "Gatekeeper::Main", "UseMulticastListener" },
