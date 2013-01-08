@@ -1153,6 +1153,7 @@ void Gatekeeper::Main()
 #ifdef P_LINUX
 	// set the core file size
 	if (args.HasOption("core")) {
+		// TODO: check if these new limits actually work or if they only affect this thread
 		struct rlimit rlim;
 		if (getrlimit(RLIMIT_CORE, &rlim) != 0)
 			cout << "Could not get current core file size : error = " << errno << endl;
@@ -1213,7 +1214,7 @@ void Gatekeeper::Main()
 			fake_cmdline += " -o " + log_trace_file;
 	}
 	if (!fake_cmdline.IsEmpty()) {
-		for (int t=0; t < args.GetOptionCount('t'); t++)
+		for (int t = 0; t < args.GetOptionCount('t'); t++)
 			fake_cmdline += " -t";
 		PArgList fake_args(fake_cmdline);
 		fake_args.Parse(GetArgumentsParseString());
@@ -1225,6 +1226,8 @@ void Gatekeeper::Main()
 	PString welcome("GNU Gatekeeper with ID '" + Toolkit::GKName() + "' started\n" + Toolkit::GKVersion());
 	cout << welcome << '\n';
 	PTRACE(1, welcome);
+
+	PTRACE(1, "Current file handle limit: " << PProcess::Current().GetMaxHandles());
 
 #ifdef hasIPV6
 	if (Toolkit::Instance()->IsIPv6Enabled()) {
