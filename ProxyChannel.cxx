@@ -798,7 +798,6 @@ protected:
 	T120LogicalChannel *CreateT120LogicalChannel(WORD);
 	bool RemoveLogicalChannel(WORD flcn);
 
-	PMutex m_lcLock;	// protect the logicalChannels member
 	std::map<WORD, LogicalChannel *> logicalChannels;
 	std::map<WORD, RTPLogicalChannel *> sessionIDs;
 	std::map<WORD, RTPLogicalChannel *> fastStartLCs;
@@ -1092,9 +1091,11 @@ void CallSignalSocket::CleanupCall()
 	if (m_h245socket)
 		m_h245socket->OnSignalingChannelClosed();	// close socket and set deletable
 	m_h245socket = NULL;
+	m_h245handlerLock.Wait();
 	if (m_h245handler)
 		delete m_h245handler;
 	m_h245handler = NULL;
+	m_h245handlerLock.Signal();
 	m_setupPdu = NULL;
 #ifdef HAS_H46018
 	m_callFromTraversalServer = false;
@@ -1243,8 +1244,10 @@ CallSignalSocket::~CallSignalSocket()
 		}
 	}
 
+	m_h245handlerLock.Wait();
 	delete m_h245handler;
 	m_h245handler = NULL;
+	m_h245handlerLock.Signal();
 	delete m_setupPdu;
 	m_setupPdu = NULL;
 #ifdef HAS_H235_MEDIA
@@ -2231,9 +2234,11 @@ bool CallSignalSocket::EndSession()
 
 void CallSignalSocket::RemoveH245Handler()
 {
-	H245Handler *h = m_h245handler;
+	m_h245handlerLock.Wait();
+	H245Handler * h = m_h245handler;
 	m_h245handler = NULL;
 	delete h;
+	m_h245handlerLock.Signal();
 }
 
 void CallSignalSocket::OnError()
@@ -2380,8 +2385,10 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 	// detach from the call
 	m_call->SetSocket(NULL, NULL);
 	remote = remoteSocket->remote = NULL;
+	remoteSocket->LockH245Handler();
 	delete remoteSocket->m_h245handler;
 	remoteSocket->m_h245handler = NULL;
+	remoteSocket->UnlockH245Handler();
 
 	if (remoteSocket->CreateRemote(setupUUIE)) {
 		SetUUIE(fakeSetup, suuie);
@@ -3274,8 +3281,10 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			call->SetH46018ReverseSetup(true);
 			m_call->SetCallSignalSocketCalling(NULL);
 			m_call->SetCallSignalSocketCalled(NULL);
+			m_h245handlerLock.Wait();
 			delete m_h245handler;
 			m_h245handler = NULL;
+			m_h245handlerLock.Signal();
 			delete m_h245socket;
 			m_h245socket = NULL;
 			m_remoteLock.Wait();
@@ -9228,7 +9237,6 @@ H245ProxyHandler::~H245ProxyHandler()
 	if (UsesH46019fc())
 		return;
 
-	PWaitAndSignal lock(m_lcLock);
 	DeleteObjectsInMap(logicalChannels);
 	DeleteObjectsInMap(fastStartLCs);
 }
@@ -10079,7 +10087,6 @@ bool H245ProxyHandler::HandleIndication(H245_IndicationMessage & Indication, boo
 
 void H245ProxyHandler::HandleMuteRTPChannel()
 {
-	PWaitAndSignal lock(m_lcLock);
   	isMute = !isMute;
 
 	iterator eIter = logicalChannels.end();
@@ -10185,9 +10192,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 	if (isReverseLC) {
 		if (lc) {
 			if (!FindLogicalChannel(flcn)) {
-				m_lcLock.Wait();
 				logicalChannels[flcn] = sessionIDs[id] = lc;
-				m_lcLock.Signal();
 				lc->SetChannelNumber(flcn);
 				lc->OnHandlerSwapped(hnat != NULL);
 				if (!UsesH46019())
@@ -10198,9 +10203,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 			if (akalc) {
 				lc = static_cast<RTPLogicalChannel *>(akalc);
 			} else {
-				m_lcLock.Wait();
 				logicalChannels[flcn] = sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != NULL);
-				m_lcLock.Signal();
 				if (!lc->IsOpen()) {
 					PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn);
 					SNMP_TRAP(10, SNMPWarning, Network, "Can't create RTP logical channel " + flcn);
@@ -10210,9 +10213,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 	} else {
 		if (lc) {
 			if (!peer->FindLogicalChannel(flcn)) {
-				m_lcLock.Wait();
 				peer->logicalChannels[flcn] = peer->sessionIDs[id] = lc;
-				m_lcLock.Signal();
 				lc->SetChannelNumber(flcn);
 				if (!UsesH46019())
 					peer->fastStartLCs.erase(iter);
@@ -10222,9 +10223,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 			if (akalc) {
 				lc = static_cast<RTPLogicalChannel *>(akalc);
 			} else {
-				m_lcLock.Wait();
 				peer->logicalChannels[flcn] = peer->sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != NULL);
-				m_lcLock.Signal();
 			}
 		}
 	}
@@ -10242,7 +10241,6 @@ void H245ProxyHandler::SetHandler(ProxyHandler * h)
 
 LogicalChannel * H245ProxyHandler::FindLogicalChannel(WORD flcn)
 {
-	PWaitAndSignal lock(m_lcLock);
 	iterator iter = logicalChannels.find(flcn);
 	return (iter != logicalChannels.end()) ? iter->second : NULL;
 }
@@ -10293,7 +10291,6 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
 		}
 	}
 
-	PWaitAndSignal lock(m_lcLock);
 	logicalChannels[flcn] = sessionIDs[id] = lc;
 	PTRACE(4, "RTP\tOpen logical channel " << flcn << " id " << id << " port " << lc->GetPort());
 	return lc;
@@ -10326,14 +10323,12 @@ T120LogicalChannel * H245ProxyHandler::CreateT120LogicalChannel(WORD flcn)
 		return NULL;
 	}
 	T120LogicalChannel * lc = new T120LogicalChannel(flcn);
-	PWaitAndSignal lock(m_lcLock);
 	logicalChannels[flcn] = lc;
 	return lc;
 }
 
 bool H245ProxyHandler::RemoveLogicalChannel(WORD flcn)
 {
-	PWaitAndSignal lock(m_lcLock);
 	iterator iter = logicalChannels.find(flcn);
 	if (iter == logicalChannels.end()) {
 		PTRACE(3, "Proxy\tLogical channel " << flcn << " not found for removing");

@@ -340,6 +340,8 @@ public:
 	bool IsCallToTraversalServer() const { return m_callToTraversalServer; }
 	void SetSessionMultiplexDestination(WORD session, bool isRTCP, const H323TransportAddress & toAddress, H46019Side side);
 	const H245Handler * GetH245Handler() const { return m_h245handler; }
+	void LockH245Handler() { m_h245handlerLock.Wait(); }
+	void UnlockH245Handler() { m_h245handlerLock.Signal(); }
 #endif
 
 #ifdef HAS_H46023
@@ -447,6 +449,7 @@ protected:
 
 private:
 	WORD m_crv;
+	PMutex m_h245handlerLock;
 	H245Handler * m_h245handler;
 	H245Socket * m_h245socket;
 	bool m_h245Tunneling;
