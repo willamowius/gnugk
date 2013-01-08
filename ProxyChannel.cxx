@@ -798,6 +798,7 @@ protected:
 	T120LogicalChannel *CreateT120LogicalChannel(WORD);
 	bool RemoveLogicalChannel(WORD flcn);
 
+	PMutex m_lcLock;	// protect the logicalChannels member
 	std::map<WORD, LogicalChannel *> logicalChannels;
 	std::map<WORD, RTPLogicalChannel *> sessionIDs;
 	std::map<WORD, RTPLogicalChannel *> fastStartLCs;
@@ -9218,8 +9219,8 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 
 H245ProxyHandler::~H245ProxyHandler()
 {
+	// TODO: H.460.19 fastStart handling doesn't seem right and creates a leak - JW
 	if (peer) {
-		// TODO: H.460.19 fastStart handling doesn't seem right and creates a leak - JW
 		if (peer->UsesH46019fc())
 			return;
 		peer->peer = NULL;
@@ -9227,6 +9228,7 @@ H245ProxyHandler::~H245ProxyHandler()
 	if (UsesH46019fc())
 		return;
 
+	PWaitAndSignal lock(m_lcLock);
 	DeleteObjectsInMap(logicalChannels);
 	DeleteObjectsInMap(fastStartLCs);
 }
@@ -10077,7 +10079,8 @@ bool H245ProxyHandler::HandleIndication(H245_IndicationMessage & Indication, boo
 
 void H245ProxyHandler::HandleMuteRTPChannel()
 {
-	isMute = !isMute;
+	PWaitAndSignal lock(m_lcLock);
+  	isMute = !isMute;
 
 	iterator eIter = logicalChannels.end();
 	for (iterator Iter = logicalChannels.begin(); Iter != eIter; ++Iter) {
@@ -10179,7 +10182,9 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 	if (isReverseLC) {
 		if (lc) {
 			if (!FindLogicalChannel(flcn)) {
+				m_lcLock.Wait();
 				logicalChannels[flcn] = sessionIDs[id] = lc;
+				m_lcLock.Signal();
 				lc->SetChannelNumber(flcn);
 				lc->OnHandlerSwapped(hnat != NULL);
 				if (!UsesH46019())
@@ -10190,7 +10195,9 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 			if (akalc) {
 				lc = static_cast<RTPLogicalChannel *>(akalc);
 			} else {
+				m_lcLock.Wait();
 				logicalChannels[flcn] = sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != NULL);
+				m_lcLock.Signal();
 				if (!lc->IsOpen()) {
 					PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn);
 					SNMP_TRAP(10, SNMPWarning, Network, "Can't create RTP logical channel " + flcn);
@@ -10200,7 +10207,9 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 	} else {
 		if (lc) {
 			if (!peer->FindLogicalChannel(flcn)) {
+				m_lcLock.Wait();
 				peer->logicalChannels[flcn] = peer->sessionIDs[id] = lc;
+				m_lcLock.Signal();
 				lc->SetChannelNumber(flcn);
 				if (!UsesH46019())
 					peer->fastStartLCs.erase(iter);
@@ -10210,7 +10219,9 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 			if (akalc) {
 				lc = static_cast<RTPLogicalChannel *>(akalc);
 			} else {
+				m_lcLock.Wait();
 				peer->logicalChannels[flcn] = peer->sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != NULL);
+				m_lcLock.Signal();
 			}
 		}
 	}
@@ -10228,8 +10239,9 @@ void H245ProxyHandler::SetHandler(ProxyHandler * h)
 
 LogicalChannel * H245ProxyHandler::FindLogicalChannel(WORD flcn)
 {
+	PWaitAndSignal lock(m_lcLock);
 	iterator iter = logicalChannels.find(flcn);
-	return (iter != logicalChannels.end()) ? iter->second : 0;
+	return (iter != logicalChannels.end()) ? iter->second : NULL;
 }
 
 RTPLogicalChannel * H245ProxyHandler::FindRTPLogicalChannelBySessionID(WORD id)
@@ -10278,12 +10290,13 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
 		}
 	}
 
+	PWaitAndSignal lock(m_lcLock);
 	logicalChannels[flcn] = sessionIDs[id] = lc;
 	PTRACE(4, "RTP\tOpen logical channel " << flcn << " id " << id << " port " << lc->GetPort());
 	return lc;
 }
 
-RTPLogicalChannel *H245ProxyHandler::CreateFastStartLogicalChannel(WORD id)
+RTPLogicalChannel * H245ProxyHandler::CreateFastStartLogicalChannel(WORD id)
 {
 	siterator iter = fastStartLCs.find(id);
 	RTPLogicalChannel * lc = (iter != fastStartLCs.end()) ? iter->second : NULL;
@@ -10303,25 +10316,27 @@ RTPLogicalChannel *H245ProxyHandler::CreateFastStartLogicalChannel(WORD id)
 	return lc;
 }
 
-T120LogicalChannel *H245ProxyHandler::CreateT120LogicalChannel(WORD flcn)
+T120LogicalChannel * H245ProxyHandler::CreateT120LogicalChannel(WORD flcn)
 {
 	if (FindLogicalChannel(flcn)) {
 		PTRACE(3, "Proxy\tT120 logical channel " << flcn << " already exist?");
 		return NULL;
 	}
-	T120LogicalChannel *lc = new T120LogicalChannel(flcn);
+	T120LogicalChannel * lc = new T120LogicalChannel(flcn);
+	PWaitAndSignal lock(m_lcLock);
 	logicalChannels[flcn] = lc;
 	return lc;
 }
 
 bool H245ProxyHandler::RemoveLogicalChannel(WORD flcn)
 {
+	PWaitAndSignal lock(m_lcLock);
 	iterator iter = logicalChannels.find(flcn);
 	if (iter == logicalChannels.end()) {
 		PTRACE(3, "Proxy\tLogical channel " << flcn << " not found for removing");
 		return false;
 	}
-	LogicalChannel *lc = iter->second;
+	LogicalChannel * lc = iter->second;
 	siterator i = find_if(sessionIDs.begin(), sessionIDs.end(), bind2nd(std::ptr_fun(compare_lc), lc));
 	if (i != sessionIDs.end())
 		sessionIDs.erase(i);
