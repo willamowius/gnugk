@@ -654,10 +654,18 @@ void EndpointRec::SetAliases(const H225_ArrayOf_AliasAddress &a, PBoolean additi
 {
 	PWaitAndSignal lock(m_usedLock);
 	if (additive) {
-		int sz = m_terminalAliases.GetSize();
-		m_terminalAliases.SetSize(sz + m_terminalAliases.GetSize());
-		for (PINDEX i=0; i < a.GetSize(); ++i)
-			m_terminalAliases[sz+i] = a[i];
+		for (PINDEX i=0; i < a.GetSize(); ++i) {
+			int sz = m_terminalAliases.GetSize();
+			bool found = false;
+			for (PINDEX j=0; j < sz; ++j) {
+				if (m_terminalAliases[j] == a[i])
+					found = true;
+			}
+			if (!found) {
+				m_terminalAliases.SetSize(sz + 1);
+				m_terminalAliases[sz] = a[i];
+			}
+		}
 	} else {
 		m_terminalAliases = a;
 		LoadConfig(); // update settings for the new aliases
