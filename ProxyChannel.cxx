@@ -3829,9 +3829,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			&& m_call->GetCalledParty()->UsesH46023()
 			&& !HasH46024Descriptor(setupBody.m_supportedFeatures)) {
 				// if remote does not support H.460.24 add Strategy to add local NAT Support.
-				CallRec::NatStrategy strat = m_call->GetNATStrategy();
 				H460_FeatureStd std24 = H460_FeatureStd(24);
-
 				std24.Add(Std24_NATInstruct,H460_FeatureContent((int)natoffloadsupport,8));
 				AddH460Feature(setupBody.m_supportedFeatures, std24);
 		}
