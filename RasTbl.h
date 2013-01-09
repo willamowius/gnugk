@@ -593,7 +593,7 @@ private:
 	    //  or the stupid VC would fail to instantiate it
         	ReadLock lock(listLock);
         	const_iterator Iter(find_if(ListToBeFound->begin(), ListToBeFound->end(), FindObject));
-	        return endptr((Iter != ListToBeFound->end()) ? *Iter : 0);
+	        return endptr((Iter != ListToBeFound->end()) ? *Iter : NULL);
 	}
 
 	endptr InternalFindFirstEP(const H225_ArrayOf_AliasAddress & alias, std::list<EndpointRec *> *ListToBeFound);
