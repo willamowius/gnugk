@@ -10912,6 +10912,7 @@ HandlerList::~HandlerList()
 ProxyHandler * HandlerList::GetSigHandler()
 {
 	PWaitAndSignal lock(m_handlerMutex);
+	// round-robin
 	ProxyHandler* const result = m_sigHandlers[m_currentSigHandler];
 	if (++m_currentSigHandler >= m_numSigHandlers)
 		m_currentSigHandler = 0;
@@ -10921,6 +10922,7 @@ ProxyHandler * HandlerList::GetSigHandler()
 ProxyHandler * HandlerList::GetRtpHandler()
 {
 	PWaitAndSignal lock(m_handlerMutex);
+	// round-robin
 	ProxyHandler* const result = m_rtpHandlers[m_currentRtpHandler];
 	if (++m_currentRtpHandler >= m_numRtpHandlers)
 		m_currentRtpHandler = 0;

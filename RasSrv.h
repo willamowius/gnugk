@@ -297,7 +297,7 @@ private:
 	PMutex requests_mutex;
 	std::list<RasMsg *> requests;
 	PMutex handlers_mutex;
-	std::list<RasHandler *> handlers;
+	std::list<RasHandler *> handlers;	// handlers checking for expected RAS messages eg. from parent or neighbors
 
 	bool GKRoutedSignaling, GKRoutedH245;
 	bool bRemoveCallOnDRQ;
