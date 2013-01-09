@@ -1553,22 +1553,26 @@ void RasServer::CreateRasJob(GatekeeperMessage * msg, bool syncronous)
 {
 	typedef Factory<RasMsg, unsigned> RasFactory;
 	unsigned tag = msg->GetTag();
-	PWaitAndSignal rlock(requests_mutex);
-	PWaitAndSignal hlock(handlers_mutex);
 	if (RasMsg *ras = RasFactory::Create(tag, msg)) {
+		handlers_mutex.Wait();
 		std::list<RasHandler *>::iterator iter = find_if(handlers.begin(), handlers.end(), bind2nd(mem_fun(&RasHandler::IsExpected), ras));
 		if (iter == handlers.end()) {
+			handlers_mutex.Signal();
+			requests_mutex.Wait();
 			std::list<RasMsg *>::iterator i = find_if(requests.begin(), requests.end(), bind2nd(mem_fun(&RasMsg::EqualTo), ras));
 			if (i != requests.end() && !(*i)->IsDone()) {
+				requests_mutex.Signal();
 				PTRACE(2, "RAS\tDuplicate " << msg->GetTagName() << ", deleted");
 				delete ras;
 				ras = NULL;
 			} else {
 				if (syncronous) {
+					requests_mutex.Signal();
 					ras->Exec();
 					delete msg;
 				} else {
 					requests.push_back(ras);
+					requests_mutex.Signal();
 					Job *job = new Jobs(ras);
 					job->SetName(msg->GetTagName());
 					job->Execute();
@@ -1579,6 +1583,7 @@ void RasServer::CreateRasJob(GatekeeperMessage * msg, bool syncronous)
 			// re-create RasMsg object by the handler
 			ras = (*iter)->CreatePDU(ras);
 			(*iter)->Process(ras);
+			handlers_mutex.Signal();
 		}
 	} else {
 		PTRACE(1, "RAS\tUnknown RAS message " << msg->GetTagName());
