@@ -532,7 +532,6 @@ EXPERIMENTAL:
 Sets the maximum number of elements in an ASN encoded array, eg. the max. number of aliases in a list.
 Versions of PTLib through v2.10.1 default to 128 elements. Beware of hitting the limits of other vendors if you
 increase this setting.
-</itemize>
 
 <item><tt/TTLExpireDropCall=0/<newline>
 Default: <tt>1</tt><newline>
@@ -541,6 +540,7 @@ Set whether to drop a registration on TTL expiry even if there appears to be a c
 By default it will force the drop of the call before unregistering the endpoint. 
 A situation may occur if there are bandwidth congestion, RRQ packets are being lost but an active call (likely causing the congestion) is still in progress.
 By enabling this switch the registration remains current until a RRQ is received or the apparent call either times out or is dropped. 
+</itemize>
 
 
 <sect1>Section &lsqb;GkStatus::Auth&rsqb;
