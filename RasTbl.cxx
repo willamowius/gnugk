@@ -1652,16 +1652,6 @@ void RegistrationTable::InternalRemove(iterator Iter)
 	--regSize;
 }
 
-/*
-template<class F> endptr RegistrationTable::InternalFind(const F & FindObject,
-	const list<EndpointRec *> *List) const
-{
-	ReadLock lock(listLock);
-	const_iterator Iter = find_if(List->begin(), List->end(), FindObject);
-	return endptr((Iter != List->end()) ? *Iter : NULL);
-}
-*/
-
 endptr RegistrationTable::FindByEndpointId(const H225_EndpointIdentifier & epId) const
 {
 	PWaitAndSignal m(findmutex);
