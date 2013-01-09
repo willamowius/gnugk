@@ -931,6 +931,7 @@ void H46024Socket::StartProbe()
 
 void H46024Socket::BuildProbe(RTP_ControlFrame & report, bool probing)
 {
+#ifdef P_SSL
 	report.SetPayloadType(RTP_ControlFrame::e_ApplDefined);
 	report.SetCount((probing ? 0 : 1));  // SubType Probe
 
@@ -949,7 +950,7 @@ void H46024Socket::BuildProbe(RTP_ControlFrame & report, bool probing)
 		memcpy(&data.cui[0], bin_digest.GetPointer(), bin_digest.GetSize());
 
 		memcpy(report.GetPayloadPtr(),&data,sizeof(probe_packet));
-
+#endif
 }
 
 void H46024Socket::Probe(PTimer &, INT)
@@ -966,7 +967,9 @@ void H46024Socket::Probe(PTimer &, INT)
 
 	RTP_ControlFrame report;
 	report.SetSize(4+sizeof(probe_packet));
+#ifdef P_SSL
 	BuildProbe(report, true);
+#endif
 /*
 	if (!WriteTo(report.GetPointer(),report.GetSize(),
 			m_altAddr, m_altPort, m_altMuxID)) {
