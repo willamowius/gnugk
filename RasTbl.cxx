@@ -3662,6 +3662,23 @@ PString CallRec::GetNATOffloadString(NatStrategy type) const
 	return PString((unsigned)type);
 }
 
+CallRec::NatStrategy CallRec::SetReceiveNATStategy(const NatStrategy & type, int & proxyMode)
+{
+	NatStrategy localStategy = e_natUnknown;
+
+	if (m_Called && type == CallRec::e_natUnknown) { 
+		 NATAssistCallerUnknown(localStategy);
+	} else localStategy = type;
+
+	if ((localStategy == e_natLocalMaster || localStategy == e_natRemoteMaster ||
+		localStategy == e_natNoassist || localStategy == e_natRemoteProxy)) {
+		PTRACE(4, "CALL\tNAT Proxy disabled due to offload support");
+		proxyMode = CallRec::ProxyDisabled;
+	}
+
+	return localStategy;
+}
+
 bool CallRec::NATAssistCallerUnknown(NatStrategy & natinst)
 {
 	if (m_Called) {

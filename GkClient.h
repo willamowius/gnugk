@@ -87,10 +87,13 @@ public:
 	
 	bool SendARQ(Routing::AdmissionRequest &);
 	bool SendLRQ(Routing::LocationRequest &);
-	bool SendARQ(Routing::SetupRequest &, bool answer = false, int natoffload = 0);
+	bool SendARQ(Routing::SetupRequest &, bool answer = false);
 	bool SendARQ(Routing::FacilityRequest &);
 	void SendDRQ(const callptr &);
 	void SendURQ();
+
+	// Signalling Messages
+	bool HandleSetup(SetupMsg & setup, bool fromInternal);
 
 	bool RewriteE164(H225_AliasAddress & alias, bool);
 	bool RewriteE164(H225_ArrayOf_AliasAddress & alias, bool);
@@ -291,6 +294,8 @@ public:
 	void H46023_SetNATStategy(const H225_CallIdentifier & id, unsigned nat);
 	// Find the NAT Strategy
 	CallRec::NatStrategy H46023_GetNATStategy(const H225_CallIdentifier & id);
+	// Remove the NAT Strategy
+	void H46023_RemoveNATStategy(const H225_CallIdentifier & id);
 #endif
 };
 

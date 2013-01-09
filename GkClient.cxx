@@ -28,6 +28,7 @@
   #include <h460/h4601.h>
   #include <ptclib/pstun.h>
   #include <ptclib/random.h>
+  #include <ptclib/cypher.h>
 #endif
 
 #if P_DNS
@@ -804,53 +805,256 @@ bool STUNClient::CreateSocketPair(const H225_CallIdentifier & id, UDPProxySocket
 	return false;
 }
 
-#endif
-
 /////////////////////////////////////////////////////////////////////
+
 
 class GkClient;
 class H46024Socket  : public UDPProxySocket
 {
 public:
-    H46024Socket(GkClient * client, bool rtp, const H225_CallIdentifier & id, WORD flcn);
+    H46024Socket(GkClient * client, bool rtp, const H225_CallIdentifier & id, CallRec::NatStrategy strategy, WORD flcn);
 
 	virtual bool OnReceiveData(void *, PINDEX, Address &, WORD &);
 
-    enum  probe_state {
-        e_notRequired,        ///< Polling has not started
-        e_initialising,        ///< We are initialising (local set but remote not)
-        e_idle,                ///< Idle (waiting for first packet from remote)
-        e_probing,            ///< Probing for direct route
-        e_verify_receiver,    ///< verified receive connectivity    
-        e_verify_sender,    ///< verified send connectivity
-        e_wait,                ///< we are waiting for direct media (to set address)
-        e_direct            ///< we are going direct to detected address
-    };
+	enum  probe_state {
+		e_notRequired,			///< Polling has not started
+		e_initialising,			///< We are initialising (local set but remote not)
+		e_idle,					///< Idle (waiting for first packet from remote)
+		e_probing,				///< Probing for direct route
+		e_verify_receiver,		///< verified receive connectivity    
+		e_verify_sender,		///< verified send connectivity
+		e_wait,					///< we are waiting for direct media (to set address)
+		e_direct				///< we are going direct to detected address
+	};
+
+	struct probe_packet {
+		PUInt16b	Length; 		// Length
+		PUInt32b	SSRC;			// Time Stamp
+		BYTE		name[4];		// Name is limited to 32 (4 Bytes)
+		BYTE		cui[20];		// SHA-1 is always 160 (20 Bytes)
+	};
+
+	void SetAlternateAddresses(const H323TransportAddress & address, const PString & cui, unsigned muxID);
+	void GetAlternateAddresses(H323TransportAddress & address, PString & cui, unsigned & muxID);
+	PBoolean IsAlternateAddress(const Address & address, WORD port);
+
+	// Annex A
+	PBoolean ReceivedProbePacket(const RTP_ControlFrame & frame, bool & probe, bool & success);
+	void BuildProbe(RTP_ControlFrame & report, bool reply);
+	void StartProbe();
+	void ProbeReceived(bool probe, const PIPSocket::Address & addr, WORD & port);
+	void SetProbeState(probe_state newstate);
+	int GetProbeState() const;
+	void StartH46024Adirect(bool starter);
+
+	// Annex B
+	void H46024Bdirect(const H323TransportAddress & address, unsigned muxID);
 
 private:
     GkClient * m_client;
 	CallRec::NatStrategy m_natStrategy;
 	WORD m_flcn;
+	H225_CallIdentifier m_callIdentifier;
 	bool m_rtp;
-    probe_state m_probeState;
+	PMutex probeMutex;
+	probe_state m_state;
+
+	// Addresses
+	PString m_CUIlocal;									///< Local CUI
+	PString m_CUIremote;							    ///< Remote CUI
+	PIPSocket::Address m_locAddr;  WORD m_locPort;		///< local Address (address used when starting socket)
+	PIPSocket::Address m_remAddr;  WORD m_remPort;		///< Remote Address (address used when starting socket)
+	PIPSocket::Address m_detAddr;  WORD m_detPort;		///< detected remote Address (as detected from actual packets)
+	PIPSocket::Address m_pendAddr;  WORD m_pendPort;	///< detected pending RTCP Probe Address (as detected from actual packets)
+	PIPSocket::Address m_altAddr;  WORD m_altPort;		///< supplied remote Address (as supplied in Generic Information)
+
+	// Probes
+	PDECLARE_NOTIFIER(PTimer, H46024Socket, Probe);		///< Thread to probe for direct connection
+	PTimer m_Probe;										///< Probe Timer
+	PINDEX m_probes;									///< Probe count
+	DWORD SSRC;											///< Random number
+
 };
 
-H46024Socket::H46024Socket(GkClient * client, bool rtp, const H225_CallIdentifier & id, WORD flcn)
+H46024Socket::H46024Socket(GkClient * client, bool rtp, const H225_CallIdentifier & id, CallRec::NatStrategy strategy, WORD flcn)
 	:UDPProxySocket((rtp ? "rtp" : "rtcp"),id), m_client(client), 
-	m_natStrategy(client->H46023_GetNATStategy(id)), m_flcn(flcn),  
-	m_rtp(rtp), m_probeState(e_notRequired)
+	m_natStrategy(strategy), m_flcn(flcn), m_callIdentifier(id), 
+	m_rtp(rtp), m_state(e_notRequired), m_CUIlocal(PString()), m_CUIremote(PString()), m_probes(0)
 {
 
 }
 
 bool H46024Socket::OnReceiveData(void * data, PINDEX datalen, Address & ipAddress, WORD & ipPort) 
 {
-	if (m_natStrategy != CallRec::e_natAnnexA || 
-		m_natStrategy != CallRec::e_natAnnexB)
+	if (m_natStrategy == CallRec::e_natAnnexA) {
 		return true;
-    
-	return true;
+	} else if (m_natStrategy == CallRec::e_natAnnexB) {
+		return true;
+	} else
+		return true;
 }
+
+void H46024Socket::SetAlternateAddresses(const H323TransportAddress & address, const PString & cui, unsigned muxID)
+{
+	address.GetIpAndPort(m_altAddr,m_altPort);
+
+	PTRACE(6,"H46024A\ts: " << m_flcn << (m_rtp ? " RTP " : " RTCP ")  
+			<< "Remote Alt: " << m_altAddr << ":" << m_altPort << " CUI: " << cui);
+
+	if (!m_rtp) {
+		m_CUIremote = cui;
+		if (GetProbeState() < e_idle) {
+			SetProbeState(e_idle);
+			StartProbe();
+		// We Already have a direct connection but we are waiting on the CUI for the reply
+		} else if (GetProbeState() == e_verify_receiver) 
+			ProbeReceived(false,m_pendAddr,m_pendPort);
+	}
+}
+
+PBoolean H46024Socket::IsAlternateAddress(const Address & address,WORD port)
+{
+	return ((address == m_detAddr) && (port == m_detPort));
+}
+
+#define H46024A_MAX_PROBE_COUNT  10
+#define H46024A_PROBE_INTERVAL  150
+void H46024Socket::StartProbe()
+{
+	PTRACE(4,"H46024A\ts: " << m_flcn << " Starting direct connection probe.");
+
+	SetProbeState(e_probing);
+	m_probes = 0;
+	m_Probe.SetNotifier(PCREATE_NOTIFIER(Probe));
+	m_Probe.RunContinuous(H46024A_PROBE_INTERVAL); 
+}
+
+void H46024Socket::BuildProbe(RTP_ControlFrame & report, bool probing)
+{
+	report.SetPayloadType(RTP_ControlFrame::e_ApplDefined);
+	report.SetCount((probing ? 0 : 1));  // SubType Probe
+
+	report.SetPayloadSize(sizeof(probe_packet));
+
+	probe_packet data;
+		data.SSRC = SSRC;
+		data.Length = sizeof(probe_packet);
+		PString id = "24.1";
+		PBYTEArray bytes(id,id.GetLength(), false);
+		memcpy(&data.name[0], bytes, 4);
+
+		PString m_callId = OpalGloballyUniqueID(m_callIdentifier.m_guid).AsString();
+		PMessageDigest::Result bin_digest;
+		PMessageDigestSHA1::Encode(m_callId + m_CUIremote, bin_digest);
+		memcpy(&data.cui[0], bin_digest.GetPointer(), bin_digest.GetSize());
+
+		memcpy(report.GetPayloadPtr(),&data,sizeof(probe_packet));
+
+}
+
+void H46024Socket::Probe(PTimer &, INT)
+{ 
+	m_probes++;
+
+	if (m_probes > H46024A_MAX_PROBE_COUNT) {
+		m_Probe.Stop();
+		return;
+	}
+
+	if (GetProbeState() != e_probing)
+		return;
+
+	RTP_ControlFrame report;
+	report.SetSize(4+sizeof(probe_packet));
+	BuildProbe(report, true);
+/*
+	if (!WriteTo(report.GetPointer(),report.GetSize(),
+			m_altAddr, m_altPort, m_altMuxID)) {
+		switch (GetErrorNumber()) {
+			case ECONNRESET :
+			case ECONNREFUSED :
+				PTRACE(2, "H46024A\t" << m_altAddr << ":" << m_altPort << " not ready.");
+				break;
+
+			default:
+				PTRACE(1, "H46024A\t" << m_altAddr << ":" << m_altPort 
+					<< ", Write error on port ("
+					<< GetErrorNumber(PChannel::LastWriteError) << "): "
+					<< GetErrorText(PChannel::LastWriteError));
+		}
+	} else {
+		PTRACE(6, "H46024A\ts" << m_flcn <<" RTCP Probe sent: " << m_altAddr << ":" << m_altPort);    
+	}
+*/
+}
+
+void H46024Socket::ProbeReceived(bool probe, const PIPSocket::Address & addr, WORD & port)
+{
+/*
+	if (probe) {
+		m_Handler.H46024ADirect(true,m_Token);  //< Tell remote to wait for connection
+	} else {
+		RTP_ControlFrame reply;
+		reply.SetSize(4+sizeof(probe_packet));
+		BuildProbe(reply, false);
+		if (SendRTCPFrame(reply,addr,port,m_altMuxID)) {
+			PTRACE(4, "H46024A\tRTCP Reply packet sent: " << addr << ":" << port);    
+		}
+	}
+*/
+}
+
+void H46024Socket::StartH46024Adirect(bool starter)
+{
+	if (GetProbeState() == e_direct)  // We might already be doing Annex B ?
+		return;
+
+	if (starter) {  // We start the direct channel 
+		m_detAddr = m_altAddr;  m_detPort = m_altPort;
+		PTRACE(4, "H46024A\ts:" << m_flcn << (m_rtp ? " RTP " : " RTCP ")  
+					<< "Switching to " << m_detAddr << ":" << m_detPort);
+		SetProbeState(e_direct);
+	} else         // We wait for the remote to start channel
+		SetProbeState(e_wait);
+
+	//Keep.Stop();  // Stop the keepAlive Packets
+}
+
+void H46024Socket::GetAlternateAddresses(H323TransportAddress & address, PString & cui, unsigned & muxID)
+{
+	PIPSocket::Address	tempAddr;
+	WORD				tempPort;
+	if (GetLocalAddress(tempAddr,tempPort))
+		address = H323TransportAddress(tempAddr,tempPort);
+
+	if (!m_rtp)
+		cui = m_CUIlocal;
+	else
+		cui = PString();
+
+	if (GetProbeState() < e_idle)
+		SetProbeState(e_initialising);
+
+	PTRACE(6,"H46024A\ts:" << m_flcn << (m_rtp ? " RTP " : " RTCP ") << " Alt:" << address << " CUI " << cui);
+
+}
+
+void H46024Socket::SetProbeState(probe_state newstate)
+{
+	PWaitAndSignal m(probeMutex);
+
+	PTRACE(4,"H46024\tChanging state for " << m_flcn << " from " << m_state << " to " << newstate);
+
+	m_state = newstate;
+}
+    
+int H46024Socket::GetProbeState() const
+{
+	PWaitAndSignal m(probeMutex);
+
+	return m_state;
+}
+#endif
 
 /////////////////////////////////////////////////////////////////////
 
@@ -1465,7 +1669,7 @@ bool GkClient::SendLRQ(Routing::LocationRequest & lrq_obj)
 	return false;
 }
 
-bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer, int natoffload)
+bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer)
 {
 	H225_RasMessage arq_ras;
 	Requester<H225_AdmissionRequest> request(arq_ras, m_loaddr);
@@ -1505,18 +1709,21 @@ bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer, int natof
 	// workaround for bandwidth
 	arq.m_bandWidth = 1280;
 
+#ifdef HAS_H46018
+	// TODO: H46018 Child Implementation
+#endif
+
 #ifdef HAS_H46023
-	if (gk_H460_23) {
+	if (answer && gk_H460_23) {
+		CallRec::NatStrategy natoffload = H46023_GetNATStategy(setup.m_callIdentifier);
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_featureSet);
-		H460_FeatureStd feat = H460_FeatureStd(24); 
-
-		if (answer  && natoffload > 0) 
+			H460_FeatureStd feat = H460_FeatureStd(24); 
 			feat.Add(Std24_NATInstruct,H460_FeatureContent((unsigned)natoffload,8));
-
-		arq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
-		H225_ArrayOf_FeatureDescriptor & desc = arq.m_featureSet.m_supportedFeatures;
-		desc.SetSize(1);
-		desc[0] = feat;
+			arq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+			H225_ArrayOf_FeatureDescriptor & desc = arq.m_featureSet.m_supportedFeatures;
+			int sz = desc.GetSize();
+			desc.SetSize(sz+1);
+			desc[sz] = feat;
 	}
 #endif
 
@@ -1892,17 +2099,20 @@ bool GkClient::WaitForACF(H225_AdmissionRequest &arq, RasRequester & request, Ro
 					}
 				}
 				robj->AddRoute(route);
-#ifdef HAS_H46023
-			  if (Toolkit::Instance()->IsH46023Enabled()) {
+
 				if (acf.HasOptionalField(H225_AdmissionConfirm::e_featureSet)) {
-					callptr call = arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier) ?
-						CallTable::Instance()->FindCallRec(arq.m_callIdentifier) : CallTable::Instance()->FindCallRec(arq.m_callReferenceValue);
 					H460_FeatureSet fs = H460_FeatureSet(acf.m_featureSet);
-					if (fs.HasFeature(24)) 
-						H46023_ACF(call, (H460_FeatureStd *)fs.GetFeature(24));
-				 }
-			  }
+#ifdef HAS_H46018
+					// TODO: Implement H.460.19 Handling
 #endif
+#ifdef HAS_H46023
+					if (gk_H460_23 && fs.HasFeature(24)) { 
+						callptr call = arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier) ?
+							CallTable::Instance()->FindCallRec(arq.m_callIdentifier) : CallTable::Instance()->FindCallRec(arq.m_callReferenceValue);
+							H46023_ACF(call, (H460_FeatureStd *)fs.GetFeature(24));
+					}
+#endif
+				}
 			}
 			return true;
 		}
@@ -1978,15 +2188,16 @@ void GkClient::OnRCF(RasMsg *ras)
 		}
 	}
 
-#ifdef HAS_H46023
-    if (Toolkit::Instance()->IsH46023Enabled()) {
-		if (rcf.HasOptionalField(H225_RegistrationConfirm::e_featureSet)) {
-			H460_FeatureSet fs = H460_FeatureSet(rcf.m_featureSet);
-			if (fs.HasFeature(23)) 
-				H46023_RCF((H460_FeatureStd *)fs.GetFeature(23));
-		}
-	}
+	if (rcf.HasOptionalField(H225_RegistrationConfirm::e_featureSet)) {
+		H460_FeatureSet fs = H460_FeatureSet(rcf.m_featureSet);
+#ifdef HAS_H46018
+		// TODO: Implement H.460.19 Handling
 #endif
+#ifdef HAS_H46023
+		if (Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableH46023", "0")) && fs.HasFeature(23))
+			H46023_RCF((H460_FeatureStd *)fs.GetFeature(23));
+#endif
+	}
 }
 
 #ifdef HAS_H46023
@@ -2056,11 +2267,9 @@ bool GkClient::H46023_CreateSocketPair(const H225_CallIdentifier & id, WORD flcn
 	if (!gk_H460_23)
 		return false;
 
-	callptr call = CallTable::Instance()->FindCallRec(id);
-	if (!call)
-		return false;
+	CallRec::NatStrategy strategy = H46023_GetNATStategy(id);
 
-	switch (call->GetNATStrategy()) {
+	switch (strategy) {
 		case CallRec::e_natUnknown:
 		case CallRec::e_natNoassist:
 		case CallRec::e_natLocalProxy:
@@ -2071,8 +2280,8 @@ bool GkClient::H46023_CreateSocketPair(const H225_CallIdentifier & id, WORD flcn
 		case CallRec::e_natAnnexA:
 		case CallRec::e_natAnnexB:
 			nated = false;
-			rtp = new H46024Socket(this, true, id, flcn);
-			rtcp = new H46024Socket(this, false, id, flcn);
+			rtp = new H46024Socket(this, true, id, strategy, flcn);
+			rtcp = new H46024Socket(this, false, id, strategy, flcn);
 			return true;
 		case CallRec::e_natLocalMaster:
 			nated = true;
@@ -2102,6 +2311,15 @@ CallRec::NatStrategy GkClient::H46023_GetNATStategy(const H225_CallIdentifier & 
 
 	std::map<H225_CallIdentifier, unsigned>::const_iterator i = m_natstrategy.find(id);
 	return (CallRec::NatStrategy)((i != m_natstrategy.end()) ? i->second : 0);
+}
+
+void GkClient::H46023_RemoveNATStategy(const H225_CallIdentifier & id)
+{
+	PWaitAndSignal m(m_strategyMutex);
+
+	std::map<H225_CallIdentifier, unsigned>::iterator i = m_natstrategy.find(id);
+	if (i != m_natstrategy.end())
+		m_natstrategy.erase(i);
 }
 
 void GkClient::H46023_ForceReregistration()
@@ -2388,5 +2606,86 @@ void GkClient::RemoveLocalAlias(const H225_ArrayOf_AliasAddress & aliases)
 			newAliasList.AppendString(m_h323Id[j]);
 	}
 	m_h323Id = newAliasList;
+}
+
+bool FindH460Descriptor(unsigned feat, H225_ArrayOf_FeatureDescriptor & features, int & location)
+{
+	for (PINDEX i =0; i < features.GetSize(); i++) {
+		H225_GenericIdentifier & id = features[i].m_id;
+		if (id.GetTag() == H225_GenericIdentifier::e_standard) {
+			PASN_Integer & asnInt = id;
+			if (asnInt.GetValue() == feat) {
+				location = i;
+				return TRUE;
+			}
+		}
+	}
+	return false;
+}
+
+void RemoveH460Descriptor(unsigned feat, H225_ArrayOf_FeatureDescriptor & features)
+{
+	for(PINDEX i=0; i < features.GetSize(); i++) {
+		H225_GenericIdentifier & id = features[i].m_id;
+		if (id.GetTag() == H225_GenericIdentifier::e_standard) {
+			PASN_Integer & asnInt = id;
+			if (asnInt.GetValue() == feat) {
+				for(PINDEX j=i+1; j < features.GetSize(); j++)
+					features[j-1] = features[j];
+				features.SetSize(features.GetSize() - 1);
+				return;
+			}	
+		}
+	}
+}
+
+bool GkClient::HandleSetup(SetupMsg & setup, bool fromInternal)
+{
+	RewriteE164(setup,fromInternal);
+
+	H225_Setup_UUIE &setupBody = setup.GetUUIEBody();
+	if (!fromInternal) {
+		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
+#ifdef HAS_H46018
+			// TODO:
+#endif
+#ifdef HAS_H46023
+			H225_ArrayOf_FeatureDescriptor & fs = setupBody.m_supportedFeatures;
+			int location = 0;
+			if (gk_H460_23 && FindH460Descriptor(24,fs, location)) {
+				H460_Feature feat = H460_Feature(fs[location]);
+				H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
+				if (std24.Contains(Std24_NATInstruct)) {
+					unsigned natstat = std24.Value(Std24_NATInstruct);
+					H46023_SetNATStategy(setup.GetUUIEBody().m_callIdentifier,natstat);
+				}
+				RemoveH460Descriptor(24,fs);
+			}
+#endif
+		}
+	} else {
+#ifdef HAS_H46018
+			// TODO:
+#endif
+#ifdef HAS_H46023
+		int nonce=0;
+		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures) && 
+			FindH460Descriptor(24,setupBody.m_supportedFeatures, nonce))
+				RemoveH460Descriptor(24,setupBody.m_supportedFeatures); 
+
+		if (gk_H460_23) {
+			CallRec::NatStrategy natoffload = H46023_GetNATStategy(setupBody.m_callIdentifier);
+			H460_FeatureStd feat = H460_FeatureStd(24); 
+			feat.Add(Std24_NATInstruct,H460_FeatureContent((unsigned)natoffload,8));
+			H225_ArrayOf_FeatureDescriptor & desc = setupBody.m_supportedFeatures;
+			int sz = desc.GetSize();
+			desc.SetSize(sz+1);
+			desc[sz] = feat;
+		}
+#endif
+		if (setupBody.m_supportedFeatures.GetSize() > 0)
+			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
+	}
+	return true;
 }
 

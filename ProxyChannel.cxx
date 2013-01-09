@@ -2931,6 +2931,9 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	bool secondSetup = false;	// second Setup with same call-id detected (avoid new acct start and overwriting acct data)
 	SetupAuthData authData(m_call, m_call ? true : false);
 
+#ifdef HAS_H46023
+	CallRec::NatStrategy natoffloadsupport = CallRec::e_natUnknown;
+#endif
 	if (m_call
 #ifdef HAS_H46018
 		&& !m_call->IsH46018ReverseSetup()
@@ -2959,7 +2962,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				m_call->SetDisconnectCause(Q931::CallRejected);
 				rejectCall = true;
 			} else
-				gkClient->RewriteE164(*setup, true);
+				gkClient->HandleSetup(*setup, true);
 		}
 
 		const H225_ArrayOf_CryptoH323Token & tokens = m_call->GetAccessTokens();
@@ -3096,39 +3099,26 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				<< " destination address set to " << AsDotString(setupBody.m_destCallSignalAddress));
 		}
 
-		bool useParent = gkClient->IsRegistered() && gkClient->CheckFrom(_peerAddr);
+		bool useParent = gkClient && gkClient->IsRegistered() && gkClient->CheckFrom(_peerAddr);
 
 #ifdef HAS_H46023
-		CallRec::NatStrategy natoffloadsupport = CallRec::e_natUnknown;
 		if (Toolkit::Instance()->IsH46023Enabled()
 			&& setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)
 			&& authData.m_proxyMode != CallRec::ProxyDisabled) {
-			H225_ArrayOf_FeatureDescriptor & data = setupBody.m_supportedFeatures;
-			for (PINDEX i =0; i < data.GetSize(); i++) {
-				H460_Feature & feat = (H460_Feature &)data[i];
-				/// Std 24
-				if (feat.GetFeatureID() == H460_FeatureID(24)) {
-					H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
-					if (std24.Contains(Std24_NATInstruct)) {
-						unsigned natstat = std24.Value(Std24_NATInstruct);
-						natoffloadsupport = (CallRec::NatStrategy)natstat;
+				H225_ArrayOf_FeatureDescriptor & data = setupBody.m_supportedFeatures;
+				for (PINDEX i =0; i < data.GetSize(); i++) {
+					H460_Feature & feat = (H460_Feature &)data[i];
+					/// Std 24
+					if (feat.GetFeatureID() == H460_FeatureID(24)) {
+						H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
+						if (std24.Contains(Std24_NATInstruct)) {
+							unsigned natstat = std24.Value(Std24_NATInstruct);
+							natoffloadsupport = (CallRec::NatStrategy)natstat;
+						}
 					}
 				}
-			}
-
-			// If not already set disable the proxy support function for this call
-			// if using Parent you must proxy...
-			if (!useParent &&
-				(natoffloadsupport == CallRec::e_natLocalMaster ||
-					natoffloadsupport == CallRec::e_natRemoteMaster ||
-					natoffloadsupport == CallRec::e_natNoassist ||
-					natoffloadsupport == CallRec::e_natRemoteProxy)) {
-					PTRACE(4, "RAS\tNAT Proxy disabled due to offload support");
-					authData.m_proxyMode = CallRec::ProxyDisabled;
-			}
+			natoffloadsupport = m_call->SetReceiveNATStategy(natoffloadsupport,authData.m_proxyMode);
 		}
-#else
-		int natoffloadsupport = 0;
 #endif
 
 //#ifdef HAS_H46026
@@ -3136,8 +3126,8 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 //#endif
 
 		if (!rejectCall && useParent) {
-			gkClient->RewriteE164(*setup, false);
-			if (!gkClient->SendARQ(request, true, natoffloadsupport)) { // send answered ARQ
+			gkClient->HandleSetup(*setup, false);
+			if (!gkClient->SendARQ(request, true)) {
 				PTRACE(2, Type() << "\tGot ARJ from parent for " << GetName());
 				authData.m_rejectCause = Q931::CallRejected;
 				rejectCall = true;
@@ -3810,11 +3800,6 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			delete feat_id;
 			feat_id = NULL;
 
-#ifdef HAS_H46023
-			CallRec::NatStrategy strat = m_call->GetNATStrategy(); 
-			if (strat == CallRec::e_natUnknown && Toolkit::Instance()->IsH46023Enabled())
-				m_call->NATAssistCallerUnknown(strat);
-#endif
 			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 				bool isH46019Client = false;
 				RemoveH46019Descriptor(setupBody.m_supportedFeatures, m_senderSupportsH46019Multiplexing, isH46019Client);
@@ -3825,7 +3810,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))
 #ifdef HAS_H46023
-				&& (m_senderSupportsH46019Multiplexing || (!HasH46024Descriptor(setupBody.m_supportedFeatures) && IsH46024ProxyStrategy(strat)))
+				&& (m_senderSupportsH46019Multiplexing || (!HasH46024Descriptor(setupBody.m_supportedFeatures) && IsH46024ProxyStrategy(natoffloadsupport)))
 #endif
 			) {
 				feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
@@ -3843,18 +3828,12 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		if (Toolkit::Instance()->IsH46023Enabled()
 			&& m_call->GetCalledParty()->UsesH46023()
 			&& !HasH46024Descriptor(setupBody.m_supportedFeatures)) {
-			// if remote does not support H.460.24 add Strategy to add local NAT Support.
-			CallRec::NatStrategy strat = m_call->GetNATStrategy();
-			H460_FeatureStd std24 = H460_FeatureStd(24);
+				// if remote does not support H.460.24 add Strategy to add local NAT Support.
+				CallRec::NatStrategy strat = m_call->GetNATStrategy();
+				H460_FeatureStd std24 = H460_FeatureStd(24);
 
-			if (strat == CallRec::e_natUnknown) m_call->NATAssistCallerUnknown(strat);
-			else if (strat == CallRec::e_natRemoteMaster) strat = CallRec::e_natLocalMaster;
-			else if (strat == CallRec::e_natLocalMaster) strat = CallRec::e_natRemoteMaster;
-			else if (strat == CallRec::e_natRemoteProxy) strat = CallRec::e_natLocalProxy;
-			else if (strat == CallRec::e_natLocalProxy)  strat = CallRec::e_natRemoteProxy;
-
-			std24.Add(Std24_NATInstruct,H460_FeatureContent((int)strat,8));
-			AddH460Feature(setupBody.m_supportedFeatures, std24);
+				std24.Add(Std24_NATInstruct,H460_FeatureContent((int)natoffloadsupport,8));
+				AddH460Feature(setupBody.m_supportedFeatures, std24);
 		}
 #endif
 	}
