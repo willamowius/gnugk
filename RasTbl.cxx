@@ -4107,7 +4107,7 @@ void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, 
  
 void CallRec::H46024BRespond()
 {
-	if (m_H46024Balternate.size() == 0)
+	if (m_H46024Balternate.empty())
 		return;
  
 	PTRACE(5, "H46024B\tNAT offload respond");
