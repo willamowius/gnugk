@@ -2892,7 +2892,8 @@ void Toolkit::SetGKHome(const PStringArray & home)
 
 	// remove duplicate interfaces
 	sort(m_GKHome.begin(), m_GKHome.end());
-	unique(m_GKHome.begin(), m_GKHome.end());
+	std::vector<PIPSocket::Address>::iterator end_unique = unique(m_GKHome.begin(), m_GKHome.end());
+	m_GKHome.erase(end_unique, m_GKHome.end());
 
 	// move loopback interfaces to the end
 	std::list<PIPSocket::Address> sortedHomes;
