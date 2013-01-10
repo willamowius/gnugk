@@ -3118,19 +3118,18 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		if (Toolkit::Instance()->IsH46023Enabled()
 			&& setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)
 			&& authData.m_proxyMode != CallRec::ProxyDisabled) {
-				H225_ArrayOf_FeatureDescriptor & data = setupBody.m_supportedFeatures;
-				for (PINDEX i =0; i < data.GetSize(); i++) {
-					H460_Feature & feat = (H460_Feature &)data[i];
-					/// Std 24
-					if (feat.GetFeatureID() == H460_FeatureID(24)) {
-						H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
-						if (std24.Contains(Std24_NATInstruct)) {
-							unsigned natstat = std24.Value(Std24_NATInstruct);
-							natoffloadsupport = (CallRec::NatStrategy)natstat;
-						}
+			H225_ArrayOf_FeatureDescriptor & data = setupBody.m_supportedFeatures;
+			for (PINDEX i =0; i < data.GetSize(); i++) {
+				H460_Feature & feat = (H460_Feature &)data[i];
+				/// Std 24
+				if (feat.GetFeatureID() == H460_FeatureID(24)) {
+					H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
+					if (std24.Contains(Std24_NATInstruct)) {
+						unsigned natstat = std24.Value(Std24_NATInstruct);
+						natoffloadsupport = (CallRec::NatStrategy)natstat;
 					}
 				}
-			natoffloadsupport = m_call->SetReceiveNATStategy(natoffloadsupport,authData.m_proxyMode);
+			}
 		}
 #endif
 
@@ -3813,6 +3812,10 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			delete feat_id;
 			feat_id = NULL;
 
+#ifdef HAS_H46023
+			if (Toolkit::Instance()->IsH46023Enabled())
+				m_call->SetReceiveNATStategy(natoffloadsupport,authData.m_proxyMode);
+#endif
 			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 				bool isH46019Client = false;
 				RemoveH46019Descriptor(setupBody.m_supportedFeatures, m_senderSupportsH46019Multiplexing, isH46019Client);

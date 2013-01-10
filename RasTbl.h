@@ -785,7 +785,7 @@ public:
 
 	/** Set Receive Side Strategy
 	  */
-	NatStrategy SetReceiveNATStategy(const NatStrategy & type, int & proxyMode);
+	void SetReceiveNATStategy(NatStrategy & type, int & proxyMode);
 
 	/** Get String representation of the NATStrategy */
 	PString GetNATOffloadString(NatStrategy nat) const;
