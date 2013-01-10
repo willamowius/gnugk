@@ -744,7 +744,6 @@ public:
 	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &,callptr &);
 
 	void SetHandler(ProxyHandler *);
-	H245ProxyHandler * GetPeer() const { return peer; }
 	LogicalChannel * FindLogicalChannel(WORD flcn);
 	RTPLogicalChannel * FindRTPLogicalChannelBySessionID(WORD id);
 	bool UsesH46019() const { return m_useH46019; }
