@@ -1086,8 +1086,11 @@ void CallSignalSocket::InternalInit()
 #ifdef HAS_H46017
 void CallSignalSocket::CleanupCall()
 {
+	// clear the call
 	m_call = callptr(NULL);
 	m_crv = 0;
+
+	// clear H.245 socket and handler
 	if (m_h245socket)
 		m_h245socket->OnSignalingChannelClosed();	// close socket and set deletable
 	m_h245socket = NULL;
@@ -1096,6 +1099,16 @@ void CallSignalSocket::CleanupCall()
 		delete m_h245handler;
 	m_h245handler = NULL;
 	m_h245handlerLock.Signal();
+
+	// clear remote if still set
+	m_remoteLock.Wait();
+	if (remote) {
+		remote->RemoveRemoteSocket();
+		GetHandler()->Remove(remote);	// will delete socket in CleanUp()
+		remote = NULL;
+	}
+	m_remoteLock.Signal();
+
 	m_setupPdu = NULL;
 #ifdef HAS_H46018
 	m_callFromTraversalServer = false;
