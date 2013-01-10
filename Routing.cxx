@@ -1565,8 +1565,7 @@ bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddre
 						H225_TransportAddress dest;
 						if (GetTransportAddress(domain, port, dest)) {
 						PTRACE(4, "ROUTING\tPolicy " << m_name << " " << enum_schema << " set destination for " << alias << " to " << dest);
-							Route * route = NULL;
-							route = new Route(m_name, dest);
+							Route * route = new Route(m_name, dest);
 							route->m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
 							request.AddRoute(*route);
 							delete route;

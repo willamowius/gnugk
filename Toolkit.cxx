@@ -70,8 +70,8 @@ NetworkAddress::NetworkAddress(
 	) : m_netmask(nm)
 {
 	// normalize the address
-	BYTE rawdata[16];
 	if (addr.GetSize() == nm.GetSize()) {
+		BYTE rawdata[16];
 		const unsigned sz = addr.GetSize();
 		for (unsigned i = 0; i < sz; i++)
 			rawdata[i] = addr[i] & nm[i];
@@ -677,7 +677,7 @@ NetworkAddress Toolkit::ProxyCriterion::FindModeRule(const NetworkAddress & ip) 
 		if ((ip << iter->first) && (iter->first.GetNetmaskLen() >= bestmatch.GetNetmaskLen())) {
 			bestmatch = iter->first;
 		}
-		iter++;
+		++iter;
 	}
 
 	return bestmatch;
@@ -1815,7 +1815,6 @@ bool Toolkit::AssignedAliases::DatabaseLookup(
 	if (!m_sqlactive)
 		return false;
 
-	GkSQLResult::ResultRow resultRow;
 	std::map<PString, PString> params;
 	params["u"] = alias;
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, params, m_timeout);
@@ -2132,7 +2131,6 @@ bool Toolkit::AssignedGatekeepers::DatabaseLookup(
 	if (!m_sqlactive)
 		return false;
 
-	GkSQLResult::ResultRow resultRow;
 	std::map<PString, PString> params;
 	params["u"] = alias;
 	params["i"] = ipaddr.AsString();
@@ -2282,9 +2280,8 @@ static PString DNStoIP(const PString & dns)
 
 bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias, const PIPSocket::Address & ip, H225_ArrayOf_AlternateGK & gklist)
 {
-	bool found = false;
 	PStringArray assignedGK;
-	found = QueryAssignedGK(alias, ip, assignedGK);
+	bool found = QueryAssignedGK(alias, ip, assignedGK);
 
 	if (!found) {
 		for (unsigned j=0; j < assignedGKList.size(); j++) {
@@ -2435,7 +2432,6 @@ bool Toolkit::AlternateGatekeepers::QueryAlternateGK(const PIPSocket::Address & 
 	if (!m_sqlactive)
 		return false;
 
-	GkSQLResult::ResultRow resultRow;
 	std::map<PString, PString> params;
 	params["i"] = ip.AsString();
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, params, m_timeout);

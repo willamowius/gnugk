@@ -407,9 +407,9 @@ void SoftPBX::RerouteCall(const PString & CallId, const PCaselessString & whichL
 
 	CallLeg which = (whichLeg == "called") ? Called : Caller;
 	callptr lCall = CallTable::Instance()->FindCallRec(StringToCallId(CallId));
-	CallSignalSocket * lForwardedSocket = NULL;
 
 	if (lCall) {
+		CallSignalSocket * lForwardedSocket = NULL;
 		if (which == Called) {
 			lForwardedSocket = lCall->GetCallSignalSocketCalled();
 		} else {

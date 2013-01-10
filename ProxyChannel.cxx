@@ -2882,9 +2882,9 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	if (q931.HasIE(Q931::CalledPartyNumberIE)) {
 		unsigned plan, type;
 		PString calledNumber;
-		bool rewritten = false;
 
 		if (q931.GetCalledPartyNumber(calledNumber, &plan, &type)) {
+			bool rewritten = false;
 			// Do per GW inbound rewrite before global rewrite
 			if (!in_rewrite_id)
 				rewritten = toolkit->GWRewritePString(in_rewrite_id, GW_REWRITE_IN, calledNumber);
@@ -2941,7 +2941,6 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 	GkClient *gkClient = rassrv->GetGkClient();
 	bool rejectCall = false;
-	bool secondSetup = false;	// second Setup with same call-id detected (avoid new acct start and overwriting acct data)
 	SetupAuthData authData(m_call, m_call ? true : false);
 
 #ifdef HAS_H46023
@@ -2953,6 +2952,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 #endif
 		) {
 		// existing CallRec
+		bool secondSetup = false;	// second Setup with same call-id detected (avoid new acct start and overwriting acct data)
 		m_call->SetSetupTime(setupTime);
 		m_call->SetSrcSignalAddr(SocketToH225TransportAddr(_peerAddr, _peerPort));
 
