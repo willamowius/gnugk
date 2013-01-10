@@ -2492,9 +2492,11 @@ bool RegistrationRequestPDU::Process()
 #endif // HAS_H460
 
 		// Gatekeeper assigned Aliases if the client supplied aliases
-		if (request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) &&
-			                              ep->SetAssignedAliases(rcf.m_terminalAlias))
-			     rcf.IncludeOptionalField(H225_RegistrationConfirm::e_terminalAlias);
+		if (request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
+			if (!ep->IsGateway() || Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "GatewayAssignAliases", "1")))
+				ep->SetAssignedAliases(rcf.m_terminalAlias);
+			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_terminalAlias);
+		}
 
 #ifdef h323v6
         // Assigned GKs
@@ -2579,6 +2581,7 @@ bool RegistrationRequestPDU::HandleAdditiveRegistration(const endptr & ep)
 	H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
 	rcf.IncludeOptionalField(H225_RegistrationConfirm::e_terminalAlias);
 	rcf.m_terminalAlias = request.m_terminalAlias;
+	Toolkit::Instance()->GetAssignedEPAliases().GetAliases(rcf.m_terminalAlias,rcf.m_terminalAlias);
 	ep->SetAliases(rcf.m_terminalAlias, true);
 
 	if (!Toolkit::AsBool(GkConfig()->GetString("GkStatus::Filtering", "NewRCFOnly", "0"))) {

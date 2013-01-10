@@ -1,6 +1,7 @@
 Changes from 3.2 to 3.3
 =======================
-
+- new [RasSvr::RRQFeatures] GatewayAssignAliases switch to disable assigning aliases to gateways on registration.
+- updated H.460.23/.24 support to child gatekeeper.
 
 Changes from 3.1 to 3.2
 =======================

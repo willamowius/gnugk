@@ -181,6 +181,14 @@ gatekeepers behind NAT and yet still being abled to be resolved from the outside
 statically provisioning a client and server gatekeeper via H.460.18/.19
 </itemize>
 
+<item><tt/GatewayAssignAliases=0/<newline>
+Default: <tt/1/<newline>
+<p>
+If AssignedAliases::SQL has been configured, apply assignments to gateway registrations (default). 
+This switch is designed when set to 0 to use additiveRegistrations with gateways so that the assignedAliases
+are not all assigned upon registration but only when the additiveRegistration is made. This ensures only the currently 
+registered endpoints appear in the endpoint table. 
+
 
 <sect1>Section &lsqb;RasSrv::ARQFeatures&rsqb;
 <p>
