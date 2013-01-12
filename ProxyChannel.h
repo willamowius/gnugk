@@ -535,7 +535,7 @@ public:
 	bool sideBReady(bool isRTCP) const { return isRTCP ? IsSet(m_addrB_RTCP) : IsSet(m_addrB); }
 	H46019Session SwapSides() const; // return a copy with side A and B swapped
 
-	bool IsKeepAlive(void * data, unsigned len, bool isRTCP) { return isRTCP ? true : (len == 12); };
+	bool IsKeepAlive(void * data, unsigned len, bool isRTCP) const { return isRTCP ? true : (len == 12); }
 
 	void HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP);
 	static void Send(PUInt32b sendMultiplexID, const H323TransportAddress & toAddress, int ossocket, void * data, unsigned len, bool bufferHasRoomForID=false);

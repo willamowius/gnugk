@@ -309,7 +309,7 @@ public:
 	void SetUsesH46026(bool val) {  m_usesH46026 = val; }
 	bool UsesH46026() const { return m_usesH46026; }
 	void SetTraversalRole(H46019TraversalType val) { m_traversalType = val; m_nat = (val == TraversalClient); }
-	H46019TraversalType GetTraversalRole() { return m_traversalType; }
+	H46019TraversalType GetTraversalRole() const { return m_traversalType; }
 	bool IsTraversalServer() const { return m_traversalType == TraversalServer; }
 	bool IsTraversalClient() const { return m_traversalType == TraversalClient; }
 
@@ -1325,7 +1325,7 @@ public:
     typedef NATType EncDir;
     H235Authenticators & GetAuthenticators() { return m_authenticators; }
     void SetMediaEncryption(EncDir dir);
-    bool IsMediaEncryption() { return m_encyptDir != none; }
+    bool IsMediaEncryption() const { return m_encyptDir != none; }
     EncDir GetEncryptDirection() const { return m_encyptDir; }
 	BYTE GetNewDynamicPayloadType();
 #endif

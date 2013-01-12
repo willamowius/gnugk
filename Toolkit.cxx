@@ -357,7 +357,7 @@ void Toolkit::RouteTable::InitTable()
 }
 
 // get default route from route table, because GetGatewayAddress() is broken until PTLib 2.11.1
-PIPSocket::Address Toolkit::RouteTable::GetDefaultIP(unsigned version)
+PIPSocket::Address Toolkit::RouteTable::GetDefaultIP(unsigned version) const
 {
 	for (RouteEntry *entry = rtable_begin; entry != rtable_end; ++entry) {
 		if ((entry->GetNetMask() == 0) && (entry->GetDestination().GetVersion() == version))
@@ -2744,7 +2744,7 @@ GkPresence & Toolkit::GetPresenceHandler()
 }
 #endif
 
-std::vector<NetworkAddress> Toolkit::GetInternalNetworks()
+std::vector<NetworkAddress> Toolkit::GetInternalNetworks() const
 {
 	return !GkConfig()->GetString("ExternalIP", "").IsEmpty() ? m_VirtualRouteTable.GetInternalNetworks() : m_RouteTable.GetInternalNetworks();
 }
@@ -3020,9 +3020,9 @@ PString Toolkit::GenerateAcctSessionId()
 }
 
 PString Toolkit::AsString(
-	const PTime& tm, /// timestamp to convert into a string
-	const PString& formatStr /// format string to use
-	)
+	const PTime & tm, /// timestamp to convert into a string
+	const PString & formatStr /// format string to use
+	) const
 {
 	PString fmtStr = !formatStr ? formatStr : m_timestampFormatStr;
 	if (fmtStr.IsEmpty())

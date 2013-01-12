@@ -127,7 +127,7 @@ class Toolkit : public Singleton<Toolkit>
 		virtual ~RouteTable() { ClearTable(); }
 		Address GetLocalAddress(unsigned version) const;
 		Address GetLocalAddress(const Address & dest) const;
-		Address GetDefaultIP(unsigned version);
+		Address GetDefaultIP(unsigned version) const;
 
 		void InitTable();
 		void ClearTable();
@@ -196,7 +196,7 @@ class Toolkit : public Singleton<Toolkit>
 	int SelectRoutingMode(const PIPSocket::Address & ip1, const PIPSocket::Address & ip2) const
 	{ return m_ProxyCriterion.SelectRoutingMode(ip1, ip2); }
 
-	bool IsInternal(const PIPSocket::Address & ip1)
+	bool IsInternal(const PIPSocket::Address & ip1) const
 	{ return (m_ProxyCriterion.IsInternal(ip1) > 0); }
 
 	// Since PStringToString is not thread-safe,
@@ -260,7 +260,7 @@ class Toolkit : public Singleton<Toolkit>
 #endif
 	};
 
-	AssignedAliases GetAssignedEPAliases() { return m_AssignedEPAliases; }
+	AssignedAliases GetAssignedEPAliases() const { return m_AssignedEPAliases; }
 
 #ifdef h323v6
 	class AssignedGatekeepers {
@@ -295,7 +295,7 @@ class Toolkit : public Singleton<Toolkit>
 
 	};
 
-	AssignedGatekeepers AssignedGKs() { return m_AssignedGKs; }
+	AssignedGatekeepers AssignedGKs() const { return m_AssignedGKs; }
 #endif
 
 #if HAS_DATABASE
@@ -317,7 +317,7 @@ class Toolkit : public Singleton<Toolkit>
 	   // query timeout
 	   long m_timeout;
 	};
-	AlternateGatekeepers AlternateGKs() { return m_AlternateGKs; }
+	AlternateGatekeepers AlternateGKs() const { return m_AlternateGKs; }
 #endif
 
 #if HAS_DATABASE
@@ -339,7 +339,7 @@ class Toolkit : public Singleton<Toolkit>
 	   long m_timeout;
 	};
 
-	QoSMonitor QoS() { return m_qosMonitor; }
+	QoSMonitor QoS() const { return m_qosMonitor; }
 #endif
 
 
@@ -352,7 +352,7 @@ class Toolkit : public Singleton<Toolkit>
 	bool RewriteE164(H225_AliasAddress & alias);
 	bool RewriteE164(H225_ArrayOf_AliasAddress & aliases);
 
-	bool RewritePString(PString & s) { return m_Rewrite.RewritePString(s); }
+	bool RewritePString(PString & s) const { return m_Rewrite.RewritePString(s); }
 
 	// Class to allow correct use of STL inside PDictionary type
 	class GWRewriteEntry : public PObject {
@@ -395,7 +395,7 @@ class Toolkit : public Singleton<Toolkit>
 #endif
 
 	bool isBehindNAT(PIPSocket::Address &) const;
-	std::vector<NetworkAddress> GetInternalNetworks();
+	std::vector<NetworkAddress> GetInternalNetworks() const;
 #ifdef HAS_H46018
 	bool IsH46018Enabled() const { return m_H46018Enabled; }
 #endif
@@ -560,7 +560,7 @@ class Toolkit : public Singleton<Toolkit>
 	PString AsString(
 		const PTime& tm, /// timestamp to convert into a string
 		const PString& formatStr = PString::Empty() /// format string to use
-		);
+		) const;
 
 	/** Read and decrypt a password from the config. As a decryption key
 	    this function is using the given key name padded with bytes of value

@@ -335,7 +335,7 @@ protected:
 		PString& host,
 		/// set to the port number or 0, if no port is given
 		WORD& port
-		);
+		) const;
 
 private:
 	GkSQLConnection(const GkSQLConnection&);
@@ -409,11 +409,7 @@ struct GkSQLCreator : public SQLCreator1
 };
 
 
-inline void GkSQLConnection::GetHostAndPort(
-	const PString& str,
-	PString& host,
-	WORD& port
-	)
+inline void GkSQLConnection::GetHostAndPort(const PString & str, PString & host, WORD & port) const
 {
 	if (IsIPv4Address(str) || (str.Left(1) != "[")) {
 		// IPv4 or IPv6 without bracket and port or DNS name

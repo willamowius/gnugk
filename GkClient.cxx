@@ -2506,7 +2506,7 @@ void GkClient::SetNBPassword(
 	}
 }
 
-bool GkClient::UsesAdditiveRegistration()
+bool GkClient::UsesAdditiveRegistration() const
 {
 	return m_useAdditiveRegistration;
 }

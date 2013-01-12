@@ -69,7 +69,7 @@ public:
 	bool IsNATed() const { return m_natClient != NULL; }
 	PString GetParent() const;
 
-	bool UsesAdditiveRegistration();
+	bool UsesAdditiveRegistration() const;
 	bool AdditiveRegister(H225_ArrayOf_AliasAddress & aliases, int & rejectReason, 
 						H225_ArrayOf_ClearToken * tokens, H225_ArrayOf_CryptoH323Token * cryptotokens);
 	bool AdditiveUnRegister(const H225_ArrayOf_AliasAddress & aliases);
