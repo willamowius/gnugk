@@ -6,7 +6,7 @@
  * $Id$
  *
  * Copyright (c) 2005, Michal Zygmuntowicz
- * Copyright (c) 2007-2012, Jan Willamowius
+ * Copyright (c) 2007-2013, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -266,7 +266,7 @@ CLIRewrite::CLIRewrite()
 							break;
 					} else if (siprule->first == addr)
 						break;
-					siprule++;
+					++siprule;
 				}
 	
 				// append the new callee address, if not found
@@ -519,7 +519,7 @@ void CLIRewrite::InRewrite(
 		if (i->first.IsAny() || (addr << i->first))
 			break;
 		else
-			i++;
+			++i;
 
 	if (i == m_inboundRules.end())
 		return;
@@ -542,7 +542,7 @@ void CLIRewrite::OutRewrite(
 		if (diprule->first.IsAny() || (addr << diprule->first))
 			break;
 		else
-			diprule++;
+			++diprule;
 
 	if (diprule == m_outboundRules.end())
 		return;
@@ -553,7 +553,7 @@ void CLIRewrite::OutRewrite(
 		if (siprule->first.IsAny() || (destAddr << siprule->first))
 			break;
 		else
-			siprule++;
+			++siprule;
 
 	if (siprule == diprule->second.end())
 		return;
@@ -701,10 +701,6 @@ void CLIRewrite::Rewrite(
 			);
 	}
 	
-	int clirPolicy = rule->m_CLIRPolicy;
-	if (clirPolicy == RewriteRule::IgnoreCLIR)
-		clirPolicy = m_CLIRPolicy;
-
 	int screeningType = rule->m_screeningType;
 	if (rule->m_CLIRPolicy == RewriteRule::AlwaysApplyCLIR
 			|| (rule->m_CLIRPolicy == RewriteRule::ApplyCLIRForTerminals
