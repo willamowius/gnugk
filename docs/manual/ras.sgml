@@ -179,7 +179,6 @@ gateways. This allows devices to be registered to child gatekeeper but authentic
 at the parent and reside in both endpoint tables. Useful when adhoc registering endpoints to 
 gatekeepers behind NAT and yet still being abled to be resolved from the outside without requiring
 statically provisioning a client and server gatekeeper via H.460.18/.19
-</itemize>
 
 <item><tt/GatewayAssignAliases=0/<newline>
 Default: <tt/1/<newline>
@@ -188,6 +187,7 @@ If AssignedAliases::SQL has been configured, apply assignments to gateway regist
 This switch is designed when set to 0 to use additiveRegistrations with gateways so that the assignedAliases
 are not all assigned upon registration but only when the additiveRegistration is made. This ensures only the currently 
 registered endpoints appear in the endpoint table. 
+</itemize>
 
 
 <sect1>Section &lsqb;RasSrv::ARQFeatures&rsqb;
