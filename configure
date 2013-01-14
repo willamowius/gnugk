@@ -4893,7 +4893,7 @@ $as_echo_n "checking for LUA library... " >&6; }
 
 		for try in /usr/lib /usr/local/lib $lua_lib_dir; do
 			if test -d $try; then
-				LIBS="$old_LIBS -llua"
+				LIBS="$old_LIBS -llua -lm"
 				cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 extern luaL_newstate();
@@ -4906,7 +4906,7 @@ luaL_newstate();
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-   LUA_LIBS="-llua"
+   LUA_LIBS="-llua -lm"
 					  LUA_LDFLAGS="-L$try"
 
 

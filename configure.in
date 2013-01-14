@@ -1101,9 +1101,9 @@ if test "x${lua}" != "xno"; then
 
 		for try in /usr/lib /usr/local/lib $lua_lib_dir; do
 			if test -d $try; then
-				LIBS="$old_LIBS -llua"
+				LIBS="$old_LIBS -llua -lm"
 				AC_TRY_LINK([extern luaL_newstate();], [luaL_newstate();],
-					[ LUA_LIBS="-llua"
+					[ LUA_LIBS="-llua -lm"
 					  LUA_LDFLAGS="-L$try"
 					]
 				)
