@@ -322,6 +322,7 @@ protected:
 	void SetEndpointRec(H225_AdmissionRequest &);
 	void SetEndpointRec(H225_AdmissionConfirm &);
 	void SetEndpointRec(H225_LocationConfirm &);
+	void SetEndpointRec(H225_UnregistrationRequest &);
 
 	bool SendURQ(H225_UnregRequestReason::Choices, int preemption);
 

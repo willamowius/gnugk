@@ -2584,6 +2584,11 @@ bool RegistrationRequestPDU::HandleAdditiveRegistration(const endptr & ep)
 	Toolkit::Instance()->GetAssignedEPAliases().GetAliases(rcf.m_terminalAlias,rcf.m_terminalAlias);
 	ep->SetAliases(rcf.m_terminalAlias, true);
 
+	// Log the additive registration
+	EndpointRec * logRec = new EndpointRec(m_msg->m_recvRAS);
+	RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctRegister, endptr(logRec));
+	delete logRec;
+
 	if (!Toolkit::AsBool(GkConfig()->GetString("GkStatus::Filtering", "NewRCFOnly", "0"))) {
 		PString log = "RCF|" + ep->PrintOn(false) + ";\r\n";
 		PrintStatus(log);
@@ -2669,10 +2674,15 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 		if (ep->IsAdditiveRegistrant() && 
 			request.HasOptionalField(H225_UnregistrationRequest::e_endpointAlias) &&
 			!ep->RemoveAliases(request.m_endpointAlias)) {
-					log = "UCF|" + m_msg->m_peerAddr.AsString()
-					+ "|" + endpointId
-					+ "|" + AsString(request.m_endpointAlias);
-					PrintStatus(log);
+
+				EndpointRec * logRec = new EndpointRec(m_msg->m_recvRAS);
+				RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctUnregister, endptr(logRec));
+				delete logRec;
+
+				log = "UCF|" + m_msg->m_peerAddr.AsString()
+				+ "|" + endpointId
+				+ "|" + AsString(request.m_endpointAlias);
+				PrintStatus(log);
 				BuildConfirm();
 				return bSendReply;
 		}

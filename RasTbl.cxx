@@ -121,6 +121,9 @@ EndpointRec::EndpointRec(
 		case H225_RasMessage::e_locationConfirm:
 			SetEndpointRec((H225_LocationConfirm &)m_RasMsg);
 			break;
+		case H225_RasMessage::e_unregistrationRequest:
+			SetEndpointRec((H225_UnregistrationRequest&)m_RasMsg);
+			break;
 		default: // should not happen
 			break;
 	}
@@ -347,6 +350,17 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 	}
 #endif
 
+}
+
+void EndpointRec::SetEndpointRec(H225_UnregistrationRequest & urq)
+{
+	if (urq.m_callSignalAddress.GetSize() > 0)
+		m_callSignalAddress = urq.m_callSignalAddress[0];
+	else
+		m_callSignalAddress.SetTag(H225_TransportAddress::e_nonStandardAddress);
+
+	m_endpointIdentifier = urq.m_endpointIdentifier;
+	SetAliases(urq.m_endpointAlias);
 }
 
 EndpointRec::~EndpointRec()
