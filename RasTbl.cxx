@@ -352,6 +352,7 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 
 }
 
+// used for temporary objects in accounting of additive registrations
 void EndpointRec::SetEndpointRec(H225_UnregistrationRequest & urq)
 {
 	if (urq.m_callSignalAddress.GetSize() > 0)

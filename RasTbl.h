@@ -317,12 +317,11 @@ public:
 	typedef SmartPtr<EndpointRec> Ptr;
 
 protected:
-
 	void SetEndpointRec(H225_RegistrationRequest &);
 	void SetEndpointRec(H225_AdmissionRequest &);
 	void SetEndpointRec(H225_AdmissionConfirm &);
 	void SetEndpointRec(H225_LocationConfirm &);
-	void SetEndpointRec(H225_UnregistrationRequest &);
+	void SetEndpointRec(H225_UnregistrationRequest &);	// used for temp objects
 
 	bool SendURQ(H225_UnregRequestReason::Choices, int preemption);
 
