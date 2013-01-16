@@ -340,9 +340,9 @@ public:
 	bool IsCallToTraversalServer() const { return m_callToTraversalServer; }
 	void SetSessionMultiplexDestination(WORD session, bool isRTCP, const H323TransportAddress & toAddress, H46019Side side);
 	const H245Handler * GetH245Handler() const { return m_h245handler; }
+#endif
 	void LockH245Handler() { m_h245handlerLock.Wait(); }
 	void UnlockH245Handler() { m_h245handlerLock.Signal(); }
-#endif
 
 #ifdef HAS_H46023
 	bool IsH46024Call(const H225_Setup_UUIE & setupBody);

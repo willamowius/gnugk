@@ -3720,7 +3720,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		}
 #endif	// HAS_H46018
 
-#ifdef HAS_H46017
+#if defined(HAS_H46017) && defined(HAS_H46018)
 	if ((m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46017())
 		&& Toolkit::Instance()->IsH46018Enabled()) {
 			// offer H.460.19 to H.460.17 endpoints
