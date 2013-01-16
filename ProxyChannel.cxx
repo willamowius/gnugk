@@ -7918,9 +7918,11 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		memcpy(ivSequence, wbuffer + 2, 6);
 #endif
 
+#if defined(HAS_H46018) || defined(HAS_H235_MEDIA)
 	BYTE payloadType = UNDEFINED_PAYLOAD_TYPE;
 	if ((buflen >= 2) && isRTP)
 		payloadType = wbuffer[1] & 0x7f;
+#endif
 
 #ifdef HAS_H46018
 	PWaitAndSignal lock(m_multiplexMutex);
