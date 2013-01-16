@@ -3721,9 +3721,9 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 									std24.Add(Std24_MustProxy,H460_FeatureContent(mustproxy));
 								} else {
 									std24.Add(Std24_IsNAT,H460_FeatureContent(true));
-									std24.Add(Std24_NATdet,H460_FeatureContent(WantedEndPoint->GetEPNATType(),8));
+									std24.Add(Std24_NATdet,H460_FeatureContent(WantedEndPoint->GetEPNATType(), 8));
 									std24.Add(Std24_ProxyNAT,H460_FeatureContent(WantedEndPoint->HasNATProxy()));
-									std24.Add(Std24_SourceAddr,H460_FeatureContent(H323TransportAddress(WantedEndPoint->GetNATIP(),0)));
+									std24.Add(Std24_SourceAddr,H460_FeatureContent(H323TransportAddress(WantedEndPoint->GetNATIP(), 0)));
 									std24.Add(Std24_AnnexA,H460_FeatureContent(WantedEndPoint->SupportH46024A()));
 									std24.Add(Std24_AnnexB,H460_FeatureContent(WantedEndPoint->SupportH46024B()));
 								}

@@ -52,7 +52,7 @@ int Gatekeeper::m_rotateHour = 0;
 int Gatekeeper::m_rotateDay = 0;
 GkTimer* Gatekeeper::m_rotateTimer = GkTimerManager::INVALID_HANDLE;
 
-PSemaphore ShutdownMutex(1,1);
+PSemaphore ShutdownMutex(1, 1);
 
 const char * KnownConfigEntries[][2] = {
 	// valid config entries

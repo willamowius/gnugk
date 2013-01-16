@@ -2678,7 +2678,7 @@ bool Toolkit::IsH46023Enabled() const
 #ifdef HAS_H46018
 			m_H46018Enabled ||			// used with H.460.18 or
 #endif
-			m_Config->GetBoolean(RoutedSec, "SupportCallingNATedEndpoints",1))); // GnuGk Native NAT Support
+			m_Config->GetBoolean(RoutedSec, "SupportCallingNATedEndpoints", 1))); // GnuGk Native NAT Support
 }
 
 #ifdef HAS_H46026

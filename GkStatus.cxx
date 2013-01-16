@@ -449,7 +449,7 @@ bool SSHStatusClient::Authenticate()
 						retries++;
                         if (AuthenticateUser()) {
 							auth = true;
-							ssh_message_auth_reply_success(message,0);
+							ssh_message_auth_reply_success(message, 0);
 							break;
 						}
 						// fall through: not authenticated, send default message
