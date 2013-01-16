@@ -2104,7 +2104,9 @@ bool GkClient::WaitForACF(H225_AdmissionRequest &arq, RasRequester & request, Ro
 				robj->AddRoute(route);
 
 				if (acf.HasOptionalField(H225_AdmissionConfirm::e_featureSet)) {
+#if defined (HAS_H46018) || defined(HAS_H46023)
 					H460_FeatureSet fs = H460_FeatureSet(acf.m_featureSet);
+#endif
 #ifdef HAS_H46018
 					// TODO: Implement H.460.19 Handling
 #endif
@@ -2192,7 +2194,9 @@ void GkClient::OnRCF(RasMsg *ras)
 	}
 
 	if (rcf.HasOptionalField(H225_RegistrationConfirm::e_featureSet)) {
+#if defined (HAS_H46018) || defined(HAS_H46023)
 		H460_FeatureSet fs = H460_FeatureSet(rcf.m_featureSet);
+#endif
 #ifdef HAS_H46018
 		// TODO: Implement H.460.19 Handling
 #endif
