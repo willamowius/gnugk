@@ -1491,6 +1491,9 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 				H460_FeatureStd & std17 = (H460_FeatureStd &)feat;
 				h46017found = true;
 				// multiple RAS messages can be transmitted
+				if (std17.GetParameterCount() > 1) {
+					PTRACE(4, "H46017\tWarning: " << std17.GetParameterCount() << " bundled messages");
+				}
 				for(PINDEX j = 0; j < std17.GetParameterCount(); ++j) {
 					H460_FeatureParameter p = std17.GetFeatureParameter(j);
 					if (p.ID() == 1 && p.hasContent()) {
@@ -1498,7 +1501,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 						// mark this socket as NAT socket
 						m_isnatsocket = true;
 						m_maintainConnection = true;	// GnuGk NAT will close the TCP connection after the call, for H.460.17 we don't want that
-						SetConnected(true); // avoid the socket be deleted	
+						SetConnected(true); // avoid the socket be deleted
 						// hand RAS message to RasSserver for processing
 						RasServer::Instance()->ReadH46017Message(data.GetValue(), _peerAddr, _peerPort, _localAddr, this);
 					}
@@ -2705,8 +2708,8 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		if (!q931.HasIE(Q931::CalledPartyNumberIE)) {
 			PString calledNumber;
 			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
-				calledNumber = GetBestAliasAddressString(setupBody.m_destinationAddress,false, 
-				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits) | AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
+				calledNumber = GetBestAliasAddressString(setupBody.m_destinationAddress, false, 
+					AliasAddressTagMask(H225_AliasAddress::e_dialedDigits) | AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
 				PTRACE(1, "Setting the Q.931 CalledPartyNumber to: " << calledNumber);
 				if (IsValidE164(calledNumber)) {
 					unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType;
@@ -7905,7 +7908,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	if (buflen >= 1)
 		version = (((int)wbuffer[0] & 0xc0) >> 6);
 	bool isRTCP = m_isRTCPType && (version == 2);
-#if (HAS_H46018 || HAS_H46024B)
+#if defined(HAS_H46018) || defined(HAS_H46024B)
 	bool isRTP = m_isRTPType && (version == 2);
 #endif
 #ifdef HAS_H235_MEDIA
