@@ -34,7 +34,8 @@ public:
 
 	int GetHandle() const { return os_handle; }
 	bool IsOpen() const { return os_handle > 0; }
-	bool Close();
+	bool Close() { return ForceClose(false); }
+	bool ForceClose(bool force = true);
 
 	void SetReadTimeout(const PTimeInterval & time) { readTimeout = time; }
 	bool Read(void *, int);
@@ -265,11 +266,14 @@ typedef PIPSocket IPSocket;
 
 class TCPSocket : public PTCPSocket, public NamedObject {
 public:
-	PCLASSINFO( TCPSocket, PTCPSocket )
+	PCLASSINFO(TCPSocket, PTCPSocket)
 	TCPSocket(WORD pt = 0) : PTCPSocket(pt) { }
-	virtual ~TCPSocket() {}
+	virtual ~TCPSocket() { }
+
 	// override from class PIPSocket
 	PString GetName() const { return (const char *)NamedObject::GetName(); }
+
+	bool ForceClose(bool force = true);
 
 #ifdef hasIPV6
 	bool DualStackListen(WORD port);
@@ -282,9 +286,9 @@ private:
 
 class UDPSocket : public PUDPSocket, public NamedObject {
 public:
-	PCLASSINFO( UDPSocket, PUDPSocket )
-	
-	UDPSocket(WORD port=0, int iAddressFamily=AF_INET);
+	PCLASSINFO(UDPSocket, PUDPSocket)
+
+	UDPSocket(WORD port = 0, int iAddressFamily = AF_INET);
 	virtual ~UDPSocket() { }
 
 	// override from class PIPSocket

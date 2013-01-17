@@ -132,7 +132,7 @@ YaSocket::~YaSocket()
 	Close();
 }
 
-bool YaSocket::Close()
+bool YaSocket::ForceClose(bool force)
 {
 	if (!IsOpen())
 		return false;
@@ -141,6 +141,13 @@ bool YaSocket::Close()
 	int handle = os_handle;
 	os_handle = -1;
 	::shutdown(handle, SHUT_RDWR);
+	if (force) {
+		// make sure close() won't wait 3 seconds
+		struct linger so_linger;
+		so_linger.l_onoff = 0;
+		so_linger.l_linger = 0;
+		::setsockopt(handle,SOL_SOCKET, SO_LINGER, &so_linger, sizeof(so_linger));
+	}
 #ifdef _WIN32
 	::closesocket(handle);
 #else
@@ -629,6 +636,30 @@ int YaUDPSocket::os_send(const void * buf, int sz)
 }
 
 #else // LARGE_FDSET
+
+bool TCPSocket::ForceClose(bool force)
+{
+	if (!IsOpen())
+		return false;
+
+	// send a shutdown to the other end
+	int handle = os_handle;
+	os_handle = -1;
+	::shutdown(handle, SHUT_RDWR);
+	if (force) {
+		// make sure close() won't wait 3 seconds
+		struct linger so_linger;
+		so_linger.l_onoff = 0;
+		so_linger.l_linger = 0;
+		::setsockopt(handle,SOL_SOCKET, SO_LINGER, &so_linger, sizeof(so_linger));
+	}
+#ifdef _WIN32
+	::closesocket(handle);
+#else
+	::close(handle);
+#endif
+	return true;
+}
 
 #ifdef hasIPV6
 

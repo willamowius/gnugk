@@ -100,7 +100,7 @@ EndpointRec::EndpointRec(
 	m_capacity(-1), m_calledTypeOfNumber(-1), m_callingTypeOfNumber(-1),
 	m_calledPlanOfNumber(-1), m_callingPlanOfNumber(-1), m_proxy(0),
 	m_registrationPriority(0), m_registrationPreemption(false),
-    m_epnattype(NatUnknown), m_usesH46023(false), m_H46024(Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023PublicIP",0))),
+    m_epnattype(NatUnknown), m_usesH46023(false), m_H46024(Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023PublicIP", 0))),
 	m_H46024a(false), m_H46024b(false), m_natproxy(Toolkit::AsBool(GkConfig()->GetString(proxysection, "ProxyForNAT", "1"))),
 	m_internal(false), m_remote(false), m_h46017disabled(false), m_h46018disabled(false), m_usesH460P(false), m_usesH46017(false), m_usesH46026(false),
     m_traversalType(None), m_bandwidth(0), m_maxBandwidth(-1)
@@ -867,14 +867,14 @@ void EndpointRec::Update(const H225_RasMessage & ras_msg)
 EndpointRec *EndpointRec::Unregisterpreempt(int type)
 {
 	PTRACE(1, "EP\tUnregistering " << AsDotString(GetRasAddress()) << " Reason " << type);
-	SendURQ(H225_UnregRequestReason::e_maintenance,type);
+	SendURQ(H225_UnregRequestReason::e_maintenance, type);
 	return this;
 }
 
 EndpointRec *EndpointRec::Unregister()
 {
 	if (!IsPermanent())
-		SendURQ(H225_UnregRequestReason::e_maintenance,0);
+		SendURQ(H225_UnregRequestReason::e_maintenance, 0);
 	return this;
 }
 
@@ -984,7 +984,11 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 		CallSignalSocket * s = GetSocket();
 		if (s) {
 			s->SendH46017Message(ras_msg);
-			s->Close();
+			if (reason == H225_UnregRequestReason::e_ttlExpired) {
+				s->ForceClose();	// high probability the close would block
+			} else {
+				s->Close();			// give network stack time to send URQ out
+			}
 		}
 	} else
 #endif
@@ -2161,8 +2165,8 @@ void RegistrationTable::CheckEndpoints()
 	while (Iter != EndpointList.end()) {
 		EndpointRec *ep = *Iter;
 		if (!ep->IsUpdated(&now) && !ep->SendIRQ()) {
-			if (!Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "TTLExpireDropCall", "1")) &&
-				CallTable::Instance()->FindCallRec(endptr(ep))) {
+			if (!Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "TTLExpireDropCall", "1"))
+				&& CallTable::Instance()->FindCallRec(endptr(ep))) {
 				ep->DeferTTL();
 				PTRACE(2, "Endpoint " << ep->GetEndpointIdentifier().GetValue() << " TTL expiry deferred as current call.");
 				++Iter;
@@ -2179,8 +2183,7 @@ void RegistrationTable::CheckEndpoints()
 		else ++Iter;
 	}
 
-	Iter = partition(OutOfZoneList.begin(), OutOfZoneList.end(),
-		bind2nd(mem_fun(&EndpointRec::IsUpdated), &now));
+	Iter = partition(OutOfZoneList.begin(), OutOfZoneList.end(), bind2nd(mem_fun(&EndpointRec::IsUpdated), &now));
 	if (ptrdiff_t s = distance(Iter, OutOfZoneList.end())) {
 		PTRACE(2, s << " out-of-zone endpoint(s) expired");
 	}
