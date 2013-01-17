@@ -138,30 +138,6 @@ YaSocket::~YaSocket()
 	Close();
 }
 
-bool YaSocket::ForceClose(bool force)
-{
-	if (!IsOpen())
-		return false;
-
-	// send a shutdown to the other end
-	int handle = os_handle;
-	os_handle = -1;
-	::shutdown(handle, SHUT_RDWR);
-	if (force) {
-		// make sure close() won't wait 3 seconds
-		struct linger so_linger;
-		so_linger.l_onoff = 0;
-		so_linger.l_linger = 0;
-		::setsockopt(handle, SOL_SOCKET, SO_LINGER, &so_linger, sizeof(so_linger));
-	}
-#ifdef _WIN32
-	::closesocket(handle);
-#else
-	::close(handle);
-#endif
-	return true;
-}
-
 bool YaSocket::Read(void * buf, int sz)
 {
 	int r = os_recv(buf, sz);
@@ -643,30 +619,6 @@ int YaUDPSocket::os_send(const void * buf, int sz)
 
 #else // LARGE_FDSET
 
-bool TCPSocket::ForceClose(bool force)
-{
-	if (!IsOpen())
-		return false;
-
-	// send a shutdown to the other end
-	int handle = os_handle;
-	os_handle = -1;
-	::shutdown(handle, SHUT_RDWR);
-	if (force) {
-		// make sure close() won't wait 3 seconds
-		struct linger so_linger;
-		so_linger.l_onoff = 0;
-		so_linger.l_linger = 0;
-		::setsockopt(handle, SOL_SOCKET, SO_LINGER, (const char *)&so_linger, sizeof(so_linger));
-	}
-#ifdef _WIN32
-	::closesocket(handle);
-#else
-	::close(handle);
-#endif
-	return true;
-}
-
 #ifdef hasIPV6
 
 #ifndef IPV6_V6ONLY
@@ -798,7 +750,7 @@ bool UDPSocket::DualStackListen(const PIPSocket::Address & localAddr, WORD newPo
 	return true;
 }
 
-#endif
+#endif	// hasIPV6
 
 bool SocketSelectList::Select(SelectType t, const PTimeInterval & timeout)
 {
@@ -824,6 +776,35 @@ PSocket *SocketSelectList::operator[](int i) const
 }
 
 #endif // LARGE_FDSET
+
+
+#ifdef LARGE_FDSET
+bool YaSocket::ForceClose(bool force)
+#else
+bool TCPSocket::ForceClose(bool force)
+#endif
+{
+	if (!IsOpen())
+		return false;
+
+	// send a shutdown to the other end
+	int handle = os_handle;
+	os_handle = -1;
+	::shutdown(handle, SHUT_RDWR);
+	if (force) {
+		// make sure close() won't wait 3 seconds
+		struct linger so_linger;
+		so_linger.l_onoff = 0;
+		so_linger.l_linger = 0;
+		::setsockopt(handle, SOL_SOCKET, SO_LINGER, (const char *)&so_linger, sizeof(so_linger));
+	}
+#ifdef _WIN32
+	::closesocket(handle);
+#else
+	::close(handle);
+#endif
+	return true;
+}
 
 
 // class USocket
