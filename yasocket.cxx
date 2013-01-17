@@ -138,6 +138,22 @@ YaSocket::~YaSocket()
 	Close();
 }
 
+bool YaSocket::Close()
+{
+	if (!IsOpen())
+		return false;
+
+	// send a shutdown to the other end
+	int handle = os_handle;
+	os_handle = -1;
+	::shutdown(handle, SHUT_RDWR);
+	// reset linger, so close() won't wait 3 seconds if remote doesn't respond
+	const linger ling = { 0, 0 };
+	SetOption(SO_LINGER, &ling, sizeof(ling));
+	::close(handle);
+	return true;
+}
+
 bool YaSocket::Read(void * buf, int sz)
 {
 	int r = os_recv(buf, sz);
@@ -776,35 +792,6 @@ PSocket *SocketSelectList::operator[](int i) const
 }
 
 #endif // LARGE_FDSET
-
-
-#ifdef LARGE_FDSET
-bool YaSocket::ForceClose(bool force)
-#else
-bool TCPSocket::ForceClose(bool force)
-#endif
-{
-	if (!IsOpen())
-		return false;
-
-	// send a shutdown to the other end
-	int handle = os_handle;
-	os_handle = -1;
-	::shutdown(handle, SHUT_RDWR);
-	if (force) {
-		// make sure close() won't wait 3 seconds
-		struct linger so_linger;
-		so_linger.l_onoff = 0;
-		so_linger.l_linger = 0;
-		::setsockopt(handle, SOL_SOCKET, SO_LINGER, (const char *)&so_linger, sizeof(so_linger));
-	}
-#ifdef _WIN32
-	::closesocket(handle);
-#else
-	::close(handle);
-#endif
-	return true;
-}
 
 
 // class USocket

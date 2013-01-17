@@ -34,8 +34,7 @@ public:
 
 	int GetHandle() const { return os_handle; }
 	bool IsOpen() const { return os_handle > 0; }
-	bool Close() { return ForceClose(false); }
-	bool ForceClose(bool force = true);
+	bool Close();
 
 	void SetReadTimeout(const PTimeInterval & time) { readTimeout = time; }
 	bool Read(void *, int);
@@ -272,8 +271,6 @@ public:
 
 	// override from class PIPSocket
 	PString GetName() const { return (const char *)NamedObject::GetName(); }
-
-	bool ForceClose(bool force = true);
 
 #ifdef hasIPV6
 	bool DualStackListen(WORD port);

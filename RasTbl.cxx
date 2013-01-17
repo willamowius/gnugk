@@ -984,11 +984,7 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 		CallSignalSocket * s = GetSocket();
 		if (s) {
 			s->SendH46017Message(ras_msg);
-			if (reason == H225_UnregRequestReason::e_ttlExpired) {
-				s->ForceClose();	// high probability the close would block
-			} else {
-				s->Close();			// give network stack time to send URQ out
-			}
+			s->Close();
 		}
 	} else
 #endif
