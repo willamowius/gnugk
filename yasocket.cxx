@@ -21,6 +21,12 @@
 #include "snmp.h"
 #include "gk.h"
 
+#ifdef _WIN32
+#	ifndef SHUT_RDWR
+#   	define SHUT_RDWR SD_BOTH
+#	endif
+#endif
+
 using std::mem_fun;
 using std::bind1st;
 using std::partition;
@@ -146,7 +152,7 @@ bool YaSocket::ForceClose(bool force)
 		struct linger so_linger;
 		so_linger.l_onoff = 0;
 		so_linger.l_linger = 0;
-		::setsockopt(handle,SOL_SOCKET, SO_LINGER, &so_linger, sizeof(so_linger));
+		::setsockopt(handle, SOL_SOCKET, SO_LINGER, &so_linger, sizeof(so_linger));
 	}
 #ifdef _WIN32
 	::closesocket(handle);
@@ -651,7 +657,7 @@ bool TCPSocket::ForceClose(bool force)
 		struct linger so_linger;
 		so_linger.l_onoff = 0;
 		so_linger.l_linger = 0;
-		::setsockopt(handle,SOL_SOCKET, SO_LINGER, &so_linger, sizeof(so_linger));
+		::setsockopt(handle, SOL_SOCKET, SO_LINGER, (const char *)&so_linger, sizeof(so_linger));
 	}
 #ifdef _WIN32
 	::closesocket(handle);
@@ -1162,7 +1168,7 @@ void TCPServer::ReadSocket(IPSocket * socket)
 #endif
 		PTRACE(4, GetName() << "\tShutdown: Rejecting call on " << socket->GetName());
 		int rej = ::accept(socket->GetHandle(), NULL, NULL);
-		::shutdown(rej, 2 /* SHUT_RDWR */ );
+		::shutdown(rej, SHUT_RDWR );
 #if defined(_WIN32)
 		::closesocket(rej);
 #else
