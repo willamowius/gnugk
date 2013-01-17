@@ -268,7 +268,7 @@ void SoftPBX::DisconnectEndpoint(const PString & Id)
 	DisconnectEndpoint(RegistrationTable::Instance()->FindByEndpointId(EpId));
 }
 
-void SoftPBX::DisconnectEndpoint(const endptr &ep)
+void SoftPBX::DisconnectEndpoint(const endptr & ep)
 {
 	if (!ep) {
 		PString msg("No endpoint to disconnect!");

@@ -1345,7 +1345,7 @@ void StatusClient::DoDebug(
 			for (PINDEX i = 5; i < args.GetSize(); ++i)
 				value += " " + args[i];
 			Toolkit::Instance()->SetConfig(1, args[2], args[3], value);
-			WriteString(GkConfig()->GetString(args[2],args[3],"") + "\r\n");
+			WriteString(GkConfig()->GetString(args[2],args[3], "") + "\r\n");
 		} else if (args[1] *= "remove") {
 			if (args.GetSize() >= 4) {
 				Toolkit::Instance()->SetConfig(2, args[2], args[3]);

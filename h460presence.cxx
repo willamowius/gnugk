@@ -1425,7 +1425,7 @@ bool GkPresence::RemoveSubscription(unsigned type,const H460P_PresenceIdentifier
 
 		H323PresenceStore::iterator it2 = localStore.find(it->second.m_Alias);
 		if (it2 != localStore.end())
-			HandleStatusUpdates(pid,it2->first,type,it->second.m_subscriber);
+			HandleStatusUpdates(pid,it2->first, type,it->second.m_subscriber);
 
 	   PTRACE(4, "PRES\tRemoved Subscription " << PresMsgType(type) << " : " << it->second.m_subscriber << " to " << it->second.m_Alias);
 	   return true;

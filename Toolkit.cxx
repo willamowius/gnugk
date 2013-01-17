@@ -1958,7 +1958,7 @@ bool Toolkit::AssignedAliases::QueryH350Directory(const PString & alias, PString
 	}
 
 	H350_Session::LDAP_RecordList rec;
-	int count = session.Search(search,filter,rec);
+	int count = session.Search(search, filter, rec);
 	if (count <= 0) {
 		PTRACE(4, "H350\tAssigned Alias: No Record Found");
 		session.Close();
@@ -1970,17 +1970,17 @@ bool Toolkit::AssignedAliases::QueryH350Directory(const PString & alias, PString
 		H350_Session::LDAP_Record entry = x->second;
 		PString al;
 		PINDEX i;
-		if (session.GetAttribute(entry,"h323Identityh323-ID", al)) {
+		if (session.GetAttribute(entry, "h323Identityh323-ID", al)) {
 			PStringList als = al.Lines();
 			for (i=0; i< als.GetSize(); i++)
 				aliases.AppendString(als[i]);
 		}
-		if (session.GetAttribute(entry,"h323IdentitydialedDigits", al)) {
+		if (session.GetAttribute(entry, "h323IdentitydialedDigits", al)) {
 			PStringList als = al.Lines();
 			for (i=0; i< als.GetSize(); i++)
 				aliases.AppendString(als[i]);
 		}
-		if (session.GetAttribute(entry,"h323IdentityURL-ID", al)) {
+		if (session.GetAttribute(entry, "h323IdentityURL-ID", al)) {
 			PStringList als = al.Lines();
 			for (i=0; i< als.GetSize(); i++)
 				aliases.AppendString(als[i]);
@@ -2228,7 +2228,7 @@ bool Toolkit::AssignedGatekeepers::QueryH350Directory(const PString & alias, con
 	}
 
 	H350_Session::LDAP_RecordList rec;
-	int count = session.Search(search,filter,rec);
+	int count = session.Search(search, filter, rec);
 	if (count <= 0) {
 		PTRACE(4, "H350\tAssigned GK: No Record Found");
 		session.Close();
@@ -2316,7 +2316,7 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias, const PI
 					xnum = "h323:user@" + xnum;
 
 				PStringList str;
-				if (PDNS::LookupSRV(xnum,"_h323rs._udp.",str)) {
+				if (PDNS::LookupSRV(xnum, "_h323rs._udp.",str)) {
 					PTRACE(4, "AssignGK\t" << str.GetSize() << " SRV Records found" );
 					for (PINDEX i = 0; i < str.GetSize(); i++) {
 						PString newhost = str[i].Right(str[i].GetLength()-5);

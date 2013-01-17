@@ -197,11 +197,11 @@ GkAcctLogger::Status RadAcct::Log(
 
 				// Post Dial Delay Time
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
-					PString("h323pddtime=")+PString(PString::Unsigned,(long)call->GetPostDialDelay()),true);
+					PString("h323pddtime=")+PString(PString::Unsigned,(long)call->GetPostDialDelay()), true);
 
 				// Ring Time
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
-					PString("h323ringtime=")+PString(PString::Unsigned,(long)call->GetRingTime()),true);
+					PString("h323ringtime=")+PString(PString::Unsigned,(long)call->GetRingTime()), true);
 
 				// Number of Route Attempts
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,

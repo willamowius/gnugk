@@ -1646,8 +1646,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
  
 	PString log;
 	PString alias((request.HasOptionalField(H225_GatekeeperRequest::e_endpointAlias) && request.m_endpointAlias.GetSize() > 0)
-		? AsString(request.m_endpointAlias[0],false) : PString(" ")
-		);
+		? AsString(request.m_endpointAlias[0], false) : PString(" "));
 
 	unsigned rsn = H225_GatekeeperRejectReason::e_securityDenial;
 	bool bReject = !RasSrv->ValidatePDU(*this, rsn);
@@ -2577,11 +2576,11 @@ bool RegistrationRequestPDU::HandleAdditiveRegistration(const endptr & ep)
 	ep->SetAdditiveRegistrant();
 
 	// Build reply
-	BuildRCF(ep,true);
+	BuildRCF(ep, true);
 	H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
 	rcf.IncludeOptionalField(H225_RegistrationConfirm::e_terminalAlias);
 	rcf.m_terminalAlias = request.m_terminalAlias;
-	Toolkit::Instance()->GetAssignedEPAliases().GetAliases(rcf.m_terminalAlias,rcf.m_terminalAlias);
+	Toolkit::Instance()->GetAssignedEPAliases().GetAliases(rcf.m_terminalAlias, rcf.m_terminalAlias);
 	ep->SetAliases(rcf.m_terminalAlias, true);
 
 	// Log the additive registration
@@ -3240,13 +3239,14 @@ bool AdmissionRequestPDU::Process()
 #ifdef HAS_H46023
 		if (Toolkit::Instance()->IsH46023Enabled() && !EPRequiresH46026) {
 			// Std24 proxy offload. See if the media can go direct.
-			if (natoffloadsupport == CallRec::e_natUnknown) 
-				if (!pCallRec->NATOffLoad(answer,natoffloadsupport))
-				 if (natoffloadsupport == CallRec::e_natFailure) {
-					PTRACE(2, "RAS\tWarning: NAT Media Failure detected " << (unsigned)request.m_callReferenceValue);
-					return BuildReply(H225_AdmissionRejectReason::e_noRouteToDestination,true);
-				 }
-
+			if (natoffloadsupport == CallRec::e_natUnknown) {
+				if (!pCallRec->NATOffLoad(answer,natoffloadsupport)) {
+					if (natoffloadsupport == CallRec::e_natFailure) {
+						PTRACE(2, "RAS\tWarning: NAT Media Failure detected " << (unsigned)request.m_callReferenceValue);
+						return BuildReply(H225_AdmissionRejectReason::e_noRouteToDestination, true);
+					 }
+				}
+			}
 
 			// If not required disable the proxy support function for this call
 			if (pCallRec->GetProxyMode() != CallRec::ProxyDisabled &&

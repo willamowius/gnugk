@@ -898,7 +898,7 @@ void H46024Socket::SetAlternateAddresses(const H323TransportAddress & address, c
 {
 	address.GetIpAndPort(m_altAddr,m_altPort);
 
-	PTRACE(6,"H46024A\ts: " << m_flcn << (m_rtp ? " RTP " : " RTCP ")  
+	PTRACE(6, "H46024A\ts: " << m_flcn << (m_rtp ? " RTP " : " RTCP ")  
 			<< "Remote Alt: " << m_altAddr << ":" << m_altPort << " CUI: " << cui);
 
 	if (!m_rtp) {
@@ -921,7 +921,7 @@ PBoolean H46024Socket::IsAlternateAddress(const Address & address,WORD port)
 #define H46024A_PROBE_INTERVAL  150
 void H46024Socket::StartProbe()
 {
-	PTRACE(4,"H46024A\ts: " << m_flcn << " Starting direct connection probe.");
+	PTRACE(4, "H46024A\ts: " << m_flcn << " Starting direct connection probe.");
 
 	SetProbeState(e_probing);
 	m_probes = 0;
@@ -1027,8 +1027,8 @@ void H46024Socket::GetAlternateAddresses(H323TransportAddress & address, PString
 {
 	PIPSocket::Address	tempAddr;
 	WORD				tempPort;
-	if (GetLocalAddress(tempAddr,tempPort))
-		address = H323TransportAddress(tempAddr,tempPort);
+	if (GetLocalAddress(tempAddr, tempPort))
+		address = H323TransportAddress(tempAddr, tempPort);
 
 	if (!m_rtp)
 		cui = m_CUIlocal;
@@ -1038,7 +1038,7 @@ void H46024Socket::GetAlternateAddresses(H323TransportAddress & address, PString
 	if (GetProbeState() < e_idle)
 		SetProbeState(e_initialising);
 
-	PTRACE(6,"H46024A\ts:" << m_flcn << (m_rtp ? " RTP " : " RTCP ") << " Alt:" << address << " CUI " << cui);
+	PTRACE(6, "H46024A\ts:" << m_flcn << (m_rtp ? " RTP " : " RTCP ") << " Alt:" << address << " CUI " << cui);
 
 }
 
@@ -1046,7 +1046,7 @@ void H46024Socket::SetProbeState(probe_state newstate)
 {
 	PWaitAndSignal m(probeMutex);
 
-	PTRACE(4,"H46024\tChanging state for " << m_flcn << " from " << m_state << " to " << newstate);
+	PTRACE(4, "H46024\tChanging state for " << m_flcn << " from " << m_state << " to " << newstate);
 
 	m_state = newstate;
 }
@@ -2219,7 +2219,7 @@ void GkClient::RunSTUNTest(const H323TransportAddress & addr)
 	PStringList SRVs;
 	PStringList x = server.Tokenise(":");
 	PString number = "h323:user@" + x[0];
-	if (PDNS::LookupSRV(number,"_stun._udp.",SRVs))
+	if (PDNS::LookupSRV(number, "_stun._udp.", SRVs))
 		s = H323TransportAddress(SRVs[0]);
 	else
 #endif
@@ -2595,7 +2595,7 @@ bool GkClient::AdditiveUnRegister(const H225_ArrayOf_AliasAddress & aliases)
 void GkClient::AppendLocalAlias(const H225_ArrayOf_AliasAddress & aliases)
 {
 	for (PINDEX i=0; i < aliases.GetSize(); ++i)
-		m_h323Id.AppendString(AsString(aliases[i],false));
+		m_h323Id.AppendString(AsString(aliases[i], false));
 }
 
 void GkClient::RemoveLocalAlias(const H225_ArrayOf_AliasAddress & aliases)
@@ -2604,7 +2604,7 @@ void GkClient::RemoveLocalAlias(const H225_ArrayOf_AliasAddress & aliases)
 	for (PINDEX j=0; j < m_h323Id.GetSize(); ++j) {
 		int found = false;
 		for (PINDEX i=0; i < aliases.GetSize(); ++i) {
-			if (AsString(aliases[i],false) == m_h323Id[j]) {
+			if (AsString(aliases[i], false) == m_h323Id[j]) {
 				found = true;
 				break;
 			}
@@ -2648,7 +2648,7 @@ void RemoveH460Descriptor(unsigned feat, H225_ArrayOf_FeatureDescriptor & featur
 
 bool GkClient::HandleSetup(SetupMsg & setup, bool fromInternal)
 {
-	RewriteE164(setup,fromInternal);
+	RewriteE164(setup, fromInternal);
 
 	H225_Setup_UUIE &setupBody = setup.GetUUIEBody();
 	if (!fromInternal) {
@@ -2659,14 +2659,14 @@ bool GkClient::HandleSetup(SetupMsg & setup, bool fromInternal)
 #ifdef HAS_H46023
 			H225_ArrayOf_FeatureDescriptor & fs = setupBody.m_supportedFeatures;
 			int location = 0;
-			if (gk_H460_23 && FindH460Descriptor(24,fs, location)) {
+			if (gk_H460_23 && FindH460Descriptor(24, fs, location)) {
 				H460_Feature feat = H460_Feature(fs[location]);
 				H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
 				if (std24.Contains(Std24_NATInstruct)) {
 					unsigned natstat = std24.Value(Std24_NATInstruct);
 					H46023_SetNATStategy(setup.GetUUIEBody().m_callIdentifier,natstat);
 				}
-				RemoveH460Descriptor(24,fs);
+				RemoveH460Descriptor(24, fs);
 			}
 #endif
 		}

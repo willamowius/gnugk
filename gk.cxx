@@ -869,7 +869,7 @@ BOOL SetDEP(__in DWORD dwFlags = PROCESS_DEP_ENABLE)
 	if (!hMod)
 		return FALSE;
 	typedef BOOL (WINAPI *PSETDEP)(DWORD);
-	PSETDEP procSet = (PSETDEP)GetProcAddress(hMod,"SetProcessDEPPolicy");
+	PSETDEP procSet = (PSETDEP)GetProcAddress(hMod, "SetProcessDEPPolicy");
 	if (!procSet)
 		return FALSE;
 	return procSet(dwFlags);

@@ -206,7 +206,7 @@ bool GkSQLConnection::AcquireSQLConnection(
 		}
 
 		if (connptr == NULL && timeout != 0 && !m_destroying)
-			m_connectionAvailable.Wait(min(250L,timeout));
+			m_connectionAvailable.Wait(min(250L, timeout));
 
 		if (connptr == NULL && timeout >= 0)
 			if ((PTime()-timeStart).GetMilliSeconds() >= timeout)

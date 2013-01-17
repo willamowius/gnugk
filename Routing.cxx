@@ -886,7 +886,7 @@ void VirtualQueue::OnReload()
 	
 	m_requestTimeout = GkConfig()->GetInteger(
 		CTIsection, 
-		GkConfig()->HasKey(CTIsection,"RequestTimeout")
+		GkConfig()->HasKey(CTIsection, "RequestTimeout")
 			? "RequestTimeout" : "CTI_Timeout", 
 		DEFAULT_ROUTE_REQUEST_TIMEOUT
 		) * 1000;

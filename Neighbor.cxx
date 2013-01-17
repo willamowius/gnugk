@@ -1742,8 +1742,8 @@ SRVPolicy::SRVPolicy()
 	m_name = "SRV";
 	m_iniSection = "Routing::SRV";
 	m_resolveNonLocalLRQs = Toolkit::AsBool(GkConfig()->GetString(m_iniSection, "ResolveNonLocalLRQ", "0"));
-	m_ls_schema.SetAt("_h323ls._udp.","");
-	m_cs_schema.SetAt("_h323cs._tcp.","");
+	m_ls_schema.SetAt("_h323ls._udp.", "");
+	m_cs_schema.SetAt("_h323cs._tcp.", "");
 }
 
 void SRVPolicy::LoadConfig(const PString & instance)
@@ -2059,7 +2059,7 @@ bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 	
 		// LS Record lookup
 		PStringList ls;
-		if (PDNS::RDSLookup(number,"H323+D2U",ls)) {
+		if (PDNS::RDSLookup(number, "H323+D2U", ls)) {
 			for (PINDEX i=0; i<ls.GetSize(); i++) {
 				PINDEX pos = ls[i].Find('@');
 				PString ipaddr = ls[i].Mid(pos + 1);
