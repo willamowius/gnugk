@@ -984,7 +984,9 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 		CallSignalSocket * s = GetSocket();
 		if (s) {
 			s->SendH46017Message(ras_msg);
-			s->Close();
+			if (s->GetHandler()) {
+				s->GetHandler()->Detach(s);
+			}
 		}
 	} else
 #endif
