@@ -584,7 +584,7 @@ int SQLAuth::Check(
 
 	GkSQLResult::ResultRow result;	
 	if (!RunQuery(traceStr, m_sqlConn, m_regQuery, params, result, -1)) {
-		//authData.m_rejectReason = H225_RegistrationRejectReason::e_resourceUnavailable; -- TODO: If indeterminate return default reason? -SH
+		authData.m_rejectReason = H225_RegistrationRejectReason::e_resourceUnavailable;
 		return GetDefaultStatus();
 	}
 
@@ -681,7 +681,7 @@ int SQLAuth::Check(
 	
 	GkSQLResult::ResultRow result;	
 	if (!RunQuery(traceStr, m_sqlConn, m_callQuery, params, result, -1)) {
-		//authData.m_rejectReason = H225_AdmissionRejectReason::e_resourceUnavailable; -- TODO: If indeterminate return default reason? -SH
+		authData.m_rejectReason = H225_AdmissionRejectReason::e_resourceUnavailable;
 		return GetDefaultStatus();
 	}
 
