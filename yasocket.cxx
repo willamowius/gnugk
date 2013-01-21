@@ -148,6 +148,10 @@ bool YaSocket::Close()
 	os_handle = -1;
 	::shutdown(handle, SHUT_RDWR);
 	// reset linger, so close() won't wait 3 seconds if remote doesn't respond
+	struct linger so_linger;
+	so_linger.l_onoff = 0;
+	so_linger.l_linger = 0;
+	::setsockopt(handle, SOL_SOCKET, SO_LINGER, &so_linger, sizeof(so_linger));
 	const linger ling = { 0, 0 };
 	SetOption(SO_LINGER, &ling, sizeof(ling));
 	::close(handle);
