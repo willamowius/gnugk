@@ -1099,15 +1099,6 @@ void CallSignalSocket::CleanupCall()
 	m_h245handler = NULL;
 	m_h245handlerLock.Signal();
 
-	// clear remote if still set
-	m_remoteLock.Wait();
-	if (remote) {
-		remote->RemoveRemoteSocket();
-		GetHandler()->Remove(remote);	// will delete socket in CleanUp()
-		remote = NULL;
-	}
-	m_remoteLock.Signal();
-
 	m_setupPdu = NULL;
 #ifdef HAS_H46018
 	m_callFromTraversalServer = false;
@@ -1497,14 +1488,13 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 				for(PINDEX j = 0; j < std17.GetParameterCount(); ++j) {
 					H460_FeatureParameter p = std17.GetFeatureParameter(j);
 					if (p.ID() == 1 && p.hasContent()) {
-						PASN_OctetString data = p;
-						PBYTEArray ras = data.GetValue();
+						PASN_OctetString & data = p;
 						// mark this socket as NAT socket
 						m_isnatsocket = true;
 						m_maintainConnection = true;	// GnuGk NAT will close the TCP connection after the call, for H.460.17 we don't want that
 						SetConnected(true); // avoid the socket be deleted
 						// hand RAS message to RasSserver for processing
-						RasServer::Instance()->ReadH46017Message(ras, _peerAddr, _peerPort, _localAddr, this);
+						RasServer::Instance()->ReadH46017Message(data.GetValue(), _peerAddr, _peerPort, _localAddr, this);
 					}
 				}
 			}
