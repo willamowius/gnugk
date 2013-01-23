@@ -200,6 +200,11 @@ PString AsString(const H225_AliasAddress & terminalAlias, bool includeAliasType)
 				if (prefixIndex != P_MAX_INDEX)
 					aliasString = aliasString.Mid(prefixIndex + 1);
 			}
+			// simplify URL aliases to match "h323:foo@bar" with "foo@bar"
+			if ((terminalAlias.GetTag() == H225_AliasAddress::e_url_ID)
+				&& (aliasString.Left(5) == "h323:")) {
+				aliasString = aliasString.Mid(5);
+			}
 			if (includeAliasType) {
 				aliasString += ":" + terminalAlias.GetTagName();
 			}

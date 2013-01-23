@@ -119,6 +119,12 @@ TEST_F(H323UtilTest, AliasAsString) {
 	EXPECT_STREQ("1234:dialedDigits", AsString(alias, true));
 	EXPECT_STREQ("1234", AsString(alias, false));
 	EXPECT_STREQ(AsString(alias, false), StripAliasType(AsString(alias, true)));
+	H323SetAliasAddress(PString("1234@example.com"), alias);
+	EXPECT_STREQ("1234@example.com:url_ID", AsString(alias, true));
+	EXPECT_STREQ("1234@example.com", AsString(alias, false));
+	H323SetAliasAddress(PString("h323:1234@example.com"), alias);
+	EXPECT_STREQ("1234@example.com:url_ID", AsString(alias, true));
+	EXPECT_STREQ("1234@example.com", AsString(alias, false));
 }
 
 TEST_F(H323UtilTest, ArrayOfAliasAsString) {

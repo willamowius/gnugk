@@ -1,5 +1,6 @@
 Changes from 3.2 to 3.3
 =======================
+- BUGFIX(h323util.cxx) remove "h323:" prefix when comparing URL_IDs
 - new switch [Proxy] RTPDiffServ= to set DiffServ DSCP for proxied RTP, TCLASS is set for IPv6 packets
 - BUGFIX(RasTbl.cxx) disable SO_LINGER before LARGE_FDSET TCP Close() so it doesn't wait
 - new [RasSvr::RRQFeatures] GatewayAssignAliases switch to disable assigning aliases to gateways on registration.
