@@ -7142,14 +7142,6 @@ bool GetChannelsFromOLCA(H245_OpenLogicalChannelAck & olca, H245_UnicastAddress 
 } // end of anonymous namespace
 
 
-#ifndef IPTOS_PREC_CRITIC_ECP
-#define IPTOS_PREC_CRITIC_ECP (5 << 5)
-#endif
-
-#ifndef IPTOS_LOWDELAY
-#define IPTOS_LOWDELAY 0x10
-#endif
-
 #ifdef HAS_H46018
 
 // class MultiplexRTPListener
@@ -7173,17 +7165,31 @@ MultiplexRTPListener::MultiplexRTPListener(WORD pt, WORD buffSize)
 		Toolkit::Instance()->PortNotification(RTPPort, PortOpen, "udp", GNUGK_INADDR_ANY, pt);
 
 	// Set the IP Type Of Service field for prioritisation of media UDP / RTP packets
-#ifdef _WIN32
-	int rtpIpTypeofService = IPTOS_PREC_CRITIC_ECP | IPTOS_LOWDELAY;
-#else
-	// Don't use IPTOS_PREC_CRITIC_ECP on Unix platforms as then need to be root
-	int rtpIpTypeofService = IPTOS_LOWDELAY;
+	int dscp = GkConfig()->GetInteger(ProxySection, "RTPDiffServ", 4);	// default: IPTOS_LOWDELAY
+	if (dscp > 0) {
+		int rtpIpTypeofService = (dscp << 2);
+#ifdef hasIPV6
+		if (localAddr.GetVersion() == 6) {
+			// for IPv6 set TCLASS
+			if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IPV6, IPV6_TCLASS, (char *)&rtpIpTypeofService, sizeof(int)))) {
+				PTRACE(1, "RTPM\tCould not set TCLASS field in IPv6 header: "
+					<< GetErrorCode(PSocket::LastGeneralError) << '/'
+					<< GetErrorNumber(PSocket::LastGeneralError) << ": "
+					<< GetErrorText(PSocket::LastGeneralError));
+			}
+		
+		} else
 #endif
-	if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IP, IP_TOS, (char *)&rtpIpTypeofService, sizeof(int)))) {
-		PTRACE(1, "RTPM\tCould not set TOS field in IP header: "
-			<< GetErrorCode(PSocket::LastGeneralError) << '/'
-			<< GetErrorNumber(PSocket::LastGeneralError) << ": "
-			<< GetErrorText(PSocket::LastGeneralError));
+		{
+			// setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (the 2.6.24.4), now it doesn't anymore
+			// TODO: setting IP_TOS will silently fail on Windows XP, Vista and Win7, supposed to work again on Win8
+			if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IP, IP_TOS, (char *)&rtpIpTypeofService, sizeof(int)))) {
+				PTRACE(1, "RTPM\tCould not set TOS field in IP header: "
+					<< GetErrorCode(PSocket::LastGeneralError) << '/'
+					<< GetErrorNumber(PSocket::LastGeneralError) << ": "
+					<< GetErrorText(PSocket::LastGeneralError));
+			}
+		}
 	}
 
 	SetReadTimeout(PTimeInterval(50));
@@ -7702,23 +7708,34 @@ bool UDPProxySocket::Bind(const Address & localAddr, WORD pt)
 #endif
 		return false;
 
-#if !(defined(P_FREEBSD) && defined(hasIPV6))
 	// Set the IP Type Of Service field for prioritisation of media UDP / RTP packets
-#ifdef _WIN32
-	int rtpIpTypeofService = IPTOS_PREC_CRITIC_ECP | IPTOS_LOWDELAY;
-#else
-	// Don't use IPTOS_PREC_CRITIC_ECP on Unix platforms as then need to be root
-	// TODO: set IPTOS_PREC_CRITIC_ECP if we happen to run as root ?
-	int rtpIpTypeofService = IPTOS_LOWDELAY;
+	int dscp = GkConfig()->GetInteger(ProxySection, "RTPDiffServ", 4);	// default: IPTOS_LOWDELAY
+	if (dscp > 0) {
+		int rtpIpTypeofService = (dscp << 2);
+#ifdef hasIPV6
+		if (localAddr.GetVersion() == 6) {
+			// for IPv6 set TCLASS
+			if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IPV6, IPV6_TCLASS, (char *)&rtpIpTypeofService, sizeof(int)))) {
+				PTRACE(1, Type() << "\tCould not set TCLASS field in IPv6 header: "
+					<< GetErrorCode(PSocket::LastGeneralError) << '/'
+					<< GetErrorNumber(PSocket::LastGeneralError) << ": "
+					<< GetErrorText(PSocket::LastGeneralError));
+			}
+		
+		} else
 #endif
-	if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IP, IP_TOS, (char *)&rtpIpTypeofService, sizeof(int)))) {
-		PTRACE(1, Type() << "\tCould not set TOS field in IP header: "
-			<< GetErrorCode(PSocket::LastGeneralError) << '/'
-			<< GetErrorNumber(PSocket::LastGeneralError) << ": "
-			<< GetErrorText(PSocket::LastGeneralError)
-			);
+		{
+			// setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (the 2.6.24.4), now it doesn't anymore
+			// TODO: setting IP_TOS will silently fail on Windows XP, Vista and Win7, supposed to work again on Win8
+			if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IP, IP_TOS, (char *)&rtpIpTypeofService, sizeof(int)))) {
+				PTRACE(1, Type() << "\tCould not set TOS field in IP header: "
+					<< GetErrorCode(PSocket::LastGeneralError) << '/'
+					<< GetErrorNumber(PSocket::LastGeneralError) << ": "
+					<< GetErrorText(PSocket::LastGeneralError));
+			}
+		}
 	}
-#endif
+
 	if (Toolkit::Instance()->IsPortNotificationActive())
 		Toolkit::Instance()->PortNotification(RTPPort, PortOpen, "udp", GNUGK_INADDR_ANY, pt, m_callID);
 	return true;
