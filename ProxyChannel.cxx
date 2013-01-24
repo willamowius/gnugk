@@ -7200,7 +7200,7 @@ MultiplexRTPListener::MultiplexRTPListener(WORD pt, WORD buffSize)
 	int dscp = GkConfig()->GetInteger(ProxySection, "RTPDiffServ", 4);	// default: IPTOS_LOWDELAY
 	if (dscp > 0) {
 		int rtpIpTypeofService = (dscp << 2);
-#ifdef hasIPV6
+#if defined(hasIPV6) && defined(IPV6_TCLASS)
 		if (localAddr.GetVersion() == 6) {
 			// for IPv6 set TCLASS
 			if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IPV6, IPV6_TCLASS, (char *)&rtpIpTypeofService, sizeof(int)))) {
@@ -7744,7 +7744,7 @@ bool UDPProxySocket::Bind(const Address & localAddr, WORD pt)
 	int dscp = GkConfig()->GetInteger(ProxySection, "RTPDiffServ", 4);	// default: IPTOS_LOWDELAY
 	if (dscp > 0) {
 		int rtpIpTypeofService = (dscp << 2);
-#ifdef hasIPV6
+#if defined(hasIPV6) && defined(IPV6_TCLASS)
 		if (localAddr.GetVersion() == 6) {
 			// for IPv6 set TCLASS
 			if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IPV6, IPV6_TCLASS, (char *)&rtpIpTypeofService, sizeof(int)))) {
