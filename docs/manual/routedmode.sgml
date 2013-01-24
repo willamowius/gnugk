@@ -772,6 +772,7 @@ Default: <tt/4/<newline>
 Set the DiffServ class (DSCP) for proxied RTP. The default value corresponds to the
 old IPTOS_LOWDELAY flag we have used previously. New installations should use
 eg. 46 which is DSCP EF reccomended for RTP. For IPv6 packets the TCLASS is set.
+(On most Windows versions, setting the the DSCP this way won't work.)
 
 <item><tt>ExplicitRoutes=10.2.1.5/16,10.6.1.3/16,11.0.0.0/8-20.1.1.1</tt><newline>
 Default: <tt>n/a</tt><newline>
