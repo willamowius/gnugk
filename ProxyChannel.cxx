@@ -3,7 +3,7 @@
 // ProxyChannel.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2002
-// Copyright (c) 2002-2012, Jan Willamowius
+// Copyright (c) 2002-2013, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -2560,16 +2560,42 @@ PString CallSignalSocket::GetDialedNumber(
 	return dialedNumber;
 }
 
+#ifdef HAS_H46018
+bool CallSignalSocket::IsH46019ClientCall(const H225_Setup_UUIE & setupBody)
+{
+	if (Toolkit::Instance()->IsH46018Enabled()
+		&& setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
+		const H225_ArrayOf_FeatureDescriptor & data = setupBody.m_supportedFeatures;
+		for (PINDEX i = 0; i < data.GetSize(); i++) {
+			H460_Feature & feat = (H460_Feature &)data[i];
+			if (feat.GetFeatureID() == H460_FeatureID(19)) {
+				bool isH46019Client = true;
+				for(PINDEX p = 0; p < feat.m_parameters.GetSize(); p++) {
+					if (feat.m_parameters[p].m_id.GetTag() == H225_GenericIdentifier::e_standard) {
+						PASN_Integer & pInt = feat.m_parameters[p].m_id;
+						if (pInt == 2) {
+							isH46019Client = false;
+						}
+					}
+				}
+				return isH46019Client;
+			}
+        }
+    }
+    return false;
+}
+#endif
+
 #ifdef HAS_H46023
 bool CallSignalSocket::IsH46024Call(const H225_Setup_UUIE & setupBody)
 {
 	if (Toolkit::Instance()->IsH46023Enabled()
 		&& setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 		const H225_ArrayOf_FeatureDescriptor & data = setupBody.m_supportedFeatures;
-		for (PINDEX i =0; i < data.GetSize(); i++) {
-          H460_Feature & feat = (H460_Feature &)data[i];
-		  if (feat.GetFeatureID() == H460_FeatureID(24)) 
-              return true;
+		for (PINDEX i = 0; i < data.GetSize(); i++) {
+			H460_Feature & feat = (H460_Feature &)data[i];
+			if (feat.GetFeatureID() == H460_FeatureID(24)) 
+				return true;
         }
     }
     return false;
@@ -2582,9 +2608,9 @@ bool CallSignalSocket::IsH46024Call(const H225_Setup_UUIE & setupBody)
 //	if (Toolkit::Instance()->IsH46026Enabled()
 //		&& setupBody.HasOptionalField(H225_Setup_UUIE::e_neededFeatures)) {
 //		const H225_ArrayOf_FeatureDescriptor & data = setupBody.m_neededFeatures;
-//		for (PINDEX i =0; i < data.GetSize(); i++) {
+//		for (PINDEX i = 0; i < data.GetSize(); i++) {
 //			H460_Feature & feat = (H460_Feature &)data[i];
-//			if (feat.GetFeatureID() == H460_FeatureID(26)) 
+//			if (feat.GetFeatureID() == H460_FeatureID(26))
 //				return true;
 //		}
 //	}
@@ -3252,6 +3278,12 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 #ifdef HAS_H46018
 		callFromTraversalClient = rassrv->IsCallFromTraversalClient(_peerAddr);
 		callFromTraversalServer = rassrv->IsCallFromTraversalServer(_peerAddr);
+
+		if ((!m_call || (m_call && !m_call->GetCallingParty())) && IsH46019ClientCall(setupBody) && !callFromTraversalClient) {
+			PTRACE(2, "H46019\tUnregistered H.460.19 call");
+			callFromTraversalClient = true;
+		}
+		
 		if ((m_call && m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None)
 			|| (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->GetTraversalRole() != None)
 			|| (m_call && m_call->IsH46018ReverseSetup()) || callFromTraversalClient || callFromTraversalServer) {
