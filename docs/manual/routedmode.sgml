@@ -751,7 +751,7 @@ switch if you have these broken endpoints.
 <item><tt/RTPMultiplexing=1/<newline>
 Default: <tt/0/<newline>
 <p>
-Enable H.460.19 RTP multiplexing. H.460.18 must also be enabled.
+Enable H.460.19 RTP multiplexing. H.460.19 must be enabled for multiplexing.
 <p>
 NOTE: To change RTP multiplexing settings, including ports, you must restart GnuGk.
 A configuration reload will not re-read this configuration item.
