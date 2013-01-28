@@ -931,9 +931,12 @@ void RasServer::LoadConfig()
 
 #ifdef HAS_H46018
 	// create mutiplex RTP listeners
-	if (Toolkit::Instance()->IsH46018Enabled()
-		&& Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
-		MultiplexedRTPHandler::Instance()->OnReload();
+	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
+		if (Toolkit::Instance()->IsH46018Enabled()) {
+			MultiplexedRTPHandler::Instance()->OnReload();
+		} else {
+			PTRACE(1, "Warning: Must enable H.460.19 for RTP multiplexing");
+		}
 	} else {
 		// if we had a multiplex listener configured before the reload, but not anymore, then delete it
 		if (MultiplexedRTPHandler::InstanceExists())
