@@ -739,7 +739,9 @@ void StopSNMPAgent()
 	PCaselessString implementation = SelectSNMPImplementation();
 #ifdef HAS_NETSNMP
 	if (implementation == "Net-SNMP") {
-		delete NetSNMPAgent::Instance();
+		if (NetSNMPAgent::InstanceExists()) {
+			delete NetSNMPAgent::Instance();
+		}
 		return;
 	}
 #endif
@@ -751,7 +753,9 @@ void StopSNMPAgent()
 #endif
 #ifdef _WIN32
 	if (implementation == "Windows") {
-		WindowsSNMPAgent::Instance()->Stop();
+		if (WindowsSNMPAgent::InstanceExists()) {
+			WindowsSNMPAgent::Instance()->Stop();
+		}
 		return;
 	}
 #endif
