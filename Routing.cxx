@@ -1537,7 +1537,7 @@ void ENUMPolicy::LoadConfig(const PString & instance)
 	if (instance.IsEmpty())
 		return;
 
-	m_enum_schema.SetSize(0);
+	m_enum_schema.RemoveAll();
 	m_enum_schema = GkConfig()->GetAllKeyValues(m_iniSection);
 }
 

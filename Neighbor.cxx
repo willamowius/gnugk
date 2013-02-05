@@ -1751,8 +1751,8 @@ void SRVPolicy::LoadConfig(const PString & instance)
 	if (instance.IsEmpty())
 		return;
 
-	m_ls_schema.SetSize(0);
-	m_cs_schema.SetSize(0);
+	m_ls_schema.RemoveAll();
+	m_cs_schema.RemoveAll();
 	m_cs_schema = GkConfig()->GetAllKeyValues(m_iniSection);
 }
 
