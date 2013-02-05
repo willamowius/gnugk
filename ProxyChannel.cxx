@@ -9252,8 +9252,12 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 	if (peer)
 		peer->peer = this;
 
+#ifdef HAS_H46018
 	m_isRTPMultiplexingEnabled = Toolkit::Instance()->IsH46018Enabled()
 								&& Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"));
+#else
+	m_isRTPMultiplexingEnabled = false;
+#endif
 	m_requestRTPMultiplexing = false;	// only enable in SetRequestRTPMultiplexing() if endpoint supports it
 	m_multiplexedRTPPort = (WORD)GkConfig()->GetInteger(ProxySection, "RTPMultiplexPort", GK_DEF_MULTIPLEX_RTP_PORT);
 	m_multiplexedRTCPPort = (WORD)GkConfig()->GetInteger(ProxySection, "RTCPMultiplexPort", GK_DEF_MULTIPLEX_RTCP_PORT);
