@@ -43,66 +43,6 @@
    <insert_a_suppression_name_here>
    Memcheck:Leak
    fun:_Znwm
-   fun:_ZN20PDevicePluginAdapterI18PVideoOutputDeviceE13CreateFactoryERK7PString
-   fun:_ZN14PPluginManager15RegisterServiceERK7PStringS2_P24PPluginServiceDescriptor
-   fun:_ZL48PWLIB_StaticLoader_NULLOutput_PVideoOutputDevicev
-   fun:_Z41__static_initialization_and_destruction_0ii
-   fun:_GLOBAL__I_vfakeio.cxx
-}
-{
-   <insert_a_suppression_name_here>
-   Memcheck:Leak
-   fun:_Znwm
-   fun:_ZN20PDevicePluginAdapterI10PNatMethodE13CreateFactoryERK7PString
-   fun:_ZN14PPluginManager15RegisterServiceERK7PStringS2_P24PPluginServiceDescriptor
-   fun:_ZL34PWLIB_StaticLoader_STUN_PNatMethodv
-   fun:_Z41__static_initialization_and_destruction_0ii
-   fun:_GLOBAL__I_pstun.cxx
-}
-{
-   <insert_a_suppression_name_here>
-   Memcheck:Leak
-   fun:_Znwm
-   fun:_ZN20PDevicePluginAdapterI17PVideoInputDeviceE13CreateFactoryERK7PString
-   fun:_ZN14PPluginManager15RegisterServiceERK7PStringS2_P24PPluginServiceDescriptor
-   fun:_ZL46PWLIB_StaticLoader_FakeVideo_PVideoInputDevicev
-   fun:_Z41__static_initialization_and_destruction_0ii
-   fun:_GLOBAL__I_vfakeio.cxx
-}
-{
-   <insert_a_suppression_name_here>
-   Memcheck:Leak
-   fun:_Znwm
-   fun:_ZN20PDevicePluginAdapterI10PNatMethodE13CreateFactoryERK7PString
-   fun:_ZN14PPluginManager15RegisterServiceERK7PStringS2_P24PPluginServiceDescriptor
-   fun:_ZL35PWLIB_StaticLoader_GnuGk_PNatMethodv
-   fun:_Z41__static_initialization_and_destruction_0ii
-   fun:_GLOBAL__I_gnugknat.cxx
-}
-{
-   <insert_a_suppression_name_here>
-   Memcheck:Leak
-   fun:_Znwm
-   fun:_ZN20PDevicePluginAdapterI10PNatMethodE13CreateFactoryERK7PString
-   fun:_ZN14PPluginManager15RegisterServiceERK7PStringS2_P24PPluginServiceDescriptor
-   fun:_ZL36PWLIB_StaticLoader_H46024_PNatMethodv
-   fun:_Z41__static_initialization_and_destruction_0ii
-   fun:_GLOBAL__I_h460_std23.cxx
-}
-{
-   <insert_a_suppression_name_here>
-   Memcheck:Leak
-   fun:_Znwm
-   fun:_ZN20PDevicePluginAdapterI10PNatMethodE13CreateFactoryERK7PString
-   fun:_ZN14PPluginManager15RegisterServiceERK7PStringS2_P24PPluginServiceDescriptor
-   fun:_ZL36PWLIB_StaticLoader_H46019_PNatMethodv
-   fun:_Z41__static_initialization_and_destruction_0ii
-   fun:_GLOBAL__I_h46018_h225.cxx
-}
-{
-   <insert_a_suppression_name_here>
-   Memcheck:Leak
-   fun:_Znwm
    fun:_ZN20PDevicePluginAdapter*
    fun:_ZN14PPluginManager15RegisterServiceERK7PStringS2_P24PPluginServiceDescriptor
    ...
