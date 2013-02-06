@@ -2,7 +2,7 @@
 //
 // singleton.cxx
 //
-// Copyright (c) 2001-2011, Jan Willamowius
+// Copyright (c) 2001-2013, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -14,7 +14,7 @@
 #include <ptlib.h>
 #include "singleton.h"
 
-static int singleton_cnt=0;
+static int singleton_cnt = 0;
 
 listptr<SingletonBase> SingletonBase::_instance_list;
 

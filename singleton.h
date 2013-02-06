@@ -2,7 +2,7 @@
 //
 // singleton.h
 //
-// Copyright (c) 2001-2011, Jan Willamowius
+// Copyright (c) 2001-2013, Jan Willamowius
 //
 // All singleton objects are put into a list
 // so that it would be delete when program exits.
@@ -27,7 +27,7 @@
 //
 template<class T> class listptr : public std::list<void *> {
   public:
-	listptr() : clear_list(false) {}
+	listptr() : clear_list(false) { }
 	~listptr();
 	bool clear_list;
 
@@ -37,7 +37,9 @@ template<class T> class listptr : public std::list<void *> {
 
 template<class T> listptr<T>::~listptr()
 {
-	clear_list=true;
+	// TODO: deleting all singletons automatically like this at shutdown doesn't work!
+	// thats why currently all singletons must be deleted manually, eg. in ShutdownHandler()
+	clear_list = true;
 	std::for_each(begin(), end(), delete_obj);
 }
 

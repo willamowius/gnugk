@@ -27,6 +27,7 @@
 #include "stl_supp.h"
 #include "RasSrv.h"
 #include "RasTbl.h"
+#include "ProxyChannel.h"
 #include "SoftPBX.h"
 #include "MakeCall.h"
 #include "gktimer.h"
@@ -634,6 +635,8 @@ void ShutdownHandler()
 	PTRACE(3, "GK\tDeleting global reference tables");
 
 	Job::StopAll();
+	if (MultiplexedRTPHandler::InstanceExists())
+		delete MultiplexedRTPHandler::Instance();
 	if (CapacityControl::InstanceExists())
 		delete CapacityControl::Instance();
 	if (CallTable::InstanceExists())
