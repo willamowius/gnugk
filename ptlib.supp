@@ -1,0 +1,119 @@
+# Valgrind suppression rules for PTLib 2.10.1/.9 on 64bit Linux
+{
+   <PNATFactory_shutdown>
+   Memcheck:Addr8
+   fun:_ZN9__gnu_cxx6__poolILb1EE16_M_get_thread_idEv
+   fun:_ZN9__gnu_cxx6__poolILb1EE16_M_reclaim_blockEPcm
+   fun:_ZN9__gnu_cxx10__mt_allocIcNS_20__common_pool_policyINS_6__poolELb1EEEE10deallocateEPcm
+   fun:_ZN18PAllocatorTemplateIN9__gnu_cxx10__mt_allocIcNS0_20__common_pool_policyINS0_6__poolELb1EEEEEcE10deallocateEPcm
+   fun:_ZN14PAbstractArray15DestroyContentsEv
+   fun:_ZN10PContainer8DestructEv
+   fun:_ZN14PAbstractArrayD1Ev
+   fun:_ZN10PBaseArrayIcED1Ev
+   fun:_ZN10PCharArrayD1Ev
+   fun:_ZN7PStringD1Ev
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Addr8
+   fun:_ZN9__gnu_cxx6__poolILb1EE16_M_get_thread_idEv
+   fun:_ZN9__gnu_cxx6__poolILb1EE16_M_reclaim_blockEPcm
+   fun:_ZN9__gnu_cxx10__mt_allocI19PContainerReferenceNS_20__common_pool_policyINS_6__poolELb1EEEE10deallocateEPS1_m
+   fun:_ZN18PAllocatorTemplateIN9__gnu_cxx10__mt_allocI19PContainerReferenceNS0_20__common_pool_policyINS0_6__poolELb1EEEEES2_E10deallocateEPS2_m
+   fun:_ZN19PContainerReferencedlEPv
+   fun:_ZN10PContainer16DestroyReferenceEv
+   fun:_ZN10PContainer8DestructEv
+   fun:_ZN14PAbstractArrayD1Ev
+   fun:_ZN10PBaseArrayIcED1Ev
+   fun:_ZN10PCharArrayD1Ev
+   fun:_ZN7PStringD1Ev
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Free
+   fun:free
+   fun:free_mem
+   fun:__libc_freeres
+   fun:_vgnU_freeres
+   fun:__run_exit_handlers
+   fun:exit
+   fun:(below main)
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:_Znwm
+   fun:_ZN20PDevicePluginAdapterI18PVideoOutputDeviceE13CreateFactoryERK7PString
+   fun:_ZN14PPluginManager15RegisterServiceERK7PStringS2_P24PPluginServiceDescriptor
+   fun:_ZL48PWLIB_StaticLoader_NULLOutput_PVideoOutputDevicev
+   fun:_Z41__static_initialization_and_destruction_0ii
+   fun:_GLOBAL__I_vfakeio.cxx
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:_Znwm
+   fun:_ZN20PDevicePluginAdapterI10PNatMethodE13CreateFactoryERK7PString
+   fun:_ZN14PPluginManager15RegisterServiceERK7PStringS2_P24PPluginServiceDescriptor
+   fun:_ZL34PWLIB_StaticLoader_STUN_PNatMethodv
+   fun:_Z41__static_initialization_and_destruction_0ii
+   fun:_GLOBAL__I_pstun.cxx
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:_Znwm
+   fun:_ZN20PDevicePluginAdapterI17PVideoInputDeviceE13CreateFactoryERK7PString
+   fun:_ZN14PPluginManager15RegisterServiceERK7PStringS2_P24PPluginServiceDescriptor
+   fun:_ZL46PWLIB_StaticLoader_FakeVideo_PVideoInputDevicev
+   fun:_Z41__static_initialization_and_destruction_0ii
+   fun:_GLOBAL__I_vfakeio.cxx
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:_Znwm
+   fun:_ZN20PDevicePluginAdapterI10PNatMethodE13CreateFactoryERK7PString
+   fun:_ZN14PPluginManager15RegisterServiceERK7PStringS2_P24PPluginServiceDescriptor
+   fun:_ZL35PWLIB_StaticLoader_GnuGk_PNatMethodv
+   fun:_Z41__static_initialization_and_destruction_0ii
+   fun:_GLOBAL__I_gnugknat.cxx
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:_Znwm
+   fun:_ZN20PDevicePluginAdapterI10PNatMethodE13CreateFactoryERK7PString
+   fun:_ZN14PPluginManager15RegisterServiceERK7PStringS2_P24PPluginServiceDescriptor
+   fun:_ZL36PWLIB_StaticLoader_H46024_PNatMethodv
+   fun:_Z41__static_initialization_and_destruction_0ii
+   fun:_GLOBAL__I_h460_std23.cxx
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:_Znwm
+   fun:_ZN20PDevicePluginAdapterI10PNatMethodE13CreateFactoryERK7PString
+   fun:_ZN14PPluginManager15RegisterServiceERK7PStringS2_P24PPluginServiceDescriptor
+   fun:_ZL36PWLIB_StaticLoader_H46019_PNatMethodv
+   fun:_Z41__static_initialization_and_destruction_0ii
+   fun:_GLOBAL__I_h46018_h225.cxx
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:_Znwm
+   fun:_ZN20PDevicePluginAdapter*
+   fun:_ZN14PPluginManager15RegisterServiceERK7PStringS2_P24PPluginServiceDescriptor
+   ...
+   fun:_Z41__static_initialization_and_destruction_0ii
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:getdelim
+   obj:/lib64/libselinux.so.1
+   fun:call_init
+}
+
