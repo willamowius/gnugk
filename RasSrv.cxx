@@ -1570,7 +1570,8 @@ void RasServer::CreateRasJob(GatekeeperMessage * msg, bool syncronous)
 			} else {
 				if (syncronous) {
 					ras->Exec();
-					delete msg;
+					delete ras;
+					ras = NULL;
 				} else {
 					requests.push_back(ras);
 					Job *job = new Jobs(ras);
