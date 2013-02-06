@@ -614,7 +614,7 @@ public:
 
 protected:
 	MultiplexedRTPReader * m_reader;
-	mutable PReadWriteMutex listLock;
+	mutable PReadWriteMutex m_listLock;
 	list<H46019Session> m_h46019channels;
 	PUInt32b idCounter; // we should make sure this counter is _not_ reset on reload
 };

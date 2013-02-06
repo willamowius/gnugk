@@ -7550,7 +7550,7 @@ MultiplexedRTPHandler::~MultiplexedRTPHandler()
 
 void MultiplexedRTPHandler::AddChannel(const H46019Session & chan)
 {
-	WriteLock lock(listLock);
+	WriteLock lock(m_listLock);
 	if (chan.IsValid()) {
 		bool found = false;
 		// update if we have a channel for this session
@@ -7575,7 +7575,7 @@ void MultiplexedRTPHandler::AddChannel(const H46019Session & chan)
 
 void MultiplexedRTPHandler::UpdateChannel(const H46019Session & chan)
 {
-	WriteLock lock(listLock);
+	WriteLock lock(m_listLock);
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; ++iter ) {
 		if (   (iter->m_callid == chan.m_callid)
@@ -7593,7 +7593,7 @@ void MultiplexedRTPHandler::UpdateChannel(const H46019Session & chan)
 
 H46019Session MultiplexedRTPHandler::GetChannelSwapped(const H225_CallIdentifier & callid, WORD session, void * openedBy) const
 {
-	ReadLock lock(listLock);
+	ReadLock lock(m_listLock);
 	for (list<H46019Session>::const_iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; ++iter ) {
 		if (iter->m_callid == callid && iter->m_session == session) {
@@ -7609,7 +7609,7 @@ H46019Session MultiplexedRTPHandler::GetChannelSwapped(const H225_CallIdentifier
 
 H46019Session MultiplexedRTPHandler::GetChannel(const H225_CallIdentifier & callid, WORD session) const
 {
-	ReadLock lock(listLock);
+	ReadLock lock(m_listLock);
 	for (list<H46019Session>::const_iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; ++iter ) {
 		if (iter->m_callid == callid && iter->m_session == session) {
@@ -7621,7 +7621,7 @@ H46019Session MultiplexedRTPHandler::GetChannel(const H225_CallIdentifier & call
 
 void MultiplexedRTPHandler::RemoveChannels(H225_CallIdentifier callid)
 {
-	WriteLock lock(listLock);
+	WriteLock lock(m_listLock);
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; /* nothing */ ) {
 		if (iter->m_callid == callid) {
@@ -7635,7 +7635,7 @@ void MultiplexedRTPHandler::RemoveChannels(H225_CallIdentifier callid)
 #ifdef HAS_H235_MEDIA
 void MultiplexedRTPHandler::RemoveChannel(H225_CallIdentifier callid, RTPLogicalChannel * rtplc)
 {
-	WriteLock lock(listLock);
+	WriteLock lock(m_listLock);
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; /* nothing */ ) {
 		if (iter->m_callid == callid) {
@@ -7663,7 +7663,7 @@ void MultiplexedRTPHandler::DumpChannels(const PString & msg) const
 
 void MultiplexedRTPHandler::HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP)
 {
-	ReadLock lock(listLock);
+	ReadLock lock(m_listLock);
 	// find the matching channel for the multiplex ID and let it handle the packet
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; ++iter) {
@@ -7677,7 +7677,7 @@ void MultiplexedRTPHandler::HandlePacket(PUInt32b receivedMultiplexID, const H32
 
 PUInt32b MultiplexedRTPHandler::GetMultiplexID(const H225_CallIdentifier & callid, WORD session, void * to)
 {
-	ReadLock lock(listLock);
+	ReadLock lock(m_listLock);
 	for (list<H46019Session>::const_iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; ++iter) {
 		if (iter->m_callid == callid && iter->m_session == session) {
