@@ -635,8 +635,10 @@ void ShutdownHandler()
 	PTRACE(3, "GK\tDeleting global reference tables");
 
 	Job::StopAll();
+#ifdef HAS_H46018
 	if (MultiplexedRTPHandler::InstanceExists())
 		delete MultiplexedRTPHandler::Instance();
+#endif
 	if (CapacityControl::InstanceExists())
 		delete CapacityControl::Instance();
 	if (CallTable::InstanceExists())
