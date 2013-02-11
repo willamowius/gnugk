@@ -56,4 +56,20 @@
    obj:/lib64/libselinux.so.1
    fun:call_init
 }
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:_Znwm
+   ...
+   fun:_Z41__static_initialization_and_destruction_0ii
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:_Znwm
+   ...
+   fun:_ZN8PFactoryI21H323StaticPluginCodecSsE11GetInstanceEv
+   fun:_ZN8PFactoryI21H323StaticPluginCodecSsE10GetKeyListEv
+   fun:_ZN22H323PluginCodecManagerC1EP14PPluginManager
+}
 
