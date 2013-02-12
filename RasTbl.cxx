@@ -984,9 +984,10 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 		CallSignalSocket * s = GetSocket();
 		if (s) {
 			s->SendH46017Message(ras_msg);
-			if (s->GetHandler()) {
-				s->GetHandler()->Detach(s);
-			}
+// BUG: was intended to avoid double-delete crash, but causing memory leak
+//			if (s->GetHandler()) {
+//				s->GetHandler()->Detach(s);
+//			}
 		}
 	} else
 #endif
