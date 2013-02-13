@@ -1175,7 +1175,10 @@ void Gatekeeper::Main()
 			cout << "Current core dump size limits - soft: " << rlim.rlim_cur
 				<< ", hard: " << rlim.rlim_max << endl;
 			int uid = geteuid();
-			seteuid(getuid()); // Switch back to starting uid for next call
+			int result = seteuid(getuid()); // Switch back to starting uid for next call
+			if (result != 0) {
+				PTRACE(1, "Warning: Setting EUID failed");
+			}
 			const PCaselessString s = args.GetOptionString("core");
 			rlim_t v = (s == "unlimited" ? RLIM_INFINITY : (rlim_t)s.AsInteger());
 			rlim.rlim_cur = v;
@@ -1186,7 +1189,10 @@ void Gatekeeper::Main()
 				cout << "New core dump size limits - soft: " << rlim.rlim_cur
 					<< ", hard: " << rlim.rlim_max << endl;
 			}
-			seteuid(uid);
+			result = seteuid(uid);
+			if (result != 0) {
+				PTRACE(1, "Warning: Setting EUID failed");
+			}
 		}
 	}
 #endif
