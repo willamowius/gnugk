@@ -659,6 +659,13 @@ void EndpointRec::RemoveNATSocket()
 	}
 }
 
+void EndpointRec::NullNATSocket()
+{
+	PWaitAndSignal lock(m_usedLock);
+
+	m_natsocket = NULL;
+}
+
 void EndpointRec::SetEndpointIdentifier(const H225_EndpointIdentifier &i)
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -2205,6 +2212,7 @@ void RegistrationTable::OnNATSocketClosed(CallSignalSocket * s)
 	while (Iter != EndpointList.end()) {
 		EndpointRec *ep = *Iter;
 		if (ep->UsesH46017() && (ep->GetSocket() == s)) {
+			ep->NullNATSocket();
 			SoftPBX::DisconnectEndpoint(endptr(ep)); // disconnect ongoing calls
 			RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctUnregister, endptr(ep));
 			RemovedList.push_back(ep);
@@ -2221,6 +2229,27 @@ void RegistrationTable::OnNATSocketClosed(CallSignalSocket * s)
 	}
 }
 
+#ifdef HAS_H46017
+void RegistrationTable::UnregisterAllH46017Endpoints()
+{
+	WriteLock lock(listLock);
+
+	iterator Iter = EndpointList.begin();
+	while (Iter != EndpointList.end()) {
+		EndpointRec *ep = *Iter;
+		if (ep->UsesH46017()) {
+			SoftPBX::DisconnectEndpoint(endptr(ep)); // disconnect ongoing calls
+			ep->Unregister();
+			RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctUnregister, endptr(ep));
+			ep->RemoveNATSocket();
+			RemovedList.push_back(ep);
+			Iter = EndpointList.erase(Iter);
+			--regSize;
+		}
+		else ++Iter;
+	}
+}
+#endif
 
 #ifdef HAS_H46018
 H46019KeepAlive::H46019KeepAlive()

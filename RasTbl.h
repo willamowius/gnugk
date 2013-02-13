@@ -185,6 +185,7 @@ public:
 	void SetNATAddress(const PIPSocket::Address &, WORD port = 0);
 	void SetNATSocket(CallSignalSocket * socket);
 	void RemoveNATSocket();
+	void NullNATSocket();
 	void SetH46024(bool support);
 	void SetH46024A(bool support);
 	void SetH46024B(bool support);
@@ -557,6 +558,9 @@ public:
 
 	// handle remote closing of a NAT socket
 	void OnNATSocketClosed(CallSignalSocket * s);
+#ifdef HAS_H46017
+	void UnregisterAllH46017Endpoints();
+#endif
 
 	void PrintAllRegistrations(USocket *client, bool verbose=FALSE);
 	void PrintAllCached(USocket *client, bool verbose=FALSE);

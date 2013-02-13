@@ -916,6 +916,10 @@ void UnixShutdownHandler(int sig)
 		return;
 	PWaitAndSignal shutdown(ShutdownMutex);
 	PTRACE(1, "GK\tReceived signal " << sig);
+#ifdef HAS_H46017
+	// unregister all H.460.17 endpoints before we stop the socket handlers and thus delete their sockets
+	RegistrationTable::Instance()->UnregisterAllH46017Endpoints();
+#endif
 	PFile::Remove(pidfile);
 	RasServer::Instance()->Stop();
 }
