@@ -524,6 +524,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "SQLConfig", "Library" },
 	{ "SQLConfig", "MinPoolSize" },
 	{ "SQLConfig", "NeighborsQuery" },
+	{ "SQLConfig", "NeighborsQuery2" },
 	{ "SQLConfig", "Password" },
 	{ "SQLConfig", "PermanentEndpointsQuery" },
 	{ "SQLConfig", "RewriteAliasQuery" },

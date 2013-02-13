@@ -1,5 +1,6 @@
 Changes from 3.2 to 3.3
 =======================
+- new [SQLConfig] NeighborsQuery2 for loading neighbors from database in new style format.
 - BUGFIX(RasSrv.cxx) fix mem leak in H.460.17
 - BUGFIX(snmp.cxx) don't accidently start SNMP server when stopping gatekeeper
 - support H.460.19 clients on unregistered inbound calls (experimental)

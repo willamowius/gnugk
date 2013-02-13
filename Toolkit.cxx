@@ -1417,7 +1417,7 @@ void Toolkit::ReloadSQLConfig()
 		delete queryResult;
 		queryResult = NULL;
 	}
-
+	// Neighbor Query (old style)
 	query = m_Config->GetString("SQLConfig", "NeighborsQuery", "");
 	if (!query.IsEmpty()) {
 		PTRACE(4, "SQLCONF\tLoading neighbors from SQL database");
@@ -1463,6 +1463,73 @@ void Toolkit::ReloadSQLConfig()
 			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " neighbor entries "
 				"loaded from SQL database"
 				);
+		}
+		delete queryResult;
+		queryResult = NULL;
+	}
+	// Neighbor Query (new style)
+	query = m_Config->GetString("SQLConfig", "NeighborsQuery2", "");
+	if (!query.IsEmpty()) {
+		PTRACE(4, "SQLCONF\tLoading neighbors from SQL database");
+		PStringArray params;
+		params += GKName();
+		queryResult = sqlConn->ExecuteQuery(query, &params);
+		if (queryResult == NULL) {
+			PTRACE(0, "SQLCONF\tFailed to load neighbors from SQL database: "
+				"timeout or fatal error");
+			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Neighbor query failed");
+		} else if (!queryResult->IsValid()) {
+			PTRACE(0, "SQLCONF\tFailed to load neighbors from SQL database ("
+				<< queryResult->GetErrorCode() << "): " << queryResult->GetErrorMessage());
+			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Neighbor query failed");
+		} else if (queryResult->GetNumFields() < 3) {
+			PTRACE(0, "SQLCONF\tFailed to load neighbors from SQL database: "
+				"at least 6 columns must be present in the result set");
+			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Neighbor query failed");
+		} else {
+			while (queryResult->FetchRow(params)) {
+				// GkID, Gatekeeper Identifier and Gatekeeper Type must not be empty
+				if (params[0].IsEmpty() || params[1].IsEmpty() || params[2].IsEmpty()) {
+					PTRACE(1, "SQLCONF\tInvalid neighbor entry found in the SQL "
+						"database: '" << params[0] << '=' << params[0] << '\'');
+					SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Neighbor query failed");
+				} else {
+					m_Config->SetString("RasSrv::Neighbors", params[0], params[1]);
+					PString neighborSection = "[Neighbor::" + params[0] + "]";
+					// H46018 Traversal Support
+					int h460id = 8; 
+					if (queryResult->GetNumFields() > h460id ) {
+						int h46018traverse = params[h460id].AsInteger();
+						if (h46018traverse) {
+							if (h46018traverse == 1)
+							   m_Config->SetString(neighborSection, "H46018Server", "1");
+							else if (h46018traverse == 2)
+							   m_Config->SetString(neighborSection, "H46018Client", "1");
+
+							if (queryResult->GetNumFields() > (h460id+2)) {
+								if (!params[h460id+1]) m_Config->SetString(neighborSection, "SendAuthUser", params[h460id+1]);
+								if (!params[h460id+2]) m_Config->SetString(neighborSection, "SendPassword", params[h460id+2]);
+							}
+						}
+					}
+					// General Neighbor settings
+					for (PINDEX i = 0; i < queryResult->GetNumFields(); ++i) {
+					  if (!params[i]) {
+						switch (i) {
+							case 0 : m_Config->SetString(neighborSection, "GatekeeperIdentifier", params[i]); break;
+							case 2 : m_Config->SetString(neighborSection, "Host", params[i]); break;
+							case 3 : m_Config->SetString(neighborSection, "SendPrefixes", params[i]); break;
+							case 4 : m_Config->SetString(neighborSection, "AcceptPrefixes", params[i]); break;
+							case 5 : m_Config->SetString(neighborSection, "ForwardHopCount", params[i]); break;
+							case 6 : m_Config->SetString(neighborSection, "AcceptForwardedLRQ", params[i]); break;
+							case 7 : m_Config->SetString(neighborSection, "ForwardResponse", params[i]); break;
+							default: break;
+						}
+					  }
+					}
+					PTRACE(4, "SQLCONF\t" << neighborSection << " neighbor loaded from SQL database");
+				}
+			}
 		}
 		delete queryResult;
 		queryResult = NULL;
