@@ -4718,9 +4718,6 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 	done
 	CFLAGS="$old_CFLAGS"
 	LDFLAGS="$old_LDFLAGS"
-    baseLIBS=`net-snmp-config --base-agent-libs`
-    agentLIBS=`net-snmp-config --netsnmp-agent-libs`
-    externalLIBS=`net-snmp-config --external-agent-libs`
 
 	if test "x$NETSNMP_INCLUDE" = "x"; then
 		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
@@ -4737,6 +4734,9 @@ $as_echo "yes" >&6; }
 $as_echo_n "checking for Net-SNMP library... " >&6; }
 
 		old_LIBS="$LIBS"
+    	baseLIBS=`net-snmp-config --base-agent-libs`
+    	agentLIBS=`net-snmp-config --netsnmp-agent-libs`
+    	externalLIBS=`net-snmp-config --external-agent-libs`
 
 		for try in /usr/lib /usr/local/lib $netsnmp_lib_dir; do
 			if test -d $try; then

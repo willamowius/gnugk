@@ -972,9 +972,6 @@ if test "x${netsnmp}" != "xno"; then
 	done
 	CFLAGS="$old_CFLAGS"
 	LDFLAGS="$old_LDFLAGS"
-    baseLIBS=`net-snmp-config --base-agent-libs`
-    agentLIBS=`net-snmp-config --netsnmp-agent-libs`
-    externalLIBS=`net-snmp-config --external-agent-libs`
 
 	if test "x$NETSNMP_INCLUDE" = "x"; then
 		AC_MSG_RESULT(no)
@@ -987,6 +984,9 @@ if test "x${netsnmp}" != "xno"; then
 		AC_MSG_CHECKING([for Net-SNMP library])
 
 		old_LIBS="$LIBS"
+    	baseLIBS=`net-snmp-config --base-agent-libs`
+    	agentLIBS=`net-snmp-config --netsnmp-agent-libs`
+    	externalLIBS=`net-snmp-config --external-agent-libs`
 
 		for try in /usr/lib /usr/local/lib $netsnmp_lib_dir; do
 			if test -d $try; then
