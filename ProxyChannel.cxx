@@ -1099,6 +1099,8 @@ void CallSignalSocket::CleanupCall()
 	m_h245handler = NULL;
 	m_h245handlerLock.Signal();
 
+	DetachRemote();
+
 	m_setupPdu = NULL;
 #ifdef HAS_H46018
 	m_callFromTraversalServer = false;
