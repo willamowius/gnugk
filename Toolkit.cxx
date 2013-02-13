@@ -2,7 +2,7 @@
 //
 // Toolkit base class for the GnuGk
 //
-// Copyright (c) 2000-2012, Jan Willamowius
+// Copyright (c) 2000-2013, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -457,7 +457,7 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 	InterfaceTable if_table;
 	if (!PIPSocket::GetInterfaceTable(if_table)) {
 		PTRACE(1, "Error: Can't get interface table");
-		SNMP_TRAP(10, SNMPError, Configuration, "Error feting interface table");
+		SNMP_TRAP(10, SNMPError, Configuration, "Error fetching interface table");
 		return false;
 	}
 
@@ -465,7 +465,7 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 	PIPSocket::RouteTable r_table;
 	if (!PIPSocket::GetRouteTable(r_table)) {
 		PTRACE(1, "Error: Can't get route table");
-		SNMP_TRAP(10, SNMPError, Configuration, "Error feting route table");
+		SNMP_TRAP(10, SNMPError, Configuration, "Error fetching route table");
 		return false;
 	}
 	// filter out route with destination localhost
@@ -474,14 +474,20 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 		if ((r_table[i].GetDestination().IsLoopback())
 			&& !r_table[i].GetNetwork().IsLoopback()) {
 				r_table.RemoveAt(i--);
-			}
+		}
+	}
+	// filter out routes with destinations (source IPs) that we don't listen to
+	for(PINDEX i=0; i < r_table.GetSize(); ++i) {
+		if (!Toolkit::Instance()->IsGKHome(r_table[i].GetDestination())) {
+				r_table.RemoveAt(i--);
+		}
 	}
 	// filter out IPv6 networks if IPv6 is not enabled
 	for(PINDEX i=0; i < r_table.GetSize(); ++i) {
 		if ((r_table[i].GetNetwork().GetVersion() == 6)
 			&& !Toolkit::Instance()->IsIPv6Enabled()) {
 				r_table.RemoveAt(i--);
-			}
+		}
 	}
 
 	if (AsBool(GkConfig()->GetString(ProxySection, "Enable", "0"))) {
@@ -499,10 +505,18 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 	PString tmpRoutes = GkConfig()->GetString(ProxySection, "ExplicitRoutes", "");
 	PStringArray explicitRoutes;
 	if (!tmpRoutes.IsEmpty()) {
-		explicitRoutes = tmpRoutes.Tokenise(",", FALSE);
-		for (PINDEX e=0; e < explicitRoutes.GetSize(); ++e) {
+		explicitRoutes = tmpRoutes.Tokenise(",", false);
+		PINDEX e = 0;
+		while (e < explicitRoutes.GetSize()) {
 			RouteEntry entry(explicitRoutes[e]);
-			PTRACE(2, "Adding explict route: " << entry.GetNetwork() << "/" << entry.GetNetMask() << "->" << entry.GetDestination());
+			if (Toolkit::Instance()->IsGKHome(entry.GetDestination())) {
+				PTRACE(2, "Adding explict route: " << entry.GetNetwork() << "/" << entry.GetNetMask() << "->" << entry.GetDestination());
+				e++;
+			} else {
+				PTRACE(1, "Ignoring explict route (invalid source IP): "
+					<< entry.GetNetwork() << "/" << entry.GetNetMask() << "->" << entry.GetDestination());
+				explicitRoutes.RemoveAt(e);
+			}
 		}
 	}
 
