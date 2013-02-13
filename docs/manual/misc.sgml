@@ -625,6 +625,40 @@ Sample query strings:
 NeighborsQuery=SELECT nid, nip, nport, npfx, NULL, 0 FROM neighbor WHERE gk = '%1'
 </verb></tscreen>
 
+<item><tt/NeighborsQuery2=SELECT .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Define a SQL query used to retrieve neighbor entries for new style format from the database
+for the <tt/[RasSrv::Neighbors]/ section. The query is parameterized 
+- that means parameter replacement occurs before each query
+is executed. Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... 
+strings. Specify %% to embed a percent character before a digit into string 
+(like <bf/%%1/), specify <bf/%{1}/ to allow expansion inside complex expressions 
+like <bf/%{1}123/. For <tt/NeighborsQuery/ one parameter is defined:
+<itemize>
+<item><tt/%1/ - the gatekeeper identifier
+</itemize>
+It is expected that the query returns zero or more rows of data,
+with each row consisting of six columns:
+<itemize>
+<item><tt/column at index  0/ - neighbor name (identifier)
+<item><tt/column at index  1/ - neighbor type (GnuGk, Cisco, Generic)
+<item><tt/column at index  2/ - neighbor Host (IP [and port])
+<item><tt/column at index  3/ - optional SendPrefixes (comma separated)
+<item><tt/column at index  4/ - optional AcceptPrefixes (comma separated)
+<item><tt/column at index  5/ - optional ForwardHopCount
+<item><tt/column at index  6/ - optional AcceptForwardedLRQ
+<item><tt/column at index  7/ - optional ForwardResponse
+<item><tt/column at index  8/ - optional H46018Type (0-none 1-server 2-client)
+<item><tt/column at index  9/ - optional SendAuthUser (H46018)
+<item><tt/column at index 10/ - optional SendPassword (H46018)
+</itemize>
+<p>
+Sample query strings:
+<tscreen><verb>
+NeighborsQuery2=SELECT id, gtype, host, sendPrefix, recvPrefix FROM neighbor WHERE gk ='%1';
+</verb></tscreen>
+
 <item><tt/PermanentEndpointsQuery=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
