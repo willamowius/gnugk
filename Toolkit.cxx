@@ -1487,6 +1487,9 @@ void Toolkit::ReloadSQLConfig()
 				"at least 6 columns must be present in the result set");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Neighbor query failed");
 		} else {
+			// H46018 Traversal Support
+			int h460id = 8;
+			int h46018traverse=0;
 			while (queryResult->FetchRow(params)) {
 				// GkID, Gatekeeper Identifier and Gatekeeper Type must not be empty
 				if (params[0].IsEmpty() || params[1].IsEmpty() || params[2].IsEmpty()) {
@@ -1495,11 +1498,10 @@ void Toolkit::ReloadSQLConfig()
 					SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Neighbor query failed");
 				} else {
 					m_Config->SetString("RasSrv::Neighbors", params[0], params[1]);
-					PString neighborSection = "[Neighbor::" + params[0] + "]";
-					// H46018 Traversal Support
-					int h460id = 8; 
+					PString neighborSection = "[Neighbor::" + params[0] + "]"; 
+					h46018traverse =0;
 					if (queryResult->GetNumFields() > h460id ) {
-						int h46018traverse = params[h460id].AsInteger();
+						h46018traverse = params[h460id].AsInteger();
 						if (h46018traverse) {
 							if (h46018traverse == 1)
 							   m_Config->SetString(neighborSection, "H46018Server", "1");
