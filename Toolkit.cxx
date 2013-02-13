@@ -223,9 +223,7 @@ bool operator<<(const PIPSocket::Address &addr, const NetworkAddress &net)
 
 
 // class Toolkit::RouteTable::RouteEntry
-Toolkit::RouteTable::RouteEntry::RouteEntry(
-	const PString & net
-) : PIPSocket::RouteEntry(0)
+Toolkit::RouteTable::RouteEntry::RouteEntry(const PString & net) : PIPSocket::RouteEntry(0)
 {
 	if (net.Find('-') != P_MAX_INDEX) {
 		// format: net/mask-dest eg. 10.0.0.0/8-20.1.1.1
@@ -243,19 +241,21 @@ Toolkit::RouteTable::RouteEntry::RouteEntry(
 	const InterfaceTable & it
 ) : PIPSocket::RouteEntry(re)
 {
+	// look at the interface table which local IP to use for this route entry
 	PINDEX i;
 	for (i = 0; i < it.GetSize(); ++i) {
 		const Address & ip = it[i].GetAddress();
-		if (Compare(&ip)) {
+		if (Toolkit::Instance()->IsGKHome(ip) && Compare(&ip)) {	// skip IPs we don't listen to
 			destination = ip;
 			return;
 		}
 	}
-	for (i = 0; i < it.GetSize(); ++i)
-		if (it[i].GetName() == interfaceName) {
+	for (i = 0; i < it.GetSize(); ++i) {
+		if ((it[i].GetName() == interfaceName) && Toolkit::Instance()->IsGKHome(it[i].GetAddress())) {
 			destination = it[i].GetAddress();
 			return;
 		}
+	}
 }
 
 inline bool Toolkit::RouteTable::RouteEntry::Compare(const Address *ip) const
@@ -473,12 +473,6 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 	for(PINDEX i=0; i < r_table.GetSize(); ++i) {
 		if ((r_table[i].GetDestination().IsLoopback())
 			&& !r_table[i].GetNetwork().IsLoopback()) {
-				r_table.RemoveAt(i--);
-		}
-	}
-	// filter out routes with destinations (source IPs) that we don't listen to
-	for(PINDEX i=0; i < r_table.GetSize(); ++i) {
-		if (!Toolkit::Instance()->IsGKHome(r_table[i].GetDestination())) {
 				r_table.RemoveAt(i--);
 		}
 	}
