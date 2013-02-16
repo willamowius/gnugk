@@ -1908,11 +1908,16 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly,
 				}
 
 				// If we have a gateway destination replace destination with our destination.
-				if (!gateway) 
-					dom = gateway;
-
-				PStringArray parts = SplitIPAndPort(dom, GK_DEF_ENDPOINT_SIGNAL_PORT);
-				dom = parts[0];
+				PStringArray parts;
+				if (!gateway) {
+					PStringArray parts = SplitIPAndPort(gateway, GK_DEF_ENDPOINT_SIGNAL_PORT);
+					PIPSocket::Address addr;
+					if (PIPSocket::GetHostAddress(parts[0], addr)) 
+						parts[0] = addr.AsString();
+				} else {
+					PStringArray parts = SplitIPAndPort(dom, GK_DEF_ENDPOINT_SIGNAL_PORT);
+					dom = parts[0];
+				}
 				WORD port = (WORD)parts[1].AsUnsigned();
 				PTRACE(4, "ROUTING\tSRV CS converted remote party " << alias << " to " << cs[j]);
 				if (GetTransportAddress(dom, port, dest)) {
@@ -1928,6 +1933,7 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly,
 						changed = true;
 					} else
 						H323SetAliasAddress(cs[j].Left(in), aliases[i]);
+
 					Route * route = NULL;
 					if (Toolkit::Instance()->IsGKHome(addr)) {
 						H225_ArrayOf_AliasAddress find_aliases;

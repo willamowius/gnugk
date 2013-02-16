@@ -122,6 +122,8 @@ public:
 	PString GetSourceIP() const { return m_sourceIP; }
 	void SetCallerID(const PString & id) { m_callerID = id; }
 	PString GetCallerID() const { return m_callerID; }
+	void SetGatewayDestination(const H225_TransportAddress & gw) { m_gwDestination = gw; }
+	bool GetGatewayDestination(H225_TransportAddress & gw ) const;
 
 private:
 	RoutingRequest(const RoutingRequest&);
@@ -134,6 +136,7 @@ private:
 	std::list<Route> m_failedRoutes;
 	PString m_sourceIP;
 	PString m_callerID;
+	H225_TransportAddress m_gwDestination;
 };
 
 template<class R, class W>

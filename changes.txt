@@ -1,5 +1,6 @@
 Changes from 3.2 to 3.3
 =======================
+- BUGFIX(Routing.cxx) return route if ENUM routing policy if destination is an A record with correct TransportAddress.
 - BUGFIX(Toolkit.cxx) ignore routes with source IPs we don't listen to
 - new [SQLConfig] NeighborsQuery2 for loading neighbors from database in new style format.
 - BUGFIX(RasSrv.cxx) fix mem leak in H.460.17

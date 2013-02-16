@@ -327,6 +327,28 @@ void RemoveH46019Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures, 
 #endif
 
 #ifdef HAS_H46023
+// Fix for H323plus 1.25 and prior with H.460.24 Multiplexing parameter being sent in the wrong field
+// in the Alerting and Connect message
+bool FixH46024Multiplexing(const H225_ArrayOf_GenericData & data, H225_FeatureSet & features)
+{
+	for(PINDEX i=0; i < data.GetSize(); i++) {
+		H225_GenericIdentifier & id = data[i].m_id;
+		if (id.GetTag() == H225_GenericIdentifier::e_standard) {
+			PASN_Integer & asnInt = id;
+			if (asnInt.GetValue() == 19) {
+				features.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+				H225_ArrayOf_FeatureDescriptor & supportedFeatures = features.m_supportedFeatures;
+				int sz = supportedFeatures.GetSize();
+				supportedFeatures.SetSize(sz+1);
+				supportedFeatures[sz] = (const H225_FeatureDescriptor &)data[i];
+				PTRACE(4,"H46023\tCorrecting message in generic field");
+				return true;
+			}	
+		}
+	}
+	return false;
+}
+
 bool HasH46024Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures)
 {
 	bool found = false;
@@ -4153,9 +4175,15 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 
 #ifdef HAS_H46018
 #ifdef HAS_H46023
-		bool OZH46024 = (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
-						cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_featureSet) &&
-						HasH46024Descriptor(cpBody.m_featureSet.m_supportedFeatures));
+	if (callProceeding->GetUUIE()->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_genericData)) {
+		if (FixH46024Multiplexing(callProceeding->GetUUIE()->m_h323_uu_pdu.e_genericData, cpBody.m_featureSet)) {
+			cpBody.IncludeOptionalField(H225_CallProceeding_UUIE::e_featureSet);
+			callProceeding->GetUUIE()->m_h323_uu_pdu.RemoveOptionalField(H225_H323_UU_PDU::e_genericData);
+		}
+	}
+	bool OZH46024 = (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
+		cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_featureSet) &&
+		HasH46024Descriptor(cpBody.m_featureSet.m_supportedFeatures));
 #else
 		bool OZH46024 = false;
 #endif
@@ -4382,9 +4410,15 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 
 #ifdef HAS_H46018
 #ifdef HAS_H46023
+	if (connect->GetUUIE()->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_genericData)) {
+		if (FixH46024Multiplexing(connect->GetUUIE()->m_h323_uu_pdu.e_genericData, connectBody.m_featureSet)) {
+			connectBody.IncludeOptionalField(H225_Connect_UUIE::e_featureSet);
+			connect->GetUUIE()->m_h323_uu_pdu.RemoveOptionalField(H225_H323_UU_PDU::e_genericData);
+		}
+	}
 	bool OZH46024 = (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
-					connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet) &&
-					HasH46024Descriptor(connectBody.m_featureSet.m_supportedFeatures));
+		connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet) &&
+		HasH46024Descriptor(connectBody.m_featureSet.m_supportedFeatures));
 #else
 	bool OZH46024 = false;
 #endif
@@ -4489,6 +4523,12 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 
 #ifdef HAS_H46018
 #ifdef HAS_H46023
+	if (alerting->GetUUIE()->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_genericData)) {
+		if (FixH46024Multiplexing(alerting->GetUUIE()->m_h323_uu_pdu.e_genericData, alertingBody.m_featureSet)) {
+			alertingBody.IncludeOptionalField(H225_Alerting_UUIE::e_featureSet);
+			alerting->GetUUIE()->m_h323_uu_pdu.RemoveOptionalField(H225_H323_UU_PDU::e_genericData);
+		}
+	}
 	bool OZH46024 = (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
 					alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet) &&
 					HasH46024Descriptor(alertingBody.m_featureSet.m_supportedFeatures));

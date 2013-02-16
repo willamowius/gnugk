@@ -160,6 +160,16 @@ void RoutingRequest::RemoveAllRoutes()
 	m_routes.clear();
 }
 
+bool RoutingRequest::GetGatewayDestination(H225_TransportAddress & gw ) const 
+{
+	PIPSocket::Address addr;
+	if (!GetIPFromTransportAddr(m_gwDestination, addr)||!addr.IsValid())
+			return false;
+	
+	gw = m_gwDestination;
+	return true;
+}
+
 // class AdmissionRequest
 template<> H225_ArrayOf_AliasAddress *AdmissionRequest::GetAliases()
 {
@@ -771,7 +781,13 @@ bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 		WORD port = (WORD)parts[1].AsUnsigned();
 		PIPSocket::Address addr;
 		if (DNSLookup(domain, addr) && addr.IsValid()) {
-			H225_TransportAddress dest = SocketToH225TransportAddr(addr, port);
+			H225_TransportAddress dest;
+			if (!request.GetGatewayDestination(dest)) {
+				dest = SocketToH225TransportAddr(addr, port);
+				H323SetAliasAddress(alias.Left(at), aliases[i]);
+				PTRACE(4, "ROUTING\tDNS policy resolves to " << alias.Left(at) << " @ " << AsDotString(dest));
+			}
+
 			if (Toolkit::Instance()->IsGKHome(addr)) {
 				// check if the domain is my IP, if so route to local endpoint if available
 				H225_ArrayOf_AliasAddress find_aliases;
@@ -784,13 +800,10 @@ bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 					continue;	// can't route this alias locally, try next alias
 				}
 			}
+			request.SetFlag(RoutingRequest::e_aliasesChanged);
 			Route route(m_name, dest);
 			route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
 			request.AddRoute(route);
-			// remove the domain name part (should not be necessary with latest GnuGk as destination, but keep for older ones)
-			H323SetAliasAddress(alias.Left(at), aliases[i]);
-			request.SetFlag(RoutingRequest::e_aliasesChanged);
-			PTRACE(4, "ROUTING\tDNS policy resolves to " << alias.Left(at) << " @ " << AsDotString(dest));
 			return true;
 		}
 	}
@@ -1551,29 +1564,40 @@ bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddre
 
 		PBoolean changed = false;
 		for (PINDEX j = 0; j < aliases.GetSize(); ++j) {
-			FindByAliasesInternal(enum_schema, request, aliases, changed);
+			if (!FindByAliasesInternal(enum_schema, request, aliases, changed))
+				continue;
+
 			if (!gwDestination && changed) {   // If we have a gateway destination and changed
+				PStringArray parts = SplitIPAndPort(gwDestination, GK_DEF_ENDPOINT_SIGNAL_PORT);
+				PString dom = parts[0];
+				PIPSocket::Address addr;
+				if (PIPSocket::GetHostAddress(dom, addr)) 
+					dom = addr.AsString();
+				WORD port = (WORD)parts[1].AsUnsigned();
+				H225_TransportAddress dest;
+				if (!GetTransportAddress(dom, port, dest)) {
+					PTRACE(4, "ROUTING\tPolicy " << m_name << " " << enum_schema << " Could not resolve " << gwDestination);
+					return false;
+				}
+
 				PString alias(AsString(aliases[j], FALSE));
 				int at = alias.Find('@');
 				PString domain = alias.Mid(at+1);
 				if (IsIPAddress(domain) 
 					|| (domain.FindRegEx(PRegularExpression(":[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX)) {
-						// add a route and stop going any further
-						PStringArray parts = SplitIPAndPort(domain, GK_DEF_ENDPOINT_SIGNAL_PORT);
-						domain = parts[0];
-						WORD port = (WORD)parts[1].AsUnsigned();
-						H225_TransportAddress dest;
-						if (GetTransportAddress(domain, port, dest)) {
-						PTRACE(4, "ROUTING\tPolicy " << m_name << " " << enum_schema << " set destination for " << alias << " to " << dest);
-							Route * route = new Route(m_name, dest);
-							route->m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
-							request.AddRoute(*route);
-							delete route;
-							return true;
-						}
+					// add a route and stop going any further
+					PTRACE(4, "ROUTING\tPolicy " << m_name << " " << enum_schema << " set destination for " << alias << " to " << dest);
+					Route * route = new Route(m_name, dest);
+					route->m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
+					request.AddRoute(*route);
+					delete route;
+					return true;
 				}
-				changed = false;
+				PTRACE(4, "ROUTING\tPolicy " << m_name << " " << enum_schema << " store destination for " << alias << " to " << dest);
+				request.SetGatewayDestination(dest);
 			}
+			changed = false;
+			return false;
 		}
 	}
 #endif
@@ -1612,6 +1636,7 @@ bool ENUMPolicy::FindByAliasesInternal(const PString & schema, RoutingRequest & 
 				request.SetFlag(RoutingRequest::e_aliasesChanged);
 				H323SetAliasAddress(str, aliases[i]);
 				changed = true;
+				return true;
 			}
 		}
 	}
