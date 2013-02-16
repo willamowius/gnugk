@@ -3221,7 +3221,7 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 	bool only10Dand11D = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "OnlyValid10Dand11D", "0"));
 	bool matchSource = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "MatchSourceTypeToDestination", "0"));
 
-	int destType = H225_AliasAddress::e_h323_ID;
+	unsigned destType = H225_AliasAddress::e_h323_ID;
 	if (matchSource) {
 		if (setup.GetQ931().HasIE(Q931::CalledPartyNumberIE)) {
 				destType = H225_AliasAddress::e_dialedDigits;
