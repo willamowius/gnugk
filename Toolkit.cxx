@@ -3219,10 +3219,25 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 
 	bool onlyE164 = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "OnlyE164", "0"));
 	bool only10Dand11D = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "OnlyValid10Dand11D", "0"));
+	bool matchSource = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "MatchSourceTypeToDestination", "0"));
+
+	int destType = H225_AliasAddress::e_h323_ID;
+	if (matchSource) {
+		if (setup.GetQ931().HasIE(Q931::CalledPartyNumberIE)) {
+				destType = H225_AliasAddress::e_dialedDigits;
+		} else if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress) &&
+			setupBody.m_destinationAddress.GetSize() > 0 &&
+			setupBody.m_destinationAddress[0].GetTag() == H225_AliasAddress::e_url_ID) {
+				destType = H225_AliasAddress::e_url_ID;
+		} else 
+			return;
+	}
 
 	PINDEX i = 0;
 	while(i < setupBody.m_sourceAddress.GetSize()) {
 		bool remove = false;
+		if (matchSource && setupBody.m_sourceAddress[i].GetTag() != destType)
+			remove = true;
 		if (onlyE164 && setupBody.m_sourceAddress[i].GetTag() != H225_AliasAddress::e_dialedDigits)
 			remove = true;
 		if (only10Dand11D && !Is10Dor11Dnumber(setupBody.m_sourceAddress[i]))

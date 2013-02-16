@@ -1067,3 +1067,12 @@ They may be of any alias type (unless OnlyE164 is set), but no formatting charac
 11-digit numbers must start with 1 and area codes must start with 2..9.
 </itemize>
 
+<item><tt/MatchSourceTypeToDestination=1/<newline>
+Default: <tt/0/<newline>
+<p>
+With this switch you can filter out all elements that do not match the destination Type (E.164 or URI)
+If you call an E.164 number (Q931 IE: Called-Party-Number present) everything other then dialdigit source will be filtered.
+If you call a URI (destination AliasAddress type) everything other then URI source will be filtered.
+This switch has no effect on any other destination type. For example H323ID or TransportID AliasTypes.
+</itemize>
+
