@@ -2067,8 +2067,14 @@ bool CatchAllPolicy::CatchAllRoute(RoutingRequest & request) const
 	H323SetAliasAddress(m_catchAllAlias, find_aliases[0]);
 	endptr ep = RegistrationTable::Instance()->FindByAliases(find_aliases);
 	if (ep) {
-		Route route("catchall", ep, 999);
-		request.AddRoute(route);
+		if (ep->GetEndpointType().HasOptionalField(H225_EndpointType::e_gateway)) {
+			Route route(m_name,ep->GetCallSignalAddress(), 999);
+			route.m_destEndpoint = ep;
+			request.AddRoute(route);
+		} else {
+			Route route(m_name, ep, 999);
+			request.AddRoute(route);
+		}
 		return (m_next == NULL);
 	}
 	PTRACE(1, m_name << "\tCatch-all endpoint " << m_catchAllAlias << " not found!");
