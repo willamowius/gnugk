@@ -3601,9 +3601,9 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 	bool fromTraversalClient = false;
 
 	if (request.m_destinationInfo.GetSize() > 0) {
-		// Do a sanity check and make sure this is not a VCS ping
-		if (request.m_sourceInfo.GetSize() > 0 &&
-			request.m_destinationInfo[0] == request.m_sourceInfo[0]) {
+		// Do a check and make sure this is not a ping
+		PString pingAlias = GkConfig()->GetString(LRQFeaturesSection, "PingAlias", "");
+		if (!pingAlias && pingAlias == AsString(request.m_destinationInfo[0],false)) {
 				BuildReject(H225_LocationRejectReason::e_undefinedReason);
 				PTRACE(5,"LRQ PING caught from " << AsDotString(request.m_replyAddress));
 				return true;

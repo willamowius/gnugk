@@ -335,6 +335,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RasSrv::LRQFeatures", "ForwardLRQ" },
 	{ "RasSrv::LRQFeatures", "ForwardResponse" },
 	{ "RasSrv::LRQFeatures", "NeighborTimeout" },
+	{ "RasSrv::LRQFeatures", "PingAlias" },
 	{ "RasSrv::LRQFeatures", "SendRetries" },
 	{ "RasSrv::LRQFeatures", "SendRIP" },
 	{ "RasSrv::RRQFeatures", "AcceptEndpointIdentifier" },

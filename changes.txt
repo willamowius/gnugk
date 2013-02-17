@@ -1,5 +1,6 @@
 Changes from 3.2 to 3.3
 =======================
+- new [LRQFeatures] PingAlias for isolating LRQ pings to reduce gatekeeper resources process the message.
 - BUGFIX(Routing.cxx) Add missing Gateway support to CatchAll Routing Policy
 - new [RewriteSourceAddress] MatchSourceTypeToDestination for filtering source addresses to match destination address type.
 - BUGFIX(Routing.cxx) return route if ENUM routing policy if destination is an A record with correct TransportAddress.
