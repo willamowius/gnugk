@@ -1506,7 +1506,7 @@ void Toolkit::ReloadSQLConfig()
 					SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Neighbor query failed");
 				} else {
 					m_Config->SetString("RasSrv::Neighbors", params[0], params[1]);
-					PString neighborSection = "[Neighbor::" + params[0] + "]"; 
+					PString neighborSection = "Neighbor::" + params[0]; 
 					h46018traverse =0;
 					if (queryResult->GetNumFields() > h460id ) {
 						h46018traverse = params[h460id].AsInteger();
