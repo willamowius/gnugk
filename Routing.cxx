@@ -264,8 +264,8 @@ void Policy::SetInstance(const PString & instance)
 {
 	PString policyName = PString(m_name); 
 	if (!instance.IsEmpty()) {
-		policyName = PString(m_name) + "::" + instance;
-		m_name = policyName;
+		policyName = policyName + "::" + instance;
+		m_name = *(PString *)policyName.Clone();
 	}
 	m_iniSection = "Routing::" + policyName;
 
