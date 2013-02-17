@@ -1586,7 +1586,7 @@ bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddre
 				if (IsIPAddress(domain) 
 					|| (domain.FindRegEx(PRegularExpression(":[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX)) {
 					// add a route and stop going any further
-					PTRACE(4, "ROUTING\tPolicy " << m_name << " " << enum_schema << " set destination for " << alias << " to " << dest);
+					PTRACE(4, "ROUTING\tPolicy " << m_name << " " << enum_schema << " set destination for " << alias << " to " << AsString(dest));
 					Route * route = new Route(m_name, dest);
 					route->m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
 					request.AddRoute(*route);
