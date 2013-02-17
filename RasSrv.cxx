@@ -3601,6 +3601,14 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 	bool fromTraversalClient = false;
 
 	if (request.m_destinationInfo.GetSize() > 0) {
+		// Do a sanity check and make sure this is not a VCS ping
+		if (request.m_sourceInfo.GetSize() > 0 &&
+			request.m_destinationInfo[0] == request.m_sourceInfo[0]) {
+				BuildReject(H225_LocationRejectReason::e_undefinedReason);
+				PTRACE(5,"LRQ PING caught from " << request.m_replyAddress);
+				return true;
+		} 
+
 		// do GWRewriteE164 for neighbor before processing
 		PString neighbor_id = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(request.m_replyAddress);
 		PString neighbor_gkid = RasSrv->GetNeighbors()->GetNeighborGkIdBySigAdr(request.m_replyAddress);
