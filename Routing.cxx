@@ -1593,7 +1593,7 @@ bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddre
 					delete route;
 					return true;
 				}
-				PTRACE(4, "ROUTING\tPolicy " << m_name << " " << enum_schema << " store destination for " << alias << " to " << dest);
+				PTRACE(4, "ROUTING\tPolicy " << m_name << " " << enum_schema << " store destination for " << alias << " to " << AsString(dest));
 				request.SetGatewayDestination(dest);
 			}
 			changed = false;
