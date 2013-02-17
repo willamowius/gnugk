@@ -3605,7 +3605,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 		if (request.m_sourceInfo.GetSize() > 0 &&
 			request.m_destinationInfo[0] == request.m_sourceInfo[0]) {
 				BuildReject(H225_LocationRejectReason::e_undefinedReason);
-				PTRACE(5,"LRQ PING caught from " << request.m_replyAddress);
+				PTRACE(5,"LRQ PING caught from " << AsDotString(request.m_replyAddress));
 				return true;
 		} 
 
