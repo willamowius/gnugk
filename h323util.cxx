@@ -755,11 +755,12 @@ PString RewriteWildcard(
 	int b2 = o.Find('}');
 	if (b2 == P_MAX_INDEX || b1 > b2) return s;  /// Logic error ignore rewrite
 
+	PString l = o.Left(b1);
+	PString r = o.Mid(b2+1);
 	PString exp = o.Mid(b1+1,b2-b1-1);
-
-	PString r;
+	PString rewrite;
 	if (exp *= "\\1")
-		r = s;
+		rewrite = s;
 	else {
 	   int start = -1;
        if (exp.Find('^') != P_MAX_INDEX)  start = 0;
@@ -775,12 +776,8 @@ PString RewriteWildcard(
 	   int i = exp.Mid(c1+1,c2-c1-1).AsInteger();
 	   if (i == 0) return s;   /// Logic error ignore rewrite
 
-       if (b1 > 0) r = s.Left(i);
-	   else r = s.Mid(s.GetLength()-i);
+       if (b1 > 0) rewrite = s.Left(i);
+	   else rewrite = s.Mid(s.GetLength()-i);
 	}
-
-    if (b1 > 0) 
-		return o.Left(b1-1) + r;
-	else
-		return r + o.Mid(b2+1);
+	return l + rewrite + r;
 };
