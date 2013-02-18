@@ -129,7 +129,7 @@ bool RoutingRequest::AddRoute(const Route & route)
 	WORD port;
 	if (!(route.m_destAddr.IsValid() && GetIPAndPortFromTransportAddr(route.m_destAddr, addr, port) 
 			&& addr.IsValid() && port != 0)) {
-		PTRACE(1, "ROUTING\tInvalid destination address: " << route.m_destAddr);
+		PTRACE(1, "ROUTING\tInvalid destination address: " << AsString(route.m_destAddr));
 		return false;
 	}
 	list<Route>::const_iterator i = m_failedRoutes.begin();
@@ -1610,7 +1610,10 @@ bool ENUMPolicy::FindByAliasesInternal(const PString & schema, RoutingRequest & 
 #if P_DNS
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
 		PString alias(AsString(aliases[i], FALSE));
-
+		if (alias.Left(2) *= "00") { // Check if not GDS number  - SH
+			PTRACE(4, "\t" << m_name << " " << schema << " Ignored " << alias << " Not ENUM format.");
+			continue;
+		}
 		// make sure the number has only digits
 		alias.Replace("+","", true);
 		alias.Replace("*","", true);
