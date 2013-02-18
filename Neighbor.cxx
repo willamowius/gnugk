@@ -1914,10 +1914,10 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly,
 					PIPSocket::Address addr;
 					if (PIPSocket::GetHostAddress(parts[0], addr)) 
 						parts[0] = addr.AsString();
-				} else {
+				} else
 					parts = SplitIPAndPort(dom, GK_DEF_ENDPOINT_SIGNAL_PORT);
-					dom = parts[0];
-				}
+
+				dom = parts[0];
 				WORD port = (WORD)parts[1].AsUnsigned();
 				PTRACE(4, "ROUTING\tSRV CS converted remote party " << alias << " to " << cs[j]);
 				if (GetTransportAddress(dom, port, dest)) {
