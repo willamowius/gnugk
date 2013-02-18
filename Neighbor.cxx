@@ -1967,6 +1967,22 @@ bool SRVPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 	bool localonly = dynamic_cast<LocationRequest *>(&request) && !m_resolveNonLocalLRQs;
 
 	Route * route = NULL;
+
+	// Always do the h323ls query first (if present)
+	for (PINDEX i = 0; i < m_ls_schema.GetSize(); ++i) {
+		PString ls_schema = m_ls_schema.GetKeyAt(i);
+		route = LSLookup(request, aliases, localonly, ls_schema);
+		if (route) {
+			if (route->m_flags & Route::e_Reject) {
+				request.SetFlag(RoutingRequest::e_Reject);
+			} else {
+				request.AddRoute(*route);
+			}
+			delete route;
+			return true;
+		}
+	}
+
 	for (PINDEX i = 0; i < m_cs_schema.GetSize(); ++i) {
 		PString cs_schema = m_cs_schema.GetKeyAt(i);
 		PStringArray dest = m_cs_schema.GetDataAt(i).Tokenise(",;");
@@ -1990,20 +2006,6 @@ bool SRVPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 		}
 	}
 
-	if (m_ls_schema.GetSize() == 0)
-		return false;
-
-	PString ls_schema = m_cs_schema.GetKeyAt(0);
-	route = LSLookup(request, aliases, localonly, ls_schema);
-	if (route) {
-		if (route->m_flags & Route::e_Reject) {
-			request.SetFlag(RoutingRequest::e_Reject);
-		} else {
-			request.AddRoute(*route);
-		}
-		delete route;
-		return true;
-	}
 	return false;
 }
 
