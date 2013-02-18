@@ -1910,12 +1910,12 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly,
 				// If we have a gateway destination replace destination with our destination.
 				PStringArray parts;
 				if (!gateway) {
-					PStringArray parts = SplitIPAndPort(gateway, GK_DEF_ENDPOINT_SIGNAL_PORT);
+					parts = SplitIPAndPort(gateway, GK_DEF_ENDPOINT_SIGNAL_PORT);
 					PIPSocket::Address addr;
 					if (PIPSocket::GetHostAddress(parts[0], addr)) 
 						parts[0] = addr.AsString();
 				} else {
-					PStringArray parts = SplitIPAndPort(dom, GK_DEF_ENDPOINT_SIGNAL_PORT);
+					parts = SplitIPAndPort(dom, GK_DEF_ENDPOINT_SIGNAL_PORT);
 					dom = parts[0];
 				}
 				WORD port = (WORD)parts[1].AsUnsigned();
