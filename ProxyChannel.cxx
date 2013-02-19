@@ -2337,7 +2337,8 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 
 	// disconnect from forwarder
 	SendReleaseComplete(H225_ReleaseCompleteReason::e_facilityCallDeflection);
-	Close();
+	if (!m_maintainConnection)
+		Close();
 
 	CallSignalSocket *remoteSocket = static_cast<CallSignalSocket *>(remote);
 	if (!remoteSocket) {
@@ -2399,7 +2400,7 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 		setupUUIE.m_destCallSignalAddress = oldDestSignalAddr;
 	}
 
-	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ShowForwarderNumber", "0")))
+	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ShowForwarderNumber", "0"))) {
 		if (endptr fwd = m_call->GetForwarder()) {
 			const H225_ArrayOf_AliasAddress & a = fwd->GetAliases();
 			for (PINDEX n = 0; n < a.GetSize(); ++n)
@@ -2412,6 +2413,7 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 					break;
 				}
 		}
+	}
 
 	// detach from the call
 	m_call->SetSocket(NULL, NULL);
@@ -2446,7 +2448,11 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 	}
 
 	// let the socket be deletable
-	SetDeletable();
+	if (m_maintainConnection) {
+		CleanupCall();
+	} else {
+		SetDeletable();
+	}
 	delete msg;
 	msg = NULL;
 }
@@ -5330,7 +5336,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 			break;
 
 		// to avoid complicated handling of H.245 channel on forwarding,
-		// we only do forward if forwarder is the called party and
+		// we only do forward if forwarder is the called party (and thus doesn't have a saved Setup) and
 		// H.245 channel is not established yet
 		if (m_setupPdu || (m_h245socket && m_h245socket->IsConnected()))
 			break;
