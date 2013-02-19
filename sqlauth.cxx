@@ -829,6 +829,11 @@ int SQLAuth::Check(
 	params["gkip"] = addr.AsString();
 
 	if (lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo)) {
+		params["u"] = GetBestAliasAddressString(lrq.m_sourceInfo, false,
+			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
+			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
+				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
+			);
 		params["Calling-Station-Id"] = GetBestAliasAddressString(lrq.m_sourceInfo,
 			false, AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
 				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
