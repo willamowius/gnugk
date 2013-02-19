@@ -1123,6 +1123,8 @@ void CallSignalSocket::CleanupCall()
 
 	DetachRemote();
 
+	if (m_setupPdu)
+		delete m_setupPdu;
 	m_setupPdu = NULL;
 #ifdef HAS_H46018
 	m_callFromTraversalServer = false;
