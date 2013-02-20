@@ -371,7 +371,7 @@ you configure NTP.
 <newline>
 <tt/[Neighbor::VCSServer]/<newline>
 <tt/;from unknown IP/<newline>
-<tt/Host=211.211.10.10/<newline>
+<tt/Host=211.211.10.10:9004/<newline>
 <tt/SendPrefixes=*/<newline>
 <tt/AcceptPrefixes=*/<newline>
 <tt/H46018Client=1/<newline>
