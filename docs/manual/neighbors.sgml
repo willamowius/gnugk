@@ -19,6 +19,10 @@ See section <ref id="gkauth" name="[Gatekeeper::Auth]"> for details.
 
 Whether a call is accepted from a neighbor also depends on the AcceptNeighborsCalls switch in the <ref id="routed" name="[RoutedMode]"> section.
 
+<descrip>
+<tt>GKID="GnuGk" | "CiscoGk" | "ClarentGk" | "GlonetGk"</tt>
+</descrip>
+
 The gatekeeper types have the following characteristics:
 <itemize>
 <item><tt/Generic/<newline>
@@ -37,10 +41,9 @@ Clarent gatekeeper can't decode nonStandardData in LRQs, so GnuGk will filter it
 Limited support for LRQ forwarding.
 </itemize>
 
-<descrip>
-<tt>GKID="GnuGk" | "CiscoGk" | "ClarentGk" | "GlonetGk"</tt>
 <p>
-<tag/Example:/
+<descrip>
+<tag/Example:/<newline>
 <tt/[RasSrv::Neighbors]/<newline>
 <tt/GK1=CiscoGk/<newline>
 <tt/GK2=GnuGk/<newline>
