@@ -643,7 +643,7 @@ with each row consisting of six columns:
 <itemize>
 <item><tt/column at index  0/ - neighbor name (identifier)
 <item><tt/column at index  1/ - neighbor type (GnuGk, Cisco, Generic)
-<item><tt/column at index  2/ - neighbor Host (IP [and port])
+<item><tt/column at index  2/ - neighbor Host (IP &lsqb;and port&rsqb;)
 <item><tt/column at index  3/ - optional SendPrefixes (comma separated)
 <item><tt/column at index  4/ - optional AcceptPrefixes (comma separated)
 <item><tt/column at index  5/ - optional ForwardHopCount
