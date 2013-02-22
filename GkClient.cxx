@@ -2076,6 +2076,17 @@ void GkClient::BuildLightWeightRRQ(H225_RegistrationRequest & rrq)
 	rrq.IncludeOptionalField(H225_RegistrationRequest::e_gatekeeperIdentifier);
 	rrq.m_gatekeeperIdentifier = m_gatekeeperId;
 	rrq.m_keepAlive = TRUE;
+	H225_VendorIdentifier & vendor = rrq.m_endpointVendor;
+	vendor.m_vendor.m_t35CountryCode = Toolkit::t35cPoland;
+	vendor.m_vendor.m_manufacturerCode = Toolkit::t35mGnuGk;
+	vendor.m_vendor.m_t35Extension = 0;
+	PString vendorId = GkConfig()->GetString(EndpointSection, "Vendor", "");
+	if (vendorId.Find(',') != P_MAX_INDEX) {
+		PStringArray ids = vendorId.Tokenise(",", FALSE);
+		vendor.m_vendor.m_t35CountryCode = ids[0].AsUnsigned();
+		vendor.m_vendor.m_manufacturerCode = ids[1].AsUnsigned();
+		vendor.m_vendor.m_t35Extension = ids[2].AsUnsigned();
+	}
 }
 
 bool GkClient::WaitForACF(H225_AdmissionRequest &arq, RasRequester & request, Routing::RoutingRequest *robj)
