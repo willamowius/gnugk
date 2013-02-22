@@ -228,7 +228,6 @@ Neighbor::~Neighbor()
 bool Neighbor::SendLRQ(H225_RasMessage & lrq_ras)
 {
 	if (!m_sendPassword.IsEmpty()) {
-		// TODO: jetzt doppelt für eigen generierte ?
 		H225_LocationRequest & lrq = lrq_ras;
 		lrq.IncludeOptionalField(H225_LocationRequest::e_cryptoTokens);
 		lrq.m_cryptoTokens.SetSize(1);
