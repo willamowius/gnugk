@@ -227,6 +227,13 @@ Neighbor::~Neighbor()
 
 bool Neighbor::SendLRQ(H225_RasMessage & lrq_ras)
 {
+	if (!m_sendPassword.IsEmpty()) {
+		// TODO: jetzt doppelt für eigen generierte ?
+		H225_LocationRequest & lrq = lrq_ras;
+		lrq.IncludeOptionalField(H225_LocationRequest::e_cryptoTokens);
+		lrq.m_cryptoTokens.SetSize(1);
+		SetCryptoGkTokens(lrq.m_cryptoTokens, m_sendAuthUser, m_sendPassword);
+	}
 	return m_rasSrv->SendRas(lrq_ras, GetIP(), m_port);
 }
 
@@ -280,12 +287,6 @@ H225_LocationRequest & Neighbor::BuildLRQ(H225_RasMessage & lrq_ras, WORD seqnum
 	// TODO: is this right ?
 	if (m_externalGK) {
 		m_rasSrv->GetGkClient()->SetNBPassword(lrq, Toolkit::GKName());
-	}
-
-	if (!m_sendPassword.IsEmpty()) {
-		lrq.IncludeOptionalField(H225_LocationRequest::e_cryptoTokens);
-		lrq.m_cryptoTokens.SetSize(1);
-		SetCryptoGkTokens(lrq.m_cryptoTokens, m_sendAuthUser, m_sendPassword);
 	}
 
 	if (m_forwardHopCount >= 1) { // what if set hopCount = 1?
@@ -1540,9 +1541,9 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 
 bool NeighborPolicy::OnRequest(LocationRequest & lrq_obj)
 {
-	RasMsg *ras = lrq_obj.GetWrapper();
+	RasMsg * ras = lrq_obj.GetWrapper();
 	List::iterator iter = find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsAcceptable), ras));
-	Neighbor *requester = (iter != m_neighbors.end()) ? *iter : NULL;
+	Neighbor * requester = (iter != m_neighbors.end()) ? *iter : NULL;
 	int hopCount = 0;
 	if (requester) {
 		if (requester->ForwardLRQ() < 0) {
