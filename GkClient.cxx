@@ -2034,9 +2034,11 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 	PString vendorId = GkConfig()->GetString(EndpointSection, "Vendor", "");
 	if (vendorId.Find(',') != P_MAX_INDEX) {
 		PStringArray ids = vendorId.Tokenise(",", FALSE);
-		vendor.m_vendor.m_t35CountryCode = ids[0].AsUnsigned();
-		vendor.m_vendor.m_manufacturerCode = ids[1].AsUnsigned();
-		vendor.m_vendor.m_t35Extension = ids[2].AsUnsigned();
+		if (ids.GetSize() == 3) {
+			vendor.m_vendor.m_t35CountryCode = ids[0].AsUnsigned();
+			vendor.m_vendor.m_manufacturerCode = ids[1].AsUnsigned();
+			vendor.m_vendor.m_t35Extension = ids[2].AsUnsigned();
+		}
 	}
 	vendor.IncludeOptionalField(H225_VendorIdentifier::e_productId);
 	vendor.m_productId = PString(PString::Printf, "GNU Gatekeeper on %s %s %s, %s %s", (const unsigned char*)(PProcess::GetOSName()), (const unsigned char*)(PProcess::GetOSHardware()), (const unsigned char*)(PProcess::GetOSVersion()) ,__DATE__, __TIME__);
@@ -2083,9 +2085,11 @@ void GkClient::BuildLightWeightRRQ(H225_RegistrationRequest & rrq)
 	PString vendorId = GkConfig()->GetString(EndpointSection, "Vendor", "");
 	if (vendorId.Find(',') != P_MAX_INDEX) {
 		PStringArray ids = vendorId.Tokenise(",", FALSE);
-		vendor.m_vendor.m_t35CountryCode = ids[0].AsUnsigned();
-		vendor.m_vendor.m_manufacturerCode = ids[1].AsUnsigned();
-		vendor.m_vendor.m_t35Extension = ids[2].AsUnsigned();
+		if (ids.GetSize() == 3) {
+			vendor.m_vendor.m_t35CountryCode = ids[0].AsUnsigned();
+			vendor.m_vendor.m_manufacturerCode = ids[1].AsUnsigned();
+			vendor.m_vendor.m_t35Extension = ids[2].AsUnsigned();
+		}
 	}
 }
 
