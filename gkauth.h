@@ -75,6 +75,9 @@ struct RRQAuthData
 	PString m_amountString;
 	/// H225_CallCreditServiceControl_billingMode or -1, if not defined
 	int m_billingMode;
+	/// Authenticated Aliases
+	PStringArray m_authAliases;
+
 };
 
 /// Data read/written during ARQ processing by all configured 
@@ -651,7 +654,10 @@ protected:
 		/// RAS request to be authenticated
 		const RasPDU<RAS> & request,
 		/// list of aliases for the endpoint sending the request
-		const H225_ArrayOf_AliasAddress* aliases = NULL)
+		const H225_ArrayOf_AliasAddress* aliases = NULL,
+		/// Registration Auth data
+		RRQAuthData * authData = NULL
+		)
 	{
 		const RAS & req = request;
 		bool finalResult = false;
@@ -687,6 +693,8 @@ protected:
 				result = authenticator->ValidateClearToken(req.m_tokens[t]);
 				if (result == H235Authenticator::e_OK) {
 					PTRACE(4, "GKAUTH\tAuthenticator " << authenticator->GetName() << " succeeded");
+					if (authData)
+						authData->m_authAliases.AppendString(username);
 					return e_ok;
 				}
 			}
@@ -710,6 +718,8 @@ protected:
 				result = authenticator->ValidateCryptoToken(req.m_cryptoTokens[t], request->m_rasPDU);
 				if (result == H235Authenticator::e_OK) {
 					PTRACE(4, "GKAUTH\tAuthenticator " << authenticator->GetName() << " succeeded");
+					if (authData)
+						authData->m_authAliases.AppendString(username);
 					return e_ok;
 				}
 			}

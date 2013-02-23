@@ -187,6 +187,12 @@ If AssignedAliases::SQL has been configured, apply assignments to gateway regist
 This switch is designed when set to 0 to use additiveRegistrations with gateways so that the assignedAliases
 are not all assigned upon registration but only when the additiveRegistration is made. This ensures only the currently 
 registered endpoints appear in the endpoint table. 
+
+<item><tt/AuthenticatedAliasesOnly=1/<newline>
+Default: <tt/0/<newline>
+<p>
+This switch removes during registration any TerminalAliases that have not been Authenticated.
+Supported Authentication modules are SQLAuth, SimplePasswordAuth and SQLPasswordAuth.
 </itemize>
 
 

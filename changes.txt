@@ -1,9 +1,10 @@
 Changes from 3.2 to 3.3
 =======================
-- new [LRQFeatures] PingAlias for isolating LRQ pings to reduce gatekeeper resources process the message.
+- new {RasSrv::RRQFeatures} AuthenticatedAliasesOnly to strip out any aliases that are not authenticated.
+- new [LRQFeatures] PingAlias for isolating LRQ pings to reduce gatekeeper resources processing the message.
 - BUGFIX(Routing.cxx) Add missing Gateway support to CatchAll Routing Policy
 - new [RewriteSourceAddress] MatchSourceTypeToDestination for filtering source addresses to match destination address type.
-- BUGFIX(Routing.cxx) return route if ENUM routing policy if destination is an A record with correct TransportAddress.
+- BUGFIX(Routing.cxx) return route in ENUM routing policy if destination is an A record with correct TransportAddress.
 - BUGFIX(Toolkit.cxx) ignore routes with source IPs we don't listen to
 - new [SQLConfig] NeighborsQuery2 for loading neighbors from database in new style format.
 - BUGFIX(RasSrv.cxx) fix mem leak in H.460.17

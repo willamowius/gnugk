@@ -343,6 +343,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RasSrv::RRQFeatures", "AcceptMCUPrefixes" },
 	{ "RasSrv::RRQFeatures", "AccHTTPLink" },
 	{ "RasSrv::RRQFeatures", "AliasTypeFilter" },
+	{ "RasSrv::RRQFeatures", "AuthenticatedAliasesOnly" },
 	{ "RasSrv::RRQFeatures", "EnableAdditiveRegistration" },
 	{ "RasSrv::RRQFeatures", "GatewayAssignAliases" },
 	{ "RasSrv::RRQFeatures", "IRQPollCount" },

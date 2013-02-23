@@ -593,6 +593,8 @@ int SQLAuth::Check(
 		return e_fail;
 	}
 
+	authData.m_authAliases.AppendString(params["u"]);
+
 	GkSQLResult::ResultRow::const_iterator iter = FindField(result, "billingmode");
 	if (iter != result.end()) {
 		const PString &s = iter->first;

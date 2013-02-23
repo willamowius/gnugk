@@ -1174,13 +1174,14 @@ SimplePasswordAuth::~SimplePasswordAuth()
 
 int SimplePasswordAuth::Check(
 	RasPDU<H225_RegistrationRequest> & request, 
-	RRQAuthData& /*authData*/
+	RRQAuthData& authData
 	)
 {
 	H225_RegistrationRequest& rrq = request;
 	return doCheck(request, 
 		rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) 
-			? &rrq.m_terminalAlias : NULL
+			? &rrq.m_terminalAlias : NULL,
+			&authData
 		);
 }
 
