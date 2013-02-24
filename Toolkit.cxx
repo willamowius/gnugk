@@ -3220,7 +3220,8 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 	bool onlyE164 = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "OnlyE164", "0"));
 	bool only10Dand11D = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "OnlyValid10Dand11D", "0"));
 	bool matchSource = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "MatchSourceTypeToDestination", "0"));
-	unsigned aliasForceType = m_Config->GetString("RewriteSourceAddress", "ForceAliasType", "0").AsInteger();
+	int aliasForceType = m_Config->GetString("RewriteSourceAddress", "ForceAliasType", "-1").AsInteger();
+	if (aliasForceType > 1) aliasForceType = -1;
 
 	unsigned destType = H225_AliasAddress::e_h323_ID;
 	if (matchSource) {
@@ -3233,14 +3234,19 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 		} else 
 			return;
 
-		if (aliasForceType && 
+		if (aliasForceType > -1 && 
 			setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress) &&
 			setupBody.m_destinationAddress.GetSize() > 0 &&
-			setupBody.m_destinationAddress[0].GetTag() != aliasForceType-1) {
+			setupBody.m_destinationAddress[0].GetTag() != aliasForceType) {
 				H225_AliasAddress alias;
-				alias.SetTag(aliasForceType-1);
-				PASN_IA5String & a = alias; 
-				a = ::AsString(setupBody.m_destinationAddress[0],false);
+				alias.SetTag(aliasForceType);
+				if (aliasForceType == H225_AliasAddress::e_dialedDigits) {
+					PASN_IA5String & a = alias;
+					a = ::AsString(setupBody.m_destinationAddress[0],false);
+				} else if (aliasForceType == H225_AliasAddress::e_h323_ID) {
+					PASN_BMPString & a = alias; 
+					a.SetValue(::AsString(setupBody.m_destinationAddress[0],false));
+				} 
 				setupBody.m_destinationAddress[0] = alias;
 		}
 	}
@@ -3258,12 +3264,17 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 		if (remove) {
 			setupBody.m_sourceAddress.RemoveAt(i);
 		} else {
-			if (matchSource && aliasForceType && 
-				setupBody.m_sourceAddress[i].GetTag() != aliasForceType-1) {
+			if (matchSource && aliasForceType > -1 &&
+				setupBody.m_sourceAddress[i].GetTag() != aliasForceType) {
 					H225_AliasAddress alias;
-					alias.SetTag(aliasForceType-1);
-					PASN_IA5String & a = alias; 
-					a = ::AsString(setupBody.m_sourceAddress[i],false);
+					alias.SetTag(aliasForceType);
+					if (aliasForceType == H225_AliasAddress::e_dialedDigits) {
+						PASN_IA5String & a = alias; 
+						a = ::AsString(setupBody.m_sourceAddress[i],false);
+					} else if (aliasForceType == H225_AliasAddress::e_h323_ID) {
+						PASN_BMPString & a = alias; 
+						a.SetValue(::AsString(setupBody.m_sourceAddress[i],false));
+					}
 					setupBody.m_sourceAddress[i] = alias;
 			}
 			++i;
