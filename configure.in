@@ -258,7 +258,7 @@ fi
 AC_SUBST(INSTALLPREFIX)
 
 dnl ########################################################################
-dnl  check for H.460.17
+dnl check for H.460.17
 dnl ########################################################################
 
 dnl MSWIN_DISPLAY    h46017,H.460.17 support
@@ -289,7 +289,7 @@ fi
 AC_SUBST(HAS_H46017)
 
 dnl ########################################################################
-dnl  Switch for H.460.18 / .19
+dnl Switch for H.460.18 / .19
 dnl ########################################################################
 
 dnl MSWIN_DISPLAY    h46018,H.460.18/.19 support (check patent license)
@@ -321,7 +321,7 @@ fi
 AC_SUBST(HAS_H46018)
 
 dnl ########################################################################
-dnl  check for H.460.23 / .24
+dnl check for H.460.23 / .24
 dnl ########################################################################
 
 dnl MSWIN_DISPLAY    h46023,H.460.23/.24 support
@@ -352,7 +352,7 @@ fi
 AC_SUBST(HAS_H46023)
 
 dnl #########################################################################
-dnl  Check for RADIUS
+dnl Check for RADIUS
 dnl ########################################################################
 
 dnl MSWIN_DISPLAY    radius,RADIUS
@@ -377,7 +377,7 @@ fi
 AC_SUBST(HAS_RADIUS)
 
 dnl #########################################################################
-dnl  Check for LARGE FDSET
+dnl Check for LARGE FDSET
 dnl ########################################################################
 AC_ARG_WITH(large-fdset,
 [  --with-large-fdset[=MAXFD]    Maximum number of sockets supported (default=1024)],
@@ -399,7 +399,7 @@ fi
 AC_SUBST(LARGE_FDSET)
 
 dnl #########################################################################
-dnl  Check for MySQL
+dnl Check for MySQL
 dnl ########################################################################
 
 dnl MSWIN_DISPLAY    mysql,MySQL
@@ -481,7 +481,7 @@ fi
 AC_SUBST(HAS_MYSQL)
 
 dnl #########################################################################
-dnl  Check for PostgreSQL
+dnl Check for PostgreSQL
 dnl ########################################################################
 
 dnl MSWIN_DISPLAY    pgsql,PostgreSQL
@@ -562,7 +562,7 @@ fi
 AC_SUBST(HAS_PGSQL)
 
 dnl #########################################################################
-dnl  Check for Firebird
+dnl Check for Firebird
 dnl ########################################################################
 
 dnl MSWIN_DISPLAY    firebird,Firebird
@@ -641,7 +641,7 @@ fi
 AC_SUBST(HAS_FIREBIRD)
 
 dnl #########################################################################
-dnl  Check for unixODBC
+dnl Check for unixODBC
 dnl ########################################################################
 
 
@@ -727,7 +727,7 @@ fi
 AC_SUBST(HAS_ODBC)
 
 dnl #########################################################################
-dnl  Check for SQLite
+dnl Check for SQLite
 dnl ########################################################################
 
 dnl MSWIN_DISPLAY    sqlite,SQLite
@@ -809,14 +809,15 @@ AC_SUBST(HAS_SQLITE)
 
 dnl ########################################################################
 dnl enable sqlauth, sqlacc if any DB present
+dnl ########################################################################
 
 if test "x$pgsql" != "xno" -o "x$mysql" != "xno" -o "x$firebird" != "xno" -o "x$unixodbc" != "xno" -o "x$sqlite" != "xno"; then
 	SOURCES="$SOURCES sqlauth.cxx sqlacct.cxx gksql.cxx"
 	HEADERS="$HEADERS sqlacct.h gksql.h"
 fi
 
-dnl #########################################################################
-dnl  Check for libssh
+dnl ########################################################################
+dnl Check for libssh
 dnl ########################################################################
 
 dnl MSWIN_DISPLAY    libssh,libSSH
@@ -922,8 +923,8 @@ else
 fi
 AC_SUBST(HAS_LIBSSH)
 
-dnl #########################################################################
-dnl  Check for Net-SNMP
+dnl ########################################################################
+dnl Check for Net-SNMP
 dnl ########################################################################
 
 dnl MSWIN_DISPLAY    netsnmp,Net-SNMP
@@ -1035,8 +1036,46 @@ else
 fi
 AC_SUBST(HAS_NETSNMP)
 
-dnl #########################################################################
-dnl  Check for LUA
+dnl ########################################################################
+dnl Set support for Windows SNMP
+dnl ########################################################################
+
+dnl MSWIN_DISPLAY    winsnmp,Windows SNMP support
+dnl MSWIN_DEFINE     winsnmp,HAS_WINSNMP
+
+dnl ########################################################################
+dnl Check for PTLib SNMP
+dnl ########################################################################
+
+dnl MSWIN_DISPLAY    ptlibsnmp,PTLib SNMP support
+dnl MSWIN_DEFINE     ptlibsnmp,HAS_PTLIBSNMP
+
+AC_ARG_ENABLE(ptlibsnmp,
+[  --enable-ptlibsnmp      enable PTLib SNMP support (default=yes)], 
+[ ptlibsnmp="${enableval}" ], [ptlibsnmp="yes"] 
+)
+
+PTLIBSNMPSUPPORT=`cat ${PTLIBDIR}/include/ptbuildopts.h | grep 'define P_SNMP'`
+if test "${PTLIBSNMPSUPPORT:-unset}" = "unset" ; then
+	if test "x${ptlibsnmp}" != "xno" ; then     
+		AC_MSG_RESULT(No PTLib SNMP support available)
+	fi
+	ptlibsnmp="no"
+fi
+
+if test "x${ptlibsnmp}" != "xno" ; then     
+   HAS_PTLIBSNMP=1
+   AC_DEFINE(HAS_PTLIBSNMP, 1)
+   STDCCFLAGS="-DHAS_PTLIBSNMP=1 $STDCCFLAGS"
+   echo "PTLib SNMP support enabled"
+else
+   echo "PTLib SNMP support disabled"
+   HAS_PTLIBSNMP=0
+fi
+AC_SUBST(HAS_PTLIBSNMP)
+
+dnl ########################################################################
+dnl Check for LUA
 dnl ########################################################################
 
 dnl MSWIN_DISPLAY    lua,LUA
@@ -1046,7 +1085,7 @@ dnl MSWIN_CHECK_DIR  lua,\Program Files\Lua\5.1
 dnl MSWIN_CHECK_DIR  lua,\Program Files (x86)\Lua\5.1
 
 AC_ARG_ENABLE(lua, 
-[  --enable-lua        enable LUA support (default=yes)], 
+[  --enable-lua            enable LUA support (default=yes)], 
 [ lua="${enableval}" ], [ lua="yes" ]
 )
 

@@ -2,7 +2,7 @@
 //
 // pwlib_compat.h PWLib compatibility header
 //
-// Copyright (c) 2006-2012, Jan Willamowius
+// Copyright (c) 2006-2013, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -229,7 +229,7 @@
 	#endif	
 #endif
 
-#if defined(P_SNMP) || defined(HAS_NETSNMP) || defined(_WIN32)
+#if defined(HAS_PTLIBSNMP) || defined(HAS_NETSNMP) || defined(HAS_WINSNMP)
 #define HAS_SNMP 1
 #endif
 
