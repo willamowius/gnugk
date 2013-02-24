@@ -18,6 +18,7 @@
 #ifdef HAS_LUA
 
 #include "Routing.h"
+#include "Toolkit.h"
 #include "gk_const.h"
 #include "snmp.h"
 
