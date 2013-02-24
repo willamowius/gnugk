@@ -3237,7 +3237,7 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 		if (aliasForceType > -1 && 
 			setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress) &&
 			setupBody.m_destinationAddress.GetSize() > 0 &&
-			setupBody.m_destinationAddress[0].GetTag() != aliasForceType) {
+			setupBody.m_destinationAddress[0].GetTag() != (unsigned)aliasForceType) {
 				H225_AliasAddress alias;
 				alias.SetTag(aliasForceType);
 				if (aliasForceType == H225_AliasAddress::e_dialedDigits) {
@@ -3265,7 +3265,7 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 			setupBody.m_sourceAddress.RemoveAt(i);
 		} else {
 			if (matchSource && aliasForceType > -1 &&
-				setupBody.m_sourceAddress[i].GetTag() != aliasForceType) {
+				setupBody.m_sourceAddress[i].GetTag() != (unsigned)aliasForceType) {
 					H225_AliasAddress alias;
 					alias.SetTag(aliasForceType);
 					if (aliasForceType == H225_AliasAddress::e_dialedDigits) {
