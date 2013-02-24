@@ -172,6 +172,7 @@ public:
 	virtual bool LoadConfig();
 
 	virtual EndpointRec *Unregisterpreempt(int type);
+	virtual EndpointRec *Reregister();
 	virtual EndpointRec *Unregister();
 	virtual EndpointRec *Expired();
 
@@ -554,6 +555,7 @@ public:
 		);
 
 	void ClearTable();
+	void UpdateTable();
 	void CheckEndpoints();
 
 	// handle remote closing of a NAT socket

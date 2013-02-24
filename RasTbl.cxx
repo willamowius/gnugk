@@ -878,6 +878,13 @@ EndpointRec *EndpointRec::Unregisterpreempt(int type)
 	return this;
 }
 
+EndpointRec *EndpointRec::Reregister()
+{
+	if (!IsPermanent())
+		SendURQ(H225_UnregRequestReason::e_reregistrationRequired, 0);
+	return this;
+}
+
 EndpointRec *EndpointRec::Unregister()
 {
 	if (!IsPermanent())
@@ -2160,6 +2167,14 @@ void RegistrationTable::ClearTable()
 	regSize = 0;
 	copy(OutOfZoneList.begin(), OutOfZoneList.end(), back_inserter(RemovedList));
 	OutOfZoneList.clear();
+}
+
+void RegistrationTable::UpdateTable()
+{
+	WriteLock lock(listLock);
+
+	ForEachInContainer(EndpointList, mem_fun(&EndpointRec::Reregister));
+	EndpointList.clear();
 }
 
 void RegistrationTable::CheckEndpoints()

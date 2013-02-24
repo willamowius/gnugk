@@ -2177,6 +2177,9 @@ void GkClient::OnRCF(RasMsg *ras)
 			Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableAdditiveRegistration", "0")))
 				m_useAdditiveRegistration = true;
 
+		if (m_useAdditiveRegistration)
+			RegistrationTable::Instance()->UpdateTable();
+
 		for_each(m_handlers, m_handlers + 4, bind1st(mem_fun(&RasServer::RegisterHandler), m_rasSrv));
 	}
 	
