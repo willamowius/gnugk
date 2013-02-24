@@ -327,7 +327,7 @@ void NetSNMPAgent::Run()
 #endif // HAS_NETSNMP
 
 
-#ifdef P_SNMP
+#ifdef HAS_PTLIBSNMP
 
 #include <ptclib/psnmp.h>
 
@@ -525,10 +525,10 @@ PBoolean PTLibSNMPAgent::MIB_LocalMatch(PSNMP_PDU & answerPDU)
 	return found;
 }
 
-#endif	// P_SNMP
+#endif	// HAS_PTLIBSNMP
 
 
-#ifdef _WIN32
+#ifdef HAS_WINSNMP
 
 #define BUFSIZE 512
 const char * const getPipename = "\\\\.\\pipe\\GnuGkGetSNMP";
@@ -662,7 +662,7 @@ void WindowsSNMPAgent::SendWindowsSNMPTrap(unsigned trapNumber, SNMPLevel severi
 	}
 }
 
-#endif // _WIN32
+#endif // HAS_WINSNMP
 
 
 PCaselessString SelectSNMPImplementation() 
@@ -676,13 +676,13 @@ PCaselessString SelectSNMPImplementation()
 		implementation = "PTLib";
 	}
 #endif
-#ifndef P_SNMP
+#ifndef HAS_PTLIBSNMP
 	if (implementation == "PTLib") {
 		PTRACE(1, "SNMP\tPTLib implementation not available, using Net-SNMP implementation");
 		implementation = "Net-SNMP";
 	}
 #endif
-#ifndef _WIN32
+#ifndef HAS_WINSNMP
 	if (implementation == "Windows") {
 		PTRACE(1, "SNMP\tWindows implementation not available, using PTLib implementation");
 		implementation = "PTLib";
@@ -699,12 +699,12 @@ void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, cons
 		SendNetSNMPTrap(trapNumber, severity, group, msg);
 	}
 #endif
-#ifdef P_SNMP
+#ifdef HAS_PTLIBSNMP
 	if (implementation == "PTLib") {
 		SendPTLibSNMPTrap(trapNumber, severity, group, msg);
 	}
 #endif
-#ifdef _WIN32
+#ifdef HAS_WINSNMP
 	if (implementation == "Windows") {
 		WindowsSNMPAgent::Instance()->SendWindowsSNMPTrap(trapNumber, severity, group, msg);
 	}
@@ -720,13 +720,13 @@ void StartSNMPAgent()
 		return;
 	}
 #endif
-#ifdef P_SNMP
+#ifdef HAS_PTLIBSNMP
 	if (implementation == "PTLib") {
 		new PTLibSNMPAgent();
 		return;
 	}
 #endif
-#ifdef _WIN32
+#ifdef HAS_WINSNMP
 	if (implementation == "Windows") {
 		CreateJob(WindowsSNMPAgent::Instance(), &WindowsSNMPAgent::Run, "SNMPAgent");
 		return;
@@ -745,13 +745,13 @@ void StopSNMPAgent()
 		return;
 	}
 #endif
-#ifdef P_SNMP
+#ifdef HAS_PTLIBSNMP
 	if (implementation == "PTLib") {
 		// nothing to do
 		return;
 	}
 #endif
-#ifdef _WIN32
+#ifdef HAS_WINSNMP
 	if (implementation == "Windows") {
 		if (WindowsSNMPAgent::InstanceExists()) {
 			WindowsSNMPAgent::Instance()->Stop();
@@ -768,13 +768,13 @@ void DeleteSNMPAgent()
 		delete NetSNMPAgent::Instance();
 	}
 #endif
-#ifdef P_SNMP
+#ifdef HAS_PTLIBSNMP
 	if (g_ptlibAgentPtr) {
 		delete g_ptlibAgentPtr;
 		g_ptlibAgentPtr = NULL;
 	}
 #endif
-#ifdef _WIN32
+#ifdef HAS_WINSNMP
 	if (WindowsSNMPAgent::InstanceExists()) {
 		delete WindowsSNMPAgent::Instance();
 	}
