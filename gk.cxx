@@ -350,6 +350,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RasSrv::RRQFeatures", "OverwriteEPOnSameAddress" },
 	{ "RasSrv::RRQFeatures", "SupportDynamicIP" },
 	{ "RewriteSourceAddress", "MatchSourceTypeToDestination" },
+	{ "RewriteSourceAddress", "ForceAliasType" },
 	{ "RewriteSourceAddress", "OnlyE164" },
 	{ "RewriteSourceAddress", "OnlyValid10Dand11D" },
 	{ "RoutedMode", "AcceptNeighborCalls" },
