@@ -37,9 +37,11 @@
   #define LIBSSH_LIB	"@LIBSSH_DIR@/lib/ssh.lib"
 #endif
 
-// Net-SNMP
+// SNMP
 
 #undef HAS_NETSNMP
+#undef HAS_PTLIBSNMP
+#undef HAS_WINSNMP
 
 // LUA
 
