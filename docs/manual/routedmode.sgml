@@ -483,6 +483,15 @@ Enable H.460.18 even if the endpoint is not behind a NAT. Setting to 0 will
 disable H.460.18 if the endpoint is detected as not being behind a NAT. If H.460.23 is supported
 and enabled then direct media is still supported.
 
+<item><tt/EnableUnregisteredH46019=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Enable support for H.460.19 for unregistered calls. This allows unregistered endpoints
+behind a firewall to place outbound calls. They won't able able to receive calls.
+
+NOTE: This feature is experimental and may cause problems with endpoints signalling
+H.460.19 support without properly supporting it.
+
 <item><tt/EnableH46023=1/<newline>
 Default: <tt>0</tt><newline>
 <p>

@@ -1,16 +1,21 @@
 Changes from 3.2 to 3.3
 =======================
+- BUGFIX(ProxyChannel.cxx) don't loose H.245 port on NATed calls
+- BUGFIX(ProxyChannel.cxx) fix multiplexing to VCS traversal server
+- new ./configure switches --disable-ptlibsnmp, --disable-winsnmp
+- BUGFIX(GkClient.cxx) send valid vendor information in lightweight RRQs to parent
+- BUGFIX(Neighbor.cxx) add crypto token to forwarded LRQs
 - new [RewriteSourceAddress] ForceAliasType for change address to different AliasType.
 - new {RasSrv::RRQFeatures} AuthenticatedAliasesOnly to strip out any aliases that are not authenticated.
 - new [LRQFeatures] PingAlias for isolating LRQ pings to reduce gatekeeper resources processing the message.
-- BUGFIX(Routing.cxx) Add missing Gateway support to CatchAll Routing Policy
+- BUGFIX(Routing.cxx) add gateway support to CatchAll routing policy
 - new [RewriteSourceAddress] MatchSourceTypeToDestination for filtering source addresses to match destination address type.
 - BUGFIX(Routing.cxx) return route in ENUM routing policy if destination is an A record with correct TransportAddress.
 - BUGFIX(Toolkit.cxx) ignore routes with source IPs we don't listen to
 - new [SQLConfig] NeighborsQuery2 for loading neighbors from database in new style format.
 - BUGFIX(RasSrv.cxx) fix mem leak in H.460.17
 - BUGFIX(snmp.cxx) don't accidently start SNMP server when stopping gatekeeper
-- support H.460.19 clients on unregistered inbound calls (experimental)
+- support H.460.19 clients on unregistered inbound calls (experimental) [RoutedMode] EnableUnregisteredH46019=1
 - BUGFIX(h323util.cxx) remove "h323:" prefix when comparing URL_IDs
 - new switch [Proxy] RTPDiffServ= to set DiffServ DSCP for proxied RTP, TCLASS is set for IPv6 packets
 - BUGFIX(RasTbl.cxx) disable SO_LINGER before LARGE_FDSET TCP Close() so it doesn't wait

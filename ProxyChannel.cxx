@@ -833,6 +833,7 @@ protected:
 	int m_H46019dir;
 	bool m_isRTPMultiplexingEnabled;
 	bool m_requestRTPMultiplexing;
+	bool m_remoteRequestsRTPMultiplexing;
 	WORD m_multiplexedRTPPort;
 	WORD m_multiplexedRTCPPort;
 #ifdef HAS_H235_MEDIA
@@ -3311,11 +3312,13 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		callFromTraversalClient = rassrv->IsCallFromTraversalClient(_peerAddr);
 		callFromTraversalServer = rassrv->IsCallFromTraversalServer(_peerAddr);
 
-		if ((!m_call || (m_call && !m_call->GetCallingParty())) && IsH46019ClientCall(setupBody) && !callFromTraversalClient) {
-			PTRACE(2, "H46019\tUnregistered H.460.19 call");
-			callFromTraversalClient = true;
+		if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "EnableUnregisteredH46019", "0"))) {
+			if ((!m_call || (m_call && !m_call->GetCallingParty())) && IsH46019ClientCall(setupBody) && !callFromTraversalClient) {
+				PTRACE(2, "H46019\tUnregistered H.460.19 call");
+				callFromTraversalClient = true;
+			}
 		}
-		
+
 		if ((m_call && m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None)
 			|| (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->GetTraversalRole() != None)
 			|| (m_call && m_call->IsH46018ReverseSetup()) || callFromTraversalClient || callFromTraversalServer) {
@@ -7368,7 +7371,9 @@ void H46019Session::Dump() const
 			<< " addrA=" << AsString(m_addrA) << " addrA_RTCP=" << AsString(m_addrA_RTCP)
 			<< " addrB=" << AsString(m_addrB) << " addrB_RTCP=" << AsString(m_addrB_RTCP));
 #ifdef HAS_H235_MEDIA
-	PTRACE(7, "JW session=" << m_session << " encryptLC=" << m_encryptingLC << " decryptLC=" << m_encryptingLC);
+	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
+		PTRACE(7, "JW session=" << m_session << " encryptLC=" << m_encryptingLC << " decryptLC=" << m_encryptingLC);
+	}
 #endif
 }
 
@@ -9309,6 +9314,7 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 	m_isRTPMultiplexingEnabled = false;
 #endif
 	m_requestRTPMultiplexing = false;	// only enable in SetRequestRTPMultiplexing() if endpoint supports it
+	m_remoteRequestsRTPMultiplexing = false;	// set when receiving the multiplexID
 	m_multiplexedRTPPort = (WORD)GkConfig()->GetInteger(ProxySection, "RTPMultiplexPort", GK_DEF_MULTIPLEX_RTP_PORT);
 	m_multiplexedRTCPPort = (WORD)GkConfig()->GetInteger(ProxySection, "RTCPMultiplexPort", GK_DEF_MULTIPLEX_RTCP_PORT);
 #ifdef HAS_H235_MEDIA
@@ -9551,13 +9557,13 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 					H245_ParameterIdentifier & ident = olc.m_genericInformation[i].m_messageContent[0].m_parameterIdentifier;
 					PASN_Integer & n = ident;
 					if (gid == H46019_OID && n == 1) {
-						unsigned payloadtype;
+						unsigned payloadtype = 0;
 						H323TransportAddress keepAliveRTPAddr;
 						H245_UnicastAddress keepAliveRTCPAddr;
-						unsigned keepAliveInterval;
+						unsigned keepAliveInterval = 0;
 						H323TransportAddress multiplexedRTPAddr;
 						H323TransportAddress multiplexedRTCPAddr;
-						PUInt32b multiplexID;
+						PUInt32b multiplexID = INVALID_MULTIPLEX_ID;
 						if (ParseTraversalParameters(olc.m_genericInformation[i], payloadtype, keepAliveRTPAddr, keepAliveInterval,
 								multiplexedRTPAddr, multiplexedRTCPAddr, multiplexID)) {
 							H245_UnicastAddress * control = NULL;
@@ -9572,7 +9578,12 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 								call->AddRTPKeepAlive(flcn, keepAliveRTPAddr, keepAliveInterval, multiplexID);
 								call->AddRTCPKeepAlive(flcn, keepAliveRTCPAddr, keepAliveInterval, multiplexID);
 							}
-							if (m_requestRTPMultiplexing && (multiplexID != INVALID_MULTIPLEX_ID)) {
+							m_remoteRequestsRTPMultiplexing = m_isRTPMultiplexingEnabled && (multiplexID != INVALID_MULTIPLEX_ID);
+							if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing) {
+								if (!h46019chan.IsValid()) {
+									// eg. server requests multiplexing to him, but doesn't support sending multiplexed
+									h46019chan = H46019Session(call->GetCallIdentifier(), sessionID, this); // no existing found, create a new one
+								}
 								h46019chan.m_multiplexID_toA = multiplexID;
 								if (IsTraversalServer()) {
 									if (IsSet(multiplexedRTPAddr))
@@ -9693,7 +9704,9 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 			olc.m_genericInformation[0].m_messageContent[0] = genericParameter;
 			changed = true;
 		}
-		if (m_requestRTPMultiplexing || peer->m_requestRTPMultiplexing) {
+
+		if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing
+			|| peer->m_requestRTPMultiplexing || peer->m_remoteRequestsRTPMultiplexing) {
 			// set sockets, depending if we will received as multiplexed or not
 			LogicalChannel * lc = FindLogicalChannel(flcn);
 			// side A
@@ -9720,10 +9733,12 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 				call->H46024BSessionFlag(sessionID);
 #endif
 		}
-		// start KeepAlives if we are client (will be ignored if we are server and no KeepALive has been added above)
+
+		// start KeepAlives if we are client (will be ignored if we are server and no KeepAlive has been added above)
 		call->StartRTPKeepAlive(flcn, h46019chan.m_osSocketToA);
 		call->StartRTCPKeepAlive(flcn, h46019chan.m_osSocketToA_RTCP);
 #endif // HAS_H46018
+
 #ifdef HAS_H235_MEDIA
 		RTPLogicalChannel * rtplc = (RTPLogicalChannel *)FindLogicalChannel(flcn);
 		bool isData = false;	// we don't encrypt data channels, yet
@@ -9810,7 +9825,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 				rtplc->CreateH235SessionAndKey(call->GetAuthenticators(), olc.m_encryptionSync, encrypting);
 			}
 #ifdef HAS_H46018
-			if (m_requestRTPMultiplexing || peer->m_requestRTPMultiplexing) {
+			if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing
+				|| peer->m_requestRTPMultiplexing || peer->m_remoteRequestsRTPMultiplexing) {
 				// get the H46019Session object in standard (unswapped) format
 				H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(call->GetCallIdentifier(), sessionID);
 				if (encrypting) {
@@ -9875,13 +9891,13 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 					H245_ParameterIdentifier & ident = olca.m_genericInformation[i].m_messageContent[0].m_parameterIdentifier;
 					PASN_Integer & n = ident;
 					if (gid == H46019_OID && n == 1) {
-						unsigned payloadtype;
+						unsigned payloadtype = 0;
 						H323TransportAddress keepAliveRTPAddr;
 						H245_UnicastAddress keepAliveRTCPAddr;
-						unsigned keepAliveInterval;
+						unsigned keepAliveInterval = 0;
 						H323TransportAddress multiplexedRTPAddr;
 						H323TransportAddress multiplexedRTCPAddr;
-						PUInt32b multiplexID;
+						PUInt32b multiplexID = INVALID_MULTIPLEX_ID;
 						if (ParseTraversalParameters(olca.m_genericInformation[i], payloadtype, keepAliveRTPAddr, keepAliveInterval,
 								multiplexedRTPAddr, multiplexedRTCPAddr, multiplexID)) {
 							if (m_requestRTPMultiplexing && (multiplexID != INVALID_MULTIPLEX_ID)) {
@@ -9972,7 +9988,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		PTRACE(5, "Adding TraversalParams to OLCA=" << params);
 		changed = true;
 	}
-	if (m_requestRTPMultiplexing || peer->m_requestRTPMultiplexing) {
+	if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing || peer->m_requestRTPMultiplexing || peer->m_remoteRequestsRTPMultiplexing) {
 		// save parameters for mixed multiplex/non-multiplexed call
 		if (!IsTraversalClient()) {
 			if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)) {
@@ -10017,6 +10033,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		}
 	}
 #endif
+
 #ifdef HAS_H235_MEDIA
 	RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(lc);
 	if (call->IsMediaEncryption() && rtplc && !rtplc->IsDataChannel()) {
@@ -10436,7 +10453,7 @@ bool H245ProxyHandler::RemoveLogicalChannel(WORD flcn)
 
 void H245ProxyHandler::SetRequestRTPMultiplexing(bool epCanTransmitMultiplexed)
 {
-	m_requestRTPMultiplexing = epCanTransmitMultiplexed && m_isRTPMultiplexingEnabled;
+	m_requestRTPMultiplexing = epCanTransmitMultiplexed && m_isRTPMultiplexingEnabled && (m_traversalType != None);
 }
 
 
@@ -10493,8 +10510,14 @@ bool NATHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & olca)
 bool NATHandler::SetAddress(H245_UnicastAddress * addr)
 {
 	if (!ChangeAddress(addr)) {
-		// note: this is loosing the port number, but its probably invalid due to NAT anyway
-	    return addr ? (*addr << remoteAddr, true) : false;
+	    if (!addr) {
+			return false;
+		} else {
+			WORD port = GetH245Port(*addr);	// preserve port
+			*addr << remoteAddr;			// set addr to remoteAddr
+			SetH245Port(*addr, port);		// restore port
+			return true;
+	    }
 	} else
 		return true;
 }
