@@ -379,6 +379,7 @@ const char * KnownConfigEntries[][2] = {
 #endif
 #ifdef HAS_H46018
 	{ "RoutedMode", "EnableH46018" },
+	{ "RoutedMode", "EnableUnregisteredH46019" },
 #endif
 #ifdef HAS_H46023
 	{ "RoutedMode", "EnableH46023" },
@@ -648,6 +649,8 @@ void ShutdownHandler()
 #endif
 	if (CapacityControl::InstanceExists())
 		delete CapacityControl::Instance();
+	if (PreliminaryCallTable::InstanceExists())
+		delete PreliminaryCallTable::Instance();
 	if (CallTable::InstanceExists())
 		delete CallTable::Instance();
 	if (RegistrationTable::InstanceExists())
