@@ -1071,7 +1071,7 @@ Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit"),
 	m_timerManager(new GkTimerManager()),
 	m_timestampFormatStr("Cisco"),
 	m_encKeyPaddingByte(-1), m_encryptAllPasswords(false),
-	m_cliRewrite(NULL)
+	m_cliRewrite(NULL), m_causeCodeTranslationActive(false)
 {
 	srand((unsigned int)time(0));
 }
@@ -3308,6 +3308,10 @@ void Toolkit::ParseTranslationMap(std::map<unsigned, unsigned> & cause_map, cons
 			PTRACE(1, "Syntax error in cause mapping: " << causes[i]);
 			SNMP_TRAP(7, SNMPError, Configuration, "Invalid cause translation configuration");
 		}
+	}
+	if (!cause_map.empty()) {
+		// note: do not set to false, because feature might be active globally or for another endpoint
+		Toolkit::Instance()->SetCauseCodeTranslationActive(true);
 	}
 }
 

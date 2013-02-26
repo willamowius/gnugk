@@ -5138,7 +5138,7 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg * msg)
 		// regular ReleaseComplete processing
 		m_call->SetDisconnectTime(time(NULL));
 		m_call->SetReleaseSource(m_callerSocket ? CallRec::ReleasedByCaller : CallRec::ReleasedByCallee);
-		if (msg->GetQ931().HasIE(Q931::CauseIE)) {
+		if (msg->GetQ931().HasIE(Q931::CauseIE) && Toolkit::Instance()->IsCauseCodeTranslationActive()) {
 			cause = msg->GetQ931().GetCause();
 			// translate cause codes
 			unsigned new_cause = cause;

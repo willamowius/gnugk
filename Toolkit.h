@@ -604,6 +604,9 @@ class Toolkit : public Singleton<Toolkit>
 	/// global translation of cause codes (called from endpoint specific method)
 	unsigned TranslateReceivedCause(unsigned cause) const;
 	unsigned TranslateSentCause(unsigned cause) const;
+	// check if cause contranslation feature is active (global or per endpoint)
+	bool IsCauseCodeTranslationActive() const { return m_causeCodeTranslationActive; }
+	void SetCauseCodeTranslationActive(bool val) { m_causeCodeTranslationActive = val; }
 
 #ifdef OpenH323Factory
 	PStringList GetAuthenticatorList();
@@ -664,6 +667,7 @@ private:
 	/// global cause code translation
 	std::map<unsigned, unsigned> m_receivedCauseMap;
 	std::map<unsigned, unsigned> m_sentCauseMap;
+	bool m_causeCodeTranslationActive;	// globally _or_ per endpoint
 	bool m_alwaysRemoveH235Tokens;
 	std::vector<NetworkAddress> m_removeH235TokensfromNetwork;
 #ifdef HAS_H235_MEDIA
