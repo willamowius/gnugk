@@ -723,14 +723,9 @@ public:
 		);
 	
 	/// build a new call record with just a callID and transport adr (after H.460.18 SCI)
-	CallRec(
-		H225_CallIdentifier callID,
-		H225_TransportAddress sigAdr
-		);
+	CallRec(H225_CallIdentifier callID, H225_TransportAddress sigAdr);
  
-	CallRec(
-		CallRec *oldCall
-		);
+	CallRec(CallRec * oldCall);
 		
 	virtual ~CallRec();
 
@@ -1195,16 +1190,14 @@ public:
 	    Calling party's aliases, as presented in ARQ or Setup messages.
 	    This does not change during the call.
 	*/
-	const H225_ArrayOf_AliasAddress& GetSourceAddress() const 
-		{ return m_sourceAddress; }
+	const H225_ArrayOf_AliasAddress GetSourceAddress() const { return m_sourceAddress; }
 		
 	/** @return
 	    Called party's aliases, as presented in ARQ or Setup messages.
 	    This does not change during the call now, but should be fixed
 	    to handle gatekeeper call forwarding properly.
 	*/
-	const H225_ArrayOf_AliasAddress& GetDestinationAddress() const
-		{ return m_destinationAddress; }
+	const H225_ArrayOf_AliasAddress GetDestinationAddress() const { return m_destinationAddress; }
 
 	/** @return
 	    Calling party's number or an empty string, if the number has not been
@@ -1225,7 +1218,7 @@ public:
 
 	/// Set call linkage This the party to be charged for the call. 
 	void SetCallLinkage(
-		const PString& id /// Calling-Station-Id (to be charged)
+		const PString & id /// Calling-Station-Id (to be charged)
 		);
 
 	/** @return
@@ -1235,7 +1228,7 @@ public:
 
 	/// Set calling party's number
 	void SetCalledStationId(
-		const PString& id /// Called-Station-Id
+		const PString & id /// Called-Station-Id
 		);
 
 	/** @return
@@ -1246,7 +1239,7 @@ public:
 
 	/// Set dialed number
 	void SetDialedNumber(
-		const PString& number /// Dialed-Number
+		const PString & number /// Dialed-Number
 		);
 
 	/** @return
