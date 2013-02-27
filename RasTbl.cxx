@@ -2274,6 +2274,7 @@ H46019KeepAlive::H46019KeepAlive()
 	type = RTP;
 	ossocket = INVALID_OSSOCKET;
 	multiplexID = INVALID_MULTIPLEX_ID;
+	payloadType = GNUGK_KEEPALIVE_RTP_PAYLOADTYPE;
 	seq = 1;
 	timer = GkTimerManager::INVALID_HANDLE;
 }
@@ -2353,7 +2354,7 @@ void H46019KeepAlive::SendKeepAlive(GkTimer * t)
 		size_t ka_size = 0;
 		if (multiplexID == INVALID_MULTIPLEX_ID) {
 			rtpKeepAlive.b1 = 0x80;
-			rtpKeepAlive.pt = GNUGK_KEEPALIVE_RTP_PAYLOADTYPE;
+			rtpKeepAlive.pt = payloadType;
 			rtpKeepAlive.seq = htons(seq++);
 			rtpKeepAlive.ts = 0;
 			rtpKeepAlive.ssrc = 0;
@@ -2362,7 +2363,7 @@ void H46019KeepAlive::SendKeepAlive(GkTimer * t)
 		} else {
 			multiplexedRtpKeepAlive.multiplexID = multiplexID;
 			multiplexedRtpKeepAlive.b1 = 0x80;
-			multiplexedRtpKeepAlive.pt = GNUGK_KEEPALIVE_RTP_PAYLOADTYPE;
+			multiplexedRtpKeepAlive.pt = payloadType;
 			multiplexedRtpKeepAlive.seq = htons(seq++);
 			multiplexedRtpKeepAlive.ts = 0;
 			multiplexedRtpKeepAlive.ssrc = 0;
@@ -4249,6 +4250,14 @@ void CallRec::AddRTPKeepAlive(unsigned flcn, const H323TransportAddress & keepAl
 	ka.interval = keepAliveInterval;
 	ka.multiplexID = multiplexID;
 	m_RTPkeepalives[flcn] = ka;
+}
+
+void CallRec::SetRTPKeepAlivePayloadType(unsigned flcn, BYTE payloadType)
+{
+	std::map<unsigned, H46019KeepAlive>::iterator iter = m_RTPkeepalives.find(flcn);
+	if (iter != m_RTPkeepalives.end()) {
+		iter->second.payloadType = payloadType;
+	}
 }
 
 void CallRec::StartRTPKeepAlive(unsigned flcn, int RTPOSSocket)

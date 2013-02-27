@@ -46,7 +46,7 @@ enum H46019Side { SideA, SideB };
 const int INVALID_OSSOCKET = -1;
 const WORD INVALID_RTP_SESSION = 0;
 const PUInt32b INVALID_MULTIPLEX_ID = 0;
-const BYTE GNUGK_KEEPALIVE_RTP_PAYLOADTYPE = 127;	// GnuGk always sends this fixed payload type
+const BYTE GNUGK_KEEPALIVE_RTP_PAYLOADTYPE = 116;	// must at least be 1 less than MAX_DYNAMIC_PAYLOAD_TYPE
 const BYTE MIN_DYNAMIC_PAYLOAD_TYPE = 96;
 const BYTE MAX_DYNAMIC_PAYLOAD_TYPE = 127;
 
@@ -651,6 +651,7 @@ public:
 	unsigned seq;
 	int ossocket;
 	PUInt32b multiplexID;
+	BYTE payloadType;
 	GkTimerManager::GkTimerHandle timer;
 };
 #endif
@@ -1311,6 +1312,7 @@ public:
 	int GetH46019Direction() const;
 
 	void AddRTPKeepAlive(unsigned flcn, const H323TransportAddress & keepAliveRTPAddr, unsigned keepAliveInterval, PUInt32b multiplexID);
+	void SetRTPKeepAlivePayloadType(unsigned flcn, BYTE payloadType);
 	void StartRTPKeepAlive(unsigned flcn, int RTPOSSocket);
 	void AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAliveRTCPAddr, unsigned keepAliveInterval, PUInt32b multiplexID);
 	void StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket);

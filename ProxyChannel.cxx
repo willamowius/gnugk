@@ -9735,6 +9735,11 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 #endif
 		}
 
+		// make sure the keepalive payloadType doesn't conflict with encryption payloadType (VCS bug)
+		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_encryptionSync)
+			&& olc.m_encryptionSync.m_synchFlag == GNUGK_KEEPALIVE_RTP_PAYLOADTYPE) {
+			call->SetRTPKeepAlivePayloadType(flcn, GNUGK_KEEPALIVE_RTP_PAYLOADTYPE + 1);
+		}
 		// start KeepAlives if we are client (will be ignored if we are server and no KeepAlive has been added above)
 		call->StartRTPKeepAlive(flcn, h46019chan.m_osSocketToA);
 		call->StartRTCPKeepAlive(flcn, h46019chan.m_osSocketToA_RTCP);
@@ -9882,7 +9887,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 				h46019chan = H46019Session(call->GetCallIdentifier(), sessionID, peer); // create a new session
 				// set the OSSocket that would usually be set when the OLC is processed
 				LogicalChannel * lc = peer->FindLogicalChannel(flcn);
-				PTRACE(4, "JW adding master assigned RTP session " << sessionID);
+				PTRACE(4, "H46019\tAdding master assigned RTP session " << sessionID);
 				// side A
 				if (peer->m_requestRTPMultiplexing) {
 					h46019chan.m_osSocketToA = MultiplexedRTPHandler::Instance()->GetRTPOSSocket();
