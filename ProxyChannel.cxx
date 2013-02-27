@@ -9537,8 +9537,9 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 
 #ifdef HAS_H46018
 		WORD sessionID = (WORD)h225Params->m_sessionID;
-		H46019Session h46019chan(0, 0, NULL);
-		if (m_requestRTPMultiplexing || peer->m_requestRTPMultiplexing) {
+		H46019Session h46019chan(0, INVALID_RTP_SESSION, NULL);
+		if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing
+			|| peer->m_requestRTPMultiplexing || peer->m_remoteRequestsRTPMultiplexing) {
 			h46019chan = MultiplexedRTPHandler::Instance()->GetChannelSwapped(call->GetCallIdentifier(), sessionID, this);
 			if (!h46019chan.IsValid()) {
 				h46019chan = H46019Session(call->GetCallIdentifier(), sessionID, this); // no existing found, create a new one
@@ -9581,7 +9582,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 							m_remoteRequestsRTPMultiplexing = m_isRTPMultiplexingEnabled && (multiplexID != INVALID_MULTIPLEX_ID);
 							if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing) {
 								if (!h46019chan.IsValid()) {
-									// eg. server requests multiplexing to him, but doesn't support sending multiplexed
+									// eg. server requests multiplexing to it, but doesn't support sending multiplexed
 									h46019chan = H46019Session(call->GetCallIdentifier(), sessionID, this); // no existing found, create a new one
 								}
 								h46019chan.m_multiplexID_toA = multiplexID;
@@ -9872,12 +9873,38 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 	if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)
 		&& olca.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters)
 		sessionID = ((H245_H2250LogicalChannelAckParameters&)olca.m_forwardMultiplexAckParameters).m_sessionID;
-	H46019Session h46019chan(0, 0, NULL);
+	H46019Session h46019chan(0, INVALID_RTP_SESSION, NULL);
 	PUInt32b assignedMultiplexID = INVALID_MULTIPLEX_ID;
- 	if (m_requestRTPMultiplexing || peer->m_requestRTPMultiplexing) {
+ 	if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing || peer->m_requestRTPMultiplexing || peer->m_remoteRequestsRTPMultiplexing) {
 		h46019chan = MultiplexedRTPHandler::Instance()->GetChannelSwapped(call->GetCallIdentifier(), sessionID, peer);
 		if (!h46019chan.IsValid()) {
-			MultiplexedRTPHandler::Instance()->DumpChannels(" ERROR: channel not found! ");
+			if (sessionID > 3) {
+				h46019chan = H46019Session(call->GetCallIdentifier(), sessionID, peer); // create a new session
+				// set the OSSocket that would usually be set when the OLC is processed
+				LogicalChannel * lc = peer->FindLogicalChannel(flcn);
+				PTRACE(4, "JW adding master assigned RTP session " << sessionID);
+				// side A
+				if (peer->m_requestRTPMultiplexing) {
+					h46019chan.m_osSocketToA = MultiplexedRTPHandler::Instance()->GetRTPOSSocket();
+					h46019chan.m_osSocketToA_RTCP = MultiplexedRTPHandler::Instance()->GetRTCPOSSocket();
+				}
+				if (!peer->m_requestRTPMultiplexing && lc) {
+					h46019chan.m_osSocketToA = lc->GetRTPOSSocket();
+					h46019chan.m_osSocketToA_RTCP = lc->GetRTCPOSSocket();
+				}
+				// side B
+				if (m_requestRTPMultiplexing) {
+					h46019chan.m_osSocketToB = MultiplexedRTPHandler::Instance()->GetRTPOSSocket();
+					h46019chan.m_osSocketToB_RTCP = MultiplexedRTPHandler::Instance()->GetRTCPOSSocket();
+				}
+				if (!m_requestRTPMultiplexing && lc) {
+					h46019chan.m_osSocketToB = lc->GetRTPOSSocket();
+					h46019chan.m_osSocketToB_RTCP = lc->GetRTCPOSSocket();
+				}
+				MultiplexedRTPHandler::Instance()->AddChannel(h46019chan);
+			} else {
+				MultiplexedRTPHandler::Instance()->DumpChannels(" ERROR: channel not found! ");
+			}
 		} else {
 			h46019chan.Dump();
 		}
@@ -9900,7 +9927,14 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 						PUInt32b multiplexID = INVALID_MULTIPLEX_ID;
 						if (ParseTraversalParameters(olca.m_genericInformation[i], payloadtype, keepAliveRTPAddr, keepAliveInterval,
 								multiplexedRTPAddr, multiplexedRTCPAddr, multiplexID)) {
-							if (m_requestRTPMultiplexing && (multiplexID != INVALID_MULTIPLEX_ID)) {
+							m_remoteRequestsRTPMultiplexing = m_isRTPMultiplexingEnabled && (multiplexID != INVALID_MULTIPLEX_ID);
+							if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing) {
+								if (!h46019chan.IsValid()) {
+									// eg. server requests multiplexing to it, but doesn't support sending multiplexed
+									h46019chan = H46019Session(call->GetCallIdentifier(), sessionID, peer); // no existing session, create a new one
+									MultiplexedRTPHandler::Instance()->AddChannel(h46019chan);
+									h46019chan = MultiplexedRTPHandler::Instance()->GetChannelSwapped(call->GetCallIdentifier(), sessionID, peer);
+								}
 								h46019chan.m_multiplexID_toB = multiplexID;
 								if (IsTraversalServer()) {  // only save multiplex addresses if from server
 									if (IsSet(multiplexedRTPAddr))
@@ -9988,7 +10022,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		PTRACE(5, "Adding TraversalParams to OLCA=" << params);
 		changed = true;
 	}
-	if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing || peer->m_requestRTPMultiplexing || peer->m_remoteRequestsRTPMultiplexing) {
+	if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing
+		|| peer->m_requestRTPMultiplexing || peer->m_remoteRequestsRTPMultiplexing) {
 		// save parameters for mixed multiplex/non-multiplexed call
 		if (!IsTraversalClient()) {
 			if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)) {
@@ -10050,7 +10085,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 			rtplc->CreateH235SessionAndKey(call->GetAuthenticators(), olca.m_encryptionSync, encrypting);
 		}
 #ifdef HAS_H46018
-		if (m_requestRTPMultiplexing || peer->m_requestRTPMultiplexing) {
+		if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing
+			|| peer->m_requestRTPMultiplexing || peer->m_remoteRequestsRTPMultiplexing) {
 			// get the H46019Session object in standard (unswapped) format
 			H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(call->GetCallIdentifier(), sessionID);
 			if (encrypting) {
