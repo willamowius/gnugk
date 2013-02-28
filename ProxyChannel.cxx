@@ -4204,17 +4204,27 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 			bool isH46019Client = false;
 			bool senderSupportsH46019Multiplexing = false;
 			RemoveH46019Descriptor(cpBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing, isH46019Client);
-			// set traversal role for called party (needed for H.460.17, doesn't hurt H.460.18)
-			if (isH46019Client
-				&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
-				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(TraversalClient);
-				if (m_call && m_call->GetCalledParty()) {
-					m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
+			// ignore if the .19 descriptor isn't from an endpoint that uses H.460.17 or .18
+			PIPSocket::Address _peerAddr;
+			WORD _peerPort = 0;
+			GetPeerAddress(_peerAddr, _peerPort);
+			UnmapIPv4Address(_peerAddr);
+			if ( (m_call && m_call->GetCalledParty() && (m_call->GetCalledParty()->UsesH46017() || m_call->GetCalledParty()->GetTraversalRole() != None))
+				|| RasServer::Instance()->IsCallFromTraversalClient(_peerAddr) || RasServer::Instance()->IsCallFromTraversalServer(_peerAddr) ) {
+				// set traversal role for called party (needed for H.460.17, doesn't hurt H.460.18)
+				if (isH46019Client
+					&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
+					dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(TraversalClient);
+					if (m_call && m_call->GetCalledParty()) {
+						m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
+					}
 				}
+				if (senderSupportsH46019Multiplexing
+					&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
+					dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(true);
+			} else {
+				PTRACE(2, "H46019\tIgnoring invalid H.460.19 indicator");
 			}
-			if (senderSupportsH46019Multiplexing
-				&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
-				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(true);
 			if (cpBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				cpBody.RemoveOptionalField(H225_CallProceeding_UUIE::e_featureSet);
 		}
@@ -4439,17 +4449,27 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			bool isH46019Client = false;
 			bool senderSupportsH46019Multiplexing = false;
 			RemoveH46019Descriptor(connectBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing, isH46019Client);
-			// set traversal role for called party (needed for H.460.17, doesn't hurt H.460.18)
-			if (isH46019Client
-				&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
-				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(TraversalClient);
-				if (m_call->GetCalledParty()) {
-					m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
+			// ignore if the .19 descriptor isn't from an endpoint that uses H.460.17 or .18
+			PIPSocket::Address _peerAddr;
+			WORD _peerPort = 0;
+			GetPeerAddress(_peerAddr, _peerPort);
+			UnmapIPv4Address(_peerAddr);
+			if ( (m_call && m_call->GetCalledParty() && (m_call->GetCalledParty()->UsesH46017() || m_call->GetCalledParty()->GetTraversalRole() != None))
+				|| RasServer::Instance()->IsCallFromTraversalClient(_peerAddr) || RasServer::Instance()->IsCallFromTraversalServer(_peerAddr) ) {
+				// set traversal role for called party (needed for H.460.17, doesn't hurt H.460.18)
+				if (isH46019Client
+					&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
+					dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(TraversalClient);
+					if (m_call->GetCalledParty()) {
+						m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
+					}
 				}
+				if (senderSupportsH46019Multiplexing
+					&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
+					dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(true);
+			} else {
+				PTRACE(2, "H46019\tIgnoring invalid H.460.19 indicator");
 			}
-			if (senderSupportsH46019Multiplexing
-				&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
-				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(true);
 			if (connectBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				connectBody.RemoveOptionalField(H225_Connect_UUIE::e_featureSet);
 		}
@@ -4552,17 +4572,27 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 			bool isH46019Client = false;
 			bool senderSupportsH46019Multiplexing = false;
 			RemoveH46019Descriptor(alertingBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing, isH46019Client);
-			// set traversal role for called party (needed for H.460.17, doesn't hurt H.460.18)
-			if (isH46019Client
-				&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
-				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(TraversalClient);
-				if (m_call->GetCalledParty()) {
-					m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
+			// ignore if the .19 descriptor isn't from an endpoint that uses H.460.17 or .18
+			PIPSocket::Address _peerAddr;
+			WORD _peerPort = 0;
+			GetPeerAddress(_peerAddr, _peerPort);
+			UnmapIPv4Address(_peerAddr);
+			if ( (m_call && m_call->GetCalledParty() && (m_call->GetCalledParty()->UsesH46017() || m_call->GetCalledParty()->GetTraversalRole() != None))
+				|| RasServer::Instance()->IsCallFromTraversalClient(_peerAddr) || RasServer::Instance()->IsCallFromTraversalServer(_peerAddr) ) {
+				// set traversal role for called party (needed for H.460.17, doesn't hurt H.460.18)
+				if (isH46019Client
+					&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
+					dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(TraversalClient);
+					if (m_call->GetCalledParty()) {
+						m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
+					}
 				}
-			}
-			if (senderSupportsH46019Multiplexing
-				&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
-				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(true);
+				if (senderSupportsH46019Multiplexing
+					&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
+					dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(true);
+				}
+			} else {
+				PTRACE(2, "H46019\tIgnoring invalid H.460.19 indicator");
 			}
 			if (alertingBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				alertingBody.RemoveOptionalField(H225_Alerting_UUIE::e_featureSet);
@@ -5512,52 +5542,8 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 			}
 		}
 		break;
-
-	case H225_FacilityReason::e_forwardedElements:
-#ifdef HAS_H46023
-		bool OZH46024 = (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
-						facilityBody.HasOptionalField(H225_Facility_UUIE::e_featureSet) &&
-						HasH46024Descriptor(facilityBody.m_featureSet.m_supportedFeatures));
-#else
-		bool OZH46024 = false;
-#endif
-		if (Toolkit::Instance()->IsH46018Enabled() && OZH46024) {
-			// remove H.460.19 descriptor from sender
-			if (facilityBody.HasOptionalField(H225_Facility_UUIE::e_featureSet)) {
-				bool isH46019Client = false;
-				bool senderSupportsH46019Multiplexing = false;
-				RemoveH46019Descriptor(facilityBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing, isH46019Client);
-				if (senderSupportsH46019Multiplexing
-					&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
-					dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(true);
-				if (facilityBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
-					facilityBody.RemoveOptionalField(H225_Facility_UUIE::e_featureSet);
-			}
-			if (m_call && m_call->GetCallingParty() && (m_call->GetCallingParty()->GetTraversalRole() != None)) {
-				// TODO: for Facility isn't not clear which direction it goes, we might have to check the CalledParty as well
-				// add H.460.19 indicator to Facility with reason forwardedElements
-				H460_FeatureStd feat = H460_FeatureStd(19);
-				H460_FeatureID * feat_id = NULL;
-				if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalClient()) {
-					feat_id = new H460_FeatureID(2);	// mediaTraversalServer
-					feat.AddParameter(feat_id);
-					delete feat_id;
-				}
-				if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
-					feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
-					feat.AddParameter(feat_id);
-					delete feat_id;
-				}
-				facilityBody.IncludeOptionalField(H225_Facility_UUIE::e_featureSet);
-				facilityBody.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
-				facilityBody.m_featureSet.m_supportedFeatures.SetSize(0);
-				AddH460Feature(facilityBody.m_featureSet.m_supportedFeatures, feat);
-			}
-			msg->SetUUIEChanged();
-		}
-		break;
-#endif	// HAS_H46018
 	}
+#endif
 
 	if (HandleFastStart(facilityBody, false))
 		msg->SetUUIEChanged();
@@ -9648,7 +9634,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 			return true;
 
 		// add if peer is traversal client, don't add if we are traversal client
-		PTRACE(6, "H46018\tPeer traversal role=" << (int)(peer ? peer->GetTraversalRole() : None));
+		PTRACE(5, "H46018\tPeer traversal role=" << (int)(peer ? peer->GetTraversalRole() : None));
 		if (peer && (peer->IsTraversalClient() || (peer->IsTraversalServer() && peer->m_requestRTPMultiplexing))) {
 			// We need to move any generic Information messages up 1 so H.460.19 will ALWAYS be in position 0.
 			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_genericInformation)) {
@@ -9988,7 +9974,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 	}
 
 	// add traversal parameters, if needed
-	PTRACE(6, "H46018\tPeer traversal role=" << (int)(peer ? peer->GetTraversalRole() : None));
+	PTRACE(5, "H46018\tPeer traversal role=" << (int)(peer ? peer->GetTraversalRole() : None));
 	if (peer && (peer->IsTraversalServer() || (peer->IsTraversalClient() && peer->m_requestRTPMultiplexing))) {
 		// we need to move any generic Information messages up 1 so H.460.19 will ALWAYS be in position 0.
 		if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_genericInformation)) {
