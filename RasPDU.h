@@ -256,7 +256,7 @@ private:
 // encapsulate a gatekeeper request and reply
 class RasRequester : public RasHandler {
 public:
-	RasRequester() { Init(); }
+	RasRequester() : m_request(NULL) { Init(); }
 	// note the H225_RasMessage object must have
 	// longer lifetime than this object
 	RasRequester(H225_RasMessage &);

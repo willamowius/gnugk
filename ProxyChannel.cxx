@@ -5116,7 +5116,7 @@ bool CallSignalSocket::SendH46017Message(const H225_RasMessage & ras)
 #endif
 
 #ifdef HAS_H46018
-bool CallSignalSocket::OnSCICall(H225_CallIdentifier callID, H225_TransportAddress sigAdr)
+bool CallSignalSocket::OnSCICall(const H225_CallIdentifier & callID, H225_TransportAddress sigAdr)
 {
 	CallRec* call = new CallRec(callID, sigAdr);
 	m_call = callptr(call);
@@ -5295,6 +5295,7 @@ void CallSignalSocket::TryNextRoute()
 	if (newCall->GetNewRoutes().empty()) {
 		PTRACE(1, "Q931\tERROR: TryNextRoute() without a route");
 		SNMP_TRAP(7, SNMPError, Network, "Failover failed");
+		// TODO: newCall object leaks, don't simply delete, clean up pointers first
 		return;
 	}
 	const Route & newRoute = newCall->GetNewRoutes().front();
@@ -5524,8 +5525,8 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 				}
 #endif
 					// re-encode with changes made here
-					if (setup->IsChanged())
-						SetUUIE(*q931pdu,*uuie);
+					if (setup->IsChanged() && uuie)
+						SetUUIE(*q931pdu, *uuie);
 
 					PrintQ931(4, "Send to ", this->GetName(), &setup->GetQ931(), setup->GetUUIE());
 
@@ -8576,7 +8577,7 @@ T120ProxySocket::T120ProxySocket(T120LogicalChannel *lc)
 }
 
 T120ProxySocket::T120ProxySocket(T120ProxySocket *socket, WORD pt)
-      : TCPProxySocket("T120d", socket, pt)
+      : TCPProxySocket("T120d", socket, pt), t120lc(NULL)
 {
 	socket->remote = this;
 }
@@ -9537,7 +9538,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 		H245_H2250LogicalChannelParameters * h225Params = GetLogicalChannelParameters(olc, isReverseLC);
 
 #ifdef HAS_H46018
-		WORD sessionID = (WORD)h225Params->m_sessionID;
+		WORD sessionID = h225Params ? (WORD)h225Params->m_sessionID : 0;
 		H46019Session h46019chan(0, INVALID_RTP_SESSION, NULL);
 		if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing
 			|| peer->m_requestRTPMultiplexing || peer->m_remoteRequestsRTPMultiplexing) {

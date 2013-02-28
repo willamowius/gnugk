@@ -724,7 +724,7 @@ public:
 		);
 	
 	/// build a new call record with just a callID and transport adr (after H.460.18 SCI)
-	CallRec(H225_CallIdentifier callID, H225_TransportAddress sigAdr);
+	CallRec(const H225_CallIdentifier & callID, H225_TransportAddress sigAdr);
  
 	CallRec(CallRec * oldCall);
 		
@@ -2078,7 +2078,7 @@ inline bool CallRec::IsTimeout(const time_t now) const
 class PreliminaryCall
 {
 public:
-	PreliminaryCall(CallSignalSocket * callerSocket, H225_CallIdentifier id, unsigned ref)
+	PreliminaryCall(CallSignalSocket * callerSocket, const H225_CallIdentifier & id, unsigned ref)
 		: m_socket(callerSocket), m_callid(id), m_callref(ref), m_proceedingSent(false) { }
 	~PreliminaryCall() { }
 
@@ -2103,8 +2103,8 @@ public:
 	~PreliminaryCallTable();
 	
 	void Insert(PreliminaryCall * call);
-	void Remove(H225_CallIdentifier id);
-	PreliminaryCall * Find(H225_CallIdentifier id) const;
+	void Remove(const H225_CallIdentifier & id);
+	PreliminaryCall * Find(const H225_CallIdentifier & id) const;
 
 private:
 	PreliminaryCallTable(const PreliminaryCallTable &);

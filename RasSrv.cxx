@@ -606,6 +606,7 @@ RasRequester::RasRequester(H225_RasMessage & req, const Address & addr) : m_requ
 
 void RasRequester::Init()
 {
+	m_txPort = 0;
 	m_seqNum = m_rasSrv->GetRequestSeqNum();
 	m_timeout = 0;
 	m_retry = 0;
