@@ -5317,6 +5317,15 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 		msg->SetUUIEChanged();
 	}
 
+	// clear featureSet before forwarding
+	// TODO: do similar for all other Q.931 messages ?
+	if (facilityBody.HasOptionalField(H225_Facility_UUIE::e_featureSet)) {
+		if (facilityBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_supportedFeatures)) {
+			facilityBody.m_featureSet.m_supportedFeatures.SetSize(0);
+		}
+		facilityBody.RemoveOptionalField(H225_Facility_UUIE::e_featureSet);
+	}
+
 	switch (facilityBody.m_reason.GetTag()) {
 	case H225_FacilityReason::e_startH245:
 		{
