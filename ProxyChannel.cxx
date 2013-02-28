@@ -5095,11 +5095,17 @@ bool CallSignalSocket::OnSCICall(H225_CallIdentifier callID, H225_TransportAddre
 		m_callFromTraversalServer = true;
 		((CallSignalSocket*)remote)->m_callFromTraversalServer = true;
 		Q931 FacilityPDU;
+		H225_H323_UserInformation uuie;
 		BuildFacilityPDU(FacilityPDU, H225_FacilityReason::e_undefinedReason, &callID);
+		GetUUIE(FacilityPDU, uuie);
+		// we don't know, yet if the called endpoint supports tunneling,
+		// so we can only offer it if tunneling translation is on
+		if (m_h245TunnelingTranslation) {
+			uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+			uuie.m_h323_uu_pdu.m_h245Tunneling.SetValue(true);
+		}
 		PBYTEArray buf;
 		FacilityPDU.Encode(buf);
-		H225_H323_UserInformation uuie;
-		GetUUIE(FacilityPDU, uuie);
 		PrintQ931(5, "Send to ", GetName(), &FacilityPDU, &uuie);
  		if (!(remote && remote->TransmitData(buf))) {
 			PTRACE(2, "H46018\tTransmitting Facility to Neighbor GK " << AsString(sigAdr) << " failed");
