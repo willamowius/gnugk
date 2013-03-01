@@ -5295,7 +5295,9 @@ void CallSignalSocket::TryNextRoute()
 	if (newCall->GetNewRoutes().empty()) {
 		PTRACE(1, "Q931\tERROR: TryNextRoute() without a route");
 		SNMP_TRAP(7, SNMPError, Network, "Failover failed");
-		// TODO: newCall object leaks, don't simply delete, clean up pointers first
+		if (callingSocket)
+			callingSocket->m_call = callptr(NULL);
+		delete newCall;
 		return;
 	}
 	const Route & newRoute = newCall->GetNewRoutes().front();
