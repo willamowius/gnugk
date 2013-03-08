@@ -1574,6 +1574,8 @@ void Toolkit::ReloadSQLConfig()
 				value = params[2];
 				if (!params[3])
 					value += ";" + params[3];
+				if (params.GetSize() > 5)
+					value += ";" + params[4] + "," + params[5];
 				if (key.IsEmpty() || value.IsEmpty()) {
 					PTRACE(1, "SQLCONF\tInvalid permanent endpoint entry found "
 						"in the SQL database: '" << key << '=' << value << '\'');
