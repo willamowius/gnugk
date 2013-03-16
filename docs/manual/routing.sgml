@@ -1077,10 +1077,15 @@ This switch has no effect on any other destination type. For example H323ID or T
 <item><tt/ForceAliasType=1/<newline>
 Default: <tt/-1/<newline>
 <p>
-values  0-dialedDigits 1-h323_ID 
+values  0-dialedDigits 1-h323_ID 2-URI-ID
 With this switch you can force the source and destination AliasAddress to the supplied type. 
 Used in conjunction with MatchSourceTypeToDestination to change the AliasType. 
 for instance change url_ID to h323_ID so the remote gateway can process the message.
+
+<item><tt/ReplaceChar=+,0/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+With this switch you can remove/replace characters on the callers source address such as +.
 
 </itemize>
 

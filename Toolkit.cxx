@@ -3221,38 +3221,55 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 
 	bool onlyE164 = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "OnlyE164", "0"));
 	bool only10Dand11D = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "OnlyValid10Dand11D", "0"));
+	PStringArray rewriteChar = m_Config->GetString("RewriteSourceAddress", "ReplaceChar", "").Tokenise(",");  // TODO: support more then 1 rewritechar
 	bool matchSource = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "MatchSourceTypeToDestination", "0"));
 	int aliasForceType = m_Config->GetString("RewriteSourceAddress", "ForceAliasType", "-1").AsInteger();
-	if (aliasForceType > 1) aliasForceType = -1;
+	if (aliasForceType > 2) aliasForceType = -1;  // Limited only to support dialedDigits,h323_ID, url_ID,
 
 	unsigned destType = H225_AliasAddress::e_h323_ID;
 	if (matchSource) {
 		if (setup.GetQ931().HasIE(Q931::CalledPartyNumberIE)) {
 				destType = H225_AliasAddress::e_dialedDigits;
 		} else if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress) &&
-			setupBody.m_destinationAddress.GetSize() > 0 &&
-			setupBody.m_destinationAddress[0].GetTag() == H225_AliasAddress::e_url_ID) {
-				destType = H225_AliasAddress::e_url_ID;
-		} else 
-			return;
+			setupBody.m_destinationAddress.GetSize() > 0) {
+				destType = setupBody.m_destinationAddress[0].GetTag();
+		} 
 
-		if (aliasForceType > -1 && 
-			setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress) &&
-			setupBody.m_destinationAddress.GetSize() > 0 &&
-			setupBody.m_destinationAddress[0].GetTag() != (unsigned)aliasForceType) {
-				H225_AliasAddress alias;
-				alias.SetTag(aliasForceType);
-				if (aliasForceType == H225_AliasAddress::e_dialedDigits) {
-					PASN_IA5String & a = alias;
-					a = ::AsString(setupBody.m_destinationAddress[0],false);
-				} else if (aliasForceType == H225_AliasAddress::e_h323_ID) {
-					PASN_BMPString & a = alias; 
-					a.SetValue(::AsString(setupBody.m_destinationAddress[0],false));
-				} 
-				setupBody.m_destinationAddress[0] = alias;
+		if (aliasForceType > -1) {
+			PString destination = PString();
+			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress) &&
+				setupBody.m_destinationAddress.GetSize() > 0) {
+				destination = ::AsString(setupBody.m_destinationAddress[0],false);
+				if (rewriteChar.GetSize() == 2)
+					destination.Replace(rewriteChar[0],rewriteChar[1],true);
+				H323SetAliasAddress(destination,setupBody.m_destinationAddress[0],aliasForceType);
+			}
+			if (!destination && aliasForceType == H225_AliasAddress::e_dialedDigits)
+				setup.GetQ931().SetCalledPartyNumber(destination);
+
+			destType = aliasForceType;
+		}
+	} else {
+		// TODO: Support more generic source rewriting possibly even DB dip - SH
+		if (rewriteChar.GetSize() == 2) {
+			PString source = PString();
+			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)&&
+				setupBody.m_sourceAddress.GetSize() > 0)
+				source = ::AsString(setupBody.m_sourceAddress[0],false);
+		    else if (setup.GetQ931().HasIE(Q931::CallingPartyNumberIE))
+				setup.GetQ931().GetCallingPartyNumber(source);
+
+			if (!source) {
+				source.Replace(rewriteChar[0],rewriteChar[1],true);
+				if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress))
+					H323SetAliasAddress(source, setupBody.m_sourceAddress[0]);
+				if (IsValidE164(source)) 
+					setup.GetQ931().SetCallingPartyNumber(source);
+				else
+					setup.GetQ931().RemoveIE(Q931::CallingPartyNumberIE);
+			}
 		}
 	}
-
 
 	PINDEX i = 0;
 	while(i < setupBody.m_sourceAddress.GetSize()) {
@@ -3263,22 +3280,15 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 			remove = true;
 		if (only10Dand11D && !Is10Dor11Dnumber(setupBody.m_sourceAddress[i]))
 			remove = true;
-		if (remove) {
+
+		if (remove)
 			setupBody.m_sourceAddress.RemoveAt(i);
-		} else {
-			if (matchSource && aliasForceType > -1 &&
-				setupBody.m_sourceAddress[i].GetTag() != (unsigned)aliasForceType) {
-					H225_AliasAddress alias;
-					alias.SetTag(aliasForceType);
-					if (aliasForceType == H225_AliasAddress::e_dialedDigits) {
-						PASN_IA5String & a = alias; 
-						a = ::AsString(setupBody.m_sourceAddress[i],false);
-					} else if (aliasForceType == H225_AliasAddress::e_h323_ID) {
-						PASN_BMPString & a = alias; 
-						a.SetValue(::AsString(setupBody.m_sourceAddress[i],false));
-					}
-					setupBody.m_sourceAddress[i] = alias;
-			}
+		else {
+			if (aliasForceType > -1 &&
+			setupBody.m_sourceAddress[i].GetTag() != (unsigned)aliasForceType) {
+				PString source = ::AsString(setupBody.m_sourceAddress[i],false);
+				H323SetAliasAddress(source, setupBody.m_sourceAddress[i],aliasForceType);
+			} 
 			++i;
 		}
 	}
