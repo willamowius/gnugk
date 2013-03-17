@@ -354,6 +354,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RewriteSourceAddress", "OnlyE164" },
 	{ "RewriteSourceAddress", "OnlyValid10Dand11D" },
 	{ "RewriteSourceAddress", "ReplaceChar" },
+	{ "RewriteSourceAddress", "Rules" },
 	{ "RoutedMode", "AcceptNeighborCalls" },
 	{ "RoutedMode", "AcceptNeighborsCalls" },
 	{ "RoutedMode", "AcceptUnregisteredCalls" },

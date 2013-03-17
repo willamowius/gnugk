@@ -3215,17 +3215,16 @@ void Toolkit::RewriteCLI(SetupMsg & msg, SetupAuthData & authData, const PIPSock
 
 void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 {
+	// Read RewriteSourceAddress settings
+	PString rewriteChar = m_Config->GetString("RewriteSourceAddress", "ReplaceChar", "");
+	PString rules       = m_Config->GetString("RewriteSourceAddress", "Rules", "");
+	bool matchSource    = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "MatchSourceTypeToDestination", "0"));
+	bool onlyE164       = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "OnlyE164", "0"));
+	bool only10Dand11D  = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "OnlyValid10Dand11D", "0"));
+	int aliasForceType  = m_Config->GetString("RewriteSourceAddress", "ForceAliasType", "-1").AsInteger();
+	if (aliasForceType > 2) aliasForceType = -1;  // Limited only to support dialedDigits, h323_ID, url_ID,
+
 	H225_Setup_UUIE & setupBody = setup.GetUUIEBody();
-	if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress))
-		return;
-
-	bool onlyE164 = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "OnlyE164", "0"));
-	bool only10Dand11D = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "OnlyValid10Dand11D", "0"));
-	PStringArray rewriteChar = m_Config->GetString("RewriteSourceAddress", "ReplaceChar", "").Tokenise(",");  // TODO: support more then 1 rewritechar
-	bool matchSource = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "MatchSourceTypeToDestination", "0"));
-	int aliasForceType = m_Config->GetString("RewriteSourceAddress", "ForceAliasType", "-1").AsInteger();
-	if (aliasForceType > 2) aliasForceType = -1;  // Limited only to support dialedDigits,h323_ID, url_ID,
-
 	unsigned destType = H225_AliasAddress::e_h323_ID;
 	if (matchSource) {
 		if (setup.GetQ931().HasIE(Q931::CalledPartyNumberIE)) {
@@ -3240,8 +3239,14 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress) &&
 				setupBody.m_destinationAddress.GetSize() > 0) {
 				destination = ::AsString(setupBody.m_destinationAddress[0],false);
-				if (rewriteChar.GetSize() == 2)
-					destination.Replace(rewriteChar[0],rewriteChar[1],true);
+				if (!rewriteChar) {
+					PStringArray rewrite  = rewriteChar.Tokenise(";");
+					for (PINDEX i=0; i < rewrite.GetSize(); ++i) {
+						PStringArray cRule = rewrite[i].Tokenise(",");
+						if (cRule.GetSize() == 2)
+							destination.Replace(cRule[0],cRule[1],true);
+					}
+				}
 				H323SetAliasAddress(destination,setupBody.m_destinationAddress[0],aliasForceType);
 			}
 			if (!destination && aliasForceType == H225_AliasAddress::e_dialedDigits)
@@ -3249,48 +3254,73 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 
 			destType = aliasForceType;
 		}
-	} else {
-		// TODO: Support more generic source rewriting possibly even DB dip - SH
-		if (rewriteChar.GetSize() == 2) {
-			PString source = PString();
-			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)&&
-				setupBody.m_sourceAddress.GetSize() > 0)
-				source = ::AsString(setupBody.m_sourceAddress[0],false);
-		    else if (setup.GetQ931().HasIE(Q931::CallingPartyNumberIE))
-				setup.GetQ931().GetCallingPartyNumber(source);
+	}
 
-			if (!source) {
-				source.Replace(rewriteChar[0],rewriteChar[1],true);
-				if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress))
-					H323SetAliasAddress(source, setupBody.m_sourceAddress[0]);
-				if (IsValidE164(source)) 
-					setup.GetQ931().SetCallingPartyNumber(source);
-				else
-					setup.GetQ931().RemoveIE(Q931::CallingPartyNumberIE);
+	PINDEX i = 0;
+	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
+		while(i < setupBody.m_sourceAddress.GetSize()) {
+			bool remove = false;
+			if (matchSource && setupBody.m_sourceAddress[i].GetTag() != destType)
+				remove = true;
+			if (onlyE164 && setupBody.m_sourceAddress[i].GetTag() != H225_AliasAddress::e_dialedDigits)
+				remove = true;
+			if (only10Dand11D && !Is10Dor11Dnumber(setupBody.m_sourceAddress[i]))
+				remove = true;
+
+			if (remove)
+				setupBody.m_sourceAddress.RemoveAt(i);
+			else {
+				if (aliasForceType > -1 &&
+					setupBody.m_sourceAddress[i].GetTag() != (unsigned)aliasForceType) {
+						PString source = ::AsString(setupBody.m_sourceAddress[i],false);
+						H323SetAliasAddress(source, setupBody.m_sourceAddress[i],aliasForceType);
+				} 
+				++i;
 			}
 		}
 	}
 
-	PINDEX i = 0;
-	while(i < setupBody.m_sourceAddress.GetSize()) {
-		bool remove = false;
-		if (matchSource && setupBody.m_sourceAddress[i].GetTag() != destType)
-			remove = true;
-		if (onlyE164 && setupBody.m_sourceAddress[i].GetTag() != H225_AliasAddress::e_dialedDigits)
-			remove = true;
-		if (only10Dand11D && !Is10Dor11Dnumber(setupBody.m_sourceAddress[i]))
-			remove = true;
+	PBoolean changed = false;
+	PString source = PString();
+	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress))
+		source = ::AsString(setupBody.m_sourceAddress[0],false);
+	else
+		setup.GetQ931().GetCallingPartyNumber(source);
 
-		if (remove)
-			setupBody.m_sourceAddress.RemoveAt(i);
-		else {
-			if (aliasForceType > -1 &&
-			setupBody.m_sourceAddress[i].GetTag() != (unsigned)aliasForceType) {
-				PString source = ::AsString(setupBody.m_sourceAddress[i],false);
-				H323SetAliasAddress(source, setupBody.m_sourceAddress[i],aliasForceType);
-			} 
-			++i;
+	if (!rewriteChar) {
+		PStringArray rewrite  = rewriteChar.Tokenise(";");
+		for (PINDEX i=0; i < rewrite.GetSize(); ++i) {
+			PStringArray cRule = rewrite[i].Tokenise(",");
+			if (cRule.GetSize() == 2) { 
+				source.Replace(cRule[0], cRule[1],true);
+				changed = true;
+			}
 		}
+	}
+	if (!rules) {
+		PStringArray sRules = rules.Tokenise(";");
+		if (sRules.GetSize() > 0 && IsValidE164(source)) {  // Only support E164 for now.
+			for (PINDEX i=0; i < sRules.GetSize(); ++i) {
+				PStringArray cRule = sRules[i].Tokenise(",");
+				if (cRule.GetSize() == 2 && cRule[0] == source.Left(cRule[0].GetLength())) {
+					PTRACE(4,"SWRITE\tSource Address " << source << " rewritten to " << cRule[1]);
+					source = cRule[1];
+					changed = true;
+					break;
+				}
+			}
+		}
+	}
+	// TODO: Add Database rewrite here - SH
+	if (changed) {
+		setupBody.IncludeOptionalField(H225_Setup_UUIE::e_sourceAddress);
+		setupBody.m_sourceAddress.SetSize(1);
+		H323SetAliasAddress(source, setupBody.m_sourceAddress[0]);
+
+		if (IsValidE164(source)) 
+			setup.GetQ931().SetCallingPartyNumber(source);
+		else
+			setup.GetQ931().RemoveIE(Q931::CallingPartyNumberIE);
 	}
 }
 
