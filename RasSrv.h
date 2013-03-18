@@ -217,6 +217,9 @@ public:
 	template<class RAS> void SetAltGKInfo(RAS & ras, const NetworkAddress & ip)
 	{
 		H225_ArrayOf_AlternateGK alternates = GetAltGKForIP(ip);
+#if HAS_DATABASE
+		Toolkit::Instance()->AlternateGKs().GetAlternateGK(ip.m_address, alternates);
+#endif
 		if (alternates.GetSize() > 0) {
 			// add alternates by IP
 			ras.IncludeOptionalField(RAS::e_altGKInfo);
