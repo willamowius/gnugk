@@ -763,8 +763,8 @@ PString RewriteWildcard(
 		rewrite = s;
 	else {
 	   int start = -1;
-       if (exp.Find('^') != P_MAX_INDEX)  start = 0;
-	   else if (exp.Find('$') != P_MAX_INDEX) start = 1;
+       if (exp.Find('^') != P_MAX_INDEX)  start = 1;
+	   else if (exp.Find('$') != P_MAX_INDEX) start = 0;
 	  
 	   if (start < 0) return s;   /// Logic error ignore rewrite
 
@@ -776,7 +776,7 @@ PString RewriteWildcard(
 	   int i = exp.Mid(c1+1,c2-c1-1).AsInteger();
 	   if (i == 0) return s;   /// Logic error ignore rewrite
 
-       if (b1 > 0) rewrite = s.Left(i);
+       if (start) rewrite = s.Left(i);
 	   else rewrite = s.Mid(s.GetLength()-i);
 	}
 	return l + rewrite + r;
