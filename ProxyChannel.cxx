@@ -10642,6 +10642,9 @@ void ProxyHandler::LoadConfig()
 
 void ProxyHandler::Insert(TCPProxySocket * socket)
 {
+	if (socket == NULL)
+		return;
+
 	ProxyHandler * h = socket->GetHandler();
 	if (h == NULL) {
 		socket->SetHandler(this);
@@ -10652,6 +10655,9 @@ void ProxyHandler::Insert(TCPProxySocket * socket)
 
 void ProxyHandler::Insert(TCPProxySocket *first, TCPProxySocket *second)
 {
+	if (first == NULL || second == NULL)
+		return;
+
 	ProxyHandler *h = first->GetHandler();
 	if (h != NULL && h != this)
 		h->DetachSocket(first);
