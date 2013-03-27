@@ -155,6 +155,12 @@ Send a RequestInProgress (RIP) message with this delay value after receiving an 
 This switch can be used to extend the duration the caller will wait for an answer.
 No RIP is sent when the delay ist set to 0.
 
+<item><tt/PingAlias=gatekeeper-monitoring-check/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Predefined Alias used with LRQ pinging. Capturing the Alias used for PING helps reduce gatekeeper resources processing the LRQ. 
+Feature used by VCS in GDS dialing schema. Feature currently only accepts pings and does not send any.
+
 </itemize>
 
 
@@ -293,13 +299,6 @@ Default: <tt>own GK-ID</tt><newline>
 <p>
 The user name (gatekeeprID) to be used to send crypto tokens to this neighbor (right now only used for H.460.18 SCI).
 The default value is this gatekeeper's ID.
-
-
-<item><tt/PingAlias=gatekeeper-monitoring-check/<newline>
-Default: <tt>N/A</tt><newline>
-<p>
-Predefined Alias used with LRQ pinging. Capturing the Alias used for PING helps reduce gatekeeper resources processing the LRQ. 
-Feature used by VCS in GDS dialing schema. Feature currently only accepts pings and does not send any.
 
 </itemize>
 
