@@ -52,7 +52,7 @@ PString AsString(const PIPSocket::Address & ip)
 		sockaddr_in6 ipv6addr;
 		memset(&ipv6addr, 0, sizeof(ipv6addr));
 		ipv6addr.sin6_addr = ip;
-		return inet_ntop(AF_INET6, &ipv6addr.sin6_addr, buf, INET6_ADDRSTRLEN);
+		return inet_ntop(AF_INET6, (const void *)&ipv6addr.sin6_addr, buf, INET6_ADDRSTRLEN);
 	}
 #endif
 	return ip.AsString();
