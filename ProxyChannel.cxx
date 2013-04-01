@@ -1220,6 +1220,12 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 			// if we get a Setup from a traversal zone, it must me from a traversal client and we won't have an EPRec for it
 			proxyhandler->SetTraversalRole(TraversalClient);
 		}
+		GkClient * gkClient = RasServer::Instance()->GetGkClient();
+		if (gkClient && gkClient->CheckFrom(peerAddr) && gkClient->UsesH46018()) {
+			// for a Setup from a parent we won't have an EPRec and if H.460.18 is used it must be the server
+			PTRACE(0, "JW setting Parent as traversal server role was " << proxyhandler->GetTraversalRole());
+			proxyhandler->SetTraversalRole(TraversalServer);
+		}
 		proxyhandler->SetH46019Direction(m_call->GetH46019Direction());
 		proxyhandler->SetRequestRTPMultiplexing(socket->m_senderSupportsH46019Multiplexing);
 #endif
@@ -2958,11 +2964,17 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				&& _destAddr == _localAddr && _destPort == _localPort) {
 			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 		}
+		GkClient * gkClient = RasServer::Instance()->GetGkClient();
+		if (m_call && gkClient && gkClient->CheckFrom(_peerAddr)) {
+			PTRACE(0, "JW Call from Parent");
+			m_call->SetFromParent(true);
+		}
 #ifdef HAS_H46018
-		// only compare IP for calls from Traversal server:
-		// it knows our callSigIP, but because of the reverse connection establishment,
-		// this socket probably runs on a different port
-		if (rassrv->IsCallFromTraversalServer(_peerAddr) && (_destAddr == _localAddr)) {
+		// ignore destCallSignalAddress from traversal server:
+		// client doesn't know external IP and the server only knows the external IP, so client can't tell if it is his IP or somebody else
+		if (rassrv->IsCallFromTraversalServer(_peerAddr)
+			|| (gkClient && gkClient->CheckFrom(_peerAddr) && gkClient->UsesH46018()) ) {
+			PTRACE(0, "JW removing destCallSignalAddr from traversal server");
 			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 		}
 #endif
@@ -2974,7 +2986,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			ex.GetIpAddress(ext);
 			if (GetIPAndPortFromTransportAddr(setupBody.m_destCallSignalAddress, _destAddr, _destPort)
 					&& _destAddr == ext) {
-				PTRACE(1, "Removing External IP from callDestSignalAddr in Setup");
+				PTRACE(1, "Removing External IP from destCallSignalAddr in Setup");
 				setupBody.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 			}
 		}
@@ -3003,6 +3015,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 #endif
 		) {
 		// existing CallRec
+PTRACE(0, "JW existing Callrec");
 		bool secondSetup = false;	// second Setup with same call-id detected (avoid new acct start and overwriting acct data)
 		m_call->SetSetupTime(setupTime);
 		m_call->SetSrcSignalAddr(SocketToH225TransportAddr(_peerAddr, _peerPort));
@@ -3025,8 +3038,9 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				PTRACE(2, Type() << "\tWarning: a registered call from my GK(" << GetName() << ')');
 				m_call->SetDisconnectCause(Q931::CallRejected);
 				rejectCall = true;
-			} else
+			} else {
 				gkClient->HandleSetup(*setup, true);
+			}
 		}
 
 		const H225_ArrayOf_CryptoH323Token & tokens = m_call->GetAccessTokens();
@@ -3097,6 +3111,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			PTRACE(5, Type() << "\tSupressing accounting start event for call #"
 				<< m_call->GetCallNumber());
 	} else {
+PTRACE(0, "JW NO existing Callrec");
 		// no existing CallRec
 		authData.m_dialedNumber = dialedNumber;
 		authData.m_callingStationId = GetCallingStationId(*setup, authData);
@@ -3298,7 +3313,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 		// if I'm behind NAT and the call is from parent, always use H.245 routed,
 		// also make sure all calls from endpoints with H.460.17/.18 are H.245 routed
-		bool h245Routed = rassrv->IsH245Routed() || (useParent && gkClient->IsNATed());
+		bool h245Routed = rassrv->IsH245Routed() || (useParent && (gkClient->IsNATed() || gkClient->UsesH46018()));
 		bool callFromTraversalClient = false;
 		bool callFromTraversalServer = false;
 #ifdef HAS_H46017
@@ -3340,6 +3355,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		// special case for reverse H.460.18 Setup
 		if (m_call && m_call->IsH46018ReverseSetup()) {		// looking at the _old_ call
 			call->SetH46018ReverseSetup(true);
+			call->SetFromParent(m_call->IsFromParent());
 			m_call->SetCallSignalSocketCalling(NULL);
 			m_call->SetCallSignalSocketCalled(NULL);
 			m_h245handlerLock.Wait();
@@ -3429,7 +3445,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		m_call = callptr(call);
 		if (savedPtr) {
 			authData.m_call = callptr(call);
-//			delete savedPtr;	// TODO: 3K memory leak per call, but crash if we delete it here
+			savedPtr->ClearCallIdentifier(); // make sure multiplexed channels for this callID won't be deleted when tmp CallRec or socket get deleted
 		}
 
 		m_call->SetSetupTime(setupTime);
@@ -3735,9 +3751,14 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	}
 #endif
 #ifdef HAS_H46018
+PTRACE(0, "JW role check: calling=" << m_call->GetCallingParty() << " called=" << m_call->GetCalledParty());
+if (m_call->GetCalledParty()) {
+	PTRACE(0, "JW role called=" << m_call->GetCalledParty()->GetTraversalRole());
+}
 	// proxy if calling or called use H.460.18
 	if ((m_call->H46019Required() && ((m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None)
 		|| (m_call->GetCalledParty() && m_call->GetCalledParty()->GetTraversalRole() != None)))
+		|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018())
 		|| m_call->IsH46018ReverseSetup() ) {
 		m_call->SetProxyMode(CallRec::ProxyEnabled);
 		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled (H.460.18/.19)");
@@ -3760,12 +3781,15 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		// remove H.460.19 indicator
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures) && !OZH46024) {
 			bool isH46019Client = false;
+PTRACE(0, "JW remove .19 indicator");
 			RemoveH46019Descriptor(setupBody.m_supportedFeatures, m_senderSupportsH46019Multiplexing, isH46019Client);
 			if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46017() && isH46019Client) {
 				m_call->GetCallingParty()->SetTraversalRole(TraversalClient);
 			}
 		}
-		if (m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalServer()) {
+		if ( (m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalServer())
+			|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018()) ) {
+PTRACE(0, "JW adding .19 Indicator");
 			H460_FeatureStd feat = H460_FeatureStd(19);
 			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
 				H460_FeatureID * feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
@@ -4199,6 +4223,7 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 		bool OZH46024 = false;
 #endif
 	if (Toolkit::Instance()->IsH46018Enabled() && !OZH46024) {
+		GkClient * gkClient = RasServer::Instance()->GetGkClient();
 		// remove H.460.19 descriptor from sender
 		if (cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_featureSet)) {
 			bool isH46019Client = false;
@@ -4210,7 +4235,8 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 			GetPeerAddress(_peerAddr, _peerPort);
 			UnmapIPv4Address(_peerAddr);
 			if ( (m_call && m_call->GetCalledParty() && (m_call->GetCalledParty()->UsesH46017() || m_call->GetCalledParty()->GetTraversalRole() != None))
-				|| RasServer::Instance()->IsCallFromTraversalClient(_peerAddr) || RasServer::Instance()->IsCallFromTraversalServer(_peerAddr) ) {
+				|| RasServer::Instance()->IsCallFromTraversalClient(_peerAddr) || RasServer::Instance()->IsCallFromTraversalServer(_peerAddr)
+				|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018()) ) {
 				// set traversal role for called party (needed for H.460.17, doesn't hurt H.460.18)
 				if (isH46019Client
 					&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
@@ -4228,7 +4254,8 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 			if (cpBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				cpBody.RemoveOptionalField(H225_CallProceeding_UUIE::e_featureSet);
 		}
-		if (m_call && m_call->GetCallingParty() && (m_call->GetCallingParty()->GetTraversalRole() != None)) {
+		if (m_call && ((m_call->GetCallingParty() && (m_call->GetCallingParty()->GetTraversalRole() != None))
+				|| (m_call->IsFromParent() && gkClient && gkClient->UsesH46018()) ) ) {
 			H460_FeatureStd feat = H460_FeatureStd(19);
 			H460_FeatureID * feat_id = NULL;
 			if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalClient()) {
@@ -4444,6 +4471,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 	bool OZH46024 = false;
 #endif
 	if (m_call && m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled() && !OZH46024) {
+		GkClient * gkClient = RasServer::Instance()->GetGkClient();
 		// remove H.460.19 descriptor from sender
 		if (connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet)) {
 			bool isH46019Client = false;
@@ -4455,7 +4483,8 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			GetPeerAddress(_peerAddr, _peerPort);
 			UnmapIPv4Address(_peerAddr);
 			if ( (m_call && m_call->GetCalledParty() && (m_call->GetCalledParty()->UsesH46017() || m_call->GetCalledParty()->GetTraversalRole() != None))
-				|| RasServer::Instance()->IsCallFromTraversalClient(_peerAddr) || RasServer::Instance()->IsCallFromTraversalServer(_peerAddr) ) {
+				|| RasServer::Instance()->IsCallFromTraversalClient(_peerAddr) || RasServer::Instance()->IsCallFromTraversalServer(_peerAddr)
+				|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018()) ) {
 				// set traversal role for called party (needed for H.460.17, doesn't hurt H.460.18)
 				if (isH46019Client
 					&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
@@ -4473,7 +4502,8 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			if (connectBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				connectBody.RemoveOptionalField(H225_Connect_UUIE::e_featureSet);
 		}
-		if (m_call->GetCallingParty() && (m_call->GetCallingParty()->GetTraversalRole() != None)) {
+		if (m_call && ((m_call->GetCallingParty() && (m_call->GetCallingParty()->GetTraversalRole() != None))
+				|| (m_call->IsFromParent() && gkClient && gkClient->UsesH46018()) ) ) {
 			// add H.460.19 indicator
 			H460_FeatureStd feat = H460_FeatureStd(19);
 			H460_FeatureID * feat_id = NULL;
@@ -4567,6 +4597,7 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 	bool OZH46024 = false;
 #endif
 	if (m_call && m_call->H46019Required() && Toolkit::Instance()->IsH46018Enabled() && !OZH46024) {
+		GkClient * gkClient = RasServer::Instance()->GetGkClient();
 		// remove H.460.19 descriptor from sender
 		if (alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet)) {
 			bool isH46019Client = false;
@@ -4578,7 +4609,8 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 			GetPeerAddress(_peerAddr, _peerPort);
 			UnmapIPv4Address(_peerAddr);
 			if ( (m_call && m_call->GetCalledParty() && (m_call->GetCalledParty()->UsesH46017() || m_call->GetCalledParty()->GetTraversalRole() != None))
-				|| RasServer::Instance()->IsCallFromTraversalClient(_peerAddr) || RasServer::Instance()->IsCallFromTraversalServer(_peerAddr) ) {
+				|| RasServer::Instance()->IsCallFromTraversalClient(_peerAddr) || RasServer::Instance()->IsCallFromTraversalServer(_peerAddr)
+				|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018()) ) {
 				// set traversal role for called party (needed for H.460.17, doesn't hurt H.460.18)
 				if (isH46019Client
 					&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
@@ -4597,7 +4629,8 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 			if (alertingBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				alertingBody.RemoveOptionalField(H225_Alerting_UUIE::e_featureSet);
 		}
-		if (m_call && m_call->GetCallingParty() && (m_call->GetCallingParty()->GetTraversalRole() != None)) {
+		if (m_call && ((m_call->GetCallingParty() && (m_call->GetCallingParty()->GetTraversalRole() != None))
+				|| (m_call->IsFromParent() && gkClient && gkClient->UsesH46018()) ) ) {
 			// add H.460.19 indicator
 			H460_FeatureStd feat = H460_FeatureStd(19);
 			H460_FeatureID * feat_id = NULL;
@@ -7691,6 +7724,7 @@ void MultiplexedRTPHandler::RemoveChannels(H225_CallIdentifier callid)
 			++iter;
 		}
 	}
+	DumpChannels(" RemoveChannels() done ");
 }
 
 #ifdef HAS_H235_MEDIA
@@ -7707,6 +7741,7 @@ void MultiplexedRTPHandler::RemoveChannel(H225_CallIdentifier callid, RTPLogical
 		}
 		++iter;
 	}
+	DumpChannels(" RemoveChannel() done ");
 }
 #endif
 
@@ -7734,6 +7769,7 @@ void MultiplexedRTPHandler::HandlePacket(PUInt32b receivedMultiplexID, const H32
 			return;
 		}
 	}
+	PTRACE(3, "RTP\tWarning: Didn't find a channel for receivedMultiplexID " << receivedMultiplexID << " from " << AsString(fromAddress));
 }
 
 PUInt32b MultiplexedRTPHandler::GetMultiplexID(const H225_CallIdentifier & callid, WORD session, void * to)
@@ -8062,7 +8098,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			H323TransportAddress fDestAddr(fDestIP, fDestPort);
 			H323TransportAddress rSrcAddr(rSrcIP, rSrcPort);
 			H323TransportAddress rDestAddr(rDestIP, rDestPort);
-			PTRACE(5, "H46018\tRTP/RTCP keepAlive from " << AsString(fromIP, fromPort));
+			PTRACE(5, "H46018\t" << (isRTCP ? "RTCP" : "RTP") << " keepAlive from " << AsString(fromIP, fromPort));
 			if ((fDestIP == 0) && (fromAddr != rDestAddr) && ((rSrcIP == 0) || (rSrcAddr == fromAddr))) {
 				// fwd dest was unset and packet didn't come from other side
 				PTRACE(5, "H46018\tSetting forward destination to " << AsString(fromIP, fromPort) << " based on " << Type() << " keepAlive");
@@ -8619,7 +8655,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 
 #ifdef HAS_H46023
 	// If we have a GKClient check whether to create NAT ports or not.
-	GkClient *gkClient = RasServer::Instance()->GetGkClient();
+	GkClient * gkClient = RasServer::Instance()->GetGkClient();
 	if (gkClient && !gkClient->H46023_CreateSocketPair(id, flcn, rtp, rtcp, nated))
 #endif
 	{

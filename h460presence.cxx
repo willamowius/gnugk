@@ -1571,7 +1571,7 @@ void GkPresence::OnSubscription(MsgType tag, const H460P_PresenceSubscription & 
 		H460P_PresencePDU msg;
 		BuildSubscriptionMsg(subscription,msg);
 		if (!HandleForwardPresence(subscription.m_identifier, msg)) {
-			PTRACE(2, "PRES\tSubscription received " << subscription.m_identifier.m_guid << " from " << AsString(addr,0) << " not handled");
+			PTRACE(2, "PRES\tSubscription received " << AsString(subscription.m_identifier.m_guid) << " from " << AsString(addr,0) << " not handled");
 			return;
 		}
 	}

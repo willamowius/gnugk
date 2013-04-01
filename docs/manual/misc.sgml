@@ -342,7 +342,6 @@ authentication in the parent gatekeeper and not the child.
 <item><tt/EnableH46018=1/<newline>
 Default: <tt/0/<newline>
 <p>
-Note: This function is not yet implemented.
 Whether the child offers H.460.18/.19 support to the parent. 
 
 <item><tt/EnableH46023=1/<newline>

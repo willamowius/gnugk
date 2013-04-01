@@ -739,6 +739,7 @@ public:
 
 	PINDEX GetCallNumber() const { return m_CallNumber; }
 	const H225_CallIdentifier & GetCallIdentifier() const { return m_callIdentifier; }
+	void ClearCallIdentifier() { m_callIdentifier = 0; }
 	unsigned GetCallRef() const { return m_crv; }
 	const H225_ConferenceIdentifier & GetConferenceIdentifier() const { return m_conferenceIdentifier; }
 	endptr GetCallingParty() const { return m_Calling; }
@@ -856,6 +857,7 @@ public:
 	void SetCallSignalSocketCalling(CallSignalSocket* socket);
 	void SetCallSignalSocketCalled(CallSignalSocket* socket);
 	void SetToParent(bool toParent) { m_toParent = toParent; }
+	void SetFromParent(bool fromParent) { m_fromParent = fromParent; }
 	void SetAccessTokens(const H225_ArrayOf_CryptoH323Token & tokens) { m_accessTokens = tokens; }
 	void SetInboundRewriteId(PString id) { m_inbound_rewrite_id = id; }
 	void SetOutboundRewriteId(PString id) { m_outbound_rewrite_id = id; }
@@ -887,7 +889,8 @@ public:
 
 	void SetH245Routed(PBoolean routed) { m_h245Routed = routed; }
 	bool IsH245Routed() const { return m_h245Routed; }
-	bool IsToParent() const { return m_toParent; }
+	bool IsToParent() const { return m_toParent; }	// to _or_ from parnet
+	bool IsFromParent() const { return m_fromParent; }	// from parent only
 	bool IsForwarded() const { return m_forwarded; }
 	bool IsSocketAttached() const { return (m_callingSocket != NULL); }
 
@@ -1495,6 +1498,8 @@ private:
 	bool m_h245Routed;
 	/// the call is routed to this gatekeeper's parent gatekeeper
 	bool m_toParent;
+	/// the call is routed to this gatekeeper from it's parent gatekeeper
+	bool m_fromParent;
 	bool m_forwarded;
 	endptr m_Forwarder;
 

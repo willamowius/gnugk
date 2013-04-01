@@ -2440,10 +2440,11 @@ CallRec::CallRec(
 	m_natstrategy(e_natUnknown),
 #endif
 	m_unregNAT(false), m_h245Routed(RasServer::Instance()->IsH245Routed()),
-	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
+	m_toParent(false), m_fromParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
-	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalClient(false), m_callfromTraversalServer(false)
+	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalClient(false), m_callfromTraversalServer(false),
+	m_rerouteDirection(Caller)
 #ifdef HAS_H235_MEDIA
     ,m_encyptDir(none), m_dynamicPayloadTypeCounter(MIN_DYNAMIC_PAYLOAD_TYPE)
 #endif
@@ -2497,10 +2498,11 @@ CallRec::CallRec(
 	m_natstrategy(e_natUnknown),
 #endif
 	m_unregNAT(false), m_h245Routed(routeH245),
-	m_toParent(false), m_forwarded(false), m_proxyMode(proxyMode),
+	m_toParent(false), m_fromParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
-	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalClient(false), m_callfromTraversalServer(false)
+	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalClient(false), m_callfromTraversalServer(false),
+	m_rerouteDirection(Caller)
 #ifdef HAS_H235_MEDIA
     ,m_encyptDir(none), m_dynamicPayloadTypeCounter(MIN_DYNAMIC_PAYLOAD_TYPE)
 #endif
@@ -2545,10 +2547,11 @@ CallRec::CallRec(const H225_CallIdentifier & callID, H225_TransportAddress sigAd
 	m_natstrategy(e_natUnknown),
 #endif
 	m_unregNAT(false), m_h245Routed(true),
-	m_toParent(false), m_forwarded(false), m_proxyMode(ProxyEnabled),
+	m_toParent(false), m_fromParent(false), m_forwarded(false), m_proxyMode(ProxyEnabled),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
-	m_h46018ReverseSetup(true), m_callfromTraversalClient(true), m_callfromTraversalServer(false)
+	m_h46018ReverseSetup(true), m_callfromTraversalClient(true), m_callfromTraversalServer(false),
+	m_rerouteDirection(Caller)
 #ifdef HAS_H235_MEDIA
     ,m_encyptDir(none), m_dynamicPayloadTypeCounter(MIN_DYNAMIC_PAYLOAD_TYPE)
 #endif
@@ -2580,13 +2583,14 @@ CallRec::CallRec(
 	m_natstrategy(e_natUnknown),
 #endif
 	m_unregNAT(oldCall->m_unregNAT), m_h245Routed(oldCall->m_h245Routed),
-	m_toParent(false), m_forwarded(false), m_proxyMode(CallRec::ProxyDetect),
+	m_toParent(false), m_fromParent(false), m_forwarded(false), m_proxyMode(CallRec::ProxyDetect),
 	m_failedRoutes(oldCall->m_failedRoutes), m_newRoutes(oldCall->m_newRoutes),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_failoverActive(oldCall->m_failoverActive),
 	m_singleFailoverCDR(oldCall->m_singleFailoverCDR), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(oldCall->m_proceedingSent),
 	m_clientAuthId(0), m_rerouteState(oldCall->m_rerouteState), m_h46018ReverseSetup(oldCall->m_h46018ReverseSetup),
-	m_callfromTraversalClient(oldCall->m_callfromTraversalClient), m_callfromTraversalServer(oldCall->m_callfromTraversalServer)
+	m_callfromTraversalClient(oldCall->m_callfromTraversalClient), m_callfromTraversalServer(oldCall->m_callfromTraversalServer),
+	m_rerouteDirection(oldCall->m_rerouteDirection)
 #ifdef HAS_H235_MEDIA
     ,m_encyptDir(none), m_dynamicPayloadTypeCounter(MIN_DYNAMIC_PAYLOAD_TYPE)
 #endif

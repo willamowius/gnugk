@@ -65,8 +65,8 @@ private:
 };
 
 AlternateGKs::AlternateGKs(const PIPSocket::Address & gkaddr, WORD gkport)
+	: pgkaddr(gkaddr), pgkport(gkport)
 {
-	pgkaddr = gkaddr, pgkport = gkport;
 }
 
 void AlternateGKs::Set(const H225_AlternateGK & agk)
@@ -1208,9 +1208,9 @@ GkClient::GkClient()
 	m_retry(GkConfig()->GetInteger(EndpointSection, "RRQRetryInterval", DEFAULT_RRQ_RETRY)),
 	m_authMode(-1), m_rewriteInfo(NULL), m_natClient(NULL),
 	m_parentVendor(ParentVendor_GnuGk), m_endpointType(EndpointType_Gateway),
-	m_discoverParent(true)
+	m_discoverParent(true), m_enableH46018(false), m_registeredH46018(false)
 #ifdef HAS_H46023
-	, m_nattype(0), m_natnotify(false), gk_H460_23(false),  m_stunClient(NULL), m_algDetected(false)
+	, m_nattype(0), m_natnotify(false), m_registeredH46023(false),  m_stunClient(NULL), m_algDetected(false)
 #endif
 {
 	m_resend = m_retry;
@@ -1293,6 +1293,13 @@ void GkClient::OnReload()
 
 	m_h323Id = cfg->GetString(EndpointSection, "H323ID", (const char *)Toolkit::GKName()).Tokenise(" ,;\t", FALSE);
 	m_e164 = cfg->GetString(EndpointSection, "E164", "").Tokenise(" ,;\t", FALSE);
+
+#ifdef HAS_H46018
+	m_enableH46018 = Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableH46018", "0"));
+	if (m_enableH46018 && !Toolkit::Instance()->IsH46018Enabled()) {
+		PTRACE(1, "H46018\tWarning: H.460.18 enabled for parent/child, but global H.460.18 switch is OFF");
+	}
+#endif
 	
 	PIPSocket::Address gkaddr = m_gkaddr;
 	WORD gkport = m_gkport;
@@ -1354,6 +1361,17 @@ bool GkClient::CheckFrom(const RasMsg *ras) const
 	return ras->IsFrom(m_gkaddr, m_gkport);
 }
 
+bool GkClient::CheckFrom(const PIPSocket::Address & ip) const
+{
+	return m_gkaddr == ip;
+}
+
+bool GkClient::CheckFrom(const H225_TransportAddress & addr) const
+{
+	PIPSocket::Address ip;
+	return GetIPFromTransportAddr(addr, ip) && m_gkaddr == ip;
+}
+
 PString GkClient::GetParent() const
 {
 	return IsRegistered() ?
@@ -1372,8 +1390,14 @@ bool GkClient::OnSendingGRQ(H225_GatekeeperRequest &grq)
 	}
 
 #ifdef HAS_H46018
-	if (Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableH46018", "0"))) {
-		// TODO Add Feature
+	if (m_enableH46018) {
+		grq.IncludeOptionalField(H225_GatekeeperRequest::e_featureSet);
+		H460_FeatureStd feat = H460_FeatureStd(18); 
+		grq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+		H225_ArrayOf_FeatureDescriptor & desc = grq.m_featureSet.m_supportedFeatures;
+		int sz = desc.GetSize();
+		desc.SetSize(sz + 1);
+		desc[sz] = feat;
 	}
 #endif
 
@@ -1381,11 +1405,11 @@ bool GkClient::OnSendingGRQ(H225_GatekeeperRequest &grq)
 	if (Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableH46023", "0"))) {
 		grq.IncludeOptionalField(H225_GatekeeperRequest::e_featureSet);
 		H460_FeatureStd feat = H460_FeatureStd(23); 
-			grq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
-			H225_ArrayOf_FeatureDescriptor & desc = grq.m_featureSet.m_supportedFeatures;
-			int sz = desc.GetSize();
-			desc.SetSize(sz+1);
-			desc[sz] = feat;
+		grq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+		H225_ArrayOf_FeatureDescriptor & desc = grq.m_featureSet.m_supportedFeatures;
+		int sz = desc.GetSize();
+		desc.SetSize(sz + 1);
+		desc[sz] = feat;
 	}
 #endif
 	return true;
@@ -1393,7 +1417,7 @@ bool GkClient::OnSendingGRQ(H225_GatekeeperRequest &grq)
 
 bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 {
-	if (m_parentVendor == ParentVendor_GnuGk) {
+	if ((m_parentVendor == ParentVendor_GnuGk) && !m_enableH46018) {
 		PIPSocket::Address sigip;
 		if (rrq.m_callSignalAddress.GetSize() > 0
 				&& GetIPFromTransportAddr(rrq.m_callSignalAddress[0], sigip)) {
@@ -1408,14 +1432,20 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 	}
 
 #ifdef HAS_H46018
-		if (Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableH46018", "0"))) {
-            // TODO Add Feature
+		if (m_enableH46018) {
+			rrq.IncludeOptionalField(H225_RegistrationRequest::e_featureSet);
+			H460_FeatureStd feat = H460_FeatureStd(18); 
+			rrq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+			H225_ArrayOf_FeatureDescriptor & desc = rrq.m_featureSet.m_supportedFeatures;
+			int sz = desc.GetSize();
+			desc.SetSize(sz + 1);
+			desc[sz] = feat;
         }
 #endif
 
 #ifdef HAS_H46023
 		if (Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableH46023", "0")) && 
-			(!m_registered || gk_H460_23)) {
+			(!m_registered || m_registeredH46023)) {
 
 			bool contents = false;
 			rrq.IncludeOptionalField(H225_RegistrationRequest::e_featureSet);
@@ -1607,7 +1637,7 @@ bool GkClient::SendARQ(Routing::AdmissionRequest & arq_obj)
 	}
 
 #ifdef HAS_H46023
-	if (gk_H460_23) {
+	if (m_registeredH46023) {
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_featureSet);
 			H460_FeatureStd feat = H460_FeatureStd(24); 
 			arq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
@@ -1712,12 +1742,8 @@ bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer)
 	// workaround for bandwidth
 	arq.m_bandWidth = 1280;
 
-#ifdef HAS_H46018
-	// TODO: H46018 Child Implementation
-#endif
-
 #ifdef HAS_H46023
-	if (answer && gk_H460_23) {
+	if (answer && m_registeredH46023) {
 		CallRec::NatStrategy natoffload = H46023_GetNATStategy(setup.m_callIdentifier);
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_featureSet);
 			H460_FeatureStd feat = H460_FeatureStd(24); 
@@ -2119,14 +2145,9 @@ bool GkClient::WaitForACF(H225_AdmissionRequest &arq, RasRequester & request, Ro
 				robj->AddRoute(route);
 
 				if (acf.HasOptionalField(H225_AdmissionConfirm::e_featureSet)) {
-#if defined (HAS_H46018) || defined(HAS_H46023)
-					H460_FeatureSet fs = H460_FeatureSet(acf.m_featureSet);
-#endif
-#ifdef HAS_H46018
-					// TODO: Implement H.460.19 Handling
-#endif
 #ifdef HAS_H46023
-					if (gk_H460_23 && fs.HasFeature(24)) { 
+					H460_FeatureSet fs = H460_FeatureSet(acf.m_featureSet);
+					if (m_registeredH46023 && fs.HasFeature(24)) { 
 						callptr call = arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier) ?
 							CallTable::Instance()->FindCallRec(arq.m_callIdentifier) : CallTable::Instance()->FindCallRec(arq.m_callReferenceValue);
 							H46023_ACF(call, (H460_FeatureStd *)fs.GetFeature(24));
@@ -2195,7 +2216,7 @@ void GkClient::OnRCF(RasMsg *ras)
 	m_resend = m_retry;
 
 	// NAT handling
-	if (rcf.HasOptionalField(H225_RegistrationConfirm::e_nonStandardData)) {
+	if (!m_enableH46018 && rcf.HasOptionalField(H225_RegistrationConfirm::e_nonStandardData)) {
 		int iec = Toolkit::iecUnknown;
 		if (rcf.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
 			iec = Toolkit::Instance()->GetInternalExtensionCode((const H225_H221NonStandard&)rcf.m_nonStandardData.m_nonStandardIdentifier);
@@ -2214,13 +2235,14 @@ void GkClient::OnRCF(RasMsg *ras)
 	if (rcf.HasOptionalField(H225_RegistrationConfirm::e_featureSet)) {
 #if defined (HAS_H46018) || defined(HAS_H46023)
 		H460_FeatureSet fs = H460_FeatureSet(rcf.m_featureSet);
-#endif
 #ifdef HAS_H46018
-		// TODO: Implement H.460.19 Handling
+		if (m_enableH46018 && fs.HasFeature(18))
+			m_registeredH46018 = true;
 #endif
 #ifdef HAS_H46023
 		if (Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableH46023", "0")) && fs.HasFeature(23))
 			H46023_RCF((H460_FeatureStd *)fs.GetFeature(23));
+#endif
 #endif
 	}
 }
@@ -2243,7 +2265,7 @@ void GkClient::RunSTUNTest(const H323TransportAddress & addr)
 #endif
 		s = addr;
 
-	m_stunClient = new STUNClient(this,s);
+	m_stunClient = new STUNClient(this, s);
 }
 
 void GkClient::H46023_RCF(H460_FeatureStd * feat)
@@ -2260,7 +2282,7 @@ void GkClient::H46023_RCF(H460_FeatureStd * feat)
 		}
 	}
 
-	gk_H460_23 = true;
+	m_registeredH46023 = true;
 	if (feat->Contains(Std23_STUNAddr)) {
 		H323TransportAddress addr = feat->Value(Std23_STUNAddr);
 		RunSTUNTest(addr);
@@ -2289,7 +2311,7 @@ void GkClient::H46023_ACF(callptr m_call, H460_FeatureStd * feat)
 
 bool GkClient::H46023_CreateSocketPair(const H225_CallIdentifier & id, WORD flcn, UDPProxySocket * & rtp, UDPProxySocket * & rtcp, bool & nated)
 {
-	if (!gk_H460_23)
+	if (!m_registeredH46023)
 		return false;
 
 	CallRec::NatStrategy strategy = H46023_GetNATStategy(id);
@@ -2671,13 +2693,10 @@ bool GkClient::HandleSetup(SetupMsg & setup, bool fromInternal)
 	H225_Setup_UUIE &setupBody = setup.GetUUIEBody();
 	if (!fromInternal) {
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
-#ifdef HAS_H46018
-			// TODO:
-#endif
 #ifdef HAS_H46023
 			H225_ArrayOf_FeatureDescriptor & fs = setupBody.m_supportedFeatures;
 			int location = 0;
-			if (gk_H460_23 && FindH460Descriptor(24, fs, location)) {
+			if (m_registeredH46023 && FindH460Descriptor(24, fs, location)) {
 				H460_Feature feat = H460_Feature(fs[location]);
 				H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
 				if (std24.Contains(Std24_NATInstruct)) {
@@ -2689,22 +2708,19 @@ bool GkClient::HandleSetup(SetupMsg & setup, bool fromInternal)
 #endif
 		}
 	} else {
-#ifdef HAS_H46018
-			// TODO:
-#endif
 #ifdef HAS_H46023
-		int nonce=0;
+		int nonce = 0;
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures) && 
 			FindH460Descriptor(24,setupBody.m_supportedFeatures, nonce))
 				RemoveH460Descriptor(24,setupBody.m_supportedFeatures); 
 
-		if (gk_H460_23) {
+		if (m_registeredH46023) {
 			CallRec::NatStrategy natoffload = H46023_GetNATStategy(setupBody.m_callIdentifier);
 			H460_FeatureStd feat = H460_FeatureStd(24); 
 			feat.Add(Std24_NATInstruct,H460_FeatureContent((unsigned)natoffload,8));
 			H225_ArrayOf_FeatureDescriptor & desc = setupBody.m_supportedFeatures;
 			int sz = desc.GetSize();
-			desc.SetSize(sz+1);
+			desc.SetSize(sz + 1);
 			desc[sz] = feat;
 		}
 #endif

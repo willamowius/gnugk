@@ -3,7 +3,7 @@
 // RAS Server for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2000-2012, Jan Willamowius
+// Copyright (c) 2000-2013, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -3924,6 +3924,10 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
  
 #ifdef HAS_H46018
 	bool incomingCall = false;
+
+	// check if its from parent
+	GkClient * gkClient = RasServer::Instance()->GetGkClient();
+	bool fromParent = gkClient && gkClient->IsRegistered() && gkClient->UsesH46018() && gkClient->CheckFrom(m_msg->m_peerAddr);
 	
 	// find the neighbor this comes from
 	NeighborList::List & neighbors = *RasServer::Instance()->GetNeighbors();
@@ -3941,16 +3945,16 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 		for (PINDEX i=0; i < request.m_genericData.GetSize(); i++) {
 			H460_FeatureStd & feat = (H460_FeatureStd &)request.m_genericData[i];
 			if (feat.Contains(H460_FeatureID(1))) {
-				if (from_neighbor && neighbor_authenticated) {
-					// incoming call from neighor
+				if (fromParent || (from_neighbor && neighbor_authenticated)) {
+					// incoming call from parent or neighor
 					PASN_OctetString rawIncomingIndication = feat.Value(H460_FeatureID(1));
 					H46018_IncomingCallIndication incomingIndication;
 					PPER_Stream raw(rawIncomingIndication);
 					if (incomingIndication.Decode(raw)) {
 						incomingCall = true;
-						PTRACE(2, "Incomming H.460.18 call from neighbor sigAdr="
-							<< AsString(incomingIndication.m_callSignallingAddress)
-							<< " callID=" << incomingIndication.m_callID);
+						PTRACE(2, "Incomming H.460.18 call from neighbor/parent sigAdr="
+							<< AsDotString(incomingIndication.m_callSignallingAddress)
+							<< " callID=" << AsString(incomingIndication.m_callID.m_guid));
 						CallSignalSocket * outgoingSocket = new CallSignalSocket();
 						outgoingSocket->OnSCICall(incomingIndication.m_callID, incomingIndication.m_callSignallingAddress);
 					} else {

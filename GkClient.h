@@ -64,9 +64,11 @@ public:
 	void OnReload();
 	void CheckRegistration();
 	bool CheckFrom(const RasMsg *) const;
-	bool CheckFrom(const PIPSocket::Address & ip) const { return m_gkaddr == ip; }
+	bool CheckFrom(const PIPSocket::Address & ip) const;
+	bool CheckFrom(const H225_TransportAddress & addr) const;
 	bool IsRegistered() const { return m_registered; }
 	bool IsNATed() const { return m_natClient != NULL; }
+	bool UsesH46018() const { return m_registeredH46018; }
 	PString GetParent() const;
 
 	bool UsesAdditiveRegistration() const;
@@ -260,6 +262,11 @@ private:
 	H235Authenticators* m_h235Authenticators;
 #endif
 
+	// enable H.460.18 (offer to parent)
+	bool m_enableH46018;
+	// registered with H.460.18 support
+	bool m_registeredH46018;
+
 #ifdef HAS_H46023
 	// Handle H46023 RCF
 	void H46023_RCF(H460_FeatureStd * feat);
@@ -275,8 +282,8 @@ private:
 	int m_nattype;
 	// notify of NAT type
 	bool m_natnotify;
-	// H.460.23 support
-	bool gk_H460_23;
+	// registered with H.460.23 support
+	bool m_registeredH46023;
 	// STUN Client
 	STUNClient * m_stunClient;
 	// ALG Detected
