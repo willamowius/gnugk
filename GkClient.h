@@ -282,6 +282,8 @@ private:
 	int m_nattype;
 	// notify of NAT type
 	bool m_natnotify;
+	// enable H.460.18 (offer to parent)
+	bool m_enableH46023;
 	// registered with H.460.23 support
 	bool m_registeredH46023;
 	// STUN Client

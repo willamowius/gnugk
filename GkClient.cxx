@@ -1210,7 +1210,7 @@ GkClient::GkClient()
 	m_parentVendor(ParentVendor_GnuGk), m_endpointType(EndpointType_Gateway),
 	m_discoverParent(true), m_enableH46018(false), m_registeredH46018(false)
 #ifdef HAS_H46023
-	, m_nattype(0), m_natnotify(false), m_registeredH46023(false),  m_stunClient(NULL), m_algDetected(false)
+	, m_nattype(0), m_natnotify(false), m_enableH46023(false), m_registeredH46023(false),  m_stunClient(NULL), m_algDetected(false)
 #endif
 {
 	m_resend = m_retry;
@@ -1298,6 +1298,13 @@ void GkClient::OnReload()
 	m_enableH46018 = Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableH46018", "0"));
 	if (m_enableH46018 && !Toolkit::Instance()->IsH46018Enabled()) {
 		PTRACE(1, "H46018\tWarning: H.460.18 enabled for parent/child, but global H.460.18 switch is OFF");
+	}
+#endif
+
+#ifdef HAS_H46023
+	m_enableH46023 = Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableH46023", "0"));
+	if (m_enableH46023 && !Toolkit::Instance()->IsH46023Enabled()) {
+		PTRACE(1, "H46023\tWarning: H.460.23 enabled for parent/child, but global H.460.23 switch is OFF");
 	}
 #endif
 	
@@ -1402,7 +1409,7 @@ bool GkClient::OnSendingGRQ(H225_GatekeeperRequest &grq)
 #endif
 
 #ifdef HAS_H46023
-	if (Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableH46023", "0"))) {
+	if (m_enableH46023) {
 		grq.IncludeOptionalField(H225_GatekeeperRequest::e_featureSet);
 		H460_FeatureStd feat = H460_FeatureStd(23); 
 		grq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
@@ -1444,9 +1451,7 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 #endif
 
 #ifdef HAS_H46023
-		if (Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableH46023", "0")) && 
-			(!m_registered || m_registeredH46023)) {
-
+		if (m_enableH46023 && (!m_registered || m_registeredH46023)) {
 			bool contents = false;
 			rrq.IncludeOptionalField(H225_RegistrationRequest::e_featureSet);
 			H460_FeatureStd feat = H460_FeatureStd(23); 
@@ -2240,7 +2245,7 @@ void GkClient::OnRCF(RasMsg *ras)
 			m_registeredH46018 = true;
 #endif
 #ifdef HAS_H46023
-		if (Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableH46023", "0")) && fs.HasFeature(23))
+		if (m_enableH46023 && fs.HasFeature(23))
 			H46023_RCF((H460_FeatureStd *)fs.GetFeature(23));
 #endif
 #endif
