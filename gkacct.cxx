@@ -962,8 +962,10 @@ bool GkAcctLoggerList::LogAcctEvent(
 		if (call)
 			strm << " for call no. " << call->GetCallNumber();
 		PTrace::End(strm);
+#ifdef HAS_SNMP
 		if (!finalResult)
 			SNMP_TRAP(7, SNMPError, Accounting, "Failed to log event " + evt);
+#endif
 	}
 	return finalResult;
 }
@@ -1030,8 +1032,10 @@ bool GkAcctLoggerList::LogAcctEvent(
 		if (ep)
 			strm << " for endpoint " << ep->GetEndpointIdentifier().GetValue();
 		PTrace::End(strm);
+#ifdef  HAS_SNMP
 		if (!finalResult)
 			SNMP_TRAP(7, SNMPError, Accounting, "Failed to log event " + evt);
+#endif
 	}
 	return finalResult;
 }
