@@ -1,5 +1,6 @@
 Changes from 3.2 to 3.3
 =======================
+- updated [CallTable] DisabledCodecs to include UserInput Capabilities
 - implement H.460.18/.19 for parent/child gatekeepers
 - updated H.460.23/.24 support to child gatekeeper
 - new ./configure switches --disable-ptlibsnmp, --disable-winsnmp

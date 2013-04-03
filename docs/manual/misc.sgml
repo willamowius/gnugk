@@ -64,7 +64,7 @@ When failover is active, more than one gateway may be tried to
 establish a call. This switch defines if one or multiple CDRs
 are generated for such a call.
 
-<item><tt/DisabledCodecs=g711Alaw64k;g711Ulaw64k;h263VideoCapability;genericVideoCapability/<newline>
+<item><tt/DisabledCodecs=g711Alaw64k;g711Ulaw64k;h263VideoCapability;genericVideoCapability;basicString;/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 Filter out certain codecs. Calls must be H.245 routed or proxied for codec filtering to work.

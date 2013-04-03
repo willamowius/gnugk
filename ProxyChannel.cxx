@@ -2009,6 +2009,33 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 			}
 		}
 
+		for (PINDEX i = 0; i < CapabilityTables.GetSize(); i++) {
+			unsigned int cten = CapabilityTables[i].m_capabilityTableEntryNumber.GetValue();
+			H245_Capability & H245Capability = CapabilityTables[i].m_capability;
+
+			if (H245Capability.GetTag() == H245_Capability::e_receiveUserInputCapability) {
+				H245_UserInputCapability & h245UserInput = H245Capability;
+				if (m_call->GetDisabledCodecs().Find(h245UserInput.GetTagName() + ";", 0) != P_MAX_INDEX) {
+					PTRACE(4, "H245\tDelete UserInput capability " << h245UserInput.GetTagName());
+					changed = true;
+					CapabilityTables.RemoveAt(i);
+					i--;
+					H245_ArrayOf_CapabilityDescriptor & CapabilityDescriptor = tcs.m_capabilityDescriptors;
+					for (PINDEX n = 0; n < CapabilityDescriptor.GetSize(); n++){
+						H245_ArrayOf_AlternativeCapabilitySet & AlternativeCapabilitySet = CapabilityDescriptor[n].m_simultaneousCapabilities;
+						for (PINDEX j = 0; j < AlternativeCapabilitySet.GetSize(); j++) {
+							for (PINDEX m = 0; m < AlternativeCapabilitySet[j].GetSize(); m++) {
+								if (cten == AlternativeCapabilitySet[j][m].GetValue()) {
+									PTRACE(4, "H245\tCapability Descriptors Number");
+									AlternativeCapabilitySet[j].RemoveAt(m);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
 		if (changed) {
 			PTRACE(4, "H245\tNew Capability Table: " << setprecision(2) << tcs);
 		}
