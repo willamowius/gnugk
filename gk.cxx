@@ -381,7 +381,6 @@ const char * KnownConfigEntries[][2] = {
 #endif
 #ifdef HAS_H46018
 	{ "RoutedMode", "EnableH46018" },
-	{ "RoutedMode", "EnableUnregisteredH46019" },
 #endif
 #ifdef HAS_H46023
 	{ "RoutedMode", "EnableH46023" },

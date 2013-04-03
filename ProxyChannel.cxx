@@ -3327,13 +3327,6 @@ PTRACE(0, "JW NO existing Callrec");
 		callFromTraversalClient = rassrv->IsCallFromTraversalClient(_peerAddr);
 		callFromTraversalServer = rassrv->IsCallFromTraversalServer(_peerAddr);
 
-		if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "EnableUnregisteredH46019", "0"))) {
-			if ((!m_call || (m_call && !m_call->GetCallingParty())) && IsH46019ClientCall(setupBody) && !callFromTraversalClient) {
-				PTRACE(2, "H46019\tUnregistered H.460.19 call");
-				callFromTraversalClient = true;
-			}
-		}
-
 		if ((m_call && m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None)
 			|| (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->GetTraversalRole() != None)
 			|| (m_call && m_call->IsH46018ReverseSetup()) || callFromTraversalClient || callFromTraversalServer) {
