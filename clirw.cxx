@@ -28,9 +28,11 @@
 #include "RasPDU.h"
 #include "gkauth.h"
 #include "Toolkit.h"
+#include "gksql.h"
 
 namespace {
 const char * const CLIRewriteSection = "RewriteCLI";
+const char * const CLIRewriteSQLSection = "RewriteCLI::SQL";
 const char * const ProcessSourceAddress = "ProcessSourceAddress";
 const char * const RemoveH323Id = "RemoveH323Id";
 const char * const CLIRPolicy = "CLIRPolicy";
@@ -153,9 +155,9 @@ struct DoubleIpRule_greater : public std::binary_function<CLIRewrite::DoubleIpRu
 
 CLIRewrite::CLIRewrite()
 	: m_processSourceAddress(true), m_removeH323Id(false),
-	m_CLIRPolicy(RewriteRule::IgnoreCLIR)
+	m_CLIRPolicy(RewriteRule::IgnoreCLIR), m_sqlConn(NULL)
 {
-	PConfig *cfg = GkConfig();
+	PConfig * cfg = GkConfig();
 
 	unsigned inboundRules = 0, outboundRules = 0;
 	SingleIpRules::iterator siprule = m_inboundRules.end();
@@ -409,7 +411,7 @@ CLIRewrite::CLIRewrite()
 			rule->m_prefix = prefix;		
 			rule->m_manualCLIR = manualCLIR;
 			rule->m_CLIRPolicy = CLIRPolicy;
-			
+
 			// get RHS of the rewrite rule, multiple targets will be selected
 			// in random order
 			PStringArray clis = data.Mid(sepIndex + 1).Tokenise(", ", FALSE);
@@ -481,16 +483,10 @@ CLIRewrite::CLIRewrite()
 		PTrace::End(strm);
 	}
 
-	m_processSourceAddress = Toolkit::AsBool(
-		cfg->GetString(CLIRewriteSection, ProcessSourceAddress, "1")
-		);
-	m_removeH323Id = Toolkit::AsBool(
-		cfg->GetString(CLIRewriteSection, RemoveH323Id, "1")
-		);
+	m_processSourceAddress = Toolkit::AsBool(cfg->GetString(CLIRewriteSection, ProcessSourceAddress, "1"));
+	m_removeH323Id = Toolkit::AsBool(cfg->GetString(CLIRewriteSection, RemoveH323Id, "1"));
 	
-	const PString clirPolicy = cfg->GetString(CLIRewriteSection, CLIRPolicy,
-		PString::Empty()
-		);
+	const PString clirPolicy = cfg->GetString(CLIRewriteSection, CLIRPolicy, "");
 	if (clirPolicy *= "applyforterminals")
 		m_CLIRPolicy = RewriteRule::ApplyCLIRForTerminals;
 	else if (clirPolicy *= "apply")
@@ -504,16 +500,65 @@ CLIRewrite::CLIRewrite()
 			"CLIRPolicy value: '" << clirPolicy << "'");
 		SNMP_TRAP(7, SNMPError, Configuration, "Invalid CLIRW rule");
 	}
+
+
+	// read [RewriteCLI::SQL]
+#if HAS_DATABASE
+	m_inboundQuery = cfg->GetString(CLIRewriteSQLSection, "InboundQuery", "");
+	if (!m_inboundQuery.IsEmpty()) {
+		PTRACE(4, CLIRewriteSQLSection << "\tInboundQuery: " << m_inboundQuery);
+	}
+	m_outboundQuery = cfg->GetString(CLIRewriteSQLSection, "OutboundQuery", "");
+	if (!m_outboundQuery.IsEmpty()) {
+		PTRACE(4, CLIRewriteSQLSection << "\tOutboundQuery: " << m_outboundQuery);
+	}
+
+	if (!(m_inboundQuery.IsEmpty() && m_outboundQuery.IsEmpty())) {
+		// if we have either Inbound or Outboudnd query, read DB parameters
+		const PString driverName = cfg->GetString(CLIRewriteSQLSection, "Driver", "");
+		if (driverName.IsEmpty()) {
+			PTRACE(1, CLIRewriteSQLSection << ": no SQL driver selected - disabled");
+			SNMP_TRAP(4, SNMPError, Database, PString(CLIRewriteSQLSection) + ": no SQL driver selected");
+			m_inboundQuery = m_outboundQuery = "";
+			return;
+		}
+		m_sqlConn = GkSQLConnection::Create(driverName, CLIRewriteSQLSection);
+		if (m_sqlConn == NULL) {
+			PTRACE(1, CLIRewriteSQLSection << ": could not find " << driverName << " database driver - disabled");
+			SNMP_TRAP(4, SNMPError, Database, PString(CLIRewriteSQLSection) + ": could not find " + driverName + " database driver");
+			m_inboundQuery = m_outboundQuery = "";
+			return;
+		}
+
+		if (!m_sqlConn->Initialize(cfg, CLIRewriteSQLSection)) {
+			PTRACE(1, CLIRewriteSQLSection << ": could not connect to the database - disabled");
+			SNMP_TRAP(4, SNMPError, Database, PString(CLIRewriteSQLSection) + ": could not connect to the database");
+			m_inboundQuery = m_outboundQuery = "";
+			delete m_sqlConn;
+			m_sqlConn = NULL;
+			return;
+		}
+	}
+#endif // HAS_DATABASE
 }
 
 void CLIRewrite::InRewrite(
-	SetupMsg &msg /// Q.931 Setup message to be rewritten
+	SetupMsg & msg /// Q.931 Setup message to be rewritten
 	)
 {
 	PIPSocket::Address addr;
 	msg.GetPeerAddr(addr);
 
-	// find a rule that matches caller's IP	
+	// apply [RewriteCLI::SQL] InboundQuery
+	if (!m_inboundQuery.IsEmpty()) {
+		SingleIpRule * rule = CLIRewrite::RunQuery(m_inboundQuery, msg);
+		if (rule) {
+			Rewrite(msg, *rule, true, NULL);
+			delete rule;
+		}
+	}
+
+	// find a config file rule that matches caller's IP	
 	SingleIpRules::const_iterator i = m_inboundRules.begin();
 	while (i != m_inboundRules.end())
 		if (i->first.IsAny() || (addr << i->first))
@@ -526,17 +571,26 @@ void CLIRewrite::InRewrite(
 
 	Rewrite(msg, *i, true, NULL);
 }
-		
+
 void CLIRewrite::OutRewrite(
-	SetupMsg &msg, /// Q.931 Setup message to be rewritten
-	SetupAuthData &authData, /// additional data
-	const PIPSocket::Address& destAddr /// destination address
+	SetupMsg & msg, /// Q.931 Setup message to be rewritten
+	SetupAuthData & authData, /// additional data
+	const PIPSocket::Address & destAddr /// destination address
 	)
 {
 	PIPSocket::Address addr;
 	msg.GetPeerAddr(addr);
-	
-	// find a rule that matches caller's IP	
+
+	// apply [RewriteCLI::SQL] OutboundQuery
+	if (!m_outboundQuery.IsEmpty()) {
+		SingleIpRule * rule = CLIRewrite::RunQuery(m_inboundQuery, msg);
+		if (rule) {
+			Rewrite(msg, *rule, false, &authData);
+			delete rule;
+		}
+	}
+
+	// find a config file rule that matches caller's IP	
 	DoubleIpRules::const_iterator diprule = m_outboundRules.begin();
 	while (diprule != m_outboundRules.end())
 		if (diprule->first.IsAny() || (addr << diprule->first))
@@ -562,17 +616,17 @@ void CLIRewrite::OutRewrite(
 }
 
 void CLIRewrite::Rewrite(
-	SetupMsg &msg, /// Q.931 Setup message to be rewritten
-	const SingleIpRule &ipRule,
+	SetupMsg & msg, /// Q.931 Setup message to be rewritten
+	const SingleIpRule & ipRule,
 	bool inbound,
-	SetupAuthData *authData
+	SetupAuthData * authData
 	) const
 {
 	unsigned plan = Q931::ISDNPlan, type = Q931::UnknownType;
 	unsigned presentation = (unsigned)-1, screening = (unsigned)-1;
 	PString cli, dno, cno;
 
-	// get ANI/CLI	
+	// get ANI/CLI
 	msg.GetQ931().GetCallingPartyNumber(cli, &plan, &type, &presentation, &screening, (unsigned)-1, (unsigned)-1);
 	if (cli.IsEmpty() && msg.GetUUIEBody().HasOptionalField(H225_Setup_UUIE::e_sourceAddress))
 		cli = GetBestAliasAddressString(msg.GetUUIEBody().m_sourceAddress, true,
@@ -755,7 +809,7 @@ void CLIRewrite::Rewrite(
 		msg.SetChanged();
 	}
 	if (m_processSourceAddress && msg.GetUUIEBody().HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
-		H225_ArrayOf_AliasAddress &sourceAddress = msg.GetUUIEBody().m_sourceAddress;
+		H225_ArrayOf_AliasAddress & sourceAddress = msg.GetUUIEBody().m_sourceAddress;
 		if (m_removeH323Id)
 			sourceAddress.SetSize(1);
 		else {
@@ -821,4 +875,62 @@ void CLIRewrite::Rewrite(
 		H323SetAliasAddress(newcli, msg.GetUUIEBody().m_sourceAddress[0], H225_AliasAddress::e_h323_ID);
 		msg.SetUUIEChanged();
 	}
+}
+
+CLIRewrite::SingleIpRule * CLIRewrite::RunQuery(const PString & query, const SetupMsg & msg)
+{
+#if HAS_DATABASE
+	GkSQLResult::ResultRow resultRow;
+	std::map<PString, PString> params;
+	PIPSocket::Address addr;
+	unsigned plan = Q931::ISDNPlan, type = Q931::UnknownType;
+	unsigned presentation = (unsigned)-1, screening = (unsigned)-1;
+	PString cli, called;
+
+	msg.GetPeerAddr(addr);
+	params["callerip"] = addr.AsString();
+	msg.GetQ931().GetCalledPartyNumber(called);
+	params["called"] = called;
+	msg.GetQ931().GetCallingPartyNumber(cli, &plan, &type, &presentation, &screening, (unsigned)-1, (unsigned)-1);
+	params["cli"] = cli;
+
+	GkSQLResult * result = m_sqlConn->ExecuteQuery(query, params, -1);
+	if (result == NULL) {
+		PTRACE(2, CLIRewriteSQLSection << ": query failed - timeout or fatal error");
+		SNMP_TRAP(4, SNMPError, Database, PString(CLIRewriteSQLSection) + " query failed");
+		return NULL;
+	}
+
+	if (!result->IsValid()) {
+		PTRACE(2, CLIRewriteSQLSection << ": query failed (" << result->GetErrorCode()
+			<< ") - " << result->GetErrorMessage());
+		SNMP_TRAP(4, SNMPError, Database, PString(CLIRewriteSQLSection) + " query failed");
+		delete result;
+		return NULL;
+	}
+	
+	if (result->GetNumRows() != 1)
+		PTRACE(3, CLIRewriteSQLSection << ": query returned no rows");
+	else if (result->GetNumFields() < 1)
+		PTRACE(2, CLIRewriteSQLSection << ": bad query - no columns found in the result set");
+	else if (!result->FetchRow(resultRow) || resultRow.empty()) {
+		PTRACE(2, CLIRewriteSQLSection << ": query failed - could not fetch the result row");
+		SNMP_TRAP(4, SNMPError, Database, PString(CLIRewriteSQLSection) + " query failed");
+	} else {
+		PString newCLI = resultRow[0].first;
+		PTRACE(5, CLIRewriteSQLSection << "\tQuery result : " << newCLI);
+
+		RewriteRules rules;
+		RewriteRule rule;
+		//if ((result->GetNumFields() == 1)
+//		rule.m_manualCLIR = CLIRPassthrough;
+//		rule.m_CLIRPolicy = IgnoreCLIR;
+		rule.m_cli.push_back(newCLI);
+		rules.push_back(rule);
+		delete result;
+		return new SingleIpRule(addr, rules);
+	}
+	delete result;
+#endif // HAS_DATABASE
+	return NULL;
 }

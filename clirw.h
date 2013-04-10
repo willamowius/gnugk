@@ -25,6 +25,7 @@ class SignalingMsg;
 template <class> class H225SignalingMsg;
 class H225_Setup_UUIE;
 typedef H225SignalingMsg<H225_Setup_UUIE> SetupMsg;
+class GkSQLConnection;
 
 /// Perform Calling-Party-Number-IE/Setup-UUIE.sourceAddress rewritting
 class CLIRewrite {
@@ -104,13 +105,16 @@ public:
 		const PIPSocket::Address &destAddr /// destination address
 		);
 		
-private:
+protected:
 	void Rewrite(
 		SetupMsg &msg, /// Q.931 Setup message to be rewritten
 		const SingleIpRule &ipRule, /// rule to use for rewrite
 		bool inbound, /// rule type
 		SetupAuthData *authData /// additional data for outbound rules
 		) const;
+
+	// process inbound or outbound SQL queries and return a rule
+	SingleIpRule * RunQuery(const PString & query, const SetupMsg & msg);
 
 	CLIRewrite(const CLIRewrite &);
 	CLIRewrite & operator=(const CLIRewrite &);
@@ -121,6 +125,11 @@ private:
 	bool m_processSourceAddress; /// true to rewrite numbers in sourceAddress Setup-UUIE
 	bool m_removeH323Id; /// true to put in the sourceAddress Setup-UUIE field only rewritten ANI/CLI
 	int m_CLIRPolicy; /// how to process CLIR
+
+	// RewriteCLI::SQL parameters
+	GkSQLConnection * m_sqlConn;
+	PString m_inboundQuery;
+	PString m_outboundQuery;
 };
 
 #endif

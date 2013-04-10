@@ -928,8 +928,6 @@ a dialed number or a destination/called number (the dialed number after rewrite)
 Number matching/rewriting can be done in three ways:
 <itemize>
 
-<!-- TODO: NONE OF THE EXAMPLES ARE FOR CNO? -->
-
 <item><tt/=/ - a <tt/cli/ or <tt/dno/ number will be matched using a prefix
                match against <tt/number_prefix/ and, if the match is found,
                CLI will be replaced with NEW_CLI,
@@ -954,11 +952,13 @@ or <tt/"hidefromterminals"/ instead of the list of new CLI values.
 [RewriteCLI]
 out:any=192.168.1.1 any=1001
 out:any=192.168.1.2 any=1002
+out:any=any cno:123=1003
 </verb></tscreen>
 <p>
 These rules set a fixed ANI/CLI for each terminating IP:
 1) present myself with ANI 1001, when sending calls to IP 192.168.1.1,
 2) present myself with ANI 1002, when sending calls to IP 192.168.1.2.
+3) present myself with ANI 1003, when calling 123
 
 <tag/Example 2:/
 <tscreen><verb>
@@ -1046,12 +1046,48 @@ from the key name before loading rules:
 %r2% in:192.168.1.1=any=2000
 </verb></tscreen>
 
+<sect1>Section &lsqb;RewriteCLI::SQL&rsqb;
+<label id="clirewritesql">
+<p>
+Use the <ref id="database" name="common database configuration options">
+to define your database connection for this module.
+
+Please note that the switches (not the rules) from the <ref id="clirewrite" name="RewriteCLI"> section,
+like <tt/ProcessSourceAddress=/, <tt/RemoveH323Id=/ and <tt/CLIRPolicy=/ also apply
+to the rewrite rules from this section.
+
+<itemize>
+<item><tt/InboundQuery=SELECT .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Define a rewriting query to run when the call comes in.
+
+<item><tt/outboundQuery=SELECT .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Define a rewriting query to run when the call is sent out. The called number parameter has already passed all rewriting steps.
+</itemize>
+
+The first field returned by the query is used as the new CLI.
+If the query returns no rows, the CLI is left unchanged.
+The queries can be parameterized - that means parameter
+replacement is made before each query is executed. The following parameters are defined:
+<itemize>
+<item><tt/%{cli}/ - the original CLI (on outbound queries, it can already be rewritten by an Inbound query)
+<item><tt/%{callerip}/ - the calling IP
+<item><tt/%{called}/ - the called number (the dialed number on inbound queries and the rewritten number in outbound queries)
+</itemize>
+
+In most cases you will probably only use the %{cli} parameter.
+
+
 <sect1>Section &lsqb;RewriteSourceAddress&rsqb;
 <label id="rewritesourceaddr">
 <p>
 With the switches in this section you can filter the sourceAddress elements that are
 transported in a Setup message. (Please note that the
-<ref id="clirewrite" name="RewriteCLI"> rules may also influence the sourceAddress.)
+<ref id="clirewrite" name="RewriteCLI"> and <ref id="clirewritesql" name="RewriteCLI::SQL">
+rules also influence the sourceAddress.)
 
 <itemize>
 <item><tt/OnlyE164=1/<newline>

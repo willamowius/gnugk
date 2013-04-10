@@ -1,5 +1,6 @@
 Changes from 3.2 to 3.3
 =======================
+- new [RewriteCLI::SQL] feature
 - updated [CallTable] DisabledCodecs to include UserInput Capabilities
 - implement H.460.18/.19 for parent/child gatekeepers
 - updated H.460.23/.24 support to child gatekeeper
@@ -43,7 +44,7 @@ Changes from 3.1 to 3.2
 - BUGFIX(job.cxx) delete unused worker threads after 2 minutes idle time instead of 10 min
 - BUGFIX(gk.cxx) work around bug in PTLib 2.10.x where housekeeping thread isn't started causing a handle leak
 - BUGFIX(Neighbor.cxx) don't try to proxy calls if gatekeeper in direct mode
-- BUGFIX(Toolkit.cxx) ip addresses in alternateGateekeepers::SQL
+- BUGFIX(Toolkit.cxx) IP addresses in [AlternateGateekeepers::SQL]
 - new [Endpoint] EnableH46018 and EnableH46023 switches
 - new Alias SQL variable "Additive-RRQ"
 - support for additive registration for gateways. new switch [RasSrv::RRQFeatures] EnableAdditiveRegistration

@@ -57,6 +57,7 @@ PSemaphore ShutdownMutex(1, 1);
 
 const char * KnownConfigEntries[][2] = {
 	// valid config entries
+#ifdef HAS_DATABASE
 	{ "AlternateGatekeepers::SQL", "CacheTimeout" },
 	{ "AlternateGatekeepers::SQL", "Database" },
 	{ "AlternateGatekeepers::SQL", "Driver" },
@@ -84,6 +85,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "AssignedGatekeepers::SQL", "Password" },
 	{ "AssignedGatekeepers::SQL", "Query" },
 	{ "AssignedGatekeepers::SQL", "Username" },
+#endif
 	{ "CTI::Agents", "CTI_Timeout" },	// obsolete, but still accepted
 	{ "CTI::Agents", "RequestTimeout" },
 	{ "CTI::Agents", "VirtualQueue" },	// obsolete, but still accepted
@@ -215,6 +217,7 @@ const char * KnownConfigEntries[][2] = {
 #ifdef hasLDAPStartTLS
 	{ "GkH350::Settings", "StartTLS" },
 #endif
+#ifdef HAS_DATABASE
 	{ "GkPresence::SQL", "CacheTimeout" },
 	{ "GkPresence::SQL", "Database" },
 	{ "GkPresence::SQL", "Driver" },
@@ -229,9 +232,11 @@ const char * KnownConfigEntries[][2] = {
 	{ "GkPresence::SQL", "QueryUpdate" },
 	{ "GkPresence::SQL", "UpdateWorkerTimer" },
 	{ "GkPresence::SQL", "Username" },
+#endif
 	{ "GkQoSMonitor", "CallEndOnly" },
 	{ "GkQoSMonitor", "DetailFile" },
 	{ "GkQoSMonitor", "Enable" },
+#ifdef HAS_DATABASE
 	{ "GkQoSMonitor::SQL", "CacheTimeout" },
 	{ "GkQoSMonitor::SQL", "Database" },
 	{ "GkQoSMonitor::SQL", "Driver" },
@@ -240,6 +245,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "GkQoSMonitor::SQL", "Password" },
 	{ "GkQoSMonitor::SQL", "Query" },
 	{ "GkQoSMonitor::SQL", "Username" },
+#endif
 	{ "GkStatus::Filtering", "Enable" },
 	{ "GkStatus::Filtering", "ExcludeFilter" },
 	{ "GkStatus::Filtering", "IncludeFilter" },
@@ -349,6 +355,18 @@ const char * KnownConfigEntries[][2] = {
 	{ "RasSrv::RRQFeatures", "IRQPollCount" },
 	{ "RasSrv::RRQFeatures", "OverwriteEPOnSameAddress" },
 	{ "RasSrv::RRQFeatures", "SupportDynamicIP" },
+#ifdef HAS_DATABASE
+	{ "RewriteCLI::SQL", "CacheTimeout" },
+	{ "RewriteCLI::SQL", "Database" },
+	{ "RewriteCLI::SQL", "Driver" },
+	{ "RewriteCLI::SQL", "Host" },
+	{ "RewriteCLI::SQL", "InboundQuery" },
+	{ "RewriteCLI::SQL", "Library" },
+	{ "RewriteCLI::SQL", "MinPoolSize" },
+	{ "RewriteCLI::SQL", "OutboundQuery" },
+	{ "RewriteCLI::SQL", "Password" },
+	{ "RewriteCLI::SQL", "Username" },
+#endif
 	{ "RewriteSourceAddress", "ForceAliasType" },
 	{ "RewriteSourceAddress", "MatchSourceTypeToDestination" },
 	{ "RewriteSourceAddress", "OnlyE164" },
@@ -463,6 +481,7 @@ const char * KnownConfigEntries[][2] = {
 #endif
 	{ "Routing::RDS", "ResolveLRQ" },
 	{ "Routing::SRV", "ResolveNonLocalLRQ" },
+#ifdef HAS_DATABASE
 	{ "Routing::Sql", "CacheTimeout" },
 	{ "Routing::Sql", "Database" },
 	{ "Routing::Sql", "Driver" },
@@ -473,6 +492,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Routing::Sql", "Password" },
 	{ "Routing::Sql", "Query" },
 	{ "Routing::Sql", "Username" },
+#endif
 #ifdef HAS_SNMP
 	{ "SNMP", "AllowRequestsFrom" },
 	{ "SNMP", "AgentListenIP" },
@@ -483,6 +503,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "SNMP", "TrapCommunity" },
 	{ "SNMP", "TrapHost" },
 #endif
+#ifdef HAS_DATABASE
 	{ "SQLAcct", "CacheTimeout" },
 	{ "SQLAcct", "AlertQuery" },
 	{ "SQLAcct", "Database" },
@@ -547,6 +568,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "SQLPasswordAuth", "Password" },
 	{ "SQLPasswordAuth", "Query" },
 	{ "SQLPasswordAuth", "Username" },
+#endif
 	{ "StatusAcct", "ConnectEvent" },
 	{ "StatusAcct", "RegisterEvent" },
 	{ "StatusAcct", "StartEvent" },
