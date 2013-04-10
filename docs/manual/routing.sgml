@@ -1073,7 +1073,7 @@ If the query returns no rows, the CLI is left unchanged.
 The queries can be parameterized - that means parameter
 replacement is made before each query is executed. The following parameters are defined:
 <itemize>
-<item><tt/%{cli}/ - the original CLI (on outbound queries, it can already be rewritten by an Inbound query)
+<item><tt/%{cli}/ - the original CLI or first sourceAddress if no CLI exists (on outbound queries, it can already be rewritten by an Inbound query)
 <item><tt/%{callerip}/ - the calling IP
 <item><tt/%{called}/ - the called number (the dialed number on inbound queries and the rewritten number in outbound queries)
 </itemize>

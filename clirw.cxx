@@ -892,6 +892,11 @@ CLIRewrite::SingleIpRule * CLIRewrite::RunQuery(const PString & query, const Set
 	msg.GetQ931().GetCalledPartyNumber(called);
 	params["called"] = called;
 	msg.GetQ931().GetCallingPartyNumber(cli, &plan, &type, &presentation, &screening, (unsigned)-1, (unsigned)-1);
+	if (cli.IsEmpty()
+		&& msg.GetUUIEBody().HasOptionalField(H225_Setup_UUIE::e_sourceAddress)
+		&& msg.GetUUIEBody().m_sourceAddress.GetSize() > 0) {
+		cli = AsString(msg.GetUUIEBody().m_sourceAddress[0], false);
+	}
 	params["cli"] = cli;
 
 	GkSQLResult * result = m_sqlConn->ExecuteQuery(query, params, -1);
