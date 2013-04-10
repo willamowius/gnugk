@@ -270,7 +270,7 @@ Agent::~Agent()
 		Worker * w = *iter;
 		workers.erase(iter++);
 		w->Destroy();
-#if !defined(_WIN32) || (PTLIB_VER <= 2100)
+#ifndef hasWorkerDeleteBug
 		// TODO: find a proper fix for deleting workers on Windows!
 		delete w;	// don't delete on Windows, issue with PTLib 2.10.1+
 #endif

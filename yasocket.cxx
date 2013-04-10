@@ -856,10 +856,10 @@ bool USocket::WriteData(const BYTE * buf, int len)
 		
 	int remaining = len;
 	if (qsize == 0 && 
-#if PTLIB_VER < 2120
-		!writeMutex.WillBlock()
-#else
+#ifdef hasNoMutexWillBlock
 		writeMutex.Try()
+#else
+		!writeMutex.WillBlock()
 #endif
 		) {
 		PWaitAndSignal lock(writeMutex);
@@ -1131,10 +1131,10 @@ bool TCPServer::CloseListener(TCPListenSocket * socket)
 
 void TCPServer::ReadSocket(IPSocket * socket)
 {
-#if PTLIB_VER < 2120
-	if (ShutdownMutex.WillBlock()) {
-#else
+#ifdef hasNoMutexWillBlock
 	if (!ShutdownMutex.Wait(0)) {
+#else
+	if (ShutdownMutex.WillBlock()) {
 #endif
 		PTRACE(4, GetName() << "\tShutdown: Rejecting call on " << socket->GetName());
 		int rej = ::accept(socket->GetHandle(), NULL, NULL);

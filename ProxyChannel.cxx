@@ -3526,7 +3526,7 @@ PTRACE(0, "JW NO existing Callrec");
 				setupBody.m_cryptoTokens.SetSize(0);
 			}
 
-#if PTLIB_VER >= 2110  // Authenticators are created on demand by identifiers in token/cryptoTokens where supported 
+#ifdef hasAutoCreateAuthenticators  // Authenticators are created on demand by identifiers in token/cryptoTokens where supported 
 			auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
 #else			// Create all authenticators for both media encryption and caller authentication
 			H235Authenticators::SetMaxCipherLength(toolkit->Config()->GetInteger(RoutedSec, "H235HalfCallMediaStrength", 128));
@@ -3562,7 +3562,7 @@ PTRACE(0, "JW NO existing Callrec");
 				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 				setupBody.m_cryptoTokens.SetSize(0);
 			}
-#if PTLIB_VER >= 2110  // Authenticators are created on demand by identifiers in token/cryptoTokens where supported 
+#ifdef hasAutoCreateAuthenticators  // Authenticators are created on demand by identifiers in token/cryptoTokens where supported 
 			auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
 #else			// Create all authenticators for both media encryption and caller authentication
 			H235Authenticators::SetMaxCipherLength(toolkit->Config()->GetInteger(RoutedSec, "H235HalfCallMediaStrength", 128));

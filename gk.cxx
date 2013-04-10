@@ -791,10 +791,10 @@ void ReloadHandler()
 	Gatekeeper::ReopenLogFile();
 
 	// only one thread must do this
-#if PTLIB_VER < 2120
-	if (ReloadMutex.WillBlock())
-#else
+#ifdef hasNoMutexWillBlock
 	if (!ReloadMutex.Try())
+#else
+	if (ReloadMutex.WillBlock())
 #endif
 		return;
 
@@ -996,7 +996,7 @@ Gatekeeper::Gatekeeper(const char * _manuf,
 	GetArguments().SetArgs("-d -p " + pidfile);
 #endif
 #endif
-#if (PTLIB_VER >= 2100) && (PTLIB_VER < 2120)
+#ifdef hasThreadAutoDeleteBug
 	// work around a bug in PTLib 2.10.x that doesn't start the housekeeping thread to delete auto-delete threads
 	SignalTimerChange();
 #endif

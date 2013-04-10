@@ -3165,10 +3165,10 @@ void CallRec::RemoveAll()
 
 void CallRec::RemoveSocket()
 {
-#if PTLIB_VER < 2120
-	if (m_sockLock.WillBlock()) // locked by SendReleaseComplete()?
-#else
+#ifdef hasNoMutexWillBlock
 	if (!m_sockLock.Try()) // locked by SendReleaseComplete()?
+#else
+	if (m_sockLock.WillBlock()) // locked by SendReleaseComplete()?
 #endif
 		return; // avoid deadlock
 
@@ -3581,10 +3581,10 @@ bool CallRec::MoveToNextRoute()
 	if (! IsFailoverActive())
 		return false;
 		
-#if PTLIB_VER < 2120
-	if (ShutdownMutex.WillBlock())
-#else
+#ifdef hasNoMutexWillBlock
 	if (!ShutdownMutex.Wait(0))
+#else
+	if (ShutdownMutex.WillBlock())
 #endif
 		return false;
 
