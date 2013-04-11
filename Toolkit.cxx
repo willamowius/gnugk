@@ -1929,6 +1929,7 @@ bool Toolkit::AssignedAliases::DatabaseLookup(
 			}
 		    if (!success) success = true;
 		    PTRACE(5, "AliasSQL\tQuery result: " << retval[0]);
+
 		    newAliases.AppendString(retval[0]);
 		}
 	}
@@ -2246,6 +2247,20 @@ bool Toolkit::AssignedGatekeepers::DatabaseLookup(
 			}
 			if (!success) success = true;
 		    PTRACE(5, "AssignSQL\tQuery result: " << retval[0]);
+
+			PStringArray adr_parts = SplitIPAndPort(retval[0],GK_DEF_UNICAST_RAS_PORT);
+			PIPSocket::Address ip;
+			if (!IsIPAddress(adr_parts[0]))
+				PIPSocket::GetHostAddress(adr_parts[0],ip);
+			else
+				ip = adr_parts[0];
+			WORD port = (WORD)(adr_parts[1].AsInteger());
+
+			H323TransportAddress addr(ip,port);
+			if (addr == H323TransportAddress(RasServer::Instance()->GetRasAddress(ip))) {
+				PTRACE(5, "AssignSQL\tIGNORE " << retval[0] << " LRQ loop detected.");
+				continue;
+			}
 			newGks.AppendString(retval[0]);
 		}
 	}

@@ -1,5 +1,6 @@
 Changes from 3.2 to 3.3
 =======================
+- BUGFIX(toolkit.cxx) loop detection in AssignedGatekeeper
 - new [Routiing::NeighborSQL] policy to read Neighbor targets from database.
 - new [RewriteCLI::SQL] feature
 - updated [CallTable] DisabledCodecs to include UserInput Capabilities
