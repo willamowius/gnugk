@@ -169,10 +169,14 @@
 #endif
 
 ///////////////////////////////////////////////
-
 // OpenH323/H323Plus version matching
+
 #ifdef H323_H235
 	#define HAS_H235_MEDIA 1      // H.235.6 Media Encryption Support
+#endif
+
+#ifdef H323_H450
+	#define HAS_H450 1
 #endif
 
 #ifdef H323_H460
@@ -241,10 +245,6 @@
 
 #if defined(HAS_PTLIBSNMP) || defined(HAS_NETSNMP) || defined(HAS_WINSNMP)
 #define HAS_SNMP 1
-#endif
-
-#if defined(H323_H450)
-#define HAS_H450 1
 #endif
 
 #endif // PWLIB_COMPAT_H
