@@ -571,6 +571,22 @@ If the database returns "{^\d(4)}@my.com" the first 4 digits are inserted so the
 </itemize>
 
 
+<sect1>Section &lsqb;Routing::NeighborSql&rsqb;
+<label id="neighborsql">
+<p>
+Select which neighbor to query for a call with a database query.
+
+Use the <ref id="database" name="common database configuration options">
+to define your database connection for this module.
+
+<itemize>
+<item><tt/Query=SELECT .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Define a SQL query to fetch the new neighbor IP and port.
+</itemize>
+
+
 <sect1>Section &lsqb;Routing::NumberAnalysis&rsqb;
 <label id="numberanalysis">
 <p>
