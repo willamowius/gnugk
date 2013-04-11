@@ -666,6 +666,12 @@ PTimedMutex ReloadMutex;
 
 #ifndef _WIN32
 PString pidfile("/var/run/gnugk.pid");
+
+PString RlimAsString(unsigned long rlim_val)
+{
+	return (rlim_val == RLIM_INFINITY) ? PString("unlimited") : PString(rlim_val);
+
+}
 #endif
 
 void ShutdownHandler()
@@ -1208,27 +1214,35 @@ void Gatekeeper::Main()
 #ifdef P_LINUX
 	// set the core file size
 	if (args.HasOption("core")) {
-		// TODO: check if these new limits actually work or if they only affect this thread
+		PString msg;
 		struct rlimit rlim;
-		if (getrlimit(RLIMIT_CORE, &rlim) != 0)
-			cout << "Could not get current core file size : error = " << errno << endl;
-		else {
-			cout << "Current core dump size limits - soft: " << rlim.rlim_cur
-				<< ", hard: " << rlim.rlim_max << endl;
+		if (getrlimit(RLIMIT_CORE, &rlim) != 0) {
+			msg = "Error: Could not get current core file size : error = " + PString(errno);
+			cout << msg << endl;
+			PTRACE(1, msg);
+		} else {
+			msg = "Current core dump size limits - soft: " + RlimAsString(rlim.rlim_cur) + ", hard: " + RlimAsString(rlim.rlim_max);
+			cout << msg << endl;
+			PTRACE(3, msg);
 			int uid = geteuid();
-			int result = seteuid(getuid()); // Switch back to starting uid for next call
+			int result = seteuid(getuid()); // switch back to starting uid for next call
 			if (result != 0) {
 				PTRACE(1, "Warning: Setting EUID failed");
 			}
 			const PCaselessString s = args.GetOptionString("core");
 			rlim_t v = (s == "unlimited" ? RLIM_INFINITY : (rlim_t)s.AsInteger());
 			rlim.rlim_cur = v;
-			if (setrlimit(RLIMIT_CORE, &rlim) != 0)
-				cout << "Could not set current core file size to " << v << " : error = " << errno << endl;
-			else {
+			if (rlim.rlim_max < rlim.rlim_cur)
+				rlim.rlim_max = v;
+			if (setrlimit(RLIMIT_CORE, &rlim) != 0) {
+				msg = "Error: Could not set current core file size to " + RlimAsString(v) + " : error = " + PString(errno);
+				cout << msg << endl;
+				PTRACE(1, msg);
+			} else {
 				getrlimit(RLIMIT_CORE, &rlim);
-				cout << "New core dump size limits - soft: " << rlim.rlim_cur
-					<< ", hard: " << rlim.rlim_max << endl;
+				msg = "New core dump size limits - soft: " + RlimAsString(rlim.rlim_cur) + ", hard: " + RlimAsString(rlim.rlim_max);
+				cout << msg << endl;
+				PTRACE(3, msg);
 			}
 			result = seteuid(uid);
 			if (result != 0) {

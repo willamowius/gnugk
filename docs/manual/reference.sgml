@@ -37,7 +37,7 @@ Run the gatekeeper process as this user. Only valid for Unix version.
 <tag/<tt/--core n//
 Enable writing core dump files when the application crashes. A core
 dump file will not exceed n bytes in size. A special constant "unlimited"
-may be used to not enforce any particular limit.  Only valid for Unix version.
+may be used to not enforce any particular limit.  Only valid on Linux.
 </descrip>
 
 <sect2>Gatekeeper Mode
