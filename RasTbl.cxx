@@ -4237,7 +4237,6 @@ int CallRec::GetH46019Direction() const
 		return 0;
 
 	int dir = 0;
-	// TODO: check if this is still correct when acting as traversal client
 	if (m_Calling && m_Calling->GetTraversalRole() != None)
 			dir += H46019_CALLER;
 	if (m_Called && m_Called->GetTraversalRole() != None)

@@ -2345,6 +2345,7 @@ bool GkClient::H46023_CreateSocketPair(const H225_CallIdentifier & id, WORD flcn
 					m_stunClient->CreateSocketPair(id, rtp, rtcp));
 		case CallRec::e_natFailure:
 			// TODO signal the call will fail!
+			PTRACE(1, "H46023\tNAT failure: Call will fail");
 		default:
 			return false;
 	}
