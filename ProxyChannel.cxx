@@ -1223,7 +1223,6 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 		GkClient * gkClient = RasServer::Instance()->GetGkClient();
 		if (gkClient && gkClient->CheckFrom(peerAddr) && gkClient->UsesH46018()) {
 			// for a Setup from a parent we won't have an EPRec and if H.460.18 is used it must be the server
-			PTRACE(0, "JW setting Parent as traversal server role was " << proxyhandler->GetTraversalRole());
 			proxyhandler->SetTraversalRole(TraversalServer);
 		}
 		proxyhandler->SetH46019Direction(m_call->GetH46019Direction());
@@ -2993,7 +2992,6 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		}
 		GkClient * gkClient = RasServer::Instance()->GetGkClient();
 		if (m_call && gkClient && gkClient->CheckFrom(_peerAddr)) {
-			PTRACE(0, "JW Call from Parent");
 			m_call->SetFromParent(true);
 		}
 #ifdef HAS_H46018
@@ -3001,7 +2999,6 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		// client doesn't know external IP and the server only knows the external IP, so client can't tell if it is his IP or somebody else
 		if (rassrv->IsCallFromTraversalServer(_peerAddr)
 			|| (gkClient && gkClient->CheckFrom(_peerAddr) && gkClient->UsesH46018()) ) {
-			PTRACE(0, "JW removing destCallSignalAddr from traversal server");
 			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 		}
 #endif
@@ -3042,7 +3039,6 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 #endif
 		) {
 		// existing CallRec
-PTRACE(0, "JW existing Callrec");
 		bool secondSetup = false;	// second Setup with same call-id detected (avoid new acct start and overwriting acct data)
 		m_call->SetSetupTime(setupTime);
 		m_call->SetSrcSignalAddr(SocketToH225TransportAddr(_peerAddr, _peerPort));
@@ -3138,7 +3134,6 @@ PTRACE(0, "JW existing Callrec");
 			PTRACE(5, Type() << "\tSupressing accounting start event for call #"
 				<< m_call->GetCallNumber());
 	} else {
-PTRACE(0, "JW NO existing Callrec");
 		// no existing CallRec
 		authData.m_dialedNumber = dialedNumber;
 		authData.m_callingStationId = GetCallingStationId(*setup, authData);
@@ -3771,10 +3766,6 @@ PTRACE(0, "JW NO existing Callrec");
 	}
 #endif
 #ifdef HAS_H46018
-PTRACE(0, "JW role check: calling=" << m_call->GetCallingParty() << " called=" << m_call->GetCalledParty());
-if (m_call->GetCalledParty()) {
-	PTRACE(0, "JW role called=" << m_call->GetCalledParty()->GetTraversalRole());
-}
 	// proxy if calling or called use H.460.18
 	if ((m_call->H46019Required() && ((m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None)
 		|| (m_call->GetCalledParty() && m_call->GetCalledParty()->GetTraversalRole() != None)))
@@ -3801,7 +3792,6 @@ if (m_call->GetCalledParty()) {
 		// remove H.460.19 indicator
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures) && !OZH46024) {
 			bool isH46019Client = false;
-PTRACE(0, "JW remove .19 indicator");
 			RemoveH46019Descriptor(setupBody.m_supportedFeatures, m_senderSupportsH46019Multiplexing, isH46019Client);
 			if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46017() && isH46019Client) {
 				m_call->GetCallingParty()->SetTraversalRole(TraversalClient);
@@ -3809,7 +3799,6 @@ PTRACE(0, "JW remove .19 indicator");
 		}
 		if ( (m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalServer())
 			|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018()) ) {
-PTRACE(0, "JW adding .19 Indicator");
 			H460_FeatureStd feat = H460_FeatureStd(19);
 			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
 				H460_FeatureID * feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
