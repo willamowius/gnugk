@@ -126,6 +126,9 @@ You can use it as a fallback at the end of the policy chain to route all calls w
 <p>
 This policy runs the LUA script defined in <ref id="routingcatchall" name="Routing::Lua"> section to set a call destination. NOTE: This policy is still experimental and may change!
 
+<item><tt/neighborsql/<newline>
+<p>
+Same as neighbor policy except the target for the LRQ messages are retrieved from a database. The database parameters are identical to the sql routing policy. 
 </itemize>
 
 <p>

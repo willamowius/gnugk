@@ -455,6 +455,7 @@ public:
 	unsigned int GetRejectReason() const { return m_rejectReason; }
 	void SetRejectReason(unsigned int reason) { m_rejectReason = reason; }
 	bool ChangeAliases() const { return m_aliasesChanged; }
+	void SetChangedAliases(bool success) { m_aliasesChanged = success; }
 	H225_ArrayOf_AliasAddress GetNewAliases() const { return m_newAliases; }
 	void SetNewAliases(const H225_ArrayOf_AliasAddress & aliases) { m_newAliases = aliases; m_aliasesChanged = true; }
 
@@ -495,6 +496,11 @@ protected:
 		const PString & clientauthid,
 		/* out: */
 		DestinationRoutes & destination) = 0;
+
+	virtual bool ResolveRoute(
+		RoutingRequest & request, 
+		DestinationRoutes & destination
+		) { return true; }
 
 protected:
 	// active ?

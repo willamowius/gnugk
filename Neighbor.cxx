@@ -2137,8 +2137,110 @@ bool RDSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 }
 #endif
 
+
+class NeighborSqlPolicy : public SqlPolicy {
+public:
+	NeighborSqlPolicy();
+
+protected:
+	virtual bool ResolveRoute(RoutingRequest & request, DestinationRoutes & destination);
+};
+
+NeighborSqlPolicy::NeighborSqlPolicy()
+{
+	m_active = false;
+	m_sqlConn = NULL;
+#if HAS_DATABASE
+	m_name = "NeighborSql";
+	m_iniSection = "Routing::NeighborSql";
+	m_timeout = -1;
+#else
+	PTRACE(1, m_name << " not available - no database driver compiled into GnuGk");
+#endif // HAS_DATABASE
+}
+
+bool NeighborSqlPolicy::ResolveRoute(RoutingRequest & request, DestinationRoutes & destination)
+{
+		if (!destination.ChangeAliases()) {
+			PTRACE(2,  m_name << "\tNothing to resolve.");
+			return true;
+		}
+
+		if (destination.RejectCall()) {
+			destination.SetRejectReason(H225_AdmissionRejectReason::e_undefinedReason);
+			return false;
+		}
+
+		PString destinationIp = AsString(destination.GetNewAliases()[0],0);
+		PStringArray adr_parts = SplitIPAndPort(destinationIp,GK_DEF_UNICAST_RAS_PORT);
+		PIPSocket::Address ip;
+		if (!IsIPAddress(adr_parts[0]))
+		  PIPSocket::GetHostAddress(adr_parts[0],ip);
+		 else
+		  ip = adr_parts[0];
+		WORD port = (WORD)(adr_parts[1].AsInteger());
+		H323TransportAddress addr(ip,port);
+
+		if (addr == H323TransportAddress(RasServer::Instance()->GetRasAddress(ip))) {
+			PTRACE(2,  m_name << "\tERROR LRQ loop detected.");
+			return false;
+		}
+
+		// Create a gatekeeper object
+		GnuGK * nb = new GnuGK();
+		if (!nb->SetProfile(m_name, addr)) {
+			PTRACE(2, "ROUTING\tERROR setting " << m_name << " profile at " << addr);
+			SNMP_TRAP(11, SNMPError, Configuration, "Error setting " + PString(m_name) + " profile at " + AsString(addr));
+			delete nb;
+			destination.SetRejectReason(H225_AdmissionRejectReason::e_undefinedReason);
+			return false;
+		}
+
+		int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
+
+		// Send LRQ to retreive callers signaling address
+		// Caution: we may only use the functor object of the right type and never touch the others!
+		LRQSender<AdmissionRequest> ArqFunctor((AdmissionRequest &)request);
+		LRQSender<SetupRequest> SetupFunctor((SetupRequest &)request);
+		LRQSender<FacilityRequest> FacilityFunctor((FacilityRequest &)request);
+		LRQSender<LocationRequest> LrqFunctor((LocationRequest &)request);
+		LRQRequester * pRequest = NULL;
+		if (dynamic_cast<AdmissionRequest *>(&request)) {
+			pRequest = new LRQRequester(ArqFunctor);
+		} else if (dynamic_cast<SetupRequest *>(&request)) {
+			pRequest = new LRQRequester(SetupFunctor);
+		} else if (dynamic_cast<FacilityRequest *>(&request)) {
+			pRequest = new LRQRequester(FacilityFunctor);
+		} else if (dynamic_cast<LocationRequest *>(&request)) {
+			pRequest = new LRQRequester(LrqFunctor);
+		}
+		if (pRequest && pRequest->Send(nb)) {
+			if (H225_LocationConfirm * lcf = pRequest->WaitForDestination(m_neighborTimeout)) {
+				Route route(m_name, lcf->m_callSignalAddress);
+#ifdef HAS_H460
+				if (pRequest->IsH46024Supported()) {
+					H225_RasMessage ras;
+					ras.SetTag(H225_RasMessage::e_locationConfirm);
+					H225_LocationConfirm & conf = (H225_LocationConfirm &)ras;
+					conf = *lcf;
+					route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);
+				}
+#endif
+				destination.AddRoute(route);
+				destination.SetChangedAliases(false);
+				delete pRequest;
+				delete nb;
+				return true;
+			}
+		}
+		delete pRequest;
+		delete nb;
+		return false;
+}
+
 namespace {
 	SimpleCreator<NeighborPolicy> NeighborPolicyCreator("neighbor");
+	SimpleCreator<NeighborSqlPolicy> NeighborSqlPolicyCreator("neighborsql");
 
 #ifdef hasSRV
 	SimpleCreator<SRVPolicy> SRVPolicyCreator("srv");

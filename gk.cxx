@@ -479,6 +479,15 @@ const char * KnownConfigEntries[][2] = {
 	{ "Routing::Lua", "Script" },
 	{ "Routing::Lua", "ScriptFile" },
 #endif
+	{ "Routing::NeighborSql", "CacheTimeout" },
+	{ "Routing::NeighborSql", "Database" },
+	{ "Routing::NeighborSql", "Driver" },
+	{ "Routing::NeighborSql", "Host" },
+	{ "Routing::NeighborSql", "Library" },
+	{ "Routing::NeighborSql", "MinPoolSize" },
+	{ "Routing::NeighborSql", "Password" },
+	{ "Routing::NeighborSql", "Query" },
+	{ "Routing::NeighborSql", "Username" },
 	{ "Routing::RDS", "ResolveLRQ" },
 	{ "Routing::SRV", "ResolveNonLocalLRQ" },
 #ifdef HAS_DATABASE

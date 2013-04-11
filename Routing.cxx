@@ -1718,7 +1718,11 @@ bool DynamicPolicy::OnRequest(AdmissionRequest & request)
 		RunPolicy(	/* in */ source, calledAlias, calledIP, caller, callingStationId, callid, messageType, clientauthid,
 						/* out: */ destination);
 
+		if (destination.m_routes.empty() && !ResolveRoute(request,destination))
+			destination.SetRejectCall(true);
+
 		if (destination.RejectCall()) {
+			destination.SetChangedAliases(false);
 			request.SetFlag(RoutingRequest::e_Reject);
 			request.SetRejectReason(destination.GetRejectReason());
 		}
@@ -1773,7 +1777,11 @@ bool DynamicPolicy::OnRequest(LocationRequest & request)
 	RunPolicy(	/* in */ source, calledAlias, calledIP, caller, callingStationId,callid, messageType, clientauthid,
 					/* out: */ destination);
 
+	if (destination.m_routes.empty() && !ResolveRoute(request,destination))
+		destination.SetRejectCall(true);
+
 	if (destination.RejectCall()) {
+		destination.SetChangedAliases(false);
 		request.SetFlag(RoutingRequest::e_Reject);
 		request.SetRejectReason(destination.GetRejectReason());
 	}
@@ -1821,7 +1829,11 @@ bool DynamicPolicy::OnRequest(SetupRequest & request)
 	RunPolicy(	/* in */ source, calledAlias, calledIP, caller, callingStationId, callid, messageType, clientauthid,
 					/* out: */ destination);
 
+	if (destination.m_routes.empty() && !ResolveRoute(request,destination))
+		destination.SetRejectCall(true);
+
 	if (destination.RejectCall()) {
+		destination.SetChangedAliases(false);
 		request.SetFlag(RoutingRequest::e_Reject);
 		request.SetRejectReason(destination.GetRejectReason());
 	}
