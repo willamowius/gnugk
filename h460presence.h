@@ -38,9 +38,13 @@ public:
 
     bool RegisterEndpoint(const H225_EndpointIdentifier & ep, const H225_ArrayOf_AliasAddress & addr);
 	void UnRegisterEndpoint(const H225_ArrayOf_AliasAddress & addr);
-
+#if H460P_VER > 2
+	bool BuildPresenceElement(unsigned msgtag, const H225_EndpointIdentifier & ep, list<PASN_OctetString> & pdu);
+	bool BuildPresenceElement(unsigned msgtag, const H225_TransportAddress & ip, list<PASN_OctetString> & pdu);
+#else
 	bool BuildPresenceElement(unsigned msgtag, const H225_EndpointIdentifier & ep, PASN_OctetString & pdu);
 	bool BuildPresenceElement(unsigned msgtag, const H225_TransportAddress & ip, PASN_OctetString & pdu);
+#endif
 	void ProcessPresenceElement(const PASN_OctetString & pdu);
 
 	bool GetPendingIdentifiers(list<H225_EndpointIdentifier> & epid);

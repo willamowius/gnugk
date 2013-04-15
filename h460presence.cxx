@@ -144,12 +144,33 @@ void PresWorker::ProcessMessages()
 		while (i != epid.end()) {
 			endptr ep = RegistrationTable::Instance()->FindByEndpointId(*i);
 			if (ep) {
+#if H460P_VER > 2
+				bool dataToSend=false;
+				list<PASN_OctetString> element;
+				if (ep->HasPresenceData())
+					dataToSend = handler->BuildPresenceElement(H225_RasMessage::e_registrationRequest, *i, element);
+				else
+					dataToSend = handler->BuildPresenceElement(H225_RasMessage::e_serviceControlIndication, *i, element);
+
+				if (dataToSend) {
+					PASN_OctetString data;
+					H225_RasMessage sci_ras;
+					while (element.size() > 0) {
+						data = element.front();
+						element.pop_front();
+						BuildSCI(sci_ras,data);
+						RasServer::Instance()->SendRas(sci_ras, ep->GetRasAddress());
+						PThread::Sleep(10);
+					}
+				}
+#else
 				PASN_OctetString element;
 				if (handler->BuildPresenceElement(H225_RasMessage::e_serviceControlIndication, *i, element)) {
 					H225_RasMessage sci_ras;
 					BuildSCI(sci_ras,element);
 					RasServer::Instance()->SendRas(sci_ras, ep->GetRasAddress());
 				}
+#endif
 			}
 			i++;
 		}
@@ -161,12 +182,27 @@ void PresWorker::ProcessMessages()
 		// Process the LRQ message for each TransportAddress
 		list<H225_TransportAddress>::iterator i = gkip.begin();
 		while (i != gkip.end()) {
+#if H460P_VER > 2
+			list<PASN_OctetString> element;
+			if (handler->BuildPresenceElement(H225_RasMessage::e_locationRequest,*i, element)) {
+				PASN_OctetString data;
+				H225_RasMessage lrq_ras;
+				while (element.size() > 0) {
+					data = element.front();
+					element.pop_front();
+					BuildLRQ(lrq_ras,data);
+					RasServer::Instance()->SendRas(lrq_ras, *i);
+					PThread::Sleep(10);
+				}
+			}
+#else
 			PASN_OctetString element;
 			if (handler->BuildPresenceElement(H225_RasMessage::e_locationRequest,*i, element)) {
 				H225_RasMessage lrq_ras;
 				BuildLRQ(lrq_ras,element);
 				RasServer::Instance()->SendRas(lrq_ras, *i);
 			}
+#endif
 			i++;
 		}
 	}
@@ -911,6 +947,21 @@ void GkPresence::ProcessPresenceElement(const PASN_OctetString & pdu)
 	}
 }
 
+#if H460P_VER > 2
+bool GkPresence::BuildPresenceElement(unsigned msgtag, const H225_EndpointIdentifier & ep, list<PASN_OctetString> & pdu)
+{
+	PWaitAndSignal m(m_AliasMutex);
+
+	return H323PresenceHandler::BuildPresenceElement(msgtag, ep, pdu);
+}
+
+bool GkPresence::BuildPresenceElement(unsigned msgtag, const H225_TransportAddress & ip, list<PASN_OctetString> & pdu)
+{
+	PWaitAndSignal m(m_AliasMutex);
+
+	return H323PresenceHandler::BuildPresenceElement(msgtag, ip, pdu);
+}
+#else
 bool GkPresence::BuildPresenceElement(unsigned msgtag, const H225_EndpointIdentifier & ep, PASN_OctetString & pdu)
 {
 	PWaitAndSignal m(m_AliasMutex);
@@ -924,6 +975,7 @@ bool GkPresence::BuildPresenceElement(unsigned msgtag, const H225_TransportAddre
 
 	return H323PresenceHandler::BuildPresenceElement(msgtag, ip, pdu);
 }
+#endif
 
 bool GkPresence::EnQueueFullNotification(const H225_AliasAddress & local, const H225_AliasAddress & remote)
 {

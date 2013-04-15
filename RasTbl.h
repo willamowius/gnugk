@@ -240,9 +240,12 @@ public:
 
 	void SetUsesH460P(bool uses);
 	bool UsesH460P() const { return m_usesH460P; }
+	bool HasPresenceData();
 #ifdef HAS_H460P
 	void ParsePresencePDU(const PASN_OctetString & pdu);
+#if H460P_VER < 3
 	bool BuildPresencePDU(unsigned msgtag, PASN_OctetString & pdu);
+#endif
 #endif
 
 	/** If this Endpoint would be register itself again with all the same data
@@ -394,8 +397,9 @@ protected:
 	bool m_h46017disabled;
 	bool m_h46018disabled;
 	bool m_usesH460P;
+	bool m_hasH460PData;
 	bool m_usesH46017;
-    bool m_usesH46026;
+	bool m_usesH46026;
 	H46019TraversalType m_traversalType;	// this is not what GnuGk acts like, but what this EPRec is a proxy for
 	
 	long m_bandwidth;	// bandwidth currently occupied by this endpoint

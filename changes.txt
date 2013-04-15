@@ -1,5 +1,6 @@
 Changes from 3.2 to 3.3
 =======================
+- Update Presence system. Reduce registration load, PDU size and UDP fragmentation
 - BUGFIX(gk.cxx) fix --core switch
 - BUGFIX(Toolkit.cxx) loop detection in AssignedGatekeeper
 - new [Routiing::NeighborSQL] policy to read Neighbor targets from database.

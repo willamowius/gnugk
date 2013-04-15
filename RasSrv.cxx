@@ -2100,10 +2100,11 @@ bool RegistrationRequestPDU::Process()
 				if (presenceSupport) {
 					H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
 					H460_FeatureOID presence = H460_FeatureOID(rPreFS);
+#if H460P_VER < 3
 					PASN_OctetString preData;
 					if (ep->BuildPresencePDU(rcf.GetTag(),preData))
 						presence.Add(OID3_PDU,H460_FeatureContent(preData));
- 
+#endif
 					rcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 					H225_ArrayOf_FeatureDescriptor & desc = rcf.m_featureSet.m_supportedFeatures;
 					PINDEX sz = desc.GetSize();
@@ -2474,10 +2475,11 @@ bool RegistrationRequestPDU::Process()
 #ifdef HAS_H460P
 		if (presenceSupport) {
 			H460_FeatureOID presence = H460_FeatureOID(rPreFS);
+#if H460P_VER < 3
 			PASN_OctetString preData;
 			if (ep->BuildPresencePDU(rcf.GetTag(),preData)) 
 				presence.Add(OID3_PDU,H460_FeatureContent(preData));
- 
+#endif
 			PINDEX lPos = gd.GetSize();
 			gd.SetSize(lPos+1);
 			gd[lPos] = presence;

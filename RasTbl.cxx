@@ -102,8 +102,8 @@ EndpointRec::EndpointRec(
 	m_registrationPriority(0), m_registrationPreemption(false),
     m_epnattype(NatUnknown), m_usesH46023(false), m_H46024(Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023PublicIP", 0))),
 	m_H46024a(false), m_H46024b(false), m_natproxy(Toolkit::AsBool(GkConfig()->GetString(proxysection, "ProxyForNAT", "1"))),
-	m_internal(false), m_remote(false), m_h46017disabled(false), m_h46018disabled(false), m_usesH460P(false), m_usesH46017(false), m_usesH46026(false),
-    m_traversalType(None), m_bandwidth(0), m_maxBandwidth(-1)
+	m_internal(false), m_remote(false), m_h46017disabled(false), m_h46018disabled(false), m_usesH460P(false), m_hasH460PData(false),
+    m_usesH46017(false), m_usesH46026(false), m_traversalType(None), m_bandwidth(0), m_maxBandwidth(-1)
 
 {
 	switch (m_RasMsg.GetTag())
@@ -1125,6 +1125,9 @@ void EndpointRec::SetUsesH460P(bool uses)
 	   handler.UnRegisterEndpoint(m_terminalAliases);
 	m_usesH460P = uses;
 #endif
+#if H460P_VER > 2
+    m_hasH460PData = uses;
+#endif
 }
 
 #ifdef HAS_H460P
@@ -1134,10 +1137,21 @@ void EndpointRec::ParsePresencePDU(const PASN_OctetString & pdu)
 	handler.ProcessPresenceElement(pdu);
 }
 
+#if H460P_VER < 3
 bool EndpointRec::BuildPresencePDU(unsigned msgtag, PASN_OctetString & pdu)
 {
 	GkPresence & handler  = Toolkit::Instance()->GetPresenceHandler();
 	return handler.BuildPresenceElement(msgtag,m_endpointIdentifier, pdu);
+}
+#endif
+
+bool EndpointRec::HasPresenceData()
+{
+    if (!m_hasH460PData)
+        return false;
+
+    m_hasH460PData = false;
+    return true;
 }
 #endif
 
