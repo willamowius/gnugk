@@ -162,8 +162,8 @@ libgtest.a:
 	$(AR) -rv libgtest.a gtest-all.o
 
 test: libgtest.a testrunner.cxx $(TESTCASES) $(TESTOBJS)
-	rm -f $(OBJDIR)/GkStatus.o
-	$(CXX) $(STDCCFLAGS) $(STDCXXFLAGS) $(CFLAGS) -DUNIT_TEST=1 -x c++ -c GkStatus.cxx -o $(OBJDIR)/GkStatus.o
+	@rm -f ./testrunner $(OBJDIR)/GkStatus.o
+	@$(CXX) $(STDCCFLAGS) $(STDCXXFLAGS) $(CFLAGS) -DUNIT_TEST=1 -x c++ -c GkStatus.cxx -o $(OBJDIR)/GkStatus.o
 	$(CXX) -I${GTEST_DIR}/include $(STDCCFLAGS) testrunner.cxx $(TESTCASES) -o testrunner libgtest.a $(TESTOBJS) $(LDFLAGS) -lh323_linux_x86_64__s -lpt_s $(ENDLDLIBS)
 	./testrunner
 

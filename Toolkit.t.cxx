@@ -28,7 +28,13 @@ protected:
 
 
 TEST_F(ToolkitTest, NetworkAddress) {
+	na = NetworkAddress();
 	EXPECT_STREQ("0.0.0.0/0", na.AsString());
+	EXPECT_TRUE(na.IsAny());
+	na = NetworkAddress("1.2.3.4/24");
+	EXPECT_STREQ("1.2.3.0/24", na.AsString());
+	EXPECT_EQ(24u, na.GetNetmaskLen());
+	EXPECT_FALSE(na.IsAny());
 }
 
 }  // namespace
