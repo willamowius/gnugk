@@ -1773,13 +1773,14 @@ void StatusClient::ExecCommand(
 		WriteString("Output trace level is " + PString(m_traceLevel) + "\r\n");
 		break;
 
+#ifndef UNIT_TEST
 	case GkStatus::e_RotateLog:
 	    if (Gatekeeper::RotateLogFile())
 			WriteString("Log file rotation succeeded\r\n");
 		else						
 			WriteString("Log file rotation failed\r\n");
 	    break;
-				
+
 	case GkStatus::e_SetLogFilename:
 		if (args.GetSize() == 2) {
 			if (Gatekeeper::SetLogFilename(args[1])) {
@@ -1788,7 +1789,8 @@ void StatusClient::ExecCommand(
 				CommandError("Failed to open the log file'" + args[1] + "'");
 		} else
 			CommandError("Syntax Error: setlog <logfilepath>");
-		break;				
+		break;
+#endif
 
 	case GkStatus::e_AddIncludeFilter:
 	    if (args.GetSize() == 2) {

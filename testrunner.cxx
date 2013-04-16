@@ -3,7 +3,7 @@
  *
  * run all unit tests for the GNU Gatekeeper
  *
- * Copyright (c) 2011, Jan Willamowius
+ * Copyright (c) 2011 - 2013, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -13,6 +13,10 @@
  */
 
 #include "gtest/gtest.h"
+
+// dummies to allow linking without gk.cxx
+const char * KnownConfigEntries[][2] = { };
+void ReloadHandler() { }
 
 int main(int argc, char **argv) {
 	// Disables elapsed time by default.

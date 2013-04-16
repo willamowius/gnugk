@@ -40,10 +40,6 @@ using std::vector;
 
 PCREATE_PROCESS(Gatekeeper)
 
-PIPSocket::Address GNUGK_INADDR_ANY(INADDR_ANY);
-
-PReadWriteMutex ConfigReloadMutex;
-
 PTextFile* Gatekeeper::m_logFile = NULL;
 PFilePath Gatekeeper::m_logFilename;
 PMutex Gatekeeper::m_logFileMutex;
@@ -52,8 +48,6 @@ int Gatekeeper::m_rotateMinute = 0;
 int Gatekeeper::m_rotateHour = 0;
 int Gatekeeper::m_rotateDay = 0;
 GkTimer* Gatekeeper::m_rotateTimer = GkTimerManager::INVALID_HANDLE;
-
-PSemaphore ShutdownMutex(1, 1);
 
 const char * KnownConfigEntries[][2] = {
 	// valid config entries

@@ -41,6 +41,11 @@ const char * H350Section = "GkH350::Settings";
 
 using namespace std;
 
+PIPSocket::Address GNUGK_INADDR_ANY(INADDR_ANY);
+
+PReadWriteMutex ConfigReloadMutex;
+PSemaphore ShutdownMutex(1, 1);
+
 extern const char *ProxySection;
 extern const char *RoutedSec;
 
