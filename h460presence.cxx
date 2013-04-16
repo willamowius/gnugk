@@ -26,7 +26,6 @@
 
 #include "h460/h4601.h"
 #include <h323pdu.h>
-#include <ptclib/delaychan.h>
 
 #define DEFAULT_PRESWORKER_TIMER 5   // fire thread every 5 seconds;
 
@@ -49,6 +48,9 @@ public:
 	// override from class PThread
 	virtual void Main();
 
+	// force the process thread to process messages
+	void ProcessNow();
+
 	// Close
 	void Close();
 
@@ -58,15 +60,12 @@ protected:
 private:
 	GkPresence *	handler;
 	long			waitTime;
-	bool			shutDown;
+	bool			processNow;
     PSyncPointAck	exitWorker;
-
-	PAdaptiveDelay m_delay;
-
 };
 
 PresWorker::PresWorker(GkPresence * _handler , int _waitTime)
-: PThread(5000, AutoDeleteThread), handler(_handler), waitTime(_waitTime), shutDown(false)
+: PThread(5000, AutoDeleteThread), handler(_handler), waitTime(_waitTime), processNow(false)
 {
 	PTRACE(4, "PRES\tPresence Thread instance fire every " << waitTime << " sec");
 	Resume();
@@ -79,23 +78,32 @@ PresWorker::~PresWorker()
 	
 void PresWorker::Main()
 {
+	int wint=100;
+	int wtime;
 	while (!exitWorker.Wait(0)) {
-		handler->DatabaseIncrementalUpdate();
-		if (shutDown) continue;
-			ProcessMessages();
-		if (shutDown) continue;
-			m_delay.Delay(waitTime);
+		wtime = 0;
+		ProcessMessages();
+		while (wtime < waitTime) {
+			wtime += wint;
+			PThread::Sleep(wint);
+			if (processNow)
+				break;
+		}
+		processNow = false;
 	}
 	exitWorker.Acknowledge();
 }
 
+void PresWorker::ProcessNow()
+{
+	processNow = true;
+}
+
 void PresWorker::Close()
 {
-	if (!shutDown) {
-		PTRACE(4, "PRES\tPresence Thread Shutdown");
-		shutDown = true;
-		exitWorker.Signal();
-	}
+	PTRACE(4, "PRES\tPresence Thread Shutdown");
+	ProcessNow();
+	exitWorker.Signal();
 }
 
 void BuildSCI(H225_RasMessage & sci_ras, PASN_OctetString & data)
@@ -160,7 +168,8 @@ void PresWorker::ProcessMessages()
 						element.pop_front();
 						BuildSCI(sci_ras,data);
 						RasServer::Instance()->SendRas(sci_ras, ep->GetRasAddress());
-						PThread::Sleep(10);
+						if (element.size() > 0)
+							PThread::Sleep(10);
 					}
 				}
 #else
@@ -854,6 +863,7 @@ bool GkPresence::RegisterEndpoint(const H225_EndpointIdentifier & ep, const H225
 			}
 		}		
 	}
+	m_worker->ProcessNow();
 	return true;
 }
 
