@@ -167,23 +167,6 @@ test: libgtest.a testrunner.cxx $(TESTCASES) $(TESTOBJS)
 	$(CXX) -I${GTEST_DIR}/include $(STDCCFLAGS) testrunner.cxx $(TESTCASES) -o testrunner libgtest.a $(TESTOBJS) $(LDFLAGS) -lh323_linux_x86_64__s -lpt_s $(ENDLDLIBS)
 	./testrunner
 
-#
-# By this command the build number may be incremented
-#
-.PHONY: increment
-
-# Use this to increment the build number
-increment:
-	-@BN=@GNUGK_BUILD_NUMBER@; \
-        BNN=`expr "$$BN" + 1`; \
-        echo "Upgrading from build $$BN to $$BNN"; \
-        cp version.h $(TMP)/version.h; \
-        sed -e 's/BUILD_NUMBER.*'"$$BN"'/BUILD_NUMBER '"$$BNN/" \
-                $(TMP)/version.h > version.h; \
-        rm -f $(TMP)/version.h; \
-		echo "Rerunning configure utility"; \
-		./configure
-
 # special configure dependencies
 configure: configure.in
 	autoconf
