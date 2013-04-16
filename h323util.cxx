@@ -2,7 +2,7 @@
 //
 // H.323 utility functions
 //
-// Copyright (c) 2000-2012, Jan Willamowius
+// Copyright (c) 2000-2013, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -739,10 +739,7 @@ PString RewriteString(
 	return result;
 }
 
-PString RewriteWildcard(
-	const PString & s,
-	const PString & expression 
-	)
+PString RewriteWildcard(const PString & s, const PString & expression)
 {
 	PString o = expression;
 
@@ -780,4 +777,4 @@ PString RewriteWildcard(
 	   else rewrite = s.Mid(s.GetLength()-i);
 	}
 	return l + rewrite + r;
-};
+}
