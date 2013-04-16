@@ -46,8 +46,8 @@ These modules check the <bf/tokens/ or <bf/cryptoTokens/ fields of RAS message.
 The tokens should contain at least generalID and password.
 For <bf/cryptoTokens/, <bf/cryptoEPPwdHash/ tokens hashed by simple MD5 and
 <bf/nestedcryptoToken/ tokens hashed by HMAC-SHA1-96 (libssl must be installed!)
-are now supported. For <bf/tokens/ tokens hashed by CAT (Cisco Access Token)
-and a clear text username/password are now supported.
+are supported. For <bf/tokens/ tokens hashed by CAT (Cisco Access Token)
+and a clear text username/password are supported.
 The ID and password are read from <ref id="password" name="[SimplePasswordAuth]"> section,
 or a SQL database for <tt/SimplePasswordAuth/ and <tt/SQLPasswordAuth/
 modules. For H.350.2 authentication (<tt/H350PasswordAuth/)
