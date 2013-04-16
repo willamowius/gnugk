@@ -3,7 +3,7 @@
  *
  * unit tests for h323util.cxx
  *
- * Copyright (c) 2011-2012, Jan Willamowius
+ * Copyright (c) 2011-2013, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -322,6 +322,11 @@ TEST_F(H323UtilTest, RewriteString) {
 	EXPECT_STREQ("49123456", RewriteString("777749123456", "%%%%49", "49"));
 }
 
+TEST_F(H323UtilTest, RewriteWildcard) {
+	EXPECT_STREQ("12345678@mydomain.com", RewriteWildcard("12345678", "{\\1}@mydomain.com"));
+	EXPECT_STREQ("1234@mydomain.com", RewriteWildcard("12345678", "{^\\d(4)}@mydomain.com"));
+	EXPECT_STREQ("5678@mydomain.com", RewriteWildcard("12345678", "{\\d(4)$}@mydomain.com"));
+}
+
 
 }  // namespace
-
