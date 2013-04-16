@@ -1,5 +1,5 @@
 # -*- mode: Makefile -*-
-# Copyright (C) 2002 by its various Authors, see CVS-log
+# Copyright (C) 2002-2013 by its various Authors, see CVS-log
 #
 # PURPOSE OF THIS FILE: Make file for GNU Gatekeeper
 #
@@ -153,14 +153,17 @@ doc:
 	$(MAKE) -C docs/manual html
 
 # test support using Google C++ Test Framework
-TESTCASES = h323util.t.cxx
-TESTOBJS = ./obj_linux_x86_64_s/h323util.o
+TESTCASES = h323util.t.cxx Toolkit.t.cxx
+temp_TESTOBJS := $(subst $(OBJDIR)/gk.o,,$(OBJS))
+TESTOBJS = $(temp_TESTOBJS)
 
 libgtest.a:
 	$(CXX) -I${GTEST_DIR}/include -I${GTEST_DIR} -c ${GTEST_DIR}/src/gtest-all.cc
 	$(AR) -rv libgtest.a gtest-all.o
 
 test: libgtest.a testrunner.cxx $(TESTCASES) $(TESTOBJS)
+	rm -f $(OBJDIR)/GkStatus.o
+	$(CXX) $(STDCCFLAGS) $(STDCXXFLAGS) $(CFLAGS) -DUNIT_TEST=1 -x c++ -c GkStatus.cxx -o $(OBJDIR)/GkStatus.o
 	$(CXX) -I${GTEST_DIR}/include $(STDCCFLAGS) testrunner.cxx $(TESTCASES) -o testrunner libgtest.a $(TESTOBJS) $(LDFLAGS) -lh323_linux_x86_64__s -lpt_s $(ENDLDLIBS)
 	./testrunner
 
