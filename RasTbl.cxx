@@ -902,13 +902,15 @@ PString EndpointRec::PrintNatInfo(bool verbose) const
 {
 	PString pre = (verbose ? "H.460." : "");
 
-	PString str;
-	if (m_nat) str = "Native";  
-	else if (m_natsocket) str = "GnuGk";
+	PString str; 
+	if (m_natsocket) str = "GnuGk";
 	else if (m_usesH46017) str = (m_usesH46026 ? pre + "17," + pre + "26" : pre + "17");
 	else if (IsTraversalClient()) str = pre + "18";
 	else if (IsTraversalServer()) str = pre + "18[S" +(verbose ? "erver" : "") + "]";
-	else if (m_usesH46023) str += "," + pre + "23[" + GetEPNATTypeString(m_epnattype) + "]";
+	else if (m_nat) str = "Native";
+	
+	if (m_usesH46023) str += "," + pre + "23[" + GetEPNATTypeString(m_epnattype) + "]";
+
 	return str;
 }
 
