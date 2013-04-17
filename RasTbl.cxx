@@ -898,13 +898,43 @@ EndpointRec *EndpointRec::Expired()
 	return this;
 }
 
+PString EndpointRec::PrintNatInfo(bool verbose) const
+{
+	PString pre = (verbose ? "H.460." : "");
+
+	PString str;
+	if (m_nat) str = "Native";  
+	else if (m_natsocket) str = "GnuGk";
+	else if (m_usesH46017) str = (m_usesH46026 ? pre + "17," + pre + "26" : pre + "17");
+	else if (IsTraversalClient()) str = pre + "18";
+	else if (IsTraversalServer()) str = pre + "18[S" +(verbose ? "erver" : "") + "]";
+	else if (m_usesH46023) str += "," + pre + "23[" + GetEPNATTypeString(m_epnattype) + "]";
+	return str;
+}
+
 PString EndpointRec::PrintOn(bool verbose) const
 {
-	PString msg = AsDotString(GetCallSignalAddress())
-			+ "|" + AsString(GetAliases())
-			+ "|" + AsString(GetEndpointType())
-			+ "|" + GetEndpointIdentifier().GetValue()
-		    + "\r\n";
+	PString msg;
+	std::map<PString, PString> params;
+	PString format = GkConfig()->GetString("GkStatus::Message", "RCF", "");
+	if (!verbose && !format) {
+		bool compact = Toolkit::AsBool(GkConfig()->GetString("GkStatus::Message", "Compact", "0")); 
+		params["IP:Port"] = AsDotString(GetCallSignalAddress());
+		params["Aliases"] = AsString(GetAliases());
+		params["Endpoint_Type"] = AsString(GetEndpointType());
+		params["EndpointID"] = GetEndpointIdentifier().GetValue();
+		params["NATType"] = PrintNatInfo(!compact);
+		PString vendor,version;
+		GetEndpointInfo(vendor, version);
+		params["Vendor"] = vendor + version;
+		msg = ReplaceParameters(format,params);
+	} else {
+		msg = AsDotString(GetCallSignalAddress())
+				+ "|" + AsString(GetAliases())
+				+ "|" + AsString(GetEndpointType())
+				+ "|" + GetEndpointIdentifier().GetValue();
+	}
+
 	if (verbose) {
 		msg += GetUpdatedTime().AsString();
 		PWaitAndSignal lock(m_usedLock);
@@ -912,26 +942,10 @@ PString EndpointRec::PrintOn(bool verbose) const
 			msg += " (permanent)";
 		PString natstring(IsNATed() ? m_natip.AsString() : PString::Empty());
 		msg += PString(PString::Printf, " C(%d/%d/%d) %s <%d>", m_activeCall, m_connectedCall, m_totalCall, (const unsigned char *)natstring, m_usedCount);
-		PString natType;
-		if (m_natsocket)
-			natType = "GnuGk";
-		if (IsTraversalClient())
-			natType = "H.460.18";
-		if (IsTraversalServer())
-			natType = "H.460.18[Server]";
-		// check for H.460.17 after H.460.18, because .17 endpoint can also be traversal clients
-		if (UsesH46017()) {
-			if (m_usesH46026)
-				natType = "H.460.17,H.460.26";
-			else
-				natType = "H.460.17";
-		}
-		if (m_usesH46023)
-			natType += ",H.460.23[" + GetEPNATTypeString(m_epnattype) + "]";
+		PString natType = PrintNatInfo(verbose);
 		if (!natType.IsEmpty())
 			msg += " (" + natType + ")";
 		msg += " bw:" + PString(m_bandwidth) + "/" + PString(m_maxBandwidth);
-		msg += "\r\n";
 	}
 	return msg;
 }
@@ -2009,7 +2023,7 @@ void RegistrationTable::InternalPrint(USocket *client, bool verbose, std::list<E
 	if (s > 1000) // set buffer to avoid reallocate
 		msg.SetSize(s * (verbose ? 200 : 100));
 	for (k = 0; k < s; k++)
-		msg += "RCF|" + eptr[k]->PrintOn(verbose);
+		msg += "RCF|" + eptr[k]->PrintOn(verbose) + ";\r\n";
 	delete [] eptr;
 	eptr = NULL;
 

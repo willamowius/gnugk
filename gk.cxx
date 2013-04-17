@@ -244,6 +244,8 @@ const char * KnownConfigEntries[][2] = {
 	{ "GkStatus::Filtering", "ExcludeFilter" },
 	{ "GkStatus::Filtering", "IncludeFilter" },
 	{ "GkStatus::Filtering", "NewRCFOnly" },
+	{ "GkStatus::Message", "Compact" },
+	{ "GkStatus::Message", "RCF" },
 	{ "LogFile", "Filename" },
 	{ "LogFile", "Rotate" },
 	{ "LogFile", "RotateDay" },

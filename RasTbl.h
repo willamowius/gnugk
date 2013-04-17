@@ -181,6 +181,7 @@ public:
 
 	virtual PString PrintOn(bool verbose) const;
 	PString PrintPrefixCapacities() const;
+	PString PrintNatInfo(bool verbose) const;
 
 	void SetNAT(bool nat);
 	void SetNATAddress(const PIPSocket::Address &, WORD port = 0);

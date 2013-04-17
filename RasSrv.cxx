@@ -2565,16 +2565,8 @@ bool RegistrationRequestPDU::Process()
 
 	// Note that the terminalAlias is not optional here as we pass the auto generated alias if not were provided from
 	// the endpoint itself
-	PString log = "RCF|" + AsDotString(SignalAddr)
-		+ "|" + AsString(ep->GetAliases())
-		+ "|" + AsString(request.m_terminalType)
-		+ "|" + ep->GetEndpointIdentifier().GetValue()
-		+ ";";
-	if (Toolkit::AsBool(GkConfig()->GetString("GkStatus::Filtering", "NewRCFOnly", "0"))) {
-	    if (bNewEP) {
-			PrintStatus(log);
-	    }
-	} else {
+	if ( bNewEP || !Toolkit::AsBool(GkConfig()->GetString("GkStatus::Filtering", "NewRCFOnly", "0"))) {
+        PString log = "RCF|" + ep->PrintOn(false) + ";";
 		PrintStatus(log);
 	}
 
@@ -2610,7 +2602,7 @@ bool RegistrationRequestPDU::HandleAdditiveRegistration(const endptr & ep)
 	RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctRegister, endptr(&logRec));
 
 	if (!Toolkit::AsBool(GkConfig()->GetString("GkStatus::Filtering", "NewRCFOnly", "0"))) {
-		PString log = "RCF|" + ep->PrintOn(false) + ";\r\n";
+		PString log = "RCF|" + ep->PrintOn(false) + ";";
 		PrintStatus(log);
 	}
 	return true;

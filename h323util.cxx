@@ -778,3 +778,36 @@ PString RewriteWildcard(const PString & s, const PString & expression)
 	}
 	return l + rewrite + r;
 }
+
+
+PString ReplaceParameters(const PString & queryStr, const std::map<PString, PString> & queryParams)
+{
+	const PINDEX numParams = queryParams.size();
+	PString finalQuery = queryStr;
+	PINDEX queryLen = finalQuery.GetLength();
+	PINDEX pos = 0;
+	std::map<PString, PString>::const_iterator it;
+	PString var;
+
+	while (pos != P_MAX_INDEX) {
+		pos = finalQuery.Find('%', pos);
+		if (pos++ == P_MAX_INDEX)
+			break;
+		const char c = finalQuery[pos]; // char next after '%'
+		if (c == '{') {
+			const PINDEX closingBrace = finalQuery.Find('}', ++pos);
+			if (closingBrace != P_MAX_INDEX) {
+				PString var = finalQuery.Mid(pos,closingBrace-pos);
+				it = queryParams.find(var);
+				if (it!=queryParams.end()) {
+					finalQuery = finalQuery.Left(pos-2) + it->second + finalQuery.Mid(closingBrace+1);
+					pos = pos-2 + it->second.GetLength();
+				} else
+					pos = closingBrace;
+			}
+		}
+	}
+	return finalQuery;
+}
+
+

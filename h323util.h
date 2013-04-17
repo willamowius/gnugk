@@ -235,5 +235,16 @@ PString RewriteWildcard(
 	const PString & s,          /// original string to rewrite
 	const PString & expression /// prefix string that matched					
 	);
+
+/** ReplaceParameters 
+	General parameter rewrite procedure.
+	@return	Rewritten string.
+*/
+PString ReplaceParameters(
+	const PString & queryStr,				/// parametrized query string
+	const std::map<PString, PString> & queryParams	/// parameter values
+	);
+
+
 	
 #endif // H323UTIL_H
