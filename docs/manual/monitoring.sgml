@@ -961,8 +961,8 @@ NewRCFOnly=1
 <sect1>Status Port Message Format
 <label id="statusportmessage">
 <p>
-The status port message format may be altered to reorder or include options not included in the standard Status Port format.
-NOTE: This section hsd no effect on the PrintAllRegistrationsVerbose status port command.
+The format of status port event messages may be altered to reorder or include options not included in the standard output format.
+NOTE: This section has no effect on the format of the response of status port commans, like eg. PrintAllRegistrationsVerbose.
 
 The settings in this section may be updated by reloading the configuration while the gatekeeper is running.
 <p>
@@ -971,6 +971,7 @@ The settings in this section may be updated by reloading the configuration while
 <p>
 The Status Port Message has the following <bf/input variables/ available:
 
+<itemize>
 <item>IP:Port - IP and port the registration was detected on (external NAT address if behind NAT)
 <item>Aliases - Complete list of aliases for the registration
 <item>Endpoint_Type - Endpoint type (ie terminal,gateway) of the registered endpoint
@@ -986,10 +987,12 @@ The Status Port Message has the following <bf/input variables/ available:
 RCF=%{IP:Port}|%{Aliases}|%{Endpoint_Type}|%{EndpointID}|%{NATType}|%{Vendor}
 </verb></tscreen>
 </descrip>
-<itemize>
+</itemize>
 
+<itemize>
 <item><tt/Compact=1/<newline>
 Default: <tt/0/<newline>
 <p>
 Whether the display is standard format or compact (mainly used with NATType variable)
 </itemize>
+
