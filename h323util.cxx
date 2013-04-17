@@ -782,9 +782,7 @@ PString RewriteWildcard(const PString & s, const PString & expression)
 
 PString ReplaceParameters(const PString & queryStr, const std::map<PString, PString> & queryParams)
 {
-	const PINDEX numParams = queryParams.size();
 	PString finalQuery = queryStr;
-	PINDEX queryLen = finalQuery.GetLength();
 	PINDEX pos = 0;
 	std::map<PString, PString>::const_iterator it;
 	PString var;
