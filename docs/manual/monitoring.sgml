@@ -967,9 +967,15 @@ NOTE: This section has no effect on the format of the response of status port co
 The settings in this section may be updated by reloading the configuration while the gatekeeper is running.
 <p>
 <itemize>
-<item><tt/RCF/<newline>
+<item><tt/Compact=1/<newline>
+Default: <tt/0/<newline>
 <p>
-The Status Port Message has the following <bf/input variables/ available:
+Whether to use standard format or compact format parameters (mainly used with NATType variable)
+
+<item><tt/RCF=%{IP:Port}|%{Aliases}|%{Endpoint_Type}|%{EndpointID}|%{NATType}|%{Vendor}/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The RFC event has the following parameters available:
 
 <itemize>
 <item>IP:Port - IP and port the registration was detected on (external NAT address if behind NAT)
@@ -979,20 +985,16 @@ The Status Port Message has the following <bf/input variables/ available:
 <item>NATType - NAT Method of registration (ie Native,GnuGk,H.460.17,H.460.18 etc)
 <item>Vendor - Vendor information of the registering device
 </itemize>
+
+</itemize>
 <p>
+
 <descrip>
-<tag/Example to set the RCF format on the status port:/
+<tag/Example:/
 <tscreen><verb>
 [GkStatus::Messaging]
+Compact=0
 RCF=%{IP:Port}|%{Aliases}|%{Endpoint_Type}|%{EndpointID}|%{NATType}|%{Vendor}
 </verb></tscreen>
 </descrip>
-</itemize>
-
-<itemize>
-<item><tt/Compact=1/<newline>
-Default: <tt/0/<newline>
-<p>
-Whether the display is standard format or compact (mainly used with NATType variable)
-</itemize>
 
