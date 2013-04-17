@@ -686,8 +686,8 @@ void GkAuthenticatorList::OnReload()
 	
 	std::list<GkAuthenticator*> authenticators;	
 	GkAuthenticator *auth;
-	
-// TODO None of this works. Authenticators are never populated (is it needed?) - SH
+
+	// TODO: None of this works. Authenticators are never populated (is it needed?) - SH
 	const PStringArray authRules = GkConfig()->GetKeys(GkAuthSectionName);
 	for (PINDEX r = 0; r < authRules.GetSize(); r++) {
 		auth = Factory<GkAuthenticator>::Create(authRules[r]);
@@ -696,7 +696,7 @@ void GkAuthenticatorList::OnReload()
 	}
 
 	m_authenticators = authenticators;
-	
+
 	H225_ArrayOf_AuthenticationMechanism mechanisms;
 	H225_ArrayOf_PASN_ObjectId algorithmOIDs;
 
@@ -706,9 +706,9 @@ void GkAuthenticatorList::OnReload()
 	// scan all authenticators that are either "required" or "sufficient"
 	// (skip "optional") and fill #mechanisms# and #algorithmOIDs# arrays
 	// with H.235 capabilities that are supported by all these authenticators
-	
+
 	std::list<GkAuthenticator*>::const_iterator iter = authenticators.begin();
-	
+
 	while (iter != authenticators.end()) {
 		auth = *iter++;
 		if (auth->IsH235Capable() 

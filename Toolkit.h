@@ -44,14 +44,9 @@ public:
 	/// Build an "any" address
 	NetworkAddress();
 	/// Build a single host address
-	NetworkAddress(
-		const PIPSocket::Address &addr
-		);
+	NetworkAddress(const PIPSocket::Address & addr);
 	/// Build an address of the specified network
-	NetworkAddress(
-		const PIPSocket::Address &addr,
-		const PIPSocket::Address &nm
-		);
+	NetworkAddress(const PIPSocket::Address & addr, const PIPSocket::Address & nm);
 	/// Build an address from the string
 	NetworkAddress(
 		const PString &str /// an address in a form A.B.C.D, A.B.C.D/24 or A.B.C.D/255.255.255.0
