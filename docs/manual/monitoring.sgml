@@ -992,7 +992,7 @@ The RFC event has the following parameters available:
 <descrip>
 <tag/Example:/
 <tscreen><verb>
-[GkStatus::Messaging]
+[GkStatus::Message]
 Compact=0
 RCF=%{IP:Port}|%{Aliases}|%{Endpoint_Type}|%{EndpointID}|%{NATType}|%{Vendor}
 </verb></tscreen>
