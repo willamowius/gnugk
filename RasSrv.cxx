@@ -826,6 +826,26 @@ bool RasServer::AcceptUnregisteredCalls(const PIPSocket::Address & addr) const
 	return Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "AcceptNeighborsCalls", "1")) ? neighbors->CheckIP(addr) : false;
 }
 
+bool RasServer::AcceptPregrantedCalls(const H225_Setup_UUIE & setupBody, const PIPSocket::Address & addr) const
+{
+	if (!Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "PregrantARQ", "0")))
+		return false;
+
+	if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_endpointIdentifier))
+		return false;
+
+	endptr ep = RegistrationTable::Instance()->FindByEndpointId(setupBody.m_endpointIdentifier);
+	if (ep) {
+		PIPSocket::Address epIP;
+		WORD epPort = 0;
+		if (GetIPAndPortFromTransportAddr(ep->GetCallSignalAddress(), epIP, epPort) && epIP == addr) {
+			PTRACE(3, "Q931\tAccepting pre-granted Call");
+			return true;
+		}
+	} 
+	return false;
+}
+
 bool RasServer::IsCallFromTraversalClient(const PIPSocket::Address & addr) const
 {
 	return neighbors->IsTraversalClient(addr);
@@ -2398,6 +2418,18 @@ bool RegistrationRequestPDU::Process()
 		//
 		BuildRCF(ep);
 		H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
+
+		if (Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "PregrantARQ", "0"))) {
+			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_preGrantedARQ);
+			rcf.m_preGrantedARQ.m_makeCall = true;
+			rcf.m_preGrantedARQ.m_answerCall = true;
+			if (RasSrv->IsGKRouted()) {
+				// in routed-mode we require all calls to be placed through the gatekeeper
+				rcf.m_preGrantedARQ.m_useGKCallSignalAddressToMakeCall = true;
+				rcf.m_preGrantedARQ.m_useGKCallSignalAddressToAnswer = true;
+			}
+		}
+
 		if (supportcallingNAT
 #ifdef HAS_H46017
 			&& !usesH46017

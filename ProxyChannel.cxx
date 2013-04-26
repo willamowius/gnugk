@@ -3142,8 +3142,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 		if (!rassrv->ValidatePDU(*setup, authData)) {
 			PTRACE(3, Type() << "\tDropping call CRV=" << msg->GetCallReference()
-				<< " from " << Name() << " due to Setup authentication failure"
-				);
+				<< " from " << Name() << " due to Setup authentication failure");
 			if (authData.m_rejectCause == -1 && authData.m_rejectReason == -1)
 				authData.m_rejectCause = Q931::CallRejected;
 			rejectCall = true;
@@ -3270,10 +3269,8 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		bool proceedingSent = false;
 		if (!rejectCall && !destFound) {
 			// for compatible to old version
-			if (!(useParent || rassrv->AcceptUnregisteredCalls(_peerAddr))) {
-				PTRACE(3, Type() << "\tReject unregistered call " << callid
-					<< " from " << Name()
-					);
+			if (!(useParent || rassrv->AcceptUnregisteredCalls(_peerAddr) || rassrv->AcceptPregrantedCalls(setupBody, _peerAddr))) {
+				PTRACE(3, Type() << "\tReject unregistered call " << callid << " from " << Name());
 				authData.m_rejectCause = Q931::CallRejected;
 				rejectCall = true;
 			} else {

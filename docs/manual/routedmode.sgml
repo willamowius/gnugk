@@ -604,6 +604,17 @@ fixed, it might be helpful just to "Drop" this Q.931 message that couldn't be de
 The last option to simply "Forward" the messages should be used with great care, since
 invalid messages might cause your endpoints to crash or worse.
 
+<item><tt/PregrantARQ=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Use pre-ganted ARQ model: Endpoints don't have to send ARQ before a call and will save
+one message round-trip in the call establishment. Endpoints that don't support this
+H.323 version 2 feature and will keep sending ARQs as usual.
+<p>
+Note: When using this switch in a direct-mode configuration, you will loose almost
+all control over your calls. When the gatekeeper is in routed-mode, calls without
+ARQ can still be authenticated on the Setup message.
+
 <item><tt/EnableH460P=1/<newline>
 Default: <tt/0/<newline>
 <p>
