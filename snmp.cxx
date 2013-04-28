@@ -693,6 +693,12 @@ PCaselessString SelectSNMPImplementation()
 
 void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg)
 {
+	if ((severity == SNMPWarning)
+		&& !Toolkit::AsBool(GkConfig()->GetString(SNMPSection, "EnableWarningTraps", "0"))) {
+		// don't throw warning trap
+		return;
+	}
+
 	PCaselessString implementation = SelectSNMPImplementation();
 #ifdef HAS_NETSNMP
 	if (implementation == "Net-SNMP") {

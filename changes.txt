@@ -1,5 +1,6 @@
 Changes from 3.2 to 3.3
 =======================
+- SNMP traps with warnings are now disabled by default, re-enable with [SNMP] EnableWarningTraps=1
 - support pre-granted ARQs: [RoutedMode] PregrantARQ=1
 - BUGFIX(ProxyChannel.cxx) add missing h245Tunneling element in tunneling translation
 - new [GkStatus::Message] to allow reformating of status port messages
