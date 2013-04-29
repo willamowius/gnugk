@@ -1831,16 +1831,45 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 	}
 
     if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_indication) {
-#ifdef HAS_H46024B
 		H245_IndicationMessage & imsg  = h245msg;
+#ifdef HAS_H46023
 		if (imsg.GetTag() == H245_IndicationMessage::e_genericIndication) {
-		const char * H46024B_OID = "0.0.8.460.24.2";
-		H245_GenericMessage & gmsg = imsg;
-		H245_CapabilityIdentifier & id = gmsg.m_messageIdentifier;
+			H245_GenericMessage & gmsg = imsg;
+			H245_CapabilityIdentifier & id = gmsg.m_messageIdentifier;
 			if (id.GetTag() == H245_CapabilityIdentifier::e_standard) {
 				PASN_ObjectId & val = id;
-				if (val.AsString() == H46024B_OID) {
+#ifdef HAS_H46024A
+				if (val.AsString() == H46024A_OID) {
 					// TODO Signal to shutdown proxy support - SH
+					suppress = true;
+					return false;
+				}
+#endif
+#ifdef HAS_H46024B
+				if (val.AsString() == H46024B_OID) {
+					// TODO shutdown the proxy channel if media going direct
+					suppress = true;
+					return false;
+				}
+#endif
+			}
+		}
+#endif
+    }
+
+	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request) {
+		H245_RequestMessage & reqmsg  = h245msg;
+#ifdef HAS_H46024B
+		if (reqmsg.GetTag() == H245_RequestMessage::e_genericRequest) {
+		    H245_GenericMessage & gmsg = reqmsg;
+		    H245_CapabilityIdentifier & id = gmsg.m_messageIdentifier;
+			if (id.GetTag() == H245_CapabilityIdentifier::e_standard) {
+				PASN_ObjectId & val = id;
+				if (val.AsString() == H46024B_OID && 
+					gmsg.HasOptionalField(H245_GenericMessage::e_messageContent)) {
+						if (!m_call->HandleH46024BRequest(gmsg.m_messageContent)) {
+							PTRACE(2, "H245\tH46024B: Error Handling Request!");
+						}
 					suppress = true;
 					return false;
 				}
@@ -1853,7 +1882,6 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		H245_ResponseMessage & rmsg  = h245msg;
 #ifdef HAS_H46024B
 		if (rmsg.GetTag() == H245_ResponseMessage::e_genericResponse) {
-			const char * H46024B_OID = "0.0.8.460.24.2";
  			H245_GenericMessage & gmsg = rmsg;
 			H245_CapabilityIdentifier & id = gmsg.m_messageIdentifier;
 			if (id.GetTag() == H245_CapabilityIdentifier::e_standard) {

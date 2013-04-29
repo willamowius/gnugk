@@ -814,8 +814,6 @@ class H46024Socket  : public UDPProxySocket
 public:
     H46024Socket(GkClient * client, bool rtp, const H225_CallIdentifier & id, CallRec::NatStrategy strategy, WORD flcn);
 
-	virtual bool OnReceiveData(void *, PINDEX, Address &, WORD &);
-
 	enum  probe_state {
 		e_notRequired,			///< Polling has not started
 		e_initialising,			///< We are initialising (local set but remote not)
@@ -834,6 +832,15 @@ public:
 		BYTE		cui[20];		// SHA-1 is always 160 (20 Bytes)
 	};
 
+	virtual bool OnReceiveData(void *, PINDEX, Address &, WORD &);
+	PBoolean SendRTCPFrame(RTP_ControlFrame & report, const PIPSocket::Address & ip, WORD port, unsigned id);
+
+	virtual PBoolean WriteTo(const void * buf, PINDEX len, const Address & addr, WORD port);
+	virtual PBoolean WriteTo(const void * buf, PINDEX len, const Address & addr, WORD port, unsigned id);
+#ifdef HAS_H46019CM
+	PBoolean WriteSocket(const void * buf, PINDEX len, const Address & addr, WORD port, unsigned altMux = 0);
+#endif
+
 	void SetAlternateAddresses(const H323TransportAddress & address, const PString & cui, unsigned muxID);
 	void GetAlternateAddresses(H323TransportAddress & address, PString & cui, unsigned & muxID);
 	PBoolean IsAlternateAddress(const Address & address, WORD port);
@@ -846,9 +853,11 @@ public:
 	void SetProbeState(probe_state newstate);
 	int GetProbeState() const;
 	void StartH46024Adirect(bool starter);
+	void SignalH46024Adirect();
 
 	// Annex B
 	void H46024Bdirect(const H323TransportAddress & address, unsigned muxID);
+	void SendRTPPing(const PIPSocket::Address & ip, const WORD & port, unsigned id);
 
 private:
     GkClient * m_client;
@@ -867,6 +876,7 @@ private:
 	PIPSocket::Address m_detAddr;  WORD m_detPort;		///< detected remote Address (as detected from actual packets)
 	PIPSocket::Address m_pendAddr;  WORD m_pendPort;	///< detected pending RTCP Probe Address (as detected from actual packets)
 	PIPSocket::Address m_altAddr;  WORD m_altPort;		///< supplied remote Address (as supplied in Generic Information)
+	unsigned m_altMuxID;
 
 	// Probes
 	PDECLARE_NOTIFIER(PTimer, H46024Socket, Probe);		///< Thread to probe for direct connection
@@ -874,25 +884,189 @@ private:
 	PINDEX m_probes;									///< Probe count
 	DWORD SSRC;											///< Random number
 
+	// Annex B Probes
+	WORD m_keepseqno;                                   ///< Probe sequence number
+	PTime m_keepStartTime;                              ///< Probe start time for TimeStamp.
+
 };
 
 H46024Socket::H46024Socket(GkClient * client, bool rtp, const H225_CallIdentifier & id, CallRec::NatStrategy strategy, WORD flcn)
 	:UDPProxySocket((rtp ? "rtp" : "rtcp"),id), m_client(client), 
 	m_natStrategy(strategy), m_flcn(flcn), m_callIdentifier(id), 
-	m_rtp(rtp), m_state(e_notRequired), m_CUIlocal(PString()), m_CUIremote(PString()), m_probes(0)
+	m_rtp(rtp), m_state(e_notRequired), m_CUIlocal(PString()), m_CUIremote(PString()), m_altMuxID(0), m_probes(0), m_keepseqno(100)
 {
 
+}
+
+PBoolean H46024Socket::ReceivedProbePacket(const RTP_ControlFrame & frame, bool & probe, bool & success)
+{
+	success = false;
+
+	//Inspect the probe packet
+	if (frame.GetPayloadType() != RTP_ControlFrame::e_ApplDefined) 
+		return false;
+
+	int cstate = GetProbeState();
+	if (cstate == e_notRequired) {
+		PTRACE(6, "H46024A\ts:" << m_flcn << " received RTCP probe packet. LOGIC ERROR!");
+		return false;  
+	}
+
+	if (cstate > e_probing) {
+		PTRACE(6, "H46024A\ts:" << m_flcn << " received RTCP probe packet. IGNORING! Already authenticated.");
+		return false;
+	}
+
+	probe = (frame.GetCount() > 0);
+	PTRACE(4, "H46024A\ts:" << m_flcn << " RTCP Probe " << (probe ? "Reply" : "Request") << " received.");    
+
+#ifdef P_SSL
+	BYTE * data = frame.GetPayloadPtr();
+	PBYTEArray bytes(20);
+	memcpy(bytes.GetPointer(),data+12, 20);
+	PMessageDigest::Result bin_digest;
+	PMessageDigestSHA1::Encode(OpalGloballyUniqueID(m_callIdentifier.m_guid).AsString() + m_CUIlocal, bin_digest);
+	PBYTEArray val(bin_digest.GetPointer(),bin_digest.GetSize());
+
+	if (bytes == val) {
+		if (probe)  // We have a reply
+			SetProbeState(e_verify_sender);
+		else 
+			SetProbeState(e_verify_receiver);
+
+		m_Probe.Stop();
+		PTRACE(4, "H46024A\ts" << m_flcn << " RTCP Probe " << (probe ? "Reply" : "Request") << " verified.");
+		if (!m_CUIremote.IsEmpty())
+			success = true;
+		else {
+			PTRACE(4, "H46024A\ts" << m_flcn << " Remote not ready.");
+		}
+	} else {
+		PTRACE(4, "H46024A\ts" << m_flcn << " RTCP Probe " << (probe ? "Reply" : "Request") << " verify FAILURE");    
+	}
+	return true;
+#else
+    return false;
+#endif
 }
 
 bool H46024Socket::OnReceiveData(void * data, PINDEX datalen, Address & ipAddress, WORD & ipPort) 
 {
-	if (m_natStrategy == CallRec::e_natAnnexA) {
+	if (m_natStrategy != CallRec::e_natAnnexA &&
+		m_natStrategy != CallRec::e_natAnnexB) 
 		return true;
-	} else if (m_natStrategy == CallRec::e_natAnnexB) {
+
+	int state = GetProbeState();
+	if (state == e_notRequired || state == e_direct)
 		return true;
-	} else
-		return true;
+
+	// We intercept any prob packets here.
+	if (m_natStrategy == CallRec::e_natAnnexB && ipAddress == m_altAddr && port == m_altPort) {
+		PTRACE(4, "H46024B\ts:" << m_flcn << " " << Type() <<   
+			" Switching to " << ipAddress << ":" << port << " from " << m_remAddr << ":" << m_remPort);
+		m_detAddr = ipAddress;  m_detPort = ipPort;
+		SetProbeState(e_direct);
+		return false;
+	}
+
+	/// Check the probe state
+	switch (state) {
+		case e_initialising:						// RTCP only
+		case e_idle:								// RTCP only
+		case e_probing:								// RTCP only
+		case e_verify_receiver:						// RTCP only
+		{
+			bool probe = false; bool success = false;
+			RTP_ControlFrame frame(datalen);
+			memcpy(frame.GetPointer(),data,datalen);
+			if (ReceivedProbePacket(frame,probe,success)) {
+				if (success)
+					ProbeReceived(probe,ipAddress,ipPort);
+				else {
+					m_pendAddr = ipAddress; m_pendPort = ipPort;
+				}
+				return false;  // don't forward on probe packets.
+			}
+		}
+		break;
+		case e_wait:
+			if ((ipAddress == m_altAddr) && (ipPort == m_altPort)) {
+				PTRACE(4, "H46024A\ts:" << m_flcn << " " << Type() << " Already sending direct!");
+				m_detAddr = ipAddress;  m_detPort = ipPort;
+				SetProbeState(e_direct);
+				return false;  // don't forward on probe packets.
+			} else if ((ipAddress == m_pendAddr) && (ipPort == m_pendPort)) {
+				PTRACE(4, "H46024A\ts:" << m_flcn << " " << Type() <<  
+									" Switching to Direct " << ipAddress << ":" << ipPort);
+				m_detAddr = ipAddress;  m_detPort = ipPort;
+				SetProbeState(e_direct);
+				return false; // don't forward on probe packets.
+			} else if ((ipAddress != m_remAddr) || (ipPort != m_remPort)) {
+				PTRACE(4, "H46024A\ts:" << m_flcn << " " << Type() <<   
+									" Switching to " << ipAddress << ":" << ipPort << " from " << m_remAddr << ":" << m_remPort);
+				m_detAddr = ipAddress;  m_detPort = ipPort;
+				SetProbeState(e_direct);
+				return false;  // don't forward on probe packets.
+			} 
+			break;
+		default:
+		break;
+	}
+	return true;
+
 }
+
+PBoolean H46024Socket::WriteTo(const void * buf, PINDEX len, const Address & addr, WORD port)
+{
+	return WriteTo(buf, len, addr, port, 0);
+}
+
+PBoolean H46024Socket::WriteTo(const void * buf, PINDEX len, const Address & addr, WORD port, unsigned id)
+{
+#if defined(H323_H46024A) || defined(H323_H46024B)
+	if (GetProbeState() == e_direct)
+#ifdef HAS_H46019CM
+		return WriteSocket(buf,len, m_detAddr, m_detPort, m_altMuxID);
+#else
+		return UDPProxySocket::WriteTo(buf,len, m_detAddr, m_detPort);
+#endif  // H46019CM
+	else
+#endif  // H46024A/B
+#ifdef HAS_H46019CM
+		return WriteSocket(buf,len, addr, port, id);
+#else
+		return UDPProxySocket::WriteTo(buf,len, addr, port);
+#endif // HAS_H46019CM
+}
+
+#ifdef HAS_H46019CM
+PBoolean H46024Socket::WriteSocket(const void * buf, PINDEX len, const Address & addr, WORD port, unsigned altMux)
+{
+	unsigned mux = m_sendMultiplexID;
+	if (altMux) mux = altMux;
+
+	if (!PNatMethod_H46019::IsMultiplexed() && !mux)      // No Multiplex Rec'v or Send
+		return UDPProxySocket::WriteTo(buf,len, addr, port);
+	else {
+#ifdef H323_H46024A
+		if (m_remAddr.IsAny()) {
+			m_remAddr = addr;
+			m_remPort = port;
+		}
+#endif
+		PUDPSocket * muxSocket = PNatMethod_H46019::GetMultiplexSocket(rtpSocket);
+		if (muxSocket && !mux)                            // Rec'v Multiplex
+			return muxSocket->WriteTo(buf,len, addr, port);
+
+		RTP_MultiDataFrame frame(mux,(const BYTE *)buf,len);
+		if (!muxSocket)												// Send Multiplex
+			return UDPProxySocket::WriteTo(frame.GetPointer(), frame.GetSize(), addr, port);                                   
+		else														//  Send & Rec'v Multiplexed
+			return muxSocket->WriteTo(frame.GetPointer(), frame.GetSize(), addr, port);
+
+	}
+}
+#endif
 
 void H46024Socket::SetAlternateAddresses(const H323TransportAddress & address, const PString & cui, unsigned muxID)
 {
@@ -967,44 +1141,45 @@ void H46024Socket::Probe(PTimer &, INT)
 
 	RTP_ControlFrame report;
 	report.SetSize(4+sizeof(probe_packet));
-#ifdef P_SSL
 	BuildProbe(report, true);
-#endif
-/*
+    if (SendRTCPFrame(report, m_altAddr, m_altPort, m_altMuxID)) {
+		PTRACE(6, "H46024A\ts" << m_flcn <<" RTCP Probe sent: " << m_altAddr << ":" << m_altPort);    
+	}
+}
+
+PBoolean H46024Socket::SendRTCPFrame(RTP_ControlFrame & report, const PIPSocket::Address & ip, WORD port, unsigned id)
+{
 	if (!WriteTo(report.GetPointer(),report.GetSize(),
-			m_altAddr, m_altPort, m_altMuxID)) {
+				ip, port,id)) {
 		switch (GetErrorNumber()) {
 			case ECONNRESET :
 			case ECONNREFUSED :
-				PTRACE(2, "H46024A\t" << m_altAddr << ":" << m_altPort << " not ready.");
+				PTRACE(2, "H46024\t" << ip << ":" << port << " not ready.");
 				break;
 
 			default:
-				PTRACE(1, "H46024A\t" << m_altAddr << ":" << m_altPort 
+				PTRACE(1, "H46024\t" << ip << ":" << port 
 					<< ", Write error on port ("
 					<< GetErrorNumber(PChannel::LastWriteError) << "): "
 					<< GetErrorText(PChannel::LastWriteError));
 		}
-	} else {
-		PTRACE(6, "H46024A\ts" << m_flcn <<" RTCP Probe sent: " << m_altAddr << ":" << m_altPort);    
-	}
-*/
+		return false;
+	} 
+	return true;
 }
 
 void H46024Socket::ProbeReceived(bool probe, const PIPSocket::Address & addr, WORD & port)
 {
-/*
 	if (probe) {
-		m_Handler.H46024ADirect(true,m_Token);  //< Tell remote to wait for connection
+		SignalH46024Adirect();  //< Signal direct
 	} else {
 		RTP_ControlFrame reply;
 		reply.SetSize(4+sizeof(probe_packet));
 		BuildProbe(reply, false);
 		if (SendRTCPFrame(reply,addr,port,m_altMuxID)) {
-			PTRACE(4, "H46024A\tRTCP Reply packet sent: " << addr << ":" << port);    
+			PTRACE(4, "H46024\tRTCP Reply packet sent: " << addr << ":" << port);    
 		}
 	}
-*/
 }
 
 void H46024Socket::StartH46024Adirect(bool starter)
@@ -1019,8 +1194,13 @@ void H46024Socket::StartH46024Adirect(bool starter)
 		SetProbeState(e_direct);
 	} else         // We wait for the remote to start channel
 		SetProbeState(e_wait);
+}
 
-	//Keep.Stop();  // Stop the keepAlive Packets
+void H46024Socket::SignalH46024Adirect()
+{
+	callptr call = CallTable::Instance()->FindCallRec(m_callIdentifier);
+	if (call)
+		call->H46024AMessage();
 }
 
 void H46024Socket::GetAlternateAddresses(H323TransportAddress & address, PString & cui, unsigned & muxID)
@@ -1056,6 +1236,63 @@ int H46024Socket::GetProbeState() const
 	PWaitAndSignal m(probeMutex);
 
 	return m_state;
+}
+
+void H46024Socket::H46024Bdirect(const H323TransportAddress & address, unsigned muxID)
+{
+	if (GetProbeState() == e_direct)  // We might already be doing annex A
+		return;
+
+	address.GetIpAndPort(m_altAddr,m_altPort);
+	m_altMuxID = muxID;
+
+	PTRACE(6,"H46024b\ts: " << m_flcn << " RTP Remote Alt: " << m_altAddr << ":" << m_altPort 
+							<< " " << m_altMuxID);
+
+
+	// Sending an empty RTP frame to the alternate address
+	// will add a mapping to the router to receive RTP from
+	// the remote
+	for (PINDEX i=0; i<3; i++) {
+		SendRTPPing(m_altAddr, m_altPort, m_altMuxID);
+		PThread::Sleep(10);
+	}
+}
+
+void H46024Socket::SendRTPPing(const PIPSocket::Address & ip, const WORD & port, unsigned id)
+{
+	RTP_DataFrame rtp;
+
+	rtp.SetSequenceNumber(m_keepseqno);
+
+	rtp.SetPayloadType((RTP_DataFrame::PayloadTypes)GNUGK_KEEPALIVE_RTP_PAYLOADTYPE);
+	rtp.SetPayloadSize(0);
+
+	// determining correct timestamp
+	PTimeInterval timePassed = PTime() - m_keepStartTime;
+	rtp.SetTimestamp((DWORD)timePassed.GetMilliSeconds() * 8);
+
+	rtp.SetMarker(TRUE);
+
+	if (!WriteTo(rtp.GetPointer(),
+				rtp.GetHeaderSize()+rtp.GetPayloadSize(),
+				ip, port,id)) {
+		switch (GetErrorNumber()) {
+		case ECONNRESET :
+		case ECONNREFUSED :
+			PTRACE(2, "H46024b\t" << ip << ":" << port << " not ready.");
+			break;
+
+		default:
+			PTRACE(1, "H46024b\t" << ip << ":" << port 
+				<< ", Write error on port ("
+				<< GetErrorNumber(PChannel::LastWriteError) << "): "
+				<< GetErrorText(PChannel::LastWriteError));
+		}
+	} else {
+		PTRACE(6, "H46024b\tRTP KeepAlive sent: " << ip << ":" << port << " " << id << " seq: " << m_keepseqno);    
+		m_keepseqno++;
+	}
 }
 #endif
 

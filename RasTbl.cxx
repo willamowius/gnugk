@@ -4041,11 +4041,64 @@ bool CallRec::NATSignallingOffload(bool isAnswer) const
 
 	return false;
 }
+
+void SendH46024Facility(CallSignalSocket *socket, const H245_MultimediaSystemControlMessage & h245msg)
+{
+	if (!socket)
+		return;
+
+	Q931 q931;
+	socket->BuildFacilityPDU(q931, H225_FacilityReason::e_undefinedReason);
+	H225_H323_UserInformation uuie;
+	GetUUIE(q931, uuie);
+	uuie.m_h323_uu_pdu.m_h245Tunneling = true;
+	uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Control);
+	PINDEX sz = uuie.m_h323_uu_pdu.m_h245Control.GetSize();
+	uuie.m_h323_uu_pdu.m_h245Control.SetSize(sz+1);
+	uuie.m_h323_uu_pdu.m_h245Control[sz].EncodeSubType(h245msg);
+
+	SetUUIE(q931, uuie);
+	PBYTEArray lBuffer;
+	q931.Encode(lBuffer);
+	socket->TransmitData(lBuffer);
+}
+
+#ifdef HAS_H46024A
+void CallRec::BuildH46024AnnexAIndication(H245_MultimediaSystemControlMessage & h245msg)
+{
+	h245msg.SetTag(H245_MultimediaSystemControlMessage::e_indication);
+	H245_IndicationMessage & msg = h245msg;
+	msg.SetTag(H245_IndicationMessage::e_genericIndication);
+
+	H245_GenericMessage & cap = msg;
+	H245_CapabilityIdentifier & id = cap.m_messageIdentifier;
+	id.SetTag(H245_CapabilityIdentifier::e_standard);
+	PASN_ObjectId & gid = id;
+	gid.SetValue(H46024A_OID);
+}
+
+PBoolean CallRec::H46024AMessage()
+{
+	H245_MultimediaSystemControlMessage h245msg;
+	BuildH46024AnnexAIndication(h245msg);
+	SendH46024Facility(H46024ASignalSocket(), h245msg);
+	return true;
+}
+
+CallSignalSocket * CallRec::H46024ASignalSocket()
+{
+	if (m_fromParent)
+	return GetCallSignalSocketCalling();
+	else if (m_toParent)
+		return GetCallSignalSocketCalled();
+	else
+		return NULL;
+}
+#endif
  
 #ifdef HAS_H46024B
-void CallRec::BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemControlMessage & h245msg, const std::map<WORD,H46024Balternate> & alt)
+void CallRec::BuildH46024AnnexBRequest(bool initiate,H245_MultimediaSystemControlMessage & h245msg, const std::map<WORD,H46024Balternate> & alt)
 {
-	const char * H46024B_OID = "0.0.8.460.24.2";
 	h245msg.SetTag(H245_MultimediaSystemControlMessage::e_request);
 	H245_RequestMessage & msg = h245msg;
 	msg.SetTag(H245_RequestMessage::e_genericRequest);
@@ -4108,31 +4161,38 @@ void CallRec::BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemContro
 	PTRACE(6, "H46024B\tAlternateAddresses " << addrs);
 	oct.EncodeSubType(addrs);
 }
- 
-void SendH46024BFacility(CallSignalSocket *socket, const H245_MultimediaSystemControlMessage & h245msg)
-{
-	Q931 q931;
-	socket->BuildFacilityPDU(q931, H225_FacilityReason::e_undefinedReason);
-	H225_H323_UserInformation uuie;
-	GetUUIE(q931, uuie);
-	uuie.m_h323_uu_pdu.m_h245Tunneling = true;
-	uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Control);
-	PINDEX sz = uuie.m_h323_uu_pdu.m_h245Control.GetSize();
-	uuie.m_h323_uu_pdu.m_h245Control.SetSize(sz+1);
-	uuie.m_h323_uu_pdu.m_h245Control[sz].EncodeSubType(h245msg);
 
-	SetUUIE(q931, uuie);
-    PBYTEArray lBuffer;
-	q931.Encode(lBuffer);
-	socket->TransmitData(lBuffer);
+bool CallRec::HandleH46024BRequest(const H245_ArrayOf_GenericParameter & content)
+{
+	if (!m_fromParent && !m_toParent)
+		return false;
+
+	if (content.GetSize() == 0)
+		return false;
+
+	const H245_GenericParameter & param = content[0];
+	if (param.m_parameterValue.GetTag() == H245_ParameterValue::e_octetString) {
+		const PASN_OctetString & oct = param.m_parameterValue;
+		H46024B_ArrayOf_AlternateAddress addrs;
+		oct.DecodeSubType(addrs);
+
+		return true;
+	}
+
+	return false;
 }
  
 CallSignalSocket * CallRec::H46024BSignalSocket(bool response)
 {
+	// Parent Gatekeeper
+	if (m_fromParent)
+		return GetCallSignalSocketCalling();
+	else if (m_toParent)
+		return GetCallSignalSocketCalled();
+
 	// If the calling party is symmetric then the probing
 	// is done in reverse
 	bool callerIsSymmetric = (m_Calling->GetEPNATType() > 5);
- 
 	if (!response)
 		return (callerIsSymmetric ? GetCallSignalSocketCalled() :  GetCallSignalSocketCalling());
 	else
@@ -4187,12 +4247,12 @@ void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, 
 	if (m_h46024Bflag.size() == m_H46024Balternate.size()) {
 		// Build the Generic Request
 		H245_MultimediaSystemControlMessage h245msg;
-		BuildH46024AnnexBMessage(true, h245msg, m_H46024Balternate);
+		BuildH46024AnnexBRequest(true, h245msg, m_H46024Balternate);
  
 		PTRACE(4, "H46024B\tRequest Message\n" << h245msg);
  
 		// If we are tunnneling
-		SendH46024BFacility(H46024BSignalSocket(false), h245msg);
+		SendH46024Facility(H46024BSignalSocket(false), h245msg);
 	}
 }
  
@@ -4205,12 +4265,12 @@ void CallRec::H46024BRespond()
  
 	// Build the Generic response
 	H245_MultimediaSystemControlMessage h245msg;
-	BuildH46024AnnexBMessage(false, h245msg, m_H46024Balternate);
+	BuildH46024AnnexBRequest(false, h245msg, m_H46024Balternate);
 	m_H46024Balternate.clear();
 	m_h46024Bflag.clear();
  
 	// If we are tunneling
-	SendH46024BFacility(H46024BSignalSocket(true), h245msg);
+	SendH46024Facility(H46024BSignalSocket(true), h245msg);
  
 }
 #endif // HAS_H46024B

@@ -74,6 +74,9 @@ extern const char *H245_ProtocolID;
 
 #define GK_DEF_STUN_PORT		3478
 
+static const char * H46024A_OID = "0.0.8.460.24.1";
+static const char * H46024B_OID = "0.0.8.460.24.2";
+
 
 //+++++++++++++++++++++++++++++++++++++++++++++
 // Packetizer OID

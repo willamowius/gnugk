@@ -808,6 +808,15 @@ public:
 	/** Can Signalling be offloaded
 	  */
 	bool NATSignallingOffload(bool isAnswer) const;
+
+#ifdef HAS_H46024A
+	/** Send a H.460.24 Annex A indication
+	 */
+	PBoolean H46024AMessage();
+
+	/** GetSignallingSocket */
+	CallSignalSocket * H46024ASignalSocket();
+#endif
  
 #ifdef HAS_H46024B
     /** GetSignallingSocket */
@@ -821,6 +830,9 @@ public:
  
     /** Set session callback flag */
 	void H46024BSessionFlag(WORD sessionID);
+
+	/** Handle H46024B Request */
+	bool HandleH46024BRequest(const H245_ArrayOf_GenericParameter & content);
 #endif
  
 #endif
@@ -1482,6 +1494,10 @@ private:
 #ifdef HAS_H46023
 	NatStrategy m_natstrategy;
 #endif
+
+#ifdef HAS_H46024A
+	void BuildH46024AnnexAIndication(H245_MultimediaSystemControlMessage & h245msg);
+#endif
  
 #ifdef HAS_H46024B
 	struct H46024Balternate {
@@ -1493,7 +1509,7 @@ private:
 	};
  
 	std::map<WORD,H46024Balternate> m_H46024Balternate;
-	void BuildH46024AnnexBMessage(bool initiate,H245_MultimediaSystemControlMessage & h245msg, const std::map<WORD,H46024Balternate> & alt);
+	void BuildH46024AnnexBRequest(bool initiate,H245_MultimediaSystemControlMessage & h245msg, const std::map<WORD,H46024Balternate> & alt);
 	list<int> m_h46024Bflag;
 #endif
 	/// unregistered caller NAT'd

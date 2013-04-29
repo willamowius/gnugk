@@ -195,6 +195,9 @@
 
 #ifdef HAS_H46023		// config switch if H.460.23 should be enabled
 	#ifdef H323_H46023	// feature detection, if library supports H.460.23
+		#ifdef H323_H46024A
+			#define HAS_H46024A	1
+		#endif
 		#ifdef H323_H46024B
 			#define HAS_H46024B	1
 		#endif
