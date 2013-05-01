@@ -290,8 +290,6 @@ void AddH460Feature(H225_ArrayOf_FeatureDescriptor & desc, const H460_Feature & 
 #endif
 
 #ifdef HAS_H46018
-const char * const H46018_OID = "0.0.8.460.18.0.1";
-const char * const H46019_OID = "0.0.8.460.19.0.1";
 
 void RemoveH46019Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures, bool & senderSupportsH46019Multiplexing, bool & isH46019Client)
 {
@@ -398,6 +396,144 @@ bool IsH46024ProxyStrategy(CallRec::NatStrategy strat)
 			return true;
 
 	return false;
+}
+#endif
+
+#ifdef HAS_H46024A
+bool GetH245GenericUnsignedMessage(unsigned id, const H245_ArrayOf_GenericParameter & params, unsigned & val)
+{
+	for (PINDEX i=0; i < params.GetSize(); i++) {
+		const H245_GenericParameter & param = params[i];
+		const H245_ParameterIdentifier & idm = param.m_parameterIdentifier; 
+		if (idm.GetTag() == H245_ParameterIdentifier::e_standard) {
+			const PASN_Integer & idx = idm;
+			if (idx == id) {
+				const H245_ParameterValue & genvalue = params[i].m_parameterValue;
+				if ((genvalue.GetTag() == H245_ParameterValue::e_unsignedMin) ||
+					(genvalue.GetTag() == H245_ParameterValue::e_unsignedMax) ||
+					(genvalue.GetTag() == H245_ParameterValue::e_unsigned32Min) ||
+					(genvalue.GetTag() == H245_ParameterValue::e_unsigned32Max)) {
+					const PASN_Integer & xval = genvalue;
+					val = xval;
+					return true;
+				}
+			}
+		}
+	}
+	PTRACE(4,"H46024A\tError finding Transport parameter " << id);
+	return false;
+}
+
+bool GetH245GenericStringOctetString(unsigned id, const H245_ArrayOf_GenericParameter & params, PString & str)
+{
+	for (PINDEX i=0; i < params.GetSize(); i++) {
+		const H245_GenericParameter & param = params[i];
+		const H245_ParameterIdentifier & idm = param.m_parameterIdentifier; 
+		if (idm.GetTag() == H245_ParameterIdentifier::e_standard) {
+			const PASN_Integer & idx = idm;
+			if (idx == id) {
+				const H245_ParameterValue & genvalue = params[i].m_parameterValue;
+				if (genvalue.GetTag() == H245_ParameterValue::e_octetString) {
+					const PASN_OctetString & valg = genvalue;
+					PASN_IA5String data;
+					valg.DecodeSubType(data);
+					str = data;
+					return true;
+				}
+			}
+		}
+	}
+	PTRACE(4,"H46024A\tError finding String parameter " << id);
+	return false;
+}
+
+bool GetH245GenericUnsigned(unsigned id, const H245_ArrayOf_GenericParameter & params, unsigned & num)
+{
+	for (PINDEX i=0; i < params.GetSize(); i++) {
+		const H245_GenericParameter & param = params[i];
+		const H245_ParameterIdentifier & idm = param.m_parameterIdentifier; 
+		if (idm.GetTag() == H245_ParameterIdentifier::e_standard) {
+			const PASN_Integer & idx = idm;
+			if (idx == id) {
+				const H245_ParameterValue & genvalue = params[i].m_parameterValue;
+				if (genvalue.GetTag() == H245_ParameterValue::e_unsigned32Min) {
+					const PASN_Integer & valg = genvalue;
+					num = valg;
+					return true;
+				}
+			}
+		}
+	}
+	PTRACE(4,"H46024A\tError finding unsigned parameter " << id);
+	return false;
+}
+
+bool GetH245TransportGenericOctetString(unsigned id, const H245_ArrayOf_GenericParameter & params, H323TransportAddress & str)
+{
+	for (PINDEX i=0; i < params.GetSize(); i++) {
+		const H245_GenericParameter & param = params[i];
+		const H245_ParameterIdentifier & idm = param.m_parameterIdentifier; 
+		if (idm.GetTag() == H245_ParameterIdentifier::e_standard) {
+			const PASN_Integer & idx = idm;
+			if (idx == id) {
+				const H245_ParameterValue & genvalue = params[i].m_parameterValue;
+				if (genvalue.GetTag() == H245_ParameterValue::e_octetString) {
+					const PASN_OctetString & valg = genvalue;
+					H245_TransportAddress addr;
+					valg.DecodeSubType(addr);
+					str = H323TransportAddress(addr);
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+H245_GenericParameter & BuildH245GenericOctetString(H245_GenericParameter & param, unsigned id, const PASN_Object & data)
+{
+	H245_ParameterIdentifier & idm = param.m_parameterIdentifier; 
+		idm.SetTag(H245_ParameterIdentifier::e_standard);
+		PASN_Integer & idx = idm;
+		idx = id;
+		H245_ParameterValue & genvalue = param.m_parameterValue;
+		genvalue.SetTag(H245_ParameterValue::e_octetString);
+		PASN_OctetString & valg = genvalue;
+		valg.EncodeSubType(data);
+	return param;
+}
+
+H245_GenericParameter & BuildH245GenericOctetString(H245_GenericParameter & param, unsigned id, const H323TransportAddress & transport)
+{
+	H245_TransportAddress data;
+	transport.SetPDU(data);
+	return BuildH245GenericOctetString(param, id, data);
+}
+
+H245_GenericParameter & BuildH245GenericInteger(H245_GenericParameter & param, unsigned id, unsigned val)
+{
+	H245_ParameterIdentifier & idm = param.m_parameterIdentifier; 
+		idm.SetTag(H245_ParameterIdentifier::e_standard);
+		PASN_Integer & idx = idm;
+		idx = id;
+		H245_ParameterValue & genvalue = param.m_parameterValue;
+		genvalue.SetTag(H245_ParameterValue::e_unsignedMin);
+		PASN_Integer & xval = genvalue;
+		xval = val;
+	return param;
+}
+
+H245_GenericParameter & BuildH245GenericUnsigned(H245_GenericParameter & param, unsigned id, unsigned val)
+{
+	H245_ParameterIdentifier & idm = param.m_parameterIdentifier; 
+		idm.SetTag(H245_ParameterIdentifier::e_standard);
+		PASN_Integer & idx = idm;
+		idx = id;
+		H245_ParameterValue & genvalue = param.m_parameterValue;
+		genvalue.SetTag(H245_ParameterValue::e_unsigned32Min);
+		PASN_Integer & xval = genvalue;
+		xval = val;
+	return param;
 }
 #endif
 
@@ -600,7 +736,7 @@ protected:
 
 class RTPLogicalChannel : public LogicalChannel {
 public:
-	RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, bool nated);
+	RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, bool nated, WORD sessionID);
 	RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nated);
 	virtual ~RTPLogicalChannel();
 
@@ -8672,7 +8808,7 @@ void T120ProxySocket::Dispatch()
 
 
 // class RTPLogicalChannel
-RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, bool nated) : LogicalChannel(flcn), reversed(false), peer(NULL)
+RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, bool nated, WORD sessionID) : LogicalChannel(flcn), reversed(false), peer(NULL)
 {
 	SrcIP = 0;
 	SrcPort = 0;
@@ -8691,7 +8827,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 #ifdef HAS_H46023
 	// If we have a GKClient check whether to create NAT ports or not.
 	GkClient * gkClient = RasServer::Instance()->GetGkClient();
-	if (gkClient && !gkClient->H46023_CreateSocketPair(id, flcn, rtp, rtcp, nated))
+	if (gkClient && !gkClient->H46023_CreateSocketPair(id, sessionID, rtp, rtcp, nated))
 #endif
 	{
 		rtp = new UDPProxySocket("RTP", id);
@@ -9686,7 +9822,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 #endif
 
 		// create LC objects, rewrite for forwarding after H.460.19 parameters have been parsed
-	    if (UsesH46019fc()) {
+		if (UsesH46019fc()) {
 			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, 0) : false;
 		} else {
 			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, flcn) : false;
@@ -9723,9 +9859,9 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 				olc.m_genericInformation.SetSize(1);
 			}
 			H245_CapabilityIdentifier & id = olc.m_genericInformation[0].m_messageIdentifier;
-            id.SetTag(H245_CapabilityIdentifier::e_standard);
-            PASN_ObjectId & gid = id;
-            gid.SetValue(H46019_OID);
+			id.SetTag(H245_CapabilityIdentifier::e_standard);
+			PASN_ObjectId & gid = id;
+			gid.SetValue(H46019_OID);
 			olc.m_genericInformation[0].IncludeOptionalField(H245_GenericMessage::e_messageContent);
 			olc.m_genericInformation[0].m_messageContent.SetSize(1);
 			H245_GenericParameter genericParameter;
@@ -9806,11 +9942,74 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 				h46019chan.m_osSocketToB_RTCP = lc->GetRTCPOSSocket();
 			}
 			MultiplexedRTPHandler::Instance()->AddChannel(h46019chan);
-#if defined(HAS_H46024B)
+#ifdef HAS_H46024B
 			if (call && call->GetNATStrategy() == CallRec::e_natAnnexB) 
 				call->H46024BSessionFlag(sessionID);
 #endif
 		}
+
+#ifdef HAS_H46024A
+	if (call && !call->IsH46024APassThrough()) {
+		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_genericInformation)) {
+			PINDEX i = 0;
+			for (i = 0; i < olc.m_genericInformation.GetSize(); i++) {
+				PASN_ObjectId & gid = olc.m_genericInformation[i].m_messageIdentifier;
+				if (gid == H46024A_OID && olc.m_genericInformation[i].HasOptionalField(H245_GenericInformation::e_messageContent)) {
+					const H245_ArrayOf_GenericParameter & msg = olc.m_genericInformation[i].m_messageContent;
+					PTRACE(4,"H46024A\tAlt Port Info:\n" << msg);
+					PString m_CUI = PString();  H323TransportAddress m_altAddr1, m_altAddr2; unsigned m_altMuxID=0;
+					bool error = false;
+					if (!GetH245GenericStringOctetString(0,msg,m_CUI))  error = true;
+					if (!GetH245TransportGenericOctetString(1,msg,m_altAddr1))  error = true;
+					if (!GetH245TransportGenericOctetString(2,msg,m_altAddr2))  error = true;
+					GetH245GenericUnsigned(3,msg,m_altMuxID);
+					if (!error) {
+						GkClient * gkClient = RasServer::Instance()->GetGkClient();
+						if (gkClient)
+							gkClient->H46023_SetAlternates(call->GetCallIdentifier(),sessionID,m_CUI,m_altMuxID,m_altAddr1,m_altAddr2);
+					}
+					for (PINDEX j = i+1; j < olc.m_genericInformation.GetSize(); j++) {
+						olc.m_genericInformation[j-1] = olc.m_genericInformation[j];
+					}
+					olc.m_genericInformation.SetSize(olc.m_genericInformation.GetSize()-1);
+					if (olc.m_genericInformation.GetSize() == 0)
+						olc.RemoveOptionalField(H245_OpenLogicalChannel::e_genericInformation);
+					changed = true;
+					break;
+				}
+			}	
+		} else {
+			H245_ArrayOf_GenericParameter info;
+			if (call->BuildH46024AMessage(info)) {
+				GkClient * gkClient = RasServer::Instance()->GetGkClient();
+				if (gkClient) {
+					PString m_CUI = PString();  H323TransportAddress m_altAddr1, m_altAddr2; unsigned m_altMuxID=0;
+					gkClient->H46023_LoadAlternates(call->GetCallIdentifier(),sessionID,m_CUI,m_altMuxID,m_altAddr1,m_altAddr2);
+						H245_GenericInformation alt;
+						H245_CapabilityIdentifier & altid = alt.m_messageIdentifier;
+						altid.SetTag(H245_CapabilityIdentifier::e_standard); 
+						PASN_ObjectId & oid = altid;
+						oid.SetValue(H46024A_OID);
+						alt.IncludeOptionalField(H245_GenericMessage::e_messageContent);
+						H245_ArrayOf_GenericParameter & msg = alt.m_messageContent;
+						msg.SetSize(3);
+						BuildH245GenericOctetString(msg[0],0,(PASN_IA5String)m_CUI);
+						BuildH245GenericOctetString(msg[1],1,m_altAddr1);
+						BuildH245GenericOctetString(msg[2],2,m_altAddr2);
+						if (m_altMuxID) {
+							msg.SetSize(4);
+							BuildH245GenericUnsigned(msg[3],3,m_altMuxID);
+						}
+					olc.IncludeOptionalField(H245_OpenLogicalChannel::e_genericInformation);
+					int sz = olc.m_genericInformation.GetSize();
+					olc.m_genericInformation.SetSize(sz+1);
+					olc.m_genericInformation[sz] = alt;
+					changed = true;
+				}
+			}
+		}
+	}
+#endif
 
 		// make sure the keepalive payloadType doesn't conflict with encryption payloadType (VCS bug)
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_encryptionSync)
@@ -10508,7 +10707,7 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
 		lc->OnHandlerSwapped(hnat != NULL);
 		peer->fastStartLCs.erase(iter);
 	} else {
-		lc = new RTPLogicalChannel(callid, flcn, hnat != NULL);
+		lc = new RTPLogicalChannel(callid, flcn, hnat != NULL, id);
 		if (!lc->IsOpen()) {
 			PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn);
 			SNMP_TRAP(10, SNMPWarning, Network, "Can't create RTP logical channel " + flcn);
@@ -10529,7 +10728,7 @@ RTPLogicalChannel * H245ProxyHandler::CreateFastStartLogicalChannel(WORD id)
 	if (!lc) {
 		// the LogicalChannelNumber of a fastStart logical channel is irrelevant
 		// it may be set later
-		lc = new RTPLogicalChannel(callid, 0, hnat != NULL);
+		lc = new RTPLogicalChannel(callid, 0, hnat != NULL, id);
 		if (!lc->IsOpen()) {
 			PTRACE(1, "Proxy\tError: Can't create fast start logical channel id " << id);
 			SNMP_TRAP(10, SNMPWarning, Network, "Can't create fastStart logical channel " + id);

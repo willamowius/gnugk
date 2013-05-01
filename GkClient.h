@@ -35,12 +35,6 @@ class H225_Setup_UUIE;
 class H225_ArrayOf_ClearToken;
 class H225_ArrayOf_CryptoH323Token;
 
-#ifdef HAS_H46023
-  class H460_FeatureStd;
-  class STUNClient;
-  class UDPProxySocket;
-#endif
-
 class RasMsg;
 class RasServer;
 class AlternateGKs;
@@ -53,6 +47,36 @@ typedef SmartPtr<CallRec> callptr;
 class SignalingMsg;
 template <class> class H225SignalingMsg;
 typedef H225SignalingMsg<H225_Setup_UUIE> SetupMsg;
+
+#ifdef HAS_H46023
+class H460_FeatureStd;
+class STUNClient;
+class UDPProxySocket;
+class H46024B_AlternateAddress;
+class H46024B_ArrayOf_AlternateAddress;
+class CallH46024Sockets
+{
+public:
+	CallH46024Sockets(unsigned strategy);
+	CallH46024Sockets(WORD sessionID, UDPProxySocket * rtp, UDPProxySocket * rtcp);
+	~CallH46024Sockets();
+
+	unsigned GetNatStrategy() const { return m_natStrategy; }
+	unsigned GetSessionID() const { return m_sessionID; }
+	void SetAlternate(PString cui, unsigned muxID, H323TransportAddress m_rtp, H323TransportAddress m_rtcp);
+	void SetAlternate(const H46024B_AlternateAddress & alternate);
+	void LoadAlternate(PString & cui, unsigned & muxID, H323TransportAddress & m_rtp, H323TransportAddress & m_rtcp);
+
+protected:
+	unsigned			m_natStrategy;
+	WORD				m_sessionID;
+	UDPProxySocket *	m_rtpSocket;
+	UDPProxySocket *	m_rtcpSocket;
+};
+
+typedef std::map<H225_CallIdentifier, std::list<CallH46024Sockets> > GkNATSocketMap;
+
+#endif
 
 class GkClient {
 public:
@@ -292,19 +316,28 @@ private:
 	bool m_algDetected;
     // Call NAT Strategy Map
 	PMutex m_strategyMutex;
-	std::map<H225_CallIdentifier, unsigned> m_natstrategy;
+	GkNATSocketMap m_natstrategy;
 
 public:
 	// NAT type detected
 	void H46023_TypeDetected(int nattype);
     // Create socket pair
-    bool H46023_CreateSocketPair(const H225_CallIdentifier & id, WORD flcn, UDPProxySocket * & rtp, UDPProxySocket * & rtcp, bool & nated);
+	bool H46023_CreateSocketPair(const H225_CallIdentifier & id, WORD sessionID, UDPProxySocket * & rtp, UDPProxySocket * & rtcp, bool & nated);
 	// Set the NAT Strategy
 	void H46023_SetNATStategy(const H225_CallIdentifier & id, unsigned nat);
 	// Find the NAT Strategy
 	CallRec::NatStrategy H46023_GetNATStategy(const H225_CallIdentifier & id);
 	// Remove the NAT Strategy
 	void H46023_RemoveNATStategy(const H225_CallIdentifier & id);
+	// Set the socketPair
+	void H46023_SetSocketPair(const H225_CallIdentifier & id, WORD sessionID, UDPProxySocket * rtp, UDPProxySocket * rtcp);
+	// Set Alternates (Annex A)
+	void H46023_SetAlternates(const H225_CallIdentifier & id, WORD session, PString cui, 
+							unsigned muxID, H323TransportAddress m_rtp, H323TransportAddress m_rtcp);
+	void H46023_LoadAlternates(const H225_CallIdentifier & id, WORD session, PString & cui, 
+							unsigned & muxID, H323TransportAddress & m_rtp, H323TransportAddress & m_rtcp);
+	// Set Alternates (Annex B)
+	void H46023_SetAlternates(const H225_CallIdentifier & id, const H46024B_ArrayOf_AlternateAddress & alternates);
 #endif
 };
 

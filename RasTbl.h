@@ -810,6 +810,10 @@ public:
 	bool NATSignallingOffload(bool isAnswer) const;
 
 #ifdef HAS_H46024A
+    /** Whether Annex A passthrough
+      */
+    bool IsH46024APassThrough();
+
 	/** Send a H.460.24 Annex A indication
 	 */
 	PBoolean H46024AMessage();

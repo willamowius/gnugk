@@ -15,7 +15,6 @@
 #include <ptlib.h>
 #include <h323.h>
 #include <h323pdu.h>
-#include "gk_const.h"
 #include "h323util.h"
 #include "Toolkit.h"
 #include "stl_supp.h"
@@ -4094,6 +4093,22 @@ CallSignalSocket * CallRec::H46024ASignalSocket()
 	else
 		return NULL;
 }
+
+bool CallRec::IsH46024APassThrough()
+{
+	if (!m_toParent)
+		return true;
+
+	if ((m_Calling && m_Calling->SupportH46024A()) &&
+		(m_Called && m_Called->SupportH46024A()))
+			return true;
+
+	GkClient * gkClient = RasServer::Instance()->GetGkClient();
+	if (!gkClient || gkClient->H46023_GetNATStategy(m_callIdentifier) != e_natAnnexA)
+		return true;
+
+	return false;
+}
 #endif
  
 #ifdef HAS_H46024B
@@ -4164,7 +4179,7 @@ void CallRec::BuildH46024AnnexBRequest(bool initiate,H245_MultimediaSystemContro
 
 bool CallRec::HandleH46024BRequest(const H245_ArrayOf_GenericParameter & content)
 {
-	if (!m_fromParent && !m_toParent)
+	if (!m_toParent)
 		return false;
 
 	if (content.GetSize() == 0)
@@ -4174,11 +4189,14 @@ bool CallRec::HandleH46024BRequest(const H245_ArrayOf_GenericParameter & content
 	if (param.m_parameterValue.GetTag() == H245_ParameterValue::e_octetString) {
 		const PASN_OctetString & oct = param.m_parameterValue;
 		H46024B_ArrayOf_AlternateAddress addrs;
-		oct.DecodeSubType(addrs);
-
-		return true;
+		if (oct.DecodeSubType(addrs)) {
+			GkClient * gkClient = RasServer::Instance()->GetGkClient();
+			if (gkClient) {
+				gkClient->H46023_SetAlternates(m_callIdentifier, addrs);
+				return true;
+			}
+		}
 	}
-
 	return false;
 }
  

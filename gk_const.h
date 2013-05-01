@@ -49,6 +49,13 @@ extern const char *H245_ProtocolID;
 // ITU H.460 Standards
 
 ///////////////////////////////////////////
+// H.460.18/.19
+#ifdef HAS_H46018
+static const char * const H46018_OID = "0.0.8.460.18.0.1";
+static const char * const H46019_OID = "0.0.8.460.19.0.1";
+#endif
+
+///////////////////////////////////////////
 // H.460.23
 
 #define Std23_RemoteNAT			1	// bool if endpoint has remote NAT support
@@ -74,9 +81,12 @@ extern const char *H245_ProtocolID;
 
 #define GK_DEF_STUN_PORT		3478
 
+#ifdef HAS_H46024A
 static const char * H46024A_OID = "0.0.8.460.24.1";
+#endif
+#ifdef HAS_H46024B
 static const char * H46024B_OID = "0.0.8.460.24.2";
-
+#endif
 
 //+++++++++++++++++++++++++++++++++++++++++++++
 // Packetizer OID
