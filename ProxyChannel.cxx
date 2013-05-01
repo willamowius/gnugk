@@ -9980,32 +9980,30 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 			}	
 		} else {
 			H245_ArrayOf_GenericParameter info;
-			if (call->BuildH46024AMessage(info)) {
-				GkClient * gkClient = RasServer::Instance()->GetGkClient();
-				if (gkClient) {
-					PString m_CUI = PString();  H323TransportAddress m_altAddr1, m_altAddr2; unsigned m_altMuxID=0;
-					gkClient->H46023_LoadAlternates(call->GetCallIdentifier(),sessionID,m_CUI,m_altMuxID,m_altAddr1,m_altAddr2);
-						H245_GenericInformation alt;
-						H245_CapabilityIdentifier & altid = alt.m_messageIdentifier;
-						altid.SetTag(H245_CapabilityIdentifier::e_standard); 
-						PASN_ObjectId & oid = altid;
-						oid.SetValue(H46024A_OID);
-						alt.IncludeOptionalField(H245_GenericMessage::e_messageContent);
-						H245_ArrayOf_GenericParameter & msg = alt.m_messageContent;
-						msg.SetSize(3);
-						BuildH245GenericOctetString(msg[0],0,(PASN_IA5String)m_CUI);
-						BuildH245GenericOctetString(msg[1],1,m_altAddr1);
-						BuildH245GenericOctetString(msg[2],2,m_altAddr2);
-						if (m_altMuxID) {
-							msg.SetSize(4);
-							BuildH245GenericUnsigned(msg[3],3,m_altMuxID);
-						}
-					olc.IncludeOptionalField(H245_OpenLogicalChannel::e_genericInformation);
-					int sz = olc.m_genericInformation.GetSize();
-					olc.m_genericInformation.SetSize(sz+1);
-					olc.m_genericInformation[sz] = alt;
-					changed = true;
-				}
+			GkClient * gkClient = RasServer::Instance()->GetGkClient();
+			if (gkClient) {
+				PString m_CUI = PString();  H323TransportAddress m_altAddr1, m_altAddr2; unsigned m_altMuxID=0;
+				gkClient->H46023_LoadAlternates(call->GetCallIdentifier(),sessionID,m_CUI,m_altMuxID,m_altAddr1,m_altAddr2);
+					H245_GenericInformation alt;
+					H245_CapabilityIdentifier & altid = alt.m_messageIdentifier;
+					altid.SetTag(H245_CapabilityIdentifier::e_standard); 
+					PASN_ObjectId & oid = altid;
+					oid.SetValue(H46024A_OID);
+					alt.IncludeOptionalField(H245_GenericMessage::e_messageContent);
+					H245_ArrayOf_GenericParameter & msg = alt.m_messageContent;
+					msg.SetSize(3);
+					BuildH245GenericOctetString(msg[0],0,(PASN_IA5String)m_CUI);
+					BuildH245GenericOctetString(msg[1],1,m_altAddr1);
+					BuildH245GenericOctetString(msg[2],2,m_altAddr2);
+					if (m_altMuxID) {
+						msg.SetSize(4);
+						BuildH245GenericUnsigned(msg[3],3,m_altMuxID);
+					}
+				olc.IncludeOptionalField(H245_OpenLogicalChannel::e_genericInformation);
+				int sz = olc.m_genericInformation.GetSize();
+				olc.m_genericInformation.SetSize(sz+1);
+				olc.m_genericInformation[sz] = alt;
+				changed = true;
 			}
 		}
 	}
