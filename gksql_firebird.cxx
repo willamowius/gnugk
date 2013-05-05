@@ -4,7 +4,7 @@
  * Firebird/Interbase driver module for GnuGk
  *
  * Copyright (c) 2006, Michal Zygmuntowicz
- * Copyright (c) 2006-2012, Jan Willamowius
+ * Copyright (c) 2006-2013, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -656,9 +656,16 @@ PString GkIBSQLConnection::EscapeString(
 	)
 {
 	PString s(str);
-	
+	// remove all special characters 0x00-0x1f, except TAB
+	PINDEX i = 0;
+	while (i < s.GetLength()) {
+		if (s.Mid(i, 1) < PString(' ') && s.Mid(i, 1) != PString('\t')) {
+			s.Delete(i, 1);
+		} else {
+			++i;
+		}
+	}
 	s.Replace("'", "''", TRUE);
-			
 	return s;
 }
 

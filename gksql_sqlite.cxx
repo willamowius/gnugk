@@ -3,7 +3,7 @@
  *
  * SQLite driver module for GnuGk
  *
- * Copyright (c) 2007-2012, Jan Willamowius
+ * Copyright (c) 2007-2013, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -73,11 +73,11 @@ public:
 	*/
 	virtual bool FetchRow(
 		/// array to be filled with string representations of the row fields
-		PStringArray& result
+		PStringArray & result
 		);
 	virtual bool FetchRow(
 		/// array to be filled with string representations of the row fields
-		ResultRow& result
+		ResultRow & result
 		);
 		
 private:
@@ -117,7 +117,7 @@ protected:
 			int id,
 			/// SQLite connection object
 			sqlite3 * conn
-			) : SQLConnWrapper(id, "localhost"), m_conn(conn) {}
+			) : SQLConnWrapper(id, "localhost"), m_conn(conn) { }
 
 		virtual ~GkSQLiteConnWrapper();
 
@@ -172,6 +172,7 @@ protected:
 private:
 	GkSQLiteConnection(const GkSQLiteConnection&);
 	GkSQLiteConnection& operator=(const GkSQLiteConnection&);
+	bool m_escapeDoubleQuotes;
 };
 
 
@@ -229,7 +230,7 @@ long GkSQLiteResult::GetErrorCode()
 
 bool GkSQLiteResult::FetchRow(
 	/// array to be filled with string representations of the row fields
-	PStringArray& result
+	PStringArray & result
 	)
 {
 	if (m_sqlResult == NULL || m_numRows <= 0)
@@ -252,7 +253,7 @@ bool GkSQLiteResult::FetchRow(
 
 bool GkSQLiteResult::FetchRow(
 	/// array to be filled with string representations of the row fields
-	ResultRow& result
+	ResultRow & result
 	)
 {
 	if (m_sqlResult == NULL || m_numRows <= 0)
@@ -277,6 +278,7 @@ GkSQLiteConnection::GkSQLiteConnection(
 	const char* name
 	) : GkSQLConnection(name)
 {
+	m_escapeDoubleQuotes = true;	// TODO: add config switch to turn this off when user can assure no double qoutes are used for literals
 }
 	
 GkSQLiteConnection::~GkSQLiteConnection()
@@ -380,10 +382,22 @@ PString GkSQLiteConnection::EscapeString(
 	const char* str
 	)
 {
-	char * quoted = (*g_sqlite3_mprintf)("%q",str);
-	PString result(quoted);
-	(*g_sqlite3_free)(quoted);
-	return result;
+	PString s(str);
+	// remove all special characters 0x00-0x1f, except TAB
+	PINDEX i = 0;
+	while (i < s.GetLength()) {
+		if (s.Mid(i, 1) < PString(' ') && s.Mid(i, 1) != PString('\t')) {
+			s.Delete(i, 1);
+		} else {
+			++i;
+		}
+	}
+	s.Replace("'", "''", TRUE);
+	if (m_escapeDoubleQuotes) {
+		// causes double double-quotes when used inside literal in single-quotes
+		s.Replace("\"", "\"\"", TRUE);
+	}
+	return s;
 }
 
 namespace {
