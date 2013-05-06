@@ -15,6 +15,8 @@
 #ifndef GK_CONST_H
 #define GK_CONST_H "@(#) $Id$"
 
+#include "config.h"
+
 /* all values can be set in the config file, section [Gatekeeper::<InstanceName>]
  * these are just the defaults
  */
@@ -82,10 +84,10 @@ static const char * const H46019_OID = "0.0.8.460.19.0.1";
 #define GK_DEF_STUN_PORT		3478
 
 #ifdef HAS_H46024A
-static const char * H46024A_OID = "0.0.8.460.24.1";
+static const char * const H46024A_OID = "0.0.8.460.24.1";
 #endif
 #ifdef HAS_H46024B
-static const char * H46024B_OID = "0.0.8.460.24.2";
+static const char * const H46024B_OID = "0.0.8.460.24.2";
 #endif
 
 //+++++++++++++++++++++++++++++++++++++++++++++

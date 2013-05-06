@@ -2714,11 +2714,11 @@ void GkClient::H46023_SetAlternates(const H225_CallIdentifier & id, const H46024
 	GkNATSocketMap::iterator i = m_natstrategy.find(id);
 	if (i != m_natstrategy.end()) {
 		for (PINDEX j = 0; j < alternates.GetSize(); ++j) {
-			int session = alternates[j].m_sessionID;
+			unsigned session = alternates[j].m_sessionID;
 			std::list<CallH46024Sockets>::iterator k;
 			while (k != i->second.end()) {
 				CallH46024Sockets & sockets = *k++;
-				if (sockets.GetSessionID() ==  session) {
+				if (sockets.GetSessionID() == session) {
 					sockets.SetAlternate(alternates[j]);
 					break;
 				}
