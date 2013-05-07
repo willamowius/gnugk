@@ -325,7 +325,6 @@ const char * KnownConfigEntries[][2] = {
 	{ "RadAuth", "SocketDeleteTimeout" },
 	{ "RadAuth", "UseDialedNumber" },
 	{ "RasSrv::ARQFeatures", "ArjReasonRouteCallToGatekeeper" },
-	{ "RasSrv::ARQFeatures", "CallUnregisteredEndpoints" },
 	{ "RasSrv::ARQFeatures", "RemoveTrailingChar" },
 	{ "RasSrv::ARQFeatures", "RoundRobinGateways" },
 	{ "RasSrv::ARQFeatures", "SendRIP" },
