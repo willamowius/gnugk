@@ -661,7 +661,9 @@ PTimedMutex ReloadMutex;
 
 #ifndef _WIN32
 PString pidfile("/var/run/gnugk.pid");
+#endif
 
+#ifdef P_LINUX
 PString RlimAsString(unsigned long rlim_val)
 {
 	return (rlim_val == RLIM_INFINITY) ? PString("unlimited") : PString(rlim_val);
