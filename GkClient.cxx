@@ -3,7 +3,7 @@
 // GkClient.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2002-2012, Jan Willamowius
+// Copyright (c) 2002-2013, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -24,8 +24,11 @@
 #include "cisco.h"
 #include "GkClient.h"
 
-#ifdef HAS_H46023
+#if defined (HAS_H46018) || defined(HAS_H46023)
 #include <h460/h4601.h>
+#endif
+
+#ifdef HAS_H46023
 #include <h460/h46024b.h>
 #include <ptclib/pstun.h>
 #include <ptclib/random.h>
@@ -33,7 +36,7 @@
 #endif
 
 #if P_DNS
-  #include <ptclib/pdns.h>
+#include <ptclib/pdns.h>
 #endif
 
 using std::vector;

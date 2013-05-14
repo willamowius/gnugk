@@ -2779,6 +2779,7 @@ bool Toolkit::IsH46023Enabled() const
 #endif
 			m_Config->GetBoolean(RoutedSec, "SupportCallingNATedEndpoints", 1))); // GnuGk Native NAT Support
 }
+#endif
 
 #ifdef HAS_H46026
 bool Toolkit::IsH46026Enabled() const
@@ -2787,6 +2788,7 @@ bool Toolkit::IsH46026Enabled() const
 }
 #endif
 
+#ifdef HAS_H46023
 void Toolkit::LoadH46023STUN()
 {
 	m_H46023STUN.clear();
