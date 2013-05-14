@@ -1967,8 +1967,8 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 	}
 
     if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_indication) {
-		H245_IndicationMessage & imsg  = h245msg;
 #ifdef HAS_H46023
+		H245_IndicationMessage & imsg  = h245msg;
 		if (imsg.GetTag() == H245_IndicationMessage::e_genericIndication) {
 			H245_GenericMessage & gmsg = imsg;
 			H245_CapabilityIdentifier & id = gmsg.m_messageIdentifier;
@@ -1994,8 +1994,8 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
     }
 
 	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request) {
-		H245_RequestMessage & reqmsg  = h245msg;
 #ifdef HAS_H46024B
+		H245_RequestMessage & reqmsg  = h245msg;
 		if (reqmsg.GetTag() == H245_RequestMessage::e_genericRequest) {
 		    H245_GenericMessage & gmsg = reqmsg;
 		    H245_CapabilityIdentifier & id = gmsg.m_messageIdentifier;
@@ -2647,7 +2647,9 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 
 	// let the socket be deletable
 	if (m_maintainConnection) {
+#ifdef HAS_H46017
 		CleanupCall();
+#endif
 	} else {
 		SetDeletable();
 	}
