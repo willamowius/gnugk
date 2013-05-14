@@ -1,28 +1,28 @@
 Changes from 3.2 to 3.3
 =======================
-- BUGFIX(gksql_*) fix SQL character quoting for SQLite, ODBC and Firebird
-- SNMP traps with warnings are now disabled by default, re-enable with [SNMP] EnableWarningTraps=1
-- support pre-granted ARQs: [RoutedMode] PregrantARQ=1
-- BUGFIX(ProxyChannel.cxx) add missing h245Tunneling element in tunneling translation
-- new [GkStatus::Message] to allow reformating of status port messages
-- Update Presence system. Reduce registration load, PDU size and UDP fragmentation
-- BUGFIX(gk.cxx) fix --core switch
-- BUGFIX(Toolkit.cxx) loop detection in AssignedGatekeeper
-- new [Routing::NeighborSQL] policy to read Neighbor targets from database
-- new [RewriteCLI::SQL] feature
-- updated [CallTable] DisabledCodecs to include UserInput Capabilities
 - implement H.460.18/.19 for parent/child gatekeepers
 - updated H.460.23/.24 support to child gatekeeper
+- support pre-granted ARQs: [RoutedMode] PregrantARQ=1
+- SNMP traps with warnings are now disabled by default, re-enable with [SNMP] EnableWarningTraps=1
 - new ./configure switches --disable-ptlibsnmp, --disable-winsnmp
 - new switch [Proxy] RTPDiffServ= to set DiffServ DSCP for proxied RTP, TCLASS is set for IPv6 packets
+- new [RewriteCLI::SQL] feature
+- new [Routing::NeighborSQL] policy to read Neighbor targets from database
+- updated [CallTable] DisabledCodecs to include UserInput Capabilities
+- update Presence system. Reduce registration load, PDU size and UDP fragmentation
+- new [GkStatus::Message] to allow reformating of status port messages
 - new [RasSrv::LRQFeatures] PingAlias= to reduce resource usage processing LRQ pings
 - new [RewriteSourceAddress] Rules to apply general CallSourceAddress prefix rewrites
 - new [RewriteSourceAddress] ReplaceChar to substitute characters in source address like '+'
 - new [RewriteSourceAddress] ForceAliasType for change address to different AliasType
-- new [RewriteSourceAddress] MatchSourceTypeToDestination for filtering source addresses to match destination address type.
+- new [RewriteSourceAddress] MatchSourceTypeToDestination for filtering source addresses to match destination address type
 - new [SQLConfig] NeighborsQuery2= for loading neighbors from database in new style format
 - new [RasSrv::RRQFeatures] AuthenticatedAliasesOnly to strip out any aliases that are not authenticated
 - new [RasSvr::RRQFeatures] GatewayAssignAliases switch to disable assigning aliases to gateways on registration
+- BUGFIX(gksql_*) fix SQL character quoting for SQLite, ODBC and Firebird
+- BUGFIX(ProxyChannel.cxx) add missing h245Tunneling element in tunneling translation
+- BUGFIX(gk.cxx) fix --core switch
+- BUGFIX(Toolkit.cxx) loop detection in AssignedGatekeeper
 - BUGFIX(RasSrv.h) ensure alternate gatekeepers can be read from database on GRJ and RRJ
 - BUGFIX(ProxyChannel.cxx) make sure H.460.19 keepalive PT doesn't conflict with encryption PT (VCS bug)
 - BUGFIX(ProxyChannel.cxx) fix multiplexing to VCS traversal server
