@@ -1199,9 +1199,11 @@ void H46024Socket::StartH46024Adirect(bool starter)
 
 void H46024Socket::SignalH46024Adirect()
 {
+#ifdef HAS_H46024A
 	callptr call = CallTable::Instance()->FindCallRec(m_callIdentifier);
 	if (call)
 		call->H46024AMessage();
+#endif
 }
 
 void H46024Socket::GetAlternateAddresses(H323TransportAddress & address, PString & cui, unsigned & muxID)
