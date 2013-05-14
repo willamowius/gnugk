@@ -5751,8 +5751,8 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 			}
 		}
 		break;
-	}
 #endif
+	}
 
 	if (HandleFastStart(facilityBody, false))
 		msg->SetUUIEChanged();
