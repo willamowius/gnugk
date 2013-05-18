@@ -82,6 +82,7 @@ void PresWorker::Main()
 	int wtime;
 	while (!exitWorker.Wait(0)) {
 		wtime = 0;
+		handler->DatabaseIncrementalUpdate();
 		ProcessMessages();
 		while (wtime < waitTime) {
 			wtime += wint;
@@ -101,9 +102,9 @@ void PresWorker::ProcessNow()
 
 void PresWorker::Close()
 {
-	PTRACE(4, "PRES\tPresence Thread Shutdown");
 	ProcessNow();
 	exitWorker.Signal();
+	PTRACE(4, "PRES\tPresence Thread Shutdown");
 }
 
 void BuildSCI(H225_RasMessage & sci_ras, PASN_OctetString & data)
@@ -422,7 +423,7 @@ GkPresence::GkPresence()
 GkPresence::~GkPresence()
 {
 	if (m_worker)
-		m_worker->Close();
+		delete m_worker;
 }
 
 bool GkPresence::IsEnabled() const
