@@ -2548,19 +2548,7 @@ void GkClient::RunSTUNTest(const H323TransportAddress & addr)
 	if (m_stunClient)
 		return;
 
-	H323TransportAddress s;
-	PString server = AsString(addr);
-#ifdef P_DNS
-	PStringList SRVs;
-	PStringList x = server.Tokenise(":");
-	PString number = "h323:user@" + x[0];
-	if (PDNS::LookupSRV(number, "_stun._udp.", SRVs))
-		s = H323TransportAddress(SRVs[0]);
-	else
-#endif
-		s = addr;
-
-	m_stunClient = new STUNClient(this, s);
+	m_stunClient = new STUNClient(this, addr);
 }
 
 void GkClient::H46023_RCF(H460_FeatureStd * feat)

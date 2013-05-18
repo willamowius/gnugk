@@ -675,7 +675,8 @@ private:
 	// is H460.23 enabled ?
 #ifdef HAS_H46023
 	bool m_H46023Enabled;
-	std::map<int,H323TransportAddress> m_H46023STUN;
+	std::map<int,std::vector<H323TransportAddress> > m_H46023STUN;
+	PMutex m_stunMutex;
 #endif
 
 #ifdef HAS_H460P

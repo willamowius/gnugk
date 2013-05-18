@@ -16,6 +16,8 @@
 #include <ptclib/cypher.h>
 #include <h323pdu.h>
 #include <map>
+#include <vector>
+#include <cstdlib>
 #include "stl_supp.h"
 #include "gktimer.h"
 #include "h323util.h"
@@ -2797,30 +2799,43 @@ void Toolkit::LoadH46023STUN()
 	PStringArray stunlist = stun.Tokenise(",");
 
 	for (PINDEX i = 0; i < stunlist.GetSize(); i++) {
-		PIPSocket::Address ip;
-		WORD port;
-		GetTransportAddress(stunlist[i], GK_DEF_STUN_PORT, ip, port);
-		if (ip.IsValid()) {
-			int intID = m_ProxyCriterion.IsInternal(ip);
-			std::map<int, H323TransportAddress>::const_iterator inf = m_H46023STUN.find(intID);
-			if (inf == m_H46023STUN.end()) {
-				if (intID > 0) {
-					PTRACE(4, "Std23\tSTUN Internal " << ip << " IF " << intID-1);
-				} else {
-					PTRACE(4, "Std23\tSTUN Public Server " << stunlist[i] << " (" << ip << ")");
-				}
-				m_H46023STUN.insert(pair<int, H323TransportAddress>(intID, H323TransportAddress(ip, port)));
-			 }
+		PStringList addresses;
+		PStringList x = stunlist[i].Tokenise(":");
+		PString number = "h323:user@" + x[0];
+		if (!PDNS::LookupSRV(number, "_stun._udp.", addresses))
+			addresses.AppendString(stunlist[i]);
+
+		for (PINDEX j=0; j < addresses.GetSize(); ++j) {
+			PString newhost = addresses[j].Mid(5);
+			PIPSocket::Address ip;
+			WORD port;
+			GetTransportAddress(newhost, GK_DEF_STUN_PORT, ip, port);
+			if (ip.IsValid()) {
+				int intID = m_ProxyCriterion.IsInternal(ip);
+				std::map<int, std::vector<H323TransportAddress> >::iterator inf = m_H46023STUN.find(intID);
+				if (inf == m_H46023STUN.end()) {
+					std::vector<H323TransportAddress> addrs;
+					addrs.push_back(H323TransportAddress(ip, port));
+					m_H46023STUN.insert(pair<int, std::vector<H323TransportAddress> >(intID, addrs));
+				} else
+					inf->second.push_back(H323TransportAddress(ip, port));
+
+				PTRACE(4, "Std23\tSTUN Server added if:" << intID << " " << newhost);
+			}
 		}
 	}
 }
 
 bool Toolkit::GetH46023STUN(const PIPSocket::Address & addr, H323TransportAddress & stun)
 {
+	 PWaitAndSignal m(m_stunMutex);
+
 	 int intID = m_ProxyCriterion.IsInternal(addr);
-	 std::map<int, H323TransportAddress>::const_iterator inf = m_H46023STUN.find(intID);
+	 std::map<int, std::vector<H323TransportAddress> >::iterator inf = m_H46023STUN.find(intID);
 	 if (inf != m_H46023STUN.end()) {
-		 stun = inf->second;
+		 if (inf->second.size() > 1)
+			std::random_shuffle(inf->second.begin(), inf->second.end());
+		 stun = inf->second.front();
 		 return true;
 	 }
 	PTRACE(2, "Std23\tNo STUNserver for Interface " << intID << " disabling H.460.23");
