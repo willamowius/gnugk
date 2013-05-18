@@ -1,6 +1,6 @@
 Changes from 3.3 to 3.4
 =======================
-
+- updated H.460.23 STUN to support _stun._udp SRV records
 
 Changes from 3.2 to 3.3
 =======================

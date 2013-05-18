@@ -1765,7 +1765,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		}
 #endif // HAS_H460P
  
-#ifdef HAS_H460
+#ifdef HAS_H460PRE
 		// check if client supports preemption
 		if (request.HasOptionalField(H225_GatekeeperRequest::e_featureSet)) {
 			H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
@@ -1880,9 +1880,11 @@ bool RegistrationRequestPDU::Process()
 	PASN_OctetString preFeature;
 #endif // HAS_H460P
 
+#ifdef HAS_H460PRE
 	// Registration Priority and Pre-emption
 	// This allows the unregistration of duplicate aliases with lower priority
 	OpalOID rPriFS = OpalOID(OID6);
+#endif // HAS_H460PRE
 
 	if (request.HasOptionalField(H225_RegistrationRequest::e_featureSet)) {
 		H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
@@ -1943,6 +1945,7 @@ bool RegistrationRequestPDU::Process()
 		}
 #endif // HAS_H460P
 
+#ifdef HAS_H460PRE
 		if (fs.HasFeature(rPriFS)) {
 			H460_FeatureOID * feat = (H460_FeatureOID *)fs.GetFeature(rPriFS);
 			if (feat->Contains(OID6_Priority)) {
@@ -1954,6 +1957,7 @@ bool RegistrationRequestPDU::Process()
 				preempt = feat->Value(PString(OID6_Preempt));
 			}
 		}
+#endif // HAS_H460PRE
 
 		// H.460.9
 		if (fs.HasFeature(9)) {
@@ -2134,6 +2138,9 @@ bool RegistrationRequestPDU::Process()
 #endif
  
 #ifdef HAS_H460
+
+#ifdef HAS_H460PRE
+				// H.460 PreEmption
 				if (ep->SupportPreemption()) {
 					H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
 					rcf.IncludeOptionalField(H225_RegistrationConfirm::e_featureSet);
@@ -2143,6 +2150,7 @@ bool RegistrationRequestPDU::Process()
 					desc.SetSize(sz+1);
 					desc[sz] = H460_FeatureOID(rPriFS);
 				}
+#endif // HAS_H460PRE
 
 				// H.460.9
 				if (EPSupportsQoSReporting
@@ -2286,7 +2294,7 @@ bool RegistrationRequestPDU::Process()
 					} else {
 						BuildRRJ(H225_RegistrationRejectReason::e_duplicateAlias);
 						H225_RegistrationReject & rrj = m_msg->m_replyRAS;
-#ifdef HAS_H460
+#ifdef HAS_H460PRE
 						// notify that EP can pre-empt previous registration
 						if ((preemptsupport) && (RegPrior == ep->Priority())) {
 							rrj.IncludeOptionalField(H225_RegistrationReject::e_genericData);
@@ -2297,7 +2305,7 @@ bool RegistrationRequestPDU::Process()
 								data.SetSize(lastPos+1);
 							data[lastPos] = pre;
 						}
-#endif // HAS_H460
+#endif // HAS_H460PRE
 						H225_ArrayOf_AliasAddress & duplicateAlias = rrj.m_rejectReason;
 						duplicateAlias = Alias;
 						return true;
@@ -2518,6 +2526,7 @@ bool RegistrationRequestPDU::Process()
 		}
 #endif // HAS_H460P
 
+#ifdef HAS_H460PRE
 		// if the client supports Registration PreEmption then notify the client that we do too
 		if ((preemptsupport) &&
 			(request.HasOptionalField(H225_RegistrationRequest::e_keepAlive) && (!request.m_keepAlive))) {
@@ -2526,6 +2535,7 @@ bool RegistrationRequestPDU::Process()
 			gd.SetSize(lPos+1);
 			gd[lPos] = pre;
 		}
+#endif  // HAS_H460PRE
 
 		// H.460.9
 		if (EPSupportsQoSReporting
@@ -3388,6 +3398,7 @@ bool AdmissionRequestPDU::Process()
 			 data[lastPos-1] = fs;
 		}
 #endif
+#ifdef HAS_H460VEN
 		/// OID9 Vendor Information
 		if (vendorInfo) {
 			H460_FeatureOID fs = H460_FeatureOID(OID9);
@@ -3399,6 +3410,7 @@ bool AdmissionRequestPDU::Process()
 			data.SetSize(lastPos);
 			data[lastPos-1] = fs;
 		}
+#endif
 		if (lastPos > 0) 
 			acf.IncludeOptionalField(H225_AdmissionConfirm::e_genericData);  
 	}
@@ -3787,6 +3799,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 							}
 						}
 #endif
+#ifdef HAS_H460VEN
 						/// OID9 Vendor Interoperability
 						if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID9))) {
 							PString vendor, version = PString::Empty();
@@ -3799,18 +3812,19 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 								data[lastPos-1] = foid9;
 							}
 						}
+#endif // HAS_H460VEN
 					}
 				}
 				if (lastPos > 0) 
 					lcf.IncludeOptionalField(H225_LocationConfirm::e_genericData);
  
 				PString featureRequired = Kit->Config()->GetString(RoutedSec, "NATStdMin", "");
-                PBoolean assumePublicH46024 =  Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023PublicIP", 0));
+				PBoolean assumePublicH46024 =  Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023PublicIP", 0));
 				if (!featureRequired && featureRequired == "23" && WantedEndPoint && (!WantedEndPoint->SupportH46024() && !assumePublicH46024)) {
 					bReject = true;
 					reason = H225_LocationRejectReason::e_genericDataReason;
 				} else 
-#endif		            
+#endif
 				{
 					log = "LCF|" + m_msg->m_peerAddr.AsString()
 							+ "|" + (WantedEndPoint ? WantedEndPoint->GetEndpointIdentifier().GetValue() : AsDotString(route.m_destAddr))

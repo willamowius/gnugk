@@ -181,6 +181,7 @@
 
 #ifdef H323_H460
 	#define HAS_H460 1    // H460 support
+	#define HAS_H460VEN	1
 #else
 	#undef HAS_H46017
 	#undef HAS_H46018
@@ -211,11 +212,10 @@
 #else
 	#define H460P_VER 2
 #endif
-	#define OID3 "1.3.6.1.4.1.17090.0.12"  // Presence v2+
-//#else
-//	#define H460P_VER 1
-//	#define OID3 "1.3.6.1.4.1.17090.0.3"  // Presence
-//#endif
+#endif
+
+#ifdef H323_H460PRE
+	#define HAS_H460PRE 1
 #endif
 
 #if OPENH323_MAJOR == 1

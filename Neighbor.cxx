@@ -748,7 +748,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
         lrq.m_genericData[sz] = std24;
     }
 #endif
-#if 0   // Disable until we workout moving non-standard H.460 stuff to new compile directive. - SH
+#ifdef HAS_H460VEN
      /// OID9  'Remote endpoint vendor info THIS IS "1.3.6.1.4.1.17090.0.9" NOT H.460.9	- SH
      H460_FeatureOID foid9 = H460_FeatureOID(OID9);	 
      int sz = lrq.m_genericData.GetSize();	 

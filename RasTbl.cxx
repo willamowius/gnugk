@@ -337,6 +337,7 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 			   }
 		   }
 #endif
+#ifdef HAS_H460VEN
 		   /// OID9 Vendor Information
 		   if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID9))) {
 			   H460_FeatureOID & oid9 = (H460_FeatureOID &)data[i];
@@ -344,7 +345,7 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
                PString m_version = oid9.Value(PString(VendorVerOID));  // Version Information
 			   SetEndpointInfo(m_vendor,m_version);
 		   }
-
+#endif // HAS_H460VEN
 		}
 	}
 #endif

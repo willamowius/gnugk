@@ -95,6 +95,8 @@ static const char * const H46024B_OID = "0.0.8.460.24.2";
 
 ///////////////////////////////////////////
 // Presence
+
+#define OID3 "1.3.6.1.4.1.17090.0.12"  // Presence v2+
 #define OID3_PDU	1	// PASN_OctetString Presence PDU
 
 
