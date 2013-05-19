@@ -1155,7 +1155,7 @@ PBoolean H46024Socket::SendRTCPFrame(RTP_ControlFrame & report, const PIPSocket:
 {
 	if (!WriteTo(report.GetPointer(),report.GetSize(),
 				ip, port,id)) {
-		switch (GetErrorNumber()) {
+		switch (GetErrorNumber(PChannel::LastWriteError)) {
 			case ECONNRESET :
 			case ECONNREFUSED :
 				PTRACE(2, "H46024\t" << ip << ":" << port << " not ready.");
@@ -1282,7 +1282,7 @@ void H46024Socket::SendRTPPing(const PIPSocket::Address & ip, const WORD & port,
 	if (!WriteTo(rtp.GetPointer(),
 				rtp.GetHeaderSize()+rtp.GetPayloadSize(),
 				ip, port,id)) {
-		switch (GetErrorNumber()) {
+		switch (GetErrorNumber(PChannel::LastWriteError)) {
 		case ECONNRESET :
 		case ECONNREFUSED :
 			PTRACE(2, "H46024b\t" << ip << ":" << port << " not ready.");
