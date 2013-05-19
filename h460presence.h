@@ -33,12 +33,13 @@ public:
 	~GkPresence();
 
 	bool IsEnabled() const;
+	void Stop();
 
 	void LoadConfig(PConfig * cfg);
 
     bool RegisterEndpoint(const H225_EndpointIdentifier & ep, const H225_ArrayOf_AliasAddress & addr);
 	void UnRegisterEndpoint(const H225_ArrayOf_AliasAddress & addr);
-#if H460P_VER > 2
+#ifdef HAS_H460P_VER_3
 	bool BuildPresenceElement(unsigned msgtag, const H225_EndpointIdentifier & ep, list<PASN_OctetString> & pdu);
 	bool BuildPresenceElement(unsigned msgtag, const H225_TransportAddress & ip, list<PASN_OctetString> & pdu);
 #else

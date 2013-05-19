@@ -1141,7 +1141,7 @@ void EndpointRec::SetUsesH460P(bool uses)
 	   handler.UnRegisterEndpoint(m_terminalAliases);
 	m_usesH460P = uses;
 #endif
-#if H460P_VER > 2
+#ifdef HAS_H460P_VER_3
     m_hasH460PData = uses;
 #endif
 }
@@ -1153,7 +1153,7 @@ void EndpointRec::ParsePresencePDU(const PASN_OctetString & pdu)
 	handler.ProcessPresenceElement(pdu);
 }
 
-#if H460P_VER < 3
+#ifndef HAS_H460P_VER_3
 bool EndpointRec::BuildPresencePDU(unsigned msgtag, PASN_OctetString & pdu)
 {
 	GkPresence & handler  = Toolkit::Instance()->GetPresenceHandler();

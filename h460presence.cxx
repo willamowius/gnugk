@@ -51,8 +51,8 @@ public:
 	// force the process thread to process messages
 	void ProcessNow();
 
-	// Close
-	void Close();
+	// Stop
+	void Stop();
 
 protected:
 	void ProcessMessages();
@@ -61,11 +61,11 @@ private:
 	GkPresence *	handler;
 	long			waitTime;
 	bool			processNow;
-    PSyncPointAck	exitWorker;
+	bool			shutDown;
 };
 
 PresWorker::PresWorker(GkPresence * _handler , int _waitTime)
-: PThread(5000, AutoDeleteThread), handler(_handler), waitTime(_waitTime), processNow(false)
+: PThread(5000, AutoDeleteThread), handler(_handler), waitTime(_waitTime), processNow(false), shutDown(false)
 {
 	PTRACE(4, "PRES\tPresence Thread instance fire every " << waitTime << " sec");
 	Resume();
@@ -73,14 +73,15 @@ PresWorker::PresWorker(GkPresence * _handler , int _waitTime)
 
 PresWorker::~PresWorker()
 {
-	Close();
+	if (!shutDown)
+		Stop();
 }
 	
 void PresWorker::Main()
 {
 	int wint=100;
 	int wtime;
-	while (!exitWorker.Wait(0)) {
+	while (!shutDown) {
 		wtime = 0;
 		handler->DatabaseIncrementalUpdate();
 		ProcessMessages();
@@ -92,7 +93,7 @@ void PresWorker::Main()
 		}
 		processNow = false;
 	}
-	exitWorker.Acknowledge();
+	PTRACE(4, "PRES\tPresence Thread Ended");
 }
 
 void PresWorker::ProcessNow()
@@ -100,11 +101,12 @@ void PresWorker::ProcessNow()
 	processNow = true;
 }
 
-void PresWorker::Close()
+void PresWorker::Stop()
 {
+    SetNoAutoDelete();
+	shutDown = true;
 	ProcessNow();
-	exitWorker.Signal();
-	PTRACE(4, "PRES\tPresence Thread Shutdown");
+	WaitForTermination(2 * 1000);	// max. wait 2 sec.
 }
 
 void BuildSCI(H225_RasMessage & sci_ras, PASN_OctetString & data)
@@ -153,7 +155,7 @@ void PresWorker::ProcessMessages()
 		while (i != epid.end()) {
 			endptr ep = RegistrationTable::Instance()->FindByEndpointId(*i);
 			if (ep) {
-#if H460P_VER > 2
+#ifdef HAS_H460P_VER_3
 				bool dataToSend=false;
 				list<PASN_OctetString> element;
 				if (ep->HasPresenceData())
@@ -192,7 +194,7 @@ void PresWorker::ProcessMessages()
 		// Process the LRQ message for each TransportAddress
 		list<H225_TransportAddress>::iterator i = gkip.begin();
 		while (i != gkip.end()) {
-#if H460P_VER > 2
+#ifdef HAS_H460P_VER_3
 			list<PASN_OctetString> element;
 			if (handler->BuildPresenceElement(H225_RasMessage::e_locationRequest,*i, element)) {
 				PASN_OctetString data;
@@ -249,7 +251,7 @@ H460P_PresenceSubscription & BuildSubscriptionMsg(const H460P_PresenceSubscripti
 	return msg;
 }
 
-#if H460P_VER < 2
+#ifdef HAS_H460P_VER_1
 H460P_PresenceSubscription & BuildSubscriptionMsg(const OpalGloballyUniqueID & id, const H225_AliasAddress & remote,
 												const H225_AliasAddress & local, H460P_PresencePDU & msg)
 {
@@ -311,7 +313,7 @@ bool UpdateInstruction(const H460P_PresenceInstruction & addr, H323PresenceInstr
 {
 	bool found = false;
 	for (PINDEX i=0; i< inst.GetSize(); ++i) {
-#if H460P_VER < 2
+#ifdef HAS_H460P_VER_1
 		const H225_AliasAddress & alias = addr;
 #else
 		const H460P_PresenceAlias & palias = addr;
@@ -422,8 +424,30 @@ GkPresence::GkPresence()
 
 GkPresence::~GkPresence()
 {
-	if (m_worker)
+
+}
+
+void GkPresence::Stop()
+{
+	// Stop worker thread
+	if (m_worker) {
+		m_worker->Stop();
 		delete m_worker;
+		m_worker = NULL;
+	}
+#if HAS_DATABASE
+	if (m_sqlConn)
+		delete m_sqlConn;
+#endif
+	// Clear all stores
+	localStore.clear();
+	aliasList.clear();
+	pendingStore.clear();
+	remoteList.clear();
+	remoteStore.clear();
+	remoteIds.clear();
+	remoteIdmap.clear();
+	remoteRelay.clear();
 }
 
 bool GkPresence::IsEnabled() const
@@ -598,12 +622,14 @@ bool GkPresence::DatabaseLoad(PBoolean incremental)
 		PTRACE(2, "H460PSQL\tBad-formed query - "
 			"insufficient columns found in the result set expect " << fieldCount);
 		SNMP_TRAP(5, SNMPError, Database, "Presense SQL query failed");
+		delete result;
 		return false;
 	}
 	if (result->GetNumRows() == 0) {
 		if (!incremental) {
 		  PTRACE(4, "H460PSQL\tDatabase returns 0 entries, assume table is empty.");
 		}
+		delete result;
 		return true;
 	}
 
@@ -633,7 +659,7 @@ bool GkPresence::DatabaseLoad(PBoolean incremental)
 		for (PINDEX i=0; i < retval.GetSize(); ++i) {
 			results << " " << presenceFieldName(i) << " "; 
 			if (i == 4) results << H323PresenceInstruction::GetInstructionString(retval[i].AsInteger());
-#if H460P_VER >= 2
+#ifndef HAS_H460P_VER_1
 			else if (i == 9) results << H323PresenceInstruction::GetCategoryString(retval[i].AsInteger());
 #endif
 			else results << retval[i];
@@ -651,7 +677,7 @@ bool GkPresence::DatabaseLoad(PBoolean incremental)
 			id.m_Status = (H323PresenceInstruction::Instruction)retval[4].AsInteger();
 			id.m_Active = Toolkit::AsBool(retval[5]);
 			id.m_Updated = PTime(retval[6]);
-#if H460P_VER >= 2
+#ifndef HAS_H460P_VER_1
 			if (retval.GetSize() >= 8) id.m_Display = retval[7];
 								else id.m_Display = PString();
 			if (retval.GetSize() >= 9) id.m_Avatar = retval[8];
@@ -660,7 +686,7 @@ bool GkPresence::DatabaseLoad(PBoolean incremental)
 								else id.m_Category = H323PresenceInstruction::e_UnknownCategory;
 #endif
 		
-#if H460P_VER < 2
+#ifdef HAS_H460P_VER_1
 			H323PresenceInstruction instruct(id.m_Status, retval[2]);
 #else
 			H323PresenceInstruction instruct(id.m_Status, retval[2], id.m_Display, id.m_Avatar, id.m_Category);
@@ -727,7 +753,7 @@ bool GkPresence::DatabaseAdd(const PString & identifier, const H323PresenceID & 
 	params["u"] = AsString(id.m_subscriber,0);
 	params["a"] = AsString(id.m_Alias,0);
 	params["s"] = (id.m_isSubscriber ? "1" : "0");
-#if H460P_VER >= 2
+#ifndef HAS_H460P_VER_1
 	params["d"] = id.m_Display;
 	params["v"] = id.m_Avatar;
 	params["c"] = id.m_Category;
@@ -797,7 +823,7 @@ H460P_PresenceSubscription & GkPresence::HandleSubscription(bool isNew, const H4
 		HandleStatusUpdates(pid, id.m_subscriber, e_pending, id.m_Alias, &id);
 
 	H460P_PresencePDU msg;
-#if H460P_VER < 2
+#ifdef HAS_H460P_VER_1
 	H460P_PresenceSubscription & sub = BuildSubscriptionMsg(pid.m_guid,id.m_Alias,id.m_subscriber,msg);
 #else
 	H460P_PresenceSubscription & sub = BuildSubscriptionMsg(pid.m_guid,id,msg);
@@ -838,7 +864,7 @@ bool GkPresence::RegisterEndpoint(const H225_EndpointIdentifier & ep, const H225
 			EnQueuePresence(addr[j],msg);
 
 			// look in the local store to see if we can send presence info to people logged in.
-#if H460P_VER < 2
+#ifdef HAS_H460P_VER_1
 			const H225_AliasAddress & alias = itx->second.m_Instruction[i];
 #else
 			const H460P_PresenceAlias & palias = itx->second.m_Instruction[i];
@@ -958,7 +984,7 @@ void GkPresence::ProcessPresenceElement(const PASN_OctetString & pdu)
 	}
 }
 
-#if H460P_VER > 2
+#ifdef HAS_H460P_VER_3
 bool GkPresence::BuildPresenceElement(unsigned msgtag, const H225_EndpointIdentifier & ep, list<PASN_OctetString> & pdu)
 {
 	PWaitAndSignal m(m_AliasMutex);
@@ -1460,7 +1486,7 @@ bool GkPresence::HandleSubscriptionLocal(const H460P_PresenceSubscription & subs
 		itx->second.m_Authorize.Add((H323PresenceSubscription &)subscription);
 		H323PresenceID id;
 			id.m_subscriber = subscription.m_subscribe;
-#if H460P_VER < 2
+#ifdef HAS_H460P_VER_1
 			id.m_Alias = subscription.m_aliases[0];
 #else
 			const H460P_PresenceAlias & pAlias = subscription.m_aliases[0];
@@ -1499,7 +1525,7 @@ bool GkPresence::RemoveSubscription(unsigned type,const H460P_PresenceIdentifier
 bool GkPresence::HandleNewInstruction(unsigned tag, const H225_AliasAddress & addr,
 									  const H460P_PresenceInstruction & instruction, H323PresenceInstructions & instructions)
 {
-#if H460P_VER < 2
+#ifdef HAS_H460P_VER_1
 	const H225_AliasAddress & a = instruction;
 #else
 	const H460P_PresenceAlias & palias = instruction;
@@ -1512,7 +1538,7 @@ bool GkPresence::HandleNewInstruction(unsigned tag, const H225_AliasAddress & ad
 
 	// Check to see if we already have this instruction
 	for (PINDEX i=0; i< instructions.GetSize(); i++) {
-#if H460P_VER < 2
+#ifdef HAS_H460P_VER_1
 		const H225_AliasAddress & b = instruction;
 #else
 		const H460P_PresenceAlias & pb = instruction;
@@ -1556,7 +1582,7 @@ bool GkPresence::HandleNewInstruction(unsigned tag, const H225_AliasAddress & ad
 					idx.m_isSubscriber = false;
 					idx.m_subscriber = a;
 					idx.m_Alias = addr;
-#if H460P_VER >= 2
+#ifndef HAS_H460P_VER_1
 					idx.m_Display = displayName;
 #endif
 				HandleSubscription(true,pid,idx);
@@ -1565,7 +1591,7 @@ bool GkPresence::HandleNewInstruction(unsigned tag, const H225_AliasAddress & ad
 				idx.m_isSubscriber = true;
 				idx.m_subscriber = addr;
 				idx.m_Alias = a;
-#if H460P_VER >= 2
+#ifndef HAS_H460P_VER_1
 				idx.m_Display = PString();
 #endif
 				HandleStatusUpdates(pid, addr, e_pending, a, &idx);
@@ -1598,7 +1624,7 @@ void GkPresence::OnNotification(MsgType tag, const H460P_PresenceNotification & 
 
 			for (PINDEX i=0; i < ep.m_Instruction.GetSize(); i++) {
 				if (ep.m_Instruction[i].GetTag() == H460P_PresenceInstruction::e_subscribe) {
-#if H460P_VER < 2
+#ifdef HAS_H460P_VER_1
 					const H225_AliasAddress & a = ep.m_Instruction[i];
 #else
 					const H460P_PresenceAlias & palias = ep.m_Instruction[i];
@@ -1641,7 +1667,7 @@ void GkPresence::OnSubscription(MsgType tag, const H460P_PresenceSubscription & 
 
 	// Handle the senders side
 	for (PINDEX i=0; i<subscription.m_aliases.GetSize(); i++) {
-#if H460P_VER < 2
+#ifdef HAS_H460P_VER_1
 		const H225_AliasAddress & sub = subscription.m_aliases[i];
 #else
 		const H460P_PresenceAlias & palias = subscription.m_aliases[i];

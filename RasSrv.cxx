@@ -2124,7 +2124,7 @@ bool RegistrationRequestPDU::Process()
 				if (presenceSupport) {
 					H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
 					H460_FeatureOID presence = H460_FeatureOID(rPreFS);
-#if H460P_VER < 3
+#ifndef HAS_H460P_VER_3
 					PASN_OctetString preData;
 					if (ep->BuildPresencePDU(rcf.GetTag(),preData))
 						presence.Add(OID3_PDU,H460_FeatureContent(preData));
@@ -2515,7 +2515,7 @@ bool RegistrationRequestPDU::Process()
 #ifdef HAS_H460P
 		if (presenceSupport) {
 			H460_FeatureOID presence = H460_FeatureOID(rPreFS);
-#if H460P_VER < 3
+#ifndef HAS_H460P_VER_3
 			PASN_OctetString preData;
 			if (ep->BuildPresencePDU(rcf.GetTag(),preData)) 
 				presence.Add(OID3_PDU,H460_FeatureContent(preData));

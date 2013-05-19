@@ -1085,6 +1085,9 @@ Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit"),
 
 Toolkit::~Toolkit()
 {
+#ifdef HAS_H460P
+	m_presence.Stop();
+#endif
 	if (m_Config) {
 		delete m_Config;
 		PFile::Remove(m_tmpconfig);

@@ -244,7 +244,7 @@ public:
 	bool HasPresenceData();
 #ifdef HAS_H460P
 	void ParsePresencePDU(const PASN_OctetString & pdu);
-#if H460P_VER < 3
+#ifndef HAS_H460P_VER_3
 	bool BuildPresencePDU(unsigned msgtag, PASN_OctetString & pdu);
 #endif
 #endif

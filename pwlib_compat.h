@@ -207,10 +207,14 @@
 
 #ifdef H323_H460P
 	#define HAS_H460P	1  // Presence
-#if H323PLUS_VER > 1251
-	#define H460P_VER 3
+#ifdef H323_H460P_VER
+  #if H323_H460P_VER == 3
+	#define HAS_H460P_VER_3	 1
+  #else
+	#define HAS_H460P_VER_2	 1
+  #endif
 #else
-	#define H460P_VER 2
+	#define HAS_H460P_VER_1  1
 #endif
 #endif
 
