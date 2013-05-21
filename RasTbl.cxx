@@ -919,7 +919,7 @@ PString EndpointRec::PrintOn(bool verbose) const
 	PString msg;
 	std::map<PString, PString> params;
 	PString format = GkConfig()->GetString("GkStatus::Message", "RCF", "");
-	if (!verbose && !format) {
+	if (!verbose && !format.IsEmpty()) {
 		bool compact = Toolkit::AsBool(GkConfig()->GetString("GkStatus::Message", "Compact", "0")); 
 		params["IP:Port"] = AsDotString(GetCallSignalAddress());
 		params["Aliases"] = AsString(GetAliases());
@@ -929,12 +929,13 @@ PString EndpointRec::PrintOn(bool verbose) const
 		PString vendor,version;
 		GetEndpointInfo(vendor, version);
 		params["Vendor"] = vendor + version;
-		msg = ReplaceParameters(format,params);
+		msg = ReplaceParameters(format, params);
 	} else {
 		msg = AsDotString(GetCallSignalAddress())
 				+ "|" + AsString(GetAliases())
 				+ "|" + AsString(GetEndpointType())
-				+ "|" + GetEndpointIdentifier().GetValue();
+				+ "|" + GetEndpointIdentifier().GetValue()
+				+ "\r\n";
 	}
 
 	if (verbose) {
