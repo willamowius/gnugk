@@ -2,7 +2,7 @@
 //
 // gk.cxx for GNU Gatekeeper
 //
-// Copyright (c) 2000-2012, Jan Willamowius
+// Copyright (c) 2000-2013, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -199,6 +199,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Gatekeeper::Main", "UnicastRasPort" },
 	{ "Gatekeeper::Main", "UseBroadcastListener" },
 	{ "Gatekeeper::Main", "UseMulticastListener" },
+#ifdef H323_H350
 	{ "GkH350::Settings", "AssignedAliases" },
 	{ "GkH350::Settings", "BindAuthMode" },
 	{ "GkH350::Settings", "BindUserDN" },
@@ -210,6 +211,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "GkH350::Settings", "ServiceControl" },
 #ifdef hasLDAPStartTLS
 	{ "GkH350::Settings", "StartTLS" },
+#endif
 #endif
 #ifdef HAS_DATABASE
 	{ "GkPresence::SQL", "CacheTimeout" },
@@ -589,6 +591,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "SyslogAcct", "UpdateEvent" },
 
 	// ignore name partially to check
+	{ "EP::", "AddNumbers" },
 	{ "EP::", "CalledTypeOfNumber" },
 	{ "EP::", "CallingTypeOfNumber" },
 	{ "EP::", "Capacity" },
@@ -615,10 +618,12 @@ const char * KnownConfigEntries[][2] = {
 	{ "Neighbor::", "GatekeeperIdentifier" },
 #ifdef HAS_H46018
 	{ "Neighbor::", "H46018Client" },
+	{ "Neighbor::", "H46018Server" },
 #endif
 	{ "Neighbor::", "Host" },
 	{ "Neighbor::", "Password" },
 	{ "Neighbor::", "SendAuthUser" },
+	{ "Neighbor::", "SendIPs" },
 	{ "Neighbor::", "SendPassword" },
 	{ "Neighbor::", "SendPrefixes" },
 
@@ -628,7 +633,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "FileIPAuth", "*" },
 	{ "GkStatus::Auth", "*" },
 	{ "H225toQ931", "*" },
+#ifdef H323_H350
 	{ "H350PasswordAuth", "*" },
+#endif
 	{ "ModeSelection", "*" },
 	{ "NATedEndpoints", "*" },
 	{ "PrefixAuth", "*" },
@@ -712,6 +719,7 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 	for (PINDEX i = 0; i < sections.GetSize(); ++i) {
 		// check section names
 		PCaselessString sect = sections[i];
+		PString fullSectionName = sections[i];
 		if ((sect.Left(1) == ";") || (sect.Left(1) == "#")) {
 			continue;
 		}
@@ -749,12 +757,12 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 			//PTRACE(0, "Section " << sect << " can't be checked in detail");
 		} else {
 			// check all entries in this section
-			PStringToString entries = cfg->GetAllKeyValues(sect);
+			PStringToString entries = cfg->GetAllKeyValues(fullSectionName);
 			for (PINDEX j = 0; j < entries.GetSize(); j++) {
 				PCaselessString key = entries.GetKeyAt(j);
 				PString value = entries.GetDataAt(j);
 				if (value.IsEmpty()) {
-					PTRACE(2, "WARNING: Empty entry: [" << sect << "] " << key << "=");
+					PTRACE(2, "WARNING: Empty entry: [" << fullSectionName << "] " << key << "=");
 				}
 				unsigned k = 0;
 				bool entry_found = false;
@@ -767,9 +775,9 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 					}
 				}
 				if (!entry_found) {
-					cerr << "WARNING: Config entry [" << sect << "] " << key << "=" << value << " unknown" << endl;
-					PTRACE(0, "WARNING: Config entry [" << sect << "] " << key << "=" << value << " unknown");
-					SNMP_TRAP(7, SNMPError, Configuration, "Config entry [" + sect + "] " + key + " unknown");
+					cerr << "WARNING: Config entry [" << fullSectionName << "] " << key << "=" << value << " unknown" << endl;
+					PTRACE(0, "WARNING: Config entry [" << fullSectionName << "] " << key << "=" << value << " unknown");
+					SNMP_TRAP(7, SNMPError, Configuration, "Config entry [" + fullSectionName + "] " + key + " unknown");
 					warnings++;
 				}
 			}
