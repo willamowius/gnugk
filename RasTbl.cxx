@@ -3439,7 +3439,7 @@ void CallRec::SetAlertingTime(time_t tm)
 	PWaitAndSignal lock(m_usedLock);
 	if (m_alertingTime == 0) {
 		if (m_connectTime != 0) {
-			PTRACE(0, "Error: Setting alerting time after connect time");
+			PTRACE(1, "Error: Setting alerting time after connect time");
 		} else {
 			m_timer = m_alertingTime = tm;
 			m_timeout = CallTable::Instance()->GetAlertingTimeout() / 1000;
@@ -4378,6 +4378,9 @@ void CallRec::StartRTPKeepAlive(unsigned flcn, int RTPOSSocket)
 	std::map<unsigned, H46019KeepAlive>::iterator iter = m_RTPkeepalives.find(flcn);
 	// only start if it isn't running already
 	if ((iter != m_RTPkeepalives.end()) && (iter->second.timer == GkTimerManager::INVALID_HANDLE)) {
+		if (RTPOSSocket == INVALID_OSSOCKET) {
+			PTRACE(1, "H46019\tError: invalid keep alive socket");
+		}
 		iter->second.ossocket = RTPOSSocket;
 		PTime now;
 		iter->second.timer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
