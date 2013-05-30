@@ -534,7 +534,7 @@ public:
 
 	void Dump() const;
 
-	bool IsValid() const { return m_session != INVALID_RTP_SESSION; }
+	bool IsValid() const { return (m_session != INVALID_RTP_SESSION) || (m_flcn > 0); }
 	bool sideAReady(bool isRTCP) const { return isRTCP ? IsSet(m_addrA_RTCP) : IsSet(m_addrA); }
 	bool sideBReady(bool isRTCP) const { return isRTCP ? IsSet(m_addrB_RTCP) : IsSet(m_addrB); }
 	H46019Session SwapSides() const; // return a copy with side A and B swapped
@@ -547,6 +547,7 @@ public:
 //protected:
 	H225_CallIdentifier m_callid;
 	WORD m_session;
+	WORD m_flcn;		// only used to assign master assigned RTP session IDs
 	void * m_openedBy;	// side A (pointer to H245ProxyHandler used as an ID)
 	void * m_otherSide;	// side B (pointer to H245ProxyHandler used as an ID)
 	H323TransportAddress m_addrA;
@@ -595,6 +596,7 @@ public:
 	virtual void OnReload() { /* currently not runtime changable */ }
 
 	virtual void AddChannel(const H46019Session & cha);
+	virtual void UpdateChannelSession(const H225_CallIdentifier & callid, WORD flcn, void * openedBy, WORD session);
 	virtual void UpdateChannel(const H46019Session & cha);
 	virtual H46019Session GetChannel(const H225_CallIdentifier & callid, WORD session) const;
 	virtual H46019Session GetChannelSwapped(const H225_CallIdentifier & callid, WORD session, void * openedBy) const;
