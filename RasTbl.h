@@ -129,7 +129,6 @@ public:
 
 	virtual void SetRasAddress(const H225_TransportAddress &);
 	virtual void SetCallSignalAddress(const H225_TransportAddress &);
-	virtual void SetEndpointIdentifier(const H225_EndpointIdentifier &);
 	virtual void SetTimeToLive(int);
 	virtual void SetAliases(const H225_ArrayOf_AliasAddress &, PBoolean = false);
 	virtual bool RemoveAliases(const H225_ArrayOf_AliasAddress &);

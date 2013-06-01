@@ -209,7 +209,6 @@ PString AsString(const H225_AliasAddress & terminalAlias, bool includeAliasType)
 				aliasString += ":" + terminalAlias.GetTagName();
 			}
 			return aliasString;
-			break;
 	}
 
 	return includeAliasType ? "none:UnknownType" : "none";

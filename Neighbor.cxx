@@ -1131,12 +1131,12 @@ bool LRQRequester::IsH46024Supported() const
 	return false;
 }
 
-bool LRQRequester::IsExpected(const RasMsg *ras) const
+bool LRQRequester::IsExpected(const RasMsg * ras) const
 {
 	return RasHandler::IsExpected(ras) && (ras->GetSeqNum() == m_seqNum);
 }
 
-void LRQRequester::Process(RasMsg *ras)
+void LRQRequester::Process(RasMsg * ras)
 {
 	PWaitAndSignal lock(m_rmutex);
 	for (Queue::iterator iter = m_requests.begin(); iter != m_requests.end(); ++iter) {
@@ -1201,7 +1201,6 @@ void LRQRequester::Process(RasMsg *ras)
 
 	PTRACE(1, "RAS\tUnknown reply " << ras->GetTagName());
 	delete ras;
-	ras = NULL;
 }
 
 bool LRQRequester::OnTimeout()

@@ -666,12 +666,6 @@ void EndpointRec::NullNATSocket()
 	m_natsocket = NULL;
 }
 
-void EndpointRec::SetEndpointIdentifier(const H225_EndpointIdentifier &i)
-{
-	PWaitAndSignal lock(m_usedLock);
-	m_endpointIdentifier = i;
-}
-
 void EndpointRec::SetAliases(const H225_ArrayOf_AliasAddress &a, PBoolean additive)
 {
 	PWaitAndSignal lock(m_usedLock);

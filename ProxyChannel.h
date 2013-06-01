@@ -344,10 +344,6 @@ public:
 	void LockH245Handler() { m_h245handlerLock.Wait(); }
 	void UnlockH245Handler() { m_h245handlerLock.Signal(); }
 
-#ifdef HAS_H46018
-	bool IsH46019ClientCall(const H225_Setup_UUIE & setupBody);
-#endif
-
 #ifdef HAS_H46023
 	bool IsH46024Call(const H225_Setup_UUIE & setupBody);
 #endif

@@ -1250,7 +1250,7 @@ PString StatusClient::WhoAmI() const
 bool StatusClient::Authenticate()
 {
 	PINDEX rule_start = 0;
-	bool result, logical_or;
+	bool result = false;
 	const PString rules = GkConfig()->GetString(authsec, "rule", "forbid");
 	while (true) {
 		const PINDEX rule_end = rules.FindOneOf("&|", rule_start);
@@ -1259,7 +1259,7 @@ bool StatusClient::Authenticate()
 			break;
 		} else
 			result = CheckAuthRule(rules(rule_start, rule_end - 1).Trim());
-		logical_or = (rules[rule_end] == '|');
+		bool logical_or = (rules[rule_end] == '|');
 		if ((logical_or && result) || !(logical_or || result))
 			break;
 		rule_start = rule_end + 1;

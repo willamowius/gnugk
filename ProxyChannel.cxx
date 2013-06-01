@@ -400,30 +400,6 @@ bool IsH46024ProxyStrategy(CallRec::NatStrategy strat)
 #endif
 
 #ifdef HAS_H46024A
-bool GetH245GenericUnsignedMessage(unsigned id, const H245_ArrayOf_GenericParameter & params, unsigned & val)
-{
-	for (PINDEX i=0; i < params.GetSize(); i++) {
-		const H245_GenericParameter & param = params[i];
-		const H245_ParameterIdentifier & idm = param.m_parameterIdentifier; 
-		if (idm.GetTag() == H245_ParameterIdentifier::e_standard) {
-			const PASN_Integer & idx = idm;
-			if (idx == id) {
-				const H245_ParameterValue & genvalue = params[i].m_parameterValue;
-				if ((genvalue.GetTag() == H245_ParameterValue::e_unsignedMin) ||
-					(genvalue.GetTag() == H245_ParameterValue::e_unsignedMax) ||
-					(genvalue.GetTag() == H245_ParameterValue::e_unsigned32Min) ||
-					(genvalue.GetTag() == H245_ParameterValue::e_unsigned32Max)) {
-					const PASN_Integer & xval = genvalue;
-					val = xval;
-					return true;
-				}
-			}
-		}
-	}
-	PTRACE(4,"H46024A\tError finding Transport parameter " << id);
-	return false;
-}
-
 bool GetH245GenericStringOctetString(unsigned id, const H245_ArrayOf_GenericParameter & params, PString & str)
 {
 	for (PINDEX i=0; i < params.GetSize(); i++) {
@@ -508,19 +484,6 @@ H245_GenericParameter & BuildH245GenericOctetString(H245_GenericParameter & para
 	H245_TransportAddress data;
 	transport.SetPDU(data);
 	return BuildH245GenericOctetString(param, id, data);
-}
-
-H245_GenericParameter & BuildH245GenericInteger(H245_GenericParameter & param, unsigned id, unsigned val)
-{
-	H245_ParameterIdentifier & idm = param.m_parameterIdentifier; 
-		idm.SetTag(H245_ParameterIdentifier::e_standard);
-		PASN_Integer & idx = idm;
-		idx = id;
-		H245_ParameterValue & genvalue = param.m_parameterValue;
-		genvalue.SetTag(H245_ParameterValue::e_unsignedMin);
-		PASN_Integer & xval = genvalue;
-		xval = val;
-	return param;
 }
 
 H245_GenericParameter & BuildH245GenericUnsigned(H245_GenericParameter & param, unsigned id, unsigned val)
@@ -2792,32 +2755,6 @@ PString CallSignalSocket::GetDialedNumber(
 
 	return dialedNumber;
 }
-
-#ifdef HAS_H46018
-bool CallSignalSocket::IsH46019ClientCall(const H225_Setup_UUIE & setupBody)
-{
-	if (Toolkit::Instance()->IsH46018Enabled()
-		&& setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
-		const H225_ArrayOf_FeatureDescriptor & data = setupBody.m_supportedFeatures;
-		for (PINDEX i = 0; i < data.GetSize(); i++) {
-			H460_Feature & feat = (H460_Feature &)data[i];
-			if (feat.GetFeatureID() == H460_FeatureID(19)) {
-				bool isH46019Client = true;
-				for(PINDEX p = 0; p < feat.m_parameters.GetSize(); p++) {
-					if (feat.m_parameters[p].m_id.GetTag() == H225_GenericIdentifier::e_standard) {
-						PASN_Integer & pInt = feat.m_parameters[p].m_id;
-						if (pInt == 2) {
-							isH46019Client = false;
-						}
-					}
-				}
-				return isH46019Client;
-			}
-        }
-    }
-    return false;
-}
-#endif
 
 #ifdef HAS_H46023
 bool CallSignalSocket::IsH46024Call(const H225_Setup_UUIE & setupBody)
@@ -10008,14 +9945,14 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 					PTRACE(4,"H46024A\tAlt Port Info:\n" << msg);
 					PString m_CUI = PString();  H323TransportAddress m_altAddr1, m_altAddr2; unsigned m_altMuxID=0;
 					bool error = false;
-					if (!GetH245GenericStringOctetString(0,msg,m_CUI))  error = true;
-					if (!GetH245TransportGenericOctetString(1,msg,m_altAddr1))  error = true;
-					if (!GetH245TransportGenericOctetString(2,msg,m_altAddr2))  error = true;
-					GetH245GenericUnsigned(3,msg,m_altMuxID);
+					if (!GetH245GenericStringOctetString(0, msg, m_CUI))  error = true;
+					if (!GetH245TransportGenericOctetString(1, msg, m_altAddr1))  error = true;
+					if (!GetH245TransportGenericOctetString(2, msg, m_altAddr2))  error = true;
+					GetH245GenericUnsigned(3, msg, m_altMuxID);
 					if (!error) {
 						GkClient * gkClient = RasServer::Instance()->GetGkClient();
 						if (gkClient)
-							gkClient->H46023_SetAlternates(call->GetCallIdentifier(),sessionID,m_CUI,m_altMuxID,m_altAddr1,m_altAddr2);
+							gkClient->H46023_SetAlternates(call->GetCallIdentifier(), sessionID, m_CUI, m_altMuxID, m_altAddr1, m_altAddr2);
 					}
 					for (PINDEX j = i+1; j < olc.m_genericInformation.GetSize(); j++) {
 						olc.m_genericInformation[j-1] = olc.m_genericInformation[j];
@@ -10031,8 +9968,10 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 			H245_ArrayOf_GenericParameter info;
 			GkClient * gkClient = RasServer::Instance()->GetGkClient();
 			if (gkClient) {
-				PString m_CUI = PString();  H323TransportAddress m_altAddr1, m_altAddr2; unsigned m_altMuxID=0;
-				gkClient->H46023_LoadAlternates(call->GetCallIdentifier(),sessionID,m_CUI,m_altMuxID,m_altAddr1,m_altAddr2);
+				PString m_CUI = PString();
+				H323TransportAddress m_altAddr1, m_altAddr2;
+				unsigned m_altMuxID = 0;
+				gkClient->H46023_LoadAlternates(call->GetCallIdentifier(), sessionID, m_CUI, m_altMuxID, m_altAddr1, m_altAddr2);
 					H245_GenericInformation alt;
 					H245_CapabilityIdentifier & altid = alt.m_messageIdentifier;
 					altid.SetTag(H245_CapabilityIdentifier::e_standard); 
@@ -10041,12 +9980,12 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 					alt.IncludeOptionalField(H245_GenericMessage::e_messageContent);
 					H245_ArrayOf_GenericParameter & msg = alt.m_messageContent;
 					msg.SetSize(3);
-					BuildH245GenericOctetString(msg[0],0,(PASN_IA5String)m_CUI);
-					BuildH245GenericOctetString(msg[1],1,m_altAddr1);
-					BuildH245GenericOctetString(msg[2],2,m_altAddr2);
+					BuildH245GenericOctetString(msg[0], 0, (PASN_IA5String)m_CUI);
+					BuildH245GenericOctetString(msg[1], 1, m_altAddr1);
+					BuildH245GenericOctetString(msg[2], 2, m_altAddr2);
 					if (m_altMuxID) {
 						msg.SetSize(4);
-						BuildH245GenericUnsigned(msg[3],3,m_altMuxID);
+						BuildH245GenericUnsigned(msg[3], 3, m_altMuxID);
 					}
 				olc.IncludeOptionalField(H245_OpenLogicalChannel::e_genericInformation);
 				int sz = olc.m_genericInformation.GetSize();

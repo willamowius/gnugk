@@ -327,8 +327,6 @@ public:
 	void H46023_SetNATStategy(const H225_CallIdentifier & id, unsigned nat);
 	// Find the NAT Strategy
 	CallRec::NatStrategy H46023_GetNATStategy(const H225_CallIdentifier & id);
-	// Remove the NAT Strategy
-	void H46023_RemoveNATStategy(const H225_CallIdentifier & id);
 	// Set the socketPair
 	void H46023_SetSocketPair(const H225_CallIdentifier & id, WORD sessionID, UDPProxySocket * rtp, UDPProxySocket * rtcp);
 	// Set Alternates (Annex A)
