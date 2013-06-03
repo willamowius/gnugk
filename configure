@@ -3469,16 +3469,16 @@ fi
   fi
 fi
 if test "${HAS_OPENH323:-unset}" = "unset" ; then
-  if test -d ${PTLIBDIR}/../openh323; then
-    as_ac_File=`$as_echo "ac_cv_file_${PTLIBDIR}/../openh323/version.h" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${PTLIBDIR}/../openh323/version.h" >&5
-$as_echo_n "checking for ${PTLIBDIR}/../openh323/version.h... " >&6; }
+  if test -d ${PTLIBDIR}/../h323plus; then
+    as_ac_File=`$as_echo "ac_cv_file_${PTLIBDIR}/../h323plus/version.h" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${PTLIBDIR}/../h323plus/version.h" >&5
+$as_echo_n "checking for ${PTLIBDIR}/../h323plus/version.h... " >&6; }
 if eval \${$as_ac_File+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   test "$cross_compiling" = yes &&
   as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${PTLIBDIR}/../openh323/version.h"; then
+if test -r "${PTLIBDIR}/../h323plus/version.h"; then
   eval "$as_ac_File=yes"
 else
   eval "$as_ac_File=no"
@@ -3493,18 +3493,18 @@ fi
 
   fi
   if test "${HAS_OPENH323:-unset}" != "unset" ; then
-    OPENH323DIR="${PTLIBDIR}/../openh323"
+    OPENH323DIR="${PTLIBDIR}/../h323plus"
   else
-    if test -d ${HOME}/openh323/include; then
-      as_ac_File=`$as_echo "ac_cv_file_${HOME}/openh323/include/h323.h" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${HOME}/openh323/include/h323.h" >&5
-$as_echo_n "checking for ${HOME}/openh323/include/h323.h... " >&6; }
+    if test -d ${HOME}/h323plus/include; then
+      as_ac_File=`$as_echo "ac_cv_file_${HOME}/h323plus/include/h323.h" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${HOME}/h323plus/include/h323.h" >&5
+$as_echo_n "checking for ${HOME}/h323plus/include/h323.h... " >&6; }
 if eval \${$as_ac_File+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   test "$cross_compiling" = yes &&
   as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${HOME}/openh323/include/h323.h"; then
+if test -r "${HOME}/h323plus/include/h323.h"; then
   eval "$as_ac_File=yes"
 else
   eval "$as_ac_File=no"
@@ -3519,7 +3519,7 @@ fi
 
 	fi
     if test "${HAS_OPENH323:-unset}" != "unset" ; then
-      OPENH323DIR="${HOME}/openh323"
+      OPENH323DIR="${HOME}/h323plus"
     else
 	  if test -d /usr/local/include/openh323; then
         { $as_echo "$as_me:${as_lineno-$LINENO}: checking for /usr/local/include/openh323/h323.h" >&5
