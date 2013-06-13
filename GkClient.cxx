@@ -1088,8 +1088,8 @@ void H46024Socket::SetAlternateAddresses(const H323TransportAddress & address, c
 	}
 }
 
-#define H46024A_MAX_PROBE_COUNT  10
-#define H46024A_PROBE_INTERVAL  150
+#define H46024A_MAX_PROBE_COUNT  15
+#define H46024A_PROBE_INTERVAL  200
 void H46024Socket::StartProbe()
 {
 	PTRACE(4, "H46024A\ts: " << m_sessionID << " Starting direct connection probe.");
