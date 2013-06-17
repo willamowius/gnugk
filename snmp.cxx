@@ -746,7 +746,7 @@ void StopSNMPAgent()
 #ifdef HAS_NETSNMP
 	if (implementation == "Net-SNMP") {
 		if (NetSNMPAgent::InstanceExists()) {
-			delete NetSNMPAgent::Instance();
+			NetSNMPAgent::Instance()->Stop();
 		}
 		return;
 	}

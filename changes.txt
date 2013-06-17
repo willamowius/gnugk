@@ -1,5 +1,6 @@
 Changes from 3.3 to 3.4
 =======================
+- BUGFIX(snmp.cxx) clean shutdown of Net-SNMP agent
 - BUGFIX(ProxyChannel.cxx) fix master assigned RTP session IDs and encrypted H.239 channels
 - BUGFIX(gk.cxx) fix checking of EP::, Neighbor:: and Routing:: sections
 - updated H.460.23 STUN to support _stun._udp SRV records
