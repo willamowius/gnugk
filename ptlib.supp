@@ -1,4 +1,4 @@
-# Valgrind suppression rules for PTLib 2.10.1/.9 on 64bit Linux
+# Valgrind suppression rules for PTLib 2.10.1/.9 on 32bit and 64bit Linux
 {
    <PNATFactory_shutdown>
    Memcheck:Addr8
@@ -47,6 +47,33 @@
    fun:_ZN14PPluginManager15RegisterServiceERK7PStringS2_P24PPluginServiceDescriptor
    ...
    fun:_Z41__static_initialization_and_destruction_0ii
+}
+{
+   <PNATFactory leak 32-bit>
+   Memcheck:Leak
+   fun:_Znwj
+   fun:_ZN20PDevicePluginAdapterI10PNatMethodE13CreateFactoryERK7PString
+   fun:_ZN14PPluginManager15RegisterServiceERK7PStringS2_P24PPluginServiceDescriptor
+   ...
+   fun:(below main)
+}
+{
+   <Plugin leak 32bit>
+   Memcheck:Leak
+   fun:_Znwj
+   fun:_ZN20PDevicePluginAdapterI17PVideoInputDeviceE13CreateFactoryERK7PString
+   fun:_ZN14PPluginManager15RegisterServiceERK7PStringS2_P24PPluginServiceDescriptor
+   ...
+   fun:(below main)
+}
+{
+   <Plugin leak 32bit>
+   Memcheck:Leak
+   fun:_Znwj
+   fun:_ZN20PDevicePluginAdapterI18PVideoOutputDeviceE13CreateFactoryERK7PString
+   fun:_ZN14PPluginManager15RegisterServiceERK7PStringS2_P24PPluginServiceDescriptor
+   ...
+   fun:(below main)
 }
 {
    <insert_a_suppression_name_here>
