@@ -674,8 +674,8 @@ protected:
 
 			H235Authenticator::ValidationResult result;
 			for (PINDEX t = 0; t < req.m_tokens.GetSize(); t++) {
-				PString username = PString::Empty();
-				PString password = PString::Empty();
+				PString username;
+				PString password;
 				if (!ResolveUserName(req.m_tokens[t], username)) {
 		            PTRACE(4, "GKAUTH\t" << GetName() << " No username resolved from tokens.");
 					continue;	// skip to next token
@@ -699,8 +699,8 @@ protected:
 				}
 			}
 			for (PINDEX t = 0; t < req.m_cryptoTokens.GetSize(); t++) {
-				PString username = PString::Empty();
-				PString password = PString::Empty();
+				PString username;
+				PString password;
 				if (!ResolveUserName(req.m_cryptoTokens[t], username)) {
 		            PTRACE(4, "GKAUTH\t" << GetName() << " No username resolved from tokens.");
 					continue;	// skip to next token
