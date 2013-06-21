@@ -742,27 +742,17 @@ void StartSNMPAgent()
 
 void StopSNMPAgent() 
 {
-	PCaselessString implementation = SelectSNMPImplementation();
 #ifdef HAS_NETSNMP
-	if (implementation == "Net-SNMP") {
-		if (NetSNMPAgent::InstanceExists()) {
-			NetSNMPAgent::Instance()->Stop();
-		}
-		return;
+	if (NetSNMPAgent::InstanceExists()) {
+		NetSNMPAgent::Instance()->Stop();
 	}
 #endif
 #ifdef HAS_PTLIBSNMP
-	if (implementation == "PTLib") {
-		// nothing to do
-		return;
-	}
+	// nothing to do
 #endif
 #ifdef HAS_WINSNMP
-	if (implementation == "Windows") {
-		if (WindowsSNMPAgent::InstanceExists()) {
-			WindowsSNMPAgent::Instance()->Stop();
-		}
-		return;
+	if (WindowsSNMPAgent::InstanceExists()) {
+		WindowsSNMPAgent::Instance()->Stop();
 	}
 #endif
 }
