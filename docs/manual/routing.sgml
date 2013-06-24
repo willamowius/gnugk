@@ -286,6 +286,11 @@ Special wildcard characters (<tt/'.'/ and <tt/'%'/) are available.
 '.' matches one character and '%' matches any number of characters.
 Multiple rules for the same gateway are separated by ';'.
 <p>
+To convert dialed digits into post dial digits that are sent to the
+remote side after the call connects as UserInputIndications,
+use 'I' (for Input) on the prefix side and 'P' (for Postdial) on the target side.
+Please note that H.245 routing through the gatekeeper must be active to send post dial digits.
+<p>
 Calls from and to gateways and terminals are matched by their first alias.
 Calls from and to neighbors are matched by the neighbor ID in the GnuGk
 config (the XXX in the [Neighbor::XXX] section name) or the gatekeeper identifier
@@ -300,6 +305,12 @@ In these cases you should only use OUT and [RasSrv::RewriteE164] rules.
 <p>
 If a call is received from "gw1" to <tt/12377897/, it is rewritten to <tt/32177897/
 before further action is taken.
+
+<tag/Post Dial Example:/
+<tt/gw1=out=09III=09PPP/
+<p>
+If a call is sent out through "gw1" to <tt/09123/, it is rewritten to <tt/09/
+and <tt/123/ are sent as post dial digits.
 
 <tag/Neighbor Example 1:/
 <p>

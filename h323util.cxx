@@ -217,7 +217,7 @@ PString AsString(const H225_AliasAddress & terminalAlias, bool includeAliasType)
 
 PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, bool includeAliasTypeName)
 {
-	PString aliasListString = PString::Empty();
+	PString aliasListString;
 
 	for(PINDEX cnt = 0; cnt < terminalAlias.GetSize(); cnt++ )
 	{
@@ -707,9 +707,11 @@ int MatchPrefix(
 }
 
 PString RewriteString(
-	const PString & s, /// original string to rewrite
-	const char* prefix, /// prefix string that matched
-	const char* value /// new string that replaces the prefix string
+	const PString & s,	/// original string to rewrite
+	const char* prefix,	/// prefix string that matched
+	const char* value,	/// new string that replaces the prefix string
+	PString & postdialdigits,
+	bool postdialmatch
 	)
 {
 	if (prefix == NULL || value == NULL)
@@ -717,24 +719,33 @@ PString RewriteString(
 	
 	PString result = value + s.Mid(strlen(prefix));
 
+	if (postdialmatch)
+		postdialdigits.MakeEmpty();	// clear postdial digits before assigning new digits
+
 	const char *lastSrcDot = prefix;
 	const char *lastDstDot = strchr(value, '.');
 	while (lastDstDot != NULL) {
 		lastSrcDot = strchr(lastSrcDot, '.');
 		if (lastSrcDot == NULL) {
-			PTRACE(1, "GK\tInvalid rewrite rule (dots do not match) - "
-				<< prefix << " = " << value
-				);
+			PTRACE(1, "GK\tInvalid rewrite rule (dots do not match) - " << prefix << " = " << value);
 			break;
 		}
 		int dotDstOffset = (long)lastDstDot - (long)value;
 		int dotSrcOffset = (long)lastSrcDot - (long)prefix;
-		while (*lastDstDot++ == '.' && *lastSrcDot++ == '.')
-			result[dotDstOffset++] = s[dotSrcOffset++];
-						
+		while (*lastDstDot++ == '.' && *lastSrcDot++ == '.') {
+			if (postdialmatch) {
+				postdialdigits += s[dotSrcOffset++];
+			} else {
+				result[dotDstOffset++] = s[dotSrcOffset++];
+			}
+		}
+				
 		lastDstDot = strchr(lastDstDot, '.');
 	}
-	
+
+	if (postdialmatch)
+		result.Replace(".", "", true);
+
 	return result;
 }
 

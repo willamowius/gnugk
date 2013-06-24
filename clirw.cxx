@@ -722,9 +722,11 @@ void CLIRewrite::Rewrite(
 					);
 			}
 			if (rule->m_rewriteType == RewriteRule::PrefixToPrefix
-					&& rule->m_matchType == RewriteRule::MatchCallerNumber)
-				newcli = RewriteString(cli, rule->m_prefix.c_str(), newcli);
-			
+					&& rule->m_matchType == RewriteRule::MatchCallerNumber) {
+				PString unused;
+				newcli = RewriteString(cli, rule->m_prefix.c_str(), newcli, unused);
+			}
+
 			PTRACE(5, "CLIRW\t" << (inbound ? "Inbound" : "Outbound")
 				<< " CLI rewrite to '" << newcli << "' by the rule " << rule->AsString()
 				);

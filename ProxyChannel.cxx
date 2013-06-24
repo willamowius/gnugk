@@ -830,7 +830,7 @@ public:
 	virtual bool HandleMesg(H245_MultimediaSystemControlMessage &, bool & suppress, callptr & call, H245Socket * h245sock);
 	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &, callptr &);
 	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &, callptr &);
-	typedef bool (H245Handler::*pMem)(H245_OpenLogicalChannel &,callptr &);
+	typedef bool (H245Handler::*pMem)(H245_OpenLogicalChannel &, callptr &);
 
 	PIPSocket::Address GetLocalAddr() const { return localAddr; }
     PIPSocket::Address GetMasqAddr() const { return masqAddr; }
@@ -1883,6 +1883,49 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 
 	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request
 		&& ((H245_RequestMessage&)h245msg).GetTag() == H245_RequestMessage::e_openLogicalChannel) {
+
+		// handle post dial digits
+		if (m_call && m_call->HasPostDialDigits()) {
+			PTRACE(3, "H245\tSending PostDialDigts " << m_call->GetPostDialDigits());
+			for (PINDEX i = 0; i < m_call->GetPostDialDigits().GetLength(); i++) {
+				H245_MultimediaSystemControlMessage ui;
+				ui.SetTag(H245_MultimediaSystemControlMessage::e_indication);
+				H245_IndicationMessage & indication = ui;
+				indication.SetTag(H245_IndicationMessage::e_userInput);
+				H245_UserInputIndication & userInput = indication;
+				userInput.SetTag(H245_UserInputIndication::e_alphanumeric);
+				PASN_GeneralString & str = userInput;
+				str = m_call->GetPostDialDigits()[i];
+
+				// always send to called side
+				bool sendOK = false;
+				if (m_callerSocket) {
+					if (GetRemote()) {
+						if (GetRemote()->IsH245Tunneling()) {
+							sendOK = GetRemote()->SendTunneledH245(ui);
+						} else {
+							if (GetRemote()->GetH245Socket()) {
+								sendOK = GetRemote()->GetH245Socket()->Send(ui);
+							}
+						}
+					}
+				} else {
+					if (IsH245Tunneling()) {
+						sendOK = SendTunneledH245(ui);
+					} else {
+						if (GetH245Socket()) {
+							sendOK = GetH245Socket()->Send(ui);
+						}
+					}
+				}
+
+				if (!sendOK) {
+					PTRACE(2, "H245\tError: Sending post dial digit failed");
+				}
+			}
+			m_call->SetPostDialDigits("");	// post dial digits sent, make sure we don't send them again
+		}
+
 		H245_OpenLogicalChannel & olc = (H245_RequestMessage&)h245msg;
 #ifdef HAS_H235_MEDIA
 		if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
@@ -3059,7 +3102,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 		if (!in_rewrite_id) {
 			PTRACE(4, Type() << "\tGWRewrite source for " << Name() << ": " << rewrite_type);
-			toolkit->GWRewriteE164(in_rewrite_id, GW_REWRITE_IN, setupBody.m_destinationAddress);
+			toolkit->GWRewriteE164(in_rewrite_id, GW_REWRITE_IN, setupBody.m_destinationAddress, m_call);
 		}
 
 		// Normal rewrite
@@ -3075,7 +3118,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			bool rewritten = false;
 			// Do per GW inbound rewrite before global rewrite
 			if (!in_rewrite_id)
-				rewritten = toolkit->GWRewritePString(in_rewrite_id, GW_REWRITE_IN, calledNumber);
+				rewritten = toolkit->GWRewritePString(in_rewrite_id, GW_REWRITE_IN, calledNumber, m_call);
 
 			// Normal rewrite
 		    rewritten = toolkit->RewritePString(calledNumber) || rewritten;
@@ -3760,7 +3803,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 			if (!out_rewrite_id) {
 				PTRACE(4, Type() << "\tGWRewrite source for " << Name() << ": " << rewrite_type);
-			    toolkit->GWRewriteE164(out_rewrite_id, GW_REWRITE_OUT, setupBody.m_destinationAddress);
+			    toolkit->GWRewriteE164(out_rewrite_id, GW_REWRITE_OUT, setupBody.m_destinationAddress, m_call);
 			}
 		}
 	}
@@ -3776,7 +3819,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				PTRACE(2, Type() << "\tAuth out rewrite Called-Party-Number IE: " << calledNumber << " to " << m_call->GetNewRoutes().front().m_destOutNumber);
 				calledNumber = m_call->GetNewRoutes().front().m_destOutNumber;
 				q931.SetCalledPartyNumber(calledNumber, plan, type);
-			} else if (toolkit->GWRewritePString(out_rewrite_id, GW_REWRITE_OUT, calledNumber))
+			} else if (toolkit->GWRewritePString(out_rewrite_id, GW_REWRITE_OUT, calledNumber, m_call))
 				q931.SetCalledPartyNumber(calledNumber, plan, type);
 		}
 	}
@@ -4923,7 +4966,7 @@ static PString ParseEndpointAddress(H4501_EndpointAddress& endpointAddress)
 	H4501_ArrayOf_AliasAddress& destinationAddress = endpointAddress.m_destinationAddress;
 
 	PString alias;
-	PString remoteParty = PString::Empty();
+	PString remoteParty;
 	H323TransportAddress transportAddress;
 
 	for (PINDEX i = 0; i < destinationAddress.GetSize(); i++) {
@@ -6471,26 +6514,6 @@ void CallSignalSocket::DispatchNextRoute()
 	delete this; // oh!
 }
 
-bool CallSignalSocket::SendTunneledH245(const PPER_Stream & strm)
-{
-	// TODO: refactor to share code with other signature
-	Q931 q931;
-	H225_H323_UserInformation uuie;
-	PBYTEArray lBuffer;
-	BuildFacilityPDU(q931, 0);
-	GetUUIE(q931, uuie);
-	uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
-	uuie.m_h323_uu_pdu.m_h245Tunneling = TRUE;
-	uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Control);
-	uuie.m_h323_uu_pdu.m_h245Control.SetSize(1);
-	uuie.m_h323_uu_pdu.m_h245Control[0].SetValue(strm);
-	SetUUIE(q931, uuie);
-	q931.Encode(lBuffer);
-
-	PrintQ931(3, "Send to ", GetName(), &q931, &uuie);
-	return TransmitData(lBuffer);
-}
-
 bool CallSignalSocket::SendTunneledH245(const H245_MultimediaSystemControlMessage & h245msg)
 {
 	Q931 q931;
@@ -6769,15 +6792,11 @@ bool H245Handler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, callptr
 	return hnat ? hnat->HandleOpenLogicalChannel(olc) : false;
 }
 
-bool H245Handler::HandleRequest(H245_RequestMessage & Request, callptr &)
+bool H245Handler::HandleRequest(H245_RequestMessage & Request, callptr & call)
 {
 	PTRACE(4, "H245\tRequest: " << Request.GetTagName());
 	if (hnat && Request.GetTag() == H245_RequestMessage::e_openLogicalChannel) {
 		return hnat->HandleOpenLogicalChannel(Request);
-	} else if  (Request.GetTag() == H245_RequestMessage::e_terminalCapabilitySet) {
-       return true;
-	} else if  (Request.GetTag() == H245_RequestMessage::e_requestMode) {
-		return true;
 	} else {
 		return false;
 	}
@@ -7028,8 +7047,13 @@ ProxySocket::Result H245Socket::ReceiveData()
 		if (sigSocket && sigSocket->GetRemote()
 			&& sigSocket->GetRemote()->IsH245Tunneling()
 			&& sigSocket->GetRemote()->IsH245TunnelingTranslation()) {
-			if (!sigSocket->GetRemote()->SendTunneledH245(strm)) {
-				PTRACE(1, "Error: H.245 tunnel send failed");
+			H245_MultimediaSystemControlMessage h245msg;
+			if (!h245msg.Decode(strm)) {
+				PTRACE(3, "H245\tERROR DECODING H.245 from " << sigSocket->GetName());
+			} else {
+				if (!sigSocket->GetRemote()->SendTunneledH245(h245msg)) {
+					PTRACE(1, "Error: H.245 tunnel send failed");
+				}
 			}
 			return NoData;	// already forwarded through tunnel
 		}

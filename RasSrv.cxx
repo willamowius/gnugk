@@ -2987,7 +2987,7 @@ bool AdmissionRequestPDU::Process()
 		}
 
 	 	if (!in_rewrite_source.IsEmpty()) {
-	 		if (Kit->GWRewriteE164(in_rewrite_source, GW_REWRITE_IN, request.m_destinationInfo[0])
+	 		if (Kit->GWRewriteE164(in_rewrite_source, GW_REWRITE_IN, request.m_destinationInfo[0], pExistingCallRec)
 				&& !RasSrv->IsGKRouted()) {
 				aliasesChanged = true;
 			}
@@ -3044,9 +3044,11 @@ bool AdmissionRequestPDU::Process()
 	bool signalOffload = false;
 #ifdef HAS_H460
     bool EPSupportsQoSReporting = false;
-    bool EPRequiresH46026 = false;
 	bool vendorInfo = false;
-	PString vendor, version = PString::Empty();
+	PString vendor, version;
+#if defined(HAS_H46026) || defined(HAS_H46023)
+    bool EPRequiresH46026 = false;
+#endif
 #ifdef HAS_H46023
 	bool natsupport = false;
 	CallRec::NatStrategy natoffloadsupport = CallRec::e_natUnknown;
@@ -3202,7 +3204,7 @@ bool AdmissionRequestPDU::Process()
 		}
 
 		if (!out_rewrite_source.IsEmpty())
-			if (Kit->GWRewriteE164(out_rewrite_source, GW_REWRITE_OUT, request.m_destinationInfo[0])
+			if (Kit->GWRewriteE164(out_rewrite_source, GW_REWRITE_OUT, request.m_destinationInfo[0], pExistingCallRec)
 				&& !RasSrv->IsGKRouted())
 				aliasesChanged = true;
 
@@ -3802,7 +3804,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 #ifdef HAS_H460VEN
 						/// OID9 Vendor Interoperability
 						if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID9))) {
-							PString vendor, version = PString::Empty();
+							PString vendor, version;
 							if (WantedEndPoint->GetEndpointInfo(vendor, version)) {
 								H460_FeatureOID foid9 = H460_FeatureOID(OID9);
 								foid9.Add(PString(VendorProdOID),H460_FeatureContent(vendor));

@@ -215,13 +215,13 @@ class Toolkit : public Singleton<Toolkit>
 		RewriteTool() : m_TrailingChar(' '), m_Rewrite(0) {}
 		~RewriteTool() { delete m_Rewrite; }
 		void LoadConfig(PConfig *);
-		bool RewritePString(PString &) const;
+		bool RewritePString(PString & str) const;
 
 	private:
 		PString m_RewriteFastmatch;
 		char m_TrailingChar;
 		PStringArray m_defaultDomain;
-		RewriteData *m_Rewrite;
+		RewriteData * m_Rewrite;
 	};
 
 	class AssignedAliases {
@@ -367,7 +367,7 @@ class Toolkit : public Singleton<Toolkit>
 			~GWRewriteTool();
 			void LoadConfig(PConfig *);
 			void PrintData();
-			bool RewritePString(const PString & gw, bool direction, PString & data);
+			bool RewritePString(const PString & gw, bool direction, PString & data, callptr call);
 
 		private:
 			PDictionary<PString, GWRewriteEntry> m_GWRewrite;
@@ -375,9 +375,9 @@ class Toolkit : public Singleton<Toolkit>
 	};
 
 	// Equivalent functions to RewriteE164 group
-	bool GWRewriteE164(const PString & gw, bool direction, H225_AliasAddress &alias);
-	bool GWRewriteE164(const PString & gw, bool direction, H225_ArrayOf_AliasAddress &aliases);
-	bool GWRewritePString(const PString & gw, bool direction, PString & data) { return m_GWRewrite.RewritePString(gw, direction, data); }
+	bool GWRewriteE164(const PString & gw, bool direction, H225_AliasAddress & alias, callptr call = callptr(NULL));
+	bool GWRewriteE164(const PString & gw, bool direction, H225_ArrayOf_AliasAddress & aliases, callptr call = callptr(NULL));
+	bool GWRewritePString(const PString & gw, bool direction, PString & data, callptr call) { return m_GWRewrite.RewritePString(gw, direction, data, call); }
 
 	PString GetGKHome(std::vector<PIPSocket::Address> &) const;
 	void SetGKHome(const PStringArray &);

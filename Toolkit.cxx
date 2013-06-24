@@ -774,7 +774,7 @@ static const char *AssignedAliasSection = "RasSrv::AssignedAlias";
 static const char *AssignedGatekeeperSection = "RasSrv::AssignedGatekeeper";
 #endif
 
-void Toolkit::RewriteData::AddSection(PConfig *config, const PString & section)
+void Toolkit::RewriteData::AddSection(PConfig * config, const PString & section)
 {
 	PStringToString cfgs(config->GetAllKeyValues(section));
 	PINDEX n_size = cfgs.GetSize();
@@ -897,9 +897,10 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 			const char *newprefix = m_Rewrite->Value(i);
 
 			PString result;
-			if (len > 0)
-				result = RewriteString(s, prefix, newprefix);
-			else
+			if (len > 0) {
+				PString unused;
+				result = RewriteString(s, prefix, newprefix, unused);
+			} else
 				result = newprefix + s;
 				
 			PTRACE(2, "\tRewritePString: " << s << " to " << result);
@@ -925,7 +926,7 @@ Toolkit::GWRewriteTool::~GWRewriteTool()
 	m_GWRewrite.RemoveAll();
 }
 
-bool Toolkit::GWRewriteTool::RewritePString(const PString & gw, bool direction, PString & data)
+bool Toolkit::GWRewriteTool::RewritePString(const PString & gw, bool direction, PString & data, callptr call)
 {
 	// First lookup the GW in the dictionary
 	GWRewriteEntry * gw_entry = m_GWRewrite.GetAt(gw);
@@ -933,27 +934,41 @@ bool Toolkit::GWRewriteTool::RewritePString(const PString & gw, bool direction, 
 	if (gw_entry == NULL)
 		return false;
 
-	std::vector<pair<PString,PString> >::iterator rule_iterator = direction
+	std::vector<pair<PString, PString> >::iterator rule_iterator = direction
 		? gw_entry->m_entry_data.first.begin() : gw_entry->m_entry_data.second.begin();
-	std::vector<pair<PString,PString> >::iterator end_iterator = direction
+	std::vector<pair<PString, PString> >::iterator end_iterator = direction
 		? gw_entry->m_entry_data.first.end() : gw_entry->m_entry_data.second.end();
 
 	PString key, value;
 	for (; rule_iterator != end_iterator; ++rule_iterator) {
 		key = (*rule_iterator).first;
-			
+
+		bool postdialmatch = false;
+		if (key.Find("I") != P_MAX_INDEX) {
+			postdialmatch = true;
+			key.Replace("I", ".", true);
+		}
+
 		const int len = MatchPrefix(data, key);
 		if (len > 0 || (len == 0 && key[0] == '!')) {
 			// Start rewrite
 			value = (*rule_iterator).second;
-				
-			if (len > 0)
-				value = RewriteString(data, key, value);
-			else
+
+			PString postdialdigits;
+			if (postdialmatch) {
+				value.Replace("P", ".", true);
+			}
+
+			if (len > 0) {
+				value = RewriteString(data, key, value, postdialdigits, postdialmatch);
+				if (call && postdialmatch && !postdialdigits.IsEmpty()) {
+					call->SetPostDialDigits(postdialdigits);
+				}
+			} else
 				value = value + data;
 
 			// Log
-			PTRACE(2, "\tGWRewriteTool::RewritePString: " << data << " to " << value);
+			PTRACE(2, "\tGWRewriteTool::RewritePString: " << data << " to " << value << " post dial digits=" << postdialdigits);
 
 			// Finish rewrite
 			data = value;
@@ -992,12 +1007,12 @@ void Toolkit::GWRewriteTool::PrintData()
 }
 
 
-void Toolkit::GWRewriteTool::LoadConfig(PConfig *config)
+void Toolkit::GWRewriteTool::LoadConfig(PConfig * config)
 {
-	std::map<PString,PString> in_strings, out_strings;
-	vector<std::pair<PString,PString> > sorted_in_strings, sorted_out_strings;
-	std::map<PString,PString>::reverse_iterator strings_iterator;
-	pair<PString,PString> rule;
+	std::map<PString, PString> in_strings, out_strings;
+	vector<std::pair<PString, PString> > sorted_in_strings, sorted_out_strings;
+	std::map<PString, PString>::reverse_iterator strings_iterator;
+	pair<PString, PString> rule;
 
 	PStringToString cfgs(config->GetAllKeyValues(GWRewriteSection));
 
@@ -2717,7 +2732,7 @@ bool Toolkit::RewriteE164(H225_ArrayOf_AliasAddress & aliases)
 	return changed;
 }
 
-bool Toolkit::GWRewriteE164(const PString & gw, bool direction, H225_AliasAddress & alias)
+bool Toolkit::GWRewriteE164(const PString & gw, bool direction, H225_AliasAddress & alias, callptr call)
 {
 	if (alias.GetTag() != H225_AliasAddress::e_dialedDigits) {
 		if (alias.GetTag() != H225_AliasAddress::e_partyNumber)
@@ -2728,7 +2743,7 @@ bool Toolkit::GWRewriteE164(const PString & gw, bool direction, H225_AliasAddres
 	}
 
 	PString E164 = ::AsString(alias, FALSE);
-	bool changed = GWRewritePString(gw, direction, E164);
+	bool changed = GWRewritePString(gw, direction, E164, call);
 
 	if (changed) {
 		if (alias.GetTag() == H225_AliasAddress::e_dialedDigits)
@@ -2748,12 +2763,12 @@ bool Toolkit::GWRewriteE164(const PString & gw, bool direction, H225_AliasAddres
 	return changed;
 }
 
-bool Toolkit::GWRewriteE164(const PString & gw, bool direction, H225_ArrayOf_AliasAddress & aliases)
+bool Toolkit::GWRewriteE164(const PString & gw, bool direction, H225_ArrayOf_AliasAddress & aliases, callptr call)
 {
 	bool changed = false;
 
 	for (PINDEX n = 0; n < aliases.GetSize(); ++n) {
-		changed |= GWRewriteE164(gw, direction, aliases[n]);
+		changed |= GWRewriteE164(gw, direction, aliases[n], call);
 	}
 
 	return changed;

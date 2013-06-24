@@ -751,6 +751,10 @@ public:
 	endptr GetForwarder() const { return m_Forwarder; }
 	long GetBandwidth() const { return m_bandwidth; }
 
+	bool HasPostDialDigits() const { return !m_postdialdigits.IsEmpty(); }
+	PString GetPostDialDigits() const { return m_postdialdigits; }
+	void SetPostDialDigits(const PString & digits) { m_postdialdigits = digits; }
+
 	/** @return
 	    A bit mask with NAT flags for calling and called parties. 
 	    See #NATType enum# for more details.
@@ -1386,6 +1390,8 @@ private:
 	PString m_destInfo;
 	/// bandwidth occupied by this call (as declared in ARQ)
 	long m_bandwidth;
+	/// post dial digits (can be any alphanumeric user input)
+	PString m_postdialdigits;
 
 	PString m_callerAddr, m_callerId;
 	PString m_calleeAddr, m_calleeId;

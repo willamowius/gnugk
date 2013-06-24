@@ -317,9 +317,15 @@ TEST_F(H323UtilTest, MatchPrefix) {
 }
 
 TEST_F(H323UtilTest, RewriteString) {
-	EXPECT_STREQ("1111497654321", RewriteString("497654321", "49", "111149"));
-	EXPECT_STREQ("111149771777", RewriteString("49771777", "49..1", "111149..1"));
-	EXPECT_STREQ("49123456", RewriteString("777749123456", "%%%%49", "49"));
+	PString unused;
+	EXPECT_STREQ("1111497654321", RewriteString("497654321", "49", "111149", unused));
+	EXPECT_STREQ("111149771777", RewriteString("49771777", "49..1", "111149..1", unused));
+	EXPECT_STREQ("49123456", RewriteString("777749123456", "%%%%49", "49", unused));
+
+	PString postdial;
+	PString result = RewriteString("49123", "49...", "49...", postdial, true);
+	EXPECT_STREQ("49", result);
+	EXPECT_STREQ("123", postdial);
 }
 
 TEST_F(H323UtilTest, RewriteWildcard) {

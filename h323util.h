@@ -216,11 +216,13 @@ int MatchPrefix(
     @return	Rewritten string.
 */
 PString RewriteString(
-	const PString& s, /// original string to rewrite
+	const PString& s,	/// original string to rewrite
 	const char *prefix, /// prefix string that matched
-	const char *value /// new string that replaces the prefix string
+	const char *value,	/// new string that replaces the prefix string
+	PString & postdialdigts,
+	bool postdialmatch = false
 	);
-	
+
 /** Rewrite Wildcard match 
 	Lightweight Regex match rewrite.
 	Only basic number matching supported at the moment
