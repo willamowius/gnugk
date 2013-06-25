@@ -1847,10 +1847,10 @@ PASN_OctetString * CallSignalSocket::GetNextQueuedH245Message()
 	return result;
 }
 
-
 void CallSignalSocket::SendPostDialDigits()
 {
 	// handle post dial digits
+	// TODO: add check if master/slave and TCS have already been exchanged
 	if (m_call && m_call->HasPostDialDigits()) {
 		bool sendOK = false;
 		PTRACE(3, "H245\tSending PostDialDigts " << m_call->GetPostDialDigits());
