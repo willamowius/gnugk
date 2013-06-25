@@ -1848,6 +1848,52 @@ PASN_OctetString * CallSignalSocket::GetNextQueuedH245Message()
 }
 
 
+void CallSignalSocket::SendPostDialDigits()
+{
+	// handle post dial digits
+	if (m_call && m_call->HasPostDialDigits()) {
+		bool sendOK = false;
+		PTRACE(3, "H245\tSending PostDialDigts " << m_call->GetPostDialDigits());
+		for (PINDEX i = 0; i < m_call->GetPostDialDigits().GetLength(); i++) {
+			H245_MultimediaSystemControlMessage ui;
+			ui.SetTag(H245_MultimediaSystemControlMessage::e_indication);
+			H245_IndicationMessage & indication = ui;
+			indication.SetTag(H245_IndicationMessage::e_userInput);
+			H245_UserInputIndication & userInput = indication;
+			userInput.SetTag(H245_UserInputIndication::e_alphanumeric);
+			PASN_GeneralString & str = userInput;
+			str = m_call->GetPostDialDigits()[i];
+
+			// always send to called side
+			if (m_callerSocket) {
+				if (GetRemote()) {
+					if (GetRemote()->IsH245Tunneling()) {
+						sendOK = GetRemote()->SendTunneledH245(ui);
+					} else {
+						if (GetRemote()->GetH245Socket()) {
+							sendOK = GetRemote()->GetH245Socket()->Send(ui);
+						}
+					}
+				}
+			} else {
+				if (IsH245Tunneling()) {
+					sendOK = SendTunneledH245(ui);
+				} else {
+					if (GetH245Socket()) {
+						sendOK = GetH245Socket()->Send(ui);
+					}
+				}
+			}
+
+			if (!sendOK) {
+				PTRACE(2, "H245\tError: Sending post dial digit failed");
+			}
+		}
+		if (sendOK)
+			m_call->SetPostDialDigits("");	// post dial digits sent, make sure we don't send them again
+	}
+}
+
 bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245Socket * h245sock)
 {
 	bool changed = false;
@@ -1884,47 +1930,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request
 		&& ((H245_RequestMessage&)h245msg).GetTag() == H245_RequestMessage::e_openLogicalChannel) {
 
-		// handle post dial digits
-		if (m_call && m_call->HasPostDialDigits()) {
-			PTRACE(3, "H245\tSending PostDialDigts " << m_call->GetPostDialDigits());
-			for (PINDEX i = 0; i < m_call->GetPostDialDigits().GetLength(); i++) {
-				H245_MultimediaSystemControlMessage ui;
-				ui.SetTag(H245_MultimediaSystemControlMessage::e_indication);
-				H245_IndicationMessage & indication = ui;
-				indication.SetTag(H245_IndicationMessage::e_userInput);
-				H245_UserInputIndication & userInput = indication;
-				userInput.SetTag(H245_UserInputIndication::e_alphanumeric);
-				PASN_GeneralString & str = userInput;
-				str = m_call->GetPostDialDigits()[i];
-
-				// always send to called side
-				bool sendOK = false;
-				if (m_callerSocket) {
-					if (GetRemote()) {
-						if (GetRemote()->IsH245Tunneling()) {
-							sendOK = GetRemote()->SendTunneledH245(ui);
-						} else {
-							if (GetRemote()->GetH245Socket()) {
-								sendOK = GetRemote()->GetH245Socket()->Send(ui);
-							}
-						}
-					}
-				} else {
-					if (IsH245Tunneling()) {
-						sendOK = SendTunneledH245(ui);
-					} else {
-						if (GetH245Socket()) {
-							sendOK = GetH245Socket()->Send(ui);
-						}
-					}
-				}
-
-				if (!sendOK) {
-					PTRACE(2, "H245\tError: Sending post dial digit failed");
-				}
-			}
-			m_call->SetPostDialDigits("");	// post dial digits sent, make sure we don't send them again
-		}
+		SendPostDialDigits();	// 2nd check, for non-tunneled connections
 
 		H245_OpenLogicalChannel & olc = (H245_RequestMessage&)h245msg;
 #ifdef HAS_H235_MEDIA
@@ -4697,6 +4703,8 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 	    msg->SetUUIEChanged();
 	}
 #endif
+
+	SendPostDialDigits();	// 1st check, for tunneled H.245 connections
 }
 
 void CallSignalSocket::OnAlerting(SignalingMsg* msg)

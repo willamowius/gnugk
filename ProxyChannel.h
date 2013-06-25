@@ -285,6 +285,7 @@ public:
 	bool IsH245TunnelingTranslation() const { return m_h245TunnelingTranslation; }
 	PASN_OctetString * GetNextQueuedH245Message();
 	bool HandleH245Mesg(PPER_Stream &, bool & suppress, H245Socket * h245sock = NULL);
+	void SendPostDialDigits();
 	void OnH245ChannelClosed() { m_h245socket = NULL; }
 	Address GetLocalAddr() { return localAddr; }
 	Address GetPeerAddr() { return peerAddr; }
