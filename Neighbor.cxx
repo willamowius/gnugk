@@ -160,7 +160,7 @@ PrefixInfo LRQSender<R>::operator()(Neighbor *nb, WORD seqnum) const
 	// select neighbor based on dialed IP
 	if (const H225_TransportAddress *dest = m_r.GetDestIP()) {
 		H225_ArrayOf_AliasAddress aliases;
-		if (PrefixInfo info = nb->GetIPInfo(*dest, aliases)) {
+		if (nb->GetIPInfo(*dest, aliases)) {
 			H225_RasMessage lrq_ras;
 			H225_LocationRequest & lrq = nb->BuildLRQ(lrq_ras, seqnum, aliases);
 			if (nb->OnSendingLRQ(lrq, m_r) && nb->SendLRQ(lrq_ras))

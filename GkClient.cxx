@@ -873,7 +873,7 @@ private:
 	// Addresses
 	PString m_CUIlocal;									///< Local CUI
 	PString m_CUIremote;							    ///< Remote CUI
-	PIPSocket::Address m_locAddr;  WORD m_locPort;		///< local Address (address used when starting socket)
+	PIPSocket::Address m_locAddr;						///< local Address (address used when starting socket)
 	PIPSocket::Address m_remAddr;  WORD m_remPort;		///< Remote Address (address used when starting socket)
 	PIPSocket::Address m_detAddr;  WORD m_detPort;		///< detected remote Address (as detected from actual packets)
 	PIPSocket::Address m_pendAddr;  WORD m_pendPort;	///< detected pending RTCP Probe Address (as detected from actual packets)
