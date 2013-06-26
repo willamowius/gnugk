@@ -964,7 +964,7 @@ bool GkAcctLoggerList::LogAcctEvent(
 		PTrace::End(strm);
 #ifdef HAS_SNMP
 		if (!finalResult)
-			SNMP_TRAP(7, SNMPError, Accounting, "Failed to log event " + evt);
+			SNMP_TRAP(7, SNMPError, Accounting, "Failed to log event " + PString(PString::Unsigned, evt));
 #endif
 	}
 	return finalResult;
@@ -1034,7 +1034,7 @@ bool GkAcctLoggerList::LogAcctEvent(
 		PTrace::End(strm);
 #ifdef  HAS_SNMP
 		if (!finalResult)
-			SNMP_TRAP(7, SNMPError, Accounting, "Failed to log event " + evt);
+			SNMP_TRAP(7, SNMPError, Accounting, "Failed to log event " + PString(PString::Unsigned, evt));
 #endif
 	}
 	return finalResult;

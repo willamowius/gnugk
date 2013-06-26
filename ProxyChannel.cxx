@@ -1043,7 +1043,7 @@ PBoolean TCPProxySocket::Accept(PSocket & socket)
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
 			<< errorNumber << ": " << GetErrorText(PSocket::LastGeneralError));
 		SNMP_TRAP(10, SNMPError, Network, "Could not accept TCP socket - error "
-			+ GetErrorCode(PSocket::LastGeneralError) + PString("/")
+			+ PString(PString::Unsigned, GetErrorCode(PSocket::LastGeneralError)) + PString("/")
 			+ PString(PString::Unsigned, errorNumber) + PString(": ")
 			+ GetErrorText(PSocket::LastGeneralError));
 	}
@@ -10630,7 +10630,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 				logicalChannels[flcn] = sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != NULL);
 				if (!lc->IsOpen()) {
 					PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn);
-					SNMP_TRAP(10, SNMPWarning, Network, "Can't create RTP logical channel " + flcn);
+					SNMP_TRAP(10, SNMPWarning, Network, "Can't create RTP logical channel " + PString(PString::Unsigned, flcn));
 				}
 			}
 		}
@@ -10703,7 +10703,7 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
 		siterator iter = fastStartLCs.begin();
 		if (!(iter->second)) {
 			PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn << ": Invalid fastStart LC");
-			SNMP_TRAP(10, SNMPWarning, Network, "Can't create RTP logical channel " + flcn);
+			SNMP_TRAP(10, SNMPWarning, Network, "Can't create RTP logical channel " + PString(PString::Unsigned, flcn));
 			return NULL;
 		}
 		(lc = iter->second)->SetChannelNumber(flcn);
@@ -10712,7 +10712,7 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
 		siterator iter = peer->fastStartLCs.begin();
 		if (!(iter->second)) {
 			PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn << ": Invalid fastStart peer LC");
-			SNMP_TRAP(10, SNMPWarning, Network, "Can't create RTP logical channel " + flcn);
+			SNMP_TRAP(10, SNMPWarning, Network, "Can't create RTP logical channel " + PString(PString::Unsigned, flcn));
 			return NULL;
 		}
 		(lc = iter->second)->SetChannelNumber(flcn);
@@ -10722,7 +10722,7 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
 		lc = new RTPLogicalChannel(callid, flcn, hnat != NULL, id);
 		if (!lc->IsOpen()) {
 			PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn);
-			SNMP_TRAP(10, SNMPWarning, Network, "Can't create RTP logical channel " + flcn);
+			SNMP_TRAP(10, SNMPWarning, Network, "Can't create RTP logical channel " + PString(PString::Unsigned, flcn));
 			delete lc;
 			return NULL;
 		}
@@ -10743,7 +10743,7 @@ RTPLogicalChannel * H245ProxyHandler::CreateFastStartLogicalChannel(WORD id)
 		lc = new RTPLogicalChannel(callid, 0, hnat != NULL, id);
 		if (!lc->IsOpen()) {
 			PTRACE(1, "Proxy\tError: Can't create fast start logical channel id " << id);
-			SNMP_TRAP(10, SNMPWarning, Network, "Can't create fastStart logical channel " + id);
+			SNMP_TRAP(10, SNMPWarning, Network, "Can't create fastStart logical channel " + PString(PString::Unsigned, id));
 			delete lc;
 			return NULL;
 		}
