@@ -1990,13 +1990,13 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 #ifdef HAS_H46024A
 				if (val.AsString() == H46024A_OID) {
 					// TODO Signal to shutdown proxy support - SH
-					suppress = true;
+					suppress = false;  // Allow to travel to the other party
 					return false;
 				}
 #endif
 #ifdef HAS_H46024B
 				if (val.AsString() == H46024B_OID) {
-					// TODO shutdown the proxy channel if media going direct
+					// TODO shutdown the proxy channel if media going direct - SH
 					suppress = true;
 					return false;
 				}
