@@ -6805,6 +6805,10 @@ bool H245Handler::HandleRequest(H245_RequestMessage & Request, callptr & call)
 	PTRACE(4, "H245\tRequest: " << Request.GetTagName());
 	if (hnat && Request.GetTag() == H245_RequestMessage::e_openLogicalChannel) {
 		return hnat->HandleOpenLogicalChannel(Request);
+	} else if (Request.GetTag() == H245_RequestMessage::e_terminalCapabilitySet) {
+		return true;	// re-encode, because it might have been modified
+	} else if (Request.GetTag() == H245_RequestMessage::e_requestMode) { 	 
+		return true;	// re-encode, because it might have been modified
 	} else {
 		return false;
 	}
