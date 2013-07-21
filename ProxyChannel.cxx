@@ -6522,6 +6522,25 @@ void CallSignalSocket::DispatchNextRoute()
 	delete this; // oh!
 }
 
+bool CallSignalSocket::SendTunneledH245(const PPER_Stream & strm)
+{
+	Q931 q931;
+	H225_H323_UserInformation uuie;
+	PBYTEArray lBuffer;
+	BuildFacilityPDU(q931, 0);
+	GetUUIE(q931, uuie);
+	uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
+	uuie.m_h323_uu_pdu.m_h245Tunneling = TRUE;
+	uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Control);
+	uuie.m_h323_uu_pdu.m_h245Control.SetSize(1);
+	uuie.m_h323_uu_pdu.m_h245Control[0].SetValue(strm);
+	SetUUIE(q931, uuie);
+	q931.Encode(lBuffer);
+
+	PrintQ931(3, "Send to ", GetName(), &q931, &uuie);
+	return TransmitData(lBuffer);
+}
+
 bool CallSignalSocket::SendTunneledH245(const H245_MultimediaSystemControlMessage & h245msg)
 {
 	Q931 q931;
@@ -6805,10 +6824,6 @@ bool H245Handler::HandleRequest(H245_RequestMessage & Request, callptr & call)
 	PTRACE(4, "H245\tRequest: " << Request.GetTagName());
 	if (hnat && Request.GetTag() == H245_RequestMessage::e_openLogicalChannel) {
 		return hnat->HandleOpenLogicalChannel(Request);
-	} else if (Request.GetTag() == H245_RequestMessage::e_terminalCapabilitySet) {
-		return true;	// re-encode, because it might have been modified
-	} else if (Request.GetTag() == H245_RequestMessage::e_requestMode) { 	 
-		return true;	// re-encode, because it might have been modified
 	} else {
 		return false;
 	}
@@ -7053,19 +7068,14 @@ ProxySocket::Result H245Socket::ReceiveData()
 	if (sigSocket && sigSocket->HandleH245Mesg(strm, suppress, this))
 		buffer = strm;
 
-	if (suppress)
+	if (suppress) {
 		return NoData;	// eg. H.460.18 genericIndication
-	else {
+	} else {
 		if (sigSocket && sigSocket->GetRemote()
 			&& sigSocket->GetRemote()->IsH245Tunneling()
 			&& sigSocket->GetRemote()->IsH245TunnelingTranslation()) {
-			H245_MultimediaSystemControlMessage h245msg;
-			if (!h245msg.Decode(strm)) {
-				PTRACE(3, "H245\tERROR DECODING H.245 from " << sigSocket->GetName());
-			} else {
-				if (!sigSocket->GetRemote()->SendTunneledH245(h245msg)) {
-					PTRACE(1, "Error: H.245 tunnel send failed");
-				}
+			if (!sigSocket->GetRemote()->SendTunneledH245(strm)) {
+				PTRACE(1, "Error: H.245 tunnel send failed");
 			}
 			return NoData;	// already forwarded through tunnel
 		}

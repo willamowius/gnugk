@@ -310,6 +310,7 @@ public:
 	void RemoveH245Handler();
 	void SaveTCS(const H245_TerminalCapabilitySet & tcs) { m_savedTCS = tcs; }
 	H245_TerminalCapabilitySet GetSavedTCS() const { return m_savedTCS; }
+	bool SendTunneledH245(const PPER_Stream & strm);
 	bool SendTunneledH245(const H245_MultimediaSystemControlMessage & h245msg);
 #ifdef HAS_H235_MEDIA
     bool HandleH235TCS(H245_TerminalCapabilitySet & tcs);
