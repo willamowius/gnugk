@@ -3405,8 +3405,8 @@ bool AdmissionRequestPDU::Process()
 		if (vendorInfo) {
 			H460_FeatureOID fs = H460_FeatureOID(OID9);
 			if (!vendor.IsEmpty()) {
-				fs.Add(PString(VendorProdOID),H460_FeatureContent(vendor));
-				fs.Add(PString(VendorVerOID),H460_FeatureContent(version));
+				fs.Add(PString(VendorProdOID), H460_FeatureContent(vendor));
+				fs.Add(PString(VendorVerOID), H460_FeatureContent(version));
 			}
 			lastPos++;
 			data.SetSize(lastPos);
