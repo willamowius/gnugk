@@ -1713,7 +1713,6 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		m_call->SetRerouteState(Rerouting);
 
 		// forward saved TCS
-		// TODO: if have saved TCS
 		if (m_h245Tunneling) {
 			// WARNING: this code for h245tunneled mode is hardly tested
 			// when tunneling, forward the TCS here (we probably got it in the connect)
@@ -1725,7 +1724,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			H245_RequestMessage & h245req = h245msg;
 			h245req.SetTag(H245_RequestMessage::e_terminalCapabilitySet);
 			H245_TerminalCapabilitySet & tcs = h245req;
-			tcs = GetSavedTCS();	// TODO: is this the right side, or should we use remote->GetSavedTCS() ?
+			tcs = GetSavedTCS();	// TODO: is this the right side, or should we use remote->GetSavedTCS() ? check if we really have a saved TCS
 			tcs.m_protocolIdentifier.SetValue(H245_ProtocolID);
 
 			// send TCS to forwarded party
@@ -1938,18 +1937,30 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 			changed = HandleH235OLC(olc);
 		}
 #endif
-		if (m_callerSocket) {  // TODO: This code will not work for encrypted media
-			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
-					&& olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData
-					&& olc.m_reverseLogicalChannelParameters.HasOptionalField(H245_OpenLogicalChannel_reverseLogicalChannelParameters::e_multiplexParameters)
-					&& olc.m_reverseLogicalChannelParameters.m_multiplexParameters.GetTag() == H245_OpenLogicalChannel_reverseLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters) {
-				H245_H2250LogicalChannelParameters *channel = &((H245_H2250LogicalChannelParameters&)olc.m_reverseLogicalChannelParameters.m_multiplexParameters);
-				if (channel != NULL && channel->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel)) {
-					H245_UnicastAddress *addr = GetH245UnicastAddress(channel->m_mediaChannel);
-					if (addr != NULL && m_call) {
-						PIPSocket::Address ip;
-						*addr >> ip;
-						m_call->SetMediaOriginatingIp(ip);
+		// store originating media IP
+		if (m_callerSocket) {
+			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)) {
+				H245_OpenLogicalChannel_reverseLogicalChannelParameters & revParams = olc.m_reverseLogicalChannelParameters;
+				bool isAudio = (revParams.m_dataType.GetTag() == H245_DataType::e_audioData);
+				if (revParams.m_dataType.GetTag() == H245_DataType::e_h235Media) {
+					const H245_H235Media & h235data = revParams.m_dataType;
+					if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_audioData) {
+						isAudio = true;
+					}
+				}
+				if (isAudio
+					&& revParams.HasOptionalField(H245_OpenLogicalChannel_reverseLogicalChannelParameters::e_multiplexParameters)
+					&& revParams.m_multiplexParameters.GetTag() == 
+						H245_OpenLogicalChannel_reverseLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters) {
+
+					H245_H2250LogicalChannelParameters & channel = revParams.m_multiplexParameters;
+					if (channel.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel)) {
+						H245_UnicastAddress *addr = GetH245UnicastAddress(channel.m_mediaChannel);
+						if (addr != NULL && m_call) {
+							PIPSocket::Address ip;
+							*addr >> ip;
+							m_call->SetMediaOriginatingIp(ip);
+						}
 					}
 				}
 			}

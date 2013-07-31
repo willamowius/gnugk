@@ -1,6 +1,7 @@
 Changes from 3.3 to 3.4
 =======================
 - BUGFIX(GkStatus.h) fix interger underflow in status port
+- BUGFIX(ProxyChannel.cxx) fix %{media-oip} with encrypted calls
 - BUGFIX(ProxyChannel.cxx) fix codec filtering with encrypted calls
 - new accounting variables %{caller-vendor} and %{callee-vendor}
 - BUGFIX(Toolkit.cxx) fix crash in 10D rewriting
