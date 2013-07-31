@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2012, Jan Willamowius
+// Copyright (c) 2000-2013, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1270,6 +1270,12 @@ public:
 		const PString & number /// Dialed-Number
 		);
 
+	// vendor info for calling and called party
+	void SetCallingVendor(const PString & vendor, const PString & version);
+	void GetCallingVendor(PString & vendor, PString & version) const;
+	void SetCalledVendor(const PString & vendor, const PString & version);
+	void GetCalledVendor(PString & vendor, PString & version) const;
+
 	/** @return
 	    Fixed destination address for the call (size 0 if not set).
 	*/
@@ -1580,6 +1586,11 @@ private:
 	PMutex m_PTMutex;
     BYTE m_dynamicPayloadTypeCounter;
 #endif
+	// vendor info for calling and called party - only used if no EndpointRec available!
+	PString m_callingVendor;
+	PString m_callingVersion;
+	PString m_calledVendor;
+	PString m_calledVersion;
 };
 
 typedef CallRec::Ptr callptr;

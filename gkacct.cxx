@@ -5,7 +5,7 @@
  * support for accounting to the gatekeeper.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2005-2012, Jan Willamowius
+ * Copyright (c) 2005-2013, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -207,6 +207,11 @@ void GkAcctLogger::SetupAcctParams(
 	params["codec"] = call->GetCodec();
 	params["bandwidth"] = call->GetBandwidth();
 	params["client-auth-id"] = call->GetClientAuthId();
+	PString vendor, version;
+	call->GetCallingVendor(vendor, version);
+	params["caller-vendor"] = vendor + " " + version;
+	call->GetCalledVendor(vendor, version);
+	params["callee-vendor"] = vendor + " " + version;
 }
 
 void GkAcctLogger::SetupAcctEndpointParams(

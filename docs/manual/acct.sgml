@@ -213,6 +213,8 @@ parameters are recognized:
 <item><tt/%{codec}/ - audio codec used during the call (only for H.245 routed/tunneled calls)
 <item><tt/%{bandwidth}/ - bandwidth for this call
 <item><tt/%{client-auth-id}/ - a 64 bit integer ID provided to GnuGk when authenticating the call (through SQLAuth)
+<item><tt/%{caller-vendor}/ - vendor and version info of the calling endpoint
+<item><tt/%{callee-vendor}/ - vendor and version info of the called endpoint
 </itemize><newline>
 
 

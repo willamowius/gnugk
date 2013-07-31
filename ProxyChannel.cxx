@@ -2915,6 +2915,19 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		m_h245Tunneling = false;
 	}
 
+	// save callers vendor info
+	PString callingVendor, callingVersion;
+	if (setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_vendor)) {
+		if (setupBody.m_sourceInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)) {
+			callingVendor = setupBody.m_sourceInfo.m_vendor.m_productId.AsString();
+		}
+		if (setupBody.m_sourceInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_versionId)) {
+			callingVersion = setupBody.m_sourceInfo.m_vendor.m_versionId.AsString();
+		}
+		if (m_call) {
+			m_call->SetCallingVendor(callingVendor, callingVersion);
+		}
+	}
 
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "TranslateSorensonSourceInfo", "0"))) {
 		// Viable VPAD (Viable firmware, SBN Tech device), remove the CallingPartyNumber information 
@@ -3516,6 +3529,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 #endif
 		call->SetBindHint(request.GetSourceIP());
 		call->SetCallerID(request.GetCallerID());
+		call->SetCallingVendor(callingVendor, callingVersion);
 
 #ifdef HAS_H46018
 		// special case for reverse H.460.18 Setup
@@ -4533,6 +4547,20 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 	if (connectBody.HasOptionalField(H225_Connect_UUIE::e_maintainConnection)) {
 		connectBody.m_maintainConnection = (GetRemote() && GetRemote()->MaintainConnection());
 		msg->SetUUIEChanged();
+	}
+
+	// store called party vendor info
+	if (connectBody.m_destinationInfo.HasOptionalField(H225_EndpointType::e_vendor)) {
+		PString vendor, version;
+		if (connectBody.m_destinationInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)) {
+			vendor = connectBody.m_destinationInfo.m_vendor.m_productId.AsString();
+		}
+		if (connectBody.m_destinationInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_versionId)) {
+			version = connectBody.m_destinationInfo.m_vendor.m_versionId.AsString();
+		}
+		if (m_call) {
+			m_call->SetCalledVendor(vendor, version);
+		}
 	}
 
 	// For compatibility with endpoints which do not support large Setup messages or send incorrect tokens

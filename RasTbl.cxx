@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2012, Jan Willamowius
+// Copyright (c) 2000-2013, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -343,7 +343,7 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 			   H460_FeatureOID & oid9 = (H460_FeatureOID &)data[i];
 			   PString m_vendor = oid9.Value(PString(VendorProdOID));  // Vendor Information
                PString m_version = oid9.Value(PString(VendorVerOID));  // Version Information
-			   SetEndpointInfo(m_vendor,m_version);
+			   SetEndpointInfo(m_vendor, m_version);
 		   }
 #endif // HAS_H460VEN
 		}
@@ -920,7 +920,7 @@ PString EndpointRec::PrintOn(bool verbose) const
 		params["Endpoint_Type"] = AsString(GetEndpointType());
 		params["EndpointID"] = GetEndpointIdentifier().GetValue();
 		params["NATType"] = PrintNatInfo(!compact);
-		PString vendor,version;
+		PString vendor, version;
 		GetEndpointInfo(vendor, version);
 		params["Vendor"] = vendor + version;
 		msg = ReplaceParameters(format, params);
@@ -2158,7 +2158,7 @@ void RegistrationTable::LoadConfig()
 			if (sp.GetSize() > 2) {
 				PStringList gwVen = sp[2].Tokenise(",", FALSE);
 				if (gwVen.GetSize() > 1)
-					gw->SetEndpointInfo(gwVen[0],gwVen[1]);
+					gw->SetEndpointInfo(gwVen[0], gwVen[1]);
 			}
 		} else {
 			rrq.m_terminalType.IncludeOptionalField(H225_EndpointType::e_terminal);
@@ -3572,6 +3572,50 @@ void CallRec::SetDialedNumber(
 		m_dialedNumber = number;
 }
 
+void CallRec::SetCallingVendor(const PString & vendor, const PString & version)
+{
+	PWaitAndSignal lock(m_usedLock);
+	if (GetCallingParty()) {
+		GetCallingParty()->SetEndpointInfo(vendor, version);
+	} else {
+		m_callingVendor = vendor;
+		m_callingVersion = version;
+	}
+}
+
+void CallRec::GetCallingVendor(PString & vendor, PString & version) const
+{
+	PWaitAndSignal lock(m_usedLock);
+	if (GetCallingParty()) {
+		GetCallingParty()->GetEndpointInfo(vendor, version);
+	} else {
+		vendor = m_callingVendor;
+		version = m_callingVersion;
+	}
+}
+
+void CallRec::SetCalledVendor(const PString & vendor, const PString & version)
+{
+	PWaitAndSignal lock(m_usedLock);
+	if (GetCalledParty()) {
+		GetCalledParty()->SetEndpointInfo(vendor, version);
+	} else {
+		m_calledVendor = vendor;
+		m_calledVersion = version;
+	}
+}
+
+void CallRec::GetCalledVendor(PString & vendor, PString & version) const
+{
+	PWaitAndSignal lock(m_usedLock);
+	if (GetCalledParty()) {
+		GetCalledParty()->GetEndpointInfo(vendor, version);
+	} else {
+		vendor = m_calledVendor;
+		version = m_calledVersion;
+	}
+}
+
 void CallRec::Update(const H225_InfoRequestResponse & irr)
 {
 	if (irr.HasOptionalField(H225_InfoRequestResponse::e_perCallInfo)
@@ -3725,7 +3769,7 @@ bool CallRec::GetRemoteInfo(PString & vendor, PString & version)
 	if (!m_Called)
 		return false;
 
-	return m_Called->GetEndpointInfo(vendor,version);
+	return m_Called->GetEndpointInfo(vendor, version);
 }
 
 #ifdef HAS_H46023

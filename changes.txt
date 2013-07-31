@@ -1,5 +1,7 @@
 Changes from 3.3 to 3.4
 =======================
+- new accounting variables %{caller-vendor} and %{callee-vendor}
+- BUGFIX(Toolkit.cxx) fix crash in 10D rewriting
 - new feature: send post dial digits after call connects
 - BUGFIX(snmp.cxx) clean shutdown of Net-SNMP agent
 - BUGFIX(ProxyChannel.cxx) fix master assigned RTP session IDs and encrypted H.239 channels

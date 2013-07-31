@@ -3327,8 +3327,8 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 			else {
 				if (aliasForceType > -1 &&
 					setupBody.m_sourceAddress[i].GetTag() != (unsigned)aliasForceType) {
-						PString source = ::AsString(setupBody.m_sourceAddress[i],false);
-						H323SetAliasAddress(source, setupBody.m_sourceAddress[i],aliasForceType);
+						PString source = ::AsString(setupBody.m_sourceAddress[i], false);
+						H323SetAliasAddress(source, setupBody.m_sourceAddress[i], aliasForceType);
 				} 
 				++i;
 			}
@@ -3337,10 +3337,11 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 
 	PBoolean changed = false;
 	PString source = PString();
-	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress))
-		source = ::AsString(setupBody.m_sourceAddress[0],false);
-	else
+	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress) && (setupBody.m_sourceAddress.GetSize() > 0)) {
+		source = ::AsString(setupBody.m_sourceAddress[0], false);
+	} else {
 		setup.GetQ931().GetCallingPartyNumber(source);
+	}
 
 	if (!rewriteChar) {
 		PStringArray rewrite  = rewriteChar.Tokenise(";");
