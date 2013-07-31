@@ -82,7 +82,7 @@ public:
 
 	/** Notification form the status client that it has been deleted
 	*/
-	void StatusClientDeleted() { --m_statusClients; }
+	void StatusClientDeleted() { if (m_statusClients > 0) --m_statusClients; }
 
 	/** Print a list of all connected status interface users
 		to the requesting client.
