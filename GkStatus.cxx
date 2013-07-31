@@ -382,7 +382,6 @@ PBoolean SSHStatusClient::Accept(PSocket & socket)
 	session = ssh_new();
 
 	//ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_LOG_VERBOSITY_STR, "3");	// only enable for debugging
-	ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_BANNER, "SSH-2.0-GnuGk");	// TODO: doesn't seem to work
 
 	bool keyAvailable = false;
 	PString dsakey = GkConfig()->GetString(authsec, "DSAKey", "/etc/ssh/ssh_host_dsa_key");
@@ -829,7 +828,7 @@ GkStatus::GkStatus() : Singleton<GkStatus>("GkStatus"), SocketsReader(500)
 	Execute();
 }
 
-void GkStatus::AuthenticateClient(StatusClient* newClient)
+void GkStatus::AuthenticateClient(StatusClient * newClient)
 {
 	if ((m_statusClients++ < m_maxStatusClients) && (newClient->Authenticate())) {
 		newClient->SetTraceLevel(GkConfig()->GetInteger("StatusTraceLevel", MAX_STATUS_TRACE_LEVEL));
