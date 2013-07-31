@@ -745,8 +745,6 @@ public:
 	BYTE GetPlainPayloadType() const { return m_plainPayloadType; }
 	void SetCipherPayloadType(BYTE pt) { m_cipherPayloadType = pt; }
 	BYTE GetCipherPayloadType() const { return m_cipherPayloadType; }
-	void SetDataChannel(bool val) { m_isDataChannel = val; }
-	bool IsDataChannel() const { return m_isDataChannel; }
 #endif
 
 private:
@@ -766,7 +764,6 @@ private:
 	bool m_encrypting;
 	BYTE m_plainPayloadType;			// remember in OLC to use in OLCA
 	BYTE m_cipherPayloadType;			// remember in OLC to use in OLCA
-	bool m_isDataChannel;
 	H225_CallIdentifier m_callID;
 #endif
 };
@@ -2285,11 +2282,11 @@ bool RemoveH235Capability(unsigned _entryNo,
     PTRACE(5, "Removing H.235 capability no: " << _entryNo);
 
     for (PINDEX i=0; i< _capTable.GetSize(); ++i) {
-       if (_capTable[i].m_capabilityTableEntryNumber.GetValue() == _entryNo) {
-          _capTable.RemoveAt(i);
-          break;
-       }
-    }
+		if (_capTable[i].m_capabilityTableEntryNumber.GetValue() == _entryNo) {
+			_capTable.RemoveAt(i);
+			break;
+		}
+	}
     for (PINDEX n = 0; n < _capDesc.GetSize(); n++){
         for (PINDEX j = 0; j < _capDesc[n].m_simultaneousCapabilities.GetSize(); j++) {
 	        for (PINDEX m = 0; m < _capDesc[n].m_simultaneousCapabilities[j].GetSize(); m++) {
@@ -2302,16 +2299,15 @@ bool RemoveH235Capability(unsigned _entryNo,
    return true;
 }
 
-bool AddH235Capability(unsigned _entryNo,
-                       const PStringList & _capList,
-                          H245_ArrayOf_CapabilityTableEntry & _capTable, 
-                          H245_ArrayOf_CapabilityDescriptor & _capDesc)
+bool AddH235Capability(unsigned _entryNo, const PStringList & _capList,
+						H245_ArrayOf_CapabilityTableEntry & _capTable, 
+						H245_ArrayOf_CapabilityDescriptor & _capDesc)
 {
     if (_capList.GetSize() == 0)
         return false;
 
     PTRACE(5, "Add H.235 Support for: " << _entryNo);
-    unsigned secCapNo = 100+_entryNo;  
+    unsigned secCapNo = 100 + _entryNo;	// TODO: calculate the largest actually used CapNo instead of using 100 ?
 
     int sz = _capTable.GetSize();
     _capTable.SetSize(sz+1);
@@ -2358,7 +2354,7 @@ bool CallSignalSocket::HandleH235TCS(H245_TerminalCapabilitySet & tcs)
         return false;
 
     bool toRemove = ((!m_callerSocket && m_call && (m_call->GetEncryptDirection() == CallRec::callingParty))
-                 || (m_callerSocket && m_call && (m_call->GetEncryptDirection() == CallRec::calledParty)));
+	                 || (m_callerSocket && m_call && (m_call->GetEncryptDirection() == CallRec::calledParty)));
 
     PStringList capList;
     if (m_call && !m_call->GetAuthenticators().GetAlgorithms(capList)) {
@@ -2378,14 +2374,14 @@ bool CallSignalSocket::HandleH235TCS(H245_TerminalCapabilitySet & tcs)
     for (PINDEX i = 0; i < capStat.GetSize(); ++i) {
         if (capStat[i].HasOptionalField(H245_CapabilityTableEntry::e_capability)) {
             H245_CapabilityTableEntryNumber & entryNumber = capStat[i].m_capabilityTableEntryNumber;
-            H245_Capability & cap =  capStat[i].m_capability;
+            H245_Capability & cap = capStat[i].m_capability;
             if (toRemove) {
-              if (cap.GetTag() == H245_Capability::e_h235SecurityCapability)
-                  RemoveH235Capability(entryNumber.GetValue(), capTable, capDesc);
+				if (cap.GetTag() == H245_Capability::e_h235SecurityCapability)
+					RemoveH235Capability(entryNumber.GetValue(), capTable, capDesc);
             } else {
-                // We only support Audio and Video currently - TODO support data. - SH
+                // we currently support Audio, Video and Data
                 if ((cap.GetTag() >= H245_Capability::e_receiveVideoCapability)
-                    && (cap.GetTag() <= H245_Capability::e_receiveAndTransmitAudioCapability)) {
+                    && (cap.GetTag() <= H245_Capability::e_receiveAndTransmitDataApplicationCapability)) {
                         AddH235Capability(entryNumber.GetValue(), capList, capTable, capDesc);
                 }
             }
@@ -2419,16 +2415,9 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 	delete tmpCapPtr;
 	tmpCapPtr = NULL;
 
-	// we don't handle data, yet, pass unchanged
-	if (rawCap.GetTag() == H245_DataType::e_data) {
-		PTRACE(5, "H235\tno support for data encryption, yet");
-		return false;
-	}
-
-    if ((toRemove && (rawCap.GetTag() != H245_DataType::e_h235Media)) ||
-       (!toRemove && (rawCap.GetTag() == H245_DataType::e_h235Media))) {
+    if ((toRemove && (rawCap.GetTag() != H245_DataType::e_h235Media))
+		|| (!toRemove && (rawCap.GetTag() == H245_DataType::e_h235Media))) {
 			PTRACE(1, "H235\tOLC Logic Error! ABORTIING REWRITE!");
-			SNMP_TRAP(7, SNMPError, Authentication, "H.235 logic error in OLC");
 			return false;
     }
 
@@ -8891,7 +8880,6 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 	m_encrypting = false;
 	m_plainPayloadType = UNDEFINED_PAYLOAD_TYPE;
 	m_cipherPayloadType = UNDEFINED_PAYLOAD_TYPE;
-	m_isDataChannel = false;
 #endif
 
 #ifdef HAS_H46023
@@ -8950,7 +8938,6 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool na
 	m_encrypting = false;
 	m_plainPayloadType = UNDEFINED_PAYLOAD_TYPE;
 	m_cipherPayloadType = UNDEFINED_PAYLOAD_TYPE;
-	m_isDataChannel = flc->m_isDataChannel;
 	m_callID = flc->m_callID;
 #endif
 	port = flc->port;
@@ -10114,15 +10101,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 
 #ifdef HAS_H235_MEDIA
 		RTPLogicalChannel * rtplc = (RTPLogicalChannel *)FindLogicalChannel(flcn);
-		bool isData = false;	// we don't encrypt data channels, yet
-		if (isReverseLC) {
-			isData = olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_data;
-	    } else
-			isData = olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_data;
-		if (rtplc)
-			rtplc->SetDataChannel(isData);
-
-		if (call->IsMediaEncryption() && rtplc && h225Params && !isData) {
+		if (call->IsMediaEncryption() && rtplc && h225Params) {
 			if ((m_isCaller && call->GetEncryptDirection() == CallRec::callingParty)
 				|| (!m_isCaller && call->GetEncryptDirection() == CallRec::calledParty)) {
 				// we add encryption, OLC has already been rewritten
@@ -10424,7 +10403,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 
 #ifdef HAS_H235_MEDIA
 	RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(lc);
-	if (call->IsMediaEncryption() && rtplc && !rtplc->IsDataChannel()) {
+	if (call->IsMediaEncryption() && rtplc) {
 		// is this the encryption or decryption direction ?
 		bool encrypting = (m_isCaller && call->GetEncryptDirection() == CallRec::calledParty)
 						|| (!m_isCaller && call->GetEncryptDirection() == CallRec::callingParty);
