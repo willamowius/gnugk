@@ -1,5 +1,6 @@
 Changes from 3.3 to 3.4
 =======================
+- BUGFIX(ProxyChannel.cxx) fix codec filtering with encrypted calls
 - new accounting variables %{caller-vendor} and %{callee-vendor}
 - BUGFIX(Toolkit.cxx) fix crash in 10D rewriting
 - new feature: send post dial digits after call connects
