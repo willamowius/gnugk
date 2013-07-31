@@ -2071,9 +2071,9 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 			if (m_callerSocket) {
 				if (olcack.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)
 						&& olcack.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters) {
-					H245_H2250LogicalChannelAckParameters *channel = &((H245_H2250LogicalChannelAckParameters&)olcack.m_forwardMultiplexAckParameters);
-					if (channel != NULL && channel->HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel)) {
-						H245_UnicastAddress *addr = GetH245UnicastAddress(channel->m_mediaChannel);
+					H245_H2250LogicalChannelAckParameters & channel = olcack.m_forwardMultiplexAckParameters;
+					if (channel.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel)) {
+						H245_UnicastAddress *addr = GetH245UnicastAddress(channel.m_mediaChannel);
 						if (addr != NULL && m_call) {
 							PIPSocket::Address ip;
 							*addr >> ip;
@@ -5922,17 +5922,29 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 
 		// save originating media IP and codec for accounting
 		if (fromCaller) {
-			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
-					&& olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData
-					&& olc.m_reverseLogicalChannelParameters.HasOptionalField(H245_OpenLogicalChannel_reverseLogicalChannelParameters::e_multiplexParameters)
-					&& olc.m_reverseLogicalChannelParameters.m_multiplexParameters.GetTag() == H245_OpenLogicalChannel_reverseLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters) {
-				H245_H2250LogicalChannelParameters *channel = &((H245_H2250LogicalChannelParameters&)olc.m_reverseLogicalChannelParameters.m_multiplexParameters);
-				if (channel != NULL && channel->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel)) {
-					H245_UnicastAddress *addr = GetH245UnicastAddress(channel->m_mediaChannel);
-					if (addr != NULL && m_call) {
-						PIPSocket::Address ip;
-						*addr >> ip;
-						m_call->SetMediaOriginatingIp(ip);
+			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)) {
+				H245_OpenLogicalChannel_reverseLogicalChannelParameters & revParams = olc.m_reverseLogicalChannelParameters;
+				bool isAudio = (revParams.m_dataType.GetTag() == H245_DataType::e_audioData);
+				if (revParams.m_dataType.GetTag() == H245_DataType::e_h235Media) {
+					// not sure if we can have fastStart with encrypted media (DH exchange hasn't happened, yet), but just in case
+					const H245_H235Media & h235data = revParams.m_dataType;
+					if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_audioData) {
+						isAudio = true;
+					}
+				}
+				if (isAudio
+					&& revParams.HasOptionalField(H245_OpenLogicalChannel_reverseLogicalChannelParameters::e_multiplexParameters)
+					&& revParams.m_multiplexParameters.GetTag() ==
+						H245_OpenLogicalChannel_reverseLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters) {
+
+					H245_H2250LogicalChannelParameters & channel = olc.m_reverseLogicalChannelParameters.m_multiplexParameters;
+					if (channel.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel)) {
+						H245_UnicastAddress *addr = GetH245UnicastAddress(channel.m_mediaChannel);
+						if (addr != NULL && m_call) {
+							PIPSocket::Address ip;
+							*addr >> ip;
+							m_call->SetMediaOriginatingIp(ip);
+						}
 					}
 				}
 			}
