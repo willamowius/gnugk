@@ -429,7 +429,7 @@ PBoolean SSHStatusClient::Accept(PSocket & socket)
 
 bool SSHStatusClient::Authenticate()
 {
-	// TODO: check the auth rules and allow any password if client is covered by explicit IP auth
+	// TODO: check the auth rules and allow any password if client is covered by explicit IP auth ?
 	const time_t now = time(NULL);
 	const int loginTimeout = GkConfig()->GetInteger(authsec, "LoginTimeout", 120);
     bool auth = false;

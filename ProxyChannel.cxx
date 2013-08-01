@@ -5603,7 +5603,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					m_result = NoData;
 			}
 			if (m_h245TunnelingTranslation && !m_h245Tunneling && GetRemote() && GetRemote()->m_h245Tunneling) {
-				// don't forward to tunneling side TODO245 does the gk have to act here ?
+				// don't forward to tunneling side
 				m_result = NoData;
 			}
 #ifdef HAS_H46018
@@ -7513,7 +7513,7 @@ MultiplexRTPListener::MultiplexRTPListener(WORD pt, WORD buffSize)
 #endif
 		{
 			// setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (the 2.6.24.4), now it doesn't anymore
-			// TODO: setting IP_TOS will silently fail on Windows XP, Vista and Win7, supposed to work again on Win8
+			// setting IP_TOS will silently fail on Windows XP, Vista and Win7, supposed to work again on Win8
 			if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IP, IP_TOS, (char *)&rtpIpTypeofService, sizeof(int)))) {
 				PTRACE(1, "RTPM\tCould not set TOS field in IP header: "
 					<< GetErrorCode(PSocket::LastGeneralError) << '/'
@@ -7537,7 +7537,6 @@ MultiplexRTPListener::~MultiplexRTPListener()
 void MultiplexRTPListener::ReceiveData()
 {
 	if (!Read(wbuffer, wbufsize)) {
-		// TODO: ErrorHandler(PSocket::LastReadError);
 		return;
 	}
 	Address fromIP;
@@ -7552,22 +7551,11 @@ void MultiplexRTPListener::ReceiveData()
 	PUInt32b multiplexID = INVALID_MULTIPLEX_ID;
 	if (buflen >= 4)
 		multiplexID = ((int)wbuffer[0] * 16777216) + ((int)wbuffer[1] * 65536) + ((int)wbuffer[2] * 256) + (int)wbuffer[3];
-//	int version = 0;
-//	if (buflen >= 5)
-//		version = (((int)wbuffer[4] & 0xc0) >> 6);
 
 	if (multiplexID == INVALID_MULTIPLEX_ID) {
 		PTRACE(1, "RTPM\tInvalid multiplexID reveived - ignoring packet on port " << localPort << " from " << AsString(fromIP, fromPort));
 		return;
 	}
-
-//	// this is fine for RTP and RTCP, but breaks T.38
-//	if (version != 2) {
-//		PTRACE(1, "RTPM\tInvalid RTP version: " << version
-//			<< " - ignoring packet on port " << localPort << " with multiplexID " << multiplexID
-//			<< " from " << AsString(fromIP, fromPort));
-//		return;
-//	}
 
 	MultiplexedRTPHandler::Instance()->HandlePacket(multiplexID, H323TransportAddress(fromIP, fromPort), wbuffer+4, buflen-4, odd(localPort));
 }
@@ -8085,7 +8073,7 @@ bool UDPProxySocket::Bind(const Address & localAddr, WORD pt)
 #endif
 		{
 			// setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (the 2.6.24.4), now it doesn't anymore
-			// TODO: setting IP_TOS will silently fail on Windows XP, Vista and Win7, supposed to work again on Win8
+			// setting IP_TOS will silently fail on Windows XP, Vista and Win7, supposed to work again on Win8
 			if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IP, IP_TOS, (char *)&rtpIpTypeofService, sizeof(int)))) {
 				PTRACE(1, Type() << "\tCould not set TOS field in IP header: "
 					<< GetErrorCode(PSocket::LastGeneralError) << '/'
@@ -8424,7 +8412,6 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		}
 		// fix for H.224 connection: m100 doesn't send keepAlive, but we can see where it apparently comes from
 		if (!m_h46019uni) {
-			// TODO: should we wait for a number of RTP packets before we do H.460.19 auto-detection without keepAlives ?!
 			H323TransportAddress rSrcAddr(rSrcIP, rSrcPort);
 			if (fSrcIP == 0 && rDestIP == 0 && fDestIP != 0
 				&& rSrcIP != 0 && fromAddr != rSrcAddr
@@ -10501,7 +10488,7 @@ bool H245ProxyHandler::HandleEncryptionUpdateCommand(H245_MiscellaneousCommand &
 			if (h245sock)
 				h245sock->Send(h245msg);
 			else {
-				// send tunneled
+				// TODO: send tunneled
 			}
 		}
 		suppress = true;
@@ -10512,7 +10499,7 @@ bool H245ProxyHandler::HandleEncryptionUpdateCommand(H245_MiscellaneousCommand &
 bool H245ProxyHandler::HandleEncryptionUpdateAck(H245_MiscellaneousCommand & cmd, bool & suppress, callptr & call, H245Socket * h245sock)
 {
 	if (call->IsMediaEncryption() && m_isH245Master) {
-		// TODO: now we can oficially use the key we sent to the slave (curently we use it right away and discard all media with old PT)
+		// TODO: now we can officially use the key we sent to the slave (currently we use it right away and discard all media with old PT)
 		suppress = true;
 	}
 	return false;
