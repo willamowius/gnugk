@@ -425,7 +425,7 @@ PBoolean PTLibSNMPAgent::OnSetRequest(PINDEX reqID, PSNMP::BindingList & vars, P
 	return PFalse;	// doesn't work
 
 /*
-	// TODO: SET opoeration is broken in PTLib PSNMPServer
+	// TODO: SET operation is broken in PTLib PSNMPServer
 	// PSNMPServer::ProcessPDU() must send a response and the decoding of SET values is broken
 	for(PSNMP::BindingList::iterator i = vars.begin(); i != vars.end(); ++i){
 		if (i->first == TraceLevelOIDStr + PString(".0")) {
