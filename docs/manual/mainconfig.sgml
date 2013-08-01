@@ -582,7 +582,8 @@ The IP of the client must match <tt/explicit/ <bf/or/ <tt/regex/ rule.
 The IP of the client must match <tt/regex/ rule, <bf/and/ the user has to login by username and password.
 </itemize>
 
-Using the SSH protocol for the status port implies that all users are authenticated by password.
+Using the SSH protocol for the status port implies that all users are authenticated by password,
+but you can impose additional IP rules eg. "regex & password".
 
 <item><tt/default=allow/<newline>
 Default: <tt/forbid/<newline>

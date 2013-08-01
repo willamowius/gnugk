@@ -2,7 +2,7 @@
 //
 // GkStatus.cxx
 //
-// Copyright (c) 2000-2012, Jan Willamowius
+// Copyright (c) 2000-2013, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -298,12 +298,13 @@ protected:
 	/// output trace level for this client
 	int m_traceLevel;
 
-    	// vectors of regular expressions to be matched against Status messages
-    	std::vector<PString> m_excludeFilterRegex;
-        std::vector<PString> m_includeFilterRegex;		
-	
-        // This flag indicates whether filtering is active or not
-        bool m_isFilteringActive;
+	// vectors of regular expressions to be matched against Status messages
+	std::vector<PString> m_excludeFilterRegex;
+	std::vector<PString> m_includeFilterRegex;		
+
+	// this flag indicates whether filtering is active or not
+	bool m_isFilteringActive;
+	bool m_handlePasswordRule;	// password rule is handled differently in SSHStatusClient subclass
 };
 
 #ifdef HAS_LIBSSH
@@ -359,6 +360,7 @@ SSHStatusClient::SSHStatusClient(int instanceNo) : StatusClient(instanceNo)
 {
 	chan = 0;
 	m_needEcho = true;
+	m_handlePasswordRule = false;	// modify behavior of password rule check in super class
 }
 
 SSHStatusClient::~SSHStatusClient()
@@ -424,12 +426,25 @@ PBoolean SSHStatusClient::Accept(PSocket & socket)
 	// set handle for SocketsReader
 	os_handle = ssh_get_fd(session);
 
+	Address raddr, laddr;
+	WORD rport = 0, lport = 0;
+	GetPeerAddress(raddr, rport);
+	UnmapIPv4Address(raddr);
+	GetLocalAddress(laddr, lport);
+	UnmapIPv4Address(laddr);
+	SetName(AsString(raddr, rport) + "=>" + AsString(laddr, lport));
+
 	return true;
 }
 
 bool SSHStatusClient::Authenticate()
 {
-	// TODO: check the auth rules and allow any password if client is covered by explicit IP auth ?
+	// check the auth rules if the ssh client is denied by explicit or regex rule
+	bool ipcheck = StatusClient::Authenticate();
+	if (!ipcheck) {
+		PTRACE(1, "ssh client denied by IP rules");
+		return false;
+	}
 	const time_t now = time(NULL);
 	const int loginTimeout = GkConfig()->GetInteger(authsec, "LoginTimeout", 120);
     bool auth = false;
@@ -501,7 +516,7 @@ bool SSHStatusClient::Authenticate()
                 case SSH_REQUEST_CHANNEL:
                     switch (ssh_message_subtype(message)) {
 						case SSH_CHANNEL_REQUEST_UNKNOWN:
-							// Putty X11 forwarding, deny to avoid hang
+							// eg. Putty X11 forwarding, deny to avoid hang
 			                ssh_message_reply_default(message);	// deny
 			                break;
 						case SSH_CHANNEL_REQUEST_PTY:
@@ -1107,15 +1122,14 @@ void GkStatus::CleanUp()
 
 StatusClient::StatusClient(
 	/// unique session ID (instance number) for this client
-	int instanceNo
-	) 
-	: 
+	int instanceNo) :
 	USocket(this, "Status"), 
 	m_gkStatus(GkStatus::Instance()),
 	m_numExecutingCommands(0),
 	m_instanceNo(instanceNo),
 	m_traceLevel(MAX_STATUS_TRACE_LEVEL),
-	m_isFilteringActive(false)
+	m_isFilteringActive(false),
+	m_handlePasswordRule(true)
 {
 	PStringToString filters = GkConfig()->GetAllKeyValues(filteringsec);
 	SetWriteTimeout(10);
@@ -1203,10 +1217,9 @@ bool StatusClient::ReadCommand(
 
 bool StatusClient::WriteString(
 	/// string to be sent through the socket
-	const PString& msg, 
+	const PString & msg, 
 	/// output trace level assigned to the message
-	int level
-	)
+	int level)
 {
 	if (level > m_traceLevel)
 		return true;
@@ -1264,9 +1277,7 @@ bool StatusClient::Authenticate()
 		rule_start = rule_end + 1;
 	}
 
-	PTRACE(4, "STATUS\tNew connection from " << GetName() 
-		<< (result?" accepted":" rejected")
-		);
+	PTRACE(4, "STATUS\tNew connection from " << GetName() << (result ? " accepted" : " rejected"));
 	return result;
 }
 
@@ -1395,12 +1406,14 @@ bool StatusClient::CheckAuthRule(
 		if (val.IsEmpty()) {
 			result = Toolkit::MatchRegex(peer, GkConfig()->GetString(authsec, "regex", ""));
 			PTRACE(5, "STATUS\tClient IP " << peer << " not found for regex rule, using default ("
-				<< GkConfig()->GetString(authsec, "regex", "") << ')'
-				);
-		} else
+				<< GkConfig()->GetString(authsec, "regex", "") << ')');
+		} else {
 			result = Toolkit::AsBool(val);
-	} else if (rule *= "password") {
+		}
+	} else if ((rule *= "password") && m_handlePasswordRule) {
 		result = AuthenticateUser();
+	} else if ((rule *= "password") && !m_handlePasswordRule) {
+		result = true;	// used when called from SSHStatusClient
 	} else {
 		PTRACE(1, "STATUS\tERROR: Unrecognized [GkStatus::Auth] rule (" << rule << ')');
 		SNMP_TRAP(7, SNMPError, Configuration, "Invalid [GkStatus::Auth] rule: " + rule);    
