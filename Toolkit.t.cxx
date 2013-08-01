@@ -24,6 +24,7 @@ protected:
 	}
 	
 	NetworkAddress na;
+	NetworkAddress na2;
 };
 
 
@@ -35,6 +36,9 @@ TEST_F(ToolkitTest, NetworkAddress) {
 	EXPECT_STREQ("1.2.3.0/24", na.AsString());
 	EXPECT_EQ(24u, na.GetNetmaskLen());
 	EXPECT_FALSE(na.IsAny());
+	na = NetworkAddress("9.9.9.0/24");
+	na2 = NetworkAddress("9.9.10.0/24");
+	EXPECT_FALSE(na == na2);
 }
 
 }  // namespace

@@ -111,8 +111,6 @@ unsigned NetworkAddress::GetNetmaskLen() const
 	return sz - len;
 }
 
-// TODO: check if this operator returns true for unequal addresses
-// BUG: 9.9.9.0/24 == 9.9.10.0/24
 bool NetworkAddress::operator==(const NetworkAddress & addr) const
 {
 	if (m_address.GetSize() != addr.m_address.GetSize())
