@@ -425,12 +425,13 @@ PBoolean PTLibSNMPAgent::OnSetRequest(PINDEX reqID, PSNMP::BindingList & vars, P
 	return PFalse;	// doesn't work
 
 /*
-	// TODO: PSNMPServer::ProcessPDU() must send a response and the decoding of SET values is broken
+	// TODO: SET opoeration is broken in PTLib PSNMPServer
+	// PSNMPServer::ProcessPDU() must send a response and the decoding of SET values is broken
 	for(PSNMP::BindingList::iterator i = vars.begin(); i != vars.end(); ++i){
 		if (i->first == TraceLevelOIDStr + PString(".0")) {
 			if (i->second.GetObject().GetTag() == PASN_Object::UniversalInteger) {
 				PASN_Integer & num = (PASN_Integer &)(i->second.GetObject());
-				PTRACE(0, "JW SET " << i->first << " to " << num << " = " << num.GetValue());	// TODO / BUG
+				PTRACE(0, "JW SET " << i->first << " to " << num << " = " << num.GetValue());
 				//PTrace::SetLevel(num.GetValue());
 				return PTrue;
 			} else {
@@ -440,7 +441,7 @@ PBoolean PTLibSNMPAgent::OnSetRequest(PINDEX reqID, PSNMP::BindingList & vars, P
 		} else if (i->first == CatchAllOIDStr + PString(".0")) {
 			if (i->second.GetObject().GetTag() == PASN_Object::UniversalOctetString) {
 				PASN_OctetString & str = (PASN_OctetString &)(i->second.GetObject());
-				PTRACE(0, "JW SET " << i->first << " to " << str << " = " << str.GetValue());	// TODO / BUG
+				PTRACE(0, "JW SET " << i->first << " to " << str << " = " << str.GetValue());
 				return PTrue;
 			} else {
 				PTRACE(1, "SNMP\tWrong data type for SET " << i->first);
