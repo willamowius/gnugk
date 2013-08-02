@@ -592,6 +592,7 @@ const char * KnownConfigEntries[][2] = {
 
 	// ignore name partially to check
 	{ "EP::", "AddNumbers" },
+	{ "EP::", "AdditionalDestinationAlias" },
 	{ "EP::", "CalledTypeOfNumber" },
 	{ "EP::", "CallingTypeOfNumber" },
 	{ "EP::", "Capacity" },
