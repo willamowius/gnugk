@@ -350,25 +350,27 @@ public:
 	virtual bool WriteData(const BYTE * msg, int len);
 
 protected:
-	ssh_bind sshbind;
-	ssh_session session;
-    ssh_message message;
-    ssh_channel chan;
+	ssh_bind m_sshbind;
+	ssh_session m_session;
+    ssh_message m_message;
+    ssh_channel m_chan;
 };
 
 SSHStatusClient::SSHStatusClient(int instanceNo) : StatusClient(instanceNo)
 {
-	chan = 0;
+	m_chan = 0;
 	m_needEcho = true;
 	m_handlePasswordRule = false;	// modify behavior of password rule check in super class
+	m_sshbind = NULL;
+	m_session = NULL;
 }
 
 SSHStatusClient::~SSHStatusClient()
 {
-    ssh_disconnect(session);
-	if (sshbind) {
-		ssh_bind_set_fd(sshbind, -1);		// make sure StatusListener is not closed
-		ssh_bind_free(sshbind);
+    ssh_disconnect(m_session);
+	if (m_sshbind) {
+		ssh_bind_set_fd(m_sshbind, -1);		// make sure StatusListener is not closed
+		ssh_bind_free(m_sshbind);
 	}
 	ssh_finalize();
 	GkStatus::Instance()->StatusClientDeleted();
@@ -380,22 +382,22 @@ bool SSHStatusClient::Accept(YaTCPSocket & socket)
 PBoolean SSHStatusClient::Accept(PSocket & socket)
 #endif
 {
-	sshbind = ssh_bind_new();
-	session = ssh_new();
+	m_sshbind = ssh_bind_new();
+	m_session = ssh_new();
 
-	//ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_LOG_VERBOSITY_STR, "3");	// only enable for debugging
+	//ssh_bind_options_set(m_sshbind, SSH_BIND_OPTIONS_LOG_VERBOSITY_STR, "3");	// only enable for debugging
 
 	bool keyAvailable = false;
 	PString dsakey = GkConfig()->GetString(authsec, "DSAKey", "/etc/ssh/ssh_host_dsa_key");
 	if (PFile::Exists(dsakey) && PFile::Access(dsakey, PFile::ReadOnly)) {
 		keyAvailable = true;
-		ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_DSAKEY, (const char *)dsakey);
+		ssh_bind_options_set(m_sshbind, SSH_BIND_OPTIONS_DSAKEY, (const char *)dsakey);
 		PTRACE(3, "Setting DSA key to " << dsakey);
 	}
 	PString rsakey = GkConfig()->GetString(authsec, "RSAKey", "/etc/ssh/ssh_host_rsa_key");
 	if (PFile::Exists(rsakey) && PFile::Access(rsakey, PFile::ReadOnly)) {
 		keyAvailable = true;
-		ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_RSAKEY, (const char *)rsakey);
+		ssh_bind_options_set(m_sshbind, SSH_BIND_OPTIONS_RSAKEY, (const char *)rsakey);
 		PTRACE(3, "Setting RSA key to " << rsakey);
 	}
 	if (!keyAvailable) {
@@ -410,21 +412,21 @@ PBoolean SSHStatusClient::Accept(PSocket & socket)
 		SNMP_TRAP(7, SNMPError, Network, "SSH init failed");
 		return false;
     }
-	ssh_bind_set_fd(sshbind, socket.GetHandle());
-	if(ssh_bind_accept(sshbind, session) == SSH_ERROR) {
-		PTRACE(1, "ssh_bind_accept() failed: " << ssh_get_error(sshbind));
+	ssh_bind_set_fd(m_sshbind, socket.GetHandle());
+	if(ssh_bind_accept(m_sshbind, m_session) == SSH_ERROR) {
+		PTRACE(1, "ssh_bind_accept() failed: " << ssh_get_error(m_sshbind));
 		SNMP_TRAP(7, SNMPError, Network, "SSH bind failed");
 		return false;
     }
 
-    if(ssh_handle_key_exchange(session)) {
-		PTRACE(1, "ssh_handle_key_exchange failed: " << ssh_get_error(session));
+    if(ssh_handle_key_exchange(m_session)) {
+		PTRACE(1, "ssh_handle_key_exchange failed: " << ssh_get_error(m_session));
 		SNMP_TRAP(7, SNMPError, Network, "SSH key exchange failed");
 		return false;
 	}
 	
 	// set handle for SocketsReader
-	os_handle = ssh_get_fd(session);
+	os_handle = ssh_get_fd(m_session);
 
 	Address raddr, laddr;
 	WORD rport = 0, lport = 0;
@@ -450,34 +452,34 @@ bool SSHStatusClient::Authenticate()
     bool auth = false;
     int retries = 0;
     do {
-        message = ssh_message_get(session);
-        if (!message) {
-			PTRACE(1, "ssh read error: " << ssh_get_error(session));
-			SNMP_TRAP(7, SNMPError, Network, PString("SSH read error: ") + ssh_get_error(session));
+        m_message = ssh_message_get(m_session);
+        if (!m_message) {
+			PTRACE(1, "ssh read error: " << ssh_get_error(m_session));
+			SNMP_TRAP(7, SNMPError, Network, PString("SSH read error: ") + ssh_get_error(m_session));
             break;
 		}
-		switch(ssh_message_type(message)) {
+		switch(ssh_message_type(m_message)) {
             case SSH_REQUEST_AUTH:
-                switch(ssh_message_subtype(message)) {
+                switch(ssh_message_subtype(m_message)) {
                     case SSH_AUTH_METHOD_PASSWORD:
 						retries++;
                         if (AuthenticateUser()) {
 							auth = true;
-							ssh_message_auth_reply_success(message, 0);
+							ssh_message_auth_reply_success(m_message, 0);
 							break;
 						}
 						// fall through: not authenticated, send default message
                     case SSH_AUTH_METHOD_NONE:
                     default:
-                        ssh_message_auth_set_methods(message, SSH_AUTH_METHOD_PASSWORD);
-                        ssh_message_reply_default(message);
+                        ssh_message_auth_set_methods(m_message, SSH_AUTH_METHOD_PASSWORD);
+                        ssh_message_reply_default(m_message);
                         break;
                 }
                 break;
             default:
-                ssh_message_reply_default(message);
+                ssh_message_reply_default(m_message);
         }
-        ssh_message_free(message);
+        ssh_message_free(m_message);
     } while (!auth && (retries < 3) && ((time(NULL) - now) < loginTimeout));
 
     if (!auth) {
@@ -486,62 +488,62 @@ bool SSHStatusClient::Authenticate()
 
 	// open channel
     do {
-        message = ssh_message_get(session);
-        if (message) {
-            switch(ssh_message_type(message)) {
+        m_message = ssh_message_get(m_session);
+        if (m_message) {
+            switch(ssh_message_type(m_message)) {
                 case SSH_REQUEST_CHANNEL_OPEN:
-                    if (ssh_message_subtype(message) == SSH_CHANNEL_SESSION) {
-                        chan = ssh_message_channel_request_open_reply_accept(message);
+                    if (ssh_message_subtype(m_message) == SSH_CHANNEL_SESSION) {
+                        m_chan = ssh_message_channel_request_open_reply_accept(m_message);
                         break;
                     }
 	                // fall through intended
                 default:
-	                ssh_message_reply_default(message);
+	                ssh_message_reply_default(m_message);
             }
-            ssh_message_free(message);
+            ssh_message_free(m_message);
         }
-    } while(message && !chan);
-    if (!chan) {
-        PTRACE(1, "Error establishing SSH channel: " << ssh_get_error(session));
-		SNMP_TRAP(7, SNMPError, Network, PString("SSH error: ") + ssh_get_error(session));    
+    } while(m_message && !m_chan);
+    if (!m_chan) {
+        PTRACE(1, "Error establishing SSH channel: " << ssh_get_error(m_session));
+		SNMP_TRAP(7, SNMPError, Network, PString("SSH error: ") + ssh_get_error(m_session));    
         return false;
     }
 
 	// handle requests
 	bool shell = false;
     do {
-        message = ssh_message_get(session);
-        if (message) {
-            switch(ssh_message_type(message)) {
+        m_message = ssh_message_get(m_session);
+        if (m_message) {
+            switch(ssh_message_type(m_message)) {
                 case SSH_REQUEST_CHANNEL:
-                    switch (ssh_message_subtype(message)) {
+                    switch (ssh_message_subtype(m_message)) {
 						case SSH_CHANNEL_REQUEST_UNKNOWN:
 							// eg. Putty X11 forwarding, deny to avoid hang
-			                ssh_message_reply_default(message);	// deny
+			                ssh_message_reply_default(m_message);	// deny
 			                break;
 						case SSH_CHANNEL_REQUEST_PTY:
-		                    ssh_message_channel_request_reply_success(message);
+		                    ssh_message_channel_request_reply_success(m_message);
 			                break;
 						case SSH_CHANNEL_REQUEST_SHELL:
 							shell = true;
-		                    ssh_message_channel_request_reply_success(message);
+		                    ssh_message_channel_request_reply_success(m_message);
 			                break;
 						case SSH_CHANNEL_X11:
-			                ssh_message_reply_default(message);	// deny X11 forwarding
+			                ssh_message_reply_default(m_message);	// deny X11 forwarding
 			                break;
 						default:
-							PTRACE(3, "Unhandled SSH_REQUEST_CHANNEL message " << ssh_message_type(message) << " subtype " << ssh_message_subtype(message));
+							PTRACE(3, "Unhandled SSH_REQUEST_CHANNEL message " << ssh_message_type(m_message) << " subtype " << ssh_message_subtype(m_message));
 							break;
 					}
 					break;
 				default:
-					PTRACE(3, "Unhandled SSH message " << ssh_message_type(message) << " subtype " << ssh_message_subtype(message));
+					PTRACE(3, "Unhandled SSH message " << ssh_message_type(m_message) << " subtype " << ssh_message_subtype(m_message));
 				// ignore the rest for now
             }
-            ssh_message_free(message);
+            ssh_message_free(m_message);
         }
-	} while(message && !shell);
-	if (!message)
+	} while(m_message && !shell);
+	if (!m_message)
 		return false;
 
     return true;
@@ -551,8 +553,8 @@ bool SSHStatusClient::AuthenticateUser()
 {
 	const int delay = GkConfig()->GetInteger(authsec, "DelayReject", 0);
 
-	PString login = ssh_message_auth_user(message);
-	PString password = ssh_message_auth_password(message);
+	PString login = ssh_message_auth_user(m_message);
+	PString password = ssh_message_auth_password(m_message);
 
 	// PTRACE(1, "User " << login << " wants to authenticate with password " << password);
 
@@ -575,7 +577,7 @@ bool SSHStatusClient::ReadCommand(PString& cmd, bool echo, int readTimeout)
     char buf[2048];
     int i = 0;
     do {
-        i = ssh_channel_read(chan, buf, sizeof(buf), 0);
+        i = ssh_channel_read(m_chan, buf, sizeof(buf), 0);
 		for (int c = 0; c < i; c++) {
 			char byte;
 			char ch = buf[c];
@@ -587,7 +589,7 @@ bool SSHStatusClient::ReadCommand(PString& cmd, bool echo, int readTimeout)
 					m_lastCmd = cmd;
 					m_currentCmd = PString();
 					if (echo && NeedEcho())
-						ssh_channel_write(chan, (void *)"\r\n", 2);
+						ssh_channel_write(m_chan, (void *)"\r\n", 2);
 					return true;
 				case '\b':
 				case 0x7f:	// backspace with ssh
@@ -595,7 +597,7 @@ bool SSHStatusClient::ReadCommand(PString& cmd, bool echo, int readTimeout)
 						m_currentCmd = m_currentCmd.Left(m_currentCmd.GetLength() - 1);
 						byte = char(ch);
 						if (echo && NeedEcho()) {
-							ssh_channel_write(chan, (void *)"\b \b", 3);
+							ssh_channel_write(m_chan, (void *)"\b \b", 3);
 						}
 					}
 					break;
@@ -619,7 +621,7 @@ bool SSHStatusClient::ReadCommand(PString& cmd, bool echo, int readTimeout)
 						m_currentCmd = m_lastCmd;
 					} else if (cmd.Find('\x1b') == P_MAX_INDEX)
 						if (echo && NeedEcho())
-							ssh_channel_write(chan, &buf[c], 1);
+							ssh_channel_write(m_chan, &buf[c], 1);
 					break;
 				}
 			}
@@ -630,11 +632,11 @@ bool SSHStatusClient::ReadCommand(PString& cmd, bool echo, int readTimeout)
 
 bool SSHStatusClient::WriteData(const BYTE * msg, int len)
 {
-	if (!chan)
+	if (!m_chan)
 		return false;
 
-	int written = ssh_channel_write(chan, msg, len);
-	ssh_blocking_flush(session, 5000);	// wait 5 sec. max
+	int written = ssh_channel_write(m_chan, msg, len);
+	ssh_blocking_flush(m_session, 5000);	// wait 5 sec. max
 	return (written == len);
 }
 
