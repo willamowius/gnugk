@@ -668,7 +668,11 @@ void WindowsSNMPAgent::SendWindowsSNMPTrap(unsigned trapNumber, SNMPLevel severi
 
 PCaselessString SelectSNMPImplementation() 
 {
+#ifdef HAS_NETSNMP
 	PCaselessString implementation = GkConfig()->GetString(SNMPSection, "Implementation", "Net-SNMP");
+#else
+	PCaselessString implementation = GkConfig()->GetString(SNMPSection, "Implementation", "PTLib");
+#endif
 
 	// switch to other implementation if only one is available
 #ifndef HAS_NETSNMP
