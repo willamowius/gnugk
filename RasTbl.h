@@ -318,6 +318,8 @@ public:
 	bool IsTraversalServer() const { return m_traversalType == TraversalServer; }
 	bool IsTraversalClient() const { return m_traversalType == TraversalClient; }
 
+	bool UseTLS() const { return m_useTLS; }
+
 	// smart pointer for EndpointRec
 	typedef SmartPtr<EndpointRec> Ptr;
 
@@ -404,6 +406,7 @@ protected:
 	
 	long m_bandwidth;	// bandwidth currently occupied by this endpoint
 	long m_maxBandwidth; // maximum bandwidth allowed for this endpoint
+	bool m_useTLS;
 };
 
 typedef EndpointRec::Ptr endptr;

@@ -27,6 +27,14 @@
 #ifdef HAS_H460P
 #include "h460presence.h"
 #endif
+#ifdef HAS_TLS
+extern "C" {
+#include <openssl/err.h>
+#include <openssl/rand.h>
+#include <openssl/ssl.h>
+#include <openssl/x509v3.h>
+}
+#endif
 
 class H225_AliasAddress;
 class H225_ArrayOf_AliasAddress;
@@ -341,6 +349,11 @@ class Toolkit : public Singleton<Toolkit>
 #ifdef H323_H350
 	// Create H350 connection
     bool CreateH350Session(H350_Session * session);
+#endif
+
+#ifdef HAS_TLS
+	bool IsTLSEnabled() const;
+	SSL_CTX * GetTLSContext();
 #endif
 
 	/// maybe modifies #alias#. returns true if it did
@@ -684,6 +697,11 @@ private:
 #endif
 	std::map<PortType, PString> m_portOpenNotifications;
 	std::map<PortType, PString> m_portCloseNotifications;
+
+#ifdef HAS_TLS
+	SSL_CTX * m_sslCtx;
+	PString m_passphrase;
+#endif
 };
 
 

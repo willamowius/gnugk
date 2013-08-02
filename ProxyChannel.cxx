@@ -60,6 +60,7 @@ using namespace std;
 using Routing::Route;
 
 const char* RoutedSec = "RoutedMode";
+const char* TLSSec = "TLS";
 const char* ProxySection = "Proxy";
 const char* H225_ProtocolID = "0.0.8.2250.0.2";
 const char* H245_ProtocolID = "0.0.8.245.0.3";
@@ -1399,8 +1400,9 @@ PBoolean CallSignalSocket::Connect(const Address & addr)
 	int numPorts = min(Q931PortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS);
 	for (int i = 0; i < numPorts; ++i) {
 		WORD pt = Q931PortRange.GetPort();
-		if (TCPProxySocket::Connect(local, pt, addr))
+		if (TCPProxySocket::Connect(local, pt, addr)) {
 			return true;
+		}
 		int errorNumber = GetErrorNumber(PSocket::LastGeneralError);
 		PTRACE(1, Type() << "\tCould not open/connect Q.931 socket at " << AsString(local, pt)
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
@@ -3696,7 +3698,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 #ifdef hasAutoCreateAuthenticators  // Authenticators are created on demand by identifiers in token/cryptoTokens where supported 
 			auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
-#else			// Create all authenticators for both media encryption and caller authentication
+#else		// Create all authenticators for both media encryption and caller authentication
 			H235Authenticators::SetMaxCipherLength(toolkit->Config()->GetInteger(RoutedSec, "H235HalfCallMediaStrength", 128));
 			auth.CreateAuthenticators(H235Authenticator::MediaEncryption);  
 			auth.CreateAuthenticators(H235Authenticator::EPAuthentication);
@@ -4299,7 +4301,15 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 		}
 	}
 	if (!remote) {
-		remote = new CallSignalSocket(this, peerPort);
+#ifdef HAS_TLS
+		if (Toolkit::Instance()->IsTLSEnabled()
+			&& m_call->GetCalledParty() && m_call->GetCalledParty()->UseTLS()) {
+			remote = new TLSCallSignalSocket(this, peerPort);
+		} else
+#endif // HAS_TLS
+		{
+			remote = new CallSignalSocket(this, peerPort);
+		}
 #ifdef HAS_H46018
 		if (m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalServer()) {
 			((CallSignalSocket*)remote)->m_callToTraversalServer = true;
@@ -4336,7 +4346,15 @@ bool CallSignalSocket::CreateRemote(const H225_TransportAddress & addr)
     masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
     UnmapIPv4Address(masqAddr);
 
-	remote = new CallSignalSocket(this, peerPort);
+#ifdef HAS_TLS
+		if (Toolkit::Instance()->IsTLSEnabled()
+			&& m_call->GetCalledParty() && m_call->GetCalledParty()->UseTLS()) {
+			remote = new TLSCallSignalSocket(this, peerPort);
+	} else
+#endif // HAS_TLS
+	{
+		remote = new CallSignalSocket(this, peerPort);
+	}
 
 	if (!InternalConnectTo()) {
 		PTRACE(1, "CreateRemote: InternalConnectTo() failed");
@@ -10937,6 +10955,298 @@ ServerSocket *CallSignalListener::CreateAcceptor() const
 {
 	return new CallSignalSocket();
 }
+
+
+#ifdef HAS_TLS
+// class TLSCallSignalListener
+TLSCallSignalListener::TLSCallSignalListener(const Address & addr, WORD pt) : CallSignalListener(addr, pt)
+{
+}
+
+TLSCallSignalListener::~TLSCallSignalListener()
+{
+}
+
+ServerSocket *TLSCallSignalListener::CreateAcceptor() const
+{
+	return new TLSCallSignalSocket();
+}
+
+TLSCallSignalSocket::TLSCallSignalSocket()
+{
+	m_ssl = NULL;
+	m_lastReadCount = 0;
+}
+
+TLSCallSignalSocket::TLSCallSignalSocket(CallSignalSocket * s, WORD port) : CallSignalSocket(s, port)
+{
+	// for outgoing call
+	m_ssl = NULL;
+	m_lastReadCount = 0;
+}
+
+TLSCallSignalSocket::~TLSCallSignalSocket()
+{
+	if (m_ssl) {
+		SSL_shutdown(m_ssl);
+		SSL_free(m_ssl);
+		m_ssl = NULL;
+	}
+}
+
+bool TLSCallSignalSocket::Connect(const Address & addr)
+{
+	if (CallSignalSocket::Connect(addr)) {
+		if (!(m_ssl = SSL_new(Toolkit::Instance()->GetTLSContext()))) {
+			PTRACE(1, "TLS\tError creating SSL object");
+			return false;
+		}
+		SSL_set_fd(m_ssl, GetHandle());
+		int ret = 0;
+		do {
+			ret = SSL_connect(m_ssl);
+		} while (ret <= 0);
+		return true;
+	} else {
+		return false;
+	}
+}
+
+PBoolean TLSCallSignalSocket::Connect(const Address & iface, WORD localPort, const Address & addr)
+{
+	SetName(AsString(addr, GetPort()));
+	SetReadTimeout(PTimeInterval(6000));
+	PBoolean result = PTCPSocket::Connect(iface, localPort, addr);
+	if (result) {
+		PTimeInterval timeout(100);
+		SetReadTimeout(timeout);
+		SetWriteTimeout(timeout);
+
+		if (!(m_ssl = SSL_new(Toolkit::Instance()->GetTLSContext()))) {
+			PTRACE(1, "TLS\tError creating SSL object");
+			return false;
+		}
+		SSL_set_fd(m_ssl, GetHandle());
+		int ret = 0;
+		do {
+			ret = SSL_connect(m_ssl);
+			if (ret <= 0) {
+				char msg[256];
+				int err = SSL_get_error(m_ssl, ret);
+				switch (err) {
+					case SSL_ERROR_NONE:
+						break;
+					case SSL_ERROR_SSL:
+						ERR_error_string(ERR_get_error(), msg);
+						PTRACE(1, "TLS\tTLS protocol error in SSL_connect(): " << err << " / " << msg);
+						SSL_shutdown(m_ssl);
+						return false;
+						break;
+					case SSL_ERROR_SYSCALL:
+						PTRACE(1, "TLS\tSyscall error in SSL_connect() errno=" << errno);
+						switch (errno) {
+							case 0:
+								ret = 1;	// done
+								break;
+							case EAGAIN:
+								break;
+							default:
+								ERR_error_string(ERR_get_error(), msg);
+								PTRACE(1, "TLS\tTerminating connection: " << msg);
+								SSL_shutdown(m_ssl);
+								return false;
+						};
+						break;
+					case SSL_ERROR_WANT_READ:
+						// just retry
+						break;
+					case SSL_ERROR_WANT_WRITE:
+						// just retry
+						break;
+					default:
+						ERR_error_string(ERR_get_error(), msg);
+						PTRACE(1, "TLS\tUnknown error in SSL_connect(): " << err << " / " << msg);
+						SSL_shutdown(m_ssl);
+						return false;
+				}
+			}
+		} while (ret <= 0);
+		// TODO: post connection check ?
+
+		return true;
+	}
+	return result;
+}
+
+bool TLSCallSignalSocket::Read(void * buf, int sz)
+{
+	if (!m_ssl) {
+		PTRACE(1, "TLS\tError: Not initialized");
+		return false;
+	}
+	m_lastReadCount = 0;
+	int ret = 0;
+	do {
+		ret = SSL_read(m_ssl, buf, sz);
+		if (ret > 0) {
+			m_lastReadCount += ret;
+		}
+		if (ret <= 0) {
+			char msg[256];
+			int err = SSL_get_error(m_ssl, ret);
+			switch (err) {
+				case SSL_ERROR_NONE:
+					break;
+				case SSL_ERROR_SSL:
+					ERR_error_string(ERR_get_error(), msg);
+					PTRACE(1, "TLS\tTLS protocol error in SSL_connect(): " << err << " / " << msg);
+					SSL_shutdown(m_ssl);
+					return false;
+					break;
+				case SSL_ERROR_SYSCALL:
+					PTRACE(1, "TLS\tSyscall error in SSL_read() errno=" << errno);
+					switch (errno) {
+						case 0:
+							return false;	// done
+							break;
+						case EAGAIN:
+							break;
+						default:
+							ERR_error_string(ERR_get_error(), msg);
+							PTRACE(1, "TLS\tTerminating connection: " << msg);
+							SSL_shutdown(m_ssl);
+							return false;
+					};
+					break;
+				case SSL_ERROR_WANT_READ:
+					// just retry
+					break;
+				case SSL_ERROR_WANT_WRITE:
+					// just retry
+					break;
+				default:
+					ERR_error_string(ERR_get_error(), msg);
+					PTRACE(1, "TLS\tUnknown error in SSL_read(): " << err << " / " << msg);
+					SSL_shutdown(m_ssl);
+					return false;
+			}
+		}
+	} while (ret <= 0);
+	return ret > 0;
+}
+
+bool TLSCallSignalSocket::Write(const void * buf, int sz)
+{
+	if (!m_ssl) {
+		PTRACE(1, "TLS\tError: Not initialized");
+		return false;
+	}
+	int ret = 0;
+	do {
+		ret = SSL_write(m_ssl, buf, sz);
+		if (ret <= 0) {
+			char msg[256];
+			int err = SSL_get_error(m_ssl, ret);
+			switch (err) {
+				case SSL_ERROR_NONE:
+					break;
+				case SSL_ERROR_SSL:
+					ERR_error_string(ERR_get_error(), msg);
+					PTRACE(1, "TLS\tTLS protocol error in SSL_connect(): " << err << " / " << msg);
+					SSL_shutdown(m_ssl);
+					return false;
+					break;
+				case SSL_ERROR_SYSCALL:
+					PTRACE(1, "TLS\tSyscall error in SSL_write() errno=" << errno);
+					switch (errno) {
+						case 0:
+							return false;	// done
+							break;
+						case EAGAIN:
+							// just try again
+							break;
+						default:
+							ERR_error_string(ERR_get_error(), msg);
+							PTRACE(1, "TLS\tTerminating connection: " << msg);
+							SSL_shutdown(m_ssl);
+							return false;
+					};
+					break;
+				case SSL_ERROR_WANT_READ:
+					// just retry
+					break;
+				case SSL_ERROR_WANT_WRITE:
+					// just retry
+					break;
+				default:
+					ERR_error_string(ERR_get_error(), msg);
+					PTRACE(1, "TLS\tUnknown error in SSL_write(): " << err << " / " << msg);
+					SSL_shutdown(m_ssl);
+					return false;
+			}
+		}
+	} while (ret <= 0);
+	return ret > 0;
+}
+
+void TLSCallSignalSocket::Dispatch()
+{
+	if (!(m_ssl = SSL_new(Toolkit::Instance()->GetTLSContext()))) {
+		PTRACE(1, "TLS\tError creating SSL object");
+		return;
+	}
+	SSL_set_fd(m_ssl, GetHandle());
+	int ret = 0;
+	do {
+		ret = SSL_accept(m_ssl);
+		if (ret <= 0) {
+			char msg[256];
+			int err = SSL_get_error(m_ssl, ret);
+			switch (err) {
+				case SSL_ERROR_NONE:
+					break;
+				case SSL_ERROR_SSL:
+					ERR_error_string(ERR_get_error(), msg);
+					PTRACE(1, "TLS\tTLS protocol error in SSL_connect(): " << err << " / " << msg);
+					SSL_shutdown(m_ssl);
+					return;
+					break;
+				case SSL_ERROR_SYSCALL:
+					PTRACE(1, "TLS\tSyscall error in SSL_accept() errno=" << errno);
+					switch (errno) {
+						case 0:
+							ret = 1;	// done
+							break;
+						case EAGAIN:
+							// just retry
+							break;
+						default:
+							ERR_error_string(ERR_get_error(), msg);
+							PTRACE(1, "TLS\tTerminating connection: " << msg);
+							SSL_shutdown(m_ssl);
+							return;
+					};
+					break;
+				case SSL_ERROR_WANT_READ:
+					// just retry
+					break;
+				case SSL_ERROR_WANT_WRITE:
+					// just retry
+					break;
+				default:
+					ERR_error_string(ERR_get_error(), msg);
+					PTRACE(1, "TLS\tUnknown error in SSL_accept(): " << err << " / " << msg);
+					SSL_shutdown(m_ssl);
+					return;
+			}
+		}
+	} while (ret <= 0);
+	// TODO: post connection check ?
+
+	CallSignalSocket::Dispatch();
+}
+
+#endif // HAS_TLS
 
 
 // class ProxyHandler

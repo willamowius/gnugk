@@ -799,10 +799,12 @@ for notifications ("traps") when an error occurs.
 
 <item><tt/EnableSNMP=1/<newline>
 Default: <tt>0</tt><newline>
+<p>
 Enable SNMP support. GnuGk must be compiled with SNMP support.
 
 <item><tt/Implementation=PTLib/<newline>
 Default: <tt>Net-SNMP</tt><newline>
+<p>
 Select the SNMP implementation to use. Possible values are <tt>Net-SNMP</tt>, <tt>PTLib</tt> and <tt>Windows</tt>.
 
 <item><tt/EnableWarningTraps=1/<newline>
@@ -992,3 +994,52 @@ Default: <tt>n/a</tt><newline>
 A comma separated list of IPs or networks which are allowed to send us SNMP requests.
 
 </itemize>
+
+<sect1>Section &lsqb;TLS&rsqb;
+<label id="tls">
+<p>
+Using TLS (transport layer security), you can encrypt the Q.931 signalling channel
+(and eg. H.245 when it is tunneled). When TLS is enabled, GnuGk will listen on
+port 1300 for TLS connections.
+<p>
+Each leg of the call can use not not use TLS individually. For example one endpoint
+might encrypt its signalling to the GNU Gatekeeper and the 2nd half of the call
+going out to another endpoint may be unencrypted.
+<p>
+Currently you have to define manually for which endpoints use TLS when we call them, by setting
+a switch in their [EP::...] section, so this feature is mainly usefull to secure
+"trunk" connections to known gateways or other gatekeepers.
+<p>
+Using TLS is also important to avoid man-in-the-middle attacks on H.235.6 media encryption.
+
+<itemize>
+
+<item><tt/EnableTLS=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Enable TLS support. GnuGk must have been compiled with OpenSSL support.
+
+<item><tt/PrivateKey=key.pem/<newline>
+Default: <tt>tls_private_key.pem</tt><newline>
+<p>
+File with private key for this server.
+
+<item><tt/Certificates=server_cert.pem/<newline>
+Default: <tt>tls_certificate.pem</tt><newline>
+<p>
+File with certificate for this server.
+
+<item><tt/CAFile=rootcert.pem/<newline>
+Default: <tt>n/a</tt><newline>
+<p>
+File with root CA certificates.
+
+<item><tt/CADir=/etc/certs/<newline>
+Default: <tt>n/a</tt><newline>
+<p>
+Directory where to search for root CA certificates.
+
+</itemize>
+
+<!-- TODO: instructions how to generate the certificates with OpenSSL -->
+

@@ -27,6 +27,7 @@
 
 /* port used by gatekeeper for routed signaling: anything != 1720 so endpoint can be on same IP as GK */
 #define GK_DEF_CALL_SIGNAL_PORT		1721
+#define GK_DEF_TLS_CALL_SIGNAL_PORT	1300
 
 /* well known signal port */
 #define GK_DEF_ENDPOINT_SIGNAL_PORT	1720

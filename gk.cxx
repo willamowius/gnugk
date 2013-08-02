@@ -453,6 +453,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "SupportCallingNATedEndpoints" },
 	{ "RoutedMode", "SupportNATedEndpoints" },
 	{ "RoutedMode", "TcpKeepAlive" },
+	{ "RoutedMode", "TLSCallSignalPort" },
 	{ "RoutedMode", "TranslateFacility" },
 	{ "RoutedMode", "TranslateReceivedQ931Cause" },
 	{ "RoutedMode", "TreatUnregisteredNAT" },
@@ -589,6 +590,14 @@ const char * KnownConfigEntries[][2] = {
 	{ "SyslogAcct", "SyslogLevel" },
 	{ "SyslogAcct", "TimestampFormat" },
 	{ "SyslogAcct", "UpdateEvent" },
+#ifdef HAS_TLS
+	{ "TLS", "CADir" },
+	{ "TLS", "CAFile" },
+	{ "TLS", "Certificates" },
+	{ "TLS", "EnableTLS" },
+	{ "TLS", "Passphrase" },
+	{ "TLS", "PrivateKey" },
+#endif
 
 	// ignore name partially to check
 	{ "EP::", "AddNumbers" },
@@ -609,6 +618,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "EP::", "Proxy" },
 	{ "EP::", "TranslateReceivedQ931Cause" },
 	{ "EP::", "TranslateSentQ931Cause" },
+	{ "EP::", "UseTLS" },
 	{ "Neighbor::", "AcceptForwardedLRQ" },
 	{ "Neighbor::", "AcceptPrefixes" },
 	{ "Neighbor::", "AuthUser" },

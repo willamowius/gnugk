@@ -31,6 +31,7 @@ class CallTable;
 class RasListener;
 class MulticastListener;
 class CallSignalListener;
+class TLSCallSignalListener;
 class StatusListener;
 class MultiplexRTPListener;
 class RasServer;
@@ -75,6 +76,10 @@ public:
 
 	WORD GetSignalPort() const { return m_signalPort; }
 	void SetSignalPort(WORD pt) { m_signalPort = pt; }
+#ifdef HAS_TLS
+	WORD GetTLSSignalPort() const { return m_tlsSignalPort; }
+	void SetTLSSignalPort(WORD pt) { m_tlsSignalPort = pt; }
+#endif
 
 	Address GetLocalAddr(const Address &) const;
 	Address GetPhysicalAddr(const Address & addr) const;
@@ -89,6 +94,9 @@ protected:
 	Address m_ip;
 	PMutex m_wmutex;
 	WORD m_signalPort;
+#ifdef HAS_TLS
+	WORD m_tlsSignalPort;
+#endif
 	bool m_virtualInterface;
 };
 
@@ -211,12 +219,19 @@ protected:
 	CallSignalListener *m_callSignalListener;
 	StatusListener *m_statusListener;
 	WORD m_rasPort, m_multicastPort, m_signalPort, m_statusPort;
+#ifdef HAS_TLS
+	TLSCallSignalListener *m_tlsCallSignalListener;
+	WORD m_tlsSignalPort;
+#endif
 	RasServer *m_rasSrv;
 
 private:
 	virtual RasListener *CreateRasListener();
 	virtual MulticastListener *CreateMulticastListener();
 	virtual CallSignalListener *CreateCallSignalListener();
+#ifdef HAS_TLS
+	virtual TLSCallSignalListener *CreateTLSCallSignalListener();
+#endif
 	virtual StatusListener *CreateStatusListener();
 };
 

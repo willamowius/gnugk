@@ -50,6 +50,7 @@ PSemaphore ShutdownMutex(1, 1);
 
 extern const char *ProxySection;
 extern const char *RoutedSec;
+extern const char *TLSSec;
 
 namespace {
 
@@ -813,15 +814,18 @@ void Toolkit::RewriteData::AddSection(PConfig * config, const PString & section)
 Toolkit::RewriteData::RewriteData(PConfig *config, const PString & section)
 {
 	m_RewriteKey = NULL;
-	m_size= 0;
+	m_RewriteValue = NULL;
+	m_size = 0;
     AddSection(config, section);
 }
 
 Toolkit::RewriteData::~RewriteData()
 {
-	if (m_RewriteKey)
-		for (int i = 0; i < m_size * 2; i++)
+	if (m_RewriteKey) {
+		for (int i = 0; i < m_size * 2; i++) {
 			(m_RewriteKey+i)->~PString();
+		}
+	}
 	delete[] ((BYTE*)m_RewriteKey);
 }
 
@@ -1094,12 +1098,19 @@ Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit"),
 	m_cliRewrite(NULL), m_causeCodeTranslationActive(false)
 {
 	srand((unsigned int)time(0));
+#ifdef HAS_TLS
+	m_sslCtx = NULL;
+#endif
 }
 
 Toolkit::~Toolkit()
 {
 #ifdef HAS_H460P
 	m_presence.Stop();
+#endif
+#ifdef HAS_TLS
+	if (m_sslCtx)
+		SSL_CTX_free(m_sslCtx);
 #endif
 	if (m_Config) {
 		delete m_Config;
@@ -2021,7 +2032,7 @@ bool Toolkit::CreateH350Session(H350_Session * session)
 #endif
 	}
 	if (!user.IsEmpty())
-	    session->Bind(user,password,authMethod);
+	    session->Bind(user, password, authMethod);
 
 	return true;
 }
@@ -2101,6 +2112,121 @@ bool Toolkit::AssignedAliases::QueryH350Directory(const PString & alias, PString
 	return false;
 }
 #endif
+
+#ifdef HAS_TLS
+
+void apps_ssl_info_callback(const SSL * s, int where, int ret)
+{
+	const char * str;
+	int w = where & ~SSL_ST_MASK;
+
+	if (w & SSL_ST_CONNECT) str = "SSL_connect";
+	else if (w & SSL_ST_ACCEPT) str = "SSL_accept";
+	else str = "undefined";
+
+	if (where & SSL_CB_LOOP) {
+			PTRACE(5, "TLS\t" << str << ": " << SSL_state_string_long(s));
+	} else if (where & SSL_CB_ALERT) {
+		str = (where & SSL_CB_READ)?"read":"write";
+		PTRACE(5, "TLS\tSSL3 alert " <<	str << ": " << SSL_alert_type_string_long(ret) << ":" << SSL_alert_desc_string_long(ret));
+	} else if (where & SSL_CB_EXIT) {
+		if (ret == 0)
+			PTRACE(5, str << ":failed in " << SSL_state_string_long(s));
+		else if (ret < 0) {
+			PTRACE(5, "TLS\t" << str << ": error in " << SSL_state_string_long(s));
+		}
+	}
+}
+
+int pem_passwd_cb(char * buf, int size, int rwflag, void * password)
+{
+	strncpy(buf, (char *)(password), size);
+	buf[size - 1] = '\0';
+	return(strlen(buf));
+}
+
+int verify_callback(int ok, X509_STORE_CTX * store)
+{
+	char data[256];
+ 
+	if (!ok)
+	{
+        X509 * cert = X509_STORE_CTX_get_current_cert(store);
+        int depth = X509_STORE_CTX_get_error_depth(store);
+        int err = X509_STORE_CTX_get_error(store);
+
+        PTRACE(5, "TLS\tError with certificate at depth " << depth);
+        X509_NAME_oneline(X509_get_issuer_name(cert), data, 256);
+        PTRACE(5, "TLS\t  issuer  = " << data);
+        X509_NAME_oneline(X509_get_subject_name(cert), data, 256);
+        PTRACE(5, "TLS\t  subject = " << data);
+        PTRACE(5, "TLS\t  err " << err << ": " << X509_verify_cert_error_string(err));
+    }
+ 
+    return ok;
+}
+
+bool Toolkit::IsTLSEnabled() const
+{
+	return Toolkit::AsBool(GkConfig()->GetString(TLSSec, "EnableTLS", "0"));
+}
+
+SSL_CTX * Toolkit::GetTLSContext()
+{
+	if (!m_sslCtx) {
+		// TODO: init OpenSSL only once in application
+		if (!SSL_library_init()) {
+			PTRACE(1, "TLS\tOpenSSL init failed");
+			return NULL;
+		}
+		SSL_load_error_strings();
+		if (!RAND_status()) {
+			PTRACE(3, "TLS\tPRNG needs seeding");
+#ifdef P_LINUX
+			RAND_load_file("/dev/urandom", 1024);
+#else
+			BYTE seed[1024];
+			for (size_t i = 0; i < sizeof(seed); i++)
+				seed[i] = (BYTE)rand();
+			RAND_seed(seed, sizeof(seed));
+#endif
+		}
+
+		m_sslCtx = SSL_CTX_new(SSLv23_method());	// allow SSLv3 + TLSv1
+		SSL_CTX_set_options(m_sslCtx, SSL_OP_NO_SSLv2);	// remove unsafe SSLv2
+		SSL_CTX_set_cipher_list(m_sslCtx, "ALL:!ADH:!LOW:!EXP:@STRENGTH");
+
+		SSL_CTX_set_info_callback(m_sslCtx, apps_ssl_info_callback);	// enable only when debugging
+		SSL_CTX_set_default_passwd_cb(m_sslCtx, pem_passwd_cb);
+		m_passphrase = m_Config->GetString(TLSSec, "Passphrase", "");
+		SSL_CTX_set_default_passwd_cb_userdata(m_sslCtx, m_passphrase.GetPointer());
+		PString caFile = m_Config->GetString(TLSSec, "CAFile", "");
+		PString caDir = m_Config->GetString(TLSSec, "CADir", "");
+		const char * caFilePtr = caFile.IsEmpty() ? NULL : caFile.GetPointer();
+		const char * caDirPtr = caDir.IsEmpty() ? NULL : caDir.GetPointer();
+		if (caFilePtr || caDirPtr) {
+			if (SSL_CTX_load_verify_locations(m_sslCtx, caFilePtr, caDirPtr) != 1) {
+				PTRACE(1, "TLS\tError loading CA file or directory (" << caFile << "/" << caDir);
+			}
+		}
+		// TODO: disable ? switch ?
+		if (SSL_CTX_set_default_verify_paths(m_sslCtx) != 1) {
+			PTRACE(1, "TLS\tError loading default CA file or directory");
+		}
+		if (SSL_CTX_use_certificate_chain_file(m_sslCtx, m_Config->GetString(TLSSec, "Certificates", "tls_certificate.pem")) != 1) {
+			PTRACE(1, "TLS\tError loading certificate file");
+		}
+		if (SSL_CTX_use_PrivateKey_file(m_sslCtx, m_Config->GetString(TLSSec, "PrivateKey", "tls_private_key.pem"), SSL_FILETYPE_PEM) != 1) {
+			PTRACE(1, "TLS\tError loading private key file");
+		}
+		SSL_CTX_set_verify(m_sslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, verify_callback); // context is used both in client and server mode
+		SSL_CTX_set_verify_depth(m_sslCtx, 5);
+	}
+
+	return m_sslCtx;
+}
+#endif
+
 
 bool Toolkit::AssignedAliases::QueryAssignedAliases(const PString & alias, PStringArray & aliases)
 {

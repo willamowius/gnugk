@@ -145,6 +145,10 @@
 	#endif
 #endif
 
+#if defined(P_SSL)
+	#define HAS_TLS
+#endif
+
 #if defined(hasPTRACE2)
    #define PTRACEX(level, args)  PTRACE2(level,NULL,args)
 #else

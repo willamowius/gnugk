@@ -1,5 +1,6 @@
 Changes from 3.3 to 3.4
 =======================
+- implement TLS support to encrypt call signaling channel
 - access to the SSH status port can be restricted by additional IP rules in [GkStatus::Auth]
 - implement H.235 media encryption of data channels
 - BUGFIX(GkStatus.h) fix interger underflow in status port

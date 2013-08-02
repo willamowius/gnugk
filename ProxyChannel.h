@@ -54,6 +54,7 @@ typedef H225SignalingMsg<H225_Facility_UUIE> FacilityMsg;
 struct SetupAuthData;
 
 extern const char *RoutedSec;
+extern const char *TLSSec;
 extern const char *ProxySection;
 
 const WORD DEFAULT_PACKET_BUFFER_SIZE = 2048;
@@ -409,6 +410,7 @@ private:
 	void BuildReleasePDU(Q931 &, const H225_CallTerminationCause *) const;
 	// if return false, the h245Address field will be removed
 	bool SetH245Address(H225_TransportAddress &);
+
 	bool InternalConnectTo();
 	bool ForwardCallConnectTo();
 
@@ -499,6 +501,39 @@ public:
 protected:
 	Address m_addr;
 };
+
+
+#ifdef HAS_TLS
+
+class TLSCallSignalListener : public CallSignalListener {
+public:
+	TLSCallSignalListener(const Address &, WORD);
+	~TLSCallSignalListener();
+
+	// override from class CallSignalListener
+	virtual ServerSocket *CreateAcceptor() const;
+};
+
+class TLSCallSignalSocket : public CallSignalSocket {
+public:
+	TLSCallSignalSocket();
+	TLSCallSignalSocket(CallSignalSocket * s, WORD port);
+	virtual ~TLSCallSignalSocket();
+
+	virtual bool Connect(const Address & addr);
+	virtual PBoolean Connect(const Address & iface, WORD localPort, const Address & addr);	// override from TCPProxySocket
+	virtual bool Read(void * buf, int sz);
+	virtual int GetLastReadCount() const { return m_lastReadCount; }
+	virtual bool Write(const void * buf, int sz);
+	virtual void Dispatch();
+
+protected:
+	SSL * m_ssl;
+	int m_lastReadCount;
+};
+
+#endif // HAS_TLS
+
 
 #ifdef HAS_H46018
 

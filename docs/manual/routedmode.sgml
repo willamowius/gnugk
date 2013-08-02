@@ -56,6 +56,12 @@ The default port is <tt/1721/. We don't use the well-known port <tt/1720/ by def
 so you can run an H.323 endpoint or gateway in the same machine as the gatekeeper.
 You may set it to <tt/0/ to let the gatekeeper choose an arbitrary port.
 
+<item><tt/TLSCallSignalPort=1300/<newline>
+Default: <tt/1300/<newline>
+<p>
+The port where GnuGk should listen for TLS (transport layer security) signaling,
+if enabled in the <ref id="tls" name="[TLS] section">.
+
 <item><tt/CallSignalHandlerNumber=10/<newline>
 Default: <tt/5/<newline>
 <p>

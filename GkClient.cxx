@@ -166,7 +166,7 @@ void NATClient::Exec()
 {
 	ReadLock lockConfig(ConfigReloadMutex);
 	
-	socket = new CallSignalSocket();
+	socket = new CallSignalSocket();	// TODO: handle TLS
 	socket->SetPort(gkport);
 	if (socket->Connect(gkip)) {
 		PTRACE(2, "GKC\t" << socket->GetName() << " connected, waiting for incoming call");

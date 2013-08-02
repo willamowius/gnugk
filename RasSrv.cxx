@@ -221,6 +221,9 @@ RasListener::RasListener(const Address & addr, WORD pt) : UDPSocket(0, addr.GetV
 	if (Toolkit::Instance()->IsPortNotificationActive())
 		Toolkit::Instance()->PortNotification(RASPort, PortOpen, "udp", addr, pt);
 	m_signalPort = 0;
+#ifdef HAS_TLS
+	m_tlsSignalPort = 0;
+#endif
 	// note: this won't be affected by reloading
 	m_virtualInterface = (!GkConfig()->GetString("NetworkInterfaces", "").IsEmpty());
 	// Check if we have external IP setting 
@@ -478,6 +481,10 @@ GkInterface::GkInterface(const PIPSocket::Address & addr) : m_address(addr)
 	m_callSignalListener = NULL;
 	m_statusListener = NULL;
 	m_rasSrv = NULL;
+#ifdef HAS_TLS
+	m_tlsSignalPort = 0;
+	m_tlsCallSignalListener = NULL;
+#endif
 }
 
 GkInterface::~GkInterface()
@@ -500,6 +507,7 @@ bool GkInterface::CreateListeners(RasServer *RasSrv)
 	WORD multicastPort = (WORD)(Toolkit::AsBool(GkConfig()->GetString("UseMulticastListener", "1")) ?
 		GkConfig()->GetInteger("MulticastPort", GK_DEF_MULTICAST_PORT) : 0);
 	WORD signalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "CallSignalPort", GK_DEF_CALL_SIGNAL_PORT);
+	WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
 	WORD statusPort = (WORD)GkConfig()->GetInteger("StatusPort", GK_DEF_STATUS_PORT);
 
 	if (SetListener(rasPort, m_rasPort, m_rasListener, &GkInterface::CreateRasListener))
@@ -508,18 +516,33 @@ bool GkInterface::CreateListeners(RasServer *RasSrv)
 		m_rasSrv->AddListener(m_multicastListener);
 	if (SetListener(signalPort, m_signalPort, m_callSignalListener, &GkInterface::CreateCallSignalListener))
 		m_rasSrv->AddListener(m_callSignalListener);
+#ifdef HAS_TLS
+	if (Toolkit::Instance()->IsTLSEnabled()) {
+		if (SetListener(tlsSignalPort, m_tlsSignalPort, m_tlsCallSignalListener, &GkInterface::CreateTLSCallSignalListener)) {
+			m_rasSrv->AddListener(m_tlsCallSignalListener);
+		}
+	}
+#endif
 	if (SetListener(statusPort, m_statusPort, m_statusListener, &GkInterface::CreateStatusListener))
 		m_rasSrv->AddListener(m_statusListener);
 
 	if (m_rasListener && m_callSignalListener) {
 		if (RasSrv->IsGKRouted()) {
 			m_rasListener->SetSignalPort(m_signalPort);
+#ifdef HAS_TLS
+			if (m_tlsCallSignalListener)
+				m_rasListener->SetTLSSignalPort(m_tlsSignalPort);
+#endif
 			if (m_multicastListener) {
 				m_multicastListener->SetSignalPort(m_signalPort);
 			}
 		} else {
 			RasSrv->CloseListener(m_callSignalListener);
 			m_callSignalListener = NULL;
+#ifdef HAS_TLS
+			RasSrv->CloseListener(m_tlsCallSignalListener);
+			m_tlsCallSignalListener = NULL;
+#endif
 		}
 	}
 
@@ -565,7 +588,12 @@ MulticastListener *GkInterface::CreateMulticastListener()
 
 CallSignalListener *GkInterface::CreateCallSignalListener()
 {
-	return m_rasSrv->IsGKRouted() ? new CallSignalListener(m_address, m_signalPort) : 0;
+	return m_rasSrv->IsGKRouted() ? new CallSignalListener(m_address, m_signalPort) : NULL;
+}
+
+TLSCallSignalListener *GkInterface::CreateTLSCallSignalListener()
+{
+	return m_rasSrv->IsGKRouted() ? new TLSCallSignalListener(m_address, m_tlsSignalPort) : NULL;
 }
 
 StatusListener *GkInterface::CreateStatusListener()
@@ -3997,7 +4025,7 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 						PTRACE(2, "Incomming H.460.18 call from neighbor/parent sigAdr="
 							<< AsDotString(incomingIndication.m_callSignallingAddress)
 							<< " callID=" << AsString(incomingIndication.m_callID.m_guid));
-						CallSignalSocket * outgoingSocket = new CallSignalSocket();
+						CallSignalSocket * outgoingSocket = new CallSignalSocket();		// TODO: handle TLS
 						outgoingSocket->OnSCICall(incomingIndication.m_callID, incomingIndication.m_callSignallingAddress);
 					} else {
 						PTRACE(1, "Error decoding IncomingIndication");

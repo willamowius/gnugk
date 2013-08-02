@@ -144,6 +144,11 @@ Default: <tt>n/a</tt><newline>
 Add an additional alias to all calls going to this endpoint, if its not already present.
 This can be used to add the trunk ID required by Swxy version 6 and up.
 
+<item><tt/UseTLS=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Use TLS (transport layer security) when calling this endpoint. See also <ref id="tls" name="[TLS] section">.
+
 </itemize>
 
 Example how to attach an [EP::..] section to an endpoint:
