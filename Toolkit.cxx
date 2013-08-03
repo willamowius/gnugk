@@ -2209,10 +2209,6 @@ SSL_CTX * Toolkit::GetTLSContext()
 				PTRACE(1, "TLS\tError loading CA file or directory (" << caFile << "/" << caDir);
 			}
 		}
-		// TODO: disable ? switch ?
-		if (SSL_CTX_set_default_verify_paths(m_sslCtx) != 1) {
-			PTRACE(1, "TLS\tError loading default CA file or directory");
-		}
 		if (SSL_CTX_use_certificate_chain_file(m_sslCtx, m_Config->GetString(TLSSec, "Certificates", "tls_certificate.pem")) != 1) {
 			PTRACE(1, "TLS\tError loading certificate file");
 		}
