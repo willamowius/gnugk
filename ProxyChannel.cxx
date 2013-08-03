@@ -11016,7 +11016,7 @@ PBoolean TLSCallSignalSocket::Connect(const Address & iface, WORD localPort, con
 {
 	SetName(AsString(addr, GetPort()));
 	SetReadTimeout(PTimeInterval(6000));
-	PBoolean result = PTCPSocket::Connect(iface, localPort, addr);
+	PBoolean result = TCPProxySocket::Connect(iface, localPort, addr);
 	if (result) {
 		PTimeInterval timeout(100);
 		SetReadTimeout(timeout);
