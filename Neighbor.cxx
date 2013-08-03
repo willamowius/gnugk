@@ -363,9 +363,10 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 		m_H46018Client = true;
 		SetH46018GkKeepAliveInterval(29);	// start with every 29 seconds
 	}
-	if (Toolkit::AsBool(config->GetString(section, "H46018Server", "0"))) {
-		m_H46018Server = true;
-	}
+	m_H46018Server = Toolkit::AsBool(config->GetString(section, "H46018Server", "0"));
+#endif
+#ifdef HAS_TLS
+	m_useTLS = Toolkit::AsBool(config->GetString(section, "UseTLS", "0"));
 #endif
 
 	SetForwardedInfo(section);

@@ -127,6 +127,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "Endpoint", "TimeToLive" },
 	{ "Endpoint", "Type" },
 	{ "Endpoint", "UnregisterOnReload" },
+#ifdef HAS_TLS
+	{ "Endpoint", "UseTLS" },
+#endif
 	{ "Endpoint", "UseAlternateGK" },
 	{ "Endpoint", "Vendor" },
 	{ "FileAcct", "CDRString" },
@@ -618,7 +621,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "EP::", "Proxy" },
 	{ "EP::", "TranslateReceivedQ931Cause" },
 	{ "EP::", "TranslateSentQ931Cause" },
+#ifdef HAS_TLS
 	{ "EP::", "UseTLS" },
+#endif
 	{ "Neighbor::", "AcceptForwardedLRQ" },
 	{ "Neighbor::", "AcceptPrefixes" },
 	{ "Neighbor::", "AuthUser" },

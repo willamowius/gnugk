@@ -121,7 +121,7 @@ protected:
 
 	typedef std::map<PString, int, pstr_prefix_lesser> Prefixes;
 
-	RasServer *m_rasSrv;
+	RasServer * m_rasSrv;
 	PString m_id, m_gkid, m_password, m_name, m_authUser;
 	mutable PIPSocket::Address m_ip;
 	mutable WORD m_port;
@@ -135,11 +135,14 @@ protected:
 	PStringArray m_sendAliases;
 	PStringArray m_acceptPrefixes;
 	bool m_externalGK;
-	PString m_sendAuthUser, m_sendPassword;	// password to send to neighbor
+	PString m_sendAuthUser, m_sendPassword;	// user + password to send to neighbor
 	int m_keepAliveTimerInterval;
 	GkTimerManager::GkTimerHandle m_keepAliveTimer;
 	bool m_H46018Server;
 	bool m_H46018Client;
+#ifdef HAS_TLS
+	bool m_useTLS;
+#endif
 };
 
 class NeighborList {

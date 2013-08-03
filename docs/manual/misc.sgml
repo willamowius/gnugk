@@ -348,6 +348,12 @@ Whether the child offers H.460.18/.19 support to the parent.
 Default: <tt/0/<newline>
 <p>
 Whether the child offers H.460.23/.24 support to the parent.
+
+<item><tt/UseTLS=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Use TLS (transport layer security) with this gatekeeper. See also <ref id="tls" name="[TLS] section">.
+
 </itemize>
 
 <sect1>Section &lsqb;CTI::Agents&rsqb;
