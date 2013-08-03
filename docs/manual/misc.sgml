@@ -1041,7 +1041,7 @@ Directory where to search for root CA certificates.
 
 </itemize>
 
-<sect2>Section &lsqb;Generating Keys and certificates with OpenSSL&rsqb;
+<sect2>Generating Keys and certificates with OpenSSL
 <p>
 You don't have to trust the same CAs (certification authority) that you are
 using for web browsing etc. By default GnuGk ignores the root certificates
