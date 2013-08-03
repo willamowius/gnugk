@@ -146,7 +146,7 @@
 #endif
 
 #if defined(P_SSL)
-	#define HAS_TLS
+	#define HAS_TLS 1
 #endif
 
 #if defined(hasPTRACE2)

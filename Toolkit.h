@@ -32,7 +32,6 @@ extern "C" {
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
-#include <openssl/x509v3.h>
 }
 #endif
 
