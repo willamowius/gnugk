@@ -162,7 +162,7 @@ The access list can also be loaded from an external file using <tt/include/ dire
 entry, so rule 192.168.1.1=allow takes precedence over 192.168.1.0/24=reject.
 <p>
 <tt/'onlyTLS'/ is equivalent to <tt/'allow'/ if the call comes in via a
-TLS secured connection and means <tt/'reject'/ for unencrypted calls.
+<ref id="tls" name="TLS"> secured connection and means <tt/'reject'/ for unencrypted calls.
 <p>
 In addition the to endpoint's IP, you can specify a list of prefixes that the endpoint may call.
 The destination prefixes are only checked on Setup messages.
@@ -184,6 +184,9 @@ any=reject
 </descrip>
 
 <descrip><tag/Example #2:/
+
+Placing the list of IP rules into another file.
+
 <tscreen><verb>
 [Gatekeeper::Auth]
 FileIPAuth=required;Setup
@@ -201,6 +204,22 @@ Contents of /etc/gnugk/accesslist.ini:
 any=reject
 </verb></tscreen>
 </descrip>
+
+<descrip><tag/Example #3:/
+
+Allow all connects from the local network, but require
+TLS encryption and authentification for everything else.
+
+<tscreen><verb>
+[Gatekeeper::Auth]
+FileIPAuth=required;Setup
+
+[FileIPAuth]
+192.168.1.0/24=allow
+any=onlyTLS
+</verb></tscreen>
+</descrip>
+
 
 <sect1>Section &lsqb;SimplePasswordAuth&rsqb;
 <label id="password">
