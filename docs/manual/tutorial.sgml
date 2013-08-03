@@ -6,6 +6,8 @@ To confirm that all components are up and running, we will use
 two Linux workstations, both connected to the same LAN.
 In the examples, the H.323 client is a softphone called "SimpH323"
 which comes as a sample application with H323Plus in the samples/simple/ folder.
+If your Linux distribution doesn't include it, you can download the H323Plus
+source code and compile it yourself or you can use another H.323 endpoint.
 
 On the first server start the <htmlurl url="http://www.gnugk.org/" name="gatekeeper">
 in direct mode:
