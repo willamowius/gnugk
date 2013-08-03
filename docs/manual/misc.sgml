@@ -1041,9 +1041,9 @@ Directory where to search for root CA certificates.
 
 </itemize>
 
-<sect2>Generating Keys and certificates with OpenSSL
+<sect2>Generating keys and certificates with OpenSSL
 <p>
-You don't have to trust the same CAs (certification authority) that you are
+You don't have to trust the same CAs (certification authorities) that you are
 using for web browsing etc. By default GnuGk ignores the root certificates
 installed with OpenSSL on your server, but you can enable them by setting CADir=.
 <p>

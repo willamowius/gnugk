@@ -4,7 +4,7 @@
  * IP based authentication modules
  *
  * Copyright (c) 2005, Michal Zygmuntowicz
- * Copyright (c) 2006-2010, Jan Willamowius
+ * Copyright (c) 2006-2013, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -38,9 +38,9 @@ public:
 	*/
 	virtual int Check(
 		/// GRQ RAS message to be authenticated
-		RasPDU<H225_GatekeeperRequest> &grqPdu, 
+		RasPDU<H225_GatekeeperRequest> & grqPdu, 
 		/// gatekeeper request reject reason
-		unsigned &rejectReason
+		unsigned & rejectReason
 		);
 
 	/** Authenticate using data from RRQ RAS message.
@@ -50,9 +50,9 @@ public:
 	*/
 	virtual int Check(
 		/// RRQ RAS message to be authenticated
-		RasPDU<H225_RegistrationRequest> &rrqPdu, 
+		RasPDU<H225_RegistrationRequest> & rrqPdu, 
 		/// authorization data (reject reason, ...)
-		RRQAuthData &authData
+		RRQAuthData & authData
 		);
 		
 	/** Authenticate using data from LRQ RAS message.
@@ -62,9 +62,9 @@ public:
 	*/
 	virtual int Check(
 		/// LRQ nessage to be authenticated
-		RasPDU<H225_LocationRequest> &lrqPdu, 
+		RasPDU<H225_LocationRequest> & lrqPdu, 
 		/// location request reject reason
-		unsigned &rejectReason
+		unsigned & rejectReason
 		);
 
 	/** Authenticate using data from Q.931/H.225.0 Setup message.
@@ -74,16 +74,16 @@ public:
 	*/
 	virtual int Check(
 		/// Q.931/H.225 Setup message to be authenticated
-		SetupMsg &setup,
+		SetupMsg & setup,
 		/// authorization data (call duration limit, reject reason, ...)
-		SetupAuthData& authData
+		SetupAuthData & authData
 		);
 	
 protected:		
 	/// Create IP based authenticator
 	IPAuthBase( 
 		/// authenticator name from Gatekeeper::Auth section
-		const char *authName,
+		const char * authName,
 		/// bitmask with supported RAS checks
 		unsigned supportedRasChecks = IPAuthRasChecks,
 		/// bitmask with supported non-RAS checks
@@ -96,15 +96,16 @@ protected:
 	    #GkAuthenticator::Status enum# with the result of authentication.
 	*/
 	virtual int CheckAddress(
-		const PIPSocket::Address &addr, /// IP address the request comes from
+		const PIPSocket::Address & addr, /// IP address the request comes from
 		WORD port, /// port number the request comes from
-		const PString &number
+		const PString & number,
+		bool overTLS = false
 		) = 0;
 
 private:
 	IPAuthBase();
 	/* No copy constructor allowed */
-	IPAuthBase(const IPAuthBase&);
+	IPAuthBase(const IPAuthBase &);
 	/* No operator= allowed */
 	IPAuthBase& operator=(const IPAuthBase&);
 };

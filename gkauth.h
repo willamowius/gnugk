@@ -143,7 +143,9 @@ struct SetupAuthData
 		/// call associated with the message (if any)
 		const callptr& call,
 		/// is the Setup message from a registered endpoint
-		bool fromRegistered
+		bool fromRegistered,
+		/// did the Setup come in over TLS
+		bool overTLS = false
 		);
 	virtual ~SetupAuthData();
 		
@@ -180,6 +182,8 @@ struct SetupAuthData
 	PBYTEArray m_radiusClass;
 	/// ID provided by client, to be passed out with accounting events
 	PUInt64 m_clientAuthId;
+	/// True if Setup came in over TLS
+	bool m_overTLS;
 		
 private:
 	SetupAuthData();

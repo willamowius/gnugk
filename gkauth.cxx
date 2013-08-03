@@ -97,21 +97,22 @@ SetupAuthData::SetupAuthData(
 	/// call associated with the message (if any)
 	const callptr& call,
 	/// is the Setup message from a registered endpoint
-	bool fromRegistered
+	bool fromRegistered,
+	/// did the Setup come in over TLS
+	bool overTLS
 	) : m_rejectReason(-1), m_rejectCause(-1), m_callDurationLimit(-1),
 	m_call(call), m_fromRegistered(fromRegistered), 
 	m_proxyMode(CallRec::ProxyDetect),
-	m_clientAuthId(0)
+	m_clientAuthId(0), m_overTLS(overTLS)
 {
 }
 
-SetupAuthData::SetupAuthData(
-	const SetupAuthData& obj
-	) : m_rejectReason(obj.m_rejectReason), m_rejectCause(obj.m_rejectCause), 
+SetupAuthData::SetupAuthData(const SetupAuthData & obj)
+	: m_rejectReason(obj.m_rejectReason), m_rejectCause(obj.m_rejectCause), 
 	m_callDurationLimit(obj.m_callDurationLimit), m_call(obj.m_call), 
 	m_fromRegistered(obj.m_fromRegistered),
 	m_routeToAlias(obj.m_routeToAlias), m_destinationRoutes(obj.m_destinationRoutes),
-	m_proxyMode(obj.m_proxyMode), m_clientAuthId(0)
+	m_proxyMode(obj.m_proxyMode), m_clientAuthId(0), m_overTLS(false)
 {
 }
 
@@ -127,6 +128,7 @@ SetupAuthData& SetupAuthData::operator=(const SetupAuthData& obj)
 		m_clientAuthId = obj.m_clientAuthId;
 		m_routeToAlias = obj.m_routeToAlias;
 		m_destinationRoutes = obj.m_destinationRoutes;
+		m_overTLS = obj.m_overTLS;
 	}
 
 	return *this;
@@ -2000,9 +2002,7 @@ PString LRQAuthObj::GetAliases() const
 		? AsString(m_lrq.m_sourceInfo) : PString::Empty();
 }
 
-int AuthRule::Check(
-	const AuthObj& aobj
-	)
+int AuthRule::Check(const AuthObj & aobj)
 {
 	if (Match(aobj) ^ m_inverted) {
 		PTRACE(5, "GKAUTH\tPrefix auth rule '" << GetName() << "' matched");

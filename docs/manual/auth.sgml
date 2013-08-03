@@ -155,11 +155,14 @@ to access gatekeeper resources. A list of allowed prefixes can be specified
 together with an IP address. Supported Gatekeeper::Auth events are:
 <tt/GRQ/, <tt/RRQ/, <tt/LRQ/, <tt/Setup/ and <tt/SetupUnreg/. Format
 of a single entry is:
-<p><tt/IP=[allow | reject][;prefix[,prefix...]]/
+<p><tt/IP=[allow | reject | onlyTLS][;prefix[,prefix...]]/
 <p>
 where IP is a single IP address, a network address (in A.B.C.D/M.M.M.M or A.B.C.D/LENGTH format or IPv6 format) or a string <tt/'any'/ or <tt/'*'/ to match any address.
 The access list can also be loaded from an external file using <tt/include/ directive. During authentication, network mask length defines a priority for each
 entry, so rule 192.168.1.1=allow takes precedence over 192.168.1.0/24=reject.
+<p>
+<tt/'onlyTLS'/ is equivalent to <tt/'allow'/ if the call comes in via a
+TLS secured connection and means <tt/'reject'/ for unencrypted calls.
 <p>
 In addition the to endpoint's IP, you can specify a list of prefixes that the endpoint may call.
 The destination prefixes are only checked on Setup messages.

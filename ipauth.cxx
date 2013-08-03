@@ -6,7 +6,7 @@
  * @(#) $Id$
  *
  * Copyright (c) 2005, Michal Zygmuntowicz
- * Copyright (c) 2006-2010, Jan Willamowius
+ * Copyright (c) 2006-2013, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -29,7 +29,7 @@
 class IPAuthPrefix {
 public:
 	IPAuthPrefix();
-	IPAuthPrefix(bool a, const PString &);
+	IPAuthPrefix(bool a, const PString &, bool tls = false);
 	IPAuthPrefix(const IPAuthPrefix &);
 
 	void AddPrefix(const PString &);
@@ -45,6 +45,7 @@ public:
 	typedef std::vector<std::string>::const_iterator const_prefix_iterator;
 
 	bool auth;
+	bool onlyTLS;
 
 protected:
 	std::vector<std::string> Prefixs;
@@ -58,7 +59,7 @@ public:
 	/// Create text file based authenticator
 	FileIPAuth( 
 		/// authenticator name from Gatekeeper::Auth section
-		const char *authName
+		const char * authName
 		);
 
 	/// Destroy the authenticator
@@ -67,17 +68,17 @@ public:
 protected:
 	/// Overriden from IPAuthBase
 	virtual int CheckAddress(
-		const PIPSocket::Address &addr, /// IP address the request comes from
+		const PIPSocket::Address & addr, /// IP address the request comes from
 		WORD port, /// port number the request comes from
-		const PString &number
-		);
+		const PString & number,
+		bool overTLS);
 				
 private:
 	FileIPAuth();
 	/* No copy constructor allowed */
-	FileIPAuth(const FileIPAuth&);
+	FileIPAuth(const FileIPAuth &);
 	/* No operator= allowed */
-	FileIPAuth& operator=(const FileIPAuth&);
+	FileIPAuth& operator=(const FileIPAuth &);
 	
 private:
 	typedef std::vector<IPAuthEntry> IPAuthList;
@@ -88,7 +89,7 @@ private:
 
 IPAuthBase::IPAuthBase( 
 	/// authenticator name from Gatekeeper::Auth section
-	const char *authName,
+	const char * authName,
 	/// bitmask with supported RAS checks
 	unsigned supportedRasChecks,
 	/// bitmask with supported non-RAS checks
@@ -103,7 +104,7 @@ IPAuthBase::~IPAuthBase()
 
 int IPAuthBase::Check(
 	/// GRQ RAS message to be authenticated
-	RasPDU<H225_GatekeeperRequest> &grqPdu, 
+	RasPDU<H225_GatekeeperRequest> & grqPdu, 
 	/// gatekeeper request reject reason
 	unsigned & /*rejectReason*/
 	)
@@ -113,7 +114,7 @@ int IPAuthBase::Check(
 
 int IPAuthBase::Check(
 	/// RRQ RAS message to be authenticated
-	RasPDU<H225_RegistrationRequest> &rrqPdu, 
+	RasPDU<H225_RegistrationRequest> & rrqPdu, 
 	/// authorization data (reject reason, ...)
 	RRQAuthData & /*authData*/
 	)
@@ -123,7 +124,7 @@ int IPAuthBase::Check(
 
 int IPAuthBase::Check(
 	/// LRQ nessage to be authenticated
-	RasPDU<H225_LocationRequest> &lrqPdu, 
+	RasPDU<H225_LocationRequest> & lrqPdu, 
 	/// location request reject reason
 	unsigned & /*rejectReason*/
 	)
@@ -133,9 +134,9 @@ int IPAuthBase::Check(
 
 int IPAuthBase::Check(
 	/// Q.931/H.225 Setup message to be authenticated
-	SetupMsg &setup,
+	SetupMsg & setup,
 	/// authorization data (call duration limit, reject reason, ...)
-	SetupAuthData& /*authData*/
+	SetupAuthData & authData
 	)
 {
 	PIPSocket::Address addr;
@@ -144,7 +145,7 @@ int IPAuthBase::Check(
 	PString number;
 	setup.GetQ931().GetCalledPartyNumber(number);
 
-	return CheckAddress(addr, port, number);
+	return CheckAddress(addr, port, number, authData.m_overTLS);
 }
 
 
@@ -158,8 +159,8 @@ const char *FileIPAuthSecName = "FileIPAuth";
 struct IPAuthEntry_greater : public binary_function<FileIPAuth::IPAuthEntry, FileIPAuth::IPAuthEntry, bool> {
 
 	bool operator()(
-		const FileIPAuth::IPAuthEntry &a,
-		const FileIPAuth::IPAuthEntry &b
+		const FileIPAuth::IPAuthEntry & a,
+		const FileIPAuth::IPAuthEntry & b
 		) const 
 	{
 		const int diff = a.first.Compare(b.first);
@@ -173,7 +174,7 @@ struct IPAuthEntry_greater : public binary_function<FileIPAuth::IPAuthEntry, Fil
 
 FileIPAuth::FileIPAuth( 
 	/// authenticator name from Gatekeeper::Auth section
-	const char *authName
+	const char * authName
 	) : IPAuthBase(authName)
 {
 	bool dynamicCfg = false;
@@ -183,8 +184,7 @@ FileIPAuth::FileIPAuth(
 		const PFilePath fp(cfg->GetString(FileIPAuthSecName, "include", ""));
 		if (!PFile::Exists(fp)) {
 			PTRACE(1, GetName() << "\tCould not read the include file '"
-				<< fp << "': the file does not exist"
-				);
+				<< fp << "': the file does not exist");
 			return;
 		}
 		cfg = new PConfig(fp, authName);
@@ -218,6 +218,10 @@ FileIPAuth::FileIPAuth(
 		entry.second.auth = PCaselessString("allow") == auth;
 		entry.second.AddPrefix(prefix);
 		entry.second.SortPrefix(false);
+		if (PCaselessString("onlyTLS") == auth) {
+			entry.second.auth = true;
+			entry.second.onlyTLS = true;
+		}
 		
 		m_authList.push_back(entry);
 	}
@@ -250,20 +254,22 @@ FileIPAuth::~FileIPAuth()
 }
 
 int FileIPAuth::CheckAddress(
-	const PIPSocket::Address &addr, /// IP address the request comes from
+	const PIPSocket::Address & addr, /// IP address the request comes from
 	WORD /*port*/, /// port number the request comes from
-	const PString &number
-	)
+	const PString & number, bool overTLS)
 {
 	IPAuthList::const_iterator entry = m_authList.begin();
 	while (entry != m_authList.end()) {
 		if (entry->first.IsAny() || addr << entry->first) {
+			if (entry->second.onlyTLS && !overTLS) {
+				PTRACE(5, GetName() << "\tIP " << addr.AsString() << " rejected (no TLS)");
+				return e_fail;
+			}
 			if (entry->second.auth && !number.IsEmpty()) {
 				int len = entry->second.PrefixMatch(number);
 				PTRACE(5, GetName() << "\tIP " << addr.AsString() 
 					<< (len ? " accepted" : " rejected")
-					<< " for Called " << number
-					);
+					<< " for Called " << number);
 				return len ? e_ok : e_fail;
 			}
 			return entry->second.auth ? e_ok : e_fail;
@@ -274,19 +280,21 @@ int FileIPAuth::CheckAddress(
 }
 
 
-IPAuthPrefix::IPAuthPrefix() :
-	auth(false)
-{}
+IPAuthPrefix::IPAuthPrefix() : auth(false), onlyTLS(false)
+{
+}
 
-IPAuthPrefix::IPAuthPrefix(bool a, const PString & prefixes)
+IPAuthPrefix::IPAuthPrefix(bool a, const PString & prefixes, bool tls)
 {
 	auth = a;
 	AddPrefix(prefixes);
+	onlyTLS = tls;
 }
 
 IPAuthPrefix::IPAuthPrefix(const IPAuthPrefix & obj)
 {
 	auth = obj.auth;
+	onlyTLS = obj.onlyTLS;
 
 	const_prefix_iterator Iter = obj.Prefixs.begin();
 	const_prefix_iterator eIter = obj.Prefixs.end();
@@ -300,6 +308,7 @@ IPAuthPrefix& IPAuthPrefix::operator=(const IPAuthPrefix & obj)
 {
 	if (this != &obj) {
 		auth = obj.auth;
+		onlyTLS = obj.onlyTLS;
 		Prefixs.clear();
 
 		const_prefix_iterator Iter = obj.Prefixs.begin();
@@ -375,6 +384,8 @@ std::string IPAuthPrefix::PrintOn() const
 		prefix = "any";
 	std::string ret(" to called ");
 	ret += prefix;
+	if (onlyTLS)
+		ret += " (only TLS)";
 	return ret;
 }
 

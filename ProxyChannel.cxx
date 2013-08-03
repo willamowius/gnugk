@@ -2682,9 +2682,9 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 
 PString CallSignalSocket::GetCallingStationId(
 	/// Q.931/H.225 Setup message with additional data
-	const SetupMsg &setup,
+	const SetupMsg & setup,
 	/// additional data
-	SetupAuthData &authData
+	SetupAuthData & authData
 	) const
 {
 	if (!authData.m_callingStationId)
@@ -2732,9 +2732,9 @@ PString CallSignalSocket::GetCallingStationId(
 
 PString CallSignalSocket::GetCalledStationId(
 	/// Q.931/H.225 Setup message with additional data
-	const SetupMsg &setup,
+	const SetupMsg & setup,
 	/// additional data
-	SetupAuthData &authData
+	SetupAuthData & authData
 	) const
 {
 	if (!authData.m_calledStationId)
@@ -3205,7 +3205,11 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 	GkClient *gkClient = rassrv->GetGkClient();
 	bool rejectCall = false;
-	SetupAuthData authData(m_call, m_call ? true : false);
+	bool overTLS = false;
+#ifdef HAS_TLS
+	overTLS = (dynamic_cast<TLSCallSignalSocket *>(this) != NULL);
+#endif
+	SetupAuthData authData(m_call, m_call ? true : false, overTLS);
 
 #ifdef HAS_H46023
 	CallRec::NatStrategy natoffloadsupport = CallRec::e_natUnknown;
@@ -5213,7 +5217,11 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 	H225_Setup_UUIE &setupBody = setup->GetUUIEBody();
 
 	// invoke authentication
-	SetupAuthData authData(m_call, m_call ? true : false);
+	bool overTLS = false;
+#ifdef HAS_TLS
+	overTLS = (dynamic_cast<TLSCallSignalSocket *>(this) != NULL);
+#endif
+	SetupAuthData authData(m_call, m_call ? true : false, overTLS);
 	authData.m_callingStationId = GetCallingStationId(*setup, authData);
 	authData.m_calledStationId = GetCalledStationId(*setup, authData);
 	if (!RasServer::Instance()->ValidatePDU(*setup, authData)) {
