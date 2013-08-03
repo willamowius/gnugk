@@ -3391,6 +3391,19 @@ bool AdmissionRequestPDU::Process()
 	if (RasSrv->IsGKRouted() && !signalOffload) {
 		acf.m_callModel.SetTag(H225_CallModel::e_gatekeeperRouted);
 		GetCallSignalAddress(acf.m_destCallSignalAddress);
+#ifdef HAS_TLS
+		if (Toolkit::Instance()->IsTLSEnabled() && RequestingEP->UseTLS()) {
+			// tell endpoint to use the TLS port
+			WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
+			if (acf.m_destCallSignalAddress.GetTag() == H225_TransportAddress::e_ip6Address) {
+				H225_TransportAddress_ip6Address & addr = acf.m_destCallSignalAddress;
+				addr.m_port = tlsSignalPort;
+			} else if (acf.m_destCallSignalAddress.GetTag() == H225_TransportAddress::e_ipAddress) {
+				H225_TransportAddress_ipAddress & addr = acf.m_destCallSignalAddress;
+				addr.m_port = tlsSignalPort;
+			}
+		}
+#endif
 	} else {
 		acf.m_callModel.SetTag(H225_CallModel::e_direct);
 		acf.m_destCallSignalAddress = CalledAddress;

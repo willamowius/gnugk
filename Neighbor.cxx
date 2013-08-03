@@ -366,6 +366,7 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 	m_H46018Server = Toolkit::AsBool(config->GetString(section, "H46018Server", "0"));
 #endif
 #ifdef HAS_TLS
+	// TODO: not used, yet
 	m_useTLS = Toolkit::AsBool(config->GetString(section, "UseTLS", "0"));
 #endif
 

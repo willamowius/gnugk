@@ -642,6 +642,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "Neighbor::", "SendIPs" },
 	{ "Neighbor::", "SendPassword" },
 	{ "Neighbor::", "SendPrefixes" },
+#ifdef HAS_TLS
+	{ "Neighbor", "UseTLS" },
+#endif
 
 	// uncheckable sections
 	{ "CapacityControl", "*" },
