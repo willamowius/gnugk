@@ -507,7 +507,9 @@ bool GkInterface::CreateListeners(RasServer *RasSrv)
 	WORD multicastPort = (WORD)(Toolkit::AsBool(GkConfig()->GetString("UseMulticastListener", "1")) ?
 		GkConfig()->GetInteger("MulticastPort", GK_DEF_MULTICAST_PORT) : 0);
 	WORD signalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "CallSignalPort", GK_DEF_CALL_SIGNAL_PORT);
+#ifdef HAS_TLS
 	WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
+#endif
 	WORD statusPort = (WORD)GkConfig()->GetInteger("StatusPort", GK_DEF_STATUS_PORT);
 
 	if (SetListener(rasPort, m_rasPort, m_rasListener, &GkInterface::CreateRasListener))
@@ -591,10 +593,12 @@ CallSignalListener *GkInterface::CreateCallSignalListener()
 	return m_rasSrv->IsGKRouted() ? new CallSignalListener(m_address, m_signalPort) : NULL;
 }
 
+#ifdef HAS_TLS
 TLSCallSignalListener *GkInterface::CreateTLSCallSignalListener()
 {
 	return m_rasSrv->IsGKRouted() ? new TLSCallSignalListener(m_address, m_tlsSignalPort) : NULL;
 }
+#endif
 
 StatusListener *GkInterface::CreateStatusListener()
 {
