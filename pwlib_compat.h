@@ -242,15 +242,11 @@
 #if OPENH323_MAJOR == 1
 	#if OPENH323_MINOR >= 19
 		#if OPENH323_MINOR == 19
-			#if OPENH323_BUILD > 0
-				#define OpenH323Factory 1	// OpenH323 Factory Loader Auth
-			#endif
 			#if OPENH323_BUILD > 4
 				#define h323pluslib 1		// Indicate H323plus Library
 				#define h323v6 1			// Version 6 features
 			#endif
 		#else // h323plus v1.20
-			#define OpenH323Factory 1		// OpenH323 Factory Loader Auth 
 			#define h323pluslib 1			// Indicate H323plus Library
 			#define h323v6 1				// Version 6 features  
 		#endif

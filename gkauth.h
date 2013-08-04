@@ -665,8 +665,7 @@ protected:
 	{
 		const RAS & req = request;
 		bool finalResult = false;
-		
-#ifdef OpenH323Factory
+
 		if (m_h235Authenticators == NULL) {
 			PTRACE(4, "GKAUTH\tNo Loaded Authenticators");
 			return GetDefaultStatus();
@@ -728,19 +727,7 @@ protected:
 				}
 			}
 		}
-#else
-		int result;
-		if (req.HasOptionalField(RAS::e_cryptoTokens)) {
-			if ((result = CheckCryptoTokens(req.m_cryptoTokens, aliases, request->m_rasPDU)) == e_fail)
-				return e_fail;
-			finalResult = (result == e_ok);
-		}
-		if (req.HasOptionalField(RAS::e_tokens)) {
-			if ((result = CheckTokens(req.m_tokens, aliases)) == e_fail)
-				return e_fail;
-			finalResult = finalResult || (result == e_ok);
-		}
-#endif
+
 		return finalResult ? e_ok : GetDefaultStatus();
 	}
 
@@ -1036,12 +1023,7 @@ private:
 	PReadWriteMutex m_reloadMutex;
 	/// the most common authentication capabilities 
 	/// shared by all authenticators on the list
-#ifdef OpenH323Factory
     H235Authenticators m_h235authenticators;
-#else
-	H225_ArrayOf_AuthenticationMechanism* m_mechanisms;
-	H225_ArrayOf_PASN_ObjectId* m_algorithmOIDs;
-#endif
 };
 
 /** A factory template for authenticator objects. When you create

@@ -143,19 +143,11 @@ public:
 		H225_LocationRequest& lrq /// LRQ message to be filled with tokens
 		)
 	{
-#ifdef OpenH323Factory
         SetPassword(lrq);
-#else
-		SetNBPassword(lrq, m_h323Id.GetSize() > 0 ? m_h323Id[0] :
-			(m_e164.GetSize() > 0 ? m_e164[0] : PString::Empty())
-			);
-#endif
 	}
 		
 	template<class RAS> void SetPassword(RAS & rasmsg, const PString & id)
 	{
-
-#ifdef OpenH323Factory
 		for (PINDEX i = 0; i < m_h235Authenticators->GetSize();  i++) {
 			H235Authenticator * authenticator = (H235Authenticator *)(*m_h235Authenticators)[i].Clone();
 
@@ -174,17 +166,6 @@ public:
 
 		if (rasmsg.m_cryptoTokens.GetSize() > 0)
 			rasmsg.IncludeOptionalField(RAS::e_cryptoTokens);
-#else
-		if (!m_password) {
-			// to avoid including h235.h
-			// 2 == H235_AuthenticationMechanism::e_pwdHash
-			// 7 == H235_AuthenticationMechanism::e_authenticationBES
-			if (m_authMode < 0 || m_authMode == 2)
-				rasmsg.IncludeOptionalField(RAS::e_cryptoTokens), SetCryptoTokens(rasmsg.m_cryptoTokens, id);
-			if (m_authMode < 0 || m_authMode == 7)
-				rasmsg.IncludeOptionalField(RAS::e_tokens), SetClearTokens(rasmsg.m_tokens, id);
-		}
-#endif
 	}
 	template<class RAS> void SetPassword(RAS & rasmsg)
 	{
@@ -281,10 +262,8 @@ private:
 	PStringArray m_h323Id;
 	/// list of E.164 aliases to register with
 	PStringArray m_e164;
-#ifdef OpenH323Factory
 	/// list of Authenticators
-	H235Authenticators* m_h235Authenticators;
-#endif
+	H235Authenticators * m_h235Authenticators;
 
 	// enable H.460.18 (offer to parent)
 	bool m_enableH46018;

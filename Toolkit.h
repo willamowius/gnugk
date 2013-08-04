@@ -615,9 +615,7 @@ class Toolkit : public Singleton<Toolkit>
 	bool IsCauseCodeTranslationActive() const { return m_causeCodeTranslationActive; }
 	void SetCauseCodeTranslationActive(bool val) { m_causeCodeTranslationActive = val; }
 
-#ifdef OpenH323Factory
 	PStringList GetAuthenticatorList();
-#endif
 
 protected:
 	void CreateConfig();

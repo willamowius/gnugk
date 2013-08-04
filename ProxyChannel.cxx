@@ -2259,6 +2259,12 @@ bool SupportsH235Media(const H225_ArrayOf_ClearToken & clearTokens)
 			h235v3compatible = true;
 		if (clearTokens[i].m_tokenOID == "0.0.8.235.0.3.43")
 			supportedDHkey = true;
+#ifdef H323_H235_AES256
+		if (clearTokens[i].m_tokenOID == "0.0.8.235.0.3.45")
+			supportedDHkey = true;
+		if (clearTokens[i].m_tokenOID == "0.0.8.235.0.3.47")
+			supportedDHkey = true;
+#endif
 	}
 	return (h235v3compatible && supportedDHkey);
 }
@@ -3700,11 +3706,13 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				setupBody.m_cryptoTokens.SetSize(0);
 			}
 
-#ifdef hasAutoCreateAuthenticators  // Authenticators are created on demand by identifiers in token/cryptoTokens where supported 
+#ifdef hasAutoCreateAuthenticators	// PTLib 2.11.x
+			// Authenticators are created on demand by identifiers in token/cryptoTokens where supported 
 			auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
-#else		// Create all authenticators for both media encryption and caller authentication
+#else
+			// Create all authenticators for both media encryption and caller authentication
 			H235Authenticators::SetMaxCipherLength(toolkit->Config()->GetInteger(RoutedSec, "H235HalfCallMediaStrength", 128));
-			auth.CreateAuthenticators(H235Authenticator::MediaEncryption);  
+			auth.CreateAuthenticators(H235Authenticator::MediaEncryption);
 			auth.CreateAuthenticators(H235Authenticator::EPAuthentication);
 #endif
 			// make sure authenticator gets received tokens, ignore the result

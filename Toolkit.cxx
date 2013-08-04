@@ -3552,7 +3552,6 @@ unsigned Toolkit::TranslateSentCause(unsigned cause) const
 		return cause;
 }
 
-#ifdef OpenH323Factory
 PStringList Toolkit::GetAuthenticatorList()
 {
 	PString auth = GkConfig()->GetString("Gatekeeper::Main", "Authenticators", "");
@@ -3560,4 +3559,3 @@ PStringList Toolkit::GetAuthenticatorList()
 
 	return authlist;
 }
-#endif

@@ -1501,7 +1501,6 @@ GkClient::GkClient()
 	m_handlers[2] = new GkClientHandler(this, &GkClient::OnDRQ, H225_RasMessage::e_disengageRequest);
 	m_handlers[3] = new GkClientHandler(this, &GkClient::OnIRQ, H225_RasMessage::e_infoRequest);
 
-#ifdef OpenH323Factory
 	m_password = PString::Empty();
     m_h235Authenticators = new H235Authenticators();
     PFactory<H235Authenticator>::KeyList_T keyList = PFactory<H235Authenticator>::GetKeyList();
@@ -1510,15 +1509,11 @@ GkClient::GkClient()
        H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
        m_h235Authenticators->Append(Auth);
 	}
-#endif
-
 }
 
 GkClient::~GkClient()
 {
-#ifdef OpenH323Factory
     delete m_h235Authenticators;
-#endif
 #ifdef HAS_H46023
 	m_natstrategy.clear();
 #endif
