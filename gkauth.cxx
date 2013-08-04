@@ -621,7 +621,7 @@ PString GkAuthenticator::GetInfo()
 // class GkAuthenticatorList
 GkAuthenticatorList::GkAuthenticatorList() 
 {
-PTRACE(0, "JW GkAuthenticatorList c'tor");
+	// TODO: should we move this into OnReload() so it can be dynamically changed ?
 	PFactory<H235Authenticator>::KeyList_T keyList = PFactory<H235Authenticator>::GetKeyList();
 	PFactory<H235Authenticator>::KeyList_T::const_iterator r;
 
@@ -641,10 +641,9 @@ PTRACE(0, "JW GkAuthenticatorList c'tor");
 	} else {
 		for (r = keyList.begin(); r != keyList.end(); ++r) {
 			H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
-			PTRACE(0, "JW have authenticator " <<  Auth->GetName());
 			if ((Auth->GetApplication() == H235Authenticator::EPAuthentication)
 				||(Auth->GetApplication() == H235Authenticator::GKAdmission)
-				||(Auth->GetApplication() == H235Authenticator::AnyApplication) ) {	// TODO: add H323Plus version check
+				||(Auth->GetApplication() == H235Authenticator::AnyApplication) ) {
 				m_h235authenticators.Append(Auth);
 			} else {
 				delete Auth;
@@ -673,7 +672,6 @@ void GkAuthenticatorList::OnReload()
 	std::list<GkAuthenticator*> authenticators;	
 	GkAuthenticator *auth;
 
-	// TODO: None of this works. Authenticators are never populated (is it needed?) - SH
 	const PStringArray authRules = GkConfig()->GetKeys(GkAuthSectionName);
 	for (PINDEX r = 0; r < authRules.GetSize(); r++) {
 		auth = Factory<GkAuthenticator>::Create(authRules[r]);
@@ -683,167 +681,17 @@ void GkAuthenticatorList::OnReload()
 	}
 
 	m_authenticators = authenticators;
-
-	H225_ArrayOf_AuthenticationMechanism mechanisms;
-	H225_ArrayOf_PASN_ObjectId algorithmOIDs;
-
-	bool found = false;
-	int i, j, k;
-
-	// scan all authenticators that are either "required" or "sufficient"
-	// (skip "optional") and fill #mechanisms# and #algorithmOIDs# arrays
-	// with H.235 capabilities that are supported by all these authenticators
-
-	std::list<GkAuthenticator*>::const_iterator iter = authenticators.begin();
-
-	while (iter != authenticators.end()) {
-		auth = *iter++;
-PTRACE(0, "JW check auth=" << auth->GetName() << " h235=" << auth->IsH235Capable());
-		if (auth->IsH235Capable() 
-				&& (auth->GetControlFlag() == GkAuthenticator::e_Required
-					|| auth->GetControlFlag() == GkAuthenticator::e_Sufficient)) {
-			if (mechanisms.GetSize() == 0) {
-				// append H.235 capability to empty arrays
-				auth->GetH235Capability(mechanisms, algorithmOIDs);
-PTRACE(0, "JW add algo " << algorithmOIDs);
-				// should never happen, but we should check just for a case				
-				if (algorithmOIDs.GetSize() == 0)
-					mechanisms.RemoveAll();
-				else
-					found = true;
-				continue;
-			}
-
-			// Already have H.235 capabilities - check the current
-			// authenticator if it supports any of the capabilities.
-			// Remove capabilities that are not supported
-
-			H225_ArrayOf_AuthenticationMechanism matchedMechanisms;
-
-			for (i = 0; i < algorithmOIDs.GetSize(); i++) {
-				bool matched = false;
-
-				for (j = 0; j < mechanisms.GetSize(); j++)
-					if (auth->IsH235Capability(mechanisms[j], algorithmOIDs[i])) {
-						for (k = 0; k < matchedMechanisms.GetSize(); k++)
-							if (matchedMechanisms[k].GetTag() == mechanisms[j].GetTag())
-								break;
-						if (k == matchedMechanisms.GetSize()) {
-							matchedMechanisms.SetSize(k+1);
-							matchedMechanisms[k].SetTag(mechanisms[j].GetTag());
-						}
-						matched = true;
-					}
-
-				if (!matched) {
-					PTRACE(5, "GKAUTH\tAlgorithm OID: " << algorithmOIDs[i]
-						<< " removed from GCF list");
-					algorithmOIDs.RemoveAt(i--);
-				}
-			}
-
-			for (i = 0; i < mechanisms.GetSize(); i++) {
-				for (j = 0; j < matchedMechanisms.GetSize(); j++)
-					if (mechanisms[i].GetTag() == matchedMechanisms[j].GetTag())
-						break;
-				if (j == matchedMechanisms.GetSize()) {
-					PTRACE(5, "GKAUTH\tAuth method: " << mechanisms[i]
-						<< " removed from GCF list");
-					mechanisms.RemoveAt(i--);
-				}
-			}
-
-			if (mechanisms.GetSize() == 0 || algorithmOIDs.GetSize() == 0)
-				break;
-		}
-	}
-
-	// Scan "optional" authenticators if the above procedure has not found
-	// any H.235 capabilities or has found more than one
-	if ((!found) || mechanisms.GetSize() > 1 || algorithmOIDs.GetSize() > 1) {
-		iter = authenticators.begin();
-		while (iter != authenticators.end()) {
-			auth = *iter++;
-			if (auth->IsH235Capable() 
-					&& (auth->GetControlFlag() == GkAuthenticator::e_Optional
-						|| auth->GetControlFlag() == GkAuthenticator::e_Alternative)
-						) {
-				if (mechanisms.GetSize() == 0) {
-					auth->GetH235Capability(mechanisms, algorithmOIDs);
-					if (algorithmOIDs.GetSize() == 0 )
-						mechanisms.RemoveAll();
-					else
-						found = true;
-					continue;
-				}
-
-				H225_ArrayOf_AuthenticationMechanism matchedMechanisms;
-
-				for (i = 0; i < algorithmOIDs.GetSize(); i++) {
-					bool matched = false;
-
-					for (j = 0; j < mechanisms.GetSize(); j++)
-						if (auth->IsH235Capability(mechanisms[j], algorithmOIDs[i])) {
-							for (k = 0; k < matchedMechanisms.GetSize(); k++)
-								if (matchedMechanisms[k].GetTag() == mechanisms[j].GetTag())
-									break;
-							if (k == matchedMechanisms.GetSize()) {
-								matchedMechanisms.SetSize(k+1);
-								matchedMechanisms[k].SetTag(mechanisms[j].GetTag());
-							}
-							matched = true;
-						}
-
-					if (!matched) {
-						PTRACE(5, "GKAUTH\tAlgorithm OID: " << algorithmOIDs[i]
-							<< " removed from GCF list");
-						algorithmOIDs.RemoveAt(i--);
-					}
-				}
-
-				for (i = 0; i < mechanisms.GetSize(); i++) {
-					for (j = 0; j < matchedMechanisms.GetSize(); j++)
-						if (mechanisms[i].GetTag() == matchedMechanisms[j].GetTag())
-							break;
-					if (j == matchedMechanisms.GetSize()) {
-						PTRACE(5, "GKAUTH\tAuth method: " << mechanisms[i]
-							<< " removed from GCF list");
-						mechanisms.RemoveAt(i--);
-					}
-				}
-
-				if ((mechanisms.GetSize() == 0) || (algorithmOIDs.GetSize() == 0))
-					break;
-			}
-		}
-	}
-
-	if (mechanisms.GetSize() > 0 && algorithmOIDs.GetSize() > 0) {
-		if (PTrace::CanTrace(4)) {
-			ostream& strm = PTrace::Begin(4,__FILE__,__LINE__);
-			strm <<"GkAuth\tH.235 capabilities selected for GCF:\n";
-			strm <<"\tAuthentication mechanisms: \n";
-			for (i = 0; i < mechanisms.GetSize(); i++)
-				strm << "\t\t" << mechanisms[i] << '\n';
-			strm <<"\tAuthentication algorithm OIDs: \n";
-			for (i = 0; i < algorithmOIDs.GetSize(); i++)
-				strm << "\t\t" << algorithmOIDs[i] << '\n';
-			PTrace::End(strm);
-		}
-	}
-PTRACE(0, "JW after Reload: " << m_authenticators.size() << " authenticators, " << mechanisms.GetSize() << " mechanisms, " << algorithmOIDs.GetSize() << " algos");
 }
 
 void GkAuthenticatorList::SelectH235Capability(
 	const H225_GatekeeperRequest & grq, 
 	H225_GatekeeperConfirm & gcf)
 {
-PTRACE(0, "JW SelectH235Capability");
 	ReadLock lock(m_reloadMutex);
 	
 	if (m_authenticators.empty())
 		return;
-	
+
 	// if GRQ does not contain a list of authentication mechanisms simply return
 	if (!(grq.HasOptionalField(H225_GatekeeperRequest::e_authenticationCapability)
 			&& grq.HasOptionalField(H225_GatekeeperRequest::e_algorithmOIDs)
@@ -851,15 +699,10 @@ PTRACE(0, "JW SelectH235Capability");
 			&& grq.m_algorithmOIDs.GetSize() > 0))
 		return;
 
-	// TODO: add TLS to negotiation either here or in H323Plus
-	for (PINDEX auth = 0; auth < m_h235authenticators.GetSize(); auth++) {
-PTRACE(0, "JW auth " << m_h235authenticators[auth]);
-	}
-
+	// TODO: add TLS to negotiation either here or in H323Plus ?
 	for (PINDEX auth = 0; auth < m_h235authenticators.GetSize(); auth++) {
 		for (PINDEX cap = 0; cap < grq.m_authenticationCapability.GetSize(); cap++) {
 			for (PINDEX alg = 0; alg < grq.m_algorithmOIDs.GetSize(); alg++) {
-PTRACE(0, "JW IsCapability");
 				if (m_h235authenticators[auth].IsCapability(grq.m_authenticationCapability[cap], grq.m_algorithmOIDs[alg])) {
 					std::list<GkAuthenticator*>::const_iterator iter = m_authenticators.begin();
 					while (iter != m_authenticators.end()) {
@@ -1069,8 +912,7 @@ SimplePasswordAuth::SimplePasswordAuth(
 					&& (m_disabledAlgorithms.GetStringsIndex(Auth->GetName()) == P_MAX_INDEX)) {
 					if ((Auth->GetApplication() == H235Authenticator::EPAuthentication)
 						||(Auth->GetApplication() == H235Authenticator::GKAdmission)
-						||(Auth->GetApplication() == H235Authenticator::AnyApplication) ) {	// TODO: add H323Plus version check
-PTRACE(0, "JW add to simple pw auth: " << Auth->GetName());
+						||(Auth->GetApplication() == H235Authenticator::AnyApplication) ) {
 						AppendH235Authenticator(Auth);
 					} else {
 						delete Auth;
@@ -1085,8 +927,7 @@ PTRACE(0, "JW add to simple pw auth: " << Auth->GetName());
 			if (m_disabledAlgorithms.GetStringsIndex(Auth->GetName()) == P_MAX_INDEX) {
 				if ((Auth->GetApplication() == H235Authenticator::EPAuthentication)
 					||(Auth->GetApplication() == H235Authenticator::GKAdmission)
-					||(Auth->GetApplication() == H235Authenticator::AnyApplication) ) {	// TODO: add H323Plus version check
-PTRACE(0, "JW add to simple pw auth: " << Auth->GetName());
+					||(Auth->GetApplication() == H235Authenticator::AnyApplication) ) {
 					AppendH235Authenticator(Auth);
 				} else {
 					delete Auth;

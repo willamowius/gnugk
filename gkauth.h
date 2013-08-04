@@ -1016,8 +1016,8 @@ public:
 	}
 
 private:
-	GkAuthenticatorList(const GkAuthenticatorList&);
-	GkAuthenticatorList& operator=(const GkAuthenticatorList&);
+	GkAuthenticatorList(const GkAuthenticatorList& );
+	GkAuthenticatorList & operator=(const GkAuthenticatorList &);
 
 private:
 	/// a list of all configured authenticators
@@ -1044,7 +1044,7 @@ private:
 */
 template<class Auth>
 struct GkAuthCreator : public Factory<GkAuthenticator>::Creator0 {
-	GkAuthCreator(const char *n) : Factory<GkAuthenticator>::Creator0(n) {}
+	GkAuthCreator(const char *n) : Factory<GkAuthenticator>::Creator0(n) { }
 	virtual GkAuthenticator *operator()() const { return new Auth(m_id); }
 };
 
