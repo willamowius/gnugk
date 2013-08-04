@@ -675,11 +675,9 @@ void GkAuthenticatorList::OnReload()
 
 	// TODO: None of this works. Authenticators are never populated (is it needed?) - SH
 	const PStringArray authRules = GkConfig()->GetKeys(GkAuthSectionName);
-PTRACE(0, "JW rules=" << authRules);
 	for (PINDEX r = 0; r < authRules.GetSize(); r++) {
 		auth = Factory<GkAuthenticator>::Create(authRules[r]);
 		if (auth) {
-			PTRACE(0, "JW reload add auth " << auth->GetName());
 			authenticators.push_back(auth);
 		}
 	}
@@ -873,6 +871,19 @@ PTRACE(0, "JW IsCapability");
 						gcf.m_authenticationMode = grq.m_authenticationCapability[cap];
 						gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_algorithmOID);
 						gcf.m_algorithmOID = grq.m_algorithmOIDs[alg];
+						if (gcf.m_authenticationMode.GetTag() == H235_AuthenticationMechanism::e_pwdSymEnc) {
+							// add the challenge token
+							gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_tokens);
+							gcf.m_tokens.SetSize(1);
+							gcf.m_tokens[0].m_tokenOID = "0.0";
+							gcf.m_tokens[0].IncludeOptionalField(H235_ClearToken::e_timeStamp);
+							gcf.m_tokens[0].m_timeStamp = (int)time(NULL);
+							gcf.m_tokens[0].IncludeOptionalField(H235_ClearToken::e_random);
+							gcf.m_tokens[0].m_random = rand();
+							gcf.m_tokens[0].IncludeOptionalField(H235_ClearToken::e_generalID);
+							gcf.m_tokens[0].m_generalID = Toolkit::GKName();
+							// TODO: save token to check crypto token in RRQ
+						}
 						return;
 						}
 					}
@@ -1360,13 +1371,21 @@ bool SimplePasswordAuth::ResolveUserName(const H235_ClearToken & token, PString 
 	return false;
 }
 
-bool SimplePasswordAuth::ResolveUserName(const H225_CryptoH323Token & cryptotoken, PString & username)
+bool SimplePasswordAuth::ResolveUserName(const H225_CryptoH323Token & cryptotoken, const H225_ArrayOf_AliasAddress * aliases, PString & username)
 {
 	// MD5
 	if (cryptotoken.GetTag() == H225_CryptoH323Token::e_cryptoEPPwdHash) {
 		const H225_CryptoH323Token_cryptoEPPwdHash & pwdhash = cryptotoken;
 		username = AsString(pwdhash.m_alias, false);
 		return true;
+	} else if (cryptotoken.GetTag() == H225_CryptoH323Token::e_cryptoEPPwdEncr) {
+		// use alias as username, token contans just the encrypted challenge
+		if (aliases && (aliases->GetSize() > 0)) {
+			username = AsString(aliases[0], false);
+			return true;
+		} else {
+			return false;
+		}
 	} else if (cryptotoken.GetTag() == H225_CryptoH323Token::e_nestedcryptoToken) {
 		H235_ClearToken clearToken;
 		bool found = false;

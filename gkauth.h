@@ -483,7 +483,7 @@ class CacheManager
 public:
 	CacheManager(
 		long timeout = -1 /// cache timeout - expiry period (seconds)
-		) : m_ttl(timeout) {}
+		) : m_ttl(timeout) { }
 
 	/** Get a value associated with the key.
 	
@@ -492,14 +492,14 @@ public:
 	    false if the key-value pair is not cached or the cache expired
 	*/
 	bool Retrieve(
-		const PString& key, /// the key to look for
-		PString& value /// filled with the value on return
+		const PString & key, /// the key to look for
+		PString & value /// filled with the value on return
 		) const;
 		
 	/// Store a key-value association in the cache
 	void Save(
-		const PString& key, /// a key to be stored
-		const PString& value /// a value to be associated with the key
+		const PString & key, /// a key to be stored
+		const PString & value /// a value to be associated with the key
 		);
 
 	void SetTimeout(
@@ -507,8 +507,8 @@ public:
 		) { m_ttl = newTimeout; }
 
 private:
-	CacheManager(const CacheManager&);
-	CacheManager & operator=(const CacheManager&);
+	CacheManager(const CacheManager &);
+	CacheManager & operator=(const CacheManager &);
 	
 private:
 	/// cache timeout (seconds), 0 = do not cache, -1 = never expires
@@ -642,6 +642,8 @@ protected:
 	bool ResolveUserName(
 		/// an array of tokens to be checked
 		const H225_CryptoH323Token & crytotoken,
+		/// the aliases of the request (only used for cryptoEPPwdEncr)
+		const H225_ArrayOf_AliasAddress * aliases,
 		/// UserName detected.
 		PString & username
 		);
@@ -704,7 +706,7 @@ protected:
 			for (PINDEX t = 0; t < req.m_cryptoTokens.GetSize(); t++) {
 				PString username;
 				PString password;
-				if (!ResolveUserName(req.m_cryptoTokens[t], username)) {
+				if (!ResolveUserName(req.m_cryptoTokens[t], aliases, username)) {
 		            PTRACE(4, "GKAUTH\t" << GetName() << " No username resolved from tokens.");
 					continue;	// skip to next token
 				}
@@ -718,6 +720,7 @@ protected:
 				}
 				authenticator->SetRemoteId(username);
 				authenticator->SetPassword(password);
+				//authenticator->SetChallenge(challengeToken);	// TODO: set challenge token from GCF
 				result = authenticator->ValidateCryptoToken(req.m_cryptoTokens[t], request->m_rasPDU);
 				if (result == H235Authenticator::e_OK) {
 					PTRACE(4, "GKAUTH\tAuthenticator " << authenticator->GetName() << " succeeded");
