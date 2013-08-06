@@ -708,26 +708,25 @@ void GkAuthenticatorList::SelectH235Capability(
 					while (iter != m_authenticators.end()) {
 						GkAuthenticator* gkauth = *iter++;
 						if (gkauth->IsH235Capable() && gkauth->IsH235Capability(grq.m_authenticationCapability[cap], grq.m_algorithmOIDs[alg])) {
-						PTRACE(4, "GKAUTH\tGRQ accepted on " << H323TransportAddress(gcf.m_rasAddress)
-							<< " using authenticator " << m_h235authenticators[auth]);
-						gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_authenticationMode);
-						gcf.m_authenticationMode = grq.m_authenticationCapability[cap];
-						gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_algorithmOID);
-						gcf.m_algorithmOID = grq.m_algorithmOIDs[alg];
-						if (gcf.m_authenticationMode.GetTag() == H235_AuthenticationMechanism::e_pwdSymEnc) {
-							// add the challenge token
-							gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_tokens);
-							gcf.m_tokens.SetSize(1);
-							gcf.m_tokens[0].m_tokenOID = "0.0";
-							gcf.m_tokens[0].IncludeOptionalField(H235_ClearToken::e_timeStamp);
-							gcf.m_tokens[0].m_timeStamp = (int)time(NULL);
-							gcf.m_tokens[0].IncludeOptionalField(H235_ClearToken::e_random);
-							gcf.m_tokens[0].m_random = rand();
-							gcf.m_tokens[0].IncludeOptionalField(H235_ClearToken::e_generalID);
-							gcf.m_tokens[0].m_generalID = Toolkit::GKName();
-							// TODO: save token to check crypto token in RRQ
-						}
-						return;
+							PTRACE(4, "GKAUTH\tGRQ accepted on " << H323TransportAddress(gcf.m_rasAddress)
+								<< " using authenticator " << m_h235authenticators[auth]);
+							gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_authenticationMode);
+							gcf.m_authenticationMode = grq.m_authenticationCapability[cap];
+							gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_algorithmOID);
+							gcf.m_algorithmOID = grq.m_algorithmOIDs[alg];
+							if (gcf.m_authenticationMode.GetTag() == H235_AuthenticationMechanism::e_pwdSymEnc) {
+								// add the challenge token
+								gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_tokens);
+								gcf.m_tokens.SetSize(1);
+								gcf.m_tokens[0].m_tokenOID = "0.0";
+								gcf.m_tokens[0].IncludeOptionalField(H235_ClearToken::e_timeStamp);
+								gcf.m_tokens[0].m_timeStamp = (int)time(NULL);
+								gcf.m_tokens[0].IncludeOptionalField(H235_ClearToken::e_random);
+								gcf.m_tokens[0].m_random = rand();
+								gcf.m_tokens[0].IncludeOptionalField(H235_ClearToken::e_generalID);
+								gcf.m_tokens[0].m_generalID = Toolkit::GKName();
+							}
+							return;
 						}
 					}
 				}
