@@ -142,56 +142,33 @@ public:
 		return authList->Validate(ras, reason);
 	}
 
-	bool ValidateAdditivePDU(
-		RasPDU<H225_RegistrationRequest>& ras, 
-		RRQAuthData& authData
-		);
+	bool ValidateAdditivePDU(RasPDU<H225_RegistrationRequest>& ras, RRQAuthData& authData);
 
-	bool ValidatePDU(
-		RasPDU<H225_RegistrationRequest>& ras, 
-		RRQAuthData& authData
-		)
+	bool ValidatePDU(RasPDU<H225_RegistrationRequest> & ras, RRQAuthData& authData)
 	{
 		return authList->Validate(ras, authData);
 	}
 	
-	bool ValidatePDU(
-		RasPDU<H225_AdmissionRequest>& ras, 
-		ARQAuthData& authData
-		)
+	bool ValidatePDU(RasPDU<H225_AdmissionRequest> & ras, ARQAuthData & authData)
 	{
 		return authList->Validate(ras, authData);
 	}
 
-	bool ValidatePDU(
-		SetupMsg &setup,
-		SetupAuthData &authData
-		)
+	bool ValidatePDU(SetupMsg & setup, SetupAuthData & authData)
 	{
 		return authList->Validate(setup, authData);
 	}
-	
+
 	GkAcctLoggerList * GetAcctList() { return acctList; }
 	GkAuthenticatorList * GetAuthList() { return authList; }
 
-	bool LogAcctEvent(
-		int evt,
-		callptr& call,
-		time_t now = 0
-		);
+	bool LogAcctEvent(int evt, callptr & call, time_t now = 0);
 
-	bool LogAcctEvent(
-		int evt,
-		const endptr& ep
-		);
+	bool LogAcctEvent(int evt, const endptr & ep);
 
-	PString GetAuthInfo(
-		const PString &moduleName
-		);
+	PString GetAuthInfo(const PString & moduleName);
 
-	PString GetAcctInfo(
-		const PString &moduleName
-		);
+	PString GetAcctInfo(const PString & moduleName);
 
 	template<class RAS> bool IsForwardedRas(const RAS & ras, const Address & addr) const
 	{
