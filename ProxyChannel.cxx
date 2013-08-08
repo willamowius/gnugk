@@ -2837,22 +2837,6 @@ bool CallSignalSocket::IsH46024Call(const H225_Setup_UUIE & setupBody)
 }
 #endif
 
-//#ifdef HAS_H46026
-//bool CallSignalSocket::IsH46026Call(const H225_Setup_UUIE & setupBody)
-//{
-//	if (Toolkit::Instance()->IsH46026Enabled()
-//		&& setupBody.HasOptionalField(H225_Setup_UUIE::e_neededFeatures)) {
-//		const H225_ArrayOf_FeatureDescriptor & data = setupBody.m_neededFeatures;
-//		for (PINDEX i = 0; i < data.GetSize(); i++) {
-//			H460_Feature & feat = (H460_Feature &)data[i];
-//			if (feat.GetFeatureID() == H460_FeatureID(26))
-//				return true;
-//		}
-//	}
-//	return false;
-//}
-//#endif
-
 void CallSignalSocket::OnSetup(SignalingMsg *msg)
 {
 	SetupMsg* setup = dynamic_cast<SetupMsg*>(msg);
@@ -3406,10 +3390,6 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			}
 		}
 #endif
-
-//#ifdef HAS_H46026
-//		PBoolean H46026IsTunneled = IsH46026Call(setupBody);	// unused now, but we'll probably need it when handling media
-//#endif
 
 		if (!rejectCall && useParent) {
 			gkClient->HandleSetup(*setup, false);
@@ -4000,9 +3980,18 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		}
 #endif	// HAS_H46018
 
-#if defined(HAS_H46017) && defined(HAS_H46018)
-	if ((m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46017())
-		&& Toolkit::Instance()->IsH46018Enabled()) {
+#if defined(HAS_H46026)
+	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_neededFeatures)) {
+		RemoveH46026Descriptor(setupBody.m_neededFeatures);
+		if (setupBody.m_neededFeatures.GetSize() == 0)
+			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_neededFeatures);
+	}
+#endif
+
+#if defined(HAS_H46017)
+     if ((m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46017())) {
+#if defined(HAS_H46018)
+		if (Toolkit::Instance()->IsH46018Enabled()) {
 			// offer H.460.19 to H.460.17 endpoints
 			H460_FeatureStd feat = H460_FeatureStd(19);
 			H460_FeatureID * feat_id = NULL;
@@ -4026,31 +4015,26 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			}
 			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
-				setupBody.m_supportedFeatures.SetSize(0);
+				setupBody.m_supportedFeatures.SetSize(0);  // Always in first position - SH
 			}
 			AddH460Feature(setupBody.m_supportedFeatures, feat);
-	}
+        }
+#endif   // HAS_H46018
+#ifdef HAS_H46026
+        // Offer both H.460.19 and H.460.26 and let the endpoint decide
+		if (Toolkit::Instance()->IsH46026Enabled()) {
+			H460_FeatureStd feat = H460_FeatureStd(26);
+
+            // We offer H.460.26 as supported endpoint ARQ will decide if needed
+			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) 
+				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
+
+			AddH460Feature(setupBody.m_supportedFeatures, feat);
+        }
+#endif  // HAS_H46026
+     }
 #endif
 
-#ifdef HAS_H46026
-		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_neededFeatures)) {
-			RemoveH46026Descriptor(setupBody.m_neededFeatures);
-			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_neededFeatures);
-		}
-
-		// offer H.460.26 as supported to the endpoint. The ARQ/ACF will determine if its to be needed and used. 
-		// This is not clearly stated in H.460.26 document -- Big Ooops from the Author
-		if (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46017()
-			&& Toolkit::Instance()->IsH46026Enabled()) {
-			// offer H.460.26 to H.460.17 endpoints
-			H460_FeatureStd feat = H460_FeatureStd(26);
-			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
-				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
-				setupBody.m_supportedFeatures.SetSize(0);
-			}
-			AddH460Feature(setupBody.m_supportedFeatures, feat);
-		}
-#endif	// HAS_H46026
 		CreateRemote(setupBody);
 	}
 #ifdef HAS_H46018
@@ -4499,9 +4483,9 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 		// add H.460.26 indicator to CallProceeding
 		if (!cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_featureSet))
 			cpBody.IncludeOptionalField(H225_CallProceeding_UUIE::e_featureSet);
-		if (!cpBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_supportedFeatures)) {
-			cpBody.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
-			cpBody.m_featureSet.m_supportedFeatures.SetSize(0);
+		if (!cpBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)) {
+			cpBody.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_neededFeatures);
+			cpBody.m_featureSet.m_neededFeatures.SetSize(0);
 		}
 		AddH460Feature(cpBody.m_featureSet.m_neededFeatures, feat);
 		msg->SetUUIEChanged();
@@ -4761,9 +4745,9 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 		H460_FeatureStd feat = H460_FeatureStd(26);
 		if (!connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet))
 			connectBody.IncludeOptionalField(H225_Connect_UUIE::e_featureSet);
-		if (!connectBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_supportedFeatures)) {
-			connectBody.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
-			connectBody.m_featureSet.m_supportedFeatures.SetSize(0);
+		if (!connectBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)) {
+			connectBody.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_neededFeatures);
+			connectBody.m_featureSet.m_neededFeatures.SetSize(0);
 		}
 		AddH460Feature(connectBody.m_featureSet.m_neededFeatures, feat);
 	    msg->SetUUIEChanged();
@@ -4890,9 +4874,9 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 		H460_FeatureStd feat = H460_FeatureStd(26);
 		if (!alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet))
 			alertingBody.IncludeOptionalField(H225_Alerting_UUIE::e_featureSet);
-		if (!alertingBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_supportedFeatures)) {
-			alertingBody.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
-			alertingBody.m_featureSet.m_supportedFeatures.SetSize(0);
+		if (!alertingBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)) {
+			alertingBody.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_neededFeatures);
+			alertingBody.m_featureSet.m_neededFeatures.SetSize(0);
 		}
 		AddH460Feature(alertingBody.m_featureSet.m_neededFeatures, feat);
 	    msg->SetUUIEChanged();

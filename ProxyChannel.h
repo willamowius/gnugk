@@ -350,10 +350,6 @@ public:
 	bool IsH46024Call(const H225_Setup_UUIE & setupBody);
 #endif
 
-//#ifdef HAS_H46026
-//	bool IsH46026Call(const H225_Setup_UUIE & setupBody);
-//#endif
-
 	CallSignalSocket * GetRemote() const { return dynamic_cast<CallSignalSocket *>(remote); }
 
 protected:
