@@ -8824,10 +8824,10 @@ bool UDPProxySocket::ErrorHandler(PSocket::ErrorGroup group)
 
 	switch (e)
 	{
-	//	case PSocket::NoError:
-	//	// I don't know why there is error with code NoError
-	//		PTRACE(4, msg << " Error(" << group << "): No error?");
-	//		break;
+		case PSocket::NoError:
+			// I don't know why there is error with code NoError
+			// PTRACE(4, msg << " Error(" << group << "): No error?");
+			break;
 		case PSocket::Timeout:
 			PTRACE(4, msg << " Error(" << group << "): Timeout");
 			SNMP_TRAP(10, SNMPWarning, Network, "UDP timeout: " + msg);
