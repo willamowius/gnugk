@@ -820,7 +820,7 @@ void ExitGK()
 	delete Toolkit::Instance();
 
 	Gatekeeper::CloseLogFile();
-	exit(0);
+	_exit(0);	// skip exit handlers: we know GnuGk couldn't start, so avoid crash in useless cleanup
 }
 
 } // end of anonymous namespace
@@ -1339,6 +1339,7 @@ void Gatekeeper::Main()
 	vector<PIPSocket::Address> GKHome;
 	PString home(Toolkit::Instance()->GetGKHome(GKHome));
 	if (GKHome.empty()) {
+		PTRACE(0, "Fatal: Cannot find any interface to run GnuGk!");
 		cerr << "Fatal: Cannot find any interface to run GnuGk!\n";
 		ExitGK();
 	}
