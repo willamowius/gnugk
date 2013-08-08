@@ -1012,9 +1012,10 @@ Each leg of the call can use not not use TLS individually. For example one endpo
 might encrypt its signalling to the GNU Gatekeeper and the 2nd half of the call
 going out to another endpoint may be unencrypted.
 <p>
-Currently you have to define manually for which endpoints use TLS when we call them, by setting
-a switch in their [EP::...] section, so this feature is mainly usefull to secure
-"trunk" connections to known gateways or other gatekeepers.
+You have to define manually which endpoints use TLS when we call them, by setting
+a switch in their [EP::...] section. SImilar you can enable TLS for neighbor and parent gatekeeper.
+SInce not many endpoints support TLS encryption, so this feature can be very usefull to secure
+"trunk" connections or traversal zones to branch offices etc.
 <p>
 Using TLS is also important to avoid man-in-the-middle attacks on H.235.6 media encryption.
 
@@ -1025,7 +1026,7 @@ Default: <tt>0</tt><newline>
 <p>
 Enable TLS support. GnuGk must have been compiled with OpenSSL support.
 
-<item><tt/PrivateKey=key.pem/<newline>
+<item><tt/PrivateKey=server_key.pem/<newline>
 Default: <tt>tls_private_key.pem</tt><newline>
 <p>
 File with private key for this server.
@@ -1035,7 +1036,7 @@ Default: <tt>tls_certificate.pem</tt><newline>
 <p>
 File with certificate for this server.
 
-<item><tt/CAFile=rootcert.pem/<newline>
+<item><tt/CAFile=root_cert.pem/<newline>
 Default: <tt>n/a</tt><newline>
 <p>
 File with root CA certificates.
@@ -1044,6 +1045,11 @@ File with root CA certificates.
 Default: <tt>n/a</tt><newline>
 <p>
 Directory where to search for root CA certificates.
+
+<item><tt/Passphrase=whatever/<newline>
+Default: <tt>n/a</tt><newline>
+<p>
+The passphrase to open the above certificate files, if you have set one.
 
 </itemize>
 
@@ -1057,5 +1063,131 @@ To have tight control over who you trust, you can generate your own
 CA using OpenSSL and only allow connections with certificates signed by your CA.
 Set you own CA with the CAFile= switcha and leave CADir= unset.
 
-TBA: instructions how to generate the certificates with OpenSSL
+To follow the step-by-step instructions, you need a definition file for your CA, called root.cnf and one for the server called server.cnf (see below).
+While following these steps, you will be asked a few times for the passphrase for the generated files.
+You should use the same for all of them and add it to your GnbuGk config with the Passphrase= switch.
+
+First, generate your CA and self-sign the it:
+<tscreen><verb>
+openssl req -newkey rsa:1024 -sha1 -keyout root_key.pem -out root_req.pem -config root.cnf
+openssl x509 -req -in root_req.pem -sha1 -extfile root.cnf -extensions certificate_extensions -signkey root_key.pem -out root_cert.pem
+</verb></tscreen>
+
+Then generate one key for each server or endpoint and sign them with the CA certificate:
+<tscreen><verb>
+openssl req -newkey rsa:1024 -sha1 -keyout server_key.pem -out server_req.pem -config server.cnf -reqexts req_extensions
+openssl x509 -req -in server_req.pem -sha1 -extfile root.cnf -extensions certificate_extensions -CA root_cert.pem -CAkey root_key.pem -CAcreateserial -out server_cert.pem
+</verb></tscreen>
+And then repeat as necessary.
+
+Here is a sample root.cnf file that you can adapt:
+<tscreen><verb>
+[ ca ]
+default_ca	= exampleca
+
+[ exampleca ]
+dir              = /opt/exampleca
+certificate      = $dir/cacert.pem
+database         = $dir/index.txt
+new_certs_dir    = $dir/certs
+private_key      = $dir/private/cakey.pem
+serial           = $dir/serial
+ 
+default_crl_days = 7
+default_days     = 365
+default_md       = sha1
+ 
+policy           = exampleca_policy
+x509_extensions  = certificate_extensions
+ 
+[ exampleca_policy ]
+commonName             = supplied
+stateOrProvinceName    = supplied
+countryName            = supplied
+emailAddress           = supplied
+organizationName       = supplied
+organizationalUnitName = optional
+ 
+[ req ]
+default_bits		= 2048
+default_keyfile 	= privkey.pem
+default_md              = sha1
+
+prompt                  = no
+distinguished_name	= req_distinguished_name
+x509_extensions		= req_extensions
+
+# the following sections are specific to the request we're building
+
+[ certificate_extensions ]
+basicConstraints = CA:true
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer:always
+
+[ req_distinguished_name ]
+countryName         = US
+stateOrProvinceName = Virginia
+localityName        = Fairfax
+organizationName    = Zork.org
+commonName          = Root CA
+
+[ req_extensions ]
+basicConstraints = CA:true
+</verb></tscreen>
+
+Here is a sample server.cnf file that you can adapt:
+<tscreen><verb>
+[ ca ]
+default_ca	= exampleca
+
+[ exampleca ]
+dir              = /opt/exampleca
+certificate      = $dir/cacert.pem
+database         = $dir/index.txt
+new_certs_dir    = $dir/certs
+private_key      = $dir/private/cakey.pem
+serial           = $dir/serial
+ 
+default_crl_days = 7
+default_days     = 365
+default_md       = sha1
+ 
+policy           = exampleca_policy
+x509_extensions  = certificate_extensions
+ 
+[ exampleca_policy ]
+countryName            = supplied
+stateOrProvinceName    = supplied
+localityName           = supplied
+organizationName       = supplied
+organizationalUnitName = optional
+commonName             = supplied
+emailAddress           = optional
+ 
+[ req ]
+default_bits		= 2048
+default_keyfile 	= privkey.pem
+default_md              = sha1
+
+prompt                  = no
+distinguished_name	= req_distinguished_name
+x509_extensions		= req_extensions
+
+# the following sections are specific to the request we're building       
+
+[ certificate_extensions ]
+basicConstraints = CA:false
+subjectAltName = DNS:splat.zork.org,DNS:localhost
+
+[ req_distinguished_name ]
+countryName            = US
+stateOrProvinceName    = Virginia
+localityName           = Fairfax
+organizationName       = Zork.org
+commonName             = splat.zork.org
+
+[ req_extensions ]
+basicConstraints = CA:true
+subjectAltName = DNS:splat.zork.org,DNS:localhost
+</verb></tscreen>
 
