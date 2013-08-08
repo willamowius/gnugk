@@ -115,6 +115,7 @@ public:
 	virtual bool Authenticate(RasMsg *ras) const;
 	// check if the given LRQ is acceptable
 	virtual bool IsAcceptable(RasMsg *ras) const;
+	virtual bool UseTLS() const { return m_useTLS; }
 
 protected:
 	void SetForwardedInfo(const PString &);
@@ -140,9 +141,7 @@ protected:
 	GkTimerManager::GkTimerHandle m_keepAliveTimer;
 	bool m_H46018Server;
 	bool m_H46018Client;
-#ifdef HAS_TLS
 	bool m_useTLS;
-#endif
 };
 
 class NeighborList {
@@ -166,6 +165,10 @@ public:
 	// return the neighbor's gatekeeper ID from the list by signal address
 	PString GetNeighborGkIdBySigAdr(const H225_TransportAddress & sigAd);
 	PString GetNeighborGkIdBySigAdr(const PIPSocket::Address & sigAd);
+
+	// return the neighbor's use eof TLS from the list by signal address
+	bool GetNeighborTLSBySigAdr(const H225_TransportAddress & sigAd);
+	bool GetNeighborTLSBySigAdr(const PIPSocket::Address & sigAd);
  
 	operator List & () { return m_neighbors; }
 	operator const List & () const { return m_neighbors; }

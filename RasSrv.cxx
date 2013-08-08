@@ -3785,6 +3785,23 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				GetRasAddress(lcf.m_rasAddress);
 				if (RasSrv->IsGKRouted()) {
 					GetCallSignalAddress(lcf.m_callSignalAddress);
+#ifdef HAS_TLS
+					if (Toolkit::Instance()->IsTLSEnabled()) {
+						bool useTLS = RasSrv->GetNeighbors()->GetNeighborTLSBySigAdr(request.m_replyAddress);
+						if (useTLS) {
+							// tell endpoint to use the TLS port
+							WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
+							if (lcf.m_callSignalAddress.GetTag() == H225_TransportAddress::e_ip6Address) {
+								H225_TransportAddress_ip6Address & addr = lcf.m_callSignalAddress;
+								addr.m_port = tlsSignalPort;
+							} else if (lcf.m_callSignalAddress.GetTag() == H225_TransportAddress::e_ipAddress) {
+								H225_TransportAddress_ipAddress & addr = lcf.m_callSignalAddress;
+								addr.m_port = tlsSignalPort;
+							}
+						}
+					}
+#endif
+
 /* The access token should be standarized somehow and use a correct object 
    identifier. As it does not (currently), we disable it to remove interop problems.
 				PINDEX s = 0;

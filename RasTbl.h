@@ -318,6 +318,7 @@ public:
 	bool IsTraversalServer() const { return m_traversalType == TraversalServer; }
 	bool IsTraversalClient() const { return m_traversalType == TraversalClient; }
 
+	void SetUseTLS(bool val) { m_useTLS = val; }
 	bool UseTLS() const { return m_useTLS; }
 
 	// smart pointer for EndpointRec

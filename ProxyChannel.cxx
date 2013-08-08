@@ -4343,9 +4343,9 @@ bool CallSignalSocket::CreateRemote(const H225_TransportAddress & addr)
     UnmapIPv4Address(masqAddr);
 
 #ifdef HAS_TLS
-		if (Toolkit::Instance()->IsTLSEnabled()
-			&& m_call->GetCalledParty() && m_call->GetCalledParty()->UseTLS()) {
-			remote = new TLSCallSignalSocket(this, peerPort);
+	if (Toolkit::Instance()->IsTLSEnabled()
+		&& m_call->GetCalledParty() && m_call->GetCalledParty()->UseTLS()) {
+		remote = new TLSCallSignalSocket(this, peerPort);
 	} else
 #endif // HAS_TLS
 	{

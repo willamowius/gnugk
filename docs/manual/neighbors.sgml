@@ -300,6 +300,11 @@ Default: <tt>own GK-ID</tt><newline>
 The user name (gatekeeprID) to be used to send crypto tokens to this neighbor (right now only used for H.460.18 SCI).
 The default value is this gatekeeper's ID.
 
+<item><tt/UseTLS=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Use TLS (transport layer security) with this neighbor. See also <ref id="tls" name="[TLS] section">.
+
 </itemize>
 
 <sect1>Configuring a Traversal Zone with GnuGk as Traversal Server

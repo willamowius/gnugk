@@ -216,6 +216,7 @@ Neighbor::Neighbor()
 	m_keepAliveTimerInterval = 0;
 	m_H46018Server = false;
 	m_H46018Client = false;
+	m_useTLS = false;
 }
 
 Neighbor::~Neighbor()
@@ -366,7 +367,6 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 	m_H46018Server = Toolkit::AsBool(config->GetString(section, "H46018Server", "0"));
 #endif
 #ifdef HAS_TLS
-	// TODO: not used, yet
 	m_useTLS = Toolkit::AsBool(config->GetString(section, "UseTLS", "0"));
 #endif
 
@@ -1031,6 +1031,7 @@ public:
 	bool IsTraversalServer() const { return m_h46018_server; }
 	bool IsTraversalZone() const { return m_h46018_client || m_h46018_server; }
 	bool IsH46024Supported() const;
+	bool UseTLS() const { return m_useTLS; }
 
 	// override from class RasRequester
 	virtual bool IsExpected(const RasMsg *) const;
@@ -1054,9 +1055,10 @@ private:
 	RasMsg *m_result;
 	PString m_neighbor_used;
 	bool m_h46018_client, m_h46018_server;
+	bool m_useTLS;
 };
 
-LRQRequester::LRQRequester(const LRQFunctor & fun) : m_sendto(fun), m_result(0), m_h46018_client(false), m_h46018_server(false)
+LRQRequester::LRQRequester(const LRQFunctor & fun) : m_sendto(fun), m_result(0), m_h46018_client(false), m_h46018_server(false), m_useTLS(false)
 {
 	AddFilter(H225_RasMessage::e_locationConfirm);
 	AddFilter(H225_RasMessage::e_locationReject);
@@ -1174,6 +1176,9 @@ void LRQRequester::Process(RasMsg * ras)
 					m_result = ras;
 				AddReply(req.m_reply = ras);
 				m_neighbor_used = req.m_neighbor->GetId(); // record neighbor used
+#ifdef HAS_TLS
+				m_useTLS = req.m_neighbor->UseTLS();
+#endif
 				m_h46018_client = req.m_neighbor->IsH46018Client();
 				m_h46018_server = req.m_neighbor->IsH46018Server();
 				if (m_h46018_server) {
@@ -1353,6 +1358,17 @@ PString NeighborList::GetNeighborGkIdBySigAdr(const PIPSocket::Address & sigAd)
 	return (*findNeighbor)->GetGkId();
 }
 
+bool NeighborList::GetNeighborTLSBySigAdr(const PIPSocket::Address & sigAd)
+{
+	// Attempt to find the neigbor in the list
+	List::iterator findNeighbor = find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsFrom), &sigAd));
+	if (findNeighbor == m_neighbors.end())
+	{
+		return false;
+	}
+	return (*findNeighbor)->UseTLS();
+}
+
 PString NeighborList::GetNeighborGkIdBySigAdr(const H225_TransportAddress & sigAd)
 {
 	PIPSocket::Address ipaddr;
@@ -1363,6 +1379,18 @@ PString NeighborList::GetNeighborGkIdBySigAdr(const H225_TransportAddress & sigA
 		return PString::Empty();
 	}
 	return GetNeighborGkIdBySigAdr(ipaddr);
+}
+
+bool NeighborList::GetNeighborTLSBySigAdr(const H225_TransportAddress & sigAd)
+{
+	PIPSocket::Address ipaddr;
+ 
+	// Get the Neigbor IP address from the transport address
+	if (!GetIPFromTransportAddr(sigAd, ipaddr))
+	{
+		return false;
+	}
+	return GetNeighborTLSBySigAdr(ipaddr);
 }
 
 /* Not used currently
@@ -1484,8 +1512,8 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 	if (request.Send(m_neighbors)) {
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
-#ifdef HAS_H460
-			if ((request.IsTraversalZone() || request.IsH46024Supported()) && RasServer::Instance()->IsGKRouted()) {
+#if defined(HAS_H460) || defined (HAS_TLS)
+			if ((request.UseTLS() || request.IsTraversalZone() || request.IsH46024Supported()) && RasServer::Instance()->IsGKRouted()) {
 				// overwrite callSignalAddress and replace with ours, we must proxy this call
 				endptr ep = RegistrationTable::Instance()->FindByEndpointId(arq_obj.GetRequest().m_endpointIdentifier); // should not be null
 				if (ep) {
@@ -1499,6 +1527,9 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 				H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
 				con = *lcf;
 				route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);
+				// set flag to use TLS
+				if (request.UseTLS())
+					route.m_destEndpoint->SetUseTLS(true);
 				// set flag to use H.460.18 if neighbor is traversal server
 				if (request.IsTraversalClient()) {
 					// if we are the client, then the call goes to a traversal server
@@ -1598,14 +1629,17 @@ bool NeighborPolicy::OnRequest(LocationRequest & lrq_obj)
 		if (request.Send(m_neighbors, requester)) {
 			if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 				Route route(m_name, lcf->m_callSignalAddress);
-#ifdef HAS_H460
-				if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData) || request.IsTraversalZone()) {
+#if defined(HAS_H460) || defined (HAS_TLS)
+				if (lcf->HasOptionalField(H225_LocationConfirm::e_genericData) || request.IsTraversalZone() || request.UseTLS()) {
 					// create an EPRec to remember the NAT settings for H.460.18 (traversal zone) or H.460.23/.24 (genericData)
 					H225_RasMessage ras;
 					ras.SetTag(H225_RasMessage::e_locationConfirm);
 					H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
 					con = *lcf;
 					route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);
+					// set flag to use TLS
+					if (request.UseTLS())
+						route.m_destEndpoint->SetUseTLS(true);
 					// set flag to use H.460.18 if neighbor is traversal server
 					if (request.IsTraversalClient()) {
 						// if we are the client, then the call goes to a traversal server
@@ -1645,14 +1679,17 @@ bool NeighborPolicy::OnRequest(SetupRequest & setup_obj)
 	if (request.Send(m_neighbors)) {
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
-#ifdef HAS_H460
-			if (request.IsTraversalZone() || request.IsH46024Supported()) {
+#if defined(HAS_H460) || defined (HAS_TLS)
+			if (request.UseTLS() || request.IsTraversalZone() || request.IsH46024Supported()) {
 				// create an EPRec to remember the NAT settings for H.460.18 (traversal zone) or H.460.23/.24 (genericData)
 				H225_RasMessage ras;
 				ras.SetTag(H225_RasMessage::e_locationConfirm);
 				H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
 				con = *lcf;
 				route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);
+				// set flag to use TLS
+				if (request.UseTLS())
+					route.m_destEndpoint->SetUseTLS(true);
 				// set flag to use H.460.18 if neighbor is traversal server
 				if (request.IsTraversalClient()) {
 					// if we are the client, then the call goes to a traversal server
@@ -1687,14 +1724,17 @@ bool NeighborPolicy::OnRequest(FacilityRequest & facility_obj)
 	if (request.Send(m_neighbors)) {
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
-#ifdef HAS_H460
-			if (request.IsTraversalZone() || request.IsH46024Supported()) {
+#if defined(HAS_H460) || defined (HAS_TLS)
+			if (request.UseTLS() || request.IsTraversalZone() || request.IsH46024Supported()) {
 				// create an EPRec to remember the NAT settings for H.460.18 (traversal zone) or H.460.23/.24 (genericData)
 				H225_RasMessage ras;
 				ras.SetTag(H225_RasMessage::e_locationConfirm);
 				H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
 				con = *lcf;
 				route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);
+				// set flag to use TLS
+				if (request.UseTLS())
+					route.m_destEndpoint->SetUseTLS(true);
 				// set flag to use H.460.18 if neighbor is traversal server
 				if (request.IsTraversalClient()) {
 					// if we are the client, then the call goes to a traversal server
