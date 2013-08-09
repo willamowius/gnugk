@@ -2038,7 +2038,7 @@ bool RegistrationRequestPDU::Process()
 				}
 			} else {
 				PIPSocket::Address oaddr, raddr;
-				WORD oport, rport;
+				WORD oport = 0, rport = 0;
 				if (request.m_callSignalAddress.GetSize() >= 1) {
 					GetIPAndPortFromTransportAddr(ep->GetCallSignalAddress(), oaddr, oport);
 					for (int s = 0; s < request.m_callSignalAddress.GetSize(); ++s) {

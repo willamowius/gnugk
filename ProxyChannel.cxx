@@ -11358,7 +11358,7 @@ bool ProxyHandler::BuildSelectList(SocketSelectList & slist)
 	while (i != j) {
 		iterator k=i++;
 		ProxySocket *socket = dynamic_cast<ProxySocket *>(*k);
-		if (!socket->IsBlocked()) {
+		if (socket && !socket->IsBlocked()) {
 			if (socket->IsSocketOpen()) {
 #ifdef _WIN32
 				if (slist.GetSize() >= FD_SETSIZE) {
@@ -11384,11 +11384,11 @@ bool ProxyHandler::BuildSelectList(SocketSelectList & slist)
 #endif
 				else
 					slist.Append(*k);
-			} else if (!socket->IsConnected()) {
+			} else if (socket && !socket->IsConnected()) {
 				Remove(k);
 				continue;
 			}
-			if (socket->IsDeletable()) {
+			if (socket && socket->IsDeletable()) {
 				Remove(k);
 			}
 		}
@@ -11733,7 +11733,9 @@ void ProxyHandler::DetachSocket(IPSocket *socket)
 	m_listmutex.StartWrite();
 	iterator iter = find(m_sockets.begin(), m_sockets.end(), socket);
 	if (iter != m_sockets.end()) {
-		dynamic_cast<ProxySocket*>(socket)->SetHandler(NULL);
+		ProxySocket * psock = dynamic_cast<ProxySocket*>(socket);
+		if (psock)
+			psock->SetHandler(NULL);
 		m_sockets.erase(iter);
 		--m_socksize;
 	} else
