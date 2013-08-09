@@ -2,7 +2,7 @@
 //
 // Toolkit class for the GnuGk
 //
-// Copyright (c) 2000-2012, Jan Willamowius
+// Copyright (c) 2000-2013, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -32,7 +32,9 @@ extern "C" {
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
-#include <openssl/x509v3.h>	// needed for certificate check on Linux
+// on Windows PTLib 2.10.x doesn't set an #pragma include_alias for this file,
+// so the OpenSSL include dir must be added to IDE settings
+#include <openssl/x509v3.h>	// needed for certificate check
 }
 #endif
 
