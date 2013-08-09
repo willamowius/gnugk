@@ -597,6 +597,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "TLS", "CADir" },
 	{ "TLS", "CAFile" },
 	{ "TLS", "Certificates" },
+	{ "TLS", "CheckCertificateIP" },
 	{ "TLS", "EnableTLS" },
 	{ "TLS", "Passphrase" },
 	{ "TLS", "PrivateKey" },

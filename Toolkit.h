@@ -32,6 +32,7 @@ extern "C" {
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
+#include <openssl/x509v3.h>	// needed for certificate check on Linux
 }
 #endif
 
@@ -353,6 +354,7 @@ class Toolkit : public Singleton<Toolkit>
 #ifdef HAS_TLS
 	bool IsTLSEnabled() const;
 	SSL_CTX * GetTLSContext();
+	bool MatchHostCert(SSL * ssl, PIPSocket::Address addr);
 #endif
 
 	/// maybe modifies #alias#. returns true if it did

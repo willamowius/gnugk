@@ -2222,6 +2222,120 @@ SSL_CTX * Toolkit::GetTLSContext()
 
 	return m_sslCtx;
 }
+
+bool Toolkit::MatchHostCert(SSL * ssl, PIPSocket::Address addr)
+{
+	bool found = false;
+
+	if (!Toolkit::AsBool(GkConfig()->GetString(TLSSec, "CheckCertificateIP", "0")))
+		return true;	// check disabled
+
+	X509 * cert = SSL_get_peer_certificate(ssl);
+	if (!cert) {
+		PTRACE(1, "TLS\tError: Certificate didn't match IP: No peer certificate");
+		SNMP_TRAP(8, SNMPError, Authentication, ::AsString(addr) + " didn't provide a TLS certificate");
+		return false;
+	}
+
+	// do a reverse lookup of the peer IP
+	char reverseLookup[256];
+#ifdef hasIPV6
+	if (addr.GetVersion() == 6) {
+		struct sockaddr_in6 inaddr;
+		SetSockaddr(inaddr, addr, 0);
+		getnameinfo((const sockaddr*)&inaddr, sizeof(inaddr), reverseLookup, sizeof(reverseLookup), NULL, 0, 0);
+	} else
+#endif
+	{
+		struct sockaddr_in inaddr;
+		SetSockaddr(inaddr, addr, 0);
+		getnameinfo((const sockaddr*)&inaddr, sizeof(inaddr), reverseLookup, sizeof(reverseLookup), NULL, 0, 0);
+	}
+
+	// check all subjectAltName elements
+	STACK_OF( GENERAL_NAME ) * altnames = (STACK_OF( GENERAL_NAME ) *) X509_get_ext_d2i(cert, NID_subject_alt_name, NULL, NULL);
+	if (altnames) {
+		for (int i = 0; i < sk_GENERAL_NAME_num(altnames); i++) {
+			GENERAL_NAME * gn = sk_GENERAL_NAME_value(altnames, i);
+			if (gn && (gn->type == GEN_DNS)) {
+				char * dns = (char *)ASN1_STRING_data(gn->d.ia5);
+				if (dns) {
+					PTRACE(5, "TLS\tChecking Certificate DNS " << dns);
+					if (::AsString(addr) == dns) {
+						found = true;	// IP matched
+					} else if ((strlen(reverseLookup) > 0) && (strcasecmp(reverseLookup, dns) == 0)) {
+						found = true;	// FQDN matched
+					} else {
+						struct addrinfo *result = NULL;
+					    if (getaddrinfo(dns, NULL, NULL, &result) == 0) {
+							for (struct addrinfo * res = result; res != NULL; res = res->ai_next) {
+								PIPSocket::Address lookup;
+#ifdef hasIPV6
+								if (res->ai_addr->sa_family == AF_INET6) {
+									lookup = ((struct sockaddr_in6*)(res->ai_addr))->sin6_addr;
+								} else
+#endif
+								{
+									lookup = ((struct sockaddr_in*)(res->ai_addr))->sin_addr;
+								}
+								if (addr == lookup) {
+									found = true;	// DNS lookup matched
+								}
+							}
+						    freeaddrinfo(result);
+						}
+					}
+				}
+			}
+			if (found)
+				break;
+		}
+	}
+	sk_GENERAL_NAME_free(altnames);
+
+	if (!found) {
+		// check commonName, too
+		X509_NAME * subject = X509_get_subject_name(cert);
+		if (subject) {
+			char commonname[256];
+			if (X509_NAME_get_text_by_NID(subject, NID_commonName, commonname, 256) > 0) {
+				PTRACE(5, "TLS\tChecking Certificate commonName " << commonname);
+				if (::AsString(addr) == commonname) {
+					found = true;	// IP matched
+				} else if ((strlen(reverseLookup) > 0) && (strcasecmp(reverseLookup, commonname) == 0)) {
+					found = true;	// FQDN matched
+				} else {
+					struct addrinfo *result = NULL;
+				    if (getaddrinfo(commonname, NULL, NULL, &result) == 0) {
+						for (struct addrinfo * res = result; res != NULL; res = res->ai_next) {
+							PIPSocket::Address lookup;
+#ifdef hasIPV6
+							if (res->ai_addr->sa_family == AF_INET6) {
+								lookup = ((struct sockaddr_in6*)(res->ai_addr))->sin6_addr;
+							} else
+#endif
+							{
+								lookup = ((struct sockaddr_in*)(res->ai_addr))->sin_addr;
+							}
+							if (addr == lookup) {
+								found = true;	// DNS lookup matched
+							}
+						}
+					    freeaddrinfo(result);
+					}
+				}
+			}
+		}
+	}
+	X509_free(cert);
+
+	if (!found) {
+		PTRACE(1, "TLS\tError: Certificate didn't match IP " << ::AsString(addr) << " (" << reverseLookup << ")");
+		SNMP_TRAP(8, SNMPError, Authentication, ::AsString(addr) + " failed TLS certificate IP check");
+	}
+	return found;	// check failed
+}
+
 #endif
 
 

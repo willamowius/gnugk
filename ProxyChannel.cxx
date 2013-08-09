@@ -11005,7 +11005,18 @@ bool TLSCallSignalSocket::Connect(const Address & addr)
 		int ret = 0;
 		do {
 			ret = SSL_connect(m_ssl);
+			// TODO: do we need error handling here ?
 		} while (ret <= 0);
+		// check if the certificate matches the IP
+		Address raddr;
+		WORD rport = 0;
+		GetPeerAddress(raddr, rport);
+		UnmapIPv4Address(raddr);
+		if (!Toolkit::Instance()->MatchHostCert(m_ssl, raddr)) {
+			SSL_shutdown(m_ssl);
+			return false;
+		}
+
 		return true;
 	} else {
 		return false;
@@ -11071,7 +11082,15 @@ PBoolean TLSCallSignalSocket::Connect(const Address & iface, WORD localPort, con
 				}
 			}
 		} while (ret <= 0);
-		// TODO: post connection check ?
+		// check if the certificate matches the IP
+		Address raddr;
+		WORD rport = 0;
+		GetPeerAddress(raddr, rport);
+		UnmapIPv4Address(raddr);
+		if (!Toolkit::Instance()->MatchHostCert(m_ssl, raddr)) {
+			SSL_shutdown(m_ssl);
+			return false;
+		}
 
 		return true;
 	}
@@ -11241,7 +11260,15 @@ void TLSCallSignalSocket::Dispatch()
 			}
 		}
 	} while (ret <= 0);
-	// TODO: post connection check ?
+	// check if the certificate matches the IP
+	Address raddr;
+	WORD rport = 0;
+	GetPeerAddress(raddr, rport);
+	UnmapIPv4Address(raddr);
+	if (!Toolkit::Instance()->MatchHostCert(m_ssl, raddr)) {
+		SSL_shutdown(m_ssl);
+		return;
+	}
 
 	CallSignalSocket::Dispatch();
 }

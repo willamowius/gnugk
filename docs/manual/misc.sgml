@@ -1051,6 +1051,16 @@ Default: <tt>n/a</tt><newline>
 <p>
 The passphrase to open the above certificate files, if you have set one.
 
+<item><tt/CheckCertificateIP=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+In addition to checking if a peer certificate is signed correctly,
+GnuGk can check if one of the X.509 extensions contains a DNS name or if the commonName in the certificate
+match the IP, the connections actually comming from.
+<p>
+Not all certificates contain proper DNS names and if your peers are behind a NAT you might not
+be able to see their true IPs. Also DNS lookups may be slow, so this check is disabled by default.
+
 </itemize>
 
 <sect2>Generating keys and certificates with OpenSSL
