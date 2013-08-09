@@ -3556,20 +3556,20 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 		// make sure we have an EPRec for traversal calls from neighbor
         if (!call->GetCallingParty()) {
-		  if (callFromTraversalClient || callFromTraversalServer) {
-			endptr callingEP = RegistrationTable::Instance()->InsertRec(setupBody, SocketToH225TransportAddr(_peerAddr, _peerPort));
-			if (callFromTraversalClient)
-				callingEP->SetTraversalRole(TraversalClient);
-			if (callFromTraversalServer)
-				callingEP->SetTraversalRole(TraversalServer);
-			call->SetCalling(callingEP);
-          } 
+			if (callFromTraversalClient || callFromTraversalServer) {
+				endptr callingEP = RegistrationTable::Instance()->InsertRec(setupBody, SocketToH225TransportAddr(_peerAddr, _peerPort));
+				if (callFromTraversalClient)
+					callingEP->SetTraversalRole(TraversalClient);
+				if (callFromTraversalServer)
+					callingEP->SetTraversalRole(TraversalServer);
+				call->SetCalling(callingEP);
+			}
 #ifdef HAS_H46023
-          else if (IsH46024Call(setupBody)) {
-             callFromTraversalClient = true;
-			 endptr callingEP = RegistrationTable::Instance()->InsertRec(setupBody, SocketToH225TransportAddr(_peerAddr, _peerPort));
-             call->SetCalling(callingEP);
-          }
+			else if (IsH46024Call(setupBody)) {
+				callFromTraversalClient = true;
+				endptr callingEP = RegistrationTable::Instance()->InsertRec(setupBody, SocketToH225TransportAddr(_peerAddr, _peerPort));
+				call->SetCalling(callingEP);
+			}
 #endif
 		}
 
