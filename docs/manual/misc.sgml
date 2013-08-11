@@ -1194,10 +1194,10 @@ countryName            = US
 stateOrProvinceName    = Virginia
 localityName           = Fairfax
 organizationName       = Zork.org
-commonName             = splat.zork.org
+commonName             = gatekeeper.zork.org
 
 [ req_extensions ]
 basicConstraints = CA:true
-subjectAltName = DNS:splat.zork.org,DNS:localhost
+subjectAltName = DNS:gatekeeper.zork.org,DNS:localhost
 </verb></tscreen>
 
