@@ -372,3 +372,46 @@ on. This can be usefull if you are doing port forwarding, but should
 also be avoided and you should use one of the firewall traversal
 protocols instead.
 
+<sect1>Enabling Audio and Video Encryption
+<p>
+You can configure GnuGk as
+an encryption proxy to ensure that more or all outgoing calls are
+encrypted, whether your endpoint support encryption themselves or not.
+
+First, enable "half call media" which means GnuGk will add encryption
+if only one side of the call supports encryption. This will enable
+encryption for those of your endpoints that might not support
+encryption by themselves. You can also set if you want 128 or 256 bit
+AES. (Check "h235media=1" in the startup message to make sure your GnuGk
+has the encryption features enabled.)
+
+<tscreen><verb>
+[RoutedMode]
+EnableH235HalfCallMedia=1
+H235HalfCallMediaStrength=256
+</verb></tscreen>
+
+To make sure no call goes through without encryption, you can set
+
+<tscreen><verb>
+[RoutedMode]
+RequireH235HalfCallMedia=1
+</verb></tscreen>
+
+When you have this switch on, calls without encryption will be aborted.
+
+Finally, you can take precautions that its always the "outside"
+connection that gets encryption added. The GnuGk feature is "half call
+media" and you have to make sure its not only the internal half of the
+call that gets encrypted. Thus you can remove the encryption from all
+endpoint on your internal network and with the above settings GnuGk
+will add encryption to all outgoing calls.
+
+<tscreen><verb>
+[RoutedMode]
+RemoveH235Call=192.168.1.0/24, 10.0.1.0/32
+</verb></tscreen>
+
+The next step after media encryption would be to add
+<ref id="tls" name="TLS (transport layer security)"> encryption to the signalling channel.
+
