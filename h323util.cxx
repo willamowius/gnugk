@@ -17,6 +17,10 @@
 #include "config.h"
 #include "h323util.h"
 
+#ifdef HAS_H460
+#include <h460/h4601.h>
+#endif
+
 
 #if defined(_WIN32) && defined(hasIPV6)
 // Windows doesn't have inet_ntop, so we fake it
@@ -818,4 +822,43 @@ PString ReplaceParameters(const PString & queryStr, const std::map<PString, PStr
 	return finalQuery;
 }
 
+bool FindH460Descriptor(unsigned feat, H225_ArrayOf_FeatureDescriptor & features, unsigned & location)
+{
+    for (PINDEX i = 0; i < features.GetSize(); i++) {
+        H225_GenericIdentifier & id = features[i].m_id;
+        if (id.GetTag() == H225_GenericIdentifier::e_standard) {
+            PASN_Integer & asnInt = id;
+            if (asnInt.GetValue() == feat) {
+                location = i;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void RemoveH460Descriptor(unsigned feat, H225_ArrayOf_FeatureDescriptor & features)
+{
+    for(PINDEX i = 0; i < features.GetSize(); i++) {
+        H225_GenericIdentifier & id = features[i].m_id;
+        if (id.GetTag() == H225_GenericIdentifier::e_standard) {
+            PASN_Integer & asnInt = id;
+            if (asnInt.GetValue() == feat) {
+                for(PINDEX j=i+1; j < features.GetSize(); j++)
+                    features[j-1] = features[j];
+                features.SetSize(features.GetSize() - 1);
+                return;
+            }   
+        }
+    }
+}
+
+#ifdef HAS_H460
+void AddH460Feature(H225_ArrayOf_FeatureDescriptor & desc, const H460_Feature & newFeat)
+{
+    PINDEX lastpos = desc.GetSize();
+    desc.SetSize(lastpos+1);
+    desc[lastpos] = newFeat;
+}
+#endif
 

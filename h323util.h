@@ -33,6 +33,7 @@ class H225_ArrayOf_AliasAddress;
 class H245_TransportAddress;
 class H245_UnicastAddress;
 class PASN_OctetString;
+class H460_Feature;
 
 PString AsString(const PIPSocket::Address &);
 
@@ -247,6 +248,12 @@ PString ReplaceParameters(
 	const std::map<PString, PString> & queryParams	/// parameter values
 	);
 
+bool FindH460Descriptor(unsigned feat, H225_ArrayOf_FeatureDescriptor & features, unsigned & location);
 
-	
+void RemoveH460Descriptor(unsigned feat, H225_ArrayOf_FeatureDescriptor & features);
+
+#ifdef HAS_H460
+void AddH460Feature(H225_ArrayOf_FeatureDescriptor & desc, const H460_Feature & newFeat);
+#endif
+
 #endif // H323UTIL_H

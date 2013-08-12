@@ -281,14 +281,6 @@ bool IsOldH263(const H245_DataType & type)
 
 } // end of anonymous namespace
 
-#ifdef HAS_H460
-void AddH460Feature(H225_ArrayOf_FeatureDescriptor & desc, const H460_Feature & newFeat)
-{
-	PINDEX lastpos = desc.GetSize();
-	desc.SetSize(lastpos+1);
-	desc[lastpos] = newFeat;
-}
-#endif
 
 #ifdef HAS_H46018
 
@@ -296,13 +288,13 @@ void RemoveH46019Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures, 
 {
 	senderSupportsH46019Multiplexing = false;
 	isH46019Client = false;
-	for(PINDEX i=0; i < supportedFeatures.GetSize(); i++) {
+	for(PINDEX i = 0; i < supportedFeatures.GetSize(); i++) {
 		H225_GenericIdentifier & id = supportedFeatures[i].m_id;
 		if (id.GetTag() == H225_GenericIdentifier::e_standard) {
 			PASN_Integer & asnInt = id;
 			if (asnInt.GetValue() == 19) {
 				isH46019Client = true;
-				for(PINDEX p=0; p < supportedFeatures[i].m_parameters.GetSize(); p++) {
+				for(PINDEX p = 0; p < supportedFeatures[i].m_parameters.GetSize(); p++) {
 					if (supportedFeatures[i].m_parameters[p].m_id.GetTag() == H225_GenericIdentifier::e_standard) {
 						PASN_Integer & pInt = supportedFeatures[i].m_parameters[p].m_id;
 						if (pInt == 1) {
@@ -498,26 +490,6 @@ H245_GenericParameter & BuildH245GenericUnsigned(H245_GenericParameter & param, 
 		PASN_Integer & xval = genvalue;
 		xval = val;
 	return param;
-}
-#endif
-
-#ifdef HAS_H46026
-void RemoveH46026Descriptor(H225_ArrayOf_FeatureDescriptor & neededFeatures)
-{
-	for(PINDEX i=0; i < neededFeatures.GetSize(); i++) {
-		H225_GenericIdentifier & id = neededFeatures[i].m_id;
-		if (id.GetTag() == H225_GenericIdentifier::e_standard) {
-			PASN_Integer & asnInt = id;
-			if (asnInt.GetValue() == 26) {
-				// delete, move others 1 up
-				for(PINDEX j=i+1; j < neededFeatures.GetSize(); j++) 
-					neededFeatures[j-1] = neededFeatures[j];
-
-				neededFeatures.SetSize(neededFeatures.GetSize() - 1);
-				return;
-			}	
-		}
-	}
 }
 #endif
 
@@ -3994,14 +3966,14 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 #if defined(HAS_H46026)
 	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_neededFeatures)) {
-		RemoveH46026Descriptor(setupBody.m_neededFeatures);
+		RemoveH460Descriptor(26, setupBody.m_neededFeatures);
 		if (setupBody.m_neededFeatures.GetSize() == 0)
 			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_neededFeatures);
 	}
 #endif
 
 #if defined(HAS_H46017)
-     if ((m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46017())) {
+     if (m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46017()) {
 #if defined(HAS_H46018)
 		if (Toolkit::Instance()->IsH46018Enabled()) {
 			// offer H.460.19 to H.460.17 endpoints
@@ -4038,10 +4010,10 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			H460_FeatureStd feat = H460_FeatureStd(26);
 
             // We offer H.460.26 as supported endpoint ARQ will decide if needed
-			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) 
-				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
+			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_neededFeatures)) 
+				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_neededFeatures);
 
-			AddH460Feature(setupBody.m_supportedFeatures, feat);
+			AddH460Feature(setupBody.m_neededFeatures, feat);
         }
 #endif  // HAS_H46026
      }
@@ -4442,7 +4414,9 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 			WORD _peerPort = 0;
 			GetPeerAddress(_peerAddr, _peerPort);
 			UnmapIPv4Address(_peerAddr);
-			if ( (m_call && m_call->GetCalledParty() && (m_call->GetCalledParty()->UsesH46017() || m_call->GetCalledParty()->GetTraversalRole() != None))
+			if ( (m_call && m_call->GetCalledParty()
+				&& (m_call->GetCalledParty()->UsesH46017() || m_call->GetCalledParty()->GetTraversalRole() != None)
+				&& !m_call->GetCalledParty()->UsesH46026() )
 				|| RasServer::Instance()->IsCallFromTraversalClient(_peerAddr) || RasServer::Instance()->IsCallFromTraversalServer(_peerAddr)
 				|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018()) ) {
 				// set traversal role for called party (needed for H.460.17, doesn't hurt H.460.18)
@@ -4460,7 +4434,12 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 				PTRACE(2, "H46019\tIgnoring invalid H.460.19 indicator");
 			}
 			if (cpBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
+				cpBody.m_featureSet.RemoveOptionalField(H225_FeatureSet::e_supportedFeatures);
+			if (!cpBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_supportedFeatures)
+				&& !cpBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)
+				&& !cpBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_desiredFeatures)) {
 				cpBody.RemoveOptionalField(H225_CallProceeding_UUIE::e_featureSet);
+			}
 		}
 		if (m_call && ((m_call->GetCallingParty() && (m_call->GetCallingParty()->GetTraversalRole() != None))
 				|| (m_call->IsFromParent() && gkClient && gkClient->UsesH46018()) ) ) {
@@ -4489,6 +4468,12 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 	}
 #endif
 #ifdef HAS_H46026
+	// remove H.460.26 descriptor from sender
+	if (cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_featureSet)
+		&& cpBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)) {
+		RemoveH460Descriptor(26, cpBody.m_featureSet.m_neededFeatures);
+	}
+
 	if (m_call && m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46026())
 	{
 		H460_FeatureStd feat = H460_FeatureStd(26);
@@ -4704,7 +4689,9 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			WORD _peerPort = 0;
 			GetPeerAddress(_peerAddr, _peerPort);
 			UnmapIPv4Address(_peerAddr);
-			if ( (m_call && m_call->GetCalledParty() && (m_call->GetCalledParty()->UsesH46017() || m_call->GetCalledParty()->GetTraversalRole() != None))
+			if ( (m_call && m_call->GetCalledParty()
+					&& (m_call->GetCalledParty()->UsesH46017() || m_call->GetCalledParty()->GetTraversalRole() != None)
+					&& !m_call->GetCalledParty()->UsesH46026() )
 				|| RasServer::Instance()->IsCallFromTraversalClient(_peerAddr) || RasServer::Instance()->IsCallFromTraversalServer(_peerAddr)
 				|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018()) ) {
 				// set traversal role for called party (needed for H.460.17, doesn't hurt H.460.18)
@@ -4722,7 +4709,12 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 				PTRACE(2, "H46019\tIgnoring invalid H.460.19 indicator");
 			}
 			if (connectBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
+				connectBody.m_featureSet.RemoveOptionalField(H225_FeatureSet::e_supportedFeatures);
+			if (!connectBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_supportedFeatures)
+				&& !connectBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)
+				&& !connectBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_desiredFeatures)) {
 				connectBody.RemoveOptionalField(H225_Connect_UUIE::e_featureSet);
+			}
 		}
 		if (m_call && ((m_call->GetCallingParty() && (m_call->GetCallingParty()->GetTraversalRole() != None))
 				|| (m_call->IsFromParent() && gkClient && gkClient->UsesH46018()) ) ) {
@@ -4751,9 +4743,28 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 	}
 #endif
 #ifdef HAS_H46026
+	// remove H.460.26 descriptor from sender
+	if (connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet)
+		&& connectBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)) {
+		unsigned unused = 0;
+		if (FindH460Descriptor(26, connectBody.m_featureSet.m_neededFeatures, unused)) {
+		// must reset .19 for called party, CP might have set it before UsesH46026() was set in 2nd ARQ
+			if (dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
+				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(None);
+				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(false);
+			}
+			if (m_call->GetCalledParty()) {
+				m_call->GetCalledParty()->SetTraversalRole(None);
+			}
+
+			RemoveH460Descriptor(26, connectBody.m_featureSet.m_neededFeatures);
+		}
+	}
+
 	if (m_call && m_call->GetCallingParty()
 		&& m_call->GetCallingParty()->UsesH46026())
 	{
+		// add H.460.26 descriptor for receiver
 		H460_FeatureStd feat = H460_FeatureStd(26);
 		if (!connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet))
 			connectBody.IncludeOptionalField(H225_Connect_UUIE::e_featureSet);
@@ -4832,7 +4843,9 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 			WORD _peerPort = 0;
 			GetPeerAddress(_peerAddr, _peerPort);
 			UnmapIPv4Address(_peerAddr);
-			if ( (m_call && m_call->GetCalledParty() && (m_call->GetCalledParty()->UsesH46017() || m_call->GetCalledParty()->GetTraversalRole() != None))
+			if ( (m_call && m_call->GetCalledParty()
+					&& (m_call->GetCalledParty()->UsesH46017() || m_call->GetCalledParty()->GetTraversalRole() != None)
+					&& !m_call->GetCalledParty()->UsesH46026() )
 				|| RasServer::Instance()->IsCallFromTraversalClient(_peerAddr) || RasServer::Instance()->IsCallFromTraversalServer(_peerAddr)
 				|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018()) ) {
 				// set traversal role for called party (needed for H.460.17, doesn't hurt H.460.18)
@@ -4851,7 +4864,12 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 				PTRACE(2, "H46019\tIgnoring invalid H.460.19 indicator");
 			}
 			if (alertingBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
+				alertingBody.m_featureSet.RemoveOptionalField(H225_FeatureSet::e_supportedFeatures);
+			if (!alertingBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_supportedFeatures)
+				&& !alertingBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)
+				&& !alertingBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_desiredFeatures)) {
 				alertingBody.RemoveOptionalField(H225_Alerting_UUIE::e_featureSet);
+			}
 		}
 		if (m_call && ((m_call->GetCallingParty() && (m_call->GetCallingParty()->GetTraversalRole() != None))
 				|| (m_call->IsFromParent() && gkClient && gkClient->UsesH46018()) ) ) {
@@ -4880,9 +4898,16 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 	}
 #endif
 #ifdef HAS_H46026
+	// remove H.460.26 descriptor from sender
+	if (alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet)
+		&& alertingBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)) {
+		RemoveH460Descriptor(26, alertingBody.m_featureSet.m_neededFeatures);
+	}
+
 	if (m_call && m_call->GetCallingParty()
 		&& m_call->GetCallingParty()->UsesH46026())
 	{
+		// add H.460.26 descriptor for receiver
 		H460_FeatureStd feat = H460_FeatureStd(26);
 		if (!alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet))
 			alertingBody.IncludeOptionalField(H225_Alerting_UUIE::e_featureSet);

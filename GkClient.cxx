@@ -2976,37 +2976,6 @@ void GkClient::RemoveLocalAlias(const H225_ArrayOf_AliasAddress & aliases)
 	m_h323Id = newAliasList;
 }
 
-bool FindH460Descriptor(unsigned feat, H225_ArrayOf_FeatureDescriptor & features, int & location)
-{
-	for (PINDEX i =0; i < features.GetSize(); i++) {
-		H225_GenericIdentifier & id = features[i].m_id;
-		if (id.GetTag() == H225_GenericIdentifier::e_standard) {
-			PASN_Integer & asnInt = id;
-			if (asnInt.GetValue() == feat) {
-				location = i;
-				return TRUE;
-			}
-		}
-	}
-	return false;
-}
-
-void RemoveH460Descriptor(unsigned feat, H225_ArrayOf_FeatureDescriptor & features)
-{
-	for(PINDEX i=0; i < features.GetSize(); i++) {
-		H225_GenericIdentifier & id = features[i].m_id;
-		if (id.GetTag() == H225_GenericIdentifier::e_standard) {
-			PASN_Integer & asnInt = id;
-			if (asnInt.GetValue() == feat) {
-				for(PINDEX j=i+1; j < features.GetSize(); j++)
-					features[j-1] = features[j];
-				features.SetSize(features.GetSize() - 1);
-				return;
-			}	
-		}
-	}
-}
-
 bool GkClient::HandleSetup(SetupMsg & setup, bool fromInternal)
 {
 	RewriteE164(setup, fromInternal);
@@ -3016,7 +2985,7 @@ bool GkClient::HandleSetup(SetupMsg & setup, bool fromInternal)
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 #ifdef HAS_H46023
 			H225_ArrayOf_FeatureDescriptor & fs = setupBody.m_supportedFeatures;
-			int location = 0;
+			unsigned location = 0;
 			if (m_registeredH46023 && FindH460Descriptor(24, fs, location)) {
 				H460_Feature feat = H460_Feature(fs[location]);
 				H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
@@ -3030,14 +2999,14 @@ bool GkClient::HandleSetup(SetupMsg & setup, bool fromInternal)
 		}
 	} else {
 #ifdef HAS_H46023
-		int nonce = 0;
-		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures) && 
-			FindH460Descriptor(24,setupBody.m_supportedFeatures, nonce))
-				RemoveH460Descriptor(24,setupBody.m_supportedFeatures); 
+		unsigned nonce = 0;
+		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)
+			&& FindH460Descriptor(24,setupBody.m_supportedFeatures, nonce))
+			RemoveH460Descriptor(24,setupBody.m_supportedFeatures); 
 
 		if (m_registeredH46023) {
 			CallRec::NatStrategy natoffload = H46023_GetNATStategy(setupBody.m_callIdentifier);
-			H460_FeatureStd feat = H460_FeatureStd(24); 
+			H460_FeatureStd feat = H460_FeatureStd(24);
 			feat.Add(Std24_NATInstruct,H460_FeatureContent((unsigned)natoffload,8));
 			H225_ArrayOf_FeatureDescriptor & desc = setupBody.m_supportedFeatures;
 			int sz = desc.GetSize();
