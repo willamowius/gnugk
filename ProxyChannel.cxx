@@ -878,6 +878,10 @@ public:
 	void SetH46019Direction(int dir) { m_H46019dir = dir; }
 	int GetH46019Direction() const { return m_H46019dir; }
 	void SetRequestRTPMultiplexing(bool epCanTransmitMultipled);
+#ifdef HAS_H46026
+	void SetUsesH46026(bool val) { m_usesH46026 = val; }
+	bool UsesH46026() const { return m_usesH46026; }
+#endif
 #ifdef HAS_H235_MEDIA
 	void SetH235Role(bool isCaller, bool isH245Master) { m_isCaller = isCaller; m_isH245Master = isH245Master; }
 #endif
@@ -934,6 +938,7 @@ protected:
 	bool m_remoteRequestsRTPMultiplexing;
 	WORD m_multiplexedRTPPort;
 	WORD m_multiplexedRTCPPort;
+	bool m_usesH46026;
 #ifdef HAS_H235_MEDIA
 	bool m_isCaller;
 	bool m_isH245Master;
@@ -1310,6 +1315,9 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 
 	if (m_call->GetProxyMode() == CallRec::ProxyEnabled) {
 		H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), socket->localAddr, calling, socket->masqAddr);
+#ifdef HAS_H46026
+		proxyhandler->SetUsesH46026(m_call->GetCallingParty()->UsesH46026());
+#endif
 #ifdef HAS_H46018
 		if (m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None) {
 			proxyhandler->SetTraversalRole(m_call->GetCallingParty()->GetTraversalRole());
@@ -1327,7 +1335,10 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 		proxyhandler->SetRequestRTPMultiplexing(socket->m_senderSupportsH46019Multiplexing);
 #endif
 		socket->m_h245handler = proxyhandler;
-		m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(),localAddr, called, masqAddr, proxyhandler);
+		m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(), localAddr, called, masqAddr, proxyhandler);
+#ifdef HAS_H46026
+		((H245ProxyHandler*)m_h245handler)->SetUsesH46026(m_call->GetCalledParty()->UsesH46026());
+#endif
 #ifdef HAS_H46018
 		if (m_call->GetCalledParty() && m_call->GetCalledParty()->GetTraversalRole() != None) {
 			((H245ProxyHandler*)m_h245handler)->SetTraversalRole(m_call->GetCalledParty()->GetTraversalRole());
@@ -2269,6 +2280,7 @@ bool SupportsH235Media(const H225_ArrayOf_ClearToken & clearTokens)
 	return (h235v3compatible && supportedDHkey);
 }
 
+// convert key bit count to bytes
 unsigned AlgorithmKeySize(const PString & oid)
 {
 	if (oid == ID_AES128) {
@@ -5706,6 +5718,9 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					m_call->GetNATType(calling, called);
 					// H.245 proxy hander for calling (doesn't have to use H.460.18/.19)
 					H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), callingSocket->localAddr, calling, callingSocket->masqAddr);
+#ifdef HAS_H46026
+					proxyhandler->SetUsesH46026(m_call->GetCallingParty()->UsesH46026());
+#endif
 					if (m_call->GetCalledParty() && !m_call->GetCalledParty()->IsTraversalClient()) {
 						PTRACE (1, "Traversal call to non-H.460.18 endpoint, maybe neighbor - setting now");
 						m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
@@ -5717,6 +5732,9 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					proxyhandler->SetRequestRTPMultiplexing(callingSocket->m_senderSupportsH46019Multiplexing);
 					m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(), localAddr, called, masqAddr, proxyhandler);
 					proxyhandler->SetHandler(GetHandler());
+#ifdef HAS_H46026
+					((H245ProxyHandler*)m_h245handler)->SetUsesH46026(m_call->GetCalledParty()->UsesH46026());
+#endif
 					((H245ProxyHandler*)m_h245handler)->SetTraversalRole(TraversalClient);
 					((H245ProxyHandler*)m_h245handler)->SetH46019Direction(m_call->GetH46019Direction());
 
@@ -9577,7 +9595,7 @@ bool T120LogicalChannel::OnSeparateStack(H245_NetworkAccessParameters & sepStack
 // class H245ProxyHandler
 H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSocket::Address & local, const PIPSocket::Address & remote, const PIPSocket::Address & masq, H245ProxyHandler * pr)
       : H245Handler(local, remote, masq), peer(pr), callid(id), isMute(false), m_useH46019(false), m_traversalType(None),
-		m_useH46019fc(false), m_H46019fcState(0), m_H46019dir(0)
+		m_useH46019fc(false), m_H46019fcState(0), m_H46019dir(0), m_usesH46026(false)
 {
 	if (peer)
 		peer->peer = this;
@@ -9677,6 +9695,7 @@ bool H245ProxyHandler::HandleCommand(H245_CommandMessage & Command, bool & suppr
 
 bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters * h225Params, WORD flcn)
 {
+PTRACE(0, "JW OnLogicalChannelParameters " << *h225Params);
 	RTPLogicalChannel * lc = flcn ?
 		CreateRTPLogicalChannel((WORD)h225Params->m_sessionID, flcn) :
 		CreateFastStartLogicalChannel((WORD)h225Params->m_sessionID);
@@ -9809,6 +9828,22 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 	} else {
 		bool isReverseLC = false;
 		H245_H2250LogicalChannelParameters * h225Params = GetLogicalChannelParameters(olc, isReverseLC);
+#ifdef HAS_H46026
+		PTRACE(0, "JW HandleOLC uses26=" << UsesH46026() << " peer26=" << (peer ? peer->UsesH46026() : false));
+		if (UsesH46026() && peer && !peer->UsesH46026()) {
+			PTRACE(0, "H46026\tAdding mediaControlChannel params=" << h225Params << " reverse=" << isReverseLC);
+			if (h225Params && !isReverseLC) {
+				h225Params->IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel);
+				h225Params->m_mediaControlChannel = IPToH245TransportAddr(GetRemoteAddr(), 0);
+				if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_transportCapability)) {
+					// just remove media channel capabilities, leave QoS in
+					h225Params->m_transportCapability.RemoveOptionalField(H245_TransportCapability::e_mediaChannelCapabilities);
+				}
+			}
+			// TODO: handle reverse channel, too ?
+			changed = true;
+		}
+#endif
 
 #ifdef HAS_H46018
 		WORD sessionID = h225Params ? (WORD)h225Params->m_sessionID : INVALID_RTP_SESSION;
@@ -10197,6 +10232,23 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 		}
 #endif
 
+#ifdef HAS_H46026
+		if (!UsesH46026() && peer && peer->UsesH46026()) {
+			PTRACE(0, "H46026\tRemoving mediaControlChannel params=" << h225Params << " reverse=" << isReverseLC);
+			if (h225Params && !isReverseLC) {
+				h225Params->RemoveOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel);
+				h225Params->RemoveOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel);	// just in case
+				h225Params->IncludeOptionalField(H245_H2250LogicalChannelParameters::e_transportCapability);
+				h225Params->m_transportCapability.IncludeOptionalField(H245_TransportCapability::e_mediaChannelCapabilities);
+				h225Params->m_transportCapability.m_mediaChannelCapabilities.SetSize(1);
+				h225Params->m_transportCapability.m_mediaChannelCapabilities[0].IncludeOptionalField(H245_MediaChannelCapability::e_mediaTransport);
+				h225Params->m_transportCapability.m_mediaChannelCapabilities[0].m_mediaTransport.SetTag(H245_MediaTransportType::e_ip_TCP);
+			}
+			// TODO: handle reverse channel, too ?
+			changed = true;
+		}
+#endif
+
 		return changed;
 	}
 }
@@ -10211,6 +10263,22 @@ bool H245ProxyHandler::HandleOpenLogicalChannelReject(H245_OpenLogicalChannelRej
 bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & olca, callptr & call)
 {
 	bool changed = false;
+#ifdef HAS_H46026
+	PTRACE(0, "JW HandleOLCAck uses26=" << UsesH46026() << " peer26=" << (peer ? peer->UsesH46026() : false) << " hnat=" << hnat);
+	if (UsesH46026() && peer && !peer->UsesH46026()) {
+		PTRACE(0, "H46026\tAdding mediaChannel + mediaControlChannel");	
+		if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)
+			&& olca.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters) {
+			H245_H2250LogicalChannelAckParameters & h225Params  = olca.m_forwardMultiplexAckParameters;
+			h225Params.IncludeOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel);
+			h225Params.m_mediaChannel = IPToH245TransportAddr(GetRemoteAddr(), 0);
+			h225Params.IncludeOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaControlChannel);
+			h225Params.m_mediaControlChannel = IPToH245TransportAddr(GetRemoteAddr(), 0);
+		}
+		// TODO: handle reverse ?
+	}
+#endif
+
 	if (hnat)
 		hnat->HandleOpenLogicalChannelAck(olca);
 	WORD flcn = (WORD)olca.m_forwardLogicalChannelNumber;
@@ -10437,6 +10505,20 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		}
 #endif
 	}
+#endif
+
+#ifdef HAS_H46026
+		if (!UsesH46026() && peer && peer->UsesH46026()) {
+			PTRACE(0, "H46026\tRemoving mediaChannel + mediaControlChannel");
+			if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)
+				&& olca.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters) {
+				H245_H2250LogicalChannelAckParameters & h225Params  = olca.m_forwardMultiplexAckParameters;
+				h225Params.RemoveOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel);
+				h225Params.RemoveOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaControlChannel);
+			}
+			// TODO: handle reverse ?
+			changed = true;
+		}
 #endif
 
 	bool result = lc->SetDestination(olca, this, call, IsTraversalClient(), (peer && peer->m_requestRTPMultiplexing));
