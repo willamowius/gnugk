@@ -2207,7 +2207,7 @@ SSL_CTX * Toolkit::GetTLSContext()
 		const char * caDirPtr = caDir.IsEmpty() ? NULL : caDir.GetPointer();
 		if (caFilePtr || caDirPtr) {
 			if (SSL_CTX_load_verify_locations(m_sslCtx, caFilePtr, caDirPtr) != 1) {
-				PTRACE(1, "TLS\tError loading CA file or directory (" << caFile << "/" << caDir);
+				PTRACE(1, "TLS\tError loading CA file or directory (" << caFile << " / " << caDir << ")");
 			}
 		}
 		if (SSL_CTX_use_certificate_chain_file(m_sslCtx, m_Config->GetString(TLSSec, "Certificates", "tls_certificate.pem")) != 1) {
