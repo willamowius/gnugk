@@ -332,6 +332,7 @@ int GkAuthenticator::Check(
 		? m_defaultStatus : e_next;
 }
 
+// TODO: unused ? remove ?
 bool GkAuthenticator::GetH235Capability(
 	/// append supported authentication mechanism to this array
 	H225_ArrayOf_AuthenticationMechanism & mechanisms,
@@ -1096,6 +1097,7 @@ int SimplePasswordAuth::CheckTokens(
 	return e_next;
 }
 
+// TODO: unused ? remove ?
 int SimplePasswordAuth::CheckCryptoTokens(
 	/// an array of cryptoTokens to be checked
 	const H225_ArrayOf_CryptoH323Token & tokens, 
