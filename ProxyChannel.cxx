@@ -2838,6 +2838,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		m_result = Error;
 		return;
 	}
+	m_callerSocket = true;	// update for persistent H.460.17 sockets where this property can change
 
 	Q931 & q931 = msg->GetQ931();
 	H225_Setup_UUIE & setupBody = setup->GetUUIEBody();
@@ -4375,6 +4376,7 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 		m_result = Error;
 		return;
 	}
+	m_callerSocket = false;	// update for persistent H.460.17 sockets where this property can change
 
 	H225_CallProceeding_UUIE &cpBody = callProceeding->GetUUIEBody();
 
@@ -4576,6 +4578,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 		m_result = Error;
 		return;
 	}
+	m_callerSocket = false;	// update for persistent H.460.17 sockets where this property can change
 
 	H225_Connect_UUIE & connectBody = connect->GetUUIEBody();
 
@@ -4851,6 +4854,7 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 		m_result = Error;
 		return;
 	}
+	m_callerSocket = false;	// update for persistent H.460.17 sockets where this property can change
 
 	H225_Alerting_UUIE &alertingBody = alerting->GetUUIEBody();
 
@@ -5743,6 +5747,9 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg * msg)
 			PTRACE(5, "Q931\tFailover inactive for call " << m_call->GetCallNumber() << ", Q931 cause " << cause);
 	}
 
+	// TODO: for H.460.17.17 Removing the call will trigger CleanupCall() in RemoveSocket(),
+	// which deletes the remote ptr and without remote ptr we can't forward the RC
+	// too complicated to fix now
 	if (m_call)
 		CallTable::Instance()->RemoveCall(m_call);
 	m_result = Closing;
