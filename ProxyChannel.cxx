@@ -8474,8 +8474,24 @@ bool H46026RTPHandler::HandlePacket(H225_CallIdentifier callid, H46026_UDPFrame 
 			// found session, now send all RTP packets
 			for(PINDEX i = 0; i < data.m_frame.GetSize(); i++) {
 				PASN_OctetString & bytes = data.m_frame[i];
+
+				// sanity checks on the RTP packet
+				unsigned int version = 0;	// RTP version
+				BYTE payloadType = UNDEFINED_PAYLOAD_TYPE;
+				unsigned int seq = 0;
+				unsigned int timestamp = 0;
+				if (bytes.GetSize() >= 1)
+					version = (((int)bytes[0] & 0xc0) >> 6);
+				if ((bytes.GetSize() >= 2) && data.m_dataFrame)	// not defined for RTCP
+					payloadType = bytes[1] & 0x7f;
+				if (bytes.GetSize() >= 4)
+					seq = ((int)bytes[2] * 256) + (int)bytes[3];
+				if (bytes.GetSize() >= 8)
+					timestamp = ((int)bytes[4] * 16777216) + ((int)bytes[5] * 65536) + ((int)bytes[6] * 256) + (int)bytes[7];
+
 				// TODO: handle RTCP stats here
 				PTRACE(0, "JW found .26 session, send packet, size=" << bytes.GetSize() << " rtp=" << data.m_dataFrame);
+				PTRACE(0, "JW RTP version=" << version << " PT=" << (int)payloadType << " seq=" << seq << " timestamp=" << timestamp);
 				iter->Send(bytes.GetPointer(), bytes.GetSize(), !data.m_dataFrame);
 			}
 			return true;
