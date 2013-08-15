@@ -709,6 +709,10 @@ void ShutdownHandler()
 	if (MultiplexedRTPHandler::InstanceExists())
 		delete MultiplexedRTPHandler::Instance();
 #endif
+#ifdef HAS_H46026
+	if (H46026RTPHandler::InstanceExists())
+		delete H46026RTPHandler::Instance();
+#endif
 	if (CapacityControl::InstanceExists())
 		delete CapacityControl::Instance();
 	if (PreliminaryCallTable::InstanceExists())

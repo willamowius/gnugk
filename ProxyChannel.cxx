@@ -50,6 +50,10 @@
 	#endif
 #endif
 
+#ifdef HAS_H46026
+	#include <h460/h46026.h>
+#endif
+
 #ifdef HAS_H235_MEDIA
 	#include "h235/h2351.h"
 	#include "h235/h2356.h"
@@ -1333,6 +1337,10 @@ CallSignalSocket::~CallSignalSocket()
 #ifdef HAS_H46018
 	if (m_call && Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0")))
 		MultiplexedRTPHandler::Instance()->RemoveChannels(m_call->GetCallIdentifier());
+#endif
+#ifdef HAS_H46026
+	if (m_call && Toolkit::Instance()->IsH46026Enabled())
+		H46026RTPHandler::Instance()->RemoveChannels(m_call->GetCallIdentifier());
 #endif
 	if (m_h245socket) {
 		if (CallSignalSocket *ret = static_cast<CallSignalSocket *>(remote)) {
@@ -4469,9 +4477,15 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 #endif
 #ifdef HAS_H46026
 	// remove H.460.26 descriptor from sender
-	if (cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_featureSet)
-		&& cpBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)) {
-		RemoveH460Descriptor(26, cpBody.m_featureSet.m_neededFeatures);
+	if (cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_featureSet)) {
+		// spec say it should be in neededFeatures
+		if (cpBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)) {
+			RemoveH460Descriptor(26, cpBody.m_featureSet.m_neededFeatures);
+		}
+		// but CP is sent before ACF decides if it is really used, so H323Plus sends it in supportedFeatures
+		if (cpBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_supportedFeatures)) {
+			RemoveH460Descriptor(26, cpBody.m_featureSet.m_supportedFeatures);
+		}
 	}
 
 	if (m_call && m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46026())
@@ -4488,6 +4502,26 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 		msg->SetUUIEChanged();
 	}
 #endif
+	// remove featureSet if needed/supported/desired are empty
+	if (cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_featureSet)) {
+		if (cpBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)
+			&& cpBody.m_featureSet.m_neededFeatures.GetSize() == 0) {
+			cpBody.m_featureSet.RemoveOptionalField(H225_FeatureSet::e_neededFeatures);
+		}
+		if (cpBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_supportedFeatures)
+			&& cpBody.m_featureSet.m_supportedFeatures.GetSize() == 0) {
+			cpBody.m_featureSet.RemoveOptionalField(H225_FeatureSet::e_supportedFeatures);
+		}
+		if (cpBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_desiredFeatures)
+			&& cpBody.m_featureSet.m_desiredFeatures.GetSize() == 0) {
+			cpBody.m_featureSet.RemoveOptionalField(H225_FeatureSet::e_desiredFeatures);
+		}
+		if (!cpBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)
+			&& !cpBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_supportedFeatures)
+			&& !cpBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_desiredFeatures)) {
+			cpBody.RemoveOptionalField(H225_CallProceeding_UUIE::e_featureSet);
+		}
+	}
 
 	if (m_call) {
 		if (m_call->IsProceedingSent()) {
@@ -4706,7 +4740,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 					&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
 					dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(true);
 			} else {
-				PTRACE(2, "H46019\tIgnoring invalid H.460.19 indicator");
+				//PTRACE(2, "H46019\tIgnoring invalid H.460.19 indicator"); // can also be another feature, like H.460.26
 			}
 			if (connectBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				connectBody.m_featureSet.RemoveOptionalField(H225_FeatureSet::e_supportedFeatures);
@@ -4748,13 +4782,15 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 		&& connectBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)) {
 		unsigned unused = 0;
 		if (FindH460Descriptor(26, connectBody.m_featureSet.m_neededFeatures, unused)) {
-		// must reset .19 for called party, CP might have set it before UsesH46026() was set in 2nd ARQ
+			// must reset .19 for called party, CP might have set it before UsesH46026() was set in 2nd ARQ
 			if (dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
 				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(None);
 				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(false);
+				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetUsesH46026(true);
 			}
 			if (m_call->GetCalledParty()) {
 				m_call->GetCalledParty()->SetTraversalRole(None);
+				m_call->GetCalledParty()->SetUsesH46026(true);
 			}
 
 			RemoveH460Descriptor(26, connectBody.m_featureSet.m_neededFeatures);
@@ -4776,6 +4812,27 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 	    msg->SetUUIEChanged();
 	}
 #endif
+
+	// remove featureSet if needed/supported/desired are empty
+	if (connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet)) {
+		if (connectBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)
+			&& connectBody.m_featureSet.m_neededFeatures.GetSize() == 0) {
+			connectBody.m_featureSet.RemoveOptionalField(H225_FeatureSet::e_neededFeatures);
+		}
+		if (connectBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_supportedFeatures)
+			&& connectBody.m_featureSet.m_supportedFeatures.GetSize() == 0) {
+			connectBody.m_featureSet.RemoveOptionalField(H225_FeatureSet::e_supportedFeatures);
+		}
+		if (connectBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_desiredFeatures)
+			&& connectBody.m_featureSet.m_desiredFeatures.GetSize() == 0) {
+			connectBody.m_featureSet.RemoveOptionalField(H225_FeatureSet::e_desiredFeatures);
+		}
+		if (!connectBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)
+			&& !connectBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_supportedFeatures)
+			&& !connectBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_desiredFeatures)) {
+			connectBody.RemoveOptionalField(H225_Connect_UUIE::e_featureSet);
+		}
+	}
 
 	SendPostDialDigits();	// 1st check, for tunneled H.245 connections
 }
@@ -4921,8 +4978,90 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 #endif
 }
 
+
+#ifdef HAS_H46026
+PBoolean ReadRTPFrame(const Q931 & q931, H46026_UDPFrame & data)
+{
+    H225_H323_UserInformation uuie;
+    if (!GetUUIE(q931, uuie)) {
+        PTRACE(2,"H46026\tError decoding Media PDU");
+        return false;
+    }
+
+    // sanity checks
+    if ((!uuie.m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_genericData)) || 
+        (uuie.m_h323_uu_pdu.m_genericData.GetSize() == 0) || 
+        (!uuie.m_h323_uu_pdu.m_genericData[0].HasOptionalField(H225_GenericData::e_parameters)) || 
+        (uuie.m_h323_uu_pdu.m_genericData[0].m_parameters.GetSize() == 0) ||
+        (!uuie.m_h323_uu_pdu.m_genericData[0].m_parameters[0].HasOptionalField(H225_EnumeratedParameter::e_content))
+        ) {
+            //PTRACE(2,"H46026\tERROR Non-Media Frame structure"); // or simply a Information message with a different purpose
+            return false;
+    }
+    H225_GenericIdentifier & id = uuie.m_h323_uu_pdu.m_genericData[0].m_id;
+    if (id.GetTag() != H225_GenericIdentifier::e_standard) {
+        PTRACE(2,"H46026\tERROR Bad Media Frame ID");
+        return false;
+    }
+    PASN_Integer & asnInt = id;
+    if (asnInt.GetValue() != 26) {
+        PTRACE(2,"H46026\tERROR Wrong Media Frame ID " << asnInt.GetValue());
+        return false;
+    }
+    H225_GenericIdentifier & pid = uuie.m_h323_uu_pdu.m_genericData[0].m_parameters[0].m_id;
+    if (id.GetTag() != H225_GenericIdentifier::e_standard) {
+        PTRACE(2,"H46026\tERROR BAD Media Parameter ID");
+        return false;
+    }
+    PASN_Integer & pInt = pid;
+    if (pInt.GetValue() != 1) {
+        PTRACE(2,"H46026\tERROR Wrong Media Parameter ID " << pInt.GetValue());
+        return false;
+    }
+
+    // Get the RTP Payload
+    PASN_OctetString & val = uuie.m_h323_uu_pdu.m_genericData[0].m_parameters[0].m_content;
+    if (!val.DecodeSubType(data)) {
+        PTRACE(2,"H46026\tERROR Decoding Media Frame");
+        return false;
+    }
+
+    return true;
+}
+#endif
+
+
 void CallSignalSocket::OnInformation(SignalingMsg * msg)
 {
+	Q931 & q931 = msg->GetQ931();
+
+#ifdef HAS_H46026
+	// handle H.460.26 RTP frames and forward as regular or mux RTP if only 1 party uses H.460.26
+	bool callerUsesH46026 = (m_call && m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46026());
+	bool calledUsesH46026 = (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46026());
+
+	if (m_call && ((callerUsesH46026 && !calledUsesH46026) || (!callerUsesH46026 && calledUsesH46026))) {
+		H46026_UDPFrame data;
+		if (ReadRTPFrame(q931, data)) {
+			PTRACE(0, "H46026\tUnpacking H.460.26 RTP packet");
+			// TODO: do we have to handle media encryption here, too ?
+
+#ifdef HAS_H46018
+			// check if its a multiplexed RTP destination
+			if (MultiplexedRTPHandler::Instance()->HandlePacket(m_call->GetCallIdentifier(), data)) {
+				m_result = NoData;	// forwarded as RTP
+				return;
+			}
+#endif
+			// plain RTP
+			H46026RTPHandler::Instance()->HandlePacket(m_call->GetCallIdentifier(), data);
+
+			m_result = NoData;	// forwarded as RTP
+			return;
+		}
+	}
+#endif
+
 	if (remote != NULL)
 		return;
 
@@ -4936,8 +5075,6 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 	// Use this to block errant gateways that don't support NAT mechanism properly.
 	if (!Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SupportCallingNATedEndpoints", "1")))
 		return;
-
-	Q931 & q931 = msg->GetQ931();
 
 	// look for GnuGk NAT messages, ignore everything else
 	if (!q931.HasIE(Q931::FacilityIE))
@@ -5396,6 +5533,62 @@ bool CallSignalSocket::SendH46017Message(const H225_RasMessage & ras)
 	} else {
 		PTRACE(1, "Error: Can't send H.460.17 reply to " << GetName() << " - socket closed");
 		SNMP_TRAP(10, SNMPWarning, Network, "Can't send H.460.17 reply to " + GetName() + " - socket closed");
+		return false;
+	}
+}
+#endif
+
+#ifdef HAS_H46026
+bool CallSignalSocket::SendH46026RTP(unsigned sessionID, bool isRTP, const void * data, unsigned len)
+{
+	if (IsOpen()) {
+		H46026_UDPFrame frame;
+		frame.m_sessionId = sessionID;
+		frame.m_dataFrame = isRTP;
+		frame.m_frame.SetSize(1);	// for now we don't combine multiple frames
+		frame.m_frame[0].SetTag(isRTP ? H46026_FrameData::e_rtp : H46026_FrameData::e_rtcp);
+		PASN_OctetString & raw = frame.m_frame[0];
+		raw = PBYTEArray((const BYTE *)data, len);
+
+		PBoolean fromDest = m_crv & 0x8000u;
+		Q931 InformationPDU;
+		InformationPDU.BuildInformation(m_crv, fromDest);
+		InformationPDU.SetCallState(Q931::CallState_CallInitiated);
+
+		H225_H323_UserInformation uuie;
+		H225_H323_UU_PDU & info = uuie.m_h323_uu_pdu;
+		info.IncludeOptionalField(H225_H323_UU_PDU::e_genericData);
+		uuie.m_h323_uu_pdu.m_genericData.SetSize(1);
+		H225_GenericData & gen = uuie.m_h323_uu_pdu.m_genericData[0];
+		H225_GenericIdentifier & id = gen.m_id;
+		id.SetTag(H225_GenericIdentifier::e_standard);
+		PASN_Integer & asnInt = id;
+		asnInt.SetValue(26);
+		gen.IncludeOptionalField(H225_GenericData::e_parameters);
+		gen.m_parameters.SetSize(1);
+		H225_EnumeratedParameter & param = gen.m_parameters[0];
+		H225_GenericIdentifier & pid = param.m_id;
+		pid.SetTag(H225_GenericIdentifier::e_standard);
+		PASN_Integer & pInt = pid;
+		pInt.SetValue(1);
+		param.IncludeOptionalField(H225_EnumeratedParameter::e_content);
+		param.m_content.SetTag(H225_Content::e_raw);
+		PASN_OctetString & val = uuie.m_h323_uu_pdu.m_genericData[0].m_parameters[0].m_content;
+		val.SetSize(0);
+		val.EncodeSubType(frame);
+		
+		uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
+		uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+		uuie.m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
+		SetUUIE(InformationPDU, uuie);
+
+		PrintQ931(3, "Send to ", GetName(), &InformationPDU, &uuie);
+
+		PBYTEArray buf;
+		InformationPDU.Encode(buf);
+		return TransmitData(buf);
+	} else {
+		PTRACE(1, "Error: Can't send H.460.26 to " << GetName() << " - socket closed");
 		return false;
 	}
 }
@@ -7765,6 +7958,23 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 	}
 #endif
 
+#ifdef HAS_H46026
+	// send RTP for H.460.26 endpoints via TCP
+	if (call) {
+		if (call->GetCallingParty() && call->GetCallingParty()->UsesH46026()) {
+			if (call->GetCallingParty()->GetSocket()) {
+				call->GetCallingParty()->GetSocket()->SendH46026RTP(m_session, !isRTCP, data, len);
+			}
+			return;
+		} else if (call->GetCalledParty() && call->GetCalledParty()->UsesH46026()) {
+			if (call->GetCalledParty()->GetSocket()) {
+				call->GetCalledParty()->GetSocket()->SendH46026RTP(m_session, !isRTCP, data, len);
+			}
+			return;
+		}
+	}
+#endif
+
 	if (receivedMultiplexID == m_multiplexID_fromA) {
 		if (sideBReady(isRTCP)) {
 			Send(m_multiplexID_toB, (isRTCP ? m_addrB_RTCP : m_addrB), (isRTCP ? m_osSocketToB_RTCP : m_osSocketToB), data, len, true);
@@ -8036,7 +8246,7 @@ void MultiplexedRTPHandler::DumpChannels(const PString & msg) const
 	}
 }
 
-void MultiplexedRTPHandler::HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP)
+bool MultiplexedRTPHandler::HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP)
 {
 	ReadLock lock(m_listLock);
 	// find the matching channel for the multiplex ID and let it handle the packet
@@ -8045,11 +8255,52 @@ void MultiplexedRTPHandler::HandlePacket(PUInt32b receivedMultiplexID, const H32
 		if ((iter->m_multiplexID_fromA == receivedMultiplexID)
 			|| (iter->m_multiplexID_fromB == receivedMultiplexID)) {
 			iter->HandlePacket(receivedMultiplexID, fromAddress, data, len, isRTCP);
-			return;
+			return true;
 		}
 	}
 	PTRACE(3, "RTP\tWarning: Didn't find a channel for receivedMultiplexID " << receivedMultiplexID << " from " << AsString(fromAddress));
+	return false;
 }
+
+#ifdef HAS_H46026
+bool MultiplexedRTPHandler::HandlePacket(H225_CallIdentifier callid, H46026_UDPFrame & data)
+{
+	PTRACE(0, "JW HandlePacket (try mux) session=" << data.m_sessionId);
+	ReadLock lock(m_listLock);
+	// find the matching channel by callID and sessionID
+	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
+			iter != m_h46019channels.end() ; ++iter) {
+		if ((iter->m_callid == callid) && (iter->m_session = data.m_sessionId)) {
+			// found session, now send all RTP packets
+			for (PINDEX i = 0; i < data.m_frame.GetSize(); i++) {
+				PASN_OctetString & bytes = data.m_frame[i];
+				// TODO: handle RTCP stats here
+				PTRACE(0, "JW found .19 session, send packet, size=" << bytes.GetSize() << " rtp=" << data.m_dataFrame
+					<< " val=" << data.m_dataFrame.GetValue() << " tag=" << data.m_frame[i].GetTagName());
+				if (iter->m_multiplexID_toA != INVALID_MULTIPLEX_ID) {
+					if (!data.m_dataFrame) {
+						PTRACE(0, "JW send mux packet to " << iter->m_addrA_RTCP);
+						iter->Send(iter->m_multiplexID_toA, iter->m_addrA_RTCP, iter->m_osSocketToA_RTCP, bytes.GetPointer(), bytes.GetSize(), false);	
+					} else {
+						PTRACE(0, "JW send mux packet to " << iter->m_addrA);
+						iter->Send(iter->m_multiplexID_toA, iter->m_addrA, iter->m_osSocketToA, bytes.GetPointer(), bytes.GetSize(), false);	
+					}
+				} else if (iter->m_multiplexID_toB != INVALID_MULTIPLEX_ID) {
+					if (!data.m_dataFrame) {
+						PTRACE(0, "JW send mux packet to " << iter->m_addrB_RTCP);
+						iter->Send(iter->m_multiplexID_toB, iter->m_addrB_RTCP, iter->m_osSocketToB_RTCP, bytes.GetPointer(), bytes.GetSize(), false);	
+					} else {
+						PTRACE(0, "JW send mux packet to " << iter->m_addrB);
+						iter->Send(iter->m_multiplexID_toB, iter->m_addrB, iter->m_osSocketToB, bytes.GetPointer(), bytes.GetSize(), false);	
+					}
+				}
+			}
+			return true;
+		}
+	}
+	return false;
+}
+#endif // HAS_H46026
 
 PUInt32b MultiplexedRTPHandler::GetMultiplexID(const H225_CallIdentifier & callid, WORD session, void * to)
 {
@@ -8077,6 +8328,164 @@ PUInt32b MultiplexedRTPHandler::GetNewMultiplexID()
 	return idCounter = idCounter + 1;
 }
 #endif
+
+
+#ifdef HAS_H46026
+H46026Session::H46026Session(const H225_CallIdentifier & callid, WORD session,
+							int osRTPSocket, int osRTCPSocket,
+							const H323TransportAddress & toRTP, const H323TransportAddress & toRTCP)
+	: m_callid(callid), m_session(session),
+	  m_osRTPSocket(osRTPSocket), m_osRTCPSocket(osRTCPSocket), m_toAddressRTP(toRTP), m_toAddressRTCP(toRTCP)
+{
+}
+
+void H46026Session::Send(void * data, unsigned len, bool isRTCP)
+{
+#ifdef hasIPV6
+	struct sockaddr_in6 dest;
+#else
+	struct sockaddr_in dest;
+#endif
+	size_t lenToSend = len;
+	size_t sent = 0;
+	int osSocket = INVALID_OSSOCKET;
+	H323TransportAddress toAddress;
+
+	if (isRTCP) {
+		osSocket = m_osRTCPSocket;
+		toAddress = m_toAddressRTP;
+	} else {
+		osSocket = m_osRTPSocket;
+		toAddress = m_toAddressRTCP;
+	}
+
+	if (Toolkit::Instance()->IsIPv6Enabled()) {
+		PIPSocket::Address toIP;
+		WORD toPort = 0;
+		toAddress.GetIpAndPort(toIP, toPort);
+		MapIPv4Address(toIP);
+		SetSockaddr(dest, toIP, toPort);
+	} else {
+		SetSockaddr(dest, toAddress);
+	}
+
+	PTRACE(0, "JW Send to " << toAddress << " len=" << len);
+	sent = ::sendto(osSocket, (char*)data, lenToSend, 0, (struct sockaddr *)&dest, sizeof(dest));
+	if (sent != lenToSend) {
+		PTRACE(1, "H46026\tError sending RTP to " << toAddress << ": should send=" << lenToSend << " did send=" << sent << " errno=" << errno);
+	}
+}
+
+void H46026Session::Dump() const
+{
+	PTRACE(7, "JW H46026Session: session=" << m_session
+//			<< " callID=" << AsString(m_callid.m_guid)
+			<< " osRTPSocket=" << m_osRTPSocket << " toRTP=" << m_toAddressRTP
+			<< " osRTCPSocket=" << m_osRTCPSocket << " toRTCP=" << m_toAddressRTCP);
+//#ifdef HAS_H235_MEDIA
+//	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
+//		PTRACE(7, "JW session=" << m_session << " encryptLC=" << m_encryptingLC << " decryptLC=" << m_encryptingLC);
+//	}
+//#endif
+}
+
+
+H46026RTPHandler::H46026RTPHandler() : Singleton<H46026RTPHandler>("H46026RTPHandler")
+{
+}
+
+H46026RTPHandler::~H46026RTPHandler()
+{
+}
+
+void H46026RTPHandler::AddChannel(const H46026Session & chan)
+{
+	WriteLock lock(m_listLock);
+	m_h46026channels.push_back(chan);	// TODO: check if we have this session already ?
+	DumpChannels(" AddChannel() done ");
+}
+
+void H46026RTPHandler::UpdateChannelRTP(H225_CallIdentifier & callid, WORD session, H323TransportAddress toRTP)
+{
+	WriteLock lock(m_listLock);
+	// find the matching channel by callID and sessionID
+	for (list<H46026Session>::iterator iter = m_h46026channels.begin();
+			iter != m_h46026channels.end() ; ++iter) {
+		if ((iter->m_callid == callid) && (iter->m_session = session)) {
+			iter->m_toAddressRTP = toRTP;
+		}
+	}
+	DumpChannels(" UpdateChannelRTP() done ");
+}
+
+void H46026RTPHandler::UpdateChannelRTCP(H225_CallIdentifier & callid, WORD session, H323TransportAddress toRTCP)
+{
+	WriteLock lock(m_listLock);
+	// find the matching channel by callID and sessionID
+	for (list<H46026Session>::iterator iter = m_h46026channels.begin();
+			iter != m_h46026channels.end() ; ++iter) {
+		if ((iter->m_callid == callid) && (iter->m_session = session)) {
+			iter->m_toAddressRTCP = toRTCP;
+		}
+	}
+	DumpChannels(" UpdateChannelRTCP() done ");
+}
+
+void H46026RTPHandler::RemoveChannels(H225_CallIdentifier callid)	// pass by value in case call gets removed
+{
+	WriteLock lock(m_listLock);
+	for (list<H46026Session>::iterator iter = m_h46026channels.begin();
+			iter != m_h46026channels.end() ; /* nothing */ ) {
+		if (iter->m_callid == callid) {
+			m_h46026channels.erase(iter++);
+		} else {
+			++iter;
+		}
+	}
+	DumpChannels(" RemoveChannels() done ");
+}
+
+//#ifdef HAS_H235_MEDIA
+//void H46026RTPHandler::RemoveChannel(H225_CallIdentifier callid, RTPLogicalChannel * rtplc)
+//{
+//}
+//#endif
+
+void H46026RTPHandler::DumpChannels(const PString & msg) const
+{
+	if (PTrace::CanTrace(7)) {
+		PTRACE(7, "JW ===" << msg << "=== DumpChannels Begin (" << m_h46026channels.size() << " channels) ===");
+		for (list<H46026Session>::const_iterator iter = m_h46026channels.begin();
+				iter != m_h46026channels.end() ; ++iter ) {
+			iter->Dump();
+		}
+		PTRACE(7, "JW =================== DumpChannels End ====================");
+	}
+}
+
+bool H46026RTPHandler::HandlePacket(H225_CallIdentifier callid, H46026_UDPFrame & data)
+{
+	PTRACE(0, "JW HandlePacket");
+	ReadLock lock(m_listLock);
+	// find the matching channel by callID and sessionID
+	for (list<H46026Session>::iterator iter = m_h46026channels.begin();
+			iter != m_h46026channels.end() ; ++iter) {
+		if ((iter->m_callid == callid) && (iter->m_session = data.m_sessionId)) {
+			// found session, now send all RTP packets
+			for(PINDEX i = 0; i < data.m_frame.GetSize(); i++) {
+				PASN_OctetString & bytes = data.m_frame[i];
+				// TODO: handle RTCP stats here
+				PTRACE(0, "JW found .26 session, send packet, size=" << bytes.GetSize() << " rtp=" << data.m_dataFrame);
+				iter->Send(bytes.GetPointer(), bytes.GetSize(), !data.m_dataFrame);
+			}
+			return true;
+		}
+	}
+	PTRACE(3, "H46026\tWarning: Didn't find a H.460.26 channel for session " << data.m_sessionId << " of callID " << AsString(callid.m_guid));
+	return false;
+}
+
+#endif	// HAS_H46026
 
 
 // class UDPProxySocket
@@ -8440,6 +8849,14 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 					}
 				}
 			}
+#ifdef HAS_H46026
+			// update new H.460.19 address in H.460.26 session
+			if (isRTCP) {
+				H46026RTPHandler::Instance()->UpdateChannelRTCP(m_callID, m_sessionID, fromAddr);
+			} else {
+				H46026RTPHandler::Instance()->UpdateChannelRTP(m_callID, m_sessionID, fromAddr);
+			}
+#endif
 
 			if ((fDestIP != 0) && (rDestIP != 0)) {
 				m_h46019DetectionDone = true;
@@ -8552,6 +8969,23 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			wbuffer[0] &= 0xdf;
 		// update payload type, preserve marker bit
 		wbuffer[1] = (wbuffer[1] & 0x80) | (payloadType & 0x7f);
+	}
+#endif
+
+#ifdef HAS_H46026
+	// send packets to H.460.26 endpoints via TCP
+	if (m_call && (*m_call)) {
+		if ((*m_call)->GetCallingParty() && (*m_call)->GetCallingParty()->UsesH46026()) {
+			if ((*m_call)->GetCallingParty()->GetSocket()) {
+				(*m_call)->GetCallingParty()->GetSocket()->SendH46026RTP(m_sessionID, isRTP, wbuffer, buflen);
+			}
+			return NoData;	// already forwarded via TCP
+		} else if ((*m_call)->GetCalledParty() && (*m_call)->GetCalledParty()->UsesH46026()) {
+			if ((*m_call)->GetCalledParty()->GetSocket()) {
+				(*m_call)->GetCalledParty()->GetSocket()->SendH46026RTP(m_sessionID, isRTP, wbuffer, buflen);
+			}
+			return NoData;	// already forwarded via TCP
+		}
 	}
 #endif
 
@@ -9720,7 +10154,6 @@ bool H245ProxyHandler::HandleCommand(H245_CommandMessage & Command, bool & suppr
 
 bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters * h225Params, WORD flcn)
 {
-PTRACE(0, "JW OnLogicalChannelParameters " << *h225Params);
 	RTPLogicalChannel * lc = flcn ?
 		CreateRTPLogicalChannel((WORD)h225Params->m_sessionID, flcn) :
 		CreateFastStartLogicalChannel((WORD)h225Params->m_sessionID);
@@ -9861,8 +10294,13 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 				h225Params->IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel);
 				h225Params->m_mediaControlChannel = IPToH245TransportAddr(GetRemoteAddr(), 0);
 				if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_transportCapability)) {
-					// just remove media channel capabilities, leave QoS in
+					// just remove media channel capabilities
 					h225Params->m_transportCapability.RemoveOptionalField(H245_TransportCapability::e_mediaChannelCapabilities);
+					// remove transportCapability if it doesn't contain Q0S or nonStandard items
+					if (!h225Params->m_transportCapability.HasOptionalField(H245_TransportCapability::e_qOSCapabilities)
+						&& !h225Params->m_transportCapability.HasOptionalField(H245_TransportCapability::e_nonStandard)) {
+						h225Params->RemoveOptionalField(H245_H2250LogicalChannelParameters::e_transportCapability);
+					}
 				}
 			}
 			// TODO: handle reverse channel, too ?
@@ -10533,17 +10971,26 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 #endif
 
 #ifdef HAS_H46026
-		if (!UsesH46026() && peer && peer->UsesH46026()) {
-			PTRACE(0, "H46026\tRemoving mediaChannel + mediaControlChannel");
-			if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)
-				&& olca.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters) {
-				H245_H2250LogicalChannelAckParameters & h225Params  = olca.m_forwardMultiplexAckParameters;
-				h225Params.RemoveOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel);
-				h225Params.RemoveOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaControlChannel);
+	if (!UsesH46026() && peer && peer->UsesH46026()) {
+		PTRACE(0, "H46026\tRemoving mediaChannel + mediaControlChannel");
+		H323TransportAddress toRTP, toRTCP;
+		if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)
+			&& olca.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters) {
+			H245_H2250LogicalChannelAckParameters & h225Params  = olca.m_forwardMultiplexAckParameters;
+			if (h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel)) {
+					toRTP = h225Params.m_mediaChannel;
 			}
-			// TODO: handle reverse ?
-			changed = true;
+			h225Params.RemoveOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel);
+			if (h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaControlChannel)) {
+				toRTCP = h225Params.m_mediaControlChannel;
+			}
+			h225Params.RemoveOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaControlChannel);
 		}
+		// TODO: handle reverse ?
+		changed = true;
+		H46026Session chan(call->GetCallIdentifier(), sessionID, lc->GetRTPOSSocket(), lc->GetRTCPOSSocket(), toRTP, toRTCP);
+		H46026RTPHandler::Instance()->AddChannel(chan);
+	}
 #endif
 
 	bool result = lc->SetDestination(olca, this, call, IsTraversalClient(), (peer && peer->m_requestRTPMultiplexing));

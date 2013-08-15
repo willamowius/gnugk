@@ -41,6 +41,7 @@ class H225_StatusInquiry_UUIE;
 class H225_SetupAcknowledge_UUIE;
 class H225_Notify_UUIE;
 class H225_TransportAddress;
+class H46026_UDPFrame;
 
 class H245Handler;
 class H245Socket;
@@ -329,6 +330,9 @@ public:
 #ifdef HAS_H46017
 	bool SendH46017Message(const H225_RasMessage & ras);
 	void CleanupCall();
+#endif
+#ifdef HAS_H46026
+	bool SendH46026RTP(unsigned sessionID, bool isRTP, const void * data, unsigned len);
 #endif
 	bool MaintainConnection() const { return m_maintainConnection; }
 
@@ -634,7 +638,10 @@ public:
 #endif
 	virtual void DumpChannels(const PString & msg = "") const;
 
-	virtual void HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP);
+	virtual bool HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP);
+#ifdef HAS_H46026
+	virtual bool HandlePacket(H225_CallIdentifier callid, H46026_UDPFrame & data);
+#endif
 
 	virtual int GetRTPOSSocket() const { return m_reader ? m_reader->GetRTPOSSocket() : INVALID_OSSOCKET; }
 	virtual int GetRTCPOSSocket() const { return m_reader ? m_reader->GetRTCPOSSocket() : INVALID_OSSOCKET; }
@@ -649,6 +656,63 @@ protected:
 	PUInt32b idCounter; // we should make sure this counter is _not_ reset on reload
 };
 #endif
+
+
+#ifdef HAS_H46026
+
+// class for a H.460.26 session: it includes only the plain RTP side (multiplexed RTP is handled in H46019Session
+class H46026Session
+{
+public:
+	H46026Session(const H225_CallIdentifier & callid, WORD session, int osRTPSocket, int osRTCPSocket,
+					const H323TransportAddress & toRTP, const H323TransportAddress & toRTCP);
+
+	void Send(void * data, unsigned len, bool isRTCP);
+	void Dump() const;
+
+//protected:
+	H225_CallIdentifier m_callid;
+	WORD m_session;
+	int m_osRTPSocket;
+	int m_osRTCPSocket;
+	H323TransportAddress m_toAddressRTP;
+	H323TransportAddress m_toAddressRTCP;
+
+//#ifdef HAS_H235_MEDIA
+//	RTPLogicalChannel * m_encryptingLC;
+//	RTPLogicalChannel * m_decryptingLC;
+//	PUInt32b m_encryptMultiplexID;
+//	PUInt32b m_decryptMultiplexID;
+//#endif
+};
+
+// handles stores H.460.26 RTP sessions
+class H46026RTPHandler : public Singleton<H46026RTPHandler> {
+public:
+	H46026RTPHandler();
+	virtual ~H46026RTPHandler();
+
+	virtual void OnReload() { /* currently not runtime changable */ }
+
+	virtual void AddChannel(const H46026Session & chan);
+	virtual void UpdateChannelRTP(H225_CallIdentifier & callid, WORD session, H323TransportAddress toRTP);
+	virtual void UpdateChannelRTCP(H225_CallIdentifier & callid, WORD session, H323TransportAddress toRTCP);
+	virtual void RemoveChannels(H225_CallIdentifier callid);	// pass by value in case call gets removed
+//#ifdef HAS_H235_MEDIA
+//	virtual void RemoveChannel(H225_CallIdentifier callid, RTPLogicalChannel * rtplc);
+//#endif
+	virtual void DumpChannels(const PString & msg = "") const;
+
+	virtual bool HandlePacket(H225_CallIdentifier callid, H46026_UDPFrame & data);
+
+protected:
+	mutable PReadWriteMutex m_listLock;
+	list<H46026Session> m_h46026channels;
+//	bool m_EnableRTCPStats;
+};
+
+#endif
+
 
 class ProxyHandler : public SocketsReader {
 public:
