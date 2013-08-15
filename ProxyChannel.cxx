@@ -5050,6 +5050,21 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 			PTRACE(0, "H46026\tUnpacking H.460.26 RTP packet");
 			// TODO: do we have to handle media encryption here, too ?
 
+			// handle RTCP stats
+			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "EnableRTCPStats", "0"))) {
+				PIPSocket::Address _peerAddr;
+				WORD _peerPort = 0;
+				GetPeerAddress(_peerAddr, _peerPort);
+				UnmapIPv4Address(_peerAddr);
+
+				for (PINDEX i = 0; i < data.m_frame.GetSize(); i++) {
+					PASN_OctetString & bytes = data.m_frame[i];
+					if (!data.m_dataFrame) {
+						ParseRTCP(m_call, data.m_sessionId, H323TransportAddress(_peerAddr, _peerPort), bytes.GetPointer(), bytes.GetSize());
+					}
+				}
+			}
+
 #ifdef HAS_H46018
 			// check if its a multiplexed RTP destination
 			if (MultiplexedRTPHandler::Instance()->HandlePacket(m_call->GetCallIdentifier(), data)) {
@@ -8270,7 +8285,7 @@ bool MultiplexedRTPHandler::HandlePacket(PUInt32b receivedMultiplexID, const H32
 }
 
 #ifdef HAS_H46026
-bool MultiplexedRTPHandler::HandlePacket(H225_CallIdentifier callid, H46026_UDPFrame & data)
+bool MultiplexedRTPHandler::HandlePacket(H225_CallIdentifier callid, const H46026_UDPFrame & data)
 {
 	PTRACE(0, "JW HandlePacket (try mux) session=" << data.m_sessionId);
 	ReadLock lock(m_listLock);
@@ -8281,7 +8296,6 @@ bool MultiplexedRTPHandler::HandlePacket(H225_CallIdentifier callid, H46026_UDPF
 			// found session, now send all RTP packets
 			for (PINDEX i = 0; i < data.m_frame.GetSize(); i++) {
 				PASN_OctetString & bytes = data.m_frame[i];
-				// TODO: handle RTCP stats here
 				PTRACE(0, "JW found .19 session, send packet, size=" << bytes.GetSize() << " rtp=" << data.m_dataFrame
 					<< " val=" << data.m_dataFrame.GetValue() << " tag=" << data.m_frame[i].GetTagName());
 				if (iter->m_multiplexID_toA != INVALID_MULTIPLEX_ID) {
@@ -8496,7 +8510,6 @@ bool H46026RTPHandler::HandlePacket(H225_CallIdentifier callid, H46026_UDPFrame 
 				if (bytes.GetSize() >= 8)
 					timestamp = ((int)bytes[4] * 16777216) + ((int)bytes[5] * 65536) + ((int)bytes[6] * 256) + (int)bytes[7];
 
-				// TODO: handle RTCP stats here
 				PTRACE(0, "JW found .26 session, send packet, size=" << bytes.GetSize() << " rtp=" << data.m_dataFrame);
 				PTRACE(0, "JW RTP version=" << version << " PT=" << (int)payloadType << " seq=" << seq << " timestamp=" << timestamp);
 				iter->Send(bytes.GetPointer(), bytes.GetSize(), !data.m_dataFrame);

@@ -640,7 +640,7 @@ public:
 
 	virtual bool HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP);
 #ifdef HAS_H46026
-	virtual bool HandlePacket(H225_CallIdentifier callid, H46026_UDPFrame & data);
+	virtual bool HandlePacket(H225_CallIdentifier callid, const H46026_UDPFrame & data);
 #endif
 
 	virtual int GetRTPOSSocket() const { return m_reader ? m_reader->GetRTPOSSocket() : INVALID_OSSOCKET; }
