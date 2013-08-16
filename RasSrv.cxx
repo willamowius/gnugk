@@ -996,7 +996,7 @@ void RasServer::LoadConfig()
 			delete MultiplexedRTPHandler::Instance();
 	}
 #endif
-#ifdef HAS_H46018
+#ifdef HAS_H46026
 	if (Toolkit::Instance()->IsH46026Enabled()) {
 		H46026RTPHandler::Instance()->OnReload();
 	}
