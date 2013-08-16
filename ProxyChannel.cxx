@@ -5048,7 +5048,7 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 		H46026_UDPFrame data;
 		if (ReadRTPFrame(q931, data)) {
 			PTRACE(0, "H46026\tUnpacking H.460.26 RTP packet");
-			// TODO: do we have to handle media encryption here, too ?
+			// TODO: handle media encryption
 
 			// handle RTCP stats
 			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "EnableRTCPStats", "0"))) {
@@ -5560,6 +5560,11 @@ bool CallSignalSocket::SendH46017Message(const H225_RasMessage & ras)
 #ifdef HAS_H46026
 bool CallSignalSocket::SendH46026RTP(unsigned sessionID, bool isRTP, const void * data, unsigned len)
 {
+	if (Toolkit::AsBool(Toolkit::Instance()->Config()->GetString(RoutedSec, "UseH46026PriorityQueue", "0"))) {
+		//mgr.RTPFrameOut(data, len);
+		return true;
+	}
+
 	if (IsOpen()) {
 		H46026_UDPFrame frame;
 		frame.m_sessionId = sessionID;
@@ -8486,7 +8491,6 @@ void H46026RTPHandler::DumpChannels(const PString & msg) const
 
 bool H46026RTPHandler::HandlePacket(H225_CallIdentifier callid, H46026_UDPFrame & data)
 {
-	PTRACE(0, "JW HandlePacket");
 	ReadLock lock(m_listLock);
 	// find the matching channel by callID and sessionID
 	for (list<H46026Session>::iterator iter = m_h46026channels.begin();
@@ -10787,16 +10791,18 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		return false;
 	}
 
+#if defined(HAS_H46018) || defined(HAS_H46026)
+	WORD sessionID = INVALID_RTP_SESSION;
+	if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)
+		&& olca.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters)
+		sessionID = ((H245_H2250LogicalChannelAckParameters&)olca.m_forwardMultiplexAckParameters).m_sessionID;
+#endif
 #ifdef HAS_H46018
 	if(IsTraversalServer() || IsTraversalClient()) {
 		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(lc);
 		if (rtplc)
 			rtplc->SetUsesH46019();
 	}
-	WORD sessionID = INVALID_RTP_SESSION;
-	if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)
-		&& olca.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters)
-		sessionID = ((H245_H2250LogicalChannelAckParameters&)olca.m_forwardMultiplexAckParameters).m_sessionID;
 	H46019Session h46019chan(0, INVALID_RTP_SESSION, NULL);
 	PUInt32b assignedMultiplexID = INVALID_MULTIPLEX_ID;
  	if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing || peer->m_requestRTPMultiplexing || peer->m_remoteRequestsRTPMultiplexing) {
