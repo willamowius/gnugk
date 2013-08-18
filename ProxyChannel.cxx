@@ -1187,6 +1187,14 @@ void CallSignalSocket::InternalInit()
 #ifdef HAS_H46017
 void CallSignalSocket::CleanupCall()
 {
+#ifdef HAS_H46018
+	if (m_call && Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0")))
+		MultiplexedRTPHandler::Instance()->RemoveChannels(m_call->GetCallIdentifier());
+#endif
+#ifdef HAS_H46026
+	if (m_call && Toolkit::Instance()->IsH46026Enabled())
+		H46026RTPHandler::Instance()->RemoveChannels(m_call->GetCallIdentifier());
+#endif
 	// clear the call
 	m_call = callptr(NULL);
 	m_crv = 0;
@@ -8379,10 +8387,10 @@ void H46026Session::Send(void * data, unsigned len, bool isRTCP)
 
 	if (isRTCP) {
 		osSocket = m_osRTCPSocket;
-		toAddress = m_toAddressRTP;
+		toAddress = m_toAddressRTCP;
 	} else {
 		osSocket = m_osRTPSocket;
-		toAddress = m_toAddressRTCP;
+		toAddress = m_toAddressRTP;
 	}
 
 	if (Toolkit::Instance()->IsIPv6Enabled()) {
@@ -8395,7 +8403,7 @@ void H46026Session::Send(void * data, unsigned len, bool isRTCP)
 		SetSockaddr(dest, toAddress);
 	}
 
-	PTRACE(0, "JW Send to " << toAddress << " len=" << len);
+	PTRACE(0, "JW Send to " << toAddress << " len=" << len << " osSocket=" << osSocket);
 	sent = ::sendto(osSocket, (char*)data, lenToSend, 0, (struct sockaddr *)&dest, sizeof(dest));
 	if (sent != lenToSend) {
 		PTRACE(1, "H46026\tError sending RTP to " << toAddress << ": should send=" << lenToSend << " did send=" << sent << " errno=" << errno);
@@ -11020,7 +11028,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 			&& olca.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters) {
 			H245_H2250LogicalChannelAckParameters & h225Params  = olca.m_forwardMultiplexAckParameters;
 			if (h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel)) {
-					toRTP = h225Params.m_mediaChannel;
+				toRTP = h225Params.m_mediaChannel;
 			}
 			h225Params.RemoveOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel);
 			if (h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaControlChannel)) {
