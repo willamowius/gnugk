@@ -1052,7 +1052,8 @@ PBoolean H46024Socket::WriteTo(const void * buf, PINDEX len, const Address & add
 PBoolean H46024Socket::WriteSocket(const void * buf, PINDEX len, const Address & addr, WORD port, unsigned altMux)
 {
 	unsigned mux = m_sendMultiplexID;
-	if (altMux) mux = altMux;
+	if (altMux)
+		mux = altMux;
 
 	if (!PNatMethod_H46019::IsMultiplexed() && !mux)      // No Multiplex Rec'v or Send
 		return UDPProxySocket::WriteTo(buf,len, addr, port);

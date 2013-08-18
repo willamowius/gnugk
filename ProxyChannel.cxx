@@ -8445,7 +8445,7 @@ void H46026RTPHandler::UpdateChannelRTP(H225_CallIdentifier & callid, WORD sessi
 	// find the matching channel by callID and sessionID
 	for (list<H46026Session>::iterator iter = m_h46026channels.begin();
 			iter != m_h46026channels.end() ; ++iter) {
-		if ((iter->m_callid == callid) && (iter->m_session = session)) {
+		if ((iter->m_callid == callid) && (iter->m_session == session)) {
 			iter->m_toAddressRTP = toRTP;
 		}
 	}
@@ -8458,7 +8458,7 @@ void H46026RTPHandler::UpdateChannelRTCP(H225_CallIdentifier & callid, WORD sess
 	// find the matching channel by callID and sessionID
 	for (list<H46026Session>::iterator iter = m_h46026channels.begin();
 			iter != m_h46026channels.end() ; ++iter) {
-		if ((iter->m_callid == callid) && (iter->m_session = session)) {
+		if ((iter->m_callid == callid) && (iter->m_session == session)) {
 			iter->m_toAddressRTCP = toRTCP;
 		}
 	}
@@ -8503,7 +8503,7 @@ bool H46026RTPHandler::HandlePacket(H225_CallIdentifier callid, H46026_UDPFrame 
 	// find the matching channel by callID and sessionID
 	for (list<H46026Session>::iterator iter = m_h46026channels.begin();
 			iter != m_h46026channels.end() ; ++iter) {
-		if ((iter->m_callid == callid) && (iter->m_session = data.m_sessionId)) {
+		if ((iter->m_callid == callid) && (iter->m_session == data.m_sessionId)) {
 			// found session, now send all RTP packets
 			for(PINDEX i = 0; i < data.m_frame.GetSize(); i++) {
 				PASN_OctetString & bytes = data.m_frame[i];

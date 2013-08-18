@@ -369,8 +369,7 @@ GkSQLConnection::SQLConnPtr GkPgSQLConnection::CreateNewConnection(
 			m_password.IsEmpty() ? (const char*)NULL : (const char*)m_password
 			)) && (*g_PQstatus)(conn) == CONNECTION_OK) {
 		PTRACE(5, GetName() << "\tPgSQL connection to " << m_username << '@' << m_host 
-			<< '[' << m_database << "] established successfully"
-			);
+			<< '[' << m_database << "] established successfully");
 		return new PgSQLConnWrapper(id, m_host, conn);
 	} else {
 		PTRACE(2, GetName() << "\tPgSQL connection to " << m_username << '@' << m_host 
