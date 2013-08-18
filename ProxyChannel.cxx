@@ -854,10 +854,8 @@ public:
 	void SetH46019Direction(int dir) { m_H46019dir = dir; }
 	int GetH46019Direction() const { return m_H46019dir; }
 	void SetRequestRTPMultiplexing(bool epCanTransmitMultipled);
-#ifdef HAS_H46026
 	void SetUsesH46026(bool val) { m_usesH46026 = val; }
 	bool UsesH46026() const { return m_usesH46026; }
-#endif
 #ifdef HAS_H235_MEDIA
 	void SetH235Role(bool isCaller, bool isH245Master) { m_isCaller = isCaller; m_isH245Master = isH245Master; }
 #endif
@@ -8305,27 +8303,42 @@ bool MultiplexedRTPHandler::HandlePacket(H225_CallIdentifier callid, const H4602
 	// find the matching channel by callID and sessionID
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; ++iter) {
-		if ((iter->m_callid == callid) && (iter->m_session = data.m_sessionId)) {
+		if ((iter->m_callid == callid) && (iter->m_session == data.m_sessionId)) {
 			// found session, now send all RTP packets
 			for (PINDEX i = 0; i < data.m_frame.GetSize(); i++) {
 				PASN_OctetString & bytes = data.m_frame[i];
-				PTRACE(0, "JW found .19 session, send packet, size=" << bytes.GetSize() << " rtp=" << data.m_dataFrame
-					<< " val=" << data.m_dataFrame.GetValue() << " tag=" << data.m_frame[i].GetTagName());
+				PTRACE(0, "JW found .19 session, send packet, size=" << bytes.GetSize() << " rtp=" << data.m_dataFrame);
 				if (iter->m_multiplexID_toA != INVALID_MULTIPLEX_ID) {
 					if (!data.m_dataFrame) {
-						PTRACE(0, "JW send mux packet to " << iter->m_addrA_RTCP);
-						iter->Send(iter->m_multiplexID_toA, iter->m_addrA_RTCP, iter->m_osSocketToA_RTCP, bytes.GetPointer(), bytes.GetSize(), false);	
+						if (IsSet(iter->m_addrA_RTCP) && (iter->m_osSocketToA_RTCP != INVALID_OSSOCKET)) {
+							PTRACE(0, "JW send mux packet to " << iter->m_addrA_RTCP << " osSocket=" << iter->m_osSocketToA_RTCP);
+							iter->Send(iter->m_multiplexID_toA, iter->m_addrA_RTCP, iter->m_osSocketToA_RTCP, bytes.GetPointer(), bytes.GetSize(), false);
+						} else {
+							PTRACE(0, "JW send mux packet to UNSET " << iter->m_addrA_RTCP << " osSocket=" << iter->m_osSocketToA_RTCP);
+						}
 					} else {
-						PTRACE(0, "JW send mux packet to " << iter->m_addrA);
-						iter->Send(iter->m_multiplexID_toA, iter->m_addrA, iter->m_osSocketToA, bytes.GetPointer(), bytes.GetSize(), false);	
+						if (IsSet(iter->m_addrA) && (iter->m_osSocketToA != INVALID_OSSOCKET)) {
+							PTRACE(0, "JW send mux packet to " << iter->m_addrA << " osSocket=" << iter->m_osSocketToA);
+							iter->Send(iter->m_multiplexID_toA, iter->m_addrA, iter->m_osSocketToA, bytes.GetPointer(), bytes.GetSize(), false);
+						} else {
+							PTRACE(0, "JW send mux packet to UNSET " << iter->m_addrA << " osSocket=" << iter->m_osSocketToA);
+						}
 					}
 				} else if (iter->m_multiplexID_toB != INVALID_MULTIPLEX_ID) {
 					if (!data.m_dataFrame) {
-						PTRACE(0, "JW send mux packet to " << iter->m_addrB_RTCP);
-						iter->Send(iter->m_multiplexID_toB, iter->m_addrB_RTCP, iter->m_osSocketToB_RTCP, bytes.GetPointer(), bytes.GetSize(), false);	
+						if (IsSet(iter->m_addrB_RTCP) && (iter->m_osSocketToB_RTCP != INVALID_OSSOCKET)) {
+							PTRACE(0, "JW send mux packet to " << iter->m_addrB_RTCP << " osSocket=" << iter->m_osSocketToB_RTCP);
+							iter->Send(iter->m_multiplexID_toB, iter->m_addrB_RTCP, iter->m_osSocketToB_RTCP, bytes.GetPointer(), bytes.GetSize(), false);
+						} else {
+							PTRACE(0, "JW send mux packet to UNSET " << iter->m_addrB_RTCP << " osSocket=" << iter->m_osSocketToB_RTCP);
+						}
 					} else {
-						PTRACE(0, "JW send mux packet to " << iter->m_addrB);
-						iter->Send(iter->m_multiplexID_toB, iter->m_addrB, iter->m_osSocketToB, bytes.GetPointer(), bytes.GetSize(), false);	
+						if (IsSet(iter->m_addrB) && (iter->m_osSocketToB != INVALID_OSSOCKET)) {
+							PTRACE(0, "JW send mux packet to " << iter->m_addrB << " osSocket=" << iter->m_osSocketToB);
+							iter->Send(iter->m_multiplexID_toB, iter->m_addrB, iter->m_osSocketToB, bytes.GetPointer(), bytes.GetSize(), false);
+						} else {
+							PTRACE(0, "JW send mux packet to UNSET " << iter->m_addrB << " osSocket=" << iter->m_osSocketToB);
+						}
 					}
 				}
 			}
@@ -10370,7 +10383,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 				h46019chan.m_flcn = flcn;
 			}
 		}
-		if (!IsTraversalClient() && h225Params && h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)) {
+		if (!IsTraversalClient() && !UsesH46026()
+			&& h225Params && h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)) {
 			h46019chan.m_addrA_RTCP = h225Params->m_mediaControlChannel;
 		}
 		// parse incoming traversal parameters for H.460.19
@@ -10943,7 +10957,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 	if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing
 		|| peer->m_requestRTPMultiplexing || peer->m_remoteRequestsRTPMultiplexing) {
 		// save parameters for mixed multiplex/non-multiplexed call
-		if (!IsTraversalClient()) {
+		if (!IsTraversalClient() && !UsesH46026()) {
 			if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)) {
 				H245_OpenLogicalChannelAck_forwardMultiplexAckParameters & ackparams = olca.m_forwardMultiplexAckParameters;
 				if (ackparams.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters) {
