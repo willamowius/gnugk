@@ -290,13 +290,12 @@ bool IsOldH263(const H245_DataType & type)
 
 void RemoveH46019Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures, bool & senderSupportsH46019Multiplexing, bool & isH46019Client)
 {
-	senderSupportsH46019Multiplexing = false;
-	isH46019Client = false;
 	for(PINDEX i = 0; i < supportedFeatures.GetSize(); i++) {
 		H225_GenericIdentifier & id = supportedFeatures[i].m_id;
 		if (id.GetTag() == H225_GenericIdentifier::e_standard) {
 			PASN_Integer & asnInt = id;
 			if (asnInt.GetValue() == 19) {
+				senderSupportsH46019Multiplexing = false;
 				isH46019Client = true;
 				for(PINDEX p = 0; p < supportedFeatures[i].m_parameters.GetSize(); p++) {
 					if (supportedFeatures[i].m_parameters[p].m_id.GetTag() == H225_GenericIdentifier::e_standard) {
@@ -4001,6 +4000,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 				bool isH46019Client = false;
+				// RemoveH46019Descriptor() runs possibly 2nd time here, make sure not to screw up flags discovered by 1st run
 				RemoveH46019Descriptor(setupBody.m_supportedFeatures, m_senderSupportsH46019Multiplexing, isH46019Client);
 				if (m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46017() && isH46019Client) {
 					m_call->GetCallingParty()->SetTraversalRole(TraversalClient);
@@ -8314,14 +8314,14 @@ bool MultiplexedRTPHandler::HandlePacket(H225_CallIdentifier callid, const H4602
 							PTRACE(0, "JW send mux packet to " << iter->m_addrA_RTCP << " osSocket=" << iter->m_osSocketToA_RTCP);
 							iter->Send(iter->m_multiplexID_toA, iter->m_addrA_RTCP, iter->m_osSocketToA_RTCP, bytes.GetPointer(), bytes.GetSize(), false);
 						} else {
-							PTRACE(0, "JW send mux packet to UNSET " << iter->m_addrA_RTCP << " osSocket=" << iter->m_osSocketToA_RTCP);
+							PTRACE(0, "JW mux destination not ready, yet");
 						}
 					} else {
 						if (IsSet(iter->m_addrA) && (iter->m_osSocketToA != INVALID_OSSOCKET)) {
 							PTRACE(0, "JW send mux packet to " << iter->m_addrA << " osSocket=" << iter->m_osSocketToA);
 							iter->Send(iter->m_multiplexID_toA, iter->m_addrA, iter->m_osSocketToA, bytes.GetPointer(), bytes.GetSize(), false);
 						} else {
-							PTRACE(0, "JW send mux packet to UNSET " << iter->m_addrA << " osSocket=" << iter->m_osSocketToA);
+							PTRACE(0, "JW mux destination not ready, yet");
 						}
 					}
 				} else if (iter->m_multiplexID_toB != INVALID_MULTIPLEX_ID) {
@@ -8330,14 +8330,14 @@ bool MultiplexedRTPHandler::HandlePacket(H225_CallIdentifier callid, const H4602
 							PTRACE(0, "JW send mux packet to " << iter->m_addrB_RTCP << " osSocket=" << iter->m_osSocketToB_RTCP);
 							iter->Send(iter->m_multiplexID_toB, iter->m_addrB_RTCP, iter->m_osSocketToB_RTCP, bytes.GetPointer(), bytes.GetSize(), false);
 						} else {
-							PTRACE(0, "JW send mux packet to UNSET " << iter->m_addrB_RTCP << " osSocket=" << iter->m_osSocketToB_RTCP);
+							PTRACE(0, "JW mux destination not ready, yet");
 						}
 					} else {
 						if (IsSet(iter->m_addrB) && (iter->m_osSocketToB != INVALID_OSSOCKET)) {
 							PTRACE(0, "JW send mux packet to " << iter->m_addrB << " osSocket=" << iter->m_osSocketToB);
 							iter->Send(iter->m_multiplexID_toB, iter->m_addrB, iter->m_osSocketToB, bytes.GetPointer(), bytes.GetSize(), false);
 						} else {
-							PTRACE(0, "JW send mux packet to UNSET " << iter->m_addrB << " osSocket=" << iter->m_osSocketToB);
+							PTRACE(0, "JW mux destination not ready, yet");
 						}
 					}
 				}
@@ -11458,6 +11458,7 @@ bool H245ProxyHandler::RemoveLogicalChannel(WORD flcn)
 void H245ProxyHandler::SetRequestRTPMultiplexing(bool epCanTransmitMultiplexed)
 {
 	m_requestRTPMultiplexing = epCanTransmitMultiplexed && m_isRTPMultiplexingEnabled && (m_traversalType != None);
+	PTRACE(0, "JW SetRequestRTPMultiplexing: m_requestRTPMultiplexing=" << m_requestRTPMultiplexing << " enabled=" << m_isRTPMultiplexingEnabled << " type=" << m_traversalType);
 }
 
 
