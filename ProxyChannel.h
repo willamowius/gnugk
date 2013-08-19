@@ -688,13 +688,16 @@ protected:
 class H46026Session
 {
 public:
+	H46026Session() : m_isValid(false) { }
 	H46026Session(const H225_CallIdentifier & callid, WORD session, int osRTPSocket, int osRTCPSocket,
 					const H323TransportAddress & toRTP, const H323TransportAddress & toRTCP);
 
 	void Send(void * data, unsigned len, bool isRTCP);
+	bool IsValid() const { return m_isValid; }
 	void Dump() const;
 
 //protected:
+	bool m_isValid;
 	H225_CallIdentifier m_callid;
 	WORD m_session;
 	int m_osRTPSocket;
@@ -702,12 +705,11 @@ public:
 	H323TransportAddress m_toAddressRTP;
 	H323TransportAddress m_toAddressRTCP;
 
-//#ifdef HAS_H235_MEDIA
-//	RTPLogicalChannel * m_encryptingLC;
-//	RTPLogicalChannel * m_decryptingLC;
-//	PUInt32b m_encryptMultiplexID;
-//	PUInt32b m_decryptMultiplexID;
-//#endif
+#ifdef HAS_H235_MEDIA
+	RTPLogicalChannel * m_encryptingLC;
+	RTPLogicalChannel * m_decryptingLC;
+	CallSignalSocket * m_encryptingCSS; // direction: this CSS needs data encrypted before sending to EP
+#endif
 };
 
 // handles stores H.460.26 RTP sessions
@@ -719,12 +721,16 @@ public:
 	virtual void OnReload() { /* currently not runtime changable */ }
 
 	virtual void AddChannel(const H46026Session & chan);
-	virtual void UpdateChannelRTP(H225_CallIdentifier & callid, WORD session, H323TransportAddress toRTP);
-	virtual void UpdateChannelRTCP(H225_CallIdentifier & callid, WORD session, H323TransportAddress toRTCP);
+	virtual void ReplaceChannel(const H46026Session & chan);
+	virtual void UpdateChannelRTP(const H225_CallIdentifier & callid, WORD session, H323TransportAddress toRTP);
+	virtual void UpdateChannelRTCP(const H225_CallIdentifier & callid, WORD session, H323TransportAddress toRTCP);
 	virtual void RemoveChannels(H225_CallIdentifier callid);	// pass by value in case call gets removed
-//#ifdef HAS_H235_MEDIA
+	H46026Session FindSession(const H225_CallIdentifier & callid, WORD session) const;
+#ifdef HAS_H235_MEDIA
+	virtual void UpdateChannelEncryptingLC(const H225_CallIdentifier & callid, WORD session, RTPLogicalChannel * lc);
+	virtual void UpdateChannelDecryptingLC(const H225_CallIdentifier & callid, WORD session, RTPLogicalChannel * lc);
 //	virtual void RemoveChannel(H225_CallIdentifier callid, RTPLogicalChannel * rtplc);
-//#endif
+#endif
 	virtual void DumpChannels(const PString & msg = "") const;
 
 	virtual bool HandlePacket(H225_CallIdentifier callid, H46026_UDPFrame & data);
@@ -732,7 +738,6 @@ public:
 protected:
 	mutable PReadWriteMutex m_listLock;
 	list<H46026Session> m_h46026channels;
-//	bool m_EnableRTCPStats;
 };
 
 #endif

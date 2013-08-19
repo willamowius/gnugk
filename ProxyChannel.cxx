@@ -5059,11 +5059,62 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 	bool callerUsesH46026 = (m_call && m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46026());
 	bool calledUsesH46026 = (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46026());
 
-	if (m_call && ((callerUsesH46026 && !calledUsesH46026) || (!callerUsesH46026 && calledUsesH46026))) {
+	if (callerUsesH46026 || calledUsesH46026) {
 		H46026_UDPFrame data;
 		if (ReadRTPFrame(q931, data)) {
 			PTRACE(0, "H46026\tUnpacking H.460.26 RTP packet");
-			// TODO: handle media encryption
+			// handle media encryption
+
+#ifdef HAS_H235_MEDIA
+			if (data.m_dataFrame && m_call->IsMediaEncryption()) {
+				H46026Session session = H46026RTPHandler::Instance()->FindSession(m_call->GetCallIdentifier(), data.m_sessionId.GetValue());
+				if (session.IsValid()) {
+					for (PINDEX i = 0; i < data.m_frame.GetSize(); i++) {
+						PASN_OctetString & bytes = data.m_frame[i];
+
+						WORD wlen = bytes.GetSize();
+						bool succesful = false;
+						unsigned char ivSequence[6];
+						BYTE payloadType = UNDEFINED_PAYLOAD_TYPE;
+						bool rtpPadding = false;
+						if (wlen >= 1)
+							rtpPadding = bytes[0] & 0x20;
+						if (wlen >= 2)
+							payloadType = bytes[1] & 0x7f;
+						if (wlen >= 8)
+							memcpy(ivSequence, bytes.GetPointer() + 2, 6);
+
+						bool encrypting = (m_callerSocket && m_call->GetEncryptDirection() == CallRec::callingParty)
+							|| (!m_callerSocket && m_call->GetEncryptDirection() == CallRec::calledParty);
+						if (encrypting) {
+							if (session.m_encryptingLC) {
+								// TODO: this crashes when the encrypted data is larger than the orgiginal data
+								succesful = session.m_encryptingLC->ProcessH235Media(bytes.GetPointer(), wlen, true, ivSequence, rtpPadding, payloadType);
+							}
+						} else {
+							if (session.m_decryptingLC) {
+								succesful = session.m_decryptingLC->ProcessH235Media(bytes.GetPointer(), wlen, false, ivSequence, rtpPadding, payloadType);
+							}
+						}
+						if (!succesful) {
+							PTRACE(1, "JW H235\t" << (encrypting ? "En" : "De") << "crypting H.460.26 packet failed");
+							PTRACE(1, "JW " << (encrypting ? "En" : "De") << "crypting failed encryptingLC=" << session.m_encryptingLC << " decryptingLC=" << session.m_decryptingLC);
+							continue;
+						}
+
+						// update RTP padding bit
+						if (rtpPadding)
+							bytes[0] |= 0x20;
+						else
+							bytes[0] &= 0xdf;
+						// update payload type, preserve marker bit
+						bytes[1] = (bytes[1] & 0x80) | (payloadType & 0x7f);
+
+						bytes.SetSize(wlen);
+					}
+				}
+			}
+#endif
 
 			// handle RTCP stats
 			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "EnableRTCPStats", "0"))) {
@@ -5080,18 +5131,21 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 				}
 			}
 
+			if ((callerUsesH46026 && !calledUsesH46026) || (!callerUsesH46026 && calledUsesH46026)) {
+				// convert to RTP or RTP mux
 #ifdef HAS_H46018
-			// check if its a multiplexed RTP destination
-			if (MultiplexedRTPHandler::Instance()->HandlePacket(m_call->GetCallIdentifier(), data)) {
+				// check if its a multiplexed RTP destination
+				if (MultiplexedRTPHandler::Instance()->HandlePacket(m_call->GetCallIdentifier(), data)) {
+					m_result = NoData;	// forwarded as RTP
+					return;
+				}
+#endif
+				// plain RTP
+				H46026RTPHandler::Instance()->HandlePacket(m_call->GetCallIdentifier(), data);
+
 				m_result = NoData;	// forwarded as RTP
 				return;
 			}
-#endif
-			// plain RTP
-			H46026RTPHandler::Instance()->HandlePacket(m_call->GetCallIdentifier(), data);
-
-			m_result = NoData;	// forwarded as RTP
-			return;
 		}
 	}
 #endif
@@ -7918,7 +7972,7 @@ void H46019Session::Dump() const
 			<< " addrB=" << AsString(m_addrB) << " addrB_RTCP=" << AsString(m_addrB_RTCP));
 #ifdef HAS_H235_MEDIA
 	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
-		PTRACE(7, "JW session=" << m_session << " encryptLC=" << m_encryptingLC << " decryptLC=" << m_encryptingLC);
+		PTRACE(7, "JW session=" << m_session << " encryptLC=" << m_encryptingLC << " decryptLC=" << m_decryptingLC);
 	}
 #endif
 }
@@ -8405,9 +8459,14 @@ PUInt32b MultiplexedRTPHandler::GetNewMultiplexID()
 H46026Session::H46026Session(const H225_CallIdentifier & callid, WORD session,
 							int osRTPSocket, int osRTCPSocket,
 							const H323TransportAddress & toRTP, const H323TransportAddress & toRTCP)
-	: m_callid(callid), m_session(session),
+	: m_isValid(true), m_callid(callid), m_session(session),
 	  m_osRTPSocket(osRTPSocket), m_osRTCPSocket(osRTCPSocket), m_toAddressRTP(toRTP), m_toAddressRTCP(toRTCP)
 {
+#ifdef H235_MEDIA
+	m_encryptingLC = NULL;
+	m_decryptingLC = NULL;
+	m_encryptingCSS = NULL;
+#endif
 }
 
 void H46026Session::Send(void * data, unsigned len, bool isRTCP)
@@ -8453,11 +8512,11 @@ void H46026Session::Dump() const
 //			<< " callID=" << AsString(m_callid.m_guid)
 			<< " osRTPSocket=" << m_osRTPSocket << " toRTP=" << m_toAddressRTP
 			<< " osRTCPSocket=" << m_osRTCPSocket << " toRTCP=" << m_toAddressRTCP);
-//#ifdef HAS_H235_MEDIA
-//	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
-//		PTRACE(7, "JW session=" << m_session << " encryptLC=" << m_encryptingLC << " decryptLC=" << m_encryptingLC);
-//	}
-//#endif
+#ifdef HAS_H235_MEDIA
+	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
+		PTRACE(7, "JW               encryptLC=" << m_encryptingLC << " decryptLC=" << m_decryptingLC);
+	}
+#endif
 }
 
 
@@ -8476,7 +8535,21 @@ void H46026RTPHandler::AddChannel(const H46026Session & chan)
 	DumpChannels(" AddChannel() done ");
 }
 
-void H46026RTPHandler::UpdateChannelRTP(H225_CallIdentifier & callid, WORD session, H323TransportAddress toRTP)
+void H46026RTPHandler::ReplaceChannel(const H46026Session & chan)
+{
+	WriteLock lock(m_listLock);
+	// find the matching channel by callID and sessionID
+	for (list<H46026Session>::iterator iter = m_h46026channels.begin();
+			iter != m_h46026channels.end() ; ++iter) {
+		if ((iter->m_callid == chan.m_callid) && (iter->m_session == chan.m_session)) {
+			*iter = chan;
+			break;
+		}
+	}
+	DumpChannels(" ReplaceChannel() done ");
+}
+
+void H46026RTPHandler::UpdateChannelRTP(const H225_CallIdentifier & callid, WORD session, H323TransportAddress toRTP)
 {
 	WriteLock lock(m_listLock);
 	// find the matching channel by callID and sessionID
@@ -8484,12 +8557,13 @@ void H46026RTPHandler::UpdateChannelRTP(H225_CallIdentifier & callid, WORD sessi
 			iter != m_h46026channels.end() ; ++iter) {
 		if ((iter->m_callid == callid) && (iter->m_session == session)) {
 			iter->m_toAddressRTP = toRTP;
+			break;
 		}
 	}
 	DumpChannels(" UpdateChannelRTP() done ");
 }
 
-void H46026RTPHandler::UpdateChannelRTCP(H225_CallIdentifier & callid, WORD session, H323TransportAddress toRTCP)
+void H46026RTPHandler::UpdateChannelRTCP(const H225_CallIdentifier & callid, WORD session, H323TransportAddress toRTCP)
 {
 	WriteLock lock(m_listLock);
 	// find the matching channel by callID and sessionID
@@ -8497,10 +8571,53 @@ void H46026RTPHandler::UpdateChannelRTCP(H225_CallIdentifier & callid, WORD sess
 			iter != m_h46026channels.end() ; ++iter) {
 		if ((iter->m_callid == callid) && (iter->m_session == session)) {
 			iter->m_toAddressRTCP = toRTCP;
+			break;
 		}
 	}
 	DumpChannels(" UpdateChannelRTCP() done ");
 }
+
+#ifdef HAS_H235_MEDIA
+void H46026RTPHandler::UpdateChannelEncryptingLC(const H225_CallIdentifier & callid, WORD session, RTPLogicalChannel * lc)
+{
+	WriteLock lock(m_listLock);
+	// find the matching channel by callID and sessionID
+	for (list<H46026Session>::iterator iter = m_h46026channels.begin();
+			iter != m_h46026channels.end() ; ++iter) {
+		if ((iter->m_callid == callid) && (iter->m_session == session)) {
+			iter->m_encryptingLC = lc;
+			break;
+		}
+	}
+}
+
+void H46026RTPHandler::UpdateChannelDecryptingLC(const H225_CallIdentifier & callid, WORD session, RTPLogicalChannel * lc)
+{
+	WriteLock lock(m_listLock);
+	// find the matching channel by callID and sessionID
+	for (list<H46026Session>::iterator iter = m_h46026channels.begin();
+			iter != m_h46026channels.end() ; ++iter) {
+		if ((iter->m_callid == callid) && (iter->m_session == session)) {
+			iter->m_decryptingLC = lc;
+			break;
+		}
+	}
+}
+
+
+H46026Session H46026RTPHandler::FindSession(const H225_CallIdentifier & callid, WORD session) const
+{
+	WriteLock lock(m_listLock);
+	// find the matching channel by callID and sessionID
+	for (list<H46026Session>::const_iterator iter = m_h46026channels.begin();
+			iter != m_h46026channels.end() ; ++iter) {
+		if ((iter->m_callid == callid) && (iter->m_session == session)) {
+			return *iter;
+		}
+	}
+	return H46026Session();	// return invalid session
+}
+#endif
 
 void H46026RTPHandler::RemoveChannels(H225_CallIdentifier callid)	// pass by value in case call gets removed
 {
@@ -10779,7 +10896,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 			}
 #endif
 		}
-#endif
+#endif // HAS_H235_MEDIA
 
 #ifdef HAS_H46026
 		if (!UsesH46026() && peer && peer->UsesH46026()) {
@@ -11059,25 +11176,48 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 #endif
 
 #ifdef HAS_H46026
-	if (!UsesH46026() && peer && peer->UsesH46026()) {
-		PTRACE(0, "H46026\tRemoving mediaChannel + mediaControlChannel");
+	if (UsesH46026() || (peer && peer->UsesH46026())) {
+		// we'll save a channel object if any side uses .26
 		H323TransportAddress toRTP, toRTCP;
-		if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)
-			&& olca.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters) {
-			H245_H2250LogicalChannelAckParameters & h225Params  = olca.m_forwardMultiplexAckParameters;
-			if (h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel)) {
-				toRTP = h225Params.m_mediaChannel;
+		if (!UsesH46026() && peer && peer->UsesH46026()) {
+			PTRACE(0, "H46026\tRemoving mediaChannel + mediaControlChannel");
+			if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)
+				&& olca.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters) {
+				H245_H2250LogicalChannelAckParameters & h225Params  = olca.m_forwardMultiplexAckParameters;
+				if (h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel)) {
+					toRTP = h225Params.m_mediaChannel;
+				}
+				h225Params.RemoveOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel);
+				if (h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaControlChannel)) {
+					toRTCP = h225Params.m_mediaControlChannel;
+				}
+				h225Params.RemoveOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaControlChannel);
 			}
-			h225Params.RemoveOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel);
-			if (h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaControlChannel)) {
-				toRTCP = h225Params.m_mediaControlChannel;
-			}
-			h225Params.RemoveOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaControlChannel);
+			// TODO: handle reverse ?
+			changed = true;
 		}
-		// TODO: handle reverse ?
-		changed = true;
-		H46026Session chan(call->GetCallIdentifier(), sessionID, lc->GetRTPOSSocket(), lc->GetRTCPOSSocket(), toRTP, toRTCP);
-		H46026RTPHandler::Instance()->AddChannel(chan);
+		H46026Session chan = H46026RTPHandler::Instance()->FindSession(call->GetCallIdentifier(), sessionID);
+		if (chan.IsValid()) {
+			H46026Session chan(call->GetCallIdentifier(), sessionID, lc->GetRTPOSSocket(), lc->GetRTCPOSSocket(), toRTP, toRTCP);
+			H46026RTPHandler::Instance()->ReplaceChannel(chan);
+		} else {
+			chan = H46026Session(call->GetCallIdentifier(), sessionID, lc->GetRTPOSSocket(), lc->GetRTCPOSSocket(), toRTP, toRTCP);
+			H46026RTPHandler::Instance()->AddChannel(chan);
+		}
+
+#ifdef HAS_H235_MEDIA
+		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(lc);
+		if (call->IsMediaEncryption() && rtplc) {
+			// is this the encryption or decryption direction ?
+			bool encrypting = (m_isCaller && call->GetEncryptDirection() == CallRec::calledParty)
+							|| (!m_isCaller && call->GetEncryptDirection() == CallRec::callingParty);
+			if (encrypting) {
+				H46026RTPHandler::Instance()->UpdateChannelEncryptingLC(call->GetCallIdentifier(), sessionID, rtplc);
+			} else {
+				H46026RTPHandler::Instance()->UpdateChannelDecryptingLC(call->GetCallIdentifier(), sessionID, rtplc);
+			}
+		}
+#endif
 	}
 #endif
 
