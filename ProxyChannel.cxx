@@ -1194,8 +1194,10 @@ void CallSignalSocket::CleanupCall()
 #ifdef HAS_H46026
 	if (m_call && Toolkit::Instance()->IsH46026Enabled())
 		H46026RTPHandler::Instance()->RemoveChannels(m_call->GetCallIdentifier());
-	if (m_h46026PriorityQueue && m_call)
-		m_h46026PriorityQueue->BufferRelease(m_call->GetCallRef());
+//	if (m_h46026PriorityQueue && m_call)
+//		m_h46026PriorityQueue->BufferRelease(m_call->GetCallRef());
+	if (m_h46026PriorityQueue)
+		m_h46026PriorityQueue->BufferRelease(0);	// clear buffers for all calls
 #endif
 	// clear the call
 	m_call = callptr(NULL);
