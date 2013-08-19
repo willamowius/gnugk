@@ -5582,7 +5582,7 @@ bool CallSignalSocket::SendH46026RTP(unsigned sessionID, bool isRTP, const void 
 			sessionID, isRTP, (const BYTE *)data, len);
 
 		// check if we have to send something ? TODO: might have to start a thread that polls all queues
-		PBYTEArray data;
+		PBYTEArray data(10000);
 		PINDEX len;
 		PTRACE(0, "JW2 check Queue");
 		if (m_h46026PriorityQueue->SocketOut(data, len)) {
