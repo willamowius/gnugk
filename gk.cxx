@@ -462,6 +462,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "TreatUnregisteredNAT" },
 	{ "RoutedMode", "TranslateSentQ931Cause" },
 	{ "RoutedMode", "TranslateSorensonSourceInfo" },
+#ifdef HAS_H46026
+	{ "RoutedMode", "UseH46026PriorityQueue" },
+#endif
 	{ "RoutedMode", "UseProvisionalRespToH245Tunneling" },
 	{ "Routing::CatchAll", "CatchAllAlias" },
 	{ "Routing::CatchAll", "CatchAllIP" },

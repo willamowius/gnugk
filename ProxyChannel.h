@@ -21,6 +21,12 @@
 #include "yasocket.h"
 #include "RasTbl.h"
 #include "gktimer.h"
+#include "config.h"
+
+#ifdef HAS_H46026
+	#include <h460/h46026.h>
+	#include <h460/h46026mgr.h>
+#endif
 
 
 class Q931;
@@ -41,7 +47,6 @@ class H225_StatusInquiry_UUIE;
 class H225_SetupAcknowledge_UUIE;
 class H225_Notify_UUIE;
 class H225_TransportAddress;
-class H46026_UDPFrame;
 
 class H245Handler;
 class H245Socket;
@@ -258,6 +263,22 @@ protected:
 #if H323_H450
 class X880_Invoke;
 class H4501_InterpretationApdu;
+#endif
+
+#ifdef HAS_H46026
+class H46026PriorityQueue : public H46026ChannelManager
+{
+public:
+    H46026PriorityQueue(CallSignalSocket * s) : m_socket(s) { }
+    ~H46026PriorityQueue() { }
+
+    // overrides
+    virtual void SignalMsgIn(const Q931 & q931) { PTRACE(0, "JW2 SignalMsgIn " << q931); }
+    virtual void RTPFrameIn(unsigned crv, PINDEX sessionId, PBoolean rtp, const PBYTEArray & data) { PTRACE(0, "JW2 RTPFrameIn sess=" << sessionId << " rtp=" << rtp); }
+
+protected:
+	CallSignalSocket * m_socket;
+};
 #endif
 
 class CallSignalSocket : public TCPProxySocket {
@@ -484,6 +505,9 @@ private:
 #endif
 #ifdef HAS_H235_MEDIA
 	bool m_isH245Master;
+#endif
+#ifdef HAS_H46026
+	H46026PriorityQueue * m_h46026PriorityQueue;
 #endif
 };
 

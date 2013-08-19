@@ -50,10 +50,6 @@
 	#endif
 #endif
 
-#ifdef HAS_H46026
-	#include <h460/h46026.h>
-#endif
-
 #ifdef HAS_H235_MEDIA
 	#include "h235/h2351.h"
 	#include "h235/h2356.h"
@@ -1177,6 +1173,13 @@ void CallSignalSocket::InternalInit()
 	m_setupClearTokens = NULL;
 	m_isH245Master = false;
 #endif
+#ifdef HAS_H46026
+	if (Toolkit::AsBool(Toolkit::Instance()->Config()->GetString(RoutedSec, "UseH46026PriorityQueue", "0"))) {
+		m_h46026PriorityQueue = new H46026PriorityQueue(this);
+	} else {
+		m_h46026PriorityQueue = NULL;
+	}
+#endif
 	// m_callerSocket is always initialized in init list
 	m_h225Version = 0;
 }
@@ -1191,6 +1194,8 @@ void CallSignalSocket::CleanupCall()
 #ifdef HAS_H46026
 	if (m_call && Toolkit::Instance()->IsH46026Enabled())
 		H46026RTPHandler::Instance()->RemoveChannels(m_call->GetCallIdentifier());
+	if (m_h46026PriorityQueue && m_call)
+		m_h46026PriorityQueue->BufferRelease(m_call->GetCallRef());
 #endif
 	// clear the call
 	m_call = callptr(NULL);
@@ -1346,6 +1351,8 @@ CallSignalSocket::~CallSignalSocket()
 #ifdef HAS_H46026
 	if (m_call && Toolkit::Instance()->IsH46026Enabled())
 		H46026RTPHandler::Instance()->RemoveChannels(m_call->GetCallIdentifier());
+	if (m_h46026PriorityQueue)
+		delete m_h46026PriorityQueue;
 #endif
 	if (m_h245socket) {
 		if (CallSignalSocket *ret = static_cast<CallSignalSocket *>(remote)) {
@@ -5566,8 +5573,23 @@ bool CallSignalSocket::SendH46017Message(const H225_RasMessage & ras)
 #ifdef HAS_H46026
 bool CallSignalSocket::SendH46026RTP(unsigned sessionID, bool isRTP, const void * data, unsigned len)
 {
-	if (Toolkit::AsBool(Toolkit::Instance()->Config()->GetString(RoutedSec, "UseH46026PriorityQueue", "0"))) {
-		//mgr.RTPFrameOut(data, len);
+	if (m_call && m_h46026PriorityQueue) {
+		// put RTP into priority queue
+		m_h46026PriorityQueue->RTPFrameOut(m_call->GetCallRef(),
+			(sessionID == 1) ? H46026ChannelManager::e_Audio : H46026ChannelManager::e_Video, // guess the content
+			sessionID, isRTP, (const BYTE *)data, len);
+
+		// check if we have to send something ? TODO: might have to start a thread that polls all queues
+		PBYTEArray data;
+		PINDEX len;
+		PTRACE(0, "JW2 check Queue");
+		if (m_h46026PriorityQueue->SocketOut(data, len)) {
+			PTRACE(0, "JW2 Queue has data to send, len=" << len);
+			data.SetSize(len);
+			return TransmitData(data);
+		} else {
+			PTRACE(0, "JW2 Queue has no data to send");
+		}
 		return true;
 	}
 
