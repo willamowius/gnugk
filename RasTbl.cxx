@@ -3323,7 +3323,12 @@ PString CallRec::GetMediaRouting() const
 	if (m_natstrategy)
 		mode += ",H.460.24[" + GetNATOffloadString(m_natstrategy) + "]";
 #endif
-	// TODO Add H.460.26 when supported - SH
+#ifdef HAS_H46026
+	if ( (GetCallingParty() && GetCallingParty()->UsesH46026())
+		|| (GetCalledParty() && GetCalledParty()->UsesH46026()) ) {
+		mode += ",H.460.26";
+	}
+#endif
     return mode;
 }
 
