@@ -1224,6 +1224,8 @@ void CallSignalSocket::CleanupCall()
 	m_senderSupportsH46019Multiplexing = false;
 #endif
 #ifdef HAS_H235_MEDIA
+	if (m_setupClearTokens)
+		delete m_setupClearTokens;
 	m_setupClearTokens = NULL;
 	m_isH245Master = false;
 #endif
@@ -8451,10 +8453,9 @@ H46026Session::H46026Session(const H225_CallIdentifier & callid, WORD session,
 	: m_isValid(true), m_callid(callid), m_session(session),
 	  m_osRTPSocket(osRTPSocket), m_osRTCPSocket(osRTCPSocket), m_toAddressRTP(toRTP), m_toAddressRTCP(toRTCP)
 {
-#ifdef H235_MEDIA
+#ifdef HAS_H235_MEDIA
 	m_encryptingLC = NULL;
 	m_decryptingLC = NULL;
-	m_encryptingCSS = NULL;
 #endif
 }
 
