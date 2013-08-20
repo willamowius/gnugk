@@ -354,6 +354,7 @@ public:
 #endif
 #ifdef HAS_H46026
 	bool SendH46026RTP(unsigned sessionID, bool isRTP, const void * data, unsigned len);
+	void PollPriorityQueue();
 #endif
 	bool MaintainConnection() const { return m_maintainConnection; }
 

@@ -1774,17 +1774,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 //		remote_css->m_h46026PriorityQueue->SignalMsgOut(*q931pdu);
 //		delete msg;
 //
-//		// check if we have to send something ? TODO: might have to start a thread that polls all queues
-//		PBYTEArray data(10000);
-//		PINDEX len = 0;
-//		PTRACE(0, "JW2 check Queue");
-//		if (remote_css->m_h46026PriorityQueue->SocketOut(data, len)) {
-//			PTRACE(0, "JW2 Queue has data to send, len=" << len);
-//			data.SetSize(len);
-//			remote_css->TransmitData(data);
-//		} else {
-//			PTRACE(0, "JW2 Queue has no data to send");
-//		}
+//		remote_css->PollPriorityQueue();
 //
 //		m_result = NoData;
 //		return m_result;
@@ -5645,19 +5635,7 @@ bool CallSignalSocket::SendH46017Message(const H225_RasMessage & ras)
 		if (m_h46026PriorityQueue) {
 			// put message into priority queue
 			m_h46026PriorityQueue->SignalMsgOut(FacilityPDU);
-
-			// check if we have to send something ? TODO: might have to start a thread that polls all queues
-			PBYTEArray data(10000);
-			PINDEX len = 0;
-			PTRACE(0, "JW2 check Queue");
-			if (m_h46026PriorityQueue->SocketOut(data, len)) {
-				PTRACE(0, "JW2 Queue has data to send, len=" << len);
-				data.SetSize(len);
-				return TransmitData(data);
-			} else {
-				PTRACE(0, "JW2 Queue has no data to send");
-			}
-
+			PollPriorityQueue();
 			return true;
 		}
 #endif
@@ -5684,19 +5662,7 @@ bool CallSignalSocket::SendH46026RTP(unsigned sessionID, bool isRTP, const void 
 		m_h46026PriorityQueue->RTPFrameOut(m_call->GetCallRef(),
 			(sessionID == 1) ? H46026ChannelManager::e_Audio : H46026ChannelManager::e_Video, // guess the content
 			sessionID, isRTP, (const BYTE *)data, len);
-
-		// check if we have to send something ? TODO: might have to start a thread that polls all queues
-		PBYTEArray data(10000);
-		PINDEX len;
-		PTRACE(0, "JW2 check Queue");
-		if (m_h46026PriorityQueue->SocketOut(data, len)) {
-			PTRACE(0, "JW2 Queue has data to send, len=" << len);
-			data.SetSize(len);
-			return TransmitData(data);
-		} else {
-			PTRACE(0, "JW2 Queue has no data to send");
-		}
-
+		PollPriorityQueue();
 		return true;
 	}
 
@@ -5748,6 +5714,19 @@ bool CallSignalSocket::SendH46026RTP(unsigned sessionID, bool isRTP, const void 
 	} else {
 		PTRACE(1, "Error: Can't send H.460.26 to " << GetName() << " - socket closed");
 		return false;
+	}
+}
+
+void CallSignalSocket::PollPriorityQueue()
+{
+	// check if we have something to send
+	// TODO: might have to start a thread that polls all queues
+	PBYTEArray data(10000);
+	PINDEX len;
+	if (m_h46026PriorityQueue->SocketOut(data, len)) {
+		PTRACE(4, "H46026\tSending from priority queue, len=" << len);
+		data.SetSize(len);
+		TransmitData(data);
 	}
 }
 #endif
