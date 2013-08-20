@@ -2711,10 +2711,7 @@ H225_TransportAddress CallRec::GetSrcSignalAddr() const
 	return m_srcSignalAddress;
 }
 
-bool CallRec::GetSrcSignalAddr(
-	PIPSocket::Address& addr,
-	WORD& port
-	) const
+bool CallRec::GetSrcSignalAddr(PIPSocket::Address & addr, WORD & port) const
 {
 	return GetIPAndPortFromTransportAddr(m_srcSignalAddress, addr, port);
 }
@@ -2724,10 +2721,7 @@ H225_TransportAddress CallRec::GetDestSignalAddr() const
 	return m_destSignalAddress;
 }
 
-bool CallRec::GetDestSignalAddr(
-	PIPSocket::Address& addr, 
-	WORD& port
-	) const
+bool CallRec::GetDestSignalAddr(PIPSocket::Address & addr, WORD & port) const
 {
 	return GetIPAndPortFromTransportAddr(m_destSignalAddress, addr, port);
 }
@@ -2759,9 +2753,7 @@ int CallRec::GetNATType(
 	return m_nattype;
 }
 
-void CallRec::SetSrcSignalAddr(
-	const H225_TransportAddress& addr
-	)
+void CallRec::SetSrcSignalAddr(const H225_TransportAddress & addr)
 {
 	m_srcSignalAddress = addr;
 	m_callerAddr = AsDotString(addr);
@@ -2774,9 +2766,7 @@ void CallRec::SetSrcNATed(const PIPSocket::Address & natip)
 	m_nattype = callingParty;
 }
 
-void CallRec::SetDestSignalAddr(
-	const H225_TransportAddress& addr
-	)
+void CallRec::SetDestSignalAddr(const H225_TransportAddress & addr)
 {
 	m_destSignalAddress = addr;
 	m_calleeAddr = AsDotString(addr);
@@ -2809,12 +2799,11 @@ void CallRec::SetCalled(const endptr & NewCalled)
 }
 
 void CallRec::SetForward(
-	CallSignalSocket* socket, 
-	const H225_TransportAddress& dest, 
-	const endptr& forwarded, 
-	const PString& forwarder, 
-	const PString& altDestInfo
-	)
+	CallSignalSocket * socket, 
+	const H225_TransportAddress & dest, 
+	const endptr & forwarded, 
+	const PString & forwarder, 
+	const PString & altDestInfo)
 {
 	m_usedLock.Wait();
 	m_forwarded = true;
@@ -2878,10 +2867,7 @@ bool CallRec::DropCalledAndTryNextRoute()
 	return false;
 }
  
-void CallRec::SetSocket(
-	CallSignalSocket* calling, 
-	CallSignalSocket* called
-	)
+void CallRec::SetSocket(CallSignalSocket * calling, CallSignalSocket * called)
 {
 	PWaitAndSignal lock(m_sockLock);
 	m_callingSocket = calling, m_calledSocket = called;
@@ -2897,9 +2883,7 @@ void CallRec::SetSocket(
 	}
 }
 
-void CallRec::SetCallSignalSocketCalling(
-	CallSignalSocket* socket
-	)
+void CallRec::SetCallSignalSocketCalling(CallSignalSocket * socket)
 {
 	PWaitAndSignal lock(m_sockLock);
 	m_callingSocket = socket;
@@ -2915,9 +2899,7 @@ void CallRec::SetCallSignalSocketCalling(
 	}
 }
 
-void CallRec::SetCallSignalSocketCalled(
-	CallSignalSocket* socket
-	)
+void CallRec::SetCallSignalSocketCalled(CallSignalSocket * socket)
 {
 	PWaitAndSignal lock(m_sockLock);
 	m_calledSocket = socket;
@@ -3231,7 +3213,7 @@ void CallRec::Disconnect(bool force)
 	PTRACE(2, "Gk\tDisconnect Call No. " << m_CallNumber);
 }
 
-void CallRec::SendReleaseComplete(const H225_CallTerminationCause *cause)
+void CallRec::SendReleaseComplete(const H225_CallTerminationCause * cause)
 {
 	m_sockLock.Wait();
 	if (m_callingSocket) {
@@ -3293,7 +3275,7 @@ void CallRec::SendDRQ()
 	}
 }
 
-PString CallRec::GenerateCDR(const PString& timestampFormat) const
+PString CallRec::GenerateCDR(const PString & timestampFormat) const
 {
 	PString timeString;
 	const PString fmtStr = !timestampFormat ? timestampFormat : PString("RFC822");
