@@ -5630,6 +5630,9 @@ bool CallSignalSocket::SendH46017Message(const H225_RasMessage & ras)
 #ifdef HAS_H46026
 bool CallSignalSocket::SendH46026RTP(unsigned sessionID, bool isRTP, const void * data, unsigned len)
 {
+	if ((data == NULL) || (len == 0))
+		return false;
+
 	if (m_call && m_h46026PriorityQueue) {
 		// put RTP into priority queue
 		m_h46026PriorityQueue->RTPFrameOut(m_call->GetCallRef(),
@@ -5661,10 +5664,10 @@ bool CallSignalSocket::SendH46026RTP(unsigned sessionID, bool isRTP, const void 
 
 		PBoolean fromDest = m_crv & 0x8000u;
 		Q931 InformationPDU;
+		H225_H323_UserInformation uuie;
 		InformationPDU.BuildInformation(m_crv, fromDest);
 		InformationPDU.SetCallState(Q931::CallState_CallInitiated);
-
-		H225_H323_UserInformation uuie;
+		GetUUIE(InformationPDU, uuie);
 		H225_H323_UU_PDU & info = uuie.m_h323_uu_pdu;
 		info.IncludeOptionalField(H225_H323_UU_PDU::e_genericData);
 		uuie.m_h323_uu_pdu.m_genericData.SetSize(1);
@@ -5683,9 +5686,8 @@ bool CallSignalSocket::SendH46026RTP(unsigned sessionID, bool isRTP, const void 
 		param.IncludeOptionalField(H225_EnumeratedParameter::e_content);
 		param.m_content.SetTag(H225_Content::e_raw);
 		PASN_OctetString & val = uuie.m_h323_uu_pdu.m_genericData[0].m_parameters[0].m_content;
-		val.SetSize(0);
 		val.EncodeSubType(frame);
-		
+
 		uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
 		uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
 		uuie.m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
