@@ -1,5 +1,6 @@
 Changes from 3.3 to 3.4
 =======================
+- implement H.460.26
 - BUGFIX(ProxyChannel.cxx) don't throw SNMP trap for PTLib error code NoError
 - implement TLS support to encrypt call signaling channel
 - access to the SSH status port can be restricted by additional IP rules in [GkStatus::Auth]
