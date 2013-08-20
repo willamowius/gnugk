@@ -5071,7 +5071,6 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 				if (session.IsValid()) {
 					for (PINDEX i = 0; i < data.m_frame.GetSize(); i++) {
 						PASN_OctetString & bytes = data.m_frame[i];
-
 						WORD wlen = bytes.GetSize();
 						bool succesful = false;
 						unsigned char ivSequence[6];
@@ -5088,7 +5087,7 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 							|| (!m_callerSocket && m_call->GetEncryptDirection() == CallRec::calledParty);
 						if (encrypting) {
 							if (session.m_encryptingLC) {
-								// TODO: this crashes when the encrypted data is larger than the orgiginal data
+								bytes.SetSize(DEFAULT_PACKET_BUFFER_SIZE);	// data may grow when encrypting
 								succesful = session.m_encryptingLC->ProcessH235Media(bytes.GetPointer(), wlen, true, ivSequence, rtpPadding, payloadType);
 							}
 						} else {
@@ -5113,6 +5112,7 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 						bytes.SetSize(wlen);
 					}
 				}
+				msg->SetChanged();
 			}
 #endif
 
@@ -9940,7 +9940,8 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 		processed.SetSize(DEFAULT_PACKET_BUFFER_SIZE - rtpHeaderLen);
 	}
 	memcpy(buffer+rtpHeaderLen, processed.GetPointer(), processed.GetSize());
-	//if (m_H235CryptoEngine->IsMaxBlocksPerKeyReached()) {	// many 100 GB
+	// TODO: if (m_H235CryptoEngine->IsMaxBlocksPerKeyReached()) {
+	// H.235.6 says no more than 2^62 blocks, Schneier says no more than 2^32 blocks in CBC mode
 	// find call by CallID, send key update command or request
 	//}
 	return (processed.GetSize() > 0);
