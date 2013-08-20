@@ -470,11 +470,6 @@ Default: <tt>0</tt><newline>
 <p>
 Enable support for H.460.17. To enable H.460.19 for the media stream, you should also set EnableH46018=1.
 
-<item><tt/EnableH46026=1/<newline>
-Default: <tt>0</tt><newline>
-<p>
-EXPERIMENTAL: Enable support for H.460.26.
-
 <item><tt/EnableH46018=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
@@ -528,6 +523,17 @@ Require registering endpoints detected as being behind a NAT to support a Standa
 When an endpoint registers from behind a NAT and does not support the minimum NAT standard then the registration
 will be rejected with a reason neededFeatureNotSupported.
 Valid values are "18" for H.460.18/.19 and "23" for H.460.23/.24
+
+<item><tt/EnableH46026=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Enable support for H.460.26 (media over TCP).
+
+<item><tt/UseH46026PriorityQueue=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Use a priority queue when sending to H.460.26 endpoints. It will batch RTP packets together and
+make sure the endpoint isn't flooded with more messages than it can handle.
 
 <item><tt/TranslateSorensonSourceInfo=1/<newline>
 Default: <tt>0</tt><newline>
