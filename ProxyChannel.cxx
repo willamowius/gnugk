@@ -1766,6 +1766,31 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		msg->GetQ931().SetIE(Q931::UserUserIE, q931pdu->GetIE(Q931::UserUserIE));
 	}
 
+// TODO: if we put the signaling messages into the prio queue, it locks up on Connect
+//#ifdef HAS_H46026
+//	CallSignalSocket * remote_css = dynamic_cast<CallSignalSocket *>(remote);
+//	if (remote_css && remote_css->m_h46026PriorityQueue) {
+//		// put message into priority queue
+//		remote_css->m_h46026PriorityQueue->SignalMsgOut(*q931pdu);
+//		delete msg;
+//
+//		// check if we have to send something ? TODO: might have to start a thread that polls all queues
+//		PBYTEArray data(10000);
+//		PINDEX len = 0;
+//		PTRACE(0, "JW2 check Queue");
+//		if (remote_css->m_h46026PriorityQueue->SocketOut(data, len)) {
+//			PTRACE(0, "JW2 Queue has data to send, len=" << len);
+//			data.SetSize(len);
+//			remote_css->TransmitData(data);
+//		} else {
+//			PTRACE(0, "JW2 Queue has no data to send");
+//		}
+//
+//		m_result = NoData;
+//		return m_result;
+//	}
+//#endif
+
 	if (msg->IsChanged() && !msg->Encode(buffer))
 		m_result = Error;
 	else if (remote && (m_result != DelayedConnecting))
@@ -5616,6 +5641,27 @@ bool CallSignalSocket::SendH46017Message(const H225_RasMessage & ras)
 		
 		PrintQ931(3, "Send to ", GetName(), &FacilityPDU, &uuie);
 
+#ifdef HAS_H46026
+		if (m_h46026PriorityQueue) {
+			// put message into priority queue
+			m_h46026PriorityQueue->SignalMsgOut(FacilityPDU);
+
+			// check if we have to send something ? TODO: might have to start a thread that polls all queues
+			PBYTEArray data(10000);
+			PINDEX len = 0;
+			PTRACE(0, "JW2 check Queue");
+			if (m_h46026PriorityQueue->SocketOut(data, len)) {
+				PTRACE(0, "JW2 Queue has data to send, len=" << len);
+				data.SetSize(len);
+				return TransmitData(data);
+			} else {
+				PTRACE(0, "JW2 Queue has no data to send");
+			}
+
+			return true;
+		}
+#endif
+
 		PBYTEArray buf;
 		FacilityPDU.Encode(buf);
 		return TransmitData(buf);
@@ -5650,6 +5696,7 @@ bool CallSignalSocket::SendH46026RTP(unsigned sessionID, bool isRTP, const void 
 		} else {
 			PTRACE(0, "JW2 Queue has no data to send");
 		}
+
 		return true;
 	}
 
