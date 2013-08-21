@@ -1163,6 +1163,7 @@ void CallSignalSocket::InternalInit()
 	m_setupPdu = NULL;
 #ifdef HAS_H46017
 	m_h46017Enabled = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "EnableH46017", 0);
+	rc_remote = NULL;
 #endif
 #ifdef HAS_H46018
 	m_callFromTraversalServer = false;
@@ -1194,10 +1195,8 @@ void CallSignalSocket::CleanupCall()
 #ifdef HAS_H46026
 	if (m_call && Toolkit::Instance()->IsH46026Enabled())
 		H46026RTPHandler::Instance()->RemoveChannels(m_call->GetCallIdentifier());
-//	if (m_h46026PriorityQueue && m_call)
-//		m_h46026PriorityQueue->BufferRelease(m_call->GetCallRef());
 	if (m_h46026PriorityQueue)
-		m_h46026PriorityQueue->BufferRelease(0);	// clear buffers for all calls
+		m_h46026PriorityQueue->BufferRelease(0);	// clear buffers for all calls on this socket
 #endif
 	// clear the call
 	m_call = callptr(NULL);
@@ -1213,6 +1212,8 @@ void CallSignalSocket::CleanupCall()
 	m_h245handler = NULL;
 	m_h245handlerLock.Signal();
 
+	if (remote)
+		rc_remote = remote;	// save remote pointer to forward ReleaseComplete
 	DetachRemote();
 
 	if (m_setupPdu)
@@ -1232,6 +1233,22 @@ void CallSignalSocket::CleanupCall()
 	m_h225Version = 0;
 }
 #endif
+
+bool CallSignalSocket::ForwardData()
+{
+	PWaitAndSignal lock(m_remoteLock);
+	if (remote)
+		remote->InternalWrite(buffer);
+#ifdef HAS_H46017
+	// with H.460.17 the remote pointer may have been deleted when ending the call
+	// use rc_remote to forward the last ReleaseComplete in the call
+	if (rc_remote) {
+		rc_remote->InternalWrite(buffer);
+		rc_remote = NULL;
+	}
+#endif
+	return false;
+}
 
 void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 {
@@ -2532,6 +2549,9 @@ void CallSignalSocket::OnError()
 	m_remoteLock.Wait();
 	if (remote)
 		remote->EndSession();
+#ifdef HAS_H46017
+	rc_remote = NULL;
+#endif
 	m_remoteLock.Signal();
 }
 
@@ -2876,6 +2896,9 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 	m_h225Version = GetH225Version(setupBody);
 	m_callerSocket = true;
+#ifdef HAS_H46017
+	rc_remote = NULL;
+#endif
 
 	// prevent from multiple calls over the same signaling channel
 	if (remote
@@ -5880,9 +5903,6 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg * msg)
 			PTRACE(5, "Q931\tFailover inactive for call " << m_call->GetCallNumber() << ", Q931 cause " << cause);
 	}
 
-	// TODO: for H.460.17.17 Removing the call will trigger CleanupCall() in RemoveSocket(),
-	// which deletes the remote ptr and without remote ptr we can't forward the RC
-	// too complicated to fix now
 	if (m_call)
 		CallTable::Instance()->RemoveCall(m_call);
 	m_result = Closing;

@@ -158,8 +158,10 @@ protected:
 	TCPProxySocket *remote;
 	PBYTEArray buffer;
 
-private:
+public:
 	bool InternalWrite(const PBYTEArray &);
+
+protected:
 	bool SetMinBufSize(WORD);
 
 	BYTE *bufptr;
@@ -300,6 +302,9 @@ public:
 	virtual Result ReceiveData();
 	virtual bool EndSession();
 	virtual void OnError();
+
+	// override from TCPProxySocket
+	virtual bool ForwardData();
 
 	void SendReleaseComplete(const H225_CallTerminationCause * = NULL);
 	void SendReleaseComplete(H225_ReleaseCompleteReason::Choices);
@@ -498,6 +503,7 @@ private:
 	H245_TerminalCapabilitySet m_savedTCS;	// saved tcs to re-send
 #ifdef HAS_H46017
 	bool m_h46017Enabled;
+	TCPProxySocket * rc_remote; // copy of the remote pointer that may be only used to send RC on call end
 #endif
 #ifdef HAS_H46018
 	bool m_callFromTraversalServer; // is this call from a traversal server ?
