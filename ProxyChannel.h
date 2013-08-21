@@ -277,6 +277,7 @@ public:
     // overrides
     virtual void SignalMsgIn(const Q931 & q931) { PTRACE(0, "JW2 SignalMsgIn " << q931); }
     virtual void RTPFrameIn(unsigned crv, PINDEX sessionId, PBoolean rtp, const PBYTEArray & data) { PTRACE(0, "JW2 RTPFrameIn sess=" << sessionId << " rtp=" << rtp); }
+    virtual void FastUpdatePictureRequired(unsigned crv, PINDEX sessionId) { PTRACE(0, "JW2 FastUpdatePictureRequired sess=" << sessionId); }
 
 protected:
 	CallSignalSocket * m_socket;
