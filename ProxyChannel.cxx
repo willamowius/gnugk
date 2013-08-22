@@ -8426,7 +8426,7 @@ bool MultiplexedRTPHandler::HandlePacket(PUInt32b receivedMultiplexID, const H32
 }
 
 #ifdef HAS_H46026
-bool MultiplexedRTPHandler::HandlePacket(H225_CallIdentifier callid, const H46026_UDPFrame & data)
+bool MultiplexedRTPHandler::HandlePacket(const H225_CallIdentifier & callid, const H46026_UDPFrame & data)
 {
 	ReadLock lock(m_listLock);
 	// find the matching channel by callID and sessionID
@@ -8693,7 +8693,7 @@ void H46026RTPHandler::DumpChannels(const PString & msg) const
 	}
 }
 
-bool H46026RTPHandler::HandlePacket(H225_CallIdentifier callid, H46026_UDPFrame & data)
+bool H46026RTPHandler::HandlePacket(const H225_CallIdentifier & callid, H46026_UDPFrame & data)
 {
 	ReadLock lock(m_listLock);
 	// find the matching channel by callID and sessionID
@@ -10540,7 +10540,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 		WORD sessionID = h225Params ? (WORD)h225Params->m_sessionID : INVALID_RTP_SESSION;
 		H46019Session h46019chan(0, INVALID_RTP_SESSION, NULL);
 		if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing
-			|| peer->m_requestRTPMultiplexing || peer->m_remoteRequestsRTPMultiplexing) {
+			|| (peer && peer->m_requestRTPMultiplexing)
+			|| (peer && peer->m_remoteRequestsRTPMultiplexing) ) {
 			h46019chan = MultiplexedRTPHandler::Instance()->GetChannelSwapped(call->GetCallIdentifier(), sessionID, this);
 			if (!h46019chan.IsValid()) {
 				h46019chan = H46019Session(call->GetCallIdentifier(), sessionID, this); // no existing found, create a new one
@@ -10971,7 +10972,9 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 	if (hnat)
 		hnat->HandleOpenLogicalChannelAck(olca);
 	WORD flcn = (WORD)olca.m_forwardLogicalChannelNumber;
-	LogicalChannel * lc = peer->FindLogicalChannel(flcn);
+	LogicalChannel * lc = NULL;
+	if (peer)
+		lc = peer->FindLogicalChannel(flcn);
 	if (!lc) {
 		PTRACE(2, "Proxy\tWarning: logical channel " << flcn << " not found for opening");
 		return false;
