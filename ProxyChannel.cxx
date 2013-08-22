@@ -1345,7 +1345,8 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 		socket->m_h245handler = proxyhandler;
 		m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(), localAddr, called, masqAddr, proxyhandler);
 #ifdef HAS_H46026
-		((H245ProxyHandler*)m_h245handler)->SetUsesH46026(m_call->GetCalledParty()->UsesH46026());
+		if (m_call->GetCalledParty())
+			((H245ProxyHandler*)m_h245handler)->SetUsesH46026(m_call->GetCalledParty()->UsesH46026());
 #endif
 #ifdef HAS_H46018
 		if (m_call->GetCalledParty() && m_call->GetCalledParty()->GetTraversalRole() != None) {
@@ -6097,7 +6098,8 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					// H.245 proxy hander for calling (doesn't have to use H.460.18/.19)
 					H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), callingSocket->localAddr, calling, callingSocket->masqAddr);
 #ifdef HAS_H46026
-					proxyhandler->SetUsesH46026(m_call->GetCallingParty()->UsesH46026());
+					if (m_call->GetCallingParty())
+						proxyhandler->SetUsesH46026(m_call->GetCallingParty()->UsesH46026());
 #endif
 					if (m_call->GetCalledParty() && !m_call->GetCalledParty()->IsTraversalClient()) {
 						PTRACE (1, "Traversal call to non-H.460.18 endpoint, maybe neighbor - setting now");
@@ -6111,7 +6113,8 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(), localAddr, called, masqAddr, proxyhandler);
 					proxyhandler->SetHandler(GetHandler());
 #ifdef HAS_H46026
-					((H245ProxyHandler*)m_h245handler)->SetUsesH46026(m_call->GetCalledParty()->UsesH46026());
+					if (m_call->GetCalledParty())
+						((H245ProxyHandler*)m_h245handler)->SetUsesH46026(m_call->GetCalledParty()->UsesH46026());
 #endif
 					((H245ProxyHandler*)m_h245handler)->SetTraversalRole(TraversalClient);
 					((H245ProxyHandler*)m_h245handler)->SetH46019Direction(m_call->GetH46019Direction());
