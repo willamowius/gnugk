@@ -9965,10 +9965,12 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 		processed.SetSize(DEFAULT_PACKET_BUFFER_SIZE - rtpHeaderLen);
 	}
 	memcpy(buffer+rtpHeaderLen, processed.GetPointer(), processed.GetSize());
-	// TODO: if (m_H235CryptoEngine->IsMaxBlocksPerKeyReached()) {
-	// H.235.6 says no more than 2^62 blocks, Schneier says no more than 2^32 blocks in CBC mode
-	// find call by CallID, send key update command or request
-	//}
+#if (H323PLUS_VER > 1251)
+	if (m_H235CryptoEngine->IsMaxBlocksPerKeyReached()) {
+		PTRACE(0, "JW key update needed");
+		// TODO: find call by CallID, send key update command or request
+	}
+#endif
 	return (processed.GetSize() > 0);
 }
 #endif
