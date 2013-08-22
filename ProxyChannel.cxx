@@ -1323,7 +1323,8 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 	if (m_call->GetProxyMode() == CallRec::ProxyEnabled) {
 		H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), socket->localAddr, calling, socket->masqAddr);
 #ifdef HAS_H46026
-		proxyhandler->SetUsesH46026(m_call->GetCallingParty()->UsesH46026());
+		if (m_call->GetCallingParty())
+			proxyhandler->SetUsesH46026(m_call->GetCallingParty()->UsesH46026());
 #endif
 #ifdef HAS_H46018
 		if (m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None) {
@@ -7053,9 +7054,9 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 		userevert = true;
 	}
 #endif
-	m_h245socket = userevert ? new NATH245Socket(this) : new H245Socket(this);
+	m_h245socket = userevert ? new NATH245Socket(this) : new H245Socket(this);	// TODO: handle TLS
 	if (!m_call->GetRerouteState() == RerouteInitiated) {
-		ret->m_h245socket = new H245Socket(m_h245socket, ret);
+		ret->m_h245socket = new H245Socket(m_h245socket, ret);	// TODO: handle TLS
 	}
 	m_h245socket->SetH245Address(h245addr, masqAddr);
 	if (m_h245TunnelingTranslation && !m_h245Tunneling && GetRemote() && GetRemote()->m_h245Tunneling) {
