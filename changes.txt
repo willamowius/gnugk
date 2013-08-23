@@ -1,5 +1,6 @@
 Changes from 3.3 to 3.4
 =======================
+- automatically update H.235.6 media key when too many packets have been encrypted
 - implement H.460.26
 - BUGFIX(ProxyChannel.*) forward ReleaseComplete for H.460.17 endpoints
 - BUGFIX(ProxyChannel.cxx) don't throw SNMP trap for PTLib error code NoError

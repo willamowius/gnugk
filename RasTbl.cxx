@@ -2576,7 +2576,7 @@ CallRec::CallRec(const H225_CallIdentifier & callID, H225_TransportAddress sigAd
 	m_toParent(false), m_fromParent(false), m_forwarded(false), m_proxyMode(ProxyEnabled),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
-	m_h46018ReverseSetup(true), m_callfromTraversalClient(true), m_callfromTraversalServer(false),
+	m_rerouteState(NoReroute), m_h46018ReverseSetup(true), m_callfromTraversalClient(true), m_callfromTraversalServer(false),
 	m_rerouteDirection(Caller)
 #ifdef HAS_H235_MEDIA
     ,m_encyptDir(none), m_dynamicPayloadTypeCounter(MIN_DYNAMIC_PAYLOAD_TYPE)

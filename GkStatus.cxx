@@ -363,6 +363,7 @@ SSHStatusClient::SSHStatusClient(int instanceNo) : StatusClient(instanceNo)
 	m_handlePasswordRule = false;	// modify behavior of password rule check in super class
 	m_sshbind = NULL;
 	m_session = NULL;
+	m_message = NULL;
 }
 
 SSHStatusClient::~SSHStatusClient()

@@ -10357,7 +10357,7 @@ bool T120LogicalChannel::OnSeparateStack(H245_NetworkAccessParameters & sepStack
 
 // class H245ProxyHandler
 H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSocket::Address & local, const PIPSocket::Address & remote, const PIPSocket::Address & masq, H245ProxyHandler * pr)
-      : H245Handler(local, remote, masq), peer(pr), callid(id), isMute(false), m_useH46019(false), m_traversalType(None),
+      : H245Handler(local, remote, masq), handler(NULL), peer(pr), callid(id), isMute(false), m_useH46019(false), m_traversalType(None),
 		m_useH46019fc(false), m_H46019fcState(0), m_H46019dir(0), m_usesH46026(false)
 {
 	if (peer)

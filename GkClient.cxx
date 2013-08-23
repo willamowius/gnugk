@@ -900,9 +900,10 @@ private:
 };
 
 H46024Socket::H46024Socket(GkClient * client, bool rtp, const H225_CallIdentifier & id, CallRec::NatStrategy strategy, WORD sessionID)
-	:UDPProxySocket((rtp ? "rtp" : "rtcp"),id), m_client(client), 
+	:UDPProxySocket((rtp ? "rtp" : "rtcp"), id), m_client(client), 
 	m_natStrategy(strategy), m_sessionID(sessionID), m_callIdentifier(id), 
-	m_rtp(rtp), m_state(e_notRequired), m_CUIlocal(PString()), m_CUIremote(PString()), m_altMuxID(0), m_probes(0), m_keepseqno(100)
+	m_rtp(rtp), m_state(e_notRequired),	m_remPort(0), m_detPort(0), m_pendPort(0), m_altPort(0),
+	m_altMuxID(0), m_probes(0), SSRC(0), m_keepseqno(100)
 {
 
 }
