@@ -1173,6 +1173,9 @@ void TCPServer::ReadSocket(IPSocket * socket)
 	}
 
 	TCPListenSocket *listener = dynamic_cast<TCPListenSocket *>(socket);
+	if (!listener)
+		return;
+
 	ServerSocket *acceptor = listener->CreateAcceptor();
 	if (acceptor->Accept(*listener)) {
 		PTRACE(6, GetName() << "\tAccepted new connection on " << socket->GetName() << " from " << acceptor->GetName());
