@@ -1508,7 +1508,7 @@ OutOfZoneGWRec::OutOfZoneGWRec(const H225_RasMessage & completeLCF, const H225_E
 RegistrationTable::RegistrationTable() : Singleton<RegistrationTable>("RegistrationTable")
 {
 	regSize = 0;
-	recCnt = rand()%9000 + 1000;
+	recCnt = rand() % 9000 + 1000;
 	ozCnt = 1000; // arbitrary chosen constant
 
 	LoadConfig();
