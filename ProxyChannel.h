@@ -344,6 +344,7 @@ public:
 #ifdef HAS_H235_MEDIA
     bool HandleH235TCS(H245_TerminalCapabilitySet & tcs);
     bool HandleH235OLC(H245_OpenLogicalChannel & olc);
+	bool IsH245Master() const { return m_isH245Master; }
 #endif
 	H245Socket * GetH245Socket() const { return m_h245socket; }
 	void SetH245Socket(H245Socket * sock) { m_h245socket = sock; }

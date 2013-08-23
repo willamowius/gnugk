@@ -9965,7 +9965,7 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 		processed.SetSize(DEFAULT_PACKET_BUFFER_SIZE - rtpHeaderLen);
 	}
 	memcpy(buffer+rtpHeaderLen, processed.GetPointer(), processed.GetSize());
-#if (H323PLUS_VER > 1251)
+#if (H323PLUS_VER > 1252)
 	if (m_H235CryptoEngine->IsMaxBlocksPerKeyReached()) {
 		PTRACE(0, "JW key update needed");
 		// TODO: find call by CallID, send key update command or request
@@ -11256,7 +11256,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 #ifdef HAS_H235_MEDIA
 bool H245ProxyHandler::HandleEncryptionUpdateRequest(H245_MiscellaneousCommand & cmd, bool & suppress, callptr & call, H245Socket * h245sock)
 {
-	if (call->IsMediaEncryption() && m_isH245Master) {
+	if (call && call->IsMediaEncryption() && m_isH245Master) {
 		// send new media key
 		H245_EncryptionUpdateRequest & request = cmd.m_type;
 		WORD flcn = (WORD)cmd.m_logicalChannelNumber;
@@ -11276,12 +11276,11 @@ bool H245ProxyHandler::HandleEncryptionUpdateRequest(H245_MiscellaneousCommand &
 			if (h245sock)
 				h245sock->Send(h245msg);
 			else {
-				// send tunneled
-				if ((call->GetEncryptDirection() == CallRec::callingParty) && call->GetCallSignalSocketCalled()) {
-					call->GetCallSignalSocketCalled()->SendTunneledH245(h245msg);
-				} else if (call->GetCallSignalSocketCalling()) {
-					call->GetCallSignalSocketCalling()->SendTunneledH245(h245msg);
-				}
+				// send tunneled (to slave)
+				CallSignalSocket * css = call->GetCallSignalSocketCalling();
+				if (css->IsH245Master())
+					css = call->GetCallSignalSocketCalled();
+				css->SendTunneledH245(h245msg);
 			}
 		}
 		suppress = true;
@@ -11291,7 +11290,7 @@ bool H245ProxyHandler::HandleEncryptionUpdateRequest(H245_MiscellaneousCommand &
 
 bool H245ProxyHandler::HandleEncryptionUpdateCommand(H245_MiscellaneousCommand & cmd, bool & suppress, callptr & call, H245Socket * h245sock)
 {
-	if (call->IsMediaEncryption() && !m_isH245Master) {
+	if (call && call->IsMediaEncryption() && !m_isH245Master) {
 		// use this media key
 		H245_MiscellaneousCommand_type_encryptionUpdateCommand & update = cmd.m_type;
 		WORD flcn = (WORD)cmd.m_logicalChannelNumber;
@@ -11313,7 +11312,11 @@ bool H245ProxyHandler::HandleEncryptionUpdateCommand(H245_MiscellaneousCommand &
 			if (h245sock)
 				h245sock->Send(h245msg);
 			else {
-				// TODO: send tunneled
+				// send tunneled to master side (only the master issues UpdateCommand, slave would have sent UpdateRequest)
+				CallSignalSocket * css = call->GetCallSignalSocketCalling();
+				if (!css->IsH245Master())
+					css = call->GetCallSignalSocketCalled();
+				css->SendTunneledH245(h245msg);
 			}
 		}
 		suppress = true;
