@@ -342,9 +342,11 @@ public:
 	bool SendTunneledH245(const PPER_Stream & strm);
 	bool SendTunneledH245(const H245_MultimediaSystemControlMessage & h245msg);
 #ifdef HAS_H235_MEDIA
+	bool IsH245Master() const { return m_isH245Master; }
     bool HandleH235TCS(H245_TerminalCapabilitySet & tcs);
     bool HandleH235OLC(H245_OpenLogicalChannel & olc);
-	bool IsH245Master() const { return m_isH245Master; }
+	void SendEncryptionUpdateCommand(WORD flcn, BYTE oldPT);
+	void SendEncryptionUpdateRequest(WORD flcn, BYTE oldPT);
 #endif
 	H245Socket * GetH245Socket() const { return m_h245socket; }
 	void SetH245Socket(H245Socket * sock) { m_h245socket = sock; }

@@ -13,6 +13,7 @@
 //////////////////////////////////////////////////////////////////
 
 #include <ptlib.h>
+#include <ptclib/random.h>
 #include <q931.h>
 #include <h245.h>
 #include <h323pdu.h>
@@ -255,6 +256,16 @@ BYTE GetStaticPayloadType(const H245_DataType & type)
 		}
 	}
 	return UNDEFINED_PAYLOAD_TYPE;
+}
+
+// pick a random payload type, but not the old one
+BYTE RandomPT(BYTE oldPT)
+{
+	BYTE newPT = oldPT;
+	while (newPT == oldPT) {
+		newPT = PRandom::Number() % 254 + 1;	// generate random in range [1-254]
+	}
+	return newPT;
 }
 
 bool IsOldH263(const H245_DataType & type)
@@ -2523,6 +2534,57 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 		olc.m_forwardLogicalChannelParameters.m_dataType = newCap;
 
 	return true;
+}
+
+void CallSignalSocket::SendEncryptionUpdateCommand(WORD flcn, BYTE oldPT)
+{
+	H245ProxyHandler * h245handler = dynamic_cast<H245ProxyHandler *>(m_h245handler);
+	if (h245handler) {
+		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(h245handler->FindLogicalChannel(flcn));
+		if (rtplc) {
+			BYTE newPayloadType = RandomPT(oldPT);
+			H245_MultimediaSystemControlMessage h245msg;
+			h245msg.SetTag(H245_MultimediaSystemControlMessage::e_command);
+			H245_CommandMessage & h245cmd = h245msg;
+			h245cmd.SetTag(H245_CommandMessage::e_miscellaneousCommand);		
+			H245_MiscellaneousCommand & misc = h245cmd;
+			misc.m_type.SetTag(H245_MiscellaneousCommand_type::e_encryptionUpdateCommand);
+			H245_MiscellaneousCommand_type_encryptionUpdateCommand & update = misc.m_type;
+			misc.m_logicalChannelNumber = flcn;
+			misc.m_direction.SetTag(H245_EncryptionUpdateDirection::e_masterToSlave);
+			rtplc->GenerateNewMediaKey(newPayloadType, update.m_encryptionSync);
+			if (m_h245socket)
+				m_h245socket->Send(h245msg);
+			else {
+				SendTunneledH245(h245msg);
+			}
+		}
+	}
+}
+
+void CallSignalSocket::SendEncryptionUpdateRequest(WORD flcn, BYTE oldPT)
+{
+	BYTE newPayloadType = RandomPT(oldPT);
+	H245_MultimediaSystemControlMessage h245msg;
+	h245msg.SetTag(H245_MultimediaSystemControlMessage::e_command);
+	H245_CommandMessage & h245cmd = h245msg;
+	h245cmd.SetTag(H245_CommandMessage::e_miscellaneousCommand);		
+	H245_MiscellaneousCommand & misc = h245cmd;
+	misc.m_type.SetTag(H245_MiscellaneousCommand_type::e_encryptionUpdateRequest);
+	H245_EncryptionUpdateRequest & update = misc.m_type;
+	update.IncludeOptionalField(H245_EncryptionUpdateRequest::e_synchFlag);
+	update.m_synchFlag = newPayloadType;
+	update.IncludeOptionalField(H245_EncryptionUpdateRequest::e_keyProtectionMethod);
+	update.m_keyProtectionMethod.m_sharedSecret = true;
+	update.m_keyProtectionMethod.m_secureChannel = false;
+	update.m_keyProtectionMethod.m_certProtectedKey = false;
+	misc.m_logicalChannelNumber = flcn;
+	misc.m_direction.SetTag(H245_EncryptionUpdateDirection::e_slaveToMaster);
+	if (m_h245socket) {
+		m_h245socket->Send(h245msg);
+	} else {
+		SendTunneledH245(h245msg);
+	}
 }
 #endif
 
@@ -9967,8 +10029,20 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 	memcpy(buffer+rtpHeaderLen, processed.GetPointer(), processed.GetSize());
 #if (H323PLUS_VER > 1252)
 	if (m_H235CryptoEngine->IsMaxBlocksPerKeyReached()) {
-		PTRACE(0, "JW key update needed");
-		// TODO: find call by CallID, send key update command or request
+		PTRACE(1, "H.235.6 media key update needed flcn=" << channelNumber);
+		// find call by CallID, send key update command or request
+		callptr call = CallTable::Instance()->FindCallRec(m_callID);
+		if (call) {
+			CallSignalSocket * dest = call->GetCallSignalSocketCalling();
+			if (call->GetEncryptDirection() == CallRec::callingParty) {
+				dest = call->GetCallSignalSocketCalled();
+			}
+			if (dest->IsH245Master()) {
+				dest->SendEncryptionUpdateRequest(channelNumber, m_cipherPayloadType);
+			} else {
+				dest->SendEncryptionUpdateCommand(channelNumber, m_cipherPayloadType);
+			}
+		}
 	}
 #endif
 	return (processed.GetSize() > 0);
@@ -11260,7 +11334,12 @@ bool H245ProxyHandler::HandleEncryptionUpdateRequest(H245_MiscellaneousCommand &
 		// send new media key
 		H245_EncryptionUpdateRequest & request = cmd.m_type;
 		WORD flcn = (WORD)cmd.m_logicalChannelNumber;
-		BYTE newPayloadType = request.m_synchFlag;
+		BYTE newPayloadType = UNDEFINED_PAYLOAD_TYPE;
+		if (request.HasOptionalField(H245_EncryptionUpdateRequest::e_synchFlag))
+			newPayloadType = request.m_synchFlag;
+		else {
+			newPayloadType = RandomPT(0);	// TODO: what is current the PT ?
+		}
 		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(FindLogicalChannel(flcn));
 		if (rtplc) {
 			H245_MultimediaSystemControlMessage h245msg;
@@ -11268,7 +11347,7 @@ bool H245ProxyHandler::HandleEncryptionUpdateRequest(H245_MiscellaneousCommand &
 			H245_CommandMessage & h245cmd = h245msg;
 			h245cmd.SetTag(H245_CommandMessage::e_miscellaneousCommand);		
 			H245_MiscellaneousCommand & misc = h245cmd;
-			misc.m_type.SetTag(H245_MiscellaneousCommand_type::e_encryptionUpdateRequest);
+			misc.m_type.SetTag(H245_MiscellaneousCommand_type::e_encryptionUpdateCommand);
 			H245_MiscellaneousCommand_type_encryptionUpdateCommand & update = misc.m_type;
 			misc.m_logicalChannelNumber = cmd.m_logicalChannelNumber;
 			misc.m_direction.SetTag(H245_EncryptionUpdateDirection::e_slaveToMaster); // this update was requested by the slave
