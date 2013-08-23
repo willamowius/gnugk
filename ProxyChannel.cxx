@@ -2575,8 +2575,8 @@ void CallSignalSocket::SendEncryptionUpdateRequest(WORD flcn, BYTE oldPT)
 	update.IncludeOptionalField(H245_EncryptionUpdateRequest::e_synchFlag);
 	update.m_synchFlag = newPayloadType;
 	update.IncludeOptionalField(H245_EncryptionUpdateRequest::e_keyProtectionMethod);
-	update.m_keyProtectionMethod.m_sharedSecret = true;
-	update.m_keyProtectionMethod.m_secureChannel = false;
+	update.m_keyProtectionMethod.m_secureChannel = true;
+	update.m_keyProtectionMethod.m_sharedSecret = false;
 	update.m_keyProtectionMethod.m_certProtectedKey = false;
 	misc.m_logicalChannelNumber = flcn;
 	misc.m_direction.SetTag(H245_EncryptionUpdateDirection::e_slaveToMaster);
@@ -10029,6 +10029,8 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 	memcpy(buffer+rtpHeaderLen, processed.GetPointer(), processed.GetSize());
 #if (H323PLUS_VER > 1252)
 	if (m_H235CryptoEngine->IsMaxBlocksPerKeyReached()) {
+		// TODO: if major endpoints really ignore the key updates, we'll need a switch for this feature
+		m_H235CryptoEngine->ResetBlockCount(); // reset count now, so we don't request update multiple times
 		PTRACE(1, "H.235.6 media key update needed flcn=" << channelNumber);
 		// find call by CallID, send key update command or request
 		callptr call = CallTable::Instance()->FindCallRec(m_callID);
