@@ -313,6 +313,9 @@ public:
 	bool IsH46018Disabled() const { return m_h46018disabled; }
 	void SetUsesH46026(bool val) {  m_usesH46026 = val; }
 	bool UsesH46026() const { return m_usesH46026; }
+#ifdef HAS_H46026
+	unsigned GetH46026BW() const { return (m_maxBandwidth > 0) ? (m_maxBandwidth / 2) : 384000; }
+#endif
 	void SetTraversalRole(H46019TraversalType val) { m_traversalType = val; m_nat = (val == TraversalClient); }
 	H46019TraversalType GetTraversalRole() const { return m_traversalType; }
 	bool IsTraversalServer() const { return m_traversalType == TraversalServer; }

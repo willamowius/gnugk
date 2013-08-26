@@ -1266,6 +1266,12 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 	remote = socket;
 	m_call = socket->m_call;
 	m_call->SetSocket(socket, this);
+#ifdef H46026
+	// now that we have a call associated with this socket, set the H.460.26 pipe bandwidth
+	if (m_h46026PriorityQueue && m_call && m_call->GetCalledParty()) {
+		m_h46026PriorityQueue->SetPipeBandwidth(m_call->GetCalledParty()->GetH46026BW());
+	}
+#endif
 	m_crv = (socket->m_crv & 0x7fffu);
 	if (!m_h245TunnelingTranslation)
 		m_h245Tunneling = socket->m_h245Tunneling;
@@ -3180,6 +3186,13 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		}
 	} else
 		callid = AsString(m_call->GetCallIdentifier().m_guid);
+
+#ifdef H46026
+	// now that we have a call associated with this socket, set the H.460.26 pipe bandwidth
+	if (m_h46026PriorityQueue && m_call && m_call->GetCallingParty()) {
+		m_h46026PriorityQueue->SetPipeBandwidth(m_call->GetCallingParty()->GetH46026BW());
+	}
+#endif
 
 	Address _peerAddr, _localAddr;
 	WORD _peerPort = 0, _localPort = 0;
