@@ -1013,11 +1013,14 @@ might encrypt its signalling to the GNU Gatekeeper and the 2nd half of the call
 going out to another endpoint may be unencrypted.
 <p>
 You have to define manually which endpoints use TLS when we call them, by setting
-a switch in their [EP::...] section. SImilar you can enable TLS for neighbor and parent gatekeeper.
-SInce not many endpoints support TLS encryption, so this feature can be very usefull to secure
+a switch in their [EP::...] section. Similar you can enable TLS for neighbor and parent gatekeeper.
+Since not many endpoints support TLS encryption, so this feature can be very usefull to secure
 "trunk" connections or traversal zones to branch offices etc.
 <p>
 Using TLS is also important to avoid man-in-the-middle attacks on H.235.6 media encryption.
+<p>
+Note: Currently you must use H.245 tunneling when using TLS, consider H245TunnelingTranslation=1
+to tunnel H.245 between gatekeepers when not all of your endpoints enable tunneling natively.
 
 <itemize>
 
