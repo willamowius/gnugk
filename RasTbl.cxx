@@ -102,7 +102,8 @@ EndpointRec::EndpointRec(
     m_epnattype(NatUnknown), m_usesH46023(false), m_H46024(Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023PublicIP", 0))),
 	m_H46024a(false), m_H46024b(false), m_natproxy(Toolkit::AsBool(GkConfig()->GetString(proxysection, "ProxyForNAT", "1"))),
 	m_internal(false), m_remote(false), m_h46017disabled(false), m_h46018disabled(false), m_usesH460P(false), m_hasH460PData(false),
-    m_usesH46017(false), m_usesH46026(false), m_traversalType(None), m_bandwidth(0), m_maxBandwidth(-1), m_useTLS(false)
+    m_usesH46017(false), m_usesH46026(false), m_traversalType(None), m_bandwidth(0), m_maxBandwidth(-1), m_useTLS(false),
+    additiveRegistrant(false)
 {
 	switch (m_RasMsg.GetTag())
 	{
@@ -1221,7 +1222,7 @@ bool EndpointRec::AddH350ServiceControl(H225_ArrayOf_ServiceControlSession & ses
 
 
 GatewayRec::GatewayRec(const H225_RasMessage & completeRRQ, bool Permanent)
-: EndpointRec(completeRRQ, Permanent), defaultGW(false), priority(1), additiveRegistrant(false)
+	: EndpointRec(completeRRQ, Permanent), defaultGW(false), priority(1)
 {
 	LoadGatewayConfig(); // static binding
 }
@@ -1476,12 +1477,12 @@ PString GatewayRec::PrintOn(bool verbose) const
 	return msg;
 }
 
-void GatewayRec::SetAdditiveRegistrant()
+void EndpointRec::SetAdditiveRegistrant()
 {
 	additiveRegistrant = true;
 }
 
-bool GatewayRec::IsAdditiveRegistrant() const
+bool EndpointRec::IsAdditiveRegistrant() const
 { 
 	return additiveRegistrant; 
 }

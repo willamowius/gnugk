@@ -142,8 +142,8 @@ public:
 	virtual void Update(const H225_RasMessage & lightweightRRQ);
 	virtual bool IsGateway() const { return false; }
 
-	virtual void SetAdditiveRegistrant() {};
-	virtual bool IsAdditiveRegistrant() const { return false; }
+	virtual void SetAdditiveRegistrant();
+	virtual bool IsAdditiveRegistrant() const;
 
 	/** Find if one of the given aliases matches any alias for this endpoint.
 
@@ -411,6 +411,7 @@ protected:
 	long m_bandwidth;	// bandwidth currently occupied by this endpoint
 	long m_maxBandwidth; // maximum bandwidth allowed for this endpoint
 	bool m_useTLS;
+	bool additiveRegistrant;
 };
 
 typedef EndpointRec::Ptr endptr;
@@ -427,9 +428,6 @@ public:
 
 	virtual void Update(const H225_RasMessage & lightweightRRQ);
 	virtual bool IsGateway() const { return true; }
-
-	virtual void SetAdditiveRegistrant();
-	virtual bool IsAdditiveRegistrant() const;
 
 	/// Overiden from EndpointRec
 	virtual bool LoadConfig();
@@ -494,8 +492,6 @@ protected:
 	bool defaultGW;
 	/// priority for this gateway (when more than one gw matches a dialed number)
 	int priority;
-
-	bool additiveRegistrant;
 };
 
 

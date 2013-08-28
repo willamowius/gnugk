@@ -2469,9 +2469,8 @@ void GkClient::OnRCF(RasMsg *ras)
 		m_gatekeeperId = rcf.m_gatekeeperIdentifier;
 		if (rcf.HasOptionalField(H225_RegistrationConfirm::e_alternateGatekeeper))
 			m_gkList->Set(rcf.m_alternateGatekeeper);
-		if ((m_endpointType == EndpointType_Gateway) &&
-			rcf.HasOptionalField(H225_RegistrationConfirm::e_supportsAdditiveRegistration) && 
-			Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableAdditiveRegistration", "0")))
+		if (rcf.HasOptionalField(H225_RegistrationConfirm::e_supportsAdditiveRegistration)
+			&& Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableAdditiveRegistration", "0")))
 				m_useAdditiveRegistration = true;
 
 		if (m_useAdditiveRegistration)

@@ -2114,8 +2114,8 @@ bool RegistrationRequestPDU::Process()
 
 			// Additive Registration lightweightRRQ
 			if (request.HasOptionalField(H225_RegistrationRequest::e_additiveRegistration)) {
-				if (!Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "EnableAdditiveRegistration", "0")) ||
-					!ep->IsGateway() || !request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias))
+				if (!Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "EnableAdditiveRegistration", "0"))
+					|| !request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias))
 					return BuildRRJ(H225_RegistrationRejectReason::e_additiveRegistrationNotSupported);
 				else
 					return HandleAdditiveRegistration(ep);
@@ -2709,7 +2709,7 @@ bool RegistrationRequestPDU::BuildRCF(const endptr & ep, bool additiveRegistrati
 		rcf.m_timeToLive = ep->GetTimeToLive();
 	} 
 
-	if (ep->IsGateway() && Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "EnableAdditiveRegistration", "0")))
+	if (Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "EnableAdditiveRegistration", "0")))
 		rcf.IncludeOptionalField(H225_RegistrationConfirm::e_supportsAdditiveRegistration);
 
 	return true;
@@ -2762,9 +2762,9 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 			}
 		}
 
-		if (ep->IsAdditiveRegistrant() && 
-			request.HasOptionalField(H225_UnregistrationRequest::e_endpointAlias) &&
-			!ep->RemoveAliases(request.m_endpointAlias)) {
+		if (ep->IsAdditiveRegistrant()
+			&& request.HasOptionalField(H225_UnregistrationRequest::e_endpointAlias)
+			&& !ep->RemoveAliases(request.m_endpointAlias)) {
 
 				EndpointRec logRec(m_msg->m_recvRAS);
 				RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctUnregister, endptr(&logRec));
