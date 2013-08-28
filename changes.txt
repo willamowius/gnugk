@@ -15,7 +15,8 @@ Changes from 3.3 to 3.4
 - BUGFIX(Toolkit.cxx) fix crash in 10D rewriting
 - new feature: send post dial digits after call connects
 - BUGFIX(snmp.cxx) clean shutdown of Net-SNMP agent
-- BUGFIX(ProxyChannel.cxx) fix master assigned RTP session IDs and encrypted H.239 channels
+- BUGFIX(ProxyChannel.cxx) fix master assigned RTP session IDs and encrypted H.239
+  channels using RTP multiplexing
 - BUGFIX(gk.cxx) fix checking of EP::, Neighbor:: and Routing:: sections
 - updated H.460.23 STUN to support _stun._udp SRV records
 
