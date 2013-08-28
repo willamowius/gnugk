@@ -1638,10 +1638,13 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			// if we haven't received a Q.931 message from the remote, yet, we assume it will be tunneling, so Setup messages will set it to TRUE here
 			uuie->m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
 			uuie->m_h323_uu_pdu.m_h245Tunneling.SetValue(true);
-			if (disableH245Tunneling)
-				uuie->m_h323_uu_pdu.m_h245Tunneling.SetValue(false);
 			msg->SetUUIEChanged();
 		}
+	}
+	if (disableH245Tunneling && uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)) {
+		// if the h245Tunnelling field isn't present, that means no tunneling anyway
+		uuie->m_h323_uu_pdu.m_h245Tunneling.SetValue(false);
+		msg->SetUUIEChanged();
 	}
 
 #ifdef HAS_H46017
