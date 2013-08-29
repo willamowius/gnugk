@@ -171,15 +171,6 @@ Valid endpoint types are: gatekeeper, gateway, mcu and terminal.
 Valid filters are: h323id, dialeddigits, url, transport, email and partynumber.
 NOTE: If no alias is found that match the filter then all aliases are registered.
 
-<item><tt/EnableAdditiveRegistration=1/<newline>
-Default: <tt/0/<newline>
-<p>
-Whether this gatekeeper supports additive registration and authentication from 
-gateways. This allows devices to be registered to child gatekeeper but authenticated
-at the parent and reside in both endpoint tables. Useful when adhoc registering endpoints to 
-gatekeepers behind NAT and yet still being abled to be resolved from the outside without requiring
-statically provisioning a client and server gatekeeper via H.460.18/.19
-
 <item><tt/GatewayAssignAliases=0/<newline>
 Default: <tt/1/<newline>
 <p>

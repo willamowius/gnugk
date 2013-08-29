@@ -669,25 +669,30 @@ void EndpointRec::NullNATSocket()
 	m_natsocket = NULL;
 }
 
-void EndpointRec::SetAliases(const H225_ArrayOf_AliasAddress &a, PBoolean additive)
+// return true if aliasses were added to existing list
+bool EndpointRec::SetAliases(const H225_ArrayOf_AliasAddress &a, PBoolean additive)
 {
 	PWaitAndSignal lock(m_usedLock);
 	if (additive) {
-		for (PINDEX i=0; i < a.GetSize(); ++i) {
+		bool added = false;
+		for (PINDEX i = 0; i < a.GetSize(); ++i) {
 			int sz = m_terminalAliases.GetSize();
 			bool found = false;
-			for (PINDEX j=0; j < sz; ++j) {
+			for (PINDEX j = 0; j < sz; ++j) {
 				if (m_terminalAliases[j] == a[i])
 					found = true;
 			}
 			if (!found) {
 				m_terminalAliases.SetSize(sz + 1);
 				m_terminalAliases[sz] = a[i];
+				added = true;
 			}
 		}
+		return added;
 	} else {
 		m_terminalAliases = a;
 		LoadConfig(); // update settings for the new aliases
+		return false;
 	}
 }
 
@@ -848,13 +853,30 @@ void EndpointRec::Update(const H225_RasMessage & ras_msg)
 		if (rrq.HasOptionalField(H225_RegistrationRequest::e_timeToLive))
 			SetTimeToLive(rrq.m_timeToLive);
 
-		// H.225.0v4: ignore fields other than rasAddress, endpointIdentifier,
-		// timeToLive for a lightweightRRQ
-		if (!(rrq.HasOptionalField(H225_RegistrationRequest::e_keepAlive) && rrq.m_keepAlive)) {
-			if (rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)
-				&& (rrq.m_terminalAlias.GetSize() >= 1)) {
-				LoadAliases(rrq.m_terminalAlias, rrq.m_terminalType);
-				LoadConfig(); // update settings for the new aliases
+		if (rrq.HasOptionalField(H225_RegistrationRequest::e_additiveRegistration)
+			&& rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) ) {
+			// Set the flag to say we have additive registrations
+			if (SetAliases(rrq.m_terminalAlias, true)) {
+				SetAdditiveRegistrant();
+				// Log the additive registration, if we have new aliases
+				EndpointRec logRec(ras_msg);
+				RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctRegister, endptr(&logRec));
+
+				if (!Toolkit::AsBool(GkConfig()->GetString("GkStatus::Filtering", "NewRCFOnly", "0"))) {
+					PString log = "RCF|" + PrintOn(false) + ";";
+					PTRACE(2, log);
+					GkStatus::Instance()->SignalStatus(log + "\r\n", STATUS_TRACE_LEVEL_RAS);
+				}
+			}
+		} else {
+			// H.225.0v4: ignore fields other than rasAddress, endpointIdentifier,
+			// timeToLive for a lightweightRRQ
+			if (!(rrq.HasOptionalField(H225_RegistrationRequest::e_keepAlive) && rrq.m_keepAlive)) {
+				if (rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)
+					&& (rrq.m_terminalAlias.GetSize() >= 1)) {
+					LoadAliases(rrq.m_terminalAlias, rrq.m_terminalType);
+					LoadConfig(); // update settings for the new aliases
+				}
 			}
 		}
 	} else if (ras_msg.GetTag() == H225_RasMessage::e_locationConfirm) {

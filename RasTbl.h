@@ -130,7 +130,7 @@ public:
 	virtual void SetRasAddress(const H225_TransportAddress &);
 	virtual void SetCallSignalAddress(const H225_TransportAddress &);
 	virtual void SetTimeToLive(int);
-	virtual void SetAliases(const H225_ArrayOf_AliasAddress &, PBoolean = false);
+	virtual bool SetAliases(const H225_ArrayOf_AliasAddress &, PBoolean = false);
 	virtual bool RemoveAliases(const H225_ArrayOf_AliasAddress &);
 	virtual void AddNumbers(const PString & numbers);
 	virtual void SetEndpointType(const H225_EndpointType &);

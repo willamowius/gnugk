@@ -61,8 +61,6 @@ public:
 private:
 	bool BuildRCF(const endptr &, bool = false);
 	bool BuildRRJ(unsigned, bool = false);
-
-	bool HandleAdditiveRegistration(const endptr &);
 };
 
 class AdmissionRequestPDU : public RasPDU<H225_AdmissionRequest> {
@@ -1334,8 +1332,8 @@ void RasServer::SelectH235Capability(const H225_GatekeeperRequest & grq, H225_Ga
 bool RasServer::ValidateAdditivePDU(RasPDU<H225_RegistrationRequest>& ras, RRQAuthData& authData)
 { 
 	H225_RegistrationRequest & rrq = (ras)->m_recvRAS;
-	H225_ArrayOf_ClearToken * tokens = rrq.HasOptionalField(H225_RegistrationRequest::e_tokens) ?  &rrq.m_tokens : NULL;
-	H225_ArrayOf_CryptoH323Token * cryptotokens =  rrq.HasOptionalField(H225_RegistrationRequest::e_cryptoTokens) ?  &rrq.m_cryptoTokens : NULL; 
+	H225_ArrayOf_ClearToken * tokens = rrq.HasOptionalField(H225_RegistrationRequest::e_tokens) ? &rrq.m_tokens : NULL;
+	H225_ArrayOf_CryptoH323Token * cryptotokens = rrq.HasOptionalField(H225_RegistrationRequest::e_cryptoTokens) ? &rrq.m_cryptoTokens : NULL; 
 	return (gkClient && gkClient->AdditiveRegister(rrq.m_terminalAlias, authData.m_rejectReason, tokens, cryptotokens)); 
 }
 
@@ -2113,12 +2111,18 @@ bool RegistrationRequestPDU::Process()
 				RasSrv->ForwardRasMsg(m_msg->m_recvRAS);
 
 			// Additive Registration lightweightRRQ
-			if (request.HasOptionalField(H225_RegistrationRequest::e_additiveRegistration)) {
-				if (!Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "EnableAdditiveRegistration", "0"))
-					|| !request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias))
-					return BuildRRJ(H225_RegistrationRejectReason::e_additiveRegistrationNotSupported);
-				else
-					return HandleAdditiveRegistration(ep);
+			if (request.HasOptionalField(H225_RegistrationRequest::e_additiveRegistration)
+				&& request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
+				// Authenticate the new registration
+				RRQAuthData authData;
+				authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
+				if (!RasSrv->ValidatePDU(*this, authData))
+					return BuildRRJ(authData.m_rejectReason);
+
+				// Check for existing aliases
+				const endptr lep = EndpointTbl->FindByAliases(request.m_terminalAlias);
+				if (lep && (lep->GetCallSignalAddress() != ep->GetCallSignalAddress()))
+					return BuildRRJ(H225_RegistrationRejectReason::e_invalidTerminalAliases);
 			}
 
 			// endpoint was already registered
@@ -2276,7 +2280,7 @@ bool RegistrationRequestPDU::Process()
 			authData.m_authAliases.GetSize() > 0) {
 			PString recvAlias;
 			bool found = false;
-			 for (int a=0; a < Aliases.GetSize(); ++a) {
+			 for (int a = 0; a < Aliases.GetSize(); ++a) {
 				 found = false;
 				 recvAlias = AsString(Aliases[a],false);
 				 for (int j = 0; j < authData.m_authAliases.GetSize(); ++j) {
@@ -2652,41 +2656,6 @@ bool RegistrationRequestPDU::Process()
 	return bSendReply;
 }
 
-bool RegistrationRequestPDU::HandleAdditiveRegistration(const endptr & ep)
-{
-	// Authenticate the new registration
-	RRQAuthData authData;
-	authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
-	if (!RasSrv->ValidatePDU(*this, authData))
-		return BuildRRJ(authData.m_rejectReason);
-
-	// Check for existing aliases
-	const endptr lep = EndpointTbl->FindByAliases(request.m_terminalAlias);
-	if (lep && (lep->GetCallSignalAddress() != ep->GetCallSignalAddress()))
-		return BuildRRJ(H225_RegistrationRejectReason::e_invalidTerminalAliases);
-
-	// Set the flag to say we have additive registrations
-	ep->SetAdditiveRegistrant();
-
-	// Build reply
-	BuildRCF(ep, true);
-	H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
-	rcf.IncludeOptionalField(H225_RegistrationConfirm::e_terminalAlias);
-	rcf.m_terminalAlias = request.m_terminalAlias;
-	Toolkit::Instance()->GetAssignedEPAliases().GetAliases(rcf.m_terminalAlias, rcf.m_terminalAlias);
-	ep->SetAliases(rcf.m_terminalAlias, true);
-
-	// Log the additive registration
-	EndpointRec logRec(m_msg->m_recvRAS);
-	RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctRegister, endptr(&logRec));
-
-	if (!Toolkit::AsBool(GkConfig()->GetString("GkStatus::Filtering", "NewRCFOnly", "0"))) {
-		PString log = "RCF|" + ep->PrintOn(false) + ";";
-		PrintStatus(log);
-	}
-	return true;
-}
-
 bool RegistrationRequestPDU::BuildRCF(const endptr & ep, bool additiveRegistration)
 {
 	H225_RegistrationConfirm & rcf = BuildConfirm();
@@ -2709,8 +2678,7 @@ bool RegistrationRequestPDU::BuildRCF(const endptr & ep, bool additiveRegistrati
 		rcf.m_timeToLive = ep->GetTimeToLive();
 	} 
 
-	if (Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "EnableAdditiveRegistration", "0")))
-		rcf.IncludeOptionalField(H225_RegistrationConfirm::e_supportsAdditiveRegistration);
+	rcf.IncludeOptionalField(H225_RegistrationConfirm::e_supportsAdditiveRegistration);
 
 	return true;
 }
