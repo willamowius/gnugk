@@ -60,6 +60,13 @@ This policy can be configured in the <ref id="routingdns" name="Routing::DNS"> s
 <p>
 Route calls by rewriting the called alias with a database query or send them directly to a destination IP. The database parameters are specified in the <ref id="routingsql" name="Routing::Sql"> section.
 
+<item><tt/ldap/<newline>
+<p>
+Route calls by looking up the called alias in an LDAP server in the CalledDestination attribute and
+then send the call to the TelephoneNo or H323ID attribute. The LDAP server is configured in the 
+<ref id="ldapsettings" name="GkLDAP::Settings"> section and the attributes are defined in the
+<ref id="ldapattributes" name="GkLDAP::LDAPAttributeNames"> section.
+
 <item><tt/vqueue/<newline>
 <p>
 Use the virtual queue mechanism and generate a RouteRequest

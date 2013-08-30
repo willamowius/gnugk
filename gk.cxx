@@ -216,6 +216,22 @@ const char * KnownConfigEntries[][2] = {
 	{ "GkH350::Settings", "StartTLS" },
 #endif
 #endif
+#ifdef P_LDAP
+	{ "GkLDAP::LDAPAttributeNames", "CallDestination" },
+	{ "GkLDAP::LDAPAttributeNames", "H323ID" },
+	{ "GkLDAP::LDAPAttributeNames", "H323PassWord" },
+	{ "GkLDAP::LDAPAttributeNames", "IPAddress" },
+	{ "GkLDAP::LDAPAttributeNames", "TelephoneNo" },
+	{ "GkLDAP::Settings", "BindAuthMode" },
+	{ "GkLDAP::Settings", "BindUserDN" },
+	{ "GkLDAP::Settings", "BindUserPW" },
+	{ "GkLDAP::Settings", "SearchBaseDN" },
+	{ "GkLDAP::Settings", "ServerName" },
+	{ "GkLDAP::Settings", "ServerPort" },
+	{ "GkLDAP::Settings", "sizelimit" },
+	{ "GkLDAP::Settings", "StartTLS" },
+	{ "GkLDAP::Settings", "timelimit" },
+#endif
 #ifdef HAS_DATABASE
 	{ "GkPresence::SQL", "CacheTimeout" },
 	{ "GkPresence::SQL", "Database" },

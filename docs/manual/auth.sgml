@@ -15,7 +15,7 @@ config sections for each modulke that you want to use.
 <tscreen><verb>
 authrule=actions
 
- <authrule> := SimplePasswordAuth | AliasAuth | FileIPAuth | PrefixAuth | RadAuth | RadAliasAuth | SQLAuth | SQLAliasAuth | SQLPasswordAuth | H350PasswordAuth | CapacityControl | ...
+ <authrule> := SimplePasswordAuth | AliasAuth | FileIPAuth | PrefixAuth | RadAuth | RadAliasAuth | SQLAuth | SQLAliasAuth | SQLPasswordAuth | H350PasswordAuth | LDAPPasswordAuth | LDAPAliasAuth | CapacityControl | ...
  <actions>  := <control>[;<ras>|<q931>,<ras>|<q931>,...]
  <control>  := optional | required | sufficient | alternative
  <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ
@@ -104,6 +104,12 @@ caller's number, destination number, username and more. It also supports
 enforcing call duration limit, number rewriting, call routing, alias
 verification and assignment.
 See section <ref id="sqlauth" name="[SQLAuth]"> for more details.
+
+<item><tt>LDAPPasswordAuth</tt>
+<p>
+
+<item><tt>LDAPAliasAuth</tt>
+<p>
 
 <item><tt>CapacityControl</tt>
 <p>

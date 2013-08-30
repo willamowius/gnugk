@@ -1,5 +1,7 @@
 Changes from 3.3 to 3.4
 =======================
+- new routing policy 'ldap'
+- new authentication modules: LDAPAliasAuth and LDAPPasswordAuth
 - allow non-gateways to use additive registration, fix H.460.x support, now always enabled
 - BUGFIX(ProxyChannel.cxx) fix DisableH245Tunneling= switch
 - automatically update H.235.6 media key when too many packets have been encrypted
