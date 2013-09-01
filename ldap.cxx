@@ -208,15 +208,14 @@ bool LDAPAliasAuth::GetAuthConditionString(const PString & alias, PString & auth
 			DestroyConnection(ldapClient);
 			return false;
 		}
-	} else {
-		if (data.front().Contains(m_attribute)) {
-			PString ip = data.front()[m_attribute];
-			if (ip.Find('.') == P_MAX_INDEX) {
-				// add default port if none specified
-				authCond = "sigip:" + ip + ":" + PString(GK_DEF_ENDPOINT_SIGNAL_PORT);
-			} else {
-				authCond = "sigip:" + ip;
-			}
+	}
+	if (data.front().Contains(m_attribute)) {
+		PString ip = data.front()[m_attribute];
+		if (ip.Find('.') == P_MAX_INDEX) {
+			// add default port if none specified
+			authCond = "sigip:" + ip + ":" + PString(GK_DEF_ENDPOINT_SIGNAL_PORT);
+		} else {
+			authCond = "sigip:" + ip;
 		}
 	}
 	DestroyConnection(ldapClient);

@@ -107,9 +107,23 @@ See section <ref id="sqlauth" name="[SQLAuth]"> for more details.
 
 <item><tt>LDAPPasswordAuth</tt>
 <p>
+This module will lookup the called aliases in your LDAP schema searching
+the H323ID and telephoneNumber attribute and checks if the password in the
+H235Password attribute matches the H.235 crypto token.
+<p>
+The LDAP server is configured in the <ref id="ldapsettings" name="GkLDAP::Settings"> section
+and the attribute matching is defined in the
+<ref id="ldapattributes" name="GkLDAP::LDAPAttributeNames"> section.
 
 <item><tt>LDAPAliasAuth</tt>
 <p>
+This module will lookup the called aliases in your LDAP schema searching
+the H323ID and telephoneNumber attribute and checks if the IP matches the IPAddress attribute.
+<p>
+The LDAP server is configured in the <ref id="ldapsettings" name="GkLDAP::Settings"> section
+and the attribute matching is defined in the
+<ref id="ldapattributes" name="GkLDAP::LDAPAttributeNames"> section.
+
 
 <item><tt>CapacityControl</tt>
 <p>
@@ -1447,4 +1461,113 @@ Use H.350.1 to resolve on GRQ/GCF the registering endpoints assigned gatekeeper
 (h323IdentityGKDomain).
 
 </itemize>
+
+<sect1>Section &lsqb;GkLDAP::Settings&rsqb;
+<label id="ldapsettings">
+<p>
+This section defines the LDAP server and connection parameters for the LDAP authentication
+modules (LDAPAliasAuth and LDAPPasswordAuth) and the LDAP routing policy ('ldap').
+
+<itemize>
+<item><tt/ServerName=127.0.0.1/<newline>
+Default: <tt/127.0.0.1/
+<p>
+The LDAP server IP address.
+
+<item><tt/ServerPort=389/<newline>
+Default: <tt/389/
+<p>
+The LDAP server's TCP port (usually 389).
+
+<item><tt/StartTLS=1/<newline>
+Default: <tt/0/
+<p>
+Use StartTLS to encrypt the LDAP connection. (This option requires GnuGk to be compiled with PTLib 2.11.0 or higher.)
+
+<item><tt/SearchBaseDN=ou=commObjects,dc=gnugk,dc=org/<newline>
+Default: <tt>N/A</tt>
+<p>
+Entry point into the server's H.350 directory structure.
+Searches are only made below this root node.
+
+<item><tt/BindUserDN=cn=admin,dc=gnugk,dc=org/<newline>
+Default: <tt>N/A</tt>
+<p>
+The distinguished name the gatekeeper uses to bind
+to the LDAP server. Leave empty if you want to access
+the LDAP server anonymously.
+
+<item><tt/BindUserPW=secret/<newline>
+Default: <tt>N/A</tt>
+<p>
+If you specified <tt/BindUserDN/, then specify the corresponding
+password to be used for binding here.
+If <tt/EncryptAllPasswords/ is enabled, or a <tt/KeyFilled/ variable is defined
+in this section, the password is in an encrypted form and should be created 
+using the <tt/addpasswd/ utility.
+
+<item><tt/BindAuthMode=simple/<newline>
+Default: <tt>simple</tt>
+<p>
+Bind Authentication method choices are <tt/simple,sasl,kerberos/
+
+</itemize>
+
+<descrip>
+<tag/Example:/
+<tscreen><verb>
+[GkLDAP::Settings]
+ServerName=192.168.1.1
+BindAuthMode=simple
+SearchBaseDN=dc=gnugk,dc=org
+BindUserDN=cn=admin,dc=gnugk,dc=org
+BindUserPW=secret
+</verb></tscreen>
+</descrip>
+
+
+<sect1>Section &lsqb;GkLDAP::LDAPAttributes&rsqb;
+<label id="ldapattributes">
+<p>
+With this section you can map the LDAP attributes GnuGk queries to your LDAP schema.
+
+<itemize>
+<item><tt/CallDestination=H323IP/<newline>
+Default: <tt/voIPIpAddress/
+<p>
+The IP where calls for the LDAP entity should be routed.
+
+<item><tt/H323ID=mail/<newline>
+Default: <tt/mail/
+<p>
+The H.323 alias for the LDAP entity. This attribute is used to find the called entity in the LDAP schema.
+
+<item><tt/H235PassWord=secret/<newline>
+Default: <tt/none/
+<p>
+The password attribute to use in LDAPPasswordAuth.
+
+<item><tt/IPAddress=voIPIpAddress/<newline>
+Default: <tt/voIPIpAddress/
+<p>
+The H.323 IP for the LDAP entity. This attribute is used to find the called entity in the LDAP schema.
+
+<item><tt/TelephoneNo=telephoneNumber/<newline>
+Default: <tt/telephoneNumber/
+<p>
+The phone number for the LDAP entity. This attribute is used to find the called entity in the LDAP schema.
+
+</itemize>
+
+<descrip>
+<tag/Example:/
+<tscreen><verb>
+[GkLDAP::LDAPAttributeNames]
+IPAddress=voIPIpAddress
+H235PassWord=plaintextPassword
+H323ID=sn
+TelephonNo=telephoneNumber
+CallDestination=roomNumber
+</verb></tscreen>
+</descrip>
 

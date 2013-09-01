@@ -218,10 +218,10 @@ const char * KnownConfigEntries[][2] = {
 #endif
 #ifdef P_LDAP
 	{ "GkLDAP::LDAPAttributeNames", "CallDestination" },
+	{ "GkLDAP::LDAPAttributeNames", "H235PassWord" },
 	{ "GkLDAP::LDAPAttributeNames", "H323ID" },
-	{ "GkLDAP::LDAPAttributeNames", "H323PassWord" },
 	{ "GkLDAP::LDAPAttributeNames", "IPAddress" },
-	{ "GkLDAP::LDAPAttributeNames", "TelephoneNo" },
+	{ "GkLDAP::LDAPAttributeNames", "TelephonNo" },
 	{ "GkLDAP::Settings", "BindAuthMode" },
 	{ "GkLDAP::Settings", "BindUserDN" },
 	{ "GkLDAP::Settings", "BindUserPW" },
