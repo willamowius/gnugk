@@ -483,6 +483,10 @@
 				>
 			</File>
 			<File
+				RelativePath="ldap.cxx"
+				>
+			</File>
+			<File
 				RelativePath="MakeCall.cxx"
 				>
 			</File>

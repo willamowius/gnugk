@@ -450,7 +450,10 @@
 				RelativePath="job.cxx">
 			</File>
 			<File
-				RelativePath=".\MakeCall.cxx">
+				RelativePath="ldap.cxx">
+			</File>
+			<File
+				RelativePath="MakeCall.cxx">
 			</File>
 			<File
 				RelativePath="Neighbor.cxx">
