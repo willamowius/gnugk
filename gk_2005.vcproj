@@ -580,6 +580,10 @@
 				>
 			</File>
 			<File
+				RelativePath="forwarding.cxx"
+				>
+			</File>
+			<File
 				RelativePath="gk.cxx"
 				>
 			</File>
@@ -640,6 +644,10 @@
 				>
 			</File>
 			<File
+				RelativePath="h460presence.cxx"
+				>
+			</File>
+			<File
 				RelativePath="ipauth.cxx"
 				>
 			</File>
@@ -649,6 +657,10 @@
 			</File>
 			<File
 				RelativePath="ldap.cxx"
+				>
+			</File>
+			<File
+				RelativePath="lua.cxx"
 				>
 			</File>
 			<File
@@ -842,6 +854,10 @@
 			</File>
 			<File
 				RelativePath="h323util.h"
+				>
+			</File>
+			<File
+				RelativePath="h460presence.h"
 				>
 			</File>
 			<File

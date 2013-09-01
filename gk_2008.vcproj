@@ -487,6 +487,10 @@
 				>
 			</File>
 			<File
+				RelativePath="lua.cxx"
+				>
+			</File>
+			<File
 				RelativePath="MakeCall.cxx"
 				>
 			</File>

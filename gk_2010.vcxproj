@@ -502,6 +502,7 @@
     <ClCompile Include="capctrl.cxx" />
     <ClCompile Include="cisco.cxx" />
     <ClCompile Include="clirw.cxx" />
+    <ClCompile Include="forwarding.cxx" />
     <ClCompile Include="gk.cxx" />
     <ClCompile Include="gkacct.cxx" />
     <ClCompile Include="gkauth.cxx" />
@@ -520,6 +521,7 @@
     <ClCompile Include="ipauth.cxx" />
     <ClCompile Include="job.cxx" />
     <ClCompile Include="ldap.cxx" />
+    <ClCompile Include="lua.cxx" />
     <ClCompile Include="MakeCall.cxx" />
     <ClCompile Include="Neighbor.cxx" />
     <ClCompile Include="ProxyChannel.cxx" />

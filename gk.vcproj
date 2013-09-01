@@ -399,6 +399,9 @@
 				RelativePath="clirw.cxx">
 			</File>
 			<File
+				RelativePath="forwarding.cxx">
+			</File>
+			<File
 				RelativePath="gk.cxx">
 			</File>
 			<File
@@ -444,6 +447,9 @@
 				RelativePath="h323util.cxx">
 			</File>
 			<File
+				RelativePath="h460presence.cxx">
+			</File>
+			<File
 				RelativePath="ipauth.cxx">
 			</File>
 			<File
@@ -451,6 +457,9 @@
 			</File>
 			<File
 				RelativePath="ldap.cxx">
+			</File>
+			<File
+				RelativePath="lua.cxx">
 			</File>
 			<File
 				RelativePath="MakeCall.cxx">
@@ -489,6 +498,9 @@
 				RelativePath="singleton.cxx">
 			</File>
 			<File
+				RelativePath="snmp.cxx">
+			</File>
+			<File
 				RelativePath="SoftPBX.cxx">
 			</File>
 			<File
@@ -523,7 +535,7 @@
 				RelativePath="clirw.h">
 			</File>
 			<File
-				RelativePath=".\config.h">
+				RelativePath="config.h">
 			</File>
 			<File
 				RelativePath="factory.h">
@@ -608,13 +620,16 @@
 				RelativePath="h323util.h">
 			</File>
 			<File
+				RelativePath="h460presence.h">
+			</File>
+			<File
 				RelativePath="ipauth.h">
 			</File>
 			<File
 				RelativePath="job.h">
 			</File>
 			<File
-				RelativePath=".\MakeCall.h">
+				RelativePath="MakeCall.h">
 			</File>
 			<File
 				RelativePath="name.h">
@@ -657,6 +672,9 @@
 			</File>
 			<File
 				RelativePath="singleton.h">
+			</File>
+			<File
+				RelativePath="snmp.h">
 			</File>
 			<File
 				RelativePath="SoftPBX.h">
