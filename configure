@@ -1340,7 +1340,7 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-large-fdset=MAXFD    Maximum number of sockets supported (default=1024)
+  --with-large-fdset=MAXFD      Maximum number of sockets supported (default=1024)
   --with-mysql-include-dir=DIR  directory where the MySQL includes may be found
   --with-mysql-dir=DIR          base directory where MySQL is installed
   --with-pgsql-include-dir=DIR  directory where the PostgreSQL includes may be found

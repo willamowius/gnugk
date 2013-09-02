@@ -356,7 +356,7 @@ dnl Check for RADIUS
 dnl ########################################################################
 
 dnl MSWIN_DISPLAY    radius,RADIUS
-dnl MSWIN_CHECK_FILE radius,radacct.h,HAS_RADIUS=1
+dnl MSWIN_DEFINE     radius,HAS_RADIUS=1
 
 AC_ARG_ENABLE(radius, 
 [  --enable-radius         enable RADIUS support (default=yes)], 
@@ -380,7 +380,7 @@ dnl #########################################################################
 dnl Check for LARGE FDSET
 dnl ########################################################################
 AC_ARG_WITH(large-fdset,
-[  --with-large-fdset[=MAXFD]    Maximum number of sockets supported (default=1024)],
+[  --with-large-fdset[=MAXFD]      Maximum number of sockets supported (default=1024)],
 [ largefdset="$withval" ], 
 [ largefdset="no" ]
 )
