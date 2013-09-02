@@ -262,7 +262,7 @@ void NetSNMPAgent::Stop()
 
 void NetSNMPAgent::Run()
 {
-	bool standalone = Toolkit::AsBool(GkConfig()->GetString(SNMPSection, "Standalone", "0"));
+	bool standalone = GkConfig()->GetBoolean(SNMPSection, "Standalone", false);
 
 	// enable Net-SNMP logging via PTRACE
 	m_logger = netsnmp_register_loghandler(NETSNMP_LOGHANDLER_CALLBACK, LOG_DEBUG);
@@ -699,7 +699,7 @@ PCaselessString SelectSNMPImplementation()
 void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg)
 {
 	if ((severity == SNMPWarning)
-		&& !Toolkit::AsBool(GkConfig()->GetString(SNMPSection, "EnableWarningTraps", "0"))) {
+		&& !GkConfig()->GetBoolean(SNMPSection, "EnableWarningTraps", false)) {
 		// don't throw warning trap
 		return;
 	}

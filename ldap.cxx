@@ -117,7 +117,7 @@ void LDAPBase::Init()
 	m_IDFilter = cfg->GetString(LDAPAttributeSect, "H323ID", "mail") + "=";
 	m_E164Filter = cfg->GetString(LDAPAttributeSect, "TelephonNo", "telephoneNumber") + "=";
 #ifdef hasLDAPStartTLS
-	m_startTLS = Toolkit::AsBool(GkConfig()->GetString(LDAPServerSect, "StartTLS", "0"));
+	m_startTLS = GkConfig()->GetBoolean(LDAPServerSect, "StartTLS", false);
 #endif
 }
 
