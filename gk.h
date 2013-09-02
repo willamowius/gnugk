@@ -2,7 +2,7 @@
 //
 // gk.h gatekeeper process
 //
-// Copyright (c) 2000-2010, Jan Willamowius
+// Copyright (c) 2000-2013, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -71,9 +71,7 @@ class Gatekeeper : public PProcess
 		RotationIntervalMax
 	};
 	
-	static bool SetLogFilename(
-		const PString& filename
-		);
+	static bool SetLogFilename(const PString & filename);
 
 		
 	static bool RotateLogFile();
