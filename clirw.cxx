@@ -106,10 +106,10 @@ struct RewriteRule_greater : public std::binary_function<CLIRewrite::RewriteRule
 
 	bool operator()(const CLIRewrite::RewriteRule &e1, const CLIRewrite::RewriteRule &e2) const
 	{
-		int diff = e1.m_matchType - e2.m_matchType;
+		long long int diff = e1.m_matchType - e2.m_matchType;
 		if (diff != 0)
 			return diff < 0;
-		 diff = e1.m_prefix.length() - e2.m_prefix.length();
+		diff = e1.m_prefix.length() - e2.m_prefix.length();
 		if (diff != 0)
 			return diff > 0;
 		return e1.m_prefix.compare(e2.m_prefix) > 0;

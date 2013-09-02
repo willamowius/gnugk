@@ -1793,10 +1793,10 @@ PrefixAuth::PrefixAuth(
 {
 	m_defaultRule = GetDefaultStatus();
 
-	const int ipfl = strlen(ipflag);
-	const int ipv4fl = strlen(ipv4flag);
-	const int ipv6fl = strlen(ipv6flag);
-	const int aliasfl = strlen(aliasflag);
+	const int ipfl = (int)strlen(ipflag);
+	const int ipv4fl = (int)strlen(ipv4flag);
+	const int ipv6fl = (int)strlen(ipv6flag);
+	const int aliasfl = (int)strlen(aliasflag);
 	
 	const PStringToString cfgs = GetConfig()->GetAllKeyValues(name);
 	for (PINDEX i = 0; i < cfgs.GetSize(); ++i) {
