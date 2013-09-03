@@ -1249,13 +1249,14 @@ bool CallSignalSocket::ForwardData()
 {
 	PWaitAndSignal lock(m_remoteLock);
 	if (remote)
-		remote->InternalWrite(buffer);
+		return remote->InternalWrite(buffer);
 #ifdef HAS_H46017
 	// with H.460.17 the remote pointer may have been deleted when ending the call
 	// use rc_remote to forward the last ReleaseComplete in the call
 	if (rc_remote) {
-		rc_remote->InternalWrite(buffer);
+		bool result = rc_remote->InternalWrite(buffer);
 		rc_remote = NULL;
+		return result;
 	}
 #endif
 	return false;
@@ -5961,6 +5962,12 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg * msg)
 		return;
 	}
 
+#ifdef HAS_H46017
+	// save remote pointer for final RC for H.460.17
+	if (remote)
+		rc_remote = remote;
+#endif
+
 	if (m_callerSocket) {
 		m_remoteLock.Wait();
 		if (remote != NULL) {
@@ -8634,7 +8641,7 @@ void H46026Session::Dump() const
 			<< " osRTCPSocket=" << m_osRTCPSocket << " toRTCP=" << m_toAddressRTCP);
 #ifdef HAS_H235_MEDIA
 	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
-		PTRACE(7, "JW               encryptLC=" << m_encryptingLC << " decryptLC=" << m_decryptingLC);
+		PTRACE(7, "JW                encryptLC=" << m_encryptingLC << " decryptLC=" << m_decryptingLC);
 	}
 #endif
 }
