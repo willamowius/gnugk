@@ -126,8 +126,8 @@ public:
 	bool GetGatewayDestination(H225_TransportAddress & gw ) const;
 
 private:
-	RoutingRequest(const RoutingRequest&);
-	RoutingRequest& operator=(const RoutingRequest&);
+	RoutingRequest(const RoutingRequest &);
+	RoutingRequest& operator=(const RoutingRequest &);
 
 private:
 	int m_reason; /// reject reason, if no routes are found
@@ -162,12 +162,12 @@ public:
 	const Wrapper *GetWrapper() const { return m_wrapper; }
 	PString GetCallingStationId() const { return m_callingStationId; }
 	PUInt64 GetClientAuthId() const { return m_clientAuthId; }
-	const H225_ArrayOf_AliasAddress *GetAliases() const
+	const H225_ArrayOf_AliasAddress * GetAliases() const
 		{ return const_cast<Request<R, W> *>(this)->GetAliases(); }
 
 private:
 	ReqObj & m_request;
-	Wrapper *m_wrapper;
+	Wrapper * m_wrapper;
 	PString m_callingStationId;
 	/// ID provided by client during authentication
 	PUInt64 m_clientAuthId;
@@ -301,8 +301,8 @@ protected:
 	virtual bool OnRequest(FacilityRequest &);
 
 	// new virtual function
-	virtual bool FindByAliases(RoutingRequest&, H225_ArrayOf_AliasAddress &) = 0;
-	virtual bool FindByAliases(LocationRequest&, H225_ArrayOf_AliasAddress&) = 0;
+	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &) = 0;
+	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &) = 0;
 };
 
 // this class passes incoming requests through the chain of routing policies
@@ -603,33 +603,33 @@ public:
 	*/
 	bool SendRouteRequest(
 		/// source IP of the request (endpoint for ARQ, gatekeeper for LRQ)
-		const PString& source,
+		const PString & source,
 		/// calling endpoint
-		const PString& epid,
+		const PString & epid,
 		/// CRV (Call Reference Value) of the call associated with this request
 		unsigned crv,
 		/// destination (virtual queue) aliases as specified
 		/// by the calling endpoint (modified by this function on successful return)
-		H225_ArrayOf_AliasAddress* destinationInfo,
+		H225_ArrayOf_AliasAddress * destinationInfo,
 		/// destinationCallSignalAddr (optionally set by this function on successful return)
-		PString* callSigAdr,
+		PString * callSigAdr,
 		/// bind IP for BindAndRouteToGateway
-		PString* bindIP,
+		PString * bindIP,
 		/// caller ID
-		PString* callerID,
+		PString * callerID,
 		/// should the call be rejected modified by this function on return)
 		bool & reject,
 		/// an actual virtual queue name (should be present in destinationInfo too)
 		const PString& vqueue,
 		/// a sequence of aliases for the calling endpoint
 		/// (in the "alias:type[=alias:type]..." format)
-		const PString& sourceInfo,
+		const PString & sourceInfo,
 		/// the callID as string
-		const PString& callID,
+		const PString & callID,
 		/// the called IP for unregistered calls
-		const PString& calledip = "unknown",
+		const PString & calledip = "unknown",
 		/// vendor string of caller
-		const PString& vendorString = "unknown"
+		const PString & vendorString = "unknown"
 		);
 
 	/** Make a routing decision for a pending route request (inserted
@@ -641,20 +641,20 @@ public:
 	bool RouteToAlias(
 		/// aliases for the routing target (an agent that the call will be routed to)
 		/// that will replace the original destination info
-		const H225_ArrayOf_AliasAddress& agent,
+		const H225_ArrayOf_AliasAddress & agent,
 		/// ip that will replace the destinationCallSignalAddress (RouteToGateway)
 		/// used only if set (port != 0)
-		const PString& destinationip,
+		const PString & destinationip,
 		/// identifier of the endpoint associated with the route request
-		const PString& callingEpId,
+		const PString & callingEpId,
 		/// CRV of the call associated with the route request
 		unsigned crv,
 		/// callID of the call associated with the route request
-		const PString& callID,
+		const PString & callID,
 		// outgoing IP or empty
-		const PString& bindIP,
+		const PString & bindIP,
 		// callerID or empty
-		const PString& callerID,
+		const PString & callerID,
 		/// should this call be rejected
 		bool reject = false
 		);
@@ -668,19 +668,19 @@ public:
 	bool RouteToAlias(
 		/// alias for the routing target that
 		/// will replace the original destination info
-		const PString& agent,
+		const PString & agent,
 		/// will replace the original destinationCallSignallAddress
-		const PString& destinationip, 		
+		const PString & destinationip, 		
 		/// identifier of the endpoint associated with the route request
-		const PString& callingEpId,
+		const PString & callingEpId,
 		/// CRV of the call associated with the route request
 		unsigned crv,
 		/// callID of the call associated with the route request
-		const PString& callID,
+		const PString & callID,
 		// outgoing IP or empty
-		const PString& bindIP,
+		const PString & bindIP,
 		// callerID or empty
-		const PString& callerID,
+		const PString & callerID,
 		/// should this call be rejected
 		bool reject = false
 		);
@@ -692,18 +692,18 @@ public:
 	*/
 	bool RouteReject(
 		/// identifier of the endpoint associated with the route request
-		const PString& callingEpId,
+		const PString & callingEpId,
 		/// CRV of the call associated with the route request
 		unsigned crv,
 		/// callID of the call associated with the route request
-		const PString& callID
+		const PString & callID
 		);
 
 	/** @return
 		True if the specified alias matches a name of an existing virtual queue.
 	*/
 	bool IsDestinationVirtualQueue(
-		const PString& destinationAlias /// alias to be matched
+		const PString & destinationAlias /// alias to be matched
 		) const;
 
 private:
@@ -711,18 +711,18 @@ private:
 	struct RouteRequest
 	{
 		RouteRequest(
-			const PString& callingEpId,
+			const PString & callingEpId,
 			unsigned crv,
-			const PString& callID,
-			H225_ArrayOf_AliasAddress* agent,
-			PString* callsignaladdr,
-			PString* bindIP,
-			PString* callerID
+			const PString & callID,
+			H225_ArrayOf_AliasAddress * agent,
+			PString * callsignaladdr,
+			PString * bindIP,
+			PString * callerID
 			)
 			:
 			m_callingEpId((const char*)callingEpId), m_crv(crv), m_callID(callID),
 			m_agent(agent), m_callsignaladdr(callsignaladdr), m_sourceIP(bindIP),
-			m_callerID(callerID), m_reject(false) {}
+			m_callerID(callerID), m_reject(false) { }
 
 		/// identifier for the endpoint associated with this request
 		PString m_callingEpId;
@@ -732,13 +732,13 @@ private:
 		PString m_callID;
 		/// aliases for the virtual queue matched (on input)
 		/// aliases for the target agent - target route (on output)
-		H225_ArrayOf_AliasAddress* m_agent;
+		H225_ArrayOf_AliasAddress * m_agent;
 		/// destinationCallSignallAddress for the target agent - target route IF NOT NULL
-		PString* m_callsignaladdr;
+		PString * m_callsignaladdr;
 		/// bindIP or empty
-		PString* m_sourceIP;
+		PString * m_sourceIP;
 		/// callerID or empty
-		PString* m_callerID;
+		PString * m_callerID;
 		/// should this call be rejected
 		bool m_reject;
 		/// a synchronization point for signaling that routing decision
@@ -748,26 +748,26 @@ private:
 
 	typedef std::list<RouteRequest *> RouteRequests;
 
-	RouteRequest *InsertRequest(
+	RouteRequest * InsertRequest(
 		/// identifier for the endpoint associated with this request
-		const PString& callingEpId,
+		const PString & callingEpId,
 		/// CRV for the call associated with this request
 		unsigned crv,
 		/// callID for the call associated with this request
-		const PString& callID,
+		const PString & callID,
 		/// a pointer to an array to be filled with agent aliases
 		/// when the routing decision has been made
-		H225_ArrayOf_AliasAddress* agent,
+		H225_ArrayOf_AliasAddress * agent,
 		/// a pointer to a string to be filled with a callSignalAddress
 		/// when the routing decision has been made (optional)
-		PString* callSigAdr,
+		PString * callSigAdr,
 		/// bind IP for BindAndRouteToGateway
-		PString* bindIP,
+		PString * bindIP,
 		/// caller ID
-		PString* callerID,
+		PString * callerID,
 		/// set by the function to true if another route request for the same
 		/// call is pending
-		bool& duplicate
+		bool & duplicate
 		);
 
 	/// an array of names (aliases) for the virtual queues
