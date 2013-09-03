@@ -5182,7 +5182,7 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 	if (callerUsesH46026 || calledUsesH46026) {
 		H46026_UDPFrame data;
 		if (ReadRTPFrame(q931, data)) {
-			PTRACE(0, "H46026\tUnpacking H.460.26 RTP packet");
+			PTRACE(4, "H46026\tUnpacking H.460.26 RTP packet");
 			// handle media encryption
 
 #ifdef HAS_H235_MEDIA
@@ -8478,12 +8478,12 @@ void MultiplexedRTPHandler::RemoveChannel(H225_CallIdentifier callid, RTPLogical
 void MultiplexedRTPHandler::DumpChannels(const PString & msg) const
 {
 	if (PTrace::CanTrace(7)) {
-		PTRACE(7, "JW ===" << msg << "=== DumpChannels Begin (" << m_h46019channels.size() << " channels) ===");
+		PTRACE(7, "JW ===" << msg << "=== Dump19Channels Begin (" << m_h46019channels.size() << " channels) ===");
 		for (list<H46019Session>::const_iterator iter = m_h46019channels.begin();
 				iter != m_h46019channels.end() ; ++iter ) {
 			iter->Dump();
 		}
-		PTRACE(7, "JW =================== DumpChannels End ====================");
+		PTRACE(7, "JW =================== Dump19Channels End ====================");
 	}
 }
 
@@ -8761,13 +8761,13 @@ void H46026RTPHandler::RemoveChannels(H225_CallIdentifier callid)	// pass by val
 
 void H46026RTPHandler::DumpChannels(const PString & msg) const
 {
-	if (PTrace::CanTrace(7)) {
-		PTRACE(7, "JW ===" << msg << "=== DumpChannels Begin (" << m_h46026channels.size() << " channels) ===");
+	if (PTrace::CanTrace(7) && !m_h46026channels.empty()) {
+		PTRACE(7, "JW ===" << msg << "=== Dump26Channels Begin (" << m_h46026channels.size() << " channels) ===");
 		for (list<H46026Session>::const_iterator iter = m_h46026channels.begin();
 				iter != m_h46026channels.end() ; ++iter ) {
 			iter->Dump();
 		}
-		PTRACE(7, "JW =================== DumpChannels End ====================");
+		PTRACE(7, "JW =================== Dump26Channels End ====================");
 	}
 }
 
@@ -9112,30 +9112,9 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			// use keep-alive for multiplexing channel, too
 			// (it might have multiplexed RTP coming in to be forwarded as regular RTP)
 			// set based on addr
-			if (IsSet(m_multiplexDestination_A) && (m_multiplexDestination_A != fromAddr)) {
-				H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(m_callID, m_sessionID);
-				if (h46019chan.IsValid()) {
-					if (isRTCP)
-						h46019chan.m_addrB_RTCP = fromAddr;
-					else
-						h46019chan.m_addrB = fromAddr;
-					MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
-				}
-			}
-			if (IsSet(m_multiplexDestination_B) && (m_multiplexDestination_B != fromAddr)) {
-				H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(m_callID, m_sessionID);
-				if (h46019chan.IsValid()) {
-					if (isRTCP)
-						h46019chan.m_addrA_RTCP = fromAddr;
-					else
-						h46019chan.m_addrA = fromAddr;
-					MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
-				}
-			}
-			if (!IsSet(m_multiplexDestination_A) && !IsSet(m_multiplexDestination_B)) {
-				// set if only one side sends multiplexex to GnuGk
-				H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(m_callID, m_sessionID);
-				if ((h46019chan.m_multiplexID_fromA != INVALID_MULTIPLEX_ID) && (h46019chan.m_multiplexID_fromB == INVALID_MULTIPLEX_ID)) {
+			if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false)) {
+				if (IsSet(m_multiplexDestination_A) && (m_multiplexDestination_A != fromAddr)) {
+					H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(m_callID, m_sessionID);
 					if (h46019chan.IsValid()) {
 						if (isRTCP)
 							h46019chan.m_addrB_RTCP = fromAddr;
@@ -9144,13 +9123,36 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 						MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
 					}
 				}
-				if ((h46019chan.m_multiplexID_fromA == INVALID_MULTIPLEX_ID) && (h46019chan.m_multiplexID_fromB != INVALID_MULTIPLEX_ID)) {
+				if (IsSet(m_multiplexDestination_B) && (m_multiplexDestination_B != fromAddr)) {
+					H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(m_callID, m_sessionID);
 					if (h46019chan.IsValid()) {
 						if (isRTCP)
 							h46019chan.m_addrA_RTCP = fromAddr;
 						else
 							h46019chan.m_addrA = fromAddr;
 						MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
+					}
+				}
+				if (!IsSet(m_multiplexDestination_A) && !IsSet(m_multiplexDestination_B)) {
+					// set if only one side sends multiplexex to GnuGk
+					H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(m_callID, m_sessionID);
+					if ((h46019chan.m_multiplexID_fromA != INVALID_MULTIPLEX_ID) && (h46019chan.m_multiplexID_fromB == INVALID_MULTIPLEX_ID)) {
+						if (h46019chan.IsValid()) {
+							if (isRTCP)
+								h46019chan.m_addrB_RTCP = fromAddr;
+							else
+								h46019chan.m_addrB = fromAddr;
+							MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
+						}
+					}
+					if ((h46019chan.m_multiplexID_fromA == INVALID_MULTIPLEX_ID) && (h46019chan.m_multiplexID_fromB != INVALID_MULTIPLEX_ID)) {
+						if (h46019chan.IsValid()) {
+							if (isRTCP)
+								h46019chan.m_addrA_RTCP = fromAddr;
+							else
+								h46019chan.m_addrA = fromAddr;
+							MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
+						}
 					}
 				}
 			}
