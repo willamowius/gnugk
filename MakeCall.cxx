@@ -2,7 +2,7 @@
 //
 // MakeCall.cxx
 //
-// Copyright (c) 2007-2012, Jan Willamowius
+// Copyright (c) 2007-2013, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -65,7 +65,7 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 void MakeCallEndPoint::ThirdPartyMakeCall(const PString & user1, const PString & user2)
 {
 	if (!IsRegisteredWithGk()) {
-		PTRACE(1, "MakeCallEndpoint: Can't MakeCall when not registered with gatekeeper");
+		PTRACE(1, "MakeCallEndpoint: Can't initiate MakeCall when not registered with gatekeeper");
 		return;
 	}
 	PString newToken;
@@ -78,14 +78,14 @@ PBoolean MakeCallEndPoint::IsRegisteredWithGk() const
 	return isRegistered;
 }	
 
-void MakeCallEndPoint::AddDestination(PString token, PString alias)
+void MakeCallEndPoint::AddDestination(const PString & token, const PString & alias)
 {
 	PWaitAndSignal lock(destinationMutex);
 	destinations.insert(pair<PString, PString>(token, alias));
 }
 
 // get and remove the destination for this token ('' if not found)
-PString MakeCallEndPoint::GetDestination(PString token)
+PString MakeCallEndPoint::GetDestination(const PString & token)
 {
 	PString dest;
 	PWaitAndSignal lock(destinationMutex);

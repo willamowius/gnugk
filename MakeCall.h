@@ -2,7 +2,7 @@
 //
 // MakeCall.h
 //
-// Copyright (c) 2007-2011, Jan Willamowius
+// Copyright (c) 2007-2013, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -37,9 +37,9 @@ public:
 	virtual PBoolean IsRegisteredWithGk() const;
 
 protected:    
-    void AddDestination(PString token, PString alias);
+    void AddDestination(const PString & token, const PString & alias);
 	// get and remove destination from list
-    PString GetDestination(PString token);
+    PString GetDestination(const PString & token);
 
     PMutex destinationMutex;
     std::map<PString, PString> destinations;
