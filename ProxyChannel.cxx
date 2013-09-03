@@ -11056,6 +11056,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 			&& olca.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters) {
 			H245_H2250LogicalChannelAckParameters & h225Params  = olca.m_forwardMultiplexAckParameters;
 			h225Params.IncludeOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel);
+			// ports will be set by proxy rewrite below
 			h225Params.m_mediaChannel = IPToH245TransportAddr(GetRemoteAddr(), 0);
 			h225Params.IncludeOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaControlChannel);
 			h225Params.m_mediaControlChannel = IPToH245TransportAddr(GetRemoteAddr(), 0);
@@ -11317,8 +11318,11 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		}
 		H46026Session chan = H46026RTPHandler::Instance()->FindSession(call->GetCallIdentifier(), sessionID);
 		if (chan.IsValid()) {
-			H46026Session chan(call->GetCallIdentifier(), sessionID, lc->GetRTPOSSocket(), lc->GetRTCPOSSocket(), toRTP, toRTCP);
-			H46026RTPHandler::Instance()->ReplaceChannel(chan);
+			// channel found for other LC in same session, only update if we have more data
+			if (!UsesH46026() && peer && peer->UsesH46026()) {
+				H46026Session chan(call->GetCallIdentifier(), sessionID, lc->GetRTPOSSocket(), lc->GetRTCPOSSocket(), toRTP, toRTCP);
+				H46026RTPHandler::Instance()->ReplaceChannel(chan);
+			}
 		} else {
 			chan = H46026Session(call->GetCallIdentifier(), sessionID, lc->GetRTPOSSocket(), lc->GetRTCPOSSocket(), toRTP, toRTCP);
 			H46026RTPHandler::Instance()->AddChannel(chan);
