@@ -5844,7 +5844,8 @@ bool CallSignalSocket::OnSCICall(const H225_CallIdentifier & callID, H225_Transp
 	if (CreateRemote(sigAdr)) {
 		GetHandler()->Insert(this, remote);
 		m_callFromTraversalServer = true;
-		((CallSignalSocket*)remote)->m_callFromTraversalServer = true;
+		if (remote)
+			((CallSignalSocket*)remote)->m_callFromTraversalServer = true;
 		Q931 FacilityPDU;
 		H225_H323_UserInformation uuie;
 		BuildFacilityPDU(FacilityPDU, H225_FacilityReason::e_undefinedReason, &callID);
@@ -12592,7 +12593,7 @@ void ProxyHandler::FlushSockets()
 	PTRACE(5, "Proxy\t" << wlist.GetSize() << " sockets to flush...");
 	for (int k = 0; k < wlist.GetSize(); ++k) {
 		ProxySocket *socket = dynamic_cast<ProxySocket *>(wlist[k]);
-		if (socket->Flush()) {
+		if (socket && socket->Flush()) {
 			PTRACE(4, "Proxy\t" << socket->Name() << " flush ok");
 		}
 	}
