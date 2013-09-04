@@ -3,7 +3,7 @@
 // yasocket.cxx
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2012, Jan Willamowius
+// Copyright (c) 2004-2013, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -262,8 +262,7 @@ bool YaSocket::GetOption(int option, int & value, int level)
 bool YaSocket::GetOption(int option, void * valuePtr, PINDEX valueSize, int level)
 {
 	return ConvertOSError(::getsockopt(os_handle, level, option,
-		(char *)valuePtr, (socklen_t *)&valueSize)
-		);
+		(char *)valuePtr, (socklen_t *)&valueSize));
 }
 
 PString YaSocket::GetErrorText(PSocket::ErrorGroup group) const
@@ -806,7 +805,6 @@ USocket::USocket(IPSocket * s, const char * t)
 
 USocket::~USocket()
 {
-	//PWaitAndSignal lock(writeMutex);
 	{
 		PWaitAndSignal lock(queueMutex);
 		DeleteObjectsInContainer(queue);
@@ -866,8 +864,7 @@ bool USocket::WriteData(const BYTE * buf, int len)
 		) {
 		PWaitAndSignal lock(writeMutex);
 		while (remaining > 0) {
-			int sendnow = remaining > MAX_SOCKET_CHUNK
-				? MAX_SOCKET_CHUNK : remaining;
+			int sendnow = remaining > MAX_SOCKET_CHUNK ? MAX_SOCKET_CHUNK : remaining;
 			if (!InternalWriteData(buf, sendnow)) {
 				unsigned bytesSent = self->GetLastWriteCount();
 				remaining -= bytesSent;
@@ -972,8 +969,6 @@ SocketsReader::~SocketsReader()
 {
 	RemoveClosed(false);
 	SocketsReader::CleanUp();
-	//DeleteObjectsInContainer(m_removed);
-	//DeleteObjectsInContainer(m_sockets);
 }
 
 void SocketsReader::Stop()
@@ -1070,7 +1065,6 @@ void SocketsReader::Exec()
 	} else {
 		CleanUp();
 		ConfigReloadMutex.EndRead();
-		//PTRACE(6, GetName() << " waiting...");
 		Wait(SOCKETSREADER_IDLE_TIMEOUT);
 		ConfigReloadMutex.StartRead();
 	}
