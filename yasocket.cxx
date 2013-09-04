@@ -133,8 +133,10 @@ bool YaSelectList::Select(SelectType t, const PTimeInterval & timeout)
 YaSocket::YaSocket() : os_handle(-1), port(0)
 {
 	lastReadCount = lastWriteCount = 0;
-	for (PINDEX i = 0; i < PSocket::NumErrorGroups; i++)
+	for (PINDEX i = 0; i < PSocket::NumErrorGroups; i++) {
 		lastErrorCode[i] = PSocket::NoError;
+		lastErrorNumber[i] = 0;
+	}
 }
 
 YaSocket::~YaSocket()
