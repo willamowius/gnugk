@@ -42,6 +42,8 @@ const long SOCKET_CHUNK_PAUSE = 250;	// send in 10K chunks
 const int MAX_SOCKET_CHUNK = 10240;	// send in 10K chunks
 }
 
+int g_maxSocketQueue = 100;	// set with [Gatekeeper::Main] MaxSocketQueue=
+
 #ifdef LARGE_FDSET
 
 bool YaSelectList::Select(SelectType t, const PTimeInterval & timeout)
@@ -881,7 +883,7 @@ bool USocket::WriteData(const BYTE * buf, int len)
 		if (remaining == 0)
 			return true;
 	}
-	if (qsize > 100) { // to be justitied
+	if (qsize > g_maxSocketQueue) { // to be justitied
 		PTRACE(2, type << '\t' << Name() << " is dead and closed");
 		CloseSocket();
 	} else if (remaining > 0 && IsSocketOpen()) {

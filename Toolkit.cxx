@@ -52,6 +52,8 @@ extern const char *ProxySection;
 extern const char *RoutedSec;
 extern const char *TLSSec;
 
+extern int g_maxSocketQueue;
+
 namespace {
 
 const PString paddingByteConfigKey("KeyFilled");
@@ -1700,6 +1702,11 @@ PConfig* Toolkit::ReloadConfig()
 	PINDEX maxArraySize = GkConfig()->GetInteger("MaxASNArraySize", 0);
 	if (maxArraySize > 0)
 		PASN_Object::SetMaximumArraySize(maxArraySize);
+
+	// set max bytes to queue for a socket, before asuming its dead (probably only an issue with H.460.17)
+	int maxSocketQueue = GkConfig()->GetInteger("MaxSocketQueue", 100);
+	if (maxSocketQueue > 0)
+		g_maxSocketQueue = maxSocketQueue;
 
 	m_encryptAllPasswords = Toolkit::AsBool(
 		Config()->GetString("EncryptAllPasswords", "0")

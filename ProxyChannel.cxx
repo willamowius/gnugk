@@ -5255,7 +5255,8 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 				// convert to RTP or RTP mux
 #ifdef HAS_H46018
 				// check if its a multiplexed RTP destination
-				if (MultiplexedRTPHandler::Instance()->HandlePacket(m_call->GetCallIdentifier(), data)) {
+				if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false)
+					&& MultiplexedRTPHandler::Instance()->HandlePacket(m_call->GetCallIdentifier(), data)) {
 					m_result = NoData;	// forwarded as RTP
 					return;
 				}

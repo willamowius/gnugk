@@ -180,6 +180,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Gatekeeper::Main", "Home" },
 	{ "Gatekeeper::Main", "ListenQueueLength" },
 	{ "Gatekeeper::Main", "MaxASNArraySize" },
+	{ "Gatekeeper::Main", "MaxSocketQueue" },
 	{ "Gatekeeper::Main", "MaxStatusClients" },
 	{ "Gatekeeper::Main", "MaximumBandwidthPerCall" },
 	{ "Gatekeeper::Main", "MinimumBandwidthPerCall" },
