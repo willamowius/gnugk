@@ -883,7 +883,7 @@ bool USocket::WriteData(const BYTE * buf, int len)
 		if (remaining == 0)
 			return true;
 	}
-	if (qsize > g_maxSocketQueue) { // to be justitied
+	if (qsize > g_maxSocketQueue) {
 		PTRACE(2, type << '\t' << Name() << " is dead and closed");
 		CloseSocket();
 	} else if (remaining > 0 && IsSocketOpen()) {
