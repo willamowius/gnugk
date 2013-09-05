@@ -1565,7 +1565,12 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 
 	m_result = Forwarding;
 
-	PrintQ931(4, "Received:", "", q931pdu, uuie);
+	// only show full decode of H.460.26 RTP when level 7 trace is active
+	if (m_h46017Enabled && m_maintainConnection && (q931pdu->GetMessageType() == Q931::InformationMsg) && !PTrace::CanTrace(7)) {
+		// don't print Info message
+	} else {
+		PrintQ931(4, "Received:", "", q931pdu, uuie);
+	}
 
 	SignalingMsg *msg = SignalingMsg::Create(q931pdu, uuie,
 		_localAddr, _localPort, _peerAddr, _peerPort);
@@ -5811,7 +5816,11 @@ bool CallSignalSocket::SendH46026RTP(unsigned sessionID, bool isRTP, const void 
 		uuie.m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
 		SetUUIE(InformationPDU, uuie);
 
-		PrintQ931(3, "Send to ", GetName(), &InformationPDU, &uuie);
+		if (PTrace::CanTrace(7)) {
+			PrintQ931(7, "Send to ", GetName(), &InformationPDU, &uuie);
+		} else {
+			PTRACE(3, "Send to " << GetName() << " Info with H.460.26 RTP");
+		}
 
 		PBYTEArray buf;
 		InformationPDU.Encode(buf);
