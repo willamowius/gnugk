@@ -137,9 +137,9 @@ ifeq "$(GCCMAJORGTEQ4)" "1"
 	LDFLAGS += -Wl,-z,relro,-z,now
 endif # gcc >= 4.x.x
 endif # linux
-# can't enable PIE on openSuSE 11.4 due to linker bug
-#STDCCFLAGS += -fPIE -pie
-#LDFLAGS    += -fPIE -pie
+# can only be used with make opt, otherwise H323Plus also needs to be compiled with PIE
+#STDCCFLAGS += -fPIE
+#LDFLAGS    += -fPIE
 
 # enable more warnings when using gcc >= 4.4
 ifeq "$(GCCMAJOREQ4)" "1"
