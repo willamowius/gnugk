@@ -11931,7 +11931,46 @@ bool TLSCallSignalSocket::Connect(const Address & addr)
 		int ret = 0;
 		do {
 			ret = SSL_connect(m_ssl);
-			// TODO: do we need error handling here ?
+			if (ret <= 0) {
+				char msg[256];
+				int err = SSL_get_error(m_ssl, ret);
+				switch (err) {
+					case SSL_ERROR_NONE:
+						break;
+					case SSL_ERROR_SSL:
+						ERR_error_string(ERR_get_error(), msg);
+						PTRACE(1, "TLS\tTLS protocol error in SSL_connect(): " << err << " / " << msg);
+						SSL_shutdown(m_ssl);
+						return false;
+						break;
+					case SSL_ERROR_SYSCALL:
+						PTRACE(1, "TLS\tSyscall error in SSL_connect() errno=" << errno);
+						switch (errno) {
+							case 0:
+								ret = 1;	// done
+								break;
+							case EAGAIN:
+								break;
+							default:
+								ERR_error_string(ERR_get_error(), msg);
+								PTRACE(1, "TLS\tTerminating connection: " << msg);
+								SSL_shutdown(m_ssl);
+								return false;
+						};
+						break;
+					case SSL_ERROR_WANT_READ:
+						// just retry
+						break;
+					case SSL_ERROR_WANT_WRITE:
+						// just retry
+						break;
+					default:
+						ERR_error_string(ERR_get_error(), msg);
+						PTRACE(1, "TLS\tUnknown error in SSL_connect(): " << err << " / " << msg);
+						SSL_shutdown(m_ssl);
+						return false;
+				}
+			}
 		} while (ret <= 0);
 		// check if the certificate matches the IP
 		Address raddr;
