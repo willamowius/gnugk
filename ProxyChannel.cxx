@@ -1186,7 +1186,7 @@ void CallSignalSocket::InternalInit()
 	m_isH245Master = false;
 #endif
 #ifdef HAS_H46026
-	if (Toolkit::AsBool(Toolkit::Instance()->Config()->GetString(RoutedSec, "UseH46026PriorityQueue", "0"))) {
+	if (Toolkit::AsBool(Toolkit::Instance()->Config()->GetString(RoutedSec, "UseH46026PriorityQueue", "1"))) {
 		m_h46026PriorityQueue = new H46026PriorityQueue(this);
 	} else {
 		m_h46026PriorityQueue = NULL;
@@ -8762,12 +8762,6 @@ void H46026RTPHandler::RemoveChannels(H225_CallIdentifier callid)	// pass by val
 	DumpChannels(" RemoveChannels() done ");
 }
 
-//#ifdef HAS_H235_MEDIA
-//void H46026RTPHandler::RemoveChannel(H225_CallIdentifier callid, RTPLogicalChannel * rtplc)
-//{
-//}
-//#endif
-
 void H46026RTPHandler::DumpChannels(const PString & msg) const
 {
 	if (PTrace::CanTrace(7) && !m_h46026channels.empty()) {
@@ -9754,6 +9748,7 @@ RTPLogicalChannel::~RTPLogicalChannel()
 {
 #ifdef HAS_H235_MEDIA
 #ifdef HAS_H46018
+	// TODO: why only with encryption and is a H.46019 session per LC or per RTP session ?
 	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0")))
 		MultiplexedRTPHandler::Instance()->RemoveChannel(m_callID, this);
 #endif

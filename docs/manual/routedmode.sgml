@@ -529,8 +529,8 @@ Default: <tt>0</tt><newline>
 <p>
 Enable support for H.460.26 (media over TCP).
 
-<item><tt/UseH46026PriorityQueue=1/<newline>
-Default: <tt>0</tt><newline>
+<item><tt/UseH46026PriorityQueue=0/<newline>
+Default: <tt>1</tt><newline>
 <p>
 Use a priority queue when sending to H.460.26 endpoints. It will batch RTP packets together and
 make sure the endpoint isn't flooded with more messages than it can handle.
