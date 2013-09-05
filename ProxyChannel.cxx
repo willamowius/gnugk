@@ -1187,7 +1187,7 @@ void CallSignalSocket::InternalInit()
 #endif
 #ifdef HAS_H46026
 	if (Toolkit::AsBool(Toolkit::Instance()->Config()->GetString(RoutedSec, "UseH46026PriorityQueue", "1"))) {
-		m_h46026PriorityQueue = new H46026PriorityQueue(this);
+		m_h46026PriorityQueue = new H46026ChannelManager();
 	} else {
 		m_h46026PriorityQueue = NULL;
 	}

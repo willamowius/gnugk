@@ -267,23 +267,6 @@ class X880_Invoke;
 class H4501_InterpretationApdu;
 #endif
 
-#ifdef HAS_H46026
-class H46026PriorityQueue : public H46026ChannelManager
-{
-public:
-    H46026PriorityQueue(CallSignalSocket * s) : m_socket(s) { }
-    ~H46026PriorityQueue() { }
-
-    // overrides
-    virtual void SignalMsgIn(const Q931 & q931) { PTRACE(0, "JW2 SignalMsgIn " << q931); }
-    virtual void RTPFrameIn(unsigned crv, PINDEX sessionId, PBoolean rtp, const PBYTEArray & data) { PTRACE(0, "JW2 RTPFrameIn sess=" << sessionId << " rtp=" << rtp); }
-    virtual void FastUpdatePictureRequired(unsigned crv, PINDEX sessionId) { PTRACE(0, "JW2 FastUpdatePictureRequired sess=" << sessionId); }
-
-protected:
-	CallSignalSocket * m_socket;
-};
-#endif
-
 class CallSignalSocket : public TCPProxySocket {
 public:
 	CallSignalSocket();
@@ -518,7 +501,7 @@ private:
 	bool m_isH245Master;
 #endif
 #ifdef HAS_H46026
-	H46026PriorityQueue * m_h46026PriorityQueue;
+	H46026ChannelManager * m_h46026PriorityQueue;
 #endif
 };
 
