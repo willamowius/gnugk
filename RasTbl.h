@@ -411,7 +411,7 @@ protected:
 	long m_bandwidth;	// bandwidth currently occupied by this endpoint
 	long m_maxBandwidth; // maximum bandwidth allowed for this endpoint
 	bool m_useTLS;
-	bool additiveRegistrant;
+	bool m_additiveRegistrant;
 };
 
 typedef EndpointRec::Ptr endptr;
