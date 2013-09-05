@@ -122,19 +122,26 @@ endif # solaris
 STDCCFLAGS	+= -DMAJOR_VERSION=@GNUGK_MAJOR_VERSION@ -DMINOR_VERSION=@GNUGK_MINOR_VERSION@ -DBUILD_NUMBER=@GNUGK_BUILD_NUMBER@
 
 STDCCFLAGS += -fno-strict-aliasing
+
+# get gcc version
+GCCMAJOREQ4 := $(shell expr 4 = `$(CC) -dumpversion | cut -f1 -d.`)
+GCCMAJORGT4 := $(shell expr 4 \< `$(CC) -dumpversion | cut -f1 -d.`)
+GCCMAJORGTEQ4 := $(shell expr 4 \<= `$(CC) -dumpversion | cut -f1 -d.`)
+GCCMINORGTEQ4 := $(shell expr 4 \<= `$(CC) -dumpversion | cut -f2 -d.`)
+
+# enable stack protection on Linux with gcc >= 4.x.x
 ifeq "$(OSTYPE)" "linux"
+ifeq "$(GCCMAJORGTEQ4)" "1"
 	# security flags
 	STDCCFLAGS += -fstack-protector
-    LDFLAGS += -Wl,-z,relro,-z,now
+	LDFLAGS += -Wl,-z,relro,-z,now
+endif # gcc >= 4.x.x
 endif # linux
 # can't enable PIE on openSuSE 11.4 due to linker bug
 #STDCCFLAGS += -fPIE -pie
 #LDFLAGS    += -fPIE -pie
 
 # enable more warnings when using gcc >= 4.4
-GCCMAJOREQ4 := $(shell expr 4 = `$(CC) -dumpversion | cut -f1 -d.`)
-GCCMAJORGT4 := $(shell expr 4 \< `$(CC) -dumpversion | cut -f1 -d.`)
-GCCMINORGTEQ4 := $(shell expr 4 \<= `$(CC) -dumpversion | cut -f2 -d.`)
 ifeq "$(GCCMAJOREQ4)" "1"
 ifeq "$(GCCMINORGTEQ4)" "1"
 STDCCFLAGS += -Wtype-limits -Wstrict-overflow=5 -fstrict-overflow -Wsign-compare
