@@ -129,17 +129,20 @@ GCCMAJORGT4 := $(shell expr 4 \< `$(CC) -dumpversion | cut -f1 -d.`)
 GCCMAJORGTEQ4 := $(shell expr 4 \<= `$(CC) -dumpversion | cut -f1 -d.`)
 GCCMINORGTEQ4 := $(shell expr 4 \<= `$(CC) -dumpversion | cut -f2 -d.`)
 
-# enable stack protection on Linux with gcc >= 4.x.x
+# enable stack protection and RELRO + BIND_NOW on Linux with gcc >= 4.x.x
 ifeq "$(OSTYPE)" "linux"
 ifeq "$(GCCMAJORGTEQ4)" "1"
 	# security flags
-	STDCCFLAGS += -fstack-protector
+	STDCCFLAGS += -fstack-protector --param ssp-buffer-size=4
 	LDFLAGS += -Wl,-z,relro,-z,now
 endif # gcc >= 4.x.x
 endif # linux
-# can only be used with make opt, otherwise H323Plus also needs to be compiled with PIE
-#STDCCFLAGS += -fPIE
-#LDFLAGS    += -fPIE
+
+# enable position independent code (PIE) for address space randomization
+# can only be used with make opt, otherwise H323Plus + PTLib also need to be compiled with PIE
+# 5-10% perfomance penalty on x86, less on x64_64
+#STDCCFLAGS += -fPIE -pie
+#LDFLAGS    += -fPIE -pie
 
 # enable more warnings when using gcc >= 4.4
 ifeq "$(GCCMAJOREQ4)" "1"
