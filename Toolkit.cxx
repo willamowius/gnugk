@@ -508,16 +508,39 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 	PStringArray explicitRoutes;
 	if (!tmpRoutes.IsEmpty()) {
 		explicitRoutes = tmpRoutes.Tokenise(",", false);
+		PString defaultRoute;
 		PINDEX e = 0;
 		while (e < explicitRoutes.GetSize()) {
-			RouteEntry entry(explicitRoutes[e]);
-			if (Toolkit::Instance()->IsGKHome(entry.GetDestination())) {
-				PTRACE(2, "Adding explict route: " << entry.GetNetwork() << "/" << entry.GetNetMask() << "->" << entry.GetDestination());
-				e++;
-			} else {
-				PTRACE(1, "Ignoring explict route (invalid source IP): "
-					<< entry.GetNetwork() << "/" << entry.GetNetMask() << "->" << entry.GetDestination());
+			PString explicitRoute = explicitRoutes[e].Trim();
+			if (explicitRoute.Left(9) == "0.0.0.0/0" || PCaselessString(explicitRoute.Left(7)) == "default") {
 				explicitRoutes.RemoveAt(e);
+				defaultRoute = explicitRoute;
+			} else {
+				RouteEntry entry(explicitRoute);
+				if (Toolkit::Instance()->IsGKHome(entry.GetDestination())) {
+					PTRACE(2, "Adding explict route: " << entry.GetNetwork() << "/" << entry.GetNetMask() << "->" << entry.GetDestination());
+					e++;
+				} else {
+					PTRACE(1, "Ignoring explict route (invalid source IP): "
+						<< entry.GetNetwork() << "/" << entry.GetNetMask() << "->" << entry.GetDestination());
+					explicitRoutes.RemoveAt(e);
+				}
+			}
+		}
+		if (!defaultRoute.IsEmpty()) {
+			// replace 0.0.0.0/0 or "default" with 2 routes (0.0.0.0/1 + 128.0.0.0/1), because "0.0.0.0/0" is also treated as invalid network
+			if (PCaselessString(defaultRoute.Left(7)) == "default") {
+				defaultRoute = PString("0.0.0.0/0") + defaultRoute.Mid(7);
+			}
+			defaultRoute.Replace("0.0.0.0/0", "0.0.0.0/1");	// 1st part
+			// check if source is a Home= IP
+			RouteEntry entry(defaultRoute);
+			if (Toolkit::Instance()->IsGKHome(entry.GetDestination())) {
+				explicitRoutes.AppendString(defaultRoute);
+				defaultRoute.Replace("0.0.0.0/1", "128.0.0.0/1");	// 2nd part
+				explicitRoutes.AppendString(defaultRoute);
+			} else {
+				PTRACE(1, "Ignoring explicit default route: Invalid source IP " << entry.GetDestination());
 			}
 		}
 	}
@@ -662,8 +685,16 @@ void Toolkit::ProxyCriterion::LoadConfig(PConfig *config)
 				netmode.insideNetwork = netmode.fromExternal;
 				if (modes.GetSize() == 2)
 					netmode.insideNetwork = ToRoutingMode(modes[1].Trim());
-				m_modeselection[addr] = netmode;
-				PTRACE(2, "GK\tModeSelection rule: " << addr.AsString() << "=" << netmode.fromExternal << "," << netmode.insideNetwork);
+				// replace 0.0.0.0/0 with 2 rules (0.0.0.0/1 + 128.0.0.0/1), because 0.0.0.0/0 is also treated as invalid network
+				if (network == "0.0.0.0/0" || network == PCaselessString("default")) {
+					m_modeselection[NetworkAddress("0.0.0.0/1")] = netmode;
+					PTRACE(2, "GK\tModeSelection rule: 0.0.0.0/1=" << netmode.fromExternal << "," << netmode.insideNetwork);
+					m_modeselection[NetworkAddress("128.0.0.0/1")] = netmode;
+					PTRACE(2, "GK\tModeSelection rule: 128.0.0.0/1=" << netmode.fromExternal << "," << netmode.insideNetwork);
+				} else {
+					m_modeselection[addr] = netmode;
+					PTRACE(2, "GK\tModeSelection rule: " << addr.AsString() << "=" << netmode.fromExternal << "," << netmode.insideNetwork);
+				}
 			} else {
 				PTRACE(1, "GK\tInvalid ModeSelection rule: " << mode_rules.GetKeyAt(i) << "=" << mode_rules.GetDataAt(i) );
 			}
