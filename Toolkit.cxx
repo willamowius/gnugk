@@ -2238,7 +2238,7 @@ SSL_CTX * Toolkit::GetTLSContext()
 		SSL_CTX_set_info_callback(m_sslCtx, apps_ssl_info_callback);	// enable only when debugging
 		SSL_CTX_set_default_passwd_cb(m_sslCtx, pem_passwd_cb);
 		m_passphrase = m_Config->GetString(TLSSec, "Passphrase", "");
-		SSL_CTX_set_default_passwd_cb_userdata(m_sslCtx, m_passphrase.GetPointer());
+		SSL_CTX_set_default_passwd_cb_userdata(m_sslCtx, (void *)m_passphrase.GetPointer());
 		PString caFile = m_Config->GetString(TLSSec, "CAFile", "");
 		PString caDir = m_Config->GetString(TLSSec, "CADir", "");
 		const char * caFilePtr = caFile.IsEmpty() ? NULL : caFile.GetPointer();
