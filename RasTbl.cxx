@@ -2420,6 +2420,7 @@ void H46019KeepAlive::SendKeepAlive(GkTimer * t)
 			ka_ptr = (char*)&multiplexedRtpKeepAlive;
 			ka_size = sizeof(multiplexedRtpKeepAlive);
 		}
+		// TODO: UDPSendWithSourceIP() ?
 		size_t sent = ::sendto(ossocket, ka_ptr, ka_size, 0, (struct sockaddr *)&dest, sizeof(dest));
 		if (sent != ka_size) {
 			PTRACE(1, "Error sending RTP keepAlive " << timer);
@@ -2456,6 +2457,7 @@ void H46019KeepAlive::SendKeepAlive(GkTimer * t)
 			ka_ptr = (char*)&multiplexedRtcpKeepAlive;
 			ka_size = sizeof(multiplexedRtcpKeepAlive);
 		}
+		// TODO: UDPSendWithSourceIP() ?
 		size_t sent = ::sendto(ossocket, ka_ptr, ka_size, 0, (struct sockaddr *)&dest, sizeof(dest));
 		if (sent != ka_size) {
 			PTRACE(1, "Error sending RTCP keepAlive " << timer);

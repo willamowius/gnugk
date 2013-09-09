@@ -1,5 +1,6 @@
 Changes from 3.3 to 3.4
 =======================
+- set RTP source IP on OS that support it (Linux, FreeBSD, Win Vista+)
 - allow "0.0.0.0/0" in ModeSelection and ExplicitRoutes= (auto-converted to 0.0.0.0/1 + 128.0.0.0/1)
 - new switch [Gatekeeper::Main] MaxSocketQueue=
 - setting on/off config switches to y/n or a/? is now depricated, use 1/0

@@ -57,6 +57,10 @@
 	#include "h235/h235crypto.h"
 #endif
 
+#ifdef _WIN32
+#include <mswsock.h>
+#endif
+
 using namespace std;
 using Routing::Route;
 
@@ -87,6 +91,180 @@ H245_H2250LogicalChannelParameters *GetLogicalChannelParameters(H245_OpenLogical
 
 
 bool odd(unsigned n) { return (n % 2) != 0; }
+
+
+// send a UPD datagram and set the source IP (used only for RTP, RAS is using sockets bound to specific IPs)
+// the method is highly OS specific
+
+#ifdef _WIN32
+
+typedef int ssize_t;
+
+ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323TransportAddress & toAddress)
+{
+#ifdef hasIPV6
+	struct sockaddr_in6 dest;
+#else
+	struct sockaddr_in dest;
+#endif
+	// set dest address
+	PIPSocket::Address toIP;
+	WORD toPort = 0;
+	toAddress.GetIpAndPort(toIP, toPort);
+	SetSockaddr(dest, toIP, toPort);
+
+#if (_WIN32_WINNT >= WINDOWS_VISTA)
+	if (g_pfWSASendMsg) {
+		// TODO: do we need a special case for IPv6 here, like on Unix ?
+		// set source address
+		PIPSocket::Address src = RasServer::Instance()->GetLocalAddress(toIP);
+
+		WSABUF wsabuf;
+		WSAMSG msg;
+		char cmsg[WSA_CMSG_SPACE(sizeof(struct in_pktinfo))];
+		unsigned cmsg_data_size = sizeof(struct in_pktinfo);
+
+		wsabuf.buf = (CHAR *)data;
+		wsabuf.len = len;
+
+		memset(&msg, 0, sizeof(msg));
+		msg.name = (struct sockaddr*)&dest;
+		msg.namelen = sizeof(dest);
+		msg.lpBuffers = &wsabuf;
+		msg.dwBufferCount = 1;
+
+		WSACMSGHDR *cm;
+		memset(cmsg, 0, sizeof(cmsg));
+
+		msg.Control.buf = cmsg;
+		msg.Control.len = sizeof(cmsg);
+
+		cm = WSA_CMSG_FIRSTHDR(&msg);
+		cm->cmsg_len = WSA_CMSG_LEN(cmsg_data_size);
+		cm->cmsg_level = IPPROTO_IP;
+		cm->cmsg_type = IP_PKTINFO;
+		{
+			struct in_pktinfo ipi = { 0 };
+			ipi.ipi_addr.s_addr = src;
+			memcpy(WSA_CMSG_DATA(cm), &ipi, sizeof(ipi));
+		}
+
+		DWORD bytesSent;
+		int rc = g_pfWSASendMsg(fd, &msg, 0, &bytesSent, NULL, NULL);
+		if (rc == 0) {
+			return bytesSent;
+		} else {
+			PTRACE(7, "RTP\tSend error " << rc);
+			return -1;
+		}
+	} else
+#endif
+		return ::sendto(fd, (const char *)data, len, 0, (struct sockaddr *)&dest, sizeof(dest));
+}
+
+#else // Unix
+
+ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323TransportAddress & toAddress)
+{
+#ifdef hasIPV6
+	struct sockaddr_in6 dest;
+#else
+	struct sockaddr_in dest;
+#endif
+	// set dest address
+	PIPSocket::Address toIP;
+	WORD toPort = 0;
+	toAddress.GetIpAndPort(toIP, toPort);
+	SetSockaddr(dest, toIP, toPort);
+
+	// set source address
+	PIPSocket::Address src = RasServer::Instance()->GetLocalAddress(toIP);
+
+	struct msghdr msgh;
+	struct cmsghdr *cmsg;
+	struct iovec iov;
+	char cbuf[256];
+
+	/* Set up iov and msgh structures. */
+	memset(&msgh, 0, sizeof(struct msghdr));
+	iov.iov_base = data;
+	iov.iov_len = len;
+	msgh.msg_iov = &iov;
+	msgh.msg_iovlen = 1;
+	msgh.msg_name = (struct sockaddr*)&dest;
+	// must pass short len when sending to IPv4 address on Solaris 11, OpenBSD and NetBSD
+	// sizeof(dest) is OK on Linux and FreeBSD
+	size_t addr_len = sizeof(sockaddr_in);
+#ifdef hasIPV6
+	if (toIP.GetVersion() == 6)
+		addr_len = sizeof(sockaddr_in6);
+#endif
+	msgh.msg_namelen = addr_len;
+
+#ifdef hasIPV6
+	if (Toolkit::Instance()->IsIPv6Enabled() && (((struct sockaddr*)&dest)->sa_family == AF_INET6)) {
+		struct in6_pktinfo *pkt;
+
+		msgh.msg_control = cbuf;
+		msgh.msg_controllen = CMSG_SPACE(sizeof(*pkt));
+
+		cmsg = CMSG_FIRSTHDR(&msgh);
+		cmsg->cmsg_level = IPPROTO_IPV6;
+		cmsg->cmsg_type = IPV6_PKTINFO;
+		cmsg->cmsg_len = CMSG_LEN(sizeof(*pkt));
+
+		pkt = (struct in6_pktinfo *) CMSG_DATA(cmsg);
+		memset(pkt, 0, sizeof(*pkt));
+		pkt->ipi6_addr = src;
+		msgh.msg_controllen = cmsg->cmsg_len;
+	} else
+#endif
+	{
+#if defined(IP_PKTINFO)	// Linux and Solaris 11
+		struct in_pktinfo *pkt;
+		msgh.msg_control = cbuf;
+		msgh.msg_controllen = CMSG_SPACE(sizeof(*pkt));
+
+		cmsg = CMSG_FIRSTHDR(&msgh);
+		cmsg->cmsg_level = IPPROTO_IP;
+		cmsg->cmsg_type = IP_PKTINFO;
+		cmsg->cmsg_len = CMSG_LEN(sizeof(*pkt));
+
+		pkt = (struct in_pktinfo *) CMSG_DATA(cmsg);
+		memset(pkt, 0, sizeof(*pkt));
+		pkt->ipi_spec_dst = src;
+#else
+#ifdef IP_SENDSRCADDR	// FreeBSD
+		struct in_addr *in;
+
+		msgh.msg_control = cbuf;
+		msgh.msg_controllen = CMSG_SPACE(sizeof(*in));
+
+		cmsg = CMSG_FIRSTHDR(&msgh);
+		cmsg->cmsg_level = IPPROTO_IP;
+		cmsg->cmsg_type = IP_SENDSRCADDR;
+		cmsg->cmsg_len = CMSG_LEN(sizeof(*in));
+
+		in = (struct in_addr *) CMSG_DATA(cmsg);
+		*in = src;
+#endif
+#endif
+	}
+
+	ssize_t bytesSent = sendmsg(fd, &msgh, 0);
+	if (bytesSent < 0) {
+		PTRACE(7, "RTP\tSend error " << strerror(errno));
+	}
+
+	return bytesSent;
+}
+#endif
+
+ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const PIPSocket::Address & ip, WORD port)
+{
+	H323TransportAddress to(ip, port);
+	return UDPSendWithSourceIP(fd, data, len, to);
+}
 
 template <class UUIE>
 inline unsigned GetH225Version(const UUIE & uuie)
@@ -2063,6 +2241,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 			H245_GenericMessage & gmsg = imsg;
 			H245_CapabilityIdentifier & id = gmsg.m_messageIdentifier;
 			if (id.GetTag() == H245_CapabilityIdentifier::e_standard) {
+#if defined (HAS_H46024A) || defined (HAS_H46024B)
 				PASN_ObjectId & val = id;
 #ifdef HAS_H46024A
 				if (val.AsString() == H46024A_OID) {
@@ -2077,6 +2256,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 					suppress = true;
 					return false;
 				}
+#endif
 #endif
 			}
 		}
@@ -8253,11 +8433,6 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 
 void H46019Session::Send(PUInt32b sendMultiplexID, const H323TransportAddress & toAddress, int osSocket, void * data, unsigned len, bool bufferHasRoomForID)
 {
-#ifdef hasIPV6
-	struct sockaddr_in6 dest;
-#else
-	struct sockaddr_in dest;
-#endif
 	size_t lenToSend = len;
 	size_t sent = 0;
 
@@ -8265,15 +8440,6 @@ void H46019Session::Send(PUInt32b sendMultiplexID, const H323TransportAddress & 
 		PTRACE(1, "RTPM\tError: OSSocket to " << toAddress << " not set");
 		SNMP_TRAP(10, SNMPError, Network, "Invalid multiplexing socket for " + AsString(toAddress));
 		return;
-	}
-	if (Toolkit::Instance()->IsIPv6Enabled()) {
-		PIPSocket::Address toIP;
-		WORD toPort = 0;
-		toAddress.GetIpAndPort(toIP, toPort);
-		MapIPv4Address(toIP);
-		SetSockaddr(dest, toIP, toPort);
-	} else {
-		SetSockaddr(dest, toAddress);
 	}
 	if (sendMultiplexID != INVALID_MULTIPLEX_ID) {
 		lenToSend += 4;
@@ -8287,12 +8453,13 @@ void H46019Session::Send(PUInt32b sendMultiplexID, const H323TransportAddress & 
 			multiplexMsg = (BYTE*)malloc(len+4);
 			memcpy(multiplexMsg+4, data, len);
 		}
-		*((PUInt32b*)multiplexMsg) = sendMultiplexID;
-		sent = ::sendto(osSocket, (char*)multiplexMsg, lenToSend, 0, (struct sockaddr *)&dest, sizeof(dest));
+		*((PUInt32b*)multiplexMsg) = sendMultiplexID;	// set multiplexID
+
+		sent = UDPSendWithSourceIP(osSocket, multiplexMsg, lenToSend, toAddress);
 		if (!bufferHasRoomForID)
 			free(multiplexMsg);
 	} else {
-		sent = ::sendto(osSocket, (char*)data, lenToSend, 0, (struct sockaddr *)&dest, sizeof(dest));
+		sent = UDPSendWithSourceIP(osSocket, data, lenToSend, toAddress);
 	}
 	if (sent != lenToSend) {
 		PTRACE(1, "RTPM\tError sending RTP to " << toAddress << ": should send=" << lenToSend << " did send=" << sent << " errno=" << errno);
@@ -8609,11 +8776,6 @@ H46026Session::H46026Session(const H225_CallIdentifier & callid, WORD session,
 
 void H46026Session::Send(void * data, unsigned len, bool isRTCP)
 {
-#ifdef hasIPV6
-	struct sockaddr_in6 dest;
-#else
-	struct sockaddr_in dest;
-#endif
 	size_t lenToSend = len;
 	size_t sent = 0;
 	int osSocket = INVALID_OSSOCKET;
@@ -8627,18 +8789,7 @@ void H46026Session::Send(void * data, unsigned len, bool isRTCP)
 		toAddress = m_toAddressRTP;
 	}
 
-	if (Toolkit::Instance()->IsIPv6Enabled()) {
-		PIPSocket::Address toIP;
-		WORD toPort = 0;
-		toAddress.GetIpAndPort(toIP, toPort);
-		MapIPv4Address(toIP);
-		SetSockaddr(dest, toIP, toPort);
-	} else {
-		SetSockaddr(dest, toAddress);
-	}
-
-	PTRACE(7, "JW Send to " << toAddress << " len=" << len << " osSocket=" << osSocket);
-	sent = ::sendto(osSocket, (char*)data, lenToSend, 0, (struct sockaddr *)&dest, sizeof(dest));
+	sent = UDPSendWithSourceIP(osSocket, data, lenToSend, toAddress);
 	if (sent != lenToSend) {
 		PTRACE(1, "H46026\tError sending RTP to " << toAddress << ": should send=" << lenToSend << " did send=" << sent << " errno=" << errno);
 	}
@@ -9387,7 +9538,12 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 
 	if (isRTCP && m_EnableRTCPStats && m_call && (*m_call))
 		return ParseRTCP(*m_call, m_sessionID, fromIP, wbuffer, buflen);
-	return Forwarding;
+
+	PIPSocket::Address toIP;
+	WORD toPort = 0;
+	GetSendAddress(toIP, toPort);
+	UDPSendWithSourceIP(os_handle, wbuffer, buflen, toIP, toPort);
+	return NoData;	// we just forwarded the data here
 }
 
 namespace {

@@ -23,6 +23,10 @@
 #include <ptlib/pprocess.h>
 #endif
 
+#ifdef _WIN32
+#include <mswsock.h>
+#endif
+
 #ifdef COMPILE_AS_SERVICE
 #define GNUGK_NAME	"GNU Gatekeeper"
 #else
@@ -31,6 +35,12 @@
 
 extern PSemaphore ShutdownMutex;
 extern const char * KnownConfigEntries[][2];
+
+// you must change PTLib 2.10.x configure.ac to set WINVER = 0x0600 to enable
+#define WINDOWS_VISTA	0x0600
+#if defined(_WIN32) && (_WIN32_WINNT >= WINDOWS_VISTA)
+extern LPFN_WSASENDMSG g_pfWSASendMsg;
+#endif
 
 class GkTimer;
 

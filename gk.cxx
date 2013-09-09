@@ -40,6 +40,10 @@ using std::vector;
 
 PCREATE_PROCESS(Gatekeeper)
 
+#if defined(_WIN32) && (_WIN32_WINNT >= WINDOWS_VISTA)
+LPFN_WSASENDMSG g_pfWSASendMsg = NULL;
+#endif
+
 PTextFile* Gatekeeper::m_logFile = NULL;
 PFilePath Gatekeeper::m_logFilename;
 PMutex Gatekeeper::m_logFileMutex;
@@ -979,6 +983,24 @@ BOOL SetDEP(__in DWORD dwFlags = PROCESS_DEP_ENABLE)
 	return procSet(dwFlags);
 }
 
+void InitializeRTPSending()
+{
+#if (_WIN32_WINNT >= WINDOWS_VISTA)
+	// fetch function pointer for WSASendMsg function
+	// this also servers as runtime check if the feature is available on the machine
+	SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
+	GUID WSASendMsgGuid = WSAID_WSASENDMSG;
+	DWORD nbytes;
+	int result;
+
+	/* WSASendMsg(): Windows Vista / Windows Server 2008 and later */
+	result = WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER,
+						&WSASendMsgGuid, sizeof(WSASendMsgGuid),
+						&g_pfWSASendMsg, sizeof(g_pfWSASendMsg), &nbytes, NULL, NULL);
+	closesocket(s);
+#endif
+}
+
 #else	// _WIN32
 
 #include <pwd.h>
@@ -1043,6 +1065,7 @@ Gatekeeper::Gatekeeper(const char * _manuf,
 #ifdef _WIN32
 	// set data execution prevention (ignore if not available)
 	SetDEP(PROCESS_DEP_ENABLE);
+	InitializeRTPSending();	// check for Vista+ method
 #endif
 
 #ifdef COMPILE_AS_SERVICE
