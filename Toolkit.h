@@ -403,6 +403,7 @@ class Toolkit : public Singleton<Toolkit>
 	bool RemoveH235TokensFrom(const PIPSocket::Address & addr) const;
 #ifdef HAS_H235_MEDIA
 	bool IsH235HalfCallMediaEnabled() const { return m_H235HalfCallMediaEnabled; }
+	bool IsH235HalfCallMediaKeyUpdatesEnabled() const { return m_H235HalfCallMediaKeyUpdatesEnabled; }
 #endif
 
 	bool isBehindNAT(PIPSocket::Address &) const;
@@ -681,6 +682,7 @@ private:
 	std::vector<NetworkAddress> m_removeH235TokensfromNetwork;
 #ifdef HAS_H235_MEDIA
 	bool m_H235HalfCallMediaEnabled;
+	bool m_H235HalfCallMediaKeyUpdatesEnabled;
 #endif
 	// is H460.18 enabled ?
 #ifdef HAS_H46018

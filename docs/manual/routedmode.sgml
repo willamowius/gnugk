@@ -604,7 +604,12 @@ Require at least one leg of the call to be encrypted.
 <item><tt/H235HalfCallMediaStrength=256/<newline>
 Default: <tt/128/<newline>
 <p>
-Set the maximum cypher length to support for H.235 half call media.
+Set the maximum cypher length to support for H.235 half call media (allowed values are 128 or 256).
+
+<item><tt/EnableH235HalfCallMediaKeyUpdates=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Update media keys after they have been used for too many operations to remain cryptographically safe.
 
 <item><tt/Q931DecodingError=Drop/<newline>
 Default: <tt/Disconnect/<newline>

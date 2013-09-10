@@ -1767,6 +1767,7 @@ PConfig* Toolkit::ReloadConfig()
 #ifdef HAS_H235_MEDIA
 	m_H235HalfCallMediaEnabled = m_Config->GetBoolean(RoutedSec, "EnableH235HalfCallMedia", 0)
 		|| m_Config->GetBoolean(RoutedSec, "RequireH235HalfCallMedia", 0);
+	m_H235HalfCallMediaKeyUpdatesEnabled = m_Config->GetBoolean(RoutedSec, "EnableH235HalfCallMediaKeyUpdates", 0);
 #endif
 #ifdef HAS_H46018
 	m_H46018Enabled	= m_Config->GetBoolean(RoutedSec, "EnableH46018", 0);

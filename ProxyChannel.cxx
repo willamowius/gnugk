@@ -2746,13 +2746,17 @@ void CallSignalSocket::SendEncryptionUpdateCommand(WORD flcn, BYTE oldPT)
 			misc.m_type.SetTag(H245_MiscellaneousCommand_type::e_encryptionUpdateCommand);
 			H245_MiscellaneousCommand_type_encryptionUpdateCommand & update = misc.m_type;
 			misc.m_logicalChannelNumber = flcn;
+			misc.IncludeOptionalField(H245_MiscellaneousCommand::e_direction);
 			misc.m_direction.SetTag(H245_EncryptionUpdateDirection::e_masterToSlave);
 			rtplc->GenerateNewMediaKey(newPayloadType, update.m_encryptionSync);
-			if (m_h245socket)
-				m_h245socket->Send(h245msg);
-			else {
+			if (m_h245Tunneling)
 				SendTunneledH245(h245msg);
+			else {
+				if (m_h245socket)
+					m_h245socket->Send(h245msg);
 			}
+		} else {
+			PTRACE(1, "H235\tError: Couldn't find flcn " << flcn << " to send EncryptionUpdateCommand");
 		}
 	}
 }
@@ -2774,11 +2778,13 @@ void CallSignalSocket::SendEncryptionUpdateRequest(WORD flcn, BYTE oldPT)
 	update.m_keyProtectionMethod.m_sharedSecret = false;
 	update.m_keyProtectionMethod.m_certProtectedKey = false;
 	misc.m_logicalChannelNumber = flcn;
+	misc.IncludeOptionalField(H245_MiscellaneousCommand::e_direction);
 	misc.m_direction.SetTag(H245_EncryptionUpdateDirection::e_slaveToMaster);
-	if (m_h245socket) {
-		m_h245socket->Send(h245msg);
-	} else {
+	if (m_h245Tunneling) {
 		SendTunneledH245(h245msg);
+	} else {
+		if (m_h245socket)
+			m_h245socket->Send(h245msg);
 	}
 }
 #endif
@@ -7942,7 +7948,7 @@ bool H245Socket::Send(const H245_MultimediaSystemControlMessage & h245msg)
 	if (TransmitData(wtstrm)) {
 		PTRACE(4, "H245\tSend H.245 message to " << GetName());
 	} else {
-		PTRACE(1, "H245\tSending of H.245 message to " << GetName() << " failed");
+		PTRACE(1, "H245\tSending of H.245 message " << h245msg.GetTagName() << " to " << GetName() << " failed");
 		SNMP_TRAP(10, SNMPError, Network, "Sending H.245 message to " + GetName() + " failed");
 		return false;
 	}
@@ -10215,21 +10221,23 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 	}
 	memcpy(buffer+rtpHeaderLen, processed.GetPointer(), processed.GetSize());
 #if (H323PLUS_VER > 1252)
-	if (m_H235CryptoEngine->IsMaxBlocksPerKeyReached()) {
-		// TODO: if major endpoints really ignore the key updates, we'll need a switch for this feature
-		m_H235CryptoEngine->ResetBlockCount(); // reset count now, so we don't request update multiple times
-		PTRACE(1, "H.235.6 media key update needed flcn=" << channelNumber);
-		// find call by CallID, send key update command or request
-		callptr call = CallTable::Instance()->FindCallRec(m_callID);
-		if (call) {
-			CallSignalSocket * dest = call->GetCallSignalSocketCalling();
-			if (call->GetEncryptDirection() == CallRec::callingParty) {
-				dest = call->GetCallSignalSocketCalled();
-			}
-			if (dest->IsH245Master()) {
-				dest->SendEncryptionUpdateRequest(channelNumber, m_cipherPayloadType);
-			} else {
-				dest->SendEncryptionUpdateCommand(channelNumber, m_cipherPayloadType);
+	if (Toolkit::Instance()->IsH235HalfCallMediaKeyUpdatesEnabled()) {
+		// major endpoints seem to ignore the key updates, thus the switch
+		if (m_H235CryptoEngine->IsMaxBlocksPerKeyReached()) {
+			m_H235CryptoEngine->ResetBlockCount(); // reset count now, so we don't request update multiple times
+			PTRACE(1, "H.235.6 media key update needed flcn=" << channelNumber);
+			// find call by CallID, send key update command or request
+			callptr call = CallTable::Instance()->FindCallRec(m_callID);
+			if (call) {
+				CallSignalSocket * dest = call->GetCallSignalSocketCalling();
+				if (call->GetEncryptDirection() == CallRec::callingParty) {
+					dest = call->GetCallSignalSocketCalled();
+				}
+				if (dest->IsH245Master()) {
+					dest->SendEncryptionUpdateRequest(channelNumber, m_cipherPayloadType);
+				} else {
+					dest->SendEncryptionUpdateCommand(channelNumber, m_cipherPayloadType);
+				}
 			}
 		}
 	}
@@ -11523,7 +11531,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 #ifdef HAS_H235_MEDIA
 bool H245ProxyHandler::HandleEncryptionUpdateRequest(H245_MiscellaneousCommand & cmd, bool & suppress, callptr & call, H245Socket * h245sock)
 {
-	if (call && call->IsMediaEncryption() && m_isH245Master) {
+	if (call && call->IsMediaEncryption() && !m_isH245Master) {
+		// we add encryption and this doesn't come from the master
 		// send new media key
 		H245_EncryptionUpdateRequest & request = cmd.m_type;
 		WORD flcn = (WORD)cmd.m_logicalChannelNumber;
@@ -11534,6 +11543,9 @@ bool H245ProxyHandler::HandleEncryptionUpdateRequest(H245_MiscellaneousCommand &
 			newPayloadType = RandomPT(0);	// TODO: what is current the PT ?
 		}
 		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(FindLogicalChannel(flcn));
+		if (!rtplc) {
+			rtplc = dynamic_cast<RTPLogicalChannel *>(peer->FindLogicalChannel(flcn));
+		}
 		if (rtplc) {
 			H245_MultimediaSystemControlMessage h245msg;
 			h245msg.SetTag(H245_MultimediaSystemControlMessage::e_command);
@@ -11554,6 +11566,8 @@ bool H245ProxyHandler::HandleEncryptionUpdateRequest(H245_MiscellaneousCommand &
 					css = call->GetCallSignalSocketCalled();
 				css->SendTunneledH245(h245msg);
 			}
+		} else {
+			PTRACE(1, "H235\tError: Couldn't find flcn " << flcn << " for EncryptionUpdateRequest");
 		}
 		suppress = true;
 	}
@@ -11562,11 +11576,15 @@ bool H245ProxyHandler::HandleEncryptionUpdateRequest(H245_MiscellaneousCommand &
 
 bool H245ProxyHandler::HandleEncryptionUpdateCommand(H245_MiscellaneousCommand & cmd, bool & suppress, callptr & call, H245Socket * h245sock)
 {
-	if (call && call->IsMediaEncryption() && !m_isH245Master) {
+	if (call && call->IsMediaEncryption() && m_isH245Master) {
+		// we add encryption and this comes from the master
 		// use this media key
 		H245_MiscellaneousCommand_type_encryptionUpdateCommand & update = cmd.m_type;
 		WORD flcn = (WORD)cmd.m_logicalChannelNumber;
 		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(FindLogicalChannel(flcn));
+		if (!rtplc) {
+			rtplc = dynamic_cast<RTPLogicalChannel *>(peer->FindLogicalChannel(flcn));
+		}
 		if (rtplc) {
 			rtplc->UpdateMediaKey(update.m_encryptionSync);
 
@@ -11579,17 +11597,21 @@ bool H245ProxyHandler::HandleEncryptionUpdateCommand(H245_MiscellaneousCommand &
 			misc.m_type.SetTag(H245_MiscellaneousCommand_type::e_encryptionUpdateAck);
 			H245_MiscellaneousCommand_type_encryptionUpdateAck & ack = misc.m_type;
 			misc.m_logicalChannelNumber = cmd.m_logicalChannelNumber;
+			misc.IncludeOptionalField(H245_MiscellaneousCommand::e_direction);
 			misc.m_direction.SetTag(H245_EncryptionUpdateDirection::e_slaveToMaster);
 			ack.m_synchFlag = update.m_encryptionSync.m_synchFlag;
 			if (h245sock)
 				h245sock->Send(h245msg);
 			else {
 				// send tunneled to master side (only the master issues UpdateCommand, slave would have sent UpdateRequest)
+				// (could also look at encryption direction in call object)
 				CallSignalSocket * css = call->GetCallSignalSocketCalling();
 				if (!css->IsH245Master())
 					css = call->GetCallSignalSocketCalled();
 				css->SendTunneledH245(h245msg);
 			}
+		} else {
+			PTRACE(1, "H235\tError: Couldn't find flcn " << flcn << " for EncryptionUpdateCommand");
 		}
 		suppress = true;
 	}
@@ -11598,7 +11620,7 @@ bool H245ProxyHandler::HandleEncryptionUpdateCommand(H245_MiscellaneousCommand &
 
 bool H245ProxyHandler::HandleEncryptionUpdateAck(H245_MiscellaneousCommand & cmd, bool & suppress, callptr & call, H245Socket * h245sock)
 {
-	if (call->IsMediaEncryption() && m_isH245Master) {
+	if (call->IsMediaEncryption() && !m_isH245Master) {
 		// now we can officially use the key we sent to the slave (currently we use it right away and discard all media with old PT)
 		suppress = true;
 	}

@@ -412,6 +412,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "ENUMservers" },
 #ifdef HAS_H235_MEDIA
 	{ "RoutedMode", "EnableH235HalfCallMedia" },
+	{ "RoutedMode", "EnableH235HalfCallMediaKeyUpdates" },
 #endif
 	{ "RoutedMode", "EnableH450.2" },
 #ifdef HAS_H46017
