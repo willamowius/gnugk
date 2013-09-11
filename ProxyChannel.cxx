@@ -1020,6 +1020,7 @@ public:
 	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &,callptr &);
 
 	void SetHandler(ProxyHandler *);
+	H245ProxyHandler * GetPeer() const { return peer; }
 	void UpdateLogicalChannelSessionID(WORD flcn, WORD id);
 	LogicalChannel * FindLogicalChannel(WORD flcn);
 	RTPLogicalChannel * FindRTPLogicalChannelBySessionID(WORD id);
@@ -2733,6 +2734,9 @@ void CallSignalSocket::SendEncryptionUpdateCommand(WORD flcn, BYTE oldPT)
 	H245ProxyHandler * h245handler = dynamic_cast<H245ProxyHandler *>(m_h245handler);
 	if (h245handler) {
 		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(h245handler->FindLogicalChannel(flcn));
+		if (!rtplc && h245handler->GetPeer()) {
+			rtplc = dynamic_cast<RTPLogicalChannel *>(h245handler->GetPeer()->FindLogicalChannel(flcn));
+		}
 		if (rtplc) {
 			BYTE newPayloadType = RandomPT(oldPT);
 			H245_MultimediaSystemControlMessage h245msg;
@@ -2749,6 +2753,7 @@ void CallSignalSocket::SendEncryptionUpdateCommand(WORD flcn, BYTE oldPT)
 			if (m_h245Tunneling)
 				SendTunneledH245(h245msg);
 			else {
+				PTRACE(4, "H245\tTo send: " << h245msg);
 				if (m_h245socket)
 					m_h245socket->Send(h245msg);
 			}
@@ -2780,6 +2785,7 @@ void CallSignalSocket::SendEncryptionUpdateRequest(WORD flcn, BYTE oldPT)
 	if (m_h245Tunneling) {
 		SendTunneledH245(h245msg);
 	} else {
+		PTRACE(4, "H245\tTo send: " << h245msg);
 		if (m_h245socket)
 			m_h245socket->Send(h245msg);
 	}
@@ -10235,6 +10241,8 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 				} else {
 					dest->SendEncryptionUpdateCommand(channelNumber, m_cipherPayloadType);
 				}
+			} else {
+				PTRACE(1, "H235\tError: Can't find call to request media key update");
 			}
 		}
 	}
@@ -11540,7 +11548,7 @@ bool H245ProxyHandler::HandleEncryptionUpdateRequest(H245_MiscellaneousCommand &
 			newPayloadType = RandomPT(0);	// TODO: what is current the PT ?
 		}
 		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(FindLogicalChannel(flcn));
-		if (!rtplc) {
+		if (!rtplc && peer) {
 			rtplc = dynamic_cast<RTPLogicalChannel *>(peer->FindLogicalChannel(flcn));
 		}
 		if (rtplc) {
@@ -11579,7 +11587,7 @@ bool H245ProxyHandler::HandleEncryptionUpdateCommand(H245_MiscellaneousCommand &
 		H245_MiscellaneousCommand_type_encryptionUpdateCommand & update = cmd.m_type;
 		WORD flcn = (WORD)cmd.m_logicalChannelNumber;
 		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(FindLogicalChannel(flcn));
-		if (!rtplc) {
+		if (!rtplc && peer) {
 			rtplc = dynamic_cast<RTPLogicalChannel *>(peer->FindLogicalChannel(flcn));
 		}
 		if (rtplc) {
