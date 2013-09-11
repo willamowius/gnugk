@@ -354,6 +354,20 @@ H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr,
 	return Result;
 }
 
+// convert a H.245 unicast address into an H.323 transport address
+H323TransportAddress H245UnicastToH323TransportAddr(const H245_UnicastAddress & h245unicast)
+{
+	if (h245unicast.GetTag() == H245_UnicastAddress::e_iPAddress) {
+		const H245_UnicastAddress_iPAddress & ipv4 = h245unicast;
+		return H323TransportAddress(PIPSocket::Address(ipv4.m_network.GetSize(), ipv4.m_network.GetValue()), ipv4.m_tsapIdentifier);
+	} else if (h245unicast.GetTag() == H245_UnicastAddress::e_iP6Address) {
+		const H245_UnicastAddress_iP6Address & ipv6 = h245unicast;
+		return H323TransportAddress(PIPSocket::Address(ipv6.m_network.GetSize(), ipv6.m_network.GetValue()), ipv6.m_tsapIdentifier);
+	}
+	PTRACE(1, "Unsupported H245_UnicastAddress: " << h245unicast.GetTagName());
+	return H323TransportAddress();
+}
+
 bool GetTransportAddress(const PString & addr, WORD def_port, PIPSocket::Address & ip, WORD & port)
 {
 	PStringArray adr_parts = SplitIPAndPort(addr.Trim(), def_port);

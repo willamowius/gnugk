@@ -59,6 +59,10 @@ typedef H225SignalingMsg<H225_Setup_UUIE> SetupMsg;
 typedef H225SignalingMsg<H225_Facility_UUIE> FacilityMsg;
 struct SetupAuthData;
 
+#ifdef _WIN32
+typedef int ssize_t;
+#endif
+
 extern const char *RoutedSec;
 extern const char *TLSSec;
 extern const char *ProxySection;
@@ -70,6 +74,10 @@ void PrintQ931(int, const char *, const char *, const Q931 *, const H225_H323_Us
 bool GetUUIE(const Q931 & q931, H225_H323_UserInformation & uuie);
 
 void SetUUIE(Q931 & q931, const H225_H323_UserInformation & uuie);
+
+ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323TransportAddress & toAddress);
+ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const PIPSocket::Address & ip, WORD port);
+
 
 class ProxySocket : public USocket {
 public:

@@ -649,11 +649,7 @@ public:
 
 	unsigned flcn;
 	KeepAliveType type;
-#ifdef hasIPV6
-	sockaddr_in6 dest;
-#else
-	sockaddr_in dest;
-#endif
+	H323TransportAddress dest;
 	unsigned interval;
 	unsigned seq;
 	int ossocket;

@@ -74,6 +74,9 @@ H245_TransportAddress IPToH245TransportAddr(const PIPSocket::Address & ip, WORD 
 // convert a socket IP address into an H225 transport address
 H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr, WORD Port);
 
+// convert a H.245 unicast address into an H.323 transport address
+H323TransportAddress H245UnicastToH323TransportAddr(const H245_UnicastAddress & h245unicast);
+
 bool GetTransportAddress(const PString & addr, WORD def_port, PIPSocket::Address & ip, WORD & port);
 
 bool GetTransportAddress(const PString & addr, WORD def_port, H225_TransportAddress & Result);

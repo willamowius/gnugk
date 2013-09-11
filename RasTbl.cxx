@@ -2420,8 +2420,7 @@ void H46019KeepAlive::SendKeepAlive(GkTimer * t)
 			ka_ptr = (char*)&multiplexedRtpKeepAlive;
 			ka_size = sizeof(multiplexedRtpKeepAlive);
 		}
-		// TODO: UDPSendWithSourceIP() ?
-		size_t sent = ::sendto(ossocket, ka_ptr, ka_size, 0, (struct sockaddr *)&dest, sizeof(dest));
+		size_t sent = UDPSendWithSourceIP(ossocket, ka_ptr, ka_size, dest);
 		if (sent != ka_size) {
 			PTRACE(1, "Error sending RTP keepAlive " << timer);
 			SNMP_TRAP(10, SNMPError, Network, "Sending multiplexed RTP keepAlive failed");
@@ -2457,8 +2456,7 @@ void H46019KeepAlive::SendKeepAlive(GkTimer * t)
 			ka_ptr = (char*)&multiplexedRtcpKeepAlive;
 			ka_size = sizeof(multiplexedRtcpKeepAlive);
 		}
-		// TODO: UDPSendWithSourceIP() ?
-		size_t sent = ::sendto(ossocket, ka_ptr, ka_size, 0, (struct sockaddr *)&dest, sizeof(dest));
+		size_t sent = UDPSendWithSourceIP(ossocket, ka_ptr, ka_size, dest);
 		if (sent != ka_size) {
 			PTRACE(1, "Error sending RTCP keepAlive " << timer);
 			SNMP_TRAP(10, SNMPError, Network, "Sending multiplexed RTCP keepAlive failed");
@@ -4411,7 +4409,7 @@ void CallRec::AddRTPKeepAlive(unsigned flcn, const H323TransportAddress & keepAl
 	H46019KeepAlive ka;
 	ka.type = RTP;
 	ka.flcn = flcn;
-	SetSockaddr(ka.dest, keepAliveRTPAddr);
+	ka.dest = keepAliveRTPAddr;
 	ka.interval = keepAliveInterval;
 	ka.multiplexID = multiplexID;
 	m_RTPkeepalives[flcn] = ka;
@@ -4445,7 +4443,7 @@ void CallRec::AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAl
 	H46019KeepAlive ka;
 	ka.type = RTCP;
 	ka.flcn = flcn;
-	SetSockaddr(ka.dest, keepAliveRTCPAddr);
+	ka.dest = H245UnicastToH323TransportAddr(keepAliveRTCPAddr);
 	ka.interval = keepAliveInterval;
 	ka.multiplexID = multiplexID;
 	m_RTCPkeepalives[flcn] = ka;
