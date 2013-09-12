@@ -262,11 +262,11 @@ BYTE GetStaticPayloadType(const H245_DataType & type)
 	return UNDEFINED_PAYLOAD_TYPE;
 }
 
-// pick a random payload type, but not the old one
-BYTE RandomPT(BYTE oldPT)
+// pick a random payload type, but not the old one or the plaintext PT
+BYTE RandomPT(BYTE oldPT, BYTE plainPT)
 {
 	BYTE newPT = oldPT;
-	while (newPT == oldPT) {
+	while ((newPT == oldPT) || (newPT == plainPT)) {
 		newPT = PRandom::Number() % 254 + 1;	// generate random in range [1-254]
 	}
 	return newPT;
@@ -2729,7 +2729,7 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 	return true;
 }
 
-void CallSignalSocket::SendEncryptionUpdateCommand(WORD flcn, BYTE oldPT)
+void CallSignalSocket::SendEncryptionUpdateCommand(WORD flcn, BYTE oldPT, BYTE plainPT)
 {
 	H245ProxyHandler * h245handler = dynamic_cast<H245ProxyHandler *>(m_h245handler);
 	if (h245handler) {
@@ -2738,7 +2738,7 @@ void CallSignalSocket::SendEncryptionUpdateCommand(WORD flcn, BYTE oldPT)
 			rtplc = dynamic_cast<RTPLogicalChannel *>(h245handler->GetPeer()->FindLogicalChannel(flcn));
 		}
 		if (rtplc) {
-			BYTE newPayloadType = RandomPT(oldPT);
+			BYTE newPayloadType = RandomPT(oldPT, plainPT);
 			H245_MultimediaSystemControlMessage h245msg;
 			h245msg.SetTag(H245_MultimediaSystemControlMessage::e_command);
 			H245_CommandMessage & h245cmd = h245msg;
@@ -2763,9 +2763,9 @@ void CallSignalSocket::SendEncryptionUpdateCommand(WORD flcn, BYTE oldPT)
 	}
 }
 
-void CallSignalSocket::SendEncryptionUpdateRequest(WORD flcn, BYTE oldPT)
+void CallSignalSocket::SendEncryptionUpdateRequest(WORD flcn, BYTE oldPT, BYTE plainPT)
 {
-	BYTE newPayloadType = RandomPT(oldPT);
+	BYTE newPayloadType = RandomPT(oldPT, plainPT);
 	H245_MultimediaSystemControlMessage h245msg;
 	h245msg.SetTag(H245_MultimediaSystemControlMessage::e_command);
 	H245_CommandMessage & h245cmd = h245msg;
@@ -9516,8 +9516,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		} else {
 			PTRACE(6, Type() << "\tForward from " << AsString(fromIP, fromPort)
 				<< " blocked, remote socket (" << AsString(fDestIP, fDestPort)
-				<< ") not yet known or ready"
-				);
+				<< ") not yet known or ready");
 			if (m_dontQueueRTP)
 				return NoData;
 		}
@@ -9527,16 +9526,14 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	} else {
 		if (rDestPort) {
 			PTRACE(6, Type() << "\tForward " << AsString(fromIP, fromPort)
-				<< " to " << AsString(rDestIP, rDestPort)
-				);
+				<< " to " << AsString(rDestIP, rDestPort));
 			if (Toolkit::Instance()->IsIPv6Enabled())
 				MapIPv4Address(rDestIP);
 			SetSendAddress(rDestIP, rDestPort);
 		} else {
 			PTRACE(6, Type() << "\tForward from " << AsString(fromIP, fromPort)
 				<< " blocked, remote socket (" << AsString(rDestIP, rDestPort)
-				<< ") not yet known or ready"
-				);
+				<< ") not yet known or ready");
 			if (m_dontQueueRTP)
 				return NoData;
 		}
@@ -10237,9 +10234,9 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 					dest = call->GetCallSignalSocketCalled();
 				}
 				if (dest->IsH245Master()) {
-					dest->SendEncryptionUpdateRequest(channelNumber, m_cipherPayloadType);
+					dest->SendEncryptionUpdateRequest(channelNumber, m_cipherPayloadType, m_plainPayloadType);
 				} else {
-					dest->SendEncryptionUpdateCommand(channelNumber, m_cipherPayloadType);
+					dest->SendEncryptionUpdateCommand(channelNumber, m_cipherPayloadType, m_plainPayloadType);
 				}
 			} else {
 				PTRACE(1, "H235\tError: Can't find call to request media key update");
@@ -11545,7 +11542,7 @@ bool H245ProxyHandler::HandleEncryptionUpdateRequest(H245_MiscellaneousCommand &
 		if (request.HasOptionalField(H245_EncryptionUpdateRequest::e_synchFlag))
 			newPayloadType = request.m_synchFlag;
 		else {
-			newPayloadType = RandomPT(0);	// TODO: what is current the PT ?
+			newPayloadType = RandomPT(0, 0);	// TODO: what are current the PTs ?
 		}
 		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(FindLogicalChannel(flcn));
 		if (!rtplc && peer) {
@@ -11562,9 +11559,10 @@ bool H245ProxyHandler::HandleEncryptionUpdateRequest(H245_MiscellaneousCommand &
 			misc.m_logicalChannelNumber = cmd.m_logicalChannelNumber;
 			misc.m_direction.SetTag(H245_EncryptionUpdateDirection::e_slaveToMaster); // this update was requested by the slave
 			rtplc->GenerateNewMediaKey(newPayloadType, update.m_encryptionSync);
-			if (h245sock)
+			if (h245sock) {
+				PTRACE(4, "H245\tTo send: " << h245msg);
 				h245sock->Send(h245msg);
-			else {
+			} else {
 				// send tunneled (to slave)
 				CallSignalSocket * css = call->GetCallSignalSocketCalling();
 				if (css->IsH245Master())
@@ -11605,9 +11603,10 @@ bool H245ProxyHandler::HandleEncryptionUpdateCommand(H245_MiscellaneousCommand &
 			misc.IncludeOptionalField(H245_MiscellaneousCommand::e_direction);
 			misc.m_direction.SetTag(H245_EncryptionUpdateDirection::e_slaveToMaster);
 			ack.m_synchFlag = update.m_encryptionSync.m_synchFlag;
-			if (h245sock)
+			if (h245sock) {
+				PTRACE(4, "H245\tTo send: " << h245msg);
 				h245sock->Send(h245msg);
-			else {
+			} else {
 				// send tunneled to master side (only the master issues UpdateCommand, slave would have sent UpdateRequest)
 				// (could also look at encryption direction in call object)
 				CallSignalSocket * css = call->GetCallSignalSocketCalling();
