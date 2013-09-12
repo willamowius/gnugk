@@ -3899,8 +3899,8 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	// If both the calling and called are on the same network segment (interface)
 	// then we can attempt to go direct. If not we MUST Proxy media.
 	bool goDirect = Toolkit::Instance()->H46023SameNetwork( 
-				(m_Calling->IsNATed() ?  m_Calling->GetNATIP() : m_Calling->GetIP()),
-				(m_Called->IsNATed() ?  m_Called->GetNATIP() : m_Called->GetIP()));
+				(m_Calling->IsNATed() ? m_Calling->GetNATIP() : m_Calling->GetIP()),
+				(m_Called->IsNATed() ? m_Called->GetNATIP() : m_Called->GetIP()));
 
 	// If we have the H46024ForceDirect switch then we can override the need to proxy.
 	if (!goDirect && Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46024ForceDirect", "0"))) {
@@ -4006,7 +4006,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	else if (goDirect
 			&& (m_Called->GetEPNATType() < (int)EndpointRec::NatSymmetric
 			&&  m_Calling->GetEPNATType() < (int)EndpointRec::NatSymmetric)
-			&& (m_Calling->UseH46024B() &&  m_Called->UseH46024B())) {
+			&& (m_Calling->UseH46024B() && m_Called->UseH46024B())) {
 				natinst = CallRec::e_natAnnexB;
 	}
 	// if both devices are behind a symmetric firewall then perhaps are on the same internal network. 
@@ -4028,7 +4028,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 		(m_Called->GetEPNATType() >= (int)EndpointRec::NatSymmetric))) {
 			if (((m_Calling->GetEPNATType() <(int)EndpointRec::NatSymmetric) || 
 				(m_Called->GetEPNATType() <(int)EndpointRec::NatSymmetric)) && 
-				m_Calling->UseH46024B() &&  m_Called->UseH46024B())
+				m_Calling->UseH46024B() && m_Called->UseH46024B())
 					natinst = CallRec::e_natAnnexB;   // Try direct probing.
 			else if (m_Calling->HasNATProxy() && 
 				((m_Calling->GetEPNATType() >=(int)EndpointRec::NatSymmetric) || !calledSupport || !m_Called->HasNATProxy()))
@@ -4086,7 +4086,7 @@ bool CallRec::NATSignallingOffload(bool isAnswer) const
 			return true;
 
 	if (!Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023SignalGKRouted", "0")) &&
-		((!(m_Called && m_Called->IsNATed()) && (m_natstrategy == e_natRemoteMaster ||  m_natstrategy == e_natLocalMaster)) ||
+		((!(m_Called && m_Called->IsNATed()) && (m_natstrategy == e_natRemoteMaster || m_natstrategy == e_natLocalMaster)) ||
 		(!SingleGatekeeper() && (m_natstrategy != e_natLocalProxy) && (m_natstrategy != e_natFullProxy))))
 			return true;
 

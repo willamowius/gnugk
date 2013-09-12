@@ -1911,7 +1911,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			msg->SetUUIEChanged();
 
         if (suppress) {
-		    m_result = NoData;	// don't forward anything
+			m_result = NoData;	// don't forward anything
 		    PTRACE(2, "Not forwarding " << msg->GetTagName());
 		    delete msg;
 		    return m_result;
@@ -6157,7 +6157,7 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg * msg)
 		}
 	} else {
 		PTRACE(1, "Error: ReleaseComplete is not associated with a call - dropping");
-		SNMP_TRAP(10, SNMPWarning, Network, "ReleaseComplete form " + GetName() +  " not associated with any call");
+		SNMP_TRAP(10, SNMPWarning, Network, "ReleaseComplete form " + GetName() + " not associated with any call");
 		m_result = NoData;
 		return;
 	}
@@ -9432,7 +9432,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			if (encrypting) {
 				succesful = m_encryptingLC->ProcessH235Media(wbuffer, buflen, encrypting, ivSequence, rtpPadding, payloadType);
 			} else {
-				succesful =  m_decryptingLC->ProcessH235Media(wbuffer, buflen, encrypting, ivSequence, rtpPadding, payloadType);
+				succesful = m_decryptingLC->ProcessH235Media(wbuffer, buflen, encrypting, ivSequence, rtpPadding, payloadType);
 			}
 		} else {
 			PTRACE(3, "H235\tCrypto channel not ready");
@@ -10215,11 +10215,11 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 	// check max buffer size
 	len = processed.GetSize() + rtpHeaderLen;
 	if (len > DEFAULT_PACKET_BUFFER_SIZE) {
-		PTRACE(1, "H235\tRTP packet to large, truncating");
+		PTRACE(1, "H235\tRTP packet too large, truncating");
 		len = DEFAULT_PACKET_BUFFER_SIZE;
 		processed.SetSize(DEFAULT_PACKET_BUFFER_SIZE - rtpHeaderLen);
 	}
-	memcpy(buffer+rtpHeaderLen, processed.GetPointer(), processed.GetSize());
+	memcpy(buffer + rtpHeaderLen, processed.GetPointer(), processed.GetSize());
 #if (H323PLUS_VER > 1252)
 	if (Toolkit::Instance()->IsH235HalfCallMediaKeyUpdatesEnabled()) {
 		// major endpoints seem to ignore the key updates, thus the switch

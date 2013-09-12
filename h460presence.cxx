@@ -1434,7 +1434,7 @@ bool GkPresence::HandleStatusUpdates(const H460P_PresenceIdentifier & pid, const
 			}
 		}
 
-		PTRACE(4, "PRES\tChanged Subscription for " << local << " : " << PresMsgType(type) <<  " " << remote);
+		PTRACE(4, "PRES\tChanged Subscription for " << local << " : " << PresMsgType(type) << " " << remote);
 
 		if (!IsLocalAvailable(local,aliasList))
 			return true;

@@ -308,10 +308,10 @@ public:
 	PString GetAdditionalDestinationAlias() const { return m_additionalDestAlias; }
 
 	bool IsH46017Disabled() const { return m_h46017disabled; }
-	void SetUsesH46017(bool val) {  m_usesH46017 = val; }
+	void SetUsesH46017(bool val) { m_usesH46017 = val; }
 	bool UsesH46017() const { return m_usesH46017; }
 	bool IsH46018Disabled() const { return m_h46018disabled; }
-	void SetUsesH46026(bool val) {  m_usesH46026 = val; }
+	void SetUsesH46026(bool val) { m_usesH46026 = val; }
 	bool UsesH46026() const { return m_usesH46026; }
 #ifdef HAS_H46026
 	unsigned GetH46026BW() const { return (m_maxBandwidth > 0) ? (m_maxBandwidth / 2) : 384000; }

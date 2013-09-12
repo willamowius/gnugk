@@ -331,7 +331,7 @@ GkSQLConnection::SQLConnPtr GkSQLiteConnection::CreateNewConnection(
 	sqlite3 *conn;
 	int rc = (*g_sqlite3_open)(m_database, &conn);
 	if (rc) {
-		PTRACE(2, GetName() << "\tSQLite connection to " <<  m_database 
+		PTRACE(2, GetName() << "\tSQLite connection to " << m_database 
 			<< " failed (sqlite3_open failed): " << (*g_sqlite3_errmsg)(conn));
 		(*g_sqlite3_close)(conn);
 		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed")

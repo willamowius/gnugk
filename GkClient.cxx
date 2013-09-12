@@ -2715,7 +2715,7 @@ void GkClient::H46023_TypeDetected(int nattype)
 void GkClient::OnRRJ(RasMsg *ras)
 {
 	H225_RegistrationReject & rrj = (*ras)->m_recvRAS;
-	m_rrjReason =  "Reason: " + rrj.m_rejectReason.GetTagName();
+	m_rrjReason = "Reason: " + rrj.m_rejectReason.GetTagName();
 	PTRACE(1, "GKC\tRegistration Rejected: " << rrj.m_rejectReason.GetTagName());
 
 	if (rrj.HasOptionalField(H225_RegistrationReject::e_altGKInfo)) {

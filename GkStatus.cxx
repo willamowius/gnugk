@@ -1595,7 +1595,7 @@ void StatusClient::ExecCommand(
 			CommandError("Syntax Error: FindVerbose ALIAS");
 		break;
 	case GkStatus::e_Yell:
-		m_gkStatus->SignalStatus(PString("  "+ WhoAmI() + ": " + cmd + "\r\n"));
+		m_gkStatus->SignalStatus(PString("  " + WhoAmI() + ": " + cmd + "\r\n"));
 		break;
 	case GkStatus::e_Who:
 		m_gkStatus->ShowUsers(this);
