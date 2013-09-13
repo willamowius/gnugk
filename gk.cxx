@@ -940,7 +940,7 @@ BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 		eventName = "CTRL_SHUTDOWN_EVENT";
 
 #ifndef hasPTLibTraceOnShutdownBug
-	PTRACE(1, "GK\tGatekeeper shutdown due to "<<eventName);
+	PTRACE(1, "GK\tGatekeeper shutdown due to " << eventName);
 #endif
 
 	PWaitAndSignal shutdown(ShutdownMutex);
