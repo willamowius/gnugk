@@ -728,6 +728,9 @@ void ShutdownHandler()
 	// delete singleton objects
 	PTRACE(3, "GK\tDeleting global reference tables");
 
+	// end all calls before deleting handler objects (won't end calls if DisconnectCallsOnShutdown=0)
+	CallTable::Instance()->ClearTable();
+
 	Job::StopAll();
 #ifdef HAS_H46018
 	if (MultiplexedRTPHandler::InstanceExists())
