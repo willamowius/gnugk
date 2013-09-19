@@ -1481,8 +1481,6 @@ void Gatekeeper::Main()
 	// let's go
 	RasSrv->Run();
 
-	//HouseKeeping();
-
 	// graceful shutdown
 	cerr << "\nShutting down gatekeeper . . . ";
 
@@ -1494,6 +1492,10 @@ void Gatekeeper::Main()
 	SetConsoleCtrlHandler((PHANDLER_ROUTINE)WinCtrlHandlerProc, FALSE);
 	FreeConsole();
 #endif // _WIN32
+
+#ifdef P_OPENBSD
+	_exit(0);	// skip exit handlers, will hang on OpenBSD 5.3
+#endif
 }
 
 namespace {
