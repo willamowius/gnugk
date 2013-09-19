@@ -3,7 +3,7 @@
 // ProxyChannel.h
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2002-2012, Jan Willamowius
+// Copyright (c) 2002-2013, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -730,7 +730,6 @@ public:
 #ifdef HAS_H235_MEDIA
 	virtual void UpdateChannelEncryptingLC(const H225_CallIdentifier & callid, WORD session, RTPLogicalChannel * lc);
 	virtual void UpdateChannelDecryptingLC(const H225_CallIdentifier & callid, WORD session, RTPLogicalChannel * lc);
-//	virtual void RemoveChannel(H225_CallIdentifier callid, RTPLogicalChannel * rtplc);
 #endif
 	virtual void DumpChannels(const PString & msg = "") const;
 
