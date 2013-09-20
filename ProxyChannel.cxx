@@ -61,6 +61,10 @@
 #include <mswsock.h>
 #endif
 
+#ifdef P_OPENBSD
+#include <sys/uio.h>
+#endif
+
 using namespace std;
 using Routing::Route;
 
