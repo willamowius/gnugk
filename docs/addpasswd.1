@@ -13,32 +13,34 @@
 .Nd Password utility for the GNU Gatekeeper
 .Sh SYNOPSIS
 .Nm addpasswd
-config-file section user password
+.Ar config-file
+.Ar section
+.Ar user
+.Ar password
 .Sh DESCRIPTION
 Addpasswd is a tool to encrypt passwords for use in the GNU Gatekeeper config file.
-Please not that this is a rather weak encryption that is easy to break for a determined attacker.
+Please note that this is a rather weak encryption that is easy to break for a determined attacker.
 .Sh OPTIONS
 .Bl -tag -width Ds
-.It config-file
+.It Ar config-file
 Specify the configuration file to use. 
-.It section
+.It Ar section
 Specify which section to write the password to. 
-.It user
+.It Ar user
 The user name.
-.It password
+.It Ar password
 The password to encode for this user.
 .El
 .Sh FILES
 .Pa /etc/gatekeeper.ini
 .Sh AUTHORS
 The project coordinator is 
-.Em Jan Willamowius 
-<jan@willamowius.de> 
+.An Jan Willamowius Aq Mt jan@willamowius.de .
 .Sh SEE ALSO
 .Xr gnugk 1 (and HTML manual)
 .Pp
-http://www.gnugk.org/ (project homepage)
+.Lk http://www.gnugk.org/ "Project homepage"
 .Pp
-http://www.gnugk.org/gnugk-manual.html (manual for latest release)
+.Lk http://www.gnugk.org/gnugk-manual.html "Manual for latest release"
 .Pp
-http://www.willamowius.com/gnugk-support.html (commercial support)
+.Lk http://www.willamowius.com/gnugk-support.html "Commercial support"
