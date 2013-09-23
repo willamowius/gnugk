@@ -1054,6 +1054,11 @@ Default: <tt>n/a</tt><newline>
 <p>
 The passphrase to open the above certificate files, if you have set one.
 
+<item><tt/CipherList=ALL:!ADH:!LOW:!EXP:@STRENGTH/<newline>
+Default: <tt>ALL:!ADH:!LOW:!EXP:@STRENGTH</tt><newline>
+<p>
+Set the OpenSSL cipher list to be used for TLS connections.
+
 <item><tt/CheckCertificateIP=1/<newline>
 Default: <tt>0</tt><newline>
 <p>

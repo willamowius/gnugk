@@ -2234,7 +2234,8 @@ SSL_CTX * Toolkit::GetTLSContext()
 		m_sslCtx = SSL_CTX_new(SSLv23_method());	// allow SSLv3 + TLSv1
 		SSL_CTX_set_options(m_sslCtx, SSL_OP_NO_SSLv2);	// remove unsafe SSLv2
 		SSL_CTX_set_mode(m_sslCtx, SSL_MODE_AUTO_RETRY); // handle re-negotiations automatically
-		SSL_CTX_set_cipher_list(m_sslCtx, "ALL:!ADH:!LOW:!EXP:@STRENGTH");
+		PString cipherList = m_Config->GetString(TLSSec, "CipherList", "ALL:!ADH:!LOW:!EXP:@STRENGTH");
+		SSL_CTX_set_cipher_list(m_sslCtx, cipherList);
 
 		SSL_CTX_set_info_callback(m_sslCtx, apps_ssl_info_callback);	// enable only when debugging
 		SSL_CTX_set_default_passwd_cb(m_sslCtx, pem_passwd_cb);
