@@ -431,6 +431,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "EnableH460P" },
 #endif
 	{ "RoutedMode", "FailoverCauses" },
+	{ "RoutedMode", "FilterEmptyFacility" },
 	{ "RoutedMode", "ForceNATKeepAlive" },
 	{ "RoutedMode", "ForwardOnFacility" },
 	{ "RoutedMode", "GKRouted" },

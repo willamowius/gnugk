@@ -1,6 +1,9 @@
 Changes from 3.4 to 3.5
 =======================
- - new switch [TLS] CipherList=
+- BUGFIX(ProxyChannel.cxx) use Facility with reason transportedInformation for
+  H.245 tunneling translation for H.225 version >= 4
+- new switch [RoutedMode] FilterEmptyFacility= (Avaya interop)
+- new switch [TLS] CipherList=
 
 Changes from 3.3 to 3.4
 =======================

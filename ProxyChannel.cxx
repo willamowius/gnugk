@@ -3197,7 +3197,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			H225_H323_UU_PDU_h323_message_body &msgBody = userInfo.m_h323_uu_pdu.m_h323_message_body;
 			msgBody.SetTag(H225_H323_UU_PDU_h323_message_body::e_releaseComplete);
 
-			H225_ReleaseComplete_UUIE &uuie = msgBody;
+			H225_ReleaseComplete_UUIE & uuie = msgBody;
 			uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
 			uuie.IncludeOptionalField(H225_ReleaseComplete_UUIE::e_reason);
 			uuie.m_reason.SetTag(H225_ReleaseCompleteReason::e_newConnectionNeeded);
@@ -6340,15 +6340,32 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 		break;
 
 	case H225_FacilityReason::e_transportedInformation:
+		if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "FilterEmptyFacility", "0"))) {
+			// filter out Facility messages with reason transportedInformation, but without h245Control or h4501SuplementaryService
+			// needed for Avaya interop
+			// TODO: are there other fields that might need to be tranported ?
+			H225_H323_UserInformation * uuie = facility->GetUUIE();
+			if (uuie == NULL) {
+				m_result = NoData;
+				return;
+			}
+			if (   !uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Control)
+				&& !uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h4501SupplementaryService) ) {
+				m_result = NoData;
+				return;
+			}
+		}
 		if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "TranslateFacility", "0"))) {
-			CallSignalSocket *sigSocket = dynamic_cast<CallSignalSocket*>(remote);
+			CallSignalSocket * sigSocket = dynamic_cast<CallSignalSocket*>(remote);
 			if (sigSocket != NULL && sigSocket->m_h225Version > 0
 					&& sigSocket->m_h225Version < 4) {
-				H225_H323_UserInformation *uuie = facility->GetUUIE();
-				uuie->m_h323_uu_pdu.m_h323_message_body.SetTag(
-					H225_H323_UU_PDU_h323_message_body::e_empty);
-				msg->SetUUIEChanged();
-				return;
+				H225_H323_UserInformation * uuie = facility->GetUUIE();
+				if (uuie) {
+					uuie->m_h323_uu_pdu.m_h323_message_body.SetTag(
+						H225_H323_UU_PDU_h323_message_body::e_empty);
+					msg->SetUUIEChanged();
+					return;
+				}
 			}
 		}
 		break;
@@ -7288,7 +7305,22 @@ bool CallSignalSocket::SendTunneledH245(const PPER_Stream & strm)
 	PBYTEArray lBuffer;
 	BuildFacilityPDU(q931, 0);
 	GetUUIE(q931, uuie);
-	uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
+	H225_Facility_UUIE & facility_uuie = uuie.m_h323_uu_pdu.m_h323_message_body;
+	if (m_h225Version < 4) {
+		// prior to H.225.0 version 4 we send an empty body
+		uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
+	} else {
+		// starting with version 4 we send reason transportedInformation plus callID
+		facility_uuie.m_protocolIdentifier.SetValue("0.0.8.2250.0.4");	// we are at least version 4
+		facility_uuie.m_reason.SetTag(H225_FacilityReason::e_transportedInformation);
+		if (m_call) {
+			facility_uuie.IncludeOptionalField(H225_Facility_UUIE::e_callIdentifier);
+			facility_uuie.m_callIdentifier = m_call->GetCallIdentifier();
+		}
+		facility_uuie.RemoveOptionalField(H225_Facility_UUIE::e_conferenceID);
+		facility_uuie.RemoveOptionalField(H225_Facility_UUIE::e_multipleCalls);
+		facility_uuie.RemoveOptionalField(H225_Facility_UUIE::e_maintainConnection);
+	}
 	uuie.m_h323_uu_pdu.m_h245Tunneling = TRUE;
 	uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Control);
 	uuie.m_h323_uu_pdu.m_h245Control.SetSize(1);
@@ -7307,7 +7339,22 @@ bool CallSignalSocket::SendTunneledH245(const H245_MultimediaSystemControlMessag
 	PBYTEArray lBuffer;
 	BuildFacilityPDU(q931, 0);
 	GetUUIE(q931, uuie);
-	uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
+	H225_Facility_UUIE & facility_uuie = uuie.m_h323_uu_pdu.m_h323_message_body;
+	if (m_h225Version < 4) {
+		// prior to H.225.0 version 4 we send an empty body
+		uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
+	} else {
+		// starting with version 4 we send reason transportedInformation plus callID
+		facility_uuie.m_protocolIdentifier.SetValue("0.0.8.2250.0.4");	// we are at least version 4
+		facility_uuie.m_reason.SetTag(H225_FacilityReason::e_transportedInformation);
+		if (m_call) {
+			facility_uuie.IncludeOptionalField(H225_Facility_UUIE::e_callIdentifier);
+			facility_uuie.m_callIdentifier = m_call->GetCallIdentifier();
+		}
+		facility_uuie.RemoveOptionalField(H225_Facility_UUIE::e_conferenceID);
+		facility_uuie.RemoveOptionalField(H225_Facility_UUIE::e_multipleCalls);
+		facility_uuie.RemoveOptionalField(H225_Facility_UUIE::e_maintainConnection);
+	}
 	uuie.m_h323_uu_pdu.m_h245Tunneling = TRUE;
 	uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Control);
 	uuie.m_h323_uu_pdu.m_h245Control.SetSize(1);
@@ -7696,9 +7743,10 @@ void H245Socket::ConnectTo()
 				GetHandler()->Insert(this, remote);
 				ConfigReloadMutex.EndRead();
 				// send all queued H.245 messages now
+				PTRACE(3, "H245\tSending " << sigSocket->GetH245MessageQueueSize() << " queued H.245 messages now");
 				while (PASN_OctetString * h245msg = sigSocket->GetNextQueuedH245Message()) {
 					if (!remoteH245Socket->Send(*h245msg)) {
-						PTRACE(1, "H.245\tSending queued messages failed");
+						PTRACE(1, "H245\tSending queued messages failed");
 					}
 					delete h245msg;
 				}

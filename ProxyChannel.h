@@ -304,6 +304,7 @@ public:
 	bool IsH245Tunneling() const { return m_h245Tunneling; }
 	bool IsH245TunnelingTranslation() const { return m_h245TunnelingTranslation; }
 	PASN_OctetString * GetNextQueuedH245Message();
+	unsigned GetH245MessageQueueSize() const { return  m_h245Queue.size(); }
 	bool HandleH245Mesg(PPER_Stream &, bool & suppress, H245Socket * h245sock = NULL);
 	void SendPostDialDigits();
 	void OnH245ChannelClosed() { m_h245socket = NULL; }

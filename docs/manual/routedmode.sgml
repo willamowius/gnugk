@@ -296,6 +296,12 @@ process tunneled H.245 messages inside Facility, if the body is not empty.
 The conversion is performed only when necessary - if both endpoints are v4
 or both endpoints are pre-v4, nothing is changed.
 
+<item><tt/FilterEmptyFacility=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Filter out Facility messages with reason transportedInformation, but without
+h245Control or h4501SupplementaryService field. Needed for Avaya interop.
+
 <item><tt/SocketCleanupTimeout=1000/<newline>
 Default: <tt/5000/<newline>
 <p>
