@@ -12,6 +12,8 @@
 //
 //////////////////////////////////////////////////////////////////
 
+#define __APPLE_USE_RFC_3542	// MacOSX supposedly needs this to be able to set the UDP source IP
+
 #include <ptlib.h>
 #include <ptclib/random.h>
 #include <q931.h>
