@@ -83,6 +83,17 @@ const char * KnownConfigEntries[][2] = {
 	{ "AssignedGatekeepers::SQL", "Password" },
 	{ "AssignedGatekeepers::SQL", "Query" },
 	{ "AssignedGatekeepers::SQL", "Username" },
+#ifdef HAS_LANGUAGE
+	{ "AssignedLanguage::SQL", "CacheTimeout" },
+	{ "AssignedLanguage::SQL", "Database" },
+	{ "AssignedLanguage::SQL", "Driver" },
+	{ "AssignedLanguage::SQL", "Host" },
+	{ "AssignedLanguage::SQL", "Library" },
+	{ "AssignedLanguage::SQL", "MinPoolSize" },
+	{ "AssignedLanguage::SQL", "Password" },
+	{ "AssignedLanguage::SQL", "Query" },
+	{ "AssignedLanguage::SQL", "Username" },
+#endif
 #endif
 	{ "CTI::Agents", "CTI_Timeout" },	// obsolete, but still accepted
 	{ "CTI::Agents", "RequestTimeout" },
