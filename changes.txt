@@ -1,5 +1,6 @@
 Changes from 3.4 to 3.5
 =======================
+- language based routing (H.323v8)
 - BUGFIX(ProxyChannel.cxx) use Facility with reason transportedInformation for
   H.245 tunneling translation for H.225 version >= 4
 - new switch [RoutedMode] FilterEmptyFacility= (Avaya interop)
