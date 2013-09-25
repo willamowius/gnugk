@@ -2928,7 +2928,8 @@ bool Toolkit::AssignedLanguage::LoadSQL(PConfig * cfg)
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
 		return false;
 	}
-
+ 
+	m_sqlactive = true;
 	return true;
 }
 

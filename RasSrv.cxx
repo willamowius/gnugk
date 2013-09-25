@@ -2596,6 +2596,14 @@ bool RegistrationRequestPDU::Process()
 		}						
 #endif // HAS_H460
 
+#ifdef HAS_LANGUAGE
+		// Assigned Language
+		if (request.HasOptionalField(H225_RegistrationRequest::e_language)) {
+			if (ep->SetAssignedLanguage(request.m_language, rcf.m_language))
+				rcf.IncludeOptionalField(H225_RegistrationConfirm::e_language);
+		}
+#endif
+
 		// Gatekeeper assigned Aliases if the client supplied aliases
 		if (request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
 			if (!ep->IsGateway() || Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "GatewayAssignAliases", "1")))
@@ -2607,14 +2615,6 @@ bool RegistrationRequestPDU::Process()
 		// Assigned GKs
 		if (request.HasOptionalField(H225_RegistrationRequest::e_assignedGatekeeper)) 
 			ep->SetAssignedGatekeeper(rcf.m_assignedGatekeeper);
-#endif
-
-#ifdef HAS_LANGUAGE
-		// Assigned Language
-		if (request.HasOptionalField(H225_RegistrationRequest::e_language)) {
-			if (ep->SetAssignedLanguage(request.m_language, rcf.m_language))
-				rcf.IncludeOptionalField(H225_RegistrationConfirm::e_language);
-		}
 #endif
 
 		// Alternate GKs
