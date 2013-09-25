@@ -1146,8 +1146,11 @@ bool LRQRequester::SupportLanguages() const
 {
 	if (!m_result)
 		return false;
-
+#if HAS_LANGUAGE
 	return GkConfig()->GetBoolean(LRQFeaturesSection, "EnableLanguageRouting", false);
+#else
+    return false;
+#endif
 }
 
 PStringList LRQRequester::GetLanguages() const

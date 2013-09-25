@@ -369,7 +369,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "RasSrv::LRQFeatures", "AcceptNonNeighborLCF" },
 	{ "RasSrv::LRQFeatures", "AcceptNonNeighborLRQ" },
 	{ "RasSrv::LRQFeatures", "AlwaysForwardLRQ" },
+#ifdef HAS_LANGUAGE
 	{ "RasSrv::LRQFeatures", "EnableLanguageRouting" },
+#endif
 	{ "RasSrv::LRQFeatures", "ForwardHopCount" },
 	{ "RasSrv::LRQFeatures", "ForwardLRQ" },
 	{ "RasSrv::LRQFeatures", "ForwardResponse" },
