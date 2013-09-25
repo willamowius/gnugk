@@ -106,6 +106,7 @@ private:
 
 	endptr RequestingEP, CalledEP;
 	PString destinationString;
+	PStringList Language;
 };
 
 template<> H225_NonStandardParameter *RasPDU<H225_UnknownMessageResponse>::GetNonStandardParam()
@@ -2603,9 +2604,17 @@ bool RegistrationRequestPDU::Process()
 		}
 
 #ifdef h323v6
-        // Assigned GKs
-	    if (request.HasOptionalField(H225_RegistrationRequest::e_assignedGatekeeper)) 
-            ep->SetAssignedGatekeeper(rcf.m_assignedGatekeeper);
+		// Assigned GKs
+		if (request.HasOptionalField(H225_RegistrationRequest::e_assignedGatekeeper)) 
+			ep->SetAssignedGatekeeper(rcf.m_assignedGatekeeper);
+#endif
+
+#ifdef HAS_LANGUAGE
+		// Assigned Language
+		if (request.HasOptionalField(H225_RegistrationRequest::e_language)) {
+			if (ep->SetAssignedLanguage(request.m_language, rcf.m_language))
+				rcf.IncludeOptionalField(H225_RegistrationConfirm::e_language);
+		}
 #endif
 
 		// Alternate GKs
@@ -3133,6 +3142,7 @@ bool AdmissionRequestPDU::Process()
 
 		CalledEP = route.m_destEndpoint;
 		CalledAddress = route.m_destAddr;
+		Language = route.m_language;
 		toParent = route.m_flags & Route::e_toParent;
 		aliasesChanged = aliasesChanged || (arq.GetFlags() & Routing::AdmissionRequest::e_aliasesChanged);
 
@@ -3402,6 +3412,13 @@ bool AdmissionRequestPDU::Process()
 			authData.m_callDurationLimit)) {
 			   	acf.IncludeOptionalField(H225_AdmissionConfirm::e_serviceControl);
 	}
+
+#ifdef HAS_LANGUAGE
+	if (!answer && Toolkit::AsBool(GkConfig()->GetString("RasSrv::LRQFeatures", "UseLanguageRouting", false))) {
+		H323SetLanguages(Language, acf.m_language);
+		acf.IncludeOptionalField(H225_AdmissionConfirm::e_language); 
+	}
+#endif
 
 #ifdef HAS_H460
 	if (!answer) {	
@@ -3799,6 +3816,14 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 					}
 					lcf.m_destinationInfo = request.m_destinationInfo;
 				}
+
+#ifdef HAS_LANGUAGE
+				if (request.HasOptionalField(H225_LocationRequest::e_language) && 
+					Toolkit::AsBool(GkConfig()->GetString("RasSrv::LRQFeatures", "UseLanguageRouting", false))) {
+						if (WantedEndPoint && WantedEndPoint->SetAssignedLanguage(lcf.m_language))
+							lcf.IncludeOptionalField(H225_LocationConfirm::e_language); 
+				}
+#endif
 
 #ifdef HAS_H460
 				H225_ArrayOf_GenericData & data = lcf.m_genericData;

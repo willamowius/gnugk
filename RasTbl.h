@@ -324,6 +324,14 @@ public:
 	void SetUseTLS(bool val) { m_useTLS = val; }
 	bool UseTLS() const { return m_useTLS; }
 
+#ifdef HAS_LANGUAGE
+	bool SetAssignedLanguage(const H225_RegistrationRequest_language & rrqLang, H225_RegistrationConfirm_language & rcfLang);
+	bool SetAssignedLanguage(H225_LocationConfirm_language & lcfLang);
+#endif
+	void SetLanguages(const PStringList & languages) { m_languages = languages; }
+	const PStringList & GetLanguages() { return m_languages; }
+	PString GetDefaultLanguage();
+
 	// smart pointer for EndpointRec
 	typedef SmartPtr<EndpointRec> Ptr;
 
@@ -412,6 +420,8 @@ protected:
 	long m_maxBandwidth; // maximum bandwidth allowed for this endpoint
 	bool m_useTLS;
 	bool m_additiveRegistrant;
+	PStringList m_languages;  // languages the user of this endpoint supports
+
 };
 
 typedef EndpointRec::Ptr endptr;

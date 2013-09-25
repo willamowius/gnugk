@@ -80,6 +80,8 @@ public:
 	PString AsString() const;
 	bool IsFailoverActive(unsigned cause) const;
 
+	bool SetLanguages(const PStringList & local, const PStringList & remote);
+
 	H225_TransportAddress m_destAddr; /// destination address for signaling
 	endptr m_destEndpoint; /// destination endpoint record (if available)
 	PString m_policy; /// name of the policy that found the route
@@ -88,6 +90,7 @@ public:
 	unsigned m_flags; /// additional route specific flags
 	PString m_destNumber; /// rewritten number (corresponds to Toolkit::RewriteE164)
 	PString m_destOutNumber; /// number actually sent to the called party  (corresponds to Toolkit::GWRewriteE164)
+	PStringList m_language;  /// Language tags to use with this route.
 
 protected:
 	unsigned char m_rerouteCauses[16]; /// bit flags to trigger rerouting on particular Q931 causes
@@ -469,6 +472,7 @@ protected:
 	unsigned int m_rejectReason;
 	bool m_aliasesChanged;
 	H225_ArrayOf_AliasAddress m_newAliases;
+	PStringList m_language;
 };
 
 // superclass for dynamic policies like sql and lua scripring
@@ -494,6 +498,7 @@ protected:
 		const PString & callid,
 		const PString & messageType,
 		const PString & clientauthid,
+		const PString & language,
 		/* out: */
 		DestinationRoutes & destination) = 0;
 
@@ -526,6 +531,7 @@ protected:
 		const PString & callid,
 		const PString & messageType,
 		const PString & clientauthid,
+		const PString & language,
 		/* out: */
 		DestinationRoutes & destination);
 

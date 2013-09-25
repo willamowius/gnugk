@@ -1241,7 +1241,35 @@ bool EndpointRec::AddH350ServiceControl(H225_ArrayOf_ServiceControlSession & ses
 }
 #endif
 
+#ifdef HAS_LANGUAGE
+bool EndpointRec::SetAssignedLanguage(const H225_RegistrationRequest_language & rrqLang, H225_RegistrationConfirm_language & rcfLang)
+{
+	H323GetLanguages(m_languages,rrqLang);
 
+	PStringArray langs;
+	bool loadLanguage = Toolkit::Instance()->GetAssignedLanguages().GetLanguage(m_terminalAliases, langs);
+	// If we have assigned Aliases then replace the existing list of languages
+	if (loadLanguage) {
+		m_languages.RemoveAll();
+		m_languages = langs;
+	}
+
+	return H323SetLanguages(m_languages,rcfLang);
+}
+
+bool EndpointRec::SetAssignedLanguage(H225_LocationConfirm_language & lcfLang)
+{
+	return H323SetLanguages(m_languages,lcfLang);
+}
+#endif
+
+PString EndpointRec::GetDefaultLanguage()
+{
+	if (m_languages.GetSize() > 0)
+		return m_languages[0];
+	else
+		return PString();
+}
 
 GatewayRec::GatewayRec(const H225_RasMessage & completeRRQ, bool Permanent)
 	: EndpointRec(completeRRQ, Permanent), defaultGW(false), priority(1)

@@ -257,4 +257,8 @@
 #define HAS_SNMP 1
 #endif
 
+#if (H323PLUS_VER > 1252)
+#define HAS_LANGUAGE 1
+#endif
+
 #endif // PWLIB_COMPAT_H

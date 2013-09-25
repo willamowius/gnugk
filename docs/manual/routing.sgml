@@ -552,6 +552,7 @@ replacement is made before each query is executed. The following parameters are 
 <item><tt/%i/ - the call ID
 <item><tt/%m/ - the message type (ARQ, LRQ or Setup)
 <item><tt/%{client-auth-id}/ - a 64 bit integer ID provided to GnuGk when authenticating the call (through SQLAuth)
+<item><tt/%{language}/ - language if available
 </itemize>
 Some of these can be empty if they aren't included in the ARQ, LRQ or Setup message.
 <p>
@@ -686,6 +687,7 @@ replacement is made before each query is executed. The following parameters are 
 <item><tt/%i/ - the call ID
 <item><tt/%m/ - the message type (ARQ or Setup)
 <item><tt/%{client-auth-id}/ - a 64 bit integer ID provided to GnuGk when authenticating the call (through SQLAuth)
+<item><tt/%{language}/ - language if available
 </itemize>
 Some of these can be empty if they aren't included in the ARQ or Setup message.
 In most cases you should only use the called alias in the SQL query,

@@ -51,6 +51,7 @@ protected:
 		const PString & callid,
 		const PString & messageType,
 		const PString & clientauthid,
+		const PString & language,
 		/* out: */
 		DestinationRoutes & destination);
 
@@ -137,6 +138,7 @@ void ForwardingPolicy::RunPolicy(
 		const PString & callid,
 		const PString & messageType,
 		const PString & clientauthid,
+		const PString & language,
 		/* out: */
 		DestinationRoutes & destination)
 {
@@ -150,6 +152,7 @@ void ForwardingPolicy::RunPolicy(
 	params["i"] = callid;
 	params["m"] = messageType;
 	params["client-auth-id"] = clientauthid;
+	params["language"] = language;
 
 	// if IP called, check if its an internal EP and change calledAlias/calledIP
 	if (calledAlias.IsEmpty() && IsIPAddress(calledIP)) {

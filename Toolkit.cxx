@@ -2872,6 +2872,137 @@ bool Toolkit::AlternateGatekeepers::QueryAlternateGK(const PIPSocket::Address & 
 }
 #endif
 
+///////////////////////////////////////////////////////////////////////////////////////
+
+#ifdef HAS_LANGUAGE
+#if HAS_DATABASE
+Toolkit::AssignedLanguage::AssignedLanguage()
+  : m_sqlactive(false), m_sqlConn(NULL), m_timeout(-1)
+{
+}
+
+Toolkit::AssignedLanguage::~AssignedLanguage()
+{
+}
+
+bool Toolkit::AssignedLanguage::LoadSQL(PConfig * cfg)
+{
+	delete m_sqlConn;
+	PString authName = "AssignedLanguage::SQL";
+
+	if (cfg->GetSections().GetStringsIndex(authName) == P_MAX_INDEX)
+		return false;
+
+	const PString driverName = cfg->GetString(authName, "Driver", "");
+	if (driverName.IsEmpty()) {
+		PTRACE(0, "AssignSQL\tModule creation failed: "
+			"no SQL driver selected");
+		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
+		PTRACE(0, "AssignSQL\tFATAL: Shutting down");
+		return false;
+	}
+	
+	m_sqlConn = GkSQLConnection::Create(driverName, authName);
+	if (m_sqlConn == NULL) {
+		PTRACE(0, "AssignSQL\tModule creation failed: "
+			"Could not find " << driverName << " database driver");
+		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
+		PTRACE(0, "AssignSQL\tFATAL: Shutting down");
+		return false;
+	}
+		
+	m_query = cfg->GetString(authName, "Query", "");
+	if (m_query.IsEmpty()) {
+		PTRACE(0, "AssignSQL\tModule creation failed: No query configured");
+		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
+		PTRACE(0, "AssignSQL\tFATAL: Shutting down");
+		return false;
+	} else
+		PTRACE(4, "AssignSQL\tQuery: " << m_query);
+		
+	if (!m_sqlConn->Initialize(cfg, authName)) {
+		PTRACE(0, "AssignSQL\tModule creation failed: Could not connect to the database");
+		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
+		return false;
+	}
+
+	return true;
+}
+
+bool Toolkit::AssignedLanguage::DatabaseLookup(
+		const PString & alias,
+		PStringArray & languages	
+		)
+{
+	if (!m_sqlactive)
+		return false;
+
+	std::map<PString, PString> params;
+	params["u"] = alias;
+	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, params, m_timeout);
+	if (result == NULL) {
+		PTRACE(2, "LangSQL\tQuery failed - timeout or fatal error");
+		SNMP_TRAP(4, SNMPError, Database, "AssignedLanguage query failed");
+		return false;
+	}
+
+	if (!result->IsValid()) {
+		PTRACE(2, "LangSQL\tQuery failed (" << result->GetErrorCode()
+			<< ") - " << result->GetErrorMessage());
+		SNMP_TRAP(4, SNMPError, Database, "AssignedLanguage query failed");
+		delete result;
+		return false;
+	}
+
+	bool success = false;
+
+	if (result->GetNumRows() < 1)
+		PTRACE(3, "LangSQL\tQuery returned no rows");
+	else if (result->GetNumFields() < 1) {
+		PTRACE(2, "LangSQL\tBad-formed query - "
+			"no columns found in the result set");
+		SNMP_TRAP(4, SNMPError, Database, "AssignedLanguage query failed");
+	} else {
+		PStringArray retval;
+		while (result->FetchRow(retval)) {
+			if (retval[0].IsEmpty()) {
+				PTRACE(1, "LangSQL\tQuery Invalid value found.");
+				SNMP_TRAP(4, SNMPError, Database, "AssignedLanguage query failed");
+				continue;
+			}
+			if (!success) success = true;
+			PTRACE(5, "LangSQL\tQuery result: " << retval[0]);
+
+			languages.AppendString(retval[0]);
+		}
+	}
+	delete result;
+
+	return success;
+}
+#endif	// HAS_DATABASE
+
+bool Toolkit::AssignedLanguage::QueryAssignedLanguage(const PString & alias, PStringArray & languages)
+{
+#if HAS_DATABASE
+	if (DatabaseLookup(alias, languages))
+		return true;
+#endif
+	return false;
+}
+
+bool Toolkit::AssignedLanguage::GetLanguage(const H225_ArrayOf_AliasAddress & alias, PStringArray & aliaslist)
+{
+	for (PINDEX i=0; i < alias.GetSize(); ++i) {
+		QueryAssignedLanguage(H323GetAliasAddressString(alias[i]),aliaslist);
+	}
+	return (aliaslist.GetSize() > 0);
+
+}
+#endif  // HAS_LANGUAGE
+
+//////////////////////////////////////////////////////////////////////////////////////
+
 #if HAS_DATABASE
 Toolkit::QoSMonitor::QoSMonitor()
   : m_sqlactive(false), m_sqlConn(NULL), m_timeout(-1)

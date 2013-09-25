@@ -106,6 +106,20 @@ bool Route::IsFailoverActive(
 	return m_rerouteCauses[cause >> 3] & (1UL << (cause & 7));
 }
 
+bool Route::SetLanguages(const PStringList & local, const PStringList & remote)
+{
+	if (local.GetSize() == 0 && remote.GetSize() == 0)
+		return false;
+
+	for (PINDEX i=0; i<local.GetSize(); ++i) {
+		for (PINDEX j =0; j<remote.GetSize(); ++j) {
+			if (local[i] == remote[j])
+				m_language.AppendString(local[i]);
+		}
+	}
+	return (m_language.GetSize() > 0);
+}
+
 // class RoutingRequest
 RoutingRequest::RoutingRequest()
 	: m_reason(-1), m_flags(0)
@@ -1713,9 +1727,10 @@ bool DynamicPolicy::OnRequest(AdmissionRequest & request)
 		PString callid = AsString(arq.m_callIdentifier.m_guid);
 		PString messageType = "ARQ";
 		PString clientauthid = request.GetClientAuthId();
+		PString language = ep->GetDefaultLanguage();
 		DestinationRoutes destination;
 
-		RunPolicy(	/* in */ source, calledAlias, calledIP, caller, callingStationId, callid, messageType, clientauthid,
+		RunPolicy(	/* in */ source, calledAlias, calledIP, caller, callingStationId, callid, messageType, clientauthid, language,
 						/* out: */ destination);
 
 		if (destination.m_routes.empty() && !ResolveRoute(request,destination))
@@ -1772,9 +1787,14 @@ bool DynamicPolicy::OnRequest(LocationRequest & request)
 	PString callid = "";	/* not available for LRQs */
 	PString messageType = "LRQ";
 	PString clientauthid = "";	/* not available for LRQs */
+	PString language = "";
+#ifdef HAS_LANGUAGE
+	if (lrq.HasOptionalField(H225_LocationRequest::e_language) && (lrq.m_language.GetSize() > 0))
+		language = lrq.m_language[0];
+#endif
 	DestinationRoutes destination;
 
-	RunPolicy(	/* in */ source, calledAlias, calledIP, caller, callingStationId,callid, messageType, clientauthid,
+	RunPolicy(	/* in */ source, calledAlias, calledIP, caller, callingStationId,callid, messageType, clientauthid, language,
 					/* out: */ destination);
 
 	if (destination.m_routes.empty() && !ResolveRoute(request,destination))
@@ -1824,9 +1844,14 @@ bool DynamicPolicy::OnRequest(SetupRequest & request)
 	PString callid = AsString(setup.m_callIdentifier.m_guid);
 	PString messageType = "Setup";
 	PString clientauthid = request.GetClientAuthId();
+	PString language = "";
+#ifdef HAS_LANGUAGE
+	if (setup.HasOptionalField(H225_Setup_UUIE::e_language) && (setup.m_language.GetSize() > 0))
+		language = setup.m_language[0];
+#endif
 	DestinationRoutes destination;
 
-	RunPolicy(	/* in */ source, calledAlias, calledIP, caller, callingStationId, callid, messageType, clientauthid,
+	RunPolicy(	/* in */ source, calledAlias, calledIP, caller, callingStationId, callid, messageType, clientauthid, language,
 					/* out: */ destination);
 
 	if (destination.m_routes.empty() && !ResolveRoute(request,destination))
@@ -1936,6 +1961,7 @@ void SqlPolicy::RunPolicy(
 		const PString & callid,
 		const PString & messageType,
 		const PString & clientauthid,
+		const PString & language,
 		/* out: */
 		DestinationRoutes & destination)
 {
@@ -1950,6 +1976,7 @@ void SqlPolicy::RunPolicy(
 	params["i"] = callid;
 	params["m"] = messageType;
 	params["client-auth-id"] = clientauthid;
+	params["language"] = language;
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, params, m_timeout);
 	if (result == NULL) {
 		PTRACE(2, m_name << ": query failed - timeout or fatal error");

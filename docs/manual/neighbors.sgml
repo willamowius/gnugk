@@ -161,6 +161,10 @@ Default: <tt>N/A</tt><newline>
 Predefined Alias used with LRQ pinging. Capturing the Alias used for PING helps reduce gatekeeper resources processing the LRQ. 
 Feature used by VCS in GDS dialing schema. Feature currently only accepts pings and does not send any.
 
+<item><tt/EnableLanguageRouting=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Whether to compare users language settings in determining routing requests. 
 </itemize>
 
 

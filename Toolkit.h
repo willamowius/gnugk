@@ -359,6 +359,34 @@ class Toolkit : public Singleton<Toolkit>
 	bool MatchHostCert(SSL * ssl, PIPSocket::Address addr);
 #endif
 
+
+#ifdef HAS_LANGUAGE
+	class AssignedLanguage {
+	 public:
+#if HAS_DATABASE
+	    AssignedLanguage();
+		~AssignedLanguage();
+
+		bool LoadSQL(PConfig *);
+		bool DatabaseLookup(const PString &, PStringArray &);
+#endif
+		bool QueryAssignedLanguage(const PString & alias, PStringArray & languages);
+		bool GetLanguage(const H225_ArrayOf_AliasAddress & alias, PStringArray & aliaslist);
+
+#if HAS_DATABASE
+	private:
+		bool m_sqlactive;
+		// connection to the SQL database
+		GkSQLConnection* m_sqlConn;
+		// parametrized query string for the auth condition string retrieval
+		PString m_query;
+		// query timeout
+		long m_timeout;
+#endif
+	};
+	AssignedLanguage GetAssignedLanguages() const { return m_assignedLanguage; }
+#endif
+
 	/// maybe modifies #alias#. returns true if it did
 	bool RewriteE164(H225_AliasAddress & alias);
 	bool RewriteE164(H225_ArrayOf_AliasAddress & aliases);
@@ -640,6 +668,9 @@ protected:
 	AssignedAliases m_AssignedEPAliases;	// Assigned Aliases
 #ifdef h323v6
 	AssignedGatekeepers m_AssignedGKs;
+#endif
+#ifdef HAS_LANGUAGE
+	AssignedLanguage m_assignedLanguage;
 #endif
 #if HAS_DATABASE
     AlternateGatekeepers m_AlternateGKs;

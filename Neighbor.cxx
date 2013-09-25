@@ -742,23 +742,28 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
 	}
 
 #ifdef HAS_H46023
-    /// STD24  NAT Support
-    if (Toolkit::Instance()->IsH46023Enabled()) {
-        H460_FeatureStd std24 = H460_FeatureStd(24);
-        int sz = lrq.m_genericData.GetSize();
-        lrq.m_genericData.SetSize(sz+1);
-        lrq.m_genericData[sz] = std24;
-    }
+	/// STD24  NAT Support
+	if (Toolkit::Instance()->IsH46023Enabled()) {
+		H460_FeatureStd std24 = H460_FeatureStd(24);
+		int sz = lrq.m_genericData.GetSize();
+		lrq.m_genericData.SetSize(sz+1);
+		lrq.m_genericData[sz] = std24;
+	}
 #endif
 #ifdef HAS_H460VEN
-     /// OID9  'Remote endpoint vendor info THIS IS "1.3.6.1.4.1.17090.0.9" NOT H.460.9	- SH
-     H460_FeatureOID foid9 = H460_FeatureOID(OID9);	 
-     int sz = lrq.m_genericData.GetSize();	 
-     lrq.m_genericData.SetSize(sz+1);	 
-     lrq.m_genericData[sz] = foid9;
+	/// OID9  'Remote endpoint vendor info THIS IS "1.3.6.1.4.1.17090.0.9" NOT H.460.9	- SH
+	H460_FeatureOID foid9 = H460_FeatureOID(OID9);	 
+	int sz = lrq.m_genericData.GetSize();	 
+	lrq.m_genericData.SetSize(sz+1);	 
+	lrq.m_genericData[sz] = foid9;
 #endif
-     if (lrq.m_genericData.GetSize() > 0)
-          lrq.IncludeOptionalField(H225_LocationRequest::e_genericData);
+#ifdef HAS_LANGUAGE
+	if (Toolkit::AsBool(GkConfig()->GetString("RasSrv::LRQFeatures", "UseLanguageRouting", false))) {
+		lrq.IncludeOptionalField(H225_LocationRequest::e_language); 
+	}
+#endif
+	if (lrq.m_genericData.GetSize() > 0)
+		lrq.IncludeOptionalField(H225_LocationRequest::e_genericData);
 
 	return true;
 }
@@ -1032,6 +1037,8 @@ public:
 	bool IsTraversalZone() const { return m_h46018_client || m_h46018_server; }
 	bool IsH46024Supported() const;
 	bool UseTLS() const { return m_useTLS; }
+	bool SupportLanguages() const;
+	PStringList LRQRequester::GetLanguages() const;
 
 	// override from class RasRequester
 	virtual bool IsExpected(const RasMsg *) const;
@@ -1133,6 +1140,31 @@ bool LRQRequester::IsH46024Supported() const
 			return true;
 	}
 	return false;
+}
+
+bool LRQRequester::SupportLanguages() const
+{
+	if (!m_result)
+		return false;
+
+	return GkConfig()->GetBoolean(LRQFeaturesSection, "EnableLanguageRouting", false);
+}
+
+PStringList LRQRequester::GetLanguages() const
+{
+	PStringList languages;
+
+	if (!m_result)
+		return languages;
+
+#ifdef HAS_LANGUAGE
+	const H225_LocationConfirm *lcf = &(H225_LocationConfirm &)(*m_result)->m_recvRAS;
+	if (lcf && lcf->HasOptionalField(H225_LocationConfirm::e_language)) {
+		H323GetLanguages(languages, lcf->m_language);
+		return languages;
+	}
+#endif
+	return languages;
 }
 
 bool LRQRequester::IsExpected(const RasMsg * ras) const
@@ -1512,14 +1544,17 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 	if (request.Send(m_neighbors)) {
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
-#if defined(HAS_H460) || defined (HAS_TLS)
-			if ((request.UseTLS() || request.IsTraversalZone() || request.IsH46024Supported()) && RasServer::Instance()->IsGKRouted()) {
+#if defined(HAS_H460) || defined (HAS_TLS) || defined (HAS_LANGUAGE)
+			if (((request.UseTLS() || request.IsTraversalZone() || request.IsH46024Supported()) && RasServer::Instance()->IsGKRouted()) || request.SupportLanguages()) {
 				// overwrite callSignalAddress and replace with ours, we must proxy this call
 				endptr ep = RegistrationTable::Instance()->FindByEndpointId(arq_obj.GetRequest().m_endpointIdentifier); // should not be null
 				if (ep) {
 					 PIPSocket::Address epip;
 					if (GetIPFromTransportAddr(ep->GetCallSignalAddress(), epip))
 						route.m_destAddr = RasServer::Instance()->GetCallSignalAddress(epip);
+
+					if (request.SupportLanguages() && !route.SetLanguages(ep->GetLanguages(),request.GetLanguages()))
+						return false;
 				}
 				// create an EPRec to remember the NAT settings for H.460.18 (traversal zone) or H.460.23/.24 (genericData)
 				H225_RasMessage ras;

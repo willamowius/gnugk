@@ -362,6 +362,30 @@ SELECT alternategatekeeper FROM users WHERE ip = '%i' AND active
 </itemize>
 
 
+<sect1>Section &lsqb;AssignedLanguage::SQL&rsqb;
+<p>
+This section configures GnuGk to read the assigned Languages from a database.
+You can use the same database parameters as defined in <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">.
+
+<itemize>
+<item><tt/Query=SELECT .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Defines the SQL query used to retrieve the assigned languages from the database.
+
+One parameter is defined:
+<itemize>
+<item><tt/%u/ - endpoint alias
+</itemize>
+<p>
+Sample query string:
+<tscreen><verb>
+SELECT assignedlanguage FROM users WHERE alias = '%u' AND active
+</verb></tscreen>
+
+</itemize>
+
+
 <sect1>Section &lsqb;NATedEndpoints&rsqb;
 <p>
 The gatekeeper can automatically detect whether an endpoint is behind NAT.

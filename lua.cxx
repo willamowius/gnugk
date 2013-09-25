@@ -46,6 +46,7 @@ protected:
 		const PString & callid,
 		const PString & messageType,
 		const PString & clientauthid,
+		const PString & language,
 		/* out: */
 		DestinationRoutes & destination);
 
@@ -141,6 +142,7 @@ void LuaPolicy::RunPolicy(
 		const PString & callid,
 		const PString & messageType,
 		const PString & clientauthid,
+		const PString & language,
 		/* out: */
 		DestinationRoutes & destination)
 {
@@ -152,6 +154,7 @@ void LuaPolicy::RunPolicy(
 	SetValue("callid", callid);
 	SetValue("messageType", messageType);
 	SetValue("clientauthid", clientauthid);
+	SetValue("language", language);
 
 	if (luaL_loadstring(m_lua, m_script) != 0 || lua_pcall(m_lua, 0, 0, 0) != 0) {
 		PTRACE(1, "LUA\tError in LUA script: " << lua_tostring(m_lua, -1));
