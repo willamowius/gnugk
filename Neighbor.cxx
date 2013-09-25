@@ -1038,7 +1038,7 @@ public:
 	bool IsH46024Supported() const;
 	bool UseTLS() const { return m_useTLS; }
 	bool SupportLanguages() const;
-	PStringList LRQRequester::GetLanguages() const;
+	PStringList GetLanguages() const;
 
 	// override from class RasRequester
 	virtual bool IsExpected(const RasMsg *) const;
