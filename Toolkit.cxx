@@ -1807,6 +1807,9 @@ PConfig* Toolkit::ReloadConfig()
 #if HAS_DATABASE
 	m_AlternateGKs.LoadConfig(m_Config);
 	m_qosMonitor.LoadConfig(m_Config);
+#if HAS_LANGUAGE
+	m_assignedLanguage.LoadSQL(m_Config);
+#endif
 #endif
 
 	m_timestampFormatStr = m_Config->GetString("TimestampFormat", "Cisco");
