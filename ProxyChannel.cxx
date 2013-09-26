@@ -7318,6 +7318,7 @@ bool CallSignalSocket::SendTunneledH245(const PPER_Stream & strm)
 	H225_H323_UserInformation uuie;
 	PBYTEArray lBuffer;
 	BuildFacilityPDU(q931, 0);
+	q931.RemoveIE(Q931::FacilityIE);
 	GetUUIE(q931, uuie);
 	H225_Facility_UUIE & facility_uuie = uuie.m_h323_uu_pdu.m_h323_message_body;
 	if (m_h225Version < 4) {
