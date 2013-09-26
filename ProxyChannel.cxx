@@ -6297,6 +6297,22 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 		facilityBody.RemoveOptionalField(H225_Facility_UUIE::e_featureSet);
 	}
 
+	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "FilterEmptyFacility", "0"))) {
+		H225_H323_UserInformation * uuie = facility->GetUUIE();
+		if ( (uuie && (uuie->m_h323_uu_pdu.m_h323_message_body.GetTag() == H225_H323_UU_PDU_h323_message_body::e_empty))
+			|| (facilityBody.m_reason.GetTag() == H225_FacilityReason::e_transportedInformation) ) {
+			// filter out Facility messages with reason transportedInformation, but without h245Control or h4501SuplementaryService
+			// needed for Avaya interop
+			// TODO: are there other fields that might need to be transported ?
+			if (   !uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Control)
+				&& !uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h4501SupplementaryService) ) {
+				PTRACE(3, GetName() << "\tFiltering empty Facility");
+				m_result = NoData;
+				return;
+			}
+		}
+	}
+
 	switch (facilityBody.m_reason.GetTag()) {
 	case H225_FacilityReason::e_startH245:
 		{
@@ -6340,21 +6356,6 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 		break;
 
 	case H225_FacilityReason::e_transportedInformation:
-		if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "FilterEmptyFacility", "0"))) {
-			// filter out Facility messages with reason transportedInformation, but without h245Control or h4501SuplementaryService
-			// needed for Avaya interop
-			// TODO: are there other fields that might need to be tranported ?
-			H225_H323_UserInformation * uuie = facility->GetUUIE();
-			if (uuie == NULL) {
-				m_result = NoData;
-				return;
-			}
-			if (   !uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Control)
-				&& !uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h4501SupplementaryService) ) {
-				m_result = NoData;
-				return;
-			}
-		}
 		if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "TranslateFacility", "0"))) {
 			CallSignalSocket * sigSocket = dynamic_cast<CallSignalSocket*>(remote);
 			if (sigSocket != NULL && sigSocket->m_h225Version > 0
