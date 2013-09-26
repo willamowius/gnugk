@@ -391,6 +391,7 @@ protected:
 	void OnFacility(SignalingMsg *msg);
 	void OnProgress(SignalingMsg *msg);
 	void OnInformation(SignalingMsg *msg);
+	void OnStatus(SignalingMsg *msg);
 
 	bool OnTunneledH245(H225_ArrayOf_PASN_OctetString &, bool & suppress);
 	bool OnFastStart(H225_ArrayOf_PASN_OctetString &, bool);

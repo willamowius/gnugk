@@ -1902,6 +1902,9 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	case Q931::InformationMsg:
 		OnInformation(msg);
 		break;
+	case Q931::StatusMsg:
+		OnStatus(msg);
+		break;
 	}
 
 	if (!m_callerSocket && m_call
@@ -6523,7 +6526,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 
 void CallSignalSocket::OnProgress(SignalingMsg * msg)
 {
-	ProgressMsg *progress = dynamic_cast<ProgressMsg*>(msg);
+	ProgressMsg * progress = dynamic_cast<ProgressMsg*>(msg);
 	if (progress == NULL) {
 		PTRACE(2, Type() << "\tError: Progress message from " << Name() << " without associated UUIE");
 		SNMP_TRAP(9, SNMPError, Network, "Progress from " + GetName() + " has no UUIE");
@@ -6531,9 +6534,10 @@ void CallSignalSocket::OnProgress(SignalingMsg * msg)
 		return;
 	}
 
-	H225_Progress_UUIE &progressBody = progress->GetUUIEBody();
+	H225_Progress_UUIE & progressBody = progress->GetUUIEBody();
 
-	m_h225Version = GetH225Version(progressBody);
+	if (m_h225Version == 0)
+		m_h225Version = GetH225Version(progressBody);
 
 	if (HandleFastStart(progressBody, false))
 		msg->SetUUIEChanged();
@@ -6549,6 +6553,15 @@ void CallSignalSocket::OnProgress(SignalingMsg * msg)
 	if (progressBody.HasOptionalField(H225_Progress_UUIE::e_maintainConnection)) {
 		progressBody.m_maintainConnection = (GetRemote() && GetRemote()->MaintainConnection());
 		msg->SetUUIEChanged();
+	}
+}
+
+void CallSignalSocket::OnStatus(SignalingMsg * msg)
+{
+	if (!GetRemote()) {
+		// ignore the Status message if we don't have a remote side,
+		// thus avoiding sending a ReleaseComplete to the sender of the Status
+		m_result = NoData;
 	}
 }
 

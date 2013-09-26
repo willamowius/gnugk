@@ -4,7 +4,7 @@
  * Structures to hold and process signaling messages
  *
  * Copyright (c) 2005, Michal Zygmuntowicz
- * Copyright (c) 2005-2010, Jan Willamowius
+ * Copyright (c) 2005-2013, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -179,7 +179,7 @@ typedef H225SignalingMsg<H225_ReleaseComplete_UUIE> ReleaseCompleteMsg;
 typedef H225SignalingMsg<H225_Information_UUIE> InformationMsg;
 typedef H225SignalingMsg<H225_Facility_UUIE> FacilityMsg;
 //typedef H225SignalingMsg<H225_Notify_UUIE> NotifyMsg;
-//typedef H225SignalingMsg<H225_Status_UUIE> StatusMsg;
+typedef H225SignalingMsg<H225_Status_UUIE> StatusMsg;
 //typedef H225SignalingMsg<H225_StatusInquiry_UUIE> StatusInquiryMsg;
 
 #endif // SIGMSG_H

@@ -1,5 +1,6 @@
 Changes from 3.4 to 3.5
 =======================
+- BUGFIX(ProxyChannel.cxx) don't send a ReleaseComplete for Status messages outside of calls
 - language based routing (H.323v8)
 - BUGFIX(ProxyChannel.cxx) use Facility with reason transportedInformation for
   H.245 tunneling translation for H.225 version >= 4

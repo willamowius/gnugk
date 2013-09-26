@@ -4,7 +4,7 @@
  * Structures to hold and process signaling messages
  *
  * Copyright (c) 2005, Michal Zygmuntowicz
- * Copyright (c) 2005-2010, Jan Willamowius
+ * Copyright (c) 2005-2013, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -142,8 +142,8 @@ SignalingMsg* SignalingMsg::Create(
 			return new FacilityMsg(q931pdu, uuie, (H225_Facility_UUIE&)body, localAddr, localPort, peerAddr, peerPort);
 		case H225_H323_UU_PDU_h323_message_body::e_progress:
 			return new ProgressMsg(q931pdu, uuie, (H225_Progress_UUIE&)body, localAddr, localPort, peerAddr, peerPort);
-//		case H225_H323_UU_PDU_h323_message_body::e_status:
-//			return new StatusMsg(q931pdu, uuie, (H225_Status_UUIE&)body, localAddr, localPort, peerAddr, peerPort);
+		case H225_H323_UU_PDU_h323_message_body::e_status:
+			return new StatusMsg(q931pdu, uuie, (H225_Status_UUIE&)body, localAddr, localPort, peerAddr, peerPort);
 //		case H225_H323_UU_PDU_h323_message_body::e_statusInquiry:
 //			return new StatusInquiryMsg(q931pdu, uuie, (H225_StatusInquiry_UUIE&)body, localAddr, localPort, peerAddr, peerPort);
 //		case H225_H323_UU_PDU_h323_message_body::e_notify:
