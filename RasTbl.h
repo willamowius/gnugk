@@ -1329,7 +1329,7 @@ public:
 	PBYTEArray GetRADIUSClass() const;
 	
 	bool IsProceedingSent() const { return m_proceedingSent; }
-	void SetProceedingSent(bool val) { m_proceedingSent = val; }
+	void SetProceedingSent(bool val) { m_proceedingSent = m_proceedingSent || val; }
 
 	void SetRerouteState(RerouteState state) { m_rerouteState = state; }
 	RerouteState GetRerouteState() const { return m_rerouteState; }
@@ -2141,7 +2141,7 @@ public:
 	H225_CallIdentifier GetCallIdentifier() const { return m_callid; }
 	unsigned GetCallRef() const { return m_callref; }
 	bool IsProceedingSent() const { return m_proceedingSent; }
-	void SetProceedingSent(bool val) { m_proceedingSent = val; }
+	void SetProceedingSent(bool val) { m_proceedingSent = m_proceedingSent || val; }
 
 private:
 	CallSignalSocket * m_socket;
