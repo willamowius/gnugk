@@ -2238,7 +2238,7 @@ SSL_CTX * Toolkit::GetTLSContext()
 		SSL_CTX_set_options(m_sslCtx, SSL_OP_NO_SSLv2);	// remove unsafe SSLv2
 		SSL_CTX_set_mode(m_sslCtx, SSL_MODE_AUTO_RETRY); // handle re-negotiations automatically
 		// exclude insecure / broken ciphers
-		// no anonymous DH (ADH), no <= 56 bit (LOW), no export ciphers (EXP), no MD5 + RC4, no elliptic curve ciphers (ECDH + ECDSA)
+		// no anonymous DH (ADH), no <= 64 bit (LOW), no export ciphers (EXP), no MD5 + RC4, no elliptic curve ciphers (ECDH + ECDSA)
 		PString cipherList = m_Config->GetString(TLSSec, "CipherList", "ALL:!ADH:!LOW:!EXP:!MD5:!RC4:!ECDH:!ECDSA:@STRENGTH");
 		SSL_CTX_set_cipher_list(m_sslCtx, cipherList);
 
