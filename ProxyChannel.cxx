@@ -1412,6 +1412,9 @@ void CallSignalSocket::CleanupCall()
 	if (m_setupPdu)
 		delete m_setupPdu;
 	m_setupPdu = NULL;
+	// std::queue douesn't have a clear() operation, swap in an empty queue instead
+	std::queue<PASN_OctetString> empty;
+	std::swap(m_h245Queue, empty);
 #ifdef HAS_H46018
 	m_callFromTraversalServer = false;
 	m_callToTraversalServer = false;
@@ -1609,6 +1612,9 @@ CallSignalSocket::~CallSignalSocket()
 	m_h245handlerLock.Signal();
 	delete m_setupPdu;
 	m_setupPdu = NULL;
+	// std::queue douesn't have a clear() operation, swap in an empty queue instead
+	std::queue<PASN_OctetString> empty;
+	std::swap(m_h245Queue, empty);
 #ifdef HAS_H235_MEDIA
 	delete m_setupClearTokens;
 	m_setupClearTokens = NULL;
@@ -1825,6 +1831,22 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			uuie->m_h323_uu_pdu.m_h245Tunneling.SetValue(false);
 			msg->SetUUIEChanged();
 		}
+		if (msg->GetTag() == Q931::SetupMsg) {
+			// when Setup comes in, we don't know, yet, if tunneling translation is needed
+			// so we always save the H.245 but leave it in the Setup in case the remote side tunnels
+			if (uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Control)
+				&& uuie->m_h323_uu_pdu.m_h245Control.GetSize() > 0) {
+				// process tunneled H.245 messages before saving
+				bool suppress = false;
+				OnTunneledH245(msg->GetUUIE()->m_h323_uu_pdu.m_h245Control, suppress);
+				if (!suppress) {
+					for (PINDEX i = 0; i < uuie->m_h323_uu_pdu.m_h245Control.GetSize(); ++i) {
+						PTRACE(4, "H245\tQueueing H.245 messages from Setup");
+						m_h245Queue.push(uuie->m_h323_uu_pdu.m_h245Control[i]);
+					}
+				}
+			}
+		}
 		if (!m_h245Tunneling && ((GetRemote() && GetRemote()->m_h245Tunneling) || (msg->GetTag() == Q931::SetupMsg))) {
 			// if we haven't received a Q.931 message from the remote, yet, we assume it will be tunneling, so Setup messages will set it to TRUE here
 			uuie->m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
@@ -2040,10 +2062,9 @@ void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU, const H225_CallTermina
 			uuie.IncludeOptionalField(H225_ReleaseComplete_UUIE::e_reason);
 			uuie.m_reason = *cause;
 			// remember disconnect cause for billing purposes
-			if( m_call && m_call->GetDisconnectCause() == 0 )
+			if (m_call && m_call->GetDisconnectCause() == 0)
 				m_call->SetDisconnectCause(
-					Toolkit::Instance()->MapH225ReasonToQ931Cause(uuie.m_reason.GetTag())
-					);
+					Toolkit::Instance()->MapH225ReasonToQ931Cause(uuie.m_reason.GetTag()));
 			if (m_call)
 				ReleasePDU.SetCause(Q931::CauseValues(m_call->GetDisconnectCause()));
 		} else { // H225_CallTerminationCause::e_releaseCompleteCauseIE
@@ -2052,11 +2073,11 @@ void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU, const H225_CallTermina
 			strm.CompleteEncoding();
 			ReleasePDU.SetIE(Q931::CauseIE, strm);
 			// remember the cause for billing purposes
-			if( m_call && m_call->GetDisconnectCause() == 0 )
+			if (m_call && m_call->GetDisconnectCause() == 0)
 				m_call->SetDisconnectCause(ReleasePDU.GetCause());
 		}
 	} else { // either CauseIE or H225_ReleaseComplete_UUIE is mandatory
-		if( m_call && m_call->GetDisconnectCause() )
+		if (m_call && m_call->GetDisconnectCause())
 			// extract the stored disconnect cause, if not specified directly
 			ReleasePDU.SetCause( (Q931::CauseValues)(m_call->GetDisconnectCause()) );
 		else {
@@ -2405,7 +2426,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 
 			if (H245Capability.GetTag() == H245_Capability::e_receiveAudioCapability) {
 				H245_AudioCapability & H245AudioCapability = H245Capability;
-				if (m_call->GetDisabledCodecs().Find(H245AudioCapability.GetTagName() + ";", 0) != P_MAX_INDEX) {
+				if (m_call && m_call->GetDisabledCodecs().Find(H245AudioCapability.GetTagName() + ";", 0) != P_MAX_INDEX) {
 					PTRACE(4, "H245\tDelete audio capability " << H245AudioCapability.GetTagName() << " (" << cten << ")");
 					changed = true;
 					removedCaps.insert(cten);
@@ -2423,7 +2444,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 
 			if (H245Capability.GetTag() == H245_Capability::e_receiveVideoCapability) {
 				H245_VideoCapability & H245VideoCapability = H245Capability;
-				if (m_call->GetDisabledCodecs().Find(H245VideoCapability.GetTagName() + ";", 0) != P_MAX_INDEX) {
+				if (m_call && m_call->GetDisabledCodecs().Find(H245VideoCapability.GetTagName() + ";", 0) != P_MAX_INDEX) {
 					PTRACE(4, "H245\tDelete video capability " << H245VideoCapability.GetTagName() << " (" << cten << ")");
 					changed = true;
 					removedCaps.insert(cten);
@@ -2440,7 +2461,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 
 			if (H245Capability.GetTag() == H245_Capability::e_receiveUserInputCapability) {
 				H245_UserInputCapability & h245UserInput = H245Capability;
-				if (m_call->GetDisabledCodecs().Find(h245UserInput.GetTagName() + ";", 0) != P_MAX_INDEX) {
+				if (m_call && m_call->GetDisabledCodecs().Find(h245UserInput.GetTagName() + ";", 0) != P_MAX_INDEX) {
 					PTRACE(4, "H245\tDelete UserInput capability " << h245UserInput.GetTagName() << " (" << cten << ")");
 					changed = true;
 					removedCaps.insert(cten);
@@ -7751,7 +7772,7 @@ void H245Socket::ConnectTo()
 		if (sigSocket && sigSocket->IsH245Tunneling() && sigSocket->IsH245TunnelingTranslation()) {
 			// H.245 connect for tunneling leg - must be mixed mode
 			H245Socket * remoteH245Socket = dynamic_cast<H245Socket *>(remote);
-			if (remoteH245Socket && sigSocket->GetRemote()) {
+			if (remoteH245Socket) {
 				ConfigReloadMutex.StartRead();
 				remote->SetConnected(true);
 				SetConnected(true);	// avoid deletion of this unconnected socket
@@ -8086,8 +8107,19 @@ bool H245Socket::ConnectRemote()
 	for (int i = 0; i < numPorts; ++i) {
 		WORD pt = H245PortRange.GetPort();
 		if (Connect(localAddr, pt, peerAddr)) {
-			PTRACE(3, "H245\tConnect to " << GetName() << " from "
-				<< AsString(localAddr, pt) << " successful");
+			SetConnected(true);
+			PTRACE(3, "H245\tConnect to " << GetName() << " from " << AsString(localAddr, pt) << " successful");
+
+			if (sigSocket && sigSocket->GetRemote() && sigSocket->GetRemote()->IsH245TunnelingTranslation()) {
+				// send all queued H.245 messages now
+				PTRACE(3, "H245\tSending " << sigSocket->GetRemote()->GetH245MessageQueueSize() << " queued H.245 messages now");
+				while (PASN_OctetString * h245msg = sigSocket->GetRemote()->GetNextQueuedH245Message()) {
+					if (!Send(*h245msg)) {
+						PTRACE(1, "H245\tSending queued messages failed");
+					}
+					delete h245msg;
+				}
+			}
 			return true;
 		}
 		int errorNumber = GetErrorNumber(PSocket::LastGeneralError);

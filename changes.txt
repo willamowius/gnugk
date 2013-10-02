@@ -1,5 +1,7 @@
 Changes from 3.4 to 3.5
 =======================
+- BUGFIX(ProxyChannel.cxx) fix H.245 tunneling translation when H.245 connection is
+  actively established by the gatekeeper and there are pending H.245 messages
 - BUGFIX(RasTbl.h) fix translation of 2nd CallProceeding to unregistered endpoint
 - BUGFIX(ProxyChannel.cxx) don't send a ReleaseComplete for Status messages outside of calls
 - language based routing (H.323v8)
