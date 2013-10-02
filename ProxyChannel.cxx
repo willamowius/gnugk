@@ -6309,7 +6309,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 			// TODO: are there other fields that might need to be transported ?
 			if (   !uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Control)
 				&& !uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h4501SupplementaryService) ) {
-				PTRACE(3, GetName() << "\tFiltering empty Facility");
+				PTRACE(3, "Q931\tFiltering empty Facility from " << GetName());
 				m_result = NoData;
 				return;
 			}
