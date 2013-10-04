@@ -67,8 +67,8 @@ namespace Routing {
 /// authenticator modules
 struct RRQAuthData
 {
-	RRQAuthData() : m_rejectReason(-1), m_billingMode(-1) {}
-		
+	RRQAuthData() : m_rejectReason(-1), m_billingMode(-1) { }
+
 	/// -1 if not set, H225_RegistrationRejectReason enum otherwise
 	int m_rejectReason;
 	/// optional user's account balance amount string
@@ -77,25 +77,19 @@ struct RRQAuthData
 	int m_billingMode;
 	/// Authenticated Aliases
 	PStringArray m_authAliases;
-
 };
 
 /// Data read/written during ARQ processing by all configured 
 /// authenticator modules
 struct ARQAuthData
 {
-	ARQAuthData(
-		const ARQAuthData& obj
-		);
-	ARQAuthData(
-		const endptr& ep,
-		const callptr& call
-		);
+	ARQAuthData(const ARQAuthData & obj);
+	ARQAuthData(const endptr & ep, const callptr & call);
 
-	ARQAuthData& operator=(const ARQAuthData& obj);
+	ARQAuthData& operator=(const ARQAuthData & obj);
 		
 	void SetRouteToAlias(const H225_ArrayOf_AliasAddress & alias);
-	void SetRouteToAlias(const PString& alias, int tag = -1);
+	void SetRouteToAlias(const PString & alias, int tag = -1);
 		
 	/// -1 if not set, H225_AdmissionRejectReason enum otherwise
 	int m_rejectReason;
@@ -141,7 +135,7 @@ struct SetupAuthData
 	SetupAuthData(const SetupAuthData & obj);
 	SetupAuthData(
 		/// call associated with the message (if any)
-		const callptr& call,
+		const callptr & call,
 		/// is the Setup message from a registered endpoint
 		bool fromRegistered,
 		/// did the Setup come in over TLS
@@ -149,7 +143,7 @@ struct SetupAuthData
 		);
 	virtual ~SetupAuthData();
 		
-	SetupAuthData& operator=(const SetupAuthData& obj);
+	SetupAuthData& operator=(const SetupAuthData & obj);
 	
 	void SetRouteToAlias(const H225_ArrayOf_AliasAddress & alias);
 	void SetRouteToAlias(const PString & alias, int tag = -1);
@@ -256,22 +250,6 @@ public:
 	*/
 	virtual bool IsH235Capable() const;
 	
-	/** If the authenticator supports H.235 security,
-	    this call returns H.235 security capabilities
-	    associated with it. It scans list pointed by m_h235Authenticators.
-		
-	    @return
-	    true if H.235 security is supported by this authenticator 
-	    and capabilities has been set.
-	*/
-	virtual bool GetH235Capability(
-		/// append supported authentication mechanism to this array
-		H225_ArrayOf_AuthenticationMechanism& mechanisms,
-		/// append supported algorithm OIDs for the given authentication
-		/// mechanism
-		H225_ArrayOf_PASN_ObjectId& algorithmOIDs
-		) const;
-
 	/** Check if this authenticator supports the given
 	    H.235 capability (mechanism+algorithmOID) by scanning
 	    the m_h235Authenticators list of H.235 capabilities.
@@ -281,9 +259,9 @@ public:
 	*/
 	virtual bool IsH235Capability(
 		/// authentication mechanism
-		const H235_AuthenticationMechanism& mechanism,
+		const H235_AuthenticationMechanism & mechanism,
 		/// algorithm OID for the given authentication mechanism
-		const PASN_ObjectId& algorithmOID
+		const PASN_ObjectId & algorithmOID
 		) const;
 
 	/** @return
@@ -295,18 +273,15 @@ public:
 	/** @return
 	    True if the check is supported (implemented) by this authenticator.
 	*/
-	bool IsRasCheckEnabled(
-		unsigned rasCheck
-		) const { return (m_enabledRasChecks & m_supportedRasChecks & rasCheck) == rasCheck; }
+	bool IsRasCheckEnabled(unsigned rasCheck) const
+		{ return (m_enabledRasChecks & m_supportedRasChecks & rasCheck) == rasCheck; }
 
 	/** @return
 	    True if the check is supported (implemented) by this authenticator.
 	*/
-	bool IsMiscCheckEnabled(
-		unsigned miscCheck
-		) const { return (m_enabledMiscChecks & m_supportedMiscChecks & miscCheck) == miscCheck; }
+	bool IsMiscCheckEnabled(unsigned miscCheck) const
+		{ return (m_enabledMiscChecks & m_supportedMiscChecks & miscCheck) == miscCheck; }
 
-	
 	/** Virtual methods overriden in derived classes to perform
 		the actual authentication. The first parameter is a request
 	    to be checked, the second is a H225_XXXRejectReason that can
@@ -318,12 +293,12 @@ public:
 	    e_next - authentication is not supported for this request
 	             or cannot be determined (SQL failure, no cryptoTokens, ...)
 	*/
-	virtual int Check(RasPDU<H225_GatekeeperRequest>& req, unsigned& rejectReason);
-	virtual int Check(RasPDU<H225_UnregistrationRequest>& req, unsigned& rejectReason);
-	virtual int Check(RasPDU<H225_BandwidthRequest>& req, unsigned& rejectReason);
-	virtual int Check(RasPDU<H225_DisengageRequest>& req, unsigned& rejectReason);
-	virtual int Check(RasPDU<H225_LocationRequest>& req, unsigned& rejectReason);
-	virtual int Check(RasPDU<H225_InfoRequest>& req, unsigned& rejectReason);
+	virtual int Check(RasPDU<H225_GatekeeperRequest> & req, unsigned & rejectReason);
+	virtual int Check(RasPDU<H225_UnregistrationRequest> & req, unsigned & rejectReason);
+	virtual int Check(RasPDU<H225_BandwidthRequest> & req, unsigned & rejectReason);
+	virtual int Check(RasPDU<H225_DisengageRequest> & req, unsigned & rejectReason);
+	virtual int Check(RasPDU<H225_LocationRequest> & req, unsigned & rejectReason);
+	virtual int Check(RasPDU<H225_InfoRequest> & req, unsigned & rejectReason);
 
 	/** Authenticate/Authorize RAS or signaling message.
 	
@@ -335,21 +310,21 @@ public:
 	*/
 	virtual int Check(
 		/// RRQ to be authenticated/authorized
-		RasPDU<H225_RegistrationRequest>& request,
+		RasPDU<H225_RegistrationRequest> & request,
 		/// authorization data (reject reason, ...)
-		RRQAuthData& authData
+		RRQAuthData & authData
 		);
 	virtual int Check(
 		/// ARQ to be authenticated/authorized
-		RasPDU<H225_AdmissionRequest>& request, 
+		RasPDU<H225_AdmissionRequest> & request, 
 		/// authorization data (call duration limit, reject reason, ...)
-		ARQAuthData& authData
+		ARQAuthData & authData
 		);
 	virtual int Check(
 		/// Q.931/H.225 Setup to be authenticated
-		SetupMsg &setup, 
+		SetupMsg & setup, 
 		/// authorization data (call duration limit, reject reason, ...)
-		SetupAuthData& authData
+		SetupAuthData & authData
 		);
 
 	/** Get human readable information about current module state
@@ -385,19 +360,19 @@ protected:
 	*/
 	virtual PString GetUsername(
 		/// RRQ message with additional data
-		const RasPDU<H225_RegistrationRequest>& request
+		const RasPDU<H225_RegistrationRequest> & request
 		) const;
 	virtual PString GetUsername(
 		/// ARQ message with additional data
-		const RasPDU<H225_AdmissionRequest>& request,
+		const RasPDU<H225_AdmissionRequest> & request,
 		/// additional data, like call record and requesting endpoint
-		ARQAuthData& authData
+		ARQAuthData & authData
 		) const;
 	virtual PString GetUsername(
 		/// Q.931/H.225 Setup with additional data
-		const SetupMsg &setup, 
+		const SetupMsg & setup, 
 		/// additional data
-		SetupAuthData &authData
+		SetupAuthData & authData
 		) const;
 
 	/** @return
@@ -405,15 +380,15 @@ protected:
 	*/
 	virtual PString GetCallingStationId(
 		/// ARQ message with additional data
-		const RasPDU<H225_AdmissionRequest>& request,
+		const RasPDU<H225_AdmissionRequest> & request,
 		/// additional data, like call record and requesting endpoint
-		ARQAuthData& authData
+		ARQAuthData & authData
 		) const;
 	virtual PString GetCallingStationId(
 		/// Q.931/H.225 Setup to be authenticated
-		const SetupMsg &setup, 
+		const SetupMsg & setup, 
 		/// additional data
-		SetupAuthData& authData
+		SetupAuthData & authData
 		) const;
 
 	/** @return
@@ -421,31 +396,31 @@ protected:
 	*/
 	virtual PString GetCalledStationId(
 		/// ARQ message with additional data
-		const RasPDU<H225_AdmissionRequest>& request,
+		const RasPDU<H225_AdmissionRequest> & request,
 		/// additional data, like call record and requesting endpoint
-		ARQAuthData& authData
+		ARQAuthData & authData
 		) const;
 	virtual PString GetCalledStationId(
 		/// Q.931/H.225 Setup to be authenticated
-		const SetupMsg &setup, 
+		const SetupMsg & setup, 
 		/// additional data
-		SetupAuthData& authData
+		SetupAuthData & authData
 		) const;
 
 	/// @return	Number actually dialed by the user (before rewrite)
 	PString GetDialedNumber(
 		/// ARQ message with additional data
-		const RasPDU<H225_AdmissionRequest>& request,
+		const RasPDU<H225_AdmissionRequest> & request,
 		/// additional data
-		ARQAuthData& authData
+		ARQAuthData & authData
 		) const;
 		
 	/// @return	Number actually dialed by the user (before rewrite)
 	virtual PString GetDialedNumber(
 		/// Q.931/H.225 Setup to be authenticated
-		const SetupMsg &setup, 
+		const SetupMsg & setup, 
 		/// additional data
-		SetupAuthData& authData
+		SetupAuthData & authData
 		) const;
 
 	/// a list of H.235 capabilities supported by this module (if any)
@@ -453,8 +428,8 @@ protected:
 
 private:
 	GkAuthenticator();
-	GkAuthenticator(const GkAuthenticator&);
-	GkAuthenticator & operator=(const GkAuthenticator&);
+	GkAuthenticator(const GkAuthenticator &);
+	GkAuthenticator & operator=(const GkAuthenticator &);
 
 private:
 	/// default status to be returned, if not determined otherwise
@@ -551,11 +526,11 @@ public:
 	virtual ~SimplePasswordAuth();
 
 	// overriden from class GkAuthenticator
-	virtual int Check(RasPDU<H225_UnregistrationRequest>& req, unsigned& rejectReason);
-	virtual int Check(RasPDU<H225_BandwidthRequest>& req, unsigned& rejectReason);
-	virtual int Check(RasPDU<H225_DisengageRequest>& req, unsigned& rejectReason);
-	virtual int Check(RasPDU<H225_LocationRequest>& req, unsigned& rejectReason);
-	virtual int Check(RasPDU<H225_InfoRequest>& req, unsigned& rejectReason);
+	virtual int Check(RasPDU<H225_UnregistrationRequest> & req, unsigned & rejectReason);
+	virtual int Check(RasPDU<H225_BandwidthRequest> & req, unsigned & rejectReason);
+	virtual int Check(RasPDU<H225_DisengageRequest> & req, unsigned & rejectReason);
+	virtual int Check(RasPDU<H225_LocationRequest> & req, unsigned & rejectReason);
+	virtual int Check(RasPDU<H225_InfoRequest> & req, unsigned & rejectReason);
 
 	/** Authenticate/Authorize RAS or signaling message. 
 	    An override from GkAuthenticator.
@@ -568,15 +543,15 @@ public:
 	*/
 	virtual int Check(
 		/// RRQ to be authenticated/authorized
-		RasPDU<H225_RegistrationRequest>& request, 
+		RasPDU<H225_RegistrationRequest> & request, 
 		/// authorization data (reject reason, ...)
-		RRQAuthData& authData
+		RRQAuthData & authData
 		);
 	virtual int Check(
 		/// ARQ to be authenticated/authorized
-		RasPDU<H225_AdmissionRequest>& request, 
+		RasPDU<H225_AdmissionRequest> & request, 
 		/// authorization data (call duration limit, reject reason, ...)
-		ARQAuthData& authData
+		ARQAuthData & authData
 		);
 
 protected:
@@ -587,8 +562,8 @@ protected:
 	    could not be found.
 	*/
 	virtual bool GetPassword(
-		const PString& id, /// get the password for this id
-		PString& passwd /// filled with the password on return
+		const PString & id, /// get the password for this id
+		PString & passwd /// filled with the password on return
 		);
 
 	/** Retrieve username carried inside the token. 
@@ -704,11 +679,6 @@ protected:
 	/// Set new timeout for username/password pairs cache
 	void SetCacheTimeout(long newTimeout) { m_cache->SetTimeout(newTimeout); }
 
-	/** @return
-	    True if usernames should match one of endpoint aliases.
-	*/
-	bool GetCheckID() const { return m_checkID; }
-
 private:
 	/** Get password for the given user. Examine password cache first.
 	
@@ -758,9 +728,9 @@ protected:
 	*/
 	virtual bool GetPassword(
 		/// alias to check the password for
-		const PString& alias,
+		const PString & alias,
 		/// password string, if the match is found
-		PString& password
+		PString & password
 		);
 };
 
@@ -792,9 +762,9 @@ public:
 	/// an override from GkAuthenticator
 	virtual int Check(
 		/// RRQ to be authenticated/authorized
-		RasPDU<H225_RegistrationRequest>& request, 
+		RasPDU<H225_RegistrationRequest> & request, 
 		/// authorization data (reject reason, ...)
-		RRQAuthData& authData
+		RRQAuthData & authData
 		);
 
 protected:
@@ -806,9 +776,9 @@ protected:
 	*/
 	virtual bool doCheck(
 		/// an array of source signaling addresses for an endpoint that sent the request
-		const H225_ArrayOf_TransportAddress& sigaddr,
+		const H225_ArrayOf_TransportAddress & sigaddr,
 		/// auth condition string as returned by GetAuthConditionString
-		const PString& condition
+		const PString & condition
 		);
 		
 	/** Validate that the signaling address matches the given auth rule.
@@ -818,9 +788,9 @@ protected:
 	*/
 	virtual bool CheckAuthRule(
 		/// a signaling address for the endpoint that sent the request
-		const H225_TransportAddress& sigaddr,
+		const H225_TransportAddress & sigaddr,
 		/// the auth rule to be used for checking
-		const PString& authrule
+		const PString & authrule
 		);
 
 	/** Get AliasAuth condition string for the given alias. 
@@ -834,9 +804,9 @@ protected:
 	 */
 	virtual bool GetAuthConditionString(
 		/// an alias the condition string is to be retrieved for
-		const PString& alias,
+		const PString & alias,
 		/// filled with auth condition string that has been found
-		PString& authCond
+		PString & authCond
 		);
 
 	/// Set new timeout for username/password pairs cache
@@ -852,13 +822,13 @@ private:
 	    true if the auth condition string has been found.
     */
 	bool InternalGetAuthConditionString(
-		const PString& id, /// get the password for this id
-		PString& authCond /// filled with the auth condition string on return
+		const PString & id, /// get the password for this id
+		PString & authCond /// filled with the auth condition string on return
 		);
 		
 	AliasAuth();
-	AliasAuth(const AliasAuth&);
-	AliasAuth& operator=(const AliasAuth&);
+	AliasAuth(const AliasAuth &);
+	AliasAuth& operator=(const AliasAuth &);
 	
 private:
 	/// cache for username/password pairs
@@ -884,10 +854,7 @@ public:
 	    If no common H.235 capabilities can be found, do not select 
 	    any authentication mechanisms with GCF.
 	*/
-	void SelectH235Capability(
-		const H225_GatekeeperRequest& grq, 
-		H225_GatekeeperConfirm& gcf
-		);
+	void SelectH235Capability(const H225_GatekeeperRequest & grq, H225_GatekeeperConfirm & gcf);
 
 	/** Authenticate the request through all configured authenticators.
 	    Currently, only RAS requests are supported.
@@ -933,9 +900,9 @@ public:
 	*/
 	bool Validate(
 		/// RRQ to be validated by authenticators
-		RasPDU<H225_RegistrationRequest>& request,
+		RasPDU<H225_RegistrationRequest> & request,
 		/// authorization data (reject reason, ...)
-		RRQAuthData& authData
+		RRQAuthData & authData
 		);
 		
 	/** Authenticate and authorize (set call duration limit) ARQ 
@@ -946,9 +913,9 @@ public:
 	*/
 	bool Validate(
 		/// ARQ to be validated by authenticators
-		RasPDU<H225_AdmissionRequest>& request,
+		RasPDU<H225_AdmissionRequest> & request,
 		/// authorization data (call duration limit, reject reason, ...)
-		ARQAuthData& authData
+		ARQAuthData & authData
 		);
 	
 	/** Authenticate and authorize (set call duration limit) Q.931/H.225 Setup 
@@ -959,9 +926,9 @@ public:
 	*/
 	bool Validate(
 		/// Q.931/H.225 Setup to be authenticated
-		SetupMsg &setup, 
+		SetupMsg & setup, 
 		/// authorization data (call duration limit, reject reason, ...)
-		SetupAuthData& authData
+		SetupAuthData & authData
 		);
 
 	/** Get a module information string for the selected module.
@@ -970,7 +937,7 @@ public:
 		The module information string for status port diplay.
 	*/
 	PString GetInfo(
-		const PString &moduleName /// module to retrieve information for
+		const PString & moduleName /// module to retrieve information for
 		) {
 		ReadLock lock(m_reloadMutex);
 		std::list<GkAuthenticator*>::const_iterator i = m_authenticators.begin();
@@ -983,7 +950,7 @@ public:
 	}
 
 private:
-	GkAuthenticatorList(const GkAuthenticatorList& );
+	GkAuthenticatorList(const GkAuthenticatorList &);
 	GkAuthenticatorList & operator=(const GkAuthenticatorList &);
 
 private:

@@ -86,7 +86,7 @@ void ARQAuthData::SetRouteToAlias(const H225_ArrayOf_AliasAddress & alias)
 	m_routeToAlias = alias;
 }
 
-void ARQAuthData::SetRouteToAlias(const PString& alias, int tag)
+void ARQAuthData::SetRouteToAlias(const PString & alias, int tag)
 {
 	m_routeToAlias.SetSize(1);
 	H323SetAliasAddress(alias, m_routeToAlias[0], tag);
@@ -94,7 +94,7 @@ void ARQAuthData::SetRouteToAlias(const PString& alias, int tag)
 
 SetupAuthData::SetupAuthData(
 	/// call associated with the message (if any)
-	const callptr& call,
+	const callptr & call,
 	/// is the Setup message from a registered endpoint
 	bool fromRegistered,
 	/// did the Setup come in over TLS
@@ -115,7 +115,7 @@ SetupAuthData::SetupAuthData(const SetupAuthData & obj)
 {
 }
 
-SetupAuthData& SetupAuthData::operator=(const SetupAuthData& obj)
+SetupAuthData& SetupAuthData::operator=(const SetupAuthData & obj)
 {
 	if (this != &obj) {
 		m_rejectReason = obj.m_rejectReason;
@@ -142,7 +142,7 @@ void SetupAuthData::SetRouteToAlias(const H225_ArrayOf_AliasAddress & alias)
 	m_routeToAlias = alias;
 }
 
-void SetupAuthData::SetRouteToAlias(const PString& alias, int tag)
+void SetupAuthData::SetRouteToAlias(const PString & alias, int tag)
 {
 	m_routeToAlias.SetSize(1);
 	H323SetAliasAddress(alias, m_routeToAlias[0], tag);
@@ -160,9 +160,7 @@ GkAuthenticator::GkAuthenticator(
 	m_enabledMiscChecks(~0U), m_supportedMiscChecks(supportedMiscChecks),
 	m_config(GkConfig())
 {
-	const PStringArray control(
-		m_config->GetString(GkAuthSectionName, name, "").Tokenise(";,")
-		);
+	const PStringArray control(m_config->GetString(GkAuthSectionName, name, "").Tokenise(";,"));
 	if (control.GetSize() > 0) {
 		const PString controlStr = control[0].Trim();
 		if (strcasecmp(name, "default") == 0)
@@ -332,23 +330,6 @@ int GkAuthenticator::Check(
 		? m_defaultStatus : e_next;
 }
 
-// TODO: unused ? remove ?
-bool GkAuthenticator::GetH235Capability(
-	/// append supported authentication mechanism to this array
-	H225_ArrayOf_AuthenticationMechanism & mechanisms,
-	/// append supported algorithm OIDs for the given authentication
-	/// mechanism
-	H225_ArrayOf_PASN_ObjectId & algorithmOIDs
-	) const
-{
-	if (m_h235Authenticators && m_h235Authenticators->GetSize() > 0) {
-		for (PINDEX i = 0; i < m_h235Authenticators->GetSize(); i++)
-			(*m_h235Authenticators)[i].SetCapability(mechanisms, algorithmOIDs);
-		return true;
-	} else
-		return false;
-}		
-
 bool GkAuthenticator::IsH235Capability(
 	/// authentication mechanism
 	const H235_AuthenticationMechanism & mechanism,
@@ -384,7 +365,7 @@ void GkAuthenticator::AppendH235Authenticator(
 
 PString GkAuthenticator::GetUsername(
 	/// RRQ message with additional data
-	const RasPDU<H225_RegistrationRequest>& request
+	const RasPDU<H225_RegistrationRequest> & request
 	) const
 {
 	const H225_RegistrationRequest& rrq = request;
@@ -689,7 +670,7 @@ void GkAuthenticatorList::SelectH235Capability(
 	H225_GatekeeperConfirm & gcf)
 {
 	ReadLock lock(m_reloadMutex);
-	
+
 	if (m_authenticators.empty())
 		return;
 
@@ -738,9 +719,9 @@ void GkAuthenticatorList::SelectH235Capability(
 
 bool GkAuthenticatorList::Validate(
 	/// RRQ to be validated by authenticators
-	RasPDU<H225_RegistrationRequest>& request,
+	RasPDU<H225_RegistrationRequest> & request,
 	/// authorization data (reject reason, ...)
-	RRQAuthData& authData
+	RRQAuthData & authData
 	)
 {
 	ReadLock lock(m_reloadMutex);
@@ -849,7 +830,7 @@ bool GkAuthenticatorList::Validate(
 // class CacheManager
 bool CacheManager::Retrieve(
 	const PString & key, /// the key to look for
-	PString&  value /// filled with the value on return
+	PString & value /// filled with the value on return
 	) const
 {
 	// quick check
@@ -944,8 +925,7 @@ SimplePasswordAuth::~SimplePasswordAuth()
 
 int SimplePasswordAuth::Check(
 	RasPDU<H225_RegistrationRequest> & request, 
-	RRQAuthData& authData
-	)
+	RRQAuthData & authData)
 {
 	H225_RegistrationRequest& rrq = request;
 	return doCheck(request, 
