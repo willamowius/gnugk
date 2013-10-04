@@ -590,39 +590,6 @@ protected:
 		const PString& id, /// get the password for this id
 		PString& passwd /// filled with the password on return
 		);
-	
-	/** Validate username/password carried inside the tokens. This method
-	    supports only CAT and clear text tokens.
-		
-	    @return
-	    e_ok if the username/password carried inside the tokens is valid,
-	    e_fail if the username/password carried inside the tokens is invalid,
-	    e_next if no recognized tokens have been found
-	*/
-	virtual int CheckTokens(
-		/// an array of tokens to be checked
-		const H225_ArrayOf_ClearToken& tokens,
-		/// aliases for the endpoint that generated the tokens
-		const H225_ArrayOf_AliasAddress* aliases
-		);
-		
-	/** Validate username/password carried inside the tokens. This method
-	    supports only simple MD5 pwdHash cryptoTokens.
-		
-	    @return
-	    e_ok if the username/password carried inside the tokens is valid,
-	    e_fail if the username/password carried inside the tokens is invalid,
-	    e_next if no recognized tokens have been found
-	*/
-	virtual int CheckCryptoTokens(
-		/// an array of cryptoTokens to be checked
-		const H225_ArrayOf_CryptoH323Token& cryptoTokens, 
-		/// aliases for the endpoint that generated the tokens
-		const H225_ArrayOf_AliasAddress * aliases,
-		/// raw data for RAS PDU - required to validate some tokens
-		/// like H.235 Auth Procedure I
-		const PBYTEArray & rawPDU
-		);
 
 	/** Retrieve username carried inside the token. 
 	    @return
