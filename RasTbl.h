@@ -323,6 +323,8 @@ public:
 
 	void SetUseTLS(bool val) { m_useTLS = val; }
 	bool UseTLS() const { return m_useTLS; }
+	void SetUseIPSec(bool val) { m_useIPSec = val; }
+	bool UseIPSec() const { return m_useIPSec; }
 
 #ifdef HAS_LANGUAGE
 	bool SetAssignedLanguage(const H225_RegistrationRequest_language & rrqLang, H225_RegistrationConfirm_language & rcfLang);
@@ -419,6 +421,7 @@ protected:
 	long m_bandwidth;	// bandwidth currently occupied by this endpoint
 	long m_maxBandwidth; // maximum bandwidth allowed for this endpoint
 	bool m_useTLS;
+	bool m_useIPSec;	// for H.460.22 negotiation
 	bool m_additiveRegistrant;
 	PStringList m_languages;  // languages the user of this endpoint supports
 

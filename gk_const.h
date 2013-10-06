@@ -58,6 +58,14 @@ static const char * const H46018_OID = "0.0.8.460.18.0.1";
 static const char * const H46019_OID = "0.0.8.460.19.0.1";
 #endif
 
+
+///////////////////////////////////////////
+// H.460.22
+#define Std22_TLS				1	// detect TLS support
+#define Std22_IPSec				2	// detect IPSec support
+#define Std22_Priority			1	// priority
+#define Std22_ConnectionAddress	2	// connectionAddress
+
 ///////////////////////////////////////////
 // H.460.23
 

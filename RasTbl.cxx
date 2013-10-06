@@ -103,7 +103,7 @@ EndpointRec::EndpointRec(
 	m_H46024a(false), m_H46024b(false), m_natproxy(Toolkit::AsBool(GkConfig()->GetString(proxysection, "ProxyForNAT", "1"))),
 	m_internal(false), m_remote(false), m_h46017disabled(false), m_h46018disabled(false), m_usesH460P(false), m_hasH460PData(false),
     m_usesH46017(false), m_usesH46026(false), m_traversalType(None), m_bandwidth(0), m_maxBandwidth(-1), m_useTLS(false),
-    m_additiveRegistrant(false)
+     m_useIPSec(false), m_additiveRegistrant(false)
 {
 	switch (m_RasMsg.GetTag())
 	{

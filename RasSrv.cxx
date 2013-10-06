@@ -1764,6 +1764,23 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		}
 #endif // HAS_H46018
 
+#ifdef HAS_H460
+		// H.460.22
+		if (request.HasOptionalField(H225_GatekeeperRequest::e_featureSet)) {
+			H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
+			if (fs.HasFeature(22)) {
+				// include H.460.22 in supported features
+				gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_featureSet);
+				H460_FeatureStd h46022 = H460_FeatureStd(22);
+				gcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+				H225_ArrayOf_FeatureDescriptor & desc = gcf.m_featureSet.m_supportedFeatures;
+				PINDEX lPos = desc.GetSize();
+				desc.SetSize(lPos+1);
+				desc[lPos] = h46022;
+			}
+		}
+#endif // HAS_H460
+
 #ifdef HAS_H46023
 		if (Toolkit::Instance()->IsH46023Enabled()) {
 			// check if client supports H.460.23
@@ -1908,6 +1925,9 @@ bool RegistrationRequestPDU::Process()
 
 #ifdef HAS_H460
 	bool EPSupportsQoSReporting = false;
+	PBoolean supportH46022 = false;
+	PBoolean supportH46022TLS = false;
+	PBoolean supportH46022IPSec = false;
 #ifdef HAS_H460P
 	// Presence Support
 	PBoolean presenceSupport = false;
@@ -1946,6 +1966,15 @@ bool RegistrationRequestPDU::Process()
 			}
 		}
 #endif // HAS_H46018
+
+		// H.460.22
+		supportH46022 = fs.HasFeature(22);
+		if (supportH46022) {
+			H460_FeatureStd * secfeat = (H460_FeatureStd *)fs.GetFeature(22);
+			supportH46022TLS = secfeat->Contains(Std22_TLS);
+			supportH46022IPSec = secfeat->Contains(Std22_IPSec);
+		}
+
 #ifdef HAS_H46023
 		if (Toolkit::Instance()->IsH46023Enabled()) {
 			supportH46023 = fs.HasFeature(23);
@@ -2100,6 +2129,12 @@ bool RegistrationRequestPDU::Process()
 				ep->SetEPNATType(ntype);
 			}
 
+			// H.460.22
+			if (supportH46022TLS)
+				ep->SetUseTLS(true);	// don't set to supportH46022TLS, value might be set by other means
+			if (supportH46022IPSec)
+				ep->SetUseIPSec(true);	// don't set to supportH46022IPSec, value might be set by other means
+
 #ifdef HAS_H460P
 			// If we have some presence information
 			ep->SetUsesH460P(presenceSupport);
@@ -2144,7 +2179,19 @@ bool RegistrationRequestPDU::Process()
 					}
 				}
 #endif
-
+#ifdef HAS_H460
+				// H.460.22
+				if (supportH46022) {
+					H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
+					rcf.IncludeOptionalField(H225_RegistrationConfirm::e_featureSet);
+					H460_FeatureStd H46022 = H460_FeatureStd(22);
+					rcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+					H225_ArrayOf_FeatureDescriptor & desc = rcf.m_featureSet.m_supportedFeatures;
+					PINDEX sz = desc.GetSize();
+					desc.SetSize(sz+1);
+					desc[sz] = H46022;
+				}
+#endif // HAS_H460
 #ifdef HAS_H46023
 				// H.460.23
 				if (Toolkit::Instance()->IsH46023Enabled()) {
@@ -3058,6 +3105,9 @@ bool AdmissionRequestPDU::Process()
 	bool signalOffload = false;
 #ifdef HAS_H460
     bool EPSupportsQoSReporting = false;
+    bool EPSupportsH46022 = false;
+    bool EPSupportsH46022TLS = false;
+    bool EPSupportsH46022IPSec = false;
 	bool vendorInfo = false;
 	PString vendor, version;
 #if defined(HAS_H46026) || defined(HAS_H46023)
@@ -3068,11 +3118,18 @@ bool AdmissionRequestPDU::Process()
 	CallRec::NatStrategy natoffloadsupport = CallRec::e_natUnknown;
 #endif
 
-	/// H.460.9 QoS Reporting
 	if (request.HasOptionalField(H225_AdmissionRequest::e_featureSet)) {
+		// H.460.9 QoS Reporting
 		H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
 		if (fs.HasFeature(9)) {
 			EPSupportsQoSReporting = true;
+		}
+		// H.460.22
+		if (fs.HasFeature(22)) {
+			EPSupportsH46022 = true;
+			H460_FeatureStd * std22 = (H460_FeatureStd *)fs.GetFeature(22);
+			EPSupportsH46022TLS = std22->Contains(Std22_TLS);
+			EPSupportsH46022IPSec = std22->Contains(Std22_IPSec);
 		}
 #ifdef HAS_H46026
         if (fs.HasFeature(26) && Toolkit::Instance()->IsH46026Enabled()) 
@@ -3429,7 +3486,7 @@ bool AdmissionRequestPDU::Process()
 		// and the requesting EP can provide it then notify the EP to lend assistance.
 		if (natsupport && RequestingEP->UsesH46023()) {
 			 H460_FeatureStd fs = H460_FeatureStd(24);
-			 fs.Add(Std24_NATInstruct,H460_FeatureContent((int)natoffloadsupport,8));
+			 fs.Add(Std24_NATInstruct, H460_FeatureContent((int)natoffloadsupport, 8));
 			 lastPos++;
 			 data.SetSize(lastPos);
 			 data[lastPos-1] = fs;
@@ -3452,7 +3509,7 @@ bool AdmissionRequestPDU::Process()
 			acf.IncludeOptionalField(H225_AdmissionConfirm::e_genericData);  
 	}
  
-	/// H.460.9 QoS Reporting
+	// H.460.9 QoS Reporting
 	if (EPSupportsQoSReporting
 		&& Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0"))) {
 		H460_FeatureStd feat = H460_FeatureStd(9);
@@ -3463,9 +3520,41 @@ bool AdmissionRequestPDU::Process()
 		acf.IncludeOptionalField(H225_AdmissionConfirm::e_featureSet);
 		acf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_desiredFeatures);
 		H225_ArrayOf_FeatureDescriptor & desc = acf.m_featureSet.m_desiredFeatures;
-		desc.SetSize(1);
-		desc[0] = feat;
+		PINDEX len = desc.GetSize();
+		desc.SetSize(len + 1);
+		desc[len] = feat;
 	}
+
+	// H.460.22
+	if (EPSupportsH46022) {
+		acf.IncludeOptionalField(H225_AdmissionConfirm::e_featureSet);
+		H460_FeatureStd H46022 = H460_FeatureStd(22);
+		acf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+		H225_ArrayOf_FeatureDescriptor & desc = acf.m_featureSet.m_supportedFeatures;
+		PINDEX sz = desc.GetSize();
+		desc.SetSize(sz+1);
+		desc[sz] = H46022;
+		if (RasSrv->IsGKRouted() && !signalOffload) {
+			// inform endpoint about gatekeeper's capabilities
+#ifdef HAS_TLS
+			if (Toolkit::Instance()->IsTLSEnabled() && EPSupportsH46022TLS) {
+				H46022.Add(Std22_TLS);
+				// TODO: add priority (1) + connectionAddress (acf.m_destCallSignalAddress)
+			}
+#endif
+		} else {
+			// inform endpoint about remote endpoint's capabilities
+			if (EPSupportsH46022TLS && CalledEP && CalledEP->UseTLS()) {
+				H46022.Add(Std22_TLS);
+				// TODO: add priority + connectionAddress
+			}
+			if (EPSupportsH46022IPSec && CalledEP && CalledEP->UseIPSec()) {
+				H46022.Add(Std22_IPSec);
+				// TODO: add priority
+			}
+		}
+	}
+
 #ifdef HAS_H46026
 	/// H.460.26 media tunneling
 	if (EPRequiresH46026) {

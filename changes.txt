@@ -1,5 +1,6 @@
 Changes from 3.4 to 3.5
 =======================
+- implement H.460.22
 - BUGFIX(ProxyChannel.cxx) fix H.245 tunneling translation when H.245 connection is
   actively established by the gatekeeper and there are pending H.245 messages
 - BUGFIX(RasTbl.h) fix translation of 2nd CallProceeding to unregistered endpoint
