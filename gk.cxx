@@ -684,7 +684,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Neighbor::", "SendPassword" },
 	{ "Neighbor::", "SendPrefixes" },
 #ifdef HAS_TLS
-	{ "Neighbor", "UseTLS" },
+	{ "Neighbor::", "UseTLS" },
 #endif
 
 	// uncheckable sections
