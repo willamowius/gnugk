@@ -2250,16 +2250,23 @@ SSL_CTX * Toolkit::GetTLSContext()
 		PString caDir = m_Config->GetString(TLSSec, "CADir", "");
 		const char * caFilePtr = caFile.IsEmpty() ? NULL : caFile.GetPointer();
 		const char * caDirPtr = caDir.IsEmpty() ? NULL : caDir.GetPointer();
+		char msg[256];
 		if (caFilePtr || caDirPtr) {
 			if (SSL_CTX_load_verify_locations(m_sslCtx, caFilePtr, caDirPtr) != 1) {
 				PTRACE(1, "TLS\tError loading CA file or directory (" << caFile << " / " << caDir << ")");
+				ERR_error_string(ERR_get_error(), msg);
+				PTRACE(1, "TLS\tOpenSSL error: " << msg);
 			}
 		}
 		if (SSL_CTX_use_certificate_chain_file(m_sslCtx, m_Config->GetString(TLSSec, "Certificates", "tls_certificate.pem")) != 1) {
-			PTRACE(1, "TLS\tError loading certificate file");
+			PTRACE(1, "TLS\tError loading certificate file: " << m_Config->GetString(TLSSec, "Certificates", "tls_certificate.pem"));
+			ERR_error_string(ERR_get_error(), msg);
+			PTRACE(1, "TLS\tOpenSSL error: " << msg);
 		}
 		if (SSL_CTX_use_PrivateKey_file(m_sslCtx, m_Config->GetString(TLSSec, "PrivateKey", "tls_private_key.pem"), SSL_FILETYPE_PEM) != 1) {
-			PTRACE(1, "TLS\tError loading private key file");
+			PTRACE(1, "TLS\tError loading private key file: " << m_Config->GetString(TLSSec, "PrivateKey", "tls_private_key.pem"));
+			ERR_error_string(ERR_get_error(), msg);
+			PTRACE(1, "TLS\tOpenSSL error: " << msg);
 		}
 		SSL_CTX_set_verify(m_sslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, verify_callback); // context is used both in client and server mode
 		SSL_CTX_set_verify_depth(m_sslCtx, 5);
