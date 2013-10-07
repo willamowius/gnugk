@@ -1110,10 +1110,10 @@ openssl x509 -text -in server_cert.pem
 Here is a sample root.cnf file that you can adapt:
 <tscreen><verb>
 [ ca ]
-default_ca	= exampleca
+default_ca	= gnugk_ca
 
-[ exampleca ]
-dir              = /opt/exampleca
+[ gnugk_ca ]
+dir              = /opt/gnugk-ca
 certificate      = $dir/cacert.pem
 database         = $dir/index.txt
 new_certs_dir    = $dir/certs
@@ -1124,10 +1124,10 @@ default_crl_days = 7
 default_days     = 365
 default_md       = sha1
  
-policy           = exampleca_policy
+policy           = gnugk_ca_policy
 x509_extensions  = certificate_extensions
  
-[ exampleca_policy ]
+[ gnugk_ca_policy ]
 commonName             = supplied
 stateOrProvinceName    = supplied
 countryName            = supplied
@@ -1156,7 +1156,7 @@ countryName         = US
 stateOrProvinceName = Virginia
 localityName        = Fairfax
 organizationName    = Zork.org
-commonName          = Root CA
+commonName          = GnuGk Root CA
 
 [ req_extensions ]
 basicConstraints = CA:true
@@ -1165,10 +1165,10 @@ basicConstraints = CA:true
 Here is a sample server.cnf file that you can adapt:
 <tscreen><verb>
 [ ca ]
-default_ca	= exampleca
+default_ca	= gnugk_ca
 
-[ exampleca ]
-dir              = /opt/exampleca
+[ gnugk_ca ]
+dir              = /opt/gnugk-ca
 certificate      = $dir/cacert.pem
 database         = $dir/index.txt
 new_certs_dir    = $dir/certs
@@ -1179,10 +1179,10 @@ default_crl_days = 7
 default_days     = 365
 default_md       = sha1
  
-policy           = exampleca_policy
+policy           = gnugk_ca_policy
 x509_extensions  = certificate_extensions
  
-[ exampleca_policy ]
+[ gnugk_ca_policy ]
 countryName            = supplied
 stateOrProvinceName    = supplied
 localityName           = supplied
@@ -1204,7 +1204,7 @@ x509_extensions		= req_extensions
 
 [ certificate_extensions ]
 basicConstraints = CA:false
-subjectAltName = DNS:splat.zork.org,DNS:localhost
+subjectAltName = DNS:gk1.zork.org,DNS:localhost
 
 [ req_distinguished_name ]
 countryName            = US
