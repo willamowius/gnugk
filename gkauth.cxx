@@ -681,7 +681,6 @@ void GkAuthenticatorList::SelectH235Capability(
 			&& grq.m_algorithmOIDs.GetSize() > 0))
 		return;
 
-	// TODO: add TLS to negotiation either here or in H323Plus ?
 	for (PINDEX auth = 0; auth < m_h235authenticators.GetSize(); auth++) {
 		for (PINDEX cap = 0; cap < grq.m_authenticationCapability.GetSize(); cap++) {
 			for (PINDEX alg = 0; alg < grq.m_algorithmOIDs.GetSize(); alg++) {
