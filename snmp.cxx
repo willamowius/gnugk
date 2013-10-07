@@ -422,35 +422,8 @@ PBoolean PTLibSNMPAgent::OnGetNextRequest(PINDEX reqID, PSNMP::BindingList & var
 
 PBoolean PTLibSNMPAgent::OnSetRequest(PINDEX reqID, PSNMP::BindingList & vars, PSNMP::ErrorType & errCode)
 {
-	return PFalse;	// doesn't work
-
-/*
 	// TODO: SET operation is broken in PTLib PSNMPServer
-	// PSNMPServer::ProcessPDU() must send a response and the decoding of SET values is broken
-	for(PSNMP::BindingList::iterator i = vars.begin(); i != vars.end(); ++i){
-		if (i->first == TraceLevelOIDStr + PString(".0")) {
-			if (i->second.GetObject().GetTag() == PASN_Object::UniversalInteger) {
-				PASN_Integer & num = (PASN_Integer &)(i->second.GetObject());
-				PTRACE(0, "JW SET " << i->first << " to " << num << " = " << num.GetValue());
-				//PTrace::SetLevel(num.GetValue());
-				return PTrue;
-			} else {
-				PTRACE(1, "SNMP\tWrong data type for SET " << i->first);
-				return PFalse;
-			}
-		} else if (i->first == CatchAllOIDStr + PString(".0")) {
-			if (i->second.GetObject().GetTag() == PASN_Object::UniversalOctetString) {
-				PASN_OctetString & str = (PASN_OctetString &)(i->second.GetObject());
-				PTRACE(0, "JW SET " << i->first << " to " << str << " = " << str.GetValue());
-				return PTrue;
-			} else {
-				PTRACE(1, "SNMP\tWrong data type for SET " << i->first);
-				return PFalse;
-			}
-		}
-	}
-	return PFalse;
-*/
+	return PFalse;	// doesn't work
 }
 
 // 0=SNMPv1, 1=SNMPv2
@@ -584,7 +557,6 @@ void WindowsSNMPAgent::Run()
 				PTRACE(1, "SNMP\tSetNamedPipeHandleState failed. GLE=" << GetLastError());
 			}
 
-			PTRACE(3, "JW connected SNMP extension DLL pipes");
 			// read server request and respond, then disconnect
 			char buffer[BUFSIZE];
 			DWORD bytesRead;
