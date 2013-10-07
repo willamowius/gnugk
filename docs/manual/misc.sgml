@@ -1096,7 +1096,13 @@ Then generate one key for each server or endpoint and sign them with the CA cert
 openssl req -newkey rsa:1024 -sha1 -keyout server_key.pem -out server_req.pem -config server.cnf -reqexts req_extensions
 openssl x509 -req -in server_req.pem -sha1 -extfile root.cnf -extensions certificate_extensions -CA root_cert.pem -CAkey root_key.pem -CAcreateserial -out server_cert.pem
 </verb></tscreen>
-And then repeat as necessary.
+And then repeat to generate as many certificates as necessary.
+
+To check then content of a generated certificate (eg. to see if it has expired or if the DNS name is OK),
+you can use
+<tscreen><verb>
+openssl x509 -text -in server_cert.pem
+</verb></tscreen>
 
 Here is a sample root.cnf file that you can adapt:
 <tscreen><verb>
