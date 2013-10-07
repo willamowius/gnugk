@@ -1079,7 +1079,7 @@ installed with OpenSSL on your server, but you can enable them by setting CADir=
 <p>
 To have tight control over who you trust, you can generate your own
 CA using OpenSSL and only allow connections with certificates signed by your CA.
-Set you own CA with the CAFile= switcha and leave CADir= unset.
+Set you own CA with the CAFile= switch and leave CADir= unset.
 
 To follow the step-by-step instructions, you need a definition file for your CA, called root.cnf and one for the server called server.cnf (see below).
 While following these steps, you will be asked a few times for the passphrase for the generated files.
@@ -1087,16 +1087,19 @@ You should use the same for all of them and add it to your GnbuGk config with th
 
 First, generate your CA and self-sign it:
 <tscreen><verb>
-openssl req -newkey rsa:1024 -sha1 -keyout root_key.pem -out root_req.pem -config root.cnf
-openssl x509 -req -in root_req.pem -sha1 -extfile root.cnf -extensions certificate_extensions -signkey root_key.pem -out root_cert.pem
+openssl req -newkey rsa:2048 -sha1 -keyout root_key.pem -out root_req.pem -config root.cnf
+openssl x509 -req -in root_req.pem -sha1 -extfile root.cnf -days 365 -extensions certificate_extensions -signkey root_key.pem -out root_cert.pem
 </verb></tscreen>
 
 Then generate one key for each server or endpoint and sign them with the CA certificate:
 <tscreen><verb>
-openssl req -newkey rsa:1024 -sha1 -keyout server_key.pem -out server_req.pem -config server.cnf -reqexts req_extensions
-openssl x509 -req -in server_req.pem -sha1 -extfile root.cnf -extensions certificate_extensions -CA root_cert.pem -CAkey root_key.pem -CAcreateserial -out server_cert.pem
+openssl req -newkey rsa:2048 -sha1 -keyout server_key.pem -out server_req.pem -config server.cnf -reqexts req_extensions
+openssl x509 -req -in server_req.pem -sha1 -extfile root.cnf -days 365 -extensions certificate_extensions -CA root_cert.pem -CAkey root_key.pem -CAcreateserial -out server_cert.pem
 </verb></tscreen>
 And then repeat to generate as many certificates as necessary.
+
+The certificates generated above are valid for 365 days. Make sure you replace them before they expire,
+otherwise you won't be able to make calls!
 
 To check then content of a generated certificate (eg. to see if it has expired or if the DNS name is OK),
 you can use
