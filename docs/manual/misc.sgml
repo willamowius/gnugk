@@ -1085,7 +1085,7 @@ To follow the step-by-step instructions, you need a definition file for your CA,
 While following these steps, you will be asked a few times for the passphrase for the generated files.
 You should use the same for all of them and add it to your GnbuGk config with the Passphrase= switch.
 
-First, generate your CA and self-sign the it:
+First, generate your CA and self-sign it:
 <tscreen><verb>
 openssl req -newkey rsa:1024 -sha1 -keyout root_key.pem -out root_req.pem -config root.cnf
 openssl x509 -req -in root_req.pem -sha1 -extfile root.cnf -extensions certificate_extensions -signkey root_key.pem -out root_cert.pem
