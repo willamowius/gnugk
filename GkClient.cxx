@@ -167,7 +167,7 @@ void NATClient::Exec()
 	ReadLock lockConfig(ConfigReloadMutex);
 
 #ifdef HAS_TLS
-	if (Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "UseTLS", "0"))) {
+	if (GkConfig()->GetBoolean(EndpointSection, "UseTLS", false)) {
 		socket = new TLSCallSignalSocket();
 	} else
 #endif
@@ -1487,7 +1487,7 @@ GkClient::GkClient()
 	m_parentVendor(ParentVendor_GnuGk), m_endpointType(EndpointType_Gateway),
 	m_discoverParent(true), m_enableH46018(false), m_registeredH46018(false)
 #ifdef HAS_H46023
-	, m_nattype(0), m_natnotify(false), m_enableH46023(false), m_registeredH46023(false),  m_stunClient(NULL), m_algDetected(false)
+	, m_nattype(0), m_natnotify(false), m_enableH46023(false), m_registeredH46023(false), m_stunClient(NULL), m_algDetected(false)
 #endif
 {
 	m_resend = m_retry;
@@ -1658,7 +1658,7 @@ PString GkClient::GetParent() const
 		"not registered\t" + m_rrjReason;
 }
 
-bool GkClient::OnSendingGRQ(H225_GatekeeperRequest &grq)
+bool GkClient::OnSendingGRQ(H225_GatekeeperRequest & grq)
 {
 	if (m_h323Id.GetSize() > 0) {
 		int sz = m_h323Id.GetSize();
@@ -1677,6 +1677,25 @@ bool GkClient::OnSendingGRQ(H225_GatekeeperRequest &grq)
 		int sz = desc.GetSize();
 		desc.SetSize(sz + 1);
 		desc[sz] = feat;
+	}
+#endif
+
+#if defined(HAS_TLS) && defined(HAS_H460)
+	// H.460.22
+	if (Toolkit::Instance()->IsTLSEnabled()
+		&& GkConfig()->GetBoolean(EndpointSection, "UseTLS", false)) {
+		// include H.460.22 in supported features
+		H460_FeatureStd h46022 = H460_FeatureStd(22);
+		H460_FeatureID tlsfeat(Std22_TLS);
+		// TODO: add priority + connectionAddress
+		//tlsfeat.Add(Std22_Priority, H460_FeatureContent(1));
+		h46022.AddParameter(&tlsfeat);
+		grq.IncludeOptionalField(H225_GatekeeperRequest::e_featureSet);
+		grq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+		H225_ArrayOf_FeatureDescriptor & desc = grq.m_featureSet.m_supportedFeatures;
+		PINDEX lPos = desc.GetSize();
+		desc.SetSize(lPos + 1);
+		desc[lPos] = h46022;
 	}
 #endif
 
@@ -1722,35 +1741,54 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
         }
 #endif
 
+#if defined(HAS_TLS) && defined(HAS_H460)
+	// H.460.22
+	if (Toolkit::Instance()->IsTLSEnabled()
+		&& GkConfig()->GetBoolean(EndpointSection, "UseTLS", false)) {
+		// include H.460.22 in supported features
+		H460_FeatureStd h46022 = H460_FeatureStd(22);
+		H460_FeatureID tlsfeat(Std22_TLS);
+		// TODO: add priority + connectionAddress
+		//tlsfeat.Add(Std22_Priority, H460_FeatureContent(1));
+		h46022.AddParameter(&tlsfeat);
+		rrq.IncludeOptionalField(H225_RegistrationRequest::e_featureSet);
+		rrq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+		H225_ArrayOf_FeatureDescriptor & desc = rrq.m_featureSet.m_supportedFeatures;
+		PINDEX lPos = desc.GetSize();
+		desc.SetSize(lPos + 1);
+		desc[lPos] = h46022;
+	}
+#endif
+
 #ifdef HAS_H46023
 		if (m_enableH46023 && (!m_registered || m_registeredH46023)) {
 			bool contents = false;
-			rrq.IncludeOptionalField(H225_RegistrationRequest::e_featureSet);
 			H460_FeatureStd feat = H460_FeatureStd(23); 
 
 			if (!m_registered) {
-				feat.Add(Std23_RemoteNAT,H460_FeatureContent(true));
-				feat.Add(Std23_AnnexA   ,H460_FeatureContent(true));
-				feat.Add(Std23_AnnexB   ,H460_FeatureContent(true));
+				feat.Add(Std23_RemoteNAT, H460_FeatureContent(true));
+				feat.Add(Std23_AnnexA   , H460_FeatureContent(true));
+				feat.Add(Std23_AnnexB   , H460_FeatureContent(true));
 				contents = true;
 			} else if (m_algDetected) {
-				feat.Add(Std23_RemoteNAT,H460_FeatureContent(false)); 
-				feat.Add(Std23_NATdet	,H460_FeatureContent(PSTUNClient::OpenNat,8)); 
+				feat.Add(Std23_RemoteNAT, H460_FeatureContent(false)); 
+				feat.Add(Std23_NATdet	, H460_FeatureContent(PSTUNClient::OpenNat, 8)); 
 				m_algDetected = false;
 				contents = true;
 			} else {
 				int natType = 0;
 				if (H46023_TypeNotify(natType)) {
-					feat.Add(Std23_NATdet,H460_FeatureContent(natType,8)); 
+					feat.Add(Std23_NATdet, H460_FeatureContent(natType, 8)); 
 					m_natnotify = false;
 					contents = true;
 				}
 			}
 			if (contents) {
+				rrq.IncludeOptionalField(H225_RegistrationRequest::e_featureSet);
 				rrq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 				H225_ArrayOf_FeatureDescriptor & desc = rrq.m_featureSet.m_supportedFeatures;
 				int sz = desc.GetSize();
-				desc.SetSize(sz+1);
+				desc.SetSize(sz + 1);
 				desc[sz] = feat;
 			}
 		}
@@ -1759,7 +1797,7 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 	return true;
 }
 
-bool GkClient::OnSendingARQ(H225_AdmissionRequest &arq, Routing::AdmissionRequest & /* req */)
+bool GkClient::OnSendingARQ(H225_AdmissionRequest & arq, Routing::AdmissionRequest & /* req */)
 {
 	if (m_parentVendor == ParentVendor_Cisco) {
 		Cisco_ARQnonStandardInfo nonStandardData;
@@ -1770,7 +1808,7 @@ bool GkClient::OnSendingARQ(H225_AdmissionRequest &arq, Routing::AdmissionReques
 		h221.m_manufacturerCode = Toolkit::t35mCisco;
 		h221.m_t35CountryCode = Toolkit::t35cUSA;
 		h221.m_t35Extension = 0;
-	
+
 		PPER_Stream buff;
 		nonStandardData.Encode(buff);
 		buff.CompleteEncoding();
@@ -1779,7 +1817,7 @@ bool GkClient::OnSendingARQ(H225_AdmissionRequest &arq, Routing::AdmissionReques
 	return true;
 }
 
-bool GkClient::OnSendingLRQ(H225_LocationRequest &lrq, Routing::LocationRequest &/*req*/)
+bool GkClient::OnSendingLRQ(H225_LocationRequest &lrq, Routing::LocationRequest & /*req*/)
 {
 	if (m_parentVendor == ParentVendor_Cisco) {
 		Cisco_LRQnonStandardInfo nonStandardData;
@@ -1822,7 +1860,7 @@ bool GkClient::OnSendingLRQ(H225_LocationRequest &lrq, Routing::LocationRequest 
 	return true;
 }
 
-bool GkClient::OnSendingARQ(H225_AdmissionRequest &arq, Routing::SetupRequest &req, bool /*answer*/)
+bool GkClient::OnSendingARQ(H225_AdmissionRequest & arq, Routing::SetupRequest & req, bool /*answer*/)
 {
 	if (m_parentVendor == ParentVendor_Cisco) {
 		const Q931 &setup = req.GetWrapper()->GetQ931();
@@ -1835,14 +1873,14 @@ bool GkClient::OnSendingARQ(H225_AdmissionRequest &arq, Routing::SetupRequest &r
 				nonStandardData.m_callingOctet3a = data[1];
 			}
 		}
-		
+
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_nonStandardData);
 		arq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
 		H225_H221NonStandard & h221 = arq.m_nonStandardData.m_nonStandardIdentifier;
 		h221.m_manufacturerCode = Toolkit::t35mCisco;
 		h221.m_t35CountryCode = Toolkit::t35cUSA;
 		h221.m_t35Extension = 0;
-	
+
 		PPER_Stream buff;
 		nonStandardData.Encode(buff);
 		buff.CompleteEncoding();
@@ -1851,7 +1889,7 @@ bool GkClient::OnSendingARQ(H225_AdmissionRequest &arq, Routing::SetupRequest &r
 	return true;
 }
 
-bool GkClient::OnSendingARQ(H225_AdmissionRequest &arq, Routing::FacilityRequest &/*req*/)
+bool GkClient::OnSendingARQ(H225_AdmissionRequest & arq, Routing::FacilityRequest & /*req*/)
 {
 	if (m_parentVendor == ParentVendor_Cisco) {
 		Cisco_ARQnonStandardInfo nonStandardData;
@@ -1862,7 +1900,7 @@ bool GkClient::OnSendingARQ(H225_AdmissionRequest &arq, Routing::FacilityRequest
 		h221.m_manufacturerCode = Toolkit::t35mCisco;
 		h221.m_t35CountryCode = Toolkit::t35cUSA;
 		h221.m_t35Extension = 0;
-	
+
 		PPER_Stream buff;
 		nonStandardData.Encode(buff);
 		buff.CompleteEncoding();
@@ -1871,12 +1909,12 @@ bool GkClient::OnSendingARQ(H225_AdmissionRequest &arq, Routing::FacilityRequest
 	return true;
 }
 
-bool GkClient::OnSendingDRQ(H225_DisengageRequest &/*drq*/, const callptr &/*call*/)
+bool GkClient::OnSendingDRQ(H225_DisengageRequest & /*drq*/, const callptr & /*call*/)
 {
 	return true;
 }
 
-bool GkClient::OnSendingURQ(H225_UnregistrationRequest &/*urq*/)
+bool GkClient::OnSendingURQ(H225_UnregistrationRequest & /*urq*/)
 {
 	return true;
 }
@@ -1912,6 +1950,25 @@ bool GkClient::SendARQ(Routing::AdmissionRequest & arq_obj)
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_callIdentifier);
 		arq.m_callIdentifier = oarq.m_callIdentifier;
 	}
+
+#if defined(HAS_TLS) && defined(HAS_H460)
+	// H.460.22
+	if (Toolkit::Instance()->IsTLSEnabled()
+		&& GkConfig()->GetBoolean(EndpointSection, "UseTLS", false)) {
+		// include H.460.22 in supported features
+		H460_FeatureStd h46022 = H460_FeatureStd(22);
+		H460_FeatureID tlsfeat(Std22_TLS);
+		// TODO: add priority + connectionAddress
+		//tlsfeat.Add(Std22_Priority, H460_FeatureContent(1));
+		h46022.AddParameter(&tlsfeat);
+		arq.IncludeOptionalField(H225_AdmissionRequest::e_featureSet);
+		arq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+		H225_ArrayOf_FeatureDescriptor & desc = arq.m_featureSet.m_supportedFeatures;
+		PINDEX lPos = desc.GetSize();
+		desc.SetSize(lPos + 1);
+		desc[lPos] = h46022;
+	}
+#endif
 
 #ifdef HAS_H46023
 	if (m_registeredH46023) {
@@ -1954,6 +2011,26 @@ bool GkClient::SendLRQ(Routing::LocationRequest & lrq_obj)
 			lrq.m_hopCount = lrq.m_hopCount - 1;
 	}
 
+#if defined(HAS_TLS) && defined(HAS_H460)
+	// H.460.22
+	if (Toolkit::Instance()->IsTLSEnabled()
+		&& GkConfig()->GetBoolean(EndpointSection, "UseTLS", false)) {
+		// include H.460.22 in supported features
+		H460_FeatureStd h46022 = H460_FeatureStd(22);
+		H460_FeatureID tlsfeat(Std22_TLS);
+		// TODO: add priority + connectionAddress
+		//tlsfeat.Add(Std22_Priority, H460_FeatureContent(1));
+		h46022.AddParameter(&tlsfeat);
+		lrq.IncludeOptionalField(H225_LocationRequest::e_featureSet);
+		lrq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+		H225_ArrayOf_FeatureDescriptor & desc = lrq.m_featureSet.m_supportedFeatures;
+		PINDEX lPos = desc.GetSize();
+		desc.SetSize(lPos + 1);
+		desc[lPos] = h46022;
+	}
+#endif
+
+
 	SetNBPassword(lrq);
 
 	if (!OnSendingLRQ(lrq, lrq_obj))
@@ -1965,6 +2042,7 @@ bool GkClient::SendLRQ(Routing::LocationRequest & lrq_obj)
 		unsigned tag = ras->GetTag();
 		if (tag == H225_RasMessage::e_locationConfirm) {
 			H225_LocationConfirm & lcf = (*ras)->m_recvRAS;
+			// TODO: handle H.460.22 in LCF here ?
 			lrq_obj.AddRoute(Route("parent", lcf.m_callSignalAddress));
 			RasMsg *oras = lrq_obj.GetWrapper();
 			(*oras)->m_replyRAS.SetTag(H225_RasMessage::e_locationConfirm);
@@ -2019,16 +2097,35 @@ bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer)
 	// workaround for bandwidth
 	arq.m_bandWidth = 1280;
 
+#if defined(HAS_TLS) && defined(HAS_H460)
+	// H.460.22
+	if (Toolkit::Instance()->IsTLSEnabled()
+		&& GkConfig()->GetBoolean(EndpointSection, "UseTLS", false)) {
+		// include H.460.22 in supported features
+		H460_FeatureStd h46022 = H460_FeatureStd(22);
+		H460_FeatureID tlsfeat(Std22_TLS);
+		// TODO: add priority + connectionAddress
+		//tlsfeat.Add(Std22_Priority, H460_FeatureContent(1));
+		h46022.AddParameter(&tlsfeat);
+		arq.IncludeOptionalField(H225_AdmissionRequest::e_featureSet);
+		arq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+		H225_ArrayOf_FeatureDescriptor & desc = arq.m_featureSet.m_supportedFeatures;
+		PINDEX lPos = desc.GetSize();
+		desc.SetSize(lPos + 1);
+		desc[lPos] = h46022;
+	}
+#endif
+
 #ifdef HAS_H46023
 	if (answer && m_registeredH46023) {
 		CallRec::NatStrategy natoffload = H46023_GetNATStategy(setup.m_callIdentifier);
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_featureSet);
 			H460_FeatureStd feat = H460_FeatureStd(24); 
-			feat.Add(Std24_NATInstruct,H460_FeatureContent((unsigned)natoffload,8));
+			feat.Add(Std24_NATInstruct, H460_FeatureContent((unsigned)natoffload, 8));
 			arq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 			H225_ArrayOf_FeatureDescriptor & desc = arq.m_featureSet.m_supportedFeatures;
 			int sz = desc.GetSize();
-			desc.SetSize(sz+1);
+			desc.SetSize(sz + 1);
 			desc[sz] = feat;
 	}
 #endif
@@ -2067,6 +2164,25 @@ bool GkClient::SendARQ(Routing::FacilityRequest & facility_obj)
 	arq.m_answerCall = false;
 	// workaround for bandwidth
 	arq.m_bandWidth = 1280;
+
+#if defined(HAS_TLS) && defined(HAS_H460)
+	// H.460.22
+	if (Toolkit::Instance()->IsTLSEnabled()
+		&& GkConfig()->GetBoolean(EndpointSection, "UseTLS", false)) {
+		// include H.460.22 in supported features
+		H460_FeatureStd h46022 = H460_FeatureStd(22);
+		H460_FeatureID tlsfeat(Std22_TLS);
+		// TODO: add priority + connectionAddress
+		//tlsfeat.Add(Std22_Priority, H460_FeatureContent(1));
+		h46022.AddParameter(&tlsfeat);
+		arq.IncludeOptionalField(H225_AdmissionRequest::e_featureSet);
+		arq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+		H225_ArrayOf_FeatureDescriptor & desc = arq.m_featureSet.m_supportedFeatures;
+		PINDEX lPos = desc.GetSize();
+		desc.SetSize(lPos + 1);
+		desc[lPos] = h46022;
+	}
+#endif
 
 	return OnSendingARQ(arq, facility_obj) && WaitForACF(arq, request, &facility_obj);
 }
@@ -2421,6 +2537,7 @@ bool GkClient::WaitForACF(H225_AdmissionRequest &arq, RasRequester & request, Ro
 				robj->AddRoute(route);
 
 				if (acf.HasOptionalField(H225_AdmissionConfirm::e_featureSet)) {
+					// TODO: terminate call here is UseTLS=1 and H.460.22 prsent, but no TLS ?
 #ifdef HAS_H46023
 					H460_FeatureSet fs = H460_FeatureSet(acf.m_featureSet);
 					if (m_registeredH46023 && fs.HasFeature(24)) { 
@@ -2568,7 +2685,7 @@ void GkClient::H46023_ACF(callptr m_call, H460_FeatureStd * feat)
         PTRACE(4, "GKC\tH46024 strategy for call set to " << NATinst);
 
 		if (m_call)
-			H46023_SetNATStategy(m_call->GetCallIdentifier(),NATinst);
+			H46023_SetNATStategy(m_call->GetCallIdentifier(), NATinst);
 	}
 }
 
@@ -2992,7 +3109,7 @@ bool GkClient::HandleSetup(SetupMsg & setup, bool fromInternal)
 				H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
 				if (std24.Contains(Std24_NATInstruct)) {
 					unsigned natstat = std24.Value(Std24_NATInstruct);
-					H46023_SetNATStategy(setup.GetUUIEBody().m_callIdentifier,natstat);
+					H46023_SetNATStategy(setup.GetUUIEBody().m_callIdentifier, natstat);
 				}
 				RemoveH460Descriptor(24, fs);
 			}
@@ -3008,7 +3125,7 @@ bool GkClient::HandleSetup(SetupMsg & setup, bool fromInternal)
 		if (m_registeredH46023) {
 			CallRec::NatStrategy natoffload = H46023_GetNATStategy(setupBody.m_callIdentifier);
 			H460_FeatureStd feat = H460_FeatureStd(24);
-			feat.Add(Std24_NATInstruct,H460_FeatureContent((unsigned)natoffload,8));
+			feat.Add(Std24_NATInstruct, H460_FeatureContent((unsigned)natoffload, 8));
 			H225_ArrayOf_FeatureDescriptor & desc = setupBody.m_supportedFeatures;
 			int sz = desc.GetSize();
 			desc.SetSize(sz + 1);
@@ -3020,4 +3137,3 @@ bool GkClient::HandleSetup(SetupMsg & setup, bool fromInternal)
 	}
 	return true;
 }
-

@@ -1817,7 +1817,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 			}
 		}
 #endif // HAS_H460P
- 
+
 #ifdef HAS_H460PRE
 		// check if client supports preemption
 		if (request.HasOptionalField(H225_GatekeeperRequest::e_featureSet)) {
@@ -1832,7 +1832,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 				desc[lPos] = oid;
 			}
 		}
-#endif // HAS_H460
+#endif // HAS_H460PRE
 
 #ifdef h323v6
 	    if (request.HasOptionalField(H225_GatekeeperRequest::e_supportsAssignedGK) &&
@@ -1972,7 +1972,9 @@ bool RegistrationRequestPDU::Process()
 		if (supportH46022) {
 			H460_FeatureStd * secfeat = (H460_FeatureStd *)fs.GetFeature(22);
 			supportH46022TLS = secfeat->Contains(Std22_TLS);
+			// TODO: fetch parameters
 			supportH46022IPSec = secfeat->Contains(Std22_IPSec);
+			// TODO: fetch parameters
 		}
 
 #ifdef HAS_H46023
@@ -3527,13 +3529,7 @@ bool AdmissionRequestPDU::Process()
 
 	// H.460.22
 	if (EPSupportsH46022) {
-		acf.IncludeOptionalField(H225_AdmissionConfirm::e_featureSet);
 		H460_FeatureStd H46022 = H460_FeatureStd(22);
-		acf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
-		H225_ArrayOf_FeatureDescriptor & desc = acf.m_featureSet.m_supportedFeatures;
-		PINDEX sz = desc.GetSize();
-		desc.SetSize(sz+1);
-		desc[sz] = H46022;
 		if (RasSrv->IsGKRouted() && !signalOffload) {
 			// inform endpoint about gatekeeper's capabilities
 #ifdef HAS_TLS
@@ -3553,6 +3549,12 @@ bool AdmissionRequestPDU::Process()
 				// TODO: add priority
 			}
 		}
+		acf.IncludeOptionalField(H225_AdmissionConfirm::e_featureSet);
+		acf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+		H225_ArrayOf_FeatureDescriptor & desc = acf.m_featureSet.m_supportedFeatures;
+		PINDEX sz = desc.GetSize();
+		desc.SetSize(sz+1);
+		desc[sz] = H46022;
 	}
 
 #ifdef HAS_H46026
