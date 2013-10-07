@@ -257,7 +257,7 @@
 #define HAS_SNMP 1
 #endif
 
-#if (H323PLUS_VER > 1252)
+#if (H323PLUS_VER >= 1254)
 #define HAS_LANGUAGE 1
 #endif
 
