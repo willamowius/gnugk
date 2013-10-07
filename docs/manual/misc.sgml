@@ -1044,7 +1044,7 @@ Default: <tt>n/a</tt><newline>
 <p>
 File with root CA certificates.
 
-<item><tt/CADir=/etc/certs/<newline>
+<item><tt>CADir=/etc/certs/</tt><newline>
 Default: <tt>n/a</tt><newline>
 <p>
 Directory where to search for root CA certificates.
