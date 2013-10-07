@@ -741,12 +741,48 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
 		lrq.m_callIdentifier = arq.m_callIdentifier;
 	}
 
+#if defined(HAS_TLS) && defined(HAS_H460)
+	// H.460.22
+	if (RasServer::Instance()->IsGKRouted()) {
+		// in routed mode we signal gatekeeper capabilities
+		if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
+			// include H.460.22 in supported features
+			H460_FeatureStd h46022 = H460_FeatureStd(22);
+			H460_FeatureID tlsfeat(Std22_TLS);
+			// TODO: add priority + connectionAddress
+			//tlsfeat.Add(Std22_Priority, H460_FeatureContent(1));
+			h46022.AddParameter(&tlsfeat);
+			lrq.IncludeOptionalField(H225_LocationRequest::e_featureSet);
+			lrq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+			H225_ArrayOf_FeatureDescriptor & desc = lrq.m_featureSet.m_supportedFeatures;
+			PINDEX lPos = desc.GetSize();
+			desc.SetSize(lPos + 1);
+			desc[lPos] = h46022;
+		}
+	} else {
+		// in direct mode we signal / forward endpoint capabilities
+		if (arq.HasOptionalField(H225_AdmissionRequest::e_featureSet)) {
+			H460_FeatureSet fs = H460_FeatureSet(arq.m_featureSet);
+			if (fs.HasFeature(22)) {
+				// copy feature 22 from endpoint ARQ to LRQ
+				H460_FeatureStd * h46022 = (H460_FeatureStd *)fs.GetFeature(22);
+				lrq.IncludeOptionalField(H225_LocationRequest::e_featureSet);
+				lrq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+				H225_ArrayOf_FeatureDescriptor & desc = lrq.m_featureSet.m_supportedFeatures;
+				PINDEX lPos = desc.GetSize();
+				desc.SetSize(lPos + 1);
+				desc[lPos] = *h46022;
+			}
+		}
+	}
+#endif
+
 #ifdef HAS_H46023
 	/// STD24  NAT Support
 	if (Toolkit::Instance()->IsH46023Enabled()) {
 		H460_FeatureStd std24 = H460_FeatureStd(24);
 		int sz = lrq.m_genericData.GetSize();
-		lrq.m_genericData.SetSize(sz+1);
+		lrq.m_genericData.SetSize(sz + 1);
 		lrq.m_genericData[sz] = std24;
 	}
 #endif
@@ -754,7 +790,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
 	/// OID9  'Remote endpoint vendor info THIS IS "1.3.6.1.4.1.17090.0.9" NOT H.460.9	- SH
 	H460_FeatureOID foid9 = H460_FeatureOID(OID9);	 
 	int sz = lrq.m_genericData.GetSize();	 
-	lrq.m_genericData.SetSize(sz+1);	 
+	lrq.m_genericData.SetSize(sz + 1);	 
 	lrq.m_genericData[sz] = foid9;
 #endif
 #ifdef HAS_LANGUAGE
@@ -795,6 +831,49 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & reques
 		lrq.m_callIdentifier = setup.m_callIdentifier;
 	}
 
+#if defined(HAS_TLS) && defined(HAS_H460)
+	// H.460.22
+	// if we generate LRQs from Setup messages we must be in routed mode, so we signal gatekeeper capabilities
+	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
+		// include H.460.22 in supported features
+		H460_FeatureStd h46022 = H460_FeatureStd(22);
+		H460_FeatureID tlsfeat(Std22_TLS);
+		// TODO: add priority + connectionAddress
+		//tlsfeat.Add(Std22_Priority, H460_FeatureContent(1));
+		h46022.AddParameter(&tlsfeat);
+		lrq.IncludeOptionalField(H225_LocationRequest::e_featureSet);
+		lrq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+		H225_ArrayOf_FeatureDescriptor & desc = lrq.m_featureSet.m_supportedFeatures;
+		PINDEX lPos = desc.GetSize();
+		desc.SetSize(lPos + 1);
+		desc[lPos] = h46022;
+	}
+#endif
+
+#ifdef HAS_H46023
+	/// STD24  NAT Support
+	if (Toolkit::Instance()->IsH46023Enabled()) {
+		H460_FeatureStd std24 = H460_FeatureStd(24);
+		int sz = lrq.m_genericData.GetSize();
+		lrq.m_genericData.SetSize(sz + 1);
+		lrq.m_genericData[sz] = std24;
+	}
+#endif
+#ifdef HAS_H460VEN
+	/// OID9  'Remote endpoint vendor info THIS IS "1.3.6.1.4.1.17090.0.9" NOT H.460.9	- SH
+	H460_FeatureOID foid9 = H460_FeatureOID(OID9);	 
+	int sz = lrq.m_genericData.GetSize();	 
+	lrq.m_genericData.SetSize(sz + 1);	 
+	lrq.m_genericData[sz] = foid9;
+#endif
+#ifdef HAS_LANGUAGE
+	if (Toolkit::AsBool(GkConfig()->GetString("RasSrv::LRQFeatures", "UseLanguageRouting", false))) {
+		lrq.IncludeOptionalField(H225_LocationRequest::e_language); 
+	}
+#endif
+	if (lrq.m_genericData.GetSize() > 0)
+		lrq.IncludeOptionalField(H225_LocationRequest::e_genericData);
+
 	return true;
 }
 
@@ -812,6 +891,49 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & /*r
 
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 	lrq.m_canMapAlias = TRUE;
+
+#if defined(HAS_TLS) && defined(HAS_H460)
+	// H.460.22
+	// if we generate LRQs from Facility messages we must be in routed mode, so we signal gatekeeper capabilities
+	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
+		// include H.460.22 in supported features
+		H460_FeatureStd h46022 = H460_FeatureStd(22);
+		H460_FeatureID tlsfeat(Std22_TLS);
+		// TODO: add priority + connectionAddress
+		//tlsfeat.Add(Std22_Priority, H460_FeatureContent(1));
+		h46022.AddParameter(&tlsfeat);
+		lrq.IncludeOptionalField(H225_LocationRequest::e_featureSet);
+		lrq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+		H225_ArrayOf_FeatureDescriptor & desc = lrq.m_featureSet.m_supportedFeatures;
+		PINDEX lPos = desc.GetSize();
+		desc.SetSize(lPos + 1);
+		desc[lPos] = h46022;
+	}
+#endif
+
+#ifdef HAS_H46023
+	/// STD24  NAT Support
+	if (Toolkit::Instance()->IsH46023Enabled()) {
+		H460_FeatureStd std24 = H460_FeatureStd(24);
+		int sz = lrq.m_genericData.GetSize();
+		lrq.m_genericData.SetSize(sz + 1);
+		lrq.m_genericData[sz] = std24;
+	}
+#endif
+#ifdef HAS_H460VEN
+	/// OID9  'Remote endpoint vendor info THIS IS "1.3.6.1.4.1.17090.0.9" NOT H.460.9	- SH
+	H460_FeatureOID foid9 = H460_FeatureOID(OID9);	 
+	int sz = lrq.m_genericData.GetSize();	 
+	lrq.m_genericData.SetSize(sz + 1);	 
+	lrq.m_genericData[sz] = foid9;
+#endif
+#ifdef HAS_LANGUAGE
+	if (Toolkit::AsBool(GkConfig()->GetString("RasSrv::LRQFeatures", "UseLanguageRouting", false))) {
+		lrq.IncludeOptionalField(H225_LocationRequest::e_language); 
+	}
+#endif
+	if (lrq.m_genericData.GetSize() > 0)
+		lrq.IncludeOptionalField(H225_LocationRequest::e_genericData);
 
 	return true;
 }
@@ -1213,6 +1335,7 @@ void LRQRequester::Process(RasMsg * ras)
 				m_neighbor_used = req.m_neighbor->GetId(); // record neighbor used
 #ifdef HAS_TLS
 				m_useTLS = req.m_neighbor->UseTLS();
+				// TODO: also set m_useTLS by H.460.22 ? but it could be in direct mode and the capabilities are just for the one endpoint...
 #endif
 				m_h46018_client = req.m_neighbor->IsH46018Client();
 				m_h46018_server = req.m_neighbor->IsH46018Server();
