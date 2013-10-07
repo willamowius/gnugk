@@ -3,7 +3,7 @@
 // GkClient.h
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2002-2011, Jan Willamowius
+// Copyright (c) 2002-2013, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -94,6 +94,7 @@ public:
 	bool IsNATed() const { return m_natClient != NULL; }
 	bool UsesH46018() const { return m_registeredH46018; }
 	PString GetParent() const;
+	bool UseTLS() const { return m_useTLS; }
 
 	bool UsesAdditiveRegistration() const;
 	bool AdditiveRegister(H225_ArrayOf_AliasAddress & aliases, int & rejectReason, 
@@ -269,6 +270,8 @@ private:
 	bool m_enableH46018;
 	// registered with H.460.18 support
 	bool m_registeredH46018;
+	// use TLS with this parent
+	bool m_useTLS;
 
 #ifdef HAS_H46023
 	// Handle H46023 RCF

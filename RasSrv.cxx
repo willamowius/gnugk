@@ -1975,6 +1975,7 @@ bool RegistrationRequestPDU::Process()
 			// TODO: fetch parameters
 			supportH46022IPSec = secfeat->Contains(Std22_IPSec);
 			// TODO: fetch parameters
+			PTRACE(1, "RAS\tEP supports H.460.22: TLS=" << supportH46022TLS << " IPSec=" << supportH46022IPSec);
 		}
 
 #ifdef HAS_H46023
@@ -2130,12 +2131,6 @@ bool RegistrationRequestPDU::Process()
 #endif
 				ep->SetEPNATType(ntype);
 			}
-
-			// H.460.22
-			if (supportH46022TLS)
-				ep->SetUseTLS(true);	// don't set to supportH46022TLS, value might be set by other means
-			if (supportH46022IPSec)
-				ep->SetUseIPSec(true);	// don't set to supportH46022IPSec, value might be set by other means
 
 #ifdef HAS_H460P
 			// If we have some presence information
@@ -2566,11 +2561,26 @@ bool RegistrationRequestPDU::Process()
 		if (Toolkit::Instance()->IsH46018Enabled()) {
 			if (ep->IsTraversalClient()) {
 				H460_FeatureStd H46018 = H460_FeatureStd(18);
-				gd.SetSize(1);
-				gd[0] = H46018;
+				PINDEX lPos = gd.GetSize();
+				gd.SetSize(lPos + 1);
+				gd[lPos] = H46018;
 			}
 		}
 #endif // HAS_H46018
+
+#ifdef HAS_H460
+		// H.460.22
+		if (supportH46022) {
+			if (supportH46022TLS)
+				ep->SetUseTLS(true);	// don't set to supportH46022TLS, value might be set by other means
+			if (supportH46022IPSec)
+				ep->SetUseIPSec(true);	// don't set to supportH46022IPSec, value might be set by other means
+			H460_FeatureStd H46022 = H460_FeatureStd(22);
+			PINDEX lPos = gd.GetSize();
+			gd.SetSize(lPos + 1);
+			gd[lPos] = H46022;
+		}
+#endif // HAS_H460
 
 #ifdef HAS_H46023
 		if (supportH46023 && Toolkit::Instance()->IsH46023Enabled()) {
@@ -2597,7 +2607,7 @@ bool RegistrationRequestPDU::Process()
 				}
 
 				PINDEX lPos = gd.GetSize();
-				gd.SetSize(lPos+1);
+				gd.SetSize(lPos + 1);
 				gd[lPos] = natfs;
 			 } 
 		}

@@ -4645,8 +4645,10 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 	}
 	if (!remote) {
 #ifdef HAS_TLS
+		GkClient * gkClient = RasServer::Instance()->GetGkClient();
 		if (Toolkit::Instance()->IsTLSEnabled()
-			&& m_call->GetCalledParty() && m_call->GetCalledParty()->UseTLS()) {
+			&& ((m_call->GetCalledParty() && m_call->GetCalledParty()->UseTLS())
+				|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UseTLS())) ) {
 			remote = new TLSCallSignalSocket(this, peerPort);
 		} else
 #endif // HAS_TLS

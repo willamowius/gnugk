@@ -1485,7 +1485,7 @@ GkClient::GkClient()
 	m_retry(GkConfig()->GetInteger(EndpointSection, "RRQRetryInterval", DEFAULT_RRQ_RETRY)),
 	m_authMode(-1), m_rewriteInfo(NULL), m_natClient(NULL),
 	m_parentVendor(ParentVendor_GnuGk), m_endpointType(EndpointType_Gateway),
-	m_discoverParent(true), m_enableH46018(false), m_registeredH46018(false)
+	m_discoverParent(true), m_enableH46018(false), m_registeredH46018(false), m_useTLS(false)
 #ifdef HAS_H46023
 	, m_nattype(0), m_natnotify(false), m_enableH46023(false), m_registeredH46023(false), m_stunClient(NULL), m_algDetected(false)
 #endif
@@ -1579,7 +1579,11 @@ void GkClient::OnReload()
 		PTRACE(1, "H46023\tWarning: H.460.23 enabled for parent/child, but global H.460.23 switch is OFF");
 	}
 #endif
-	
+
+#ifdef HAS_TLS
+	m_useTLS = GkConfig()->GetBoolean(EndpointSection, "UseTLS", false);
+#endif
+
 	PIPSocket::Address gkaddr = m_gkaddr;
 	WORD gkport = m_gkport;
 	PCaselessString gk(cfg->GetString(EndpointSection, "Gatekeeper", "no"));
@@ -1682,8 +1686,7 @@ bool GkClient::OnSendingGRQ(H225_GatekeeperRequest & grq)
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
-	if (Toolkit::Instance()->IsTLSEnabled()
-		&& GkConfig()->GetBoolean(EndpointSection, "UseTLS", false)) {
+	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
 		H460_FeatureID tlsfeat(Std22_TLS);
@@ -1743,8 +1746,7 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
-	if (Toolkit::Instance()->IsTLSEnabled()
-		&& GkConfig()->GetBoolean(EndpointSection, "UseTLS", false)) {
+	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
 		H460_FeatureID tlsfeat(Std22_TLS);
@@ -1953,8 +1955,7 @@ bool GkClient::SendARQ(Routing::AdmissionRequest & arq_obj)
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
-	if (Toolkit::Instance()->IsTLSEnabled()
-		&& GkConfig()->GetBoolean(EndpointSection, "UseTLS", false)) {
+	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
 		H460_FeatureID tlsfeat(Std22_TLS);
@@ -2013,8 +2014,7 @@ bool GkClient::SendLRQ(Routing::LocationRequest & lrq_obj)
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
-	if (Toolkit::Instance()->IsTLSEnabled()
-		&& GkConfig()->GetBoolean(EndpointSection, "UseTLS", false)) {
+	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
 		H460_FeatureID tlsfeat(Std22_TLS);
@@ -2099,8 +2099,7 @@ bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer)
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
-	if (Toolkit::Instance()->IsTLSEnabled()
-		&& GkConfig()->GetBoolean(EndpointSection, "UseTLS", false)) {
+	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
 		H460_FeatureID tlsfeat(Std22_TLS);
@@ -2167,8 +2166,7 @@ bool GkClient::SendARQ(Routing::FacilityRequest & facility_obj)
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
-	if (Toolkit::Instance()->IsTLSEnabled()
-		&& GkConfig()->GetBoolean(EndpointSection, "UseTLS", false)) {
+	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
 		H460_FeatureID tlsfeat(Std22_TLS);
