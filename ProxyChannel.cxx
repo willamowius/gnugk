@@ -4323,9 +4323,8 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018()) ) {
 			H460_FeatureStd feat = H460_FeatureStd(19);
 			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
-				H460_FeatureID * feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
-				feat.AddParameter(feat_id);
-				delete feat_id;
+				H460_FeatureID feat_id(1);	// supportTransmitMultiplexedMedia
+				feat.AddParameter(&feat_id);
 			}
 			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
@@ -4349,11 +4348,8 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		if (Toolkit::Instance()->IsH46018Enabled()) {
 			// offer H.460.19 to H.460.17 endpoints
 			H460_FeatureStd feat = H460_FeatureStd(19);
-			H460_FeatureID * feat_id = NULL;
-			feat_id = new H460_FeatureID(2);	// mediaTraversalServer
-			feat.AddParameter(feat_id);
-			delete feat_id;
-			feat_id = NULL;
+			H460_FeatureID feat_id(2);	// mediaTraversalServer
+			feat.AddParameter(&feat_id);
 
 			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 				bool isH46019Client = false;
@@ -4365,9 +4361,8 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			}
 
 			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
-				feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
-				feat.AddParameter(feat_id);
-				delete feat_id;
+				feat_id = H460_FeatureID(1);	// supportTransmitMultiplexedMedia
+				feat.AddParameter(&feat_id);
 			}
 			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
@@ -4425,11 +4420,8 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		if (Toolkit::Instance()->IsH46018Enabled())
 		{
 			H460_FeatureStd feat = H460_FeatureStd(19);
-			H460_FeatureID * feat_id = NULL;
-			feat_id = new H460_FeatureID(2);	// mediaTraversalServer
-			feat.AddParameter(feat_id);
-			delete feat_id;
-			feat_id = NULL;
+			H460_FeatureID feat_id(2);	// mediaTraversalServer
+			feat.AddParameter(&feat_id);
 
 #ifdef HAS_H46023
 			if (Toolkit::Instance()->IsH46023Enabled())
@@ -4448,9 +4440,8 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				&& (m_senderSupportsH46019Multiplexing || (!HasH46024Descriptor(setupBody.m_supportedFeatures) && IsH46024ProxyStrategy(natoffloadsupport)))
 #endif
 			) {
-				feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
-				feat.AddParameter(feat_id);
-				delete feat_id;
+				H460_FeatureID feat_id(1);	// supportTransmitMultiplexedMedia
+				feat.AddParameter(&feat_id);
 			}
 			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 				// add H.460.19 indicator to Setups
@@ -4817,16 +4808,13 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 		if (m_call && ((m_call->GetCallingParty() && (m_call->GetCallingParty()->GetTraversalRole() != None))
 				|| (m_call->IsFromParent() && gkClient && gkClient->UsesH46018()) ) ) {
 			H460_FeatureStd feat = H460_FeatureStd(19);
-			H460_FeatureID * feat_id = NULL;
 			if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalClient()) {
-				feat_id = new H460_FeatureID(2);	// mediaTraversalServer
-				feat.AddParameter(feat_id);
-				delete feat_id;
+				H460_FeatureID feat_id(2);	// mediaTraversalServer
+				feat.AddParameter(&feat_id);
 			}
 			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
-				feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
-				feat.AddParameter(feat_id);
-				delete feat_id;
+				H460_FeatureID feat_id(1);	// supportTransmitMultiplexedMedia
+				feat.AddParameter(&feat_id);
 			}
 			// add H.460.19 indicator to CallProceeding
 			if (!cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_featureSet))
@@ -5120,16 +5108,13 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 				|| (m_call->IsFromParent() && gkClient && gkClient->UsesH46018()) ) ) {
 			// add H.460.19 indicator
 			H460_FeatureStd feat = H460_FeatureStd(19);
-			H460_FeatureID * feat_id = NULL;
 			if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalClient()) {
-				feat_id = new H460_FeatureID(2);	// mediaTraversalServer
-				feat.AddParameter(feat_id);
-				delete feat_id;
+				H460_FeatureID feat_id(2);	// mediaTraversalServer
+				feat.AddParameter(&feat_id);
 			}
 			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
-				feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
-				feat.AddParameter(feat_id);
-				delete feat_id;
+				H460_FeatureID feat_id(1);	// supportTransmitMultiplexedMedia
+				feat.AddParameter(&feat_id);
 			}
 			if (!connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet))
 				connectBody.IncludeOptionalField(H225_Connect_UUIE::e_featureSet);
@@ -5299,16 +5284,13 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 				|| (m_call->IsFromParent() && gkClient && gkClient->UsesH46018()) ) ) {
 			// add H.460.19 indicator
 			H460_FeatureStd feat = H460_FeatureStd(19);
-			H460_FeatureID * feat_id = NULL;
 			if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsTraversalClient()) {
-				feat_id = new H460_FeatureID(2);	// mediaTraversalServer
-				feat.AddParameter(feat_id);
-				delete feat_id;
+				H460_FeatureID feat_id(2);	// mediaTraversalServer
+				feat.AddParameter(&feat_id);
 			}
 			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
-				feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
-				feat.AddParameter(feat_id);
-				delete feat_id;
+				H460_FeatureID feat_id(1);	// supportTransmitMultiplexedMedia
+				feat.AddParameter(&feat_id);
 			}
 			if (!alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet))
 				alertingBody.IncludeOptionalField(H225_Alerting_UUIE::e_featureSet);
