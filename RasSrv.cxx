@@ -3874,11 +3874,31 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 			} else {
 				H225_LocationConfirm & lcf = BuildConfirm();
 				GetRasAddress(lcf.m_rasAddress);
+
+				// check H.460.22 in LRQ
+				bool senderSupportsH46022 = false;
+				bool senderSupportsH46022TLS = false;
+				bool senderSupportsH46022IPSec = false;
+				if (request.HasOptionalField(H225_LocationRequest::e_featureSet)) {
+					H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
+					senderSupportsH46022 = fs.HasFeature(22);
+					if (senderSupportsH46022) {
+						H460_FeatureStd * secfeat = (H460_FeatureStd *)fs.GetFeature(22);
+						senderSupportsH46022TLS = secfeat->Contains(Std22_TLS);
+						senderSupportsH46022IPSec = secfeat->Contains(Std22_IPSec);
+						PTRACE(1, "RAS\tEP supports H.460.22: TLS=" << senderSupportsH46022TLS << " IPSec=" << senderSupportsH46022IPSec);
+					}
+				}
+
 				if (RasSrv->IsGKRouted()) {
 					GetCallSignalAddress(lcf.m_callSignalAddress);
 #ifdef HAS_TLS
 					if (Toolkit::Instance()->IsTLSEnabled()) {
+						// enable TLS by config file
 						bool useTLS = RasSrv->GetNeighbors()->GetNeighborTLSBySigAdr(request.m_replyAddress);
+						// also enable when neighbor has signaled TLS capabilitiy by H.460.22 in LRQ
+						if (senderSupportsH46022TLS)
+							useTLS = true;
 						if (useTLS) {
 							// tell endpoint to use the TLS port
 							WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
@@ -3889,6 +3909,15 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 								H225_TransportAddress_ipAddress & addr = lcf.m_callSignalAddress;
 								addr.m_port = tlsSignalPort;
 							}
+							H460_FeatureStd H46022 = H460_FeatureStd(22);
+							H46022.Add(Std22_TLS);
+							// TODO: add priority and connectionPort
+							lcf.IncludeOptionalField(H225_LocationConfirm::e_featureSet);
+							lcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+							H225_ArrayOf_FeatureDescriptor & desc = lcf.m_featureSet.m_supportedFeatures;
+							PINDEX sz = desc.GetSize();
+							desc.SetSize(sz + 1);
+							desc[sz] = H46022;
 						}
 					}
 #endif
@@ -3977,7 +4006,28 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 						}
 #endif // HAS_H460VEN
 					}
+				} else {
+					// in direct mode
+					if (senderSupportsH46022) {
+						H460_FeatureStd H46022 = H460_FeatureStd(22);
+						// pass endpoint's H.460.22 capabilities
+						if (WantedEndPoint && WantedEndPoint->UseTLS()) {
+							H46022.Add(Std22_TLS);
+							// TODO: add priority and connectionPort
+						}
+						if (WantedEndPoint && WantedEndPoint->UseIPSec()) {
+							H46022.Add(Std22_IPSec);
+							// TODO: add priority
+						}
+						lcf.IncludeOptionalField(H225_LocationConfirm::e_featureSet);
+						lcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+						H225_ArrayOf_FeatureDescriptor & desc = lcf.m_featureSet.m_supportedFeatures;
+						PINDEX sz = desc.GetSize();
+						desc.SetSize(sz + 1);
+						desc[sz] = H46022;
+					}
 				}
+
 				if (lastPos > 0) 
 					lcf.IncludeOptionalField(H225_LocationConfirm::e_genericData);
  
