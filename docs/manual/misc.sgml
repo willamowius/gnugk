@@ -200,7 +200,7 @@ setting can also be configured by specifying the triplet of T.35 IDs
 set the vendor ID without enabling any extensions.
 
 <descrip>
-<tag/Examples:/
+<tag/Example:/
 <tscreen><verb>
 Vendor=GnuGk
 ; Aculab ID
