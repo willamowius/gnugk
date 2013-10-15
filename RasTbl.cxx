@@ -1241,6 +1241,21 @@ bool EndpointRec::AddH350ServiceControl(H225_ArrayOf_ServiceControlSession & ses
 }
 #endif
 
+H323TransportAddress EndpointRec::GetTLSAddress() const
+{
+	// check if m_tlsAddress is valid
+	PIPSocket::Address addr;
+	if (!m_tlsAddress.GetIpAddress(addr) || addr.IsAny()) {
+		// if we didn't get a TLS address via H.460.22 use the well known port
+		H225_TransportAddress tlsAddress = GetCallSignalAddress();
+		SetH225Port(tlsAddress, GK_DEF_TLS_CALL_SIGNAL_PORT);
+		return tlsAddress;
+	} else {
+		return m_tlsAddress;
+	}
+}
+
+
 #ifdef HAS_LANGUAGE
 bool EndpointRec::SetAssignedLanguage(const H225_RegistrationRequest_language & rrqLang, H225_RegistrationConfirm_language & rcfLang)
 {

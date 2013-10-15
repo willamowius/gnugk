@@ -1877,9 +1877,8 @@ bool RegistrationRequestPDU::Process()
 	}
 #endif
 
-	PINDEX i;
 	/// remove invalid/unsupported entries from RAS and signaling addresses
-	for (i = 0; i < request.m_callSignalAddress.GetSize(); i++) {
+	for (PINDEX i = 0; i < request.m_callSignalAddress.GetSize(); i++) {
 		PIPSocket::Address addr;
 		WORD port = 0;
 		if (!GetIPAndPortFromTransportAddr(request.m_callSignalAddress[i], addr, port)
@@ -1889,7 +1888,7 @@ bool RegistrationRequestPDU::Process()
 			request.m_callSignalAddress.RemoveAt(i--);
 		}
 	}
-	for (i = 0; i < request.m_rasAddress.GetSize(); i++) {
+	for (PINDEX i = 0; i < request.m_rasAddress.GetSize(); i++) {
 		PIPSocket::Address addr;
 		WORD port = 0;
 		if (!GetIPAndPortFromTransportAddr(request.m_rasAddress[i], addr, port)
@@ -1928,6 +1927,7 @@ bool RegistrationRequestPDU::Process()
 	PBoolean supportH46022 = false;
 	PBoolean supportH46022TLS = false;
 	PBoolean supportH46022IPSec = false;
+	H323TransportAddress tlsAddr;
 #ifdef HAS_H460P
 	// Presence Support
 	PBoolean presenceSupport = false;
@@ -1972,9 +1972,18 @@ bool RegistrationRequestPDU::Process()
 		if (supportH46022) {
 			H460_FeatureStd * secfeat = (H460_FeatureStd *)fs.GetFeature(22);
 			supportH46022TLS = secfeat->Contains(Std22_TLS);
-			// TODO: fetch parameters
+			if (supportH46022TLS) {
+				H460_FeatureParameter & tlsparam = secfeat->Value(Std22_TLS);
+				H460_FeatureStd settings;
+				settings.SetCurrentTable(tlsparam);
+				if (settings.Contains(Std22_ConnectionAddress)) {
+					tlsAddr = settings.Value(Std22_ConnectionAddress);
+					PTRACE(0, "JW H.460.22: TLS Addr=" << AsString(tlsAddr));
+				} else {
+					PTRACE(1, "TLS\tError: H.460.22 TLS address missing");
+				}
+			}
 			supportH46022IPSec = secfeat->Contains(Std22_IPSec);
-			// TODO: fetch parameters
 			PTRACE(1, "RAS\tEP supports H.460.22: TLS=" << supportH46022TLS << " IPSec=" << supportH46022IPSec);
 		}
 
@@ -2571,8 +2580,10 @@ bool RegistrationRequestPDU::Process()
 #ifdef HAS_H460
 		// H.460.22
 		if (supportH46022) {
-			if (supportH46022TLS)
+			if (supportH46022TLS) {
 				ep->SetUseTLS(true);	// don't set to supportH46022TLS, value might be set by other means
+				ep->SetTLSAddress(tlsAddr);
+			}
 			if (supportH46022IPSec)
 				ep->SetUseIPSec(true);	// don't set to supportH46022IPSec, value might be set by other means
 			H460_FeatureStd H46022 = H460_FeatureStd(22);
@@ -3548,8 +3559,10 @@ bool AdmissionRequestPDU::Process()
 		} else {
 			// inform endpoint about remote endpoint's capabilities
 			if (EPSupportsH46022TLS && CalledEP && CalledEP->UseTLS()) {
-				H46022.Add(Std22_TLS);
-				// TODO: add priority + connectionAddress
+				H460_FeatureStd settings;
+				settings.Add(Std22_Priority, H460_FeatureContent(1, 8)); // Priority=1, type=number8
+				settings.Add(Std22_ConnectionAddress, H460_FeatureContent(CalledEP->GetTLSAddress()));
+				H46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
 			}
 			if (EPSupportsH46022IPSec && CalledEP && CalledEP->UseIPSec()) {
 				H460_FeatureStd settings;
@@ -3883,6 +3896,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 					if (senderSupportsH46022) {
 						H460_FeatureStd * secfeat = (H460_FeatureStd *)fs.GetFeature(22);
 						senderSupportsH46022TLS = secfeat->Contains(Std22_TLS);
+						// TODO: fetch connectionAddress
 						senderSupportsH46022IPSec = secfeat->Contains(Std22_IPSec);
 						PTRACE(1, "RAS\tEP supports H.460.22: TLS=" << senderSupportsH46022TLS << " IPSec=" << senderSupportsH46022IPSec);
 					}
@@ -4008,7 +4022,10 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 						// pass endpoint's H.460.22 capabilities
 						if (WantedEndPoint && WantedEndPoint->UseTLS()) {
 							H46022.Add(Std22_TLS);
-							// TODO: add priority and connectionPort
+							H460_FeatureStd settings;
+							settings.Add(Std22_Priority, H460_FeatureContent(1, 8)); // Priority=1, type=number8
+							settings.Add(Std22_ConnectionAddress, H460_FeatureContent(WantedEndPoint->GetTLSAddress()));
+							H46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
 						}
 						if (WantedEndPoint && WantedEndPoint->UseIPSec()) {
 							H460_FeatureStd settings;

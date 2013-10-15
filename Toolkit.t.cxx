@@ -20,8 +20,7 @@ namespace {
 
 class ToolkitTest : public ::testing::Test {
 protected:
-	ToolkitTest() {
-	}
+	ToolkitTest() { }
 	
 	NetworkAddress na;
 	NetworkAddress na2;

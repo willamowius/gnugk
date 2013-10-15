@@ -650,10 +650,8 @@ bool InternalPolicy::OnRequest(SetupRequest & request)
 	return true;
 }
 
-bool InternalPolicy::FindByAliases(
-	RoutingRequest &request, 
-	H225_ArrayOf_AliasAddress &aliases
-	)
+// TODO: check if called endpoint supports TLS and we have it enabled (where ???)
+bool InternalPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
 	list<Route> routes;
 	RegistrationTable::Instance()->FindEndpoint(aliases, roundRobin, true, routes);
@@ -665,10 +663,7 @@ bool InternalPolicy::FindByAliases(
 	return !routes.empty();
 }
 
-bool InternalPolicy::FindByAliases(
-	LocationRequest& request,
-	H225_ArrayOf_AliasAddress & aliases
-	)
+bool InternalPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
 	// do not apply round robin selection for Location ReQuests
 	list<Route> routes;
@@ -683,15 +678,12 @@ bool InternalPolicy::FindByAliases(
 	return !routes.empty();
 }
 
-bool InternalPolicy::FindByAliases(
-	SetupRequest& request,
-	H225_ArrayOf_AliasAddress & aliases
-	)
+bool InternalPolicy::FindByAliases(SetupRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
 	list<Route> routes;
 	if (RegistrationTable::Instance()->FindEndpoint(aliases, roundRobin, true, routes))
 		request.SetRejectReason(H225_ReleaseCompleteReason::e_gatewayResources);
-		
+
 	list<Route>::iterator i = routes.begin();
 	while (i != routes.end()) {
 		i->m_policy = m_name;
@@ -700,10 +692,7 @@ bool InternalPolicy::FindByAliases(
 	return !routes.empty();
 }
 
-bool InternalPolicy::FindByAliases(
-	AdmissionRequest& request,
-	H225_ArrayOf_AliasAddress & aliases
-	)
+bool InternalPolicy::FindByAliases(AdmissionRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
 	list<Route> routes;
 	if (RegistrationTable::Instance()->FindEndpoint(aliases, roundRobin, true, routes))
@@ -966,34 +955,34 @@ void VirtualQueue::OnReload()
 
 bool VirtualQueue::SendRouteRequest(
 	/// source IP of the request (endpoint for ARQ, gatekeeper for LRQ)
-	const PString& source,
+	const PString & source,
 	/// calling endpoint
-	const PString& epid,
+	const PString & epid,
 	/// CRV (Call Reference Value) of the call associated with this request
 	unsigned crv,
 	/// destination (virtual queue) aliases as specified
 	/// by the calling endpoint (modified by this function on successful return)
-	H225_ArrayOf_AliasAddress* destinationInfo,
+	H225_ArrayOf_AliasAddress * destinationInfo,
 	/// destination (virtual queue) aliases as specified
 	/// by the calling endpoint (modified by this function on successful return)
-	PString* callSigAdr,
+	PString * callSigAdr,
 	/// bind IP for BindAndRouteToGateway
-	PString* bindIP,
+	PString * bindIP,
 	/// caller ID
-	PString* callerID,
+	PString * callerID,
 	/// should the call be rejected modified by this function on return)
 	bool & reject,
 	/// actual virtual queue name (should be present in destinationInfo too)
-	const PString& vqueue,
+	const PString & vqueue,
 	/// a sequence of aliases for the calling endpoint
 	/// (in the "alias:type[=alias:type]..." format)
-	const PString& sourceInfo,
+	const PString & sourceInfo,
 	/// the callID as string
-	const PString& callID,
+	const PString & callID,
 	/// the called IP for unregistered calls
-	const PString& calledip,
+	const PString & calledip,
 	/// vendor string of caller
-	const PString& vendorString
+	const PString & vendorString
 	)
 {
 	bool result = false;
@@ -1034,7 +1023,7 @@ bool VirtualQueue::SendRouteRequest(
 }
 
 bool VirtualQueue::IsDestinationVirtualQueue(
-	const PString& destinationAlias /// alias to be matched
+	const PString & destinationAlias /// alias to be matched
 	) const
 {
 	PWaitAndSignal lock(m_listMutex);
@@ -1122,19 +1111,19 @@ bool VirtualQueue::RouteToAlias(
 bool VirtualQueue::RouteToAlias(
 	/// alias for the routing target that
 	/// will replace the original destination info
-	const PString& targetAlias, 
+	const PString & targetAlias, 
 	/// will replace the original destinationCallSignallAddress
-	const PString& destinationIp, 
+	const PString & destinationIp, 
 	/// identifier of the endpoint associated with the route request
-	const PString& callingEpId, 
+	const PString & callingEpId, 
 	/// CRV for the call associated with the route request
 	unsigned crv,
 	/// callID of the call associated with the route request
-	const PString& callID,
+	const PString & callID,
 	// outgoing IP or empty
-	const PString& bindIP,
+	const PString & bindIP,
 	// callerID or empty
-	const PString& callerID,
+	const PString & callerID,
 	/// should this call be rejected
 	bool reject
 	)
@@ -1149,11 +1138,11 @@ bool VirtualQueue::RouteToAlias(
 
 bool VirtualQueue::RouteReject(
 	/// identifier of the endpoint associated with the route request
-	const PString& callingEpId, 
+	const PString & callingEpId, 
 	/// CRV of the call associated with the route request
 	unsigned crv,
 	/// callID of the call associated with the route request
-	const PString& callID
+	const PString & callID
 	)
 {
 	H225_ArrayOf_AliasAddress nullAgent;
@@ -1162,24 +1151,24 @@ bool VirtualQueue::RouteReject(
 
 VirtualQueue::RouteRequest* VirtualQueue::InsertRequest(
 	/// identifier for the endpoint associated with this request
-	const PString& callingEpId,
+	const PString & callingEpId,
 	/// CRV for the call associated with this request
 	unsigned crv,
 	/// callID for the call associated with this request
-	const PString& callID,
+	const PString & callID,
 	/// a pointer to an array to be filled with agent aliases
 	/// when the routing decision has been made
-	H225_ArrayOf_AliasAddress* agent,
+	H225_ArrayOf_AliasAddress * agent,
 	/// a pointer to a string  to be filled with a destinationCallSignalAddress
 	/// when the routing decision has been made (optional)
-	PString* callSigAdr,
+	PString * callSigAdr,
 	/// bind IP for BindAndRouteToGateway
-	PString* bindIP,
+	PString * bindIP,
 	/// caller ID
-	PString* callerID,
+	PString * callerID,
 	/// set by the function to true if another route request for the same
 	/// call is pending
-	bool& duplicate
+	bool & duplicate
 	)
 {
 	duplicate = false;
