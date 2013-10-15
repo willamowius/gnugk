@@ -1689,10 +1689,15 @@ bool GkClient::OnSendingGRQ(H225_GatekeeperRequest & grq)
 	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
-		H460_FeatureID tlsfeat(Std22_TLS);
-		// TODO: add priority + connectionAddress
-		//tlsfeat.Add(Std22_Priority, H460_FeatureContent(1));
-		h46022.AddParameter(&tlsfeat);
+		H460_FeatureTable settings;
+		settings.AddParameter(Std22_Priority, H460_FeatureContent(1, 8)); // Priority=1, type=number8
+		WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
+		H225_ArrayOf_TransportAddress signalAddrArray;
+		SetRasAddress(signalAddrArray);
+		SetH225Port(signalAddrArray[0], tlsSignalPort);
+		H323TransportAddress signalAddr = signalAddrArray[0];	// TODO: should we use a H225_TransportAddress or H323TransportAddress ?
+		settings.AddParameter(Std22_ConnectionAddress, H460_FeatureContent(signalAddr));
+        h46022.Add(Std22_TLS, H460_FeatureContent(settings));
 		grq.IncludeOptionalField(H225_GatekeeperRequest::e_featureSet);
 		grq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 		H225_ArrayOf_FeatureDescriptor & desc = grq.m_featureSet.m_supportedFeatures;
@@ -1724,7 +1729,7 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 				&& GetIPFromTransportAddr(rrq.m_callSignalAddress[0], sigip)) {
 			rrq.IncludeOptionalField(H225_RegistrationRequest::e_nonStandardData);
 			rrq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
-			H225_H221NonStandard &t35 = rrq.m_nonStandardData.m_nonStandardIdentifier;
+			H225_H221NonStandard & t35 = rrq.m_nonStandardData.m_nonStandardIdentifier;
 			t35.m_t35CountryCode = Toolkit::t35cPoland;
 			t35.m_manufacturerCode = Toolkit::t35mGnuGk;
 			t35.m_t35Extension = Toolkit::t35eNATTraversal;
@@ -2042,7 +2047,7 @@ bool GkClient::SendLRQ(Routing::LocationRequest & lrq_obj)
 		unsigned tag = ras->GetTag();
 		if (tag == H225_RasMessage::e_locationConfirm) {
 			H225_LocationConfirm & lcf = (*ras)->m_recvRAS;
-			// TODO: handle H.460.22 in LCF here ?
+			// TODO: handle H.460.22 in LCF here (parent policy)
 			lrq_obj.AddRoute(Route("parent", lcf.m_callSignalAddress));
 			RasMsg *oras = lrq_obj.GetWrapper();
 			(*oras)->m_replyRAS.SetTag(H225_RasMessage::e_locationConfirm);
