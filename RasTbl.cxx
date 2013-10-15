@@ -1776,29 +1776,22 @@ namespace { // anonymous namespace
 
 class CompareSigAdr {
 public:
-	CompareSigAdr(const H225_TransportAddress & adr) : SigAdr(adr) {}
+	CompareSigAdr(const H225_TransportAddress & adr) : SigAdr(adr) { }
 	bool operator()(const EndpointRec *ep) const { return ep && (ep->GetCallSignalAddress() == SigAdr); }
- 
+
 protected:
 	const H225_TransportAddress & SigAdr;
 };
  
 class CompareSigAdrIgnorePort {
 public:
-	CompareSigAdrIgnorePort(const H225_TransportAddress & adr) : SigAdr(adr) {}
+	CompareSigAdrIgnorePort(const H225_TransportAddress & adr) : SigAdr(adr) { }
 	bool operator()(const EndpointRec *ep) const {
 		if (!ep)
 			return false;
 		H225_TransportAddress other = ep->GetCallSignalAddress();	// make a copy, we'll modify it temporarily!
-		if ((SigAdr.GetTag() == H225_TransportAddress::e_ipAddress)
-			&& (other.GetTag() == H225_TransportAddress::e_ipAddress)) {
-			// set same port on copy as on other adr
-			((H225_TransportAddress_ipAddress &)other).m_port = ((const H225_TransportAddress_ipAddress &)SigAdr).m_port;
-		} else if ((SigAdr.GetTag() == H225_TransportAddress::e_ip6Address)
-			&& (other.GetTag() == H225_TransportAddress::e_ip6Address)) {
-			// set same port on copy as on other adr
-			((H225_TransportAddress_ip6Address &)other).m_port = ((const H225_TransportAddress_ip6Address &)SigAdr).m_port;
-		}
+		// set same port on copy as on other addr
+		SetH225Port(other, GetH225Port(SigAdr));
 		return other == SigAdr;
 	}
 
@@ -1808,7 +1801,7 @@ protected:
 
 class CompareSigAdrWithNAT : public CompareSigAdr {
 public:
-	CompareSigAdrWithNAT(const H225_TransportAddress & adr, PIPSocket::Address ip) : CompareSigAdr(adr), natip(ip) {}
+	CompareSigAdrWithNAT(const H225_TransportAddress & adr, PIPSocket::Address ip) : CompareSigAdr(adr), natip(ip) { }
 	bool operator()(const EndpointRec *ep) const { return ep && (ep->GetNATIP() == natip) && CompareSigAdr::operator()(ep); }
  
 private:
@@ -2700,38 +2693,23 @@ CallRec::~CallRec()
 	PWaitAndSignal lock(m_portListMutex);
 	m_dynamicPorts.clear();
 }
- 
+
 bool CallRec::CompareSigAdrIgnorePort(const H225_TransportAddress *adr) const
 {
-	H225_TransportAddress cmpAdr;
 	if (!adr)
 		return false;
 	if ((adr->GetTag() != H225_TransportAddress::e_ipAddress)
 		&& (adr->GetTag() != H225_TransportAddress::e_ip6Address))
 		return false;
-	cmpAdr = *adr;	// make a copy, we'll temporarily modify it
-	if (m_Calling && (m_Calling->GetCallSignalAddress().GetTag() == H225_TransportAddress::e_ipAddress)) {
-		// set same port on copy as on other adr
-		((H225_TransportAddress_ipAddress &)cmpAdr).m_port = ((const H225_TransportAddress_ipAddress &)m_Calling->GetCallSignalAddress()).m_port;
+	H225_TransportAddress cmpAdr = *adr;	// make a copy, we'll temporarily modify it
+	if (m_Calling) {
+		SetH225Port(cmpAdr, GetH225Port(m_Calling->GetCallSignalAddress())); // set same port as on calling addr
 		if (m_Calling->GetCallSignalAddress() == cmpAdr)
 			return true;
 	}
-	if (m_Calling && (m_Calling->GetCallSignalAddress().GetTag() == H225_TransportAddress::e_ip6Address)) {
-		// set same port on copy as on other adr
-		((H225_TransportAddress_ip6Address &)cmpAdr).m_port = ((const H225_TransportAddress_ip6Address &)m_Calling->GetCallSignalAddress()).m_port;
-		if (m_Calling->GetCallSignalAddress() == cmpAdr)
-			return true;
-	}
-	if (m_Called && (m_Called->GetCallSignalAddress().GetTag() == H225_TransportAddress::e_ipAddress)) {
-		// set same port on copy as on other adr
-		((H225_TransportAddress_ipAddress &)cmpAdr).m_port = ((const H225_TransportAddress_ipAddress &)m_Called->GetCallSignalAddress()).m_port;
-		if (m_Calling->GetCallSignalAddress() == cmpAdr)
-			return true;
-	}
-	if (m_Called && (m_Called->GetCallSignalAddress().GetTag() == H225_TransportAddress::e_ip6Address)) {
-		// set same port on copy as on other adr
-		((H225_TransportAddress_ip6Address &)cmpAdr).m_port = ((const H225_TransportAddress_ip6Address &)m_Called->GetCallSignalAddress()).m_port;
-		if (m_Calling->GetCallSignalAddress() == cmpAdr)
+	if (m_Called) {
+		SetH225Port(cmpAdr, GetH225Port(m_Called->GetCallSignalAddress())); // set same port as on called addr
+		if (m_Called->GetCallSignalAddress() == cmpAdr)
 			return true;
 	}
 	return false;

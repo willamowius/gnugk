@@ -3313,7 +3313,7 @@ bool AdmissionRequestPDU::Process()
 			}
 	}
 
-	CallRec *pCallRec =NULL;
+	CallRec *pCallRec = NULL;
 	if (pExistingCallRec) {
 		// duplicate or answer ARQ
 		PTRACE(3, "GK\tACF: found existing call no " << pExistingCallRec->GetCallNumber());
@@ -3447,13 +3447,7 @@ bool AdmissionRequestPDU::Process()
 		if (Toolkit::Instance()->IsTLSEnabled() && RequestingEP->UseTLS()) {
 			// tell endpoint to use the TLS port
 			WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
-			if (acf.m_destCallSignalAddress.GetTag() == H225_TransportAddress::e_ip6Address) {
-				H225_TransportAddress_ip6Address & addr = acf.m_destCallSignalAddress;
-				addr.m_port = tlsSignalPort;
-			} else if (acf.m_destCallSignalAddress.GetTag() == H225_TransportAddress::e_ipAddress) {
-				H225_TransportAddress_ipAddress & addr = acf.m_destCallSignalAddress;
-				addr.m_port = tlsSignalPort;
-			}
+			SetH225Port(acf.m_destCallSignalAddress, tlsSignalPort);
 		}
 #endif
 	} else {
@@ -3902,13 +3896,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 						if (useTLS) {
 							// tell endpoint to use the TLS port
 							WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
-							if (lcf.m_callSignalAddress.GetTag() == H225_TransportAddress::e_ip6Address) {
-								H225_TransportAddress_ip6Address & addr = lcf.m_callSignalAddress;
-								addr.m_port = tlsSignalPort;
-							} else if (lcf.m_callSignalAddress.GetTag() == H225_TransportAddress::e_ipAddress) {
-								H225_TransportAddress_ipAddress & addr = lcf.m_callSignalAddress;
-								addr.m_port = tlsSignalPort;
-							}
+							SetH225Port(lcf.m_callSignalAddress, tlsSignalPort);
 							H460_FeatureStd H46022 = H460_FeatureStd(22);
 							H46022.Add(Std22_TLS);
 							// TODO: add priority and connectionPort
