@@ -87,6 +87,9 @@ bool GetIPAndPortFromTransportAddr(const H225_TransportAddress & addr, PIPSocket
 
 PStringArray SplitIPAndPort(const PString & str, WORD default_port);
 
+WORD GetH225Port(const H225_TransportAddress & addr);
+void SetH225Port(H225_TransportAddress & addr, WORD port);
+
 WORD GetH245Port(const H245_UnicastAddress & addr);
 void SetH245Port(H245_UnicastAddress & addr, WORD port);
 

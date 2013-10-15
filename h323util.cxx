@@ -144,6 +144,29 @@ PString AsDotString(const H225_TransportAddress & addr, bool showPort)
 	return result;
 }
 
+void SetH225Port(H225_TransportAddress & addr, WORD port)
+{
+	if (addr.GetTag() == H225_TransportAddress::e_ip6Address) {
+		H225_TransportAddress_ip6Address & ipv6 = addr;
+		ipv6.m_port = port;
+	} else if (addr.GetTag() == H225_TransportAddress::e_ipAddress) {
+		H225_TransportAddress_ipAddress & ipv4 = addr;
+		ipv4.m_port = port;
+	}
+}
+
+WORD GetH225Port(const H225_TransportAddress & addr)
+{
+	if (addr.GetTag() == H225_TransportAddress::e_ip6Address) {
+		const H225_TransportAddress_ip6Address & ipv6 = addr;
+		return ipv6.m_port;
+	} else if (addr.GetTag() == H225_TransportAddress::e_ipAddress) {
+		const H225_TransportAddress_ipAddress & ipv4 = addr;
+		return ipv4.m_port;
+	}
+	return 0;
+}
+
 PString AsString(const H323TransportAddress & ta)
 {
 	if (!IsSet(ta))
