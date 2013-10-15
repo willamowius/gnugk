@@ -71,6 +71,12 @@ TEST_F(H323UtilTest, H245UnicastIPAddressAsString) {
 	EXPECT_STREQ("1.2.3.4:555", AsString(h245ipv4));
 }
 
+TEST_F(H323UtilTest, H245Port) {
+	EXPECT_EQ(555, GetH245Port(h245unicast));
+	SetH245Port(h245unicast, 999);
+	EXPECT_EQ(999, GetH245Port(h245unicast));
+}
+
 TEST_F(H323UtilTest, H225TransportAddressAsString) {
 	EXPECT_TRUE(AsString(h225transport_withipv4).Find("03 04 05 06") != P_MAX_INDEX);
 	EXPECT_STREQ("3.4.5.6:999", AsDotString(h225transport_withipv4));
@@ -81,6 +87,15 @@ TEST_F(H323UtilTest, H225TransportAddressAsString) {
 	EXPECT_STREQ("[::1]:1111", AsDotString(h225transport_withipv6localhost));
 	EXPECT_STREQ("[2001:db8:85a3:8d3:1319:8a2e:370:7344]:1111", AsDotString(h225transport_withipv6, true));
 	EXPECT_STREQ("2001:db8:85a3:8d3:1319:8a2e:370:7344",        AsDotString(h225transport_withipv6, false));
+}
+
+TEST_F(H323UtilTest, H225Port) {
+	EXPECT_EQ(999, GetH225Port(h225transport_withipv4));
+	SetH225Port(h225transport_withipv4, 444);
+	EXPECT_EQ(444, GetH225Port(h225transport_withipv4));
+	EXPECT_EQ(1111, GetH225Port(h225transport_withipv6));
+	SetH225Port(h225transport_withipv6, 3333);
+	EXPECT_EQ(3333, GetH225Port(h225transport_withipv6));
 }
 
 TEST_F(H323UtilTest, H323TransportAddressAsString) {
