@@ -3538,8 +3538,11 @@ bool AdmissionRequestPDU::Process()
 			// inform endpoint about gatekeeper's capabilities
 #ifdef HAS_TLS
 			if (Toolkit::Instance()->IsTLSEnabled() && EPSupportsH46022TLS) {
-				H46022.Add(Std22_TLS);
-				// TODO: add priority (1) + connectionAddress (acf.m_destCallSignalAddress)
+				H460_FeatureStd settings;
+				settings.Add(Std22_Priority, H460_FeatureContent(1, 8)); // Priority=1, type=number8
+				H323TransportAddress signalAddr = acf.m_destCallSignalAddress;
+				settings.Add(Std22_ConnectionAddress, H460_FeatureContent(signalAddr));
+				H46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
 			}
 #endif
 		} else {
@@ -3549,8 +3552,9 @@ bool AdmissionRequestPDU::Process()
 				// TODO: add priority + connectionAddress
 			}
 			if (EPSupportsH46022IPSec && CalledEP && CalledEP->UseIPSec()) {
-				H46022.Add(Std22_IPSec);
-				// TODO: add priority
+				H460_FeatureStd settings;
+				settings.Add(Std22_Priority, H460_FeatureContent(2, 8)); // Priority=2, type=number8
+				H46022.Add(Std22_IPSec, H460_FeatureContent(settings.GetCurrentTable()));
 			}
 		}
 		acf.IncludeOptionalField(H225_AdmissionConfirm::e_featureSet);
@@ -3898,8 +3902,11 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 							WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
 							SetH225Port(lcf.m_callSignalAddress, tlsSignalPort);
 							H460_FeatureStd H46022 = H460_FeatureStd(22);
-							H46022.Add(Std22_TLS);
-							// TODO: add priority and connectionPort
+							H460_FeatureStd settings;
+							settings.Add(Std22_Priority, H460_FeatureContent(1, 8)); // Priority=1, type=number8
+							H323TransportAddress signalAddr = lcf.m_callSignalAddress;
+							settings.Add(Std22_ConnectionAddress, H460_FeatureContent(signalAddr));
+							H46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
 							lcf.IncludeOptionalField(H225_LocationConfirm::e_featureSet);
 							lcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 							H225_ArrayOf_FeatureDescriptor & desc = lcf.m_featureSet.m_supportedFeatures;
@@ -4004,8 +4011,9 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 							// TODO: add priority and connectionPort
 						}
 						if (WantedEndPoint && WantedEndPoint->UseIPSec()) {
-							H46022.Add(Std22_IPSec);
-							// TODO: add priority
+							H460_FeatureStd settings;
+							settings.Add(Std22_Priority, H460_FeatureContent(2, 8)); // Priority=2, type=number8
+							H46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
 						}
 						lcf.IncludeOptionalField(H225_LocationConfirm::e_featureSet);
 						lcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);

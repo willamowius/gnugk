@@ -1689,15 +1689,15 @@ bool GkClient::OnSendingGRQ(H225_GatekeeperRequest & grq)
 	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
-		H460_FeatureTable settings;
-		settings.AddParameter(Std22_Priority, H460_FeatureContent(1, 8)); // Priority=1, type=number8
+		H460_FeatureStd settings;
+		settings.Add(Std22_Priority, H460_FeatureContent(1, 8)); // Priority=1, type=number8
 		WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
 		H225_ArrayOf_TransportAddress signalAddrArray;
 		SetRasAddress(signalAddrArray);
 		SetH225Port(signalAddrArray[0], tlsSignalPort);
-		H323TransportAddress signalAddr = signalAddrArray[0];	// TODO: should we use a H225_TransportAddress or H323TransportAddress ?
-		settings.AddParameter(Std22_ConnectionAddress, H460_FeatureContent(signalAddr));
-        h46022.Add(Std22_TLS, H460_FeatureContent(settings));
+		H323TransportAddress signalAddr = signalAddrArray[0];
+		settings.Add(Std22_ConnectionAddress, H460_FeatureContent(signalAddr));
+        h46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
 		grq.IncludeOptionalField(H225_GatekeeperRequest::e_featureSet);
 		grq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 		H225_ArrayOf_FeatureDescriptor & desc = grq.m_featureSet.m_supportedFeatures;
@@ -1754,10 +1754,15 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
-		H460_FeatureID tlsfeat(Std22_TLS);
-		// TODO: add priority + connectionAddress
-		//tlsfeat.Add(Std22_Priority, H460_FeatureContent(1));
-		h46022.AddParameter(&tlsfeat);
+		H460_FeatureStd settings;
+		settings.Add(Std22_Priority, H460_FeatureContent(1, 8)); // Priority=1, type=number8
+		WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
+		H225_ArrayOf_TransportAddress signalAddrArray;
+		SetRasAddress(signalAddrArray);
+		SetH225Port(signalAddrArray[0], tlsSignalPort);
+		H323TransportAddress signalAddr = signalAddrArray[0];
+		settings.Add(Std22_ConnectionAddress, H460_FeatureContent(signalAddr));
+        h46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
 		rrq.IncludeOptionalField(H225_RegistrationRequest::e_featureSet);
 		rrq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 		H225_ArrayOf_FeatureDescriptor & desc = rrq.m_featureSet.m_supportedFeatures;
@@ -1963,10 +1968,15 @@ bool GkClient::SendARQ(Routing::AdmissionRequest & arq_obj)
 	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
-		H460_FeatureID tlsfeat(Std22_TLS);
-		// TODO: add priority + connectionAddress
-		//tlsfeat.Add(Std22_Priority, H460_FeatureContent(1));
-		h46022.AddParameter(&tlsfeat);
+		H460_FeatureStd settings;
+		settings.Add(Std22_Priority, H460_FeatureContent(1, 8)); // Priority=1, type=number8
+		WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
+		H225_ArrayOf_TransportAddress signalAddrArray;
+		SetRasAddress(signalAddrArray);
+		SetH225Port(signalAddrArray[0], tlsSignalPort);
+		H323TransportAddress signalAddr = signalAddrArray[0];
+		settings.Add(Std22_ConnectionAddress, H460_FeatureContent(signalAddr));
+        h46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_featureSet);
 		arq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 		H225_ArrayOf_FeatureDescriptor & desc = arq.m_featureSet.m_supportedFeatures;
@@ -2022,10 +2032,15 @@ bool GkClient::SendLRQ(Routing::LocationRequest & lrq_obj)
 	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
-		H460_FeatureID tlsfeat(Std22_TLS);
-		// TODO: add priority + connectionAddress
-		//tlsfeat.Add(Std22_Priority, H460_FeatureContent(1));
-		h46022.AddParameter(&tlsfeat);
+		H460_FeatureStd settings;
+		settings.Add(Std22_Priority, H460_FeatureContent(1, 8)); // Priority=1, type=number8
+		WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
+		H225_ArrayOf_TransportAddress signalAddrArray;
+		SetRasAddress(signalAddrArray);
+		SetH225Port(signalAddrArray[0], tlsSignalPort);
+		H323TransportAddress signalAddr = signalAddrArray[0];
+		settings.Add(Std22_ConnectionAddress, H460_FeatureContent(signalAddr));
+        h46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
 		lrq.IncludeOptionalField(H225_LocationRequest::e_featureSet);
 		lrq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 		H225_ArrayOf_FeatureDescriptor & desc = lrq.m_featureSet.m_supportedFeatures;
@@ -2107,10 +2122,15 @@ bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer)
 	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
-		H460_FeatureID tlsfeat(Std22_TLS);
-		// TODO: add priority + connectionAddress
-		//tlsfeat.Add(Std22_Priority, H460_FeatureContent(1));
-		h46022.AddParameter(&tlsfeat);
+		H460_FeatureStd settings;
+		settings.Add(Std22_Priority, H460_FeatureContent(1, 8)); // Priority=1, type=number8
+		WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
+		H225_ArrayOf_TransportAddress signalAddrArray;
+		SetRasAddress(signalAddrArray);
+		SetH225Port(signalAddrArray[0], tlsSignalPort);
+		H323TransportAddress signalAddr = signalAddrArray[0];
+		settings.Add(Std22_ConnectionAddress, H460_FeatureContent(signalAddr));
+        h46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_featureSet);
 		arq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 		H225_ArrayOf_FeatureDescriptor & desc = arq.m_featureSet.m_supportedFeatures;
@@ -2174,10 +2194,15 @@ bool GkClient::SendARQ(Routing::FacilityRequest & facility_obj)
 	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
-		H460_FeatureID tlsfeat(Std22_TLS);
-		// TODO: add priority + connectionAddress
-		//tlsfeat.Add(Std22_Priority, H460_FeatureContent(1));
-		h46022.AddParameter(&tlsfeat);
+		H460_FeatureStd settings;
+		settings.Add(Std22_Priority, H460_FeatureContent(1, 8)); // Priority=1, type=number8
+		WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
+		H225_ArrayOf_TransportAddress signalAddrArray;
+		SetRasAddress(signalAddrArray);
+		SetH225Port(signalAddrArray[0], tlsSignalPort);
+		H323TransportAddress signalAddr = signalAddrArray[0];
+		settings.Add(Std22_ConnectionAddress, H460_FeatureContent(signalAddr));
+        h46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_featureSet);
 		arq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 		H225_ArrayOf_FeatureDescriptor & desc = arq.m_featureSet.m_supportedFeatures;
