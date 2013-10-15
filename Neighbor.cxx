@@ -3,7 +3,7 @@
 // Neighboring System for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2012, Jan Willamowius
+// Copyright (c) 2004-2013, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1675,7 +1675,7 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 				// overwrite callSignalAddress and replace with ours, we must proxy this call
 				endptr ep = RegistrationTable::Instance()->FindByEndpointId(arq_obj.GetRequest().m_endpointIdentifier); // should not be null
 				if (ep) {
-					 PIPSocket::Address epip;
+					PIPSocket::Address epip;
 					if (GetIPFromTransportAddr(ep->GetCallSignalAddress(), epip))
 						route.m_destAddr = RasServer::Instance()->GetCallSignalAddress(epip);
 
