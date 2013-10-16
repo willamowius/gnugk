@@ -739,7 +739,6 @@ int Toolkit::ProxyCriterion::SelectRoutingMode(const Address & ip1, const Addres
 	PTRACE(5, "ModeSelection for " << ip1.AsString() << " -> " << ip2.AsString() << " default=" << mode);
 
 	// check if we have a more specific setting
-	// TODO: add invalid state to NetworkAddress so we can have ModeSelection rules for 0.0.0.0/0 that set a global default
 	NetworkAddress bestMatchIP1 = FindModeRule(ip1);
 	NetworkAddress bestMatchIP2 = FindModeRule(ip2);
 
