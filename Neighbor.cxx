@@ -46,6 +46,7 @@ namespace Neighbors {
 
 const char *NeighborSection = "RasSrv::Neighbors";
 const char *LRQFeaturesSection = "RasSrv::LRQFeatures";
+const char *RoutedSec = "RoutedMode";
 
 static const char OID_MD5[] = "1.2.840.113549.2.5";
 
@@ -721,7 +722,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
 	lrq.m_gatekeeperIdentifier = Toolkit::GKName();
 	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
 	lrq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
-	H225_H221NonStandard &t35 = lrq.m_nonStandardData.m_nonStandardIdentifier;
+	H225_H221NonStandard & t35 = lrq.m_nonStandardData.m_nonStandardIdentifier;
 	t35.m_t35CountryCode = Toolkit::t35cPoland;
 	t35.m_manufacturerCode = Toolkit::t35mGnuGk;
 	t35.m_t35Extension = Toolkit::t35eNeighborId;
@@ -748,10 +749,14 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
 		if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 			// include H.460.22 in supported features
 			H460_FeatureStd h46022 = H460_FeatureStd(22);
-			H460_FeatureID tlsfeat(Std22_TLS);
-			// TODO: add priority + connectionAddress
-			//tlsfeat.Add(Std22_Priority, H460_FeatureContent(1));
-			h46022.AddParameter(&tlsfeat);
+			H460_FeatureStd settings;
+			settings.Add(Std22_Priority, H460_FeatureContent(1, 8)); // Priority=1, type=number8
+			WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
+			H225_TransportAddress h225Addr = m_rasSrv->GetRasAddress(GetIP());
+			SetH225Port(h225Addr, tlsSignalPort);
+			H323TransportAddress signalAddr = h225Addr;
+			settings.Add(Std22_ConnectionAddress, H460_FeatureContent(signalAddr));
+			h46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
 			lrq.IncludeOptionalField(H225_LocationRequest::e_featureSet);
 			lrq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 			H225_ArrayOf_FeatureDescriptor & desc = lrq.m_featureSet.m_supportedFeatures;
@@ -794,7 +799,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
 	lrq.m_genericData[sz] = foid9;
 #endif
 #ifdef HAS_LANGUAGE
-	if (Toolkit::AsBool(GkConfig()->GetString("RasSrv::LRQFeatures", "UseLanguageRouting", false))) {
+	if (GkConfig()->GetBoolean("RasSrv::LRQFeatures", "UseLanguageRouting", false)) {
 		lrq.IncludeOptionalField(H225_LocationRequest::e_language); 
 	}
 #endif
@@ -810,7 +815,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & reques
 	lrq.m_gatekeeperIdentifier = Toolkit::GKName();
 	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
 	lrq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
-	H225_H221NonStandard &t35 = lrq.m_nonStandardData.m_nonStandardIdentifier;
+	H225_H221NonStandard & t35 = lrq.m_nonStandardData.m_nonStandardIdentifier;
 	t35.m_t35CountryCode = Toolkit::t35cPoland;
 	t35.m_manufacturerCode = Toolkit::t35mGnuGk;
 	t35.m_t35Extension = Toolkit::t35eNeighborId;
@@ -837,10 +842,14 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & reques
 	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
-		H460_FeatureID tlsfeat(Std22_TLS);
-		// TODO: add priority + connectionAddress
-		//tlsfeat.Add(Std22_Priority, H460_FeatureContent(1));
-		h46022.AddParameter(&tlsfeat);
+		H460_FeatureStd settings;
+		settings.Add(Std22_Priority, H460_FeatureContent(1, 8)); // Priority=1, type=number8
+		WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
+		H225_TransportAddress h225Addr = m_rasSrv->GetRasAddress(GetIP());
+		SetH225Port(h225Addr, tlsSignalPort);
+		H323TransportAddress signalAddr = h225Addr;
+		settings.Add(Std22_ConnectionAddress, H460_FeatureContent(signalAddr));
+		h46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
 		lrq.IncludeOptionalField(H225_LocationRequest::e_featureSet);
 		lrq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 		H225_ArrayOf_FeatureDescriptor & desc = lrq.m_featureSet.m_supportedFeatures;
@@ -867,7 +876,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & reques
 	lrq.m_genericData[sz] = foid9;
 #endif
 #ifdef HAS_LANGUAGE
-	if (Toolkit::AsBool(GkConfig()->GetString("RasSrv::LRQFeatures", "UseLanguageRouting", false))) {
+	if (GkConfig()->GetBoolean("RasSrv::LRQFeatures", "UseLanguageRouting", false)) {
 		lrq.IncludeOptionalField(H225_LocationRequest::e_language); 
 	}
 #endif
@@ -883,7 +892,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & /*r
 	lrq.m_gatekeeperIdentifier = Toolkit::GKName();
 	lrq.IncludeOptionalField(H225_LocationRequest::e_nonStandardData);
 	lrq.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
-	H225_H221NonStandard &t35 = lrq.m_nonStandardData.m_nonStandardIdentifier;
+	H225_H221NonStandard & t35 = lrq.m_nonStandardData.m_nonStandardIdentifier;
 	t35.m_t35CountryCode = Toolkit::t35cPoland;
 	t35.m_manufacturerCode = Toolkit::t35mGnuGk;
 	t35.m_t35Extension = Toolkit::t35eNeighborId;
@@ -898,10 +907,14 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & /*r
 	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
-		H460_FeatureID tlsfeat(Std22_TLS);
-		// TODO: add priority + connectionAddress
-		//tlsfeat.Add(Std22_Priority, H460_FeatureContent(1));
-		h46022.AddParameter(&tlsfeat);
+		H460_FeatureStd settings;
+		settings.Add(Std22_Priority, H460_FeatureContent(1, 8)); // Priority=1, type=number8
+		WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
+		H225_TransportAddress h225Addr = m_rasSrv->GetRasAddress(GetIP());
+		SetH225Port(h225Addr, tlsSignalPort);
+		H323TransportAddress signalAddr = h225Addr;
+		settings.Add(Std22_ConnectionAddress, H460_FeatureContent(signalAddr));
+		h46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
 		lrq.IncludeOptionalField(H225_LocationRequest::e_featureSet);
 		lrq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 		H225_ArrayOf_FeatureDescriptor & desc = lrq.m_featureSet.m_supportedFeatures;
@@ -928,7 +941,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & /*r
 	lrq.m_genericData[sz] = foid9;
 #endif
 #ifdef HAS_LANGUAGE
-	if (Toolkit::AsBool(GkConfig()->GetString("RasSrv::LRQFeatures", "UseLanguageRouting", false))) {
+	if (GkConfig()->GetBoolean("RasSrv::LRQFeatures", "UseLanguageRouting", false)) {
 		lrq.IncludeOptionalField(H225_LocationRequest::e_language); 
 	}
 #endif
@@ -1335,7 +1348,7 @@ void LRQRequester::Process(RasMsg * ras)
 				m_neighbor_used = req.m_neighbor->GetId(); // record neighbor used
 #ifdef HAS_TLS
 				m_useTLS = req.m_neighbor->UseTLS();
-				// TODO: also set m_useTLS by H.460.22 ? but it could be in direct mode and the capabilities are just for the one endpoint...
+				// TODO22: also set m_useTLS by H.460.22 ? but it could be in direct mode and the capabilities are just for the one endpoint...
 #endif
 				m_h46018_client = req.m_neighbor->IsH46018Client();
 				m_h46018_server = req.m_neighbor->IsH46018Server();
@@ -1775,7 +1788,7 @@ bool NeighborPolicy::OnRequest(LocationRequest & lrq_obj)
 					PString data = param->m_data.AsString() + ":" + PString(request.GetReqNumber());
 					rip.IncludeOptionalField(H225_RequestInProgress::e_nonStandardData);
 					rip.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
-					H225_H221NonStandard &t35 = rip.m_nonStandardData.m_nonStandardIdentifier;
+					H225_H221NonStandard & t35 = rip.m_nonStandardData.m_nonStandardIdentifier;
 					t35.m_t35CountryCode = Toolkit::t35cPoland;
 					t35.m_manufacturerCode = Toolkit::t35mGnuGk;
 					t35.m_t35Extension = Toolkit::t35eNeighborId;
