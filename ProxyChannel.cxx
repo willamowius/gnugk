@@ -7393,8 +7393,9 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 		&& !m_h245TunnelingTranslation) {
 		return false;
 	}
-	if (!m_h245handler) // not H.245 routed
+	if (!m_h245handler) { // not H.245 routed
 		return true;
+	}
 
 	CallSignalSocket *ret = static_cast<CallSignalSocket *>(remote);
 	if (!ret) {
@@ -7407,8 +7408,12 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 			PTRACE(4, "H245\t" << GetName() << " H245 channel already established");
 			return false;
 		} else {
-			if (m_h245socket->SetH245Address(h245addr, masqAddr))
+			if (m_h245socket->SetH245Address(h245addr, masqAddr)) {
 				std::swap(m_h245socket, ret->m_h245socket);
+			}
+			if (m_h245TunnelingTranslation && !m_h245Tunneling && GetRemote() && GetRemote()->m_h245Tunneling) {
+				return false;	// remove H245Address from message if it goes to tunneling side
+			}
 			return true;
 		}
 	}
