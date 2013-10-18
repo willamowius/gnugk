@@ -1709,8 +1709,10 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 					if (GetIPFromTransportAddr(ep->GetCallSignalAddress(), epip))
 						route.m_destAddr = RasServer::Instance()->GetCallSignalAddress(epip);
 
-					if (request.SupportLanguages() && !route.SetLanguages(ep->GetLanguages(),request.GetLanguages()))
+					if (request.SupportLanguages() && !route.SetLanguages(ep->GetLanguages(),request.GetLanguages())) {
+						PTRACE(4, m_name << "\tPolicy found but rejected as no common language");
 						return false;
+					}
 				}
 				// create an EPRec to remember the NAT settings for H.460.18 (traversal zone) or H.460.23/.24 (genericData)
 				H225_RasMessage ras;
@@ -2077,8 +2079,27 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 					if (pRequest && pRequest->Send(nb)) {
 						if (H225_LocationConfirm * lcf = pRequest->WaitForDestination(m_neighborTimeout)) {
 							Route * route = new Route(m_name, lcf->m_callSignalAddress);
+#ifdef HAS_LANGUAGE
+							if (pRequest->SupportLanguages()) {
+								endptr ep;
+								if (dynamic_cast<AdmissionRequest *>(&request))
+									ep = RegistrationTable::Instance()->FindByEndpointId((((AdmissionRequest &)request).GetRequest().m_endpointIdentifier));
+								else if (dynamic_cast<SetupRequest *>(&request))
+									ep = RegistrationTable::Instance()->FindByEndpointId((((SetupRequest &)request).GetRequest().m_endpointIdentifier));
+								else if (dynamic_cast<LocationRequest *>(&request))
+									ep = RegistrationTable::Instance()->FindByEndpointId((((LocationRequest &)request).GetRequest().m_endpointIdentifier));
+
+								if (!ep || !route->SetLanguages(ep->GetLanguages(), pRequest->GetLanguages())) {
+									PTRACE(4, m_name << "\tPolicy found but rejected as no common language");
+									delete pRequest;
+									delete nb;
+									delete route;
+									return NULL;
+								}
+							}
+#endif
 #ifdef HAS_H460
-							if (pRequest->IsH46024Supported()) {
+							if (pRequest->IsH46024Supported() || pRequest->HasVendorInfo()) {
 								H225_RasMessage ras;
 								ras.SetTag(H225_RasMessage::e_locationConfirm);
 								H225_LocationConfirm & conf = (H225_LocationConfirm &)ras;
@@ -2334,8 +2355,26 @@ bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 				if (pRequest && pRequest->Send(nb)) {
 					if (H225_LocationConfirm *lcf = pRequest->WaitForDestination(m_neighborTimeout)) {
 						Route route(m_name, lcf->m_callSignalAddress);
+#ifdef HAS_LANGUAGE
+						if (pRequest->SupportLanguages()) {
+							endptr ep;
+							if (dynamic_cast<AdmissionRequest *>(&request))
+								ep = RegistrationTable::Instance()->FindByEndpointId((((AdmissionRequest &)request).GetRequest().m_endpointIdentifier));
+							else if (dynamic_cast<SetupRequest *>(&request))
+								ep = RegistrationTable::Instance()->FindByEndpointId((((SetupRequest &)request).GetRequest().m_endpointIdentifier));
+							else if (dynamic_cast<LocationRequest *>(&request))
+								ep = RegistrationTable::Instance()->FindByEndpointId((((LocationRequest &)request).GetRequest().m_endpointIdentifier));
+
+							if (!ep || !route.SetLanguages(ep->GetLanguages(), pRequest->GetLanguages())) {
+								PTRACE(4, m_name << "\tPolicy found but rejected as no common language");
+								delete pRequest;
+								delete nb;
+								return false;
+							}
+						}
+#endif
 #ifdef HAS_H460
-						if (pRequest->IsH46024Supported()) {
+						if (pRequest->IsH46024Supported() || pRequest->HasVendorInfo()) {
 							H225_RasMessage ras;
 							ras.SetTag(H225_RasMessage::e_locationConfirm);
 							H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
@@ -2350,7 +2389,7 @@ bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 						return true;
 					}
 				}
-				PTRACE(4, "ROUTING\tDNS RDS LRQ Error for " << domain << " at " << ipaddr);
+				PTRACE(4, m_name << "\tDNS RDS LRQ Error for " << domain << " at " << ipaddr);
 				delete pRequest;
 				delete nb;
 			}
@@ -2450,8 +2489,26 @@ bool NeighborSqlPolicy::ResolveRoute(RoutingRequest & request, DestinationRoutes
 	if (pRequest && pRequest->Send(nb)) {
 		if (H225_LocationConfirm * lcf = pRequest->WaitForDestination(m_neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
+#ifdef HAS_LANGUAGE
+			if (pRequest->SupportLanguages()) {
+				endptr ep;
+				if (dynamic_cast<AdmissionRequest *>(&request))
+					ep = RegistrationTable::Instance()->FindByEndpointId((((AdmissionRequest &)request).GetRequest().m_endpointIdentifier));
+				else if (dynamic_cast<SetupRequest *>(&request))
+					ep = RegistrationTable::Instance()->FindByEndpointId((((SetupRequest &)request).GetRequest().m_endpointIdentifier));
+				else if (dynamic_cast<LocationRequest *>(&request))
+					ep = RegistrationTable::Instance()->FindByEndpointId((((LocationRequest &)request).GetRequest().m_endpointIdentifier));
+
+				if (!ep || !route.SetLanguages(ep->GetLanguages(), pRequest->GetLanguages())) {
+					PTRACE(4, m_name << "\tPolicy found but rejected as no common language");
+					delete pRequest;
+					delete nb;
+					return false;
+				}
+			}
+#endif
 #ifdef HAS_H460
-			if (pRequest->IsH46024Supported()) {
+			if (pRequest->IsH46024Supported() || pRequest->HasVendorInfo()) {
 				H225_RasMessage ras;
 				ras.SetTag(H225_RasMessage::e_locationConfirm);
 				H225_LocationConfirm & conf = (H225_LocationConfirm &)ras;

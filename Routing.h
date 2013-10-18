@@ -128,6 +128,7 @@ public:
 	void SetGatewayDestination(const H225_TransportAddress & gw) { m_gwDestination = gw; }
 	bool GetGatewayDestination(H225_TransportAddress & gw ) const;
 
+	bool SupportLanguages() const;
 private:
 	RoutingRequest(const RoutingRequest &);
 	RoutingRequest& operator=(const RoutingRequest &);

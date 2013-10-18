@@ -120,6 +120,7 @@ bool Route::SetLanguages(const PStringList & local, const PStringList & remote)
 	return (m_language.GetSize() > 0);
 }
 
+
 // class RoutingRequest
 RoutingRequest::RoutingRequest()
 	: m_reason(-1), m_flags(0)
@@ -182,6 +183,15 @@ bool RoutingRequest::GetGatewayDestination(H225_TransportAddress & gw ) const
 	
 	gw = m_gwDestination;
 	return true;
+}
+
+bool RoutingRequest::SupportLanguages() const
+{
+#ifdef HAS_LANGUAGE
+	return GkConfig()->GetBoolean("RasSrv::LRQFeatures", "EnableLanguageRouting", false);
+#else
+	return false;
+#endif
 }
 
 // class AdmissionRequest
@@ -697,11 +707,20 @@ bool InternalPolicy::FindByAliases(AdmissionRequest & request, H225_ArrayOf_Alia
 	list<Route> routes;
 	if (RegistrationTable::Instance()->FindEndpoint(aliases, roundRobin, true, routes))
 		request.SetRejectReason(H225_AdmissionRejectReason::e_resourceUnavailable);
+
+	endptr ep;
+	if (request.SupportLanguages())
+		ep = RegistrationTable::Instance()->FindByEndpointId(request.GetRequest().m_endpointIdentifier);
 		
 	list<Route>::iterator i = routes.begin();
 	while (i != routes.end()) {
-		i->m_policy = m_name;
-		request.AddRoute(*i++);
+		if (ep && i->m_destEndpoint && !i->SetLanguages(i->m_destEndpoint->GetLanguages(),ep->GetLanguages())) {
+			PTRACE(4, m_name << "\tRoute found but rejected as no common language");
+			i++;
+		} else {
+			i->m_policy = m_name;
+			request.AddRoute(*i++);
+		}
 	}
 	return !routes.empty();
 }
