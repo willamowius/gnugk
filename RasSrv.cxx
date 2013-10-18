@@ -3488,7 +3488,7 @@ bool AdmissionRequestPDU::Process()
 	}
 
 #ifdef HAS_LANGUAGE
-	if (!answer && Toolkit::AsBool(GkConfig()->GetString("RasSrv::LRQFeatures", "UseLanguageRouting", false))) {
+	if (!answer && Toolkit::AsBool(GkConfig()->GetString("RasSrv::LRQFeatures", "EnableLanguageRouting", false))) {
 		H323SetLanguages(Language, acf.m_language);
 		acf.IncludeOptionalField(H225_AdmissionConfirm::e_language); 
 	}
@@ -3958,7 +3958,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 
 #ifdef HAS_LANGUAGE
 				if (request.HasOptionalField(H225_LocationRequest::e_language) && 
-					Toolkit::AsBool(GkConfig()->GetString("RasSrv::LRQFeatures", "UseLanguageRouting", false))) {
+					Toolkit::AsBool(GkConfig()->GetString("RasSrv::LRQFeatures", "EnableLanguageRouting", false))) {
 						if (WantedEndPoint && WantedEndPoint->SetAssignedLanguage(lcf.m_language))
 							lcf.IncludeOptionalField(H225_LocationConfirm::e_language); 
 				}

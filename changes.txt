@@ -1,5 +1,6 @@
 Changes from 3.4 to 3.5
 =======================
+- BUGFIX(Neighbor.cxx) fix H.460 VendorInfo in LCF without TLS or NAT Support
 - implement H.460.22
 - BUGFIX(ProxyChannel.cxx) fix removal of h245Address in H.245 tunneling translation
 - BUGFIX(ProxyChannel.cxx) fix H.245 tunneling translation when H.245 connection is

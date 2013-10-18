@@ -799,7 +799,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
 	lrq.m_genericData[sz] = foid9;
 #endif
 #ifdef HAS_LANGUAGE
-	if (GkConfig()->GetBoolean("RasSrv::LRQFeatures", "UseLanguageRouting", false)) {
+	if (GkConfig()->GetBoolean("RasSrv::LRQFeatures", "EnableLanguageRouting", false)) {
 		lrq.IncludeOptionalField(H225_LocationRequest::e_language); 
 	}
 #endif
@@ -876,7 +876,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & reques
 	lrq.m_genericData[sz] = foid9;
 #endif
 #ifdef HAS_LANGUAGE
-	if (GkConfig()->GetBoolean("RasSrv::LRQFeatures", "UseLanguageRouting", false)) {
+	if (GkConfig()->GetBoolean("RasSrv::LRQFeatures", "EnableLanguageRouting", false)) {
 		lrq.IncludeOptionalField(H225_LocationRequest::e_language); 
 	}
 #endif
@@ -941,7 +941,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & /*r
 	lrq.m_genericData[sz] = foid9;
 #endif
 #ifdef HAS_LANGUAGE
-	if (GkConfig()->GetBoolean("RasSrv::LRQFeatures", "UseLanguageRouting", false)) {
+	if (GkConfig()->GetBoolean("RasSrv::LRQFeatures", "EnableLanguageRouting", false)) {
 		lrq.IncludeOptionalField(H225_LocationRequest::e_language); 
 	}
 #endif
@@ -1297,7 +1297,7 @@ bool LRQRequester::SupportLanguages() const
 {
 	if (!m_result)
 		return false;
-#if HAS_LANGUAGE
+#ifdef HAS_LANGUAGE
 	return GkConfig()->GetBoolean(LRQFeaturesSection, "EnableLanguageRouting", false);
 #else
     return false;

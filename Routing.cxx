@@ -109,7 +109,7 @@ bool Route::IsFailoverActive(
 bool Route::SetLanguages(const PStringList & local, const PStringList & remote)
 {
 	if (local.GetSize() == 0 && remote.GetSize() == 0)
-		return false;
+		return true;
 
 	for (PINDEX i=0; i<local.GetSize(); ++i) {
 		for (PINDEX j =0; j<remote.GetSize(); ++j) {
