@@ -42,11 +42,11 @@ Currently supported modules: (most only support a subset of the ras or q931 acti
 <itemize>
 <item><tt>SimplePasswordAuth/SQLPasswordAuth/H350PasswordAuth</tt>
 <p>
-These modules check the <bf/tokens/ or <bf/cryptoTokens/ fields of RAS message.
+These modules check the tokens or cryptoTokens fields of RAS message.
 The tokens should contain at least generalID and password.
-For <bf/cryptoTokens/, <bf/cryptoEPPwdHash/ tokens hashed by simple MD5 and
-<bf/nestedcryptoToken/ tokens hashed by HMAC-SHA1-96 (libssl must be installed!)
-are supported. For <bf/tokens/ tokens hashed by CAT (Cisco Access Token)
+For cryptoTokens, cryptoEPPwdHash tokens hashed by simple MD5 and
+nestedcryptoToken tokens hashed by HMAC-SHA1-96
+are supported. For tokens tokens hashed by CAT (Cisco Access Token)
 and a clear text username/password are supported.
 The ID and password are read from <ref id="password" name="[SimplePasswordAuth]"> section,
 or a SQL database for <tt/SimplePasswordAuth/ and <tt/SQLPasswordAuth/
@@ -80,7 +80,7 @@ AdmissionRequest (ARQ) and LocationRequest (LRQ).
 Provides authentication based on H.235 username/password
 security scheme. Authenticates RRQ, ARQ and Q.931 Setup through remote
 RADIUS servers. It passes to RADIUS servers the usernames and passwords
-extracted from CAT (Cisco Access Tokens) <bf/tokens/ carried
+extracted from CAT (Cisco Access Tokens) tokens carried
 inside RRQ, ARQ or Setup packets. Therefore if your endpoints do not
 support CATs or you do not need an authentication scheme based on
 individually assigned usernames/password then this module would not be appropriate
@@ -91,7 +91,7 @@ See section <ref id="radauth" name="[RadAuth]"> for details.
 <p>
 Provides authentication based on endpoint aliases
 and/or call signaling IP addresses with remote RADIUS servers.
-It does not need any H.235 <bf/tokens/ inside RAS messages,
+It does not need any H.235 tokens inside RAS messages,
 so it can be used on a wider range of systems as compared to <tt/RadAuth/.
 RRQ, ARQ and Q.931 Setup messages can be authenticated using this module.
 See section <ref id="radaliasauth" name="[RadAliasAuth]"> for details.
@@ -136,7 +136,7 @@ accounting module. See section <ref id="capctrl" name="[CapacityControl]"> for m
 You can also configure a rule to check only for specific RAS messages.
 The following example configures <tt/SimplePasswordAuth/ as an optional rule
 to check RRQ and ARQ. If a RRQ is not checked (does not contain
-<bf/tokens/ or <bf/cryptoTokens/ fields), it is checked by <tt/AliasAuth/.
+tokens or cryptoTokens fields), it is checked by <tt/AliasAuth/.
 The default is to check all supported requests.
 
 <descrip>
