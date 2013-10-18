@@ -1871,7 +1871,8 @@ bool NeighborPolicy::OnRequest(SetupRequest & setup_obj)
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
 #if defined(HAS_H460) || defined (HAS_TLS)
-			if (request.UseTLS() || request.IsTraversalZone() || request.IsH46024Supported()) {
+			if ((request.UseTLS() || request.IsTraversalZone() || request.IsH46024Supported())
+				|| request.HasVendorInfo() || request.SupportLanguages()) {
 				// create an EPRec to remember the NAT settings for H.460.18 (traversal zone) or H.460.23/.24 (genericData)
 				H225_RasMessage ras;
 				ras.SetTag(H225_RasMessage::e_locationConfirm);
