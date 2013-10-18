@@ -1172,6 +1172,7 @@ public:
 	bool IsTraversalZone() const { return m_h46018_client || m_h46018_server; }
 	bool IsH46024Supported() const;
 	bool UseTLS() const { return m_useTLS; }
+	bool HasVendorInfo() const;
 	bool SupportLanguages() const;
 	PStringList GetLanguages() const;
 
@@ -1274,6 +1275,21 @@ bool LRQRequester::IsH46024Supported() const
 		if (fs.HasFeature(24))
 			return true;
 	}
+	return false;
+}
+
+bool LRQRequester::HasVendorInfo() const
+{
+	if (!m_result)
+		return false;
+#ifdef HAS_H460VEN
+	const H225_LocationConfirm *lcf = &(H225_LocationConfirm &)(*m_result)->m_recvRAS;
+	if (lcf && lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
+		H460_FeatureSet fs = H460_FeatureSet(lcf->m_genericData);
+		if (fs.HasFeature(OpalOID(OID9)))
+			return true;
+	}
+#endif
 	return false;
 }
 
@@ -1684,7 +1700,8 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
 #if defined(HAS_H460) || defined (HAS_TLS) || defined (HAS_LANGUAGE)
-			if (((request.UseTLS() || request.IsTraversalZone() || request.IsH46024Supported()) && RasServer::Instance()->IsGKRouted()) || request.SupportLanguages()) {
+			if (((request.UseTLS() || request.IsTraversalZone() || request.IsH46024Supported()) && RasServer::Instance()->IsGKRouted()) 
+				|| request.HasVendorInfo() || request.SupportLanguages()) {
 				// overwrite callSignalAddress and replace with ours, we must proxy this call
 				endptr ep = RegistrationTable::Instance()->FindByEndpointId(arq_obj.GetRequest().m_endpointIdentifier); // should not be null
 				if (ep) {
