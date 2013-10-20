@@ -1286,9 +1286,9 @@ public:
 
 	// vendor info for calling and called party
 	void SetCallingVendor(const PString & vendor, const PString & version);
-	void GetCallingVendor(PString & vendor, PString & version) const;
+	bool GetCallingVendor(PString & vendor, PString & version) const;
 	void SetCalledVendor(const PString & vendor, const PString & version);
-	void GetCalledVendor(PString & vendor, PString & version) const;
+	bool GetCalledVendor(PString & vendor, PString & version) const;
 
 	/** @return
 	    Fixed destination address for the call (size 0 if not set).

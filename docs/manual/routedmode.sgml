@@ -877,3 +877,32 @@ There are a few cases where these rules don't apply, because
 knows that the call needs proxying:
 For example calls involving H.460.18/.19 will always be proxied (because this protocol requires proxying).
 
+p>
+<sect1>Section &lsqb;ModeVendorSelection&rsqb;
+<label id="modeselection">
+<p>
+In routed mode or proxy mode, you may use this section to specify the exact routing mode
+(routed mode, routed mode plus H.245 routing or proxy mode) on vendor specific basis.
+The vendor information is collected from the H225_EndpointType field of the setup and connect message
+
+<descrip>
+<tag/Syntax:/
+
+<tt/vendor=mode/
+</descrip>
+
+The vendor is specified by an string matching value.
+The rule for the longest string match is used (the most specific).
+<p>
+
+Possible modes are in accordance with the [ModeSelection] section above. 
+
+<descrip>
+<tag/Example:/
+
+<tscreen><verb>
+[ModeSelection]
+VoIP Technologies=PROXY
+</verb></tscreen>
+
+</descrip>

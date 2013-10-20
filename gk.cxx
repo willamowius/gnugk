@@ -697,6 +697,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "H350PasswordAuth", "*" },
 #endif
 	{ "ModeSelection", "*" },
+	{ "ModeVendorSelection", "*" },
 	{ "NATedEndpoints", "*" },
 	{ "PrefixAuth", "*" },
 	{ "RasSrv::AlternateGatekeeper", "*" },

@@ -804,6 +804,7 @@ static const char *AssignedAliasSection = "RasSrv::AssignedAlias";
 #ifdef h323v6
 static const char *AssignedGatekeeperSection = "RasSrv::AssignedGatekeeper";
 #endif
+static const char *ModeVendorSection = "ModeVendorSelection";
 
 void Toolkit::RewriteData::AddSection(PConfig * config, const PString & section)
 {
@@ -1120,6 +1121,85 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig * config)
 
 	PrintData();
 }
+
+// class Toolkit::VendorModeTool
+
+void Toolkit::VendorModeTool::LoadConfig(PConfig * config)
+{
+	delete m_vendorInfo;
+	m_vendorInfo = new Toolkit::VendorData(config, ModeVendorSection);
+}
+
+int Toolkit::VendorModeTool::ModeSelection(const PString & str) const
+{
+	if (str.IsEmpty())
+		return CallRec::Undefined;
+
+	for (PINDEX i = 0; i < m_vendorInfo->Size(); ++i) {
+		PString match = m_vendorInfo->Key(i);
+		if (str.Find(match) != P_MAX_INDEX) {
+			PCaselessString mode = m_vendorInfo->Value(i);
+			if (mode == "Routed")
+				return CallRec::SignalRouted;
+			 else if (mode == "H245Routed")
+				return CallRec::H245Routed;
+			else if (mode == "Proxy")
+				return CallRec::Proxied;
+		}
+	}
+	return CallRec::Undefined;
+}
+
+Toolkit::VendorData::VendorData(PConfig *config, const PString & section)
+: m_VendorKey(NULL), m_VendorValue(NULL), m_size(0)
+{
+	AddSection(config, section);
+}
+
+void Toolkit::VendorData::AddSection(PConfig * config, const PString & section)
+{
+	PStringToString cfgs(config->GetAllKeyValues(section));
+	PINDEX n_size = cfgs.GetSize();
+	if (n_size > 0) {
+		std::map<PString, PString, pstr_prefix_lesser> rules;
+		for (PINDEX i = 0; i < n_size; ++i) {
+			PString key = cfgs.GetKeyAt(i);
+			PCaselessString first = PCaselessString(key[0]);						
+			rules[key] = cfgs.GetDataAt(i);
+		}
+		// now the rules are ascendantly sorted by the keys
+		if ((n_size = rules.size()) > 0) {
+			// Add any existing rules to be resorted
+			if (m_size > 0) {
+				for (PINDEX j = 0; j < m_size; ++j) {
+					rules[Key(j)] = Value(j);
+				}
+			}
+			m_size = m_size + n_size;
+			m_VendorKey = (PString*)(new BYTE[sizeof(PString) * m_size * 2]);
+			m_VendorValue = m_VendorKey + m_size;
+			std::map<PString, PString, pstr_prefix_lesser>::iterator iter = rules.begin();
+			
+			// reverse the order
+			for (int i = m_size; i-- > 0; ++iter) {
+				::new(m_VendorKey + i) PString(iter->first);
+				::new(m_VendorValue + i) PString(iter->second);
+			}
+		}
+	}
+}
+
+Toolkit::VendorData::~VendorData()
+{
+	if (m_VendorKey) {
+		for (int i = 0; i < m_size * 2; i++) {
+			(m_VendorKey+i)->~PString();
+		}
+	}
+	delete[] ((BYTE*)m_VendorKey);
+}
+
+
 
 Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit"), 
 	m_Config(NULL), m_ConfigDirty(false),
@@ -1810,6 +1890,7 @@ PConfig* Toolkit::ReloadConfig()
 	m_assignedLanguage.LoadSQL(m_Config);
 #endif
 #endif
+	m_venderMode.LoadConfig(m_Config);
 
 	m_timestampFormatStr = m_Config->GetString("TimestampFormat", "Cisco");
 

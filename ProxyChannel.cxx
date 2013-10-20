@@ -1483,7 +1483,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 	if (m_call->GetProxyMode() != CallRec::ProxyEnabled
 		&& nat_type == CallRec::both && calling == called) {
 		if (!Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyForSameNAT", "1"))) {
-            PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy DISABLED. (Same NAT)");
+			PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy DISABLED. (Same NAT)");
 			m_call->SetProxyMode(CallRec::ProxyDisabled);
 			return;
 		}
@@ -1502,6 +1502,14 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 		} else {
 			// check if we have a [ModeSelection] rule matching for this call
 			int mode = Toolkit::Instance()->SelectRoutingMode(peerAddr, socket->peerAddr);
+
+			// check if we have a [ModeVendorSelection] rule matching the calling party
+			PString vendor, version;
+			if ((mode != CallRec::Proxied) && m_call->GetCallingVendor(vendor, version)) {
+				int vendormode = Toolkit::Instance()->SelectRoutingVendorMode(vendor + " " + version); 
+				if (vendormode > mode) mode = vendormode;
+			}
+
 			switch (mode) {
 				case CallRec::SignalRouted:
 					m_call->SetProxyMode(CallRec::ProxyDisabled);
@@ -4969,6 +4977,23 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 		}
 		if (m_call) {
 			m_call->SetCalledVendor(vendor, version);
+			int mode = Toolkit::Instance()->SelectRoutingVendorMode(vendor + " " + version); 
+			switch (mode) {
+				case CallRec::SignalRouted:
+					// Don't worry about signal routed because we are already doing it.
+					break;
+				case CallRec::H245Routed:
+					m_call->SetH245Routed(true);
+					break;
+				case CallRec::Proxied:
+					m_call->SetProxyMode(CallRec::ProxyEnabled);
+					m_call->SetH245Routed(true);
+					PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled (Vendor Info)");
+					break;
+				default:
+					// leave as default
+					break;
+			}
 		}
 	}
 

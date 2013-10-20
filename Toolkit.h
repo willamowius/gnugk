@@ -234,6 +234,34 @@ class Toolkit : public Singleton<Toolkit>
 		RewriteData * m_Rewrite;
 	};
 
+	class VendorData {
+	public:
+		VendorData(PConfig *, const PString &);
+		~VendorData();
+		void AddSection(PConfig *config, const PString & section);
+		PINDEX Size() const { return m_size; }
+		const PString & Key(PINDEX i) const { return m_VendorKey[i]; }
+		const PString & Value(PINDEX i) const { return m_VendorValue[i]; }
+
+	private:
+		PString *m_VendorKey, *m_VendorValue;
+		PINDEX m_size;
+	};
+
+	class VendorModeTool {
+	public:
+		VendorModeTool() : m_vendorInfo(0) {}
+		~VendorModeTool() { delete m_vendorInfo; }
+		void LoadConfig(PConfig *);
+		int ModeSelection(const PString & str) const;
+
+	private:
+		VendorData * m_vendorInfo;
+	};
+
+	int SelectRoutingVendorMode(const PString & vendor) const
+	{ return m_venderMode.ModeSelection(vendor); }
+
 	class AssignedAliases {
 	 public:
 #if HAS_DATABASE
@@ -672,8 +700,9 @@ protected:
 #ifdef HAS_LANGUAGE
 	AssignedLanguage m_assignedLanguage;
 #endif
+	VendorModeTool m_venderMode;
 #if HAS_DATABASE
-    AlternateGatekeepers m_AlternateGKs;
+	AlternateGatekeepers m_AlternateGKs;
 	QoSMonitor m_qosMonitor;
 #endif
 	RouteTable m_RouteTable;

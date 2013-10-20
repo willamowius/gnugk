@@ -3616,7 +3616,7 @@ void CallRec::SetCallingVendor(const PString & vendor, const PString & version)
 	}
 }
 
-void CallRec::GetCallingVendor(PString & vendor, PString & version) const
+bool CallRec::GetCallingVendor(PString & vendor, PString & version) const
 {
 	PWaitAndSignal lock(m_usedLock);
 	if (GetCallingParty()) {
@@ -3625,6 +3625,7 @@ void CallRec::GetCallingVendor(PString & vendor, PString & version) const
 		vendor = m_callingVendor;
 		version = m_callingVersion;
 	}
+	return (!vendor || !version);
 }
 
 void CallRec::SetCalledVendor(const PString & vendor, const PString & version)
@@ -3638,7 +3639,7 @@ void CallRec::SetCalledVendor(const PString & vendor, const PString & version)
 	}
 }
 
-void CallRec::GetCalledVendor(PString & vendor, PString & version) const
+bool CallRec::GetCalledVendor(PString & vendor, PString & version) const
 {
 	PWaitAndSignal lock(m_usedLock);
 	if (GetCalledParty()) {
@@ -3647,6 +3648,7 @@ void CallRec::GetCalledVendor(PString & vendor, PString & version) const
 		vendor = m_calledVendor;
 		version = m_calledVersion;
 	}
+	return (!vendor || !version);
 }
 
 void CallRec::Update(const H225_InfoRequestResponse & irr)
