@@ -2025,6 +2025,7 @@ void SqlPolicy::RunPolicy(
 
 				Route route("Sql", SocketToH225TransportAddr(ip, port));
 				route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
+				if (!language) route.m_language.AppendString(language);
 				destination.AddRoute(route);
 
 				row++;
@@ -2064,6 +2065,7 @@ void SqlPolicy::RunPolicy(
 				Route route("Sql", SocketToH225TransportAddr(ip, port));
 				route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
 				route.m_destNumber = destinationAlias;
+				if (!language) route.m_language.AppendString(language);
 				destination.AddRoute(route);
 
 				row++;
