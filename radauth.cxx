@@ -1176,7 +1176,7 @@ int RadAuth::AppendUsernameAndPassword(
 	PString * username
 	) const
 {
-	H225_Setup_UUIE &setupBody = setup.GetUUIEBody();
+	H225_Setup_UUIE & setupBody = setup.GetUUIEBody();
 	// check for ClearTokens (CAT uses ClearTokens)
 	if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
 		PTRACE(3, "RADAUTH\t" << GetName() << " Setup auth failed: no tokens");
@@ -1273,7 +1273,7 @@ int RadAliasAuth::AppendUsernameAndPassword(
 int RadAliasAuth::AppendUsernameAndPassword(
 	RadiusPDU & pdu,
 	SetupMsg & setup,
-	endptr& /* callingEP*/,
+	endptr & /*callingEP*/,
 	SetupAuthData & authData,
 	PString * username
 	) const
