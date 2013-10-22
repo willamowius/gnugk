@@ -1587,10 +1587,15 @@ void GkClient::OnReload()
 	PIPSocket::Address gkaddr = m_gkaddr;
 	WORD gkport = m_gkport;
 	PCaselessString gk(cfg->GetString(EndpointSection, "Gatekeeper", "no"));
+	if ((gk != "no") && !m_rasSrv->IsGKRouted()) {
+		PTRACE(1, "EP\tError: Child gatekeeper may not run in direct mode!");
+		cerr << "Error: Child gatekeeper may not run in direct mode!" << endl;
+	}
+
 
 	PStringList gkHost;
 #if P_DNS
-	if (gk != "no" ) {
+	if (gk != "no") {
 		PString number = "h323:user@" + gk;
 		PStringList str;
 		if (PDNS::LookupSRV(number, "_h323rs._udp.", str)) {
@@ -1686,7 +1691,7 @@ bool GkClient::OnSendingGRQ(H225_GatekeeperRequest & grq)
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
-	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
+	if (Toolkit::Instance()->IsTLSEnabled()) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
 		H460_FeatureStd settings;
@@ -1697,7 +1702,7 @@ bool GkClient::OnSendingGRQ(H225_GatekeeperRequest & grq)
 		SetH225Port(signalAddrArray[0], tlsSignalPort);
 		H323TransportAddress signalAddr = signalAddrArray[0];
 		settings.Add(Std22_ConnectionAddress, H460_FeatureContent(signalAddr));
-        h46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
+		h46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
 		grq.IncludeOptionalField(H225_GatekeeperRequest::e_featureSet);
 		grq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 		H225_ArrayOf_FeatureDescriptor & desc = grq.m_featureSet.m_supportedFeatures;
@@ -1751,7 +1756,7 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
-	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
+	if (Toolkit::Instance()->IsTLSEnabled()) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
 		H460_FeatureStd settings;
@@ -1762,7 +1767,7 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 		SetH225Port(signalAddrArray[0], tlsSignalPort);
 		H323TransportAddress signalAddr = signalAddrArray[0];
 		settings.Add(Std22_ConnectionAddress, H460_FeatureContent(signalAddr));
-        h46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
+		h46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
 		rrq.IncludeOptionalField(H225_RegistrationRequest::e_featureSet);
 		rrq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 		H225_ArrayOf_FeatureDescriptor & desc = rrq.m_featureSet.m_supportedFeatures;
@@ -1965,7 +1970,7 @@ bool GkClient::SendARQ(Routing::AdmissionRequest & arq_obj)
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
-	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
+	if (Toolkit::Instance()->IsTLSEnabled()) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
 		H460_FeatureStd settings;
@@ -1976,7 +1981,7 @@ bool GkClient::SendARQ(Routing::AdmissionRequest & arq_obj)
 		SetH225Port(signalAddrArray[0], tlsSignalPort);
 		H323TransportAddress signalAddr = signalAddrArray[0];
 		settings.Add(Std22_ConnectionAddress, H460_FeatureContent(signalAddr));
-        h46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
+		h46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_featureSet);
 		arq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 		H225_ArrayOf_FeatureDescriptor & desc = arq.m_featureSet.m_supportedFeatures;
@@ -2029,7 +2034,7 @@ bool GkClient::SendLRQ(Routing::LocationRequest & lrq_obj)
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
-	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
+	if (Toolkit::Instance()->IsTLSEnabled()) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
 		H460_FeatureStd settings;
@@ -2062,7 +2067,7 @@ bool GkClient::SendLRQ(Routing::LocationRequest & lrq_obj)
 		unsigned tag = ras->GetTag();
 		if (tag == H225_RasMessage::e_locationConfirm) {
 			H225_LocationConfirm & lcf = (*ras)->m_recvRAS;
-			// TODO: handle H.460.22 in LCF here (parent policy)
+			// TODO22: handle H.460.22 in LCF here (parent policy)
 			lrq_obj.AddRoute(Route("parent", lcf.m_callSignalAddress));
 			RasMsg *oras = lrq_obj.GetWrapper();
 			(*oras)->m_replyRAS.SetTag(H225_RasMessage::e_locationConfirm);
@@ -2119,7 +2124,7 @@ bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer)
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
-	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
+	if (Toolkit::Instance()->IsTLSEnabled()) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
 		H460_FeatureStd settings;
@@ -2191,7 +2196,7 @@ bool GkClient::SendARQ(Routing::FacilityRequest & facility_obj)
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
-	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
+	if (Toolkit::Instance()->IsTLSEnabled()) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
 		H460_FeatureStd settings;
@@ -2565,7 +2570,7 @@ bool GkClient::WaitForACF(H225_AdmissionRequest &arq, RasRequester & request, Ro
 				robj->AddRoute(route);
 
 				if (acf.HasOptionalField(H225_AdmissionConfirm::e_featureSet)) {
-					// TODO: terminate call here is UseTLS=1 and H.460.22 prsent, but no TLS ?
+					// TODO: terminate call here is UseTLS=1 and H.460.22 present, but no TLS ?
 #ifdef HAS_H46023
 					H460_FeatureSet fs = H460_FeatureSet(acf.m_featureSet);
 					if (m_registeredH46023 && fs.HasFeature(24)) { 

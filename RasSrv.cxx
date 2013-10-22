@@ -1978,7 +1978,6 @@ bool RegistrationRequestPDU::Process()
 				settings.SetCurrentTable(tlsparam);
 				if (settings.Contains(Std22_ConnectionAddress)) {
 					tlsAddr = settings.Value(Std22_ConnectionAddress);
-					PTRACE(0, "JW H.460.22: TLS Addr=" << AsString(tlsAddr));
 				} else {
 					PTRACE(1, "TLS\tError: H.460.22 TLS address missing");
 				}
@@ -3060,8 +3059,7 @@ bool AdmissionRequestPDU::Process()
 			RequestingEP->GetAliases(), false,
 			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
 			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-			);
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
 
      	if (in_rewrite_source.IsEmpty() && request.m_srcInfo.GetSize() > 0) {
         	in_rewrite_source = GetBestAliasAddressString(request.m_srcInfo, false,
@@ -3142,8 +3140,8 @@ bool AdmissionRequestPDU::Process()
 #endif
 
 	if (request.HasOptionalField(H225_AdmissionRequest::e_featureSet)) {
-		// H.460.9 QoS Reporting
 		H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
+		// H.460.9 QoS Reporting
 		if (fs.HasFeature(9)) {
 			EPSupportsQoSReporting = true;
 		}
@@ -3570,12 +3568,14 @@ bool AdmissionRequestPDU::Process()
 				H46022.Add(Std22_IPSec, H460_FeatureContent(settings.GetCurrentTable()));
 			}
 		}
-		acf.IncludeOptionalField(H225_AdmissionConfirm::e_featureSet);
-		acf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
-		H225_ArrayOf_FeatureDescriptor & desc = acf.m_featureSet.m_supportedFeatures;
-		PINDEX sz = desc.GetSize();
-		desc.SetSize(sz+1);
-		desc[sz] = H46022;
+		if (H46022.Contains(Std22_TLS) || H46022.Contains(Std22_IPSec)) {
+			acf.IncludeOptionalField(H225_AdmissionConfirm::e_featureSet);
+			acf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+			H225_ArrayOf_FeatureDescriptor & desc = acf.m_featureSet.m_supportedFeatures;
+			PINDEX sz = desc.GetSize();
+			desc.SetSize(sz+1);
+			desc[sz] = H46022;
+		}
 	}
 
 #ifdef HAS_H46026
