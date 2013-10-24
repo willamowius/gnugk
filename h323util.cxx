@@ -377,6 +377,15 @@ H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr,
 	return Result;
 }
 
+// convert a H.323 transport address into an H225 transport address
+H225_TransportAddress H323ToH225TransportAddress(const H323TransportAddress & h323addr)
+{
+	PIPSocket::Address ip;
+	WORD port = 0;
+	h323addr.GetIpAndPort(ip, port);
+	return SocketToH225TransportAddr(ip, port);
+}
+
 // convert a H.245 unicast address into an H.323 transport address
 H323TransportAddress H245UnicastToH323TransportAddr(const H245_UnicastAddress & h245unicast)
 {

@@ -71,6 +71,10 @@ TEST_F(H323UtilTest, H245UnicastIPAddressAsString) {
 	EXPECT_STREQ("1.2.3.4:555", AsString(h245ipv4));
 }
 
+TEST_F(H323UtilTest, H323ToH225TransportAddress) {
+	EXPECT_STREQ("6.7.8.9:4567", AsDotString(H323ToH225TransportAddress(h323transport_withipv4)));
+}
+
 TEST_F(H323UtilTest, H245Port) {
 	EXPECT_EQ(555, GetH245Port(h245unicast));
 	SetH245Port(h245unicast, 999);
