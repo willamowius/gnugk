@@ -91,6 +91,7 @@ public:
 	PString m_destNumber; /// rewritten number (corresponds to Toolkit::RewriteE164)
 	PString m_destOutNumber; /// number actually sent to the called party  (corresponds to Toolkit::GWRewriteE164)
 	PStringList m_language;  /// Language tags to use with this route.
+	bool m_useTLS;
 
 protected:
 	unsigned char m_rerouteCauses[16]; /// bit flags to trigger rerouting on particular Q931 causes

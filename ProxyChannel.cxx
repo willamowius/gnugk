@@ -2910,6 +2910,8 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 		m_call->SetToParent(true);
 	m_call->SetBindHint(request.GetSourceIP());
 	m_call->SetCallerID(request.GetCallerID());
+	if (route.m_useTLS)
+		m_call->SetConnectWithTLS(true);
 
 	PTRACE(3, Type() << "\tCall " << m_call->GetCallNumber() << " is forwarded to "
 		<< altDestInfo << (!forwarder ? (" by " + forwarder) : PString::Empty()));
@@ -4655,7 +4657,7 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 #ifdef HAS_TLS
 		GkClient * gkClient = RasServer::Instance()->GetGkClient();
 		if (Toolkit::Instance()->IsTLSEnabled()
-			&& ((m_call->GetCalledParty() && m_call->GetCalledParty()->UseTLS())
+			&& (m_call->ConnectWithTLS()
 				|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UseTLS())) ) {
 			remote = new TLSCallSignalSocket(this, peerPort);
 		} else
@@ -4700,8 +4702,7 @@ bool CallSignalSocket::CreateRemote(const H225_TransportAddress & addr)
     UnmapIPv4Address(masqAddr);
 
 #ifdef HAS_TLS
-	if (Toolkit::Instance()->IsTLSEnabled()
-		&& m_call->GetCalledParty() && m_call->GetCalledParty()->UseTLS()) {
+	if (Toolkit::Instance()->IsTLSEnabled() && m_call->ConnectWithTLS()) {
 		remote = new TLSCallSignalSocket(this, peerPort);
 	} else
 #endif // HAS_TLS
@@ -5852,6 +5853,8 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 
 	m_call->SetRerouteState(RerouteInitiated);
 	m_call->SetRerouteDirection(which);
+	if (route.m_useTLS)
+		m_call->SetConnectWithTLS(true);
 
 	PBYTEArray lBuffer;
 	if (!m_h245socket || droppedSocket->m_h245socket) {
@@ -6281,6 +6284,8 @@ void CallSignalSocket::TryNextRoute()
 
 	if (newRoute.m_flags & Route::e_toParent)
 		newCall->SetToParent(true);
+	if (newRoute.m_useTLS)
+		newCall->SetConnectWithTLS(true);
 
 	if(!newRoute.m_destNumber.IsEmpty()) {
 		H225_ArrayOf_AliasAddress destAlias;
@@ -7032,6 +7037,8 @@ void CallSignalSocket::Dispatch()
 
 				if (newRoute.m_flags & Route::e_toParent)
 					m_call->SetToParent(true);
+				if (newRoute.m_useTLS)
+					m_call->SetConnectWithTLS(true);
 
 				if(!newRoute.m_destNumber.IsEmpty()) {
 					H225_ArrayOf_AliasAddress destAlias;
@@ -7271,6 +7278,8 @@ void CallSignalSocket::DispatchNextRoute()
 
 			if (newRoute.m_flags & Route::e_toParent)
 				m_call->SetToParent(true);
+			if (newRoute.m_useTLS)
+				m_call->SetConnectWithTLS(true);
 
 			if(!newRoute.m_destNumber.IsEmpty()) {
 				H225_ArrayOf_AliasAddress destAlias;
@@ -12784,7 +12793,7 @@ void CallSignalSocket::PerformConnecting()
 			return;
 		}
 
-		const Route &newRoute = m_call->GetNewRoutes().front();
+		const Route & newRoute = m_call->GetNewRoutes().front();
 		PTRACE(1, "Q931\tNew route: " << newRoute.AsString());
 
 		if (newRoute.m_destEndpoint)
@@ -12794,6 +12803,8 @@ void CallSignalSocket::PerformConnecting()
 
 		if (newRoute.m_flags & Route::e_toParent)
 			m_call->SetToParent(true);
+		if (newRoute.m_useTLS)
+			m_call->SetConnectWithTLS(true);
 
 		if(!newRoute.m_destNumber.IsEmpty()) {
 			H225_ArrayOf_AliasAddress destAlias;

@@ -1369,6 +1369,10 @@ public:
 	void SetSessionMultiplexDestination(WORD session, void * openedBy, bool isRTCP, const H323TransportAddress & toAddress, H46019Side side);
 #endif
 
+	// should we use TLS on the outgoing leg, incoming determined by port caller uses
+	bool ConnectWithTLS() const { return m_connectWithTLS || (m_Called && m_Called->UseTLS()); }	// per call dynamicly and config setting
+	void SetConnectWithTLS(bool val) { m_connectWithTLS = val; }
+
 #ifdef HAS_H235_MEDIA
     typedef NATType EncDir;
     H235Authenticators & GetAuthenticators() { return m_authenticators; }
@@ -1593,6 +1597,8 @@ private:
 	PString m_callerID;	// forced caller ID or empty
 	PMutex m_portListMutex;
 	list<DynamicPort> m_dynamicPorts;
+	// should we use TLS on the outgoing leg, incoming determined by port caller uses
+	bool m_connectWithTLS;
 
 #ifdef HAS_H235_MEDIA
     H235Authenticators m_authenticators;
@@ -2104,7 +2110,7 @@ inline unsigned CallRec::GetDisconnectCause() const
 inline void CallRec::SetDisconnectCause( unsigned causeCode )
 {
 	// set the cause only if it has not been already set
-	if( m_disconnectCause == 0 )
+	if (m_disconnectCause == 0)
 		m_disconnectCause = causeCode;
 }
 

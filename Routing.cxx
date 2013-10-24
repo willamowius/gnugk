@@ -51,7 +51,7 @@ const unsigned DEFAULT_ROUTE_PRIORITY = 1;
 const long DEFAULT_ROUTE_REQUEST_TIMEOUT = 10;
 const char* const CTIsection = "CTI::Agents";
 
-Route::Route() : m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_priority(DEFAULT_ROUTE_PRIORITY)
+Route::Route() : m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_useTLS(false), m_priority(DEFAULT_ROUTE_PRIORITY)
 {
 	m_destAddr.SetTag(H225_TransportAddress::e_nonStandardAddress);	// set to an invalid address
 	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
@@ -62,7 +62,7 @@ Route::Route(
 	const endptr & destEndpoint,
 	unsigned priority
 	) : m_destAddr(destEndpoint ? destEndpoint->GetCallSignalAddress() : H225_TransportAddress()), m_destEndpoint(destEndpoint), m_policy(policyName),
-	m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_priority(priority)
+	m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_useTLS(false), m_priority(priority)
 {
 	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
 	if (!destEndpoint) {
@@ -75,7 +75,7 @@ Route::Route(
 	const PString & policyName,
 	const H225_TransportAddress & destAddr,
 	unsigned priority
-	) : m_destAddr(destAddr), m_policy(policyName), m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_priority(priority)
+	) : m_destAddr(destAddr), m_policy(policyName), m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_useTLS(false), m_priority(priority)
 {
 	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
 }
@@ -86,7 +86,7 @@ Route::Route(
 	WORD destPort,
 	unsigned priority
 	) : m_destAddr(SocketToH225TransportAddr(destIpAddr, destPort)),
-	m_policy(policyName), m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_priority(priority)
+	m_policy(policyName), m_proxyMode(CallRec::ProxyDetect), m_flags(0), m_useTLS(false), m_priority(priority)
 {
 	Toolkit::Instance()->SetRerouteCauses(m_rerouteCauses);
 }
@@ -660,7 +660,7 @@ bool InternalPolicy::OnRequest(SetupRequest & request)
 	return true;
 }
 
-// TODO: check if called endpoint supports TLS and we have it enabled (where ???)
+// TODO22: check if called endpoint supports TLS and we have it enabled (where ???)
 bool InternalPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
 	list<Route> routes;
@@ -935,7 +935,7 @@ void VirtualQueue::OnReload()
 		vqueues = GkConfig()->GetString(CTIsection, "VirtualQueue", "");
 	if( !vqueues.IsEmpty() ) {
 		m_virtualQueueAliases = vqueues.Tokenise(" ,;\t", false);
-		if( m_virtualQueueAliases.GetSize() > 0 ) {
+		if (m_virtualQueueAliases.GetSize() > 0) {
 			PTRACE(2, "VQueue\t(CTI) Virtual queues enabled (aliases:" << vqueues
 				<< "), request timeout: " << m_requestTimeout/1000 << " s");
 			m_active = true;
@@ -946,7 +946,7 @@ void VirtualQueue::OnReload()
 	vqueues = GkConfig()->GetString(CTIsection, "VirtualQueuePrefixes", "");
 	if( !vqueues.IsEmpty() ) {
 		m_virtualQueuePrefixes = vqueues.Tokenise(" ,;\t", false);
-		if( m_virtualQueuePrefixes.GetSize() > 0 ) {
+		if (m_virtualQueuePrefixes.GetSize() > 0) {
 			PTRACE(2, "VQueue\t(CTI) Virtual queues enabled (prefixes:" << vqueues
 				<< "), request timeout: " << m_requestTimeout/1000 << " s");
 			m_active = true;

@@ -85,7 +85,7 @@ private:
 	*/
 	PString GetCallingStationId(
 		/// additional data, like call record and requesting endpoint
-		ARQAuthData& authData
+		ARQAuthData & authData
 		) const;
 
 	/** @return
@@ -93,7 +93,7 @@ private:
 	*/
 	PString GetCalledStationId(
 		/// additional data, like call record and requesting endpoint
-		ARQAuthData& authData
+		ARQAuthData & authData
 		) const;
 
 	/** @return
@@ -101,7 +101,7 @@ private:
 	*/
 	PString GetCallLinkage(
 		/// additional data, like call record and requesting endpoint
-		ARQAuthData& authData
+		ARQAuthData & authData
 		) const;
 
 	endptr RequestingEP, CalledEP;
@@ -3191,6 +3191,7 @@ bool AdmissionRequestPDU::Process()
 	// routing decision
 	bool toParent = false;
 	H225_TransportAddress CalledAddress;
+	bool connectWithTLS = false;
 	Routing::AdmissionRequest arq(request, this, authData.m_callingStationId, authData.m_clientAuthId);
 	if (!answer) {
 		if (!authData.m_destinationRoutes.empty()) {
@@ -3221,6 +3222,7 @@ bool AdmissionRequestPDU::Process()
 		CalledEP = route.m_destEndpoint;
 		CalledAddress = route.m_destAddr;
 		Language = route.m_language;
+		connectWithTLS = route.m_useTLS;
 		toParent = route.m_flags & Route::e_toParent;
 		aliasesChanged = aliasesChanged || (arq.GetFlags() & Routing::AdmissionRequest::e_aliasesChanged);
 
@@ -3355,6 +3357,9 @@ bool AdmissionRequestPDU::Process()
 		}
 		if (toParent) {
 			pCallRec->SetToParent(true);
+		}
+		if (connectWithTLS) {
+			pCallRec->SetConnectWithTLS(true);
 		}
 #ifdef HAS_H46023
 		if (natoffloadsupport == CallRec::e_natNoassist) { // If no assistance then No NAT type

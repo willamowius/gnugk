@@ -2530,7 +2530,7 @@ CallRec::CallRec(
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
 	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalClient(false), m_callfromTraversalServer(false),
-	m_rerouteDirection(Caller)
+	m_rerouteDirection(Caller), m_connectWithTLS(false)
 #ifdef HAS_H235_MEDIA
     ,m_encyptDir(none), m_dynamicPayloadTypeCounter(MIN_DYNAMIC_PAYLOAD_TYPE)
 #endif
@@ -2588,7 +2588,7 @@ CallRec::CallRec(
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
 	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalClient(false), m_callfromTraversalServer(false),
-	m_rerouteDirection(Caller)
+	m_rerouteDirection(Caller), m_connectWithTLS(false)
 #ifdef HAS_H235_MEDIA
     ,m_encyptDir(none), m_dynamicPayloadTypeCounter(MIN_DYNAMIC_PAYLOAD_TYPE)
 #endif
@@ -2637,7 +2637,7 @@ CallRec::CallRec(const H225_CallIdentifier & callID, H225_TransportAddress sigAd
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
 	m_rerouteState(NoReroute), m_h46018ReverseSetup(true), m_callfromTraversalClient(true), m_callfromTraversalServer(false),
-	m_rerouteDirection(Caller)
+	m_rerouteDirection(Caller), m_connectWithTLS(false)
 #ifdef HAS_H235_MEDIA
     ,m_encyptDir(none), m_dynamicPayloadTypeCounter(MIN_DYNAMIC_PAYLOAD_TYPE)
 #endif
@@ -2676,7 +2676,7 @@ CallRec::CallRec(
 	m_singleFailoverCDR(oldCall->m_singleFailoverCDR), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(oldCall->m_proceedingSent),
 	m_clientAuthId(0), m_rerouteState(oldCall->m_rerouteState), m_h46018ReverseSetup(oldCall->m_h46018ReverseSetup),
 	m_callfromTraversalClient(oldCall->m_callfromTraversalClient), m_callfromTraversalServer(oldCall->m_callfromTraversalServer),
-	m_rerouteDirection(oldCall->m_rerouteDirection)
+	m_rerouteDirection(oldCall->m_rerouteDirection), m_connectWithTLS(oldCall->m_connectWithTLS)
 #ifdef HAS_H235_MEDIA
     ,m_encyptDir(none), m_dynamicPayloadTypeCounter(MIN_DYNAMIC_PAYLOAD_TYPE)
 #endif
@@ -4538,7 +4538,7 @@ bool CallRec::IsTimeout(
 
 	// check timeout for signaling channel creation after ARQ->ACF
 	// or for the call being connected in direct signaling mode
-	if( connectTimeout > 0 && m_setupTime == 0 && m_connectTime == 0 )
+	if( connectTimeout > 0 && m_setupTime == 0 && m_connectTime == 0)
 		if( (now-m_creationTime)*1000 > connectTimeout ) {
 			PTRACE(2, "Q931\tCall #"<<m_CallNumber<<" timed out waiting for its signaling channel to be opened");
 			return true;
@@ -4546,7 +4546,7 @@ bool CallRec::IsTimeout(
 			return false;
 
 	// is signaling channel present?
-	if( m_setupTime && m_connectTime == 0 && connectTimeout > 0 )
+	if( m_setupTime && m_connectTime == 0 && connectTimeout > 0)
 		if( (now-m_setupTime)*1000 > connectTimeout ) {
 			PTRACE(2, "Q931\tCall #"<<m_CallNumber<<" timed out waiting for a Connect message");
 			return true;
@@ -4643,7 +4643,7 @@ void CallTable::LoadConfig()
 			CallTableSection, "DefaultCallTimeout", 0
 			);
 	m_acctUpdateInterval = GkConfig()->GetInteger(CallTableSection, "AcctUpdateInterval", 0);
-	if( m_acctUpdateInterval != 0 )
+	if( m_acctUpdateInterval != 0)
 		m_acctUpdateInterval = std::max(m_acctUpdateInterval, 10L);
 		
 	m_timestampFormat = GkConfig()->GetString(CallTableSection, "TimestampFormat", "RFC822");

@@ -116,7 +116,7 @@ bool AlternateGKs::Get(PIPSocket::Address & gkaddr, WORD & gkport)
 		const H225_TransportAddress & rasAddress = (index++)->second;
 		if (GetIPAndPortFromTransportAddr(rasAddress, gkaddr, gkport))
 			return true;
-		PTRACE(3, "GKC\tInvalid AlternateGK Address!" );
+		PTRACE(3, "GKC\tInvalid AlternateGK Address!");
 		return Get(gkaddr, gkport); // try next
 	}
 	return false;
@@ -601,7 +601,7 @@ STUNClient::STUNClient(GkClient * _client, const H323TransportAddress & addr)
 
 	PIPSocket::Address ip;
 	WORD port;
-	addr.GetIpAndPort(ip,port);
+	addr.GetIpAndPort(ip, port);
 #ifdef hasNewSTUN
     m_serverAddress = PIPSocketAddressAndPort(ip, port);
 #else
@@ -1081,7 +1081,7 @@ PBoolean H46024Socket::WriteSocket(const void * buf, PINDEX len, const Address &
 
 void H46024Socket::SetAlternateAddresses(const H323TransportAddress & address, const PString & cui, unsigned muxID)
 {
-	address.GetIpAndPort(m_altAddr,m_altPort);
+	address.GetIpAndPort(m_altAddr, m_altPort);
 
 	PTRACE(6, "H46024A\ts: " << m_sessionID << (m_rtp ? " RTP " : " RTCP ")  
 			<< "Remote Alt: " << m_altAddr << ":" << m_altPort << " CUI: " << cui);
@@ -1237,7 +1237,7 @@ void H46024Socket::H46024Bdirect(const H323TransportAddress & address, unsigned 
 	if (GetProbeState() == e_direct)  // We might already be doing annex A
 		return;
 
-	address.GetIpAndPort(m_altAddr,m_altPort);
+	address.GetIpAndPort(m_altAddr, m_altPort);
 	m_altMuxID = muxID;
 
 	PTRACE(6,"H46024b\ts: " << m_sessionID << " RTP Remote Alt: " << m_altAddr << ":" << m_altPort 
@@ -1599,10 +1599,10 @@ void GkClient::OnReload()
 		PString number = "h323:user@" + gk;
 		PStringList str;
 		if (PDNS::LookupSRV(number, "_h323rs._udp.", str)) {
-			PTRACE(5, "EP\t" << str.GetSize() << " h323rs SRV Records found" );
+			PTRACE(5, "EP\t" << str.GetSize() << " h323rs SRV Records found");
 			  for (PINDEX i = 0; i < str.GetSize(); i++) {
 				PCaselessString newhost = str[i].Right(str[i].GetLength()-5);
-				PTRACE(4, "EP\th323rs SRV record " << newhost );
+				PTRACE(4, "EP\th323rs SRV record " << newhost);
 				if (i == 0) 
 					gk = newhost;
 				else 
@@ -2544,11 +2544,11 @@ void GkClient::BuildLightWeightRRQ(H225_RegistrationRequest & rrq)
 	}
 }
 
-bool GkClient::WaitForACF(H225_AdmissionRequest &arq, RasRequester & request, Routing::RoutingRequest *robj)
+bool GkClient::WaitForACF(H225_AdmissionRequest & arq, RasRequester & request, Routing::RoutingRequest *robj)
 {
 	request.SendRequest(m_gkaddr, m_gkport);
 	if (request.WaitForResponse(5000)) {
-		RasMsg *ras = request.GetReply();
+		RasMsg * ras = request.GetReply();
 		if (ras->GetTag() == H225_RasMessage::e_admissionConfirm) {
 			if (robj) {
 				H225_AdmissionConfirm & acf = (*ras)->m_recvRAS;
@@ -2559,7 +2559,7 @@ bool GkClient::WaitForACF(H225_AdmissionRequest &arq, RasRequester & request, Ro
 					// signal change of destination if caller supports canMapAlias
 					if (arq.HasOptionalField(H225_AdmissionRequest::e_canMapAlias)
 						&& arq.m_canMapAlias
-						&& acf.m_destinationInfo.GetSize() > 0 ) {
+						&& acf.m_destinationInfo.GetSize() > 0) {
 						robj->SetFlag(Routing::RoutingRequest::e_aliasesChanged);
 						Routing::AdmissionRequest * orig_request = dynamic_cast<Routing::AdmissionRequest *>(robj);
 						if (orig_request) {
@@ -2567,19 +2567,44 @@ bool GkClient::WaitForACF(H225_AdmissionRequest &arq, RasRequester & request, Ro
 						}
 					}
 				}
-				robj->AddRoute(route);
 
 				if (acf.HasOptionalField(H225_AdmissionConfirm::e_featureSet)) {
-					// TODO: terminate call here is UseTLS=1 and H.460.22 present, but no TLS ?
-#ifdef HAS_H46023
+#ifdef HAS_H460
 					H460_FeatureSet fs = H460_FeatureSet(acf.m_featureSet);
+					// H.460.22
+					if (fs.HasFeature(22)) {
+						// check if response matches one of our security features
+						if (acf.HasOptionalField(H225_AdmissionConfirm::e_featureSet)) {
+							H460_FeatureSet arq_fs = H460_FeatureSet(arq.m_featureSet);
+							if (arq_fs.HasFeature(22)) {
+								H460_FeatureStd * arq_h46022 = (H460_FeatureStd *)arq_fs.GetFeature(22);
+								H460_FeatureStd * acf_h46022 = (H460_FeatureStd *)fs.GetFeature(22);
+								if (arq_h46022->Contains(Std22_TLS) && acf_h46022->Contains(Std22_TLS)) {
+									// both support TLS, use it
+									H460_FeatureParameter & tlsparam = acf_h46022->Value(Std22_TLS);
+									H460_FeatureStd settings;
+									settings.SetCurrentTable(tlsparam);
+									if (settings.Contains(Std22_ConnectionAddress)) {
+										H323TransportAddress tlsAddr = settings.Value(Std22_ConnectionAddress);
+										route.m_destAddr = H323ToH225TransportAddress(tlsAddr);
+										route.m_useTLS = true;
+									} else {
+										PTRACE(1, "TLS\tError: H.460.22 TLS address missing");
+									}
+								}
+							}
+						}
+					}
+#ifdef HAS_H46023
 					if (m_registeredH46023 && fs.HasFeature(24)) { 
 						callptr call = arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier) ?
 							CallTable::Instance()->FindCallRec(arq.m_callIdentifier) : CallTable::Instance()->FindCallRec(arq.m_callReferenceValue);
 							H46023_ACF(call, (H460_FeatureStd *)fs.GetFeature(24));
 					}
 #endif
+#endif
 				}
+				robj->AddRoute(route);
 			}
 			return true;
 		}
@@ -2688,7 +2713,7 @@ void GkClient::H46023_RCF(H460_FeatureStd * feat)
 		PIPSocket::Address ip;
 		addr.GetIpAddress(ip);
 		if (m_loaddr != ip) {
-			PTRACE(4, "GKC\tH46024 ALG Detected local IP " << m_loaddr << " reported " << ip );
+			PTRACE(4, "GKC\tH46024 ALG Detected local IP " << m_loaddr << " reported " << ip);
 			m_algDetected = true;
 			H46023_ForceReregistration();
 			return;
