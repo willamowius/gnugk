@@ -2302,6 +2302,7 @@ SSL_CTX * Toolkit::GetTLSContext()
 			return NULL;
 		}
 		SSL_load_error_strings();
+		OpenSSL_add_all_algorithms();	// needed for OpenSSL < 1.0
 		if (!RAND_status()) {
 			PTRACE(3, "TLS\tPRNG needs seeding");
 #ifdef P_LINUX
