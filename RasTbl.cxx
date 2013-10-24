@@ -2838,7 +2838,11 @@ void CallRec::SetCalled(const endptr & NewCalled)
 			m_nattype |= calledParty;
 			m_h245Routed = true;
 		}
-		SetDestSignalAddr(NewCalled->GetCallSignalAddress());
+		if (NewCalled->UseTLS()) {
+			SetDestSignalAddr(H323ToH225TransportAddress(NewCalled->GetTLSAddress()));
+		} else {
+			SetDestSignalAddr(NewCalled->GetCallSignalAddress());
+		}
 		m_calleeId = NewCalled->GetEndpointIdentifier().GetValue();
 	}
 }

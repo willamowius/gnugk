@@ -660,7 +660,6 @@ bool InternalPolicy::OnRequest(SetupRequest & request)
 	return true;
 }
 
-// TODO22: check if called endpoint supports TLS and we have it enabled (where ???)
 bool InternalPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
 	list<Route> routes;
@@ -714,7 +713,7 @@ bool InternalPolicy::FindByAliases(AdmissionRequest & request, H225_ArrayOf_Alia
 		
 	list<Route>::iterator i = routes.begin();
 	while (i != routes.end()) {
-		if (ep && i->m_destEndpoint && !i->SetLanguages(i->m_destEndpoint->GetLanguages(),ep->GetLanguages())) {
+		if (ep && i->m_destEndpoint && !i->SetLanguages(i->m_destEndpoint->GetLanguages(), ep->GetLanguages())) {
 			PTRACE(4, m_name << "\tRoute found but rejected as no common language");
 			i++;
 		} else {
