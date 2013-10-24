@@ -943,20 +943,20 @@ BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 {
 	PString eventName = "CTRL_UNKNOWN_EVENT";
 
-	if( dwCtrlType == CTRL_LOGOFF_EVENT ) {
+	if (dwCtrlType == CTRL_LOGOFF_EVENT) {
 		eventName = "CTRL_LOGOFF_EVENT";
 		PTRACE(2, "GK\tGatekeeper received " << eventName);
 		// prevent shut down
 		return FALSE;
 	}
 
-	if( dwCtrlType == CTRL_C_EVENT )
+	if (dwCtrlType == CTRL_C_EVENT)
 		eventName = "CTRL_C_EVENT";
-	else if( dwCtrlType == CTRL_BREAK_EVENT )
+	else if (dwCtrlType == CTRL_BREAK_EVENT)
 		eventName = "CTRL_BREAK_EVENT";
-	else if( dwCtrlType == CTRL_CLOSE_EVENT )
+	else if (dwCtrlType == CTRL_CLOSE_EVENT)
 		eventName = "CTRL_CLOSE_EVENT";
-	else if( dwCtrlType == CTRL_SHUTDOWN_EVENT )
+	else if (dwCtrlType == CTRL_SHUTDOWN_EVENT)
 		eventName = "CTRL_SHUTDOWN_EVENT";
 
 #ifndef hasPTLibTraceOnShutdownBug
@@ -976,7 +976,7 @@ BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 	// only safe way to handle this, is to remove the
 	// 'Close' menu item from the System menu and we will
 	// never have to deal with this event again.
-	if( dwCtrlType == CTRL_CLOSE_EVENT )
+	if (dwCtrlType == CTRL_CLOSE_EVENT)
 		WaitForSingleObject(GetCurrentProcess(), 15000);
 
 	// proceed with shut down
@@ -1348,7 +1348,7 @@ void Gatekeeper::Main()
 	if (args.HasOption('u')) {
 		const PString username = args.GetOptionString('u');
 
-		if ( !SetUserAndGroup(username) ) {
+		if (!SetUserAndGroup(username)) {
 			cout << "GNU Gatekeeper could not run as user "
 				<< username
 				<< endl;
@@ -1357,7 +1357,7 @@ void Gatekeeper::Main()
 	}
 #endif
 
-	if(!InitLogging(args))
+	if (!InitLogging(args))
 		return;
 
 	if (args.HasOption('h')) {
