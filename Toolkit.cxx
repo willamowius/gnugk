@@ -2247,7 +2247,7 @@ void apps_ssl_info_callback(const SSL * s, int where, int ret)
 	else str = "undefined";
 
 	if (where & SSL_CB_LOOP) {
-			PTRACE(5, "TLS\t" << str << ": " << SSL_state_string_long(s));
+		PTRACE(5, "TLS\t" << str << ": " << SSL_state_string_long(s));
 	} else if (where & SSL_CB_ALERT) {
 		str = (where & SSL_CB_READ)?"read":"write";
 		PTRACE(5, "TLS\tSSL3 alert " <<	str << ": " << SSL_alert_type_string_long(ret) << ":" << SSL_alert_desc_string_long(ret));
@@ -2255,7 +2255,7 @@ void apps_ssl_info_callback(const SSL * s, int where, int ret)
 		if (ret == 0)
 			PTRACE(5, str << ":failed in " << SSL_state_string_long(s));
 		else if (ret < 0) {
-			PTRACE(5, "TLS\t" << str << ": error in " << SSL_state_string_long(s));
+			//PTRACE(5, "TLS\t" << str << ": error in " << SSL_state_string_long(s));	// huge volume of messages when using async sockets
 		}
 	}
 }
