@@ -1170,5 +1170,12 @@ Default: <tt>N/A</tt><newline>
 With this switch you can replace the CallSourceAddress if there is a prefix match.
 You can use this to assign a common valid E.164 number to non-E.164 numbers for the purpose of callerID.
 
+<item><tt/TreatNumberURIDialedDigits=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Where MatchSourceTypeToDestination is set and the destination is a URI and the host part is numeric
+this ensures the source address is numeric URI as well by taking the DialedDigits source address 
+and mixing it with the URI address if present so the same format is for the source and destination address.
+
 </itemize>
 

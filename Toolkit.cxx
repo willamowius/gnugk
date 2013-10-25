@@ -3778,6 +3778,7 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 	bool matchSource    = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "MatchSourceTypeToDestination", "0"));
 	bool onlyE164       = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "OnlyE164", "0"));
 	bool only10Dand11D  = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "OnlyValid10Dand11D", "0"));
+	bool treatNumberURIDialedDigits  = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "TreatNumberURIDialedDigits", "0"));
 	int aliasForceType  = m_Config->GetString("RewriteSourceAddress", "ForceAliasType", "-1").AsInteger();
 	if (aliasForceType > 2) aliasForceType = -1;  // Limited only to support dialedDigits, h323_ID, url_ID,
 
@@ -3789,7 +3790,39 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 		} else if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress) &&
 			setupBody.m_destinationAddress.GetSize() > 0) {
 				destType = setupBody.m_destinationAddress[0].GetTag();
-		} 
+		}
+
+		if (treatNumberURIDialedDigits && destType == H225_AliasAddress::e_url_ID) {
+			PString destination = ::AsString(setupBody.m_destinationAddress[0],false);
+			PINDEX at = destination.Find('@');
+			PString d = destination.Left(at);
+			if (strspn(d, "1234567890") == strlen(d)) {  // all digits
+				PString sdigits;
+				PINDEX j = 0;
+				while(j < setupBody.m_sourceAddress.GetSize()) {  // Find longest DialedDigits
+					if (setupBody.m_sourceAddress[j].GetTag() == H225_AliasAddress::e_dialedDigits) {
+						PString s = ::AsString(setupBody.m_sourceAddress[j],false);
+						if (s.GetLength() > sdigits.GetLength())
+							sdigits = s;
+					}
+					++j;
+				}
+				if (!sdigits) {  // replace the URI with the dialedDigits URI
+					j=0;
+					while(j < setupBody.m_sourceAddress.GetSize()) {  // Find longest DialedDigits
+						if (setupBody.m_sourceAddress[j].GetTag() == H225_AliasAddress::e_url_ID) {
+							PString s = ::AsString(setupBody.m_sourceAddress[j],false);
+							PINDEX a = s.Find('@');
+							PString dom = s.Mid(a);
+							H323SetAliasAddress(sdigits+dom,setupBody.m_sourceAddress[j],H225_AliasAddress::e_url_ID);
+					}
+						++j;
+					}
+					setup.GetQ931().SetDisplayName(sdigits);
+					setup.GetQ931().RemoveIE(Q931::CallingPartyNumberIE);
+				}
+			}
+		}
 
 		if (aliasForceType > -1) {
 			PString destination = PString();
