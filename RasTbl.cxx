@@ -1030,7 +1030,7 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 		PString vendor, version;
 		GetEndpointInfo(vendor, version);
 		params["Vendor"] = vendor + version;
-		msg = "URQ|"+ ReplaceParameters(format, params);
+		msg = "URQ|"+ ReplaceParameters(format, params) + ";\r\n";
 	} else {
 		PString msg(PString::Printf, "URQ|%s|%s|%s;\r\n", 
 			(const unsigned char *) AsDotString(GetRasAddress()),
