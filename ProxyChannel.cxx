@@ -3859,8 +3859,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		}
 
 		PString destinationString(setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)
-			? AsString(setupBody.m_destinationAddress) : AsDotString(calledAddr)
-			);
+			? AsString(setupBody.m_destinationAddress) : AsDotString(calledAddr));
 
 		// if I'm behind NAT and the call is from parent, always use H.245 routed,
 		// also make sure all calls from endpoints with H.460.17/.18 are H.245 routed

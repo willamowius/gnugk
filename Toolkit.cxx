@@ -2239,7 +2239,7 @@ bool Toolkit::AssignedAliases::QueryH350Directory(const PString & alias, PString
 
 void apps_ssl_info_callback(const SSL * s, int where, int ret)
 {
-	const char * str;
+	const char * str = NULL;
 	int w = where & ~SSL_ST_MASK;
 
 	if (w & SSL_ST_CONNECT) str = "SSL_connect";

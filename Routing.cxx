@@ -422,16 +422,15 @@ Policy *Analyzer::ChoosePolicy(const H225_ArrayOf_AliasAddress *aliases, Rules &
 
 	// use rules.begin() as the default policy
 	// since "*" has the minimum key value
-	Rules::iterator iter, biter, eiter;
-	iter = biter = rules.begin(), eiter = rules.end();
+	Rules::iterator iter = rules.begin();
 	if (aliases && aliases->GetSize() > 0) {
 		for (PINDEX i = 0; i < aliases->GetSize(); ++i) {
 			const H225_AliasAddress & alias = (*aliases)[i];
 			iter = rules.find(alias.GetTagName());
-			if (iter != eiter)
+			if (iter != rules.end())
 				break;
 			PString destination(AsString(alias, false));
-			while (iter != biter) {
+			while (iter != rules.begin()) {
 				--iter; // search in reverse order
 				if (MatchPrefix(destination, iter->first) > 0)
 					return iter->second;

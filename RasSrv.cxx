@@ -546,8 +546,8 @@ bool GkInterface::CreateListeners(RasServer *RasSrv)
 #endif
 		}
 	}
+	// TODO: implement switch for additional listen ports here
 
- 
 	if (RasSrv->IsGKRouted()) {
 		return (m_rasListener != NULL) && (m_callSignalListener != NULL);
 	} else {
