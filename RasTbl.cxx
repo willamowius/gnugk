@@ -1015,11 +1015,30 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 	}
 #endif
 
-	PString msg(PString::Printf, "URQ|%s|%s|%s;\r\n", 
+	PString format = GkConfig()->GetString("GkStatus::Message", "URQ", "");
+	PString msg;
+	if (!format.IsEmpty()) {
+		bool compact = GkConfig()->GetBoolean("GkStatus::Message", "Compact", false); 
+		std::map<PString, PString> params;
+		params["IP:Port"] = AsDotString(GetCallSignalAddress());
+		params["Aliases"] = AsString(GetAliases());
+		params["Endpoint_Type"] = AsString(GetEndpointType());
+		params["EndpointID"] = GetEndpointIdentifier().GetValue();
+		params["NATType"] = PrintNatInfo(!compact);
+		params["EndpointRASAddr"] = AsDotString(GetRasAddress());
+		params["URQReason"] = urq.m_reason.GetTagName();
+		PString vendor, version;
+		GetEndpointInfo(vendor, version);
+		params["Vendor"] = vendor + version;
+		msg = "URQ|"+ ReplaceParameters(format, params);
+	} else {
+		PString msg(PString::Printf, "URQ|%s|%s|%s;\r\n", 
 			(const unsigned char *) AsDotString(GetRasAddress()),
 			(const unsigned char *) GetEndpointIdentifier().GetValue(),
 			(const unsigned char *) urq.m_reason.GetTagName());
-        GkStatus::Instance()->SignalStatus(msg, STATUS_TRACE_LEVEL_RAS);
+	}
+
+    GkStatus::Instance()->SignalStatus(msg, STATUS_TRACE_LEVEL_RAS);
 
 	RasSrv->ForwardRasMsg(ras_msg);
 	if (reason == H225_UnregRequestReason::e_maintenance) {

@@ -986,6 +986,22 @@ The RFC event has the following parameters available:
 <item>Vendor - Vendor information of the registering device
 </itemize>
 
+<item><tt/URQ=%{IP:Port}|%{Aliases}|%{Endpoint_Type}|%{EndpointID}|%{NATType}|%{Vendor}|%{EndpointRASAddr}|%{URQReason}/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The URQ event has the following parameters available:
+
+<itemize>
+<item>IP:Port - IP and port the registration was detected on (external NAT address if behind NAT)
+<item>Aliases - Complete list of aliases for the registration
+<item>Endpoint_Type - Endpoint type (ie terminal,gateway) of the registered endpoint
+<item>EndpointID - endpoint id assigned to the registration
+<item>NATType - NAT Method of registration (ie Native,GnuGk,H.460.17,H.460.18 etc)
+<item>Vendor - Vendor information of the registering device
+<item>EndpointRASAddr - Endpoint RAS address
+<item>URQReason - Unregistration reason
+</itemize>
+
 </itemize>
 <p>
 
@@ -995,6 +1011,7 @@ The RFC event has the following parameters available:
 [GkStatus::Message]
 Compact=0
 RCF=%{IP:Port}|%{Aliases}|%{Endpoint_Type}|%{EndpointID}|%{NATType}|%{Vendor}
+URQ=%{IP:Port}|%{Aliases}|%{Endpoint_Type}|%{EndpointID}|%{NATType}|%{Vendor}|%{EndpointRASAddr}|%{URQReason}
 </verb></tscreen>
 </descrip>
 

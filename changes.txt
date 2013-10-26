@@ -1,5 +1,6 @@
 Changes from 3.4 to 3.5
 =======================
+- extend [GkStatus::Message] for URQ (Thanks, Yuriy!)
 - new switxh [RewriteSourceAddress] TreatNumberURIDialedDigits
 - new section [ModeVendorSelection] to set proxy mode based on endpoint vendor
 - BUGFIX(Neighbor.cxx) fix H.460 VendorInfo in LCF without TLS or NAT Support
@@ -56,7 +57,7 @@ Changes from 3.2 to 3.3
 - new [Routing::NeighborSQL] policy to read Neighbor targets from database
 - updated [CallTable] DisabledCodecs to include UserInput Capabilities
 - update Presence system. Reduce registration load, PDU size and UDP fragmentation
-- new [GkStatus::Message] to allow reformating of status port messages
+- new [GkStatus::Message] to allow reformating of status port messages (RRQ only)
 - new [RasSrv::LRQFeatures] PingAlias= to reduce resource usage processing LRQ pings
 - new [RewriteSourceAddress] Rules to apply general CallSourceAddress prefix rewrites
 - new [RewriteSourceAddress] ReplaceChar to substitute characters in source address like '+'
