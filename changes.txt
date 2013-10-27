@@ -1,5 +1,6 @@
 Changes from 3.4 to 3.5
 =======================
+- process multiple terminal-alias VSA from Radius
 - extend [GkStatus::Message] for URQ (Thanks, Yuriy!)
 - new switxh [RewriteSourceAddress] TreatNumberURIDialedDigits
 - new section [ModeVendorSelection] to set proxy mode based on endpoint vendor

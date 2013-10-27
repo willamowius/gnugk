@@ -156,7 +156,7 @@ int RadAuthBase::Check(
 			&& rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
 		PString aliasList("terminal-alias:");
 		for (PINDEX i = 0; i < rrq.m_terminalAlias.GetSize(); i++) {
-			if(i > 0)
+			if (i > 0)
 				aliasList += ",";
 			aliasList += AsString(rrq.m_terminalAlias[i], FALSE);
 		}
@@ -261,9 +261,12 @@ int RadAuthBase::Check(
 
 	// process h323-ivr-in=terminal-alias attribute
 	if (result) {
+		PTRACE(2, "RADAUTH\t Cisco VSA terminal-alias Attributes processing started");
 		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
 			RadiusAttr::CiscoVSA_AV_Pair
 			);
+		PTRACE(2, "RADAUTH found Cisco VSA Attribute\t" << attr->AsCiscoString());
+		PStringArray aliases;
 		while (attr != NULL) {
 			PINDEX index;
 			value = attr->AsCiscoString();
@@ -273,34 +276,39 @@ int RadAuthBase::Check(
 				const PINDEX semicolonpos = value.Find(';', index);
 				value = value.Mid(index, semicolonpos == P_MAX_INDEX
 					? P_MAX_INDEX : (semicolonpos-index));
-				PStringArray aliases = value.Tokenise(",");
-				if (aliases.GetSize() > 0 
-					&& rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
-					PINDEX i = 0;
-					while (i < rrq.m_terminalAlias.GetSize()) {
-						PINDEX j = aliases.GetStringsIndex(AsString(rrq.m_terminalAlias[i], FALSE));
-						if( j == P_MAX_INDEX )
-							rrq.m_terminalAlias.RemoveAt(i);
-						else {
-							i++;
-							aliases.RemoveAt(j);
-						}
-					}
-				}
-				for (PINDEX i = 0; i < aliases.GetSize(); i++) {
-					if (rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias))
-						rrq.m_terminalAlias.SetSize(rrq.m_terminalAlias.GetSize()+1);
-					else {
-						rrq.IncludeOptionalField(H225_RegistrationRequest::e_terminalAlias);
-						rrq.m_terminalAlias.SetSize(1);
-					}
-					H323SetAliasAddress(aliases[i], rrq.m_terminalAlias[rrq.m_terminalAlias.GetSize()-1]);
-				}
-				break;
+				aliases += value.Tokenise(",");
+				PTRACE(2, "RADAUTH\t" << attr->AsCiscoString() << " Cisco VSA terminal-alias added to alias list");
 			}
 			attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
 				RadiusAttr::CiscoVSA_AV_Pair, attr);
 		}
+
+		if (aliases.GetSize() > 0) {
+		    if (rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
+				PINDEX i = 0;
+				while (i < rrq.m_terminalAlias.GetSize()) {
+					PINDEX j = aliases.GetStringsIndex(AsString(rrq.m_terminalAlias[i], FALSE));
+					if (j == P_MAX_INDEX)
+						rrq.m_terminalAlias.RemoveAt(i);
+					else {
+						i++;
+						aliases.RemoveAt(j);
+					}
+				}
+		    }
+
+		    for (PINDEX i = 0; i < aliases.GetSize(); i++) {
+				if (rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias))
+					rrq.m_terminalAlias.SetSize(rrq.m_terminalAlias.GetSize()+1);
+				else {
+					rrq.IncludeOptionalField(H225_RegistrationRequest::e_terminalAlias);
+					rrq.m_terminalAlias.SetSize(1);
+				}
+				H323SetAliasAddress(aliases[i], rrq.m_terminalAlias[rrq.m_terminalAlias.GetSize()-1]);
+		    }
+		    PTRACE(2, "RADAUTH\t alias list added to RCF successful");
+		}
+		PTRACE(2, "RADAUTH\t Cisco VSA terminal-alias Attributes processing ended");
 	}
 
 	if (!result)
@@ -315,10 +323,10 @@ int RadAuthBase::Check(
 	/// ARQ nessage to be authenticated
 	RasPDU<H225_AdmissionRequest> & arqPdu, 
 	/// authorization data (call duration limit, reject reason, ...)
-	ARQAuthData& authData
+	ARQAuthData & authData
 	)
 {
-	H225_AdmissionRequest & arq = (H225_AdmissionRequest&)arqPdu;
+	H225_AdmissionRequest & arq = (H225_AdmissionRequest &)arqPdu;
 
 	// build RADIUS Access-Request packet
 	RadiusPDU* const pdu = new RadiusPDU(RadiusPDU::AccessRequest);
@@ -876,7 +884,7 @@ int RadAuthBase::Check(
 		if (attr != NULL) {
 			value = attr->AsCiscoString();	
 			if (value.GetLength() > 0 
-					&& strspn((const char*)value,"0123456789") == (size_t)value.GetLength() ) {
+					&& strspn((const char*)value,"0123456789") == (size_t)value.GetLength()) {
 				authData.m_callDurationLimit = value.AsInteger();
 				PTRACE(5, "RADAUTH\t" << GetName() << " Setup check set duration "
 					"limit: " << authData.m_callDurationLimit);
