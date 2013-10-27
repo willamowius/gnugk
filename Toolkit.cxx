@@ -518,7 +518,7 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 			} else {
 				RouteEntry entry(explicitRoute);
 				if (Toolkit::Instance()->IsGKHome(entry.GetDestination())) {
-					PTRACE(2, "Adding explict route: " << entry.GetNetwork() << "/" << entry.GetNetMask() << "->" << entry.GetDestination());
+					PTRACE(2, "Adding explicit route: " << entry.GetNetwork() << "/" << entry.GetNetMask() << "->" << entry.GetDestination());
 					e++;
 				} else {
 					PTRACE(1, "Ignoring explict route (invalid source IP): "
