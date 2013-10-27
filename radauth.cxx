@@ -168,7 +168,7 @@ int RadAuthBase::Check(
 	// send request and wait for response
 	RadiusPDU* response = NULL;
 	bool result = m_radiusClient->MakeRequest(*pdu, response) && response;
-		
+
 	delete pdu;
 			
 	if (!result) {
@@ -624,11 +624,9 @@ int RadAuthBase::Check(
 				numbersToDial = value.Tokenise("; \t", FALSE);
 				if (numbersToDial.GetSize() > 0) {
 					authData.SetRouteToAlias(numbersToDial[0]);
-					PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check redirect "
-						"to the number " << value);
+					PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check redirect to the number " << value);
 				} else {
-					PTRACE(1, "RADAUTH\t" << GetName()
-						<< " invalid ARQ check redirect numbers list: " << value);
+					PTRACE(1, "RADAUTH\t" << GetName() << " invalid ARQ check redirect numbers list: " << value);
 				}
 			}
 		}
@@ -660,8 +658,7 @@ int RadAuthBase::Check(
 							}
 						}
 						authData.m_destinationRoutes.push_back(route);
-						PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check redirect "
-							"to the address " << route.AsString());
+						PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check redirect to the address " << route.AsString());
 					}
 				}
 			}
@@ -687,6 +684,7 @@ int RadAuthBase::Check(
 						? CallRec::ProxyEnabled : CallRec::ProxyDisabled;
 					PTRACE(5, "RADAUTH\t" << GetName() << " - proxy mode "
 						<< (authData.m_proxyMode == CallRec::ProxyEnabled ? "enabled" : "disabled"));
+					break;
 				}
 			}
 			attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
@@ -988,6 +986,7 @@ int RadAuthBase::Check(
 						? CallRec::ProxyEnabled : CallRec::ProxyDisabled;
 					PTRACE(5, "RADAUTH\t" << GetName() << " - proxy mode "
 						<< (authData.m_proxyMode == CallRec::ProxyEnabled ? "enabled" : "disabled"));
+					break;
 				}
 			}
 			attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
