@@ -1,6 +1,15 @@
+; place into /etc/systemd/system/ as gnugk.service
+
 [Unit]
 Description=GNU Gatekeeper
+After=network-online.target
 
 [Service]
+Type=simple
+ExecStart=/usr/local/bin/gnugk -c /etc/gnugk.ini -ttttt -o /var/log/gnugk.log
+ExecReload=/usr/bin/killall -HUP gnugk
 LimitRTPRIO=100
+
+[Install]
+WantedBy=multi-user.target
 
