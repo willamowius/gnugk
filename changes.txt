@@ -3,7 +3,7 @@ Changes from 3.4 to 3.5
 - more detailed codec descriptions in %{codec} and Radius attribute
 - process multiple terminal-alias VSA from Radius
 - extend [GkStatus::Message] for URQ (Thanks, Yuriy!)
-- new switxh [RewriteSourceAddress] TreatNumberURIDialedDigits
+- new switch [RewriteSourceAddress] TreatNumberURIDialedDigits
 - new section [ModeVendorSelection] to set proxy mode based on endpoint vendor
 - BUGFIX(Neighbor.cxx) fix H.460 VendorInfo in LCF without TLS or NAT Support
 - implement H.460.22
