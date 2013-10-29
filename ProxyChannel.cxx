@@ -172,14 +172,19 @@ PString GetH245CodecName(const H245_AudioCapability & cap)
 {
 	switch (cap.GetTag()) {
 	case H245_AudioCapability::e_g711Alaw64k:
+		return "G711A64";
 	case H245_AudioCapability::e_g711Alaw56k:
+		return "G711A56";
 	case H245_AudioCapability::e_g711Ulaw64k:
+		return "G711U64";
 	case H245_AudioCapability::e_g711Ulaw56k:
-		return "G711";
+		return "G711U56";
 	case H245_AudioCapability::e_g722_64k:
+		return "G72264";
 	case H245_AudioCapability::e_g722_56k:
+		return "G72256";
 	case H245_AudioCapability::e_g722_48k:
-		return "G722";
+		return "G72248";
 	case H245_AudioCapability::e_g7231:
 		return "G7231";
 	case H245_AudioCapability::e_g728:
@@ -195,9 +200,11 @@ PString GetH245CodecName(const H245_AudioCapability & cap)
 	case H245_AudioCapability::e_g7231AnnexCCapability:
 		return "G7231C";
 	case H245_AudioCapability::e_gsmFullRate:
+		return "GSMFR";
 	case H245_AudioCapability::e_gsmHalfRate:
+		return "GSMHR";
 	case H245_AudioCapability::e_gsmEnhancedFullRate:
-		return "GSM";
+		return "GSMEFR";
 	}
 	return "Unknown";
 }

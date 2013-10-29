@@ -1325,7 +1325,7 @@ public:
 	int GetNoRemainingRoutes() const;
 	bool DisableRetryChecks() const;
 
-	void SetCodec(const PString &codec);
+	void SetCodec(const PString & codec);
 	PString GetCodec() const;
 
 	void SetMediaOriginatingIp(const PIPSocket::Address &addr);

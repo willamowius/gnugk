@@ -191,9 +191,9 @@ GkAcctLogger::Status RadAcct::Log(
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_disconnect_cause,
 					PString(PString::Unsigned, (long)(call->GetDisconnectCause()), 16)
 					);
-				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_release_source,call->GetReleaseSource());
-				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_preferred_codec,call->GetCodec());
-				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_rewritten_e164_num,call->GetCalledStationId());
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_release_source, call->GetReleaseSource());
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_preferred_codec, call->GetCodec());
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_rewritten_e164_num, call->GetCalledStationId());
 
 				// Post Dial Delay Time
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
