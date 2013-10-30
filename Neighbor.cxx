@@ -1289,18 +1289,18 @@ bool LRQRequester::IsTLSNegotiated()
 		H460_FeatureSet fs = H460_FeatureSet(lcf.m_featureSet);
 		if (fs.HasFeature(22)) {
 			H460_FeatureStd * secfeat = (H460_FeatureStd *)fs.GetFeature(22);
-				if (secfeat->Contains(Std22_TLS)) {
-					m_useTLS = true;
-					H460_FeatureParameter & tlsparam = secfeat->Value(Std22_TLS);
-					H460_FeatureStd settings;
-					settings.SetCurrentTable(tlsparam);
-					if (settings.Contains(Std22_ConnectionAddress)) {
-						H323TransportAddress tlsAddr = settings.Value(Std22_ConnectionAddress);
-						// put TLS address into callSignalAddress, so we don't have to check both when creating the route
-						lcf.m_callSignalAddress = H323ToH225TransportAddress(tlsAddr);
-					}
-					return true;
+			if (secfeat->Contains(Std22_TLS)) {
+				m_useTLS = true;
+				H460_FeatureParameter & tlsparam = secfeat->Value(Std22_TLS);
+				H460_FeatureStd settings;
+				settings.SetCurrentTable(tlsparam);
+				if (settings.Contains(Std22_ConnectionAddress)) {
+					H323TransportAddress tlsAddr = settings.Value(Std22_ConnectionAddress);
+					// put TLS address into callSignalAddress, so we don't have to check both when creating the route
+					lcf.m_callSignalAddress = H323ToH225TransportAddress(tlsAddr);
 				}
+				return true;
+			}
 		}
 	}
 	return false;
