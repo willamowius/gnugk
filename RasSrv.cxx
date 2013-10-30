@@ -3962,12 +3962,14 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 							settings.Add(Std22_Priority, H460_FeatureContent(2, 8)); // Priority=2, type=number8
 							H46022.Add(Std22_IPSec, H460_FeatureContent(settings.GetCurrentTable()));
 						}
-						lcf.IncludeOptionalField(H225_LocationConfirm::e_featureSet);
-						lcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
-						H225_ArrayOf_FeatureDescriptor & desc = lcf.m_featureSet.m_supportedFeatures;
-						PINDEX sz = desc.GetSize();
-						desc.SetSize(sz + 1);
-						desc[sz] = H46022;
+						if (H46022.Contains(Std22_TLS) || H46022.Contains(Std22_IPSec)) {
+							lcf.IncludeOptionalField(H225_LocationConfirm::e_featureSet);
+							lcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+							H225_ArrayOf_FeatureDescriptor & desc = lcf.m_featureSet.m_supportedFeatures;
+							PINDEX sz = desc.GetSize();
+							desc.SetSize(sz + 1);
+							desc[sz] = H46022;
+						}
 					}
 				}
 

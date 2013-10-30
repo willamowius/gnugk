@@ -1728,21 +1728,24 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
 #if defined(HAS_H460) || defined (HAS_TLS) || defined (HAS_LANGUAGE)
-			if (((request.UseTLS() || request.IsTLSNegotiated() || request.IsTraversalZone() || request.IsH46024Supported()) && RasServer::Instance()->IsGKRouted())
+			// create an EPRec to remember the traversal settings etc.				
+			if (request.UseTLS() || request.IsTLSNegotiated() || request.IsTraversalZone() || request.IsH46024Supported()
 				|| request.HasVendorInfo() || request.SupportLanguages()) {
-				// overwrite callSignalAddress and replace with ours, we must proxy this call
-				endptr ep = RegistrationTable::Instance()->FindByEndpointId(arq_obj.GetRequest().m_endpointIdentifier); // should not be null
-				if (ep) {
-					PIPSocket::Address epip;
-					if (GetIPFromTransportAddr(ep->GetCallSignalAddress(), epip))
-						route.m_destAddr = RasServer::Instance()->GetCallSignalAddress(epip);
+				// overwrite callSignalAddress and replace with ours, we must proxy this call (works only in routed mode)
+				if (request.IsTraversalZone() && RasServer::Instance()->IsGKRouted()) {
+					endptr ep = RegistrationTable::Instance()->FindByEndpointId(arq_obj.GetRequest().m_endpointIdentifier); // should not be null
+					if (ep) {
+						PIPSocket::Address epip;
+						if (GetIPFromTransportAddr(ep->GetCallSignalAddress(), epip))
+							route.m_destAddr = RasServer::Instance()->GetCallSignalAddress(epip);
 
-					if (request.SupportLanguages() && !route.SetLanguages(ep->GetLanguages(),request.GetLanguages())) {
-						PTRACE(4, m_name << "\tPolicy found but rejected as no common language");
-						return false;
+						if (request.SupportLanguages() && !route.SetLanguages(ep->GetLanguages(),request.GetLanguages())) {
+							PTRACE(4, m_name << "\tPolicy found but rejected as no common language");
+							return false;
+						}
 					}
 				}
-				// create an EPRec to remember the NAT settings for H.460.18 (traversal zone) or H.460.23/.24 (genericData)
+				// create the EPRec
 				H225_RasMessage ras;
 				ras.SetTag(H225_RasMessage::e_locationConfirm);
 				H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
@@ -1757,7 +1760,7 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 					route.m_destEndpoint->SetTraversalRole(TraversalServer);
 				}
 				if (request.IsTraversalServer()) {
-                    route.m_destEndpoint->SetTraversalRole(TraversalClient);
+					route.m_destEndpoint->SetTraversalRole(TraversalClient);
 				}
 			}
 #endif
@@ -1901,7 +1904,7 @@ bool NeighborPolicy::OnRequest(SetupRequest & setup_obj)
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
 #if defined(HAS_H460) || defined (HAS_TLS)
-			if ((request.UseTLS() || request.IsTraversalZone() || request.IsH46024Supported())
+			if ((request.UseTLS() || request.IsTLSNegotiated() || request.IsTraversalZone() || request.IsH46024Supported())
 				|| request.HasVendorInfo() || request.SupportLanguages()) {
 				// create an EPRec to remember the NAT settings for H.460.18 (traversal zone) or H.460.23/.24 (genericData)
 				H225_RasMessage ras;
@@ -1947,7 +1950,7 @@ bool NeighborPolicy::OnRequest(FacilityRequest & facility_obj)
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
 #if defined(HAS_H460) || defined (HAS_TLS)
-			if (request.UseTLS() || request.IsTraversalZone() || request.IsH46024Supported()) {
+			if (request.UseTLS() || request.IsTLSNegotiated() || request.IsTraversalZone() || request.IsH46024Supported()) {
 				// create an EPRec to remember the NAT settings for H.460.18 (traversal zone) or H.460.23/.24 (genericData)
 				H225_RasMessage ras;
 				ras.SetTag(H225_RasMessage::e_locationConfirm);
