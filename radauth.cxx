@@ -265,11 +265,11 @@ int RadAuthBase::Check(
 		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, 
 			RadiusAttr::CiscoVSA_AV_Pair
 			);
-		PTRACE(2, "RADAUTH found Cisco VSA Attribute\t" << attr->AsCiscoString());
 		PStringArray aliases;
 		while (attr != NULL) {
 			PINDEX index;
 			value = attr->AsCiscoString();
+			PTRACE(2, "RADAUTH found Cisco VSA Attribute\t" << value);
 			if (value.Find("h323-ivr-in=") == 0 
 				&& ((index = value.Find("terminal-alias:")) != P_MAX_INDEX)) {
 				index += strlen("terminal-alias:");
