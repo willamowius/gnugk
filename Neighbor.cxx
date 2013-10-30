@@ -368,7 +368,7 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 	m_H46018Server = Toolkit::AsBool(config->GetString(section, "H46018Server", "0"));
 #endif
 #ifdef HAS_TLS
-	m_useTLS = Toolkit::AsBool(config->GetString(section, "UseTLS", "0"));
+	m_useTLS = Toolkit::AsBool(config->GetString(section, "UseTLS", "0")); // forced use of TLS
 #endif
 
 	SetForwardedInfo(section);
@@ -746,7 +746,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
 	// H.460.22
 	if (RasServer::Instance()->IsGKRouted()) {
 		// in routed mode we signal gatekeeper capabilities
-		if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
+		if (Toolkit::Instance()->IsTLSEnabled()) {
 			// include H.460.22 in supported features
 			H460_FeatureStd h46022 = H460_FeatureStd(22);
 			H460_FeatureStd settings;
@@ -839,7 +839,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & reques
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
 	// if we generate LRQs from Setup messages we must be in routed mode, so we signal gatekeeper capabilities
-	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
+	if (Toolkit::Instance()->IsTLSEnabled()) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
 		H460_FeatureStd settings;
@@ -904,7 +904,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & /*r
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
 	// if we generate LRQs from Facility messages we must be in routed mode, so we signal gatekeeper capabilities
-	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
+	if (Toolkit::Instance()->IsTLSEnabled()) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
 		H460_FeatureStd settings;
@@ -1171,6 +1171,7 @@ public:
 	bool IsTraversalServer() const { return m_h46018_server; }
 	bool IsTraversalZone() const { return m_h46018_client || m_h46018_server; }
 	bool IsH46024Supported() const;
+	bool IsTLSNegotiated();
 	bool UseTLS() const { return m_useTLS; }
 	bool HasVendorInfo() const;
 	bool SupportLanguages() const;
@@ -1269,11 +1270,38 @@ bool LRQRequester::IsH46024Supported() const
 	if (!m_result)
 		return false;
 
-	const H225_LocationConfirm *lcf = &(H225_LocationConfirm &)(*m_result)->m_recvRAS;
-	if (lcf && lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
-		H460_FeatureSet fs = H460_FeatureSet(lcf->m_genericData);
+	const H225_LocationConfirm & lcf = (*m_result)->m_recvRAS;
+	if (lcf.HasOptionalField(H225_LocationConfirm::e_genericData)) {
+		H460_FeatureSet fs = H460_FeatureSet(lcf.m_genericData);
 		if (fs.HasFeature(24))
 			return true;
+	}
+	return false;
+}
+
+bool LRQRequester::IsTLSNegotiated()
+{
+	if (!m_result)
+		return false;
+
+	H225_LocationConfirm & lcf = (*m_result)->m_recvRAS;
+	if (lcf.HasOptionalField(H225_LocationConfirm::e_featureSet)) {
+		H460_FeatureSet fs = H460_FeatureSet(lcf.m_featureSet);
+		if (fs.HasFeature(22)) {
+			H460_FeatureStd * secfeat = (H460_FeatureStd *)fs.GetFeature(22);
+				if (secfeat->Contains(Std22_TLS)) {
+					m_useTLS = true;
+					H460_FeatureParameter & tlsparam = secfeat->Value(Std22_TLS);
+					H460_FeatureStd settings;
+					settings.SetCurrentTable(tlsparam);
+					if (settings.Contains(Std22_ConnectionAddress)) {
+						H323TransportAddress tlsAddr = settings.Value(Std22_ConnectionAddress);
+						// put TLS address into callSignalAddress, so we don't have to check both when creating the route
+						lcf.m_callSignalAddress = H323ToH225TransportAddress(tlsAddr);
+					}
+					return true;
+				}
+		}
 	}
 	return false;
 }
@@ -1283,9 +1311,9 @@ bool LRQRequester::HasVendorInfo() const
 	if (!m_result)
 		return false;
 #ifdef HAS_H460VEN
-	const H225_LocationConfirm *lcf = &(H225_LocationConfirm &)(*m_result)->m_recvRAS;
-	if (lcf && lcf->HasOptionalField(H225_LocationConfirm::e_genericData)) {
-		H460_FeatureSet fs = H460_FeatureSet(lcf->m_genericData);
+	const H225_LocationConfirm & lcf = (*m_result)->m_recvRAS;
+	if (lcf.HasOptionalField(H225_LocationConfirm::e_genericData)) {
+		H460_FeatureSet fs = H460_FeatureSet(lcf.m_genericData);
 		if (fs.HasFeature(OpalOID(OID9)))
 			return true;
 	}
@@ -1312,9 +1340,9 @@ PStringList LRQRequester::GetLanguages() const
 		return languages;
 
 #ifdef HAS_LANGUAGE
-	const H225_LocationConfirm *lcf = &(H225_LocationConfirm &)(*m_result)->m_recvRAS;
-	if (lcf && lcf->HasOptionalField(H225_LocationConfirm::e_language)) {
-		H323GetLanguages(languages, lcf->m_language);
+	const H225_LocationConfirm & lcf = (*m_result)->m_recvRAS;
+	if (lcf.HasOptionalField(H225_LocationConfirm::e_language)) {
+		H323GetLanguages(languages, lcf.m_language);
 		return languages;
 	}
 #endif
@@ -1700,7 +1728,7 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
 #if defined(HAS_H460) || defined (HAS_TLS) || defined (HAS_LANGUAGE)
-			if (((request.UseTLS() || request.IsTraversalZone() || request.IsH46024Supported()) && RasServer::Instance()->IsGKRouted()) 
+			if (((request.UseTLS() || request.IsTLSNegotiated() || request.IsTraversalZone() || request.IsH46024Supported()) && RasServer::Instance()->IsGKRouted())
 				|| request.HasVendorInfo() || request.SupportLanguages()) {
 				// overwrite callSignalAddress and replace with ours, we must proxy this call
 				endptr ep = RegistrationTable::Instance()->FindByEndpointId(arq_obj.GetRequest().m_endpointIdentifier); // should not be null
