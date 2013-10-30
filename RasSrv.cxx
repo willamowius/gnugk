@@ -3901,7 +3901,6 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 					if (senderSupportsH46022) {
 						H460_FeatureStd * secfeat = (H460_FeatureStd *)fs.GetFeature(22);
 						senderSupportsH46022TLS = secfeat->Contains(Std22_TLS);
-						// TODO: fetch connectionAddress
 						senderSupportsH46022IPSec = secfeat->Contains(Std22_IPSec);
 						PTRACE(1, "RAS\tEP supports H.460.22: TLS=" << senderSupportsH46022TLS << " IPSec=" << senderSupportsH46022IPSec);
 					}
@@ -3947,7 +3946,29 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				lcf.m_cryptoTokens[s] = Neighbors::BuildAccessToken(*dest, ipaddr);
 */
 				} else {
+					// in direct mode
 					lcf.m_callSignalAddress = route.m_destAddr;
+					if (senderSupportsH46022) {
+						H460_FeatureStd H46022 = H460_FeatureStd(22);
+						// pass endpoint's H.460.22 capabilities
+						if (WantedEndPoint && WantedEndPoint->UseTLS()) {
+							H460_FeatureStd settings;
+							settings.Add(Std22_Priority, H460_FeatureContent(1, 8)); // Priority=1, type=number8
+							settings.Add(Std22_ConnectionAddress, H460_FeatureContent(WantedEndPoint->GetTLSAddress()));
+							H46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
+						}
+						if (WantedEndPoint && WantedEndPoint->UseIPSec()) {
+							H460_FeatureStd settings;
+							settings.Add(Std22_Priority, H460_FeatureContent(2, 8)); // Priority=2, type=number8
+							H46022.Add(Std22_IPSec, H460_FeatureContent(settings.GetCurrentTable()));
+						}
+						lcf.IncludeOptionalField(H225_LocationConfirm::e_featureSet);
+						lcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+						H225_ArrayOf_FeatureDescriptor & desc = lcf.m_featureSet.m_supportedFeatures;
+						PINDEX sz = desc.GetSize();
+						desc.SetSize(sz + 1);
+						desc[sz] = H46022;
+					}
 				}
 
 				// canMapAlias: include destinationInfo if it has been changed
@@ -4020,30 +4041,6 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 						}
 #endif // HAS_H460VEN
 					}
-				} else {
-					// in direct mode
-					if (senderSupportsH46022) {
-						H460_FeatureStd H46022 = H460_FeatureStd(22);
-						// pass endpoint's H.460.22 capabilities
-						if (WantedEndPoint && WantedEndPoint->UseTLS()) {
-							H46022.Add(Std22_TLS);
-							H460_FeatureStd settings;
-							settings.Add(Std22_Priority, H460_FeatureContent(1, 8)); // Priority=1, type=number8
-							settings.Add(Std22_ConnectionAddress, H460_FeatureContent(WantedEndPoint->GetTLSAddress()));
-							H46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
-						}
-						if (WantedEndPoint && WantedEndPoint->UseIPSec()) {
-							H460_FeatureStd settings;
-							settings.Add(Std22_Priority, H460_FeatureContent(2, 8)); // Priority=2, type=number8
-							H46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
-						}
-						lcf.IncludeOptionalField(H225_LocationConfirm::e_featureSet);
-						lcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
-						H225_ArrayOf_FeatureDescriptor & desc = lcf.m_featureSet.m_supportedFeatures;
-						PINDEX sz = desc.GetSize();
-						desc.SetSize(sz + 1);
-						desc[sz] = H46022;
-					}
 				}
 
 				if (lastPos > 0) 
@@ -4055,7 +4052,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 					bReject = true;
 					reason = H225_LocationRejectReason::e_genericDataReason;
 				} else 
-#endif
+#endif	// HAS_H460
 				{
 					log = "LCF|" + m_msg->m_peerAddr.AsString()
 							+ "|" + (WantedEndPoint ? WantedEndPoint->GetEndpointIdentifier().GetValue() : AsDotString(route.m_destAddr))
