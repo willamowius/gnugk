@@ -1,5 +1,6 @@
 Changes from 3.4 to 3.5
 =======================
+- BUGFIX(RasSrv.cxx) fix port detection for traversal clients
 - more detailed codec descriptions in %{codec} and Radius attribute
 - process multiple terminal-alias VSA from Radius
 - extend [GkStatus::Message] for URQ (Thanks, Yuriy!)

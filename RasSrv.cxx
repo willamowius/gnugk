@@ -4254,7 +4254,7 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 						from_neighbor = (*iter);
 						neighbor_authenticated = from_neighbor->Authenticate(this);
 						if (neighbor_authenticated)
-							from_neighbor->SetApparentIP(m_msg->m_peerAddr);
+							from_neighbor->SetApparentIP(m_msg->m_peerAddr, m_msg->m_peerPort);
 					}
 				}
 			}

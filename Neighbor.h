@@ -71,7 +71,7 @@ public:
 	bool IsTraversalZone(const PIPSocket::Address *ip) const { return (GetIP() == *ip) && (m_H46018Server || m_H46018Client); }
 	bool IsTraversalClient(const PIPSocket::Address *ip) const { return (GetIP() == *ip) && m_H46018Server; }	// it is from a client, if we are the server
 	bool IsTraversalServer(const PIPSocket::Address *ip) const { return (GetIP() == *ip) && m_H46018Client; }	// it is from a server, if we are the client
-	void SetApparentIP(const PIPSocket::Address & ip) { m_ip = ip; }
+	void SetApparentIP(const PIPSocket::Address & ip, WORD port) { m_ip = ip; m_port = port; }
 	bool ForwardResponse() const { return m_forwardResponse; }
 	int ForwardLRQ() const { return m_forwardto; }
 	WORD GetDefaultHopCount() const { return m_forwardHopCount; }
