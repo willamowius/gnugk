@@ -596,15 +596,25 @@ Default: <tt/forbid/<newline>
 <p>
 Only used when <tt/rule=explicit/.
 
-<item><tt/DSAKey=/etc/ssh/ssh_host_dsa_key<newline>
+<item><tt>DSAKey=/etc/ssh/ssh_host_dsa_key</tt><newline>
 Default: <tt/ssh_host_dsa_key (in current working directory)/<newline>
 <p>
 Path for the file containing the DSA host key. (only used for SSH)
 
-<item><tt/RSAKey=/etc/ssh/ssh_host_rsa_key<newline>
+To generate a DSA key
+<tscreen><verb>
+ssh-keygen -t dsa -f ssh_host_dsa_key
+</verb></tscreen>
+
+<item><tt>RSAKey=/etc/ssh/ssh_host_rsa_key</tt><newline>
 Default: <tt/ssh_host_rsa_key (in current working directory)/<newline>
 <p>
 Path for the file containing the RSA host key. (only used for SSH)
+
+To generate a RSA key
+<tscreen><verb>
+ssh-keygen -t rsa -f ssh_host_rsa_key
+</verb></tscreen>
 
 <item><tt/Shutdown=forbid/<newline>
 Default: <tt/allow/<newline>
