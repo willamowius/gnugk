@@ -368,7 +368,8 @@ SSHStatusClient::SSHStatusClient(int instanceNo) : StatusClient(instanceNo)
 
 SSHStatusClient::~SSHStatusClient()
 {
-    ssh_disconnect(m_session);
+	ssh_disconnect(m_session);
+	ssh_free(m_session);
 	if (m_sshbind) {
 		ssh_bind_set_fd(m_sshbind, -1);		// make sure StatusListener is not closed
 		ssh_bind_free(m_sshbind);
@@ -408,19 +409,19 @@ PBoolean SSHStatusClient::Accept(PSocket & socket)
 		return false;
 	}
 
-    if(ssh_init() < 0) {
+    if (ssh_init() < 0) {
 		PTRACE(1, "ssh_init() failed");
 		SNMP_TRAP(7, SNMPError, Network, "SSH init failed");
 		return false;
     }
 	ssh_bind_set_fd(m_sshbind, socket.GetHandle());
-	if(ssh_bind_accept(m_sshbind, m_session) == SSH_ERROR) {
+	if (ssh_bind_accept(m_sshbind, m_session) == SSH_ERROR) {
 		PTRACE(1, "ssh_bind_accept() failed: " << ssh_get_error(m_sshbind));
 		SNMP_TRAP(7, SNMPError, Network, "SSH bind failed");
 		return false;
     }
 
-    if(ssh_handle_key_exchange(m_session)) {
+    if (ssh_handle_key_exchange(m_session)) {
 		PTRACE(1, "ssh_handle_key_exchange failed: " << ssh_get_error(m_session));
 		SNMP_TRAP(7, SNMPError, Network, "SSH key exchange failed");
 		return false;
