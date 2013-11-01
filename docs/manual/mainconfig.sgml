@@ -360,6 +360,11 @@ Default: <tt/0/<newline>
 Use the SSH protocol for the status port.
 User passwords can be set in the <ref id="gkstatusauth" name="[GkStatus::Auth]"> section.
 
+Example connection command:
+<tscreen><verb>
+ssh -p 7000 gnugk@1.2.3.4
+</verb></tscreen>
+
 <item><tt/TimestampFormat=ISO8601/<newline>
 Default: <tt/Cisco/<newline>
 <p>
@@ -601,7 +606,9 @@ Default: <tt/ssh_host_dsa_key (in current working directory)/<newline>
 <p>
 Path for the file containing the DSA host key. (only used for SSH)
 
-To generate a DSA key (press Enter to not set a passphrase)
+For SSH access, you must a DSA key or RSA key configured, or both.
+
+To generate a DSA key (press Enter twice to not set a passphrase)
 <tscreen><verb>
 ssh-keygen -t dsa -b 1024 -f ssh_host_dsa_key
 </verb></tscreen>
@@ -611,7 +618,9 @@ Default: <tt/ssh_host_rsa_key (in current working directory)/<newline>
 <p>
 Path for the file containing the RSA host key. (only used for SSH)
 
-To generate a RSA key (press Enter to not set a passphrase)
+For SSH access, you must a DSA key or RSA key configured, or both.
+
+To generate a RSA key (press Enter twice to not set a passphrase)
 <tscreen><verb>
 ssh-keygen -t rsa -b 2048 -f ssh_host_rsa_key
 </verb></tscreen>
