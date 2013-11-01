@@ -601,9 +601,9 @@ Default: <tt/ssh_host_dsa_key (in current working directory)/<newline>
 <p>
 Path for the file containing the DSA host key. (only used for SSH)
 
-To generate a DSA key
+To generate a DSA key (press Enter to not set a passphrase)
 <tscreen><verb>
-ssh-keygen -t dsa -f ssh_host_dsa_key
+ssh-keygen -t dsa -b 1024 -f ssh_host_dsa_key
 </verb></tscreen>
 
 <item><tt>RSAKey=/etc/ssh/ssh_host_rsa_key</tt><newline>
@@ -611,9 +611,9 @@ Default: <tt/ssh_host_rsa_key (in current working directory)/<newline>
 <p>
 Path for the file containing the RSA host key. (only used for SSH)
 
-To generate a RSA key
+To generate a RSA key (press Enter to not set a passphrase)
 <tscreen><verb>
-ssh-keygen -t rsa -f ssh_host_rsa_key
+ssh-keygen -t rsa -b 2048 -f ssh_host_rsa_key
 </verb></tscreen>
 
 <item><tt/Shutdown=forbid/<newline>
