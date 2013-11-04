@@ -1654,7 +1654,7 @@ PBoolean CallSignalSocket::Connect(const Address & addr)
 		PTRACE(1, Type() << "\tCould not open/connect Q.931 socket at " << AsString(local, pt)
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
 			<< errorNumber << ": " << GetErrorText(PSocket::LastGeneralError)
-			);
+			<< " remote addr: " << AsString(addr));
 		Close();
 #ifdef _WIN32
 		if ((errorNumber & PWIN32ErrorFlag) == 0
@@ -7500,7 +7500,8 @@ bool CallSignalSocket::InternalConnectTo()
 		PTRACE(1, remote->Type() << "\tCould not open/connect Q.931 socket at "
 			<< AsString(localAddr, pt)
 			<< " - error " << remote->GetErrorCode(PSocket::LastGeneralError) << '/'
-			<< errorNumber << ": " << remote->GetErrorText(PSocket::LastGeneralError));
+			<< errorNumber << ": " << remote->GetErrorText(PSocket::LastGeneralError) 
+			<< " remote addr: " << AsString(peerAddr));
 		remote->Close();
 #ifdef _WIN32
 		if ((errorNumber & PWIN32ErrorFlag) == 0
@@ -7534,7 +7535,7 @@ bool CallSignalSocket::ForwardCallConnectTo()
 			<< AsString(localAddr, pt)
 			<< " - error " << remote->GetErrorCode(PSocket::LastGeneralError) << '/'
 			<< errorNumber << ": " << remote->GetErrorText(PSocket::LastGeneralError)
-			);
+			<< " remote addr: " << AsString(peerAddr));
 		remote->Close();
 #ifdef _WIN32
 		if ((errorNumber & PWIN32ErrorFlag) == 0
@@ -8154,7 +8155,8 @@ bool H245Socket::ConnectRemote()
 		int errorNumber = GetErrorNumber(PSocket::LastGeneralError);
 		PTRACE(1, Type() << "\tCould not open/connect H.245 socket at " << AsString(localAddr, pt)
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
-			<< errorNumber << ": " << GetErrorText(PSocket::LastGeneralError));
+			<< errorNumber << ": " << GetErrorText(PSocket::LastGeneralError)
+			<< " remote addr: " << AsString(peerAddr));
 		Close();
 		PTRACE(3, "H245\t" << AsString(peerAddr, peerPort) << " DIDN'T ACCEPT THE CALL");
 		SNMP_TRAP(10, SNMPError, Network, "H.245 connection to " + AsString(peerAddr, peerPort) + " failed");
