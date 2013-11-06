@@ -20,6 +20,7 @@
 #endif
 #ifdef P_LINUX
 #include <sys/resource.h>
+#include <sys/mman.h>
 #endif
 #include <h225.h>
 #include "h323util.h"
@@ -1176,6 +1177,7 @@ const PString Gatekeeper::GetArgumentsParseString() const
 		 "-pid:"
 #ifdef P_LINUX
 		 "-core:"
+		 "-mlock."
 #endif
 		 "h-help:"
 		 );
@@ -1291,6 +1293,7 @@ void Gatekeeper::PrintOpts()
 		"      --pid file     : Specify the pid file\n"
 #ifdef P_LINUX
 		"      --core n       : Enable core dumps (with max size of n bytes)\n"
+		"      --mlock        : Lock GnuGk into memory to prevent it being swaped out\n"
 #endif
 		"  -h  --help         : Show this message\n" << endl;
 }
@@ -1343,6 +1346,27 @@ void Gatekeeper::Main()
 				PTRACE(1, "Warning: Setting EUID failed");
 			}
 		}
+	}
+	// lock in memory
+	if (args.HasOption("mlock")) {
+	    struct rlimit rlim;
+	    rlim.rlim_max = RLIM_INFINITY;
+	    rlim.rlim_cur = RLIM_INFINITY;
+	    cout << "Trying to lock GnuGk into RAM" << endl;
+	    PTRACE(1, "Trying to lock GnuGk into RAM");
+	    if (setrlimit(RLIMIT_MEMLOCK, &rlim) < 0) {
+			cout << "setrlimit() failed: Not locking into RAM" << endl;
+		    PTRACE(1, "setrlimit() failed: Not locking into RAM");
+	    }
+	    else {
+			if (mlockall(MCL_CURRENT|MCL_FUTURE) < 0) {
+				cout << "Cannot lock GnuGk into RAM, mlockall() failed" << endl;
+			    PTRACE(1, "Cannot lock GnuGk into RAM, mlockall() failed");
+			} else {
+				cout << "GnuGk successfully locked into RAM" << endl;
+			    PTRACE(1, "GnuGk successfully locked into RAM");
+			}
+	    }
 	}
 #endif
 

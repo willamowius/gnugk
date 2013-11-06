@@ -38,6 +38,8 @@ Run the gatekeeper process as this user. Only valid for Unix version.
 Enable writing core dump files when the application crashes. A core
 dump file will not exceed n bytes in size. A special constant "unlimited"
 may be used to not enforce any particular limit.  Only valid on Linux.
+<tag/<tt/--mlock//
+Lock GnuGk into memory to prevent it being swaped out.  Only valid on Linux.
 </descrip>
 
 <sect2>Gatekeeper Mode
