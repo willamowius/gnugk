@@ -433,6 +433,11 @@ PBoolean SSHStatusClient::Accept(PSocket & socket)
 	// set handle for SocketsReader
 	os_handle = ssh_get_fd(m_session);
 
+#ifdef LARGE_FDSET
+	socklen_t addr_len = sizeof(peeraddr);
+	getpeername(os_handle, ((struct sockaddr *)&peeraddr), &addr_len);
+#endif
+
 	Address raddr, laddr;
 	WORD rport = 0, lport = 0;
 	GetPeerAddress(raddr, rport);

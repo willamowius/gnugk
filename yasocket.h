@@ -117,7 +117,7 @@ private:
 	YaTCPSocket(const YaTCPSocket&);
 	YaTCPSocket& operator=(const YaTCPSocket&);
 	
-private:
+protected:
 #ifdef hasIPV6
 	sockaddr_in6 peeraddr;
 #else
