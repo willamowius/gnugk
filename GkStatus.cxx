@@ -869,6 +869,14 @@ GkStatus::GkStatus() : Singleton<GkStatus>("GkStatus"), SocketsReader(500)
 	Execute();
 }
 
+GkStatus::~GkStatus()
+{
+	ReadLock lock(m_listmutex);
+	for (iterator i = m_sockets.begin(); i != m_sockets.end(); ++i) {
+		(*i)->Close();
+	}
+}
+
 void GkStatus::AuthenticateClient(StatusClient * newClient)
 {
 	if ((m_statusClients++ < m_maxStatusClients) && (newClient->Authenticate())) {
@@ -940,7 +948,7 @@ bool GkStatus::DisconnectSession(
 	/// session ID (instance number) for the status client to be disconnected
 	int instanceNo,
 	/// status interface client that requested disconnect
-	StatusClient* requestingClient
+	StatusClient * requestingClient
 	)
 {
 	ReadLock lock(m_listmutex);
@@ -978,13 +986,13 @@ public:
 
 private:
 	/// status interface client to send the information to
-	StatusClient* m_requestingClient;
+	StatusClient * m_requestingClient;
 };
 
 
 void GkStatus::ShowUsers(
 	/// client that requested the list of all active clients
-	StatusClient* requestingClient
+	StatusClient * requestingClient
 	) const
 {
 	ReadLock lock(m_listmutex);

@@ -41,6 +41,7 @@ class GkStatus : public Singleton<GkStatus>, public SocketsReader
 {
 public:
 	GkStatus();
+	virtual ~GkStatus();
 
 	/** Authenticate new telnet connection. Ask for username/password
 		if required. If the authentication is successful, the client
