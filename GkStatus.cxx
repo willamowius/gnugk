@@ -388,6 +388,9 @@ PBoolean SSHStatusClient::Accept(PSocket & socket)
 	m_session = ssh_new();
 
 	//ssh_bind_options_set(m_sshbind, SSH_BIND_OPTIONS_LOG_VERBOSITY_STR, "3");	// only enable for debugging
+	// disable compression, doesn't seem to work (bug in libssh)
+	ssh_options_set(m_session, SSH_OPTIONS_COMPRESSION_C_S, "none");
+	ssh_options_set(m_session, SSH_OPTIONS_COMPRESSION_S_C, "none");
 
 	bool keyAvailable = false;
 	PString dsakey = GkConfig()->GetString(authsec, "DSAKey", "/etc/ssh/ssh_host_dsa_key");
