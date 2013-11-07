@@ -179,14 +179,16 @@ public:
 		true if one or more commands from this status interface client
 		are executing by Worker threads.
 	*/
-	bool IsBusy()
+	bool IsBusy() const
 	{ 
 		PWaitAndSignal lock(m_cmutex);
 		return m_numExecutingCommands > 0;
 	}
 
+	bool IsDone() const { return m_done; }
+
 	const PString& GetUser() const { return m_user; }
-	
+
 protected:
 	// override from class ServerSocket
 	virtual void Dispatch();
@@ -297,6 +299,8 @@ protected:
 	int m_instanceNo;
 	/// output trace level for this client
 	int m_traceLevel;
+	/// should the client be terminated, eg. after finishing a one-shot execute
+	bool m_done;
 
 	// vectors of regular expressions to be matched against Status messages
 	std::vector<PString> m_excludeFilterRegex;
@@ -534,6 +538,16 @@ bool SSHStatusClient::Authenticate()
 						case SSH_CHANNEL_REQUEST_PTY:
 		                    ssh_message_channel_request_reply_success(m_message);
 			                break;
+						case SSH_CHANNEL_REQUEST_EXEC:
+							{
+								shell = true;
+								const char * cmd = ssh_message_channel_request_command(m_message);
+								OnCommand(cmd);
+								Flush();
+			                    ssh_message_channel_request_reply_success(m_message);
+								m_done = true;
+							}
+			                break;
 						case SSH_CHANNEL_REQUEST_SHELL:
 							shell = true;
 		                    ssh_message_channel_request_reply_success(m_message);
@@ -542,7 +556,7 @@ bool SSHStatusClient::Authenticate()
 			                ssh_message_reply_default(m_message);	// deny X11 forwarding
 			                break;
 						default:
-							PTRACE(3, "Unhandled SSH_REQUEST_CHANNEL message " << ssh_message_type(m_message) << " subtype " << ssh_message_subtype(m_message));
+							PTRACE(3, "Unhandled SSH_REQUEST_CHANNEL message subtype " << ssh_message_subtype(m_message));
 							break;
 					}
 					break;
@@ -577,7 +591,7 @@ bool SSHStatusClient::AuthenticateUser()
 	} else
 		PTRACE(5, "STATUS\tPassword mismatch for user " << login);
 
-	PProcess::Sleep(delay * 1000);
+	PThread::Sleep(delay * 1000);
 
 	return false;
 }
@@ -860,12 +874,18 @@ void GkStatus::AuthenticateClient(StatusClient * newClient)
 	if ((m_statusClients++ < m_maxStatusClients) && (newClient->Authenticate())) {
 		newClient->SetTraceLevel(GkConfig()->GetInteger("StatusTraceLevel", MAX_STATUS_TRACE_LEVEL));
 		PTRACE(1, "STATUS\tNew client authenticated successfully: " << newClient->WhoAmI()
-			<< ", login: " << newClient->GetUser()
-			);
+			<< ", login: " << newClient->GetUser());
 		// the welcome messages
 		newClient->WriteString(PrintGkVersion());
 		newClient->Flush();
 		AddSocket(newClient);
+		if (newClient->IsDone()) {
+			while (newClient->IsBusy()) {
+				PThread::Sleep(100);	// give forked threads time to finish
+			}
+			newClient->Flush();
+			newClient->Close();
+		}
 	} else {
 		PTRACE(3, "STATUS\tNew client rejected: " << newClient->WhoAmI() << ", login: " << newClient->GetUser());
 		newClient->WriteString("\r\nAccess forbidden!\r\n");
@@ -1101,12 +1121,10 @@ void GkStatus::OnStart()
 	m_commands["printallconfigswitches"] = e_PrintAllConfigSwitches;
 }
 
-void GkStatus::ReadSocket(
-	IPSocket* clientSocket
-	)
+void GkStatus::ReadSocket(IPSocket * clientSocket)
 {
 	PString cmd;
-	StatusClient* client = static_cast<StatusClient*>(clientSocket);
+	StatusClient * client = static_cast<StatusClient*>(clientSocket);
 	if (client->ReadCommand(cmd) && !cmd.IsEmpty()) {
 		client->OnCommand(cmd);
 	}
@@ -1118,7 +1136,7 @@ void GkStatus::CleanUp()
 		PWaitAndSignal lock(m_rmutex);
 		iterator iter = m_removed.begin();
 		while (iter != m_removed.end()) {
-			StatusClient *client = static_cast<StatusClient *>(*iter);
+			StatusClient * client = static_cast<StatusClient *>(*iter);
 			if (client && !client->IsBusy()) {
 				iter = m_removed.erase(iter);
 				--m_rmsize;
@@ -1140,6 +1158,7 @@ StatusClient::StatusClient(
 	m_numExecutingCommands(0),
 	m_instanceNo(instanceNo),
 	m_traceLevel(MAX_STATUS_TRACE_LEVEL),
+	m_done(false),
 	m_isFilteringActive(false),
 	m_handlePasswordRule(true)
 {
