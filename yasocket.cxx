@@ -541,6 +541,7 @@ int YaTCPSocket::os_send(const void * buf, int sz)
 // class YaUDPSocket
 YaUDPSocket::YaUDPSocket(WORD port, int iAddressFamily)
 {
+	memset(&recvaddr, 0, sizeof(recvaddr));
 	((struct sockaddr*)&sendaddr)->sa_family = iAddressFamily;
 	((struct sockaddr_in*)&sendaddr)->sin_port = htons(port);
 }
