@@ -439,7 +439,9 @@ PBoolean SSHStatusClient::Accept(PSocket & socket)
 
 #ifdef LARGE_FDSET
 	socklen_t addr_len = sizeof(peeraddr);
-	getpeername(os_handle, ((struct sockaddr *)&peeraddr), &addr_len);
+	if (getpeername(os_handle, ((struct sockaddr *)&peeraddr), &addr_len) == 0) {
+		PTRACE(1, "SSH\tgetpeername() failed");
+	}
 #endif
 
 	Address raddr, laddr;
