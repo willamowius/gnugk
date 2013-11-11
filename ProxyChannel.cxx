@@ -6248,11 +6248,11 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg * msg)
 
 void CallSignalSocket::TryNextRoute()
 {
-	CallRec *newCall = new CallRec(m_call.operator ->());
+	CallRec * newCall = new CallRec(m_call.operator ->());
 	CallTable::Instance()->RemoveFailedLeg(m_call);
 
 	m_remoteLock.Wait();
-	CallSignalSocket *callingSocket = static_cast<CallSignalSocket*>(remote);
+	CallSignalSocket * callingSocket = static_cast<CallSignalSocket*>(remote);
 	if (callingSocket != NULL) {
 		callingSocket->RemoveRemoteSocket();
 		if (callingSocket->m_h245socket) {
@@ -6306,10 +6306,18 @@ void CallSignalSocket::TryNextRoute()
 	TCPProxySocket::EndSession();
 	GetHandler()->Remove(this);
 
-	PTRACE(5, GetName() << "\tDispatching new call leg to " << newRoute.AsString());
-	CreateJob(callingSocket, &CallSignalSocket::DispatchNextRoute, "Failover");
+	if (callingSocket) {
+		PTRACE(5, GetName() << "\tDispatching new call leg to " << newRoute.AsString());
+		CreateJob(callingSocket, &CallSignalSocket::DispatchNextRoute, "Failover");
 
-	m_result = NoData;
+		m_result = NoData;
+	} else {
+		PTRACE(3, GetName() << "\tDispatching new call leg to " << newRoute.AsString() << " failed");
+		SNMP_TRAP(7, SNMPError, Network, "Failover failed");
+		CallTable::Instance()->RemoveCall(callptr(newCall));
+		delete newCall;
+		m_result = Closing;
+	}
 }
 
 void CallSignalSocket::OnFacility(SignalingMsg * msg)
