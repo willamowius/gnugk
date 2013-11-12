@@ -90,7 +90,7 @@ const int DEFAULT_NUM_SEQ_PORTS = 500;
 const unsigned MAX_HANDLER_NUMBER = 200;
 
 // RTCP functions used in UDPProxySocket and H46019Session
-ProxySocket::Result ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & fromIP, BYTE * wbuffer, WORD buflen);
+void ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & fromIP, BYTE * wbuffer, WORD buflen);
 void BuildReceiverReport(const callptr & call, WORD sessionID, const RTP_ControlFrame & frame, PINDEX offset, bool dst);
 
 H245_H2250LogicalChannelParameters *GetLogicalChannelParameters(H245_OpenLogicalChannel & olc, bool & isReverseLC);
@@ -9685,7 +9685,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	}
 
 	if (isRTCP && m_EnableRTCPStats && m_call && (*m_call))
-		return ParseRTCP(*m_call, m_sessionID, fromIP, wbuffer, buflen);
+		ParseRTCP(*m_call, m_sessionID, fromIP, wbuffer, buflen);
 
 	PIPSocket::Address toIP;
 	WORD toPort = 0;
@@ -9696,14 +9696,14 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 
 namespace {
 
-ProxySocket::Result ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & fromIP, BYTE * wbuffer, WORD buflen)
+void ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & fromIP, BYTE * wbuffer, WORD buflen)
 {
 	bool direct = (call->GetSRC_media_control_IP() == fromIP.AsString());
 	PIPSocket::Address addr = (DWORD)0;
 	call->GetMediaOriginatingIp(addr);
 	if (buflen < 4) {
 		PTRACE(1, "RTCP\tInvalid RTCP frame");
-		return ProxySocket::NoData;
+		return;
 	}
 
 	RTP_ControlFrame frame(2048);
@@ -9716,7 +9716,7 @@ ProxySocket::Result ParseRTCP(const callptr & call, WORD sessionID, const PIPSoc
 			|| ((payload + size) > (frame.GetPointer() + frame.GetSize()))) {
 			// TODO: test for a maximum size ? what is the max size ?
 			PTRACE(1, "RTCP\tInvalid RTCP frame");
-			return ProxySocket::NoData;
+			return;
 		}
 		switch (frame.GetPayloadType()) {
 		case RTP_ControlFrame::e_SenderReport :
@@ -9816,7 +9816,6 @@ ProxySocket::Result ParseRTCP(const callptr & call, WORD sessionID, const PIPSoc
 			break;
 		}
 	} while (frame.ReadNextCompound());
-	return ProxySocket::Forwarding;
 }
 
 void BuildReceiverReport(const callptr & call, WORD sessionID, const RTP_ControlFrame & frame, PINDEX offset, bool dst)
