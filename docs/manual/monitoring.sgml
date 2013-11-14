@@ -276,7 +276,8 @@ ACF|Caller_IP:Port|Caller_EPID|CRV|DestinationInfo|SrcInfo|IsAnswered|MediaRoute
 ACF|Callee_IP:Port|Callee_EPID|CRV|DestinationInfo|SrcInfo|IsAnswered|MediaRoute;
 # Caller_Aliases|Callee_Aliases|Bandwidth|Connected_Time &lt;r&gt; bw:Bandwidth
 ...
-Number of Calls: Current_Call Active: Active_Call From NB: Call_From_Neighbor
+Number of Calls: Current_Calls Active: Active_Calls From Neighbor: Calls_From_Neighbor \
+From Parent: Calls_From_Parent Proxied: Proxied_Calls
 ;
 </verb></tscreen>
 <tag/Example:/
@@ -287,7 +288,7 @@ Dial 0225067272:dialedDigits
 ACF|10.0.1.200:1720|1448_endp|19618|frank:h323_ID|gunter:h323_ID|false|Proxy;
 ACF|10.0.1.7:1720|1325_endp|19618|gunter:h323_ID|frank:h323_ID|true|Proxy;
 # Sherry:h323_ID|Accel-GW1:h323_ID|200000|Wed, 26 Jun 2002 17:29:55 +0800 &lt;2&gt; bw:3840
-Number of Calls: 1 Active: 1 From NB: 0
+Number of Calls: 1 Active: 1 From Neighbor: 0 From Parent: 0 Proxied: 1
 ;
 </verb></tscreen>
 </descrip>
