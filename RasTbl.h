@@ -1709,7 +1709,7 @@ private:
 	void InternalRemove(iterator);
 	void InternalRemoveFailedLeg(iterator);
 
-	void InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, unsigned & np, PString & msg, bool verbose) const;
+	void InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, unsigned & np, unsigned & npr, PString & msg, bool verbose) const;
 
 	std::list<CallRec *> CallList;
 	std::list<CallRec *> RemovedList;
@@ -1725,7 +1725,7 @@ private:
 	long m_maximumBandwidthPerCall;	// maximum bandwidth allowed per call (<= 0 means unlimited)
 
 	// statistics
-	unsigned m_CallCount, m_successCall, m_neighborCall, m_parentCall, m_activeCall;
+	unsigned m_CallCount, m_successCall, m_neighborCall, m_parentCall, m_activeCall, m_proxiedCall;
 
 	/// timeout for a Connect message to be received
 	/// and for a signaling channel to be opened after ACF/ARQ

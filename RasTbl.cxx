@@ -4636,7 +4636,7 @@ void CallTable::SupplyEndpointQoS(std::map<PString, EPQoS> & epqos) const
  
 void CallTable::ResetCallCounters()
 {
-	m_CallCount = m_successCall = m_neighborCall = m_parentCall = 0;
+	m_CallCount = m_successCall = m_neighborCall = m_parentCall = m_proxiedCall = 0;
 }
 
 void CallTable::LoadConfig()
@@ -5139,6 +5139,8 @@ void CallTable::InternalRemove(iterator Iter)
 		++m_successCall;
 	if (!call->GetCallingParty())
 		++(call->IsToParent() ? m_parentCall : m_neighborCall);
+	if (call->GetProxyMode() == CallRec::ProxyEnabled)
+		++m_proxiedCall;
 	UpdateEPBandwidth(call->GetCallingParty(), - call->GetBandwidth());
 	UpdateEPBandwidth(call->GetCalledParty(), - call->GetBandwidth());
 	if (m_capacity >= 0)
@@ -5210,10 +5212,10 @@ void CallTable::InternalRemoveFailedLeg(iterator Iter)
 	call->SetSocket(NULL, NULL);
 }
 
-void CallTable::InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, unsigned & np, PString & msg, bool verbose) const
+void CallTable::InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, unsigned & np, unsigned & npr, PString & msg, bool verbose) const
 {
 	ReadLock lock(listLock);
-	n = m_activeCall, act = nb = np = 0;
+	n = m_activeCall, act = nb = np = npr = 0;
 	const_iterator eIter = CallList.end();
 	for (const_iterator Iter = CallList.begin(); Iter != eIter; ++Iter) {
 		CallRec *call = *Iter;
@@ -5221,6 +5223,8 @@ void CallTable::InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, 
 			++act;
 		if (!call->GetCallingParty())
 			++(call->IsToParent() ? np : nb);
+		if (call->GetProxyMode() == CallRec::ProxyEnabled)
+		        ++npr;
 		if (!msg)
 			msg += call->PrintOn(verbose);
 	}
@@ -5240,13 +5244,13 @@ void CallTable::UpdatePrefixCapacityCounters()
 void CallTable::PrintCurrentCalls(USocket *client, bool verbose) const
 {
 	PString msg = "CurrentCalls\r\n";
-	unsigned n, act, nb, np;
-	InternalStatistics(n, act, nb, np, msg, verbose);
+	unsigned n, act, nb, np, npr;
+	InternalStatistics(n, act, nb, np, npr, msg, verbose);
 	
 	PString bandstr;
 	if (m_capacity >= 0)
 		bandstr = PString(PString::Printf, "\r\nAvailable Bandwidth: %u", m_capacity);
-	msg += PString(PString::Printf, "Number of Calls: %u Active: %u From Neighbor: %u From Parent: %u%s\r\n;\r\n", n, act, nb, np, (const char *)bandstr);
+	msg += PString(PString::Printf, "Number of Calls: %u Active: %u From Neighbor: %u From Parent: %u Proxied: %u%s\r\n;\r\n", n, act, nb, np, npr, (const char *)bandstr);
 	client->TransmitData(msg);
 }
 
@@ -5268,14 +5272,14 @@ void CallTable::PrintCurrentCallsPorts(USocket *client) const
 PString CallTable::PrintStatistics() const
 {
 	PString dumb;
-	unsigned n, act, nb, np;
-	InternalStatistics(n, act, nb, np, dumb, FALSE);
+	unsigned n, act, nb, np, npr;
+	InternalStatistics(n, act, nb, np, npr, dumb, FALSE);
 
 	return PString(PString::Printf, "-- Call Statistics --\r\n"
-		"Current Calls: %u Active: %u From Neighbor: %u From Parent: %u\r\n"
-		"Total Calls: %u  Successful: %u  From Neighbor: %u  From Parent: %u\r\n",
-		n, act, nb, np,
-		m_CallCount, m_successCall, m_neighborCall, m_parentCall);
+		"Current Calls: %u Active: %u From Neighbor: %u From Parent: %u Proxied: %u\r\n"
+		"Total Calls: %u  Successful: %u  From Neighbor: %u  From Parent: %u  Proxied: %u\r\n",
+		n, act, nb, np, npr,
+		m_CallCount, m_successCall, m_neighborCall, m_parentCall, m_proxiedCall);
 }
 
 PreliminaryCallTable::PreliminaryCallTable() : Singleton<PreliminaryCallTable>("PreliminaryCallTable")
