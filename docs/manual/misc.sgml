@@ -1054,8 +1054,8 @@ Default: <tt>n/a</tt><newline>
 <p>
 The passphrase to open the above certificate files, if you have set one.
 
-<item><tt/CipherList=ALL:!ADH:!LOW:!EXP:!MD5:!RC4:!ECDH:!ECDSA:@STRENGTH/<newline>
-Default: <tt>ALL:!ADH:!LOW:!EXP:!MD5:!RC4:!ECDH:!ECDSA:@STRENGTH</tt><newline>
+<item><tt/CipherList=ALL:!ADH:!LOW:!EXP:!MD5:!RC4:!SHA1:!ECDH:!ECDSA:@STRENGTH/<newline>
+Default: <tt>ALL:!ADH:!LOW:!EXP:!MD5:!RC4:!SHA1:!ECDH:!ECDSA:@STRENGTH</tt><newline>
 <p>
 Set the OpenSSL cipher list to be used for TLS connections.
 
@@ -1087,14 +1087,14 @@ You should use the same for all of them and add it to your GnbuGk config with th
 
 First, generate your CA and self-sign it:
 <tscreen><verb>
-openssl req -newkey rsa:1024 -sha1 -keyout root_key.pem -out root_req.pem -config root.cnf
-openssl x509 -req -in root_req.pem -sha1 -extfile root.cnf -days 365 -extensions certificate_extensions -signkey root_key.pem -out root_cert.pem
+openssl req -newkey rsa:2048 -sha256 -keyout root_key.pem -out root_req.pem -config root.cnf
+openssl x509 -req -in root_req.pem -sha256 -extfile root.cnf -days 365 -extensions certificate_extensions -signkey root_key.pem -out root_cert.pem
 </verb></tscreen>
 
 Then generate one key for each server or endpoint and sign them with the CA certificate:
 <tscreen><verb>
-openssl req -newkey rsa:1024 -sha1 -keyout server_key.pem -out server_req.pem -config server.cnf -reqexts req_extensions
-openssl x509 -req -in server_req.pem -sha1 -extfile root.cnf -days 365 -extensions certificate_extensions -CA root_cert.pem -CAkey root_key.pem -CAcreateserial -out server_cert.pem
+openssl req -newkey rsa:2048 -sha256 -keyout server_key.pem -out server_req.pem -config server.cnf -reqexts req_extensions
+openssl x509 -req -in server_req.pem -sha256 -extfile root.cnf -days 365 -extensions certificate_extensions -CA root_cert.pem -CAkey root_key.pem -CAcreateserial -out server_cert.pem
 </verb></tscreen>
 And then repeat to generate as many certificates as necessary.
 
@@ -1110,7 +1110,7 @@ openssl x509 -text -in server_cert.pem
 Here is a sample root.cnf file that you can adapt:
 <tscreen><verb>
 [ ca ]
-default_ca	= gnugk_ca
+default_ca       = gnugk_ca
 
 [ gnugk_ca ]
 dir              = /opt/gnugk-ca
@@ -1122,7 +1122,7 @@ serial           = $dir/serial
  
 default_crl_days = 7
 default_days     = 365
-default_md       = sha1
+default_md       = sha256
  
 policy           = gnugk_ca_policy
 x509_extensions  = certificate_extensions
@@ -1136,13 +1136,13 @@ organizationName       = supplied
 organizationalUnitName = optional
  
 [ req ]
-default_bits		= 2048
-default_keyfile 	= privkey.pem
-default_md              = sha1
+default_bits        = 2048
+default_keyfile     = privkey.pem
+default_md          = sha256
 
-prompt                  = no
-distinguished_name	= req_distinguished_name
-x509_extensions		= req_extensions
+prompt              = no
+distinguished_name  = req_distinguished_name
+x509_extensions     = req_extensions
 
 # the following sections are specific to the request we're building
 
@@ -1165,7 +1165,7 @@ basicConstraints = CA:true
 Here is a sample server.cnf file that you can adapt:
 <tscreen><verb>
 [ ca ]
-default_ca	= gnugk_ca
+default_ca       = gnugk_ca
 
 [ gnugk_ca ]
 dir              = /opt/gnugk-ca
@@ -1177,7 +1177,7 @@ serial           = $dir/serial
  
 default_crl_days = 7
 default_days     = 365
-default_md       = sha1
+default_md       = sha256
  
 policy           = gnugk_ca_policy
 x509_extensions  = certificate_extensions
@@ -1192,19 +1192,19 @@ commonName             = supplied
 emailAddress           = optional
  
 [ req ]
-default_bits		= 2048
-default_keyfile 	= privkey.pem
-default_md              = sha1
+default_bits        = 2048
+default_keyfile     = privkey.pem
+default_md          = sha256
 
-prompt                  = no
-distinguished_name	= req_distinguished_name
-x509_extensions		= req_extensions
+prompt              = no
+distinguished_name  = req_distinguished_name
+x509_extensions     = req_extensions
 
 # the following sections are specific to the request we're building       
 
 [ certificate_extensions ]
 basicConstraints = CA:false
-subjectAltName = DNS:gk1.zork.org,DNS:localhost
+subjectAltName = DNS:gk1.zork.org
 
 [ req_distinguished_name ]
 countryName            = US
@@ -1215,6 +1215,6 @@ commonName             = gatekeeper.zork.org
 
 [ req_extensions ]
 basicConstraints = CA:true
-subjectAltName = DNS:gatekeeper.zork.org,DNS:localhost
+subjectAltName = DNS:gk1.zork.org
 </verb></tscreen>
 
