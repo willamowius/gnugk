@@ -469,6 +469,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "H46023SignalGKRouted" },
 	{ "RoutedMode", "H46023STUN" },
 	{ "RoutedMode", "H46024ForceDirect" },
+	{ "RoutedMode", "H46023ForceNat" },
 #endif
 	{ "RoutedMode", "NATStdMin" },
 	{ "RoutedMode", "Q931PortRange" },

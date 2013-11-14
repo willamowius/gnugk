@@ -522,6 +522,12 @@ Default: <tt>0</tt><newline>
 Force all media to NOT proxy if the remote NAT status cannot be determined. Most (not all) H.323 devices are
 able if on a public IP to receive calls from endpoints that are behind NAT. Use this switch with caution.
 
+<item><tt/H46024ForceNat=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Where an endpoint is detected as being on the public internet force the device to appear as being firewalled.
+This resolve inconsistent behaviour where firewalled endpoints on public IP appear not to be firewalled. 
+
 <item><tt/NATStdMin=18/<newline>
 Default: <tt>N/A</tt><newline>
 <p>

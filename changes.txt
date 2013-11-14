@@ -1,5 +1,6 @@
 Changes from 3.4 to 3.5
 =======================
+- new switch [RoutedMode] H46023ForceNat
 - BUGFIX(ProxyChannel.cxx) fix RTCP forwarding with EnableRTCPStats=1
 - BUGFIX(ProxyChannel.cxx) fix race condition in call failover
 - BUGFIX(GkStatus.cxx) disable ssh compression to avoid libssh bug, fix memleak, implement cmdline command execution

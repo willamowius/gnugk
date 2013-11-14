@@ -2130,10 +2130,16 @@ bool RegistrationRequestPDU::Process()
 						PTRACE(4, "Std23\tEndpoint instructs H.460.23/.24 to be disabled (BAD NAT)");
 						ep->SetH46024(false);
 						ep->SetUsesH46023(false);
-					} else {
+					} else {  // ntype == 1
 						PTRACE(4, "Std23\tEndpoint reports itself as not behind a NAT/FW!");
-						ep->SetCallSignalAddress(originalCallSigAddress);
-						ep->SetNAT(false);
+						if (Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "H46023ForceNat", "0"))) {
+							ep->SetNAT(true);
+							ep->SetNATAddress(rx_addr, rx_port);
+							ntype = 6;  // symmetric firewall
+						} else {
+							ep->SetCallSignalAddress(originalCallSigAddress);
+							ep->SetNAT(false);
+						}
 					}
 				}
 #endif
