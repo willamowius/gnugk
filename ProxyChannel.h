@@ -126,7 +126,7 @@ private:
 
 class TCPProxySocket : public ServerSocket, public ProxySocket {
 public:
-	TCPProxySocket(const char *, TCPProxySocket * = NULL, WORD = 0);
+	TCPProxySocket(const char * t, TCPProxySocket * s = NULL, WORD p = 0);
 	virtual ~TCPProxySocket();
 
 #ifndef LARGE_FDSET
@@ -553,11 +553,12 @@ public:
 	virtual bool Read(void * buf, int sz);
 	virtual int GetLastReadCount() const { return m_lastReadCount; }
 	virtual bool Write(const void * buf, int sz);
+	virtual int GetLastWriteCount() const { return m_lastWriteCount; }
 	virtual void Dispatch();
 
 protected:
 	SSL * m_ssl;
-	int m_lastReadCount;
+	int m_lastReadCount, m_lastWriteCount;
 };
 
 #endif // HAS_TLS

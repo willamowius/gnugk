@@ -169,12 +169,6 @@ bool YaSocket::Read(void * buf, int sz)
 	return lastReadCount > 0;
 }
 
-bool YaSocket::ReadBlock(void * buf, int len)
-{
-	// lazy implementation, but it is enough for us...
-	return Read(buf, len) && lastReadCount == len;
-}
-
 bool YaSocket::CanRead(long timeout) const
 {
 	const int h = os_handle;
@@ -842,7 +836,7 @@ bool USocket::Flush()
 	bool result = true;
 	PWaitAndSignal lock(writeMutex);
 	while (result && qsize > 0) {
-		PBYTEArray* const pdata = PopQueuedPacket();
+		PBYTEArray * const pdata = PopQueuedPacket();
 		if (pdata) {
 			result = InternalWriteData(*pdata, pdata->GetSize());
 			unsigned bytesSent = self->GetLastWriteCount();

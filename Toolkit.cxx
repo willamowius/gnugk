@@ -2323,7 +2323,7 @@ SSL_CTX * Toolkit::GetTLSContext()
 		PString cipherList = m_Config->GetString(TLSSec, "CipherList", "ALL:!ADH:!LOW:!EXP:!MD5:!RC4:!SHA1:!ECDH:!ECDSA:@STRENGTH");
 		SSL_CTX_set_cipher_list(m_sslCtx, cipherList);
 
-		SSL_CTX_set_info_callback(m_sslCtx, apps_ssl_info_callback);	// enable only when debugging
+		SSL_CTX_set_info_callback(m_sslCtx, apps_ssl_info_callback);
 		SSL_CTX_set_default_passwd_cb(m_sslCtx, pem_passwd_cb);
 		m_passphrase = m_Config->GetString(TLSSec, "Passphrase", "");
 		SSL_CTX_set_default_passwd_cb_userdata(m_sslCtx, (void *)m_passphrase.GetPointer());

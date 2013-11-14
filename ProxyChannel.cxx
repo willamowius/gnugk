@@ -1160,7 +1160,7 @@ inline TCPProxySocket::TPKTV3::TPKTV3(WORD len)
 }
 
 // class TCPProxySocket
-TCPProxySocket::TCPProxySocket(const char *t, TCPProxySocket *s, WORD p)
+TCPProxySocket::TCPProxySocket(const char * t, TCPProxySocket * s, WORD p)
       : ServerSocket(p), ProxySocket(this, t), remote(s), bufptr(NULL), tpkt(0), tpktlen(0)
 {
 }
@@ -1286,12 +1286,15 @@ bool TCPProxySocket::ReadTPKT()
 		buffer = PBYTEArray(bufptr = wbuffer, buflen, false);
 	}
 
-#ifdef LARGE_FDSET
+#if defined(LARGE_FDSET) && !defined(HAS_TLS)
 	// some endpoints may send TPKT header and payload in separate
 	// packets, so we have to check again if data available
-	if (this->GetHandle() < (int)FD_SETSIZE)
-		if (!YaSelectList(GetName(), this).Select(YaSelectList::Read, 0))
+	// TLS adds another layer of buffering, so this optimization will fail -> disable
+	if (this->GetHandle() < (int)FD_SETSIZE) {
+		if (!YaSelectList(GetName(), this).Select(YaSelectList::Read, 0)) {
 			return false;
+		}
+	}
 #endif
 	if (!Read(bufptr, buflen))
 		return ErrorHandler(PSocket::LastReadError);
@@ -1440,8 +1443,9 @@ void CallSignalSocket::CleanupCall()
 bool CallSignalSocket::ForwardData()
 {
 	PWaitAndSignal lock(m_remoteLock);
-	if (remote)
+	if (remote) {
 		return remote->InternalWrite(buffer);
+	}
 #ifdef HAS_H46017
 	// with H.460.17 the remote pointer may have been deleted when ending the call
 	// use rc_remote to forward the last ReleaseComplete in the call
@@ -4695,11 +4699,10 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 // used for calls to traversal clients
 bool CallSignalSocket::CreateRemote(const H225_TransportAddress & addr)
 {
-	if(!GetIPAndPortFromTransportAddr(addr, peerAddr, peerPort)) {
+	if (!GetIPAndPortFromTransportAddr(addr, peerAddr, peerPort)) {
 		PTRACE(3, Type() << "\tINVALID DESTINATION ADDRESS for call from " << Name());
 		m_result = Error;
 		return false;
-
 	}
 
 	localAddr = RasServer::Instance()->GetLocalAddress(peerAddr);
@@ -7008,15 +7011,14 @@ void CallSignalSocket::Dispatch()
 				if (GkConfig()->HasKey(RoutedSec, "TcpKeepAlive"))
 					remote->Self()->SetOption(SO_KEEPALIVE, Toolkit::AsBool(
 						GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "0")) ? 1 : 0,
-						SOL_SOCKET
-						);
+						SOL_SOCKET);
 
 				ConfigReloadMutex.EndRead();
-				const bool isReadable = remote->IsReadable(2*setupTimeout);
+				const bool isReadable = remote->IsReadable(2 * setupTimeout);
 				ConfigReloadMutex.StartRead();
 				if (!isReadable) {
 					PTRACE(3, "Q931\tTimed out waiting for a response to Setup or SCI message from " << remote->GetName());
-					if( m_call )
+					if (m_call)
 						m_call->SetDisconnectCause(Q931::TimerExpiry);
 					OnError();
 				}
@@ -7256,11 +7258,11 @@ void CallSignalSocket::DispatchNextRoute()
 					SOL_SOCKET);
 
 			ConfigReloadMutex.EndRead();
-			const bool isReadable = remote->IsReadable(2*setupTimeout);
+			const bool isReadable = remote->IsReadable(2 * setupTimeout);
 			ConfigReloadMutex.StartRead();
 			if (!isReadable) {
 				PTRACE(3, "Q931\tTimed out waiting for a response to Setup message from " << remote->GetName());
-				if( m_call )
+				if (m_call)
 					m_call->SetDisconnectCause(Q931::TimerExpiry);
 				OnError();
 			}
@@ -7339,8 +7341,7 @@ void CallSignalSocket::DispatchNextRoute()
 			if (GkConfig()->HasKey(RoutedSec, "TcpKeepAlive"))
 				remote->Self()->SetOption(SO_KEEPALIVE, Toolkit::AsBool(
 					GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "0")) ? 1 : 0,
-					SOL_SOCKET
-					);
+					SOL_SOCKET);
 			ForwardData();
 // in case of NAT socket, IsReadable cause race condition if the remote socket
 // is selected by its proxy handler, thanks to Daniel Liu
@@ -12225,6 +12226,7 @@ TLSCallSignalSocket::TLSCallSignalSocket()
 {
 	m_ssl = NULL;
 	m_lastReadCount = 0;
+	m_lastWriteCount = 0;
 }
 
 TLSCallSignalSocket::TLSCallSignalSocket(CallSignalSocket * s, WORD port) : CallSignalSocket(s, port)
@@ -12232,6 +12234,7 @@ TLSCallSignalSocket::TLSCallSignalSocket(CallSignalSocket * s, WORD port) : Call
 	// for outgoing call
 	m_ssl = NULL;
 	m_lastReadCount = 0;
+	m_lastWriteCount = 0;
 }
 
 TLSCallSignalSocket::~TLSCallSignalSocket()
@@ -12448,9 +12451,13 @@ bool TLSCallSignalSocket::Write(const void * buf, int sz)
 		PTRACE(1, "TLS\tError: Not initialized");
 		return false;
 	}
+	m_lastWriteCount = 0;
 	int ret = 0;
 	do {
 		ret = SSL_write(m_ssl, buf, sz);
+		if (ret > 0) {
+			m_lastWriteCount += ret;
+		}
 		if (ret <= 0) {
 			char msg[256];
 			int err = SSL_get_error(m_ssl, ret);

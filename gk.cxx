@@ -1360,7 +1360,7 @@ void Gatekeeper::Main()
 		    PTRACE(1, "setrlimit() failed: Not locking into RAM");
 	    }
 	    else {
-			if (mlockall(MCL_CURRENT|MCL_FUTURE) < 0) {
+			if (mlockall(MCL_CURRENT | MCL_FUTURE) < 0) {
 				cout << "Cannot lock GnuGk into RAM, mlockall() failed" << endl;
 			    PTRACE(1, "Cannot lock GnuGk into RAM, mlockall() failed");
 			} else {

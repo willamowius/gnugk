@@ -1,5 +1,7 @@
 Changes from 3.4 to 3.5
 =======================
+- BUGFIX(yasocket.h) fix TLS with LARGE_FDSET
+- disable use of SHA1 by default
 - new switch [RoutedMode] H46023ForceNat
 - BUGFIX(ProxyChannel.cxx) fix RTCP forwarding with EnableRTCPStats=1
 - BUGFIX(ProxyChannel.cxx) fix race condition in call failover

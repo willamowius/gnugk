@@ -3,7 +3,7 @@
 // yasocket.h
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2012, Jan Willamowius
+// Copyright (c) 2004-2013, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -37,13 +37,12 @@ public:
 	bool Close();
 
 	void SetReadTimeout(const PTimeInterval & time) { readTimeout = time; }
-	bool Read(void *, int);
-	bool ReadBlock(void *, int);
-	int GetLastReadCount() const { return lastReadCount; }
+	virtual bool Read(void *, int);
+	virtual int GetLastReadCount() const { return lastReadCount; }
 
 	void SetWriteTimeout(const PTimeInterval & time) { writeTimeout = time; }
-	bool Write(const void *, int);
-	int GetLastWriteCount() const { return lastWriteCount; }
+	virtual bool Write(const void *, int);
+	virtual int GetLastWriteCount() const { return lastWriteCount; }
 
 	void SetPort(WORD pt) { port = pt; }
 	WORD GetPort() const { return port; }
@@ -59,12 +58,8 @@ public:
 	PString GetErrorText(PSocket::ErrorGroup) const;
 	bool ConvertOSError(int libReturnValue, PSocket::ErrorGroup = PSocket::LastGeneralError);
 
-	bool CanRead(
-		long timeout
-		) const;
-	bool CanWrite(
-		long timeout
-		) const;
+	virtual bool CanRead(long timeout) const;
+	virtual bool CanWrite(long timeout) const;
 		
 protected:
 	virtual int os_recv(void *, int) = 0;
@@ -73,9 +68,9 @@ protected:
 	bool Bind(const Address &, WORD);
 
 private:
-	YaSocket(const YaSocket&);
-	YaSocket& operator=(const YaSocket&);
-	
+	YaSocket(const YaSocket &);
+	YaSocket & operator=(const YaSocket &);
+
 protected:
 	int os_handle;
 	int lastReadCount, lastWriteCount;
@@ -89,7 +84,7 @@ protected:
 
 class YaTCPSocket : public YaSocket {
 public:
-	YaTCPSocket(WORD = 0);
+	YaTCPSocket(WORD pt = 0);
 	virtual ~YaTCPSocket() { }
 
 	void GetPeerAddress(Address &) const;
@@ -114,9 +109,9 @@ protected:
 	virtual int os_send(const void *, int);
 
 private:
-	YaTCPSocket(const YaTCPSocket&);
-	YaTCPSocket& operator=(const YaTCPSocket&);
-	
+	YaTCPSocket(const YaTCPSocket &);
+	YaTCPSocket & operator=(const YaTCPSocket &);
+
 protected:
 #ifdef hasIPV6
 	sockaddr_in6 peeraddr;
@@ -127,7 +122,7 @@ protected:
 
 class YaUDPSocket : public YaSocket, public PObject {
 public:
-	YaUDPSocket(WORD port=0, int iAddressFamily=AF_INET);
+	YaUDPSocket(WORD port = 0, int iAddressFamily = AF_INET);
 
 	bool Listen(unsigned, WORD, PSocket::Reusability reuse = PSocket::AddressIsExclusive);
 	bool Listen(const Address &, unsigned, WORD, PSocket::Reusability reuse = PSocket::AddressIsExclusive);
@@ -138,8 +133,8 @@ public:
 	void SetSendAddress(const Address &, WORD);
 	/// Get the address to use for connectionless Write().
 	void GetSendAddress(
-		Address& address, /// IP address to send packets.
-		WORD& port /// Port to send packets.
+		Address & address, /// IP address to send packets.
+		WORD & port /// Port to send packets.
 		);
 
 	virtual bool ReadFrom(void *, PINDEX, Address &, WORD);
@@ -151,9 +146,9 @@ protected:
 	virtual int os_send(const void *, int);
 
 private:
-	YaUDPSocket(const YaUDPSocket&);
-	YaUDPSocket& operator=(const YaUDPSocket&);
-	
+	YaUDPSocket(const YaUDPSocket &);
+	YaUDPSocket & operator=(const YaUDPSocket &);
+
 private:
 #ifdef hasIPV6
 	sockaddr_in6 recvaddr, sendaddr;
@@ -176,25 +171,25 @@ public:
 	/// build a select list for more than one socket
 	YaSelectList(
 		/// name for this select list
-		const PString &name,
+		const PString & name,
 		/// estimated number of sockets to be put in this select list
 		size_t reserve = 512
 	) : maxfd(0), m_name(name) { fds.reserve(reserve); }
 
 	/// build a select list for signle socket only
 	YaSelectList(
-		YaSocket* singleSocket /// socket to be put on the list
-		) : fds(1, singleSocket), maxfd(singleSocket->GetHandle()) {}
+		YaSocket * singleSocket /// socket to be put on the list
+		) : fds(1, singleSocket), maxfd(singleSocket->GetHandle()) { }
 
 	/// build a select list for signle socket only
 	YaSelectList(
 		/// name for this select list
-		const PString &name,
+		const PString & name,
 		YaSocket* singleSocket /// socket to be put on the list
-		) : fds(1, singleSocket), maxfd(singleSocket->GetHandle()), m_name(name) {}
+		) : fds(1, singleSocket), maxfd(singleSocket->GetHandle()), m_name(name) { }
 
 	void Append(
-		YaSocket* s /// the socket to be appended
+		YaSocket * s /// the socket to be appended
 		)
 	{
 		if (s && s->IsOpen()) {
@@ -206,7 +201,7 @@ public:
 
 	bool IsEmpty() const { return fds.empty(); }
 	int GetSize() const { return fds.size(); }
-	YaSocket *operator[](int i) const { return fds[i]; }
+	YaSocket * operator[](int i) const { return fds[i]; }
 
 	enum SelectType {
 		Read,
@@ -277,8 +272,8 @@ public:
 #endif
 
 private:
-	TCPSocket(const TCPSocket&);
-	TCPSocket& operator=(const TCPSocket&);
+	TCPSocket(const TCPSocket &);
+	TCPSocket & operator=(const TCPSocket &);
 };
 
 class UDPSocket : public PUDPSocket, public NamedObject {
@@ -294,10 +289,10 @@ public:
 #ifdef hasIPV6
 	bool DualStackListen(const PIPSocket::Address & localAddr, WORD port);
 #endif
-	
+
 private:
-	UDPSocket(const UDPSocket&);
-	UDPSocket& operator=(const UDPSocket&);
+	UDPSocket(const UDPSocket &);
+	UDPSocket & operator=(const UDPSocket &);
 };
 
 #endif // LARGE_FDSET
@@ -311,7 +306,7 @@ public:
 
 	const char* Type() const { return type; }
 #ifdef LARGE_FDSET
-	const PString& Name() const { return self->GetName(); }
+	const PString & Name() const { return self->GetName(); }
 #else
 	PString Name() const { return self->GetName(); }
 #endif
@@ -332,11 +327,11 @@ public:
 
 	class MarkSocketBlocked {
 	public:
-		MarkSocketBlocked(USocket *_s) : s(_s) { s->MarkBlocked(true); }
+		MarkSocketBlocked(USocket * _s) : s(_s) { s->MarkBlocked(true); }
 		~MarkSocketBlocked() { s->MarkBlocked(false); }
 
 	private:
-		USocket *s;
+		USocket * s;
 	};
 
 #ifdef LARGE_FDSET
@@ -354,23 +349,23 @@ public:
 	}
 #endif
 
-	IPSocket* Self() const { return self; }
-	
+	IPSocket * Self() const { return self; }
+
 protected:
 	virtual bool WriteData(const BYTE *, int);
 	bool InternalWriteData(const BYTE *, int);
 	
 	int GetQueueSize() const { return qsize; }
-	void QueuePacket(const BYTE* buf, int len)
+	void QueuePacket(const BYTE * buf, int len)
 	{
 		queueMutex.Wait();
 		queue.push_back(new PBYTEArray(buf, len));
 		++qsize;
 		queueMutex.Signal();
 	}
-	PBYTEArray* PopQueuedPacket()
+	PBYTEArray * PopQueuedPacket()
 	{
-		PBYTEArray* packet = NULL;
+		PBYTEArray * packet = NULL;
 		queueMutex.Wait();
 		if (!queue.empty()) {
 			packet = queue.front();
@@ -384,19 +379,19 @@ protected:
 		
 	virtual bool ErrorHandler(PSocket::ErrorGroup);
 
-	IPSocket *self;
+	IPSocket * self;
 
 private:
 	USocket();
-	USocket(const USocket&);
-	USocket& operator=(const USocket&);
-	
+	USocket(const USocket &);
+	USocket & operator=(const USocket &);
+
 private:
 	std::list<PBYTEArray *> queue;
 	int qsize;
 	bool blocked;
 	PTimedMutex writeMutex, queueMutex;
-	const char *type;
+	const char * type;
 };
 
 class SocketsReader : public RegularJob {
@@ -437,9 +432,9 @@ protected:
 	void RemoveClosed(bool);
 
 private:
-	SocketsReader(const SocketsReader&);
-	SocketsReader& operator=(const SocketsReader&);
-	
+	SocketsReader(const SocketsReader &);
+	SocketsReader & operator=(const SocketsReader &);
+
 protected:
 	PTimeInterval m_timeout;
 	std::list<IPSocket *> m_sockets, m_removed;
@@ -455,8 +450,8 @@ class ServerSocket : public TCPSocket {
 	PCLASSINFO ( ServerSocket, TCPSocket )
 #endif
 public:
-	ServerSocket(WORD pt = 0) : TCPSocket(pt) {}
-	virtual ~ServerSocket() {}
+	ServerSocket(WORD pt = 0) : TCPSocket(pt) { }
+	virtual ~ServerSocket() { }
 
 	// new virtual function
 
@@ -464,8 +459,8 @@ public:
 	virtual void Dispatch() = 0;
 	
 private:
-	ServerSocket(const ServerSocket&);
-	ServerSocket& operator=(const ServerSocket&);
+	ServerSocket(const ServerSocket &);
+	ServerSocket & operator=(const ServerSocket &);
 };
 
 class TCPListenSocket : public TCPSocket {
@@ -484,9 +479,9 @@ public:
 	virtual ServerSocket *CreateAcceptor() const = 0;
 
 private:
-	TCPListenSocket(const TCPListenSocket&);
-	TCPListenSocket& operator=(const TCPListenSocket&);
-	
+	TCPListenSocket(const TCPListenSocket &);
+	TCPListenSocket & operator=(const TCPListenSocket &);
+
 private:
 	PTime start;
 };
@@ -499,16 +494,16 @@ public:
 	void LoadConfig();
 
 	// add a TCP listener
-	void AddListener(TCPListenSocket *socket) { AddSocket(socket); }
+	void AddListener(TCPListenSocket * socket) { AddSocket(socket); }
 
 	// since listeners may be closed and deleted unexpectedly,
 	// the method provides a thread-safe way to close a listener
 	bool CloseListener(TCPListenSocket *socket);
 
 private:
-	TCPServer(const TCPServer&);
-	TCPServer& operator=(const TCPServer&);
-	
+	TCPServer(const TCPServer &);
+	TCPServer & operator=(const TCPServer &);
+
 	// override from class SocketsReader
 	virtual void ReadSocket(IPSocket *);
 	virtual void CleanUp();
