@@ -170,7 +170,7 @@ Statistics
 Total Endpoints: 21  Terminals: 17  Gateways: 4  NATed: 2
 Cached Endpoints: 1  Terminals: 1  Gateways: 0
 -- Call Statistics --
-Current Calls: 1 Active: 1 From Neighbor: 0 From Parent: 0
+Current Calls: 1 Active: 1 From Neighbor: 0 From Parent: 0 Proxied: 1
 Total Calls: 1539  Successful: 1076  From Neighbor: 60  From Parent: 5 Proxied: 3
 Startup: Fri, 21 Jun 2002 10:50:22 +0800   Running: 11 days 04:22:59
 ;
