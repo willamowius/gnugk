@@ -503,8 +503,8 @@ class STUNsocket  : public UDPProxySocket
 {
 public:
     STUNsocket(const char * t, const H225_CallIdentifier & id);
-	virtual PBoolean GetLocalAddress(PIPSocket::Address &);
-	virtual PBoolean GetLocalAddress(PIPSocket::Address &, WORD &);
+	virtual PBoolean GetLocalAddress(PIPSocket::Address &) const;
+	virtual PBoolean GetLocalAddress(PIPSocket::Address &, WORD &) const;
 
 	PIPSocket::Address externalIP;
 };
@@ -515,7 +515,7 @@ STUNsocket::STUNsocket(const char * t, const H225_CallIdentifier & id)
 }
 
 
-PBoolean STUNsocket::GetLocalAddress(PIPSocket::Address & addr)
+PBoolean STUNsocket::GetLocalAddress(PIPSocket::Address & addr) const
 {
   if (!externalIP.IsValid())
     return UDPSocket::GetLocalAddress(addr);
@@ -525,7 +525,7 @@ PBoolean STUNsocket::GetLocalAddress(PIPSocket::Address & addr)
 }
 
 
-PBoolean STUNsocket::GetLocalAddress(PIPSocket::Address & addr, WORD & port)
+PBoolean STUNsocket::GetLocalAddress(PIPSocket::Address & addr, WORD & port) const
 {
   if (!externalIP.IsValid())
      return UDPSocket::GetLocalAddress(addr, port);
@@ -869,7 +869,6 @@ public:
 	void SendRTPPing(const PIPSocket::Address & ip, const WORD & port, unsigned id);
 
 private:
-    GkClient * m_client;
 	CallRec::NatStrategy m_natStrategy;
 	WORD m_sessionID;
 	H225_CallIdentifier m_callIdentifier;
@@ -900,8 +899,8 @@ private:
 };
 
 H46024Socket::H46024Socket(GkClient * client, bool rtp, const H225_CallIdentifier & id, CallRec::NatStrategy strategy, WORD sessionID)
-	:UDPProxySocket((rtp ? "rtp" : "rtcp"), id), m_client(client), 
-	m_natStrategy(strategy), m_sessionID(sessionID), m_callIdentifier(id), 
+	:UDPProxySocket((rtp ? "rtp" : "rtcp"), id),
+	m_natStrategy(strategy), m_sessionID(sessionID), m_callIdentifier(id),
 	m_rtp(rtp), m_state(e_notRequired),	m_remPort(0), m_detPort(0), m_pendPort(0), m_altPort(0),
 	m_altMuxID(0), m_probes(0), SSRC(0), m_keepseqno(100)
 {
