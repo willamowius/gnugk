@@ -503,8 +503,15 @@ class STUNsocket  : public UDPProxySocket
 {
 public:
     STUNsocket(const char * t, const H225_CallIdentifier & id);
+#ifdef LARGE_FDSET
+	// the YaSocket based UDPSocket has a const GetLocalAddress()
 	virtual PBoolean GetLocalAddress(PIPSocket::Address &) const;
 	virtual PBoolean GetLocalAddress(PIPSocket::Address &, WORD &) const;
+#else
+	// the PTLib based UDPSocket has a non-const GetLocalAddress()
+	virtual PBoolean GetLocalAddress(PIPSocket::Address &);
+	virtual PBoolean GetLocalAddress(PIPSocket::Address &, WORD &);
+#endif
 
 	PIPSocket::Address externalIP;
 };
@@ -515,7 +522,11 @@ STUNsocket::STUNsocket(const char * t, const H225_CallIdentifier & id)
 }
 
 
+#ifdef LARGE_FDSET
 PBoolean STUNsocket::GetLocalAddress(PIPSocket::Address & addr) const
+#else
+PBoolean STUNsocket::GetLocalAddress(PIPSocket::Address & addr)
+#endif
 {
   if (!externalIP.IsValid())
     return UDPSocket::GetLocalAddress(addr);
@@ -525,7 +536,11 @@ PBoolean STUNsocket::GetLocalAddress(PIPSocket::Address & addr) const
 }
 
 
+#ifdef LARGE_FDSET
 PBoolean STUNsocket::GetLocalAddress(PIPSocket::Address & addr, WORD & port) const
+#else
+PBoolean STUNsocket::GetLocalAddress(PIPSocket::Address & addr, WORD & port)
+#endif
 {
   if (!externalIP.IsValid())
      return UDPSocket::GetLocalAddress(addr, port);
