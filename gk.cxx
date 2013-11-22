@@ -107,7 +107,8 @@ const char * KnownConfigEntries[][2] = {
 	{ "CTI::MakeCall", "EndpointAlias" },
 	{ "CTI::MakeCall", "Gatekeeper" },
 	{ "CTI::MakeCall", "Interface" },
-	{ "CTI::MakeCall", "UseH450" },
+	{ "CTI::MakeCall", "UseH450" }, // obsolete, but still accepted
+	{ "CTI::MakeCall", "TransferMethod" },
 	{ "CallTable", "AcctUpdateInterval" },
 	{ "CallTable", "DefaultCallDurationLimit" },
 	{ "CallTable", "DefaultCallTimeout" },
