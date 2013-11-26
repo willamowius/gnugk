@@ -1725,7 +1725,8 @@ private:
 	long m_maximumBandwidthPerCall;	// maximum bandwidth allowed per call (<= 0 means unlimited)
 
 	// statistics
-	unsigned m_CallCount, m_successCall, m_neighborCall, m_parentCall, m_activeCall, m_proxiedCall;
+	unsigned m_CallCount, m_successCall, m_neighborCall, m_parentCall, m_activeCall, m_proxiedCall, m_peakCall;
+	PTime m_peakTime;
 
 	/// timeout for a Connect message to be received
 	/// and for a signaling channel to be opened after ACF/ARQ

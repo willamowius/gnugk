@@ -171,6 +171,7 @@ PBoolean MakeCallEndPoint::OpenAudioChannel(H323Connection & /* connection */,
                                           unsigned /* bufferSize */,
                                           H323AudioCodec & /* codec */)
 {
-	// don't open audio connection, we need this connection just to do the transfer
+	// don't open audio connection, we only need the signaling connection to do the transfer
 	return FALSE;
 }
+

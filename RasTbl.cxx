@@ -4636,7 +4636,8 @@ void CallTable::SupplyEndpointQoS(std::map<PString, EPQoS> & epqos) const
  
 void CallTable::ResetCallCounters()
 {
-	m_CallCount = m_successCall = m_neighborCall = m_parentCall = m_proxiedCall = 0;
+	m_CallCount = m_successCall = m_neighborCall = m_parentCall = m_proxiedCall = m_peakCall = 0;
+	m_peakTime = PTime();
 }
 
 void CallTable::LoadConfig()
@@ -5133,8 +5134,14 @@ void CallTable::InternalRemove(iterator Iter)
 
 	callptr call(*Iter);
 	call->SetDisconnectTime(time(NULL));
+	
+	if (m_peakCall < m_activeCall) {
+	    m_peakCall = m_activeCall;
+	    m_peakTime = PTime();
+	}
 
 	--m_activeCall;
+
 	if (call->IsConnected())
 		++m_successCall;
 	if (!call->GetCallingParty())
@@ -5277,9 +5284,9 @@ PString CallTable::PrintStatistics() const
 
 	return PString(PString::Printf, "-- Call Statistics --\r\n"
 		"Current Calls: %u Active: %u From Neighbor: %u From Parent: %u Proxied: %u\r\n"
-		"Total Calls: %u  Successful: %u  From Neighbor: %u  From Parent: %u  Proxied: %u\r\n",
+		"Total Calls: %u  Successful: %u  From Neighbor: %u  From Parent: %u  Proxied: %u  Peak:  %u at %s\r\n",
 		n, act, nb, np, npr,
-		m_CallCount, m_successCall, m_neighborCall, m_parentCall, m_proxiedCall);
+		m_CallCount, m_successCall, m_neighborCall, m_parentCall, m_proxiedCall, m_peakCall, (const char *)m_peakTime.AsString());
 }
 
 PreliminaryCallTable::PreliminaryCallTable() : Singleton<PreliminaryCallTable>("PreliminaryCallTable")
