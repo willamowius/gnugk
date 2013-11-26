@@ -167,12 +167,12 @@ EP Config reloaded.
 <tscreen><verb>
 Statistics
 -- Endpoint Statistics --
-Total Endpoints: 21  Terminals: 17  Gateways: 4  NATed: 2
-Cached Endpoints: 1  Terminals: 1  Gateways: 0
+Total Endpoints: 307  Terminals: 278  Gateways: 29  NATed: 0
+Cached Endpoints: 0  Terminals: 0  Gateways: 0
 -- Call Statistics --
-Current Calls: 1 Active: 1 From Neighbor: 0 From Parent: 0 Proxied: 1
-Total Calls: 1539  Successful: 1076  From Neighbor: 60  From Parent: 5 Proxied: 3
-Startup: Fri, 21 Jun 2002 10:50:22 +0800   Running: 11 days 04:22:59
+Current Calls: 7 Active: 7 From Neighbor: 4 From Parent: 0 Proxied: 3
+Total Calls: 1151  Successful: 485  From Neighbor: 836  From Parent: 0  Proxied: 193  Peak:  17 at Tue, 26 Nov 2013 19:32:04 +04:00
+Startup: Tue, 26 Nov 2013 18:45:35 +04:00   Running: 0 days 02:34:15
 ;
 </verb></tscreen>
 </descrip>
