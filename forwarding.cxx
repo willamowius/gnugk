@@ -175,7 +175,7 @@ void ForwardingPolicy::RunPolicy(
 	FindEPForwardingRules(params, 0, DEFAULT_PRIORITY, destination);
 
 	PTRACE(5, "Fwd\t" << destination.m_routes.size() << " routes added");
-	for(std::list<Route>::iterator it = destination.m_routes.begin(); it !=destination.m_routes.end(); ++it) {
+	for (std::list<Route>::iterator it = destination.m_routes.begin(); it !=destination.m_routes.end(); ++it) {
 		PTRACE(5, "Fwd\tRoute=" << it->AsString());
 	}
 	if (destination.ChangeAliases()) {
