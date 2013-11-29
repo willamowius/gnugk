@@ -485,14 +485,14 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const PIPSocket::Ad
 
 void RemoveH46019Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures, bool & senderSupportsH46019Multiplexing, bool & isH46019Client)
 {
-	for(PINDEX i = 0; i < supportedFeatures.GetSize(); i++) {
+	for (PINDEX i = 0; i < supportedFeatures.GetSize(); i++) {
 		H225_GenericIdentifier & id = supportedFeatures[i].m_id;
 		if (id.GetTag() == H225_GenericIdentifier::e_standard) {
 			PASN_Integer & asnInt = id;
 			if (asnInt.GetValue() == 19) {
 				senderSupportsH46019Multiplexing = false;
 				isH46019Client = true;
-				for(PINDEX p = 0; p < supportedFeatures[i].m_parameters.GetSize(); p++) {
+				for (PINDEX p = 0; p < supportedFeatures[i].m_parameters.GetSize(); p++) {
 					if (supportedFeatures[i].m_parameters[p].m_id.GetTag() == H225_GenericIdentifier::e_standard) {
 						PASN_Integer & pInt = supportedFeatures[i].m_parameters[p].m_id;
 						if (pInt == 1) {
@@ -504,7 +504,7 @@ void RemoveH46019Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures, 
 					}
 				}
 				// delete, move others 1 up
-				for(PINDEX j=i+1; j < supportedFeatures.GetSize(); j++) {
+				for (PINDEX j=i+1; j < supportedFeatures.GetSize(); j++) {
 					supportedFeatures[j-1] = supportedFeatures[j];
 				}
 				supportedFeatures.SetSize(supportedFeatures.GetSize() - 1);
@@ -520,7 +520,7 @@ void RemoveH46019Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures, 
 // in the Alerting and Connect message
 bool FixH46024Multiplexing(const H225_ArrayOf_GenericData & data, H225_FeatureSet & features)
 {
-	for(PINDEX i=0; i < data.GetSize(); i++) {
+	for (PINDEX i=0; i < data.GetSize(); i++) {
 		H225_GenericIdentifier & id = data[i].m_id;
 		if (id.GetTag() == H225_GenericIdentifier::e_standard) {
 			PASN_Integer & asnInt = id;
@@ -542,7 +542,7 @@ bool HasH46024Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures)
 {
 	bool found = false;
 	bool senderSupportsH46019Multiplexing = false;
-	for(PINDEX i=0; i < supportedFeatures.GetSize(); i++) {
+	for (PINDEX i=0; i < supportedFeatures.GetSize(); i++) {
 		H225_GenericIdentifier & id = supportedFeatures[i].m_id;
 		if (id.GetTag() == H225_GenericIdentifier::e_standard) {
 			PASN_Integer & asnInt = id;
@@ -554,12 +554,12 @@ bool HasH46024Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures)
 		return false;
 
 	// if we are not interzone Multiplexing or don't support it remove the .19 Feature if it is there
-	for(PINDEX i=0; i < supportedFeatures.GetSize(); i++) {
+	for (PINDEX i=0; i < supportedFeatures.GetSize(); i++) {
 		H225_GenericIdentifier & id = supportedFeatures[i].m_id;
 		if (id.GetTag() == H225_GenericIdentifier::e_standard) {
 			PASN_Integer & asnInt = id;
 			if (asnInt.GetValue() == 19) {
-				for(PINDEX p=0; p < supportedFeatures[i].m_parameters.GetSize(); p++) {
+				for (PINDEX p=0; p < supportedFeatures[i].m_parameters.GetSize(); p++) {
 					if (supportedFeatures[i].m_parameters[p].m_id.GetTag()  == H225_GenericIdentifier::e_standard) {
 						PASN_Integer & pInt = supportedFeatures[i].m_parameters[p].m_id;
 						if (pInt == 1) 
@@ -568,7 +568,7 @@ bool HasH46024Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures)
 				}
 				if (!senderSupportsH46019Multiplexing ||
 					!Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
-						for(PINDEX j=i+1; j < supportedFeatures.GetSize(); j++) {
+						for (PINDEX j=i+1; j < supportedFeatures.GetSize(); j++) {
 							supportedFeatures[j-1] = supportedFeatures[j];
 						}
 						supportedFeatures.SetSize(supportedFeatures.GetSize() - 1);
@@ -1801,7 +1801,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 
 	if (m_h245Tunneling && uuie != NULL) {
 #if H225_PROTOCOL_VERSION >= 4
-		if(!uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_provisionalRespToH245Tunneling))
+		if (!uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_provisionalRespToH245Tunneling))
 #endif
 		m_h245Tunneling = (uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)
 			&& uuie->m_h323_uu_pdu.m_h245Tunneling.GetValue());
@@ -1886,7 +1886,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		&& uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_genericData)
 		&& m_h46017Enabled) {
 		bool h46017found = false;
-		for(PINDEX i=0; i < uuie->m_h323_uu_pdu.m_genericData.GetSize(); ++i) {
+		for (PINDEX i=0; i < uuie->m_h323_uu_pdu.m_genericData.GetSize(); ++i) {
 			H460_Feature & feat = (H460_Feature &)uuie->m_h323_uu_pdu.m_genericData[i];
 			if (feat.GetFeatureID() == H460_FeatureID(17)) {
 				H460_FeatureStd & std17 = (H460_FeatureStd &)feat;
@@ -1895,7 +1895,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 				if (std17.GetParameterCount() > 1) {
 					PTRACE(4, "H46017\tWarning: " << std17.GetParameterCount() << " bundled messages");
 				}
-				for(PINDEX j = 0; j < std17.GetParameterCount(); ++j) {
+				for (PINDEX j = 0; j < std17.GetParameterCount(); ++j) {
 					H460_FeatureParameter p = std17.GetFeatureParameter(j);
 					if (p.ID() == 1 && p.hasContent()) {
 						PASN_OctetString & data = p;
@@ -2203,11 +2203,11 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		&& ((H245_RequestMessage &) h245msg).GetTag() == H245_RequestMessage::e_requestMode
 		&& Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveFaxUDPOptionsFromRM", "0"))) {
 		H245_RequestMode & rm = (H245_RequestMessage &) h245msg;
-		for(PINDEX i = 0; i < rm.m_requestedModes.GetSize(); i++) {
-			for(PINDEX j = 0; j < rm.m_requestedModes[i].GetSize(); j++) {
-				if(rm.m_requestedModes[i][j].m_type.GetTag() == H245_ModeElementType::e_dataMode) {
+		for (PINDEX i = 0; i < rm.m_requestedModes.GetSize(); i++) {
+			for (PINDEX j = 0; j < rm.m_requestedModes[i].GetSize(); j++) {
+				if (rm.m_requestedModes[i][j].m_type.GetTag() == H245_ModeElementType::e_dataMode) {
 					H245_DataMode & dm = (H245_DataMode &) rm.m_requestedModes[i][j].m_type;
-					if(dm.m_application.GetTag() == H245_DataMode_application::e_t38fax) {
+					if (dm.m_application.GetTag() == H245_DataMode_application::e_t38fax) {
 						H245_DataMode_application_t38fax & t38fax = (H245_DataMode_application_t38fax &) dm.m_application;
 						if (t38fax.m_t38FaxProtocol.GetTag() == H245_DataProtocolCapability::e_udp
 							&& t38fax.m_t38FaxProfile.HasOptionalField(H245_T38FaxProfile::e_t38FaxUdpOptions)) {
@@ -2551,7 +2551,7 @@ bool SupportsH235Media(const H225_ArrayOf_ClearToken & clearTokens)
 	bool h235v3compatible = false;
 	bool supportedDHkey = false;
 
-	for(PINDEX i=0; i < clearTokens.GetSize(); ++i) {
+	for (PINDEX i = 0; i < clearTokens.GetSize(); ++i) {
 		if (clearTokens[i].m_tokenOID == "0.0.8.235.0.3.24")
 			h235v3compatible = true;
 		if (clearTokens[i].m_tokenOID == "0.0.8.235.0.3.43")
@@ -4274,7 +4274,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				setupBody.m_destinationAddress.SetSize(0);
 			}
 			bool found = false; // see if already there
-			for(PINDEX i = 0; i < setupBody.m_destinationAddress.GetSize(); i++) {
+			for (PINDEX i = 0; i < setupBody.m_destinationAddress.GetSize(); i++) {
 				if (AsString(setupBody.m_destinationAddress[i], false) == addAlias) {
 					found = true;
 					break;
@@ -5940,7 +5940,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 	if (route.m_flags & Route::e_toParent)
 		m_call->SetToParent(true);
 
-	if(!route.m_destNumber.IsEmpty()) {
+	if (!route.m_destNumber.IsEmpty()) {
 		H225_ArrayOf_AliasAddress destAlias;
 		destAlias.SetSize(1);
 		H323SetAliasAddress(route.m_destNumber, destAlias[0]);
@@ -6296,7 +6296,7 @@ void CallSignalSocket::TryNextRoute()
 	if (newRoute.m_useTLS)
 		newCall->SetConnectWithTLS(true);
 
-	if(!newRoute.m_destNumber.IsEmpty()) {
+	if (!newRoute.m_destNumber.IsEmpty()) {
 		H225_ArrayOf_AliasAddress destAlias;
 		destAlias.SetSize(1);
 		H323SetAliasAddress(newRoute.m_destNumber, destAlias[0]);
@@ -6688,11 +6688,13 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 			altered = m_h245handler->HandleFastStartSetup(olc, m_call);
 		} else {
 #ifdef HAS_H46018
-			if (m_call->H46019Required() && PIsDescendant(m_h245handler, H245ProxyHandler) && ((H245ProxyHandler*)m_h245handler)->UsesH46019())
+			if (m_call->H46019Required() && PIsDescendant(m_h245handler, H245ProxyHandler) && ((H245ProxyHandler*)m_h245handler)->UsesH46019()) {
 				altered = ((H245ProxyHandler*)m_h245handler)->HandleFastStartResponse(olc, m_call);
-			else
+			} else 
 #endif
+			{
 				altered = m_h245handler->HandleFastStartResponse(olc, m_call);
+			}
 		}
 		if (altered) {
 			PPER_Stream wtstrm;
@@ -7056,7 +7058,7 @@ void CallSignalSocket::Dispatch()
 				if (newRoute.m_useTLS)
 					m_call->SetConnectWithTLS(true);
 
-				if(!newRoute.m_destNumber.IsEmpty()) {
+				if (!newRoute.m_destNumber.IsEmpty()) {
 					H225_ArrayOf_AliasAddress destAlias;
 					destAlias.SetSize(1);
 					H323SetAliasAddress(newRoute.m_destNumber, destAlias[0]);
@@ -7115,7 +7117,7 @@ void CallSignalSocket::Dispatch()
 //
 //					if (!remote->IsReadable(2*setupTimeout)) {
 //						PTRACE(3, "Q931\tTimed out waiting for a response to Setup message from " << remote->GetName());
-//						if( m_call ) {
+//						if (m_call) {
 //							m_call->SetDisconnectCause(Q931::TimerExpiry);
 //							CallTable::Instance()->RemoveCall(m_call);
 //						}
@@ -7193,7 +7195,7 @@ ProxySocket::Result CallSignalSocket::RetrySetup()
 
 	if (m_h245Tunneling && uuie != NULL)
 #if H225_PROTOCOL_VERSION >= 4
-		if(!uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_provisionalRespToH245Tunneling))
+		if (!uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_provisionalRespToH245Tunneling))
 #endif
 		m_h245Tunneling = (uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)
 			&& uuie->m_h323_uu_pdu.m_h245Tunneling.GetValue());
@@ -7297,7 +7299,7 @@ void CallSignalSocket::DispatchNextRoute()
 			if (newRoute.m_useTLS)
 				m_call->SetConnectWithTLS(true);
 
-			if(!newRoute.m_destNumber.IsEmpty()) {
+			if (!newRoute.m_destNumber.IsEmpty()) {
 				H225_ArrayOf_AliasAddress destAlias;
 				destAlias.SetSize(1);
 				H323SetAliasAddress(newRoute.m_destNumber, destAlias[0]);
@@ -7348,7 +7350,7 @@ void CallSignalSocket::DispatchNextRoute()
 //
 //					if (!remote->IsReadable(2*setupTimeout)) {
 //						PTRACE(3, "Q931\tTimed out waiting for a response to Setup message from " << remote->GetName());
-//						if( m_call ) {
+//						if (m_call) {
 //							m_call->SetDisconnectCause(Q931::TimerExpiry);
 //							CallTable::Instance()->RemoveCall(m_call);
 //						}
@@ -9094,7 +9096,7 @@ bool H46026RTPHandler::HandlePacket(const H225_CallIdentifier & callid, H46026_U
 			iter != m_h46026channels.end() ; ++iter) {
 		if ((iter->m_callid == callid) && (iter->m_session == data.m_sessionId)) {
 			// found session, now send all RTP packets
-			for(PINDEX i = 0; i < data.m_frame.GetSize(); i++) {
+			for (PINDEX i = 0; i < data.m_frame.GetSize(); i++) {
 				PASN_OctetString & bytes = data.m_frame[i];
 				iter->Send(bytes.GetPointer(), bytes.GetSize(), !data.m_dataFrame);
 			}
@@ -9796,7 +9798,7 @@ void ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & 
 						}
 						/* RTP_ControlFrame::e_END doesn't have a length field, so do NOT call item->GetNextItem()
 						otherwise it reads over the buffer */
-						if((item == NULL)
+						if ((item == NULL)
 							|| (item->type == RTP_ControlFrame::e_END)
 							|| ((sdes = (const RTP_ControlFrame::SourceDescription *)item->GetNextItem()) == NULL)){
 							break;
@@ -10804,7 +10806,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 		return false;
 
 #ifdef HAS_H46018
-	if(IsTraversalServer() || IsTraversalClient()) {
+	if (IsTraversalServer() || IsTraversalClient()) {
 		lc->SetUsesH46019();
 	}
 #endif
@@ -10813,7 +10815,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 	H245_UnicastAddress * addr = NULL;
 	bool changed = false;
 
-	if( h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)
+	if ( h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)
 		&& (addr = GetH245UnicastAddress(h225Params->m_mediaControlChannel)) ) {
 
 		lc->SetMediaControlChannelSource(*addr);
@@ -10826,7 +10828,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 #endif
 		changed = true;
 	}
-	if( h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel)
+	if ( h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel)
 		&& (addr = GetH245UnicastAddress(h225Params->m_mediaChannel))) {
 
 		if (GetH245Port(*addr) != 0) {
@@ -10972,7 +10974,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 		bool m_h46019uni = false;
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_genericInformation)) {
 			// remove traversal parameters from sender before forwarding
-			for(PINDEX i = 0; i < olc.m_genericInformation.GetSize(); i++) {
+			for (PINDEX i = 0; i < olc.m_genericInformation.GetSize(); i++) {
 				PASN_ObjectId & gid = olc.m_genericInformation[i].m_messageIdentifier;
 				if (olc.m_genericInformation[i].m_messageContent.GetSize() > 0) {
 					H245_ParameterIdentifier & ident = olc.m_genericInformation[i].m_messageContent[0].m_parameterIdentifier;
@@ -11016,7 +11018,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 							}
 						}
 						// move remaining elements down
-						for(PINDEX j = i+1; j < olc.m_genericInformation.GetSize(); j++) {
+						for (PINDEX j = i+1; j < olc.m_genericInformation.GetSize(); j++) {
 							olc.m_genericInformation[j-1] = olc.m_genericInformation[j];
 						}
 						olc.m_genericInformation.SetSize(olc.m_genericInformation.GetSize()-1);
@@ -11072,7 +11074,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 			// We need to move any generic Information messages up 1 so H.460.19 will ALWAYS be in position 0.
 			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_genericInformation)) {
 				olc.m_genericInformation.SetSize(olc.m_genericInformation.GetSize()+1);
-				for(PINDEX j = 0; j < olc.m_genericInformation.GetSize()-1; j++) {
+				for (PINDEX j = 0; j < olc.m_genericInformation.GetSize()-1; j++) {
 					olc.m_genericInformation[j+1] = olc.m_genericInformation[j];
 				}
 			} else {
@@ -11401,7 +11403,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		sessionID = ((H245_H2250LogicalChannelAckParameters&)olca.m_forwardMultiplexAckParameters).m_sessionID;
 #endif
 #ifdef HAS_H46018
-	if(IsTraversalServer() || IsTraversalClient()) {
+	if (IsTraversalServer() || IsTraversalClient()) {
 		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(lc);
 		if (rtplc)
 			rtplc->SetUsesH46019();
@@ -11464,7 +11466,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		}
 		// remove traversal parameters before forwarding OLCA
 		if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_genericInformation)) {
-			for(PINDEX i = 0; i < olca.m_genericInformation.GetSize(); i++) {
+			for (PINDEX i = 0; i < olca.m_genericInformation.GetSize(); i++) {
 				PASN_ObjectId & gid = olca.m_genericInformation[i].m_messageIdentifier;
 				if (gid == H46019_OID) {
 					// remove traversal parameters, move remaining elements down
@@ -11956,7 +11958,8 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 			}
 		}
 	}
-	if (lc && (changed = lc->OnLogicalChannelParameters(*h225Params, GetMasqAddr(), isReverseLC, call, IsTraversalClient(), m_isRTPMultiplexingEnabled)))
+	bool useMultiplexing = m_isRTPMultiplexingEnabled && peer && peer->m_requestRTPMultiplexing;
+	if (lc && (changed = lc->OnLogicalChannelParameters(*h225Params, GetMasqAddr(), isReverseLC, call, IsTraversalClient(), useMultiplexing)))
 		lc->StartReading(handler);
 	return changed;
 }
@@ -12826,7 +12829,7 @@ void CallSignalSocket::PerformConnecting()
 		if (newRoute.m_useTLS)
 			m_call->SetConnectWithTLS(true);
 
-		if(!newRoute.m_destNumber.IsEmpty()) {
+		if (!newRoute.m_destNumber.IsEmpty()) {
 			H225_ArrayOf_AliasAddress destAlias;
 			destAlias.SetSize(1);
 			H323SetAliasAddress(newRoute.m_destNumber, destAlias[0]);
