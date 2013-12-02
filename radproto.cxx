@@ -1332,7 +1332,7 @@ bool RadiusPDU::EncryptPasswords(
 	// this is done by overwritting the old User-Password with attributes 
 	// present after it (memory block holding remaining attributes is moved)
 	SetLength(len + encPwdAttr->GetLength() - pwdAttr->GetLength());
-	memcpy(pwdAttr, 
+	memmove(pwdAttr, 
 		reinterpret_cast<unsigned char*>(pwdAttr) + pwdAttr->GetLength(),
 		reinterpret_cast<unsigned long>(encPwdAttr) 
 			- reinterpret_cast<unsigned long>(pwdAttr) + encPwdAttr->GetLength()
