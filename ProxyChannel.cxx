@@ -5798,7 +5798,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 		if (!destip.IsEmpty()) {
 			setup.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 			PStringArray adr_parts = SplitIPAndPort(destip, GK_DEF_ENDPOINT_SIGNAL_PORT);
-			PString ip = adr_parts[0];
+			PIPSocket::Address ip(adr_parts[0]);
 			WORD port = (WORD)(adr_parts[1].AsInteger());
 			setup.m_destCallSignalAddress = SocketToH225TransportAddr(ip, port);
 		}
@@ -6851,7 +6851,7 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 						uuie.IncludeOptionalField(H225_Facility_UUIE::e_alternativeAddress);
 						uuie.m_alternativeAddress = destaddr;
 					} else {
-						PTRACE(2, "Warning: Invalid transport address (" << AsString(ip, destport) << ")");
+						PTRACE(2, "Warning: Invalid transport address (" << AsString(PIPSocket::Address(ip), destport) << ")");
 					}
 				} else {
 					alias = destination;
@@ -6951,7 +6951,7 @@ void CallSignalSocket::BuildSetupPDU(Q931 & SetupPDU, const H225_CallIdentifier 
 	if (!destip.IsEmpty()) {
 		setup.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 		PStringArray adr_parts = SplitIPAndPort(destip, GK_DEF_ENDPOINT_SIGNAL_PORT);
-		PString ip = adr_parts[0];
+		PIPSocket::Address ip(adr_parts[0]);
 		WORD port = (WORD)(adr_parts[1].AsInteger());
 		setup.m_destCallSignalAddress = SocketToH225TransportAddr(ip, port);
 	}
@@ -8584,7 +8584,7 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 		}
 	}
 	if (isRTCP && m_EnableRTCPStats && call)
-		ParseRTCP(call, m_session, fromAddress, (BYTE*)data, len);
+		ParseRTCP(call, m_session, PIPSocket::Address(fromAddress), (BYTE*)data, len);
 }
 
 void H46019Session::Send(PUInt32b sendMultiplexID, const H323TransportAddress & toAddress, int osSocket, void * data, unsigned len, bool bufferHasRoomForID)

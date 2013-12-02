@@ -1270,7 +1270,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 					arq.IncludeOptionalField(H225_AdmissionRequest::e_destCallSignalAddress);
 				}
 				PStringArray adr_parts = SplitIPAndPort(*callSigAdr, GK_DEF_ENDPOINT_SIGNAL_PORT);
-				PString ip = adr_parts[0];
+				PIPSocket::Address ip(adr_parts[0]);
 				WORD port = (WORD)(adr_parts[1].AsInteger());
 				arq.m_destCallSignalAddress = SocketToH225TransportAddr(ip, port);
 			}
@@ -1333,7 +1333,7 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 			if (!reject && !callSigAdr->IsEmpty()) {
 				// 'explicit' policy can't handle LRQs, so we do it directly
 				PStringArray adr_parts = SplitIPAndPort(*callSigAdr, GK_DEF_ENDPOINT_SIGNAL_PORT);
-				PString ip = adr_parts[0];
+				PIPSocket::Address ip(adr_parts[0]);
 				WORD port = (WORD)(adr_parts[1].AsInteger());
 				Route route("vqueue", SocketToH225TransportAddr(ip, port));
 				route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
@@ -1423,7 +1423,7 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 				setup.IncludeOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 			}
 			PStringArray adr_parts = SplitIPAndPort(*callSigAdr, GK_DEF_ENDPOINT_SIGNAL_PORT);
-			PString ip = adr_parts[0];
+			PIPSocket::Address ip(adr_parts[0]);
 			WORD port = (WORD)(adr_parts[1].AsInteger());
 			setup.m_destCallSignalAddress = SocketToH225TransportAddr(ip, port);
 		}
@@ -2018,7 +2018,7 @@ void SqlPolicy::RunPolicy(
 			do {
 				PString destinationIp = resultRow[0].first;
 				PStringArray adr_parts = SplitIPAndPort(destinationIp, GK_DEF_ENDPOINT_SIGNAL_PORT);
-				PString ip = adr_parts[0];
+				PIPSocket::Address ip(adr_parts[0]);
 				WORD port = (WORD)(adr_parts[1].AsInteger());
 
 				Route route("Sql", SocketToH225TransportAddr(ip, port));
@@ -2057,7 +2057,7 @@ void SqlPolicy::RunPolicy(
 				PString destinationAlias = resultRow[0].first;
 				PString destinationIp = resultRow[1].first;
 				PStringArray adr_parts = SplitIPAndPort(destinationIp, GK_DEF_ENDPOINT_SIGNAL_PORT);
-				PString ip = adr_parts[0];
+				PIPSocket::Address ip(adr_parts[0]);
 				WORD port = (WORD)(adr_parts[1].AsInteger());
 
 				Route route("Sql", SocketToH225TransportAddr(ip, port));

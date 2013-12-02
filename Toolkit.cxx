@@ -3479,7 +3479,7 @@ void Toolkit::SetGKHome(const PStringArray & home)
 {
 	m_GKHome.clear();
 	for (PINDEX n = 0; n < home.GetSize(); ++n)
-		m_GKHome.push_back(home[n]);
+		m_GKHome.push_back(PIPSocket::Address(home[n]));
 
 	PIPSocket::InterfaceTable it;
 	if (PIPSocket::GetInterfaceTable(it)) {

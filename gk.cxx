@@ -1055,7 +1055,11 @@ bool Gatekeeper::SetUserAndGroup(const PString & username)
 
 void UnixShutdownHandler(int sig)
 {
+#ifdef hasNoMutexWillBlock
+	if (!ShutdownMutex.Wait(0) || !RasServer::Instance()->IsRunning())
+#else
 	if (ShutdownMutex.WillBlock() || !RasServer::Instance()->IsRunning())
+#endif
 		return;
 	PWaitAndSignal shutdown(ShutdownMutex);
 	PTRACE(1, "GK\tReceived signal " << sig);

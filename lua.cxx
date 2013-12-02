@@ -192,7 +192,7 @@ void LuaPolicy::RunPolicy(
 	if (!destIP.IsEmpty()) {
 		PTRACE(5, m_name << "\tSet new destination IP " << destIP);
 		PStringArray adr_parts = SplitIPAndPort(destIP, GK_DEF_ENDPOINT_SIGNAL_PORT);
-		PString ip = adr_parts[0];
+		PIPSocket::Address ip(adr_parts[0]);
 		WORD port = (WORD)(adr_parts[1].AsInteger());
 
 		Route route("Lua", SocketToH225TransportAddr(ip, port));

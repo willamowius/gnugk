@@ -260,7 +260,7 @@ bool LDAPPolicy::FindByAliases(Routing::RoutingRequest & request, H225_ArrayOf_A
 				PString destinationIp = data.front()[m_attribute];
 				if (IsIPAddress(destinationIp)) {
 					PStringArray adr_parts = destinationIp.Tokenise(":", FALSE);
-					PString ip = adr_parts[0];
+					PIPSocket::Address ip(adr_parts[0]);
 					WORD port = (WORD)(adr_parts[1].AsInteger());
 					if (port == 0)
 						port = GK_DEF_ENDPOINT_SIGNAL_PORT;

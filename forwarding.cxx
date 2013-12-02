@@ -157,7 +157,7 @@ void ForwardingPolicy::RunPolicy(
 	// if IP called, check if its an internal EP and change calledAlias/calledIP
 	if (calledAlias.IsEmpty() && IsIPAddress(calledIP)) {
 		PStringArray adr_parts = calledIP.Tokenise(":", FALSE);
-		PString ip = adr_parts[0];
+		PIPSocket::Address ip(adr_parts[0]);
 		WORD port = (WORD)(adr_parts[1].AsInteger());
 		if (port == 0)
 			port = GK_DEF_ENDPOINT_SIGNAL_PORT;
@@ -248,7 +248,7 @@ bool ForwardingPolicy::FindEPForwardingRules(
 					// set a route if forward to IP
 					PString destinationIp = forwardDestination;
 					PStringArray adr_parts = destinationIp.Tokenise(":", FALSE);
-					PString ip = adr_parts[0];
+					PIPSocket::Address ip(adr_parts[0]);
 					WORD port = (WORD)(adr_parts[1].AsInteger());
 					if (port == 0)
 						port = GK_DEF_ENDPOINT_SIGNAL_PORT;
@@ -301,7 +301,7 @@ bool ForwardingPolicy::FindEPForwardingRules(
 					// set a route if forward to IP
 					PString destinationIp = forwardDestination;
 					PStringArray adr_parts = destinationIp.Tokenise(":", FALSE);
-					PString ip = adr_parts[0];
+					PIPSocket::Address ip(adr_parts[0]);
 					WORD port = (WORD)(adr_parts[1].AsInteger());
 					if (port == 0)
 						port = GK_DEF_ENDPOINT_SIGNAL_PORT;
