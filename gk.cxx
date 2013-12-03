@@ -1239,7 +1239,7 @@ bool Gatekeeper::InitHandlers(const PArgList & args)
 bool Gatekeeper::InitLogging(const PArgList & args)
 {
 	// Syslog is the default when compiled as service, but we don't want that
-	PTrace::ClearOptions(PTrace::SystemLogStream);
+	PTrace::ClearOptions(PTrace::SystemLogStream | PTrace::Thread);
 	PTrace::SetOptions(PTrace::DateAndTime | PTrace::TraceLevel | PTrace::FileAndLine);
 	PTrace::SetLevel(args.GetOptionCount('t'));
 	if (args.HasOption('o')) {
