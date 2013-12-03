@@ -81,11 +81,7 @@ static SQLRETURN (SQL_API *g_SQLSetStmtAttr)(SQLHSTMT StatementHandle,
                                       SQLINTEGER Attribute, SQLPOINTER Value,
                                       SQLINTEGER StringLength) = NULL;
 
-PString GetODBCDiagMsg(
-	SQLRETURN result,
-	SQLSMALLINT handleType,
-	SQLHANDLE handle
-	)
+PString GetODBCDiagMsg(SQLRETURN result, SQLSMALLINT handleType, SQLHANDLE handle)
 {
 	if (result == SQL_SUCCESS)
 		return "Sucesss";
@@ -102,8 +98,7 @@ PString GetODBCDiagMsg(
 	
 	memset(msg, 0, SQL_MAX_MESSAGE_LENGTH);
 	r = (*g_SQLGetDiagRec)(handleType, handle, 1, reinterpret_cast<SQLCHAR*>(sqlState),
-		&nativeError, msg, SQL_MAX_MESSAGE_LENGTH, &msgSize
-		);
+		&nativeError, msg, SQL_MAX_MESSAGE_LENGTH, &msgSize);
 	if (r == SQL_SUCCESS || r == SQL_SUCCESS_WITH_INFO) {
 		sqlState[5] = 0;
 		PString text(reinterpret_cast<const char*>(sqlState));
@@ -175,12 +170,12 @@ public:
 		
 private:
 	GkODBCResult();
-	GkODBCResult(const GkODBCResult&);
-	GkODBCResult& operator=(const GkODBCResult&);
+	GkODBCResult(const GkODBCResult &);
+	GkODBCResult & operator=(const GkODBCResult &);
 	
 protected:
 	/// query result for SELECT type queries
-	std::list<ResultRow*> *m_sqlResult;
+	std::list<ResultRow*> * m_sqlResult;
 	/// iterator to the most recent row returned by fetch operation
 	std::list<ResultRow*>::iterator m_sqlRowIter;
 	/// the most recent row returned by fetch operation
@@ -213,15 +208,15 @@ protected:
 			/// ODBC connection handle
 			SQLHDBC conn,
 			/// DSN
-			const PString &dsn
-			) : SQLConnWrapper(id, dsn), m_conn(conn) {}
+			const PString & dsn
+			) : SQLConnWrapper(id, dsn), m_conn(conn) { }
 
 		virtual ~GkODBCConnWrapper();
 
 	private:
 		GkODBCConnWrapper();
-		GkODBCConnWrapper(const GkODBCConnWrapper&);
-		GkODBCConnWrapper& operator=(const GkODBCConnWrapper&);
+		GkODBCConnWrapper(const GkODBCConnWrapper &);
+		GkODBCConnWrapper & operator=(const GkODBCConnWrapper &);
 
 	public:
 		SQLHDBC m_conn;
@@ -245,7 +240,7 @@ protected:
 		@return
 		Query execution result.
 	*/
-	virtual GkSQLResult* ExecuteQuery(
+	virtual GkSQLResult * ExecuteQuery(
 		/// SQL connection to use for query execution
 		SQLConnPtr conn,
 		/// query string
@@ -267,8 +262,8 @@ protected:
 		);
 
 private:
-	GkODBCConnection(const GkODBCConnection&);
-	GkODBCConnection& operator=(const GkODBCConnection&);
+	GkODBCConnection(const GkODBCConnection &);
+	GkODBCConnection & operator=(const GkODBCConnection &);
 	
 private:
 	SQLHENV m_env;
@@ -281,7 +276,7 @@ GkODBCResult::GkODBCResult(
 	/// number of columns in the result set
 	long numFields,
 	/// query result
-	std::list<ResultRow*> *selectResult
+	std::list<ResultRow*> * selectResult
 	)
 	: GkSQLResult(false), m_sqlResult(selectResult), m_sqlRow(-1),
 	m_errorCode(0)
@@ -332,7 +327,7 @@ long GkODBCResult::GetErrorCode()
 
 bool GkODBCResult::FetchRow(
 	/// array to be filled with string representations of the row fields
-	PStringArray& result
+	PStringArray & result
 	)
 {
 	if (m_sqlResult == NULL || m_numRows <= 0)
@@ -358,7 +353,7 @@ bool GkODBCResult::FetchRow(
 
 bool GkODBCResult::FetchRow(
 	/// array to be filled with string representations of the row fields
-	ResultRow& result
+	ResultRow & result
 	)
 {
 	if (m_sqlResult == NULL || m_numRows <= 0)
