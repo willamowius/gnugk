@@ -73,7 +73,7 @@ The database name to connect to.
 <p>
 To connect to an <bf/ODBC data source from a Windows server/, create the data source though Control Panel / Administrative Tools / Data Sources (ODBC) and add a System DSN. Use the name of the System DSN in GnuGk's Database= setting.
 <p>
-To connect to an <bf/ODBC data source from a Unix server/, use a DSN definition for unixODBC of the form <tt/DSN=GnuGk;UID=admin;PWD=secret;/ in GnuGk's Database= setting. GnuGk's Usename= and Password= settings will be ignored in this case, but should be present.
+To connect to an <bf/ODBC data source from a Unix server/, use a DSN definition configured in unixODBC. Some unixODBC drivers seem to ignore the Username and Passwort set in the GnuGk config. For those, you should use a DSN of the form <tt/DSN=GnuGk;UID=admin;PWD=secret;/. Even in this case, GnuGk's Usename= and Password= settings must always be present.
 
 <item><tt/Username=gnugk/<newline>
 <p>
