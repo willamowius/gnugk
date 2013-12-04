@@ -3705,6 +3705,7 @@ bool CallRec::MoveToNextRoute()
 
 	// stop looking for new routes when shutdown is already in progress		
 #ifdef hasNoMutexWillBlock
+	// TODO: this might be a performance bottleneck on high load
   	if (!ShutdownMutex.Wait(0)) {
 		return false;
 	} else {

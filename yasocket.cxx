@@ -1123,6 +1123,7 @@ void TCPServer::ReadSocket(IPSocket * socket)
 	// don't accept new calls when shutdown is already in progress
 	bool shutdown = false;
 #ifdef hasNoMutexWillBlock
+	// TODO: this might be a performance bottleneck on high load
 	if (!ShutdownMutex.Wait(0)) {
 		shutdown = true;
 	} else {
