@@ -275,7 +275,7 @@ bool YaSocket::ConvertOSError(int libReturnValue, PSocket::ErrorGroup group)
 		lastErrorNumber[group] = errno;
 		return false;
 	}
-	return PSocket::ConvertOSError(libReturnValue, lastErrorCode[group], lastErrorNumber[group]);
+	return PChannel::ConvertOSError(libReturnValue, lastErrorCode[group], lastErrorNumber[group]);
 }
 
 bool YaSocket::SetNonBlockingMode()
