@@ -852,16 +852,9 @@ bool USocket::WriteData(const BYTE * buf, int len)
 {
 	if (!IsSocketOpen())
 		return false;
-		
+
 	int remaining = len;
-	if (qsize == 0 && 
-#ifdef hasNoMutexWillBlock
-		writeMutex.Try()
-#else
-		!writeMutex.WillBlock()
-#endif
-		) {
-		PWaitAndSignal lock(writeMutex);
+	if (qsize == 0 && writeMutex.Wait(0)) {
 		while (remaining > 0) {
 			int sendnow = remaining > MAX_SOCKET_CHUNK ? MAX_SOCKET_CHUNK : remaining;
 			if (!InternalWriteData(buf, sendnow)) {
@@ -876,6 +869,7 @@ bool USocket::WriteData(const BYTE * buf, int len)
 					PThread::Sleep(SOCKET_CHUNK_PAUSE);
 			}
 		}
+		writeMutex.Signal();
 		if (remaining == 0)
 			return true;
 	}
@@ -1126,14 +1120,23 @@ bool TCPServer::CloseListener(TCPListenSocket * socket)
 
 void TCPServer::ReadSocket(IPSocket * socket)
 {
+	// don't accept new calls when shutdown is already in progress
+	bool shutdown = false;
 #ifdef hasNoMutexWillBlock
 	if (!ShutdownMutex.Wait(0)) {
+		shutdown = true;
+	} else {
+		ShutdownMutex.Signal();	// release mutex, we were just checking for shutdown
+	}
 #else
-	if (ShutdownMutex.WillBlock()) {
+	if (ShutdownMutex.WillBlock())
+		shutdown = true;
 #endif
+
+	if (shutdown) {
 		PTRACE(4, GetName() << "\tShutdown: Rejecting call on " << socket->GetName());
 		int rej = ::accept(socket->GetHandle(), NULL, NULL);
-		::shutdown(rej, SHUT_RDWR );
+		::shutdown(rej, SHUT_RDWR);
 #if defined(_WIN32)
 		::closesocket(rej);
 #else
@@ -1154,7 +1157,7 @@ void TCPServer::ReadSocket(IPSocket * socket)
 			// reject call
 			PTRACE(1, GetName() << "\tRate limit reached (max " << cps_limit << " cps) - rejecting call on " << socket->GetName());
 			int rej = ::accept(socket->GetHandle(), NULL, NULL);
-			::shutdown(rej, 2 /* SHUT_RDWR */ );
+			::shutdown(rej, SHUT_RDWR);
 #if defined(_WIN32)
 			::closesocket(rej);
 #else

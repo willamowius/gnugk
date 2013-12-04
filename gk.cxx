@@ -884,62 +884,56 @@ void ReloadHandler()
 	Gatekeeper::ReopenLogFile();
 
 	// only one thread must do this
-#ifdef hasNoMutexWillBlock
-	if (!ReloadMutex.Try())
-#else
-	if (ReloadMutex.WillBlock())
-#endif
-		return;
+	if (ReloadMutex.Wait(0)) {
+		/*
+		** Enter critical Section
+		*/
+		ConfigReloadMutex.StartWrite();
 
-	/*
-	** Enter critical Section
-	*/
-	PWaitAndSignal reload(ReloadMutex);
+		/*
+		** Force reloading config
+		*/
+		Toolkit::Instance()->ReloadConfig();
 
-	ConfigReloadMutex.StartWrite();
+		SoftPBX::TimeToLive = GkConfig()->GetInteger("TimeToLive", SoftPBX::TimeToLive);
 
-	/*
-	** Force reloading config
-	*/
-	Toolkit::Instance()->ReloadConfig();
+		/*
+		** Update all gateway prefixes
+		*/
 
-	SoftPBX::TimeToLive = GkConfig()->GetInteger("TimeToLive", SoftPBX::TimeToLive);
+		CallTable::Instance()->LoadConfig();
+		RegistrationTable::Instance()->LoadConfig();
+		CallTable::Instance()->UpdatePrefixCapacityCounters();
 
-	/*
-	** Update all gateway prefixes
-	*/
+		// don't put this in LoadConfig()
+		RasServer::Instance()->SetRoutedMode();
 
-	CallTable::Instance()->LoadConfig();
-	RegistrationTable::Instance()->LoadConfig();
-	CallTable::Instance()->UpdatePrefixCapacityCounters();
+		// Load ENUM servers
+		RasServer::Instance()->SetENUMServers();
 
-	// don't put this in LoadConfig()
-	RasServer::Instance()->SetRoutedMode();
+		// Load RDS servers
+		RasServer::Instance()->SetRDSServers();
 
-	// Load ENUM servers
-	RasServer::Instance()->SetENUMServers();
+		RasServer::Instance()->LoadConfig();
 
-	// Load RDS servers
-	RasServer::Instance()->SetRDSServers();
+		Gatekeeper::EnableLogFileRotation();
 
-	RasServer::Instance()->LoadConfig();
+		ConfigReloadMutex.EndWrite();
 
-	Gatekeeper::EnableLogFileRotation();
+		/*
+		** Don't disengage current calls!
+		*/
+		PTRACE(3, "GK\tCarry on current calls.");
 
-	ConfigReloadMutex.EndWrite();
+		SNMP_TRAP(3, SNMPInfo, General, "Full config reloaded");
 
-	/*
-	** Don't disengage current calls!
-	*/
-	PTRACE(3, "GK\tCarry on current calls.");
-
-	SNMP_TRAP(3, SNMPInfo, General, "Full config reloaded");
-
-	/*
-	** Leave critical Section
-	*/
-	// give other threads the chance to pass by this handler
-	PThread::Sleep(500);
+		// give other threads the chance to pass by this handler
+		PThread::Sleep(500);
+		/*
+		** Leave critical Section
+		*/
+		ReloadMutex.Signal();
+	}
 }
 
 #ifdef _WIN32
@@ -1055,23 +1049,18 @@ bool Gatekeeper::SetUserAndGroup(const PString & username)
 
 void UnixShutdownHandler(int sig)
 {
-#ifdef hasNoMutexWillBlock
-	if (!ShutdownMutex.Wait(0) || !RasServer::Instance()->IsRunning())
-#else
-	if (ShutdownMutex.WillBlock() || !RasServer::Instance()->IsRunning())
-#endif
-		return;
-	PWaitAndSignal shutdown(ShutdownMutex);
-	PTRACE(1, "GK\tReceived signal " << sig);
+	if (RasServer::Instance()->IsRunning() && ShutdownMutex.Wait(0)) {
+		PTRACE(1, "GK\tReceived signal " << sig);
 #ifdef HAS_H46017
-	// unregister all H.460.17 endpoints before we stop the socket handlers and thus delete their sockets
-	RegistrationTable::Instance()->UnregisterAllH46017Endpoints();
+		// unregister all H.460.17 endpoints before we stop the socket handlers and thus delete their sockets
+		RegistrationTable::Instance()->UnregisterAllH46017Endpoints();
 #endif
-	PFile::Remove(pidfile);
-	RasServer::Instance()->Stop();
+		PFile::Remove(pidfile);
+		RasServer::Instance()->Stop();
+	}
 }
 
-void UnixReloadHandler(int sig) // For HUP Signal
+void UnixReloadHandler(int sig) // for HUP Signal
 {
 	PTRACE(1, "GK\tGatekeeper Hangup (signal " << sig << ")");
 	ReloadHandler();
@@ -1239,7 +1228,7 @@ bool Gatekeeper::InitHandlers(const PArgList & args)
 bool Gatekeeper::InitLogging(const PArgList & args)
 {
 	// Syslog is the default when compiled as service, but we don't want that
-	PTrace::ClearOptions(PTrace::SystemLogStream | PTrace::Thread);
+	PTrace::ClearOptions(PTrace::SystemLogStream | PTrace::Thread | PTrace::Timestamp);
 	PTrace::SetOptions(PTrace::DateAndTime | PTrace::TraceLevel | PTrace::FileAndLine);
 	PTrace::SetLevel(args.GetOptionCount('t'));
 	if (args.HasOption('o')) {

@@ -3241,33 +3241,28 @@ void CallRec::RemoveAll()
 
 void CallRec::RemoveSocket()
 {
-#ifdef hasNoMutexWillBlock
-	if (!m_sockLock.Try()) // locked by SendReleaseComplete()?
-#else
-	if (m_sockLock.WillBlock()) // locked by SendReleaseComplete()?
-#endif
-		return; // avoid deadlock
-
-	PWaitAndSignal lock(m_sockLock);
-	if (m_callingSocket) {
-		if (m_callingSocket->MaintainConnection()) {
+	if (m_sockLock.Wait(0)) { // locked by SendReleaseComplete()? don't wait to avoid deadlock
+		if (m_callingSocket) {
+			if (m_callingSocket->MaintainConnection()) {
 #ifdef HAS_H46017
-			m_callingSocket->CleanupCall();
+				m_callingSocket->CleanupCall();
 #endif
-		} else {
-			m_callingSocket->SetDeletable();
+			} else {
+				m_callingSocket->SetDeletable();
+			}
+			m_callingSocket = NULL;
 		}
-		m_callingSocket = NULL;
-	}
-	if (m_calledSocket) {
-		if (m_calledSocket->MaintainConnection()) {
+		if (m_calledSocket) {
+			if (m_calledSocket->MaintainConnection()) {
 #ifdef HAS_H46017
-			m_calledSocket->CleanupCall();
+				m_calledSocket->CleanupCall();
 #endif
-		} else {
-			m_calledSocket->SetDeletable();
+			} else {
+				m_calledSocket->SetDeletable();
+			}
+			m_calledSocket = NULL;
 		}
-		m_calledSocket = NULL;
+		m_sockLock.Signal();
 	}
 }
 
@@ -3707,13 +3702,18 @@ bool CallRec::MoveToNextRoute()
 {
 	if (! IsFailoverActive())
 		return false;
-		
+
+	// stop looking for new routes when shutdown is already in progress		
 #ifdef hasNoMutexWillBlock
-	if (!ShutdownMutex.Wait(0))
+  	if (!ShutdownMutex.Wait(0)) {
+		return false;
+	} else {
+		ShutdownMutex.Signal();	// unlock immediately, we were just testing
+	}
 #else
 	if (ShutdownMutex.WillBlock())
-#endif
 		return false;
+#endif
 
 	if (!m_newRoutes.empty()) {
 		m_failedRoutes.push_back(m_newRoutes.front());
