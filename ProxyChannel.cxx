@@ -12593,6 +12593,7 @@ void ProxyHandler::LoadConfig()
 #ifdef HAS_H46017
 	m_h46017Enabled = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "EnableH46017", 0);
 #endif
+	m_proxyHandlerHighPrio = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "ProxyHandlerHighPrio", 1);
 }
 
 void ProxyHandler::Insert(TCPProxySocket * socket)
@@ -12644,7 +12645,10 @@ void ProxyHandler::MoveTo(ProxyHandler * dest, TCPProxySocket * socket)
 
 void ProxyHandler::OnStart()
 {
-	PThread::Current()->SetPriority(PThread::HighPriority);
+	// TODO: find a way to check if we have the privledges to do this
+	if (m_proxyHandlerHighPrio) {
+		PThread::Current()->SetPriority(PThread::HighPriority);
+	}
 }
 
 bool ProxyHandler::BuildSelectList(SocketSelectList & slist)

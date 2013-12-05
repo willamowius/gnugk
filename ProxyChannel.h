@@ -785,6 +785,7 @@ private:
 #ifdef HAS_H46017
 	bool m_h46017Enabled;
 #endif
+	bool m_proxyHandlerHighPrio;
 };
 
 class HandlerList {

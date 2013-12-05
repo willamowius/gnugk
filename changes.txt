@@ -1,5 +1,6 @@
 Changes from 3.4 to 3.5
 =======================
+- new switch [RoutedMode] ProxyHandlerHighPrio=0 to avoid setting the proxy handler to high priority
 - BUGFIX(ProxyChannel.cxx) fix use of RTP multiplex port for non-multiplexing calls
 - print number of proxied calls and peak number of calls in statistics on status port
 - BUGFIX(yasocket.h) fix TLS with LARGE_FDSET

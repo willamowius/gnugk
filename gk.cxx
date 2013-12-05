@@ -473,6 +473,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "H46023ForceNat" },
 #endif
 	{ "RoutedMode", "NATStdMin" },
+	{ "RoutedMode", "ProxyHandlerHighPrio" },
 	{ "RoutedMode", "Q931PortRange" },
 	{ "RoutedMode", "RDSservers" },
 	{ "RoutedMode", "RemoveCallOnDRQ" },

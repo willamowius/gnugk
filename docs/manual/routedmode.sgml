@@ -651,6 +651,14 @@ Default: <tt/0/<newline>
 <p>
 WARNING: This is an experimental feature to support the not-yet-released H.460 presence standard.
 
+<item><tt/ProxyHandlerHighPrio=0/<newline>
+Default: <tt/1/<newline>
+<p>
+Set the proxy handler for signalling connections to high priority.
+In some virtual server configurations we have to turn this off
+if PTLib fails with "pthread_setschedparam failed".
+This switch will go away once we can detect this condition automatically.
+
 
 </itemize>
 
