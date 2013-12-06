@@ -5493,7 +5493,7 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 				for (PINDEX i = 0; i < data.m_frame.GetSize(); i++) {
 					PASN_OctetString & bytes = data.m_frame[i];
 					if (!data.m_dataFrame) {
-						ParseRTCP(m_call, data.m_sessionId, H323TransportAddress(_peerAddr, _peerPort), bytes.GetPointer(), bytes.GetSize());
+						ParseRTCP(m_call, data.m_sessionId, _peerAddr, bytes.GetPointer(), bytes.GetSize());
 					}
 				}
 			}
