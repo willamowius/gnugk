@@ -4521,6 +4521,23 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		H225_ArrayOf_GenericData & gd = sci.m_genericData;
 		gd.SetSize(1);
 		gd[0] = feat;
+
+		// Although not covered in H.460.22 for H.460.18. The SCI needs to include H.460.22 
+		// to notify the endpoint to establish the TCP connection to the TLS port. - SH
+		if (Toolkit::Instance()->IsTLSEnabled() && m_call->GetCalledParty()->UseTLS()) {
+			H460_FeatureStd h46022 = H460_FeatureStd(22);
+			H460_FeatureStd settings;
+			settings.Add(Std22_Priority, H460_FeatureContent(1, 8)); // Priority=1, type=number8
+			WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
+			H225_TransportAddress h225Addr = RasServer::Instance()->GetCallSignalAddress(m_call->GetCalledParty()->GetIP());
+			SetH225Port(h225Addr, tlsSignalPort);
+			H323TransportAddress signalAddr = h225Addr;
+			settings.Add(Std22_ConnectionAddress, H460_FeatureContent(signalAddr));
+			h46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
+			gd.SetSize(2);
+			gd[1] = h46022;
+		}
+
 		RasSrv->SendRas(sci_ras, m_call->GetCalledParty()->GetRasAddress());
 
 		// store Setup
