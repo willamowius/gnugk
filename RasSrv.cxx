@@ -4194,17 +4194,18 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 		} else {
 			PTRACE(1, "Unable to parse saved rasAddress " << ep->GetRasAddress());
 		}
-	} 
+	}
 	H225_ServiceControlResponse & scr = BuildConfirm();
 	scr.m_requestSeqNum = request.m_requestSeqNum; // redundant, just to avoid compiler warning when H.460.18 is disabled
- 
+
 #ifdef HAS_H46018
 	bool incomingCall = false;
 
 	// check if its from parent
 	GkClient * gkClient = RasServer::Instance()->GetGkClient();
 	bool fromParent = gkClient && gkClient->IsRegistered() && gkClient->UsesH46018() && gkClient->CheckFrom(m_msg->m_peerAddr);
-	
+	// TODO: check H.460.22 indicator from parent
+
 	// find the neighbor this comes from
 	NeighborList::List & neighbors = *RasServer::Instance()->GetNeighbors();
 	NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind2nd(mem_fun(&Neighbors::Neighbor::IsFrom), &m_msg->m_peerAddr));
@@ -4293,7 +4294,7 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 		}
 	}
 #endif
- 
+
 #ifdef HAS_H460P
 	if (request.HasOptionalField(H225_ServiceControlIndication::e_genericData)) {
 		H460_FeatureSet fs = H460_FeatureSet(request.m_genericData);
