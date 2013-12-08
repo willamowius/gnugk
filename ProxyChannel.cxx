@@ -6107,10 +6107,12 @@ void CallSignalSocket::PollPriorityQueue()
 #endif
 
 #ifdef HAS_H46018
-bool CallSignalSocket::OnSCICall(const H225_CallIdentifier & callID, H225_TransportAddress sigAdr)
+bool CallSignalSocket::OnSCICall(const H225_CallIdentifier & callID, H225_TransportAddress sigAdr, bool useTLS)
 {
-	CallRec* call = new CallRec(callID, sigAdr);
+	CallRec * call = new CallRec(callID, sigAdr);
 	m_call = callptr(call);
+	if (useTLS)
+		m_call->SetConnectWithTLS(true);
 	if (CreateRemote(sigAdr)) {
 		GetHandler()->Insert(this, remote);
 		m_callFromTraversalServer = true;

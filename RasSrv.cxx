@@ -4204,7 +4204,28 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 	// check if its from parent
 	GkClient * gkClient = RasServer::Instance()->GetGkClient();
 	bool fromParent = gkClient && gkClient->IsRegistered() && gkClient->UsesH46018() && gkClient->CheckFrom(m_msg->m_peerAddr);
-	// TODO: check H.460.22 indicator from parent
+	bool useTLS = false;
+	H323TransportAddress tlsAddr;
+	if (fromParent) {
+		// TODO: check H.460.22 indicator from parent
+		if (request.HasOptionalField(H225_ServiceControlIndication::e_featureSet)) {
+			H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
+			if (fs.HasFeature(22)) {	// supports H.460.22
+				H460_FeatureStd * secfeat = (H460_FeatureStd *)fs.GetFeature(22);
+				useTLS = secfeat->Contains(Std22_TLS);
+				if (useTLS) {
+					H460_FeatureParameter & tlsparam = secfeat->Value(Std22_TLS);
+					H460_FeatureStd settings;
+					settings.SetCurrentTable(tlsparam);
+					if (settings.Contains(Std22_ConnectionAddress)) {
+						tlsAddr = settings.Value(Std22_ConnectionAddress);
+					} else {
+						PTRACE(1, "TLS\tError: H.460.22 TLS address missing");
+					}
+				}
+			}
+		}
+	}
 
 	// find the neighbor this comes from
 	NeighborList::List & neighbors = *RasServer::Instance()->GetNeighbors();
@@ -4229,11 +4250,21 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 					PPER_Stream raw(rawIncomingIndication);
 					if (incomingIndication.Decode(raw)) {
 						incomingCall = true;
+						H225_TransportAddress sigAddr = incomingIndication.m_callSignallingAddress;
 						PTRACE(2, "Incomming H.460.18 call from neighbor/parent sigAdr="
-							<< AsDotString(incomingIndication.m_callSignallingAddress)
+							<< AsDotString(sigAddr)
 							<< " callID=" << AsString(incomingIndication.m_callID.m_guid));
-						CallSignalSocket * outgoingSocket = new CallSignalSocket();		// TODO: handle TLS
-						outgoingSocket->OnSCICall(incomingIndication.m_callID, incomingIndication.m_callSignallingAddress);
+						CallSignalSocket * outgoingSocket = NULL;
+#ifdef HAS_TLS
+						if (Toolkit::Instance()->IsTLSEnabled() && useTLS) {
+							outgoingSocket = new TLSCallSignalSocket();
+							sigAddr = H323ToH225TransportAddress(tlsAddr);
+						} else
+#endif // HAS_TLS
+						{
+							outgoingSocket = new CallSignalSocket();
+						}
+						outgoingSocket->OnSCICall(incomingIndication.m_callID, sigAddr, useTLS);
 					} else {
 						PTRACE(1, "Error decoding IncomingIndication");
 						SNMP_TRAP(9, SNMPError, Network, "Error decoding IncomingIndication");

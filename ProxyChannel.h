@@ -364,7 +364,7 @@ public:
 	bool IsTraversalClient() const;
 	bool IsTraversalServer() const;
 	bool CreateRemote(const H225_TransportAddress & addr);
-	bool OnSCICall(const H225_CallIdentifier & callID, H225_TransportAddress sigAdr);
+	bool OnSCICall(const H225_CallIdentifier & callID, H225_TransportAddress sigAdr, bool useTLS);
 	bool IsCallFromTraversalServer() const { return m_callFromTraversalServer; }
 	bool IsCallToTraversalServer() const { return m_callToTraversalServer; }
 	void SetSessionMultiplexDestination(WORD session, bool isRTCP, const H323TransportAddress & toAddress, H46019Side side);
