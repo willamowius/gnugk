@@ -4239,7 +4239,8 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 		neighbor_authenticated = from_neighbor->Authenticate(this);
 
 	// accept incomingIndication from neighbor without an entry in supportedFeatures
-	if (request.HasOptionalField(H225_ServiceControlIndication::e_genericData)) {
+	if (request.HasOptionalField(H225_ServiceControlIndication::e_genericData)
+		&& Toolkit::Instance()->IsH46018Enabled()) {
 		for (PINDEX i=0; i < request.m_genericData.GetSize(); i++) {
 			H460_FeatureStd & feat = (H460_FeatureStd &)request.m_genericData[i];
 			if (feat.Contains(H460_FeatureID(1))) {
