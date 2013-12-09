@@ -4207,9 +4207,9 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 	bool useTLS = false;
 	H323TransportAddress tlsAddr;
 	if (fromParent) {
-		// TODO: check H.460.22 indicator from parent
-		if (request.HasOptionalField(H225_ServiceControlIndication::e_featureSet)) {
-			H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
+		// check H.460.22 indicator from parent
+		if (request.HasOptionalField(H225_ServiceControlIndication::e_genericData)) {
+			H460_FeatureSet fs = H460_FeatureSet(request.m_genericData);
 			if (fs.HasFeature(22)) {	// supports H.460.22
 				H460_FeatureStd * secfeat = (H460_FeatureStd *)fs.GetFeature(22);
 				useTLS = secfeat->Contains(Std22_TLS);
@@ -4241,10 +4241,10 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 	// accept incomingIndication from neighbor without an entry in supportedFeatures
 	if (request.HasOptionalField(H225_ServiceControlIndication::e_genericData)
 		&& Toolkit::Instance()->IsH46018Enabled()) {
-		for (PINDEX i=0; i < request.m_genericData.GetSize(); i++) {
-			H460_FeatureStd & feat = (H460_FeatureStd &)request.m_genericData[i];
-			if (feat.Contains(H460_FeatureID(1))) {
-				if (fromParent || (from_neighbor && neighbor_authenticated)) {
+		if (fromParent || (from_neighbor && neighbor_authenticated)) {
+			for (PINDEX i = 0; i < request.m_genericData.GetSize(); i++) {
+				H460_FeatureStd & feat = (H460_FeatureStd &)request.m_genericData[i];
+				if (feat.GetFeatureID() == H460_FeatureID(18) && feat.Contains(H460_FeatureID(1))) {
 					// incoming call from parent or neighor
 					PASN_OctetString rawIncomingIndication = feat.Value(H460_FeatureID(1));
 					H46018_IncomingCallIndication incomingIndication;
@@ -4254,7 +4254,7 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 						H225_TransportAddress sigAddr = incomingIndication.m_callSignallingAddress;
 						PTRACE(2, "Incomming H.460.18 call from neighbor/parent sigAdr="
 							<< AsDotString(sigAddr)
-							<< " callID=" << AsString(incomingIndication.m_callID.m_guid));
+							<< " callID=" << AsString(incomingIndication.m_callID.m_guid) << " TLS=" << useTLS);
 						CallSignalSocket * outgoingSocket = NULL;
 #ifdef HAS_TLS
 						if (Toolkit::Instance()->IsTLSEnabled() && useTLS) {
@@ -4271,8 +4271,6 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 						SNMP_TRAP(9, SNMPError, Network, "Error decoding IncomingIndication");
 					}
 				}
-			} else {
-				// not from neighbor or unauthenticated, ignore call
 			}
 		}
 	}
@@ -4354,7 +4352,7 @@ template<> bool RasPDU<H225_ServiceControlResponse>::Process()
 	if (request.HasOptionalField(H225_ServiceControlResponse::e_featureSet)) {
 		H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
 		if (fs.HasFeature(18) && Toolkit::Instance()->IsH46018Enabled()) {
-			for (PINDEX i=0; i < request.m_genericData.GetSize(); i++) {
+			for (PINDEX i = 0; i < request.m_genericData.GetSize(); i++) {
 				H460_FeatureStd & feat = (H460_FeatureStd &)request.m_genericData[i];
 				if (feat.Contains(H460_FeatureID(2))) {
 					PASN_OctetString rawKeepAlive = feat.Value(H460_FeatureID(2));
