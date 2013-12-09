@@ -6127,10 +6127,11 @@ bool CallSignalSocket::OnSCICall(const H225_CallIdentifier & callID, H225_Transp
 		if (m_h245TunnelingTranslation) {
 			uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
 			uuie.m_h323_uu_pdu.m_h245Tunneling.SetValue(true);
+			SetUUIE(FacilityPDU, uuie);
 		}
 		PBYTEArray buf;
 		FacilityPDU.Encode(buf);
-		PrintQ931(5, "Send to ", GetName(), &FacilityPDU, &uuie);
+		PrintQ931(5, "Send to ", remote ? remote->GetName() : "unknown", &FacilityPDU, &uuie);
  		if (!(remote && remote->TransmitData(buf))) {
 			PTRACE(2, "H46018\tTransmitting Facility to Neighbor GK " << AsString(sigAdr) << " failed");
 			SNMP_TRAP(11, SNMPError, Network, "Neighbor communication failed");
