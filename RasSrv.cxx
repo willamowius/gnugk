@@ -1768,7 +1768,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		// H.460.22
 		if (request.HasOptionalField(H225_GatekeeperRequest::e_featureSet)) {
 			H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
-			if (fs.HasFeature(22)) {
+			if (Toolkit::Instance()->IsTLSEnabled() && fs.HasFeature(22)) {
 				// include H.460.22 in supported features
 				gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_featureSet);
 				H460_FeatureStd h46022 = H460_FeatureStd(22);
@@ -1968,7 +1968,7 @@ bool RegistrationRequestPDU::Process()
 #endif // HAS_H46018
 
 		// H.460.22
-		supportH46022 = fs.HasFeature(22);
+		supportH46022 = Toolkit::Instance()->IsTLSEnabled() && fs.HasFeature(22);
 		if (supportH46022) {
 			H460_FeatureStd * secfeat = (H460_FeatureStd *)fs.GetFeature(22);
 			supportH46022TLS = secfeat->Contains(Std22_TLS);
@@ -3152,7 +3152,7 @@ bool AdmissionRequestPDU::Process()
 			EPSupportsQoSReporting = true;
 		}
 		// H.460.22
-		if (fs.HasFeature(22)) {
+		if (Toolkit::Instance()->IsTLSEnabled() && fs.HasFeature(22)) {
 			EPSupportsH46022 = true;
 			H460_FeatureStd * std22 = (H460_FeatureStd *)fs.GetFeature(22);
 			EPSupportsH46022TLS = std22->Contains(Std22_TLS);
