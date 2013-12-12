@@ -4064,6 +4064,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 #ifdef hasAutoCreateAuthenticators	// PTLib 2.11.x
 			// Authenticators are created on demand by identifiers in token/cryptoTokens where supported 
+			// TODO: check if we need to set cipher and token length for PTLib >= 2.11.x
 			auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
 #else
 			// Create all authenticators for both media encryption and caller authentication
@@ -4105,7 +4106,9 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 				setupBody.m_cryptoTokens.SetSize(0);
 			}
-#ifdef hasAutoCreateAuthenticators  // Authenticators are created on demand by identifiers in token/cryptoTokens where supported 
+#ifdef hasAutoCreateAuthenticators
+			// Authenticators are created on demand by identifiers in token/cryptoTokens where supported 
+			// TODO: check if we need to set cipher and token length for PTLib >= 2.11.x
 			auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
 #else			// Create all authenticators for both media encryption and caller authentication
 			unsigned maxCipher = 128;	// AES128
