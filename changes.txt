@@ -1,5 +1,6 @@
 Changes from 3.4 to 3.5
 =======================
+- replace H235HalfCallMediaStrength= switch with H235HalfCallMaxTokenLength= switch
 - changed default call signalling port from 1721 to 1720
 - BUGFIX(ProxyChannel.cxx) offer H.245 tunneling for H.460.18 calls when translation switch is on
 - new switch [RoutedMode] ProxyHandlerHighPrio=0 to avoid setting the proxy handler to high priority

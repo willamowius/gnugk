@@ -611,10 +611,11 @@ Default: <tt/0/<newline>
 Require at least one leg of the call to be encrypted.
 (Terminate the call if both legs are unencrypted.)
 
-<item><tt/H235HalfCallMediaStrength=256/<newline>
-Default: <tt/128/<newline>
+<item><tt/H235HalfCallMaxTokenLength=2048/<newline>
+Default: <tt/1024/<newline>
 <p>
-Set the maximum cypher length to support for H.235 half call media (allowed values are 128 or 256).
+Set the maximum token length for for H.235 half call media.
+With 1024 bit tokens AES 128 encryption will be used. For token length greather than 1024 GnuGk will use AES 256.
 
 <item><tt/EnableH235HalfCallMediaKeyUpdates=1/<newline>
 Default: <tt/0/<newline>

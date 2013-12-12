@@ -4067,7 +4067,12 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
 #else
 			// Create all authenticators for both media encryption and caller authentication
-			H235Authenticators::SetMaxCipherLength(toolkit->Config()->GetInteger(RoutedSec, "H235HalfCallMediaStrength", 128));
+			unsigned maxCipher = 128;	// AES128
+			unsigned maxTokenLen = toolkit->Config()->GetInteger(RoutedSec, "H235HalfCallMaxTokenLength", 1024);
+			if (maxTokenLen > 1024)
+				maxCipher = 256;	// AES256
+			H235Authenticators::SetMaxCipherLength(maxCipher);
+			H235Authenticators::SetMaxTokenLength(maxTokenLen);
 			auth.CreateAuthenticators(H235Authenticator::MediaEncryption);
 			auth.CreateAuthenticators(H235Authenticator::EPAuthentication);
 #endif
@@ -4103,7 +4108,12 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 #ifdef hasAutoCreateAuthenticators  // Authenticators are created on demand by identifiers in token/cryptoTokens where supported 
 			auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
 #else			// Create all authenticators for both media encryption and caller authentication
-			H235Authenticators::SetMaxCipherLength(toolkit->Config()->GetInteger(RoutedSec, "H235HalfCallMediaStrength", 128));
+			unsigned maxCipher = 128;	// AES128
+			unsigned maxTokenLen = toolkit->Config()->GetInteger(RoutedSec, "H235HalfCallMaxTokenLength", 1024);
+			if (maxTokenLen > 1024)
+				maxCipher = 256;	// AES256
+			H235Authenticators::SetMaxCipherLength(maxCipher);
+			H235Authenticators::SetMaxTokenLength(maxTokenLen);
 			auth.CreateAuthenticators(H235Authenticator::MediaEncryption);  
 			auth.CreateAuthenticators(H235Authenticator::EPAuthentication);
 #endif

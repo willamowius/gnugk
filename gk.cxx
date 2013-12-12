@@ -456,7 +456,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "GenerateCallProceeding" },
 	{ "RoutedMode", "GkRouted" },
 #ifdef HAS_H235_MEDIA
-	{ "RoutedMode", "H235HalfCallMediaStrength" },
+	{ "RoutedMode", "H235HalfCallMaxTokenLength" },
 #endif
 	{ "RoutedMode", "H245PortRange" },
 	{ "RoutedMode", "H245Routed" },
