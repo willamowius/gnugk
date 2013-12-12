@@ -25,8 +25,8 @@
 #define GK_DEF_MULTICAST_PORT			1718
 #define GK_DEF_MULTICAST_GROUP		"224.0.1.41"
 
-/* port used by gatekeeper for routed signaling: anything != 1720 so endpoint can be on same IP as GK */
-#define GK_DEF_CALL_SIGNAL_PORT		1721
+/* port used by gatekeeper for routed signaling */
+#define GK_DEF_CALL_SIGNAL_PORT		1720
 #define GK_DEF_TLS_CALL_SIGNAL_PORT	1300
 
 /* well known signal port */

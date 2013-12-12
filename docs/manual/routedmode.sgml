@@ -48,12 +48,10 @@ for a call. Even when this option is disabled, if Proxy or ProxyForNAT
 takes effect, a H.245 channel is always routed through the gatekeeper
 for calls being proxied.
 
-<item><tt/CallSignalPort=1720/<newline>
-Default: <tt/1721/<newline>
+<item><tt/CallSignalPort=1721/<newline>
+Default: <tt/1720/<newline>
 <p>
 The port for call signaling on the gatekeeper.
-The default port is <tt/1721/. We don't use the well-known port <tt/1720/ by default
-so you can run an H.323 endpoint or gateway in the same machine as the gatekeeper.
 You may set it to <tt/0/ to let the gatekeeper choose an arbitrary port.
 
 <item><tt/TLSCallSignalPort=1300/<newline>
