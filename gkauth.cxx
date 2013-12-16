@@ -43,6 +43,205 @@ using std::for_each;
 using std::find_if;
 using std::greater;
 
+
+#ifdef P_SSL
+////////////////////////////////////////////////////
+
+#include <h235/h235crypto.h>
+
+/** This class implements desECB authentication.
+*/
+class H235AuthDesECB : public H235Authenticator
+{
+    PCLASSINFO(H235AuthDesECB, H235Authenticator);
+  public:
+    H235AuthDesECB();
+
+    PObject * Clone() const;
+
+    virtual const char * GetName() const;
+
+    static PStringArray GetAuthenticatorNames();
+#if PTLIB_VER >= 2110
+    static PBoolean GetAuthenticationCapabilities(Capabilities * ids);
+#endif
+    virtual PBoolean IsMatch(const PString & identifier) const;
+
+    virtual H225_CryptoH323Token * CreateCryptoToken();
+
+    virtual ValidationResult ValidateCryptoToken(
+      const H225_CryptoH323Token & cryptoToken,
+      const PBYTEArray & rawPDU
+    );
+
+    virtual PBoolean IsCapability(
+      const H235_AuthenticationMechanism & mechansim,
+      const PASN_ObjectId & algorithmOID
+    );
+
+    virtual PBoolean SetCapability(
+      H225_ArrayOf_AuthenticationMechanism & mechansim,
+      H225_ArrayOf_PASN_ObjectId & algorithmOIDs
+    );
+
+    virtual PBoolean IsSecuredPDU(
+      unsigned rasPDU,
+      PBoolean received
+    ) const;
+
+    virtual PBoolean IsSecuredSignalPDU(
+      unsigned rasPDU,
+      PBoolean received
+    ) const;
+};
+
+#if PTLIB_VER >= 2110
+#ifdef P_SSL
+H235SECURITY(DesECB);
+#endif
+#else
+static PFactory<H235Authenticator>::Worker<H235AuthDesECB> factoryH235AuthDesECB("desECB");
+#endif
+
+static const char OID_DesECB[] = "1.3.14.3.2.6";
+
+H235AuthDesECB::H235AuthDesECB()
+{
+  usage = AnyApplication; // Can be used either for GKAdmission or EPAuthenticstion
+}
+
+PObject * H235AuthDesECB::Clone() const
+{
+  return new H235AuthDesECB(*this);
+}
+
+const char * H235AuthDesECB::GetName() const
+{
+  return "desECB";
+}
+
+PStringArray H235AuthDesECB::GetAuthenticatorNames()
+{
+  return PStringArray("desECB");
+}
+
+#if PTLIB_VER >= 2110
+PBoolean H235AuthDesECB::GetAuthenticationCapabilities(H235Authenticator::Capabilities * ids)
+{
+  H235Authenticator::Capability cap;
+  cap.m_identifier = OID_DesECB;
+  cap.m_cipher     = "DES";
+  cap.m_description= "desECB";
+  ids->capabilityList.push_back(cap);
+    
+  return true;
+}
+#endif
+
+PBoolean H235AuthDesECB::IsMatch(const PString & identifier) const 
+{ 
+    return (identifier == PString(OID_DesECB)); 
+}
+
+H225_CryptoH323Token * H235AuthDesECB::CreateCryptoToken()
+{
+  if (!IsActive())
+    return NULL;
+
+  // Create the H.225 crypto token
+  H225_CryptoH323Token * cryptoToken = new H225_CryptoH323Token;
+  cryptoToken->SetTag(H225_CryptoH323Token::e_cryptoEPPwdEncr);
+
+  // TODO: encryption not implemented, yet (GnuGk only needs the decrypt)
+
+  return cryptoToken;
+}
+
+H235Authenticator::ValidationResult H235AuthDesECB::ValidateCryptoToken(
+                                             const H225_CryptoH323Token & cryptoToken,
+                                             const PBYTEArray &)
+{
+  if (!IsActive())
+	return e_Disabled;
+
+  // verify the token is of correct type
+  if (cryptoToken.GetTag() != H225_CryptoH323Token::e_cryptoEPPwdEncr)
+    return e_Absent;
+
+  PBYTEArray remoteEncryptedData = ((H235_ENCRYPTED<H235_EncodedPwdCertToken>)cryptoToken).m_encryptedData;
+  PBYTEArray decryptedToken(remoteEncryptedData.GetSize());
+
+  EVP_CIPHER_CTX cipher;
+  EVP_CIPHER_CTX_init(&cipher);
+  EVP_CIPHER_CTX_set_padding(&cipher, 1);
+
+  PBYTEArray key(8);
+  // Build key from password according to H.235.0/8.2.1
+  memcpy(key.GetPointer(), password.GetPointer(), std::min(key.GetSize(), password.GetLength()));
+  for (PINDEX i = key.GetSize(); i < password.GetLength(); ++i)
+	key[i%key.GetSize()] ^= password[i];
+
+  EVP_CipherInit_ex(&cipher, EVP_des_ecb(), NULL, key, NULL, 0);
+
+  int len = -1;
+  if (!EVP_DecryptUpdate_cts(&cipher, decryptedToken.GetPointer(), &len, remoteEncryptedData.GetPointer(), remoteEncryptedData.GetSize())) {
+        PTRACE(1, "H235RAS\tEVP_DecryptUpdate_cts failed");
+  }
+  int f_len = -1;
+  if(!EVP_DecryptFinal_cts(&cipher, decryptedToken.GetPointer() + len, &f_len)) {
+    char buf[256];
+    ERR_error_string(ERR_get_error(), buf);
+    PTRACE(1, "H235RAS\tEVP_DecryptFinal_cts failed: " << buf);
+  }
+
+  EVP_CIPHER_CTX_cleanup(&cipher);
+
+  PPER_Stream asn(decryptedToken);
+  H235_ClearToken clearToken;
+  clearToken.Decode(asn);
+
+  PString generalID = clearToken.m_generalID;
+  if (generalID == Toolkit::GKName()
+	  && clearToken.m_timeStamp == (unsigned)time(NULL))	// TODO: add grace period ?
+	return e_OK;
+
+  PTRACE(1, "H235RAS\tH235AuthDesECB password does not match.");
+  return e_BadPassword;
+}
+
+PBoolean H235AuthDesECB::IsCapability(const H235_AuthenticationMechanism & mechanism,
+                                     const PASN_ObjectId & algorithmOID)
+{
+  return mechanism.GetTag() == H235_AuthenticationMechanism::e_pwdSymEnc &&
+         algorithmOID.AsString() == OID_DesECB;
+}
+
+PBoolean H235AuthDesECB::SetCapability(H225_ArrayOf_AuthenticationMechanism & mechanisms,
+                                      H225_ArrayOf_PASN_ObjectId & algorithmOIDs)
+{
+  return AddCapability(H235_AuthenticationMechanism::e_pwdSymEnc, OID_DesECB, mechanisms, algorithmOIDs);
+}
+
+PBoolean H235AuthDesECB::IsSecuredPDU(unsigned rasPDU, PBoolean received) const
+{
+  switch (rasPDU) {
+    case H225_RasMessage::e_registrationRequest :
+      return received ? !remoteId.IsEmpty() : !localId.IsEmpty();
+
+    default :
+      return FALSE;
+  }
+}
+
+PBoolean H235AuthDesECB::IsSecuredSignalPDU(unsigned signalPDU, PBoolean received) const
+{
+  return FALSE;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+#endif
+
+
 ARQAuthData::ARQAuthData(
 	/// an endpoint requesting admission
 	const endptr & ep,
@@ -671,15 +870,17 @@ void GkAuthenticatorList::SelectH235Capability(
 {
 	ReadLock lock(m_reloadMutex);
 
-	if (m_authenticators.empty())
+	if (m_authenticators.empty()) {
 		return;
+	}
 
 	// if GRQ does not contain a list of authentication mechanisms simply return
 	if (!(grq.HasOptionalField(H225_GatekeeperRequest::e_authenticationCapability)
 			&& grq.HasOptionalField(H225_GatekeeperRequest::e_algorithmOIDs)
 			&& grq.m_authenticationCapability.GetSize() > 0
-			&& grq.m_algorithmOIDs.GetSize() > 0))
+			&& grq.m_algorithmOIDs.GetSize() > 0)) {
 		return;
+	}
 
 	for (PINDEX auth = 0; auth < m_h235authenticators.GetSize(); auth++) {
 		for (PINDEX cap = 0; cap < grq.m_authenticationCapability.GetSize(); cap++) {
