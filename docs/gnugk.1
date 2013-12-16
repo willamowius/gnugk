@@ -10,7 +10,7 @@
 .\" Created: Tue May  15 2005
 .\"
 .\"
-.Dd August 7, 2011
+.Dd December 16, 2013
 .Dt GNUGK 1
 .Os
 .Sh NAME
@@ -75,6 +75,8 @@ A core dump file will not exceed n bytes in size.
 A special constant
 .Dq unlimited
 may also be specified.
+.It Fl -mlock
+(Unix only) Lock GnuGk into memory to prevent it being swaped out.
 .El
 .Ss Gatekeeper Mode
 The options in this subsection override the settings in the [RoutedMode] section of the configuration file.
