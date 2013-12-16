@@ -1,8 +1,8 @@
 Changes from 3.4 to 3.5
 =======================
-- add ability to verify DES-ECB challenge/reponse tokens, eg. fom Avaya endpoints
+- support for challenge/reponse authentication using DES-ECB, eg. fom Avaya endpoints
 - replace H235HalfCallMediaStrength= switch with H235HalfCallMaxTokenLength= switch
-- changed default call signalling port from 1721 to 1720
+- changed default call signaling port from 1721 to 1720
 - BUGFIX(ProxyChannel.cxx) offer H.245 tunneling for H.460.18 calls when translation switch is on
 - new switch [RoutedMode] ProxyHandlerHighPrio=0 to avoid setting the proxy handler to high priority
 - BUGFIX(ProxyChannel.cxx) fix use of RTP multiplex port for non-multiplexing calls
@@ -227,7 +227,7 @@ Changes from 2.3.5 to 3.0
   on a NATed connection
 - always include destCallSignalAddress in Setup to avoid crash in Polycom m100
 - BUGFIX(ProxyChannel.cxx) remove endpointIdentifier from Setup before forwarding
-- new switch [Routed::H46023SignalGKRouted] to force all signalling to be Gatekeeper routed for H.460.23/.24
+- new switch [Routed::H46023SignalGKRouted] to force all signaling to be Gatekeeper routed for H.460.23/.24
 - added more interop support for Sorenson equipment
 
 Changes from 2.3.4 to 2.3.5
