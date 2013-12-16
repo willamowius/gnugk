@@ -902,7 +902,7 @@ void GkAuthenticatorList::SelectH235Capability(
 								gcf.m_tokens.SetSize(1);
 								gcf.m_tokens[0].m_tokenOID = "0.0";
 								gcf.m_tokens[0].IncludeOptionalField(H235_ClearToken::e_timeStamp);
-								gcf.m_tokens[0].m_timeStamp = (int)time(NULL);
+								gcf.m_tokens[0].m_timeStamp = (int)time(NULL); // Avaya seems to send a different timestamp that is 34 years back, but accpets this as well
 								gcf.m_tokens[0].IncludeOptionalField(H235_ClearToken::e_random);
 								gcf.m_tokens[0].m_random = rand();
 								gcf.m_tokens[0].IncludeOptionalField(H235_ClearToken::e_generalID);
