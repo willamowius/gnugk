@@ -1186,6 +1186,30 @@ fi
 AC_SUBST(HAS_LUA)
 
 dnl ########################################################################
+dnl Switch for weak TLS (endpoints without certificate)
+dnl ########################################################################
+
+dnl MSWIN_DISPLAY    weaktls,support endpoints without TLS certificate
+dnl MSWIN_DEFAULT    weaktls,Disabled
+dnl MSWIN_DEFINE     weaktls,HAS_WEAK_TLS
+
+AC_ARG_ENABLE(weaktls, 
+[  --enable-weaktls       support endpoints without TLS certificate (default=no)], 
+[ weaktls="${enableval}" ], [weaktls="no"] 
+)
+
+if test "x${weaktls}" != "xno" ; then     
+   HAS_WEAK_TLS=1
+   AC_DEFINE(HAS_WEAK_TLS, 1)
+   STDCCFLAGS="-DHAS_WEAK_TLS=1 $STDCCFLAGS"
+   echo "Weak TLS enabled"
+else
+   echo "Weak TLS disabled"
+   HAS_WEAK_TLS=0
+fi
+AC_SUBST(HAS_WEAK_TLS)
+
+dnl ########################################################################
 dnl make directives
 
 dnl ########################################################################

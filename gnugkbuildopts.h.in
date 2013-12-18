@@ -24,11 +24,12 @@
 #undef HAS_H46023
 
 // Radius
-
 #undef HAS_RADIUS
 
-// libSSH
+// TLS without certificate
+#undef HAS_WEAK_TLS
 
+// libSSH
 #undef HAS_LIBSSH
 #if defined(_MSC_VER) && HAS_LIBSSH
   #pragma include_alias("libssh/libssh.h", "@LIBSSH_DIR@/include/libssh/libssh.h")
@@ -38,17 +39,14 @@
 #endif
 
 // SNMP
-
 #undef HAS_NETSNMP
 #undef HAS_PTLIBSNMP
 #undef HAS_WINSNMP
 
 // LUA
-
 #undef HAS_LUA
 
 // MYSQL
-
 #undef HAS_MYSQL
 #if defined(_MSC_VER) && HAS_MYSQL
   #pragma include_alias(<mysql.h>, <@MYSQL_DIR@/include/mysql.h>)
@@ -56,7 +54,6 @@
 
 
 // PostgreSQL
-
 #undef HAS_PGSQL
 #if defined(_MSC_VER) && HAS_PGSQL
   #pragma include_alias(<libpq-fe.h>, <@PGSQL_DIR@/include/libpq-fe.h>)
@@ -64,7 +61,6 @@
 
 
 // Firebird
-
 #undef HAS_FIREBIRD
 #if defined(_MSC_VER) && HAS_FIREBIRD
   #pragma include_alias(<ibase.h>, <@FIREBIRD_DIR@/include/ibase.h>)
@@ -72,7 +68,6 @@
 
 
 // SQLite
-
 #undef HAS_SQLITE
 #if defined(_MSC_VER) && HAS_SQLITE
   #pragma include_alias(<sqlite3.h>, <@SQLITE_DIR@/sqlite3.h>)
@@ -80,7 +75,6 @@
 
 
 // ODBC
-
 #undef HAS_ODBC
 #if defined(_MSC_VER) && HAS_ODBC
   #pragma include_alias(<sql.h>,      <@ODBC_DIR@/include/sql.h>)

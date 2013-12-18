@@ -647,7 +647,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "TLS", "EnableTLS" },
 	{ "TLS", "Passphrase" },
 	{ "TLS", "PrivateKey" },
+#ifdef HAS_WEAK_TLS
 	{ "TLS", "RequireRemoteCertificate" },
+#endif
 #endif
 
 	// ignore name partially to check
