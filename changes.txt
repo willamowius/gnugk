@@ -1,5 +1,6 @@
 Changes from 3.4 to 3.5
 =======================
+- new switch [TLS] RequireRemoteCertificate
 - support for challenge/reponse authentication using DES-ECB, eg. fom Avaya endpoints
 - replace H235HalfCallMediaStrength= switch with H235HalfCallMaxTokenLength= switch
 - changed default call signaling port from 1721 to 1720

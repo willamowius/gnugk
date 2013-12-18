@@ -2349,7 +2349,12 @@ SSL_CTX * Toolkit::GetTLSContext()
 			ERR_error_string(ERR_get_error(), msg);
 			PTRACE(1, "TLS\tOpenSSL error: " << msg);
 		}
-		SSL_CTX_set_verify(m_sslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, verify_callback); // context is used both in client and server mode
+
+		if (m_Config->GetBoolean(TLSSec, "RequireRemoteCertificate", "1"))
+			SSL_CTX_set_verify(m_sslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, verify_callback); // context is used both in client and server mode
+		else
+			SSL_CTX_set_verify(m_sslCtx, SSL_VERIFY_PEER, verify_callback); // do not require a client certificate
+
 		SSL_CTX_set_verify_depth(m_sslCtx, 5);
 	}
 

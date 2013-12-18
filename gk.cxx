@@ -647,6 +647,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "TLS", "EnableTLS" },
 	{ "TLS", "Passphrase" },
 	{ "TLS", "PrivateKey" },
+	{ "TLS", "RequireRemoteCertificate" },
 #endif
 
 	// ignore name partially to check
