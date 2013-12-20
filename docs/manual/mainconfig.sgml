@@ -519,7 +519,6 @@ The order indicates the priority of the authentication mechanism.
 If this setting is omitted, all authenticators are loaded by default. 
 If you are using plugin authenticators, then you may want to disable the default authenticators to provide optimum security.
 Note: H.235.1 requires OpenSSL support compiled into GnuGk.
-<bf/This switch is only available if GnuGk is compiled with H323Plus./
 
 <item><tt/DisconnectCallsOnShutdown=0/<newline>
 Default: <tt>1</tt><newline>
