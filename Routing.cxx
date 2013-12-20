@@ -175,7 +175,7 @@ void RoutingRequest::RemoveAllRoutes()
 	m_routes.clear();
 }
 
-bool RoutingRequest::GetGatewayDestination(H225_TransportAddress & gw ) const 
+bool RoutingRequest::GetGatewayDestination(H225_TransportAddress & gw) const
 {
 	PIPSocket::Address addr;
 	if (!GetIPFromTransportAddr(m_gwDestination, addr)||!addr.IsValid())
@@ -808,7 +808,9 @@ bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 				PTRACE(4, "ROUTING\tDNS policy resolves to " << alias.Left(at) << " @ " << AsDotString(dest));
 			}
 
-			if (Toolkit::Instance()->IsGKHome(addr)) {
+			if (Toolkit::Instance()->IsGKHome(addr)
+				&& ( (port == GkConfig()->GetInteger("RoutedMode", "CallSignalPort", GK_DEF_CALL_SIGNAL_PORT))
+					|| (port == GkConfig()->GetInteger("RoutedMode", "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT))) ) {
 				// check if the domain is my IP, if so route to local endpoint if available
 				H225_ArrayOf_AliasAddress find_aliases;
 				find_aliases.SetSize(1);
