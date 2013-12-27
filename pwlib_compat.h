@@ -15,8 +15,12 @@
 #ifndef PWLIB_COMPAT_H
 #define PWLIB_COMPAT_H "@(#) $Id$"
 
-#include "ptbuildopts.h"
 #include "openh323buildopts.h"
+#if PTLIB_MAJOR == 2 && PTLIB_MINOR < 13
+#include <ptbuildopts.h>
+#else
+#include <ptlib_config.h>
+#endif
 #include "gnugkbuildopts.h"
 
 // use at least PWLib Pandora
@@ -49,8 +53,10 @@
 	#endif
 #endif
 
+#if PTLIB_MAJOR == 2 && PTLIB_MINOR < 13
 #if !defined(P_USE_STANDARD_CXX_BOOL) && !defined(P_USE_INTEGER_BOOL)
 	typedef int PBoolean;
+#endif
 #endif
 
 #ifdef P_DNS

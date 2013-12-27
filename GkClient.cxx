@@ -573,39 +573,53 @@ void STUNportRange::LoadConfig(const char *sec, const char *setting, const char 
 
 //////
 
-class STUNClient   :  public  Job,
-	                          public PSTUNClient
+class STUNClient	:  public  Job,
+						public PSTUNClient
 {
  public:
 	STUNClient(GkClient * _client, const H323TransportAddress &);
 	virtual ~STUNClient();
 
+#if PTLIB_VER >= 2130
+	struct PortInfo {
+	PortInfo(WORD port = 0)
+	: basePort(port), maxPort(port), currentPort(port) {}
+		PMutex mutex;
+		WORD	basePort;
+		WORD	maxPort;
+		WORD	currentPort;
+	};
+#endif
+
 	virtual void Stop();
 
 	virtual void Run();
 
-    virtual bool CreateSocketPair(
+	virtual bool CreateSocketPair(
 			const H225_CallIdentifier & id,
 			UDPProxySocket * & rtp,
 			UDPProxySocket * & rtcp,
 			const PIPSocket::Address & binding = PIPSocket::GetDefaultIpAny()
-    );
+	);
 
 protected:
+#if PTLIB_VER >= 2130
+	PortInfo pairedPortInfo;
+#endif
 	bool OpenSocketA(UDPSocket & socket, PortInfo & portInfo, const PIPSocket::Address & binding);
 
 private:
 	// override from class Task
 	virtual void Exec();
 	// Callback
-   void OnDetectedNAT(int m_nattype);
+	void OnDetectedNAT(int m_nattype);
 
-    GkClient *                    m_client;
-	NatTypes                      m_nattype;
-	bool                          m_shutdown;
-	PMutex                        m_portCreateMutex;
-    int                           m_socketsForPairing;
-    int                           m_pollRetries;
+	GkClient *			m_client;
+	NatTypes			m_nattype;
+	bool				m_shutdown;
+	PMutex				m_portCreateMutex;
+	int					m_socketsForPairing;
+	int					m_pollRetries;
 
 };
 
@@ -618,14 +632,14 @@ STUNClient::STUNClient(GkClient * _client, const H323TransportAddress & addr)
 	WORD port;
 	addr.GetIpAndPort(ip, port);
 #ifdef hasNewSTUN
-    m_serverAddress = PIPSocketAddressAndPort(ip, port);
+	m_serverAddress = PIPSocketAddressAndPort(ip, port);
 #else
 	SetServer(ip, port);
 #endif
 
 	STUNportRange ports;
 	ports.LoadConfig("Proxy", "RTPPortRange", "1024-65535");
-    SetPortRanges(ports.minport, ports.maxport, ports.minport, ports.maxport);
+	SetPortRanges(ports.minport, ports.maxport, ports.minport, ports.maxport);
 
 	SetName("STUNClient");
 	Execute();
