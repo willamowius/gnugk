@@ -14,13 +14,13 @@ $ sudo apt-get install flex bison build-essential subversion cvs pkg-config auto
 </verb>
 Also make sure the "...-devel" packages for all databases you want to use are installed.
 <p>
-<bf>NOTE</bf>:  As of 2011-09-28, it's recommended that you do not use PTLib SVN; it is undergoing
+<bf>NOTE</bf>:  As of 2013-12-30, it's recommended that you do not use PTLib SVN; it is undergoing
 many changes that are incompatible with GnuGK.
 
 Get and compile PTLib from SourceForge:
 <verb>
 $ cd ~
-$ svn co http://opalvoip.svn.sourceforge.net/svnroot/opalvoip/ptlib/tags/v2_10_9 ptlib-v2.10.9/
+$ svn co http://svn.code.sf.net/p/opalvoip/code/ptlib/tags/v2_10_9 ptlib-v2.10.9/
 $ cd ptlib-v2.10.9
 $ export PTLIBDIR=~/ptlib-v2.10.9
 $ ./configure
