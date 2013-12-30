@@ -2547,24 +2547,64 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 
 #ifdef HAS_H235_MEDIA
 
-bool SupportsH235Media(const H225_ArrayOf_ClearToken & clearTokens)
+const char * const H235_V3 = "0.0.8.235.0.3.24";
+const char * const H235_DH1024 = "0.0.8.235.0.3.43";
+const char * const H235_DH2048 = "0.0.8.235.0.3.45";
+const char * const H235_DH4096 = "0.0.8.235.0.3.47";
+const char * const H235_DH6144 = "0.0.8.235.0.4.77";
+const char * const H235_DH8192 = "0.0.8.235.0.4.78";
+
+
+bool SupportsH235Media(const H225_ArrayOf_ClearToken & clearTokens, PBoolean & highEncryption)
 {
 	bool h235v3compatible = false;
 	bool supportedDHkey = false;
 
 	for (PINDEX i = 0; i < clearTokens.GetSize(); ++i) {
-		if (clearTokens[i].m_tokenOID == "0.0.8.235.0.3.24")
+		if (clearTokens[i].m_tokenOID == H235_V3)
 			h235v3compatible = true;
-		if (clearTokens[i].m_tokenOID == "0.0.8.235.0.3.43")
+		if (clearTokens[i].m_tokenOID == H235_DH1024)
 			supportedDHkey = true;
-#ifdef H323_H235_AES256
-		if (clearTokens[i].m_tokenOID == "0.0.8.235.0.3.45")
-			supportedDHkey = true;
-		if (clearTokens[i].m_tokenOID == "0.0.8.235.0.3.47")
-			supportedDHkey = true;
-#endif
+		if (clearTokens[i].m_tokenOID == H235_DH2048)
+			highEncryption = true;
+		if (clearTokens[i].m_tokenOID == H235_DH4096)
+			highEncryption = true;
+		if (clearTokens[i].m_tokenOID == H235_DH6144)
+			highEncryption = true;
+		if (clearTokens[i].m_tokenOID == H235_DH8192)
+			highEncryption = true;
 	}
-	return (h235v3compatible && supportedDHkey);
+	return (h235v3compatible && (supportedDHkey || highEncryption));
+}
+
+bool SupportsH235Media(const H225_ArrayOf_ClearToken & clearTokens)
+{
+	PBoolean highEncryption = false;
+	return SupportsH235Media(clearTokens, highEncryption);
+}
+
+void RemoveH235HighEncryption(H225_ArrayOf_ClearToken & clearTokens)
+{
+	H225_ArrayOf_ClearToken replaceTokens;
+	replaceTokens.SetSize(0);
+	PBoolean removeToken = false;
+	for (PINDEX i = 0; i < clearTokens.GetSize(); ++i) {
+		if (clearTokens[i].m_tokenOID != H235_DH2048 &&
+			clearTokens[i].m_tokenOID != H235_DH4096 &&
+			clearTokens[i].m_tokenOID != H235_DH6144 &&
+			clearTokens[i].m_tokenOID != H235_DH8192) {
+				int sz = replaceTokens.GetSize();
+				replaceTokens.SetSize(sz+1);
+				replaceTokens[sz] = clearTokens[i];
+		} else
+			removeToken = true;
+	}
+	if (removeToken) {
+		clearTokens.SetSize(replaceTokens.GetSize());
+		for (PINDEX j = 0; j < replaceTokens.GetSize(); ++j)
+			clearTokens[j] = replaceTokens[j];
+	}
+	replaceTokens.SetSize(0);
 }
 
 // convert key bit count to bytes
@@ -4047,11 +4087,20 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	}
 
 #ifdef HAS_H235_MEDIA
+
+	PBoolean highEncryption = false;
+	PBoolean supportsH235Media = SupportsH235Media(setupBody.m_tokens,highEncryption);
+#ifdef HAS_TLS
+	if (highEncryption && Toolkit::Instance()->IsTLSEnabled() && !m_call->ConnectWithTLS() && 
+		Toolkit::AsBool(toolkit->Config()->GetString(TLSSec, "RequireTLSHighEncryption", "0"))) {
+			RemoveH235HighEncryption(setupBody.m_tokens);
+	}
+#endif
 	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
 		H235Authenticators & auth = m_call->GetAuthenticators();
 		auth.SetEncryptionPolicy(1);	// request encryption
 		auth.SetMaxCipherLength(128);
-		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens) && SupportsH235Media(setupBody.m_tokens)) {
+		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens) && supportsH235Media) {
 			// make sure clear and crypto token fields are pesent, at least with 0 size
 			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
 				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);

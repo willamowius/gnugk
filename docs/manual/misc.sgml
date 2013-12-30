@@ -1082,6 +1082,14 @@ to ensure all endpoints MUST support H.460.18.
 <p>
 This switch is only available if GnuGk is compiled with --eanble-weaktls and might be removed from future versions.
 
+<item><tt/RequireTLSHighEncryption=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+This switch when enabled and in routed mode, remove high encryption (AES192 and AES268) tokens from of the Setup message if the forwarding side is not TLS secured.
+If configured correctly in the network this will ensure that high encryption is ONLY negotiated over an end to end secure signalling channel by 
+verifying each hop as secure. If the forwarding side is unsecure then only default H.235.6 (1024 bit AES128) is offered and negotiated. 
+<p>
+This switch may also be used for interoperability in mixed environments where some endpoint may not accept the higher encryption tokens.
 </itemize>
 
 <sect2>Generating keys and certificates with OpenSSL
