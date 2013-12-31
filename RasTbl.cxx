@@ -2581,13 +2581,13 @@ CallRec::CallRec(
 
 CallRec::CallRec(
 	/// Q.931 Setup pdu with call information
-	const Q931& q931pdu,
+	const Q931 & q931pdu,
 	/// H.225.0 Setup-UUIE pdu with call information
-	const H225_Setup_UUIE& setup,
+	const H225_Setup_UUIE & setup,
 	/// force H.245 routed mode
 	bool routeH245,
 	/// called party's aliases in a string form
-	const PString& destInfo,
+	const PString & destInfo,
 	/// override proxy mode global setting from the config
 	int proxyMode
 	) : m_CallNumber(0), m_callIdentifier(setup.m_callIdentifier), 
