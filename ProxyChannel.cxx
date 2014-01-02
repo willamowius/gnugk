@@ -4535,6 +4535,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		gd.SetSize(1);
 		gd[0] = feat;
 
+#if defined(HAS_TLS) && defined(HAS_H460)
 		// Although not covered in H.460.22 for H.460.18. The SCI needs to include H.460.22 
 		// to notify the endpoint to establish the TCP connection to the TLS port. - SH
 		if (Toolkit::Instance()->IsTLSEnabled() && m_call->GetCalledParty()->UseTLS()) {
@@ -4550,6 +4551,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			gd.SetSize(2);
 			gd[1] = h46022;
 		}
+#endif
 
 		RasSrv->SendRas(sci_ras, m_call->GetCalledParty()->GetRasAddress());
 
