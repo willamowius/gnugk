@@ -96,10 +96,12 @@ class H235AuthDesECB : public H235Authenticator
 };
 
 #if PTLIB_VER >= 2110
-// TODO: crashes on startup on Solaris 11 with PTLib 2.11.0, disabled for now
-//typedef H235AuthDesECB H235_AuthenticatorDesECB;
-//PPLUGIN_STATIC_LOAD(DesECB,H235Authenticator);
-//H235SECURITY(DesECB);
+// disabled on PTLib 2.11.x, crashes on startup
+#if PTLIB_VER >= 2120
+typedef H235AuthDesECB H235AuthenticatorDesECB;
+PPLUGIN_STATIC_LOAD(DesECB,H235Authenticator);
+H235SECURITY(DesECB);
+#endif
 #else
 static PFactory<H235Authenticator>::Worker<H235AuthDesECB> factoryH235AuthDesECB("desECB");
 #endif
