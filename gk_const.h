@@ -22,7 +22,7 @@
  */
 
 #define GK_DEF_UNICAST_RAS_PORT		1719
-#define GK_DEF_MULTICAST_PORT			1718
+#define GK_DEF_MULTICAST_PORT		1718
 #define GK_DEF_MULTICAST_GROUP		"224.0.1.41"
 
 /* port used by gatekeeper for routed signaling */
@@ -34,10 +34,12 @@
 
 #define GK_DEF_STATUS_PORT			7000
 
-#define GK_DEF_MULTIPLEX_RTP_PORT		3000
+#define GK_DEF_MULTIPLEX_RTP_PORT	3000
 #define GK_DEF_MULTIPLEX_RTCP_PORT	3001
 
 #define GK_DEF_LISTEN_QUEUE_LENGTH	1024
+
+#define GK_DEF_BANDWIDTH			1280
 
 extern const char *H225_ProtocolID;
 extern const char *H245_ProtocolID;

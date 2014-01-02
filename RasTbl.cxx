@@ -2594,7 +2594,7 @@ CallRec::CallRec(
 	m_conferenceIdentifier(setup.m_conferenceID), 
 	m_crv(q931pdu.GetCallReference() & 0x7fffU),
 	m_destInfo(destInfo),
-	m_bandwidth(1280), m_setupTime(0), m_alertingTime(0), m_connectTime(0),
+	m_bandwidth(GK_DEF_BANDWIDTH), m_setupTime(0), m_alertingTime(0), m_connectTime(0),
 	m_disconnectTime(0), m_disconnectCause(0), m_disconnectCauseTranslated(0), m_releaseSource(-1),
 	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
 	m_callingSocket(NULL), m_calledSocket(NULL),
@@ -2644,7 +2644,7 @@ CallRec::CallRec(
 CallRec::CallRec(const H225_CallIdentifier & callID, H225_TransportAddress sigAdr)
   : m_CallNumber(0), m_callIdentifier(callID),
 	m_crv(0),
-	m_bandwidth(1280), m_setupTime(0), m_alertingTime(0), m_connectTime(0), 
+	m_bandwidth(GK_DEF_BANDWIDTH), m_setupTime(0), m_alertingTime(0), m_connectTime(0), 
 	m_disconnectTime(0), m_disconnectCause(0), m_disconnectCauseTranslated(0), m_releaseSource(-1),
 	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
 	m_callingSocket(NULL), m_calledSocket(NULL), m_usedCount(0), m_nattype(none),

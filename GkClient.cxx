@@ -2148,7 +2148,11 @@ bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer)
 	}
 	arq.m_answerCall = answer;
 	// workaround for bandwidth
-	arq.m_bandWidth = 1280;
+	if (CallTable::Instance()->GetMinimumBandwidthPerCall() > 0) {
+		arq.m_bandWidth = (unsigned)CallTable::Instance()->GetMinimumBandwidthPerCall();
+	} else {
+		arq.m_bandWidth = GK_DEF_BANDWIDTH;
+	}
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
@@ -2220,7 +2224,11 @@ bool GkClient::SendARQ(Routing::FacilityRequest & facility_obj)
 	}
 	arq.m_answerCall = false;
 	// workaround for bandwidth
-	arq.m_bandWidth = 1280;
+	if (CallTable::Instance()->GetMinimumBandwidthPerCall() > 0) {
+		arq.m_bandWidth = (unsigned)CallTable::Instance()->GetMinimumBandwidthPerCall();
+	} else {
+		arq.m_bandWidth = GK_DEF_BANDWIDTH;
+	}
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
