@@ -4934,6 +4934,7 @@ $as_echo_n "checking for LUA library... " >&6; }
 		for try in /usr/lib /usr/local/lib $lua_lib_dir; do
 			if test -d $try; then
 				LIBS="$old_LIBS -llua -lm"
+				LDFLAGS="$old_LDFLAGS -L$try"
 				cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 extern luaL_newstate();
