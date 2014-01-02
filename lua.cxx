@@ -22,8 +22,11 @@
 #include "gk_const.h"
 #include "snmp.h"
 
-#include <lua.hpp>
-
+extern "C" {
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+}
 
 namespace Routing {
 

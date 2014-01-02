@@ -4894,7 +4894,7 @@ $as_echo_n "checking for lua.h... " >&6; }
 			LDFLAGS="$old_LDFLAGS -L$try/../lib"
 			cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
-#include <lua.h>
+#include "lua.h" #include "lualib.h" #include "lauxlib.h"
 int
 main ()
 {

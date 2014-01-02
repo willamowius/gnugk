@@ -1079,7 +1079,7 @@ dnl Check for LUA
 dnl ########################################################################
 
 dnl MSWIN_DISPLAY    lua,LUA
-dnl MSWIN_CHECK_FILE lua,include\lua.hpp,HAS_LUA=1
+dnl MSWIN_CHECK_FILE lua,include\lua.h,HAS_LUA=1
 dnl MSWIN_DIR_SYMBOL lua,LUA_DIR
 dnl MSWIN_CHECK_DIR  lua,\Program Files\Lua\5.1
 dnl MSWIN_CHECK_DIR  lua,\Program Files (x86)\Lua\5.1
@@ -1117,7 +1117,7 @@ if test "x${lua}" != "xno"; then
 		if test -d $try; then
 			CFLAGS="$old_CFLAGS -I$try"
 			LDFLAGS="$old_LDFLAGS -L$try/../lib"
-			AC_TRY_COMPILE([#include <lua.h>], [int a = 1;],
+			AC_TRY_COMPILE([#include "lua.h" #include "lualib.h" #include "lauxlib.h"], [int a = 1;],
 				LUA_INCLUDE="-I$try",
 				LUA_INCLUDE=
 			)
