@@ -97,7 +97,7 @@ class H235AuthDesECB : public H235Authenticator
 
 #if PTLIB_VER >= 2110
 #ifdef P_SSL
-typedef H235AuthDesECB H235AuthenticatorDesECB;
+typedef H235AuthDesECB H235_AuthenticatorDesECB;
 PPLUGIN_STATIC_LOAD(DesECB,H235Authenticator);
 H235SECURITY(DesECB);
 #endif
