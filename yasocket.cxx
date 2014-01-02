@@ -1137,12 +1137,14 @@ void TCPServer::ReadSocket(IPSocket * socket)
 	if (shutdown) {
 		PTRACE(4, GetName() << "\tShutdown: Rejecting call on " << socket->GetName());
 		int rej = ::accept(socket->GetHandle(), NULL, NULL);
-		::shutdown(rej, SHUT_RDWR);
+		if (rej >= 0) {
+			::shutdown(rej, SHUT_RDWR);
 #if defined(_WIN32)
-		::closesocket(rej);
+			::closesocket(rej);
 #else
-		::close(rej);
+			::close(rej);
 #endif
+		}
 		return;
 	}
 
