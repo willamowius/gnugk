@@ -191,11 +191,7 @@ H235Authenticator::ValidationResult H235AuthDesECB::ValidateCryptoToken(
         PTRACE(1, "H235RAS\tEVP_DecryptUpdate_cts failed");
   }
   int f_len = -1;
-#if PTLIB_VER >= 2130
-  if(!EVP_DecryptFinal_ctsA(&cipher, decryptedToken.GetPointer() + len, &f_len)) {
-#else
   if(!EVP_DecryptFinal_cts(&cipher, decryptedToken.GetPointer() + len, &f_len)) {
-#endif
     char buf[256];
     ERR_error_string(ERR_get_error(), buf);
     PTRACE(1, "H235RAS\tEVP_DecryptFinal_cts failed: " << buf);
