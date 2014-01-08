@@ -2,7 +2,7 @@
 //
 // snmp.cxx for GNU Gatekeeper
 //
-// Copyright (c) 2012, Jan Willamowius
+// Copyright (c) 2012-2014, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -221,7 +221,7 @@ int catchall_handler(netsnmp_mib_handler * /* handler */,
 	return SNMPERR_SUCCESS;
 }
 
-}
+} // extern "C"
 
 
 class NetSNMPAgent : public Singleton<NetSNMPAgent>
@@ -465,7 +465,7 @@ PBoolean PTLibSNMPAgent::MIB_LocalMatch(PSNMP_PDU & answerPDU)
 	PSNMP_VarBindList & vars = answerPDU.m_variable_bindings;
 	bool found = false;
 
-	for(PINDEX i = 0; i < vars.GetSize(); i++){
+	for (PINDEX i = 0; i < vars.GetSize(); i++){
 		if (vars[i].m_name == ShortVersionOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, PProcess::Current().GetVersion(true));
 			found = true;
