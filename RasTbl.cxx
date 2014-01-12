@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2013, Jan Willamowius
+// Copyright (c) 2000-2014, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -67,6 +67,7 @@ const int DEFAULT_IRQ_POLL_COUNT = 1;
 }
 
 /////////////////////////////////////////////////////////////////////////////////
+
 void EPQoS::Init()
 {
 	m_lastMsg = 0;
@@ -5285,7 +5286,7 @@ PString CallTable::PrintStatistics() const
 
 	return PString(PString::Printf, "-- Call Statistics --\r\n"
 		"Current Calls: %u Active: %u From Neighbor: %u From Parent: %u Proxied: %u\r\n"
-		"Total Calls: %u  Successful: %u  From Neighbor: %u  From Parent: %u  Proxied: %u  Peak:  %u at %s\r\n",
+		"Total Calls: %u  Successful: %u  From Neighbor: %u  From Parent: %u  Proxied: %u  Peak: %u at %s\r\n",
 		n, act, nb, np, npr,
 		m_CallCount, m_successCall, m_neighborCall, m_parentCall, m_proxiedCall, m_peakCall, (const char *)m_peakTime.AsString());
 }
