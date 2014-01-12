@@ -144,6 +144,10 @@ endif # linux
 #STDCCFLAGS += -fPIE -pie
 #LDFLAGS    += -fPIE -pie
 
+# for debugging with GCC >= 4.8.x, using AddressSanitizer
+#STDCCFLAGS += -fsanitize=address -fno-omit-frame-pointer
+#LDFLAGS += -fsanitize=address
+
 # enable more warnings when using gcc >= 4.4
 ifeq "$(GCCMAJOREQ4)" "1"
 ifeq "$(GCCMINORGTEQ4)" "1"
