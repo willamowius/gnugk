@@ -251,9 +251,9 @@ template<> const H225_TransportAddress *FacilityRequest::GetDestIP() const
 		? &m_request.m_alternativeAddress : NULL;
 }
 
-bool Policy::Handle(SetupRequest& request)
+bool Policy::Handle(SetupRequest & request)
 {
-	if( IsActive() ) {
+	if (IsActive()) {
 		const PString tagname = request.GetWrapper()->GetTagName();
 		const unsigned crv = request.GetWrapper()->GetCallReference();
 		PTRACE(5, "ROUTING\tChecking policy " << m_name
@@ -269,7 +269,7 @@ bool Policy::Handle(SetupRequest& request)
 
 bool Policy::Handle(FacilityRequest& request)
 {
-	if( IsActive() ) {
+	if (IsActive()) {
 		const PString tagname = request.GetWrapper()->GetTagName();
 		const unsigned crv = request.GetWrapper()->GetCallReference();
 		PTRACE(5, "ROUTING\tChecking policy " << m_name
@@ -379,7 +379,7 @@ bool Analyzer::Parse(SetupRequest & request)
 {
 	ReadLock lock(m_reloadMutex);
 	request.SetRejectReason(H225_ReleaseCompleteReason::e_calledPartyNotRegistered);
-	Policy *policy = ChoosePolicy(request.GetAliases(), m_rules[2]);
+	Policy * policy = ChoosePolicy(request.GetAliases(), m_rules[2]);
 	bool policyApplied = policy ? policy->Handle(request) : false;
 	if (!policyApplied && request.HasRoutes()) {
 		Route fallback;
@@ -607,7 +607,7 @@ bool ExplicitPolicy::OnRequest(AdmissionRequest & request)
 
 bool ExplicitPolicy::OnRequest(SetupRequest & request)
 {
-	H225_Setup_UUIE &setup = request.GetRequest();
+	H225_Setup_UUIE & setup = request.GetRequest();
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
 		// don't map IP here, for Setup already done in OnSetup()
 		Route route(m_name, setup.m_destCallSignalAddress);
@@ -886,9 +886,7 @@ bool DNSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 
 
 VirtualQueue::VirtualQueue()
-	:
-	m_active(false),
-	m_requestTimeout(DEFAULT_ROUTE_REQUEST_TIMEOUT*1000)
+	: m_active(false), m_requestTimeout(DEFAULT_ROUTE_REQUEST_TIMEOUT*1000)
 {
 }
 
@@ -906,11 +904,11 @@ VirtualQueue::~VirtualQueue()
 		RouteRequest *r = *i++;
 		r->m_sync.Signal();
 	}
-	
+
 	m_listMutex.Signal();
 
 	// wait a moment to give a chance to pending requests to cleanup
-	if( numrequests ) {
+	if (numrequests) {
 		PThread::Sleep(500);
 	}
 }
@@ -920,9 +918,8 @@ void VirtualQueue::OnReload()
 	PWaitAndSignal lock(m_listMutex);
 	
 	m_requestTimeout = GkConfig()->GetInteger(
-		CTIsection, 
-		GkConfig()->HasKey(CTIsection, "RequestTimeout")
-			? "RequestTimeout" : "CTI_Timeout", 
+		CTIsection,
+		GkConfig()->HasKey(CTIsection, "RequestTimeout") ? "RequestTimeout" : "CTI_Timeout", 
 		DEFAULT_ROUTE_REQUEST_TIMEOUT
 		) * 1000;
 	m_requestTimeout = PMAX((long)100,m_requestTimeout);	// min wait: 100 msec
@@ -1006,7 +1003,7 @@ bool VirtualQueue::SendRouteRequest(
 {
 	bool result = false;
 	bool duprequest = false;
-	if (RouteRequest *r = InsertRequest(epid, crv, callID, destinationInfo, callSigAdr, bindIP, callerID, duprequest)) {
+	if (RouteRequest * r = InsertRequest(epid, crv, callID, destinationInfo, callSigAdr, bindIP, callerID, duprequest)) {
 		PString cid = callID;
 		cid.Replace(" ", "-", true);
 		PString msg = "RouteRequest|" + source
@@ -1046,16 +1043,15 @@ bool VirtualQueue::IsDestinationVirtualQueue(
 	) const
 {
 	PWaitAndSignal lock(m_listMutex);
-	PINDEX i;
-	for (i = 0; i < m_virtualQueueAliases.GetSize(); ++i)
+	for (PINDEX i = 0; i < m_virtualQueueAliases.GetSize(); ++i)
 		if (m_virtualQueueAliases[i] == destinationAlias)
 			return true;
-	for (i = 0; i < m_virtualQueuePrefixes.GetSize(); ++i)
+	for (PINDEX i = 0; i < m_virtualQueuePrefixes.GetSize(); ++i)
 		if (destinationAlias.Find(m_virtualQueuePrefixes[i]) == 0)
 			return true;
 	
 	return (!m_virtualQueueRegex.IsEmpty())
-		&& Toolkit::MatchRegex(destinationAlias,m_virtualQueueRegex);
+		&& Toolkit::MatchRegex(destinationAlias, m_virtualQueueRegex);
 }
 
 bool VirtualQueue::RouteToAlias(

@@ -159,12 +159,12 @@ public:
 	bool Process();
 
 	ReqObj & GetRequest() { return m_request; }
-	Wrapper *GetWrapper() { return m_wrapper; }
+	Wrapper * GetWrapper() { return m_wrapper; }
 	H225_ArrayOf_AliasAddress *GetAliases();
 	void SetAliases(H225_ArrayOf_AliasAddress & aliases);
 	const H225_TransportAddress * GetDestIP() const;
 	const ReqObj & GetRequest() const { return m_request; }
-	const Wrapper *GetWrapper() const { return m_wrapper; }
+	const Wrapper * GetWrapper() const { return m_wrapper; }
 	PString GetCallingStationId() const { return m_callingStationId; }
 	PUInt64 GetClientAuthId() const { return m_clientAuthId; }
 	const H225_ArrayOf_AliasAddress * GetAliases() const
