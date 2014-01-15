@@ -180,7 +180,7 @@ H235Authenticator::ValidationResult H235AuthDesECB::ValidateCryptoToken(
 
   PBYTEArray key(8);
   // Build key from password according to H.235.0/8.2.1
-  memcpy(key.GetPointer(), password.GetPointer(), std::min(key.GetSize(), password.GetLength()));
+  memcpy(key.GetPointer(), (const char *)password, std::min(key.GetSize(), password.GetLength()));
   for (PINDEX i = key.GetSize(); i < password.GetLength(); ++i)
 	key[i%key.GetSize()] ^= password[i];
 
