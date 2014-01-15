@@ -1535,8 +1535,8 @@ void Gatekeeper::Main()
 	FreeConsole();
 #endif // _WIN32
 
-#ifdef P_OPENBSD
-	_exit(0);	// skip exit handlers, will hang on OpenBSD 5.3
+#if defined(P_OPENBSD) || defined(P_MACOSX)
+	_exit(0);	// skip exit handlers, will hang on OpenBSD 5.3 and crash on MacOSX
 #endif
 }
 

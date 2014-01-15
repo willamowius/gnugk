@@ -1,5 +1,6 @@
 Changes from 3.5 to 3.6
 =======================
+- BUGFIX(gk.cxx) small fixes for MacOSX
 
 
 Changes from 3.4 to 3.5
