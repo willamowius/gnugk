@@ -784,6 +784,11 @@ Up to version 2.3.0 GnuGk did this automatically, but it can break
 channel establishment in some cases, so you must enable this
 switch if you have these broken endpoints.
 
+<item><tt/CheckH46019KeepAlivePT=0/<newline>
+Default: <tt/1/<newline>
+<p>
+Verify the correct payload type on H.460.19 keep alive packets.
+Disable for endpoints advertising an incorrect payload type.
 
 <item><tt/RTPMultiplexing=1/<newline>
 Default: <tt/0/<newline>

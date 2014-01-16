@@ -213,6 +213,7 @@ public:
 	void SetUsesH46019() { m_useH46019 = true; }
 	bool UsesH46019() const { return m_useH46019; }
 	void SetH46019UniDirectional(bool val) { m_h46019uni = val; }
+	void AddKeepAlivePT(BYTE pt);
 	void SetMultiplexDestination(const H323TransportAddress & toAddress, H46019Side side);
 	void SetMultiplexID(PUInt32b multiplexID, H46019Side side);
 	void SetMultiplexSocket(int multiplexSocket, H46019Side side);
@@ -258,6 +259,9 @@ protected:
 	bool m_h46019uni;
 	bool m_h46019DetectionDone;
 	PMutex m_h46019DetectionLock;
+	bool m_checkH46019KeepAlivePT;
+	WORD m_keepAlivePT_1;
+	WORD m_keepAlivePT_2;
 	PTime m_channelStartTime;
 	// two (!), one or zero parties in a call through a UDPProxySocket may by multiplexed
 	// UDPProxySocket always receives regular RTP, but may send out multiplexed

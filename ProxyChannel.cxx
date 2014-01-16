@@ -903,6 +903,7 @@ public:
 	int GetRTPOSSocket() const { return rtp ? rtp->GetOSSocket() : INVALID_OSSOCKET; }
 	int GetRTCPOSSocket() const { return rtcp ? rtcp->GetOSSocket() : INVALID_OSSOCKET; }
 
+	void AddLCKeepAlivePT(unsigned pt);
 	void SetLCMultiplexDestination(bool isRTCP, const H323TransportAddress & toAddress, H46019Side side);
 	void SetLCMultiplexID(bool isRTCP, PUInt32b multiplexID, H46019Side side);
 	void SetLCMultiplexSocket(bool isRTCP, int multiplexSocket, H46019Side side);
@@ -9155,6 +9156,7 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
 		m_encryptingLC(NULL), m_decryptingLC(NULL)
 #ifdef HAS_H46018
 	, m_h46019fc(false), m_useH46019(false), m_h46019uni(false), m_h46019DetectionDone(false),
+	m_keepAlivePT_1(UNDEFINED_PAYLOAD_TYPE), m_keepAlivePT_2(UNDEFINED_PAYLOAD_TYPE),
 	m_multiplexID_A(INVALID_MULTIPLEX_ID), m_multiplexSocket_A(INVALID_OSSOCKET),
 	m_multiplexID_B(INVALID_MULTIPLEX_ID), m_multiplexSocket_B(INVALID_OSSOCKET)
 #endif
@@ -9167,6 +9169,9 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
 	fnat = rnat = mute = false;
 	m_dontQueueRTP = Toolkit::AsBool(GkConfig()->GetString(ProxySection, "DisableRTPQueueing", "1"));
 	m_EnableRTCPStats = Toolkit::AsBool(GkConfig()->GetString(ProxySection, "EnableRTCPStats", "0"));
+#ifdef HAS_H46018
+	m_checkH46019KeepAlivePT = GkConfig()->GetBoolean(ProxySection, "CheckH46019KeepAlivePT", true);
+#endif
 }
 
 UDPProxySocket::~UDPProxySocket()
@@ -9325,6 +9330,15 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 }
 
 #ifdef HAS_H46018
+void UDPProxySocket::AddKeepAlivePT(BYTE pt)
+{
+	PWaitAndSignal lock(m_multiplexMutex);
+	if ((m_keepAlivePT_1 == UNDEFINED_PAYLOAD_TYPE) || (m_keepAlivePT_1 == pt))
+		m_keepAlivePT_1 = pt;
+	else
+		m_keepAlivePT_2 = pt;
+}
+
 void UDPProxySocket::SetMultiplexDestination(const H323TransportAddress & toAddress, H46019Side side)
 {
 	PWaitAndSignal lock(m_multiplexMutex);
@@ -9432,6 +9446,27 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		<< " fc=" << m_h46019fc << " m_h46019uni=" << m_h46019uni
 		<< " multiplexDest A=" << AsString(m_multiplexDestination_A) << " multiplexID A=" << m_multiplexID_A << " multiplexSocket A=" << m_multiplexSocket_A
 		<< " multiplexDest B=" << AsString(m_multiplexDestination_B) << " multiplexID B=" << m_multiplexID_B << " multiplexSocket B=" << m_multiplexSocket_B);
+
+	// check payloadType in keepAlive
+	if (isRTPKeepAlive && !m_h46019DetectionDone && m_checkH46019KeepAlivePT) {
+		if (m_keepAlivePT_1 != UNDEFINED_PAYLOAD_TYPE && m_keepAlivePT_2 != UNDEFINED_PAYLOAD_TYPE) {
+			// we get keep-alives from 2 sides, this keepAlive must match at least one
+			if (payloadType != m_keepAlivePT_1 && payloadType != m_keepAlivePT_2) {
+				PTRACE(1, "H46019\tError: Invalid keepAlive with PT=" << (int)payloadType);
+				isRTPKeepAlive = false;
+			}
+		} else if (m_keepAlivePT_1 != UNDEFINED_PAYLOAD_TYPE) {
+			if (payloadType != m_keepAlivePT_1) {
+				PTRACE(1, "H46019\tError: Invalid keepAlive with PT=" << (int)payloadType);
+				isRTPKeepAlive = false;
+			}
+		} else if (m_keepAlivePT_2 != UNDEFINED_PAYLOAD_TYPE) {
+			if (payloadType != m_keepAlivePT_2) {
+				PTRACE(1, "H46019\tError: Invalid keepAlive with PT=" << (int)payloadType);
+				isRTPKeepAlive = false;
+			}
+		}
+	}
 
 	// detecting ports for H.460.19
 	if (!m_h46019DetectionDone) {
@@ -10181,6 +10216,13 @@ void RTPLogicalChannel::SetLCMultiplexDestination(bool isRTCP, const H323Transpo
 	}
 	if (!isRTCP && rtp) {
 		rtp->SetMultiplexDestination(toAddress, side);
+	}
+}
+
+void RTPLogicalChannel::AddLCKeepAlivePT(unsigned pt)
+{
+	if (rtp) {
+		rtp->AddKeepAlivePT((BYTE)pt);
 	}
 }
 
@@ -11018,7 +11060,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 					H245_ParameterIdentifier & ident = olc.m_genericInformation[i].m_messageContent[0].m_parameterIdentifier;
 					PASN_Integer & n = ident;
 					if (gid == H46019_OID && n == 1) {
-						unsigned payloadtype = 0;
+						unsigned payloadtype = UNDEFINED_PAYLOAD_TYPE;
 						H323TransportAddress keepAliveRTPAddr;
 						H245_UnicastAddress keepAliveRTCPAddr;
 						unsigned keepAliveInterval = 0;
@@ -11052,6 +11094,14 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 									else
 										h46019chan.m_addrA = keepAliveRTPAddr;
 									h46019chan.m_addrA_RTCP = multiplexedRTCPAddr;
+								}
+							}
+							if (payloadtype != UNDEFINED_PAYLOAD_TYPE) {
+								LogicalChannel * lc = FindLogicalChannel(flcn);
+								if (lc) {
+									((RTPLogicalChannel*)lc)->AddLCKeepAlivePT(payloadtype);
+								} else {
+									PTRACE(0, "JW no lc sto set pt=" << payloadtype);
 								}
 							}
 						}
@@ -11440,9 +11490,11 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		&& olca.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters)
 		sessionID = ((H245_H2250LogicalChannelAckParameters&)olca.m_forwardMultiplexAckParameters).m_sessionID;
 #endif
+#if defined(HAS_H46018) || defined(HAS_H235_MEDIA)
+	RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(lc);
+#endif
 #ifdef HAS_H46018
 	if (IsTraversalServer() || IsTraversalClient()) {
-		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(lc);
 		if (rtplc)
 			rtplc->SetUsesH46019();
 	}
@@ -11471,7 +11523,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 					H245_ParameterIdentifier & ident = olca.m_genericInformation[i].m_messageContent[0].m_parameterIdentifier;
 					PASN_Integer & n = ident;
 					if (gid == H46019_OID && n == 1) {
-						unsigned payloadtype = 0;
+						unsigned payloadtype = UNDEFINED_PAYLOAD_TYPE;
 						H323TransportAddress keepAliveRTPAddr;
 						H245_UnicastAddress keepAliveRTCPAddr;
 						unsigned keepAliveInterval = 0;
@@ -11497,6 +11549,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 									h46019chan.m_addrB_RTCP = multiplexedRTCPAddr;
 								}
 							}
+							if (payloadtype != UNDEFINED_PAYLOAD_TYPE)
+								rtplc->AddLCKeepAlivePT(payloadtype);
 						}
 					}
 				}
@@ -11623,7 +11677,6 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 #endif
 
 #ifdef HAS_H235_MEDIA
-	RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(lc);
 	if (call->IsMediaEncryption() && rtplc) {
 		// is this the encryption or decryption direction ?
 		bool encrypting = (m_isCaller && call->GetEncryptDirection() == CallRec::calledParty)
