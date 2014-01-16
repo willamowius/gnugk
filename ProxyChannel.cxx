@@ -10946,7 +10946,7 @@ bool H245ProxyHandler::ParseTraversalParameters(
 	PASN_OctetString & raw = genericInfo.m_messageContent[0].m_parameterValue;
 	if (raw.DecodeSubType(params)) {
 		PTRACE(5, "H46018\tReceived TraversalParameters = " << params);
-		payloadtype = 0;
+		payloadtype = UNDEFINED_PAYLOAD_TYPE;
 		multiplexID = INVALID_MULTIPLEX_ID;
 		keepAliveInterval = 0;
 		if (params.HasOptionalField(H46019_TraversalParameters::e_keepAlivePayloadType)) {
@@ -11101,7 +11101,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 								if (lc) {
 									((RTPLogicalChannel*)lc)->AddLCKeepAlivePT(payloadtype);
 								} else {
-									PTRACE(0, "JW no lc sto set pt=" << payloadtype);
+									PTRACE(1, "H46019\tError: No logical channel to set keepAlive PT=" << payloadtype);
 								}
 							}
 						}
