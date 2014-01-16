@@ -75,7 +75,8 @@ const char* TLSSec = "TLS";
 const char* ProxySection = "Proxy";
 const char* H225_ProtocolID = "0.0.8.2250.0.2";
 const char* H245_ProtocolID = "0.0.8.245.0.3";
-#define UNDEFINED_PAYLOAD_TYPE	255
+#define UNDEFINED_PAYLOAD_TYPE		255
+#define H46019_AUTO_DETECTION_WAIT	4000 // wait n millisec before doing H.460.19 port auto-detection
 
 namespace {
 // default timeout (ms) for initial Setup message,
@@ -9548,8 +9549,9 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			fSrcIP = fromIP, fSrcPort = fromPort;
 			m_h46019DetectionDone = true;
 		}
-		// fix for H.224 connection: m100 doesn't send keepAlive, but we can see where it apparently comes from
-		if (!m_h46019uni) {
+		// fix for H.224 connection: m100 1.0.6 doesn't send keepAlive, but we can see where it apparently comes from
+		PTimeInterval channelUpTime = PTime() - m_channelStartTime;
+		if (!m_h46019uni && (channelUpTime.GetMilliSeconds() > H46019_AUTO_DETECTION_WAIT)) {
 			H323TransportAddress rSrcAddr(rSrcIP, rSrcPort);
 			if (fSrcIP == 0 && rDestIP == 0 && fDestIP != 0
 				&& rSrcIP != 0 && fromAddr != rSrcAddr

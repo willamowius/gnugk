@@ -258,6 +258,7 @@ protected:
 	bool m_h46019uni;
 	bool m_h46019DetectionDone;
 	PMutex m_h46019DetectionLock;
+	PTime m_channelStartTime;
 	// two (!), one or zero parties in a call through a UDPProxySocket may by multiplexed
 	// UDPProxySocket always receives regular RTP, but may send out multiplexed
 	H323TransportAddress m_multiplexDestination_A;	// OLC side of first logical channel in this session
