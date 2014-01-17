@@ -11549,7 +11549,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 									h46019chan.m_addrB_RTCP = multiplexedRTCPAddr;
 								}
 							}
-							if (payloadtype != UNDEFINED_PAYLOAD_TYPE)
+							if ((payloadtype != UNDEFINED_PAYLOAD_TYPE) && rtplc)
 								rtplc->AddLCKeepAlivePT(payloadtype);
 						}
 					}
