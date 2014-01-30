@@ -41,6 +41,7 @@ Default: <tt>N/A</tt><newline>
 <p>
 Database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/, <tt/Firebird/,
 <tt/ODBC/ and <tt/SQLite/ drivers are implemented.
+The MySQL driver can also be used for MariaDB and other MySQL forks.
 Not all of these driver are always available. When GnuGk is compiled, only those
 drivers are included where the necessary database libraries and header files are
 available. When you start GnuGk, you can see in the version string which drivers

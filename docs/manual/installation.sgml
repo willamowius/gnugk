@@ -137,7 +137,7 @@ Remember to add GnuGk as an exception for the Windows Firewall so it can communi
 Once you have compiled the pre-requisites as specified at the beginning of
 this section and have the appropriate include/library paths configured, open and
 compile one of the provided solution files (<tt/.sln/) for your version of
-Microsoft Visual Studio.  If you need MySQL or PostgreSQL support,
+Microsoft Visual Studio.  If you need database support (MySQL, PostgreSQL, ODBC etc.),
 install/compile appropriate client libraries before you compile GnuGk.
 
 <sect1>The addpasswd utility
