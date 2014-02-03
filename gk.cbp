@@ -6,6 +6,14 @@
 		<Option makefile_is_custom="1" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
+		<MakeCommands>
+			<Build command="$make -f $makefile $target" />
+			<CompileFile command="$make -f $makefile $file" />
+			<Clean command="$make -f $makefile clean" />
+			<DistClean command="$make -f $makefile distclean$target" />
+			<AskRebuildNeeded command="$make -q -f $makefile $target" />
+			<SilentBuild command="$make -f $makefile $target &gt; $(CMD_NULL)" />
+		</MakeCommands>
 		<Build>
 			<Target title="optnoshared">
 				<Option platforms="Unix;" />
@@ -18,6 +26,14 @@
 					<Add directory="${PTLIBDIR}/include" />
 					<Add directory="${OPENH323DIR}/include" />
 				</Compiler>
+				<MakeCommands>
+					<Build command="$make -f $makefile $target" />
+					<CompileFile command="$make -f $makefile $file" />
+					<Clean command="$make -f $makefile clean" />
+					<DistClean command="$make -f $makefile distclean$target" />
+					<AskRebuildNeeded command="$make -q -f $makefile $target" />
+					<SilentBuild command="$make -f $makefile $target &gt; $(CMD_NULL)" />
+				</MakeCommands>
 			</Target>
 			<Target title="debug">
 				<Option platforms="Unix;" />
@@ -36,12 +52,8 @@
 					<Clean command="$make -f $makefile clean" />
 					<DistClean command="$make -f $makefile clean" />
 					<AskRebuildNeeded command="$make -q -f $makefile $target" />
-					<SilentBuild command="$make -s -f $makefile $target" />
+					<SilentBuild command="$make -f $makefile $target &gt; $(CMD_NULL)" />
 				</MakeCommands>
-			</Target>
-			<Target title="clean">
-				<Option type="4" />
-				<Option compiler="gcc" />
 			</Target>
 		</Build>
 		<Unit filename="CMakeLists.txt" />
@@ -58,130 +70,53 @@
 		<Unit filename="Neighbor.h">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
-		<Unit filename="ProxyChannel.cxx">
-			<Option target="optnoshared" />
-			<Option target="debug" />
-		</Unit>
-		<Unit filename="ProxyChannel.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="RasPDU.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="RasSrv.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="RasSrv.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="RasTbl.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="RasTbl.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="Routing.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="Routing.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="SoftPBX.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="SoftPBX.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="Toolkit.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="Toolkit.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="capctrl.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="capctrl.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
+		<Unit filename="ProxyChannel.cxx" />
+		<Unit filename="ProxyChannel.h" />
+		<Unit filename="RasPDU.h" />
+		<Unit filename="RasSrv.cxx" />
+		<Unit filename="RasSrv.h" />
+		<Unit filename="RasTbl.cxx" />
+		<Unit filename="RasTbl.h" />
+		<Unit filename="Routing.cxx" />
+		<Unit filename="Routing.h" />
+		<Unit filename="SoftPBX.cxx" />
+		<Unit filename="SoftPBX.h" />
+		<Unit filename="Toolkit.cxx" />
+		<Unit filename="Toolkit.h" />
+		<Unit filename="Toolkit.t.cxx" />
+		<Unit filename="capctrl.cxx" />
+		<Unit filename="capctrl.h" />
 		<Unit filename="changes.txt">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
-		<Unit filename="cisco.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="cisco.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="clirw.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="clirw.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="config.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
+		<Unit filename="cisco.asn" />
+		<Unit filename="cisco.cxx" />
+		<Unit filename="cisco.h" />
+		<Unit filename="clirw.cxx" />
+		<Unit filename="clirw.h" />
+		<Unit filename="config.h" />
 		<Unit filename="configure.in" />
 		<Unit filename="copying" />
-		<Unit filename="factory.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
+		<Unit filename="factory.h" />
 		<Unit filename="forwarding.cxx" />
-		<Unit filename="gk.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="gk.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="gk_const.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="gkacct.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="gkacct.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="gkauth.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="gkauth.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="gkconfig.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="gkconfig.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="gksql.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="gksql.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="gksql_firebird.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="gksql_mysql.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="gksql_odbc.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="gksql_pgsql.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="gksql_sqlite.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="gktimer.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="gktimer.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
+		<Unit filename="gk.cxx" />
+		<Unit filename="gk.h" />
+		<Unit filename="gk_const.h" />
+		<Unit filename="gkacct.cxx" />
+		<Unit filename="gkacct.h" />
+		<Unit filename="gkauth.cxx" />
+		<Unit filename="gkauth.h" />
+		<Unit filename="gkconfig.cxx" />
+		<Unit filename="gkconfig.h" />
+		<Unit filename="gksql.cxx" />
+		<Unit filename="gksql.h" />
+		<Unit filename="gksql_firebird.cxx" />
+		<Unit filename="gksql_mysql.cxx" />
+		<Unit filename="gksql_odbc.cxx" />
+		<Unit filename="gksql_pgsql.cxx" />
+		<Unit filename="gksql_sqlite.cxx" />
+		<Unit filename="gktimer.cxx" />
+		<Unit filename="gktimer.h" />
 		<Unit filename="gnugkbuildopts.h" />
 		<Unit filename="gnugkbuildopts.h.in" />
 		<Unit filename="h323util.cxx" />
