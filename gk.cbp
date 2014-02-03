@@ -44,24 +44,14 @@
 				<Option compiler="gcc" />
 			</Target>
 		</Build>
-		<Unit filename="GkClient.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="GkClient.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="GkStatus.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="GkStatus.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="MakeCall.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="MakeCall.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
+		<Unit filename="CMakeLists.txt" />
+		<Unit filename="GkClient.cxx" />
+		<Unit filename="GkClient.h" />
+		<Unit filename="GkStatus.cxx" />
+		<Unit filename="GkStatus.h" />
+		<Unit filename="H46023_license.txt" />
+		<Unit filename="MakeCall.cxx" />
+		<Unit filename="MakeCall.h" />
 		<Unit filename="Neighbor.cxx">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
@@ -132,9 +122,12 @@
 		<Unit filename="config.h">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
+		<Unit filename="configure.in" />
+		<Unit filename="copying" />
 		<Unit filename="factory.h">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
+		<Unit filename="forwarding.cxx" />
 		<Unit filename="gk.cxx">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
@@ -189,27 +182,23 @@
 		<Unit filename="gktimer.h">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
-		<Unit filename="gnugkbuildopts.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="h323util.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="h323util.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="ipauth.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="ipauth.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
+		<Unit filename="gnugkbuildopts.h" />
+		<Unit filename="gnugkbuildopts.h.in" />
+		<Unit filename="h323util.cxx" />
+		<Unit filename="h323util.h" />
+		<Unit filename="h323util.t.cxx" />
+		<Unit filename="h460presence.cxx" />
+		<Unit filename="h460presence.h" />
+		<Unit filename="ipauth.cxx" />
+		<Unit filename="ipauth.h" />
 		<Unit filename="job.cxx">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
 		<Unit filename="job.h">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
+		<Unit filename="ldap.cxx" />
+		<Unit filename="lua.cxx" />
 		<Unit filename="name.h">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
@@ -237,21 +226,13 @@
 		<Unit filename="rasinfo.h">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
-		<Unit filename="rwlock.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="sigmsg.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="sigmsg.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="singleton.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="singleton.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
+		<Unit filename="rwlock.h" />
+		<Unit filename="sigmsg.cxx" />
+		<Unit filename="sigmsg.h" />
+		<Unit filename="singleton.cxx" />
+		<Unit filename="singleton.h" />
+		<Unit filename="snmp.cxx" />
+		<Unit filename="snmp.h" />
 		<Unit filename="sqlacct.cxx">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
@@ -270,21 +251,18 @@
 		<Unit filename="stl_supp.h">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
-		<Unit filename="version.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="version.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="yasocket.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="yasocket.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
+		<Unit filename="syslogacct.cxx" />
+		<Unit filename="syslogacct.h" />
+		<Unit filename="testrunner.cxx" />
+		<Unit filename="version.cxx" />
+		<Unit filename="version.h" />
+		<Unit filename="versionts.h" />
+		<Unit filename="yasocket.cxx" />
+		<Unit filename="yasocket.h" />
 		<Extensions>
 			<code_completion />
 			<debugger />
+			<envvars />
 		</Extensions>
 	</Project>
 </CodeBlocks_project_file>
