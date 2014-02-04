@@ -44,7 +44,7 @@ using std::find_if;
 using std::greater;
 
 
-#if defined(P_SSL) && hasCipertextStealing
+#if defined(H323_H235) && hasCipertextStealing
 ////////////////////////////////////////////////////
 
 #include <h235/h235crypto.h>
