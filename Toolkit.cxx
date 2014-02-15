@@ -2616,6 +2616,7 @@ bool Toolkit::AssignedGatekeepers::DatabaseLookup(
 	std::map<PString, PString> params;
 	params["u"] = alias;
 	params["i"] = ipaddr.AsString();
+	params["g"] = GkName();
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, params, m_timeout);
 	if (result == NULL) {
 		PTRACE(2, "AssignSQL\tQuery failed - timeout or fatal error");
