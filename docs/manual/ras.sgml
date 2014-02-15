@@ -324,10 +324,11 @@ Default: <tt>N/A</tt><newline>
 <p>
 Defines the SQL query used to retrieve the assigned gatekeepers from the database.
 
-Two parameters are defined:
+These parameters are defined:
 <itemize>
 <item><tt/%u/ - endpoint alias
 <item><tt/%i/ - endpoint IP
+<item><tt/%g/ - gatekeeper ID
 </itemize>
 <p>
 Sample query string:
