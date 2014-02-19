@@ -4587,10 +4587,11 @@ $as_echo "yes" >&6; }
 $as_echo_n "checking for ssh_handle_key_exchange()/ssh_blocking_flush() in libssh... " >&6; }
 
 		old_LIBS="$LIBS"
+		GSSAPI_LIBS=`krb5-config --libs gssapi 2> /dev/null`
 
 		for try in /usr/lib /usr/local/lib $libssh_lib_dir; do
 			if test -d $try; then
-				LIBS="$old_LIBS -L$try -lssh -lcrypto -lz -lrt"
+				LIBS="$old_LIBS -L$try -lssh $GSSAPI_LIBS -lrt"
 				cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 extern ssh_handle_key_exchange(); extern ssh_blocking_flush();
@@ -4603,7 +4604,7 @@ ssh_handle_key_exchange(); ssh_blocking_flush();
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-   LIBSSH_LIBS="-lssh"
+   LIBSSH_LIBS="-lssh $GSSAPI_LIBS"
 					  LIBSSH_LDFLAGS="-L$try"
 
 

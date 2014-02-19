@@ -875,12 +875,13 @@ if test "x${libssh}" != "xno"; then
 		AC_MSG_CHECKING([for ssh_handle_key_exchange()/ssh_blocking_flush() in libssh])
 
 		old_LIBS="$LIBS"
+		GSSAPI_LIBS=`krb5-config --libs gssapi 2> /dev/null`
 
 		for try in /usr/lib /usr/local/lib $libssh_lib_dir; do
 			if test -d $try; then
-				LIBS="$old_LIBS -L$try -lssh -lcrypto -lz -lrt"
+				LIBS="$old_LIBS -L$try -lssh -lcrypto -lz $GSSAPI_LIBS -lrt"
 				AC_TRY_LINK([extern ssh_handle_key_exchange(); extern ssh_blocking_flush();], [ssh_handle_key_exchange(); ssh_blocking_flush();],
-					[ LIBSSH_LIBS="-lssh"
+					[ LIBSSH_LIBS="-lssh -lcrypto -lz $GSSAPI_LIBS"
 					  LIBSSH_LDFLAGS="-L$try"
 					]
 				)
