@@ -12672,6 +12672,7 @@ ProxyHandler::ProxyHandler(const PString & name)
 	: SocketsReader(100), m_socketCleanupTimeout(DEFAULT_SOCKET_CLEANUP_TIMEOUT)
 {
 	SetName(name);
+	m_proxyHandlerHighPrio = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "ProxyHandlerHighPrio", 1);
 	Execute();
 }
 
@@ -12739,7 +12740,6 @@ void ProxyHandler::MoveTo(ProxyHandler * dest, TCPProxySocket * socket)
 
 void ProxyHandler::OnStart()
 {
-	// TODO: find a way to check if we have the privledges to do this
 	if (m_proxyHandlerHighPrio) {
 		PThread::Current()->SetPriority(PThread::HighPriority);
 	}
