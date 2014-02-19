@@ -511,7 +511,7 @@ void RemoveH46019Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures, 
 				}
 				supportedFeatures.SetSize(supportedFeatures.GetSize() - 1);
 				return;
-			}	
+			}
 		}
 	}
 }
@@ -534,7 +534,7 @@ bool FixH46024Multiplexing(const H225_ArrayOf_GenericData & data, H225_FeatureSe
 				supportedFeatures[sz] = (const H225_FeatureDescriptor &)data[i];
 				PTRACE(4,"H46023\tCorrecting message in generic field");
 				return true;
-			}	
+			}
 		}
 	}
 	return false;
@@ -564,7 +564,7 @@ bool HasH46024Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures)
 				for (PINDEX p=0; p < supportedFeatures[i].m_parameters.GetSize(); p++) {
 					if (supportedFeatures[i].m_parameters[p].m_id.GetTag()  == H225_GenericIdentifier::e_standard) {
 						PASN_Integer & pInt = supportedFeatures[i].m_parameters[p].m_id;
-						if (pInt == 1) 
+						if (pInt == 1)
 							senderSupportsH46019Multiplexing = true;
 					}
 				}
@@ -582,9 +582,9 @@ bool HasH46024Descriptor(H225_ArrayOf_FeatureDescriptor & supportedFeatures)
 }
 
 bool IsH46024ProxyStrategy(CallRec::NatStrategy strat)
-{ 
+{
 	if (strat == CallRec::e_natUnknown
-		|| strat == CallRec::e_natLocalProxy 
+		|| strat == CallRec::e_natLocalProxy
 		|| strat == CallRec::e_natFullProxy)
 			return true;
 
@@ -597,7 +597,7 @@ bool GetH245GenericStringOctetString(unsigned id, const H245_ArrayOf_GenericPara
 {
 	for (PINDEX i=0; i < params.GetSize(); i++) {
 		const H245_GenericParameter & param = params[i];
-		const H245_ParameterIdentifier & idm = param.m_parameterIdentifier; 
+		const H245_ParameterIdentifier & idm = param.m_parameterIdentifier;
 		if (idm.GetTag() == H245_ParameterIdentifier::e_standard) {
 			const PASN_Integer & idx = idm;
 			if (idx == id) {
@@ -620,7 +620,7 @@ bool GetH245GenericUnsigned(unsigned id, const H245_ArrayOf_GenericParameter & p
 {
 	for (PINDEX i=0; i < params.GetSize(); i++) {
 		const H245_GenericParameter & param = params[i];
-		const H245_ParameterIdentifier & idm = param.m_parameterIdentifier; 
+		const H245_ParameterIdentifier & idm = param.m_parameterIdentifier;
 		if (idm.GetTag() == H245_ParameterIdentifier::e_standard) {
 			const PASN_Integer & idx = idm;
 			if (idx == id) {
@@ -641,7 +641,7 @@ bool GetH245TransportGenericOctetString(unsigned id, const H245_ArrayOf_GenericP
 {
 	for (PINDEX i=0; i < params.GetSize(); i++) {
 		const H245_GenericParameter & param = params[i];
-		const H245_ParameterIdentifier & idm = param.m_parameterIdentifier; 
+		const H245_ParameterIdentifier & idm = param.m_parameterIdentifier;
 		if (idm.GetTag() == H245_ParameterIdentifier::e_standard) {
 			const PASN_Integer & idx = idm;
 			if (idx == id) {
@@ -661,7 +661,7 @@ bool GetH245TransportGenericOctetString(unsigned id, const H245_ArrayOf_GenericP
 
 H245_GenericParameter & BuildH245GenericOctetString(H245_GenericParameter & param, unsigned id, const PASN_Object & data)
 {
-	H245_ParameterIdentifier & idm = param.m_parameterIdentifier; 
+	H245_ParameterIdentifier & idm = param.m_parameterIdentifier;
 		idm.SetTag(H245_ParameterIdentifier::e_standard);
 		PASN_Integer & idx = idm;
 		idx = id;
@@ -681,7 +681,7 @@ H245_GenericParameter & BuildH245GenericOctetString(H245_GenericParameter & para
 
 H245_GenericParameter & BuildH245GenericUnsigned(H245_GenericParameter & param, unsigned id, unsigned val)
 {
-	H245_ParameterIdentifier & idm = param.m_parameterIdentifier; 
+	H245_ParameterIdentifier & idm = param.m_parameterIdentifier;
 		idm.SetTag(H245_ParameterIdentifier::e_standard);
 		PASN_Integer & idx = idm;
 		idx = id;
@@ -1520,7 +1520,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 			// check if we have a [ModeVendorSelection] rule matching the calling party
 			PString vendor, version;
 			if ((mode != CallRec::Proxied) && m_call->GetCallingVendor(vendor, version)) {
-				int vendormode = Toolkit::Instance()->SelectRoutingVendorMode(vendor + " " + version); 
+				int vendormode = Toolkit::Instance()->SelectRoutingVendorMode(vendor + " " + version);
 				if (vendormode > mode) mode = vendormode;
 			}
 
@@ -2247,7 +2247,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 				}
 				if (isAudio
 					&& revParams.HasOptionalField(H245_OpenLogicalChannel_reverseLogicalChannelParameters::e_multiplexParameters)
-					&& revParams.m_multiplexParameters.GetTag() == 
+					&& revParams.m_multiplexParameters.GetTag() ==
 						H245_OpenLogicalChannel_reverseLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters) {
 
 					H245_H2250LogicalChannelParameters & channel = revParams.m_multiplexParameters;
@@ -2324,7 +2324,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		    H245_CapabilityIdentifier & id = gmsg.m_messageIdentifier;
 			if (id.GetTag() == H245_CapabilityIdentifier::e_standard) {
 				PASN_ObjectId & val = id;
-				if (val.AsString() == H46024B_OID && 
+				if (val.AsString() == H46024B_OID &&
 					gmsg.HasOptionalField(H245_GenericMessage::e_messageContent)) {
 						if (!m_call->HandleH46024BRequest(gmsg.m_messageContent)) {
 							PTRACE(2, "H245\tH46024B: Error Handling Request!");
@@ -2585,7 +2585,7 @@ unsigned AlgorithmKeySize(const PString & oid)
 }
 
 bool RemoveH235Capability(unsigned _entryNo,
-                          H245_ArrayOf_CapabilityTableEntry & _capTable, 
+                          H245_ArrayOf_CapabilityTableEntry & _capTable,
                           H245_ArrayOf_CapabilityDescriptor & _capDesc)
 {
     PTRACE(5, "Removing H.235 capability no: " << _entryNo);
@@ -2609,7 +2609,7 @@ bool RemoveH235Capability(unsigned _entryNo,
 }
 
 bool AddH235Capability(unsigned _entryNo, const PStringList & _capList,
-						H245_ArrayOf_CapabilityTableEntry & _capTable, 
+						H245_ArrayOf_CapabilityTableEntry & _capTable,
 						H245_ArrayOf_CapabilityDescriptor & _capDesc)
 {
     if (_capList.GetSize() == 0)
@@ -2673,7 +2673,7 @@ bool CallSignalSocket::HandleH235TCS(H245_TerminalCapabilitySet & tcs)
         return false;
     }
 
-    H245_ArrayOf_CapabilityDescriptor & capDesc = tcs.m_capabilityDescriptors; 
+    H245_ArrayOf_CapabilityDescriptor & capDesc = tcs.m_capabilityDescriptors;
     H245_ArrayOf_CapabilityTableEntry & capTable = tcs.m_capabilityTable;
 
     H245_ArrayOf_CapabilityTableEntry * tmpCapStatPtr = (H245_ArrayOf_CapabilityTableEntry *)capTable.Clone();
@@ -2764,12 +2764,12 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 
         H245_H235Media_mediaType & cType = h235Media.m_mediaType;
 		if (rawCap.GetTag() == H245_DataType::e_audioData) {
-			cType.SetTag(H245_H235Media_mediaType::e_audioData); 
+			cType.SetTag(H245_H235Media_mediaType::e_audioData);
 			(H245_AudioCapability &)cType = (H245_AudioCapability &)rawCap;
 		} else if (rawCap.GetTag() == H245_DataType::e_videoData) {
-			cType.SetTag(H245_H235Media_mediaType::e_videoData); 
+			cType.SetTag(H245_H235Media_mediaType::e_videoData);
 			(H245_VideoCapability &)cType = (H245_VideoCapability &)rawCap;
-		} else if (rawCap.GetTag() == H245_DataType::e_data) { 
+		} else if (rawCap.GetTag() == H245_DataType::e_data) {
 			cType.SetTag(H245_H235Media_mediaType::e_data);
 			(H245_DataApplicationCapability &)cType = (H245_DataApplicationCapability &)rawCap;
 		}
@@ -2797,7 +2797,7 @@ void CallSignalSocket::SendEncryptionUpdateCommand(WORD flcn, BYTE oldPT, BYTE p
 			H245_MultimediaSystemControlMessage h245msg;
 			h245msg.SetTag(H245_MultimediaSystemControlMessage::e_command);
 			H245_CommandMessage & h245cmd = h245msg;
-			h245cmd.SetTag(H245_CommandMessage::e_miscellaneousCommand);		
+			h245cmd.SetTag(H245_CommandMessage::e_miscellaneousCommand);
 			H245_MiscellaneousCommand & misc = h245cmd;
 			misc.m_type.SetTag(H245_MiscellaneousCommand_type::e_encryptionUpdateCommand);
 			H245_MiscellaneousCommand_type_encryptionUpdateCommand & update = misc.m_type;
@@ -2824,7 +2824,7 @@ void CallSignalSocket::SendEncryptionUpdateRequest(WORD flcn, BYTE oldPT, BYTE p
 	H245_MultimediaSystemControlMessage h245msg;
 	h245msg.SetTag(H245_MultimediaSystemControlMessage::e_command);
 	H245_CommandMessage & h245cmd = h245msg;
-	h245cmd.SetTag(H245_CommandMessage::e_miscellaneousCommand);		
+	h245cmd.SetTag(H245_CommandMessage::e_miscellaneousCommand);
 	H245_MiscellaneousCommand & misc = h245cmd;
 	misc.m_type.SetTag(H245_MiscellaneousCommand_type::e_encryptionUpdateRequest);
 	H245_EncryptionUpdateRequest & update = misc.m_type;
@@ -3197,7 +3197,7 @@ bool CallSignalSocket::IsH46024Call(const H225_Setup_UUIE & setupBody)
 		const H225_ArrayOf_FeatureDescriptor & data = setupBody.m_supportedFeatures;
 		for (PINDEX i = 0; i < data.GetSize(); i++) {
 			H460_Feature & feat = (H460_Feature &)data[i];
-			if (feat.GetFeatureID() == H460_FeatureID(24)) 
+			if (feat.GetFeatureID() == H460_FeatureID(24))
 				return true;
         }
     }
@@ -3302,7 +3302,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	}
 
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "TranslateSorensonSourceInfo", "0"))) {
-		// Viable VPAD (Viable firmware, SBN Tech device), remove the CallingPartyNumber information 
+		// Viable VPAD (Viable firmware, SBN Tech device), remove the CallingPartyNumber information
 		// (its under the sorenson switch, even though not sorenson, can be moved later to own switch - SH)
 		if (setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_vendor)
 			&& setupBody.m_sourceInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)
@@ -3310,7 +3310,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
                 if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
                     unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType;
                     unsigned presentation = (unsigned)-1, screening = (unsigned)-1;
-                    PString callingNumber = GetBestAliasAddressString(setupBody.m_sourceAddress, false, 
+                    PString callingNumber = GetBestAliasAddressString(setupBody.m_sourceAddress, false,
                         AliasAddressTagMask(H225_AliasAddress::e_dialedDigits) | AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
                     q931.SetCallingPartyNumber(callingNumber, plan, type, presentation, screening);
                 }
@@ -3329,7 +3329,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		if (!q931.HasIE(Q931::CalledPartyNumberIE)) {
 			PString calledNumber;
 			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
-				calledNumber = GetBestAliasAddressString(setupBody.m_destinationAddress, false, 
+				calledNumber = GetBestAliasAddressString(setupBody.m_destinationAddress, false,
 					AliasAddressTagMask(H225_AliasAddress::e_dialedDigits) | AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
 				PTRACE(1, "Setting the Q.931 CalledPartyNumber to: " << calledNumber);
 				if (IsValidE164(calledNumber)) {
@@ -3340,7 +3340,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		}
 
 		if (setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_terminal)
-			&&  setupBody.m_sourceInfo.m_terminal.HasOptionalField(H225_TerminalInfo::e_nonStandardData) 
+			&&  setupBody.m_sourceInfo.m_terminal.HasOptionalField(H225_TerminalInfo::e_nonStandardData)
             &&  setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_vendor)
             &&  setupBody.m_sourceInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)
             &&  setupBody.m_sourceInfo.m_vendor.m_productId.AsString().Left(7) != "VidSoft") {	// VidSoft includes invalid numbers
@@ -3391,7 +3391,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 	// RemoveSorensonSourceInfo
 	if (setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_terminal)
-		&&  setupBody.m_sourceInfo.m_terminal.HasOptionalField(H225_TerminalInfo::e_nonStandardData) 
+		&&  setupBody.m_sourceInfo.m_terminal.HasOptionalField(H225_TerminalInfo::e_nonStandardData)
 		&&  setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_vendor)) {
 		if (setupBody.m_sourceInfo.m_terminal.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
 			H225_H221NonStandard h221nst = setupBody.m_sourceInfo.m_terminal.m_nonStandardData.m_nonStandardIdentifier;
@@ -4065,23 +4065,25 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			}
 
 #ifdef hasAutoCreateAuthenticators	// PTLib 2.11.x
-			// Authenticators are created on demand by identifiers in token/cryptoTokens where supported 
+			// Authenticators are created on demand by identifiers in token/cryptoTokens where supported
 			// TODO: check if we need to set cipher and token length for PTLib >= 2.11.x
 			auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
 #else
 			// Create all authenticators for both media encryption and caller authentication
+#ifdef HAS_SETTOKENLENGTH
 			unsigned maxCipher = 128;	// AES128
 			unsigned maxTokenLen = toolkit->Config()->GetInteger(RoutedSec, "H235HalfCallMaxTokenLength", 1024);
 			if (maxTokenLen > 1024)
 				maxCipher = 256;	// AES256
 			H235Authenticators::SetMaxCipherLength(maxCipher);
 			H235Authenticators::SetMaxTokenLength(maxTokenLen);
+#endif
 			auth.CreateAuthenticators(H235Authenticator::MediaEncryption);
 			auth.CreateAuthenticators(H235Authenticator::EPAuthentication);
 #endif
 			// make sure authenticator gets received tokens, ignore the result
-			H235Authenticator::ValidationResult result = auth.ValidateSignalPDU( 
-				H225_H323_UU_PDU_h323_message_body::e_setup, 
+			H235Authenticator::ValidationResult result = auth.ValidateSignalPDU(
+				H225_H323_UU_PDU_h323_message_body::e_setup,
 				setupBody.m_tokens, setupBody.m_cryptoTokens, m_rawSetup);
 			if (result != H235Authenticator::e_OK &&
 				result != H235Authenticator::e_Absent &&
@@ -4109,20 +4111,22 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				setupBody.m_cryptoTokens.SetSize(0);
 			}
 #ifdef hasAutoCreateAuthenticators
-			// Authenticators are created on demand by identifiers in token/cryptoTokens where supported 
+			// Authenticators are created on demand by identifiers in token/cryptoTokens where supported
 			// TODO: check if we need to set cipher and token length for PTLib >= 2.11.x
 			auth.CreateAuthenticators(setupBody.m_tokens, setupBody.m_cryptoTokens);
 #else			// Create all authenticators for both media encryption and caller authentication
+#ifdef HAS_SETTOKENLENGTH
 			unsigned maxCipher = 128;	// AES128
 			unsigned maxTokenLen = toolkit->Config()->GetInteger(RoutedSec, "H235HalfCallMaxTokenLength", 1024);
 			if (maxTokenLen > 1024)
 				maxCipher = 256;	// AES256
 			H235Authenticators::SetMaxCipherLength(maxCipher);
 			H235Authenticators::SetMaxTokenLength(maxTokenLen);
-			auth.CreateAuthenticators(H235Authenticator::MediaEncryption);  
+#endif
+			auth.CreateAuthenticators(H235Authenticator::MediaEncryption);
 			auth.CreateAuthenticators(H235Authenticator::EPAuthentication);
 #endif
-			auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_setup, 
+			auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_setup,
 									setupBody.m_tokens, setupBody.m_cryptoTokens);
 			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
 			if (setupBody.m_cryptoTokens.GetSize() == 0)
@@ -4307,7 +4311,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	unsigned callingIPVersion = GetVersion(m_call->GetSrcSignalAddr());
 	// for traversal or neighbor calls we might not have the SrcSignalAddr
 	if (callingIPVersion == 0)
-		callingIPVersion = _peerAddr.GetVersion();	
+		callingIPVersion = _peerAddr.GetVersion();
 	unsigned calledIPVersion = GetVersion(m_call->GetDestSignalAddr());
 	if (proxyIPv4ToIPv6 && (callingIPVersion != calledIPVersion)) {
 		m_call->SetH245Routed(true);
@@ -4340,7 +4344,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 #ifdef HAS_H46018
 #ifdef HAS_H46023
-		bool OZH46024 = (m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
+		bool OZH46024 = (m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() &&
 					setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures) &&
 					HasH46024Descriptor(setupBody.m_supportedFeatures));
 #else
@@ -4413,7 +4417,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			H460_FeatureStd feat = H460_FeatureStd(26);
 
             // We offer H.460.26 as supported endpoint ARQ will decide if needed
-			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_neededFeatures)) 
+			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_neededFeatures))
 				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_neededFeatures);
 
 			AddH460Feature(setupBody.m_neededFeatures, feat);
@@ -4538,7 +4542,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		gd[0] = feat;
 
 #if defined(HAS_TLS) && defined(HAS_H460)
-		// Although not covered in H.460.22 for H.460.18. The SCI needs to include H.460.22 
+		// Although not covered in H.460.22 for H.460.18. The SCI needs to include H.460.22
 		// to notify the endpoint to establish the TCP connection to the TLS port. - SH
 		if (Toolkit::Instance()->IsTLSEnabled() && m_call->GetCalledParty()->UseTLS()) {
 			H460_FeatureStd h46022 = H460_FeatureStd(22);
@@ -4594,9 +4598,9 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 		setupBody.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
 		setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(masqAddr, GetPort());
 	} else {
-		// check if we are calling from behind a NAT that no "Well Meaning" ALG 
+		// check if we are calling from behind a NAT that no "Well Meaning" ALG
 		// has fiddled with the source address breaking remote NAT detection.
-		if (nat_type == CallRec::callingParty 
+		if (nat_type == CallRec::callingParty
 			&& setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)) {
 			PIPSocket::Address sourceAddr;
 			GetIPFromTransportAddr(setupBody.m_sourceCallSignalAddress,sourceAddr);
@@ -4619,7 +4623,7 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 	// For compatibility to call pre-H323v4 devices that do not support H.460
 	// This strips the Feature Advertisements from the PDU.
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH460Call", "0"))
-#ifdef HAS_H46023  
+#ifdef HAS_H46023
 		&& (!m_call->GetCalledParty() || (m_call->GetCalledParty()->GetEPNATType() == (int)EndpointRec::NatUnknown))
 #endif
 		) {
@@ -4686,7 +4690,7 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 			// different handler than this
 			// so we move this socket to other handler
 			GetHandler()->MoveTo(socket->GetHandler(), this);
-			
+
 			// re-add the NAT socket for H.460.17 endpoints
 			if (calledep->UsesH46017())
 				calledep->SetNATSocket(socket);
@@ -4815,7 +4819,7 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 			callProceeding->GetUUIE()->m_h323_uu_pdu.RemoveOptionalField(H225_H323_UU_PDU::e_genericData);
 		}
 	}
-	bool OZH46024 = (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
+	bool OZH46024 = (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() &&
 		cpBody.HasOptionalField(H225_CallProceeding_UUIE::e_featureSet) &&
 		HasH46024Descriptor(cpBody.m_featureSet.m_supportedFeatures));
 #else
@@ -5022,7 +5026,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 		}
 		if (m_call) {
 			m_call->SetCalledVendor(vendor, version);
-			int mode = Toolkit::Instance()->SelectRoutingVendorMode(vendor + " " + version); 
+			int mode = Toolkit::Instance()->SelectRoutingVendorMode(vendor + " " + version);
 			switch (mode) {
 				case CallRec::SignalRouted:
 					// Don't worry about signal routed because we are already doing it.
@@ -5066,12 +5070,12 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 		  && !connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens)) {
 			// there were tokens in Setup, but none in Connect
 
-			auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_connect, 
+			auth.PrepareSignalPDU(H225_H323_UU_PDU_h323_message_body::e_connect,
 								  connectBody.m_tokens, connectBody.m_cryptoTokens);
 
 //			// validate the tokens we just generated (pretend they are received tokens)
 //			PBYTEArray nonce;
-//			auth.ValidateSignalPDU(H225_H323_UU_PDU_h323_message_body::e_connect, 
+//			auth.ValidateSignalPDU(H225_H323_UU_PDU_h323_message_body::e_connect,
 //						   connectBody.m_tokens, connectBody.m_cryptoTokens, nonce);
 
 			connectBody.RemoveOptionalField(H225_Connect_UUIE::e_cryptoTokens);
@@ -5105,7 +5109,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			}
 
 			PBYTEArray nonce;
-			auth.ValidateSignalPDU(H225_H323_UU_PDU_h323_message_body::e_connect, 
+			auth.ValidateSignalPDU(H225_H323_UU_PDU_h323_message_body::e_connect,
 						   connectBody.m_tokens, connectBody.m_cryptoTokens, nonce);
 
 			connectBody.RemoveOptionalField(H225_Connect_UUIE::e_cryptoTokens);
@@ -5131,7 +5135,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			connect->GetUUIE()->m_h323_uu_pdu.RemoveOptionalField(H225_H323_UU_PDU::e_genericData);
 		}
 	}
-	bool OZH46024 = (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
+	bool OZH46024 = (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() &&
 		connectBody.HasOptionalField(H225_Connect_UUIE::e_featureSet) &&
 		HasH46024Descriptor(connectBody.m_featureSet.m_supportedFeatures));
 #else
@@ -5306,7 +5310,7 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 			alerting->GetUUIE()->m_h323_uu_pdu.RemoveOptionalField(H225_H323_UU_PDU::e_genericData);
 		}
 	}
-	bool OZH46024 = (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() && 
+	bool OZH46024 = (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() &&
 					alertingBody.HasOptionalField(H225_Alerting_UUIE::e_featureSet) &&
 					HasH46024Descriptor(alertingBody.m_featureSet.m_supportedFeatures));
 #else
@@ -5410,9 +5414,9 @@ PBoolean ReadRTPFrame(const Q931 & q931, H46026_UDPFrame & data)
     }
 
     // sanity checks
-    if ((!uuie.m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_genericData)) || 
-        (uuie.m_h323_uu_pdu.m_genericData.GetSize() == 0) || 
-        (!uuie.m_h323_uu_pdu.m_genericData[0].HasOptionalField(H225_GenericData::e_parameters)) || 
+    if ((!uuie.m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_genericData)) ||
+        (uuie.m_h323_uu_pdu.m_genericData.GetSize() == 0) ||
+        (!uuie.m_h323_uu_pdu.m_genericData[0].HasOptionalField(H225_GenericData::e_parameters)) ||
         (uuie.m_h323_uu_pdu.m_genericData[0].m_parameters.GetSize() == 0) ||
         (!uuie.m_h323_uu_pdu.m_genericData[0].m_parameters[0].HasOptionalField(H225_EnumeratedParameter::e_content))
         ) {
@@ -6016,7 +6020,7 @@ bool CallSignalSocket::SendH46017Message(const H225_RasMessage & ras)
 		feat.Add(1, H460_FeatureContent(encRAS));
 		uuie.m_h323_uu_pdu.m_genericData[0] = feat;
 		SetUUIE(FacilityPDU, uuie);
-		
+
 		PrintQ931(3, "Send to ", GetName(), &FacilityPDU, &uuie);
 
 #ifdef HAS_H46026
@@ -6728,7 +6732,7 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 #ifdef HAS_H46018
 			if (m_call->H46019Required() && PIsDescendant(m_h245handler, H245ProxyHandler) && ((H245ProxyHandler*)m_h245handler)->UsesH46019()) {
 				altered = ((H245ProxyHandler*)m_h245handler)->HandleFastStartResponse(olc, m_call);
-			} else 
+			} else
 #endif
 			{
 				altered = m_h245handler->HandleFastStartResponse(olc, m_call);
@@ -7549,7 +7553,7 @@ bool CallSignalSocket::InternalConnectTo()
 		PTRACE(1, remote->Type() << "\tCould not open/connect Q.931 socket at "
 			<< AsString(localAddr, pt)
 			<< " - error " << remote->GetErrorCode(PSocket::LastGeneralError) << '/'
-			<< errorNumber << ": " << remote->GetErrorText(PSocket::LastGeneralError) 
+			<< errorNumber << ": " << remote->GetErrorText(PSocket::LastGeneralError)
 			<< " remote addr: " << AsString(peerAddr));
 		remote->Close();
 #ifdef _WIN32
@@ -8273,7 +8277,7 @@ bool NATH245Socket::ConnectRemote()
 		return H245Socket::ConnectRemote();
 	}
 #endif
-	
+
 	m_signalingSocketMutex.Wait();
 	if (!sigSocket || !listener) {
 		m_signalingSocketMutex.Signal();
@@ -8394,7 +8398,7 @@ MultiplexRTPListener::MultiplexRTPListener(WORD pt, WORD buffSize)
 					<< GetErrorNumber(PSocket::LastGeneralError) << ": "
 					<< GetErrorText(PSocket::LastGeneralError));
 			}
-		
+
 		} else
 #endif
 		{
@@ -9202,7 +9206,7 @@ bool UDPProxySocket::Bind(const Address & localAddr, WORD pt)
 					<< GetErrorNumber(PSocket::LastGeneralError) << ": "
 					<< GetErrorText(PSocket::LastGeneralError));
 			}
-		
+
 		} else
 #endif
 		{
@@ -9397,7 +9401,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	GetLastReceiveAddress(fromIP, fromPort);
 	buflen = (WORD)GetLastReadCount();
 
-	if (!OnReceiveData(wbuffer, buflen, fromIP, fromPort)) 
+	if (!OnReceiveData(wbuffer, buflen, fromIP, fromPort))
 		return NoData;
 
 	UnmapIPv4Address(fromIP);
@@ -11257,7 +11261,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 			|| peer->m_requestRTPMultiplexing || peer->m_remoteRequestsRTPMultiplexing) {
 			MultiplexedRTPHandler::Instance()->AddChannel(h46019chan);
 #ifdef HAS_H46024B
-			if (call && call->GetNATStrategy() == CallRec::e_natAnnexB) 
+			if (call && call->GetNATStrategy() == CallRec::e_natAnnexB)
 				call->H46024BSessionFlag(sessionID);
 #endif
 		}
@@ -11291,7 +11295,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 					changed = true;
 					break;
 				}
-			}	
+			}
 		} else {
 			H245_ArrayOf_GenericParameter info;
 			GkClient * gkClient = RasServer::Instance()->GetGkClient();
@@ -11302,7 +11306,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 				gkClient->H46023_LoadAlternates(call->GetCallIdentifier(), sessionID, m_CUI, m_altMuxID, m_altAddr1, m_altAddr2);
 					H245_GenericInformation alt;
 					H245_CapabilityIdentifier & altid = alt.m_messageIdentifier;
-					altid.SetTag(H245_CapabilityIdentifier::e_standard); 
+					altid.SetTag(H245_CapabilityIdentifier::e_standard);
 					PASN_ObjectId & oid = altid;
 					oid.SetValue(H46024A_OID);
 					alt.IncludeOptionalField(H245_GenericMessage::e_messageContent);
@@ -11460,7 +11464,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 	bool changed = false;
 #ifdef HAS_H46026
 	if (UsesH46026() && peer && !peer->UsesH46026()) {
-		PTRACE(4, "H46026\tAdding mediaChannel + mediaControlChannel");	
+		PTRACE(4, "H46026\tAdding mediaChannel + mediaControlChannel");
 		if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)
 			&& olca.m_forwardMultiplexAckParameters.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters) {
 			H245_H2250LogicalChannelAckParameters & h225Params  = olca.m_forwardMultiplexAckParameters;
@@ -11785,7 +11789,7 @@ bool H245ProxyHandler::HandleEncryptionUpdateRequest(H245_MiscellaneousCommand &
 			H245_MultimediaSystemControlMessage h245msg;
 			h245msg.SetTag(H245_MultimediaSystemControlMessage::e_command);
 			H245_CommandMessage & h245cmd = h245msg;
-			h245cmd.SetTag(H245_CommandMessage::e_miscellaneousCommand);		
+			h245cmd.SetTag(H245_CommandMessage::e_miscellaneousCommand);
 			H245_MiscellaneousCommand & misc = h245cmd;
 			misc.m_type.SetTag(H245_MiscellaneousCommand_type::e_encryptionUpdateCommand);
 			H245_MiscellaneousCommand_type_encryptionUpdateCommand & update = misc.m_type;
@@ -11828,7 +11832,7 @@ bool H245ProxyHandler::HandleEncryptionUpdateCommand(H245_MiscellaneousCommand &
 			H245_MultimediaSystemControlMessage h245msg;
 			h245msg.SetTag(H245_MultimediaSystemControlMessage::e_command);
 			H245_CommandMessage & h245cmd = h245msg;
-			h245cmd.SetTag(H245_CommandMessage::e_miscellaneousCommand);		
+			h245cmd.SetTag(H245_CommandMessage::e_miscellaneousCommand);
 			H245_MiscellaneousCommand & misc = h245cmd;
 			misc.m_type.SetTag(H245_MiscellaneousCommand_type::e_encryptionUpdateAck);
 			H245_MiscellaneousCommand_type_encryptionUpdateAck & ack = misc.m_type;

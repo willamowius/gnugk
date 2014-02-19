@@ -267,6 +267,7 @@
 #if (H323PLUS_VER >= 1254)
 #define HAS_LANGUAGE 1
 #define hasCipertextStealing 1
+#define HAS_SETTOKENLENGTH 1
 #endif
 
 #endif // PWLIB_COMPAT_H
