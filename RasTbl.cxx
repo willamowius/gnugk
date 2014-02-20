@@ -894,7 +894,7 @@ void EndpointRec::Update(const H225_RasMessage & ras_msg)
 EndpointRec *EndpointRec::Unregisterpreempt(int type)
 {
 	PTRACE(1, "EP\tUnregistering " << AsDotString(GetRasAddress()) << " Reason " << type);
-	SendURQ(H225_UnregRequestReason::e_maintenance, type);
+    SendURQ(H225_UnregRequestReason::e_undefinedReason, type);
 	return this;
 }
 
