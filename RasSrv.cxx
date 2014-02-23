@@ -3918,17 +3918,20 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 					if (Toolkit::Instance()->IsTLSEnabled()) {
 						// enable TLS by config file
 						bool useTLS = RasSrv->GetNeighbors()->GetNeighborTLSBySigAdr(request.m_replyAddress);
-						// also enable when neighbor has signaled TLS capabilitiy by H.460.22 in LRQ
-						if (senderSupportsH46022TLS)
-							useTLS = true;
-						if (useTLS) {
+						// include H.460.22 if UseTLS configured for this neighbotr or if H.460.22 in LRQ
+						if (useTLS || senderSupportsH46022) {
 							// tell endpoint to use the TLS port
 							WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
-							SetH225Port(lcf.m_callSignalAddress, tlsSignalPort);
+							// force TLS signalling port if UseTLS switch was set
+							if (useTLS) {
+								SetH225Port(lcf.m_callSignalAddress, tlsSignalPort);
+							}
 							H460_FeatureStd H46022 = H460_FeatureStd(22);
 							H460_FeatureStd settings;
 							settings.Add(Std22_Priority, H460_FeatureContent(1, 8)); // Priority=1, type=number8
-							H323TransportAddress signalAddr = lcf.m_callSignalAddress;
+							H225_TransportAddress h225SignalAddr = lcf.m_callSignalAddress;
+							SetH225Port(h225SignalAddr, tlsSignalPort);
+							H323TransportAddress signalAddr = h225SignalAddr;
 							settings.Add(Std22_ConnectionAddress, H460_FeatureContent(signalAddr));
 							H46022.Add(Std22_TLS, H460_FeatureContent(settings.GetCurrentTable()));
 							lcf.IncludeOptionalField(H225_LocationConfirm::e_featureSet);

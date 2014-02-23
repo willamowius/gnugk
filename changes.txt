@@ -1,5 +1,6 @@
 Changes from 3.5 to 3.6
 =======================
+- BUGFIX(RasSrv.cxx) fix callSignalPort in LCF when H.460.22 is enabled
 - support libssh 0.6.x
 - BUGFIX(ProxyChannel.cxx) read ProxyHandlerHighPrio switch earlier
 - verify the correct payloadType on H.460.19 keep-alive packets (disable with [Proxy] CheckH46019KeepAlivePT=0)
