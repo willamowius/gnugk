@@ -140,6 +140,12 @@ This policy runs the LUA script defined in <ref id="routingcatchall" name="Routi
 Same as neighbor policy except the target for the LRQ messages are retrieved from a database. The database parameters are identical to the sql routing policy. 
 </itemize>
 
+<item><tt/uriservice/<newline>
+<p>
+Apply a routing policy based on the URI schema eg xmpp:me@mydomain.com or xmpp:192.168.1.1. The schemas is defined in <ref id="routinguriservice" name="Routing::URIService"> section.
+If schema is an IP address will return the [Routing::URIService] gateway setting. This can be used chained with [Routing::ENUM::schema] and [Routing::SRV::schema] to completely resolve addresses.
+</itemize>
+
 <p>
 Default configuration for routing policies is as follows:
 <descrip>
@@ -798,7 +804,24 @@ Specify a file with a LUA script to run for the 'lua' policy.
 
 </itemize>
 
+<sect1>Section &lsqb;Routing::URIService&rsqb;
+<label id="routinguriservice">
+<p>
+URI Service specific routing policy. 
+<descrip>
+<tag/Format:/
+<tt/&lt;schema&gt;=&lt;protocol gateway&gt;/
+</descrip>
 
+<descrip>
+<tag/Example:/
+<quote><tt>[Routing::URIService]<newline>
+xmpp=mygateway.mydomain.com</tt></quote>
+</descrip>
+<p>
+This switch sets the service type and default gateway for a given URI schema. This can be used in a chain with 
+[Routing::ENUM::&lt;schema&gt;] and [Routing::SRV::&lt;schema&gt;] to provide a service specific routing policy.
+</itemize>
 
 <sect1>Section &lsqb;RewriteCLI&rsqb;
 <label id="clirewrite">

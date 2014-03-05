@@ -288,7 +288,8 @@ void Policy::SetInstance(const PString & instance)
 {
 	PString policyName = PString(m_name); 
 	if (!instance.IsEmpty()) {
-		policyName = policyName + "::" + instance;
+		m_instance = instance;
+		policyName = policyName + "::" + m_instance;
 		m_name = *(PString *)policyName.Clone();
 	}
 	m_iniSection = "Routing::" + policyName;
@@ -1574,6 +1575,11 @@ void ENUMPolicy::LoadConfig(const PString & instance)
 
 bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
+	PString service = request.GetServiceType();
+	if (!service && (service != m_instance)) {
+		PTRACE(4, "ROUTING\tPolicy " << m_name << " not supported for service " << service);
+		return false;
+	}
 
 #if P_DNS
 	for (PINDEX i = 0; i < m_enum_schema.GetSize(); ++i) {
@@ -2130,6 +2136,82 @@ bool CatchAllPolicy::CatchAllRoute(RoutingRequest & request) const
 }
 
 
+
+URIServicePolicy::URIServicePolicy()
+{
+	m_name = "URIService";
+	m_iniSection = "Routing::URIService";
+}
+
+void URIServicePolicy::LoadConfig(const PString & instance)
+{
+	PStringToString routes = GkConfig()->GetAllKeyValues(m_iniSection);
+	for (PINDEX i = 0; i < routes.GetSize(); i++) {
+		PString service = routes.GetKeyAt(i);
+		PString gwDestination = routes.GetDataAt(i);
+		PStringArray parts = SplitIPAndPort(gwDestination, GK_DEF_ENDPOINT_SIGNAL_PORT);
+		PString dom = parts[0];
+		PIPSocket::Address addr;
+		if (PIPSocket::GetHostAddress(dom, addr)) 
+			dom = addr.AsString();
+		WORD port = (WORD)parts[1].AsUnsigned();
+		H225_TransportAddress dest;
+		if (!GetTransportAddress(dom, port, dest)) {
+			PTRACE(4, "ROUTING\tPolicy " << m_name << " " << service << " Could not resolve " << gwDestination);
+			continue;
+		}
+		m_uriServiceRoute.insert(pair<PString,H225_TransportAddress>(service, dest));
+	}
+}
+
+bool URIServicePolicy::URIServiceRoute(RoutingRequest & request, H225_ArrayOf_AliasAddress * aliases) const
+{
+	if (!aliases)
+		return false;
+
+	for (PINDEX a = 0; a < aliases->GetSize(); a++) {
+		PString alias = H323GetAliasAddressString((*aliases)[a]);
+		PINDEX colon = alias.Find(":");
+		if (colon == 0 || colon == P_MAX_INDEX)
+			continue;
+
+		PString service = alias.Left(colon);
+		map<string,H225_TransportAddress>::const_iterator i = m_uriServiceRoute.find(service);
+		if (i == m_uriServiceRoute.end())
+			continue;
+
+		H225_TransportAddress destination = i->second;
+		PString newAlias = alias.Mid(colon+1);
+		request.SetFlag(RoutingRequest::e_aliasesChanged);
+		H323SetAliasAddress(newAlias, (*aliases)[a]);
+
+		PString domain = newAlias;
+		PINDEX at = newAlias.Find("@");
+		if (at != P_MAX_INDEX)  // URL Schema
+			domain = newAlias.Mid(at+1);
+
+		if (!IsIPAddress(domain)   // Not an IP address
+			&& (domain.FindRegEx(PRegularExpression(":[0-9]+$", PRegularExpression::Extended)) == P_MAX_INDEX)) {
+			PTRACE(4, "ROUTING\tPolicy " << m_name << " " << service << " store destination for " << alias << " to " << AsString(destination));
+			request.SetServiceType(service);
+			request.SetGatewayDestination(destination);
+			return false;  // Fall through to the next 	
+		} 
+
+		// add a route and stop going any further
+		PTRACE(4, "ROUTING\tPolicy " << m_name << " " << service << " set destination for " << alias << " to " << AsString(destination));
+		Route * route = new Route(m_name, destination);
+		route->m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(destination);
+		request.AddRoute(*route);
+		delete route;
+		return true;
+	}
+
+	// No route found
+	return false;
+}
+
+
 namespace { // anonymous namespace
 	SimpleCreator<ExplicitPolicy> ExplicitPolicyCreator("explicit");
 	SimpleCreator<InternalPolicy> InternalPolicyCreator("internal");
@@ -2140,6 +2222,7 @@ namespace { // anonymous namespace
 	SimpleCreator<ENUMPolicy> ENUMPolicyCreator("enum");
 	SimpleCreator<SqlPolicy> SqlPolicyCreator("sql");
 	SimpleCreator<CatchAllPolicy> CatchAllPolicyCreator("catchall");
+	SimpleCreator<URIServicePolicy> URISevicePolicyCreator("uriservice");
 }
 
 

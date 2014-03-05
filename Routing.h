@@ -129,6 +129,9 @@ public:
 	void SetGatewayDestination(const H225_TransportAddress & gw) { m_gwDestination = gw; }
 	bool GetGatewayDestination(H225_TransportAddress & gw ) const;
 
+	PString GetServiceType() const { return m_serviceType; }
+	void SetServiceType(const PString & service) { m_serviceType = service; }
+
 	bool SupportLanguages() const;
 private:
 	RoutingRequest(const RoutingRequest &);
@@ -142,6 +145,7 @@ private:
 	PString m_sourceIP;
 	PString m_callerID;
 	H225_TransportAddress m_gwDestination;
+	PString m_serviceType;
 };
 
 template<class R, class W>
@@ -271,6 +275,7 @@ protected:
 	/// of derived policies, default value is "undefined"
 	const char* m_name;
 	PString m_iniSection;
+	PString m_instance;
 };
 
 
@@ -566,6 +571,24 @@ protected:
 	PString m_catchAllIP;
 };
 
+
+
+class URIServicePolicy : public Policy {
+public:
+	URIServicePolicy();
+	virtual ~URIServicePolicy() { }
+
+protected:
+	virtual bool OnRequest(AdmissionRequest & request) { return URIServiceRoute(request, request.GetAliases()); }
+	virtual bool OnRequest(LocationRequest & request) { return URIServiceRoute(request, request.GetAliases()); }
+	virtual bool OnRequest(SetupRequest & request) { return URIServiceRoute(request, request.GetAliases()); }
+
+	bool URIServiceRoute(RoutingRequest & request, H225_ArrayOf_AliasAddress * aliases) const;
+
+	virtual void LoadConfig(const PString & instance);
+	
+	map<string,H225_TransportAddress> m_uriServiceRoute;
+};
 
 
 template<class R, class W>

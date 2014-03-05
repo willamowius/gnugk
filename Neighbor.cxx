@@ -2249,6 +2249,12 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly,
 // used for ARQs and Setups
 bool SRVPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
+	PString service = request.GetServiceType();
+	if (!service && (service != m_instance)) {
+		PTRACE(4, "ROUTING\tPolicy " << m_name << " not supported for service " << service);
+		return false;
+	}
+
 	bool localonly = dynamic_cast<LocationRequest *>(&request) && !m_resolveNonLocalLRQs;
 
 	Route * route = NULL;
