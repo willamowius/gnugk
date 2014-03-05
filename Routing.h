@@ -579,9 +579,9 @@ public:
 	virtual ~URIServicePolicy() { }
 
 protected:
-	virtual bool OnRequest(AdmissionRequest & request) { return URIServiceRoute(request, request.GetAliases()); }
-	virtual bool OnRequest(LocationRequest & request) { return URIServiceRoute(request, request.GetAliases()); }
-	virtual bool OnRequest(SetupRequest & request) { return URIServiceRoute(request, request.GetAliases()); }
+	virtual bool OnRequest(AdmissionRequest & request);
+	virtual bool OnRequest(LocationRequest & request);
+	virtual bool OnRequest(SetupRequest & request);
 
 	bool URIServiceRoute(RoutingRequest & request, H225_ArrayOf_AliasAddress * aliases) const;
 

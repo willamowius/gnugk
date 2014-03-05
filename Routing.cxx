@@ -2164,6 +2164,21 @@ void URIServicePolicy::LoadConfig(const PString & instance)
 	}
 }
 
+bool URIServicePolicy::OnRequest(AdmissionRequest & request) 
+{ 
+    return URIServiceRoute(request, request.GetAliases()); 
+}
+
+bool URIServicePolicy::OnRequest(LocationRequest & request) 
+{ 
+    return URIServiceRoute(request, request.GetAliases()); 
+}
+
+bool URIServicePolicy::OnRequest(SetupRequest & request) 
+{ 
+    return URIServiceRoute(request, request.GetAliases());
+}
+
 bool URIServicePolicy::URIServiceRoute(RoutingRequest & request, H225_ArrayOf_AliasAddress * aliases) const
 {
 	if (!aliases)

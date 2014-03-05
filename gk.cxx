@@ -724,6 +724,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RewriteCLI", "*" },
 	{ "Routing::Explicit", "*" },
 	{ "Routing::NumberAnalysis", "*" },
+	{ "Routing::URIService", "*" },
 	{ "RoutingPolicy", "*" },
 	{ "RoutingPolicy::OnARQ", "*" },
 	{ "RoutingPolicy::OnFacility", "*" },
