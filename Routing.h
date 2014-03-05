@@ -587,7 +587,7 @@ protected:
 
 	virtual void LoadConfig(const PString & instance);
 	
-	map<string,H225_TransportAddress> m_uriServiceRoute;
+	map<PString,H225_TransportAddress> m_uriServiceRoute;
 };
 
 

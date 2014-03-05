@@ -2160,7 +2160,7 @@ void URIServicePolicy::LoadConfig(const PString & instance)
 			PTRACE(4, "ROUTING\tPolicy " << m_name << " " << service << " Could not resolve " << gwDestination);
 			continue;
 		}
-		m_uriServiceRoute.insert(pair<PString,H225_TransportAddress>(service, dest));
+		m_uriServiceRoute.insert(make_pair(service, dest));
 	}
 }
 
@@ -2191,7 +2191,7 @@ bool URIServicePolicy::URIServiceRoute(RoutingRequest & request, H225_ArrayOf_Al
 			continue;
 
 		PString service = alias.Left(colon);
-		map<string,H225_TransportAddress>::const_iterator i = m_uriServiceRoute.find(service);
+		map<PString,H225_TransportAddress>::const_iterator i = m_uriServiceRoute.find(service);
 		if (i == m_uriServiceRoute.end())
 			continue;
 
