@@ -3472,6 +3472,9 @@ bool AdmissionRequestPDU::Process()
 #endif
 	} else {
 		acf.m_callModel.SetTag(H225_CallModel::e_direct);
+		if (answer && pExistingCallRec && pExistingCallRec->GetCallingParty()) {
+			CalledAddress = pExistingCallRec->GetCallingParty()->GetCallSignalAddress();
+		}
 		acf.m_destCallSignalAddress = CalledAddress;
 	}
 
