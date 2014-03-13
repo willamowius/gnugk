@@ -138,7 +138,6 @@ This policy runs the LUA script defined in <ref id="routingcatchall" name="Routi
 <item><tt/neighborsql/<newline>
 <p>
 Same as neighbor policy except the target for the LRQ messages are retrieved from a database. The database parameters are identical to the sql routing policy. 
-</itemize>
 
 <item><tt/uriservice/<newline>
 <p>
@@ -821,7 +820,6 @@ xmpp=mygateway.mydomain.com</tt></quote>
 <p>
 This switch sets the service type and default gateway for a given URI schema. This can be used in a chain with 
 [Routing::ENUM::&lt;schema&gt;] and [Routing::SRV::&lt;schema&gt;] to provide a service specific routing policy.
-</itemize>
 
 <sect1>Section &lsqb;RewriteCLI&rsqb;
 <label id="clirewrite">
