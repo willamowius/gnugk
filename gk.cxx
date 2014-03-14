@@ -654,17 +654,20 @@ const char * KnownConfigEntries[][2] = {
 #endif
 
 	// ignore name partially to check
+	{ "EP::", "AddCallingPartyToSourceAddress" },
 	{ "EP::", "AddNumbers" },
 	{ "EP::", "AdditionalDestinationAlias" },
 	{ "EP::", "CalledTypeOfNumber" },
 	{ "EP::", "CallingTypeOfNumber" },
 	{ "EP::", "Capacity" },
+	{ "EP::", "DisableCallCreditCapabilities" },
 #ifdef HAS_H46017
 	{ "EP::", "DisableH46017" },
 #endif
 #ifdef HAS_H46018
 	{ "EP::", "DisableH46018" },
 #endif
+	{ "EP::", "ForceGateway" },
 	{ "EP::", "GatewayPrefixes" },
 	{ "EP::", "GatewayPriority" },
 	{ "EP::", "MaxBandwidth" },

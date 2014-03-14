@@ -3526,6 +3526,29 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		}
 	}
 
+	if (m_call && m_call->GetCallingParty() && m_call->GetCallingParty()->AddCallingPartyToSourceAddress()) {
+		PString callingParty;
+		q931.GetCallingPartyNumber(callingParty);
+		bool found = false;
+		for (PINDEX i = 0; i < setupBody.m_sourceAddress.GetSize(); i++) {
+			if (AsString(setupBody.m_sourceAddress[i], false) == callingParty) {
+				found = true;
+			}
+		}
+		if (!found) {
+			PTRACE(4, Type() << "\tAdding callingParty to sourecAddress");
+			H225_AliasAddress callingAlias;
+			H323SetAliasAddress(callingParty, callingAlias);
+			setupBody.m_sourceAddress.SetSize(setupBody.m_sourceAddress.GetSize() + 1);
+			// move old sourceAddresses up one spot
+			for (PINDEX i = setupBody.m_sourceAddress.GetSize(); i > 1; i--) {
+				setupBody.m_sourceAddress[i-1] = setupBody.m_sourceAddress[i-2];
+			}
+			// add calling party as first entry
+			setupBody.m_sourceAddress[0] = callingAlias;
+		}
+	}
+
 	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
 		// rewrite destination IP here (can't do it in Explicit policy, because local IPs are removed before they get there)
 		Routing::ExplicitPolicy::MapDestination(setupBody);

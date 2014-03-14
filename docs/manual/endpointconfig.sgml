@@ -35,6 +35,12 @@ the prefix and specify a combined capacity for a group of prefixes. For a gatewa
 be considered available a.) the prefix must have capacity left and b.) the total gateway
 capacity (see above) must not be exceeded.
 
+<item><tt/ForceGateway=1/<newline>
+Default: <tt/0/<newline>
+<p>
+If you endpoint doesn't register as a gateway or MCU, you can't assign gateway prefixes.
+Use this switch to treat an endpoint as a gateway regardless of how it regsiters.
+
 <item><tt/GatewayPriority=1/<newline>
 Default: <tt/1/<newline>
 <p>
@@ -150,6 +156,17 @@ Default: <tt/0/<newline>
 Use TLS (transport layer security) when calling this endpoint. See also <ref id="tls" name="[TLS] section">.
 If the endpoint is able to signal it's capability to use TLS by H.460.22,
 then there is no need to explicitely configure this.
+
+<item><tt/DisableCallCreditCapabilities/<newline>
+Default: <tt/0/<newline>
+<p>
+If you have an endpoint that signals call credit capabilities, but crashes when they are used,
+you can use this switch to disable the feature for this endpoint.
+
+<item><tt/AddCallingPartyToSourceAddress=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Tell GnuGk to add the number from calling party IE to the list of source addresses in the Setup message.
 
 </itemize>
 

@@ -1,5 +1,10 @@
 Changes from 3.5 to 3.6
 =======================
+- new switch [EP::...] ForceGateway=1 to treat an endpoint as a gateway
+- new switch [EP::...] AddCallingPartyToSourceAddress=1
+- new switch [EP::...] DisableCallCreditCapabilities=1
+- BUGFIX(RasTbl.cxx) use 64bit numbers for AddNumbers= ranges
+- BUGFIX(RasSrv.cxx) fill destCallSignallAddress in answer ACF in direct mode
 - new routing policy [Routing::URIService] to define service specific URI routing policy.
 - BUGFIX(RasSrv.cxx) fix callSignalPort in LCF when H.460.22 is enabled
 - support libssh 0.6.x

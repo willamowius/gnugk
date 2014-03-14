@@ -104,7 +104,7 @@ EndpointRec::EndpointRec(
 	m_H46024a(false), m_H46024b(false), m_natproxy(Toolkit::AsBool(GkConfig()->GetString(proxysection, "ProxyForNAT", "1"))),
 	m_internal(false), m_remote(false), m_h46017disabled(false), m_h46018disabled(false), m_usesH460P(false), m_hasH460PData(false),
     m_usesH46017(false), m_usesH46026(false), m_traversalType(None), m_bandwidth(0), m_maxBandwidth(-1), m_useTLS(false),
-     m_useIPSec(false), m_additiveRegistrant(false)
+     m_useIPSec(false), m_additiveRegistrant(false), m_addCallingPartyToSourceAddress(false)
 {
 	switch (m_RasMsg.GetTag())
 	{
@@ -179,7 +179,7 @@ void EndpointRec::LoadAliases(const H225_ArrayOf_AliasAddress & aliases, const H
 				PTRACE(5, "Filter rule matched: AliasTypeFilter=" << entries[e]);
 
 				PStringList filterlist = filtertype[1].ToLower().Tokenise(",", false); 
-				for (PINDEX i=0; i< aliases.GetSize(); i++) {
+				for (PINDEX i = 0; i< aliases.GetSize(); i++) {
 					PString aliasType = h225aliastypes[aliases[i].GetTag()];
 					for (PINDEX j=0; j < filterlist.GetSize(); j++) {
 						if (aliasType == filterlist[j]) {
@@ -217,9 +217,7 @@ void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
 	else
 		SetTimeToLive(SoftPBX::TimeToLive);
 	m_fromParent = false;
-	m_hasCallCreditCapabilities = rrq.HasOptionalField(
-		H225_RegistrationRequest::e_callCreditCapability
-		);
+	m_hasCallCreditCapabilities = rrq.HasOptionalField(H225_RegistrationRequest::e_callCreditCapability);
 
 	if (m_permanent) {
 		PIPSocket::Address ipaddr;
@@ -447,9 +445,14 @@ void EndpointRec::LoadEndpointConfig()
 			m_maxBandwidth = cfg->GetInteger(key, "MaxBandwidth", -1);
 			m_additionalDestAlias = cfg->GetString(key, "AdditionalDestinationAlias", "");
 #ifdef HAS_TLS
-			m_useTLS = Toolkit::AsBool(cfg->GetString(key, "UseTLS", "0"));
+			m_useTLS = cfg->GetBoolean(key, "UseTLS", false);
 #endif
- 
+			if (cfg->GetBoolean(key, "DisableCallCreditCapabilities", false)) {
+				m_hasCallCreditCapabilities = false;
+			}
+			m_addCallingPartyToSourceAddress = cfg->GetBoolean(key, "AddCallingPartyToSourceAddress", false);
+PTRACE(0, "JW AddCallingPartyToSourceAddress=" << m_addCallingPartyToSourceAddress);
+
 			PTRACE(5, "RAS\tEndpoint " << key << " capacity: " << m_capacity << log);
 
 			break;
@@ -735,10 +738,10 @@ void EndpointRec::AddNumbers(const PString & numbers)
 		if (defs[i].Find("-") != P_MAX_INDEX) {
 			// range
 			PStringArray bounds(defs[i].Tokenise("-", FALSE));
-			unsigned lower = bounds[0].AsUnsigned();
-			unsigned upper = 0;
+			PUInt64 lower = bounds[0].AsUnsigned64();
+			PUInt64 upper = 0;
 			if (bounds.GetSize() == 2) {
-				upper = bounds[1].AsUnsigned();
+				upper = bounds[1].AsUnsigned64();
 			} else {
 				PTRACE(1, "AddNumber: Invalid range definition: " << defs[i]);
 				continue;
@@ -747,8 +750,8 @@ void EndpointRec::AddNumbers(const PString & numbers)
 				PTRACE(1, "AddNumber: Invalid range bounds: " << defs[i]);
 				continue;
 			}
-			unsigned num = upper - lower;
-			for (unsigned j = 0; j <= num; j++) {
+			PUInt64 num = upper - lower;
+			for (PUInt64 j = 0; j <= num; j++) {
 				PString number(lower + j);
 				PTRACE(4, "Adding number " << number << " to endpoint (from range)");
 				m_terminalAliases.SetSize(m_terminalAliases.GetSize() + 1);
@@ -1679,10 +1682,15 @@ endptr RegistrationTable::InternalInsertEP(H225_RasMessage & ras_msg)
 		GenerateAlias(rrq.m_terminalAlias, rrq.m_endpointIdentifier);
 	}
 
-	EndpointRec *ep = 
-		(rrq.m_terminalType.HasOptionalField(H225_EndpointType::e_gateway)
-			|| rrq.m_terminalType.HasOptionalField(H225_EndpointType::e_mcu))
-		? new GatewayRec(ras_msg) : new EndpointRec(ras_msg);
+	bool isGW = (rrq.m_terminalType.HasOptionalField(H225_EndpointType::e_gateway)
+			|| rrq.m_terminalType.HasOptionalField(H225_EndpointType::e_mcu));
+	if (rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) && rrq.m_terminalAlias.GetSize() > 0) {
+		PString alias = AsString(rrq.m_terminalAlias[0], false);
+		if (GkConfig()->GetBoolean("EP::" + alias, "ForceGateway", false)) {
+			isGW = true;
+		}
+	}
+	EndpointRec *ep = isGW ? new GatewayRec(ras_msg) : new EndpointRec(ras_msg);
 	WriteLock lock(listLock);
 	EndpointList.push_back(ep);
 	++regSize;

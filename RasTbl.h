@@ -336,6 +336,8 @@ public:
 	const PStringList & GetLanguages() { return m_languages; }
 	PString GetDefaultLanguage();
 
+	bool AddCallingPartyToSourceAddress() const { return m_addCallingPartyToSourceAddress; }
+
 	// smart pointer for EndpointRec
 	typedef SmartPtr<EndpointRec> Ptr;
 
@@ -427,6 +429,7 @@ protected:
 	bool m_useIPSec;	// for H.460.22 negotiation
 	bool m_additiveRegistrant;
 	PStringList m_languages;  // languages the user of this endpoint supports
+	bool m_addCallingPartyToSourceAddress;	// per endpoint switch
 };
 
 typedef EndpointRec::Ptr endptr;
