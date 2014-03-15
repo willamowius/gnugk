@@ -1212,11 +1212,12 @@ void RasServer::ForwardRasMsg(H225_RasMessage & msg)
 	if (altGKsSize <= 0)
 		return;
 
-	H225_NonStandardParameter oldParam, *nonStandardParam;
-	bool hasStandardParam;
-	PASN_Sequence *sobj;
-	unsigned tag;
-	H225_RequestSeqNum oldReqNum, *reqNum;
+	H225_NonStandardParameter oldParam;
+	H225_NonStandardParameter *nonStandardParam = NULL;
+	PASN_Sequence *sobj = NULL;
+	unsigned tag = 0;
+	H225_RequestSeqNum oldReqNum;
+	H225_RequestSeqNum *reqNum = NULL;
 
 	// ATS 2004-01-16 Forward messages to alternates using our own sequence numbers
 	// instead of using those supplied by the originator of the message, this will
@@ -1270,7 +1271,7 @@ void RasServer::ForwardRasMsg(H225_RasMessage & msg)
 			return;
 	}
 
-	hasStandardParam = sobj->HasOptionalField(tag);
+	bool hasStandardParam = sobj->HasOptionalField(tag);
 	if (hasStandardParam)
 		oldParam = *nonStandardParam;
 	else
