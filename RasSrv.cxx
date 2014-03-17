@@ -1497,13 +1497,12 @@ void RasServer::GetAlternateGK()
 			m_altGkRules[addr] = ParseAltGKConfig(setting);
 		}
 	}
- 
+
 	// parse global alt gk config
 	PString altGkSetting = GkConfig()->GetString("AlternateGKs", "");
-	if (altGkSetting.IsEmpty())
-		return;
-	altGKs = ParseAltGKConfig(altGkSetting);
- 
+	if (!altGkSetting.IsEmpty())
+		altGKs = ParseAltGKConfig(altGkSetting);
+
 	PString sendto(GkConfig()->GetString("SendTo", ""));
 	PStringArray svrs(sendto.Tokenise(" ,;\t", FALSE));
 	if ((altGKsSize = svrs.GetSize()) > 0)
@@ -1513,6 +1512,7 @@ void RasServer::GetAlternateGK()
 			altGKsPort.push_back(WORD(tokens[1].AsUnsigned()));
 		}
 }
+
 H225_ArrayOf_AlternateGK RasServer::ParseAltGKConfig(const PString & altGkSetting) const
 {
 	PStringArray altgks(altGkSetting.Tokenise(",", FALSE));
@@ -1521,7 +1521,7 @@ H225_ArrayOf_AlternateGK RasServer::ParseAltGKConfig(const PString & altGkSettin
 
 	for (PINDEX idx = 0; idx < altgks.GetSize(); ++idx) {
 		const PStringArray tokens = altgks[idx].Tokenise(";", FALSE);
-		if (tokens.GetSize() < 4) {
+		if (tokens.GetSize() < 4 || tokens.GetSize() > 5) {
 			PTRACE(1, "GK\tFormat error in AlternateGKs");
 			SNMP_TRAP(7, SNMPError, Configuration, "Invalid AlternateGK config");
 			continue;
