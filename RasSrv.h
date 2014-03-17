@@ -37,12 +37,8 @@ class SignalingMsg;
 template <class> class H225SignalingMsg;
 typedef H225SignalingMsg<H225_Setup_UUIE> SetupMsg;
 
-//struct GatekeeperMessage;
 class RasListener;
-//class RasMsg;
-//class RasHandler;
 class GkInterface;
-//class GkAuthenticatorList;
 class GkAcctLoggerList;
 class GkClient;
 class ProxyHandler;
