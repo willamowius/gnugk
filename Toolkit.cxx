@@ -1856,16 +1856,14 @@ PConfig* Toolkit::ReloadConfig()
 						!m_Config->GetString(RoutedSec, "H46023STUN", ""));
 #endif
 
-	// TODO/BUG: always call SetGKHome() on reload, even if we don't have a Home= setting
-	// otherwise we won't detect new IPs on the machine
 	PString GKHome(m_Config->GetString("Home", ""));
 	if (GKHome == "0.0.0.0") {
 		PTRACE(1, "Config error: Invalid Home setting (0.0.0.0), ignoring");
 		SNMP_TRAP(10, SNMPError, Configuration, "Invalid Home setting (0.0.0.0)");
 		GKHome = "";
 	}
-	if (m_GKHome.empty() || !GKHome)
-		SetGKHome(GKHome.Tokenise(",;", false));
+	// always call SetGKHome() on reload to detect new IPs
+	SetGKHome(GKHome.Tokenise(",;", false));
 	
 	m_RouteTable.InitTable();
 	m_VirtualRouteTable.InitTable();
