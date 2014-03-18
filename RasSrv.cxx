@@ -488,12 +488,15 @@ GkInterface::GkInterface(const PIPSocket::Address & addr) : m_address(addr)
 
 GkInterface::~GkInterface()
 {
+	// TODO/BUG: without LARGE_FDSET, closing RAS sockets may hang on ConfigReloadMutex
 	if (m_rasListener)
 		m_rasListener->Close();
 	if (m_multicastListener)
 		m_multicastListener->Close();
 	if (m_callSignalListener)
 		m_rasSrv->CloseListener(m_callSignalListener);
+	if (m_tlsCallSignalListener)
+		m_rasSrv->CloseListener(m_tlsCallSignalListener);
 	if (m_statusListener)
 		m_rasSrv->CloseListener(m_statusListener);
 }
@@ -1047,12 +1050,12 @@ bool RasServer::ReplyToRasAddress(const NetworkAddress & ip) const
 	return result;
 }
 
-void RasServer::AddListener(RasListener *socket)
+void RasServer::AddListener(RasListener * socket)
 {
 	AddSocket(socket);
 }
 
-void RasServer::AddListener(TCPListenSocket *socket)
+void RasServer::AddListener(TCPListenSocket * socket)
 {
 	if (socket->IsOpen())
 		listeners->AddListener(socket);
@@ -1062,7 +1065,7 @@ void RasServer::AddListener(TCPListenSocket *socket)
 	}
 }
 
-bool RasServer::CloseListener(TCPListenSocket *socket)
+bool RasServer::CloseListener(TCPListenSocket * socket)
 {
 	return listeners->CloseListener(socket);
 }
