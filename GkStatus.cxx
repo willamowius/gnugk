@@ -706,7 +706,7 @@ int TelnetSocket::ReadChar()
 
 	while (!hasData) {
 		if (!TCPSocket::Read(&currentByte, 1)) {
-			PSocket::Errors err = GetErrorCode(PSocket::LastReadError);
+			const PSocket::Errors err = GetErrorCode(PSocket::LastReadError);
 			if ((err != PSocket::Timeout) && (err != PSocket::NoError)) {
 				PTRACE(3, "TELNET\t" << GetName() << " closed the connection ("
 					<< GetErrorCode(PSocket::LastReadError) << '/' 

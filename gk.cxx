@@ -2,7 +2,7 @@
 //
 // gk.cxx for GNU Gatekeeper
 //
-// Copyright (c) 2000-2013, Jan Willamowius
+// Copyright (c) 2000-2014, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1090,6 +1090,7 @@ Gatekeeper::Gatekeeper(const char * _manuf,
 	: PProcess(_manuf, _name, _majorVersion, _minorVersion, _status, _buildNumber)
 #endif
 {
+	m_strictConfigCheck = false;
 #ifdef _WIN32
 	// set data execution prevention (ignore if not available)
 	SetDEP(PROCESS_DEP_ENABLE);
@@ -1183,6 +1184,7 @@ const PString Gatekeeper::GetArgumentsParseString() const
 		 "-core:"
 		 "-mlock."
 #endif
+		 "-strict."
 		 "h-help:"
 		 );
 }
@@ -1272,10 +1274,8 @@ bool Gatekeeper::InitConfig(const PArgList & args)
 
 	Toolkit::Instance()->SetConfig(fp, section);
 
-	// check config for unknown options (only warn about them)
-	CheckConfig(GkConfig(), section);
-
-	return true;
+	// check config for unknown options (only return failure when strict flag is set)
+	return (CheckConfig(GkConfig(), section) || !m_strictConfigCheck);
 }
 
 
@@ -1299,6 +1299,7 @@ void Gatekeeper::PrintOpts()
 		"      --core n       : Enable core dumps (with max size of n bytes)\n"
 		"      --mlock        : Lock GnuGk into memory to prevent it being swaped out\n"
 #endif
+		"      --strict       : Strict config check (don't start with errors in config)\n"
 		"  -h  --help         : Show this message\n" << endl;
 }
 
@@ -1395,6 +1396,7 @@ void Gatekeeper::Main()
 		ExitGK();
 	}
 
+	m_strictConfigCheck = args.HasOption("strict");
 	if (!InitConfig(args) || !InitHandlers(args))
 		ExitGK();
 

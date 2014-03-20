@@ -29,6 +29,8 @@
 .Op Fl o Ar filename
 .Op Fl -pid Ar filename
 .Op Fl -core Ar n
+.Op Fl -mlock
+.Op Fl -strict
 .Sh DESCRIPTION
 The GNU Gatekeeper is an open-source project that implements a H.323 gatekeeper.
 A H.323 gatekeeper controls all H.323 clients in its zone.
@@ -50,6 +52,8 @@ is the same as
 Show all available options and quit the program.
 .It Fl c -config Ar filename
 Specify the configuration file to use.
+.It Fl -strict
+Strict configuration check (don't start with config errors)
 .It Fl s -section Ar section
 Specify which main section to use in the configuration file.
 The default is

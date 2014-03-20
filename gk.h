@@ -157,7 +157,7 @@ private:
 #ifdef COMPILE_AS_SERVICE
 	PString savedArguments;
 #endif
-
+	bool m_strictConfigCheck;
 };
 #endif // GK_H
 

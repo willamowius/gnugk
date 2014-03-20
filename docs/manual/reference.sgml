@@ -20,6 +20,8 @@ Almost every option has a short and a long format, e.g.,
 Show all available options and quit the program.
 <tag/<tt/-c  --config filename//
 Specify the configuration file to use.
+<tag/<tt/--strict//
+Strict configuration check (don't start with config errors)
 <tag/<tt/-s  --section section//
 Specify which main section to use in the configuration file. The default is [Gatekeeper::Main].
 <tag/<tt/-l  --timetolive n//

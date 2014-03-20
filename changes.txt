@@ -1,5 +1,6 @@
 Changes from 3.5 to 3.6
 =======================
+- new command line switch: --strict (don't start with config errors)
 - allow SendTo= without AlternateGKs= switch
 - new switch [EP::...] ForceGateway=1 to treat an endpoint as a gateway
 - new switch [EP::...] AddCallingPartyToSourceAddress=1
