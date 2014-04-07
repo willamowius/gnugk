@@ -495,8 +495,10 @@ GkInterface::~GkInterface()
 		m_multicastListener->Close();
 	if (m_callSignalListener)
 		m_rasSrv->CloseListener(m_callSignalListener);
+#ifdef HAS_TLS
 	if (m_tlsCallSignalListener)
 		m_rasSrv->CloseListener(m_tlsCallSignalListener);
+#endif
 	if (m_statusListener)
 		m_rasSrv->CloseListener(m_statusListener);
 }
