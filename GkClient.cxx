@@ -24,7 +24,7 @@
 #include "cisco.h"
 #include "GkClient.h"
 
-#if defined (HAS_H46018) || defined(HAS_H46023)
+#ifdef HAS_H460
 #include <h460/h4601.h>
 #endif
 
