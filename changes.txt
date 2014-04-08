@@ -1,5 +1,6 @@
 Changes from 3.5 to 3.6
 =======================
+- BUGFIX(ProxyChannel.cxx) fix memory leak on TLS errors
 - new command line switch: --strict (don't start with config errors)
 - allow SendTo= without AlternateGKs= switch
 - new switch [EP::...] ForceGateway=1 to treat an endpoint as a gateway

@@ -12626,6 +12626,7 @@ void TLSCallSignalSocket::Dispatch()
 {
 	if (!(m_ssl = SSL_new(Toolkit::Instance()->GetTLSContext()))) {
 		PTRACE(1, "TLS\tError creating SSL object");
+		delete this;
 		return;
 	}
 	SSL_set_fd(m_ssl, GetHandle());
@@ -12642,6 +12643,7 @@ void TLSCallSignalSocket::Dispatch()
 					ERR_error_string(ERR_get_error(), msg);
 					PTRACE(1, "TLS\tTLS protocol error in SSL_connect(): " << err << " / " << msg);
 					SSL_shutdown(m_ssl);
+					delete this;
 					return;
 					break;
 				case SSL_ERROR_SYSCALL:
@@ -12657,6 +12659,7 @@ void TLSCallSignalSocket::Dispatch()
 							ERR_error_string(ERR_get_error(), msg);
 							PTRACE(1, "TLS\tTerminating connection: " << msg);
 							SSL_shutdown(m_ssl);
+							delete this;
 							return;
 					};
 					break;
@@ -12670,6 +12673,7 @@ void TLSCallSignalSocket::Dispatch()
 					ERR_error_string(ERR_get_error(), msg);
 					PTRACE(1, "TLS\tUnknown error in SSL_accept(): " << err << " / " << msg);
 					SSL_shutdown(m_ssl);
+					delete this;
 					return;
 			}
 		}
@@ -12681,6 +12685,7 @@ void TLSCallSignalSocket::Dispatch()
 	UnmapIPv4Address(raddr);
 	if (!Toolkit::Instance()->MatchHostCert(m_ssl, raddr)) {
 		SSL_shutdown(m_ssl);
+		delete this;
 		return;
 	}
 
