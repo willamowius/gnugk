@@ -792,6 +792,7 @@ bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 		if (aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits)
 			continue;
 		PString alias(AsString(aliases[i], FALSE));
+		// TODO: also support domain##alias notation ?
 		PINDEX at = alias.Find('@');
 
 		PString domain = (at != P_MAX_INDEX) ? alias.Mid(at + 1) : alias;
@@ -840,6 +841,7 @@ bool DNSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 		if (aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits)
 			continue;
 		PString alias(AsString(aliases[i], FALSE));
+		// TODO: also support domain##alias notation ?
 		PINDEX at = alias.Find('@');
 
 		PString domain = (at != P_MAX_INDEX) ? alias.Mid(at + 1) : alias;
