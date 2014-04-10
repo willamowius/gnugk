@@ -792,10 +792,14 @@ bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 		if (aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits)
 			continue;
 		PString alias(AsString(aliases[i], FALSE));
-		// TODO: also support domain##alias notation ?
 		PINDEX at = alias.Find('@');
+		PINDEX hashhash = alias.Find("##");	// Polycom's domain##alias notation
 
-		PString domain = (at != P_MAX_INDEX) ? alias.Mid(at + 1) : alias;
+		PString domain = alias;
+		if (at != P_MAX_INDEX)
+			domain = alias.Mid(at + 1);
+		if (hashhash != P_MAX_INDEX)
+			domain = alias.Left(hashhash);
 		if (domain.Find("ip$") == 0)
 			domain.Replace("ip$", "", false);
 		PStringArray parts = SplitIPAndPort(domain, GK_DEF_ENDPOINT_SIGNAL_PORT);
@@ -806,8 +810,14 @@ bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 			H225_TransportAddress dest;
 			if (!request.GetGatewayDestination(dest)) {
 				dest = SocketToH225TransportAddr(addr, port);
-				H323SetAliasAddress(alias.Left(at), aliases[i]);
-				PTRACE(4, "ROUTING\tDNS policy resolves to " << alias.Left(at) << " @ " << AsDotString(dest));
+				PString aliasPart = "";
+				if (at != P_MAX_INDEX)
+					aliasPart = alias.Left(at);
+				if (hashhash != P_MAX_INDEX)
+					aliasPart = alias.Mid(hashhash + 2);
+				PTRACE(0, "JW alias=" << aliasPart);
+				H323SetAliasAddress(aliasPart, aliases[i]);
+				PTRACE(4, "ROUTING\tDNS policy resolves to " << aliasPart << " @ " << AsDotString(dest));
 			}
 
 			if (Toolkit::Instance()->IsGKHome(addr)
@@ -816,7 +826,12 @@ bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 				// check if the domain is my IP, if so route to local endpoint if available
 				H225_ArrayOf_AliasAddress find_aliases;
 				find_aliases.SetSize(1);
-				H323SetAliasAddress(alias.Left(at), find_aliases[0]);
+				PString aliasPart = "";
+				if (at != P_MAX_INDEX)
+					aliasPart = alias.Left(at);
+				if (hashhash != P_MAX_INDEX)
+					aliasPart = alias.Mid(hashhash + 2);
+				H323SetAliasAddress(aliasPart, find_aliases[0]);
 				endptr ep = RegistrationTable::Instance()->FindByAliases(find_aliases);
 				if (ep) {
 					dest = ep->GetCallSignalAddress();
@@ -841,10 +856,14 @@ bool DNSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 		if (aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits)
 			continue;
 		PString alias(AsString(aliases[i], FALSE));
-		// TODO: also support domain##alias notation ?
 		PINDEX at = alias.Find('@');
+		PINDEX hashhash = alias.Find("##");	// Polycom's domain##alias notation
 
-		PString domain = (at != P_MAX_INDEX) ? alias.Mid(at + 1) : alias;
+		PString domain = alias;
+		if (at != P_MAX_INDEX)
+			domain = alias.Mid(at + 1);
+		if (hashhash != P_MAX_INDEX)
+			domain = alias.Left(hashhash);
 		if (domain.Find("ip$") == 0)
 			domain.Replace("ip$", "", false);
 		PStringArray parts = SplitIPAndPort(domain, GK_DEF_ENDPOINT_SIGNAL_PORT);
@@ -856,8 +875,13 @@ bool DNSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 			if (Toolkit::Instance()->IsGKHome(addr)) {
 				// only apply DNS policy to LRQs that resolve locally
 				H225_ArrayOf_AliasAddress find_aliases;
+				PString aliasPart = "";
+				if (at != P_MAX_INDEX)
+					aliasPart = alias.Left(at);
+				if (hashhash != P_MAX_INDEX)
+					aliasPart = alias.Mid(hashhash + 2);
 				find_aliases.SetSize(1);
-				H323SetAliasAddress(alias.Left(at), find_aliases[0]);
+				H323SetAliasAddress(aliasPart, find_aliases[0]);
 				endptr ep = RegistrationTable::Instance()->FindByAliases(find_aliases);
 				if (ep) {
 					if (!(RasServer::Instance()->IsGKRouted())) {
