@@ -5749,6 +5749,9 @@ static PString ParseEndpointAddress(H4501_EndpointAddress& endpointAddress)
 
 bool CallSignalSocket::OnH450CallTransfer(PASN_OctetString * argument)
 {
+	if (!argument)
+		return false;
+
 	H4502_CTInitiateArg ctInitiateArg;
 	PPER_Stream argStream(*argument);
 	if (ctInitiateArg.Decode(argStream)) {
@@ -10110,7 +10113,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 	for (int i = 0; i < numPorts; i += 2) {
 		port = GetPortNumber();
 		// try to bind rtp to an even port and rtcp to the next one port
-		if (!rtp->Bind(laddr, port)) {
+		if (rtp && !rtp->Bind(laddr, port)) {
 			PTRACE(1, "RTP\tRTP socket " << AsString(laddr, port) << " not available - error "
 				<< rtp->GetErrorCode(PSocket::LastGeneralError) << '/'
 				<< rtp->GetErrorNumber(PSocket::LastGeneralError) << ": "
@@ -10119,7 +10122,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 			rtp->Close();
 			continue;
 		}
-		if (!rtcp->Bind(laddr, port+1)) {
+		if (rtcp && !rtcp->Bind(laddr, port+1)) {
 			PTRACE(1, "RTP\tRTCP socket " << AsString(laddr, port + 1) << " not available - error "
 				<< rtcp->GetErrorCode(PSocket::LastGeneralError) << '/'
 				<< rtcp->GetErrorNumber(PSocket::LastGeneralError) << ": "
@@ -10655,8 +10658,10 @@ void RTPLogicalChannel::OnHandlerSwapped(bool nated)
 void RTPLogicalChannel::SetNAT(bool nated)
 {
 	if (nated) {
-		rtp->SetNAT(reversed);
-		rtcp->SetNAT(reversed);
+		if (rtp)
+			rtp->SetNAT(reversed);
+		if (rtcp)
+			rtcp->SetNAT(reversed);
 	}
 }
 
@@ -11652,7 +11657,6 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		PASN_OctetString & raw = octetValue;
 		raw.EncodeSubType(params);
 		olca.m_genericInformation[0].m_messageContent[0] = genericParameter;
-		changed = true;
 		PTRACE(5, "Adding TraversalParams to OLCA=" << params);
 		changed = true;
 	}

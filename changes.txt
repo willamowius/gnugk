@@ -17,7 +17,6 @@ Changes from 3.5 to 3.6
 - BUGFIX(ProxyChannel.cxx) wait 4 sec before using regular RTP packets for H.460.19 port detection
 - BUGFIX(gk.cxx) small fixes for MacOSX
 
-
 Changes from 3.4 to 3.5
 =======================
 - BUGFIX(Routing.cxx) fix DNS policy to allow calls by IP:port to endpoint on same IP as gatekeeper

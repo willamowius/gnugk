@@ -1643,7 +1643,7 @@ void Toolkit::ReloadSQLConfig()
 		} else {
 			// H46018 Traversal Support
 			int h460id = 8;
-			int h46018traverse=0;
+			int h46018traverse = 0;
 			while (queryResult->FetchRow(params)) {
 				// GkID, Gatekeeper Identifier and Gatekeeper Type must not be empty
 				if (params[0].IsEmpty() || params[1].IsEmpty() || params[2].IsEmpty()) {
@@ -1653,8 +1653,7 @@ void Toolkit::ReloadSQLConfig()
 				} else {
 					m_Config->SetString("RasSrv::Neighbors", params[0], params[1]);
 					PString neighborSection = "Neighbor::" + params[0]; 
-					h46018traverse =0;
-					if (queryResult->GetNumFields() > h460id ) {
+					if (queryResult->GetNumFields() > h460id) {
 						h46018traverse = params[h460id].AsInteger();
 						if (h46018traverse) {
 							if (h46018traverse == 1)

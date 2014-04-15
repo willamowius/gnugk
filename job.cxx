@@ -338,7 +338,7 @@ void Agent::Exec(Job * job)
 		<< " total - " << numBusyWorkers << " busy, " << numIdleWorkers << " idle");
 
 	if (destroyWorker) {
-		PTRACE(5, "JOB\tAgent did not accept Job " << job->GetName());
+		PTRACE(5, "JOB\tAgent did not accept Job " << (job ? job->GetName() : "<no job>"));
 		worker->Destroy();
 	}
 }

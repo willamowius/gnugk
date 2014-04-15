@@ -1283,7 +1283,6 @@ bool RadiusPDU::EncryptPasswords(
 		for (int _i = 0; _i < 16; _i++)
 			((BYTE*)buf1ptr)[_i] = ((BYTE*)buf1ptr)[_i] ^ ((const BYTE*)buf2ptr)[_i];
 		buf1ptr += 4;
-		buf2ptr += 4;
 	} else {
 		// dword aligned data
 		*buf1ptr = *buf1ptr ^ *buf2ptr++;
@@ -1313,7 +1312,6 @@ bool RadiusPDU::EncryptPasswords(
 			for (int _i = 0; _i < 16; _i++)
 				((BYTE*)buf1ptr)[_i] = ((BYTE*)buf1ptr)[_i] ^ ((const BYTE*)buf2ptr)[_i];
 			buf1ptr += 4;
-			buf2ptr += 4;
 		} else {
 			// dword aligned data
 			*buf1ptr = *buf1ptr ^ *buf2ptr++;
@@ -1326,7 +1324,7 @@ bool RadiusPDU::EncryptPasswords(
 			++buf1ptr;
 		}
 	}
-	
+
 	// delete the old (clear text) User-Password attribute and append the new
 	// one (encrypted) at the end
 	// this is done by overwritting the old User-Password with attributes 
@@ -1543,8 +1541,6 @@ bool RadiusSocket::MakeRequest(
 
 	if (result)
 	do {
-		result = FALSE;
-
 		if (shouldRead) {
 			PIPSocket::Address remoteAddress;
 			WORD remotePort;
