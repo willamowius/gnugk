@@ -57,5 +57,5 @@ stop () {
     echo -n $"Stopping $prog: "
     killproc $GKEXE
     RETVAL=$?
-
+}
 
