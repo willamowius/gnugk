@@ -73,7 +73,7 @@ public:
 		unsigned priority = 1
 		);
 
-	bool operator< (const Route & rhs) { return m_priority < rhs.m_priority; }
+	bool operator< (const Route & rhs) const { return m_priority < rhs.m_priority; }
 
 	unsigned GetPriority() const { return m_priority; }
 	void SetPriority(unsigned p) { m_priority = p; }
