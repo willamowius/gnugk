@@ -3994,7 +3994,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 						rejectCall = true;
 					}
 					// If the called Party is not NATed then the called EP must support NAT'd callers
-					// latter versions of OpenH323 and GnomeMeeting do also allow this condition.
+					// later versions of OpenH323 and GnomeMeeting do also allow this condition.
 				} else {
 					PTRACE(4, Type() << "\tUnregistered party is not NATed");
 				}
