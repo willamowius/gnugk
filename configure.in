@@ -1206,7 +1206,7 @@ if test "x${weaktls}" != "xno" ; then
    STDCCFLAGS="-DHAS_WEAK_TLS=1 $STDCCFLAGS"
    echo "Weak TLS enabled"
 else
-   echo "Weak TLS disabled"
+   echo "Weak TLS disabled (using strong TLS)"
    HAS_WEAK_TLS=0
 fi
 AC_SUBST(HAS_WEAK_TLS)
