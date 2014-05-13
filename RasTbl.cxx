@@ -451,7 +451,6 @@ void EndpointRec::LoadEndpointConfig()
 				m_hasCallCreditCapabilities = false;
 			}
 			m_addCallingPartyToSourceAddress = cfg->GetBoolean(key, "AddCallingPartyToSourceAddress", false);
-PTRACE(0, "JW AddCallingPartyToSourceAddress=" << m_addCallingPartyToSourceAddress);
 
 			PTRACE(5, "RAS\tEndpoint " << key << " capacity: " << m_capacity << log);
 
