@@ -251,9 +251,17 @@ Toolkit::RouteTable::RouteEntry::RouteEntry(
 {
 	// look at the interface table which local IP to use for this route entry
 	PINDEX i;
+	// try to select outgoing ip from network - check if ip is valid with netmask
 	for (i = 0; i < it.GetSize(); ++i) {
 		const Address & ip = it[i].GetAddress();
-		if (Toolkit::Instance()->IsGKHome(ip) && Compare(&ip)) {	// skip IPs we don't listen to
+	    if (Toolkit::Instance()->IsGKHome(ip) && CompareWithMask(&ip)) {
+	        destination = ip;
+	        return;
+	    }
+	}
+	for (i = 0; i < it.GetSize(); ++i) {
+		const Address & ip = it[i].GetAddress();
+		if (Toolkit::Instance()->IsGKHome(ip) && Compare(&ip)) {    // skip IPs we don't listen to
 			destination = ip;
 			return;
 		}
@@ -269,6 +277,38 @@ Toolkit::RouteTable::RouteEntry::RouteEntry(
 inline bool Toolkit::RouteTable::RouteEntry::Compare(const Address *ip) const
 {
 	return (*ip == destination) || (((*ip & net_mask) == network) && (ip->GetVersion() == network.GetVersion()));
+}
+
+bool Toolkit::RouteTable::RouteEntry::CompareWithMask(const Address *ip) const
+{
+	if (ip->GetVersion() != network.GetVersion())
+		return false;
+
+#if P_HAS_IPV6
+    PINDEX mmax = ip->GetVersion() == 6 ? 16 : 4;
+#else
+    PINDEX mmax = 4;
+#endif
+    bool maskValid = true;
+    bool networkStarted = false; // this is a non-zero network byte
+    for (PINDEX m = mmax - 1; m >= 0 ; --m) {
+        BYTE ipByte = (*ip)[m];
+        BYTE maskByte = network[m];
+        if ((maskByte == 0)){
+            if (networkStarted && (ipByte > 0)){
+                return false;
+            }
+            // mask non-zero bits not reached yet
+            continue;
+        }
+        networkStarted = true;
+        BYTE match = (unsigned char)ipByte & (unsigned char)maskByte;
+        if ((unsigned char)match != (unsigned char)maskByte){
+            maskValid = false;
+            break;
+        }
+    }
+    return (maskValid);
 }
 
 // class Toolkit::RouteTable
@@ -446,9 +486,8 @@ PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(const Address & addr) co
 			}
 		}
 	}
-
 	RouteEntry *entry = find_if(rtable_begin, rtable_end,
-		bind2nd(mem_fun_ref(&RouteEntry::Compare), &addr));
+		bind2nd(mem_fun_ref(&RouteEntry::CompareWithMask), &addr));
 	if (entry != rtable_end) {
 		return entry->GetDestination();
 	}

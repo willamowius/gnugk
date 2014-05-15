@@ -1,6 +1,6 @@
 Changes from 3.6 to 3.7
 =======================
-
+- BUGFIX(Toolkit.cxx) fix selection of reply address for IPv6
 
 Changes from 3.5 to 3.6
 =======================

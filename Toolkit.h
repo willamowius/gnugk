@@ -148,6 +148,7 @@ class Toolkit : public Singleton<Toolkit>
 			RouteEntry(const PString &);
 			RouteEntry(const PIPSocket::RouteEntry &, const InterfaceTable &);
 			bool Compare(const Address *) const;
+			bool CompareWithMask(const Address *) const;
 		};
 		virtual bool CreateTable() { return CreateRouteTable(); }
 		bool CreateRouteTable(const PString & extroute = PString::Empty());
