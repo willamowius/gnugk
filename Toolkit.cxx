@@ -2,7 +2,7 @@
 //
 // Toolkit base class for the GnuGk
 //
-// Copyright (c) 2000-2013, Jan Willamowius
+// Copyright (c) 2000-2014, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -560,7 +560,7 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 					PTRACE(2, "Adding explicit route: " << entry.GetNetwork() << "/" << entry.GetNetMask() << "->" << entry.GetDestination());
 					e++;
 				} else {
-					PTRACE(1, "Ignoring explict route (invalid source IP): "
+					PTRACE(1, "Ignoring explicit route (invalid source IP): "
 						<< entry.GetNetwork() << "/" << entry.GetNetMask() << "->" << entry.GetDestination());
 					explicitRoutes.RemoveAt(e);
 				}
