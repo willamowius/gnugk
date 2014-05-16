@@ -1397,8 +1397,11 @@ void Gatekeeper::Main()
 	}
 
 	m_strictConfigCheck = args.HasOption("strict");
-	if (!InitConfig(args) || !InitHandlers(args))
+	if (!InitConfig(args) || !InitHandlers(args)) {
+		cerr << "ERROR: Serious error in the configuration - terminating" << endl;
+		PTRACE(0, "ERROR: Serious error in the configuration - terminating");
 		ExitGK();
+	}
 
 	// set trace level + output file from config , if not set on the command line (for service)
 	PString fake_cmdline;
