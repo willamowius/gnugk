@@ -1926,14 +1926,14 @@ int PrefixAuth::doCheck(const AuthObj & aobj)
 			{
 			case AuthRule::e_allow:
 				PTRACE(4, "GKAUTH\t" << GetName() << " rule matched and "
-					"accepted destination prefix '" 
+					"accepted destination prefix '"
 					<< ((iter->first == " ") ? PString("ALL") : iter->first)
 					<< "' for alias '" << destinationInfo[i] << '\'');
 				return e_ok;
 				
 			case AuthRule::e_deny:
 				PTRACE(4, "GKAUTH\t" << GetName() << " rule matched and "
-					"rejected destination prefix '" 
+					"rejected destination prefix '"
 					<< ((iter->first == " ") ? PString("ALL") : iter->first)
 					<< "' for alias '" << destinationInfo[i] << '\'');
 				return e_fail;
@@ -1941,7 +1941,7 @@ int PrefixAuth::doCheck(const AuthObj & aobj)
 			default: // try next prefix...
 				j = iter;
 				PTRACE(4, "GKAUTH\t" << GetName() << " rule matched and "
-					"could not reject or accept destination prefix '" 
+					"could not reject or accept destination prefix '"
 					<< ((iter->first == " ") ? PString("ALL") : iter->first)
 					<< "' for alias '" << destinationInfo[i] << '\'');
 			}
