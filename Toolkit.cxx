@@ -3537,6 +3537,7 @@ void Toolkit::SetGKHome(const PStringArray & home)
 				if (m_GKHome[n] == it[i].GetAddress())
 					break;
 			if (i == is) {
+				// just warn, secondardy IPs or IPv6 IPs (w older PTLib) aren't found this way
 				PTRACE(1, "GK\tAddress " << m_GKHome[n] << " not found"
 					" in the PTLib interface table");
 			}
