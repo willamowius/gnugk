@@ -1207,10 +1207,15 @@ bool StatusClient::ReadCommand(
 	while (IsReadable(timeout)) {
 		char byte;
 		int ch = ReadChar();
+		int lastErr = GetErrorNumber();
 		switch (ch)
 		{
 			case -1:
-				break; // read IAC or socket closed
+				// read IAC or socket closed
+				if (lastErr == 0) { // yes, lastErr==0 means closed, IAC usually has err=110
+					Close();
+				}
+				break;
 			case '\r':
 			case '\n':
 				cmd = m_currentCmd;

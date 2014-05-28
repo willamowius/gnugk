@@ -1,5 +1,6 @@
 Changes from 3.6 to 3.7
 =======================
+- BUGFIX(GkStatus.cxx) better handling when status clients don't quit properly
 - BUGFIX(Toolkit.cxx) fix selection of reply address for IPv6
 
 Changes from 3.5 to 3.6
