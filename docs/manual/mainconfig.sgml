@@ -444,17 +444,17 @@ The RAS channel TSAP identifier for unicast.
 <item><tt/UseMulticastListener=0/<newline>
 Default: <tt/1/<newline>
 <p>
-Enable or disable gatekeeper discovery using multicast. By default it is enabled.
+Enable or disable gatekeeper discovery using IPv4 multicast. By default it is enabled.
 
 <item><tt/MulticastPort=1718/<newline>
 Default: <tt/1718/<newline>
 <p>
-The RAS channel TSAP identifier for multicast.
+The RAS channel TSAP identifier for IPv4 multicast.
 
 <item><tt/MulticastGroup=224.0.1.41/<newline>
 Default: <tt/224.0.1.41/<newline>
 <p>
-The multicast group for the RAS channel.
+The IPv4 multicast group for the RAS channel.
 
 <item><tt/EndpointSignalPort=1720/<newline>
 Default: <tt/1720/<newline>
