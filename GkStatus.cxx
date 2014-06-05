@@ -1207,7 +1207,7 @@ bool StatusClient::ReadCommand(
 	while (IsReadable(timeout)) {
 		char byte;
 		int ch = ReadChar();
-		int lastErr = GetErrorNumber();
+		int lastErr = GetErrorNumber(PSocket::LastReadError);
 		switch (ch)
 		{
 			case -1:
