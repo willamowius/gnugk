@@ -2305,13 +2305,12 @@ int pem_passwd_cb(char * buf, int size, int rwflag, void * password)
 
 int verify_callback(int ok, X509_STORE_CTX * store)
 {
-	char data[256];
- 
 	if (!ok)
 	{
         X509 * cert = X509_STORE_CTX_get_current_cert(store);
         int depth = X509_STORE_CTX_get_error_depth(store);
         int err = X509_STORE_CTX_get_error(store);
+		char data[256];
 
         PTRACE(5, "TLS\tError with certificate at depth " << depth);
         X509_NAME_oneline(X509_get_issuer_name(cert), data, 256);
@@ -2320,7 +2319,7 @@ int verify_callback(int ok, X509_STORE_CTX * store)
         PTRACE(5, "TLS\t  subject = " << data);
         PTRACE(5, "TLS\t  err " << err << ": " << X509_verify_cert_error_string(err));
     }
- 
+
     return ok;
 }
 
