@@ -600,6 +600,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "SQLAuth", "Password" },
 	{ "SQLAuth", "RegQuery" },
 	{ "SQLAuth", "Username" },
+	{ "SQLConfig", "AssignedAliasQuery" },
 	{ "SQLConfig", "CacheTimeout" },
 	{ "SQLConfig", "ConfigQuery" },
 	{ "SQLConfig", "Database" },
