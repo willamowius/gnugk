@@ -1495,7 +1495,7 @@ void Toolkit::ReloadSQLConfig()
 		queryResult = NULL;
 	}
 			
-// Rewrite E164
+	// Rewrite E164
 	query = m_Config->GetString("SQLConfig", "RewriteE164Query", "");
 	if (!query.IsEmpty()) {
 		PTRACE(4, "SQLCONF\tLoading E164 rewrite rules from SQL database");
@@ -1819,6 +1819,7 @@ void Toolkit::ReloadSQLConfig()
 		delete queryResult;
 		queryResult = NULL;
 	}
+	// TODO: add support for missing special section
 	
 	delete sqlConn;
 	sqlConn = NULL;
