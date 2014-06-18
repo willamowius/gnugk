@@ -437,9 +437,16 @@ inline void CopyNonStandardData(const ORAS & omsg, DRAS & dmsg)
 
 // template class RasPDU
 template<class RAS>
-H225_NonStandardParameter *RasPDU<RAS>::GetNonStandardParam()
+H225_NonStandardParameter * RasPDU<RAS>::GetNonStandardParam()
 {
-	return request.HasOptionalField(RAS::e_nonStandardData) ? &request.m_nonStandardData : 0;
+	return request.HasOptionalField(RAS::e_nonStandardData) ? &request.m_nonStandardData : NULL;
+}
+
+// template specialization for H225_NonStandardMessage which doesn't have e_nonStandardData
+template<>
+H225_NonStandardParameter * RasPDU<H225_NonStandardMessage>::GetNonStandardParam()
+{
+	return NULL;
 }
 
 template<class RAS>
@@ -1396,6 +1403,7 @@ void RasServer::Run()
 	RasPDU<H225_ResourcesAvailableIndicate>::Creator RAICreator;
 	RasPDU<H225_ServiceControlIndication>::Creator SCICreator;
 	RasPDU<H225_ServiceControlResponse>::Creator SCRCreator;
+	RasPDU<H225_NonStandardMessage>::Creator NonStandardCreator;
 
 	listeners = new TCPServer();
 	gkClient = new GkClient();
