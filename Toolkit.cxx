@@ -1559,13 +1559,10 @@ void Toolkit::ReloadSQLConfig()
 					SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Alias rewrite query failed");
 				} else {
 					m_Config->SetString("RasSrv::RewriteAlias", params[0], params[1]);
-					PTRACE(6, "SQLCONF\tRewriteAlias rule read: '" << params[0] 
-						<< '=' << params[1] << '\''
-						);
+					PTRACE(6, "SQLCONF\tRewriteAlias rule read: '" << params[0] << '=' << params[1] << '\'');
 				}
 			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " Alias rewrite rules "
-				"loaded from SQL database"
-				);
+				"loaded from SQL database");
 		}
 		delete queryResult;
 		queryResult = NULL;
@@ -1594,18 +1591,14 @@ void Toolkit::ReloadSQLConfig()
 			while (queryResult->FetchRow(params))
 				if (params[0].IsEmpty()) {
 					PTRACE(1, "SQLCONF\tInvalid Assigned Alias rule found in the SQL "
-						"database: '" << params[0] << '=' << params[1] << '\''
-						);
+						"database: '" << params[0] << '=' << params[1] << '\'');
 					SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Assigned Alias rewrite query failed");
 				} else {
 					m_Config->SetString("RasSrv::AssignedAlias", params[0], params[1]);
-					PTRACE(6, "SQLCONF\tAssignedAlias rule read: '" << params[0] 
-						<< '=' << params[1] << '\''
-						);
+					PTRACE(6, "SQLCONF\tAssignedAlias rule read: '" << params[0] << '=' << params[1] << '\'');
 				}
 			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " Assigned Alias rules "
-				"loaded from SQL database"
-				);
+				"loaded from SQL database");
 		}
 		delete queryResult;
 		queryResult = NULL;
@@ -1648,14 +1641,11 @@ void Toolkit::ReloadSQLConfig()
 					SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Neighbor query failed");
 				} else {
 					m_Config->SetString("RasSrv::Neighbors", params[0], value);
-					PTRACE(6, "SQLCONF\tNeighbor entry read: '" << params[0] 
-						<< '=' << value << '\''
-						);
+					PTRACE(6, "SQLCONF\tNeighbor entry read: '" << params[0] << '=' << value << '\'');
 				}
 			}
 			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " neighbor entries "
-				"loaded from SQL database"
-				);
+				"loaded from SQL database");
 		}
 		delete queryResult;
 		queryResult = NULL;
@@ -1730,6 +1720,7 @@ void Toolkit::ReloadSQLConfig()
 	}
 
 	query = m_Config->GetString("SQLConfig", "PermanentEndpointsQuery", "");
+	// TODO: add support for priorities and vendor info
 	if (!query.IsEmpty()) {
 		PTRACE(4, "SQLCONF\tLoading permanent endpoints from SQL database");
 		PStringArray params;
@@ -1766,14 +1757,11 @@ void Toolkit::ReloadSQLConfig()
 					SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Permanent EP query failed");
 				} else {
 					m_Config->SetString("RasSrv::PermanentEndpoints", key, value);
-					PTRACE(6, "SQLCONF\tPermanent endpoint read: '" << key 
-						<< '=' << value << '\''
-						);
+					PTRACE(6, "SQLCONF\tPermanent endpoint read: '" << key << '=' << value << '\'');
 				}
 			}
 			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " permanent "
-				"endpoints loaded from SQL database"
-				);
+				"endpoints loaded from SQL database");
 		}
 		delete queryResult;
 		queryResult = NULL;
@@ -1801,20 +1789,14 @@ void Toolkit::ReloadSQLConfig()
 			while (queryResult->FetchRow(params))
 				if (params[0].IsEmpty() || params[1].IsEmpty())
 					PTRACE(1, "SQLCONF\tInvalid gateway prefixes entry found "
-						"in the SQL database: '" << params[0] << '=' 
-						<< params[1] << '\''
-						);
+						"in the SQL database: '" << params[0] << '='  << params[1] << '\'');
 				else {
-					m_Config->SetString("RasSrv::GWPrefixes", 
-						params[0], params[1]
-						);
+					m_Config->SetString("RasSrv::GWPrefixes", params[0], params[1]);
 					PTRACE(6, "SQLCONF\tGateway prefixes read: '" << params[0]
-						<< '=' << params[1] << '\''
-						);
+						<< '=' << params[1] << '\'');
 				}
 			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " gateway prefixes "
-				"loaded from SQL database"
-				);
+				"loaded from SQL database");
 		}
 		delete queryResult;
 		queryResult = NULL;
