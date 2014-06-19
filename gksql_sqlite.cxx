@@ -348,7 +348,7 @@ static int sqlite_callback(void * result, int argc, char **argv, char **azColNam
 	GkSQLResult::ResultRow * row = new GkSQLResult::ResultRow();
 	((vector<GkSQLResult::ResultRow*> *)result)->push_back(row);
 	for(int i=0; i < argc; i++){
-		row->push_back(pair<PString, PString>(argv[i] ? argv[i] : "NULL", azColName[i]));
+		row->push_back(pair<PString, PString>(argv[i] ? argv[i] : "", azColName[i]));
 	}
 	return 0;
 }
