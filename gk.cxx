@@ -455,7 +455,6 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "ForwardOnFacility" },
 	{ "RoutedMode", "GKRouted" },
 	{ "RoutedMode", "GenerateCallProceeding" },
-	{ "RoutedMode", "GkRouted" },
 #if defined(HAS_H235_MEDIA) && defined (HAS_SETTOKENLENGTH)
 	{ "RoutedMode", "H235HalfCallMaxTokenLength" },
 #endif
