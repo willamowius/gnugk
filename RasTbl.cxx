@@ -1546,7 +1546,7 @@ PString GatewayRec::PrintOn(bool verbose) const
 {
 	PString msg = EndpointRec::PrintOn(verbose);
 	if (verbose) {
-		msg += "Prefixes: ";
+		msg += "\nPrefixes: ";
 		if (Prefixes.empty()) {
 			msg += "<none>";
 		} else {
