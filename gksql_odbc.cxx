@@ -3,7 +3,7 @@
  *
  * native ODBC / unixODBC driver module for GnuGk
  *
- * Copyright (c) 2008-2013, Jan Willamowius
+ * Copyright (c) 2008-2014, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -95,7 +95,7 @@ PString GetODBCDiagMsg(SQLRETURN result, SQLSMALLINT handleType, SQLHANDLE handl
 	SQLCHAR *msg = new SQLCHAR[SQL_MAX_MESSAGE_LENGTH];
 	SQLSMALLINT msgSize;
 	SQLRETURN r;
-	
+
 	memset(msg, 0, SQL_MAX_MESSAGE_LENGTH);
 	r = (*g_SQLGetDiagRec)(handleType, handle, 1, reinterpret_cast<SQLCHAR*>(sqlState),
 		&nativeError, msg, SQL_MAX_MESSAGE_LENGTH, &msgSize);
@@ -140,14 +140,14 @@ public:
 		/// error message text
 		const char* errorMsg
 		);
-	
+
 	virtual ~GkODBCResult();
-	
+
 	/** @return
 	    Backend specific error message, if the query failed.
 	*/	
 	virtual PString GetErrorMessage();
-	
+
 	/** @return
 	    Backend specific error code, if the query failed.
 	*/	
@@ -155,7 +155,7 @@ public:
 	
 	/** Fetch a single row from the result set. After each row is fetched,
 	    cursor position is moved to a next row.
-		
+
 	    @return
 	    True if the row has been fetched, false if no more rows are available.
 	*/
@@ -167,12 +167,12 @@ public:
 		/// array to be filled with string representations of the row fields
 		ResultRow& result
 		);
-		
+
 private:
 	GkODBCResult();
 	GkODBCResult(const GkODBCResult &);
 	GkODBCResult & operator=(const GkODBCResult &);
-	
+
 protected:
 	/// query result for SELECT type queries
 	std::list<ResultRow*> * m_sqlResult;
@@ -195,7 +195,7 @@ public:
 		/// name to use in the log
 		const char* name = "ODBC"
 		);
-	
+
 	virtual ~GkODBCConnection();
 
 protected:
@@ -234,7 +234,7 @@ protected:
 		/// unique identifier for this connection
 		int id
 		);
-	
+
 	/** Execute the query using specified SQL connection.
 
 		@return
@@ -248,7 +248,7 @@ protected:
 		/// maximum time (ms) for the query execution, -1 means infinite
 		long timeout = -1
 		);
-		
+
 	/** Escape any special characters in the string, so it can be used in a SQL query.
 
 		@return
@@ -264,7 +264,7 @@ protected:
 private:
 	GkODBCConnection(const GkODBCConnection &);
 	GkODBCConnection & operator=(const GkODBCConnection &);
-	
+
 private:
 	SQLHENV m_env;
 };
@@ -286,7 +286,7 @@ GkODBCResult::GkODBCResult(
 	
 	if (m_sqlResult != NULL && !m_sqlResult->empty())
 		m_numRows = m_sqlResult->size();
-	
+
 	m_queryError = false;
 }
 
@@ -332,22 +332,22 @@ bool GkODBCResult::FetchRow(
 {
 	if (m_sqlResult == NULL || m_numRows <= 0)
 		return false;
-	
+
 	if (m_sqlRow < 0) {
 		m_sqlRow = 0;
 		m_sqlRowIter = m_sqlResult->begin();
 	}
-	
+
 	if (m_sqlRow >= m_numRows)
 		return false;
 
 	result.SetSize(m_numFields);
 	for (int i = 0; i < m_numFields; ++i)
 		result[i] = (**m_sqlRowIter)[i].first;
-	
+
 	++m_sqlRow;
 	++m_sqlRowIter;
-	
+
 	return true;
 }
 
@@ -358,20 +358,20 @@ bool GkODBCResult::FetchRow(
 {
 	if (m_sqlResult == NULL || m_numRows <= 0)
 		return false;
-	
+
 	if (m_sqlRow < 0) {
 		m_sqlRow = 0;
 		m_sqlRowIter = m_sqlResult->begin();
 	}
-	
+
 	if (m_sqlRow >= m_numRows)
 		return false;
 
 	result = *(*m_sqlRowIter);
-	
+
 	++m_sqlRow;
 	++m_sqlRowIter;
-	
+
 	return true;
 }
 
@@ -475,13 +475,13 @@ GkSQLConnection::SQLConnPtr GkODBCConnection::CreateNewConnection(
 		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
 		return NULL;
 	}
-	
+
 	r = (g_SQLSetConnectAttr)(conn, SQL_ATTR_LOGIN_TIMEOUT, reinterpret_cast<SQLPOINTER>(10), 0);
 	if (!SQL_SUCCEEDED(r)) {
 		PTRACE(1, GetName() << "\tFailed to set ODBC connection login timeout: " << GetODBCDiagMsg(r, SQL_HANDLE_DBC, conn));
 		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
 	}
-	
+
 	r = (*g_SQLSetConnectAttr)(conn, SQL_ATTR_CONNECTION_TIMEOUT, reinterpret_cast<SQLPOINTER>(10), 0);
 	if (!SQL_SUCCEEDED(r)) {
 		PTRACE(1, GetName() << "\tFailed to set ODBC connection request timeout: " << GetODBCDiagMsg(r, SQL_HANDLE_DBC, conn));
@@ -542,7 +542,7 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 		Disconnect();
 		return new GkODBCResult(r, errmsg + ", query: " + queryStr);
 	}
-	
+
 	SQLSMALLINT columns = 0;
 	r = (*g_SQLNumResultCols)(stmt, &columns);
 	if (!SQL_SUCCEEDED(r)) {
@@ -553,9 +553,9 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 		Disconnect();
 		return new GkODBCResult(r, errmsg + ", query: " + queryStr);
 	}
-	
+
 	SQLLEN rows = 0;
-	
+
 	if (columns == 0) {
 		if (nodata) {
 			(*g_SQLFreeHandle)(SQL_HANDLE_STMT, stmt);
@@ -591,16 +591,16 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 		r = (*g_SQLFetch)(stmt);
 		if (r == SQL_NO_DATA)
 			break;
-			
+
 		if (!SQL_SUCCEEDED(r)) {
 			PTRACE(1, GetName() << "\tFailed to fetch an ODBC result row: " << GetODBCDiagMsg(r, SQL_HANDLE_STMT, stmt));
 			SNMP_TRAP(5, SNMPError, Database, GetName() + " query failed")
 			// we should return an error instead
 			break;
 		}
-		
+
 		GkSQLResult::ResultRow * row = new GkSQLResult::ResultRow(columns);
-		
+
 		for (SQLUSMALLINT i = 1; i <= columns; ++i) {
 			SQLLEN indicator;
 			char data[512];
@@ -625,7 +625,7 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 	} while (SQL_SUCCEEDED(r));
 
 	(*g_SQLFreeHandle)(SQL_HANDLE_STMT, stmt);
-	
+
 	return new GkODBCResult(rows, columns, resultRows);
 }
 

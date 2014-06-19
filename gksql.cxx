@@ -4,7 +4,7 @@
  * Generic interface to access SQL databases
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
- * Copyright (c) 2006-2012, Jan Willamowius
+ * Copyright (c) 2006-2014, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -55,7 +55,7 @@ bool GkSQLConnection::Initialize(
 	const char * cfgSectionName)
 {
 	PWaitAndSignal lock(m_connectionsMutex);
-	
+
 	if (!(cfg && cfgSectionName)) {
 		PTRACE(1, GetName() << "\tInitialize failed: NULL config or config section not specified!");
 		SNMP_TRAP(4, SNMPError, Database, GetName() + " creation failed");
@@ -85,13 +85,13 @@ bool GkSQLConnection::Initialize(
 bool GkSQLConnection::Connect()
 {
 	PWaitAndSignal lock(m_connectionsMutex);
-	
+
 	for (PINDEX i = m_idleConnections.size(); i < m_minPoolSize; ++i) {
 		SQLConnPtr connptr = CreateNewConnection(i);
 		if (connptr != NULL)
 			m_idleConnections.push_back(connptr);
 	}
-	
+
 	if (m_idleConnections.empty() && m_minPoolSize) {
 		PTRACE(1, GetName() << "\tDatabase connection failed: " 
 			<< m_username << '@' << m_host << '[' << m_database << ']');
@@ -111,7 +111,7 @@ bool GkSQLConnection::Connect()
 void GkSQLConnection::Disconnect()
 {
 	PWaitAndSignal lock(m_connectionsMutex);
-	
+
 	// disconnect/delete all connections
 	PTRACE(3, GetName() << "\tDisconnecting all SQL connections in pool");
 	for(iterator Iter = m_idleConnections.begin(); Iter != m_idleConnections.end(); ++Iter) {
@@ -124,11 +124,11 @@ void GkSQLConnection::Disconnect()
 GkSQLConnection::~GkSQLConnection()
 {
 	const PTime timeStart;
-	
+
 	m_destroying = true;
 	// wakeup any waiting threads
 	m_connectionAvailable.Signal();
-	
+
 	// wait for still active connections (should not happen, but...)
 	do {
 		{
@@ -141,7 +141,7 @@ GkSQLConnection::~GkSQLConnection()
 		}
 		PThread::Sleep(250);
 	} while ((PTime()-timeStart).GetMilliSeconds() < GKSQL_CLEANUP_TIMEOUT);
-	
+
 	// close connections from the idle list and leave any on the busy list
 	// busy list should be empty at this moment
 	PWaitAndSignal lock(m_connectionsMutex);
@@ -149,7 +149,7 @@ GkSQLConnection::~GkSQLConnection()
 	m_waitingRequests.clear();
 	iterator iter = m_idleConnections.begin();
 	iterator end = m_idleConnections.end();
-	
+
 	while (iter != end) {
 		PTRACE(5, GetName() << "\tDatabase connection (id " << (*iter)->m_id << ") closed");
 		delete *iter++;
@@ -180,7 +180,7 @@ bool GkSQLConnection::AcquireSQLConnection(
 			return false;
 		}
 	}
-	
+
 	const PTime timeStart;
 	connptr = NULL;
 	bool waiting = false;
@@ -280,7 +280,7 @@ GkSQLResult* GkSQLConnection::ExecuteQuery(
 	)
 {
 	SQLConnPtr connptr;
-	
+
 	if (AcquireSQLConnection(connptr, timeout)) {
 		GkSQLResult* result = NULL;
 		if (queryParams) {
@@ -307,9 +307,9 @@ GkSQLResult* GkSQLConnection::ExecuteQuery(
 	)
 {
 	SQLConnPtr connptr;
-	
+
 	if (AcquireSQLConnection(connptr, timeout)) {
-		GkSQLResult* result = NULL;
+		GkSQLResult * result = NULL;
 		if (queryParams.empty()) {
 			PTRACE(5, GetName() << "\tExecuting query: " << queryStr);
 			result = ExecuteQuery(connptr, queryStr, timeout);
@@ -340,7 +340,7 @@ PString GkSQLConnection::ReplaceQueryParams(
 	PString finalQuery(queryStr);
 	PINDEX queryLen = finalQuery.GetLength();
 	PINDEX pos = 0;
-	char* endChar;
+	char * endChar = NULL;
 
 	while (pos != P_MAX_INDEX && pos < queryLen) {
 		pos = finalQuery.Find('%', pos);

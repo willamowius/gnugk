@@ -4,7 +4,7 @@
  * PostgreSQL driver module for GnuGk
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
- * Copyright (c) 2006-2012, Jan Willamowius
+ * Copyright (c) 2006-2014, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -68,22 +68,22 @@ public:
 		/// PostgreSQL specific error message text
 		const char* errorMsg
 		);
-	
+
 	virtual ~GkPgSQLResult();
-	
+
 	/** @return
 	    Backend specific error message, if the query failed.
 	*/	
 	virtual PString GetErrorMessage();
-	
+
 	/** @return
 	    Backend specific error code, if the query failed.
 	*/	
 	virtual long GetErrorCode();
-	
+
 	/** Fetch a single row from the result set. After each row is fetched,
 	    cursor position is moved to a next row.
-		
+
 	    @return
 	    True if the row has been fetched, false if no more rows are available.
 	*/
@@ -100,7 +100,7 @@ private:
 	GkPgSQLResult();
 	GkPgSQLResult(const GkPgSQLResult&);
 	GkPgSQLResult& operator=(const GkPgSQLResult&);
-	
+
 protected:
 	/// query result for SELECT type queries, NULL otherwise
 	PGresult* m_sqlResult;
@@ -160,7 +160,7 @@ protected:
 		/// unique identifier for this connection
 		int id
 		);
-	
+
 	/** Execute the query using specified SQL connection.
 
 		@return
@@ -174,7 +174,7 @@ protected:
 		/// maximum time (ms) for the query execution, -1 means infinite
 		long timeout = -1
 		);
-		
+
 	/** Escape any special characters in the string, so it can be used in a SQL query.
 
 		@return
@@ -246,47 +246,47 @@ long GkPgSQLResult::GetErrorCode()
 
 bool GkPgSQLResult::FetchRow(
 	/// array to be filled with string representations of the row fields
-	PStringArray& result
+	PStringArray & result
 	)
 {
 	if (m_sqlResult == NULL || m_numRows <= 0)
 		return false;
-	
+
 	if (m_sqlRow < 0)
 		m_sqlRow = 0;
-		
+
 	if (m_sqlRow >= m_numRows)
 		return false;
-		
+
 	result.SetSize(m_numFields);
-	
+
 	for (PINDEX i = 0; i < m_numFields; i++)
 		result[i] = PString(
 			(*g_PQgetvalue)(m_sqlResult, m_sqlRow, i), 
 			(*g_PQgetlength)(m_sqlResult, m_sqlRow, i)
 			);
-	
+
 	m_sqlRow++;
-	
+
 	return true;
 }
 
 bool GkPgSQLResult::FetchRow(
 	/// array to be filled with string representations of the row fields
-	ResultRow& result
+	ResultRow & result
 	)
 {
 	if (m_sqlResult == NULL || m_numRows <= 0)
 		return false;
-	
+
 	if (m_sqlRow < 0)
 		m_sqlRow = 0;
-		
+
 	if (m_sqlRow >= m_numRows)
 		return false;
-		
+
 	result.resize(m_numFields);
-	
+
 	for (PINDEX i = 0; i < m_numFields; i++) {
 		result[i].first = PString(
 			(*g_PQgetvalue)(m_sqlResult, m_sqlRow, i), 
@@ -294,9 +294,9 @@ bool GkPgSQLResult::FetchRow(
 			);
 		result[i].second = (*g_PQfname)(m_sqlResult, i);
 	}
-	
+
 	m_sqlRow++;
-	
+
 	return true;
 }
 
@@ -391,14 +391,14 @@ GkSQLResult* GkPgSQLConnection::ExecuteQuery(
 	long /*timeout*/
 	)
 {
-	PGconn* pgsqlconn = ((PgSQLConnWrapper*)conn)->m_conn;
+	PGconn * pgsqlconn = ((PgSQLConnWrapper*)conn)->m_conn;
 	PGresult* result = (*g_PQexec)(pgsqlconn, queryStr);
 	if (result == NULL) {
 		GkSQLResult * sqlResult = new GkPgSQLResult(PGRES_FATAL_ERROR, (*g_PQerrorMessage)(pgsqlconn));
 		Disconnect();
 		return sqlResult;
 	}
-		
+
 	ExecStatusType resultInfo = (*g_PQresultStatus)(result);
 	switch (resultInfo)
 	{
@@ -406,10 +406,10 @@ GkSQLResult* GkPgSQLConnection::ExecuteQuery(
 		return new GkPgSQLResult(
 			(*g_PQcmdTuples)(result) ? atoi((*g_PQcmdTuples)(result)) : 0
 			);
-		
+
 	case PGRES_TUPLES_OK:
 		return new GkPgSQLResult(result);
-		
+
 	default:
 		GkSQLResult * sqlResult = new GkPgSQLResult(resultInfo, (*g_PQresultErrorMessage)(result));
 		Disconnect();
@@ -427,7 +427,7 @@ PString GkPgSQLConnection::EscapeString(
 	PString escapedStr;
 	const size_t numChars = str ? strlen(str) : 0;
 	int err = 0;
-	
+
 	if (numChars) {
 		char * buf = (char *)malloc(numChars * 2 + 1);
 		(*g_PQescapeStringConn) (((PgSQLConnWrapper*)conn)->m_conn, buf, str, numChars, &err);

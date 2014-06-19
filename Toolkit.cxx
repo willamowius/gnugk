@@ -3011,37 +3011,33 @@ bool Toolkit::AssignedLanguage::LoadSQL(PConfig * cfg)
 
 	const PString driverName = cfg->GetString(authName, "Driver", "");
 	if (driverName.IsEmpty()) {
-		PTRACE(0, "AssignSQL\tModule creation failed: "
-			"no SQL driver selected");
+		PTRACE(0, "AssignSQL\tModule creation failed: no SQL driver selected");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
-		PTRACE(0, "AssignSQL\tFATAL: Shutting down");
 		return false;
 	}
-	
+
 	m_sqlConn = GkSQLConnection::Create(driverName, authName);
 	if (m_sqlConn == NULL) {
 		PTRACE(0, "AssignSQL\tModule creation failed: "
 			"Could not find " << driverName << " database driver");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
-		PTRACE(0, "AssignSQL\tFATAL: Shutting down");
 		return false;
 	}
-		
+
 	m_query = cfg->GetString(authName, "Query", "");
 	if (m_query.IsEmpty()) {
 		PTRACE(0, "AssignSQL\tModule creation failed: No query configured");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
-		PTRACE(0, "AssignSQL\tFATAL: Shutting down");
 		return false;
 	} else
 		PTRACE(4, "AssignSQL\tQuery: " << m_query);
-		
+
 	if (!m_sqlConn->Initialize(cfg, authName)) {
 		PTRACE(0, "AssignSQL\tModule creation failed: Could not connect to the database");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
 		return false;
 	}
- 
+
 	m_sqlactive = true;
 	return true;
 }

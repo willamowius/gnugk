@@ -4,7 +4,7 @@
  * MySQL driver module for GnuGk
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
- * Copyright (c) 2006-2012, Jan Willamowius
+ * Copyright (c) 2006-2014, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -103,11 +103,11 @@ private:
 	
 protected:
 	/// query result for SELECT type queries, NULL otherwise
-	MYSQL_RES* m_sqlResult;
+	MYSQL_RES * m_sqlResult;
 	/// the most recent row returned by fetch operation
 	MYSQL_ROW m_sqlRow;
 	/// lenghts (bytes) for each field in m_sqlRow result row
-	unsigned long* m_sqlRowLengths;
+	unsigned long * m_sqlRowLengths;
 	/// MySQL specific error code (if the query failed)
 	unsigned int m_errorCode;
 	/// MySQL specific error message text (if the query failed)
@@ -147,7 +147,7 @@ protected:
 		MySQLConnWrapper& operator=(const MySQLConnWrapper&);
 
 	public:
-		MYSQL* m_conn;
+		MYSQL * m_conn;
 	};
 
 	/** Create a new SQL connection using parameters stored in this object.
@@ -162,13 +162,13 @@ protected:
 		/// unique identifier for this connection
 		int id
 		);
-	
+
 	/** Execute the query using specified SQL connection.
 
 		@return
 		Query execution result.
 	*/
-	virtual GkSQLResult* ExecuteQuery(
+	virtual GkSQLResult * ExecuteQuery(
 		/// SQL connection to use for query execution
 		SQLConnPtr conn,
 		/// query string
@@ -176,7 +176,7 @@ protected:
 		/// maximum time (ms) for the query execution, -1 means infinite
 		long timeout = -1
 		);
-		
+
 	/** Escape any special characters in the string, so it can be used in a SQL query.
 
 		@return
@@ -190,8 +190,8 @@ protected:
 		);
 
 private:
-	GkMySQLConnection(const GkMySQLConnection&);
-	GkMySQLConnection& operator=(const GkMySQLConnection&);
+	GkMySQLConnection(const GkMySQLConnection &);
+	GkMySQLConnection & operator=(const GkMySQLConnection &);
 };
 
 
@@ -248,12 +248,12 @@ long GkMySQLResult::GetErrorCode()
 
 bool GkMySQLResult::FetchRow(
 	/// array to be filled with string representations of the row fields
-	PStringArray& result
+	PStringArray & result
 	)
 {
 	if (m_sqlResult == NULL || m_numRows <= 0)
 		return false;
-	
+
 	m_sqlRow = (*g_mysql_fetch_row)(m_sqlResult);
 	m_sqlRowLengths = (*g_mysql_fetch_lengths)(m_sqlResult);
 	if (m_sqlRow == NULL || m_sqlRowLengths == NULL) {
@@ -261,23 +261,23 @@ bool GkMySQLResult::FetchRow(
 		m_sqlRowLengths = NULL;
 		return false;
 	}
-		
+
 	result.SetSize(m_numFields);
-	
+
 	for (PINDEX i = 0; i < m_numFields; i++)
 		result[i] = PString(m_sqlRow[i], m_sqlRowLengths[i]);
-	
+
 	return true;
 }
 
 bool GkMySQLResult::FetchRow(
 	/// array to be filled with string representations of the row fields
-	ResultRow& result
+	ResultRow & result
 	)
 {
 	if (m_sqlResult == NULL || m_numRows <= 0)
 		return false;
-	
+
 	m_sqlRow = (g_mysql_fetch_row)(m_sqlResult);
 	m_sqlRowLengths = (*g_mysql_fetch_lengths)(m_sqlResult);
 	MYSQL_FIELD* fields = (*g_mysql_fetch_fields)(m_sqlResult);
@@ -286,14 +286,14 @@ bool GkMySQLResult::FetchRow(
 		m_sqlRowLengths = NULL;
 		return false;
 	}
-		
+
 	result.resize(m_numFields);
-	
+
 	for (PINDEX i = 0; i < m_numFields; i++) {
 		result[i].first = PString(m_sqlRow[i], m_sqlRowLengths[i]);
 		result[i].second = fields[i].name;
 	}
-	
+
 	return true;
 }
 
@@ -405,7 +405,7 @@ GkSQLResult* GkMySQLConnection::ExecuteQuery(
 	long /*timeout*/
 	)
 {
-	MYSQL* mysqlconn = ((MySQLConnWrapper*)conn)->m_conn;
+	MYSQL * mysqlconn = ((MySQLConnWrapper*)conn)->m_conn;
 
 	int result = (*g_mysql_real_query)(mysqlconn, queryStr, strlen(queryStr));
 	if (result) {
@@ -414,18 +414,17 @@ GkSQLResult* GkMySQLConnection::ExecuteQuery(
 		return sqlResult;
 	}
 
-	MYSQL_RES* queryResult = (*g_mysql_store_result)(mysqlconn);
+	MYSQL_RES * queryResult = (*g_mysql_store_result)(mysqlconn);
 
 	if (queryResult) {
 		/* loop and discard results after first if any */
-		MYSQL_RES* tmpResult;
 		int tmpstatus;
 		while ( (tmpstatus = (*g_mysql_next_result)(mysqlconn) ) >= 0) {
 			if (tmpstatus > 0) {
 				/* error fetching next result */
 				break;
 			}
-			tmpResult = (*g_mysql_store_result)(mysqlconn);
+			MYSQL_RES * tmpResult = (*g_mysql_store_result)(mysqlconn);
 			(*g_mysql_free_result)(tmpResult);
 		}
 	}
@@ -452,7 +451,7 @@ PString GkMySQLConnection::EscapeString(
 {
 	PString escapedStr;
 	const size_t numChars = str ? strlen(str) : 0;
-	
+
 	if (numChars) {
 		char * buf = (char *)malloc(numChars * 2 + 1);
 		MYSQL* mysqlconn = ((MySQLConnWrapper*)conn)->m_conn;
