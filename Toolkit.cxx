@@ -1429,13 +1429,14 @@ void Toolkit::ReloadSQLConfig()
 	if (m_Config->GetSections().GetStringsIndex("SQLConfig") == P_MAX_INDEX)
 		return;
 
+	// TODO: if SQLConfig is configured, but we can't connect to DB, should we shut down Gnugk ?
 	const PString driverName = m_Config->GetString("SQLConfig", "Driver", "");
 	if (driverName.IsEmpty()) {
 		PTRACE(0, "SQLCONF\tFailed to read config settings from SQL: no driver specified");
 		SNMP_TRAP(5, SNMPError, Database, "SQLConfig: no driver");
 		return;
 	}
-		
+
 	GkSQLConnection *sqlConn = GkSQLConnection::Create(driverName, "SQLCONF");
 	if (sqlConn == NULL) {
 		PTRACE(0, "SQLCONF\tFailed to create a connection: no driver found for "
@@ -1443,7 +1444,7 @@ void Toolkit::ReloadSQLConfig()
 		SNMP_TRAP(5, SNMPError, Database, "SQLConfig: no driver");
 		return;
 	}
-	
+
 	if (!sqlConn->Initialize(m_Config, "SQLConfig")) {
 		delete sqlConn;
 		sqlConn = NULL;
@@ -1453,9 +1454,9 @@ void Toolkit::ReloadSQLConfig()
 	}
 
 	PTRACE(3, "SQLCONF\tSQL config connection established");
-	
+
 	PString query;
-	GkSQLResult* queryResult;
+	GkSQLResult * queryResult = NULL;
 
 	query = m_Config->GetString("SQLConfig", "ConfigQuery", "");
 	if (!query.IsEmpty()) {
@@ -1472,7 +1473,7 @@ void Toolkit::ReloadSQLConfig()
 				"database (" << queryResult->GetErrorCode() << "): " 
 				<< queryResult->GetErrorMessage());
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: query failed");
-		} else if (queryResult->GetNumFields() < 3) {
+		} else if (queryResult->GetNumRows() > 0 && queryResult->GetNumFields() < 3) {
 			PTRACE(0, "SQLCONF\tFailed to load config key=>value pairs from SQL "
 				"database: at least 3 columns must be present in the result set");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: query failed");
@@ -1494,7 +1495,7 @@ void Toolkit::ReloadSQLConfig()
 		delete queryResult;
 		queryResult = NULL;
 	}
-			
+
 	// Rewrite E164
 	query = m_Config->GetString("SQLConfig", "RewriteE164Query", "");
 	if (!query.IsEmpty()) {
@@ -1510,7 +1511,7 @@ void Toolkit::ReloadSQLConfig()
 			PTRACE(0, "SQLCONF\tFailed to load E164 rewrite rules from SQL database ("
 				<< queryResult->GetErrorCode() << "): " << queryResult->GetErrorMessage());
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: E.164 query failed");
-		} else if (queryResult->GetNumFields() < 2) {
+		} else if (queryResult->GetNumRows() > 0 && queryResult->GetNumFields() < 2) {
 			PTRACE(0, "SQLCONF\tFailed to load E164 rewrite rules from SQL database: "
 				"at least 2 columns must be present in the result set");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: E.164 query failed");
@@ -1547,7 +1548,7 @@ void Toolkit::ReloadSQLConfig()
 			PTRACE(0, "SQLCONF\tFailed to load Alias rewrite rules from SQL database ("
 				<< queryResult->GetErrorCode() << "): " << queryResult->GetErrorMessage());
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Alias rewrite query failed");
-		} else if (queryResult->GetNumFields() < 2) {
+		} else if (queryResult->GetNumRows() > 0 && queryResult->GetNumFields() < 2) {
 			PTRACE(0, "SQLCONF\tFailed to load Alias rewrite rules from SQL database: "
 				"at least 2 columns must be present in the result set");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Alias rewrite query failed");
@@ -1583,7 +1584,7 @@ void Toolkit::ReloadSQLConfig()
 			PTRACE(0, "SQLCONF\tFailed to load Assigned Alias rules from SQL database ("
 				<< queryResult->GetErrorCode() << "): " << queryResult->GetErrorMessage());
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Assigned Alias rewrite query failed");
-		} else if (queryResult->GetNumFields() < 2) {
+		} else if (queryResult->GetNumRows() > 0 && queryResult->GetNumFields() < 2) {
 			PTRACE(0, "SQLCONF\tFailed to load Assigned Alias rules from SQL database: "
 				"at least 2 columns must be present in the result set");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Assigned Alias rewrite query failed");
@@ -1618,7 +1619,7 @@ void Toolkit::ReloadSQLConfig()
 			PTRACE(0, "SQLCONF\tFailed to load neighbors from SQL database ("
 				<< queryResult->GetErrorCode() << "): " << queryResult->GetErrorMessage());
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Neighbor query failed");
-		} else if (queryResult->GetNumFields() < 6) {
+		} else if (queryResult->GetNumRows() > 0 && queryResult->GetNumFields() < 6) {
 			PTRACE(0, "SQLCONF\tFailed to load neighbors from SQL database: "
 				"at least 6 columns must be present in the result set");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Neighbor query failed");
@@ -1665,7 +1666,7 @@ void Toolkit::ReloadSQLConfig()
 			PTRACE(0, "SQLCONF\tFailed to load neighbors from SQL database ("
 				<< queryResult->GetErrorCode() << "): " << queryResult->GetErrorMessage());
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Neighbor query failed");
-		} else if (queryResult->GetNumFields() < 3) {
+		} else if (queryResult->GetNumRows() > 0 && queryResult->GetNumFields() < 3) {
 			PTRACE(0, "SQLCONF\tFailed to load neighbors from SQL database: "
 				"at least 6 columns must be present in the result set");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Neighbor query failed");
@@ -1734,7 +1735,7 @@ void Toolkit::ReloadSQLConfig()
 				"("	<< queryResult->GetErrorCode() << "): " 
 				<< queryResult->GetErrorMessage());
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Permanent EP query failed");
-		} else if (queryResult->GetNumFields() < 4) {
+		} else if (queryResult->GetNumRows() > 0 && queryResult->GetNumFields() < 4) {
 			PTRACE(0, "SQLCONF\tFailed to load permanent endpoints from SQL database: "
 				"at least 4 columns must be present in the result set");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Permanent EP query failed");
@@ -1780,7 +1781,7 @@ void Toolkit::ReloadSQLConfig()
 			PTRACE(0, "SQLCONF\tFailed to load gateway prefixes from SQL database ("
 				<< queryResult->GetErrorCode() << "): " << queryResult->GetErrorMessage());
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Gateway query failed");
-		} else if (queryResult->GetNumFields() < 2) {
+		} else if (queryResult->GetNumRows() > 0 && queryResult->GetNumFields() < 2) {
 			PTRACE(0, "SQLCONF\tFailed to load gateway prefixes from SQL database: "
 				"at least 2 columns must be present in the result set");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Gateway query failed");
@@ -2089,9 +2090,8 @@ bool Toolkit::AssignedAliases::DatabaseLookup(
 
 	if (result->GetNumRows() < 1)
 		PTRACE(3, "AliasSQL\tQuery returned no rows");
-	else if (result->GetNumFields() < 1) {
-		PTRACE(2, "AliasSQL\tBad-formed query - "
-			"no columns found in the result set");
+	else if (result->GetNumRows() > 0 && result->GetNumFields() < 1) {
+		PTRACE(2, "AliasSQL\tBad-formed query - no columns found in the result set");
 		SNMP_TRAP(5, SNMPError, Database, "AssignedAliases query failed");
 	} else {
 		PStringArray retval;
@@ -2653,9 +2653,8 @@ bool Toolkit::AssignedGatekeepers::DatabaseLookup(
 
 	if (result->GetNumRows() < 1)
 		PTRACE(3, "AssignSQL\tQuery returned no rows");
-	else if (result->GetNumFields() < 1) {
-		PTRACE(2, "AssignSQL\tBad-formed query - "
-			"no columns found in the result set");
+	else if (result->GetNumRows() > 0 && result->GetNumFields() < 1) {
+		PTRACE(2, "AssignSQL\tBad-formed query - no columns found in the result set");
 		SNMP_TRAP(4, SNMPError, Database, "AssignedGatekeepers query failed");
 	} else {
 		PStringArray retval;
@@ -2967,9 +2966,8 @@ bool Toolkit::AlternateGatekeepers::QueryAlternateGK(const PIPSocket::Address & 
 
 	if (result->GetNumRows() < 1)
 		PTRACE(3, "AltGKSQL\tQuery returned no rows");
-	else if (result->GetNumFields() < 1) {
-		PTRACE(2, "AltGKSQL\tBad-formed query - "
-			"no columns found in the result set");
+	else if (result->GetNumRows() > 0 && result->GetNumFields() < 1) {
+		PTRACE(2, "AltGKSQL\tBad-formed query - no columns found in the result set");
 		SNMP_TRAP(5, SNMPError, Database, "AlternateGatekeepers query failed");
 	} else {
 		PStringArray retval;
@@ -3077,9 +3075,8 @@ bool Toolkit::AssignedLanguage::DatabaseLookup(
 
 	if (result->GetNumRows() < 1)
 		PTRACE(3, "LangSQL\tQuery returned no rows");
-	else if (result->GetNumFields() < 1) {
-		PTRACE(2, "LangSQL\tBad-formed query - "
-			"no columns found in the result set");
+	else if (result->GetNumRows() > 0 && result->GetNumFields() < 1) {
+		PTRACE(2, "LangSQL\tBad-formed query - no columns found in the result set");
 		SNMP_TRAP(4, SNMPError, Database, "AssignedLanguage query failed");
 	} else {
 		PStringArray retval;
