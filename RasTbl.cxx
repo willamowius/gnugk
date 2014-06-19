@@ -970,7 +970,7 @@ PString EndpointRec::PrintOn(bool verbose) const
 		PString natType = PrintNatInfo(verbose);
 		if (!natType.IsEmpty())
 			msg += " (" + natType + ")";
-		msg += " bw:" + PString(m_bandwidth) + "/" + PString(m_maxBandwidth);
+		msg += " bw:" + PString(m_bandwidth) + "/" + PString(m_maxBandwidth) + "\r\n";
 	}
 	return msg;
 }
@@ -1546,7 +1546,7 @@ PString GatewayRec::PrintOn(bool verbose) const
 {
 	PString msg = EndpointRec::PrintOn(verbose);
 	if (verbose) {
-		msg += "\nPrefixes: ";
+		msg += "Prefixes: ";
 		if (Prefixes.empty()) {
 			msg += "<none>";
 		} else {
@@ -2108,7 +2108,7 @@ void RegistrationTable::InternalPrint(USocket *client, bool verbose, std::list<E
 	if (s > 1000) // set buffer to avoid reallocate
 		msg.SetSize(s * (verbose ? 200 : 100));
 	for (k = 0; k < s; k++)
-		msg += "RCF|" + eptr[k]->PrintOn(verbose) + ";\r\n";
+		msg += "RCF|" + eptr[k]->PrintOn(verbose);
 	delete [] eptr;
 	eptr = NULL;
 
