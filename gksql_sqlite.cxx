@@ -3,7 +3,7 @@
  *
  * SQLite driver module for GnuGk
  *
- * Copyright (c) 2007-2013, Jan Willamowius
+ * Copyright (c) 2007-2014, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -82,8 +82,8 @@ public:
 		
 private:
 	GkSQLiteResult();
-	GkSQLiteResult(const GkSQLiteResult&);
-	GkSQLiteResult& operator=(const GkSQLiteResult&);
+	GkSQLiteResult(const GkSQLiteResult &);
+	GkSQLiteResult& operator=(const GkSQLiteResult &);
 	
 protected:
 	/// query result for SELECT type queries
@@ -148,7 +148,7 @@ protected:
 		@return
 		Query execution result.
 	*/
-	virtual GkSQLResult* ExecuteQuery(
+	virtual GkSQLResult * ExecuteQuery(
 		/// SQL connection to use for query execution
 		SQLConnPtr conn,
 		/// query string
@@ -170,8 +170,8 @@ protected:
 		);
 
 private:
-	GkSQLiteConnection(const GkSQLiteConnection&);
-	GkSQLiteConnection& operator=(const GkSQLiteConnection&);
+	GkSQLiteConnection(const GkSQLiteConnection &);
+	GkSQLiteConnection & operator=(const GkSQLiteConnection &);
 	bool m_escapeDoubleQuotes;
 };
 
@@ -337,9 +337,8 @@ GkSQLConnection::SQLConnPtr GkSQLiteConnection::CreateNewConnection(
 		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed")
 		return NULL;
 	}	
-	
-	PTRACE(5, GetName() << "\tSQLite connection to " << m_database
-		<< " established successfully");
+
+	PTRACE(5, GetName() << "\tSQLite connection to " << m_database << " established successfully");
 	return new GkSQLiteConnWrapper(id, conn);
 }
 
