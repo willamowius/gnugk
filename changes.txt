@@ -1,5 +1,9 @@
 Changes from 3.6 to 3.7
 =======================
+- BUGFIX(Toolkit.cxx) more flexible column handling for [SQLConfig] PermanentEndpountsQuery,
+  document priority and vendor info setting
+- BUGFIX(gksql_sqlite.cxx) return empty string for NULL columns, like the other DB drivers do
+- BUGFIX(RasTbl.cxx) fix formatting of PrintAllRegistrationsVerbose with gateway prefixes
 - BUGFIX(GkStatus.cxx) better handling when status clients don't quit properly
 - BUGFIX(Toolkit.cxx) fix selection of reply address for IPv6
 

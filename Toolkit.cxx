@@ -1720,7 +1720,6 @@ void Toolkit::ReloadSQLConfig()
 	}
 
 	query = m_Config->GetString("SQLConfig", "PermanentEndpointsQuery", "");
-	// TODO: add support for priorities and vendor info
 	if (!query.IsEmpty()) {
 		PTRACE(4, "SQLCONF\tLoading permanent endpoints from SQL database");
 		PStringArray params;
@@ -1743,14 +1742,14 @@ void Toolkit::ReloadSQLConfig()
 			PString key;
 			PString value;
 			while (queryResult->FetchRow(params)) {
-				key = params[0];
-				if (!params[1])
+				key = params[0];				// IP
+				if (!params[1].IsEmpty())		// port
 					key += ":" + params[1];
-				value = params[2];
-				if (!params[3])
-					value += ";" + params[3];
+				value = params[2];				// alias
+				if (params.GetSize() >=4)
+					value += ";" + params[3];	// prefixes (+ priorities)
 				if (params.GetSize() > 5)
-					value += ";" + params[4] + "," + params[5];
+					value += ";" + params[4] + "," + params[5];	// vendor info
 				if (key.IsEmpty() || value.IsEmpty()) {
 					PTRACE(1, "SQLCONF\tInvalid permanent endpoint entry found "
 						"in the SQL database: '" << key << '=' << value << '\'');

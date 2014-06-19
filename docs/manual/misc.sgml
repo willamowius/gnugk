@@ -678,12 +678,14 @@ like <bf/%{1}123/. For <tt/PermanentEndpointsQuery/ only one parameter is define
 <item><tt/%1/ - the gatekeeper identifier
 </itemize>
 It is expected that the query returns zero or more rows of data,
-with each row consisting of four columns:
+with each row consisting of 3 or 5 columns:
 <itemize>
 <item><tt/column at index 0/ - permanent endpoint IP address
 <item><tt/column at index 1/ - permanent endpoint port number
 <item><tt/column at index 2/ - permanent endpoint alias
-<item><tt/column at index 3/ - optional permanent endpoint prefixes (comma separated)
+<item><tt/column at index 3/ - optional: permanent endpoint prefixes and priorities (comma separated)
+<item><tt/column at index 4/ - optional: permanent endpoint vendor
+<item><tt/column at index 5/ - optional: permanent endpoint product
 </itemize>
 <p>
 Sample query strings:
