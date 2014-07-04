@@ -848,7 +848,9 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 				}
 				unsigned k = 0;
 				bool entry_found = false;
-				while ((ks = KnownConfigEntries[k][0])) {
+				// allow Comment= in all sections
+				entry_found = key == "Comment";
+				while ((ks = KnownConfigEntries[k][0]) && !entry_found) {
 					const char * ke = KnownConfigEntries[k][1];
 					k++;
 					if ((sect == ks) && (key == ke)) {
