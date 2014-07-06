@@ -543,6 +543,8 @@ are sent to this client:
 <p>Show/modify trace level.
 <item><tt/cfg/<newline>
 <p>Read and print a list of all sections.
+<item><tt/cfg all/<newline>
+<p>Read and print the content of all config sections.
 <item><tt/cfg SEC/<newline>
 <p>Read and print a config section.
 <item><tt/cfg SEC PAR/<newline>

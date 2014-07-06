@@ -1,5 +1,6 @@
 Changes from 3.6 to 3.7
 =======================
+- new status port command: debug cfg all
 - allow Comment= in all sections
 - stub code to fake support for Avaya 2.16.840.1.114187.1.3 authentication (disabled)
 - BUGFIX(Toolkit.cxx) more flexible column handling for [SQLConfig] PermanentEndpountsQuery,

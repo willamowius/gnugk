@@ -1357,7 +1357,7 @@ void StatusClient::DoDebug(
 	const PStringArray & args)
 {
 	bool tmp = m_isFilteringActive;
-	m_isFilteringActive = false;
+	m_isFilteringActive = false;	// deactivate filtering during this command
 
 	if (args.GetSize() <= 1) {
 		WriteString("Debug options:\r\n"
@@ -1383,17 +1383,36 @@ void StatusClient::DoDebug(
 			if (args.GetSize() >= 4)
 				WriteString(GkConfig()->GetString(args[2],args[3],"") + "\r\n;\r\n");
 			else if (args.GetSize() >= 3) {
-				const PStringList cfgs(GkConfig()->GetKeys(args[2]));
-				PString result = "Section [" + args[2] + "]\r\n";
-				for (PINDEX i=0; i < cfgs.GetSize(); ++i)
-					result += cfgs[i] + "=" 
-						+ GkConfig()->GetString(args[2], cfgs[i], "") + "\r\n";
-				WriteString(result + ";\r\n");
+				if (args[2] *= "all") {
+					// print all content of all config sections (= full config file)
+					const PStringList secs(GkConfig()->GetSections());
+					PString result;
+					for (PINDEX i = 0; i < secs.GetSize(); i++) {
+						if (secs[i].Left(1) == ";")
+							continue;
+						result += "Section [" + secs[i] + "]\r\n";
+						const PStringList cfgs(GkConfig()->GetKeys(secs[i]));
+						for (PINDEX j = 0; j < cfgs.GetSize(); ++j) {
+							result += cfgs[j] + "=" + GkConfig()->GetString(secs[i], cfgs[j], "") + "\r\n";
+						}
+					}
+					WriteString(result + ";\r\n");
+				} else {
+					PString result = "Section [" + args[2] + "]\r\n";
+					const PStringList cfgs(GkConfig()->GetKeys(args[2]));
+					for (PINDEX i = 0; i < cfgs.GetSize(); ++i) {
+						result += cfgs[i] + "=" + GkConfig()->GetString(args[2], cfgs[i], "") + "\r\n";
+					}
+					WriteString(result + ";\r\n");
+				}
 			} else {
 				const PStringList secs(GkConfig()->GetSections());
 				PString result = "Config sections\r\n";
-				for (PINDEX i = 0; i < secs.GetSize(); i++)
+				for (PINDEX i = 0; i < secs.GetSize(); i++) {
+					if (secs[i].Left(1) == ";")
+						continue;	// skip comment lines
 					result += "[" + secs[i] + "]\r\n";
+				}
 				WriteString(result + ";\r\n");
 			}
 		} else if ((args[1] *= "set") && (args.GetSize() >= 5)) {
