@@ -541,6 +541,10 @@ are sent to this client:
 <itemize>
 <item><tt/trc [+|-|n]/<newline>
 <p>Show/modify trace level.
+<item><tt/cfg/<newline>
+<p>Read and print a list of all sections.
+<item><tt/cfg SEC/<newline>
+<p>Read and print a config section.
 <item><tt/cfg SEC PAR/<newline>
 <p>Read and print a config parameter in a section.
 <item><tt/set SEC PAR VAL/<newline>
