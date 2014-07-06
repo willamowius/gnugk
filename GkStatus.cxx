@@ -1380,9 +1380,9 @@ void StatusClient::DoDebug(
 			}
 			WriteString(PString(PString::Printf, "Trace Level is now %d\r\n", PTrace::GetLevel()));
 		} else if (args[1] *= "cfg") {
-			if (args.GetSize()>=4)
+			if (args.GetSize() >= 4)
 				WriteString(GkConfig()->GetString(args[2],args[3],"") + "\r\n;\r\n");
-			else if (args.GetSize()>=3) {
+			else if (args.GetSize() >= 3) {
 				const PStringList cfgs(GkConfig()->GetKeys(args[2]));
 				PString result = "Section [" + args[2] + "]\r\n";
 				for (PINDEX i=0; i < cfgs.GetSize(); ++i)
