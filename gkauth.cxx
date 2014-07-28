@@ -1339,7 +1339,7 @@ int SimplePasswordAuth::Check(
 	ARQAuthData & /*authData*/)
 {
 	H225_AdmissionRequest& arq = request;
-	return doCheck(request, &arq.m_srcInfo);
+	return doCheck(request, arq.m_answerCall ? &arq.m_destinationInfo : &arq.m_srcInfo);
 }
 
 bool SimplePasswordAuth::GetPassword(
