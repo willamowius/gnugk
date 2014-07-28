@@ -518,7 +518,7 @@ if test "x${pgsql}" != "xno"; then
 	if test "x$PGSQL_INCLUDE" = "x"; then
 		old_CFLAGS="$CFLAGS"
 
-		for try in /usr/include/pgsql /usr/local/include /usr/local/include/pgsql /usr/local/pgsql/include $pgsql_include_dir; do
+		for try in /usr/include/postgresql /usr/include/pgsql /usr/local/include /usr/local/include/pgsql /usr/local/pgsql/include $pgsql_include_dir; do
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
 				AC_TRY_COMPILE([#include <libpq-fe.h>], [int a = 1;],
