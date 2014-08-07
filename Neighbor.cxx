@@ -190,6 +190,15 @@ PrefixInfo LRQForwarder::operator()(Neighbor *nb, WORD /*seqnum*/) const
 		// copy and forward
 		lrq = m_lrq.GetRequest();
 		lrq.m_destinationInfo = aliases;
+		// do the GW OUT rewrites
+		PString neighbor_id = nb->GetId();
+		PString neighbor_gkid = nb->GetGkId();
+		if (!neighbor_id.IsEmpty() && lrq.m_destinationInfo.GetSize() > 0) {
+			Toolkit::Instance()->GWRewriteE164(neighbor_id, GW_REWRITE_OUT, lrq.m_destinationInfo[0]);
+		}
+		if (!neighbor_gkid.IsEmpty() && (neighbor_gkid != neighbor_id) && lrq.m_destinationInfo.GetSize() > 0) {
+			Toolkit::Instance()->GWRewriteE164(neighbor_gkid, GW_REWRITE_OUT, lrq.m_destinationInfo[0]);
+		}
 		// include hopCount if configured and not already included
 		if (nb->GetDefaultHopCount() >= 1
 			&& !lrq.HasOptionalField(H225_LocationRequest::e_hopCount)) {

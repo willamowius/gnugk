@@ -3866,7 +3866,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				neighbor_id = RasSrv->GetNeighbors()->GetNeighborGkIdBySigAdr(m_msg->m_peerAddr);
 		}
 
-		// do the rewrites
+		// do the GW IN rewrites
 		if (!neighbor_id.IsEmpty()) {
 			Kit->GWRewriteE164(neighbor_id, GW_REWRITE_IN, request.m_destinationInfo[0]);
 		}
