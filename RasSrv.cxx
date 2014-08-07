@@ -420,7 +420,19 @@ bool RasMsg::EqualTo(const RasMsg *other) const
 bool RasMsg::PrintStatus(const PString & log)
 {
 	PTRACE(2, log);
-	GkStatus::Instance()->SignalStatus(log + "\r\n", STATUS_TRACE_LEVEL_RAS);
+	// avoid printing on an already deleted status port
+#ifdef hasNoMutexWillBlock
+	// TODO: this might be a performance bottleneck on high load
+	if (ShutdownMutex.Wait(0)) {
+		GkStatus::Instance()->SignalStatus(log + "\r\n", STATUS_TRACE_LEVEL_RAS);
+	} else {
+		ShutdownMutex.Signal();	// release mutex, we were just checking for shutdown
+	}
+#else
+	if (!ShutdownMutex.WillBlock()) {
+		GkStatus::Instance()->SignalStatus(log + "\r\n", STATUS_TRACE_LEVEL_RAS);
+	}
+#endif
 	return true; // reply after logged
 }
 

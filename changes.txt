@@ -1,5 +1,6 @@
 Changes from 3.6 to 3.7
 =======================
+- BUGFIX(RasSrv.cxx) fix crash on shutdown
 - BUGFIX(gkauth.cxx) for passwort auth look at correct src or dest info
 - new status port command: "debug cfg all" to print the full configuration
 - allow Comment= in all sections
