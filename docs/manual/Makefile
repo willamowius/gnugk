@@ -9,6 +9,8 @@ else
 	SGML2HTML = sgml2html
 	SGML2TXT = sgml2txt
 endif
+# DVIPDFM = dvipdfmx	# works also
+DVIPDFM = dvipdfm
 
 all:	html pdf
 
@@ -22,13 +24,13 @@ html-es:
 	cd es ; $(SGML2HTML) --language=es -s 1 manual-es.sgml
 
 pdf:
-	$(SGML2LATEX) --output=dvi --style=gnugk manual.sgml ; dvipdfm manual.dvi ; rm -f manual.dvi
+	$(SGML2LATEX) --output=dvi --style=gnugk manual.sgml ; $(DVIPDFM) manual.dvi ; rm -f manual.dvi
 
 pdf-fr:
-	cd fr ; $(SGML2LATEX) --language=fr --style=gnugk manual-fr.sgml ; dvipdfm manual-fr.dvi ; rm -f manual-fr.dvi
+	cd fr ; $(SGML2LATEX) --language=fr --style=gnugk manual-fr.sgml ; $(DVIPDFM) manual-fr.dvi ; rm -f manual-fr.dvi
 
 pdf-es:
-	cd es ; $(SGML2LATEX) --language=es --style=gnugk manual-es.sgml ; dvipdfm manual-es.dvi ; rm -f manual-es.dvi
+	cd es ; $(SGML2LATEX) --language=es --style=gnugk manual-es.sgml ; $(DVIPDFM) manual-es.dvi ; rm -f manual-es.dvi
 
 txt:
 	$(SGML2TXT) --charset=latin manual.sgml
