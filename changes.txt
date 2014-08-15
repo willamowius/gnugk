@@ -1,3 +1,8 @@
+Changes from 3.7 to 3.8
+=======================
+
+
+
 Changes from 3.6 to 3.7
 =======================
 - BUGFIX(Neighbor.cxx) fix outbound rules for GWRewriteE164 with neighbors
