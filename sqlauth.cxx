@@ -477,8 +477,7 @@ SQLAuth::SQLAuth(
 
 	const PString driverName = cfg->GetString(authName, "Driver", "");
 	if (driverName.IsEmpty()) {
-		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"no SQL driver selected");
+		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: no SQL driver selected");
 		SNMP_TRAP(5, SNMPError, Authentication, GetName() + " creation failed");
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
@@ -547,12 +546,12 @@ SQLAuth::~SQLAuth()
 
 int SQLAuth::Check(
 	/// RRQ RAS message to be authenticated
-	RasPDU<H225_RegistrationRequest>& rrqPdu, 
+	RasPDU<H225_RegistrationRequest> & rrqPdu, 
 	/// authorization data (reject reason, ...)
-	RRQAuthData& authData
+	RRQAuthData & authData
 	)
 {
-	H225_RegistrationRequest &rrq = rrqPdu;
+	H225_RegistrationRequest & rrq = rrqPdu;
 	std::map<PString, PString> params;
 	
 	// get the username for User-Name attribute		
@@ -565,8 +564,7 @@ int SQLAuth::Check(
 	PIPSocket::Address addr = (rrqPdu.operator->())->m_peerAddr;
 
 	const PString traceStr = "SQLAUTH\t" + GetName() + "(RRQ from "
-		+ addr.AsString() + " Username=" + params["u"]
-		+ ")";
+		+ addr.AsString() + " Username=" + params["u"] + ")";
 	params["callerip"] = addr.AsString();
 	
 	addr = (rrqPdu.operator->())->m_localAddr;
@@ -812,8 +810,8 @@ int SQLAuth::Check(
 }
 
 int SQLAuth::Check(
-	RasPDU<H225_LocationRequest>& lrqPdu,
-	unsigned& rejectReason
+	RasPDU<H225_LocationRequest> & lrqPdu,
+	unsigned & rejectReason
 	)
 {
 	H225_LocationRequest &lrq = lrqPdu;

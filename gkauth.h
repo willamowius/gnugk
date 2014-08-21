@@ -2,7 +2,7 @@
 //
 // gkauth.h
 //
-// Copyright (c) 2001-2010, Jan Willamowius
+// Copyright (c) 2001-2014, Jan Willamowius
 //
 // Gatekeeper authentication modules
 //
@@ -691,8 +691,8 @@ private:
 		);
 
 	SimplePasswordAuth();
-	SimplePasswordAuth(const SimplePasswordAuth&);
-	SimplePasswordAuth& operator=(const SimplePasswordAuth&);
+	SimplePasswordAuth(const SimplePasswordAuth &);
+	SimplePasswordAuth & operator=(const SimplePasswordAuth &);
 	
 private:
 	/// an encryption key used to decrypt passwords from the config file
