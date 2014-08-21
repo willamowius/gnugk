@@ -168,7 +168,7 @@ public:
 		#GkAuthenticator::Status enum# with the result of authentication.
 	*/
 	virtual int Check(
-		RasPDU<H225_LocationRequest>& req,
+		RasPDU<H225_LocationRequest> & req,
 		unsigned& rejectReason
 		);
 		
@@ -179,9 +179,9 @@ public:
 	*/
 	virtual int Check(
 		/// Q.931/H.225 Setup message to be authenticated
-		SetupMsg &setup,
+		SetupMsg & setup,
 		/// authorization data (call duration limit, reject reason, ...)
-		SetupAuthData& authData
+		SetupAuthData & authData
 		);
 
 	virtual PString GetInfo();
@@ -889,9 +889,9 @@ int SQLAuth::Check(
 	
 int SQLAuth::Check(
 	/// Q.931/H.225 Setup message to be authenticated
-	SetupMsg &setup,
+	SetupMsg & setup,
 	/// authorization data (call duration limit, reject reason, ...)
-	SetupAuthData& authData
+	SetupAuthData & authData
 	)
 {
 	std::map<PString, PString> params;
@@ -900,14 +900,13 @@ int SQLAuth::Check(
 	setup.GetPeerAddr(addr);
 
 	const PString traceStr = "SQLAUTH\t" + GetName() + "(Setup from "
-		+ addr.AsString() + " CRV=" + PString(setup.GetQ931().GetCallReference())
-		+ ")";
+		+ addr.AsString() + " CRV=" + PString(setup.GetQ931().GetCallReference()) + ")";
 	params["callerip"] = addr.AsString();
-		
+
 	// get the username for User-Name attribute		
 	params["u"] = GetUsername(setup, authData);
 	params["g"] = Toolkit::GKName();
-	
+
 	setup.GetLocalAddr(addr);
 	params["gkip"] = addr.AsString();
 
