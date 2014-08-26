@@ -1338,7 +1338,7 @@ int SimplePasswordAuth::Check(
 	/// authorization data (call duration limit, reject reason, ...)
 	ARQAuthData & /*authData*/)
 {
-	H225_AdmissionRequest& arq = request;
+	H225_AdmissionRequest & arq = request;
 	return doCheck(request, arq.m_answerCall ? &arq.m_destinationInfo : &arq.m_srcInfo);
 }
 
@@ -1650,18 +1650,19 @@ public:
 
 	enum SupportedRasChecks {
 		PrefixAuthRasChecks = RasInfo<H225_AdmissionRequest>::flag
-			| RasInfo<H225_LocationRequest>::flag
+			| RasInfo<H225_LocationRequest>::flag,
+		PrefixAuthMiscChecks = e_Setup | e_SetupUnreg
 	};
 
 	PrefixAuth(
 		const char* name,
 		unsigned supportedRasChecks = PrefixAuthRasChecks,
-		unsigned supportedMiscChecks = 0);
+		unsigned supportedMiscChecks = PrefixAuthMiscChecks);
 		
 	virtual ~PrefixAuth();
 
 	// override from class GkAuthenticator
-	virtual int Check(RasPDU<H225_LocationRequest>& request, unsigned& rejectReason);
+	virtual int Check(RasPDU<H225_LocationRequest> & request, unsigned & rejectReason);
 
 	/** Authenticate/Authorize ARQ message. Override from GkAuthenticator.
 	
@@ -1672,9 +1673,21 @@ public:
 	*/
 	virtual int Check(
 		/// ARQ to be authenticated/authorized
-		RasPDU<H225_AdmissionRequest>& request, 
+		RasPDU<H225_AdmissionRequest> & request, 
 		/// authorization data (call duration limit, reject reason, ...)
-		ARQAuthData& authData);
+		ARQAuthData & authData);
+
+	/** Authenticate using data from Q.931 Setup message.
+	
+		@return:
+		#GkAuthenticator::Status enum# with the result of authentication.
+	*/
+	virtual int Check(
+		/// Q.931/H.225 Setup message to be authenticated
+		SetupMsg & setup,
+		/// authorization data (call duration limit, reject reason, ...)
+		SetupAuthData & authData
+		);
 
 protected:
 	virtual int doCheck(const AuthObj& aobj);
@@ -1742,6 +1755,26 @@ private:
 
 private:
 	const H225_LocationRequest & m_lrq;
+	PIPSocket::Address m_ipAddress;
+};
+
+class SetupAuthObj : public AuthObj 
+{
+public:
+	SetupAuthObj(const SetupMsg & setup);
+
+	virtual PStringArray GetPrefixes() const;
+
+	virtual PIPSocket::Address GetIP() const;
+	virtual PString GetAliases() const;
+
+private:
+	SetupAuthObj();
+	SetupAuthObj(const SetupAuthObj &);
+	SetupAuthObj & operator=(const SetupAuthObj &);
+
+private:
+	const SetupMsg & m_setup;
 	PIPSocket::Address m_ipAddress;
 };
 
@@ -1862,7 +1895,7 @@ PStringArray ARQAuthObj::GetPrefixes() const
 PIPSocket::Address ARQAuthObj::GetIP() const
 {
 	PIPSocket::Address result;
-	const H225_TransportAddress& addr = 
+	const H225_TransportAddress & addr = 
 		m_arq.HasOptionalField(H225_AdmissionRequest::e_srcCallSignalAddress) 
 		? m_arq.m_srcCallSignalAddress : m_ep->GetCallSignalAddress();
 	GetIPFromTransportAddr(addr, result);
@@ -1901,6 +1934,39 @@ PString LRQAuthObj::GetAliases() const
 {
 	return m_lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo) 
 		? AsString(m_lrq.m_sourceInfo) : PString::Empty();
+}
+
+SetupAuthObj::SetupAuthObj(const SetupMsg & setup) : m_setup(setup)
+{
+}
+
+PStringArray SetupAuthObj::GetPrefixes() const
+{
+	PStringArray array;
+	if (m_setup.GetUUIEBody().HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
+		const PINDEX ss = m_setup.GetUUIEBody().m_destinationAddress.GetSize();
+		if (ss > 0) {
+			array.SetSize(ss);
+			for (PINDEX i = 0; i < ss; ++i)
+				array[i] = AsString(m_setup.GetUUIEBody().m_destinationAddress[i], false);
+		}
+	}
+	if (array.GetSize() == 0)
+		array.AppendString(PString::Empty());
+	return array;
+}
+
+PIPSocket::Address SetupAuthObj::GetIP() const
+{
+	PIPSocket::Address result;
+	m_setup.GetPeerAddr(result);
+	return result;
+}
+
+PString SetupAuthObj::GetAliases() const
+{
+	return m_setup.GetUUIEBody().HasOptionalField(H225_Setup_UUIE::e_sourceAddress) 
+		? AsString(m_setup.GetUUIEBody().m_sourceAddress) : PString::Empty();
 }
 
 int AuthRule::Check(const AuthObj & aobj)
@@ -2054,7 +2120,7 @@ int PrefixAuth::Check(
 	/// authorization data (call duration limit, reject reason, ...)
 	ARQAuthData & /*authData*/)
 {
-	H225_AdmissionRequest& arq = request;
+	H225_AdmissionRequest & arq = request;
 	if (arq.m_answerCall 
 		&& arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier)
 		&& CallTable::Instance()->FindCallRec(arq.m_callIdentifier)) {
@@ -2063,6 +2129,17 @@ int PrefixAuth::Check(
 		return e_ok;
 	}
 	ARQAuthObj tmpObj(arq); // fix for GCC 3.4.2
+	return doCheck(tmpObj);
+}
+
+int PrefixAuth::Check(
+	/// Q.931/H.225 Setup message to be authenticated
+	SetupMsg & setup,
+	/// authorization data (call duration limit, reject reason, ...)
+	SetupAuthData & /*authData*/
+	)
+{
+	SetupAuthObj tmpObj(setup); // fix for GCC 3.4.2
 	return doCheck(tmpObj);
 }
 

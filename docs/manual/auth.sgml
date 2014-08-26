@@ -72,8 +72,8 @@ based on caller's IP or network.
 <p>
 The IP or aliases of a request with a given prefix must match a specified
 pattern. See section <ref id="prefixauth" name="[PrefixAuth]"> for details.
-Currently the module can only authorize
-AdmissionRequest (ARQ) and LocationRequest (LRQ).
+The module can authorize
+AdmissionRequest (ARQ), LocationRequest (LRQ), Setup and SetupUnreg.
 
 <item><tt>RadAuth</tt>
 <p>
@@ -608,7 +608,7 @@ SELECT 1, '1234' AS redirectnumber, '192.168.1.1' AS redirectip
 <label id="prefixauth">
 <p>
 The section defines the authentication rule for the <tt/PrefixAuth/ module.
-Currently, only ARQs and LRQs can be authorized by this module.
+You can authorized ARQs, LRQs and Setups with this module.
 
 First, the most specific prefix is selected according to the <bf/destinationInfo/
 field of the received request. Then the request is accepted or rejected
