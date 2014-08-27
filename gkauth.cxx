@@ -33,6 +33,10 @@ extern const char *H350Section;
 #include "h350/h350.h"
 #endif
 
+#ifdef HAS_H46018
+#include <h460/h4601.h>
+#endif
+
 namespace {
 const char* const GkAuthSectionName = "Gatekeeper::Auth";
 const char OID_CAT[] = "1.2.840.113548.10.1.2.1";
@@ -1501,21 +1505,30 @@ int AliasAuth::Check(
 	RasPDU<H225_RegistrationRequest> & request,
 	RRQAuthData & /*authData*/)
 {
-	H225_RegistrationRequest& rrq = request;
+	H225_RegistrationRequest & rrq = request;
 
 	if (!rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
 		PTRACE(3, "GKAUTH\t" << GetName() << " - terminalAlias field not found in RRQ message");
 		return GetDefaultStatus();
 	}
 
-	const H225_ArrayOf_AliasAddress& aliases = rrq.m_terminalAlias;
+	const H225_ArrayOf_AliasAddress & aliases = rrq.m_terminalAlias;
 
 	for (PINDEX i = 0; i <= aliases.GetSize(); i++) {
-		const PString alias = (i < aliases.GetSize())
-			? AsString(aliases[i], false) : PString("default");
+		const PString alias = (i < aliases.GetSize()) ? AsString(aliases[i], false) : PString("default");
 		PString authcond;
 		if (InternalGetAuthConditionString(alias, authcond)) {
-			if (doCheck(rrq.m_callSignalAddress, authcond)) {
+			bool checkPort = true;
+			// don't check the signaling port if the endpoint uses H.460.18
+#ifdef HAS_H46018
+			if (rrq.HasOptionalField(H225_RegistrationRequest::e_featureSet)) {
+				H460_FeatureSet fs = H460_FeatureSet(rrq.m_featureSet);
+				if (fs.HasFeature(18) && Toolkit::Instance()->IsH46018Enabled()) {
+					checkPort = false;
+				}
+			}
+#endif
+			if (doCheck(rrq.m_callSignalAddress, authcond, checkPort)) {
 				PTRACE(5, "GKAUTH\t" << GetName() << " auth condition '"
 					<< authcond <<"' accepted RRQ from '" << alias << '\'');
 				return e_ok;
@@ -1525,8 +1538,7 @@ int AliasAuth::Check(
 				return e_fail;
 			}
 		} else
-			PTRACE(4, "GKAUTH\t" << GetName() << " auth condition not found "
-				<< "for alias '" << alias << '\'');
+			PTRACE(4, "GKAUTH\t" << GetName() << " auth condition not found for alias '" << alias << '\'');
 	}
 	return GetDefaultStatus();
 }
@@ -1556,8 +1568,7 @@ bool AliasAuth::InternalGetAuthConditionString(
 	)
 {
 	if (m_cache->Retrieve(id, authCond)) {
-		PTRACE(5, "GKAUTH\t" << GetName() << " cached auth condition string "
-			"found for '" << id << '\'');
+		PTRACE(5, "GKAUTH\t" << GetName() << " cached auth condition string found for '" << id << '\'');
 		return true;
 	}
 	if (GetAuthConditionString(id, authCond)) {
@@ -1571,21 +1582,24 @@ bool AliasAuth::doCheck(
 	/// an array of source signaling addresses for an endpoint that sent the request
 	const H225_ArrayOf_TransportAddress & sigaddr,
 	/// auth condition string as returned by GetAuthConditionString
-	const PString & condition)
+	const PString & condition,
+	bool checkPort)
 {
 	const PStringArray authrules(condition.Tokenise("&|", FALSE));
 	if (authrules.GetSize() < 1) {
 		PTRACE(2, "GKAUTH\t" << GetName() << " contains an empty auth condition");
 		return false;
 	}
-	for (PINDEX i = 0; i < authrules.GetSize(); ++i)
-		for (PINDEX j = 0; j < sigaddr.GetSize(); ++j)
-			if (CheckAuthRule(sigaddr[j], authrules[i])) {
+	for (PINDEX i = 0; i < authrules.GetSize(); ++i) {
+		for (PINDEX j = 0; j < sigaddr.GetSize(); ++j) {
+			if (CheckAuthRule(sigaddr[j], authrules[i], checkPort)) {
 				PTRACE(5, "GKAUTH\t" << GetName() << " auth rule '"
 					<< authrules[i] << "' applied successfully to RRQ "
 					" from " << AsDotString(sigaddr[j]));
 				return true;
 			}
+		}
+	}
 	return false;
 }
 
@@ -1593,9 +1607,10 @@ bool AliasAuth::CheckAuthRule(
 	/// a signaling address for the endpoint that sent the request
 	const H225_TransportAddress & sigaddr,
 	/// the auth rule to be used for checking
-	const PString & authrule)
+	const PString & authrule,
+	bool checkPort)
 {
-	const PStringArray rule = authrule.Tokenise(":", false);
+	PStringArray rule = authrule.Tokenise(":", false);
 	if (rule.GetSize() < 1) {
 		PTRACE(1, "GKAUTH\t" << GetName() << " found invalid empty auth rule '" << authrule << '\'');
 		return false;
@@ -1617,6 +1632,10 @@ bool AliasAuth::CheckAuthRule(
 				"auth rule '" << authrule << '\'');
 			return false;
 		}
+		// ignore port for H.460.18
+		if (!checkPort && rule[1].Find("port") != P_MAX_INDEX) {
+			rule[1] = rule[1].Left(rule[1].Find("port"));
+		}
 		return Toolkit::MatchRegex(AsString(sigaddr), rule[1].Trim()) != 0;
 	} else if (strcasecmp(rName, "sigip") == 0) {
 		// condition 'sigip' example:
@@ -1630,7 +1649,14 @@ bool AliasAuth::CheckAuthRule(
 		PStringArray ip_parts = SplitIPAndPort(allowed_ip, GK_DEF_ENDPOINT_SIGNAL_PORT);
 		PIPSocket::Address ip;
 		PIPSocket::GetHostAddress(ip_parts[0], ip);
-		const WORD port = (WORD)(ip_parts[1].AsUnsigned());
+		WORD port = (WORD)(ip_parts[1].AsUnsigned());
+		// ignore port for H.460.18
+		if (!checkPort) {
+			PIPSocket::Address notUsed;
+			WORD EPPort;
+			GetIPAndPortFromTransportAddr(sigaddr, notUsed, EPPort);
+			port = EPPort;
+		}
 		return (sigaddr == SocketToH225TransportAddr(ip, port));
 	} else {
 		PTRACE(1, "GKAUTH\t" << GetName() << " found unknown auth rule '" << rName << '\'');

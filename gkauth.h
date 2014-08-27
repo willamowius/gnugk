@@ -778,7 +778,9 @@ protected:
 		/// an array of source signaling addresses for an endpoint that sent the request
 		const H225_ArrayOf_TransportAddress & sigaddr,
 		/// auth condition string as returned by GetAuthConditionString
-		const PString & condition
+		const PString & condition,
+		/// check the port in the sigIP (off when endpoint uses H.460.18)
+		bool checkPort = true
 		);
 		
 	/** Validate that the signaling address matches the given auth rule.
@@ -790,7 +792,9 @@ protected:
 		/// a signaling address for the endpoint that sent the request
 		const H225_TransportAddress & sigaddr,
 		/// the auth rule to be used for checking
-		const PString & authrule
+		const PString & authrule,
+		/// check or ignore port in rule
+		bool checkPort
 		);
 
 	/** Get AliasAuth condition string for the given alias. 
