@@ -349,6 +349,7 @@ The first alias (this will mostly be an H323ID) of the endpoint to
 register is looked up in this section. If a parameter is found the value will
 apply as a rule. A rule consists of conditions separated by "&".
 A registration is accepted when all conditions apply.
+If an endpoint is using H.460.18, the port in the authentication rule is being ignored.
 
 <descrip>
 <tag/Syntax:/
