@@ -142,7 +142,7 @@ bool RoutingRequest::AddRoute(const Route & route)
 {
 	PIPSocket::Address addr;
 	WORD port;
-	if (!(route.m_destAddr.IsValid() && GetIPAndPortFromTransportAddr(route.m_destAddr, addr, port) 
+	if (!(route.m_destAddr.IsValid() && GetIPAndPortFromTransportAddr(route.m_destAddr, addr, port)
 			&& addr.IsValid() && port != 0)) {
 		PTRACE(1, "ROUTING\tInvalid destination address: " << AsString(route.m_destAddr));
 		return false;
@@ -180,7 +180,7 @@ bool RoutingRequest::GetGatewayDestination(H225_TransportAddress & gw) const
 	PIPSocket::Address addr;
 	if (!GetIPFromTransportAddr(m_gwDestination, addr)||!addr.IsValid())
 			return false;
-	
+
 	gw = m_gwDestination;
 	return true;
 }
@@ -286,7 +286,7 @@ bool Policy::Handle(FacilityRequest& request)
 
 void Policy::SetInstance(const PString & instance)
 {
-	PString policyName = PString(m_name); 
+	PString policyName = PString(m_name);
 	if (!instance.IsEmpty()) {
 		m_instance = instance;
 		policyName = policyName + "::" + m_instance;
@@ -314,7 +314,7 @@ Analyzer::~Analyzer()
 void Analyzer::OnReload()
 {
 	WriteLock lock(m_reloadMutex);
-	
+
 	for (int i = 0; i < 4; ++i) {
 		Rules & rules = m_rules[i];
 
@@ -591,14 +591,14 @@ bool ExplicitPolicy::OnRequest(AdmissionRequest & request)
 		Route route(m_name, arq.m_destCallSignalAddress);
 		route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
 #ifdef HAS_H46023
-        if (!route.m_destEndpoint && 
+        if (!route.m_destEndpoint &&
            arq.HasOptionalField(H225_AdmissionRequest::e_genericData) &&
            H460_FeatureSet(arq.m_genericData).HasFeature(24)) {
 	         H225_RasMessage ras;
              ras.SetTag(H225_RasMessage::e_admissionRequest);
 			 H225_AdmissionRequest & req = (H225_AdmissionRequest &)ras;
 			 req = arq;
-		   route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);	
+		   route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);
         }
 #endif
 		return request.AddRoute(route);
@@ -678,7 +678,7 @@ bool InternalPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_Alias
 	list<Route> routes;
 	if (RegistrationTable::Instance()->FindEndpoint(aliases, false, true, routes))
 		request.SetRejectReason(H225_LocationRejectReason::e_resourceUnavailable);
-		
+
 	list<Route>::iterator i = routes.begin();
 	while (i != routes.end()) {
 		i->m_policy = m_name;
@@ -710,7 +710,7 @@ bool InternalPolicy::FindByAliases(AdmissionRequest & request, H225_ArrayOf_Alia
 	endptr ep;
 	if (request.SupportLanguages())
 		ep = RegistrationTable::Instance()->FindByEndpointId(request.GetRequest().m_endpointIdentifier);
-		
+
 	list<Route>::iterator i = routes.begin();
 	while (i != routes.end()) {
 		if (ep && i->m_destEndpoint && !i->SetLanguages(i->m_destEndpoint->GetLanguages(), ep->GetLanguages())) {
@@ -919,7 +919,7 @@ VirtualQueue::VirtualQueue()
 VirtualQueue::~VirtualQueue()
 {
 	m_listMutex.Wait();
-	
+
 	int numrequests = m_pendingRequests.size();
 	if( numrequests ) {
 		PTRACE(1, "VQueue\tDestroying virtual queue with "
@@ -942,10 +942,10 @@ VirtualQueue::~VirtualQueue()
 void VirtualQueue::OnReload()
 {
 	PWaitAndSignal lock(m_listMutex);
-	
+
 	m_requestTimeout = GkConfig()->GetInteger(
 		CTIsection,
-		GkConfig()->HasKey(CTIsection, "RequestTimeout") ? "RequestTimeout" : "CTI_Timeout", 
+		GkConfig()->HasKey(CTIsection, "RequestTimeout") ? "RequestTimeout" : "CTI_Timeout",
 		DEFAULT_ROUTE_REQUEST_TIMEOUT
 		) * 1000;
 	m_requestTimeout = PMAX((long)100,m_requestTimeout);	// min wait: 100 msec
@@ -975,7 +975,7 @@ void VirtualQueue::OnReload()
 			m_active = true;
 		}
 	}
-	
+
 	m_virtualQueueRegex = GkConfig()->GetString(CTIsection, "VirtualQueueRegex", "");
 	if( !m_virtualQueueRegex.IsEmpty() ) {
 		// check if regex is valid
@@ -989,7 +989,7 @@ void VirtualQueue::OnReload()
 			m_active = true;
 		}
 	}
-	
+
 	if( !m_active ) {
 		PTRACE(2, "VQueue\t(CTI) Virtual queues disabled - no virtual queues configured");
 	}
@@ -1075,20 +1075,20 @@ bool VirtualQueue::IsDestinationVirtualQueue(
 	for (PINDEX i = 0; i < m_virtualQueuePrefixes.GetSize(); ++i)
 		if (destinationAlias.Find(m_virtualQueuePrefixes[i]) == 0)
 			return true;
-	
+
 	return (!m_virtualQueueRegex.IsEmpty())
 		&& Toolkit::MatchRegex(destinationAlias, m_virtualQueueRegex);
 }
 
 bool VirtualQueue::RouteToAlias(
-	/// aliases for the routing target (an agent that the call will be routed to) 
+	/// aliases for the routing target (an agent that the call will be routed to)
 	/// that will replace the original destination info
 	const H225_ArrayOf_AliasAddress & agent,
 	/// ip that will replace the destinationCallSignalAddress (RouteToGateway)
 	/// used only if set (!= NULL)
 	const PString & destinationip,
 	/// identifier of the endpoint associated with the route request
-	const PString & callingEpId, 
+	const PString & callingEpId,
 	/// CRV of the call associated with the route request
 	unsigned crv,
 	/// callID of the call associated with the route request
@@ -1140,23 +1140,23 @@ bool VirtualQueue::RouteToAlias(
 		}
 		++i;
 	}
-	
+
 	if( !foundrequest ) {
 		PTRACE(4, "VQueue\tPending route request (EPID:" << callingEpId
 			<< ", CRV=" << crv << ") not found - ignoring RouteToAlias / RouteToGateway / BindAndRouteToGateway command");
 	}
-	
+
 	return foundrequest;
 }
 
 bool VirtualQueue::RouteToAlias(
 	/// alias for the routing target that
 	/// will replace the original destination info
-	const PString & targetAlias, 
+	const PString & targetAlias,
 	/// will replace the original destinationCallSignallAddress
-	const PString & destinationIp, 
+	const PString & destinationIp,
 	/// identifier of the endpoint associated with the route request
-	const PString & callingEpId, 
+	const PString & callingEpId,
 	/// CRV for the call associated with the route request
 	unsigned crv,
 	/// callID of the call associated with the route request
@@ -1179,7 +1179,7 @@ bool VirtualQueue::RouteToAlias(
 
 bool VirtualQueue::RouteReject(
 	/// identifier of the endpoint associated with the route request
-	const PString & callingEpId, 
+	const PString & callingEpId,
 	/// CRV of the call associated with the route request
 	unsigned crv,
 	/// callID of the call associated with the route request
@@ -1214,7 +1214,7 @@ VirtualQueue::RouteRequest* VirtualQueue::InsertRequest(
 {
 	duplicate = false;
 	PWaitAndSignal lock(m_listMutex);
-	
+
 	// check if another route requests for the same EPID,CRV are pending
 	int duprequests = 0;
 	RouteRequests::iterator i = m_pendingRequests.begin();
@@ -1224,7 +1224,7 @@ VirtualQueue::RouteRequest* VirtualQueue::InsertRequest(
 			duprequests++;
 		++i;
 	}
-	
+
 	if( duprequests ) {
 		duplicate = true;
 		PTRACE(5, "VQueue\tRoute request (EPID: " << callingEpId
@@ -1306,7 +1306,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 		// so we return true to terminate the routing
 		// decision process, otherwise the aliases is
 		// rewritten, we return false to let subsequent
-		// policies determine the request 
+		// policies determine the request
 		if (m_next == NULL || reject)
 			return true;
 	}
@@ -1363,7 +1363,7 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 				route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(
 					route.m_destAddr
 				);
-				request.AddRoute(route);					
+				request.AddRoute(route);
 				delete callSigAdr;
 				delete bindIP;
 				delete callerID;
@@ -1426,7 +1426,7 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 
 		if (m_vqueue->SendRouteRequest(callerip, epid, crv, aliases, callSigAdr, bindIP, callerID, reject, vq, src, callid, calledIP, vendorInfo))
 			request.SetFlag(RoutingRequest::e_aliasesChanged);
-		
+
 		if (reject) {
 			request.SetFlag(RoutingRequest::e_Reject);
 		}
@@ -1470,11 +1470,11 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 
 struct PrefixGreater : public binary_function<NumberAnalysisPolicy::PrefixEntry, NumberAnalysisPolicy::PrefixEntry, bool> {
 
-	bool operator()(const NumberAnalysisPolicy::PrefixEntry &e1, const NumberAnalysisPolicy::PrefixEntry &e2) const 
+	bool operator()(const NumberAnalysisPolicy::PrefixEntry &e1, const NumberAnalysisPolicy::PrefixEntry &e2) const
 	{
 		if (e1.m_prefix.size() == e2.m_prefix.size())
 			return e1.m_prefix > e2.m_prefix;
-		else 
+		else
 			return e1.m_prefix.size() > e2.m_prefix.size();
 	}
 };
@@ -1503,9 +1503,9 @@ void NumberAnalysisPolicy::LoadConfig(const PString & instance)
 			m_prefixes[i].m_maxLength = val.Mid(sepIndex + 1).AsUnsigned();
 		}
 	}
-	
+
 	stable_sort(m_prefixes.begin(), m_prefixes.end(), PrefixGreater());
-	
+
 	PTRACE(5, "ROUTING\t" << m_name << " policy loaded with " << m_prefixes.size()
 		<< " prefix entries");
 
@@ -1620,7 +1620,7 @@ bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddre
 				PStringArray parts = SplitIPAndPort(gwDestination, GK_DEF_ENDPOINT_SIGNAL_PORT);
 				PString dom = parts[0];
 				PIPSocket::Address addr;
-				if (PIPSocket::GetHostAddress(dom, addr)) 
+				if (PIPSocket::GetHostAddress(dom, addr))
 					dom = addr.AsString();
 				WORD port = (WORD)parts[1].AsUnsigned();
 				H225_TransportAddress dest;
@@ -1632,7 +1632,7 @@ bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddre
 				PString alias(AsString(aliases[j], FALSE));
 				int at = alias.Find('@');
 				PString domain = alias.Mid(at+1);
-				if (IsIPAddress(domain) 
+				if (IsIPAddress(domain)
 					|| (domain.FindRegEx(PRegularExpression(":[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX)) {
 					// add a route and stop going any further
 					PTRACE(4, "ROUTING\tPolicy " << m_name << " " << enum_schema << " set destination for " << alias << " to " << AsString(dest));
@@ -1679,7 +1679,7 @@ bool ENUMPolicy::FindByAliasesInternal(const PString & schema, RoutingRequest & 
 			if (PDNS::ENUMLookup(alias, schema, str)) {
 				// Remove any + or URI Schema at the front
 				PINDEX at = str.Find('@');
-				PINDEX sch = str.Find(':'); 
+				PINDEX sch = str.Find(':');
 				if (sch > 0 && sch < at)
 					str = str.Mid(sch+1);
 				str.Replace("+","", true);
@@ -2025,7 +2025,7 @@ void SqlPolicy::RunPolicy(
 		delete result;
 		return;
 	}
-	
+
 	if (result->GetNumRows() < 1)
 		PTRACE(3, m_name << ": query returned no rows");
 	else if (result->GetNumFields() < 1)
@@ -2127,7 +2127,48 @@ void CatchAllPolicy::LoadConfig(const PString & instance)
 	}
 }
 
-bool CatchAllPolicy::CatchAllRoute(RoutingRequest & request) const
+bool CatchAllPolicy::OnRequest(AdmissionRequest & request)
+{
+    bool updateAlias = false;
+    bool result = CatchAllRoute(request, updateAlias);
+    if (updateAlias) {
+		request.SetFlag(RoutingRequest::e_aliasesChanged);
+        H225_AdmissionRequest & arq = request.GetRequest();
+		arq.IncludeOptionalField(H225_AdmissionRequest::e_destinationInfo);
+		arq.m_destinationInfo.SetSize(1);
+		H323SetAliasAddress(m_catchAllAlias, arq.m_destinationInfo[0]);
+    }
+    return result;
+}
+
+bool CatchAllPolicy::OnRequest(LocationRequest & request)
+{
+    bool updateAlias = false;
+    bool result = CatchAllRoute(request, updateAlias);
+    if (updateAlias) {
+		request.SetFlag(RoutingRequest::e_aliasesChanged);
+        H225_LocationRequest & lrq = request.GetRequest();
+		lrq.m_destinationInfo.SetSize(1);
+		H323SetAliasAddress(m_catchAllAlias, lrq.m_destinationInfo[0]);
+    }
+    return result;
+}
+
+bool CatchAllPolicy::OnRequest(SetupRequest & request)
+{
+    bool updateAlias = false;
+    bool result = CatchAllRoute(request, updateAlias);
+    if (updateAlias) {
+		request.SetFlag(RoutingRequest::e_aliasesChanged);
+		H225_Setup_UUIE & setup = request.GetRequest();
+		setup.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
+		setup.m_destinationAddress.SetSize(1);
+		H323SetAliasAddress(m_catchAllAlias, setup.m_destinationAddress[0]);
+    }
+    return result;
+}
+
+bool CatchAllPolicy::CatchAllRoute(RoutingRequest & request, bool & updateAlias) const
 {
 	if (!m_catchAllIP.IsEmpty()) {
 		H225_TransportAddress destAddr;
@@ -2153,6 +2194,8 @@ bool CatchAllPolicy::CatchAllRoute(RoutingRequest & request) const
 			Route route(m_name, ep, 999);
 			request.AddRoute(route);
 		}
+		// rewrite destination alias
+		updateAlias = true;
 		return (m_next == NULL);
 	}
 	PTRACE(1, m_name << "\tCatch-all endpoint " << m_catchAllAlias << " not found!");
@@ -2176,7 +2219,7 @@ void URIServicePolicy::LoadConfig(const PString & instance)
 		PStringArray parts = SplitIPAndPort(gwDestination, GK_DEF_ENDPOINT_SIGNAL_PORT);
 		PString dom = parts[0];
 		PIPSocket::Address addr;
-		if (PIPSocket::GetHostAddress(dom, addr)) 
+		if (PIPSocket::GetHostAddress(dom, addr))
 			dom = addr.AsString();
 		WORD port = (WORD)parts[1].AsUnsigned();
 		H225_TransportAddress dest;
@@ -2188,18 +2231,18 @@ void URIServicePolicy::LoadConfig(const PString & instance)
 	}
 }
 
-bool URIServicePolicy::OnRequest(AdmissionRequest & request) 
-{ 
-    return URIServiceRoute(request, request.GetAliases()); 
+bool URIServicePolicy::OnRequest(AdmissionRequest & request)
+{
+    return URIServiceRoute(request, request.GetAliases());
 }
 
-bool URIServicePolicy::OnRequest(LocationRequest & request) 
-{ 
-    return URIServiceRoute(request, request.GetAliases()); 
+bool URIServicePolicy::OnRequest(LocationRequest & request)
+{
+    return URIServiceRoute(request, request.GetAliases());
 }
 
-bool URIServicePolicy::OnRequest(SetupRequest & request) 
-{ 
+bool URIServicePolicy::OnRequest(SetupRequest & request)
+{
     return URIServiceRoute(request, request.GetAliases());
 }
 
@@ -2234,8 +2277,8 @@ bool URIServicePolicy::URIServiceRoute(RoutingRequest & request, H225_ArrayOf_Al
 			PTRACE(4, "ROUTING\tPolicy " << m_name << " " << service << " store destination for " << alias << " to " << AsString(destination));
 			request.SetServiceType(service);
 			request.SetGatewayDestination(destination);
-			return false;  // Fall through to the next 	
-		} 
+			return false;  // Fall through to the next
+		}
 
 		// add a route and stop going any further
 		PTRACE(4, "ROUTING\tPolicy " << m_name << " " << service << " set destination for " << alias << " to " << AsString(destination));

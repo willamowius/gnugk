@@ -1,5 +1,6 @@
 Changes from 3.7 to 3.8
 =======================
+- BUGFIX(Routing.cxx) CatchAll policy now rewrites the destination alias to the CatchAll alias
 - new authentication modules using LUA scripts: LuaAuth
 - BUGFIX(gkauth.cxx) ignore port in AliasAuth rules when endpoint is using H.460.18
 - extend PrefixAuth to support unregistered calls
@@ -164,7 +165,7 @@ Changes from 3.1 to 3.2
 - new Alias SQL variable "Additive-RRQ"
 - support for additive registration for gateways. new switch [RasSrv::RRQFeatures] EnableAdditiveRegistration
 - allow multiple instances of routing policies with different settings
-  (currently works for sql, enum, srv, dns, numberanalysis, lua, forwarding) 
+  (currently works for sql, enum, srv, dns, numberanalysis, lua, forwarding)
 - BUGFIX(Toolkit.cxx) remove h323: prefix if DefaultDomain is set
 - new switch [RoutedMode] RemoveH245AddressFromSetup=
 - BUGFIX(ProxyChannel.cxx) fix RTCP port for multiplexed RTP in mixed-mode calls
@@ -588,7 +589,7 @@ Changes from 2.2.6 to 2.2.7
 - Added Alias Filter via [RasSrv::RRQFeatures] AliasTypeFilter
 - Added RDS (resolver discovery service) Routing policy
 - BUGFIX (RasTbl.cxx) check route capacity just before it is used for failover, not only at the beginning of the call (patch by Vladimir Voronin)
-- Added HTTP Service control via [RasSrv::RRQFeatures] AccHTTPLink 
+- Added HTTP Service control via [RasSrv::RRQFeatures] AccHTTPLink
 - BUGFIX (GkStatus.cxx) add semicolon after status port 'debug cfg' output for consistency
 - Added [RasSrv::AssignedAlias] to gatekeeper assign aliases
 - Added [RasSrv::AssignedGKs] to assign gatekeepers based on alias or IP.(req. H.323v6)
@@ -724,7 +725,7 @@ Changes from 2.2.2 to 2.2.3
 - IRR checking for active calls [CallTable] IRRFrequency=n, IRRCheck=TRUE
 - BUGFIX(RasSrv.cxx) terminate all calls before unregistering endpoint
   when OverwriteEPOnSameAddress=1
-- new RewriteCLI options to control CLIR features precisely 
+- new RewriteCLI options to control CLIR features precisely
 - new CLIR/CLIP (Calling Line Identification Restriction/Presentation) features in
   RewriteCLI module. Ability to hide CLI (enable CLIR/CLIP) per endpoint
 - Unix man page in the docs folder by Ivan Lopez <ilopez@enress.gov.ar>
@@ -833,7 +834,7 @@ Changes from 2.2.1 to 2.2.2
 - provide proper handling of aliases of type partyNumber (e164Number or privateNumber)
 - BUGFIX(ProxyChannel.cxx) fix for RTP/Q931/H245/T120PortRange
   to correct a bug with port range wraparound if the last port is 65535.
-  This caused a next port to be set to 0 and any subsequent port allocation 
+  This caused a next port to be set to 0 and any subsequent port allocation
   to fail
 - BUGFIX(ProxyChannel.cxx) dynamic allocation of RTP ports did not work,
   use a fixed range 1024-65535 as a default for RTPPortRange config variable
@@ -853,8 +854,8 @@ Changes from 2.2.0 to 2.2.1
   ! at the beginning disables the prefix
 - (ProxyChannel.cxx) critical fix - a missing lock during config reload
   caused the gatekeeper to crash
-- (ProxyChannel.cxx) more reliable port number selection for Q.931, H.245, 
-  T.120 and RTP port ranges (before, a config reload could cause many calls 
+- (ProxyChannel.cxx) more reliable port number selection for Q.931, H.245,
+  T.120 and RTP port ranges (before, a config reload could cause many calls
   to fail because of unability to get a new socket)
 - (ProxyChannel.cxx) default setting for RTPPortRange is now to let the OS select a port number
 - more flexible rewrite rules (both global and per-gw) with '.' and '%'
@@ -922,7 +923,7 @@ Changes from 2.2beta4 to 2.2beta5
 - ability to set call destination in auth modules. RADIUS based call routing
 - BUGFIX(Neighbor.cxx) fixed sourceInfo LRQ field handling - now it contains
   an H.323 identifier of the gatekeeper
-- (radproto.cxx) ability to set shared secrets for each radius server 
+- (radproto.cxx) ability to set shared secrets for each radius server
   separatelly, more Radius optimizations
 - new, much faster, Radius client implementation. Thanks to Pavel Pavlov
   for numerous ideas and suggestions!
@@ -931,7 +932,7 @@ Changes from 2.2beta4 to 2.2beta5
 - (RasSrv.cxx) duplicated RAS messages are now simply discarded
 - BUGFIX(ProxyChannel.cxx) fixed proxying of RTP packets, so RTP sockets are
   not closed on temporary errors (like remote socket not yet ready). This bug
-  affected especially NAT traversal and situation, when audio was sent very 
+  affected especially NAT traversal and situation, when audio was sent very
   early, when reverse proxy path has not been yet established
 - BUGFIX(RasSrv.cxx) fixed handling of RRJ (fullRegistrationRequired)
   from an alternate GnuGk
@@ -941,10 +942,10 @@ Changes from 2.2beta4 to 2.2beta5
   with the billing
 - direct SQL accounting module (SQLAcct) ported from 2.0 branch
 - BUGFIX(gkauth.cxx) gcc 2.95.x compilation errors fixed
-- BUGFIX(Neighbor.cxx) handling reply messages (RIP/LCF/LRJ) from neighbors 
+- BUGFIX(Neighbor.cxx) handling reply messages (RIP/LCF/LRJ) from neighbors
   fixed, thanks to kubuqi cn (kubuqi@hotmail.com)
 - support for CallCreditServiceControl in RCF and ACF messages, which allows
-  reporting call duration limit and user's account balance to endpoints. 
+  reporting call duration limit and user's account balance to endpoints.
   Currently RadAuth and RadAliasAuth modules support this feature.
 - BUGFIX(gk.cxx) removed an invalid test for the log filename, preventing
   from creating log files in a directory other than the current one
@@ -953,11 +954,11 @@ Changes from 2.2beta4 to 2.2beta5
 - BUGFIX(gk.cxx) fixed log file rotation under Windows, thanks to Cristian Bullokles!
 - log file rotation, new LogFile config section, new setlog and rotatelog
   status interface commands
-- BUGFIX(gkacct.cxx) a fix to rotation interval calculation for monthly 
+- BUGFIX(gkacct.cxx) a fix to rotation interval calculation for monthly
   CDR file rotation
 - BUGFIX(gkacct.cxx) FileAcct monthly rotation rotated a CDR file unnecessary
   on gatekeeper restart
-- BUGFIX(gkacct.cxx) fixed a critical bug in Username determination 
+- BUGFIX(gkacct.cxx) fixed a critical bug in Username determination
   for unregistered endpoints, introduced by recent changes
 - BUGFIX(RasSrv.cxx) do not include an invalid access token (with null object
   identifier) in LCF to prevent interoperability problems, thanks to Andreas Sikkema!
@@ -972,18 +973,18 @@ Changes from 2.2beta4 to 2.2beta5
   these modules will always send Framed-IP-Address
 - (sqlbill) reject gracefully Access-Requests without Framed-IP-Address
 - (sqlbill) improvements for IP only authorization
-- BUGFIX(sqlbill) FreeRadius accounting_stop_query changed to not check h323id 
+- BUGFIX(sqlbill) FreeRadius accounting_stop_query changed to not check h323id
   in order to allow IP only authorization
-- BUGFIX(sqlbill) FreeRadius accounting_update_query changed to not check h323id 
+- BUGFIX(sqlbill) FreeRadius accounting_update_query changed to not check h323id
   in order to allow IP only authorization
 - (radacct.cxx) new RADIUS h323-ivr-out=h323-call-id parameter that contains
   an H.323 Call Identifier
 - BUGFIX(radauth.cxx) better Framed-IP-Address handling in RadAliasAuth Setup check
-- BUGFIX (ProxyChannel.cxx) With a certain combination of endpoints it 
-  was possible to have UDPProxySocket trying to forward incoming RTP / 
+- BUGFIX (ProxyChannel.cxx) With a certain combination of endpoints it
+  was possible to have UDPProxySocket trying to forward incoming RTP /
   RTCP trafic to 127.0.0.1:0. Added a check for this situation and send
   traffic to non-loopback address and hope it is the correct address.
-- (sqlbill) added ability to authenticate users only by their IP 
+- (sqlbill) added ability to authenticate users only by their IP
   (ignoring User-Name)
 - BUGFIX(radauth.cxx) RadAliasAuth will use Calling-Party-Number as User-Name
   if no sourceAddress inside is present in Setup-UUIE
@@ -1015,8 +1016,8 @@ Changes from 2.2beta3 to 2.2beta4
   them from the list
 - BUGFIX(RasTbl.cxx) make sure PrintCurrentCalls prints ACF messages
   in the same format as all ACFs
-- improved performance of the socket code (especially when LARGE_FDSET 
-  is enabled). Faster select for a single socket and an unnecessary 
+- improved performance of the socket code (especially when LARGE_FDSET
+  is enabled). Faster select for a single socket and an unnecessary
   write lock for UDP sockets removed
 - BUGFIX(radproto.cxx) default auth/acct ports are now set to fixed values
   1812 and 1813, due to problems with getservbyname and multithreading
@@ -1054,12 +1055,12 @@ Changes from 2.2beta3 to 2.2beta4
 - added Windows icon and version info from Franz J Ehrengruber
 - (manual.sgml) corrected MySQLPasswordAuth, MySQLAliasAuth sections,
   removed NeighborPasswordAuth documentation (not necessary anymore)
-- (gkauth.cxx) fixed SimplePasswordAuth module to read settings from 
-  [SimplePasswordAuth] section instead of [Password] section. 
+- (gkauth.cxx) fixed SimplePasswordAuth module to read settings from
+  [SimplePasswordAuth] section instead of [Password] section.
   Fixed MySQLPasswordAuth module to accept CacheTimeout parameter.
   Default CacheTimeout for MySQLPasswordAuth and MySQLAliasAuth set to 0
   (do not cache passwords/aliases at all)
-- applied the concept of output trace levels for the status interface. 
+- applied the concept of output trace levels for the status interface.
   It allows to select amount of information a status client receives
   (level 0 - silent mode + reloads; level 1 - CDRs, RouteRequests, reloads;
    level 2 - everything: the default mode)
@@ -1079,7 +1080,7 @@ Changes from 2.2beta3 to 2.2beta4
 - (ProxyChannel.cxx) support for H.323 V4 provisionalRespToH245Tunneling
   and parallelH245Control H.225.0 elements
 - log rotation now maintains the original filename and stores rotated
-  log files with precise timestamp (YYYYMMDD_HHMMSS) to prevent overwritting. 
+  log files with precise timestamp (YYYYMMDD_HHMMSS) to prevent overwritting.
   Thanks to Rafael Costa dos Santos.
 - added Q.931 Setup authentication to RadAuth module to allow
   authentication based on crypto tokens carried inside Setup
@@ -1097,12 +1098,12 @@ Changes from 2.2beta3 to 2.2beta4
 
 Changes from 2.2beta2 to 2.2beta3
 =================================
-- addpasswd utility changed to require section name where the encrypted 
+- addpasswd utility changed to require section name where the encrypted
   username/password will be stored
 - BUGFIX(gkauth.cxx) fixed call duration limit handling when multiple
   authenticator modules are specified
 - BUGFIX(gkacct.cxx) changed accounting reload handling to first cleanup
-  the old modules and then create the new ones. This allows the FileAcct 
+  the old modules and then create the new ones. This allows the FileAcct
   logger to work fine with the reload command
 - BUGFIX(h323util.cxx) additional check for H225_TransportAddress
   to prevent NULL pointer assertions. Thanks to Andrey Pankov!
@@ -1122,7 +1123,7 @@ Changes from 2.2beta2 to 2.2beta3
 - set disconnect cause to "normal call clearing" on DRQ received with normalDrop
   disengageReason and no termination cause set
 - BUGFIX(ProxyChannel.cxx) fixed h225 termination cause setting for ReleaseComplete
-- better hop count handling for neighbors - now LRQ m_hopCount field 
+- better hop count handling for neighbors - now LRQ m_hopCount field
   is forwarded/generated correctly, according to an original hop count
   or a ForwardHopCount config settings
 - small radius accounting/authentication module optimizations and better trace ouput
@@ -1131,7 +1132,7 @@ Changes from 2.2beta2 to 2.2beta3
   to [CTI::Agents] section. These make possible to call virtual queue
   not only with the exact alias name, but also with an alias that matches
   configured prefixes or configured regular expression. Thanks to Max Speransky
-- renamed config variable VirtualQueue to VirtualQueueAliases 
+- renamed config variable VirtualQueue to VirtualQueueAliases
   (backward compatibility is maintained)
 
 Changes from 2.2beta1 to 2.2beta2
@@ -1324,7 +1325,7 @@ Changes from 2.0b3 to 2.0b4 (by cwhuang)
 - only accept unregistered call from neighbors
 - in SimplePasswordAuth module, allow expire password cache
 - add NeighborPasswordAuth module
-- check if LRQs is from IP of my neighbors 
+- check if LRQs is from IP of my neighbors
 - add dynamic resolving name for neighbors, thanks to Rodrigo Gonzalez
 - add GkClient module
 - allow remove a key or a section in the config from status thread
@@ -1349,10 +1350,10 @@ Changes from 2.0b1 to 2.0b2 (by cwhuang)
 Changes from 1.3 to now (by mmuehlen)
 ====================================
 - added destination analysis module list (gkDestAnalysis.cxx, gkDestAnalysis.h)
-  with a similar structure as the authentication module list 
+  with a similar structure as the authentication module list
   (can be enabled with compiler option WITH_DEST_ANALYSIS_LIST)
 - added base class 'GkLDAP' for LDAP access (gkldap.h gkldap.cxx)
-- changed the following section names in ini-file 
+- changed the following section names in ini-file
   (reason: LDAP is not only used for authentification):
     LDAPAuth::LDAPAttributeNames -> GkLDAP::LDAPAttributeNames
     LDAPAuth::Settings -> GkLDAP::Settings
@@ -1437,7 +1438,7 @@ Changes from 1.0pre8 to 1.0pre9 (by cwhuang)
 - Neighbor function based on LRQ/LCF.
   GK would cache the records in a list.
   A command "PrintAllCached" is added to GkStatus.
-  
+
 - Add more information in LCF reply, including terminal type, aliases
   and supportedProtocols (if any) so that the neighbors could cache it.
 

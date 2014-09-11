@@ -107,7 +107,7 @@ public:
 		e_fromNeighbor = 8,	// currently not used
 		e_Reject = 16
 	};
-	
+
 	RoutingRequest();
 	RoutingRequest(const std::list<Route> & failedRoutes);
 	virtual ~RoutingRequest();
@@ -191,7 +191,7 @@ typedef Request<H225_Facility_UUIE, FacilityMsg> FacilityRequest;
 template<class T>
 class PolicyList {
 public:
-	typedef T Base;	// for SimpleCreator template 
+	typedef T Base;	// for SimpleCreator template
 
 	PolicyList() : m_next(NULL) { }
 	virtual ~PolicyList() { delete m_next; }  // delete whole list recursively
@@ -215,7 +215,7 @@ T *PolicyList<T>::Create(const PStringArray & rules)
 	for (int i = rules.GetSize(); --i >= 0; ) {
 		PStringArray id = rules[i].Tokenise("::", false);	// check for <policy>::<ID>
 		if (T * current = Factory<T>::Create(id[0])) {
-			if (id.GetSize() > 1) 
+			if (id.GetSize() > 1)
 				current->SetInstance(id[1]);
 			else
 				current->SetInstance("");
@@ -352,7 +352,7 @@ protected:
 	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
 	virtual bool FindByAliases(SetupRequest &, H225_ArrayOf_AliasAddress &);
 	virtual bool FindByAliases(AdmissionRequest &, H225_ArrayOf_AliasAddress &);
-	
+
 private:
 	bool roundRobin;
 };
@@ -417,7 +417,7 @@ public:
 		int m_minLength;
 		int m_maxLength;
 	};
-	
+
 	NumberAnalysisPolicy();
 
 protected:
@@ -429,7 +429,7 @@ protected:
 private:
 	NumberAnalysisPolicy(const NumberAnalysisPolicy &);
 	NumberAnalysisPolicy& operator=(const NumberAnalysisPolicy &);
-	
+
 private:
 	typedef vector<PrefixEntry> Prefixes;
 
@@ -458,7 +458,7 @@ class DestinationRoutes {
 public:
 	DestinationRoutes();
 	~DestinationRoutes() { }
-	
+
 	bool EndPolicyChain() const { return m_endChain; }
 	bool RejectCall() const { return m_reject; }
 	void SetRejectCall(bool reject) { m_reject = reject; m_endChain = true; }
@@ -510,7 +510,7 @@ protected:
 		DestinationRoutes & destination) = 0;
 
 	virtual bool ResolveRoute(
-		RoutingRequest & request, 
+		RoutingRequest & request,
 		DestinationRoutes & destination
 		) { return true; }
 
@@ -559,14 +559,14 @@ public:
 	virtual ~CatchAllPolicy() { }
 
 protected:
-	virtual bool OnRequest(AdmissionRequest & request) { return CatchAllRoute(request); }
-	virtual bool OnRequest(LocationRequest & request) { return CatchAllRoute(request); }
-	virtual bool OnRequest(SetupRequest & request) { return CatchAllRoute(request); }
+	virtual bool OnRequest(AdmissionRequest & request);
+	virtual bool OnRequest(LocationRequest & request);
+	virtual bool OnRequest(SetupRequest & request);
 
-	bool CatchAllRoute(RoutingRequest & request) const;
+	bool CatchAllRoute(RoutingRequest & request, bool & updateAlias) const;
 
 	virtual void LoadConfig(const PString & instance);
-	
+
 	PString m_catchAllAlias;
 	PString m_catchAllIP;
 };
@@ -586,7 +586,7 @@ protected:
 	bool URIServiceRoute(RoutingRequest & request, H225_ArrayOf_AliasAddress * aliases) const;
 
 	virtual void LoadConfig(const PString & instance);
-	
+
 	map<PString,H225_TransportAddress> m_uriServiceRoute;
 };
 
@@ -701,7 +701,7 @@ public:
 		/// will replace the original destination info
 		const PString & agent,
 		/// will replace the original destinationCallSignallAddress
-		const PString & destinationip, 		
+		const PString & destinationip,
 		/// identifier of the endpoint associated with the route request
 		const PString & callingEpId,
 		/// CRV of the call associated with the route request
