@@ -286,6 +286,12 @@ const char * KnownConfigEntries[][2] = {
 	{ "GkStatus::Message", "Compact" },
 	{ "GkStatus::Message", "RCF" },
 	{ "GkStatus::Message", "URQ" },
+#ifdef HAS_LUA
+	{ "LuaAuth", "CallScript" },
+	{ "LuaAuth", "CallScriptFile" },
+	{ "LuaAuth", "RegistrationScript" },
+	{ "LuaAuth", "RegistrationScriptFile" },
+#endif
 	{ "LogFile", "Filename" },
 	{ "LogFile", "Rotate" },
 	{ "LogFile", "RotateDay" },
@@ -1506,10 +1512,10 @@ void Gatekeeper::Main()
 	else if (args.HasOption('d'))
 		RasSrv->SetRoutedMode(false, false);
 #ifdef HAS_H235_MEDIA
-    else if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) 
+    else if (Toolkit::Instance()->IsH235HalfCallMediaEnabled())
         RasSrv->SetRoutedMode(true, true);
-#endif 
-	else 
+#endif
+	else
 		RasSrv->SetRoutedMode();
 
 	// Load ENUM servers

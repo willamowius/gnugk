@@ -15,7 +15,7 @@ config sections for each modulke that you want to use.
 <tscreen><verb>
 authrule=actions
 
- <authrule> := SimplePasswordAuth | AliasAuth | FileIPAuth | PrefixAuth | RadAuth | RadAliasAuth | SQLAuth | SQLAliasAuth | SQLPasswordAuth | H350PasswordAuth | LDAPPasswordAuth | LDAPAliasAuth | CapacityControl | ...
+ <authrule> := SimplePasswordAuth | AliasAuth | FileIPAuth | PrefixAuth | RadAuth | RadAliasAuth | SQLAuth | SQLAliasAuth | SQLPasswordAuth | H350PasswordAuth | LDAPPasswordAuth | LDAPAliasAuth | LuaAuth | CapacityControl | ...
  <actions>  := <control>[;<ras>|<q931>,<ras>|<q931>,...]
  <control>  := optional | required | sufficient | alternative
  <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ
@@ -124,6 +124,10 @@ The LDAP server is configured in the <ref id="ldapsettings" name="GkLDAP::Settin
 and the attribute matching is defined in the
 <ref id="ldapattributes" name="GkLDAP::LDAPAttributeNames"> section.
 
+<item><tt>LuaAuth</tt>
+<p>
+This module uses user defined LUA scripts to perform the authentication.
+The scripts are configured in the <ref id="luaauth" name="LuaAuth"> section.
 
 <item><tt>CapacityControl</tt>
 <p>
@@ -1569,6 +1573,66 @@ H235PassWord=plaintextPassword
 H323ID=sn
 TelephonNo=telephoneNumber
 CallDestination=roomNumber
+</verb></tscreen>
+</descrip>
+
+<sect1>Section &lsqb;LuaAuth&rsqb;
+<label id="luaauth">
+<p>
+This section configures the scripts for LUA authentication.
+<p>
+<itemize>
+<item><tt/RegistrationScript=<em>script</em>/<newline>
+Default: <tt>N/A</tt>
+<p>
+LUA script to be used for RRQs. Short scripts can be put directly into the config file. For longer scripts use RegistrationScriptFile=.
+
+<item><tt>RegistrationScriptFile=/path/to/script</tt><newline>
+Default: <tt>N/A</tt>
+<p>
+LUA script to be used for RRQs.
+
+<item><tt/CallScript=<em>script</em>/<newline>
+Default: <tt>N/A</tt>
+<p>
+LUA script to be used for ARQs and Setups.
+Short scripts can be put directly into the config file. For longer scripts use CallScriptFile=.
+
+<item><tt>CallScriptFile=/path/to/script</tt><newline>
+Default: <tt>N/A</tt>
+<p>
+LUA script to be used for ARQs and Setups.
+</itemize>
+
+Registration authentication scripts can use the following variables
+<itemize>
+<item><tt/username/ - a username associated with the caller
+<item><tt/callerIP/ - caller's IP (the request has been received from - NAT IP for natted endpoints)
+<item><tt/aliases/ - the list of aliases in the registration
+<item><tt/messageType/ - always "RRQ" for registrations
+</itemize>
+
+Call authentication scripts can use the following variables
+<itemize>
+<item><tt/source/ -
+<item><tt/calledAlias/ - 
+<item><tt/calledIP/ - 
+<item><tt/caller/ - 
+<item><tt/callingStationId/ - caller's number, if available
+<item><tt/callid/ - the call ID
+<item><tt/messageType/ - either "ARQ" or "Setup"
+</itemize>
+
+The scripts have to store the authentication result in the variable <em>result</em>.
+Possible values are "OK", "FAIL" and "NEXT"; everything else will be treated as "FAIL".
+<descrip>
+<tag/Example:/
+<tscreen><verb>
+[LuaAuth]
+; only let use "boss" register
+RegistrationScript=if (username == "boss") then result = "OK" else result = "FAIL" end
+; call authentication is in a script file
+CallScriptFile=/path/to/callauth.lua
 </verb></tscreen>
 </descrip>
 

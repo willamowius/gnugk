@@ -1,5 +1,6 @@
 Changes from 3.7 to 3.8
 =======================
+- new authentication modules using LUA scripts: LuaAuth
 - BUGFIX(gkauth.cxx) ignore port in AliasAuth rules when endpoint is using H.460.18
 - extend PrefixAuth to support unregistered calls
 
