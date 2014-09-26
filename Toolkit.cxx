@@ -2876,15 +2876,14 @@ Toolkit::AlternateGatekeepers::~AlternateGatekeepers()
 void Toolkit::AlternateGatekeepers::LoadConfig(PConfig * cfg)
 {
 	delete m_sqlConn;
-	PString authName = "AlternateGatekeepers::SQL";
+	const PString authName = "AlternateGatekeepers::SQL";
 
 	if (cfg->GetSections().GetStringsIndex(authName) == P_MAX_INDEX)
 		return;
 
 	const PString driverName = cfg->GetString(authName, "Driver", "");
 	if (driverName.IsEmpty()) {
-		PTRACE(0, "AltGKSQL\tModule creation failed: "
-			"no SQL driver selected");
+		PTRACE(0, "AltGKSQL\tModule creation failed: no SQL driver selected");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
 		PTRACE(0, "AltGKSQL\tFATAL: Shutting down");
 		return;
@@ -2915,7 +2914,6 @@ void Toolkit::AlternateGatekeepers::LoadConfig(PConfig * cfg)
 	}
 
 	m_sqlactive = true;
-
 }
 
 bool Toolkit::AlternateGatekeepers::GetAlternateGK(const PIPSocket::Address & ip, H225_ArrayOf_AlternateGK & gklist)
