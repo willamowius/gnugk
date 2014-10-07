@@ -115,6 +115,7 @@ Stored procedures work very well when using MySQL.
 
 When using ODBC, you can not call stored procedures which use parameters using the "CALL ProcedureName" syntax, but you can call them with "EXEC ProcedureName".
 
+When using stored procedures for accounting, make sure they return at least one dummy row, so GnuGk won't drop the call.
 
 <sect1>Regular Expressions
 <label id="regex">
