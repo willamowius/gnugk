@@ -95,7 +95,7 @@ EndpointRec::EndpointRec(
 	: m_RasMsg(ras), m_endpointVendor(NULL), m_timeToLive(1),
 	m_activeCall(0), m_connectedCall(0), m_totalCall(0),
 	m_pollCount(GkConfig()->GetInteger(RRQFeaturesSection, "IRQPollCount", DEFAULT_IRQ_POLL_COUNT)),
-	m_usedCount(0), m_nat(false), m_natsocket(NULL), m_permanent(permanent), 
+	m_usedCount(0), m_nat(false), m_natsocket(NULL), m_permanent(permanent),
 	m_hasCallCreditCapabilities(false), m_callCreditSession(-1),
 	m_capacity(-1), m_calledTypeOfNumber(-1), m_callingTypeOfNumber(-1),
 	m_calledPlanOfNumber(-1), m_callingPlanOfNumber(-1), m_proxy(0),
@@ -129,9 +129,9 @@ EndpointRec::EndpointRec(
 	}
 	if (permanent)
 		m_timeToLive = 0;
-		
+
 	LoadEndpointConfig();
-}	
+}
 
 const int aliasCount = 6;
 const static POrdinalToString::Initialiser H225AliasTypes[aliasCount] =
@@ -166,7 +166,7 @@ void EndpointRec::LoadAliases(const H225_ArrayOf_AliasAddress & aliases, const H
 		if (kv.GetKeyAt(r) == "AliasTypeFilter") {
 	        PStringList entries = kv.GetDataAt(r).ToLower().Tokenise("\r\n", false);
 	        for (PINDEX e = 0; e < entries.GetSize(); e++) {
-				PStringList filtertype = entries[e].Tokenise(";", false); 
+				PStringList filtertype = entries[e].Tokenise(";", false);
 				// Malformed key
 				if (filtertype.GetSize() != 2) {
 					PTRACE(3, "Malformed AliasTypeFilter: " << entries[e]);
@@ -178,7 +178,7 @@ void EndpointRec::LoadAliases(const H225_ArrayOf_AliasAddress & aliases, const H
 				}
 				PTRACE(5, "Filter rule matched: AliasTypeFilter=" << entries[e]);
 
-				PStringList filterlist = filtertype[1].ToLower().Tokenise(",", false); 
+				PStringList filterlist = filtertype[1].ToLower().Tokenise(",", false);
 				for (PINDEX i = 0; i< aliases.GetSize(); i++) {
 					PString aliasType = h225aliastypes[aliases[i].GetTag()];
 					for (PINDEX j=0; j < filterlist.GetSize(); j++) {
@@ -191,7 +191,7 @@ void EndpointRec::LoadAliases(const H225_ArrayOf_AliasAddress & aliases, const H
 			}
 	    }
 	}
-	  
+
 	// If no filter or none match the filter than just add whatever is there
 	if (m_terminalAliases.GetSize() == 0) {
           m_terminalAliases = aliases;
@@ -283,7 +283,7 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 		}
 	}
 #endif
- 
+
 #ifdef HAS_H460
 	if (lcf.HasOptionalField(H225_LocationConfirm::e_genericData)) {
 		H225_ArrayOf_GenericData & data = lcf.m_genericData;
@@ -317,7 +317,7 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 				   }
 				   if (std24.Contains(Std24_SourceAddr)) {               /// ApparentSourceAddress
 					   H323TransportAddress ta = std24.Value(Std24_SourceAddr);
-					   PIPSocket::Address addr; 
+					   PIPSocket::Address addr;
 					   ta.GetIpAddress(addr);
 					   SetNATAddress(addr);
 				   }
@@ -383,7 +383,7 @@ EndpointRec::~EndpointRec()
 }
 
 bool EndpointRec::LoadConfig()
-{ 
+{
 	PWaitAndSignal lock(m_usedLock);
 	LoadEndpointConfig();
 	return true;
@@ -457,7 +457,7 @@ void EndpointRec::LoadEndpointConfig()
 			break;
 		}
 	}
-	
+
 	if (setDefaults) {
 		m_capacity = -1;
 		m_calledTypeOfNumber = toolkit->Config()->GetInteger(RoutedSec, "CalledTypeOfNumber", -1);
@@ -731,8 +731,10 @@ bool EndpointRec::RemoveAliases(const H225_ArrayOf_AliasAddress & aliases)
 void EndpointRec::AddNumbers(const PString & numbers)
 {
 	PWaitAndSignal lock(m_usedLock);
- 
+
 	PStringArray defs(numbers.Tokenise(",", FALSE));
+	H225_ArrayOf_AliasAddress newAlias;
+	newAlias.SetSize(1);
 	for (PINDEX i = 0; i < defs.GetSize(); i++) {
 		if (defs[i].Find("-") != P_MAX_INDEX) {
 			// range
@@ -753,18 +755,26 @@ void EndpointRec::AddNumbers(const PString & numbers)
 			for (PUInt64 j = 0; j <= num; j++) {
 				PString number(lower + j);
 				PTRACE(4, "Adding number " << number << " to endpoint (from range)");
+                // remove alias in case it already exists, to make sure we don't have it twice
+                H323SetAliasAddress(defs[i], newAlias[0]);
+                RemoveAliases(newAlias);
+                // add new alias
 				m_terminalAliases.SetSize(m_terminalAliases.GetSize() + 1);
 				H323SetAliasAddress(number, m_terminalAliases[m_terminalAliases.GetSize() - 1], H225_AliasAddress::e_dialedDigits);
 			}
 		} else {
 			// single number
 			PTRACE(4, "Adding number " << defs[i] << " to endpoint");
+			// remove alias in case it already exists, to make sure we don't have it twice
+            H323SetAliasAddress(defs[i], newAlias[0]);
+			RemoveAliases(newAlias);
+			// add new alias
 			m_terminalAliases.SetSize(m_terminalAliases.GetSize() + 1);
 			H323SetAliasAddress(defs[i], m_terminalAliases[m_terminalAliases.GetSize() - 1]);
 		}
 	}
 }
- 
+
 bool EndpointRec::SetAssignedAliases(H225_ArrayOf_AliasAddress & assigned)
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -780,7 +790,7 @@ bool EndpointRec::SetAssignedAliases(H225_ArrayOf_AliasAddress & assigned)
 	return newalias;
 }
 
-void EndpointRec::SetEndpointType(const H225_EndpointType &t) 
+void EndpointRec::SetEndpointType(const H225_EndpointType &t)
 {
 	{
 		PWaitAndSignal lock(m_usedLock);
@@ -924,13 +934,13 @@ PString EndpointRec::PrintNatInfo(bool verbose) const
 {
 	PString pre = (verbose ? "H.460." : "");
 
-	PString str; 
+	PString str;
 	if (m_natsocket) str = "GnuGk";
 	else if (m_usesH46017) str = (m_usesH46026 ? pre + "17," + pre + "26" : pre + "17");
 	else if (IsTraversalClient()) str = pre + "18";
 	else if (IsTraversalServer()) str = pre + "18[S" +(verbose ? "erver" : "") + "]";
 	else if (m_nat) str = "Native";
-	
+
 	if (m_usesH46023) str += "," + pre + "23[" + GetEPNATTypeString(m_epnattype) + "]";
 
 	return str;
@@ -942,7 +952,7 @@ PString EndpointRec::PrintOn(bool verbose) const
 	std::map<PString, PString> params;
 	PString format = GkConfig()->GetString("GkStatus::Message", "RCF", "");
 	if (!verbose && !format.IsEmpty()) {
-		bool compact = Toolkit::AsBool(GkConfig()->GetString("GkStatus::Message", "Compact", "0")); 
+		bool compact = Toolkit::AsBool(GkConfig()->GetString("GkStatus::Message", "Compact", "0"));
 		params["IP:Port"] = AsDotString(GetCallSignalAddress());
 		params["Aliases"] = AsString(GetAliases());
 		params["Endpoint_Type"] = AsString(GetEndpointType());
@@ -1006,8 +1016,8 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 	if (preemption > 0) {
 		urq.IncludeOptionalField(H225_UnregistrationRequest::e_genericData);
 		H460_FeatureOID pre = H460_FeatureOID(OpalOID(OID6));
-		if (preemption == 1)  // Higher Priority 
-           pre.Add(PString(OID6_PriNot), H460_FeatureContent(TRUE));          
+		if (preemption == 1)  // Higher Priority
+           pre.Add(PString(OID6_PriNot), H460_FeatureContent(TRUE));
 		else if (preemption == 2)  // Pre-empted
            pre.Add(PString(OID6_PreNot), H460_FeatureContent(TRUE));
 
@@ -1021,7 +1031,7 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 	PString format = GkConfig()->GetString("GkStatus::Message", "URQ", "");
 	PString msg;
 	if (!format.IsEmpty()) {
-		bool compact = GkConfig()->GetBoolean("GkStatus::Message", "Compact", false); 
+		bool compact = GkConfig()->GetBoolean("GkStatus::Message", "Compact", false);
 		std::map<PString, PString> params;
 		params["IP:Port"] = AsDotString(GetCallSignalAddress());
 		params["Aliases"] = AsString(GetAliases());
@@ -1035,7 +1045,7 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 		params["Vendor"] = vendor + version;
 		msg = "URQ|"+ ReplaceParameters(format, params) + ";\r\n";
 	} else {
-		PString msg(PString::Printf, "URQ|%s|%s|%s;\r\n", 
+		PString msg(PString::Printf, "URQ|%s|%s|%s;\r\n",
 			(const unsigned char *) AsDotString(GetRasAddress()),
 			(const unsigned char *) GetEndpointIdentifier().GetValue(),
 			(const unsigned char *) urq.m_reason.GetTagName());
@@ -1077,7 +1087,7 @@ bool EndpointRec::SendIRQ()
 		return false;
 	}
 	--m_pollCount;
-	
+
 	RasServer *RasSrv = RasServer::Instance();
 	H225_RasMessage ras_msg;
 	ras_msg.SetTag(H225_RasMessage::e_infoRequest);
@@ -1085,7 +1095,7 @@ bool EndpointRec::SendIRQ()
 	irq.m_requestSeqNum.SetValue(RasSrv->GetRequestSeqNum());
 	irq.m_callReferenceValue.SetValue(0); // ask for each call
 
-	PString msg(PString::Printf, "IRQ|%s|%s;\r\n", 
+	PString msg(PString::Printf, "IRQ|%s|%s;\r\n",
 			(const unsigned char *) AsDotString(GetRasAddress()),
 			(const unsigned char *) GetEndpointIdentifier().GetValue());
         GkStatus::Instance()->SignalStatus(msg, STATUS_TRACE_LEVEL_RAS);
@@ -1108,7 +1118,7 @@ bool EndpointRec::AddCallCreditServiceControl(
 	long callDurationLimit 		/// call duration limit (-1 if not set)
 	)
 {
-	if (!HasCallCreditCapabilities()) 
+	if (!HasCallCreditCapabilities())
 		return false;
 
 	const PINDEX sessionIndex = sessions.GetSize();
@@ -1128,7 +1138,7 @@ bool EndpointRec::AddCallCreditServiceControl(
 	session.IncludeOptionalField(H225_ServiceControlSession::e_contents);
 	session.m_contents.SetTag(H225_ServiceControlDescriptor::e_callCreditServiceControl);
 	H225_CallCreditServiceControl& callCreditSession = session.m_contents;
-	
+
 	if (!amountStr) {
 		callCreditSession.IncludeOptionalField(H225_CallCreditServiceControl::e_amountString);
 		callCreditSession.m_amountString = amountStr;
@@ -1159,13 +1169,13 @@ bool EndpointRec::AddHTTPServiceControl(H225_ArrayOf_ServiceControlSession & ses
 	sessions.SetSize(sessionIndex + 1);
 
 	H225_ServiceControlSession& session = sessions[sessionIndex];
-	// URL session ID is 1  
+	// URL session ID is 1
 	session.m_sessionId = 1;
 	session.m_reason = H225_ServiceControlSession_reason::e_open;
 	session.IncludeOptionalField(H225_ServiceControlSession::e_contents);
 	session.m_contents.SetTag(H225_ServiceControlDescriptor::e_url);
 	PASN_IA5String & pdu = session.m_contents;
-	pdu = url;   
+	pdu = url;
 
 	return true;
 }
@@ -1174,10 +1184,10 @@ void EndpointRec::SetUsesH460P(bool uses)
 {
 	if (uses == m_usesH460P)
 		return;
- 
+
 #ifdef HAS_H460P
 	GkPresence & handler = Toolkit::Instance()->GetPresenceHandler();
-	if (uses) 
+	if (uses)
 	   handler.RegisterEndpoint(m_endpointIdentifier,m_terminalAliases);
 	else
 	   handler.UnRegisterEndpoint(m_terminalAliases);
@@ -1234,12 +1244,12 @@ bool EndpointRec::AddH350ServiceControl(H225_ArrayOf_ServiceControlSession & ses
 	PString search = GkConfig()->GetString("GkH350::Settings", "SearchBaseDN", "");
 	if (search.IsEmpty())
 		return false;
-	   
+
 	const PINDEX sessionIndex = sessions.GetSize();
 	sessions.SetSize(sessionIndex + 1);
 
 	H225_ServiceControlSession& session = sessions[sessionIndex];
-    // H350 session ID is 2  
+    // H350 session ID is 2
     session.m_sessionId = 2;
 	session.m_reason = H225_ServiceControlSession_reason::e_open;
 	session.IncludeOptionalField(H225_ServiceControlSession::e_contents);
@@ -1326,10 +1336,10 @@ void GatewayRec::LoadGatewayConfig()
 {
 	PConfig* const cfg = GkConfig();
 	const PStringList sections = cfg->GetSections();
-	
+
 	Prefixes.clear();
-	
-	bool setDefaults = true;	
+
+	bool setDefaults = true;
 	for (PINDEX i = 0; i < m_terminalAliases.GetSize(); i++) {
 		const PString alias = AsString(m_terminalAliases[i], FALSE);
 		if (!alias) {
@@ -1356,13 +1366,14 @@ void GatewayRec::LoadGatewayConfig()
 		Toolkit::AsBool(cfg->GetString(RRQFeaturesSection, "AcceptMCUPrefixes", "1")))
 		if (m_terminalType->m_mcu.HasOptionalField(H225_McuInfo::e_protocol))
 			AddPrefixes(m_terminalType->m_mcu.m_protocol);
-		
+
 	SortPrefixes();
 }
 
 void GatewayRec::SetEndpointType(const H225_EndpointType & t)
 {
-	if (!t.HasOptionalField(H225_EndpointType::e_gateway) ||
+    // GatewayRec endpoints must have either/or gw or mcu type
+	if (!t.HasOptionalField(H225_EndpointType::e_gateway) &&
 		!t.HasOptionalField(H225_EndpointType::e_mcu)) {
 		PTRACE(1, "RRJ: terminal type changed|" << GetEndpointIdentifier().GetValue());
 		return;
@@ -1381,7 +1392,7 @@ void GatewayRec::Update(const H225_RasMessage & ras_msg)
 		if (lcf.HasOptionalField(H225_LocationConfirm::e_destinationType))
 			SetEndpointType(lcf.m_destinationType);
 	}
-			
+
 	EndpointRec::Update(ras_msg);
 }
 
@@ -1465,19 +1476,19 @@ int GatewayRec::PrefixMatch(
 
 	matchedalias = 0;
 	priority_out = priority;
-	
+
 	for (PINDEX i = 0; i < aliases.GetSize(); i++) {
 		const unsigned tag = aliases[i].GetTag();
 		if (tag == H225_AliasAddress::e_dialedDigits
 			|| tag == H225_AliasAddress::e_partyNumber
 			|| tag == H225_AliasAddress::e_h323_ID) {
-			
+
 			const PString alias = AsString(aliases[i], FALSE);
 			// we also allow h_323_ID aliases consisting only from digits
 			if (tag == H225_AliasAddress::e_h323_ID)
 				if(!IsValidE164(alias) )
 					continue;
-					
+
 			const_prefix_iterator Iter = Prefixes.begin();
 			while (Iter != eIter) {
 				if (Iter->first.length() > (unsigned)abs(maxlen)) {
@@ -1496,9 +1507,9 @@ int GatewayRec::PrefixMatch(
 			}
 		}
 	}
-	
+
 	if (maxlen < 0) {
-		PTRACE(2, "RASTBL\tGateway " << GetEndpointIdentifier().GetValue() 
+		PTRACE(2, "RASTBL\tGateway " << GetEndpointIdentifier().GetValue()
 			<< " skipped by prefix " << pfxiter->first.c_str()
 			);
 	} else if (maxlen > 0) {
@@ -1570,8 +1581,8 @@ void EndpointRec::SetAdditiveRegistrant()
 }
 
 bool EndpointRec::IsAdditiveRegistrant() const
-{ 
-	return m_additiveRegistrant; 
+{
+	return m_additiveRegistrant;
 }
 
 OutOfZoneEPRec::OutOfZoneEPRec(const H225_RasMessage & completeRAS, const H225_EndpointIdentifier &epID) : EndpointRec(completeRAS, false)
@@ -1824,7 +1835,7 @@ public:
 protected:
 	const H225_TransportAddress & SigAdr;
 };
- 
+
 class CompareSigAdrIgnorePort {
 public:
 	CompareSigAdrIgnorePort(const H225_TransportAddress & adr) : SigAdr(adr) { }
@@ -1845,11 +1856,11 @@ class CompareSigAdrWithNAT : public CompareSigAdr {
 public:
 	CompareSigAdrWithNAT(const H225_TransportAddress & adr, PIPSocket::Address ip) : CompareSigAdr(adr), natip(ip) { }
 	bool operator()(const EndpointRec *ep) const { return ep && (ep->GetNATIP() == natip) && CompareSigAdr::operator()(ep); }
- 
+
 private:
 	PIPSocket::Address natip;
 };
- 
+
 class CompareSigAdrWithNATIgnorePort : public CompareSigAdrIgnorePort {
 public:
 	CompareSigAdrWithNATIgnorePort(const H225_TransportAddress & adr, PIPSocket::Address ip) : CompareSigAdrIgnorePort(adr), natip(ip) {}
@@ -1878,7 +1889,7 @@ endptr RegistrationTable::FindBySignalAdrIgnorePort(const H225_TransportAddress 
 {
 	return (sigAd == ip) ? InternalFind(CompareSigAdrIgnorePort(sigAd)) : InternalFind(CompareSigAdrWithNATIgnorePort(sigAd, ip));
 }
- 
+
 endptr RegistrationTable::FindOZEPBySignalAdr(const H225_TransportAddress & sigAd) const
 {
 	return InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), sigAd),
@@ -1946,12 +1957,12 @@ endptr RegistrationTable::InternalFindFirstEP(const H225_ArrayOf_AliasAddress & 
 
 	if (!GWlist.empty()) {
 		GWlist.sort(ComparePriority);
-		
+
 		GatewayRec *e = GWlist.front().second;
 		PTRACE(4, "Prefix match for GW " << AsDotString(e->GetCallSignalAddress()));
 		return endptr(e);
 	}
-	
+
 	return endptr(0);
 }
 
@@ -1994,9 +2005,9 @@ bool RegistrationTable::InternalFindEP(
 
 	if (GWlist.empty())
 		return false;
-		
+
 	GWlist.sort(ComparePriority);
-		
+
 	std::list<std::pair<int, GatewayRec*> >::const_iterator i = GWlist.begin();
 	while (i != GWlist.end()) {
 		if (i->second->HasAvailableCapacity(aliases))
@@ -2054,18 +2065,18 @@ void RegistrationTable::PrintEndpointQoS(USocket *client) //const
 		epqos[AsString((*Iter)->GetAliases())] = EPQoS((*Iter)->GetUpdatedTime());
 	listLock.EndRead();
 	// end of lock
- 
+
 	PString msg("EndpointQoS\r\n");
 	msg.SetSize(EndpointList.size() * 100);	// avoid realloc: estimate n rows of 100 chars
 	// fetch QoS data from call table
 	CallTable::Instance()->SupplyEndpointQoS(epqos);
 	for (std::map<PString, EPQoS>::const_iterator i = epqos.begin(); i != epqos.end(); ++i)
 		msg += "QoS|" + i->first + "|" + i->second.AsString() + "\r\n";
- 
+
 	msg += PString(PString::Printf, "Number of Endpoints: %u\r\n;\r\n", epqos.size());
 	client->TransmitData(msg);
 }
- 
+
 void RegistrationTable::PrintAllCached(USocket *client, bool verbose)
 {
 	PString msg("AllCached\r\n");
@@ -2186,7 +2197,7 @@ void RegistrationTable::LoadConfig()
 			else ++epIter;
 		}
 	}
-	
+
 	for (PINDEX i = 0; i < cfgs.GetSize(); ++i) {
 		EndpointRec *ep = NULL;
 		H225_RasMessage rrq_ras;
@@ -2206,13 +2217,14 @@ void RegistrationTable::LoadConfig()
 		GenerateEndpointId(rrq.m_endpointIdentifier);
 
 		rrq.IncludeOptionalField(rrq.e_terminalAlias);
-		PStringArray sp=cfgs.GetDataAt(i).Tokenise(";", FALSE);
-		PStringArray aa=sp[0].Tokenise(",", FALSE);
+		PStringArray sp = cfgs.GetDataAt(i).Tokenise(";", FALSE);
+		PStringArray aa = sp[0].Tokenise(",", FALSE);
 		PINDEX as = aa.GetSize();
 		if (as > 0) {
 			rrq.m_terminalAlias.SetSize(as);
-			for (PINDEX p=0; p<as; p++)
+			for (PINDEX p = 0; p < as; p++) {
 				H323SetAliasAddress(aa[p], rrq.m_terminalAlias[p]);
+			}
 		}
 		// GatewayInfo
 		if (sp.GetSize() > 1) {
@@ -2235,18 +2247,21 @@ void RegistrationTable::LoadConfig()
 				RemoveByEndptr(eptr);
 				eptr = endptr(0);
 			}
-			if (eptr)
-				eptr->Update(rrq_ras), ep = eptr.operator->();
-			else
+			if (eptr) {
+				eptr->Update(rrq_ras);
+				ep = eptr.operator->();
+			} else {
 				ep = new GatewayRec(rrq_ras, true);
+			}
 			GatewayRec *gw = dynamic_cast<GatewayRec *>(ep);
 			gw->AddPrefixes(sp[1]);
 			gw->SortPrefixes();
 			// Vendor Information (if any) for OID9
 			if (sp.GetSize() > 2) {
 				PStringList gwVen = sp[2].Tokenise(",", FALSE);
-				if (gwVen.GetSize() > 1)
+				if (gwVen.GetSize() > 1) {
 					gw->SetEndpointInfo(gwVen[0], gwVen[1]);
+				}
 			}
 		} else {
 			rrq.m_terminalType.IncludeOptionalField(H225_EndpointType::e_terminal);
@@ -2254,10 +2269,11 @@ void RegistrationTable::LoadConfig()
 				RemoveByEndptr(eptr);
 				eptr = endptr(0);
 			}
-			if (eptr)
+			if (eptr) {
 				eptr->Update(rrq_ras);
-			else
+			} else {
 				ep = new EndpointRec(rrq_ras, true);
+            }
 		}
 		if (!eptr) {
 			PTRACE(2, "Add permanent endpoint " << AsDotString(rrq.m_callSignalAddress[0]));
@@ -2347,7 +2363,7 @@ void RegistrationTable::OnNATSocketClosed(CallSignalSocket * s)
 			Iter = EndpointList.erase(Iter);
 			--regSize;
 			PTRACE(2, "Endpoint " << ep->GetEndpointIdentifier().GetValue() << " removed due to closed NAT socket");
-			PString msg(PString::Printf, "URQ|%s|%s|%s;\r\n", 
+			PString msg(PString::Printf, "URQ|%s|%s|%s;\r\n",
 				(const unsigned char *) AsDotString(ep->GetRasAddress()),
 				(const unsigned char *) ep->GetEndpointIdentifier().GetValue(),
 				"natSocketClosed");
@@ -2527,7 +2543,7 @@ void H46019KeepAlive::SendKeepAlive(GkTimer * t)
 	}
 }
 #endif
-	
+
 
 CallRec::CallRec(
 	/// ARQ with call information
@@ -2540,10 +2556,10 @@ CallRec::CallRec(
 	int proxyMode
 	) : m_CallNumber(0),
 	m_callIdentifier(((const H225_AdmissionRequest&)arqPdu).m_callIdentifier),
-	m_conferenceIdentifier(((const H225_AdmissionRequest&)arqPdu).m_conferenceID), 
+	m_conferenceIdentifier(((const H225_AdmissionRequest&)arqPdu).m_conferenceID),
 	m_crv(((const H225_AdmissionRequest&)arqPdu).m_callReferenceValue.GetValue() & 0x7fffU),
 	m_sourceAddress(((const H225_AdmissionRequest&)arqPdu).m_srcInfo),
-	m_srcInfo(AsString(((const H225_AdmissionRequest&)arqPdu).m_srcInfo)), 
+	m_srcInfo(AsString(((const H225_AdmissionRequest&)arqPdu).m_srcInfo)),
 	m_destInfo(destInfo), m_bandwidth(bandwidth), m_setupTime(0), m_alertingTime(0),
 	m_connectTime(0), m_disconnectTime(0), m_disconnectCause(0), m_disconnectCauseTranslated(0), m_releaseSource(-1),
 	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
@@ -2566,7 +2582,7 @@ CallRec::CallRec(
 
 	if (arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
 		m_destinationAddress = arq.m_destinationInfo;
-		
+
 	m_timer = m_acctUpdateTime = m_creationTime = time(NULL);
 	m_callerId = m_calleeId = m_callerAddr = m_calleeAddr = " ";
 
@@ -2598,8 +2614,8 @@ CallRec::CallRec(
 	const PString & destInfo,
 	/// override proxy mode global setting from the config
 	int proxyMode
-	) : m_CallNumber(0), m_callIdentifier(setup.m_callIdentifier), 
-	m_conferenceIdentifier(setup.m_conferenceID), 
+	) : m_CallNumber(0), m_callIdentifier(setup.m_callIdentifier),
+	m_conferenceIdentifier(setup.m_conferenceID),
 	m_crv(q931pdu.GetCallReference() & 0x7fffU),
 	m_destInfo(destInfo),
 	m_bandwidth(GK_DEF_BANDWIDTH), m_setupTime(0), m_alertingTime(0), m_connectTime(0),
@@ -2627,7 +2643,7 @@ CallRec::CallRec(
 
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress))
 		m_destinationAddress = setup.m_destinationAddress;
-		
+
 	m_timer = m_acctUpdateTime = m_creationTime = time(NULL);
 	m_callerId = m_calleeId = m_callerAddr = m_calleeAddr = " ";
 
@@ -2643,7 +2659,7 @@ CallRec::CallRec(
 	m_irrFrequency = GkConfig()->GetInteger(CallTableSection, "IRRFrequency", 120);
 	m_irrCheck = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "IRRCheck", "0"));
 	m_irrCallerTimer = m_irrCalleeTimer = time(NULL);
-	
+
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "GenerateCallProceeding", "0")))
 		m_proceedingSent = true;	// this was probably done before a CallRec existed
 }
@@ -2652,7 +2668,7 @@ CallRec::CallRec(
 CallRec::CallRec(const H225_CallIdentifier & callID, H225_TransportAddress sigAdr)
   : m_CallNumber(0), m_callIdentifier(callID),
 	m_crv(0),
-	m_bandwidth(GK_DEF_BANDWIDTH), m_setupTime(0), m_alertingTime(0), m_connectTime(0), 
+	m_bandwidth(GK_DEF_BANDWIDTH), m_setupTime(0), m_alertingTime(0), m_connectTime(0),
 	m_disconnectTime(0), m_disconnectCause(0), m_disconnectCauseTranslated(0), m_releaseSource(-1),
 	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
 	m_callingSocket(NULL), m_calledSocket(NULL), m_usedCount(0), m_nattype(none),
@@ -2673,9 +2689,9 @@ CallRec::CallRec(const H225_CallIdentifier & callID, H225_TransportAddress sigAd
 
 CallRec::CallRec(
 	CallRec *oldCall
-	) : m_CallNumber(0), 
+	) : m_CallNumber(0),
 	m_callIdentifier(oldCall->m_callIdentifier),
-	m_conferenceIdentifier(oldCall->m_conferenceIdentifier), 
+	m_conferenceIdentifier(oldCall->m_conferenceIdentifier),
 	m_crv(oldCall->m_crv), m_Calling(oldCall->m_Calling),
 	m_sourceAddress(oldCall->m_sourceAddress),
 	m_destinationAddress(oldCall->m_destinationAddress),
@@ -2691,7 +2707,7 @@ CallRec::CallRec(
 	m_callingStationId(oldCall->m_callingStationId), m_calledStationId(oldCall->m_calledStationId),
 	m_dialedNumber(oldCall->m_dialedNumber),
 	m_callingSocket(NULL), m_calledSocket(NULL),
-	m_usedCount(0), m_nattype(oldCall->m_nattype & ~calledParty), 
+	m_usedCount(0), m_nattype(oldCall->m_nattype & ~calledParty),
 #if HAS_H46023
 	m_natstrategy(e_natUnknown),
 #endif
@@ -2718,7 +2734,7 @@ CallRec::CallRec(
 	m_irrFrequency = oldCall->m_irrFrequency;
 	m_irrCheck = oldCall->m_irrCheck;
 	m_irrCallerTimer = m_irrCalleeTimer = time(NULL);
-	
+
 	if (m_singleFailoverCDR) {
 		m_setupTime = oldCall->m_setupTime;
 		m_CallNumber = oldCall->m_CallNumber; // if we have 1 CDR, we need to preserve internal call number
@@ -2800,7 +2816,7 @@ bool CallRec::GetDestSignalAddr(PIPSocket::Address & addr, WORD & port) const
 
 int CallRec::GetNATType(
 	/// filled with NAT IP of the calling party (if nat type is callingParty)
-	PIPSocket::Address & callingPartyNATIP, 
+	PIPSocket::Address & callingPartyNATIP,
 	/// filled with NAT IP of the called party (if nat type is calledParty)
 	PIPSocket::Address & calledPartyNATIP
 	) const
@@ -2821,7 +2837,7 @@ int CallRec::GetNATType(
 				calledPartyNATIP = m_Called->GetNATIP();
 		}
 	}
- 
+
 	return m_nattype;
 }
 
@@ -2875,10 +2891,10 @@ void CallRec::SetCalled(const endptr & NewCalled)
 }
 
 void CallRec::SetForward(
-	CallSignalSocket * socket, 
-	const H225_TransportAddress & dest, 
-	const endptr & forwarded, 
-	const PString & forwarder, 
+	CallSignalSocket * socket,
+	const H225_TransportAddress & dest,
+	const endptr & forwarded,
+	const PString & forwarder,
 	const PString & altDestInfo)
 {
 	m_usedLock.Wait();
@@ -2903,17 +2919,17 @@ void CallRec::SetForward(
 
 void CallRec::RerouteDropCalling()
 {
-	PWaitAndSignal lock(m_sockLock); 
+	PWaitAndSignal lock(m_sockLock);
 	m_forwarded = true;
 	m_Forwarder = m_Calling;
 	m_callingSocket = NULL;
 	CallTable::Instance()->UpdateEPBandwidth(m_Calling, -GetBandwidth());
 	m_Calling = endptr(0);
 }
- 
+
 void CallRec::RerouteDropCalled()
 {
-	PWaitAndSignal lock(m_sockLock); 
+	PWaitAndSignal lock(m_sockLock);
 	m_forwarded = true;
 	m_Forwarder = m_Called;
 	m_calledSocket = NULL;
@@ -2942,7 +2958,7 @@ bool CallRec::DropCalledAndTryNextRoute()
 	}
 	return false;
 }
- 
+
 void CallRec::SetSocket(CallSignalSocket * calling, CallSignalSocket * called)
 {
 	PWaitAndSignal lock(m_sockLock);
@@ -2996,7 +3012,7 @@ void CallRec::SetDurationLimit(long seconds)
 {
 	PWaitAndSignal lock(m_usedLock);
 	// allow only to restrict duration limit
-	const time_t sec = (m_durationLimit && seconds) 
+	const time_t sec = (m_durationLimit && seconds)
 		? PMIN((long)m_durationLimit,seconds) : PMAX((long)m_durationLimit,seconds);
 	m_durationLimit = sec;
 	if (IsConnected())
@@ -3052,25 +3068,25 @@ void CallRec::InitRTCP_report() {
     m_rtcp_destination_video_packet_count = 0;
     m_rtcp_source_video_packet_lost = 0;
     m_rtcp_destination_video_packet_lost = 0;
- 
+
     m_rtcp_source_video_jitter_max = 0;
     m_rtcp_source_video_jitter_min = 0;
     m_rtcp_source_video_jitter_avg = 0;
     m_rtcp_source_video_jitter_avg_count = 0;
     m_rtcp_source_video_jitter_avg_sum = 0;
- 
+
     m_rtcp_destination_video_jitter_max = 0;
     m_rtcp_destination_video_jitter_min = 0;
     m_rtcp_destination_video_jitter_avg = 0;
     m_rtcp_destination_video_jitter_avg_count = 0;
     m_rtcp_destination_video_jitter_avg_sum = 0;
- 
+
     m_src_media_IP = "0.0.0.0";
     m_dst_media_IP = "0.0.0.0";
 
     m_src_media_control_IP = "0.0.0.0";
     m_dst_media_control_IP = "0.0.0.0";
-    
+
     m_rtcp_source_sdes_flag = false;
     m_rtcp_destination_sdes_flag = false;
 }
@@ -3084,7 +3100,7 @@ void CallRec::SetRTCP_sdes(bool isSRC, const PString & val)
 		SetRTCP_DST_sdes(val);
 	}
 }
- 
+
 void CallRec::SetRTCP_SRC_sdes(const PString & val)
 {
     m_rtcp_source_sdes.AppendString(val);
@@ -3092,7 +3108,7 @@ void CallRec::SetRTCP_SRC_sdes(const PString & val)
 }
 
 void CallRec::SetRTCP_DST_sdes(const PString & val)
-{    
+{
     m_rtcp_destination_sdes.AppendString(val);
     m_rtcp_destination_sdes_flag = true;
 }
@@ -3119,7 +3135,7 @@ void CallRec::SetRTCP_DST_packet_lost(long val)
 }
 
 void CallRec::SetRTCP_SRC_jitter(int val)
-{	
+{
     if (val > 0){
         if (m_rtcp_source_jitter_min == 0) {
 			m_rtcp_source_jitter_min = val;
@@ -3165,24 +3181,24 @@ void CallRec::SetRTCP_SRC_video_packet_count(long val)
 {
     m_rtcp_source_video_packet_count = val;
 }
- 
+
 void CallRec::SetRTCP_DST_video_packet_count(long val)
 {
     m_rtcp_destination_video_packet_count = val;
 }
- 
+
 void CallRec::SetRTCP_SRC_video_packet_lost(long val)
 {
     m_rtcp_source_video_packet_lost = val;
 }
- 
+
 void CallRec::SetRTCP_DST_video_packet_lost(long val)
 {
     m_rtcp_destination_video_packet_lost = val;
 }
- 
+
 void CallRec::SetRTCP_SRC_video_jitter(int val)
-{	
+{
     if (val > 0){
         if (m_rtcp_source_video_jitter_min == 0) {
 			m_rtcp_source_video_jitter_min = val;
@@ -3201,7 +3217,7 @@ void CallRec::SetRTCP_SRC_video_jitter(int val)
 		m_rtcp_source_video_jitter_avg = 0;
     }
 }
- 
+
 void CallRec::SetRTCP_DST_video_jitter(int val)
 {
     if (val > 0) {
@@ -3222,8 +3238,8 @@ void CallRec::SetRTCP_DST_video_jitter(int val)
 		m_rtcp_destination_video_jitter_avg = 0;
     }
 }
- 
- 
+
+
 void CallRec::InternalSetEP(endptr & ep, const endptr & nep)
 {
 	if (ep != nep) {
@@ -3351,7 +3367,7 @@ PString CallRec::GenerateCDR(const PString & timestampFormat) const
 	PString timeString;
 	const PString fmtStr = !timestampFormat ? timestampFormat : PString("RFC822");
 	Toolkit* const toolkit = Toolkit::Instance();
-	
+
 	const time_t eTime = m_disconnectTime ? m_disconnectTime : time(0);
 	const PTime endTime(eTime);
 
@@ -3509,8 +3525,8 @@ void CallRec::SetConnectTime(time_t tm)
 		if (m_disconnectTime && m_disconnectTime <= m_connectTime)
 			m_disconnectTime = m_connectTime + 1;
 	}
-	// can be the case for direct signaling mode, 
-	// because CallRec is usually created after ARQ message 
+	// can be the case for direct signaling mode,
+	// because CallRec is usually created after ARQ message
 	// has been received
 	if (m_creationTime > m_connectTime)
 		m_creationTime = m_connectTime;
@@ -3532,13 +3548,13 @@ time_t CallRec::GetPostDialDelay() const
 	if (startTime == 0)
 		return 0;
 	if (m_alertingTime)
-		return (m_alertingTime > startTime) 
+		return (m_alertingTime > startTime)
 			? (m_alertingTime - startTime) : 0;
 	if (m_connectTime)
-		return (m_connectTime > startTime) 
+		return (m_connectTime > startTime)
 			? (m_connectTime - startTime) : 0;
 	if (m_disconnectTime)
-		return (m_disconnectTime > startTime) 
+		return (m_disconnectTime > startTime)
 			? (m_disconnectTime - startTime) : 0;
 	return 0;
 }
@@ -3548,10 +3564,10 @@ time_t CallRec::GetRingTime() const
 	PWaitAndSignal lock(m_usedLock);
 	if( m_alertingTime ) {
 		if( m_connectTime ) {
-			return (m_connectTime > m_alertingTime) 
+			return (m_connectTime > m_alertingTime)
 				? (m_connectTime-m_alertingTime) : 0;
 		} else {
-			return (m_disconnectTime > m_alertingTime) 
+			return (m_disconnectTime > m_alertingTime)
 				? (m_disconnectTime-m_alertingTime) : 0;
 		}
 	}
@@ -3562,7 +3578,7 @@ time_t CallRec::GetTotalCallDuration() const
 {
 	PWaitAndSignal lock(m_usedLock);
 	if( m_disconnectTime ) {
-		return (m_disconnectTime > m_setupTime) 
+		return (m_disconnectTime > m_setupTime)
 			? (m_disconnectTime-m_setupTime) : 1;
 	}
 	return 0;
@@ -3584,7 +3600,7 @@ time_t CallRec::GetDuration() const
 	PWaitAndSignal lock(m_usedLock);
 	if( m_connectTime ) {
 		if( m_disconnectTime )
-			return (m_disconnectTime > m_connectTime) 
+			return (m_disconnectTime > m_connectTime)
 				? (m_disconnectTime - m_connectTime) : 1;
 		else
 			return (time(NULL) - m_connectTime);
@@ -3711,7 +3727,7 @@ bool CallRec::MoveToNextRoute()
 	if (! IsFailoverActive())
 		return false;
 
-	// stop looking for new routes when shutdown is already in progress		
+	// stop looking for new routes when shutdown is already in progress
 #ifdef hasNoMutexWillBlock
 	// TODO: this might be a performance bottleneck on high load
   	if (!ShutdownMutex.Wait(0)) {
@@ -3728,7 +3744,7 @@ bool CallRec::MoveToNextRoute()
 		m_failedRoutes.push_back(m_newRoutes.front());
 		m_newRoutes.pop_front();
 	}
-	
+
 	while (!m_newRoutes.empty() && m_newRoutes.front().m_destEndpoint && !m_newRoutes.front().m_destEndpoint->HasAvailableCapacity(m_destinationAddress)) {
 		PTRACE(5, "Capacity exceeded in GW " << AsDotString(m_newRoutes.front().m_destEndpoint->GetCallSignalAddress()));
 		m_failedRoutes.push_back(m_newRoutes.front());
@@ -3757,7 +3773,7 @@ void CallRec::SetH245ResponseReceived()
 {
 	m_h245ResponseReceived = true;
 }
-	
+
 bool CallRec::IsFastStartResponseReceived() const
 {
 	return m_fastStartResponseReceived;
@@ -3864,7 +3880,7 @@ PString CallRec::GetNATOffloadString(NatStrategy type) const
 
 void CallRec::SetReceiveNATStategy(NatStrategy & type, int & proxyMode)
 {
-	if (m_Called && type == CallRec::e_natUnknown)  
+	if (m_Called && type == CallRec::e_natUnknown)
 		 NATAssistCallerUnknown(type);
 
 	if ((type == e_natLocalMaster || type == e_natRemoteMaster ||
@@ -3886,8 +3902,8 @@ bool CallRec::NATAssistCallerUnknown(NatStrategy & natinst)
 		info << "    Support H.460.24 " << (m_Called->SupportH46024() ? "Yes" : "No") << "\n";
 		info << "    NAT Type:    " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Called->GetEPNATType()) << "\n";
 		PTRACE(5, "RAS\t\n" << info);
-		if (m_Called->SupportH46024() && ((m_Called->GetIP().IsRFC1918() && remAddr.IsRFC1918()) ||   
-										m_Called->GetEPNATType() < (int)EndpointRec::NatCone || 
+		if (m_Called->SupportH46024() && ((m_Called->GetIP().IsRFC1918() && remAddr.IsRFC1918()) ||
+										m_Called->GetEPNATType() < (int)EndpointRec::NatCone ||
 										m_Called->GetEPNATType() == (int)EndpointRec::FirewallSymmetric)) {
 			PTRACE(4, "RAS\tSet strategy to no Assistance");
 			natinst = CallRec::e_natNoassist;
@@ -3916,8 +3932,8 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	if (iscalled || !m_Calling)
 	   return false;
 
-	// If we don't have a called (usually means direct IP calling) and the calling supports H.460.24 and no NAT detected 
-	// then allow call direct. If NAT is not symmetric then select remote master. This forces the Calling endpoint to 
+	// If we don't have a called (usually means direct IP calling) and the calling supports H.460.24 and no NAT detected
+	// then allow call direct. If NAT is not symmetric then select remote master. This forces the Calling endpoint to
 	// use STUN and provide public IP addresses in the OLC. If Symmetric then media MUST be proxied unless H46024ForceDirect=1.
 	if (!m_Called) {
 		PIPSocket::Address remAddr;
@@ -3929,8 +3945,8 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 		info << "    Support H.460.24 " << (m_Calling->SupportH46024() ? "Yes" : "No") << "\n";
 		info << "    NAT Type:    " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Calling->GetEPNATType()) << "\n";
 		PTRACE(5, "RAS\t\n" << info);
-		if (m_Calling->SupportH46024() && ((m_Calling->GetIP().IsRFC1918() && remAddr.IsRFC1918()) ||   
-											m_Calling->GetEPNATType() < (int)EndpointRec::NatCone /*|| 
+		if (m_Calling->SupportH46024() && ((m_Calling->GetIP().IsRFC1918() && remAddr.IsRFC1918()) ||
+											m_Calling->GetEPNATType() < (int)EndpointRec::NatCone /*||
 											m_Calling->GetEPNATType() == (int)EndpointRec::FirewallSymmetric*/)) {
 			PTRACE(4, "RAS\tSet strategy to no Assistance");
 			natinst = CallRec::e_natNoassist;
@@ -3953,7 +3969,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 
 	// If both the calling and called are on the same network segment (interface)
 	// then we can attempt to go direct. If not we MUST Proxy media.
-	bool goDirect = Toolkit::Instance()->H46023SameNetwork( 
+	bool goDirect = Toolkit::Instance()->H46023SameNetwork(
 				(m_Calling->IsNATed() ? m_Calling->GetNATIP() : m_Calling->GetIP()),
 				(m_Called->IsNATed() ? m_Called->GetNATIP() : m_Called->GetIP()));
 
@@ -3962,14 +3978,14 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 		PTRACE(4, "RAS\tH46024 Proxy Disabled. Force call to go direct");
 		goDirect = true;
 	}
- 
+
 	// Determine whether the calling and called support H.406.24
 	bool callingSupport = (m_Calling->SupportH46024() || (m_Calling->IsNATed() && (m_Calling->GetEPNATType() > 0)));
 	bool calledSupport = (m_Called->SupportH46024() || (m_Called->IsNATed() && (m_Called->GetEPNATType() > 0)));
-	
+
 	// Document the input calculations.
 	PStringStream natinfo;
-	natinfo << "NAT Offload (H460.23/.24) calculation inputs for Call No: " << GetCallNumber() << "\n" 
+	natinfo << "NAT Offload (H460.23/.24) calculation inputs for Call No: " << GetCallNumber() << "\n"
 			<< " Rule : " << (goDirect ? "Go Direct (if possible)" : "Must Proxy Media");
 	// Calling Endpoint
 	natinfo << "\n  Calling Endpoint:\n";
@@ -4007,7 +4023,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 		PTRACE(4, "RAS\tDisable H.460.24 Offload as neither party supports it.");
 		 return false;
 	}
- 
+
 	// EP's are registered locally on different Networks and must proxy to reach eachother
 	else if (!goDirect && !m_Calling->IsRemote() && !m_Called->IsRemote() && GetProxyMode() == CallRec::ProxyEnabled)
 			natinst = CallRec::e_natFullProxy;
@@ -4027,12 +4043,12 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	// If the called can proxy for NAT use it
 	else if (goDirect && m_Called->IsInternal())
 			natinst = CallRec::e_natRemoteProxy;
- 
+
 	// Same NAT (If both Parties are behind same detected NAT)
 	else if ((m_Calling->IsNATed() && m_Called->IsNATed()          // both parties are NAT and
 		&& (m_Calling->GetNATIP() == m_Called->GetNATIP()))) {	   // their NAT IP is the same
 
-			if (m_Calling->SupportH46024A() && m_Called->SupportH46024A())  
+			if (m_Calling->SupportH46024A() && m_Called->SupportH46024A())
 		        natinst = CallRec::e_natAnnexA;
 			else if (GetProxyMode() == CallRec::ProxyEnabled)		// If we have the ability to proxy
 				natinst = CallRec::e_natFullProxy;
@@ -4046,17 +4062,17 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 
 	// Both parties are behind private NAT but the called has no detected NAT (direct IP calling)
 	// assume the parties can reach eachother.
-	else if (goDirect && 
-			(m_Calling->IsNATed() && m_Called->GetEPNATType() < EndpointRec::FirewallSymmetric && 
+	else if (goDirect &&
+			(m_Calling->IsNATed() && m_Called->GetEPNATType() < EndpointRec::FirewallSymmetric &&
             !m_Called->IsNATed() && m_Called->GetIP().IsRFC1918()))
 				natinst = CallRec::e_natNoassist;
 
 	// if caller is behind a symmetric firewall calling to a public IP.
 	else if (goDirect &&
-			(m_Calling->GetEPNATType() == (int)EndpointRec::FirewallSymmetric) &&  
+			(m_Calling->GetEPNATType() == (int)EndpointRec::FirewallSymmetric) &&
 			!m_Called->GetIP().IsRFC1918() && m_Called->GetEPNATType() == (int)EndpointRec::NatUnknown)
 				natinst = CallRec::e_natNoassist;
- 
+
 	// Both parties are NAT and both and are either restricted or port restricted NAT
 	else if (goDirect
 			&& (m_Called->GetEPNATType() < (int)EndpointRec::NatSymmetric
@@ -4064,10 +4080,10 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 			&& (m_Calling->UseH46024B() && m_Called->UseH46024B())) {
 				natinst = CallRec::e_natAnnexB;
 	}
-	// if both devices are behind a symmetric firewall then perhaps are on the same internal network. 
-	else if (goDirect && (m_Calling->GetEPNATType() == EndpointRec::FirewallSymmetric && 
+	// if both devices are behind a symmetric firewall then perhaps are on the same internal network.
+	else if (goDirect && (m_Calling->GetEPNATType() == EndpointRec::FirewallSymmetric &&
 			m_Called->GetEPNATType() == EndpointRec::FirewallSymmetric)) {
-			if (m_Calling->SupportH46024A() && m_Called->SupportH46024A())  
+			if (m_Calling->SupportH46024A() && m_Called->SupportH46024A())
 				natinst = CallRec::e_natAnnexA;
 			else if (GetProxyMode() == CallRec::ProxyEnabled)
 				natinst = CallRec::e_natFullProxy;
@@ -4078,14 +4094,14 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	}
 
 	// Now deal with general Symmetric NAT.
-	else if (goDirect && 
-		((m_Calling->GetEPNATType() >= (int)EndpointRec::NatSymmetric) || 
+	else if (goDirect &&
+		((m_Calling->GetEPNATType() >= (int)EndpointRec::NatSymmetric) ||
 		(m_Called->GetEPNATType() >= (int)EndpointRec::NatSymmetric))) {
-			if (((m_Calling->GetEPNATType() <(int)EndpointRec::NatSymmetric) || 
-				(m_Called->GetEPNATType() <(int)EndpointRec::NatSymmetric)) && 
+			if (((m_Calling->GetEPNATType() <(int)EndpointRec::NatSymmetric) ||
+				(m_Called->GetEPNATType() <(int)EndpointRec::NatSymmetric)) &&
 				m_Calling->UseH46024B() && m_Called->UseH46024B())
 					natinst = CallRec::e_natAnnexB;   // Try direct probing.
-			else if (m_Calling->HasNATProxy() && 
+			else if (m_Calling->HasNATProxy() &&
 				((m_Calling->GetEPNATType() >=(int)EndpointRec::NatSymmetric) || !calledSupport || !m_Called->HasNATProxy()))
 					natinst = CallRec::e_natLocalProxy;
 			else if (m_Called->HasNATProxy())
@@ -4097,28 +4113,28 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	}
 
 	// if can go direct and calling supports Remote NAT and is not NAT or not symmetric
-	else if (goDirect && 
+	else if (goDirect &&
 		((!m_Calling->IsNATed() /*&& m_Calling->SupportH46024()*/) /*|| (m_Calling->GetEPNATType() == EndpointRec::NatCone)*/))
 			natinst = CallRec::e_natLocalMaster;  // Provide Assistance for Remote NAT
-	else if (goDirect && 
+	else if (goDirect &&
 		(!m_Called->IsNATed() && m_Calling->SupportH46024() && (m_Calling->GetEPNATType() < (int)EndpointRec::NatSymmetric)))
-			natinst = CallRec::e_natRemoteMaster; 
+			natinst = CallRec::e_natRemoteMaster;
 
 	// if can go direct and called supports Remote NAT and is not NAT or not symmetric
-	else if (goDirect && 
+	else if (goDirect &&
 		((!m_Called->IsNATed() && m_Called->SupportH46024()) || (m_Called->GetEPNATType() < (int)EndpointRec::NatSymmetric)))
 			natinst = CallRec::e_natRemoteMaster;
 
     else if (goDirect && m_Calling->IsNATed() && m_Calling->HasNATProxy())
 			natinst = CallRec::e_natLocalProxy;
- 
+
 	else if (goDirect && m_Called->IsNATed() && m_Called->HasNATProxy())
 			natinst = CallRec::e_natRemoteProxy;
- 
+
 	// if 1 of the EP's do not support H.460.24 then full proxy
 	else if ((!callingSupport || !calledSupport) && GetProxyMode() == CallRec::ProxyEnabled)
 			natinst = CallRec::e_natFullProxy;
- 
+
 	// Oops cannot proceed the media will Fail!!
 	else {
 		PTRACE(2, "H46024\tFAILURE: No resolvable routing policy!");
@@ -4217,14 +4233,14 @@ bool CallRec::IsH46024APassThrough()
 	return false;
 }
 #endif
- 
+
 #ifdef HAS_H46024B
 void CallRec::BuildH46024AnnexBRequest(bool initiate,H245_MultimediaSystemControlMessage & h245msg, const std::map<WORD,H46024Balternate> & alt)
 {
 	h245msg.SetTag(H245_MultimediaSystemControlMessage::e_request);
 	H245_RequestMessage & msg = h245msg;
 	msg.SetTag(H245_RequestMessage::e_genericRequest);
- 
+
  	H245_GenericMessage & gmsg = msg;
 	gmsg.IncludeOptionalField(H245_GenericMessage::e_subMessageIdentifier);
     gmsg.IncludeOptionalField(H245_GenericMessage::e_messageContent);
@@ -4232,13 +4248,13 @@ void CallRec::BuildH46024AnnexBRequest(bool initiate,H245_MultimediaSystemContro
 	id.SetTag(H245_CapabilityIdentifier::e_standard);
 	PASN_ObjectId & val = id;
 	val.SetValue(H46024B_OID);
- 
+
 	PASN_Integer & num = gmsg.m_subMessageIdentifier;
 	num = 1;
- 
+
     gmsg.SetTag(H245_GenericMessage::e_messageContent);
     H245_ArrayOf_GenericParameter & content = gmsg.m_messageContent;
- 
+
 	content.SetSize(1);
 	H245_GenericParameter & param = content[0];
 	H245_ParameterIdentifier & idm = param.m_parameterIdentifier;
@@ -4247,10 +4263,10 @@ void CallRec::BuildH46024AnnexBRequest(bool initiate,H245_MultimediaSystemContro
 	idx = 1;
 	param.m_parameterValue.SetTag(H245_ParameterValue::e_octetString);
 	PASN_OctetString & oct = param.m_parameterValue;
- 
- 
+
+
 	H46024B_ArrayOf_AlternateAddress addrs;
- 
+
 	std::map<WORD,H46024Balternate>::iterator i = m_H46024Balternate.begin();
 	while (i != m_H46024Balternate.end()) {
 		if (i->second.sent >= (initiate ? 1 : 2)) {
@@ -4306,7 +4322,7 @@ bool CallRec::HandleH46024BRequest(const H245_ArrayOf_GenericParameter & content
 	}
 	return false;
 }
- 
+
 CallSignalSocket * CallRec::H46024BSignalSocket(bool response)
 {
 	// Parent Gatekeeper
@@ -4321,16 +4337,16 @@ CallSignalSocket * CallRec::H46024BSignalSocket(bool response)
 	if (!response)
 		return (callerIsSymmetric ? GetCallSignalSocketCalled() :  GetCallSignalSocketCalling());
 	else
-		return (callerIsSymmetric ? GetCallSignalSocketCalling() : GetCallSignalSocketCalled());   
+		return (callerIsSymmetric ? GetCallSignalSocketCalling() : GetCallSignalSocketCalled());
 }
- 
+
 void CallRec::H46024BSessionFlag(WORD sessionID)
 {
 	list<int>::const_iterator p = find(m_h46024Bflag.begin(), m_h46024Bflag.end(), sessionID);
 	if (p == m_h46024Bflag.end())
 		m_h46024Bflag.push_back(sessionID);
 }
- 
+
 void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, const H323TransportAddress & rev, unsigned muxID_fwd, unsigned muxID_rev)
 {
 
@@ -4341,17 +4357,17 @@ void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, 
 
     if (m_h46024Bflag.empty())
 		return;
- 
+
 	std::map<WORD,H46024Balternate>::const_iterator i = m_H46024Balternate.find(sessionID);
 	if (i != m_H46024Balternate.end())
 		return;
- 
+
 	PTRACE(5, "H46024B\tNAT offload probes S:" << sessionID << " F:" << fwd << " R:" << rev << " mux " << muxID_fwd << " " << muxID_rev);
-    
+
     PIPSocket::Address addr;  rev.GetIpAddress(addr);
     bool revDir  = (GetCallSignalSocketCalled()->GetPeerAddr() == addr);
 	//PTRACE(1, "SH\tNAT offload probe " << GetCallSignalSocketCalled()->GetPeerAddr() << " " << addr << " " << revDir);
- 
+
 	H46024Balternate alt;
 	bool callerIsSymmetric = (m_Calling->GetEPNATType() > 5);
 	if (!callerIsSymmetric && !revDir) {
@@ -4368,38 +4384,38 @@ void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, 
 	alt.sent = 0;
 
 	m_H46024Balternate.insert(pair<WORD,H46024Balternate>(sessionID,alt));
- 
+
 	if (m_h46024Bflag.size() == m_H46024Balternate.size()) {
 		// Build the Generic Request
 		H245_MultimediaSystemControlMessage h245msg;
 		BuildH46024AnnexBRequest(true, h245msg, m_H46024Balternate);
- 
+
 		PTRACE(4, "H46024B\tRequest Message\n" << h245msg);
- 
+
 		// If we are tunnneling
 		SendH46024Facility(H46024BSignalSocket(false), h245msg);
 	}
 }
- 
+
 void CallRec::H46024BRespond()
 {
 	if (m_H46024Balternate.empty())
 		return;
- 
+
 	PTRACE(5, "H46024B\tNAT offload respond");
- 
+
 	// Build the Generic response
 	H245_MultimediaSystemControlMessage h245msg;
 	BuildH46024AnnexBRequest(false, h245msg, m_H46024Balternate);
 	m_H46024Balternate.clear();
 	m_h46024Bflag.clear();
- 
+
 	// If we are tunneling
 	SendH46024Facility(H46024BSignalSocket(true), h245msg);
- 
+
 }
 #endif // HAS_H46024B
- 
+
 #endif  // HAS_H46023
 
 PBYTEArray CallRec::GetRADIUSClass() const
@@ -4543,7 +4559,7 @@ void CallRec::SetSessionMultiplexDestination(WORD session, void * openedBy, bool
 #endif
 
 #ifdef HAS_H235_MEDIA
-void CallRec::SetMediaEncryption(CallRec::EncDir dir) 
+void CallRec::SetMediaEncryption(CallRec::EncDir dir)
 {
     m_encyptDir = dir;
 }
@@ -4584,13 +4600,13 @@ bool CallRec::IsTimeout(
 			return true;
 		} else
 			return false;
-	
-	if( m_durationLimit > 0 && m_connectTime 
+
+	if( m_durationLimit > 0 && m_connectTime
 		&& ((now - m_connectTime) >= m_durationLimit) ) {
 		PTRACE(4, "GK\tCall #" << m_CallNumber << " duration limit exceeded");
 		return true;
 	}
-		
+
 	return false;
 }
 */
@@ -4642,7 +4658,7 @@ void CallTable::SupplyEndpointQoS(std::map<PString, EPQoS> & epqos) const
 		}
 	}
 }
- 
+
 void CallTable::ResetCallCounters()
 {
 	m_CallCount = m_successCall = m_neighborCall = m_parentCall = m_proxiedCall = m_peakCall = 0;
@@ -4678,7 +4694,7 @@ void CallTable::LoadConfig()
 	m_acctUpdateInterval = GkConfig()->GetInteger(CallTableSection, "AcctUpdateInterval", 0);
 	if( m_acctUpdateInterval != 0)
 		m_acctUpdateInterval = std::max(m_acctUpdateInterval, 10L);
-		
+
 	m_timestampFormat = GkConfig()->GetString(CallTableSection, "TimestampFormat", "RFC822");
 	m_singleFailoverCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "SingleFailoverCDR", "1"));
 }
@@ -4732,7 +4748,7 @@ void CallTable::UpdateTotalBandwidth(long bw)
 		PTRACE(2, "GK\tAvailable Bandwidth " << m_capacity);
 	}
 }
- 
+
 long CallTable::CheckEPBandwidth(const endptr & ep, long bw) const
 {
 	if (ep) {
@@ -4789,7 +4805,7 @@ callptr CallTable::FindBySignalAdrIgnorePort(const H225_TransportAddress & Signa
 {
 	return InternalFind(bind2nd(mem_fun(&CallRec::CompareSigAdrIgnorePort), &SignalAdr));
 }
- 
+
 void CallTable::ClearTable()
 {
 	WriteLock lock(listLock);
@@ -4811,8 +4827,8 @@ void CallTable::CheckCalls(RasServer * rassrv)
 	std::list<callptr> m_callsToDisconnect;
 	std::list<callptr> m_callsToUpdate;
 	time_t now;
-	
-	{	
+
+	{
 		WriteLock lock(listLock);
 		iterator Iter = CallList.begin(), eIter = CallList.end();
 		now = time(0);
@@ -4865,7 +4881,7 @@ void CallTable::CheckCalls(RasServer * rassrv)
 
 static PTextFile* OpenQoSFile(const PFilePath & fn)
 {
-	PTextFile* qosFile = new PTextFile(fn, PFile::ReadWrite, 
+	PTextFile* qosFile = new PTextFile(fn, PFile::ReadWrite,
 		PFile::Create | PFile::DenySharedWrite
 		);
 	if (!qosFile->IsOpen()) {
@@ -4894,23 +4910,23 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 	} else if (qosdata.GetTag() == H4609_QosMonitoringReportData::e_final) {
         H4609_FinalQosMonReport & rep = qosdata;
         report = rep.m_mediaInfo;
-	} 
+	}
 
 	for (PINDEX i=0; i < report.GetSize(); i++) {
 		// int worstdelay = -1; int packetlossrate = -1; int maxjitter = -1;
 		int meandelay = -1; int packetslost = -1;
 		int packetlosspercent = -1; int bandwidth = -1; int meanjitter = -1;
-		H323TransportAddress sendAddr; H323TransportAddress recvAddr; PIPSocket::Address send; 
+		H323TransportAddress sendAddr; H323TransportAddress recvAddr; PIPSocket::Address send;
 		WORD sport = 0; PIPSocket::Address recv; WORD rport = 0; int session = 0;
 
-		H4609_RTCPMeasures & info = report[i];	
+		H4609_RTCPMeasures & info = report[i];
 		session = info.m_sessionId;
 		PTRACE(4, "QoS\tPreparing QoS Report Session " << session);
 
 	    H225_TransportChannelInfo & rtp = info.m_rtpAddress;
 	    if (rtp.HasOptionalField(H225_TransportChannelInfo::e_sendAddress))
 		    sendAddr = H323TransportAddress(rtp.m_sendAddress);
-	    if (rtp.HasOptionalField(H225_TransportChannelInfo::e_recvAddress)) 
+	    if (rtp.HasOptionalField(H225_TransportChannelInfo::e_recvAddress))
 		    recvAddr = H323TransportAddress(rtp.m_recvAddress);
 
 		sendAddr.GetIpAndPort(send,sport);
@@ -4980,7 +4996,7 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 				}
 			}
 		}
- 
+
 		// write report to database
 #if HAS_DATABASE
 		Toolkit* const toolkit = Toolkit::Instance();
@@ -5016,13 +5032,13 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 		PString fn = GkConfig()->GetString("GkQoSMonitor", "DetailFile", "");
 		bool fileoutput = !fn.IsEmpty();
 		bool newfile = fileoutput ? !PFile::Exists(fn) : false;
- 
+
 		PTextFile* qosFile = NULL;
 		if (fileoutput) {
 			qosFile = OpenQoSFile(fn);
 			if (qosFile && qosFile->IsOpen()) {
 				if (newfile) {
-				 PString headerstr = 
+				 PString headerstr =
 					 "time|confId|session|SendIP|SendPort|RecvIP|RecvPort|NAT|AvgDelay|PacketLost|PacketLoss%|AvgJitter|Bandwidth";
 				 qosFile->WriteLine(headerstr);
 				}
@@ -5055,7 +5071,7 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 			if (!qosFile->WriteLine(outstr)) {
 				PTRACE(4, " QoS\tError writing QoS information to file " << fn);
 				SNMP_TRAP(6, SNMPError, General, "Error writing to QoS output file " + fn);
-			} 
+			}
 		   qosFile->Close();
 		   delete qosFile;
 		}
@@ -5082,7 +5098,7 @@ void CallTable::QoSReport(const H225_DisengageRequest & obj_drq, const endptr & 
 		&& ((report.GetTag() == H4609_QosMonitoringReportData::e_final) || (report.GetTag() == H4609_QosMonitoringReportData::e_periodic))) {
 		PTRACE(5, "QoS\tReport " << report);
 		OnQosMonitoringReport(AsString(obj_drq.m_conferenceID), ep, report);
-	
+
 	} else {
 		PTRACE(4, "QoS\tDRQ Call Statistics decode failure");
 	}
@@ -5143,7 +5159,7 @@ void CallTable::InternalRemove(iterator Iter)
 
 	callptr call(*Iter);
 	call->SetDisconnectTime(time(NULL));
-	
+
 	if (m_peakCall < m_activeCall) {
 	    m_peakCall = m_activeCall;
 	    m_peakTime = PTime();
@@ -5161,14 +5177,14 @@ void CallTable::InternalRemove(iterator Iter)
 	UpdateEPBandwidth(call->GetCalledParty(), - call->GetBandwidth());
 	if (m_capacity >= 0)
 		m_capacity += call->GetBandwidth();
-		
+
 	call->ClearRoutes();	// won't try any more routes for this call
 
 	CallList.erase(Iter);
 	RemovedList.push_back(call.operator->());
 
 	WriteUnlock unlock(listLock);
-	
+
 	if ((m_genNBCDR || call->GetCallingParty()) && (m_genUCCDR || call->IsConnected())) {
 		PString cdrString(call->GenerateCDR(m_timestampFormat) + "\r\n");
 		GkStatus::Instance()->SignalStatus(cdrString, STATUS_TRACE_LEVEL_CDR);
@@ -5176,7 +5192,7 @@ void CallTable::InternalRemove(iterator Iter)
 	} else {
 		if (!call->IsConnected())
 			PTRACE(2, "CDR\tignore not connected call");
-		else	
+		else
 			PTRACE(2, "CDR\tignore caller from neighbor");
 	}
 
@@ -5196,7 +5212,7 @@ void CallTable::InternalRemoveFailedLeg(iterator Iter)
 	call->SetDisconnectTime(time(NULL));
 
 	--m_activeCall;
-	
+
 	if (m_capacity >= 0)
 		m_capacity += call->GetBandwidth();
 
@@ -5215,16 +5231,16 @@ void CallTable::InternalRemoveFailedLeg(iterator Iter)
 		} else {
 			if (!call->IsConnected())
 				PTRACE(2, "CDR\tignore not connected call");
-			else	
+			else
 				PTRACE(2, "CDR\tignore caller from neighbor");
 		}
 
 		RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctStop, call);
 	}
-	
+
 	if (call->GetCalledParty())
 		call->GetCalledParty()->RemoveCall(StripAliasType(call->GetDestInfo()));
-	
+
 	call->SetSocket(NULL, NULL);
 }
 
@@ -5262,7 +5278,7 @@ void CallTable::PrintCurrentCalls(USocket *client, bool verbose) const
 	PString msg = "CurrentCalls\r\n";
 	unsigned n, act, nb, np, npr;
 	InternalStatistics(n, act, nb, np, npr, msg, verbose);
-	
+
 	PString bandstr;
 	if (m_capacity >= 0)
 		bandstr = PString(PString::Printf, "\r\nAvailable Bandwidth: %u", m_capacity);
@@ -5306,7 +5322,7 @@ PreliminaryCallTable::~PreliminaryCallTable()
 {
 	calls.clear();
 }
-	
+
 void PreliminaryCallTable::Insert(PreliminaryCall * call)
 {
 	WriteLock lock(tableLock);
