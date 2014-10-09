@@ -90,7 +90,7 @@ NetworkAddress::NetworkAddress(
 		PTRACE(1, "Error: Non-matching network and netmask");
 	}
 }
-	
+
 NetworkAddress::NetworkAddress(
 	const PString &str /// an address in a form A.B.C.D, A.B.C.D/24 or A.B.C.D/255.255.255.0
 	)
@@ -98,19 +98,19 @@ NetworkAddress::NetworkAddress(
 	Toolkit::GetNetworkFromString(str, m_address, m_netmask);
 }
 
-unsigned NetworkAddress::GetNetmaskLen() const		
+unsigned NetworkAddress::GetNetmaskLen() const
 {
 	unsigned len = 0;
 	const unsigned sz = m_netmask.GetSize() * 8;
 	const char *rawdata = m_netmask.GetPointer();
-	
-	
+
+
 	for (int b = sz - 1; b >= 0; b--)
 		if (rawdata[b >> 3] & (0x80 >> (b & 7)))
 			break;
 		else
 			len++;
-			
+
 	return sz - len;
 }
 
@@ -136,7 +136,7 @@ bool NetworkAddress::operator==(const PIPSocket::Address &addr) const
 	for (unsigned i = 0; i < sz; i++)
 		if (m_netmask[i] != 255 || m_address[i] != addr[i])
 			return false;
-			
+
 	return true;
 }
 
@@ -150,10 +150,10 @@ bool NetworkAddress::operator>>(const NetworkAddress &addr) const
 		if (m_netmask[i] != (addr.m_netmask[i] & m_netmask[i])
 				|| m_address[i] != (addr.m_address[i] & m_netmask[i]))
 			return false;
-			
+
 	return true;
 }
-	
+
 bool NetworkAddress::operator<<(const NetworkAddress &addr) const
 {
 	return addr >> *this;
@@ -168,7 +168,7 @@ bool NetworkAddress::operator>>(const PIPSocket::Address &addr) const
 	for (unsigned i = 0; i < sz; i++)
 		if (m_address[i] != (addr[i] & m_netmask[i]))
 			return false;
-			
+
 	return true;
 }
 
@@ -294,7 +294,7 @@ bool Toolkit::RouteTable::RouteEntry::CompareWithMask(const Address *ip) const
     for (PINDEX m = mmax - 1; m >= 0 ; --m) {
         BYTE ipByte = (*ip)[m];
         BYTE maskByte = network[m];
-        if ((maskByte == 0)){
+        if (maskByte == 0) {
             if (networkStarted && (ipByte > 0)){
                 return false;
             }
@@ -538,7 +538,7 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 				&& (r_table[i].GetNetMask().AsString() != "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")) {
 				m_internalnetworks.resize( m_internalnetworks.size() + 1);
 				m_internalnetworks[m_internalnetworks.size() - 1] = NetworkAddress(r_table[i].GetNetwork(), r_table[i].GetNetMask());
-				PTRACE(2, "Internal Network Detected " << m_internalnetworks.back().AsString()); 
+				PTRACE(2, "Internal Network Detected " << m_internalnetworks.back().AsString());
 			}
 		}
 	}
@@ -631,7 +631,7 @@ bool Toolkit::VirtualRouteTable::CreateTable()
 	if (ext.IsValid()) {
 		ExtIP = extip;
 		PString extroute;
-		if (!DynExtIP) 
+		if (!DynExtIP)
 			extroute = ext.AsString() + "/0";
 
 		CreateRouteTable(extroute);
@@ -660,7 +660,7 @@ Toolkit::ProxyCriterion::ProxyCriterion() : m_enable(false)
 }
 
 Toolkit::ProxyCriterion::~ProxyCriterion()
-{ 
+{
 }
 
 void Toolkit::ProxyCriterion::LoadConfig(PConfig *config)
@@ -750,7 +750,7 @@ int Toolkit::ProxyCriterion::ToRoutingMode(const PCaselessString & mode) const
 	else if (mode == "Proxy")
 		return CallRec::Proxied;
 	else
-		return CallRec::Undefined;	
+		return CallRec::Undefined;
 }
 
 // returns network for the rule or IsAny() when no is rule found
@@ -853,8 +853,8 @@ void Toolkit::RewriteData::AddSection(PConfig * config, const PString & section)
 		std::map<PString, PString, pstr_prefix_lesser> rules;
 		for (PINDEX i = 0; i < n_size; ++i) {
 			PString key = cfgs.GetKeyAt(i);
-			PCaselessString first = PCaselessString(key[0]);				
-			if (!key && (isdigit(static_cast<unsigned char>(key[0])) || (first.FindOneOf("+!.%*#ABCDEFGHIGKLMNOPQRSTUVWXYZ") != P_MAX_INDEX)))			
+			PCaselessString first = PCaselessString(key[0]);
+			if (!key && (isdigit(static_cast<unsigned char>(key[0])) || (first.FindOneOf("+!.%*#ABCDEFGHIGKLMNOPQRSTUVWXYZ") != P_MAX_INDEX)))
 				rules[key] = cfgs.GetDataAt(i);
 		}
 		// now the rules are ascendantly sorted by the keys
@@ -872,7 +872,7 @@ void Toolkit::RewriteData::AddSection(PConfig * config, const PString & section)
 			m_RewriteKey = (PString*)(new BYTE[sizeof(PString) * m_size * 2]);
 			m_RewriteValue = m_RewriteKey + m_size;
 			std::map<PString, PString, pstr_prefix_lesser>::iterator iter = rules.begin();
-			
+
 			// reverse the order
 			for (int i = m_size; i-- > 0; ++iter) {
 //				m_RewriteKey[i] = iter->first;
@@ -976,7 +976,7 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 				result = RewriteString(s, prefix, newprefix, unused);
 			} else
 				result = newprefix + s;
-				
+
 			PTRACE(2, "\tRewritePString: " << s << " to " << result);
 			s = result;
 			changed = true;
@@ -1120,7 +1120,7 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig * config)
 				PStringArray tokenised_line = lines[j].Tokenise(PString("="));
 
 				if (tokenised_line.GetSize() < 3) {
-					PTRACE(0, "GK\tSyntax error in the GWRewriteE164 rule - missing =, rule: " 
+					PTRACE(0, "GK\tSyntax error in the GWRewriteE164 rule - missing =, rule: "
 						<< key << " => " << lines[j]);
 					SNMP_TRAP(7, SNMPError, Configuration, "Invalid [GWRewriteE164] configuration");
 					continue;
@@ -1203,7 +1203,7 @@ void Toolkit::VendorData::AddSection(PConfig * config, const PString & section)
 		std::map<PString, PString, pstr_prefix_lesser> rules;
 		for (PINDEX i = 0; i < n_size; ++i) {
 			PString key = cfgs.GetKeyAt(i);
-			PCaselessString first = PCaselessString(key[0]);						
+			PCaselessString first = PCaselessString(key[0]);
 			rules[key] = cfgs.GetDataAt(i);
 		}
 		// now the rules are ascendantly sorted by the keys
@@ -1218,7 +1218,7 @@ void Toolkit::VendorData::AddSection(PConfig * config, const PString & section)
 			m_VendorKey = (PString*)(new BYTE[sizeof(PString) * m_size * 2]);
 			m_VendorValue = m_VendorKey + m_size;
 			std::map<PString, PString, pstr_prefix_lesser>::iterator iter = rules.begin();
-			
+
 			// reverse the order
 			for (int i = m_size; i-- > 0; ++iter) {
 				::new(m_VendorKey + i) PString(iter->first);
@@ -1240,7 +1240,7 @@ Toolkit::VendorData::~VendorData()
 
 
 
-Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit"), 
+Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit"),
 	m_Config(NULL), m_ConfigDirty(false),
 	m_acctSessionCounter(0), m_acctSessionBase((long)time(NULL)),
 	m_timerManager(new GkTimerManager()),
@@ -1327,16 +1327,16 @@ void Toolkit::SetConfig(int act, const PString & sec, const PString & key, const
 PString Toolkit::GetTempDir() const
 {
 	PString tmpdir;
-	
+
 #ifndef _WIN32
 	// check if the directory exists and is accessible (access rights)
 	if (PFile::Exists("/tmp") && PFile::Access("/tmp", PFile::ReadWrite))
 		tmpdir = "/tmp";
-	else 
+	else
 #endif
 	{
 		PConfig cfg(PConfig::Environment);
-		
+
 		if (cfg.HasKey("TMP"))
 			tmpdir = cfg.GetString("TMP");
 		else if (cfg.HasKey("TEMP"))
@@ -1344,17 +1344,17 @@ PString Toolkit::GetTempDir() const
 		else if (cfg.HasKey("TMPDIR"))
 			tmpdir = cfg.GetString("TMPDIR");
 	}
-	
+
 	if (!tmpdir.IsEmpty()) {
 		// strip trailing separator
 		if (tmpdir[tmpdir.GetLength()-1] == PDIR_SEPARATOR)
 			tmpdir = tmpdir.Left(tmpdir.GetLength()-1);
-			
+
 		// check if the directory exists and is accessible (access rights)
 		if (!(PFile::Exists(tmpdir) && PFile::Access(tmpdir, PFile::ReadWrite)))
 			tmpdir = PString::Empty();
 	}
-	
+
 	return tmpdir;
 }
 
@@ -1364,7 +1364,7 @@ void Toolkit::CreateConfig()
 		PFile::Remove(m_tmpconfig);
 
 	PString tmpdir = GetTempDir();
-	
+
 #ifdef _WIN32
 	if (tmpdir.IsEmpty())
 		if (PFile::Access(".", PFile::ReadWrite))
@@ -1377,7 +1377,7 @@ void Toolkit::CreateConfig()
 	if (tmpdir.IsEmpty())
 		tmpdir = ".";
 #endif
-	
+
 	// generate a unique name
 	do {
 		m_tmpconfig = tmpdir + PDIR_SEPARATOR + "gnugk.ini-" + PString(PString::Unsigned, rand()%10000);
@@ -1399,7 +1399,7 @@ void Toolkit::CreateConfig()
 				SNMP_TRAP(6, SNMPError, General, "Failed to read config");
 				GkStatus::Instance()->SignalStatus("Failed to read valid config - keeping old config\r\n", MIN_STATUS_TRACE_LEVEL);
 			} else {	// startup
-				m_Config = testConfig;	// warning will be printed a bit later			
+				m_Config = testConfig;	// warning will be printed a bit later
 			}
 		}
 	} else { // Oops! Create temporary config file failed, use the original one
@@ -1413,7 +1413,7 @@ void Toolkit::CreateConfig()
 
 	if (!m_extConfigFilePath)
 		PFile::Remove(m_extConfigFilePath);
-	
+
 	// generate a unique name
 	do {
 		m_extConfigFilePath = tmpdir + PDIR_SEPARATOR + "gnugk.ini-" + PString(PString::Unsigned, rand()%10000);
@@ -1470,7 +1470,7 @@ void Toolkit::ReloadSQLConfig()
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: query failed");
 		} else if (!queryResult->IsValid()) {
 			PTRACE(0, "SQLCONF\tFailed to load config key=>value pairs from SQL "
-				"database (" << queryResult->GetErrorCode() << "): " 
+				"database (" << queryResult->GetErrorCode() << "): "
 				<< queryResult->GetErrorMessage());
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: query failed");
 		} else if (queryResult->GetNumRows() > 0 && queryResult->GetNumFields() < 3) {
@@ -1481,15 +1481,15 @@ void Toolkit::ReloadSQLConfig()
 			while (queryResult->FetchRow(params))
 				if (params[0].IsEmpty() || params[1].IsEmpty()) {
 					PTRACE(1, "SQLCONF\tInvalid config key=>value pair entry found "
-						"in the SQL database: '[" << params[0] << "] " 
+						"in the SQL database: '[" << params[0] << "] "
 						<< params[1] << '=' << params[1] << '\'');
 					SNMP_TRAP(5, SNMPError, Database, "SQLConfig: query failed");
 				} else {
 					m_Config->SetString(params[0], params[1], params[2]);
-					PTRACE(6, "SQLCONF\tConfig entry read: '[" << params[0] 
+					PTRACE(6, "SQLCONF\tConfig entry read: '[" << params[0]
 						<< "] " << params[1] << '=' << params[2] << '\'');
 				}
-			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() 
+			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows()
 				<< " config key=>value pairs loaded from SQL database");
 		}
 		delete queryResult;
@@ -1523,7 +1523,7 @@ void Toolkit::ReloadSQLConfig()
 					SNMP_TRAP(5, SNMPError, Database, "SQLConfig: E.164 query failed");
 				} else {
 					m_Config->SetString("RasSrv::RewriteE164", params[0], params[1]);
-					PTRACE(6, "SQLCONF\tRewriteE164 rule read: '" << params[0] 
+					PTRACE(6, "SQLCONF\tRewriteE164 rule read: '" << params[0]
 						<< '=' << params[1] << '\'');
 				}
 			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " E164 rewrite rules "
@@ -1682,7 +1682,7 @@ void Toolkit::ReloadSQLConfig()
 					SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Neighbor query failed");
 				} else {
 					m_Config->SetString("RasSrv::Neighbors", params[0], params[1]);
-					PString neighborSection = "Neighbor::" + params[0]; 
+					PString neighborSection = "Neighbor::" + params[0];
 					if (queryResult->GetNumFields() > h460id) {
 						h46018traverse = params[h460id].AsInteger();
 						if (h46018traverse) {
@@ -1732,7 +1732,7 @@ void Toolkit::ReloadSQLConfig()
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Permanent EP query failed");
 		} else if (!queryResult->IsValid()) {
 			PTRACE(0, "SQLCONF\tFailed to load permanent endpoints from SQL database "
-				"("	<< queryResult->GetErrorCode() << "): " 
+				"("	<< queryResult->GetErrorCode() << "): "
 				<< queryResult->GetErrorMessage());
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Permanent EP query failed");
 		} else if (queryResult->GetNumRows() > 0 && queryResult->GetNumFields() < 4) {
@@ -1802,7 +1802,7 @@ void Toolkit::ReloadSQLConfig()
 		queryResult = NULL;
 	}
 	// TODO: add support for missing special section
-	
+
 	delete sqlConn;
 	sqlConn = NULL;
 	PTRACE(3, "SQLCONF\tSQL config connection closed");
@@ -1885,7 +1885,7 @@ PConfig* Toolkit::ReloadConfig()
 	}
 	// always call SetGKHome() on reload to detect new IPs
 	SetGKHome(GKHome.Tokenise(",;", false));
-	
+
 	m_RouteTable.InitTable();
 	m_VirtualRouteTable.InitTable();
 	m_ProxyCriterion.LoadConfig(m_Config);
@@ -1950,7 +1950,7 @@ void Toolkit::LoadCauseMap(
 	)
 {
 	memset(m_causeMap, 0, 16);
-	
+
 	if (! Toolkit::AsBool(cfg->GetString(RoutedSec, "ActivateFailover", "0")))
 		return;
 
@@ -2034,7 +2034,7 @@ bool Toolkit::AssignedAliases::LoadSQL(PConfig * cfg)
 		PTRACE(0, "AliasSQL\tFATAL: Shutting down");
 		return false;
 	}
-	
+
 	m_sqlConn = GkSQLConnection::Create(driverName, authName);
 	if (m_sqlConn == NULL) {
 		PTRACE(0, "AliasSQL\tModule creation failed: "
@@ -2043,7 +2043,7 @@ bool Toolkit::AssignedAliases::LoadSQL(PConfig * cfg)
 		PTRACE(0, "AliasSQL\tFATAL: Shutting down");
 		return false;
 	}
-		
+
 	m_query = cfg->GetString(authName, "Query", "");
 	if (m_query.IsEmpty()) {
 		PTRACE(0, "AliasSQL\tModule creation failed: No query configured");
@@ -2052,7 +2052,7 @@ bool Toolkit::AssignedAliases::LoadSQL(PConfig * cfg)
 		return false;
 	} else
 		PTRACE(4, "AliasSQL\tQuery: " << m_query);
-		
+
 	if (!m_sqlConn->Initialize(cfg, authName)) {
 		PTRACE(0, "AliasSQL\tModule creation failed: Could not connect to the database");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
@@ -2152,7 +2152,7 @@ bool Toolkit::CreateH350Session(H350_Session * session)
 		authMethod = PLDAPSession::AuthSASL;
 	else if (mode == "kerberos")
 		authMethod = PLDAPSession::AuthKerberos;
-	
+
 	bool startTLS = Toolkit::AsBool(GkConfig()->GetString(H350Section, "StartTLS", "0"));
 
 	if (!session->Open(server)) {
@@ -2220,7 +2220,7 @@ bool Toolkit::AssignedAliases::QueryH350Directory(const PString & alias, PString
 	}
 
 	// locate the record
-	for (H350_Session::LDAP_RecordList::const_iterator x = rec.begin(); x != rec.end(); ++x) {			
+	for (H350_Session::LDAP_RecordList::const_iterator x = rec.begin(); x != rec.end(); ++x) {
 		H350_Session::LDAP_Record entry = x->second;
 		PString al;
 		PINDEX i;
@@ -2593,7 +2593,7 @@ bool Toolkit::AssignedGatekeepers::LoadSQL(PConfig * cfg)
 		PTRACE(0, "AssignSQL\tFATAL: Shutting down");
 		return false;
 	}
-	
+
 	m_sqlConn = GkSQLConnection::Create(driverName, authName);
 	if (m_sqlConn == NULL) {
 		PTRACE(0, "AssignSQL\tModule creation failed: "
@@ -2602,7 +2602,7 @@ bool Toolkit::AssignedGatekeepers::LoadSQL(PConfig * cfg)
 		PTRACE(0, "AssignSQL\tFATAL: Shutting down");
 		return false;
 	}
-		
+
 	m_query = cfg->GetString(authName, "Query", "");
 	if (m_query.IsEmpty()) {
 		PTRACE(0, "AssignSQL\tModule creation failed: No query configured");
@@ -2611,7 +2611,7 @@ bool Toolkit::AssignedGatekeepers::LoadSQL(PConfig * cfg)
 		return false;
 	} else
 		PTRACE(4, "AssignSQL\tQuery: " << m_query);
-		
+
 	if (!m_sqlConn->Initialize(cfg, authName)) {
 		PTRACE(0, "AssignSQL\tModule creation failed: Could not connect to the database");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
@@ -2624,7 +2624,7 @@ bool Toolkit::AssignedGatekeepers::LoadSQL(PConfig * cfg)
 bool Toolkit::AssignedGatekeepers::DatabaseLookup(
 		const PString & alias,
 		const PIPSocket::Address & ipaddr,
-		PStringArray & newGks	
+		PStringArray & newGks
         )
 {
 	if (!m_sqlactive)
@@ -2648,7 +2648,7 @@ bool Toolkit::AssignedGatekeepers::DatabaseLookup(
 		delete result;
 		return false;
 	}
-	
+
 	bool success = false;
 
 	if (result->GetNumRows() < 1)
@@ -2749,7 +2749,7 @@ bool Toolkit::AssignedGatekeepers::QueryH350Directory(const PString & alias, con
 	}
 
 	// locate the record
-	for (H350_Session::LDAP_RecordList::const_iterator x = rec.begin(); x != rec.end(); ++x) {			
+	for (H350_Session::LDAP_RecordList::const_iterator x = rec.begin(); x != rec.end(); ++x) {
 		H350_Session::LDAP_Record entry = x->second;
 		PString gk;
 		if (session.GetAttribute(entry, "h323IdentityGKDomain", gk)) {
@@ -2856,7 +2856,7 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias, const PI
 			alt.m_priority = k;
 		}
 	}
-		
+
 	return found;
 }
 #endif
@@ -2888,7 +2888,7 @@ void Toolkit::AlternateGatekeepers::LoadConfig(PConfig * cfg)
 		PTRACE(0, "AltGKSQL\tFATAL: Shutting down");
 		return;
 	}
-	
+
 	m_sqlConn = GkSQLConnection::Create(driverName, authName);
 	if (m_sqlConn == NULL) {
 		PTRACE(0, "AltGKSQL\tModule creation failed: "
@@ -2897,7 +2897,7 @@ void Toolkit::AlternateGatekeepers::LoadConfig(PConfig * cfg)
 		PTRACE(0, "AltGKSQL\tFATAL: Shutting down");
 		return;
 	}
-		
+
 	m_query = cfg->GetString(authName, "Query", "");
 	if (m_query.IsEmpty()) {
 		PTRACE(0, "AltGKSQL\tModule creation failed: No query configured");
@@ -2906,7 +2906,7 @@ void Toolkit::AlternateGatekeepers::LoadConfig(PConfig * cfg)
 		return;
 	} else
 		PTRACE(4, "AltGKSQL\tQuery: " << m_query);
-		
+
 	if (!m_sqlConn->Initialize(cfg, authName)) {
 		PTRACE(0, "AltGKSQL\tModule creation failed: Could not connect to the database");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
@@ -2959,7 +2959,7 @@ bool Toolkit::AlternateGatekeepers::QueryAlternateGK(const PIPSocket::Address & 
 		delete result;
 		return false;
 	}
-	
+
 	bool success = false;
 
 	if (result->GetNumRows() < 1)
@@ -3042,7 +3042,7 @@ bool Toolkit::AssignedLanguage::LoadSQL(PConfig * cfg)
 
 bool Toolkit::AssignedLanguage::DatabaseLookup(
 		const PString & alias,
-		PStringArray & languages	
+		PStringArray & languages
 		)
 {
 	if (!m_sqlactive)
@@ -3139,7 +3139,7 @@ void Toolkit::QoSMonitor::LoadConfig(PConfig * cfg)
 		PTRACE(0, "QoSSQL\tFATAL: Shutting down");
 		return;
 	}
-	
+
 	m_sqlConn = GkSQLConnection::Create(driverName, authName);
 	if (m_sqlConn == NULL) {
 		PTRACE(0, "QoSSQL\tModule creation failed: "
@@ -3148,7 +3148,7 @@ void Toolkit::QoSMonitor::LoadConfig(PConfig * cfg)
 		PTRACE(0, "QoSSQL\tFATAL: Shutting down");
 		return;
 	}
-		
+
 	m_query = cfg->GetString(authName, "Query", "");
 	if (m_query.IsEmpty()) {
 		PTRACE(0, "QoSSQL\tModule creation failed: No query configured");
@@ -3157,7 +3157,7 @@ void Toolkit::QoSMonitor::LoadConfig(PConfig * cfg)
 		return;
 	} else
 		PTRACE(4, "QoSSQL\tQuery: " << m_query);
-		
+
 	if (!m_sqlConn->Initialize(cfg, authName)) {
 		PTRACE(0, "QoSSQL\tModule creation failed: Could not connect to the database");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
@@ -3180,7 +3180,7 @@ bool Toolkit::QoSMonitor::PostRecord(const std::map<PString, PString>& params)
 		SNMP_TRAP(5, SNMPError, Database, "QoSMonitor query failed");
 		return false;
 	}
-	
+
 	if (result) {
 		if (result->IsValid()) {
 			if (result->GetNumRows() < 1) {
@@ -3216,7 +3216,7 @@ bool Toolkit::RewriteE164(H225_AliasAddress & alias)
 		if (partyNumber.GetTag() != H225_PartyNumber::e_e164Number && partyNumber.GetTag() != H225_PartyNumber::e_privateNumber)
 			return false;
 	}
-	
+
 	PString E164 = ::AsString(alias, FALSE);
 
 	bool changed = RewritePString(E164);
@@ -3238,7 +3238,7 @@ bool Toolkit::RewriteE164(H225_AliasAddress & alias)
 			}
 		}
 	}
-	
+
 	return changed;
 }
 
@@ -3586,7 +3586,7 @@ int Toolkit::GetInternalExtensionCode( const unsigned &country,
 			break;
 		}
 		break;
-		
+
 	case t35cPoland:
 		switch (manufacturer) {
 		case t35mGnuGk:
@@ -3641,11 +3641,11 @@ void Toolkit::GetNetworkFromString(
 		netmask = PIPSocket::Address(network.GetSize(), fullNetMask);
 	} else {
 		network = PIPSocket::Address(s.Left(slashPos));
-		
+
 		const PString netmaskString = s.Mid(slashPos + 1);
 		BYTE rawData[16];
 		memset(&rawData, 0, sizeof(rawData));
-		
+
 		if (netmaskString.FindOneOf(".:") != P_MAX_INDEX) {
 			// netmask as a network address
 			netmask = PIPSocket::Address(netmaskString);
@@ -3659,11 +3659,11 @@ void Toolkit::GetNetworkFromString(
 					rawData[b >> 3] &= ~(0x80U >> (b & 7));
 			netmask = PIPSocket::Address(network.GetSize(), rawData);
 		}
-		
+
 		// normalize the address
 		for (unsigned b = 0; b < (unsigned)(network.GetSize()); b++)
 			rawData[b] = network[b] & netmask[b];
-				
+
 		network = PIPSocket::Address(network.GetSize(), rawData);
 	}
 }
@@ -3691,7 +3691,7 @@ PString Toolkit::AsString(
 		return tm.AsString(PTime::RFC1123);
 	else if (fmtStr *= "MySQL" )
 		fmtStr = "%Y-%m-%d %H:%M:%S";
-	
+
 	struct tm _tm;
 	struct tm* tmptr = &_tm;
 	time_t t = tm.GetTimeInSeconds();
@@ -3724,7 +3724,7 @@ PString Toolkit::AsString(
 			length -= 2;
 		}
 	} while (i != P_MAX_INDEX && i < length);
-	
+
 	char buf[128];
 	if (strftime(buf, sizeof(buf), (const char*)fmtStr, tmptr) == 0) {
 		SNMP_TRAP(7, SNMPError, Configuration, "Invalid timestamp format - using default");
@@ -3743,7 +3743,7 @@ PString Toolkit::ReadPassword(
 {
 	if (cfgSection.IsEmpty() || cfgKey.IsEmpty())
 		return PString::Empty();
-		
+
 	PConfig* const cfg = Config();
 	if (!cfg->HasKey(cfgSection, cfgKey))
 		return PString::Empty();
@@ -3883,7 +3883,7 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 					setupBody.m_sourceAddress[i].GetTag() != (unsigned)aliasForceType) {
 						PString source = ::AsString(setupBody.m_sourceAddress[i], false);
 						H323SetAliasAddress(source, setupBody.m_sourceAddress[i], aliasForceType);
-				} 
+				}
 				++i;
 			}
 		}
@@ -3901,7 +3901,7 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 		PStringArray rewrite  = rewriteChar.Tokenise(";");
 		for (PINDEX i=0; i < rewrite.GetSize(); ++i) {
 			PStringArray cRule = rewrite[i].Tokenise(",");
-			if (cRule.GetSize() == 2) { 
+			if (cRule.GetSize() == 2) {
 				source.Replace(cRule[0], cRule[1],true);
 				changed = true;
 			}
@@ -3927,7 +3927,7 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 		setupBody.m_sourceAddress.SetSize(1);
 		H323SetAliasAddress(source, setupBody.m_sourceAddress[0]);
 
-		if (IsValidE164(source)) 
+		if (IsValidE164(source))
 			setup.GetQ931().SetCallingPartyNumber(source);
 		else
 			setup.GetQ931().RemoveIE(Q931::CallingPartyNumberIE);
