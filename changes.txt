@@ -1,6 +1,7 @@
 Changes from 3.7 to 3.8
 =======================
-- BUGFIX(RasTbl.cxx) only apply [EP::] AddNumbers= if the endpoint doesn't have the number already
+- BUGFIX(gkauth.cxx,Neighbor.cxx) use OpenSSL for cryptographically relevant random numbers
+- BUGFIX(RasTbl.cxx) fix error message for permanent gateways on config reload
 - BUGFIX(RasTbl.cxx) fix error message for permanent gateways on config reload
 - BUGFIX(Routing.cxx) CatchAll policy now rewrites the destination alias to the CatchAll alias
 - new authentication modules using LUA scripts: LuaAuth

@@ -37,6 +37,10 @@ extern const char *H350Section;
 #include <h460/h4601.h>
 #endif
 
+#ifdef P_SSL
+#include <openssl/rand.h>
+#endif // P_SSL
+
 namespace {
 const char* const GkAuthSectionName = "Gatekeeper::Auth";
 const char OID_CAT[] = "1.2.840.113548.10.1.2.1";
@@ -140,14 +144,14 @@ PBoolean H235AuthDesECB::GetAuthenticationCapabilities(H235Authenticator::Capabi
   cap.m_cipher     = "DES";
   cap.m_description= "desECB";
   ids->capabilityList.push_back(cap);
-    
+
   return true;
 }
 #endif
 
-PBoolean H235AuthDesECB::IsMatch(const PString & identifier) const 
-{ 
-    return (identifier == PString(OID_DesECB)); 
+PBoolean H235AuthDesECB::IsMatch(const PString & identifier) const
+{
+    return (identifier == PString(OID_DesECB));
 }
 
 H225_CryptoH323Token * H235AuthDesECB::CreateCryptoToken()
@@ -346,14 +350,14 @@ PBoolean H235AuthDesCTS::GetAuthenticationCapabilities(H235Authenticator::Capabi
   cap.m_cipher     = "DES";
   cap.m_description= "desCTS";
   ids->capabilityList.push_back(cap);
-    
+
   return true;
 }
 #endif
 
-PBoolean H235AuthDesCTS::IsMatch(const PString & identifier) const 
-{ 
-    return (identifier == PString(OID_DesCTS)); 
+PBoolean H235AuthDesCTS::IsMatch(const PString & identifier) const
+{
+    return (identifier == PString(OID_DesCTS));
 }
 
 H225_CryptoH323Token * H235AuthDesCTS::CreateCryptoToken()
@@ -423,7 +427,7 @@ ARQAuthData::ARQAuthData(
 	const endptr & ep,
 	/// call record matching this ARQ (if any)
 	const callptr & call
-	) : m_rejectReason(-1), m_callDurationLimit(-1), 
+	) : m_rejectReason(-1), m_callDurationLimit(-1),
 	m_requestingEP(ep),	m_call(call), m_billingMode(-1),
 	m_proxyMode(CallRec::ProxyDetect),
 	m_clientAuthId(0)
@@ -432,8 +436,8 @@ ARQAuthData::ARQAuthData(
 
 ARQAuthData::ARQAuthData(const ARQAuthData & obj)
 	: m_rejectReason(obj.m_rejectReason),
-	m_callDurationLimit(obj.m_callDurationLimit), 
-	m_requestingEP(obj.m_requestingEP), m_call(obj.m_call), 
+	m_callDurationLimit(obj.m_callDurationLimit),
+	m_requestingEP(obj.m_requestingEP), m_call(obj.m_call),
 	m_billingMode(obj.m_billingMode), m_routeToAlias(obj.m_routeToAlias),
 	m_destinationRoutes(obj.m_destinationRoutes), m_proxyMode(obj.m_proxyMode),
 	m_clientAuthId(0)
@@ -444,7 +448,7 @@ ARQAuthData& ARQAuthData::operator=(const ARQAuthData & obj)
 {
 	if (this != &obj) {
 		m_rejectReason = obj.m_rejectReason;
-		m_callDurationLimit = obj.m_callDurationLimit; 
+		m_callDurationLimit = obj.m_callDurationLimit;
 		m_requestingEP = obj.m_requestingEP;
 		m_call = obj.m_call;
 		m_billingMode = obj.m_billingMode;
@@ -475,15 +479,15 @@ SetupAuthData::SetupAuthData(
 	/// did the Setup come in over TLS
 	bool overTLS
 	) : m_rejectReason(-1), m_rejectCause(-1), m_callDurationLimit(-1),
-	m_call(call), m_fromRegistered(fromRegistered), 
+	m_call(call), m_fromRegistered(fromRegistered),
 	m_proxyMode(CallRec::ProxyDetect),
 	m_clientAuthId(0), m_overTLS(overTLS)
 {
 }
 
 SetupAuthData::SetupAuthData(const SetupAuthData & obj)
-	: m_rejectReason(obj.m_rejectReason), m_rejectCause(obj.m_rejectCause), 
-	m_callDurationLimit(obj.m_callDurationLimit), m_call(obj.m_call), 
+	: m_rejectReason(obj.m_rejectReason), m_rejectCause(obj.m_rejectCause),
+	m_callDurationLimit(obj.m_callDurationLimit), m_call(obj.m_call),
 	m_fromRegistered(obj.m_fromRegistered),
 	m_routeToAlias(obj.m_routeToAlias), m_destinationRoutes(obj.m_destinationRoutes),
 	m_proxyMode(obj.m_proxyMode), m_clientAuthId(0), m_overTLS(false)
@@ -531,7 +535,7 @@ GkAuthenticator::GkAuthenticator(
 	unsigned supportedMiscChecks /// non-RAS checks supported by this module
 	)
 	: NamedObject(name), m_defaultStatus(e_fail), m_controlFlag(e_Required),
-	m_enabledRasChecks(~0U), m_supportedRasChecks(supportedRasChecks), 
+	m_enabledRasChecks(~0U), m_supportedRasChecks(supportedRasChecks),
 	m_enabledMiscChecks(~0U), m_supportedMiscChecks(supportedMiscChecks),
 	m_config(GkConfig())
 {
@@ -553,7 +557,7 @@ GkAuthenticator::GkAuthenticator(
 			PTRACE(1, "GKAUTH\tInvalid control flag '" << controlStr
 				<< "' specified in the config for " << GetName());
 	} else
-		PTRACE(1, "GKAUTH\tNo control flag specified in the config for module '" 
+		PTRACE(1, "GKAUTH\tNo control flag specified in the config for module '"
 			<< GetName() << '\'');
 
 	std::map<PString, unsigned> rasmap;
@@ -565,15 +569,15 @@ GkAuthenticator::GkAuthenticator(
 	rasmap["DRQ"] = RasInfo<H225_DisengageRequest>::flag,
 	rasmap["LRQ"] = RasInfo<H225_LocationRequest>::flag,
 	rasmap["IRQ"] = RasInfo<H225_InfoRequest>::flag;
-		
+
 	std::map<PString, unsigned> miscmap;
 	miscmap["SETUP"] = e_Setup;
 	miscmap["SETUPUNREG"] = e_SetupUnreg;
-	
+
 	if (control.GetSize() > 1) {
 		m_enabledRasChecks = 0;
 		m_enabledMiscChecks = 0;
-		
+
 		for (PINDEX i = 1; i < control.GetSize(); ++i) {
 			const PString checkStr = control[i].Trim().ToUpper();
 			if (rasmap.find(checkStr) != rasmap.end()) {
@@ -593,7 +597,7 @@ GkAuthenticator::GkAuthenticator(
 					<< "' specified in the config for " << GetName());
 			}
 		}
-		if ((m_enabledRasChecks & m_supportedRasChecks) == 0 
+		if ((m_enabledRasChecks & m_supportedRasChecks) == 0
 			&& (m_enabledMiscChecks & m_supportedMiscChecks) == 0) {
 			PTRACE(1, "GKAUTH\tNo check flags have been specified "
 				"in the config for " << GetName() << " - it will be disabled");
@@ -602,7 +606,7 @@ GkAuthenticator::GkAuthenticator(
 
 	// convert bit flags to human readable names
 	PString rasFlagsStr, miscFlagsStr;
-	
+
 	std::map<PString, unsigned>::const_iterator iter = rasmap.begin();
 	while (iter != rasmap.end()) {
 		if (m_enabledRasChecks & iter->second) {
@@ -612,7 +616,7 @@ GkAuthenticator::GkAuthenticator(
 		}
 		iter++;
 	}
-	
+
 	iter = miscmap.begin();
 	while (iter != miscmap.end()) {
 		if (m_enabledMiscChecks & iter->second) {
@@ -622,12 +626,12 @@ GkAuthenticator::GkAuthenticator(
 		}
 		iter++;
 	}
-	
+
 	if (rasFlagsStr.IsEmpty())
 		rasFlagsStr = "NONE";
 	if (miscFlagsStr.IsEmpty())
 		miscFlagsStr = "NONE";
-	
+
 	PTRACE(1, "GKAUTH\t" << GetName() << " rule added to check RAS: "
 		<< rasFlagsStr << ", OTHER: " << miscFlagsStr);
 
@@ -642,7 +646,7 @@ GkAuthenticator::~GkAuthenticator()
 
 int GkAuthenticator::Check(RasPDU<H225_GatekeeperRequest> &, unsigned &)
 {
-	return IsRasCheckEnabled(RasInfo<H225_GatekeeperRequest>::flag) 
+	return IsRasCheckEnabled(RasInfo<H225_GatekeeperRequest>::flag)
 		? m_defaultStatus : e_next;
 }
 
@@ -652,13 +656,13 @@ int GkAuthenticator::Check(
 	/// authorization data (reject reason, ...)
 	RRQAuthData & /*authData*/)
 {
-	return IsRasCheckEnabled(RasInfo<H225_RegistrationRequest>::flag) 
+	return IsRasCheckEnabled(RasInfo<H225_RegistrationRequest>::flag)
 		? m_defaultStatus : e_next;
 }
 
 int GkAuthenticator::Check(RasPDU<H225_UnregistrationRequest> &, unsigned &)
 {
-	return IsRasCheckEnabled(RasInfo<H225_UnregistrationRequest>::flag) 
+	return IsRasCheckEnabled(RasInfo<H225_UnregistrationRequest>::flag)
 		? m_defaultStatus : e_next;
 }
 
@@ -668,40 +672,40 @@ int GkAuthenticator::Check(
 	/// authorization data (call duration limit, reject reason, ...)
 	ARQAuthData & /*authData*/)
 {
-	return IsRasCheckEnabled(RasInfo<H225_AdmissionRequest>::flag) 
+	return IsRasCheckEnabled(RasInfo<H225_AdmissionRequest>::flag)
 		? m_defaultStatus : e_next;
 }
 
 int GkAuthenticator::Check(RasPDU<H225_BandwidthRequest> &, unsigned &)
 {
-	return IsRasCheckEnabled(RasInfo<H225_BandwidthRequest>::flag) 
+	return IsRasCheckEnabled(RasInfo<H225_BandwidthRequest>::flag)
 		? m_defaultStatus : e_next;
 }
 
 int GkAuthenticator::Check(RasPDU<H225_DisengageRequest> &, unsigned &)
 {
-	return IsRasCheckEnabled(RasInfo<H225_DisengageRequest>::flag) 
+	return IsRasCheckEnabled(RasInfo<H225_DisengageRequest>::flag)
 		? m_defaultStatus : e_next;
 }
 
 int GkAuthenticator::Check(RasPDU<H225_LocationRequest> &, unsigned &)
 {
-	return IsRasCheckEnabled(RasInfo<H225_LocationRequest>::flag) 
+	return IsRasCheckEnabled(RasInfo<H225_LocationRequest>::flag)
 		? m_defaultStatus : e_next;
 }
 
 int GkAuthenticator::Check(RasPDU<H225_InfoRequest> &, unsigned &)
 {
-	return IsRasCheckEnabled(RasInfo<H225_InfoRequest>::flag) 
+	return IsRasCheckEnabled(RasInfo<H225_InfoRequest>::flag)
 		? m_defaultStatus : e_next;
 }
 
-int GkAuthenticator::Check( 
+int GkAuthenticator::Check(
 	SetupMsg & /*setup*/,
 	/// authorization data (call duration limit, reject reason, ...)
 	SetupAuthData & /*authData*/)
 {
-	return (IsMiscCheckEnabled(e_Setup) || IsMiscCheckEnabled(e_SetupUnreg)) 
+	return (IsMiscCheckEnabled(e_Setup) || IsMiscCheckEnabled(e_SetupUnreg))
 		? m_defaultStatus : e_next;
 }
 
@@ -744,9 +748,9 @@ PString GkAuthenticator::GetUsername(
 	) const
 {
 	const H225_RegistrationRequest& rrq = request;
-	
+
 	PString username;
-	
+
 	if (rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias))
 		username = GetBestAliasAddressString(rrq.m_terminalAlias, false,
 			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
@@ -760,11 +764,11 @@ PString GkAuthenticator::GetUsername(
 			&& addr.IsValid())
 			username = addr.AsString();
 		else if (rrq.m_rasAddress.GetSize() > 0
-			&& GetIPFromTransportAddr(rrq.m_rasAddress[0], addr) 
+			&& GetIPFromTransportAddr(rrq.m_rasAddress[0], addr)
 			&& addr.IsValid())
 			username = addr.AsString();
 	}
-	
+
 	return username;
 }
 
@@ -778,10 +782,10 @@ PString GkAuthenticator::GetUsername(
 	const H225_AdmissionRequest& arq = request;
 	const bool hasCall = authData.m_call.operator->() != NULL;
 	PString username;
-	
+
 	/// try to find h323_ID, email_ID or url_ID to use for User-Name
 	if (!arq.m_answerCall)
-		username = GetBestAliasAddressString(arq.m_srcInfo, true, 
+		username = GetBestAliasAddressString(arq.m_srcInfo, true,
 			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
 			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
 				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
@@ -791,8 +795,8 @@ PString GkAuthenticator::GetUsername(
 			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
 			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
 				| AliasAddressTagMask(H225_AliasAddress::e_url_ID));
-				
-	if (authData.m_requestingEP && (username.IsEmpty() 
+
+	if (authData.m_requestingEP && (username.IsEmpty()
 			|| FindAlias(authData.m_requestingEP->GetAliases(), username) == P_MAX_INDEX))
 		username = GetBestAliasAddressString(authData.m_requestingEP->GetAliases(), false,
 			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
@@ -802,7 +806,7 @@ PString GkAuthenticator::GetUsername(
 	/// if no h323_ID, email_ID or url_ID has been found, try to find any alias
 	if (username.IsEmpty()) {
 		if (!arq.m_answerCall) {
-			username = GetBestAliasAddressString(arq.m_srcInfo, false, 
+			username = GetBestAliasAddressString(arq.m_srcInfo, false,
 				AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
 				AliasAddressTagMask(H225_AliasAddress::e_email_ID)
 					| AliasAddressTagMask(H225_AliasAddress::e_url_ID));
@@ -815,19 +819,19 @@ PString GkAuthenticator::GetUsername(
 		}
 	}
 
-		
+
 	if (username.IsEmpty()) {
 		PIPSocket::Address addr;
 		if (arq.HasOptionalField(H225_AdmissionRequest::e_srcCallSignalAddress)
 			&& GetIPFromTransportAddr(arq.m_srcCallSignalAddress, addr)
 			&& addr.IsValid())
 			username = addr.AsString();
-		else if (authData.m_requestingEP 
-			&& GetIPFromTransportAddr(authData.m_requestingEP->GetCallSignalAddress(), addr) 
+		else if (authData.m_requestingEP
+			&& GetIPFromTransportAddr(authData.m_requestingEP->GetCallSignalAddress(), addr)
 			&& addr.IsValid())
 			username = addr.AsString();
 	}
-	
+
 	return username;
 }
 
@@ -838,21 +842,21 @@ PString GkAuthenticator::GetUsername(
 	) const
 {
 	const bool hasCall = authData.m_call.operator->() != NULL;
-	PString username;				
+	PString username;
 	endptr callingEP;
-	Q931& q931pdu = setup.GetQ931();	
+	Q931& q931pdu = setup.GetQ931();
 	H225_Setup_UUIE &setupBody = setup.GetUUIEBody();
-	
+
 	if (hasCall)
 		callingEP = authData.m_call->GetCallingParty();
-	
+
 	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
 		username = GetBestAliasAddressString(setupBody.m_sourceAddress, true,
 			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
 			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
 				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
 			);
-		if (!username && callingEP 
+		if (!username && callingEP
 				&& FindAlias(callingEP->GetAliases(), username) == P_MAX_INDEX)
 			username = PString::Empty();
 	}
@@ -863,11 +867,11 @@ PString GkAuthenticator::GetUsername(
 			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
 			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
 				| AliasAddressTagMask(H225_AliasAddress::e_url_ID));
-		if (!username && callingEP 
+		if (!username && callingEP
 				&& FindAlias(callingEP->GetAliases(), username) == P_MAX_INDEX)
 			username = PString::Empty();
 	}
-	
+
 	if (username.IsEmpty() && callingEP)
 		username = GetBestAliasAddressString(callingEP->GetAliases(), false,
 			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
@@ -889,15 +893,15 @@ PString GkAuthenticator::GetUsername(
 
 	if (username.IsEmpty())
 		q931pdu.GetCallingPartyNumber(username);
-		
+
 	if (username.IsEmpty()) {
 		PIPSocket::Address addr(0);
 		WORD port = 0;
 		bool addrValid = false;
-	
+
 		if (hasCall)
 			addrValid = authData.m_call->GetSrcSignalAddr(addr, port) && addr.IsValid();
-			
+
 		if (!addrValid && setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress))
 			addrValid = GetIPFromTransportAddr(setupBody.m_sourceCallSignalAddress, addr)
 				&& addr.IsValid();
@@ -909,7 +913,7 @@ PString GkAuthenticator::GetUsername(
 		if (addrValid)
 			username = addr.AsString();
 	}
-	
+
 	return username;
 }
 
@@ -976,7 +980,7 @@ PString GkAuthenticator::GetInfo()
 }
 
 // class GkAuthenticatorList
-GkAuthenticatorList::GkAuthenticatorList() 
+GkAuthenticatorList::GkAuthenticatorList()
 {
 	// TODO: should we move this into OnReload() so it can be dynamically changed ?
 	PFactory<H235Authenticator>::KeyList_T keyList = PFactory<H235Authenticator>::GetKeyList();
@@ -1018,15 +1022,15 @@ GkAuthenticatorList::~GkAuthenticatorList()
 
 void GkAuthenticatorList::OnReload()
 {
-	// lock here to prevent too early authenticator destruction 
+	// lock here to prevent too early authenticator destruction
 	// from another thread
 	WriteLock lock(m_reloadMutex);
 
 	// first destroy old authenticators
 	DeleteObjectsInContainer(m_authenticators);
 	m_authenticators.clear();
-	
-	std::list<GkAuthenticator*> authenticators;	
+
+	std::list<GkAuthenticator*> authenticators;
 	GkAuthenticator *auth;
 
 	const PStringArray authRules = GkConfig()->GetKeys(GkAuthSectionName);
@@ -1041,7 +1045,7 @@ void GkAuthenticatorList::OnReload()
 }
 
 void GkAuthenticatorList::SelectH235Capability(
-	const H225_GatekeeperRequest & grq, 
+	const H225_GatekeeperRequest & grq,
 	H225_GatekeeperConfirm & gcf)
 {
 	ReadLock lock(m_reloadMutex);
@@ -1080,7 +1084,14 @@ void GkAuthenticatorList::SelectH235Capability(
 								gcf.m_tokens[0].IncludeOptionalField(H235_ClearToken::e_timeStamp);
 								gcf.m_tokens[0].m_timeStamp = (int)time(NULL); // Avaya seems to send a different timestamp that is 34 years back, but accpets this as well
 								gcf.m_tokens[0].IncludeOptionalField(H235_ClearToken::e_random);
+#ifdef PSSL
+                                // if we have OpenSSL, use it for random number generation, fall back on stdlib rand()
+                                if(RAND_bytes(gcf.m_tokens[0].m_random, sizeof(gcf.m_tokens[0].m_random)) != 1) {
+                                    gcf.m_tokens[0].m_random = rand();
+                                }
+#else
 								gcf.m_tokens[0].m_random = rand();
+#endif // PSSL
 								gcf.m_tokens[0].IncludeOptionalField(H235_ClearToken::e_generalID);
 								gcf.m_tokens[0].m_generalID = Toolkit::GKName();
 							}
@@ -1173,7 +1184,7 @@ bool GkAuthenticatorList::Validate(
 	while (i != m_authenticators.end()) {
 		GkAuthenticator* auth = *i++;
 		if (auth->IsMiscCheckEnabled(GkAuthenticator::e_Setup)
-			|| (!authData.m_fromRegistered 
+			|| (!authData.m_fromRegistered
 				&& auth->IsMiscCheckEnabled(GkAuthenticator::e_SetupUnreg))) {
 			const long oldDurationLimit = authData.m_callDurationLimit;
 			const int result = auth->Check(setup, authData);
@@ -1212,9 +1223,9 @@ bool CacheManager::Retrieve(
 	// quick check
 	if (m_ttl == 0)
 		return false;
-		
+
 	ReadLock lock(m_rwmutex);
-	
+
 	std::map<PString, PString>::const_iterator iter = m_cache.find(key);
 	if (iter == m_cache.end())
 		return false;
@@ -1300,12 +1311,12 @@ SimplePasswordAuth::~SimplePasswordAuth()
 }
 
 int SimplePasswordAuth::Check(
-	RasPDU<H225_RegistrationRequest> & request, 
+	RasPDU<H225_RegistrationRequest> & request,
 	RRQAuthData & authData)
 {
 	H225_RegistrationRequest& rrq = request;
-	return doCheck(request, 
-		rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) 
+	return doCheck(request,
+		rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)
 			? &rrq.m_terminalAlias : NULL,
 			&authData
 		);
@@ -1338,7 +1349,7 @@ int SimplePasswordAuth::Check(RasPDU<H225_InfoRequest> & request, unsigned &)
 
 int SimplePasswordAuth::Check(
 	/// ARQ to be authenticated/authorized
-	RasPDU<H225_AdmissionRequest> & request, 
+	RasPDU<H225_AdmissionRequest> & request,
 	/// authorization data (call duration limit, reject reason, ...)
 	ARQAuthData & /*authData*/)
 {
@@ -1418,7 +1429,7 @@ bool SimplePasswordAuth::ResolveUserName(const H225_CryptoH323Token & cryptotoke
 			found = true;
 		}
 		// H235.2
-		if (nestedCryptoToken.GetTag() == H235_CryptoToken::e_cryptoSignedToken) {			
+		if (nestedCryptoToken.GetTag() == H235_CryptoToken::e_cryptoSignedToken) {
 			const H235_CryptoToken_cryptoSignedToken & cryptoSignedToken = nestedCryptoToken;
 			H235_SIGNED<H235_EncodedGeneralToken> m_Signed = cryptoSignedToken.m_token;
 			if (m_Signed.m_toBeSigned.DecodeSubType(clearToken))
@@ -1426,10 +1437,10 @@ bool SimplePasswordAuth::ResolveUserName(const H225_CryptoH323Token & cryptotoke
 		}
 
 		if (found && (clearToken.HasOptionalField(H235_ClearToken::e_sendersID))) {
-			username = clearToken.m_sendersID; 
+			username = clearToken.m_sendersID;
 			return true;
 		}
-	} 
+	}
 
 	return false;
 }
@@ -1439,7 +1450,7 @@ bool SimplePasswordAuth::ResolveUserName(const H225_CryptoH323Token & cryptotoke
 H350PasswordAuth::H350PasswordAuth(const char* authName) : SimplePasswordAuth(authName)
 {
 }
-	
+
 H350PasswordAuth::~H350PasswordAuth()
 {
 }
@@ -1469,7 +1480,7 @@ bool H350PasswordAuth::GetPassword(const PString & alias, PString & password)
 	}
 
 	// locate the record
-	for (H350_Session::LDAP_RecordList::const_iterator x = rec.begin(); x != rec.end(); ++x) {			
+	for (H350_Session::LDAP_RecordList::const_iterator x = rec.begin(); x != rec.end(); ++x) {
 		H350_Session::LDAP_Record entry = x->second;
 		if (session.GetAttribute(entry, "h235IdentityPassword", password)) {
 			password = password.Trim();	// server may send newline at end etc.
@@ -1490,7 +1501,7 @@ bool H350PasswordAuth::GetPassword(const PString & alias, PString & password)
 AliasAuth::AliasAuth(
 	const char * name,
 	unsigned supportedRasChecks,
-	unsigned supportedMiscChecks) 
+	unsigned supportedMiscChecks)
 	: GkAuthenticator(name, supportedRasChecks, supportedMiscChecks), m_cache(NULL)
 {
 	m_cache = new CacheManager(GetConfig()->GetInteger(name, "CacheTimeout", -1));
@@ -1615,7 +1626,7 @@ bool AliasAuth::CheckAuthRule(
 		PTRACE(1, "GKAUTH\t" << GetName() << " found invalid empty auth rule '" << authrule << '\'');
 		return false;
 	}
-	
+
 	// authrule = rName[:params...]
 	const PString rName = rule[0].Trim();
 
@@ -1669,7 +1680,7 @@ bool AliasAuth::CheckAuthRule(
 class AuthRule;
 class AuthObj;
 
-class PrefixAuth : public GkAuthenticator 
+class PrefixAuth : public GkAuthenticator
 {
 public:
 	typedef std::map< PString, AuthRule *, greater<PString> > Rules;
@@ -1684,14 +1695,14 @@ public:
 		const char* name,
 		unsigned supportedRasChecks = PrefixAuthRasChecks,
 		unsigned supportedMiscChecks = PrefixAuthMiscChecks);
-		
+
 	virtual ~PrefixAuth();
 
 	// override from class GkAuthenticator
 	virtual int Check(RasPDU<H225_LocationRequest> & request, unsigned & rejectReason);
 
 	/** Authenticate/Authorize ARQ message. Override from GkAuthenticator.
-	
+
 	    @return
 	    e_fail - authentication failed
 	    e_ok - authenticated with this authenticator
@@ -1699,12 +1710,12 @@ public:
 	*/
 	virtual int Check(
 		/// ARQ to be authenticated/authorized
-		RasPDU<H225_AdmissionRequest> & request, 
+		RasPDU<H225_AdmissionRequest> & request,
 		/// authorization data (call duration limit, reject reason, ...)
 		ARQAuthData & authData);
 
 	/** Authenticate using data from Q.931 Setup message.
-	
+
 		@return:
 		#GkAuthenticator::Status enum# with the result of authentication.
 	*/
@@ -1723,7 +1734,7 @@ private:
 	PrefixAuth(const PrefixAuth &);
 	PrefixAuth& operator=(const PrefixAuth &);
 
-private:	
+private:
 	Rules m_prefrules;
 	int m_defaultRule;
 };
@@ -1742,7 +1753,7 @@ public:
 	virtual PString GetAliases() const = 0;
 };
 
-class ARQAuthObj : public AuthObj 
+class ARQAuthObj : public AuthObj
 {
 public:
 	ARQAuthObj(const H225_AdmissionRequest & arq);
@@ -1764,7 +1775,7 @@ private:
 	endptr m_ep;
 };
 
-class LRQAuthObj : public AuthObj 
+class LRQAuthObj : public AuthObj
 {
 public:
 	LRQAuthObj(const H225_LocationRequest & lrq);
@@ -1784,7 +1795,7 @@ private:
 	PIPSocket::Address m_ipAddress;
 };
 
-class SetupAuthObj : public AuthObj 
+class SetupAuthObj : public AuthObj
 {
 public:
 	SetupAuthObj(const SetupMsg & setup);
@@ -1814,7 +1825,7 @@ public:
 	};
 
 	AuthRule(
-		Result fate, 
+		Result fate,
 		bool inverted
 		) : m_priority(1000), m_fate(fate), m_inverted(inverted), m_next(NULL) { }
 
@@ -1835,7 +1846,7 @@ private:
 
 protected:
 	/// the lesser the value, the higher the priority
-	int m_priority; 
+	int m_priority;
 
 private:
 	Result m_fate;
@@ -1866,20 +1877,20 @@ private:
 	IPAuthRule();
 	IPAuthRule(const IPAuthRule &);
 	IPAuthRule & operator=(const IPAuthRule &);
-	
+
 private:
 	PIPSocket::Address m_network, m_netmask;
 };
 
-class AliasAuthRule : public AuthRule 
+class AliasAuthRule : public AuthRule
 {
 public:
 	AliasAuthRule(
-		Result fate, 
-		const PString & aliasStr, 
+		Result fate,
+		const PString & aliasStr,
 		bool inverted
-		) : AuthRule(fate, inverted), m_pattern(aliasStr) 
-	{ 
+		) : AuthRule(fate, inverted), m_pattern(aliasStr)
+	{
 		m_priority = -1;
 		SetName(PString((fate == e_allow) ? "allow alias" : "deny alias")
 			+ (inverted ? ":!" : ":") + aliasStr);
@@ -1921,8 +1932,8 @@ PStringArray ARQAuthObj::GetPrefixes() const
 PIPSocket::Address ARQAuthObj::GetIP() const
 {
 	PIPSocket::Address result;
-	const H225_TransportAddress & addr = 
-		m_arq.HasOptionalField(H225_AdmissionRequest::e_srcCallSignalAddress) 
+	const H225_TransportAddress & addr =
+		m_arq.HasOptionalField(H225_AdmissionRequest::e_srcCallSignalAddress)
 		? m_arq.m_srcCallSignalAddress : m_ep->GetCallSignalAddress();
 	GetIPFromTransportAddr(addr, result);
 	return result;
@@ -1958,7 +1969,7 @@ PIPSocket::Address LRQAuthObj::GetIP() const
 
 PString LRQAuthObj::GetAliases() const
 {
-	return m_lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo) 
+	return m_lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo)
 		? AsString(m_lrq.m_sourceInfo) : PString::Empty();
 }
 
@@ -1991,7 +2002,7 @@ PIPSocket::Address SetupAuthObj::GetIP() const
 
 PString SetupAuthObj::GetAliases() const
 {
-	return m_setup.GetUUIEBody().HasOptionalField(H225_Setup_UUIE::e_sourceAddress) 
+	return m_setup.GetUUIEBody().HasOptionalField(H225_Setup_UUIE::e_sourceAddress)
 		? AsString(m_setup.GetUUIEBody().m_sourceAddress) : PString::Empty();
 }
 
@@ -2010,7 +2021,7 @@ inline void delete_rule(PrefixAuth::Rules::value_type r)
 	r.second = NULL;
 }
 
-IPAuthRule::IPAuthRule(Result fate, const PString & ipStr, bool inverted) 
+IPAuthRule::IPAuthRule(Result fate, const PString & ipStr, bool inverted)
 	: AuthRule(fate, inverted)
 {
 	Toolkit::GetNetworkFromString(ipStr, m_network, m_netmask);
@@ -2054,7 +2065,7 @@ const char* const aliasflag = "alias:";
 PrefixAuth::PrefixAuth(
 	const char * name,
 	unsigned supportedRasChecks,
-	unsigned supportedMiscChecks) 
+	unsigned supportedMiscChecks)
 	: GkAuthenticator(name, supportedRasChecks, supportedMiscChecks)
 {
 	m_defaultRule = GetDefaultStatus();
@@ -2063,7 +2074,7 @@ PrefixAuth::PrefixAuth(
 	const int ipv4fl = (int)strlen(ipv4flag);
 	const int ipv6fl = (int)strlen(ipv6flag);
 	const int aliasfl = (int)strlen(aliasflag);
-	
+
 	const PStringToString cfgs = GetConfig()->GetAllKeyValues(name);
 	for (PINDEX i = 0; i < cfgs.GetSize(); ++i) {
 		PString key = cfgs.GetKeyAt(i);
@@ -2079,7 +2090,7 @@ PrefixAuth::PrefixAuth(
 				"destination '" << key << '\'');
 			continue; //rule already exists? ignore
 		}
-		
+
 		const PStringArray rules = cfgs.GetDataAt(i).Tokenise("|", false);
 		const PINDEX sz = rules.GetSize();
 		if (sz < 1) {
@@ -2091,23 +2102,23 @@ PrefixAuth::PrefixAuth(
 		AuthRule **rls = new AuthRule *[sz];
 		for (PINDEX j = 0; j < sz; ++j) {
 			// if not allowed, assume denial
-			const AuthRule::Result fate = (rules[j].Find(allowflag) != P_MAX_INDEX) 
+			const AuthRule::Result fate = (rules[j].Find(allowflag) != P_MAX_INDEX)
 				? AuthRule::e_allow : AuthRule::e_deny;
 			PINDEX pp;
 			if ((pp = rules[j].Find(ipflag)) != P_MAX_INDEX)
-				rls[j] = new IPAuthRule(fate, rules[j].Mid(pp + ipfl).Trim(), 
+				rls[j] = new IPAuthRule(fate, rules[j].Mid(pp + ipfl).Trim(),
 					is_inverted(rules[j], pp)
 					);
 			else if ((pp = rules[j].Find(ipv4flag)) != P_MAX_INDEX)
-				rls[j] = new IPAuthRule(fate, rules[j].Mid(pp + ipv4fl).Trim(), 
+				rls[j] = new IPAuthRule(fate, rules[j].Mid(pp + ipv4fl).Trim(),
 					is_inverted(rules[j], pp)
 					);
 			else if ((pp = rules[j].Find(ipv6flag)) != P_MAX_INDEX)
-				rls[j] = new IPAuthRule(fate, rules[j].Mid(pp + ipv6fl).Trim(), 
+				rls[j] = new IPAuthRule(fate, rules[j].Mid(pp + ipv6fl).Trim(),
 					is_inverted(rules[j], pp)
 					);
 			else if ((pp = rules[j].Find(aliasflag)) != P_MAX_INDEX)
-				rls[j] = new AliasAuthRule(fate, rules[j].Mid(pp+aliasfl).Trim(), 
+				rls[j] = new AliasAuthRule(fate, rules[j].Mid(pp+aliasfl).Trim(),
 					is_inverted(rules[j], pp)
 					);
 			else {
@@ -2142,12 +2153,12 @@ int PrefixAuth::Check(RasPDU<H225_LocationRequest> & request, unsigned &)
 
 int PrefixAuth::Check(
 	/// ARQ to be authenticated/authorized
-	RasPDU<H225_AdmissionRequest> & request, 
+	RasPDU<H225_AdmissionRequest> & request,
 	/// authorization data (call duration limit, reject reason, ...)
 	ARQAuthData & /*authData*/)
 {
 	H225_AdmissionRequest & arq = request;
-	if (arq.m_answerCall 
+	if (arq.m_answerCall
 		&& arq.HasOptionalField(H225_AdmissionRequest::e_callIdentifier)
 		&& CallTable::Instance()->FindCallRec(arq.m_callIdentifier)) {
 		PTRACE(5, "GKAUTH\t" << GetName() << " ARQ check skipped - call "
@@ -2184,7 +2195,7 @@ int PrefixAuth::doCheck(const AuthObj & aobj)
 {
 	if (!aobj.IsValid())
 		return e_fail;
-	
+
 	const PStringArray destinationInfo(aobj.GetPrefixes());
 	for (PINDEX i = 0; i < destinationInfo.GetSize(); ++i) {
 		// find the first match rule
@@ -2202,14 +2213,14 @@ int PrefixAuth::doCheck(const AuthObj & aobj)
 					<< ((iter->first == " ") ? PString("ALL") : iter->first)
 					<< "' for alias '" << destinationInfo[i] << '\'');
 				return e_ok;
-				
+
 			case AuthRule::e_deny:
 				PTRACE(4, "GKAUTH\t" << GetName() << " rule matched and "
 					"rejected destination prefix '"
 					<< ((iter->first == " ") ? PString("ALL") : iter->first)
 					<< "' for alias '" << destinationInfo[i] << '\'');
 				return e_fail;
-				
+
 			default: // try next prefix...
 				j = iter;
 				PTRACE(4, "GKAUTH\t" << GetName() << " rule matched and "

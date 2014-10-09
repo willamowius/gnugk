@@ -33,6 +33,10 @@
 	#include <h460/h4601.h>
 #endif
 
+#ifdef P_SSL
+#include <openssl/rand.h>
+#endif // P_SSL
+
 using std::multimap;
 using std::make_pair;
 using std::find_if;
@@ -802,14 +806,14 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
 #endif
 #ifdef HAS_H460VEN
 	/// OID9  'Remote endpoint vendor info THIS IS "1.3.6.1.4.1.17090.0.9" NOT H.460.9	- SH
-	H460_FeatureOID foid9 = H460_FeatureOID(OID9);	 
-	int sz = lrq.m_genericData.GetSize();	 
-	lrq.m_genericData.SetSize(sz + 1);	 
+	H460_FeatureOID foid9 = H460_FeatureOID(OID9);
+	int sz = lrq.m_genericData.GetSize();
+	lrq.m_genericData.SetSize(sz + 1);
 	lrq.m_genericData[sz] = foid9;
 #endif
 #ifdef HAS_LANGUAGE
 	if (GkConfig()->GetBoolean("RasSrv::LRQFeatures", "EnableLanguageRouting", false)) {
-		lrq.IncludeOptionalField(H225_LocationRequest::e_language); 
+		lrq.IncludeOptionalField(H225_LocationRequest::e_language);
 	}
 #endif
 	if (lrq.m_genericData.GetSize() > 0)
@@ -879,14 +883,14 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & reques
 #endif
 #ifdef HAS_H460VEN
 	/// OID9  'Remote endpoint vendor info THIS IS "1.3.6.1.4.1.17090.0.9" NOT H.460.9	- SH
-	H460_FeatureOID foid9 = H460_FeatureOID(OID9);	 
-	int sz = lrq.m_genericData.GetSize();	 
-	lrq.m_genericData.SetSize(sz + 1);	 
+	H460_FeatureOID foid9 = H460_FeatureOID(OID9);
+	int sz = lrq.m_genericData.GetSize();
+	lrq.m_genericData.SetSize(sz + 1);
 	lrq.m_genericData[sz] = foid9;
 #endif
 #ifdef HAS_LANGUAGE
 	if (GkConfig()->GetBoolean("RasSrv::LRQFeatures", "EnableLanguageRouting", false)) {
-		lrq.IncludeOptionalField(H225_LocationRequest::e_language); 
+		lrq.IncludeOptionalField(H225_LocationRequest::e_language);
 	}
 #endif
 	if (lrq.m_genericData.GetSize() > 0)
@@ -944,14 +948,14 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & /*r
 #endif
 #ifdef HAS_H460VEN
 	/// OID9  'Remote endpoint vendor info THIS IS "1.3.6.1.4.1.17090.0.9" NOT H.460.9	- SH
-	H460_FeatureOID foid9 = H460_FeatureOID(OID9);	 
-	int sz = lrq.m_genericData.GetSize();	 
-	lrq.m_genericData.SetSize(sz + 1);	 
+	H460_FeatureOID foid9 = H460_FeatureOID(OID9);
+	int sz = lrq.m_genericData.GetSize();
+	lrq.m_genericData.SetSize(sz + 1);
 	lrq.m_genericData[sz] = foid9;
 #endif
 #ifdef HAS_LANGUAGE
 	if (GkConfig()->GetBoolean("RasSrv::LRQFeatures", "EnableLanguageRouting", false)) {
-		lrq.IncludeOptionalField(H225_LocationRequest::e_language); 
+		lrq.IncludeOptionalField(H225_LocationRequest::e_language);
 	}
 #endif
 	if (lrq.m_genericData.GetSize() > 0)
@@ -1238,7 +1242,7 @@ bool LRQRequester::Send(NeighborList::List & neighbors, Neighbor *requester)
 	if (m_requests.empty())
 		return false;
 
-	m_retry = GkConfig()->GetInteger(LRQFeaturesSection, "SendRetries", 2); 
+	m_retry = GkConfig()->GetInteger(LRQFeaturesSection, "SendRetries", 2);
 	PTRACE(2, "NB\t" << m_requests.size() << " LRQ(s) sent");
 	return true;
 }
@@ -1472,7 +1476,14 @@ NeighborList::~NeighborList()
 
 void NeighborList::OnReload()
 {
-	challenge = rand();
+#ifdef P_SSL
+    // if we have OpenSSL, use it for random number generation, fall back on stdlib rand()
+    if(RAND_bytes((unsigned char *)&challenge, sizeof(challenge)) != 1) {
+        challenge = rand();
+    }
+#else
+    challenge = rand();
+#endif
 	PStringToString cfgs(GkConfig()->GetAllKeyValues(NeighborSection));
 	PINDEX i, sz = cfgs.GetSize();
 	List::iterator iter = m_neighbors.begin();
@@ -1596,7 +1607,7 @@ bool NeighborList::GetNeighborTLSBySigAdr(const PIPSocket::Address & sigAd)
 PString NeighborList::GetNeighborGkIdBySigAdr(const H225_TransportAddress & sigAd)
 {
 	PIPSocket::Address ipaddr;
- 
+
 	// Get the Neigbor IP address from the transport address
 	if (!GetIPFromTransportAddr(sigAd, ipaddr))
 	{
@@ -1608,7 +1619,7 @@ PString NeighborList::GetNeighborGkIdBySigAdr(const H225_TransportAddress & sigA
 bool NeighborList::GetNeighborTLSBySigAdr(const H225_TransportAddress & sigAd)
 {
 	PIPSocket::Address ipaddr;
- 
+
 	// Get the Neigbor IP address from the transport address
 	if (!GetIPFromTransportAddr(sigAd, ipaddr))
 	{
@@ -1737,7 +1748,7 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 		if (H225_LocationConfirm *lcf = request.WaitForDestination(m_neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
 #if defined(HAS_H460) || defined (HAS_TLS) || defined (HAS_LANGUAGE)
-			// create an EPRec to remember the traversal settings etc.				
+			// create an EPRec to remember the traversal settings etc.
 			if (request.UseTLS() || request.IsTLSNegotiated() || request.IsTraversalZone() || request.IsH46024Supported()
 				|| request.HasVendorInfo() || request.SupportLanguages()) {
 				// overwrite callSignalAddress and replace with ours, we must proxy this call (works only in routed mode)
@@ -1777,7 +1788,7 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 			route.m_flags |= Route::e_toNeighbor;
 			// check if we have to update the dialed alias (canMapAlias)
 			if ((lcf->HasOptionalField(H225_LocationConfirm::e_destinationInfo))
-				&& (lcf->m_destinationInfo.GetSize() > 0)) 
+				&& (lcf->m_destinationInfo.GetSize() > 0))
 			{
 				// new alias from neighbor
 				arq_obj.SetAliases(lcf->m_destinationInfo);
@@ -1789,7 +1800,7 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 					newAliases.SetSize(1);
 					H323SetAliasAddress(AsDotString(*arq_obj.GetDestIP()), newAliases[0], H225_AliasAddress::e_transportID);
 					arq_obj.SetAliases(newAliases);
-					arq_obj.SetFlag(Routing::AdmissionRequest::e_aliasesChanged);			
+					arq_obj.SetFlag(Routing::AdmissionRequest::e_aliasesChanged);
 				}
 			}
 			arq_obj.AddRoute(route);
@@ -2206,7 +2217,7 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly,
 				if (!gateway) {
 					parts = SplitIPAndPort(gateway, GK_DEF_ENDPOINT_SIGNAL_PORT);
 					PIPSocket::Address addr;
-					if (PIPSocket::GetHostAddress(parts[0], addr)) 
+					if (PIPSocket::GetHostAddress(parts[0], addr))
 						parts[0] = addr.AsString();
 				} else
 					parts = SplitIPAndPort(dom, GK_DEF_ENDPOINT_SIGNAL_PORT);
@@ -2341,7 +2352,7 @@ RDSPolicy::RDSPolicy()
 	m_resolveLRQs = Toolkit::AsBool(GkConfig()->GetString("Routing::RDS", "ResolveLRQ", "0"));
 }
 
-void RDSPolicy::LoadConfig(const PString & instance) 
+void RDSPolicy::LoadConfig(const PString & instance)
 {
 	m_resolveLRQs = Toolkit::AsBool(GkConfig()->GetString(m_iniSection, "ResolveLRQ", m_resolveLRQs));
 }
@@ -2358,13 +2369,13 @@ bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 		PString domain;
 		PINDEX at = alias.Find('@');
 		if (at == P_MAX_INDEX) {
-			number = "h323:t@" + alias;	
+			number = "h323:t@" + alias;
 			domain = alias;
 	    } else {
 			number = "h323:" + alias;
 			domain = alias.Mid(at+1);
 		}
-	
+
 		// LS Record lookup
 		PStringList ls;
 		if (PDNS::RDSLookup(number, "H323+D2U", ls)) {
@@ -2425,7 +2436,7 @@ bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 							ras.SetTag(H225_RasMessage::e_locationConfirm);
 							H225_LocationConfirm & con = (H225_LocationConfirm &)ras;
 							con = *lcf;
-							route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);	
+							route.m_destEndpoint = RegistrationTable::Instance()->InsertRec(ras);
 						}
 #endif
 						request.AddRoute(route);
