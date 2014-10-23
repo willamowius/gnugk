@@ -210,6 +210,7 @@ PString GetH245CodecName(const H245_AudioCapability & cap)
 	return "Unknown";
 }
 
+#ifdef HAS_H235_MEDIA
 BYTE GetStaticAudioPayloadType(unsigned tag)
 {
 	switch (tag) {
@@ -307,6 +308,7 @@ bool IsOldH263(const H245_DataType & type)
 	}
 	return false;
 }
+#endif // HAS_H235_MEDIA
 
 } // end of anonymous namespace
 
