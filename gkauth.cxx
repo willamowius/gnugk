@@ -43,7 +43,6 @@ extern const char *H350Section;
 
 namespace {
 const char* const GkAuthSectionName = "Gatekeeper::Auth";
-const char OID_CAT[] = "1.2.840.113548.10.1.2.1";
 }
 
 using std::stable_sort;
@@ -2054,7 +2053,7 @@ inline bool comp_authrule_priority(AuthRule *a1, AuthRule *a2)
 
 namespace {
 const char* const allowflag = "allow";
-const char* const denyflag  = "deny";
+const char* const denyflag  = "deny"; // not used in code, because everything else defaults to DENY
 const char* const ipflag    = "ip:";
 const char* const ipv4flag  = "ipv4:";
 const char* const ipv6flag  = "ipv6:";

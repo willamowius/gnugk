@@ -7545,7 +7545,7 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 	}
 #endif
 	m_h245socket = userevert ? new NATH245Socket(this) : new H245Socket(this);	// TODO: handle TLS
-	if (!m_call->GetRerouteState() == RerouteInitiated) {
+	if (!(m_call->GetRerouteState() == RerouteInitiated)) {
 		ret->m_h245socket = new H245Socket(m_h245socket, ret);	// TODO: handle TLS
 	}
 	m_h245socket->SetH245Address(h245addr, masqAddr);

@@ -1753,7 +1753,7 @@ bool DynamicPolicy::OnRequest(AdmissionRequest & request)
 	if (ep) {
 		PString source = AsDotString(ep->GetCallSignalAddress());
 		PString calledAlias = "";
-		if (aliases && !aliases->GetSize() == 0)
+		if (aliases && !(aliases->GetSize() == 0))
 			calledAlias = AsString((*aliases)[0], FALSE);
 		PString calledIP = "";	/* not available for ARQs */
 		PString caller = AsString(arq.m_srcInfo, FALSE);
@@ -1809,7 +1809,7 @@ bool DynamicPolicy::OnRequest(LocationRequest & request)
 	}
 	PString source = AsDotString(lrq.m_replyAddress);
 	PString calledAlias = "";
-	if (aliases && !aliases->GetSize() == 0)
+	if (aliases && !(aliases->GetSize() == 0))
 		calledAlias = AsString((*aliases)[0], FALSE);
 	PString calledIP = "";	/* not available for LRQs */
 	PString caller = "";
@@ -1866,7 +1866,7 @@ bool DynamicPolicy::OnRequest(SetupRequest & request)
 
 	PString source = AsDotString(setup.m_sourceCallSignalAddress);
 	PString calledAlias = "";
-	if (request.GetAliases() && (!request.GetAliases()->GetSize() == 0)) {
+	if (request.GetAliases() && !(request.GetAliases()->GetSize() == 0)) {
 		calledAlias = AsString((*request.GetAliases())[0], FALSE);
 	}
 	PIPSocket::Address localAddr;
