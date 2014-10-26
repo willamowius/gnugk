@@ -342,6 +342,8 @@ protected:
 	*/
 	int GetDefaultStatus() const { return m_defaultStatus; }
 
+	PString StatusAsString(int status) const;
+
 	/** @return
 	    Config that contains settings for this authenticator.
 	*/

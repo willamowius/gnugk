@@ -178,7 +178,7 @@ FileIPAuth::FileIPAuth(
 	) : IPAuthBase(authName)
 {
 	bool dynamicCfg = false;
-	PConfig *cfg = GkConfig();
+	PConfig * cfg = GkConfig();
 	
 	if (cfg->HasKey(FileIPAuthSecName, "include")) {
 		const PFilePath fp(cfg->GetString(FileIPAuthSecName, "include", ""));
@@ -196,7 +196,7 @@ FileIPAuth::FileIPAuth(
 	m_authList.reserve(kv.GetSize());
 	
 	for (PINDEX i = 0; i < kv.GetSize(); i++) {
-		const PString &key = kv.GetKeyAt(i);
+		const PString & key = kv.GetKeyAt(i);
 		int position = 0;
 		if (key[0] == '#')
 			continue;
@@ -228,7 +228,7 @@ FileIPAuth::FileIPAuth(
 
 	std::stable_sort(m_authList.begin(), m_authList.end(), IPAuthEntry_greater());
 	
-	PTRACE(5, GetName() << "\t" << m_authList.size() << " entries loaded");
+	PTRACE(m_authList.empty() ? 1 : 5, GetName() << "\t" << m_authList.size() << " entries loaded");
 
 	if (PTrace::CanTrace(6)) {
 		ostream &strm = PTrace::Begin(6, __FILE__, __LINE__);
@@ -276,6 +276,7 @@ int FileIPAuth::CheckAddress(
 		}
 		entry++;
 	}
+	PTRACE(5, GetName() << "\tReturns default for " << addr.AsString() << " => " << StatusAsString(GetDefaultStatus()));
 	return GetDefaultStatus();
 }
 

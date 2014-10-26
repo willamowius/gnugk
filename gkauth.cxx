@@ -643,6 +643,17 @@ GkAuthenticator::~GkAuthenticator()
 	PTRACE(1, "GKAUTH\t" << GetName() << " rule removed");
 }
 
+PString GkAuthenticator::StatusAsString(int status) const
+{
+	switch(status) 
+	{
+		case e_ok: return "accept";
+		case e_fail: return "reject";
+		case e_next: return "next";
+	}
+	return "invalid";
+}
+
 int GkAuthenticator::Check(RasPDU<H225_GatekeeperRequest> &, unsigned &)
 {
 	return IsRasCheckEnabled(RasInfo<H225_GatekeeperRequest>::flag)
