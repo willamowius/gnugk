@@ -210,7 +210,7 @@ RasListener::RasListener(const Address & addr, WORD pt) : UDPSocket(0, addr.GetV
 	if (!Listen(addr, 0, pt, PSocket::CanReuseAddress)) {
 		PTRACE(1, "RAS\tCould not open listening socket at " << AsString(addr, pt)
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
-			<< GetErrorNumber(PSocket::LastGeneralError) << ": " 
+			<< GetErrorNumber(PSocket::LastGeneralError) << ": "
 			<< GetErrorText(PSocket::LastGeneralError)
 			);
 		Close();
@@ -225,7 +225,7 @@ RasListener::RasListener(const Address & addr, WORD pt) : UDPSocket(0, addr.GetV
 #endif
 	// note: this won't be affected by reloading
 	m_virtualInterface = (!GkConfig()->GetString("NetworkInterfaces", "").IsEmpty());
-	// Check if we have external IP setting 
+	// Check if we have external IP setting
 	if (!m_virtualInterface) {
 		m_virtualInterface = (!GkConfig()->GetString("ExternalIP", "").IsEmpty());
 	}
@@ -400,7 +400,7 @@ void RasMsg::GetCallSignalAddress(H225_TransportAddress & result) const
 #ifdef HAS_H46017
 	if (m_msg->m_h46017Socket)
 		result = SocketToH225TransportAddr(m_msg->m_localAddr, m_msg->m_h46017Socket->GetPort());
-	else	
+	else
 #endif
 		result = SocketToH225TransportAddr(m_msg->m_localAddr, m_msg->m_socket ? m_msg->m_socket->GetSignalPort() : 0);
 }
@@ -867,7 +867,7 @@ void RasServer::SetRDSServers()
 	   PDNS::SetRDSServers(serverlist);
        PTRACE(2, "GK\tLoaded RDS servers " << serverlist);
   } else {
- 	   PTRACE(2, "GK\tNo RDSservers set, using defaults"); 	
+ 	   PTRACE(2, "GK\tNo RDSservers set, using defaults");
   }
 #else
 	   PTRACE(2, "GK\tNo RDS Routing policy available.");
@@ -897,7 +897,7 @@ bool RasServer::AcceptPregrantedCalls(const H225_Setup_UUIE & setupBody, const P
 			PTRACE(3, "Q931\tAccepting pre-granted Call");
 			return true;
 		}
-	} 
+	}
 	return false;
 }
 
@@ -1039,9 +1039,9 @@ void RasServer::LoadConfig()
 		vqueue->OnReload();
 	Routing::Analyzer::Instance()->OnReload();
 	Routing::ExplicitPolicy::OnReload();
- 
+
 	bRemoveCallOnDRQ = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveCallOnDRQ", "1"));
- 
+
 	// read [ReplyToRasAddress] section
 	m_replyras.clear();
 	PStringToString ras_rules(GkConfig()->GetAllKeyValues("ReplyToRasAddress"));
@@ -1058,7 +1058,7 @@ bool RasServer::ReplyToRasAddress(const NetworkAddress & ip) const
 {
 	NetworkAddress bestmatch;
 	bool result = false;
- 
+
 	std::map<NetworkAddress, bool>::const_iterator iter = m_replyras.begin();
 	while (iter != m_replyras.end()) {
 		if ((ip << iter->first) && (iter->first.GetNetmaskLen() >= bestmatch.GetNetmaskLen())) {
@@ -1067,7 +1067,7 @@ bool RasServer::ReplyToRasAddress(const NetworkAddress & ip) const
 		}
 		++iter;
 	}
- 
+
 	return result;
 }
 
@@ -1101,7 +1101,7 @@ GkInterface *RasServer::SelectDefaultInterface(unsigned version)
 {
 	if (interfaces.empty())
 		return NULL;
- 
+
     PIPSocket::Address defIP = Toolkit::Instance()->GetRouteTable(false)->GetLocalAddress(version);
     ifiterator iter = interfaces.begin();
 	while (iter != interfaces.end()) {
@@ -1112,13 +1112,13 @@ GkInterface *RasServer::SelectDefaultInterface(unsigned version)
     PTRACE(1, "RasSrv\tWARNING: No route detected using first interface");
     return interfaces.front();
 }
- 
+
 GkInterface *RasServer::SelectInterface(const Address & addr)
 {
 	if (interfaces.empty())
 		return NULL;
 	ifiterator iter = find_if(interfaces.begin(), interfaces.end(), bind2nd(mem_fun(&GkInterface::IsReachable), &addr));
-	if (iter != interfaces.end()) 
+	if (iter != interfaces.end())
         return *iter;
     else
         return SelectDefaultInterface(addr.GetVersion());
@@ -1201,7 +1201,7 @@ bool RasServer::SendRIP(H225_RequestSeqNum seqNum, unsigned ripDelay, const Addr
 	rip.m_delay = ripDelay;
 	return SendRas(ras_msg, addr, port);
 }
- 
+
 bool RasServer::IsRedirected(unsigned tag) const
 {
 	if (redirectGK != e_noRedirect)
@@ -1356,11 +1356,11 @@ void RasServer::SelectH235Capability(const H225_GatekeeperRequest & grq, H225_Ga
 }
 
 bool RasServer::ValidateAdditivePDU(RasPDU<H225_RegistrationRequest>& ras, RRQAuthData& authData)
-{ 
+{
 	H225_RegistrationRequest & rrq = (ras)->m_recvRAS;
 	H225_ArrayOf_ClearToken * tokens = rrq.HasOptionalField(H225_RegistrationRequest::e_tokens) ? &rrq.m_tokens : NULL;
-	H225_ArrayOf_CryptoH323Token * cryptotokens = rrq.HasOptionalField(H225_RegistrationRequest::e_cryptoTokens) ? &rrq.m_cryptoTokens : NULL; 
-	return (gkClient && gkClient->AdditiveRegister(rrq.m_terminalAlias, authData.m_rejectReason, tokens, cryptotokens)); 
+	H225_ArrayOf_CryptoH323Token * cryptotokens = rrq.HasOptionalField(H225_RegistrationRequest::e_cryptoTokens) ? &rrq.m_cryptoTokens : NULL;
+	return (gkClient && gkClient->AdditiveRegister(rrq.m_terminalAlias, authData.m_rejectReason, tokens, cryptotokens));
 }
 
 bool RasServer::LogAcctEvent(int evt, callptr & call, time_t now)
@@ -1372,7 +1372,7 @@ bool RasServer::LogAcctEvent(int evt, const endptr & ep)
 {
 	return acctList->LogAcctEvent((GkAcctLogger::AcctEvent)evt, ep);
 }
- 
+
 PString RasServer::GetAuthInfo(const PString & moduleName)
 {
 	return authList->GetInfo(moduleName);
@@ -1510,7 +1510,7 @@ void RasServer::GetAlternateGK()
 		for (PINDEX i = 0; i < skipSize; ++i)
 			skipAddr.push_back(Address(skipips[i]));
 
- 
+
 	// read [RasSrv::AlternateGatekeeper] section
 	m_altGkRules.clear();
 	PStringToString altgk_rules(GkConfig()->GetAllKeyValues("RasSrv::AlternateGatekeeper"));
@@ -1564,7 +1564,7 @@ H225_ArrayOf_AlternateGK RasServer::ParseAltGKConfig(const PString & altGkSettin
 
 	return alternateGKs;
 }
- 
+
 H225_ArrayOf_AlternateGK RasServer::GetAltGKForIP(const NetworkAddress & ip) const
 {
 	// find alternate gatekeeper rule by IP address
@@ -1825,7 +1825,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 			}
 		}
 #endif // HAS_H46023
- 
+
 #ifdef HAS_H460P
 		if (Toolkit::Instance()->IsH460PEnabled()) {
 			// check if client supports presence
@@ -1919,7 +1919,7 @@ bool RegistrationRequestPDU::Process()
 		WORD port = 0;
 		if (!GetIPAndPortFromTransportAddr(request.m_rasAddress[i], addr, port)
 				|| !addr.IsValid() || port == 0) {
-			PTRACE(5, "RAS\tRemoving RAS address " 
+			PTRACE(5, "RAS\tRemoving RAS address "
 				<< AsString(request.m_rasAddress[i]) << " from RRQ"
 				);
 			request.m_rasAddress.RemoveAt(i--);
@@ -2018,13 +2018,13 @@ bool RegistrationRequestPDU::Process()
 			if (supportH46023) {
 				H460_FeatureStd * natfeat = (H460_FeatureStd *)fs.GetFeature(23);
 				// Check whether the endpoint supports Remote Nat directly (NATOffoad)
-				if (natfeat->Contains(Std23_RemoteNAT))	  
+				if (natfeat->Contains(Std23_RemoteNAT))
 					supportH46024 = natfeat->Value(Std23_RemoteNAT);
 				// Check whether the endpoint supports SameNAT H.460.24AnnexA
-				if (natfeat->Contains(Std23_AnnexA))	  
+				if (natfeat->Contains(Std23_AnnexA))
 					supportH46024A = natfeat->Value(Std23_AnnexA);
 				// Check whether the endpoint supports offload H.460.24AnnexB
-				if (natfeat->Contains(Std23_AnnexB))	  
+				if (natfeat->Contains(Std23_AnnexB))
 					supportH46024B = natfeat->Value(Std23_AnnexB);
 				// Check if the endpoint is notifying the Gk the type of NAT detected
 				if (natfeat->Contains(Std23_NATdet))
@@ -2067,10 +2067,10 @@ bool RegistrationRequestPDU::Process()
 		}
 	}
 #endif // HAS_H460
- 
+
 	///////////////////////////////////////////////////////////////////////////////////////////////
 
-	// If calling NAT support disabled. 
+	// If calling NAT support disabled.
 	// Use this to block errant gateways that don't support NAT mechanism properly.
 	bool supportcallingNAT = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SupportCallingNATedEndpoints", "1"));
 
@@ -2085,7 +2085,7 @@ bool RegistrationRequestPDU::Process()
 			PTRACE(1, "Unable to parse rasAddress " << request.m_rasAddress[0]);
 		}
 	}
- 
+
 	// lightweight registration update
 	if (request.HasOptionalField(H225_RegistrationRequest::e_keepAlive) && request.m_keepAlive) {
 		endptr ep = request.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier) ?
@@ -2128,7 +2128,7 @@ bool RegistrationRequestPDU::Process()
 					PTRACE(3, "RAS\tLightweight registration rejected, because IP or ports don't match: old addr=" << AsString(oaddr, oport) << " receive addr=" << AsString(raddr, rport) << " rx_addr=" << rx_addr);
 				}
 			}
-		} 
+		}
 		if (bReject) {
 			if (ep && bSendReply) {
 			 PTRACE(1, "RAS\tWarning: Possibly endpointId collide, security attack or IP change");
@@ -2244,7 +2244,7 @@ bool RegistrationRequestPDU::Process()
 					}
 				}
 #endif
- 
+
 #ifdef HAS_H460P
 				// H.460P
 				if (presenceSupport) {
@@ -2262,7 +2262,7 @@ bool RegistrationRequestPDU::Process()
 					desc[sz] = presence;
 				}
 #endif
- 
+
 #ifdef HAS_H460
 
 #ifdef HAS_H460PRE
@@ -2290,7 +2290,7 @@ bool RegistrationRequestPDU::Process()
 					desc[sz] = H460_FeatureStd(9);
 				}
 #endif
- 
+
 			}
 
 			return bSendReply;
@@ -2306,7 +2306,7 @@ bool RegistrationRequestPDU::Process()
 		for (int s = 0; s < request.m_callSignalAddress.GetSize(); ++s) {
 			SignalAddr = request.m_callSignalAddress[s];
 			if (GetIPFromTransportAddr(SignalAddr, ipaddr)) {
-				validaddress = ((rx_addr == ipaddr) || IsLoopback(rx_addr));  
+				validaddress = ((rx_addr == ipaddr) || IsLoopback(rx_addr));
 				if (validaddress) {
 				    break;
 				}
@@ -2361,7 +2361,7 @@ bool RegistrationRequestPDU::Process()
 	bool bNewEP = true;
 	if (request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) && (request.m_terminalAlias.GetSize() >= 1)) {
 		H225_ArrayOf_AliasAddress Alias, & Aliases = request.m_terminalAlias;
-		if (Toolkit::AsBool(Kit->Config()->GetString("RasSrv::RRQFeatures", "AuthenticatedAliasesOnly", "0")) && 
+		if (Toolkit::AsBool(Kit->Config()->GetString("RasSrv::RRQFeatures", "AuthenticatedAliasesOnly", "0")) &&
 			authData.m_authAliases.GetSize() > 0) {
 			PString recvAlias;
 			bool found = false;
@@ -2412,7 +2412,7 @@ bool RegistrationRequestPDU::Process()
 						if (RegPrior > ep->Priority())
 						   ep->Unregisterpreempt(1);   // Unregistered by high priority
 						else if (preempt)
-						   ep->Unregisterpreempt(2);   // Unregistered by preempt notification 
+						   ep->Unregisterpreempt(2);   // Unregistered by preempt notification
 						else
 						   ep->Unregister();
 
@@ -2490,7 +2490,7 @@ bool RegistrationRequestPDU::Process()
 	request.m_callSignalAddress.SetSize(1);
 	request.m_callSignalAddress[0] = SignalAddr;
 
-	if (RasSrv->IsPassThroughRegistrant() && !RasSrv->ValidateAdditivePDU(*this, authData)) 
+	if (RasSrv->IsPassThroughRegistrant() && !RasSrv->ValidateAdditivePDU(*this, authData))
  		return BuildRRJ(authData.m_rejectReason);
 
 	endptr ep = EndpointTbl->InsertRec(m_msg->m_recvRAS, nated ? rx_addr : PIPSocket::Address(GNUGK_INADDR_ANY));
@@ -2527,7 +2527,7 @@ bool RegistrationRequestPDU::Process()
 	ep->SetUsesH460P(presenceSupport);
 	if (presencePDU)
 	   ep->ParsePresencePDU(preFeature);
- 
+
 #endif // HAS_H460P
 
 	if (nated || (ep->IsTraversalClient() && !validaddress)) {
@@ -2640,7 +2640,7 @@ bool RegistrationRequestPDU::Process()
 
 				H460_FeatureStd natfs = H460_FeatureStd(23);
 				natfs.Add(Std23_IsNAT,H460_FeatureContent(h46023nat));
-				if (h46023nat) { 
+				if (h46023nat) {
 					natfs.Add(Std23_STUNAddr,H460_FeatureContent(stunaddr));
 				} else {
 					// If not NAT then provide the RAS address to the client to determine
@@ -2651,16 +2651,16 @@ bool RegistrationRequestPDU::Process()
 				PINDEX lPos = gd.GetSize();
 				gd.SetSize(lPos + 1);
 				gd[lPos] = natfs;
-			 } 
+			 }
 		}
 #endif // HAS_H46023
- 
+
 #ifdef HAS_H460P
 		if (presenceSupport) {
 			H460_FeatureOID presence = H460_FeatureOID(rPreFS);
 #ifndef HAS_H460P_VER_3
 			PASN_OctetString preData;
-			if (ep->BuildPresencePDU(rcf.GetTag(),preData)) 
+			if (ep->BuildPresencePDU(rcf.GetTag(),preData))
 				presence.Add(OID3_PDU,H460_FeatureContent(preData));
 #endif
 			PINDEX lPos = gd.GetSize();
@@ -2694,7 +2694,7 @@ bool RegistrationRequestPDU::Process()
 		if (gd.GetSize() > 0)	{
 			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_featureSet);
 			rcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
-		}						
+		}
 #endif // HAS_H460
 
 #ifdef HAS_LANGUAGE
@@ -2714,21 +2714,21 @@ bool RegistrationRequestPDU::Process()
 
 #ifdef h323v6
 		// Assigned GKs
-		if (request.HasOptionalField(H225_RegistrationRequest::e_assignedGatekeeper)) 
+		if (request.HasOptionalField(H225_RegistrationRequest::e_assignedGatekeeper))
 			ep->SetAssignedGatekeeper(rcf.m_assignedGatekeeper);
 #endif
 
 		// Alternate GKs
 		if (request.HasOptionalField(H225_RegistrationRequest::e_supportsAltGK))
 			RasSrv->SetAlternateGK(rcf, m_msg->m_peerAddr);
-		
-		// Call credit display 
+
+		// Call credit display
 		if (ep->AddCallCreditServiceControl(rcf.m_serviceControl,
-			authData.m_amountString, authData.m_billingMode, -1)) 
+			authData.m_amountString, authData.m_billingMode, -1))
 			  rcf.IncludeOptionalField(H225_RegistrationConfirm::e_serviceControl);
 
 		// URL link
-		if (ep->AddHTTPServiceControl(rcf.m_serviceControl) && 
+		if (ep->AddHTTPServiceControl(rcf.m_serviceControl) &&
 		   !rcf.HasOptionalField(H225_RegistrationConfirm::e_serviceControl))
 			      rcf.IncludeOptionalField(H225_RegistrationConfirm::e_serviceControl);
 
@@ -2786,7 +2786,7 @@ bool RegistrationRequestPDU::BuildRCF(const endptr & ep, bool additiveRegistrati
 	if (ep->GetTimeToLive() > 0) {
 		rcf.IncludeOptionalField(H225_RegistrationConfirm::e_timeToLive);
 		rcf.m_timeToLive = ep->GetTimeToLive();
-	} 
+	}
 
 	rcf.IncludeOptionalField(H225_RegistrationConfirm::e_supportsAdditiveRegistration);
 
@@ -2808,7 +2808,7 @@ bool RegistrationRequestPDU::BuildRRJ(unsigned reason, bool alt)
 		if (Toolkit::Instance()->GetInternalExtensionCode(nonStandard) == Toolkit::iecFailoverRAS)
 			CopyNonStandardData(request, rrj);
 	}
-	
+
 	PString alias(request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) ? AsString(request.m_terminalAlias) : PString(" "));
 	PString log = "RRJ|" + m_msg->m_peerAddr.AsString()
 					+ "|" + alias
@@ -2854,7 +2854,7 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 				BuildConfirm();
 				return bSendReply;
 		}
- 
+
 		// Disconnect all calls of the endpoint
 		SoftPBX::DisconnectEndpoint(ep);
 		// Remove from the table
@@ -2889,7 +2889,7 @@ PString AdmissionRequestPDU::GetCallingStationId(
 {
 	if (!authData.m_callingStationId)
 		return authData.m_callingStationId;
-		
+
 	const H225_AdmissionRequest& arq = request;
 	const bool hasCall = authData.m_call.operator->() != NULL;
 	PString id;
@@ -2905,7 +2905,7 @@ PString AdmissionRequestPDU::GetCallingStationId(
 
 	if (!id)
 		return id;
-		
+
 	if (id.IsEmpty() && hasCall)
 		id = GetBestAliasAddressString(authData.m_call->GetSourceAddress(), false,
 			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
@@ -2918,7 +2918,7 @@ PString AdmissionRequestPDU::GetCallingStationId(
 			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
 				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
 			);
-			
+
 	if (id.IsEmpty() && arq.m_answerCall && hasCall) {
 		const endptr callingEP = authData.m_call->GetCallingParty();
 		if (callingEP)
@@ -2928,14 +2928,14 @@ PString AdmissionRequestPDU::GetCallingStationId(
 					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
 				);
 	}
-				
+
 	if (id.IsEmpty() && hasCall) {
 		PIPSocket::Address addr(0);
 		WORD port = 0;
 		if (authData.m_call->GetSrcSignalAddr(addr, port) && addr.IsValid())
 			id = AsString(addr, port);
 	}
-	
+
 	return id;
 }
 
@@ -2950,7 +2950,7 @@ PString AdmissionRequestPDU::GetCalledStationId(
 	const H225_AdmissionRequest& arq = request;
 	const bool hasCall = authData.m_call.operator->() != NULL;
 	PString id;
-				
+
 	if (!arq.m_answerCall) {
 		if (arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
 			id = GetBestAliasAddressString(arq.m_destinationInfo, false,
@@ -2986,23 +2986,23 @@ PString AdmissionRequestPDU::GetCalledStationId(
 
 		PIPSocket::Address addr;
 		if (id.IsEmpty() && authData.m_requestingEP
-			&& GetIPFromTransportAddr(authData.m_requestingEP->GetCallSignalAddress(), addr) 
+			&& GetIPFromTransportAddr(authData.m_requestingEP->GetCallSignalAddress(), addr)
 			&& addr.IsValid())
 			id = addr.AsString();
 	}
-		
+
 	// this does not work well in routed mode, when destCallSignalAddress
 	// is usually the gatekeeper address
-	if (id.IsEmpty() 
+	if (id.IsEmpty()
 		&& arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
 		const H225_TransportAddress& tsap = arq.m_destCallSignalAddress;
 		id = AsDotString(tsap);
 	}
-	
+
 	return id;
 }
 
-PString AdmissionRequestPDU::GetCallLinkage( 
+PString AdmissionRequestPDU::GetCallLinkage(
 	/// additional data
 	ARQAuthData& authData
 	) const
@@ -3013,7 +3013,7 @@ PString AdmissionRequestPDU::GetCallLinkage(
 	const H225_AdmissionRequest& arq = request;
 	const bool hasCall = authData.m_call.operator->() != NULL;
 	PString id;
-				
+
 	if (!arq.m_answerCall) {
 		if (arq.HasOptionalField(H225_AdmissionRequest::e_callLinkage)) {
 			const H225_CallLinkage & cl = arq.m_callLinkage;
@@ -3042,6 +3042,19 @@ bool AdmissionRequestPDU::Process()
 	if (!RequestingEP)
 		return BuildReply(H225_AdmissionRejectReason::e_callerNotRegistered);
 
+    if (GkConfig()->GetBoolean("RasSrv::ARQFeatures", "CheckSenderIP", false)) {
+        PIPSocket::Address storedAddr;
+        WORD storedPort = 0;
+		if (GetIPAndPortFromTransportAddr(RequestingEP->GetRasAddress(), storedAddr, storedPort)) {
+		    if (storedAddr != m_msg->m_peerAddr) {
+                PTRACE(0, "RAS\tSender address of ARQ didn't match: " << AsString(storedAddr) << " != " << AsString(m_msg->m_peerAddr));
+                return BuildReply(H225_AdmissionRejectReason::e_callerNotRegistered);
+		    }
+		} else {
+			PTRACE(1, "Unable to parse saved rasAddress " << RequestingEP->GetRasAddress());
+		}
+    }
+
 	if (RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
 		if (GetIPAndPortFromTransportAddr(RequestingEP->GetRasAddress(), m_msg->m_peerAddr, m_msg->m_peerPort)) {
 			PTRACE(3, "Reply to saved rasAddress:" << AsString(m_msg->m_peerAddr, m_msg->m_peerPort));
@@ -3060,9 +3073,9 @@ bool AdmissionRequestPDU::Process()
 	if (ripDelay > 0) {
 		RasSrv->SendRIP(request.m_requestSeqNum, ripDelay, m_msg->m_peerAddr, m_msg->m_peerPort);
 	}
- 
+
 	bool aliasesChanged = false;
-	bool hasDestInfo = request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo) 
+	bool hasDestInfo = request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo)
 		&& request.m_destinationInfo.GetSize() > 0;
 	// CallRecs should be looked for using callIdentifier instead of callReferenceValue
 	// callIdentifier is globally unique, callReferenceValue is just unique per-endpoint.
@@ -3075,7 +3088,7 @@ bool AdmissionRequestPDU::Process()
 
 	if (answer && pExistingCallRec)
 		authData.m_dialedNumber = pExistingCallRec->GetDialedNumber();
-		
+
 	if (authData.m_dialedNumber.IsEmpty()) {
 		if (!answer && hasDestInfo) {
 			authData.m_dialedNumber = GetBestAliasAddressString(
@@ -3084,7 +3097,7 @@ bool AdmissionRequestPDU::Process()
 					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
 		}
 	}
-		
+
 	if (hasDestInfo) { // apply rewriting rules
 
 		in_rewrite_source = GetBestAliasAddressString(
@@ -3095,7 +3108,7 @@ bool AdmissionRequestPDU::Process()
 
      	if (in_rewrite_source.IsEmpty() && request.m_srcInfo.GetSize() > 0) {
         	in_rewrite_source = GetBestAliasAddressString(request.m_srcInfo, false,
-				AliasAddressTagMask(H225_AliasAddress::e_h323_ID), 
+				AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
 				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
 					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
 		}
@@ -3120,7 +3133,7 @@ bool AdmissionRequestPDU::Process()
 	authData.m_callingStationId = GetCallingStationId(authData);
 	authData.m_calledStationId = GetCalledStationId(authData);
 	authData.m_callLinkage = GetCallLinkage(authData);
-	
+
 	if (!RasSrv->ValidatePDU(*this, authData)) {
 		if (authData.m_rejectReason < 0) {
 			authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
@@ -3139,7 +3152,7 @@ bool AdmissionRequestPDU::Process()
 			aliasesChanged = true;
 		}
 	}
-	
+
 	if (RasSrv->IsGKRouted() && answer && !pExistingCallRec) {
 		if (Toolkit::AsBool(Kit->Config()->GetString("RasSrv::ARQFeatures", "ArjReasonRouteCallToGatekeeper", "1"))) {
 			bReject = true;
@@ -3185,7 +3198,7 @@ bool AdmissionRequestPDU::Process()
 			EPSupportsH46022IPSec = std22->Contains(Std22_IPSec);
 		}
 #ifdef HAS_H46026
-        if (fs.HasFeature(26) && Toolkit::Instance()->IsH46026Enabled()) 
+        if (fs.HasFeature(26) && Toolkit::Instance()->IsH46026Enabled())
             EPRequiresH46026 = true;
         RequestingEP->SetUsesH46026(EPRequiresH46026);
 #endif
@@ -3195,7 +3208,7 @@ bool AdmissionRequestPDU::Process()
 		H225_ArrayOf_GenericData & data = request.m_genericData;
 		for (PINDEX i = 0; i < data.GetSize(); i++) {
 			H460_Feature & feat = (H460_Feature &)data[i];
-			if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID9))) 
+			if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID9)))
 				vendorInfo = true;
 #ifdef HAS_H46023
 			if (Toolkit::Instance()->IsH46023Enabled() && !EPRequiresH46026) {
@@ -3312,7 +3325,7 @@ bool AdmissionRequestPDU::Process()
 	}
 	if (bReject)
 		return BuildReply(H225_AdmissionRejectReason::e_requestDenied); // what the spec says
- 
+
 	PTRACE(3, "GK\tACF will grant bandwidth of " << BWRequest);
 	// new connection admitted
 	H225_AdmissionConfirm & acf = BuildConfirm();
@@ -3324,7 +3337,7 @@ bool AdmissionRequestPDU::Process()
 		if(CalledEP->GetAliases().GetSize() > 0) {
 			out_rewrite_source = GetBestAliasAddressString(
 				CalledEP->GetAliases(), false,
-				AliasAddressTagMask(H225_AliasAddress::e_h323_ID), 
+				AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
 				AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
 					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
 				);
@@ -3395,12 +3408,12 @@ bool AdmissionRequestPDU::Process()
 		}
 #ifdef HAS_H46023
 		if (natoffloadsupport == CallRec::e_natNoassist) { // If no assistance then No NAT type
-			PTRACE(4, "RAS\tNAT Type reset to none"); 
+			PTRACE(4, "RAS\tNAT Type reset to none");
 			pCallRec->SetNATType(0);
 		}
 #endif
 		pCallRec->SetNewRoutes(arq.GetRoutes());
-		
+
 		if (!authData.m_disabledcodecs.IsEmpty())
 			pCallRec->SetDisabledCodecs(authData.m_disabledcodecs);
 
@@ -3438,12 +3451,12 @@ bool AdmissionRequestPDU::Process()
 
 			// If not required disable the proxy support function for this call
 			if (pCallRec->GetProxyMode() != CallRec::ProxyDisabled &&
-				(natoffloadsupport == CallRec::e_natLocalMaster || 
+				(natoffloadsupport == CallRec::e_natLocalMaster ||
 					natoffloadsupport == CallRec::e_natRemoteMaster ||
 					natoffloadsupport == CallRec::e_natNoassist ||
 				(!pCallRec->SingleGatekeeper() && (natoffloadsupport == CallRec::e_natRemoteProxy ||
 												   natoffloadsupport == CallRec::e_natAnnexB)))) {
-						PTRACE(4, "RAS\tNAT Proxy disabled due to offload support"); 
+						PTRACE(4, "RAS\tNAT Proxy disabled due to offload support");
 						pCallRec->SetProxyMode(CallRec::ProxyDisabled);
 			}
 
@@ -3456,14 +3469,14 @@ bool AdmissionRequestPDU::Process()
 					// the local gatekeeper may not receive any signalling so
 					// set the call as connected.
 					if (!RasSrv->IsGKRouted())
-						pCallRec->SetConnected();  
+						pCallRec->SetConnected();
 			}
 
 			if (!RasSrv->IsGKRouted() && natoffloadsupport == CallRec::e_natUnknown)
 				pCallRec->SetConnected();
 
 			pCallRec->SetNATStrategy(natoffloadsupport);
-			PTRACE(4, "RAS\tNAT strategy for Call No: " << pCallRec->GetCallNumber() << 
+			PTRACE(4, "RAS\tNAT strategy for Call No: " << pCallRec->GetCallNumber() <<
 						" set to " << pCallRec->GetNATOffloadString(natoffloadsupport));
 
 			if (natoffloadsupport == CallRec::e_natNoassist) { // If no assistance then No NAT type
@@ -3510,7 +3523,7 @@ bool AdmissionRequestPDU::Process()
 		acf.m_irrFrequency.SetValue(irrFrq);
 	}
 
-	if( !answer && aliasesChanged 
+	if( !answer && aliasesChanged
 		&& request.HasOptionalField(H225_AdmissionRequest::e_canMapAlias)
 		&& request.m_canMapAlias
 		&& request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo)
@@ -3519,8 +3532,8 @@ bool AdmissionRequestPDU::Process()
 		acf.m_destinationInfo = request.m_destinationInfo;
 	}
 
-	if (RequestingEP->AddCallCreditServiceControl(acf.m_serviceControl, 
-			authData.m_amountString, authData.m_billingMode, 
+	if (RequestingEP->AddCallCreditServiceControl(acf.m_serviceControl,
+			authData.m_amountString, authData.m_billingMode,
 			authData.m_callDurationLimit)) {
 			   	acf.IncludeOptionalField(H225_AdmissionConfirm::e_serviceControl);
 	}
@@ -3528,16 +3541,16 @@ bool AdmissionRequestPDU::Process()
 #ifdef HAS_LANGUAGE
 	if (!answer && Toolkit::AsBool(GkConfig()->GetString("RasSrv::LRQFeatures", "EnableLanguageRouting", false))) {
 		H323SetLanguages(Language, acf.m_language);
-		acf.IncludeOptionalField(H225_AdmissionConfirm::e_language); 
+		acf.IncludeOptionalField(H225_AdmissionConfirm::e_language);
 	}
 #endif
 
 #ifdef HAS_H460
-	if (!answer) {	
+	if (!answer) {
 		PINDEX lastPos = 0;
 		H225_ArrayOf_GenericData & data = acf.m_genericData;
 #ifdef HAS_H46023
-		// If we have a call record and the remote party needs NAT support 
+		// If we have a call record and the remote party needs NAT support
 		// and the requesting EP can provide it then notify the EP to lend assistance.
 		if (natsupport && RequestingEP->UsesH46023()) {
 			 H460_FeatureStd fs = H460_FeatureStd(24);
@@ -3560,10 +3573,10 @@ bool AdmissionRequestPDU::Process()
 			data[lastPos-1] = fs;
 		}
 #endif
-		if (lastPos > 0) 
-			acf.IncludeOptionalField(H225_AdmissionConfirm::e_genericData);  
+		if (lastPos > 0)
+			acf.IncludeOptionalField(H225_AdmissionConfirm::e_genericData);
 	}
- 
+
 	// H.460.9 QoS Reporting
 	if (EPSupportsQoSReporting
 		&& Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0"))) {
@@ -3701,7 +3714,7 @@ template<> bool RasPDU<H225_BandwidthRequest>::Process()
 			PTRACE(1, "Unable to parse saved rasAddress " << RequestingEP->GetRasAddress());
 		}
 	}
- 
+
 	long bandwidth = request.m_bandWidth.GetValue();
 	// enforce minimum bandwidth per call
 	if ((CallTbl->GetMinimumBandwidthPerCall() > 0) && (bandwidth < CallTbl->GetMinimumBandwidthPerCall()))
@@ -3790,7 +3803,7 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 			PTRACE(1, "Unable to parse saved rasAddress " << ep->GetRasAddress());
 		}
 	}
- 
+
 #ifdef HAS_H460
 	if (request.HasOptionalField(H225_DisengageRequest::e_genericData)) {
 		H225_ArrayOf_GenericData & data = request.m_genericData;
@@ -3854,7 +3867,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				BuildReject(H225_LocationRejectReason::e_undefinedReason);
 				PTRACE(5,"LRQ PING caught from " << AsDotString(request.m_replyAddress));
 				return true;
-		} 
+		}
 
 		// do GWRewriteE164 for neighbor before processing
 		PString neighbor_id = RasSrv->GetNeighbors()->GetNeighborIdBySigAdr(request.m_replyAddress);
@@ -3892,7 +3905,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 	if (ripDelay > 0) {
 		RasSrv->SendRIP(request.m_requestSeqNum, ripDelay, m_msg->m_peerAddr, m_msg->m_peerPort);
 	}
- 
+
     // Neighbors do not need Validation
 	bool bReject = !(fromRegEndpoint || RasSrv->GetNeighbors()->CheckLRQ(this));
 
@@ -3910,7 +3923,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 			PTRACE(1, "Unable to parse saved rasAddress " << request.m_replyAddress);
 		}
 	}
- 
+
 	if (!bReject) {
 		endptr WantedEndPoint;
 		Route route;
@@ -3973,7 +3986,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 					}
 #endif
 
-/* The access token should be standarized somehow and use a correct object 
+/* The access token should be standarized somehow and use a correct object
    identifier. As it does not (currently), we disable it to remove interop problems.
 				PINDEX s = 0;
 				if (lcf.HasOptionalField(H225_LocationConfirm::e_cryptoTokens))
@@ -4023,10 +4036,10 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				}
 
 #ifdef HAS_LANGUAGE
-				if (request.HasOptionalField(H225_LocationRequest::e_language) && 
+				if (request.HasOptionalField(H225_LocationRequest::e_language) &&
 					Toolkit::AsBool(GkConfig()->GetString("RasSrv::LRQFeatures", "EnableLanguageRouting", false))) {
 						if (WantedEndPoint && WantedEndPoint->SetAssignedLanguage(lcf.m_language))
-							lcf.IncludeOptionalField(H225_LocationConfirm::e_language); 
+							lcf.IncludeOptionalField(H225_LocationConfirm::e_language);
 				}
 #endif
 
@@ -4036,7 +4049,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				if ((WantedEndPoint) && (request.HasOptionalField(H225_LocationRequest::e_genericData))) {
 					H225_ArrayOf_GenericData & locdata = request.m_genericData;
 					for (PINDEX i = 0; i < locdata.GetSize(); i++) {
- 
+
 						H460_Feature & feat = (H460_Feature &)locdata[i];
 						/// Std24 NAT Traversal
 #ifdef HAS_H46023
@@ -4083,15 +4096,15 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 					}
 				}
 
-				if (lastPos > 0) 
+				if (lastPos > 0)
 					lcf.IncludeOptionalField(H225_LocationConfirm::e_genericData);
- 
+
 				PString featureRequired = Kit->Config()->GetString(RoutedSec, "NATStdMin", "");
 				PBoolean assumePublicH46024 =  Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023PublicIP", 0));
 				if (!featureRequired && featureRequired == "23" && WantedEndPoint && (!WantedEndPoint->SupportH46024() && !assumePublicH46024)) {
 					bReject = true;
 					reason = H225_LocationRejectReason::e_genericDataReason;
-				} else 
+				} else
 #endif	// HAS_H460
 				{
 					log = "LCF|" + m_msg->m_peerAddr.AsString()
@@ -4207,7 +4220,7 @@ template<> bool RasPDU<H225_ResourcesAvailableIndicate>::Process()
 			PTRACE(1, "Unable to parse saved rasAddress " << ep->GetRasAddress());
 		}
 	}
- 
+
 	// accept all RAIs
 	H225_ResourcesAvailableConfirm & rac = BuildConfirm();
 	rac.m_protocolIdentifier = request.m_protocolIdentifier;

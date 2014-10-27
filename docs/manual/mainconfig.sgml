@@ -169,12 +169,15 @@ Specify the IP address for default routing.
 Use this to specify which default IP address to use in a multihomed
 virtual environment where there may be many virtual interfaces on one host.
 
-<item><tt/EndpointIDSuffix=_gk1/<newline>
+<item><tt/EndpointIDSuffix=_tgdz646438/<newline>
 Default: <tt/_endp/<newline>
 <p>
 The gatekeeper will assign a unique identifier to each registered endpoint.
-This option can be used to specify a suffix to append to the endpoint identifier. This is only useful when using more than one gatekeeper.
-<bf/This setting doesn't change when the config is reloaded!/
+This option can be used to specify a suffix to append to the endpoint identifier.
+This option useful for security to make it harder for an attacker to guess endpoint IDs
+and should be set to a value that can't easily be guessed.
+
+<bf/This setting doesn't change when the config is reloaded, you must do a full restart!/
 
 <item><label id="ttl"><tt/TimeToLive=300/<newline>
 Default: <tt/-1/<newline>

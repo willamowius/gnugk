@@ -65,7 +65,7 @@ public:
 	WORD m_port;
 };
 
- 
+
 // Template of smart pointer
 // The class T must have Lock() & Unlock() methods
 template<class T> class SmartPtr {
@@ -164,9 +164,9 @@ public:
 	/** Load additional endpoint settings from the config file.
 	    Derived classes should call LoadConfig method of their base class
 	    at the beginning of the overriden LoadConfig.
-		
+
 	    @return
-		True if the configuration has been updated successfully.	
+		True if the configuration has been updated successfully.
 	*/
 	virtual bool LoadConfig();
 
@@ -264,9 +264,9 @@ public:
 	bool SendIRQ();
 
 	bool HasCallCreditCapabilities() const;
-	
+
 	/** Append a call credit related service control descriptor to the array
-	    of service control sessions, if the endpoint supports call credit 
+	    of service control sessions, if the endpoint supports call credit
 	    capabilities.
 	*/
 	virtual bool AddCallCreditServiceControl(
@@ -358,7 +358,7 @@ private:
 	EndpointRec();
 	EndpointRec(const EndpointRec &);
 	EndpointRec & operator= (const EndpointRec &);
-	
+
 protected:
 	/**This field may disappear sometime when GetCompleteRegistrationRequest() can
 	 * build its return value itself.
@@ -421,7 +421,7 @@ protected:
 	bool m_usesH46017;
 	bool m_usesH46026;
 	H46019TraversalType m_traversalType;	// this is not what GnuGk acts like, but what this EPRec is a proxy for
-	
+
 	long m_bandwidth;	// bandwidth currently occupied by this endpoint
 	long m_maxBandwidth; // maximum bandwidth allowed for this endpoint
 	bool m_useTLS;
@@ -499,7 +499,7 @@ public:
 private:
 	/// Load gateway specific settings from the config
 	void LoadGatewayConfig();
-	
+
 	GatewayRec();
 	GatewayRec(const GatewayRec&);
 	GatewayRec& operator=(const GatewayRec&);
@@ -535,16 +535,16 @@ public:
 	EPQoS() { Init(); }
 	EPQoS(PTime lastMsg) { Init(); m_lastMsg = lastMsg; }
 	~EPQoS() { }
- 
+
 	void Init();
 	PString AsString() const;
- 
+
 	void IncrementCalls() { m_numCalls++; }
 	void SetAudioPacketLossPercent(float val) { m_audioPacketLossPercent = val; }
 	void SetAudioJitter(unsigned val) { m_audioJitter = val; }
 	void SetVideoPacketLossPercent(float val) { m_videoPacketLossPercent = val; }
 	void SetVideoJitter(unsigned val) { m_videoJitter = val; }
- 
+
 protected:
 	PTime m_lastMsg;
 	unsigned m_numCalls;
@@ -630,7 +630,7 @@ private:
 	endptr InternalFindFirstEP(const H225_ArrayOf_AliasAddress & alias, std::list<EndpointRec *> *ListToBeFound);
 	bool InternalFindEP(const H225_ArrayOf_AliasAddress & alias, std::list<EndpointRec *> *ListToBeFound, bool roundrobin, std::list<Routing::Route> &routes);
 
-	void GenerateEndpointId(H225_EndpointIdentifier &);
+	void GenerateEndpointId(H225_EndpointIdentifier & NewEndpointId, PString prefix = "");
 	void GenerateAlias(H225_ArrayOf_AliasAddress &, const H225_EndpointIdentifier &) const;
 
 	std::list<EndpointRec *> EndpointList;
@@ -640,9 +640,6 @@ private:
 	mutable PReadWriteMutex listLock;
 	PMutex findmutex;          // Endpoint Find Mutex
 
-	// counter to generate endpoint identifier
-	// this is NOT the count of endpoints!
-	int recCnt, ozCnt;
 	PString endpointIdSuffix; // Suffix of the generated Endpoint IDs
 
 	// not assignable
@@ -684,7 +681,7 @@ class H4609_QosMonitoringReportData;
 class H323TransportAddress;
 #endif
 #endif
- 
+
 #ifdef HAS_H46018
 // direction definitions for H.460.19
 #define H46019_NONE		0	// m_h46019dir = 0 ' No party needs H.460.19, so skip the code
@@ -743,12 +740,12 @@ public:
 		/// override proxy mode global setting from the config
 		int proxyMode = ProxyDetect
 		);
-	
+
 	/// build a new call record with just a callID and transport adr (after H.460.18 SCI)
 	CallRec(const H225_CallIdentifier & callID, H225_TransportAddress sigAdr);
- 
+
 	CallRec(CallRec * oldCall);
-		
+
 	virtual ~CallRec();
 
 	enum NATType { // who is nated?
@@ -773,13 +770,13 @@ public:
 	void SetPostDialDigits(const PString & digits) { m_postdialdigits = digits; }
 
 	/** @return
-	    A bit mask with NAT flags for calling and called parties. 
+	    A bit mask with NAT flags for calling and called parties.
 	    See #NATType enum# for more details.
 	*/
 	int GetNATType() const { return m_nattype; }
 	int GetNATType(
 		/// filled with NAT IP of the calling party (if nat type is callingParty)
-		PIPSocket::Address& callingPartyNATIP, 
+		PIPSocket::Address& callingPartyNATIP,
 		/// filled with NAT IP of the called party (if nat type is calledParty)
 		PIPSocket::Address& calledPartyNATIP
 		) const;
@@ -841,24 +838,24 @@ public:
 	/** GetSignallingSocket */
 	CallSignalSocket * H46024ASignalSocket();
 #endif
- 
+
 #ifdef HAS_H46024B
     /** GetSignallingSocket */
     CallSignalSocket * H46024BSignalSocket(bool response);
- 
+
 	/** Initiate Probe */
 	void H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, const H323TransportAddress & rev, unsigned muxID_fwd=0, unsigned muxID_rev=0);
- 
+
 	/** Response Probe */
 	void H46024BRespond();
- 
+
     /** Set session callback flag */
 	void H46024BSessionFlag(WORD sessionID);
 
 	/** Handle H46024B Request */
 	bool HandleH46024BRequest(const H245_ArrayOf_GenericParameter & content);
 #endif
- 
+
 #endif
 
 	/** Return whether the endpoints are registered at the same gatekeeper so
@@ -874,7 +871,7 @@ public:
 	    Current proxy mode flag (see #ProxyMode enum#).
 	*/
 	int GetProxyMode() const { return m_proxyMode; }
-	
+
 	/// Override proxy mode global setting from the config
 	void SetProxyMode(
 		int mode /// proxy mode flag (see #ProxyMode enum#)
@@ -1035,7 +1032,7 @@ public:
 	int GetRTCP_DST_jitter_max() const { return m_rtcp_destination_jitter_max; }
 	int GetRTCP_DST_jitter_min() const { return m_rtcp_destination_jitter_min; }
 	int GetRTCP_DST_jitter_avg() const { return m_rtcp_destination_jitter_avg; }
- 
+
 	// set video RTCP stats
 	void SetRTCP_SRC_video_packet_count(long val);
 	void SetRTCP_SRC_video_packet_lost(long val);
@@ -1043,7 +1040,7 @@ public:
 	void SetRTCP_DST_video_packet_count(long val);
 	void SetRTCP_DST_video_packet_lost(long val);
 	void SetRTCP_DST_video_jitter(int val);
- 
+
 	// get video RTCP stats
 	long GetRTCP_SRC_video_packet_count() const { return m_rtcp_source_video_packet_count; }
 	long GetRTCP_SRC_video_packet_lost() const { return m_rtcp_source_video_packet_lost; }
@@ -1066,7 +1063,7 @@ public:
 		);
 
 	/** @return
-		Timestamp (number of seconds since 1st January 1970) 
+		Timestamp (number of seconds since 1st January 1970)
 		for the Alerting message associated with this call. 0 if Alerting
 		has not been yet received.
 		Meaningful only in GK routed mode.
@@ -1074,7 +1071,7 @@ public:
 	time_t GetAlertingTime() const;
 
 	/** Set timestamp for a Alerting message associated with this call. */
-	void SetAlertingTime( 
+	void SetAlertingTime(
 		time_t tm /// timestamp (seconds since 1st January 1970)
 		);
 
@@ -1119,9 +1116,9 @@ public:
 	}
 
 	/* Reset timeout.
-		Used when switching from GKRouted to Direct call model to 
+		Used when switching from GKRouted to Direct call model to
 		avoid Signalling timeouts
-	*/ 
+	*/
 	void ResetTimeOut();
 
 	/** Check if:
@@ -1236,7 +1233,7 @@ public:
 	    This does not change during the call.
 	*/
 	const H225_ArrayOf_AliasAddress GetSourceAddress() const { return m_sourceAddress; }
-		
+
 	/** @return
 	    Called party's aliases, as presented in ARQ or Setup messages.
 	    This does not change during the call now, but should be fixed
@@ -1249,19 +1246,19 @@ public:
 	    yet determined.
 	*/
 	PString GetCallingStationId();
-	
+
 	/// Set calling party's number
 	void SetCallingStationId(
 		const PString& id /// Calling-Station-Id
 		);
-		
+
 	/** @return
 	    Called party's number or an empty string, if the number has not been
 	    yet determined.
 	*/
 	PString GetCalledStationId();
 
-	/// Set call linkage This the party to be charged for the call. 
+	/// Set call linkage This the party to be charged for the call.
 	void SetCallLinkage(
 		const PString & id /// Calling-Station-Id (to be charged)
 		);
@@ -1277,7 +1274,7 @@ public:
 		);
 
 	/** @return
-	    Called party's number before rewrite or an empty string, 
+	    Called party's number before rewrite or an empty string,
 	    if the number has not been yet determined.
 	*/
 	PString GetDialedNumber();
@@ -1297,7 +1294,7 @@ public:
 	    Fixed destination address for the call (size 0 if not set).
 	*/
 	H225_ArrayOf_AliasAddress GetRouteToAlias() const { return m_routeToAlias; }
-	
+
 	/// Set fixed destination address for the call
 	void SetRouteToAlias(const H225_ArrayOf_AliasAddress& alias) { m_routeToAlias = alias; }
 
@@ -1318,7 +1315,7 @@ public:
 
 	bool IsH245ResponseReceived() const;
 	void SetH245ResponseReceived();
-	
+
 	bool IsFastStartResponseReceived() const;
 	void SetFastStartResponseReceived();
 
@@ -1335,7 +1332,7 @@ public:
 	bool GetMediaOriginatingIp(PIPSocket::Address &addr) const;
 
 	PBYTEArray GetRADIUSClass() const;
-	
+
 	bool IsProceedingSent() const { return m_proceedingSent; }
 	void SetProceedingSent(bool val) { m_proceedingSent = m_proceedingSent || val; }
 
@@ -1343,10 +1340,10 @@ public:
 	RerouteState GetRerouteState() const { return m_rerouteState; }
 	void SetRerouteDirection(CallLeg dir) { m_rerouteDirection = dir; }
 	CallLeg GetRerouteDirection() const { return m_rerouteDirection; }
- 
+
 	void SetBindHint(const PString & ip) { m_bindHint = ip; }
 	PString GetBindHint() const { return m_bindHint; }
- 
+
 	void SetCallerID(const PString & id) { m_callerID = id; }
 	PString GetCallerID() const { return m_callerID; }
 
@@ -1354,7 +1351,7 @@ public:
 	void RemoveDynamicPort(const DynamicPort & port);
 
 #ifdef HAS_H46018
-	bool IsH46018ReverseSetup() const { return m_h46018ReverseSetup; }	
+	bool IsH46018ReverseSetup() const { return m_h46018ReverseSetup; }
 	void SetH46018ReverseSetup(bool val) { m_h46018ReverseSetup = val; }
 	bool H46019Required() const;
 	void StoreSetup(SignalingMsg * msg);
@@ -1368,7 +1365,7 @@ public:
 	void StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket);
 	void RemoveKeepAlives(unsigned flcn);
 	void RemoveKeepAllAlives();
-	
+
 	void SetSessionMultiplexDestination(WORD session, void * openedBy, bool isRTCP, const H323TransportAddress & toAddress, H46019Side side);
 #endif
 
@@ -1426,10 +1423,10 @@ private:
 	PString m_inbound_rewrite_id;
 	// rewrite id for outbound leg of call
 	PString m_outbound_rewrite_id;
-	
+
 	/// list of disabled codes
 	PString m_disabledcodecs;
-	
+
 	PString m_src_media_control_IP, m_dst_media_control_IP;
 	PString m_src_media_IP, m_dst_media_IP;
 
@@ -1464,21 +1461,21 @@ private:
 	long m_rtcp_destination_video_packet_count;
 	long m_rtcp_source_video_packet_lost;
 	long m_rtcp_destination_video_packet_lost;
- 
+
 	int m_rtcp_source_video_jitter_min;
 	int m_rtcp_source_video_jitter_max;
 	int m_rtcp_source_video_jitter_avg;
- 
+
 	int m_rtcp_destination_video_jitter_min;
 	int m_rtcp_destination_video_jitter_max;
 	int m_rtcp_destination_video_jitter_avg;
- 
+
 	int m_rtcp_source_video_jitter_avg_count;
 	long m_rtcp_source_video_jitter_avg_sum;
- 
+
 	int m_rtcp_destination_video_jitter_avg_count;
 	long m_rtcp_destination_video_jitter_avg_sum;
- 
+
 	/// current timeout (or duration limit) for the call
 	time_t m_timeout;
 	/// timestamp for call timeout measuring
@@ -1534,7 +1531,7 @@ private:
 #ifdef HAS_H46024A
 	void BuildH46024AnnexAIndication(H245_MultimediaSystemControlMessage & h245msg);
 #endif
- 
+
 #ifdef HAS_H46024B
 	struct H46024Balternate {
 		 H245_TransportAddress forward;
@@ -1543,7 +1540,7 @@ private:
 		 unsigned multiplexID_rev;
 		 int sent;
 	};
- 
+
 	std::map<WORD,H46024Balternate> m_H46024Balternate;
 	void BuildH46024AnnexBRequest(bool initiate,H245_MultimediaSystemControlMessage & h245msg, const std::map<WORD,H46024Balternate> & alt);
 	list<int> m_h46024Bflag;
@@ -1562,7 +1559,7 @@ private:
 
 	/// enable/disable proxy mode (override global settings from the config)
 	int m_proxyMode;
-	
+
 	H225_ArrayOf_CryptoH323Token m_accessTokens;
 
 	/// IRR checking
@@ -1570,7 +1567,7 @@ private:
 	bool m_irrCheck;
 	time_t m_irrCallerTimer;
 	time_t m_irrCalleeTimer;
-	
+
 	std::list<Routing::Route> m_failedRoutes;
 	std::list<Routing::Route> m_newRoutes;
 	bool m_callInProgress;
@@ -1579,7 +1576,7 @@ private:
 	/// flag if failover is activated for easy access
 	bool m_failoverActive;
 	bool m_singleFailoverCDR;
-	
+
 	PString m_codec;
 	PIPSocket::Address m_mediaOriginatingIp;
 	PBYTEArray m_radiusClass;
@@ -1752,25 +1749,25 @@ private:
 
 // inline functions of EndpointRec
 inline H225_TransportAddress EndpointRec::GetRasAddress() const
-{ 
+{
 	PWaitAndSignal lock(m_usedLock);
 	return m_rasAddress;
 }
 
 inline void EndpointRec::SetRasAddress(const H225_TransportAddress & addr)
-{ 
+{
 	PWaitAndSignal lock(m_usedLock);
 	m_rasAddress = addr;
 }
 
-inline void EndpointRec::SetCallSignalAddress(const H225_TransportAddress & addr) 
+inline void EndpointRec::SetCallSignalAddress(const H225_TransportAddress & addr)
 {
 	PWaitAndSignal lock(m_usedLock);
     m_callSignalAddress = addr;
 }
 
 inline H225_TransportAddress EndpointRec::GetCallSignalAddress() const
-{ 
+{
 	PWaitAndSignal lock(m_usedLock);
 	return m_callSignalAddress;
 }
@@ -1832,7 +1829,7 @@ inline void EndpointRec::SetEndpointInfo(const PString & vendor, const PString &
 }
 
 inline void EndpointRec::SetNAT(bool nat)
-{ 
+{
 	m_nat = nat;
 }
 
@@ -1840,19 +1837,19 @@ inline void EndpointRec::SetH46024(bool support)
 {
 	m_H46024 = support;
 }
- 
+
 inline void EndpointRec::SetH46024A(bool support)
 {
 	m_H46024a = support;
 }
- 
+
 inline void EndpointRec::SetH46024B(bool support)
 {
 	m_H46024b = support;
 }
 
 inline bool EndpointRec::IsNATed() const
-{ 
+{
 	return m_nat;
 }
 
@@ -1860,7 +1857,7 @@ inline bool EndpointRec::SupportH46024() const
 {
 	return m_H46024;
 }
- 
+
 inline bool EndpointRec::SupportH46024A() const
 {
 	return m_H46024a;
@@ -1870,7 +1867,7 @@ inline bool EndpointRec::SupportH46024B() const
 {
 	return m_H46024b;
 }
- 
+
 inline bool EndpointRec::UseH46024B() const
 {
 	int nat = (int)m_epnattype;
@@ -1908,7 +1905,7 @@ inline PString EndpointRec::GetEPNATTypeString(EPNatTypes nat)
 
   if (nat < 9)
     return Names[nat];
-  
+
   return PString((unsigned)nat);
 }
 
@@ -1918,13 +1915,13 @@ inline PIPSocket::Address EndpointRec::GetNATIP() const
 	return m_natip;
 }
 
-inline CallSignalSocket *EndpointRec::GetSocket() 
+inline CallSignalSocket *EndpointRec::GetSocket()
 {
 	PWaitAndSignal lock(m_usedLock);
 	return m_natsocket;
 }
 
-inline CallSignalSocket *EndpointRec::GetAndRemoveSocket() 
+inline CallSignalSocket *EndpointRec::GetAndRemoveSocket()
 {
 	PWaitAndSignal lock(m_usedLock);
 	CallSignalSocket *socket = m_natsocket;
@@ -1957,19 +1954,19 @@ inline void EndpointRec::DeferTTL()
 }
 
 inline PTime EndpointRec::GetUpdatedTime() const
-{ 
+{
 	PWaitAndSignal lock(m_usedLock);
 	return m_updatedTime;
 }
 
 inline H225_RasMessage EndpointRec::GetCompleteRegistrationRequest() const
-{ 
+{
 	PWaitAndSignal lock(m_usedLock);
 	return m_RasMsg;
 }
 
 inline bool EndpointRec::HasCallCreditCapabilities() const
-{ 
+{
 	return m_hasCallCreditCapabilities;
 }
 
@@ -2171,7 +2168,7 @@ class PreliminaryCallTable : public Singleton<PreliminaryCallTable>
 public:
 	PreliminaryCallTable();
 	~PreliminaryCallTable();
-	
+
 	void Insert(PreliminaryCall * call);
 	void Remove(const H225_CallIdentifier & id);
 	PreliminaryCall * Find(const H225_CallIdentifier & id) const;

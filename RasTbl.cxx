@@ -1608,8 +1608,6 @@ OutOfZoneGWRec::OutOfZoneGWRec(const H225_RasMessage & completeLCF, const H225_E
 RegistrationTable::RegistrationTable() : Singleton<RegistrationTable>("RegistrationTable")
 {
 	regSize = 0;
-	recCnt = rand() % 9000 + 1000;
-	ozCnt = 1000; // arbitrary chosen constant
 
 	LoadConfig();
 }
@@ -1710,7 +1708,7 @@ endptr RegistrationTable::InternalInsertEP(H225_RasMessage & ras_msg)
 endptr RegistrationTable::InternalInsertOZEP(H225_RasMessage & ras_msg, H225_AdmissionConfirm &)
 {
 	H225_EndpointIdentifier epID;
-	epID = "oz_" + PString(PString::Unsigned, ozCnt++) + endpointIdSuffix;
+	GenerateEndpointId(epID, "oz_");
 	EndpointRec *ep = new OutOfZoneEPRec(ras_msg, epID);
 	WriteLock lock(listLock);
 	OutOfZoneList.push_front(ep);
@@ -1720,7 +1718,7 @@ endptr RegistrationTable::InternalInsertOZEP(H225_RasMessage & ras_msg, H225_Adm
 endptr RegistrationTable::InternalInsertOZEP(H225_RasMessage & ras_msg, H225_LocationConfirm & lcf)
 {
 	H225_EndpointIdentifier epID;
-	epID = "oz_" + PString(PString::Unsigned, ozCnt++) + endpointIdSuffix;
+	GenerateEndpointId(epID, "oz_");
 
 	EndpointRec *ep;
 	if (lcf.HasOptionalField(H225_LocationConfirm::e_destinationType) &&
@@ -1742,7 +1740,7 @@ endptr RegistrationTable::InternalInsertOZEP(const H225_Setup_UUIE & setupBody, 
 	H225_RegistrationRequest rrq = (H225_RegistrationRequest &)ras;	// fake RRQ to create the EPRec
 
 	H225_EndpointIdentifier epID;
-	epID = "oz_" + PString(PString::Unsigned, ozCnt++) + endpointIdSuffix;
+	GenerateEndpointId(epID, "oz_");
 	rrq.m_endpointIdentifier = epID;
 	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
 		rrq.IncludeOptionalField(H225_RegistrationRequest::e_terminalAlias);
@@ -2038,9 +2036,20 @@ bool RegistrationTable::InternalFindEP(
 	return true;
 }
 
-void RegistrationTable::GenerateEndpointId(H225_EndpointIdentifier & NewEndpointId)
+void RegistrationTable::GenerateEndpointId(H225_EndpointIdentifier & NewEndpointId, PString prefix)
 {
-	NewEndpointId = PString(PString::Unsigned, ++recCnt) + endpointIdSuffix;
+    do {
+        unsigned randomNum;
+#ifdef P_SSL
+        if(RAND_bytes((unsigned char *)&randomNum, sizeof(randomNum)) != 1) {
+            randomNum = rand();
+        }
+#else
+        randomNum = rand();
+#endif
+        NewEndpointId = prefix + PString(PString::Unsigned, randomNum) + endpointIdSuffix;
+        // check if new ID doesn't already exists (unlikely, but...)
+    } while (FindByEndpointId(NewEndpointId));
 }
 
 

@@ -44,14 +44,14 @@ public:
 		/// name for this authenticator and for the config section to read settings from
 		const char* authName
 		);
-	
+
 	virtual ~SQLPasswordAuth();
 
 	virtual PString GetInfo();
-	
+
 protected:
 	/** Override from SimplePasswordAuth.
-	
+
 	    @return
 	    True if the password has been found for the given alias.
 	*/
@@ -66,7 +66,7 @@ private:
 	SQLPasswordAuth();
 	SQLPasswordAuth(const SQLPasswordAuth&);
 	SQLPasswordAuth& operator=(const SQLPasswordAuth&);
-	
+
 protected:
 	/// connection to the SQL database
 	GkSQLConnection* m_sqlConn;
@@ -83,16 +83,16 @@ public:
 		/// name for this authenticator and for the config section to read settings from
 		const char* authName
 		);
-	
+
 	virtual ~SQLAliasAuth();
 
 	virtual PString GetInfo();
 
 protected:
-	/** Get auth condition string for the given alias. 
+	/** Get auth condition string for the given alias.
 	    This implementation searches the SQL database for the string.
 	    Override from AliasAuth.
-		
+
 	    @return
 	    The AliasAuth condition string for the given alias.
 	*/
@@ -107,7 +107,7 @@ private:
 	SQLAliasAuth();
 	SQLAliasAuth(const SQLAliasAuth&);
 	SQLAliasAuth& operator=(const SQLAliasAuth&);
-	
+
 protected:
 	/// connection to the SQL database
 	GkSQLConnection* m_sqlConn;
@@ -125,7 +125,7 @@ public:
 			| RasInfo<H225_LocationRequest>::flag,
 		SQLAuthMiscChecks = e_Setup | e_SetupUnreg
 	};
-	
+
 	/// build authenticator reading settings from the config
 	SQLAuth(
 		/// name for this authenticator and for the config section to read settings from
@@ -135,35 +135,35 @@ public:
 		/// Misc check events supported by this module
 		unsigned supportedMiscChecks = SQLAuthMiscChecks
 		);
-	
+
 	virtual ~SQLAuth();
 
 	/** Authenticate using data from RRQ RAS message.
-	
+
 		@return:
 		#GkAuthenticator::Status enum# with the result of authentication.
 	*/
 	virtual int Check(
 		/// RRQ RAS message to be authenticated
-		RasPDU<H225_RegistrationRequest>& rrqPdu, 
+		RasPDU<H225_RegistrationRequest>& rrqPdu,
 		/// authorization data (reject reason, ...)
 		RRQAuthData& authData
 		);
-		
+
 	/** Authenticate using data from ARQ RAS message.
-	
+
 		@return:
 		#GkAuthenticator::Status enum# with the result of authentication.
 	*/
 	virtual int Check(
 		/// ARQ nessage to be authenticated
-		RasPDU<H225_AdmissionRequest> & arqPdu, 
+		RasPDU<H225_AdmissionRequest> & arqPdu,
 		/// authorization data (call duration limit, reject reason, ...)
 		ARQAuthData& authData
 		);
 
 	/** Authenticate using data from LRQ RAS message.
-	
+
 		@return:
 		#GkAuthenticator::Status enum# with the result of authentication.
 	*/
@@ -171,9 +171,9 @@ public:
 		RasPDU<H225_LocationRequest> & req,
 		unsigned& rejectReason
 		);
-		
+
 	/** Authenticate using data from Q.931 Setup message.
-	
+
 		@return:
 		#GkAuthenticator::Status enum# with the result of authentication.
 	*/
@@ -216,19 +216,19 @@ bool RunQuery(
 	)
 {
 	resultRow.clear();
-	
+
 	if (conn == NULL) {
 		PTRACE(2, traceStr << ": query failed - SQL connection not active");
 		SNMP_TRAP(5, SNMPError, Authentication, "SQL connection failed");
 		return false;
 	}
-	
+
 	if (query.IsEmpty()) {
 		PTRACE(2, traceStr << ": query failed - query string not configured");
 		SNMP_TRAP(5, SNMPError, Authentication, "SQL connection failed");
 		return false;
 	}
-	
+
 	GkSQLResult* result = conn->ExecuteQuery(query, params, timeout);
 	if (result == NULL) {
 		PTRACE(2, traceStr << ": query failed - timeout or fatal error");
@@ -243,7 +243,7 @@ bool RunQuery(
 		delete result;
 		return false;
 	}
-	
+
 	if (result->GetNumRows() < 1)
 		PTRACE(3, traceStr << ": query returned no rows");
 	else if (result->GetNumFields() < 1) {
@@ -292,7 +292,7 @@ SQLPasswordAuth::SQLPasswordAuth(
 		RasServer::Instance()->Stop();
 		return;
 	}
-	
+
 	m_sqlConn = GkSQLConnection::Create(driverName, authName);
 	if (m_sqlConn == NULL) {
 		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
@@ -304,7 +304,7 @@ SQLPasswordAuth::SQLPasswordAuth(
 	}
 
 	SetCacheTimeout(cfg->GetInteger(authName, "CacheTimeout", 0));
-		
+
 	m_query = cfg->GetString(authName, "Query", "");
 	if (m_query.IsEmpty()) {
 		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
@@ -315,7 +315,7 @@ SQLPasswordAuth::SQLPasswordAuth(
 		return;
 	} else
 		PTRACE(4, "SQLAUTH\t" << GetName() << " query: " << m_query);
-		
+
 	if (!m_sqlConn->Initialize(cfg, authName)) {
 		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
 			"could not connect to the database");
@@ -343,7 +343,7 @@ bool SQLPasswordAuth::GetPassword(
 
 	if (!RunQuery("SQLAUTH\t" + GetName() + "('" + alias + "')", m_sqlConn, m_query, params, result, -1))
 		return false;
-		
+
 	password = result[0].first;
 	return true;
 }
@@ -351,7 +351,7 @@ bool SQLPasswordAuth::GetPassword(
 PString SQLPasswordAuth::GetInfo()
 {
 	PString result;
-	
+
 	if (m_sqlConn == NULL)
 		result += "  No SQL connection available\r\n";
 	else {
@@ -364,9 +364,9 @@ PString SQLPasswordAuth::GetInfo()
 		result += "  Busy Connections::           " + PString(info.m_busyConnections) + "\r\n";
 		result += "  Waiting Requests:            " + PString(info.m_waitingRequests) + "\r\n";
 	}
-	
+
 	result += ";\r\n";
-	
+
 	return result;
 }
 
@@ -386,7 +386,7 @@ SQLAliasAuth::SQLAliasAuth(
 		RasServer::Instance()->Stop();
 		return;
 	}
-	
+
 	m_sqlConn = GkSQLConnection::Create(driverName, authName);
 	if (m_sqlConn == NULL) {
 		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
@@ -398,7 +398,7 @@ SQLAliasAuth::SQLAliasAuth(
 	}
 
 	SetCacheTimeout(cfg->GetInteger(authName, "CacheTimeout", 0));
-	
+
 	m_query = cfg->GetString(authName, "Query", "");
 	if (m_query.IsEmpty()) {
 		PTRACE(1, "SQLAUTH\t" << GetName() << " module creation failed: "
@@ -409,7 +409,7 @@ SQLAliasAuth::SQLAliasAuth(
 		return;
 	} else
 		PTRACE(4, "SQLAUTH\t" << GetName() << " query: " << m_query);
-		
+
 	if (!m_sqlConn->Initialize(cfg, authName)) {
 		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
 			"could not connect to the database");
@@ -437,7 +437,7 @@ bool SQLAliasAuth::GetAuthConditionString(
 
 	if (!RunQuery("SQLAUTH\t" + GetName() + "('" + alias + "')", m_sqlConn, m_query, params, result, -1))
 		return false;
-		
+
 	authCond = result[0].first;
 	return true;
 }
@@ -445,7 +445,7 @@ bool SQLAliasAuth::GetAuthConditionString(
 PString SQLAliasAuth::GetInfo()
 {
 	PString result;
-	
+
 	if (m_sqlConn == NULL)
 		result += "  No SQL connection available\r\n";
 	else {
@@ -458,9 +458,9 @@ PString SQLAliasAuth::GetInfo()
 		result += "  Busy Connections::           " + PString(info.m_busyConnections) + "\r\n";
 		result += "  Waiting Requests:            " + PString(info.m_waitingRequests) + "\r\n";
 	}
-	
+
 	result += ";\r\n";
-	
+
 	return result;
 }
 
@@ -468,9 +468,9 @@ SQLAuth::SQLAuth(
 	const char* authName,
 	unsigned supportedRasChecks,
 	unsigned supportedMiscChecks
-	) 
-	: 
-	GkAuthenticator(authName, supportedRasChecks, supportedMiscChecks), 
+	)
+	:
+	GkAuthenticator(authName, supportedRasChecks, supportedMiscChecks),
 	m_sqlConn(NULL)
 {
 	PConfig* cfg = GetConfig();
@@ -483,7 +483,7 @@ SQLAuth::SQLAuth(
 		RasServer::Instance()->Stop();
 		return;
 	}
-	
+
 	m_sqlConn = GkSQLConnection::Create(driverName, authName);
 	if (m_sqlConn == NULL) {
 		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
@@ -546,27 +546,27 @@ SQLAuth::~SQLAuth()
 
 int SQLAuth::Check(
 	/// RRQ RAS message to be authenticated
-	RasPDU<H225_RegistrationRequest> & rrqPdu, 
+	RasPDU<H225_RegistrationRequest> & rrqPdu,
 	/// authorization data (reject reason, ...)
 	RRQAuthData & authData
 	)
 {
 	H225_RegistrationRequest & rrq = rrqPdu;
 	std::map<PString, PString> params;
-	
-	// get the username for User-Name attribute		
+
+	// get the username for User-Name attribute
 	params["u"] = GetUsername(rrqPdu);
 	params["g"] = Toolkit::GKName();
 
 	// Whether a full or additive registration
 	params["additive-rrq"] = rrq.HasOptionalField(H225_RegistrationRequest::e_additiveRegistration) ? 1 : 0;
-	
+
 	PIPSocket::Address addr = (rrqPdu.operator->())->m_peerAddr;
 
 	const PString traceStr = "SQLAUTH\t" + GetName() + "(RRQ from "
 		+ addr.AsString() + " Username=" + params["u"] + ")";
 	params["callerip"] = addr.AsString();
-	
+
 	addr = (rrqPdu.operator->())->m_localAddr;
 	params["gkip"] = addr.AsString();
 
@@ -580,7 +580,7 @@ int SQLAuth::Check(
 		params["aliases"] = aliasList;
 	}
 
-	GkSQLResult::ResultRow result;	
+	GkSQLResult::ResultRow result;
 	if (!RunQuery(traceStr, m_sqlConn, m_regQuery, params, result, -1)) {
 		authData.m_rejectReason = H225_RegistrationRejectReason::e_resourceUnavailable;
 		return GetDefaultStatus();
@@ -620,7 +620,7 @@ int SQLAuth::Check(
 	iter = FindField(result, "aliases");
 	if (iter != result.end()) {
 		PStringArray aliases = iter->first.Tokenise(",");
-		if (aliases.GetSize() > 0 
+		if (aliases.GetSize() > 0
 				&& rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
 			PINDEX i = 0;
 			while (i < rrq.m_terminalAlias.GetSize()) {
@@ -643,31 +643,31 @@ int SQLAuth::Check(
 			H323SetAliasAddress(aliases[i], rrq.m_terminalAlias[rrq.m_terminalAlias.GetSize()-1]);
 		}
 	}
-			
+
 	return e_ok;
 }
-		
+
 int SQLAuth::Check(
 	/// ARQ nessage to be authenticated
-	RasPDU<H225_AdmissionRequest> & arqPdu, 
+	RasPDU<H225_AdmissionRequest> & arqPdu,
 	/// authorization data (call duration limit, reject reason, ...)
 	ARQAuthData& authData
 	)
 {
 	const H225_AdmissionRequest &arq = arqPdu;
 	std::map<PString, PString> params;
-	
+
 	PIPSocket::Address addr = (arqPdu.operator->())->m_peerAddr;
 
 	const PString traceStr = "SQLAUTH\t" + GetName() + "(ARQ from "
 		+ addr.AsString() + " CRV=" + PString(arq.m_callReferenceValue.GetValue() & 0x7fff)
 		+ ")";
 	params["callerip"] = addr.AsString();
-		
-	// get the username for User-Name attribute		
+
+	// get the username for User-Name attribute
 	params["u"] = GetUsername(arqPdu, authData);
 	params["g"] = Toolkit::GKName();
-	
+
 	addr = (arqPdu.operator->())->m_localAddr;
 	params["gkip"] = addr.AsString();
 
@@ -678,8 +678,9 @@ int SQLAuth::Check(
 	params["answer"] = arq.m_answerCall ? "1" : "0";
 	params["arq"] = "1";
 	params["CallId"] = AsString(arq.m_callIdentifier.m_guid);
-	
-	GkSQLResult::ResultRow result;	
+	params["SrcInfo"] = AsString(arq.m_srcInfo, false);
+
+	GkSQLResult::ResultRow result;
 	if (!RunQuery(traceStr, m_sqlConn, m_callQuery, params, result, -1)) {
 		authData.m_rejectReason = H225_AdmissionRejectReason::e_resourceUnavailable;
 		return GetDefaultStatus();
@@ -751,7 +752,7 @@ int SQLAuth::Check(
 			PTRACE(5, traceStr << " - call redirected to the number " << s);
 		}
 	}
-			
+
 	iter = FindField(result, "redirectip");
 	if (iter != result.end()) {
 		const PString &s = iter->first;
@@ -760,7 +761,7 @@ int SQLAuth::Check(
 			for (PINDEX i = 0; i < tokens.GetSize(); ++i) {
 				PIPSocket::Address raddr;
 				WORD port = 0;
-					
+
 				if (GetTransportAddress(tokens[i], GK_DEF_ENDPOINT_SIGNAL_PORT, raddr, port)
 						&& raddr.IsValid() && port != 0) {
 					Route route("SQLAuth", raddr, port);
@@ -805,7 +806,7 @@ int SQLAuth::Check(
 			PTRACE(5, traceStr << " - clientAuthId = " << authData.m_clientAuthId);
 		}
 	}
-	
+
 	return e_ok;
 }
 
@@ -816,7 +817,7 @@ int SQLAuth::Check(
 {
 	H225_LocationRequest &lrq = lrqPdu;
 	std::map<PString, PString> params;
-	
+
 	PIPSocket::Address addr = (lrqPdu.operator->())->m_peerAddr;
 
 	const PString traceStr = "SQLAUTH\t" + GetName() + "(LRQ from "
@@ -824,7 +825,7 @@ int SQLAuth::Check(
 	params["nbip"] = addr.AsString();
 	params["nbid"] = RasServer::Instance()->GetNeighbors()->GetNeighborIdBySigAdr(addr);
 	params["g"] = Toolkit::GKName();
-	
+
 	addr = (lrqPdu.operator->())->m_localAddr;
 	params["gkip"] = addr.AsString();
 
@@ -849,7 +850,7 @@ int SQLAuth::Check(
 	if (lrq.HasOptionalField(H225_LocationRequest::e_bandWidth))
 		params["bandwidth"] = PString(lrq.m_bandWidth.GetValue());
 
-	GkSQLResult::ResultRow result;	
+	GkSQLResult::ResultRow result;
 	if (!RunQuery(traceStr, m_sqlConn, m_nbQuery, params, result, -1)) {
 		rejectReason = H225_LocationRejectReason::e_resourceUnavailable;
 		return GetDefaultStatus();
@@ -881,10 +882,10 @@ int SQLAuth::Check(
 			H323SetAliasAddress(aliases[i], lrq.m_destinationInfo[sz]);
 		}
 	}
-			
+
 	return e_ok;
 }
-	
+
 int SQLAuth::Check(
 	/// Q.931/H.225 Setup message to be authenticated
 	SetupMsg & setup,
@@ -893,7 +894,7 @@ int SQLAuth::Check(
 	)
 {
 	std::map<PString, PString> params;
-	
+
 	PIPSocket::Address addr;
 	setup.GetPeerAddr(addr);
 
@@ -901,7 +902,7 @@ int SQLAuth::Check(
 		+ addr.AsString() + " CRV=" + PString(setup.GetQ931().GetCallReference()) + ")";
 	params["callerip"] = addr.AsString();
 
-	// get the username for User-Name attribute		
+	// get the username for User-Name attribute
 	params["u"] = GetUsername(setup, authData);
 	params["g"] = Toolkit::GKName();
 
@@ -918,7 +919,7 @@ int SQLAuth::Check(
 	if (authData.m_call)
 		params["bandwidth"] = PString(authData.m_call->GetBandwidth());
 
-	GkSQLResult::ResultRow result;	
+	GkSQLResult::ResultRow result;
 	if (!RunQuery(traceStr, m_sqlConn, m_callQuery, params, result, -1)) {
 		authData.m_rejectCause = Q931::TemporaryFailure;
 		return GetDefaultStatus();
@@ -988,7 +989,7 @@ int SQLAuth::Check(
 			}
 		}
 	}
-			
+
 	iter = FindField(result, "redirectip");
 	if (iter != result.end()) {
 		const PString &s = iter->first;
@@ -997,7 +998,7 @@ int SQLAuth::Check(
 			for (PINDEX i = 0; i < tokens.GetSize(); ++i) {
 				PIPSocket::Address raddr;
 				WORD port = 0;
-					
+
 				if (GetTransportAddress(tokens[i], GK_DEF_ENDPOINT_SIGNAL_PORT, raddr, port)
 						&& raddr.IsValid() && port != 0) {
 					Route route("SQLAuth", raddr, port);
@@ -1049,7 +1050,7 @@ int SQLAuth::Check(
 PString SQLAuth::GetInfo()
 {
 	PString result;
-	
+
 	if (m_sqlConn == NULL)
 		result += "  No SQL connection available\r\n";
 	else {
@@ -1062,9 +1063,9 @@ PString SQLAuth::GetInfo()
 		result += "  Busy Connections::           " + PString(info.m_busyConnections) + "\r\n";
 		result += "  Waiting Requests:            " + PString(info.m_waitingRequests) + "\r\n";
 	}
-	
+
 	result += ";\r\n";
-	
+
 	return result;
 }
 

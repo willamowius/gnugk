@@ -220,6 +220,11 @@ Send a RequestInProgress (RIP) message with this delay value after receiving an 
 This switch can be used to extend the duration the caller will wait for an answer.
 No RIP is sent when the delay ist set to 0.
 
+<item><tt/CheckSenderIP=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Verify that the ARQ is sent from the same IP as the RRQ.
+
 </itemize>
 
 <sect1>Section &lsqb;RasSrv::AssignedAlias&rsqb;
