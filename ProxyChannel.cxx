@@ -73,8 +73,9 @@ using Routing::Route;
 const char* RoutedSec = "RoutedMode";
 const char* TLSSec = "TLS";
 const char* ProxySection = "Proxy";
-const char* H225_ProtocolID = "0.0.8.2250.0.2";
-const char* H245_ProtocolID = "0.0.8.245.0.3";
+char H225_ProtocolID[ProtocolID_BufferSize];
+char H245_ProtocolID[ProtocolID_BufferSize];
+
 #define UNDEFINED_PAYLOAD_TYPE		255
 #define H46019_AUTO_DETECTION_WAIT	4000 // wait n millisec before doing H.460.19 port auto-detection
 
@@ -6885,8 +6886,12 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 				fromDest = PTrue;
 				uuie.IncludeOptionalField(H225_Facility_UUIE::e_callIdentifier);
 				uuie.m_callIdentifier = *dynamic_cast<const H225_CallIdentifier *>(parm);
-				//uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
-				uuie.m_protocolIdentifier.SetValue("0.0.8.2250.0.6");
+				// if configured minimum H.225 version is > 6 use that otherwise use at least 6
+                if (ProtocolVersion(H225_ProtocolID) > 6) {
+                    uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
+                } else {
+                    uuie.m_protocolIdentifier.SetValue(H225_ProtocolIDv6);
+                }
 				uuie.RemoveOptionalField(H225_Facility_UUIE::e_conferenceID);
 			}
 			break;
@@ -7452,7 +7457,11 @@ bool CallSignalSocket::SendTunneledH245(const PPER_Stream & strm)
 		uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
 	} else {
 		// starting with version 4 we send reason transportedInformation plus callID
-		facility_uuie.m_protocolIdentifier.SetValue("0.0.8.2250.0.4");	// we are at least version 4
+        if (ProtocolVersion(H225_ProtocolID) > 4) {
+            facility_uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
+        } else {
+            facility_uuie.m_protocolIdentifier.SetValue(H225_ProtocolIDv4);	// we are at least version 4
+        }
 		facility_uuie.m_reason.SetTag(H225_FacilityReason::e_transportedInformation);
 		if (m_call) {
 			facility_uuie.IncludeOptionalField(H225_Facility_UUIE::e_callIdentifier);
@@ -7486,7 +7495,12 @@ bool CallSignalSocket::SendTunneledH245(const H245_MultimediaSystemControlMessag
 		uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
 	} else {
 		// starting with version 4 we send reason transportedInformation plus callID
-		facility_uuie.m_protocolIdentifier.SetValue("0.0.8.2250.0.4");	// we are at least version 4
+        if (ProtocolVersion(H225_ProtocolID) > 4) {
+            facility_uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
+        } else {
+            facility_uuie.m_protocolIdentifier.SetValue(H225_ProtocolIDv4);	// we are at least version 4
+        }
+		facility_uuie.m_protocolIdentifier.SetValue(H225_ProtocolIDv4);	// we are at least version 4
 		facility_uuie.m_reason.SetTag(H225_FacilityReason::e_transportedInformation);
 		if (m_call) {
 			facility_uuie.IncludeOptionalField(H225_Facility_UUIE::e_callIdentifier);

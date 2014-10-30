@@ -41,8 +41,14 @@
 
 #define GK_DEF_BANDWIDTH			1280
 
-extern const char *H225_ProtocolID;
-extern const char *H245_ProtocolID;
+const char * const H225_ProtocolIDv2 = "0.0.8.2250.0.2";
+const char * const H225_ProtocolIDv4 = "0.0.8.2250.0.4";
+const char * const H225_ProtocolIDv6 = "0.0.8.2250.0.6";
+const char * const H245_ProtocolIDv3 = "0.0.8.245.0.3";
+
+const unsigned ProtocolID_BufferSize = 20;
+extern char H225_ProtocolID[];
+extern char H245_ProtocolID[];
 
 //+++++++++++++++++++++++++++++++++++++++++++++
 // GnuGk OID

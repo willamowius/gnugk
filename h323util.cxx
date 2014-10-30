@@ -183,13 +183,13 @@ PString AsString(const H323TransportAddress & ta)
 PString AsString(const H225_EndpointType & terminalType)
 {
 	PString terminalTypeString;
-			
+
 	if (terminalType.HasOptionalField(H225_EndpointType::e_terminal))
 		terminalTypeString = ",terminal";
 
 	if (terminalType.HasOptionalField(H225_EndpointType::e_gateway))
 		terminalTypeString += ",gateway";
-	
+
 	if (terminalType.HasOptionalField(H225_EndpointType::e_mcu))
 		terminalTypeString += ",mcu";
 
@@ -203,7 +203,7 @@ PString AsString(const H225_EndpointType & terminalType)
 
 	if (terminalTypeString.IsEmpty())
 		terminalTypeString = ",unknown";
-	
+
 	return terminalTypeString.Mid(1);
 }
 
@@ -640,7 +640,7 @@ bool IsSet(const H323TransportAddress & addr)
 	return (addr != H323TransportAddress());
 }
 
-bool IsValidE164(const PString & s) 
+bool IsValidE164(const PString & s)
 {
 	return (!s.IsEmpty() && strspn(s, "1234567890*#+,") == strlen(s));
 }
@@ -653,11 +653,11 @@ PString GetGUIDString(
 {
 	if (id.GetSize() < 16)
 		return "Invalid";
-		
+
 	PString idstr;
-					
+
 	for (int j = 0, i = 0; j < 4; j++) {
-		const unsigned hex = ((unsigned)(id[i])<<24) | ((unsigned)(id[i+1])<<16) 
+		const unsigned hex = ((unsigned)(id[i])<<24) | ((unsigned)(id[i+1])<<16)
 			| ((unsigned)(id[i+2])<<8) | ((unsigned)(id[i+3]));
 		i += 4;
 
@@ -728,7 +728,7 @@ PINDEX FindAlias(
 	for (PINDEX i = 0; i < sz; i++)
 		if (alias == AsString(aliases[i], FALSE))
 			return i;
-			
+
 	return P_MAX_INDEX;
 }
 
@@ -741,10 +741,10 @@ int MatchPrefix(
 		return 0;
 
 	const bool negative = (prefix[0] == '!');
-	
+
 	int i = 0;
 	int j = (negative ? 1 : 0);
-	
+
 	while (prefix[j] != 0) {
 		const char c = prefix[j];
 		if (alias[i] == 0 || (c != '.' && c != '%' && c != alias[i]))
@@ -752,7 +752,7 @@ int MatchPrefix(
 		i++;
 		j++;
 	}
-	
+
 	return negative ? -j + 1 : j;
 }
 
@@ -766,7 +766,7 @@ PString RewriteString(
 {
 	if (prefix == NULL || value == NULL)
 		return s;
-	
+
 	PString result = value + s.Mid(strlen(prefix));
 
 	if (postdialmatch)
@@ -789,7 +789,7 @@ PString RewriteString(
 				result[dotDstOffset++] = s[dotSrcOffset++];
 			}
 		}
-				
+
 		lastDstDot = strchr(lastDstDot, '.');
 	}
 
@@ -805,7 +805,7 @@ PString RewriteWildcard(const PString & s, const PString & expression)
 
 	if (o.IsEmpty())
 		return s;
-	
+
 	int b1 = o.Find('{');
 	if (b1 == P_MAX_INDEX) return o; /// No rewrite
 
@@ -822,7 +822,7 @@ PString RewriteWildcard(const PString & s, const PString & expression)
 	   int start = -1;
        if (exp.Find('^') != P_MAX_INDEX)  start = 1;
 	   else if (exp.Find('$') != P_MAX_INDEX) start = 0;
-	  
+
 	   if (start < 0) return s;   /// Logic error ignore rewrite
 
 	   int c1 = exp.Find('(');
@@ -894,7 +894,7 @@ void RemoveH460Descriptor(unsigned feat, H225_ArrayOf_FeatureDescriptor & featur
                     features[j-1] = features[j];
                 features.SetSize(features.GetSize() - 1);
                 return;
-            }   
+            }
         }
     }
 }
@@ -908,3 +908,11 @@ void AddH460Feature(H225_ArrayOf_FeatureDescriptor & desc, const H460_Feature & 
 }
 #endif
 
+unsigned ProtocolVersion(const char * protocolIdentifier)
+{
+    PString protocolId(protocolIdentifier);
+    PINDEX lastDot = protocolId.FindLast('.');
+    if (lastDot == P_MAX_INDEX)
+        return 0;
+    return protocolId.Mid(lastDot + 1).AsUnsigned();
+}

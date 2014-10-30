@@ -148,7 +148,7 @@ PINDEX GetBestAliasAddressIndex(
     or secondaryTags parameter to #GetBestAliasAddressIndex#.
 */
 inline unsigned AliasAddressTagMask(unsigned tag) { return 1U << tag; }
-	
+
 /** Find an alias which tag is of type specified by #primaryTags#.
     If no such aliases are found, #secondaryTags# are examined.
     If still no match is found and #exactMatch# is false, the first
@@ -164,10 +164,10 @@ PString GetBestAliasAddressString(
 	unsigned secondaryTags = 0 /// ORed tag flags (BestAliasTagMask)
 	);
 
-/** Return 128-bit globally unique identifier as a string composed of four 
-    32-bit hex numbers, with leading zeros skipped or not. This format is 
+/** Return 128-bit globally unique identifier as a string composed of four
+    32-bit hex numbers, with leading zeros skipped or not. This format is
     compatible with Cisco equipment.
-	
+
     @return
     A string with properly formatted identifier.
 */
@@ -193,9 +193,9 @@ PINDEX FindAlias(
 /** Check if the given alias matches the prefix. The prefix can be preceeded
     with '!' to force negative match and contain dots ('.') or percent signs ('%')
     to match any character.
-	
+
     @return
-    0 if no match is found, a positive integer if normal match is found 
+    0 if no match is found, a positive integer if normal match is found
     (the integer gives the match length) or a negative integer if '!' match is found
     (absolute value gives the match length).
 */
@@ -203,13 +203,13 @@ int MatchPrefix(
 	const char* alias,
 	const char* prefix
 	);
-	
-/** Rewrite the string #s# replacing #prefix# with #value#. The #prefix# 
+
+/** Rewrite the string #s# replacing #prefix# with #value#. The #prefix#
     and #value# strings can contain dots ('.') to copy source characters
     to the destination string. The #prefix# string can also contain percent
     signs ('%') to match any character and skip copying, as it is done in case
     of dots. Examples (prefix=value):
-	
+
     49=111149 - this will change numbers like 497654321 into 1111497654321
 	49..1=111149..1 - this will change numbers like 49771777 into 111149771777
 	%%%%49=49 - this will change numbers like 777749123456 into 49123456
@@ -219,10 +219,10 @@ int MatchPrefix(
 	1.2.3=4.5.6 - this will work (112233 will be changed to 415263)
 	1..2=1.2.3 - this will work (1122 will be changed to 11223)
 	1.2.3=1..3 - this won't work
-	
+
 	The main idea is that "dot strips" on the right hand side of the rule
     have to match "dot strips" of the same length on the left hand side of the rule.
-	
+
     @return	Rewritten string.
 */
 PString RewriteString(
@@ -233,22 +233,22 @@ PString RewriteString(
 	bool postdialmatch = false
 	);
 
-/** Rewrite Wildcard match 
+/** Rewrite Wildcard match
 	Lightweight Regex match rewrite.
 	Only basic number matching supported at the moment
-	Example  
+	Example
 		12345678  {\1}@mydomain.com  = 12345678@mydomain.com
 		12345678  {^\d(4)}@mydomain.com = 1234@mydomain.com
 		12345678  {\d(4)$}@mydomain.com = 5678@mydomain.com
-	
+
 	@return	Rewritten string.
 */
 PString RewriteWildcard(
 	const PString & s,          /// original string to rewrite
-	const PString & expression /// prefix string that matched					
+	const PString & expression /// prefix string that matched
 	);
 
-/** ReplaceParameters 
+/** ReplaceParameters
 	General parameter rewrite procedure.
 	@return	Rewritten string.
 */
@@ -264,5 +264,8 @@ void RemoveH460Descriptor(unsigned feat, H225_ArrayOf_FeatureDescriptor & featur
 #ifdef HAS_H460
 void AddH460Feature(H225_ArrayOf_FeatureDescriptor & desc, const H460_Feature & newFeat);
 #endif
+
+// extract the version digit from H.225 or H.245 prodtocolIdentifier strings
+unsigned ProtocolVersion(const char * protocolIdentifier);
 
 #endif // H323UTIL_H

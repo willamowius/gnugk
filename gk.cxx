@@ -201,6 +201,8 @@ const char * KnownConfigEntries[][2] = {
 	{ "Gatekeeper::Main", "MaxStatusClients" },
 	{ "Gatekeeper::Main", "MaximumBandwidthPerCall" },
 	{ "Gatekeeper::Main", "MinimumBandwidthPerCall" },
+	{ "Gatekeeper::Main", "MinH225Version" },
+	{ "Gatekeeper::Main", "MinH245Version" },
 	{ "Gatekeeper::Main", "MulticastGroup" },
 	{ "Gatekeeper::Main", "MulticastPort" },
 	{ "Gatekeeper::Main", "Name" },

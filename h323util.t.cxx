@@ -14,6 +14,7 @@
 
 #include "config.h"
 #include "h323util.h"
+#include "gk_const.h"
 #include <h323pdu.h>
 #include "gtest/gtest.h"
 
@@ -351,6 +352,15 @@ TEST_F(H323UtilTest, RewriteWildcard) {
 	EXPECT_STREQ("12345678@mydomain.com", RewriteWildcard("12345678", "{\\1}@mydomain.com"));
 	EXPECT_STREQ("1234@mydomain.com", RewriteWildcard("12345678", "{^\\d(4)}@mydomain.com"));
 	EXPECT_STREQ("5678@mydomain.com", RewriteWildcard("12345678", "{\\d(4)$}@mydomain.com"));
+}
+
+TEST_F(H323UtilTest, ProtocolVersion) {
+	EXPECT_EQ(0, ProtocolVersion("invalid"));
+	EXPECT_EQ(2, ProtocolVersion(H225_ProtocolIDv2));
+	EXPECT_EQ(4, ProtocolVersion(H225_ProtocolIDv4));
+	EXPECT_EQ(6, ProtocolVersion(H225_ProtocolIDv6));
+	EXPECT_EQ(7, ProtocolVersion("0.0.8.2250.0.7"));
+	EXPECT_EQ(3, ProtocolVersion(H245_ProtocolIDv3));
 }
 
 
