@@ -1829,13 +1829,15 @@ PConfig* Toolkit::ReloadConfig()
 
 	PTrace::SetLevel(GkConfig()->GetInteger("TraceLevel", PTrace::GetLevel()));
 
-	PString minH225Version = GkConfig()->GetString("MinH225Version", H225_ProtocolIDv2);
-	strncpy(H225_ProtocolID, (const char*)minH225Version, ProtocolID_BufferSize);
-	PTRACE(3, "Setting minimum H.225 version for GK generated messages to " << PString(H225_ProtocolID));
-
-	PString minH245Version = GkConfig()->GetString("MinH225Version", H245_ProtocolIDv3);
-	strncpy(H245_ProtocolID, (const char*)minH245Version, ProtocolID_BufferSize);
-	PTRACE(3, "Setting minimum H.245 version for GK generated messages to " << PString(H245_ProtocolID));
+	int minH323Version = GkConfig()->GetInteger("MinH323Version", 2);
+	if (minH323Version < 1)
+        minH323Version = 1;
+	if (minH323Version > MAX_H323_VERSION)
+        minH323Version = MAX_H323_VERSION;
+	strncpy(H225_ProtocolID, H225_Protocol_Version[minH323Version], ProtocolID_BufferSize);
+	PTRACE(3, "Minimum H.225 version for GK generated messages: " << PString(H225_ProtocolID));
+	strncpy(H245_ProtocolID, H245_Protocol_Version[minH323Version], ProtocolID_BufferSize);
+	PTRACE(3, "Minimum H.245 version for GK generated messages: " << PString(H245_ProtocolID));
 
 	// set the max size of an array in an ASN encoded message (eg. max length of alias list)
 	PINDEX maxArraySize = GkConfig()->GetInteger("MaxASNArraySize", 0);

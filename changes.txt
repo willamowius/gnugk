@@ -1,6 +1,6 @@
 Changes from 3.7 to 3.8
 =======================
-- new switches [Gatekeeper::Main] MinH225Version= and MinH245Version=
+- new switch [Gatekeeper::Main] MinH323Version= 
 - BUGFIX(RasTbl.cxx) stop generating predictable endpoint IDs
 - new switch [RasSrv::ARQFeatures] CheckSenderIP=1
 - new SQLAuth variable %{SrcInfo}

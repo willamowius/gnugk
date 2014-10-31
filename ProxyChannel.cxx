@@ -76,6 +76,29 @@ const char* ProxySection = "Proxy";
 char H225_ProtocolID[ProtocolID_BufferSize];
 char H245_ProtocolID[ProtocolID_BufferSize];
 
+const char *H225_Protocol_Version[MAX_H323_VERSION+1] = {
+    "0.0.8.2250.0.0",   // dummy, never used
+    "0.0.8.2250.0.1",
+    "0.0.8.2250.0.2",
+    "0.0.8.2250.0.3",
+    "0.0.8.2250.0.4",
+    "0.0.8.2250.0.5",
+    "0.0.8.2250.0.6",
+    "0.0.8.2250.0.7"
+};
+
+const char *H245_Protocol_Version[MAX_H323_VERSION+1] = {
+    "0.0.8.245.0.0",    // dummy, never used
+    "0.0.8.245.0.2",
+    "0.0.8.245.0.3",
+    "0.0.8.245.0.5",
+    "0.0.8.245.0.7",
+    "0.0.8.245.0.9",
+    "0.0.8.245.0.13",
+    "0.0.8.245.0.15"
+};
+
+
 #define UNDEFINED_PAYLOAD_TYPE		255
 #define H46019_AUTO_DETECTION_WAIT	4000 // wait n millisec before doing H.460.19 port auto-detection
 

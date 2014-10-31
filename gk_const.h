@@ -46,9 +46,12 @@ const char * const H225_ProtocolIDv4 = "0.0.8.2250.0.4";
 const char * const H225_ProtocolIDv6 = "0.0.8.2250.0.6";
 const char * const H245_ProtocolIDv3 = "0.0.8.245.0.3";
 
+const int MAX_H323_VERSION = 7;  // for messages we generate
 const unsigned ProtocolID_BufferSize = 20;
 extern char H225_ProtocolID[];
 extern char H245_ProtocolID[];
+extern const char *H225_Protocol_Version[];
+extern const char *H245_Protocol_Version[];
 
 //+++++++++++++++++++++++++++++++++++++++++++++
 // GnuGk OID

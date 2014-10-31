@@ -556,19 +556,11 @@ By default it will force the drop of the call before unregistering the endpoint.
 A situation may occur if there are bandwidth congestion, RRQ packets are being lost but an active call (likely causing the congestion) is still in progress.
 By enabling this switch the registration remains current until a RRQ is received or the apparent call either times out or is dropped. 
 
-<item><tt/MinH225Version=0.0.8.2250.0.7/<newline>
-Default: <tt>0.0.8.2250.0.2</tt><newline>
+<item><tt/MinH323Version=7/<newline>
+Default: <tt>2</tt><newline>
 <p>
-Set the minimum H.225 version for the protocolIdentifier of gatekeeper generated messages.
-Usually it is not necessary to set this switch and its best to leave the version low for
-interoperability with older endpoints. Use this switch if you are dealing with endpoints that
-eg. won't enable features when they receive messages with a low version number.
-
-<item><tt/MinH245Version=0.0.8.245.0.15/<newline>
-Default: <tt>0.0.8.245.0.3</tt><newline>
-<p>
-Set the minimum H.245 version for the protocolIdentifier of gatekeeper generated messages.
-Usually it is not necessary to set this switch and its best to leave the version low for
+Set the minimum H.225 and H.245 protocol identifiers for gatekeeper generated messages.
+Usually it is not necessary to set this switch and it is best to leave the version low for
 interoperability with older endpoints. Use this switch if you are dealing with endpoints that
 eg. won't enable features when they receive messages with a low version number.
 
