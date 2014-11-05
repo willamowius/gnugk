@@ -57,7 +57,7 @@ public:
 	typedef std::pair<NetworkAddress, IPAuthPrefix> IPAuthEntry;
 
 	/// Create text file based authenticator
-	FileIPAuth( 
+	FileIPAuth(
 		/// authenticator name from Gatekeeper::Auth section
 		const char * authName
 		);
@@ -72,14 +72,14 @@ protected:
 		WORD port, /// port number the request comes from
 		const PString & number,
 		bool overTLS);
-				
+
 private:
 	FileIPAuth();
 	/* No copy constructor allowed */
 	FileIPAuth(const FileIPAuth &);
 	/* No operator= allowed */
 	FileIPAuth& operator=(const FileIPAuth &);
-	
+
 private:
 	typedef std::vector<IPAuthEntry> IPAuthList;
 
@@ -87,7 +87,7 @@ private:
 };
 
 
-IPAuthBase::IPAuthBase( 
+IPAuthBase::IPAuthBase(
 	/// authenticator name from Gatekeeper::Auth section
 	const char * authName,
 	/// bitmask with supported RAS checks
@@ -104,7 +104,7 @@ IPAuthBase::~IPAuthBase()
 
 int IPAuthBase::Check(
 	/// GRQ RAS message to be authenticated
-	RasPDU<H225_GatekeeperRequest> & grqPdu, 
+	RasPDU<H225_GatekeeperRequest> & grqPdu,
 	/// gatekeeper request reject reason
 	unsigned & /*rejectReason*/
 	)
@@ -114,7 +114,7 @@ int IPAuthBase::Check(
 
 int IPAuthBase::Check(
 	/// RRQ RAS message to be authenticated
-	RasPDU<H225_RegistrationRequest> & rrqPdu, 
+	RasPDU<H225_RegistrationRequest> & rrqPdu,
 	/// authorization data (reject reason, ...)
 	RRQAuthData & /*authData*/
 	)
@@ -123,8 +123,17 @@ int IPAuthBase::Check(
 }
 
 int IPAuthBase::Check(
+	/// ARQ to be authenticated/authorized
+	RasPDU<H225_AdmissionRequest> & arqPdu,
+	/// authorization data (call duration limit, reject reason, ...)
+	ARQAuthData & /*authData*/)
+{
+	return CheckAddress(arqPdu->m_peerAddr, arqPdu->m_peerPort, PString::Empty());
+}
+
+int IPAuthBase::Check(
 	/// LRQ nessage to be authenticated
-	RasPDU<H225_LocationRequest> & lrqPdu, 
+	RasPDU<H225_LocationRequest> & lrqPdu,
 	/// location request reject reason
 	unsigned & /*rejectReason*/
 	)
@@ -161,7 +170,7 @@ struct IPAuthEntry_greater : public binary_function<FileIPAuth::IPAuthEntry, Fil
 	bool operator()(
 		const FileIPAuth::IPAuthEntry & a,
 		const FileIPAuth::IPAuthEntry & b
-		) const 
+		) const
 	{
 		const int diff = a.first.Compare(b.first);
 		if (diff == 0)
@@ -172,14 +181,14 @@ struct IPAuthEntry_greater : public binary_function<FileIPAuth::IPAuthEntry, Fil
 
 } /* anonymous namespace */
 
-FileIPAuth::FileIPAuth( 
+FileIPAuth::FileIPAuth(
 	/// authenticator name from Gatekeeper::Auth section
 	const char * authName
 	) : IPAuthBase(authName)
 {
 	bool dynamicCfg = false;
 	PConfig * cfg = GkConfig();
-	
+
 	if (cfg->HasKey(FileIPAuthSecName, "include")) {
 		const PFilePath fp(cfg->GetString(FileIPAuthSecName, "include", ""));
 		if (!PFile::Exists(fp)) {
@@ -192,17 +201,17 @@ FileIPAuth::FileIPAuth(
 	}
 
 	PStringToString kv = cfg->GetAllKeyValues(FileIPAuthSecName);
-	
+
 	m_authList.reserve(kv.GetSize());
-	
+
 	for (PINDEX i = 0; i < kv.GetSize(); i++) {
 		const PString & key = kv.GetKeyAt(i);
 		int position = 0;
 		if (key[0] == '#')
 			continue;
-		
+
 		IPAuthEntry entry;
-		
+
 		entry.first = (key == "*" || key == "any") ? NetworkAddress() : NetworkAddress(key);
 
 		PString auth(kv.GetDataAt(i));
@@ -222,12 +231,12 @@ FileIPAuth::FileIPAuth(
 			entry.second.auth = true;
 			entry.second.onlyTLS = true;
 		}
-		
+
 		m_authList.push_back(entry);
 	}
 
 	std::stable_sort(m_authList.begin(), m_authList.end(), IPAuthEntry_greater());
-	
+
 	PTRACE(m_authList.empty() ? 1 : 5, GetName() << "\t" << m_authList.size() << " entries loaded");
 
 	if (PTrace::CanTrace(6)) {
@@ -235,7 +244,7 @@ FileIPAuth::FileIPAuth(
 		strm << GetName() << " entries:\n";
 		IPAuthList::const_iterator entry = m_authList.begin();
 		while (entry != m_authList.end()) {
-			strm << "\t" << entry->first.AsString() << " = " 
+			strm << "\t" << entry->first.AsString() << " = "
 				<< (entry->second.auth ? "allow" : "reject")
 				<< (entry->second.auth ? entry->second.PrintOn() : "") << endl;
 			entry++;
@@ -267,7 +276,7 @@ int FileIPAuth::CheckAddress(
 			}
 			if (entry->second.auth && !number.IsEmpty()) {
 				int len = entry->second.PrefixMatch(number);
-				PTRACE(5, GetName() << "\tIP " << addr.AsString() 
+				PTRACE(5, GetName() << "\tIP " << addr.AsString()
 					<< (len ? " accepted" : " rejected")
 					<< " for Called " << number);
 				return len ? e_ok : e_fail;
@@ -403,7 +412,7 @@ std::string IPAuthPrefix::PrintPrefix() const
 
 	return prefix;
 }
-				
+
 namespace { // anonymous namespace
 	GkAuthCreator<FileIPAuth> FileIPAuthCreator("FileIPAuth");
 } // end of anonymous namespace

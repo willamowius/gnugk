@@ -177,7 +177,7 @@ using RadAliasAuth takes place (SetupUnreg).
 This section defines a list of IP addresses/networks which are allowed
 to access gatekeeper resources. A list of allowed prefixes can be specified
 together with an IP address. Supported Gatekeeper::Auth events are:
-<tt/GRQ/, <tt/RRQ/, <tt/LRQ/, <tt/Setup/ and <tt/SetupUnreg/. Format
+<tt/GRQ/, <tt/RRQ/, <tt/ARQ/, <tt/LRQ/, <tt/Setup/ and <tt/SetupUnreg/. Format
 of a single entry is:
 <p><tt/IP=[allow | reject | onlyTLS][;prefix[,prefix...]]/
 <p>
@@ -194,7 +194,7 @@ The destination prefixes are only checked on Setup messages.
 <descrip><tag/Example #1:/
 <tscreen><verb>
 [Gatekeeper::Auth]
-FileIPAuth=required;RRQ,LRQ,Setup
+FileIPAuth=required;RRQ,ARQ,LRQ,Setup
 
 [FileIPAuth]
 192.168.1.240=reject

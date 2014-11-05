@@ -24,6 +24,7 @@ public:
 	enum SupportedChecks {
 		IPAuthRasChecks = RasInfo<H225_GatekeeperRequest>::flag
 			| RasInfo<H225_RegistrationRequest>::flag
+            | RasInfo<H225_AdmissionRequest>::flag
 			| RasInfo<H225_LocationRequest>::flag,
 		IPAuthMiscChecks = e_Setup | e_SetupUnreg
 	};
@@ -32,43 +33,51 @@ public:
 	virtual ~IPAuthBase();
 
 	/** Authenticate using data from GRQ RAS message.
-	
 		@return:
 		#GkAuthenticator::Status enum# with the result of authentication.
 	*/
 	virtual int Check(
 		/// GRQ RAS message to be authenticated
-		RasPDU<H225_GatekeeperRequest> & grqPdu, 
+		RasPDU<H225_GatekeeperRequest> & grqPdu,
 		/// gatekeeper request reject reason
 		unsigned & rejectReason
 		);
 
 	/** Authenticate using data from RRQ RAS message.
-	
 		@return:
 		#GkAuthenticator::Status enum# with the result of authentication.
 	*/
 	virtual int Check(
 		/// RRQ RAS message to be authenticated
-		RasPDU<H225_RegistrationRequest> & rrqPdu, 
+		RasPDU<H225_RegistrationRequest> & rrqPdu,
 		/// authorization data (reject reason, ...)
 		RRQAuthData & authData
 		);
-		
+
+
+	/** Authenticate using data from ARQ RAS message.
+		@return:
+		#GkAuthenticator::Status enum# with the result of authentication.
+	*/
+	virtual int Check(
+		/// ARQ to be authenticated/authorized
+		RasPDU<H225_AdmissionRequest> & request,
+		/// authorization data (call duration limit, reject reason, ...)
+		ARQAuthData & authData
+		);
+
 	/** Authenticate using data from LRQ RAS message.
-	
 		@return:
 		#GkAuthenticator::Status enum# with the result of authentication.
 	*/
 	virtual int Check(
 		/// LRQ nessage to be authenticated
-		RasPDU<H225_LocationRequest> & lrqPdu, 
+		RasPDU<H225_LocationRequest> & lrqPdu,
 		/// location request reject reason
 		unsigned & rejectReason
 		);
 
 	/** Authenticate using data from Q.931/H.225.0 Setup message.
-	
 		@return:
 		#GkAuthenticator::Status enum# with the result of authentication.
 	*/
@@ -78,10 +87,10 @@ public:
 		/// authorization data (call duration limit, reject reason, ...)
 		SetupAuthData & authData
 		);
-	
-protected:		
+
+protected:
 	/// Create IP based authenticator
-	IPAuthBase( 
+	IPAuthBase(
 		/// authenticator name from Gatekeeper::Auth section
 		const char * authName,
 		/// bitmask with supported RAS checks
