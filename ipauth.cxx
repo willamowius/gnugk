@@ -128,7 +128,14 @@ int IPAuthBase::Check(
 	/// authorization data (call duration limit, reject reason, ...)
 	ARQAuthData & /*authData*/)
 {
-	return CheckAddress(arqPdu->m_peerAddr, arqPdu->m_peerPort, PString::Empty());
+    H225_AdmissionRequest & arq = arqPdu;
+	PString number;
+	if (arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo)
+        && arq.m_destinationInfo.GetSize() > 0) {
+        number = AsString(arq.m_destinationInfo[0], false);
+    }
+
+	return CheckAddress(arqPdu->m_peerAddr, arqPdu->m_peerPort, number);
 }
 
 int IPAuthBase::Check(
