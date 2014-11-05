@@ -1,6 +1,6 @@
 Changes from 3.7 to 3.8
 =======================
-- FileIPAuth now supports checking of ARQs
+- FileIPAuth now supports checking ARQs
 - new switch [Gatekeeper::Main] MinH323Version= 
 - BUGFIX(RasTbl.cxx) stop generating predictable endpoint IDs
 - new switch [RasSrv::ARQFeatures] CheckSenderIP=1
