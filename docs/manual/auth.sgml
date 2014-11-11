@@ -189,7 +189,7 @@ entry, so rule 192.168.1.1=allow takes precedence over 192.168.1.0/24=reject.
 <ref id="tls" name="TLS"> secured connection and means <tt/'reject'/ for unencrypted calls.
 <p>
 In addition the to endpoint's IP, you can specify a list of prefixes that the endpoint may call.
-The destination prefixes are only checked on Setup messages.
+The destination prefixes are only checked on ARQ and Setup messages.
 
 <descrip><tag/Example #1:/
 <tscreen><verb>
