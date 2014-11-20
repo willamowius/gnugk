@@ -268,7 +268,7 @@ protected:
 	virtual bool OnRequest(SetupRequest &)	   { return false; }
 	virtual bool OnRequest(FacilityRequest &)  { return false; }
 
-	virtual void LoadConfig(const PString & instance) { }	// should be used to load config, always called after the policy object is created
+	virtual void LoadConfig(const PString & /* instance */) { }	// should be used to load config, always called after the policy object is created
 
 protected:
 	/// human readable name for the policy - it should be set inside constructors
@@ -510,8 +510,8 @@ protected:
 		DestinationRoutes & destination) = 0;
 
 	virtual bool ResolveRoute(
-		RoutingRequest & request,
-		DestinationRoutes & destination
+		RoutingRequest & /* request */,
+		DestinationRoutes & /* destination */
 		) { return true; }
 
 protected:

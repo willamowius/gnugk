@@ -3,7 +3,7 @@
 // ProxyChannel.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2002
-// Copyright (c) 2002-2013, Jan Willamowius
+// Copyright (c) 2002-2014, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -8570,14 +8570,14 @@ void H46019Session::Dump() const
 void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP)
 {
 	PTRACE(7, "JW RTP DB: multiplexID=" << receivedMultiplexID
-					 << " isRTCP=" << isRTCP << " ka=" << IsKeepAlive(data, len, isRTCP)
+					 << " isRTCP=" << isRTCP << " ka=" << IsKeepAlive(len, isRTCP)
 					 << " from=" << AsString(fromAddress));
 	Dump();
 
 	bool isFromA = (receivedMultiplexID == m_multiplexID_fromA);
 	bool isFromB = (receivedMultiplexID == m_multiplexID_fromB);
 	callptr call = CallTable::Instance()->FindCallRec(m_callid);
-	if (IsKeepAlive(data, len, isRTCP)) {
+	if (IsKeepAlive(len, isRTCP)) {
 		if (isFromA) {
 			if (isRTCP) {
 				m_addrA_RTCP = fromAddress;
