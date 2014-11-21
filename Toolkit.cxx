@@ -3909,8 +3909,8 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 
 	if (!rewriteChar) {
 		PStringArray rewrite  = rewriteChar.Tokenise(";");
-		for (PINDEX i=0; i < rewrite.GetSize(); ++i) {
-			PStringArray cRule = rewrite[i].Tokenise(",");
+		for (PINDEX j=0; i < rewrite.GetSize(); ++j) {
+			PStringArray cRule = rewrite[j].Tokenise(",");
 			if (cRule.GetSize() == 2) {
 				source.Replace(cRule[0], cRule[1],true);
 				changed = true;

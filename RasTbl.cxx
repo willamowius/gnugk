@@ -1045,7 +1045,7 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 		params["Vendor"] = vendor + version;
 		msg = "URQ|"+ ReplaceParameters(format, params) + ";\r\n";
 	} else {
-		PString msg(PString::Printf, "URQ|%s|%s|%s;\r\n",
+		msg = PString(PString::Printf, "URQ|%s|%s|%s;\r\n",
 			(const unsigned char *) AsDotString(GetRasAddress()),
 			(const unsigned char *) GetEndpointIdentifier().GetValue(),
 			(const unsigned char *) urq.m_reason.GetTagName());

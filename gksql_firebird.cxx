@@ -564,7 +564,6 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 	
 	(*g_isc_start_transaction)(status, &tr, 1, &conn, 0, NULL);
 	if (status[0] == 1 && status[1] != 0) {
-		char errormsg[FB_BUFF_SIZE];
 		const ISC_STATUS *pvector = status;
 		(*g_fb_interpret)(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
 		return new GkIBSQLResult(status[1], errormsg);

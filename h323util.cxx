@@ -2,7 +2,7 @@
 //
 // H.323 utility functions
 //
-// Copyright (c) 2000-2013, Jan Willamowius
+// Copyright (c) 2000-2014, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -845,7 +845,6 @@ PString ReplaceParameters(const PString & queryStr, const std::map<PString, PStr
 	PString finalQuery = queryStr;
 	PINDEX pos = 0;
 	std::map<PString, PString>::const_iterator it;
-	PString var;
 
 	while (pos != P_MAX_INDEX) {
 		pos = finalQuery.Find('%', pos);
