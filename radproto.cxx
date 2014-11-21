@@ -4,7 +4,7 @@
  * RADIUS protocol classes.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2003-2012, Jan Willamowius
+ * Copyright (c) 2003-2014, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -912,7 +912,7 @@ bool RadiusPDU::AppendAttr(
 {
 	const PINDEX len = GetLength();
 	const PINDEX attrLen = RadiusAttr::FixedHeaderLength + 4;
-	if (attrLen > RadiusAttr::MaxLength || (len + attrLen) > MaxPduLength)
+	if ((attrLen > RadiusAttr::MaxLength) || ((len + attrLen) > MaxPduLength))
 		return false;
 		
 	RadiusAttr* const attr = reinterpret_cast<RadiusAttr*>(m_data + len);
@@ -1008,7 +1008,7 @@ bool RadiusPDU::AppendVsaAttr(
 {
 	const PINDEX len = GetLength();
 	const PINDEX attrLen = RadiusAttr::VsaRfc2865FixedHeaderLength + 4;
-	if (attrLen > RadiusAttr::MaxLength || (len + attrLen) > MaxPduLength)
+	if ((attrLen > RadiusAttr::MaxLength) || ((len + attrLen) > MaxPduLength))
 		return false;
 		
 	RadiusAttr* const attr = reinterpret_cast<RadiusAttr*>(m_data + len);

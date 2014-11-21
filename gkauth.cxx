@@ -1286,7 +1286,7 @@ SimplePasswordAuth::SimplePasswordAuth(
 			for (r = keyList.begin(); r != keyList.end(); ++r) {
 				H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
 				// only use, if it's not disabled for this GnuGk authentication method
-				if ((PString(Auth->GetName()) == authlist[i])
+				if (Auth && (PString(Auth->GetName()) == authlist[i])
 					&& (m_disabledAlgorithms.GetStringsIndex(Auth->GetName()) == P_MAX_INDEX)) {
 					if ((Auth->GetApplication() == H235Authenticator::EPAuthentication)
 						||(Auth->GetApplication() == H235Authenticator::GKAdmission)

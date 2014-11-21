@@ -11802,8 +11802,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		if (chan.IsValid()) {
 			// channel found for other LC in same session, only update if we have more data
 			if (!UsesH46026() && peer && peer->UsesH46026()) {
-				H46026Session chan(call->GetCallIdentifier(), sessionID, lc->GetRTPOSSocket(), lc->GetRTCPOSSocket(), toRTP, toRTCP);
-				H46026RTPHandler::Instance()->ReplaceChannel(chan);
+				H46026Session chan26(call->GetCallIdentifier(), sessionID, lc->GetRTPOSSocket(), lc->GetRTCPOSSocket(), toRTP, toRTCP);
+				H46026RTPHandler::Instance()->ReplaceChannel(chan26);
 			}
 		} else {
 			chan = H46026Session(call->GetCallIdentifier(), sessionID, lc->GetRTPOSSocket(), lc->GetRTCPOSSocket(), toRTP, toRTCP);
