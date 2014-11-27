@@ -46,7 +46,6 @@ void Addpasswd::Main()
 	PConfig config(args[0], args[1]);
 	if (config.GetSections().GetStringsIndex(args[1]) == P_MAX_INDEX) {
 	    cerr << "Error: the specified config file does not contain a section named " << args[1] << endl;
-	    return;
 	}
 
 	int paddingByte = 0;
@@ -65,3 +64,4 @@ void Addpasswd::Main()
 	cout << "Setting: " << key << "=" << encryptedPassword << endl;
 	config.SetString(key, encryptedPassword);
 }
+
