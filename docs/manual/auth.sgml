@@ -277,7 +277,7 @@ Check if the aliases match the ID in the tokens.
 <item><tt/PasswordTimeout=120/<newline>
 Default: <tt/-1/<newline>
 <p>
-The module <tt/SimplePasswordAuth/ and all its descendants will cache an
+The module <tt/SimplePasswordAuth/ will cache an
 authenticated password. This field defines the cache timeout value in seconds.
 <tt/0/ means never cache the password, while a negative value
 means the cache never expires.
@@ -339,7 +339,7 @@ SELECT h235password FROM users WHERE alias = '%1' AND gk = '%2'
 <item><tt/PasswordTimeout=120/<newline>
 Default: <tt/-1/<newline>
 <p>
-The module <tt/SimplePasswordAuth/ and all its descendants will cache an
+The module <tt/SimplePasswordAuth/ will cache an
 authenticated password. This field defines the cache timeout value in seconds.
 <tt/0/ means never cache the password, while a negative value
 means the cache never expires.
