@@ -645,7 +645,7 @@ GkAuthenticator::~GkAuthenticator()
 
 PString GkAuthenticator::StatusAsString(int status) const
 {
-	switch(status) 
+	switch(status)
 	{
 		case e_ok: return "accept";
 		case e_fail: return "reject";
@@ -1376,7 +1376,10 @@ bool SimplePasswordAuth::GetPassword(
 		return false;
 	if (!GetConfig()->HasKey(GetName(), id))
 		return false;
-	if (strcasecmp(id, "KeyFilled") == 0 || strcasecmp(id, "CheckID") == 0
+    // make sure the alias name is not one of the switches allowed in the SimplePasswordAuth section
+	if (strcasecmp(id, "KeyFilled") == 0
+        || strcasecmp(id, "CheckID") == 0
+        || strcasecmp(id, "DisableAlgorithm") == 0
 		|| strcasecmp(id, "PasswordTimeout") == 0) {
 		PTRACE(2, "GKAUTH\t" << GetName() << " trying to get password for "
 			" the forbidden alias '" << id << '\'');
