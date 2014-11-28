@@ -550,7 +550,7 @@ are sent to this client:
 <item><tt/cfg SEC PAR/<newline>
 <p>Read and print a config parameter in a section.
 <item><tt/set SEC PAR VAL/<newline>
-<p>Write a config value parameter in a section.
+<p>Write a config value parameter in a section. (Beware that you can't set values containing spaces using this command!)
 <item><tt/remove SEC PAR/<newline>
 <p>Remove a config value parameter in a section.
 <item><tt/remove SEC/<newline>
