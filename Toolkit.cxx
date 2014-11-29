@@ -3746,15 +3746,15 @@ PString Toolkit::AsString(
 }
 
 PString Toolkit::ReadPassword(
-	const PString &cfgSection, /// config section to read
-	const PString &cfgKey, /// config key to read an encrypted password from
+	const PString & cfgSection, /// config section to read
+	const PString & cfgKey, /// config key to read an encrypted password from
 	bool forceEncrypted
 	)
 {
 	if (cfgSection.IsEmpty() || cfgKey.IsEmpty())
 		return PString::Empty();
 
-	PConfig* const cfg = Config();
+	PConfig * const cfg = Config();
 	if (!cfg->HasKey(cfgSection, cfgKey))
 		return PString::Empty();
 
@@ -3782,8 +3782,7 @@ PString Toolkit::ReadPassword(
 	PTEACypher cypher(encKey);
 	PString s;
 	if (!cypher.Decode(cfg->GetString(cfgSection, cfgKey, ""), s)) {
-		PTRACE(1, "GK\tFailed to decode config password for [" << cfgSection
-			<< "] => " << cfgKey);
+		PTRACE(1, "GK\tFailed to decode config password for [" << cfgSection << "] => " << cfgKey);
 		SNMP_TRAP(7, SNMPError, General, "Password decode failed");
 	}
 	return s;
