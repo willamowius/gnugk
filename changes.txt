@@ -1,5 +1,6 @@
 Changes from 3.7 to 3.8
 =======================
+- make [Gatekeeper::Main] Authenticators= switch case insensitive
 - addpasswd encodes password, even if the config section didn't exist before
 - FileIPAuth now supports checking ARQs
 - new switch [Gatekeeper::Main] MinH323Version= 

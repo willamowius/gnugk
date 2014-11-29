@@ -1002,7 +1002,7 @@ GkAuthenticatorList::GkAuthenticatorList()
 		for (PINDEX i = 0; i < authlist.GetSize(); ++i) {
 			for (r = keyList.begin(); r != keyList.end(); ++r) {
 				H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
-				if (Auth && (PString(Auth->GetName()) == authlist[i])) {
+				if (Auth && (PCaselessString(Auth->GetName()) == authlist[i])) {
 					m_h235authenticators.Append(Auth);
 				} else {
 					delete Auth;
@@ -1286,7 +1286,7 @@ SimplePasswordAuth::SimplePasswordAuth(
 			for (r = keyList.begin(); r != keyList.end(); ++r) {
 				H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
 				// only use, if it's not disabled for this GnuGk authentication method
-				if (Auth && (PString(Auth->GetName()) == authlist[i])
+				if (Auth && (PCaselessString(Auth->GetName()) == authlist[i])
 					&& (m_disabledAlgorithms.GetStringsIndex(Auth->GetName()) == P_MAX_INDEX)) {
 					if ((Auth->GetApplication() == H235Authenticator::EPAuthentication)
 						||(Auth->GetApplication() == H235Authenticator::GKAdmission)
@@ -1381,8 +1381,7 @@ bool SimplePasswordAuth::GetPassword(
         || strcasecmp(id, "CheckID") == 0
         || strcasecmp(id, "DisableAlgorithm") == 0
 		|| strcasecmp(id, "PasswordTimeout") == 0) {
-		PTRACE(2, "GKAUTH\t" << GetName() << " trying to get password for "
-			" the forbidden alias '" << id << '\'');
+		PTRACE(2, "GKAUTH\t" << GetName() << " trying to get password for the forbidden alias '" << id << '\'');
 		return false;
 	}
 	passwd = Toolkit::Instance()->ReadPassword(GetName(), id, true);
