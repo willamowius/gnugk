@@ -2211,7 +2211,7 @@ void RegistrationTable::LoadConfig()
 		EndpointRec *ep = NULL;
 		H225_RasMessage rrq_ras;
 		rrq_ras.SetTag(H225_RasMessage::e_registrationRequest);
-		H225_RegistrationRequest &rrq = rrq_ras;
+		H225_RegistrationRequest & rrq = rrq_ras;
 
 		rrq.m_callSignalAddress.SetSize(1);
 		GetTransportAddress(cfgs.GetKeyAt(i), (WORD)GkConfig()->GetInteger("EndpointSignalPort", GK_DEF_ENDPOINT_SIGNAL_PORT), rrq.m_callSignalAddress[0]);
@@ -2229,14 +2229,18 @@ void RegistrationTable::LoadConfig()
 		PStringArray sp = cfgs.GetDataAt(i).Tokenise(";", FALSE);
 		PStringArray aa = sp[0].Tokenise(",", FALSE);
 		PINDEX as = aa.GetSize();
+		bool forceGW = false;
 		if (as > 0) {
 			rrq.m_terminalAlias.SetSize(as);
 			for (PINDEX p = 0; p < as; p++) {
 				H323SetAliasAddress(aa[p], rrq.m_terminalAlias[p]);
-			}
+          		if (GkConfig()->GetBoolean("EP::" + aa[p], "ForceGateway", false)) {
+                    forceGW = true;
+          		}
+ 			}
 		}
 		// GatewayInfo
-		if (sp.GetSize() > 1) {
+		if ((sp.GetSize() > 1) || forceGW) {
 			/*
 			aa = sp[1].Tokenise(",", FALSE);
 			as = aa.GetSize();
