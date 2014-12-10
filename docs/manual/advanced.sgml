@@ -9,8 +9,8 @@ The following instructions are an example of how to compile GnuGk from source on
 <p>
 First make sure your system is up-to-date and install the tools needed for the compile
 <verb>
-$ sudo apt-get update
-$ sudo apt-get install flex bison build-essential subversion cvs pkg-config automake
+sudo apt-get update
+sudo apt-get install flex bison build-essential subversion cvs pkg-config automake
 </verb>
 Also make sure the "...-devel" packages for all databases you want to use are installed.
 <p>
@@ -19,41 +19,41 @@ many changes that are incompatible with GnuGk.
 
 Get and compile PTLib from SourceForge:
 <verb>
-$ cd ~
-$ svn co http://svn.code.sf.net/p/opalvoip/code/ptlib/tags/v2_10_9 ptlib-v2.10.9/
-$ cd ptlib-v2.10.9
-$ export PTLIBDIR=~/ptlib-v2.10.9
-$ ./configure
-$ make optnoshared
+cd ~
+svn co http://svn.code.sf.net/p/opalvoip/code/ptlib/tags/v2_10_9 ptlib-v2.10.9/
+cd ptlib-v2.10.9
+export PTLIBDIR=~/ptlib-v2.10.9
+./configure
+make optnoshared
 </verb>
 
 Get and compile H323Plus:
 <verb>
-$ cd ~
-$ cvs -d:pserver:anonymous@h323plus.cvs.sourceforge.net:/cvsroot/h323plus login
+cd ~
+cvs -d:pserver:anonymous@h323plus.cvs.sourceforge.net:/cvsroot/h323plus login
 
 (just press enter when prompted for password)
 
-$ cvs -z3 -d:pserver:anonymous@h323plus.cvs.sourceforge.net:/cvsroot/h323plus co -P h323plus
+cvs -z3 -d:pserver:anonymous@h323plus.cvs.sourceforge.net:/cvsroot/h323plus co -P h323plus
 
-$ cd h323plus
-$ export OPENH323DIR=~/h323plus
-$ ./configure
-$ make optnoshared
+cd h323plus
+export OPENH323DIR=~/h323plus
+./configure
+make optnoshared
 </verb>
 
 Get and compile GnuGk:
 <verb>
-$ cd ~
-$ cvs -d:pserver:anonymous@openh323gk.cvs.sourceforge.net:/cvsroot/openh323gk login
+cd ~
+cvs -d:pserver:anonymous@openh323gk.cvs.sourceforge.net:/cvsroot/openh323gk login
 
 (just press enter when prompted for password)
 
-$ cvs -z3 -d:pserver:anonymous@openh323gk.cvs.sourceforge.net:/cvsroot/openh323gk co -P openh323gk
+cvs -z3 -d:pserver:anonymous@openh323gk.cvs.sourceforge.net:/cvsroot/openh323gk co -P openh323gk
 
-$ cd openh323gk
-$ ./configure --enable-h46018
-$ make optnoshared
+cd openh323gk
+./configure --enable-h46018
+make optnoshared
 </verb>
 
 Once the compile is finished, the binary can be found in the 
@@ -63,12 +63,12 @@ At this time, because all libraries and GnuGk are running CVS and SVN
 versions of the software, in order to stay up-to-date, run the following:
 
 <verb>
-$ cd ~/ptlib
-$ svn update
-$ cd ~/h323plus
-$ cvs update
-$ cd ~/openh323gk
-$ cvs update
+cd ~/ptlib
+svn update
+cd ~/h323plus
+cvs update
+cd ~/openh323gk
+cvs update
 </verb>
 If any of the source files are changed, you have to recompile.
 
@@ -76,7 +76,7 @@ If any of the source files are changed, you have to recompile.
 <label id="tracing">
 <p>
 If GnuGk doesn't handle calls like you expect, you can enable tracing to see what GnuGk does internally.
-Don't confuse this with connection to the status port and looking at the events ("telnet 127.0.0.1 7000").
+This should not be confused with connection to the status port and looking at the events ("telnet 127.0.0.1 7000").
 Creating a trace file will reveal a lot more of the internal workings.
 
 On the command line, start GnuGk with -ttttt and -o to write the trace to a file:
@@ -105,8 +105,8 @@ debug trc 5
 Doing it through the status port has the advantage that you won't interrupt ongoing calls
 and you can quickly turn it on or off.
 
-The trace file will contain information al everything GnuGk does. To reduce it to a single call,
-you can eg. search for the callID or write a small Perl script to extract only those messages
+The trace file will contain information detailing everything GnuGk does. To reduce it to a single call,
+you can search for the callID or write a small Perl script to extract only those messages
 you are interested in.
 
 <sect1>Debugging GnuGk (on Linux)
@@ -116,7 +116,7 @@ In order to use gdb with GnuGk, the software and libraries must be compiled with
 
 You may follow the instructions above in obtaining the software, but the compile in each subdirectory must be:
 <verb>
-$ make debugnoshared
+make debugnoshared
 </verb>
 
 Allow unlimited core dumps:
