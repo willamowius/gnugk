@@ -123,7 +123,9 @@ void LuaPolicy::LoadConfig(const PString & instance)
 
 LuaPolicy::~LuaPolicy()
 {
-	lua_close(m_lua);
+    if (m_lua) {
+        lua_close(m_lua);
+    }
 }
 
 void LuaPolicy::SetValue(const char * name, const char * value)
