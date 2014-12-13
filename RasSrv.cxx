@@ -2470,7 +2470,7 @@ bool RegistrationRequestPDU::Process()
 		if (request.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
 			iec = Toolkit::Instance()->GetInternalExtensionCode(request.m_nonStandardData.m_nonStandardIdentifier);
 		} else if (request.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_object) {
-			PASN_ObjectId &oid = request.m_nonStandardData.m_nonStandardIdentifier;
+			PASN_ObjectId & oid = request.m_nonStandardData.m_nonStandardIdentifier;
 			if (oid.GetDataLength() == 0)
 				iec = Toolkit::iecNATTraversal;
 		}
@@ -2572,7 +2572,7 @@ bool RegistrationRequestPDU::Process()
 			// tell the endpoint its translated address
 			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_nonStandardData);
 		    rcf.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
-			H225_H221NonStandard &t35 = rcf.m_nonStandardData.m_nonStandardIdentifier;
+			H225_H221NonStandard & t35 = rcf.m_nonStandardData.m_nonStandardIdentifier;
 			t35.m_t35CountryCode = Toolkit::t35cPoland;
 			t35.m_manufacturerCode = Toolkit::t35mGnuGk;
 			t35.m_t35Extension = Toolkit::t35eNATTraversal;
@@ -2660,8 +2660,8 @@ bool RegistrationRequestPDU::Process()
 			H460_FeatureOID presence = H460_FeatureOID(rPreFS);
 #ifndef HAS_H460P_VER_3
 			PASN_OctetString preData;
-			if (ep->BuildPresencePDU(rcf.GetTag(),preData))
-				presence.Add(OID3_PDU,H460_FeatureContent(preData));
+			if (ep->BuildPresencePDU(rcf.GetTag(), preData))
+				presence.Add(OID3_PDU, H460_FeatureContent(preData));
 #endif
 			PINDEX lPos = gd.GetSize();
 			gd.SetSize(lPos+1);
