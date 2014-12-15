@@ -107,8 +107,7 @@ void LuaPolicy::LoadConfig(const PString & instance)
 	}
 
 	if (m_script.IsEmpty()) {
-		PTRACE(2, m_name << "\tmodule creation failed: "
-			<< "\tno LUA script");
+		PTRACE(2, m_name << "\tmodule creation failed: no LUA script");
 		SNMP_TRAP(4, SNMPError, General, PString(m_name) + " creation failed");
 		return;
 	}
@@ -389,7 +388,9 @@ LuaAuth::LuaAuth(
 
 LuaAuth::~LuaAuth()
 {
-	lua_close(m_lua);
+    if (m_lua) {
+        lua_close(m_lua);
+    }
 }
 
 void LuaAuth::SetString(const char * name, const char * value)
@@ -541,6 +542,11 @@ int LuaAuth::doRegistrationCheck(
 		const PString & messageType
 		)
 {
+    if (!m_lua || m_registrationScript.IsEmpty()) {
+		PTRACE(1, "LuaAuth\tError: LUA not configured");
+		return e_fail;
+    }
+
 	SetString("username", username);
 	SetString("callerIP", callerIP);
 	SetString("aliases", aliases);
@@ -573,6 +579,11 @@ int LuaAuth::doCallCheck(
 		const PString & messageType
 		)
 {
+    if (!m_lua || m_callScript.IsEmpty()) {
+		PTRACE(1, "LuaAuth\tError: LUA not configured");
+		return e_fail;
+    }
+
 	SetString("source", source);
 	SetString("calledAlias", calledAlias);
 	SetString("calledIP", calledIP);
