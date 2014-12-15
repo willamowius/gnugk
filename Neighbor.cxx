@@ -1283,12 +1283,14 @@ bool LRQRequester::IsH46024Supported() const
 	if (!m_result)
 		return false;
 
+#ifdef HAS_H460
 	const H225_LocationConfirm & lcf = (*m_result)->m_recvRAS;
 	if (lcf.HasOptionalField(H225_LocationConfirm::e_genericData)) {
 		H460_FeatureSet fs = H460_FeatureSet(lcf.m_genericData);
 		if (fs.HasFeature(24))
 			return true;
 	}
+#endif
 	return false;
 }
 
@@ -1297,6 +1299,7 @@ bool LRQRequester::IsTLSNegotiated()
 	if (!m_result)
 		return false;
 
+#ifdef HAS_H460
 	H225_LocationConfirm & lcf = (*m_result)->m_recvRAS;
 	if (lcf.HasOptionalField(H225_LocationConfirm::e_featureSet)) {
 		H460_FeatureSet fs = H460_FeatureSet(lcf.m_featureSet);
@@ -1316,6 +1319,7 @@ bool LRQRequester::IsTLSNegotiated()
 			}
 		}
 	}
+#endif
 	return false;
 }
 

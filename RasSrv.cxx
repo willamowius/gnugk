@@ -3939,6 +3939,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				H225_LocationConfirm & lcf = BuildConfirm();
 				GetRasAddress(lcf.m_rasAddress);
 
+#ifdef HAS_H460
 				// check H.460.22 in LRQ
 				bool senderSupportsH46022 = false;
 				bool senderSupportsH46022TLS = false;
@@ -3953,10 +3954,11 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 						PTRACE(1, "RAS\tEP supports H.460.22: TLS=" << senderSupportsH46022TLS << " IPSec=" << senderSupportsH46022IPSec);
 					}
 				}
+#endif
 
 				if (RasSrv->IsGKRouted()) {
 					GetCallSignalAddress(lcf.m_callSignalAddress);
-#ifdef HAS_TLS
+#if defined(HAS_TLS) && defined(HAS_H460)
 					if (Toolkit::Instance()->IsTLSEnabled()) {
 						// enable TLS by config file
 						bool useTLS = RasSrv->GetNeighbors()->GetNeighborTLSBySigAdr(request.m_replyAddress);
@@ -3999,6 +4001,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				} else {
 					// in direct mode
 					lcf.m_callSignalAddress = route.m_destAddr;
+#ifdef HAS_H460
 					if (senderSupportsH46022) {
 						H460_FeatureStd H46022 = H460_FeatureStd(22);
 						// pass endpoint's H.460.22 capabilities
@@ -4022,6 +4025,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 							desc[sz] = H46022;
 						}
 					}
+#endif
 				}
 
 				// canMapAlias: include destinationInfo if it has been changed
