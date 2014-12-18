@@ -1,11 +1,12 @@
 Changes from 3.7 to 3.8
 =======================
+- allow codec filtering for whole capability classes, eg. DisableCodecs=receiveVideoCapability
 - BUGFIX(lua.cxx) fix crash in 'lua' routing policy
 - BUGFIX(RasTbl.cxx) fix [EP::] ForceGateway= to work with permanent endpoints
 - make [Gatekeeper::Main] Authenticators= switch case insensitive
 - addpasswd encodes password, even if the config section didn't exist before
 - FileIPAuth now supports checking ARQs
-- new switch [Gatekeeper::Main] MinH323Version= 
+- new switch [Gatekeeper::Main] MinH323Version=
 - BUGFIX(RasTbl.cxx) stop generating predictable endpoint IDs
 - new switch [RasSrv::ARQFeatures] CheckSenderIP=1
 - new SQLAuth variable %{SrcInfo}

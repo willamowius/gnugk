@@ -2464,97 +2464,113 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		}
 
 		// codec filtering
-		std::set<unsigned> removedCaps;
+        if (m_call && !(m_call->GetDisabledCodecs().IsEmpty())) {
+            std::set<unsigned> removedCaps;
 
-		// filter the audio capabilities
-		for (PINDEX i = 0; i < CapabilityTables.GetSize(); i++) {
-			// PTRACE(4, "CapabilityTable: " << setprecision(2) << CapabilityTables[i]);
-			unsigned int cten = CapabilityTables[i].m_capabilityTableEntryNumber.GetValue();
-			H245_Capability & H245Capability = CapabilityTables[i].m_capability;
+            // filter capability classes
+            for (PINDEX i = 0; i < CapabilityTables.GetSize(); i++) {
+                unsigned int cten = CapabilityTables[i].m_capabilityTableEntryNumber.GetValue();
+                H245_Capability & H245Capability = CapabilityTables[i].m_capability;
 
-			if (H245Capability.GetTag() == H245_Capability::e_receiveAudioCapability) {
-				H245_AudioCapability & H245AudioCapability = H245Capability;
-				if (m_call && m_call->GetDisabledCodecs().Find(H245AudioCapability.GetTagName() + ";", 0) != P_MAX_INDEX) {
-					PTRACE(4, "H245\tDelete audio capability " << H245AudioCapability.GetTagName() << " (" << cten << ")");
-					changed = true;
-					removedCaps.insert(cten);
-					CapabilityTables.RemoveAt(i);
-					i--;
-				}
-			}
-		}
+                if (m_call && m_call->GetDisabledCodecs().Find(H245Capability.GetTagName() + ";", 0) != P_MAX_INDEX) {
+                    PTRACE(4, "H245\tDelete capability " << H245Capability.GetTagName() << " (" << cten << ")");
+                    changed = true;
+                    removedCaps.insert(cten);
+                    CapabilityTables.RemoveAt(i);
+                    i--;
+                }
+            }
 
-		// filter the video capabilities
-		for (PINDEX i = 0; i < CapabilityTables.GetSize(); i++) {
-			// PTRACE(4, "CapabilityTable: " << setprecision(2) << CapabilityTables[i]);
-			unsigned int cten = CapabilityTables[i].m_capabilityTableEntryNumber.GetValue();
-			H245_Capability & H245Capability = CapabilityTables[i].m_capability;
+            // filter the audio capabilities
+            for (PINDEX i = 0; i < CapabilityTables.GetSize(); i++) {
+                // PTRACE(4, "CapabilityTable: " << setprecision(2) << CapabilityTables[i]);
+                unsigned int cten = CapabilityTables[i].m_capabilityTableEntryNumber.GetValue();
+                H245_Capability & H245Capability = CapabilityTables[i].m_capability;
 
-			if (H245Capability.GetTag() == H245_Capability::e_receiveVideoCapability) {
-				H245_VideoCapability & H245VideoCapability = H245Capability;
-				if (m_call && m_call->GetDisabledCodecs().Find(H245VideoCapability.GetTagName() + ";", 0) != P_MAX_INDEX) {
-					PTRACE(4, "H245\tDelete video capability " << H245VideoCapability.GetTagName() << " (" << cten << ")");
-					changed = true;
-					removedCaps.insert(cten);
-					CapabilityTables.RemoveAt(i);
-					i--;
-				}
-			}
-		}
+                if (H245Capability.GetTag() == H245_Capability::e_receiveAudioCapability) {
+                    H245_AudioCapability & H245AudioCapability = H245Capability;
+                    if (m_call && m_call->GetDisabledCodecs().Find(H245AudioCapability.GetTagName() + ";", 0) != P_MAX_INDEX) {
+                        PTRACE(4, "H245\tDelete audio capability " << H245AudioCapability.GetTagName() << " (" << cten << ")");
+                        changed = true;
+                        removedCaps.insert(cten);
+                        CapabilityTables.RemoveAt(i);
+                        i--;
+                    }
+                }
+            }
 
-		// filter the user input capabilities
-		for (PINDEX i = 0; i < CapabilityTables.GetSize(); i++) {
-			unsigned int cten = CapabilityTables[i].m_capabilityTableEntryNumber.GetValue();
-			H245_Capability & H245Capability = CapabilityTables[i].m_capability;
+            // filter the video capabilities
+            for (PINDEX i = 0; i < CapabilityTables.GetSize(); i++) {
+                // PTRACE(4, "CapabilityTable: " << setprecision(2) << CapabilityTables[i]);
+                unsigned int cten = CapabilityTables[i].m_capabilityTableEntryNumber.GetValue();
+                H245_Capability & H245Capability = CapabilityTables[i].m_capability;
 
-			if (H245Capability.GetTag() == H245_Capability::e_receiveUserInputCapability) {
-				H245_UserInputCapability & h245UserInput = H245Capability;
-				if (m_call && m_call->GetDisabledCodecs().Find(h245UserInput.GetTagName() + ";", 0) != P_MAX_INDEX) {
-					PTRACE(4, "H245\tDelete UserInput capability " << h245UserInput.GetTagName() << " (" << cten << ")");
-					changed = true;
-					removedCaps.insert(cten);
-					CapabilityTables.RemoveAt(i);
-					i--;
-				}
-			}
-		}
+                if (H245Capability.GetTag() == H245_Capability::e_receiveVideoCapability) {
+                    H245_VideoCapability & H245VideoCapability = H245Capability;
+                    if (m_call && m_call->GetDisabledCodecs().Find(H245VideoCapability.GetTagName() + ";", 0) != P_MAX_INDEX) {
+                        PTRACE(4, "H245\tDelete video capability " << H245VideoCapability.GetTagName() << " (" << cten << ")");
+                        changed = true;
+                        removedCaps.insert(cten);
+                        CapabilityTables.RemoveAt(i);
+                        i--;
+                    }
+                }
+            }
 
-		// remove SecurityCapabilities associated with deleted capabilities
-		for (PINDEX i = 0; i < CapabilityTables.GetSize(); i++) {
-			unsigned int cten = CapabilityTables[i].m_capabilityTableEntryNumber.GetValue();
-			H245_Capability & H245Capability = CapabilityTables[i].m_capability;
+            // filter the user input capabilities
+            for (PINDEX i = 0; i < CapabilityTables.GetSize(); i++) {
+                unsigned int cten = CapabilityTables[i].m_capabilityTableEntryNumber.GetValue();
+                H245_Capability & H245Capability = CapabilityTables[i].m_capability;
 
-			if (H245Capability.GetTag() == H245_Capability::e_h235SecurityCapability) {
-				H245_H235SecurityCapability & h245Security = H245Capability;
-				if (removedCaps.count(h245Security.m_mediaCapability) > 0) {
-					PTRACE(4, "H245\tDelete Security capability for media cap " << h245Security.m_mediaCapability << " (" << cten << ")");
-					changed = true;
-					removedCaps.insert(cten);
-					CapabilityTables.RemoveAt(i);
-					i--;
-				}
-			}
-		}
+                if (H245Capability.GetTag() == H245_Capability::e_receiveUserInputCapability) {
+                    H245_UserInputCapability & h245UserInput = H245Capability;
+                    if (m_call && m_call->GetDisabledCodecs().Find(h245UserInput.GetTagName() + ";", 0) != P_MAX_INDEX) {
+                        PTRACE(4, "H245\tDelete UserInput capability " << h245UserInput.GetTagName() << " (" << cten << ")");
+                        changed = true;
+                        removedCaps.insert(cten);
+                        CapabilityTables.RemoveAt(i);
+                        i--;
+                    }
+                }
+            }
 
-		// delete the removed capabilities from AlternativeCapabilitySets
-		H245_ArrayOf_CapabilityDescriptor & CapabilityDescriptor = tcs.m_capabilityDescriptors;
-		for (PINDEX n = 0; n < CapabilityDescriptor.GetSize(); n++){
-			H245_ArrayOf_AlternativeCapabilitySet & AlternativeCapabilitySet = CapabilityDescriptor[n].m_simultaneousCapabilities;
-			for (PINDEX j = 0; j < AlternativeCapabilitySet.GetSize(); j++) {
-				for (PINDEX m = 0; m < AlternativeCapabilitySet[j].GetSize(); m++) {
-					if (removedCaps.count(AlternativeCapabilitySet[j][m].GetValue()) > 0) {
-						PTRACE(4, "H245\tRemove from AlternativeCapabilitySets: " << AlternativeCapabilitySet[j][m].GetValue());
-						AlternativeCapabilitySet[j].RemoveAt(m);
-						m--;
-					}
-				}
-				// remove set if now empty
-				if (AlternativeCapabilitySet[j].GetSize() == 0) {
-					PTRACE(4, "H245\tRemoving now empty AlternativeCapabilitySet " << j);
-					AlternativeCapabilitySet.RemoveAt(j);
-					j--;
-				}
-			}
+            // remove SecurityCapabilities associated with deleted capabilities
+            for (PINDEX i = 0; i < CapabilityTables.GetSize(); i++) {
+                unsigned int cten = CapabilityTables[i].m_capabilityTableEntryNumber.GetValue();
+                H245_Capability & H245Capability = CapabilityTables[i].m_capability;
+
+                if (H245Capability.GetTag() == H245_Capability::e_h235SecurityCapability) {
+                    H245_H235SecurityCapability & h245Security = H245Capability;
+                    if (removedCaps.count(h245Security.m_mediaCapability) > 0) {
+                        PTRACE(4, "H245\tDelete Security capability for media cap " << h245Security.m_mediaCapability << " (" << cten << ")");
+                        changed = true;
+                        removedCaps.insert(cten);
+                        CapabilityTables.RemoveAt(i);
+                        i--;
+                    }
+                }
+            }
+
+            // delete the removed capabilities from AlternativeCapabilitySets
+            H245_ArrayOf_CapabilityDescriptor & CapabilityDescriptor = tcs.m_capabilityDescriptors;
+            for (PINDEX n = 0; n < CapabilityDescriptor.GetSize(); n++){
+                H245_ArrayOf_AlternativeCapabilitySet & AlternativeCapabilitySet = CapabilityDescriptor[n].m_simultaneousCapabilities;
+                for (PINDEX j = 0; j < AlternativeCapabilitySet.GetSize(); j++) {
+                    for (PINDEX m = 0; m < AlternativeCapabilitySet[j].GetSize(); m++) {
+                        if (removedCaps.count(AlternativeCapabilitySet[j][m].GetValue()) > 0) {
+                            PTRACE(4, "H245\tRemove from AlternativeCapabilitySets: " << AlternativeCapabilitySet[j][m].GetValue());
+                            AlternativeCapabilitySet[j].RemoveAt(m);
+                            m--;
+                        }
+                    }
+                    // remove set if now empty
+                    if (AlternativeCapabilitySet[j].GetSize() == 0) {
+                        PTRACE(4, "H245\tRemoving now empty AlternativeCapabilitySet " << j);
+                        AlternativeCapabilitySet.RemoveAt(j);
+                        j--;
+                    }
+                }
+            }
 		}
 
 		if (changed) {

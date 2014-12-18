@@ -68,8 +68,8 @@ are generated for such a call.
 Default: <tt>N/A</tt><newline>
 <p>
 Filter out certain codecs. Calls must be H.245 routed or proxied for codec filtering to work.
+You can also filter out whole capability sets, eg. "receiveVideoCapability", "receiveAndTransmitDataApplicationCapability" of "nonStandard".
 This setting can be overridden on a per-call basis by using the Radius attribute 'disable-codec'.
-The filtering does not apply to codecs used in encrypted calls.
 
 </itemize>
 
