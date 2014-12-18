@@ -164,10 +164,12 @@ bool GatekeeperMessage::Read(RasListener *socket)
 	const int buffersize = 4096;
 	BYTE buffer[buffersize];
 	if (!socket->Read(buffer, buffersize)) {
-		PTRACE(1, "RAS\tRead error " << socket->GetErrorCode(PSocket::LastReadError)
-			<< '/' << socket->GetErrorNumber(PSocket::LastReadError) << ": "
-			<< socket->GetErrorText(PSocket::LastReadError));
-		SNMP_TRAP(10, SNMPError, Network, "RAS read error : " + socket->GetErrorText(PSocket::LastReadError));
+        if (socket->GetErrorCode(PSocket::LastReadError) != PSocket::NoError) {
+            PTRACE(1, "RAS\tRead error " << socket->GetErrorCode(PSocket::LastReadError)
+                << '/' << socket->GetErrorNumber(PSocket::LastReadError) << ": "
+                << socket->GetErrorText(PSocket::LastReadError));
+            SNMP_TRAP(10, SNMPError, Network, "RAS read error : " + socket->GetErrorText(PSocket::LastReadError));
+        }
 		return false;
 	}
 	socket->GetLastReceiveAddress(m_peerAddr, m_peerPort);
