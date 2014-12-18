@@ -5,7 +5,7 @@
  * support for accounting to the gatekeeper.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2005-2013, Jan Willamowius
+ * Copyright (c) 2005-2014, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -45,7 +45,7 @@ GkAcctLogger::GkAcctLogger(
 {
 	if (m_configSectionName.IsEmpty())
 		m_configSectionName = moduleName;
-		
+
 	const PStringArray control(
 		m_config->GetString(GkAcctSectionName, moduleName, "").Tokenise(";,")
 		);
@@ -62,10 +62,10 @@ GkAcctLogger::GkAcctLogger(
 		m_controlFlag = Sufficient;
 	else if (control[0] *= "alternative")
 		m_controlFlag = Alternative;
-	
+
 	if (control.GetSize() > 1)
 		m_enabledEvents = GetEvents(control);
-	
+
 	PTRACE(1, "GKACCT\tCreated module " << moduleName << " with event mask "
 		<< PString(PString::Unsigned, (long)m_enabledEvents, 16)
 		);
@@ -81,7 +81,7 @@ int GkAcctLogger::GetEvents(
 	) const
 {
 	int mask = 0;
-	
+
 	for( PINDEX i = 1; i < tokens.GetSize(); i++ ) {
 		const PString& token = tokens[i];
 		if( token *= "start" )
@@ -103,7 +103,7 @@ int GkAcctLogger::GetEvents(
 		else if( token *= "off" )
 			mask |= AcctOff;
 	}
-	
+
 	return mask;
 }
 
@@ -156,7 +156,7 @@ void GkAcctLogger::SetupAcctParams(
 	params["CallId"] = ::AsString(call->GetCallIdentifier().m_guid);
 	params["ConfId"] = ::AsString(call->GetConferenceIdentifier());
 	params["CallLink"] = call->GetCallLinkage();
-	
+
 	t = call->GetSetupTime();
 	if (t)
 		params["setup-time"] = toolkit->AsString(PTime(t), timestampFormat);
@@ -175,13 +175,13 @@ void GkAcctLogger::SetupAcctParams(
 		params["caller-ip"] = addr.AsString();
 		params["caller-port"] = port;
 	}
-	
+
 	params["src-info"] = call->GetSrcInfo();
 	params["Calling-Station-Id"] = GetCallingStationId(call);
-		
+
 	addr = (DWORD)0;
 	port = 0;
-		
+
 	if (call->GetDestSignalAddr(addr, port)) {
 		params["callee-ip"] = addr.AsString();
 		params["callee-port"] = port;
@@ -319,16 +319,16 @@ PString GkAcctLogger::GetUsername(
 {
 	if (!call)
 		return PString::Empty();
-		
+
 	const endptr callingEP = call->GetCallingParty();
 	PString username;
-		
+
 	username = GetBestAliasAddressString(call->GetSourceAddress(), true,
 		AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
 		AliasAddressTagMask(H225_AliasAddress::e_email_ID)
 			| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
 		);
-			
+
 	if (callingEP && (username.IsEmpty()
 			|| FindAlias(callingEP->GetAliases(), username) == P_MAX_INDEX))
 		username = GetBestAliasAddressString(callingEP->GetAliases(), false,
@@ -336,7 +336,7 @@ PString GkAcctLogger::GetUsername(
 			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
 				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
 			);
-		
+
 	if (username.IsEmpty())
 		username = GetBestAliasAddressString(call->GetSourceAddress(), false,
 			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
@@ -354,7 +354,7 @@ PString GkAcctLogger::GetUsername(
 			&& callingSigAddr.IsValid())
 			username = callingSigAddr.AsString();
 	}
-	
+
 	return username;
 }
 
@@ -375,7 +375,7 @@ PString GkAcctLogger::GetCallingStationId(
 			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
 				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
 			);
-				
+
 	if (id.IsEmpty()) {
 		const endptr callingEP = call->GetCallingParty();
 		if (callingEP)
@@ -384,7 +384,7 @@ PString GkAcctLogger::GetCallingStationId(
 					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
 				);
 	}
-					
+
 	if (id.IsEmpty()) {
 		PIPSocket::Address callingSigAddr;
 		WORD callingSigPort = 0;
@@ -392,7 +392,7 @@ PString GkAcctLogger::GetCallingStationId(
 			&& callingSigAddr.IsValid())
 			id = ::AsString(callingSigAddr, callingSigPort);
 	}
-	
+
 	return id;
 }
 
@@ -407,13 +407,13 @@ PString GkAcctLogger::GetCalledStationId(
 	PString id = call->GetCalledStationId();
 	if (!id)
 		return id;
-			
+
 	if (id.IsEmpty())
 		id = GetBestAliasAddressString(call->GetDestinationAddress(), false,
 			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
 				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
 			);
-		
+
 	if (id.IsEmpty()) {
 		const endptr calledEP = call->GetCalledParty();
 		if (calledEP)
@@ -422,7 +422,7 @@ PString GkAcctLogger::GetCalledStationId(
 					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
 				);
 	}
-	
+
 	if (id.IsEmpty()) {
 		PIPSocket::Address calledSigAddr;
 		WORD calledSigPort = 0;
@@ -430,7 +430,7 @@ PString GkAcctLogger::GetCalledStationId(
 		 	&& calledSigAddr.IsValid())
 			id = ::AsString(calledSigAddr, calledSigPort);
 	}
-	
+
 	return id;
 }
 
@@ -445,13 +445,13 @@ PString GkAcctLogger::GetDialedNumber(
 	PString id = call->GetDialedNumber();
 	if (!id)
 		return id;
-			
+
 	if (id.IsEmpty())
 		id = GetBestAliasAddressString(call->GetDestinationAddress(), false,
 			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
 				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
 			);
-		
+
 	if (id.IsEmpty()) {
 		const endptr calledEP = call->GetCalledParty();
 		if (calledEP)
@@ -460,7 +460,7 @@ PString GkAcctLogger::GetDialedNumber(
 					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
 				);
 	}
-	
+
 	if (id.IsEmpty()) {
 		PIPSocket::Address calledSigAddr;
 		WORD calledSigPort = 0;
@@ -468,7 +468,7 @@ PString GkAcctLogger::GetDialedNumber(
 		 	&& calledSigAddr.IsValid())
 			id = ::AsString(calledSigAddr, calledSigPort);
 	}
-	
+
 	return id;
 }
 
@@ -494,17 +494,14 @@ FileAcct::FileAcct(
 	m_standardCDRFormat(true)
 {
 	SetSupportedEvents(FileAcctEvents);
-	
+
 	m_cdrString = GetConfig()->GetString(GetConfigSectionName(), "CDRString", "");
 	m_standardCDRFormat = Toolkit::AsBool(
 		GetConfig()->GetString(GetConfigSectionName(), "StandardCDRFormat",
-			m_cdrString.IsEmpty() ? "1" : "0"
-			));
-	m_timestampFormat = GetConfig()->GetString(GetConfigSectionName(),
-		"TimestampFormat", ""
-		);
-		
-	// determine rotation type (by lines, by size, by time)	
+			m_cdrString.IsEmpty() ? "1" : "0"));
+	m_timestampFormat = GetConfig()->GetString(GetConfigSectionName(), "TimestampFormat", "");
+
+	// determine rotation type (by lines, by size, by time)
 	const PString rotateCondition = GetConfig()->GetString(
 		GetConfigSectionName(), "Rotate", ""
 		).Trim();
@@ -544,8 +541,7 @@ FileAcct::FileAcct(
 	m_cdrFile = OpenCDRFile(m_cdrFilename);
 	if (m_cdrFile && m_cdrFile->IsOpen()) {
 		PTRACE(2, "GKACCT\t" << GetName() << " CDR file: "
-			<< m_cdrFile->GetFilePath()
-			);
+			<< m_cdrFile->GetFilePath());
 		// count an initial number of CDR lines
 		if (m_rotateLines > 0) {
 			PString s;
@@ -574,7 +570,7 @@ FileAcct::FileAcct(
 			"rotation scheduled at " << rotateTime
 			);
 		break;
-		
+
 	case Daily:
 		rotateTime = PTime(0, m_rotateMinute, m_rotateHour, now.GetDay(),
 			now.GetMonth(), now.GetYear(), now.GetTimeZone()
@@ -588,7 +584,7 @@ FileAcct::FileAcct(
 			"rotation scheduled at " << rotateTime
 			);
 		break;
-		
+
 	case Weekly:
 		rotateTime = PTime(0, m_rotateMinute, m_rotateHour, now.GetDay(),
 			now.GetMonth(), now.GetYear(), now.GetTimeZone()
@@ -610,13 +606,13 @@ FileAcct::FileAcct(
 			"rotation scheduled at " << rotateTime
 			);
 		break;
-		
+
 	case Monthly:
 		rotateTime = PTime(0, m_rotateMinute, m_rotateHour, 1,
 			now.GetMonth(), now.GetYear(), now.GetTimeZone()
 			);
 		rotateTime += PTimeInterval(0, 0, 0, 0, m_rotateDay - 1);
-		while (rotateTime.GetMonth() != now.GetMonth())				
+		while (rotateTime.GetMonth() != now.GetMonth())
 			rotateTime -= PTimeInterval(0, 0, 0, 0, 1); // 1 day
 
 		if (rotateTime <= now) {
@@ -627,7 +623,7 @@ FileAcct::FileAcct(
 				);
 			const int month = rotateTime.GetMonth();
 			rotateTime += PTimeInterval(0, 0, 0, 0, m_rotateDay - 1);
-			while (rotateTime.GetMonth() != month)				
+			while (rotateTime.GetMonth() != month)
 				rotateTime -= PTimeInterval(0, 0, 0, 0, 1); // 1 day
 		}
 
@@ -645,7 +641,7 @@ FileAcct::~FileAcct()
 {
 	if (m_rotateTimer != GkTimerManager::INVALID_HANDLE)
 		Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_rotateTimer);
-		
+
 	PWaitAndSignal lock(m_cdrFileMutex);
 	if (m_cdrFile) {
 		m_cdrFile->Close();
@@ -659,7 +655,7 @@ void FileAcct::GetRotateInterval(
 	)
 {
 	PString s;
-	
+
 	if (m_rotateInterval == Hourly)
 		m_rotateMinute = cfg.GetInteger(section, "RotateTime", 59);
 	else {
@@ -668,7 +664,7 @@ void FileAcct::GetRotateInterval(
 		m_rotateMinute = 0;
 		if (s.Find(':') != P_MAX_INDEX)
 			m_rotateMinute = s.Mid(s.Find(':') + 1).AsInteger();
-			
+
 		if (m_rotateHour < 0 || m_rotateHour > 23 || m_rotateMinute < 0
 			|| m_rotateMinute > 59) {
 			PTRACE(1, "GKACCT\t" << GetName() << " invalid "
@@ -678,7 +674,7 @@ void FileAcct::GetRotateInterval(
 			m_rotateHour = 0;
 		}
 	}
-			
+
 	if (m_rotateInterval == Weekly)	{
 		s = cfg.GetString(section, "RotateDay", "Sun");
 		if (strspn(s, "0123456") == (size_t)s.GetLength()) {
@@ -719,23 +715,23 @@ GkAcctLogger::Status FileAcct::Log(
 {
 	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
 		return Next;
-		
+
 	if (!call) {
 		PTRACE(1, "GKACCT\t" << GetName() << " - missing call info for event " << evt);
 		return Fail;
 	}
-	
+
 	PString cdrString;
-	
+
 	if (!GetCDRText(cdrString, evt, call)) {
 		PTRACE(2, "GKACCT\t" << GetName() << " - unable to get CDR text for "
 			"event " << evt << ", call no. " << call->GetCallNumber()
 			);
 		return Fail;
 	}
-	
+
 	PWaitAndSignal lock(m_cdrFileMutex);
-	
+
 	if (m_cdrFile && m_cdrFile->IsOpen()) {
 		if (m_cdrFile->WriteLine(PString(cdrString))) {
 			PTRACE(5, "GKACCT\t" << GetName() << " - CDR string for event "
@@ -767,16 +763,16 @@ bool FileAcct::GetCDRText(
 {
 	if ((evt & AcctStop) != AcctStop || !call)
 		return false;
-	
-	if (m_standardCDRFormat)	
+
+	if (m_standardCDRFormat)
 		cdrString = call->GenerateCDR(m_timestampFormat);
 	else {
 		std::map<PString, PString> params;
 
 		SetupAcctParams(params, call, m_timestampFormat);
 		cdrString = ReplaceAcctParams(m_cdrString, params);
-	}	
-	
+	}
+
 	return !cdrString;
 }
 
@@ -802,14 +798,14 @@ void FileAcct::RotateOnTimer(
 			rotateTime.GetMonth() < 12 ? rotateTime.GetYear() : rotateTime.GetYear() + 1,
 			rotateTime.GetTimeZone()
 			);
-	
+
 		const int month = newRotateTime.GetMonth();
 		newRotateTime += PTimeInterval(0, 0, 0, 0, m_rotateDay - 1);
 		while (newRotateTime.GetMonth() != month)
 			newRotateTime -= PTimeInterval(0, 0, 0, 0, 1);
 		timer->SetExpirationTime(newRotateTime);
 		timer->SetFired(false);
-	}	
+	}
 	PWaitAndSignal lock(m_cdrFileMutex);
 	Rotate();
 }
@@ -822,9 +818,9 @@ void FileAcct::Rotate()
 		delete m_cdrFile;
 		m_cdrFile = NULL;
 	}
-	
+
 	const PFilePath fn = m_cdrFilename;
-	
+
 	if (PFile::Exists(fn)) {
 		if (!PFile::Rename(fn, fn.GetFileName() + PTime().AsString(".yyyyMMdd-hhmmss"))) {
 			PTRACE(1, "GKACCT\t" << GetName() << " rotate failed - could not "
@@ -841,7 +837,7 @@ PTextFile* FileAcct::OpenCDRFile(
 	const PFilePath& fn
 	)
 {
-	PTextFile* cdrFile = new PTextFile(fn, PFile::ReadWrite, 
+	PTextFile* cdrFile = new PTextFile(fn, PFile::ReadWrite,
 		PFile::Create | PFile::DenySharedWrite
 		);
 	if (!cdrFile->IsOpen()) {
@@ -876,7 +872,7 @@ GkAcctLoggerList::~GkAcctLoggerList()
 
 void GkAcctLoggerList::OnReload()
 {
-	m_acctUpdateInterval = GkConfig()->GetInteger(CallTableSection, 
+	m_acctUpdateInterval = GkConfig()->GetInteger(CallTableSection,
 		"AcctUpdateInterval", 0
 		);
 	// should not be less than 10 seconds
@@ -885,7 +881,7 @@ void GkAcctLoggerList::OnReload()
 
 	DeleteObjectsInContainer(m_loggers);
 	m_loggers.clear();
-	
+
 	const PStringArray modules = GkConfig()->GetKeys(GkAcctSectionName);
 	for (PINDEX i = 0; i < modules.GetSize(); i++) {
 		GkAcctLogger* logger = Factory<GkAcctLogger>::Create(modules[i]);
@@ -894,7 +890,7 @@ void GkAcctLoggerList::OnReload()
 	}
 }
 
-bool GkAcctLoggerList::LogAcctEvent( 
+bool GkAcctLoggerList::LogAcctEvent(
 	GkAcctLogger::AcctEvent evt, /// the accounting event to be logged
 	const callptr& call, /// a call associated with the event (if any)
 	time_t now /// "now" timestamp for accounting update events
@@ -902,24 +898,24 @@ bool GkAcctLoggerList::LogAcctEvent(
 {
 	// if this is an accounting update, check the interval
 	if (evt & GkAcctLogger::AcctUpdate) {
-		if ((!call) || m_acctUpdateInterval == 0 
+		if ((!call) || m_acctUpdateInterval == 0
 			|| (now - call->GetLastAcctUpdateTime()) < m_acctUpdateInterval) {
 			return true;
 		} else {
 			call->SetLastAcctUpdateTime(now);
 		}
 	}
-			
+
 	bool finalResult = true;
 	GkAcctLogger::Status status = GkAcctLogger::Ok;
 	std::list<GkAcctLogger*>::const_iterator iter = m_loggers.begin();
-	
+
 	while (iter != m_loggers.end()) {
 		GkAcctLogger* logger = *iter++;
-	
+
 		if ((evt & logger->GetEnabledEvents() & logger->GetSupportedEvents()) == 0)
 			continue;
-		
+
 		status = logger->Log(evt, call);
 		switch (status)
 		{
@@ -932,7 +928,7 @@ bool GkAcctLoggerList::LogAcctEvent(
 				PTrace::End(strm);
 			}
 			break;
-			
+
 		default:
 			if (PTrace::CanTrace(3)) {
 				ostream& strm = PTrace::Begin(3, __FILE__, __LINE__);
@@ -942,15 +938,15 @@ bool GkAcctLoggerList::LogAcctEvent(
 					strm << " for call no. " << call->GetCallNumber();
 				PTrace::End(strm);
 			}
-			// required and sufficient rules always determine 
+			// required and sufficient rules always determine
 			// status of the request
 			if (logger->GetControlFlag() == GkAcctLogger::Required
 				|| logger->GetControlFlag() == GkAcctLogger::Sufficient)
 				finalResult = false;
 		}
-		
+
 		// sufficient and alternative are terminal rules (on log success)
-		if (status == GkAcctLogger::Ok 
+		if (status == GkAcctLogger::Ok
 			&& (logger->GetControlFlag() == GkAcctLogger::Sufficient
 			|| logger->GetControlFlag() == GkAcctLogger::Alternative))
 			break;
@@ -959,10 +955,10 @@ bool GkAcctLoggerList::LogAcctEvent(
 	// a last rule determine status of the the request
 	if (finalResult && status != GkAcctLogger::Ok)
 		finalResult = false;
-		
+
 	if (PTrace::CanTrace(2)) {
 		ostream& strm = PTrace::Begin(2, __FILE__, __LINE__);
-		strm << "GKACCT\t" << (finalResult ? "Successfully logged event " 
+		strm << "GKACCT\t" << (finalResult ? "Successfully logged event "
 			: "Failed to log event ") << evt;
 		if (call)
 			strm << " for call no. " << call->GetCallNumber();
@@ -975,7 +971,7 @@ bool GkAcctLoggerList::LogAcctEvent(
 	return finalResult;
 }
 
-bool GkAcctLoggerList::LogAcctEvent( 
+bool GkAcctLoggerList::LogAcctEvent(
 	GkAcctLogger::AcctEvent evt, /// the accounting event to be logged
 	const endptr& ep /// endpoint associated with the event
 	)
@@ -983,13 +979,13 @@ bool GkAcctLoggerList::LogAcctEvent(
 	bool finalResult = true;
 	GkAcctLogger::Status status = GkAcctLogger::Ok;
 	std::list<GkAcctLogger*>::const_iterator iter = m_loggers.begin();
-	
+
 	while (iter != m_loggers.end()) {
 		GkAcctLogger* logger = *iter++;
-	
+
 		if ((evt & logger->GetEnabledEvents() & logger->GetSupportedEvents()) == 0)
 			continue;
-		
+
 		status = logger->Log(evt, ep);
 		switch (status)
 		{
@@ -1002,7 +998,7 @@ bool GkAcctLoggerList::LogAcctEvent(
 				PTrace::End(strm);
 			}
 			break;
-			
+
 		default:
 			if (PTrace::CanTrace(3)) {
 				ostream& strm = PTrace::Begin(3, __FILE__, __LINE__);
@@ -1012,15 +1008,15 @@ bool GkAcctLoggerList::LogAcctEvent(
 				PTrace::End(strm);
 				SNMP_TRAP(7, SNMPError, Accounting, logger->GetName() + " failed to log event " + PString(evt));
 			}
-			// required and sufficient rules always determine 
+			// required and sufficient rules always determine
 			// status of the request
 			if (logger->GetControlFlag() == GkAcctLogger::Required
 				|| logger->GetControlFlag() == GkAcctLogger::Sufficient)
 				finalResult = false;
 		}
-		
+
 		// sufficient and alternative are terminal rules (on log success)
-		if (status == GkAcctLogger::Ok 
+		if (status == GkAcctLogger::Ok
 			&& (logger->GetControlFlag() == GkAcctLogger::Sufficient
 			|| logger->GetControlFlag() == GkAcctLogger::Alternative))
 			break;
@@ -1029,10 +1025,10 @@ bool GkAcctLoggerList::LogAcctEvent(
 	// a last rule determine status of the the request
 	if (finalResult && status != GkAcctLogger::Ok)
 		finalResult = false;
-		
+
 	if (PTrace::CanTrace(2)) {
 		ostream& strm = PTrace::Begin(2, __FILE__, __LINE__);
-		strm << "GKACCT\t" << (finalResult ? "Successfully logged event " 
+		strm << "GKACCT\t" << (finalResult ? "Successfully logged event "
 			: "Failed to log event ") << evt;
 		if (ep)
 			strm << " for endpoint " << ep->GetEndpointIdentifier().GetValue();
