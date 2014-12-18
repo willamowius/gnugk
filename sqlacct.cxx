@@ -28,11 +28,11 @@ SQLAcct::SQLAcct(
 	) : GkAcctLogger(moduleName, cfgSecName),
 	m_sqlConn(NULL)
 {
-	SetSupportedEvents(SQLAcctEvents);	
+	SetSupportedEvents(SQLAcctEvents);
 
-	PConfig* const cfg = GkConfig();	
+	PConfig* const cfg = GkConfig();
 	const PString& cfgSec = GetConfigSectionName();
-	
+
 	const PString driverName = cfg->GetString(cfgSec, "Driver", "");
 	if (driverName.IsEmpty()) {
 		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
@@ -42,7 +42,7 @@ SQLAcct::SQLAcct(
 		RasServer::Instance()->Stop();
 		return;
 	}
-	
+
 	m_sqlConn = GkSQLConnection::Create(driverName, cfgSec);
 	if (m_sqlConn == NULL) {
 		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
@@ -54,7 +54,7 @@ SQLAcct::SQLAcct(
 	}
 
 	m_startQuery = cfg->GetString(cfgSec, "StartQuery", "");
-	if (m_startQuery.IsEmpty() 
+	if (m_startQuery.IsEmpty()
 		&& (GetEnabledEvents() & GetSupportedEvents() & AcctStart) == AcctStart) {
 		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
 			"no start query configured");
@@ -64,14 +64,14 @@ SQLAcct::SQLAcct(
 		return;
 	} else
 		PTRACE(4, "GKACCT\t" << GetName() << " start query: " << m_startQuery);
-	
+
 	m_startQueryAlt = cfg->GetString(cfgSec, "StartQueryAlt", "");
 	if (!m_startQueryAlt) {
 		PTRACE(4, "GKACCT\t" << GetName() << " alternative start query: " << m_startQueryAlt);
 	}
 
 	m_updateQuery = cfg->GetString(cfgSec, "UpdateQuery", "");
-	if (m_updateQuery.IsEmpty() 
+	if (m_updateQuery.IsEmpty()
 		&& (GetEnabledEvents() & GetSupportedEvents() & (AcctUpdate | AcctConnect)) != 0) {
 		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
 			"no update query configured");
@@ -84,7 +84,7 @@ SQLAcct::SQLAcct(
 	}
 
 	m_stopQuery = cfg->GetString(cfgSec, "StopQuery", "");
-	if (m_stopQuery.IsEmpty() 
+	if (m_stopQuery.IsEmpty()
 		&& (GetEnabledEvents() & GetSupportedEvents() & AcctStop) == AcctStop) {
 		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
 			"no stop query configured");
@@ -94,10 +94,10 @@ SQLAcct::SQLAcct(
 		return;
 	} else
 		PTRACE(4, "GKACCT\t" << GetName() << " stop query: " << m_stopQuery);
-	
+
 	m_stopQueryAlt = cfg->GetString(cfgSec, "StopQueryAlt", "");
 	if (!m_stopQueryAlt) {
-		PTRACE(4, "GKACCT\t" << GetName() << " alternative stop query: " 
+		PTRACE(4, "GKACCT\t" << GetName() << " alternative stop query: "
 			<< m_stopQueryAlt);
 	}
 
@@ -137,13 +137,12 @@ SQLAcct::SQLAcct(
 
 	if (!m_sqlConn->Initialize(cfg, cfgSec)) {
 		PTRACE(0, "GKACCT\t" << GetName() << " module creation failed: "
-			"could not connect to the database"
-			);
+			"could not connect to the database");
 		PTRACE(0, "GKACCT\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
 		return;
 	}
-	
+
 	m_timestampFormat = cfg->GetString(cfgSec, "TimestampFormat", "");
 }
 
@@ -153,29 +152,29 @@ SQLAcct::~SQLAcct()
 }
 
 GkAcctLogger::Status SQLAcct::Log(
-	GkAcctLogger::AcctEvent evt, 
+	GkAcctLogger::AcctEvent evt,
 	const callptr& call
 	)
 {
 	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
 		return Next;
-		
+
 	if (!call && (evt !=AcctOn && evt != AcctOff)) {
 		PTRACE(1, "GKACCT\t" << GetName() << " - missing call info for event " << evt);
 		SNMP_TRAP(5, SNMPError, Accounting, "No call for accouting event");
 		return Fail;
 	}
-	
+
 	const long callNumber = !call ? 0 : call->GetCallNumber();
-		
+
 	if (m_sqlConn == NULL) {
 		PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
-			"data (event: " << evt << ", call: " << callNumber 
+			"data (event: " << evt << ", call: " << callNumber
 			<< "): SQL connection not active");
 		SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
 		return Fail;
 	}
-	
+
 	PString query, queryAlt;
 	if (evt == AcctStart) {
 		query = m_startQuery;
@@ -195,7 +194,7 @@ GkAcctLogger::Status SQLAcct::Log(
 	if (query.IsEmpty()) {
 		if (evt != AcctAlert) {
 			PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
-				"data (event: " << evt << ", call: " << callNumber 
+				"data (event: " << evt << ", call: " << callNumber
 				<< "): SQL query is empty");
 			SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
 		}
@@ -207,16 +206,16 @@ GkAcctLogger::Status SQLAcct::Log(
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(query, params);
 	if (result == NULL) {
 		PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
-			"data (event: " << evt << ", call: " << callNumber 
+			"data (event: " << evt << ", call: " << callNumber
 			<< "): timeout or fatal error");
 		SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
 	}
-	
+
 	if (result) {
 		if (result->IsValid()) {
 			if (result->GetNumRows() < 1) {
 				PTRACE(4, "GKACCT\t" << GetName() << " failed to store accounting "
-					"data (event: " << evt << ", call: " << callNumber 
+					"data (event: " << evt << ", call: " << callNumber
 					<< "): no rows have been updated");
 				SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
 				delete result;
@@ -224,7 +223,7 @@ GkAcctLogger::Status SQLAcct::Log(
 			}
 		} else {
 			PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
-				"data (event: " << evt << ", call: " << callNumber 
+				"data (event: " << evt << ", call: " << callNumber
 				<< "): (" << result->GetErrorCode() << ") "
 				<< result->GetErrorMessage());
 			SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
@@ -232,25 +231,25 @@ GkAcctLogger::Status SQLAcct::Log(
 			result = NULL;
 		}
 	}
-	
+
 	if (result == NULL && !queryAlt) {
 		result = m_sqlConn->ExecuteQuery(queryAlt, params);
 		if (result == NULL) {
 			PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
-				"data (event: " << evt << ", call: " << callNumber 
+				"data (event: " << evt << ", call: " << callNumber
 				<< "): timeout or fatal error");
 			SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
 		} else {
 			if (result->IsValid()) {
 				if (result->GetNumRows() < 1) {
 					PTRACE(4, "GKACCT\t" << GetName() << " failed to store accounting "
-						"data (event: " << evt << ", call: " << callNumber 
+						"data (event: " << evt << ", call: " << callNumber
 						<< "): no rows have been updated");
 					SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
 				}
 			} else {
 				PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
-					"data (event: " << evt << ", call: " << callNumber 
+					"data (event: " << evt << ", call: " << callNumber
 					<< "): (" << result->GetErrorCode() << ") "
 					<< result->GetErrorMessage());
 				SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
@@ -258,13 +257,13 @@ GkAcctLogger::Status SQLAcct::Log(
 		}
 	}
 
-	const bool succeeded = result != NULL && result->IsValid();	
+	const bool succeeded = result != NULL && result->IsValid();
 	delete result;
 	return succeeded ? Ok : Fail;
 }
 
 GkAcctLogger::Status SQLAcct::Log(
-	GkAcctLogger::AcctEvent evt, 
+	GkAcctLogger::AcctEvent evt,
 	const endptr& ep
 	)
 {
@@ -285,7 +284,7 @@ GkAcctLogger::Status SQLAcct::Log(
 		SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
 		return Fail;
 	}
-	
+
 	PString query;
 	if (evt == AcctRegister)
 		query = m_registerQuery;
@@ -305,7 +304,7 @@ GkAcctLogger::Status SQLAcct::Log(
 			<< "): timeout or fatal error");
 		SNMP_TRAP(5, SNMPError, Accounting, "Failed to store event");
 	}
-	
+
 	if (result) {
 		if (result->IsValid()) {
 			if (result->GetNumRows() < 1) {
@@ -327,7 +326,7 @@ GkAcctLogger::Status SQLAcct::Log(
 		}
 	}
 
-	const bool succeeded = result != NULL && result->IsValid();	
+	const bool succeeded = result != NULL && result->IsValid();
 	delete result;
 	return succeeded ? Ok : Fail;
 }
@@ -335,7 +334,7 @@ GkAcctLogger::Status SQLAcct::Log(
 PString SQLAcct::GetInfo()
 {
 	PString result;
-	
+
 	if (m_sqlConn == NULL)
 		result += "  No SQL connection available\r\n";
 	else {
@@ -348,9 +347,9 @@ PString SQLAcct::GetInfo()
 		result += "  Busy Connections::           " + PString(info.m_busyConnections) + "\r\n";
 		result += "  Waiting Requests:            " + PString(info.m_waitingRequests) + "\r\n";
 	}
-	
+
 	result += ";\r\n";
-	
+
 	return result;
 }
 

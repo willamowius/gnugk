@@ -1,5 +1,6 @@
 Changes from 3.7 to 3.8
 =======================
+- BUGFIX(GkSTatus.cxx) fix crash in shutdown during Reload
 - allow codec filtering for whole capability classes, eg. DisableCodecs=receiveVideoCapability
 - BUGFIX(lua.cxx) fix crash in 'lua' routing policy
 - BUGFIX(RasTbl.cxx) fix [EP::] ForceGateway= to work with permanent endpoints

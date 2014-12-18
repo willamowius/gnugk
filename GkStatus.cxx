@@ -2,7 +2,7 @@
 //
 // GkStatus.cxx
 //
-// Copyright (c) 2000-2013, Jan Willamowius
+// Copyright (c) 2000-2014, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -106,7 +106,7 @@ public:
 		/// unique session ID (instance number) for this client
 		int instanceNo
 		);
-		
+
 	virtual ~StatusClient();
 
 	virtual bool ReadCommand(
@@ -117,36 +117,36 @@ public:
 		/// timeout (ms) for read operation
 		int readTimeout = 0
 		);
-		
+
 	/** Send the message (string) to the status interface client,
 		if the output trace level is lesser or equal to the one set
 		for this client.
-		
+
 		@return
 		true if the message has been sent (or ignored because of trace level).
 	*/
 	virtual bool WriteString(
 		/// string to be sent through the socket
-		const PString& msg, 
+		const PString& msg,
 		/// output trace level assigned to the message
 		int level = MIN_STATUS_TRACE_LEVEL
 		);
-		
+
 	void FlushData();
 
 	/** @return
 		A string with connection information about this client.
 	*/
 	PString WhoAmI() const;
-	
+
 	/** Check the client with all configured status authentication rules.
 		Ask for username/password, if required.
-		
+
 		@return
 		true if the client has been granted access, false to reject the client.
 	*/
 	virtual bool Authenticate();
-	
+
 	/** Executes the given command as a new Job (in a separate Worker thread).
 	*/
 	void OnCommand(
@@ -158,7 +158,7 @@ public:
 		Unique instance number (session identifier) for this client.
 	*/
 	int GetInstanceNo() const { return m_instanceNo; }
-	
+
 	/** @return
 		Output trace level for this status client. The trace level
 		decides what kind of information is allowed to be broadcasted
@@ -174,13 +174,13 @@ public:
 	{
 		m_traceLevel = newLevel;
 	}
-		
+
 	/** @return
 		true if one or more commands from this status interface client
 		are executing by Worker threads.
 	*/
 	bool IsBusy() const
-	{ 
+	{
 		PWaitAndSignal lock(m_cmutex);
 		return m_numExecutingCommands > 0;
 	}
@@ -201,7 +201,7 @@ protected:
 
 	/** Check a new client connection against the specified authentication
 		rule.
-		
+
 		@return
 		true if the client satisfied the rule (has been authenticated successfully
 		with this rule).
@@ -213,7 +213,7 @@ protected:
 
 	/** Authenticate this status interface client through all authentication
 		rules and return the final result.
-		
+
 		@return
 		true if the use has been authenticated.
 	*/
@@ -221,7 +221,7 @@ protected:
 
 	/** @return
 		The decrypted password associated with the specified login.
-	*/	
+	*/
 	PString GetPassword(
 		/// login the password is to be retrieved for
 		const PString& login
@@ -274,7 +274,7 @@ protected:
 	// String to be check against the include regular expressions
 	const PString & msg
 	) const;
-    
+
     // Match the given string against filters held by the specified vector
     bool MatchFilter(
 	// filter vector
@@ -301,10 +301,12 @@ protected:
 	int m_traceLevel;
 	/// should the client be terminated, eg. after finishing a one-shot execute
 	bool m_done;
+	/// last resort flag if this status client has already been deleted
+	bool m_deleted;
 
 	// vectors of regular expressions to be matched against Status messages
 	std::vector<PString> m_excludeFilterRegex;
-	std::vector<PString> m_includeFilterRegex;		
+	std::vector<PString> m_includeFilterRegex;
 
 	// this flag indicates whether filtering is active or not
 	bool m_isFilteringActive;
@@ -328,7 +330,7 @@ public:
 
 	/** Check the client with all configured status authentication rules.
 		Ask for username/password, if required.
-		
+
 		@return
 		true if the client has been granted access, false to reject the client.
 	*/
@@ -336,7 +338,7 @@ public:
 
 	/** Authenticate this status interface client through all authentication
 		rules and return the final result.
-		
+
 		@return
 		true if the use has been authenticated.
 	*/
@@ -433,7 +435,7 @@ PBoolean SSHStatusClient::Accept(PSocket & socket)
 		SNMP_TRAP(7, SNMPError, Network, "SSH key exchange failed");
 		return false;
 	}
-	
+
 	// set handle for SocketsReader
 	os_handle = ssh_get_fd(m_session);
 
@@ -521,7 +523,7 @@ bool SSHStatusClient::Authenticate()
     } while(m_message && !m_chan);
     if (!m_chan) {
         PTRACE(1, "Error establishing SSH channel: " << ssh_get_error(m_session));
-		SNMP_TRAP(7, SNMPError, Network, PString("SSH error: ") + ssh_get_error(m_session));    
+		SNMP_TRAP(7, SNMPError, Network, PString("SSH error: ") + ssh_get_error(m_session));
         return false;
     }
 
@@ -709,7 +711,7 @@ int TelnetSocket::ReadChar()
 			const PSocket::Errors err = GetErrorCode(PSocket::LastReadError);
 			if ((err != PSocket::Timeout) && (err != PSocket::NoError)) {
 				PTRACE(3, "TELNET\t" << GetName() << " closed the connection ("
-					<< GetErrorCode(PSocket::LastReadError) << '/' 
+					<< GetErrorCode(PSocket::LastReadError) << '/'
 					<< GetErrorNumber(PSocket::LastReadError) << ": "
 					<< GetErrorText(PSocket::LastReadError) << ')'
 					);
@@ -907,16 +909,16 @@ void GkStatus::AuthenticateClient(StatusClient * newClient)
 
 /** Functor class used to send the message to the specified client.
 */
-class ClientSignalStatus 
+class ClientSignalStatus
 {
 public:
 	ClientSignalStatus(
 		/// message to be sent
-		const PString& msg, 
+		const PString& msg,
 		/// output trace level assigned to the message
 		int level
 		) : m_message(msg), m_traceLevel(level) {}
-	
+
 	/** Actual function call operator that sends the message.
 	*/
 	void operator()(
@@ -925,7 +927,7 @@ public:
 		) const
 	{
 		StatusClient* client = static_cast<StatusClient*>(clientSocket);
-		if (m_traceLevel <= client->GetTraceLevel()) 
+		if (m_traceLevel <= client->GetTraceLevel())
 			client->WriteString(m_message);
 	}
 
@@ -938,7 +940,7 @@ private:
 
 void GkStatus::SignalStatus(
 	/// message string to be broadcasted
-	const PString& msg, 
+	const PString& msg,
 	/// trace level at which the message should be broadcasted
 	int level
 	)
@@ -959,7 +961,7 @@ bool GkStatus::DisconnectSession(
 		StatusClient *client = static_cast<StatusClient *>(*i);
 		if (client->GetInstanceNo() == instanceNo) {
 			client->WriteString("Disconnected by session " + requestingClient->WhoAmI());
-			PTRACE(1, "STATUS\tClient " << client->WhoAmI() << " (ID: " 
+			PTRACE(1, "STATUS\tClient " << client->WhoAmI() << " (ID: "
 				<< instanceNo << ") disconnected by " << requestingClient->WhoAmI()
 				);
 			return client->Close();
@@ -970,14 +972,14 @@ bool GkStatus::DisconnectSession(
 
 /** Functor class used to gather a list of active status interface clients.
 */
-class WriteWhoAmI 
+class WriteWhoAmI
 {
 public:
 	WriteWhoAmI(
 		/// status interface client to send the information to
 		StatusClient* requestingClient
 		) : m_requestingClient(requestingClient) {}
-	
+
 	void operator()(
 		/// status interface client to send the information to
 		const IPSocket* clientSocket
@@ -1025,16 +1027,16 @@ int GkStatus::ParseCommand(
 	args = msg.Trim().Tokenise(" \t", FALSE);
 	if (args.GetSize() == 0)
 		return -1;
-		
+
 	// try explicit match
 	const PString command = args[0].ToLower();
 	if (m_commands.find(command) != m_commands.end())
 		return m_commands[command];
-	
+
 	// try to find the closest match (expand command prefix)
 	std::map<PString, int>::iterator iter = m_commands.begin();
 	std::map<PString, int>::iterator expandedCmd = m_commands.end();
-	
+
 	while (iter != m_commands.end()) {
 		if (command == iter->first.Left(command.GetLength())) {
 			// if the key matches more than one command, do not expand
@@ -1046,7 +1048,7 @@ int GkStatus::ParseCommand(
 		++iter;
 	}
 	if( expandedCmd != m_commands.end() ) {
-		PTRACE(6, "STATUS\tExpanded prefix '" << command << "' into command '" 
+		PTRACE(6, "STATUS\tExpanded prefix '" << command << "' into command '"
 			<< expandedCmd->first << "'"
 			);
 		return expandedCmd->second;
@@ -1164,12 +1166,12 @@ void GkStatus::CleanUp()
 StatusClient::StatusClient(
 	/// unique session ID (instance number) for this client
 	int instanceNo) :
-	USocket(this, "Status"), 
+	USocket(this, "Status"),
 	m_gkStatus(GkStatus::Instance()),
 	m_numExecutingCommands(0),
 	m_instanceNo(instanceNo),
 	m_traceLevel(MAX_STATUS_TRACE_LEVEL),
-	m_done(false),
+	m_done(false), m_deleted(false),
 	m_isFilteringActive(false),
 	m_handlePasswordRule(true)
 {
@@ -1193,6 +1195,7 @@ StatusClient::StatusClient(
 StatusClient::~StatusClient()
 {
 	GkStatus::Instance()->StatusClientDeleted();
+    m_deleted = true;
 }
 
 bool StatusClient::ReadCommand(
@@ -1264,7 +1267,7 @@ bool StatusClient::ReadCommand(
 
 bool StatusClient::WriteString(
 	/// string to be sent through the socket
-	const PString & msg, 
+	const PString & msg,
 	/// output trace level assigned to the message
 	int level)
 {
@@ -1275,7 +1278,7 @@ bool StatusClient::WriteString(
 
 	if (m_isFilteringActive && (IsExcludeMessage(msg) || !IsIncludeMessage(msg)))
 	    return false;
-	
+
 	if (!WriteData(msg, msg.GetLength()))
 	    while (CanFlush())
 			Flush();
@@ -1339,7 +1342,7 @@ void StatusClient::OnCommand(
 	}
 	// problem - if the ExecCommand does not get executed for some reason,
 	// m_numExecutingCommands will not decrement
-	
+
 	// make sure this PString doesn't share memory with other PStrings
 	// when we send it into another thread
 	cmd.MakeUnique();
@@ -1372,9 +1375,9 @@ void StatusClient::DoDebug(
 	} else {
 		if (args[1] *= "trc") {
 			if(args.GetSize() >= 3) {
-				if((args[2] == "-") && (PTrace::GetLevel() > 0)) 
+				if((args[2] == "-") && (PTrace::GetLevel() > 0))
 					PTrace::SetLevel(PTrace::GetLevel()-1);
-				else if(args[2] == "+") 
+				else if(args[2] == "+")
 					PTrace::SetLevel(PTrace::GetLevel()+1);
 				else PTrace::SetLevel(args[2].AsInteger());
 			}
@@ -1463,7 +1466,7 @@ bool StatusClient::CheckAuthRule(
 			PTRACE(5, "STATUS\tClient IP " << peer << " not found for explicit rule, using default ("
 				<< result << ')'
 				);
-		} else 
+		} else
 			result = Toolkit::AsBool(val);
 	} else if (rule *= "regex") {
 		PString val;
@@ -1482,10 +1485,10 @@ bool StatusClient::CheckAuthRule(
 		result = true;	// used when called from SSHStatusClient
 	} else {
 		PTRACE(1, "STATUS\tERROR: Unrecognized [GkStatus::Auth] rule (" << rule << ')');
-		SNMP_TRAP(7, SNMPError, Configuration, "Invalid [GkStatus::Auth] rule: " + rule);    
+		SNMP_TRAP(7, SNMPError, Configuration, "Invalid [GkStatus::Auth] rule: " + rule);
 	}
-	
-	PTRACE(4, "STATUS\tAuthentication rule '" << rule 
+
+	PTRACE(4, "STATUS\tAuthentication rule '" << rule
 		<< (result ? "' accepted" : "' rejected") << " the client " << Name());
 	return result;
 }
@@ -1496,7 +1499,7 @@ bool StatusClient::AuthenticateUser()
 	const int delay = GkConfig()->GetInteger(authsec, "DelayReject", 0);
 	const int loginTimeout = GkConfig()->GetInteger(authsec, "LoginTimeout", 120);
 	bool tmp = m_isFilteringActive;
-	
+
 	m_isFilteringActive = false;
 
 	for (int retries = 0; retries < 3; ++retries) {
@@ -1514,7 +1517,7 @@ bool StatusClient::AuthenticateUser()
 		WriteString("\r\n", 1);
 
 		SendWont(PTelnetSocket::EchoOption);
-		
+
 		const PString storedPassword = GetPassword(login);
 		if (storedPassword.IsEmpty())
 			PTRACE(5, "STATUS\tCould not find password in the config for user " << login);
@@ -1524,7 +1527,7 @@ bool StatusClient::AuthenticateUser()
 			return true;
 		} else
 			PTRACE(5, "STATUS\tPassword mismatch for user " << login);
-			
+
 		PThread::Sleep(delay * 1000);
 
 		if ((time(NULL) - now) > loginTimeout)
@@ -1560,9 +1563,9 @@ void StatusClient::ExecCommand(
 	)
 {
 	ReadLock lockConfig(ConfigReloadMutex);
-	
+
 	PTRACE(5, "STATUS\tGot command " << cmd << " from client " << Name());
-	
+
 	PStringArray args;
 	switch (m_gkStatus->ParseCommand(cmd, args))
 	{
@@ -1755,6 +1758,9 @@ void StatusClient::ExecCommand(
 				ReloadHandler();
 				ConfigReloadMutex.StartRead();
 				PTRACE(1, "STATUS\tFull Config reloaded.");
+				// return immediately if this status client has already been deleted
+				if (m_deleted)
+                    return;
 				m_gkStatus->SignalStatus("Full Config reloaded.\r\n");
 			}
 		}
@@ -1855,7 +1861,7 @@ void StatusClient::ExecCommand(
 	case GkStatus::e_RotateLog:
 	    if (Gatekeeper::RotateLogFile())
 			WriteString("Log file rotation succeeded\r\n");
-		else						
+		else
 			WriteString("Log file rotation failed\r\n");
 	    break;
 
@@ -1998,7 +2004,7 @@ void StatusClient::RemoveFilter(
 }
 
 bool StatusClient::IsExcludeMessage(
-    // String to be chacked against exclude regular expressions 
+    // String to be chacked against exclude regular expressions
     const PString &msg
     ) const
 {
@@ -2023,7 +2029,7 @@ bool StatusClient::MatchFilter(
 }
 
 bool StatusClient::IsIncludeMessage(
-    // String to be chacked against include regular expressions 
+    // String to be chacked against include regular expressions
     const PString &msg
     ) const
 {
@@ -2049,7 +2055,7 @@ void StatusClient::PrintFilters(
 		msg = PString(index) + ") " + regexFilters[index] + "\r\n";
 		WriteData(msg, msg.GetLength());
     }
-    
+
     msg = ";\r\n";
     WriteData(msg, msg.GetLength());
 }
@@ -2061,7 +2067,7 @@ StatusListener::StatusListener(const Address & addr, WORD lport)
 	if (!Listen(addr, queueSize, lport, PSocket::CanReuseAddress)) {
 		PTRACE(1, "STATUS\tCould not open listening socket at " << AsString(addr, lport)
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
-			<< GetErrorNumber(PSocket::LastGeneralError) << ": " 
+			<< GetErrorNumber(PSocket::LastGeneralError) << ": "
 			<< GetErrorText(PSocket::LastGeneralError)
 			);
 		Close();
