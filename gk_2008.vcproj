@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="windows-1250"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
-	Name="gk"
+	Version="9,00"
+	Name="gnugk"
 	ProjectGUID="{C5052DDD-FADC-4415-B235-92A9761BB21D}"
 	TargetFrameworkVersion="131072"
 	>
@@ -635,6 +635,50 @@
 				RelativePath="gnugkbuildopts.h"
 				>
 				<FileConfiguration
+					Name="Debug (h323plus)|Win32"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="Configuring Build Options"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure&#x0D;&#x0A;&#x0D;&#x0A;"
+						AdditionalDependencies="$(SolutionDir)/configure.in"
+						Outputs="$(InputDir)gnugkbuildopts.h"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release (h323plus)|Win32"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="Configuring Build Options"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure&#x0D;&#x0A;"
+						AdditionalDependencies="$(SolutionDir)/configure.in"
+						Outputs="$(InputDir)gnugkbuildopts.h"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release as Service (h323plus)|Win32"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="Configuring Build Options"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure&#x0D;&#x0A;"
+						AdditionalDependencies="$(SolutionDir)/configure.in"
+						Outputs="$(InputDir)gnugkbuildopts.h"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug as Service (h323plus)|Win32"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="Configuring Build Options"
+						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure&#x0D;&#x0A;"
+						AdditionalDependencies="$(SolutionDir)/configure.in"
+						Outputs="$(InputDir)gnugkbuildopts.h"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
 					Name="Debug|Win32"
 					>
 					<Tool
@@ -669,50 +713,6 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release (ptlib +1.11)|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description="Configuring Build Options"
-						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;&#x0D;&#x0A;"
-						AdditionalDependencies="$(SolutionDir)/configure.in"
-						Outputs="$(InputDir)gnugkbuildopts.h"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug (h323plus)|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description="Configuring Build Options"
-						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;&#x0D;&#x0A;"
-						AdditionalDependencies="$(SolutionDir)/configure.in"
-						Outputs="$(InputDir)gnugkbuildopts.h"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release (h323plus)|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description="Configuring Build Options"
-						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS%;&#x0D;&#x0A;"
-						AdditionalDependencies="$(SolutionDir)/configure.in"
-						Outputs="$(InputDir)gnugkbuildopts.h"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release as Service (h323plus)|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description="Configuring Build Options"
-						CommandLine="cd $(ProjectDir)&#x0D;&#x0A;configure --exclude-env=VSNET2005_PWLIB_CONFIGURE_EXCLUDE_DIRS %PWLIB_CONFIGURE_OPTIONS% %GNUGK_CONFIGURE_OPTIONS%;&#x0D;&#x0A;"
-						AdditionalDependencies="$(SolutionDir)/configure.in"
-						Outputs="$(InputDir)gnugkbuildopts.h"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug as Service (h323plus)|Win32"
 					>
 					<Tool
 						Name="VCCustomBuildTool"
