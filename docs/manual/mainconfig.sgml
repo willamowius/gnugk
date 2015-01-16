@@ -370,6 +370,17 @@ Example connection command:
 ssh -p 7000 gnugk@1.2.3.4
 </verb></tscreen>
 
+<label id="statuseventbacklog">
+<item><tt/StatusEventBacklog=20/<newline>
+Default: <tt/0/<newline>
+<p>
+Set the number of status port events that are saved for later display in a ring buffer.
+
+<item><tt/StatusEventBacklogRegex=^[RA]RJ/<newline>
+Default: <tt/./<newline>
+<p>
+Define a regular expression to restrict which status port events are saved in the backlog. By default all events are saved.
+
 <item><tt/TimestampFormat=ISO8601/<newline>
 Default: <tt/Cisco/<newline>
 <p>

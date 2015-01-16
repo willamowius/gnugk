@@ -2,7 +2,7 @@
 //
 // GkStatus.cxx
 //
-// Copyright (c) 2000-2014, Jan Willamowius
+// Copyright (c) 2000-2015, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -127,7 +127,7 @@ public:
 	*/
 	virtual bool WriteString(
 		/// string to be sent through the socket
-		const PString& msg,
+		const PString & msg,
 		/// output trace level assigned to the message
 		int level = MIN_STATUS_TRACE_LEVEL
 		);
@@ -871,6 +871,14 @@ GkStatus::GkStatus() : Singleton<GkStatus>("GkStatus"), SocketsReader(500)
 	SetName("GkStatus");
 	m_statusClients = 0;
 	m_maxStatusClients = GkConfig()->GetInteger("MaxStatusClients", 20);
+    m_eventBacklogLimit = GkConfig()->GetInteger("StatusEventBacklog", 0);
+    PString eventBacklogRegex = GkConfig()->GetString("StatusEventBacklogRegex", ".");
+	m_eventBacklogRegex = PRegularExpression(eventBacklogRegex, PRegularExpression::Extended);
+	if (m_eventBacklogRegex.GetErrorCode() != PRegularExpression::NoError) {
+		PTRACE(2, "Error '"<< m_eventBacklogRegex.GetErrorText() <<"' compiling StatusEventBacklogRegex: " << eventBacklogRegex);
+		m_eventBacklogRegex = PRegularExpression(".", PRegularExpression::Extended);
+	}
+
 	Execute();
 }
 
@@ -917,7 +925,7 @@ public:
 		const PString& msg,
 		/// output trace level assigned to the message
 		int level
-		) : m_message(msg), m_traceLevel(level) {}
+		) : m_message(msg), m_traceLevel(level) { }
 
 	/** Actual function call operator that sends the message.
 	*/
@@ -940,13 +948,31 @@ private:
 
 void GkStatus::SignalStatus(
 	/// message string to be broadcasted
-	const PString& msg,
+	const PString & msg,
 	/// trace level at which the message should be broadcasted
 	int level
 	)
 {
 	ReadLock lock(m_listmutex);
+    // signal event to all connected clients
 	ForEachInContainer(m_sockets, ClientSignalStatus(msg, level));
+
+	// save event in backlog
+    PWaitAndSignal eventLock(m_eventBacklogMutex);
+	if (m_eventBacklogLimit > 0) {
+        // TODO: add time and level ?
+        PString event = msg.Trim();
+        event.Replace("\r\n", "");
+        if (event != ";") {
+            PINDEX pos = 0;
+            if (m_eventBacklogRegex.Execute(event, pos)) {
+                m_eventBacklog.push_back(event);
+                if (m_eventBacklog.size() > m_eventBacklogLimit) {
+                    m_eventBacklog.pop_front();
+                }
+            }
+        }
+	}
 }
 
 bool GkStatus::DisconnectSession(
@@ -1002,6 +1028,15 @@ void GkStatus::ShowUsers(
 {
 	ReadLock lock(m_listmutex);
 	ForEachInContainer(m_sockets, WriteWhoAmI(requestingClient));
+}
+
+void GkStatus::PrintEventBacklog(StatusClient * requestingClient) const
+{
+	PWaitAndSignal lock(m_eventBacklogMutex);
+	for (std::list<PString>::const_iterator i = m_eventBacklog.begin(); i != m_eventBacklog.end(); ++i) {
+	    requestingClient->WriteString(*i + "\r\n");
+	}
+    requestingClient->WriteString(";\r\n");
 }
 
 void GkStatus::PrintHelp(
@@ -1132,6 +1167,7 @@ void GkStatus::OnStart()
 	m_commands["resetcallcounters"] = e_ResetCallCounters;
 	m_commands["printendpointqos"] = e_PrintEndpointQoS;
 	m_commands["printallconfigswitches"] = e_PrintAllConfigSwitches;
+	m_commands["printeventbacklog"] = e_PrintEventBacklog;
 }
 
 void GkStatus::ReadSocket(IPSocket * clientSocket)
@@ -1967,6 +2003,9 @@ void StatusClient::ExecCommand(
 			}
 			WriteString(";\r\n");
 		}
+		break;
+	case GkStatus::e_PrintEventBacklog:
+	    GkStatus::Instance()->PrintEventBacklog(this);
 		break;
 	default:
 		// commmand not recognized

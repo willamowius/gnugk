@@ -210,6 +210,8 @@ const char * KnownConfigEntries[][2] = {
 	{ "Gatekeeper::Main", "SendTo" },
 	{ "Gatekeeper::Main", "SkipForwards" },
 	{ "Gatekeeper::Main", "SshStatusPort" },
+	{ "Gatekeeper::Main", "StatusEventBacklog" },
+	{ "Gatekeeper::Main", "StatusEventBacklogRegex" },
 	{ "Gatekeeper::Main", "StatusPort" },
 	{ "Gatekeeper::Main", "StatusTraceLevel" },
 	{ "Gatekeeper::Main", "StatusWriteTimeout" },

@@ -808,6 +808,8 @@ Number of Endpoints: 2
 </verb></tscreen>
 </descrip>
 
+<item><tt/PrintEventBacklog/<newline>
+<p>Print the saved status port events in the event backlog. To configure the event backlog see <ref id="statuseventbacklog" name="[Gatekeeper::Main] StatusEventBacklog">.
 
 </itemize>
 

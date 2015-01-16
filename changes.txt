@@ -1,6 +1,6 @@
 Changes from 3.8 to 3.9
 =======================
-
+- new feature: status port event back log
 
 Changes from 3.7 to 3.8
 =======================

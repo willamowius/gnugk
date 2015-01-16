@@ -3,7 +3,7 @@
 // GkStatus.h	thread listening for connections to receive
 //		status updates from the gatekeeper
 //
-// Copyright (c) 2000-2011, Jan Willamowius
+// Copyright (c) 2000-2015, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -16,6 +16,7 @@
 #define GKSTATUS_H "@(#) $Id$"
 
 #include <map>
+#include <list>
 #include "yasocket.h"
 #include "singleton.h"
 
@@ -47,20 +48,20 @@ public:
 		if required. If the authentication is successful, the client
 		is added to the list of active clients. If it fails, client
 		instance is deleted.
-	*/	
+	*/
 	void AuthenticateClient(
 		/// new status interface client to be authenticated
 		StatusClient* newClient
 		);
 
-	/** Broadcast the message to all active client connected 
+	/** Broadcast the message to all active client connected
 		to the status interface. The message is sent to each client
 		only if client trace level is greater or equal to the trace level
 		of the message.
 	*/
 	void SignalStatus(
 		/// message string to be broadcasted
-		const PString& msg, 
+		const PString& msg,
 		/// trace level at which the message should be broadcasted
 		/// if the current output trace level is less than this value,
 		/// the client will not receive this message
@@ -68,7 +69,7 @@ public:
 		);
 
 	/** Disconnect the specified status interface client.
-		
+
 		@return
 		true if the status interface client with the given session ID
 		has been found and disconnected.
@@ -90,10 +91,14 @@ public:
 	*/
 	void ShowUsers(
 		/// client that requested the list of all active clients
-		StatusClient* requestingClient
+		StatusClient * requestingClient
 		) const;
 
-	/** Print help (list of status interface commands) 
+    /** Print the event backlog to the requesting client.
+    */
+    void PrintEventBacklog(StatusClient * requestingClient) const;
+
+	/** Print help (list of status interface commands)
 		to the requesting client.
 	*/
 	void PrintHelp(
@@ -155,14 +160,15 @@ public:
 		e_ResetCallCounters,           /// Reset the call counters
 		e_PrintEndpointQoS,            /// Print QoS values for all endpoints
 		e_PrintAllConfigSwitches,      /// print all known config switches
+		e_PrintEventBacklog,           /// print buffered events
 		e_numCommands
 		/// Number of different strings
 	};
 
 	/** Parse the text message into the status interface command.
-	
+
 		@return
-		The command code (see #StatusInterfaceCommands enum#) 
+		The command code (see #StatusInterfaceCommands enum#)
 		and 'args' filled with command tokens
 		or -1 if no corresponding command has been found.
 	*/
@@ -186,6 +192,12 @@ protected:
 
 	unsigned m_statusClients;
 	unsigned m_maxStatusClients;
+
+	// event backlog
+	std::list<PString> m_eventBacklog;
+	PMutex m_eventBacklogMutex;
+	unsigned m_eventBacklogLimit;
+	PRegularExpression m_eventBacklogRegex;
 };
 
 /** Listen for incoming connections to the status interface port
@@ -199,11 +211,11 @@ public:
 	/// create the new listener socket
 	StatusListener(
 		/// address the socket is to be bound to
-		const Address& addr, 
+		const Address& addr,
 		/// port number the socket is to be bound to
 		WORD port
 		);
-		
+
 	virtual ~StatusListener();
 
 	/** Create a new StatusClient socket that will be used
