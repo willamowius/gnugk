@@ -167,6 +167,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Gatekeeper::Auth", "CapacityControl" },
 	{ "Gatekeeper::Auth", "FileIPAuth" },
 	{ "Gatekeeper::Auth", "H350PasswordAuth" },
+	{ "Gatekeeper::Auth", "LuaAuth" },
 	{ "Gatekeeper::Auth", "PrefixAuth" },
 	{ "Gatekeeper::Auth", "RadAliasAuth" },
 	{ "Gatekeeper::Auth", "RadAuth" },
