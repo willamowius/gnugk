@@ -8,7 +8,7 @@ The following sections in the config file can be used to configure authenticatio
 The section defines the authentication mechanism / modules for the
 <htmlurl url="http://www.gnugk.org/" name="GNU Gatekeeper">.
 After defining which modules to use, you have to add the corresponding
-config sections for each modulke that you want to use.
+config sections for each module.
 
 <descrip>
 <tag/Syntax:/
@@ -24,7 +24,7 @@ authrule=actions
 </verb></tscreen>
 </descrip>
 
-A rule may results in one of these three codes: ok, fail, next.
+A rule may result in one of three codes: ok, fail, next.
 <itemize>
 <item><tt/ok/ - The request is authenticated by this module.
 <item><tt/fail/ - The authentication fails and should be rejected.
@@ -35,31 +35,31 @@ There are also three ways to control a rule:
 <item><tt/optional/ - If the rule cannot determine the request or accepts it, it is passed to next rule. Otherwise processing stops and the request is rejected.
 <item><tt/required/ - The requests should be authenticated by this module, or it would be rejected. The authenticated request would then be passed to next rule.
 <item><tt/sufficient/ - If the request is authenticated, it is accepted, or it would be rejected. That is, the rule determines the fate of the request. No rule should be put after a sufficient rule, since it won't take effect.
-<item><tt/alternative/ - similar to the <tt/sufficient/ rule, except that if the module cannot determine request fate, the request is passed to a next module.
+<item><tt/alternative/ - similar to the <tt/sufficient/ rule, except that if the module cannot determine the result the request is passed to a next module.
 </itemize>
 
-Currently supported modules: (most only support a subset of the ras or q931 actions)
+Currently supported modules: (most only support a subset of the RAS or Q.931 actions)
 <itemize>
 <item><tt>SimplePasswordAuth/SQLPasswordAuth/H350PasswordAuth</tt>
 <p>
-These modules check the tokens or cryptoTokens fields of RAS message.
+These modules check the tokens or cryptoTokens fields of a RAS message.
 The tokens should contain at least generalID and password.
 For cryptoTokens, cryptoEPPwdHash tokens hashed by simple MD5 and
 nestedcryptoToken tokens hashed by HMAC-SHA1-96
-are supported. For tokens tokens hashed by CAT (Cisco Access Token)
-and a clear text username/password are supported.
-The ID and password are read from <ref id="password" name="[SimplePasswordAuth]"> section,
+are supported. For tokens hashed by CAT (Cisco Access Token)
+a clear text username/password are supported.
+The ID and password are read from the <ref id="password" name="[SimplePasswordAuth]"> section,
 or a SQL database for <tt/SimplePasswordAuth/ and <tt/SQLPasswordAuth/
 modules. For H.350.2 authentication (<tt/H350PasswordAuth/)
-the <ref id="h350settings" name="[GkH350::Settings]"> section connection information must be completed.
-The <ref id="h350passwordauth" name="[H350PasswordAuth]"> section is optional
+the <ref id="h350settings" name="[GkH350::Settings]"> connection information must be completed.
+The <ref id="h350passwordauth" name="[H350PasswordAuth]"> section is optional.
 
 <item><tt>AliasAuth/SQLAliasAuth</tt>
 <p>
 The module can only be used to authenticate RegistrationRequest (RRQ).
 The IP of an endpoint with a given alias should match a specified pattern.
-For <tt/AliasAuth/ the pattern is defined in
-<ref id="rrqauth" name="[RasSrv::RRQAuth]"> the section.
+For <tt/AliasAuth/ the pattern is defined in the 
+<ref id="rrqauth" name="[RasSrv::RRQAuth]"> section.
 For <tt/SQLAliasAuth/, the pattern is retrieved from a SQL database as 
 defined in the <ref id="sqlaliasauth" name="[SQLAliasAuth]"> section.
 
@@ -79,9 +79,9 @@ AdmissionRequest (ARQ), LocationRequest (LRQ), Setup and SetupUnreg.
 <p>
 Provides authentication based on H.235 username/password
 security scheme. Authenticates RRQ, ARQ and Q.931 Setup through remote
-RADIUS servers. It passes to RADIUS servers the usernames and passwords
+RADIUS servers. It sends usernames and passwords
 extracted from CAT (Cisco Access Tokens) tokens carried
-inside RRQ, ARQ or Setup packets. Therefore if your endpoints do not
+inside RRQ, ARQ or Setup packets to the RADIUS servers. If your endpoints do not
 support CATs or you do not need an authentication scheme based on
 individually assigned usernames/password then this module would not be appropriate
 (but you may check the <tt/RadAliasAuth/ module).
@@ -126,12 +126,12 @@ and the attribute matching is defined in the
 
 <item><tt>LuaAuth</tt>
 <p>
-This module uses user defined LUA scripts to perform the authentication.
+This module utilizes user-defined LUA scripts to perform authentication.
 The scripts are configured in the <ref id="luaauth" name="LuaAuth"> section.
 
 <item><tt>CapacityControl</tt>
 <p>
-A flexible module to control inbound call volume with ability to configure
+A flexible module to control inbound call volume with the ability to configure
 various conditions. IMPORTANT: It must be used in conjunction with the <tt/CapacityControl/
 accounting module. See section <ref id="capctrl" name="[CapacityControl]"> for more details.
  
@@ -295,7 +295,7 @@ This switch can be used to avoid incompatibilities with vendor implementations.
 <label id="sqlpasswordauth">
 <p>
 Authenticate H.235 enabled endpoints using passwords stored
-in the SQL database. This section defines the SQL driver to use,
+in a SQL database. This section defines the SQL driver to use,
 SQL database connection parameters and the query to use to retrieve passwords.
 
 Use the <ref id="database" name="common database configuration options">
@@ -306,7 +306,7 @@ to define your database connection for this module.
 Default: <tt/0/<newline>
 <p>
 This field defines how long (alias;password) pairs retrieved from the database 
-will be cached in the local memory. The cache timeout value is expressed in seconds.
+will be cached. The cache timeout value is expressed in seconds.
 <tt/0/ means to not cache passwords, while a negative value
 means the cache never expires (only <tt/reload/ command will refresh the cache).
 
@@ -353,7 +353,7 @@ The first alias (this will mostly be an H323ID) of the endpoint to
 register is looked up in this section. If a parameter is found the value will
 apply as a rule. A rule consists of conditions separated by "&".
 A registration is accepted when all conditions apply.
-If an endpoint is using H.460.18, the port in the authentication rule is being ignored.
+If an endpoint is using H.460.18, the port in the authentication rule will be ignored.
 
 <descrip>
 <tag/Syntax:/
@@ -422,14 +422,14 @@ to define your database connection for this module.
 Default: <tt/0/<newline>
 <p>
 This field defines how long (alias;authrule) pairs retrieved from the database 
-will be cached in the local memory. The cache timeout value is expressed in seconds.
+will be cached. The cache timeout value is expressed in seconds.
 <tt/0/ means not to cache rules, while a negative value
 means the cache never expires (only <tt/reload/ command will refresh the cache).
 
 <item><tt/Query=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Defines SQL query used to retrieve alias rule from the database. The query
+Defines the SQL query used to retrieve alias rule from the database. The query
 is parameterized - that means parameter replacement is made before each query
 is executed. Parameter placeholders are denoted by <bf/%1/, <bf/%2/, ... strings.
 Specify %% to embed a percent character before a digit into string (like <bf/%%1/),
@@ -461,7 +461,7 @@ to define your database connection for this module.
 <item><tt/RegQuery=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Define a SQL query to be used to perform authentication and authorization
+Defines the SQL query to be used to perform authentication and authorization
 of endpoint registrations. The query is parameterized - that means parameter
 replacement is made before each query is executed. The following parameters are defined:
 <itemize>
@@ -480,7 +480,7 @@ request and to get additional information:
 <enum>
 <item>The first column is converted into a boolean value (1, T, TRUE, allow, y, yes means true)
       and is an authentication result (accept/reject).
-<item>If the registration is authenticated successfully, remaining columns 
+<item>If the registration is successfully authenticated the remaining columns 
       are examined:
 <enum>
 	<item>If there exists a column called <tt/'aliases'/, replace original endpoint
@@ -502,7 +502,7 @@ SELECT * FROM get_registration_auth('%g', '%u', '%{callerip}', '%{aliases}') AS 
 <item><tt/NbQuery=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Define a SQL query to be used to perform authentication and authorization
+Defines the SQL query to be used to perform authentication and authorization
 of location requests sent from neighbors. The query is parameterized - that means parameter
 replacement is made before each query is executed. The following parameters are defined:
 <itemize>

@@ -44,7 +44,7 @@ RegistrationTable
 <item><tt/parent/<newline>
 <p>
 Route the call using information sent by the parent gatekeeper in
-reply to an ARQ the gatekeeper will send (only LRQs to the child will be forwarded als LRQs).
+reply to an ARQ the gatekeeper will send (only LRQs to the child will be forwarded as LRQs).
 You can define your parent gatekeeper using the <ref id="endpoint" name="Endpoint"> section.
 
 <item><tt/neighbor/<newline>
