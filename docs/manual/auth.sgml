@@ -468,7 +468,7 @@ replacement is made before each query is executed. The following parameters are 
 <item><tt/%g/ - the gatekeeper identifier
 <item><tt/%{gkip}/ - a gatekeeper IP the request has been received on
 <item><tt/%u/ - username associated with an endpoint (usually a H.323 ID)
-<item><tt/%{callerip}/ - caller's IP (the request has been received from - NAT IP for natted endpoints)
+<item><tt/%{callerip}/ - caller's IP (the request has been received from - NAT IP for NATted endpoints)
 <item><tt/%{aliases}/ - a comma separated list of endpoint aliases
 <item><tt/%{additive-rrq}/ - whether an additive rrq  0 - false 1 - true
 </itemize>
@@ -547,8 +547,8 @@ replacement is made before each query is executed. The following parameters are 
 <itemize>
 <item><tt/%g/ - the gatekeeper identifier
 <item><tt/%{gkip}/ - a gatekeeper IP the request has been received on
-<item><tt/%u/ - an username associated with the caller
-<item><tt/%{callerip}/ - caller's IP (the request has been received from - NAT IP for natted endpoints)
+<item><tt/%u/ - a username associated with the caller
+<item><tt/%{callerip}/ - caller's IP (the request has been received from - NAT IP for NATted endpoints)
 <item><tt/%{Calling-Station-Id}/ - caller's number, if available
 <item><tt/%{Called-Station-Id}/ - destination number
 <item><tt/%{Dialed-Number}/ - original destination number (before rewrite)
@@ -1610,7 +1610,7 @@ LUA script to be used for ARQs and Setups.
 Registration authentication scripts can use the following variables
 <itemize>
 <item><tt/username/ - a username associated with the caller
-<item><tt/callerIP/ - caller's IP (the request has been received from - NAT IP for natted endpoints)
+<item><tt/callerIP/ - caller's IP (the request has been received from - NAT IP for NATted endpoints)
 <item><tt/aliases/ - the list of aliases in the registration
 <item><tt/messageType/ - always "RRQ" for registrations
 </itemize>
