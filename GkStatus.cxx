@@ -696,6 +696,8 @@ PBoolean TelnetSocket::Accept(PSocket & socket)
 #else
 	// name already be set
 #endif
+    SetOption(SO_SNDBUF, GkConfig()->GetInteger("StatusSendBufferSize", 16384));
+    SetOption(SO_RCVBUF, GkConfig()->GetInteger("StatusReceiveBufferSize", 16384));
 	return true;
 }
 

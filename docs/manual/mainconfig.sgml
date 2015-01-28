@@ -483,6 +483,16 @@ Default: <tt/1024/<newline>
 <p>
 Queue length for incoming TCP connection.
 
+<item><tt/StatusSendBufferSize=16384/<newline>
+Default: <tt/16384/<newline>
+<p>
+Set the TCP send buffer size for status port connections.
+
+<item><tt/StatusReceiveBufferSize=16384/<newline>
+Default: <tt/16384/<newline>
+<p>
+Set the TCP receive buffer size for status port connections.
+
 <item><tt/ExternalIP=myip.no-ip.com/<newline>
 Default: <tt>N/A</tt><newline>
 <p>

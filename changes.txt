@@ -1,5 +1,6 @@
 Changes from 3.8 to 3.9
 =======================
+- new switches: [Gatekeer::Main] StatusSendBufferSize=, StatusReceiveBufferSize=
 - new feature: status port event back log
 
 Changes from 3.7 to 3.8
