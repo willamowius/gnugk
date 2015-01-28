@@ -132,8 +132,6 @@ public:
 		int level = MIN_STATUS_TRACE_LEVEL
 		);
 
-	void FlushData();
-
 	/** @return
 		A string with connection information about this client.
 	*/
@@ -1321,24 +1319,6 @@ bool StatusClient::WriteString(
 
 	return IsOpen();
 }
-
-/*
-void StatusClient::FlushData()
-{
-	// flush data in another thread
-	int i;
-	MarkSocketBlocked lock(this);
-	SetWriteTimeout(GkConfig()->GetInteger("StatusWriteTimeout", 5000));
-	for (i = 0; i < 3; ++i) // try three times
-		if (CanFlush() && Flush())
-			break;
-	if (i == 3) {
-		PTRACE(1, "Status\tClose dead client " << m_instanceNo << ' ' << GetName());
-		Close();
-	}
-	SetWriteTimeout(10);
-}
-*/
 
 PString StatusClient::WhoAmI() const
 {

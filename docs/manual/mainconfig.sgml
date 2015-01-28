@@ -483,11 +483,6 @@ Default: <tt/1024/<newline>
 <p>
 Queue length for incoming TCP connection.
 
-<item><tt/StatusWriteTimeout=5000/<newline>
-Default: <tt/5000/<newline>
-<p>
-Time in milliseconds for write timeout on status channel.
-
 <item><tt/ExternalIP=myip.no-ip.com/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
