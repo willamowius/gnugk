@@ -915,6 +915,11 @@ int SQLAuth::Check(
 	params["answer"] = "0";
 	params["arq"] = "0";
 	params["CallId"] = AsString(setup.GetUUIEBody().m_callIdentifier.m_guid);
+    params["SrcInfo"] = "";
+	if (setup.GetUUIEBody().HasOptionalField(H225_Setup_UUIE::e_sourceAddress)
+        && setup.GetUUIEBody().m_sourceAddress.GetSize() > 0) {
+        params["SrcInfo"] = AsString(setup.GetUUIEBody().m_sourceAddress, false);
+	}
 
 	if (authData.m_call)
 		params["bandwidth"] = PString(authData.m_call->GetBandwidth());
