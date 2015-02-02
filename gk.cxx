@@ -1423,7 +1423,7 @@ void Gatekeeper::Main()
 			fake_cmdline += " -t";
 	}
 	if (!args.HasOption('o')) {
-		PString log_trace_file = GkConfig()->GetString("Logfile", "Filename", "");
+		PString log_trace_file = GkConfig()->GetString("LogFile", "Filename", "");
 		if (!log_trace_file.IsEmpty())
 			fake_cmdline += " -o " + log_trace_file;
 	}
@@ -1563,7 +1563,7 @@ void Gatekeeper::Main()
 }
 
 namespace {
-const char* const logConfigSectionName = "Logfile";
+const char* const logConfigSectionName = "LogFile";
 }
 
 const char* const Gatekeeper::m_intervalNames[] =
