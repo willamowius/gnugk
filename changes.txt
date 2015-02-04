@@ -1,5 +1,6 @@
 Changes from 3.8 to 3.9
 =======================
+- support proposed H.235.TSSM
 - provide sourceAddress from Setup as %{SrcInfo} in SQLAuth CallQuery
 - new switches: [Gatekeer::Main] StatusSendBufferSize=, StatusReceiveBufferSize=
 - new feature: status port event back log

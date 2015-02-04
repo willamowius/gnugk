@@ -1089,21 +1089,22 @@ void GkAuthenticatorList::SelectH235Capability(
 							if (gcf.m_authenticationMode.GetTag() == H235_AuthenticationMechanism::e_pwdSymEnc) {
 								// add the challenge token
 								gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_tokens);
-								gcf.m_tokens.SetSize(1);
-								gcf.m_tokens[0].m_tokenOID = "0.0";
-								gcf.m_tokens[0].IncludeOptionalField(H235_ClearToken::e_timeStamp);
-								gcf.m_tokens[0].m_timeStamp = (int)time(NULL); // Avaya seems to send a different timestamp that is 34 years back, but accpets this as well
-								gcf.m_tokens[0].IncludeOptionalField(H235_ClearToken::e_random);
+								// make sure we don't overwrite other tokens, eg. H.235.TSSM
+								gcf.m_tokens.SetSize(gcf.m_tokens.GetSize() + 1);
+								gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_tokenOID = "0.0";
+								gcf.m_tokens[gcf.m_tokens.GetSize() - 1].IncludeOptionalField(H235_ClearToken::e_timeStamp);
+								gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_timeStamp = (int)time(NULL); // Avaya seems to send a different timestamp that is 34 years back, but accpets this as well
+								gcf.m_tokens[gcf.m_tokens.GetSize() - 1].IncludeOptionalField(H235_ClearToken::e_random);
 #ifdef PSSL
                                 // if we have OpenSSL, use it for random number generation, fall back on stdlib rand()
-                                if(RAND_bytes(gcf.m_tokens[0].m_random, sizeof(gcf.m_tokens[0].m_random)) != 1) {
-                                    gcf.m_tokens[0].m_random = rand();
+                                if(RAND_bytes(gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_random, sizeof(gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_random)) != 1) {
+                                    gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_random = rand();
                                 }
 #else
-								gcf.m_tokens[0].m_random = rand();
+								gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_random = rand();
 #endif // PSSL
-								gcf.m_tokens[0].IncludeOptionalField(H235_ClearToken::e_generalID);
-								gcf.m_tokens[0].m_generalID = Toolkit::GKName();
+								gcf.m_tokens[gcf.m_tokens.GetSize() - 1].IncludeOptionalField(H235_ClearToken::e_generalID);
+								gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_generalID = Toolkit::GKName();
 							}
 							return;
 						}

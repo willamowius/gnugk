@@ -1767,6 +1767,26 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_gatekeeperIdentifier);
 		gcf.m_gatekeeperIdentifier = Toolkit::GKName();
 
+        // H.235.TSSM
+        if (request.HasOptionalField(H225_GatekeeperRequest::e_authenticationCapability) &&
+            request.HasOptionalField(H225_GatekeeperRequest::e_algorithmOIDs)) {
+            for (PINDEX i = 0; i < request.m_authenticationCapability.GetSize(); i++) {
+                if (request.m_authenticationCapability[0].GetTag() == H235_AuthenticationMechanism::e_keyExch) {
+                    for (PINDEX i = 0; i < request.m_algorithmOIDs.GetSize(); i++) {
+                        if (request.m_algorithmOIDs[0] == "0.0.8.235.0.4.79") {
+                            // add TSSM token
+                            gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_tokens);
+                            // TODO: don't overwrite pwdSymEnc token
+                            gcf.m_tokens.SetSize(gcf.m_tokens.GetSize() + 1);
+                            gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_tokenOID = "0.0.8.235.0.4.79";
+                            gcf.m_tokens[gcf.m_tokens.GetSize() - 1].IncludeOptionalField(H235_ClearToken::e_timeStamp);
+                            gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_timeStamp = (int)time(NULL);
+                        }
+                    }
+                }
+            }
+        }
+
 #ifdef HAS_H46018
 		if (Toolkit::Instance()->IsH46018Enabled()) {
 			// check if client supports H.460.18
