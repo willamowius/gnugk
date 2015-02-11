@@ -3,7 +3,7 @@
 // GkClient.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2002-2013, Jan Willamowius
+// Copyright (c) 2002-2015, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -2856,11 +2856,12 @@ void GkClient::H46023_LoadAlternates(const H225_CallIdentifier & id, WORD sessio
 	if (i != m_natstrategy.end()) {
 		std::list<CallH46024Sockets>::iterator k;
 		while (k != i->second.end()) {
-			CallH46024Sockets & sockets = *k++;
+			CallH46024Sockets & sockets = *k;
 			if (sockets.GetSessionID() ==  session) {
 				sockets.LoadAlternate(cui, muxID, m_rtp, m_rtcp);
 				break;
 			}
+			k++;
 		}
 	}
 }
@@ -2873,11 +2874,12 @@ void GkClient::H46023_SetAlternates(const H225_CallIdentifier & id, WORD session
 	if (i != m_natstrategy.end()) {
 		std::list<CallH46024Sockets>::iterator k;
 		while (k != i->second.end()) {
-			CallH46024Sockets & sockets = *k++;
+			CallH46024Sockets & sockets = *k;
 			if (sockets.GetSessionID() ==  session) {
 				sockets.SetAlternate(cui, muxID, m_rtp, m_rtcp);
 				break;
 			}
+			k++;
 		}
 	}
 }
@@ -2892,11 +2894,12 @@ void GkClient::H46023_SetAlternates(const H225_CallIdentifier & id, const H46024
 			unsigned session = alternates[j].m_sessionID;
 			std::list<CallH46024Sockets>::iterator k;
 			while (k != i->second.end()) {
-				CallH46024Sockets & sockets = *k++;
+				CallH46024Sockets & sockets = *k;
 				if (sockets.GetSessionID() == session) {
 					sockets.SetAlternate(alternates[j]);
 					break;
 				}
+				k++;
 			}
 		}
 	}
