@@ -99,4 +99,8 @@
    fun:_ZN8PFactoryI21H323StaticPluginCodecSsE10GetKeyListEv
    fun:_ZN22H323PluginCodecManagerC1EP14PPluginManager
 }
-
+{
+   <PTimer>
+   Memcheck:Cond
+   fun:_ZNK6PTimer15GetMilliSecondsEv
+}
