@@ -1,5 +1,6 @@
 Changes from 3.8 to 3.9
 =======================
+- new accounting variable %{sinfo-ip}
 - support proposed H.235.TSSM
 - provide sourceAddress from Setup as %{SrcInfo} in SQLAuth CallQuery
 - new switches: [Gatekeer::Main] StatusSendBufferSize=, StatusReceiveBufferSize=

@@ -1290,6 +1290,9 @@ public:
 	void SetCalledVendor(const PString & vendor, const PString & version);
 	bool GetCalledVendor(PString & vendor, PString & version) const;
 
+    void SetSInfoIP(const PString & ip) { m_sinfoIP = ip; }
+    PString GetSInfoIP() const { return m_sinfoIP; }
+
 	/** @return
 	    Fixed destination address for the call (size 0 if not set).
 	*/
@@ -1611,6 +1614,8 @@ private:
 	PString m_callingVersion;
 	PString m_calledVendor;
 	PString m_calledVersion;
+	// Sorenson SInfo
+	PString m_sinfoIP;
 };
 
 typedef CallRec::Ptr callptr;

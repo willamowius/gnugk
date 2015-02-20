@@ -3415,11 +3415,13 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 							} else {
 								PTRACE(1, "Invalid character in Sorenson source info: " << e164);
 							}
-						} else if (tokens[i].Left(4) == "0008") {
+						} else if ((tokens[i].Left(4) == "0008") || (tokens[i].Left(4) == "2012")) {
+						    // Sorensen uses 0008, P3PC uses 2012
 							PString ip = tokens[i].Mid(4);
 							// check format of IP to avoid runtime error
 							if (ip.FindRegEx(PRegularExpression("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX) {
-								setupBody.m_sourceAddress.SetSize(sourceAdrSize + 1);
+                                m_call->SetSInfoIP(ip);
+                                setupBody.m_sourceAddress.SetSize(sourceAdrSize + 1);
 								H323SetAliasAddress(ip, setupBody.m_sourceAddress[sourceAdrSize], H225_AliasAddress::e_transportID);
 							} else {
 								PTRACE(1, "Invalid IP in Sorenson source info: " << ip);

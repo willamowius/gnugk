@@ -212,6 +212,7 @@ void GkAcctLogger::SetupAcctParams(
 	params["caller-vendor"] = vendor + " " + version;
 	call->GetCalledVendor(vendor, version);
 	params["callee-vendor"] = vendor + " " + version;
+	params["sinfo-ip"] = call->GetSInfoIP();
 }
 
 void GkAcctLogger::SetupAcctEndpointParams(
