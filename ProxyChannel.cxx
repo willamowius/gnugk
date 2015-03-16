@@ -4671,7 +4671,7 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 			&& setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)) {
 			PIPSocket::Address sourceAddr;
 			GetIPFromTransportAddr(setupBody.m_sourceCallSignalAddress,sourceAddr);
-			if (sourceAddr == m_call->GetCallingParty()->GetNATIP()) {
+			if (m_call->GetCallingParty() && (sourceAddr == m_call->GetCallingParty()->GetNATIP())) {
 				PTRACE(3, Type() << "\tSignal ALG DETECTED correcting source Address");
 				setupBody.m_sourceCallSignalAddress = m_call->GetCallingParty()->GetCallSignalAddress();
 			}
