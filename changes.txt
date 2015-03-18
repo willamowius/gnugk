@@ -2,7 +2,7 @@ Changes from 3.8 to 3.9
 =======================
 - BUGFIX(ProxyChannel.cxx) fix crash with unregistered calls
 - new accounting variable %{sinfo-ip}
-- support proposed H.235.TSSM
+- support H.235.TSSM (H.235 time sync)
 - provide sourceAddress from Setup as %{SrcInfo} in SQLAuth CallQuery
 - new switches: [Gatekeer::Main] StatusSendBufferSize=, StatusReceiveBufferSize=
 - new feature: status port event back log
