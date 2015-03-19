@@ -217,6 +217,33 @@ RasListener::RasListener(const Address & addr, WORD pt) : UDPSocket(0, addr.GetV
 			);
 		Close();
 	}
+	//RE - TOS - RAS messages
+	int dscp = GkConfig()->GetInteger("RasDiffServ", 0);
+	if (dscp > 0) {
+		int rasTypeofService = (dscp << 2);
+#if defined(hasIPV6) && defined(IPV6_TCLASS)
+		if (addr.GetVersion() == 6) {
+			// for IPv6 set TCLASS
+			if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IPV6, IPV6_TCLASS, (char *)&rasTypeofService, sizeof(int)))) {
+				PTRACE(1, "RAS\tCould not set TCLASS field in IPv6 header: "
+					<< GetErrorCode(PSocket::LastGeneralError) << '/'
+					<< GetErrorNumber(PSocket::LastGeneralError) << ": "
+					<< GetErrorText(PSocket::LastGeneralError));
+			}
+		} else
+#endif
+		{
+			// setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (the 2.6.24.4), now it doesn't anymore
+			// setting IP_TOS will silently fail on Windows XP, Vista and Win7, supposed to work again on Win8
+			if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IP, IP_TOS, (char *)&rasTypeofService, sizeof(int)))) {
+				PTRACE(1, "RAS\tCould not set TOS field in IP header: "
+					<< GetErrorCode(PSocket::LastGeneralError) << '/'
+					<< GetErrorNumber(PSocket::LastGeneralError) << ": "
+					<< GetErrorText(PSocket::LastGeneralError));
+			}
+		}
+    }
+
 	SetWriteTimeout(1000);
 	SetName(AsString(addr, pt) + "(U)");
 	if (Toolkit::Instance()->IsPortNotificationActive())

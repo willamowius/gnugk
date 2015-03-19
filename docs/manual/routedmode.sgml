@@ -658,6 +658,16 @@ In some virtual server configurations we have to turn this off
 if PTLib fails with "pthread_setschedparam failed".
 This switch will go away once we can detect this condition automatically.
 
+<item><tt/H225DiffServ=46/<newline>
+Default: <tt>0</tt><newline>
+Set the DiffServ class (DSCP) for H.225 messages.
+(On most Windows versions, setting the the DSCP this way won't work.)
+
+<item><tt/H245DiffServ=46/<newline>
+Default: <tt>0</tt><newline>
+Set the DiffServ class (DSCP) for H.245 messages.
+(On most Windows versions, setting the the DSCP this way won't work.)
+
 
 </itemize>
 

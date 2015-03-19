@@ -67,6 +67,10 @@
 #include <sys/uio.h>
 #endif
 
+#ifdef P_OPENBSD
+#include <sys/uio.h>
+#endif
+
 using namespace std;
 using Routing::Route;
 
@@ -7131,6 +7135,7 @@ void CallSignalSocket::Dispatch()
 						GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "0")) ? 1 : 0,
 						SOL_SOCKET);
 
+
 				ConfigReloadMutex.EndRead();
 				const bool isReadable = remote->IsReadable(2 * setupTimeout);
 				ConfigReloadMutex.StartRead();
@@ -7603,6 +7608,7 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 	if (!(m_call->GetRerouteState() == RerouteInitiated)) {
 		ret->m_h245socket = new H245Socket(m_h245socket, ret);	// TODO: handle TLS
 	}
+
 	m_h245socket->SetH245Address(h245addr, masqAddr);
 	if (m_h245TunnelingTranslation && !m_h245Tunneling && GetRemote() && GetRemote()->m_h245Tunneling) {
 		CreateJob(m_h245socket, &H245Socket::ConnectToDirectly, "H245ActiveConnector");	// connnect directly
@@ -7629,6 +7635,33 @@ bool CallSignalSocket::InternalConnectTo()
 				<< AsString(localAddr, pt) << " successful");
 			SetConnected(true);
 			remote->SetConnected(true);
+			// RE - TOS H.225 outbound - setup, releaseComplete etc.
+			int dscp = GkConfig()->GetInteger(RoutedSec, "H225DiffServ", 0);
+            if (dscp > 0) {
+                int h225TypeOfService = (dscp << 2);
+#if defined(hasIPV6) && defined(IPV6_TCLASS)
+                if (localAddr.GetVersion() == 6) {
+                    // for IPv6 set TCLASS
+                    if (!ConvertOSError(::setsockopt(remote->GetHandle(), IPPROTO_IPV6, IPV6_TCLASS, (char *)&h225TypeOfService, sizeof(int)))) {
+                        PTRACE(1, remote->Type() << "\tCould not set TCLASS field in IPv6 header: "
+                            << GetErrorCode(PSocket::LastGeneralError) << '/'
+                            << GetErrorNumber(PSocket::LastGeneralError) << ": "
+                            << GetErrorText(PSocket::LastGeneralError));
+                    }
+                } else
+#endif
+                {
+                    // setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (the 2.6.24.4), now it doesn't anymore
+                    // setting IP_TOS will silently fail on Windows XP, Vista and Win7, supposed to work again on Win8
+                    if (!ConvertOSError(::setsockopt(remote->GetHandle(), IPPROTO_IP, IP_TOS, (char *)&h225TypeOfService, sizeof(int)))) {
+                        PTRACE(1, remote->Type() << "\tCould not set TOS field in IP header: "
+                            << GetErrorCode(PSocket::LastGeneralError) << '/'
+                            << GetErrorNumber(PSocket::LastGeneralError) << ": "
+                            << GetErrorText(PSocket::LastGeneralError));
+                    }
+                }
+            }
+
 			ForwardData();
 			return true;
 		}
@@ -7878,6 +7911,31 @@ H245Socket::H245Socket(CallSignalSocket *sig)
 			listener->GetLocalAddress(notused, m_port);
 			if (Toolkit::Instance()->IsPortNotificationActive())
 				Toolkit::Instance()->PortNotification(H245Port, PortOpen, "tcp", GNUGK_INADDR_ANY, m_port, sig->GetCallIdentifier());
+
+			// RE - TOS - H.245 inbound TCS etc.
+			int dscp = GkConfig()->GetInteger(RoutedSec, "H245DiffServ", 0);	// default: 0
+            if (dscp > 0) {
+                int h245TypeOfService = (dscp << 2);
+                // set IPv4 and IPv6
+#if defined(hasIPV6) && defined(IPV6_TCLASS)
+                // for IPv6 set TCLASS
+                if (!ConvertOSError(::setsockopt(listener->GetHandle(), IPPROTO_IPV6, IPV6_TCLASS, (char *)&h245TypeOfService, sizeof(int)))) {
+                    PTRACE(1, Type() << "\tCould not set TCLASS field in IPv6 header: "
+                        << GetErrorCode(PSocket::LastGeneralError) << '/'
+                        << GetErrorNumber(PSocket::LastGeneralError) << ": "
+                        << GetErrorText(PSocket::LastGeneralError));
+                }
+#endif
+                // setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (the 2.6.24.4), now it doesn't anymore
+                // setting IP_TOS will silently fail on Windows XP, Vista and Win7, supposed to work again on Win8
+                if (!ConvertOSError(::setsockopt(listener->GetHandle(), IPPROTO_IP, IP_TOS, (char *)&h245TypeOfService, sizeof(int)))) {
+                    PTRACE(1, Type() << "\tCould not set TOS field in IP header: "
+                        << GetErrorCode(PSocket::LastGeneralError) << '/'
+                        << GetErrorNumber(PSocket::LastGeneralError) << ": "
+                        << GetErrorText(PSocket::LastGeneralError));
+                }
+            }
+
 			break;
 		}
 		int errorNumber = listener->GetErrorNumber(PSocket::LastGeneralError);
@@ -8275,6 +8333,33 @@ bool H245Socket::ConnectRemote()
 		if (Connect(localAddr, pt, peerAddr)) {
 			SetConnected(true);
 			PTRACE(3, "H245\tConnect to " << GetName() << " from " << AsString(localAddr, pt) << " successful");
+
+			// RE - TOS - H.245 outbound - TCS messages etc.
+            int dscp = GkConfig()->GetInteger(RoutedSec, "H245DiffServ", 0);
+            if (dscp > 0) {
+                int h245TypeOfService = (dscp << 2);
+#if defined(hasIPV6) && defined(IPV6_TCLASS)
+                if (localAddr.GetVersion() == 6) {
+                    // for IPv6 set TCLASS
+                    if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IPV6, IPV6_TCLASS, (char *)&h245TypeOfService, sizeof(int)))) {
+                        PTRACE(1, remote->Type() << "\tCould not set TCLASS field in IPv6 header: "
+                            << GetErrorCode(PSocket::LastGeneralError) << '/'
+                            << GetErrorNumber(PSocket::LastGeneralError) << ": "
+                            << GetErrorText(PSocket::LastGeneralError));
+                    }
+                } else
+#endif
+                {
+                    // setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (the 2.6.24.4), now it doesn't anymore
+                    // setting IP_TOS will silently fail on Windows XP, Vista and Win7, supposed to work again on Win8
+                    if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IP, IP_TOS, (char *)&h245TypeOfService, sizeof(int)))) {
+                        PTRACE(1, remote->Type() << "\tCould not set TOS field in IP header: "
+                            << GetErrorCode(PSocket::LastGeneralError) << '/'
+                            << GetErrorNumber(PSocket::LastGeneralError) << ": "
+                            << GetErrorText(PSocket::LastGeneralError));
+                    }
+                }
+            }
 
 			if (sigSocket && sigSocket->GetRemote() && sigSocket->GetRemote()->IsH245TunnelingTranslation()) {
 				// send all queued H.245 messages now
@@ -12369,6 +12454,34 @@ CallSignalListener::CallSignalListener(const Address & addr, WORD pt)
 			<< GetErrorText(PSocket::LastGeneralError));
 		Close();
 	}
+
+	//RE - TOS - H.225 listener - callProceeding, alerting, connect etc.
+	int dscp = GkConfig()->GetInteger(RoutedSec, "H225DiffServ", 0);	// default: 0
+    if (dscp > 0) {
+        int h225TypeOfService = (dscp << 2);
+#if defined(hasIPV6) && defined(IPV6_TCLASS)
+        if (addr.GetVersion() == 6) {
+            // for IPv6 set TCLASS
+            if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IPV6, IPV6_TCLASS, (char *)&h225TypeOfService, sizeof(int)))) {
+                PTRACE(1, "Q931\tCould not set TCLASS field in IPv6 header: "
+                    << GetErrorCode(PSocket::LastGeneralError) << '/'
+                    << GetErrorNumber(PSocket::LastGeneralError) << ": "
+                    << GetErrorText(PSocket::LastGeneralError));
+            }
+        } else
+#endif
+        {
+            // setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (the 2.6.24.4), now it doesn't anymore
+            // setting IP_TOS will silently fail on Windows XP, Vista and Win7, supposed to work again on Win8
+            if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IP, IP_TOS, (char *)&h225TypeOfService, sizeof(int)))) {
+                PTRACE(1, "Q931\tCould not set TOS field in IP header: "
+                    << GetErrorCode(PSocket::LastGeneralError) << '/'
+                    << GetErrorNumber(PSocket::LastGeneralError) << ": "
+                    << GetErrorText(PSocket::LastGeneralError));
+            }
+        }
+    }
+
 	SetName(AsString(addr, GetPort()));
 	if (Toolkit::Instance()->IsPortNotificationActive())
 		Toolkit::Instance()->PortNotification(Q931Port, PortOpen, "tcp", addr, pt);

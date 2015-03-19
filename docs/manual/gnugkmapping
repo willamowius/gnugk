@@ -1,4 +1,4 @@
-%%% GNU Gatekeeper style: place this file in /usr/lib/sgml-tools/dist/sgmltool/latex2e %%%
+%%% GNU Gatekeeper style: place this file in /usr/lib/sgml-tools/dist/sgmltool/latex2ei or /usr/share/linuxdoc-tools/mappings/latex2e %%%
 
 % linuxdoc to latex replacement file
 

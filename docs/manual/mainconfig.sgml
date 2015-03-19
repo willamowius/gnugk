@@ -580,6 +580,11 @@ Usually it is not necessary to set this switch and it is best to leave the versi
 interoperability with older endpoints. Use this switch if you are dealing with endpoints that
 eg. won't enable features when they receive messages with a low version number.
 
+<item><tt/RASDiffServ=46/<newline>
+Default: <tt>0</tt><newline>
+Set the DiffServ class (DSCP) for RAS messages.
+(On most Windows versions, setting the the DSCP this way won't work.)
+
 </itemize>
 
 
