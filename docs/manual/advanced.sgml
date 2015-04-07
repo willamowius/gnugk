@@ -24,6 +24,7 @@ svn co http://svn.code.sf.net/p/opalvoip/code/ptlib/tags/v2_10_9 ptlib-v2.10.9/
 cd ptlib-v2.10.9
 export PTLIBDIR=~/ptlib-v2.10.9
 ./configure
+wget -O src/ptlib/common/getdate.tab.c http://www.gnugk.org/download/getdate.tab.c # in case you have bison >= 3.x
 make optnoshared
 </verb>
 
