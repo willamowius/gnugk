@@ -2437,8 +2437,6 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if MSG_NOSIGNAL is supported by recv() call" >&5
-$as_echo_n "checking if MSG_NOSIGNAL is supported by recv() call... " >&6; }
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -3000,11 +2998,11 @@ else
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 if test "$HAS_MSG_NOSIGNAL" = 0 ; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: MSG_NOSIGNAL not supported by recv() call" >&5
+$as_echo "MSG_NOSIGNAL not supported by recv() call" >&6; }
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: MSG_NOSIGNAL supported by recv() call" >&5
+$as_echo "MSG_NOSIGNAL supported by recv() call" >&6; }
   STDCCFLAGS="-DHAS_MSG_NOSIGNAL=1 $STDCCFLAGS"
 fi
 
@@ -3242,7 +3240,7 @@ else
   ;;
   *)
   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-as_dummy="/usr/local/share/ptlib/make:/usr/local/bin"
+as_dummy="/usr/local/share/ptlib/make:/usr/local/bin:/usr/bin"
 for as_dir in $as_dummy
 do
   IFS=$as_save_IFS
@@ -3623,9 +3621,10 @@ fi
 
   if test "${HAS_OPENH323_VERSIONFILE:-unset}" != "unset"; then
     OPENH323_VERSION_FILE=${OPENH323DIR}/version.h
-	OPENH323_MAJOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep MAJOR_VERSION | cut -f3 -d' '`
-	OPENH323_MINOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep MINOR_VERSION | cut -f3 -d' '`
-	OPENH323_BUILD_NUMBER=`cat ${OPENH323_VERSION_FILE} | grep BUILD_NUMBER | cut -f3 -d' '`
+    OPENH323_MAJOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep MAJOR_VERSION | cut -f3 -d' '`
+    OPENH323_MINOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep MINOR_VERSION | cut -f3 -d' '`
+    OPENH323_BUILD_NUMBER=`cat ${OPENH323_VERSION_FILE} | grep BUILD_NUMBER | cut -f3 -d' '`
+    BUILDOPTS="${OPENH323DIR}/include/openh323buildopts.h"
   else
     as_ac_File=`$as_echo "ac_cv_file_${OPENH323MAKEDIR}/openh323buildopts.h" | $as_tr_sh`
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${OPENH323MAKEDIR}/openh323buildopts.h" >&5
@@ -3650,9 +3649,10 @@ fi
 
     if test "${HAS_OPENH323_VERSIONFILE:-unset}" != "unset"; then
       OPENH323_VERSION_FILE=${OPENH323MAKEDIR}/openh323buildopts.h
-      OPENH323_MAJOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MAJOR | cut -f3 -d' '`
-      OPENH323_MINOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MINOR | cut -f3 -d' '`
-      OPENH323_BUILD_NUMBER=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_BUILD | cut -f3 -d' '`
+      OPENH323_MAJOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep "#define OPENH323_MAJOR" | cut -f3 -d' '`
+      OPENH323_MINOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep "#define OPENH323_MINOR" | cut -f3 -d' '`
+      OPENH323_BUILD_NUMBER=`cat ${OPENH323_VERSION_FILE} | grep "#define OPENH323_BUILD " | cut -f3 -d' '`
+      BUILDOPTS="${OPENH323MAKEDIR}/openh323buildopts.h"
     else
       as_ac_File=`$as_echo "ac_cv_file_${OPENH323MAKEDIR}/../../include/openh323/openh323buildopts.h" | $as_tr_sh`
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${OPENH323MAKEDIR}/../../include/openh323/openh323buildopts.h" >&5
@@ -3677,9 +3677,10 @@ fi
 
       if test "${HAS_OPENH323_VERSIONFILE:-unset}" != "unset"; then
         OPENH323_VERSION_FILE=${OPENH323MAKEDIR}/../../include/openh323/openh323buildopts.h
-        OPENH323_MAJOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MAJOR | cut -f2 -d' '`
-        OPENH323_MINOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep OPENH323_MINOR | cut -f2 -d' '`
-        OPENH323_BUILD_NUMBER=`cat ${OPENH323_VERSION_FILE} | grep "OPENH323_BUILD " | cut -f2 -d' '`
+        OPENH323_MAJOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep "#define OPENH323_MAJOR" | cut -f3 -d' '`
+        OPENH323_MINOR_VERSION=`cat ${OPENH323_VERSION_FILE} | grep "#define OPENH323_MINOR" | cut -f3 -d' '`
+        OPENH323_BUILD_NUMBER=`cat ${OPENH323_VERSION_FILE} | grep "#define OPENH323_BUILD " | cut -f3 -d' '`
+        BUILDOPTS="${OPENH323MAKEDIR}/../../include/openh323/openh323buildopts.h"
       fi
     fi
   fi
@@ -3733,7 +3734,7 @@ else
 fi
 
 
-H460SUPPORT=`cat ${OPENH323DIR}/include/openh323buildopts.h | grep 'define H323_H460'`
+H460SUPPORT=`cat ${BUILDOPTS} | grep 'define H323_H460'`
 if test "${H460SUPPORT:-unset}" = "unset" ; then
 	if test "x${h46017}" != "xno" ; then
 		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: No H.460 support available" >&5
@@ -3765,7 +3766,7 @@ else
 fi
 
 
-H460SUPPORT=`cat ${OPENH323DIR}/include/openh323buildopts.h | grep 'define H323_H460'`
+H460SUPPORT=`cat ${BUILDOPTS} | grep 'define H323_H460'`
 if test "${H460SUPPORT:-unset}" = "unset" ; then
 	if test "x${h46018}" != "xno" ; then
 		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: No H.460 support available" >&5
@@ -3797,7 +3798,7 @@ else
 fi
 
 
-H460SUPPORT=`cat ${OPENH323DIR}/include/openh323buildopts.h | grep 'define H323_H460'`
+H460SUPPORT=`cat ${BUILDOPTS} | grep 'define H323_H460'`
 if test "${H460SUPPORT:-unset}" = "unset" ; then
 	if test "x${h46023}" != "xno" ; then
 		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: No H.460 support available" >&5
