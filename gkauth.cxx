@@ -1012,12 +1012,14 @@ GkAuthenticatorList::GkAuthenticatorList()
 	} else {
 		for (r = keyList.begin(); r != keyList.end(); ++r) {
 			H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
-			if ((Auth->GetApplication() == H235Authenticator::EPAuthentication)
-				||(Auth->GetApplication() == H235Authenticator::GKAdmission)
-				||(Auth->GetApplication() == H235Authenticator::AnyApplication) ) {
-				m_h235authenticators.Append(Auth);
-			} else {
-				delete Auth;
+			if (Auth) {
+                if ((Auth->GetApplication() == H235Authenticator::EPAuthentication)
+                    ||(Auth->GetApplication() == H235Authenticator::GKAdmission)
+                    ||(Auth->GetApplication() == H235Authenticator::AnyApplication) ) {
+                    m_h235authenticators.Append(Auth);
+                } else {
+                    delete Auth;
+                }
 			}
 		}
 	}
