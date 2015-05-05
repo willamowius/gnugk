@@ -223,6 +223,10 @@ const char * KnownConfigEntries[][2] = {
 	{ "Gatekeeper::Main", "UnicastRasPort" },
 	{ "Gatekeeper::Main", "UseBroadcastListener" },
 	{ "Gatekeeper::Main", "UseMulticastListener" },
+#ifdef HAS_GEOIP
+	{ "GeoIPAuth", "AllowedCountries" },
+	{ "GeoIPAuth", "Database" },
+#endif
 #ifdef H323_H350
 	{ "GkH350::Settings", "AssignedAliases" },
 	{ "GkH350::Settings", "BindAuthMode" },

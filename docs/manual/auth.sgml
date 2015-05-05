@@ -15,7 +15,7 @@ config sections for each module.
 <tscreen><verb>
 authrule=actions
 
- <authrule> := SimplePasswordAuth | AliasAuth | FileIPAuth | PrefixAuth | RadAuth | RadAliasAuth | SQLAuth | SQLAliasAuth | SQLPasswordAuth | H350PasswordAuth | LDAPPasswordAuth | LDAPAliasAuth | LuaAuth | CapacityControl | ...
+ <authrule> := SimplePasswordAuth | AliasAuth | FileIPAuth | PrefixAuth | RadAuth | RadAliasAuth | SQLAuth | SQLAliasAuth | SQLPasswordAuth | H350PasswordAuth | LDAPPasswordAuth | LDAPAliasAuth | LuaAuth | GeoIPAUth | CapacityControl | ...
  <actions>  := <control>[;<ras>|<q931>,<ras>|<q931>,...]
  <control>  := optional | required | sufficient | alternative
  <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ
@@ -128,6 +128,11 @@ and the attribute matching is defined in the
 <p>
 This module utilizes user-defined LUA scripts to perform authentication.
 The scripts are configured in the <ref id="luaauth" name="LuaAuth"> section.
+
+<item><tt>GeoIPAuth</tt>
+<p>
+This module checks the which country the message comes from by looking at the IP.
+The module is configured in the <ref id="geoipauth" name="GeoIPAuth"> section.
 
 <item><tt>CapacityControl</tt>
 <p>
@@ -1638,4 +1643,23 @@ RegistrationScript=if (username == "boss") then result = "OK" else result = "FAI
 CallScriptFile=/path/to/callauth.lua
 </verb></tscreen>
 </descrip>
+
+<sect1>Section &lsqb;GeoIPAuth&rsqb;
+<label id="geoipauth">
+<p>
+This section configure the GeoIP authentication.
+<p>
+<itemize>
+<item><tt>Database=/path/to/geoip.dat</tt><newline>
+Default: <tt>N/A</tt>
+<p>
+Path to the Maxmind GeoIP database. You can download the latest copy of the GeoIP database from
+<htmlurl url="http://dev.maxmind.com/geoip/legacy/geolite/" Name="http://dev.maxmind.com/geoip/legacy/geolite/">
+
+<item><tt>AllowedCountries=US,CA,PRIVATE</tt><newline>
+Default: <tt>N/A</tt>
+<p>
+Define which countries you want to accept messages from. The special country 'PRIVATE' denotes ptivate IPs.
+</itemize>
+
 

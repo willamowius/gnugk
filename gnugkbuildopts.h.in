@@ -46,6 +46,9 @@
 // LUA
 #undef HAS_LUA
 
+// GeoIP
+#undef HAS_GEOIP
+
 // MYSQL
 #undef HAS_MYSQL
 #if defined(_MSC_VER) && HAS_MYSQL
