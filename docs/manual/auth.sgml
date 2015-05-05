@@ -1650,7 +1650,7 @@ CallScriptFile=/path/to/callauth.lua
 This section configure the GeoIP authentication.
 <p>
 <itemize>
-<item><tt>Database=/path/to/geoip.dat</tt><newline>
+<item><tt>Database=/path/to/GeoIP.dat</tt><newline>
 Default: <tt>N/A</tt>
 <p>
 Path to the Maxmind GeoIP database. You can download the latest copy of the GeoIP database from
