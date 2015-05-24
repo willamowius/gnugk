@@ -112,7 +112,7 @@ void DHProcess::Main()
 #endif
           );
 
-  if (args.HasOption('h')) {
+  if (args.HasOption('h') || !args.HasOption('l') || !args.HasOption('g')) {
     cout << "Usage : " << GetName() << " -l <keylength> -g <generator> -f <filename>\n"
             "Options:\n"
             "   l-length:        : Keylength 512 1024 1536 2048 4096 6144 8192\n"
