@@ -4121,7 +4121,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 #ifdef HAS_H235_MEDIA
 	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
 		H235Authenticators & auth = m_call->GetAuthenticators();
-		PString nonStdDHParamFile = GkConfig()->GetString(RoutedSec, "H235HalfCallNonStdDHParamFile", "");
+		PString nonStdDHParamFile = GkConfig()->GetString(RoutedSec, "H235HalfCallDHParamFile", "");
 		if (!nonStdDHParamFile.IsEmpty()) {
             auth.SetDHParameterFile(nonStdDHParamFile);
         }
