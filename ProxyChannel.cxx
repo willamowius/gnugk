@@ -4094,8 +4094,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			m_call->SetClientAuthId(authData.m_clientAuthId);
 
 		if (!rassrv->LogAcctEvent(GkAcctLogger::AcctStart, m_call)) {
-			PTRACE(2, Type() << "\tDropping call #" << call->GetCallNumber()
-				<< " due to accounting failure");
+			PTRACE(2, Type() << "\tDropping call #" << call->GetCallNumber() << " due to accounting failure");
 			authData.m_rejectCause = Q931::TemporaryFailure;
 			rejectCall = true;
 		}
@@ -4122,6 +4121,10 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 #ifdef HAS_H235_MEDIA
 	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
 		H235Authenticators & auth = m_call->GetAuthenticators();
+		PString nonStdDHParamFile = GkConfig()->GetString(RoutedSec, "H235HalfCallNonStdDHParamFile", "");
+		if (!nonStdDHParamFile.IsEmpty()) {
+            auth.SetDHParameterFile(nonStdDHParamFile);
+        }
 		auth.SetEncryptionPolicy(1);	// request encryption
 		auth.SetMaxCipherLength(128);
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens) && SupportsH235Media(setupBody.m_tokens)) {

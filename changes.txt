@@ -1,5 +1,6 @@
 Changes from 3.8 to 3.9
 =======================
+- new switch [RoutedMode] H235HalfCallNonStdDHParamFile=
 - authentication by ip location: GeoIPAuth
 - BUGFIX(gkauth.cxx, GkClient.cxx) fix crash
 - new switches to set DiffServ class for RAS, H.225 and H.245 messages: [Gatekeeper::Main] RASDiffServ=,
