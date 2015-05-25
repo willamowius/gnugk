@@ -10436,7 +10436,7 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
             auth[i].GetMediaSessionInfo(algorithmOID, sessionKey);
         }
     }
-	if (algorithmOID.IsEmpty()) {
+	if (algorithmOID.IsEmpty() || sessionKey.GetSize() == 0) {
 		PTRACE(1, "H235\tError: GetMediaSessionInfo() failed");
 		SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure");
 		return false;
@@ -10524,7 +10524,7 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
             auth[i].GetMediaSessionInfo(algorithmOID, sessionKey);
         }
     }
-	if (algorithmOID.IsEmpty()) {
+	if (algorithmOID.IsEmpty() || sessionKey.GetSize() == 0) {
 		PTRACE(1, "H235\tError: GetMediaSessionInfo() failed");
 		SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure");
 		return false;
