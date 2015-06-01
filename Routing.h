@@ -133,6 +133,10 @@ public:
 	void SetServiceType(const PString & service) { m_serviceType = service; }
 
 	bool SupportLanguages() const;
+	bool HasNewSetupInternalAliases() const { return m_hasNewSetupAliases; }
+	H225_ArrayOf_AliasAddress GetNewSetupInternalAliases() const { return m_newSetupAliases; }
+	void SetNewSetupInternalAliases(H225_ArrayOf_AliasAddress aliases) { m_newSetupAliases = aliases; m_hasNewSetupAliases = true;}
+
 private:
 	RoutingRequest(const RoutingRequest &);
 	RoutingRequest& operator=(const RoutingRequest &);
@@ -146,6 +150,9 @@ private:
 	PString m_callerID;
 	H225_TransportAddress m_gwDestination;
 	PString m_serviceType;
+	/// new destination alias for this call, to be applied to Setup when it comes in
+	bool m_hasNewSetupAliases;
+	H225_ArrayOf_AliasAddress m_newSetupAliases;
 };
 
 template<class R, class W>
@@ -650,6 +657,8 @@ public:
 		PString * callerID,
 		/// should the call be rejected modified by this function on return)
 		bool & reject,
+        /// don't communicate updated route to caller
+        bool & keepRouteInternal,
 		/// an actual virtual queue name (should be present in destinationInfo too)
 		const PString& vqueue,
 		/// a sequence of aliases for the calling endpoint
@@ -687,7 +696,9 @@ public:
 		// callerID or empty
 		const PString & callerID,
 		/// should this call be rejected
-		bool reject = false
+		bool reject = false,
+        /// don't communicate updated route to caller
+        bool keepRouteInternal = false
 		);
 
 	/** Make a routing decision for a pending route request (inserted
@@ -713,7 +724,9 @@ public:
 		// callerID or empty
 		const PString & callerID,
 		/// should this call be rejected
-		bool reject = false
+		bool reject = false,
+        /// don't communicate updated route to caller
+        bool keepRouteInternal = false
 		);
 
 	/** Reject a pending route request (inserted by SendRequest).
@@ -772,6 +785,8 @@ private:
 		PString * m_callerID;
 		/// should this call be rejected
 		bool m_reject;
+        /// don't communicate changed route to caller
+        bool m_keepRouteInternal;
 		/// a synchronization point for signaling that routing decision
 		/// has been made by the external application
 		PSyncPoint m_sync;

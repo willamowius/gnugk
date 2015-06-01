@@ -1353,6 +1353,10 @@ public:
 	void AddDynamicPort(const DynamicPort & port);
 	void RemoveDynamicPort(const DynamicPort & port);
 
+    bool HasNewSetupInternalAliases() const { return (m_newSetupInternalAliases != NULL); }
+    void SetNewSetupInternalAliases(H225_ArrayOf_AliasAddress newSetupInternalAliases) { m_newSetupInternalAliases = new H225_ArrayOf_AliasAddress(newSetupInternalAliases); }
+    H225_ArrayOf_AliasAddress * GetNewSetupInternalAliases() const { return m_newSetupInternalAliases; }
+
 #ifdef HAS_H46018
 	bool IsH46018ReverseSetup() const { return m_h46018ReverseSetup; }
 	void SetH46018ReverseSetup(bool val) { m_h46018ReverseSetup = val; }
@@ -1521,6 +1525,7 @@ private:
 	PString m_dialedNumber;
 	/// fixed destination alias
 	H225_ArrayOf_AliasAddress m_routeToAlias;
+	H225_ArrayOf_AliasAddress * m_newSetupInternalAliases;
 
 	CallSignalSocket *m_callingSocket, *m_calledSocket;
 

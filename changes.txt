@@ -1,5 +1,6 @@
 Changes from 3.8 to 3.9
 =======================
+- new status port commands: RouteToInternalGateway and BindAndRouteToInternalGateway
 - BUGFIX(ProxyChannel.cxx) fix algorithm lookup for encryption added by GnuGk
 - new switch [RoutedMode] H235HalfCallDHParamFile=
 - authentication by ip location: GeoIPAuth

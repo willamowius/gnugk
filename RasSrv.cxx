@@ -3431,12 +3431,18 @@ bool AdmissionRequestPDU::Process()
 		if (authData.m_clientAuthId > 0)
 			pExistingCallRec->SetClientAuthId(authData.m_clientAuthId);
 		pExistingCallRec->SetBindHint(arq.GetSourceIP());
+		if (arq.HasNewSetupInternalAliases()) {
+            pExistingCallRec->SetNewSetupInternalAliases(arq.GetNewSetupInternalAliases());
+        }
 	} else {
 
 		// the call is not in the table
 		pCallRec = new CallRec(*this, BWRequest, destinationString, authData.m_proxyMode);
 
 		pCallRec->SetBindHint(arq.GetSourceIP());
+		if (arq.HasNewSetupInternalAliases()) {
+            pCallRec->SetNewSetupInternalAliases(arq.GetNewSetupInternalAliases());
+        }
 		pCallRec->SetCallerID(arq.GetCallerID());
 		if (CalledEP) {
 			pCallRec->SetCalled(CalledEP);

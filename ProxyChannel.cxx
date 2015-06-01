@@ -3509,6 +3509,15 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	// store dialed number
 	const PString dialedNumber = GetDialedNumber(*setup);
 
+    // do rewrite initated by RouteToInternalGateway
+    if (m_call && m_call->HasNewSetupInternalAliases()) {
+        PTRACE(2, Type() << "\tSet new internal aliases: " << *(m_call->GetNewSetupInternalAliases()));
+        setupBody.m_destinationAddress = *(m_call->GetNewSetupInternalAliases());
+        if (setupBody.m_destinationAddress.GetSize() > 0) {
+            q931.SetCalledPartyNumber(AsString(setupBody.m_destinationAddress[0], false));
+        }
+    }
+
 	// endpoint alias to find an inbound rewrite rule
 	PString in_rewrite_id;
 

@@ -2576,7 +2576,7 @@ CallRec::CallRec(
 	m_destInfo(destInfo), m_bandwidth(bandwidth), m_setupTime(0), m_alertingTime(0),
 	m_connectTime(0), m_disconnectTime(0), m_disconnectCause(0), m_disconnectCauseTranslated(0), m_releaseSource(-1),
 	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
-	m_callingSocket(NULL), m_calledSocket(NULL),
+    m_newSetupInternalAliases(NULL), m_callingSocket(NULL), m_calledSocket(NULL),
 	m_usedCount(0), m_nattype(none),
 #ifdef HAS_H46023
 	m_natstrategy(e_natUnknown),
@@ -2634,7 +2634,7 @@ CallRec::CallRec(
 	m_bandwidth(GK_DEF_BANDWIDTH), m_setupTime(0), m_alertingTime(0), m_connectTime(0),
 	m_disconnectTime(0), m_disconnectCause(0), m_disconnectCauseTranslated(0), m_releaseSource(-1),
 	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
-	m_callingSocket(NULL), m_calledSocket(NULL),
+	m_newSetupInternalAliases(NULL), m_callingSocket(NULL), m_calledSocket(NULL),
 	m_usedCount(0), m_nattype(none),
 #ifdef HAS_H46023
 	m_natstrategy(e_natUnknown),
@@ -2684,7 +2684,8 @@ CallRec::CallRec(const H225_CallIdentifier & callID, H225_TransportAddress sigAd
 	m_bandwidth(GK_DEF_BANDWIDTH), m_setupTime(0), m_alertingTime(0), m_connectTime(0),
 	m_disconnectTime(0), m_disconnectCause(0), m_disconnectCauseTranslated(0), m_releaseSource(-1),
 	m_acctSessionId(Toolkit::Instance()->GenerateAcctSessionId()),
-	m_callingSocket(NULL), m_calledSocket(NULL), m_usedCount(0), m_nattype(none),
+	m_newSetupInternalAliases(NULL), m_callingSocket(NULL), m_calledSocket(NULL),
+	m_usedCount(0), m_nattype(none),
 #if HAS_H46023
 	m_natstrategy(e_natUnknown),
 #endif
@@ -2719,7 +2720,7 @@ CallRec::CallRec(
 	m_srcSignalAddress(oldCall->m_srcSignalAddress),
 	m_callingStationId(oldCall->m_callingStationId), m_calledStationId(oldCall->m_calledStationId),
 	m_dialedNumber(oldCall->m_dialedNumber),
-	m_callingSocket(NULL), m_calledSocket(NULL),
+	m_newSetupInternalAliases(oldCall->m_newSetupInternalAliases), m_callingSocket(NULL), m_calledSocket(NULL),
 	m_usedCount(0), m_nattype(oldCall->m_nattype & ~calledParty),
 #if HAS_H46023
 	m_natstrategy(e_natUnknown),
@@ -2760,6 +2761,7 @@ CallRec::~CallRec()
 #ifdef HAS_H46018
 	RemoveKeepAllAlives();
 #endif
+    delete(m_newSetupInternalAliases);
 
 	PWaitAndSignal lock(m_portListMutex);
 	m_dynamicPorts.clear();

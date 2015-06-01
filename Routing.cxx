@@ -123,14 +123,14 @@ bool Route::SetLanguages(const PStringList & local, const PStringList & remote)
 
 // class RoutingRequest
 RoutingRequest::RoutingRequest()
-	: m_reason(-1), m_flags(0)
+	: m_reason(-1), m_flags(0), m_hasNewSetupAliases(false)
 {
 }
 
 RoutingRequest::RoutingRequest(
 	const std::list<Route> &failedRoutes
 	)
-	: m_reason(-1), m_flags(0), m_failedRoutes(failedRoutes)
+	: m_reason(-1), m_flags(0), m_failedRoutes(failedRoutes), m_hasNewSetupAliases(false)
 {
 }
 
@@ -1014,6 +1014,8 @@ bool VirtualQueue::SendRouteRequest(
 	PString * callerID,
 	/// should the call be rejected modified by this function on return)
 	bool & reject,
+    /// don't communicate updated route to caller
+    bool & keepRouteInternal,
 	/// actual virtual queue name (should be present in destinationInfo too)
 	const PString & vqueue,
 	/// a sequence of aliases for the calling endpoint
@@ -1052,6 +1054,7 @@ bool VirtualQueue::SendRouteRequest(
 		// wait for an answer from the status line (routetoalias,routetogateway,routereject)
 		result = r->m_sync.Wait(m_requestTimeout);
 		reject = r->m_reject;   // set reject status
+		keepRouteInternal = r->m_keepRouteInternal;
 		m_listMutex.Wait();
 		m_pendingRequests.remove(r);
 		m_listMutex.Signal();
@@ -1098,7 +1101,9 @@ bool VirtualQueue::RouteToAlias(
 	// caller ID or empty
 	const PString & callerID,
 	/// should this call be rejected
-	bool reject
+	bool reject,
+    /// don't communicate updated route to caller
+    bool keepRouteInternal
 	)
 {
 	PWaitAndSignal lock(m_listMutex);
@@ -1124,6 +1129,7 @@ bool VirtualQueue::RouteToAlias(
 					*(r->m_callsignaladdr) = destinationip;
 				*(r->m_sourceIP) = bindIP;	// BindAndRouteToGateway
 				*(r->m_callerID) = callerID;
+				r->m_keepRouteInternal = keepRouteInternal;  // RouteToInternalGateway
 			}
 			r->m_reject = reject;
 			r->m_sync.Signal();
@@ -1166,7 +1172,9 @@ bool VirtualQueue::RouteToAlias(
 	// callerID or empty
 	const PString & callerID,
 	/// should this call be rejected
-	bool reject
+	bool reject,
+    /// don't communicate updated route to caller
+    bool keepRouteInternal
 	)
 {
 	H225_ArrayOf_AliasAddress alias;
@@ -1174,7 +1182,7 @@ bool VirtualQueue::RouteToAlias(
 		alias.SetSize(1);
 		H323SetAliasAddress(targetAlias, alias[0]);
 	}
-	return RouteToAlias(alias, destinationIp, callingEpId, crv, callID, bindIP, callerID, reject);
+	return RouteToAlias(alias, destinationIp, callingEpId, crv, callID, bindIP, callerID, reject, keepRouteInternal);
 }
 
 bool VirtualQueue::RouteReject(
@@ -1253,7 +1261,8 @@ bool VirtualQueuePolicy::IsActive() const
 bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 {
 	bool reject = false;
-	H225_ArrayOf_AliasAddress *aliases = NULL;
+	bool keepRouteInternal = false;
+	H225_ArrayOf_AliasAddress * aliases = NULL;
 	PString vq = "";
 	if ((aliases = request.GetAliases()))
 		vq = AsString((*aliases)[0], FALSE);
@@ -1282,8 +1291,13 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 				}
 			}
 
-			if (m_vqueue->SendRouteRequest(source, epid, unsigned(arq.m_callReferenceValue), aliases, callSigAdr, bindIP, callerID, reject, vq, AsString(arq.m_srcInfo), AsString(arq.m_callIdentifier.m_guid), calledIP, vendorInfo))
-				request.SetFlag(RoutingRequest::e_aliasesChanged);
+			if (m_vqueue->SendRouteRequest(source, epid, unsigned(arq.m_callReferenceValue), aliases, callSigAdr, bindIP, callerID, reject, keepRouteInternal, vq, AsString(arq.m_srcInfo), AsString(arq.m_callIdentifier.m_guid), calledIP, vendorInfo)) {
+                if (keepRouteInternal) {
+                    request.SetNewSetupInternalAliases(*request.GetAliases());
+                } else {
+                    request.SetFlag(RoutingRequest::e_aliasesChanged);
+                }
+            }
 			if (reject) {
 				request.SetFlag(RoutingRequest::e_Reject);
 			}
@@ -1316,6 +1330,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 {
 	bool reject = false;
+	bool keepRouteInternal = false;
 	if (H225_ArrayOf_AliasAddress *aliases = request.GetAliases()) {
 		const PString vq(AsString((*aliases)[0], false));
 		if (m_vqueue->IsDestinationVirtualQueue(vq)) {
@@ -1347,8 +1362,11 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 			if (lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo) && (lrq.m_sourceInfo.GetSize() > 0))
 				sourceInfo = AsString(lrq.m_sourceInfo);
 			PString callID = "-";	/* not available for LRQs */
-			if (m_vqueue->SendRouteRequest(source, epid, unsigned(lrq.m_requestSeqNum), aliases, callSigAdr, bindIP, callerID, reject, vq, sourceInfo, callID))
-				request.SetFlag(RoutingRequest::e_aliasesChanged);
+			if (m_vqueue->SendRouteRequest(source, epid, unsigned(lrq.m_requestSeqNum), aliases, callSigAdr, bindIP, callerID, reject, keepRouteInternal, vq, sourceInfo, callID)) {
+                if (!keepRouteInternal) {
+                    request.SetFlag(RoutingRequest::e_aliasesChanged);
+                }
+            }
 			if (reject) {
 				request.SetFlag(RoutingRequest::e_Reject);
 			}
@@ -1387,6 +1405,7 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 {
 	bool reject = false;
+	bool keepRouteInternal = false;
 	H225_ArrayOf_AliasAddress * aliases = new H225_ArrayOf_AliasAddress;
 	aliases->SetSize(1);
 	PString vq = "";
@@ -1424,8 +1443,9 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 			"a virtual queue " << vq << " (Setup "
 			<< crv << ')');
 
-		if (m_vqueue->SendRouteRequest(callerip, epid, crv, aliases, callSigAdr, bindIP, callerID, reject, vq, src, callid, calledIP, vendorInfo))
+		if (m_vqueue->SendRouteRequest(callerip, epid, crv, aliases, callSigAdr, bindIP, callerID, reject, keepRouteInternal, vq, src, callid, calledIP, vendorInfo)) {
 			request.SetFlag(RoutingRequest::e_aliasesChanged);
+        }
 
 		if (reject) {
 			request.SetFlag(RoutingRequest::e_Reject);

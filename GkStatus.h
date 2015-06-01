@@ -140,7 +140,9 @@ public:
 		e_Shutdown,                    /// Shutdown the program
 		e_RouteToAlias,                /// Route a call to a specified alias
 		e_RouteToGateway,              /// Route a call to a specified alias + destinationCallSignalAddr
+		e_RouteToInternalGateway,      /// Route a call to a specified alias + destinationCallSignalAddr, but don't let caller know about new destination
 		e_BindAndRouteToGateway,       /// Route a call to a specified alias + destinationCallSignalAddr + specify bind IP
+		e_BindAndRouteToInternalGateway, /// Route a call to a specified alias + destinationCallSignalAddr + specify bind IP, but don't let caller know about new destination
 		e_RouteReject,                 /// Reject to Route a call upon ARQ (send ARJ)
 		e_Trace,                       /// change trace level for status interface output
 		e_RotateLog,                   /// Force log file rotation

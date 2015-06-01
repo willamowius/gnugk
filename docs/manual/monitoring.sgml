@@ -669,6 +669,9 @@ RouteToGateway Suzi 192.168.0.50 endp_4711 1234
 </verb></tscreen>
 </descrip>
 
+<item><tt/RouteToInternalGateway/<newline>
+<p>Same as RouteToGateway, but does not tell caller about about an updated destination alias.
+
 <item><tt/BindAndRouteToGateway/<newline>
 <p>This command is similar to RouteToGateway, but you can also specify which
 IP of a multi-homed server to use for the outgoing call.
@@ -682,6 +685,9 @@ BindAndRouteToGateway IP Alias IP:Port CallingEndpointID CallRef [CallID [CLI]]
 BindAndRouteToGateway 192.168.0.2 Suzi 192.168.0.50 endp_4711 1234
 </verb></tscreen>
 </descrip>
+
+<item><tt/BindAndRouteToGateway/<newline>
+<p>Same as BindAndRouteToGateway, but does not tell caller about about an updated destination alias.
 
 <item><tt/SendProceeding/<newline>
 <p>Send a CallProceeding message to the caller.
