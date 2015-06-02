@@ -2,7 +2,7 @@
 //
 // gk.cxx for GNU Gatekeeper
 //
-// Copyright (c) 2000-2014, Jan Willamowius
+// Copyright (c) 2000-2015, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -323,6 +323,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Proxy", "EnableRTCPStats" },
 	{ "Proxy", "EnableRTPMute" },
 	{ "Proxy", "ExplicitRoutes" },
+	{ "Proxy", "IgnoreSignaledIPs" },
 	{ "Proxy", "InternalNetwork" },
 	{ "Proxy", "ProxyAlways" },
 	{ "Proxy", "ProxyForNAT" },

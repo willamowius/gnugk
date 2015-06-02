@@ -3,7 +3,7 @@
 // ProxyChannel.h
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2002-2013, Jan Willamowius
+// Copyright (c) 2002-2015, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -273,6 +273,7 @@ protected:
 	int m_multiplexSocket_B;	// only valid if m_multiplexDestination_ is set)
 	PMutex m_multiplexMutex;	// protect multiplex IDs, addresses and sockets against access from concurrent threads
 #endif
+    bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPS in signalling, do full autodetect
 };
 
 #if H323_H450
@@ -348,7 +349,7 @@ public:
 	H245Socket * GetH245Socket() const { return m_h245socket; }
 	void SetH245Socket(H245Socket * sock) { m_h245socket = sock; }
 	bool CompareH245Socket(H245Socket * sock) const { return sock == m_h245socket; }	// intentionally comparing pointers
-	
+
 protected:
 	void SetRemote(CallSignalSocket *);
 	bool CreateRemote(H225_Setup_UUIE &setupBody);
@@ -419,15 +420,15 @@ protected:
 		}
 		return false;
 	}
-	
+
 	template<class UUIE> bool HandleFastStart(UUIE & uu, bool fromCaller)
 	{
 		if (!uu.HasOptionalField(UUIE::e_fastStart))
 			return false;
-			
+
 		if (!fromCaller && m_call)
 			m_call->SetFastStartResponseReceived();
-			
+
 		return m_h245handler != NULL ? OnFastStart(uu.m_fastStart, fromCaller) : false;
 	}
 
@@ -782,7 +783,7 @@ private:
 	ProxyHandler();
 	ProxyHandler(const ProxyHandler&);
 	ProxyHandler& operator=(const ProxyHandler&);
-	
+
 private:
 	std::list<PTime *> m_removedTime;
 	/// time to wait before deleting a closed socket
@@ -813,7 +814,7 @@ public:
 private:
 	HandlerList(const HandlerList&);
 	HandlerList& operator=(const HandlerList&);
-	
+
 private:
 	/// signaling/H.245/T.120 proxy handling threads
 	std::vector<ProxyHandler *> m_sigHandlers;

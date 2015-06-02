@@ -3,7 +3,7 @@
 // ProxyChannel.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2002
-// Copyright (c) 2002-2014, Jan Willamowius
+// Copyright (c) 2002-2015, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -912,8 +912,8 @@ public:
 	void SetMediaControlChannelSource(const H245_UnicastAddress &);
 	void ZeroMediaControlChannelSource();
 	void HandleMediaChannel(H245_UnicastAddress *, H245_UnicastAddress *, const PIPSocket::Address &, bool, callptr &,
-		bool fromTraversalClient, bool useRTPMultiplexing);
-	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters &, const PIPSocket::Address &, bool, callptr &, bool, bool useRTPMultiplexing);
+		bool fromTraversalClient, bool useRTPMultiplexing, bool isUnidirectional);
+	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters &, const PIPSocket::Address &, bool, callptr &, bool, bool useRTPMultiplexing, bool isUnidirectional);
 
 	// override from class LogicalChannel
 	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *, callptr &, bool fromTraversalClient, bool useRTPMultiplexing);
@@ -924,12 +924,11 @@ public:
 	void OnHandlerSwapped(bool);
 
 	bool IsOpen() const;
+	void SetUniDirectional(bool uni);
 
 #ifdef HAS_H46018
 	void SetUsesH46019fc(bool);
 	void SetUsesH46019();
-	void SetH46019UniDirectional(bool uni);
-
 	int GetRTPOSSocket() const { return rtp ? rtp->GetOSSocket() : INVALID_OSSOCKET; }
 	int GetRTCPOSSocket() const { return rtcp ? rtcp->GetOSSocket() : INVALID_OSSOCKET; }
 
@@ -970,6 +969,8 @@ private:
 	BYTE m_cipherPayloadType;			// remember in OLC to use in OLCA
 	H225_CallIdentifier m_callID;
 #endif
+    bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPS in signalling, do full autodetect
+    bool m_isUnidirectional;
 };
 
 class T120LogicalChannel : public LogicalChannel {
@@ -1095,7 +1096,7 @@ protected:
 	virtual bool HandleCommand(H245_CommandMessage &, bool & suppress, callptr &, H245Socket * h245sock);
 	virtual bool HandleIndication(H245_IndicationMessage &, bool & suppress);
 
-	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters *, WORD flcn);
+	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters *, WORD flcn, bool isUnidirectional);
 	bool HandleOpenLogicalChannel(H245_OpenLogicalChannel &, callptr &);
 	bool HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck &, callptr &);
 	bool HandleOpenLogicalChannelReject(H245_OpenLogicalChannelReject &, callptr & call);
@@ -1145,6 +1146,7 @@ protected:
 	bool m_isCaller;
 	bool m_isH245Master;
 #endif
+    bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPS in signalling, do full autodetect
 };
 
 
@@ -9356,6 +9358,7 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
 #ifdef HAS_H46018
 	m_checkH46019KeepAlivePT = GkConfig()->GetBoolean(ProxySection, "CheckH46019KeepAlivePT", true);
 #endif
+    m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
 }
 
 UDPProxySocket::~UDPProxySocket()
@@ -9445,7 +9448,7 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 
-	if ((DWORD)srcIP != 0) {
+	if ((DWORD)srcIP != 0 || m_ignoreSignaledIPs) {
 		fSrcIP = srcIP, fSrcPort = srcPort;
 	}
 	if (addr) {
@@ -9488,7 +9491,7 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 
-	if ((DWORD)srcIP != 0) {
+	if ((DWORD)srcIP != 0 || m_ignoreSignaledIPs) {
 		rSrcIP = srcIP, rSrcPort = srcPort;
 	}
 	if (addr) {
@@ -9631,6 +9634,29 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		<< " multiplexDest A=" << AsString(m_multiplexDestination_A) << " multiplexID A=" << m_multiplexID_A << " multiplexSocket A=" << m_multiplexSocket_A
 		<< " multiplexDest B=" << AsString(m_multiplexDestination_B) << " multiplexID B=" << m_multiplexID_B << " multiplexSocket B=" << m_multiplexSocket_B);
 
+    if (m_ignoreSignaledIPs && !UsesH46019()) {
+        // TODO: we should not do this when H.460.19 traversal is active !!!
+        // no source set, this musst be one of them
+        if (fSrcIP == 0 && rSrcIP == 0) {
+            fSrcIP = fromIP, fSrcPort = fromPort;
+            PTRACE(7, "JW RTP IN learned fSrc " << AsString(fSrcIP, fSrcPort));
+        }
+        // no reverse source set and this is not from forward source, so it must be from reverse source
+        if ((fSrcIP != fromIP || fSrcPort != fromPort) && rSrcIP == 0) {
+            rSrcIP = fromIP, rSrcPort = fromPort;
+            PTRACE(7, "JW RTP IN learned rSrc " << AsString(rSrcIP, rSrcPort));
+        }
+        // this is from forward source and we we don't have reverse destination
+        if (fSrcIP == fromIP && fSrcPort == fromPort && rDestIP == 0) {
+            rDestIP = fromIP, rDestPort = fromPort;
+            PTRACE(7, "JW RTP IN learned rDest " << AsString(rDestIP, rDestPort) << " for fSrc " << AsString(fSrcIP, fSrcPort));
+        }
+        // this sis from reverse source and we we don't have forward destination
+        if (rSrcIP == fromIP && rSrcPort == fromPort && fDestIP == 0) {
+            fDestIP = fromIP, fDestPort = fromPort;
+            PTRACE(7, "JW RTP IN learned fDest " << AsString(fDestIP, fDestPort) << " for rSrc " << AsString(rSrcIP, rSrcPort));
+        }
+    }
 	// check payloadType in keepAlive
 	if (isRTPKeepAlive && !m_h46019DetectionDone && m_checkH46019KeepAlivePT) {
 		if (m_keepAlivePT_1 != UNDEFINED_PAYLOAD_TYPE && m_keepAlivePT_2 != UNDEFINED_PAYLOAD_TYPE) {
@@ -10231,6 +10257,8 @@ void T120ProxySocket::Dispatch()
 // class RTPLogicalChannel
 RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, bool nated, WORD sessionID) : LogicalChannel(flcn), reversed(false), peer(NULL)
 {
+    m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
+    m_isUnidirectional = false;
 	SrcIP = 0;
 	SrcPort = 0;
 	rtp = NULL;
@@ -10294,6 +10322,8 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 
 RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool nated)
 {
+    m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
+    m_isUnidirectional = false;
 #ifdef HAS_H235_MEDIA
 	m_H235CryptoEngine = NULL;
 	m_auth = NULL;
@@ -10368,6 +10398,17 @@ bool RTPLogicalChannel::IsOpen() const
 	return rtp->IsOpen() && rtcp->IsOpen();
 }
 
+void RTPLogicalChannel::SetUniDirectional(bool uni)
+{
+    m_isUnidirectional = uni;
+#ifdef HAS_H46018
+	if (rtp)
+		rtp->SetH46019UniDirectional(uni);
+	if (rtcp)
+		rtcp->SetH46019UniDirectional(uni);
+#endif
+}
+
 #ifdef HAS_H46018
 void RTPLogicalChannel::SetUsesH46019fc(bool fc)
 {
@@ -10383,14 +10424,6 @@ void RTPLogicalChannel::SetUsesH46019()
 		rtp->SetUsesH46019();
 	if (rtcp)
 		rtcp->SetUsesH46019();
-}
-
-void RTPLogicalChannel::SetH46019UniDirectional(bool uni)
-{
-	if (rtp)
-		rtp->SetH46019UniDirectional(uni);
-	if (rtcp)
-		rtcp->SetH46019UniDirectional(uni);
 }
 
 void RTPLogicalChannel::SetLCMultiplexDestination(bool isRTCP, const H323TransportAddress & toAddress, H46019Side side)
@@ -10695,7 +10728,7 @@ void RTPLogicalChannel::ZeroMediaChannelSource()
 	SrcPort = 0;
 }
 
-void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlChannel, H245_UnicastAddress * mediaChannel, const PIPSocket::Address & local, bool rev, callptr & call, bool fromTraversalClient, bool useRTPMultiplexing)
+void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlChannel, H245_UnicastAddress * mediaChannel, const PIPSocket::Address & local, bool rev, callptr & call, bool fromTraversalClient, bool useRTPMultiplexing, bool isUnidirectional)
 {
 	H245_UnicastAddress tmp, tmpmedia, tmpmediacontrol, *dest = mediaControlChannel;
 	PIPSocket::Address tmpSrcIP = SrcIP;
@@ -10742,6 +10775,12 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 		(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call);
 	}
 #endif
+
+        if (m_ignoreSignaledIPs && !fromTraversalClient && !isUnidirectional) {
+            PTRACE(7, "JW RTP IN zero RTCP src + dest (IgnoreSignaledIPs)");
+            (rtcp->*SetDest)(0, 0, NULL, call);
+        }
+
 	if (useRTPMultiplexing) {
 		*mediaControlChannel << local << (WORD)GkConfig()->GetInteger(ProxySection, "RTCPMultiplexPort", GK_DEF_MULTIPLEX_RTCP_PORT);
 	} else {
@@ -10766,6 +10805,12 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 			(rtp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call);
 		}
 #endif
+
+        if (m_ignoreSignaledIPs && !fromTraversalClient && !isUnidirectional) {
+            PTRACE(7, "JW RTP IN zero RTP src + dest (IgnoreSignaledIPs)");
+            (rtp->*SetDest)(0, 0, NULL, call);
+        }
+
 		if (useRTPMultiplexing) {
 			*mediaChannel << local << (WORD)GkConfig()->GetInteger(ProxySection, "RTPMultiplexPort", GK_DEF_MULTIPLEX_RTP_PORT);
 		} else {
@@ -10780,25 +10825,26 @@ void RTPLogicalChannel::SetRTPMute(bool toMute)
 		rtp->SetMute(toMute);
 }
 
-bool RTPLogicalChannel::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters & h225Params, const PIPSocket::Address & local, bool rev, callptr & call, bool fromTraversalClient, bool useRTPMultiplexing)
+bool RTPLogicalChannel::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters & h225Params, const PIPSocket::Address & local, bool rev, callptr & call, bool fromTraversalClient, bool useRTPMultiplexing, bool isUnidirectional)
 {
+	m_isUnidirectional = isUnidirectional;  // remember for handling OLCAck
 	if (!h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel))
 		return false;
 	H245_UnicastAddress *mediaControlChannel = GetH245UnicastAddress(h225Params.m_mediaControlChannel);
 	H245_UnicastAddress *mediaChannel = h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel) ? GetH245UnicastAddress(h225Params.m_mediaChannel) : NULL;
-	HandleMediaChannel(mediaControlChannel, mediaChannel, local, rev, call, fromTraversalClient, useRTPMultiplexing);
+	HandleMediaChannel(mediaControlChannel, mediaChannel, local, rev, call, fromTraversalClient, useRTPMultiplexing, isUnidirectional);
 	return true;
 }
 
 bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler * handler, callptr & call, bool fromTraversalClient, bool useRTPMultiplexing)
 {
-	H245_UnicastAddress *mediaControlChannel = NULL;
-	H245_UnicastAddress *mediaChannel = NULL;
+	H245_UnicastAddress * mediaControlChannel = NULL;
+	H245_UnicastAddress * mediaChannel = NULL;
 	GetChannelsFromOLCA(olca, mediaControlChannel, mediaChannel);
 	if (mediaControlChannel == NULL && mediaChannel == NULL) {
 		return false;
 	}
-	HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetMasqAddr(), false, call, fromTraversalClient, useRTPMultiplexing);
+	HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetMasqAddr(), false, call, fromTraversalClient, useRTPMultiplexing, m_isUnidirectional);
 	return true;
 }
 
@@ -10980,6 +11026,7 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 	if (peer)
 		peer->peer = this;
 
+    m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
 #ifdef HAS_H46018
 	m_isRTPMultiplexingEnabled = Toolkit::Instance()->IsH46018Enabled()
 								&& Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"));
@@ -11073,13 +11120,15 @@ bool H245ProxyHandler::HandleCommand(H245_CommandMessage & Command, bool & suppr
 	return false;
 }
 
-bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters * h225Params, WORD flcn)
+bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters * h225Params, WORD flcn, bool isUnidirectional)
 {
 	RTPLogicalChannel * lc = flcn ?
 		CreateRTPLogicalChannel((WORD)h225Params->m_sessionID, flcn) :
 		CreateFastStartLogicalChannel((WORD)h225Params->m_sessionID);
 	if (!lc)
 		return false;
+
+	lc->SetUniDirectional(isUnidirectional);  // remember for handling OLCAck
 
 #ifdef HAS_H46018
 	if (IsTraversalServer() || IsTraversalClient()) {
@@ -11102,6 +11151,9 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 			lc->ZeroMediaControlChannelSource();
 		}
 #endif
+        if (m_ignoreSignaledIPs && !isUnidirectional) {
+			lc->ZeroMediaControlChannelSource();
+        }
 		changed = true;
 	}
 	if ( h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel)
@@ -11116,6 +11168,9 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 				lc->ZeroMediaChannelSource();
 			}
 #endif
+            if (m_ignoreSignaledIPs && !isUnidirectional) {
+				lc->ZeroMediaChannelSource();
+            }
 		} else {
 			*addr << GetMasqAddr() << (WORD)0;
 		}
@@ -11247,7 +11302,6 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 			h46019chan.m_addrA_RTCP = h225Params->m_mediaControlChannel;
 		}
 		// parse incoming traversal parameters for H.460.19
-		bool m_h46019uni = false;
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_genericInformation)) {
 			// remove traversal parameters from sender before forwarding
 			for (PINDEX i = 0; i < olc.m_genericInformation.GetSize(); i++) {
@@ -11314,40 +11368,35 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 		}
 #endif
 
-		// create LC objects, rewrite for forwarding after H.460.19 parameters have been parsed
-		if (UsesH46019fc()) {
-			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, 0) : false;
-		} else {
-			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, flcn) : false;
-		}
-
-#ifdef HAS_H46018
-		// check if we are doing unidirectional H.239 from a H.460.19 client
+        bool isUnidirectional = false;
+		// check if we are doing unidirectional H.239
 		if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_videoData) {
 			H245_VideoCapability & vid = olc.m_forwardLogicalChannelParameters.m_dataType;
-			m_h46019uni = (vid.GetTag() == H245_VideoCapability::e_extendedVideoCapability);
-			if (((GetTraversalRole() != None) || (peer && peer->GetTraversalRole() != None)) && m_h46019uni) {
-				LogicalChannel * lc = FindLogicalChannel(flcn);
-				if (lc) {
-					((RTPLogicalChannel*)lc)->SetH46019UniDirectional(true);
-				}
-			}
-		}
+			isUnidirectional = (vid.GetTag() == H245_VideoCapability::e_extendedVideoCapability);
+        }
 		// check for encrypted H.239
 		if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_h235Media) {
 			H245_H235Media & h235data = olc.m_forwardLogicalChannelParameters.m_dataType;
 			if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_videoData) {
 				H245_VideoCapability & vid = h235data.m_mediaType;
-				m_h46019uni = (vid.GetTag() == H245_VideoCapability::e_extendedVideoCapability);
-				if (((GetTraversalRole() != None) || (peer && peer->GetTraversalRole() != None)) && m_h46019uni) {
-					LogicalChannel * lc = FindLogicalChannel(flcn);
-					if (lc) {
-						((RTPLogicalChannel*)lc)->SetH46019UniDirectional(true);
-					}
-				}
+				isUnidirectional = (vid.GetTag() == H245_VideoCapability::e_extendedVideoCapability);
+            }
+        }
+		// create LC objects, rewrite for forwarding after H.460.19 parameters have been parsed
+		if (UsesH46019fc()) {
+			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, 0, isUnidirectional) : false;
+		} else {
+			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, flcn, isUnidirectional) : false;
+		}
+
+		if (isUnidirectional) {
+			LogicalChannel * lc = FindLogicalChannel(flcn);
+			if (lc) {
+				((RTPLogicalChannel*)lc)->SetUniDirectional(true);
 			}
 		}
 
+#ifdef HAS_H46018
 		// We don't put the generic identifier on the reverse OLC
 		if (UsesH46019fc() && isReverseLC)
 			return true;	// TODO: this looks buggy, will skip RTP multiplex assignments + H235 media etc.
@@ -12170,7 +12219,13 @@ bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc, callp
 	else {
 		bool nouse;
 		H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, nouse);
-		return ((h225Params) ? OnLogicalChannelParameters(h225Params, 0) : false) || changed;
+        bool isUnidirectional = false;
+		// check if we are doing unidirectional H.239
+		if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_videoData) {
+			H245_VideoCapability & vid = olc.m_forwardLogicalChannelParameters.m_dataType;
+			isUnidirectional = (vid.GetTag() == H245_VideoCapability::e_extendedVideoCapability);
+        }
+		return ((h225Params) ? OnLogicalChannelParameters(h225Params, 0, isUnidirectional) : false) || changed;
 	}
 }
 
@@ -12245,7 +12300,13 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 		}
 	}
 	bool useMultiplexing = m_isRTPMultiplexingEnabled && peer && peer->m_requestRTPMultiplexing;
-	if (lc && (changed = lc->OnLogicalChannelParameters(*h225Params, GetMasqAddr(), isReverseLC, call, IsTraversalClient(), useMultiplexing)))
+    bool isUnidirectional = false;
+	// check if we are doing unidirectional H.239
+	if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_videoData) {
+		H245_VideoCapability & vid = olc.m_forwardLogicalChannelParameters.m_dataType;
+		isUnidirectional = (vid.GetTag() == H245_VideoCapability::e_extendedVideoCapability);
+    }
+	if (lc && (changed = lc->OnLogicalChannelParameters(*h225Params, GetMasqAddr(), isReverseLC, call, IsTraversalClient(), useMultiplexing, isUnidirectional)))
 		lc->StartReading(handler);
 	return changed;
 }

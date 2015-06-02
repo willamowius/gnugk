@@ -836,6 +836,16 @@ to the 10.2.0.0/16 network and 10.6.1.3 for messages to the 10.6.0.0/16 network.
 Messages to the 11.0.0.0/8 network get 20.1.1.1 as sender IP.
 All sender IPs should be included in the list of Home IPs.
 
+<item><tt>IgnoredSignaledIPs=1</tt><newline>
+Default: <tt>0</tt><newline>
+<p>
+EXPERIMENTAL: Ignore all IPs for RTP streams signaled by the endpoints and rely 100% on port auto detection.
+In some cases this results in much batter NAT traversal for unregistered endpoints
+and endpoints not capable of a NAT traversal protocol.
+This feature gets automatically disabled for calls from endpoints using
+H.460 NAT traversal and for H.239 video streams which are unidirectional
+by nature so we can't use auto detection.
+
 </itemize>
 
 <p>
