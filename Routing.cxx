@@ -3,7 +3,7 @@
 // Routing Mechanism for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2003
-// Copyright (c) 2004-2012, Jan Willamowius
+// Copyright (c) 2004-2015, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1026,7 +1026,9 @@ bool VirtualQueue::SendRouteRequest(
 	/// the called IP for unregistered calls
 	const PString & calledip,
 	/// vendor string of caller
-	const PString & vendorString
+	const PString & vendorString,
+	/// the IP we received this message from
+	const PString & fromIP
 	)
 {
 	bool result = false;
@@ -1042,6 +1044,7 @@ bool VirtualQueue::SendRouteRequest(
 						+ "|" + cid
 						+ "|" + calledip
 						+ "|" + vendorString
+						+ "|" + fromIP
 						+ ";";
 		// signal RouteRequest to the status line only once
 		if( duprequest ) {
@@ -1290,8 +1293,11 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 					vendorInfo += ep->GetEndpointType().m_vendor.m_versionId.AsString();
 				}
 			}
+            H225_TransportAddress remoteAddr;
+            request.GetWrapper()->GetRasAddress(remoteAddr);
+            PString fromIP = AsDotString(remoteAddr, true);
 
-			if (m_vqueue->SendRouteRequest(source, epid, unsigned(arq.m_callReferenceValue), aliases, callSigAdr, bindIP, callerID, reject, keepRouteInternal, vq, AsString(arq.m_srcInfo), AsString(arq.m_callIdentifier.m_guid), calledIP, vendorInfo)) {
+			if (m_vqueue->SendRouteRequest(source, epid, unsigned(arq.m_callReferenceValue), aliases, callSigAdr, bindIP, callerID, reject, keepRouteInternal, vq, AsString(arq.m_srcInfo), AsString(arq.m_callIdentifier.m_guid), calledIP, vendorInfo, fromIP)) {
                 if (keepRouteInternal) {
                     request.SetNewSetupInternalAliases(*request.GetAliases());
                 } else {
@@ -1362,7 +1368,13 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 			if (lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo) && (lrq.m_sourceInfo.GetSize() > 0))
 				sourceInfo = AsString(lrq.m_sourceInfo);
 			PString callID = "-";	/* not available for LRQs */
-			if (m_vqueue->SendRouteRequest(source, epid, unsigned(lrq.m_requestSeqNum), aliases, callSigAdr, bindIP, callerID, reject, keepRouteInternal, vq, sourceInfo, callID)) {
+			PString calledIP = "unknown";
+            PString vendorString = "unknown";
+            H225_TransportAddress remoteAddr;
+            request.GetWrapper()->GetRasAddress(remoteAddr);
+            PString fromIP = AsDotString(remoteAddr, true);
+
+			if (m_vqueue->SendRouteRequest(source, epid, unsigned(lrq.m_requestSeqNum), aliases, callSigAdr, bindIP, callerID, reject, keepRouteInternal, vq, sourceInfo, callID, calledIP, vendorString, fromIP)) {
                 if (!keepRouteInternal) {
                     request.SetFlag(RoutingRequest::e_aliasesChanged);
                 }
@@ -1439,11 +1451,14 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 			}
 			vendorInfo.Replace("|", "", true);
 		}
+		PIPSocket::Address remoteAddr;
+		WORD remotePort;
+		request.GetWrapper()->GetPeerAddr(remoteAddr, remotePort);
+		PString fromIP = AsString(remoteAddr, remotePort);
 		PTRACE(5, "Routing\tPolicy " << m_name << " destination matched "
-			"a virtual queue " << vq << " (Setup "
-			<< crv << ')');
+			"a virtual queue " << vq << " (Setup " << crv << ')');
 
-		if (m_vqueue->SendRouteRequest(callerip, epid, crv, aliases, callSigAdr, bindIP, callerID, reject, keepRouteInternal, vq, src, callid, calledIP, vendorInfo)) {
+		if (m_vqueue->SendRouteRequest(callerip, epid, crv, aliases, callSigAdr, bindIP, callerID, reject, keepRouteInternal, vq, src, callid, calledIP, vendorInfo, fromIP)) {
 			request.SetFlag(RoutingRequest::e_aliasesChanged);
         }
 

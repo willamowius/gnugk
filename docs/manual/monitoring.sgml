@@ -893,7 +893,7 @@ an UnregistrationConfirm (UCF).
 <p>
 After a call disconnected, the call detail record is shown (in one line).
 
-<item><tt/RouteRequest|CallerIP:Port|CallerEndpointId|CallRef|VirtualQueue|CallerAlias|CallID|CalledIP:Port|VendorString;/<newline>
+<item><tt/RouteRequest|CallerIP:Port|CallerEndpointId|CallRef|VirtualQueue|CallerAlias|CallID|CalledIP:Port|VendorString|MsgFromIP:Port;/<newline>
 <p>Request for an external application to route an incoming call on a virtual queue.
 This can be done with a RouteToAlias/RouteToGateway or RouteReject command.
 

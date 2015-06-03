@@ -669,7 +669,9 @@ public:
 		/// the called IP for unregistered calls
 		const PString & calledip = "unknown",
 		/// vendor string of caller
-		const PString & vendorString = "unknown"
+		const PString & vendorString = "unknown",
+        /// the IP we received this message from
+        const PString & fromIP = "unknown"
 		);
 
 	/** Make a routing decision for a pending route request (inserted
