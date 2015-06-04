@@ -1536,6 +1536,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 	}
 
 	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyAlways", "0"))) {
+			PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled. (ProxyAlways)");
 		m_call->SetProxyMode(CallRec::ProxyEnabled);
 		m_call->SetH245Routed(true);
 	}
@@ -1544,6 +1545,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 	if (m_call->GetProxyMode() == CallRec::ProxyDetect) {
 		if ((nat_type != CallRec::none && Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyForNAT", "1"))) ) {
 			// must proxy
+			PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled. (ProxyForNAT)");
 			m_call->SetProxyMode(CallRec::ProxyEnabled);
 		} else {
 			// check if we have a [ModeSelection] rule matching for this call
@@ -1566,6 +1568,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 					m_call->SetH245Routed(true);
 					break;
 				case CallRec::Proxied:
+                    PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled. (vendor mode)");
 					m_call->SetProxyMode(CallRec::ProxyEnabled);
 					m_call->SetH245Routed(true);
 					break;
@@ -4550,7 +4553,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 
 #ifdef HAS_H46023
 			if (Toolkit::Instance()->IsH46023Enabled())
-				m_call->SetReceiveNATStategy(natoffloadsupport,authData.m_proxyMode);
+				m_call->SetReceiveNATStategy(natoffloadsupport, authData.m_proxyMode);
 #endif
 			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 				bool isH46019Client = false;
