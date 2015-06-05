@@ -324,6 +324,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Proxy", "EnableRTPMute" },
 	{ "Proxy", "ExplicitRoutes" },
 	{ "Proxy", "IgnoreSignaledIPs" },
+	{ "Proxy", "IgnoreSignaledPrivateH239IPs" },
 	{ "Proxy", "InternalNetwork" },
 	{ "Proxy", "ProxyAlways" },
 	{ "Proxy", "ProxyForNAT" },

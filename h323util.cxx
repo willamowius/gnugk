@@ -2,7 +2,7 @@
 //
 // H.323 utility functions
 //
-// Copyright (c) 2000-2014, Jan Willamowius
+// Copyright (c) 2000-2015, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -386,6 +386,19 @@ H225_TransportAddress H323ToH225TransportAddress(const H323TransportAddress & h3
 	return SocketToH225TransportAddr(ip, port);
 }
 
+// convert a H.245 unicast address into a socket address
+PIPSocket::Address H245UnicastToSocketAddr(const H245_UnicastAddress & h245unicast)
+{
+	if (h245unicast.GetTag() == H245_UnicastAddress::e_iPAddress) {
+		const H245_UnicastAddress_iPAddress & ipv4 = h245unicast;
+		return PIPSocket::Address(ipv4.m_network.GetSize(), ipv4.m_network.GetValue());
+	} else if (h245unicast.GetTag() == H245_UnicastAddress::e_iP6Address) {
+		const H245_UnicastAddress_iP6Address & ipv6 = h245unicast;
+		return PIPSocket::Address(ipv6.m_network.GetSize(), ipv6.m_network.GetValue());
+	}
+	PTRACE(1, "Unsupported H245_UnicastAddress: " << h245unicast.GetTagName());
+	return PIPSocket::Address();
+}
 // convert a H.245 unicast address into an H.323 transport address
 H323TransportAddress H245UnicastToH323TransportAddr(const H245_UnicastAddress & h245unicast)
 {

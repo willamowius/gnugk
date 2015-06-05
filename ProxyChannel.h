@@ -274,6 +274,7 @@ protected:
 	PMutex m_multiplexMutex;	// protect multiplex IDs, addresses and sockets against access from concurrent threads
 #endif
     bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPS in signalling, do full autodetect
+    bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H239 streams
 };
 
 #if H323_H450

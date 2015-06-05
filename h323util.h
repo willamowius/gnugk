@@ -2,7 +2,7 @@
 //
 // H.323 utility functions
 //
-// Copyright (c) 2000-2013, Jan Willamowius
+// Copyright (c) 2000-2015, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -76,6 +76,9 @@ H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr,
 
 // convert a H.323 transport address into an H225 transport address
 H225_TransportAddress H323ToH225TransportAddress(const H323TransportAddress & h323addr);
+
+// convert a H.245 unicast address into a socket address
+PIPSocket::Address H245UnicastToSocketAddr(const H245_UnicastAddress & h245unicast);
 
 // convert a H.245 unicast address into an H.323 transport address
 H323TransportAddress H245UnicastToH323TransportAddr(const H245_UnicastAddress & h245unicast);

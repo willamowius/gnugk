@@ -846,6 +846,11 @@ This feature gets automatically disabled for calls from endpoints using
 H.460 NAT traversal and for H.239 video streams which are unidirectional
 by nature so we can't use auto detection.
 
+<item><tt>IgnoredSignaledPrivateH239IPs=1</tt><newline>
+Default: <tt>0</tt><newline>
+<p>
+EXPERIMENTAL: Also ignore IPs signaled for H.239 streams if they are private IPs.
+
 </itemize>
 
 <p>

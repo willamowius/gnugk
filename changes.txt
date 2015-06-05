@@ -1,6 +1,7 @@
 Changes from 3.8 to 3.9
 =======================
 - additional field in RouteRequest event: IP:port where message was received from
+- new switch [Proxy] IgnoreSignaledPrivateH239IPs=1 to do port auto detection for H.239, too (experimental)
 - new switch [Proxy] IgnoreSignaledIPs=1 to do 100% port auto detection (experimental)
 - new status port commands: RouteToInternalGateway and BindAndRouteToInternalGateway
 - BUGFIX(ProxyChannel.cxx) fix algorithm lookup for encryption added by GnuGk

@@ -970,6 +970,7 @@ private:
 	H225_CallIdentifier m_callID;
 #endif
     bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPS in signalling, do full autodetect
+    bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H239 streams
     bool m_isUnidirectional;
 };
 
@@ -1147,6 +1148,7 @@ protected:
 	bool m_isH245Master;
 #endif
     bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPS in signalling, do full autodetect
+    bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H239 streams
 };
 
 
@@ -9362,6 +9364,7 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
 	m_checkH46019KeepAlivePT = GkConfig()->GetBoolean(ProxySection, "CheckH46019KeepAlivePT", true);
 #endif
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
+    m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
 }
 
 UDPProxySocket::~UDPProxySocket()
@@ -9638,26 +9641,37 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		<< " multiplexDest B=" << AsString(m_multiplexDestination_B) << " multiplexID B=" << m_multiplexID_B << " multiplexSocket B=" << m_multiplexSocket_B);
 
     if (m_ignoreSignaledIPs && !UsesH46019()) {
-        // TODO: we should not do this when H.460.19 traversal is active !!!
+        //// learn from data we already have (eg. from H.239 signaling)
+        // set known destination as assumed source
+        if (fSrcIP == 0 && rSrcIP == 0 && fDestIP !=0) {
+            rSrcIP = fDestIP, rSrcPort = fDestPort;
+            PTRACE(7, "JW RTP IN on " << localport << " learned rSrc " << AsString(rSrcIP, rSrcPort) << " from fDest");
+        }
+        if (fSrcIP == 0 && rSrcIP == 0 && rDestIP !=0) {
+            fSrcIP = rDestIP, fSrcPort = rDestPort;
+            PTRACE(7, "JW RTP IN on " << localport << " learned fSrc " << AsString(fSrcIP, fSrcPort) << " from rDest");
+        }
+
+        //// learn from this RTP packet
         // no source set, this musst be one of them
         if (fSrcIP == 0 && rSrcIP == 0) {
             fSrcIP = fromIP, fSrcPort = fromPort;
-            PTRACE(7, "JW RTP IN learned fSrc " << AsString(fSrcIP, fSrcPort));
+            PTRACE(7, "JW RTP IN on " << localport << " learned fSrc " << AsString(fSrcIP, fSrcPort));
         }
         // no reverse source set and this is not from forward source, so it must be from reverse source
         if ((fSrcIP != fromIP || fSrcPort != fromPort) && rSrcIP == 0) {
             rSrcIP = fromIP, rSrcPort = fromPort;
-            PTRACE(7, "JW RTP IN learned rSrc " << AsString(rSrcIP, rSrcPort));
+            PTRACE(7, "JW RTP IN on " << localport << " learned rSrc " << AsString(rSrcIP, rSrcPort));
         }
         // this is from forward source and we we don't have reverse destination
         if (fSrcIP == fromIP && fSrcPort == fromPort && rDestIP == 0) {
             rDestIP = fromIP, rDestPort = fromPort;
-            PTRACE(7, "JW RTP IN learned rDest " << AsString(rDestIP, rDestPort) << " for fSrc " << AsString(fSrcIP, fSrcPort));
+            PTRACE(7, "JW RTP IN on " << localport << " learned rDest " << AsString(rDestIP, rDestPort) << " for fSrc " << AsString(fSrcIP, fSrcPort));
         }
         // this sis from reverse source and we we don't have forward destination
         if (rSrcIP == fromIP && rSrcPort == fromPort && fDestIP == 0) {
             fDestIP = fromIP, fDestPort = fromPort;
-            PTRACE(7, "JW RTP IN learned fDest " << AsString(fDestIP, fDestPort) << " for rSrc " << AsString(rSrcIP, rSrcPort));
+            PTRACE(7, "JW RTP IN on " << localport << " learned fDest " << AsString(fDestIP, fDestPort) << " for rSrc " << AsString(rSrcIP, rSrcPort));
         }
     }
 	// check payloadType in keepAlive
@@ -10261,6 +10275,7 @@ void T120ProxySocket::Dispatch()
 RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, bool nated, WORD sessionID) : LogicalChannel(flcn), reversed(false), peer(NULL)
 {
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
+    m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
     m_isUnidirectional = false;
 	SrcIP = 0;
 	SrcPort = 0;
@@ -10326,6 +10341,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool nated)
 {
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
+    m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
     m_isUnidirectional = false;
 #ifdef HAS_H235_MEDIA
 	m_H235CryptoEngine = NULL;
@@ -10736,6 +10752,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 	H245_UnicastAddress tmp, tmpmedia, tmpmediacontrol, *dest = mediaControlChannel;
 	PIPSocket::Address tmpSrcIP = SrcIP;
 	WORD tmpSrcPort = SrcPort + 1;
+    bool zeroIP = m_ignoreSignaledIPs && !fromTraversalClient && !isUnidirectional;
 
 	if (mediaControlChannel == NULL) {
 		if (mediaChannel == NULL) {
@@ -10779,9 +10796,17 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 	}
 #endif
 
-        if (m_ignoreSignaledIPs && !fromTraversalClient && !isUnidirectional) {
+        PIPSocket::Address ip = H245UnicastToSocketAddr(*dest);
+        if (m_ignoreSignaledIPs && isUnidirectional && ip.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
+            zeroIP = true;
+        }
+        if (zeroIP) {
             PTRACE(7, "JW RTP IN zero RTCP src + dest (IgnoreSignaledIPs)");
             (rtcp->*SetDest)(0, 0, NULL, call);
+        } else if (m_ignoreSignaledIPs && isUnidirectional && tmpSrcIP.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
+            // only zero out source IP
+            PTRACE(7, "JW RTP IN zero RTCP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
+            (rtcp->*SetDest)(0, 0, dest, call);
         }
 
 	if (useRTPMultiplexing) {
@@ -10809,9 +10834,17 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 		}
 #endif
 
-        if (m_ignoreSignaledIPs && !fromTraversalClient && !isUnidirectional) {
+        PIPSocket::Address ip = H245UnicastToSocketAddr(*dest);
+        if (m_ignoreSignaledIPs && isUnidirectional && ip.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
+            zeroIP = true;
+        }
+        if (zeroIP) {
             PTRACE(7, "JW RTP IN zero RTP src + dest (IgnoreSignaledIPs)");
             (rtp->*SetDest)(0, 0, NULL, call);
+        } else if (m_ignoreSignaledIPs && isUnidirectional && tmpSrcIP.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
+            // only zero out source IP
+            PTRACE(7, "JW RTP IN zero RTP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
+            (rtp->*SetDest)(0, 0, dest, call);
         }
 
 		if (useRTPMultiplexing) {
@@ -11030,6 +11063,7 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 		peer->peer = this;
 
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
+    m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
 #ifdef HAS_H46018
 	m_isRTPMultiplexingEnabled = Toolkit::Instance()->IsH46018Enabled()
 								&& Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"));
@@ -11142,8 +11176,9 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 
 	H245_UnicastAddress * addr = NULL;
 	bool changed = false;
+    bool zeroIP = m_ignoreSignaledIPs && !isUnidirectional;
 
-	if ( h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)
+	if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)
 		&& (addr = GetH245UnicastAddress(h225Params->m_mediaControlChannel)) ) {
 
 		lc->SetMediaControlChannelSource(*addr);
@@ -11154,12 +11189,16 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 			lc->ZeroMediaControlChannelSource();
 		}
 #endif
-        if (m_ignoreSignaledIPs && !isUnidirectional) {
+        PIPSocket::Address ip = H245UnicastToSocketAddr(*addr);
+        if (m_ignoreSignaledIPs && isUnidirectional && ip.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
+            zeroIP = true;
+        }
+        if (zeroIP) {
 			lc->ZeroMediaControlChannelSource();
         }
 		changed = true;
 	}
-	if ( h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel)
+	if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel)
 		&& (addr = GetH245UnicastAddress(h225Params->m_mediaChannel))) {
 
 		if (GetH245Port(*addr) != 0) {
@@ -11171,7 +11210,11 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 				lc->ZeroMediaChannelSource();
 			}
 #endif
-            if (m_ignoreSignaledIPs && !isUnidirectional) {
+        PIPSocket::Address ip = H245UnicastToSocketAddr(*addr);
+        if (m_ignoreSignaledIPs && isUnidirectional && ip.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
+            zeroIP = true;
+        }
+        if (zeroIP) {
 				lc->ZeroMediaChannelSource();
             }
 		} else {
