@@ -36,6 +36,7 @@ extern "C" {
 #include <openssl/err.h>
 #include <openssl/dh.h>
 #include <openssl/bn.h>
+#include <openssl/pem.h>
 };
 
 const char * const OID_DH512  = "0.0.8.235.0.3.40";
@@ -94,6 +95,22 @@ PBoolean DH_Save(DH * dh, const PFilePath & dhFile, const PString & oid)
   return true;
 }
 
+PBoolean DH_ExportPEM(DH * dh, const PFilePath & dhFile)
+{
+  BIO *out=NULL;
+  bool success = true;
+  
+  out=BIO_new(BIO_s_file());
+  if (BIO_write_filename(out,(char *)(const char *)dhFile) <= 0)
+    success = false;
+
+  if (success && !PEM_write_bio_DHparams(out,dh))
+	success = false;
+
+  BIO_free_all(out);
+  return success;
+}
+
 void DHProcess::Main()
 {
   cout << "H.323 Diffie-Hellman KeyPair Generator" << endl;
@@ -106,6 +123,7 @@ void DHProcess::Main()
           "g-generator:"
           "-oid"
           "f-file:"
+          "p-pem."
 #if PTRACING
           "o-output:"
           "t-trace."
@@ -119,6 +137,7 @@ void DHProcess::Main()
             "   g-generator:     : Generator Must be one of 2 or 5\n"
             "   -oid             : Parameter OID (only if custom)\n"
             "   f-file:          : Filename to store key file\n"
+            "   p-pem.           : Export to PEM encoded file (TLS parameters)\n"
 #if PTRACING
             "   o-output:        : Trace log output file\n"
             "   t-trace.         : Trace log level\n"
@@ -151,15 +170,17 @@ void DHProcess::Main()
     }
 
     unsigned inputLength = (unsigned)args.GetOptionString('l').AsInteger();
-    if (args.HasOption("oid")) {
-       keyOID = args.GetOptionString("oid"); 
-       keyLength = inputLength;
-    } else {
-        for (PINDEX i = 0; i < PARRAYSIZE(DHParameters); ++i) {
-            if (DHParameters[i].sz == inputLength) {
-                keyOID = DHParameters[i].parameterOID;
-                keyLength = inputLength;
-                break;
+    if (!args.HasOption('p')) {
+        if (args.HasOption("oid")) {
+           keyOID = args.GetOptionString("oid"); 
+           keyLength = inputLength;
+        } else {
+            for (PINDEX i = 0; i < PARRAYSIZE(DHParameters); ++i) {
+                if (DHParameters[i].sz == inputLength) {
+                    keyOID = DHParameters[i].parameterOID;
+                    keyLength = inputLength;
+                    break;
+                }
             }
         }
     }
@@ -203,10 +224,16 @@ void DHProcess::Main()
 
   cout << "Exporting Keypair...\n";
 
-  if (!DH_Save(dh,exportPath,keyOID)) {
+  PBoolean success = false;
+  if (args.HasOption('p'))
+      success = DH_ExportPEM(dh,exportPath);
+  else 
+      success = DH_Save(dh,exportPath,keyOID);
+
+  if (success)
       cout << "Error exporting keyPair!" << endl;
-  } else
-     cout << "KeyPair successfully created!" << endl;
+  else
+      cout << "KeyPair successfully created!" << endl;
 
   DH_free(dh);
   dh = NULL;
