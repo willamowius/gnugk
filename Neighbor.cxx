@@ -344,10 +344,10 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 		if (defs[i].Find("-") != P_MAX_INDEX) {
 			// range
 			PStringArray bounds(defs[i].Tokenise("-", FALSE));
-			unsigned lower = bounds[0].AsUnsigned();
-			unsigned upper = 0;
+			PUInt64 lower = bounds[0].AsUnsigned64();
+			PUInt64 upper = 0;
 			if (bounds.GetSize() == 2) {
-				upper = bounds[1].AsUnsigned();
+				upper = bounds[1].AsUnsigned64();
 			} else {
 				PTRACE(1, "SendAliases: Invalid range definition: " << defs[i]);
 				continue;
@@ -356,7 +356,7 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 				PTRACE(1, "SendAliases: Invalid range bounds: " << defs[i]);
 				continue;
 			}
-			unsigned num = upper - lower;
+			PUInt64 num = upper - lower;
 			for (unsigned j = 0; j <= num; j++) {
 				PString number(lower + j);
 				PTRACE(4, "Adding alias " << number << " to neighbor " << m_id << " (from range)");
