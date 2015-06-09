@@ -288,7 +288,7 @@ public:
 	virtual void Stop();
 
 	// new virtual function
-	virtual bool SendRequest(const Address &, WORD, int = 2);
+	virtual bool SendRequest(const Address &, WORD, int retry = 2);
 	virtual bool OnTimeout();
 
 protected:

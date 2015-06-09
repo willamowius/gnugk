@@ -158,7 +158,7 @@ const char *GatekeeperMessage::GetTagName() const
 	return (GetTag() <= MaxRasTag) ? RasName[GetTag()] : RasName[MaxRasTag+1];
 }
 
-bool GatekeeperMessage::Read(RasListener *socket)
+bool GatekeeperMessage::Read(RasListener * socket)
 {
 	m_socket = socket;
 	const int buffersize = 4096;
@@ -729,12 +729,12 @@ RasMsg *RasRequester::GetReply()
 	return m_iterator != m_queue.end() ? *m_iterator++ : 0;
 }
 
-bool RasRequester::IsExpected(const RasMsg *ras) const
+bool RasRequester::IsExpected(const RasMsg * ras) const
 {
 	return RasHandler::IsExpected(ras) && (ras->GetSeqNum() == m_seqNum) && ras->IsFrom(m_txAddr, m_txPort);
 }
 
-void RasRequester::Process(RasMsg *ras)
+void RasRequester::Process(RasMsg * ras)
 {
 	if (ras->GetTag() == H225_RasMessage::e_requestInProgress) {
 		H225_RequestInProgress & rip = (*ras)->m_recvRAS;
@@ -757,9 +757,9 @@ void RasRequester::Stop()
 	m_sync.Signal();
 }
 
-bool RasRequester::SendRequest(const PIPSocket::Address & addr, WORD pt, int r)
+bool RasRequester::SendRequest(const PIPSocket::Address & addr, WORD pt, int retry)
 {
-	m_txAddr = addr, m_txPort = pt, m_retry = r;
+	m_txAddr = addr, m_txPort = pt, m_retry = retry;
 	m_sentTime = PTime();
 	return m_rasSrv->SendRas(*m_request, m_txAddr, m_txPort, m_loAddr);
 }
@@ -3919,9 +3919,9 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 		// Do a check and make sure this is not a ping
 		PString pingAlias = GkConfig()->GetString(LRQFeaturesSection, "PingAlias", "");
 		if (!pingAlias && pingAlias == AsString(request.m_destinationInfo[0],false)) {
-				BuildReject(H225_LocationRejectReason::e_undefinedReason);
-				PTRACE(5,"LRQ PING caught from " << AsDotString(request.m_replyAddress));
-				return true;
+            BuildReject(H225_LocationRejectReason::e_undefinedReason);
+            PTRACE(5,"LRQ PING caught from " << AsDotString(request.m_replyAddress));
+            return true;
 		}
 
 		// do GWRewriteE164 for neighbor before processing
