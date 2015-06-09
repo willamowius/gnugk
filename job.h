@@ -5,7 +5,7 @@
 // Abstraction of threads' jobs
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2006-2010, Jan Willamowius
+// Copyright (c) 2006-2015, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -25,18 +25,18 @@
 	Jobs are executed and managed by the internal Job managment system
 	consisting of the singleton Agent object and Worker threads
 	that accept and execute new Jobs.
-	
+
 	Specialized Job examples are:
     Jobs - executes series of Tasks
     RegularJob - executes a Task again and again until stopped
     SimpleClassJob - calls a member function of some class that takes no arguments
-    SimpleClassJobA - calls a member function of some class that takes one 
+    SimpleClassJobA - calls a member function of some class that takes one
 	                  argument of reference type
 */
-class Job : public NamedObject 
+class Job : public NamedObject
 {
 public:
-	Job() {}
+	Job() { }
 	virtual ~Job();
 
 	/// Perform the actual job, return when it is done
@@ -53,20 +53,20 @@ public:
 
 	/// Stop all jobs being currently executed by Worker threads
 	static void StopAll();
-	
+
 private:
-	Job(const Job&);
-	Job& operator=(const Job&);
+	Job(const Job &);
+	Job& operator=(const Job &);
 };
 
 /** Similar to the Job, but is even more abstract. It does not contain
 	any Task management routines. Main purpose of this class it to provide
 	a way to represent a serie of Tasks that are to be executed one after another.
 */
-class Task 
+class Task
 {
 public:
-	Task() : m_next(NULL), m_done(false) {}
+	Task() : m_next(NULL), m_done(false) { }
 	virtual ~Task();
 
 	/// Perform the actual task and return when it is finished
@@ -76,12 +76,12 @@ public:
 	    true if the task is done and a next task is being processed.
 	*/
 	bool IsDone() const { return m_done; }
-	
+
 	/// Setup a task to be executed when this one is done
 	void SetNext(
 		/// next task to be executed
 		Task* next
-		) 
+		)
 	{
 		if (m_next != NULL && m_next != this)
 			m_next->SetNext(next);
@@ -115,7 +115,7 @@ private:
 
 
 /// Execute a task or a serie of tasks
-class Jobs : public Job 
+class Jobs : public Job
 {
 public:
 	Jobs(
@@ -128,15 +128,15 @@ public:
 
 private:
 	Jobs();
-	Jobs(const Jobs&);
-	Jobs& operator=(const Jobs&);
+	Jobs(const Jobs &);
+	Jobs& operator=(const Jobs &);
 
 private:
 	/// task (or a serie of tasks) to be executed
 	Task* m_current;
 };
 
-/** Regular job - executes the same task until it is stopped 
+/** Regular job - executes the same task until it is stopped
 	(by calling Stop()). The actual work is to be done in the virtual
 	Exec() method in derived classes. RegularJob is an abstract class.
 */
@@ -144,7 +144,7 @@ class RegularJob : public Job
 {
 public:
 	RegularJob();
-	virtual ~RegularJob() {}
+	virtual ~RegularJob() { }
 
 	/** @return
 		true if the job has not been yet stopped
@@ -156,7 +156,7 @@ public:
 
 	/// repeated activity to be executed by this RegularJob
 	virtual void Exec() = 0;
-		
+
 	/** Stop this job. NOTE: Acquire m_deletionPreventer mutex first
 	    to make sure this object is not deleted before the method that
 		called Stop returns (if Stop is called from a derived class).
@@ -176,33 +176,33 @@ protected:
 
 	/// Wait for a signal (Signal())
 	void Wait() { m_sync.Wait(); }
-	
+
 	/** Wait for a signal (Signal()).
-		
+
 	    @return
 	    true if the sync point has been signalled.
 	*/
 	bool Wait(
 		/// time to wait for the sync point to be signalled
 		const PTimeInterval& timeout
-		) 
-	{ 
-		return m_sync.Wait(timeout); 
+		)
+	{
+		return m_sync.Wait(timeout);
 	}
 
 	/// Send a signal to the waiting task
 	void Signal() { m_sync.Signal(); }
 
 private:
-	RegularJob(const RegularJob&);
-	RegularJob& operator=(const RegularJob&);
+	RegularJob(const RegularJob &);
+	RegularJob& operator=(const RegularJob &);
 
 protected:
 	/// can be used when calling Stop to prevent the job to be deleted
-	/// (and invalid object being referenced) before the function 
+	/// (and invalid object being referenced) before the function
 	/// that called Stop returns
 	PMutex m_deletionPreventer;
-	
+
 private:
 	/// used by Wait and Signal member functions
 	PSyncPoint m_sync;
@@ -215,7 +215,7 @@ private:
 template<class T>
 class SimpleClassJob : public Job {
 public:
-	SimpleClassJob(T *_t, void (T::*_j)()) : t(_t), j(_j) {}
+	SimpleClassJob(T *_t, void (T::*_j)()) : t(_t), j(_j) { }
 	virtual void Run() { (t->*j)(); }
 
 private:

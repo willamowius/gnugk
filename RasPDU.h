@@ -106,7 +106,7 @@ public:
 
 	// new virtual function
 	virtual bool Process() = 0;
-   
+
 	virtual int GetSeqNum() const = 0;
 	virtual H225_NonStandardParameter *GetNonStandardParam() = 0;
 
@@ -134,7 +134,7 @@ protected:
 	RasMsg(const RasMsg &);
 
 	static bool PrintStatus(const PString &);
-	
+
 	GatekeeperMessage *m_msg;
 
 	// just pointers to global singleton objects
@@ -149,7 +149,7 @@ template<class RAS>
 class RasPDU : public RasMsg {
 public:
 	typedef RAS RasClass;
-	
+
 	RasPDU(GatekeeperMessage *m) : RasMsg(m), request(m->m_recvRAS) {}
 	virtual ~RasPDU() {}
 
@@ -279,7 +279,7 @@ public:
 	virtual ~RasRequester();
 
 	WORD GetSeqNum() const { return m_seqNum; }
-	bool WaitForResponse(int);
+	bool WaitForResponse(int timeout);
 	RasMsg *GetReply();
 
 	// override from class RasHandler

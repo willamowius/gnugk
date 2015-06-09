@@ -5,7 +5,7 @@
 // Abstraction of threads' jobs
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2006-2010, Jan Willamowius
+// Copyright (c) 2006-2015, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -32,7 +32,7 @@
     system resources. This makes passible to create dynamic sets of Workers.
 */
 class Agent;
-class Worker : public PThread 
+class Worker : public PThread
 {
 public:
 	PCLASSINFO(Worker, PThread)
@@ -44,31 +44,31 @@ public:
 		/// timeout (seconds) for this Worker to be deleted, if idle
 		long idleTimeout = DEFAULT_WORKER_IDLE_TIMEOUT
 		);
-	
+
 	virtual ~Worker();
 
 	/** Tell this Worker to execute a new Job. The function returns
 		immediately and the job is executed under control of the Worker thread.
 		After the job is finished, its object is deleted.
-		
+
 		@return
-		true if this Worker is idle and has taken the Job, false otherwise 
+		true if this Worker is idle and has taken the Job, false otherwise
 		(on failuer the job object is not deleted).
 	*/
 	bool Exec(Job* job);
-		
-	/** Stop the Worker thread and any jobs being executed, 
+
+	/** Stop the Worker thread and any jobs being executed,
 	    wait for Worker thread termination and delete this object.
 	*/
 	void Destroy();
 
 	// override from class PThread
 	virtual void Main();
-	
+
 private:
 	Worker();
-	Worker(const Worker&);
-	Worker& operator=(const Worker&);
+	Worker(const Worker &);
+	Worker& operator=(const Worker &);
 
 private:
 	/// idle timeout (seconds), after which the Worker is destoyed
@@ -91,7 +91,7 @@ private:
     new Workers if required. Idle Workers are deleted automatically
 	after configured idle timeout.
 */
-class Agent : public Singleton<Agent> 
+class Agent : public Singleton<Agent>
 {
 public:
 	Agent();
@@ -101,13 +101,13 @@ public:
 		Delete the Job object after it is done.
 	*/
 	void Exec(Job * job);
-		
-	/** Remove the Worker from busy and idle lists. 
+
+	/** Remove the Worker from busy and idle lists.
 		Called by the Worker when it deletes itself.
 	*/
 	void Remove(Worker * worker);
 
-	/** Move the Worker from the busy list to the idle list. 
+	/** Move the Worker from the busy list to the idle list.
 		Called by the Worker when it finishes each job.
 	*/
 	void JobDone(
@@ -116,9 +116,9 @@ public:
 		);
 
 private:
-	Agent(const Agent&);
-	Agent& operator=(const Agent&);
-			
+	Agent(const Agent &);
+	Agent& operator=(const Agent &);
+
 private:
 	/// mutual access to Worker lists
 	PMutex m_wlistMutex;
@@ -136,7 +136,7 @@ Worker::Worker(
 	Agent* agent,
 	/// timeout (seconds) for this Worker to be deleted, if idle
 	long idleTimeout
-	) 
+	)
 	: PThread(5000, AutoDeleteThread),
 	m_idleTimeout(idleTimeout*1000), m_closed(false), m_job(NULL), m_id(0),
 	m_agent(agent)
@@ -160,7 +160,7 @@ void Worker::Main()
 {
 	m_id = GetThreadId();
 	PTRACE(5, "JOB\tWorker " << m_id << " started");
-	
+
 	while (!m_closed) {
 		bool timedout = false;
 		// wait for a new job or idle timeout expiration
@@ -175,7 +175,7 @@ void Worker::Main()
 			m_closed = true;
 			break;
 		}
-		
+
 		if (m_job) {
 			PTRACE(5, "JOB\tStarting Job " << m_job->GetName() << " at Worker thread " << m_id);
 
@@ -186,17 +186,17 @@ void Worker::Main()
 				delete m_job;
 				m_job = NULL;
 			}
-			
+
 			m_agent->JobDone(this);
 		}
 	}
 
 	PTRACE(5, "JOB\tWorker " << m_id << " closed");
-	
+
 	// remove this Worker from the list of workers
 	m_agent->Remove(this);
 	if (m_job) {
-		PTRACE(1, "JOB\tActive Job " << m_job->GetName() 
+		PTRACE(1, "JOB\tActive Job " << m_job->GetName()
 			<< " left at closing Worker thread " << m_id);
 	}
 }
@@ -220,7 +220,7 @@ void Worker::Destroy()
 {
 	// do not delete itself when the thread is stopped
 	SetNoAutoDelete();
-	
+
 	m_jobMutex.Wait();
 	if (m_job)
 		m_job->Stop();
@@ -228,7 +228,7 @@ void Worker::Destroy()
 
 	m_closed = true;
 	m_wakeupSync.Signal();
-	
+
 	PTRACE(5, "JOB\tWaiting for Worker thread " << m_id << " termination");
 	WaitForTermination(5 * 1000);	// max. wait 5 sec.
 }
@@ -245,7 +245,7 @@ Agent::~Agent()
 	std::list<Worker*> workers;
 	int numIdleWorkers = -1;
 	int numBusyWorkers = -1;
-	
+
 	{
 		// move all workers to the local list
 		PWaitAndSignal lock(m_wlistMutex);
@@ -262,7 +262,7 @@ Agent::~Agent()
 		}
 	}
 
-	PTRACE(5, "JOB\tWorker threads to cleanup: " << (numBusyWorkers+numIdleWorkers) 
+	PTRACE(5, "JOB\tWorker threads to cleanup: " << (numBusyWorkers+numIdleWorkers)
 		<< " total - " << numBusyWorkers << " busy, " << numIdleWorkers << " idle");
 
 	std::list<Worker*>::iterator iter = workers.begin();
@@ -275,7 +275,7 @@ Agent::~Agent()
 		delete w;	// don't delete on Windows, issue with PTLib 2.10.1+
 #endif
 	}
-	
+
 	PTRACE(5, "JOB\tAgent and its Workers destroyed");
 }
 
@@ -284,7 +284,7 @@ void Agent::Exec(Job * job)
 	Worker* worker = NULL;
 	int numIdleWorkers = -1;
 	int numBusyWorkers = -1;
-	// pop the first idle worker and move it to the busy list	
+	// pop the first idle worker and move it to the busy list
 	if (job) {
 		PWaitAndSignal lock(m_wlistMutex);
 		// delete the job if the Agent is being destroyed
@@ -303,10 +303,10 @@ void Agent::Exec(Job * job)
 		}
 	} else
 		return;
-	
+
 	bool destroyWorker = false;
-		
-	// if no idle worker has been found, create a new one 
+
+	// if no idle worker has been found, create a new one
 	// and put it on the list of busy workers
 	if (worker == NULL) {
 		worker = new Worker(this);
@@ -318,7 +318,7 @@ void Agent::Exec(Job * job)
 		numIdleWorkers = m_idleWorkers.size();
 		numBusyWorkers = m_busyWorkers.size();
 	}
-	
+
 	// execute the job by the worker
 	if (!(m_active && worker->Exec(job))) {
 		// should not ever happen, but...
@@ -334,7 +334,7 @@ void Agent::Exec(Job * job)
 		numBusyWorkers = m_busyWorkers.size();
 	}
 
-	PTRACE_IF(5, m_active, "JOB\tWorker threads: " << (numBusyWorkers+numIdleWorkers) 
+	PTRACE_IF(5, m_active, "JOB\tWorker threads: " << (numBusyWorkers+numIdleWorkers)
 		<< " total - " << numBusyWorkers << " busy, " << numIdleWorkers << " idle");
 
 	if (destroyWorker) {
@@ -355,7 +355,7 @@ void Agent::Remove(Worker* worker)
 		numIdleWorkers = m_idleWorkers.size();
 		numBusyWorkers = m_busyWorkers.size();
 	}
-	PTRACE_IF(5, m_active, "JOB\tWorker threads: " << (numBusyWorkers+numIdleWorkers) 
+	PTRACE_IF(5, m_active, "JOB\tWorker threads: " << (numBusyWorkers+numIdleWorkers)
 		<< " total - " << numBusyWorkers << " busy, " << numIdleWorkers << " idle");
 }
 
@@ -374,7 +374,7 @@ void Agent::JobDone(
 		numIdleWorkers = m_idleWorkers.size();
 		numBusyWorkers = m_busyWorkers.size();
 	}
-	PTRACE_IF(5, m_active, "JOB\tWorker threads: " << (numBusyWorkers+numIdleWorkers) 
+	PTRACE_IF(5, m_active, "JOB\tWorker threads: " << (numBusyWorkers+numIdleWorkers)
 		<< " total - " << numBusyWorkers << " busy, " << numIdleWorkers << " idle");
 }
 
@@ -427,10 +427,10 @@ void RegularJob::OnStop()
 void RegularJob::Run()
 {
 	OnStart();
-	
+
 	while (!m_stop)
 		Exec();
-		
+
 	// lock to allow a member function that is calling Stop
 	// return before OnStop is called and the object is deleted
 	PWaitAndSignal lock(m_deletionPreventer);
