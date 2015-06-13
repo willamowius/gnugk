@@ -79,7 +79,7 @@ public:
 	PString GetGkId() const { return m_gkid; }
 	PIPSocket::Address GetIP() const;
 	WORD GetPort() const;
-	H225_LocationRequest & BuildLRQ(H225_RasMessage &, WORD, const H225_ArrayOf_AliasAddress &);
+	H225_LocationRequest & BuildLRQ(H225_RasMessage &, WORD seq, const H225_ArrayOf_AliasAddress &);
 
 	// new virtual functions
 
@@ -94,6 +94,9 @@ public:
 	// send a H.460.18 keepAlive (triggered by a timer)
 	void SendH46018GkKeepAlive(GkTimer* timer);
 	void SetH46018GkKeepAliveInterval(int interval);
+	// send a LRQ Ping (triggered by a timer)
+	void SendLRQPing(GkTimer* timer);
+	void SetLRQPingInterval(int interval);
 
 	// get PrefixInfo for a given aliases
 	// if an alias is matched, set dest to the alias
@@ -117,6 +120,9 @@ public:
 	virtual bool IsAcceptable(RasMsg *ras) const;
 	virtual bool UseTLS() const { return m_useTLS; }
 
+	virtual void SetDisabled(bool val) { m_disabled = val; }
+	virtual bool IsDisabled() const { return m_disabled; }
+
 protected:
 	void SetForwardedInfo(const PString &);
 
@@ -139,9 +145,12 @@ protected:
 	PString m_sendAuthUser, m_sendPassword;	// user + password to send to neighbor
 	int m_keepAliveTimerInterval;
 	GkTimerManager::GkTimerHandle m_keepAliveTimer;
+	int m_lrqPingInterval;
+	GkTimerManager::GkTimerHandle m_lrqPingTimer;
 	bool m_H46018Server;
 	bool m_H46018Client;
 	bool m_useTLS;
+	bool m_disabled; // is this neighnor disabled (eg. because of no responses)
 };
 
 class NeighborList {
@@ -169,7 +178,7 @@ public:
 	// return the neighbor's use eof TLS from the list by signal address
 	bool GetNeighborTLSBySigAdr(const H225_TransportAddress & sigAd);
 	bool GetNeighborTLSBySigAdr(const PIPSocket::Address & sigAd);
- 
+
 	operator List & () { return m_neighbors; }
 	operator const List & () const { return m_neighbors; }
 

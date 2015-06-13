@@ -395,8 +395,10 @@ const char * KnownConfigEntries[][2] = {
 	{ "RasSrv::LRQFeatures", "ForwardHopCount" },
 	{ "RasSrv::LRQFeatures", "ForwardLRQ" },
 	{ "RasSrv::LRQFeatures", "ForwardResponse" },
+	{ "RasSrv::LRQFeatures", "LRQPingInterval" },
 	{ "RasSrv::LRQFeatures", "NeighborTimeout" },
 	{ "RasSrv::LRQFeatures", "PingAlias" },
+	{ "RasSrv::LRQFeatures", "SendLRQPing" },
 	{ "RasSrv::LRQFeatures", "SendRetries" },
 	{ "RasSrv::LRQFeatures", "SendRIP" },
 	{ "RasSrv::RRQFeatures", "AcceptEndpointIdentifier" },
@@ -710,6 +712,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Neighbor::", "Password" },
 	{ "Neighbor::", "SendAuthUser" },
 	{ "Neighbor::", "SendIPs" },
+	{ "Neighbor::", "SendLRQPing" },
 	{ "Neighbor::", "SendPassword" },
 	{ "Neighbor::", "SendPrefixes" },
 #ifdef HAS_TLS

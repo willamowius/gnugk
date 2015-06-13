@@ -1,5 +1,6 @@
 Changes from 3.8 to 3.9
 =======================
+- neighbor monitoring with LRQ pings [RasSrv::LRQFeatures] SendLRQPing=1
 - BUGFIX(Neighbor.cxx) use 64bit numbers for SendAliases= ranges
 - additional field in RouteRequest event: IP:port where message was received from
 - new switch [Proxy] IgnoreSignaledPrivateH239IPs=1 to do port auto detection for H.239, too (experimental)

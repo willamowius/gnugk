@@ -3,7 +3,7 @@
 // Neighboring System for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2013, Jan Willamowius
+// Copyright (c) 2004-2015, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -142,7 +142,7 @@ typedef Functor2<PrefixInfo, Neighbor *, WORD> LRQFunctor;
 template<class R>
 class LRQSender : public LRQFunctor {
 public:
-	LRQSender(const R & r) : m_r(r) {}
+	LRQSender(const R & r) : m_r(r) { }
 	virtual PrefixInfo operator()(Neighbor *, WORD seqnum) const;
 
 private:
@@ -177,7 +177,7 @@ PrefixInfo LRQSender<R>::operator()(Neighbor *nb, WORD seqnum) const
 
 class LRQForwarder : public LRQFunctor {
 public:
-	LRQForwarder(const LocationRequest & l) : m_lrq(l) {}
+	LRQForwarder(const LocationRequest & l) : m_lrq(l) { }
 	virtual PrefixInfo operator()(Neighbor *, WORD) const;
 
 private:
@@ -215,6 +215,112 @@ PrefixInfo LRQForwarder::operator()(Neighbor *nb, WORD /*seqnum*/) const
 	return nomatch;
 }
 
+
+// class LRQRequester
+class LRQRequester : public RasRequester {
+public:
+	LRQRequester(const LRQFunctor &);
+	virtual ~LRQRequester();
+
+	bool Send(NeighborList::List &, Neighbor * requester = NULL);
+	bool Send(Neighbor * nb);
+	int GetReqNumber() const { return m_requests.size(); }
+	H225_LocationConfirm *WaitForDestination(int timeout);
+	PString GetNeighborUsed() const { return m_neighbor_used; }
+	bool IsTraversalClient() const { return m_h46018_client; }
+	bool IsTraversalServer() const { return m_h46018_server; }
+	bool IsTraversalZone() const { return m_h46018_client || m_h46018_server; }
+	bool IsH46024Supported() const;
+	bool IsTLSNegotiated();
+	bool UseTLS() const { return m_useTLS; }
+	bool HasVendorInfo() const;
+	bool SupportLanguages() const;
+	PStringList GetLanguages() const;
+
+	// override from class RasRequester
+	virtual bool IsExpected(const RasMsg *) const;
+	virtual void Process(RasMsg *);
+	virtual bool OnTimeout();
+
+private:
+	struct Request {
+		Request(Neighbor *n) : m_neighbor(n), m_reply(NULL), m_count(1) { }
+
+		Neighbor * m_neighbor;
+		RasMsg * m_reply;
+		int m_count;
+	};
+
+	typedef multimap<PrefixInfo, Request> Queue;
+
+	Queue m_requests;
+	PMutex m_rmutex;
+	const LRQFunctor & m_sendto;
+	RasMsg * m_result;
+	PString m_neighbor_used;
+	bool m_h46018_client, m_h46018_server;
+	bool m_useTLS;
+};
+
+
+class NeighborPingThread : public PThread, public RasRequester {
+public:
+	NeighborPingThread(Neighbor * nb) : PThread(5000, AutoDeleteThread), m_nb(nb) { Resume(); }
+	virtual ~NeighborPingThread() { }
+	virtual void Main();
+    virtual void Process(RasMsg * ras);
+protected:
+    Neighbor * m_nb;
+};
+
+void NeighborPingThread::Main()
+{
+	AddFilter(H225_RasMessage::e_locationConfirm);
+	AddFilter(H225_RasMessage::e_locationReject);
+	m_rasSrv->RegisterHandler(this);
+
+	m_request = new H225_RasMessage();
+    H225_ArrayOf_AliasAddress aliases;
+    aliases.SetSize(1);
+    PString pingAlias = GkConfig()->GetString(LRQFeaturesSection, "PingAlias", "gatekeeper-monitoring-check");
+    H323SetAliasAddress(pingAlias, aliases[0]);
+	m_nb->BuildLRQ(*m_request, m_seqNum, aliases);
+	SendRequest(m_nb->GetIP(), m_nb->GetPort(), 0); // no retries
+
+    int timeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 1000;
+    bool signaled = m_sync.Wait(timeout);
+    if (!signaled) {
+        if (!m_nb->IsDisabled()) {
+            PTRACE(3, "NB\tPing timeout: Disabling neighbor " << m_nb->GetId());
+            m_nb->SetDisabled(true);
+        }
+    }
+
+	m_rasSrv->UnregisterHandler(this);
+    delete m_request;
+}
+
+void NeighborPingThread::Process(RasMsg * ras)
+{
+    switch (ras->GetTag()) {
+        case H225_RasMessage::e_requestInProgress:
+            break;
+        case H225_RasMessage::e_locationConfirm:
+        case H225_RasMessage::e_locationReject:
+                if (m_nb->IsDisabled()) {
+                    PTRACE(3, "NB\tPing successful: Activating neighbor " << m_nb->GetId());
+                    m_nb->SetDisabled(false);
+                }
+                m_sync.Signal();
+            break;
+        default:
+            PTRACE(1, "RAS\tUnknown reply " << ras->GetTagName());
+            break;
+    }
+	delete ras;
+}
+
+
 // class Neighbor
 Neighbor::Neighbor()
 {
@@ -228,15 +334,20 @@ Neighbor::Neighbor()
 	m_externalGK = false;
 	m_keepAliveTimer = GkTimerManager::INVALID_HANDLE;
 	m_keepAliveTimerInterval = 0;
+	m_lrqPingTimer = GkTimerManager::INVALID_HANDLE;
+	m_lrqPingInterval = 0;
 	m_H46018Server = false;
 	m_H46018Client = false;
 	m_useTLS = false;
+	m_disabled = false;
 }
 
 Neighbor::~Neighbor()
 {
 	if (m_keepAliveTimer != GkTimerManager::INVALID_HANDLE)
 		Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_keepAliveTimer);
+	if (m_lrqPingTimer != GkTimerManager::INVALID_HANDLE)
+		Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_lrqPingTimer);
 	PTRACE(1, "NB\tDelete neighbor " << m_id);
 }
 
@@ -380,6 +491,11 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 	}
 	m_H46018Server = Toolkit::AsBool(config->GetString(section, "H46018Server", "0"));
 #endif
+	if (m_lrqPingTimer != GkTimerManager::INVALID_HANDLE)
+		Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_lrqPingTimer);
+	if (config->GetBoolean(LRQFeaturesSection, "SendLRQPing", false) || config->GetBoolean(section, "SendLRQPing", false)) {
+		SetLRQPingInterval(config->GetInteger(LRQFeaturesSection, "LRQPingInterval", 60));
+	}
 #ifdef HAS_TLS
 	m_useTLS = Toolkit::AsBool(config->GetString(section, "UseTLS", "0")); // forced use of TLS
 #endif
@@ -393,6 +509,25 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 		info += " accept=" + aprefix;
 	PTRACE(1, "Set neighbor " << id << '(' << (m_dynamic ? m_name : AsString(m_ip, m_port)) << ')' << info);
 	return true;
+}
+
+void Neighbor::SendLRQPing(GkTimer * timer)
+{
+    new NeighborPingThread(this);   // thread automatically starts (resumes) and deletes itself
+}
+
+void Neighbor::SetLRQPingInterval(int interval)
+{
+	if (m_lrqPingInterval != interval) {
+		m_lrqPingInterval = interval;
+		if (m_keepAliveTimer != GkTimerManager::INVALID_HANDLE)
+			Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_keepAliveTimer);
+		if (m_lrqPingInterval > 0) {
+			PTime now;
+			m_keepAliveTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
+				this, &Neighbor::SendLRQPing, now, m_lrqPingInterval);
+		}
+	}
 }
 
 void Neighbor::SendH46018GkKeepAlive(GkTimer* timer)
@@ -457,6 +592,11 @@ bool Neighbor::SetProfile(const PString & name, const H323TransportAddress & add
 
 PrefixInfo Neighbor::GetPrefixInfo(const H225_ArrayOf_AliasAddress & aliases, H225_ArrayOf_AliasAddress & dest)
 {
+    if (IsDisabled()) {
+        PTRACE(3, "NB\tSkipping disabled neighbor " << GetId());
+        return nomatch;
+    }
+
 	Prefixes::iterator iter, biter = m_sendPrefixes.begin(), eiter = m_sendPrefixes.end();
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
 		H225_AliasAddress & alias = aliases[i];
@@ -500,6 +640,11 @@ PrefixInfo Neighbor::GetPrefixInfo(const H225_ArrayOf_AliasAddress & aliases, H2
 
 PrefixInfo Neighbor::GetIPInfo(const H225_TransportAddress & ip, H225_ArrayOf_AliasAddress & dest) const
 {
+    if (IsDisabled()) {
+        PTRACE(3, "NB\tSkipping disabled neighbor " << GetId());
+        return nomatch;
+    }
+
 	PStringArray sendNet(m_sendIPs.Tokenise(","));
 	for (PINDEX i=0; i < sendNet.GetSize(); ++i) {
 		bool noMatch = false;
@@ -1169,53 +1314,7 @@ bool GlonetGK::BuildLRQ(H225_LocationRequest & lrq, WORD crv)
 }
 
 
-// class LRQRequester
-class LRQRequester : public RasRequester {
-public:
-	LRQRequester(const LRQFunctor &);
-	virtual ~LRQRequester();
-
-	bool Send(NeighborList::List &, Neighbor * = 0);
-	bool Send(Neighbor * nb);
-	int GetReqNumber() const { return m_requests.size(); }
-	H225_LocationConfirm *WaitForDestination(int);
-	PString GetNeighborUsed() const { return m_neighbor_used; }
-	bool IsTraversalClient() const { return m_h46018_client; }
-	bool IsTraversalServer() const { return m_h46018_server; }
-	bool IsTraversalZone() const { return m_h46018_client || m_h46018_server; }
-	bool IsH46024Supported() const;
-	bool IsTLSNegotiated();
-	bool UseTLS() const { return m_useTLS; }
-	bool HasVendorInfo() const;
-	bool SupportLanguages() const;
-	PStringList GetLanguages() const;
-
-	// override from class RasRequester
-	virtual bool IsExpected(const RasMsg *) const;
-	virtual void Process(RasMsg *);
-	virtual bool OnTimeout();
-
-private:
-	struct Request {
-		Request(Neighbor *n) : m_neighbor(n), m_reply(0), m_count(1) {}
-
-		Neighbor *m_neighbor;
-		RasMsg *m_reply;
-		int m_count;
-	};
-
-	typedef multimap<PrefixInfo, Request> Queue;
-
-	Queue m_requests;
-	PMutex m_rmutex;
-	const LRQFunctor & m_sendto;
-	RasMsg *m_result;
-	PString m_neighbor_used;
-	bool m_h46018_client, m_h46018_server;
-	bool m_useTLS;
-};
-
-LRQRequester::LRQRequester(const LRQFunctor & fun) : m_sendto(fun), m_result(0), m_h46018_client(false), m_h46018_server(false), m_useTLS(false)
+LRQRequester::LRQRequester(const LRQFunctor & fun) : m_sendto(fun), m_result(NULL), m_h46018_client(false), m_h46018_server(false), m_useTLS(false)
 {
 	AddFilter(H225_RasMessage::e_locationConfirm);
 	AddFilter(H225_RasMessage::e_locationReject);
@@ -1227,7 +1326,7 @@ LRQRequester::~LRQRequester()
 	m_rasSrv->UnregisterHandler(this);
 }
 
-bool LRQRequester::Send(NeighborList::List & neighbors, Neighbor *requester)
+bool LRQRequester::Send(NeighborList::List & neighbors, Neighbor * requester)
 {
 	PWaitAndSignal lock(m_rmutex);
 	NeighborList::List::iterator iter = neighbors.begin();
@@ -1389,7 +1488,7 @@ void LRQRequester::Process(RasMsg * ras)
 					if (param->m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
 						iec = Toolkit::Instance()->GetInternalExtensionCode((const H225_H221NonStandard&)param->m_nonStandardIdentifier);
 					} else if (param->m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_object) {
-						PASN_ObjectId &oid = param->m_nonStandardIdentifier;
+						PASN_ObjectId & oid = param->m_nonStandardIdentifier;
 						if (oid.GetDataLength() == 0)
 							iec = Toolkit::iecNeighborId;
 					}
@@ -1428,10 +1527,12 @@ void LRQRequester::Process(RasMsg * ras)
 					PTRACE(5, "NB\tLRQ rejected for neighbor " << req.m_neighbor->GetId()
 						<< ':' << req.m_neighbor->GetIP() );
 					m_requests.erase(iter);
-					if (m_requests.empty())
+					if (m_requests.empty()) {
 						RasRequester::Stop();
-					else if (RasMsg *reply = m_requests.begin()->second.m_reply)
-						m_result = reply, RasRequester::Stop();
+					} else if (RasMsg *reply = m_requests.begin()->second.m_reply) {
+						m_result = reply;
+						RasRequester::Stop();
+                    }
 				}
 			}
 			return;

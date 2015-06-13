@@ -79,7 +79,7 @@ Timeout value in seconds to wait for responses from neighbors.
 If no neighbor responds before the timeout, the gatekeeper will
 reply with an ARJ to the endpoint sending the ARQ.
 
-<!-- TODO:  A better explanation of how NeighborTimeout and SendRetries interact? -->
+This timout is applied to each retry (see below).
 
 <item><tt/SendRetries=4/<newline>
 Default: <tt/2/<newline>
@@ -155,16 +155,31 @@ Send a RequestInProgress (RIP) message with this delay value after receiving an 
 This switch can be used to extend the duration the caller will wait for an answer.
 No RIP is sent when the delay ist set to 0.
 
-<item><tt/PingAlias=gatekeeper-monitoring-check/<newline>
-Default: <tt>N/A</tt><newline>
-<p>
-Predefined Alias used with LRQ pinging. Capturing the Alias used for PING helps reduce gatekeeper resources processing the LRQ. 
-Feature used by VCS in GDS dialing schema. Feature currently only accepts pings and does not send any.
-
 <item><tt/EnableLanguageRouting=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
 Whether to compare users language settings in determining routing requests. 
+
+<item><tt/PingAlias=gatekeeper-monitoring-check/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Alias used for LRQ pinging. Capturing the Alias used for PING helps reduce gatekeeper resources processing the LRQ. 
+Feature used by VCS in GDS dialing schema. Only setting the alias will optimize LRQ reception, without turning on the sending.
+
+<item><tt/SendLRQPing=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+When enabled, GnuGk will periodically ping all its neighbors with a LRQ. If the neighbor doesn't respond with
+a LRQ or LRJ withing the NeighborTimeout, the neighbor is disabled and won't be used for routing until the
+next LRQ ping succeeds. Skipping disabled neighbors can speed up routing in some configurations.
+
+You can configure the alias in the LRQ with the PingAlias switch.
+
+<item><tt/LRQPingInterval=30/<newline>
+Default: <tt>60</tt><newline>
+<p>
+Interval to be used for sending LRQ pings.
+
 </itemize>
 
 
@@ -308,6 +323,11 @@ The default value is this gatekeeper's ID.
 Default: <tt>0</tt><newline>
 <p>
 Use TLS (transport layer security) with this neighbor. See also <ref id="tls" name="[TLS] section">.
+
+<item><tt/SendLRQPing=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Enable LRQ ping only for this neighbor.
 
 </itemize>
 
