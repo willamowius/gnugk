@@ -23,6 +23,8 @@ CONFIG=/etc/gnugk.ini
 NAME=gnugk
 DESC='GNU Gatekeeper'
 ARGS="--config $CONFIG -ttt --output /var/log/gnugk.log --pid /var/run/gnugk/gnugk.pid"
+DAEMONUSER=$NAME
+PIDDIR=/var/run/gnugk
 
 test -x $DAEMON -a -f $CONFIG|| exit 0
 # we need to be able to run the daemon, eh ;)
@@ -34,6 +36,11 @@ if [ "$START_ON_BOOT" != "yes" ]; then
 fi
 if [ -n "$PARAMS" ]; then
 	ARGS=" $PARAMS $ARGS "
+fi
+if [ ! -d $PIDDIR ]; then
+	mkdir -p $PIDDIR
+	chown $DAEMONUSER $PIDDIR
+	chgrp $DAEMONUSER $PIDDIR
 fi
 
 set -e
