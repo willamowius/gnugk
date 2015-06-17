@@ -22,9 +22,9 @@ DAEMON=/usr/local/gnugk
 CONFIG=/etc/gnugk.ini
 NAME=gnugk
 DESC='GNU Gatekeeper'
-ARGS="--config $CONFIG -ttt --output /var/log/gnugk.log --pid /var/run/gnugk/gnugk.pid"
 DAEMONUSER=$NAME
 PIDDIR=/var/run/gnugk
+ARGS="--config $CONFIG -ttt --output /var/log/gnugk.log --pid $PIDDIR/gnugk.pid"
 
 test -x $DAEMON -a -f $CONFIG|| exit 0
 # we need to be able to run the daemon, eh ;)
@@ -49,21 +49,21 @@ case "$1" in
   start)
 	echo -n "Starting $DESC: "
 	start-stop-daemon --start --quiet \
-		--chuid $NAME --pidfile /var/run/$NAME/$NAME.pid \
+		--chuid $NAME --pidfile $PIDDIR/$NAME.pid \
 		--background --exec $DAEMON -- $ARGS
 	echo "$NAME."
 	;;
   stop)
 	echo -n "Stopping $DESC: "
 		start-stop-daemon --stop --quiet \
-		--pidfile /var/run/$NAME/$NAME.pid \
+		--pidfile $PIDDIR/$NAME.pid \
 		--exec $DAEMON --oknodo
 	echo "$NAME."
 	;;
   reload)
 	echo "Reloading $DESC configuration files."
 	start-stop-daemon --stop --signal 1 --quiet --pidfile \
-		/var/run/$NAME/$NAME.pid --exec $DAEMON
+		$PIDDIR/$NAME.pid --exec $DAEMON
   ;;
   restart|force-reload)
 	#
