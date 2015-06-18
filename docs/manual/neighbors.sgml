@@ -160,8 +160,8 @@ Default: <tt>0</tt><newline>
 <p>
 Whether to compare users language settings in determining routing requests. 
 
-<item><tt/PingAlias=gatekeeper-monitoring-check/<newline>
-Default: <tt>N/A</tt><newline>
+<item><tt/PingAlias=my-ping/<newline>
+Default: <tt>gatekeeper-monitoring-check</tt><newline>
 <p>
 Alias used for LRQ pinging. Capturing the Alias used for PING helps reduce gatekeeper resources processing the LRQ. 
 Feature used by VCS in GDS dialing schema. Only setting the alias will optimize LRQ reception, without turning on the sending.

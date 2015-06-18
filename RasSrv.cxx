@@ -3917,8 +3917,8 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 
 	if (request.m_destinationInfo.GetSize() > 0) {
 		// Do a check and make sure this is not a ping
-		PString pingAlias = GkConfig()->GetString(LRQFeaturesSection, "PingAlias", "");
-		if (!pingAlias && pingAlias == AsString(request.m_destinationInfo[0],false)) {
+		PString pingAlias = GkConfig()->GetString(LRQFeaturesSection, "PingAlias", "gatekeeper-monitoring-check");
+		if (pingAlias == AsString(request.m_destinationInfo[0], false)) {
             BuildReject(H225_LocationRejectReason::e_undefinedReason);
             PTRACE(5,"LRQ PING caught from " << AsDotString(request.m_replyAddress));
             return true;

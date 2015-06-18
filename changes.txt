@@ -1,5 +1,6 @@
 Changes from 3.8 to 3.9
 =======================
+- new default for [RasSrv::LRQFeatures] PingAlias= is now 'gatekeeper-monitoring-check'
 - neighbor monitoring with LRQ pings [RasSrv::LRQFeatures] SendLRQPing=1
 - BUGFIX(Neighbor.cxx) use 64bit numbers for SendAliases= ranges
 - additional field in RouteRequest event: IP:port where message was received from
