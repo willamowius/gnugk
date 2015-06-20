@@ -1381,7 +1381,7 @@ Optional Features:
   --enable-netsnmp        enable Net-SNMP support (default=yes)
   --enable-ptlibsnmp      enable PTLib SNMP support (default=yes)
   --enable-lua            enable LUA support (default=yes)
-  --enable-weaktls        allow endpoints without TLS certificate (default=require certificate)
+  --enable-weaktls        allow endpoints without TLS certificate (default=require cert when using TLS)
   --enable-geoip          enable GeoIP support (default=yes)
 
 Optional Packages:

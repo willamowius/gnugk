@@ -1201,7 +1201,7 @@ dnl MSWIN_DEFAULT    weaktls,Disabled
 dnl MSWIN_DEFINE     weaktls,HAS_WEAK_TLS
 
 AC_ARG_ENABLE(weaktls, 
-[  --enable-weaktls        allow endpoints without TLS certificate (default=require certificate)], 
+[  --enable-weaktls        allow endpoints without TLS certificate (default=require cert when using TLS)],
 [ weaktls="${enableval}" ], [weaktls="no"] 
 )
 
