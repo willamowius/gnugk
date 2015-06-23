@@ -556,7 +556,7 @@ bool GkInterface::CreateListeners(RasServer *RasSrv)
 	m_rasSrv = RasSrv;
 
 	WORD rasPort = (WORD)GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT);
-	WORD multicastPort = (WORD)(Toolkit::AsBool(GkConfig()->GetString("UseMulticastListener", "1")) ?
+	WORD multicastPort = (WORD)(GkConfig()->GetBoolean("UseMulticastListener", true) ?
 		GkConfig()->GetInteger("MulticastPort", GK_DEF_MULTICAST_PORT) : 0);
 	WORD signalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "CallSignalPort", GK_DEF_CALL_SIGNAL_PORT);
 #ifdef HAS_TLS
@@ -853,14 +853,14 @@ void RasServer::SetRoutedMode(bool routedSignaling, bool routedH245)
 	const char *h245msg = GKRoutedH245 ? "Enabled" : "Disabled";
 	PTRACE(2, "GK\tUsing " << modemsg << " Signalling");
 	PTRACE(2, "GK\tH.245 Routed " << h245msg);
-	const char * h245tunnelingmsg = Toolkit::AsBool(GkConfig()->GetString("RoutedMode", "H245TunnelingTranslation", "0")) ? "Enabled" : "Disabled";
+	const char * h245tunnelingmsg = GkConfig()->GetBoolean("RoutedMode", "H245TunnelingTranslation", false) ? "Enabled" : "Disabled";
 	PTRACE(2, "GK\tH.245 tunneling translation " << h245tunnelingmsg);
 #ifdef HAS_H46017
-	const char * h46017msg = Toolkit::AsBool(GkConfig()->GetString("RoutedMode", "EnableH46017", "0")) ? "Enabled" : "Disabled";
+	const char * h46017msg = GkConfig()->GetBoolean("RoutedMode", "EnableH46017", false) ? "Enabled" : "Disabled";
 	PTRACE(2, "GK\tH.460.17 Registrations " << h46017msg);
 #endif
 #ifdef HAS_H46018
-	const char * h46018msg = Toolkit::AsBool(GkConfig()->GetString("RoutedMode", "EnableH46018", "0")) ? "Enabled" : "Disabled";
+	const char * h46018msg = GkConfig()->GetBoolean("RoutedMode", "EnableH46018", false) ? "Enabled" : "Disabled";
 	PTRACE(2, "GK\tH.460.18 Registrations " << h46018msg);
 #endif
 }
@@ -912,7 +912,7 @@ bool RasServer::AcceptUnregisteredCalls(const PIPSocket::Address & addr) const
 
 bool RasServer::AcceptPregrantedCalls(const H225_Setup_UUIE & setupBody, const PIPSocket::Address & addr) const
 {
-	if (!Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "PregrantARQ", "0")))
+	if (!GkConfig()->GetBoolean(RoutedSec, "PregrantARQ", false))
 		return false;
 
 	if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_endpointIdentifier))
@@ -1036,7 +1036,7 @@ void RasServer::LoadConfig()
 
 #ifdef HAS_H46018
 	// create mutiplex RTP listeners
-	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
+	if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false)) {
 		if (Toolkit::Instance()->IsH46018Enabled()) {
 			MultiplexedRTPHandler::Instance()->OnReload();
 		} else {
@@ -1824,7 +1824,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 					const PIPSocket::Address & rx_addr = m_msg->m_peerAddr;
 					if (GetIPFromTransportAddr(request.m_rasAddress, remoteRAS)) {
 						bool h46018nat = ((rx_addr != remoteRAS) && !IsLoopback(rx_addr));
-						if (h46018nat || Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "H46018NoNAT", "1"))) {
+						if (h46018nat || Kit->Config()->GetBoolean(RoutedSec, "H46018NoNAT", true)) {
 							// include H.460.18 in supported features
 							gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_featureSet);
 							H460_FeatureStd H46018 = H460_FeatureStd(18);
@@ -2028,7 +2028,7 @@ bool RegistrationRequestPDU::Process()
 				if (request.m_rasAddress.GetSize() > 0)
 					GetIPFromTransportAddr(request.m_rasAddress[0], remoteRAS);	// ignore possible errors, will be overwritten anyway
 				h46018nat = ((rx_addr != remoteRAS) && !IsLoopback(rx_addr));
-				if (h46018nat || Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "H46018NoNAT", "1"))) {
+				if (h46018nat || Kit->Config()->GetBoolean(RoutedSec, "H46018NoNAT", true)) {
 					supportH46018 = true;
 					// ignore rasAddr and use apparent address
 					request.m_rasAddress.SetSize(1);
@@ -2207,7 +2207,7 @@ bool RegistrationRequestPDU::Process()
 						ep->SetUsesH46023(false);
 					} else {  // ntype == 1
 						PTRACE(4, "Std23\tEndpoint reports itself as not behind a NAT/FW!");
-						if (Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "H46023ForceNat", "0"))) {
+						if (Kit->Config()->GetBoolean(RoutedSec, "H46023ForceNat", false)) {
 							ep->SetNAT(true);
 							ep->SetNATAddress(rx_addr, rx_port);
 							ntype = 6;  // symmetric firewall
@@ -2410,7 +2410,7 @@ bool RegistrationRequestPDU::Process()
 	bool bNewEP = true;
 	if (request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) && (request.m_terminalAlias.GetSize() >= 1)) {
 		H225_ArrayOf_AliasAddress Alias, & Aliases = request.m_terminalAlias;
-		if (Toolkit::AsBool(Kit->Config()->GetString("RasSrv::RRQFeatures", "AuthenticatedAliasesOnly", "0")) &&
+		if (Kit->Config()->GetBoolean("RasSrv::RRQFeatures", "AuthenticatedAliasesOnly", false) &&
 			authData.m_authAliases.GetSize() > 0) {
 			PString recvAlias;
 			bool found = false;
@@ -2602,7 +2602,7 @@ bool RegistrationRequestPDU::Process()
 		BuildRCF(ep);
 		H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
 
-		if (Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "PregrantARQ", "0"))) {
+		if (Kit->Config()->GetBoolean(RoutedSec, "PregrantARQ", false)) {
 			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_preGrantedARQ);
 			rcf.m_preGrantedARQ.m_makeCall = true;
 			rcf.m_preGrantedARQ.m_answerCall = true;
@@ -2626,7 +2626,7 @@ bool RegistrationRequestPDU::Process()
 			t35.m_manufacturerCode = Toolkit::t35mGnuGk;
 			t35.m_t35Extension = Toolkit::t35eNATTraversal;
 			// if the client is NAT or you are forcing ALL registrations to use a keepAlive TCP socket
-			if ((nated) || Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "ForceNATKeepAlive", "0")))
+			if ((nated) || Kit->Config()->GetBoolean(RoutedSec, "ForceNATKeepAlive", false))
 				rcf.m_nonStandardData.m_data = "NAT=" + rx_addr.AsString();
 			else  // Be careful as some public IP's may block TCP but not UDP resulting in an incorrect NAT test result.
 				rcf.m_nonStandardData.m_data = "NoNAT";
@@ -2685,7 +2685,7 @@ bool RegistrationRequestPDU::Process()
 			// Build the message
 			if (ok23) {
 				ep->SetUsesH46023(true);
-				bool h46023nat = nated || h46018nat || Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "H46018NoNAT", "1"));
+				bool h46023nat = nated || h46018nat || Kit->Config()->GetBoolean(RoutedSec, "H46018NoNAT", true);
 
 				H460_FeatureStd natfs = H460_FeatureStd(23);
 				natfs.Add(Std23_IsNAT,H460_FeatureContent(h46023nat));
@@ -2731,7 +2731,7 @@ bool RegistrationRequestPDU::Process()
 
 		// H.460.9
 		if (EPSupportsQoSReporting
-			&& Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0"))) {
+			&& GkConfig()->GetBoolean("GkQoSMonitor", "Enable", false)) {
 			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_featureSet);
 			rcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_desiredFeatures);
 			H225_ArrayOf_FeatureDescriptor & desc = rcf.m_featureSet.m_desiredFeatures;
@@ -2756,7 +2756,7 @@ bool RegistrationRequestPDU::Process()
 
 		// Gatekeeper assigned Aliases if the client supplied aliases
 		if (request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
-			if (!ep->IsGateway() || Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "GatewayAssignAliases", "1")))
+			if (!ep->IsGateway() || Kit->Config()->GetBoolean(RRQFeatureSection, "GatewayAssignAliases", true))
 				ep->SetAssignedAliases(rcf.m_terminalAlias);
 			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_terminalAlias);
 		}
@@ -2807,7 +2807,7 @@ bool RegistrationRequestPDU::Process()
 
 	// Note that the terminalAlias is not optional here as we pass the auto generated alias if not were provided from
 	// the endpoint itself
-	if ( bNewEP || !Toolkit::AsBool(GkConfig()->GetString("GkStatus::Filtering", "NewRCFOnly", "0"))) {
+	if (bNewEP || !GkConfig()->GetBoolean("GkStatus::Filtering", "NewRCFOnly", false)) {
         PString log = "RCF|" + ep->PrintOn(false) + ";";
 		PrintStatus(log);
 	}
@@ -3203,7 +3203,7 @@ bool AdmissionRequestPDU::Process()
 	}
 
 	if (RasSrv->IsGKRouted() && answer && !pExistingCallRec) {
-		if (Toolkit::AsBool(Kit->Config()->GetString("RasSrv::ARQFeatures", "ArjReasonRouteCallToGatekeeper", "1"))) {
+		if (Kit->Config()->GetBoolean("RasSrv::ARQFeatures", "ArjReasonRouteCallToGatekeeper", true)) {
 			bReject = true;
 			if (request.HasOptionalField(H225_AdmissionRequest::e_srcCallSignalAddress)) {
 				PIPSocket::Address ipaddress;
@@ -3594,7 +3594,7 @@ bool AdmissionRequestPDU::Process()
 	}
 
 #ifdef HAS_LANGUAGE
-	if (!answer && Toolkit::AsBool(GkConfig()->GetString("RasSrv::LRQFeatures", "EnableLanguageRouting", false))) {
+	if (!answer && GkConfig()->GetBoolean("RasSrv::LRQFeatures", "EnableLanguageRouting", false)) {
 		H323SetLanguages(Language, acf.m_language);
 		acf.IncludeOptionalField(H225_AdmissionConfirm::e_language);
 	}
@@ -3634,9 +3634,9 @@ bool AdmissionRequestPDU::Process()
 
 	// H.460.9 QoS Reporting
 	if (EPSupportsQoSReporting
-		&& Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0"))) {
+		&& GkConfig()->GetBoolean("GkQoSMonitor", "Enable", false)) {
 		H460_FeatureStd feat = H460_FeatureStd(9);
-		if (Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "CallEndOnly", "1"))) {
+		if (GkConfig()->GetBoolean("GkQoSMonitor", "CallEndOnly", true)) {
 			H460_FeatureID finalonly = H460_FeatureID(0); // TODO: standard says 0, Wireshark says 1, PVX ignores both
 			feat.AddParameter(&finalonly);
 		}
@@ -4096,7 +4096,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 
 #ifdef HAS_LANGUAGE
 				if (request.HasOptionalField(H225_LocationRequest::e_language) &&
-					Toolkit::AsBool(GkConfig()->GetString("RasSrv::LRQFeatures", "EnableLanguageRouting", false))) {
+					GkConfig()->GetBoolean("RasSrv::LRQFeatures", "EnableLanguageRouting", false)) {
 						if (WantedEndPoint && WantedEndPoint->SetAssignedLanguage(lcf.m_language))
 							lcf.IncludeOptionalField(H225_LocationConfirm::e_language);
 				}
@@ -4159,7 +4159,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 					lcf.IncludeOptionalField(H225_LocationConfirm::e_genericData);
 
 				PString featureRequired = Kit->Config()->GetString(RoutedSec, "NATStdMin", "");
-				PBoolean assumePublicH46024 =  Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023PublicIP", 0));
+				PBoolean assumePublicH46024 = GkConfig()->GetBoolean(RoutedSec, "H46023PublicIP", false);
 				if (!featureRequired && featureRequired == "23" && WantedEndPoint && (!WantedEndPoint->SupportH46024() && !assumePublicH46024)) {
 					bReject = true;
 					reason = H225_LocationRejectReason::e_genericDataReason;

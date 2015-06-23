@@ -76,7 +76,7 @@ PresWorker::~PresWorker()
 	if (!shutDown)
 		Stop();
 }
-	
+
 void PresWorker::Main()
 {
 	int wint=100;
@@ -234,7 +234,7 @@ H460P_PresenceInstruction & BuildInstructionMsg(const H460P_PresenceInstruction 
 	return msg;
 }
 
-H460P_PresenceInstruction & BuildInstructionMsg(unsigned type, const H225_AliasAddress & addr, H460P_PresencePDU & msg, 
+H460P_PresenceInstruction & BuildInstructionMsg(unsigned type, const H225_AliasAddress & addr, H460P_PresencePDU & msg,
 												const PString & display = PString(), const PString & avatar = PString())
 {
 	H323PresenceInstruction instruct((H323PresenceInstruction::Instruction)type, AsString(addr,0), display, avatar);
@@ -457,7 +457,7 @@ bool GkPresence::IsEnabled() const
 
 void GkPresence::LoadConfig(PConfig * cfg)
 {
-	m_enabled = cfg->GetBoolean("RoutedMode", "EnableH460P", 0);
+	m_enabled = cfg->GetBoolean("RoutedMode", "EnableH460P", false);
 	if (!m_enabled)
 		return;
 
@@ -476,7 +476,7 @@ void GkPresence::LoadConfig(PConfig * cfg)
 		PTRACE(0, "H460PSQL\tFATAL: Shutting down");
 		return;
 	}
-	
+
 	m_sqlConn = GkSQLConnection::Create(driverName, "GkPresence");
 	if (m_sqlConn == NULL) {
 		PTRACE(0, "H460PSQL\tModule creation failed: "
@@ -485,7 +485,7 @@ void GkPresence::LoadConfig(PConfig * cfg)
 		PTRACE(0, "H460PSQL\tFATAL: Shutting down");
 		return;
 	}
-		
+
 	m_queryList = cfg->GetString(authName, "QueryList", "");
 	if (m_queryList.IsEmpty()) {
 		PTRACE(0, "H460PSQL\tModule creation failed: No QueryList configured"
@@ -657,7 +657,7 @@ bool GkPresence::DatabaseLoad(PBoolean incremental)
 #if PTRACING
 		PStringStream results;
 		for (PINDEX i=0; i < retval.GetSize(); ++i) {
-			results << " " << presenceFieldName(i) << " "; 
+			results << " " << presenceFieldName(i) << " ";
 			if (i == 4) results << H323PresenceInstruction::GetInstructionString(retval[i].AsInteger());
 #ifndef HAS_H460P_VER_1
 			else if (i == 9) results << H323PresenceInstruction::GetCategoryString(retval[i].AsInteger());
@@ -685,7 +685,7 @@ bool GkPresence::DatabaseLoad(PBoolean incremental)
 			if (retval.GetSize() >= 10) id.m_Category = (H323PresenceInstruction::Category)retval[9].AsInteger();
 								else id.m_Category = H323PresenceInstruction::e_UnknownCategory;
 #endif
-		
+
 #ifdef HAS_H460P_VER_1
 			H323PresenceInstruction instruct(id.m_Status, retval[2]);
 #else
@@ -695,7 +695,7 @@ bool GkPresence::DatabaseLoad(PBoolean incremental)
 		if (id.m_Active || (id.m_isSubscriber && (id.m_Status == H323PresenceInstruction::e_pending))) {
 			H323PresenceStore::iterator itx = localStore.find(id.m_subscriber);
 			if (itx != localStore.end()) {
-				if (id.m_subscriber != id.m_Alias) 
+				if (id.m_subscriber != id.m_Alias)
 					itx->second.m_Instruction.Add(instruct);
 			} else {
 				H323PresenceEndpoint store;
@@ -764,7 +764,7 @@ bool GkPresence::DatabaseAdd(const PString & identifier, const H323PresenceID & 
 	return false;
 #endif
 }
-	
+
 bool GkPresence::DatabaseDelete(const PString & identifier)
 {
 #ifdef HAS_DATABASE
@@ -791,7 +791,7 @@ bool GkPresence::DatabaseUpdate(unsigned tag, const PString & identifier)
 	std::map<PString, PString> params;
 	params["i"] = identifier;
 	params["b"] = tag;
-	
+
 	return (m_sqlConn->ExecuteQuery(m_queryUpdate, params, m_timeout) != NULL);
 #else
 	return false;
@@ -841,7 +841,7 @@ bool GkPresence::RegisterEndpoint(const H225_EndpointIdentifier & ep, const H225
 		H323PresenceAlias::iterator it = aliasList.find(addr[j]);
 		if (it == aliasList.end())
 			aliasList.insert(pair<H225_AliasAddress,H225_EndpointIdentifier>(addr[j],ep));
-			
+
 		// handle subscriptions/notifications from local store
 		H323PresenceStore::iterator itx = localStore.find(addr[j]);
 		if (itx == localStore.end()) {
@@ -888,7 +888,7 @@ bool GkPresence::RegisterEndpoint(const H225_EndpointIdentifier & ep, const H225
 				}
 				i++;
 			}
-		}		
+		}
 	}
 	m_worker->ProcessNow();
 	return true;
@@ -910,7 +910,7 @@ void GkPresence::UnRegisterEndpoint(const H225_ArrayOf_AliasAddress & addr)
 		H323PresenceAlias::iterator it = aliasList.find(addr[i]);
 		if (it != aliasList.end())
 			aliasList.erase(it);
-	}	
+	}
 }
 
 bool GkPresence::GetPendingIdentifiers(list<H225_EndpointIdentifier> & epid)
@@ -1022,7 +1022,7 @@ bool GkPresence::EnQueueFullNotification(const H225_AliasAddress & local, const 
         return false;
 
 	H460P_PresencePDU msg;
-    if (itm->second.m_Notify.GetSize() == 0) 
+    if (itm->second.m_Notify.GetSize() == 0)
 		return false;
 
 	H460P_PresenceNotification & notification = BuildNotificationMsg(itm->second.m_Notify[0],msg);
@@ -1066,12 +1066,12 @@ bool GkPresence::EnQueuePresence(const H225_AliasAddress & addr, const H460P_Pre
 			list<H460P_PresencePDU> m_Indication;
 			m_Indication.push_back(msg);
 			H323PresenceInd xlist;
-			xlist.insert(pair<H225_AliasAddress,list<H460P_PresencePDU> >(addr,m_Indication));	
+			xlist.insert(pair<H225_AliasAddress,list<H460P_PresencePDU> >(addr,m_Indication));
 			pendingStore.insert(pair<H225_EndpointIdentifier,H323PresenceInd>(it->second,xlist));
 		}
 		return true;
 	}
-	
+
 	// check if the alias is registered remotely
 	H323PresenceExternal::iterator rt = remoteList.find(addr);
 	if (rt != remoteList.end()) {
@@ -1090,7 +1090,7 @@ bool GkPresence::EnQueuePresence(const H225_AliasAddress & addr, const H460P_Pre
 			list<H460P_PresencePDU> m_Indication;
 			m_Indication.push_back(msg);
 			H323PresenceInd xlist;
-			xlist.insert(pair<H225_AliasAddress,list<H460P_PresencePDU> >(addr,m_Indication));	
+			xlist.insert(pair<H225_AliasAddress,list<H460P_PresencePDU> >(addr,m_Indication));
 			remoteStore.insert(pair<H225_TransportAddress,H323PresenceInd>(rt->second,xlist));
 		}
 		return true;
@@ -1121,7 +1121,7 @@ PBoolean GkPresence::BuildSubscription(const H225_EndpointIdentifier & ep, H323P
 					if (k == subscription.end())  {
 						H323PresenceEndpoint pe;
 						pe.m_Authorize.Add((const H323PresenceSubscription &)n);
-						subscription.insert(pair<H225_AliasAddress,H323PresenceEndpoint>(i->first,pe));	
+						subscription.insert(pair<H225_AliasAddress,H323PresenceEndpoint>(i->first,pe));
 					} else
 						k->second.m_Authorize.Add((const H323PresenceSubscription &)n);
 
@@ -1169,7 +1169,7 @@ PBoolean GkPresence::BuildNotification(const H225_EndpointIdentifier & ep, H323P
 					if (k == notify.end())  {
 						H323PresenceEndpoint pe;
 						pe.m_Notify.Add((const H323PresenceNotification &)n);
-						notify.insert(pair<H225_AliasAddress,H323PresenceEndpoint>(i->first,pe));	
+						notify.insert(pair<H225_AliasAddress,H323PresenceEndpoint>(i->first,pe));
 					} else
 						k->second.m_Notify.Add((const H323PresenceNotification &)n);
 
@@ -1217,7 +1217,7 @@ PBoolean GkPresence::BuildInstructions(const H225_EndpointIdentifier & ep, H323P
 					if (k == instruction.end())  {
 						H323PresenceEndpoint pe;
 						pe.m_Instruction.Add((const H323PresenceInstruction &)n);
-						instruction.insert(pair<H225_AliasAddress,H323PresenceEndpoint>(i->first,pe));	
+						instruction.insert(pair<H225_AliasAddress,H323PresenceEndpoint>(i->first,pe));
 					} else
 						k->second.m_Instruction.Add((const H323PresenceInstruction &)n);
 
@@ -1265,7 +1265,7 @@ PBoolean GkPresence::BuildSubscription(bool request, const H225_TransportAddress
 						if (k == subscription.end())  {
 							H323PresenceEndpoint pe;
 							pe.m_Authorize.Add((const H323PresenceSubscription &)n);
-							subscription.insert(pair<H225_TransportAddress,H323PresenceEndpoint>(ip,pe));	
+							subscription.insert(pair<H225_TransportAddress,H323PresenceEndpoint>(ip,pe));
 						} else
 							k->second.m_Authorize.Add((const H323PresenceSubscription &)n);
 
@@ -1313,7 +1313,7 @@ PBoolean GkPresence::BuildNotification(const H225_TransportAddress & ip, H323Pre
 					if (k == notify.end())  {
 						H323PresenceEndpoint pe;
 						pe.m_Notify.Add((const H323PresenceNotification &)n);
-						notify.insert(pair<H225_TransportAddress,H323PresenceEndpoint>(ip,pe));	
+						notify.insert(pair<H225_TransportAddress,H323PresenceEndpoint>(ip,pe));
 					} else
 						k->second.m_Notify.Add((const H323PresenceNotification &)n);
 
@@ -1361,7 +1361,7 @@ PBoolean GkPresence::BuildIdentifiers(bool alive, const H225_TransportAddress & 
 						if (k == identifiers.end())  {
 							H323PresenceEndpoint pe;
 							pe.m_Identifiers.Add(n.m_guid);
-							identifiers.insert(pair<H225_TransportAddress,H323PresenceEndpoint>(ip,pe));	
+							identifiers.insert(pair<H225_TransportAddress,H323PresenceEndpoint>(ip,pe));
 						} else
 							k->second.m_Identifiers.Add(n.m_guid);
 
@@ -1452,7 +1452,7 @@ bool GkPresence::HandleForwardPresence(const H460P_PresenceIdentifier & identifi
 		H225_AliasAddress a;
 		H323SetAliasAddress(PString("Relay"), a);
 		PTRACE(5, "PRES\tRelaying Identifier " << identifier << " to " << itx->second);
-		xlist.insert(pair<H225_AliasAddress,list<H460P_PresencePDU> >(a, m_Indication));	
+		xlist.insert(pair<H225_AliasAddress,list<H460P_PresencePDU> >(a, m_Indication));
 		remoteStore.insert(pair<H225_TransportAddress,H323PresenceInd>(itx->second, xlist));
 		return true;
 	}

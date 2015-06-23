@@ -1597,14 +1597,14 @@ void GkClient::OnReload()
 	m_e164 = cfg->GetString(EndpointSection, "E164", "").Tokenise(" ,;\t", FALSE);
 
 #ifdef HAS_H46018
-	m_enableH46018 = Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableH46018", "0"));
+	m_enableH46018 = GkConfig()->GetBoolean(EndpointSection, "EnableH46018", false);
 	if (m_enableH46018 && !Toolkit::Instance()->IsH46018Enabled()) {
 		PTRACE(1, "H46018\tWarning: H.460.18 enabled for parent/child, but global H.460.18 switch is OFF");
 	}
 #endif
 
 #ifdef HAS_H46023
-	m_enableH46023 = Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableH46023", "0"));
+	m_enableH46023 = GkConfig()->GetBoolean(EndpointSection, "EnableH46023", false);
 	if (m_enableH46023 && !Toolkit::Instance()->IsH46023Enabled()) {
 		PTRACE(1, "H46023\tWarning: H.460.23 enabled for parent/child, but global H.460.23 switch is OFF");
 	}
@@ -2683,7 +2683,7 @@ void GkClient::OnRCF(RasMsg *ras)
 		if (rcf.HasOptionalField(H225_RegistrationConfirm::e_alternateGatekeeper))
 			m_gkList->Set(rcf.m_alternateGatekeeper);
 		if (rcf.HasOptionalField(H225_RegistrationConfirm::e_supportsAdditiveRegistration)
-			&& Toolkit::AsBool(GkConfig()->GetString(EndpointSection, "EnableAdditiveRegistration", "0")))
+			&& GkConfig()->GetBoolean(EndpointSection, "EnableAdditiveRegistration", false))
 				m_useAdditiveRegistration = true;
 
 		if (m_useAdditiveRegistration)

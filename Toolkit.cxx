@@ -1875,15 +1875,15 @@ PConfig* Toolkit::ReloadConfig()
 		}
 	}
 #ifdef HAS_H235_MEDIA
-	m_H235HalfCallMediaEnabled = m_Config->GetBoolean(RoutedSec, "EnableH235HalfCallMedia", 0)
-		|| m_Config->GetBoolean(RoutedSec, "RequireH235HalfCallMedia", 0);
-	m_H235HalfCallMediaKeyUpdatesEnabled = m_Config->GetBoolean(RoutedSec, "EnableH235HalfCallMediaKeyUpdates", 0);
+	m_H235HalfCallMediaEnabled = m_Config->GetBoolean(RoutedSec, "EnableH235HalfCallMedia", false)
+		|| m_Config->GetBoolean(RoutedSec, "RequireH235HalfCallMedia", false);
+	m_H235HalfCallMediaKeyUpdatesEnabled = m_Config->GetBoolean(RoutedSec, "EnableH235HalfCallMediaKeyUpdates", false);
 #endif
 #ifdef HAS_H46018
-	m_H46018Enabled	= m_Config->GetBoolean(RoutedSec, "EnableH46018", 0);
+	m_H46018Enabled	= m_Config->GetBoolean(RoutedSec, "EnableH46018", false);
 #endif
 #ifdef HAS_H46023
-	m_H46023Enabled	= (m_Config->GetBoolean(RoutedSec, "EnableH46023", 0) &&
+	m_H46023Enabled	= (m_Config->GetBoolean(RoutedSec, "EnableH46023", false) &&
 						!m_Config->GetString(RoutedSec, "H46023STUN", ""));
 #endif
 
@@ -2163,7 +2163,7 @@ bool Toolkit::CreateH350Session(H350_Session * session)
 	else if (mode == "kerberos")
 		authMethod = PLDAPSession::AuthKerberos;
 
-	bool startTLS = Toolkit::AsBool(GkConfig()->GetString(H350Section, "StartTLS", "0"));
+	bool startTLS = GkConfig()->GetBoolean(H350Section, "StartTLS", false);
 
 	if (!session->Open(server)) {
 		PTRACE(1, "H350\tCannot locate H.350 Server " << server);
@@ -2378,7 +2378,7 @@ SSL_CTX * Toolkit::GetTLSContext()
 		}
 
 #ifdef HAS_WEAK_TLS
-		if (!m_Config->GetBoolean(TLSSec, "RequireRemoteCertificate", 1)) {
+		if (!m_Config->GetBoolean(TLSSec, "RequireRemoteCertificate", true)) {
 			SSL_CTX_set_verify(m_sslCtx, SSL_VERIFY_PEER, verify_callback); // do not require a client certificate
 		} else
 #endif
@@ -3325,14 +3325,14 @@ bool Toolkit::IsH46023Enabled() const
 #ifdef HAS_H46018
 			m_H46018Enabled ||			// used with H.460.18 or
 #endif
-			m_Config->GetBoolean(RoutedSec, "SupportCallingNATedEndpoints", 1))); // GnuGk Native NAT Support
+			m_Config->GetBoolean(RoutedSec, "SupportCallingNATedEndpoints", true))); // GnuGk Native NAT Support
 }
 #endif
 
 #ifdef HAS_H46026
 bool Toolkit::IsH46026Enabled() const
 {
-    return m_Config->GetBoolean(RoutedSec, "EnableH46026", 0);
+    return m_Config->GetBoolean(RoutedSec, "EnableH46026", false);
 }
 #endif
 
@@ -3803,12 +3803,13 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 	// Read RewriteSourceAddress settings
 	PString rewriteChar = m_Config->GetString("RewriteSourceAddress", "ReplaceChar", "");
 	PString rules       = m_Config->GetString("RewriteSourceAddress", "Rules", "");
-	bool matchSource    = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "MatchSourceTypeToDestination", "0"));
-	bool onlyE164       = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "OnlyE164", "0"));
-	bool only10Dand11D  = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "OnlyValid10Dand11D", "0"));
-	bool treatNumberURIDialedDigits  = Toolkit::AsBool(m_Config->GetString("RewriteSourceAddress", "TreatNumberURIDialedDigits", "0"));
+	bool matchSource    = m_Config->GetBoolean("RewriteSourceAddress", "MatchSourceTypeToDestination", false);
+	bool onlyE164       = m_Config->GetBoolean("RewriteSourceAddress", "OnlyE164", false);
+	bool only10Dand11D  = m_Config->GetBoolean("RewriteSourceAddress", "OnlyValid10Dand11D", false);
+	bool treatNumberURIDialedDigits = m_Config->GetBoolean("RewriteSourceAddress", "TreatNumberURIDialedDigits", false);
 	int aliasForceType  = m_Config->GetString("RewriteSourceAddress", "ForceAliasType", "-1").AsInteger();
-	if (aliasForceType > 2) aliasForceType = -1;  // Limited only to support dialedDigits, h323_ID, url_ID,
+	if (aliasForceType > 2)
+        aliasForceType = -1;  // Limited only to support dialedDigits, h323_ID, url_ID,
 
 	H225_Setup_UUIE & setupBody = setup.GetUUIEBody();
 	unsigned destType = H225_AliasAddress::e_h323_ID;

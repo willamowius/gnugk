@@ -100,8 +100,8 @@ EndpointRec::EndpointRec(
 	m_capacity(-1), m_calledTypeOfNumber(-1), m_callingTypeOfNumber(-1),
 	m_calledPlanOfNumber(-1), m_callingPlanOfNumber(-1), m_proxy(0),
 	m_registrationPriority(0), m_registrationPreemption(false),
-    m_epnattype(NatUnknown), m_usesH46023(false), m_H46024(Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023PublicIP", 0))),
-	m_H46024a(false), m_H46024b(false), m_natproxy(Toolkit::AsBool(GkConfig()->GetString(proxysection, "ProxyForNAT", "1"))),
+    m_epnattype(NatUnknown), m_usesH46023(false), m_H46024(GkConfig()->GetBoolean(RoutedSec, "H46023PublicIP", false)),
+	m_H46024a(false), m_H46024b(false), m_natproxy(GkConfig()->GetBoolean(proxysection, "ProxyForNAT", true)),
 	m_internal(false), m_remote(false), m_h46017disabled(false), m_h46018disabled(false), m_usesH460P(false), m_hasH460PData(false),
     m_usesH46017(false), m_usesH46026(false), m_traversalType(None), m_bandwidth(0), m_maxBandwidth(-1), m_useTLS(false),
      m_useIPSec(false), m_additiveRegistrant(false), m_addCallingPartyToSourceAddress(false)
@@ -436,8 +436,8 @@ void EndpointRec::LoadEndpointConfig()
 				log += " Calling Type Of Number: " + PString(m_callingTypeOfNumber);
 			if (m_proxy > 0)
 				log += " proxy: " + PString(m_proxy);
-			m_h46017disabled = Toolkit::AsBool(cfg->GetString(key, "DisableH46017", "0"));
-			m_h46018disabled = Toolkit::AsBool(cfg->GetString(key, "DisableH46018", "0"));
+			m_h46017disabled = cfg->GetBoolean(key, "DisableH46017", false);
+			m_h46018disabled = cfg->GetBoolean(key, "DisableH46018", false);
 			PString numbersDef = cfg->GetString(key, "AddNumbers", "");
 			if (!numbersDef.IsEmpty()) {
 				AddNumbers(numbersDef);
@@ -3928,7 +3928,7 @@ bool CallRec::NATAssistCallerUnknown(NatStrategy & natinst)
 			natinst = CallRec::e_natRemoteMaster;
 			return true;
 		} else {
-			if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46024ForceDirect", "0"))) {
+			if (GkConfig()->GetBoolean(RoutedSec, "H46024ForceDirect", false)) {
 				PTRACE(4, "RAS\tForce Direct Assume remote supports NAT");
 				natinst = CallRec::e_natNoassist;
 				return true;
@@ -3971,7 +3971,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 			natinst = CallRec::e_natRemoteMaster;
 			return true;
 		} else {
-			if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46024ForceDirect", "0"))) {
+			if (GkConfig()->GetBoolean(RoutedSec, "H46024ForceDirect", false)) {
 				PTRACE(4, "RAS\tForce Direct Assume remote supports NAT");
 				natinst = CallRec::e_natNoassist;
 				return true;
@@ -3989,7 +3989,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 				(m_Called->IsNATed() ? m_Called->GetNATIP() : m_Called->GetIP()));
 
 	// If we have the H46024ForceDirect switch then we can override the need to proxy.
-	if (!goDirect && Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46024ForceDirect", "0"))) {
+	if (!goDirect && GkConfig()->GetBoolean(RoutedSec, "H46024ForceDirect", false)) {
 		PTRACE(4, "RAS\tH46024 Proxy Disabled. Force call to go direct");
 		goDirect = true;
 	}

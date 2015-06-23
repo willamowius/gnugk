@@ -1402,7 +1402,7 @@ void CallSignalSocket::InternalInit()
 	m_result = NoData;
 	m_setupPdu = NULL;
 #ifdef HAS_H46017
-	m_h46017Enabled = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "EnableH46017", 0);
+	m_h46017Enabled = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "EnableH46017", false);
 	rc_remote = NULL;
 #endif
 #ifdef HAS_H46018
@@ -1415,7 +1415,7 @@ void CallSignalSocket::InternalInit()
 	m_isH245Master = false;
 #endif
 #ifdef HAS_H46026
-	if (Toolkit::AsBool(Toolkit::Instance()->Config()->GetString(RoutedSec, "UseH46026PriorityQueue", "1"))) {
+	if (Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "UseH46026PriorityQueue", true)) {
 		m_h46026PriorityQueue = new H46026ChannelManager();
 	} else {
 		m_h46026PriorityQueue = NULL;
@@ -4397,7 +4397,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			}
 		}
 	}
-	bool proxyIPv4ToIPv6 = Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "AutoProxyIPv4ToIPv6Calls", "1"));
+	bool proxyIPv4ToIPv6 = toolkit->Config()->GetBoolean(RoutedSec, "AutoProxyIPv4ToIPv6Calls", true);
 	unsigned callingIPVersion = GetVersion(m_call->GetSrcSignalAddr());
 	// for traversal or neighbor calls we might not have the SrcSignalAddr
 	if (callingIPVersion == 0)
@@ -4452,7 +4452,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		if ( (m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalServer())
 			|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018()) ) {
 			H460_FeatureStd feat = H460_FeatureStd(19);
-			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
+			if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false)) {
 				H460_FeatureID feat_id(1);	// supportTransmitMultiplexedMedia
 				feat.AddParameter(&feat_id);
 			}
@@ -4490,7 +4490,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				}
 			}
 
-			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
+			if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false)) {
 				feat_id = H460_FeatureID(1);	// supportTransmitMultiplexedMedia
 				feat.AddParameter(&feat_id);
 			}
@@ -4533,7 +4533,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		// only rewrite sourceCallSignalAddress if we are proxying,
 		// otherwise leave the receiving endpoint the option to deal with NATed caller itself
 		if (m_call->GetProxyMode() == CallRec::ProxyEnabled
-			|| Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "AlwaysRewriteSourceCallSignalAddress", "1"))) {
+			|| GkConfig()->GetBoolean(RoutedSec, "AlwaysRewriteSourceCallSignalAddress", true)) {
 			setupBody.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
 			setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(masqAddr, GetPort());
 		}
@@ -4565,7 +4565,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				}
 			}
 
-			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))
+			if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false)
 #ifdef HAS_H46023
 				&& (m_senderSupportsH46019Multiplexing || (!HasH46024Descriptor(setupBody.m_supportedFeatures) && IsH46024ProxyStrategy(natoffloadsupport)))
 #endif
@@ -4684,7 +4684,7 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 	// only rewrite sourceCallSignalAddress if we are proxying,
 	// otherwise leave the receiving endpoint the option to deal with NATed caller itself
 	if (m_call->GetProxyMode() == CallRec::ProxyEnabled
-		|| Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "AlwaysRewriteSourceCallSignalAddress", "1"))) {
+		|| GkConfig()->GetBoolean(RoutedSec, "AlwaysRewriteSourceCallSignalAddress", true)) {
 		setupBody.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
 		setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(masqAddr, GetPort());
 	} else {
@@ -4712,7 +4712,7 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 
 	// For compatibility to call pre-H323v4 devices that do not support H.460
 	// This strips the Feature Advertisements from the PDU.
-	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "RemoveH460Call", "0"))
+	if (GkConfig()->GetBoolean(RoutedSec, "RemoveH460Call", false)
 #ifdef HAS_H46023
 		&& (!m_call->GetCalledParty() || (m_call->GetCalledParty()->GetEPNATType() == (int)EndpointRec::NatUnknown))
 #endif
@@ -4961,7 +4961,7 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 				H460_FeatureID feat_id(2);	// mediaTraversalServer
 				feat.AddParameter(&feat_id);
 			}
-			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
+			if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false)) {
 				H460_FeatureID feat_id(1);	// supportTransmitMultiplexedMedia
 				feat.AddParameter(&feat_id);
 			}
@@ -5181,7 +5181,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			m_call->GetAuthenticators().SetSize(0);
 			m_call->SetMediaEncryption(CallRec::none);
 			PTRACE(3, "H235\tNo Media Encryption Support Detected: Disabling!");
-			if (Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "RequireH235HalfCallMedia", 0)) {
+			if (Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "RequireH235HalfCallMedia", false)) {
 				PTRACE(1, "H235\tDiconnection call because of missing H.235 support");
 				m_call->SetDisconnectCause(Q931::NormalUnspecified); //Q.931 code for reason=SecurityDenied
 				m_result = Error;
@@ -5278,7 +5278,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 				H460_FeatureID feat_id(2);	// mediaTraversalServer
 				feat.AddParameter(&feat_id);
 			}
-			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
+			if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false)) {
 				H460_FeatureID feat_id(1);	// supportTransmitMultiplexedMedia
 				feat.AddParameter(&feat_id);
 			}
@@ -5454,7 +5454,7 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 				H460_FeatureID feat_id(2);	// mediaTraversalServer
 				feat.AddParameter(&feat_id);
 			}
-			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
+			if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false)) {
 				H460_FeatureID feat_id(1);	// supportTransmitMultiplexedMedia
 				feat.AddParameter(&feat_id);
 			}
@@ -5612,7 +5612,7 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 #endif
 
 			// handle RTCP stats
-			if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "EnableRTCPStats", "0"))) {
+			if (GkConfig()->GetBoolean(ProxySection, "EnableRTCPStats", false)) {
 				PIPSocket::Address _peerAddr;
 				WORD _peerPort = 0;
 				GetPeerAddress(_peerAddr, _peerPort);
@@ -6487,7 +6487,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 		facilityBody.RemoveOptionalField(H225_Facility_UUIE::e_featureSet);
 	}
 
-	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "FilterEmptyFacility", "0"))) {
+	if (GkConfig()->GetBoolean(RoutedSec, "FilterEmptyFacility", false)) {
 		H225_H323_UserInformation * uuie = facility->GetUUIE();
 		if ( (uuie && (uuie->m_h323_uu_pdu.m_h323_message_body.GetTag() == H225_H323_UU_PDU_h323_message_body::e_empty))
 			|| (facilityBody.m_reason.GetTag() == H225_FacilityReason::e_transportedInformation) ) {
@@ -6527,7 +6527,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 	case H225_FacilityReason::e_routeCallToGatekeeper:
 	case H225_FacilityReason::e_callForwarded:
 	case H225_FacilityReason::e_routeCallToMC:
-		if (!Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ForwardOnFacility", "0")))
+		if (!GkConfig()->GetBoolean(RoutedSec, "ForwardOnFacility", false))
 			break;
 
 		// to avoid complicated handling of H.245 channel on forwarding,
@@ -6546,7 +6546,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 		break;
 
 	case H225_FacilityReason::e_transportedInformation:
-		if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "TranslateFacility", "0"))) {
+		if (GkConfig()->GetBoolean(RoutedSec, "TranslateFacility", false)) {
 			CallSignalSocket * sigSocket = dynamic_cast<CallSignalSocket*>(remote);
 			if (sigSocket != NULL && sigSocket->m_h225Version > 0
 					&& sigSocket->m_h225Version < 4) {
@@ -6932,7 +6932,7 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 					feat.AddParameter(feat_id);
 					delete feat_id;
 				}
-				if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
+				if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false)) {
 					feat_id = new H460_FeatureID(1);	// supportTransmitMultiplexedMedia
 					feat.AddParameter(feat_id);
 					delete feat_id;
@@ -7037,7 +7037,7 @@ void CallSignalSocket::BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallI
 	uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
 	uuie.m_callIdentifier = callId;
 	uuie.m_destinationInfo.IncludeOptionalField(H225_EndpointType::e_gatekeeper);
-	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "UseProvisionalRespToH245Tunneling", "0"))) {
+	if (GkConfig()->GetBoolean(RoutedSec, "UseProvisionalRespToH245Tunneling", false)) {
 		signal.m_h323_uu_pdu.RemoveOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
 		signal.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_provisionalRespToH245Tunneling);
 	} else {
@@ -8652,7 +8652,7 @@ H46019Session::H46019Session(const H225_CallIdentifier & callid, WORD session, v
 	m_osSocketToA_RTCP = INVALID_OSSOCKET;
 	m_osSocketToB = INVALID_OSSOCKET;
 	m_osSocketToB_RTCP = INVALID_OSSOCKET;
-	m_EnableRTCPStats = Toolkit::AsBool(GkConfig()->GetString(ProxySection, "EnableRTCPStats", "0"));
+	m_EnableRTCPStats = GkConfig()->GetBoolean(ProxySection, "EnableRTCPStats", false);
 #ifdef HAS_H235_MEDIA
 	m_encryptingLC = NULL;
 	m_decryptingLC = NULL;
@@ -8870,7 +8870,7 @@ MultiplexedRTPReader::~MultiplexedRTPReader()
 
 void MultiplexedRTPReader::OnStart()
 {
-	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
+	if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false)) {
 		// create mutiplex RTP listeners
 		 m_multiplexRTPListener = new MultiplexRTPListener((WORD)GkConfig()->GetInteger(ProxySection, "RTPMultiplexPort", GK_DEF_MULTIPLEX_RTP_PORT));
 		 if (m_multiplexRTPListener->IsOpen()) {
@@ -8907,7 +8907,7 @@ void MultiplexedRTPReader::ReadSocket(IPSocket * socket)
 MultiplexedRTPHandler::MultiplexedRTPHandler() : Singleton<MultiplexedRTPHandler>("MultiplexedRTPHandler")
 {
 	idCounter = 0;
-	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"))) {
+	if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false)) {
 		m_reader = new MultiplexedRTPReader();
 	} else {
 		m_reader = NULL;
@@ -9358,8 +9358,8 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
 	SetReadTimeout(PTimeInterval(50));
 	SetWriteTimeout(PTimeInterval(50));
 	fnat = rnat = mute = false;
-	m_dontQueueRTP = Toolkit::AsBool(GkConfig()->GetString(ProxySection, "DisableRTPQueueing", "1"));
-	m_EnableRTCPStats = Toolkit::AsBool(GkConfig()->GetString(ProxySection, "EnableRTCPStats", "0"));
+	m_dontQueueRTP = GkConfig()->GetBoolean(ProxySection, "DisableRTPQueueing", true);
+	m_EnableRTCPStats = GkConfig()->GetBoolean(ProxySection, "EnableRTCPStats", false);
 #ifdef HAS_H46018
 	m_checkH46019KeepAlivePT = GkConfig()->GetBoolean(ProxySection, "CheckH46019KeepAlivePT", true);
 #endif
@@ -10368,7 +10368,7 @@ RTPLogicalChannel::~RTPLogicalChannel()
 #ifdef HAS_H235_MEDIA
 #ifdef HAS_H46018
 	// TODO: why only with encryption and is a H.46019 session per LC or per RTP session ?
-	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0")))
+	if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false))
 		MultiplexedRTPHandler::Instance()->RemoveChannel(m_callID, this);
 #endif
 	m_cryptoEngineMutex.Wait();
@@ -11066,7 +11066,7 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
     m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
 #ifdef HAS_H46018
 	m_isRTPMultiplexingEnabled = Toolkit::Instance()->IsH46018Enabled()
-								&& Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0"));
+								&& GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false);
 #else
 	m_isRTPMultiplexingEnabled = false;
 #endif
@@ -12191,7 +12191,7 @@ bool H245ProxyHandler::HandleIndication(H245_IndicationMessage & Indication, boo
 	PTRACE(3, "Received Input: " << value);
 
 	if ((value == "*") &&
-		Toolkit::AsBool(GkConfig()->GetString(ProxySection, "EnableRTPMute", "0"))) {
+		GkConfig()->GetBoolean(ProxySection, "EnableRTPMute", false)) {
 		HandleMuteRTPChannel();
 	}
 	return false;
@@ -12220,7 +12220,7 @@ bool H245ProxyHandler::HandleCloseLogicalChannel(H245_CloseLogicalChannel & clc,
 		second = this;
 	}
 	bool found = first && first->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber);
-	if (!found && Toolkit::AsBool(GkConfig()->GetString(ProxySection, "SearchBothSidesOnCLC", "0"))) {
+	if (!found && GkConfig()->GetBoolean(ProxySection, "SearchBothSidesOnCLC", false)) {
 		// due to bad implementation of some endpoints, we check the
 		// forwardLogicalChannelNumber on both sides
 		if (second)
@@ -12242,7 +12242,7 @@ bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc, callp
 		changed |= hnat->HandleOpenLogicalChannel(olc);
 	}
 
-	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RemoveMCInFastStartTransmitOffer", "0"))) {
+	if (GkConfig()->GetBoolean(ProxySection, "RemoveMCInFastStartTransmitOffer", false)) {
 		// for unicast transmit channels, mediaChannel should not be sent on offer
 		// it is responsibility of callee to provide mediaChannel in an answer
 		H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters &params = olc.m_forwardLogicalChannelParameters.m_multiplexParameters;
@@ -13003,7 +13003,7 @@ ProxyHandler::ProxyHandler(const PString & name)
 	: SocketsReader(100), m_socketCleanupTimeout(DEFAULT_SOCKET_CLEANUP_TIMEOUT)
 {
 	SetName(name);
-	m_proxyHandlerHighPrio = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "ProxyHandlerHighPrio", 1);
+	m_proxyHandlerHighPrio = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "ProxyHandlerHighPrio", true);
 	Execute();
 }
 
@@ -13017,9 +13017,9 @@ void ProxyHandler::LoadConfig()
 	m_socketCleanupTimeout = GkConfig()->GetInteger(
 		RoutedSec, "SocketCleanupTimeout", DEFAULT_SOCKET_CLEANUP_TIMEOUT);
 #ifdef HAS_H46017
-	m_h46017Enabled = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "EnableH46017", 0);
+	m_h46017Enabled = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "EnableH46017", false);
 #endif
-	m_proxyHandlerHighPrio = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "ProxyHandlerHighPrio", 1);
+	m_proxyHandlerHighPrio = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "ProxyHandlerHighPrio", true);
 }
 
 void ProxyHandler::Insert(TCPProxySocket * socket)
