@@ -310,7 +310,7 @@ the IP for this neighbor.
 <item><tt/SendPassword=secret/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-EXPERIMENTAL: The password to send to the neighbor (right now only used for H.460.18 SCI).
+The password to send to the neighbor (right now only used for H.460.18 SCI).
 Encrypted if Keyfilled= is set, plain text otherwise.
 
 <item><tt/SendAuthUser=Foo/<newline>

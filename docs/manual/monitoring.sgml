@@ -795,7 +795,7 @@ GetAcctInfo SqlAcct
 </descrip>
 
 <item><tt/PrintEndpointQoS/<newline>
-<p>EXPERIMENTAL: Display QoS values for all endpoints. The values are collected
+<p>Display QoS values for all endpoints. The values are collected
 through H.460.9 and/or proxied RTCP messages, so at least one of these features
 must be enabled to have packet loss or jitter values.
 If an endpoint has more than one active call, the packet loss and jitter values are from one randomly selected call.
