@@ -1196,7 +1196,7 @@ dnl ########################################################################
 dnl Switch for weak TLS (endpoints without certificate)
 dnl ########################################################################
 
-dnl MSWIN_DISPLAY    weaktls,support endpoints without TLS certificate
+dnl MSWIN_DISPLAY    weaktls,allow endpoints without TLS certificate (default=require cert when using TLS)
 dnl MSWIN_DEFAULT    weaktls,Disabled
 dnl MSWIN_DEFINE     weaktls,HAS_WEAK_TLS
 
@@ -1211,7 +1211,7 @@ if test "x${weaktls}" != "xno" ; then
    STDCCFLAGS="-DHAS_WEAK_TLS=1 $STDCCFLAGS"
    echo "Weak TLS enabled"
 else
-   echo "Weak TLS disabled (using strong TLS)"
+   echo "Weak TLS disabled (using strong TLS with endpoint cert)"
    HAS_WEAK_TLS=0
 fi
 AC_SUBST(HAS_WEAK_TLS)
