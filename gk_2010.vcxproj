@@ -504,6 +504,7 @@
     <ClCompile Include="clirw.cxx" />
     <ClCompile Include="forwarding.cxx" />
     <ClCompile Include="gk.cxx" />
+    <ClCompile Include="geoip.cxx" />
     <ClCompile Include="gkacct.cxx" />
     <ClCompile Include="gkauth.cxx" />
     <ClCompile Include="GkClient.cxx" />

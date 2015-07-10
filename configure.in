@@ -1221,7 +1221,7 @@ dnl check for GeoIP
 dnl ########################################################################
 
 dnl MSWIN_DISPLAY    geoip,GeoIP support
-dnl MSWIN_DEFINE     geoip,HAS_GEOIP
+dnl MSWIN_CHECK_FILE geoip,GeoIP.h,HAS_GEOIP=1
 
 AC_ARG_ENABLE(geoip, 
 [  --enable-geoip          enable GeoIP support (default=yes)], 
