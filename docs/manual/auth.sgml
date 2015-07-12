@@ -1659,7 +1659,7 @@ Path to the Maxmind GeoIP database. You can download the latest copy of the GeoI
 <item><tt>AllowedCountries=US,CA,PRIVATE</tt><newline>
 Default: <tt>N/A</tt>
 <p>
-Define which countries you want to accept messages from. The special country 'PRIVATE' denotes ptivate IPs.
+Define which countries you want to accept messages from. The special country 'PRIVATE' denotes private IPs.
 </itemize>
 
 
