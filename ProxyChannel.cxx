@@ -9640,7 +9640,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		<< " multiplexDest A=" << AsString(m_multiplexDestination_A) << " multiplexID A=" << m_multiplexID_A << " multiplexSocket A=" << m_multiplexSocket_A
 		<< " multiplexDest B=" << AsString(m_multiplexDestination_B) << " multiplexID B=" << m_multiplexID_B << " multiplexSocket B=" << m_multiplexSocket_B);
 
-    if (m_ignoreSignaledIPs && !UsesH46019()) {
+    if (m_ignoreSignaledIPs) {     // TODO: switch this off if _both_ sides are using H.460.19, make sure it says on if only one side uses H.460.19
         //// learn from data we already have (eg. from H.239 signaling)
         // set known destination as assumed source
         if (fSrcIP == 0 && rSrcIP == 0 && fDestIP !=0) {
@@ -9666,12 +9666,12 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
         // this is from forward source and we we don't have reverse destination
         if (fSrcIP == fromIP && fSrcPort == fromPort && rDestIP == 0) {
             rDestIP = fromIP, rDestPort = fromPort;
-            PTRACE(7, "JW RTP IN on " << localport << " learned rDest " << AsString(rDestIP, rDestPort) << " for fSrc " << AsString(fSrcIP, fSrcPort));
+            PTRACE(7, "JW RTP IN on " << localport << " learned rDest " << AsString(rDestIP, rDestPort) << " from fSrc " << AsString(fSrcIP, fSrcPort));
         }
         // this sis from reverse source and we we don't have forward destination
         if (rSrcIP == fromIP && rSrcPort == fromPort && fDestIP == 0) {
             fDestIP = fromIP, fDestPort = fromPort;
-            PTRACE(7, "JW RTP IN on " << localport << " learned fDest " << AsString(fDestIP, fDestPort) << " for rSrc " << AsString(rSrcIP, rSrcPort));
+            PTRACE(7, "JW RTP IN on " << localport << " learned fDest " << AsString(fDestIP, fDestPort) << " from rSrc " << AsString(rSrcIP, rSrcPort));
         }
     }
 	// check payloadType in keepAlive
