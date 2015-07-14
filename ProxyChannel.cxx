@@ -10796,18 +10796,18 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 	}
 #endif
 
-        PIPSocket::Address ip = H245UnicastToSocketAddr(*dest);
-        if (m_ignoreSignaledIPs && isUnidirectional && ip.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
-            zeroIP = true;
-        }
-        if (zeroIP) {
-            PTRACE(7, "JW RTP IN zero RTCP src + dest (IgnoreSignaledIPs)");
-            (rtcp->*SetDest)(0, 0, NULL, call);
-        } else if (m_ignoreSignaledIPs && isUnidirectional && tmpSrcIP.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
-            // only zero out source IP
-            PTRACE(7, "JW RTP IN zero RTCP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
-            (rtcp->*SetDest)(0, 0, dest, call);
-        }
+    PIPSocket::Address ip = H245UnicastToSocketAddr(*dest);
+    if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && ip.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
+        zeroIP = true;
+    }
+    if (zeroIP) {
+        PTRACE(7, "JW RTP IN zero RTCP src + dest (IgnoreSignaledIPs)");
+        (rtcp->*SetDest)(0, 0, NULL, call);
+    } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && tmpSrcIP.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
+        // only zero out source IP
+        PTRACE(7, "JW RTP IN zero RTCP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
+        (rtcp->*SetDest)(0, 0, dest, call);
+    }
 
 	if (useRTPMultiplexing) {
 		*mediaControlChannel << local << (WORD)GkConfig()->GetInteger(ProxySection, "RTCPMultiplexPort", GK_DEF_MULTIPLEX_RTCP_PORT);
@@ -10835,13 +10835,13 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 #endif
 
         PIPSocket::Address ip = H245UnicastToSocketAddr(*dest);
-        if (m_ignoreSignaledIPs && isUnidirectional && ip.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
+        if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && ip.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
             zeroIP = true;
         }
         if (zeroIP) {
             PTRACE(7, "JW RTP IN zero RTP src + dest (IgnoreSignaledIPs)");
             (rtp->*SetDest)(0, 0, NULL, call);
-        } else if (m_ignoreSignaledIPs && isUnidirectional && tmpSrcIP.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
+        } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && tmpSrcIP.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
             // only zero out source IP
             PTRACE(7, "JW RTP IN zero RTP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
             (rtp->*SetDest)(0, 0, dest, call);
