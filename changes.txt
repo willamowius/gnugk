@@ -1,5 +1,6 @@
 Changes from 3.9 to 4.0
 =======================
+- new switch [Proxy] AllowSignaledIPs= to skip to skip auto-detect for network when IgnoreSignaledIPs=1 (experimental)
 
 
 Changes from 3.8 to 3.9

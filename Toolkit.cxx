@@ -1869,7 +1869,7 @@ PConfig* Toolkit::ReloadConfig()
 		PStringArray networks = removeH235Call.Tokenise(",", FALSE);
 		for (PINDEX n=0; n < networks.GetSize(); ++n) {
 			if (networks[n].Find('/') == P_MAX_INDEX)
-				networks[n] += "/32";	// add netmask to pure IPs
+				networks[n] += "/32";	// add netmask to pure IPs  TODO: fix for IPv6
 			NetworkAddress net = NetworkAddress(networks[n]);
 			m_removeH235TokensfromNetwork.push_back(net);
 		}

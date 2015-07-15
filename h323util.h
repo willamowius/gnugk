@@ -34,6 +34,7 @@ class H245_TransportAddress;
 class H245_UnicastAddress;
 class PASN_OctetString;
 class H460_Feature;
+class NetworkAddress;
 
 PString AsString(const PIPSocket::Address &);
 
@@ -125,6 +126,9 @@ void UnmapIPv4Address(PIPSocket::Address & addr);
 void MapIPv4Address(PIPSocket::Address & addr);
 
 bool IsLoopback(const PIPSocket::Address &);
+
+// is this IP part of this network
+bool IsInNetwork(const PIPSocket::Address & ip, const NetworkAddress  & net);
 
 bool IsSet(const H323TransportAddress & addr);
 

@@ -16,6 +16,7 @@
 #include "gk_const.h"
 #include "config.h"
 #include "h323util.h"
+#include "Toolkit.h"
 
 #ifdef HAS_H460
 #include <h460/h4601.h>
@@ -646,6 +647,12 @@ void MapIPv4Address(PIPSocket::Address & addr)
 bool IsLoopback(const PIPSocket::Address & addr)
 {
 	return addr.IsLoopback() != 0;
+}
+
+// is this IP part of this network
+bool IsInNetwork(const PIPSocket::Address & ip, const NetworkAddress  & net)
+{
+    return (ip << net);
 }
 
 bool IsSet(const H323TransportAddress & addr)

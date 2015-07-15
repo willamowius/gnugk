@@ -969,8 +969,9 @@ private:
 	BYTE m_cipherPayloadType;			// remember in OLC to use in OLCA
 	H225_CallIdentifier m_callID;
 #endif
-    bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPS in signalling, do full autodetect
+    bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPs in signalling, do full auto-detect
     bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H239 streams
+    NetworkAddress m_keepSignaledIPs;   // don't do auto-detect on this network
     bool m_isUnidirectional;
 };
 
@@ -1147,8 +1148,9 @@ protected:
 	bool m_isCaller;
 	bool m_isH245Master;
 #endif
-    bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPS in signalling, do full autodetect
+    bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPs in signalling, do full auto-detect
     bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H239 streams
+    NetworkAddress m_keepSignaledIPs;   // don't do auto-detect on this network
 };
 
 
@@ -9365,6 +9367,10 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
 #endif
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
     m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
+    PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");
+    if (keepSignaledIPs.Find('/') == P_MAX_INDEX)
+        keepSignaledIPs += "/32";	// add netmask to pure IPs  TODO: fix for IPv6
+    m_keepSignaledIPs = NetworkAddress(keepSignaledIPs);
 }
 
 UDPProxySocket::~UDPProxySocket()
@@ -9640,7 +9646,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		<< " multiplexDest A=" << AsString(m_multiplexDestination_A) << " multiplexID A=" << m_multiplexID_A << " multiplexSocket A=" << m_multiplexSocket_A
 		<< " multiplexDest B=" << AsString(m_multiplexDestination_B) << " multiplexID B=" << m_multiplexID_B << " multiplexSocket B=" << m_multiplexSocket_B);
 
-    if (m_ignoreSignaledIPs) {     // TODO: switch this off if _both_ sides are using H.460.19, make sure it says on if only one side uses H.460.19
+    if (m_ignoreSignaledIPs) {     // TODO: switch this off if _both_ sides are using H.460.19, make sure it stays on if only one side uses H.460.19
         //// learn from data we already have (eg. from H.239 signaling)
         // set known destination as assumed source
         if (fSrcIP == 0 && rSrcIP == 0 && fDestIP !=0) {
@@ -10276,6 +10282,10 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 {
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
     m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
+    PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");
+    if (keepSignaledIPs.Find('/') == P_MAX_INDEX)
+        keepSignaledIPs += "/32";	// add netmask to pure IPs  TODO: fix for IPv6
+    m_keepSignaledIPs = NetworkAddress(keepSignaledIPs);
     m_isUnidirectional = false;
 	SrcIP = 0;
 	SrcPort = 0;
@@ -10342,6 +10352,10 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool na
 {
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
     m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
+    PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");
+    if (keepSignaledIPs.Find('/') == P_MAX_INDEX)
+        keepSignaledIPs += "/32";	// add netmask to pure IPs  TODO: fix for IPv6
+    m_keepSignaledIPs = NetworkAddress(keepSignaledIPs);
     m_isUnidirectional = false;
 #ifdef HAS_H235_MEDIA
 	m_H235CryptoEngine = NULL;
@@ -10800,10 +10814,13 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
     if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && ip.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
         zeroIP = true;
     }
+    if (IsInNetwork(ip, m_keepSignaledIPs)) {
+        zeroIP = false;
+    }
     if (zeroIP) {
         PTRACE(7, "JW RTP IN zero RTCP src + dest (IgnoreSignaledIPs)");
         (rtcp->*SetDest)(0, 0, NULL, call);
-    } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && tmpSrcIP.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
+    } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && tmpSrcIP.IsRFC1918() && m_ignoreSignaledPrivateH239IPs && !IsInNetwork(ip, m_keepSignaledIPs)) {
         // only zero out source IP
         PTRACE(7, "JW RTP IN zero RTCP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
         (rtcp->*SetDest)(0, 0, dest, call);
@@ -10838,10 +10855,13 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
         if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && ip.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
             zeroIP = true;
         }
+        if (IsInNetwork(ip, m_keepSignaledIPs)) {
+            zeroIP = false;
+        }
         if (zeroIP) {
             PTRACE(7, "JW RTP IN zero RTP src + dest (IgnoreSignaledIPs)");
             (rtp->*SetDest)(0, 0, NULL, call);
-        } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && tmpSrcIP.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
+        } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && tmpSrcIP.IsRFC1918() && m_ignoreSignaledPrivateH239IPs && !IsInNetwork(ip, m_keepSignaledIPs)) {
             // only zero out source IP
             PTRACE(7, "JW RTP IN zero RTP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
             (rtp->*SetDest)(0, 0, dest, call);
@@ -11193,6 +11213,9 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
         if (m_ignoreSignaledIPs && isUnidirectional && ip.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
             zeroIP = true;
         }
+        if (IsInNetwork(ip, m_keepSignaledIPs)) {
+            zeroIP = false;
+        }
         if (zeroIP) {
 			lc->ZeroMediaControlChannelSource();
         }
@@ -11213,6 +11236,9 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
         PIPSocket::Address ip = H245UnicastToSocketAddr(*addr);
         if (m_ignoreSignaledIPs && isUnidirectional && ip.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
             zeroIP = true;
+        }
+        if (IsInNetwork(ip, m_keepSignaledIPs)) {
+            zeroIP = false;
         }
         if (zeroIP) {
 				lc->ZeroMediaChannelSource();

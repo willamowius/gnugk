@@ -317,6 +317,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "PortNotifications", "StatusPortClose" },
 	{ "PortNotifications", "T120PortOpen" },
 	{ "PortNotifications", "T120PortClose" },
+	{ "Proxy", "AllowSignaledIPs" },
 	{ "Proxy", "CheckH46019KeepAlivePT" },
 	{ "Proxy", "DisableRTPQueueing" },
 	{ "Proxy", "Enable" },

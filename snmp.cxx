@@ -395,7 +395,7 @@ PBoolean PTLibSNMPAgent::Authorise(const PIPSocket::Address & ip)
 	PStringArray networks = GkConfig()->GetString(SNMPSection, "AllowRequestsFrom", "").Tokenise(",", FALSE);
 	for (PINDEX n=0; n < networks.GetSize(); ++n) {
 		if (networks[n].Find('/') == P_MAX_INDEX)
-			networks[n] += "/32";	// add netmask to pure IPs
+			networks[n] += "/32";	// add netmask to pure IPs  TODO: fix for IPv6
 		NetworkAddress net = NetworkAddress(networks[n]);
 		if (ip << net) {
 			return PTrue;
@@ -638,7 +638,7 @@ void WindowsSNMPAgent::SendWindowsSNMPTrap(unsigned trapNumber, SNMPLevel severi
 #endif // HAS_WINSNMP
 
 
-PCaselessString SelectSNMPImplementation() 
+PCaselessString SelectSNMPImplementation()
 {
 #ifdef HAS_NETSNMP
 	PCaselessString implementation = GkConfig()->GetString(SNMPSection, "Implementation", "Net-SNMP");
@@ -694,7 +694,7 @@ void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, cons
 #endif
 }
 
-void StartSNMPAgent() 
+void StartSNMPAgent()
 {
 	PCaselessString implementation = SelectSNMPImplementation();
 #ifdef HAS_NETSNMP
@@ -717,7 +717,7 @@ void StartSNMPAgent()
 #endif
 }
 
-void StopSNMPAgent() 
+void StopSNMPAgent()
 {
 #ifdef HAS_NETSNMP
 	if (NetSNMPAgent::InstanceExists()) {
@@ -734,7 +734,7 @@ void StopSNMPAgent()
 #endif
 }
 
-void DeleteSNMPAgent() 
+void DeleteSNMPAgent()
 {
 #ifdef HAS_NETSNMP
 	if (NetSNMPAgent::InstanceExists()) {

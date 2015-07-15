@@ -15,6 +15,7 @@
 #include "config.h"
 #include "h323util.h"
 #include "gk_const.h"
+#include "Toolkit.h"
 #include <h323pdu.h>
 #include "gtest/gtest.h"
 
@@ -282,6 +283,14 @@ TEST_F(H323UtilTest, MapIPv4Address) {
 TEST_F(H323UtilTest, IsLoopback) {
 	PIPSocket::Address ip;
 	EXPECT_TRUE(IsLoopback(ip));
+}
+
+TEST_F(H323UtilTest, IsInNetwork) {
+	PIPSocket::Address ip1("4.5.6.7");
+	PIPSocket::Address ip2("4.5.7.1");
+    NetworkAddress net("4.5.6.0/24");
+	EXPECT_TRUE(IsInNetwork(ip1, net));
+	EXPECT_FALSE(IsInNetwork(ip2, net));
 }
 
 TEST_F(H323UtilTest, SplitIPAndPort) {
