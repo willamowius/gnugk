@@ -2180,15 +2180,15 @@ bool RegistrationRequestPDU::Process()
 		}
 		if (bReject) {
 			if (ep && bSendReply) {
-			 PTRACE(1, "RAS\tWarning: Possibly endpointId collide, security attack or IP change");
-			   if (Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "SupportDynamicIP", "0"))) {
-			     PTRACE(1, "RAS\tDynamic IP? Removing existing Endpoint record and force reregistration.");
-   						while (callptr call = CallTbl->FindCallRec(ep)) {
-							call->Disconnect();
-							CallTbl->RemoveCall(call);
-						}
-						EndpointTbl->RemoveByEndptr(ep);
-			   }
+                PTRACE(1, "RAS\tWarning: Possibly endpointId collide, security attack or IP change");
+                if (Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "SupportDynamicIP", "0"))) {
+                    PTRACE(1, "RAS\tDynamic IP? Removing existing Endpoint record and force reregistration.");
+                    while (callptr call = CallTbl->FindCallRec(ep)) {
+                        call->Disconnect();
+                        CallTbl->RemoveCall(call);
+                    }
+                    EndpointTbl->RemoveByEndptr(ep);
+                }
 			}
 			// endpoint was NOT registered and force Full Registration
 			return BuildRRJ(H225_RegistrationRejectReason::e_fullRegistrationRequired);
@@ -2349,7 +2349,8 @@ bool RegistrationRequestPDU::Process()
 	if (request.m_rasAddress.GetSize() == 0)
 		return BuildRRJ(H225_RegistrationRejectReason::e_invalidRASAddress);
 
-	bool nated = false, validaddress = false;
+	bool nated = false;
+	bool validaddress = false;
 	if (request.m_callSignalAddress.GetSize() >= 1) {
 		PIPSocket::Address ipaddr;
 		for (int s = 0; s < request.m_callSignalAddress.GetSize(); ++s) {
@@ -2397,9 +2398,11 @@ bool RegistrationRequestPDU::Process()
 
 
 		endptr ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
-		if (ep && ep->GetCallSignalAddress() != SignalAddr)
+		if (ep && ep->GetCallSignalAddress() != SignalAddr) {
+            PTRACE(1, "RAS\tNew registration with existing endpointID, but different IP: oldIP=" << AsDotString(ep->GetCallSignalAddress()) << " newIP=" << AsDotString(SignalAddr));
 			// no reason named invalidEndpointIdentifier? :(
 			return BuildRRJ(H225_RegistrationRejectReason::e_securityDenial);
+        }
 	}
 
 	RRQAuthData authData;
@@ -2448,22 +2451,23 @@ bool RegistrationRequestPDU::Process()
 				bNewEP = (ep->GetCallSignalAddress() != SignalAddr);
 				if (bNewEP) {
 					if ((RegPrior > ep->Priority()) || (preempt) ||
-					  (Toolkit::AsBool(Kit->Config()->GetString("RasSrv::RRQFeatures", "OverwriteEPOnSameAddress", "0")))) {
+                        (Toolkit::AsBool(Kit->Config()->GetString("RasSrv::RRQFeatures", "OverwriteEPOnSameAddress", "0")))) {
 						// If the operators policy allows this case:
 						// 1a) terminate all calls on active ep and
 						// 1b) unregister the active ep - sends URQ and
 						// 2) remove the ep from the EndpointTable, then
 						// 3) allow the new ep to register - see below
+						PTRACE(1, "RAS\tTerminating all calls on registration overwrite for EP " << ep->GetEndpointIdentifier().GetValue());
 						while (callptr call = CallTbl->FindCallRec(ep)) {
 							call->Disconnect();
 							CallTbl->RemoveCall(call);
 						}
 						if (RegPrior > ep->Priority())
-						   ep->Unregisterpreempt(1);   // Unregistered by high priority
+                            ep->Unregisterpreempt(1);   // Unregistered by high priority
 						else if (preempt)
-						   ep->Unregisterpreempt(2);   // Unregistered by preempt notification
+                            ep->Unregisterpreempt(2);   // Unregistered by preempt notification
 						else
-						   ep->Unregister();
+                            ep->Unregister();
 
 						EndpointTbl->RemoveByEndptr(ep);
 					} else {
