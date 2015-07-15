@@ -2180,9 +2180,9 @@ bool RegistrationRequestPDU::Process()
 		}
 		if (bReject) {
 			if (ep && bSendReply) {
-                PTRACE(1, "RAS\tWarning: Possibly endpointId collide, security attack or IP change");
+                PTRACE(1, "RAS\tWarning: Possible endpointId collission, security attack or IP change");
                 if (Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "SupportDynamicIP", "0"))) {
-                    PTRACE(1, "RAS\tDynamic IP? Removing existing Endpoint record and force reregistration.");
+                    PTRACE(1, "RAS\tDynamic IP?  Removing existing Endpoint record and force reregistration. Disconnecting calls.");
                     while (callptr call = CallTbl->FindCallRec(ep)) {
                         call->Disconnect();
                         CallTbl->RemoveCall(call);
@@ -2399,6 +2399,7 @@ bool RegistrationRequestPDU::Process()
 
 		endptr ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
 		if (ep && ep->GetCallSignalAddress() != SignalAddr) {
+            // TODO: add switch to accept new registration if just the port is different ?
             PTRACE(1, "RAS\tNew registration with existing endpointID, but different IP: oldIP=" << AsDotString(ep->GetCallSignalAddress()) << " newIP=" << AsDotString(SignalAddr));
 			// no reason named invalidEndpointIdentifier? :(
 			return BuildRRJ(H225_RegistrationRejectReason::e_securityDenial);
@@ -2480,8 +2481,8 @@ bool RegistrationRequestPDU::Process()
 							H460_FeatureOID pre = H460_FeatureOID(rPriFS);
 							pre.Add(PString(OID6_PreNot),H460_FeatureContent(TRUE));
 							H225_ArrayOf_GenericData & data = rrj.m_genericData;
-								PINDEX lastPos = data.GetSize();
-								data.SetSize(lastPos+1);
+                            PINDEX lastPos = data.GetSize();
+                            data.SetSize(lastPos + 1);
 							data[lastPos] = pre;
 						}
 #endif // HAS_H460PRE
