@@ -2398,8 +2398,9 @@ bool RegistrationRequestPDU::Process()
 
 
 		endptr ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
-		if (ep && ep->GetCallSignalAddress() != SignalAddr) {
-            // TODO: add switch to accept new registration if just the port is different ?
+		// endpoint exists, but has different IP or port - this could be a new registration from a NATed endpoint where the fiewall close the pinhole
+		if (ep && ep->GetCallSignalAddress() != SignalAddr
+            && !Kit->Config()->GetBoolean("RasSrv::RRQFeatures", "OverwriteEPOnSameAddress", false) ) {
             PTRACE(1, "RAS\tNew registration with existing endpointID, but different IP: oldIP=" << AsDotString(ep->GetCallSignalAddress()) << " newIP=" << AsDotString(SignalAddr));
 			// no reason named invalidEndpointIdentifier? :(
 			return BuildRRJ(H225_RegistrationRejectReason::e_securityDenial);
