@@ -2674,7 +2674,11 @@ bool AddH235Capability(unsigned _entryNo, const PStringList & _capList,
     unsigned secCapNo = 100 + _entryNo;	// TODO: calculate the largest actually used CapNo instead of using 100 ?
 
     int sz = _capTable.GetSize();
-    _capTable.SetSize(sz+1);
+    if (sz >= PASN_Object::GetMaximumArraySize()) {
+        PTRACE(2, "H235\tError: Maximum ASN.1 array size reached (" << PASN_Object::GetMaximumArraySize() << ")");
+        return false;
+    }
+    _capTable.SetSize(sz + 1);
     H245_CapabilityTableEntry & entry = _capTable[sz];
 	entry.m_capabilityTableEntryNumber.SetValue(secCapNo);
 	entry.IncludeOptionalField(H245_CapabilityTableEntry::e_capability);
@@ -2686,7 +2690,7 @@ bool AddH235Capability(unsigned _entryNo, const PStringList & _capList,
 		H245_EncryptionAuthenticationAndIntegrity::e_encryptionCapability);
 	H245_EncryptionCapability & enc = sec.m_encryptionAuthenticationAndIntegrity.m_encryptionCapability;
 	enc.SetSize(_capList.GetSize());
-	for (PINDEX i=0; i < _capList.GetSize(); ++i) {
+	for (PINDEX i = 0; i < _capList.GetSize(); ++i) {
 		H245_MediaEncryptionAlgorithm & alg = enc[i];
 		alg.SetTag(H245_MediaEncryptionAlgorithm::e_algorithm);
 		PASN_ObjectId & id = alg;

@@ -1,5 +1,6 @@
 Changes from 3.9 to 4.0
 =======================
+- BUGFIX(ProxyChannel.cxx) fix crash in H.235 Media for endpoints with more than 64 capability entries in TCS
 - new switch [Proxy] AllowSignaledIPs= to skip to skip auto-detect for network when IgnoreSignaledIPs=1 (experimental)
 
 
