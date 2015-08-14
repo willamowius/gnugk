@@ -1813,6 +1813,9 @@ bool DynamicPolicy::OnRequest(AdmissionRequest & request)
 
 		if (destination.ChangeAliases()) {
 			request.SetFlag(RoutingRequest::e_aliasesChanged);
+            if (!arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo)) {
+                arq.IncludeOptionalField(H225_AdmissionRequest::e_destinationInfo);
+            }
 			arq.m_destinationInfo = destination.GetNewAliases();
 		}
 
