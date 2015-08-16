@@ -1033,6 +1033,9 @@ void GkStatus::ShowUsers(
 void GkStatus::PrintEventBacklog(StatusClient * requestingClient) const
 {
 	PWaitAndSignal lock(m_eventBacklogMutex);
+	if (m_eventBacklogLimit == 0) {
+    	requestingClient->WriteString("Please enable the status port event backlog by setting [Gatekeeper::Main] StatusEventBacklog=100\r\n");
+	}
 	for (std::list<PString>::const_iterator i = m_eventBacklog.begin(); i != m_eventBacklog.end(); ++i) {
 	    requestingClient->WriteString(*i + "\r\n");
 	}
