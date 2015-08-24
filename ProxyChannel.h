@@ -323,6 +323,7 @@ public:
 	H225_CallIdentifier GetCallIdentifier() const { return m_call ? m_call->GetCallIdentifier() : 0; }
 	void BuildFacilityPDU(Q931 &, int, const PObject * = NULL);
 	void BuildProgressPDU(Q931 &, PBoolean fromDestination);
+	void BuildNotifyPDU(Q931 &, PBoolean fromDestination);
 	void BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallIdentifier & callId, unsigned crv);
 	void BuildSetupPDU(Q931 &, const H225_CallIdentifier & callid, unsigned crv, const PString & destination, bool h245tunneling);
 	void RemoveCall();
@@ -337,8 +338,8 @@ public:
 	Result RetrySetup();
 	void TryNextRoute();
 	void RemoveH245Handler();
-	void SaveTCS(const H245_TerminalCapabilitySet & tcs) { m_savedTCS = tcs; }
 	H245_TerminalCapabilitySet GetSavedTCS() const { return m_savedTCS; }
+	unsigned GetNextTCSSeq() { return ++m_tcsRecSeq; }
 	bool SendTunneledH245(const PPER_Stream & strm);
 	bool SendTunneledH245(const H245_MultimediaSystemControlMessage & h245msg);
 #ifdef HAS_H235_MEDIA
@@ -506,6 +507,8 @@ private:
 	PBYTEArray m_rawSetup;
 	PMutex infomutex;    // Information PDU processing Mutex
 	H245_TerminalCapabilitySet m_savedTCS;	// saved tcs to re-send
+	unsigned m_tcsRecSeq;
+	unsigned m_tcsAckRecSeq;
 #ifdef HAS_H46017
 	bool m_h46017Enabled;
 	TCPProxySocket * rc_remote; // copy of the remote pointer that may be only used to send RC on call end

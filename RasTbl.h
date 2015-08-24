@@ -889,6 +889,9 @@ public:
 	void SetForward(CallSignalSocket *, const H225_TransportAddress &, const endptr &, const PString &, const PString &);
 	void RerouteDropCalling();
 	void RerouteDropCalled();
+    void AddChannelFlcn(WORD flcn) { m_channelFlcnList.push_back(flcn); }   // list of all channel Flcn every _tried_ to open
+    vector<WORD> GetChannelFlcnList() const { return m_channelFlcnList; }   // list of all channel Flcn every _tried_ to open
+    void ClearChannelFlcnList() { m_channelFlcnList.clear(); }
 	bool DropCalledAndTryNextRoute();
 	void SetBandwidth(long bandwidth) { m_bandwidth = bandwidth; if (m_bandwidth < 0) m_bandwidth = 0; }
 	void SetSocket(CallSignalSocket *, CallSignalSocket *);
@@ -1621,6 +1624,7 @@ private:
 	PString m_calledVersion;
 	// Sorenson SInfo
 	PString m_sinfoIP;
+    vector<WORD> m_channelFlcnList; // list of all channel Flcn every _tried_ to open so we can close them on Reroute
 };
 
 typedef CallRec::Ptr callptr;

@@ -22,6 +22,7 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Option use_console_runner="0" />
+				<Option parameters="-c /home/jan/tmp/2.2/stat.ini" />
 				<Compiler>
 					<Add directory="${PTLIBDIR}/include" />
 					<Add directory="${OPENH323DIR}/include" />
@@ -42,6 +43,7 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Option use_console_runner="0" />
+				<Option parameters="-c /home/jan/tmp/2.2/stat.ini" />
 				<Compiler>
 					<Add directory="${PTLIBDIR}/include" />
 					<Add directory="${OPENH323DIR}/include" />
@@ -62,7 +64,7 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Option use_console_runner="0" />
-				<Option parameters="-c ../stat.ini" />
+				<Option parameters="-c /home/jan/tmp/2.2/stat.ini" />
 				<Compiler>
 					<Add directory="${PTLIBDIR}/include" />
 					<Add directory="${OPENH323DIR}/include" />
