@@ -2049,7 +2049,6 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			h245req.SetTag(H245_RequestMessage::e_terminalCapabilitySet);
 			H245_TerminalCapabilitySet & tcs = h245req;
 			tcs = GetRemote()->GetSavedTCS();	// TODO: is this the right side, or should we use remote->GetSavedTCS() ?
-			PTRACE(0, "JW using TCS=" << tcs);
 			tcs.m_protocolIdentifier.SetValue(H245_ProtocolID);
 
 			// send TCS to forwarded party
@@ -2062,7 +2061,6 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
                 tcs.m_sequenceNumber = seq;
 				m_call->GetCallSignalSocketCalling()->SendTunneledH245(h245msg);
 			}
-			PTRACE(0, "JW sent tunnled saved TCS seq=" << tcs.m_sequenceNumber);
 		}
 
         // send Notify with new DisplayIE (and new bearer capabilities ?)
@@ -2454,10 +2452,8 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 
         // update seqNum
         if (GetRemote()) {
-            PTRACE(0, "JW processing TCSAck seq=" << ack.m_sequenceNumber << " remote->m_tcsAckRecSeq=" << GetRemote()->m_tcsAckRecSeq);
             if (ack.m_sequenceNumber != GetRemote()->m_tcsAckRecSeq) {
                 ack.m_sequenceNumber = GetRemote()->m_tcsAckRecSeq;
-                PTRACE(0, "JW seq updated to " << ack.m_sequenceNumber);
                 changed = true;
             }
         }
@@ -2489,12 +2485,9 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		H245_TerminalCapabilitySet & tcs = (H245_RequestMessage &)h245msg;
         // update seqNum (need after we did a TCS0 rerouting)
         m_tcsAckRecSeq = tcs.m_sequenceNumber;  // we'll expect the next TCSAck with this sequenceNum
-        PTRACE(0, "JW processing TCS seq=" << tcs.m_sequenceNumber << " this=" << this << " remote=" << GetRemote());
         if (GetRemote()) {
             unsigned seq = GetRemote()->GetNextTCSSeq();
-            PTRACE(0, "JW remote seq=" << seq);
             if (tcs.m_sequenceNumber != seq) {
-                PTRACE(0, "JW seq updated to " << seq);
                 tcs.m_sequenceNumber = seq;
                 changed = true;
             }
@@ -6065,8 +6058,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 		PTRACE(1, "Q931\tSending TCS0 to forwarded");
 		m_h245socket->SendTCS(NULL, GetNextTCSSeq());
 		for (unsigned i = 0; i < flcnList.size(); i++) {
-            PTRACE(0, "JW closing flcn " << flcnList[i]);
-            PTRACE(1, "Q931\tSending CLC " << flcnList[i] << " to forwarded");
+            PTRACE(2, "Q931\tSending CLC " << flcnList[i] << " to forwarded");
             clc.m_forwardLogicalChannelNumber = flcnList[i];
             m_h245socket->Send(h245msg_clc);
 		}
@@ -6075,7 +6067,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
         tcs0.m_sequenceNumber = GetNextTCSSeq();
         SendTunneledH245(h245msg_tcs0);
 		for (unsigned i = 0; i < flcnList.size(); i++) {
-            PTRACE(0, "JW closing (tunneled) flcn " << flcnList[i]);
+            PTRACE(2, "Q931\tSending CLC " << flcnList[i] << " to forwarded");
             clc.m_forwardLogicalChannelNumber = flcnList[i];
             SendTunneledH245(h245msg_clc);
         }
@@ -8239,8 +8231,12 @@ void H245Socket::ConnectToDirectly()
 	if (ConnectRemote()) {
 		ConfigReloadMutex.StartRead();
 		SetConnected(true);
-		remote->SetConnected(true);
-		GetHandler()->Insert(this, remote);
+		if (remote) {
+            remote->SetConnected(true);
+            GetHandler()->Insert(this, remote);
+        } else {
+            PTRACE(1, "H245\tError: no remote socket");
+        }
 		ConfigReloadMutex.EndRead();
 	}
 }
@@ -8366,7 +8362,6 @@ void H245Socket::SendTCS(H245_TerminalCapabilitySet * tcs, unsigned seq)
 		newTCS.m_protocolIdentifier.SetValue(H245_ProtocolID);
 	}
 	newTCS.m_sequenceNumber = seq;
-	PTRACE(0, "JW send TCS with seq=" << newTCS.m_sequenceNumber);
 	PPER_Stream wtstrm;
 	h245msg.Encode(wtstrm);
 	wtstrm.CompleteEncoding();
