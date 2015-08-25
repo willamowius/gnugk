@@ -2063,6 +2063,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			}
 		}
 
+/*** Sending a Notify without a NotificationIndicatorIE is illegal and not understood by any endpoint tested
         // send Notify with new DisplayIE (and new bearer capabilities ?)
         if ((msg->GetQ931().HasIE(Q931::DisplayIE) || msg->GetQ931().HasIE(Q931::BearerCapabilityIE)) && GetRemote()) {
             Q931 q931;
@@ -2079,6 +2080,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
             q931.Encode(lBuffer);
             PrintQ931(3, "Send to ", GetRemote()->GetName(), &q931, &uuie);
             GetRemote()->TransmitData(lBuffer);
+*/
         }
 		delete msg;
 		return m_result;
@@ -7107,6 +7109,7 @@ void CallSignalSocket::BuildNotifyPDU(Q931 & NotifyPDU, PBoolean fromDestination
 		uuie.m_callIdentifier = m_call->GetCallIdentifier();
 	}
 	NotifyPDU.BuildNotify(m_crv, fromDestination);
+	// TODO: H.225.0 clause 7.4.2 says that a Notify must include a NotificationIndicatorIE (0x27) which H323Plus can't add
 	SetUUIE(NotifyPDU, signal);
 }
 
