@@ -2499,11 +2499,6 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 #endif
         H245_ArrayOf_CapabilityTableEntry & CapabilityTables = tcs.m_capabilityTable;
 
-		// save 1st TCS
-		if (m_savedTCS.GetSize() == 0) {
-            m_savedTCS = tcs;
-        }
-
 		// codec filtering
         if (m_call && !(m_call->GetDisabledCodecs().IsEmpty())) {
             std::set<unsigned> removedCaps;
@@ -2617,6 +2612,11 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		if (changed) {
 			PTRACE(4, "H245\tNew Capability Table: " << setprecision(2) << tcs);
 		}
+
+		// save 1st TCS
+		if (m_savedTCS.GetSize() == 0) {
+            m_savedTCS = tcs;
+        }
 	}
 
 	if ((!m_h245handler || !m_h245handler->HandleMesg(h245msg, suppress, m_call, h245sock)) && !changed)
