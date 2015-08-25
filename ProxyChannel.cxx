@@ -2048,7 +2048,8 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			H245_RequestMessage & h245req = h245msg;
 			h245req.SetTag(H245_RequestMessage::e_terminalCapabilitySet);
 			H245_TerminalCapabilitySet & tcs = h245req;
-			tcs = GetSavedTCS();	// TODO: is this the right side, or should we use remote->GetSavedTCS() ?
+			tcs = GetRemote()->GetSavedTCS();	// TODO: is this the right side, or should we use remote->GetSavedTCS() ?
+			PTRACE(0, "JW using TCS=" << tcs);
 			tcs.m_protocolIdentifier.SetValue(H245_ProtocolID);
 
 			// send TCS to forwarded party
@@ -7720,7 +7721,11 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 	if (m_call->GetRerouteState() == RerouteInitiated) {
 		// if in reroute, don't listen, actively connect to the other side, half of the H.245 connection is already up
 		m_h245socket->SetRemoteSocket(ret->m_h245socket);
-		ret->m_h245socket->SetRemoteSocket(m_h245socket);
+		if (ret->m_h245socket) {
+            ret->m_h245socket->SetRemoteSocket(m_h245socket);
+        } else {
+            PTRACE(0, "Reroute: Error mixed tunneled / non-tunneled call");
+        }
 		CreateJob(m_h245socket, &H245Socket::ConnectToRerouteDestination, "H245RerouteConnector");
 	} else {
 		CreateJob(m_h245socket, &H245Socket::ConnectTo, "H245Connector");	// start a listener
@@ -8178,6 +8183,11 @@ void H245Socket::ConnectToRerouteDestination()
 	if (ConnectRemote()) {
 		ConfigReloadMutex.StartRead();
 		SetConnected(true);
+		if (!remote) {
+            PTRACE(0, "Reroute: Error: mixed tunneled / non-tunneled call");
+            ConfigReloadMutex.EndRead();
+            return;
+		}
 		remote->SetConnected(true);
 		GetHandler()->Insert(this, remote);
 		ConfigReloadMutex.EndRead();
