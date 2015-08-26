@@ -6146,6 +6146,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 		H323SetAliasAddress(route.m_destNumber, destAlias[0]);
 		m_call->SetRouteToAlias(destAlias);
 	}
+    CallTable::Instance()->Insert(newCall);
 
 	// send Setup
 	buffer = m_rawSetup;
