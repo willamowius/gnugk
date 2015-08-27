@@ -31,7 +31,7 @@ Changes from 3.8 to 3.9
 Changes from 3.7 to 3.8
 =======================
 - BUGFIX(GkSTatus.cxx) fix crash in shutdown during Reload
-- allow codec filtering for whole capability classes, eg. DisableCodecs=receiveVideoCapability
+- allow codec filtering for whole capability classes, eg. DisabledCodecs=receiveVideoCapability
 - BUGFIX(lua.cxx) fix crash in 'lua' routing policy
 - BUGFIX(RasTbl.cxx) fix [EP::] ForceGateway= to work with permanent endpoints
 - make [Gatekeeper::Main] Authenticators= switch case insensitive
@@ -512,7 +512,7 @@ Changes from 2.3.0 to 2.3.1
 
 Changes from 2.2.8 to 2.3.0
 ===========================
-- codec filtering using [CallTable]DisableCodecs= or Radius (based on a patch by Georgiewskiy Yuriy)
+- codec filtering using [CallTable]DisabledCodecs= or Radius (based on a patch by Georgiewskiy Yuriy)
 - H.460.18 and H.460.19 support
 - BUGFIX(Routing.cxx) fix round-robin that broke in 2.2.8
 - new switch [Gatekeeper::Main]DisconnectCallsOnShutdown=0 to avoid disconnecting calls on shutdown
