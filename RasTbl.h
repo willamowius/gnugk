@@ -337,6 +337,7 @@ public:
 	PString GetDefaultLanguage();
 
 	bool AddCallingPartyToSourceAddress() const { return m_addCallingPartyToSourceAddress; }
+    PString GetDisabledCodecs() const { return m_disabledcodecs; }
 
 	// smart pointer for EndpointRec
 	typedef SmartPtr<EndpointRec> Ptr;
@@ -430,6 +431,8 @@ protected:
 	bool m_additiveRegistrant;
 	PStringList m_languages;  // languages the user of this endpoint supports
 	bool m_addCallingPartyToSourceAddress;	// per endpoint switch
+	/// list of disabled codes
+	PString m_disabledcodecs;
 };
 
 typedef EndpointRec::Ptr endptr;
@@ -982,6 +985,7 @@ public:
 
 	/** Set list of codecs to disable for this call */
 	void SetDisabledCodecs(const PString & codecs);
+	void AddDisabledCodecs(const PString & codecs);
 	PString GetDisabledCodecs() const { return m_disabledcodecs; }
 
 	/** @return

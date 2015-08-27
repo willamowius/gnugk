@@ -680,6 +680,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "EP::", "CallingTypeOfNumber" },
 	{ "EP::", "Capacity" },
 	{ "EP::", "DisableCallCreditCapabilities" },
+	{ "EP::", "DisabledCodecs" },
 #ifdef HAS_H46017
 	{ "EP::", "DisableH46017" },
 #endif

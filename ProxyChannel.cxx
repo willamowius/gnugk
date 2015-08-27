@@ -2500,6 +2500,14 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
         H245_ArrayOf_CapabilityTableEntry & CapabilityTables = tcs.m_capabilityTable;
 
 		// codec filtering
+		if (m_call && m_call->GetCallingParty()) {
+            // add filtered codecs for the calling party
+            m_call->AddDisabledCodecs(m_call->GetCallingParty()->GetDisabledCodecs());
+		}
+		if (m_call && m_call->GetCalledParty()) {
+            // add filtered codecs for the calling party
+            m_call->AddDisabledCodecs(m_call->GetCalledParty()->GetDisabledCodecs());
+		}
         if (m_call && !(m_call->GetDisabledCodecs().IsEmpty())) {
             std::set<unsigned> removedCaps;
 

@@ -451,6 +451,7 @@ void EndpointRec::LoadEndpointConfig()
 				m_hasCallCreditCapabilities = false;
 			}
 			m_addCallingPartyToSourceAddress = cfg->GetBoolean(key, "AddCallingPartyToSourceAddress", false);
+			m_disabledcodecs = cfg->GetString(key, "DisabledCodecs", "");
 
 			PTRACE(5, "RAS\tEndpoint " << key << " capacity: " << m_capacity << log);
 
@@ -3037,6 +3038,11 @@ void CallRec::SetDurationLimit(long seconds)
 void CallRec::SetDisabledCodecs(const PString & codecs)
 {
 	m_disabledcodecs = codecs.Trim();
+}
+
+void CallRec::AddDisabledCodecs(const PString & codecs)
+{
+	m_disabledcodecs = m_disabledcodecs + ";" + codecs.Trim();  // TODO: remove duplicates to optimize
 }
 
 void CallRec::SetSRC_media_control_IP(const PString & IP)
