@@ -6061,6 +6061,15 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
     vector<WORD> flcnList = m_call->GetChannelFlcnList();
     m_call->ClearChannelFlcnList();
 
+	// send TCS0 to dropping party
+	if (droppedSocket->m_h245socket) {
+		droppedSocket->m_h245socket->SendTCS(NULL, droppedSocket->GetNextTCSSeq());
+	} else {
+		// send tunneled TCS0
+        tcs0.m_sequenceNumber = droppedSocket->GetNextTCSSeq();
+        droppedSocket->SendTunneledH245(h245msg_tcs0);
+	}
+
 	// send TCS0 to forwarded (remaining) party
 	if (m_h245socket) {
 		PTRACE(1, "Q931\tSending TCS0 to forwarded");
@@ -6081,16 +6090,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
         }
     }
 
-	// send TCS0 to dropping party
-	if (droppedSocket->m_h245socket) {
-		droppedSocket->m_h245socket->SendTCS(NULL, droppedSocket->GetNextTCSSeq());
-	} else {
-		// send tunneled TCS0
-        tcs0.m_sequenceNumber = droppedSocket->GetNextTCSSeq();
-        droppedSocket->SendTunneledH245(h245msg_tcs0);
-	}
-
-	PThread::Sleep(500);	// wait for all CLCs to be sent
+	PThread::Sleep(100);	// wait for all CLCs to be sent
 
 	// drop party from call
 	if (which == Called) {
@@ -6132,7 +6132,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 			PTRACE(1, "Q931\tFailed to detach socket " << callingSocket->GetName() << " from its handler");
 		}
 
-		callingSocket->m_call = callptr(newCall);   // TODO: insert into callTable ? set m_call to newCall ?
+		callingSocket->m_call = callptr(newCall);
 		callingSocket->buffer = callingSocket->m_rawSetup;
 		callingSocket->buffer.MakeUnique();
 	}
