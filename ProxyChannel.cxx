@@ -6090,7 +6090,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
         }
     }
 
-	PThread::Sleep(100);	// wait for all CLCs to be sent
+	PThread::Sleep(500);	// wait for all CLCs to be sent
 
 	// drop party from call
 	if (which == Called) {
