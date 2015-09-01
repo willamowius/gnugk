@@ -1,5 +1,6 @@
 Changes from 3.9 to 4.0
 =======================
+- BUGFIX(ProxyChannel.cxx) fix crash when receiving message without UUIE
 - new switch [EP::] DisabledCodecs=
 - much improved TCS0 call transfer using 'Reroute' command on status port
 - BUGFIX(Routing.cxx) add field for destination alias in ARQ if missing and a dynamic routing policy sets it

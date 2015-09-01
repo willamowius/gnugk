@@ -1917,7 +1917,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			msg->SetUUIEChanged();
 		}
 	}
-	if (disableH245Tunneling && uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)) {
+	if (disableH245Tunneling && uuie && uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)) {
 		// if the h245Tunnelling field isn't present, that means no tunneling anyway
 		uuie->m_h323_uu_pdu.m_h245Tunneling.SetValue(false);
 		msg->SetUUIEChanged();
