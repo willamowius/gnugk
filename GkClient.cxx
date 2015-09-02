@@ -2856,7 +2856,7 @@ void GkClient::H46023_LoadAlternates(const H225_CallIdentifier & id, WORD sessio
 
 	GkNATSocketMap::iterator i = m_natstrategy.find(id);
 	if (i != m_natstrategy.end()) {
-		std::list<CallH46024Sockets>::iterator k;
+		std::list<CallH46024Sockets>::iterator k = i->second.begin();
 		while (k != i->second.end()) {
 			CallH46024Sockets & sockets = *k;
 			if (sockets.GetSessionID() ==  session) {
