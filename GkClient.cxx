@@ -385,10 +385,12 @@ public:
 #pragma GCC diagnostic ignored "-Wstrict-overflow"
 #endif
 
-  STUNattribute * GetFirstAttribute() {
-
+  STUNattribute * GetFirstAttribute()
+  {
+    if (theArray == NULL)
+      return NULL;
     int length = ((STUNmessageHeader *)theArray)->msgLength;
-    if (theArray == NULL || length < (int) sizeof(STUNmessageHeader))
+    if (length < (int) sizeof(STUNmessageHeader))
       return NULL;
 
     STUNattribute * attr = (STUNattribute *)(theArray+sizeof(STUNmessageHeader));
