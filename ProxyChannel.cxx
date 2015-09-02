@@ -2446,6 +2446,29 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		}
 	}
 
+	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request
+		&& ((H245_RequestMessage&)h245msg).GetTag() == H245_RequestMessage::e_closeLogicalChannel) {
+        H245_CloseLogicalChannel & clc = (H245_RequestMessage&)h245msg;
+
+		if (m_call && m_call->GetRerouteState() == RerouteInitiated) {
+            // Ack CLCs during closedown of initial call
+			PTRACE(2, "H245\tReroute: Ack CLC from " << GetName() << " during Reroute");
+            H245_MultimediaSystemControlMessage h245msg_clcAck;
+            h245msg_clcAck.SetTag(H245_MultimediaSystemControlMessage::e_response);
+            H245_ResponseMessage & h245resp_clcAck = h245msg_clcAck;
+            h245resp_clcAck.SetTag(H245_ResponseMessage::e_closeLogicalChannelAck);
+            H245_CloseLogicalChannelAck & clcAck = h245resp_clcAck;
+            clcAck.m_forwardLogicalChannelNumber = clc.m_forwardLogicalChannelNumber;
+
+			if (GetH245Socket()) {
+                GetH245Socket()->Send(h245msg_clcAck);
+			} else {
+                SendTunneledH245(h245msg_clcAck);
+			}
+		}
+
+    }
+
 	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_response
 		&& ((H245_ResponseMessage&)h245msg).GetTag() == H245_ResponseMessage::e_terminalCapabilitySetAck) {
 		H245_TerminalCapabilitySetAck & ack = (H245_ResponseMessage&)h245msg;
