@@ -12246,7 +12246,7 @@ bool H245ProxyHandler::HandleEncryptionUpdateRequest(H245_MiscellaneousCommand &
 		if (request.HasOptionalField(H245_EncryptionUpdateRequest::e_synchFlag))
 			newPayloadType = request.m_synchFlag;
 		else {
-			newPayloadType = RandomPT(0, 0);	// TODO: what are current the PTs ?
+			newPayloadType = RandomPT(0, 0);	// TODO: what are the current PTs so we can avoid them ?
 		}
 		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(FindLogicalChannel(flcn));
 		if (!rtplc && peer) {
