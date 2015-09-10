@@ -2506,7 +2506,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		&& ((H245_RequestMessage&)h245msg).GetTag() == H245_RequestMessage::e_terminalCapabilitySet) {
 
 		H245_TerminalCapabilitySet & tcs = (H245_RequestMessage &)h245msg;
-        // update seqNum (need after we did a TCS0 rerouting)
+        // update seqNum (needed after we did a TCS0 rerouting)
         m_tcsAckRecSeq = tcs.m_sequenceNumber;  // we'll expect the next TCSAck with this sequenceNum
         if (GetRemote()) {
             unsigned seq = GetRemote()->GetNextTCSSeq();
@@ -2640,7 +2640,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
             }
 		}
 
-		if (changed) {
+		if (changed && !suppress) {
 			PTRACE(4, "H245\tNew Capability Table: " << setprecision(2) << tcs);
 		}
 
@@ -2656,7 +2656,9 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 	strm.BeginEncoding();
 	h245msg.Encode(strm);
 	strm.CompleteEncoding();
-	PTRACE(5, "H245\tTo send: " << setprecision(2) << h245msg);
+	if (!suppress) {
+        PTRACE(5, "H245\tTo send: " << setprecision(2) << h245msg);
+    }
 
 	return true;
 }
