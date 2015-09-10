@@ -2487,6 +2487,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		}
 
 		if (m_call && m_call->GetRerouteState() == Rerouting) {
+            // after we update the call, the forwarded socket is always the calling socket in the new call
 			CallSignalSocket * forwarded = m_call->GetCallSignalSocketCalling();
 			if (forwarded) {
 				if (forwarded->CompareH245Socket(h245sock)) {
@@ -10513,12 +10514,11 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool na
 
 RTPLogicalChannel::~RTPLogicalChannel()
 {
-#ifdef HAS_H235_MEDIA
 #ifdef HAS_H46018
-	// TODO: why only with encryption and is a H.46019 session per LC or per RTP session ?
 	if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false))
 		MultiplexedRTPHandler::Instance()->RemoveChannel(m_callID, this);
 #endif
+#ifdef HAS_H235_MEDIA
 	m_cryptoEngineMutex.Wait();
 	if (m_H235CryptoEngine) {
 		if (rtp) {
@@ -10545,10 +10545,12 @@ RTPLogicalChannel::~RTPLogicalChannel()
 			if (rtp) {
 				rtp->Close();
 				rtp->SetDeletable();
+				rtp = NULL;
 			}
 			if (rtcp) {
 				rtcp->Close();
 				rtcp->SetDeletable();
+				rtcp = NULL;
 			}
 		} else {
 			delete rtp;
