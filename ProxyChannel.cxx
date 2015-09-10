@@ -9503,8 +9503,14 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
     m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
     PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");
-    if (keepSignaledIPs.Find('/') == P_MAX_INDEX)
-        keepSignaledIPs += "/32";	// add netmask to pure IPs  TODO: fix for IPv6
+    if (keepSignaledIPs.Find('/') == P_MAX_INDEX) {
+    	// add netmask to pure IPs
+        if (IsIPv4Address(keepSignaledIPs)) {
+            keepSignaledIPs += "/32";
+        } else {
+            keepSignaledIPs += "/128";
+        }
+    }
     m_keepSignaledIPs = NetworkAddress(keepSignaledIPs);
 }
 
@@ -10418,8 +10424,14 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
     m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
     PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");
-    if (keepSignaledIPs.Find('/') == P_MAX_INDEX)
-        keepSignaledIPs += "/32";	// add netmask to pure IPs  TODO: fix for IPv6
+    if (keepSignaledIPs.Find('/') == P_MAX_INDEX) {
+    	// add netmask to pure IPs
+        if (IsIPv4Address(keepSignaledIPs)) {
+            keepSignaledIPs += "/32";
+        } else {
+            keepSignaledIPs += "/128";
+        }
+    }
     m_keepSignaledIPs = NetworkAddress(keepSignaledIPs);
     m_isUnidirectional = false;
 	SrcIP = 0;
@@ -10488,8 +10500,14 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool na
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
     m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
     PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");
-    if (keepSignaledIPs.Find('/') == P_MAX_INDEX)
-        keepSignaledIPs += "/32";	// add netmask to pure IPs  TODO: fix for IPv6
+    if (keepSignaledIPs.Find('/') == P_MAX_INDEX) {
+    	// add netmask to pure IPs
+        if (IsIPv4Address(keepSignaledIPs)) {
+            keepSignaledIPs += "/32";
+        } else {
+            keepSignaledIPs += "/128";
+        }
+    }
     m_keepSignaledIPs = NetworkAddress(keepSignaledIPs);
     m_isUnidirectional = false;
 #ifdef HAS_H235_MEDIA

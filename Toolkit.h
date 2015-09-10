@@ -59,7 +59,7 @@ public:
 	NetworkAddress(const PIPSocket::Address & addr, const PIPSocket::Address & nm);
 	/// Build an address from the string
 	NetworkAddress(
-		const PString &str /// an address in a form A.B.C.D, A.B.C.D/24 or A.B.C.D/255.255.255.0
+		const PString & str /// an address in a form A.B.C.D, A.B.C.D/24 or A.B.C.D/255.255.255.0 or IPv6 format
 		);
 
 	/// @return	Length of the network mask (number of significant bits)
@@ -67,7 +67,7 @@ public:
 
 	/** Compare two network addresses and define their relative order.
 	    Ordering is done accordingly to netmask length and then to IP bytes.
-		
+
 	    @return <0 if this address is lesser than #addr#, 0 if both are equal,
 	            >0 if this address is greater than #addr#.
 	*/
@@ -78,21 +78,21 @@ public:
 
 	/// @return	True if this is a wildcard address
 	bool IsAny() const;
-		
+
 	/// @return	True if the given address is equal to this address
-	bool operator==(const PIPSocket::Address &addr) const;
-	bool operator==(const NetworkAddress &addr) const;
+	bool operator==(const PIPSocket::Address & addr) const;
+	bool operator==(const NetworkAddress & addr) const;
 
-	/// @return	True if the given address is contained within this network		
-	bool operator>>(const PIPSocket::Address &addr) const;
-	bool operator>>(const NetworkAddress &addr) const;
-	/// @return	True if the given network contains this network		
-	bool operator<<(const NetworkAddress &addr) const;
+	/// @return	True if the given address is contained within this network
+	bool operator>>(const PIPSocket::Address & addr) const;
+	bool operator>>(const NetworkAddress & addr) const;
+	/// @return	True if the given network contains this network
+	bool operator<<(const NetworkAddress & addr) const;
 
-	bool operator<(const NetworkAddress &addr) const;
-	bool operator<=(const NetworkAddress &addr) const;
-	bool operator>(const NetworkAddress &addr) const;
-	bool operator>=(const NetworkAddress &addr) const;
+	bool operator<(const NetworkAddress & addr) const;
+	bool operator<=(const NetworkAddress & addr) const;
+	bool operator>(const NetworkAddress & addr) const;
+	bool operator>=(const NetworkAddress & addr) const;
 
 	PIPSocket::Address m_address; /// host/network address
 private:
@@ -188,7 +188,7 @@ class Toolkit : public Singleton<Toolkit>
 		int SelectRoutingMode(const Address & ip1, const Address & ip2) const;
 		void LoadConfig(PConfig *);
 		int IsInternal(const Address & ip) const;
-	
+
 	private:
 		int ToRoutingMode(const PCaselessString & mode) const;	// returns a CallRec::RoutingMode
 		NetworkAddress FindModeRule(const NetworkAddress & ip) const;
@@ -579,7 +579,7 @@ class Toolkit : public Singleton<Toolkit>
 		t35eNeighborId = 1,
 		t35eNATTraversal = 2
 	};
-	
+
 	/** If the triple #(country,extension,manufacturer)# represents an
 	 * extension known to the GnuGk this method returns its 'internal extension code'
 	 # #iecXXX' or #iecUnknow# otherwise.
@@ -612,7 +612,7 @@ class Toolkit : public Singleton<Toolkit>
 	    A path to a temp directory.
 	*/
 	PString GetTempDir() const;
-	
+
 	/** @return
 	    A pointer to the GkTimerManager object that allows registration
 	    of time scheduled events.
@@ -623,7 +623,7 @@ class Toolkit : public Singleton<Toolkit>
 	    format string or (if it is an empty string) to the default format string.
 	    The format string conforms to strftime formatting rules or can be a one
 	    of predefined constants: Cisco, ISO8601, RFC822, MySQL.
-		
+
 	    @return	Formatted timestamp string.
 	*/
 	PString AsString(
@@ -635,10 +635,10 @@ class Toolkit : public Singleton<Toolkit>
 	    this function is using the given key name padded with bytes of value
 	    specified by the 'KeyFilled' config variable, if it is found
 	    in the given config section, or a global padding byte.
-		
+
 	    @return
 	    A decrypted password or an empty string, if the given key is missing.
-	*/	
+	*/
 	PString ReadPassword(
 		const PString &cfgSection, /// config section to read
 		const PString &cfgKey, /// config key to read an encrypted password from
@@ -649,7 +649,7 @@ class Toolkit : public Singleton<Toolkit>
 	void RewriteCLI(
 		SetupMsg & msg /// Q.931 Setup message to be rewritten
 		) const;
-		
+
 	/// Outbound rewrite for ANI/CLI
 	void RewriteCLI(
 		SetupMsg &msg, /// Q.931 Setup message to be rewritten
@@ -662,14 +662,14 @@ class Toolkit : public Singleton<Toolkit>
 	void SetRerouteCauses(unsigned char *causeMap);
 
 	/** Map H225_ReleaseCompleteReason code to Q.931 cause value.
-	
+
 	@return
 	The corresponding Q.931 cause value or 0, if there is no direct mapping.
-	*/	
+	*/
 	unsigned MapH225ReasonToQ931Cause(int reason);
 
 	void ParseTranslationMap(std::map<unsigned, unsigned> & cause_map, const PString & ini) const;
-	
+
 	/// global translation of cause codes (called from endpoint specific method)
 	unsigned TranslateReceivedCause(unsigned cause) const;
 	unsigned TranslateSentCause(unsigned cause) const;
@@ -684,7 +684,7 @@ protected:
 	void ReloadSQLConfig();
 	void LoadCauseMap(PConfig *cfg);
 	void LoadReasonMap(PConfig *cfg);
-	
+
 	PFilePath m_ConfigFilePath;
 	PFilePath m_extConfigFilePath;
 	PString   m_GKName;

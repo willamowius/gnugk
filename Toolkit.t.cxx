@@ -21,9 +21,10 @@ namespace {
 class ToolkitTest : public ::testing::Test {
 protected:
 	ToolkitTest() { }
-	
+
 	NetworkAddress na;
 	NetworkAddress na2;
+	NetworkAddress na6;
 };
 
 
@@ -38,6 +39,8 @@ TEST_F(ToolkitTest, NetworkAddress) {
 	na = NetworkAddress("9.9.9.0/24");
 	na2 = NetworkAddress("9.9.10.0/24");
 	EXPECT_FALSE(na == na2);
+	na6 = NetworkAddress("2001:db8:85a3:8d3:1319:8a2e:370:7344/128");
+	EXPECT_STREQ("2001:db8:85a3:8d3:1319:8a2e:370:7344/128", na6.AsString());
 }
 
 }  // namespace
