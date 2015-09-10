@@ -2487,7 +2487,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		}
 
 		if (m_call && m_call->GetRerouteState() == Rerouting) {
-			CallSignalSocket * forwarded = (m_call->GetRerouteDirection() == Caller) ? m_call->GetCallSignalSocketCalling() : m_call->GetCallSignalSocketCalled();
+			CallSignalSocket * forwarded = m_call->GetCallSignalSocketCalling();
 			if (forwarded) {
 				if (forwarded->CompareH245Socket(h245sock)) {
                     // nothing
