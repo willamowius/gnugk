@@ -400,6 +400,7 @@ PIPSocket::Address H245UnicastToSocketAddr(const H245_UnicastAddress & h245unica
 	PTRACE(1, "Unsupported H245_UnicastAddress: " << h245unicast.GetTagName());
 	return PIPSocket::Address();
 }
+
 // convert a H.245 unicast address into an H.323 transport address
 H323TransportAddress H245UnicastToH323TransportAddr(const H245_UnicastAddress & h245unicast)
 {

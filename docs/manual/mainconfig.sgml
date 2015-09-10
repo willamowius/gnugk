@@ -613,7 +613,11 @@ If <tt/ip/ is not listed the parameter <tt/default/ is used.
 To allow client from 195.71.129.0/24 and 195.71.131.0/24:
 <quote><tt>regex=^195\.71\.(129|131)\.[0-9]+$</tt></quote>
 </descrip>
-<item><tt/password/ - the user must provide an appropriate username and password to login. The format of username/password is the same as <ref id="password" name="[SimplePasswordAuth]"> section.
+<item><tt/password/ - the user must provide an appropriate username and password to login. The format of username/password is the same as <ref id="password" name="[SimplePasswordAuth]"> section. Starting with GnuGk 4.0 you can also store only a PBKDF2 hash of the password in the config. This is much safer.
+<p><descrip>
+<tag/Example:/
+<quote><tt>jan=PBKDF2:460461f264108e03-2fd2cef514844d45ce7180399cd87025153071fa926a0972a3d7e8c558418525</tt></quote>
+</descrip>
 
 </itemize>
 

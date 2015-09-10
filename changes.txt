@@ -1,5 +1,6 @@
 Changes from 3.9 to 4.0
 =======================
+- store only PBKDF2 hash for [GkStatus::Auth] password in config, not a recoverable password
 - BUGFIX(ProxyChannel.cxx) fix crash when receiving message without UUIE
 - new switch [EP::] DisabledCodecs=
 - much improved TCS0 call transfer using 'Reroute' command on status port

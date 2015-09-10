@@ -218,12 +218,14 @@ protected:
 	virtual bool AuthenticateUser();
 
 	/** @return
+		The PBKDF2 digest for the password using the salt.
+	*/
+    PString PBKDF2_Digest(const PString & salt, const PString & password) const;
+
+	/** @return
 		The decrypted password associated with the specified login.
 	*/
-	PString GetPassword(
-		/// login the password is to be retrieved for
-		const PString& login
-		) const;
+	PString GetPassword(const PString & userName) const;
 
 	/** Parse and execute the given command. The function is called
 		in a separate Worker thread (as a Job).
@@ -1525,11 +1527,11 @@ bool StatusClient::AuthenticateUser()
 	m_isFilteringActive = false;
 
 	for (int retries = 0; retries < 3; ++retries) {
-		PString login, password;
+		PString userName, password;
 		WriteString("\r\n" + Toolkit::GKName() + " login: ");
-		if (!ReadCommand(login, true, loginTimeout * 1000))
+		if (!ReadCommand(userName, true, loginTimeout * 1000))
 			break;
-		login = login.Trim();
+		userName = userName.Trim();
 
 		SendWill(PTelnetSocket::EchoOption);
 		WriteString("Password: ");
@@ -1540,15 +1542,34 @@ bool StatusClient::AuthenticateUser()
 
 		SendWont(PTelnetSocket::EchoOption);
 
-		const PString storedPassword = GetPassword(login);
-		if (storedPassword.IsEmpty())
-			PTRACE(5, "STATUS\tCould not find password in the config for user " << login);
-		else if (!password && password == storedPassword) {
-			m_user = login;
-			m_isFilteringActive = tmp;
-			return true;
-		} else
-			PTRACE(5, "STATUS\tPassword mismatch for user " << login);
+#ifdef P_SSL
+        PString rawPassword = GkConfig()->GetString(authsec, userName, "");
+        if (rawPassword.Left(7) == "PBKDF2:") {
+            const PINDEX dashPos = rawPassword.Find("-");
+            const PString salt = rawPassword.Mid(7, dashPos - 7);
+            const PString digest = rawPassword.Mid(dashPos + 1);
+            if (PBKDF2_Digest(salt, password) == digest) {
+                m_user = userName;
+                m_isFilteringActive = tmp;
+                return true;
+            } else {
+                PTRACE(3, "STATUS\tPassword digest mismatch for user " << userName);
+            }
+        }
+        else
+#endif
+        {
+            const PString storedPassword = GetPassword(userName);
+            if (storedPassword.IsEmpty()) {
+                PTRACE(5, "STATUS\tCould not find password in the config for user " << userName);
+            } else if (!password.IsEmpty() && password == storedPassword) {
+                m_user = userName;
+                m_isFilteringActive = tmp;
+                return true;
+            } else {
+                PTRACE(3, "STATUS\tPassword mismatch for user " << userName);
+            }
+        }
 
 		PThread::Sleep(delay * 1000);
 
@@ -1559,13 +1580,28 @@ bool StatusClient::AuthenticateUser()
 	return false;
 }
 
-PString StatusClient::GetPassword(
-	/// login the password is to be retrieved for
-	const PString& login
-	) const
+PString StatusClient::PBKDF2_Digest(const PString & salt, const PString & password) const
 {
-	return !login
-		? Toolkit::Instance()->ReadPassword(authsec, login, true) : PString::Empty();
+    // the definitions here must match those in addpasswd.cxx
+    const int iterations = 65536;
+    const int outputBytes = 32;
+    const unsigned saltSize = 8;
+
+    unsigned char digest[outputBytes];
+    char digestStr[2 * outputBytes + 1];
+    memset(digestStr, 0, sizeof(digestStr));
+
+    PKCS5_PBKDF2_HMAC((const char*)password, password.GetLength(), (const unsigned char*)salt, 2*saltSize, iterations, EVP_sha512(), outputBytes, digest);
+    for (unsigned i = 0; i < sizeof(digest); i++)
+        sprintf(digestStr + (i * 2), "%02x", 255 & digest[i]);
+
+    return digestStr;
+}
+
+// read obfuscated password
+PString StatusClient::GetPassword(const PString & userName) const
+{
+	return userName.IsEmpty() ? "" : Toolkit::Instance()->ReadPassword(authsec, userName, true);
 }
 
 void StatusClient::CommandError(const PString & msg)
