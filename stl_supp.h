@@ -4,7 +4,7 @@
 //
 // Supplementary of STL
 //
-// Copyright (c) 2001-2010, Jan Willamowius
+// Copyright (c) 2001-2015, Jan Willamowius
 //
 // Part of this code is adapted from the SGI implementation
 //
@@ -28,13 +28,13 @@
 template <class _Operation1, class _Operation2>
 class unary_compose
 	: public std::unary_function<typename _Operation2::argument_type,
-                          typename _Operation1::result_type> 
+                          typename _Operation1::result_type>
 {
 protected:
   _Operation1 __op1;
   _Operation2 __op2;
 public:
-  unary_compose(const _Operation1& __x, const _Operation2& __y) 
+  unary_compose(const _Operation1& __x, const _Operation2& __y)
     : __op1(__x), __op2(__y) {}
   typename _Operation1::result_type
   operator()(const typename _Operation2::argument_type& __x) const {
@@ -43,7 +43,7 @@ public:
 };
 
 template <class _Operation1, class _Operation2>
-inline unary_compose<_Operation1,_Operation2> 
+inline unary_compose<_Operation1,_Operation2>
 compose1(const _Operation1& __op1, const _Operation2& __op2)
 {
   return unary_compose<_Operation1,_Operation2>(__op1, __op2);
@@ -159,7 +159,7 @@ inline const_mem_vfun1_ref_t<_Tp,_Arg> mem_vfun_ref(void (_Tp::*__f)(_Arg) const
 
 struct str_prefix_greater : public std::binary_function<std::string, std::string, bool> {
 
-	bool operator()(const std::string& s1, const std::string& s2) const 
+	bool operator()(const std::string& s1, const std::string& s2) const
 	{
 		if (s1.size() == s2.size())
 			return s1 > s2;
@@ -170,7 +170,7 @@ struct str_prefix_greater : public std::binary_function<std::string, std::string
 
 struct str_prefix_lesser : public std::binary_function<std::string, std::string, bool> {
 
-	bool operator()(const std::string& s1, const std::string& s2) const 
+	bool operator()(const std::string& s1, const std::string& s2) const
 	{
 		if (s1.size() == s2.size())
 			return s1 < s2;
@@ -181,7 +181,7 @@ struct str_prefix_lesser : public std::binary_function<std::string, std::string,
 
 struct pstr_prefix_lesser : public std::binary_function<PString, PString, bool> {
 
-	bool operator()(const PString& s1, const PString& s2) const 
+	bool operator()(const PString& s1, const PString& s2) const
 	{
 		if (s1.GetLength() == s2.GetLength())
 			return s1 < s2;
@@ -210,17 +210,19 @@ inline void ForEachInContainer(const C & c, const F & f)
 }
 
 template <class C>
-inline void DeleteObjectsInContainer(const C & c)
+inline void DeleteObjectsInContainer(C & c)
 {
 	typedef typename C::value_type PT;
 	std::for_each(c.begin(), c.end(), deleteobj<PT>());
+	c.clear();
 }
 
 template <class M>
-inline void DeleteObjectsInMap(const M & m)
+inline void DeleteObjectsInMap(M & m)
 {
 	typedef typename M::value_type PAIR;
 	std::for_each(m.begin(), m.end(), deletepair<PAIR>());
+	m.clear();
 }
 
 template <class PT>
