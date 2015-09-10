@@ -1868,8 +1868,13 @@ PConfig* Toolkit::ReloadConfig()
 	if (removeH235Call.GetLength() >= 7) {
 		PStringArray networks = removeH235Call.Tokenise(",", FALSE);
 		for (PINDEX n=0; n < networks.GetSize(); ++n) {
-			if (networks[n].Find('/') == P_MAX_INDEX)
-				networks[n] += "/32";	// add netmask to pure IPs  TODO: fix for IPv6
+			if (networks[n].Find('/') == P_MAX_INDEX) {
+                if (IsIPv4Address(networks[n])) {
+                    networks[n] += "/32";	// add netmask to pure IPs
+                } else {
+                    networks[n] += "/128";	// add netmask to pure IPs
+                }
+            }
 			NetworkAddress net = NetworkAddress(networks[n]);
 			m_removeH235TokensfromNetwork.push_back(net);
 		}

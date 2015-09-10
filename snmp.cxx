@@ -394,8 +394,14 @@ PBoolean PTLibSNMPAgent::Authorise(const PIPSocket::Address & ip)
 {
 	PStringArray networks = GkConfig()->GetString(SNMPSection, "AllowRequestsFrom", "").Tokenise(",", FALSE);
 	for (PINDEX n=0; n < networks.GetSize(); ++n) {
-		if (networks[n].Find('/') == P_MAX_INDEX)
-			networks[n] += "/32";	// add netmask to pure IPs  TODO: fix for IPv6
+		if (networks[n].Find('/') == P_MAX_INDEX) {
+            if (IsIPv4Address(networks[n])) {
+                networks[n] += "/32";	// add netmask to pure IPs
+            } else {
+                networks[n] += "/128";	// add netmask to pure IPs
+            }
+        }
+
 		NetworkAddress net = NetworkAddress(networks[n]);
 		if (ip << net) {
 			return PTrue;
@@ -422,7 +428,7 @@ PBoolean PTLibSNMPAgent::OnGetNextRequest(PINDEX reqID, PSNMP::BindingList & var
 
 PBoolean PTLibSNMPAgent::OnSetRequest(PINDEX reqID, PSNMP::BindingList & vars, PSNMP::ErrorType & errCode)
 {
-	// TODO: SET operation is broken in PTLib PSNMPServer
+	// SET operation is broken in PTLib PSNMPServer, at least in 2.10.x
 	return PFalse;	// doesn't work
 }
 
