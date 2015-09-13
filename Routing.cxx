@@ -2296,7 +2296,7 @@ bool URIServicePolicy::URIServiceRoute(RoutingRequest & request, H225_ArrayOf_Al
 			continue;
 
 		PString service = alias.Left(colon);
-		map<PString,H225_TransportAddress>::const_iterator i = m_uriServiceRoute.find(service);
+		std::map<PString,H225_TransportAddress>::const_iterator i = m_uriServiceRoute.find(service);
 		if (i == m_uriServiceRoute.end())
 			continue;
 
