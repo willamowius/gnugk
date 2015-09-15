@@ -1944,9 +1944,10 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
             PTRACE(0, "JW Q931 auth failed: have call");
             tmpCall->SetDisconnectCause(Q931::NormalUnspecified); //Q.931 code for reason=SecurityDenied
         } else {
-            // TODO: set disconnect cause differently for pregranted or unregiostered calls ?
+            // TODO: set disconnect cause differently for pregranted or unregistered calls ?
             PTRACE(0, "JW Q931 auth failed: have NO call");
         }
+        delete msg;
         return m_result = Error;
     }
 
