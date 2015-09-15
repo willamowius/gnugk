@@ -1406,12 +1406,17 @@ GRQRequester::GRQRequester(const PString & gkid, H225_EndpointType & type) : Ras
 	}
 	grq.IncludeOptionalField(H225_GatekeeperRequest::e_authenticationCapability);
 	grq.IncludeOptionalField(H225_GatekeeperRequest::e_algorithmOIDs);
+	// TODO: add mechanisms to select wich auth methods are presented [Endpoint] Authenticatiors=...
+	H235AuthProcedure1 h2351auth;
+	h2351auth.SetPassword("dummy"); // activate it
+	h2351auth.SetCapability(grq.m_authenticationCapability, grq.m_algorithmOIDs);
 	H235AuthSimpleMD5 md5auth;
 	md5auth.SetPassword("dummy"); // activate it
 	md5auth.SetCapability(grq.m_authenticationCapability, grq.m_algorithmOIDs);
 	H235AuthCAT catauth;
 	catauth.SetPassword("dummy"); // activate it
 	catauth.SetCapability(grq.m_authenticationCapability, grq.m_algorithmOIDs);
+	// TODO: we could also offer H235AuthDesECB, but then we have to implement the encryption part
 	m_rasSrv->RegisterHandler(this);
 }
 
@@ -1443,7 +1448,7 @@ bool GRQRequester::SendRequest(const Address & addr, WORD pt, int r)
 		grq.m_rasAddress = socket->GetRasAddress(addr == INADDR_BROADCAST ? *i : addr);
 		if (addr == INADDR_BROADCAST)
 			socket->SetOption(SO_BROADCAST, 1);
-		socket->SendRas(grq_ras, addr, pt);
+		socket->SendRas(grq_ras, addr, pt, NULL);   // TODO235
 		if (addr == INADDR_BROADCAST)
 			socket->SetOption(SO_BROADCAST, 0);
 	}
@@ -1497,7 +1502,7 @@ void GkClientHandler::OnRequest(RasMsg * ras)
 {
 	ReadLock lockConfig(ConfigReloadMutex);
 	if ((client->*handlePDU)(ras))
-		ras->Reply();
+		ras->Reply(NULL);   // TODO235
 	delete ras;
 }
 
@@ -1538,10 +1543,10 @@ GkClient::GkClient()
     PFactory<H235Authenticator>::KeyList_T keyList = PFactory<H235Authenticator>::GetKeyList();
     PFactory<H235Authenticator>::KeyList_T::const_iterator r;
     for (r = keyList.begin(); r != keyList.end(); ++r) {
-        H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
-        if (Auth) {
-            m_h235Authenticators->Append(Auth);
-        }
+		H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
+		if (Auth) {
+    		m_h235Authenticators->Append(Auth);
+		}
 	}
 }
 
@@ -2296,7 +2301,7 @@ void GkClient::SendURQ()
 	Unregister();
 
 	if (OnSendingURQ(urq))
-		m_rasSrv->SendRas(urq_ras, m_gkaddr, m_gkport, m_loaddr);
+		m_rasSrv->SendRas(urq_ras, m_gkaddr, m_gkport, m_loaddr, NULL); // TODO235
 }
 
 bool GkClient::RewriteE164(H225_AliasAddress & alias, bool fromInternal)
@@ -2325,8 +2330,8 @@ bool GkClient::RewriteE164(H225_ArrayOf_AliasAddress & aliases, bool fromInterna
 
 bool GkClient::RewriteE164(SetupMsg & setup, bool fromInternal)
 {
-	Q931 &q931 = setup.GetQ931();
-	H225_Setup_UUIE &setupBody = setup.GetUUIEBody();
+	Q931 & q931 = setup.GetQ931();
+	H225_Setup_UUIE & setupBody = setup.GetUUIEBody();
 	unsigned plan, type;
 	PString number;
 
@@ -2384,6 +2389,7 @@ bool GkClient::Discovery()
 			if (gcf.HasOptionalField(H225_GatekeeperConfirm::e_gatekeeperIdentifier))
 				m_gatekeeperId = gcf.m_gatekeeperIdentifier;
 			GetIPAndPortFromTransportAddr(gcf.m_rasAddress, m_gkaddr, m_gkport);
+			// TODO: m_authMode is never looked at!! use alorithem OID to instatiate a proper authenticator to use
 			if (gcf.HasOptionalField(H225_GatekeeperConfirm::e_authenticationMode))
 				m_authMode = gcf.m_authenticationMode.GetTag();
 			PTRACE(2, "GKC\tDiscover GK " << AsString(m_gkaddr, m_gkport) << " at " << m_loaddr);
@@ -3045,8 +3051,11 @@ bool GkClient::RewriteString(PString & alias, bool fromInternal) const
 	return false;
 }
 
+// TODO: never called!
 void GkClient::SetClearTokens(H225_ArrayOf_ClearToken & clearTokens, const PString & id)
 {
+    // TODO: check m_authMode
+    PTRACE(0, "JW SetClearTokens m_authMode=" << m_authMode);
 	clearTokens.RemoveAll();
 	H235AuthCAT auth;
 	// avoid copying for thread-safely
@@ -3058,6 +3067,8 @@ void GkClient::SetClearTokens(H225_ArrayOf_ClearToken & clearTokens, const PStri
 
 void GkClient::SetCryptoTokens(H225_ArrayOf_CryptoH323Token & cryptoTokens, const PString & id)
 {
+    // TODO: check m_authMode
+    PTRACE(0, "JW SetCryptoTokens m_authMode=" << m_authMode);
 	cryptoTokens.RemoveAll();
 	H235AuthSimpleMD5 auth;
 	// avoid copying for thread-safely
@@ -3168,7 +3179,7 @@ bool GkClient::AdditiveUnRegister(const H225_ArrayOf_AliasAddress & aliases)
 	urq.IncludeOptionalField(H225_UnregistrationRequest::e_endpointAlias);
 	urq.m_endpointAlias = aliases;
 
-	m_rasSrv->SendRas(urq_ras, m_gkaddr, m_gkport, m_loaddr);
+	m_rasSrv->SendRas(urq_ras, m_gkaddr, m_gkport, m_loaddr, NULL); // TODO235
 	return true;
 }
 

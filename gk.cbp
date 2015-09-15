@@ -107,6 +107,8 @@
 		<Unit filename="Toolkit.cxx" />
 		<Unit filename="Toolkit.h" />
 		<Unit filename="Toolkit.t.cxx" />
+		<Unit filename="authenticators.cxx" />
+		<Unit filename="authenticators.h" />
 		<Unit filename="capctrl.cxx" />
 		<Unit filename="capctrl.h" />
 		<Unit filename="changes.txt">
@@ -131,6 +133,8 @@
 		<Unit filename="gkauth.h" />
 		<Unit filename="gkconfig.cxx" />
 		<Unit filename="gkconfig.h" />
+		<Unit filename="gkh235.cxx" />
+		<Unit filename="gkh235.h" />
 		<Unit filename="gksql.cxx" />
 		<Unit filename="gksql.h" />
 		<Unit filename="gksql_firebird.cxx" />

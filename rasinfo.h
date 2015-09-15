@@ -196,6 +196,9 @@ template<> struct RasInfo<H225_RequestInProgress> : public TagInfo<H225_RasMessa
 template<> struct RasInfo<H225_ResourcesAvailableIndicate> : public TagInfo<H225_RasMessage::e_resourcesAvailableIndicate> {
 	typedef RasTag<tag+1> ConfirmTag;
 	typedef RasType<tag+1>::Type ConfirmType;
+	// there is not actually a Reject, because this is only an indication, but we need the typedef for convenience
+	typedef RasTag<tag+1> RejectTag;
+	typedef RasType<tag+1>::Type RejectType;
 };
 template<> struct RasInfo<H225_ResourcesAvailableConfirm> : public TagInfo<H225_RasMessage::e_resourcesAvailableConfirm> {};
 template<> struct RasInfo<H225_InfoRequestAck> : public TagInfo<H225_RasMessage::e_infoRequestAck> {};

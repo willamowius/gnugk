@@ -293,6 +293,11 @@ const char * KnownConfigEntries[][2] = {
 	{ "GkStatus::Message", "Compact" },
 	{ "GkStatus::Message", "RCF" },
 	{ "GkStatus::Message", "URQ" },
+	{ "H235", "CheckSenderID" },
+	{ "H235", "FullQ931Checking" },
+	{ "H235", "RequireH2351GeneralID" },
+	{ "H235", "TimestampGracePeriod" },
+	{ "H235", "UseEndpointIdentifier" },
 #ifdef HAS_LUA
 	{ "LuaAuth", "CallScript" },
 	{ "LuaAuth", "CallScriptFile" },

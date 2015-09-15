@@ -2,7 +2,7 @@
 //
 // gkauth.cxx
 //
-// Copyright (c) 2001-2014, Jan Willamowius
+// Copyright (c) 2001-2015, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -49,376 +49,6 @@ using std::stable_sort;
 using std::for_each;
 using std::find_if;
 using std::greater;
-
-
-#if defined(H323_H235) && hasCipertextStealing
-////////////////////////////////////////////////////
-
-#include <h235/h235crypto.h>
-
-/** This class implements desECB authentication.
-*/
-class H235AuthDesECB : public H235Authenticator
-{
-    PCLASSINFO(H235AuthDesECB, H235Authenticator);
-  public:
-    H235AuthDesECB();
-
-    PObject * Clone() const;
-
-    virtual const char * GetName() const;
-
-    static PStringArray GetAuthenticatorNames();
-#if PTLIB_VER >= 2110
-    static PBoolean GetAuthenticationCapabilities(Capabilities * ids);
-#endif
-    virtual PBoolean IsMatch(const PString & identifier) const;
-
-    virtual H225_CryptoH323Token * CreateCryptoToken();
-
-    virtual ValidationResult ValidateCryptoToken(
-      const H225_CryptoH323Token & cryptoToken,
-      const PBYTEArray & rawPDU
-    );
-
-    virtual PBoolean IsCapability(
-      const H235_AuthenticationMechanism & mechansim,
-      const PASN_ObjectId & algorithmOID
-    );
-
-    virtual PBoolean SetCapability(
-      H225_ArrayOf_AuthenticationMechanism & mechansim,
-      H225_ArrayOf_PASN_ObjectId & algorithmOIDs
-    );
-
-    virtual PBoolean IsSecuredPDU(
-      unsigned rasPDU,
-      PBoolean received
-    ) const;
-
-    virtual PBoolean IsSecuredSignalPDU(
-      unsigned rasPDU,
-      PBoolean received
-    ) const;
-};
-
-#if PTLIB_VER >= 2110
-// disabled on PTLib 2.11.x, crashes on startup
-#if PTLIB_VER >= 2120
-typedef H235AuthDesECB H235AuthenticatorDesECB;
-PPLUGIN_STATIC_LOAD(DesECB,H235Authenticator);
-H235SECURITY(DesECB);
-#endif
-#else
-static PFactory<H235Authenticator>::Worker<H235AuthDesECB> factoryH235AuthDesECB("desECB");
-#endif
-
-static const char OID_DesECB[] = "1.3.14.3.2.6";
-
-H235AuthDesECB::H235AuthDesECB()
-{
-  usage = AnyApplication; // Can be used either for GKAdmission or EPAuthenticstion
-}
-
-PObject * H235AuthDesECB::Clone() const
-{
-  return new H235AuthDesECB(*this);
-}
-
-const char * H235AuthDesECB::GetName() const
-{
-  return "desECB";
-}
-
-PStringArray H235AuthDesECB::GetAuthenticatorNames()
-{
-  return PStringArray("desECB");
-}
-
-#if PTLIB_VER >= 2110
-PBoolean H235AuthDesECB::GetAuthenticationCapabilities(H235Authenticator::Capabilities * ids)
-{
-  H235Authenticator::Capability cap;
-  cap.m_identifier = OID_DesECB;
-  cap.m_cipher     = "DES";
-  cap.m_description= "desECB";
-  ids->capabilityList.push_back(cap);
-
-  return true;
-}
-#endif
-
-PBoolean H235AuthDesECB::IsMatch(const PString & identifier) const
-{
-    return (identifier == PString(OID_DesECB));
-}
-
-H225_CryptoH323Token * H235AuthDesECB::CreateCryptoToken()
-{
-  if (!IsActive())
-    return NULL;
-
-  // Create the H.225 crypto token
-  H225_CryptoH323Token * cryptoToken = new H225_CryptoH323Token;
-  cryptoToken->SetTag(H225_CryptoH323Token::e_cryptoEPPwdEncr);
-
-  // TODO: encryption not implemented, yet (GnuGk only needs the decrypt)
-  // see OPAL 3.14.x for encryption implementation (h235auth1.cxx)
-
-  return cryptoToken;
-}
-
-H235Authenticator::ValidationResult H235AuthDesECB::ValidateCryptoToken(
-                                             const H225_CryptoH323Token & cryptoToken,
-                                             const PBYTEArray &)
-{
-  if (!IsActive())
-	return e_Disabled;
-
-  // verify the token is of correct type
-  if (cryptoToken.GetTag() != H225_CryptoH323Token::e_cryptoEPPwdEncr)
-    return e_Absent;
-
-  PBYTEArray remoteEncryptedData = ((H235_ENCRYPTED<H235_EncodedPwdCertToken>)cryptoToken).m_encryptedData;
-  PBYTEArray decryptedToken(remoteEncryptedData.GetSize());
-
-  EVP_CIPHER_CTX cipher;
-  EVP_CIPHER_CTX_init(&cipher);
-  EVP_CIPHER_CTX_set_padding(&cipher, 1);
-
-  PBYTEArray key(8);
-  // Build key from password according to H.235.0/8.2.1
-  memcpy(key.GetPointer(), (const char *)password, std::min(key.GetSize(), password.GetLength()));
-  for (PINDEX i = key.GetSize(); i < password.GetLength(); ++i)
-	key[i%key.GetSize()] ^= password[i];
-
-  EVP_CipherInit_ex(&cipher, EVP_des_ecb(), NULL, key, NULL, 0);
-
-  int len = -1;
-  if (!EVP_DecryptUpdate_cts(&cipher, decryptedToken.GetPointer(), &len, remoteEncryptedData.GetPointer(), remoteEncryptedData.GetSize())) {
-        PTRACE(1, "H235RAS\tEVP_DecryptUpdate_cts failed");
-  }
-  int f_len = -1;
-  if(!EVP_DecryptFinal_cts(&cipher, decryptedToken.GetPointer() + len, &f_len)) {
-    char buf[256];
-    ERR_error_string(ERR_get_error(), buf);
-    PTRACE(1, "H235RAS\tEVP_DecryptFinal_cts failed: " << buf);
-  }
-
-  EVP_CIPHER_CTX_cleanup(&cipher);
-
-  PPER_Stream asn(decryptedToken);
-  H235_ClearToken clearToken;
-  clearToken.Decode(asn);
-
-  PString generalID = clearToken.m_generalID;
-  if (generalID == Toolkit::GKName()
-	  && clearToken.m_timeStamp == (unsigned)time(NULL))	// TODO: add grace period ?
-	return e_OK;
-
-  PTRACE(1, "H235RAS\tH235AuthDesECB password does not match.");
-  return e_BadPassword;
-}
-
-PBoolean H235AuthDesECB::IsCapability(const H235_AuthenticationMechanism & mechanism,
-                                     const PASN_ObjectId & algorithmOID)
-{
-  return mechanism.GetTag() == H235_AuthenticationMechanism::e_pwdSymEnc &&
-         algorithmOID.AsString() == OID_DesECB;
-}
-
-PBoolean H235AuthDesECB::SetCapability(H225_ArrayOf_AuthenticationMechanism & mechanisms,
-                                      H225_ArrayOf_PASN_ObjectId & algorithmOIDs)
-{
-  return AddCapability(H235_AuthenticationMechanism::e_pwdSymEnc, OID_DesECB, mechanisms, algorithmOIDs);
-}
-
-PBoolean H235AuthDesECB::IsSecuredPDU(unsigned rasPDU, PBoolean received) const
-{
-  switch (rasPDU) {
-    case H225_RasMessage::e_registrationRequest :
-      return received ? !remoteId.IsEmpty() : !localId.IsEmpty();
-
-    default :
-      return FALSE;
-  }
-}
-
-PBoolean H235AuthDesECB::IsSecuredSignalPDU(unsigned signalPDU, PBoolean received) const
-{
-  return FALSE;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-#endif
-
-#ifdef OFF
-
-// This stub is enough to fake 2.16.840.1.114187.1.3 support.
-// We don't know what the actual crypto is.
-
-#if defined(H323_H235)
-////////////////////////////////////////////////////
-
-#include <h235/h235crypto.h>
-
-/** This class implements desCTS authentication.
-*/
-class H235AuthDesCTS : public H235Authenticator
-{
-    PCLASSINFO(H235AuthDesCTS, H235Authenticator);
-  public:
-    H235AuthDesCTS();
-
-    PObject * Clone() const;
-
-    virtual const char * GetName() const;
-
-    static PStringArray GetAuthenticatorNames();
-#if PTLIB_VER >= 2110
-    static PBoolean GetAuthenticationCapabilities(Capabilities * ids);
-#endif
-    virtual PBoolean IsMatch(const PString & identifier) const;
-
-    virtual H225_CryptoH323Token * CreateCryptoToken();
-
-    virtual ValidationResult ValidateCryptoToken(
-      const H225_CryptoH323Token & cryptoToken,
-      const PBYTEArray & rawPDU
-    );
-
-    virtual PBoolean IsCapability(
-      const H235_AuthenticationMechanism & mechansim,
-      const PASN_ObjectId & algorithmOID
-    );
-
-    virtual PBoolean SetCapability(
-      H225_ArrayOf_AuthenticationMechanism & mechansim,
-      H225_ArrayOf_PASN_ObjectId & algorithmOIDs
-    );
-
-    virtual PBoolean IsSecuredPDU(
-      unsigned rasPDU,
-      PBoolean received
-    ) const;
-
-    virtual PBoolean IsSecuredSignalPDU(
-      unsigned rasPDU,
-      PBoolean received
-    ) const;
-};
-
-#if PTLIB_VER >= 2110
-// disabled on PTLib 2.11.x, crashes on startup
-#if PTLIB_VER >= 2120
-typedef H235AuthDesCTS H235AuthenticatorDesCTS;
-PPLUGIN_STATIC_LOAD(DesCTS,H235Authenticator);
-H235SECURITY(DesCTS);
-#endif
-#else
-static PFactory<H235Authenticator>::Worker<H235AuthDesCTS> factoryH235AuthDesCTS("desCTS");
-#endif
-
-static const char OID_DesCTS[] = "2.16.840.1.114187.1.3";
-
-H235AuthDesCTS::H235AuthDesCTS()
-{
-  usage = AnyApplication; // Can be used either for GKAdmission or EPAuthenticstion
-}
-
-PObject * H235AuthDesCTS::Clone() const
-{
-  return new H235AuthDesCTS(*this);
-}
-
-const char * H235AuthDesCTS::GetName() const
-{
-  return "desCTS";
-}
-
-PStringArray H235AuthDesCTS::GetAuthenticatorNames()
-{
-  return PStringArray("desCTS");
-}
-
-#if PTLIB_VER >= 2110
-PBoolean H235AuthDesCTS::GetAuthenticationCapabilities(H235Authenticator::Capabilities * ids)
-{
-  H235Authenticator::Capability cap;
-  cap.m_identifier = OID_DesCTS;
-  cap.m_cipher     = "DES";
-  cap.m_description= "desCTS";
-  ids->capabilityList.push_back(cap);
-
-  return true;
-}
-#endif
-
-PBoolean H235AuthDesCTS::IsMatch(const PString & identifier) const
-{
-    return (identifier == PString(OID_DesCTS));
-}
-
-H225_CryptoH323Token * H235AuthDesCTS::CreateCryptoToken()
-{
-  if (!IsActive())
-    return NULL;
-
-  // Create the H.225 crypto token
-  H225_CryptoH323Token * cryptoToken = new H225_CryptoH323Token;
-  cryptoToken->SetTag(H225_CryptoH323Token::e_cryptoEPPwdEncr);
-
-  // TODO: encryption not implemented, yet (GnuGk only needs the decrypt)
-
-  return cryptoToken;
-}
-
-H235Authenticator::ValidationResult H235AuthDesCTS::ValidateCryptoToken(
-                                             const H225_CryptoH323Token & cryptoToken,
-                                             const PBYTEArray &)
-{
-  if (!IsActive())
-	return e_Disabled;
-
-  // verify the token is of correct type
-  if (cryptoToken.GetTag() != H225_CryptoH323Token::e_cryptoEPPwdEncr)
-    return e_Absent;
-
-  return e_OK;	// TODO: always OK for now
-}
-
-PBoolean H235AuthDesCTS::IsCapability(const H235_AuthenticationMechanism & mechanism,
-                                     const PASN_ObjectId & algorithmOID)
-{
-  return mechanism.GetTag() == H235_AuthenticationMechanism::e_pwdSymEnc &&
-         algorithmOID.AsString() == OID_DesCTS;
-}
-
-PBoolean H235AuthDesCTS::SetCapability(H225_ArrayOf_AuthenticationMechanism & mechanisms,
-                                      H225_ArrayOf_PASN_ObjectId & algorithmOIDs)
-{
-  return AddCapability(H235_AuthenticationMechanism::e_pwdSymEnc, OID_DesCTS, mechanisms, algorithmOIDs);
-}
-
-PBoolean H235AuthDesCTS::IsSecuredPDU(unsigned rasPDU, PBoolean received) const
-{
-  switch (rasPDU) {
-    case H225_RasMessage::e_registrationRequest :
-      return received ? !remoteId.IsEmpty() : !localId.IsEmpty();
-
-    default :
-      return FALSE;
-  }
-}
-
-PBoolean H235AuthDesCTS::IsSecuredSignalPDU(unsigned signalPDU, PBoolean received) const
-{
-  return FALSE;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-#endif
-#endif
 
 
 ARQAuthData::ARQAuthData(
@@ -568,10 +198,23 @@ GkAuthenticator::GkAuthenticator(
 	rasmap["DRQ"] = RasInfo<H225_DisengageRequest>::flag,
 	rasmap["LRQ"] = RasInfo<H225_LocationRequest>::flag,
 	rasmap["IRQ"] = RasInfo<H225_InfoRequest>::flag;
+	rasmap["RAI"] = RasInfo<H225_ResourcesAvailableIndicate>::flag;
 
 	std::map<PString, unsigned> miscmap;
 	miscmap["SETUP"] = e_Setup;
 	miscmap["SETUPUNREG"] = e_SetupUnreg;
+	miscmap["CONNECT"] = e_Connect;
+	miscmap["CALLPROCEEDING"] = e_CallProceeding;
+	miscmap["ALERTING"] = e_Alerting;
+	miscmap["INFORMATION"] = e_Information;
+	miscmap["RELEASECOMPLETE"] = e_ReleaseComplete;
+	miscmap["FACILITY"] = e_Facility;
+	miscmap["PROGRESS"] = e_Progress;
+	miscmap["EMPTY"] = e_Empty;
+	miscmap["STATUS"] = e_Status;
+	miscmap["STATUSINQUIRY"] = e_StatusEnquiry;
+	miscmap["SETUPACK"] = e_SetupAck;
+	miscmap["NOTIFY"] = e_Notify;
 
 	if (control.GetSize() > 1) {
 		m_enabledRasChecks = 0;
@@ -710,6 +353,12 @@ int GkAuthenticator::Check(RasPDU<H225_InfoRequest> &, unsigned &)
 		? m_defaultStatus : e_next;
 }
 
+int GkAuthenticator::Check(RasPDU<H225_ResourcesAvailableIndicate> &, unsigned &)
+{
+	return IsRasCheckEnabled(RasInfo<H225_ResourcesAvailableIndicate>::flag)
+		? m_defaultStatus : e_next;
+}
+
 int GkAuthenticator::Check(
 	SetupMsg & /*setup*/,
 	/// authorization data (call duration limit, reject reason, ...)
@@ -718,6 +367,56 @@ int GkAuthenticator::Check(
 	return (IsMiscCheckEnabled(e_Setup) || IsMiscCheckEnabled(e_SetupUnreg))
 		? m_defaultStatus : e_next;
 }
+
+int GkAuthenticator::Check(
+	Q931 & msg,
+	/// authorization data
+	Q931AuthData & /*authData*/)
+{
+    PTRACE(0, "JW GkAuthenticator::Check: default impl");
+    switch (msg.GetMessageType()) {
+        case Q931::AlertingMsg:
+            return IsMiscCheckEnabled(e_Alerting) ? m_defaultStatus : e_next;
+            break;
+        case Q931::CallProceedingMsg:
+            return IsMiscCheckEnabled(e_CallProceeding) ? m_defaultStatus : e_next;
+            break;
+        case Q931::ConnectMsg:
+            return IsMiscCheckEnabled(e_Connect) ? m_defaultStatus : e_next;
+            break;
+        case Q931::ProgressMsg:
+            return IsMiscCheckEnabled(e_Progress) ? m_defaultStatus : e_next;
+            break;
+        case Q931::SetupMsg:
+            return (IsMiscCheckEnabled(e_Setup) || IsMiscCheckEnabled(e_SetupUnreg)) ? m_defaultStatus : e_next;
+            break;
+        case Q931::SetupAckMsg:
+            return IsMiscCheckEnabled(e_SetupAck) ? m_defaultStatus : e_next;
+            break;
+        case Q931::ReleaseCompleteMsg:
+            return IsMiscCheckEnabled(e_ReleaseComplete) ? m_defaultStatus : e_next;
+            break;
+        case Q931::InformationMsg:
+            return IsMiscCheckEnabled(e_Information) ? m_defaultStatus : e_next;
+            break;
+        case Q931::NotifyMsg:
+            return IsMiscCheckEnabled(e_Notify) ? m_defaultStatus : e_next;
+            break;
+        case Q931::StatusMsg:
+            return IsMiscCheckEnabled(e_Status) ? m_defaultStatus : e_next;
+            break;
+        case Q931::StatusEnquiryMsg:
+            return IsMiscCheckEnabled(e_StatusEnquiry) ? m_defaultStatus : e_next;
+            break;
+        case Q931::FacilityMsg:
+            return IsMiscCheckEnabled(e_Facility) ? m_defaultStatus : e_next;
+            break;
+        default:
+            return e_next;
+            break;
+    }
+}
+
 
 bool GkAuthenticator::IsH235Capability(
 	/// authentication mechanism
@@ -1013,13 +712,13 @@ GkAuthenticatorList::GkAuthenticatorList()
 		for (r = keyList.begin(); r != keyList.end(); ++r) {
 			H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
 			if (Auth) {
-                if ((Auth->GetApplication() == H235Authenticator::EPAuthentication)
-                    ||(Auth->GetApplication() == H235Authenticator::GKAdmission)
-                    ||(Auth->GetApplication() == H235Authenticator::AnyApplication) ) {
-                    m_h235authenticators.Append(Auth);
-                } else {
-                    delete Auth;
-                }
+				if ((Auth->GetApplication() == H235Authenticator::EPAuthentication)
+					||(Auth->GetApplication() == H235Authenticator::GKAdmission)
+					||(Auth->GetApplication() == H235Authenticator::AnyApplication) ) {
+					m_h235authenticators.Append(Auth);
+				} else {
+					delete Auth;
+				}
 			}
 		}
 	}
@@ -1227,6 +926,27 @@ bool GkAuthenticatorList::Validate(
 	return true;
 }
 
+bool GkAuthenticatorList::Validate(Q931 & msg, Q931AuthData & authData)
+{
+	ReadLock lock(m_reloadMutex);
+	std::list<GkAuthenticator*>::const_iterator i = m_authenticators.begin();
+	while (i != m_authenticators.end()) {
+		GkAuthenticator* auth = *i++;
+		const int result = auth->Check(msg, authData);
+		if (result == GkAuthenticator::e_ok) {
+			PTRACE(3, "GKAUTH\t" << auth->GetName() << " Q931 check ok");
+			if (auth->GetControlFlag() == GkAuthenticator::e_Sufficient
+					|| auth->GetControlFlag() == GkAuthenticator::e_Alternative)
+				return true;
+		} else if (result == GkAuthenticator::e_fail) {
+			PTRACE(3, "GKAUTH\t" << auth->GetName() << " Q931 check failed");
+			SNMP_TRAP(8, SNMPError, Authentication, auth->GetName() + " Q931 check failed");
+			return false;
+		}
+	}
+	return true;
+}
+
 // class CacheManager
 bool CacheManager::Retrieve(
 	const PString & key, /// the key to look for
@@ -1327,12 +1047,11 @@ int SimplePasswordAuth::Check(
 	RasPDU<H225_RegistrationRequest> & request,
 	RRQAuthData & authData)
 {
-	H225_RegistrationRequest& rrq = request;
+	H225_RegistrationRequest & rrq = request;
 	return doCheck(request,
 		rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)
 			? &rrq.m_terminalAlias : NULL,
-			&authData
-		);
+			&authData);
 }
 
 int SimplePasswordAuth::Check(RasPDU<H225_UnregistrationRequest> & request, unsigned &)
@@ -1360,6 +1079,11 @@ int SimplePasswordAuth::Check(RasPDU<H225_InfoRequest> & request, unsigned &)
 	return doCheck(request);
 }
 
+int SimplePasswordAuth::Check(RasPDU<H225_ResourcesAvailableIndicate> & request, unsigned &)
+{
+	return doCheck(request);
+}
+
 int SimplePasswordAuth::Check(
 	/// ARQ to be authenticated/authorized
 	RasPDU<H225_AdmissionRequest> & request,
@@ -1369,6 +1093,17 @@ int SimplePasswordAuth::Check(
 	H225_AdmissionRequest & arq = request;
 	return doCheck(request, arq.m_answerCall ? &arq.m_destinationInfo : &arq.m_srcInfo);
 }
+
+int SimplePasswordAuth::Check(
+	/// Q.931 message to be authenticated/authorized
+	Q931 & msg,
+	/// authorization data
+	Q931AuthData & authData)
+{
+    PTRACE(0, "JW SimplePasswordAuth::Check");
+	return doCheck(msg, authData);
+}
+
 
 bool SimplePasswordAuth::GetPassword(
 	const PString & id, /// get the password for this id
@@ -1459,6 +1194,200 @@ bool SimplePasswordAuth::ResolveUserName(const H225_CryptoH323Token & cryptotoke
 
 	return false;
 }
+
+int SimplePasswordAuth::CheckTokens(
+	GkH235Authenticators * & authenticators,
+	/// an array of tokens to be checked
+	const H225_ArrayOf_ClearToken & tokens,
+	/// aliases for the endpoint that generated the tokens
+	const H225_ArrayOf_AliasAddress * aliases)
+{
+PTRACE(0, "JW CheckTokens");
+	for (PINDEX i = 0; i < tokens.GetSize(); i++) {
+		H235_ClearToken& token = tokens[i];
+
+		// check for Cisco Access Token
+		if (token.m_tokenOID == OID_H235_CAT) {
+			if (authenticators == NULL)
+				authenticators = new GkH235Authenticators;
+
+			if (!token.HasOptionalField(H235_ClearToken::e_generalID)) {
+				PTRACE(3, "GKAUTH\t" << GetName() << " generalID field not found inside CAT token");
+				return e_fail;
+			}
+			const PString id = token.m_generalID;
+			if (m_checkID && (aliases == NULL || FindAlias(*aliases, id) == P_MAX_INDEX)) {
+				PTRACE(3, "GKAUTH\t" << GetName() << " generalID '" << id
+					<< "' of CAT token does not match any alias for the endpoint");
+				return e_fail;
+			}
+
+			if (authenticators->HasCATPassword())
+				return e_ok;
+
+			PString passwd;
+			if (!InternalGetPassword(id, passwd)) {
+				PTRACE(3, "GKAUTH\t" << GetName() << " password not found for '" << id << '\'');
+				return e_fail;
+			}
+			authenticators->SetCATData(id, passwd);
+
+			return e_ok;
+		}
+	}
+	return e_next;
+}
+
+int SimplePasswordAuth::CheckCryptoTokens(
+	GkH235Authenticators * & authenticators,
+	/// an array of cryptoTokens to be checked
+	const H225_ArrayOf_CryptoH323Token & tokens,
+	/// aliases for the endpoint that generated the tokens
+	const H225_ArrayOf_AliasAddress * aliases,
+	/// allow any sendersID (eg. in RRQ)
+	bool acceptAnySendersID)
+{
+PTRACE(0, "JW CheckCryptoTokens");
+	for (PINDEX i = 0; i < tokens.GetSize(); i++) {
+		if (tokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdHash) {
+
+			if (authenticators == NULL)
+				authenticators = new GkH235Authenticators;
+
+			H225_CryptoH323Token_cryptoEPPwdHash & pwdhash = tokens[i];
+			const PString id = AsString(pwdhash.m_alias, false);
+			if (m_checkID && (aliases == NULL || FindAlias(*aliases, id) == P_MAX_INDEX)) {
+				PTRACE(3, "GKAUTH\t" << GetName() << " alias '" << id
+					<< "' of the cryptoEPPwdHash token does not match any alias for the endpoint");
+				return e_fail;
+			}
+
+			if (authenticators->HasMD5Password())
+				return e_ok;
+
+			PString passwd;
+			if (!InternalGetPassword(id, passwd)) {
+				PTRACE(3, "GKAUTH\t" << GetName() << " password not found for '" << id << '\'');
+				return e_fail;
+			}
+
+			authenticators->SetSimpleMD5Data(id, passwd);
+#if P_SSL
+		} else if (tokens[i].GetTag() == H225_CryptoH323Token::e_nestedcryptoToken) {
+			const H235_CryptoToken& nestedCryptoToken = tokens[i];
+
+			if (nestedCryptoToken.GetTag() != H235_CryptoToken::e_cryptoHashedToken)
+				continue;
+
+			const H235_CryptoToken_cryptoHashedToken& cryptoHashedToken = nestedCryptoToken;
+			if (cryptoHashedToken.m_tokenOID != OID_H235_A_V1
+					&& cryptoHashedToken.m_tokenOID != OID_H235_A_V2)
+				continue;
+
+			if (authenticators == NULL)
+				authenticators = new GkH235Authenticators;
+
+			const H235_ClearToken& clearToken = cryptoHashedToken.m_hashedVals;
+			PString sendersID;
+			bool hasSendersId = clearToken.HasOptionalField(H235_ClearToken::e_sendersID);
+			if (!hasSendersId) {
+				PTRACE(5, "GKAUTH\t" << GetName() << " hashedVals of nested cryptoHashedToken do not contain sendersID");
+				continue;   // ignore token
+			} else {
+			    sendersID = clearToken.m_sendersID;
+			}
+
+            // verify correct value of sendersID (avoid replay attack)
+            // must be either the endpointID or one of the aliasses
+			H225_EndpointIdentifier epId;
+			epId = sendersID;
+            endptr ep = RegistrationTable::Instance()->FindByEndpointId(epId);
+            if (m_checkID  && !acceptAnySendersID) {
+                PBoolean sendersIDValid = ep || (aliases != NULL && FindAlias(*aliases, sendersID) != P_MAX_INDEX);
+                if (!sendersIDValid) {
+                    PTRACE(5, "GKAUTH\t" << GetName() << " sendersID does not match endpointID nor an alias");
+                    continue;   // ignore token
+                }
+            }
+
+            PBoolean requireGeneralID = m_config->GetBoolean("H235", "RequireH2351GeneralID", true);
+            if (requireGeneralID) {
+                if (!clearToken.HasOptionalField(H235_ClearToken::e_generalID)) {
+                    PTRACE(5, "GKAUTH\t" << GetName() << " hashedVals of nested cryptoHashedToken do not contain generalID");
+                    continue;   // ignore token
+                }
+            }
+
+			if (authenticators->HasProcedure1Password()) {
+                return e_ok;
+			}
+
+            // lookup password
+			PString passwd;
+            bool passwordFound = InternalGetPassword(sendersID, passwd);    // check if we have a password fro sendersID first
+
+            // try endpoint aliases
+            if (!passwordFound) {
+				H225_ArrayOf_AliasAddress epAliases;
+                if (ep) {
+                    // if we have the EndpointRec use the aliases from there
+                    epAliases = ep->GetAliases();
+                } else if (aliases) {
+                    // if not (eg. for RRQ) use the aliases from the message
+                    epAliases = *aliases;
+                }
+				// check all endpoint aliases for a password
+				for (PINDEX i = 0; i < epAliases.GetSize(); i++) {
+					PString id = H323GetAliasAddressString(epAliases[i]);
+					PTRACE(0, "JW check if alias " << id << " has password (via epID)");
+					passwordFound = InternalGetPassword(id, passwd);
+					if (passwordFound) {
+                        // TODO235: set sendersID = id so the right id is set for authenticator ????
+						break;
+					}
+				}
+            }
+
+			if (!passwordFound) {
+				PTRACE(3, "GKAUTH\t" << GetName() << " password not found for '" << sendersID << '\'');
+				return e_fail;
+			}
+
+			authenticators->SetProcedure1Data(Toolkit::GKName(), sendersID, passwd, requireGeneralID);
+#endif
+		} else if (tokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdEncr) {
+
+			if (authenticators == NULL)
+				authenticators = new GkH235Authenticators;
+
+			if (aliases == NULL) {
+				PTRACE(3, "GKAUTH\t" << GetName() << " needa a user alias to authenticate");
+				return e_fail;
+			}
+
+			if (authenticators->HasDESPassword())
+				return e_ok;
+
+			PString id, passwd;
+			for (PINDEX j = 0; j < aliases->GetSize(); j++) {
+                // check if we have a password fpr one of the aliases
+                if (InternalGetPassword(AsString(aliases[j], false), passwd)) {
+                    id = AsString(aliases[j], false);
+                    break;
+                }
+			}
+			if (passwd.IsEmpty()) {
+				PTRACE(3, "GKAUTH\t" << GetName() << " no password founf for any alias '" << AsString(*aliases, false));
+				return e_fail;
+			}
+
+			authenticators->SetDESData(id, passwd);
+
+		}
+	}
+	return e_next;
+}
+
 
 #ifdef H323_H350
 

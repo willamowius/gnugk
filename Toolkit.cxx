@@ -2307,14 +2307,20 @@ int verify_callback(int ok, X509_STORE_CTX * store)
         X509 * cert = X509_STORE_CTX_get_current_cert(store);
         int depth = X509_STORE_CTX_get_error_depth(store);
         int err = X509_STORE_CTX_get_error(store);
-		char data[256];
+        const unsigned MSG_LEN = 256;
+		char data[MSG_LEN];
 
         PTRACE(5, "TLS\tError with certificate at depth " << depth);
-        X509_NAME_oneline(X509_get_issuer_name(cert), data, 256);
+        X509_NAME_oneline(X509_get_issuer_name(cert), data, MSG_LEN);
         PTRACE(5, "TLS\t  issuer  = " << data);
-        X509_NAME_oneline(X509_get_subject_name(cert), data, 256);
+        X509_NAME_oneline(X509_get_subject_name(cert), data, MSG_LEN);
         PTRACE(5, "TLS\t  subject = " << data);
         PTRACE(5, "TLS\t  err " << err << ": " << X509_verify_cert_error_string(err));
+
+        if (!Toolkit::Instance()->Config()->GetBoolean(TLSSec, "RequireRemoteCertificate", true)) {
+            PTRACE(5, "TLS\tAccepting invalid client certificate");
+            return 1;
+        }
     }
 
     return ok;

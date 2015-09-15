@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2013, Jan Willamowius
+// Copyright (c) 2000-2015, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -24,6 +24,7 @@
 #include "config.h"
 #include "gktimer.h"
 #include "h323util.h"
+#include "gkh235.h"
 
 #ifdef HAS_H235_MEDIA
 #include "h235auth.h"
@@ -169,6 +170,10 @@ public:
 		True if the configuration has been updated successfully.
 	*/
 	virtual bool LoadConfig();
+
+	GkH235Authenticators * GetH235Authenticators();
+	bool SetH235Authenticators(GkH235Authenticators * auth);
+	bool SetH235Authenticators(const PString & name);
 
 	virtual EndpointRec *Unregisterpreempt(int type);
 	virtual EndpointRec *Reregister();
@@ -433,6 +438,8 @@ protected:
 	bool m_addCallingPartyToSourceAddress;	// per endpoint switch
 	/// list of disabled codes
 	PString m_disabledcodecs;
+	/// H.235 used to authenticate this endpoint
+	GkH235Authenticators * m_authenticators;
 };
 
 typedef EndpointRec::Ptr endptr;

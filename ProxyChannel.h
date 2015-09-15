@@ -359,7 +359,7 @@ protected:
 
 public:
 #ifdef HAS_H46017
-	bool SendH46017Message(const H225_RasMessage & ras);
+	bool SendH46017Message(H225_RasMessage ras, GkH235Authenticators * authenticators);
 	void CleanupCall();
 #endif
 #ifdef HAS_H46026
@@ -385,6 +385,8 @@ public:
 #ifdef HAS_H46023
 	bool IsH46024Call(const H225_Setup_UUIE & setupBody);
 #endif
+
+	bool SetupResponseTokens(SignalingMsg * msg, GkH235Authenticators * auth, const endptr & ep);
 
 	CallSignalSocket * GetRemote() const { return dynamic_cast<CallSignalSocket *>(remote); }
 

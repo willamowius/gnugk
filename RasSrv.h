@@ -104,10 +104,10 @@ public:
 	H225_TransportAddress GetRasAddress(const Address &) const;
 	H225_TransportAddress GetCallSignalAddress(const Address &) const;
 
-	bool SendRas(const H225_RasMessage &, const Address &, WORD, RasListener * = NULL);
-	bool SendRas(const H225_RasMessage &, const H225_TransportAddress &, RasListener * = NULL);
-	bool SendRas(const H225_RasMessage &, const Address &, WORD, const Address &);
-	bool SendRIP(H225_RequestSeqNum seqNum, unsigned ripDelay, const Address & addr, WORD port);
+	bool SendRas(H225_RasMessage &, const Address &, WORD, RasListener * = NULL, GkH235Authenticators * auth = NULL);
+	bool SendRas(H225_RasMessage &, const H225_TransportAddress &, RasListener * = NULL, GkH235Authenticators * auth = NULL);
+	bool SendRas(H225_RasMessage &, const Address &, WORD, const Address &, GkH235Authenticators * auth);
+	bool SendRIP(H225_RequestSeqNum seqNum, unsigned ripDelay, const Address & addr, WORD port, GkH235Authenticators * auth);
 
 	bool IsRedirected(unsigned = 0) const;
 	bool IsForwardedMessage(const H225_NonStandardParameter *, const Address &) const;
@@ -144,7 +144,7 @@ public:
 	{
 		return authList->Validate(ras, authData);
 	}
-	
+
 	bool ValidatePDU(RasPDU<H225_AdmissionRequest> & ras, ARQAuthData & authData)
 	{
 		return authList->Validate(ras, authData);
@@ -153,6 +153,11 @@ public:
 	bool ValidatePDU(SetupMsg & setup, SetupAuthData & authData)
 	{
 		return authList->Validate(setup, authData);
+	}
+
+	bool ValidatePDU(Q931 & msg, Q931AuthData & authData)
+	{
+		return authList->Validate(msg, authData);
 	}
 
 	GkAcctLoggerList * GetAcctList() { return acctList; }

@@ -1404,7 +1404,7 @@ void CallSignalSocket::InternalInit()
 	m_result = NoData;
 	m_setupPdu = NULL;
 #ifdef HAS_H46017
-	m_h46017Enabled = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "EnableH46017", false);
+	m_h46017Enabled = GkConfig()->GetBoolean(RoutedSec, "EnableH46017", false);
 	rc_remote = NULL;
 #endif
 #ifdef HAS_H46018
@@ -1417,7 +1417,7 @@ void CallSignalSocket::InternalInit()
 	m_isH245Master = false;
 #endif
 #ifdef HAS_H46026
-	if (Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "UseH46026PriorityQueue", true)) {
+	if (Toolkit::Instance()->IsH46026Enabled() && GkConfig()->GetBoolean(RoutedSec, "UseH46026PriorityQueue", true)) {
 		m_h46026PriorityQueue = new H46026ChannelManager();
 	} else {
 		m_h46026PriorityQueue = NULL;
@@ -1752,6 +1752,43 @@ void CallSignalSocket::RemoveCall()
 	}
 }
 
+void RemoveHopToHopTokens(Q931 * msg, H225_H323_UserInformation * uuie)
+{
+    H225_ArrayOf_ClearToken * tokens = NULL;
+    H225_ArrayOf_CryptoH323Token * cryptoTokens = NULL;
+    bool changed = false;
+
+    GkH235Authenticators::GetQ931Tokens(msg->GetMessageType(), uuie, &tokens, &cryptoTokens);
+
+    if (!cryptoTokens) {
+        return;
+    }
+
+    PINDEX i = 0;
+    while (i < cryptoTokens->GetSize()) {
+                const H225_CryptoH323Token & token = (*cryptoTokens)[i];
+                if (token.GetTag() == H225_CryptoH323Token::e_nestedcryptoToken) {
+                        const H235_CryptoToken & nestedCryptoToken = token;
+                        if (nestedCryptoToken.GetTag() == H235_CryptoToken::e_cryptoHashedToken) {
+                                const H235_CryptoToken_cryptoHashedToken & cryptoHashedToken = nestedCryptoToken;
+                                if (cryptoHashedToken.m_tokenOID == OID_H235_A_V1 || cryptoHashedToken.m_tokenOID == OID_H235_A_V2) {
+                    // remove H.235.1 token
+                    // TODO235: check for dhkey inside nestedctyptoToken ??? H.235.1 clause 7 + 8 says it might be here instead of the H.235.6 clearTokens ?
+                    for (PINDEX j = i+1; j < cryptoTokens->GetSize(); j++)
+                        (*cryptoTokens)[j-1] = (*cryptoTokens)[j];
+                    cryptoTokens->SetSize(cryptoTokens->GetSize() - 1);
+                    i--;    // re-check new i (re-incremented below)
+                    changed = true;
+                                }
+                        }
+                }
+        i++;
+    }
+    if (changed) {
+        SetUUIE(*msg, *uuie);
+    }
+}
+
 ProxySocket::Result CallSignalSocket::ReceiveData()
 {
 	if (!ReadTPKT()) {
@@ -1772,7 +1809,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		SNMP_TRAP(9, SNMPError, General, "Error decoding Q931 message from " + GetName());
 		delete q931pdu;
 		q931pdu = NULL;
-		PCaselessString action = Toolkit::Instance()->Config()->GetString(RoutedSec, "Q931DecodingError", "Disconnect");
+		PCaselessString action = GkConfig()->GetString(RoutedSec, "Q931DecodingError", "Disconnect");
 		if (action == "Drop") {
 			m_result = NoData;
 		} else if (action == "Forward") {
@@ -1828,6 +1865,94 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 
 	SignalingMsg *msg = SignalingMsg::Create(q931pdu, uuie,
 		_localAddr, _localPort, _peerAddr, _peerPort);
+
+#ifdef HAS_H46017
+	// check for incoming H.460.17 RAS message before authentication
+	// RAS authentication is inside the tunneled RAS message
+	if (msg->GetTag() == Q931::FacilityMsg
+		&& uuie
+		&& uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_genericData)
+		&& m_h46017Enabled) {
+		bool h46017found = false;
+		for (PINDEX i = 0; i < uuie->m_h323_uu_pdu.m_genericData.GetSize(); ++i) {
+			H460_Feature & feat = (H460_Feature &)uuie->m_h323_uu_pdu.m_genericData[i];
+			if (feat.GetFeatureID() == H460_FeatureID(17)) {
+				H460_FeatureStd & std17 = (H460_FeatureStd &)feat;
+				h46017found = true;
+				// multiple RAS messages can be transmitted
+				if (std17.GetParameterCount() > 1) {
+					PTRACE(4, "H46017\tWarning: " << std17.GetParameterCount() << " bundled messages");
+				}
+				for (PINDEX j = 0; j < std17.GetParameterCount(); ++j) {
+					H460_FeatureParameter p = std17.GetFeatureParameter(j);
+					if (p.ID() == 1 && p.hasContent()) {
+						PASN_OctetString & data = p;
+						// mark this socket as NAT socket
+						m_isnatsocket = true;
+						m_maintainConnection = true;	// GnuGk NAT will close the TCP connection after the call, for H.460.17 we don't want that
+						SetConnected(true); // avoid the socket be deleted
+						// hand RAS message to RasSserver for processing
+						RasServer::Instance()->ReadH46017Message(data.GetValue(), _peerAddr, _peerPort, _localAddr, this);
+					}
+				}
+			}
+		}
+		if (h46017found) {
+			delete msg;
+			return NoData;	// don't forward
+		}
+	}
+#endif
+
+    // need source EP to find H.235.1 authenticator
+    PTRACE(0, "JW m_call=" << m_call);
+    callptr tmpCall = m_call;
+    endptr fromEP;
+    GkH235Authenticators * auth = NULL;
+    H225_ArrayOf_AliasAddress aliases;
+    if (!tmpCall && (q931pdu->GetMessageType() == Q931::SetupMsg) && uuie) {
+        H225_Setup_UUIE & setup = uuie->m_h323_uu_pdu.m_h323_message_body;
+        if (setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
+            tmpCall = CallTable::Instance()->FindCallRec(setup.m_callIdentifier);
+        } else {
+            tmpCall = CallTable::Instance()->FindCallRec(q931pdu->GetCallReference());
+        }
+    }
+    if (tmpCall) {
+        if (q931pdu->IsFromDestination()) {
+            PTRACE(0, "JW Q931 from calleD");
+            fromEP = tmpCall->GetCalledParty();
+        } else {
+            PTRACE(0, "JW Q931 from caller");
+            fromEP = tmpCall->GetCallingParty();
+        }
+    }
+    if (fromEP) {
+        auth = fromEP->GetH235Authenticators();
+        aliases = fromEP->GetAliases();
+    }
+    bool overTLS = false;
+#ifdef HAS_TLS
+    overTLS = (dynamic_cast<TLSCallSignalSocket *>(this) != NULL);
+#endif
+
+    Q931AuthData authData(aliases, _peerAddr, _peerPort, overTLS, auth);
+
+    if (!RasServer::Instance()->ValidatePDU(*q931pdu, authData)) {
+        PTRACE(0, "JW Q931 auth failed");
+        if (tmpCall) {
+            PTRACE(0, "JW Q931 auth failed: have call");
+            tmpCall->SetDisconnectCause(Q931::NormalUnspecified); //Q.931 code for reason=SecurityDenied
+        } else {
+            // TODO: set disconnect cause differently for pregranted or unregiostered calls ?
+            PTRACE(0, "JW Q931 auth failed: have NO call");
+        }
+        return m_result = Error;
+    }
+
+    RemoveHopToHopTokens(q931pdu, uuie);
+
+    m_result = Forwarding;
 
 #ifdef H323_H450
 	// Enable H.450.2 Call Transfer Emulator
@@ -1922,43 +2047,6 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		uuie->m_h323_uu_pdu.m_h245Tunneling.SetValue(false);
 		msg->SetUUIEChanged();
 	}
-
-#ifdef HAS_H46017
-	// check for incoming H.460.17 RAS message
-	if (msg->GetTag() == Q931::FacilityMsg
-		&& uuie
-		&& uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_genericData)
-		&& m_h46017Enabled) {
-		bool h46017found = false;
-		for (PINDEX i=0; i < uuie->m_h323_uu_pdu.m_genericData.GetSize(); ++i) {
-			H460_Feature & feat = (H460_Feature &)uuie->m_h323_uu_pdu.m_genericData[i];
-			if (feat.GetFeatureID() == H460_FeatureID(17)) {
-				H460_FeatureStd & std17 = (H460_FeatureStd &)feat;
-				h46017found = true;
-				// multiple RAS messages can be transmitted
-				if (std17.GetParameterCount() > 1) {
-					PTRACE(4, "H46017\tWarning: " << std17.GetParameterCount() << " bundled messages");
-				}
-				for (PINDEX j = 0; j < std17.GetParameterCount(); ++j) {
-					H460_FeatureParameter p = std17.GetFeatureParameter(j);
-					if (p.ID() == 1 && p.hasContent()) {
-						PASN_OctetString & data = p;
-						// mark this socket as NAT socket
-						m_isnatsocket = true;
-						m_maintainConnection = true;	// GnuGk NAT will close the TCP connection after the call, for H.460.17 we don't want that
-						SetConnected(true); // avoid the socket be deleted
-						// hand RAS message to RasSserver for processing
-						RasServer::Instance()->ReadH46017Message(data.GetValue(), _peerAddr, _peerPort, _localAddr, this);
-					}
-				}
-			}
-		}
-		if (h46017found) {
-			delete msg;
-			return NoData;	// don't forward
-		}
-	}
-#endif
 
 	switch (msg->GetTag()) {
 	case Q931::SetupMsg:
@@ -2120,13 +2208,153 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 //	}
 //#endif
 
-	if (msg->IsChanged() && !msg->Encode(buffer))
+	if (msg->IsChanged() && !msg->Encode(buffer)) {
 		m_result = Error;
-	else if (remote && (m_result != DelayedConnecting))
-		PrintQ931(4, "Send to ", remote->GetName(), &msg->GetQ931(), msg->GetUUIE());
+    } else if (remote && (m_result != DelayedConnecting)) {
+        // add H.235.1 tokens
+        if (m_call) {
+            endptr toEP;
+            if (msg->GetQ931().IsFromDestination()) {
+                toEP = m_call->GetCallingParty();
+            } else {
+                toEP = m_call->GetCalledParty();
+            }
+            PTRACE(0, "JW add H.235.1 tokens toEP=" << toEP);
+            if (toEP) {
+                auth = toEP->GetH235Authenticators();
+                if (auth) {
+                    PTRACE(0, "JW auth H.235.1 ? " << auth->HasProcedure1Password());
+                    uuie = msg->GetUUIE();  // needed ?
+                    if (uuie) {
+                        if (SetupResponseTokens(msg, auth, toEP)) {
+                            msg->SetChanged();
+                            msg->SetUUIEChanged();
+                            if (msg->Encode(buffer)) {
+                                auth->Finalise(msg->GetTag(), buffer);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        PrintQ931(4, "Send to ", remote->GetName(), &msg->GetQ931(), msg->GetUUIE());
+    }
 
 	delete msg;
 	return m_result;
+}
+
+
+bool CallSignalSocket::SetupResponseTokens(SignalingMsg * msg, GkH235Authenticators * auth, const endptr & ep)
+{
+    PTRACE(0, "SetupResponseTokens Q931");
+    if (msg == NULL || auth == NULL) {
+        return false;   // message not changed
+    }
+
+    if (GkConfig()->GetBoolean("H235", "UseEndpointIdentifier", true) && ep) {
+        auth->SetProcedure1RemoteId(ep->GetEndpointIdentifier().GetValue());
+    }
+
+    H225_H323_UserInformation * uuie = msg->GetUUIE();
+    if (uuie == NULL) {
+        PTRACE(1, "Error: Can't add tokens without a UUIE");
+        // TODO235: add UUIE ?
+        return false;   // message not changed
+    }
+    H225_ArrayOf_ClearToken tokens; // not used
+    H225_ArrayOf_CryptoH323Token cryptoTokens;
+    auth->PrepareTokens(msg->GetTag(), tokens, cryptoTokens);
+
+    if (cryptoTokens.GetSize() > 0) {
+        switch (uuie->m_h323_uu_pdu.m_h323_message_body.GetTag()) {
+            case H225_H323_UU_PDU_h323_message_body::e_alerting: {
+                    H225_Alerting_UUIE & alerting = uuie->m_h323_uu_pdu.m_h323_message_body;
+                    alerting.IncludeOptionalField(H225_Alerting_UUIE::e_cryptoTokens);
+                    alerting.m_cryptoTokens = cryptoTokens;
+                }
+                break;
+            case H225_H323_UU_PDU_h323_message_body::e_callProceeding: {
+                    H225_CallProceeding_UUIE & proceeding = uuie->m_h323_uu_pdu.m_h323_message_body;
+                    proceeding.IncludeOptionalField(H225_CallProceeding_UUIE::e_cryptoTokens);
+                    proceeding.m_cryptoTokens = cryptoTokens;
+                }
+                break;
+            case H225_H323_UU_PDU_h323_message_body::e_connect: {
+                    H225_Connect_UUIE & connect = uuie->m_h323_uu_pdu.m_h323_message_body;
+                    connect.IncludeOptionalField(H225_Connect_UUIE::e_cryptoTokens);
+                    connect.m_cryptoTokens = cryptoTokens;
+                }
+                break;
+            case H225_H323_UU_PDU_h323_message_body::e_progress: {
+                    H225_Progress_UUIE & progress = uuie->m_h323_uu_pdu.m_h323_message_body;
+                    progress.IncludeOptionalField(H225_Progress_UUIE::e_cryptoTokens);
+                    progress.m_cryptoTokens = cryptoTokens;
+                }
+                break;
+            case H225_H323_UU_PDU_h323_message_body::e_setup: {
+                    H225_Setup_UUIE & setup = uuie->m_h323_uu_pdu.m_h323_message_body;
+                    setup.IncludeOptionalField(H225_Setup_UUIE::e_cryptoTokens);
+                    setup.m_cryptoTokens = cryptoTokens;
+                }
+                break;
+            case H225_H323_UU_PDU_h323_message_body::e_setupAcknowledge: {
+                    H225_SetupAcknowledge_UUIE & setupAck = uuie->m_h323_uu_pdu.m_h323_message_body;
+                    setupAck.IncludeOptionalField(H225_SetupAcknowledge_UUIE::e_cryptoTokens);
+                    setupAck.m_cryptoTokens = cryptoTokens;
+                }
+                break;
+            case H225_H323_UU_PDU_h323_message_body::e_releaseComplete: {
+                    H225_ReleaseComplete_UUIE & rc = uuie->m_h323_uu_pdu.m_h323_message_body;
+                    rc.IncludeOptionalField(H225_ReleaseComplete_UUIE::e_cryptoTokens);
+                    rc.m_cryptoTokens = cryptoTokens;
+                }
+                break;
+            case H225_H323_UU_PDU_h323_message_body::e_information: {
+                    H225_Information_UUIE & info = uuie->m_h323_uu_pdu.m_h323_message_body;
+                    info.IncludeOptionalField(H225_Information_UUIE::e_cryptoTokens);
+                    info.m_cryptoTokens = cryptoTokens;
+                }
+                break;
+            case H225_H323_UU_PDU_h323_message_body::e_notify: {
+                    H225_Notify_UUIE & notify = uuie->m_h323_uu_pdu.m_h323_message_body;
+                    notify.IncludeOptionalField(H225_Notify_UUIE::e_cryptoTokens);
+                    notify.m_cryptoTokens = cryptoTokens;
+                }
+                break;
+            case H225_H323_UU_PDU_h323_message_body::e_status: {
+                    H225_Status_UUIE & status = uuie->m_h323_uu_pdu.m_h323_message_body;
+                    status.IncludeOptionalField(H225_Status_UUIE::e_cryptoTokens);
+                    status.m_cryptoTokens = cryptoTokens;
+                }
+                break;
+            case H225_H323_UU_PDU_h323_message_body::e_statusInquiry: {
+                    H225_StatusInquiry_UUIE & statusInquiry = uuie->m_h323_uu_pdu.m_h323_message_body;
+                    statusInquiry.IncludeOptionalField(H225_StatusInquiry_UUIE::e_cryptoTokens);
+                    statusInquiry.m_cryptoTokens = cryptoTokens;
+                }
+                break;
+            case H225_H323_UU_PDU_h323_message_body::e_facility: {
+                    PTRACE(0, "SetupResponse: Facility");
+                    H225_Facility_UUIE & facility = uuie->m_h323_uu_pdu.m_h323_message_body;
+                    facility.IncludeOptionalField(H225_Facility_UUIE::e_cryptoTokens);
+                    facility.m_cryptoTokens = cryptoTokens;
+                }
+                break;
+            case H225_H323_UU_PDU_h323_message_body::e_empty: {
+                    PTRACE(0, "SetupResponse: Empty");
+                    // can't add token without a body
+                    // TODO235: add a Facility body ?
+                    // TODO235: Why do we break H.450.2 here ????
+                    return false;   // message not changed
+                }
+                break;
+            default:
+                return false;   // message not changed
+                break;
+        }
+    }
+    return true;   // message changed
 }
 
 void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU, const H225_CallTerminationCause *cause) const
@@ -2182,6 +2410,7 @@ void CallSignalSocket::SendReleaseComplete(const H225_CallTerminationCause *caus
 		BuildReleasePDU(ReleasePDU, cause);
 		PBYTEArray buf;
 		ReleasePDU.Encode(buf);
+		// TODO235: tokens!
 		TransmitData(buf);
 	}
 }
@@ -4717,7 +4946,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		}
 #endif
 
-		RasSrv->SendRas(sci_ras, m_call->GetCalledParty()->GetRasAddress());
+		RasSrv->SendRas(sci_ras, m_call->GetCalledParty()->GetRasAddress(), NULL, m_call->GetCalledParty()->GetH235Authenticators());
 
 		// store Setup
 		m_call->StoreSetup(msg);
@@ -5438,7 +5667,7 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 	}
 	m_callerSocket = false;	// update for persistent H.460.17 sockets where this property can change
 
-	H225_Alerting_UUIE &alertingBody = alerting->GetUUIEBody();
+	H225_Alerting_UUIE & alertingBody = alerting->GetUUIEBody();
 
 	m_h225Version = GetH225Version(alertingBody);
 
@@ -5974,7 +6203,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 		// remove old destination
 		setup.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 		setup.RemoveOptionalField(H225_Setup_UUIE::e_destinationAddress);
-        // remove H.235.6 tokens: caller probably connected without encryption to VIVR and resetting keys won't work with most endpoints
+        // remove H.235.6 tokens: caller probably connected without encryption to first destination and resetting keys won't work with most endpoints
         // TODO: make sure we don't remove other tokens
         setup.m_tokens.SetSize(0);
 		// TODO: unify code to set destination between BuildSetup and here (just here ?)
@@ -6193,7 +6422,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 }
 
 #ifdef HAS_H46017
-bool CallSignalSocket::SendH46017Message(const H225_RasMessage & ras)
+bool CallSignalSocket::SendH46017Message(H225_RasMessage ras, GkH235Authenticators * authenticators)
 {
 	PTRACE(3, "RAS\tEncapsulating H.460.17 RAS reply\n" << ras);
 	if (IsOpen()) {
@@ -6208,11 +6437,19 @@ bool CallSignalSocket::SendH46017Message(const H225_RasMessage & ras)
 		uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_genericData);
 		uuie.m_h323_uu_pdu.m_genericData.SetSize(1);
 		H460_FeatureStd feat = H460_FeatureStd(17);
-		PPER_Stream rasstrm;
+		PBYTEArray rasbuf(1024); // buffer with initial size 1024
+        PPER_Stream rasstrm(rasbuf);
 		ras.Encode (rasstrm);
 		rasstrm.CompleteEncoding();
+
+		// make sure buffer gets shrunk to size of encoded message, because we'll write it instead of the PPER_Stream
+        rasbuf.SetSize(rasstrm.GetSize());
+        PTRACE(0, "JW SendH46017Message auth=" << authenticators);
+        if (authenticators != NULL)
+            authenticators->Finalise(ras, rasbuf);
+
 		PASN_OctetString encRAS;
-		encRAS.SetValue(rasstrm);
+		encRAS.SetValue(rasbuf);
 		feat.Add(1, H460_FeatureContent(encRAS));
 		uuie.m_h323_uu_pdu.m_genericData[0] = feat;
 		SetUUIE(FacilityPDU, uuie);

@@ -50,7 +50,7 @@ using Routing::Route;
 
 class RegistrationRequestPDU : public RasPDU<H225_RegistrationRequest> {
 public:
-	RegistrationRequestPDU(GatekeeperMessage *m) : RasPDU<H225_RegistrationRequest>(m) {}
+	RegistrationRequestPDU(GatekeeperMessage *m) : RasPDU<H225_RegistrationRequest>(m) { }
 
 	// override from class RasPDU<H225_RegistrationRequest>
 	virtual bool Process();
@@ -191,15 +191,15 @@ bool GatekeeperMessage::Read(const PBYTEArray & buffer)
 }
 #endif
 
-bool GatekeeperMessage::Reply() const
+bool GatekeeperMessage::Reply(GkH235Authenticators * authenticators)
 {
 #ifdef HAS_H46017
 	if (m_h46017Socket) {
-		return m_h46017Socket->SendH46017Message(m_replyRAS);
+		return m_h46017Socket->SendH46017Message(m_replyRAS, authenticators);
 	}
 #endif
 	if (m_socket) {
-		return m_socket->SendRas(m_replyRAS, m_peerAddr, m_peerPort);
+		return m_socket->SendRas(m_replyRAS, m_peerAddr, m_peerPort, authenticators);
 	} else {
 		return false;
 	}
@@ -217,33 +217,6 @@ RasListener::RasListener(const Address & addr, WORD pt) : UDPSocket(0, addr.GetV
 			);
 		Close();
 	}
-	//RE - TOS - RAS messages
-	int dscp = GkConfig()->GetInteger("RasDiffServ", 0);
-	if (dscp > 0) {
-		int rasTypeofService = (dscp << 2);
-#if defined(hasIPV6) && defined(IPV6_TCLASS)
-		if (addr.GetVersion() == 6) {
-			// for IPv6 set TCLASS
-			if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IPV6, IPV6_TCLASS, (char *)&rasTypeofService, sizeof(int)))) {
-				PTRACE(1, "RAS\tCould not set TCLASS field in IPv6 header: "
-					<< GetErrorCode(PSocket::LastGeneralError) << '/'
-					<< GetErrorNumber(PSocket::LastGeneralError) << ": "
-					<< GetErrorText(PSocket::LastGeneralError));
-			}
-		} else
-#endif
-		{
-			// setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (the 2.6.24.4), now it doesn't anymore
-			// setting IP_TOS will silently fail on Windows XP, Vista and Win7, supposed to work again on Win8
-			if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IP, IP_TOS, (char *)&rasTypeofService, sizeof(int)))) {
-				PTRACE(1, "RAS\tCould not set TOS field in IP header: "
-					<< GetErrorCode(PSocket::LastGeneralError) << '/'
-					<< GetErrorNumber(PSocket::LastGeneralError) << ": "
-					<< GetErrorText(PSocket::LastGeneralError));
-			}
-		}
-    }
-
 	SetWriteTimeout(1000);
 	SetName(AsString(addr, pt) + "(U)");
 	if (Toolkit::Instance()->IsPortNotificationActive())
@@ -286,7 +259,7 @@ GatekeeperMessage *RasListener::ReadRas()
 	return msg;
 }
 
-bool RasListener::SendRas(const H225_RasMessage & rasobj, const Address & addr, WORD pt)
+bool RasListener::SendRas(H225_RasMessage & rasobj, const Address & addr, WORD pt, GkH235Authenticators * auth)
 {
 	if ( ((rasobj.GetTag() != H225_RasMessage::e_serviceControlIndication && rasobj.GetTag() != H225_RasMessage::e_serviceControlResponse) && PTrace::CanTrace(3))
 		|| PTrace::CanTrace(5))
@@ -294,12 +267,21 @@ bool RasListener::SendRas(const H225_RasMessage & rasobj, const Address & addr, 
 	else
 		PTRACE(2, "RAS\tSend " << RasName[rasobj.GetTag()] << " to " << AsString(addr, pt));
 
-	PPER_Stream wtstrm;
+    PBYTEArray wtbuf(1024); // buffer with initial size 1024
+	PPER_Stream wtstrm(wtbuf);
 	rasobj.Encode(wtstrm);
 	wtstrm.CompleteEncoding();
 
+    // make sure buffer gets shrunk to size of encoded message, because we'll write it instead of the PPER_Stream
+    wtbuf.SetSize(wtstrm.GetSize());
+    PTRACE(0, "JW SendRas auth=" << auth);
+    if (auth != NULL)
+        auth->Finalise(rasobj, wtbuf);
+
 	m_wmutex.Wait();
-	bool result = WriteTo(wtstrm.GetPointer(), wtstrm.GetSize(), addr, pt);
+	//bool result = WriteTo(wtstrm.GetPointer(), wtstrm.GetSize(), addr, pt);
+    // must send PByteArray, with the updated H.235 hash; PPER_Stream doesn't seem to change
+	bool result = WriteTo(wtbuf.GetPointer(), wtbuf.GetSize(), addr, pt);
 	m_wmutex.Signal();
 	if (result)
 		PTRACE(5, "RAS\tSent Successful");
@@ -410,8 +392,9 @@ bool MulticastListener::Filter(GatekeeperMessage * msg) const
 void RasMsg::Exec()
 {
 	PTRACE(1, "RAS\t" << m_msg->GetTagName() << " Received from " << AsString(m_msg->m_peerAddr, m_msg->m_peerPort));
-	if (Process())
-		Reply();
+	if (Process()) {
+		Reply(m_authenticators);
+	}
 }
 
 bool RasMsg::IsFrom(const PIPSocket::Address & addr, WORD pt) const
@@ -474,7 +457,6 @@ inline void CopyNonStandardData(const ORAS & omsg, DRAS & dmsg)
 		dmsg.m_nonStandardData = omsg.m_nonStandardData;
 	}
 }
-
 
 // template class RasPDU
 template<class RAS>
@@ -761,7 +743,7 @@ bool RasRequester::SendRequest(const PIPSocket::Address & addr, WORD pt, int ret
 {
 	m_txAddr = addr, m_txPort = pt, m_retry = retry;
 	m_sentTime = PTime();
-	return m_rasSrv->SendRas(*m_request, m_txAddr, m_txPort, m_loAddr);
+	return m_rasSrv->SendRas(*m_request, m_txAddr, m_txPort, m_loAddr, NULL);   // TODO235
 }
 
 bool RasRequester::OnTimeout()
@@ -1188,7 +1170,7 @@ H225_TransportAddress RasServer::GetCallSignalAddress(const Address & addr) cons
 	return listener ? listener->GetCallSignalAddress(addr) : H225_TransportAddress(0);
 }
 
-bool RasServer::SendRas(const H225_RasMessage & rasobj, const Address & addr, WORD pt, RasListener *socket)
+bool RasServer::SendRas(H225_RasMessage & rasobj, const Address & addr, WORD pt, RasListener *socket, GkH235Authenticators * auth)
 {
 	if (socket == NULL) {
 		GkInterface * inter = SelectInterface(addr);
@@ -1197,20 +1179,20 @@ bool RasServer::SendRas(const H225_RasMessage & rasobj, const Address & addr, WO
 		else
 			socket = inter->GetRasListener();
 	}
-	return socket->SendRas(rasobj, addr, pt);
+	return socket->SendRas(rasobj, addr, pt, auth);
 }
 
-bool RasServer::SendRas(const H225_RasMessage & rasobj, const H225_TransportAddress & dest, RasListener *socket)
+bool RasServer::SendRas(H225_RasMessage & rasobj, const H225_TransportAddress & dest, RasListener *socket, GkH235Authenticators * auth)
 {
 	PIPSocket::Address addr;
 	WORD pt;
 	if (GetIPAndPortFromTransportAddr(dest, addr, pt))
-		return SendRas(rasobj, addr, pt, socket);
+		return SendRas(rasobj, addr, pt, socket, auth);
 	PTRACE(1, "RAS\tInvalid address when trying to send " << rasobj.GetTagName());
 	return false;
 }
 
-bool RasServer::SendRas(const H225_RasMessage & rasobj, const Address & addr, WORD pt, const Address & local)
+bool RasServer::SendRas(H225_RasMessage & rasobj, const Address & addr, WORD pt, const Address & local, GkH235Authenticators * auth)
 {
 	GkInterface * inter = SelectInterface(local);
 	if (inter == NULL)
@@ -1218,17 +1200,17 @@ bool RasServer::SendRas(const H225_RasMessage & rasobj, const Address & addr, WO
 	RasListener * listener = inter->GetRasListener();
 	if (listener == NULL)
 		return false;
-	return listener->SendRas(rasobj, addr, pt);
+	return listener->SendRas(rasobj, addr, pt, auth);
 }
 
-bool RasServer::SendRIP(H225_RequestSeqNum seqNum, unsigned ripDelay, const Address & addr, WORD port)
+bool RasServer::SendRIP(H225_RequestSeqNum seqNum, unsigned ripDelay, const Address & addr, WORD port, GkH235Authenticators * auth)
 {
 	H225_RasMessage ras_msg;
 	ras_msg.SetTag(H225_RasMessage::e_requestInProgress);
 	H225_RequestInProgress & rip = ras_msg;
 	rip.m_requestSeqNum.SetValue(seqNum);
 	rip.m_delay = ripDelay;
-	return SendRas(ras_msg, addr, port);
+	return SendRas(ras_msg, addr, port, NULL, auth);
 }
 
 bool RasServer::IsRedirected(unsigned tag) const
@@ -1340,7 +1322,7 @@ void RasServer::ForwardRasMsg(H225_RasMessage & msg)
 
 	for (int i = 0; i < altGKsSize; ++i) {
 		PTRACE(4, "Forwarding RAS to " << AsString(altGKsAddr[i], altGKsPort[i]));
-		SendRas(msg, altGKsAddr[i], altGKsPort[i]);
+		SendRas(msg, altGKsAddr[i], altGKsPort[i], NULL);   // TODO235
 	}
 
 	// restore the old nonstandard field
@@ -2601,6 +2583,9 @@ bool RegistrationRequestPDU::Process()
 	ep->SetPriority(RegPrior);
 	ep->SetPreemption(preemptsupport);
 
+PTRACE(0, "JW SetH235Authenticators = " << authData.m_authenticator);
+	ep->SetH235Authenticators(authData.m_authenticator);
+
 	if (bSendReply) {
 		//
 		// OK, now send RCF
@@ -2794,6 +2779,9 @@ bool RegistrationRequestPDU::Process()
 			      rcf.IncludeOptionalField(H225_RegistrationConfirm::e_serviceControl);
 #endif
 
+        // set H.235.1 tokens
+		SetupResponseTokens(m_msg->m_replyRAS, ep);
+
 	} else {
 		PIPSocket::Address rasip, sigip;
 		if (GetIPFromTransportAddr(request.m_rasAddress[0], rasip) && GetIPFromTransportAddr(SignalAddr, sigip) && rasip != sigip)
@@ -2917,6 +2905,9 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 
 		// Return UCF
 		BuildConfirm();
+
+        // set H.235.1 tokens
+		SetupResponseTokens(m_msg->m_replyRAS, ep);
 
 		log = "UCF|" + m_msg->m_peerAddr.AsString()
 				+ "|" + endpointId
@@ -3094,8 +3085,9 @@ bool AdmissionRequestPDU::Process()
 
 	// find the caller
 	RequestingEP = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
-	if (!RequestingEP)
+	if (!RequestingEP) {
 		return BuildReply(H225_AdmissionRejectReason::e_callerNotRegistered);
+	}
 
     if (GkConfig()->GetBoolean("RasSrv::ARQFeatures", "CheckSenderIP", false)) {
         PIPSocket::Address storedAddr;
@@ -3126,7 +3118,7 @@ bool AdmissionRequestPDU::Process()
 	// send RIP message before doing any real work if configured to do so
 	unsigned ripDelay = GkConfig()->GetInteger("RasSrv::ARQFeatures", "SendRIP", 0);
 	if (ripDelay > 0) {
-		RasSrv->SendRIP(request.m_requestSeqNum, ripDelay, m_msg->m_peerAddr, m_msg->m_peerPort);
+		RasSrv->SendRIP(request.m_requestSeqNum, ripDelay, m_msg->m_peerAddr, m_msg->m_peerPort, RequestingEP->GetH235Authenticators());
 	}
 
 	bool aliasesChanged = false;
@@ -3301,8 +3293,10 @@ bool AdmissionRequestPDU::Process()
 		} else
 			arq.Process();
 
-		if (arq.GetRoutes().empty())
-			return BuildReply(arq.GetRejectReason());
+		if (arq.GetRoutes().empty()) {
+            SetupResponseTokens(m_msg->m_replyRAS, RequestingEP);
+            return BuildReply(arq.GetRejectReason());
+		}
 
 		list<Route>::iterator r = arq.GetRoutes().begin();
 		while (r != arq.GetRoutes().end()) {
@@ -3316,8 +3310,10 @@ bool AdmissionRequestPDU::Process()
 		arq.GetFirstRoute(route);
 
 		if ((arq.GetRoutes().size() == 1 || !Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ActivateFailover", "0")))
-				&& route.m_destEndpoint	&& !route.m_destEndpoint->HasAvailableCapacity(request.m_destinationInfo))
+				&& route.m_destEndpoint	&& !route.m_destEndpoint->HasAvailableCapacity(request.m_destinationInfo)) {
+            SetupResponseTokens(m_msg->m_replyRAS, RequestingEP);
 			return BuildReply(H225_AdmissionRejectReason::e_resourceUnavailable);
+        }
 
 		CalledEP = route.m_destEndpoint;
 		CalledAddress = route.m_destAddr;
@@ -3378,8 +3374,11 @@ bool AdmissionRequestPDU::Process()
 			}
 		}
 	}
-	if (bReject)
-		return BuildReply(H225_AdmissionRejectReason::e_requestDenied); // what the spec says
+	if (bReject) {
+        // set H.235.1 tokens
+		SetupResponseTokens(m_msg->m_replyRAS, RequestingEP);
+		return BuildReply(H225_AdmissionRejectReason::e_requestDenied);
+	}
 
 	PTRACE(3, "GK\tACF will grant bandwidth of " << BWRequest);
 	// new connection admitted
@@ -3388,7 +3387,6 @@ bool AdmissionRequestPDU::Process()
 
 	// Per GW outbound rewrite
 	if (hasDestInfo && CalledEP && (RequestingEP != CalledEP)) {
-
 		if(CalledEP->GetAliases().GetSize() > 0) {
 			out_rewrite_source = GetBestAliasAddressString(
 				CalledEP->GetAliases(), false,
@@ -3402,7 +3400,6 @@ bool AdmissionRequestPDU::Process()
 			if (Kit->GWRewriteE164(out_rewrite_source, GW_REWRITE_OUT, request.m_destinationInfo[0], pExistingCallRec)
 				&& !RasSrv->IsGKRouted())
 				aliasesChanged = true;
-
 	}
 
 	if (hasDestInfo && CalledEP && RequestingEP != CalledEP && !arq.GetRoutes().empty() && !arq.GetRoutes().front().m_destOutNumber.IsEmpty()) {
@@ -3505,6 +3502,7 @@ bool AdmissionRequestPDU::Process()
 				if (!pCallRec->NATOffLoad(answer,natoffloadsupport)) {
 					if (natoffloadsupport == CallRec::e_natFailure) {
 						PTRACE(2, "RAS\tWarning: NAT Media Failure detected " << (unsigned)request.m_callReferenceValue);
+                        SetupResponseTokens(m_msg->m_replyRAS, RequestingEP);
 						return BuildReply(H225_AdmissionRejectReason::e_noRouteToDestination, true);
 					 }
 				}
@@ -3706,6 +3704,9 @@ bool AdmissionRequestPDU::Process()
 #endif	// HAS_H46026
 #endif	// HAS_H460
 
+    // set H.235.1 tokens
+	SetupResponseTokens(m_msg->m_replyRAS, RequestingEP);
+
 	return BuildReply(e_acf, false, pCallRec);
 }
 
@@ -3839,6 +3840,9 @@ template<> bool RasPDU<H225_BandwidthRequest>::Process()
 		      );
 	}
 
+    // set H.235.1 tokens
+	SetupResponseTokens(m_msg->m_replyRAS, RequestingEP);
+
 	return PrintStatus(log);
 }
 
@@ -3912,6 +3916,9 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 			CallTbl->RemoveCall(request, ep);
 	}
 
+    // set H.235.1 tokens
+	SetupResponseTokens(m_msg->m_replyRAS, ep);
+
 	return PrintStatus(log);
 }
 
@@ -3957,14 +3964,18 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 	WORD port;
 	bool fromRegEndpoint = false;
 	bool replyAddrMatch = GetIPAndPortFromTransportAddr(request.m_replyAddress, ipaddr, port) && (ipaddr == m_msg->m_peerAddr && port == m_msg->m_peerPort);
-	if (request.HasOptionalField(H225_LocationRequest::e_endpointIdentifier))
-		if (endptr ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier))
+	endptr ep;
+	if (request.HasOptionalField(H225_LocationRequest::e_endpointIdentifier)) {
+		ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
+		if (ep) {
 			fromRegEndpoint = replyAddrMatch ? true : ep->IsNATed();
+		}
+	}
 
 	// send RIP message before doing any real work if configured to do so
 	unsigned ripDelay = GkConfig()->GetInteger("RasSrv::LRQFeatures", "SendRIP", 0);
 	if (ripDelay > 0) {
-		RasSrv->SendRIP(request.m_requestSeqNum, ripDelay, m_msg->m_peerAddr, m_msg->m_peerPort);
+		RasSrv->SendRIP(request.m_requestSeqNum, ripDelay, m_msg->m_peerAddr, m_msg->m_peerPort, ep ? ep->GetH235Authenticators() : NULL);
 	}
 
     // Neighbors do not need Validation
@@ -4266,6 +4277,9 @@ template<> bool RasPDU<H225_InfoRequestResponse>::Process()
 				}
 			}
 			BuildConfirm();
+            // set H.235.1 tokens
+            SetupResponseTokens(m_msg->m_replyRAS, ep);
+
 			PrintStatus(PString(PString::Printf, "IACK|%s;", (const char *)m_msg->m_peerAddr.AsString()));
 			return true;
 		}
@@ -4286,12 +4300,22 @@ template<> bool RasPDU<H225_ResourcesAvailableIndicate>::Process()
 		}
 	}
 
-	// accept all RAIs
-	H225_ResourcesAvailableConfirm & rac = BuildConfirm();
-	rac.m_protocolIdentifier = request.m_protocolIdentifier;
+    unsigned rsn = 0;
+	bool bAccept = RasSrv->ValidatePDU(*this, rsn);
 
-	PrintStatus(PString(PString::Printf, "RAC|%s;", (const char *)m_msg->m_peerAddr.AsString()));
-	return true;
+    if (bAccept) {
+        // accept all RAIs
+        H225_ResourcesAvailableConfirm & rac = BuildConfirm();
+        rac.m_protocolIdentifier = request.m_protocolIdentifier;
+
+        // set H.235.1 tokens
+        SetupResponseTokens(m_msg->m_replyRAS, ep);
+
+        PrintStatus(PString(PString::Printf, "RAC|%s;", (const char *)m_msg->m_peerAddr.AsString()));
+    } else {
+        PTRACE(5, "RAS\tInvalid RAI received");
+    }
+	return bAccept;
 }
 
 template<> bool RasPDU<H225_ServiceControlIndication>::Process()
@@ -4449,6 +4473,8 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 		}
 	}
 #endif
+
+    // TODO235 ?
 
 	PrintStatus(PString(PString::Printf, "SCR|%s;", (const char *)m_msg->m_peerAddr.AsString()));
 	return true;

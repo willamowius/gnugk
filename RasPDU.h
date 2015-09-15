@@ -22,6 +22,10 @@
 #include "yasocket.h"
 #include "factory.h"
 #include "rasinfo.h"
+#include "gkh235.h"
+#include <h235auth.h>
+#include "RasTbl.h"
+#include "Toolkit.h"
 
 
 class Toolkit;
@@ -52,7 +56,7 @@ public:
 #ifdef HAS_H46017
 	bool Read(const PBYTEArray & buffer);
 #endif
-	bool Reply() const;
+	bool Reply(GkH235Authenticators * authenticators);
 
 	PPER_Stream m_rasPDU;
 	H225_RasMessage m_recvRAS;
@@ -72,7 +76,7 @@ public:
 	virtual ~RasListener();
 
 	GatekeeperMessage *ReadRas();
-	bool SendRas(const H225_RasMessage &, const Address &, WORD);
+	bool SendRas(H225_RasMessage &, const Address &, WORD, GkH235Authenticators * auth);
 
 	WORD GetSignalPort() const { return m_signalPort; }
 	void SetSignalPort(WORD pt) { m_signalPort = pt; }
@@ -123,19 +127,20 @@ public:
 	bool EqualTo(const RasMsg *) const;
 	bool operator==(const RasMsg & other) const { return EqualTo(&other); }
 
-	bool Reply() const { return m_msg->Reply(); }
+	bool Reply(GkH235Authenticators * authenticators) const { return m_msg->Reply(authenticators); }
 
 	GatekeeperMessage *operator->() { return m_msg; }
 	const GatekeeperMessage *operator->() const { return m_msg; }
 
 	static void Initialize();
 protected:
-	RasMsg(GatekeeperMessage *m) : m_msg(m) {}
+	RasMsg(GatekeeperMessage * m) : m_msg(m), m_authenticators(NULL) { }
 	RasMsg(const RasMsg &);
 
 	static bool PrintStatus(const PString &);
 
-	GatekeeperMessage *m_msg;
+	GatekeeperMessage * m_msg;
+	GkH235Authenticators * m_authenticators;
 
 	// just pointers to global singleton objects
 	// cache for faster access
@@ -150,8 +155,8 @@ class RasPDU : public RasMsg {
 public:
 	typedef RAS RasClass;
 
-	RasPDU(GatekeeperMessage *m) : RasMsg(m), request(m->m_recvRAS) {}
-	virtual ~RasPDU() {}
+	RasPDU(GatekeeperMessage *m) : RasMsg(m), request(m->m_recvRAS) { }
+	virtual ~RasPDU() { }
 
 	// override from class RasMsg
 	virtual bool Process() { return false; }
@@ -164,15 +169,62 @@ public:
 	H225_RasMessage & BuildConfirm();
 	H225_RasMessage & BuildReject(unsigned);
 
+	void SetupResponseTokens(H225_RasMessage & responsePdu, const endptr & requestingEP);
+
 	typedef Factory<RasMsg, unsigned>::Creator1<GatekeeperMessage *> RasCreator;
 	struct Creator : public RasCreator {
-		Creator() : RasCreator(RasInfo<RAS>::tag) {}
+		Creator() : RasCreator(RasInfo<RAS>::tag) { }
 		virtual RasMsg *operator()(GatekeeperMessage *m) const { return new RasPDU<RAS>(m); }
 	};
 
 protected:
 	RAS & request;
 };
+
+template<class RAS>
+void RasPDU<RAS>::SetupResponseTokens(H225_RasMessage & responsePdu, const endptr & requestingEP)
+{
+	if (m_authenticators == NULL && requestingEP)
+		m_authenticators = requestingEP->GetH235Authenticators();
+PTRACE(0, "JW SetupResponseTokens m_authenticators=" << m_authenticators);
+
+	if (m_authenticators == NULL) {
+		return;
+	}
+
+	if (GkConfig()->GetBoolean("H235", "UseEndpointIdentifier", true) && requestingEP) {
+		m_authenticators->SetProcedure1RemoteId(requestingEP->GetEndpointIdentifier().GetValue());
+	}
+
+	typedef typename RasInfo<RAS>::ConfirmTag ConfirmTag;
+	typedef typename RasInfo<RAS>::ConfirmType ConfirmType;
+	typedef typename RasInfo<RAS>::RejectTag RejectTag;
+	typedef typename RasInfo<RAS>::RejectType RejectType;
+	if (responsePdu.GetTag() == ConfirmTag()) {
+        PTRACE(0, "JW set Confirm tokens");
+        ConfirmType & confirm = responsePdu;
+        m_authenticators->PrepareTokens(responsePdu, confirm.m_tokens, confirm.m_cryptoTokens);
+
+        PTRACE(0, "JW #clear=" << confirm.m_tokens.GetSize() << " #crypto=" << confirm.m_cryptoTokens.GetSize());
+        if (confirm.m_tokens.GetSize() > 0)
+            confirm.IncludeOptionalField(ConfirmType::e_tokens);
+        if (confirm.m_cryptoTokens.GetSize() > 0)
+            confirm.IncludeOptionalField(ConfirmType::e_cryptoTokens);
+        PTRACE(0, "JW confirm=" << confirm);
+	} else {
+        PTRACE(0, "JW set Reject tokens");
+        if (responsePdu.GetTag() != RejectTag())
+            responsePdu.SetTag(RejectTag());   // create a Ronfirm if not set
+        RejectType & reject = responsePdu;
+        m_authenticators->PrepareTokens(responsePdu, reject.m_tokens, reject.m_cryptoTokens);
+
+        if (reject.m_tokens.GetSize() > 0)
+            reject.IncludeOptionalField(RejectType::e_tokens);
+        if (reject.m_cryptoTokens.GetSize() > 0)
+            reject.IncludeOptionalField(RejectType::e_cryptoTokens);
+	}
+}
+
 
 // abstract factory for listeners
 class GkInterface {

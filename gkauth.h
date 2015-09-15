@@ -24,6 +24,7 @@
 #include "Toolkit.h"
 #include "snmp.h"
 #include "h323util.h"
+#include "ProxyChannel.h"   // TODO: move GetUUIE()
 
 class H225_GatekeeperRequest;
 class H225_GatekeeperConfirm;
@@ -63,11 +64,66 @@ namespace Routing {
 	class Route;
 }
 
+
+#if defined(H323_H235) && hasCipertextStealing
+////////////////////////////////////////////////////
+
+#include <h235/h235crypto.h>
+
+/** This class implements desECB authentication.
+*/
+class H235AuthDesECB : public H235Authenticator
+{
+    PCLASSINFO(H235AuthDesECB, H235Authenticator);
+  public:
+    H235AuthDesECB();
+
+    PObject * Clone() const;
+
+    virtual const char * GetName() const;
+
+    static PStringArray GetAuthenticatorNames();
+#if PTLIB_VER >= 2110
+    static PBoolean GetAuthenticationCapabilities(Capabilities * ids);
+#endif
+    virtual PBoolean IsMatch(const PString & identifier) const;
+
+    virtual H225_CryptoH323Token * CreateCryptoToken();
+
+    virtual ValidationResult ValidateCryptoToken(
+      const H225_CryptoH323Token & cryptoToken,
+      const PBYTEArray & rawPDU
+    );
+
+    virtual PBoolean IsCapability(
+      const H235_AuthenticationMechanism & mechansim,
+      const PASN_ObjectId & algorithmOID
+    );
+
+    virtual PBoolean SetCapability(
+      H225_ArrayOf_AuthenticationMechanism & mechansim,
+      H225_ArrayOf_PASN_ObjectId & algorithmOIDs
+    );
+
+    virtual PBoolean IsSecuredPDU(
+      unsigned rasPDU,
+      PBoolean received
+    ) const;
+
+    virtual PBoolean IsSecuredSignalPDU(
+      unsigned rasPDU,
+      PBoolean received
+    ) const;
+};
+
+#endif
+
+
 /// Data read/written during RRQ processing by all configured
 /// authenticator modules
 struct RRQAuthData
 {
-	RRQAuthData() : m_rejectReason(-1), m_billingMode(-1) { }
+	RRQAuthData() : m_rejectReason(-1), m_billingMode(-1), m_authenticator(NULL) { }
 
 	/// -1 if not set, H225_RegistrationRejectReason enum otherwise
 	int m_rejectReason;
@@ -77,6 +133,7 @@ struct RRQAuthData
 	int m_billingMode;
 	/// Authenticated Aliases
 	PStringArray m_authAliases;
+	GkH235Authenticators * m_authenticator;
 };
 
 /// Data read/written during ARQ processing by all configured
@@ -123,6 +180,7 @@ struct ARQAuthData
 	PBYTEArray m_radiusClass;
 	/// ID provided by client, to be passed out with accounting events
 	PUInt64 m_clientAuthId;
+
 private:
 	ARQAuthData();
 };
@@ -140,7 +198,7 @@ struct SetupAuthData
 		/// did the Setup come in over TLS
 		bool overTLS = false
 		);
-	virtual ~SetupAuthData();
+	~SetupAuthData();
 
 	SetupAuthData& operator=(const SetupAuthData & obj);
 
@@ -180,6 +238,36 @@ struct SetupAuthData
 
 private:
 	SetupAuthData();
+};
+
+/// Data read/written during Q.931/H.225.0 message processing (except Setup)
+/// by all authenticators
+struct Q931AuthData
+{
+	Q931AuthData(const H225_ArrayOf_AliasAddress & aliases,
+                PIPSocket::Address peerAddr, WORD peerPort,
+                bool overTLS, GkH235Authenticators * auth)
+              : m_aliases(aliases), m_peerAddr(peerAddr), m_peerPort(peerPort),
+                m_overTLS(overTLS), m_allowAnySendersID(false), m_authenticator(auth) { }
+	~Q931AuthData() { }
+
+    // the aliases of the endpoint
+	const H225_ArrayOf_AliasAddress & m_aliases;
+    /// IP address the request comes from
+	PIPSocket::Address m_peerAddr;
+	/// port number the request comes from
+	WORD m_peerPort;
+	/// True if Setup came in over TLS
+	bool m_overTLS;
+	// in RRQs we have to accept any sendersID
+	bool m_allowAnySendersID;
+	/// password authenticator
+	GkH235Authenticators * m_authenticator;
+
+private:
+	Q931AuthData();
+	Q931AuthData(const Q931AuthData & obj); // : m_rejectReason(obj.m_rejectReason), m_rejectCause(obj.m_rejectCause), m_call(obj.m_call) { }
+	Q931AuthData& operator=(const Q931AuthData & obj);
 };
 
 /** The base class for all authenticator modules. Authenticator modules
@@ -224,8 +312,20 @@ public:
 
 	/// bit masks for event types other than RAS - see miscCheckFlags variable
 	enum MiscCheckEvents {
-		e_Setup = 0x0001, /// Q.931/H.225 Setup message
-		e_SetupUnreg = 0x0002 /// Q.931/H.225 Setup message only from an unregistered endpoint
+		e_Setup             = 0x0001,   /// Q.931/H.225 Setup message
+		e_SetupUnreg        = 0x0002,   /// Q.931/H.225 Setup message only from an unregistered endpoin
+		e_Connect           = 0x0004,   /// Q.931/H.225 Connect message
+		e_CallProceeding    = 0x0008,   /// Q.931/H.225 CallProceeding message
+		e_Alerting          = 0x0010,   /// Q.931/H.225 Alerting message
+		e_Information       = 0x0020,   /// Q.931/H.225 Information message
+		e_ReleaseComplete   = 0x0040,   /// Q.931/H.225 ReleaseComplete message
+		e_Facility          = 0x0080,   /// Q.931/H.225 Facility message
+		e_Progress          = 0x0100,   /// Q.931/H.225 Progress message
+		e_Empty             = 0x0200,   /// Q.931/H.225 empty message
+		e_Status            = 0x0400,   /// Q.931/H.225 Status message
+		e_StatusEnquiry     = 0x0800,   /// Q.931/H.225 StatusInquiry message
+		e_SetupAck          = 0x1000,   /// Q.931/H.225 SetupAck message
+		e_Notify            = 0x2000    /// Q.931/H.225 Notify message
 	};
 
 
@@ -298,6 +398,7 @@ public:
 	virtual int Check(RasPDU<H225_DisengageRequest> & req, unsigned & rejectReason);
 	virtual int Check(RasPDU<H225_LocationRequest> & req, unsigned & rejectReason);
 	virtual int Check(RasPDU<H225_InfoRequest> & req, unsigned & rejectReason);
+	virtual int Check(RasPDU<H225_ResourcesAvailableIndicate> & req, unsigned & rejectReason);
 
 	/** Authenticate/Authorize RAS or signaling message.
 
@@ -324,6 +425,12 @@ public:
 		SetupMsg & setup,
 		/// authorization data (call duration limit, reject reason, ...)
 		SetupAuthData & authData
+		);
+	virtual int Check(
+		/// Q.931/H.225 message to be authenticated
+		Q931 & msq,
+		/// authorization data
+		Q931AuthData & authData
 		);
 
 	/** Get human readable information about current module state
@@ -352,7 +459,7 @@ protected:
 	    H.235 capabilities (if any).
 	*/
 	void AppendH235Authenticator(
-		H235Authenticator* h235Auth /// H.235 authenticator to append
+		H235Authenticator * h235Auth /// H.235 authenticator to append
 		);
 
 	/** @return
@@ -432,7 +539,7 @@ private:
 	GkAuthenticator(const GkAuthenticator &);
 	GkAuthenticator & operator=(const GkAuthenticator &);
 
-private:
+protected:
 	/// default status to be returned, if not determined otherwise
 	Status m_defaultStatus;
 	/// processing rule for this authenticator
@@ -516,12 +623,30 @@ public:
 			| RasInfo<H225_LocationRequest>::flag
 			| RasInfo<H225_InfoRequest>::flag
 			| RasInfo<H225_AdmissionRequest>::flag
+			| RasInfo<H225_ResourcesAvailableIndicate>::flag
+	};
+	enum SupportedMiscChecks {
+		/// bitmask of Misc checks implemented by this module
+        SimplePasswordAuthMiscChecks = e_Setup
+            | e_SetupUnreg
+            | e_Connect
+            | e_CallProceeding
+            | e_Alerting
+            | e_Information
+            | e_ReleaseComplete
+            | e_Facility
+            | e_Progress
+            | e_Empty
+            | e_Status
+            | e_StatusEnquiry
+            | e_SetupAck
+            | e_Notify
 	};
 
 	SimplePasswordAuth(
 		const char* name, /// a name for this module (a config section name)
 		unsigned supportedRasChecks = SimplePasswordAuthRasChecks,
-		unsigned supportedMiscChecks = 0 /// none supported
+		unsigned supportedMiscChecks = SimplePasswordAuthMiscChecks
 		);
 
 	virtual ~SimplePasswordAuth();
@@ -532,8 +657,9 @@ public:
 	virtual int Check(RasPDU<H225_DisengageRequest> & req, unsigned & rejectReason);
 	virtual int Check(RasPDU<H225_LocationRequest> & req, unsigned & rejectReason);
 	virtual int Check(RasPDU<H225_InfoRequest> & req, unsigned & rejectReason);
+	virtual int Check(RasPDU<H225_ResourcesAvailableIndicate> & req, unsigned & rejectReason);
 
-	/** Authenticate/Authorize RAS or signaling message.
+	/** Authenticate/Authorize RAS message.
 	    An override from GkAuthenticator.
 
 	    @return
@@ -554,6 +680,27 @@ public:
 		/// authorization data (call duration limit, reject reason, ...)
 		ARQAuthData & authData
 		);
+
+	/** Authenticate/Authorize a signaling message.
+	    An override from GkAuthenticator.
+
+	    @return
+	    e_fail - authentication rejected the request
+	    e_ok - authentication accepted the request
+	    e_next - authentication is not supported for this request
+	             or cannot be determined (SQL failure, no cryptoTokens, ...)
+	*/
+    virtual int Check(
+		/// Q931 message to be authenticated/authorized
+		Q931 & msg,
+		/// authorization data
+		Q931AuthData & authData
+		);
+
+    // for H.235.1 we use the generic Q931 Check() method
+    // at the point where this method is called all tokens are already gone
+	virtual int Check(SetupMsg & setup, SetupAuthData & authData) { return e_ok; }
+
 
 protected:
 	/** Get a password associated with the identifier.
@@ -588,8 +735,102 @@ protected:
 		/// the aliases of the request (only used for cryptoEPPwdEncr)
 		const H225_ArrayOf_AliasAddress * aliases,
 		/// UserName detected.
-		PString & username
-		);
+		PString & username);
+
+	/** Validate username/password carried inside the tokens. This method
+	    supports only CAT and clear text tokens.
+
+	    @return
+	    e_ok if the username/password carried inside the tokens is valid,
+	    e_fail if the username/password carried inside the tokens is invalid,
+	    e_next if no recognized tokens have been found
+	*/
+	virtual int CheckTokens(
+		/// authenticators to be used for token validation
+		GkH235Authenticators * & authenticators,
+		/// an array of tokens to be checked
+		const H225_ArrayOf_ClearToken & tokens,
+		/// aliases for the endpoint that generated the tokens
+		const H225_ArrayOf_AliasAddress * aliases);
+
+	/** Validate username/password carried inside the tokens.
+
+	    @return
+	    e_ok if the username/password carried inside the tokens is valid,
+	    e_fail if the username/password carried inside the tokens is invalid,
+	    e_next if no recognized tokens have been found
+	*/
+	virtual int CheckCryptoTokens(
+		/// authenticators to be used for token validation
+		GkH235Authenticators * & authenticators,
+		/// an array of cryptoTokens to be checked
+		const H225_ArrayOf_CryptoH323Token & cryptoTokens,
+		/// aliases for the endpoint that generated the tokens
+		const H225_ArrayOf_AliasAddress * aliases,
+        /// allow any sendersID (eg. in RRQ)
+        bool acceptAnySendersID = false);
+
+
+    int doCheck(const Q931 & msg, Q931AuthData & authData) {
+		GkH235Authenticators * auth = authData.m_authenticator;
+		bool authFound = auth != NULL;
+
+		H225_ArrayOf_ClearToken emptyTokens;
+		H225_ArrayOf_CryptoH323Token emptyCryptoTokens;
+		H225_ArrayOf_ClearToken * tokens = &emptyTokens;
+		H225_ArrayOf_CryptoH323Token * cryptoTokens = &emptyCryptoTokens;
+        H225_H323_UserInformation uuie;
+
+        if (!GetUUIE(msg, uuie)) {
+            PTRACE(0, "JW no UUIE");
+            return e_fail;
+        }
+
+        GkH235Authenticators::GetQ931Tokens(msg.GetMessageType(), &uuie, &tokens, &cryptoTokens);
+
+        if (!authFound && (msg.GetMessageType() == Q931::SetupMsg)) {
+            H225_Setup_UUIE & setup = uuie.m_h323_uu_pdu.m_h323_message_body;
+            callptr call;
+            if (setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
+                call = CallTable::Instance()->FindCallRec(setup.m_callIdentifier);
+            } else {
+                call = CallTable::Instance()->FindCallRec(msg.GetCallReference());
+            }
+            if (call && call->GetCallingParty()) {
+                auth = call->GetCallingParty()->GetH235Authenticators();
+            } else {
+                // TODO: for calls with pregrantedARQ, we might not have a CallRec, yet
+                // try to find EP based on sendersID ?
+            }
+        }
+
+		if (CheckTokens(auth, *tokens, &authData.m_aliases) == e_fail
+			|| CheckCryptoTokens(auth, *cryptoTokens, &authData.m_aliases) == e_fail) {
+			if (!authFound && auth)
+				authData.m_authenticator = auth;
+            PTRACE(0, "JW FAIL token check");
+			return e_fail;
+		}
+
+		if (!authFound && auth) {
+			authData.m_authenticator = auth;
+		}
+
+		if (!auth) {
+            PTRACE(0, "JW no auth -> default status");
+			return GetDefaultStatus();
+		}
+
+        PTRACE(0, "JW call Validate");
+		int result = auth->Validate(msg, *tokens, *cryptoTokens);
+		if (result == H235Authenticator::e_OK)
+			return e_ok;
+		else {
+			if (result == H235Authenticator::e_Absent || result == H235Authenticator::e_Disabled)
+				return GetDefaultStatus();
+			return e_fail;
+		}
+    }
 
 	/** A family of template functions that check tokens/cryptoTokens
 	    inside RAS messages.
@@ -603,21 +844,51 @@ protected:
 		/// RAS request to be authenticated
 		const RasPDU<RAS> & request,
 		/// list of aliases for the endpoint sending the request
-		const H225_ArrayOf_AliasAddress* aliases = NULL,
+		const H225_ArrayOf_AliasAddress * aliases = NULL,
 		/// Registration Auth data
-		RRQAuthData * authData = NULL
-		)
+		RRQAuthData * authData = NULL)
 	{
+		GkH235Authenticators * auth = NULL;
+		if (authData)
+            auth = authData->m_authenticator;
+		bool authFound = auth != NULL;
+
+		const RAS & req = request;
+		const H225_ArrayOf_ClearToken & tokens = req.m_tokens;
+		const H225_ArrayOf_CryptoH323Token & cryptoTokens = req.m_cryptoTokens;
+		bool acceptAnySendersID = (request.GetTag() == H225_RasMessage::e_registrationRequest);
+
+		if (CheckTokens(auth, tokens, aliases) == e_fail
+			|| CheckCryptoTokens(auth, cryptoTokens, aliases, acceptAnySendersID) == e_fail) {
+			if (!authFound && auth != NULL && authData)
+				authData->m_authenticator = auth;
+			return e_fail;
+		}
+
+		if (!authFound && auth != NULL && authData) {
+			authData->m_authenticator = auth;
+		}
+
+		if (auth == NULL)
+			return GetDefaultStatus();
+
+		int result = auth->Validate((const H225_RasMessage&)req, tokens, cryptoTokens, request->m_rasPDU);
+		if (result == H235Authenticator::e_OK)
+			return e_ok;
+		else {
+			if (result == H235Authenticator::e_Absent || result == H235Authenticator::e_Disabled)
+				return GetDefaultStatus();
+			return e_fail;
+		}
+	}
+
+
+
+/* 3.5  TODO235
 		const RAS & req = request;
 		bool finalResult = false;
 
-		if (m_h235Authenticators == NULL) {
-			PTRACE(4, "GKAUTH\tNo Loaded Authenticators");
-			return GetDefaultStatus();
-		}
-
-        for (PINDEX i = 0; i < m_h235Authenticators->GetSize();  i++) {
-			H235Authenticator * authenticator = (H235Authenticator *)(*m_h235Authenticators)[i].Clone();
+			GkH235Authenticators * authenticator = new GkH235Authenticators();
 			authenticator->SetLocalId(Toolkit::GKName());
 
 			H235Authenticator::ValidationResult result;
@@ -641,8 +912,12 @@ protected:
 				result = authenticator->ValidateClearToken(req.m_tokens[t]);
 				if (result == H235Authenticator::e_OK) {
 					PTRACE(4, "GKAUTH\tAuthenticator " << authenticator->GetName() << " succeeded");
-					if (authData)
+					if (authData) {
 						authData->m_authAliases.AppendString(username);
+						authData->m_authenticator = authenticator;
+					} else {
+						delete authenticator;
+					}
 					return e_ok;
 				}
 			}
@@ -663,19 +938,24 @@ protected:
 				}
 				authenticator->SetRemoteId(username);
 				authenticator->SetPassword(password);
-				//authenticator->SetChallenge(challengeToken);	// TODO: set challenge token from GCF
 				result = authenticator->ValidateCryptoToken(req.m_cryptoTokens[t], request->m_rasPDU);
 				if (result == H235Authenticator::e_OK) {
 					PTRACE(4, "GKAUTH\tAuthenticator " << authenticator->GetName() << " succeeded");
-					if (authData)
+					if (authData) {
 						authData->m_authAliases.AppendString(username);
+						authData->m_authenticator = authenticator;
+					} else {
+						delete authenticator;
+					}
 					return e_ok;
 				}
 			}
-		}
 
+		delete authenticator;
 		return finalResult ? e_ok : GetDefaultStatus();
+
 	}
+*/
 
 	/// Set new timeout for username/password pairs cache
 	void SetCacheTimeout(long newTimeout) { m_cache->SetTimeout(newTimeout); }
@@ -687,8 +967,8 @@ private:
 	    true if the password has been found.
     */
 	bool InternalGetPassword(
-		const PString& id, /// get the password for this id
-		PString& passwd /// filled with the password on return
+		const PString & id, /// get the password for this id
+		PString & passwd /// filled with the password on return
 		);
 
 	SimplePasswordAuth();
@@ -881,9 +1161,7 @@ public:
 			if (auth->IsRasCheckEnabled(RasInfo<RAS>::flag)) {
 				const int result = auth->Check(request, rejectReason);
 				if (result == GkAuthenticator::e_ok) {
-					PTRACE(3, "GKAUTH\t" << auth->GetName() << ' '
-						<< request.GetTagName() << " check ok"
-						);
+					PTRACE(3, "GKAUTH\t" << auth->GetName() << ' ' << request.GetTagName() << " check ok");
 					if (auth->GetControlFlag() == GkAuthenticator::e_Sufficient
 							|| auth->GetControlFlag() == GkAuthenticator::e_Alternative)
 						return true;
@@ -934,6 +1212,19 @@ public:
 		SetupMsg & setup,
 		/// authorization data (call duration limit, reject reason, ...)
 		SetupAuthData & authData
+		);
+
+	/** Authenticate other Q.931/H.225 messages
+	    through all configured authenticators.
+
+	    @return
+	    true if the message should be accepted
+	*/
+	bool Validate(
+		/// Q.931/H.225 Setup to be authenticated
+		Q931 & setup,
+		/// authorization data (call duration limit, reject reason, ...)
+		Q931AuthData & authData
 		);
 
 	/** Get a module information string for the selected module.

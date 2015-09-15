@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2014, Jan Willamowius
+// Copyright (c) 2000-2015, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -104,7 +104,7 @@ EndpointRec::EndpointRec(
 	m_H46024a(false), m_H46024b(false), m_natproxy(GkConfig()->GetBoolean(proxysection, "ProxyForNAT", true)),
 	m_internal(false), m_remote(false), m_h46017disabled(false), m_h46018disabled(false), m_usesH460P(false), m_hasH460PData(false),
     m_usesH46017(false), m_usesH46026(false), m_traversalType(None), m_bandwidth(0), m_maxBandwidth(-1), m_useTLS(false),
-     m_useIPSec(false), m_additiveRegistrant(false), m_addCallingPartyToSourceAddress(false)
+     m_useIPSec(false), m_additiveRegistrant(false), m_addCallingPartyToSourceAddress(false), m_authenticators(NULL)
 {
 	switch (m_RasMsg.GetTag())
 	{
@@ -380,6 +380,7 @@ EndpointRec::~EndpointRec()
 		m_natsocket->SetConnected(false);
 		m_natsocket->SetDeletable();
 	}
+    delete m_authenticators;
 }
 
 bool EndpointRec::LoadConfig()
@@ -855,6 +856,45 @@ bool EndpointRec::CompareAlias(const H225_ArrayOf_AliasAddress *a) const
 	return false;
 }
 
+GkH235Authenticators* EndpointRec::GetH235Authenticators()
+{
+    PWaitAndSignal lock(m_usedLock);
+    PTRACE(0, "JW GetH235Authenticators=" << m_authenticators);
+    return m_authenticators;
+}
+
+bool EndpointRec::SetH235Authenticators(GkH235Authenticators * auth)
+{
+    PWaitAndSignal lock(m_usedLock);
+    PTRACE(0, "JW SetH235Authenticators old=" << m_authenticators << " new=" << auth);
+    if (m_authenticators == auth)
+            return true;
+    if (m_authenticators == NULL) {
+            m_authenticators = auth;
+            return true;
+    } else if (auth != NULL)
+            *m_authenticators = *auth;
+    return false;
+}
+
+bool EndpointRec::SetH235Authenticators(const PString & name)
+{
+    PTRACE(0, "JW SetH235Authenticators name=" << name);
+/*
+    if (name == "MD5")
+            SetH235Authenticators(
+    PWaitAndSignal lock(m_usedLock);
+    if (m_authenticators == auth)
+            return true;
+    if (m_authenticators == NULL) {
+            m_authenticators = auth;
+            return true;
+    } else if (auth != NULL)
+            *m_authenticators = *auth;
+*/
+    return false;
+}
+
 void EndpointRec::Update(const H225_RasMessage & ras_msg)
 {
 	if (ras_msg.GetTag() == H225_RasMessage::e_registrationRequest) {
@@ -1066,7 +1106,7 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 	if (UsesH46017()) {
 		CallSignalSocket * s = GetSocket();
 		if (s) {
-			s->SendH46017Message(ras_msg);
+			s->SendH46017Message(ras_msg, GetH235Authenticators());
 // BUG: was intended to avoid double-delete crash, but causing memory leak
 //			if (s->GetHandler()) {
 //				s->GetHandler()->Detach(s);
@@ -1104,10 +1144,10 @@ bool EndpointRec::SendIRQ()
 	if (UsesH46017()) {
 		CallSignalSocket * s = GetSocket();
 		if (s)
-			s->SendH46017Message(ras_msg);
+			s->SendH46017Message(ras_msg,GetH235Authenticators() );
 	} else
 #endif
-		RasSrv->SendRas(ras_msg, GetRasAddress());
+		RasSrv->SendRas(ras_msg, GetRasAddress());  //TODOH235: add authenticator ?
 
 	return true;
 }
@@ -3364,10 +3404,10 @@ void CallRec::SendDRQ()
 		if (m_Called->UsesH46017()) {
 			CallSignalSocket * s = m_Called->GetSocket();
 			if (s)
-				s->SendH46017Message(drq_ras);
+				s->SendH46017Message(drq_ras, m_Called->GetH235Authenticators());
 		} else
 #endif
-			RasSrv->SendRas(drq_ras, m_Called->GetRasAddress());
+			RasSrv->SendRas(drq_ras, m_Called->GetRasAddress(), NULL, m_Called->GetH235Authenticators());
 	}
 	if (m_Calling) {
 		drq.m_endpointIdentifier = m_Calling->GetEndpointIdentifier();
@@ -3376,10 +3416,10 @@ void CallRec::SendDRQ()
 		if (m_Calling->UsesH46017()) {
 			CallSignalSocket * s = m_Calling->GetSocket();
 			if (s)
-				s->SendH46017Message(drq_ras);
+				s->SendH46017Message(drq_ras, m_Calling->GetH235Authenticators());
 		} else
 #endif
-			RasSrv->SendRas(drq_ras, m_Calling->GetRasAddress());
+			RasSrv->SendRas(drq_ras, m_Calling->GetRasAddress(), NULL, m_Calling->GetH235Authenticators());
 	}
 }
 
