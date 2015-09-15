@@ -266,20 +266,20 @@ dnl ########################################################################
 dnl MSWIN_DISPLAY    h46017,H.460.17 support
 dnl MSWIN_DEFINE     h46017,HAS_H46017
 
-AC_ARG_ENABLE(h46017, 
-[  --enable-h46017         enable H.460.17 support (default=yes)], 
-[ h46017="${enableval}" ], [h46017="yes"] 
+AC_ARG_ENABLE(h46017,
+[  --enable-h46017         enable H.460.17 support (default=yes)],
+[ h46017="${enableval}" ], [h46017="yes"]
 )
 
 H460SUPPORT=`cat ${BUILDOPTS} | grep 'define H323_H460'`
 if test "${H460SUPPORT:-unset}" = "unset" ; then
-	if test "x${h46017}" != "xno" ; then     
+	if test "x${h46017}" != "xno" ; then
 		AC_MSG_RESULT(No H.460 support available)
 	fi
 	h46017="no"
 fi
 
-if test "x${h46017}" != "xno" ; then     
+if test "x${h46017}" != "xno" ; then
    HAS_H46017=1
    AC_DEFINE(HAS_H46017, 1)
    STDCCFLAGS="-DHAS_H46017=1 $STDCCFLAGS"
@@ -298,20 +298,20 @@ dnl MSWIN_DISPLAY    h46018,H.460.18/.19 support (check patent license)
 dnl MSWIN_DEFAULT    h46018,Disabled
 dnl MSWIN_DEFINE     h46018,HAS_H46018
 
-AC_ARG_ENABLE(h46018, 
-[  --enable-h46018         enable H.460.18 / H.460.19 support (default=no) check patent license before enabling], 
-[ h46018="${enableval}" ], [h46018="no"] 
+AC_ARG_ENABLE(h46018,
+[  --enable-h46018         enable H.460.18 / H.460.19 support (default=no) check patent license before enabling],
+[ h46018="${enableval}" ], [h46018="no"]
 )
 
 H460SUPPORT=`cat ${BUILDOPTS} | grep 'define H323_H460'`
 if test "${H460SUPPORT:-unset}" = "unset" ; then
-	if test "x${h46018}" != "xno" ; then     
+	if test "x${h46018}" != "xno" ; then
 		AC_MSG_RESULT(No H.460 support available)
 	fi
 	h46018="no"
 fi
 
-if test "x${h46018}" != "xno" ; then     
+if test "x${h46018}" != "xno" ; then
    HAS_H46018=1
    AC_DEFINE(HAS_H46018, 1)
    STDCCFLAGS="-DHAS_H46018=1 $STDCCFLAGS"
@@ -329,20 +329,20 @@ dnl ########################################################################
 dnl MSWIN_DISPLAY    h46023,H.460.23/.24 support
 dnl MSWIN_DEFINE     h46023,HAS_H46023
 
-AC_ARG_ENABLE(h46023, 
-[  --enable-h46023         enable H.460.23 / H.460.24 support (default=yes)], 
-[ h46023="${enableval}" ], [h46023="yes"] 
+AC_ARG_ENABLE(h46023,
+[  --enable-h46023         enable H.460.23 / H.460.24 support (default=yes)],
+[ h46023="${enableval}" ], [h46023="yes"]
 )
 
 H460SUPPORT=`cat ${BUILDOPTS} | grep 'define H323_H460'`
 if test "${H460SUPPORT:-unset}" = "unset" ; then
-	if test "x${h46023}" != "xno" ; then     
+	if test "x${h46023}" != "xno" ; then
 		AC_MSG_RESULT(No H.460 support available)
 	fi
 	h46023="no"
 fi
 
-if test "x${h46023}" != "xno" ; then     
+if test "x${h46023}" != "xno" ; then
    HAS_H46023=1
    AC_DEFINE(HAS_H46023, 1)
    STDCCFLAGS="-DHAS_H46023=1 $STDCCFLAGS"
@@ -360,12 +360,12 @@ dnl ########################################################################
 dnl MSWIN_DISPLAY    radius,RADIUS
 dnl MSWIN_DEFINE     radius,HAS_RADIUS=1
 
-AC_ARG_ENABLE(radius, 
-[  --enable-radius         enable RADIUS support (default=yes)], 
-[ radius="${enableval}" ], [radius="yes"] 
+AC_ARG_ENABLE(radius,
+[  --enable-radius         enable RADIUS support (default=yes)],
+[ radius="${enableval}" ], [radius="yes"]
 )
-	
-if test "x${radius}" != "xno" ; then     
+
+if test "x${radius}" != "xno" ; then
    HAS_RADIUS=1
    AC_DEFINE(HAS_RADIUS, 1)
    STDCCFLAGS="-DHAS_RADIUS=1 $STDCCFLAGS"
@@ -383,11 +383,11 @@ dnl Check for LARGE FDSET
 dnl ########################################################################
 AC_ARG_WITH(large-fdset,
 [  --with-large-fdset[=MAXFD]      Maximum number of sockets supported (default=1024)],
-[ largefdset="$withval" ], 
+[ largefdset="$withval" ],
 [ largefdset="no" ]
 )
 
-if test "x${largefdset}" != "xno" ; then     
+if test "x${largefdset}" != "xno" ; then
 	if test "x${largefdset}" = "xyes"; then
 		LARGE_FDSET=8192
 	else
@@ -409,8 +409,8 @@ dnl MSWIN_CHECK_FILE mysql,include\mysql.h,HAS_MYSQL=1
 dnl MSWIN_DIR_SYMBOL mysql,MYSQL_DIR
 dnl MSWIN_CHECK_DIR  mysql,\Program Files\MySQL\MySQL Server 5.0
 
-AC_ARG_ENABLE(mysql, 
-[  --enable-mysql          enable MySQL support (default=yes)], 
+AC_ARG_ENABLE(mysql,
+[  --enable-mysql          enable MySQL support (default=yes)],
 [ mysql="${enableval}" ], [ mysql="yes" ]
 )
 
@@ -492,8 +492,8 @@ dnl MSWIN_DIR_SYMBOL pgsql,PGSQL_DIR
 dnl MSWIN_CHECK_DIR  pgsql,\postgresql\libpq\
 
 
-AC_ARG_ENABLE(pgsql, 
-[  --enable-pgsql          enable PostgreSQL support (default=yes)], 
+AC_ARG_ENABLE(pgsql,
+[  --enable-pgsql          enable PostgreSQL support (default=yes)],
 [ pgsql="${enableval}" ], [ pgsql="yes" ]
 )
 
@@ -571,8 +571,8 @@ dnl MSWIN_DISPLAY    firebird,Firebird
 dnl MSWIN_CHECK_FILE firebird,include\ibase.h,HAS_FIREBIRD=1
 dnl MSWIN_DIR_SYMBOL firebird,FIREBIRD_DIR
 
-AC_ARG_ENABLE(firebird, 
-[  --enable-firebird       enable Interbase/Firebird support (default=yes)], 
+AC_ARG_ENABLE(firebird,
+[  --enable-firebird       enable Interbase/Firebird support (default=yes)],
 [ firebird="${enableval}" ], [ firebird="yes" ]
 )
 
@@ -656,8 +656,8 @@ dnl MSWIN_CHECK_DIR  odbc,\Program Files\Microsoft SDK\include\
 dnl MSWIN_CHECK_DIR  odbc,\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\
 
 
-AC_ARG_ENABLE(unixodbc, 
-[  --enable-unixodbc       enable unixODBC support (default=yes)], 
+AC_ARG_ENABLE(unixodbc,
+[  --enable-unixodbc       enable unixODBC support (default=yes)],
 [ unixodbc="${enableval}" ], [ unixodbc="yes" ]
 )
 
@@ -738,8 +738,8 @@ dnl MSWIN_DIR_SYMBOL sqlite,SQLITE_DIR
 dnl MSWIN_CHECK_DIR  sqlite,\sqlite\
 
 
-AC_ARG_ENABLE(sqlite, 
-[  --enable-sqlite         enable SQLite support (default=yes)], 
+AC_ARG_ENABLE(sqlite,
+[  --enable-sqlite         enable SQLite support (default=yes)],
 [ sqlite="${enableval}" ], [ sqlite="yes" ]
 )
 
@@ -827,8 +827,8 @@ dnl MSWIN_CHECK_FILE libssh,include\libssh\server.h,HAS_LIBSSH=1
 dnl MSWIN_DIR_SYMBOL libssh,LIBSSH_DIR
 dnl MSWIN_CHECK_DIR  libssh,\libssh\
 
-AC_ARG_ENABLE(libssh, 
-[  --enable-libssh         enable libssh support (default=yes)], 
+AC_ARG_ENABLE(libssh,
+[  --enable-libssh         enable libssh support (default=yes)],
 [ libssh="${enableval}" ], [ libssh="yes" ]
 )
 
@@ -903,7 +903,7 @@ if test "x${libssh}" != "xno"; then
 			AC_MSG_WARN([libssh lib not found. Use --with-libssh-lib-dir=<path>])
 			libssh="no"
 		else
-			AC_MSG_RESULT(yes) 
+			AC_MSG_RESULT(yes)
 			libssh_ldflags="$libssh_ldflags $LIBSSH_LDFLAGS"
 		fi
 	fi
@@ -938,8 +938,8 @@ dnl MSWIN_CHECK_FILE netsnmp,include\net-snmp\net-snmp-config.h,HAS_NETSNMP=1
 dnl MSWIN_DIR_SYMBOL netsnmp,NETSNMP_DIR
 dnl MSWIN_CHECK_DIR  netsnmp,\net-snmp\
 
-AC_ARG_ENABLE(netsnmp, 
-[  --enable-netsnmp        enable Net-SNMP support (default=yes)], 
+AC_ARG_ENABLE(netsnmp,
+[  --enable-netsnmp        enable Net-SNMP support (default=yes)],
 [ netsnmp="${enableval}" ], [ netsnmp="yes" ]
 )
 
@@ -1016,7 +1016,7 @@ if test "x${netsnmp}" != "xno"; then
 			AC_MSG_WARN([NetSNMP lib not found. Use --with-netsnmp-lib-dir=<path>])
 			netsnmp="no"
 		else
-			AC_MSG_RESULT(yes) 
+			AC_MSG_RESULT(yes)
 			netsnmp_ldflags="$netsnmp_ldflags $NETSNMP_LDFLAGS"
 		fi
 	fi
@@ -1057,19 +1057,19 @@ dnl MSWIN_DISPLAY    ptlibsnmp,PTLib SNMP support
 dnl MSWIN_DEFINE     ptlibsnmp,HAS_PTLIBSNMP
 
 AC_ARG_ENABLE(ptlibsnmp,
-[  --enable-ptlibsnmp      enable PTLib SNMP support (default=yes)], 
-[ ptlibsnmp="${enableval}" ], [ptlibsnmp="yes"] 
+[  --enable-ptlibsnmp      enable PTLib SNMP support (default=yes)],
+[ ptlibsnmp="${enableval}" ], [ptlibsnmp="yes"]
 )
 
 PTLIBSNMPSUPPORT=`cat ${PTLIBDIR}/include/ptbuildopts.h | grep 'define P_SNMP'`
 if test "${PTLIBSNMPSUPPORT:-unset}" = "unset" ; then
-	if test "x${ptlibsnmp}" != "xno" ; then     
+	if test "x${ptlibsnmp}" != "xno" ; then
 		AC_MSG_RESULT(No PTLib SNMP support available)
 	fi
 	ptlibsnmp="no"
 fi
 
-if test "x${ptlibsnmp}" != "xno" ; then     
+if test "x${ptlibsnmp}" != "xno" ; then
    HAS_PTLIBSNMP=1
    AC_DEFINE(HAS_PTLIBSNMP, 1)
    STDCCFLAGS="-DHAS_PTLIBSNMP=1 $STDCCFLAGS"
@@ -1090,8 +1090,8 @@ dnl MSWIN_DIR_SYMBOL lua,LUA_DIR
 dnl MSWIN_CHECK_DIR  lua,\Program Files\Lua\5.1
 dnl MSWIN_CHECK_DIR  lua,\Program Files (x86)\Lua\5.1
 
-AC_ARG_ENABLE(lua, 
-[  --enable-lua            enable LUA support (default=yes)], 
+AC_ARG_ENABLE(lua,
+[  --enable-lua            enable LUA support (default=yes)],
 [ lua="${enableval}" ], [ lua="yes" ]
 )
 
@@ -1166,7 +1166,7 @@ if test "x${lua}" != "xno"; then
 			AC_MSG_WARN([LUA lib not found. Use --with-lua-lib-dir=<path>])
 			lua="no"
 		else
-			AC_MSG_RESULT(yes) 
+			AC_MSG_RESULT(yes)
 			lua_ldflags="$lua_ldflags $LUA_LDFLAGS"
 		fi
 	fi
@@ -1193,44 +1193,20 @@ fi
 AC_SUBST(HAS_LUA)
 
 dnl ########################################################################
-dnl Switch for weak TLS (endpoints without certificate)
-dnl ########################################################################
-
-dnl MSWIN_DISPLAY    weaktls,allow endpoints without TLS certificate (default=require cert when using TLS)
-dnl MSWIN_DEFAULT    weaktls,Disabled
-dnl MSWIN_DEFINE     weaktls,HAS_WEAK_TLS
-
-AC_ARG_ENABLE(weaktls, 
-[  --enable-weaktls        allow endpoints without TLS certificate (default=require cert when using TLS)],
-[ weaktls="${enableval}" ], [weaktls="no"] 
-)
-
-if test "x${weaktls}" != "xno" ; then     
-   HAS_WEAK_TLS=1
-   AC_DEFINE(HAS_WEAK_TLS, 1)
-   STDCCFLAGS="-DHAS_WEAK_TLS=1 $STDCCFLAGS"
-   echo "Weak TLS enabled"
-else
-   echo "Weak TLS disabled (using strong TLS with endpoint cert)"
-   HAS_WEAK_TLS=0
-fi
-AC_SUBST(HAS_WEAK_TLS)
-
-dnl ########################################################################
 dnl check for GeoIP
 dnl ########################################################################
 
 dnl MSWIN_DISPLAY    geoip,GeoIP support
 dnl MSWIN_CHECK_FILE geoip,GeoIP.h,HAS_GEOIP=1
 
-AC_ARG_ENABLE(geoip, 
-[  --enable-geoip          enable GeoIP support (default=yes)], 
-[ geoip="${enableval}" ], [geoip="yes"] 
+AC_ARG_ENABLE(geoip,
+[  --enable-geoip          enable GeoIP support (default=yes)],
+[ geoip="${enableval}" ], [geoip="yes"]
 )
 
-if test "x${geoip}" != "xno" ; then     
+if test "x${geoip}" != "xno" ; then
    AC_CHECK_HEADER(GeoIP.h, HAS_GEOIP=1)
-fi   
+fi
 if test "${HAS_GEOIP:-unset}" != "unset" ; then
    STDCCFLAGS="-DHAS_GEOIP=1 $STDCCFLAGS"
    ENDLDLIBS="-lGeoIP $ENDLDLIBS"

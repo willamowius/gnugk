@@ -2388,11 +2388,9 @@ SSL_CTX * Toolkit::GetTLSContext()
 			PTRACE(1, "TLS\tOpenSSL error: " << msg);
 		}
 
-#ifdef HAS_WEAK_TLS
 		if (!m_Config->GetBoolean(TLSSec, "RequireRemoteCertificate", true)) {
 			SSL_CTX_set_verify(m_sslCtx, SSL_VERIFY_PEER, verify_callback); // do not require a client certificate
 		} else
-#endif
 		{
 			SSL_CTX_set_verify(m_sslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, verify_callback); // context is used both in client and server mode
 		}

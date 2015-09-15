@@ -640,7 +640,6 @@ HAS_GEOIP
 EGREP
 GREP
 CPP
-HAS_WEAK_TLS
 HAS_LUA
 HAS_PTLIBSNMP
 HAS_NETSNMP
@@ -746,7 +745,6 @@ enable_lua
 with_lua_include_dir
 with_lua_lib_dir
 with_lua_dir
-enable_weaktls
 enable_geoip
 '
       ac_precious_vars='build_alias
@@ -1381,7 +1379,6 @@ Optional Features:
   --enable-netsnmp        enable Net-SNMP support (default=yes)
   --enable-ptlibsnmp      enable PTLib SNMP support (default=yes)
   --enable-lua            enable LUA support (default=yes)
-  --enable-weaktls        allow endpoints without TLS certificate (default=require cert when using TLS)
   --enable-geoip          enable GeoIP support (default=yes)
 
 Optional Packages:
@@ -5241,29 +5238,6 @@ if test "x$lua" != "xno"; then
 else
     echo "LUA support disabled"
 	HAS_LUA=0
-fi
-
-
-
-
-# Check whether --enable-weaktls was given.
-if test "${enable_weaktls+set}" = set; then :
-  enableval=$enable_weaktls;  weaktls="${enableval}"
-else
-  weaktls="no"
-
-fi
-
-
-if test "x${weaktls}" != "xno" ; then
-   HAS_WEAK_TLS=1
-   $as_echo "#define HAS_WEAK_TLS 1" >>confdefs.h
-
-   STDCCFLAGS="-DHAS_WEAK_TLS=1 $STDCCFLAGS"
-   echo "Weak TLS enabled"
-else
-   echo "Weak TLS disabled (using strong TLS with endpoint cert)"
-   HAS_WEAK_TLS=0
 fi
 
 

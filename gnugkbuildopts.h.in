@@ -26,9 +26,6 @@
 // Radius
 #undef HAS_RADIUS
 
-// TLS without certificate
-#undef HAS_WEAK_TLS
-
 // libSSH
 #undef HAS_LIBSSH
 #if defined(_MSC_VER) && HAS_LIBSSH
