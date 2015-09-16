@@ -5241,8 +5241,6 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 				if (senderSupportsH46019Multiplexing
 					&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
 					dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(true);
-			} else {
-				PTRACE(2, "H46019\tIgnoring invalid H.460.19 indicator");
 			}
 			if (cpBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				cpBody.m_featureSet.RemoveOptionalField(H225_FeatureSet::e_supportedFeatures);
@@ -5557,8 +5555,6 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 				if (senderSupportsH46019Multiplexing
 					&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
 					dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(true);
-			} else {
-				//PTRACE(2, "H46019\tIgnoring invalid H.460.19 indicator"); // can also be another feature, like H.460.26
 			}
 			if (connectBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				connectBody.m_featureSet.RemoveOptionalField(H225_FeatureSet::e_supportedFeatures);
@@ -5733,8 +5729,6 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 					&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
 					dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(true);
 				}
-			} else {
-				PTRACE(2, "H46019\tIgnoring invalid H.460.19 indicator");
 			}
 			if (alertingBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				alertingBody.m_featureSet.RemoveOptionalField(H225_FeatureSet::e_supportedFeatures);
