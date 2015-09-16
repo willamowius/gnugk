@@ -1310,7 +1310,7 @@ PTRACE(0, "JW CheckCryptoTokens");
                 }
             }
 
-            PBoolean requireGeneralID = m_config->GetBoolean("H235", "RequireH2351GeneralID", true);
+            PBoolean requireGeneralID = m_config->GetBoolean("H235", "RequireH2351GeneralID", false);
             if (requireGeneralID) {
                 if (!clearToken.HasOptionalField(H235_ClearToken::e_generalID)) {
                     PTRACE(5, "GKAUTH\t" << GetName() << " hashedVals of nested cryptoHashedToken do not contain generalID");

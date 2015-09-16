@@ -250,6 +250,44 @@ any=onlyTLS
 </descrip>
 
 
+<sect1>Section &lsqb;H235&rsqb;
+<label id="h235">
+<p>
+This section contains setting that apply to all authentication policies using H.235.1 passwords.
+
+<itemize>
+<item><tt/UseEndpointIdentifier=0/<newline>
+Default: <tt/1/<newline>
+<p>
+Use the endpoint identifier as RemoteID.
+
+<item><tt/RequireH2351GeneralID=1/<newline>
+Default: <tt/0/<newline>
+<p>
+The H.235v3 spec requires endpoints to send a GeneralID inside H.235.1 tokens.
+Some endpoint vendors don't include the GeneralID, eg. AudioCodes and Innovaphone.
+
+<item><tt/FullQ931Checking=1/<newline>
+Default: <tt/0/<newline>
+<p>
+The H.235v3 spec mandates all signalling messages (Setup, Alerting, Connect etc.)
+be secured with H.235.1 tokens. This is very good practice, but Innovaphone seems
+to be the only vendor who actually does it.
+
+<item><tt/TimestampGracePeriod=60/<newline>
+Default: <tt/7210/<newline>
+<p>
+Acceptable difference in timestamps inside H.235.1 tokens between endpoint and gatekeeper in seconds.
+
+The default is 2 hours and 10 seconds to accomodate endpoints
+with bad clock settings and in different time zones.
+
+It is suggested that you use NTP to syncronize clocks in all your devices
+and tighten this grace period accordingly.
+
+</itemize>
+
+
 <sect1>Section &lsqb;SimplePasswordAuth&rsqb;
 <label id="password">
 <p>
@@ -277,7 +315,9 @@ Default value to use as a padding byte during password encryption/decryption.
 <item><tt/CheckID=1/<newline>
 Default: <tt/0/<newline>
 <p>
-Check if the aliases match the ID in the tokens.
+Check if the aliases match the ID in the tokens. Some endpoints use separate names
+for their alias and for authentication. If all your endpoints use their alias as ID
+in the tokens, you can tighten security by checking it.
 
 <item><tt/PasswordTimeout=120/<newline>
 Default: <tt/-1/<newline>
@@ -295,6 +335,7 @@ A disabled algorithm will still be used if it is used by an endpoint without neg
 This switch can be used to avoid incompatibilities with vendor implementations.
 
 </itemize>
+
 
 <sect1>Section &lsqb;SQLPasswordAuth&rsqb;
 <label id="sqlpasswordauth">
