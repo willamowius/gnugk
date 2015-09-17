@@ -1,5 +1,6 @@
 Changes from 3.9 to 4.0
 =======================
+- new switch [RoutedMode] DisableFastStart=1
 - support for H.235.1, incl. setting and checking tokens in all RAS and Q.931 messages
 - extend SimplePasswordAuth and FileIPAuth to all RAS and all Q.931 messages
 - store only PBKDF2 hash for [GkStatus::Auth] password in config, not a recoverable password

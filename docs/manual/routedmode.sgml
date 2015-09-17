@@ -668,6 +668,11 @@ Default: <tt>0</tt><newline>
 Set the DiffServ class (DSCP) for H.245 messages.
 (On most Windows versions, setting the the DSCP this way won't work.)
 
+<item><tt/DisableFastStart=1/<newline>
+Default: <tt>0</tt><newline>
+Remove fastStart elements from signalling messages so the endpoints
+are not able to establish a fastStart connection.
+
 
 </itemize>
 

@@ -431,6 +431,11 @@ protected:
 		if (!uu.HasOptionalField(UUIE::e_fastStart))
 			return false;
 
+        if (GkConfig()->GetBoolean(RoutedSec, "DisableFastStart", false)) {
+            uu.RemoveOptionalField(UUIE::e_fastStart);
+            return true;
+        }
+
 		if (!fromCaller && m_call)
 			m_call->SetFastStartResponseReceived();
 

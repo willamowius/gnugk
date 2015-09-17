@@ -3624,8 +3624,8 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	Toolkit *toolkit = Toolkit::Instance();
 	time_t setupTime = time(0); // record the timestamp here since processing may take much time
 
-	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "GenerateCallProceeding", "0"))
-		&& !Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "UseProvisionalRespToH245Tunneling", "0"))
+	if (GkConfig()->GetBoolean(RoutedSec, "GenerateCallProceeding", false)
+		&& !GkConfig()->GetBoolean(RoutedSec, "UseProvisionalRespToH245Tunneling", false)
 		&& !m_h245TunnelingTranslation) {
 		// disable H.245 tunneling when the gatekeeper generates the CP
 		H225_H323_UserInformation * uuie = msg->GetUUIE();
@@ -3652,7 +3652,12 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		}
 	}
 
-	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "TranslateSorensonSourceInfo", "0"))) {
+	if (GkConfig()->GetBoolean(RoutedSec, "DisableFastStart", false)
+        && setupBody.HasOptionalField(H225_Setup_UUIE::e_fastStart)) {
+        setupBody.RemoveOptionalField(H225_Setup_UUIE::e_fastStart);
+	}
+
+	if (GkConfig()->GetBoolean(RoutedSec, "TranslateSorensonSourceInfo", false)) {
 		// Viable VPAD (Viable firmware, SBN Tech device), remove the CallingPartyNumber information
 		// (its under the sorenson switch, even though not sorenson, can be moved later to own switch - SH)
 		if (setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_vendor)
