@@ -3652,11 +3652,6 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		}
 	}
 
-	if (GkConfig()->GetBoolean(RoutedSec, "DisableFastStart", false)
-        && setupBody.HasOptionalField(H225_Setup_UUIE::e_fastStart)) {
-        setupBody.RemoveOptionalField(H225_Setup_UUIE::e_fastStart);
-	}
-
 	if (GkConfig()->GetBoolean(RoutedSec, "TranslateSorensonSourceInfo", false)) {
 		// Viable VPAD (Viable firmware, SBN Tech device), remove the CallingPartyNumber information
 		// (its under the sorenson switch, even though not sorenson, can be moved later to own switch - SH)
