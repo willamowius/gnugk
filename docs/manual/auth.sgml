@@ -18,8 +18,8 @@ authrule=actions
  <authrule> := SimplePasswordAuth | AliasAuth | FileIPAuth | PrefixAuth | RadAuth | RadAliasAuth | SQLAuth | SQLAliasAuth | SQLPasswordAuth | H350PasswordAuth | LDAPPasswordAuth | LDAPAliasAuth | LuaAuth | GeoIPAUth | CapacityControl | ...
  <actions>  := <control>[;<ras>|<q931>,<ras>|<q931>,...]
  <control>  := optional | required | sufficient | alternative
- <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ
- <q931>     := Setup | SetupUnreg
+ <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ | RAI
+ <q931>     := Setup | SetupUnreg | Connect | CallProceeding | Alerting | Information | ReleaseComplete | Facility | Progress | Empty | Status | StatusEnquiry | SetupAck | Notify    
 
 </verb></tscreen>
 </descrip>
