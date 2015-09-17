@@ -164,6 +164,15 @@ int IPAuthBase::Check(
 	return CheckAddress(addr, port, number, authData.m_overTLS);
 }
 
+int IPAuthBase::Check(
+	/// Q.931 message to be authenticated/authorized
+	Q931 & msg,
+	/// authorization data
+	Q931AuthData & authData)
+{
+	return CheckAddress(authData.m_peerAddr, authData.m_peerPort, PString::Empty());
+}
+
 
 /////////////
 // FileIPAuth

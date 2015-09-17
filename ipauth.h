@@ -21,12 +21,33 @@
 /// Generic IP based authentication
 class IPAuthBase : public GkAuthenticator {
 public:
-	enum SupportedChecks {
-		IPAuthRasChecks = RasInfo<H225_GatekeeperRequest>::flag
-			| RasInfo<H225_RegistrationRequest>::flag
-            | RasInfo<H225_AdmissionRequest>::flag
-			| RasInfo<H225_LocationRequest>::flag,
-		IPAuthMiscChecks = e_Setup | e_SetupUnreg
+	enum SupportedRasChecks {
+		/// bitmask of RAS checks implemented by this module
+		IPAuthRasChecks = RasInfo<H225_RegistrationRequest>::flag
+			| RasInfo<H225_UnregistrationRequest>::flag
+			| RasInfo<H225_BandwidthRequest>::flag
+			| RasInfo<H225_DisengageRequest>::flag
+			| RasInfo<H225_LocationRequest>::flag
+			| RasInfo<H225_InfoRequest>::flag
+			| RasInfo<H225_AdmissionRequest>::flag
+			| RasInfo<H225_ResourcesAvailableIndicate>::flag
+	};
+	enum SupportedMiscChecks {
+		/// bitmask of Misc checks implemented by this module
+        IPAuthMiscChecks = e_Setup
+            | e_SetupUnreg
+            | e_Connect
+            | e_CallProceeding
+            | e_Alerting
+            | e_Information
+            | e_ReleaseComplete
+            | e_Facility
+            | e_Progress
+            | e_Empty
+            | e_Status
+            | e_StatusEnquiry
+            | e_SetupAck
+            | e_Notify
 	};
 
 	/// Destroy the authenticator
@@ -86,6 +107,13 @@ public:
 		SetupMsg & setup,
 		/// authorization data (call duration limit, reject reason, ...)
 		SetupAuthData & authData
+		);
+
+    virtual int Check(
+		/// Q931 message to be authenticated/authorized
+		Q931 & msg,
+		/// authorization data
+		Q931AuthData & authData
 		);
 
 protected:
