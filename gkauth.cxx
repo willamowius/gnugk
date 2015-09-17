@@ -1088,10 +1088,15 @@ int SimplePasswordAuth::Check(
 	/// ARQ to be authenticated/authorized
 	RasPDU<H225_AdmissionRequest> & request,
 	/// authorization data (call duration limit, reject reason, ...)
-	ARQAuthData & /*authData*/)
+	ARQAuthData & authData)
 {
-	H225_AdmissionRequest & arq = request;
-	return doCheck(request, arq.m_answerCall ? &arq.m_destinationInfo : &arq.m_srcInfo);
+	// use the aliases from the registration; some endpoints (eg. Innovaphone myPBX) send empty srcInfo
+	if (authData.m_requestingEP) {
+        H225_ArrayOf_AliasAddress aliases = authData.m_requestingEP->GetAliases();
+        return doCheck(request, &aliases);
+    } else {
+        return e_fail;
+    }
 }
 
 int SimplePasswordAuth::Check(
@@ -1100,7 +1105,6 @@ int SimplePasswordAuth::Check(
 	/// authorization data
 	Q931AuthData & authData)
 {
-    PTRACE(0, "JW SimplePasswordAuth::Check");
 	return doCheck(msg, authData);
 }
 
@@ -1247,7 +1251,6 @@ int SimplePasswordAuth::CheckCryptoTokens(
 	/// allow any sendersID (eg. in RRQ)
 	bool acceptAnySendersID)
 {
-PTRACE(0, "JW CheckCryptoTokens");
 	for (PINDEX i = 0; i < tokens.GetSize(); i++) {
 		if (tokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdHash) {
 
@@ -1274,12 +1277,12 @@ PTRACE(0, "JW CheckCryptoTokens");
 			authenticators->SetSimpleMD5Data(id, passwd);
 #if P_SSL
 		} else if (tokens[i].GetTag() == H225_CryptoH323Token::e_nestedcryptoToken) {
-			const H235_CryptoToken& nestedCryptoToken = tokens[i];
+			const H235_CryptoToken & nestedCryptoToken = tokens[i];
 
 			if (nestedCryptoToken.GetTag() != H235_CryptoToken::e_cryptoHashedToken)
 				continue;
 
-			const H235_CryptoToken_cryptoHashedToken& cryptoHashedToken = nestedCryptoToken;
+			const H235_CryptoToken_cryptoHashedToken & cryptoHashedToken = nestedCryptoToken;
 			if (cryptoHashedToken.m_tokenOID != OID_H235_A_V1
 					&& cryptoHashedToken.m_tokenOID != OID_H235_A_V2)
 				continue;
@@ -1287,7 +1290,7 @@ PTRACE(0, "JW CheckCryptoTokens");
 			if (authenticators == NULL)
 				authenticators = new GkH235Authenticators;
 
-			const H235_ClearToken& clearToken = cryptoHashedToken.m_hashedVals;
+			const H235_ClearToken & clearToken = cryptoHashedToken.m_hashedVals;
 			PString sendersID;
 			bool hasSendersId = clearToken.HasOptionalField(H235_ClearToken::e_sendersID);
 			if (!hasSendersId) {
@@ -1301,7 +1304,7 @@ PTRACE(0, "JW CheckCryptoTokens");
             // must be either the endpointID or one of the aliasses
 			H225_EndpointIdentifier epId;
 			epId = sendersID;
-            endptr ep = RegistrationTable::Instance()->FindByEndpointId(epId);
+            endptr ep = RegistrationTable::Instance()->FindByEndpointId(epId);  // check if sendersID is the endpointID
             if (m_checkID  && !acceptAnySendersID) {
                 PBoolean sendersIDValid = ep || (aliases != NULL && FindAlias(*aliases, sendersID) != P_MAX_INDEX);
                 if (!sendersIDValid) {

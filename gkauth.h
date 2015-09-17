@@ -856,6 +856,7 @@ protected:
 		const RAS & req = request;
 		const H225_ArrayOf_ClearToken & tokens = req.m_tokens;
 		const H225_ArrayOf_CryptoH323Token & cryptoTokens = req.m_cryptoTokens;
+		// can't check sendersID in RRQ, because we don't know the aliases or endpointID, yet
 		bool acceptAnySendersID = (request.GetTag() == H225_RasMessage::e_registrationRequest);
 
 		if (CheckTokens(auth, tokens, aliases) == e_fail
@@ -881,81 +882,6 @@ protected:
 			return e_fail;
 		}
 	}
-
-
-
-/* 3.5  TODO235
-		const RAS & req = request;
-		bool finalResult = false;
-
-			GkH235Authenticators * authenticator = new GkH235Authenticators();
-			authenticator->SetLocalId(Toolkit::GKName());
-
-			H235Authenticator::ValidationResult result;
-			for (PINDEX t = 0; t < req.m_tokens.GetSize(); t++) {
-				PString username;
-				PString password;
-				if (!ResolveUserName(req.m_tokens[t], username)) {
-		            PTRACE(4, "GKAUTH\t" << GetName() << " No username resolved from tokens.");
-					continue;	// skip to next token
-				}
-				if ((aliases == NULL) || (FindAlias(*aliases, username) == P_MAX_INDEX)) {
-					PTRACE(4, "GKAUTH\t" << GetName() << " Token username " << username << " does not match aliases for Endpoint");
-					continue;	// skip to next token
-				}
-				if (!InternalGetPassword(username, password)) {
-					PTRACE(4, "GKAUTH\t" << GetName() << " password not found for " << username );
-					// do not return false let the authenticator decide whether it requires a password or not.
-				}
-				authenticator->SetRemoteId(username);
-				authenticator->SetPassword(password);
-				result = authenticator->ValidateClearToken(req.m_tokens[t]);
-				if (result == H235Authenticator::e_OK) {
-					PTRACE(4, "GKAUTH\tAuthenticator " << authenticator->GetName() << " succeeded");
-					if (authData) {
-						authData->m_authAliases.AppendString(username);
-						authData->m_authenticator = authenticator;
-					} else {
-						delete authenticator;
-					}
-					return e_ok;
-				}
-			}
-			for (PINDEX t = 0; t < req.m_cryptoTokens.GetSize(); t++) {
-				PString username;
-				PString password;
-				if (!ResolveUserName(req.m_cryptoTokens[t], aliases, username)) {
-		            PTRACE(4, "GKAUTH\t" << GetName() << " No username resolved from tokens.");
-					continue;	// skip to next token
-				}
-				if ((aliases == NULL) || (FindAlias(*aliases, username) == P_MAX_INDEX)) {
-					PTRACE(4, "GKAUTH\t" << GetName() << " Token username " << username << " does not match aliases for Endpoint");
-					continue;	// skip to next token
-				}
-				if (!InternalGetPassword(username, password)) {
-					PTRACE(4, "GKAUTH\t" << GetName() << " password not found for " << username );
-					// do not return false let the authenticator decide whether it requires a password or not.
-				}
-				authenticator->SetRemoteId(username);
-				authenticator->SetPassword(password);
-				result = authenticator->ValidateCryptoToken(req.m_cryptoTokens[t], request->m_rasPDU);
-				if (result == H235Authenticator::e_OK) {
-					PTRACE(4, "GKAUTH\tAuthenticator " << authenticator->GetName() << " succeeded");
-					if (authData) {
-						authData->m_authAliases.AppendString(username);
-						authData->m_authenticator = authenticator;
-					} else {
-						delete authenticator;
-					}
-					return e_ok;
-				}
-			}
-
-		delete authenticator;
-		return finalResult ? e_ok : GetDefaultStatus();
-
-	}
-*/
 
 	/// Set new timeout for username/password pairs cache
 	void SetCacheTimeout(long newTimeout) { m_cache->SetTimeout(newTimeout); }
