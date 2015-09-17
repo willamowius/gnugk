@@ -863,36 +863,18 @@ GkH235Authenticators* EndpointRec::GetH235Authenticators()
     return m_authenticators;
 }
 
-bool EndpointRec::SetH235Authenticators(GkH235Authenticators * auth)
+void EndpointRec::SetH235Authenticators(GkH235Authenticators * auth)
 {
     PWaitAndSignal lock(m_usedLock);
     PTRACE(0, "JW SetH235Authenticators old=" << m_authenticators << " new=" << auth);
-    if (m_authenticators == auth)
-            return true;
-    if (m_authenticators == NULL) {
-            m_authenticators = auth;
-            return true;
-    } else if (auth != NULL)
-            *m_authenticators = *auth;
-    return false;
-}
-
-bool EndpointRec::SetH235Authenticators(const PString & name)
-{
-    PTRACE(0, "JW SetH235Authenticators name=" << name);
-/*
-    if (name == "MD5")
-            SetH235Authenticators(
-    PWaitAndSignal lock(m_usedLock);
-    if (m_authenticators == auth)
-            return true;
-    if (m_authenticators == NULL) {
-            m_authenticators = auth;
-            return true;
-    } else if (auth != NULL)
-            *m_authenticators = *auth;
-*/
-    return false;
+    if (m_authenticators == auth) {
+        // do nothing
+    } else if (m_authenticators == NULL) {
+        m_authenticators = auth;
+    } else if (auth != NULL) {
+        delete m_authenticators;
+        m_authenticators = auth;
+    };
 }
 
 void EndpointRec::Update(const H225_RasMessage & ras_msg)

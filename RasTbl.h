@@ -172,8 +172,7 @@ public:
 	virtual bool LoadConfig();
 
 	GkH235Authenticators * GetH235Authenticators();
-	bool SetH235Authenticators(GkH235Authenticators * auth);
-	bool SetH235Authenticators(const PString & name);
+	void SetH235Authenticators(GkH235Authenticators * auth);
 
 	virtual EndpointRec *Unregisterpreempt(int type);
 	virtual EndpointRec *Reregister();
