@@ -2162,7 +2162,7 @@ int PrefixAuth::Check(
 }
 
 struct comp_pref { // function object
-	comp_pref(const PString & s) : value(s) {}
+	comp_pref(const PString & s) : value(s) { }
 	bool operator()(const PrefixAuth::Rules::value_type & v) const;
 	const PString & value;
 };

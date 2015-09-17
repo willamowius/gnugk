@@ -24,13 +24,13 @@
 
 class SampleBase {
 public:
-	SampleBase() {}
+	SampleBase() { }
 	SampleBase(const char *n) { cerr << "This is a " << n << "\n"; }
-	virtual ~SampleBase() {}
+	virtual ~SampleBase() { }
 
 	template<class Derived>
 	struct Init : public Factory<SampleBase>::Creator0 {
-		Init(const char *n) : Factory<SampleBase>::Creator0(n), n_(n) {}
+		Init(const char *n) : Factory<SampleBase>::Creator0(n), n_(n) { }
 		virtual SampleBase *operator()() const { return new Derived(n_); }
 
 		const char *n_;
@@ -39,22 +39,22 @@ public:
 
 class SampleA : public SampleBase {
 public:
-	SampleA(const char *n) : SampleBase(n) {}
+	SampleA(const char *n) : SampleBase(n) { }
 };
 
 class SampleB : public SampleBase {
 public:
-	SampleB(const char *n) : SampleBase(n) {}
+	SampleB(const char *n) : SampleBase(n) { }
 };
 
 class SampleC : public SampleBase {
 public:
-	SampleC(const char *n) : SampleBase(n) {}
+	SampleC(const char *n) : SampleBase(n) { }
 	SampleC(int i) { cerr << "This is a SampleC " << i << "\n"; }
 
 	// how to create object for a class with different constructors
 	struct InitC : public SampleBase::Init<SampleC>, public Factory<SampleBase>::Creator1<int> {
-		InitC(const char *n) : SampleBase::Init<SampleC>(n), Factory<SampleBase>::Creator1<int>(n) {}
+		InitC(const char *n) : SampleBase::Init<SampleC>(n), Factory<SampleBase>::Creator1<int>(n) { }
 		virtual SampleBase *operator()(int i) const { return new SampleC(i); }
 	};
 };
@@ -110,7 +110,7 @@ template<> struct less<const char *> : public binary_function<const char *, cons
 template<typename R>
 struct Functor {
 	typedef R result_type;
-	virtual ~Functor() {}
+	virtual ~Functor() { }
 };
 
 // function objects with different parameters
@@ -167,49 +167,49 @@ public:
 	};
 
 	struct Creator0 : public Functor0<Product *>, Registrar {
-		Creator0(Identifier n) : Registrar(n, this) {}
+		Creator0(Identifier n) : Registrar(n, this) { }
 	};
 
 	template<typename P1>
 	struct Creator1 : public Functor1<Product *, P1>, Registrar {
-		Creator1(Identifier n) : Registrar(n, this) {}
+		Creator1(Identifier n) : Registrar(n, this) { }
 	};
 
 	template<typename P1, typename P2>
 	struct Creator2 : public Functor2<Product *, P1, P2>, Registrar {
-		Creator2(Identifier n) : Registrar(n, this) {}
+		Creator2(Identifier n) : Registrar(n, this) { }
 	};
 
 	template<typename P1, typename P2, typename P3>
 	struct Creator3 : public Functor3<Product *, P1, P2, P3>, Registrar {
-		Creator3(Identifier n) : Registrar(n, this) {}
+		Creator3(Identifier n) : Registrar(n, this) { }
 	};
 
 	static Product *Create(Identifier n)
 	{
 		Functor0<Product *> *f0;
-		return FindCreator(n, 0, f0) ? (*f0)() : 0;
+		return FindCreator(n, 0, f0) ? (*f0)() : NULL;
 	}
 
 	template<typename P1>
 	static Product *Create(Identifier n, P1 p1)
 	{
 		Functor1<Product *, P1> *f1;
-		return FindCreator(n, 1, f1) ? (*f1)(p1) : 0;
+		return FindCreator(n, 1, f1) ? (*f1)(p1) : NULL;
 	}
 
 	template<typename P1, typename P2>
 	static Product *Create(Identifier n, P1 p1, P2 p2)
 	{
 		Functor2<Product *, P1, P2> *f2;
-		return FindCreator(n, 2, f2) ? (*f2)(p1, p2) : 0;
+		return FindCreator(n, 2, f2) ? (*f2)(p1, p2) : NULL;
 	}
 
 	template<typename P1, typename P2, typename P3>
 	static Product *Create(Identifier n, P1 p1, P2 p2, P3 p3)
 	{
 		Functor3<Product *, P1, P2, P3> *f3;
-		return FindCreator(n, 3, f3) ? (*f3)(p1, p2, p3) : 0;
+		return FindCreator(n, 3, f3) ? (*f3)(p1, p2, p3) : NULL;
 	}
 
 private:
@@ -287,7 +287,7 @@ template<class Product, typename Identifier>
 std::map<Identifier, Functor<Product *> *> *Factory<Product, Identifier>::m_associations;
 
 template<class Product, typename Identifier>
-Functor<Product *> *Factory<Product, Identifier>::m_default = 0;
+Functor<Product *> *Factory<Product, Identifier>::m_default = NULL;
 
 
 // a simple creator for classes having default constructor
@@ -295,7 +295,7 @@ Functor<Product *> *Factory<Product, Identifier>::m_default = 0;
 template<class ConcreteProduct, typename Identifier = const char *>
 struct SimpleCreator : public Factory<typename ConcreteProduct::Base, Identifier>::Creator0 {
 	typedef typename ConcreteProduct::Base AbstractProduct;
-	SimpleCreator(Identifier n) : Factory<AbstractProduct, Identifier>::Creator0(n) {}
+	SimpleCreator(Identifier n) : Factory<AbstractProduct, Identifier>::Creator0(n) { }
 	virtual AbstractProduct *operator()() const { return new ConcreteProduct; }
 };
 
