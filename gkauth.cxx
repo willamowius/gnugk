@@ -1056,17 +1056,44 @@ int SimplePasswordAuth::Check(
 
 int SimplePasswordAuth::Check(RasPDU<H225_UnregistrationRequest> & request, unsigned &)
 {
-	return doCheck(request);
+    H225_UnregistrationRequest & urq = request;
+    H225_ArrayOf_AliasAddress aliases;
+    if (urq.HasOptionalField(H225_UnregistrationRequest::e_endpointIdentifier)) {
+        endptr ep = RegistrationTable::Instance()->FindByEndpointId(urq.m_endpointIdentifier);
+        if (ep) {
+            aliases = ep->GetAliases();
+        }
+    }
+
+    if (aliases.GetSize() > 0) {
+        return doCheck(request, &aliases);
+    } else {
+        return doCheck(request); // can't check sendersID
+    }
 }
 
 int SimplePasswordAuth::Check(RasPDU<H225_BandwidthRequest> & request, unsigned &)
 {
-	return doCheck(request);
+    H225_BandwidthRequest & brq = request;
+    endptr ep = RegistrationTable::Instance()->FindByEndpointId(brq.m_endpointIdentifier);
+    if (ep) {
+        H225_ArrayOf_AliasAddress aliases = ep->GetAliases();
+        return doCheck(request, &aliases);
+    } else {
+        return e_fail;
+    }
 }
 
 int SimplePasswordAuth::Check(RasPDU<H225_DisengageRequest> & request, unsigned &)
 {
-	return doCheck(request);
+    H225_DisengageRequest & drq = request;
+    endptr ep = RegistrationTable::Instance()->FindByEndpointId(drq.m_endpointIdentifier);
+    if (ep) {
+        H225_ArrayOf_AliasAddress aliases = ep->GetAliases();
+        return doCheck(request, &aliases);
+    } else {
+        return e_fail;
+    }
 }
 
 int SimplePasswordAuth::Check(RasPDU<H225_LocationRequest> & request, unsigned &)
@@ -1081,7 +1108,14 @@ int SimplePasswordAuth::Check(RasPDU<H225_InfoRequest> & request, unsigned &)
 
 int SimplePasswordAuth::Check(RasPDU<H225_ResourcesAvailableIndicate> & request, unsigned &)
 {
-	return doCheck(request);
+    H225_ResourcesAvailableIndicate & rai = request;
+    endptr ep = RegistrationTable::Instance()->FindByEndpointId(rai.m_endpointIdentifier);
+    if (ep) {
+        H225_ArrayOf_AliasAddress aliases = ep->GetAliases();
+        return doCheck(request, &aliases);
+    } else {
+        return e_fail;
+    }
 }
 
 int SimplePasswordAuth::Check(

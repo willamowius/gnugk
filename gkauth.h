@@ -856,8 +856,10 @@ protected:
 		const RAS & req = request;
 		const H225_ArrayOf_ClearToken & tokens = req.m_tokens;
 		const H225_ArrayOf_CryptoH323Token & cryptoTokens = req.m_cryptoTokens;
-		// can't check sendersID in RRQ, because we don't know the aliases or endpointID, yet
-		bool acceptAnySendersID = (request.GetTag() == H225_RasMessage::e_registrationRequest);
+		// can't check sendersID on some messages (eg. fo RRQ we don't know the aliases or endpointID, yet)
+		bool acceptAnySendersID = (request.GetTag() == H225_RasMessage::e_registrationRequest)
+                                || (request.GetTag() == H225_RasMessage::e_locationRequest)
+                                || (request.GetTag() == H225_RasMessage::e_infoRequest);
 
 		if (CheckTokens(auth, tokens, aliases) == e_fail
 			|| CheckCryptoTokens(auth, cryptoTokens, aliases, acceptAnySendersID) == e_fail) {
