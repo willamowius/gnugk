@@ -270,9 +270,15 @@ Some endpoint vendors don't include the GeneralID, eg. AudioCodes and Innovaphon
 <item><tt/FullQ931Checking=1/<newline>
 Default: <tt/0/<newline>
 <p>
-The H.235v3 spec mandates all signalling messages (Setup, Alerting, Connect etc.)
-be secured with H.235.1 tokens. This is very good practice, but Innovaphone seems
-to be the only vendor who actually does it.
+The H.235v3 spec mandates all Q,931 signaling messages (Setup, Alerting, Connect etc.)
+be secured with H.235.1 tokens. This is very good practice, but very few vendors implement it.
+(Innovaphone does.)
+
+<item><tt/CheckSendersID=0/<newline>
+Default: <tt/1/<newline>
+<p>
+Check if the SendersID inside tokens matches their alias or endpointID.
+This switch replaces the CheckID= switch in the [...PasswordAuth] sections.
 
 <item><tt/TimestampGracePeriod=60/<newline>
 Default: <tt/7210/<newline>
@@ -318,6 +324,11 @@ Default: <tt/0/<newline>
 Check if the aliases match the ID in the tokens. Some endpoints use separate names
 for their alias and for authentication. If all your endpoints use their alias as ID
 in the tokens, you can tighten security by checking it.
+
+This switch applies to the RAS tokens of all password authenticators.
+Use the CheckSendersId= switch in the [H235] section to configure checks
+for the sendersID in Q.931 signaling messages.
+
 
 <item><tt/PasswordTimeout=120/<newline>
 Default: <tt/-1/<newline>

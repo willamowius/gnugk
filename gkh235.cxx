@@ -142,10 +142,15 @@ int GkH235Authenticators::Validate(
 					m_authProcedure1->SetRemoteId(m_remoteIdProcedure1);
 					PTRACE(0, "JW Validate Q931: oldRemoteID=" << oldRemoteId << " new RemoteId=" << m_remoteIdProcedure1);
                    	bool checkSendersID = GkConfig()->GetBoolean("H235", "CheckSendersID", true);
-					if (checkSendersID && cryptoHashedToken.m_hashedVals.HasOptionalField(H235_ClearToken::e_sendersID)) {
+					if (cryptoHashedToken.m_hashedVals.HasOptionalField(H235_ClearToken::e_sendersID)) {
+                        bool idOK = false;
                         // TODO235: check if sendersID == EPID or == alias and then set the actual as expected, don't set if its not a correct one
-                        // if (checkOK) {
-                        // m_authProcedure1->SetRemoteId(cryptoHashedToken.m_hashedVals.m_sendersID);
+                        if (idOK) {
+                            m_authProcedure1->SetRemoteId(cryptoHashedToken.m_hashedVals.m_sendersID);
+                        } else if (checkSendersID) {
+                            // error if we shall check the ID otherwise just let it slide
+                            return H235Authenticator::e_Error;
+                        }
 					}
 					if (!checkSendersID && cryptoHashedToken.m_hashedVals.HasOptionalField(H235_ClearToken::e_sendersID)) {
                         // if we don't want to check, copy actual sendersID into what we expect
@@ -592,3 +597,4 @@ void GkH235Authenticators::GetQ931Tokens(Q931::MsgTypes type, H225_H323_UserInfo
             break;
     }
 }
+

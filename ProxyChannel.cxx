@@ -6201,7 +6201,6 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
         // remove H.235.6 tokens: caller probably connected without encryption to first destination and resetting keys won't work with most endpoints
         // TODO: make sure we don't remove other tokens
         setup.m_tokens.SetSize(0);
-		// TODO: unify code to set destination between BuildSetup and here (just here ?)
 		// check if destination contains IP to set destCallSigAdr
 		PString alias;
 		PString destip;

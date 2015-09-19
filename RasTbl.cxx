@@ -1129,7 +1129,7 @@ bool EndpointRec::SendIRQ()
 			s->SendH46017Message(ras_msg,GetH235Authenticators() );
 	} else
 #endif
-		RasSrv->SendRas(ras_msg, GetRasAddress());  //TODOH235: add authenticator ?
+		RasSrv->SendRas(ras_msg, GetRasAddress());  // TODO235: add authenticator ?
 
 	return true;
 }

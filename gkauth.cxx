@@ -995,7 +995,7 @@ SimplePasswordAuth::SimplePasswordAuth(
 		PTRACE(1, "GKAUTH\t" << GetName() << " KeyFilled config variable is missing");
 	}
 	m_encryptionKey = GetConfig()->GetInteger(name, "KeyFilled", 0);
-	m_checkID = Toolkit::AsBool(GetConfig()->GetString(name, "CheckID", "0"));
+	m_checkID = GetConfig()->GetBoolean(name, "CheckID", true);
 	m_cache = new CacheManager(GetConfig()->GetInteger(name, "PasswordTimeout", -1));
 	m_disabledAlgorithms = GetConfig()->GetString(name, "DisableAlgorithm", "").Tokenise(",;", FALSE);
 
@@ -1293,6 +1293,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
 
 			H225_CryptoH323Token_cryptoEPPwdHash & pwdhash = tokens[i];
 			const PString id = AsString(pwdhash.m_alias, false);
+PTRACE(0, "JW checking SendersID=" << m_checkID);
 			if (m_checkID && (aliases == NULL || FindAlias(*aliases, id) == P_MAX_INDEX)) {
 				PTRACE(3, "GKAUTH\t" << GetName() << " alias '" << id
 					<< "' of the cryptoEPPwdHash token does not match any alias for the endpoint");
@@ -1379,7 +1380,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
 					PTRACE(0, "JW check if alias " << id << " has password (via epID)");
 					passwordFound = InternalGetPassword(id, passwd);
 					if (passwordFound) {
-                        // TODO235: set sendersID = id so the right id is set for authenticator ????
+                        // TODO235: set sendersID = id so the right id is set for H323Plus authenticator ????
 						break;
 					}
 				}
@@ -1414,7 +1415,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
                 }
 			}
 			if (passwd.IsEmpty()) {
-				PTRACE(3, "GKAUTH\t" << GetName() << " no password founf for any alias '" << AsString(*aliases, false));
+				PTRACE(3, "GKAUTH\t" << GetName() << " no password found for any alias '" << AsString(*aliases, false));
 				return e_fail;
 			}
 

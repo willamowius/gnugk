@@ -113,6 +113,7 @@ public:
     // get pointers to the tokens in the different Q.931 messages
     static void GetQ931Tokens(Q931::MsgTypes type, H225_H323_UserInformation * uuie, H225_ArrayOf_ClearToken ** tokens, H225_ArrayOf_CryptoH323Token ** cryptoTokens);
 
+
 protected:
 	long m_timestampGracePeriod;
 	// CAT
