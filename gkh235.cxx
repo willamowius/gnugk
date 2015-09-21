@@ -141,21 +141,16 @@ int GkH235Authenticators::Validate(
 					m_authProcedure1->SetLocalId(m_localIdProcedure1);
 					m_authProcedure1->SetRemoteId(m_remoteIdProcedure1);
 					PTRACE(0, "JW Validate Q931: oldRemoteID=" << oldRemoteId << " new RemoteId=" << m_remoteIdProcedure1);
-                   	bool checkSendersID = GkConfig()->GetBoolean("H235", "CheckSendersID", true);
-					if (cryptoHashedToken.m_hashedVals.HasOptionalField(H235_ClearToken::e_sendersID)) {
-                        bool idOK = false;
+                   	bool checkSendersID = GkConfig()->GetBoolean("H235", "CheckQ931SendersID", true);
+					if (cryptoHashedToken.m_hashedVals.HasOptionalField(H235_ClearToken::e_sendersID) && checkSendersID) {
+                        bool idOK = true;
                         // TODO235: check if sendersID == EPID or == alias and then set the actual as expected, don't set if its not a correct one
-                        if (idOK) {
-                            m_authProcedure1->SetRemoteId(cryptoHashedToken.m_hashedVals.m_sendersID);
-                        } else if (checkSendersID) {
-                            // error if we shall check the ID otherwise just let it slide
+                        if (!idOK) {
                             return H235Authenticator::e_Error;
                         }
 					}
-					if (!checkSendersID && cryptoHashedToken.m_hashedVals.HasOptionalField(H235_ClearToken::e_sendersID)) {
-                        // if we don't want to check, copy actual sendersID into what we expect
-                        m_authProcedure1->SetRemoteId(cryptoHashedToken.m_hashedVals.m_sendersID);
-					}
+                    // copy actual sendersID into what we expect
+                    m_authProcedure1->SetRemoteId(cryptoHashedToken.m_hashedVals.m_sendersID);
 
                     // re-encode the message to check it, not sure why (PByteArray &)msg crashes
                     PBYTEArray buf(1024); // buffer with initial size 1024

@@ -1,5 +1,6 @@
 Changes from 3.9 to 4.0
 =======================
+- dump file descriptor usage on USR2 signal (Linux only)
 - new switch [RoutedMode] DisableFastStart=1
 - support for H.235.1, incl. setting and checking tokens in all RAS and Q.931 messages
 - extend SimplePasswordAuth and FileIPAuth to all RAS and all Q.931 messages

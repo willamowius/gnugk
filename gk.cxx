@@ -293,7 +293,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "GkStatus::Message", "Compact" },
 	{ "GkStatus::Message", "RCF" },
 	{ "GkStatus::Message", "URQ" },
-	{ "H235", "CheckSendersID" },
+	{ "H235", "CheckQ931SendersID" },
 	{ "H235", "FullQ931Checking" },
 	{ "H235", "RequireH2351GeneralID" },
 	{ "H235", "TimestampGracePeriod" },
@@ -1101,7 +1101,89 @@ void UnixReloadHandler(int sig) // for HUP Signal
 	PTRACE(1, "GK\tGatekeeper Hangup (signal " << sig << ")");
 	ReloadHandler();
 }
-#endif // _WIN32
+
+#ifdef P_LINUX
+// dumping descriptor usage on Linux according to
+// http://oroboro.com/file-handle-leaks-server/
+void showFDInfo(int fd)
+{
+    PString msg;
+    char buf[256];
+
+    int fd_flags = fcntl( fd, F_GETFD );
+    if ( fd_flags == -1) return;
+
+    int fl_flags = fcntl( fd, F_GETFL );
+    if (fl_flags == -1) return;
+
+    char path[256];
+    sprintf(path, "/proc/self/fd/%d", fd);
+
+    memset(&buf[0], 0, sizeof(buf));
+    ssize_t s = readlink( path, &buf[0], sizeof(buf));
+    if (s == -1)
+    {
+        PTRACE(0, "GK\t(" << path << "): " << "not available");
+        return;
+    }
+    msg = PString(fd) + " (" + buf + "): ";
+
+    if (fd_flags & FD_CLOEXEC)  msg += "cloexec ";
+
+    // file status
+    if (fl_flags & O_APPEND  )  msg += "append ";
+    if (fl_flags & O_NONBLOCK)  msg += "nonblock ";
+
+    // acc mode
+    if (fl_flags & O_RDONLY  )  msg += "read-only ";
+    if (fl_flags & O_RDWR    )  msg += "read-write ";
+    if (fl_flags & O_WRONLY  )  msg += "write-only ";
+
+    if (fl_flags & O_DSYNC   )  msg += "dsync ";
+    if (fl_flags & O_RSYNC   )  msg += "rsync ";
+    if (fl_flags & O_SYNC    )  msg += "sync ";
+
+    struct flock fl;
+    fl.l_type = F_WRLCK;
+    fl.l_whence = 0;
+    fl.l_start = 0;
+    fl.l_len = 0;
+    fcntl(fd, F_GETLK, &fl);
+    if (fl.l_type != F_UNLCK)
+    {
+        if (fl.l_type == F_WRLCK)
+            msg += "write-locked";
+        else
+            msg += "read-locked";
+        msg += "(pid:" + PString(fl.l_pid) + ") ";
+    }
+    PTRACE(0, "GK\t" << msg);
+}
+
+void DumpDescriptorUsage(int sig)
+{
+    PTRACE(0, "GK\tSignal USR2 received: Printing descriptor usage");
+    PTRACE(0, "GK\t----------------------------------------------------------------------");
+
+    int numHandles = getdtablesize();
+    unsigned used = 0;
+
+    for (int i = 0; i < numHandles; i++)
+    {
+        int fd_flags = fcntl( i, F_GETFD );
+        if (fd_flags == -1)
+            continue;
+
+        showFDInfo(i);
+        used++;
+    }
+    PTRACE(0, "GK");
+    PTRACE(0, "GK\t" << used << " descriptors used");
+    PTRACE(0, "GK\t----------------------------------------------------------------------");
+}
+#endif // P_LINUX
+
+#endif // not _WIN32
 
 
 // default params for overwriting
@@ -1253,6 +1335,16 @@ bool Gatekeeper::InitHandlers(const PArgList & args)
 
 	sigaction(SIGHUP, &sigact, NULL);
 	sigaction(SIGUSR1, &sigact, NULL);
+
+#ifdef P_LINUX
+	// print descriptor usage on USR2
+	memset(&sigact, 0, sizeof(sigact));
+	sigact.sa_handler = DumpDescriptorUsage;
+	sigemptyset(&sigact.sa_mask);
+	sigaddset(&sigact.sa_mask, SIGUSR2);
+
+	sigaction(SIGUSR2, &sigact, NULL);
+#endif
 
 	if (args.HasOption("pid"))
 		pidfile = args.GetOptionString("pid");
