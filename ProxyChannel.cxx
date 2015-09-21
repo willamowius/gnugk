@@ -2168,6 +2168,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
             q931.Encode(lBuffer);
             PrintQ931(3, "Send to ", GetRemote()->GetName(), &q931, &uuie);
             GetRemote()->TransmitData(lBuffer);
+            // TODO: also send a Facility with H.450.8 Connected Party Name ?
         }
 		delete msg;
 		return m_result;

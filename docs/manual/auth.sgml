@@ -271,8 +271,8 @@ Some endpoint vendors don't include the GeneralID, eg. AudioCodes and Innovaphon
 Default: <tt/0/<newline>
 <p>
 The H.235v3 spec mandates all Q,931 signaling messages (Setup, Alerting, Connect etc.)
-be secured with H.235.1 tokens. This is very good practice, but very few vendors implement it.
-(Innovaphone does.)
+be secured with H.235.1 tokens. This is very good practice, but not all vendors implement it.
+(AudioCodes and Innovaphone do.)
 
 <item><tt/CheckQ931SendersID=0/<newline>
 Default: <tt/1/<newline>
