@@ -41,14 +41,14 @@ SignalingMsg::~SignalingMsg()
 
 SignalingMsg* SignalingMsg::Clone()
 {
-	return new SignalingMsg(new Q931(*m_q931), 
+	return new SignalingMsg(new Q931(*m_q931),
 		(H225_H323_UserInformation*)(m_uuie->Clone()),
 		m_localAddr, m_localPort, m_peerAddr, m_peerPort
 		);
 }
 
 unsigned SignalingMsg::GetTag() const
-{ 
+{
 	return m_q931->GetMessageType();
 }
 
@@ -58,14 +58,14 @@ PString SignalingMsg::GetTagName() const
 }
 
 unsigned SignalingMsg::GetCallReference() const
-{ 
+{
 	return m_q931->GetCallReference();
 }
 
 
 void SignalingMsg::GetLocalAddr(
-	PIPSocket::Address &addr,
-	WORD &port
+	PIPSocket::Address & addr,
+	WORD & port
 	) const
 {
 	addr = m_localAddr;
@@ -73,15 +73,15 @@ void SignalingMsg::GetLocalAddr(
 }
 
 void SignalingMsg::GetLocalAddr(
-	PIPSocket::Address &addr
+	PIPSocket::Address & addr
 	) const
 {
 	addr = m_localAddr;
 }
 
 void SignalingMsg::GetPeerAddr(
-	PIPSocket::Address &addr,
-	WORD &port
+	PIPSocket::Address & addr,
+	WORD & port
 	) const
 {
 	addr = m_peerAddr;
@@ -89,13 +89,13 @@ void SignalingMsg::GetPeerAddr(
 }
 
 void SignalingMsg::GetPeerAddr(
-	PIPSocket::Address &addr
+	PIPSocket::Address & addr
 	) const
 {
 	addr = m_peerAddr;
 }
 
-bool SignalingMsg::Encode(PBYTEArray &buffer)
+bool SignalingMsg::Encode(PBYTEArray & buffer)
 {
 	if (m_uuie != NULL && m_uuieChanged) {
 		PPER_Stream strm;
@@ -122,7 +122,7 @@ SignalingMsg* SignalingMsg::Create(
 {
 	if (q931pdu == NULL)
 		return NULL;
-		
+
 	if (uuie != NULL) {
 		H225_H323_UU_PDU_h323_message_body &body = uuie->m_h323_uu_pdu.m_h323_message_body;
 		switch (body.GetTag()) {
@@ -150,6 +150,6 @@ SignalingMsg* SignalingMsg::Create(
 //			return new NotifyMsg(q931pdu, uuie, (H225_Notify_UUIE&)body, localAddr, localPort, peerAddr, peerPort);
 		}
 	}
-	
+
 	return new SignalingMsg(q931pdu, uuie, localAddr, localPort, peerAddr, peerPort);
 }
