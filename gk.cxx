@@ -298,6 +298,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "H235", "RequireH2351GeneralID" },
 	{ "H235", "TimestampGracePeriod" },
 	{ "H235", "UseEndpointIdentifier" },
+	{ "H235", "VerifyRandomNumber" },
 #ifdef HAS_LUA
 	{ "LuaAuth", "CallScript" },
 	{ "LuaAuth", "CallScriptFile" },

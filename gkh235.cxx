@@ -467,6 +467,7 @@ void GkH235Authenticators::SetProcedure1Data(const PString & sendersID, const PS
 	m_authProcedure1->SetPassword(password);
 	m_authProcedure1->RequireGeneralID(requireGeneralID);
 	m_authProcedure1->FullQ931Checking(GkConfig()->GetBoolean("H235", "FullQ931Checking", false));
+	m_authProcedure1->VerifyRandomNumber(GkConfig()->GetBoolean("H235", "VerifyRandomNumber", true));
 }
 
 void GkH235Authenticators::SetProcedure1LocalId(const PString& localID)

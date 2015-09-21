@@ -260,6 +260,7 @@ This section contains setting that apply to all authentication policies using H.
 Default: <tt/1/<newline>
 <p>
 Use the endpoint identifier as RemoteID.
+When calling Innovaphone r6 endpoints, this must be off. With Innovaphone r11 it may be on.
 
 <item><tt/RequireH2351GeneralID=1/<newline>
 Default: <tt/0/<newline>
@@ -279,6 +280,13 @@ Default: <tt/1/<newline>
 <p>
 Check if the SendersID inside tokens matches their alias or endpointID.
 This switch replaces the CheckID= switch in the [...PasswordAuth] sections.
+
+<item><tt/VerifyRandomNumber=0/<newline>
+Default: <tt/1/<newline>
+<p>
+Disable the check if the endpoint sends the same random number multiple times for the same timestamp.
+Innovaphone r6 - r11 sometimes sends 32bit random numbers with the high bit set that are all decoded
+into -1 by H323Plus causing the check to fail. This might be a bug in the PTLib ASN decoder.
 
 <item><tt/TimestampGracePeriod=60/<newline>
 Default: <tt/7210/<newline>
