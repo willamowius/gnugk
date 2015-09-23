@@ -1942,7 +1942,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
         PTRACE(0, "JW Q931 auth failed");
         if (tmpCall) {
             PTRACE(0, "JW Q931 auth failed: have call");
-            tmpCall->SetDisconnectCause(Q931::NormalUnspecified); //Q.931 code for reason=SecurityDenied
+            tmpCall->SetDisconnectCause(Q931::NormalUnspecified); // Q.931 code for reason=SecurityDenied
         } else {
             // TODO: set disconnect cause differently for pregranted or unregistered calls ?
             PTRACE(0, "JW Q931 auth failed: have NO call");
@@ -2157,11 +2157,17 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
             Q931 q931;
 			H225_H323_UserInformation uuie;
             BuildNotifyPDU(q931, true);
-            if (msg->GetQ931().HasIE(Q931::DisplayIE))
+            GetUUIE(q931, uuie);
+            if (msg->GetQ931().HasIE(Q931::DisplayIE)) {
                 q931.SetIE(Q931::DisplayIE, msg->GetQ931().GetIE(Q931::DisplayIE));
+                // only set if receiver is H.225 v7 or higher ?
+                H225_Notify_UUIE & notify = uuie.m_h323_uu_pdu.m_h323_message_body;
+                notify.IncludeOptionalField(H225_Notify_UUIE::e_displayName);
+                notify.m_displayName.SetSize(1);
+                notify.m_displayName[0].m_name = q931.GetDisplayName();
+            }
 			if (msg->GetQ931().HasIE(Q931::BearerCapabilityIE))
                 q931.SetIE(Q931::BearerCapabilityIE, msg->GetQ931().GetIE(Q931::BearerCapabilityIE));
-            GetUUIE(q931, uuie);
             uuie.m_h323_uu_pdu.m_h245Tunneling = GetRemote()->IsH245Tunneling();
             SetUUIE(q931, uuie);
             PBYTEArray lBuffer;
