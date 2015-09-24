@@ -1766,12 +1766,12 @@ void RemoveHopToHopTokens(Q931 * msg, H225_H323_UserInformation * uuie)
 
     PINDEX i = 0;
     while (i < cryptoTokens->GetSize()) {
-                const H225_CryptoH323Token & token = (*cryptoTokens)[i];
-                if (token.GetTag() == H225_CryptoH323Token::e_nestedcryptoToken) {
-                        const H235_CryptoToken & nestedCryptoToken = token;
-                        if (nestedCryptoToken.GetTag() == H235_CryptoToken::e_cryptoHashedToken) {
-                                const H235_CryptoToken_cryptoHashedToken & cryptoHashedToken = nestedCryptoToken;
-                                if (cryptoHashedToken.m_tokenOID == OID_H235_A_V1 || cryptoHashedToken.m_tokenOID == OID_H235_A_V2) {
+        const H225_CryptoH323Token & token = (*cryptoTokens)[i];
+        if (token.GetTag() == H225_CryptoH323Token::e_nestedcryptoToken) {
+            const H235_CryptoToken & nestedCryptoToken = token;
+            if (nestedCryptoToken.GetTag() == H235_CryptoToken::e_cryptoHashedToken) {
+                const H235_CryptoToken_cryptoHashedToken & cryptoHashedToken = nestedCryptoToken;
+                if (cryptoHashedToken.m_tokenOID == OID_H235_A_V1 || cryptoHashedToken.m_tokenOID == OID_H235_A_V2) {
                     // remove H.235.1 token
                     // TODO235: check for dhkey inside nestedctyptoToken ??? H.235.1 clause 7 + 8 says it might be here instead of the H.235.6 clearTokens ?
                     for (PINDEX j = i+1; j < cryptoTokens->GetSize(); j++)
@@ -1779,9 +1779,9 @@ void RemoveHopToHopTokens(Q931 * msg, H225_H323_UserInformation * uuie)
                     cryptoTokens->SetSize(cryptoTokens->GetSize() - 1);
                     i--;    // re-check new i (re-incremented below)
                     changed = true;
-                                }
-                        }
                 }
+            }
+        }
         i++;
     }
     if (changed) {
@@ -2353,7 +2353,6 @@ bool CallSignalSocket::SetupResponseTokens(SignalingMsg * msg, GkH235Authenticat
                     PTRACE(0, "SetupResponse: Empty");
                     // can't add token without a body
                     // TODO235: add a Facility body ?
-                    // TODO235: Why do we break H.450.2 here ????
                     return false;   // message not changed
                 }
                 break;
@@ -2411,14 +2410,15 @@ void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU, const H225_CallTermina
 	PrintQ931(4, "Send to ", GetName(), &ReleasePDU, &signal);
 }
 
-void CallSignalSocket::SendReleaseComplete(const H225_CallTerminationCause *cause)
+void CallSignalSocket::SendReleaseComplete(const H225_CallTerminationCause *cause)  // + endptr
 {
 	if (IsOpen()) {
 		Q931 ReleasePDU;
 		BuildReleasePDU(ReleasePDU, cause);
+		// TODO235: if (ep->getAuthenticators() && ep->GetAuthenticators()->HasProcedure1Password() SetupResponseTokens(ReleasePDU, ep->getAuthenticators(), ep);
 		PBYTEArray buf;
 		ReleasePDU.Encode(buf);
-		// TODO235: tokens!
+		// TODO235: if (ep->getAuthenticators() && ep->getAuthenticators()->HasProcedure1Password() auth->finalize()
 		TransmitData(buf);
 	}
 }

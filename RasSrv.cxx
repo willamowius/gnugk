@@ -4474,7 +4474,7 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 	}
 #endif
 
-    // TODO235 ?
+    // TODO235: add tokens for neighbor
 
 	PrintStatus(PString(PString::Printf, "SCR|%s;", (const char *)m_msg->m_peerAddr.AsString()));
 	return true;

@@ -1126,10 +1126,10 @@ bool EndpointRec::SendIRQ()
 	if (UsesH46017()) {
 		CallSignalSocket * s = GetSocket();
 		if (s)
-			s->SendH46017Message(ras_msg,GetH235Authenticators() );
+			s->SendH46017Message(ras_msg, GetH235Authenticators());
 	} else
 #endif
-		RasSrv->SendRas(ras_msg, GetRasAddress());  // TODO235: add authenticator ?
+		RasSrv->SendRas(ras_msg, GetRasAddress(), NULL, GetH235Authenticators());
 
 	return true;
 }

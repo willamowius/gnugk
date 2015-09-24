@@ -112,7 +112,6 @@ int GkH235Authenticators::Validate(
         return H235Authenticator::e_OK;
     }
 
-    // TODO235: avoid duplication with RAS code
 	const PTime now;
 	bool procedure1Found = false;
 	for (PINDEX i = 0; i < cryptoTokens.GetSize(); i++) {
