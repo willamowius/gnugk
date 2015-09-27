@@ -542,6 +542,8 @@
     <ClCompile Include="Toolkit.cxx" />
     <ClCompile Include="version.cxx" />
     <ClCompile Include="yasocket.cxx" />
+    <ClCompile Include="gkh235.cxx" />
+    <ClCompile Include="authenticators.cxx" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="gnugk.rc" />
@@ -639,6 +641,8 @@ configure
     <ClInclude Include="Toolkit.h" />
     <ClInclude Include="version.h" />
     <ClInclude Include="yasocket.h" />
+    <ClCompile Include="gkh235.h" />
+    <ClCompile Include="authenticators.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="changes.txt" />

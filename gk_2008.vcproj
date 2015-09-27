@@ -574,6 +574,14 @@
 				RelativePath="yasocket.cxx"
 				>
 			</File>
+			<File
+				RelativePath="gkh235.cxx"
+				>
+			</File>
+			<File
+				RelativePath="authenticators.cxx"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -837,6 +845,14 @@
 			</File>
 			<File
 				RelativePath="yasocket.h"
+				>
+			</File>
+			<File
+				RelativePath="gkh235.h"
+				>
+			</File>
+			<File
+				RelativePath="authenticators.h"
 				>
 			</File>
 		</Filter>
