@@ -127,7 +127,7 @@ int GkH235Authenticators::Validate(
 						m_authProcedure1 = new H235AuthProcedure1;
 					m_authProcedure1->Enable();
 
-					const long deltaTime = now.GetTimeInSeconds() - cryptoHashedToken.m_hashedVals.m_timeStamp;
+					const long deltaTime = (long)(now.GetTimeInSeconds() - cryptoHashedToken.m_hashedVals.m_timeStamp);
 					if (std::abs(deltaTime) > m_timestampGracePeriod) {
 						PTRACE(2, "GKH235\tInvalid Procedure I timestamp ABS(" << now.GetTimeInSeconds()
 							<< '-' << (int)cryptoHashedToken.m_hashedVals.m_timeStamp << ") > "
@@ -208,7 +208,7 @@ PTRACE(0, "JW Validate RAS raw size=" << rawPDU.GetSize() << " raw=" << rawPDU);
 				return m_authResultCAT = H235Authenticator::e_Error;
 			}
 
-			const long deltaTime = now.GetTimeInSeconds() - token.m_timeStamp;
+			const long deltaTime = (long)(now.GetTimeInSeconds() - token.m_timeStamp);
 			if (std::abs(deltaTime) > m_timestampGracePeriod) {
 				PTRACE(2, "GKH235\tInvalid CAT timestamp ABS(" << now.GetTimeInSeconds()
 					<< '-' << (int)token.m_timeStamp << ") > " << m_timestampGracePeriod);
@@ -235,7 +235,7 @@ PTRACE(0, "JW Validate RAS raw size=" << rawPDU.GetSize() << " raw=" << rawPDU);
 					m_authMD5 = new H235AuthSimpleMD5();
 				m_authMD5->Enable();
 
-				const long deltaTime = now.GetTimeInSeconds() - cryptoEPPwdHash.m_timeStamp;
+				const long deltaTime = (long)(now.GetTimeInSeconds() - cryptoEPPwdHash.m_timeStamp);
 				if (std::abs(deltaTime) > m_timestampGracePeriod) {
 					PTRACE(2, "GKH235\tInvalid MD5 timestamp ABS(" << now.GetTimeInSeconds()
 						<< '-' << (int)cryptoEPPwdHash.m_timeStamp << ") > " << m_timestampGracePeriod);
@@ -261,7 +261,7 @@ PTRACE(0, "JW Validate RAS raw size=" << rawPDU.GetSize() << " raw=" << rawPDU);
 						m_authProcedure1 = new H235AuthProcedure1();
 					m_authProcedure1->Enable();
 
-					const long deltaTime = now.GetTimeInSeconds() - cryptoHashedToken.m_hashedVals.m_timeStamp;
+					const long deltaTime = (long)(now.GetTimeInSeconds() - cryptoHashedToken.m_hashedVals.m_timeStamp);
 					if (std::abs(deltaTime) > m_timestampGracePeriod) {
 						PTRACE(2, "GKH235\tInvalid Procedure I timestamp ABS(" << now.GetTimeInSeconds()
 							<< '-' << (int)cryptoHashedToken.m_hashedVals.m_timeStamp << ") > "
