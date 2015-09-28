@@ -10338,8 +10338,8 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			    (*m_call)->H46024BInitiate(m_sessionID, H323TransportAddress(fDestIP, fDestPort), H323TransportAddress(fromIP, fromPort));
             }
 #endif
-#ifdef _WIN32
-            // needed on Windows, breaks IPv4 on Linux
+#ifndef P_LINUX
+            // needed on Windows and FreeBSD, breaks IPv4 on Linux
 			if (Toolkit::Instance()->IsIPv6Enabled())
 				MapIPv4Address(fDestIP);
 #endif
@@ -10358,8 +10358,8 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		if (rDestPort) {
 			PTRACE(6, Type() << "\tForward " << AsString(fromIP, fromPort)
 				<< " to " << AsString(rDestIP, rDestPort));
-#ifdef _WIN32
-            // needed on Windows, breaks IPv4 on Linux
+#ifndef P_LINUX
+            // needed on Windows and FreeBSD, breaks IPv4 on Linux
 			if (Toolkit::Instance()->IsIPv6Enabled())
 				MapIPv4Address(rDestIP);
 #endif
