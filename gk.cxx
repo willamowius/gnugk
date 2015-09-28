@@ -1549,6 +1549,7 @@ void Gatekeeper::Main()
 	cout << welcome << '\n';
 	PTRACE(1, welcome);
 
+	// PTLib 2.10.x provides meaningless value on Windows
 	PTRACE(1, "Current file handle limit: " << PProcess::Current().GetMaxHandles());
 
 #ifdef hasIPV6
