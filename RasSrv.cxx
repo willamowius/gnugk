@@ -59,8 +59,8 @@ public:
 		virtual RasMsg *operator()(GatekeeperMessage *m) const { return new RegistrationRequestPDU(m); }
 	};
 private:
-	bool BuildRCF(const endptr &, bool = false);
-	bool BuildRRJ(unsigned, bool = false);
+	bool BuildRCF(const endptr & ep, bool additiveRegistration = false);
+	bool BuildRRJ(unsigned reason, bool alt = false);
 };
 
 class AdmissionRequestPDU : public RasPDU<H225_AdmissionRequest> {
@@ -1366,7 +1366,7 @@ void RasServer::SelectH235Capability(const H225_GatekeeperRequest & grq, H225_Ga
 	authList->SelectH235Capability(grq, gcf);
 }
 
-bool RasServer::ValidateAdditivePDU(RasPDU<H225_RegistrationRequest>& ras, RRQAuthData& authData)
+bool RasServer::ValidateAdditivePDU(RasPDU<H225_RegistrationRequest> & ras, RRQAuthData & authData)
 {
 	H225_RegistrationRequest & rrq = (ras)->m_recvRAS;
 	H225_ArrayOf_ClearToken * tokens = rrq.HasOptionalField(H225_RegistrationRequest::e_tokens) ? &rrq.m_tokens : NULL;
@@ -2233,11 +2233,17 @@ bool RegistrationRequestPDU::Process()
 			ep->Update(m_msg->m_recvRAS);
 			if (bSendReply) {
 				BuildRCF(ep);
+				H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
+				// for additive registrations we only include the added alias in the RCF
+				if (request.HasOptionalField(H225_RegistrationRequest::e_additiveRegistration)) {
+                    rcf.IncludeOptionalField(H225_RegistrationConfirm::e_terminalAlias);
+                    rcf.m_terminalAlias = request.m_terminalAlias;
+				}
+
 #ifdef HAS_H46018
 				// H.460.18
 				if (Toolkit::Instance()->IsH46018Enabled()) {
 					if (ep->IsTraversalClient()) {
-						H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
 						rcf.IncludeOptionalField(H225_RegistrationConfirm::e_featureSet);
 						H460_FeatureStd H46018 = H460_FeatureStd(18);
 						rcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
@@ -2250,7 +2256,6 @@ bool RegistrationRequestPDU::Process()
 #ifdef HAS_H460
 				// H.460.22
 				if (supportH46022) {
-					H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
 					rcf.IncludeOptionalField(H225_RegistrationConfirm::e_featureSet);
 					H460_FeatureStd H46022 = H460_FeatureStd(22);
 					rcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
@@ -2264,7 +2269,6 @@ bool RegistrationRequestPDU::Process()
 				// H.460.23
 				if (Toolkit::Instance()->IsH46023Enabled()) {
 					if (ep->UsesH46023()) {
-						H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
 						rcf.IncludeOptionalField(H225_RegistrationConfirm::e_featureSet);
 						H460_FeatureStd H46023 = H460_FeatureStd(23);
 						rcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
@@ -2279,7 +2283,6 @@ bool RegistrationRequestPDU::Process()
 #ifdef HAS_H460P
 				// H.460P
 				if (presenceSupport) {
-					H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
 					H460_FeatureOID presence = H460_FeatureOID(rPreFS);
 #ifndef HAS_H460P_VER_3
 					PASN_OctetString preData;
@@ -2299,7 +2302,6 @@ bool RegistrationRequestPDU::Process()
 #ifdef HAS_H460PRE
 				// H.460 PreEmption
 				if (ep->SupportPreemption()) {
-					H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
 					rcf.IncludeOptionalField(H225_RegistrationConfirm::e_featureSet);
 					rcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 					H225_ArrayOf_FeatureDescriptor & desc = rcf.m_featureSet.m_supportedFeatures;
@@ -2312,7 +2314,6 @@ bool RegistrationRequestPDU::Process()
 				// H.460.9
 				if (EPSupportsQoSReporting
 					&& Toolkit::AsBool(GkConfig()->GetString("GkQoSMonitor", "Enable", "0"))) {
-					H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
 					rcf.IncludeOptionalField(H225_RegistrationConfirm::e_featureSet);
 					rcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_desiredFeatures);
 					H225_ArrayOf_FeatureDescriptor & desc = rcf.m_featureSet.m_desiredFeatures;

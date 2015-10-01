@@ -3146,7 +3146,7 @@ bool GkClient::AdditiveRegister(H225_ArrayOf_AliasAddress & aliases, int & rejec
 			case H225_RasMessage::e_registrationConfirm:
 			{
 				H225_RegistrationConfirm & rcf = (*ras)->m_recvRAS;
-				AppendLocalAlias(rcf.m_terminalAlias);
+				AppendLocalAlias(rcf.m_terminalAlias);  // this relies on the fact that the parent will only include the added alias in the RCF
 				aliases = rcf.m_terminalAlias;
 				return true;
 			}

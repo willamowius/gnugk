@@ -675,7 +675,7 @@ void EndpointRec::NullNATSocket()
 }
 
 // return true if aliasses were added to existing list
-bool EndpointRec::SetAliases(const H225_ArrayOf_AliasAddress &a, PBoolean additive)
+bool EndpointRec::SetAliases(const H225_ArrayOf_AliasAddress & a, PBoolean additive)
 {
 	PWaitAndSignal lock(m_usedLock);
 	if (additive) {

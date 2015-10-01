@@ -1,5 +1,6 @@
 Changes from 3.9 to 4.0
 =======================
+- BUGFIX(RasSrv.cxx) fix additive registration with parent gatekeeper
 - BUGFIX(ProxyChannel.cxx) fix IPv6 dual-stack proxy on Linux and Windows
 - dump file descriptor usage on USR2 signal (Linux only)
 - new switch [RoutedMode] DisableFastStart=1
