@@ -1149,14 +1149,15 @@ void showFDInfo(int fd)
     fl.l_whence = 0;
     fl.l_start = 0;
     fl.l_len = 0;
-    fcntl(fd, F_GETLK, &fl);
-    if (fl.l_type != F_UNLCK)
-    {
-        if (fl.l_type == F_WRLCK)
-            msg += "write-locked";
-        else
-            msg += "read-locked";
-        msg += "(pid:" + PString(fl.l_pid) + ") ";
+    if (fcntl(fd, F_GETLK, &fl) == 0) {
+        if (fl.l_type != F_UNLCK)
+        {
+            if (fl.l_type == F_WRLCK)
+                msg += "write-locked";
+            else
+                msg += "read-locked";
+            msg += "(pid:" + PString(fl.l_pid) + ") ";
+        }
     }
     PTRACE(0, "GK\t" << msg);
 }
