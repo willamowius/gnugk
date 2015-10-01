@@ -10807,11 +10807,12 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool na
 
 RTPLogicalChannel::~RTPLogicalChannel()
 {
+#ifdef HAS_H235_MEDIA
 #ifdef HAS_H46018
+	// remove crypto engines from the multiplex channel
 	if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false))
 		MultiplexedRTPHandler::Instance()->RemoveChannel(m_callID, this);
 #endif
-#ifdef HAS_H235_MEDIA
 	m_cryptoEngineMutex.Wait();
 	if (m_H235CryptoEngine) {
 		if (rtp) {
