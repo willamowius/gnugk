@@ -432,6 +432,8 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 	} else
 #endif
 	{
+        // on XP we fall back to sendto()
+        // we can't set the source addr and XP seems to have trouble with IPv6, but IPv4 works OK
 		return ::sendto(fd, (const char *)data, len, 0, (struct sockaddr *)&dest, sizeof(dest));
 	}
 }
