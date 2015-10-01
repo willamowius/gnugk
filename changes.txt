@@ -1,6 +1,6 @@
 Changes from 3.9 to 4.0
 =======================
-- BUGFIX(ProxyChannel.cxx) fix IPv6 dual-stack proxy on Linux
+- BUGFIX(ProxyChannel.cxx) fix IPv6 dual-stack proxy on Linux and Windows
 - dump file descriptor usage on USR2 signal (Linux only)
 - new switch [RoutedMode] DisableFastStart=1
 - support for H.235.1, incl. setting and checking tokens in all RAS and Q.931 messages

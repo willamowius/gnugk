@@ -2,7 +2,7 @@
 //
 // gk.h gatekeeper process
 //
-// Copyright (c) 2000-2013, Jan Willamowius
+// Copyright (c) 2000-2015, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -36,7 +36,7 @@
 extern PSemaphore ShutdownMutex;
 extern const char * KnownConfigEntries[][2];
 
-// you must change PTLib 2.10.x configure.ac to set WINVER = 0x0600 to enable
+// you must change PTLib 2.10.x / 2.11.x configure.ac to set WINVER = 0x0600 to enable
 #define WINDOWS_VISTA	0x0600
 #if defined(_WIN32) && (_WIN32_WINNT >= WINDOWS_VISTA)
 extern LPFN_WSASENDMSG g_pfWSASendMsg;
@@ -63,7 +63,7 @@ class Gatekeeper : public PProcess
 		 WORD _buildNumber = GNUGK_BUILD_NUMBER);
 
 	virtual void Main();
-	
+
 #ifdef COMPILE_AS_SERVICE
 	virtual PBoolean OnStart();
 	virtual void OnStop();
@@ -80,12 +80,12 @@ class Gatekeeper : public PProcess
 		Monthly,
 		RotationIntervalMax
 	};
-	
+
 	static bool SetLogFilename(const PString & filename);
 
-		
+
 	static bool RotateLogFile();
-	static bool ReopenLogFile();	
+	static bool ReopenLogFile();
 	static void CloseLogFile();
 
 	static void EnableLogFileRotation(bool enable = true);
@@ -112,9 +112,9 @@ class Gatekeeper : public PProcess
 
 	/** installs the signal handlers; First called init method. */
 	virtual bool InitHandlers(const PArgList & args);
-	
+
 	virtual bool InitConfig(const PArgList & args);
-	
+
 	/** initiates logging and tracing; Called after #InitConfig# */
 	virtual bool InitLogging(const PArgList & args);
 

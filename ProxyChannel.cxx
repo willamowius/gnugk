@@ -360,14 +360,11 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 
 #if (_WIN32_WINNT >= WINDOWS_VISTA)
 	if (g_pfWSASendMsg) {
-		// TODO: do we need a special case for IPv6 here, like on Unix ?
 		// set source address
 		PIPSocket::Address src = RasServer::Instance()->GetLocalAddress(toIP);
 
 		WSABUF wsabuf;
 		WSAMSG msg;
-		char cmsg[WSA_CMSG_SPACE(sizeof(struct in_pktinfo))];
-		unsigned cmsg_data_size = sizeof(struct in_pktinfo);
 
 		wsabuf.buf = (CHAR *)data;
 		wsabuf.len = len;
@@ -378,33 +375,65 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 		msg.lpBuffers = &wsabuf;
 		msg.dwBufferCount = 1;
 
-		WSACMSGHDR *cm;
+		WSACMSGHDR * cm = NULL;
+		char cmsg[WSA_CMSG_SPACE(sizeof(struct in_pktinfo))];
+		unsigned cmsg_data_size = sizeof(struct in_pktinfo);
 		memset(cmsg, 0, sizeof(cmsg));
 
 		msg.Control.buf = cmsg;
 		msg.Control.len = sizeof(cmsg);
 
-		cm = WSA_CMSG_FIRSTHDR(&msg);
-		cm->cmsg_len = WSA_CMSG_LEN(cmsg_data_size);
-		cm->cmsg_level = IPPROTO_IP;
-		cm->cmsg_type = IP_PKTINFO;
-		{
-			struct in_pktinfo ipi = { 0 };
-			ipi.ipi_addr.s_addr = src;
-			memcpy(WSA_CMSG_DATA(cm), &ipi, sizeof(ipi));
+		if (!Toolkit::Instance()->IsIPv6Enabled() || (((struct sockaddr*)&dest)->sa_family == AF_INET)) {
+            // set IPv4 source
+			cm = WSA_CMSG_FIRSTHDR(&msg);
+			cm->cmsg_len = WSA_CMSG_LEN(cmsg_data_size);
+			cm->cmsg_level = IPPROTO_IP;
+			cm->cmsg_type = IP_PKTINFO;
+			{
+				struct in_pktinfo ipi = { 0 };
+				ipi.ipi_addr.s_addr = src;
+				memcpy(WSA_CMSG_DATA(cm), &ipi, sizeof(ipi));
+			}
 		}
+#ifdef hasIPV6
+		if (Toolkit::Instance()->IsIPv6Enabled()) {
+			// set IPv6 source with IPV6_PKTINFO
+			WSACMSGHDR * cm = NULL;
+			char cmsg6[WSA_CMSG_SPACE(sizeof(struct in6_pktinfo))];
+			unsigned cmsg6_data_size = sizeof(struct in6_pktinfo);
+			memset(cmsg6, 0, sizeof(cmsg6));
 
-		DWORD bytesSent;
+			msg.Control.buf = cmsg6;
+			msg.Control.len = sizeof(cmsg6);
+
+			cm = WSA_CMSG_FIRSTHDR(&msg);
+			cm->cmsg_len = WSA_CMSG_LEN(cmsg6_data_size);
+			cm->cmsg_level = IPPROTO_IPV6;
+			cm->cmsg_type = IPV6_PKTINFO;
+			{
+				struct in6_pktinfo ipi = { 0 };
+				struct sockaddr_in6 s6;
+				SetSockaddr(s6, src, 0);
+				ipi.ipi6_addr = s6.sin6_addr;
+				memcpy(WSA_CMSG_DATA(cm), &ipi, sizeof(ipi));
+			}
+		}
+#endif
+
+		DWORD bytesSent = 0;
 		int rc = g_pfWSASendMsg(fd, &msg, 0, &bytesSent, NULL, NULL);
 		if (rc == 0) {
 			return bytesSent;
 		} else {
-			PTRACE(7, "RTP\tSend error " << rc);
+			int err = WSAGetLastError();
+			PTRACE(7, "RTP\tSend error " << err);
 			return -1;
 		}
 	} else
 #endif
+	{
 		return ::sendto(fd, (const char *)data, len, 0, (struct sockaddr *)&dest, sizeof(dest));
+	}
 }
 
 #else // Unix
