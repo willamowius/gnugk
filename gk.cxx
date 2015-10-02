@@ -254,7 +254,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "GkLDAP::Settings", "ServerName" },
 	{ "GkLDAP::Settings", "ServerPort" },
 	{ "GkLDAP::Settings", "sizelimit" },
+#ifdef hasLDAPStartTLS
 	{ "GkLDAP::Settings", "StartTLS" },
+#endif
 	{ "GkLDAP::Settings", "timelimit" },
 #endif
 #ifdef HAS_DATABASE
