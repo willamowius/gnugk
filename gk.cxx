@@ -1418,7 +1418,7 @@ void Gatekeeper::PrintOpts()
 		"      --pid file     : Specify the pid file\n"
 #ifdef P_LINUX
 		"      --core n       : Enable core dumps (with max size of n bytes)\n"
-		"      --mlock        : Lock GnuGk into memory to prevent it being swaped out\n"
+		"      --mlock        : Lock GnuGk into memory to prevent it being swapped out\n"
 #endif
 		"      --strict       : Strict config check (don't start with errors in config)\n"
 		"  -h  --help         : Show this message\n" << endl;
