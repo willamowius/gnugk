@@ -39,7 +39,7 @@ cvs -z3 -d:pserver:anonymous@h323plus.cvs.sourceforge.net:/cvsroot/h323plus co -
 
 cd h323plus
 export OPENH323DIR=~/h323plus
-./configure
+./configure --enable-h235 -enable-h46017 --enable-h46026
 make optnoshared
 </verb>
 
