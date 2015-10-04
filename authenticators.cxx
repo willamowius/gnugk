@@ -24,7 +24,7 @@
 #endif // P_SSL
 
 
-#if defined(H323_H235) && hasCipertextStealing
+#ifdef HAS_DES_ECB
 
 static const char OID_DesECB[] = "1.3.14.3.2.6";
 

@@ -20,7 +20,7 @@
 #include "config.h"
 
 
-#if defined(H323_H235) && hasCipertextStealing
+#ifdef HAS_DES_ECB
 ////////////////////////////////////////////////////
 
 #include <h235/h235crypto.h>

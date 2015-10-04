@@ -2232,7 +2232,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		msg->GetQ931().SetIE(Q931::UserUserIE, q931pdu->GetIE(Q931::UserUserIE));
 	}
 
-// TODO: if we put the signaling messages into the prio queue, it locks up on Connect
+// if we put the signaling messages into the prio queue, it locks up on Connect
 //#ifdef HAS_H46026
 //	CallSignalSocket * remote_css = dynamic_cast<CallSignalSocket *>(remote);
 //	if (remote_css && remote_css->m_h46026PriorityQueue) {

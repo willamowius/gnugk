@@ -2,7 +2,7 @@
 //
 // pwlib_compat.h PWLib compatibility header
 //
-// Copyright (c) 2006-2013, Jan Willamowius
+// Copyright (c) 2006-2015, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -17,9 +17,9 @@
 
 #include "openh323buildopts.h"
 #if PTLIB_MAJOR == 2 && PTLIB_MINOR < 13
-#include <ptbuildopts.h>
+    #include <ptbuildopts.h>
 #else
-#include <ptlib_config.h>
+    #include <ptlib_config.h>
 #endif
 #include "gnugkbuildopts.h"
 
@@ -54,9 +54,9 @@
 #endif
 
 #if PTLIB_MAJOR == 2 && PTLIB_MINOR < 13
-#if !defined(P_USE_STANDARD_CXX_BOOL) && !defined(P_USE_INTEGER_BOOL)
-	typedef int PBoolean;
-#endif
+    #if !defined(P_USE_STANDARD_CXX_BOOL) && !defined(P_USE_INTEGER_BOOL)
+        typedef int PBoolean;
+    #endif
 #endif
 
 #ifdef P_DNS
@@ -97,7 +97,7 @@
 #endif
 
 // for PTlib v2.x
-#ifdef PTLIB_MAJOR 
+#ifdef PTLIB_MAJOR
 	#ifdef P_DNS
 		#define hasRDS 1
 		#define hasSETENUMSERVERS 1
@@ -158,7 +158,7 @@
 #if defined(hasPTRACE2)
    #define PTRACEX(level, args)  PTRACE2(level,NULL,args)
 #else
-   #define PTRACEX(level, args)  PTRACE(level,args)   
+   #define PTRACEX(level, args)  PTRACE(level,args)
 #endif
 
 #if !defined(PWLIB_MAJOR) && !defined(PTLIB_MAJOR)
@@ -218,15 +218,15 @@
 
 #ifdef H323_H460P
 	#define HAS_H460P	1  // Presence
-#ifdef H323_H460P_VER
-  #if H323_H460P_VER == 3
-	#define HAS_H460P_VER_3	 1
-  #else
-	#define HAS_H460P_VER_2	 1
-  #endif
-#else
-	#define HAS_H460P_VER_1  1
-#endif
+    #ifdef H323_H460P_VER
+        #if H323_H460P_VER == 3
+            #define HAS_H460P_VER_3	 1
+        #else
+            #define HAS_H460P_VER_2	 1
+        #endif
+    #else
+        #define HAS_H460P_VER_1  1
+    #endif
 #endif
 
 #ifdef H323_H460PRE
@@ -255,19 +255,27 @@
 			#endif
 		#else // h323plus v1.20
 			#define h323pluslib 1			// Indicate H323plus Library
-			#define h323v6 1				// Version 6 features  
+			#define h323v6 1				// Version 6 features
 		#endif
-	#endif	
+	#endif
 #endif
 
 #if defined(HAS_PTLIBSNMP) || defined(HAS_NETSNMP) || defined(HAS_WINSNMP)
-#define HAS_SNMP 1
+    #define HAS_SNMP 1
 #endif
 
 #if (H323PLUS_VER >= 1254)
-#define HAS_LANGUAGE 1
-#define hasCipertextStealing 1
-#define HAS_SETTOKENLENGTH 1
+    #define HAS_LANGUAGE 1
+    #define hasCipertextStealing 1
+    #define HAS_SETTOKENLENGTH 1
+#endif
+
+#if (H323PLUS_VER >= 1266)
+    #define HAS_H2351_CONFIG 1
+#endif
+
+#if defined(H323_H235) && hasCipertextStealing
+    #define HAS_DES_ECB 1
 #endif
 
 #endif // PWLIB_COMPAT_H

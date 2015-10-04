@@ -2,7 +2,7 @@
 //
 // gkauth.h
 //
-// Copyright (c) 2001-2014, Jan Willamowius
+// Copyright (c) 2001-2015, Jan Willamowius
 //
 // Gatekeeper authentication modules
 //
@@ -65,7 +65,7 @@ namespace Routing {
 }
 
 
-#if defined(H323_H235) && hasCipertextStealing
+#ifdef HAS_DES_ECB
 ////////////////////////////////////////////////////
 
 #include <h235/h235crypto.h>

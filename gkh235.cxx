@@ -34,13 +34,19 @@ GkH235Authenticators::GkH235Authenticators()
 	: m_timestampGracePeriod(GkConfig()->GetInteger("H235", "TimestampGracePeriod", 2*60*60+10)),
 	m_authCAT(NULL), m_authResultCAT(H235Authenticator::e_Disabled),
 	m_authMD5(NULL), m_authResultMD5(H235Authenticator::e_Disabled),
+#ifdef HAS_DES_ECB
 	m_authDES(NULL), m_authResultDES(H235Authenticator::e_Disabled),
+#endif
 	m_authProcedure1(NULL), m_authResultProcedure1(H235Authenticator::e_Disabled)
 {
 }
 
 GkH235Authenticators::GkH235Authenticators(const GkH235Authenticators & auth)
-	: m_authCAT(NULL), m_authMD5(NULL), m_authDES(NULL), m_authProcedure1(NULL)
+	: m_authCAT(NULL), m_authMD5(NULL),
+#ifdef HAS_DES_ECB
+		m_authDES(NULL),
+#endif
+		m_authProcedure1(NULL)
 {
 	PWaitAndSignal lock(auth.m_mutex);
 	m_timestampGracePeriod = auth.m_timestampGracePeriod;
@@ -55,10 +61,12 @@ GkH235Authenticators::GkH235Authenticators(const GkH235Authenticators & auth)
 	m_localIdMD5 = auth.m_localIdMD5;
 	m_authResultMD5 = auth.m_authResultMD5;
 
+#ifdef HAS_DES_ECB
 	if (auth.m_authDES != NULL)
 		m_authDES = static_cast<H235AuthDesECB*>(auth.m_authDES->Clone());
 	m_localIdDES = auth.m_localIdDES;
 	m_authResultDES = auth.m_authResultDES;
+#endif
 
 	if (auth.m_authProcedure1 != NULL)
 		m_authProcedure1 = static_cast<H235AuthProcedure1*>(auth.m_authProcedure1->Clone());
@@ -191,7 +199,12 @@ PTRACE(0, "JW Validate RAS raw size=" << rawPDU.GetSize() << " raw=" << rawPDU);
 	PWaitAndSignal lock(m_mutex);
 
 	const PTime now;
-	bool catFound = false, md5Found = false, desFound = false, procedure1Found = false;
+	bool catFound = false;
+	bool md5Found = false;
+#ifdef HAS_DES_ECB
+	bool desFound = false;
+#endif
+	bool procedure1Found = false;
 
 	PINDEX i;
 	for (i = 0; i < clearTokens.GetSize(); i++) {
@@ -283,6 +296,7 @@ PTRACE(0, "JW Validate RAS raw size=" << rawPDU.GetSize() << " raw=" << rawPDU);
 			}
 		} else if (token.GetTag() == H225_CryptoH323Token::e_cryptoEPPwdEncr) {
 		    H235_ENCRYPTED<H235_EncodedPwdCertToken> cryptoEPPwdEncr = (H235_ENCRYPTED<H235_EncodedPwdCertToken>)token;
+#ifdef HAS_DES_ECB
 		    if (cryptoEPPwdEncr.m_algorithmOID == OID_H235_DES) {
 				desFound = true;
 				if (m_authDES == NULL)
@@ -297,13 +311,16 @@ PTRACE(0, "JW Validate RAS raw size=" << rawPDU.GetSize() << " raw=" << rawPDU);
 					m_authDES->SetLocalId(oldLocalId);
 					return m_authResultDES;
 		    }
+#endif
 		} else {
             PTRACE(4, "GKH235\tUnhandled cryptoToken " << token.GetTagName());
 		}
 	}
 PTRACE(0, "JW catFound=" << catFound << " authCAT=" << m_authCAT);
 PTRACE(0, "JW md5Found=" << md5Found << " authMD5=" << m_authMD5);
+#ifdef HAS_DES_ECB
 PTRACE(0, "JW desFound=" << desFound << " authDES=" << m_authDES);
+#endif
 PTRACE(0, "JW procedure1Found=" << procedure1Found << " authProcedure1=" << m_authProcedure1);
 
 	if (!catFound && m_authCAT && m_authCAT->IsActive()
@@ -320,12 +337,14 @@ PTRACE(0, "JW procedure1Found=" << procedure1Found << " authProcedure1=" << m_au
 	} else if (md5Found && m_authResultMD5 != H235Authenticator::e_OK)
 		return m_authResultMD5;
 
+#ifdef HAS_DES_ECB
 	if (!desFound && m_authDES && m_authDES->IsActive()
 		&& m_authDES->IsSecuredPDU(rasmsg.GetTag(), TRUE)) {
 		m_authResultDES = H235Authenticator::e_Absent;
 		return m_authResultDES;
 	} else if (desFound && m_authResultDES != H235Authenticator::e_OK)
 		return m_authResultDES;
+#endif
 
 	if (!procedure1Found && m_authProcedure1 && m_authProcedure1->IsActive()
 		&& m_authProcedure1->IsSecuredPDU(rasmsg.GetTag(), TRUE)) {
@@ -359,12 +378,14 @@ void GkH235Authenticators::PrepareTokens(
 		m_authMD5->PrepareTokens(clearTokens, cryptoTokens);
 	}
 
+#ifdef HAS_DES_ECB
 	if (m_authDES && m_authDES->IsActive()
 			&& m_authDES->IsSecuredPDU(rasmsg.GetTag(), FALSE)
 			&& m_authResultDES == H235Authenticator::e_OK) {
 		m_authDES->SetLocalId(m_localIdDES);
 		m_authDES->PrepareTokens(clearTokens, cryptoTokens);
 	}
+#endif
 
 	if (m_authProcedure1 && m_authProcedure1->IsActive()
 			&& m_authProcedure1->IsSecuredPDU(rasmsg.GetTag(), FALSE)) {
@@ -443,6 +464,7 @@ void GkH235Authenticators::SetSimpleMD5Data(const PString & generalID, const PSt
 	m_authMD5->SetPassword(password);
 }
 
+#ifdef HAS_DES_ECB
 void GkH235Authenticators::SetDESData(const PString & generalID, const PString & password)
 {
 	PWaitAndSignal lock(m_mutex);
@@ -453,6 +475,7 @@ void GkH235Authenticators::SetDESData(const PString & generalID, const PString &
 	m_localIdDES = generalID;
 	m_authDES->SetPassword(password);
 }
+#endif
 
 void GkH235Authenticators::SetProcedure1Data(const PString & sendersID, const PString & remoteID, const PString & password, PBoolean requireGeneralID)
 {
@@ -464,9 +487,11 @@ void GkH235Authenticators::SetProcedure1Data(const PString & sendersID, const PS
 	m_localIdProcedure1 = sendersID;
 	m_remoteIdProcedure1 = remoteID;
 	m_authProcedure1->SetPassword(password);
+#ifdef HAS_H2351_CONFIG
 	m_authProcedure1->RequireGeneralID(requireGeneralID);
 	m_authProcedure1->FullQ931Checking(GkConfig()->GetBoolean("H235", "FullQ931Checking", false));
 	m_authProcedure1->VerifyRandomNumber(GkConfig()->GetBoolean("H235", "VerifyRandomNumber", true));
+#endif
 }
 
 void GkH235Authenticators::SetProcedure1LocalId(const PString& localID)
@@ -495,11 +520,13 @@ bool GkH235Authenticators::HasMD5Password()
 	return m_authMD5 != NULL && m_authMD5->IsActive() && !m_authMD5->GetPassword();
 }
 
+#ifdef HAS_DES_ECB
 bool GkH235Authenticators::HasDESPassword()
 {
 	PWaitAndSignal lock(m_mutex);
 	return m_authDES != NULL && m_authDES->IsActive() && !m_authDES->GetPassword();
 }
+#endif
 
 bool GkH235Authenticators::HasCATPassword()
 {

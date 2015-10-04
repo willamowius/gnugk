@@ -167,6 +167,7 @@
 		<Unit filename="precompile.cxx">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
+		<Unit filename="pwlib_compat.h" />
 		<Unit filename="radacct.cxx">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>

@@ -73,7 +73,7 @@ ARQAuthData::ARQAuthData(const ARQAuthData & obj)
 {
 }
 
-ARQAuthData& ARQAuthData::operator=(const ARQAuthData & obj)
+ARQAuthData & ARQAuthData::operator=(const ARQAuthData & obj)
 {
 	if (this != &obj) {
 		m_rejectReason = obj.m_rejectReason;
@@ -1403,8 +1403,10 @@ PTRACE(0, "JW checking SendersID=" << m_checkID);
 				return e_fail;
 			}
 
+#ifdef HAS_DES_ECB
 			if (authenticators->HasDESPassword())
 				return e_ok;
+#endif
 
 			PString id, passwd;
 			for (PINDEX j = 0; j < aliases->GetSize(); j++) {
@@ -1419,8 +1421,9 @@ PTRACE(0, "JW checking SendersID=" << m_checkID);
 				return e_fail;
 			}
 
+#ifdef HAS_DES_ECB
 			authenticators->SetDESData(id, passwd);
-
+#endif
 		}
 	}
 	return e_next;

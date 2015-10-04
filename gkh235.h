@@ -92,9 +92,11 @@ public:
 		const PString & generalID,
 		const PString & password);
 
+#ifdef HAS_DES_ECB
 	void SetDESData(
 		const PString & generalID,
 		const PString & password);
+#endif
 
 	void SetProcedure1Data(
 		const PString & sendersID,
@@ -107,7 +109,9 @@ public:
 
 	bool HasCATPassword();
 	bool HasMD5Password();
+#ifdef HAS_DES_ECB
 	bool HasDESPassword();
+#endif
 	bool HasProcedure1Password();
 
     // get pointers to the tokens in the different Q.931 messages
@@ -124,10 +128,12 @@ protected:
 	H235AuthSimpleMD5 * m_authMD5;
 	PString m_localIdMD5;
 	int m_authResultMD5;
+#ifdef HAS_DES_ECB
     // DES ECB
 	H235AuthDesECB * m_authDES;
 	PString m_localIdDES;
 	int m_authResultDES;
+#endif
 	// H.235.1
 	H235AuthProcedure1 * m_authProcedure1;
 	PString m_localIdProcedure1;
@@ -137,3 +143,4 @@ protected:
 };
 
 #endif // GKH235_H
+
