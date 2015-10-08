@@ -9,7 +9,7 @@ Changes from 3.9 to 4.0
 - store only PBKDF2 hash for [GkStatus::Auth] password in config, not a recoverable password
 - BUGFIX(ProxyChannel.cxx) fix crash when receiving message without UUIE
 - new switch [EP::] DisabledCodecs=
-- much improved TCS0 call transfer using 'Reroute' command on status port
+- much improved TCS0 3rd-party call transfer using 'Reroute' command on status port
 - BUGFIX(Routing.cxx) add field for destination alias in ARQ if missing and a dynamic routing policy sets it
 - BUGFIX(ProxyChannel.cxx) fix crash in H.235 Media for endpoints with more than 64 capability entries in TCS
 - new switch [Proxy] AllowSignaledIPs= to skip to skip auto-detect for network when IgnoreSignaledIPs=1 (experimental)
