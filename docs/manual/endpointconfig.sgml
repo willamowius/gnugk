@@ -39,7 +39,7 @@ capacity (see above) must not be exceeded.
 Default: <tt/0/<newline>
 <p>
 If you endpoint doesn't register as a gateway or MCU, you can't assign gateway prefixes.
-Use this switch to treat an endpoint as a gateway regardless of how it regsiters.
+Use this switch to treat an endpoint as a gateway regardless of how it registers.
 
 <item><tt/GatewayPriority=1/<newline>
 Default: <tt/1/<newline>
