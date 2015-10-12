@@ -1558,7 +1558,7 @@ Use StartTLS to encrypt the LDAP connection. (This option requires GnuGk to be c
 <item><tt/SearchBaseDN=ou=commObjects,dc=gnugk,dc=org/<newline>
 Default: <tt>N/A</tt>
 <p>
-Entry point into the server's H.350 directory structure.
+Entry point into the server's directory structure.
 Searches are only made below this root node.
 
 <item><tt/BindUserDN=cn=admin,dc=gnugk,dc=org/<newline>
