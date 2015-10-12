@@ -1553,7 +1553,7 @@ The LDAP server's TCP port (usually 389).
 <item><tt/StartTLS=1/<newline>
 Default: <tt/0/
 <p>
-Use StartTLS to encrypt the LDAP connection. (This option requires GnuGk to be compiled with PTLib 2.11.0 or higher.)
+Use StartTLS to encrypt the LDAP connection.
 
 <item><tt/SearchBaseDN=ou=commObjects,dc=gnugk,dc=org/<newline>
 Default: <tt>N/A</tt>
