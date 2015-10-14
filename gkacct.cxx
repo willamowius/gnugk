@@ -5,7 +5,7 @@
  * support for accounting to the gatekeeper.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2005-2014, Jan Willamowius
+ * Copyright (c) 2005-2015, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -125,11 +125,11 @@ GkAcctLogger::Status GkAcctLogger::Log(
 
 void GkAcctLogger::SetupAcctParams(
 	/// CDR parameters (name => value) associations
-	std::map<PString, PString>& params,
+	std::map<PString, PString> & params,
 	/// call (if any) associated with an accounting event being logged
-	const callptr& call,
+	const callptr & call,
 	/// timestamp formatting string
-	const PString& timestampFormat
+	const PString & timestampFormat
 	) const
 {
 	PIPSocket::Address addr;
@@ -174,6 +174,8 @@ void GkAcctLogger::SetupAcctParams(
 	if (call->GetSrcSignalAddr(addr, port)) {
 		params["caller-ip"] = addr.AsString();
 		params["caller-port"] = port;
+	} else {
+		params["caller-port"] = 0;
 	}
 
 	params["src-info"] = call->GetSrcInfo();
@@ -185,6 +187,8 @@ void GkAcctLogger::SetupAcctParams(
 	if (call->GetDestSignalAddr(addr, port)) {
 		params["callee-ip"] = addr.AsString();
 		params["callee-port"] = port;
+	} else {
+		params["callee-port"] = 0;
 	}
 
 	params["dest-info"] = call->GetDestInfo();
