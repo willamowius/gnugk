@@ -196,10 +196,10 @@ parameters are recognized:
 <item><tt/%{connect-time}/ - timestamp string for a call connected event
 <item><tt/%{disconnect-time}/ - timestamp string for a call disconnect event
 <item><tt/%{ring-time}/ - time a remote phone was ringing for (from Alerting till Connect or Release Complete)
-<item><tt/%{caller-ip}/ - signaling IP address of the caller
-<item><tt/%{caller-port}/ - signaling port of the caller
-<item><tt/%{callee-ip}/ - signaling IP address of the called party
-<item><tt/%{callee-port}/ - signaling port of the called party
+<item><tt/%{caller-ip}/ - signaling IP address of the caller (only available in routed mode)
+<item><tt/%{caller-port}/ - signaling port of the caller (only available in routed mode)
+<item><tt/%{callee-ip}/ - signaling IP address of the called party (only available in routed mode)
+<item><tt/%{callee-port}/ - signaling port of the called party (only available in routed mode)
 <item><tt/%{src-info}/ - a colon separated list of source aliases
 <item><tt/%{dest-info}/ - a colon separated list of destination aliases
 <item><tt/%{Calling-Station-Id}/ - calling party number
