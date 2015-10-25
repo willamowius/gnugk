@@ -1180,59 +1180,6 @@ bool SimplePasswordAuth::InternalGetPassword(
 		return false;
 }
 
-bool SimplePasswordAuth::ResolveUserName(const H235_ClearToken & token, PString & username)
-{
-	// CAT
-	if (token.HasOptionalField(H235_ClearToken::e_generalID)) {
-		username = token.m_generalID;
-		return true;
-	}
-	return false;
-}
-
-bool SimplePasswordAuth::ResolveUserName(const H225_CryptoH323Token & cryptotoken, const H225_ArrayOf_AliasAddress * aliases, PString & username)
-{
-	// MD5
-	if (cryptotoken.GetTag() == H225_CryptoH323Token::e_cryptoEPPwdHash) {
-		const H225_CryptoH323Token_cryptoEPPwdHash & pwdhash = cryptotoken;
-		username = AsString(pwdhash.m_alias, false);
-		return true;
-	} else if (cryptotoken.GetTag() == H225_CryptoH323Token::e_cryptoEPPwdEncr) {
-		// use alias as username, token contans just the encrypted challenge
-		if (aliases && (aliases->GetSize() > 0)) {
-			username = AsString(aliases[0], false);
-			return true;
-		} else {
-			return false;
-		}
-	} else if (cryptotoken.GetTag() == H225_CryptoH323Token::e_nestedcryptoToken) {
-		H235_ClearToken clearToken;
-		bool found = false;
-		const H235_CryptoToken & nestedCryptoToken = cryptotoken;
-
-		// H235.1
-		if (nestedCryptoToken.GetTag() == H235_CryptoToken::e_cryptoHashedToken) {
-			const H235_CryptoToken_cryptoHashedToken& cryptoHashedToken = nestedCryptoToken;
-			clearToken = cryptoHashedToken.m_hashedVals;
-			found = true;
-		}
-		// H235.2
-		if (nestedCryptoToken.GetTag() == H235_CryptoToken::e_cryptoSignedToken) {
-			const H235_CryptoToken_cryptoSignedToken & cryptoSignedToken = nestedCryptoToken;
-			H235_SIGNED<H235_EncodedGeneralToken> m_Signed = cryptoSignedToken.m_token;
-			if (m_Signed.m_toBeSigned.DecodeSubType(clearToken))
-				found = true;
-		}
-
-		if (found && (clearToken.HasOptionalField(H235_ClearToken::e_sendersID))) {
-			username = clearToken.m_sendersID;
-			return true;
-		}
-	}
-
-	return false;
-}
-
 int SimplePasswordAuth::CheckTokens(
 	GkH235Authenticators * & authenticators,
 	/// an array of tokens to be checked
@@ -1329,8 +1276,10 @@ PTRACE(0, "JW checking SendersID=" << m_checkID);
 			PString sendersID;
 			bool hasSendersId = clearToken.HasOptionalField(H235_ClearToken::e_sendersID);
 			if (!hasSendersId) {
-				PTRACE(5, "GKAUTH\t" << GetName() << " hashedVals of nested cryptoHashedToken do not contain sendersID");
-				continue;   // ignore token
+                if (m_checkID) {
+                    PTRACE(5, "GKAUTH\t" << GetName() << " hashedVals of nested cryptoHashedToken do not contain sendersID");
+                    continue;   // ignore token
+                }
 			} else {
 			    sendersID = clearToken.m_sendersID;
 			}

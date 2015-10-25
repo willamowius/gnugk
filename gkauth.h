@@ -714,29 +714,6 @@ protected:
 		PString & passwd /// filled with the password on return
 		);
 
-	/** Retrieve username carried inside the token.
-	    @return
-	    username carried inside the token
-	*/
-	bool ResolveUserName(
-		/// an array of tokens to be checked
-		const H235_ClearToken & token,
-		/// UserName detected.
-		PString & username
-		);
-
-	/** Retrieve username carried inside the token.
-	    @return
-	    username carried inside the token
-	*/
-	bool ResolveUserName(
-		/// an array of tokens to be checked
-		const H225_CryptoH323Token & crytotoken,
-		/// the aliases of the request (only used for cryptoEPPwdEncr)
-		const H225_ArrayOf_AliasAddress * aliases,
-		/// UserName detected.
-		PString & username);
-
 	/** Validate username/password carried inside the tokens. This method
 	    supports only CAT and clear text tokens.
 
