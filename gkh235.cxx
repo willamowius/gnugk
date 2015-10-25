@@ -162,7 +162,7 @@ int GkH235Authenticators::Validate(
                     // re-encode the message to check it, not sure why (PByteArray &)msg crashes
                     PBYTEArray buf(1024); // buffer with initial size 1024
                     if (!msg.Encode(buf)) {
-                            PTRACE(0, "JW re-encode failed");
+                        PTRACE(0, "JW re-encode failed");
                     }
 
 					m_authResultProcedure1 = m_authProcedure1->ValidateCryptoToken(token, buf);
