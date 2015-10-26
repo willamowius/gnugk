@@ -759,8 +759,7 @@ protected:
         H225_H323_UserInformation uuie;
 
         if (!GetUUIE(msg, uuie)) {
-            PTRACE(0, "JW no UUIE");
-            return e_fail;
+            return e_next;  // without a UUIE, this message can't carry a token
         }
 
         GkH235Authenticators::GetQ931Tokens(msg.GetMessageType(), &uuie, &tokens, &cryptoTokens);
@@ -776,7 +775,7 @@ protected:
             if (call && call->GetCallingParty()) {
                 auth = call->GetCallingParty()->GetH235Authenticators();
             } else {
-                // TODO: for calls with pregrantedARQ, we might not have a CallRec, yet
+                // TODO235: for calls with pregrantedARQ, we might not have a CallRec, yet
                 // try to find EP based on sendersID ?
             }
         }

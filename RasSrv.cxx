@@ -1904,7 +1904,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 			RasSrv->SelectH235Capability(request, gcf);
 		}
 
-/*      TODO: set up tem EP if we want to add tokens to GCF
+/*      TODO: set up temp EP if we want to add tokens to GCF
         EndpointRec * tmpep = new EndpointRec(m_msg->m_recvRAS);
         tmpep->SetH235Authenticators( xxx );
         // set H.235.1 tokens
