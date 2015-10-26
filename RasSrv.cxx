@@ -1868,7 +1868,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 					gcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 					H225_ArrayOf_FeatureDescriptor & desc = gcf.m_featureSet.m_supportedFeatures;
 					PINDEX lPos = desc.GetSize();
-					desc.SetSize(lPos+1);
+					desc.SetSize(lPos + 1);
 					desc[lPos] = oid;
 				}
 			}
@@ -1885,7 +1885,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 				gcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 				H225_ArrayOf_FeatureDescriptor & desc = gcf.m_featureSet.m_supportedFeatures;
 				PINDEX lPos = desc.GetSize();
-				desc.SetSize(lPos+1);
+				desc.SetSize(lPos + 1);
 				desc[lPos] = oid;
 			}
 		}
@@ -1893,7 +1893,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 
 #ifdef h323v6
 	    if (request.HasOptionalField(H225_GatekeeperRequest::e_supportsAssignedGK) &&
-            RasSrv->HasAssignedGK(alias,m_msg->m_peerAddr,gcf))
+            RasSrv->HasAssignedGK(alias, m_msg->m_peerAddr,gcf))
 			PTRACE(2, "GCF\t" << alias << " redirected to assigned Gatekeeper");
 		else
 #endif
@@ -1903,6 +1903,14 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 
 			RasSrv->SelectH235Capability(request, gcf);
 		}
+
+/*      TODO: set up tem EP if we want to add tokens to GCF
+        EndpointRec * tmpep = new EndpointRec(m_msg->m_recvRAS);
+        tmpep->SetH235Authenticators( xxx );
+        // set H.235.1 tokens
+		SetupResponseTokens(m_msg->m_replyRAS, endptr(tmpep));
+		delete tmpep;
+*/
 
 		log = "GCF|" + m_msg->m_peerAddr.AsString()
 				+ "|" + alias

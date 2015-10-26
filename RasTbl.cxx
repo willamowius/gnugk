@@ -89,7 +89,7 @@ PString EPQoS::AsString() const
 
 EndpointRec::EndpointRec(
 	/// RRQ, ARQ, ACF or LCF that contains a description of the endpoint
-	const H225_RasMessage& ras,
+	const H225_RasMessage & ras,
 	/// permanent endpoint flag
 	bool permanent)
 	: m_RasMsg(ras), m_endpointVendor(NULL), m_timeToLive(1),
@@ -1721,7 +1721,7 @@ endptr RegistrationTable::InternalInsertEP(H225_RasMessage & ras_msg)
 			isGW = true;
 		}
 	}
-	EndpointRec *ep = isGW ? new GatewayRec(ras_msg) : new EndpointRec(ras_msg);
+	EndpointRec * ep = isGW ? new GatewayRec(ras_msg) : new EndpointRec(ras_msg);
 	WriteLock lock(listLock);
 	EndpointList.push_back(ep);
 	++regSize;
@@ -2203,7 +2203,7 @@ void RegistrationTable::LoadConfig()
 		WriteLock lock(listLock);
 		iterator epIter = EndpointList.begin();
 		while (epIter != EndpointList.end()) {
-			EndpointRec *ep = *epIter;
+			EndpointRec * ep = *epIter;
 			if (!ep->IsPermanent()) {
 				++epIter;
 				continue;

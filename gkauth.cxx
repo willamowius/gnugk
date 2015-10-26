@@ -783,6 +783,7 @@ void GkAuthenticatorList::SelectH235Capability(
 						if (gkauth->IsH235Capable() && gkauth->IsH235Capability(grq.m_authenticationCapability[cap], grq.m_algorithmOIDs[alg])) {
 							PTRACE(4, "GKAUTH\tGRQ accepted on " << H323TransportAddress(gcf.m_rasAddress)
 								<< " using authenticator " << m_h235authenticators[auth]);
+                            // TODO: return authenticator or put it into tmp EPRec if we want to add tokens to GCF
 							gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_authenticationMode);
 							gcf.m_authenticationMode = grq.m_authenticationCapability[cap];
 							gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_algorithmOID);
