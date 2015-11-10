@@ -325,15 +325,19 @@ const char * KnownConfigEntries[][2] = {
 	{ "PortNotifications", "StatusPortClose" },
 	{ "PortNotifications", "T120PortOpen" },
 	{ "PortNotifications", "T120PortClose" },
+#ifdef HAS_H46018
 	{ "Proxy", "AllowSignaledIPs" },
+#endif
 	{ "Proxy", "CheckH46019KeepAlivePT" },
 	{ "Proxy", "DisableRTPQueueing" },
 	{ "Proxy", "Enable" },
 	{ "Proxy", "EnableRTCPStats" },
 	{ "Proxy", "EnableRTPMute" },
 	{ "Proxy", "ExplicitRoutes" },
+#ifdef HAS_H46018
 	{ "Proxy", "IgnoreSignaledIPs" },
 	{ "Proxy", "IgnoreSignaledPrivateH239IPs" },
+#endif
 	{ "Proxy", "InternalNetwork" },
 	{ "Proxy", "ProxyAlways" },
 	{ "Proxy", "ProxyForNAT" },

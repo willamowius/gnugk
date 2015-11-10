@@ -118,6 +118,8 @@ const int DEFAULT_NUM_SEQ_PORTS = 500;
 // maximum number of handlder threads GnuGk will start (call signaling or RTP)
 const unsigned MAX_HANDLER_NUMBER = 200;
 
+enum RTPSessionTypes { Unknown = 0, Audio, Video, Presentation, Data };
+
 // RTCP functions used in UDPProxySocket and H46019Session
 void ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & fromIP, BYTE * wbuffer, WORD buflen);
 void BuildReceiverReport(const callptr & call, WORD sessionID, const RTP_ControlFrame & frame, PINDEX offset, bool dst);
@@ -933,8 +935,8 @@ protected:
 
 class RTPLogicalChannel : public LogicalChannel {
 public:
-	RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, bool nated, WORD sessionID);
-	RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nated);
+	RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, bool nated, WORD sessionID, RTPSessionTypes sessionType);
+	RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nated, RTPSessionTypes sessionType);
 	virtual ~RTPLogicalChannel();
 
 	void SetRTPSessionID(WORD id);
@@ -956,6 +958,7 @@ public:
 
 	bool IsOpen() const;
 	void SetUniDirectional(bool uni);
+	RTPSessionTypes GetType() const { return m_sessionType; }
 
 #ifdef HAS_H46018
 	void SetUsesH46019fc(bool);
@@ -1004,6 +1007,7 @@ private:
     bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H239 streams
     NetworkAddress m_keepSignaledIPs;   // don't do auto-detect on this network
     bool m_isUnidirectional;
+    RTPSessionTypes m_sessionType;
 };
 
 class T120LogicalChannel : public LogicalChannel {
@@ -1104,6 +1108,7 @@ public:
 	void UpdateLogicalChannelSessionID(WORD flcn, WORD id);
 	LogicalChannel * FindLogicalChannel(WORD flcn);
 	RTPLogicalChannel * FindRTPLogicalChannelBySessionID(WORD id);
+	RTPLogicalChannel * FindRTPLogicalChannelBySessionType(RTPSessionTypes sessionType, WORD id);
 	bool UsesH46019() const { return m_useH46019; }
 	void SetTraversalRole(H46019TraversalType type) { m_traversalType = type; m_useH46019 = (type != None); }
 	H46019TraversalType GetTraversalRole() const { return m_traversalType; }
@@ -1129,7 +1134,7 @@ protected:
 	virtual bool HandleCommand(H245_CommandMessage &, bool & suppress, callptr &, H245Socket * h245sock);
 	virtual bool HandleIndication(H245_IndicationMessage &, bool & suppress);
 
-	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters *, WORD flcn, bool isUnidirectional);
+	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters *, WORD flcn, bool isUnidirectional, RTPSessionTypes sessionType);
 	bool HandleOpenLogicalChannel(H245_OpenLogicalChannel &, callptr &);
 	bool HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck &, callptr &);
 	bool HandleOpenLogicalChannelReject(H245_OpenLogicalChannelReject &, callptr & call);
@@ -1152,9 +1157,9 @@ protected:
 		H323TransportAddress & multiplexedRTCPAddr,
 		PUInt32b & multiplexID) const;
 
-	RTPLogicalChannel *CreateRTPLogicalChannel(WORD, WORD);
-	RTPLogicalChannel *CreateFastStartLogicalChannel(WORD);
-	T120LogicalChannel *CreateT120LogicalChannel(WORD);
+	RTPLogicalChannel *CreateRTPLogicalChannel(WORD sessionId, WORD flcn, RTPSessionTypes sessionType);
+	RTPLogicalChannel *CreateFastStartLogicalChannel(WORD sessionId, RTPSessionTypes sessionType);
+	T120LogicalChannel *CreateT120LogicalChannel(WORD sessionId);
 	bool RemoveLogicalChannel(WORD flcn);
 
 	std::map<WORD, LogicalChannel *> logicalChannels;
@@ -10694,7 +10699,8 @@ void T120ProxySocket::Dispatch()
 
 
 // class RTPLogicalChannel
-RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, bool nated, WORD sessionID) : LogicalChannel(flcn), reversed(false), peer(NULL)
+RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, bool nated, WORD sessionID, RTPSessionTypes sessionType)
+    : LogicalChannel(flcn), reversed(false), peer(NULL), m_sessionType(sessionType)
 {
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
     m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
@@ -10770,7 +10776,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 	PTRACE(2, "RTP\tLogical channel " << flcn << " could not be established - out of RTP sockets");
 }
 
-RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool nated)
+RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool nated, RTPSessionTypes sessionType)
 {
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
     m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
@@ -10803,6 +10809,7 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool na
 	peer = flc, flc->peer = this;
 	SetChannelNumber(flcn);
 	SetNAT(nated);
+	m_sessionType = sessionType;
 }
 
 RTPLogicalChannel::~RTPLogicalChannel()
@@ -11607,13 +11614,15 @@ bool H245ProxyHandler::HandleCommand(H245_CommandMessage & Command, bool & suppr
 	return false;
 }
 
-bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters * h225Params, WORD flcn, bool isUnidirectional)
+bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters * h225Params, WORD flcn, bool isUnidirectional, RTPSessionTypes sessionType)
 {
+    PTRACE(0, "JWV H245ProxyHandler::OnLogicalChannelParameters flc=" << flcn << " session=" << h225Params->m_sessionID);
 	RTPLogicalChannel * lc = flcn ?
-		CreateRTPLogicalChannel((WORD)h225Params->m_sessionID, flcn) :
-		CreateFastStartLogicalChannel((WORD)h225Params->m_sessionID);
+		CreateRTPLogicalChannel((WORD)h225Params->m_sessionID, flcn, sessionType) :
+		CreateFastStartLogicalChannel((WORD)h225Params->m_sessionID, sessionType);
 	if (!lc)
 		return false;
+    PTRACE(0, "JWV H245ProxyHandler::OnLogicalChannelParameters lc=" << lc);
 
 	lc->SetUniDirectional(isUnidirectional);  // remember for handling OLCAck
 
@@ -11732,6 +11741,39 @@ bool H245ProxyHandler::ParseTraversalParameters(
 	}
 }
 #endif
+
+void GetSessionType(const H245_OpenLogicalChannel & olc, RTPSessionTypes & sessionType, bool & isUnidirectional)
+{
+    sessionType = Unknown;
+    isUnidirectional = false;
+	if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData) {
+        sessionType = Audio;
+    } else if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_videoData) {
+        sessionType = Video;
+        const H245_VideoCapability & vid = olc.m_forwardLogicalChannelParameters.m_dataType;
+        if (vid.GetTag() == H245_VideoCapability::e_extendedVideoCapability) {
+            sessionType = Presentation;
+            isUnidirectional = true;
+        }
+    } else if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_data) {
+        sessionType = Data;
+    } else if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_h235Media) {
+        const H245_H235Media & h235data = olc.m_forwardLogicalChannelParameters.m_dataType;
+        if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_audioData) {
+            sessionType = Audio;
+        } else if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_videoData) {
+            sessionType = Video;
+            const H245_VideoCapability & vid = h235data.m_mediaType;
+            if (vid.GetTag() == H245_VideoCapability::e_extendedVideoCapability) {
+                sessionType = Presentation;
+                isUnidirectional = true;
+            }
+        } else if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_data) {
+            sessionType = Data;
+        }
+    }
+}
+
 
 bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, callptr & call)
 {
@@ -11872,24 +11914,14 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 #endif
 
         bool isUnidirectional = false;
-		// check if we are doing unidirectional H.239
-		if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_videoData) {
-			H245_VideoCapability & vid = olc.m_forwardLogicalChannelParameters.m_dataType;
-			isUnidirectional = (vid.GetTag() == H245_VideoCapability::e_extendedVideoCapability);
-        }
-		// check for encrypted H.239
-		if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_h235Media) {
-			H245_H235Media & h235data = olc.m_forwardLogicalChannelParameters.m_dataType;
-			if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_videoData) {
-				H245_VideoCapability & vid = h235data.m_mediaType;
-				isUnidirectional = (vid.GetTag() == H245_VideoCapability::e_extendedVideoCapability);
-            }
-        }
+        RTPSessionTypes sessionType = Unknown;
+        GetSessionType(olc, sessionType, isUnidirectional);
+
 		// create LC objects, rewrite for forwarding after H.460.19 parameters have been parsed
 		if (UsesH46019fc()) {
-			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, 0, isUnidirectional) : false;
+			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, 0, isUnidirectional, sessionType) : false;
 		} else {
-			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, flcn, isUnidirectional) : false;
+			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, flcn, isUnidirectional, sessionType) : false;
 		}
 
 		if (isUnidirectional) {
@@ -12723,12 +12755,9 @@ bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc, callp
 		bool nouse;
 		H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, nouse);
         bool isUnidirectional = false;
-		// check if we are doing unidirectional H.239
-		if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_videoData) {
-			H245_VideoCapability & vid = olc.m_forwardLogicalChannelParameters.m_dataType;
-			isUnidirectional = (vid.GetTag() == H245_VideoCapability::e_extendedVideoCapability);
-        }
-		return ((h225Params) ? OnLogicalChannelParameters(h225Params, 0, isUnidirectional) : false) || changed;
+        RTPSessionTypes sessionType = Unknown;
+        GetSessionType(olc, sessionType, isUnidirectional);
+		return ((h225Params) ? OnLogicalChannelParameters(h225Params, 0, isUnidirectional, sessionType) : false) || changed;
 	}
 }
 
@@ -12744,6 +12773,9 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 
 	bool changed = false;
 	bool isReverseLC = false;
+	RTPSessionTypes sessionType = Unknown;
+	bool nouse;
+	GetSessionType(olc, sessionType, nouse);
 	if (hnat && (peer->GetTraversalRole() == None))
 		changed = hnat->HandleOpenLogicalChannel(olc);
 
@@ -12778,7 +12810,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 			if (akalc) {
 				lc = static_cast<RTPLogicalChannel *>(akalc);
 			} else {
-				logicalChannels[flcn] = sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != NULL);
+				logicalChannels[flcn] = sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != NULL, sessionType);
 				if (!lc->IsOpen()) {
 					PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn);
 					SNMP_TRAP(10, SNMPWarning, Network, "Can't create RTP logical channel " + PString(PString::Unsigned, flcn));
@@ -12798,7 +12830,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 			if (akalc) {
 				lc = static_cast<RTPLogicalChannel *>(akalc);
 			} else {
-				peer->logicalChannels[flcn] = peer->sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != NULL);
+				peer->logicalChannels[flcn] = peer->sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != NULL, sessionType);
 			}
 		}
 	}
@@ -12846,15 +12878,42 @@ RTPLogicalChannel * H245ProxyHandler::FindRTPLogicalChannelBySessionID(WORD id)
 	return (iter != sessionIDs.end()) ? iter->second : NULL;
 }
 
-RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn)
+RTPLogicalChannel * H245ProxyHandler::FindRTPLogicalChannelBySessionType(RTPSessionTypes sessionType, WORD id)
+{
+    PTRACE(0, "JWV FindRTPLogicalChannelBySessionType type=" << sessionType << " id=" << id);
+	for (siterator iter = sessionIDs.begin(); iter != sessionIDs.end() ; ++iter ) {
+        if (iter->second->GetType() == sessionType
+            && ((id == 0 && iter->first != 0) || (id > 2 && iter->first == 0))) {    // check session IDs
+            RTPLogicalChannel * lc = iter->second;
+            PTRACE(0, "JWV FindRTPLogicalChannelBySessionType found " << lc);
+            // update session ID in LC if the master finds the slave channel + update SessionIDs map
+            if (id > 2 && iter->first == 0) {
+                lc->SetRTPSessionID(id);
+                sessionIDs.erase(iter);
+                sessionIDs[id] = lc;
+            }
+            return lc;
+        }
+	}
+    PTRACE(0, "JWV FindRTPLogicalChannelBySessionType NOT found");
+    return NULL;
+}
+
+RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn, RTPSessionTypes sessionType)
 {
 	if (FindLogicalChannel(flcn)) {
 		PTRACE(3, "Proxy\tRTP logical channel " << flcn << " already exist?");
 		return NULL;
 	}
 	RTPLogicalChannel * lc = peer->FindRTPLogicalChannelBySessionID(id);
+
+    if (!lc && ((id == 0) || (id > 2)) && m_ignoreSignaledPrivateH239IPs) {
+        // look for channel with same media type
+        lc = peer->FindRTPLogicalChannelBySessionType(sessionType, id);
+    }
+
 	if (lc && !lc->IsAttached()) {
-		lc = new RTPLogicalChannel(lc, flcn, hnat != NULL);
+		lc = new RTPLogicalChannel(lc, flcn, hnat != NULL, sessionType);
 	} else if (!fastStartLCs.empty()) {
 		// if H.245 OpenLogicalChannel is received, the fast connect procedure
 		// should be disable. So we reuse the fast start logical channel here
@@ -12877,7 +12936,7 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
 		lc->OnHandlerSwapped(hnat != NULL);
 		peer->fastStartLCs.erase(iter);
 	} else {
-		lc = new RTPLogicalChannel(callid, flcn, hnat != NULL, id);
+		lc = new RTPLogicalChannel(callid, flcn, hnat != NULL, id, sessionType);
 		if (!lc->IsOpen()) {
 			PTRACE(1, "Proxy\tError: Can't create RTP logical channel " << flcn);
 			SNMP_TRAP(10, SNMPWarning, Network, "Can't create RTP logical channel " + PString(PString::Unsigned, flcn));
@@ -12891,14 +12950,14 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
 	return lc;
 }
 
-RTPLogicalChannel * H245ProxyHandler::CreateFastStartLogicalChannel(WORD id)
+RTPLogicalChannel * H245ProxyHandler::CreateFastStartLogicalChannel(WORD id, RTPSessionTypes sessionType)
 {
 	siterator iter = fastStartLCs.find(id);
 	RTPLogicalChannel * lc = (iter != fastStartLCs.end()) ? iter->second : NULL;
 	if (!lc) {
 		// the LogicalChannelNumber of a fastStart logical channel is irrelevant
 		// it may be set later
-		lc = new RTPLogicalChannel(callid, 0, hnat != NULL, id);
+		lc = new RTPLogicalChannel(callid, 0, hnat != NULL, id, sessionType);
 		if (!lc->IsOpen()) {
 			PTRACE(1, "Proxy\tError: Can't create fast start logical channel id " << id);
 			SNMP_TRAP(10, SNMPWarning, Network, "Can't create fastStart logical channel " + PString(PString::Unsigned, id));

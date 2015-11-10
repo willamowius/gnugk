@@ -1,5 +1,6 @@
 Changes from 3.9 to 4.0
 =======================
+- BUGFIX(ProxyChannel.cxx) better port detection for H.239 when IgnoreSignaledPrivateH239IPs=1
 - BUGFIX(gkacct.cxx) %{caller-port} and %{called-port} now default to "0" instead of the empty string
   when not avilable (eg. in direct mode) to avoid SQL errors when they are stored in a numeric column
 - BUGFIX(RasSrv.cxx) fix additive registration with parent gatekeeper
@@ -14,7 +15,7 @@ Changes from 3.9 to 4.0
 - much improved TCS0 3rd-party call transfer using 'Reroute' command on status port
 - BUGFIX(Routing.cxx) add field for destination alias in ARQ if missing and a dynamic routing policy sets it
 - BUGFIX(ProxyChannel.cxx) fix crash in H.235 Media for endpoints with more than 64 capability entries in TCS
-- new switch [Proxy] AllowSignaledIPs= to skip to skip auto-detect for network when IgnoreSignaledIPs=1 (experimental)
+- new switch [Proxy] AllowSignaledIPs= to skip to skip auto-detect for network when IgnoreSignaledIPs=1
 
 
 Changes from 3.8 to 3.9
@@ -23,8 +24,8 @@ Changes from 3.8 to 3.9
 - neighbor monitoring with LRQ pings [RasSrv::LRQFeatures] SendLRQPing=1
 - BUGFIX(Neighbor.cxx) use 64bit numbers for SendAliases= ranges
 - additional field in RouteRequest event: IP:port where message was received from
-- new switch [Proxy] IgnoreSignaledPrivateH239IPs=1 to do port auto detection for H.239, too (experimental)
-- new switch [Proxy] IgnoreSignaledIPs=1 to do 100% port auto detection (experimental)
+- new switch [Proxy] IgnoreSignaledPrivateH239IPs=1 to do port auto detection for H.239, too
+- new switch [Proxy] IgnoreSignaledIPs=1 to do 100% port auto detection
 - new status port commands: RouteToInternalGateway and BindAndRouteToInternalGateway
 - BUGFIX(ProxyChannel.cxx) fix algorithm lookup for encryption added by GnuGk
 - new switch [RoutedMode] H235HalfCallDHParamFile=
