@@ -93,6 +93,7 @@ EndpointRec::EndpointRec(
 	/// permanent endpoint flag
 	bool permanent)
 	: m_RasMsg(ras), m_endpointVendor(NULL), m_timeToLive(1),
+	m_defaultKeepAliveInterval(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19)),
 	m_activeCall(0), m_connectedCall(0), m_totalCall(0),
 	m_pollCount(GkConfig()->GetInteger(RRQFeaturesSection, "IRQPollCount", DEFAULT_IRQ_POLL_COUNT)),
 	m_usedCount(0), m_nat(false), m_natsocket(NULL), m_permanent(permanent),
@@ -2813,11 +2814,11 @@ bool CallRec::CompareSigAdrIgnorePort(const H225_TransportAddress *adr) const
 
 int EndpointRec::GetTimeToLive() const
 {
-	bool enableTTLRestrictions = Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "EnableTTLRestrictions", "1"));
+	bool enableTTLRestrictions = GkConfig()->GetBoolean("Gatekeeper::Main", "EnableTTLRestrictions", true);
 
 	if (enableTTLRestrictions && (m_nat || IsTraversalClient() || UsesH46017())) {
 		// force timeToLive to 5 - 30 sec, 19 sec if not set
-		return m_timeToLive == 0 ? 19 : max(5, min(30, m_timeToLive));
+		return m_timeToLive == 0 ? m_defaultKeepAliveInterval : max(5, min(30, m_timeToLive));
 	}
 	return m_timeToLive;
 }

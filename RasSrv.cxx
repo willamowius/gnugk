@@ -4184,7 +4184,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				if (lastPos > 0)
 					lcf.IncludeOptionalField(H225_LocationConfirm::e_genericData);
 
-				PString featureRequired = Kit->Config()->GetString(RoutedSec, "NATStdMin", "");
+				PString featureRequired = GkConfig()->GetString(RoutedSec, "NATStdMin", "");
 				PBoolean assumePublicH46024 = GkConfig()->GetBoolean(RoutedSec, "H46023PublicIP", false);
 				if (!featureRequired && featureRequired == "23" && WantedEndPoint && (!WantedEndPoint->SupportH46024() && !assumePublicH46024)) {
 					bReject = true;
@@ -4448,7 +4448,7 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 				scr.m_featureSet.m_supportedFeatures.SetSize(1);
 				scr.m_featureSet.m_supportedFeatures[0] = feat;
 				H46018_LRQKeepAliveData lrqKeepAlive;
-				lrqKeepAlive.m_lrqKeepAliveInterval = 29;
+				lrqKeepAlive.m_lrqKeepAliveInterval = (int)GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19);
 				PASN_OctetString rawKeepAlive;
 				rawKeepAlive.EncodeSubType(lrqKeepAlive);
 				feat.Add(2, H460_FeatureContent(rawKeepAlive));

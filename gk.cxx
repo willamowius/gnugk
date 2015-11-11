@@ -447,6 +447,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "AcceptNeighborsCalls" },
 	{ "RoutedMode", "AcceptUnregisteredCalls" },
 	{ "RoutedMode", "ActivateFailover" },
+	{ "RoutedMode", "AppendToDisplayIE" },
 	{ "RoutedMode", "AlertingTimeout" },
 	{ "RoutedMode", "AlwaysRewriteSourceCallSignalAddress" },
 	{ "RoutedMode", "AutoProxyIPv4ToIPv6Calls" },
@@ -495,6 +496,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "H245TunnelingTranslation" },
 	{ "RoutedMode", "H4502EmulatorTransferMethod" },
 #ifdef HAS_H46018
+	{ "RoutedMode", "H46018KeepAliveInterval" },
 	{ "RoutedMode", "H46018NoNat" },
 #endif
 #ifdef HAS_H46023

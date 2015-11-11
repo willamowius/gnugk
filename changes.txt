@@ -1,5 +1,7 @@
 Changes from 3.9 to 4.0
 =======================
+- changed default: H.460.18 keep-alive in traversal zone between neighbors now defaults to 19 sec (was 29)
+- new switch: [RoutedMode] H46018KeepAliveInterval=
 - BUGFIX(ProxyChannel.cxx) better port detection for H.239 when IgnoreSignaledPrivateH239IPs=1
 - BUGFIX(gkacct.cxx) %{caller-port} and %{called-port} now default to "0" instead of the empty string
   when not avilable (eg. in direct mode) to avoid SQL errors when they are stored in a numeric column

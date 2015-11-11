@@ -378,6 +378,7 @@ protected:
 	H225_EndpointType *m_terminalType;
 	H225_VendorIdentifier *m_endpointVendor;
 	int m_timeToLive;   // seconds
+	int m_defaultKeepAliveInterval; // for H.460.10 in seconds
 
 	int m_activeCall, m_connectedCall, m_totalCall;
 	/// active calls per prefix (regex)
