@@ -203,6 +203,15 @@ Default: <tt>N/A</tt><newline>
 <p>
 Modify the DisplayIE of Q.931 to the specified value.
 
+If you set the switch to "Calling", the DisplayIE of the calling party is set to the CallingStationID
+and with "Called" the respective is done to DisplayIEs from the called party.
+"Setting it to "CallingCalled" rewrites all DisplayIEs to the Calling/CalledStationID.
+
+<item><tt/AppendToDisplayIE=SomeText/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+When ScreenDisplayIE= is set, this text is appended to the new DisplayIE.
+
 <item><tt/ScreenCallingPartyNumberIE=0965123456/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
@@ -480,6 +489,11 @@ Default: <tt>0</tt><newline>
 Enable support for H.460.18 and H.460.19. This feature is covered by patents held by Tandberg.
 If you don't use the official releases by the GNU Gatekeeper Project, make sure you have a
 valid license before enabling it.
+
+<item><tt/H46018KeepAliveInterval=19/<newline>
+Default: <tt>19</tt><newline>
+<p>
+Set the H.460.18 keep-alive interval used for H.460.19 endpoints and in H.460.18 traversal zones with neighbors.
 
 <item><tt/H46018NoNat=0/<newline>
 Default: <tt>1</tt><newline>

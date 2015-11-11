@@ -2218,12 +2218,33 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 
 	if (msg->GetQ931().HasIE(Q931::DisplayIE)) {
 		PString newDisplayIE;
-		if (m_call && !m_call->GetCallerID().IsEmpty() && (m_crv & 0x8000u)) {	// only rewrite DisplayIE from caller
-			newDisplayIE = m_call->GetCallerID();
+        PString screenDisplayIE = GkConfig()->GetString(RoutedSec, "ScreenDisplayIE", "");
+        PString appendToDisplayIE = GkConfig()->GetString(RoutedSec, "AppendToDisplayIE", "");
+		if (m_crv & 0x8000u) {	// only rewrite DisplayIE from caller
+            if (m_call) {
+                if (!m_call->GetCallerID().IsEmpty()) {
+                    newDisplayIE = m_call->GetCallerID();
+                } else if (screenDisplayIE != PCaselessString("Called")) {
+                    newDisplayIE = screenDisplayIE + appendToDisplayIE;
+                }
+                if (screenDisplayIE == PCaselessString("Calling") || screenDisplayIE == PCaselessString("CallingCalled")) {
+                    if (m_call) {
+                        newDisplayIE = m_call->GetCallingStationId() + appendToDisplayIE;
+                    }
+                }
+			}
 		} else {
-			newDisplayIE = GkConfig()->GetString(RoutedSec, "ScreenDisplayIE", "");
+            if (screenDisplayIE != PCaselessString("Calling")) {
+                newDisplayIE = screenDisplayIE + appendToDisplayIE;
+            }
+			if (screenDisplayIE == PCaselessString("Called") || screenDisplayIE == PCaselessString("CallingCalled")) {
+                if (m_call) {
+                    newDisplayIE = m_call->GetCalledStationId() + appendToDisplayIE;
+                }
+			}
 		}
 		if (!newDisplayIE.IsEmpty()) {
+            PTRACE(4, "Q931\tSetting DisplayIE to " << newDisplayIE);
 			msg->GetQ931().SetDisplayName(newDisplayIE);
 			msg->SetChanged();
 		}
@@ -7754,13 +7775,21 @@ ProxySocket::Result CallSignalSocket::RetrySetup()
 	}
 
 	if (msg->GetQ931().HasIE(Q931::DisplayIE)) {
-		PString newDisplayIE;
-		if (!m_call->GetCallerID().IsEmpty()) {
-			newDisplayIE = m_call->GetCallerID();
-		} else {
-			newDisplayIE = GkConfig()->GetString(RoutedSec, "ScreenDisplayIE", "");
-		}
+        PString newDisplayIE;
+        PString screenDisplayIE = GkConfig()->GetString(RoutedSec, "ScreenDisplayIE", "");
+        PString appendToDisplayIE = GkConfig()->GetString(RoutedSec, "AppendToDisplayIE", "");
+        if (!m_call->GetCallerID().IsEmpty()) {
+            newDisplayIE = m_call->GetCallerID();
+        } else if (screenDisplayIE != PCaselessString("Called")) {
+            newDisplayIE = screenDisplayIE + appendToDisplayIE;
+        }
+        if (screenDisplayIE == PCaselessString("Calling") || screenDisplayIE == PCaselessString("CallingCalled")) {
+            if (m_call) {
+                newDisplayIE = m_call->GetCallingStationId() + appendToDisplayIE;
+            }
+        }
 		if (!newDisplayIE.IsEmpty()) {
+            PTRACE(4, "Q931\tSetting DisplayIE to " << newDisplayIE);
 			msg->GetQ931().SetDisplayName(newDisplayIE);
 			msg->SetChanged();
 		}

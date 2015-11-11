@@ -1,5 +1,8 @@
 Changes from 3.9 to 4.0
 =======================
+- new settings for [RoutedMode] ScreenDisplayIE=: 'Calling', 'Called', 'CallingCalled' to set the DisplayIE
+  to the (rewritten) caller ID
+- new switch: [RoutedMode] AppendToDisplayIE= to add a string to the DisplayIE when ScreenDisplayIE= is on
 - changed default: H.460.18 keep-alive in traversal zone between neighbors now defaults to 19 sec (was 29)
 - new switch: [RoutedMode] H46018KeepAliveInterval=
 - BUGFIX(ProxyChannel.cxx) better port detection for H.239 when IgnoreSignaledPrivateH239IPs=1
