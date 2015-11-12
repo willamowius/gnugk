@@ -12911,16 +12911,9 @@ RTPLogicalChannel * H245ProxyHandler::FindRTPLogicalChannelBySessionType(RTPSess
 {
     PTRACE(0, "JWV FindRTPLogicalChannelBySessionType type=" << sessionType << " id=" << id);
 	for (siterator iter = sessionIDs.begin(); iter != sessionIDs.end() ; ++iter ) {
-        if (iter->second->GetType() == sessionType
-            && ((id == 0 && iter->first != 0) || (id > 2 && iter->first == 0))) {    // check session IDs
+        if (iter->second->GetType() == sessionType) {
             RTPLogicalChannel * lc = iter->second;
             PTRACE(0, "JWV FindRTPLogicalChannelBySessionType found " << lc);
-            // update session ID in LC if the master finds the slave channel + update SessionIDs map
-            if (id > 2 && iter->first == 0) {
-                lc->SetRTPSessionID(id);
-                sessionIDs.erase(iter);
-                sessionIDs[id] = lc;
-            }
             return lc;
         }
 	}
