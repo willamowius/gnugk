@@ -487,7 +487,8 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 #ifdef HAS_H46018
 	if (Toolkit::AsBool(config->GetString(section, "H46018Client", "0"))) {
 		m_H46018Client = true;
-		int h46018GkKeepAliveInterval = config->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19);	// start with every 29 seconds
+		// this is our initial interval, the server will tell the client the real interval
+		int h46018GkKeepAliveInterval = config->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19);
 		SetH46018GkKeepAliveInterval(h46018GkKeepAliveInterval);
 	}
 	m_H46018Server = Toolkit::AsBool(config->GetString(section, "H46018Server", "0"));
