@@ -10108,6 +10108,11 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
             fSrcIP = fromIP, fSrcPort = fromPort;
             PTRACE(7, "JW RTP IN on " << localport << " learned fSrc " << AsString(fSrcIP, fSrcPort));
         }
+        // no forward source set and this is not from reverse source, so it must be from forward source
+        if ((rSrcIP != fromIP || rSrcPort != fromPort) && fSrcIP == 0) {
+            fSrcIP = fromIP, fSrcPort = fromPort;
+            PTRACE(7, "JW RTP IN on " << localport << " learned fSrc " << AsString(fSrcIP, fSrcPort));
+        }
         // no reverse source set and this is not from forward source, so it must be from reverse source
         if ((fSrcIP != fromIP || fSrcPort != fromPort) && rSrcIP == 0) {
             rSrcIP = fromIP, rSrcPort = fromPort;
