@@ -1049,27 +1049,29 @@ int SimplePasswordAuth::Check(
 	RRQAuthData & authData)
 {
 	H225_RegistrationRequest & rrq = request;
-	return doCheck(request,
-		rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)
-			? &rrq.m_terminalAlias : NULL,
-			&authData);
+	GkH235Authenticators * auth = NULL;
+	int result = doCheck(request, rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) ? &rrq.m_terminalAlias : NULL, auth);
+    authData.m_authenticator = auth;    // save auth
+    return result;
 }
 
 int SimplePasswordAuth::Check(RasPDU<H225_UnregistrationRequest> & request, unsigned &)
 {
     H225_UnregistrationRequest & urq = request;
     H225_ArrayOf_AliasAddress aliases;
+	GkH235Authenticators * auth = NULL;
     if (urq.HasOptionalField(H225_UnregistrationRequest::e_endpointIdentifier)) {
         endptr ep = RegistrationTable::Instance()->FindByEndpointId(urq.m_endpointIdentifier);
         if (ep) {
             aliases = ep->GetAliases();
+            auth = ep->GetH235Authenticators();
         }
     }
 
     if (aliases.GetSize() > 0) {
-        return doCheck(request, &aliases);
+        return doCheck(request, &aliases, auth);
     } else {
-        return doCheck(request); // can't check sendersID
+        return doCheck(request, NULL, auth); // can't check sendersID
     }
 }
 
@@ -1079,7 +1081,8 @@ int SimplePasswordAuth::Check(RasPDU<H225_BandwidthRequest> & request, unsigned 
     endptr ep = RegistrationTable::Instance()->FindByEndpointId(brq.m_endpointIdentifier);
     if (ep) {
         H225_ArrayOf_AliasAddress aliases = ep->GetAliases();
-        return doCheck(request, &aliases);
+        GkH235Authenticators * auth = ep->GetH235Authenticators();
+        return doCheck(request, &aliases, auth);
     } else {
         return e_fail;
     }
@@ -1091,7 +1094,8 @@ int SimplePasswordAuth::Check(RasPDU<H225_DisengageRequest> & request, unsigned 
     endptr ep = RegistrationTable::Instance()->FindByEndpointId(drq.m_endpointIdentifier);
     if (ep) {
         H225_ArrayOf_AliasAddress aliases = ep->GetAliases();
-        return doCheck(request, &aliases);
+        GkH235Authenticators * auth = ep->GetH235Authenticators();
+        return doCheck(request, &aliases, auth);
     } else {
         return e_fail;
     }
@@ -1099,12 +1103,14 @@ int SimplePasswordAuth::Check(RasPDU<H225_DisengageRequest> & request, unsigned 
 
 int SimplePasswordAuth::Check(RasPDU<H225_LocationRequest> & request, unsigned &)
 {
-	return doCheck(request);
+	GkH235Authenticators * auth = NULL;
+	return doCheck(request, NULL, auth);
 }
 
 int SimplePasswordAuth::Check(RasPDU<H225_InfoRequest> & request, unsigned &)
 {
-	return doCheck(request);
+	GkH235Authenticators * auth = NULL;
+	return doCheck(request, NULL, auth);
 }
 
 int SimplePasswordAuth::Check(RasPDU<H225_ResourcesAvailableIndicate> & request, unsigned &)
@@ -1113,7 +1119,8 @@ int SimplePasswordAuth::Check(RasPDU<H225_ResourcesAvailableIndicate> & request,
     endptr ep = RegistrationTable::Instance()->FindByEndpointId(rai.m_endpointIdentifier);
     if (ep) {
         H225_ArrayOf_AliasAddress aliases = ep->GetAliases();
-        return doCheck(request, &aliases);
+        GkH235Authenticators * auth = ep->GetH235Authenticators();
+        return doCheck(request, &aliases, auth);
     } else {
         return e_fail;
     }
@@ -1128,7 +1135,8 @@ int SimplePasswordAuth::Check(
 	// use the aliases from the registration; some endpoints (eg. Innovaphone myPBX) send empty srcInfo
 	if (authData.m_requestingEP) {
         H225_ArrayOf_AliasAddress aliases = authData.m_requestingEP->GetAliases();
-        return doCheck(request, &aliases);
+        GkH235Authenticators * auth = authData.m_requestingEP->GetH235Authenticators();
+        return doCheck(request, &aliases, auth);
     } else {
         return e_fail;
     }
@@ -1241,7 +1249,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
 
 			H225_CryptoH323Token_cryptoEPPwdHash & pwdhash = tokens[i];
 			const PString id = AsString(pwdhash.m_alias, false);
-PTRACE(0, "JW checking SendersID=" << m_checkID);
+            PTRACE(0, "JW checking SendersID=" << m_checkID);
 			if (m_checkID && (aliases == NULL || FindAlias(*aliases, id) == P_MAX_INDEX)) {
 				PTRACE(3, "GKAUTH\t" << GetName() << " alias '" << id
 					<< "' of the cryptoEPPwdHash token does not match any alias for the endpoint");
@@ -1270,8 +1278,11 @@ PTRACE(0, "JW checking SendersID=" << m_checkID);
 					&& cryptoHashedToken.m_tokenOID != OID_H235_A_V2)
 				continue;
 
+			if (authenticators == NULL && acceptAnySendersID) {
+				authenticators = new GkH235Authenticators;  // allocate a new authenticator, eg. for RRQ and LRQ where we don't have an existing EPRec
+            }
 			if (authenticators == NULL)
-				authenticators = new GkH235Authenticators;
+                continue;   // can't validate this token without authenticator object
 
 			const H235_ClearToken & clearToken = cryptoHashedToken.m_hashedVals;
 			PString sendersID;

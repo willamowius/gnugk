@@ -780,21 +780,15 @@ protected:
             }
         }
 
-		if (CheckTokens(auth, *tokens, &authData.m_aliases) == e_fail
-			|| CheckCryptoTokens(auth, *cryptoTokens, &authData.m_aliases) == e_fail) {
-			if (!authFound && auth)
-				authData.m_authenticator = auth;
-            PTRACE(0, "JW FAIL token check");
-			return e_fail;
-		}
-
-		if (!authFound && auth) {
-			authData.m_authenticator = auth;
-		}
-
 		if (!auth) {
             PTRACE(0, "JW no auth -> default status");
 			return GetDefaultStatus();
+		}
+
+		if (CheckTokens(auth, *tokens, &authData.m_aliases) == e_fail
+			|| CheckCryptoTokens(auth, *cryptoTokens, &authData.m_aliases) == e_fail) {
+            PTRACE(0, "JW FAIL token check");
+			return e_fail;
 		}
 
         PTRACE(0, "JW call Validate");
@@ -820,32 +814,21 @@ protected:
 		/// RAS request to be authenticated
 		const RasPDU<RAS> & request,
 		/// list of aliases for the endpoint sending the request
-		const H225_ArrayOf_AliasAddress * aliases = NULL,
+		const H225_ArrayOf_AliasAddress * aliases,
 		/// Registration Auth data
-		RRQAuthData * authData = NULL)
+		GkH235Authenticators * & auth)
 	{
-		GkH235Authenticators * auth = NULL;
-		if (authData)
-            auth = authData->m_authenticator;
-		bool authFound = auth != NULL;
-
 		const RAS & req = request;
 		const H225_ArrayOf_ClearToken & tokens = req.m_tokens;
 		const H225_ArrayOf_CryptoH323Token & cryptoTokens = req.m_cryptoTokens;
-		// can't check sendersID on some messages (eg. fo RRQ we don't know the aliases or endpointID, yet)
+		// can't check sendersID on some messages (eg. for RRQ we don't know the aliases or endpointID, yet)
 		bool acceptAnySendersID = (request.GetTag() == H225_RasMessage::e_registrationRequest)
                                 || (request.GetTag() == H225_RasMessage::e_locationRequest)
                                 || (request.GetTag() == H225_RasMessage::e_infoRequest);
 
 		if (CheckTokens(auth, tokens, aliases) == e_fail
 			|| CheckCryptoTokens(auth, cryptoTokens, aliases, acceptAnySendersID) == e_fail) {
-			if (!authFound && auth != NULL && authData)
-				authData->m_authenticator = auth;
 			return e_fail;
-		}
-
-		if (!authFound && auth != NULL && authData) {
-			authData->m_authenticator = auth;
 		}
 
 		if (auth == NULL)
