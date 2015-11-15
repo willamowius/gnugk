@@ -10305,11 +10305,10 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			if (m_encryptingLC->GetPlainPayloadType() == m_decryptingLC->GetCipherPayloadType()) {
 				PTRACE(1, "WARNING: Can't use PT to decide encryption direction -> fall back on IPs");
 				// HACK: this only works if caller and called are on different IPs and send media from the same IP as call signaling
-				bool fromCaller = true;
 				PIPSocket::Address callerSignalIP;
 				WORD notused;
 				(*m_call)->GetSrcSignalAddr(callerSignalIP, notused);
-				fromCaller = (callerSignalIP == fromIP);
+				bool fromCaller = (callerSignalIP == fromIP);
 				bool simulateCaller = ((*m_call)->GetEncryptDirection() == CallRec::callingParty);
 				encrypting = ((fromCaller && simulateCaller) || (!fromCaller && !simulateCaller));
 			} else {
@@ -13549,6 +13548,9 @@ ProxyHandler::ProxyHandler(const PString & name)
 	: SocketsReader(100), m_socketCleanupTimeout(DEFAULT_SOCKET_CLEANUP_TIMEOUT)
 {
 	SetName(name);
+#ifdef HAS_H46017
+	m_h46017Enabled = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "EnableH46017", false);
+#endif
 	m_proxyHandlerHighPrio = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "ProxyHandlerHighPrio", true);
 	Execute();
 }
@@ -13560,8 +13562,7 @@ ProxyHandler::~ProxyHandler()
 
 void ProxyHandler::LoadConfig()
 {
-	m_socketCleanupTimeout = GkConfig()->GetInteger(
-		RoutedSec, "SocketCleanupTimeout", DEFAULT_SOCKET_CLEANUP_TIMEOUT);
+	m_socketCleanupTimeout = GkConfig()->GetInteger(RoutedSec, "SocketCleanupTimeout", DEFAULT_SOCKET_CLEANUP_TIMEOUT);
 #ifdef HAS_H46017
 	m_h46017Enabled = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "EnableH46017", false);
 #endif

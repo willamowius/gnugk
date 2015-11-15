@@ -2400,21 +2400,20 @@ bool RegistrationRequestPDU::Process()
 		if (Kit->Config()->GetBoolean("RasSrv::RRQFeatures", "AuthenticatedAliasesOnly", false) &&
 			authData.m_authAliases.GetSize() > 0) {
 			PString recvAlias;
-			bool found = false;
-			 for (int a = 0; a < Aliases.GetSize(); ++a) {
-				 found = false;
-				 recvAlias = AsString(Aliases[a],false);
-				 for (int j = 0; j < authData.m_authAliases.GetSize(); ++j) {
-					 if (recvAlias == authData.m_authAliases[j]) {
-						found = true;
+            for (int a = 0; a < Aliases.GetSize(); ++a) {
+                bool found = false;
+                recvAlias = AsString(Aliases[a],false);
+                for (int j = 0; j < authData.m_authAliases.GetSize(); ++j) {
+                    if (recvAlias == authData.m_authAliases[j]) {
+                        found = true;
 						break;
-					 }
-				 }
-				 if (!found) {
-					PTRACE(4, "RAS\tRemoving UnAuthenticated Alias " << recvAlias);
+                    }
+                }
+                if (!found) {
+                    PTRACE(4, "RAS\tRemoving UnAuthenticated Alias " << recvAlias);
 					Aliases.RemoveAt(a--);
-				 }
-			 }
+                }
+            }
 		}
 		Alias.SetSize(1);
 		for (int a = 0; a < Aliases.GetSize(); ++a) {
