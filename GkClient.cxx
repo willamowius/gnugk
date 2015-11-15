@@ -2871,7 +2871,7 @@ void GkClient::H46023_LoadAlternates(const H225_CallIdentifier & id, WORD sessio
 				sockets.LoadAlternate(cui, muxID, m_rtp, m_rtcp);
 				break;
 			}
-			k++;
+			++k;
 		}
 	}
 }
@@ -2889,7 +2889,7 @@ void GkClient::H46023_SetAlternates(const H225_CallIdentifier & id, WORD session
 				sockets.SetAlternate(cui, muxID, m_rtp, m_rtcp);
 				break;
 			}
-			k++;
+			++k;
 		}
 	}
 }
@@ -2909,7 +2909,7 @@ void GkClient::H46023_SetAlternates(const H225_CallIdentifier & id, const H46024
 					sockets.SetAlternate(alternates[j]);
 					break;
 				}
-				k++;
+				++k;
 			}
 		}
 	}
