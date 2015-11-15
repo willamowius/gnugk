@@ -3772,17 +3772,8 @@ bool CallRec::MoveToNextRoute()
 		return false;
 
 	// stop looking for new routes when shutdown is already in progress
-#ifdef hasNoMutexWillBlock
-	// TODO: this might be a performance bottleneck on high load
-  	if (!ShutdownMutex.Wait(0)) {
+	if (IsGatekeeperShutdown())
 		return false;
-	} else {
-		ShutdownMutex.Signal();	// unlock immediately, we were just testing
-	}
-#else
-	if (ShutdownMutex.WillBlock())
-		return false;
-#endif
 
 	if (!m_newRoutes.empty()) {
 		m_failedRoutes.push_back(m_newRoutes.front());

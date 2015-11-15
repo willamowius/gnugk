@@ -771,6 +771,23 @@ const char * KnownConfigEntries[][2] = {
 	{ NULL }	// the end
 };
 
+bool IsGatekeeperShutdown()
+{
+	bool shutdown = false;
+#ifdef hasNoMutexWillBlock
+	// TODO: this might be a performance bottleneck on high load
+	if (!ShutdownMutex.Wait(0)) {
+		shutdown = true;
+	} else {
+		ShutdownMutex.Signal();	// release mutex, we were just checking for shutdown
+	}
+#else
+	if (ShutdownMutex.WillBlock())
+		shutdown = true;
+#endif
+    return shutdown;
+}
+
 namespace { // keep the global objects private
 
 PTimedMutex ReloadMutex;
@@ -1256,7 +1273,7 @@ void Gatekeeper::Terminate()
 #ifdef _WIN32
 	if (!RasServer::Instance()->IsRunning())
 #else
-	if (ShutdownMutex.WillBlock() || !RasServer::Instance()->IsRunning())
+	if (IsGatekeeperShutdown()) || !RasServer::Instance()->IsRunning())
 #endif
 		return;
 	PWaitAndSignal shutdown(ShutdownMutex);

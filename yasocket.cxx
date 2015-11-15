@@ -3,7 +3,7 @@
 // yasocket.cxx
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2013, Jan Willamowius
+// Copyright (c) 2004-2015, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -96,7 +96,7 @@ bool YaSelectList::Select(SelectType t, const PTimeInterval & timeout)
 		std::vector<YaSocket*>::iterator k = fds.end();
 		const std::vector<YaSocket*>::reverse_iterator rendIter = fds.rend();
 		bool hasfd = false;
-		
+
 		// start from the end of the list, skip consecutive sockets
 		// that were not selected (find the first one selected)
 		while (j != rendIter) {
@@ -189,7 +189,7 @@ bool YaSocket::CanWrite(long timeout) const
 	const int h = os_handle;
 	if (h < 0)
 		return false;
-		
+
 	YaSelectList::large_fd_set fdset;
 	fdset.add(h);
 
@@ -387,7 +387,7 @@ bool YaTCPSocket::Listen(const Address & addr, unsigned qs, WORD pt, PSocket::Re
 
 	if (!SetOption(SO_REUSEADDR, reuse == PSocket::CanReuseAddress ? 1 : 0))
 		return false;
-	
+
 //	SetNonBlockingMode();
 	if (Bind(addr, pt) && ConvertOSError(::listen(os_handle, qs)))
 		return true;
@@ -967,11 +967,11 @@ SocketsReader::~SocketsReader()
 void SocketsReader::Stop()
 {
 	PWaitAndSignal lock(m_deletionPreventer);
-	
+
 	m_listmutex.StartWrite();
 	ForEachInContainer(m_sockets, mem_fun(&IPSocket::Close));
 	m_listmutex.EndWrite();
-	
+
 	RegularJob::Stop();
 }
 
@@ -1121,20 +1121,7 @@ bool TCPServer::CloseListener(TCPListenSocket * socket)
 void TCPServer::ReadSocket(IPSocket * socket)
 {
 	// don't accept new calls when shutdown is already in progress
-	bool shutdown = false;
-#ifdef hasNoMutexWillBlock
-	// TODO: this might be a performance bottleneck on high load
-	if (!ShutdownMutex.Wait(0)) {
-		shutdown = true;
-	} else {
-		ShutdownMutex.Signal();	// release mutex, we were just checking for shutdown
-	}
-#else
-	if (ShutdownMutex.WillBlock())
-		shutdown = true;
-#endif
-
-	if (shutdown) {
+	if (IsGatekeeperShutdown()) {
 		PTRACE(4, GetName() << "\tShutdown: Rejecting call on " << socket->GetName());
 		int rej = ::accept(socket->GetHandle(), NULL, NULL);
 		if (rej >= 0) {

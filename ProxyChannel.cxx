@@ -911,8 +911,8 @@ private:
 
 class LogicalChannel {
 public:
-	LogicalChannel(WORD flcn = 0) : channelNumber(flcn), port(0), used(false) {}
-	virtual ~LogicalChannel() {}
+	LogicalChannel(WORD flcn = 0) : channelNumber(flcn), port(0), used(false) { }
+	virtual ~LogicalChannel() { }
 
 	bool IsUsed() const { return used; }
 	bool Compare(WORD lcn) const { return channelNumber == lcn; }
@@ -10874,25 +10874,28 @@ RTPLogicalChannel::~RTPLogicalChannel()
 	if (peer) {
 		peer->peer = NULL;
 	} else {
-		if (used) {
-			// the sockets will be deleted by ProxyHandler,
-			// so we don't need to delete it here
-			if (rtp) {
-				rtp->Close();
-				rtp->SetDeletable();
-				rtp = NULL;
-			}
-			if (rtcp) {
-				rtcp->Close();
-				rtcp->SetDeletable();
-				rtcp = NULL;
-			}
-		} else {
-			delete rtp;
-			rtp = NULL;
-			delete rtcp;
-			rtcp = NULL;
-		}
+        // skip object cleanup on system shutdown, may have already been deleted by ProxyHandler d'tor (race condition)
+        if (!IsGatekeeperShutdown()) {
+            if (used) {
+                // the sockets will be deleted by ProxyHandler,
+                // so we don't need to delete it here
+                if (rtp) {
+                    rtp->Close();
+                    rtp->SetDeletable();
+                    rtp = NULL;
+                }
+                if (rtcp) {
+                    rtcp->Close();
+                    rtcp->SetDeletable();
+                    rtcp = NULL;
+                }
+            } else {
+                delete rtp;
+                rtp = NULL;
+                delete rtcp;
+                rtcp = NULL;
+            }
+        }
 	}
 	PTRACE(4, "RTP\tDelete logical channel " << channelNumber);
 }

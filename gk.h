@@ -44,6 +44,9 @@ extern LPFN_WSASENDMSG g_pfWSASendMsg;
 
 class GkTimer;
 
+extern bool IsGatekeeperShutdown();
+
+
 #ifdef COMPILE_AS_SERVICE
 class Gatekeeper : public PServiceProcess
 {
