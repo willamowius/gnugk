@@ -3,7 +3,7 @@
  *
  * LDAP authentication/authorization modules for GNU Gatekeeper
  *
- * Copyright (c) 2013, Jan Willamowius
+ * Copyright (c) 2013-2015, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -59,10 +59,10 @@ class LDAPPasswordAuth : public LDAPBase, public SimplePasswordAuth
 public:
 	LDAPPasswordAuth(const char* authName);
 	virtual ~LDAPPasswordAuth() { }
-	
+
 protected:
 	/** Override from SimplePasswordAuth.
-	
+
 	    @return
 	    True if the password has been found for the given alias.
 	*/
@@ -82,10 +82,10 @@ public:
 	virtual ~LDAPAliasAuth() { }
 
 protected:
-	/** Get auth condition string for the given alias. 
+	/** Get auth condition string for the given alias.
 	    This implementation searches the LDAP database for the string.
 	    Override from AliasAuth.
-		
+
 	    @return
 	    The AliasAuth condition string for the given alias.
 	*/
@@ -230,8 +230,6 @@ public:
 protected:
 	virtual bool FindByAliases(Routing::RoutingRequest &, H225_ArrayOf_AliasAddress &);
 	virtual bool FindByAliases(Routing::LocationRequest &, H225_ArrayOf_AliasAddress &);
-
-	PString m_attribute;
 };
 
 LDAPPolicy::LDAPPolicy()

@@ -6,7 +6,7 @@
  * @(#) $Id$
  *
  * Copyright (c) 2005, Michal Zygmuntowicz
- * Copyright (c) 2006-2013, Jan Willamowius
+ * Copyright (c) 2006-2015, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -263,7 +263,7 @@ FileIPAuth::FileIPAuth(
 			strm << "\t" << entry->first.AsString() << " = "
 				<< (entry->second.auth ? "allow" : "reject")
 				<< (entry->second.auth ? entry->second.PrintOn() : "") << endl;
-			entry++;
+			++entry;
 		}
 		PTrace::End(strm);
 	}
@@ -299,7 +299,7 @@ int FileIPAuth::CheckAddress(
 			}
 			return entry->second.auth ? e_ok : e_fail;
 		}
-		entry++;
+		++entry;
 	}
 	PTRACE(5, GetName() << "\tReturns default for " << addr.AsString() << " => " << StatusAsString(GetDefaultStatus()));
 	return GetDefaultStatus();

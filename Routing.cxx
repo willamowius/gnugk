@@ -715,7 +715,7 @@ bool InternalPolicy::FindByAliases(AdmissionRequest & request, H225_ArrayOf_Alia
 	while (i != routes.end()) {
 		if (ep && i->m_destEndpoint && !i->SetLanguages(i->m_destEndpoint->GetLanguages(), ep->GetLanguages())) {
 			PTRACE(4, m_name << "\tRoute found but rejected as no common language");
-			i++;
+			++i;
 		} else {
 			i->m_policy = m_name;
 			request.AddRoute(*i++);
@@ -1264,7 +1264,6 @@ bool VirtualQueuePolicy::IsActive() const
 bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 {
 	bool reject = false;
-	bool keepRouteInternal = false;
 	H225_ArrayOf_AliasAddress * aliases = NULL;
 	PString vq = "";
 	if ((aliases = request.GetAliases()))
@@ -1296,6 +1295,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
             H225_TransportAddress remoteAddr;
             request.GetWrapper()->GetRasAddress(remoteAddr);
             PString fromIP = AsDotString(remoteAddr, true);
+            bool keepRouteInternal = false;
 
 			if (m_vqueue->SendRouteRequest(source, epid, unsigned(arq.m_callReferenceValue), aliases, callSigAdr, bindIP, callerID, reject, keepRouteInternal, vq, AsString(arq.m_srcInfo), AsString(arq.m_callIdentifier.m_guid), calledIP, vendorInfo, fromIP)) {
                 if (keepRouteInternal) {
@@ -1336,7 +1336,6 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 {
 	bool reject = false;
-	bool keepRouteInternal = false;
 	if (H225_ArrayOf_AliasAddress *aliases = request.GetAliases()) {
 		const PString vq(AsString((*aliases)[0], false));
 		if (m_vqueue->IsDestinationVirtualQueue(vq)) {
@@ -1373,6 +1372,7 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
             H225_TransportAddress remoteAddr;
             request.GetWrapper()->GetRasAddress(remoteAddr);
             PString fromIP = AsDotString(remoteAddr, true);
+            bool keepRouteInternal = false;
 
 			if (m_vqueue->SendRouteRequest(source, epid, unsigned(lrq.m_requestSeqNum), aliases, callSigAdr, bindIP, callerID, reject, keepRouteInternal, vq, sourceInfo, callID, calledIP, vendorString, fromIP)) {
                 if (!keepRouteInternal) {
@@ -1417,7 +1417,6 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 {
 	bool reject = false;
-	bool keepRouteInternal = false;
 	H225_ArrayOf_AliasAddress * aliases = new H225_ArrayOf_AliasAddress;
 	aliases->SetSize(1);
 	PString vq = "";
@@ -1455,6 +1454,7 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 		WORD remotePort;
 		request.GetWrapper()->GetPeerAddr(remoteAddr, remotePort);
 		PString fromIP = AsString(remoteAddr, remotePort);
+        bool keepRouteInternal = false;
 		PTRACE(5, "Routing\tPolicy " << m_name << " destination matched "
 			"a virtual queue " << vq << " (Setup " << crv << ')');
 

@@ -4,7 +4,7 @@
  * Generic interface to access SQL databases
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
- * Copyright (c) 2006-2014, Jan Willamowius
+ * Copyright (c) 2006-2015, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -29,7 +29,7 @@ const long GKSQL_CLEANUP_TIMEOUT = 5000;
 }
 
 
-GkSQLResult::~GkSQLResult() 
+GkSQLResult::~GkSQLResult()
 {
 }
 
@@ -37,7 +37,7 @@ GkSQLConnection::GkSQLConnection(
 	/// name to use in the log
 	const char * name)
 	: NamedObject(name), m_port(0),
-	m_minPoolSize(GKSQL_DEFAULT_MIN_POOL_SIZE), 
+	m_minPoolSize(GKSQL_DEFAULT_MIN_POOL_SIZE),
 	m_maxPoolSize(GKSQL_DEFAULT_MAX_POOL_SIZE),
 	m_destroying(false), m_connected(false)
 {
@@ -72,14 +72,14 @@ bool GkSQLConnection::Initialize(
 	m_maxPoolSize = cfg->GetInteger(cfgSectionName, "MaxPoolSize", m_minPoolSize);
 	if (m_maxPoolSize >= 0)
 		m_maxPoolSize = max(m_minPoolSize, m_maxPoolSize);
-		
+
 	if (m_host.IsEmpty() || m_database.IsEmpty()) {
 		PTRACE(1, GetName() << "\tInitialize failed: database name or host not specified!");
 		SNMP_TRAP(4, SNMPError, Database, GetName() + " creation failed");
 		return false;
 	}
 
-	return Connect();	
+	return Connect();
 }
 
 bool GkSQLConnection::Connect()
@@ -93,14 +93,14 @@ bool GkSQLConnection::Connect()
 	}
 
 	if (m_idleConnections.empty() && m_minPoolSize) {
-		PTRACE(1, GetName() << "\tDatabase connection failed: " 
+		PTRACE(1, GetName() << "\tDatabase connection failed: "
 			<< m_username << '@' << m_host << '[' << m_database << ']');
 		SNMP_TRAP(4, SNMPError, Database, GetName() + " connection failed");
 		return false;
 	} else {
-		PTRACE(3, GetName() << "\tDatabase connection pool created: " 
+		PTRACE(3, GetName() << "\tDatabase connection pool created: "
 			<< m_username << '@' << m_host << '[' << m_database << ']');
-		PTRACE(5, GetName() << "\tConnection pool: " 
+		PTRACE(5, GetName() << "\tConnection pool: "
 			<< m_idleConnections.size() << " SQL connections created, "
 			<< (m_minPoolSize - m_idleConnections.size()) << " failed");
 		m_connected = true;
@@ -145,7 +145,7 @@ GkSQLConnection::~GkSQLConnection()
 	// close connections from the idle list and leave any on the busy list
 	// busy list should be empty at this moment
 	PWaitAndSignal lock(m_connectionsMutex);
-	
+
 	m_waitingRequests.clear();
 	iterator iter = m_idleConnections.begin();
 	iterator end = m_idleConnections.end();
@@ -250,7 +250,7 @@ void GkSQLConnection::ReleaseSQLConnection(
 			// check if SQLConnPtr* is not NULL and if SQLConnPtr is empty (NULL)
 			if (*iter && *(*iter) == NULL)
 				break;
-			iter++;
+			++iter;
 		}
 		if (iter != end && !m_destroying && !deleteFromPool) {
 			// do not remove itself from the list of busy connections

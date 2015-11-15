@@ -256,7 +256,7 @@ GkAuthenticator::GkAuthenticator(
 				rasFlagsStr += ' ';
 			rasFlagsStr += iter->first;
 		}
-		iter++;
+		++iter;
 	}
 
 	iter = miscmap.begin();
@@ -266,7 +266,7 @@ GkAuthenticator::GkAuthenticator(
 				miscFlagsStr += ' ';
 			miscFlagsStr += iter->first;
 		}
-		iter++;
+		++iter;
 	}
 
 	if (rasFlagsStr.IsEmpty())
@@ -742,11 +742,10 @@ void GkAuthenticatorList::OnReload()
 	m_authenticators.clear();
 
 	std::list<GkAuthenticator*> authenticators;
-	GkAuthenticator *auth;
 
 	const PStringArray authRules = GkConfig()->GetKeys(GkAuthSectionName);
 	for (PINDEX r = 0; r < authRules.GetSize(); r++) {
-		auth = Factory<GkAuthenticator>::Create(authRules[r]);
+		GkAuthenticator * auth = Factory<GkAuthenticator>::Create(authRules[r]);
 		if (auth) {
 			authenticators.push_back(auth);
 		}

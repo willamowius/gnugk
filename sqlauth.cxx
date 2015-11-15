@@ -4,7 +4,7 @@
  * SQL authentication/authorization modules for GNU Gatekeeper
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
- * Copyright (c) 2006-2012, Jan Willamowius
+ * Copyright (c) 2006-2015, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -269,7 +269,7 @@ inline GkSQLResult::ResultRow::iterator FindField(
 {
 	GkSQLResult::ResultRow::iterator i = result.begin();
 	while (i != result.end() && i->second != fieldName)
-		i++;
+		++i;
 	return i;
 }
 

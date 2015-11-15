@@ -4305,11 +4305,11 @@ void CallRec::BuildH46024AnnexBRequest(bool initiate,H245_MultimediaSystemContro
 	std::map<WORD,H46024Balternate>::iterator i = m_H46024Balternate.begin();
 	while (i != m_H46024Balternate.end()) {
 		if (i->second.sent >= (initiate ? 1 : 2)) {
-			i++;
+			++i;
 			continue;
 		}
 		int sz = addrs.GetSize();
-		addrs.SetSize(sz+1);
+		addrs.SetSize(sz + 1);
 		H46024B_AlternateAddress addr;
 		addr.m_sessionID = i->first;
 		addr.IncludeOptionalField(H46024B_AlternateAddress::e_rtpAddress);
@@ -4329,7 +4329,7 @@ void CallRec::BuildH46024AnnexBRequest(bool initiate,H245_MultimediaSystemContro
 		i->second.sent = initiate ? 1 : 2;
 #endif
 		addrs[sz] = addr;
-		i++;
+		++i;
 	}
 	PTRACE(6, "H46024B\tAlternateAddresses " << addrs);
 	oct.EncodeSubType(addrs);
@@ -4874,7 +4874,7 @@ void CallTable::CheckCalls(RasServer * rassrv)
 				if((now - (*Iter)->GetLastAcctUpdateTime()) >= m_acctUpdateInterval)
 					m_callsToUpdate.push_back(callptr(*Iter));
 			}
-			Iter++;
+			++Iter;
 		}
 
 		Iter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&CallRec::IsUsed));
@@ -4901,14 +4901,14 @@ void CallTable::CheckCalls(RasServer * rassrv)
 				PTRACE(5, "Disconnecting call on signalling timeout");
 			}
 		}
-		call++;
+		++call;
 	}
 
 	call = m_callsToUpdate.begin();
 	while (call != m_callsToUpdate.end()) {
 		if ((*call)->IsConnected())
 			rassrv->LogAcctEvent(GkAcctLogger::AcctUpdate, *call, now);
-		call++;
+		++call;
 	}
 }
 

@@ -719,7 +719,6 @@ public:
 	bool IsValid() const { return m_isValid; }
 	void Dump() const;
 
-//protected:
 	bool m_isValid;
 	H225_CallIdentifier m_callid;
 	WORD m_session;
