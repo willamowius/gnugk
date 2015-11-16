@@ -1,9 +1,11 @@
+gnugkbuildopts.h
 config.log
 config.cache
 config.status
 Makefile
-obj_*_*_r
-obj_*_*_d
+obj_*_*_*_s
+obj_*_*_*_d_s
+obj_*_*_*
 Release
 Debug
 gk.suo
@@ -12,4 +14,8 @@ gk.plg
 gk.opt
 .sniffdir
 autom4te.cache
+cov-int
 *.proj
+*.save
+*.layout
+
