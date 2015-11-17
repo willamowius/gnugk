@@ -103,16 +103,6 @@ IPAuthBase::~IPAuthBase()
 }
 
 int IPAuthBase::Check(
-	/// GRQ RAS message to be authenticated
-	RasPDU<H225_GatekeeperRequest> & grqPdu,
-	/// gatekeeper request reject reason
-	unsigned & /*rejectReason*/
-	)
-{
-	return CheckAddress(grqPdu->m_peerAddr, grqPdu->m_peerPort, PString::Empty());
-}
-
-int IPAuthBase::Check(
 	/// RRQ RAS message to be authenticated
 	RasPDU<H225_RegistrationRequest> & rrqPdu,
 	/// authorization data (reject reason, ...)
@@ -138,14 +128,39 @@ int IPAuthBase::Check(
 	return CheckAddress(arqPdu->m_peerAddr, arqPdu->m_peerPort, number);
 }
 
-int IPAuthBase::Check(
-	/// LRQ nessage to be authenticated
-	RasPDU<H225_LocationRequest> & lrqPdu,
-	/// location request reject reason
-	unsigned & /*rejectReason*/
-	)
+int IPAuthBase::Check(RasPDU<H225_GatekeeperRequest> & pdu, unsigned & /* rejectReason */)
 {
-	return CheckAddress(lrqPdu->m_peerAddr, lrqPdu->m_peerPort, PString::Empty());
+	return CheckAddress(pdu->m_peerAddr, pdu->m_peerPort, PString::Empty());
+}
+
+int IPAuthBase::Check(RasPDU<H225_UnregistrationRequest> & pdu, unsigned & /* rejectReason */)
+{
+	return CheckAddress(pdu->m_peerAddr, pdu->m_peerPort, PString::Empty());
+}
+
+int IPAuthBase::Check(RasPDU<H225_BandwidthRequest> & pdu, unsigned & /* rejectReason */)
+{
+	return CheckAddress(pdu->m_peerAddr, pdu->m_peerPort, PString::Empty());
+}
+
+int IPAuthBase::Check(RasPDU<H225_DisengageRequest> & pdu, unsigned & /*rejectReason*/)
+{
+	return CheckAddress(pdu->m_peerAddr, pdu->m_peerPort, PString::Empty());
+}
+
+int IPAuthBase::Check(RasPDU<H225_LocationRequest> & pdu, unsigned & /*rejectReason*/)
+{
+	return CheckAddress(pdu->m_peerAddr, pdu->m_peerPort, PString::Empty());
+}
+
+int IPAuthBase::Check(RasPDU<H225_InfoRequest> & pdu, unsigned & /* rejectReason */)
+{
+	return CheckAddress(pdu->m_peerAddr, pdu->m_peerPort, PString::Empty());
+}
+
+int IPAuthBase::Check(RasPDU<H225_ResourcesAvailableIndicate> & pdu, unsigned & /* rejectReason */)
+{
+	return CheckAddress(pdu->m_peerAddr, pdu->m_peerPort, PString::Empty());
 }
 
 int IPAuthBase::Check(

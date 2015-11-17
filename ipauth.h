@@ -24,12 +24,13 @@ public:
 	enum SupportedRasChecks {
 		/// bitmask of RAS checks implemented by this module
 		IPAuthRasChecks = RasInfo<H225_RegistrationRequest>::flag
+			| RasInfo<H225_AdmissionRequest>::flag
+			| RasInfo<H225_GatekeeperRequest>::flag
 			| RasInfo<H225_UnregistrationRequest>::flag
 			| RasInfo<H225_BandwidthRequest>::flag
 			| RasInfo<H225_DisengageRequest>::flag
 			| RasInfo<H225_LocationRequest>::flag
 			| RasInfo<H225_InfoRequest>::flag
-			| RasInfo<H225_AdmissionRequest>::flag
 			| RasInfo<H225_ResourcesAvailableIndicate>::flag
 	};
 	enum SupportedMiscChecks {
@@ -53,17 +54,6 @@ public:
 	/// Destroy the authenticator
 	virtual ~IPAuthBase();
 
-	/** Authenticate using data from GRQ RAS message.
-		@return:
-		#GkAuthenticator::Status enum# with the result of authentication.
-	*/
-	virtual int Check(
-		/// GRQ RAS message to be authenticated
-		RasPDU<H225_GatekeeperRequest> & grqPdu,
-		/// gatekeeper request reject reason
-		unsigned & rejectReason
-		);
-
 	/** Authenticate using data from RRQ RAS message.
 		@return:
 		#GkAuthenticator::Status enum# with the result of authentication.
@@ -74,7 +64,6 @@ public:
 		/// authorization data (reject reason, ...)
 		RRQAuthData & authData
 		);
-
 
 	/** Authenticate using data from ARQ RAS message.
 		@return:
@@ -87,16 +76,13 @@ public:
 		ARQAuthData & authData
 		);
 
-	/** Authenticate using data from LRQ RAS message.
-		@return:
-		#GkAuthenticator::Status enum# with the result of authentication.
-	*/
-	virtual int Check(
-		/// LRQ nessage to be authenticated
-		RasPDU<H225_LocationRequest> & lrqPdu,
-		/// location request reject reason
-		unsigned & rejectReason
-		);
+	virtual int Check(RasPDU<H225_GatekeeperRequest> & grqPdu, unsigned & rejectReason);
+	virtual int Check(RasPDU<H225_UnregistrationRequest> & urqPdu, unsigned & rejectReason);
+	virtual int Check(RasPDU<H225_BandwidthRequest> & brqPdu, unsigned & rejectReason);
+	virtual int Check(RasPDU<H225_DisengageRequest> & drqPdu, unsigned & rejectReason);
+	virtual int Check(RasPDU<H225_LocationRequest> & lrqPdu, unsigned & rejectReason);
+	virtual int Check(RasPDU<H225_InfoRequest> & req, unsigned & rejectReason);
+	virtual int Check(RasPDU<H225_ResourcesAvailableIndicate> & req, unsigned & rejectReason);
 
 	/** Authenticate using data from Q.931/H.225.0 Setup message.
 		@return:
