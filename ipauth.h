@@ -4,7 +4,7 @@
  * IP based authentication modules
  *
  * Copyright (c) 2005, Michal Zygmuntowicz
- * Copyright (c) 2006-2013, Jan Willamowius
+ * Copyright (c) 2006-2015, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -76,6 +76,7 @@ public:
 		ARQAuthData & authData
 		);
 
+    // authenticate other RAS messages
 	virtual int Check(RasPDU<H225_GatekeeperRequest> & grqPdu, unsigned & rejectReason);
 	virtual int Check(RasPDU<H225_UnregistrationRequest> & urqPdu, unsigned & rejectReason);
 	virtual int Check(RasPDU<H225_BandwidthRequest> & brqPdu, unsigned & rejectReason);
@@ -130,7 +131,7 @@ private:
 	/* No copy constructor allowed */
 	IPAuthBase(const IPAuthBase &);
 	/* No operator= allowed */
-	IPAuthBase& operator=(const IPAuthBase&);
+	IPAuthBase& operator=(const IPAuthBase &);
 };
 
 #endif /* #ifndef IPAUTH_H */
