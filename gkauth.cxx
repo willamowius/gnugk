@@ -1324,6 +1324,10 @@ int SimplePasswordAuth::CheckCryptoTokens(
 			PString passwd;
             bool passwordFound = InternalGetPassword(sendersID, passwd);    // check if we have a password fro sendersID first
 
+			if (passwordFound) {
+                PTRACE(3, "GKAUTH\t" << GetName() << " Authenticating user " << sendersID);
+            }
+
             // try endpoint aliases
             if (!passwordFound) {
 				H225_ArrayOf_AliasAddress epAliases;
@@ -1340,6 +1344,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
 					PTRACE(0, "JW check if alias " << id << " has password (via epID)");
 					passwordFound = InternalGetPassword(id, passwd);
 					if (passwordFound) {
+                        PTRACE(3, "GKAUTH\t" << GetName() << " Authenticating user " << id);
                         // TODO235: set sendersID = id so the right id is set for H323Plus authenticator ????
 						break;
 					}
