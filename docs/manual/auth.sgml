@@ -255,6 +255,10 @@ any=onlyTLS
 <p>
 This section contains setting that apply to all authentication policies using H.235.1 passwords.
 
+When using H.235 authentication, it is very important that the gatekeeper and all endpoints have
+the correct time configured (eg. using NTP).
+If they vary by more than the defined grace period (see below), otherwise valid tokens will be rejected!
+
 <itemize>
 <item><tt/UseEndpointIdentifier=0/<newline>
 Default: <tt/1/<newline>
@@ -300,6 +304,42 @@ It is suggested that you use NTP to syncronize clocks in all your devices
 and tighten this grace period accordingly.
 
 </itemize>
+
+<descrip><tag/Example #1/
+
+A very relaxed H.235 configuration, allowing many variations in vendor implementations.
+
+<tscreen><verb>
+[H235]
+UseEndpointIdentifier=0
+RequireH2351GeneralID=0
+FullQ931Checking=0
+CheckQ931SendersID=0
+VerifyRandomNumber=0
+TimestampGracePeriod=7210
+
+[SimplePasswordAuth]
+CheckID=0
+</verb></tscreen>
+</descrip>
+
+<descrip><tag/Example #2/
+
+A very secure H.235 configuration, checking all aspects as defined by the ITU.
+
+<tscreen><verb>
+[H235]
+UseEndpointIdentifier=1
+RequireH2351GeneralID=1
+FullQ931Checking=1
+CheckQ931SendersID=1
+VerifyRandomNumber=1
+TimestampGracePeriod=60
+
+[SimplePasswordAuth]
+CheckID=1
+</verb></tscreen>
+</descrip>
 
 
 <sect1>Section &lsqb;SimplePasswordAuth&rsqb;
