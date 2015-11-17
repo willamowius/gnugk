@@ -1,5 +1,7 @@
 Changes from 3.9 to 4.0
 =======================
+- new switch: [RoutedMode] UpdateCalledPartyToH225Destination=1 to always rewrite the CalledPartyNumberIE
+  in Setup to the first E.164 of the H.225 destinationAddress
 - BUGFIX(ProxyChannel.cxx) fix crash on shutdown
 - new settings for [RoutedMode] ScreenDisplayIE=: 'Calling', 'Called', 'CallingCalled' to set the DisplayIE
   to the (rewritten) caller ID

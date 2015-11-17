@@ -876,6 +876,14 @@ Default: <tt>n/a</tt><newline>
 EXPERIMENTAL: When IgnoredSignaledIPs is active, don't ignore IPs from this network
 (eg. because they don't actively send an RTP stream and only provide a loopback).
 
+<item><tt>UpdateCalledPartyToH225Destination=1</tt><newline>
+Default: <tt>0</tt><newline>
+With this switch you can let GnuGk update the CalledPartyNumber element in outgoing
+Setup messages to the first E.164 number of the H.225 destinationAddress or remove
+it if none of the destinations is an E164 number. This is intended to aid
+interoperability with gateways that use the CalledPartyNumber instead of the H.225
+destinationAddress.
+
 </itemize>
 
 <p>

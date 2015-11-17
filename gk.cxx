@@ -538,6 +538,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "TreatUnregisteredNAT" },
 	{ "RoutedMode", "TranslateSentQ931Cause" },
 	{ "RoutedMode", "TranslateSorensonSourceInfo" },
+	{ "RoutedMode", "UpdateCalledPartyToH225Destination" },
 #ifdef HAS_H46026
 	{ "RoutedMode", "UseH46026PriorityQueue" },
 #endif

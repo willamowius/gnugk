@@ -4692,6 +4692,26 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				q931.SetCalledPartyNumber(calledNumber, plan, type);
 		}
 	}
+
+	// update CalledPartyNumberIE to H.225 destination
+	if (toolkit->Config()->GetBoolean(RoutedSec, "UpdateCalledPartyToH225Destination", false)) {
+        unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType; // defaults
+		PString calledNumber;
+        if (q931.HasIE(Q931::CalledPartyNumberIE)) {
+            q931.GetCalledPartyNumber(calledNumber, &plan, &type); // get current numbering plan and type
+            q931.RemoveIE(Q931::CalledPartyNumberIE);
+        }
+		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
+            for (PINDEX i = 0; i <= setupBody.m_destinationAddress.GetSize(); i++) {
+                if (setupBody.m_destinationAddress[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
+                    calledNumber = AsString(setupBody.m_destinationAddress[i], false);
+                    q931.SetCalledPartyNumber(calledNumber, plan, type);
+                    break;
+                }
+            }
+        }
+	}
+
 	// set forced CallingPartyNumberIE
 	if (!m_call->GetCallerID().IsEmpty()) {
 		unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType;
