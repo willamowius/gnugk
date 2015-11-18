@@ -11672,13 +11672,11 @@ bool H245ProxyHandler::HandleCommand(H245_CommandMessage & Command, bool & suppr
 
 bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters * h225Params, WORD flcn, bool isUnidirectional, RTPSessionTypes sessionType)
 {
-    PTRACE(0, "JWV H245ProxyHandler::OnLogicalChannelParameters flc=" << flcn << " session=" << h225Params->m_sessionID);
 	RTPLogicalChannel * lc = flcn ?
 		CreateRTPLogicalChannel((WORD)h225Params->m_sessionID, flcn, sessionType) :
 		CreateFastStartLogicalChannel((WORD)h225Params->m_sessionID, sessionType);
 	if (!lc)
 		return false;
-    PTRACE(0, "JWV H245ProxyHandler::OnLogicalChannelParameters lc=" << lc);
 
 	lc->SetUniDirectional(isUnidirectional);  // remember for handling OLCAck
 
@@ -12936,15 +12934,12 @@ RTPLogicalChannel * H245ProxyHandler::FindRTPLogicalChannelBySessionID(WORD id)
 
 RTPLogicalChannel * H245ProxyHandler::FindRTPLogicalChannelBySessionType(RTPSessionTypes sessionType, WORD id)
 {
-    PTRACE(0, "JWV FindRTPLogicalChannelBySessionType type=" << sessionType << " id=" << id);
 	for (siterator iter = sessionIDs.begin(); iter != sessionIDs.end() ; ++iter ) {
         if (iter->second->GetType() == sessionType) {
             RTPLogicalChannel * lc = iter->second;
-            PTRACE(0, "JWV FindRTPLogicalChannelBySessionType found " << lc);
             return lc;
         }
 	}
-    PTRACE(0, "JWV FindRTPLogicalChannelBySessionType NOT found");
     return NULL;
 }
 

@@ -186,7 +186,6 @@ void RasPDU<RAS>::SetupResponseTokens(H225_RasMessage & responsePdu, const endpt
 {
 	if (m_authenticators == NULL && requestingEP)
 		m_authenticators = requestingEP->GetH235Authenticators();
-PTRACE(0, "JW SetupResponseTokens m_authenticators=" << m_authenticators);
 
 	if (m_authenticators == NULL) {
 		return;
@@ -201,18 +200,14 @@ PTRACE(0, "JW SetupResponseTokens m_authenticators=" << m_authenticators);
 	typedef typename RasInfo<RAS>::RejectTag RejectTag;
 	typedef typename RasInfo<RAS>::RejectType RejectType;
 	if (responsePdu.GetTag() == ConfirmTag()) {
-        PTRACE(0, "JW set Confirm tokens");
         ConfirmType & confirm = responsePdu;
         m_authenticators->PrepareTokens(responsePdu, confirm.m_tokens, confirm.m_cryptoTokens);
 
-        PTRACE(0, "JW #clear=" << confirm.m_tokens.GetSize() << " #crypto=" << confirm.m_cryptoTokens.GetSize());
         if (confirm.m_tokens.GetSize() > 0)
             confirm.IncludeOptionalField(ConfirmType::e_tokens);
         if (confirm.m_cryptoTokens.GetSize() > 0)
             confirm.IncludeOptionalField(ConfirmType::e_cryptoTokens);
-        PTRACE(0, "JW confirm=" << confirm);
 	} else {
-        PTRACE(0, "JW set Reject tokens");
         if (responsePdu.GetTag() != RejectTag())
             responsePdu.SetTag(RejectTag());   // create a Ronfirm if not set
         RejectType & reject = responsePdu;

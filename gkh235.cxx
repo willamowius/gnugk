@@ -316,12 +316,6 @@ PTRACE(0, "JW Validate RAS raw size=" << rawPDU.GetSize() << " raw=" << rawPDU);
             PTRACE(4, "GKH235\tUnhandled cryptoToken " << token.GetTagName());
 		}
 	}
-PTRACE(0, "JW catFound=" << catFound << " authCAT=" << m_authCAT);
-PTRACE(0, "JW md5Found=" << md5Found << " authMD5=" << m_authMD5);
-#ifdef HAS_DES_ECB
-PTRACE(0, "JW desFound=" << desFound << " authDES=" << m_authDES);
-#endif
-PTRACE(0, "JW procedure1Found=" << procedure1Found << " authProcedure1=" << m_authProcedure1);
 
 	if (!catFound && m_authCAT && m_authCAT->IsActive()
 		&& m_authCAT->IsSecuredPDU(rasmsg.GetTag(), TRUE)) {
