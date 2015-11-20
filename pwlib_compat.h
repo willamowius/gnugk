@@ -270,7 +270,7 @@
     #define HAS_SETTOKENLENGTH 1
 #endif
 
-#if (H323PLUS_VER >= 1266)
+#if (H323PLUS_VER >= 1267)
     #define HAS_H2351_CONFIG 1
 #endif
 
