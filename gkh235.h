@@ -32,7 +32,6 @@ class H225_ArrayOf_CryptoH323Token;
 class H235AuthCAT;
 class H235AuthSimpleMD5;
 class H235AuthDesECB;
-//class H235AuthProcedure1;
 
 class GkH235Authenticators {
 public:
@@ -134,11 +133,13 @@ protected:
 	PString m_localIdDES;
 	int m_authResultDES;
 #endif
+#ifdef H323_H235
 	// H.235.1
 	H235AuthProcedure1 * m_authProcedure1;
 	PString m_localIdProcedure1;
 	PString m_remoteIdProcedure1;
 	int m_authResultProcedure1;
+#endif
 	PMutex m_mutex;
 };
 

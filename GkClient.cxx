@@ -1407,9 +1407,11 @@ GRQRequester::GRQRequester(const PString & gkid, H225_EndpointType & type) : Ras
 	grq.IncludeOptionalField(H225_GatekeeperRequest::e_authenticationCapability);
 	grq.IncludeOptionalField(H225_GatekeeperRequest::e_algorithmOIDs);
 	// TODO: add mechanisms to select wich auth methods are presented [Endpoint] Authenticatiors=...
+#ifdef H323_H235
 	H235AuthProcedure1 h2351auth;
 	h2351auth.SetPassword("dummy"); // activate it
 	h2351auth.SetCapability(grq.m_authenticationCapability, grq.m_algorithmOIDs);
+#endif
 	H235AuthSimpleMD5 md5auth;
 	md5auth.SetPassword("dummy"); // activate it
 	md5auth.SetCapability(grq.m_authenticationCapability, grq.m_algorithmOIDs);
