@@ -1,5 +1,6 @@
 Changes from 3.9 to 4.0
 =======================
+- BUGFIX(gksql_odbc.cxx) fix DSN initialization when having multiple DSNs at the same time
 - new switch: [RoutedMode] UpdateCalledPartyToH225Destination=1 to always rewrite the CalledPartyNumberIE
   in Setup to the first E.164 of the H.225 destinationAddress
 - BUGFIX(ProxyChannel.cxx) fix crash on shutdown

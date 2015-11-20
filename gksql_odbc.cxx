@@ -3,7 +3,7 @@
  *
  * native ODBC / unixODBC driver module for GnuGk
  *
- * Copyright (c) 2008-2014, Jan Willamowius
+ * Copyright (c) 2008-2015, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -145,14 +145,14 @@ public:
 
 	/** @return
 	    Backend specific error message, if the query failed.
-	*/	
+	*/
 	virtual PString GetErrorMessage();
 
 	/** @return
 	    Backend specific error code, if the query failed.
-	*/	
+	*/
 	virtual long GetErrorCode();
-	
+
 	/** Fetch a single row from the result set. After each row is fetched,
 	    cursor position is moved to a next row.
 
@@ -225,9 +225,9 @@ protected:
 	/** Create a new SQL connection using parameters stored in this object.
 	    When the connection is to be closed, the object is simply deleted
 	    using delete operator.
-	    
+
 	    @return
-	    NULL if database connection could not be established 
+	    NULL if database connection could not be established
 	    or an object of GkODBCConnWrapper class.
 	*/
 	virtual SQLConnPtr CreateNewConnection(
@@ -283,7 +283,7 @@ GkODBCResult::GkODBCResult(
 {
 	m_numRows = numRowsAffected;
 	m_numFields = numFields;
-	
+
 	if (m_sqlResult != NULL && !m_sqlResult->empty())
 		m_numRows = m_sqlResult->size();
 
@@ -295,7 +295,7 @@ GkODBCResult::GkODBCResult(
 	unsigned int errorCode,
 	/// error message text
 	const char* errorMsg
-	) 
+	)
 	: GkSQLResult(true), m_sqlResult(NULL), m_sqlRow(-1),
 	m_errorCode(errorCode), m_errorMessage(errorMsg)
 {
@@ -319,7 +319,7 @@ PString GkODBCResult::GetErrorMessage()
 {
 	return m_errorMessage;
 }
-	
+
 long GkODBCResult::GetErrorCode()
 {
 	return m_errorCode;
@@ -382,7 +382,7 @@ GkODBCConnection::GkODBCConnection(
 	) : GkSQLConnection(name), m_env(SQL_NULL_HENV)
 {
 }
-	
+
 GkODBCConnection::~GkODBCConnection()
 {
 	if (m_env != SQL_NULL_HENV) {
@@ -409,6 +409,8 @@ GkSQLConnection::SQLConnPtr GkODBCConnection::CreateNewConnection(
 	int id
 	)
 {
+    SQLRETURN r;
+
 	if (!g_sharedLibrary.IsLoaded()) {
 		if (m_library.IsEmpty()) {
 #ifdef _WIN32
@@ -447,29 +449,31 @@ GkSQLConnection::SQLConnPtr GkODBCConnection::CreateNewConnection(
 			SNMP_TRAP(5, SNMPError, Database, GetName() + " DLL load error");
 			return NULL;
 		}
-
-		// allocate Environment handle and register version 
-		SQLRETURN r = (*g_SQLAllocHandle)(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &m_env);
-		if (!SQL_SUCCEEDED(r)) {
-			PTRACE(1, GetName() << "\tFailed to allocate an ODBC environment handle: " << GetODBCDiagMsg(r, SQL_HANDLE_ENV, SQL_NULL_HENV));
-			SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
-			return NULL;
-		}
-		r = (*g_SQLSetEnvAttr)(m_env, SQL_ATTR_ODBC_VERSION, reinterpret_cast<SQLPOINTER>(SQL_OV_ODBC3), 0); 
-		if (!SQL_SUCCEEDED(r)) {
-			PTRACE(1, GetName() << "\tFailed to request ODBC interface version 3.0: " << GetODBCDiagMsg(r, SQL_HANDLE_ENV, m_env));
-			(*g_SQLFreeHandle)(SQL_HANDLE_ENV, m_env);
-			m_env = SQL_NULL_HENV;
-			SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
-			return NULL;
-		}
-		PTRACE(5, GetName() << "\tODBC environment created");
 	}
+
+    if (m_env == SQL_NULL_HENV) {
+        // allocate Environment handle and register version
+        r = (*g_SQLAllocHandle)(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &m_env);
+        if (!SQL_SUCCEEDED(r)) {
+            PTRACE(1, GetName() << "\tFailed to allocate an ODBC environment handle: " << GetODBCDiagMsg(r, SQL_HANDLE_ENV, SQL_NULL_HENV));
+            SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
+            return NULL;
+        }
+        r = (*g_SQLSetEnvAttr)(m_env, SQL_ATTR_ODBC_VERSION, reinterpret_cast<SQLPOINTER>(SQL_OV_ODBC3), 0);
+        if (!SQL_SUCCEEDED(r)) {
+            PTRACE(1, GetName() << "\tFailed to request ODBC interface version 3.0: " << GetODBCDiagMsg(r, SQL_HANDLE_ENV, m_env));
+            (*g_SQLFreeHandle)(SQL_HANDLE_ENV, m_env);
+            m_env = SQL_NULL_HENV;
+            SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
+            return NULL;
+        }
+        PTRACE(5, GetName() << "\tODBC environment created");
+    }
 
 	SQLHDBC conn = SQL_NULL_HDBC;
 
 	// allocate connection handle, set timeout
-	SQLRETURN r = (*g_SQLAllocHandle)(SQL_HANDLE_DBC, m_env, &conn); 
+	r = (*g_SQLAllocHandle)(SQL_HANDLE_DBC, m_env, &conn);
 	if (!SQL_SUCCEEDED(r)) {
 		PTRACE(1, GetName() << "\tFailed to allocate an ODBC connection handle: " << GetODBCDiagMsg(r, SQL_HANDLE_ENV, m_env));
 		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
@@ -518,7 +522,7 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 	SQLHDBC conn = ((GkODBCConnWrapper*)con)->m_conn;
 	SQLHSTMT stmt = SQL_NULL_HSTMT;
 
-	SQLRETURN r = (*g_SQLAllocHandle)(SQL_HANDLE_STMT, conn, &stmt); 
+	SQLRETURN r = (*g_SQLAllocHandle)(SQL_HANDLE_STMT, conn, &stmt);
 	if (!SQL_SUCCEEDED(r)) {
 		PString errmsg(GetODBCDiagMsg(r, SQL_HANDLE_DBC, conn));
 		PTRACE(1, GetName() << "\tFailed to allocate an ODBC statement handle: " << errmsg);
@@ -575,7 +579,7 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 		return new GkODBCResult(0, columns, NULL);
 
 	std::vector<PString> fieldNames(columns);
-	
+
 	for (SQLUSMALLINT i = 1; i <= columns; ++i) {
 		SQLCHAR colname[64];
 		r = (*g_SQLDescribeCol)(stmt, i, colname, sizeof(colname), NULL, NULL, NULL, NULL, NULL);
