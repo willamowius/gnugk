@@ -6,7 +6,7 @@
 // Avoid including large h225.h in RasSrv.h
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2006-2011, Jan Willamowius
+// Copyright (c) 2006-2015, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -117,7 +117,7 @@ public:
 	// override from class Task
 	virtual void Exec();
 
-	bool IsFrom(const PIPSocket::Address &, WORD) const;
+	bool IsFrom(const PIPSocket::Address & addr, WORD pt) const;
 	unsigned GetTag() const { return m_msg->GetTag(); }
 	const char *GetTagName() const { return m_msg->GetTagName(); }
 
