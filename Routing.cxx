@@ -1291,6 +1291,9 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 				if (ep->GetEndpointType().m_vendor.HasOptionalField(H225_VendorIdentifier::e_versionId)) {
 					vendorInfo += ep->GetEndpointType().m_vendor.m_versionId.AsString();
 				}
+                vendorInfo.Replace("|", "", true);
+                vendorInfo.Replace("\r", "", true);
+                vendorInfo.Replace("\n", "", true);
 			}
             H225_TransportAddress remoteAddr;
             request.GetWrapper()->GetRasAddress(remoteAddr);
@@ -1449,6 +1452,8 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 				vendorInfo += setup.m_sourceInfo.m_vendor.m_versionId.AsString();
 			}
 			vendorInfo.Replace("|", "", true);
+			vendorInfo.Replace("\r", "", true);
+			vendorInfo.Replace("\n", "", true);
 		}
 		PIPSocket::Address remoteAddr;
 		WORD remotePort;
