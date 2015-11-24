@@ -679,6 +679,18 @@ int SQLAuth::Check(
 	params["arq"] = "1";
 	params["CallId"] = AsString(arq.m_callIdentifier.m_guid);
 	params["SrcInfo"] = AsString(arq.m_srcInfo, false);
+    params["Vendor"] = "";
+    endptr ep = RegistrationTable::Instance()->FindByEndpointId(arq.m_endpointIdentifier);
+    if (ep) {
+		if (ep->GetEndpointType().HasOptionalField(H225_EndpointType::e_vendor)) {
+			if (ep->GetEndpointType().m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)) {
+				params["Vendor"] += ep->GetEndpointType().m_vendor.m_productId.AsString();
+			}
+			if (ep->GetEndpointType().m_vendor.HasOptionalField(H225_VendorIdentifier::e_versionId)) {
+				params["Vendor"] += ep->GetEndpointType().m_vendor.m_versionId.AsString();
+			}
+        }
+    }
 
 	GkSQLResult::ResultRow result;
 	if (!RunQuery(traceStr, m_sqlConn, m_callQuery, params, result, -1)) {
@@ -810,12 +822,9 @@ int SQLAuth::Check(
 	return e_ok;
 }
 
-int SQLAuth::Check(
-	RasPDU<H225_LocationRequest> & lrqPdu,
-	unsigned & rejectReason
-	)
+int SQLAuth::Check(RasPDU<H225_LocationRequest> & lrqPdu, unsigned & rejectReason)
 {
-	H225_LocationRequest &lrq = lrqPdu;
+	H225_LocationRequest & lrq = lrqPdu;
 	std::map<PString, PString> params;
 
 	PIPSocket::Address addr = (lrqPdu.operator->())->m_peerAddr;
@@ -920,6 +929,15 @@ int SQLAuth::Check(
         && setup.GetUUIEBody().m_sourceAddress.GetSize() > 0) {
         params["SrcInfo"] = AsString(setup.GetUUIEBody().m_sourceAddress, false);
 	}
+    params["Vendor"] = "";
+    if (setup.GetUUIEBody().m_sourceInfo.HasOptionalField(H225_EndpointType::e_vendor)) {
+        if (setup.GetUUIEBody().m_sourceInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)) {
+            params["Vendor"] += setup.GetUUIEBody().m_sourceInfo.m_vendor.m_productId.AsString();
+        }
+        if (setup.GetUUIEBody().m_sourceInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_versionId)) {
+            params["Vendor"] += setup.GetUUIEBody().m_sourceInfo.m_vendor.m_versionId.AsString();
+        }
+    }
 
 	if (authData.m_call)
 		params["bandwidth"] = PString(authData.m_call->GetBandwidth());
