@@ -1,5 +1,6 @@
 Changes from 3.9 to 4.0
 =======================
+- prepend timestamp to events in status port backlog
 - BUGFIX(Routing.cxx) remove newlines from vendor string before sending out  RouteRequest to virtual queue
 - BUGFIX(gksql_odbc.cxx) fix DSN initialization when having multiple DSNs at the same time
 - new switch: [RoutedMode] UpdateCalledPartyToH225Destination=1 to always rewrite the CalledPartyNumberIE

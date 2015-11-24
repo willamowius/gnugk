@@ -962,8 +962,7 @@ void GkStatus::SignalStatus(
 	// save event in backlog
     PWaitAndSignal eventLock(m_eventBacklogMutex);
 	if (m_eventBacklogLimit > 0) {
-        // TODO: add time and level ?
-        PString event = msg.Trim();
+        PString event = Toolkit::Instance()->AsString(PTime(), "MySQL") + ": " + msg.Trim();
         event.Replace("\r\n", "");
         if (event != ";") {
             PINDEX pos = 0;
