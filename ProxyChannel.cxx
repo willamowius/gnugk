@@ -2315,7 +2315,6 @@ bool CallSignalSocket::SetupResponseTokens(SignalingMsg * msg, GkH235Authenticat
     H225_H323_UserInformation * uuie = msg->GetUUIE();
     if (uuie == NULL) {
         PTRACE(1, "Error: Can't add tokens without a UUIE");
-        // TODO235: add UUIE ?
         return false;   // message not changed
     }
     H225_ArrayOf_ClearToken tokens; // not used
@@ -6897,7 +6896,6 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 			|| (facilityBody.m_reason.GetTag() == H225_FacilityReason::e_transportedInformation) ) {
 			// filter out Facility messages with reason transportedInformation, but without h245Control or h4501SuplementaryService
 			// needed for Avaya interop
-			// TODO: are there other fields that might need to be transported ?
 			if (   !uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Control)
 				&& !uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h4501SupplementaryService) ) {
 				PTRACE(3, "Q931\tFiltering empty Facility from " << GetName());
@@ -7325,7 +7323,6 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 			if (m_call && m_call->GetCalledParty() && m_call->H46019Required()
 				&& (m_call->GetCalledParty()->GetTraversalRole() != None) )
 			{
-				// TODO: is this really always sent to the CalledParty ?
 				m_crv = m_call->GetCallRef();	// make sure m_crv is set
 				uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
 				uuie.RemoveOptionalField(H225_Facility_UUIE::e_conferenceID);
@@ -7487,7 +7484,6 @@ void CallSignalSocket::BuildSetupPDU(Q931 & SetupPDU, const H225_CallIdentifier 
 	setup.m_protocolIdentifier.SetValue(H225_ProtocolID);
 	setup.m_conferenceID = callid.m_guid; // generate new: OpalGloballyUniqueID();
 	setup.m_callIdentifier.m_guid = setup.m_conferenceID;
-	// TODO: consider m_call->BindHint ?
 	masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
 	setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
 	setup.m_sourceCallSignalAddress = SocketToH225TransportAddr(masqAddr, GetPort());
