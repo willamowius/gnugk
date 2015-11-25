@@ -2323,6 +2323,10 @@ bool RegistrationRequestPDU::Process()
 
 			}
 
+            // set H.235.1 tokens for lightweight response
+            // (Innovaphone accepts without, SmartNode can be configured, H323Plus currently needs it)
+            SetupResponseTokens(m_msg->m_replyRAS, ep);
+
 			return bSendReply;
 		}
 	}
