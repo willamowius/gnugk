@@ -1941,7 +1941,6 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 #endif
 
     // need source EP to find H.235.1 authenticator
-    PTRACE(0, "JW m_call=" << m_call);
     callptr tmpCall = m_call;
     endptr fromEP;
     GkH235Authenticators * auth = NULL;
@@ -1956,10 +1955,8 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
     }
     if (tmpCall) {
         if (q931pdu->IsFromDestination()) {
-            PTRACE(0, "JW Q931 from calleD");
             fromEP = tmpCall->GetCalledParty();
         } else {
-            PTRACE(0, "JW Q931 from caller");
             fromEP = tmpCall->GetCallingParty();
         }
     }
@@ -1975,13 +1972,10 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
     Q931AuthData authData(aliases, _peerAddr, _peerPort, overTLS, auth);
 
     if (!RasServer::Instance()->ValidatePDU(*q931pdu, authData)) {
-        PTRACE(0, "JW Q931 auth failed");
         if (tmpCall) {
-            PTRACE(0, "JW Q931 auth failed: have call");
             tmpCall->SetDisconnectCause(Q931::NormalUnspecified); // Q.931 code for reason=SecurityDenied
         } else {
             // TODO: set disconnect cause differently for pregranted or unregistered calls ?
-            PTRACE(0, "JW Q931 auth failed: have NO call");
         }
         delete msg;
         return m_result = Error;
@@ -2284,11 +2278,9 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
             } else {
                 toEP = m_call->GetCalledParty();
             }
-            PTRACE(0, "JW add H.235.1 tokens toEP=" << toEP);
             if (toEP) {
                 auth = toEP->GetH235Authenticators();
                 if (auth) {
-                    PTRACE(0, "JW auth H.235.1 ? " << auth->HasProcedure1Password());
                     uuie = msg->GetUUIE();  // needed ?
                     if (uuie) {
                         if (SetupResponseTokens(msg, auth, toEP)) {
@@ -2312,7 +2304,6 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 
 bool CallSignalSocket::SetupResponseTokens(SignalingMsg * msg, GkH235Authenticators * auth, const endptr & ep)
 {
-    PTRACE(0, "SetupResponseTokens Q931");
     if (msg == NULL || auth == NULL) {
         return false;   // message not changed
     }
@@ -2400,16 +2391,13 @@ bool CallSignalSocket::SetupResponseTokens(SignalingMsg * msg, GkH235Authenticat
                 }
                 break;
             case H225_H323_UU_PDU_h323_message_body::e_facility: {
-                    PTRACE(0, "SetupResponse: Facility");
                     H225_Facility_UUIE & facility = uuie->m_h323_uu_pdu.m_h323_message_body;
                     facility.IncludeOptionalField(H225_Facility_UUIE::e_cryptoTokens);
                     facility.m_cryptoTokens = cryptoTokens;
                 }
                 break;
             case H225_H323_UU_PDU_h323_message_body::e_empty: {
-                    PTRACE(0, "SetupResponse: Empty");
                     // can't add token without a body
-                    // TODO235: add a Facility body ?
                     return false;   // message not changed
                 }
                 break;
@@ -6522,7 +6510,6 @@ bool CallSignalSocket::SendH46017Message(H225_RasMessage ras, GkH235Authenticato
 
 		// make sure buffer gets shrunk to size of encoded message, because we'll write it instead of the PPER_Stream
         rasbuf.SetSize(rasstrm.GetSize());
-        PTRACE(0, "JW SendH46017Message auth=" << authenticators);
         if (authenticators != NULL)
             authenticators->Finalise(ras, rasbuf);
 
@@ -8079,7 +8066,7 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 		if (ret->m_h245socket) {
             ret->m_h245socket->SetRemoteSocket(m_h245socket);
         } else {
-            PTRACE(0, "Reroute: Error mixed tunneled / non-tunneled call");
+            PTRACE(1, "Reroute: Error mixed tunneled / non-tunneled call");
         }
 		CreateJob(m_h245socket, &H245Socket::ConnectToRerouteDestination, "H245RerouteConnector");
 	} else {
@@ -8539,7 +8526,7 @@ void H245Socket::ConnectToRerouteDestination()
 		ConfigReloadMutex.StartRead();
 		SetConnected(true);
 		if (!remote) {
-            PTRACE(0, "Reroute: Error: mixed tunneled / non-tunneled call");
+            PTRACE(1, "Reroute: Error: mixed tunneled / non-tunneled call");
             ConfigReloadMutex.EndRead();
             return;
 		}

@@ -1984,7 +1984,7 @@ void SqlPolicy::LoadConfig(const PString & instance)
 {
 #if HAS_DATABASE
 	if (GkConfig()->GetAllKeyValues(m_iniSection).GetSize() <= 0) {
-		PTRACE(0, m_name << "\tConfig section " << m_iniSection << " doesn't exist");
+		PTRACE(1, m_name << "\tConfig section " << m_iniSection << " doesn't exist");
 		return;
 	}
 

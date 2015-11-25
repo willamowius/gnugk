@@ -890,7 +890,7 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 			SNMP_TRAP(7, SNMPError, Configuration, "Config section [" + sect + "] unknown");
 			warnings++;
 		} else if (!section_checkable) {
-			//PTRACE(0, "Section " << sect << " can't be checked in detail");
+			// section can't be checked in detail
 		} else {
 			// check all entries in this section
 			PStringToString entries = cfg->GetAllKeyValues(fullSectionName);

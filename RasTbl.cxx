@@ -860,14 +860,12 @@ bool EndpointRec::CompareAlias(const H225_ArrayOf_AliasAddress *a) const
 GkH235Authenticators* EndpointRec::GetH235Authenticators()
 {
     PWaitAndSignal lock(m_usedLock);
-    PTRACE(0, "JW GetH235Authenticators=" << m_authenticators);
     return m_authenticators;
 }
 
 void EndpointRec::SetH235Authenticators(GkH235Authenticators * auth)
 {
     PWaitAndSignal lock(m_usedLock);
-    PTRACE(0, "JW SetH235Authenticators old=" << m_authenticators << " new=" << auth);
     if (m_authenticators == auth) {
         // do nothing
     } else if (m_authenticators == NULL) {

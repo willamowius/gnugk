@@ -88,7 +88,6 @@ H235Authenticator::ValidationResult H235AuthDesECB::ValidateCryptoToken(
   if (!IsActive())
 	return e_Disabled;
 
-PTRACE(0, "JW Validate DES pw=" << password);
   // verify the token is of correct type
   if (cryptoToken.GetTag() != H225_CryptoH323Token::e_cryptoEPPwdEncr)
     return e_Absent;

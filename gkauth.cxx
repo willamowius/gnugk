@@ -373,7 +373,6 @@ int GkAuthenticator::Check(
 	/// authorization data
 	Q931AuthData & /*authData*/)
 {
-    PTRACE(0, "JW GkAuthenticator::Check: default impl");
     switch (msg.GetMessageType()) {
         case Q931::AlertingMsg:
             return IsMiscCheckEnabled(e_Alerting) ? m_defaultStatus : e_next;
@@ -1195,7 +1194,6 @@ int SimplePasswordAuth::CheckTokens(
 	/// aliases for the endpoint that generated the tokens
 	const H225_ArrayOf_AliasAddress * aliases)
 {
-PTRACE(0, "JW CheckTokens");
 	for (PINDEX i = 0; i < tokens.GetSize(); i++) {
 		H235_ClearToken& token = tokens[i];
 
@@ -1248,7 +1246,6 @@ int SimplePasswordAuth::CheckCryptoTokens(
 
 			H225_CryptoH323Token_cryptoEPPwdHash & pwdhash = tokens[i];
 			const PString id = AsString(pwdhash.m_alias, false);
-            PTRACE(0, "JW checking SendersID=" << m_checkID);
 			if (m_checkID && (aliases == NULL || FindAlias(*aliases, id) == P_MAX_INDEX)) {
 				PTRACE(3, "GKAUTH\t" << GetName() << " alias '" << id
 					<< "' of the cryptoEPPwdHash token does not match any alias for the endpoint");
@@ -1341,7 +1338,6 @@ int SimplePasswordAuth::CheckCryptoTokens(
 				// check all endpoint aliases for a password
 				for (PINDEX i = 0; i < epAliases.GetSize(); i++) {
 					PString id = H323GetAliasAddressString(epAliases[i]);
-					PTRACE(0, "JW check if alias " << id << " has password (via epID)");
 					passwordFound = InternalGetPassword(id, passwd);
 					if (passwordFound) {
                         PTRACE(3, "GKAUTH\t" << GetName() << " Authenticating user " << id);

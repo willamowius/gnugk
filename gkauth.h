@@ -781,17 +781,14 @@ protected:
         }
 
 		if (!auth) {
-            PTRACE(0, "JW no auth -> default status");
 			return GetDefaultStatus();
 		}
 
 		if (CheckTokens(auth, *tokens, &authData.m_aliases) == e_fail
 			|| CheckCryptoTokens(auth, *cryptoTokens, &authData.m_aliases) == e_fail) {
-            PTRACE(0, "JW FAIL token check");
 			return e_fail;
 		}
 
-        PTRACE(0, "JW call Validate");
 		int result = auth->Validate(msg, *tokens, *cryptoTokens);
 		if (result == H235Authenticator::e_OK)
 			return e_ok;

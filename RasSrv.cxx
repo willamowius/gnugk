@@ -274,7 +274,6 @@ bool RasListener::SendRas(H225_RasMessage & rasobj, const Address & addr, WORD p
 
     // make sure buffer gets shrunk to size of encoded message, because we'll write it instead of the PPER_Stream
     wtbuf.SetSize(wtstrm.GetSize());
-    PTRACE(0, "JW SendRas auth=" << auth);
     if (auth != NULL)
         auth->Finalise(rasobj, wtbuf);
 
@@ -2582,7 +2581,6 @@ bool RegistrationRequestPDU::Process()
 	ep->SetPriority(RegPrior);
 	ep->SetPreemption(preemptsupport);
 
-PTRACE(0, "JW SetH235Authenticators = " << authData.m_authenticator);
 	ep->SetH235Authenticators(authData.m_authenticator);
 
 	if (bSendReply) {
@@ -3093,7 +3091,7 @@ bool AdmissionRequestPDU::Process()
         WORD storedPort = 0;
 		if (GetIPAndPortFromTransportAddr(RequestingEP->GetRasAddress(), storedAddr, storedPort)) {
 		    if (storedAddr != m_msg->m_peerAddr) {
-                PTRACE(0, "RAS\tSender address of ARQ didn't match: " << AsString(storedAddr) << " != " << AsString(m_msg->m_peerAddr));
+                PTRACE(1, "RAS\tSender address of ARQ didn't match: " << AsString(storedAddr) << " != " << AsString(m_msg->m_peerAddr));
                 return BuildReply(H225_AdmissionRejectReason::e_callerNotRegistered);
 		    }
 		} else {

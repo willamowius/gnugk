@@ -158,7 +158,6 @@ int GkH235Authenticators::Validate(
 					const PString oldRemoteId = m_authProcedure1->GetRemoteId();
 					m_authProcedure1->SetLocalId(m_localIdProcedure1);
 					m_authProcedure1->SetRemoteId(m_remoteIdProcedure1);
-					PTRACE(0, "JW Validate Q931: oldRemoteID=" << oldRemoteId << " new RemoteId=" << m_remoteIdProcedure1);
                    	bool checkSendersID = GkConfig()->GetBoolean("H235", "CheckQ931SendersID", true);
 					if (cryptoHashedToken.m_hashedVals.HasOptionalField(H235_ClearToken::e_sendersID) && checkSendersID) {
                         bool idOK = true;
@@ -173,7 +172,7 @@ int GkH235Authenticators::Validate(
                     // re-encode the message to check it, not sure why (PByteArray &)msg crashes
                     PBYTEArray buf(1024); // buffer with initial size 1024
                     if (!msg.Encode(buf)) {
-                        PTRACE(0, "JW re-encode failed");
+                        PTRACE(1, "H235\tError: re-encode failed"); // should never happen
                     }
 
 					m_authResultProcedure1 = m_authProcedure1->ValidateCryptoToken(token, buf);
@@ -188,15 +187,12 @@ int GkH235Authenticators::Validate(
 
 	if (!procedure1Found && m_authProcedure1 && m_authProcedure1->IsActive()
 		&& m_authProcedure1->IsSecuredSignalPDU(msg.GetMessageType(), TRUE)) {
-        PTRACE(0, "JW Validate -> Absent");
 		m_authResultProcedure1 = H235Authenticator::e_Absent;
 		return m_authResultProcedure1;
 	} else if (procedure1Found && m_authResultProcedure1 != H235Authenticator::e_OK) {
-        PTRACE(0, "JW Validate -> not OK : " << m_authResultProcedure1);
 		return m_authResultProcedure1;
 	}
 
-    PTRACE(0, "JW Validate default=OK");
 	return H235Authenticator::e_OK;
 #else
 	return H235Authenticator::e_Disabled;
@@ -209,7 +205,6 @@ int GkH235Authenticators::Validate(
 	const H225_ArrayOf_CryptoH323Token & cryptoTokens,
 	const PBYTEArray & rawPDU)
 {
-PTRACE(0, "JW Validate RAS raw size=" << rawPDU.GetSize() << " raw=" << rawPDU);
 	PWaitAndSignal lock(m_mutex);
 
 	const PTime now;
@@ -259,7 +254,6 @@ PTRACE(0, "JW Validate RAS raw size=" << rawPDU.GetSize() << " raw=" << rawPDU);
 			const H225_CryptoH323Token_cryptoEPPwdHash & cryptoEPPwdHash = token;
 			if (cryptoEPPwdHash.m_token.m_algorithmOID == OID_H235_MD5) {
 				md5Found = true;
-                PTRACE(0, "JW MD algorithm OID=" << cryptoEPPwdHash.m_token.m_algorithmOID);
 				if (m_authMD5 == NULL)
 					m_authMD5 = new H235AuthSimpleMD5();
 				m_authMD5->Enable();
@@ -367,7 +361,6 @@ PTRACE(0, "JW Validate RAS raw size=" << rawPDU.GetSize() << " raw=" << rawPDU);
 		return m_authResultProcedure1;
 #endif // H323_H235
 
-    PTRACE(0, "JW default OK");
 	return H235Authenticator::e_OK;
 }
 
@@ -407,7 +400,6 @@ void GkH235Authenticators::PrepareTokens(
 //			&& m_authResultProcedure1 == H235Authenticator::e_OK) {     // this hurts when sending call from ep without H.235.1 to one with H.235.1
 		m_authProcedure1->SetLocalId(m_localIdProcedure1);
 		m_authProcedure1->SetRemoteId(m_remoteIdProcedure1);
-        PTRACE(0, "JW call Proc1 PrepareTokens");
 		m_authProcedure1->PrepareTokens(clearTokens, cryptoTokens);
 	}
 #endif // H323_H235
@@ -428,7 +420,6 @@ void GkH235Authenticators::Finalise(H225_RasMessage & rasmsg, PBYTEArray & rawPd
 #ifdef H323_H235
 	if (m_authProcedure1 && m_authProcedure1->IsActive()
 			&& m_authProcedure1->IsSecuredPDU(rasmsg.GetTag(), FALSE)) {
-        PTRACE(0, "JW Finalise msg=" << endl << rasmsg);
 		m_authProcedure1->Finalise(rawPdu);
     }
 #endif // H323_H235
@@ -458,7 +449,6 @@ void GkH235Authenticators::Finalise(unsigned q931Tag, PBYTEArray & rawPdu)
 
 	if (m_authProcedure1 && m_authProcedure1->IsActive()
 			&& m_authProcedure1->IsSecuredPDU(q931Tag, FALSE)) {
-        PTRACE(0, "JW Finalise Q931 msg=" << q931Tag);
 		m_authProcedure1->Finalise(rawPdu);
     }
 #endif // H323_H235

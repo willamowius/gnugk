@@ -1120,7 +1120,7 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig * config)
 				PStringArray tokenised_line = lines[j].Tokenise(PString("="));
 
 				if (tokenised_line.GetSize() < 3) {
-					PTRACE(0, "GK\tSyntax error in the GWRewriteE164 rule - missing =, rule: "
+					PTRACE(1, "GK\tSyntax error in the GWRewriteE164 rule - missing =, rule: "
 						<< key << " => " << lines[j]);
 					SNMP_TRAP(7, SNMPError, Configuration, "Invalid [GWRewriteE164] configuration");
 					continue;
@@ -1132,7 +1132,7 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig * config)
 				else if (tokenised_line[0] == "out")
 					out_strings[tokenised_line[1]] = tokenised_line[2];
 				else {
-					PTRACE(0, "GK\tSyntax error in the GWRewriteE164 rule - unknown rule type ("
+					PTRACE(1, "GK\tSyntax error in the GWRewriteE164 rule - unknown rule type ("
 						<< tokenised_line[0] << ", rule: " << key << " => " << lines[j]);
 					SNMP_TRAP(7, SNMPError, Configuration, "Invalid [GWRewriteE164] configuration");
 				}
@@ -1432,14 +1432,14 @@ void Toolkit::ReloadSQLConfig()
 	// TODO: if SQLConfig is configured, but we can't connect to DB, should we shut down Gnugk ?
 	const PString driverName = m_Config->GetString("SQLConfig", "Driver", "");
 	if (driverName.IsEmpty()) {
-		PTRACE(0, "SQLCONF\tFailed to read config settings from SQL: no driver specified");
+		PTRACE(1, "SQLCONF\tFailed to read config settings from SQL: no driver specified");
 		SNMP_TRAP(5, SNMPError, Database, "SQLConfig: no driver");
 		return;
 	}
 
 	GkSQLConnection *sqlConn = GkSQLConnection::Create(driverName, "SQLCONF");
 	if (sqlConn == NULL) {
-		PTRACE(0, "SQLCONF\tFailed to create a connection: no driver found for "
+		PTRACE(1, "SQLCONF\tFailed to create a connection: no driver found for "
 				<< driverName << " database");
 		SNMP_TRAP(5, SNMPError, Database, "SQLConfig: no driver");
 		return;
@@ -1448,7 +1448,7 @@ void Toolkit::ReloadSQLConfig()
 	if (!sqlConn->Initialize(m_Config, "SQLConfig")) {
 		delete sqlConn;
 		sqlConn = NULL;
-		PTRACE(0, "SQLCONF\tFailed to read config settings from SQL: could not connect to the database");
+		PTRACE(1, "SQLCONF\tFailed to read config settings from SQL: could not connect to the database");
 		SNMP_TRAP(5, SNMPError, Database, "SQLConfig: can't connect to DB");
 		return;
 	}
@@ -1465,32 +1465,26 @@ void Toolkit::ReloadSQLConfig()
 		params += GKName();
 		queryResult = sqlConn->ExecuteQuery(query, &params);
 		if (queryResult == NULL) {
-			PTRACE(0, "SQLCONF\tFailed to load config key=>value pairs from SQL "
-				"database: timeout or fatal error");
+			PTRACE(1, "SQLCONF\tFailed to load config key=>value pairs from SQL database: timeout or fatal error");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: query failed");
 		} else if (!queryResult->IsValid()) {
-			PTRACE(0, "SQLCONF\tFailed to load config key=>value pairs from SQL "
-				"database (" << queryResult->GetErrorCode() << "): "
+			PTRACE(1, "SQLCONF\tFailed to load config key=>value pairs from SQL database (" << queryResult->GetErrorCode() << "): "
 				<< queryResult->GetErrorMessage());
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: query failed");
 		} else if (queryResult->GetNumRows() > 0 && queryResult->GetNumFields() < 3) {
-			PTRACE(0, "SQLCONF\tFailed to load config key=>value pairs from SQL "
-				"database: at least 3 columns must be present in the result set");
+			PTRACE(1, "SQLCONF\tFailed to load config key=>value pairs from SQL database: at least 3 columns must be present in the result set");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: query failed");
 		} else {
 			while (queryResult->FetchRow(params))
 				if (params[0].IsEmpty() || params[1].IsEmpty()) {
-					PTRACE(1, "SQLCONF\tInvalid config key=>value pair entry found "
-						"in the SQL database: '[" << params[0] << "] "
+					PTRACE(1, "SQLCONF\tInvalid config key=>value pair entry found in the SQL database: '[" << params[0] << "] "
 						<< params[1] << '=' << params[1] << '\'');
 					SNMP_TRAP(5, SNMPError, Database, "SQLConfig: query failed");
 				} else {
 					m_Config->SetString(params[0], params[1], params[2]);
-					PTRACE(6, "SQLCONF\tConfig entry read: '[" << params[0]
-						<< "] " << params[1] << '=' << params[2] << '\'');
+					PTRACE(6, "SQLCONF\tConfig entry read: '[" << params[0] << "] " << params[1] << '=' << params[2] << '\'');
 				}
-			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows()
-				<< " config key=>value pairs loaded from SQL database");
+			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " config key=>value pairs loaded from SQL database");
 		}
 		delete queryResult;
 		queryResult = NULL;
@@ -1504,15 +1498,14 @@ void Toolkit::ReloadSQLConfig()
 		params += GKName();
 		queryResult = sqlConn->ExecuteQuery(query, &params);
 		if (queryResult == NULL) {
-			PTRACE(0, "SQLCONF\tFailed to load E164 rewrite rules from SQL database: "
-				"timeout or fatal error");
+			PTRACE(1, "SQLCONF\tFailed to load E164 rewrite rules from SQL database: timeout or fatal error");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: E.164 query failed");
 		} else if (!queryResult->IsValid()) {
-			PTRACE(0, "SQLCONF\tFailed to load E164 rewrite rules from SQL database ("
+			PTRACE(1, "SQLCONF\tFailed to load E164 rewrite rules from SQL database ("
 				<< queryResult->GetErrorCode() << "): " << queryResult->GetErrorMessage());
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: E.164 query failed");
 		} else if (queryResult->GetNumRows() > 0 && queryResult->GetNumFields() < 2) {
-			PTRACE(0, "SQLCONF\tFailed to load E164 rewrite rules from SQL database: "
+			PTRACE(1, "SQLCONF\tFailed to load E164 rewrite rules from SQL database: "
 				"at least 2 columns must be present in the result set");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: E.164 query failed");
 		} else {
@@ -1526,8 +1519,7 @@ void Toolkit::ReloadSQLConfig()
 					PTRACE(6, "SQLCONF\tRewriteE164 rule read: '" << params[0]
 						<< '=' << params[1] << '\'');
 				}
-			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " E164 rewrite rules "
-				"loaded from SQL database");
+			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " E164 rewrite rules loaded from SQL database");
 		}
 		delete queryResult;
 		queryResult = NULL;
@@ -1541,15 +1533,14 @@ void Toolkit::ReloadSQLConfig()
 		params += GKName();
 		queryResult = sqlConn->ExecuteQuery(query, &params);
 		if (queryResult == NULL) {
-			PTRACE(0, "SQLCONF\tFailed to load Alias rewrite rules from SQL database: "
-				"timeout or fatal error");
+			PTRACE(1, "SQLCONF\tFailed to load Alias rewrite rules from SQL database: timeout or fatal error");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Alias rewrite query failed");
 		} else if (!queryResult->IsValid()) {
-			PTRACE(0, "SQLCONF\tFailed to load Alias rewrite rules from SQL database ("
+			PTRACE(1, "SQLCONF\tFailed to load Alias rewrite rules from SQL database ("
 				<< queryResult->GetErrorCode() << "): " << queryResult->GetErrorMessage());
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Alias rewrite query failed");
 		} else if (queryResult->GetNumRows() > 0 && queryResult->GetNumFields() < 2) {
-			PTRACE(0, "SQLCONF\tFailed to load Alias rewrite rules from SQL database: "
+			PTRACE(1, "SQLCONF\tFailed to load Alias rewrite rules from SQL database: "
 				"at least 2 columns must be present in the result set");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Alias rewrite query failed");
 		} else {
@@ -1562,8 +1553,7 @@ void Toolkit::ReloadSQLConfig()
 					m_Config->SetString("RasSrv::RewriteAlias", params[0], params[1]);
 					PTRACE(6, "SQLCONF\tRewriteAlias rule read: '" << params[0] << '=' << params[1] << '\'');
 				}
-			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " Alias rewrite rules "
-				"loaded from SQL database");
+			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " Alias rewrite rules loaded from SQL database");
 		}
 		delete queryResult;
 		queryResult = NULL;
@@ -1577,15 +1567,14 @@ void Toolkit::ReloadSQLConfig()
 		params += GKName();
 		queryResult = sqlConn->ExecuteQuery(query, &params);
 		if (queryResult == NULL) {
-			PTRACE(0, "SQLCONF\tFailed to load Assigned Alias rules from SQL database: "
-				"timeout or fatal error");
+			PTRACE(1, "SQLCONF\tFailed to load Assigned Alias rules from SQL database: timeout or fatal error");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Assigned Alias rewrite query failed");
 		} else if (!queryResult->IsValid()) {
-			PTRACE(0, "SQLCONF\tFailed to load Assigned Alias rules from SQL database ("
+			PTRACE(1, "SQLCONF\tFailed to load Assigned Alias rules from SQL database ("
 				<< queryResult->GetErrorCode() << "): " << queryResult->GetErrorMessage());
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Assigned Alias rewrite query failed");
 		} else if (queryResult->GetNumRows() > 0 && queryResult->GetNumFields() < 2) {
-			PTRACE(0, "SQLCONF\tFailed to load Assigned Alias rules from SQL database: "
+			PTRACE(1, "SQLCONF\tFailed to load Assigned Alias rules from SQL database: "
 				"at least 2 columns must be present in the result set");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Assigned Alias rewrite query failed");
 		} else {
@@ -1598,8 +1587,7 @@ void Toolkit::ReloadSQLConfig()
 					m_Config->SetString("RasSrv::AssignedAlias", params[0], params[1]);
 					PTRACE(6, "SQLCONF\tAssignedAlias rule read: '" << params[0] << '=' << params[1] << '\'');
 				}
-			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " Assigned Alias rules "
-				"loaded from SQL database");
+			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " Assigned Alias rules loaded from SQL database");
 		}
 		delete queryResult;
 		queryResult = NULL;
@@ -1612,15 +1600,14 @@ void Toolkit::ReloadSQLConfig()
 		params += GKName();
 		queryResult = sqlConn->ExecuteQuery(query, &params);
 		if (queryResult == NULL) {
-			PTRACE(0, "SQLCONF\tFailed to load neighbors from SQL database: "
-				"timeout or fatal error");
+			PTRACE(1, "SQLCONF\tFailed to load neighbors from SQL database: timeout or fatal error");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Neighbor query failed");
 		} else if (!queryResult->IsValid()) {
-			PTRACE(0, "SQLCONF\tFailed to load neighbors from SQL database ("
+			PTRACE(1, "SQLCONF\tFailed to load neighbors from SQL database ("
 				<< queryResult->GetErrorCode() << "): " << queryResult->GetErrorMessage());
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Neighbor query failed");
 		} else if (queryResult->GetNumRows() > 0 && queryResult->GetNumFields() < 6) {
-			PTRACE(0, "SQLCONF\tFailed to load neighbors from SQL database: "
+			PTRACE(1, "SQLCONF\tFailed to load neighbors from SQL database: "
 				"at least 6 columns must be present in the result set");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Neighbor query failed");
 		} else {
@@ -1645,8 +1632,7 @@ void Toolkit::ReloadSQLConfig()
 					PTRACE(6, "SQLCONF\tNeighbor entry read: '" << params[0] << '=' << value << '\'');
 				}
 			}
-			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " neighbor entries "
-				"loaded from SQL database");
+			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " neighbor entries loaded from SQL database");
 		}
 		delete queryResult;
 		queryResult = NULL;
@@ -1659,15 +1645,14 @@ void Toolkit::ReloadSQLConfig()
 		params += GKName();
 		queryResult = sqlConn->ExecuteQuery(query, &params);
 		if (queryResult == NULL) {
-			PTRACE(0, "SQLCONF\tFailed to load neighbors from SQL database: "
-				"timeout or fatal error");
+			PTRACE(1, "SQLCONF\tFailed to load neighbors from SQL database: timeout or fatal error");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Neighbor query failed");
 		} else if (!queryResult->IsValid()) {
-			PTRACE(0, "SQLCONF\tFailed to load neighbors from SQL database ("
+			PTRACE(1, "SQLCONF\tFailed to load neighbors from SQL database ("
 				<< queryResult->GetErrorCode() << "): " << queryResult->GetErrorMessage());
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Neighbor query failed");
 		} else if (queryResult->GetNumRows() > 0 && queryResult->GetNumFields() < 3) {
-			PTRACE(0, "SQLCONF\tFailed to load neighbors from SQL database: "
+			PTRACE(1, "SQLCONF\tFailed to load neighbors from SQL database: "
 				"at least 6 columns must be present in the result set");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Neighbor query failed");
 		} else {
@@ -1727,16 +1712,15 @@ void Toolkit::ReloadSQLConfig()
 		params += GKName();
 		queryResult = sqlConn->ExecuteQuery(query, &params);
 		if (queryResult == NULL) {
-			PTRACE(0, "SQLCONF\tFailed to load permanent endpoints from SQL "
-				"database: timeout or fatal error");
+			PTRACE(1, "SQLCONF\tFailed to load permanent endpoints from SQL database: timeout or fatal error");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Permanent EP query failed");
 		} else if (!queryResult->IsValid()) {
-			PTRACE(0, "SQLCONF\tFailed to load permanent endpoints from SQL database "
+			PTRACE(1, "SQLCONF\tFailed to load permanent endpoints from SQL database "
 				"("	<< queryResult->GetErrorCode() << "): "
 				<< queryResult->GetErrorMessage());
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Permanent EP query failed");
 		} else if (queryResult->GetNumRows() > 0 && queryResult->GetNumFields() < 4) {
-			PTRACE(0, "SQLCONF\tFailed to load permanent endpoints from SQL database: "
+			PTRACE(1, "SQLCONF\tFailed to load permanent endpoints from SQL database: "
 				"at least 4 columns must be present in the result set");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Permanent EP query failed");
 		} else {
@@ -1760,8 +1744,7 @@ void Toolkit::ReloadSQLConfig()
 					PTRACE(6, "SQLCONF\tPermanent endpoint read: '" << key << '=' << value << '\'');
 				}
 			}
-			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " permanent "
-				"endpoints loaded from SQL database");
+			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " permanent endpoints loaded from SQL database");
 		}
 		delete queryResult;
 		queryResult = NULL;
@@ -1774,15 +1757,14 @@ void Toolkit::ReloadSQLConfig()
 		params += GKName();
 		queryResult = sqlConn->ExecuteQuery(query, &params);
 		if (queryResult == NULL) {
-			PTRACE(0, "SQLCONF\tFailed to load gateway prefixes from SQL database: "
-				"timeout or fatal error");
+			PTRACE(1, "SQLCONF\tFailed to load gateway prefixes from SQL database: timeout or fatal error");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Gateway query failed");
 		} else if (!queryResult->IsValid()) {
-			PTRACE(0, "SQLCONF\tFailed to load gateway prefixes from SQL database ("
+			PTRACE(1, "SQLCONF\tFailed to load gateway prefixes from SQL database ("
 				<< queryResult->GetErrorCode() << "): " << queryResult->GetErrorMessage());
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Gateway query failed");
 		} else if (queryResult->GetNumRows() > 0 && queryResult->GetNumFields() < 2) {
-			PTRACE(0, "SQLCONF\tFailed to load gateway prefixes from SQL database: "
+			PTRACE(1, "SQLCONF\tFailed to load gateway prefixes from SQL database: "
 				"at least 2 columns must be present in the result set");
 			SNMP_TRAP(5, SNMPError, Database, "SQLConfig: Gateway query failed");
 		} else {
@@ -1795,8 +1777,7 @@ void Toolkit::ReloadSQLConfig()
 					PTRACE(6, "SQLCONF\tGateway prefixes read: '" << params[0]
 						<< '=' << params[1] << '\'');
 				}
-			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " gateway prefixes "
-				"loaded from SQL database");
+			PTRACE(4, "SQLCONF\t" << queryResult->GetNumRows() << " gateway prefixes loaded from SQL database");
 		}
 		delete queryResult;
 		queryResult = NULL;
@@ -2043,8 +2024,7 @@ bool Toolkit::AssignedAliases::LoadSQL(PConfig * cfg)
 
 	const PString driverName = cfg->GetString(authName, "Driver", "");
 	if (driverName.IsEmpty()) {
-		PTRACE(0, "AliasSQL\tModule creation failed: "
-			"no SQL driver selected");
+		PTRACE(1, "AliasSQL\tModule creation failed: no SQL driver selected");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
 		PTRACE(0, "AliasSQL\tFATAL: Shutting down");
 		return false;
@@ -2052,7 +2032,7 @@ bool Toolkit::AssignedAliases::LoadSQL(PConfig * cfg)
 
 	m_sqlConn = GkSQLConnection::Create(driverName, authName);
 	if (m_sqlConn == NULL) {
-		PTRACE(0, "AliasSQL\tModule creation failed: "
+		PTRACE(1, "AliasSQL\tModule creation failed: "
 			"Could not find " << driverName << " database driver");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
 		PTRACE(0, "AliasSQL\tFATAL: Shutting down");
@@ -2061,7 +2041,7 @@ bool Toolkit::AssignedAliases::LoadSQL(PConfig * cfg)
 
 	m_query = cfg->GetString(authName, "Query", "");
 	if (m_query.IsEmpty()) {
-		PTRACE(0, "AliasSQL\tModule creation failed: No query configured");
+		PTRACE(1, "AliasSQL\tModule creation failed: No query configured");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
 		PTRACE(0, "AliasSQL\tFATAL: Shutting down");
 		return false;
@@ -2069,7 +2049,7 @@ bool Toolkit::AssignedAliases::LoadSQL(PConfig * cfg)
 		PTRACE(4, "AliasSQL\tQuery: " << m_query);
 
 	if (!m_sqlConn->Initialize(cfg, authName)) {
-		PTRACE(0, "AliasSQL\tModule creation failed: Could not connect to the database");
+		PTRACE(1, "AliasSQL\tModule creation failed: Could not connect to the database");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
 		return false;
 	}
@@ -2606,8 +2586,7 @@ bool Toolkit::AssignedGatekeepers::LoadSQL(PConfig * cfg)
 
 	const PString driverName = cfg->GetString(authName, "Driver", "");
 	if (driverName.IsEmpty()) {
-		PTRACE(0, "AssignSQL\tModule creation failed: "
-			"no SQL driver selected");
+		PTRACE(1, "AssignSQL\tModule creation failed: no SQL driver selected");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
 		PTRACE(0, "AssignSQL\tFATAL: Shutting down");
 		return false;
@@ -2615,7 +2594,7 @@ bool Toolkit::AssignedGatekeepers::LoadSQL(PConfig * cfg)
 
 	m_sqlConn = GkSQLConnection::Create(driverName, authName);
 	if (m_sqlConn == NULL) {
-		PTRACE(0, "AssignSQL\tModule creation failed: "
+		PTRACE(1, "AssignSQL\tModule creation failed: "
 			"Could not find " << driverName << " database driver");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
 		PTRACE(0, "AssignSQL\tFATAL: Shutting down");
@@ -2624,7 +2603,7 @@ bool Toolkit::AssignedGatekeepers::LoadSQL(PConfig * cfg)
 
 	m_query = cfg->GetString(authName, "Query", "");
 	if (m_query.IsEmpty()) {
-		PTRACE(0, "AssignSQL\tModule creation failed: No query configured");
+		PTRACE(1, "AssignSQL\tModule creation failed: No query configured");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
 		PTRACE(0, "AssignSQL\tFATAL: Shutting down");
 		return false;
@@ -2632,7 +2611,7 @@ bool Toolkit::AssignedGatekeepers::LoadSQL(PConfig * cfg)
 		PTRACE(4, "AssignSQL\tQuery: " << m_query);
 
 	if (!m_sqlConn->Initialize(cfg, authName)) {
-		PTRACE(0, "AssignSQL\tModule creation failed: Could not connect to the database");
+		PTRACE(1, "AssignSQL\tModule creation failed: Could not connect to the database");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
 		return false;
 	}
@@ -2902,7 +2881,7 @@ void Toolkit::AlternateGatekeepers::LoadConfig(PConfig * cfg)
 
 	const PString driverName = cfg->GetString(authName, "Driver", "");
 	if (driverName.IsEmpty()) {
-		PTRACE(0, "AltGKSQL\tModule creation failed: no SQL driver selected");
+		PTRACE(1, "AltGKSQL\tModule creation failed: no SQL driver selected");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
 		PTRACE(0, "AltGKSQL\tFATAL: Shutting down");
 		return;
@@ -2910,7 +2889,7 @@ void Toolkit::AlternateGatekeepers::LoadConfig(PConfig * cfg)
 
 	m_sqlConn = GkSQLConnection::Create(driverName, authName);
 	if (m_sqlConn == NULL) {
-		PTRACE(0, "AltGKSQL\tModule creation failed: "
+		PTRACE(1, "AltGKSQL\tModule creation failed: "
 			"Could not find " << driverName << " database driver");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
 		PTRACE(0, "AltGKSQL\tFATAL: Shutting down");
@@ -2919,7 +2898,7 @@ void Toolkit::AlternateGatekeepers::LoadConfig(PConfig * cfg)
 
 	m_query = cfg->GetString(authName, "Query", "");
 	if (m_query.IsEmpty()) {
-		PTRACE(0, "AltGKSQL\tModule creation failed: No query configured");
+		PTRACE(1, "AltGKSQL\tModule creation failed: No query configured");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
 		PTRACE(0, "AltGKSQL\tFATAL: Shutting down");
 		return;
@@ -2927,7 +2906,7 @@ void Toolkit::AlternateGatekeepers::LoadConfig(PConfig * cfg)
 		PTRACE(4, "AltGKSQL\tQuery: " << m_query);
 
 	if (!m_sqlConn->Initialize(cfg, authName)) {
-		PTRACE(0, "AltGKSQL\tModule creation failed: Could not connect to the database");
+		PTRACE(1, "AltGKSQL\tModule creation failed: Could not connect to the database");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
 		return;
 	}
@@ -3152,8 +3131,7 @@ void Toolkit::QoSMonitor::LoadConfig(PConfig * cfg)
 
 	const PString driverName = cfg->GetString(authName, "Driver", "");
 	if (driverName.IsEmpty()) {
-		PTRACE(0, "QoSSQL\tModule creation failed: "
-			"no SQL driver selected");
+		PTRACE(1, "QoSSQL\tModule creation failed: no SQL driver selected");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
 		PTRACE(0, "QoSSQL\tFATAL: Shutting down");
 		return;
@@ -3161,7 +3139,7 @@ void Toolkit::QoSMonitor::LoadConfig(PConfig * cfg)
 
 	m_sqlConn = GkSQLConnection::Create(driverName, authName);
 	if (m_sqlConn == NULL) {
-		PTRACE(0, "QoSSQL\tModule creation failed: "
+		PTRACE(1, "QoSSQL\tModule creation failed: "
 			"Could not find " << driverName << " database driver");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
 		PTRACE(0, "QoSSQL\tFATAL: Shutting down");
@@ -3170,7 +3148,7 @@ void Toolkit::QoSMonitor::LoadConfig(PConfig * cfg)
 
 	m_query = cfg->GetString(authName, "Query", "");
 	if (m_query.IsEmpty()) {
-		PTRACE(0, "QoSSQL\tModule creation failed: No query configured");
+		PTRACE(1, "QoSSQL\tModule creation failed: No query configured");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
 		PTRACE(0, "QoSSQL\tFATAL: Shutting down");
 		return;
@@ -3178,7 +3156,7 @@ void Toolkit::QoSMonitor::LoadConfig(PConfig * cfg)
 		PTRACE(4, "QoSSQL\tQuery: " << m_query);
 
 	if (!m_sqlConn->Initialize(cfg, authName)) {
-		PTRACE(0, "QoSSQL\tModule creation failed: Could not connect to the database");
+		PTRACE(1, "QoSSQL\tModule creation failed: Could not connect to the database");
 		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
 		return;
 	}
@@ -3722,7 +3700,7 @@ PString Toolkit::AsString(
 	if (tmptr == NULL) {
 #endif
 		SNMP_TRAP(7, SNMPError, Configuration, "Invalid timestamp format - using default");
-		PTRACE(0, "TOOLKIT\tCould not apply timestamp formatting - using default");
+		PTRACE(1, "TOOLKIT\tCould not apply timestamp formatting - using default");
 		return tm.AsString( "hh:mm:ss.uuu z www MMM d yyyy" );
 	}
 
@@ -3747,7 +3725,7 @@ PString Toolkit::AsString(
 	char buf[128];
 	if (strftime(buf, sizeof(buf), (const char*)fmtStr, tmptr) == 0) {
 		SNMP_TRAP(7, SNMPError, Configuration, "Invalid timestamp format - using default");
-		PTRACE(0, "TOOLKIT\tCould not apply timestamp formatting - using default");
+		PTRACE(1, "TOOLKIT\tCould not apply timestamp formatting - using default");
 		return tm.AsString( "hh:mm:ss.uuu z www MMM d yyyy" );
 	}
 

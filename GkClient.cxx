@@ -3053,11 +3053,9 @@ bool GkClient::RewriteString(PString & alias, bool fromInternal) const
 	return false;
 }
 
-// TODO: never called!
 void GkClient::SetClearTokens(H225_ArrayOf_ClearToken & clearTokens, const PString & id)
 {
     // TODO: check m_authMode
-    PTRACE(0, "JW SetClearTokens m_authMode=" << m_authMode);
 	clearTokens.RemoveAll();
 	H235AuthCAT auth;
 	// avoid copying for thread-safely
@@ -3070,7 +3068,6 @@ void GkClient::SetClearTokens(H225_ArrayOf_ClearToken & clearTokens, const PStri
 void GkClient::SetCryptoTokens(H225_ArrayOf_CryptoH323Token & cryptoTokens, const PString & id)
 {
     // TODO: check m_authMode
-    PTRACE(0, "JW SetCryptoTokens m_authMode=" << m_authMode);
 	cryptoTokens.RemoveAll();
 	H235AuthSimpleMD5 auth;
 	// avoid copying for thread-safely
