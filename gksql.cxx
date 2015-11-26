@@ -276,8 +276,7 @@ void GkSQLConnection::ReleaseSQLConnection(
 GkSQLResult* GkSQLConnection::ExecuteQuery(
 	const char* queryStr,
 	const PStringArray* queryParams,
-	long timeout
-	)
+	long timeout)
 {
 	SQLConnPtr connptr;
 

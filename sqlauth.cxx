@@ -57,15 +57,15 @@ protected:
 	*/
 	virtual bool GetPassword(
 		/// alias to check the password for
-		const PString& alias,
+		const PString & alias,
 		/// password string, if the match is found
-		PString& password
+		PString & password
 		);
 
 private:
 	SQLPasswordAuth();
-	SQLPasswordAuth(const SQLPasswordAuth&);
-	SQLPasswordAuth& operator=(const SQLPasswordAuth&);
+	SQLPasswordAuth(const SQLPasswordAuth &);
+	SQLPasswordAuth & operator=(const SQLPasswordAuth &);
 
 protected:
 	/// connection to the SQL database
@@ -98,15 +98,15 @@ protected:
 	*/
 	virtual bool GetAuthConditionString(
 		/// an alias the condition string is to be retrieved for
-		const PString& alias,
+		const PString & alias,
 		/// filled with auth condition string that has been found
-		PString& authCond
+		PString & authCond
 		);
 
 private:
 	SQLAliasAuth();
-	SQLAliasAuth(const SQLAliasAuth&);
-	SQLAliasAuth& operator=(const SQLAliasAuth&);
+	SQLAliasAuth(const SQLAliasAuth &);
+	SQLAliasAuth & operator=(const SQLAliasAuth &);
 
 protected:
 	/// connection to the SQL database
@@ -145,9 +145,9 @@ public:
 	*/
 	virtual int Check(
 		/// RRQ RAS message to be authenticated
-		RasPDU<H225_RegistrationRequest>& rrqPdu,
+		RasPDU<H225_RegistrationRequest> & rrqPdu,
 		/// authorization data (reject reason, ...)
-		RRQAuthData& authData
+		RRQAuthData & authData
 		);
 
 	/** Authenticate using data from ARQ RAS message.
@@ -159,7 +159,7 @@ public:
 		/// ARQ nessage to be authenticated
 		RasPDU<H225_AdmissionRequest> & arqPdu,
 		/// authorization data (call duration limit, reject reason, ...)
-		ARQAuthData& authData
+		ARQAuthData & authData
 		);
 
 	/** Authenticate using data from LRQ RAS message.
@@ -167,10 +167,7 @@ public:
 		@return:
 		#GkAuthenticator::Status enum# with the result of authentication.
 	*/
-	virtual int Check(
-		RasPDU<H225_LocationRequest> & req,
-		unsigned& rejectReason
-		);
+	virtual int Check(RasPDU<H225_LocationRequest> & req, unsigned & rejectReason);
 
 	/** Authenticate using data from Q.931 Setup message.
 
@@ -188,8 +185,8 @@ public:
 
 private:
 	SQLAuth();
-	SQLAuth(const SQLAuth&);
-	SQLAuth& operator=(const SQLAuth&);
+	SQLAuth(const SQLAuth &);
+	SQLAuth & operator=(const SQLAuth &);
 
 protected:
 	/// connection to the SQL database
@@ -285,8 +282,7 @@ SQLPasswordAuth::SQLPasswordAuth(
 
 	const PString driverName = cfg->GetString(authName, "Driver", "");
 	if (driverName.IsEmpty()) {
-		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"no SQL driver selected");
+		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: no SQL driver selected");
 		SNMP_TRAP(4, SNMPError, Authentication, GetName() + " creation failed");
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
@@ -307,8 +303,7 @@ SQLPasswordAuth::SQLPasswordAuth(
 
 	m_query = cfg->GetString(authName, "Query", "");
 	if (m_query.IsEmpty()) {
-		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"no query configured");
+		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: no query configured");
 		SNMP_TRAP(4, SNMPError, Authentication, GetName() + " creation failed");
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
@@ -317,8 +312,7 @@ SQLPasswordAuth::SQLPasswordAuth(
 		PTRACE(4, "SQLAUTH\t" << GetName() << " query: " << m_query);
 
 	if (!m_sqlConn->Initialize(cfg, authName)) {
-		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"could not connect to the database");
+		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: could not connect to the database");
 		SNMP_TRAP(5, SNMPError, Authentication, GetName() + " creation failed");
 		return;
 	}
@@ -379,8 +373,7 @@ SQLAliasAuth::SQLAliasAuth(
 
 	const PString driverName = cfg->GetString(authName, "Driver", "");
 	if (driverName.IsEmpty()) {
-		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"no SQL driver selected");
+		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: no SQL driver selected");
 		SNMP_TRAP(5, SNMPError, Authentication, GetName() + " creation failed");
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
@@ -401,8 +394,7 @@ SQLAliasAuth::SQLAliasAuth(
 
 	m_query = cfg->GetString(authName, "Query", "");
 	if (m_query.IsEmpty()) {
-		PTRACE(1, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"no query configured");
+		PTRACE(1, "SQLAUTH\t" << GetName() << " module creation failed: no query configured");
 		SNMP_TRAP(5, SNMPError, Authentication, GetName() + " creation failed");
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
@@ -424,8 +416,8 @@ SQLAliasAuth::~SQLAliasAuth()
 }
 
 bool SQLAliasAuth::GetAuthConditionString(
-	const PString& alias,
-	PString& authCond
+	const PString & alias,
+	PString & authCond
 	)
 {
 	GkSQLResult::ResultRow result;
@@ -496,8 +488,7 @@ SQLAuth::SQLAuth(
 
 	m_regQuery = cfg->GetString(authName, "RegQuery", "");
 	if (m_regQuery.IsEmpty() && IsRasCheckEnabled(RasInfo<H225_RegistrationRequest>::flag)) {
-		PTRACE(1, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"no RRQ query configured");
+		PTRACE(1, "SQLAUTH\t" << GetName() << " module creation failed: no RRQ query configured");
 		SNMP_TRAP(5, SNMPError, Authentication, GetName() + " creation failed");
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
@@ -508,8 +499,7 @@ SQLAuth::SQLAuth(
 
 	m_nbQuery = cfg->GetString(authName, "NbQuery", "");
 	if (m_nbQuery.IsEmpty() && IsRasCheckEnabled(RasInfo<H225_LocationRequest>::flag)) {
-		PTRACE(1, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"no LRQ query configured");
+		PTRACE(1, "SQLAUTH\t" << GetName() << " module creation failed: no LRQ query configured");
 		SNMP_TRAP(5, SNMPError, Authentication, GetName() + " creation failed");
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
@@ -521,8 +511,7 @@ SQLAuth::SQLAuth(
 	m_callQuery = cfg->GetString(authName, "CallQuery", "");
 	if (m_callQuery.IsEmpty() && (IsRasCheckEnabled(RasInfo<H225_AdmissionRequest>::flag)
 			|| IsMiscCheckEnabled(e_Setup) || IsMiscCheckEnabled(e_SetupUnreg))) {
-		PTRACE(1, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"no ARQ/Setup query configured");
+		PTRACE(1, "SQLAUTH\t" << GetName() << " module creation failed: no ARQ/Setup query configured");
 		SNMP_TRAP(5, SNMPError, Authentication, GetName() + " creation failed");
 		PTRACE(0, "SQLAUTH\tFATAL: Shutting down");
 		RasServer::Instance()->Stop();
@@ -532,8 +521,7 @@ SQLAuth::SQLAuth(
 	}
 
 	if (!m_sqlConn->Initialize(cfg, authName)) {
-		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: "
-			"could not connect to the database");
+		PTRACE(0, "SQLAUTH\t" << GetName() << " module creation failed: could not connect to the database");
 		SNMP_TRAP(5, SNMPError, Authentication, GetName() + " creation failed");
 		return;
 	}
@@ -604,9 +592,7 @@ int SQLAuth::Check(
 				else if (intVal == 1 || intVal == 2)
 					authData.m_billingMode = H225_CallCreditServiceControl_billingMode::e_debit;
 			} else {
-				PTRACE(3, traceStr << " - invalid billingmode attribute '"
-					<< s << '\''
-					);
+				PTRACE(3, traceStr << " - invalid billingmode attribute '" << s << '\'');
 			}
 		}
 	}
@@ -651,7 +637,7 @@ int SQLAuth::Check(
 	/// ARQ nessage to be authenticated
 	RasPDU<H225_AdmissionRequest> & arqPdu,
 	/// authorization data (call duration limit, reject reason, ...)
-	ARQAuthData& authData
+	ARQAuthData & authData
 	)
 {
 	const H225_AdmissionRequest &arq = arqPdu;
@@ -660,8 +646,7 @@ int SQLAuth::Check(
 	PIPSocket::Address addr = (arqPdu.operator->())->m_peerAddr;
 
 	const PString traceStr = "SQLAUTH\t" + GetName() + "(ARQ from "
-		+ addr.AsString() + " CRV=" + PString(arq.m_callReferenceValue.GetValue() & 0x7fff)
-		+ ")";
+		+ addr.AsString() + " CRV=" + PString(arq.m_callReferenceValue.GetValue() & 0x7fff) + ")";
 	params["callerip"] = addr.AsString();
 
 	// get the username for User-Name attribute
@@ -714,9 +699,7 @@ int SQLAuth::Check(
 				else if (intVal == 1 || intVal == 2)
 					authData.m_billingMode = H225_CallCreditServiceControl_billingMode::e_debit;
 			} else {
-				PTRACE(3, traceStr << " - invalid billingmode attribute '"
-					<< s << '\''
-					);
+				PTRACE(3, traceStr << " - invalid billingmode attribute '" << s << '\'');
 			}
 		}
 	}
@@ -789,9 +772,7 @@ int SQLAuth::Check(
 						}
 					}
 					authData.m_destinationRoutes.push_back(route);
-					PTRACE(5, traceStr << " - call redirected to the address " <<
-						route.AsString()
-						);
+					PTRACE(5, traceStr << " - call redirected to the address " << route.AsString());
 				}
 			}
 		}
@@ -804,8 +785,7 @@ int SQLAuth::Check(
 			authData.m_proxyMode = Toolkit::AsBool(s)
 				? CallRec::ProxyEnabled : CallRec::ProxyDisabled;
 			PTRACE(5, traceStr << " - proxy mode "
-				<< (authData.m_proxyMode == CallRec::ProxyEnabled ? "enabled" : "disabled")
-				);
+				<< (authData.m_proxyMode == CallRec::ProxyEnabled ? "enabled" : "disabled"));
 		}
 	}
 
@@ -842,18 +822,15 @@ int SQLAuth::Check(RasPDU<H225_LocationRequest> & lrqPdu, unsigned & rejectReaso
 		params["u"] = GetBestAliasAddressString(lrq.m_sourceInfo, false,
 			AliasAddressTagMask(H225_AliasAddress::e_h323_ID),
 			AliasAddressTagMask(H225_AliasAddress::e_email_ID)
-				| AliasAddressTagMask(H225_AliasAddress::e_url_ID)
-			);
+				| AliasAddressTagMask(H225_AliasAddress::e_url_ID));
 		params["Calling-Station-Id"] = GetBestAliasAddressString(lrq.m_sourceInfo,
 			false, AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-			);
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
 		params["src-info"] = AsString(lrq.m_sourceInfo);
 	}
 	params["Called-Station-Id"] = GetBestAliasAddressString(lrq.m_destinationInfo,
 		false, AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
-			| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
-		);
+			| AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
 	params["dest-info"] = AsString(lrq.m_destinationInfo);
 
 	if (lrq.HasOptionalField(H225_LocationRequest::e_bandWidth))
@@ -1037,9 +1014,7 @@ int SQLAuth::Check(
 						}
 					}
 					authData.m_destinationRoutes.push_back(route);
-					PTRACE(5, traceStr << " - call redirected to the address " <<
-						route.AsString()
-						);
+					PTRACE(5, traceStr << " - call redirected to the address " << route.AsString());
 				}
 			}
 		}
@@ -1052,8 +1027,7 @@ int SQLAuth::Check(
 			authData.m_proxyMode = Toolkit::AsBool(s)
 				? CallRec::ProxyEnabled : CallRec::ProxyDisabled;
 			PTRACE(5, traceStr << " - proxy mode "
-				<< (authData.m_proxyMode == CallRec::ProxyEnabled ? "enabled" : "disabled")
-				);
+				<< (authData.m_proxyMode == CallRec::ProxyEnabled ? "enabled" : "disabled"));
 		}
 	}
 
