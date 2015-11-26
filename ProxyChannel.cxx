@@ -1969,16 +1969,19 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
     overTLS = (dynamic_cast<TLSCallSignalSocket *>(this) != NULL);
 #endif
 
-    Q931AuthData authData(aliases, _peerAddr, _peerPort, overTLS, auth);
-
-    if (!RasServer::Instance()->ValidatePDU(*q931pdu, authData)) {
-        if (tmpCall) {
-            tmpCall->SetDisconnectCause(Q931::NormalUnspecified); // Q.931 code for reason=SecurityDenied
-        } else {
-            // TODO: set disconnect cause differently for pregranted or unregistered calls ?
+    // validate all Q.931 messages, except Setup which is checked further down
+    // checking all, would break authenticators that don't support new Q.931 checks
+    if (q931pdu->GetMessageType() != Q931::SetupMsg) {
+        Q931AuthData authData(aliases, _peerAddr, _peerPort, overTLS, auth);
+        if (!RasServer::Instance()->ValidatePDU(*q931pdu, authData)) {
+            if (tmpCall) {
+                tmpCall->SetDisconnectCause(Q931::NormalUnspecified); // Q.931 code for reason=SecurityDenied
+            } else {
+                // TODO: set disconnect cause differently for pregranted or unregistered calls ?
+            }
+            delete msg;
+            return m_result = Error;
         }
-        delete msg;
-        return m_result = Error;
     }
 
     RemoveHopToHopTokens(q931pdu, uuie);
