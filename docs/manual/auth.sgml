@@ -329,7 +329,7 @@ A very secure H.235 configuration, checking all aspects as defined by the ITU.
 UseEndpointIdentifier=1
 RequireH2351GeneralID=1
 FullQ931Checking=1
-CheckQ931SendersID=1
+CheckSendersID=1
 VerifyRandomNumber=1
 TimestampGracePeriod=60
 </verb></tscreen>
