@@ -674,16 +674,19 @@ This switch will go away once we can detect this condition automatically.
 
 <item><tt/H225DiffServ=46/<newline>
 Default: <tt>0</tt><newline>
+<p>
 Set the DiffServ class (DSCP) for H.225 messages.
 (On most Windows versions, setting the the DSCP this way won't work.)
 
 <item><tt/H245DiffServ=46/<newline>
 Default: <tt>0</tt><newline>
+<p>
 Set the DiffServ class (DSCP) for H.245 messages.
 (On most Windows versions, setting the the DSCP this way won't work.)
 
 <item><tt/DisableFastStart=1/<newline>
 Default: <tt>0</tt><newline>
+<p>
 Remove fastStart elements from signalling messages so the endpoints
 are not able to establish a fastStart connection.
 
@@ -941,7 +944,7 @@ There are a few cases where these rules don't apply, because
 knows that the call needs proxying:
 For example calls involving H.460.18/.19 will always be proxied (because this protocol requires proxying).
 
-p>
+<p>
 <sect1>Section &lsqb;ModeVendorSelection&rsqb;
 <label id="modeselection">
 <p>
@@ -970,3 +973,4 @@ VoIP Technologies=PROXY
 </verb></tscreen>
 
 </descrip>
+
