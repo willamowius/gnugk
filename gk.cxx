@@ -298,7 +298,7 @@ const char * KnownConfigEntries[][2] = {
 #ifdef H323_H235
 	{ "H235", "CheckSendersID" },
 	{ "H235", "FullQ931Checking" },
-	{ "H235", "RequireH2351GeneralID" },
+	{ "H235", "RequireGeneralID" },
 	{ "H235", "TimestampGracePeriod" },
 	{ "H235", "UseEndpointIdentifier" },
 	{ "H235", "VerifyRandomNumber" },

@@ -266,7 +266,7 @@ Default: <tt/1/<newline>
 Use the endpoint identifier as RemoteID.
 When calling Innovaphone r6 endpoints, this must be off. With Innovaphone r11 it may be on.
 
-<item><tt/RequireH2351GeneralID=1/<newline>
+<item><tt/RequireGeneralID=1/<newline>
 Default: <tt/0/<newline>
 <p>
 The H.235v3 spec requires endpoints to send a GeneralID inside H.235.1 tokens.
@@ -312,7 +312,7 @@ A very relaxed H.235 configuration, allowing many variations in vendor implement
 <tscreen><verb>
 [H235]
 UseEndpointIdentifier=0
-RequireH2351GeneralID=0
+RequireGeneralID=0
 FullQ931Checking=0
 CheckSendersID=0
 VerifyRandomNumber=0
@@ -327,7 +327,7 @@ A very secure H.235 configuration, checking all aspects as defined by the ITU.
 <tscreen><verb>
 [H235]
 UseEndpointIdentifier=1
-RequireH2351GeneralID=1
+RequireGeneralID=1
 FullQ931Checking=1
 CheckSendersID=1
 VerifyRandomNumber=1
