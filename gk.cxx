@@ -296,7 +296,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "GkStatus::Message", "RCF" },
 	{ "GkStatus::Message", "URQ" },
 #ifdef H323_H235
-	{ "H235", "CheckQ931SendersID" },
+	{ "H235", "CheckSendersID" },
 	{ "H235", "FullQ931Checking" },
 	{ "H235", "RequireH2351GeneralID" },
 	{ "H235", "TimestampGracePeriod" },

@@ -1,5 +1,6 @@
 Changes from 3.9 to 4.0
 =======================
+- [...PasswordAuth] CheckID switch is now deprecated, use [H235] CheckSendersID instead
 - provide vendor informations from ARQ or Setup as %{Vendor} in SQLAuth CallQuery
 - prepend timestamp to events in status port backlog
 - BUGFIX(Routing.cxx) remove newlines from vendor string before sending out  RouteRequest to virtual queue

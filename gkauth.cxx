@@ -994,7 +994,11 @@ SimplePasswordAuth::SimplePasswordAuth(
 		PTRACE(1, "GKAUTH\t" << GetName() << " KeyFilled config variable is missing");
 	}
 	m_encryptionKey = GetConfig()->GetInteger(name, "KeyFilled", 0);
-	m_checkID = GetConfig()->GetBoolean(name, "CheckID", true);
+	m_checkID = GkConfig()->GetBoolean("H235", "CheckSendersID", true);
+	if (GkConfig()->HasKey(name, "CheckID")) {
+        m_checkID = GkConfig()->GetBoolean(name, "CheckID", true);  // backward compatibility, deprecated
+	}
+	GetConfig()->GetBoolean(name, "CheckID", true);
 	m_cache = new CacheManager(GetConfig()->GetInteger(name, "PasswordTimeout", -1));
 	m_disabledAlgorithms = GetConfig()->GetString(name, "DisableAlgorithm", "").Tokenise(",;", FALSE);
 

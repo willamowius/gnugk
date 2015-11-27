@@ -279,7 +279,7 @@ The H.235v3 spec mandates all Q,931 signaling messages (Setup, Alerting, Connect
 be secured with H.235.1 tokens. This is very good practice, but not all vendors implement it.
 (AudioCodes and Innovaphone do.)
 
-<item><tt/CheckQ931SendersID=0/<newline>
+<item><tt/CheckSendersID=0/<newline>
 Default: <tt/1/<newline>
 <p>
 Check if the SendersID inside tokens matches their alias or endpointID.
@@ -314,12 +314,9 @@ A very relaxed H.235 configuration, allowing many variations in vendor implement
 UseEndpointIdentifier=0
 RequireH2351GeneralID=0
 FullQ931Checking=0
-CheckQ931SendersID=0
+CheckSendersID=0
 VerifyRandomNumber=0
 TimestampGracePeriod=7210
-
-[SimplePasswordAuth]
-CheckID=0
 </verb></tscreen>
 </descrip>
 
@@ -335,9 +332,6 @@ FullQ931Checking=1
 CheckQ931SendersID=1
 VerifyRandomNumber=1
 TimestampGracePeriod=60
-
-[SimplePasswordAuth]
-CheckID=1
 </verb></tscreen>
 </descrip>
 
@@ -369,14 +363,13 @@ Default value to use as a padding byte during password encryption/decryption.
 <item><tt/CheckID=1/<newline>
 Default: <tt/0/<newline>
 <p>
+DEPRECATED: Please use the CheckSendersID= switch in the [H235] section.
+
 Check if the aliases match the ID in the tokens. Some endpoints use separate names
 for their alias and for authentication. If all your endpoints use their alias as ID
 in the tokens, you can tighten security by checking it.
 
 This switch applies to the RAS tokens of all password authenticators.
-Use the CheckQ931SendersId= switch in the [H235] section to configure checks
-for the sendersID in Q.931 signaling messages.
-
 
 <item><tt/PasswordTimeout=120/<newline>
 Default: <tt/-1/<newline>

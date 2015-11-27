@@ -158,7 +158,7 @@ int GkH235Authenticators::Validate(
 					const PString oldRemoteId = m_authProcedure1->GetRemoteId();
 					m_authProcedure1->SetLocalId(m_localIdProcedure1);
 					m_authProcedure1->SetRemoteId(m_remoteIdProcedure1);
-                   	bool checkSendersID = GkConfig()->GetBoolean("H235", "CheckQ931SendersID", true);
+                   	bool checkSendersID = GkConfig()->GetBoolean("H235", "CheckSendersID", true);
 					if (cryptoHashedToken.m_hashedVals.HasOptionalField(H235_ClearToken::e_sendersID) && checkSendersID) {
                         bool idOK = true;
                         // TODO235: check if sendersID == EPID or == alias and then set the actual as expected, don't set if its not a correct one
@@ -502,6 +502,7 @@ void GkH235Authenticators::SetProcedure1Data(const PString & sendersID, const PS
 	m_authProcedure1->SetPassword(password);
 #ifdef HAS_H2351_CONFIG
 	m_authProcedure1->RequireGeneralID(requireGeneralID);
+	m_authProcedure1->CheckSendersID(GkConfig()->GetBoolean("H235", "CheckSendersID", true));
 	m_authProcedure1->FullQ931Checking(GkConfig()->GetBoolean("H235", "FullQ931Checking", false));
 	m_authProcedure1->VerifyRandomNumber(GkConfig()->GetBoolean("H235", "VerifyRandomNumber", true));
 #endif // HAS_H2351_CONFIG
