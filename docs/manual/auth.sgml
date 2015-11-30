@@ -1716,11 +1716,11 @@ Registration authentication scripts can use the following variables
 
 Call authentication scripts can use the following variables
 <itemize>
-<item><tt/source/ -
-<item><tt/calledAlias/ - 
-<item><tt/calledIP/ - 
-<item><tt/caller/ - 
+<item><tt/source/ - signaling IP of the calling endpoint
+<item><tt/calledAlias/ - the called alias
+<item><tt/calledIP/ - the called IP
 <item><tt/callingStationId/ - caller's number, if available
+<item><tt/caller/ - srcInfo of calling endpoint from ARQ or callingStationId from Setup
 <item><tt/callid/ - the call ID
 <item><tt/messageType/ - either "ARQ" or "Setup"
 </itemize>
