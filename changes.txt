@@ -1,3 +1,8 @@
+Changes from 4.0 to 4.1
+=======================
+
+
+
 Changes from 3.9 to 4.0
 =======================
 - [...PasswordAuth] CheckID switch is now deprecated, use [H235] CheckSendersID instead
