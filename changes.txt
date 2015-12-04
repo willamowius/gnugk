@@ -1,6 +1,6 @@
 Changes from 4.0 to 4.1
 =======================
-
+- BUGFIX(ProxyChannel.cxx) add h245Address to Connect if called H.460.18 endpoint didn't add one
 
 
 Changes from 3.9 to 4.0
