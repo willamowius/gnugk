@@ -454,6 +454,8 @@ void EndpointRec::LoadEndpointConfig()
 			}
 			m_addCallingPartyToSourceAddress = cfg->GetBoolean(key, "AddCallingPartyToSourceAddress", false);
 			m_disabledcodecs = cfg->GetString(key, "DisabledCodecs", "");
+            if (!m_disabledcodecs.IsEmpty() && m_disabledcodecs.Right(1) != ";")
+                m_disabledcodecs += ";";
 
 			PTRACE(5, "RAS\tEndpoint " << key << " capacity: " << m_capacity << log);
 
@@ -2687,7 +2689,7 @@ CallRec::CallRec(
 	m_durationLimit = ctable->GetDefaultDurationLimit();
 	m_failoverActive = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ActivateFailover", "0"));
 	m_singleFailoverCDR = ctable->SingleFailoverCDR();
-	m_disabledcodecs = GkConfig()->GetString(CallTableSection, "DisabledCodecs", "") + ";";
+	m_disabledcodecs = GkConfig()->GetString(CallTableSection, "DisabledCodecs", "");
 	if (!m_disabledcodecs.IsEmpty() && m_disabledcodecs.Right(1) != ";")
 		m_disabledcodecs += ";";
 
