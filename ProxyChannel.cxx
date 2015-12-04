@@ -5464,7 +5464,8 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 
     // add h245Address for Connect from H.460.18 endpoints that don't need to provide one
     if (!connectBody.HasOptionalField(H225_Connect_UUIE::e_h245Address)
-        && (m_h245handler != NULL)                          // only add if we handle H.235
+        && (m_h245handler != NULL)                          // only add if we handle H.245
+        && !m_h245Tunneling                                 // only add if called endpoint doesn't tunnel H.245
         && m_call && m_call->GetCalledParty()
         && m_call->GetCalledParty()->IsTraversalClient()    // only add if sender is a traversal client
     ) {
