@@ -1848,7 +1848,7 @@ bool DynamicPolicy::OnRequest(LocationRequest & request)
 	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
 	H225_LocationRequest & lrq = request.GetRequest();
 	if (!lrq.HasOptionalField(H225_LocationRequest::e_canMapAlias) || !lrq.m_canMapAlias) {
-			PTRACE(3, "WARNING: Sender can't map destination alias via SqlPolicy");
+			PTRACE(3, "WARNING: Sender can't map destination alias via dynamic policy");
 	}
 	PString source = AsDotString(lrq.m_replyAddress);
 	PString calledAlias = "";
