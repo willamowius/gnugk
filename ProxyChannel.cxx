@@ -8608,7 +8608,7 @@ ProxySocket::Result H245Socket::ReceiveData()
 			&& sigSocket->GetRemote()->IsH245Tunneling()
 			&& sigSocket->GetRemote()->IsH245TunnelingTranslation()) {
 			if (!sigSocket->GetRemote()->SendTunneledH245(strm)) {
-				PTRACE(1, "Error: H.245 tunnel send failed");
+				PTRACE(1, "Error: H.245 tunnel send failed to " << sigSocket->GetRemote()->GetName());
 			}
 			return NoData;	// already forwarded through tunnel
 		}
