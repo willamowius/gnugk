@@ -119,7 +119,7 @@ for detailed explanations. When you run GnuGk as a service, no command line opti
 To register the service, run the following command from the command line ('cmd.exe'):
 
 <tscreen><verb>
-gnugk.exe install
+gnugk.exe install notray
 </verb></tscreen>
 
 Your service is now installed and will be started on the next reboot, or you
