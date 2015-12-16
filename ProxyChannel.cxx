@@ -455,6 +455,15 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 	toAddress.GetIpAndPort(toIP, toPort);
 	SetSockaddr(dest, toIP, toPort);
 
+    // TODO: should we avoid reading the config for every UDP packet ?
+    if (GkConfig()->GetBoolean(RoutedSec, "DisableSettingUDPSourceIP", false)) {
+        ssize_t bytesSent = sendto(fd, (char *)data, len, 0, (struct sockaddr*)&dest, sizeof(dest));
+        if (bytesSent < 0) {
+            PTRACE(7, "RTP\tSend error " << strerror(errno));
+        }
+        return bytesSent;
+    }
+
 	// set source address
 	PIPSocket::Address src = RasServer::Instance()->GetLocalAddress(toIP);
 
@@ -462,7 +471,9 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 	struct cmsghdr *cmsg;
 	struct iovec iov;
 	char cbuf[256];
+#ifdef _DEBUG
 	memset(&cbuf, 0, sizeof(cbuf));	// zero the buffer to shut up Valgrind
+#endif
 
 	/* Set up iov and msgh structures. */
 	memset(&msgh, 0, sizeof(struct msghdr));
@@ -477,7 +488,7 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 #ifdef hasIPV6
 	if (toIP.GetVersion() == 6)
 		addr_len = sizeof(sockaddr_in6);
-#endif
+#endif  // hasIPV6
 	msgh.msg_namelen = addr_len;
 
 #ifdef hasIPV6
@@ -497,7 +508,7 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 		pkt->ipi6_addr = src;
 		msgh.msg_controllen = cmsg->cmsg_len;
 	} else
-#endif
+#endif  // hasIPV6
 	{
 #if defined(IP_PKTINFO)	// Linux and Solaris 11
 		struct in_pktinfo *pkt;
@@ -526,8 +537,8 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 
 		in = (struct in_addr *) CMSG_DATA(cmsg);
 		*in = src;
-#endif
-#endif
+#endif  // IP_SENDSRCADDR
+#endif  // IP_PKTINFO else
 	}
 
 	ssize_t bytesSent = sendmsg(fd, &msgh, 0);

@@ -459,9 +459,10 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "CallingTypeOfNumber" },
 	{ "RoutedMode", "CpsCheckInterval" },
 	{ "RoutedMode", "CpsLimit" },
+	{ "RoutedMode", "DisableFastStart" },
 	{ "RoutedMode", "DisableH245Tunneling" },
 	{ "RoutedMode", "DisableRetryChecks" },
-	{ "RoutedMode", "DisableFastStart" },
+	{ "RoutedMode", "DisableSettingUDPSourceIP" },
 	{ "RoutedMode", "DropCallsByReleaseComplete" },
 	{ "RoutedMode", "ENUMservers" },
 #ifdef HAS_H235_MEDIA
