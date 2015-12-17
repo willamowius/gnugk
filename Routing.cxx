@@ -1435,10 +1435,13 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 		PString * bindIP = new PString();
 		PString * callerID = new PString();
 		PString callid = AsString(setup.m_callIdentifier.m_guid);
-		H225_AliasAddress srcAlias;
-		// convert caller string back to alias to get alias type
-		H323SetAliasAddress(request.GetCallingStationId(), srcAlias);
-		PString src = AsString(srcAlias);
+		PString src;
+		if (!request.GetCallingStationId().IsEmpty()) {
+            H225_AliasAddress srcAlias;
+            // convert caller string back to alias to get alias type
+            H323SetAliasAddress(request.GetCallingStationId(), srcAlias);
+            src = AsString(srcAlias);
+        }
 		PIPSocket::Address localAddr;
 		WORD localPort;
 		request.GetWrapper()->GetLocalAddr(localAddr, localPort);
