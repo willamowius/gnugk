@@ -368,54 +368,51 @@ int GkAuthenticator::Check(
 		? m_defaultStatus : e_next;
 }
 
+int GkAuthenticator::AuthEnum(unsigned msgCode) const
+{
+    switch (msgCode) {
+        case Q931::AlertingMsg:
+            return e_Alerting;
+        case Q931::CallProceedingMsg:
+            return e_CallProceeding;
+        case Q931::ConnectMsg:
+            return e_Connect;
+        case Q931::ProgressMsg:
+            return e_Progress;
+        case Q931::SetupMsg:
+            return e_Setup;
+        case Q931::SetupAckMsg:
+            return e_SetupAck;
+        case Q931::ReleaseCompleteMsg:
+            return e_ReleaseComplete;
+        case Q931::InformationMsg:
+            return e_Information;
+        case Q931::NotifyMsg:
+            return e_Notify;
+        case Q931::StatusMsg:
+            return e_Status;
+        case Q931::StatusEnquiryMsg:
+            return e_StatusEnquiry;
+        case Q931::FacilityMsg:
+            return e_Facility;
+        default:
+            return -1;
+    }
+}
+
+// this method is called for authentication checks not implemented by individual authenticators
 int GkAuthenticator::Check(
 	Q931 & msg,
 	/// authorization data
 	Q931AuthData & /*authData*/)
 {
-    switch (msg.GetMessageType()) {
-        case Q931::AlertingMsg:
-            return IsMiscCheckEnabled(e_Alerting) ? m_defaultStatus : e_next;
-            break;
-        case Q931::CallProceedingMsg:
-            return IsMiscCheckEnabled(e_CallProceeding) ? m_defaultStatus : e_next;
-            break;
-        case Q931::ConnectMsg:
-            return IsMiscCheckEnabled(e_Connect) ? m_defaultStatus : e_next;
-            break;
-        case Q931::ProgressMsg:
-            return IsMiscCheckEnabled(e_Progress) ? m_defaultStatus : e_next;
-            break;
-        case Q931::SetupMsg:
-            return (IsMiscCheckEnabled(e_Setup) || IsMiscCheckEnabled(e_SetupUnreg)) ? m_defaultStatus : e_next;
-            break;
-        case Q931::SetupAckMsg:
-            return IsMiscCheckEnabled(e_SetupAck) ? m_defaultStatus : e_next;
-            break;
-        case Q931::ReleaseCompleteMsg:
-            return IsMiscCheckEnabled(e_ReleaseComplete) ? m_defaultStatus : e_next;
-            break;
-        case Q931::InformationMsg:
-            return IsMiscCheckEnabled(e_Information) ? m_defaultStatus : e_next;
-            break;
-        case Q931::NotifyMsg:
-            return IsMiscCheckEnabled(e_Notify) ? m_defaultStatus : e_next;
-            break;
-        case Q931::StatusMsg:
-            return IsMiscCheckEnabled(e_Status) ? m_defaultStatus : e_next;
-            break;
-        case Q931::StatusEnquiryMsg:
-            return IsMiscCheckEnabled(e_StatusEnquiry) ? m_defaultStatus : e_next;
-            break;
-        case Q931::FacilityMsg:
-            return IsMiscCheckEnabled(e_Facility) ? m_defaultStatus : e_next;
-            break;
-        default:
-            return e_next;
-            break;
+    int code = AuthEnum(msg.GetMessageType());
+    if (code > 0) {
+        return IsMiscCheckEnabled(e_Facility) ? m_defaultStatus : e_next;
+    } else {
+        return e_next;
     }
 }
-
 
 bool GkAuthenticator::IsH235Capability(
 	/// authentication mechanism
@@ -931,17 +928,19 @@ bool GkAuthenticatorList::Validate(Q931 & msg, Q931AuthData & authData)
 	std::list<GkAuthenticator*>::const_iterator i = m_authenticators.begin();
 	while (i != m_authenticators.end()) {
 		GkAuthenticator* auth = *i++;
-		const int result = auth->Check(msg, authData);
-		if (result == GkAuthenticator::e_ok) {
-			PTRACE(3, "GKAUTH\t" << auth->GetName() << " Q931 check ok");
-			if (auth->GetControlFlag() == GkAuthenticator::e_Sufficient
-					|| auth->GetControlFlag() == GkAuthenticator::e_Alternative)
-				return true;
-		} else if (result == GkAuthenticator::e_fail) {
-			PTRACE(3, "GKAUTH\t" << auth->GetName() << " Q931 check failed");
-			SNMP_TRAP(8, SNMPError, Authentication, auth->GetName() + " Q931 check failed");
-			return false;
-		}
+		if (auth->IsMiscCheckEnabled(auth->AuthEnum(msg.GetMessageType()))) {
+            const int result = auth->Check(msg, authData);
+            if (result == GkAuthenticator::e_ok) {
+                PTRACE(3, "GKAUTH\t" << auth->GetName() << " Q931 check ok");
+                if (auth->GetControlFlag() == GkAuthenticator::e_Sufficient
+                        || auth->GetControlFlag() == GkAuthenticator::e_Alternative)
+                    return true;
+            } else if (result == GkAuthenticator::e_fail) {
+                PTRACE(3, "GKAUTH\t" << auth->GetName() << " Q931 check failed");
+                SNMP_TRAP(8, SNMPError, Authentication, auth->GetName() + " Q931 check failed");
+                return false;
+            }
+        }
 	}
 	return true;
 }

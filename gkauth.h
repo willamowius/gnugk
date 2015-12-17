@@ -381,6 +381,11 @@ public:
 	bool IsMiscCheckEnabled(unsigned miscCheck) const
 		{ return (m_enabledMiscChecks & m_supportedMiscChecks & miscCheck) == miscCheck; }
 
+    /** @return
+        Enum code for supported checks for thsi Q.931 message type
+    */
+    int AuthEnum(unsigned msgCode) const;
+
 	/** Virtual methods overriden in derived classes to perform
 		the actual authentication. The first parameter is a request
 	    to be checked, the second is a H225_XXXRejectReason that can
