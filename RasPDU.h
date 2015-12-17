@@ -121,6 +121,10 @@ public:
 	unsigned GetTag() const { return m_msg->GetTag(); }
 	const char *GetTagName() const { return m_msg->GetTagName(); }
 
+	/// Get an address the message has been received from
+	void GetPeerAddr(PIPSocket::Address & addr, WORD & port) const;
+	void GetPeerAddr(PIPSocket::Address & addr) const;
+
 	void GetRasAddress(H225_TransportAddress &) const;
 	void GetCallSignalAddress(H225_TransportAddress &) const;
 

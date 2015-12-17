@@ -416,6 +416,19 @@ void RasMsg::GetCallSignalAddress(H225_TransportAddress & result) const
 		result = SocketToH225TransportAddr(m_msg->m_localAddr, m_msg->m_socket ? m_msg->m_socket->GetSignalPort() : 0);
 }
 
+/// Get an address the message has been received from
+void RasMsg::GetPeerAddr(PIPSocket::Address & addr, WORD & port) const
+{
+    addr = m_msg->m_peerAddr;
+    port = m_msg->m_peerPort;
+}
+
+void RasMsg::GetPeerAddr(PIPSocket::Address & addr) const
+{
+    addr = m_msg->m_peerAddr;
+}
+
+
 bool RasMsg::EqualTo(const RasMsg *other) const
 {
 	if (GetTag() != other->GetTag())

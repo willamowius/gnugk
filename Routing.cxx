@@ -1295,9 +1295,10 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
                 vendorInfo.Replace("\r", "", true);
                 vendorInfo.Replace("\n", "", true);
 			}
-            H225_TransportAddress remoteAddr;
-            request.GetWrapper()->GetRasAddress(remoteAddr);
-            PString fromIP = AsDotString(remoteAddr, true);
+            PIPSocket::Address remoteAddr;
+            WORD remotePort;
+            request.GetWrapper()->GetPeerAddr(remoteAddr, remotePort);
+            PString fromIP = AsString(remoteAddr, remotePort);
             bool keepRouteInternal = false;
 
 			if (m_vqueue->SendRouteRequest(source, epid, unsigned(arq.m_callReferenceValue), aliases, callSigAdr, bindIP, callerID, reject, keepRouteInternal, vq, AsString(arq.m_srcInfo), AsString(arq.m_callIdentifier.m_guid), calledIP, vendorInfo, fromIP)) {
@@ -1372,9 +1373,10 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 			PString callID = "-";	/* not available for LRQs */
 			PString calledIP = "unknown";
             PString vendorString = "unknown";
-            H225_TransportAddress remoteAddr;
-            request.GetWrapper()->GetRasAddress(remoteAddr);
-            PString fromIP = AsDotString(remoteAddr, true);
+            PIPSocket::Address remoteAddr;
+            WORD remotePort;
+            request.GetWrapper()->GetPeerAddr(remoteAddr, remotePort);
+            PString fromIP = AsString(remoteAddr, remotePort);
             bool keepRouteInternal = false;
 
 			if (m_vqueue->SendRouteRequest(source, epid, unsigned(lrq.m_requestSeqNum), aliases, callSigAdr, bindIP, callerID, reject, keepRouteInternal, vq, sourceInfo, callID, calledIP, vendorString, fromIP)) {

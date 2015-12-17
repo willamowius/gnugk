@@ -1,5 +1,6 @@
 Changes from 4.0 to 4.1
 =======================
+- BUGFIX(Routing.cxx) fix fromIP for ARQ and LRQ RouteRequests
 - BUGFIX(gkauth.cxx) only call Q.931 checks when activated
 - BUGFIX(Routing.cxx) fix RouteRequest from unregistered caller who doesn't provide any alias
 - new switch: [RoutedMode] DisableSettingUDPSourceIP=1
