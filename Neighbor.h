@@ -36,12 +36,12 @@ class RasServer;
 
 namespace Neighbors {
 
-
 using Routing::AdmissionRequest;
 using Routing::LocationRequest;
 using Routing::SetupRequest;
 using Routing::FacilityRequest;
 
+class NeighborPingThread;
 
 struct PrefixInfo {
 	PrefixInfo() : m_length(0), m_priority(0) { }
@@ -147,6 +147,7 @@ protected:
 	GkTimerManager::GkTimerHandle m_keepAliveTimer;
 	int m_lrqPingInterval;
 	GkTimerManager::GkTimerHandle m_lrqPingTimer;
+    NeighborPingThread * m_pingThread;
 	bool m_H46018Server;
 	bool m_H46018Client;
 	bool m_useTLS;

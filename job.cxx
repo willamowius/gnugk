@@ -23,7 +23,7 @@
 #include "job.h"
 
 // timeout (seconds) for an idle Worker to be deleted
-#define DEFAULT_WORKER_IDLE_TIMEOUT (2*60)		// 2 minutes
+#define DEFAULT_WORKER_IDLE_TIMEOUT (60*60)		// 60 minutes   // TODO: add config switch
 
 /** This class represents a thread that performs jobs. It has two states:
     idle and busy. When it accepts a new Job, it becomes busy. When the job
@@ -40,7 +40,7 @@ public:
 	/// create a new Worker thread and start it immediately
 	Worker(
 		/// pointer to the Agent instance that is controlling this worker
-		Agent* agent,
+		Agent * agent,
 		/// timeout (seconds) for this Worker to be deleted, if idle
 		long idleTimeout = DEFAULT_WORKER_IDLE_TIMEOUT
 		);
@@ -55,7 +55,7 @@ public:
 		true if this Worker is idle and has taken the Job, false otherwise
 		(on failuer the job object is not deleted).
 	*/
-	bool Exec(Job* job);
+	bool Exec(Job * job);
 
 	/** Stop the Worker thread and any jobs being executed,
 	    wait for Worker thread termination and delete this object.
@@ -68,7 +68,7 @@ public:
 private:
 	Worker();
 	Worker(const Worker &);
-	Worker& operator=(const Worker &);
+	Worker & operator=(const Worker &);
 
 private:
 	/// idle timeout (seconds), after which the Worker is destoyed
@@ -80,7 +80,7 @@ private:
 	/// for atomic job insertion and deletion
 	PMutex m_jobMutex;
 	/// actual Job being executed, NULL if the Worker is idle
-	Job* volatile m_job;
+	Job * volatile m_job;
 	/// Worker thread identifier
 	PThreadIdentifier m_id;
 	/// Agent singleton pointer to avoid unnecessary Instance() calls
@@ -204,10 +204,10 @@ void Worker::Main()
 bool Worker::Exec(Job * job)
 {
 	// fast check if there is no job being executed
-	if (m_job == 0 && !m_closed) {
+	if (m_job == NULL && !m_closed) {
 		PWaitAndSignal lock(m_jobMutex);
 		// check again there is no job being executed
-		if (m_job == 0 && !m_closed) {
+		if (m_job == NULL && !m_closed) {
 			m_job = job;
 			m_wakeupSync.Signal();
 			return true;

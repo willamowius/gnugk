@@ -265,39 +265,45 @@ private:
 
 class NeighborPingThread : public PThread, public RasRequester {
 public:
-	NeighborPingThread(Neighbor * nb) : PThread(5000, AutoDeleteThread), m_nb(nb) { Resume(); }
+	NeighborPingThread(Neighbor * nb) : PThread(5000, AutoDeleteThread), m_nb(nb), m_stopThread(false) { }
 	virtual ~NeighborPingThread() { }
 	virtual void Main();
     virtual void Process(RasMsg * ras);
+    virtual void StopThread() { m_stopThread = true; }
 protected:
     Neighbor * m_nb;
+    bool m_stopThread;
 };
 
 void NeighborPingThread::Main()
 {
-	AddFilter(H225_RasMessage::e_locationConfirm);
-	AddFilter(H225_RasMessage::e_locationReject);
-	m_rasSrv->RegisterHandler(this);
+    while (!m_stopThread) {
+        AddFilter(H225_RasMessage::e_locationConfirm);
+        AddFilter(H225_RasMessage::e_locationReject);
+        m_rasSrv->RegisterHandler(this);
 
-	m_request = new H225_RasMessage();
-    H225_ArrayOf_AliasAddress aliases;
-    aliases.SetSize(1);
-    PString pingAlias = GkConfig()->GetString(LRQFeaturesSection, "PingAlias", "gatekeeper-monitoring-check");
-    H323SetAliasAddress(pingAlias, aliases[0]);
-	m_nb->BuildLRQ(*m_request, m_seqNum, aliases);
-	SendRequest(m_nb->GetIP(), m_nb->GetPort(), 0); // no retries
+        m_request = new H225_RasMessage();
+        H225_ArrayOf_AliasAddress aliases;
+        aliases.SetSize(1);
+        PString pingAlias = GkConfig()->GetString(LRQFeaturesSection, "PingAlias", "gatekeeper-monitoring-check");
+        H323SetAliasAddress(pingAlias, aliases[0]);
+        m_nb->BuildLRQ(*m_request, m_seqNum, aliases);
+        SendRequest(m_nb->GetIP(), m_nb->GetPort(), 0); // no retries
 
-    int timeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 1000;
-    bool signaled = m_sync.Wait(timeout);
-    if (!signaled) {
-        if (!m_nb->IsDisabled()) {
-            PTRACE(3, "NB\tPing timeout: Disabling neighbor " << m_nb->GetId());
-            m_nb->SetDisabled(true);
+        int timeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 1000;
+        bool signaled = m_sync.Wait(timeout);
+        if (!signaled) {
+            if (!m_nb->IsDisabled()) {
+                PTRACE(3, "NB\tPing timeout: Disabling neighbor " << m_nb->GetId());
+                m_nb->SetDisabled(true);
+            }
         }
-    }
 
-	m_rasSrv->UnregisterHandler(this);
-    delete m_request;
+        m_rasSrv->UnregisterHandler(this);
+        delete m_request;
+        Suspend();
+    }
+    Terminate(); // stop thread and auto delete
 }
 
 void NeighborPingThread::Process(RasMsg * ras)
@@ -336,6 +342,7 @@ Neighbor::Neighbor()
 	m_keepAliveTimerInterval = 0;
 	m_lrqPingTimer = GkTimerManager::INVALID_HANDLE;
 	m_lrqPingInterval = 0;
+	m_pingThread = NULL;
 	m_H46018Server = false;
 	m_H46018Client = false;
 	m_useTLS = false;
@@ -348,6 +355,10 @@ Neighbor::~Neighbor()
 		Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_keepAliveTimer);
 	if (m_lrqPingTimer != GkTimerManager::INVALID_HANDLE)
 		Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_lrqPingTimer);
+    if (m_pingThread != NULL) {
+        m_pingThread->StopThread();
+        m_pingThread = NULL;    // auto delete thread will delete itself
+    }
 	PTRACE(1, "NB\tDelete neighbor " << m_id);
 }
 
@@ -497,7 +508,13 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 		Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_lrqPingTimer);
 	if (config->GetBoolean(LRQFeaturesSection, "SendLRQPing", false) || config->GetBoolean(section, "SendLRQPing", false)) {
 		SetLRQPingInterval(config->GetInteger(LRQFeaturesSection, "LRQPingInterval", 60));
-	}
+	} else {
+	    if (m_pingThread != NULL) {
+            // config changed: we had a ping thread, but now we don't need it anymore
+            m_pingThread->StopThread();
+            m_pingThread = NULL;    // auto delete thread will delete itself
+	    }
+    }
 #ifdef HAS_TLS
 	m_useTLS = Toolkit::AsBool(config->GetString(section, "UseTLS", "0")); // forced use of TLS
 #endif
@@ -515,7 +532,9 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 
 void Neighbor::SendLRQPing(GkTimer * timer)
 {
-    new NeighborPingThread(this);   // thread automatically starts (resumes) and deletes itself
+    if (m_pingThread == NULL)
+        m_pingThread = new NeighborPingThread(this);
+    m_pingThread->Resume(); // send 1 ping, process and suspend yourself
 }
 
 void Neighbor::SetLRQPingInterval(int interval)
