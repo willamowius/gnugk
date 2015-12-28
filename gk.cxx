@@ -223,6 +223,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Gatekeeper::Main", "UnicastRasPort" },
 	{ "Gatekeeper::Main", "UseBroadcastListener" },
 	{ "Gatekeeper::Main", "UseMulticastListener" },
+	{ "Gatekeeper::Main", "WorkerThreadIdleTimeout" },
 #ifdef HAS_GEOIP
 	{ "GeoIPAuth", "AllowedCountries" },
 	{ "GeoIPAuth", "Database" },
@@ -777,19 +778,7 @@ const char * KnownConfigEntries[][2] = {
 
 bool IsGatekeeperShutdown()
 {
-	bool shutdown = false;
-#ifdef hasNoMutexWillBlock
-	// TODO: this might be a performance bottleneck on high load
-	if (!ShutdownMutex.Wait(0)) {
-		shutdown = true;
-	} else {
-		ShutdownMutex.Signal();	// release mutex, we were just checking for shutdown
-	}
-#else
-	if (ShutdownMutex.WillBlock())
-		shutdown = true;
-#endif
-    return shutdown;
+    return ShutdownFlag;
 }
 
 namespace { // keep the global objects private
@@ -1029,6 +1018,7 @@ BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 #endif
 
 	PWaitAndSignal shutdown(ShutdownMutex);
+	ShutdownFlag = true;
 	RasServer::Instance()->Stop();
 
 	// CTRL_CLOSE_EVENT:
@@ -1116,6 +1106,7 @@ bool Gatekeeper::SetUserAndGroup(const PString & username)
 void UnixShutdownHandler(int sig)
 {
 	if (RasServer::Instance()->IsRunning() && ShutdownMutex.Wait(0)) {
+		ShutdownFlag = true;
 		PTRACE(1, "GK\tReceived signal " << sig);
 #ifdef HAS_H46017
 		// unregister all H.460.17 endpoints before we stop the socket handlers and thus delete their sockets
@@ -1274,13 +1265,10 @@ void Gatekeeper::OnStop()
 
 void Gatekeeper::Terminate()
 {
-#ifdef _WIN32
-	if (!RasServer::Instance()->IsRunning())
-#else
-	if (IsGatekeeperShutdown()) || !RasServer::Instance()->IsRunning())
-#endif
+ 	if (IsGatekeeperShutdown()) || !RasServer::Instance()->IsRunning())
 		return;
 	PWaitAndSignal shutdown(ShutdownMutex);
+	ShutdownFlag = true;
 	RasServer::Instance()->Stop();
 	// wait for termination
 	PThread::Sleep(10 * 1000);	// sleep 10 sec

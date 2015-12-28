@@ -672,6 +672,14 @@ Default: <tt/0/<newline>
 <p>
 Time (in seconds) to wait before rejecting an invalid username/password.  Useful to insert
 a delay in brute-force attacks.
+
+<item><tt/WorkerThreadIdleTimeout=7200/<newline>
+Default: <tt/3600/<newline>
+<p>
+Default timeout in seconds after which idle worker threads are deleted from thread pool.
+
+Don't set this value too low when using a PTLib version with a memory leak when deleting AutoDelete threads, eg. 2.10.9.
+
 </itemize>
 
 <sect1>Section &lsqb;GkStatus::Filtering&rsqb;

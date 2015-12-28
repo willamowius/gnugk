@@ -23,7 +23,7 @@
 #include "job.h"
 
 // timeout (seconds) for an idle Worker to be deleted
-#define DEFAULT_WORKER_IDLE_TIMEOUT (60*60)		// 60 minutes   // TODO: add config switch
+long g_workerIdleTimeout = DEFAULT_WORKER_IDLE_TIMEOUT;
 
 /** This class represents a thread that performs jobs. It has two states:
     idle and busy. When it accepts a new Job, it becomes busy. When the job
@@ -42,7 +42,7 @@ public:
 		/// pointer to the Agent instance that is controlling this worker
 		Agent * agent,
 		/// timeout (seconds) for this Worker to be deleted, if idle
-		long idleTimeout = DEFAULT_WORKER_IDLE_TIMEOUT
+		long idleTimeout = g_workerIdleTimeout
 		);
 
 	virtual ~Worker();

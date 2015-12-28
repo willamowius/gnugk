@@ -34,6 +34,7 @@
 #endif
 
 extern PSemaphore ShutdownMutex;
+extern bool ShutdownFlag;	// you may only set this flag if you own the ShutdownMutex, once it is set, it can never be cleared!
 extern const char * KnownConfigEntries[][2];
 
 // you must change PTLib 2.10.x / 2.11.x configure.ac to set WINVER = 0x0600 to enable

@@ -19,6 +19,10 @@
 
 #include "name.h"
 
+// timeout (seconds) for an idle Worker to be deleted
+#define DEFAULT_WORKER_IDLE_TIMEOUT (60*60)		// 60 minutes
+extern long g_workerIdleTimeout;
+
 /** The base abstract class that represents job objects.
     This class implements the way to execute the job.
     Derived classes implement actual jobs (override Run()).

@@ -47,6 +47,7 @@ PIPSocket::Address GNUGK_INADDR_ANY(INADDR_ANY);
 
 PReadWriteMutex ConfigReloadMutex;
 PSemaphore ShutdownMutex(1, 1);
+bool ShutdownFlag = false;	// you may only set this flag if you own the ShutdownMutex, once it is set, it can never be cleared!
 
 extern const char *ProxySection;
 extern const char *RoutedSec;
@@ -1809,6 +1810,8 @@ PConfig* Toolkit::ReloadConfig()
 	m_GKName = Config()->GetString("Name", "OpenH323GK");
 
 	PTrace::SetLevel(GkConfig()->GetInteger("TraceLevel", PTrace::GetLevel()));
+
+	g_workerIdleTimeout = GkConfig()->GetInteger("WorkerThreadIdleTimeout", DEFAULT_WORKER_IDLE_TIMEOUT);
 
 	int minH323Version = GkConfig()->GetInteger("MinH323Version", 2);
 	if (minH323Version < 1)
