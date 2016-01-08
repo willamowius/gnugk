@@ -97,6 +97,21 @@ under heavy load, because more than 1 concurrent query can be executed
 at the same time. Setting <tt/MinPoolSize=1/ will simulate the old behavior, 
 when access to the SQL database was serialized (one query at time).
 Don't let the name fool you, this is the exact number of connections.
+
+<item><tt/ConnectTimeout=5/<newline>
+Default: <tt/10/<newline>
+<p>
+Timeout for database connects in seconds.
+
+Currently only used by the MySQL driver; the other drivers use library defaults.
+
+<item><tt/ReadTimeout=10/<newline>
+Default: <tt/60/<newline>
+<p>
+Timeout for database reads in seconds.
+
+Currently only used by the MySQL driver; the other drivers use library defaults.
+
 </itemize>
 
 <sect2>Placeholders in queries

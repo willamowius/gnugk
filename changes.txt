@@ -1,5 +1,6 @@
 Changes from 4.0 to 4.1
 =======================
+- new switches to set database connect and read timeout (only used by MySQL for now)
 - new switch to set worker thread idle timeout: [Gatekeeper::Main] WorkerThreadIdleTimeout=
 - BUGFIX(gk.cxx) better test for gatekeeper shutdown
 - BUGFIX(Routing.cxx) fix fromIP for ARQ and LRQ RouteRequests

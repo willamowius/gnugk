@@ -4,7 +4,7 @@
  * MySQL driver module for GnuGk
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
- * Copyright (c) 2006-2014, Jan Willamowius
+ * Copyright (c) 2006-2015, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -68,22 +68,22 @@ public:
 		/// MySQL specific error message text
 		const char* errorMsg
 		);
-	
+
 	virtual ~GkMySQLResult();
-	
+
 	/** @return
 	    Backend specific error message, if the query failed.
-	*/	
+	*/
 	virtual PString GetErrorMessage();
-	
+
 	/** @return
 	    Backend specific error code, if the query failed.
-	*/	
+	*/
 	virtual long GetErrorCode();
-	
+
 	/** Fetch a single row from the result set. After each row is fetched,
 	    cursor position is moved to a next row.
-		
+
 	    @return
 	    True if the row has been fetched, false if no more rows are available.
 	*/
@@ -98,9 +98,9 @@ public:
 
 private:
 	GkMySQLResult();
-	GkMySQLResult(const GkMySQLResult&);
-	GkMySQLResult& operator=(const GkMySQLResult&);
-	
+	GkMySQLResult(const GkMySQLResult &);
+	GkMySQLResult & operator=(const GkMySQLResult &);
+
 protected:
 	/// query result for SELECT type queries, NULL otherwise
 	MYSQL_RES * m_sqlResult;
@@ -123,7 +123,7 @@ public:
 		/// name to use in the log
 		const char* name = "MySQL"
 		);
-	
+
 	virtual ~GkMySQLConnection();
 
 protected:
@@ -143,8 +143,8 @@ protected:
 
 	private:
 		MySQLConnWrapper();
-		MySQLConnWrapper(const MySQLConnWrapper&);
-		MySQLConnWrapper& operator=(const MySQLConnWrapper&);
+		MySQLConnWrapper(const MySQLConnWrapper &);
+		MySQLConnWrapper & operator=(const MySQLConnWrapper &);
 
 	public:
 		MYSQL * m_conn;
@@ -153,9 +153,9 @@ protected:
 	/** Create a new SQL connection using parameters stored in this object.
 	    When the connection is to be closed, the object is simply deleted
 	    using delete operator.
-	    
+
 	    @return
-	    NULL if database connection could not be established 
+	    NULL if database connection could not be established
 	    or an object of MySQLConnWrapper class.
 	*/
 	virtual SQLConnPtr CreateNewConnection(
@@ -198,7 +198,7 @@ private:
 GkMySQLResult::GkMySQLResult(
 	/// SELECT type query result
 	MYSQL_RES* selectResult
-	) 
+	)
 	: GkSQLResult(false), m_sqlResult(selectResult), m_sqlRow(NULL),
 	m_sqlRowLengths(NULL), m_errorCode(0)
 {
@@ -212,19 +212,19 @@ GkMySQLResult::GkMySQLResult(
 GkMySQLResult::GkMySQLResult(
 	/// number of rows affected by the query
 	long numRowsAffected
-	) 
-	: GkSQLResult(false), m_sqlResult(NULL), m_sqlRow(NULL), 
+	)
+	: GkSQLResult(false), m_sqlResult(NULL), m_sqlRow(NULL),
 	m_sqlRowLengths(NULL), m_errorCode(0)
 {
 	m_numRows = numRowsAffected;
 }
-	
+
 GkMySQLResult::GkMySQLResult(
 	/// MySQL specific error code
 	unsigned int errorCode,
 	/// MySQL specific error message text
 	const char* errorMsg
-	) 
+	)
 	: GkSQLResult(true), m_sqlResult(NULL), m_sqlRow(NULL),
 	m_sqlRowLengths(NULL), m_errorCode(errorCode), m_errorMessage(errorMsg)
 {
@@ -240,7 +240,7 @@ PString GkMySQLResult::GetErrorMessage()
 {
 	return m_errorMessage;
 }
-	
+
 long GkMySQLResult::GetErrorCode()
 {
 	return m_errorCode;
@@ -304,7 +304,7 @@ GkMySQLConnection::GkMySQLConnection(
 	) : GkSQLConnection(name)
 {
 }
-	
+
 GkMySQLConnection::~GkMySQLConnection()
 {
 }
@@ -362,7 +362,8 @@ GkSQLConnection::SQLConnPtr GkMySQLConnection::CreateNewConnection(
 		}
 	}
 
-	const unsigned int CONNECT_TIMEOUT = 10;	// connect timeout in seconds (!)
+	const unsigned int CONNECT_TIMEOUT = m_connectTimeout; // connect timeout in seconds
+	const unsigned int READ_TIMEOUT = m_readTimeout; // read timeout in seconds
 
 	MYSQL* conn = (*g_mysql_init)(NULL);
 	if (conn == NULL) {
@@ -371,6 +372,7 @@ GkSQLConnection::SQLConnPtr GkMySQLConnection::CreateNewConnection(
 		return NULL;
 	}
 	(*g_mysql_options)(conn, MYSQL_OPT_CONNECT_TIMEOUT, (const char*)&CONNECT_TIMEOUT);
+	(*g_mysql_options)(conn, MYSQL_OPT_READ_TIMEOUT, (const char*)&READ_TIMEOUT);
 
 #if (MYSQL_VERSION_ID >= 50013)
 	my_bool reconnect = 1;	// enable auto-reconnect, older versions have it on by default
@@ -382,20 +384,20 @@ GkSQLConnection::SQLConnPtr GkMySQLConnection::CreateNewConnection(
 	(*g_mysql_options)(conn, MYSQL_READ_DEFAULT_GROUP, "gnugk");
 
 	// connect to the MySQL database, try each host on the list in case of failure
-	if ((*g_mysql_real_connect)(conn, m_host, m_username, 
+	if ((*g_mysql_real_connect)(conn, m_host, m_username,
 			m_password.IsEmpty() ? (const char*)NULL : (const char*)m_password,
 			m_database, m_port, NULL, CLIENT_MULTI_STATEMENTS)) {
-		PTRACE(5, GetName() << "\tMySQL connection to " << m_username << '@' << m_host 
+		PTRACE(5, GetName() << "\tMySQL connection to " << m_username << '@' << m_host
 			<< '[' << m_database << "] established successfully");
 		return new MySQLConnWrapper(id, m_host, conn);
 	} else {
-		PTRACE(2, GetName() << "\tMySQL connection to " << m_username << '@' << m_host 
+		PTRACE(2, GetName() << "\tMySQL connection to " << m_username << '@' << m_host
 			<< '[' << m_database << "] failed (mysql_real_connect failed): " << (*g_mysql_error)(conn));
 		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
 	}
 	return NULL;
 }
-	
+
 GkSQLResult* GkMySQLConnection::ExecuteQuery(
 	/// SQL connection to use for query execution
 	GkSQLConnection::SQLConnPtr conn,

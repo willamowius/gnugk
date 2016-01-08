@@ -38,25 +38,25 @@ protected:
 			m_queryError(queryError) {}
 
 public:
-	/// the first element of the pair is a field value and the second 
+	/// the first element of the pair is a field value and the second
 	/// is a field name
 	typedef std::vector< std::pair<PString, PString> > ResultRow;
-	
+
 	virtual ~GkSQLResult();
-	
+
 	/** @return
 	    True if the query succeeded and the result is available.
 	    Otherwise only GetErrorMessage and GetErrorCode member functions
 	    are meaningful.
 	*/
 	bool IsValid() const { return !m_queryError; }
-	
+
 	/** @return
 	    Number of rows in the result set (to be fetched) for SELECT-like
 	    query, or number of rows affected for INSERT, UPDATE or DELETE query.
 	*/
 	long GetNumRows() const { return m_numRows; }
-	
+
 	/** @return
 	    Number of columns in the result set rows for SELECT-like query.
 	*/
@@ -64,17 +64,17 @@ public:
 
 	/** @return
 	    Backend specific error message, if the query failed.
-	*/	
+	*/
 	virtual PString GetErrorMessage() = 0;
-	
+
 	/** @return
 	    Backend specific error code, if the query failed.
-	*/	
+	*/
 	virtual long GetErrorCode() = 0;
-	
+
 	/** Fetch a single row from the result set. After each row is fetched,
 	    cursor position is moved to a next row.
-		
+
 	    @return
 	    True if the row has been fetched, false if no more rows are available.
 	*/
@@ -86,11 +86,11 @@ public:
 		/// array to be filled with string representations of the row fields
 		ResultRow& result
 		) = 0;
-			
+
 private:
 	GkSQLResult(const GkSQLResult&);
 	GkSQLResult& operator=(const GkSQLResult&);
-	
+
 protected:
 	/// number of rows in the result set or rows affected by the query
 	long m_numRows;
@@ -118,7 +118,7 @@ public:
 		int m_minPoolSize;
 		int m_maxPoolSize;
 	};
-	
+
 	GkSQLConnection(
 		/// name to use in the log
 		const char* name = "SQL"
@@ -139,7 +139,7 @@ public:
 
 	/** Read SQL settings from the config and connect to the database.
 	    Derived classes do not have to override this member function.
-				
+
 	    @return
 	    True if settings have been read and connections have been established.
 	*/
@@ -151,7 +151,7 @@ public:
 		);
 
 	/** Execute the query and return the result set. It uses first idle SQL
-	    connection or waits for an idle SQL connection, if all connections 
+	    connection or waits for an idle SQL connection, if all connections
 	    are busy with query execution. Pool size defines how many concurrent
 	    queries can be executed by this object.
 		The query can be parametrized and the parameters are replaced with
@@ -160,13 +160,13 @@ public:
 		Use double %% to embed % and %{1} notation to allow strings like %{1}123.
 
 	    @return
-	    Query execution result (no matters the query failed or succeeded) 
+	    Query execution result (no matters the query failed or succeeded)
 	    or NULL if timed out waiting for an idle SQL connection.
 	*/
 	GkSQLResult* ExecuteQuery(
 		/// query to be executed
 		const char* queryStr,
-		/// query parameters (%1, %2, ... notation), NULL if the query 
+		/// query parameters (%1, %2, ... notation), NULL if the query
 		/// does not take any parameters
 		const PStringArray* queryParams = NULL,
 		/// time (ms) to wait for an idle connection, -1 means infinite
@@ -174,7 +174,7 @@ public:
 		);
 
 	/** Execute the query and return the result set. It uses first idle SQL
-	    connection or waits for an idle SQL connection, if all connections 
+	    connection or waits for an idle SQL connection, if all connections
 	    are busy with query execution. Pool size defines how many concurrent
 	    queries can be executed by this object.
 	    The query can be parametrized and the parameters are replaced with
@@ -184,7 +184,7 @@ public:
 	    strings (%{Name}, for example).
 
 	    @return
-	    Query execution result (no matters the query failed or succeeded) 
+	    Query execution result (no matters the query failed or succeeded)
 	    or NULL if timed out waiting for an idle SQL connection.
 	*/
 	GkSQLResult* ExecuteQuery(
@@ -200,9 +200,9 @@ public:
 	void GetInfo(
 		Info &info /// filled with SQL connection state information upon return
 		);
-		
+
 protected:
-	/** Generic SQL database connection object - should be extended 
+	/** Generic SQL database connection object - should be extended
 	    by derived classes to include backed specific connection data.
 	*/
 	class SQLConnWrapper
@@ -234,21 +234,21 @@ protected:
 	/** Create a new SQL connection using parameters stored in this object.
 	    When the connection is to be closed, the object is simply deleted
 	    using delete operator.
-	    
+
 	    @return
-	    NULL if database connection could not be established 
+	    NULL if database connection could not be established
 	    or an object derived from SQLConnWrapper class.
 	*/
 	virtual SQLConnPtr CreateNewConnection(
 		/// unique identifier for this connection
 		int id
 		) = 0;
-	
+
 	/** Get the first idle connection from the pool and set connptr	variable
 	    to point to this connection. IMPORTANT: After connection is successfully
-	    acquired, ReleaseSQLConnection has to be called to return back 
+	    acquired, ReleaseSQLConnection has to be called to return back
 	    the connection to the pool.
-		
+
 	    @return
 	    True if the connection has been acquired, false if it is not available
 	    (timeout, network connection lost, ...).
@@ -298,9 +298,9 @@ protected:
 		const PStringArray& queryParams
 		);
 
-	/** Replace query parameters placeholders (%a, %{Name}, ...) with 
-	    actual values and escape parameter strings. Derived classes do not need 
-	    to override this function, unless want to perform some custom parameter 
+	/** Replace query parameters placeholders (%a, %{Name}, ...) with
+	    actual values and escape parameter strings. Derived classes do not need
+	    to override this function, unless want to perform some custom parameter
 	    processing.
 
 	    @return
@@ -343,7 +343,7 @@ private:
 
 	/** Creates m_minPoolSize initial database connections.
 	    Called from Initialize.
-		
+
 	    @return
 	    True if at least one database connection has been established.
 	*/
@@ -353,7 +353,7 @@ protected:
 	/** Disconnect connection pool from DB on connection error
 	*/
 	void Disconnect();
-	
+
 	/// filled with the actual host from m_hosts the database connection is made to
 	PString m_host;
 	/// database port to connect to
@@ -366,6 +366,10 @@ protected:
 	PString m_password;
 	/// name of shared library
 	PString m_library;
+	/// connect timeout
+	unsigned m_connectTimeout;
+	/// read timeout
+	unsigned m_readTimeout;
 
 private:
 	/// iterator typedefs for convenience
@@ -402,7 +406,7 @@ struct GkSQLCreator : public SQLCreator1
 	GkSQLCreator(
 		const char* name
 		) : SQLCreator1(name) {}
-		
+
 	virtual GkSQLConnection* operator()(
 		const char* connectionName
 		) const { return new SQLDriver(connectionName); }

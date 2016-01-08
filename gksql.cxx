@@ -23,9 +23,11 @@ using std::max;
 using std::min;
 
 namespace {
-const int GKSQL_DEFAULT_MIN_POOL_SIZE = 1;
-const int GKSQL_DEFAULT_MAX_POOL_SIZE = 1;
-const long GKSQL_CLEANUP_TIMEOUT = 5000;
+    const int GKSQL_DEFAULT_CONNECT_TIMEOUT = 10; // in seconds
+    const int GKSQL_DEFAULT_READ_TIMEOUT = 60; // in seconds
+    const int GKSQL_DEFAULT_MIN_POOL_SIZE = 1;
+    const int GKSQL_DEFAULT_MAX_POOL_SIZE = 1;
+    const long GKSQL_CLEANUP_TIMEOUT = 5000;
 }
 
 
@@ -37,6 +39,8 @@ GkSQLConnection::GkSQLConnection(
 	/// name to use in the log
 	const char * name)
 	: NamedObject(name), m_port(0),
+	m_connectTimeout(GKSQL_DEFAULT_CONNECT_TIMEOUT),
+	m_readTimeout(GKSQL_DEFAULT_READ_TIMEOUT),
 	m_minPoolSize(GKSQL_DEFAULT_MIN_POOL_SIZE),
 	m_maxPoolSize(GKSQL_DEFAULT_MAX_POOL_SIZE),
 	m_destroying(false), m_connected(false)
@@ -67,6 +71,8 @@ bool GkSQLConnection::Initialize(
 	m_database = cfg->GetString(cfgSectionName, "Database", "");
 	m_username = cfg->GetString(cfgSectionName, "Username", "");
 	m_password = Toolkit::Instance()->ReadPassword(cfgSectionName, "Password");
+	m_connectTimeout = cfg->GetInteger(cfgSectionName, "ConnectTimeout", GKSQL_DEFAULT_CONNECT_TIMEOUT);
+	m_readTimeout = cfg->GetInteger(cfgSectionName, "ReadTimeout", GKSQL_DEFAULT_READ_TIMEOUT);
 	m_minPoolSize = cfg->GetInteger(cfgSectionName, "MinPoolSize", GKSQL_DEFAULT_MIN_POOL_SIZE);
 	m_minPoolSize = max(m_minPoolSize, 0);
 	m_maxPoolSize = cfg->GetInteger(cfgSectionName, "MaxPoolSize", m_minPoolSize);
