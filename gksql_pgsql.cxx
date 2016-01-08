@@ -73,12 +73,12 @@ public:
 
 	/** @return
 	    Backend specific error message, if the query failed.
-	*/	
+	*/
 	virtual PString GetErrorMessage();
 
 	/** @return
 	    Backend specific error code, if the query failed.
-	*/	
+	*/
 	virtual long GetErrorCode();
 
 	/** Fetch a single row from the result set. After each row is fetched,
@@ -121,7 +121,7 @@ public:
 		/// name to use in the log
 		const char* name = "PostgreSQL"
 		);
-	
+
 	virtual ~GkPgSQLConnection();
 
 protected:
@@ -153,7 +153,7 @@ protected:
 	    using delete operator.
 
 	    @return
-	    NULL if database connection could not be established 
+	    NULL if database connection could not be established
 	    or an object of PgSQLConnWrapper class.
 	*/
 	virtual SQLConnPtr CreateNewConnection(
@@ -196,7 +196,7 @@ private:
 GkPgSQLResult::GkPgSQLResult(
 	/// SELECT type query result
 	PGresult* selectResult
-	) 
+	)
 	: GkSQLResult(false), m_sqlResult(selectResult), m_sqlRow(-1),
 	m_errorCode(0)
 {
@@ -210,19 +210,19 @@ GkPgSQLResult::GkPgSQLResult(
 GkPgSQLResult::GkPgSQLResult(
 	/// number of rows affected by the query
 	long numRowsAffected
-	) 
-	: GkSQLResult(false), m_sqlResult(NULL), m_sqlRow(-1), 
+	)
+	: GkSQLResult(false), m_sqlResult(NULL), m_sqlRow(-1),
 	m_errorCode(0)
 {
 	m_numRows = numRowsAffected;
 }
-	
+
 GkPgSQLResult::GkPgSQLResult(
 	/// PostgreSQL specific error code
 	unsigned int errorCode,
 	/// PostgreSQL specific error message text
 	const char* errorMsg
-	) 
+	)
 	: GkSQLResult(true), m_sqlResult(NULL), m_sqlRow(-1),
 	m_errorCode(errorCode), m_errorMessage(errorMsg)
 {
@@ -238,7 +238,7 @@ PString GkPgSQLResult::GetErrorMessage()
 {
 	return m_errorMessage;
 }
-	
+
 long GkPgSQLResult::GetErrorCode()
 {
 	return m_errorCode;
@@ -262,7 +262,7 @@ bool GkPgSQLResult::FetchRow(
 
 	for (PINDEX i = 0; i < m_numFields; i++)
 		result[i] = PString(
-			(*g_PQgetvalue)(m_sqlResult, m_sqlRow, i), 
+			(*g_PQgetvalue)(m_sqlResult, m_sqlRow, i),
 			(*g_PQgetlength)(m_sqlResult, m_sqlRow, i)
 			);
 
@@ -289,7 +289,7 @@ bool GkPgSQLResult::FetchRow(
 
 	for (PINDEX i = 0; i < m_numFields; i++) {
 		result[i].first = PString(
-			(*g_PQgetvalue)(m_sqlResult, m_sqlRow, i), 
+			(*g_PQgetvalue)(m_sqlResult, m_sqlRow, i),
 			(*g_PQgetlength)(m_sqlResult, m_sqlRow, i)
 			);
 		result[i].second = (*g_PQfname)(m_sqlResult, i);
@@ -307,7 +307,7 @@ GkPgSQLConnection::GkPgSQLConnection(
 	) : GkSQLConnection(name)
 {
 }
-	
+
 GkPgSQLConnection::~GkPgSQLConnection()
 {
 }
@@ -361,19 +361,19 @@ GkSQLConnection::SQLConnPtr GkPgSQLConnection::CreateNewConnection(
 
 	PGconn* conn;
 	const PString portStr(m_port);
-//	const PString optionsStr("connect_timeout=10000");
-	if ((conn = (*g_PQsetdbLogin)(m_host, 
+//	const PString optionsStr("connect_timeout=10000");  // TODO: use m_connectTimeout
+	if ((conn = (*g_PQsetdbLogin)(m_host,
 			m_port ? (const char*)portStr : (const char*)NULL,
 			NULL /*(const char*)optionsStr*/, NULL,
-			m_database, m_username, 
+			m_database, m_username,
 			m_password.IsEmpty() ? (const char*)NULL : (const char*)m_password
 			)) && (*g_PQstatus)(conn) == CONNECTION_OK) {
-		PTRACE(5, GetName() << "\tPgSQL connection to " << m_username << '@' << m_host 
+		PTRACE(5, GetName() << "\tPgSQL connection to " << m_username << '@' << m_host
 			<< '[' << m_database << "] established successfully");
 		return new PgSQLConnWrapper(id, m_host, conn);
 	} else {
-		PTRACE(2, GetName() << "\tPgSQL connection to " << m_username << '@' << m_host 
-			<< '[' << m_database << "] failed (PQsetdbLogin failed): " 
+		PTRACE(2, GetName() << "\tPgSQL connection to " << m_username << '@' << m_host
+			<< '[' << m_database << "] failed (PQsetdbLogin failed): "
 			<< (conn ? (*g_PQerrorMessage)(conn) : ""));
 		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed")
 		if (conn)
@@ -381,7 +381,7 @@ GkSQLConnection::SQLConnPtr GkPgSQLConnection::CreateNewConnection(
 	}
 	return NULL;
 }
-	
+
 GkSQLResult* GkPgSQLConnection::ExecuteQuery(
 	/// SQL connection to use for query execution
 	GkSQLConnection::SQLConnPtr conn,

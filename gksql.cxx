@@ -25,9 +25,9 @@ using std::min;
 namespace {
     const int GKSQL_DEFAULT_CONNECT_TIMEOUT = 10; // in seconds
     const int GKSQL_DEFAULT_READ_TIMEOUT = 60; // in seconds
+    const long GKSQL_CLEANUP_TIMEOUT = 5000; // in milliseconds !
     const int GKSQL_DEFAULT_MIN_POOL_SIZE = 1;
     const int GKSQL_DEFAULT_MAX_POOL_SIZE = 1;
-    const long GKSQL_CLEANUP_TIMEOUT = 5000;
 }
 
 
@@ -170,7 +170,7 @@ GkSQLConnection::~GkSQLConnection()
 }
 
 bool GkSQLConnection::AcquireSQLConnection(
-	SQLConnPtr& connptr,
+	SQLConnPtr & connptr,
 	long timeout
 	)
 {
