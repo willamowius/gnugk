@@ -56,6 +56,7 @@ const static struct {
      { OID_DH6144,  6144 },
      { OID_DH4096,  4096 },
      { OID_DH2048,  2048 },
+     { OID_DH1536,  1536 },
      { OID_DH1024,  1024 },
      { OID_DH512,    512 }
 };
@@ -230,7 +231,7 @@ void DHProcess::Main()
   else 
       success = DH_Save(dh,exportPath,keyOID);
 
-  if (success)
+  if (!success)
       cout << "Error exporting keyPair!" << endl;
   else
       cout << "KeyPair successfully created!" << endl;
