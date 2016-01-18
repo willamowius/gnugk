@@ -37,11 +37,11 @@ public:
 	bool Close();
 
 	void SetReadTimeout(const PTimeInterval & time) { readTimeout = time; }
-	virtual bool Read(void *, int);
+	virtual bool Read(void * buf, int sz, bool wantZeroReads = false);
 	virtual int GetLastReadCount() const { return lastReadCount; }
 
 	void SetWriteTimeout(const PTimeInterval & time) { writeTimeout = time; }
-	virtual bool Write(const void *, int);
+	virtual bool Write(const void * buf, int sz);
 	virtual int GetLastWriteCount() const { return lastWriteCount; }
 
 	void SetPort(WORD pt) { port = pt; }
@@ -60,7 +60,7 @@ public:
 
 	virtual bool CanRead(long timeout) const;
 	virtual bool CanWrite(long timeout) const;
-		
+
 protected:
 	virtual int os_recv(void *, int) = 0;
 	virtual int os_send(const void *, int) = 0;
@@ -250,7 +250,7 @@ public:
 	bool Select(SelectType, const PTimeInterval &);
 	PSocket *operator[](int i) const;
 
-	PString GetName() const { return m_name; }	
+	PString GetName() const { return m_name; }
 
 private:
 	PString m_name;
@@ -354,7 +354,7 @@ public:
 protected:
 	virtual bool WriteData(const BYTE *, int);
 	bool InternalWriteData(const BYTE *, int);
-	
+
 	int GetQueueSize() const { return qsize; }
 	void QueuePacket(const BYTE * buf, int len)
 	{
@@ -376,7 +376,7 @@ protected:
 		return packet;
 	}
 	void ClearQueue();
-		
+
 	virtual bool ErrorHandler(PSocket::ErrorGroup);
 
 	IPSocket * self;
@@ -457,7 +457,7 @@ public:
 
 	// dispatch this socket to an appropriate handler
 	virtual void Dispatch() = 0;
-	
+
 private:
 	ServerSocket(const ServerSocket &);
 	ServerSocket & operator=(const ServerSocket &);
@@ -508,7 +508,7 @@ private:
 	virtual void ReadSocket(IPSocket *);
 	virtual void CleanUp();
 
-private:	
+private:
 	// rate limiting
 	unsigned int cps_limit;	// max cps per one sec
 	unsigned int check_interval; // number of sec. to check if cps_limit applies

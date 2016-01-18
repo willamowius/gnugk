@@ -10048,7 +10048,11 @@ void UDPProxySocket::SetMediaIP(const PString & direction, const Address & ip)
 // this method handles either RTP, RTCP or T.38 data
 ProxySocket::Result UDPProxySocket::ReceiveData()
 {
-	if (!Read(wbuffer, wbufsize)) {
+#ifdef LARGE_FDSET
+	if (!Read(wbuffer, wbufsize, true)) {
+#else
+	if (!Read(wbuffer, wbufsize) {
+#endif // LARGE_FDSET
 		ErrorHandler(PSocket::LastReadError);
 		return NoData;
 	}
@@ -10084,9 +10088,15 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		payloadType = wbuffer[1] & 0x7f;
 #endif
 
-#ifdef HAS_H46018
+#ifdef HAS_H46018   // this code section also needed when working without H.460.18, but with ignores signaled IPs
 	PWaitAndSignal lock(m_multiplexMutex);
 	bool isRTPKeepAlive = isRTP && (buflen == 12);
+	// Polycom RealPresence Group 300 hack for ignored IPs (needs LARGE_FDSET to work)
+	if (buflen == 0) {
+        PTRACE(7, "JW RTP IN from " << AsString(fromIP, fromPort) << " 0-Byte UDP keep-alive");
+        isRTPKeepAlive = true;
+        m_checkH46019KeepAlivePT = false; // no PT to check
+    }
 
 	Address localaddr;
 	WORD localport = 0;

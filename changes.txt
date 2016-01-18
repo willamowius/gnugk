@@ -1,5 +1,7 @@
 Changes from 4.0 to 4.1
 =======================
+- BUGFIX(ProxyChannel.cxx) use RealPresence Group 0-Byte keep-alive for
+  IgnoreSignaledH239PrivateIPs (needs LARGE_FDSET to work)
 - new switches to set database connect and read timeout (only used by MySQL for now)
 - new switch to set worker thread idle timeout: [Gatekeeper::Main] WorkerThreadIdleTimeout=
 - BUGFIX(gk.cxx) better test for gatekeeper shutdown

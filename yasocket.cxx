@@ -162,11 +162,15 @@ bool YaSocket::Close()
 	return true;
 }
 
-bool YaSocket::Read(void * buf, int sz)
+bool YaSocket::Read(void * buf, int sz, bool wantZeroReads)
 {
 	int r = os_recv(buf, sz);
-	lastReadCount = ConvertOSError(r, PSocket::LastReadError) ? r : 0;
-	return lastReadCount > 0;
+    lastReadCount = ConvertOSError(r, PSocket::LastReadError) ? r : 0;
+	if (wantZeroReads) {
+        return lastReadCount >= 0;
+	} else {
+        return lastReadCount > 0;
+	}
 }
 
 bool YaSocket::CanRead(long timeout) const
