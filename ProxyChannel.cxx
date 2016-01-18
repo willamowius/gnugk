@@ -10051,7 +10051,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 #ifdef LARGE_FDSET
 	if (!Read(wbuffer, wbufsize, true)) {
 #else
-	if (!Read(wbuffer, wbufsize) {
+	if (!Read(wbuffer, wbufsize)) {
 #endif // LARGE_FDSET
 		ErrorHandler(PSocket::LastReadError);
 		return NoData;
