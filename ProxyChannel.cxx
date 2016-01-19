@@ -10092,7 +10092,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	PWaitAndSignal lock(m_multiplexMutex);
 	bool isRTPKeepAlive = isRTP && (buflen == 12);
 	// Polycom RealPresence Group 300 hack for ignored IPs (needs LARGE_FDSET to work)
-	if (buflen == 0) {
+	if (buflen == 0 && m_ignoreSignaledIPs) {
         PTRACE(7, "JW RTP IN from " << AsString(fromIP, fromPort) << " 0-Byte UDP keep-alive");
         isRTPKeepAlive = true;
         m_checkH46019KeepAlivePT = false; // no PT to check
