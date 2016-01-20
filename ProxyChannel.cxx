@@ -10827,7 +10827,8 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 				<< rtcp->GetErrorText(PSocket::LastGeneralError));
 			SNMP_TRAP(10, SNMPError, Network, "Can't bind to RTCP port " + AsString(laddr, port));
 			rtcp->Close();
-			rtp->Close();
+			if (rtp)
+                rtp->Close();
 			continue;
 		}
 		return;
