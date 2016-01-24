@@ -1,5 +1,6 @@
 Changes from 4.0 to 4.1
 =======================
+- BUGFIX(GkStatus.cxx) fix StatusEventBacklogRegex for patterns that start at the beginning of the event line
 - BUGFIX(ProxyChannel.cxx) use RealPresence Group 0-Byte keep-alive for
   IgnoreSignaledH239PrivateIPs (needs LARGE_FDSET to work)
 - new switches to set database connect and read timeout (only used by MySQL for now)

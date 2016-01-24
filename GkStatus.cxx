@@ -962,11 +962,12 @@ void GkStatus::SignalStatus(
 	// save event in backlog
     PWaitAndSignal eventLock(m_eventBacklogMutex);
 	if (m_eventBacklogLimit > 0) {
-        PString event = Toolkit::Instance()->AsString(PTime(), "MySQL") + ": " + msg.Trim();
+        PString event = msg.Trim();
         event.Replace("\r\n", "");
         if (event != ";") {
             PINDEX pos = 0;
             if (m_eventBacklogRegex.Execute(event, pos)) {
+                event = Toolkit::Instance()->AsString(PTime(), "MySQL") + ": " + event;
                 m_eventBacklog.push_back(event);
                 if (m_eventBacklog.size() > m_eventBacklogLimit) {
                     m_eventBacklog.pop_front();
