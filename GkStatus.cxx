@@ -872,14 +872,7 @@ GkStatus::GkStatus() : Singleton<GkStatus>("GkStatus"), SocketsReader(500)
 
 	SetName("GkStatus");
 	m_statusClients = 0;
-	m_maxStatusClients = GkConfig()->GetInteger("MaxStatusClients", 20);
-    m_eventBacklogLimit = GkConfig()->GetInteger("StatusEventBacklog", 0);
-    PString eventBacklogRegex = GkConfig()->GetString("StatusEventBacklogRegex", ".");
-	m_eventBacklogRegex = PRegularExpression(eventBacklogRegex, PRegularExpression::Extended);
-	if (m_eventBacklogRegex.GetErrorCode() != PRegularExpression::NoError) {
-		PTRACE(2, "Error '"<< m_eventBacklogRegex.GetErrorText() <<"' compiling StatusEventBacklogRegex: " << eventBacklogRegex);
-		m_eventBacklogRegex = PRegularExpression(".", PRegularExpression::Extended);
-	}
+    LoadConfig();
 
 	Execute();
 }
@@ -889,6 +882,18 @@ GkStatus::~GkStatus()
 	ReadLock lock(m_listmutex);
 	for (iterator i = m_sockets.begin(); i != m_sockets.end(); ++i) {
 		(*i)->Close();
+	}
+}
+
+void GkStatus::LoadConfig()
+{
+	m_maxStatusClients = GkConfig()->GetInteger("MaxStatusClients", 20);
+    m_eventBacklogLimit = GkConfig()->GetInteger("StatusEventBacklog", 0);
+    PString eventBacklogRegex = GkConfig()->GetString("StatusEventBacklogRegex", ".");
+	m_eventBacklogRegex = PRegularExpression(eventBacklogRegex, PRegularExpression::Extended);
+	if (m_eventBacklogRegex.GetErrorCode() != PRegularExpression::NoError) {
+		PTRACE(2, "Error '"<< m_eventBacklogRegex.GetErrorText() <<"' compiling StatusEventBacklogRegex: " << eventBacklogRegex);
+		m_eventBacklogRegex = PRegularExpression(".", PRegularExpression::Extended);
 	}
 }
 

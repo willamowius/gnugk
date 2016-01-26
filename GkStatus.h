@@ -44,6 +44,8 @@ public:
 	GkStatus();
 	virtual ~GkStatus();
 
+    virtual void LoadConfig();
+
 	/** Authenticate new telnet connection. Ask for username/password
 		if required. If the authentication is successful, the client
 		is added to the list of active clients. If it fails, client

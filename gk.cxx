@@ -29,6 +29,7 @@
 #include "RasSrv.h"
 #include "RasTbl.h"
 #include "ProxyChannel.h"
+#include "GkStatus.h"
 #include "SoftPBX.h"
 #include "MakeCall.h"
 #include "gktimer.h"
@@ -1000,6 +1001,8 @@ void ReloadHandler()
 		RasServer::Instance()->SetRDSServers();
 
 		RasServer::Instance()->LoadConfig();
+
+		GkStatus::Instance()->LoadConfig();
 
 		Gatekeeper::EnableLogFileRotation();
 
