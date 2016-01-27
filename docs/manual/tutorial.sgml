@@ -154,24 +154,6 @@ and make a call to see what messages are now handled by the gatekeeper.
 Note that all media packets (audio and video) are still sent
 directly between the endpoints (the 2 instances of SimpH323).
 
-<sect1>A virtual PBX: Disconnecting calls
-<p>
-Until now the gatekeeper has acted only as a mechanism
-to resolve symbolic names to IP addresses. This is a critical function of
-a gatekeeper, but the gatekeeper is capable of much more.
-
-Because the gatekeeper has a lot of control over the calls,
-it can also be used to terminate them. While
-connected to the status port, you can list all active calls
-with "<tt/PrintCurrentCalls/". To terminate a call, type
-"<tt/Disconnectip 1.2.3.4/" for one of the endpoints.
-
-For example, a simple script could be written to connect to
-the status port, obtain a list of ongoing calls and terminate
-them after 5 minutes to prevent users from using too many system resources.
-
-Other functions such as TransferCall are also available.
-
 <sect1>Routing calls to a gateway to reach external users
 <p>
 Without using a gateway you can only call other people with an
@@ -299,6 +281,61 @@ A few simple examples:
 ; even this is possible (415161 => 041051061)
 4.5.6=04.05.06
 </verb></tscreen>
+
+
+<sect1>Firewalls and NAT
+<p>
+The H.323 protocol places IP numbers inside the signaling messages and establishes multiple TCP and UDP connections for a single call.
+You can't even be sure beforehand of the direction in which some of these connections are established. This makes it harder to get
+H.323 through a NAT than other protocols.
+
+To get through firewalls and NATs, GnuGk supports a lot of different traversal methods and protocols. The combination of H.460.18
+and H.460.19 (usually called "H.460 NAT traversal" for short) is by far the most common NAT traversal protocol and is supported by virtually
+all H.323 endpoints today.
+
+The best approach is to place a GNU Gatekeeper on a public IP address in front of your firewall and enable H.460.18 NAT traversal.
+You don't have to open any inbound port - just allow outgoing connections in your firewall, which is usually the default anyway.
+
+If not all of your endpoints support H.460.18 or if you have a lot of internal calls, you can place a 2nd GnuGk inside your firewall
+and let it tunnel calls out for all internal endpoints combined. This called a "traversal zone". See later chapters how to configure
+the outside GnuGk as <ref id="traversalserver" name="traversal server"> and the GnuGk inside the firewall as
+<ref id="traversalclient" name="traversal client">.
+
+A simple, one gatekeeper configuration for NAT traversal looks like this:
+
+<tscreen><verb>
+[Gatekeeper::Main]
+
+[RoutedMode]
+GKRouted=1
+H245Routed=1
+EnableH46018=1
+
+[Proxy]
+Enable=1
+ProxyAlways=1
+</verb></tscreen>
+
+Register all your endpoints with the gatekeeper, whether they are inside or outside the firewall, and you should be able to make calls in and out.
+
+
+<sect1>A virtual PBX: Disconnecting calls
+<p>
+Until now the gatekeeper has acted only as a mechanism
+to resolve symbolic names to IP addresses. This is a critical function of
+a gatekeeper, but the gatekeeper is capable of much more.
+
+Because the gatekeeper has a lot of control over the calls,
+it can also be used to terminate them. While
+connected to the status port, you can list all active calls
+with "<tt/PrintCurrentCalls/". To terminate a call, type
+"<tt/Disconnectip 1.2.3.4/" for one of the endpoints.
+
+For example, a simple script could be written to connect to
+the status port, obtain a list of ongoing calls and terminate
+them after 5 minutes to prevent users from using too many system resources.
+
+Other functions such as TransferCall are also available.
 
 <sect1>Using IPv6
 <p>

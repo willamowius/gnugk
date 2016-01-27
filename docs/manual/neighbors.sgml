@@ -376,7 +376,7 @@ the first keepAlive SCI message.
 </descrip>
 
 <sect1>Configuring a Traversal Zone with GnuGk as Traversal Client
-<label id="traversalserver">
+<label id="traversalclient">
 <p>
 To configure a traversal zone with a Tandberg VCS, add a Zone of type "Traversal server" in the VCS.
 When functioning as a traversal server, the VCS usually uses a different port, so make sure you add the port to the Host switch.
