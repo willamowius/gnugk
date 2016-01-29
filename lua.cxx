@@ -4,7 +4,7 @@
 //
 // LUA routing and authentication policies for GNU Gatekeeper
 //
-// Copyright (c) 2012-2014, Jan Willamowius
+// Copyright (c) 2012-2016, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -164,6 +164,7 @@ void LuaPolicy::RunPolicy(
 	SetValue("messageType", messageType);
 	SetValue("clientauthid", clientauthid);
 	SetValue("language", language);
+	SetValue("action", "");
 
 	if (luaL_loadstring(m_lua, m_script) != 0 || lua_pcall(m_lua, 0, 0, 0) != 0) {
 		PTRACE(1, "LUA\tError in LUA script: " << lua_tostring(m_lua, -1));
