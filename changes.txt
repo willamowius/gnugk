@@ -1,6 +1,6 @@
 Changes from 4.0 to 4.1
 =======================
-- BUGFIX(lua.cxx) initialize 'action' variable for LUA routing
+- BUGFIX(lua.cxx) initialize all LUA variables for LUA routing
 - status port configuration (MaxStatusClients, StatusEventBacklog, StatusEventBacklogRegex) now
   changable at runtime
 - BUGFIX(GkStatus.cxx) fix StatusEventBacklogRegex for patterns that start at the beginning of the event line

@@ -164,7 +164,10 @@ void LuaPolicy::RunPolicy(
 	SetValue("messageType", messageType);
 	SetValue("clientauthid", clientauthid);
 	SetValue("language", language);
+	SetValue("destAlias", "");
+	SetValue("destIP", "");
 	SetValue("action", "");
+	SetValue("rejectCode", "");
 
 	if (luaL_loadstring(m_lua, m_script) != 0 || lua_pcall(m_lua, 0, 0, 0) != 0) {
 		PTRACE(1, "LUA\tError in LUA script: " << lua_tostring(m_lua, -1));
@@ -475,8 +478,9 @@ int LuaAuth::Check(
     PString aliases = "";
 	if (rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
 		for (PINDEX i = 0; i < rrq.m_terminalAlias.GetSize(); i++) {
-			if(i > 0)
+			if (i > 0) {
 				aliases += ",";
+            }
 			aliases += AsString(rrq.m_terminalAlias[i], FALSE);
 		}
 	}
