@@ -2996,23 +2996,25 @@ unsigned AlgorithmKeySize(const PString & oid)
 	return 0;
 }
 
-bool RemoveH235Capability(unsigned _entryNo,
-                          H245_ArrayOf_CapabilityTableEntry & _capTable,
-                          H245_ArrayOf_CapabilityDescriptor & _capDesc)
+bool RemoveH235Capability(unsigned entryNo,
+                          H245_ArrayOf_CapabilityTableEntry & capTable,
+                          H245_ArrayOf_CapabilityDescriptor & capDesc)
 {
-    PTRACE(5, "Removing H.235 capability no: " << _entryNo);
+    PTRACE(5, "Removing H.235 capability no: " << entryNo);
 
-    for (PINDEX i=0; i< _capTable.GetSize(); ++i) {
-		if (_capTable[i].m_capabilityTableEntryNumber.GetValue() == _entryNo) {
-			_capTable.RemoveAt(i);
+    for (PINDEX i = 0; i < capTable.GetSize(); ++i) {
+		if (capTable[i].m_capabilityTableEntryNumber.GetValue() == entryNo) {
+			capTable.RemoveAt(i);
+			i--;    // RemoveAt() moves content down 1 position
 			break;
 		}
 	}
-    for (PINDEX n = 0; n < _capDesc.GetSize(); n++){
-        for (PINDEX j = 0; j < _capDesc[n].m_simultaneousCapabilities.GetSize(); j++) {
-	        for (PINDEX m = 0; m < _capDesc[n].m_simultaneousCapabilities[j].GetSize(); m++) {
-		        if (_capDesc[n].m_simultaneousCapabilities[j][m].GetValue() == _entryNo) {
-			        _capDesc[n].m_simultaneousCapabilities[j].RemoveAt(m);
+    for (PINDEX n = 0; n < capDesc.GetSize(); n++){
+        for (PINDEX j = 0; j < capDesc[n].m_simultaneousCapabilities.GetSize(); j++) {
+	        for (PINDEX m = 0; m < capDesc[n].m_simultaneousCapabilities[j].GetSize(); m++) {
+		        if (capDesc[n].m_simultaneousCapabilities[j][m].GetValue() == entryNo) {
+			        capDesc[n].m_simultaneousCapabilities[j].RemoveAt(m);
+			        m--;    // RemoveAt() moves content down 1 position
 		        }
 	        }
         }
@@ -3020,47 +3022,46 @@ bool RemoveH235Capability(unsigned _entryNo,
    return true;
 }
 
-bool AddH235Capability(unsigned _entryNo, const PStringList & _capList,
-						H245_ArrayOf_CapabilityTableEntry & _capTable,
-						H245_ArrayOf_CapabilityDescriptor & _capDesc)
+bool AddH235Capability(unsigned entryNo, const PStringList & capList,
+						H245_ArrayOf_CapabilityTableEntry & capTable,
+						H245_ArrayOf_CapabilityDescriptor & capDesc)
 {
-    if (_capList.GetSize() == 0)
+    if (capList.GetSize() == 0)
         return false;
 
-    PTRACE(5, "Add H.235 Support for: " << _entryNo);
-    unsigned secCapNo = 100 + _entryNo;	// TODO: calculate the largest actually used CapNo instead of using 100 ?
+    PTRACE(5, "Add H.235 Support for: " << entryNo);
+    unsigned secCapNo = 100 + entryNo;	// TODO: calculate the largest actually used CapNo instead of using 100 ?
 
-    int sz = _capTable.GetSize();
+    int sz = capTable.GetSize();
     if (sz >= PASN_Object::GetMaximumArraySize()) {
         PTRACE(2, "H235\tError: Maximum ASN.1 array size reached (" << PASN_Object::GetMaximumArraySize() << ")");
         return false;
     }
-    _capTable.SetSize(sz + 1);
-    H245_CapabilityTableEntry & entry = _capTable[sz];
+    capTable.SetSize(sz + 1);
+    H245_CapabilityTableEntry & entry = capTable[sz];
 	entry.m_capabilityTableEntryNumber.SetValue(secCapNo);
 	entry.IncludeOptionalField(H245_CapabilityTableEntry::e_capability);
 	H245_Capability & cap = entry.m_capability;
 	cap.SetTag(H245_Capability::e_h235SecurityCapability);
 	H245_H235SecurityCapability & sec = cap;
-	sec.m_mediaCapability.SetValue(_entryNo);
-	sec.m_encryptionAuthenticationAndIntegrity.IncludeOptionalField(
-		H245_EncryptionAuthenticationAndIntegrity::e_encryptionCapability);
+	sec.m_mediaCapability.SetValue(entryNo);
+	sec.m_encryptionAuthenticationAndIntegrity.IncludeOptionalField(H245_EncryptionAuthenticationAndIntegrity::e_encryptionCapability);
 	H245_EncryptionCapability & enc = sec.m_encryptionAuthenticationAndIntegrity.m_encryptionCapability;
-	enc.SetSize(_capList.GetSize());
-	for (PINDEX i = 0; i < _capList.GetSize(); ++i) {
+	enc.SetSize(capList.GetSize());
+	for (PINDEX i = 0; i < capList.GetSize(); ++i) {
 		H245_MediaEncryptionAlgorithm & alg = enc[i];
 		alg.SetTag(H245_MediaEncryptionAlgorithm::e_algorithm);
 		PASN_ObjectId & id = alg;
-		id.SetValue(_capList[i]);
+		id.SetValue(capList[i]);
 	}
 
-    for (PINDEX n = 0; n < _capDesc.GetSize(); n++){
-        for (PINDEX j = 0; j < _capDesc[n].m_simultaneousCapabilities.GetSize(); j++) {
-            H245_AlternativeCapabilitySet & alternate = _capDesc[n].m_simultaneousCapabilities[j];
+    for (PINDEX n = 0; n < capDesc.GetSize(); n++){
+        for (PINDEX j = 0; j < capDesc[n].m_simultaneousCapabilities.GetSize(); j++) {
+            H245_AlternativeCapabilitySet & alternate = capDesc[n].m_simultaneousCapabilities[j];
             int ns = alternate.GetSize();
 	        for (PINDEX m = 0; m < ns; m++) {
-		        if (alternate[m].GetValue() == _entryNo) {
-                   alternate.SetSize(ns+1);
+		        if (alternate[m].GetValue() == entryNo) {
+                   alternate.SetSize(ns + 1);
                    alternate[ns] = secCapNo;
                    break;
 		        }
