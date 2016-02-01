@@ -4887,6 +4887,8 @@ fi
 
 if test "x$libssh" != "xno"; then
 	HAS_LIBSSH=1
+	$as_echo "#define HAS_LIBSSH 1" >>confdefs.h
+
 	STDCCFLAGS="${libssh_cflags} -DHAS_LIBSSH=1 $STDCCFLAGS"
 	LDFLAGS="$LIBSSH_LDFLAGS $LDFLAGS"
 	ENDLDLIBS="$LIBSSH_LIBS $ENDLDLIBS"
@@ -5043,6 +5045,8 @@ fi
 
 if test "x$netsnmp" != "xno"; then
 	HAS_NETSNMP=1
+	$as_echo "#define HAS_NETSNMP 1" >>confdefs.h
+
 	STDCCFLAGS="${netsnmp_cflags} -DHAS_NETSNMP=1 $STDCCFLAGS"
 	LDFLAGS="$NETSNMP_LDFLAGS $LDFLAGS"
 	ENDLDLIBS="$NETSNMP_LIBS $ENDLDLIBS"
@@ -5076,14 +5080,14 @@ $as_echo "No PTLib SNMP support available" >&6; }
 fi
 
 if test "x${ptlibsnmp}" != "xno" ; then
-   HAS_PTLIBSNMP=1
-   $as_echo "#define HAS_PTLIBSNMP 1" >>confdefs.h
+	HAS_PTLIBSNMP=1
+	$as_echo "#define HAS_PTLIBSNMP 1" >>confdefs.h
 
-   STDCCFLAGS="-DHAS_PTLIBSNMP=1 $STDCCFLAGS"
-   echo "PTLib SNMP support enabled"
+	STDCCFLAGS="-DHAS_PTLIBSNMP=1 $STDCCFLAGS"
+	echo "PTLib SNMP support enabled"
 else
-   echo "PTLib SNMP support disabled"
-   HAS_PTLIBSNMP=0
+	echo "PTLib SNMP support disabled"
+	HAS_PTLIBSNMP=0
 fi
 
 
@@ -5231,6 +5235,8 @@ fi
 
 if test "x$lua" != "xno"; then
 	HAS_LUA=1
+	$as_echo "#define HAS_LUA 1" >>confdefs.h
+
 	STDCCFLAGS="${lua_cflags} -DHAS_LUA=1 $STDCCFLAGS"
 	LDFLAGS="$LUA_LDFLAGS $LDFLAGS"
 	ENDLDLIBS="$LUA_LIBS $ENDLDLIBS"
@@ -5658,12 +5664,15 @@ fi
 
 fi
 if test "${HAS_GEOIP:-unset}" != "unset" ; then
-   STDCCFLAGS="-DHAS_GEOIP=1 $STDCCFLAGS"
-   ENDLDLIBS="-lGeoIP $ENDLDLIBS"
-   echo "GeoIP support enabled"
+	HAS_GEOIP=1
+	$as_echo "#define HAS_GEOIP 1" >>confdefs.h
+
+	STDCCFLAGS="-DHAS_GEOIP=1 $STDCCFLAGS"
+	ENDLDLIBS="-lGeoIP $ENDLDLIBS"
+	echo "GeoIP support enabled"
 else
-   echo "GeoIP support disabled"
-   HAS_GEOIP=0
+	echo "GeoIP support disabled"
+	HAS_GEOIP=0
 fi
 
 
