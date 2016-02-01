@@ -1,5 +1,6 @@
 Changes from 4.0 to 4.1
 =======================
+- LUA: new library "gnugk" to allow access to GnuGk functionality
 - BUGFIX(configure) set all detected options in gnugkbuildopts.h on Unix
 - BUGFIX(ProxyChannel.cxx) removing H.235 capabilities might have skipped items
 - BUGFIX(lua.cxx) initialize all LUA variables for LUA routing

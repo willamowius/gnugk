@@ -33,6 +33,8 @@ extern "C" {
 #include "lauxlib.h"
 }
 
+#define LUA_GNUGKLIBNAME    "gnugk"
+
 static int gnugk_trace(lua_State * L) {
 	if ((lua_gettop(L) != 2) || !lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
 		lua_pushstring(L, "Incorrect arguments for 'trace(level, 'message')'");
@@ -44,6 +46,39 @@ static int gnugk_trace(lua_State * L) {
 
 	return 0; // no results
 }
+
+static int gnugk_get_config_string(lua_State * L) {
+	if ((lua_gettop(L) != 3) || !lua_isstring(L, 1) || !lua_isstring(L, 2) | !lua_isstring(L, 3)) {
+		lua_pushstring(L, "Incorrect arguments for 'get_config_string('section', 'switch', 'default')'");
+		lua_error(L);
+		return 0;
+	}
+
+    PString result = GkConfig()->GetString(lua_tostring(L, 1), lua_tostring(L, 2), lua_tostring(L, 3));
+
+    lua_pushstring(L, result);
+	return 1;   // return 1 result string
+}
+
+static int gnugk_get_config_integer(lua_State * L) {
+	if ((lua_gettop(L) != 3) || !lua_isstring(L, 1) || !lua_isstring(L, 2) | !lua_isnumber(L, 3)) {
+		lua_pushstring(L, "Incorrect arguments for 'get_config_integer('section', 'switch', default)'");
+		lua_error(L);
+		return 0;
+	}
+
+    int result = GkConfig()->GetInteger(lua_tostring(L, 1), lua_tostring(L, 2), lua_tonumber(L, 3));
+
+    lua_pushnumber(L, result);
+	return 1;
+}
+
+static const luaL_Reg gnugklib[] = {
+    {"trace", gnugk_trace },
+    {"get_config_string", gnugk_get_config_string },
+    {"get_config_integer", gnugk_get_config_integer },
+    {NULL, NULL}
+};
 
 namespace Routing {
 
@@ -115,7 +150,9 @@ void LuaPolicy::LoadConfig(const PString & instance)
 	if (!m_lua) {
 		m_lua = luaL_newstate();
 		luaL_openlibs(m_lua);
-		lua_register(m_lua, "trace", gnugk_trace);
+		// register "gnugk" lib
+        luaL_newlib(m_lua, gnugklib);
+        lua_setglobal(m_lua, LUA_GNUGKLIBNAME);
 	}
 	m_active = true;
 }
@@ -387,7 +424,9 @@ LuaAuth::LuaAuth(
 
 	m_lua = luaL_newstate();
 	luaL_openlibs(m_lua);
-	lua_register(m_lua, "trace", gnugk_trace);
+	// register "gnugk" lib
+	luaL_newlib(m_lua, gnugklib);
+    lua_setglobal(m_lua, LUA_GNUGKLIBNAME);
 }
 
 LuaAuth::~LuaAuth()

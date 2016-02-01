@@ -132,6 +132,26 @@ When using ODBC, you can not call stored procedures which use parameters using t
 
 When using stored procedures for accounting, make sure they return at least one dummy row, so GnuGk won't drop the call.
 
+<sect1>LUA Scripting
+<label id="luascripting">
+<p>
+Some GnuGk modules allow executing dynamic scripts written in LUA, eg. <ref id="routinglua" name="[Routing::Lua]"> or <ref id="luaauth" name="[LuaAuth]">.
+
+LUA is a simple scripting language which is also used by other networking tools like Wireshark or nmap.
+For details on the LUA language, please see <url url="http://www.lua.org/docs.html" name="http://www.lua.org/docs.html">.
+
+Depending on the module, you'll get some variables to see details eg. about the incoming call and your script can set
+certain output variables to define what GnuGk should do with the call. You'll find more details in the documentation for each module.
+
+All LUA modules have a common LUA library called "gnugk" that allows access to GnuGk functionality.
+
+<itemize>
+<item><tt/gnugk.trace(level, "message")/ - write to the GnuGk trace file
+<item><tt/gnugk.get_config_string("section", "switch", "default")/ - read a string from the GnuGk config
+<item><tt/gnugk.get_config_integer("section", "switch", default)/ - read an integer from the GnuGk config
+</itemize>
+
+
 <sect1>Regular Expressions
 <label id="regex">
 <p>

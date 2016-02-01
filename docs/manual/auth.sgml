@@ -1681,7 +1681,7 @@ CallDestination=roomNumber
 <p>
 This section configures the scripts for LUA authentication.
 <p>
-For details on the LUA language, please see <url url="http://www.lua.org/docs.html" name="http://www.lua.org/docs.html">.
+For general information on LUA scripting in GnuGk, please see the chapter <ref id="luascripting" name="LUA Scripting">.
 <p>
 <itemize>
 <item><tt/RegistrationScript=<em>script</em>/<newline>
