@@ -10937,10 +10937,12 @@ void RTPLogicalChannel::SetUniDirectional(bool uni)
 {
     m_isUnidirectional = uni;
 #ifdef HAS_H46018
-	if (rtp)
-		rtp->SetH46019UniDirectional(uni);
-	if (rtcp)
-		rtcp->SetH46019UniDirectional(uni);
+    if (m_isUnidirectional) {   // don't overwrite a previous TRUE setting
+        if (rtp)
+            rtp->SetH46019UniDirectional(true);
+        if (rtcp)
+            rtcp->SetH46019UniDirectional(true);
+    }
 #endif
 }
 
@@ -11687,7 +11689,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 	if (!lc)
 		return false;
 
-	lc->SetUniDirectional(isUnidirectional);  // remember for handling OLCAck
+    lc->SetUniDirectional(isUnidirectional);  // remember for handling OLCAck
 
 #ifdef HAS_H46018
 	if (IsTraversalServer() || IsTraversalClient()) {
@@ -11834,6 +11836,21 @@ void GetSessionType(const H245_OpenLogicalChannel & olc, RTPSessionTypes & sessi
         } else if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_data) {
             sessionType = Data;
         }
+    } else if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_multiplePayloadStream) {
+        const H245_MultiplePayloadStream & stream = olc.m_forwardLogicalChannelParameters.m_dataType;
+        for (PINDEX e = 0; e < stream.m_elements.GetSize(); e++) {
+            H245_MultiplePayloadStreamElement & element = stream.m_elements[e];
+            if (element.m_dataType.GetTag() == H245_DataType::e_videoData) {
+                const H245_VideoCapability & vid = element.m_dataType;
+                if (vid.GetTag() == H245_VideoCapability::e_extendedVideoCapability) {
+                    sessionType = Presentation;
+                    isUnidirectional = true;
+                }
+            }
+            // no else: leave other data types as Unknown
+        }
+    } else {
+        PTRACE(1, "Warning: Unhandled dataType in GetSessionType() - " << olc.m_forwardLogicalChannelParameters.m_dataType.GetTagName());
     }
 }
 
@@ -12106,66 +12123,66 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 		}
 
 #ifdef HAS_H46024A
-	if (call && !call->IsH46024APassThrough()) {
-		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_genericInformation)) {
-			PINDEX i = 0;
-			for (i = 0; i < olc.m_genericInformation.GetSize(); i++) {
-				PASN_ObjectId & gid = olc.m_genericInformation[i].m_messageIdentifier;
-				if (gid == H46024A_OID && olc.m_genericInformation[i].HasOptionalField(H245_GenericInformation::e_messageContent)) {
-					const H245_ArrayOf_GenericParameter & msg = olc.m_genericInformation[i].m_messageContent;
-					PTRACE(4,"H46024A\tAlt Port Info:\n" << msg);
-					PString m_CUI = PString();  H323TransportAddress m_altAddr1, m_altAddr2; unsigned m_altMuxID=0;
-					bool error = false;
-					if (!GetH245GenericStringOctetString(0, msg, m_CUI))  error = true;
-					if (!GetH245TransportGenericOctetString(1, msg, m_altAddr1))  error = true;
-					if (!GetH245TransportGenericOctetString(2, msg, m_altAddr2))  error = true;
-					GetH245GenericUnsigned(3, msg, m_altMuxID);
-					if (!error) {
-						GkClient * gkClient = RasServer::Instance()->GetGkClient();
-						if (gkClient)
-							gkClient->H46023_SetAlternates(call->GetCallIdentifier(), sessionID, m_CUI, m_altMuxID, m_altAddr1, m_altAddr2);
-					}
-					for (PINDEX j = i+1; j < olc.m_genericInformation.GetSize(); j++) {
-						olc.m_genericInformation[j-1] = olc.m_genericInformation[j];
-					}
-					olc.m_genericInformation.SetSize(olc.m_genericInformation.GetSize()-1);
-					if (olc.m_genericInformation.GetSize() == 0)
-						olc.RemoveOptionalField(H245_OpenLogicalChannel::e_genericInformation);
-					changed = true;
-					break;
-				}
-			}
-		} else {
-			H245_ArrayOf_GenericParameter info;
-			GkClient * gkClient = RasServer::Instance()->GetGkClient();
-			if (gkClient) {
-				PString m_CUI = PString();
-				H323TransportAddress m_altAddr1, m_altAddr2;
-				unsigned m_altMuxID = 0;
-				gkClient->H46023_LoadAlternates(call->GetCallIdentifier(), sessionID, m_CUI, m_altMuxID, m_altAddr1, m_altAddr2);
-					H245_GenericInformation alt;
-					H245_CapabilityIdentifier & altid = alt.m_messageIdentifier;
-					altid.SetTag(H245_CapabilityIdentifier::e_standard);
-					PASN_ObjectId & oid = altid;
-					oid.SetValue(H46024A_OID);
-					alt.IncludeOptionalField(H245_GenericMessage::e_messageContent);
-					H245_ArrayOf_GenericParameter & msg = alt.m_messageContent;
-					msg.SetSize(3);
-					BuildH245GenericOctetString(msg[0], 0, (PASN_IA5String)m_CUI);
-					BuildH245GenericOctetString(msg[1], 1, m_altAddr1);
-					BuildH245GenericOctetString(msg[2], 2, m_altAddr2);
-					if (m_altMuxID) {
-						msg.SetSize(4);
-						BuildH245GenericUnsigned(msg[3], 3, m_altMuxID);
-					}
-				olc.IncludeOptionalField(H245_OpenLogicalChannel::e_genericInformation);
-				int sz = olc.m_genericInformation.GetSize();
-				olc.m_genericInformation.SetSize(sz+1);
-				olc.m_genericInformation[sz] = alt;
-				changed = true;
-			}
-		}
-	}
+        if (call && !call->IsH46024APassThrough()) {
+            if (olc.HasOptionalField(H245_OpenLogicalChannel::e_genericInformation)) {
+                PINDEX i = 0;
+                for (i = 0; i < olc.m_genericInformation.GetSize(); i++) {
+                    PASN_ObjectId & gid = olc.m_genericInformation[i].m_messageIdentifier;
+                    if (gid == H46024A_OID && olc.m_genericInformation[i].HasOptionalField(H245_GenericInformation::e_messageContent)) {
+                        const H245_ArrayOf_GenericParameter & msg = olc.m_genericInformation[i].m_messageContent;
+                        PTRACE(4,"H46024A\tAlt Port Info:\n" << msg);
+                        PString m_CUI = PString();  H323TransportAddress m_altAddr1, m_altAddr2; unsigned m_altMuxID=0;
+                        bool error = false;
+                        if (!GetH245GenericStringOctetString(0, msg, m_CUI))  error = true;
+                        if (!GetH245TransportGenericOctetString(1, msg, m_altAddr1))  error = true;
+                        if (!GetH245TransportGenericOctetString(2, msg, m_altAddr2))  error = true;
+                        GetH245GenericUnsigned(3, msg, m_altMuxID);
+                        if (!error) {
+                            GkClient * gkClient = RasServer::Instance()->GetGkClient();
+                            if (gkClient)
+                                gkClient->H46023_SetAlternates(call->GetCallIdentifier(), sessionID, m_CUI, m_altMuxID, m_altAddr1, m_altAddr2);
+                        }
+                        for (PINDEX j = i+1; j < olc.m_genericInformation.GetSize(); j++) {
+                            olc.m_genericInformation[j-1] = olc.m_genericInformation[j];
+                        }
+                        olc.m_genericInformation.SetSize(olc.m_genericInformation.GetSize()-1);
+                        if (olc.m_genericInformation.GetSize() == 0)
+                            olc.RemoveOptionalField(H245_OpenLogicalChannel::e_genericInformation);
+                        changed = true;
+                        break;
+                    }
+                }
+            } else {
+                H245_ArrayOf_GenericParameter info;
+                GkClient * gkClient = RasServer::Instance()->GetGkClient();
+                if (gkClient) {
+                    PString m_CUI = PString();
+                    H323TransportAddress m_altAddr1, m_altAddr2;
+                    unsigned m_altMuxID = 0;
+                    gkClient->H46023_LoadAlternates(call->GetCallIdentifier(), sessionID, m_CUI, m_altMuxID, m_altAddr1, m_altAddr2);
+                        H245_GenericInformation alt;
+                        H245_CapabilityIdentifier & altid = alt.m_messageIdentifier;
+                        altid.SetTag(H245_CapabilityIdentifier::e_standard);
+                        PASN_ObjectId & oid = altid;
+                        oid.SetValue(H46024A_OID);
+                        alt.IncludeOptionalField(H245_GenericMessage::e_messageContent);
+                        H245_ArrayOf_GenericParameter & msg = alt.m_messageContent;
+                        msg.SetSize(3);
+                        BuildH245GenericOctetString(msg[0], 0, (PASN_IA5String)m_CUI);
+                        BuildH245GenericOctetString(msg[1], 1, m_altAddr1);
+                        BuildH245GenericOctetString(msg[2], 2, m_altAddr2);
+                        if (m_altMuxID) {
+                            msg.SetSize(4);
+                            BuildH245GenericUnsigned(msg[3], 3, m_altMuxID);
+                        }
+                    olc.IncludeOptionalField(H245_OpenLogicalChannel::e_genericInformation);
+                    int sz = olc.m_genericInformation.GetSize();
+                    olc.m_genericInformation.SetSize(sz+1);
+                    olc.m_genericInformation[sz] = alt;
+                    changed = true;
+                }
+            }
+        }
 #endif
 
 		// make sure the keepalive payloadType doesn't conflict with encryption payloadType (VCS bug)
