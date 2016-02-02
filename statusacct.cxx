@@ -3,7 +3,7 @@
  *
  * accounting module for GNU Gatekeeper for the status port.
  *
- * Copyright (c) 2005-2010, Jan Willamowius
+ * Copyright (c) 2005-2016, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -17,12 +17,8 @@
 #include "GkStatus.h"
 #include "statusacct.h"
 
-StatusAcct::StatusAcct( 
-	const char* moduleName,
-	const char* cfgSecName
-	)
-	:
-	GkAcctLogger(moduleName, cfgSecName)
+StatusAcct::StatusAcct(const char* moduleName, const char* cfgSecName)
+    : GkAcctLogger(moduleName, cfgSecName)
 {
 	// it is very important to set what type of accounting events
 	// are supported for each accounting module, otherwise the Log method
@@ -30,7 +26,7 @@ StatusAcct::StatusAcct(
 	SetSupportedEvents(StatusAcctEvents);
 
 	PConfig* cfg = GetConfig();
-	const PString& cfgSec = GetConfigSectionName();
+	const PString & cfgSec = GetConfigSectionName();
 	m_timestampFormat = cfg->GetString(cfgSec, "TimestampFormat", "");
 	m_startEvent = cfg->GetString(cfgSec, "StartEvent", "CALL|Start|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}");
 	m_stopEvent = cfg->GetString(cfgSec, "StopEvent", "CALL|Stop|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}");
@@ -45,18 +41,15 @@ StatusAcct::~StatusAcct()
 {
 }
 
-GkAcctLogger::Status StatusAcct::Log(
-	GkAcctLogger::AcctEvent evt, 
-	const callptr& call
-	)
+GkAcctLogger::Status StatusAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & call)
 {
 	// a workaround to prevent processing end on "sufficient" module
 	// if it is not interested in this event type
 	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
 		return Next;
-		
+
 	if (!call) {
-		PTRACE(1, "STATUSACCT\t"<<GetName()<<" - missing call info for event " << evt);
+		PTRACE(1, "STATUSACCT\t" << GetName() << " - missing call info for event " << evt);
 		return Fail;
 	}
 
@@ -83,18 +76,15 @@ GkAcctLogger::Status StatusAcct::Log(
 	return Ok;
 }
 
-GkAcctLogger::Status StatusAcct::Log(
-	GkAcctLogger::AcctEvent evt, 
-	const endptr& ep
-	)
+GkAcctLogger::Status StatusAcct::Log(GkAcctLogger::AcctEvent evt, const endptr & ep)
 {
 	// a workaround to prevent processing end on "sufficient" module
 	// if it is not interested in this event type
 	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
 		return Next;
-		
+
 	if (!ep) {
-		PTRACE(1, "STATUSACCT\t"<<GetName()<<" - missing endpoint info for event " << evt);
+		PTRACE(1, "STATUSACCT\t" << GetName() << " - missing endpoint info for event " << evt);
 		return Fail;
 	}
 
@@ -115,7 +105,7 @@ GkAcctLogger::Status StatusAcct::Log(
 	return Ok;
 }
 
-PString StatusAcct::EscapeAcctParam(const PString& param) const
+PString StatusAcct::EscapeAcctParam(const PString & param) const
 {
 	return param;	// don't quote here, quote in template if needed
 }
@@ -123,9 +113,9 @@ PString StatusAcct::EscapeAcctParam(const PString& param) const
 // override output format of callid
 PString StatusAcct::ReplaceAcctParams(
 		/// parametrized accounting string
-		const PString& cdrStr,
+		const PString & cdrStr,
 		/// parameter values
-		const std::map<PString, PString>& params
+		const std::map<PString, PString> & params
 	) const
 {
 	std::map<PString, PString> new_params = params;

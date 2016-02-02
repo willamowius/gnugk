@@ -1,9 +1,9 @@
 /*
  * statusacct.h
  *
- * accounting module for GNU Gatekeeper that send it's output to the status port. 
+ * accounting module for GNU Gatekeeper that send it's output to the status port.
  *
- * Copyright (c) 2005-2010, Jan Willamowius
+ * Copyright (c) 2005-2016, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -31,46 +31,40 @@ public:
 		StatusAcctEvents = AcctStart | AcctStop | AcctUpdate | AcctConnect | AcctAlert | AcctRegister | AcctUnregister
 	};
 
-	StatusAcct( 
+	StatusAcct(
 		/// name from Gatekeeper::Acct section
 		const char* moduleName,
 		/// config section name to be used with an instance of this module,
 		/// pass NULL to use a default section (named "moduleName")
 		const char* cfgSecName = NULL
 		);
-		
+
 	/// Destroy the accounting logger
 	virtual ~StatusAcct();
 
 	/// overriden from GkAcctLogger
-	virtual Status Log(
-		AcctEvent evt,
-		const callptr& call
-		);
+	virtual Status Log(AcctEvent evt, const callptr & call);
 
 	/// overriden from GkAcctLogger
-	virtual Status Log(
-		AcctEvent evt,
-		const endptr& ep
-		);
+	virtual Status Log(AcctEvent evt, const endptr & ep);
 
 	/// overriden from GkAcctLogger
-	virtual PString EscapeAcctParam(const PString& param) const;
+	virtual PString EscapeAcctParam(const PString & param) const;
 
 	/// overriden from GkAcctLogger
 	PString ReplaceAcctParams(
 		/// parametrized accounting string
-		const PString& cdrStr,
+		const PString & cdrStr,
 		/// parameter values
-		const std::map<PString, PString>& params
+		const std::map<PString, PString> & params
 	) const;
-		
+
 private:
 	StatusAcct();
 	/* No copy constructor allowed */
-	StatusAcct(const StatusAcct&);
+	StatusAcct(const StatusAcct &);
 	/* No operator= allowed */
-	StatusAcct& operator=(const StatusAcct&);
+	StatusAcct & operator=(const StatusAcct &);
 
 private:
 	/// parametrized string for the call start event
