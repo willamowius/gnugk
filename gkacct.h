@@ -5,7 +5,7 @@
  * support for accounting to the gatekeeper.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2005-2010, Jan Willamowius
+ * Copyright (c) 2005-2016, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -29,16 +29,16 @@ class GkAcctLogger : public NamedObject
 {
 public:
 	/// Processing type for this module
-	enum Control 
+	enum Control
 	{
 		/// if cannot log an accounting event
 		/// silently ignore the module and process remaining acct modules
-		Optional, 
-		/// if cannot log an accounting event do not allow futher 
+		Optional,
+		/// if cannot log an accounting event do not allow futher
 		/// call processing (e.g. call should not be connected, etc.)
 		/// always process remaining acct modules
 		Required,
-		/// if cannot log an accounting event do not allow futher 
+		/// if cannot log an accounting event do not allow futher
 		/// call processing (e.g. call should not be connected, etc.)
 		/// - always process remaining acct modules,
 		/// if the event has been logged, do not process remaining acct modules
@@ -52,7 +52,7 @@ public:
 	};
 
 	/// status of the acct event processing
-	enum Status 
+	enum Status
 	{
 		Ok = 1,		/// acct event has been logged
 		Fail = -1,	/// acct event has not been logged (failure)
@@ -61,7 +61,7 @@ public:
 	};
 
 	/// accounting event types
-	enum AcctEvent 
+	enum AcctEvent
 	{
 		AcctStart = 0x0001, /// log call start
 		AcctStop = 0x0002, /// log call stop (disconnect)
@@ -75,7 +75,7 @@ public:
 		AcctAll = -1,
 		AcctNone = 0
 	};
-	
+
 	/// Construct new accounting logger object.
 	GkAcctLogger(
 		/// module name (should be unique among different module types)
@@ -84,7 +84,7 @@ public:
 		/// pass NULL to use the moduleName as the section name
 		const char* cfgSecName = NULL
 		);
-		
+
 	virtual ~GkAcctLogger();
 
 	/** @return
@@ -105,28 +105,28 @@ public:
 	int GetSupportedEvents() const { return m_supportedEvents; }
 
 	/** Log an accounting event with this logger.
-	
+
 		@return
 		Status of this logging operation (see #Status enum#)
 	*/
-	virtual Status Log(		
+	virtual Status Log(
 		AcctEvent evt, /// accounting event to log
-		const callptr& call /// a call associated with the event (if any)
+		const callptr & call /// a call associated with the event (if any)
 		);
 
 	/** Log an accounting event with this logger.
-	
+
 		@return
 		Status of this logging operation (see #Status enum#)
 	*/
-	virtual Status Log(		
+	virtual Status Log(
 		AcctEvent evt, /// accounting event to log
-		const endptr& ep /// endpoint associated with the event
+		const endptr & ep /// endpoint associated with the event
 		);
 
 	/** Get human readable information about current module state
 	    that can be displayed on the status port interface.
-		
+
 		@return
 		A string (may contain multiple lines) with module information.
 		Each line (including the last one) has to be ended with \r\n.
@@ -138,41 +138,39 @@ protected:
 		A pointer to configuration settings for this logger.
 	*/
 	PConfig* GetConfig() const { return m_config; }
-	
+
 	/** @return
 		A name of the config file section with settings for the logger module.
 	*/
-	const PString& GetConfigSectionName() const { return m_configSectionName; }
+	const PString & GetConfigSectionName() const { return m_configSectionName; }
 
 	/** Set which accounting events should be processed by this module.
 		It is important to call this from derived module constructor
 		to set which accounting events are recognized by this module.
 	*/
-	void SetSupportedEvents(
-		const int events
-		) { m_supportedEvents = events; }
+	void SetSupportedEvents(const int events) { m_supportedEvents = events; }
 
 	/** Fill the map with accounting parameters for calls (name => value associations).
 	*/
 	virtual void SetupAcctParams(
 		/// accounting parameters (name => value) associations
-		std::map<PString, PString>& params,
+		std::map<PString, PString> & params,
 		/// call (if any) associated with an accounting event being logged
-		const callptr& call,
+		const callptr & call,
 		/// timestamp formatting string
-		const PString& timestampFormat
+		const PString & timestampFormat
 		) const;
 
 	/** Fill the map with accounting parameters for endpoints (name => value associations).
 	*/
 	virtual void SetupAcctEndpointParams(
 		/// accounting parameters (name => value) associations
-		std::map<PString, PString>& params,
+		std::map<PString, PString> & params,
 		/// endpoint associated with an accounting event being logged
-		const endptr& ep
+		const endptr & ep
 		) const;
 
-	/** Replace accounting parameters placeholders (%a, %{Name}, ...) with 
+	/** Replace accounting parameters placeholders (%a, %{Name}, ...) with
 	    actual values.
 
 	    @return
@@ -180,9 +178,9 @@ protected:
 	*/
 	PString ReplaceAcctParams(
 		/// parametrized accounting string
-		const PString& cdrStr,
+		const PString & cdrStr,
 		/// parameter values
-		const std::map<PString, PString>& params
+		const std::map<PString, PString> & params
 	) const;
 
 	/** Escape accounting parameters; called for each value before inserting.
@@ -192,17 +190,17 @@ protected:
 		@return
 		escaped string
 	 */
-	virtual PString EscapeAcctParam(const PString& param) const;
-		
-	/** Read a list of events to be logged (ORed #AccEvent enum# constants) 
+	virtual PString EscapeAcctParam(const PString & param) const;
+
+	/** Read a list of events to be logged (ORed #AccEvent enum# constants)
 		from the passed tokens. Override this method if new event types
 		are being introduced in derived loggers, then invokde it from constructor.
-	
+
 		@return
 		Resulting event mask.
 	*/
-	int GetEvents( 
-		const PStringArray& tokens /// event names (start from index 1)
+	int GetEvents(
+		const PStringArray & tokens /// event names (start from index 1)
 		) const;
 
 	/** @return
@@ -211,7 +209,7 @@ protected:
 	*/
 	virtual PString GetUsername(
 		/// call (if any) associated with the RAS message
-		const callptr& call
+		const callptr & call
 		) const;
 
 	/** @return
@@ -219,7 +217,7 @@ protected:
 	*/
 	virtual PString GetCallingStationId(
 		/// call associated with the accounting event
-		const callptr& call
+		const callptr & call
 		) const;
 
 	/** @return
@@ -227,19 +225,19 @@ protected:
 	*/
 	virtual PString GetCalledStationId(
 		/// call associated with the accounting event
-		const callptr& call
+		const callptr & call
 		) const;
 
 	/// @return	A number actually dialed by the user (before rewrite)
 	virtual PString GetDialedNumber(
 		/// call associated with the accounting event
-		const callptr& call
+		const callptr & call
 		) const;
 
 private:
 	GkAcctLogger();
-	GkAcctLogger(const GkAcctLogger&);
-	GkAcctLogger & operator=(const GkAcctLogger&);
+	GkAcctLogger(const GkAcctLogger &);
+	GkAcctLogger & operator=(const GkAcctLogger &);
 
 private:
 	/// processing behaviour (see #Control enum#)
@@ -277,24 +275,21 @@ public:
 		Monthly,
 		RotationIntervalMax
 	};
-	
+
 	/// Create GkAcctLogger for plain text file accounting
-	FileAcct( 
+	FileAcct(
 		/// name from Gatekeeper::Acct section
 		const char* moduleName,
 		/// name for a config section with logger settings
 		/// pass NULL to use the moduleName as the section name
 		const char* cfgSecName = NULL
 		);
-		
+
 	/// Destroy the accounting logger
 	virtual ~FileAcct();
 
 	/// override from GkAcctLogger
-	virtual Status Log(
-		AcctEvent evt,
-		const callptr& call
-		);
+	virtual Status Log(AcctEvent evt, const callptr & call);
 
 	/** Rotate the detail file, saving old file contents to a different
 	    file and starting with a new one. This is a callback function
@@ -303,51 +298,51 @@ public:
 	void RotateOnTimer(
 		GkTimer* timer /// timer object that triggered rotation
 		);
-	
+
 protected:
 	/** Called to get CDR text to be stored in the CDR file.
 		Can be overriden to provide custom CDR text.
-		
+
 		@return
 		true if the text is available, false otherwise
 	*/
 	virtual bool GetCDRText(
-		PString& cdrString, /// PString for the resulting CDR line
+		PString & cdrString, /// PString for the resulting CDR line
 		AcctEvent evt, /// accounting event being processed
-		const callptr& call /// call associated with this request (if any)
+		const callptr & call /// call associated with this request (if any)
 		);
 
 	/** @return
 	    True if the CDR file should be rotated.
 	*/
 	virtual bool IsRotationNeeded();
-		
+
 	/** @return
 	    Pointer to the opened file or NULL, if the operation failed.
 	*/
 	virtual PTextFile* OpenCDRFile(
-		const PFilePath& fn /// name of the file to open
+		const PFilePath & fn /// name of the file to open
 		);
-		
+
 	/** Rotate the detail file, saving old file contents to a different
 		file and starting with a new one.
 	*/
 	void Rotate();
-		
+
 private:
 	/// parse rotation interval from the config
 	void GetRotateInterval(
-		PConfig& cfg, /// the config
-		const PString& section /// name of the config section to check
+		PConfig & cfg, /// the config
+		const PString&  section /// name of the config section to check
 		);
-		
+
 	/* No default constructor allowed */
 	FileAcct();
 	/* No copy constructor allowed */
-	FileAcct(const FileAcct&);
+	FileAcct(const FileAcct &);
 	/* No operator= allowed */
-	FileAcct& operator=(const FileAcct&);
-	
+	FileAcct & operator=(const FileAcct &);
+
 private:
 	/// Plain text file name
 	PString m_cdrFilename;
@@ -385,53 +380,53 @@ private:
 template<class Acct>
 struct GkAcctLoggerCreator : public Factory<GkAcctLogger>::Creator0 {
 	GkAcctLoggerCreator(const char* moduleName) : Factory<GkAcctLogger>::Creator0(moduleName) {}
-	virtual GkAcctLogger* operator()() const { return new Acct(m_id); }	
+	virtual GkAcctLogger* operator()() const { return new Acct(m_id); }
 };
 
-class GkAcctLoggerList 
+class GkAcctLoggerList
 {
 public:
 	/** Construct an empty list of accounting loggers.
 	*/
 	GkAcctLoggerList();
-	
+
 	/** Destroy the list of accounting loggers.
 	*/
 	virtual ~GkAcctLoggerList();
 
 	/** Apply configuration changes to the list of accounting loggers.
 		Usually it means destroying the old list and creating a new one.
-	*/	
+	*/
 	void OnReload();
-	
+
 	/** Log accounting event with all active accounting loggers.
-	
+
 		@return
 		true if the event has been successfully logged, false otherwise.
 	*/
-	bool LogAcctEvent( 
+	bool LogAcctEvent(
 		GkAcctLogger::AcctEvent evt, /// the accounting event to be logged
-		const callptr& call, /// a call associated with the event (if any)
+		const callptr & call, /// a call associated with the event (if any)
 		time_t now = 0 /// "now" timestamp for accounting update events
 		);
 
 	/** Log accounting event with all active accounting loggers.
-	
+
 		@return
 		true if the event has been successfully logged, false otherwise.
 	*/
-	bool LogAcctEvent( 
+	bool LogAcctEvent(
 		GkAcctLogger::AcctEvent evt, /// the accounting event to be logged
-		const endptr& ep /// endpoint associated with the event
+		const endptr & ep /// endpoint associated with the event
 		);
 
 	/** Get a module information string for the selected module.
-	
+
 	    @return
 		The module information string for status port diplay.
 	*/
 	PString GetInfo(
-		const PString &moduleName /// module to retrieve information for
+		const PString & moduleName /// module to retrieve information for
 		) {
 		std::list<GkAcctLogger*>::const_iterator i = m_loggers.begin();
 		while (i != m_loggers.end()) {
@@ -443,9 +438,9 @@ public:
 	}
 
 private:
-	GkAcctLoggerList(const GkAcctLogger&);
-	GkAcctLoggerList& operator=(const GkAcctLoggerList&);
-	
+	GkAcctLoggerList(const GkAcctLogger &);
+	GkAcctLoggerList & operator=(const GkAcctLoggerList &);
+
 private:
 	/// head of the accounting loggers list
 	std::list<GkAcctLogger*> m_loggers;
