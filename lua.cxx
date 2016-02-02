@@ -25,6 +25,7 @@
 #include "rasinfo.h"
 #include "RasPDU.h"
 #include "gkauth.h"
+#include "gkacct.h"
 
 
 extern "C" {
@@ -80,10 +81,109 @@ static const luaL_Reg gnugklib[] = {
     {NULL, NULL}
 };
 
+class LuaBase {
+public:
+	LuaBase();
+	virtual ~LuaBase();
+
+	void InitLua();
+    bool RunLua(const PString & script);
+
+	void SetString(const char * name, const char * value);
+	PString GetString(const char * name) const;
+	void SetNumber(const char * name, double value);
+	double GetNumber(const char * name) const;
+	void SetBoolean(const char * name, bool value);
+	bool GetBoolean(const char * name) const;
+
+protected:
+	// LUA interpreter
+	lua_State * m_lua;
+};
+
+
+LuaBase::LuaBase()
+{
+	m_lua = NULL;
+}
+
+void LuaBase::InitLua()
+{
+	if (!m_lua) {
+		m_lua = luaL_newstate();
+		luaL_openlibs(m_lua);
+		// register "gnugk" lib
+        luaL_newlib(m_lua, gnugklib);
+        lua_setglobal(m_lua, LUA_GNUGKLIBNAME);
+	}
+}
+
+bool LuaBase::RunLua(const PString & script)
+{
+	if (luaL_loadstring(m_lua, script) != 0 || lua_pcall(m_lua, 0, 0, 0) != 0) {
+		PTRACE(1, "LUA\tError in LUA script: " << lua_tostring(m_lua, -1));
+		lua_pop(m_lua, 1);
+		return false;
+	}
+	return true;
+}
+
+LuaBase::~LuaBase()
+{
+    if (m_lua) {
+        lua_close(m_lua);
+        m_lua = NULL;
+    }
+}
+
+void LuaBase::SetString(const char * name, const char * value)
+{
+    // TODO: check for room on stack
+	lua_pushstring(m_lua, value);
+	lua_setglobal(m_lua, name);
+}
+
+PString LuaBase::GetString(const char * name) const
+{
+	lua_getglobal(m_lua, name);
+	PString result = lua_tostring(m_lua, -1);
+	lua_pop(m_lua, 1);
+	return result;
+}
+
+void LuaBase::SetNumber(const char * name, double value)
+{
+	lua_pushnumber(m_lua, value);
+	lua_setglobal(m_lua, name);
+}
+
+double LuaBase::GetNumber(const char * name) const
+{
+	lua_getglobal(m_lua, name);
+	double result = lua_tonumber(m_lua, -1);
+	lua_pop(m_lua, 1);
+	return result;
+}
+
+void LuaBase::SetBoolean(const char * name, bool value)
+{
+	lua_pushboolean(m_lua, value);
+	lua_setglobal(m_lua, name);
+}
+
+bool LuaBase::GetBoolean(const char * name) const
+{
+	lua_getglobal(m_lua, name);
+	bool result = lua_toboolean(m_lua, -1);
+	lua_pop(m_lua, 1);
+	return result;
+}
+
+
 namespace Routing {
 
 // a policy to route calls with LUA
-class LuaPolicy : public DynamicPolicy {
+class LuaPolicy : public LuaBase, public DynamicPolicy {
 public:
 	LuaPolicy();
 	virtual ~LuaPolicy();
@@ -105,12 +205,7 @@ protected:
 		/* out: */
 		DestinationRoutes & destination);
 
-	void SetValue(const char * name, const char * value);
-	PString GetValue(const char * name) const;
-
 protected:
-	// LUA interpreter
-	lua_State * m_lua;
 	// script to run
 	PString m_script;
 };
@@ -120,7 +215,6 @@ LuaPolicy::LuaPolicy()
 	m_name = "Lua";
 	m_iniSection = "Routing::Lua";
 	m_active = false;
-	m_lua = NULL;
 }
 
 void LuaPolicy::LoadConfig(const PString & instance)
@@ -147,35 +241,13 @@ void LuaPolicy::LoadConfig(const PString & instance)
 		return;
 	}
 
-	if (!m_lua) {
-		m_lua = luaL_newstate();
-		luaL_openlibs(m_lua);
-		// register "gnugk" lib
-        luaL_newlib(m_lua, gnugklib);
-        lua_setglobal(m_lua, LUA_GNUGKLIBNAME);
-	}
+    InitLua();
+
 	m_active = true;
 }
 
 LuaPolicy::~LuaPolicy()
 {
-    if (m_lua) {
-        lua_close(m_lua);
-    }
-}
-
-void LuaPolicy::SetValue(const char * name, const char * value)
-{
-	lua_pushstring(m_lua, value);
-	lua_setglobal(m_lua, name);
-}
-
-PString LuaPolicy::GetValue(const char * name) const
-{
-	lua_getglobal(m_lua, name);
-	PString result = lua_tostring(m_lua, -1);
-	lua_pop(m_lua, 1);
-	return result;
 }
 
 void LuaPolicy::RunPolicy(
@@ -192,30 +264,28 @@ void LuaPolicy::RunPolicy(
 		/* out: */
 		DestinationRoutes & destination)
 {
-	SetValue("source", source);
-	SetValue("calledAlias", calledAlias);
-	SetValue("calledIP", calledIP);
-	SetValue("caller", caller);
-	SetValue("callingStationId", callingStationId);
-	SetValue("callid", callid);
-	SetValue("messageType", messageType);
-	SetValue("clientauthid", clientauthid);
-	SetValue("language", language);
-	SetValue("destAlias", "");
-	SetValue("destIP", "");
-	SetValue("action", "");
-	SetValue("rejectCode", "");
+	SetString("source", source);
+	SetString("calledAlias", calledAlias);
+	SetString("calledIP", calledIP);
+	SetString("caller", caller);
+	SetString("callingStationId", callingStationId);
+	SetString("callid", callid);
+	SetString("messageType", messageType);
+	SetString("clientauthid", clientauthid);
+	SetString("language", language);
+	SetString("destAlias", "");
+	SetString("destIP", "");
+	SetString("action", "");
+	SetString("rejectCode", "");
 
-	if (luaL_loadstring(m_lua, m_script) != 0 || lua_pcall(m_lua, 0, 0, 0) != 0) {
-		PTRACE(1, "LUA\tError in LUA script: " << lua_tostring(m_lua, -1));
-		lua_pop(m_lua, 1);
+	if (!RunLua(m_script)) {
 		return;
 	}
 
-	PString action = GetValue("action");
-	PString rejectCode = GetValue("rejectCode");
-	PString destAlias = GetValue("destAlias");
-	PString destIP = GetValue("destIP");
+	PString action = GetString("action");
+	PString rejectCode = GetString("rejectCode");
+	PString destAlias = GetString("destAlias");
+	PString destIP = GetString("destIP");
 
 	if (action.ToUpper() == "SKIP") {
 		PTRACE(5, m_name << "\tSkipping to next policy");
@@ -263,7 +333,7 @@ namespace { // anonymous namespace
 
 /// LUA authentication policy
 
-class LuaAuth : public GkAuthenticator
+class LuaAuth : public LuaBase, public GkAuthenticator
 {
 public:
 	enum SupportedRasChecks {
@@ -359,21 +429,12 @@ protected:
 		const PString & messageType
 		);
 
-	void SetString(const char * name, const char * value);
-	PString GetString(const char * name) const;
-	void SetNumber(const char * name, double value);
-	double GetNumber(const char * name) const;
-	void SetBoolean(const char * name, bool value);
-	bool GetBoolean(const char * name) const;
-
 private:
 	LuaAuth();
 	LuaAuth(const LuaAuth &);
 	LuaAuth & operator=(const LuaAuth &);
 
 protected:
-	// LUA interpreter
-	lua_State * m_lua;
 	// scripts to run
 	PString m_registrationScript;
 	PString m_callScript;
@@ -420,62 +481,14 @@ LuaAuth::LuaAuth(
 	if (m_registrationScript.IsEmpty() && m_callScript.IsEmpty()) {
 		PTRACE(2, "LuaAuth\tno LUA script");
 		SNMP_TRAP(4, SNMPError, General, "LuaAuth: no script");
+		return;
 	}
 
-	m_lua = luaL_newstate();
-	luaL_openlibs(m_lua);
-	// register "gnugk" lib
-	luaL_newlib(m_lua, gnugklib);
-    lua_setglobal(m_lua, LUA_GNUGKLIBNAME);
+    InitLua();
 }
 
 LuaAuth::~LuaAuth()
 {
-    if (m_lua) {
-        lua_close(m_lua);
-    }
-}
-
-void LuaAuth::SetString(const char * name, const char * value)
-{
-	lua_pushstring(m_lua, value);
-	lua_setglobal(m_lua, name);
-}
-
-PString LuaAuth::GetString(const char * name) const
-{
-	lua_getglobal(m_lua, name);
-	PString result = lua_tostring(m_lua, -1);
-	lua_pop(m_lua, 1);
-	return result;
-}
-
-void LuaAuth::SetNumber(const char * name, double value)
-{
-	lua_pushnumber(m_lua, value);
-	lua_setglobal(m_lua, name);
-}
-
-double LuaAuth::GetNumber(const char * name) const
-{
-	lua_getglobal(m_lua, name);
-	double result = lua_tonumber(m_lua, -1);
-	lua_pop(m_lua, 1);
-	return result;
-}
-
-void LuaAuth::SetBoolean(const char * name, bool value)
-{
-	lua_pushboolean(m_lua, value);
-	lua_setglobal(m_lua, name);
-}
-
-bool LuaAuth::GetBoolean(const char * name) const
-{
-	lua_getglobal(m_lua, name);
-	bool result = lua_toboolean(m_lua, -1);
-	lua_pop(m_lua, 1);
-	return result;
 }
 
 /*
@@ -597,9 +610,7 @@ int LuaAuth::doRegistrationCheck(
 	SetString("messageType", messageType);
 	SetString("result", "FAIL");
 
-	if (luaL_loadstring(m_lua, m_registrationScript) != 0 || lua_pcall(m_lua, 0, 0, 0) != 0) {
-		PTRACE(1, "LuaAuth\tError in LUA script: " << lua_tostring(m_lua, -1));
-		lua_pop(m_lua, 1);
+	if (!RunLua(m_registrationScript)) {
 		return e_fail;
 	}
 
@@ -637,9 +648,7 @@ int LuaAuth::doCallCheck(
 	SetString("messageType", messageType);
 	SetString("result", "FAIL");
 
-	if (luaL_loadstring(m_lua, m_callScript) != 0 || lua_pcall(m_lua, 0, 0, 0) != 0) {
-		PTRACE(1, "LuaAuth\tError in LUA script: " << lua_tostring(m_lua, -1));
-		lua_pop(m_lua, 1);
+	if (!RunLua(m_callScript)) {
 		return e_fail;
 	}
 
@@ -656,5 +665,211 @@ int LuaAuth::doCallCheck(
 namespace { // anonymous namespace
 	GkAuthCreator<LuaAuth> LuaAuthCreator("LuaAuth");
 } // end of anonymous namespace
+
+
+class LuaAcct : public LuaBase, public GkAcctLogger
+{
+public:
+	enum Constants
+	{
+		/// events recognized by this module
+		StatusAcctEvents = AcctStart | AcctStop | AcctUpdate | AcctConnect | AcctAlert | AcctRegister | AcctUnregister
+	};
+
+	LuaAcct(
+		/// name from Gatekeeper::Acct section
+		const char* moduleName,
+		/// config section name to be used with an instance of this module,
+		/// pass NULL to use a default section (named "moduleName")
+		const char* cfgSecName = NULL
+		);
+
+	/// Destroy the accounting logger
+	virtual ~LuaAcct();
+
+	/// overriden from GkAcctLogger
+	virtual Status Log(AcctEvent evt, const callptr & call);
+
+	/// overriden from GkAcctLogger
+	virtual Status Log(AcctEvent evt, const endptr & ep);
+
+private:
+	LuaAcct();
+	/* No copy constructor allowed */
+	LuaAcct(const LuaAcct &);
+	/* No operator= allowed */
+	LuaAcct & operator=(const LuaAcct &);
+
+protected:
+	/// script to run
+	PString m_script;
+	/// timestamp formatting string
+	PString m_timestampFormat;
+};
+
+LuaAcct::LuaAcct(const char* moduleName, const char* cfgSecName)
+	: GkAcctLogger(moduleName, cfgSecName)
+{
+	// it is very important to set what type of accounting events
+	// are supported for each accounting module, otherwise the Log method
+	// will no get called
+	SetSupportedEvents(StatusAcctEvents);
+
+	m_timestampFormat = GkConfig()->GetString("LuaAcct", "TimestampFormat", "");
+	m_script = GkConfig()->GetString("LuaAcct", "Script", "");
+	if (m_script.IsEmpty()) {
+		PString scriptFile = GkConfig()->GetString("LuaAcct", "ScriptFile", "");
+		if (!scriptFile.IsEmpty()) {
+			PTextFile f(scriptFile, PFile::ReadOnly);
+			if (!f.IsOpen()) {
+				PTRACE(1, "LUA\tCan't read LUA script " << scriptFile);
+			} else {
+				PString line;
+				while (f.ReadLine(line)) {
+					m_script += (line + "\n");
+				}
+			}
+		}
+	}
+
+	if (m_script.IsEmpty()) {
+		PTRACE(2, GetName() << "\tmodule creation failed: no LUA script");
+		SNMP_TRAP(4, SNMPError, General, GetName() + " creation failed");
+		return;
+	}
+
+    InitLua();
+}
+
+LuaAcct::~LuaAcct()
+{
+}
+
+GkAcctLogger::Status LuaAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & call)
+{
+	// a workaround to prevent processing end on "sufficient" module
+	// if it is not interested in this event type
+	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
+		return Next;
+
+    if (!m_lua || m_script.IsEmpty()) {
+		PTRACE(1, GetName() + "\tError: LUA not configured");
+		return Fail;
+    }
+
+	if (!call) {
+		PTRACE(1, GetName() << "\tMissing call info for event " << evt);
+		return Fail;
+	}
+
+	PString eventName;
+	switch(evt) {
+        case AcctStart:
+            eventName = "Start";
+            break;
+        case AcctConnect:
+            eventName = "Connect";
+            break;
+        case AcctUpdate:
+            eventName = "Update";
+            break;
+        case AcctStop:
+            eventName = "Stop";
+            break;
+        case AcctAlert:
+            eventName = "Alert";
+            break;
+        default:
+            eventName = "Unknown";
+	}
+
+	std::map<PString, PString> params;
+	SetupAcctParams(params, call, m_timestampFormat);
+
+	SetString("event", eventName);
+	SetString("result", "OK");
+    for(std::map<PString, PString>::const_iterator it = params.begin(); it != params.end(); it++) {
+        PString varName = PString("param_") + it->first;
+        varName.Replace("-", "_", true);    // - not allowed in LUA variable name
+        SetString(varName, PString(it->second));
+    }
+
+	if (!RunLua(m_script)) {
+		return Fail;
+	}
+
+	PString result = GetString("result");
+	if (result.ToUpper() == "OK") {
+		return Ok;
+	} else if (result.ToUpper() == "NEXT") {
+		return Next;
+	} else {
+		return Fail;
+	}
+
+	return Ok;
+}
+
+GkAcctLogger::Status LuaAcct::Log(GkAcctLogger::AcctEvent evt, const endptr & ep)
+{
+	// a workaround to prevent processing end on "sufficient" module
+	// if it is not interested in this event type
+	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
+		return Next;
+
+    if (!m_lua || m_script.IsEmpty()) {
+		PTRACE(1, GetName() + "\tError: LUA not configured");
+		return Fail;
+    }
+
+	if (!ep) {
+		PTRACE(1, GetName() << "\tMissing endpoint info for event " << evt);
+		return Fail;
+	}
+
+	PString eventName;
+	switch(evt) {
+        case AcctRegister:
+            eventName = "Register";
+            break;
+        case AcctUnregister:
+            eventName = "Unregister";
+            break;
+        default:
+            eventName = "Unknown";
+	}
+
+	std::map<PString, PString> params;
+	SetupAcctEndpointParams(params, ep);
+
+	SetString("event", eventName);
+	SetString("result", "OK");
+    for(std::map<PString, PString>::const_iterator it = params.begin(); it != params.end(); it++) {
+        PString varName = PString("param_") + it->first;
+        varName.Replace("-", "_", true);    // - not allowed in LUA variable name
+        SetString(varName, PString(it->second));
+    }
+
+	if (!RunLua(m_script)) {
+		return Fail;
+	}
+
+	PString result = GetString("result");
+	if (result.ToUpper() == "OK") {
+		return Ok;
+	} else if (result.ToUpper() == "NEXT") {
+		return Next;
+	} else {
+		return Fail;
+	}
+
+	return Ok;
+}
+
+
+namespace {
+	// append status port accounting logger to the global list of loggers
+	GkAcctLoggerCreator<LuaAcct> StatusAcctCreator("LuaAcct");
+}
 
 #endif	// HAS_LUA

@@ -19,31 +19,29 @@
 #define NAME_H "@(#) $Id$"
 
 
-class NamedObject 
+class NamedObject
 {
 public:
 	/// build a named with the given name (or with an empty name)
 	NamedObject(
 		/// name to set for the object
 		const char* name = NULL
-		) : m_name(name) {}
+		) : m_name(name) { }
 
 	/// copy constructor for proper PString copying
 	NamedObject(
 		const NamedObject& obj
-		) : m_name((const char*)(obj.m_name)) {}
-		
-	virtual ~NamedObject() {}
+		) : m_name((const char*)(obj.m_name)) { }
+
+	virtual ~NamedObject() { }
 
 	/// assignment operator for proper PString assignment
-	NamedObject& operator=(
-		const NamedObject& obj
-		)
+	NamedObject & operator=(const NamedObject & obj)
 	{
 		m_name = (const char*)(obj.m_name);
 		return *this;
 	}
-	
+
 	/** Set new name for the object.
 		Not really thread safe (another thread may call GetName in the same time),
 		so it should be used with care.
@@ -51,15 +49,15 @@ public:
 	void SetName(
 		/// name to set for the object
 		const char* name
-		) 
-	{ 
+		)
+	{
 		m_name = name;
 	}
-	
+
 	/** @return
 		Name for this object.
 	*/
-	const PString& GetName() const { return m_name; }
+	const PString & GetName() const { return m_name; }
 
 private:
 	/// object name

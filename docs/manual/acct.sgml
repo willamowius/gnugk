@@ -20,7 +20,7 @@ All CDRs are also sent to the status port and can be used by external applicatio
 <tscreen><verb>
 acctmod=actions
 
- <acctmod> := FileAcct | RadAcct | SQLAcct | StatusAcct | SyslogAcct | CapacityControl | ...
+ <acctmod> := FileAcct | RadAcct | SQLAcct | StatusAcct | SyslogAcct | LuaAcct | CapacityControl | ...
  <actions> := <control>[;<event>,<event>,...]
  <control> := optional | required | sufficient | alternative
  <event>   := start | stop | alert | connect | update | register | unregister | on | off
@@ -106,6 +106,11 @@ This module logs all accounting events to the Unix syslog. It supports (start, c
 event types. 
 See section <ref id="syslogacct" name="[SyslogAcct]"> for configuration details.
 
+<item><tt>LuaAcct</tt>
+<p>
+This module runs a LUA script for each accounting event. It supports (start, connect, stop, update, alert, register, unregister) event types.
+See section <ref id="luaacct" name="[LuaAcct]"> for configuration details.
+
 <item><tt>CapacityControl</tt>
 <p>
 This module performs inbound call volume logging, required for the <tt/CapacityControl/
@@ -166,7 +171,7 @@ if the call start event could not be logged with RadAcct. However, we still want
 to store a CDR in a text file in case the RADIUS server is down when the call
 disconnects, so we can fetch call duration into a billing system later.
 
-<sect1>Customizing CDR strings
+<sect1>Customizing CDR strings and accounting data
 <label id="cdrparameters">
 <p>
 Most accounting modules let you customize the CDR data they store. They use a common set of
@@ -175,7 +180,7 @@ parameters to define the CDR string.
 Parameters are specified using <tt/%/ character and can be one letter
 (like <tt/%n/) or longer (like <tt/%{CallId}/). Any remaining characters that
 are not parameter names are simply copied to the final CDR string. The following
-parameters are recognized:
+parameters are recognized in all call related accounting events:
 <itemize>
 <item><tt/%g/ - gatekeeper name
 <item><tt/%n/ - call number (not unique after gatekeeper restart)
@@ -217,6 +222,14 @@ parameters are recognized:
 <item><tt/%{callee-vendor}/ - vendor and version info of the called endpoint
 <item><tt/%{sinfo-ip}/ - IP from Sorenson SInfo (only available when TranslateSorensonSourceInfo=1)
 </itemize><newline>
+
+For Register and Unregister events you can use the following parameters:
+<itemize>
+<item><tt/%{endpoint-ip}/ - IP number of the endpoint
+<item><tt/%{endpoint-port}/ - port number of the endpoint
+<item><tt/%{epid}/ - the endpoint ID
+<item><tt/%{aliases}/ - the comma deparated list of aliases the endpoint has registered with
+</itemize>
 
 
 <sect1>Section &lsqb;FileAcct&rsqb;
@@ -888,14 +901,6 @@ is not specified, the global one from the main gatekeeper section is used.
 
 </itemize>
 
-In addition to the CDR parameters, Register and Unregister events can use the following parameters:
-<itemize>
-<item><tt/%{endpoint-ip}/ - IP number of the endpoint
-<item><tt/%{endpoint-port}/ - port number of the endpoint
-<item><tt/%{epid}/ - the endpoint ID
-<item><tt/%{aliases}/ - the comma deparated list of aliases the endpoint has registered with
-</itemize>
-
 
 <sect1>Section &lsqb;SyslogAcct&rsqb;
 <label id="syslogacct">
@@ -942,6 +947,37 @@ Defines the event when a call is connected. The syntax and parameters are the sa
 Default: <tt>N/A</tt><newline>
 <p>
 Format of timestamp strings used in events. If this setting
+is not specified, the global one from the main gatekeeper section is used.
+
+</itemize>
+
+<sect1>Section &lsqb;LuaAcct&rsqb;
+<label id="luaacct">
+<p>
+This accounting module runs a LUA script for each accounting event.
+
+The <ref id="cdrparameters" name="common CDR parameters"> are available as LUA variables as <tt>param_g</tt> or
+<tt>param_Called_Station_Id</tt>. The minus sign in parameter names is replaced by an underscore to construct
+valid LUA variable names.
+
+The name of the event currently being processed is available in the variable <tt>event</tt> and
+a result ("OK", "Fail", "Next") can be stored in the <tt>result</tt> variable.
+
+<itemize>
+<item><tt/Script=<em>script</em>/<newline>
+Default: <tt>N/A</tt>
+<p>
+LUA script to run for every event.
+
+<item><tt/ScriptFile=<em>script</em>/<newline>
+Default: <tt>N/A</tt>
+<p>
+LUA file to run for every event.
+
+<item><tt/TimestampFormat=MySQL/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Format of timestamp strings. If this setting
 is not specified, the global one from the main gatekeeper section is used.
 
 </itemize>
