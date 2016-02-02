@@ -424,7 +424,6 @@ GkPresence::GkPresence()
 
 GkPresence::~GkPresence()
 {
-
 }
 
 void GkPresence::Stop()

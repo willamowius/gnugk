@@ -317,7 +317,6 @@ protected:
 
 // SSH version of the staus client
 class SSHStatusClient : public StatusClient {
-
 public:
 	SSHStatusClient(int instanceNo);
 	virtual ~SSHStatusClient();

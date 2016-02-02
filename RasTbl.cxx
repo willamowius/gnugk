@@ -4384,7 +4384,6 @@ void CallRec::H46024BSessionFlag(WORD sessionID)
 
 void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, const H323TransportAddress & rev, unsigned muxID_fwd, unsigned muxID_rev)
 {
-
 	if (fwd.IsEmpty() || rev.IsEmpty()) {
 		PTRACE(4, "H46024B\tSession " << sessionID << " NAT offload probe not ready");
 		return;

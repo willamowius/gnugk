@@ -346,7 +346,6 @@ struct STUNmessageHeader
 
 #pragma pack()
 
-
 class STUNmessage : public PBYTEArray
 {
 public:
@@ -360,8 +359,7 @@ public:
     SharedSecretError    = 0x0112,
   };
 
-  STUNmessage()
-  { }
+  STUNmessage() { }
 
   STUNmessage(MsgType newType, const BYTE * id = NULL)
     : PBYTEArray(sizeof(STUNmessageHeader))
@@ -400,9 +398,8 @@ public:
       return NULL;
 
     while (ptr && (BYTE*) ptr < (BYTE*)(theArray+GetSize()) && length >= (int) ptr->length+4) {
-
-      length -= ptr->length + 4;
-      ptr = ptr->GetNext();
+        length -= ptr->length + 4;
+        ptr = ptr->GetNext();
     }
 
     if (length != 0)
@@ -554,8 +551,8 @@ PBoolean STUNsocket::GetLocalAddress(PIPSocket::Address & addr, WORD & port)
 
 //////
 
-struct STUNportRange {
-
+struct STUNportRange
+{
 	STUNportRange() :  minport(0), maxport(0) {}
 	void LoadConfig(const char *, const char *, const char * = "");
 
@@ -622,14 +619,12 @@ private:
 	PMutex				m_portCreateMutex;
 	int					m_socketsForPairing;
 	int					m_pollRetries;
-
 };
 
 STUNClient::STUNClient(GkClient * _client, const H323TransportAddress & addr)
 :  m_client(_client), m_nattype(UnknownNat), m_shutdown(false),
    m_socketsForPairing(4), m_pollRetries(3)
 {
-
 	PIPSocket::Address ip;
 	WORD port;
 	addr.GetIpAndPort(ip, port);
@@ -935,7 +930,6 @@ H46024Socket::H46024Socket(GkClient * client, bool rtp, const H225_CallIdentifie
 	m_rtp(rtp), m_state(e_notRequired),	m_remPort(0), m_detPort(0), m_pendPort(0), m_altPort(0),
 	m_altMuxID(0), m_probes(0), SSRC(0), m_keepseqno(100)
 {
-
 }
 
 PBoolean H46024Socket::ReceivedProbePacket(const RTP_ControlFrame & frame, bool & probe, bool & success)
@@ -1321,18 +1315,15 @@ void H46024Socket::SendRTPPing(const PIPSocket::Address & ip, const WORD & port,
 CallH46024Sockets::CallH46024Sockets(unsigned strategy)
 : m_natStrategy(strategy), m_sessionID(0), m_rtpSocket(NULL), m_rtcpSocket(NULL)
 {
-
 }
 
 CallH46024Sockets::CallH46024Sockets(WORD sessionID, UDPProxySocket * rtp, UDPProxySocket * rtcp)
 : m_natStrategy(0), m_sessionID(sessionID), m_rtpSocket(rtp), m_rtcpSocket(rtcp)
 {
-
 }
 
 CallH46024Sockets::~CallH46024Sockets()
 {
-
 }
 
 void CallH46024Sockets::SetAlternate(PString cui, unsigned muxID, H323TransportAddress m_rtp, H323TransportAddress m_rtcp)

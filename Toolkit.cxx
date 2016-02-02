@@ -1100,7 +1100,6 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig * config)
 	PINDEX gw_size = cfgs.GetSize();
 	if (gw_size > 0) {
 		for (PINDEX i = 0; i < gw_size; ++i) {
-
 			// Get the config keys
 			PString key = cfgs.GetKeyAt(i);
 			PString cfg_value = cfgs[key];
@@ -1112,11 +1111,9 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig * config)
 
 			// Split the config data into seperate lines
 			PStringArray lines = cfg_value.Tokenise(PString(";"));
-
 			PINDEX lines_size = lines.GetSize();
 
 			for (PINDEX j = 0; j < lines_size; ++j) {
-
 				// Split the config line into three strings, direction, from string, to string
 				PStringArray tokenised_line = lines[j].Tokenise(PString("="));
 

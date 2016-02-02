@@ -4815,7 +4815,6 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	if (!(m_call->GetCalledParty() && m_call->GetCalledParty()->IsTraversalClient() && !m_call->GetCalledParty()->UsesH46017()) )
 #endif
 	{
-
 #ifdef HAS_H46018
 #ifdef HAS_H46023
 		bool OZH46024 = (m_call->GetCalledParty() && m_call->GetCalledParty()->IsRemote() &&
@@ -7446,7 +7445,6 @@ void CallSignalSocket::BuildProgressPDU(Q931 & ProgressPDU, PBoolean fromDestina
 
 void CallSignalSocket::BuildNotifyPDU(Q931 & NotifyPDU, PBoolean fromDestination)
 {
-
 	H225_H323_UserInformation signal;
 	H225_H323_UU_PDU_h323_message_body & body = signal.m_h323_uu_pdu.m_h323_message_body;
 	body.SetTag(H225_H323_UU_PDU_h323_message_body::e_notify);
@@ -7563,7 +7561,6 @@ void CallSignalSocket::Dispatch()
 			);
 
 	while (timeout > 0) {
-
 		ConfigReloadMutex.EndRead();
 		if (!IsReadable(timeout)) {
 			PTRACE(3, "Q931\tTimed out waiting for initial Setup message from " << GetName());
@@ -9913,7 +9910,6 @@ void UDPProxySocket::UpdateSocketName()
 
 void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * addr, callptr & call)
 {
-
 	Address localaddr;
 	WORD localport = 0;
 	GetLocalAddress(localaddr, localport);

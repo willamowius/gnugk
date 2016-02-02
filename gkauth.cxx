@@ -1243,7 +1243,6 @@ int SimplePasswordAuth::CheckCryptoTokens(
 {
 	for (PINDEX i = 0; i < tokens.GetSize(); i++) {
 		if (tokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdHash) {
-
 			if (authenticators == NULL)
 				authenticators = new GkH235Authenticators;
 
@@ -1358,7 +1357,6 @@ int SimplePasswordAuth::CheckCryptoTokens(
 			authenticators->SetProcedure1Data(Toolkit::GKName(), sendersID, passwd, requireGeneralID);
 #endif
 		} else if (tokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdEncr) {
-
 			if (authenticators == NULL)
 				authenticators = new GkH235Authenticators;
 

@@ -2394,7 +2394,6 @@ bool RegistrationRequestPDU::Process()
 //	   if (ResolveAlternateGatekeeper(request.m_endpointIdentifier,rx_addr))
 //		  return BuildRRJ(H225_RegistrationRejectReason::e_invalidRASAddress);
 
-
 		endptr ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
 		// endpoint exists, but has different IP or port - this could be a new registration from a NATed endpoint where the fiewall close the pinhole
 		if (ep && ep->GetCallSignalAddress() != SignalAddr
@@ -4139,7 +4138,6 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				if ((WantedEndPoint) && (request.HasOptionalField(H225_LocationRequest::e_genericData))) {
 					H225_ArrayOf_GenericData & locdata = request.m_genericData;
 					for (PINDEX i = 0; i < locdata.GetSize(); i++) {
-
 						H460_Feature & feat = (H460_Feature &)locdata[i];
 						/// Std24 NAT Traversal
 #ifdef HAS_H46023
