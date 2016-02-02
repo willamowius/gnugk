@@ -296,6 +296,10 @@ all H.323 endpoints today.
 The best approach is to place a GNU Gatekeeper on a public IP address in front of your firewall and enable H.460.18 NAT traversal.
 You don't have to open any inbound port - just allow outgoing connections in your firewall, which is usually the default anyway.
 
+If you have a highly configurable firewall, make sure you don't set the NAT timeouts too low: H.460.18 assumes that GnuGk can send
+a UDP packet to the same port where it received a packet from for at least 30 seconds. If you set your firewall rules to 90 seconds
+you are on the safe side. Most consumer products work with much longer timeouts, so you don't have to worry.
+
 If not all of your endpoints support H.460.18 or if you have a lot of internal calls, you can place a 2nd GnuGk inside your firewall
 and let it tunnel calls out for all internal endpoints combined. This called a "traversal zone". See later chapters how to configure
 the outside GnuGk as <ref id="traversalserver" name="traversal server"> and the GnuGk inside the firewall as
