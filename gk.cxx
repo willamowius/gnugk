@@ -167,6 +167,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "FileAcct", "TimestampFormat" },
 	{ "Gatekeeper::Acct", "CapacityControl" },
 	{ "Gatekeeper::Acct", "FileAcct" },
+	{ "Gatekeeper::Acct", "LuaAcct" },
 	{ "Gatekeeper::Acct", "RadAcct" },
 	{ "Gatekeeper::Acct", "SQLAcct" },
 	{ "Gatekeeper::Acct", "StatusAcct" },
@@ -318,6 +319,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "H235", "VerifyRandomNumber" },
 #endif // H323_H235
 #ifdef HAS_LUA
+	{ "LuaAcct", "Script" },
+	{ "LuaAcct", "ScriptFile" },
+	{ "LuaAcct", "TimestampFormat" },
 	{ "LuaAuth", "CallScript" },
 	{ "LuaAuth", "CallScriptFile" },
 	{ "LuaAuth", "RegistrationScript" },

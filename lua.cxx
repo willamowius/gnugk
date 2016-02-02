@@ -788,6 +788,10 @@ GkAcctLogger::Status LuaAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & c
 
 	SetString("event", eventName);
 	SetString("result", "OK");
+	if (!lua_checkstack(m_lua, params.size())) {
+        PTRACE(1, "LuaAcct\tError: Not enough room on stack");
+        return Fail;
+	}
     for(std::map<PString, PString>::const_iterator it = params.begin(); it != params.end(); it++) {
         PString varName = PString("param_") + it->first;
         varName.Replace("-", "_", true);    // - not allowed in LUA variable name
@@ -844,6 +848,10 @@ GkAcctLogger::Status LuaAcct::Log(GkAcctLogger::AcctEvent evt, const endptr & ep
 
 	SetString("event", eventName);
 	SetString("result", "OK");
+	if (!lua_checkstack(m_lua, params.size())) {
+        PTRACE(1, "LuaAcct\tError: Not enough room on stack");
+        return Fail;
+	}
     for(std::map<PString, PString>::const_iterator it = params.begin(); it != params.end(); it++) {
         PString varName = PString("param_") + it->first;
         varName.Replace("-", "_", true);    // - not allowed in LUA variable name
