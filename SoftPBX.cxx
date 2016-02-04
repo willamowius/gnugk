@@ -22,6 +22,7 @@
 #include "capctrl.h"
 #include "h323util.h"
 #include "MakeCall.h"
+#include "Neighbor.h"
 
 int SoftPBX::TimeToLive = -1;
 PTime SoftPBX::StartUp;
@@ -289,7 +290,7 @@ void SoftPBX::SendProceeding(const PString & CallId)
 	PTRACE(3, "GK\tSoftPBX: SendProceeding " << CallId);
 
 	H225_CallIdentifier cid = StringToCallId(CallId);
- 
+
 	// CallProceeding will be sent during the routing process
 	// at this time the call won't yet be in the CallTable,
 	// thus we look for it in the PreliminaryCallTable
@@ -310,7 +311,7 @@ void SoftPBX::SendProceeding(const PString & CallId)
 		GkStatus::Instance()->SignalStatus(msg + "\r\n");
 		return;
 	}
-	
+
 	Q931 q931;
 	PBYTEArray lBuffer;
 	lForwardedSocket->BuildProceedingPDU(q931, call->GetCallIdentifier(), call->GetCallRef() | 0x8000u);
@@ -444,10 +445,10 @@ void SoftPBX::RerouteCall(const PString & CallId, const PCaselessString & whichL
 void SoftPBX::TransferCall(const PString & CallId, const PCaselessString & which, const PString & Destination, const PString & method)
 {
 	PTRACE(1, "GK\tSoftPBX: TransferCall " << CallId << " (" << which << ") -> " << Destination << " using " << method);
- 
+
 	callptr lCall = CallTable::Instance()->FindCallRec(StringToCallId(CallId));
 	CallSignalSocket *lForwardedSocket = NULL;
- 
+
 	if (lCall) {
 		if (which == "called") {
 			lForwardedSocket = lCall->GetCallSignalSocketCalled();
@@ -466,7 +467,7 @@ void SoftPBX::TransferCall(const PString & CallId, const PCaselessString & which
 		GkStatus::Instance()->SignalStatus(msg + "\r\n");
 		return;
 	}
- 
+
 	Q931 q931;
 	PBYTEArray lBuffer;
 	if (method == "FacilityRouteCallToMC") {
@@ -476,7 +477,7 @@ void SoftPBX::TransferCall(const PString & CallId, const PCaselessString & which
 	}
 	q931.Encode(lBuffer);
 	lForwardedSocket->TransmitData(lBuffer);
- 
+
 	PString msg = PString("SoftPBX: call ") + CallId + " transferred from " + which + " to " + Destination;
 	PTRACE(1, "GK\t" + msg);
 	GkStatus::Instance()->SignalStatus(msg + "\r\n");
@@ -515,6 +516,27 @@ void SoftPBX::PrintEndpointQoS(USocket *client)
 {
 	PTRACE(3, "GK\tSoftPBX: PrintEndpointQoS");
 	RegistrationTable::Instance()->PrintEndpointQoS(client);
+}
+
+void SoftPBX::PrintNeighbors(USocket *client)
+{
+	PTRACE(3, "GK\tSoftPBX: PrintNeighbors");
+    client->TransmitData("Neighbors\r\n");
+	NeighborList::List & neighbors = *RasServer::Instance()->GetNeighbors();
+    for(NeighborList::List::iterator iter = neighbors.begin(); iter != neighbors.end(); ++iter) {
+        Neighbors::Neighbor * n = (*iter);
+        PString msg = "NB|" + n->GetGkId() + "|" + AsString(n->GetIP(), n->GetPort());
+        msg += PString("|") + (n->IsDisabled() ? "disabled" : "enabled") + "|";
+        // IsClient() means we are a client to this neighbor server
+        if (n->IsH46018Client())
+            msg += "H.460.18 server";
+        // IsServer() means we are a server to this neighbor client
+        if (n->IsH46018Server())
+            msg += "H.460.18 client";
+        msg += "\r\n";
+        client->TransmitData(msg);
+    }
+    client->TransmitData(PString("Number of neighbors: ") + PString(neighbors.size()) + "\r\n;\r\n");
 }
 
 PString SoftPBX::Uptime()

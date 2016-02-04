@@ -1178,6 +1178,7 @@ void GkStatus::OnStart()
 	m_commands["printendpointqos"] = e_PrintEndpointQoS;
 	m_commands["printallconfigswitches"] = e_PrintAllConfigSwitches;
 	m_commands["printeventbacklog"] = e_PrintEventBacklog;
+	m_commands["printneighbors"] = e_PrintNeighbors;
 }
 
 void GkStatus::ReadSocket(IPSocket * clientSocket)
@@ -2065,6 +2066,9 @@ void StatusClient::ExecCommand(
 		break;
 	case GkStatus::e_PrintEventBacklog:
 	    GkStatus::Instance()->PrintEventBacklog(this);
+		break;
+	case GkStatus::e_PrintNeighbors:
+	    SoftPBX::PrintNeighbors(this);
 		break;
 	default:
 		// commmand not recognized

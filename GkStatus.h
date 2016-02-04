@@ -165,6 +165,7 @@ public:
 		e_PrintEndpointQoS,            /// Print QoS values for all endpoints
 		e_PrintAllConfigSwitches,      /// print all known config switches
 		e_PrintEventBacklog,           /// print buffered events
+		e_PrintNeighbors,              /// print list of neighbors
 		e_numCommands
 		/// Number of different strings
 	};

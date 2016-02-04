@@ -79,7 +79,7 @@ public:
 	PString GetGkId() const { return m_gkid; }
 	PIPSocket::Address GetIP() const;
 	WORD GetPort() const;
-	H225_LocationRequest & BuildLRQ(H225_RasMessage &, WORD seq, const H225_ArrayOf_AliasAddress &);
+	H225_LocationRequest & BuildLRQ(H225_RasMessage & lrq_ras, WORD seq, const H225_ArrayOf_AliasAddress & dest);
 
 	// new virtual functions
 

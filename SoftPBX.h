@@ -52,7 +52,8 @@ namespace SoftPBX
 	void PrintPrefixCapacities(USocket *client, const PString & alias);
 	void PrintCapacityControlRules(USocket *client);
 	void PrintEndpointQoS(USocket *client);
-	
+	void PrintNeighbors(USocket *client);
+
 	PString Uptime();
 
 	extern int TimeToLive;

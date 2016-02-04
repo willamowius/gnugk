@@ -817,7 +817,27 @@ Number of Endpoints: 2
 <item><tt/PrintEventBacklog/<newline>
 <p>Print the saved status port events in the event backlog. To configure the event backlog see <ref id="statuseventbacklog" name="[Gatekeeper::Main] StatusEventBacklog">.
 
+<item><tt/PrintNeighbors/<newline>
+<p>
+Print a list of all neighbor gatekeepers with IP numbers and state.
+<descrip>
+<tag/Format:/
+<tscreen><verb>
+NB|<name>|<IP:port>|<enabled or disabled>|<H.460.18 server or client>
+</verb></tscreen>
+<tag/Example:/
+<tscreen><verb>
+Neighbors
+NB|ClientGnuGk|192.168.1.101:7632|enabled|H.460.18 client
+NB|CountryGk|17.32.1.77:1719|enabled|
+Number of Neighbors: 2
+;
+</verb></tscreen>
+</descrip>
+
+
 </itemize>
+
 
 <sect1>Messages (Reference)
 <p>The section describes the messages output to the status interface.
