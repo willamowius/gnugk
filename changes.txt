@@ -1,5 +1,6 @@
 Changes from 4.0 to 4.1
 =======================
+- BUGFIX(RasSrv.cxx) update IP of traversal neighbor on every SCI, not only on IP changes
 - new status port command: PrintNeighbors
 - BUGFIX(ProxyChannel.cxx) fix H.239 inside multiplePayloadStream from Avaya XT5000 with H.460.19
 - new accounting module: LuaAcct

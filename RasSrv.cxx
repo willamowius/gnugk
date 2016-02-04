@@ -4425,8 +4425,7 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 	if (!incomingCall && request.HasOptionalField(H225_ServiceControlIndication::e_featureSet)) {
 		H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
 		if (fs.HasFeature(18) && Toolkit::Instance()->IsH46018Enabled()) {
-			if (!from_neighbor
-				&& request.HasOptionalField(H225_ServiceControlIndication::e_cryptoTokens)) {
+			if (request.HasOptionalField(H225_ServiceControlIndication::e_cryptoTokens)) {
 				// check if this is from a traversal client, so we can update the IP
 				if ((request.m_cryptoTokens.GetSize() > 0)
 					&& (request.m_cryptoTokens[0].GetTag() == H225_CryptoH323Token::e_cryptoGKPwdHash)) {
@@ -4436,8 +4435,9 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 					if (iter != neighbors.end()) {
 						from_neighbor = (*iter);
 						neighbor_authenticated = from_neighbor->Authenticate(this);
-						if (neighbor_authenticated)
+						if (neighbor_authenticated) {
 							from_neighbor->SetApparentIP(m_msg->m_peerAddr, m_msg->m_peerPort);
+                        }
 					}
 				}
 			}
