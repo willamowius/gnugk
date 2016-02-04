@@ -536,7 +536,7 @@ void SoftPBX::PrintNeighbors(USocket *client)
         msg += "\r\n";
         client->TransmitData(msg);
     }
-    client->TransmitData(PString("Number of neighbors: ") + PString(neighbors.size()) + "\r\n;\r\n");
+    client->TransmitData(PString("Number of Neighbors: ") + PString(neighbors.size()) + "\r\n;\r\n");
 }
 
 PString SoftPBX::Uptime()
