@@ -4704,7 +4704,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
             q931.RemoveIE(Q931::CalledPartyNumberIE);
         }
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
-            for (PINDEX i = 0; i <= setupBody.m_destinationAddress.GetSize(); i++) {
+            for (PINDEX i = 0; i < setupBody.m_destinationAddress.GetSize(); i++) {
                 if (setupBody.m_destinationAddress[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
                     calledNumber = AsString(setupBody.m_destinationAddress[i], false);
                     q931.SetCalledPartyNumber(calledNumber, plan, type);
