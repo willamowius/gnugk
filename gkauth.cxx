@@ -1472,6 +1472,7 @@ int AliasAuth::Check(
 
 	const H225_ArrayOf_AliasAddress & aliases = rrq.m_terminalAlias;
 
+    // NOTE: run loop 1 round more than we have aliases to check "default" rule
 	for (PINDEX i = 0; i <= aliases.GetSize(); i++) {
 		const PString alias = (i < aliases.GetSize()) ? AsString(aliases[i], false) : PString("default");
 		PString authcond;
