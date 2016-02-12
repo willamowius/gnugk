@@ -1302,7 +1302,7 @@ void Gatekeeper::OnStop()
 
 void Gatekeeper::Terminate()
 {
- 	if (IsGatekeeperShutdown()) || !RasServer::Instance()->IsRunning())
+ 	if (IsGatekeeperShutdown() || !RasServer::Instance()->IsRunning())
 		return;
 	PWaitAndSignal shutdown(ShutdownMutex);
 	ShutdownFlag = true;
