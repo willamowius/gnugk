@@ -137,7 +137,7 @@ When using stored procedures for accounting, make sure they return at least one 
 <p>
 Some GnuGk modules allow executing dynamic scripts written in LUA, eg. <ref id="routinglua" name="[Routing::Lua]"> or <ref id="luaauth" name="[LuaAuth]">.
 
-LUA is a simple scripting language which is also used by other networking tools like Wireshark or nmap.
+LUA is a simple scripting language which is also used by other networking tools like Wireshark, FreeSWITCH or nmap.
 For details on the LUA language, please see <url url="http://www.lua.org/docs.html" name="http://www.lua.org/docs.html">.
 
 Depending on the module, you'll get some variables to see details eg. about the incoming call and your script can set
