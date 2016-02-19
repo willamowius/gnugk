@@ -14,13 +14,13 @@
 //
 //////////////////////////////////////////////////////////////////
 
-#include <list>
 #include <ptlib.h>
 #include "stl_supp.h"
 #include "rwlock.h"
 #include "singleton.h"
 #include "config.h"
 #include "job.h"
+#include <list>
 
 // timeout (seconds) for an idle Worker to be deleted
 long g_workerIdleTimeout = DEFAULT_WORKER_IDLE_TIMEOUT;

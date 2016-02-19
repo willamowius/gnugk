@@ -13,11 +13,11 @@
  *
  */
 
-#include <vector>
 #include <ptlib.h>
 #include "RasSrv.h"
 #include "gksql.h"
 #include "sqlacct.h"
+#include <vector>
 
 using std::vector;
 
