@@ -1,5 +1,5 @@
 # -*- mode: Makefile -*-
-# Copyright (C) 2002-2013 by its various Authors, see CVS-log
+# Copyright (C) 2002-2016 by its various Authors, see CVS-log
 #
 # PURPOSE OF THIS FILE: Make file for GNU Gatekeeper
 #
@@ -125,11 +125,19 @@ STDCCFLAGS	+= -DMAJOR_VERSION=@GNUGK_MAJOR_VERSION@ -DMINOR_VERSION=@GNUGK_MINOR
 
 STDCCFLAGS += -fno-strict-aliasing
 
-# get gcc version
-GCCMAJOREQ4 := $(shell expr 4 = `$(CC) -dumpversion | cut -f1 -d.`)
-GCCMAJORGT4 := $(shell expr 4 \< `$(CC) -dumpversion | cut -f1 -d.`)
-GCCMAJORGTEQ4 := $(shell expr 4 \<= `$(CC) -dumpversion | cut -f1 -d.`)
-GCCMINORGTEQ4 := $(shell expr 4 \<= `$(CC) -dumpversion | cut -f2 -d.`)
+# remove -felide-constructors for Intel C++ compiler
+ifeq "$(CXX)" "icpc"
+	temp_STDCXXFLAGS := $(subst -felide-constructors,,$(STDCXXFLAGS))
+	STDCXXFLAGS = $(temp_STDCXXFLAGS)
+endif
+
+# get gcc/g++ version
+ifeq "$(CXX)" "g++"
+	GCCMAJOREQ4 := $(shell expr 4 = `$(CXX) -dumpversion | cut -f1 -d.`)
+	GCCMAJORGT4 := $(shell expr 4 \< `$(CXX) -dumpversion | cut -f1 -d.`)
+	GCCMAJORGTEQ4 := $(shell expr 4 \<= `$(CXX) -dumpversion | cut -f1 -d.`)
+	GCCMINORGTEQ4 := $(shell expr 4 \<= `$(CXX) -dumpversion | cut -f2 -d.`)
+endif
 
 # enable stack protection and RELRO + BIND_NOW on Linux with gcc >= 4.x.x
 ifeq "$(OSTYPE)" "linux"
