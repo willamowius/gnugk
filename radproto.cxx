@@ -4,7 +4,7 @@
  * RADIUS protocol classes.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2003-2014, Jan Willamowius
+ * Copyright (c) 2003-2016, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -76,7 +76,7 @@ const char* const radiusPacketCodeNames[] =
 	Returns "Unknown" if the name is not defined.
 */
 inline
-const char* const PMAP_ATTR_TYPE_TO_NAME(unsigned type)
+const char* PMAP_ATTR_TYPE_TO_NAME(unsigned type)
 {
 	return type >= sizeof(radiusAttributeNames)/sizeof(radiusAttributeNames[0])
 		? radiusAttributeNames[sizeof(radiusAttributeNames)/sizeof(radiusAttributeNames[0])-1]
@@ -87,7 +87,7 @@ const char* const PMAP_ATTR_TYPE_TO_NAME(unsigned type)
 	Returns "Unknown" if the name is not defined.
 */
 inline
-const char* const PMAP_CODE_TO_NAME(unsigned code)
+const char* PMAP_CODE_TO_NAME(unsigned code)
 {
 	return code >= sizeof(radiusPacketCodeNames)/sizeof(radiusPacketCodeNames[0])
 		? radiusPacketCodeNames[sizeof(radiusPacketCodeNames)/sizeof(radiusPacketCodeNames[0])-1]
