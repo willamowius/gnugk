@@ -2,7 +2,7 @@
 //
 // GkStatus.cxx
 //
-// Copyright (c) 2000-2015, Jan Willamowius
+// Copyright (c) 2000-2016, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -14,11 +14,17 @@
 #include "config.h"
 
 #ifdef HAS_LIBSSH
+
 #ifdef _WIN32
 #pragma comment(lib, LIBSSH_LIB)
 #endif
 #include "libssh/libssh.h"
 #include "libssh/server.h"
+#endif
+
+// disable warning about comparison with zero for Intel icpc
+#ifdef __INTEL_COMPILER
+#pragma warning(disable: 186)
 #endif
 
 #include <ptlib.h>
