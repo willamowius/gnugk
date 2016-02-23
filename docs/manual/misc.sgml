@@ -339,6 +339,12 @@ Whether the child gatekeeper supports passing registration information
 to the parent. Use this if you wish to manage registrations including 
 authentication in the parent gatekeeper and not the child.
 
+<item><tt/EnableGnuGkNATTraversal=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Enable support for GnuGk's old NAT traversal method.
+You should use H.460.18/.19 for new installations.
+
 <item><tt/EnableH46018=1/<newline>
 Default: <tt/0/<newline>
 <p>

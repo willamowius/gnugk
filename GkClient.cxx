@@ -1513,7 +1513,7 @@ GkClient::GkClient()
 	m_retry(GkConfig()->GetInteger(EndpointSection, "RRQRetryInterval", DEFAULT_RRQ_RETRY)),
 	m_authMode(-1), m_rewriteInfo(NULL), m_natClient(NULL),
 	m_parentVendor(ParentVendor_GnuGk), m_endpointType(EndpointType_Gateway),
-	m_discoverParent(true), m_enableH46018(false), m_registeredH46018(false), m_useTLS(false)
+	m_discoverParent(true), m_enableGnuGkNATTraversal(false), m_enableH46018(false), m_registeredH46018(false), m_useTLS(false)
 #ifdef HAS_H46023
 	, m_nattype(0), m_natnotify(false), m_enableH46023(false), m_registeredH46023(false), m_stunClient(NULL), m_algDetected(false)
 #endif
@@ -1595,6 +1595,7 @@ void GkClient::OnReload()
 
 	m_h323Id = cfg->GetString(EndpointSection, "H323ID", (const char *)Toolkit::GKName()).Tokenise(" ,;\t", FALSE);
 	m_e164 = cfg->GetString(EndpointSection, "E164", "").Tokenise(" ,;\t", FALSE);
+    m_enableGnuGkNATTraversal = GkConfig()->GetBoolean(EndpointSection, "EnableGnuGkNATTraversal", false);
 
 #ifdef HAS_H46018
 	m_enableH46018 = GkConfig()->GetBoolean(EndpointSection, "EnableH46018", false);
@@ -1758,7 +1759,7 @@ bool GkClient::OnSendingGRQ(H225_GatekeeperRequest & grq)
 
 bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 {
-	if ((m_parentVendor == ParentVendor_GnuGk) && !m_enableH46018) {
+	if ((m_parentVendor == ParentVendor_GnuGk) && m_enableGnuGkNATTraversal && !m_enableH46018) {
 		PIPSocket::Address sigip;
 		if (rrq.m_callSignalAddress.GetSize() > 0
 				&& GetIPFromTransportAddr(rrq.m_callSignalAddress[0], sigip)) {
@@ -1773,15 +1774,15 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
 	}
 
 #ifdef HAS_H46018
-		if (m_enableH46018) {
-			rrq.IncludeOptionalField(H225_RegistrationRequest::e_featureSet);
-			H460_FeatureStd feat = H460_FeatureStd(18);
-			rrq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
-			H225_ArrayOf_FeatureDescriptor & desc = rrq.m_featureSet.m_supportedFeatures;
-			int sz = desc.GetSize();
-			desc.SetSize(sz + 1);
-			desc[sz] = feat;
-        }
+    if (m_enableH46018) {
+        rrq.IncludeOptionalField(H225_RegistrationRequest::e_featureSet);
+        H460_FeatureStd feat = H460_FeatureStd(18);
+        rrq.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+        H225_ArrayOf_FeatureDescriptor & desc = rrq.m_featureSet.m_supportedFeatures;
+        int sz = desc.GetSize();
+        desc.SetSize(sz + 1);
+        desc[sz] = feat;
+    }
 #endif
 
 #if defined(HAS_TLS) && defined(HAS_H460)

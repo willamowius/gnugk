@@ -1,6 +1,6 @@
 Changes from 4.1 to 4.2
 =======================
-
+- new switches [RoutedMode] EnableGnuGkNATTraversal=1 and [Endpoint] EnableGnuGkNATTraversal=1 to keep GnuGk's old NAT traversal method enabled
 
 
 Changes from 4.0 to 4.1

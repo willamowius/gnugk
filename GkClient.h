@@ -97,7 +97,7 @@ public:
 	bool UseTLS() const { return m_useTLS; }
 
 	bool UsesAdditiveRegistration() const;
-	bool AdditiveRegister(H225_ArrayOf_AliasAddress & aliases, int & rejectReason, 
+	bool AdditiveRegister(H225_ArrayOf_AliasAddress & aliases, int & rejectReason,
 						H225_ArrayOf_ClearToken * tokens, H225_ArrayOf_CryptoH323Token * cryptotokens);
 	bool AdditiveUnRegister(const H225_ArrayOf_AliasAddress & aliases);
 	void AppendLocalAlias(const H225_ArrayOf_AliasAddress & aliases);
@@ -111,7 +111,7 @@ public:
 	bool OnSendingARQ(H225_AdmissionRequest &arq, Routing::FacilityRequest &req);
 	bool OnSendingDRQ(H225_DisengageRequest &drq, const callptr &call);
 	bool OnSendingURQ(H225_UnregistrationRequest &urq);
-	
+
 	bool SendARQ(Routing::AdmissionRequest &);
 	bool SendLRQ(Routing::LocationRequest &);
 	bool SendARQ(Routing::SetupRequest &, bool answer = false);
@@ -127,8 +127,8 @@ public:
 	bool RewriteE164(SetupMsg &setup, bool);
 
 	/** Fills LRQ with approtiation tokens/cryptoTokens containing
-		configured username/password data. 
-		Declared outside SetPassword template because it should not 
+		configured username/password data.
+		Declared outside SetPassword template because it should not
 		depend on authMode.
 	*/
 	void SetNBPassword(
@@ -146,7 +146,7 @@ public:
 	{
         SetPassword(lrq);
 	}
-		
+
 	template<class RAS> void SetPassword(RAS & rasmsg, const PString & id)
 	{
 		for (PINDEX i = 0; i < m_h235Authenticators->GetSize();  i++) {
@@ -239,16 +239,16 @@ private:
 	GkClientHandler *m_handlers[4];
 
 	NATClient *m_natClient;
-	
+
 	enum ParentVendors {
 		ParentVendor_Generic,
 		ParentVendor_GnuGk,
 		ParentVendor_Cisco
 	};
-	
+
 	/// vendor of the parent gatekeeper
 	int m_parentVendor;
-	
+
 	enum EndpointTypes {
 		EndpointType_Terminal,
 		EndpointType_Gateway
@@ -266,6 +266,8 @@ private:
 	/// list of Authenticators
 	H235Authenticators * m_h235Authenticators;
 
+    // enable GnuGk's old NAT traversal method
+    bool m_enableGnuGkNATTraversal;
 	// enable H.460.18 (offer to parent)
 	bool m_enableH46018;
 	// registered with H.460.18 support
@@ -312,9 +314,9 @@ public:
 	// Set the socketPair
 	void H46023_SetSocketPair(const H225_CallIdentifier & id, WORD sessionID, UDPProxySocket * rtp, UDPProxySocket * rtcp);
 	// Set Alternates (Annex A)
-	void H46023_SetAlternates(const H225_CallIdentifier & id, WORD session, PString cui, 
+	void H46023_SetAlternates(const H225_CallIdentifier & id, WORD session, PString cui,
 							unsigned muxID, H323TransportAddress m_rtp, H323TransportAddress m_rtcp);
-	void H46023_LoadAlternates(const H225_CallIdentifier & id, WORD session, PString & cui, 
+	void H46023_LoadAlternates(const H225_CallIdentifier & id, WORD session, PString & cui,
 							unsigned & muxID, H323TransportAddress & m_rtp, H323TransportAddress & m_rtcp);
 	// Set Alternates (Annex B)
 	void H46023_SetAlternates(const H225_CallIdentifier & id, const H46024B_ArrayOf_AlternateAddress & alternates);

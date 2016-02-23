@@ -478,6 +478,12 @@ Default: <tt>0</tt><newline>
 <p>
 Force ALL registrations to use a keepAlive TCP socket.
 
+<item><tt/EnableGnuGkNATTraversal=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Enable support for GnuGk's old NAT traversal method for legacy endpoints.
+You should use H.460.17/.18/.19 for new installations.
+
 <item><tt/EnableH46017=1/<newline>
 Default: <tt>0</tt><newline>
 <p>

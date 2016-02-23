@@ -136,6 +136,7 @@ const char * KnownConfigEntries[][2] = {
 #ifdef HAS_H46023
 	{ "Endpoint", "EnableH46023" },
 #endif
+	{ "Endpoint", "EnableGnuGkNATTraversal" },
 	{ "Endpoint", "EndpointIdentifier" },
 	{ "Endpoint", "ForwardDestIp" },
 	{ "Endpoint", "Gatekeeper" },
@@ -505,6 +506,7 @@ const char * KnownConfigEntries[][2] = {
 #ifdef HAS_H460P
 	{ "RoutedMode", "EnableH460P" },
 #endif
+	{ "RoutedMode", "EnableGnuGkNATTraversal" },
 	{ "RoutedMode", "FailoverCauses" },
 	{ "RoutedMode", "FilterEmptyFacility" },
 	{ "RoutedMode", "ForceNATKeepAlive" },

@@ -2516,7 +2516,9 @@ bool RegistrationRequestPDU::Process()
 		return BuildRRJ(H225_RegistrationRejectReason::e_resourceUnavailable);
 	}
 
-	if (!nated && request.HasOptionalField(H225_RegistrationRequest::e_nonStandardData)) {
+    bool enableGnuGkNATTraversal = Kit->Config()->GetBoolean(RoutedSec, "EnableGnuGkNATTraversal", false);
+    PTRACE(4, "NAT\tGnuGk's own NAT traversal is " << (enableGnuGkNATTraversal ? "ON" : "OFF"));
+	if (!nated && enableGnuGkNATTraversal && request.HasOptionalField(H225_RegistrationRequest::e_nonStandardData)) {
 		int iec = Toolkit::iecUnknown;
 		if (request.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
 			iec = Toolkit::Instance()->GetInternalExtensionCode(request.m_nonStandardData.m_nonStandardIdentifier);
@@ -2618,6 +2620,7 @@ bool RegistrationRequestPDU::Process()
 		}
 
 		if (supportcallingNAT
+            && enableGnuGkNATTraversal
 #ifdef HAS_H46017
 			&& !usesH46017
 #endif
