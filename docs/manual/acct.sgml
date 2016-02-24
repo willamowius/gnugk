@@ -225,12 +225,19 @@ parameters are recognized in all call related accounting events:
 
 For Register and Unregister events you can use the following parameters:
 <itemize>
+<item><tt/%g/ - gatekeeper name
+<item><tt/%u/ - H.323 ID of the registering party
 <item><tt/%{endpoint-ip}/ - IP number of the endpoint
 <item><tt/%{endpoint-port}/ - port number of the endpoint
 <item><tt/%{epid}/ - the endpoint ID
 <item><tt/%{aliases}/ - the comma deparated list of aliases the endpoint has registered with
 </itemize>
 
+For On and Off events you can use the following parameters:
+<itemize>
+<item><tt/%g/ - gatekeeper name
+<item><tt/%{gkip}/ - IP address of the gatekeeper
+</itemize>
 
 <sect1>Section &lsqb;FileAcct&rsqb;
 <label id="fileacct">
@@ -712,16 +719,6 @@ Defines SQL query used to update a call record in the database when the call is 
 Default: <tt>N/A</tt><newline>
 <p>
 Defines SQL query used to update the database when an endpoint registers.
-
-Register and Unregister queries can use the following parameters:
-<itemize>
-<item><tt/%g/ - gatekeeper name
-<item><tt/%u/ - H.323 ID of the registering party
-<item><tt/%{endpoint-ip}/ - IP number of the endpoint
-<item><tt/%{endpoint-port}/ - port number of the endpoint
-<item><tt/%{epid}/ - the endpoint ID
-<item><tt/%{aliases}/ - the comma deparated list of aliases the endpoint has registered with
-</itemize>
 
 <item><tt/UnregisterQuery=DELETE .../<newline>
 Default: <tt>N/A</tt><newline>

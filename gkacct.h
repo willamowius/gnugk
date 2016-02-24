@@ -170,6 +170,13 @@ protected:
 		const endptr & ep
 		) const;
 
+	/** Fill the map with accounting parameters for On/Off events (name => value associations).
+	*/
+	virtual void SetupAcctParams(
+		/// accounting parameters (name => value) associations
+		std::map<PString, PString> & params
+		) const;
+
 	/** Replace accounting parameters placeholders (%a, %{Name}, ...) with
 	    actual values.
 

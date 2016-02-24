@@ -2,7 +2,7 @@
 //
 // RAS Server for GNU Gatekeeper
 //
-// Copyright (c) 2000-2015, Jan Willamowius
+// Copyright (c) 2000-2016, Jan Willamowius
 // Copyright (c) Citron Network Inc. 2001-2003
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
@@ -1441,8 +1441,7 @@ void RasServer::Run()
 	LoadConfig();
 
 	if ((m_socksize > 0) && (!interfaces.empty())) {
-		callptr nullcall;
-		acctList->LogAcctEvent(GkAcctLogger::AcctOn,nullcall);
+		acctList->LogAcctEvent(GkAcctLogger::AcctOn, callptr(NULL));
 
 		CreateJob(this, &RasServer::HouseKeeping, "HouseKeeping");
 
@@ -1454,7 +1453,7 @@ void RasServer::Run()
 
 		RegularJob::Run();
 
-		acctList->LogAcctEvent(GkAcctLogger::AcctOff,nullcall);
+		acctList->LogAcctEvent(GkAcctLogger::AcctOff, callptr(NULL));
 	} else {
 		SNMP_TRAP(10, SNMPError, Network, "No valid interfaces to listen! Shutdown!");
 		cerr << "FATAL: No valid interfaces to listen! Shutdown!" << endl;

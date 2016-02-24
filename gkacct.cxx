@@ -5,7 +5,7 @@
  * support for accounting to the gatekeeper.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2005-2015, Jan Willamowius
+ * Copyright (c) 2005-2016, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -29,7 +29,7 @@ using std::vector;
 
 /// Name of the config file section for accounting configuration
 namespace {
-const char* GkAcctSectionName = "Gatekeeper::Acct";
+    const char* GkAcctSectionName = "Gatekeeper::Acct";
 }
 
 extern const char* CallTableSection;
@@ -46,29 +46,27 @@ GkAcctLogger::GkAcctLogger(
 	if (m_configSectionName.IsEmpty())
 		m_configSectionName = moduleName;
 
-	const PStringArray control(
-		m_config->GetString(GkAcctSectionName, moduleName, "").Tokenise(";,")
-		);
+	const PStringArray control(m_config->GetString(GkAcctSectionName, moduleName, "").Tokenise(";,"));
 
-	if (control.GetSize() < 1)
+	if (control.GetSize() < 1) {
 		PTRACE(1, "GKACCT\tEmpty config entry for module " << moduleName);
-	else if (strcasecmp(moduleName, "default") == 0) {
+	} else if (strcasecmp(moduleName, "default") == 0) {
 		m_controlFlag = Required;
 		m_defaultStatus = Toolkit::AsBool(control[0]) ? Ok : Fail;
 		m_supportedEvents = AcctAll;
-	} else if (control[0] *= "optional")
+	} else if (control[0] *= "optional") {
 		m_controlFlag = Optional;
-	else if (control[0] *= "sufficient")
+	} else if (control[0] *= "sufficient") {
 		m_controlFlag = Sufficient;
-	else if (control[0] *= "alternative")
+	} else if (control[0] *= "alternative") {
 		m_controlFlag = Alternative;
+    }
 
 	if (control.GetSize() > 1)
 		m_enabledEvents = GetEvents(control);
 
 	PTRACE(1, "GKACCT\tCreated module " << moduleName << " with event mask "
-		<< PString(PString::Unsigned, (long)m_enabledEvents, 16)
-		);
+		<< PString(PString::Unsigned, (long)m_enabledEvents, 16));
 }
 
 GkAcctLogger::~GkAcctLogger()
@@ -109,7 +107,7 @@ int GkAcctLogger::GetEvents(
 
 GkAcctLogger::Status GkAcctLogger::Log(
 	AcctEvent evt, /// accounting event to log
-	const callptr& /*call*/ /// a call associated with the event (if any)
+	const callptr & /*call*/ /// a call associated with the event (if any)
 	)
 {
 	return (evt & m_enabledEvents & m_supportedEvents) ? m_defaultStatus : Next;
@@ -117,7 +115,7 @@ GkAcctLogger::Status GkAcctLogger::Log(
 
 GkAcctLogger::Status GkAcctLogger::Log(
 	AcctEvent evt, /// accounting event to log
-	const endptr& /*ep*/ /// endpoint associated with the event (if any)
+	const endptr & /*ep*/ /// endpoint associated with the event (if any)
 	)
 {
 	return (evt & m_enabledEvents & m_supportedEvents) ? m_defaultStatus : Next;
@@ -223,7 +221,7 @@ void GkAcctLogger::SetupAcctEndpointParams(
 	/// parameter (name => value) associations
 	std::map<PString, PString>& params,
 	/// endpoint associated with an accounting event being logged
-	const endptr& ep
+	const endptr & ep
 	) const
 {
 	PIPSocket::Address addr;
@@ -248,6 +246,23 @@ void GkAcctLogger::SetupAcctEndpointParams(
 	params["g"] = Toolkit::GKName();
 }
 
+void GkAcctLogger::SetupAcctParams(
+ 	/// CDR parameters (name => value) associations
+    std::map<PString, PString> & params
+    ) const
+{
+	PIPSocket::Address addr;
+	vector<PIPSocket::Address> interfaces;
+	Toolkit* const toolkit = Toolkit::Instance();
+	toolkit->GetGKHome(interfaces);
+
+	params["g"] = toolkit->GKName();
+	if (interfaces.empty())
+		params["gkip"] = "";
+	else
+		params["gkip"] = interfaces.front().AsString();
+}
+
 // avoid warning in PTLib object.h
 #if (!_WIN32) && (GCC_VERSION >= 40400)
 #pragma GCC diagnostic ignored "-Wstrict-overflow"
@@ -255,9 +270,9 @@ void GkAcctLogger::SetupAcctEndpointParams(
 
 PString GkAcctLogger::ReplaceAcctParams(
 	/// parametrized CDR string
-	const PString& cdrStr,
+	const PString & cdrStr,
 	/// parameter values
-	const std::map<PString, PString>& params
+	const std::map<PString, PString> & params
 	) const
 {
 	PString finalCDR((const char*)cdrStr);
@@ -761,9 +776,9 @@ GkAcctLogger::Status FileAcct::Log(
 }
 
 bool FileAcct::GetCDRText(
-	PString& cdrString,
+	PString & cdrString,
 	AcctEvent evt,
-	const callptr& call
+	const callptr & call
 	)
 {
 	if ((evt & AcctStop) != AcctStop || !call)
@@ -897,7 +912,7 @@ void GkAcctLoggerList::OnReload()
 
 bool GkAcctLoggerList::LogAcctEvent(
 	GkAcctLogger::AcctEvent evt, /// the accounting event to be logged
-	const callptr& call, /// a call associated with the event (if any)
+	const callptr & call, /// a call associated with the event (if any)
 	time_t now /// "now" timestamp for accounting update events
 	)
 {
@@ -962,7 +977,7 @@ bool GkAcctLoggerList::LogAcctEvent(
 		finalResult = false;
 
 	if (PTrace::CanTrace(2)) {
-		ostream& strm = PTrace::Begin(2, __FILE__, __LINE__);
+		ostream & strm = PTrace::Begin(2, __FILE__, __LINE__);
 		strm << "GKACCT\t" << (finalResult ? "Successfully logged event "
 			: "Failed to log event ") << evt;
 		if (call)
@@ -978,7 +993,7 @@ bool GkAcctLoggerList::LogAcctEvent(
 
 bool GkAcctLoggerList::LogAcctEvent(
 	GkAcctLogger::AcctEvent evt, /// the accounting event to be logged
-	const endptr& ep /// endpoint associated with the event
+	const endptr & ep /// endpoint associated with the event
 	)
 {
 	bool finalResult = true;

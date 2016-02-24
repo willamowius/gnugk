@@ -4,7 +4,7 @@
  * SQL accounting module for GNU Gatekeeper
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
- * Copyright (c) 2005-2010, Jan Willamowius
+ * Copyright (c) 2005-2016, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -20,7 +20,7 @@
 
 /** This accounting module stores call information directly to an SQL database.
     It uses generic SQL interface, so different SQL backends are supported.
-    Queries to store accounting information are parametrized using named 
+    Queries to store accounting information are parametrized using named
     parameters.
 */
 class GkSQLConnection;
@@ -29,43 +29,43 @@ class SQLAcct : public GkAcctLogger
 public:
 	enum Constants {
 		/// events recognized by this module
-		SQLAcctEvents = AcctStart | AcctUpdate | AcctStop | AcctConnect | AcctAlert | AcctRegister | AcctUnregister
+		SQLAcctEvents = AcctOn | AcctOff | AcctStart | AcctUpdate | AcctStop | AcctConnect | AcctAlert | AcctRegister | AcctUnregister
 	};
-	
+
 	/// Create a logger that sends accounting to an SQL database
-	SQLAcct( 
+	SQLAcct(
 		/// name from Gatekeeper::Acct section
 		const char* moduleName,
 		/// name for a config section with logger settings
 		/// pass NULL to use the moduleName as the section name
 		const char* cfgSecName = NULL
 		);
-		
+
 	/// Destroy the accounting logger
 	virtual ~SQLAcct();
 
 	/** Log call accounting event.
-	
+
 		@return
 		Status of this logging operation (see #Status enum#)
 	*/
-	virtual Status Log( 
+	virtual Status Log(
 		AcctEvent evt, /// accounting event to log
 		const callptr& call /// additional data for the event
 		);
 
 	/** Log endpoint accounting event.
-	
+
 		@return
 		Status of this logging operation (see #Status enum#)
 	*/
-	virtual Status Log( 
+	virtual Status Log(
 		AcctEvent evt, /// accounting event to log
 		const endptr& ep /// additional data for the event
 		);
 
 	virtual PString GetInfo();
-	
+
 private:
 	/* No copy constructor allowed */
 	SQLAcct(const SQLAcct&);

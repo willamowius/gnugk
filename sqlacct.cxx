@@ -4,7 +4,7 @@
  * SQL accounting module for GNU Gatekeeper
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
- * Copyright (c) 2005-2015, Jan Willamowius
+ * Copyright (c) 2005-2016, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -151,7 +151,7 @@ GkAcctLogger::Status SQLAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & c
 	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
 		return Next;
 
-	if (!call && (evt !=AcctOn && evt != AcctOff)) {
+	if (!call && (evt != AcctOn && evt != AcctOff)) {
 		PTRACE(1, "GKACCT\t" << GetName() << " - missing call info for event " << evt);
 		SNMP_TRAP(5, SNMPError, Accounting, "No call for accouting event");
 		return Fail;
@@ -194,7 +194,11 @@ GkAcctLogger::Status SQLAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & c
 	}
 
 	std::map<PString, PString> params;
-	SetupAcctParams(params, call, m_timestampFormat);
+	if (evt == AcctOn || evt == AcctOff) {
+		SetupAcctParams(params);
+    } else {
+        SetupAcctParams(params, call, m_timestampFormat);
+    }
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(query, params);
 	if (result == NULL) {
 		PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "
