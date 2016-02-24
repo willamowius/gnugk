@@ -138,7 +138,7 @@ LuaBase::~LuaBase()
 
 void LuaBase::SetString(const char * name, const char * value)
 {
-    // TODO: check for room on stack
+    PTRACE(6, "LUA\tSet String " << name << " = " << value);
 	lua_pushstring(m_lua, value);
 	lua_setglobal(m_lua, name);
 }
@@ -153,6 +153,7 @@ PString LuaBase::GetString(const char * name) const
 
 void LuaBase::SetNumber(const char * name, double value)
 {
+    PTRACE(6, "LUA\tSet Number " << name << " = " << value);
 	lua_pushnumber(m_lua, value);
 	lua_setglobal(m_lua, name);
 }
@@ -167,6 +168,7 @@ double LuaBase::GetNumber(const char * name) const
 
 void LuaBase::SetBoolean(const char * name, bool value)
 {
+    PTRACE(6, "LUA\tSet Boolean" << name << " = " << value);
 	lua_pushboolean(m_lua, value);
 	lua_setglobal(m_lua, name);
 }
@@ -673,7 +675,7 @@ public:
 	enum Constants
 	{
 		/// events recognized by this module
-		StatusAcctEvents = AcctStart | AcctStop | AcctUpdate | AcctConnect | AcctAlert | AcctRegister | AcctUnregister
+		StatusAcctEvents = AcctOn | AcctOff | AcctStart | AcctStop | AcctUpdate | AcctConnect | AcctAlert | AcctRegister | AcctUnregister
 	};
 
 	LuaAcct(
@@ -757,13 +759,19 @@ GkAcctLogger::Status LuaAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & c
 		return Fail;
     }
 
-	if (!call) {
+	if (!call && evt != AcctOn && evt != AcctOff) {
 		PTRACE(1, GetName() << "\tMissing call info for event " << evt);
 		return Fail;
 	}
 
 	PString eventName;
 	switch(evt) {
+        case AcctOn:
+            eventName = "On";
+            break;
+        case AcctOff:
+            eventName = "Off";
+            break;
         case AcctStart:
             eventName = "Start";
             break;
@@ -784,7 +792,11 @@ GkAcctLogger::Status LuaAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & c
 	}
 
 	std::map<PString, PString> params;
-	SetupAcctParams(params, call, m_timestampFormat);
+	if (evt == AcctOn || evt == AcctOff) {
+		SetupAcctParams(params);
+    } else {
+        SetupAcctParams(params, call, m_timestampFormat);
+    }
 
 	SetString("event", eventName);
 	SetString("result", "OK");

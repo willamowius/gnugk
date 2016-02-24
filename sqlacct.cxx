@@ -151,7 +151,7 @@ GkAcctLogger::Status SQLAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & c
 	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
 		return Next;
 
-	if (!call && (evt != AcctOn && evt != AcctOff)) {
+	if (!call && evt != AcctOn && evt != AcctOff) {
 		PTRACE(1, "GKACCT\t" << GetName() << " - missing call info for event " << evt);
 		SNMP_TRAP(5, SNMPError, Accounting, "No call for accouting event");
 		return Fail;
