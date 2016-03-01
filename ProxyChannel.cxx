@@ -3,7 +3,7 @@
 // ProxyChannel.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2002
-// Copyright (c) 2002-2015, Jan Willamowius
+// Copyright (c) 2002-2016, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1417,6 +1417,7 @@ bool TCPProxySocket::SetMinBufSize(WORD len)
 
 void TCPProxySocket::RemoveRemoteSocket()
 {
+    m_remoteLock.Wait();
 	remote = NULL;
 }
 
@@ -6779,6 +6780,7 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg * msg)
 		m_remoteLock.Wait();
 		if (remote != NULL) {
 			remote->RemoveRemoteSocket();
+            remote = NULL;  // FIX for crash in call cleanup (race condition)
 		}
 		m_remoteLock.Signal();
 	}

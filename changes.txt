@@ -1,5 +1,6 @@
 Changes from 4.1 to 4.2
 =======================
+- BUGFIX(ProxyChannel.cxx) fix crash in call cleanup
 - support ON and OFF event in LuaAcct
 - BUGFIX(sqlacct.*) implement ON and OFF event as documented
 - new switches [RoutedMode] EnableGnuGkNATTraversal=1 and [Endpoint] EnableGnuGkNATTraversal=1 to keep GnuGk's old NAT traversal method enabled
