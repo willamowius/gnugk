@@ -2333,8 +2333,9 @@ SSL_CTX * Toolkit::GetTLSContext()
 #endif
 		}
 
-		m_sslCtx = SSL_CTX_new(SSLv23_method());	// allow SSLv3 + TLSv1
-		SSL_CTX_set_options(m_sslCtx, SSL_OP_NO_SSLv2);	// remove unsafe SSLv2
+		m_sslCtx = SSL_CTX_new(SSLv23_method());	// allow only TLS (SSLv2+v3 are removed below)
+		SSL_CTX_set_options(m_sslCtx, SSL_OP_NO_SSLv2);	// remove unsafe SSLv2 (eg. due to DROWN)
+		SSL_CTX_set_options(m_sslCtx, SSL_OP_NO_SSLv3);	// remove unsafe SSLv3 (eg. due to POODLE)
 		SSL_CTX_set_mode(m_sslCtx, SSL_MODE_AUTO_RETRY); // handle re-negotiations automatically
 		// exclude insecure / broken ciphers
 		// no anonymous DH (ADH), no <= 64 bit (LOW), no export ciphers (EXP), no MD5 + RC4 + SHA1, no elliptic curve ciphers (ECDH + ECDSA)
