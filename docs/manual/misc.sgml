@@ -1080,7 +1080,7 @@ be able to see their true IPs. Also DNS lookups may be slow, so this check is di
 <item><tt/RequireRemoteCertificate=1/<newline>
 Default: <tt>1</tt><newline>
 <p>
-WARNING: USE SWITCH WITH CAUTION. It is highly recommended that TLS be established between 2 parties that both authenticate eachother via 
+WARNING: USE SWITCH WITH CAUTION. It is highly recommended that TLS be established between 2 parties that both authenticate each other via 
 digital certificates. However there are use cases where generation and distribution of certificates to remote/distant endpoints becomes 
 difficult or impossible. This switch when set to 0 will only authenticate TLS connections that the gatekeeper initiates and NOT ones it receives. 
 For this reason it should ONLY be used in a gatekeeper environment where other security is present such as defining explicit Neighbors in Neighbors policy.
