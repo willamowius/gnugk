@@ -1,5 +1,6 @@
 Changes from 4.1 to 4.2
 =======================
+- new switch: [RoutedMode] FilterVideoFastUpdatePicture= to reduce the number of update requests from endpoints
 - disable SSLv3 when using TLS
 - BUGFIX(ProxyChannel.cxx) fix crash in call cleanup
 - support ON and OFF event in LuaAcct

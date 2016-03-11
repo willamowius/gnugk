@@ -1095,9 +1095,9 @@ protected:
 
 	NATHandler *hnat;
 
-private:
 	PIPSocket::Address localAddr, remoteAddr, masqAddr;
 	bool isH245ended;
+    PTime m_lastVideoFastUpdatePicture; // last time we sent a VideoFastUpdatePicture when we are filtering them
 };
 
 class H245ProxyHandler : public H245Handler {
@@ -8269,7 +8269,7 @@ void CallSignalSocket::SetCallTypePlan(Q931 *q931)
 
 // class H245Handler
 H245Handler::H245Handler(const PIPSocket::Address & local, const PIPSocket::Address & remote, const PIPSocket::Address & masq)
-      : localAddr(local), remoteAddr(remote), masqAddr(masq), isH245ended(false)
+      : localAddr(local), remoteAddr(remote), masqAddr(masq), isH245ended(false), m_lastVideoFastUpdatePicture(0)
 {
 	hnat = (remoteAddr != GNUGK_INADDR_ANY) ? new NATHandler(remoteAddr) : NULL;
 }
@@ -8358,6 +8358,22 @@ bool H245Handler::HandleCommand(H245_CommandMessage & Command, bool & suppress, 
 	PTRACE(4, "H245\tCommand: " << Command.GetTagName());
 	if (Command.GetTag() == H245_CommandMessage::e_endSessionCommand)
 		isH245ended = true;
+
+	unsigned filterFastUpdatePeriod = GkConfig()->GetInteger(RoutedSec, "FilterVideoFastUpdatePicture", 0);
+	if (filterFastUpdatePeriod > 0 && Command.GetTag() == H245_CommandMessage::e_miscellaneousCommand) {
+		H245_MiscellaneousCommand miscCommand = Command;
+        if (miscCommand.m_type.GetTag() == H245_MiscellaneousCommand_type::e_videoFastUpdatePicture) {
+            PTime now;
+            if (now - m_lastVideoFastUpdatePicture > PTimeInterval(0, filterFastUpdatePeriod)) {
+                m_lastVideoFastUpdatePicture = now;
+                PTRACE(3, "H245\tAllow VideoFastUpdatePicture");
+            } else {
+                suppress = true;
+                PTRACE(3, "H245\tFiltering out VideoFastUpdatePicture");
+            }
+		}
+	}
+
 	return false;
 }
 
@@ -11652,6 +11668,22 @@ bool H245ProxyHandler::HandleResponse(H245_ResponseMessage & Response, callptr &
 bool H245ProxyHandler::HandleCommand(H245_CommandMessage & Command, bool & suppress, callptr & call, H245Socket * h245sock)
 {
 	PTRACE(4, "H245\tCommand: " << Command.GetTagName());
+
+	unsigned filterFastUpdatePeriod = GkConfig()->GetInteger(RoutedSec, "FilterVideoFastUpdatePicture", 0);
+	if (filterFastUpdatePeriod > 0 && Command.GetTag() == H245_CommandMessage::e_miscellaneousCommand) {
+		H245_MiscellaneousCommand miscCommand = Command;
+        if (miscCommand.m_type.GetTag() == H245_MiscellaneousCommand_type::e_videoFastUpdatePicture) {
+            PTime now;
+            if (now - m_lastVideoFastUpdatePicture > PTimeInterval(0, filterFastUpdatePeriod)) {
+                m_lastVideoFastUpdatePicture = now;
+                PTRACE(3, "H245\tAllow VideoFastUpdatePicture");
+            } else {
+                suppress = true;
+                PTRACE(3, "H245\tFiltering out VideoFastUpdatePicture");
+            }
+		}
+	}
+
 #ifdef HAS_H235_MEDIA
 	if (peer) {
 		switch (Command.GetTag())

@@ -509,6 +509,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "EnableGnuGkNATTraversal" },
 	{ "RoutedMode", "FailoverCauses" },
 	{ "RoutedMode", "FilterEmptyFacility" },
+	{ "RoutedMode", "FilterVideoFastUpdatePicture" },
 	{ "RoutedMode", "ForceNATKeepAlive" },
 	{ "RoutedMode", "ForwardOnFacility" },
 	{ "RoutedMode", "GKRouted" },
