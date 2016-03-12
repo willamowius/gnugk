@@ -1,0 +1,290 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="authenticators.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="capctrl.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cisco.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="clirw.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="forwarding.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="geoip.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gk.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gkacct.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gkauth.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GkClient.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gkconfig.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gkh235.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gksql.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gktimer.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GkStatus.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="h323util.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="h460presence.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ipauth.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="job.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ldap.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="lua.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MakeCall.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Neighbor.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ProxyChannel.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="radacct.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="radauth.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="radproto.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RasSrv.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RasTbl.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="yasocket.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="version.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Toolkit.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="statusacct.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sqlauth.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sqlacct.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SoftPBX.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="snmp.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="singleton.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sigmsg.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Routing.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gksql_firebird.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gksql_mysql.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gksql_odbc.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gksql_pgsql.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gksql_sqlite.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="version.h" />
+    <ClInclude Include="capctrl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cisco.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="clirw.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="config.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="factory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gk.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gk_const.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gkacct.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gkauth.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GkClient.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gkconfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GkStatus.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gktimer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="h323util.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="h460presence.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ipauth.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MakeCall.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Neighbor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ProxyChannel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pwlib_compat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="radacct.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="radauth.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="radproto.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rasinfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RasPDU.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RasSrv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RasTbl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Routing.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rwlock.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sigmsg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="singleton.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="snmp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SoftPBX.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sqlacct.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="statusacct.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stl_supp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Toolkit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="yasocket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gksql.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="name.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="job.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="h323headers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gkh235.h" />
+    <ClInclude Include="authenticators.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="gnugkbuildopts.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="gnugk.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="changes.txt" />
+    <None Include="readme.txt" />
+    <None Include="gnugkbuildopts.h.in" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{2f41e726-b6e9-4b00-b6fc-93eb1eaec219}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{ba87418b-3267-43e2-b878-1eec0f2a9abc}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
