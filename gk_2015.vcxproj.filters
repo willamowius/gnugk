@@ -265,8 +265,12 @@
     <ClInclude Include="h323headers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="gkh235.h" />
-    <ClInclude Include="authenticators.h" />
+    <ClInclude Include="gkh235.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="authenticators.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="gnugkbuildopts.h" />
