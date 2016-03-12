@@ -1157,7 +1157,11 @@ void H46024Socket::BuildProbe(RTP_ControlFrame & report, bool probing)
 #endif
 }
 
+#if PTLIB_VER < 2120
 void H46024Socket::Probe(PTimer &, INT)
+#else
+void H46024Socket::Probe(PTimer &, P_INT_PTR)
+#endif
 {
 	m_probes++;
 
