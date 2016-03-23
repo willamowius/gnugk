@@ -510,7 +510,7 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 	} else
 #endif  // hasIPV6
 	{
-#if defined(IP_PKTINFO)	// Linux and Solaris 11
+#if defined(IP_PKTINFO)	&& !defined(P_NETBSD) // Linux and Solaris 11
 		struct in_pktinfo *pkt;
 		msgh.msg_control = cbuf;
 		msgh.msg_controllen = CMSG_SPACE(sizeof(*pkt));
