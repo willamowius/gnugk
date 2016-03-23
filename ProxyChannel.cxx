@@ -455,7 +455,7 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 	toAddress.GetIpAndPort(toIP, toPort);
 	SetSockaddr(dest, toIP, toPort);
 
-    // TODO: should we avoid reading the config for every UDP packet ?
+    // TODO: should we avoid reading the config for every UDP packet and store the setting in a global variable ?
     if (GkConfig()->GetBoolean(RoutedSec, "DisableSettingUDPSourceIP", false)) {
         ssize_t bytesSent = sendto(fd, (char *)data, len, 0, (struct sockaddr*)&dest, sizeof(dest));
         if (bytesSent < 0) {
@@ -475,7 +475,7 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 	memset(&cbuf, 0, sizeof(cbuf));	// zero the buffer to shut up Valgrind
 #endif
 
-	/* Set up iov and msgh structures. */
+	// Set up iov and msgh structures
 	memset(&msgh, 0, sizeof(struct msghdr));
 	iov.iov_base = data;
 	iov.iov_len = len;

@@ -1,7 +1,7 @@
 Changes from 4.1 to 4.2
 =======================
 - BUGFIX(gk.cxx) fix shutdown on NetBSD 7
-- BUGFIX(ProxyChannel.cxx) fix compile with IPv6 support on NetBSD 7
+- BUGFIX(ProxyChannel.cxx) fix compile on NetBSD 7
 - new switch: [RoutedMode] FilterVideoFastUpdatePicture= to reduce the number of update requests from endpoints
 - disable SSLv3 when using TLS
 - BUGFIX(ProxyChannel.cxx) fix crash in call cleanup
