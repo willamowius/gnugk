@@ -3338,7 +3338,7 @@ void Toolkit::LoadH46023STUN()
 		PString number = "h323:user@" + x[0];
 #ifdef P_DNS
 		if (!PDNS::LookupSRV(number, "_stun._udp.", addresses))
-			addresses.AppendString(stunlist[i]);
+			addresses.AppendString("h323:" + stunlist[i]);
 #endif
 
 		for (PINDEX j=0; j < addresses.GetSize(); ++j) {
