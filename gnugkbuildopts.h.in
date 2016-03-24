@@ -23,9 +23,6 @@
 // H.460.23/.24
 #undef HAS_H46023
 
-// H.460.26
-#undef HAS_H46026
-
 // Radius
 #undef HAS_RADIUS
 
