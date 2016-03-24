@@ -59,6 +59,10 @@
     #endif
 #endif
 
+#if !defined(P_DNS) && defined(P_DNS_RESOLVER)
+#define P_DNS   1
+#endif
+
 #ifdef P_DNS
 	#define hasSRV 1	             // DNS SRV
 	// define hasRDS for PWLib >= 1.11.3
