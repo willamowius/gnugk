@@ -333,8 +333,6 @@ void NetSNMPAgent::Run()
 
 class PTLibSNMPAgent;
 
-static PTLibSNMPAgent * g_ptlibAgentPtr = NULL;
-
 void SendPTLibSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg)
 {
 	PTRACE(5, "SNMP\tSendSNMPTrap " << trapNumber << ", " << severity << ", " << group << ", " << msg);
@@ -748,10 +746,7 @@ void DeleteSNMPAgent()
 	}
 #endif
 #ifdef HAS_PTLIBSNMP
-	if (g_ptlibAgentPtr) {
-		delete g_ptlibAgentPtr;
-		g_ptlibAgentPtr = NULL;
-	}
+    // nothing to delete
 #endif
 #ifdef HAS_WINSNMP
 	if (WindowsSNMPAgent::InstanceExists()) {
