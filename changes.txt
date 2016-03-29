@@ -1,5 +1,7 @@
 Changes from 4.1 to 4.2
 =======================
+- BUGFIX(ProxyChannel.cxx) fix crash in RTP multiplexing
+- BUGFIX(ProxyChannel.cxx) fix crash when using H.245 tunneling translation
 - BUGFIX(gk.cxx) fix shutdown on NetBSD 7
 - BUGFIX(ProxyChannel.cxx) fix compile on NetBSD 7
 - new switch: [RoutedMode] FilterVideoFastUpdatePicture= to reduce the number of update requests from endpoints

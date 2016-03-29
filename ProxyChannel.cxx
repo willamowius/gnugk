@@ -7077,7 +7077,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 						setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 					}
 					// update tunneling flag, in case this Facility has changed the tunneling state
-					if (m_h245TunnelingTranslation || !m_h245Tunneling) {
+					if (uuie && (m_h245TunnelingTranslation || !m_h245Tunneling)) {
 						if (!uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)) {
 							uuie->m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
 						}
@@ -12133,23 +12133,25 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 			h46019chan.m_osSocketToA_RTCP = lc->GetRTCPOSSocket();
 		}
 		// side B
-		if (peer && peer->m_requestRTPMultiplexing) {
-			h46019chan.m_osSocketToB = MultiplexedRTPHandler::Instance()->GetRTPOSSocket();
-			h46019chan.m_osSocketToB_RTCP = MultiplexedRTPHandler::Instance()->GetRTCPOSSocket();
-		}
-		if (peer && !peer->m_requestRTPMultiplexing && lc) {
-			h46019chan.m_osSocketToB = lc->GetRTPOSSocket();
-			h46019chan.m_osSocketToB_RTCP = lc->GetRTCPOSSocket();
-		}
+        if (peer) {
+            if (peer->m_requestRTPMultiplexing) {
+                h46019chan.m_osSocketToB = MultiplexedRTPHandler::Instance()->GetRTPOSSocket();
+                h46019chan.m_osSocketToB_RTCP = MultiplexedRTPHandler::Instance()->GetRTCPOSSocket();
+            }
+            if (!peer->m_requestRTPMultiplexing && lc) {
+                h46019chan.m_osSocketToB = lc->GetRTPOSSocket();
+                h46019chan.m_osSocketToB_RTCP = lc->GetRTCPOSSocket();
+            }
 
-		// add multiplex channel only if at least one side does multiplexing
-		if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing
-			|| peer->m_requestRTPMultiplexing || peer->m_remoteRequestsRTPMultiplexing) {
-			MultiplexedRTPHandler::Instance()->AddChannel(h46019chan);
-#ifdef HAS_H46024B
-			if (call && call->GetNATStrategy() == CallRec::e_natAnnexB)
-				call->H46024BSessionFlag(sessionID);
-#endif
+            // add multiplex channel only if at least one side does multiplexing
+            if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing
+                || peer->m_requestRTPMultiplexing || peer->m_remoteRequestsRTPMultiplexing) {
+                MultiplexedRTPHandler::Instance()->AddChannel(h46019chan);
+    #ifdef HAS_H46024B
+                if (call && call->GetNATStrategy() == CallRec::e_natAnnexB)
+                    call->H46024BSessionFlag(sessionID);
+    #endif
+            }
 		}
 
 #ifdef HAS_H46024A
