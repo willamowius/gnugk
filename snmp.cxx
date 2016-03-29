@@ -709,7 +709,7 @@ void StartSNMPAgent()
 #endif
 #ifdef HAS_PTLIBSNMP
 	if (implementation == "PTLib") {
-		new PTLibSNMPAgent();
+		new PTLibSNMPAgent();   // will be deleted when GnuGk shuts down
 		return;
 	}
 #endif
