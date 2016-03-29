@@ -612,7 +612,6 @@ bool SSHStatusClient::ReadCommand(PString& cmd, bool echo, int readTimeout)
     do {
         i = ssh_channel_read(m_chan, buf, sizeof(buf), 0);
 		for (int c = 0; c < i; c++) {
-			char byte;
 			char ch = buf[c];
 			switch (ch)
 			{
@@ -628,7 +627,6 @@ bool SSHStatusClient::ReadCommand(PString& cmd, bool echo, int readTimeout)
 				case 0x7f:	// backspace with ssh
 					if (m_currentCmd.GetLength()) {
 						m_currentCmd = m_currentCmd.Left(m_currentCmd.GetLength() - 1);
-						byte = char(ch);
 						if (echo && NeedEcho()) {
 							ssh_channel_write(m_chan, (void *)"\b \b", 3);
 						}
@@ -640,7 +638,7 @@ bool SSHStatusClient::ReadCommand(PString& cmd, bool echo, int readTimeout)
 					m_currentCmd = PString::Empty();
 					return true;
 				default:
-					byte = char(ch);
+					char byte = char(ch);
 					m_currentCmd += byte;
 					cmd = m_currentCmd.Right(3);
 					// Note: this only works if the telnet client doesn't buffer characters
