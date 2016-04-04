@@ -357,6 +357,9 @@ IPv4-IPv6 calls the auto-proxying can be disabled using the
 <tt/AutoProxyIPv4ToIPv6Calls/ switch in the [RoutedMode] section.
 As of 2011-11-10 there don't appear to be any endpoints which can do this.
 
+Make sure you assign regular IPv6 addresses to your server.
+GnuGk won't use any link-local addresses (fe80::/10).
+
 To support IPv4 and IPv6 endpoints at the same time, GnuGk relies
 on the operating system to manage IPv4 mapped IPv6 addresses.
 With a few exception, most current operating systems support this.

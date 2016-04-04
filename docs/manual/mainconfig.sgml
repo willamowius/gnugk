@@ -176,6 +176,10 @@ Default: <tt/0/<newline>
 <p>
 If GnuGk has been compiled with IPv6 support, you can use this switch to turn it on.
 
+Make sure you assign regular IPv6 addresses to your server.
+GnuGk won't use any link-local addresses (fe80::/10).
+
+
 <item><tt/Home=192.168.1.1/<newline>
 Default: <tt/listen to all IPs/<newline>
 <p>
