@@ -609,7 +609,6 @@ bool GkInterface::ValidateSocket(IPSocket *socket, WORD & port)
 		} else {
 			PTRACE(1, "Can't listen to " << socket->GetName());
 			delete socket;
-			socket = NULL;
 		}
 	}
 	return false;
@@ -1096,7 +1095,6 @@ void RasServer::AddListener(TCPListenSocket * socket)
 		listeners->AddListener(socket);
 	else {
 		delete socket;
-		socket = NULL;
 	}
 }
 

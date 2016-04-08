@@ -151,6 +151,7 @@ PString LuaBase::GetString(const char * name) const
 	return result;
 }
 
+/*
 void LuaBase::SetNumber(const char * name, double value)
 {
     PTRACE(6, "LUA\tSet Number " << name << " = " << value);
@@ -165,6 +166,7 @@ double LuaBase::GetNumber(const char * name) const
 	lua_pop(m_lua, 1);
 	return result;
 }
+*/
 
 void LuaBase::SetBoolean(const char * name, bool value)
 {
@@ -804,7 +806,7 @@ GkAcctLogger::Status LuaAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & c
         PTRACE(1, "LuaAcct\tError: Not enough room on stack");
         return Fail;
 	}
-    for(std::map<PString, PString>::const_iterator it = params.begin(); it != params.end(); it++) {
+    for(std::map<PString, PString>::const_iterator it = params.begin(); it != params.end(); ++it) {
         PString varName = PString("param_") + it->first;
         varName.Replace("-", "_", true);    // - not allowed in LUA variable name
         SetString(varName, PString(it->second));
@@ -864,7 +866,7 @@ GkAcctLogger::Status LuaAcct::Log(GkAcctLogger::AcctEvent evt, const endptr & ep
         PTRACE(1, "LuaAcct\tError: Not enough room on stack");
         return Fail;
 	}
-    for(std::map<PString, PString>::const_iterator it = params.begin(); it != params.end(); it++) {
+    for(std::map<PString, PString>::const_iterator it = params.begin(); it != params.end(); ++it) {
         PString varName = PString("param_") + it->first;
         varName.Replace("-", "_", true);    // - not allowed in LUA variable name
         SetString(varName, PString(it->second));
