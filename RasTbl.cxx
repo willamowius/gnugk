@@ -4185,14 +4185,18 @@ bool CallRec::NATSignallingOffload(bool isAnswer) const
 	if (isAnswer)
 			return false;
 
+	// If signalling must be routed or not remote certificate required
+	if (GkConfig()->GetBoolean(RoutedSec, "H46023SignalGKRouted", false) ||
+		!GkConfig()->GetBoolean(TLSSec, "RequireRemoteCertificate", true))
+			return false;
+
 	if (m_natstrategy == e_natNoassist)
 			return true;
 
 	if (!SingleGatekeeper() && m_natstrategy == e_natAnnexB)
 			return true;
 
-	if (!Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "H46023SignalGKRouted", "0")) &&
-		((!(m_Called && m_Called->IsNATed()) && (m_natstrategy == e_natRemoteMaster || m_natstrategy == e_natLocalMaster)) ||
+	if (((!(m_Called && m_Called->IsNATed()) && (m_natstrategy == e_natRemoteMaster || m_natstrategy == e_natLocalMaster)) ||
 		(!SingleGatekeeper() && (m_natstrategy != e_natLocalProxy) && (m_natstrategy != e_natFullProxy))))
 			return true;
 
