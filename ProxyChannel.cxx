@@ -2851,7 +2851,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
                 unsigned int cten = CapabilityTables[i].m_capabilityTableEntryNumber.GetValue();
                 H245_Capability & H245Capability = CapabilityTables[i].m_capability;
 
-                if (H245Capability.GetTag() == H245_Capability::e_receiveAudioCapability) {
+                if (H245Capability.GetTag() == H245_Capability::e_receiveAudioCapability || H245Capability.GetTag() == H245_Capability::e_receiveAndTransmitAudioCapability) {
                     H245_AudioCapability & H245AudioCapability = H245Capability;
                     if (m_call && m_call->GetDisabledCodecs().Find(H245AudioCapability.GetTagName() + ";", 0) != P_MAX_INDEX) {
                         PTRACE(4, "H245\tDelete audio capability " << H245AudioCapability.GetTagName() << " (" << cten << ")");
@@ -2869,7 +2869,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
                 unsigned int cten = CapabilityTables[i].m_capabilityTableEntryNumber.GetValue();
                 H245_Capability & H245Capability = CapabilityTables[i].m_capability;
 
-                if (H245Capability.GetTag() == H245_Capability::e_receiveVideoCapability) {
+                if (H245Capability.GetTag() == H245_Capability::e_receiveVideoCapability || H245Capability.GetTag() == H245_Capability::e_receiveAndTransmitVideoCapability) {
                     H245_VideoCapability & H245VideoCapability = H245Capability;
                     if (m_call && m_call->GetDisabledCodecs().Find(H245VideoCapability.GetTagName() + ";", 0) != P_MAX_INDEX) {
                         PTRACE(4, "H245\tDelete video capability " << H245VideoCapability.GetTagName() << " (" << cten << ")");
