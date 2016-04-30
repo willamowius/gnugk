@@ -2886,7 +2886,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
                 unsigned int cten = CapabilityTables[i].m_capabilityTableEntryNumber.GetValue();
                 H245_Capability & H245Capability = CapabilityTables[i].m_capability;
 
-                if (H245Capability.GetTag() == H245_Capability::e_receiveUserInputCapability) {
+                if (H245Capability.GetTag() == H245_Capability::e_receiveUserInputCapability || H245Capability.GetTag() == H245_Capability::e_receiveAndTransmitUserInputCapability) {
                     H245_UserInputCapability & h245UserInput = H245Capability;
                     if (m_call && m_call->GetDisabledCodecs().Find(h245UserInput.GetTagName() + ";", 0) != P_MAX_INDEX) {
                         PTRACE(4, "H245\tDelete UserInput capability " << h245UserInput.GetTagName() << " (" << cten << ")");
