@@ -2,7 +2,7 @@
 //
 // gkh235.cxx
 //
-// Copyright (c) 2015, Jan Willamowius
+// Copyright (c) 2016, Jan Willamowius
 // Copyright (c) 2004-2005, Michal Zygmuntowicz
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
@@ -269,9 +269,10 @@ int GkH235Authenticators::Validate(
 				m_authMD5->SetLocalId(m_localIdMD5);
 
 				m_authResultMD5 = m_authMD5->ValidateCryptoToken(token, rawPDU);
-				if (m_authResultMD5 != H235Authenticator::e_OK)
+				if (m_authResultMD5 != H235Authenticator::e_OK) {
 					m_authMD5->SetLocalId(oldLocalId);
 					return m_authResultMD5;
+				}
 			}
 		} else if (token.GetTag() == H225_CryptoH323Token::e_nestedcryptoToken) {
 #ifdef H323_H235
@@ -319,9 +320,10 @@ int GkH235Authenticators::Validate(
 				m_authDES->SetLocalId(m_localIdDES);
 
 				m_authResultDES = m_authDES->ValidateCryptoToken(token, rawPDU);
-				if (m_authResultDES != H235Authenticator::e_OK)
+				if (m_authResultDES != H235Authenticator::e_OK) {
 					m_authDES->SetLocalId(oldLocalId);
 					return m_authResultDES;
+				}
 		    }
 #endif
 		} else {
