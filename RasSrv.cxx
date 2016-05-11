@@ -267,15 +267,15 @@ bool RasListener::SendRas(H225_RasMessage & rasobj, const Address & addr, WORD p
 	else
 		PTRACE(2, "RAS\tSend " << RasName[rasobj.GetTag()] << " to " << AsString(addr, pt));
 
-    PBYTEArray wtbuf(1024); // buffer with initial size 1024
+	PBYTEArray wtbuf(1024); // buffer with initial size 1024
 	PPER_Stream wtstrm(wtbuf);
 	rasobj.Encode(wtstrm);
 	wtstrm.CompleteEncoding();
 
-    // make sure buffer gets shrunk to size of encoded message, because we'll write it instead of the PPER_Stream
-    wtbuf.SetSize(wtstrm.GetSize());
-    if (auth != NULL)
-        auth->Finalise(rasobj, wtbuf);
+	// make sure buffer gets shrunk to size of encoded message, because we'll write it instead of the PPER_Stream
+	wtbuf.SetSize(wtstrm.GetSize());
+	if (auth != NULL)
+		auth->Finalise(rasobj, wtbuf);
 
 	m_wmutex.Wait();
 	//bool result = WriteTo(wtstrm.GetPointer(), wtstrm.GetSize(), addr, pt);
