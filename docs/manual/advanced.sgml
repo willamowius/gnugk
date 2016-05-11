@@ -20,7 +20,7 @@ many changes that are incompatible with GnuGk. Use the patched version PTLib 2.1
 Get and compile PTLib from SourceForge:
 <verb>
 cd ~
-wget http://sourceforge.net/projects/openh323gk/files/ptlib-2.10.9-gnugk-patch1.tar.gz
+wget http://sourceforge.net/projects/openh323gk/files/ptlib-2.10.9-gnugk-patch2.tar.gz
 cd ptlib-v2.10.9-gnugk
 export PTLIBDIR=~/ptlib-v2.10.9-gnugk
 ./configure --enable-ipv6 --disable-odbc --disable-sdl --disable-lua --disable-expat
