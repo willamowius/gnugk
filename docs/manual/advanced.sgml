@@ -14,17 +14,16 @@ sudo apt-get install flex bison build-essential subversion cvs pkg-config automa
 </verb>
 Also make sure the "...-devel" packages for all databases or LDAP servers you want to use are installed.
 <p>
-<bf>NOTE</bf>:  As of 2013-12-30, it's recommended that you do not use PTLib SVN; it is undergoing
-many changes that are incompatible with GnuGk. To compile the recommended PTLib 2.10.9, you need bison 2.x (bison 3.x won't work).
+<bf>NOTE</bf>: As of 2016-5-11, it's recommended that you do not use PTLib SVN; it is undergoing
+many changes that are incompatible with GnuGk. Use the patched version PTLib 2.10.9 which works with GCC 4.x, 5.x and 6.x.
 
 Get and compile PTLib from SourceForge:
 <verb>
 cd ~
-svn co http://svn.code.sf.net/p/opalvoip/code/ptlib/tags/v2_10_9 ptlib-v2.10.9/
-cd ptlib-v2.10.9
-export PTLIBDIR=~/ptlib-v2.10.9
+svn co http://sourceforge.net/projects/openh323gk/files/ptlib-2.10.9-gnugk-patch1.tar.gz/download
+cd ptlib-v2.10.9-gnugk
+export PTLIBDIR=~/ptlib-v2.10.9-gnugk
 ./configure --enable-ipv6 --disable-odbc --disable-sdl --disable-lua --disable-expat
-wget -O src/ptlib/common/getdate.tab.c http://www.gnugk.org/download/getdate.tab.c # in case you have bison >= 3.x
 make optnoshared
 </verb>
 
