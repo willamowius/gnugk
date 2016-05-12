@@ -5146,7 +5146,7 @@ $as_echo_n "checking for lua.h... " >&6; }
 int
 main ()
 {
-int a = 1;
+luaL_newlib(0,0);
   ;
   return 0;
 }
@@ -5242,7 +5242,7 @@ if test "x$lua" != "xno"; then
 	ENDLDLIBS="$LUA_LIBS $ENDLDLIBS"
     echo "LUA support enabled"
 else
-    echo "LUA support disabled"
+    echo "LUA support disabled (need at least LUA 5.2)"
 	HAS_LUA=0
 fi
 

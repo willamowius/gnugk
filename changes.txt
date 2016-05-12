@@ -1,5 +1,6 @@
 Changes from 4.1 to 4.2
 =======================
+- BUGFIX(configure.in) make sure LUA test fails for versions below 5.2
 - BUGFIX(gkh235.cxx) small fix with password auth
 - BUGFIX(ProxyChannel.cxx) apply codec filtering also to receiveAndTransmit capabilities
 - BUGFIX(ProxyChannel.cxx) fix crash in RTP multiplexing

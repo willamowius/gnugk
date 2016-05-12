@@ -1125,7 +1125,7 @@ if test "x${lua}" != "xno"; then
 		if test -d $try; then
 			CFLAGS="$old_CFLAGS -I$try"
 			LDFLAGS="$old_LDFLAGS -L$try/../lib"
-			AC_TRY_COMPILE([#include "lua.h" #include "lualib.h" #include "lauxlib.h"], [int a = 1;],
+			AC_TRY_COMPILE([#include "lua.h" #include "lualib.h" #include "lauxlib.h"], [luaL_newlib(0,0);],
 				LUA_INCLUDE="-I$try",
 				LUA_INCLUDE=
 			)
@@ -1190,7 +1190,7 @@ if test "x$lua" != "xno"; then
 	ENDLDLIBS="$LUA_LIBS $ENDLDLIBS"
     echo "LUA support enabled"
 else
-    echo "LUA support disabled"
+    echo "LUA support disabled (need at least LUA 5.2)"
 	HAS_LUA=0
 fi
 AC_SUBST(HAS_LUA)
