@@ -517,6 +517,8 @@ const char * KnownConfigEntries[][2] = {
 #if defined(HAS_H235_MEDIA) && defined (HAS_SETTOKENLENGTH)
 	{ "RoutedMode", "H235HalfCallMaxTokenLength" },
 #endif
+	{ "RoutedMode", "H225DiffServ" },
+	{ "RoutedMode", "H245DiffServ" },
 	{ "RoutedMode", "H245PortRange" },
 	{ "RoutedMode", "H245Routed" },
 	{ "RoutedMode", "H245TunnelingTranslation" },
