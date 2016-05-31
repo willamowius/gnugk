@@ -10165,7 +10165,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
             rDestIP = fromIP, rDestPort = fromPort;
             PTRACE(7, "JW RTP IN on " << localport << " learned rDest " << AsString(rDestIP, rDestPort) << " from fSrc " << AsString(fSrcIP, fSrcPort));
         }
-        // this sis from reverse source and we we don't have forward destination
+        // this is from reverse source and we we don't have forward destination
         if (rSrcIP == fromIP && rSrcPort == fromPort && fDestIP == 0) {
             fDestIP = fromIP, fDestPort = fromPort;
             PTRACE(7, "JW RTP IN on " << localport << " learned fDest " << AsString(fDestIP, fDestPort) << " from rSrc " << AsString(rSrcIP, rSrcPort));
@@ -10306,6 +10306,14 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			&& fromAddr != H323TransportAddress(fDestIP, fDestPort)) {	// never create a loop
 			PTRACE(5, "H46018\tSetting forward source on unidirectional channel to " << AsString(fromIP, fromPort));
 			fSrcIP = fromIP, fSrcPort = fromPort;
+			m_h46019DetectionDone = true;
+		}
+		if (m_h46019uni && !isRTCP
+			&& fSrcIP != 0 && fDestIP != 0 && rSrcIP != 0 && rDestIP == 0
+			&& fromAddr == H323TransportAddress(fSrcIP, fSrcPort)
+			&& fromAddr != H323TransportAddress(rSrcIP, rSrcPort)) {	// never create a loop
+			PTRACE(5, "H46018\tSetting reverse destination on unidirectional channel to " << AsString(fromIP, fromPort));
+			rDestIP = fromIP, rDestPort = fromPort;
 			m_h46019DetectionDone = true;
 		}
 		// fix for H.224 connection: m100 1.0.6 doesn't send keepAlive, but we can see where it apparently comes from
