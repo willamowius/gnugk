@@ -1,3 +1,7 @@
+Changes from 4.2 to 4.3
+=======================
+
+
 Changes from 4.1 to 4.2
 =======================
 - BUGFIX(ProxyChannel.cxx) fix H.239 forwarding issue in call where only one side uses H.460.19
