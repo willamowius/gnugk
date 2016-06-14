@@ -1417,7 +1417,7 @@ bool TCPProxySocket::SetMinBufSize(WORD len)
 
 void TCPProxySocket::RemoveRemoteSocket()
 {
-    m_remoteLock.Wait();
+    //m_remoteLock.Wait(); // don't lock here, causes dead lock in reroute
 	remote = NULL;
 }
 
@@ -6338,7 +6338,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 	m_rawSetup = perBuffer;
 	m_rawSetup.MakeUnique();
 
-	PrintQ931(3, "Setup for Reroute ", GetName(), &q931, &uuie);
+	PrintQ931(3, "Setup for Reroute of ", GetName(), &q931, &uuie);
 
 	PIPSocket::Address dummyAddr;
 	SignalingMsg * msg = SignalingMsg::Create(&q931, &uuie, dummyAddr, 0, dummyAddr, 0);

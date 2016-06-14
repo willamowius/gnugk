@@ -1,5 +1,6 @@
 Changes from 4.2 to 4.3
 =======================
+- BUGFIX(ProxyChannel.cxx) fix dead lock causing reroutes to fail
 
 
 Changes from 4.1 to 4.2
