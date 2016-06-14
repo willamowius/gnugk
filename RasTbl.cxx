@@ -960,7 +960,7 @@ PString EndpointRec::PrintNatInfo(bool verbose) const
 
 	PString str;
 	if (m_natsocket) str = "GnuGk";
-	else if (m_usesH46017) str = (m_usesH46026 ? pre + "17," + pre + "26" : pre + "17");
+	if (m_usesH46017) str = (m_usesH46026 ? pre + "17," + pre + "26" : pre + "17");
 	else if (IsTraversalClient()) str = pre + "18";
 	else if (IsTraversalServer()) str = pre + "18[S" +(verbose ? "erver" : "") + "]";
 	else if (m_nat) str = "Native";
