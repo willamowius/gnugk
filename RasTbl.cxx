@@ -959,7 +959,7 @@ PString EndpointRec::PrintNatInfo(bool verbose) const
 	PString pre = (verbose ? "H.460." : "");
 
 	PString str;
-	if (m_natsocket) str = "GnuGk";
+	if (m_natsocket) str = "GnuGk"; // m_natsocket is set for both GnuGk and H.460.17
 	if (m_usesH46017) str = (m_usesH46026 ? pre + "17," + pre + "26" : pre + "17");
 	else if (IsTraversalClient()) str = pre + "18";
 	else if (IsTraversalServer()) str = pre + "18[S" +(verbose ? "erver" : "") + "]";
