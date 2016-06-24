@@ -59,12 +59,9 @@ make optnoshared
 Once the compile is finished, the binary can be found in the 
 obj_linux_x86_s subdirectory.
 
-At this time, because all libraries and GnuGk are running CVS and SVN
-versions of the software, in order to stay up-to-date, run the following:
+In order to stay up-to-date, run the following:
 
 <verb>
-cd ~/ptlib
-svn update
 cd ~/h323plus
 cvs update
 cd ~/openh323gk
