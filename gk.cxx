@@ -1608,6 +1608,15 @@ void Gatekeeper::Main()
 	cout << welcome << '\n';
 	PTRACE(1, welcome);
 
+#ifdef  _SC_NPROCESSORS_ONLN
+    int nprocs = sysconf(_SC_NPROCESSORS_ONLN);
+    if (nprocs > 0) {
+        PTRACE(1, "This server has " << nprocs << " CPU cores ("
+            << GkConfig()->GetInteger(RoutedSec, "CallSignalHandlerNumber", 5) << " signal handling threads and "
+            << GkConfig()->GetInteger(RoutedSec, "RtpHandlerNumber", 1) << " RTP threads configured)");
+    }
+#endif
+
 	// PTLib 2.10.x provides meaningless value on Windows
 	PTRACE(1, "Current file handle limit: " << PProcess::Current().GetMaxHandles());
 

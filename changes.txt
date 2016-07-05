@@ -1,5 +1,6 @@
 Changes from 4.2 to 4.3
 =======================
+- print number of CPU cores and thread configuration on startup
 - BUGFIX(RasTbl.cxx) fix display of H.460.17 for registrations on status port
 - BUGFIX(ProxyChannel.cxx) fix dead lock causing reroutes to fail
 
