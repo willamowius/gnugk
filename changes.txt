@@ -1,5 +1,7 @@
 Changes from 4.2 to 4.3
 =======================
+- BUGFIX(ProxyChannel.cxx) make sure CRV is 0 for all RAS messages when using H.460.17
+  even when they relate to a call
 - BUGFIX(ProxyChannel.cxx) re-do H.460.19 port detection when a new logical channel is
   opened on the same port
 - print number of CPU cores and thread configuration on startup

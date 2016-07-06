@@ -6508,7 +6508,7 @@ bool CallSignalSocket::SendH46017Message(H225_RasMessage ras, GkH235Authenticato
 	if (IsOpen()) {
 		Q931 FacilityPDU;
 		H225_H323_UserInformation uuie;
-		BuildFacilityPDU(FacilityPDU, 0);
+		BuildFacilityPDU(FacilityPDU, 0, NULL, true);
 		GetUUIE(FacilityPDU, uuie);
 		H225_H323_UU_PDU_h323_message_body & body = uuie.m_h323_uu_pdu.m_h323_message_body;
 		body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
@@ -7304,7 +7304,7 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 	return changed;
 }
 
-void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PObject *parm)
+void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PObject *parm, bool h46017)
 {
 	PBoolean fromDest = m_crv & 0x8000u;
 	H225_H323_UserInformation signal;
@@ -7423,7 +7423,11 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 			break;
 	}
 
-	FacilityPDU.BuildFacility(m_crv, fromDest);
+    if (h46017) {
+        FacilityPDU.BuildFacility(0, fromDest); // CRV must be 0
+    } else {
+        FacilityPDU.BuildFacility(m_crv, fromDest);
+    }
 	if (reason == H225_FacilityReason::e_undefinedReason) {
 		FacilityPDU.RemoveIE(Q931::FacilityIE);
 	}

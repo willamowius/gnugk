@@ -321,7 +321,7 @@ public:
 	Address GetMasqAddr() { return masqAddr; }
 	PINDEX GetCallNumber() const { return m_call ? m_call->GetCallNumber() : 0; }
 	H225_CallIdentifier GetCallIdentifier() const { return m_call ? m_call->GetCallIdentifier() : 0; }
-	void BuildFacilityPDU(Q931 &, int, const PObject * = NULL);
+	void BuildFacilityPDU(Q931 &, int, const PObject * = NULL, bool h46017 = false);
 	void BuildProgressPDU(Q931 &, PBoolean fromDestination);
 	void BuildNotifyPDU(Q931 &, PBoolean fromDestination);
 	void BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallIdentifier & callId, unsigned crv);
