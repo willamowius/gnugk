@@ -9954,6 +9954,10 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 	SetMediaIP("SRC", fDestIP);
 	SetMediaIP("DST", srcIP);
 
+#ifdef HAS_H46018
+    m_h46019DetectionDone = false;  // must re-do H.460.19 port detection, in case it has already been done by a previous channel on same port
+#endif
+
 	PTRACE(7, "JW RTP SetFwdDest2 on " << localport
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
@@ -9996,6 +10000,10 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 
 	SetMediaIP("SRC", srcIP);
 	SetMediaIP("DST", rDestIP);
+
+#ifdef HAS_H46018
+    m_h46019DetectionDone = false;  // must re-do H.460.19 port detection, in case it has already been done by a previous channel on same port
+#endif
 
 	PTRACE(7, "JW RTP SetRevDest2 on " << localport
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
@@ -10128,9 +10136,9 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 	PTRACE(7, "JW RTP DB on " << localport << " type=" << Type() << " this=" << this << " H.460.19=" << UsesH46019()
-		<< " fc=" << m_h46019fc << " m_h46019uni=" << m_h46019uni
-		<< " multiplexDest A=" << AsString(m_multiplexDestination_A) << " multiplexID A=" << m_multiplexID_A << " multiplexSocket A=" << m_multiplexSocket_A
-		<< " multiplexDest B=" << AsString(m_multiplexDestination_B) << " multiplexID B=" << m_multiplexID_B << " multiplexSocket B=" << m_multiplexSocket_B);
+		<< " fc=" << m_h46019fc << " m_h46019uni=" << m_h46019uni << " done=" << m_h46019DetectionDone
+		<< " multiplex: Dest A=" << AsString(m_multiplexDestination_A) << " ID A=" << m_multiplexID_A << " Socket A=" << m_multiplexSocket_A
+		<< " Dest B=" << AsString(m_multiplexDestination_B) << " ID B=" << m_multiplexID_B << " Socket B=" << m_multiplexSocket_B);
 
     if (m_ignoreSignaledIPs) {     // TODO: switch this off if _both_ sides are using H.460.19, make sure it stays on if only one side uses H.460.19
         //// learn from data we already have (eg. from H.239 signaling)
@@ -14144,7 +14152,7 @@ void HandlerList::LoadConfig()
 	T120PortRange.LoadConfig(ProxySection, "T120PortRange");
 	RTPPortRange.LoadConfig(ProxySection, "RTPPortRange", "1024-65535");
 
-	m_numSigHandlers = GkConfig()->GetInteger(RoutedSec, "CallSignalHandlerNumber", 5);
+	m_numSigHandlers = GkConfig()->GetInteger(RoutedSec, "CallSignalHandlerNumber", 5); // update gk.cxx when changing default
 	if (m_numSigHandlers < 1)
 		m_numSigHandlers = 1;
 	if (m_numSigHandlers > MAX_HANDLER_NUMBER)
@@ -14157,7 +14165,7 @@ void HandlerList::LoadConfig()
 		m_currentSigHandler = 0;
 	}
 
-	m_numRtpHandlers = GkConfig()->GetInteger(RoutedSec, "RtpHandlerNumber", 1);
+	m_numRtpHandlers = GkConfig()->GetInteger(RoutedSec, "RtpHandlerNumber", 1);    // update gk.cxx when changing default
 	if (m_numRtpHandlers < 1)
 		m_numRtpHandlers = 1;
 	if (m_numRtpHandlers > MAX_HANDLER_NUMBER)
