@@ -1927,6 +1927,10 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			if (feat.GetFeatureID() == H460_FeatureID(17)) {
 				H460_FeatureStd & std17 = (H460_FeatureStd &)feat;
 				h46017found = true;
+				if (!uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)) {
+                    // assume H.245 tunneling, because its required for H.460.17 and Innovaphone sometimes forgets the flag
+                    m_h245Tunneling = true;
+				}
 				// multiple RAS messages can be transmitted
 				if (std17.GetParameterCount() > 1) {
 					PTRACE(4, "H46017\tWarning: " << std17.GetParameterCount() << " bundled messages");
@@ -1937,7 +1941,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 						PASN_OctetString & data = p;
 						// mark this socket as NAT socket
 						m_isnatsocket = true;
-						m_maintainConnection = true;	// GnuGk NAT will close the TCP connection after the call, for H.460.17 we don't want that
+						m_maintainConnection = true; // GnuGk NAT will close the TCP connection after the call, for H.460.17 we don't want that
 						SetConnected(true); // avoid the socket be deleted
 						// hand RAS message to RasSserver for processing
 						RasServer::Instance()->ReadH46017Message(data.GetValue(), _peerAddr, _peerPort, _localAddr, this);
