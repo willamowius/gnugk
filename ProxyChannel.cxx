@@ -10287,11 +10287,13 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			}
 #ifdef HAS_H46026
 			// update new H.460.19 address in H.460.26 session
-			if (isRTCP) {
-				H46026RTPHandler::Instance()->UpdateChannelRTCP(m_callID, m_sessionID, fromAddr);
-			} else {
-				H46026RTPHandler::Instance()->UpdateChannelRTP(m_callID, m_sessionID, fromAddr);
-			}
+			if (Toolkit::Instance()->IsH46026Enabled()) {
+                if (isRTCP) {
+                    H46026RTPHandler::Instance()->UpdateChannelRTCP(m_callID, m_sessionID, fromAddr);
+                } else {
+                    H46026RTPHandler::Instance()->UpdateChannelRTP(m_callID, m_sessionID, fromAddr);
+                }
+            }
 #endif
 
 			if ((fDestIP != 0) && (rDestIP != 0)) {
