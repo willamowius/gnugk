@@ -9845,25 +9845,26 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
 #ifdef HAS_H46018
 	m_checkH46019KeepAlivePT = GkConfig()->GetBoolean(ProxySection, "CheckH46019KeepAlivePT", true);
 #endif
-    // TODO: only ignore signalled IPs for incoming calls ? only for inbound RTP streams ?
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
+    m_ignoreSignaledPrivateH239IPs = false;
     if (m_ignoreSignaledIPs) {
         callptr call = CallTable::Instance()->FindCallRec(m_callID);
         if (call && call->GetCallingParty() && call->GetCallingParty()->GetTraversalRole() != None) {
             // disable, when caller has NAT traversal enabled (call isn't from an party that needs NAT help)
             m_ignoreSignaledIPs = false;
-        }
-        m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
-        PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");
-        if (keepSignaledIPs.Find('/') == P_MAX_INDEX) {
-            // add netmask to pure IPs
-            if (IsIPv4Address(keepSignaledIPs)) {
-                keepSignaledIPs += "/32";
-            } else {
-                keepSignaledIPs += "/128";
+        } else {
+            m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
+            PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");
+            if (keepSignaledIPs.Find('/') == P_MAX_INDEX) {
+                // add netmask to pure IPs
+                if (IsIPv4Address(keepSignaledIPs)) {
+                    keepSignaledIPs += "/32";
+                } else {
+                    keepSignaledIPs += "/128";
+                }
             }
+            m_keepSignaledIPs = NetworkAddress(keepSignaledIPs);
         }
-        m_keepSignaledIPs = NetworkAddress(keepSignaledIPs);
     }
 }
 
@@ -10813,23 +10814,25 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
     : LogicalChannel(flcn), reversed(false), peer(NULL), m_sessionType(sessionType)
 {
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
+    m_ignoreSignaledIPs = false;
     if (m_ignoreSignaledIPs) {
         callptr call = CallTable::Instance()->FindCallRec(id);
         if (call && call->GetCallingParty() && call->GetCallingParty()->GetTraversalRole() != None) {
             // disable, when caller has NAT traversal enabled (call isn't from an party that needs NAT help)
             m_ignoreSignaledIPs = false;
-        }
-        m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
-        PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");
-        if (keepSignaledIPs.Find('/') == P_MAX_INDEX) {
-            // add netmask to pure IPs
-            if (IsIPv4Address(keepSignaledIPs)) {
-                keepSignaledIPs += "/32";
-            } else {
-                keepSignaledIPs += "/128";
+        } else {
+            m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
+            PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");
+            if (keepSignaledIPs.Find('/') == P_MAX_INDEX) {
+                // add netmask to pure IPs
+                if (IsIPv4Address(keepSignaledIPs)) {
+                    keepSignaledIPs += "/32";
+                } else {
+                    keepSignaledIPs += "/128";
+                }
             }
+            m_keepSignaledIPs = NetworkAddress(keepSignaledIPs);
         }
-        m_keepSignaledIPs = NetworkAddress(keepSignaledIPs);
     }
     m_isUnidirectional = false;
 	SrcIP = 0;
@@ -10897,23 +10900,25 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool nated, RTPSessionTypes sessionType)
 {
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
+    m_ignoreSignaledIPs = false;
     if (m_ignoreSignaledIPs) {
         callptr call = CallTable::Instance()->FindCallRec(flc->m_callID);
         if (call && call->GetCallingParty() && call->GetCallingParty()->GetTraversalRole() != None) {
             // disable, when caller has NAT traversal enabled (call isn't from an party that needs NAT help)
             m_ignoreSignaledIPs = false;
-        }
-        m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
-        PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");
-        if (keepSignaledIPs.Find('/') == P_MAX_INDEX) {
-            // add netmask to pure IPs
-            if (IsIPv4Address(keepSignaledIPs)) {
-                keepSignaledIPs += "/32";
-            } else {
-                keepSignaledIPs += "/128";
+        } else {
+            m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
+            PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");
+            if (keepSignaledIPs.Find('/') == P_MAX_INDEX) {
+                // add netmask to pure IPs
+                if (IsIPv4Address(keepSignaledIPs)) {
+                    keepSignaledIPs += "/32";
+                } else {
+                    keepSignaledIPs += "/128";
+                }
             }
+            m_keepSignaledIPs = NetworkAddress(keepSignaledIPs);
         }
-        m_keepSignaledIPs = NetworkAddress(keepSignaledIPs);
     }
     m_isUnidirectional = false;
 #ifdef HAS_H235_MEDIA
@@ -11650,7 +11655,16 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 		peer->peer = this;
 
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
-    m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
+    m_ignoreSignaledPrivateH239IPs = false;
+    if (m_ignoreSignaledIPs) {
+        callptr call = CallTable::Instance()->FindCallRec(callid);
+        if (call && call->GetCallingParty() && call->GetCallingParty()->GetTraversalRole() != None) {
+            // disable, when caller has NAT traversal enabled (call isn't from an party that needs NAT help)
+            m_ignoreSignaledIPs = false;
+        } else {
+            m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
+        }
+    }
 #ifdef HAS_H46018
 	m_isRTPMultiplexingEnabled = Toolkit::Instance()->IsH46018Enabled()
 								&& GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false);
