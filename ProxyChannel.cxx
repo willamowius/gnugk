@@ -10814,7 +10814,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
     : LogicalChannel(flcn), reversed(false), peer(NULL), m_sessionType(sessionType)
 {
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
-    m_ignoreSignaledIPs = false;
+    m_ignoreSignaledPrivateH239IPs = false;
     if (m_ignoreSignaledIPs) {
         callptr call = CallTable::Instance()->FindCallRec(id);
         if (call && call->GetCallingParty() && call->GetCallingParty()->GetTraversalRole() != None) {
@@ -10900,7 +10900,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool nated, RTPSessionTypes sessionType)
 {
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
-    m_ignoreSignaledIPs = false;
+    m_ignoreSignaledPrivateH239IPs = false;
     if (m_ignoreSignaledIPs) {
         callptr call = CallTable::Instance()->FindCallRec(flc->m_callID);
         if (call && call->GetCallingParty() && call->GetCallingParty()->GetTraversalRole() != None) {
