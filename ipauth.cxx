@@ -6,7 +6,7 @@
  * @(#) $Id$
  *
  * Copyright (c) 2005, Michal Zygmuntowicz
- * Copyright (c) 2006-2015, Jan Willamowius
+ * Copyright (c) 2006-2016, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -78,7 +78,7 @@ private:
 	/* No copy constructor allowed */
 	FileIPAuth(const FileIPAuth &);
 	/* No operator= allowed */
-	FileIPAuth& operator=(const FileIPAuth &);
+	FileIPAuth & operator=(const FileIPAuth &);
 
 private:
 	typedef std::vector<IPAuthEntry> IPAuthList;
@@ -106,8 +106,7 @@ int IPAuthBase::Check(
 	/// RRQ RAS message to be authenticated
 	RasPDU<H225_RegistrationRequest> & rrqPdu,
 	/// authorization data (reject reason, ...)
-	RRQAuthData & /*authData*/
-	)
+	RRQAuthData & /*authData*/)
 {
 	return CheckAddress(rrqPdu->m_peerAddr, rrqPdu->m_peerPort, PString::Empty());
 }
@@ -167,8 +166,7 @@ int IPAuthBase::Check(
 	/// Q.931/H.225 Setup message to be authenticated
 	SetupMsg & setup,
 	/// authorization data (call duration limit, reject reason, ...)
-	SetupAuthData & authData
-	)
+	SetupAuthData & authData)
 {
 	PIPSocket::Address addr;
 	WORD port = 0;
