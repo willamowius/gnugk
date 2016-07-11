@@ -1609,7 +1609,8 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 			PString vendor, version;
 			if ((mode != CallRec::Proxied) && m_call->GetCallingVendor(vendor, version)) {
 				int vendormode = Toolkit::Instance()->SelectRoutingVendorMode(vendor + " " + version);
-				if (vendormode > mode) mode = vendormode;
+				if (vendormode > mode)
+                    mode = vendormode;
 			}
 
 			switch (mode) {
@@ -1622,7 +1623,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 					m_call->SetH245Routed(true);
 					break;
 				case CallRec::Proxied:
-                    PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled. (vendor mode)");
+                    PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled. (mode selection or vendor mode)");
 					m_call->SetProxyMode(CallRec::ProxyEnabled);
 					m_call->SetH245Routed(true);
 					break;
@@ -9844,6 +9845,7 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
 #ifdef HAS_H46018
 	m_checkH46019KeepAlivePT = GkConfig()->GetBoolean(ProxySection, "CheckH46019KeepAlivePT", true);
 #endif
+    // TODO: only ignore signalled IPs for incoming calls ? only for inbound RTP streams ?
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
     m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
     PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");
