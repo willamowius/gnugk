@@ -992,7 +992,7 @@ Possible modes are in accordance with the [ModeSelection] section above.
 <tag/Example:/
 
 <tscreen><verb>
-[ModeSelection]
+[ModeVendorSelection]
 VoIP Technologies=PROXY
 </verb></tscreen>
 
