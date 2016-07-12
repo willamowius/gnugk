@@ -1012,8 +1012,8 @@ private:
 	bool m_encrypting;
 	BYTE m_plainPayloadType;			// remember in OLC to use in OLCA
 	BYTE m_cipherPayloadType;			// remember in OLC to use in OLCA
-	H225_CallIdentifier m_callID;
 #endif
+	H225_CallIdentifier m_callID;
     bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPs in signalling, do full auto-detect
     bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H239 streams
     NetworkAddress m_keepSignaledIPs;   // don't do auto-detect on this network
@@ -10839,8 +10839,8 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 	SrcPort = 0;
 	rtp = NULL;
 	rtcp = NULL;
-#ifdef HAS_H235_MEDIA
 	m_callID = id;
+#ifdef HAS_H235_MEDIA
 	m_H235CryptoEngine = NULL;
 	m_auth = NULL;
 	m_encrypting = false;
@@ -10927,8 +10927,8 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool na
 	m_encrypting = false;
 	m_plainPayloadType = UNDEFINED_PAYLOAD_TYPE;
 	m_cipherPayloadType = UNDEFINED_PAYLOAD_TYPE;
-	m_callID = flc->m_callID;
 #endif
+	m_callID = flc->m_callID;
 	port = flc->port;
 	used = flc->used;
 	rtp = flc->rtp;
