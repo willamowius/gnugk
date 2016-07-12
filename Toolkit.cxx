@@ -624,22 +624,24 @@ bool Toolkit::VirtualRouteTable::CreateTable()
 	// If we have an external IP setting then load the detected Route Table and add a route for the external IP
 	// If dynamic IP then only store the PString value and resolve the DNS when required.
 	PString extip = GkConfig()->GetString("ExternalIP", "");
-	DynExtIP = AsBool(GkConfig()->GetString("ExternalIsDynamic", "0"));
+    if (!extip.IsEmpty()) {
+        DynExtIP = AsBool(GkConfig()->GetString("ExternalIsDynamic", "0"));
 
-	PIPSocket::Address ext((DWORD)0);
-	H323TransportAddress ex = H323TransportAddress(extip);
-	ex.GetIpAddress(ext);
-	if (ext.IsValid()) {
-		ExtIP = extip;
-		PString extroute;
-		if (!DynExtIP)
-			extroute = ext.AsString() + "/0";
+        PIPSocket::Address ext((DWORD)0);
+        H323TransportAddress ex = H323TransportAddress(extip);
+        ex.GetIpAddress(ext);
+        if (ext.IsValid()) {
+            ExtIP = extip;
+            PString extroute;
+            if (!DynExtIP)
+                extroute = ext.AsString() + "/0";
 
-		CreateRouteTable(extroute);
-		PTRACE(1, "External IP=" << ExtIP << " dynamic=" << DynExtIP);
-		return true;
-	} else
-		DynExtIP = false;
+            CreateRouteTable(extroute);
+            PTRACE(1, "External IP=" << ExtIP << " dynamic=" << DynExtIP);
+            return true;
+        } else
+            DynExtIP = false;
+    }
 
 	return false;
 }
