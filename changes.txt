@@ -1,5 +1,6 @@
 Changes from 4.2 to 4.3
 =======================
+- print message on status port when Setup is received
 - BUGFIX(ProxyChannel.cxx) disregard IgnoreSignaledIPs=1 switch when caller supports some form of
   NAT traversal (to avoid both sides waiting for first RTP packet)
 - BUGFIX(ProxyChannel.cxx) enable H.245 tunneling for H.460.17 even when Innovaphone forgets the flag

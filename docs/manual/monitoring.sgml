@@ -908,6 +908,12 @@ is still alive. The endpoint must immediately respond with an InfoRequestRespons
 cancel its registration. The endpoint shall respond with
 an UnregistrationConfirm (UCF).
 
+<item><tt/Setup|IP:Port|CallID;/<newline>
+<p>The gatekeeper has received a Setup message from a registered endpoint.
+
+<item><tt/SetupUnreg|IP:Port|CallID;/<newline>
+<p>The gatekeeper has received a Setup message from an unregistered endpoint.
+
 <item><tt/CDR|CallNo|CallId|Duration|Starttime|Endtime|CallerIP|CallerEndId|/ \
 <newline><tt/CalledIP|CalledEndId|DestinationInfo|SrcInfo|GatekeeperID;/<newline>
 <p>

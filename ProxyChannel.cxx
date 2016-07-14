@@ -31,6 +31,7 @@
 #include "Neighbor.h"
 #include "sigmsg.h"
 #include "ProxyChannel.h"
+#include "GkStatus.h"
 #include "config.h"
 #include <queue>
 
@@ -3970,7 +3971,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			}
 		}
 		if (!found) {
-			PTRACE(4, Type() << "\tAdding callingParty to sourecAddress");
+			PTRACE(4, Type() << "\tAdding callingParty to sourceAddress");
 			H225_AliasAddress callingAlias;
 			H323SetAliasAddress(callingParty, callingAlias);
 			setupBody.m_sourceAddress.SetSize(setupBody.m_sourceAddress.GetSize() + 1);
@@ -4140,6 +4141,10 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 		} else
 			PTRACE(5, Type() << "\tSupressing accounting start event for call #"
 				<< m_call->GetCallNumber());
+
+        PString statusCallID = callid;
+        statusCallID.Replace(" ", "-", true);
+        GkStatus::Instance()->SignalStatus("Setup|" + Name() + "|" + statusCallID + ";\r\n", STATUS_TRACE_LEVEL_RAS);
 	} else {
 		// no existing CallRec
 		authData.m_dialedNumber = dialedNumber;
@@ -4267,6 +4272,10 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				}
 			}
 		}
+
+        PString statusCallID = callid;
+        statusCallID.Replace(" ", "-", true);
+        GkStatus::Instance()->SignalStatus("SetupUnreg|" + Name() + "|" + statusCallID + ";\r\n", STATUS_TRACE_LEVEL_RAS);
 
 		bool proceedingSent = false;
 		if (!rejectCall && !destFound) {
