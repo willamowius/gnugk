@@ -12,7 +12,6 @@ Changes from 4.2 to 4.3
 - BUGFIX(RasTbl.cxx) fix display of H.460.17 for registrations on status port
 - BUGFIX(ProxyChannel.cxx) fix dead lock causing reroutes to fail
 
-
 Changes from 4.1 to 4.2
 =======================
 - BUGFIX(ProxyChannel.cxx) fix H.239 forwarding issue in call where only one side uses H.460.19
@@ -29,7 +28,6 @@ Changes from 4.1 to 4.2
 - support ON and OFF event in LuaAcct
 - BUGFIX(sqlacct.*) implement ON and OFF event as documented
 - new switches [RoutedMode] EnableGnuGkNATTraversal=1 and [Endpoint] EnableGnuGkNATTraversal=1 to keep GnuGk's old NAT traversal method enabled
-
 
 Changes from 4.0 to 4.1
 =======================
@@ -86,7 +84,6 @@ Changes from 3.9 to 4.0
 - BUGFIX(Routing.cxx) add field for destination alias in ARQ if missing and a dynamic routing policy sets it
 - BUGFIX(ProxyChannel.cxx) fix crash in H.235 Media for endpoints with more than 64 capability entries in TCS
 - new switch [Proxy] AllowSignaledIPs= to skip auto-detect for network when IgnoreSignaledIPs=1
-
 
 Changes from 3.8 to 3.9
 =======================
