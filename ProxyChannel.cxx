@@ -1016,7 +1016,7 @@ private:
 #endif
 	H225_CallIdentifier m_callID;
     bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPs in signalling, do full auto-detect
-    bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H239 streams
+    bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H.239 streams
     NetworkAddress m_keepSignaledIPs;   // don't do auto-detect on this network
     bool m_isUnidirectional;
     RTPSessionTypes m_sessionType;
@@ -1197,7 +1197,7 @@ protected:
 	bool m_isH245Master;
 #endif
     bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPs in signalling, do full auto-detect
-    bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H239 streams
+    bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H.239 streams
     NetworkAddress m_keepSignaledIPs;   // don't do auto-detect on this network
 };
 
@@ -10167,7 +10167,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		<< " multiplex: Dest A=" << AsString(m_multiplexDestination_A) << " ID A=" << m_multiplexID_A << " Socket A=" << m_multiplexSocket_A
 		<< " Dest B=" << AsString(m_multiplexDestination_B) << " ID B=" << m_multiplexID_B << " Socket B=" << m_multiplexSocket_B);
 
-    if (m_ignoreSignaledIPs) {     // TODO: switch this off if _both_ sides are using H.460.19, make sure it stays on if only one side uses H.460.19
+    if (m_ignoreSignaledIPs) {     // TODO: switch this off if _both_ sides are using H.460.19, make sure it stays on if only called side uses H.460.19
         //// learn from data we already have (eg. from H.239 signaling)
         // set known destination as assumed source
         if (fSrcIP == 0 && rSrcIP == 0 && fDestIP !=0) {
