@@ -677,8 +677,8 @@ PrefixInfo Neighbor::GetIPInfo(const H225_TransportAddress & ip, H225_ArrayOf_Al
 		PIPSocket::Address addr;
 		bool validNetwork = GetIPFromTransportAddr(ip, addr);
 		if ((sendNet[i] == "*")
-			|| ((sendNet[i] == "public") && !addr.IsRFC1918())
-			|| ((sendNet[i] == "private") && addr.IsRFC1918())
+			|| ((sendNet[i] == "public") && !IsPrivate(addr))
+			|| ((sendNet[i] == "private") && IsPrivate(addr))
 			|| (validNetwork && !noMatch && (NetworkAddress(addr) << network))
 			|| (validNetwork && noMatch && !(NetworkAddress(addr) << network)) )
 		{

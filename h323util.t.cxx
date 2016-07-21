@@ -285,6 +285,23 @@ TEST_F(H323UtilTest, IsLoopback) {
 	EXPECT_TRUE(IsLoopback(ip));
 }
 
+TEST_F(H323UtilTest, IsLocal) {
+	PIPSocket::Address ip4_1("192.168.1.12");   // private
+	PIPSocket::Address ip4_2("193.0.0.1");  // public
+	PIPSocket::Address ip6_1("fe80::1");    // link local
+	PIPSocket::Address ip6_2("fec0::1");    // site local
+	PIPSocket::Address ip6_3("fc00::1");    // unique local
+	PIPSocket::Address ip6_4("fd9e:21a7:a92c:2323::1");    // unique local
+	PIPSocket::Address ip6_5("fb9e:21a7:a92c:2323::1");    // public
+	EXPECT_TRUE(IsPrivate(ip4_1));
+	EXPECT_FALSE(IsPrivate(ip4_2));
+	EXPECT_TRUE(IsPrivate(ip6_1));
+	EXPECT_TRUE(IsPrivate(ip6_2));
+	EXPECT_TRUE(IsPrivate(ip6_3));
+	EXPECT_TRUE(IsPrivate(ip6_4));
+	EXPECT_FALSE(IsPrivate(ip6_5));
+}
+
 TEST_F(H323UtilTest, IsInNetwork) {
 	PIPSocket::Address ip1("4.5.6.7");
 	PIPSocket::Address ip2("4.5.7.1");

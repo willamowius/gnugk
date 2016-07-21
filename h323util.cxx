@@ -650,6 +650,26 @@ bool IsLoopback(const PIPSocket::Address & addr)
 	return addr.IsLoopback() != 0;
 }
 
+bool IsPrivate(const PIPSocket::Address & ip)
+{
+    bool result = false;
+    if (ip.IsRFC1918())
+        result = true;
+#ifdef hasIPV6
+    if (ip.GetVersion() == 6) {
+        if (ip.IsLinkLocal())
+            result = true;
+        // check for 'site local' (fec0::/10, outdated); IsSiteLocal() is not available in PTLib 2.10.x
+        if ((ip[0] == 0xFE) && ((ip[1] & 0xC0) == 0xC0))
+            result = true;
+        // check for 'unique local' (RFC 4193 - fc00::/7)
+        if ((ip[0] & 0xFC) == 0xFC)
+            result = true;
+    }
+#endif
+    return result;
+}
+
 // is this IP part of this network
 bool IsInNetwork(const PIPSocket::Address & ip, const NetworkAddress  & net)
 {

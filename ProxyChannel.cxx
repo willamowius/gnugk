@@ -10167,7 +10167,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		<< " multiplex: Dest A=" << AsString(m_multiplexDestination_A) << " ID A=" << m_multiplexID_A << " Socket A=" << m_multiplexSocket_A
 		<< " Dest B=" << AsString(m_multiplexDestination_B) << " ID B=" << m_multiplexID_B << " Socket B=" << m_multiplexSocket_B);
 
-    if (m_ignoreSignaledIPs) {     // TODO: switch this off if _both_ sides are using H.460.19, make sure it stays on if only called side uses H.460.19
+    if (m_ignoreSignaledIPs) {
         //// learn from data we already have (eg. from H.239 signaling)
         // set known destination as assumed source
         if (fSrcIP == 0 && rSrcIP == 0 && fDestIP !=0) {
@@ -11347,6 +11347,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 	H245_UnicastAddress tmp, tmpmedia, tmpmediacontrol, *dest = mediaControlChannel;
 	PIPSocket::Address tmpSrcIP = SrcIP;
 	WORD tmpSrcPort = SrcPort + 1;
+	//JWSYM
     bool zeroIP = m_ignoreSignaledIPs && !fromTraversalClient && !isUnidirectional;
 
 	if (mediaControlChannel == NULL) {
@@ -11392,7 +11393,8 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 #endif
 
     PIPSocket::Address ip = H245UnicastToSocketAddr(*dest);
-    if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && ip.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
+    // JWSYM
+    if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
         zeroIP = true;
     }
     if (IsInNetwork(ip, m_keepSignaledIPs)) {
@@ -11401,7 +11403,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
     if (zeroIP) {
         PTRACE(7, "JW RTP IN zero RTCP src + dest (IgnoreSignaledIPs)");
         (rtcp->*SetDest)(0, 0, NULL, call);
-    } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && tmpSrcIP.IsRFC1918() && m_ignoreSignaledPrivateH239IPs && !IsInNetwork(ip, m_keepSignaledIPs)) {
+    } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs && !IsInNetwork(ip, m_keepSignaledIPs)) {
         // only zero out source IP
         PTRACE(7, "JW RTP IN zero RTCP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
         (rtcp->*SetDest)(0, 0, dest, call);
@@ -11433,7 +11435,9 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 #endif
 
         PIPSocket::Address ip = H245UnicastToSocketAddr(*dest);
-        if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && ip.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
+        // JWSYM
+        // TODO: check if we should default zeroIP to false, before we do these checks
+        if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
             zeroIP = true;
         }
         if (IsInNetwork(ip, m_keepSignaledIPs)) {
@@ -11442,7 +11446,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
         if (zeroIP) {
             PTRACE(7, "JW RTP IN zero RTP src + dest (IgnoreSignaledIPs)");
             (rtp->*SetDest)(0, 0, NULL, call);
-        } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && tmpSrcIP.IsRFC1918() && m_ignoreSignaledPrivateH239IPs && !IsInNetwork(ip, m_keepSignaledIPs)) {
+        } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs && !IsInNetwork(ip, m_keepSignaledIPs)) {
             // only zero out source IP
             PTRACE(7, "JW RTP IN zero RTP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
             (rtp->*SetDest)(0, 0, dest, call);
@@ -11802,6 +11806,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 
 	H245_UnicastAddress * addr = NULL;
 	bool changed = false;
+	//JWSYM
     bool zeroIP = m_ignoreSignaledIPs && !isUnidirectional;
 
 	if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)
@@ -11816,7 +11821,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 		}
 #endif
         PIPSocket::Address ip = H245UnicastToSocketAddr(*addr);
-        if (m_ignoreSignaledIPs && isUnidirectional && ip.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
+        if (m_ignoreSignaledIPs && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
             zeroIP = true;
         }
         if (IsInNetwork(ip, m_keepSignaledIPs)) {
@@ -11840,7 +11845,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 			}
 #endif
         PIPSocket::Address ip = H245UnicastToSocketAddr(*addr);
-        if (m_ignoreSignaledIPs && isUnidirectional && ip.IsRFC1918() && m_ignoreSignaledPrivateH239IPs) {
+        if (m_ignoreSignaledIPs && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
             zeroIP = true;
         }
         if (IsInNetwork(ip, m_keepSignaledIPs)) {
@@ -13085,6 +13090,7 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
         // look for channel with same media type
         lc = peer->FindRTPLogicalChannelBySessionType(sessionType, id);
     }
+    //JWSYM: check if we have a pair now
 
 	if (lc && !lc->IsAttached()) {
 		lc = new RTPLogicalChannel(lc, flcn, hnat != NULL, sessionType);
@@ -13251,7 +13257,7 @@ bool NATHandler::ChangeAddress(H245_UnicastAddress * addr)
 	*addr >> olcAddr;
 
 	// Is NATed Endpoint
-	if (olcAddr.IsRFC1918())
+	if (IsPrivate(olcAddr))
 		return false;
 
 	// if the OLC address differs from the remote NAT address

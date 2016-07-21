@@ -125,7 +125,9 @@ void UnmapIPv4Address(PIPSocket::Address & addr);
 // leave unchanged if IPv6 disabled or is already an IPv6 address
 void MapIPv4Address(PIPSocket::Address & addr);
 
-bool IsLoopback(const PIPSocket::Address &);
+bool IsLoopback(const PIPSocket::Address & addr);
+
+bool IsPrivate(const PIPSocket::Address & ip);
 
 // is this IP part of this network
 bool IsInNetwork(const PIPSocket::Address & ip, const NetworkAddress  & net);

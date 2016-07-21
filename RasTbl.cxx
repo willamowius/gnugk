@@ -3937,7 +3937,7 @@ bool CallRec::NATAssistCallerUnknown(NatStrategy & natinst)
 		info << "    Support H.460.24 " << (m_Called->SupportH46024() ? "Yes" : "No") << "\n";
 		info << "    NAT Type:    " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Called->GetEPNATType()) << "\n";
 		PTRACE(5, "RAS\t\n" << info);
-		if (m_Called->SupportH46024() && ((m_Called->GetIP().IsRFC1918() && remAddr.IsRFC1918()) ||
+		if (m_Called->SupportH46024() && ((IsPrivate(m_Called->GetIP()) && IsPrivate(remAddr)) ||
 										m_Called->GetEPNATType() < (int)EndpointRec::NatCone ||
 										m_Called->GetEPNATType() == (int)EndpointRec::FirewallSymmetric)) {
 			PTRACE(4, "RAS\tSet strategy to no Assistance");
@@ -3980,7 +3980,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 		info << "    Support H.460.24 " << (m_Calling->SupportH46024() ? "Yes" : "No") << "\n";
 		info << "    NAT Type:    " << EndpointRec::GetEPNATTypeString((EndpointRec::EPNatTypes)m_Calling->GetEPNATType()) << "\n";
 		PTRACE(5, "RAS\t\n" << info);
-		if (m_Calling->SupportH46024() && ((m_Calling->GetIP().IsRFC1918() && remAddr.IsRFC1918()) ||
+		if (m_Calling->SupportH46024() && ((IsPrivate(m_Calling->GetIP()) && IsPrivate(remAddr)) ||
 											m_Calling->GetEPNATType() < (int)EndpointRec::NatCone /*||
 											m_Calling->GetEPNATType() == (int)EndpointRec::FirewallSymmetric*/)) {
 			PTRACE(4, "RAS\tSet strategy to no Assistance");
@@ -4099,13 +4099,13 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	// assume the parties can reach eachother.
 	else if (goDirect &&
 			(m_Calling->IsNATed() && m_Called->GetEPNATType() < EndpointRec::FirewallSymmetric &&
-            !m_Called->IsNATed() && m_Called->GetIP().IsRFC1918()))
+            !m_Called->IsNATed() && IsPrivate(m_Called->GetIP())))
 				natinst = CallRec::e_natNoassist;
 
 	// if caller is behind a symmetric firewall calling to a public IP.
 	else if (goDirect &&
 			(m_Calling->GetEPNATType() == (int)EndpointRec::FirewallSymmetric) &&
-			!m_Called->GetIP().IsRFC1918() && m_Called->GetEPNATType() == (int)EndpointRec::NatUnknown)
+			!IsPrivate(m_Called->GetIP()) && m_Called->GetEPNATType() == (int)EndpointRec::NatUnknown)
 				natinst = CallRec::e_natNoassist;
 
 	// Both parties are NAT and both and are either restricted or port restricted NAT

@@ -816,11 +816,6 @@ const char * KnownConfigEntries[][2] = {
 	{ NULL }	// the end
 };
 
-bool IsGatekeeperShutdown()
-{
-    return ShutdownFlag;
-}
-
 namespace { // keep the global objects private
 
 PTimedMutex ReloadMutex;

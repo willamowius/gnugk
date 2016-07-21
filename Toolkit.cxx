@@ -55,6 +55,11 @@ extern const char *TLSSec;
 
 extern int g_maxSocketQueue;
 
+bool IsGatekeeperShutdown()
+{
+    return ShutdownFlag;
+}
+
 namespace {
 
 const PString paddingByteConfigKey("KeyFilled");
@@ -534,7 +539,7 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 
 	if (AsBool(GkConfig()->GetString(ProxySection, "Enable", "0"))) {
 		for (PINDEX i = 0; i < r_table.GetSize(); ++i) {
-			if (r_table[i].GetNetwork().IsRFC1918()
+			if (IsPrivate(r_table[i].GetNetwork())
 				&& (r_table[i].GetNetMask().AsString() != "255.255.255.255")
 				&& (r_table[i].GetNetMask().AsString() != "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")) {
 				m_internalnetworks.resize( m_internalnetworks.size() + 1);
