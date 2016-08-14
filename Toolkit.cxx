@@ -1829,8 +1829,10 @@ PConfig* Toolkit::ReloadConfig()
 
 	// set the max size of an array in an ASN encoded message (eg. max length of alias list)
 	PINDEX maxArraySize = GkConfig()->GetInteger("MaxASNArraySize", 0);
-	if (maxArraySize > 0)
+	if (maxArraySize > 0) {
+        PTRACE(3, "Setting ASN.1 max array size to " << maxArraySize);
 		PASN_Object::SetMaximumArraySize(maxArraySize);
+    }
 
 	// set max bytes to queue for a socket, before asuming its dead (probably only an issue with H.460.17)
 	int maxSocketQueue = GkConfig()->GetInteger("MaxSocketQueue", 100);
