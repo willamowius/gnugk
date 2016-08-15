@@ -473,16 +473,16 @@ For compatibility with pre-H323v4 devices that do not support H.460,
 this switch strips the H.460 feature advertisements from the Setup PDU.
 Usually they should be ignored anyway; use this switch if they cause trouble.
 
-<item><tt/ForceNATKeepAlive=1/<newline>
-Default: <tt>0</tt><newline>
-<p>
-Force ALL registrations to use a keepAlive TCP socket.
-
 <item><tt/EnableGnuGkNATTraversal=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
 Enable support for GnuGk's old NAT traversal method for legacy endpoints.
 You should use H.460.17/.18/.19 for new installations.
+
+<item><tt/ForceNATKeepAlive=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Force all non-H.460 registrations to use GnuGk's old NAT traversal method, even when they don't appear to be NATed. Only active when GnuGk's NAT traversal method is enabled.
 
 <item><tt/EnableH46017=1/<newline>
 Default: <tt>0</tt><newline>
