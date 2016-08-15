@@ -893,6 +893,7 @@ When IgnoreSignaledIPs is active, don't ignore IPs from this network
 
 <item><tt>UpdateCalledPartyToH225Destination=1</tt><newline>
 Default: <tt>0</tt><newline>
+<p>
 With this switch you can let GnuGk update the CalledPartyNumber element in outgoing
 Setup messages to the first E.164 number of the H.225 destinationAddress or remove
 it if none of the destinations is an E164 number. This is intended to aid
@@ -901,11 +902,12 @@ destinationAddress.
 
 <item><tt>FilterVideoFastUpdatePicture=10</tt><newline>
 Default: <tt>0</tt><newline>
+<p>
 When endpoints notice that the video image quality is degrading, they can notify
 the remote side with a H.245 VideoFastUpdatePicture message. The remote side usually
 responds by sending a full I-Frame instead of partial image updates.
 
-Usually thats a good thing. But in some cases, but having too many update requests
+Usually thats a good thing. But in some cases having too many update requests
 increases the bandwidth usage drastically and can worsen the situation.
 
 When you set this switch to 1, GnuGk will allow 1 update request per second.
