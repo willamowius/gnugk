@@ -6,30 +6,30 @@
 Call signaling messages may be passed in two ways:
 The first method is Direct Endpoint Call Signaling, where 
 call signaling messages are passed directly between the endpoints.
-The second method is Gatekeeper Routed Call Signaling. With this method,
+The second method is Gatekeeper Routed Call Signaling. With this second method,
 the call signaling messages are routed through the gatekeeper.
 
-When Gatekeeper Routed call signaling is used, there are three different options for routing
-of the H.245 control channel and media channels.
+When Gatekeeper Routed Call Signaling is used, there are three different options for routing
+the H.245 channel and media channels.
 
 <descrip>
 <tag/Case I./
-The gatekeeper doesn't route them.
-The H.245 control channel and media channels are established directly
+The gatekeeper doesn't route H.245 and media.
+The H.245 channel and media channels are established directly
 between the endpoints.
 <tag/Case II./
-The H.245 control channel is routed through the gatekeeper, while the media channels
+The H.245 channel is routed through the gatekeeper, while the media channels
 are established directly between the endpoints.
 <tag/Case III./
-The gatekeeper routes the H.245 control channel,
-as well as all media channels, including RTP/RTCP for audio and video,
+The gatekeeper routes the H.245 channel, as well as the media channels,
+including RTP/RTCP for audio and video,
 and T.120 channel for data. In this case, no traffic is passed
 directly between the endpoints. This is usually called a H.323 Proxy,
 and can be treated as a H.323-H.323 gateway.
 </descrip>
 
 This section defines the gatekeeper routed mode options (case I &amp; II).
-The proxy feature is defined in the <ref id="proxy" name="next section">.
+The proxy feature is defined in the <ref id="proxy" name="[Proxy] section">.
 
 The settings in this section may be updated by reloading the configuration while the gatekeeper is running.
 
@@ -482,7 +482,7 @@ You should use H.460.17/.18/.19 for new installations.
 <item><tt/ForceNATKeepAlive=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
-Force all non-H.460 registrations to use GnuGk's old NAT traversal method, even when they don't appear to be NATed. Only active when GnuGk's NAT traversal method is enabled.
+Force all non-H.460 registrations to use GnuGk's old NAT traversal method, even when they don't appear to be NATed. Only available when GnuGk's NAT traversal method is enabled.
 
 <item><tt/EnableH46017=1/<newline>
 Default: <tt>0</tt><newline>
