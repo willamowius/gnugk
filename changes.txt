@@ -1,5 +1,6 @@
 Changes from 4.2 to 4.3
 =======================
+- add variables message, srcInfo and vendor to LuaAuth
 - print message on status port when Setup is received
 - BUGFIX(ProxyChannel.cxx) disregard IgnoreSignaledIPs=1 switch when caller supports some form of
   NAT traversal (to avoid both sides waiting for first RTP packet)

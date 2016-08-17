@@ -424,13 +424,16 @@ protected:
 		e_next	go to next policy
 	*/
 	int doCallCheck(
+		const PString & messageType,
+		const PString & message,
 		const PString & source,
 		const PString & calledAlias,
 		const PString & calledIP,
 		const PString & caller,
 		const PString & callingStationId,
 		const PString & callid,
-		const PString & messageType
+		const PString & srcinfo,
+		const PString & vendor
 		);
 
 private:
@@ -558,6 +561,10 @@ int LuaAuth::Check(
 	}
 	endptr ep = RegistrationTable::Instance()->FindByEndpointId(arq.m_endpointIdentifier);
 	if (ep) {
+		PString messageType = "ARQ";
+        PStringStream strm;
+        arq.PrintOn(strm);
+        PString message = strm;
 		PString source = AsDotString(ep->GetCallSignalAddress());
 		PString calledAlias = "";
 		if (aliases.GetSize() > 0)
@@ -566,8 +573,18 @@ int LuaAuth::Check(
 		PString caller = AsString(arq.m_srcInfo, FALSE);
 		PString callingStationId = authData.m_callingStationId;
 		PString callid = AsString(arq.m_callIdentifier.m_guid);
-		PString messageType = "ARQ";
-		return doCallCheck(source, calledAlias, calledIP, caller, callingStationId, callid, messageType);
+		PString srcinfo = AsString(arq.m_srcInfo, false);
+		PString vendor;
+        if (ep->GetEndpointType().HasOptionalField(H225_EndpointType::e_vendor)) {
+			if (ep->GetEndpointType().m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)) {
+				vendor += ep->GetEndpointType().m_vendor.m_productId.AsString();
+			}
+			if (ep->GetEndpointType().m_vendor.HasOptionalField(H225_VendorIdentifier::e_versionId)) {
+				vendor += ep->GetEndpointType().m_vendor.m_versionId.AsString();
+			}
+        }
+
+		return doCallCheck(messageType, message, source, calledAlias, calledIP, caller, callingStationId, callid, srcinfo, vendor);
 	} else {
 		return e_fail;
 	}
@@ -582,6 +599,10 @@ int LuaAuth::Check(
 {
 	H225_Setup_UUIE & setup_uuie = setup.GetUUIEBody();
 
+	PString messageType = "Setup";
+    PStringStream strm;
+    setup_uuie.PrintOn(strm);
+    PString message = strm;
 	PString source = "";
 	if (setup_uuie.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress))
 		source = AsDotString(setup_uuie.m_sourceCallSignalAddress);
@@ -592,8 +613,22 @@ int LuaAuth::Check(
 	PString callingStationId = GetCallingStationId(setup, authData);
 	PString caller = callingStationId;
 	PString callid = AsString(setup_uuie.m_callIdentifier.m_guid);
-	PString messageType = "Setup";
-	return doCallCheck(source, calledAlias, calledIP, caller, callingStationId, callid, messageType);
+	PString srcinfo;
+	if (setup.GetUUIEBody().HasOptionalField(H225_Setup_UUIE::e_sourceAddress)
+        && setup.GetUUIEBody().m_sourceAddress.GetSize() > 0) {
+        srcinfo = AsString(setup.GetUUIEBody().m_sourceAddress, false);
+	}
+	PString vendor;
+    if (setup.GetUUIEBody().m_sourceInfo.HasOptionalField(H225_EndpointType::e_vendor)) {
+        if (setup.GetUUIEBody().m_sourceInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)) {
+            vendor += setup.GetUUIEBody().m_sourceInfo.m_vendor.m_productId.AsString();
+        }
+        if (setup.GetUUIEBody().m_sourceInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_versionId)) {
+            vendor += setup.GetUUIEBody().m_sourceInfo.m_vendor.m_versionId.AsString();
+        }
+    }
+
+	return doCallCheck(messageType, message, source, calledAlias, calledIP, caller, callingStationId, callid, srcinfo, vendor);
 }
 
 int LuaAuth::doRegistrationCheck(
@@ -629,13 +664,16 @@ int LuaAuth::doRegistrationCheck(
 }
 
 int LuaAuth::doCallCheck(
+		const PString & messageType,
+		const PString & message,
 		const PString & source,
 		const PString & calledAlias,
 		const PString & calledIP,
 		const PString & caller,
 		const PString & callingStationId,
 		const PString & callid,
-		const PString & messageType
+		const PString & srcinfo,
+		const PString & vendor
 		)
 {
     if (!m_lua || m_callScript.IsEmpty()) {
@@ -643,13 +681,16 @@ int LuaAuth::doCallCheck(
 		return e_fail;
     }
 
+	SetString("messageType", messageType);
+	SetString("message", message);
 	SetString("source", source);
 	SetString("calledAlias", calledAlias);
 	SetString("calledIP", calledIP);
 	SetString("caller", caller);
 	SetString("callingStationId", callingStationId);
 	SetString("callid", callid);
-	SetString("messageType", messageType);
+	SetString("srcInfo", srcinfo);
+	SetString("vendor", vendor);
 	SetString("result", "FAIL");
 
 	if (!RunLua(m_callScript)) {
