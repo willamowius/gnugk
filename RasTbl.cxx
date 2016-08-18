@@ -2764,12 +2764,12 @@ CallRec::CallRec(
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_failoverActive(oldCall->m_failoverActive),
 	m_singleFailoverCDR(oldCall->m_singleFailoverCDR), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(oldCall->m_proceedingSent),
+#if HAS_H46018
+	m_ignoreSignaledIPs(oldCall->m_ignoreSignaledIPs),
+#endif
 	m_clientAuthId(0), m_rerouteState(oldCall->m_rerouteState), m_h46018ReverseSetup(oldCall->m_h46018ReverseSetup),
 	m_callfromTraversalClient(oldCall->m_callfromTraversalClient), m_callfromTraversalServer(oldCall->m_callfromTraversalServer),
-	m_rerouteDirection(oldCall->m_rerouteDirection), m_connectWithTLS(oldCall->m_connectWithTLS)
-#if HAS_H46018
-	, m_ignoreSignaledIPs(oldCall->m_ignoreSignaledIPs)
-#endif
+    m_rerouteDirection(oldCall->m_rerouteDirection), m_connectWithTLS(oldCall->m_connectWithTLS)
 #ifdef HAS_H235_MEDIA
     ,m_encyptDir(none), m_dynamicPayloadTypeCounter(MIN_DYNAMIC_PAYLOAD_TYPE)
 #endif
