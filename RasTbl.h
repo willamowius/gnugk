@@ -1388,6 +1388,8 @@ public:
 	void RemoveKeepAllAlives();
 
 	void SetSessionMultiplexDestination(WORD session, void * openedBy, bool isRTCP, const H323TransportAddress & toAddress, H46019Side side);
+	bool IgnoreSignaledIPs() const { return m_ignoreSignaledIPs; }
+	void SetIgnoreSignaledIPs(bool val) { m_ignoreSignaledIPs = val; }
 #endif
 
 	// should we use TLS on the outgoing leg, incoming determined by port caller uses
@@ -1608,6 +1610,7 @@ private:
 	PBYTEArray m_processedSetup;
 	std::map<unsigned, H46019KeepAlive> m_RTPkeepalives;
 	std::map<unsigned, H46019KeepAlive> m_RTCPkeepalives;
+	bool m_ignoreSignaledIPs;   // IgnoreSignaledIPs setting for this call; may be switched off during call establishemnt
 #endif
 	PUInt64 m_clientAuthId;
 	PString m_bindHint;	// outgoing IP or empty

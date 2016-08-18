@@ -2638,6 +2638,9 @@ CallRec::CallRec(
 
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "GenerateCallProceeding", "0")))
 		m_proceedingSent = true;	// this was probably done before a CallRec existed
+#if HAS_H46018
+    m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
+#endif
 }
 
 CallRec::CallRec(
@@ -2699,6 +2702,9 @@ CallRec::CallRec(
 
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "GenerateCallProceeding", "0")))
 		m_proceedingSent = true;	// this was probably done before a CallRec existed
+#if HAS_H46018
+    m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
+#endif
 }
 
 // a pretty empty CallRec, the rest is set when the Setup comes in (used with H.460.18 on SCI)
@@ -2723,6 +2729,9 @@ CallRec::CallRec(const H225_CallIdentifier & callID, H225_TransportAddress sigAd
     ,m_encyptDir(none), m_dynamicPayloadTypeCounter(MIN_DYNAMIC_PAYLOAD_TYPE)
 #endif
 {
+#if HAS_H46018
+    m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
+#endif
 }
 
 CallRec::CallRec(
@@ -2758,6 +2767,9 @@ CallRec::CallRec(
 	m_clientAuthId(0), m_rerouteState(oldCall->m_rerouteState), m_h46018ReverseSetup(oldCall->m_h46018ReverseSetup),
 	m_callfromTraversalClient(oldCall->m_callfromTraversalClient), m_callfromTraversalServer(oldCall->m_callfromTraversalServer),
 	m_rerouteDirection(oldCall->m_rerouteDirection), m_connectWithTLS(oldCall->m_connectWithTLS)
+#if HAS_H46018
+	, m_ignoreSignaledIPs(oldCall->m_ignoreSignaledIPs)
+#endif
 #ifdef HAS_H235_MEDIA
     ,m_encyptDir(none), m_dynamicPayloadTypeCounter(MIN_DYNAMIC_PAYLOAD_TYPE)
 #endif
