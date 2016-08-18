@@ -190,11 +190,11 @@ public:
 	void UpdateSocketName();
 	void RemoveCallPtr() { m_call = NULL; }
 	void SetDestination(H245_UnicastAddress &, callptr &);
-	void SetForwardDestination(const Address &, WORD, H245_UnicastAddress *, callptr &);
-	void SetReverseDestination(const Address &, WORD, H245_UnicastAddress *, callptr &);
-	typedef void (UDPProxySocket::*pMem)(const Address &, WORD, H245_UnicastAddress *, callptr &);
+	void SetForwardDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call);
+	void SetReverseDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call);
+	typedef void (UDPProxySocket::*pMem)(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call);
 
-	bool Bind(const Address &localAddr, WORD pt);
+	bool Bind(const Address & localAddr, WORD pt);
 	int GetOSSocket() const { return os_handle; }
 	void SetNAT(bool);
 	bool isMute() { return mute; }
