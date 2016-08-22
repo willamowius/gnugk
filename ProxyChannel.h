@@ -223,6 +223,10 @@ public:
 	virtual Result ReceiveData();
 	virtual bool OnReceiveData(void *, PINDEX, Address &, WORD &) { return true; }
 
+    void GetPorts(WORD & _fSrcPort, WORD & _fDestPort, WORD & _rSrcPort, WORD & _rDestPort) const;
+    void ZeroAllIPs();
+
+
 protected:
 	virtual bool WriteData(const BYTE *, int);
 	virtual bool Flush();

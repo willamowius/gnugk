@@ -1,5 +1,7 @@
 Changes from 4.2 to 4.3
 =======================
+- disable IgnoreSignaledIPs when one party is not using the same RTP ports for forward and reverse
+  channels in same RTP session
 - BUGFIX(RasTbl.cxx) don't allow higher TTL for H.460.18 registrations that set by
   H46018KeepAliveInterval= switch
 - add variables message, srcInfo and vendor to LuaAuth

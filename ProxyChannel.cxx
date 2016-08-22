@@ -996,6 +996,8 @@ public:
 	BYTE GetCipherPayloadType() const { return m_cipherPayloadType; }
 #endif
 
+    void GetRTPPorts(WORD & fSrcPort, WORD & dDestPort, WORD & rSrcPort, WORD & rDestPort) const;
+
 private:
 	void SetNAT(bool);
 	static WORD GetPortNumber();	// get a new port number to use
@@ -1004,7 +1006,7 @@ private:
 	RTPLogicalChannel *peer;
 	UDPProxySocket *rtp, *rtcp;
 	PIPSocket::Address SrcIP;
-	WORD SrcPort;
+	WORD SrcPort; // RTP port from OLC (deduced from RTCP if not present)
 
 #ifdef HAS_H235_MEDIA
 	PMutex m_cryptoEngineMutex;
@@ -9854,14 +9856,12 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
 #ifdef HAS_H46018
 	m_checkH46019KeepAlivePT = GkConfig()->GetBoolean(ProxySection, "CheckH46019KeepAlivePT", true);
 #endif
-    m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
+    m_ignoreSignaledIPs = false;
     m_ignoreSignaledPrivateH239IPs = false;
-    if (m_ignoreSignaledIPs) {
-        callptr call = CallTable::Instance()->FindCallRec(m_callID);
-        if (call && call->GetCallingParty() && call->GetCallingParty()->GetTraversalRole() != None) {
-            // disable, when caller has NAT traversal enabled (call isn't from an party that needs NAT help)
-            m_ignoreSignaledIPs = false;
-        } else {
+    callptr call = CallTable::Instance()->FindCallRec(m_callID);
+    if (call) {
+        m_ignoreSignaledIPs = call->IgnoreSignaledIPs();
+        if (m_ignoreSignaledIPs) {
             m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
             PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");
             if (keepSignaledIPs.Find('/') == P_MAX_INDEX) {
@@ -9953,7 +9953,7 @@ void UDPProxySocket::UpdateSocketName()
 	SetName(src + "<=>" + AsString(laddr, lport) + "<=>" + dst);
 }
 
-void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * addr, callptr & call)
+void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call)
 {
 	Address localaddr;
 	WORD localport = 0;
@@ -9966,8 +9966,8 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 	if ((DWORD)srcIP != 0 || m_ignoreSignaledIPs) {
 		fSrcIP = srcIP, fSrcPort = srcPort;
 	}
-	if (addr) {
-		*addr >> fDestIP >> fDestPort;
+	if (dstAddr) {
+		*dstAddr >> fDestIP >> fDestPort;
 	} else {
 		fDestIP = 0;
 		fDestPort = 0;
@@ -10000,7 +10000,7 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 		m_call = &call;
 }
 
-void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * addr, callptr & call)
+void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call)
 {
 	Address localaddr;
 	WORD localport = 0;
@@ -10013,8 +10013,8 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 	if ((DWORD)srcIP != 0 || m_ignoreSignaledIPs) {
 		rSrcIP = srcIP, rSrcPort = srcPort;
 	}
-	if (addr) {
-		*addr >> rDestIP >> rDestPort;
+	if (dstAddr) {
+		*dstAddr >> rDestIP >> rDestPort;
 	} else {
 		rDestIP = 0;
 		rDestPort = 0;
@@ -10037,6 +10037,34 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 
 	m_call = &call;
+}
+
+// JWSYM
+void UDPProxySocket::GetPorts(WORD & _fSrcPort, WORD & _fDestPort, WORD & _rSrcPort, WORD & _rDestPort) const
+{
+    _fSrcPort = fSrcPort;
+    _fDestPort = fDestPort;
+    _rSrcPort = rSrcPort;
+    _rDestPort = rDestPort;
+}
+
+void UDPProxySocket::ZeroAllIPs()
+{
+    if (!IsInNetwork(fSrcIP, m_keepSignaledIPs)) {
+        fSrcIP = 0; fSrcPort = 0;
+    }
+    if (!IsInNetwork(fDestIP, m_keepSignaledIPs)) {
+        fDestIP = 0; fDestPort = 0;
+    }
+    if (!IsInNetwork(rSrcIP, m_keepSignaledIPs)) {
+        rSrcIP = 0; rSrcPort = 0;
+    }
+    if (!IsInNetwork(rDestIP, m_keepSignaledIPs)) {
+        rDestIP = 0; rDestPort = 0;
+    }
+#ifdef HAS_H46018
+    m_h46019DetectionDone = false;
+#endif
 }
 
 #ifdef HAS_H46018
@@ -10822,25 +10850,29 @@ void T120ProxySocket::Dispatch()
 RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, bool nated, WORD sessionID, RTPSessionTypes sessionType)
     : LogicalChannel(flcn), reversed(false), peer(NULL), m_sessionType(sessionType)
 {
-    m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
+    m_ignoreSignaledIPs = false;
     m_ignoreSignaledPrivateH239IPs = false;
-    if (m_ignoreSignaledIPs) {
-        callptr call = CallTable::Instance()->FindCallRec(id);
-        if (call && call->GetCallingParty() && call->GetCallingParty()->GetTraversalRole() != None) {
-            // disable, when caller has NAT traversal enabled (call isn't from an party that needs NAT help)
-            m_ignoreSignaledIPs = false;
-        } else {
-            m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
-            PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");
-            if (keepSignaledIPs.Find('/') == P_MAX_INDEX) {
-                // add netmask to pure IPs
-                if (IsIPv4Address(keepSignaledIPs)) {
-                    keepSignaledIPs += "/32";
-                } else {
-                    keepSignaledIPs += "/128";
+    callptr call = CallTable::Instance()->FindCallRec(id);
+    if (call) {
+        m_ignoreSignaledIPs = call->IgnoreSignaledIPs();
+        if (m_ignoreSignaledIPs) {
+            if (call && call->GetCallingParty() && call->GetCallingParty()->GetTraversalRole() != None) {
+                // disable, when caller has NAT traversal enabled (call isn't from an party that needs NAT help)
+                m_ignoreSignaledIPs = false;
+                call->SetIgnoreSignaledIPs(false);
+            } else {
+                m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
+                PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");
+                if (keepSignaledIPs.Find('/') == P_MAX_INDEX) {
+                    // add netmask to pure IPs
+                    if (IsIPv4Address(keepSignaledIPs)) {
+                        keepSignaledIPs += "/32";
+                    } else {
+                        keepSignaledIPs += "/128";
+                    }
                 }
+                m_keepSignaledIPs = NetworkAddress(keepSignaledIPs);
             }
-            m_keepSignaledIPs = NetworkAddress(keepSignaledIPs);
         }
     }
     m_isUnidirectional = false;
@@ -10908,25 +10940,29 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 
 RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool nated, RTPSessionTypes sessionType)
 {
-    m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
+    m_ignoreSignaledIPs = false;
     m_ignoreSignaledPrivateH239IPs = false;
-    if (m_ignoreSignaledIPs) {
-        callptr call = CallTable::Instance()->FindCallRec(flc->m_callID);
-        if (call && call->GetCallingParty() && call->GetCallingParty()->GetTraversalRole() != None) {
-            // disable, when caller has NAT traversal enabled (call isn't from an party that needs NAT help)
-            m_ignoreSignaledIPs = false;
-        } else {
-            m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
-            PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");
-            if (keepSignaledIPs.Find('/') == P_MAX_INDEX) {
-                // add netmask to pure IPs
-                if (IsIPv4Address(keepSignaledIPs)) {
-                    keepSignaledIPs += "/32";
-                } else {
-                    keepSignaledIPs += "/128";
+    callptr call = CallTable::Instance()->FindCallRec(flc->m_callID);
+    if (call) {
+        m_ignoreSignaledIPs = call->IgnoreSignaledIPs();
+        if (m_ignoreSignaledIPs) {
+            if (call && call->GetCallingParty() && call->GetCallingParty()->GetTraversalRole() != None) {
+                // disable, when caller has NAT traversal enabled (call isn't from an party that needs NAT help)
+                m_ignoreSignaledIPs = false;
+                call->SetIgnoreSignaledIPs(false);
+            } else {
+                m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
+                PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");
+                if (keepSignaledIPs.Find('/') == P_MAX_INDEX) {
+                    // add netmask to pure IPs
+                    if (IsIPv4Address(keepSignaledIPs)) {
+                        keepSignaledIPs += "/32";
+                    } else {
+                        keepSignaledIPs += "/128";
+                    }
                 }
+                m_keepSignaledIPs = NetworkAddress(keepSignaledIPs);
             }
-            m_keepSignaledIPs = NetworkAddress(keepSignaledIPs);
         }
     }
     m_isUnidirectional = false;
@@ -10942,8 +10978,9 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool na
 	used = flc->used;
 	rtp = flc->rtp;
 	rtcp = flc->rtcp;
-	SrcIP = flc->SrcIP;
+	SrcIP = flc->SrcIP;     // gets overwritten with IP from OLC for this direction shortly
 	SrcPort = flc->SrcPort;
+	PTRACE(0, "JW LC c'tor SrcIP=" << AsString(SrcIP) << " SrcPort=" << SrcPort << " this=" << this);
 	reversed = !flc->reversed;
 	peer = flc, flc->peer = this;
 	SetChannelNumber(flcn);
@@ -11311,6 +11348,14 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 }
 #endif
 
+void RTPLogicalChannel::GetRTPPorts(WORD & fSrcPort, WORD & dDestPort, WORD & rSrcPort, WORD & rDestPort) const
+{
+    fSrcPort = dDestPort = rSrcPort = rDestPort = 0;
+    if (rtp) {
+        rtp->GetPorts(fSrcPort, dDestPort, rSrcPort, rDestPort);
+    }
+}
+
 void RTPLogicalChannel::SetRTPSessionID(WORD id)
 {
 	if (rtp)
@@ -11323,6 +11368,7 @@ void RTPLogicalChannel::SetMediaControlChannelSource(const H245_UnicastAddress &
 {
 	addr >> SrcIP >> SrcPort;
 	--SrcPort; // get the RTP port
+    PTRACE(0, "JW LC SrcIP=" << AsString(SrcIP) << " SrcPort=" << SrcPort << " rtp=" << rtp << " rtcp=" << rtcp << " this=" << this);
 }
 
 void RTPLogicalChannel::ZeroMediaControlChannelSource()
@@ -11342,6 +11388,7 @@ void RTPLogicalChannel::ZeroMediaChannelSource()
 	SrcPort = 0;
 }
 
+// called on OLCAck
 void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlChannel, H245_UnicastAddress * mediaChannel, const PIPSocket::Address & local, bool rev, callptr & call, bool fromTraversalClient, bool useRTPMultiplexing, bool isUnidirectional)
 {
 	H245_UnicastAddress tmp, tmpmedia, tmpmediacontrol, *dest = mediaControlChannel;
@@ -11394,19 +11441,21 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 
     PIPSocket::Address ip = H245UnicastToSocketAddr(*dest);
     // JWSYM
-    if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
-        zeroIP = true;
-    }
-    if (IsInNetwork(ip, m_keepSignaledIPs)) {
-        zeroIP = false;
-    }
-    if (zeroIP) {
-        PTRACE(7, "JW RTP IN zero RTCP src + dest (IgnoreSignaledIPs)");
-        (rtcp->*SetDest)(0, 0, NULL, call);
-    } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs && !IsInNetwork(ip, m_keepSignaledIPs)) {
-        // only zero out source IP
-        PTRACE(7, "JW RTP IN zero RTCP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
-        (rtcp->*SetDest)(0, 0, dest, call);
+    if (isUnidirectional) {
+        if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
+            zeroIP = true;
+        }
+        if (IsInNetwork(ip, m_keepSignaledIPs)) {
+            zeroIP = false;
+        }
+        if (zeroIP) {
+            PTRACE(7, "JW RTP IN zero RTCP src + dest (IgnoreSignaledIPs)");
+            (rtcp->*SetDest)(0, 0, NULL, call);
+        } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs && !IsInNetwork(ip, m_keepSignaledIPs)) {
+            // only zero out source IP
+            PTRACE(7, "JW RTP IN zero RTCP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
+            (rtcp->*SetDest)(0, 0, dest, call);
+        }
     }
 
 	if (useRTPMultiplexing) {
@@ -11436,20 +11485,22 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 
         PIPSocket::Address ip = H245UnicastToSocketAddr(*dest);
         // JWSYM
-        // TODO: check if we should default zeroIP to false, before we do these checks
-        if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
-            zeroIP = true;
-        }
-        if (IsInNetwork(ip, m_keepSignaledIPs)) {
-            zeroIP = false;
-        }
-        if (zeroIP) {
-            PTRACE(7, "JW RTP IN zero RTP src + dest (IgnoreSignaledIPs)");
-            (rtp->*SetDest)(0, 0, NULL, call);
-        } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs && !IsInNetwork(ip, m_keepSignaledIPs)) {
-            // only zero out source IP
-            PTRACE(7, "JW RTP IN zero RTP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
-            (rtp->*SetDest)(0, 0, dest, call);
+        if (isUnidirectional) {
+            // TODO: check if we should default zeroIP to false, before we do these checks
+            if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
+                zeroIP = true;
+            }
+            if (IsInNetwork(ip, m_keepSignaledIPs)) {
+                zeroIP = false;
+            }
+            if (zeroIP) {
+                PTRACE(7, "JW RTP IN zero RTP src + dest (IgnoreSignaledIPs)");
+                (rtp->*SetDest)(0, 0, NULL, call);
+            } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs && !IsInNetwork(ip, m_keepSignaledIPs)) {
+                // only zero out source IP
+                PTRACE(7, "JW RTP IN zero RTP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
+                (rtp->*SetDest)(0, 0, dest, call);
+            }
         }
 
 		if (useRTPMultiplexing) {
@@ -11458,6 +11509,43 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 			*mediaChannel << local << port;
 		}
 	}
+
+	if (m_ignoreSignaledIPs) {
+        // JWSYM: check if we have a pair now so we can decide if ports are symetric or not
+        bool zeroNow = false;
+        WORD fSrcPort, fDestPort, rSrcPort, rDestPort;
+        GetRTPPorts(fSrcPort, fDestPort, rSrcPort, rDestPort);
+        PTRACE(0, "JWSYM RTP ACK fSrcPort=" << fSrcPort << " fDestPort=" << fDestPort << " rSrcPort=" << rSrcPort << " rDestPort=" << rDestPort << " uni-directional=" << isUnidirectional);
+        if (call && call->GetCalledParty() && call->GetCalledParty()->GetTraversalRole() != None && ( (fDestPort > 0 && rSrcPort > 0) || (fSrcPort > 0 && rDestPort > 0) ) ) {
+            PTRACE(0, "JWSYM have both directions for call to H.460 endpoint");
+            if ((fSrcPort > 0 && fSrcPort == rDestPort) || (rSrcPort > 0 && rSrcPort == fDestPort)) { /* TODO: IP check ? */
+                PTRACE(0, "JWSYM: symtric port usage, auto-detect ok: uni-directional=" << isUnidirectional);
+                zeroNow = true;
+            } else {
+                PTRACE(0, "JWSYM: non-symtric port usage, disable auto-detect: uni-directional=" << isUnidirectional);
+                call->SetIgnoreSignaledIPs(false);
+            }
+        } else {
+            if (fSrcPort > 0 && fDestPort > 0 && rSrcPort > 0 && rDestPort > 0 && !isUnidirectional) {
+                PTRACE(0, "JWSYM have both directions");
+                if ((fSrcPort == rDestPort) && (rSrcPort == fDestPort)) { /* TODO: && fSrcIP == rDestIP && fDestIP == rSrcIP */
+                    PTRACE(0, "JWSYM: symtric port usage, auto-detect ok: uni-directional=" << isUnidirectional);
+                    zeroNow = true;
+                } else {
+                    PTRACE(0, "JWSYM: non-symtric port usage, disable auto-detect: uni-directional=" << isUnidirectional);
+                    call->SetIgnoreSignaledIPs(false);
+                }
+            }
+        }
+        if (zeroNow) {
+            PTRACE(7, "JW RTP IN zero RTP src + dest (IgnoreSignaledIPs)");
+            rtp->ZeroAllIPs();
+            rtcp->ZeroAllIPs();
+            GetRTPPorts(fSrcPort, fDestPort, rSrcPort, rDestPort);
+            PTRACE(0, "JWSYM RTP ZERO fSrcPort=" << fSrcPort << " fDestPort=" << fDestPort << " rSrcPort=" << rSrcPort << " rDestPort=" << rDestPort << " uni-directional=" << isUnidirectional);
+        }
+   }
+
 }
 
 void RTPLogicalChannel::SetRTPMute(bool toMute)
@@ -11667,15 +11755,19 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 	if (peer)
 		peer->peer = this;
 
-    m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
+    m_ignoreSignaledIPs = false;
     m_ignoreSignaledPrivateH239IPs = false;
-    if (m_ignoreSignaledIPs) {
-        callptr call = CallTable::Instance()->FindCallRec(callid);
-        if (call && call->GetCallingParty() && call->GetCallingParty()->GetTraversalRole() != None) {
-            // disable, when caller has NAT traversal enabled (call isn't from an party that needs NAT help)
-            m_ignoreSignaledIPs = false;
-        } else {
-            m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
+    callptr call = CallTable::Instance()->FindCallRec(callid);
+    if (call) {
+        m_ignoreSignaledIPs = call->IgnoreSignaledIPs();
+        if (m_ignoreSignaledIPs) {
+            if (call && call->GetCallingParty() && call->GetCallingParty()->GetTraversalRole() != None) {
+                // disable, when caller has NAT traversal enabled (call isn't from an party that needs NAT help)
+                m_ignoreSignaledIPs = false;
+                call->SetIgnoreSignaledIPs(false);
+            } else {
+                m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
+            }
         }
     }
 #ifdef HAS_H46018
@@ -11787,6 +11879,7 @@ bool H245ProxyHandler::HandleCommand(H245_CommandMessage & Command, bool & suppr
 	return false;
 }
 
+// called on OLC
 bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters * h225Params, WORD flcn, bool isUnidirectional, RTPSessionTypes sessionType)
 {
 	RTPLogicalChannel * lc = flcn ?
@@ -11807,11 +11900,13 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 	H245_UnicastAddress * addr = NULL;
 	bool changed = false;
 	//JWSYM
+	PTRACE(0, "JWSYM OnLogicalChannelParameters uni-directional=" << isUnidirectional);
     bool zeroIP = m_ignoreSignaledIPs && !isUnidirectional;
 
 	if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)
 		&& (addr = GetH245UnicastAddress(h225Params->m_mediaControlChannel)) ) {
 
+PTRACE(0, "JW setting RTCP source = " << AsString(*addr));
 		lc->SetMediaControlChannelSource(*addr);
 		*addr << GetMasqAddr() << (lc->GetPort() + 1);
 #ifdef HAS_H46018
@@ -11821,14 +11916,16 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 		}
 #endif
         PIPSocket::Address ip = H245UnicastToSocketAddr(*addr);
-        if (m_ignoreSignaledIPs && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
-            zeroIP = true;
-        }
-        if (IsInNetwork(ip, m_keepSignaledIPs)) {
-            zeroIP = false;
-        }
-        if (zeroIP) {
-			lc->ZeroMediaControlChannelSource();
+        if (isUnidirectional) {
+            if (m_ignoreSignaledIPs && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
+                zeroIP = true;
+            }
+            if (IsInNetwork(ip, m_keepSignaledIPs)) {
+                zeroIP = false;
+            }
+            if (zeroIP) {
+                lc->ZeroMediaControlChannelSource();
+            }
         }
 		changed = true;
 	}
@@ -11836,6 +11933,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 		&& (addr = GetH245UnicastAddress(h225Params->m_mediaChannel))) {
 
 		if (GetH245Port(*addr) != 0) {
+PTRACE(0, "JW setting RTP source = " << AsString(*addr));
 			lc->SetMediaChannelSource(*addr);
 			*addr << GetMasqAddr() << lc->GetPort();
 #ifdef HAS_H46018
@@ -11859,6 +11957,12 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 		}
 		changed = true;
 	}
+
+    //JWSYM: check if we have a pair now so we can decide if ports are symetric or not
+    WORD fSrcPort, fDestPort, rSrcPort, rDestPort;
+    lc->GetRTPPorts(fSrcPort, fDestPort, rSrcPort, rDestPort);
+    PTRACE(0, "JWSYM RTP OLC fSrcPort=" << fSrcPort << " fDestPort=" << fDestPort << " rSrcPort=" << rSrcPort << " rDestPort=" << rDestPort << " uni-directional=" << isUnidirectional);
+
 
 	return changed;
 }
