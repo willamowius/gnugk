@@ -1965,13 +1965,16 @@ endptr RegistrationTable::InternalFindFirstEP(const H225_ArrayOf_AliasAddress & 
 	while (Iter != IterLast) {
 		if ((*Iter)->IsGateway()) {
 			int dummymatchedalias, priority = 1;
-			int len = dynamic_cast<GatewayRec *>(*Iter)->PrefixMatch(alias, dummymatchedalias, priority);
-			if (maxlen < len) {
-				GWlist.clear();
-				maxlen = len;
-			}
-			if (maxlen == len)
-				GWlist.push_back(std::pair<int, GatewayRec*>(priority, dynamic_cast<GatewayRec*>(*Iter)));
+			GatewayRec * gw = dynamic_cast<GatewayRec *>(*Iter);
+			if (gw) {
+                int len = gw->PrefixMatch(alias, dummymatchedalias, priority);
+                if (maxlen < len) {
+                    GWlist.clear();
+                    maxlen = len;
+                }
+                if (maxlen == len)
+                    GWlist.push_back(std::pair<int, GatewayRec*>(priority, gw));
+            }
 		}
 		++Iter;
 	}
@@ -2013,13 +2016,16 @@ bool RegistrationTable::InternalFindEP(
 	while (Iter != IterLast) {
 		if ((*Iter)->IsGateway()) {
 			int matchedalias, priority = 1;
-			int len = dynamic_cast<GatewayRec *>(*Iter)->PrefixMatch(aliases, matchedalias, priority);
-			if (maxlen < len) {
-				GWlist.clear();
-				maxlen = len;
-			}
-			if (maxlen == len)
-				GWlist.push_back(std::pair<int, GatewayRec*>(priority, dynamic_cast<GatewayRec*>(*Iter)));
+			GatewayRec * gw = dynamic_cast<GatewayRec *>(*Iter);
+			if (gw) {
+                int len = gw->PrefixMatch(aliases, matchedalias, priority);
+                if (maxlen < len) {
+                    GWlist.clear();
+                    maxlen = len;
+                }
+                if (maxlen == len)
+                    GWlist.push_back(std::pair<int, GatewayRec*>(priority, gw));
+            }
 		}
 		++Iter;
 	}
