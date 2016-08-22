@@ -1,5 +1,7 @@
 Changes from 4.2 to 4.3
 =======================
+- BUGFIX(RasTbl.cxx) don't allow higher TTL for H.460.18 registrations that set by
+  H46018KeepAliveInterval= switch
 - add variables message, srcInfo and vendor to LuaAuth
 - print message on status port when Setup is received
 - BUGFIX(ProxyChannel.cxx) disregard IgnoreSignaledIPs=1 switch when caller supports some form of

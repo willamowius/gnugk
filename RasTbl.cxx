@@ -2830,7 +2830,7 @@ int EndpointRec::GetTimeToLive() const
 
 	if (enableTTLRestrictions && (m_nat || IsTraversalClient() || UsesH46017())) {
 		// force timeToLive to 5 - 30 sec, 19 sec if not set
-		return m_timeToLive == 0 ? m_defaultKeepAliveInterval : max(5, min(30, m_timeToLive));
+		return m_timeToLive == 0 ? m_defaultKeepAliveInterval : max(5, min(30, m_defaultKeepAliveInterval));
 	}
 	return m_timeToLive;
 }
