@@ -3,7 +3,7 @@
 // Routing Mechanism for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2003
-// Copyright (c) 2004-2015, Jan Willamowius
+// Copyright (c) 2004-2016, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -838,7 +838,11 @@ bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 					continue;	// can't route this alias locally, try next alias
 				}
 			}
-			request.SetFlag(RoutingRequest::e_aliasesChanged);
+			bool isARQ = dynamic_cast<AdmissionRequest *>(&request);
+			if (GkConfig()->GetBoolean("Routing::DNS", "RewriteARQDestination", true) || !isARQ) {
+                // tell caller the changed destination
+                request.SetFlag(RoutingRequest::e_aliasesChanged);
+            }
 			Route route(m_name, dest);
 			route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
 			request.AddRoute(route);

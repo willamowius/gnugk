@@ -427,6 +427,14 @@ though the latter will take effect first.
 Default: <tt>1</tt><newline>
 <p>
 This switch determines whether the DNS policy should resolve hostnames or IPs in LRQs that don't terminate locally.
+
+<item><tt/RewriteARQDestination=0/<newline>
+Default: <tt>1</tt><newline>
+<p>
+Preserve the full URL in the destination from ARQs, don't tell the endpoint
+to use only the local name part of the URL in the subsequent Setup.
+Needed if the call destination requires the full URL.
+
 </itemize>
 
 

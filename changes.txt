@@ -1,5 +1,6 @@
 Changes from 4.2 to 4.3
 =======================
+- new switch [Routing::DNS] RewriteARQDestination= to preserve URLs in ARQs
 - disable IgnoreSignaledIPs when one party is not using the same RTP ports for forward and reverse
   channels in same RTP session
 - BUGFIX(RasTbl.cxx) don't allow higher TTL for H.460.18 registrations that set by

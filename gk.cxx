@@ -2,7 +2,7 @@
 //
 // gk.cxx for GNU Gatekeeper
 //
-// Copyright (c) 2000-2015, Jan Willamowius
+// Copyright (c) 2000-2016, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -574,6 +574,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Routing::CatchAll", "CatchAllAlias" },
 	{ "Routing::CatchAll", "CatchAllIP" },
 	{ "Routing::DNS", "ResolveNonLocalLRQ" },
+	{ "Routing::DNS", "RewriteARQDestination" },
 	{ "Routing::ENUM", "ResolveLRQ" },
 	{ "Routing::Forwarding", "CacheTimeout" },
 	{ "Routing::Forwarding", "ConnectTimeout" },
