@@ -1591,7 +1591,8 @@ bool StatusClient::AuthenticateUser()
 
 PString StatusClient::PBKDF2_Digest(const PString & salt, const PString & password) const
 {
-#ifdef P_SSL
+// need OpenSSL >= 1.0.x
+#if defined(P_SSL) && OPENSSL_VERSION_NUMBER >= 0x1000000fL
     // the definitions here must match those in addpasswd.cxx
     const int iterations = 65536;
     const int outputBytes = 32;
@@ -1608,7 +1609,7 @@ PString StatusClient::PBKDF2_Digest(const PString & salt, const PString & passwo
     return digestStr;
 #else
 	PTRACE(1, "Error: PBKDF2 support not compiled in");
-	return PString::Empty();;
+	return PString::Empty();
 #endif
 }
 
