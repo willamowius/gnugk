@@ -543,8 +543,10 @@ void Neighbor::SetLRQPingInterval(int interval)
 {
 	if (m_lrqPingInterval != interval) {
 		m_lrqPingInterval = interval;
-		if (m_keepAliveTimer != GkTimerManager::INVALID_HANDLE)
+		if (m_keepAliveTimer != GkTimerManager::INVALID_HANDLE) {
 			Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_keepAliveTimer);
+			m_keepAliveTimer = GkTimerManager::INVALID_HANDLE;
+        }
 		if (m_lrqPingInterval > 0) {
 			PTime now;
 			m_keepAliveTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
