@@ -277,20 +277,21 @@ protected:
 
 void NeighborPingThread::Main()
 {
+    int timeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 1000;
+    PString pingAlias = GkConfig()->GetString(LRQFeaturesSection, "PingAlias", "gatekeeper-monitoring-check");
+    H225_ArrayOf_AliasAddress aliases;
+    aliases.SetSize(1);
+    H323SetAliasAddress(pingAlias, aliases[0]);
+
     while (!m_stopThread) {
         AddFilter(H225_RasMessage::e_locationConfirm);
         AddFilter(H225_RasMessage::e_locationReject);
         m_rasSrv->RegisterHandler(this);
 
         m_request = new H225_RasMessage();
-        H225_ArrayOf_AliasAddress aliases;
-        aliases.SetSize(1);
-        PString pingAlias = GkConfig()->GetString(LRQFeaturesSection, "PingAlias", "gatekeeper-monitoring-check");
-        H323SetAliasAddress(pingAlias, aliases[0]);
         m_nb->BuildLRQ(*m_request, m_seqNum, aliases);
         SendRequest(m_nb->GetIP(), m_nb->GetPort(), 0); // no retries
 
-        int timeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 1000;
         bool signaled = m_sync.Wait(timeout);
         if (!signaled) {
             if (!m_nb->IsDisabled()) {
@@ -301,6 +302,7 @@ void NeighborPingThread::Main()
 
         m_rasSrv->UnregisterHandler(this);
         delete m_request;
+        m_request = NULL;
         Suspend();
     }
     Terminate(); // stop thread and auto delete
