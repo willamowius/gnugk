@@ -1604,7 +1604,7 @@ PString StatusClient::PBKDF2_Digest(const PString & salt, const PString & passwo
 
     PKCS5_PBKDF2_HMAC((const char*)password, password.GetLength(), (const unsigned char*)salt, 2*saltSize, iterations, EVP_sha512(), outputBytes, digest);
     for (unsigned i = 0; i < sizeof(digest); i++)
-        sprintf(digestStr + (i * 2), "%02x", 255 & digest[i]);
+        snprintf(digestStr + (i * 2), 2+1, "%02x", 255 & digest[i]);
 
     return digestStr;
 #else
