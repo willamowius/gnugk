@@ -196,9 +196,6 @@
     <ClInclude Include="ProxyChannel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="pwlib_compat.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="radacct.h">
       <Filter>Header Files</Filter>
     </ClInclude>

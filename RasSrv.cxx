@@ -12,6 +12,7 @@
 //
 //////////////////////////////////////////////////////////////////
 
+#include "config.h"
 #include <ptlib.h>
 #include <ptlib/sockets.h>
 #include <ptclib/enum.h>
@@ -33,7 +34,6 @@
 #include "gkacct.h"
 #include "gktimer.h"
 #include "RasSrv.h"
-#include "config.h"
 
 #ifdef HAS_H460
 	#include <h460/h4601.h>

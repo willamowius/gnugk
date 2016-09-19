@@ -2,7 +2,7 @@
 //
 // SoftPBX.cxx
 //
-// Copyright (c) 2000-2012, Jan Willamowius
+// Copyright (c) 2000-2016, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -11,6 +11,7 @@
 //
 //////////////////////////////////////////////////////////////////
 
+#include "config.h"
 #include <ptlib.h>
 #include <h323pdu.h>
 #include "gk_const.h"

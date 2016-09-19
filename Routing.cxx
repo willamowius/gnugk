@@ -12,6 +12,7 @@
 //
 //////////////////////////////////////////////////////////////////
 
+#include "config.h"
 #include <ptlib.h>
 #include <ptclib/enum.h>
 #include <h323pdu.h>
@@ -25,7 +26,6 @@
 #include "sigmsg.h"
 #include "Routing.h"
 #include "gksql.h"
-#include "config.h"
 
 #ifdef HAS_H46023
   #include <h460/h4601.h>

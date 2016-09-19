@@ -12,6 +12,7 @@
 //////////////////////////////////////////////////////////////////
 
 
+#include "config.h"
 #include <ptlib.h>
 #include <ptlib/sockets.h>
 #ifndef _WIN32
@@ -34,7 +35,6 @@
 #include "MakeCall.h"
 #include "gktimer.h"
 #include "gk.h"
-#include "config.h"
 #include "capctrl.h"
 #include "snmp.h"
 

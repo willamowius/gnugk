@@ -621,7 +621,6 @@ configure
     <ClInclude Include="name.h" />
     <ClInclude Include="Neighbor.h" />
     <ClInclude Include="ProxyChannel.h" />
-    <ClInclude Include="pwlib_compat.h" />
     <ClInclude Include="radacct.h" />
     <ClInclude Include="radauth.h" />
     <ClInclude Include="radproto.h" />

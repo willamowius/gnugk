@@ -3,7 +3,7 @@
 // yasocket.cxx
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2015, Jan Willamowius
+// Copyright (c) 2004-2016, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -12,6 +12,7 @@
 //
 //////////////////////////////////////////////////////////////////
 
+#include "config.h"
 #include <ptlib.h>
 #include "h323util.h"
 #include "stl_supp.h"

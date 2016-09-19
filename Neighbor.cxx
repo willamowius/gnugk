@@ -3,7 +3,7 @@
 // Neighboring System for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2015, Jan Willamowius
+// Copyright (c) 2004-2016, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -12,6 +12,7 @@
 //
 //////////////////////////////////////////////////////////////////
 
+#include "config.h"
 #include <ptlib.h>
 #include <ptclib/pdns.h>
 #include <ptclib/enum.h>
@@ -27,7 +28,6 @@
 #include "cisco.h"
 #include "h323util.h"
 #include "Neighbor.h"
-#include "config.h"
 
 #ifdef HAS_H460
 	#include <h460/h4601.h>

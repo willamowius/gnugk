@@ -14,6 +14,7 @@
 
 #define __APPLE_USE_RFC_3542	// MacOSX supposedly needs this to be able to set the UDP source IP
 
+#include "config.h"
 #include <ptlib.h>
 #include <ptclib/random.h>
 #include <q931.h>
@@ -32,7 +33,6 @@
 #include "sigmsg.h"
 #include "ProxyChannel.h"
 #include "GkStatus.h"
-#include "config.h"
 #include <queue>
 
 #ifdef H323_H450

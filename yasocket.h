@@ -3,7 +3,7 @@
 // yasocket.h
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2013, Jan Willamowius
+// Copyright (c) 2004-2016, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -15,11 +15,11 @@
 #ifndef YASOCKET_H
 #define YASOCKET_H "@(#) $Id$"
 
+#include "config.h"
 #include <list>
 #include <vector>
 #include <ptlib/sockets.h>
 #include "job.h"
-#include "config.h"
 
 #ifdef LARGE_FDSET
 

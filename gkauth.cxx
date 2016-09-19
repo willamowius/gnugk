@@ -2,7 +2,7 @@
 //
 // gkauth.cxx
 //
-// Copyright (c) 2001-2015, Jan Willamowius
+// Copyright (c) 2001-2016, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -11,6 +11,7 @@
 //
 //////////////////////////////////////////////////////////////////
 
+#include "config.h"
 #include <ptlib.h>
 #include <h235.h>
 #include <h323pdu.h>
@@ -25,7 +26,6 @@
 #include "sigmsg.h"
 #include "Routing.h"
 #include "gkauth.h"
-#include "config.h"
 
 #if H323_H350
 extern const char *H350Section;

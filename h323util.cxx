@@ -2,7 +2,7 @@
 //
 // H.323 utility functions
 //
-// Copyright (c) 2000-2015, Jan Willamowius
+// Copyright (c) 2000-2016, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -11,10 +11,10 @@
 //
 //////////////////////////////////////////////////////////////////
 
+#include "config.h"
 #include <ptlib.h>
 #include <h323pdu.h>
 #include "gk_const.h"
-#include "config.h"
 #include "h323util.h"
 #include "Toolkit.h"
 

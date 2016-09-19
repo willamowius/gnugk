@@ -3,7 +3,7 @@
  *
  * accounting module for GNU Gatekeeper for the syslog.
  *
- * Copyright (c) 2006-2010, Jan Willamowius
+ * Copyright (c) 2006-2016, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -14,6 +14,7 @@
  
 #ifndef _WIN32
 
+#include "config.h"
 #include <syslog.h>
 #include <ptlib.h>
 #include <h323pdu.h>

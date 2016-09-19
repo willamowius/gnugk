@@ -15,6 +15,7 @@
  *
  */
 
+#include "config.h"
 #include <ptlib.h>
 #include <ptlib/ipsock.h>
 #include <h225.h>
