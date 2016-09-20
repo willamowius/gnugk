@@ -3,7 +3,7 @@ Changes from 4.2 to 4.3
 - new switch [Routing::DNS] RewriteARQDestination= to preserve URLs in ARQs
 - disable IgnoreSignaledIPs when one party is not using the same RTP ports for forward and reverse
   channels in same RTP session
-- BUGFIX(RasTbl.cxx) don't allow higher TTL for H.460.18 registrations that set by
+- BUGFIX(RasTbl.cxx) don't allow higher TTL for H.460.18 registrations than set by
   H46018KeepAliveInterval= switch
 - add variables message, srcInfo and vendor to LuaAuth
 - print message on status port when Setup is received
