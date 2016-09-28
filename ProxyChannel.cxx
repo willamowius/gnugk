@@ -9853,11 +9853,10 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
 	fnat = rnat = mute = false;
 	m_dontQueueRTP = GkConfig()->GetBoolean(ProxySection, "DisableRTPQueueing", true);
 	m_EnableRTCPStats = GkConfig()->GetBoolean(ProxySection, "EnableRTCPStats", false);
-#ifdef HAS_H46018
-	m_checkH46019KeepAlivePT = GkConfig()->GetBoolean(ProxySection, "CheckH46019KeepAlivePT", true);
-#endif
     m_ignoreSignaledIPs = false;
     m_ignoreSignaledPrivateH239IPs = false;
+#ifdef HAS_H46018
+	m_checkH46019KeepAlivePT = GkConfig()->GetBoolean(ProxySection, "CheckH46019KeepAlivePT", true);
     callptr call = CallTable::Instance()->FindCallRec(m_callID);
     if (call) {
         m_ignoreSignaledIPs = call->IgnoreSignaledIPs();
@@ -9875,6 +9874,7 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
             m_keepSignaledIPs = NetworkAddress(keepSignaledIPs);
         }
     }
+#endif
 }
 
 UDPProxySocket::~UDPProxySocket()
@@ -10852,6 +10852,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 {
     m_ignoreSignaledIPs = false;
     m_ignoreSignaledPrivateH239IPs = false;
+#ifdef HAS_H46018
     callptr call = CallTable::Instance()->FindCallRec(id);
     if (call) {
         m_ignoreSignaledIPs = call->IgnoreSignaledIPs();
@@ -10875,6 +10876,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
             }
         }
     }
+#endif
     m_isUnidirectional = false;
 	SrcIP = 0;
 	SrcPort = 0;
@@ -10942,6 +10944,7 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool na
 {
     m_ignoreSignaledIPs = false;
     m_ignoreSignaledPrivateH239IPs = false;
+#ifdef HAS_H46018
     callptr call = CallTable::Instance()->FindCallRec(flc->m_callID);
     if (call) {
         m_ignoreSignaledIPs = call->IgnoreSignaledIPs();
@@ -10965,6 +10968,7 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool na
             }
         }
     }
+#endif
     m_isUnidirectional = false;
 #ifdef HAS_H235_MEDIA
 	m_H235CryptoEngine = NULL;
@@ -11510,6 +11514,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 		}
 	}
 
+#ifdef HAS_H46018
 	if (m_ignoreSignaledIPs) {
         // JWSYM: check if we have a pair now so we can decide if ports are symetric or not
         bool zeroNow = false;
@@ -11545,6 +11550,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
             PTRACE(0, "JWSYM RTP ZERO fSrcPort=" << fSrcPort << " fDestPort=" << fDestPort << " rSrcPort=" << rSrcPort << " rDestPort=" << rDestPort << " uni-directional=" << isUnidirectional);
         }
    }
+#endif
 
 }
 
@@ -11757,6 +11763,7 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 
     m_ignoreSignaledIPs = false;
     m_ignoreSignaledPrivateH239IPs = false;
+#ifdef HAS_H46018
     callptr call = CallTable::Instance()->FindCallRec(callid);
     if (call) {
         m_ignoreSignaledIPs = call->IgnoreSignaledIPs();
@@ -11770,7 +11777,6 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
             }
         }
     }
-#ifdef HAS_H46018
 	m_isRTPMultiplexingEnabled = Toolkit::Instance()->IsH46018Enabled()
 								&& GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false);
 #else
