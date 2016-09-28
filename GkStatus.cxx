@@ -115,9 +115,11 @@ public:
 
 	virtual ~StatusClient();
 
+	virtual void OnDo(BYTE code);
+
 	virtual bool ReadCommand(
 		/// command that has been read (if ReadCommand succeeded)
-		PString& cmd,
+		PString & cmd,
 		/// should the command be echoed (also NeedEcho() has to be true)
 		bool echo = true,
 		/// timeout (ms) for read operation
@@ -191,7 +193,7 @@ public:
 
 	bool IsDone() const { return m_done; }
 
-	const PString& GetUser() const { return m_user; }
+	const PString & GetUser() const { return m_user; }
 
 protected:
 	// override from class ServerSocket
@@ -200,7 +202,7 @@ protected:
 	/// Handle the 'Debug' command (its many variants).
 	void DoDebug(
 		/// tokenized debug command
-		const PStringArray& args
+		const PStringArray & args
 		);
 
 	/** Check a new client connection against the specified authentication
@@ -212,7 +214,7 @@ protected:
 	*/
 	bool CheckAuthRule(
 		/// authentication rule to be used
-		const PString& rule
+		const PString & rule
 		);
 
 	/** Authenticate this status interface client through all authentication
@@ -250,7 +252,7 @@ protected:
 	// filter vector
 	std::vector<PString> & regexFilters,
 	// Regex to be matched against messages
-	const PString& regex
+	const PString & regex
 	);
 
 	/** Remove regular expression filter located
@@ -286,7 +288,7 @@ protected:
 	// filter vector
 	const std::vector<PString> & regexFilters,
 	// String to be matched
-	const PString &msg
+	const PString & msg
 	) const;
 
 	/// the most recent command
@@ -632,6 +634,7 @@ bool SSHStatusClient::ReadCommand(PString& cmd, bool echo, int readTimeout)
 						}
 					}
 					break;
+				case '\x03':	// Ctrl-C
 				case '\x04':	// Ctrl-D
 					cmd = "exit";
 					m_lastCmd = cmd;
@@ -1249,9 +1252,15 @@ StatusClient::~StatusClient()
     m_deleted = true;
 }
 
+void StatusClient::OnDo(BYTE code)
+{
+	if (code == 6)  // Ctrl-C from Linux telnet clinet
+        Close();
+}
+
 bool StatusClient::ReadCommand(
 	/// command that has been read (if ReadCommand succeeded)
-	PString& cmd,
+	PString & cmd,
 	/// should the command be echoed (also NeedEcho() has to be true)
 	bool echo,
 	/// timeout (ms) for read operation, 0 means infinite
@@ -1289,6 +1298,7 @@ bool StatusClient::ReadCommand(
 					}
 				}
 				break;
+			case '\x03':	// Ctrl-C from Windows telnet client
 			case '\x04':	// Ctrl-D
 				cmd = "exit";
 				m_lastCmd = cmd;
