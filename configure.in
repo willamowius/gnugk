@@ -1125,7 +1125,15 @@ if test "x${lua}" != "xno"; then
 		if test -d $try; then
 			CFLAGS="$old_CFLAGS -I$try"
 			LDFLAGS="$old_LDFLAGS -L$try/../lib"
-			AC_TRY_COMPILE([#include "lua.h" #include "lualib.h" #include "lauxlib.h"], [luaL_newlib(0,0);],
+			AC_TRY_COMPILE([
+				#include "lua.h"
+				#include "lualib.h"
+				#include "lauxlib.h"
+				], [
+				static const luaL_Reg mylib[] = { {NULL, NULL} };
+				lua_State * m_lua = luaL_newstate();
+				luaL_newlib(m_lua, mylib);
+				],
 				LUA_INCLUDE="-I$try",
 				LUA_INCLUDE=
 			)
