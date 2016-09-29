@@ -168,6 +168,11 @@ Default: <tt/0/<newline>
 <p>
 Tell GnuGk to add the number from calling party IE to the list of source addresses in the Setup message.
 
+<item><tt/DisabledCodecs=h261VideoCapability/<newline>
+Default: <tt>n/a</tt><newline>
+<p>
+Filter codecs for this particular endpoint. Similar to the global switch in the <ref id="calltable" name="[CallTable] section">.
+
 </itemize>
 
 Example how to attach an [EP::..] section to an endpoint:
