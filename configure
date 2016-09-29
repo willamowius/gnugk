@@ -5178,6 +5178,9 @@ else
 
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+			if test "x$LUA_INCLUDE" != "x"; then
+				break;
+			fi
 		fi
 	done
 	CFLAGS="$old_CFLAGS"
@@ -5197,19 +5200,29 @@ $as_echo "yes" >&6; }
 		{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for LUA library" >&5
 $as_echo_n "checking for LUA library... " >&6; }
 
+		old_CFLAGS="$CFLAGS"
 		old_LIBS="$LIBS"
 
 		for try in /usr/lib /usr/local/lib $lua_lib_dir; do
 			if test -d $try; then
+				CFLAGS="$old_CFLAGS $LUA_INCLUDE"
 				LIBS="$old_LIBS -llua -lm"
 				LDFLAGS="$old_LDFLAGS -L$try"
 				cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
-extern luaL_newstate();
+
+					#include "lua.h"
+					#include "lualib.h"
+					#include "lauxlib.h"
+
 int
 main ()
 {
-luaL_newstate();
+
+					static const luaL_Reg mylib[] = { {NULL, NULL} };
+					lua_State * m_lua = luaL_newstate();
+					luaL_newlib(m_lua, mylib);
+
   ;
   return 0;
 }
@@ -5218,6 +5231,8 @@ if ac_fn_c_try_link "$LINENO"; then :
    LUA_LIBS="-llua -lm"
 					  LUA_LDFLAGS="-L$try"
 
+else
+  LUA_LDFLAGS=
 
 fi
 rm -f core conftest.err conftest.$ac_objext \
@@ -5227,6 +5242,7 @@ rm -f core conftest.err conftest.$ac_objext \
 				fi
 			fi
 		done
+		CFLAGS="$old_CFLAGS"
 		LIBS="$old_LIBS"
 
 		if test "x$LUA_LDFLAGS" = "x"; then

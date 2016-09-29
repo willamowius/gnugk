@@ -1137,6 +1137,9 @@ if test "x${lua}" != "xno"; then
 				LUA_INCLUDE="-I$try",
 				LUA_INCLUDE=
 			)
+			if test "x$LUA_INCLUDE" != "x"; then
+				break;
+			fi
 		fi
 	done
 	CFLAGS="$old_CFLAGS"
@@ -1152,22 +1155,34 @@ if test "x${lua}" != "xno"; then
 
 		AC_MSG_CHECKING([for LUA library])
 
+		old_CFLAGS="$CFLAGS"
 		old_LIBS="$LIBS"
 
 		for try in /usr/lib /usr/local/lib $lua_lib_dir; do
 			if test -d $try; then
+				CFLAGS="$old_CFLAGS $LUA_INCLUDE"
 				LIBS="$old_LIBS -llua -lm"
 				LDFLAGS="$old_LDFLAGS -L$try"
-				AC_TRY_LINK([extern luaL_newstate();], [luaL_newstate();],
+				AC_TRY_LINK([
+					#include "lua.h"
+					#include "lualib.h"
+					#include "lauxlib.h"
+					], [
+					static const luaL_Reg mylib[] = { {NULL, NULL} };
+					lua_State * m_lua = luaL_newstate();
+					luaL_newlib(m_lua, mylib);
+					],
 					[ LUA_LIBS="-llua -lm"
 					  LUA_LDFLAGS="-L$try"
-					]
+					],
+					LUA_LDFLAGS=
 				)
 				if test "x$LUA_LDFLAGS" != "x"; then
 					break;
 				fi
 			fi
 		done
+		CFLAGS="$old_CFLAGS"
 		LIBS="$old_LIBS"
 
 		if test "x$LUA_LDFLAGS" = "x"; then
