@@ -14,6 +14,14 @@
  *
  */
 
+// avoid warning in PTLib object.h
+#if (!_WIN32)
+#define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
+#if (GCC_VERSION >= 40400)
+#pragma GCC diagnostic ignored "-Wstrict-overflow"
+#endif
+#endif
+
 #include <ptlib.h>
 #include <h225.h>
 #include "gk_const.h"
@@ -262,11 +270,6 @@ void GkAcctLogger::SetupAcctParams(
 	else
 		params["gkip"] = interfaces.front().AsString();
 }
-
-// avoid warning in PTLib object.h
-#if (!_WIN32) && (GCC_VERSION >= 40400)
-#pragma GCC diagnostic ignored "-Wstrict-overflow"
-#endif
 
 PString GkAcctLogger::ReplaceAcctParams(
 	/// parametrized CDR string
