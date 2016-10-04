@@ -10039,7 +10039,6 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 	m_call = &call;
 }
 
-// JWSYM
 void UDPProxySocket::GetPorts(WORD & _fSrcPort, WORD & _fDestPort, WORD & _rSrcPort, WORD & _rDestPort) const
 {
     _fSrcPort = fSrcPort;
@@ -10984,7 +10983,6 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool na
 	rtcp = flc->rtcp;
 	SrcIP = flc->SrcIP;     // gets overwritten with IP from OLC for this direction shortly
 	SrcPort = flc->SrcPort;
-	PTRACE(0, "JW LC c'tor SrcIP=" << AsString(SrcIP) << " SrcPort=" << SrcPort << " this=" << this);
 	reversed = !flc->reversed;
 	peer = flc, flc->peer = this;
 	SetChannelNumber(flcn);
@@ -11372,7 +11370,6 @@ void RTPLogicalChannel::SetMediaControlChannelSource(const H245_UnicastAddress &
 {
 	addr >> SrcIP >> SrcPort;
 	--SrcPort; // get the RTP port
-    PTRACE(0, "JW LC SrcIP=" << AsString(SrcIP) << " SrcPort=" << SrcPort << " rtp=" << rtp << " rtcp=" << rtcp << " this=" << this);
 }
 
 void RTPLogicalChannel::ZeroMediaControlChannelSource()
@@ -11398,7 +11395,6 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 	H245_UnicastAddress tmp, tmpmedia, tmpmediacontrol, *dest = mediaControlChannel;
 	PIPSocket::Address tmpSrcIP = SrcIP;
 	WORD tmpSrcPort = SrcPort + 1;
-	//JWSYM
     bool zeroIP = m_ignoreSignaledIPs && !fromTraversalClient && !isUnidirectional;
 
 	if (mediaControlChannel == NULL) {
@@ -11444,7 +11440,6 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 #endif
 
     PIPSocket::Address ip = H245UnicastToSocketAddr(*dest);
-    // JWSYM
     if (isUnidirectional) {
         if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
             zeroIP = true;
@@ -11488,7 +11483,6 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 #endif
 
         PIPSocket::Address ip = H245UnicastToSocketAddr(*dest);
-        // JWSYM
         if (isUnidirectional) {
             // TODO: check if we should default zeroIP to false, before we do these checks
             if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
@@ -11516,28 +11510,22 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 
 #ifdef HAS_H46018
 	if (m_ignoreSignaledIPs) {
-        // JWSYM: check if we have a pair now so we can decide if ports are symetric or not
         bool zeroNow = false;
         WORD fSrcPort, fDestPort, rSrcPort, rDestPort;
         GetRTPPorts(fSrcPort, fDestPort, rSrcPort, rDestPort);
-        PTRACE(0, "JWSYM RTP ACK fSrcPort=" << fSrcPort << " fDestPort=" << fDestPort << " rSrcPort=" << rSrcPort << " rDestPort=" << rDestPort << " uni-directional=" << isUnidirectional);
         if (call && call->GetCalledParty() && call->GetCalledParty()->GetTraversalRole() != None && ( (fDestPort > 0 && rSrcPort > 0) || (fSrcPort > 0 && rDestPort > 0) ) ) {
-            PTRACE(0, "JWSYM have both directions for call to H.460 endpoint");
             if ((fSrcPort > 0 && fSrcPort == rDestPort) || (rSrcPort > 0 && rSrcPort == fDestPort)) { /* TODO: IP check ? */
-                PTRACE(0, "JWSYM: symtric port usage, auto-detect ok: uni-directional=" << isUnidirectional);
                 zeroNow = true;
             } else {
-                PTRACE(0, "JWSYM: non-symtric port usage, disable auto-detect: uni-directional=" << isUnidirectional);
+                PTRACE(5, "RTP\tNon-symetric port usage, disable auto-detect");
                 call->SetIgnoreSignaledIPs(false);
             }
         } else {
             if (fSrcPort > 0 && fDestPort > 0 && rSrcPort > 0 && rDestPort > 0 && !isUnidirectional) {
-                PTRACE(0, "JWSYM have both directions");
                 if ((fSrcPort == rDestPort) && (rSrcPort == fDestPort)) { /* TODO: && fSrcIP == rDestIP && fDestIP == rSrcIP */
-                    PTRACE(0, "JWSYM: symtric port usage, auto-detect ok: uni-directional=" << isUnidirectional);
                     zeroNow = true;
                 } else {
-                    PTRACE(0, "JWSYM: non-symtric port usage, disable auto-detect: uni-directional=" << isUnidirectional);
+                	PTRACE(5, "RTP\tNon-symetric port usage, disable auto-detect");
                     call->SetIgnoreSignaledIPs(false);
                 }
             }
@@ -11547,7 +11535,6 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
             rtp->ZeroAllIPs();
             rtcp->ZeroAllIPs();
             GetRTPPorts(fSrcPort, fDestPort, rSrcPort, rDestPort);
-            PTRACE(0, "JWSYM RTP ZERO fSrcPort=" << fSrcPort << " fDestPort=" << fDestPort << " rSrcPort=" << rSrcPort << " rDestPort=" << rDestPort << " uni-directional=" << isUnidirectional);
         }
    }
 #endif
@@ -11905,14 +11892,11 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 
 	H245_UnicastAddress * addr = NULL;
 	bool changed = false;
-	//JWSYM
-	PTRACE(0, "JWSYM OnLogicalChannelParameters uni-directional=" << isUnidirectional);
     bool zeroIP = m_ignoreSignaledIPs && !isUnidirectional;
 
 	if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)
 		&& (addr = GetH245UnicastAddress(h225Params->m_mediaControlChannel)) ) {
 
-PTRACE(0, "JW setting RTCP source = " << AsString(*addr));
 		lc->SetMediaControlChannelSource(*addr);
 		*addr << GetMasqAddr() << (lc->GetPort() + 1);
 #ifdef HAS_H46018
@@ -11939,7 +11923,6 @@ PTRACE(0, "JW setting RTCP source = " << AsString(*addr));
 		&& (addr = GetH245UnicastAddress(h225Params->m_mediaChannel))) {
 
 		if (GetH245Port(*addr) != 0) {
-PTRACE(0, "JW setting RTP source = " << AsString(*addr));
 			lc->SetMediaChannelSource(*addr);
 			*addr << GetMasqAddr() << lc->GetPort();
 #ifdef HAS_H46018
@@ -11964,11 +11947,8 @@ PTRACE(0, "JW setting RTP source = " << AsString(*addr));
 		changed = true;
 	}
 
-    //JWSYM: check if we have a pair now so we can decide if ports are symetric or not
     WORD fSrcPort, fDestPort, rSrcPort, rDestPort;
     lc->GetRTPPorts(fSrcPort, fDestPort, rSrcPort, rDestPort);
-    PTRACE(0, "JWSYM RTP OLC fSrcPort=" << fSrcPort << " fDestPort=" << fDestPort << " rSrcPort=" << rSrcPort << " rDestPort=" << rDestPort << " uni-directional=" << isUnidirectional);
-
 
 	return changed;
 }
@@ -13200,7 +13180,6 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
         // look for channel with same media type
         lc = peer->FindRTPLogicalChannelBySessionType(sessionType, id);
     }
-    //JWSYM: check if we have a pair now
 
 	if (lc && !lc->IsAttached()) {
 		lc = new RTPLogicalChannel(lc, flcn, hnat != NULL, sessionType);
