@@ -178,7 +178,7 @@ This section defines the endpoint features for the gatekeeper.
 <item><tt/Gatekeeper=10.0.1.1/<newline>
 Default: <tt/no/<newline>
 <p>
-Define a parent gatekeeper for <htmlurl url="http://www.gnugk.org/" name="GnuGk"> to register with.
+Define a parent gatekeeper for <htmlurl url="https://www.gnugk.org/" name="GnuGk"> to register with.
 When a call in the routing process reaches the 'parent' routing policy,
 it will route all calls to this gatekeeper.
 If you set this to <tt/auto/, GnuGk will send an IPv4 broadcast GRQ.

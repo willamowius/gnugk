@@ -21,7 +21,7 @@ specify which policies to use and modify their behavior.
 <sect1>Section &lsqb;RoutingPolicy&rsqb;
 <label id="routingpolicy">
 <p>
-This section explains how <htmlurl url="http://www.gnugk.org/" name="GNU
+This section explains how <htmlurl url="https://www.gnugk.org/" name="GNU
 Gatekeeper"> routing policies are configured.
 
 An incoming call request can be routed using the following

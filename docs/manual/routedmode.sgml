@@ -966,7 +966,7 @@ In this example calls into and out of the 1.2.3.0/24 network are proxied, but ca
 If no rules match the settings then [RoutedMode]GkRouted=, H245Routed= or [Proxy]Enable= are used to determine the routing mode.
 <p>
 There are a few cases where these rules don't apply, because
-<htmlurl url="http://www.gnugk.org/" name="the GNU Gatekeeper">
+<htmlurl url="https://www.gnugk.org/" name="the GNU Gatekeeper">
 knows that the call needs proxying:
 For example calls involving H.460.18/.19 will always be proxied (because this protocol requires proxying).
 

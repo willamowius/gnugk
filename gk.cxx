@@ -1641,7 +1641,7 @@ void Gatekeeper::Main()
 
 	// Copyright notice
 	cout <<
-		"For documentation and updates please visit http://www.gnugk.org/.\n\n"
+		"For documentation and updates please visit https://www.gnugk.org/.\n\n"
 		"This program is free software; you can redistribute it and/or\n"
 		"modify it under the terms of the GNU General Public License version 2.\n"
 		"We also explicitly grant the right to link this code\n"

@@ -1,7 +1,7 @@
 <sect1>Configuration File
 <label id="config">
 <p>
-The <htmlurl url="http://www.gnugk.org/" name="GNU Gatekeeper">
+The <htmlurl url="https://www.gnugk.org/" name="GNU Gatekeeper">
 configuration file is a standard text file. The basic format is:
 
 <tscreen><verb>

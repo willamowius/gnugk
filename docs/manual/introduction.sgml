@@ -7,7 +7,7 @@ The English version is the master document and will get updated first.
 <sect1>About
 <p>
 <bf>
-<url url="http://www.gnugk.org/" name="The GNU Gatekeeper">
+<url url="https://www.gnugk.org/" name="The GNU Gatekeeper">
 </bf>
 is an open-source project that implements a H.323 gatekeeper. A gatekeeper
 provides call control services to H.323 endpoints and is an integral part of
@@ -73,14 +73,14 @@ that this is free software. Early versions were called the <em>OpenH323 Gatekeep
 <label id="download">
 <p>
 The newest version is available at
-<url url="http://www.gnugk.org/h323download.html" name="the download page">.
+<url url="https://www.gnugk.org/h323download.html" name="the download page">.
 
 The very latest source code is in the CVS at <url
 url="http://openh323gk.cvs.sourceforge.net/openh323gk/openh323gk/"
 name="Sourceforge Web-GUI">.  Beware - that's the bleeding edge.
 
 You can also download executables for a number of operating systems from
-<url url="http://www.gnugk.org/h323download.html" name="the download page">.
+<url url="https://www.gnugk.org/h323download.html" name="the download page">.
 
 <sect1>Mailing Lists
 <p>

@@ -6,7 +6,7 @@ The following sections in the config file can be used to configure authenticatio
 <label id="gkauth">
 <p>
 The section defines the authentication mechanism / modules for the
-<htmlurl url="http://www.gnugk.org/" name="GNU Gatekeeper">.
+<htmlurl url="https://www.gnugk.org/" name="GNU Gatekeeper">.
 After defining which modules to use, you have to add the corresponding
 config sections for each module.
 

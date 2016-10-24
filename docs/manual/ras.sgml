@@ -320,7 +320,7 @@ is assigned as the primary and others are then the alternates.
 
 <sect1>Section &lsqb;AssignedGatekeepers::SQL&rsqb;
 <p>
-This section allows <htmlurl url="http://www.gnugk.org/" name="GnuGk"> to read the assigned gatekeepers from a database.
+This section allows <htmlurl url="https://www.gnugk.org/" name="GnuGk"> to read the assigned gatekeepers from a database.
 You can use the same database parameters as defined in <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">.
 
 <itemize>
@@ -346,7 +346,7 @@ SELECT assignedgatekeeper FROM users WHERE alias = '%u' AND active
 
 <sect1>Section &lsqb;AlternateGatekeepers::SQL&rsqb;
 <p>
-This section allows <htmlurl url="http://www.gnugk.org/" name="GnuGk"> to read the alternate gatekeepers from a database.
+This section allows <htmlurl url="https://www.gnugk.org/" name="GnuGk"> to read the alternate gatekeepers from a database.
 You can use the same database parameters as defined in <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">.
 
 <itemize>

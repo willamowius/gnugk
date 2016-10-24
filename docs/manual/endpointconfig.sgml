@@ -2,7 +2,7 @@
 <label id="epconfig">
 <p>
 In addition to the standard configuration file options, per-endpoint configuration
-settings can be specified in the <htmlurl url="http://www.gnugk.org/" name="GnuGk"> config file.
+settings can be specified in the <htmlurl url="https://www.gnugk.org/" name="GnuGk"> config file.
 The syntax is as follows:
 
 <sect1>Section &lsqb;EP::...&rsqb;

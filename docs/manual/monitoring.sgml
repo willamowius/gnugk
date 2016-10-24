@@ -120,7 +120,7 @@ or served by a web server on the same IP number as the gatekeeper
 (you cannot run it as an applet via a local file).
 
 The program is available at
-<url url="http://www.gnugk.org/h323gui.html" name="GnuGk.org">
+<url url="https://www.gnugk.org/h323gui.html" name="GnuGk.org">
 
 <sect1>Commands (Reference)
 <p>

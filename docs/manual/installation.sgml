@@ -4,7 +4,7 @@
 <p>
 To build the gatekeeper you need PTLib and H323Plus.
 Please see
-<url url="http://www.gnugk.org/compiling-gnugk.html" name="http://www.gnugk.org/compiling-gnugk.html">
+<url url="https://www.gnugk.org/compiling-gnugk.html" name="http://www.gnugk.org/compiling-gnugk.html">
 for up-to-date information on required library versions.
 <p>
 
@@ -26,7 +26,7 @@ optnoshared/ then everything must be compiled the same way.
 <sect1>Installing on Unix
 <p>
 The first step is to get an executable: You can either download an executable for your flavour of Unix from
-<url url="http://www.gnugk.org/h323download.html" name="gnugk.org">, use the executable your distribution
+<url url="https://www.gnugk.org/h323download.html" name="gnugk.org">, use the executable your distribution
 provides or compile the GNU Gatekeeper yourself. For simple installations or to try the features of the gatekeeper,
 using pre-built executables shouldn't pose any issues, but for professional installations it is always recommended
 that you self-compile GnuGk.
@@ -80,7 +80,7 @@ on how you compiled the libraries.
 <sect1>Installing on Windows
 <p>
 The first step is to obtain the executable program; you can either download it from
-<url url="http://www.gnugk.org/h323download.html" name="gnugk.org">
+<url url="https://www.gnugk.org/h323download.html" name="gnugk.org">
 or compile the GNU Gatekeeper yourself.
 
 There are two versions of the gatekeeper available: A regular program and a service.

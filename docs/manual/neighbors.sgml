@@ -29,7 +29,7 @@ The gatekeeper types have the following characteristics:
 For neighbors from any H.323 compliant vendor. (This setting is identical to 'GnuGk'.)
 
 <item><tt/GnuGk/<newline>
-When in doubt, use the <htmlurl url="http://www.gnugk.org/" name="GnuGk gatekeeper"> type. This also activates H.460.23 / H.460.24.
+When in doubt, use the <htmlurl url="https://www.gnugk.org/" name="GnuGk gatekeeper"> type. This also activates H.460.23 / H.460.24.
 
 <item><tt/CiscoGk/<newline>
 GnuGk will pretend to be a Cisco gatekeeper and send fake manufacturer data.

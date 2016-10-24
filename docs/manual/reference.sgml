@@ -1,6 +1,6 @@
 <sect>Basic Gatekeeper Configuration
 <p>
-The behavior of the <htmlurl url="http://www.gnugk.org/" name="gatekeeper">
+The behavior of the <htmlurl url="https://www.gnugk.org/" name="gatekeeper">
 is determined by the command line
 options and configuration file. Some command line options may override
 a setting from the configuration file.

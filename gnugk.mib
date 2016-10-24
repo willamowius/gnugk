@@ -26,7 +26,7 @@ gnugkMIB MODULE-IDENTITY
         ORGANIZATION    "GNU Gatekeeper Project"
         CONTACT-INFO
                 "       Jan Willamowius
-                   Web: http://www.gnugk.org
+                   Web: https://www.gnugk.org
                  Email: jan@willamowius.de"
         DESCRIPTION "SNMP MIB for the GNU Gatekeeper"
         REVISION    "201205070000Z"
