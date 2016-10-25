@@ -15,7 +15,7 @@ config sections for each module.
 <tscreen><verb>
 authrule=actions
 
- <authrule> := SimplePasswordAuth | AliasAuth | FileIPAuth | PrefixAuth | RadAuth | RadAliasAuth | SQLAuth | SQLAliasAuth | SQLPasswordAuth | H350PasswordAuth | LDAPPasswordAuth | LDAPAliasAuth | LuaAuth | GeoIPAUth | CapacityControl | ...
+ <authrule> := SimplePasswordAuth | AliasAuth | FileIPAuth | PrefixAuth | RadAuth | RadAliasAuth | SQLAuth | SQLAliasAuth | SQLPasswordAuth | H350PasswordAuth | LDAPPasswordAuth | LDAPAliasAuth | LuaAuth | LuaPasswordAuth | GeoIPAUth | CapacityControl | ...
  <actions>  := <control>[;<ras>|<q931>,<ras>|<q931>,...]
  <control>  := optional | required | sufficient | alternative
  <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ | RAI
@@ -40,7 +40,7 @@ There are also three ways to control a rule:
 
 Currently supported modules: (most only support a subset of the RAS or Q.931 actions)
 <itemize>
-<item><tt>SimplePasswordAuth/SQLPasswordAuth/H350PasswordAuth</tt>
+<item><tt>SimplePasswordAuth/SQLPasswordAuth/H350PasswordAuth/LuaPasswordAuth</tt>
 <p>
 These modules check the tokens or cryptoTokens fields of a RAS message.
 The tokens should contain at least generalID and password.
@@ -50,7 +50,10 @@ are supported. For tokens hashed by CAT (Cisco Access Token)
 a clear text username/password are supported.
 The ID and password are read from the <ref id="password" name="[SimplePasswordAuth]"> section,
 or a SQL database for <tt/SimplePasswordAuth/ and <tt/SQLPasswordAuth/
-modules. For H.350.2 authentication (<tt/H350PasswordAuth/)
+modules.
+With <tt/LuaPasswordAuth/ you can use a Lua script to lookup the passwords.
+<p>
+For H.350.2 authentication (<tt/H350PasswordAuth/)
 the <ref id="h350settings" name="[GkH350::Settings]"> connection information must be completed.
 The <ref id="h350passwordauth" name="[H350PasswordAuth]"> section is optional.
 
@@ -1740,6 +1743,33 @@ RegistrationScript=if (username == "boss") then result = "OK" else result = "FAI
 CallScriptFile=/path/to/callauth.lua
 </verb></tscreen>
 </descrip>
+
+<sect1>Section &lsqb;LuaPasswordAuth&rsqb;
+<label id="luapasswordauth">
+<p>
+This section configures the script for LUA password authentication.
+<p>
+For general information on LUA scripting in GnuGk, please see the chapter <ref id="luascripting" name="LUA Scripting">.
+<p>
+<itemize>
+<item><tt/Script=<em>script</em>/<newline>
+Default: <tt>N/A</tt>
+<p>
+LUA script to be used to lookup the password for a user. Short scripts can be put directly into the config file. For longer scripts use ScriptFile=.
+
+<item><tt>ScriptFile=/path/to/script</tt><newline>
+LUA script to be used to lookup the password for a user.
+</itemize>
+
+The script can use the following variables
+<itemize>
+<item><tt/alias/ - the alias of the user to be authenticated
+<item><tt/gk/ - the name of the gatekeeper running
+</itemize>
+
+The script must store the password for the user in <tt>alias</tt> into the <tt>password</tt> variable
+for GnuGk to process further.
+
 
 <sect1>Section &lsqb;GeoIPAuth&rsqb;
 <label id="geoipauth">
