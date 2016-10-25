@@ -274,9 +274,7 @@ inline GkSQLResult::ResultRow::iterator FindField(
 } /* namespace */
 
 
-SQLPasswordAuth::SQLPasswordAuth(
-	const char* authName
-	)
+SQLPasswordAuth::SQLPasswordAuth(const char* authName)
 	: SimplePasswordAuth(authName), m_sqlConn(NULL)
 {
 	PConfig* cfg = GetConfig();
@@ -324,10 +322,7 @@ SQLPasswordAuth::~SQLPasswordAuth()
 	delete m_sqlConn;
 }
 
-bool SQLPasswordAuth::GetPassword(
-	const PString& alias,
-	PString& password
-	)
+bool SQLPasswordAuth::GetPassword(const PString & alias, PString & password)
 {
 	GkSQLResult::ResultRow result;
 	std::map<PString, PString> params;
@@ -365,9 +360,7 @@ PString SQLPasswordAuth::GetInfo()
 	return result;
 }
 
-SQLAliasAuth::SQLAliasAuth(
-	const char* authName
-	)
+SQLAliasAuth::SQLAliasAuth(const char* authName)
 	: AliasAuth(authName), m_sqlConn(NULL)
 {
 	PConfig* cfg = GetConfig();
@@ -416,10 +409,7 @@ SQLAliasAuth::~SQLAliasAuth()
 	delete m_sqlConn;
 }
 
-bool SQLAliasAuth::GetAuthConditionString(
-	const PString & alias,
-	PString & authCond
-	)
+bool SQLAliasAuth::GetAuthConditionString(const PString & alias, PString & authCond)
 {
 	GkSQLResult::ResultRow result;
 	std::map<PString, PString> params;
@@ -457,14 +447,8 @@ PString SQLAliasAuth::GetInfo()
 	return result;
 }
 
-SQLAuth::SQLAuth(
-	const char* authName,
-	unsigned supportedRasChecks,
-	unsigned supportedMiscChecks
-	)
-	:
-	GkAuthenticator(authName, supportedRasChecks, supportedMiscChecks),
-	m_sqlConn(NULL)
+SQLAuth::SQLAuth(const char* authName, unsigned supportedRasChecks, unsigned supportedMiscChecks)
+    : GkAuthenticator(authName, supportedRasChecks, supportedMiscChecks), m_sqlConn(NULL)
 {
 	PConfig* cfg = GetConfig();
 
