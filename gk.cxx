@@ -178,7 +178,10 @@ const char * KnownConfigEntries[][2] = {
 	{ "Gatekeeper::Auth", "CapacityControl" },
 	{ "Gatekeeper::Auth", "FileIPAuth" },
 	{ "Gatekeeper::Auth", "H350PasswordAuth" },
+#ifdef HAS_LUA
 	{ "Gatekeeper::Auth", "LuaAuth" },
+	{ "Gatekeeper::Auth", "LuaPasswordAuth" },
+#endif
 	{ "Gatekeeper::Auth", "PrefixAuth" },
 	{ "Gatekeeper::Auth", "RadAliasAuth" },
 	{ "Gatekeeper::Auth", "RadAuth" },
@@ -327,6 +330,8 @@ const char * KnownConfigEntries[][2] = {
 	{ "LuaAuth", "CallScriptFile" },
 	{ "LuaAuth", "RegistrationScript" },
 	{ "LuaAuth", "RegistrationScriptFile" },
+	{ "LuaPasswordAuth", "Script" },
+	{ "LuaPasswordAuth", "ScriptFile" },
 #endif
 	{ "LogFile", "Filename" },
 	{ "LogFile", "Rotate" },

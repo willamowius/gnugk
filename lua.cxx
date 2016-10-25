@@ -712,6 +712,96 @@ namespace { // anonymous namespace
 } // end of anonymous namespace
 
 
+class LuaPasswordAuth : public  LuaBase, public SimplePasswordAuth
+{
+public:
+	/// build authenticator reading settings from the config
+	LuaPasswordAuth(
+		/// name for this authenticator and for the config section to read settings from
+		const char* authName
+		);
+
+	virtual ~LuaPasswordAuth();
+
+protected:
+	/** Override from SimplePasswordAuth.
+
+	    @return
+	    True if the password has been found for the given alias.
+	*/
+	virtual bool GetPassword(
+		/// alias to check the password for
+		const PString & alias,
+		/// password string, if the match is found
+		PString & password
+		);
+
+private:
+	LuaPasswordAuth();
+	LuaPasswordAuth(const LuaPasswordAuth &);
+	LuaPasswordAuth & operator=(const LuaPasswordAuth &);
+
+protected:
+	// script to run
+	PString m_script;
+};
+
+LuaPasswordAuth::LuaPasswordAuth(const char* authName)
+	: SimplePasswordAuth(authName)
+{
+	m_script = GkConfig()->GetString("LuaPasswordAuth", "Script", "");
+	if (m_script.IsEmpty()) {
+		PString scriptFile = GkConfig()->GetString("LuaPasswordAuth", "ScriptFile", "");
+		if (!scriptFile.IsEmpty()) {
+			PTextFile f(scriptFile, PFile::ReadOnly);
+			if (!f.IsOpen()) {
+				PTRACE(1, "LuaPasswordAuth\tCan't read LUA call script " << scriptFile);
+			} else {
+				PString line;
+				while (f.ReadLine(line)) {
+					m_script += (line + "\n");
+				}
+			}
+		}
+	}
+
+	if (m_script.IsEmpty()) {
+		PTRACE(2, "LuaPasswordAuth\tno LUA script");
+		SNMP_TRAP(4, SNMPError, General, "LuaPasswordAuth: no script");
+		return;
+	}
+
+    InitLua();
+}
+
+LuaPasswordAuth::~LuaPasswordAuth()
+{
+}
+
+bool LuaPasswordAuth::GetPassword(const PString & alias, PString & password)
+{
+    if (!m_lua || m_script.IsEmpty()) {
+		PTRACE(1, "LuaPasswordAuth\tError: LUA not configured");
+		return false;
+    }
+
+	SetString("alias", alias);
+	SetString("gk", Toolkit::GKName());
+	SetString("password", "");
+
+	if (!RunLua(m_script)) {
+		return false;
+	}
+
+	password = GetString("password");
+	return true;
+}
+
+namespace { // anonymous namespace
+	GkAuthCreator<LuaPasswordAuth> LuaPasswordAuthCreator("LuaPasswordAuth");
+} // end of anonymous namespace
+
+
 class LuaAcct : public LuaBase, public GkAcctLogger
 {
 public:
