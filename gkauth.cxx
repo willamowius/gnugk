@@ -2336,6 +2336,7 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password)
         }
     } else if (m_method == "POST") {
         PMIMEInfo outMIME;
+        outMIME.SetAt(PMIMEInfo::ContentTypeTag(), "text/plain");
         PMIMEInfo replyMIME;
         if (!http.PostData(url, outMIME, body, replyMIME, result)) {
             PTRACE(2, "HttpPasswordAuth\tCould not POST to " << m_host);
