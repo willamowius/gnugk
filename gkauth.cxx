@@ -2345,6 +2345,7 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password)
         PTRACE(2, "HttpPasswordAuth\tUnsupported method " << m_method);
         return false;
     }
+	PTRACE(0, "JW HttpPasswordAuth\tServer response = " << result);
     PINDEX pos, len;
     if (result.FindRegEx(m_errorRegex, pos, len)) {
         PTRACE(4, "HttpPasswordAuth\tErrorRegex matches result from " << m_host);

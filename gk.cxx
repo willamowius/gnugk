@@ -325,6 +325,7 @@ const char * KnownConfigEntries[][2] = {
 #endif // H323_H235
 #ifdef P_HTTP
 	{ "HttpPasswordAuth", "Body" },
+	{ "HttpPasswordAuth", "DeleteRegex" },
 	{ "HttpPasswordAuth", "ErrorRegex" },
 	{ "HttpPasswordAuth", "Method" },
 	{ "HttpPasswordAuth", "ResultRegex" },
