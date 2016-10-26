@@ -330,7 +330,7 @@ PString GkAcctLogger::ReplaceAcctParams(
 	return finalCDR;
 }
 
-PString GkAcctLogger::EscapeAcctParam(const PString& param) const
+PString GkAcctLogger::EscapeAcctParam(const PString & param) const
 {
 	return param;	// default implementation: don't escape anything
 }

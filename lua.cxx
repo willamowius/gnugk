@@ -712,7 +712,7 @@ namespace { // anonymous namespace
 } // end of anonymous namespace
 
 
-class LuaPasswordAuth : public  LuaBase, public SimplePasswordAuth
+class LuaPasswordAuth : public LuaBase, public SimplePasswordAuth
 {
 public:
 	/// build authenticator reading settings from the config
