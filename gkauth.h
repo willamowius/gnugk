@@ -2,7 +2,7 @@
 //
 // gkauth.h
 //
-// Copyright (c) 2001-2015, Jan Willamowius
+// Copyright (c) 2001-2016, Jan Willamowius
 //
 // Gatekeeper authentication modules
 //
@@ -200,7 +200,7 @@ struct SetupAuthData
 		);
 	~SetupAuthData();
 
-	SetupAuthData& operator=(const SetupAuthData & obj);
+	SetupAuthData & operator=(const SetupAuthData & obj);
 
 	void SetRouteToAlias(const H225_ArrayOf_AliasAddress & alias);
 	void SetRouteToAlias(const PString & alias, int tag = -1);
@@ -535,6 +535,19 @@ protected:
 		/// additional data
 		SetupAuthData & authData
 		) const;
+
+    /** Replace parameters placeholders (%a, %{Name}, ...) with actual values.
+        Similar to Acct and Query params, but without the escaping.
+
+	    @return
+	    New string with all parameters replaced.
+	*/
+	static PString ReplaceAuthParams(
+		/// parametrized accounting string
+		const PString & str,
+		/// parameter values
+		const std::map<PString, PString> & params
+	);
 
 	/// a list of H.235 capabilities supported by this module (if any)
 	H235Authenticators* m_h235Authenticators;

@@ -178,6 +178,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Gatekeeper::Auth", "CapacityControl" },
 	{ "Gatekeeper::Auth", "FileIPAuth" },
 	{ "Gatekeeper::Auth", "H350PasswordAuth" },
+	{ "Gatekeeper::Auth", "HttpPasswordAuth" },
 #ifdef HAS_LUA
 	{ "Gatekeeper::Auth", "LuaAuth" },
 	{ "Gatekeeper::Auth", "LuaPasswordAuth" },
@@ -322,6 +323,13 @@ const char * KnownConfigEntries[][2] = {
 	{ "H235", "UseEndpointIdentifier" },
 	{ "H235", "VerifyRandomNumber" },
 #endif // H323_H235
+#ifdef P_HTTP
+	{ "HttpPasswordAuth", "Body" },
+	{ "HttpPasswordAuth", "ErrorRegex" },
+	{ "HttpPasswordAuth", "Method" },
+	{ "HttpPasswordAuth", "ResultRegex" },
+	{ "HttpPasswordAuth", "URL" },
+#endif // P_HTTP
 #ifdef HAS_LUA
 	{ "LuaAcct", "Script" },
 	{ "LuaAcct", "ScriptFile" },

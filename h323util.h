@@ -2,7 +2,7 @@
 //
 // H.323 utility functions
 //
-// Copyright (c) 2000-2015, Jan Willamowius
+// Copyright (c) 2000-2016, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -276,5 +276,8 @@ void AddH460Feature(H225_ArrayOf_FeatureDescriptor & desc, const H460_Feature & 
 
 // extract the version digit from H.225 or H.245 prodtocolIdentifier strings
 unsigned ProtocolVersion(const char * protocolIdentifier);
+
+// replace a regular expression in a string
+void ReplaceRegEx(PString & str, const PRegularExpression & re, const PString & subs, PBoolean all = false, PINDEX offset = 0);
 
 #endif // H323UTIL_H

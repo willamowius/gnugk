@@ -1,6 +1,6 @@
 Changes from 4.2 to 4.3
 =======================
-- new authentication policy LuaPasswordAuth
+- new authentication policies LuaPasswordAuth, HttpPasswordAuth
 - BUGFIX(configure.in) fix check for LUA 5.2 or higher
 - connection to the status port can now also be ended with Ctrl-C
 - new switch [Routing::DNS] RewriteARQDestination= to preserve URLs in ARQs

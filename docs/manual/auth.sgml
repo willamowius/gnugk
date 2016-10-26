@@ -15,7 +15,7 @@ config sections for each module.
 <tscreen><verb>
 authrule=actions
 
- <authrule> := SimplePasswordAuth | AliasAuth | FileIPAuth | PrefixAuth | RadAuth | RadAliasAuth | SQLAuth | SQLAliasAuth | SQLPasswordAuth | H350PasswordAuth | LDAPPasswordAuth | LDAPAliasAuth | LuaAuth | LuaPasswordAuth | GeoIPAUth | CapacityControl | ...
+ <authrule> := SimplePasswordAuth | AliasAuth | FileIPAuth | PrefixAuth | RadAuth | RadAliasAuth | SQLAuth | SQLAliasAuth | SQLPasswordAuth | H350PasswordAuth | LDAPPasswordAuth | LDAPAliasAuth | LuaAuth | LuaPasswordAuth | HttpPasswordAuth | GeoIPAUth | CapacityControl | ...
  <actions>  := <control>[;<ras>|<q931>,<ras>|<q931>,...]
  <control>  := optional | required | sufficient | alternative
  <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ | RAI
@@ -40,7 +40,7 @@ There are also three ways to control a rule:
 
 Currently supported modules: (most only support a subset of the RAS or Q.931 actions)
 <itemize>
-<item><tt>SimplePasswordAuth/SQLPasswordAuth/H350PasswordAuth/LuaPasswordAuth</tt>
+<item><tt>SimplePasswordAuth/SQLPasswordAuth/H350PasswordAuth/LuaPasswordAuth/HttpPasswordAuth</tt>
 <p>
 These modules check the tokens or cryptoTokens fields of a RAS message.
 The tokens should contain at least generalID and password.
@@ -51,7 +51,7 @@ a clear text username/password are supported.
 The ID and password are read from the <ref id="password" name="[SimplePasswordAuth]"> section,
 or a SQL database for <tt/SimplePasswordAuth/ and <tt/SQLPasswordAuth/
 modules.
-With <tt/LuaPasswordAuth/ you can use a Lua script to lookup the passwords.
+With <ref id="luapasswordauth" name="LuaPasswordAuth"> you can use a Lua script to lookup the passwords and <ref id="httppasswordauth" name="HttpPasswordAuth"> lets you fetch passowrds from an HTTP server (eg. from a REST service).
 <p>
 For H.350.2 authentication (<tt/H350PasswordAuth/)
 the <ref id="h350settings" name="[GkH350::Settings]"> connection information must be completed.
@@ -1770,6 +1770,49 @@ The script can use the following variables
 The script must store the password for the user in <tt>alias</tt> into the <tt>password</tt> variable
 for GnuGk to process further.
 
+
+<sect1>Section &lsqb;HttpPasswordAuth&rsqb;
+<label id="httppasswordauth">
+<p>
+This section defines fow to fetch password information from an HTTP server.
+<p>
+<itemize>
+<item><tt>URL=http://example.com/passwords</tt><newline>
+Default: <tt>N/A</tt>
+<p>
+The URL to fetch the passwords from. You can use the paremeters specified below to parameterize the URL.
+
+<item><tt/Body=user=%u/<newline>
+Default: <tt>empty</tt>
+<p>
+The HTTP body to use with PUT requests. You can use the paremeters specified below to parameterize the URL.
+
+<item><tt/Method=GET/<newline>
+Default: <tt>N/A</tt>
+<p>
+HTTP method to use. Currently GET and PUT are supported.
+
+<item><tt/ResultRegex=[0-9]+/<newline>
+Default: <tt>.</tt>
+<p>
+The regular expression to extract the password from the HTTP response.
+
+<item><tt/DeleteRegex=5544/<newline>
+Default: <tt>N/A</tt>
+<p>
+A regular expression to use remove additional patterns from the extracted password. Optional.
+
+<item><tt/ErrorRegex=error/<newline>
+Default: <tt>^$</tt>
+<p>
+If the HTTP response matches this regular expression it is considered invalid.
+</itemize>
+
+For <tt/HttpPasswordAuth/ two parameters are defined:
+<itemize>
+<item><tt/%u/ - the actual alias to query the password for
+<item><tt/%g/ - the gatekeeper identifier (name)
+</itemize>
 
 <sect1>Section &lsqb;GeoIPAuth&rsqb;
 <label id="geoipauth">

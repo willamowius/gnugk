@@ -956,3 +956,16 @@ unsigned ProtocolVersion(const char * protocolIdentifier)
         return 0;
     return protocolId.Mid(lastDot + 1).AsUnsigned();
 }
+
+// replace a regular expression in a string
+void ReplaceRegEx(PString & str, const PRegularExpression & re, const PString & subs, PBoolean all, PINDEX offset)
+{
+    PINDEX pos, len;
+    while (str.FindRegEx(re, pos, len, offset)) {
+        str.Delete(pos, len);
+        str.Splice(subs, pos);
+        if (!all)
+            break;
+        offset = pos + 1;
+    }
+}

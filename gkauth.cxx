@@ -41,6 +41,8 @@ extern const char *H350Section;
 #include <openssl/rand.h>
 #endif // P_SSL
 
+#include <ptclib/http.h>
+
 namespace {
 const char* const GkAuthSectionName = "Gatekeeper::Auth";
 }
@@ -683,6 +685,65 @@ PString GkAuthenticator::GetInfo()
 {
 	return "No information available\r\n";
 }
+
+// TODO: This method causes a signed-overflow warning in object.h when compiling with GCC. Why ?
+PString GkAuthenticator::ReplaceAuthParams(
+	/// parametrized string
+	const PString & str,
+	/// parameter values
+	const std::map<PString, PString> & params
+	)
+{
+	PString finalStr((const char*)str);
+	PINDEX len = finalStr.GetLength();
+	PINDEX pos = 0;
+
+	while (pos != P_MAX_INDEX && pos < len) {
+		pos = finalStr.Find('%', pos);
+		if (pos++ == P_MAX_INDEX)
+			break;
+		if (pos >= len) // strings ending with '%' - special case
+			break;
+		const char c = finalStr[pos]; // char next after '%'
+		if (c == '%') { // replace %% with %
+			finalStr.Delete(pos, 1);
+			len--;
+		} else if (c == '{') { // escaped syntax (%{Name})
+			const PINDEX closingBrace = finalStr.Find('}', ++pos);
+			if (closingBrace != P_MAX_INDEX) {
+				const PINDEX paramLen = closingBrace - pos;
+				std::map<PString, PString>::const_iterator i = params.find(finalStr.Mid(pos, paramLen));
+				if (i != params.end()) {
+					const PINDEX escapedLen = (i->second).GetLength();
+					finalStr.Splice(i->second, pos - 2, paramLen + 3);
+					len = len + escapedLen - paramLen - 3;
+					pos = pos - 2 + escapedLen;
+				} else {
+					// replace out of range parameter with an empty string
+					finalStr.Delete(pos - 2, paramLen + 3);
+					len -= paramLen + 3;
+					pos -= 2;
+				}
+			}
+		} else { // simple syntax (%c)
+			std::map<PString, PString>::const_iterator i = params.find(c);
+			if (i != params.end()) {
+				const PINDEX escapedLen = (i->second).GetLength();
+				finalStr.Splice(i->second, pos - 1, 2);
+				len = len + escapedLen - 2;
+				pos = pos - 1 + escapedLen;
+			} else {
+				// replace out of range parameter with an empty string
+				finalStr.Delete(pos - 1, 2);
+				len -= 2;
+				pos--;
+			}
+		}
+	}
+
+	return finalStr;
+}
+
 
 // class GkAuthenticatorList
 GkAuthenticatorList::GkAuthenticatorList()
@@ -1442,7 +1503,8 @@ bool H350PasswordAuth::GetPassword(const PString & alias, PString & password)
 	return false;
 }
 
-#endif
+#endif // H323_H350
+
 
 // class AliasAuth
 AliasAuth::AliasAuth(
@@ -2187,6 +2249,121 @@ int PrefixAuth::doCheck(const AuthObj & aobj)
 	return m_defaultRule;
 }
 
+
+#ifdef P_HTTP
+
+class HttpPasswordAuth : public SimplePasswordAuth
+{
+public:
+	/// build authenticator reading settings from the config
+	HttpPasswordAuth(const char* authName);
+	virtual ~HttpPasswordAuth();
+
+protected:
+	/** Override from SimplePasswordAuth.
+
+	    @return
+	    True if the password has been found for the given alias.
+	*/
+	virtual bool GetPassword(
+		/// alias to check the password for
+		const PString & alias,
+		/// password string, if the match is found
+		PString & password
+		);
+
+private:
+	HttpPasswordAuth();
+	HttpPasswordAuth(const HttpPasswordAuth &);
+	HttpPasswordAuth & operator=(const HttpPasswordAuth &);
+
+protected:
+	PURL m_url;
+	PString m_host;
+	PString m_body;
+	PCaselessString m_method;
+	PRegularExpression m_resultRegex;
+	PRegularExpression m_deleteRegex;
+	PRegularExpression m_errorRegex;
+};
+
+HttpPasswordAuth::HttpPasswordAuth(const char* authName)
+	: SimplePasswordAuth(authName)
+{
+	m_url = GkConfig()->GetString("HttpPasswordAuth", "URL", "");
+	m_host = m_url.GetHostName();
+	m_body = GkConfig()->GetString("HttpPasswordAuth", "Body", "");
+	m_method = GkConfig()->GetString("HttpPasswordAuth", "Method", "POST");
+	PString resultRegex = GkConfig()->GetString("HttpPasswordAuth", "ResultRegex", ".");
+	m_resultRegex = PRegularExpression(resultRegex, PRegularExpression::Extended);
+	m_resultRegex = PRegularExpression(resultRegex);
+	if (m_resultRegex.GetErrorCode() != PRegularExpression::NoError) {
+		PTRACE(2, "Error '"<< m_resultRegex.GetErrorText() <<"' compiling ResultRegex: " << resultRegex);
+		m_resultRegex = PRegularExpression(".", PRegularExpression::Extended);
+	}
+	PString deleteRegex = GkConfig()->GetString("HttpPasswordAuth", "DeleteRegex", "XXXXXXXXXX");   // default should never match
+	m_deleteRegex = PRegularExpression(deleteRegex, PRegularExpression::Extended);
+	if (m_deleteRegex.GetErrorCode() != PRegularExpression::NoError) {
+		PTRACE(2, "Error '"<< m_deleteRegex.GetErrorText() <<"' compiling DeleteRegex: " << deleteRegex);
+		m_deleteRegex = PRegularExpression("XXXXXXXXXX", PRegularExpression::Extended);
+	}
+	PString errorRegex = GkConfig()->GetString("HttpPasswordAuth", "ErrorRegex", "^$");
+	m_errorRegex = PRegularExpression(errorRegex, PRegularExpression::Extended);
+	if (m_errorRegex.GetErrorCode() != PRegularExpression::NoError) {
+		PTRACE(2, "Error '"<< m_errorRegex.GetErrorText() <<"' compiling ErrorRegex: " << errorRegex);
+		m_errorRegex = PRegularExpression("^$", PRegularExpression::Extended);
+	}
+}
+
+HttpPasswordAuth::~HttpPasswordAuth()
+{
+}
+
+bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password)
+{
+    PHTTPClient http;
+    PString result;
+	std::map<PString, PString> params;
+	params["u"] = alias;
+	params["g"] = Toolkit::GKName();
+    PString url = ReplaceAuthParams(m_url, params);
+    PString body = ReplaceAuthParams(m_body, params);
+
+    if (m_method == "GET") {
+        if (!http.GetTextDocument(url, result)) {
+            PTRACE(2, "HttpPasswordAuth\tCould not GET password from " << m_host);
+            return false;
+        }
+    } else if (m_method == "POST") {
+        PMIMEInfo outMIME;
+        PMIMEInfo replyMIME;
+        if (!http.PostData(url, outMIME, body, replyMIME, result)) {
+            PTRACE(2, "HttpPasswordAuth\tCould not POST to " << m_host);
+            return false;
+        }
+    } else {
+        PTRACE(2, "HttpPasswordAuth\tUnsupported method " << m_method);
+        return false;
+    }
+    PINDEX pos, len;
+    if (result.FindRegEx(m_errorRegex, pos, len)) {
+        PTRACE(4, "HttpPasswordAuth\tErrorRegex matches result from " << m_host);
+        return false;
+    }
+    if (result.FindRegEx(m_resultRegex, pos, len)) {
+        password = result.Mid(pos, len);
+        ReplaceRegEx(password, m_deleteRegex, "", true);
+        PTRACE(0, "JW HttpPasswordAuth\tPassword = " << password);
+        return true;
+    } else {
+        PTRACE(2, "HttpPasswordAuth\tError: No answer found in response from " << m_host);
+        return false;
+    }
+}
+
+#endif // P_HTTP
+
+
 namespace { // anonymous namespace
 	GkAuthCreator<GkAuthenticator> DefaultAuthenticatorCreator("default");
 	GkAuthCreator<SimplePasswordAuth> SimplePasswordAuthCreator("SimplePasswordAuth");
@@ -2195,4 +2372,7 @@ namespace { // anonymous namespace
 #endif
 	GkAuthCreator<AliasAuth> AliasAuthCreator("AliasAuth");
 	GkAuthCreator<PrefixAuth> PrefixAuthCreator("PrefixAuth");
+#ifdef P_HTTP
+	GkAuthCreator<HttpPasswordAuth> HttpPasswordAuthCreator("HttpPasswordAuth");
+#endif
 } // end of anonymous namespace
