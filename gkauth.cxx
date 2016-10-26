@@ -686,7 +686,7 @@ PString GkAuthenticator::GetInfo()
 	return "No information available\r\n";
 }
 
-// TODO: This method causes a signed-overflow warning in object.h when compiling with GCC. Why ?
+// TODO: This method causes a signed-overflow warning in object.h when compiling with GCC 5. Why ?
 PString GkAuthenticator::ReplaceAuthParams(
 	/// parametrized string
 	const PString & str,
