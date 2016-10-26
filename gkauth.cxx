@@ -1051,6 +1051,7 @@ SimplePasswordAuth::SimplePasswordAuth(
 	: GkAuthenticator(name, supportedRasChecks, supportedMiscChecks), m_cache(NULL)
 {
 	if (!GetConfig()->HasKey(name, "KeyFilled")) {
+        // TODO: remove this warning when subclassed and passwords aren't encrypted (eg. with SQLPasswordAuth, HttpPasswordAUth or LuaPasswordAuth)
 		PTRACE(1, "GKAUTH\t" << GetName() << " KeyFilled config variable is missing");
 	}
 	m_encryptionKey = GetConfig()->GetInteger(name, "KeyFilled", 0);
