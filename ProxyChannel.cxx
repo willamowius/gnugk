@@ -1965,7 +1965,8 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
     endptr fromEP;
     GkH235Authenticators * auth = NULL;
     H225_ArrayOf_AliasAddress aliases;
-    if (!tmpCall && (q931pdu->GetMessageType() == Q931::SetupMsg) && uuie) {
+    if (!tmpCall && (q931pdu->GetMessageType() == Q931::SetupMsg) && uuie
+        && (uuie->m_h323_uu_pdu.m_h323_message_body.GetTag() == H225_H323_UU_PDU_h323_message_body::e_setup)) {
         H225_Setup_UUIE & setup = uuie->m_h323_uu_pdu.m_h323_message_body;
         if (setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
             tmpCall = CallTable::Instance()->FindCallRec(setup.m_callIdentifier);
@@ -5281,7 +5282,10 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 	}
 	m_callerSocket = false;	// update for persistent H.460.17 sockets where this property can change
 
-	H225_CallProceeding_UUIE &cpBody = callProceeding->GetUUIEBody();
+	if (callProceeding->GetUUIEBody().GetTag() != H225_H323_UU_PDU_h323_message_body::e_callProceeding)
+        return;
+
+	H225_CallProceeding_UUIE & cpBody = callProceeding->GetUUIEBody();
 
 	m_h225Version = GetH225Version(cpBody);
 
@@ -5429,6 +5433,8 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 			PTRACE(2, Type() << "\tTranslate CallProceeding to Facility/Progress");
 			Q931 q931;
 			H225_H323_UserInformation uuie;
+			if (msg->GetUUIE()->m_h323_uu_pdu.m_h323_message_body.GetTag() != H225_H323_UU_PDU_h323_message_body::e_callProceeding)
+                return;
 			H225_CallProceeding_UUIE & cp_uuie = msg->GetUUIE()->m_h323_uu_pdu.m_h323_message_body;
 			if ((cp_uuie.HasOptionalField(H225_CallProceeding_UUIE::e_fastStart)
 				|| cp_uuie.HasOptionalField(H225_CallProceeding_UUIE::e_fastConnectRefused))
@@ -6295,6 +6301,8 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 		// use saved Setup and just change the destination
 		q931.Decode(m_rawSetup);
 		GetUUIE(q931, uuie);
+		if (uuie.m_h323_uu_pdu.m_h323_message_body.GetTag() != H225_H323_UU_PDU_h323_message_body::e_setup)
+            return false;
 		H225_Setup_UUIE & setup = uuie.m_h323_uu_pdu.m_h323_message_body;
 		uuie.m_h323_uu_pdu.m_h245Tunneling = tunneling;
 		// remove old destination

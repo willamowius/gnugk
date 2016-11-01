@@ -782,7 +782,8 @@ protected:
 
         GkH235Authenticators::GetQ931Tokens(msg.GetMessageType(), &uuie, &tokens, &cryptoTokens);
 
-        if (!authFound && (msg.GetMessageType() == Q931::SetupMsg)) {
+        if (!authFound && ((msg.GetMessageType() == Q931::SetupMsg)
+            && (uuie.m_h323_uu_pdu.m_h323_message_body.GetTag() == H225_H323_UU_PDU_h323_message_body::e_setup))) {
             H225_Setup_UUIE & setup = uuie.m_h323_uu_pdu.m_h323_message_body;
             callptr call;
             if (setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {

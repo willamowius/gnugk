@@ -569,72 +569,120 @@ void GkH235Authenticators::GetQ931Tokens(Q931::MsgTypes type, H225_H323_UserInfo
 
     switch (type) {
         case Q931::AlertingMsg: {
+                if (uuie->m_h323_uu_pdu.m_h323_message_body.GetTag() != H225_H323_UU_PDU_h323_message_body::e_alerting) {
+                    PTRACE(1, "Error: UUIE (" << uuie->m_h323_uu_pdu.m_h323_message_body.GetTagName() << ") doesn't match Q.931 message (Alerting)");
+                    return;
+                }
                 H225_Alerting_UUIE & alerting = uuie->m_h323_uu_pdu.m_h323_message_body;
                 *tokens = &alerting.m_tokens;
                 *cryptoTokens = &alerting.m_cryptoTokens;
             }
             break;
         case Q931::CallProceedingMsg: {
+                if (uuie->m_h323_uu_pdu.m_h323_message_body.GetTag() != H225_H323_UU_PDU_h323_message_body::e_callProceeding) {
+                    PTRACE(1, "Error: UUIE (" << uuie->m_h323_uu_pdu.m_h323_message_body.GetTagName() << ") doesn't match Q.931 message (CallProceeding)");
+                    return;
+                }
                 H225_CallProceeding_UUIE & proceeding = uuie->m_h323_uu_pdu.m_h323_message_body;
                 *tokens = &proceeding.m_tokens;
                 *cryptoTokens = &proceeding.m_cryptoTokens;
             }
             break;
         case Q931::ConnectMsg: {
+                if (uuie->m_h323_uu_pdu.m_h323_message_body.GetTag() != H225_H323_UU_PDU_h323_message_body::e_connect) {
+                    PTRACE(1, "Error: UUIE (" << uuie->m_h323_uu_pdu.m_h323_message_body.GetTagName() << ") doesn't match Q.931 message (Connect)");
+                    return;
+                }
                 H225_Connect_UUIE & connect = uuie->m_h323_uu_pdu.m_h323_message_body;
                 *tokens = &connect.m_tokens;
                 *cryptoTokens = &connect.m_cryptoTokens;
             }
             break;
         case Q931::ProgressMsg: {
+                if (uuie->m_h323_uu_pdu.m_h323_message_body.GetTag() != H225_H323_UU_PDU_h323_message_body::e_progress) {
+                    PTRACE(1, "Error: UUIE (" << uuie->m_h323_uu_pdu.m_h323_message_body.GetTagName() << ") doesn't match Q.931 message (Progress)");
+                    return;
+                }
                 H225_Progress_UUIE & progress = uuie->m_h323_uu_pdu.m_h323_message_body;
                 *tokens = &progress.m_tokens;
                 *cryptoTokens = &progress.m_cryptoTokens;
             }
             break;
         case Q931::SetupMsg: {
+                if (uuie->m_h323_uu_pdu.m_h323_message_body.GetTag() != H225_H323_UU_PDU_h323_message_body::e_setup) {
+                    PTRACE(1, "Error: UUIE (" << uuie->m_h323_uu_pdu.m_h323_message_body.GetTagName() << ") doesn't match Q.931 message (Setup)");
+                    return;
+                }
                 H225_Setup_UUIE & setup = uuie->m_h323_uu_pdu.m_h323_message_body;
                 *tokens = &setup.m_tokens;
                 *cryptoTokens = &setup.m_cryptoTokens;
             }
             break;
         case Q931::SetupAckMsg: {
+                if (uuie->m_h323_uu_pdu.m_h323_message_body.GetTag() != H225_H323_UU_PDU_h323_message_body::e_setupAcknowledge) {
+                    PTRACE(1, "Error: UUIE (" << uuie->m_h323_uu_pdu.m_h323_message_body.GetTagName() << ") doesn't match Q.931 message (SetupAck)");
+                    return;
+                }
                 H225_SetupAcknowledge_UUIE & setupAck = uuie->m_h323_uu_pdu.m_h323_message_body;
                 *tokens = &setupAck.m_tokens;
                 *cryptoTokens = &setupAck.m_cryptoTokens;
             }
             break;
         case Q931::ReleaseCompleteMsg: {
+                if (uuie->m_h323_uu_pdu.m_h323_message_body.GetTag() != H225_H323_UU_PDU_h323_message_body::e_releaseComplete) {
+                    PTRACE(1, "Error: UUIE (" << uuie->m_h323_uu_pdu.m_h323_message_body.GetTagName() << ") doesn't match Q.931 message (ReleaseComplete)");
+                    return;
+                }
                 H225_ReleaseComplete_UUIE & rc = uuie->m_h323_uu_pdu.m_h323_message_body;
                 *tokens = &rc.m_tokens;
                 *cryptoTokens = &rc.m_cryptoTokens;
             }
             break;
         case Q931::InformationMsg: {
+                if (uuie->m_h323_uu_pdu.m_h323_message_body.GetTag() != H225_H323_UU_PDU_h323_message_body::e_information) {
+                    PTRACE(1, "Error: UUIE (" << uuie->m_h323_uu_pdu.m_h323_message_body.GetTagName() << ") doesn't match Q.931 message (Information)");
+                    return;
+                }
                 H225_Information_UUIE & info = uuie->m_h323_uu_pdu.m_h323_message_body;
                 *tokens = &info.m_tokens;
                 *cryptoTokens = &info.m_cryptoTokens;
             }
             break;
         case Q931::NotifyMsg: {
+                if (uuie->m_h323_uu_pdu.m_h323_message_body.GetTag() != H225_H323_UU_PDU_h323_message_body::e_notify) {
+                    PTRACE(1, "Error: UUIE (" << uuie->m_h323_uu_pdu.m_h323_message_body.GetTagName() << ") doesn't match Q.931 message (Notify)");
+                    return;
+                }
                 H225_Notify_UUIE & notify = uuie->m_h323_uu_pdu.m_h323_message_body;
                 *tokens = &notify.m_tokens;
                 *cryptoTokens = &notify.m_cryptoTokens;
             }
             break;
         case Q931::StatusMsg: {
+                if (uuie->m_h323_uu_pdu.m_h323_message_body.GetTag() != H225_H323_UU_PDU_h323_message_body::e_status) {
+                    PTRACE(1, "Error: UUIE (" << uuie->m_h323_uu_pdu.m_h323_message_body.GetTagName() << ") doesn't match Q.931 message (Status)");
+                    return;
+                }
                 H225_Status_UUIE & status = uuie->m_h323_uu_pdu.m_h323_message_body;
                 *tokens = &status.m_tokens;
                 *cryptoTokens = &status.m_cryptoTokens;
             }
             break;
         case Q931::StatusEnquiryMsg: {
+                if (uuie->m_h323_uu_pdu.m_h323_message_body.GetTag() != H225_H323_UU_PDU_h323_message_body::e_statusInquiry) {
+                    PTRACE(1, "Error: UUIE (" << uuie->m_h323_uu_pdu.m_h323_message_body.GetTagName() << ") doesn't match Q.931 message (StatusInquiry)");
+                    return;
+                }
                 H225_StatusInquiry_UUIE & statusInquiry = uuie->m_h323_uu_pdu.m_h323_message_body;
                 *tokens = &statusInquiry.m_tokens;
                 *cryptoTokens = &statusInquiry.m_cryptoTokens;
             }
             break;
         case Q931::FacilityMsg: {
+                if (uuie->m_h323_uu_pdu.m_h323_message_body.GetTag() != H225_H323_UU_PDU_h323_message_body::e_facility) {
+                    PTRACE(1, "Error: UUIE (" << uuie->m_h323_uu_pdu.m_h323_message_body.GetTagName() << ") doesn't match Q.931 message (Facility)");
+                    return;
+                }
                 H225_Facility_UUIE & facility = uuie->m_h323_uu_pdu.m_h323_message_body;
                 *tokens = &facility.m_tokens;
                 *cryptoTokens = &facility.m_cryptoTokens;

@@ -1,5 +1,6 @@
 Changes from 4.2 to 4.3
 =======================
+- BUGFIX(ProxyChannel.cxx, gkh235.cxx, gkauth.h) fix crashes found with PROTOS
 - new authentication policies LuaPasswordAuth, HttpPasswordAuth
 - BUGFIX(configure.in) fix check for LUA 5.2 or higher
 - connection to the status port can now also be ended with Ctrl-C
