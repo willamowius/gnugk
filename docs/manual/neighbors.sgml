@@ -143,7 +143,7 @@ from any IP address. This has primary importance when a
 multiple level gatekeeper hierarchy is used without routed Q.931 signaling.
 As a minimal security, only LRQ/LCF sequence numbers will be checked accordingly. This feature is required by the
 national gatekeepers connected to the Global Dialing Scheme (GDS), see
-<url url="http://www.vide.net/help/gdsintro.shtml" name="http://www.vide.net/help/gdsintro.shtml">
+<url url="https://community.jisc.ac.uk/library/videoconferencing-booking-service/global-dialing-scheme-explained" name="https://community.jisc.ac.uk/library/videoconferencing-booking-service/global-dialing-scheme-explained">
 for more information.
 WARNING: Enabling receiving LCF from other than the LRQ destination IP is a significant security risk. 
 Use this setting with extreme caution.
