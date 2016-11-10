@@ -640,8 +640,8 @@ With 1024 bit tokens AES 128 encryption will be used. For token length greather 
 <item><tt/EnableH235HalfCallMediaKeyUpdates=1/<newline>
 Default: <tt/0/<newline>
 <p>
-EXPERIMENTAL: Update media keys after they have been used for too many operations to remain cryptographically safe.
-This feature has only been tested GnuGk to GnuGk, it seems endpoints from most vendors do not
+Update media keys after they have been used for too many operations to remain cryptographically safe.
+This feature has only been tested GnuGk to GnuGk. It seems endpoints from most vendors do not
 support key updates as defined in H.235.6.
 
 <item><tt/Q931DecodingError=Drop/<newline>
