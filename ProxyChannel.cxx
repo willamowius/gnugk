@@ -9852,6 +9852,9 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
 	m_multiplexID_A(INVALID_MULTIPLEX_ID), m_multiplexSocket_A(INVALID_OSSOCKET),
 	m_multiplexID_B(INVALID_MULTIPLEX_ID), m_multiplexSocket_B(INVALID_OSSOCKET)
 #endif
+#ifdef HAS_H235_MEDIA
+	, m_haveShownPTWarning(false)
+#endif
 {
 	// set flags for RTP/RTCP to avoid string compares later on
 	m_isRTPType = PString(t) == "RTP";
@@ -10425,8 +10428,11 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		bool encrypting = false;
 		if (m_encryptingLC && m_decryptingLC) {
 			if (m_encryptingLC->GetPlainPayloadType() == m_decryptingLC->GetCipherPayloadType()) {
-				PTRACE(1, "WARNING: Can't use PT to decide encryption direction -> fall back on IPs");
 				// HACK: this only works if caller and called are on different IPs and send media from the same IP as call signaling
+				if (!m_haveShownPTWarning) { // show warning only once (not for every RTP packet)
+					PTRACE(1, "WARNING: Can't use PT to decide encryption direction -> fall back on IPs");
+					m_haveShownPTWarning = true;
+				}
 				PIPSocket::Address callerSignalIP;
 				WORD notused;
 				(*m_call)->GetSrcSignalAddr(callerSignalIP, notused);

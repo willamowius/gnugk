@@ -277,6 +277,9 @@ protected:
 	int m_multiplexSocket_B;	// only valid if m_multiplexDestination_ is set)
 	PMutex m_multiplexMutex;	// protect multiplex IDs, addresses and sockets against access from concurrent threads
 #endif
+#ifdef HAS_H235_MEDIA
+	bool m_haveShownPTWarning;	// flag to show the PayloadType warning only once (not for every RTP packet)
+#endif
     bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPs in signalling, do full auto-detect
     bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H239 streams
     NetworkAddress m_keepSignaledIPs;   // don't do auto-detect on this network
