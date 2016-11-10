@@ -120,7 +120,7 @@ for details.
 <item><tt>default</tt>
 <p>
 This is a special pseudo module - it is used to set the final status
-if other modules have not determined it. The format is as follows:
+if other modules have not determined it. The format is:
 <descrip>
 <tag/Syntax:/
 <tscreen><verb>
@@ -575,7 +575,7 @@ is followed by a list of accounting event types.
 <item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, h323-ivr-out (start, update, stop)</tt><newline>
 <p>
 		h323-call-id variable that contains an H.323 Call Identifier.
-		The syntax is as follows: "h323-ivr-out=h323-call-id:123FDE 12348765 9abc1234 12".
+		The syntax is: "h323-ivr-out=h323-call-id:123FDE 12348765 9abc1234 12".
 
 <item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, h323-ivr-out (start, update, stop)</tt><newline>
 <p>

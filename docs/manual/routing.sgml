@@ -146,7 +146,7 @@ If schema is an IP address will return the [Routing::URIService] gateway setting
 </itemize>
 
 <p>
-Default configuration for routing policies is as follows:
+Default configuration for routing policies is:
 <descrip>
 <quote><tt>[RoutingPolicy]<newline>
 default=explicit,internal,parent,neighbor</tt></quote>
