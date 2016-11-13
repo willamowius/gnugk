@@ -285,7 +285,7 @@ inline bool Toolkit::RouteTable::RouteEntry::Compare(const Address *ip) const
 	return (*ip == destination) || (((*ip & net_mask) == network) && (ip->GetVersion() == network.GetVersion()));
 }
 
-#if (!_WIN32) && (GCC_VERSION >= 40400)
+#if (!_WIN32) && (GCC_VERSION >= 40500)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstrict-overflow"
 #endif
@@ -320,7 +320,7 @@ bool Toolkit::RouteTable::RouteEntry::CompareWithMask(const Address *ip) const
     }
     return (maskValid);
 }
-#if (!_WIN32) && (GCC_VERSION >= 40400)
+#if (!_WIN32) && (GCC_VERSION >= 40500)
 #pragma GCC diagnostic pop
 #endif
 
