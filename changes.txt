@@ -1,6 +1,7 @@
 Changes from 4.3 to 4.4
 =======================
-
+- new default setting: [Proxy] ProxyForNAT now defaults to off, if you want to keep the previous
+  behaviour, please set it explicitely
 
 Changes from 4.2 to 4.3
 =======================

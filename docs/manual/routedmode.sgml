@@ -769,7 +769,7 @@ Specify the range of UDP port number for RTP/RTCP channels. Since RTP streams re
 Note that the size of the specified range may limit the number of possible concurrent calls.
 
 <item><tt/ProxyForNAT=1/<newline>
-Default: <tt/1/<newline>
+Default: <tt/0/<newline>
 <p>
 If set, the gatekeeper will function as a proxy for calls where one of the participating endpoints
 is behind a NAT box. This ensures the RTP/RTCP stream can
@@ -781,7 +781,7 @@ you should disable this feature and let the NAT box forward
 RTP/RTCP stream for you.
 
 <item><tt/ProxyForSameNAT=1/<newline>
-Default: <tt/1/<newline>
+Default: <tt/0/<newline>
 <p>
 Whether to proxy for calls between endpoints from the same NAT box.
 There is a degree of uncertainty when endpoints are behind the same NAT as to 

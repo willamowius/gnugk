@@ -1592,7 +1592,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 		}
 	}
 
-	if (Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyAlways", "0"))) {
+	if (GkConfig()->GetBoolean(ProxySection, "ProxyAlways", false)) {
 			PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled. (ProxyAlways)");
 		m_call->SetProxyMode(CallRec::ProxyEnabled);
 		m_call->SetH245Routed(true);
@@ -1600,7 +1600,7 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 
 	// enable proxy if required, no matter whether H.245 routed
 	if (m_call->GetProxyMode() == CallRec::ProxyDetect) {
-		if ((nat_type != CallRec::none && Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyForNAT", "1"))) ) {
+		if ((nat_type != CallRec::none && GkConfig()->GetBoolean(ProxySection, "ProxyForNAT", false)) ) {
 			// must proxy
 			PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled. (ProxyForNAT)");
 			m_call->SetProxyMode(CallRec::ProxyEnabled);
