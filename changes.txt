@@ -1,5 +1,6 @@
 Changes from 4.3 to 4.4
 =======================
+- BUGFIX(RasTbl.cxx) fix crash on invalid AliasTypeFilter setting
 - new default setting: [Proxy] ProxyForNAT now defaults to off, if you want to keep the previous
   behaviour, please set it explicitely
 

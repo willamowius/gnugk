@@ -173,6 +173,10 @@ void EndpointRec::LoadAliases(const H225_ArrayOf_AliasAddress & aliases, const H
 					PTRACE(3, "Malformed AliasTypeFilter: " << entries[e]);
 					continue;
 				}
+				if (!h225endpointtypes.Contains(filtertype[0])) {
+					PTRACE(3, "Malformed AliasTypeFilter - invalid enpoint type: " << entries[e]);
+					continue;
+				}
 				// filter does not match endpoint type
 				if (!type.HasOptionalField(h225endpointtypes[filtertype[0]])) {
 					continue;
