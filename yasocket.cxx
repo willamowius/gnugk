@@ -637,7 +637,14 @@ int YaUDPSocket::os_recv(void * buf, int sz)
 
 int YaUDPSocket::os_send(const void * buf, int sz)
 {
-	return ::sendto(os_handle, buf, sz, 0, (struct sockaddr *)&sendaddr, sizeof(sendaddr));
+	// must pass short len when sending to IPv4 address on Solaris 11, OpenBSD and NetBSD
+	// sizeof(sockaddr) would OK on Linux and FreeBSD
+	size_t addr_len = sizeof(sockaddr_in);
+#ifdef hasIPV6
+	if (((struct sockaddr*)&sendaddr)->sa_family == AF_INET6)
+		addr_len = sizeof(sockaddr_in6);
+#endif  // hasIPV6
+	return ::sendto(os_handle, buf, sz, 0, (struct sockaddr *)&sendaddr, addr_len);
 }
 
 #else // LARGE_FDSET
