@@ -3839,7 +3839,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 	}
 
 	m_crv = (WORD)(setup->GetCallReference() | 0x8000u);
-	if (Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "ForwardOnFacility", "0")) && m_setupPdu == NULL)
+	if (toolkit->Config()->GetBoolean(RoutedSec, "ForwardOnFacility", false) && m_setupPdu == NULL)
 		m_setupPdu = new Q931(q931);
 
 	if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)
@@ -4605,7 +4605,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 				setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
 		}
 	}
-	if (Toolkit::AsBool(toolkit->Config()->GetString(RoutedSec, "ForwardOnFacility", "0"))
+	if (toolkit->Config()->GetBoolean(RoutedSec, "ForwardOnFacility", false)
 		&& setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
 		m_setupClearTokens = new H225_ArrayOf_ClearToken(setupBody.m_tokens);	// save a copy of the tokens in case the call gets forwarded
 	}
