@@ -3313,9 +3313,9 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 	H225_TransportAddress oldDestSignalAddr = m_call->GetDestSignalAddr();
 	H225_Facility_UUIE & facilityBody = msg->GetUUIEBody();
 
-	endptr forwarded;
 	Routing::FacilityRequest request(facilityBody, msg);
 	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
+	// TODO: check if all aliases are empty and set aliases = NULL if so ?
 	if (aliases)
 		Toolkit::Instance()->RewriteE164(*aliases);
 
@@ -3328,24 +3328,23 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 		return;
 	}
 
-	forwarded = route.m_destEndpoint;
+	endptr forwarded = route.m_destEndpoint;
 
 	PString forwarder;
 	if (facilityBody.HasOptionalField(H225_Facility_UUIE::e_featureSet)
 			&& facilityBody.m_featureSet.HasOptionalField(H225_FeatureSet::e_neededFeatures)) {
 		// get the forwarder
-		H225_ArrayOf_FeatureDescriptor &fd = facilityBody.m_featureSet.m_neededFeatures;
+		H225_ArrayOf_FeatureDescriptor & fd = facilityBody.m_featureSet.m_neededFeatures;
 		if (fd.GetSize() > 0 && fd[0].HasOptionalField(H225_FeatureDescriptor::e_parameters))
 			if (fd[0].m_parameters.GetSize() > 0) {
-				H225_EnumeratedParameter &parm = fd[0].m_parameters[0];
+				H225_EnumeratedParameter & parm = fd[0].m_parameters[0];
 				if (parm.HasOptionalField(H225_EnumeratedParameter::e_content))
 					if (parm.m_content.GetTag() == H225_Content::e_alias)
-						forwarder = AsString((const H225_AliasAddress&)parm.m_content, FALSE) + ":forward";
+						forwarder = AsString((const H225_AliasAddress &)parm.m_content, false) + ":forward";
 			}
 	}
 	PString altDestInfo(aliases ? AsString(*aliases) : AsDotString(route.m_destAddr));
-	CallSignalSocket *fsocket = (facilityBody.m_reason.GetTag() == H225_FacilityReason::e_callForwarded)
-		? this : NULL;
+	CallSignalSocket *fsocket = (facilityBody.m_reason.GetTag() == H225_FacilityReason::e_callForwarded) ? this : NULL;
 	m_call->SetForward(fsocket, route.m_destAddr, forwarded, forwarder, altDestInfo);
 	if (route.m_flags & Route::e_toParent)
 		m_call->SetToParent(true);
@@ -3427,7 +3426,7 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 			const H225_ArrayOf_AliasAddress & a = fwd->GetAliases();
 			for (PINDEX n = 0; n < a.GetSize(); ++n)
 				if (a[n].GetTag() == H225_AliasAddress::e_dialedDigits) {
-					PString callingNumber(AsString(a[n], FALSE));
+					PString callingNumber(AsString(a[n], false));
 					fakeSetup.SetCallingPartyNumber(callingNumber);
 					setupUUIE.IncludeOptionalField(H225_Setup_UUIE::e_sourceAddress);
 					setupUUIE.m_sourceAddress.SetSize(1);
