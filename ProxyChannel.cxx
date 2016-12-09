@@ -3315,7 +3315,6 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 
 	Routing::FacilityRequest request(facilityBody, msg);
 	H225_ArrayOf_AliasAddress *aliases = request.GetAliases();
-	// TODO: check if all aliases are empty and set aliases = NULL if so ?
 	if (aliases)
 		Toolkit::Instance()->RewriteE164(*aliases);
 
