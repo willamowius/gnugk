@@ -1,5 +1,6 @@
 Changes from 4.3 to 4.4
 =======================
+- added message type parameter in RouteRequest event (ARQ, Setup, LRQ)
 - BUGFIX(yasocket.cxx) fix UDP with LARGE_FDSET on Solaris, OpenBSD and NetBSD
 - BUGFIX(RasTbl.cxx) fix crash on invalid AliasTypeFilter setting
 - new default setting: [Proxy] ProxyForNAT now defaults to off, if you want to keep the previous

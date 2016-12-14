@@ -5,7 +5,7 @@
 // Routing Mechanism for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2003
-// Copyright (c) 2004-2012, Jan Willamowius
+// Copyright (c) 2004-2016, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -161,11 +161,11 @@ public:
 	typedef R ReqObj;
 	typedef W Wrapper;
 
-	Request(ReqObj & r, Wrapper *w) : m_request(r), m_wrapper(w), m_clientAuthId(0) {}
+	Request(ReqObj & r, Wrapper *w) : m_request(r), m_wrapper(w), m_clientAuthId(0) { }
 	Request(ReqObj & r, Wrapper *w, const PString & id, PUInt64 authid)
-		: m_request(r), m_wrapper(w), m_callingStationId(id), m_clientAuthId(authid) {}
+		: m_request(r), m_wrapper(w), m_callingStationId(id), m_clientAuthId(authid) { }
 	Request(ReqObj & r, Wrapper *w, const std::list<Route> &failedRoutes)
-		: RoutingRequest(failedRoutes), m_request(r), m_wrapper(w), m_clientAuthId(0) {}
+		: RoutingRequest(failedRoutes), m_request(r), m_wrapper(w), m_clientAuthId(0) { }
 
 	bool Process();
 
@@ -667,11 +667,13 @@ public:
 		/// the callID as string
 		const PString & callID,
 		/// the called IP for unregistered calls
-		const PString & calledip = "unknown",
+		const PString & calledip,
 		/// vendor string of caller
-		const PString & vendorString = "unknown",
+		const PString & vendorString,
         /// the IP we received this message from
-        const PString & fromIP = "unknown"
+        const PString & fromIP,
+        /// type of message that caused this RouteRequest
+        const PString & msgType
 		);
 
 	/** Make a routing decision for a pending route request (inserted
