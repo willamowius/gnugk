@@ -99,6 +99,7 @@ public:
 protected:
 	// LUA interpreter
 	lua_State * m_lua;
+	PMutex m_luaInterpreterLock;
 };
 
 
@@ -252,6 +253,7 @@ void LuaPolicy::LoadConfig(const PString & instance)
 
 LuaPolicy::~LuaPolicy()
 {
+	PWaitAndSignal lock(m_luaInterpreterLock);
 }
 
 void LuaPolicy::RunPolicy(
@@ -268,6 +270,8 @@ void LuaPolicy::RunPolicy(
 		/* out: */
 		DestinationRoutes & destination)
 {
+	PWaitAndSignal lock(m_luaInterpreterLock);
+
 	SetString("source", source);
 	SetString("calledAlias", calledAlias);
 	SetString("calledIP", calledIP);
@@ -496,6 +500,7 @@ LuaAuth::LuaAuth(
 
 LuaAuth::~LuaAuth()
 {
+	PWaitAndSignal lock(m_luaInterpreterLock);
 }
 
 /*
@@ -643,6 +648,8 @@ int LuaAuth::doRegistrationCheck(
 		return e_fail;
     }
 
+	PWaitAndSignal lock(m_luaInterpreterLock);
+
 	SetString("username", username);
 	SetString("callerIP", callerIP);
 	SetString("aliases", aliases);
@@ -680,6 +687,8 @@ int LuaAuth::doCallCheck(
 		PTRACE(1, "LuaAuth\tError: LUA not configured");
 		return e_fail;
     }
+
+	PWaitAndSignal lock(m_luaInterpreterLock);
 
 	SetString("messageType", messageType);
 	SetString("message", message);
@@ -776,6 +785,7 @@ LuaPasswordAuth::LuaPasswordAuth(const char* authName)
 
 LuaPasswordAuth::~LuaPasswordAuth()
 {
+	PWaitAndSignal lock(m_luaInterpreterLock);
 }
 
 bool LuaPasswordAuth::GetPassword(const PString & alias, PString & password)
@@ -784,6 +794,8 @@ bool LuaPasswordAuth::GetPassword(const PString & alias, PString & password)
 		PTRACE(1, "LuaPasswordAuth\tError: LUA not configured");
 		return false;
     }
+
+	PWaitAndSignal lock(m_luaInterpreterLock);
 
 	SetString("alias", alias);
 	SetString("gk", Toolkit::GKName());
@@ -878,6 +890,7 @@ LuaAcct::LuaAcct(const char* moduleName, const char* cfgSecName)
 
 LuaAcct::~LuaAcct()
 {
+	PWaitAndSignal lock(m_luaInterpreterLock);
 }
 
 GkAcctLogger::Status LuaAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & call)
@@ -930,6 +943,8 @@ GkAcctLogger::Status LuaAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & c
     } else {
         SetupAcctParams(params, call, m_timestampFormat);
     }
+
+	PWaitAndSignal lock(m_luaInterpreterLock);
 
 	SetString("event", eventName);
 	SetString("result", "OK");
@@ -990,6 +1005,8 @@ GkAcctLogger::Status LuaAcct::Log(GkAcctLogger::AcctEvent evt, const endptr & ep
 
 	std::map<PString, PString> params;
 	SetupAcctEndpointParams(params, ep);
+
+	PWaitAndSignal lock(m_luaInterpreterLock);
 
 	SetString("event", eventName);
 	SetString("result", "OK");
