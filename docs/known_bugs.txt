@@ -1,8 +1,11 @@
 Known bugs:
+* when GnuGk acts as a H.460.18 client (as client in a H.460.18 traversal zone with
+  another gatekeeper or as child gatekeeper), it does currently not send a keep-alive
+  on the Q.931 TCP connection during a call.
 * H.245 sockets are bound to all interfaces (0.0.0.0), Home config option is ignored
   which may cause problems on multihomed hosts (virtual servers)
 * a race condition occurs when both endpoints try to establish H.245 connection
-  in H.245 routed mode - this makes a call to fail
+  in H.245 routed mode - this cause a call to fail
 * authentication/accounting modules do not work fine for gatekeeper forwarded 
   calls (ForwardOnFacility=1), it is recommended to disable this flag
 * the gatekeeper does not try to bind a socket again if a Q.931/H.245/T.120 port
