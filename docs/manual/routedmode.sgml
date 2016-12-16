@@ -76,7 +76,7 @@ Default: <tt/1/<newline>
 The number of RTP proxy handling threads. Increase this value only if you
 experience problems with RTP delay or jitter on a heavily loaded gatekeeper.
 Special care has to be taken on Windows, as RTP handling threads are subject
-to the same limit of 64 sockets as signaling threads. Each RTP thread is
+to the same limit of 64 sockets as signaling threads. Thus on Windows each RTP thread is
 able to handle at most 32 proxied calls (2 sockets per call).
 
 <item><tt/AcceptNeighborsCalls=1/<newline>
