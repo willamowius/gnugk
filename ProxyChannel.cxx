@@ -1756,14 +1756,6 @@ PBoolean CallSignalSocket::Connect(const Address & addr)
 			<< errorNumber << ": " << GetErrorText(PSocket::LastGeneralError)
 			<< " remote addr: " << AsString(addr));
 		Close();
-#ifdef _WIN32
-		if ((errorNumber & PWIN32ErrorFlag) == 0
-				|| (errorNumber & ~PWIN32ErrorFlag) != WSAEADDRINUSE)
-			break;
-#else
-		if (!(errorNumber == EADDRINUSE || errorNumber == EINVAL))
-			break;
-#endif
 	}
 	return false;
 }
@@ -8158,14 +8150,6 @@ bool CallSignalSocket::InternalConnectTo()
 			<< errorNumber << ": " << remote->GetErrorText(PSocket::LastGeneralError)
 			<< " remote addr: " << AsString(peerAddr));
 		remote->Close();
-#ifdef _WIN32
-		if ((errorNumber & PWIN32ErrorFlag) == 0
-				|| (errorNumber & ~PWIN32ErrorFlag) != WSAEADDRINUSE)
-			break;
-#else
-		if (!(errorNumber == EADDRINUSE || errorNumber == EINVAL))
-			break;
-#endif
 	}
 
 	return false;
@@ -8192,14 +8176,6 @@ bool CallSignalSocket::ForwardCallConnectTo()
 			<< errorNumber << ": " << remote->GetErrorText(PSocket::LastGeneralError)
 			<< " remote addr: " << AsString(peerAddr));
 		remote->Close();
-#ifdef _WIN32
-		if ((errorNumber & PWIN32ErrorFlag) == 0
-				|| (errorNumber & ~PWIN32ErrorFlag) != WSAEADDRINUSE)
-			break;
-#else
-		if (!(errorNumber == EADDRINUSE || errorNumber == EINVAL))
-			break;
-#endif
 	}
 
 	PTRACE(3, "Q931\t" << AsString(peerAddr, peerPort) << " DIDN'T ACCEPT THE CALL");
@@ -8454,14 +8430,6 @@ H245Socket::H245Socket(CallSignalSocket *sig)
 			<< errorNumber << ": " << listener->GetErrorText(PSocket::LastGeneralError)
 			);
 		listener->Close();
-#ifdef _WIN32
-		if ((errorNumber & PWIN32ErrorFlag) == 0
-				|| (errorNumber & ~PWIN32ErrorFlag) != WSAEADDRINUSE)
-			break;
-#else
-		if (!(errorNumber == EADDRINUSE || errorNumber == EINVAL))
-			break;
-#endif
 	}
 	SetHandler(sig->GetHandler());
 }
@@ -8899,14 +8867,6 @@ bool H245Socket::ConnectRemote()
 		Close();
 		PTRACE(3, "H245\t" << AsString(peerAddr, peerPort) << " DIDN'T ACCEPT THE CALL");
 		SNMP_TRAP(10, SNMPError, Network, "H.245 connection to " + AsString(peerAddr, peerPort) + " failed");
-#ifdef _WIN32
-		if ((errorNumber & PWIN32ErrorFlag) == 0
-				|| (errorNumber & ~PWIN32ErrorFlag) != WSAEADDRINUSE)
-			break;
-#else
-		if (!(errorNumber == EADDRINUSE || errorNumber == EINVAL))
-			break;
-#endif
 	}
 	return false;
 }
@@ -11681,14 +11641,6 @@ T120LogicalChannel::T120Listener::T120Listener(T120LogicalChannel *lc) : t120lc(
 			<< errorNumber << ": " << GetErrorText(PSocket::LastGeneralError)
 			);
 		Close();
-#ifdef _WIN32
-		if ((errorNumber & PWIN32ErrorFlag) == 0
-				|| (errorNumber & ~PWIN32ErrorFlag) != WSAEADDRINUSE)
-			break;
-#else
-		if (!(errorNumber == EADDRINUSE || errorNumber == EINVAL))
-			break;
-#endif
 	}
 }
 
@@ -11722,14 +11674,6 @@ void T120LogicalChannel::Create(T120ProxySocket *socket)
 			);
 		remote->Close();
 		PTRACE(3, "T120\t" << AsString(peerAddr, peerPort) << " DIDN'T ACCEPT THE CALL");
-#ifdef _WIN32
-		if ((errorNumber & PWIN32ErrorFlag) == 0
-				|| (errorNumber & ~PWIN32ErrorFlag) != WSAEADDRINUSE)
-			break;
-#else
-		if (!(errorNumber == EADDRINUSE || errorNumber == EINVAL))
-			break;
-#endif
 	}
 	delete remote;
 	remote = NULL;
