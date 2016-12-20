@@ -1,5 +1,6 @@
 Changes from 4.3 to 4.4
 =======================
+- pass full RRQ message to LuaAuth
 - BUGFIX(ProxyChannel.cxx) when opening a port from a PortRange fails, try next port regardless of errno
 - BUGFIX(lua.cxx) add mutex for LUA interpreter, because it is not thread safe
 - added message type parameter in RouteRequest event (ARQ, Setup, LRQ)

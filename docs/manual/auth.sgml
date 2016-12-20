@@ -1715,6 +1715,7 @@ Registration authentication scripts can use the following variables
 <item><tt/callerIP/ - caller's IP (the request has been received from - NAT IP for NATted endpoints)
 <item><tt/aliases/ - the list of aliases in the registration
 <item><tt/messageType/ - always "RRQ" for registrations
+<item><tt/message/ - the full RRQ message as multi-line text block
 </itemize>
 
 Call authentication scripts can use the following variables

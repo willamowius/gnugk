@@ -417,7 +417,8 @@ protected:
 		const PString & username,
 		const PString & callerIP,
 		const PString & aliases,
-		const PString & messageType
+		const PString & messageType,
+		const PString & message
 		);
 
 	/** Run the LUA call authentication script
@@ -550,7 +551,10 @@ int LuaAuth::Check(
 	}
 
 	PString messageType = "RRQ";
-	return doRegistrationCheck(username, callerIP, aliases, messageType);
+    PStringStream strm;
+    rrq.PrintOn(strm);
+    PString message = strm;
+	return doRegistrationCheck(username, callerIP, aliases, messageType, message);
 }
 
 int LuaAuth::Check(
@@ -640,7 +644,8 @@ int LuaAuth::doRegistrationCheck(
 		const PString & username,
 		const PString & callerIP,
 		const PString & aliases,
-		const PString & messageType
+		const PString & messageType,
+		const PString & message
 		)
 {
     if (!m_lua || m_registrationScript.IsEmpty()) {
@@ -654,6 +659,7 @@ int LuaAuth::doRegistrationCheck(
 	SetString("callerIP", callerIP);
 	SetString("aliases", aliases);
 	SetString("messageType", messageType);
+	SetString("message", message);
 	SetString("result", "FAIL");
 
 	if (!RunLua(m_registrationScript)) {
