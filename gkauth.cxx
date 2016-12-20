@@ -1260,7 +1260,7 @@ int SimplePasswordAuth::CheckTokens(
 	const H225_ArrayOf_AliasAddress * aliases)
 {
 	for (PINDEX i = 0; i < tokens.GetSize(); i++) {
-		H235_ClearToken& token = tokens[i];
+		H235_ClearToken & token = tokens[i];
 
 		// check for Cisco Access Token
 		if (token.m_tokenOID == OID_H235_CAT) {

@@ -82,7 +82,7 @@ GkH235Authenticators::GkH235Authenticators(const GkH235Authenticators & auth)
 #endif
 }
 
-GkH235Authenticators& GkH235Authenticators::operator=(const GkH235Authenticators & auth)
+GkH235Authenticators & GkH235Authenticators::operator=(const GkH235Authenticators & auth)
 {
 	GkH235Authenticators temp(auth);
 
@@ -137,9 +137,9 @@ int GkH235Authenticators::Validate(
 	for (PINDEX i = 0; i < cryptoTokens.GetSize(); i++) {
 		const H225_CryptoH323Token & token = cryptoTokens[i];
 		if (token.GetTag() == H225_CryptoH323Token::e_nestedcryptoToken) {
-			const H235_CryptoToken& nestedCryptoToken = token;
+			const H235_CryptoToken & nestedCryptoToken = token;
 			if (nestedCryptoToken.GetTag() == H235_CryptoToken::e_cryptoHashedToken) {
-  				const H235_CryptoToken_cryptoHashedToken& cryptoHashedToken = nestedCryptoToken;
+  				const H235_CryptoToken_cryptoHashedToken & cryptoHashedToken = nestedCryptoToken;
 				if (cryptoHashedToken.m_tokenOID == OID_H235_A_V1
 						|| cryptoHashedToken.m_tokenOID == OID_H235_A_V2) {
 					procedure1Found = true;
@@ -220,7 +220,7 @@ int GkH235Authenticators::Validate(
 
 	PINDEX i;
 	for (i = 0; i < clearTokens.GetSize(); i++) {
-		const H235_ClearToken& token = clearTokens[i];
+		const H235_ClearToken & token = clearTokens[i];
 		// check for CAT (Cisco Access Token)
   		if (token.m_tokenOID == OID_H235_CAT) {
 			catFound = true;
@@ -277,9 +277,9 @@ int GkH235Authenticators::Validate(
 			}
 		} else if (token.GetTag() == H225_CryptoH323Token::e_nestedcryptoToken) {
 #ifdef H323_H235
-			const H235_CryptoToken& nestedCryptoToken = token;
+			const H235_CryptoToken & nestedCryptoToken = token;
 			if (nestedCryptoToken.GetTag() == H235_CryptoToken::e_cryptoHashedToken) {
-  				const H235_CryptoToken_cryptoHashedToken& cryptoHashedToken = nestedCryptoToken;
+  				const H235_CryptoToken_cryptoHashedToken & cryptoHashedToken = nestedCryptoToken;
 				if (cryptoHashedToken.m_tokenOID == OID_H235_A_V1
 						|| cryptoHashedToken.m_tokenOID == OID_H235_A_V2) {
 					procedure1Found = true;
@@ -512,7 +512,7 @@ void GkH235Authenticators::SetProcedure1Data(const PString & sendersID, const PS
 #endif // H323_H235
 }
 
-void GkH235Authenticators::SetProcedure1LocalId(const PString& localID)
+void GkH235Authenticators::SetProcedure1LocalId(const PString & localID)
 {
 #ifdef H323_H235
 	PWaitAndSignal lock(m_mutex);
