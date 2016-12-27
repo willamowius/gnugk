@@ -11486,6 +11486,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
         WORD fSrcPort, fDestPort, rSrcPort, rDestPort;
         GetRTPPorts(fSrcPort, fDestPort, rSrcPort, rDestPort);
         if (call && call->GetCalledParty() && call->GetCalledParty()->GetTraversalRole() != None && ( (fDestPort > 0 && rSrcPort > 0) || (fSrcPort > 0 && rDestPort > 0) ) ) {
+            // TODO: should this really happen for unidirectional channels ?
             if ((fSrcPort > 0 && fSrcPort == rDestPort) || (rSrcPort > 0 && rSrcPort == fDestPort)) { /* TODO: IP check ? */
                 zeroNow = true;
             } else {
