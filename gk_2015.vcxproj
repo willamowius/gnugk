@@ -1060,6 +1060,7 @@
     <ClCompile Include="sqlacct.cxx" />
     <ClCompile Include="sqlauth.cxx" />
     <ClCompile Include="statusacct.cxx" />
+    <ClCompile Include="RequireOneNet.cxx" />
     <ClCompile Include="Toolkit.cxx" />
     <ClCompile Include="version.cxx" />
     <ClCompile Include="yasocket.cxx" />
@@ -1218,6 +1219,7 @@ configure
     <ClInclude Include="SoftPBX.h" />
     <ClInclude Include="sqlacct.h" />
     <ClInclude Include="statusacct.h" />
+    <ClInclude Include="RequireOneNet.h" />
     <ClInclude Include="stl_supp.h" />
     <ClInclude Include="Toolkit.h" />
     <ClInclude Include="version.h" />
