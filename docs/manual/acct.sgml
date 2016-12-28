@@ -20,7 +20,7 @@ All CDRs are also sent to the status port and can be used by external applicatio
 <tscreen><verb>
 acctmod=actions
 
- <acctmod> := FileAcct | RadAcct | SQLAcct | StatusAcct | SyslogAcct | LuaAcct | CapacityControl | ...
+ <acctmod> := FileAcct | RadAcct | SQLAcct | StatusAcct | SyslogAcct | LuaAcct | RequireOneNet | CapacityControl | ...
  <actions> := <control>[;<event>,<event>,...]
  <control> := optional | required | sufficient | alternative
  <event>   := start | stop | alert | connect | update | register | unregister | on | off
@@ -110,6 +110,11 @@ See section <ref id="syslogacct" name="[SyslogAcct]"> for configuration details.
 <p>
 This module runs a LUA script for each accounting event. It supports (start, connect, stop, update, alert, register, unregister) event types.
 See section <ref id="luaacct" name="[LuaAcct]"> for configuration details.
+
+<item><tt>RequireOneNet</tt>
+<p>
+Logically an authentication method that ensures all calls either start or terminate within one of your own networks.
+See section <ref id="requireonenet" name="[RequireOneNet]"> for configuration details.
 
 <item><tt>CapacityControl</tt>
 <p>
@@ -976,6 +981,24 @@ Default: <tt>N/A</tt><newline>
 <p>
 Format of timestamp strings. If this setting
 is not specified, the global one from the main gatekeeper section is used.
+
+</itemize>
+
+<sect1>Section &lsqb;RequireOneNet&rsqb;
+<label id="requireonenet">
+<p>
+While this is technically an accounting module, its logical purpose is to authenticate calls
+and make sure at least one end of the cal is inside one of your own networks.
+This is designed to protect traversal gatekeepers from abuse that by nature
+need to be accessible for everybody who wants to call into your network,
+but that should not be allowed to support external to external calls.
+
+<itemize>
+<item><tt>Networks=192.168.1.0/24,1.2.3.4/24</tt><newline>
+Default: <tt>N/A</tt>
+<p>
+List the networks your gatekeeper supports. Either the source or the destination of
+all calls must be within one of these networks.
 
 </itemize>
 

@@ -130,7 +130,10 @@ bool IsLoopback(const PIPSocket::Address & addr);
 bool IsPrivate(const PIPSocket::Address & ip);
 
 // is this IP part of this network
-bool IsInNetwork(const PIPSocket::Address & ip, const NetworkAddress  & net);
+bool IsInNetwork(const PIPSocket::Address & ip, const NetworkAddress & net);
+
+// is this IP part of this network list
+bool IsInNetworks(const PIPSocket::Address & ip, const list<NetworkAddress> & nets);
 
 bool IsSet(const H323TransportAddress & addr);
 

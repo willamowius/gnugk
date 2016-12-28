@@ -305,9 +305,17 @@ TEST_F(H323UtilTest, IsLocal) {
 TEST_F(H323UtilTest, IsInNetwork) {
 	PIPSocket::Address ip1("4.5.6.7");
 	PIPSocket::Address ip2("4.5.7.1");
+	PIPSocket::Address ip3("5.6.7.1");
     NetworkAddress net("4.5.6.0/24");
+    NetworkAddress net2("5.6.7.0/24");
+    list<NetworkAddress> net_list;
+    net_list.push_back(net);
+    net_list.push_back(net2);
 	EXPECT_TRUE(IsInNetwork(ip1, net));
 	EXPECT_FALSE(IsInNetwork(ip2, net));
+	EXPECT_TRUE(IsInNetworks(ip1, net_list));
+	EXPECT_FALSE(IsInNetworks(ip2, net_list));
+	EXPECT_TRUE(IsInNetworks(ip3, net_list));
 }
 
 TEST_F(H323UtilTest, SplitIPAndPort) {

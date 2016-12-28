@@ -1,7 +1,7 @@
 /*
  * statusacct.h
  *
- * accounting module for GNU Gatekeeper that send it's output to the status port.
+ * accounting module for GNU Gatekeeper that sends it's output to the status port.
  *
  * Copyright (c) 2005-2016, Jan Willamowius
  *

@@ -671,9 +671,19 @@ bool IsPrivate(const PIPSocket::Address & ip)
 }
 
 // is this IP part of this network
-bool IsInNetwork(const PIPSocket::Address & ip, const NetworkAddress  & net)
+bool IsInNetwork(const PIPSocket::Address & ip, const NetworkAddress & net)
 {
     return (ip << net);
+}
+
+// is this IP part of this network list
+bool IsInNetworks(const PIPSocket::Address & ip, const list<NetworkAddress> & nets)
+{
+    for (list<NetworkAddress>::const_iterator i = nets.begin(); i != nets.end(); ++i) {
+        if (IsInNetwork(ip, *i))
+            return true;
+    }
+    return false;
 }
 
 bool IsSet(const H323TransportAddress & addr)
