@@ -9831,7 +9831,7 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
         m_ignoreSignaledIPs = call->IgnoreSignaledIPs();
         if (m_ignoreSignaledIPs) {
             m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
-            PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");
+            PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");  // TODO: support list of netmasks
             if (keepSignaledIPs.Find('/') == P_MAX_INDEX) {
                 // add netmask to pure IPs
                 if (IsIPv4Address(keepSignaledIPs)) {
@@ -10834,7 +10834,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
                 call->SetIgnoreSignaledIPs(false);
             } else {
                 m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
-                PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");
+                PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");  // TODO: support list of netmasks
                 if (keepSignaledIPs.Find('/') == P_MAX_INDEX) {
                     // add netmask to pure IPs
                     if (IsIPv4Address(keepSignaledIPs)) {
@@ -10926,7 +10926,7 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool na
                 call->SetIgnoreSignaledIPs(false);
             } else {
                 m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
-                PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");
+                PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");  // TODO: support list of netmasks
                 if (keepSignaledIPs.Find('/') == P_MAX_INDEX) {
                     // add netmask to pure IPs
                     if (IsIPv4Address(keepSignaledIPs)) {
