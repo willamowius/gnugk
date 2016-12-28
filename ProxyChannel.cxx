@@ -11364,6 +11364,7 @@ void RTPLogicalChannel::ZeroMediaChannelSource()
 // called on OLCAck
 void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlChannel, H245_UnicastAddress * mediaChannel, const PIPSocket::Address & local, bool rev, callptr & call, bool fromTraversalClient, bool useRTPMultiplexing, bool isUnidirectional)
 {
+    PTRACE(7, "JW RTP HandleMediaChannel: fromTraversalClient=" << fromTraversalClient << " isUnidirectional=" << isUnidirectional);
 	H245_UnicastAddress tmp, tmpmedia, tmpmediacontrol, *dest = mediaControlChannel;
 	PIPSocket::Address tmpSrcIP = SrcIP;
 	WORD tmpSrcPort = SrcPort + 1;
@@ -11413,6 +11414,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 
     PIPSocket::Address ip = H245UnicastToSocketAddr(*dest);
     if (isUnidirectional) {
+        PTRACE(7, "JW RTP HandleMediaChannel unidirectional: ip=" << AsString(ip) << " private=" << IsPrivate(ip) << " tmpSrcIP=" << AsString(tmpSrcIP) << " private)" << IsPrivate(tmpSrcIP) << " m_ignoreSignaledPrivateH239IPs=" << m_ignoreSignaledPrivateH239IPs);
         if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
             zeroIP = true;
         }
