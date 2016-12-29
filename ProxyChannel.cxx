@@ -11468,7 +11468,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
             if (zeroIP) {
                 PTRACE(7, "JW RTP IN zero RTP src + dest (IgnoreSignaledIPs)");
                 (rtp->*SetDest)(0, 0, NULL, call);
-            } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs && !IsInNetwork(ip, m_keepSignaledIPs)) {
+            } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs && !IsInNetwork(tmpSrcIP, m_keepSignaledIPs)) {
                 // only zero out source IP
                 PTRACE(7, "JW RTP IN zero RTP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
                 (rtp->*SetDest)(0, 0, dest, call);
