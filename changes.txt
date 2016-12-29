@@ -1,5 +1,6 @@
 Changes from 4.3 to 4.4
 =======================
+- BUGFIX(ProxyChannel.cxx) fix IP check for IgnoreSignaledPrivateH239IPs= switch
 - new accounting/authentication policy RequireOneNet
 - pass full RRQ message to LuaAuth
 - BUGFIX(ProxyChannel.cxx) when opening a port from a PortRange fails, try next port regardless of errno
