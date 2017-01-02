@@ -1,5 +1,6 @@
 Changes from 4.3 to 4.4
 =======================
+- BUGFIX(GkStatus.cxx) call ssh_init() and ssh_finalize() only on application start and shutdown
 - BUGFIX(ProxyChannel.cxx) fix IP check for IgnoreSignaledPrivateH239IPs= switch
 - new accounting/authentication policy RequireOneNet
 - pass full RRQ message to LuaAuth

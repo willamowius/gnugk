@@ -38,6 +38,11 @@
 #include "capctrl.h"
 #include "snmp.h"
 
+#ifdef HAS_LIBSSH
+#include "libssh/libssh.h"
+#endif
+
+
 using std::vector;
 
 PCREATE_PROCESS(Gatekeeper)
@@ -882,6 +887,10 @@ void ShutdownHandler()
 #if defined(HAS_SNMP)
 	DeleteSNMPAgent();
 #endif
+#ifdef HAS_LIBSSH
+    ssh_finalize();
+#endif
+
 	PTRACE(3, "GK\tdelete ok");
 
 	Gatekeeper::CloseLogFile();
@@ -1718,6 +1727,15 @@ void Gatekeeper::Main()
 #ifdef HAS_SNMP
 	if (Toolkit::Instance()->IsSNMPEnabled() && SelectSNMPImplementation() == "PTLib")
 		SNMP_TRAP(1, SNMPInfo, General, "GnuGk started");	// when NOT registering as agent, send started trap here already
+#endif
+
+#ifdef HAS_LIBSSH
+	if (Toolkit::AsBool(GkConfig()->GetString("SSHStatusPort", 0))) {
+        if (ssh_init() < 0) {
+            PTRACE(1, "ssh_init() failed");
+            SNMP_TRAP(7, SNMPError, Network, "SSH init failed");
+        }
+	}
 #endif
 
 #if defined(_WIN32)

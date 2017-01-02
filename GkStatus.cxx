@@ -387,7 +387,6 @@ SSHStatusClient::~SSHStatusClient()
 		ssh_bind_set_fd(m_sshbind, -1);		// make sure StatusListener is not closed
 		ssh_bind_free(m_sshbind);
 	}
-	ssh_finalize();
 	GkStatus::Instance()->StatusClientDeleted();
 }
 
@@ -425,11 +424,6 @@ PBoolean SSHStatusClient::Accept(PSocket & socket)
 		return false;
 	}
 
-    if (ssh_init() < 0) {
-		PTRACE(1, "ssh_init() failed");
-		SNMP_TRAP(7, SNMPError, Network, "SSH init failed");
-		return false;
-    }
 	ssh_bind_set_fd(m_sshbind, socket.GetHandle());
 	if (ssh_bind_accept(m_sshbind, m_session) == SSH_ERROR) {
 		PTRACE(1, "ssh_bind_accept() failed: " << ssh_get_error(m_sshbind));
@@ -448,9 +442,7 @@ PBoolean SSHStatusClient::Accept(PSocket & socket)
 
 #ifdef LARGE_FDSET
 	socklen_t addr_len = sizeof(peeraddr);
-	if (getpeername(os_handle, ((struct sockaddr *)&peeraddr), &addr_len) == 0) {
-		PTRACE(1, "SSH\tgetpeername() failed");
-	}
+	getpeername(os_handle, ((struct sockaddr *)&peeraddr), &addr_len);  // OK to fail on private IPs etc.
 #endif
 
 	Address raddr, laddr;
