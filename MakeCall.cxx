@@ -210,6 +210,12 @@ PBoolean MakeCallConnection::OnSendSignalSetup(H323SignalPDU & setupPDU)
 	caps[3] = 0xa5;
 	setupPDU.GetQ931().SetIE(Q931::BearerCapabilityIE, caps);
 
+    H225_Setup_UUIE & setup = setupPDU.m_h323_uu_pdu.m_h323_message_body;
+	H225_VendorIdentifier & vendor = setup.m_sourceInfo.m_vendor;
+	vendor.m_vendor.m_t35CountryCode = Toolkit::t35cPoland;
+	vendor.m_vendor.m_manufacturerCode = Toolkit::t35mGnuGk;
+	vendor.m_vendor.m_t35Extension = 0;
+
     return H323Connection::OnSendSignalSetup(setupPDU);
 }
 
