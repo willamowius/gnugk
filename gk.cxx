@@ -1730,12 +1730,10 @@ void Gatekeeper::Main()
 #endif
 
 #ifdef HAS_LIBSSH
-	if (Toolkit::AsBool(GkConfig()->GetString("SSHStatusPort", 0))) {
-        if (ssh_init() < 0) {
-            PTRACE(1, "ssh_init() failed");
-            SNMP_TRAP(7, SNMPError, Network, "SSH init failed");
-        }
-	}
+    if (ssh_init() < 0) {
+        PTRACE(1, "ssh_init() failed");
+        SNMP_TRAP(7, SNMPError, Network, "SSH init failed");
+    }
 #endif
 
 #if defined(_WIN32)
