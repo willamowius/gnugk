@@ -2,7 +2,7 @@
 //
 // Toolkit class for the GnuGk
 //
-// Copyright (c) 2000-2013, Jan Willamowius
+// Copyright (c) 2000-2017, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -100,9 +100,9 @@ private:
 };
 
 /// @return	True if the given address equals to this address
-bool operator==(const PIPSocket::Address &addr, const NetworkAddress &net);
+bool operator==(const PIPSocket::Address & addr, const NetworkAddress & net);
 /// @return	True if the given address is contained withing this network
-bool operator<<(const PIPSocket::Address &addr, const NetworkAddress &net);
+bool operator<<(const PIPSocket::Address & addr, const NetworkAddress & net);
 
 #ifdef H323_H350
 class H350_Session;
@@ -519,7 +519,7 @@ class Toolkit : public Singleton<Toolkit>
 	/** Sets the config that the toolkit uses to a given config.
 	 *  A prior loaded Config is discarded.
 	 */
-	PConfig* SetConfig(const PFilePath &fp, const PString &section);
+	PConfig* SetConfig(const PFilePath & fp, const PString & section);
 
 	/* This method modifies the config from status port
 	 * Warning: don't modify the config via status port and change config file simultaneously,
@@ -543,7 +543,7 @@ class Toolkit : public Singleton<Toolkit>
 	 * @param regexStr the string which is compiled to a regex and executed with #regex.Execute(str, pos)#
 	 * @return TRUE if the regex matched and FALSE if not or any error case.
 	 */
-	static bool MatchRegex(const PString &str, const PString &regexStr);
+	static bool MatchRegex(const PString &str, const PString & regexStr);
 
 	/** returns the #bool# that #str# represents.
 	 * Case insensitive, "t...", "y...", "a...", "1" are #TRUE#, all other values are #FALSE#.
@@ -573,7 +573,7 @@ class Toolkit : public Singleton<Toolkit>
 		t35mCisco = 18
 	};
 	enum T35OpenOrgExtensions {
-		t35eFailoverRAS = 255  /// Defined HERE!
+		t35eFailoverRAS = 255
 	};
 	enum T35GnuGkExtensions {
 		t35eNeighborId = 1,
@@ -594,11 +594,11 @@ class Toolkit : public Singleton<Toolkit>
 	 * </code>
 	 * This results in 'cascading' calls until a iec!=iecUnkown is returned.
 	 */
-	virtual int GetInternalExtensionCode(const unsigned &country,
-						 const unsigned &extension,
-						 const unsigned &manufacturer) const;
+	virtual int GetInternalExtensionCode(const unsigned & country,
+						 const unsigned & extension,
+						 const unsigned & manufacturer) const;
 
-	int GetInternalExtensionCode(const H225_H221NonStandard& data) const;
+	int GetInternalExtensionCode(const H225_H221NonStandard & data) const;
 
 	/** Generate a call id for accounting purposes, that is unique
 		during subsequent GK start/stop events.
@@ -627,8 +627,8 @@ class Toolkit : public Singleton<Toolkit>
 	    @return	Formatted timestamp string.
 	*/
 	PString AsString(
-		const PTime& tm, /// timestamp to convert into a string
-		const PString& formatStr = PString::Empty() /// format string to use
+		const PTime & tm, /// timestamp to convert into a string
+		const PString & formatStr = PString::Empty() /// format string to use
 		) const;
 
 	/** Read and decrypt a password from the config. As a decryption key
@@ -640,8 +640,8 @@ class Toolkit : public Singleton<Toolkit>
 	    A decrypted password or an empty string, if the given key is missing.
 	*/
 	PString ReadPassword(
-		const PString &cfgSection, /// config section to read
-		const PString &cfgKey, /// config key to read an encrypted password from
+		const PString & cfgSection, /// config section to read
+		const PString & cfgKey, /// config key to read an encrypted password from
 		bool forceEncrypted = false /// decrypt even if no KeyFilled is present
 		);
 
@@ -652,9 +652,9 @@ class Toolkit : public Singleton<Toolkit>
 
 	/// Outbound rewrite for ANI/CLI
 	void RewriteCLI(
-		SetupMsg &msg, /// Q.931 Setup message to be rewritten
+		SetupMsg & msg, /// Q.931 Setup message to be rewritten
 		SetupAuthData & authData, /// additional data
-		const PIPSocket::Address &destAddr /// callee's IP
+		const PIPSocket::Address & destAddr /// callee's IP
 		) const;
 
 	void RewriteSourceAddress(SetupMsg & msg) const;
