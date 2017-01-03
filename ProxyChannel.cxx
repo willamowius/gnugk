@@ -2198,6 +2198,8 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			}
 		}
 
+/* don't send the Notify: it doesn't seem to help any endpoint and Polycom RealPresense starts a flood os Status messages
+
         // send Notify with new DisplayIE and BearerCapabilityIE
         if ((msg->GetQ931().HasIE(Q931::DisplayIE) || msg->GetQ931().HasIE(Q931::BearerCapabilityIE)) && GetRemote()) {
             Q931 q931;
@@ -2222,6 +2224,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
             GetRemote()->TransmitData(lBuffer);
             // TODO: also send a Facility with H.450.8 Connected Party Name ?
         }
+*/
 		delete msg;
 		return m_result;
 	}
@@ -7474,7 +7477,7 @@ void CallSignalSocket::BuildNotifyPDU(Q931 & NotifyPDU, PBoolean fromDestination
 		uuie.m_callIdentifier = m_call->GetCallIdentifier();
 	}
 	NotifyPDU.BuildNotify(m_crv, fromDestination);
-	// H.225.0 clause 7.4.2 says that a Notify must include a NotificationIndicatonIE (0x27)
+	// H.225.0 clause 7.4.2 says that a Notify must include a NotificationIndicationIE (0x27)
 	PBYTEArray NotificationIndicatonIE;
 	NotificationIndicatonIE.SetSize(1);
 	NotificationIndicatonIE[0] = 0x82;  // bearer service changed
