@@ -2198,7 +2198,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			}
 		}
 
-/* don't send the Notify: it doesn't seem to help any endpoint and Polycom RealPresense starts a flood os Status messages
+/* don't send the Notify: it doesn't seem to help any endpoint and Polycom RealPresense starts a flood of Status messages
 
         // send Notify with new DisplayIE and BearerCapabilityIE
         if ((msg->GetQ931().HasIE(Q931::DisplayIE) || msg->GetQ931().HasIE(Q931::BearerCapabilityIE)) && GetRemote()) {
