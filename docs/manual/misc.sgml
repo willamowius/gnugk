@@ -456,13 +456,15 @@ This defines the endpoint alias for the pseudo endpoint used to dial.
 Default: <tt>FacilityForward</tt><newline>
 <p>
 Set the method to transfer the call from the pseudo endpoint to the actual destination. Possible values are:
-FacilityForward, FacilityRouteCallToMC and H.450.2.
+FacilityForward, FacilityRouteCallToMC, Reroute and H.450.2.
 
 <item>
 <tt/UseH450=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
-Use a H.450.2 transfer instead of a Facility message to transfer the call from the pseudo endpoint to the actual destination. <bf>Deprecated: Use TransferMethod= instead.</bf>
+<bf>Deprecated: Use TransferMethod switch instead.</bf>
+
+Use a H.450.2 transfer instead of a Facility message to transfer the call from the pseudo endpoint to the actual destination.
 
 <item>
 <tt/Gatekeeper=192.168.1.2/<newline>
@@ -475,12 +477,6 @@ Gatekeeper IP for the pseudo endpoint to register with.
 Default: <tt>*:1722</tt><newline>
 <p>
 Interface and port to use for the pseudo endpoint.
-
-<item>
-<tt/DisableFastStart=1/<newline>
-Default: <tt>0</tt><newline>
-<p>
-Disable FastStart for the pseudo endpoint.
 
 <item>
 <tt/DisableH245Tunneling=1/<newline>

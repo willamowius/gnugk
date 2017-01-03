@@ -1,5 +1,8 @@
 Changes from 4.3 to 4.4
 =======================
+- [CTI::MakeCall] TransferMethod can now also be Reroute, DisableFastStart switch removed
+- BUGFIX(MakeCall.cxx) fix MakeCall bearer capabilities to support video calls
+- BUGFIX(ProxyChannel.cxx) don't send Notify after call Reroute: Polycom RealPresense starts a flood of Status messages
 - BUGFIX(GkStatus.cxx) call ssh_init() and ssh_finalize() only on application start and shutdown
 - BUGFIX(ProxyChannel.cxx) fix IP check for IgnoreSignaledPrivateH239IPs= switch
 - new accounting/authentication policy RequireOneNet

@@ -2,7 +2,7 @@
 //
 // MakeCall.cxx
 //
-// Copyright (c) 2007-2013, Jan Willamowius
+// Copyright (c) 2007-2017, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -27,7 +27,7 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 	}
 
 	// Set the various options
-	DisableFastStart(Toolkit::AsBool(GkConfig()->GetString("CTI::MakeCall", "DisableFastStart", "0")));
+	DisableFastStart(true);
 	DisableH245Tunneling(Toolkit::AsBool(GkConfig()->GetString("CTI::MakeCall", "DisableH245Tunneling", "0")));
 
 	// Set the default codecs
@@ -48,13 +48,13 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 		rasChannel = new H323TransportUDP(*this, interfaceAddress);
 	}
 
-	PString gkName = GkConfig()->GetString("CTI::MakeCall", "Gatekeeper", "127.0.0.1");
-	if (SetGatekeeper(gkName, rasChannel)) {
+	m_gkAddress = GkConfig()->GetString("CTI::MakeCall", "Gatekeeper", "127.0.0.1");
+	if (SetGatekeeper(m_gkAddress, rasChannel)) {
 		PTRACE(3, "MakeCallEndpoint: Gatekeeper set: " << *gatekeeper);
 		isRegistered = TRUE;
 	} else {
-		PTRACE(1, "MakeCallEndpoint: Error registering with gatekeeper at \"" << gkName << '"');
-		SNMP_TRAP(7, SNMPError, Network, "MakeCall endpoint failed to register with gatekeeper " + gkName);
+		PTRACE(1, "MakeCallEndpoint: Error registering with gatekeeper at \"" << m_gkAddress << '"');
+		SNMP_TRAP(7, SNMPError, Network, "MakeCall endpoint failed to register with gatekeeper " + m_gkAddress);
 		isRegistered = FALSE;
 	}
 #ifdef H323_H46018
@@ -76,7 +76,7 @@ void MakeCallEndPoint::ThirdPartyMakeCall(const PString & user1, const PString &
 PBoolean MakeCallEndPoint::IsRegisteredWithGk() const
 {
 	return isRegistered;
-}	
+}
 
 void MakeCallEndPoint::AddDestination(const PString & token, const PString & alias)
 {
@@ -102,9 +102,7 @@ PString MakeCallEndPoint::GetDestination(const PString & token)
 }
 
 
-PBoolean MakeCallEndPoint::OnIncomingCall(H323Connection & connection,
-                                        const H323SignalPDU &,
-                                        H323SignalPDU &)
+PBoolean MakeCallEndPoint::OnIncomingCall(H323Connection & connection, const H323SignalPDU &, H323SignalPDU &)
 {
 	PTRACE(2, "MakeCallEndpoint: Incoming call from \"" << connection.GetRemotePartyName() << "\" rejected");
 	return FALSE;
@@ -130,8 +128,7 @@ PBoolean MakeCallEndPoint::OnConnectionForwarded(H323Connection & connection,
 }
 
 
-void MakeCallEndPoint::OnConnectionEstablished(H323Connection & connection,
-                                                 const PString & token)
+void MakeCallEndPoint::OnConnectionEstablished(H323Connection & connection, const PString & token)
 {
 	// find second party by call token
 	PString second_party = GetDestination(token);
@@ -142,13 +139,28 @@ void MakeCallEndPoint::OnConnectionEstablished(H323Connection & connection,
 		PTRACE(3, "MakeCallEndpoint: Using H.450.2 to transfer call");
 		connection.TransferCall(second_party);
 #else
-		PTRACE(3, "MakeCallEndpoint: H.450.2 Not supported recompile");
+		PTRACE(3, "MakeCallEndpoint: H.450.2 Not supported, please recompile");
 #endif
-#ifdef HAS_ROUTECALLTOMC
+	} else if (transferMethod == "Reroute") {
+        PTCPSocket client(m_gkAddress, 7000);
+        PString callid = connection.GetCallIdentifier().AsString();
+        callid.Replace(" ", "-", true);
+        PString cmd = "reroutecall " + callid + " called " + second_party + "\r\n";
+        client.Write((const char *)cmd, cmd.GetLength());
+        cmd = "quit\r\n";
+        client.Write((const char *)cmd, cmd.GetLength());
+        // wait for GnuGk to send a response to avoid error in trace, wait 1/2 sec max.
+        char buffer[64];
+        client.SetReadTimeout(500);
+        client.read(buffer, 20);
+        client.Close();
 	} else if (transferMethod == "FacilityRouteCallToMC") {
+#ifdef HAS_ROUTECALLTOMC
 		PTRACE(3, "MakeCallEndpoint: Using Facility(routeCalltoMC) to transfer call");
 		H225_ConferenceIdentifier confId;
 		connection.RouteCallToMC(second_party, confId);
+#else
+		PTRACE(3, "MakeCallEndpoint: FacilityRouteCallToMC Not supported, please recompile");
 #endif
 	} else {
 		PTRACE(3, "MakeCallEndpoint: Using Facility(callForwarded) to transfer call");
@@ -173,5 +185,31 @@ PBoolean MakeCallEndPoint::OpenAudioChannel(H323Connection & /* connection */,
 {
 	// don't open audio connection, we only need the signaling connection to do the transfer
 	return FALSE;
+}
+
+H323Connection * MakeCallEndPoint::CreateConnection(unsigned callReference)
+{
+	unsigned options = 0;
+    return new MakeCallConnection(*this, callReference, options);
+}
+
+
+MakeCallConnection::MakeCallConnection(MakeCallEndPoint & _ep, unsigned _callReference, unsigned _options)
+  : H323Connection(_ep, _callReference, _options)
+{
+}
+
+PBoolean MakeCallConnection::OnSendSignalSetup(H323SignalPDU & setupPDU)
+{
+    // set outgoing bearer capability to unrestricted information transfer + huge transfer rate
+	PBYTEArray caps;
+	caps.SetSize(4);
+	caps[0] = 0x88;
+	caps[1] = 0x18;
+	caps[2] = 0x86;
+	caps[3] = 0xa5;
+	setupPDU.GetQ931().SetIE(Q931::BearerCapabilityIE, caps);
+
+    return H323Connection::OnSendSignalSetup(setupPDU);
 }
 
