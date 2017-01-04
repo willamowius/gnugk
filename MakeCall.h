@@ -39,10 +39,13 @@ public:
 	virtual void ThirdPartyMakeCall(const PString & user1, const PString & user2);
 	virtual PBoolean IsRegisteredWithGk() const;
 
+	// get destination from list
+    PString GetDestination(const PString & token);
+
 protected:
     void AddDestination(const PString & token, const PString & alias);
 	// get and remove destination from list
-    PString GetDestination(const PString & token);
+    PString GetRemoveDestination(const PString & token);
 
     PMutex destinationMutex;
     std::map<PString, PString> destinations;
@@ -60,6 +63,9 @@ public:
     virtual ~MakeCallConnection() { }
 
     PBoolean OnSendSignalSetup(H323SignalPDU & setupPDU);
+
+protected:
+    MakeCallEndPoint & m_ep;
 };
 
 

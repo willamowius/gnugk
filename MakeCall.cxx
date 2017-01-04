@@ -84,8 +84,19 @@ void MakeCallEndPoint::AddDestination(const PString & token, const PString & ali
 	destinations.insert(pair<PString, PString>(token, alias));
 }
 
-// get and remove the destination for this token ('' if not found)
+// get the destination for this token ('' if not found)
 PString MakeCallEndPoint::GetDestination(const PString & token)
+{
+	PWaitAndSignal lock(destinationMutex);
+	std::map<PString, PString>::iterator it = destinations.find(token);
+	if (it != destinations.end()) {
+		return it->second;
+	}
+	return "";
+}
+
+// get and remove the destination for this token ('' if not found)
+PString MakeCallEndPoint::GetRemoveDestination(const PString & token)
 {
 	PString dest;
 	PWaitAndSignal lock(destinationMutex);
@@ -114,7 +125,7 @@ PBoolean MakeCallEndPoint::OnConnectionForwarded(H323Connection & connection,
                                                const H323SignalPDU & /*pdu*/)
 {
 	PString oldToken = connection.GetCallToken();
-	PString destination = GetDestination(oldToken);
+	PString destination = GetRemoveDestination(oldToken);
 	PString newToken;
 	if (MakeCall(forwardParty, newToken)) {
 		PTRACE(2, "MakeCallEndpoint: Call is being forwarded to host " << forwardParty);
@@ -131,7 +142,7 @@ PBoolean MakeCallEndPoint::OnConnectionForwarded(H323Connection & connection,
 void MakeCallEndPoint::OnConnectionEstablished(H323Connection & connection, const PString & token)
 {
 	// find second party by call token
-	PString second_party = GetDestination(token);
+	PString second_party = GetRemoveDestination(token);
 	PTRACE(1, "MakeCallEndpoint: Transferring call to 2nd party " << second_party);
 
 	if (transferMethod == "H.450.2") {
@@ -195,7 +206,7 @@ H323Connection * MakeCallEndPoint::CreateConnection(unsigned callReference)
 
 
 MakeCallConnection::MakeCallConnection(MakeCallEndPoint & _ep, unsigned _callReference, unsigned _options)
-  : H323Connection(_ep, _callReference, _options)
+  : H323Connection(_ep, _callReference, _options), m_ep(_ep)
 {
 }
 
@@ -210,6 +221,11 @@ PBoolean MakeCallConnection::OnSendSignalSetup(H323SignalPDU & setupPDU)
 	caps[3] = 0xa5;
 	setupPDU.GetQ931().SetIE(Q931::BearerCapabilityIE, caps);
 
+	// set DisplayIE to MakeCall destination
+	PString transferDest = m_ep.GetDestination(GetCallToken());
+    setupPDU.GetQ931().SetDisplayName(transferDest);
+
+    // set GnuGk as vendor
     H225_Setup_UUIE & setup = setupPDU.m_h323_uu_pdu.m_h323_message_body;
 	H225_VendorIdentifier & vendor = setup.m_sourceInfo.m_vendor;
 	vendor.m_vendor.m_t35CountryCode = Toolkit::t35cPoland;
