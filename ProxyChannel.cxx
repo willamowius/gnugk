@@ -6725,11 +6725,13 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg * msg)
         //PTRACE(0, "JW RC from caller (GnuGk)=" << m_callerSocket << " from dest (msg)=" << msg->GetQ931().IsFromDestination());
         // TODO: only if call has been rerouted ?
         // TODO: doesn't cover RP as caller in makeCall being hung up by remote
+#if (H323PLUS_VER >= 1267)
         if (m_callerSocket != !msg->GetQ931().IsFromDestination()) {
             //PTRACE(0, "JW direction flag needs fixing");
             msg->GetQ931().SetFromDestination(!m_callerSocket);
             msg->SetChanged();
         }
+#endif
 		// cause code rewriting
 		if (msg->GetQ931().HasIE(Q931::CauseIE)) {
 			cause = msg->GetQ931().GetCause();
