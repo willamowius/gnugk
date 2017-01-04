@@ -6721,6 +6721,16 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg * msg)
 		// regular ReleaseComplete processing
 		m_call->SetDisconnectTime(time(NULL));
 		m_call->SetReleaseSource(m_callerSocket ? CallRec::ReleasedByCaller : CallRec::ReleasedByCallee);
+		// fix Q.931 direction flag for rerouted calls
+        //PTRACE(0, "JW RC from caller (GnuGk)=" << m_callerSocket << " from dest (msg)=" << msg->GetQ931().IsFromDestination());
+        // TODO: only if call has been rerouted ?
+        // TODO: doesn't cover RP as caller in makeCall being hung up by remote
+        if (m_callerSocket != !msg->GetQ931().IsFromDestination()) {
+            //PTRACE(0, "JW direction flag needs fixing");
+            msg->GetQ931().SetFromDestination(!m_callerSocket);
+            msg->SetChanged();
+        }
+		// cause code rewriting
 		if (msg->GetQ931().HasIE(Q931::CauseIE)) {
 			cause = msg->GetQ931().GetCause();
 			if (Toolkit::Instance()->IsCauseCodeTranslationActive()) {
@@ -6774,7 +6784,7 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg * msg)
 
 			m_call->SetDisconnectCause(cause);
 		} else if (rc != NULL) {
-			H225_ReleaseComplete_UUIE& rcBody = rc->GetUUIEBody();
+			H225_ReleaseComplete_UUIE & rcBody = rc->GetUUIEBody();
 			if (rcBody.HasOptionalField(H225_ReleaseComplete_UUIE::e_reason)) {
 				cause = Toolkit::Instance()->MapH225ReasonToQ931Cause(rcBody.m_reason.GetTag());
 				m_call->SetDisconnectCause(cause);
