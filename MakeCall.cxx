@@ -48,6 +48,14 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 		rasChannel = new H323TransportUDP(*this, interfaceAddress);
 	}
 
+    // disable H.460.18 and .23 - not needed for local signaling connection
+#ifdef H323_H46018
+	H46018Enable(PFalse);
+#endif
+#ifdef H323_H46023
+	H46023Enable(PFalse);
+#endif
+
 	m_gkAddress = GkConfig()->GetString("CTI::MakeCall", "Gatekeeper", "127.0.0.1");
 	if (SetGatekeeper(m_gkAddress, rasChannel)) {
 		PTRACE(3, "MakeCallEndpoint: Gatekeeper set: " << *gatekeeper);
@@ -57,9 +65,6 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 		SNMP_TRAP(7, SNMPError, Network, "MakeCall endpoint failed to register with gatekeeper " + m_gkAddress);
 		isRegistered = FALSE;
 	}
-#ifdef H323_H46018
-	H46018Enable(PFalse);
-#endif
 }
 
 void MakeCallEndPoint::ThirdPartyMakeCall(const PString & user1, const PString & user2)
