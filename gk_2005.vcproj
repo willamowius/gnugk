@@ -734,6 +734,7 @@
 			<File
 				RelativePath="statusacct.cxx"
 				>
+			</File>
 			<File
 				RelativePath="RequireOneNet.cxx"
 				>
@@ -958,6 +959,7 @@
 			<File
 				RelativePath="statusacct.h"
 				>
+			</File>
 			<File
 				RelativePath="RequireOneNet.h"
 				>
