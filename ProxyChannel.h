@@ -3,7 +3,7 @@
 // ProxyChannel.h
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2002-2015, Jan Willamowius
+// Copyright (c) 2002-2017, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -101,7 +101,7 @@ public:
 	virtual Result ReceiveData();
 	virtual bool ForwardData();
 	virtual bool EndSession();
-	virtual void OnError() {}
+	virtual void OnError() { }
 
 	bool IsConnected() const { return connected; }
 	void SetConnected(bool c) { connected = c; }
@@ -112,8 +112,8 @@ public:
 
 private:
 	ProxySocket();
-	ProxySocket(const ProxySocket&);
-	ProxySocket& operator=(const ProxySocket&);
+	ProxySocket(const ProxySocket &);
+	ProxySocket& operator=(const ProxySocket &);
 
 protected:
 	BYTE *wbuffer;
@@ -143,14 +143,14 @@ public:
 
 	void DetachRemote();
   	void RemoveRemoteSocket();
-	void SetRemoteSocket(TCPProxySocket * ret) { remote=ret; }
+	void SetRemoteSocket(TCPProxySocket * ret) { remote = ret; }
 	void LockRemote() { m_remoteLock.Wait(); }
 	void UnlockRemote() { m_remoteLock.Signal(); }
 
 private:
 	TCPProxySocket();
-	TCPProxySocket(const TCPProxySocket&);
-	TCPProxySocket& operator=(const TCPProxySocket&);
+	TCPProxySocket(const TCPProxySocket &);
+	TCPProxySocket& operator=(const TCPProxySocket &);
 
 protected:
 	struct TPKTV3 {
@@ -242,8 +242,8 @@ protected:
 
 private:
 	UDPProxySocket();
-	UDPProxySocket(const UDPProxySocket&);
-	UDPProxySocket& operator=(const UDPProxySocket&);
+	UDPProxySocket(const UDPProxySocket &);
+	UDPProxySocket& operator=(const UDPProxySocket &);
 
 protected:
 	Address fSrcIP, fDestIP, rSrcIP, rDestIP;
@@ -450,8 +450,8 @@ protected:
 	}
 
 private:
-	CallSignalSocket(const CallSignalSocket&);
-	CallSignalSocket& operator=(const CallSignalSocket&);
+	CallSignalSocket(const CallSignalSocket &);
+	CallSignalSocket& operator=(const CallSignalSocket &);
 
 	void InternalInit();
 	void BuildReleasePDU(Q931 &, const H225_CallTerminationCause *) const;
@@ -466,9 +466,9 @@ private:
 	*/
 	PString GetCallingStationId(
 		/// Q.931/H.225 Setup message with additional data
-		const SetupMsg& setup,
+		const SetupMsg & setup,
 		/// additional data
-		SetupAuthData& authData
+		SetupAuthData & authData
 		) const;
 
 	/** @return
@@ -476,15 +476,15 @@ private:
 	*/
 	PString GetCalledStationId(
 		/// Q.931/H.225 Setup message with additional data
-		const SetupMsg& setup,
+		const SetupMsg & setup,
 		/// additional data
-		SetupAuthData& authData
+		SetupAuthData & authData
 		) const;
 
 	/// @return	a number dialed by the user
 	PString GetDialedNumber(
 		/// Q.931/H.225 Setup message with additional data
-		const SetupMsg& setup
+		const SetupMsg & setup
 		) const;
 
 	void SetCallTypePlan(Q931 *q931);
@@ -628,7 +628,7 @@ public:
 	bool IsKeepAlive(unsigned len, bool isRTCP) const { return isRTCP ? true : (len == 12); }
 
 	void HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP);
-	static void Send(PUInt32b sendMultiplexID, const H323TransportAddress & toAddress, int ossocket, void * data, unsigned len, bool bufferHasRoomForID=false);
+	static void Send(PUInt32b sendMultiplexID, const H323TransportAddress & toAddress, int ossocket, void * data, unsigned len, bool bufferHasRoomForID = false);
 
 //protected:
 	H225_CallIdentifier m_callid;
@@ -772,7 +772,7 @@ protected:
 
 class ProxyHandler : public SocketsReader {
 public:
-	ProxyHandler(const PString& name);
+	ProxyHandler(const PString & name);
 	virtual ~ProxyHandler();
 
 	void Insert(TCPProxySocket *);
@@ -799,8 +799,8 @@ private:
 	void DetachSocket(IPSocket *socket);
 
 	ProxyHandler();
-	ProxyHandler(const ProxyHandler&);
-	ProxyHandler& operator=(const ProxyHandler&);
+	ProxyHandler(const ProxyHandler &);
+	ProxyHandler& operator=(const ProxyHandler &);
 
 private:
 	std::list<PTime *> m_removedTime;
@@ -830,8 +830,8 @@ public:
 	void LoadConfig();
 
 private:
-	HandlerList(const HandlerList&);
-	HandlerList& operator=(const HandlerList&);
+	HandlerList(const HandlerList &);
+	HandlerList& operator=(const HandlerList &);
 
 private:
 	/// signaling/H.245/T.120 proxy handling threads
