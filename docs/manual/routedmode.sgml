@@ -676,7 +676,6 @@ Default: <tt/1/<newline>
 Set the proxy handler for signalling connections to high priority.
 In some virtual server configurations we have to turn this off
 if PTLib fails with "pthread_setschedparam failed".
-This switch will go away once we can detect this condition automatically.
 
 <item><tt/H225DiffServ=46/<newline>
 Default: <tt>0</tt><newline>
