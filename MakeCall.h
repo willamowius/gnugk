@@ -24,7 +24,7 @@ class MakeCallEndPoint : public Singleton<MakeCallEndPoint>, public H323EndPoint
 {
 public:
     MakeCallEndPoint();
-    virtual ~MakeCallEndPoint() { }
+    virtual ~MakeCallEndPoint();
 
     // overrides from H323EndPoint
     virtual H323Connection * CreateConnection(unsigned callReference);

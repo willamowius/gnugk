@@ -67,6 +67,11 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 	}
 }
 
+MakeCallEndPoint::~MakeCallEndPoint()
+{
+    rasRequestTimeout = 10;    // on shutdown wait 10 msec for UCF max.
+}
+
 void MakeCallEndPoint::ThirdPartyMakeCall(const PString & user1, const PString & user2)
 {
 	if (!IsRegisteredWithGk()) {
