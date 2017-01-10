@@ -4399,8 +4399,7 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 					if (incomingIndication.Decode(raw)) {
 						incomingCall = true;
 						H225_TransportAddress sigAddr = incomingIndication.m_callSignallingAddress;
-						PTRACE(2, "Incomming H.460.18 call from neighbor/parent sigAdr="
-							<< AsDotString(sigAddr)
+						PTRACE(2, "Incomming H.460.18 call from neighbor/parent sigAdr=" << AsDotString(sigAddr)
 							<< " callID=" << AsString(incomingIndication.m_callID.m_guid) << " TLS=" << useTLS);
 						CallSignalSocket * outgoingSocket = NULL;
 #ifdef HAS_TLS
