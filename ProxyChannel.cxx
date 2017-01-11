@@ -14119,6 +14119,7 @@ void ProxyHandler::FlushSockets()
 		if (s == NULL) {
 			PTRACE(1, "Proxy\tCast of proxy socket failed");
 			SNMP_TRAP(7, SNMPError, Network, "Socket error");
+			++i;    // skip to next socket, make sure we don't get endless loop
 			continue;
 		}
 		if (s->CanFlush()) {
