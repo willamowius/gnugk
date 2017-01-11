@@ -3358,10 +3358,11 @@ void CallRec::RemoveSocket()
 
 void CallRec::Disconnect(bool force)
 {
-	if ((force || Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "DropCallsByReleaseComplete", "0"))) && (m_callingSocket || m_calledSocket))
+	if ((force || Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "DropCallsByReleaseComplete", "0"))) && (m_callingSocket || m_calledSocket)) {
 		SendReleaseComplete();
-	else
+	} else {
 		SendDRQ();
+    }
 
 	PTRACE(2, "Gk\tDisconnect Call No. " << m_CallNumber);
 }
@@ -4513,6 +4514,12 @@ void CallRec::StoreSetup(SignalingMsg * msg)	// for H.460.18
 {
 	msg->Encode(m_processedSetup);
 	m_processedSetup.MakeUnique();
+}
+
+void CallRec::StoreSetup(const PBYTEArray & setup)	// for H.460.18
+{
+    m_processedSetup = setup;
+    m_processedSetup.MakeUnique();
 }
 
 PBYTEArray CallRec::RetrieveSetup() // for H.460.18

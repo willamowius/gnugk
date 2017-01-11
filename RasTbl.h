@@ -1129,9 +1129,8 @@ public:
 		m_acctUpdateTime = tm;
 	}
 
-	/* Reset timeout.
-		Used when switching from GKRouted to Direct call model to
-		avoid Signalling timeouts
+	/* Reset timeout
+       Used when switching from routed to direct mode to avoid signalling timeouts
 	*/
 	void ResetTimeOut();
 
@@ -1376,6 +1375,7 @@ public:
 	void SetH46018ReverseSetup(bool val) { m_h46018ReverseSetup = val; }
 	bool H46019Required() const;
 	void StoreSetup(SignalingMsg * msg);
+	void StoreSetup(const PBYTEArray & setup);
 	PBYTEArray RetrieveSetup();
 	int GetH46019Direction() const;
 
