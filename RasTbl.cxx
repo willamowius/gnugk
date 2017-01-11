@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2015, Jan Willamowius
+// Copyright (c) 2000-2017, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1514,7 +1514,7 @@ int GatewayRec::PrefixMatch(
 			const PString alias = AsString(aliases[i], FALSE);
 			// we also allow h_323_ID aliases consisting only from digits
 			if (tag == H225_AliasAddress::e_h323_ID)
-				if(!IsValidE164(alias) )
+				if (!IsValidE164(alias))
 					continue;
 
 			const_prefix_iterator Iter = Prefixes.begin();

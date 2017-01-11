@@ -2,7 +2,7 @@
 //
 // gk.cxx for GNU Gatekeeper
 //
-// Copyright (c) 2000-2016, Jan Willamowius
+// Copyright (c) 2000-2017, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1252,7 +1252,7 @@ void DumpDescriptorUsage(int sig)
 
     for (int i = 0; i < numHandles; i++)
     {
-        int fd_flags = fcntl( i, F_GETFD );
+        int fd_flags = fcntl(i, F_GETFD);
         if (fd_flags == -1)
             continue;
 
