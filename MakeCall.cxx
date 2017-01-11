@@ -13,6 +13,7 @@
 
 #include "MakeCall.h"
 #include "Toolkit.h"
+#include "gk_const.h"
 #include "snmp.h"
 #include "config.h"
 
@@ -163,7 +164,7 @@ void MakeCallEndPoint::OnConnectionEstablished(H323Connection & connection, cons
 		PTRACE(3, "MakeCallEndpoint: H.450.2 Not supported, please recompile");
 #endif
 	} else if (transferMethod == "Reroute") {
-        PTCPSocket client(m_gkAddress, 7000);
+        PTCPSocket client(m_gkAddress, GkConfig()->GetInteger("StatusPort", GK_DEF_STATUS_PORT));
         PString callid = connection.GetCallIdentifier().AsString();
         callid.Replace(" ", "-", true);
         PString cmd = "reroutecall " + callid + " called " + second_party + "\r\n";
