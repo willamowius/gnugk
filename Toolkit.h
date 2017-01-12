@@ -139,6 +139,7 @@ class Toolkit : public Singleton<Toolkit>
 		bool IsEmpty() const { return rtable_begin == NULL; }
 
 		std::vector<NetworkAddress> GetInternalNetworks() const { return m_internalnetworks; }
+		void ClearInternalNetworks();
 		void AddInternalNetwork(const NetworkAddress & network);
 
 	    virtual bool IsMasquerade(PIPSocket::Address &) const { return false; }

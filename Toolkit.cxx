@@ -437,6 +437,11 @@ void Toolkit::RouteTable::ClearTable()
 	}
 }
 
+void Toolkit::RouteTable::ClearInternalNetworks()
+{
+    m_internalnetworks.clear();
+}
+
 void Toolkit::RouteTable::AddInternalNetwork(const NetworkAddress & network)
 {
 	if (find(m_internalnetworks.begin(), m_internalnetworks.end(), network) == m_internalnetworks.end())
@@ -713,6 +718,8 @@ void Toolkit::ProxyCriterion::LoadConfig(PConfig *config)
 					<< " (" << internal_netmode.fromExternal << "," << internal_netmode.insideNetwork << ")");
 		}
 	} else {
+        m_internalnetworks.clear();
+        Toolkit::Instance()->GetRouteTable()->ClearInternalNetworks();
 		for (PINDEX i = 0; i < networks.GetSize(); ++i) {
 			m_internalnetworks.push_back(networks[i]);
 			Toolkit::Instance()->GetRouteTable()->AddInternalNetwork(networks[i]);
