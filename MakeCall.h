@@ -63,11 +63,26 @@ public:
     virtual ~MakeCallConnection() { }
 
     PBoolean OnSendSignalSetup(H323SignalPDU & setupPDU);
+    PBoolean OpenAudioChannel(PBoolean isEncoding, unsigned bufferSize, H323AudioCodec & codec);
 
 protected:
     MakeCallEndPoint & m_ep;
 };
 
+
+class SilentChannel : public PIndirectChannel
+{
+    PCLASSINFO(SilentChannel, PIndirectChannel);
+  public:
+    SilentChannel() { }
+    virtual ~SilentChannel() { }
+    virtual PBoolean Read(void * buf, PINDEX len);
+    virtual PBoolean Write(const void *, PINDEX);
+    virtual PBoolean Close();
+  protected:
+    PAdaptiveDelay readDelay;
+    PAdaptiveDelay writeDelay;
+};
 
 #endif  // _MakeCall_H
 

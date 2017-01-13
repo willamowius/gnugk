@@ -246,3 +246,31 @@ PBoolean MakeCallConnection::OnSendSignalSetup(H323SignalPDU & setupPDU)
     return H323Connection::OnSendSignalSetup(setupPDU);
 }
 
+PBoolean MakeCallConnection::OpenAudioChannel(PBoolean isEncoding, unsigned bufferSize, H323AudioCodec & codec)
+{
+    PIndirectChannel * channel = new SilentChannel();
+    codec.AttachChannel(channel);
+    return true;
+}
+
+
+PBoolean SilentChannel::Read(void * buf, PINDEX len)
+{
+  memset(buf, 0, len);
+  lastReadCount = len;
+  readDelay.Delay(len/2/8);	// assuming G.711 !
+  return true;
+}
+
+PBoolean SilentChannel::Write(const void *buf, PINDEX len)
+{
+  lastWriteCount = len;
+  writeDelay.Delay(len/2/8); // assuming G.711 !
+  return true;
+}
+
+PBoolean SilentChannel::Close()
+{
+  return true;
+}
+
