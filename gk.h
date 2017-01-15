@@ -59,7 +59,11 @@ class Gatekeeper : public PProcess
 #endif
  public:
 	Gatekeeper
+#ifdef COMPILE_AS_SERVICE
+		(const char * _manuf = "GnuGk.org",
+#else
 		(const char * _manuf = "GNU",
+#endif
 		 const char * _name = GNUGK_NAME,
 		 WORD _majorVersion = GNUGK_MAJOR_VERSION,
 		 WORD _minorVersion = GNUGK_MINOR_VERSION,
