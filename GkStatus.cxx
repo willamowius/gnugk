@@ -442,7 +442,7 @@ PBoolean SSHStatusClient::Accept(PSocket & socket)
 
 #ifdef LARGE_FDSET
 	socklen_t addr_len = sizeof(peeraddr);
-	getpeername(os_handle, ((struct sockaddr *)&peeraddr), &addr_len);  // OK to fail on private IPs etc.
+	(void)getpeername(os_handle, ((struct sockaddr *)&peeraddr), &addr_len);  // OK to fail on private IPs etc.
 #endif
 
 	Address raddr, laddr;
