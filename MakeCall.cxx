@@ -161,7 +161,7 @@ void MakeCallEndPoint::OnConnectionEstablished(H323Connection & connection, cons
 		PTRACE(3, "MakeCallEndpoint: Using H.450.2 to transfer call");
 		connection.TransferCall(second_party);
 #else
-		PTRACE(3, "MakeCallEndpoint: H.450.2 Not supported, please recompile");
+		PTRACE(1, "MakeCallEndpoint: H.450.2 Not supported, please recompile");
 #endif
 	} else if (transferMethod == "Reroute") {
         PTCPSocket client(m_gkAddress, GkConfig()->GetInteger("StatusPort", GK_DEF_STATUS_PORT));
@@ -182,9 +182,12 @@ void MakeCallEndPoint::OnConnectionEstablished(H323Connection & connection, cons
 		H225_ConferenceIdentifier confId;
 		connection.RouteCallToMC(second_party, confId);
 #else
-		PTRACE(3, "MakeCallEndpoint: FacilityRouteCallToMC Not supported, please recompile");
+		PTRACE(1, "MakeCallEndpoint: FacilityRouteCallToMC Not supported, please recompile");
 #endif
 	} else {
+        if (transferMethod != "FacilityForward") {
+            PTRACE(1, "MakeCallEndpoint: Unknown transfer method (" << transferMethod << "), defaulting to FacilityForward");
+        }
 		PTRACE(3, "MakeCallEndpoint: Using Facility(callForwarded) to transfer call");
 		connection.ForwardCall(second_party);
 	}
