@@ -2,6 +2,8 @@ Known bugs:
 * when GnuGk acts as a H.460.18 client (as client in a H.460.18 traversal zone with
   another gatekeeper or as child gatekeeper), it does currently not send a keep-alive
   on the Q.931 TCP connection during a call.
+* the Reoute status port command works unreliable when used with argument CALLED,
+  this also affects the MakeCall command when TransferMethod=Reroute is set
 * H.245 sockets are bound to all interfaces (0.0.0.0), Home config option is ignored
   which may cause problems on multihomed hosts (virtual servers)
 * a race condition occurs when both endpoints try to establish H.245 connection
