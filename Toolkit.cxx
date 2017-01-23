@@ -303,7 +303,7 @@ bool Toolkit::RouteTable::RouteEntry::CompareWithMask(const Address *ip) const
     bool networkStarted = false; // this is a non-zero network byte
     for (PINDEX m = mmax - 1; m >= 0 ; --m) {
         BYTE ipByte = (*ip)[m];
-        BYTE maskByte = network[m];
+        BYTE maskByte = net_mask[m];
         if (maskByte == 0) {
             if (networkStarted && (ipByte > 0)){
                 return false;

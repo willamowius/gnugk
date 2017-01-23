@@ -1,5 +1,6 @@
 Changes from 4.4 to 4.5
 =======================
+- BUGFIX(Toolkit.*) fix bug in IP comparison
 - BUGFIX(Toolkit.*) the internal networks configured with the [Proxy] InternalNetworks switch were added
   to the detected internal networks and didn't replace them, now they replace them as documented
 
