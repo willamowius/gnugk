@@ -21,10 +21,10 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 {
 	SetLocalUserName(GkConfig()->GetString("CTI::MakeCall", "EndpointAlias", "InternalMakeCallEP"));
 	isRegistered = FALSE;
-	transferMethod = GkConfig()->GetString("CTI::MakeCall", "TransferMethod", "FacilityForward");
+	globalTransferMethod = GkConfig()->GetString("CTI::MakeCall", "TransferMethod", "FacilityForward");
 	// compatibility with old switch
 	if (Toolkit::AsBool(GkConfig()->GetString("CTI::MakeCall", "UseH450", "0"))) {
-		transferMethod = "H.450.2";
+		globalTransferMethod = "H.450.2";
 	}
 
 	// Set the various options
@@ -73,7 +73,7 @@ MakeCallEndPoint::~MakeCallEndPoint()
     rasRequestTimeout = 10;    // on shutdown wait 10 msec for UCF max.
 }
 
-void MakeCallEndPoint::ThirdPartyMakeCall(const PString & user1, const PString & user2)
+void MakeCallEndPoint::ThirdPartyMakeCall(const PString & user1, const PString & user2, const PString & transferMethod)
 {
 	if (!IsRegisteredWithGk()) {
 		PTRACE(1, "MakeCallEndpoint: Can't initiate MakeCall when not registered with gatekeeper");
@@ -81,7 +81,7 @@ void MakeCallEndPoint::ThirdPartyMakeCall(const PString & user1, const PString &
 	}
 	PString newToken;
 	MakeCall(user1, newToken);
-	AddDestination(newToken, user2);
+	AddDestination(newToken, user2, transferMethod);
 }
 
 PBoolean MakeCallEndPoint::IsRegisteredWithGk() const
@@ -89,10 +89,11 @@ PBoolean MakeCallEndPoint::IsRegisteredWithGk() const
 	return isRegistered;
 }
 
-void MakeCallEndPoint::AddDestination(const PString & token, const PString & alias)
+void MakeCallEndPoint::AddDestination(const PString & token, const PString & alias, const PString & transferMethod)
 {
 	PWaitAndSignal lock(destinationMutex);
 	destinations.insert(pair<PString, PString>(token, alias));
+	methods.insert(pair<PString, PString>(token, transferMethod));
 }
 
 // get the destination for this token ('' if not found)
@@ -123,6 +124,19 @@ PString MakeCallEndPoint::GetRemoveDestination(const PString & token)
 	return dest;
 }
 
+// get and remove the destination for this token ('' if not found)
+PString MakeCallEndPoint::GetRemoveTransferMethod(const PString & token)
+{
+	PString method;
+	PWaitAndSignal lock(methodMutex);
+	std::map<PString, PString>::iterator it = methods.find(token);
+	if (it != methods.end()) {
+		method = it->second;
+		// remove token from list
+		methods.erase(it);
+	}
+	return method;
+}
 
 PBoolean MakeCallEndPoint::OnIncomingCall(H323Connection & connection, const H323SignalPDU &, H323SignalPDU &)
 {
@@ -137,10 +151,11 @@ PBoolean MakeCallEndPoint::OnConnectionForwarded(H323Connection & connection,
 {
 	PString oldToken = connection.GetCallToken();
 	PString destination = GetRemoveDestination(oldToken);
+	PString method = GetRemoveTransferMethod(oldToken);
 	PString newToken;
 	if (MakeCall(forwardParty, newToken)) {
 		PTRACE(2, "MakeCallEndpoint: Call is being forwarded to host " << forwardParty);
-		AddDestination(newToken, destination);
+		AddDestination(newToken, destination, method);
 		return TRUE;
 	}
 
@@ -154,7 +169,10 @@ void MakeCallEndPoint::OnConnectionEstablished(H323Connection & connection, cons
 {
 	// find second party by call token
 	PString second_party = GetRemoveDestination(token);
-	PTRACE(1, "MakeCallEndpoint: Transferring call to 2nd party " << second_party);
+	PCaselessString transferMethod = GetRemoveTransferMethod(token);
+	if (transferMethod.IsEmpty())
+        transferMethod = globalTransferMethod;
+	PTRACE(1, "MakeCallEndpoint: Transferring call to 2nd party " << second_party << " method=" << transferMethod);
 
 	if (transferMethod == "H.450.2") {
 #ifdef HAS_H450
@@ -164,6 +182,7 @@ void MakeCallEndPoint::OnConnectionEstablished(H323Connection & connection, cons
 		PTRACE(1, "MakeCallEndpoint: H.450.2 Not supported, please recompile");
 #endif
 	} else if (transferMethod == "Reroute") {
+		PTRACE(3, "MakeCallEndpoint: Using Reroute to transfer call");
         PTCPSocket client(m_gkAddress, GkConfig()->GetInteger("StatusPort", GK_DEF_STATUS_PORT));
         PString callid = connection.GetCallIdentifier().AsString();
         callid.Replace(" ", "-", true);

@@ -748,23 +748,37 @@ RerouteCall 40-06-dd-98-22-37-52-40-8c-b0-92-0e-18-60-99-07 CALLER 192.168.1.222
 <label id="makecall">
 <item><tt/MakeCall/<newline>
 <p>Generate a new call from source to destination alias. You can also
-specify an IP number as destination.  This is done by establishing a call
+specify an IP number as destination. This is done by establishing a call
 from a pseudo endpoint in the gatekeeper to the source alias/number and then
 transferring the call from the gatekeeper endpoint to the destination.
-The method how this call transfer is done can be configured.
+The method how this call transfer is done can be configured as not all
+endpoints support all methods.
 
 See <ref id="ctimakecall" name="[CTI::MakeCall]"> for configuration options.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
-MakeCall Source-Alias Destination-Alias
+MakeCall Source-Alias Destination-Alias [Transfer-Method]
 </verb></tscreen>
 <tag/Example:/
 <tscreen><verb>
 MakeCall 1234 5678
-MakeCall joe 192.168.6.1
+MakeCall joe 192.168.6.1 H.450.2
 </verb></tscreen>
 </descrip>
+
+The optional transfer method parameter can be used to override the global TransferMethod
+switch in <ref id="ctimakecall" name="[CTI::MakeCall]"> for this individual MakeCall.
+
+Valid values for the transfer method are:
+<itemize>
+<item>FacilityForward
+<item>FacilityRouteCallToMC
+<item>H.450.2
+<!-- todo: fix Reroute CALLED
+<item>Reroute
+-->
+</itemize>
 
 <item><tt/GetAuthInfo,gai/<newline>
 <p>Gather information from a specific authentication module (if it provides

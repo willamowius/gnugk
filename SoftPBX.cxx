@@ -484,14 +484,14 @@ void SoftPBX::TransferCall(const PString & CallId, const PCaselessString & which
 	GkStatus::Instance()->SignalStatus(msg + "\r\n");
 }
 
-void SoftPBX::MakeCall(const PString & SourceAlias, const PString & DestinationAlias)
+void SoftPBX::MakeCall(const PString & SourceAlias, const PString & DestinationAlias, const PString & TransferMethod)
 {
 	PTRACE(3, "GK\tSoftPBX: MakeCall " << SourceAlias << " -> " << DestinationAlias);
 	if (! MakeCallEndPoint::Instance()->IsRegisteredWithGk()) {
 		PThread::Sleep(500);	// give pseudo-endpoint 0.5 sec to register
 	}
 	if (MakeCallEndPoint::Instance()->IsRegisteredWithGk()) {
-		MakeCallEndPoint::Instance()->ThirdPartyMakeCall(SourceAlias, DestinationAlias);
+		MakeCallEndPoint::Instance()->ThirdPartyMakeCall(SourceAlias, DestinationAlias, TransferMethod);
 	} else {
 		PTRACE(1, "GK\tSoftPBX: MakeCall registration of pseudo-endpoint failed");
 		SNMP_TRAP(7, SNMPError, General, "MakeCall endpoint registration failed");

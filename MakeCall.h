@@ -36,21 +36,26 @@ public:
 	virtual void OnRegistrationConfirm(const H323TransportAddress & rasAddress);
 	virtual void OnRegistrationReject();
 
-	virtual void ThirdPartyMakeCall(const PString & user1, const PString & user2);
+	virtual void ThirdPartyMakeCall(const PString & user1, const PString & user2, const PString & transferMethod);
 	virtual PBoolean IsRegisteredWithGk() const;
 
 	// get destination from list
     PString GetDestination(const PString & token);
 
 protected:
-    void AddDestination(const PString & token, const PString & alias);
+    void AddDestination(const PString & token, const PString & alias, const PString & transferMethod);
 	// get and remove destination from list
     PString GetRemoveDestination(const PString & token);
+    PString GetRemoveTransferMethod(const PString & token);
 
+    // call destinations
     PMutex destinationMutex;
     std::map<PString, PString> destinations;
+    // per call transfer methods
+    PMutex methodMutex;
+    std::map<PString, PString> methods;
 
-	PCaselessString transferMethod;
+	PCaselessString globalTransferMethod;
 	PBoolean isRegistered;
 	PString m_gkAddress;
 };

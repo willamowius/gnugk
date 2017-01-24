@@ -1794,8 +1794,10 @@ void StatusClient::ExecCommand(
 	case GkStatus::e_MakeCall:
 		if (args.GetSize() == 3)
 			SoftPBX::MakeCall(args[1], args[2]);
+		else if (args.GetSize() == 4)
+			SoftPBX::MakeCall(args[1], args[2], args[3]);
 		else
-			CommandError("Syntax Error: MakeCall SOURCE DESTINATION");
+			CommandError("Syntax Error: MakeCall SOURCE DESTINATION [TRANSFER-METHOD]");
 		break;
 	case GkStatus::e_Reload:
 		{

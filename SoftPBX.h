@@ -47,7 +47,7 @@ namespace SoftPBX
 	void SendProceeding(const PString & CallId);
 	void TransferCall(const PString & SourceAlias, const PString & DestinationAlias);
 	void TransferCall(const PString & CallId, const PCaselessString & which, const PString & Destination, const PString & method);
-	void MakeCall(const PString & SourceAlias, const PString & DestinationAlias);
+	void MakeCall(const PString & SourceAlias, const PString & DestinationAlias, const PString & TransferMethod = "");
 	void RerouteCall(const PString & CallId, const PCaselessString & whichLeg, const PString & destination);
 	void PrintPrefixCapacities(USocket *client, const PString & alias);
 	void PrintCapacityControlRules(USocket *client);
