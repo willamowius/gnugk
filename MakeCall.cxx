@@ -198,7 +198,7 @@ void MakeCallEndPoint::OnConnectionEstablished(H323Connection & connection, cons
 	} else if (transferMethod == "FacilityRouteCallToMC") {
 #ifdef HAS_ROUTECALLTOMC
 		PTRACE(3, "MakeCallEndpoint: Using Facility(routeCalltoMC) to transfer call");
-		H225_ConferenceIdentifier confId;
+		H225_ConferenceIdentifier confId = connection.GetConferenceIdentifier();
 		connection.RouteCallToMC(second_party, confId);
 #else
 		PTRACE(1, "MakeCallEndpoint: FacilityRouteCallToMC Not supported, please recompile");
