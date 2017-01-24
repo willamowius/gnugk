@@ -11379,7 +11379,7 @@ void RTPLogicalChannel::ZeroMediaChannelSource()
 // called on OLCAck
 void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlChannel, H245_UnicastAddress * mediaChannel, const PIPSocket::Address & local, bool rev, callptr & call, bool fromTraversalClient, bool useRTPMultiplexing, bool isUnidirectional)
 {
-    PTRACE(7, "JW RTP HandleMediaChannel: fromTraversalClient=" << fromTraversalClient << " isUnidirectional=" << isUnidirectional);
+    PTRACE(7, "JW RTP HandleMediaChannel: fromTraversalClient=" << fromTraversalClient << " isUnidirectional=" << isUnidirectional << " m_ignoreSignaledIPs=" << m_ignoreSignaledIPs);
 	H245_UnicastAddress tmp, tmpmedia, tmpmediacontrol, *dest = mediaControlChannel;
 	PIPSocket::Address tmpSrcIP = SrcIP;
 	WORD tmpSrcPort = SrcPort + 1;
@@ -11501,6 +11501,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
         bool zeroNow = false;
         WORD fSrcPort, fDestPort, rSrcPort, rDestPort;
         GetRTPPorts(fSrcPort, fDestPort, rSrcPort, rDestPort);
+        PTRACE(7, "JW RTP ports: fSrcPort=" << fSrcPort << " fDestPort=" << fDestPort << " rSrcPort=" << rSrcPort << " rDestPort=" << rDestPort);
         if (call && call->GetCalledParty() && call->GetCalledParty()->GetTraversalRole() != None && ( (fDestPort > 0 && rSrcPort > 0) || (fSrcPort > 0 && rDestPort > 0) ) ) {
             // TODO: should this really happen for unidirectional channels ?
             if ((fSrcPort > 0 && fSrcPort == rDestPort) || (rSrcPort > 0 && rSrcPort == fDestPort)) { /* TODO: IP check ? */
