@@ -4417,7 +4417,7 @@ void CallSignalSocket::OnSetup(SignalingMsg *msg)
 			// if the peer address is a public address, but the advertised source address is a private address
 			// then there is a good chance the remote endpoint is behind a NAT.
 			PIPSocket::Address srcAddr;
-			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)) {
+			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress) && setupBody.m_sourceCallSignalAddress.IsValid()) {
 				H323TransportAddress sourceAddress(setupBody.m_sourceCallSignalAddress);
 				sourceAddress.GetIpAddress(srcAddr);
 

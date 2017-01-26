@@ -1,5 +1,6 @@
 Changes from 4.4 to 4.5
 =======================
+- BUGFIX(ProxyChannel.cxx) fix crash on invalid sourceCallSignalAddress
 - add optional parameter for call transfer method to MakeCall status port command
 - BUGFIX(Toolkit.*) fix bug in IP comparison
 - BUGFIX(Toolkit.*) the internal networks configured with the [Proxy] InternalNetworks switch were added
