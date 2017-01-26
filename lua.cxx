@@ -4,7 +4,7 @@
 //
 // LUA routing and authentication policies for GNU Gatekeeper
 //
-// Copyright (c) 2012-2016, Jan Willamowius
+// Copyright (c) 2012-2017, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -613,7 +613,7 @@ int LuaAuth::Check(
     setup_uuie.PrintOn(strm);
     PString message = strm;
 	PString source = "";
-	if (setup_uuie.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress))
+	if (setup_uuie.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress) && setup_uuie.m_sourceCallSignalAddress.IsValid())
 		source = AsDotString(setup_uuie.m_sourceCallSignalAddress);
 	PString calledAlias = GetCalledStationId(setup, authData);
 	PString calledIP = "";

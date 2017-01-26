@@ -2,7 +2,7 @@
 //
 // gkauth.cxx
 //
-// Copyright (c) 2001-2016, Jan Willamowius
+// Copyright (c) 2001-2017, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -609,7 +609,7 @@ PString GkAuthenticator::GetUsername(
 		if (hasCall)
 			addrValid = authData.m_call->GetSrcSignalAddr(addr, port) && addr.IsValid();
 
-		if (!addrValid && setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress))
+		if (!addrValid && setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress) && setupBody.m_sourceCallSignalAddress.IsValid())
 			addrValid = GetIPFromTransportAddr(setupBody.m_sourceCallSignalAddress, addr)
 				&& addr.IsValid();
 

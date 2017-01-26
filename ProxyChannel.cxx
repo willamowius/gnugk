@@ -3,7 +3,7 @@
 // ProxyChannel.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2002
-// Copyright (c) 2002-2016, Jan Willamowius
+// Copyright (c) 2002-2017, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -5082,12 +5082,13 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 		setupBody.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
 		setupBody.m_sourceCallSignalAddress = SocketToH225TransportAddr(masqAddr, GetPort());
 	} else {
-		// check if we are calling from behind a NAT that no "Well Meaning" ALG
+		// check if we are calling from behind a NAT that no "well meaning" ALG
 		// has fiddled with the source address breaking remote NAT detection.
 		if (nat_type == CallRec::callingParty
-			&& setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)) {
+			&& setupBody.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)
+			&& setupBody.m_sourceCallSignalAddress.IsValid()) {
 			PIPSocket::Address sourceAddr;
-			GetIPFromTransportAddr(setupBody.m_sourceCallSignalAddress,sourceAddr);
+			GetIPFromTransportAddr(setupBody.m_sourceCallSignalAddress, sourceAddr);
 			if (m_call->GetCallingParty() && (sourceAddr == m_call->GetCallingParty()->GetNATIP())) {
 				PTRACE(3, Type() << "\tSignal ALG DETECTED correcting source Address");
 				setupBody.m_sourceCallSignalAddress = m_call->GetCallingParty()->GetCallSignalAddress();
