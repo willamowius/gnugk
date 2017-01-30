@@ -4,7 +4,7 @@
 //
 // $Id$
 //
-// Copyright (c) 2007-2015, Jan Willamowius
+// Copyright (c) 2007-2017, Jan Willamowius
 //
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
@@ -31,7 +31,8 @@ class Addpasswd : public PProcess
 
 PCREATE_PROCESS(Addpasswd)
 
-#ifdef P_SSL
+// need OpenSSL >= 1.0.x
+#if defined(P_SSL) && OPENSSL_VERSION_NUMBER >= 0x1000000fL
 PString PBKDF2_Digest(const PString & password)
 {
     // the definitions here must match those in GkStatus.cxx
@@ -98,7 +99,7 @@ void Addpasswd::Main()
 	PConfig config(filename, section);
 	PString encryptedPassword;
 
-#ifdef P_SSL
+#if defined(P_SSL) && OPENSSL_VERSION_NUMBER >= 0x1000000fL
     if (section == "GkStatus::Auth") {
         encryptedPassword = PBKDF2_Digest(password);
     }
