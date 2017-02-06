@@ -3606,6 +3606,7 @@ PString CallSignalSocket::GetDialedNumber(const SetupMsg & setup) const
 	if (dialedNumber.IsEmpty()
         && setupBody.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)
         && GkConfig()->GetBoolean("CallTable", "UseDestCallSignalIPAsDialedNumber", false)) {
+        PTRACE(0, "JW UseDestCallSignalIPAsDialedNumber for Setup: set dialedNumber=" << AsDotString(setupBody.m_destCallSignalAddress));
         dialedNumber = AsDotString(setupBody.m_destCallSignalAddress);
 	}
 

@@ -3159,6 +3159,7 @@ bool AdmissionRequestPDU::Process()
 	if (authData.m_dialedNumber.IsEmpty()
         && request.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)
         && GkConfig()->GetBoolean("CallTable", "UseDestCallSignalIPAsDialedNumber", false)) {
+        PTRACE(0, "JW UseDestCallSignalIPAsDialedNumber for ARQ: set dialedNumber=" << AsDotString(request.m_destCallSignalAddress));
         authData.m_dialedNumber = AsDotString(request.m_destCallSignalAddress);
 	}
 
