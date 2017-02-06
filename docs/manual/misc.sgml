@@ -50,19 +50,24 @@ Default: <tt/120/<newline>
 <p>
 Set the irrFrequency in ACF messages. 0 turns it off.
 
-<item><tt/IRRCheck=TRUE/<newline>
-Default: <tt/FALSE/<newline>
+<item><tt/IRRCheck=0/<newline>
+Default: <tt/1/<newline>
 <p>
 Check if both endpoints in a call send the requested IRRs.
 A call will be terminated if one of the endpoints do not send
 an IRR after 2 * irrFrequency.
 
-<item><tt/SingleFailoverCDR=FALSE/<newline>
-Default: <tt/TRUE/<newline>
+<item><tt/SingleFailoverCDR=0/<newline>
+Default: <tt/1/<newline>
 <p>
 When failover is active, more than one gateway may be tried to
 establish a call. This switch defines if one or multiple CDRs
 are generated for such a call.
+
+<item><tt/UseDestCallSignalIPAsDialedNumber=1/<newline>
+Default: <tt/0/<newline>
+<p>
+Use the destCallSignalIP for CDRs in %{DialedNumber} if no dialed alias is available in ARQ or Setup.
 
 <item><tt/DisabledCodecs=g711Alaw64k;g711Ulaw64k;h263VideoCapability;genericVideoCapability;basicString;/<newline>
 Default: <tt>N/A</tt><newline>

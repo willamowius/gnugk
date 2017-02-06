@@ -459,7 +459,7 @@ PString GkAcctLogger::GetCalledStationId(
 
 PString GkAcctLogger::GetDialedNumber(
 	/// call associated with the accounting event
-	const callptr& call
+	const callptr & call
 	) const
 {
 	if (!call)

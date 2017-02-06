@@ -133,6 +133,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "CallTable", "IRRFrequency" },
 	{ "CallTable", "SingleFailoverCDR" },
 	{ "CallTable", "TimestampFormat" },
+	{ "CallTable", "UseDestCallSignalIPAsDialedNumber" },
 	{ "Endpoint", "Discovery" },
 	{ "Endpoint", "E164" },
 #ifdef HAS_H46018

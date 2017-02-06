@@ -3576,18 +3576,16 @@ PString CallSignalSocket::GetCalledStationId(
 	return id;
 }
 
-PString CallSignalSocket::GetDialedNumber(
-	const SetupMsg &setup
-	) const
+PString CallSignalSocket::GetDialedNumber(const SetupMsg & setup) const
 {
 	PString dialedNumber;
 
 	setup.GetQ931().GetCalledPartyNumber(dialedNumber);
 
-	if (!dialedNumber)
+	if (!dialedNumber.IsEmpty())
 		return dialedNumber;
 
-	H225_Setup_UUIE &setupBody = setup.GetUUIEBody();
+	H225_Setup_UUIE & setupBody = setup.GetUUIEBody();
 
 	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress))
 		dialedNumber = GetBestAliasAddressString(
@@ -3605,6 +3603,11 @@ PString CallSignalSocket::GetDialedNumber(
 			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
 				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber)
 			);
+	if (dialedNumber.IsEmpty()
+        && setupBody.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)
+        && GkConfig()->GetBoolean("CallTable", "UseDestCallSignalIPAsDialedNumber", false)) {
+        dialedNumber = AsDotString(setupBody.m_destCallSignalAddress);
+	}
 
 	return dialedNumber;
 }
@@ -3625,7 +3628,7 @@ bool CallSignalSocket::IsH46024Call(const H225_Setup_UUIE & setupBody)
 }
 #endif
 
-void CallSignalSocket::OnSetup(SignalingMsg *msg)
+void CallSignalSocket::OnSetup(SignalingMsg * msg)
 {
 	SetupMsg* setup = dynamic_cast<SetupMsg*>(msg);
 	if (setup == NULL) {

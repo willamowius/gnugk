@@ -1703,14 +1703,12 @@ GkInterface *RasServer::CreateInterface(const Address & addr)
 }
 
 
-Toolkit *RasMsg::Kit;
 RegistrationTable *RasMsg::EndpointTbl;
 CallTable *RasMsg::CallTbl;
 RasServer *RasMsg::RasSrv;
 
 void RasMsg::Initialize()
 {
-	Kit = Toolkit::Instance();
 	EndpointTbl = RegistrationTable::Instance();
 	CallTbl = CallTable::Instance();
 	RasSrv = RasServer::Instance();
@@ -1807,7 +1805,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 					const PIPSocket::Address & rx_addr = m_msg->m_peerAddr;
 					if (GetIPFromTransportAddr(request.m_rasAddress, remoteRAS)) {
 						bool h46018nat = ((rx_addr != remoteRAS) && !IsLoopback(rx_addr));
-						if (h46018nat || Kit->Config()->GetBoolean(RoutedSec, "H46018NoNAT", true)) {
+						if (h46018nat || GkConfig()->GetBoolean(RoutedSec, "H46018NoNAT", true)) {
 							// include H.460.18 in supported features
 							gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_featureSet);
 							H460_FeatureStd H46018 = H460_FeatureStd(18);
@@ -2019,7 +2017,7 @@ bool RegistrationRequestPDU::Process()
 				if (request.m_rasAddress.GetSize() > 0)
 					GetIPFromTransportAddr(request.m_rasAddress[0], remoteRAS);	// ignore possible errors, will be overwritten anyway
 				h46018nat = ((rx_addr != remoteRAS) && !IsLoopback(rx_addr));
-				if (h46018nat || Kit->Config()->GetBoolean(RoutedSec, "H46018NoNAT", true)) {
+				if (h46018nat || GkConfig()->GetBoolean(RoutedSec, "H46018NoNAT", true)) {
 					supportH46018 = true;
 					// ignore rasAddr and use apparent address
 					request.m_rasAddress.SetSize(1);
@@ -2172,7 +2170,7 @@ bool RegistrationRequestPDU::Process()
 		if (bReject) {
 			if (ep && bSendReply) {
                 PTRACE(1, "RAS\tWarning: Possible endpointId collission, security attack or IP change");
-                if (Toolkit::AsBool(Kit->Config()->GetString(RRQFeatureSection, "SupportDynamicIP", "0"))) {
+                if (Toolkit::AsBool(GkConfig()->GetString(RRQFeatureSection, "SupportDynamicIP", "0"))) {
                     PTRACE(1, "RAS\tDynamic IP?  Removing existing Endpoint record and force reregistration. Disconnecting calls.");
                     while (callptr call = CallTbl->FindCallRec(ep)) {
                         call->Disconnect();
@@ -2198,7 +2196,7 @@ bool RegistrationRequestPDU::Process()
 						ep->SetUsesH46023(false);
 					} else {  // ntype == 1
 						PTRACE(4, "Std23\tEndpoint reports itself as not behind a NAT/FW!");
-						if (Kit->Config()->GetBoolean(RoutedSec, "H46023ForceNat", false)) {
+						if (GkConfig()->GetBoolean(RoutedSec, "H46023ForceNat", false)) {
 							ep->SetNAT(true);
 							ep->SetNATAddress(rx_addr, rx_port);
 							ntype = 6;  // symmetric firewall
@@ -2363,7 +2361,7 @@ bool RegistrationRequestPDU::Process()
 			validaddress = true;
 		} else if (!validaddress && !IsLoopback(ipaddr)) { // do not allow nated from loopback
 			nated = true;
-			PString featureRequired = Kit->Config()->GetString(RoutedSec, "NATStdMin", "");
+			PString featureRequired = GkConfig()->GetString(RoutedSec, "NATStdMin", "");
 			if (!featureRequired && ( 0
 #ifdef HAS_H46018
 					|| (featureRequired == "18" && !supportH46018)
@@ -2375,7 +2373,7 @@ bool RegistrationRequestPDU::Process()
 						return BuildRRJ(H225_RegistrationRejectReason::e_neededFeatureNotSupported, nated);
 			}
 			else
-				validaddress = Toolkit::AsBool(Kit->Config()->GetString(RoutedSec, "SupportNATedEndpoints", "0"));
+				validaddress = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SupportNATedEndpoints", "0"));
 		}
 	}
 	if (!validaddress)
@@ -2395,7 +2393,7 @@ bool RegistrationRequestPDU::Process()
 		endptr ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
 		// endpoint exists, but has different IP or port - this could be a new registration from a NATed endpoint where the fiewall close the pinhole
 		if (ep && ep->GetCallSignalAddress() != SignalAddr
-            && !Kit->Config()->GetBoolean("RasSrv::RRQFeatures", "OverwriteEPOnSameAddress", false) ) {
+            && !GkConfig()->GetBoolean("RasSrv::RRQFeatures", "OverwriteEPOnSameAddress", false) ) {
             PTRACE(1, "RAS\tNew registration with existing endpointID, but different IP: oldIP=" << AsDotString(ep->GetCallSignalAddress()) << " newIP=" << AsDotString(SignalAddr));
 			// no reason named invalidEndpointIdentifier? :(
 			return BuildRRJ(H225_RegistrationRejectReason::e_securityDenial);
@@ -2410,7 +2408,7 @@ bool RegistrationRequestPDU::Process()
 	bool bNewEP = true;
 	if (request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) && (request.m_terminalAlias.GetSize() >= 1)) {
 		H225_ArrayOf_AliasAddress Alias, & Aliases = request.m_terminalAlias;
-		if (Kit->Config()->GetBoolean("RasSrv::RRQFeatures", "AuthenticatedAliasesOnly", false) &&
+		if (GkConfig()->GetBoolean("RasSrv::RRQFeatures", "AuthenticatedAliasesOnly", false) &&
 			authData.m_authAliases.GetSize() > 0) {
 			PString recvAlias;
             for (int a = 0; a < Aliases.GetSize(); ++a) {
@@ -2447,7 +2445,7 @@ bool RegistrationRequestPDU::Process()
 				bNewEP = (ep->GetCallSignalAddress() != SignalAddr);
 				if (bNewEP) {
 					if ((RegPrior > ep->Priority()) || (preempt) ||
-                        (Toolkit::AsBool(Kit->Config()->GetString("RasSrv::RRQFeatures", "OverwriteEPOnSameAddress", "0")))) {
+                        (Toolkit::AsBool(GkConfig()->GetString("RasSrv::RRQFeatures", "OverwriteEPOnSameAddress", "0")))) {
 						// If the operators policy allows this case:
 						// 1a) terminate all calls on active ep and
 						// 1b) unregister the active ep - sends URQ and
@@ -2493,7 +2491,7 @@ bool RegistrationRequestPDU::Process()
 			if (s.GetLength() < 1)
 				return BuildRRJ(H225_RegistrationRejectReason::e_invalidAlias);
 			if (!nated && !s)
-				nated = Kit->Config()->HasKey("NATedEndpoints", s);
+				nated = GkConfig()->HasKey("NATedEndpoints", s);
 		}
 	} else {
 		// reject gw without alias
@@ -2514,7 +2512,7 @@ bool RegistrationRequestPDU::Process()
 		return BuildRRJ(H225_RegistrationRejectReason::e_resourceUnavailable);
 	}
 
-    bool enableGnuGkNATTraversal = Kit->Config()->GetBoolean(RoutedSec, "EnableGnuGkNATTraversal", false);
+    bool enableGnuGkNATTraversal = GkConfig()->GetBoolean(RoutedSec, "EnableGnuGkNATTraversal", false);
     PTRACE(4, "NAT\tGnuGk's own NAT traversal is " << (enableGnuGkNATTraversal ? "ON" : "OFF"));
 	if (!nated && enableGnuGkNATTraversal && request.HasOptionalField(H225_RegistrationRequest::e_nonStandardData)) {
 		int iec = Toolkit::iecUnknown;
@@ -2606,7 +2604,7 @@ bool RegistrationRequestPDU::Process()
 		BuildRCF(ep);
 		H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
 
-		if (Kit->Config()->GetBoolean(RoutedSec, "PregrantARQ", false)) {
+		if (GkConfig()->GetBoolean(RoutedSec, "PregrantARQ", false)) {
 			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_preGrantedARQ);
 			rcf.m_preGrantedARQ.m_makeCall = true;
 			rcf.m_preGrantedARQ.m_answerCall = true;
@@ -2631,7 +2629,7 @@ bool RegistrationRequestPDU::Process()
 			t35.m_manufacturerCode = Toolkit::t35mGnuGk;
 			t35.m_t35Extension = Toolkit::t35eNATTraversal;
 			// if the client is NAT or you are forcing ALL registrations to use a keepAlive TCP socket
-			if ((nated) || Kit->Config()->GetBoolean(RoutedSec, "ForceNATKeepAlive", false))
+			if ((nated) || GkConfig()->GetBoolean(RoutedSec, "ForceNATKeepAlive", false))
 				rcf.m_nonStandardData.m_data = "NAT=" + rx_addr.AsString();
 			else  // Be careful as some public IP's may block TCP but not UDP resulting in an incorrect NAT test result.
 				rcf.m_nonStandardData.m_data = "NoNAT";
@@ -2690,7 +2688,7 @@ bool RegistrationRequestPDU::Process()
 			// Build the message
 			if (ok23) {
 				ep->SetUsesH46023(true);
-				bool h46023nat = nated || h46018nat || Kit->Config()->GetBoolean(RoutedSec, "H46018NoNAT", true);
+				bool h46023nat = nated || h46018nat || GkConfig()->GetBoolean(RoutedSec, "H46018NoNAT", true);
 
 				H460_FeatureStd natfs = H460_FeatureStd(23);
 				natfs.Add(Std23_IsNAT,H460_FeatureContent(h46023nat));
@@ -2761,7 +2759,7 @@ bool RegistrationRequestPDU::Process()
 
 		// Gatekeeper assigned Aliases if the client supplied aliases
 		if (request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
-			if (!ep->IsGateway() || Kit->Config()->GetBoolean(RRQFeatureSection, "GatewayAssignAliases", true))
+			if (!ep->IsGateway() || GkConfig()->GetBoolean(RRQFeatureSection, "GatewayAssignAliases", true))
 				ep->SetAssignedAliases(rcf.m_terminalAlias);
 			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_terminalAlias);
 		}
@@ -3158,6 +3156,11 @@ bool AdmissionRequestPDU::Process()
 					| AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
 		}
 	}
+	if (authData.m_dialedNumber.IsEmpty()
+        && request.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)
+        && GkConfig()->GetBoolean("CallTable", "UseDestCallSignalIPAsDialedNumber", false)) {
+        authData.m_dialedNumber = AsDotString(request.m_destCallSignalAddress);
+	}
 
 	if (hasDestInfo) { // apply rewriting rules
 
@@ -3175,14 +3178,14 @@ bool AdmissionRequestPDU::Process()
 		}
 
 	 	if (!in_rewrite_source.IsEmpty()) {
-	 		if (Kit->GWRewriteE164(in_rewrite_source, GW_REWRITE_IN, request.m_destinationInfo[0], pExistingCallRec)
+	 		if (Toolkit::Instance()->GWRewriteE164(in_rewrite_source, GW_REWRITE_IN, request.m_destinationInfo[0], pExistingCallRec)
 				&& !RasSrv->IsGKRouted()) {
 				aliasesChanged = true;
 			}
 		}
 
 		// Normal rewriting
-		if (Kit->RewriteE164(request.m_destinationInfo[0]) && !RasSrv->IsGKRouted()) {
+		if (Toolkit::Instance()->RewriteE164(request.m_destinationInfo[0]) && !RasSrv->IsGKRouted()) {
 			aliasesChanged = true;
 		}
 	}
@@ -3215,7 +3218,7 @@ bool AdmissionRequestPDU::Process()
 	}
 
 	if (RasSrv->IsGKRouted() && answer && !pExistingCallRec) {
-		if (Kit->Config()->GetBoolean("RasSrv::ARQFeatures", "ArjReasonRouteCallToGatekeeper", true)) {
+		if (GkConfig()->GetBoolean("RasSrv::ARQFeatures", "ArjReasonRouteCallToGatekeeper", true)) {
 			bReject = true;
 			if (request.HasOptionalField(H225_AdmissionRequest::e_srcCallSignalAddress)) {
 				PIPSocket::Address ipaddress;
@@ -3411,7 +3414,7 @@ bool AdmissionRequestPDU::Process()
 		}
 
 		if (!out_rewrite_source.IsEmpty())
-			if (Kit->GWRewriteE164(out_rewrite_source, GW_REWRITE_OUT, request.m_destinationInfo[0], pExistingCallRec)
+			if (Toolkit::Instance()->GWRewriteE164(out_rewrite_source, GW_REWRITE_OUT, request.m_destinationInfo[0], pExistingCallRec)
 				&& !RasSrv->IsGKRouted())
 				aliasesChanged = true;
 	}
@@ -3963,14 +3966,14 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 
 		// do the GW IN rewrites
 		if (!neighbor_id.IsEmpty()) {
-			Kit->GWRewriteE164(neighbor_id, GW_REWRITE_IN, request.m_destinationInfo[0]);
+			Toolkit::Instance()->GWRewriteE164(neighbor_id, GW_REWRITE_IN, request.m_destinationInfo[0]);
 		}
 		if (!neighbor_gkid.IsEmpty() && (neighbor_gkid != neighbor_id)) {
-			Kit->GWRewriteE164(neighbor_gkid, GW_REWRITE_IN, request.m_destinationInfo[0]);
+			Toolkit::Instance()->GWRewriteE164(neighbor_gkid, GW_REWRITE_IN, request.m_destinationInfo[0]);
 		}
 
 		// Normal rewrite
-		Kit->RewriteE164(request.m_destinationInfo[0]);
+		Toolkit::Instance()->RewriteE164(request.m_destinationInfo[0]);
 	}
 
 	unsigned reason = H225_LocationRejectReason::e_securityDenial;

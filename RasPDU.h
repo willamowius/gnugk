@@ -28,10 +28,6 @@
 #include "Toolkit.h"
 
 
-class Toolkit;
-class GkStatus;
-class RegistrationTable;
-class CallTable;
 class RasListener;
 class MulticastListener;
 class CallSignalListener;
@@ -148,7 +144,6 @@ protected:
 
 	// just pointers to global singleton objects
 	// cache for faster access
-	static Toolkit *Kit;
 	static RegistrationTable *EndpointTbl;
 	static CallTable *CallTbl;
 	static RasServer *RasSrv;
@@ -291,7 +286,7 @@ public:
 	typedef PIPSocket::Address Address;
 
 	RasHandler();
-	virtual ~RasHandler() {}
+	virtual ~RasHandler() { }
 
 	// new virtual function
 

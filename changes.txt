@@ -1,5 +1,7 @@
 Changes from 4.4 to 4.5
 =======================
+- new switch [CallTable] UseDestCallSignalIPAsDialedNumber=1 to place the destSignalIP into the
+  %{DialedNumber} field if no dialed number is available in the ARQ / Setup
 - BUGFIX(ProxyChannel.cxx) fix crash on invalid sourceCallSignalAddress
 - add optional parameter for call transfer method to MakeCall status port command
 - BUGFIX(Toolkit.*) fix bug in IP comparison

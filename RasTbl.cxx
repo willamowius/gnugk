@@ -3681,7 +3681,7 @@ PString CallRec::GetCallingStationId()
 	return m_callingStationId;
 }
 
-void CallRec::SetCallingStationId(const PString& id)
+void CallRec::SetCallingStationId(const PString & id)
 {
 	PWaitAndSignal lock(m_usedLock);
 	m_callingStationId = id;
@@ -3693,7 +3693,7 @@ PString CallRec::GetCalledStationId()
 	return m_calledStationId;
 }
 
-void CallRec::SetCalledStationId(const PString& id)
+void CallRec::SetCalledStationId(const PString & id)
 {
 	PWaitAndSignal lock(m_usedLock);
 	m_calledStationId = id;
@@ -3706,7 +3706,7 @@ PString CallRec::GetDialedNumber()
 }
 
 void CallRec::SetDialedNumber(
-	const PString& number
+	const PString & number
 	)
 {
 	PWaitAndSignal lock(m_usedLock);
