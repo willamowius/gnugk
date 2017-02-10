@@ -9,20 +9,18 @@
 # processname: /usr/sbin/gnugk
 # config: /etc/gatekeeper.ini
 #
-# Maintained by Chih-Wei Huang <cwhuang@linux.org.tw>
+# Created by Chih-Wei Huang <cwhuang@linux.org.tw>
 #               Citron Network Inc.
 #
 
 # Source function library.
 . /etc/rc.d/init.d/functions
 
-GKEXE=/usr/sbin/gnugk
+GKEXE=/usr/local/bin/gnugk
 GKPID=/var/run/gnugk.pid
 GKCONFIG=/etc/gatekeeper.ini
-LOGFILE=/var/log/gnugk/gnugk.log
+LOGFILE=/var/log/gnugk.log
 LOCKFILE=/var/lock/subsys/gnugk
-PTLIBDIR=/h323/ptlib
-OPENH323DIR=/h323/h323plus
 
 
 # Source networking configuration and check that networking is up.
@@ -43,9 +41,7 @@ start () {
     [ -f $LOGFILE ] && mv -f $LOGFILE $LOGFILE.bak
     echo -n $"Starting $prog: "
     # start daemon
-    export LD_LIBRARY_PATH=$PTLIBDIR/lib_linux_x86:$OPENH323DIR/lib
-    #$GKEXE -c $GKCONFIG -o $LOGFILE > /dev/null 2>&1 &
-    $GKEXE -tt -c $GKCONFIG -o $LOGFILE > /dev/null 2>&1 &
+    $GKEXE -c $GKCONFIG -o $LOGFILE > /dev/null 2>&1 &
     RETVAL=$?
     [ $RETVAL = 0 ] && touch $LOCKFILE && success
     echo
