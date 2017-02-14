@@ -579,7 +579,7 @@ Setlog /tmp/trace.log
 </verb></tscreen>
 </descrip>
 
-<item><tt/RotateLog/<newline>
+<item><tt/RotateLog/, <tt/rl/<newline>
 <p>Rotate the log file.
 
 <item><tt/Who/<newline>

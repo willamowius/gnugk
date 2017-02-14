@@ -2,7 +2,7 @@
 //
 // GkStatus.cxx
 //
-// Copyright (c) 2000-2016, Jan Willamowius
+// Copyright (c) 2000-2017, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1157,6 +1157,7 @@ void GkStatus::OnStart()
 	m_commands["q"] = e_Exit;
 	m_commands["trace"] = e_Trace;
 	m_commands["rotatelog"] = e_RotateLog;
+	m_commands["rl"] = e_RotateLog;
 	m_commands["setlog"] = e_SetLogFilename;
 	m_commands["addincludefilter"] = e_AddIncludeFilter;
 	m_commands["removeincludefilter"] = e_RemoveIncludeFilter;

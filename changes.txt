@@ -1,5 +1,6 @@
 Changes from 4.4 to 4.5
 =======================
+- add shortcurt 'rl' for status port command 'rotatelog'
 - new switch [CallTable] UseDestCallSignalIPAsDialedNumber=1 to place the destSignalIP into the
   %{DialedNumber} field if no dialed number is available in the ARQ / Setup
 - BUGFIX(ProxyChannel.cxx) fix crash on invalid sourceCallSignalAddress
