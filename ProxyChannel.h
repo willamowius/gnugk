@@ -223,7 +223,8 @@ public:
 	virtual Result ReceiveData();
 	virtual bool OnReceiveData(void *, PINDEX, Address &, WORD &) { return true; }
 
-    void GetPorts(WORD & _fSrcPort, WORD & _fDestPort, WORD & _rSrcPort, WORD & _rDestPort) const;
+    void GetPorts(PIPSocket::Address & _fSrcIP, PIPSocket::Address & _fDestIP, PIPSocket::Address & _rSrcIP, PIPSocket::Address & _rDestIP,
+                    WORD & _fSrcPort, WORD & _fDestPort, WORD & _rSrcPort, WORD & _rDestPort) const;
     void ZeroAllIPs();
 
 
@@ -282,7 +283,7 @@ protected:
 #endif
     bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPs in signalling, do full auto-detect
     bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H239 streams
-    NetworkAddress m_keepSignaledIPs;   // don't do auto-detect on this network
+    list<NetworkAddress> m_keepSignaledIPs;   // don't do auto-detect on this network
 };
 
 #if H323_H450
