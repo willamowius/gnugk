@@ -996,7 +996,8 @@ public:
 	BYTE GetCipherPayloadType() const { return m_cipherPayloadType; }
 #endif
 
-    void GetRTPPorts(WORD & fSrcPort, WORD & dDestPort, WORD & rSrcPort, WORD & rDestPort) const;
+    void GetRTPPorts(PIPSocket::Address & fSrcIP, PIPSocket::Address & fDestIP, PIPSocket::Address & rSrcIP, PIPSocket::Address & rDestIP,
+                        WORD & fSrcPort, WORD & dDestPort, WORD & rSrcPort, WORD & rDestPort) const;
 
 private:
 	void SetNAT(bool);
@@ -1019,7 +1020,7 @@ private:
 	H225_CallIdentifier m_callID;
     bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPs in signalling, do full auto-detect
     bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H.239 streams
-    NetworkAddress m_keepSignaledIPs;   // don't do auto-detect on this network
+    list<NetworkAddress> m_keepSignaledIPs;   // don't do auto-detect on this network
     bool m_isUnidirectional;
     RTPSessionTypes m_sessionType;
 };
@@ -1200,7 +1201,7 @@ protected:
 #endif
     bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPs in signalling, do full auto-detect
     bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H.239 streams
-    NetworkAddress m_keepSignaledIPs;   // don't do auto-detect on this network
+    list<NetworkAddress> m_keepSignaledIPs;   // don't do auto-detect on this network
 };
 
 
@@ -9851,16 +9852,19 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
         m_ignoreSignaledIPs = call->IgnoreSignaledIPs();
         if (m_ignoreSignaledIPs) {
             m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
-            PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");  // TODO: support list of netmasks
-            if (keepSignaledIPs.Find('/') == P_MAX_INDEX) {
-                // add netmask to pure IPs
-                if (IsIPv4Address(keepSignaledIPs)) {
-                    keepSignaledIPs += "/32";
-                } else {
-                    keepSignaledIPs += "/128";
+            PStringArray keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "").Tokenise(",", FALSE);
+            for (PINDEX i = 0; i < keepSignaledIPs.GetSize(); ++i) {
+                PString ip = keepSignaledIPs[i];
+                if (ip.Find('/') == P_MAX_INDEX) {
+                    // add netmask to pure IPs
+                    if (IsIPv4Address(ip)) {
+                        ip += "/32";
+                    } else {
+                        ip += "/128";
+                    }
                 }
+                m_keepSignaledIPs.push_back(NetworkAddress(ip));
             }
-            m_keepSignaledIPs = NetworkAddress(keepSignaledIPs);
         }
     }
 #endif
@@ -10028,8 +10032,14 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 	m_call = &call;
 }
 
-void UDPProxySocket::GetPorts(WORD & _fSrcPort, WORD & _fDestPort, WORD & _rSrcPort, WORD & _rDestPort) const
+void UDPProxySocket::GetPorts(PIPSocket::Address & _fSrcIP, PIPSocket::Address & _fDestIP, PIPSocket::Address & _rSrcIP, PIPSocket::Address & _rDestIP,
+                                WORD & _fSrcPort, WORD & _fDestPort, WORD & _rSrcPort, WORD & _rDestPort) const
 {
+    _fSrcIP = fSrcIP;
+    _fDestIP = fDestIP;
+    _rSrcIP = rSrcIP;
+    _rDestIP = rDestIP;
+
     _fSrcPort = fSrcPort;
     _fDestPort = fDestPort;
     _rSrcPort = rSrcPort;
@@ -10038,16 +10048,16 @@ void UDPProxySocket::GetPorts(WORD & _fSrcPort, WORD & _fDestPort, WORD & _rSrcP
 
 void UDPProxySocket::ZeroAllIPs()
 {
-    if (!IsInNetwork(fSrcIP, m_keepSignaledIPs)) {
+    if (!IsInNetworks(fSrcIP, m_keepSignaledIPs)) {
         fSrcIP = 0; fSrcPort = 0;
     }
-    if (!IsInNetwork(fDestIP, m_keepSignaledIPs)) {
+    if (!IsInNetworks(fDestIP, m_keepSignaledIPs)) {
         fDestIP = 0; fDestPort = 0;
     }
-    if (!IsInNetwork(rSrcIP, m_keepSignaledIPs)) {
+    if (!IsInNetworks(rSrcIP, m_keepSignaledIPs)) {
         rSrcIP = 0; rSrcPort = 0;
     }
-    if (!IsInNetwork(rDestIP, m_keepSignaledIPs)) {
+    if (!IsInNetworks(rDestIP, m_keepSignaledIPs)) {
         rDestIP = 0; rDestPort = 0;
     }
 #ifdef HAS_H46018
@@ -10854,16 +10864,19 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
                 call->SetIgnoreSignaledIPs(false);
             } else {
                 m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
-                PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");  // TODO: support list of netmasks
-                if (keepSignaledIPs.Find('/') == P_MAX_INDEX) {
-                    // add netmask to pure IPs
-                    if (IsIPv4Address(keepSignaledIPs)) {
-                        keepSignaledIPs += "/32";
-                    } else {
-                        keepSignaledIPs += "/128";
+                PStringArray keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "").Tokenise(",", FALSE);
+                for (PINDEX i = 0; i < keepSignaledIPs.GetSize(); ++i) {
+                    PString ip = keepSignaledIPs[i];
+                    if (ip.Find('/') == P_MAX_INDEX) {
+                        // add netmask to pure IPs
+                        if (IsIPv4Address(ip)) {
+                            ip += "/32";
+                        } else {
+                            ip += "/128";
+                        }
                     }
+                    m_keepSignaledIPs.push_back(NetworkAddress(ip));
                 }
-                m_keepSignaledIPs = NetworkAddress(keepSignaledIPs);
             }
         }
     }
@@ -10946,16 +10959,19 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool na
                 call->SetIgnoreSignaledIPs(false);
             } else {
                 m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
-                PString keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "");  // TODO: support list of netmasks
-                if (keepSignaledIPs.Find('/') == P_MAX_INDEX) {
-                    // add netmask to pure IPs
-                    if (IsIPv4Address(keepSignaledIPs)) {
-                        keepSignaledIPs += "/32";
-                    } else {
-                        keepSignaledIPs += "/128";
+                PStringArray keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "").Tokenise(",", FALSE);
+                for (PINDEX i = 0; i < keepSignaledIPs.GetSize(); ++i) {
+                    PString ip = keepSignaledIPs[i];
+                    if (ip.Find('/') == P_MAX_INDEX) {
+                        // add netmask to pure IPs
+                        if (IsIPv4Address(ip)) {
+                            ip += "/32";
+                        } else {
+                            ip += "/128";
+                        }
                     }
+                    m_keepSignaledIPs.push_back(NetworkAddress(ip));
                 }
-                m_keepSignaledIPs = NetworkAddress(keepSignaledIPs);
             }
         }
     }
@@ -11342,11 +11358,12 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 }
 #endif
 
-void RTPLogicalChannel::GetRTPPorts(WORD & fSrcPort, WORD & dDestPort, WORD & rSrcPort, WORD & rDestPort) const
+void RTPLogicalChannel::GetRTPPorts(PIPSocket::Address & fSrcIP, PIPSocket::Address & fDestIP, PIPSocket::Address & rSrcIP, PIPSocket::Address & rDestIP,
+                                    WORD & fSrcPort, WORD & dDestPort, WORD & rSrcPort, WORD & rDestPort) const
 {
     fSrcPort = dDestPort = rSrcPort = rDestPort = 0;
     if (rtp) {
-        rtp->GetPorts(fSrcPort, dDestPort, rSrcPort, rDestPort);
+        rtp->GetPorts(fSrcIP, fDestIP, rSrcIP, rDestIP, fSrcPort, dDestPort, rSrcPort, rDestPort);
     }
 }
 
@@ -11437,13 +11454,13 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
         if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
             zeroIP = true;
         }
-        if (IsInNetwork(ip, m_keepSignaledIPs)) {
+        if (IsInNetworks(ip, m_keepSignaledIPs)) {
             zeroIP = false;
         }
         if (zeroIP) {
             PTRACE(7, "JW RTP IN zero RTCP src + dest (IgnoreSignaledIPs)");
             (rtcp->*SetDest)(0, 0, NULL, call);
-        } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs && !IsInNetwork(tmpSrcIP, m_keepSignaledIPs)) {
+        } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs)) {
             // only zero out source IP
             PTRACE(7, "JW RTP IN zero RTCP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
             (rtcp->*SetDest)(0, 0, dest, call);
@@ -11481,13 +11498,13 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
             if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
                 zeroIP = true;
             }
-            if (IsInNetwork(ip, m_keepSignaledIPs)) {
+            if (IsInNetworks(ip, m_keepSignaledIPs)) {
                 zeroIP = false;
             }
             if (zeroIP) {
                 PTRACE(7, "JW RTP IN zero RTP src + dest (IgnoreSignaledIPs)");
                 (rtp->*SetDest)(0, 0, NULL, call);
-            } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs && !IsInNetwork(tmpSrcIP, m_keepSignaledIPs)) {
+            } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs)) {
                 // only zero out source IP
                 PTRACE(7, "JW RTP IN zero RTP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
                 (rtp->*SetDest)(0, 0, dest, call);
@@ -11504,12 +11521,15 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 #ifdef HAS_H46018
 	if (m_ignoreSignaledIPs) {
         bool zeroNow = false;
+        PIPSocket::Address fSrcIP, fDestIP, rSrcIP, rDestIP;
         WORD fSrcPort, fDestPort, rSrcPort, rDestPort;
-        GetRTPPorts(fSrcPort, fDestPort, rSrcPort, rDestPort);
+        GetRTPPorts(fSrcIP, fDestIP, rSrcIP, rDestIP, fSrcPort, fDestPort, rSrcPort, rDestPort);
+        PTRACE(7, "JW RTP IPs: fSrcIP=" << AsString(fSrcIP) << " fDestIP=" << AsString(fDestIP) << " rSrcIP=" << AsString(rSrcIP) << " rDestIP=" << AsString(rDestIP));
         PTRACE(7, "JW RTP ports: fSrcPort=" << fSrcPort << " fDestPort=" << fDestPort << " rSrcPort=" << rSrcPort << " rDestPort=" << rDestPort);
         if (call && call->GetCalledParty() && call->GetCalledParty()->GetTraversalRole() != None && ( (fDestPort > 0 && rSrcPort > 0) || (fSrcPort > 0 && rDestPort > 0) ) ) {
             // TODO: should this really happen for unidirectional channels ?
             if ((fSrcPort > 0 && fSrcPort == rDestPort) || (rSrcPort > 0 && rSrcPort == fDestPort)) { /* TODO: IP check ? */
+                PTRACE(7, "JW RTP zero to traversal");
                 zeroNow = true;
             } else {
                 PTRACE(5, "RTP\tNon-symetric port usage, disable auto-detect");
@@ -11517,7 +11537,13 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
             }
         } else {
             if (fSrcPort > 0 && fDestPort > 0 && rSrcPort > 0 && rDestPort > 0 && !isUnidirectional) {
-                if ((fSrcPort == rDestPort) && (rSrcPort == fDestPort)) { /* TODO: && fSrcIP == rDestIP && fDestIP == rSrcIP */
+                if (IsInNetworks(fSrcIP, m_keepSignaledIPs) || IsInNetworks(fDestIP, m_keepSignaledIPs) || IsInNetworks(rSrcIP, m_keepSignaledIPs) || IsInNetworks(rDestIP, m_keepSignaledIPs)) {
+                    // assume symetric port ussage if one side ist set to allowed IPs
+                    PTRACE(7, "JW RTP zero with any AllowedIP");
+                    zeroNow = true;
+                } else if ((fSrcPort == rDestPort) && (rSrcPort == fDestPort)) { /* TODO: && fSrcIP == rDestIP && fDestIP == rSrcIP */
+                    PTRACE(7, "JW RTP zero normal");
+                    // the regular case
                     zeroNow = true;
                 } else {
                 	PTRACE(5, "RTP\tNon-symetric port usage, disable auto-detect");
@@ -11529,7 +11555,6 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
             PTRACE(7, "JW RTP IN zero RTP src + dest (IgnoreSignaledIPs)");
             rtp->ZeroAllIPs();
             rtcp->ZeroAllIPs();
-            GetRTPPorts(fSrcPort, fDestPort, rSrcPort, rDestPort);
         }
    }
 #endif
@@ -11889,7 +11914,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
             if (m_ignoreSignaledIPs && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
                 zeroIP = true;
             }
-            if (IsInNetwork(ip, m_keepSignaledIPs)) {
+            if (IsInNetworks(ip, m_keepSignaledIPs)) {
                 zeroIP = false;
             }
             if (zeroIP) {
@@ -11914,7 +11939,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
         if (m_ignoreSignaledIPs && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
             zeroIP = true;
         }
-        if (IsInNetwork(ip, m_keepSignaledIPs)) {
+        if (IsInNetworks(ip, m_keepSignaledIPs)) {
             zeroIP = false;
         }
         if (zeroIP) {
@@ -11925,9 +11950,6 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 		}
 		changed = true;
 	}
-
-    WORD fSrcPort, fDestPort, rSrcPort, rDestPort;
-    lc->GetRTPPorts(fSrcPort, fDestPort, rSrcPort, rDestPort);
 
 	return changed;
 }

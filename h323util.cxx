@@ -2,7 +2,7 @@
 //
 // H.323 utility functions
 //
-// Copyright (c) 2000-2016, Jan Willamowius
+// Copyright (c) 2000-2017, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -179,6 +179,11 @@ PString AsString(const H323TransportAddress & ta)
 		return AsString(ip, port);
 	else
 		return "";
+}
+
+PString AsString(const NetworkAddress & na)
+{
+    return na.AsString();
 }
 
 PString AsString(const H225_EndpointType & terminalType)
