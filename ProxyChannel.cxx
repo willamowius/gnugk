@@ -1251,14 +1251,15 @@ inline TCPProxySocket::TPKTV3::TPKTV3(WORD len)
 
 // class TCPProxySocket
 TCPProxySocket::TCPProxySocket(const char * t, TCPProxySocket * s, WORD p)
-      : ServerSocket(p), ProxySocket(this, t), remote(s), bufptr(NULL), tpkt(0), tpktlen(0)
+      : ServerSocket(p), ProxySocket(this, t), remote(s), bufptr(NULL), tpkt(0), tpktlen(0),
+        m_keepAliveInterval(19), m_keepAliveTimer(GkTimerManager::INVALID_HANDLE)
 {
 }
 
 TCPProxySocket::~TCPProxySocket()
 {
     UnregisterKeepAlive();
-	DetachRemote();
+    DetachRemote();
 }
 
 void TCPProxySocket::DetachRemote()
