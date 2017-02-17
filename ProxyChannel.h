@@ -167,7 +167,10 @@ protected:
 	PBYTEArray buffer;
 
 public:
-	bool InternalWrite(const PBYTEArray &);
+	bool InternalWrite(const PBYTEArray & buf);
+	void SendKeepAlive(GkTimer * timer);
+	void RegisterKeepAlive(int h46018_interval = 0);
+	void UnregisterKeepAlive();
 
 protected:
 	bool SetMinBufSize(WORD);
@@ -175,6 +178,9 @@ protected:
 	BYTE *bufptr;
 	TPKTV3 tpkt;
 	unsigned tpktlen;
+
+	int m_keepAliveInterval;
+	GkTimerManager::GkTimerHandle m_keepAliveTimer;
 };
 
 class RTPLogicalChannel;

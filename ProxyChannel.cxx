@@ -1257,6 +1257,7 @@ TCPProxySocket::TCPProxySocket(const char * t, TCPProxySocket * s, WORD p)
 
 TCPProxySocket::~TCPProxySocket()
 {
+    UnregisterKeepAlive();
 	DetachRemote();
 }
 
@@ -1410,6 +1411,48 @@ bool TCPProxySocket::InternalWrite(const PBYTEArray & buf)
 	return WriteData(bptr, tlen);
 }
 
+void TCPProxySocket::SendKeepAlive(GkTimer * timer)
+{
+    // TODO: do we need a mutex here ?
+    PTRACE(0, "JW SendKeepAlive this=" << this);
+    if (!IsOpen()) {
+        PTRACE(0, "JW SendKeepAlive NOT open this=" << this);
+        UnregisterKeepAlive();
+        return;
+    }
+	PBYTEArray tbuf(sizeof(TPKTV3));
+	BYTE *bptr = tbuf.GetPointer();
+	new (bptr) TPKTV3(0); // placement operator
+	WriteData(bptr, sizeof(TPKTV3));
+}
+
+void TCPProxySocket::RegisterKeepAlive(int h46018_interval)
+{
+	if (h46018_interval > 0) {
+		m_keepAliveInterval = h46018_interval;
+	} else {
+        m_keepAliveInterval = GkConfig()->GetInteger(RoutedSec, "GnuGkTcpKeepAliveInterval", 19);
+	}
+	UnregisterKeepAlive();  // make sure old registrations get deleted
+	// enable for H.460.18 or via config
+	if (h46018_interval || GkConfig()->GetBoolean(RoutedSec, "EnableGnuGkTcpKeepAlive", false)) {
+        PTime now;
+        PTRACE(0, "JW RegisterKeepAlive this=" << this);
+        m_keepAliveTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
+            this, &TCPProxySocket::SendKeepAlive, now + PTimeInterval(0, m_keepAliveInterval), m_keepAliveInterval);
+    } else {
+        m_keepAliveTimer = GkTimerManager::INVALID_HANDLE;
+    }
+}
+
+void TCPProxySocket::UnregisterKeepAlive()
+{
+    if (m_keepAliveTimer != GkTimerManager::INVALID_HANDLE) {
+        Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_keepAliveTimer);
+        m_keepAliveTimer = GkTimerManager::INVALID_HANDLE;
+    }
+}
+
 bool TCPProxySocket::SetMinBufSize(WORD len)
 {
 	if (wbufsize < len) {
@@ -1479,6 +1522,8 @@ void CallSignalSocket::InternalInit()
 	m_h225Version = 0;
 	m_tcsRecSeq = 0;
 	m_tcsAckRecSeq = 0;
+
+	RegisterKeepAlive();   // if enabled, start a keep-alive with default interval
 }
 
 #ifdef HAS_H46017
@@ -4032,6 +4077,18 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 	}
 
 	GkClient *gkClient = rassrv->GetGkClient();
+#ifdef HAS_H46018
+    // enable TCP keep-alives for calls from traversal servers or neighbors
+    if (rassrv->IsCallFromTraversalServer(_peerAddr)
+        || (gkClient && gkClient->CheckFrom(_peerAddr) && gkClient->UsesH46018()) ) {
+        bool h46017 = m_call && m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46017();
+        if (!h46017) {
+            PTRACE(0, "JW enable keep-alive for incoming H.460.18 call from traversal server/neighbor");
+            RegisterKeepAlive(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19));
+        }
+    }
+#endif
+
 	bool rejectCall = false;
 	bool overTLS = false;
 #ifdef HAS_TLS
@@ -5487,7 +5544,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 
 	m_h225Version = GetH225Version(connectBody);
 
-	if (m_call) { // hmm... it should not be null
+	if (m_call) {
 		m_call->SetConnected();
 		RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctConnect, m_call);
 	}
@@ -5641,6 +5698,14 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			bool isH46019Client = false;
 			bool senderSupportsH46019Multiplexing = false;
 			RemoveH46019Descriptor(connectBody.m_featureSet.m_supportedFeatures, senderSupportsH46019Multiplexing, isH46019Client);
+            // enable TCP keep-alives for calls from traversal servers or neighbors
+            if (!isH46019Client) {
+                bool h46017 = m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46017();
+                if (!h46017) {
+                    PTRACE(0, "JW enable keep-alive for outgoing H.460.18 call to traversal server/neighbor");
+                    RegisterKeepAlive(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19));
+                }
+            }
 			// ignore if the .19 descriptor isn't from an endpoint that uses H.460.17 or .18
 			PIPSocket::Address _peerAddr;
 			WORD _peerPort = 0;
@@ -8453,6 +8518,7 @@ H245Socket::H245Socket(CallSignalSocket *sig)
 		listener->Close();
 	}
 	SetHandler(sig->GetHandler());
+	RegisterKeepAlive();
 }
 
 H245Socket::H245Socket(H245Socket *socket, CallSignalSocket *sig)
@@ -8461,6 +8527,7 @@ H245Socket::H245Socket(H245Socket *socket, CallSignalSocket *sig)
 	m_port = 0;
 	peerH245Addr = NULL;
 	socket->remote = this;
+	RegisterKeepAlive();
 }
 
 H245Socket::~H245Socket()
@@ -8510,6 +8577,7 @@ void H245Socket::ConnectTo()
 					delete h245msg;
 				}
 			}
+            //RegisterKeepAlive();   // if enabled, start a keep-alive with default interval
 			return;
 		}
 		if (ConnectRemote()) {
@@ -8518,9 +8586,11 @@ void H245Socket::ConnectTo()
 			remote->SetConnected(true);
 			GetHandler()->Insert(this, remote);
 			ConfigReloadMutex.EndRead();
+            //RegisterKeepAlive();   // if enabled, start a keep-alive with default interval
 #ifdef HAS_H46018
 			if (sigSocket && (sigSocket->IsCallFromTraversalServer() || sigSocket->IsCallToTraversalServer())) {
 				SendH46018Indication();
+                RegisterKeepAlive(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19));
 			}
 #endif
 			return;
@@ -8938,6 +9008,8 @@ bool H245Socket::Reverting(const H225_TransportAddress & h245addr)
 // class NATH245Socket
 bool NATH245Socket::ConnectRemote()
 {
+    RegisterKeepAlive();   // if enabled, start a keep-alive with default interval
+
 #ifdef HAS_H46018
 	// when connecting to a traversal server, we can't send startH245, but must connect directly
 	if (sigSocket && sigSocket->IsTraversalServer()) {

@@ -1,5 +1,8 @@
 Changes from 4.4 to 4.5
 =======================
+- new feature to send H.225 and H.245 keep-alives for all calls, enable with [RoutedMode] EnableGnuGkTcpKeepAlive=1,
+  set interval with GnuGkTcpKeepAliveInterval=n
+- BUGFIX(ProxyChannel.cxx) send H.225 and H.245 keep-alives when acting as H.460.18 client
 - BUGFIX(ProxyChannel.cxx) disable RTP/RTCP port check for IPs in AllowedSignalIPs= when doing port detection
 - [Proxy] AllowedSignalIPs= can now process a list of networks
 - add shortcurt 'rl' for status port command 'rotatelog'

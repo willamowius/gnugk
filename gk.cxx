@@ -131,6 +131,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "CallTable", "GenerateUCCDR" },
 	{ "CallTable", "IRRCheck" },
 	{ "CallTable", "IRRFrequency" },
+	{ "CallTable", "SetCalledStationIdToDialedIP" },
 	{ "CallTable", "SingleFailoverCDR" },
 	{ "CallTable", "TimestampFormat" },
 	{ "CallTable", "UseDestCallSignalIPAsDialedNumber" },
@@ -506,6 +507,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "DisableSettingUDPSourceIP" },
 	{ "RoutedMode", "DropCallsByReleaseComplete" },
 	{ "RoutedMode", "ENUMservers" },
+	{ "RoutedMode", "EnableGnuGkTcpKeepAlive" },
 #ifdef HAS_H235_MEDIA
 	{ "RoutedMode", "EnableH235HalfCallMedia" },
 	{ "RoutedMode", "EnableH235HalfCallMediaKeyUpdates" },
@@ -534,6 +536,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "ForwardOnFacility" },
 	{ "RoutedMode", "GKRouted" },
 	{ "RoutedMode", "GenerateCallProceeding" },
+	{ "RoutedMode", "GnuGkTcpKeepAliveInterval" },
 #if defined(HAS_H235_MEDIA) && defined (HAS_SETTOKENLENGTH)
 	{ "RoutedMode", "H235HalfCallMaxTokenLength" },
 #endif

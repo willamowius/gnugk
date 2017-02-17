@@ -912,6 +912,16 @@ increases the bandwidth usage drastically and can worsen the situation.
 When you set this switch to 1, GnuGk will allow 1 update request per second.
 If you set it to 10, GnuGk will allow 1 request every 10 seconds.
 
+<item><tt>EnableGnuGkTcpKeepAlive=1</tt><newline>
+Default: <tt>0</tt><newline>
+<p>
+Send a empty TPKT keep-alive on all H.225 and H.245 connections.
+
+<item><tt>GnuGkTcpKeepAliveInterval=29</tt><newline>
+Default: <tt>19</tt><newline>
+<p>
+Set keep alive interval in seconds.
+
 </itemize>
 
 <p>
