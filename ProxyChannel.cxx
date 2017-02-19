@@ -1415,9 +1415,7 @@ bool TCPProxySocket::InternalWrite(const PBYTEArray & buf)
 void TCPProxySocket::SendKeepAlive(GkTimer * timer)
 {
     // TODO: do we need a mutex here ?
-    PTRACE(0, "JW SendKeepAlive this=" << this);
     if (!IsOpen()) {
-        PTRACE(0, "JW SendKeepAlive NOT open this=" << this);
         UnregisterKeepAlive();
         return;
     }
@@ -1438,7 +1436,6 @@ void TCPProxySocket::RegisterKeepAlive(int h46018_interval)
 	// enable for H.460.18 or via config
 	if (h46018_interval || GkConfig()->GetBoolean(RoutedSec, "EnableGnuGkTcpKeepAlive", false)) {
         PTime now;
-        PTRACE(0, "JW RegisterKeepAlive this=" << this);
         m_keepAliveTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
             this, &TCPProxySocket::SendKeepAlive, now + PTimeInterval(0, m_keepAliveInterval), m_keepAliveInterval);
     } else {
@@ -3653,7 +3650,6 @@ PString CallSignalSocket::GetDialedNumber(const SetupMsg & setup) const
 	if (dialedNumber.IsEmpty()
         && setupBody.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)
         && GkConfig()->GetBoolean("CallTable", "UseDestCallSignalIPAsDialedNumber", false)) {
-        PTRACE(0, "JW UseDestCallSignalIPAsDialedNumber for Setup: set dialedNumber=" << AsDotString(setupBody.m_destCallSignalAddress));
         dialedNumber = AsDotString(setupBody.m_destCallSignalAddress);
 	}
 
@@ -4084,7 +4080,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
         || (gkClient && gkClient->CheckFrom(_peerAddr) && gkClient->UsesH46018()) ) {
         bool h46017 = m_call && m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46017();
         if (!h46017) {
-            PTRACE(0, "JW enable keep-alive for incoming H.460.18 call from traversal server/neighbor");
+            PTRACE(5, "H46018\tEnable keep-alive for incoming H.460.18 call from traversal server/neighbor");
             RegisterKeepAlive(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19));
         }
     }
@@ -5703,7 +5699,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
             if (!isH46019Client) {
                 bool h46017 = m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46017();
                 if (!h46017) {
-                    PTRACE(0, "JW enable keep-alive for outgoing H.460.18 call to traversal server/neighbor");
+                    PTRACE(5, "H46018\tEnable keep-alive for outgoing H.460.18 call to traversal server/neighbor");
                     RegisterKeepAlive(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19));
                 }
             }
@@ -6794,12 +6790,10 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg * msg)
 		m_call->SetDisconnectTime(time(NULL));
 		m_call->SetReleaseSource(m_callerSocket ? CallRec::ReleasedByCaller : CallRec::ReleasedByCallee);
 		// fix Q.931 direction flag for rerouted calls
-        //PTRACE(0, "JW RC from caller (GnuGk)=" << m_callerSocket << " from dest (msg)=" << msg->GetQ931().IsFromDestination());
         // TODO: only if call has been rerouted ?
         // TODO: doesn't cover RP as caller in makeCall being hung up by remote
 #if (H323PLUS_VER >= 1268)
         if (m_callerSocket != !msg->GetQ931().IsFromDestination()) {
-            //PTRACE(0, "JW direction flag needs fixing");
             msg->GetQ931().SetFromDestination(!m_callerSocket);
             msg->SetChanged();
         }
@@ -11858,7 +11852,7 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 
 H245ProxyHandler::~H245ProxyHandler()
 {
-	// TODO: H.460.19 fastStart handling doesn't seem right and creates a leak - JW
+	// TODO: H.460.19 fastStart handling doesn't seem right and creates a leak
 	if (peer) {
 		if (peer->UsesH46019fc())
 			return;
