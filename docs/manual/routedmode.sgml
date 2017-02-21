@@ -915,7 +915,8 @@ If you set it to 10, GnuGk will allow 1 request every 10 seconds.
 <item><tt>EnableGnuGkTcpKeepAlive=1</tt><newline>
 Default: <tt>0</tt><newline>
 <p>
-Send a empty TPKT keep-alive on all H.225 and H.245 connections.
+Send a empty TPKT keep-alive on all H.225 and H.245 connections. For calls using H.460.18,
+these keep-alives are enabled automatically, whithout using this switch.
 
 <item><tt>GnuGkTcpKeepAliveInterval=29</tt><newline>
 Default: <tt>19</tt><newline>
