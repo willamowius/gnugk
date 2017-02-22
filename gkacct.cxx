@@ -5,7 +5,7 @@
  * support for accounting to the gatekeeper.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2005-2016, Jan Willamowius
+ * Copyright (c) 2005-2017, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -83,7 +83,7 @@ GkAcctLogger::~GkAcctLogger()
 }
 
 int GkAcctLogger::GetEvents(
-	const PStringArray& tokens
+	const PStringArray & tokens
 	) const
 {
 	int mask = 0;
@@ -201,6 +201,12 @@ void GkAcctLogger::SetupAcctParams(
 	params["Called-Station-Id"] = GetCalledStationId(call);
 	params["Dialed-Number"] = GetDialedNumber(call);
 
+	if (GetConfig()->GetBoolean(CallTableSection, "SetCalledStationIdToDialedIP", false)
+		&& IsIPAddress(params["Dialed-Number"])) {
+		PTRACE(0, "JW SetCalledStationIdToDialedIP active: csi was " << params["Called-Station-Id"]);
+		params["Called-Station-Id"] = params["Dialed-Number"];
+	}
+
 	endptr caller;
 	if ((caller = call->GetCallingParty())) {
 		params["caller-epid"] = caller->GetEndpointIdentifier().GetValue();
@@ -227,7 +233,7 @@ void GkAcctLogger::SetupAcctParams(
 
 void GkAcctLogger::SetupAcctEndpointParams(
 	/// parameter (name => value) associations
-	std::map<PString, PString>& params,
+	std::map<PString, PString> & params,
 	/// endpoint associated with an accounting event being logged
 	const endptr & ep
 	) const
@@ -337,7 +343,7 @@ PString GkAcctLogger::EscapeAcctParam(const PString & param) const
 
 PString GkAcctLogger::GetUsername(
 	/// call (if any) associated with the RAS message
-	const callptr& call
+	const callptr & call
 	) const
 {
 	if (!call)
@@ -383,7 +389,7 @@ PString GkAcctLogger::GetUsername(
 
 PString GkAcctLogger::GetCallingStationId(
 	/// call associated with the accounting event
-	const callptr& call
+	const callptr & call
 	) const
 {
 	if (!call)
@@ -421,7 +427,7 @@ PString GkAcctLogger::GetCallingStationId(
 
 PString GkAcctLogger::GetCalledStationId(
 	/// call associated with the accounting event
-	const callptr& call
+	const callptr & call
 	) const
 {
 	if (!call)
@@ -672,10 +678,7 @@ FileAcct::~FileAcct()
 	}
 }
 
-void FileAcct::GetRotateInterval(
-	PConfig& cfg,
-	const PString& section
-	)
+void FileAcct::GetRotateInterval(PConfig & cfg, const PString & section)
 {
 	PString s;
 
@@ -731,10 +734,7 @@ void FileAcct::GetRotateInterval(
 	}
 }
 
-GkAcctLogger::Status FileAcct::Log(
-	GkAcctLogger::AcctEvent evt,
-	const callptr& call
-	)
+GkAcctLogger::Status FileAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & call)
 {
 	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
 		return Next;
@@ -808,9 +808,7 @@ bool FileAcct::IsRotationNeeded()
 	return false;
 }
 
-void FileAcct::RotateOnTimer(
-	GkTimer* timer
-	)
+void FileAcct::RotateOnTimer(GkTimer * timer)
 {
 	if (m_rotateInterval == Monthly) {
 		// setup next time for one-shot timer
@@ -856,9 +854,7 @@ void FileAcct::Rotate()
 	m_cdrLines = 0;
 }
 
-PTextFile* FileAcct::OpenCDRFile(
-	const PFilePath& fn
-	)
+PTextFile* FileAcct::OpenCDRFile(const PFilePath & fn)
 {
 	PTextFile* cdrFile = new PTextFile(fn, PFile::ReadWrite,
 		PFile::Create | PFile::DenySharedWrite

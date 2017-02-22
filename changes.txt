@@ -1,5 +1,6 @@
 Changes from 4.4 to 4.5
 =======================
+- new switch [CallTable] SetCalledStationIdToDialedIP=1
 - new feature to send H.225 and H.245 keep-alives for all calls, enable with [RoutedMode] EnableGnuGkTcpKeepAlive=1,
   set interval with GnuGkTcpKeepAliveInterval=n
 - BUGFIX(ProxyChannel.cxx) send H.225 and H.245 keep-alives when acting as H.460.18 client
