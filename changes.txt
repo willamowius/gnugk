@@ -1,3 +1,7 @@
+Changes from 4.5 to 4.6
+=======================
+
+
 Changes from 4.4 to 4.5
 =======================
 - new switch [CallTable] SetCalledStationIdToDialedIP=1
