@@ -185,7 +185,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "Gatekeeper::Auth", "CapacityControl" },
 	{ "Gatekeeper::Auth", "FileIPAuth" },
 	{ "Gatekeeper::Auth", "H350PasswordAuth" },
+#ifdef P_HTTP
 	{ "Gatekeeper::Auth", "HttpPasswordAuth" },
+#endif // P_HTTP
 #ifdef HAS_LUA
 	{ "Gatekeeper::Auth", "LuaAuth" },
 	{ "Gatekeeper::Auth", "LuaPasswordAuth" },
@@ -197,6 +199,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Gatekeeper::Auth", "SQLAuth" },
 	{ "Gatekeeper::Auth", "SQLPasswordAuth" },
 	{ "Gatekeeper::Auth", "SimplePasswordAuth" },
+	{ "Gatekeeper::Auth", "TwoAliasAuth" },
 	{ "Gatekeeper::Auth", "default" },
 	{ "Gatekeeper::Main", "AlternateGKs" },
 	{ "Gatekeeper::Main", "Authenticators" },
@@ -837,6 +840,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutingPolicy::OnLRQ", "*" },
 	{ "RoutingPolicy::OnSetup", "*" },
 	{ "SimplePasswordAuth", "*" },
+	{ "TwoAliasAuth", "*" },
 	{ NULL }	// the end
 };
 

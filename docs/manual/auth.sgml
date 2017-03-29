@@ -15,7 +15,7 @@ config sections for each module.
 <tscreen><verb>
 authrule=actions
 
- <authrule> := SimplePasswordAuth | AliasAuth | FileIPAuth | PrefixAuth | RadAuth | RadAliasAuth | SQLAuth | SQLAliasAuth | SQLPasswordAuth | H350PasswordAuth | LDAPPasswordAuth | LDAPAliasAuth | LuaAuth | LuaPasswordAuth | HttpPasswordAuth | GeoIPAUth | CapacityControl | ...
+ <authrule> := SimplePasswordAuth | AliasAuth | FileIPAuth | PrefixAuth | RadAuth | RadAliasAuth | SQLAuth | SQLAliasAuth | SQLPasswordAuth | H350PasswordAuth | LDAPPasswordAuth | LDAPAliasAuth | LuaAuth | LuaPasswordAuth | HttpPasswordAuth | GeoIPAUth | TwoAliasAuth | CapacityControl | ...
  <actions>  := <control>[;<ras>|<q931>,<ras>|<q931>,...]
  <control>  := optional | required | sufficient | alternative
  <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ | RAI
@@ -136,6 +136,14 @@ The scripts are configured in the <ref id="luaauth" name="LuaAuth"> section.
 <p>
 This module checks the which country the message comes from by looking at the IP.
 The module is configured in the <ref id="geoipauth" name="GeoIPAuth"> section.
+
+<item><tt>TwoAliasAuth</tt>
+<p>
+This module checks if the endpoint has 2 matching aliases.
+This is a very weak authentication, only to be used when nothing else is possible.
+The module is configured in the <ref id="twoaliasauth" name="TwoAliasAuth"> section.
+
+The module can authorize RegistrationRequest (RRQ), Setup and SetupUnreg.
 
 <item><tt>CapacityControl</tt>
 <p>
@@ -1833,4 +1841,26 @@ Default: <tt>N/A</tt>
 Define which countries you want to accept messages from. The special country 'PRIVATE' denotes private IPs.
 </itemize>
 
+<sect1>Section &lsqb;TwoAliasAuth&rsqb;
+<label id="twoaliasauth">
+<p>
+This section configure the TwoAlias authentication. It contains a list of aliases
+with a second ("secret") alias that needs to be present.
+Endpoints are accepted if they have a matching pair of aliases.
+<p>
+Please not that all this information is transmitted as clear text and can be easily intercepted
+by packet capturing. This is an extremly weak form of authentication.
+<p>
+Also note that the sourceAddress field in Setup messages is optional, and many endpoints do not
+send it when they are not registered witha gatekeeper and thus fail authentication even if they have matching aliases.
+
+<descrip>
+<tag/Example:/
+<tscreen><verb>
+[TwoAliasAuth]
+100=SecretA
+101=MoreSecretB
+102=WhateverSecretC
+</verb></tscreen>
+</descrip>
 

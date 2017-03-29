@@ -1743,7 +1743,7 @@ protected:
 private:
 	PrefixAuth();
 	PrefixAuth(const PrefixAuth &);
-	PrefixAuth& operator=(const PrefixAuth &);
+	PrefixAuth & operator=(const PrefixAuth &);
 
 private:
 	Rules m_prefrules;
@@ -2366,6 +2366,82 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password)
 
 #endif // P_HTTP
 
+class TwoAliasAuth : public GkAuthenticator
+{
+public:
+	enum SupportedRasChecks {
+		TwoAliasAuthRasChecks = RasInfo<H225_RegistrationRequest>::flag,
+		TwoAliasAuthMiscChecks = e_Setup | e_SetupUnreg
+	};
+
+	TwoAliasAuth(
+		const char* name,
+		unsigned supportedRasChecks = TwoAliasAuthRasChecks,
+		unsigned supportedMiscChecks = TwoAliasAuthMiscChecks);
+
+	virtual ~TwoAliasAuth() { }
+
+	virtual int Check(RasPDU<H225_RegistrationRequest> & request, RRQAuthData & authData);
+
+	virtual int Check(SetupMsg & setup, SetupAuthData & authData);
+
+protected:
+    virtual int doCheck(const H225_ArrayOf_AliasAddress & aliases);
+
+private:
+	TwoAliasAuth();
+	TwoAliasAuth(const PrefixAuth &);
+	TwoAliasAuth & operator=(const PrefixAuth &);
+};
+
+TwoAliasAuth::TwoAliasAuth(const char * name, unsigned supportedRasChecks, unsigned supportedMiscChecks)
+	: GkAuthenticator(name, supportedRasChecks, supportedMiscChecks)
+{
+}
+
+int TwoAliasAuth::Check(RasPDU<H225_RegistrationRequest> & request, RRQAuthData & /*authData*/)
+{
+	H225_RegistrationRequest & rrq = request;
+
+	if (!rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
+		PTRACE(3, "GKAUTH\t" << GetName() << " - terminalAlias field not found in RRQ message");
+		return GetDefaultStatus();
+	}
+
+	const H225_ArrayOf_AliasAddress & aliases = rrq.m_terminalAlias;
+
+    return doCheck(aliases);
+}
+
+int TwoAliasAuth::Check(SetupMsg & setup, SetupAuthData & /*authData*/)
+{
+	if (!setup.GetUUIEBody().HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
+		PTRACE(3, "GKAUTH\t" << GetName() << " - sourceAddress field not found in Setup message");
+		return GetDefaultStatus();
+	}
+
+	const H225_ArrayOf_AliasAddress & aliases = setup.GetUUIEBody().m_sourceAddress;
+
+    return doCheck(aliases);
+}
+
+int TwoAliasAuth::doCheck(const H225_ArrayOf_AliasAddress & aliases)
+{
+	for (PINDEX i = 0; i < aliases.GetSize(); i++) {
+		const PString alias = AsString(aliases[i], false);
+		const PString SecondAlias = GetConfig()->GetString("TwoAliasAuth", alias, "");
+		if (!SecondAlias.IsEmpty()) {
+            // check all aliases if we have it
+            for (PINDEX j = 0; j < aliases.GetSize(); j++) {
+                if (AsString(aliases[j], false) == SecondAlias) {
+                    return e_ok;
+                }
+            }
+		}
+	}
+	return GetDefaultStatus();
+}
+
 
 namespace { // anonymous namespace
 	GkAuthCreator<GkAuthenticator> DefaultAuthenticatorCreator("default");
@@ -2378,4 +2454,5 @@ namespace { // anonymous namespace
 #ifdef P_HTTP
 	GkAuthCreator<HttpPasswordAuth> HttpPasswordAuthCreator("HttpPasswordAuth");
 #endif
+	GkAuthCreator<TwoAliasAuth> TwoAliasAuthCreator("TwoAliasAuth");
 } // end of anonymous namespace
