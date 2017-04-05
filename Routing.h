@@ -5,7 +5,7 @@
 // Routing Mechanism for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2003
-// Copyright (c) 2004-2016, Jan Willamowius
+// Copyright (c) 2004-2017, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -74,6 +74,7 @@ public:
 		);
 
 	bool operator< (const Route & rhs) const { return m_priority < rhs.m_priority; }
+	bool operator== (const Route & rhs) const { return (m_destAddr == rhs.m_destAddr) && (m_destEndpoint == rhs.m_destEndpoint) && (m_routeId == rhs.m_routeId); }
 
 	unsigned GetPriority() const { return m_priority; }
 	void SetPriority(unsigned p) { m_priority = p; }
@@ -362,6 +363,7 @@ protected:
 
 private:
 	bool roundRobin;
+	bool leastUsedRouting;
 };
 
 

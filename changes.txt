@@ -1,5 +1,6 @@
 Changes from 4.5 to 4.6
 =======================
+- new switch [RasSrv::ARQFeatures] LeastUsedRouting=1 to select the least used gateway
 - new authentication module TwoAliasAuth
 
 Changes from 4.4 to 4.5

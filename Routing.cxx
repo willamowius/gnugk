@@ -3,7 +3,7 @@
 // Routing Mechanism for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2003
-// Copyright (c) 2004-2016, Jan Willamowius
+// Copyright (c) 2004-2017, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -637,9 +637,14 @@ bool ExplicitPolicy::OnRequest(FacilityRequest & request)
 
 
 InternalPolicy::InternalPolicy()
-	: roundRobin(Toolkit::AsBool(GkConfig()->GetString("RasSrv::ARQFeatures", "RoundRobinGateways", "1")))
+	: roundRobin(Toolkit::AsBool(GkConfig()->GetString("RasSrv::ARQFeatures", "RoundRobinGateways", "1"))),
+	  leastUsedRouting(GkConfig()->GetBoolean("RasSrv::ARQFeatures", "LeastUsedRouting", false))
 {
 	m_name = "Internal";
+    if (roundRobin && leastUsedRouting) {
+        PTRACE(1, "ERROR: RoundRobinGateways and LeastUsedRouting are logically incompatible, round-robin disabled");
+        roundRobin = false;
+    }
 }
 
 bool InternalPolicy::OnRequest(AdmissionRequest & request)
@@ -663,7 +668,7 @@ bool InternalPolicy::OnRequest(SetupRequest & request)
 bool InternalPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
 	list<Route> routes;
-	RegistrationTable::Instance()->FindEndpoint(aliases, roundRobin, true, routes);
+	RegistrationTable::Instance()->FindEndpoint(aliases, roundRobin, leastUsedRouting, true, routes);
 	list<Route>::iterator i = routes.begin();
 	while (i != routes.end()) {
 		i->m_policy = m_name;
@@ -676,7 +681,7 @@ bool InternalPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_Alias
 {
 	// do not apply round robin selection for Location ReQuests
 	list<Route> routes;
-	if (RegistrationTable::Instance()->FindEndpoint(aliases, false, true, routes))
+	if (RegistrationTable::Instance()->FindEndpoint(aliases, false, false, true, routes))
 		request.SetRejectReason(H225_LocationRejectReason::e_resourceUnavailable);
 
 	list<Route>::iterator i = routes.begin();
@@ -690,7 +695,7 @@ bool InternalPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_Alias
 bool InternalPolicy::FindByAliases(SetupRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
 	list<Route> routes;
-	if (RegistrationTable::Instance()->FindEndpoint(aliases, roundRobin, true, routes))
+	if (RegistrationTable::Instance()->FindEndpoint(aliases, roundRobin, leastUsedRouting, true, routes))
 		request.SetRejectReason(H225_ReleaseCompleteReason::e_gatewayResources);
 
 	list<Route>::iterator i = routes.begin();
@@ -704,7 +709,7 @@ bool InternalPolicy::FindByAliases(SetupRequest & request, H225_ArrayOf_AliasAdd
 bool InternalPolicy::FindByAliases(AdmissionRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
 	list<Route> routes;
-	if (RegistrationTable::Instance()->FindEndpoint(aliases, roundRobin, true, routes))
+	if (RegistrationTable::Instance()->FindEndpoint(aliases, roundRobin, leastUsedRouting, true, routes))
 		request.SetRejectReason(H225_AdmissionRejectReason::e_resourceUnavailable);
 
 	endptr ep;

@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2015, Jan Willamowius
+// Copyright (c) 2000-2017, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -585,6 +585,7 @@ public:
 	bool FindEndpoint(
 		const H225_ArrayOf_AliasAddress &aliases,
 		bool roundRobin,
+		bool leastUsedRouting,
 		bool searchOutOfZone,
 		std::list<Routing::Route> &routes
 		);
@@ -638,7 +639,7 @@ private:
 	}
 
 	endptr InternalFindFirstEP(const H225_ArrayOf_AliasAddress & alias, std::list<EndpointRec *> *ListToBeFound);
-	bool InternalFindEP(const H225_ArrayOf_AliasAddress & alias, std::list<EndpointRec *> *ListToBeFound, bool roundrobin, std::list<Routing::Route> &routes);
+	bool InternalFindEP(const H225_ArrayOf_AliasAddress & alias, std::list<EndpointRec *> *ListToBeFound, bool roundrobin, bool leastUsedRouting, std::list<Routing::Route> &routes);
 
 	void GenerateEndpointId(H225_EndpointIdentifier & NewEndpointId, PString prefix = "");
 	void GenerateAlias(H225_ArrayOf_AliasAddress &, const H225_EndpointIdentifier &) const;

@@ -440,6 +440,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RadAuth", "UseDialedNumber" },
 	{ "RasSrv::ARQFeatures", "ArjReasonRouteCallToGatekeeper" },
 	{ "RasSrv::ARQFeatures", "CheckSenderIP" },
+	{ "RasSrv::ARQFeatures", "LeastUsedRouting" },
 	{ "RasSrv::ARQFeatures", "RemoveTrailingChar" },
 	{ "RasSrv::ARQFeatures", "RoundRobinGateways" },
 	{ "RasSrv::ARQFeatures", "SendRIP" },

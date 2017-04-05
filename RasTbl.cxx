@@ -1936,11 +1936,12 @@ endptr RegistrationTable::FindFirstEndpoint(const H225_ArrayOf_AliasAddress & al
 bool RegistrationTable::FindEndpoint(
 	const H225_ArrayOf_AliasAddress & aliases,
 	bool roundRobin,
+	bool leastUsedRouting,
 	bool searchOutOfZone,
 	list<Route> & routes)
 {
-	bool found = InternalFindEP(aliases, &EndpointList, roundRobin, routes);
-	if (searchOutOfZone && InternalFindEP(aliases, &OutOfZoneList, roundRobin, routes))
+	bool found = InternalFindEP(aliases, &EndpointList, roundRobin, leastUsedRouting, routes);
+	if (searchOutOfZone && InternalFindEP(aliases, &OutOfZoneList, roundRobin, leastUsedRouting, routes))
 		found = true;
 	return found;
 }
@@ -1999,6 +2000,7 @@ bool RegistrationTable::InternalFindEP(
 	const H225_ArrayOf_AliasAddress & aliases,
 	list<EndpointRec*> * endpoints,
 	bool roundRobin,
+	bool leastUsedRouting,
 	list<Route> & routes)
 {
 	endptr ep = InternalFind(bind2nd(mem_fun(&EndpointRec::CompareAlias), &aliases), endpoints);
@@ -2047,6 +2049,21 @@ bool RegistrationTable::InternalFindEP(
 		else
 			PTRACE(5, "Capacity exceeded in GW " << AsDotString(i->second->GetCallSignalAddress()));
 		++i;
+	}
+
+	if (routes.size() > 1 && leastUsedRouting) {
+        Route leastUsedRoute = routes.front();
+        list<Route>::const_iterator i = routes.begin();
+        while (i != routes.end()) {
+            if (!i->m_destEndpoint)
+                continue; // skip route (we don't always know the destEP)
+            if (i->m_destEndpoint->GetActiveCalls() < leastUsedRoute.m_destEndpoint->GetActiveCalls()) {
+                leastUsedRoute = *i;
+            }
+            ++i;
+        }
+		routes.remove(leastUsedRoute);
+		routes.push_front(leastUsedRoute);
 	}
 
 	if (routes.size() > 1 && roundRobin) {
