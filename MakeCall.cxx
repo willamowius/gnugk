@@ -35,6 +35,7 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 	AddAllCapabilities(0, 0, "G.711");
 
 	// Start the listener thread for incoming calls.
+	// TODO: disable IPv6 when disabled in GnuGk, use list of Home IPs to listen ?
 	H323TransportAddress iface = GkConfig()->GetString("CTI::MakeCall", "Interface", "*:1722");
 	if (!StartListener(iface)) {
 		PTRACE(1, "MakeCallEndpoint: Could not open H.323 listener port on \"" << iface << '"');
@@ -164,7 +165,7 @@ PBoolean MakeCallEndPoint::OnConnectionForwarded(H323Connection & connection,
 	return FALSE;
 }
 
-// TODO: checxk if we should move this to Connection::OnReceivedSignalConnect() to speed up the transfer
+// TODO: check if we should move this to Connection::OnReceivedSignalConnect() to speed up the transfer
 void MakeCallEndPoint::OnConnectionEstablished(H323Connection & connection, const PString & token)
 {
 	// find second party by call token
