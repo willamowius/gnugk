@@ -41,6 +41,7 @@ public:
 
 	// get destination from list
     PString GetDestination(const PString & token);
+    BYTE GetRateMultiplier() const { return m_rateMultiplier; }
 
 protected:
     void AddDestination(const PString & token, const PString & alias, const PString & transferMethod);
@@ -58,6 +59,8 @@ protected:
 	PCaselessString globalTransferMethod;
 	PBoolean isRegistered;
 	PString m_gkAddress;
+	long m_bandwidth;
+	BYTE m_rateMultiplier;
 };
 
 

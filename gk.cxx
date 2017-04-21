@@ -116,6 +116,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "CTI::Agents", "VirtualQueueAliases" },
 	{ "CTI::Agents", "VirtualQueuePrefixes" },
 	{ "CTI::Agents", "VirtualQueueRegex" },
+	{ "CTI::MakeCall", "Bandwidth" },
 	{ "CTI::MakeCall", "DisableFastStart" }, // obsolete, but still accepted
 	{ "CTI::MakeCall", "DisableH245Tunneling" },
 	{ "CTI::MakeCall", "EndpointAlias" },

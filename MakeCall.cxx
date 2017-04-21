@@ -30,6 +30,8 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 	// Set the various options
 	DisableFastStart(true);
 	DisableH245Tunneling(Toolkit::AsBool(GkConfig()->GetString("CTI::MakeCall", "DisableH245Tunneling", "0")));
+	m_bandwidth = GkConfig()->GetInteger("CTI::MakeCall", "Bandwidth", 386);
+	m_rateMultiplier = ceil(m_bandwidth / 64);
 
 	// Set the default codecs
 	AddAllCapabilities(0, 0, "G.711");
@@ -246,12 +248,12 @@ MakeCallConnection::MakeCallConnection(MakeCallEndPoint & _ep, unsigned _callRef
 
 PBoolean MakeCallConnection::OnSendSignalSetup(H323SignalPDU & setupPDU)
 {
-    // set outgoing bearer capability to unrestricted information transfer + huge transfer rate
+    // set outgoing bearer capability to unrestricted information transfer + transfer rate
 	PBYTEArray caps;
 	caps.SetSize(4);
 	caps[0] = 0x88;
 	caps[1] = 0x18;
-	caps[2] = 0x86;
+	caps[2] = 0x80 | m_ep.GetRateMultiplier();
 	caps[3] = 0xa5;
 	setupPDU.GetQ931().SetIE(Q931::BearerCapabilityIE, caps);
 
