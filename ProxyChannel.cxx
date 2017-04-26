@@ -10023,6 +10023,13 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 
+#ifdef HAS_H46018
+    if (m_ignoreSignaledIPs && m_h46019DetectionDone) {
+        PTRACE(7, "JW RTP skip overwriting due to completed port detection");
+        return;
+    }
+#endif
+
 	if ((DWORD)srcIP != 0 || m_ignoreSignaledIPs) {
 		fSrcIP = srcIP, fSrcPort = srcPort;
 	}
@@ -10069,6 +10076,13 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 	PTRACE(7, "JW RTP SetRevDest on " << localport
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
+
+#ifdef HAS_H46018
+    if (m_ignoreSignaledIPs && m_h46019DetectionDone) {
+        PTRACE(7, "JW RTP skip overwriting due to completed port detection");
+        return;
+    }
+#endif
 
 	if ((DWORD)srcIP != 0 || m_ignoreSignaledIPs) {
 		rSrcIP = srcIP, rSrcPort = srcPort;
