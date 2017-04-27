@@ -1230,10 +1230,10 @@ StatusClient::StatusClient(
 	    PString data = filters.GetDataAt(i);
 	    PStringArray regexArray(data.Tokenise("\n", false));
 	    for (PINDEX k = 0; k < regexArray.GetSize(); ++k) {
-		if (filters.GetKeyAt(i) == "IncludeFilter")
-		    AddFilter(m_includeFilterRegex, regexArray[k]);
-		else if (filters.GetKeyAt(i) == "ExcludeFilter")
-		    AddFilter(m_excludeFilterRegex, regexArray[k]);
+            if (filters.GetKeyAt(i) == "IncludeFilter")
+                AddFilter(m_includeFilterRegex, regexArray[k]);
+            else if (filters.GetKeyAt(i) == "ExcludeFilter")
+                AddFilter(m_excludeFilterRegex, regexArray[k]);
 	    }
 	}
 	m_isFilteringActive = Toolkit::AsBool(GkConfig()->GetString(filteringsec, "Enable", "0"));
