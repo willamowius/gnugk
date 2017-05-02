@@ -8513,7 +8513,9 @@ H245Socket::H245Socket(CallSignalSocket *sig)
 		listener->Close();
 	}
 	SetHandler(sig->GetHandler());
-	RegisterKeepAlive();
+	if (!GkConfig()->GetBoolean(RoutedSec, "DisableGnuGkH245TcpKeepAlive", false)) {
+        RegisterKeepAlive();
+	}
 }
 
 H245Socket::H245Socket(H245Socket *socket, CallSignalSocket *sig)
@@ -8522,7 +8524,9 @@ H245Socket::H245Socket(H245Socket *socket, CallSignalSocket *sig)
 	m_port = 0;
 	peerH245Addr = NULL;
 	socket->remote = this;
-	RegisterKeepAlive();
+    if (!GkConfig()->GetBoolean(RoutedSec, "DisableGnuGkH245TcpKeepAlive", false)) {
+        RegisterKeepAlive();
+    }
 }
 
 H245Socket::~H245Socket()
@@ -9003,7 +9007,9 @@ bool H245Socket::Reverting(const H225_TransportAddress & h245addr)
 // class NATH245Socket
 bool NATH245Socket::ConnectRemote()
 {
-    RegisterKeepAlive();   // if enabled, start a keep-alive with default interval
+    if (!GkConfig()->GetBoolean(RoutedSec, "DisableGnuGkH245TcpKeepAlive", false)) {
+        RegisterKeepAlive();   // if enabled, start a keep-alive with default interval
+    }
 
 #ifdef HAS_H46018
 	// when connecting to a traversal server, we can't send startH245, but must connect directly

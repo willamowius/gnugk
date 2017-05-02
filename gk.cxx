@@ -507,6 +507,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "CpsCheckInterval" },
 	{ "RoutedMode", "CpsLimit" },
 	{ "RoutedMode", "DisableFastStart" },
+	{ "RoutedMode", "DisableGnuGkH245TcpKeepAlive" },
 	{ "RoutedMode", "DisableH245Tunneling" },
 	{ "RoutedMode", "DisableRetryChecks" },
 	{ "RoutedMode", "DisableSettingUDPSourceIP" },
