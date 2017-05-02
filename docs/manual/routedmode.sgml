@@ -918,6 +918,12 @@ Default: <tt>0</tt><newline>
 Send a empty TPKT keep-alive on all H.225 and H.245 connections. For calls using H.460.18,
 these keep-alives are enabled automatically, whithout using this switch.
 
+<item><tt>DisableGnuGkTcpKeepAlive=1</tt><newline>
+Default: <tt>0</tt><newline>
+<p>
+Disable the keep-alive on H.245 connections for non-H.460.18 connections
+(needed due to interop issues with Polycom).
+
 <item><tt>GnuGkTcpKeepAliveInterval=29</tt><newline>
 Default: <tt>19</tt><newline>
 <p>
