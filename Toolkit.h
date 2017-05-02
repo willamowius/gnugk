@@ -578,7 +578,8 @@ class Toolkit : public Singleton<Toolkit>
 	};
 	enum T35GnuGkExtensions {
 		t35eNeighborId = 1,
-		t35eNATTraversal = 2
+		t35eNATTraversal = 2,
+		t35eH245KeepAlive = 3
 	};
 
 	/** If the triple #(country,extension,manufacturer)# represents an

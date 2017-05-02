@@ -844,6 +844,7 @@ public:
 	void SendH46018Indication();
 #endif
 	void SendTCS(H245_TerminalCapabilitySet * tcs, unsigned seq);
+	void SendH245KeepAlive();
 	bool Send(const H245_MultimediaSystemControlMessage & h245msg);
 	bool Send(const PASN_OctetString & h245msg);
 	H225_TransportAddress GetH245Address(const Address &);
@@ -1419,10 +1420,15 @@ void TCPProxySocket::SendKeepAlive(GkTimer * timer)
         UnregisterKeepAlive();
         return;
     }
-	PBYTEArray tbuf(sizeof(TPKTV3));
-	BYTE *bptr = tbuf.GetPointer();
-	new (bptr) TPKTV3(0); // placement operator
-	WriteData(bptr, sizeof(TPKTV3));
+    H245Socket * h245sock = dynamic_cast<H245Socket*>(this);
+    if (h245sock != NULL) {
+        h245sock->SendH245KeepAlive();
+    } else {
+        PBYTEArray tbuf(sizeof(TPKTV3));
+        BYTE *bptr = tbuf.GetPointer();
+        new (bptr) TPKTV3(0); // placement operator
+        WriteData(bptr, sizeof(TPKTV3));
+	}
 }
 
 void TCPProxySocket::RegisterKeepAlive(int h46018_interval)
@@ -8831,6 +8837,30 @@ void H245Socket::SendTCS(H245_TerminalCapabilitySet * tcs, unsigned seq)
 		PTRACE(1, "H245\tSending of TerminalCapabilitySet to " << GetName() << " failed");
 		SNMP_TRAP(10, SNMPError, Network, "Sending TCS to " + GetName() + " failed");
 	}
+}
+
+void H245Socket::SendH245KeepAlive()
+{
+    if (!IsConnected()) {
+        return;
+    }
+    H245_MultimediaSystemControlMessage h245msg;
+    h245msg.SetTag(H245_MultimediaSystemControlMessage::e_indication);
+    H245_IndicationMessage & h245ind = h245msg;
+    h245ind.SetTag(H245_IndicationMessage::e_userInput);
+    H245_UserInputIndication & inputInd = h245ind;
+    inputInd.SetTag(H245_UserInputIndication::e_nonStandard);
+    H245_NonStandardParameter & nonStd = inputInd;
+    nonStd.m_nonStandardIdentifier.SetTag(H245_NonStandardIdentifier::e_h221NonStandard);
+    H245_NonStandardIdentifier & nonStdID = nonStd.m_nonStandardIdentifier;
+    nonStdID.SetTag(H245_NonStandardIdentifier::e_h221NonStandard);
+    H245_NonStandardIdentifier_h221NonStandard & nonStdIDH221 = nonStdID;
+    nonStdIDH221.m_t35CountryCode = Toolkit::t35cPoland;
+    nonStdIDH221.m_manufacturerCode = Toolkit::t35mGnuGk;
+    nonStdIDH221.m_t35Extension = Toolkit::t35eH245KeepAlive;
+    nonStd.m_data.SetSize(1);
+    nonStd.m_data[0] = 42;
+    Send(h245msg);
 }
 
 bool H245Socket::Send(const H245_MultimediaSystemControlMessage & h245msg)

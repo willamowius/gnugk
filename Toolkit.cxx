@@ -2,7 +2,7 @@
 //
 // Toolkit base class for the GnuGk
 //
-// Copyright (c) 2000-2016, Jan Willamowius
+// Copyright (c) 2000-2017, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -3593,9 +3593,9 @@ bool Toolkit::IsGKHome(const PIPSocket::Address & addr) const
 	return false;
 }
 
-int Toolkit::GetInternalExtensionCode( const unsigned &country,
-				   const unsigned &extension,
-				   const unsigned &manufacturer) const
+int Toolkit::GetInternalExtensionCode( const unsigned & country,
+				   const unsigned & extension,
+				   const unsigned & manufacturer) const
 {
 	switch (country) {
 	case t35cOpenOrg:
@@ -3626,7 +3626,7 @@ int Toolkit::GetInternalExtensionCode( const unsigned &country,
 	return iecUnknown;
 }
 
-int Toolkit::GetInternalExtensionCode(const H225_H221NonStandard& data) const
+int Toolkit::GetInternalExtensionCode(const H225_H221NonStandard & data) const
 {
 	return GetInternalExtensionCode(data.m_t35CountryCode,
 			data.m_t35Extension,
