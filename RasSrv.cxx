@@ -2,7 +2,7 @@
 //
 // RAS Server for GNU Gatekeeper
 //
-// Copyright (c) 2000-2016, Jan Willamowius
+// Copyright (c) 2000-2017, Jan Willamowius
 // Copyright (c) Citron Network Inc. 2001-2003
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
@@ -1950,7 +1950,10 @@ bool RegistrationRequestPDU::Process()
 			PTRACE(5, "RAS\tRemoving signaling address "
 				<< AsString(request.m_callSignalAddress[i]) << " from RRQ");
 			request.m_callSignalAddress.RemoveAt(i--);
-		}
+		} else if ((addr.GetVersion() == 6) && !Toolkit::Instance()->IsIPv6Enabled()) {
+            PTRACE(5, "RAS\tRemoving IPv6 signaling address " << AsString(addr, port) << " from RRQ");
+            request.m_callSignalAddress.RemoveAt(i--);
+        }
 	}
 	for (PINDEX i = 0; i < request.m_rasAddress.GetSize(); i++) {
 		PIPSocket::Address addr;
