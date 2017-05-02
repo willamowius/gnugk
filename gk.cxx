@@ -18,6 +18,8 @@
 #ifndef _WIN32
 #define HAS_SETUSERNAME
 #include <signal.h>
+#include <syslog.h>
+#include <ptlib/syslog.h>
 #endif
 #ifdef P_LINUX
 #include <sys/resource.h>
@@ -354,6 +356,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "LuaPasswordAuth", "ScriptFile" },
 #endif
 	{ "LogFile", "Filename" },
+#ifndef _WIN32
+	{ "LogFile", "LogToSyslog" },
+#endif
 	{ "LogFile", "Rotate" },
 	{ "LogFile", "RotateDay" },
 	{ "LogFile", "RotateTime" },
@@ -1003,6 +1008,35 @@ void ExitGK()
 
 } // end of anonymous namespace
 
+
+#ifndef _WIN32
+class GnuGkToSyslog : public PSystemLogToSyslog
+{
+public:
+    GnuGkToSyslog();
+
+    virtual void Output(PSystemLog::Level level, const char * msg);
+};
+
+GnuGkToSyslog::GnuGkToSyslog()
+{
+    openlog("GnuGk", LOG_PID, LOG_DAEMON);
+}
+
+void GnuGkToSyslog::Output(PSystemLog::Level level, const char * msg)
+{
+    PString syslogMsg(msg);
+    // tabs get octal encoding in syslog, remove
+    syslogMsg.Replace("\x09", " ", true);
+    // make multi-line messages readable in syslog
+    PStringArray lines = syslogMsg.Tokenise("\r\n", false);
+    for (PINDEX i = 0; i < lines.GetSize(); ++i) {
+        PSystemLogToSyslog::Output(level, lines[i]);
+    }
+}
+#endif
+
+
 void ReloadHandler()
 {
 	Gatekeeper::ReopenLogFile();
@@ -1444,7 +1478,6 @@ bool Gatekeeper::InitHandlers(const PArgList & args)
 	return TRUE;
 }
 
-
 bool Gatekeeper::InitLogging(const PArgList & args)
 {
 	// Syslog is the default when compiled as service, but we don't want that
@@ -1458,7 +1491,6 @@ bool Gatekeeper::InitLogging(const PArgList & args)
 			return FALSE;
 		}
 	}
-
 	return TRUE;
 }
 
@@ -1611,6 +1643,15 @@ void Gatekeeper::Main()
 		PTRACE(0, "ERROR: Serious error in the configuration - terminating");
 		ExitGK();
 	}
+
+#ifndef _WIN32
+    if (GkConfig()->GetBoolean("LogFile", "LogToSyslog", false)) {
+        PTrace::SetOptions(PTrace::SystemLogStream);
+        PTrace::SetStream(new PSystemLog(PSystemLog::Debug6)); // Debug6 = dont filter more than the global trace level
+        PSystemLog::SetTarget(new GnuGkToSyslog());
+        PSystemLog::GetTarget().SetThresholdLevel(PSystemLog::Debug6);
+    }
+#endif
 
 	// set trace level + output file from config , if not set on the command line (for service)
 	PString fake_cmdline;
@@ -2020,6 +2061,10 @@ bool Gatekeeper::RotateLogFile()
 {
 	PWaitAndSignal lock(m_logFileMutex);
 
+    if (GkConfig()->GetBoolean("LogFile", "LogToSyslog", false)) {
+        return false;
+    }
+
 	if (m_logFile) {
 		PTRACEX(1, "GK\tLogging closed (log file rotation)");
 		PTrace::SetStream(&cerr); // redirect to cerr
@@ -2067,6 +2112,10 @@ bool Gatekeeper::RotateLogFile()
 bool Gatekeeper::ReopenLogFile()
 {
 	PWaitAndSignal lock(m_logFileMutex);
+
+    if (GkConfig()->GetBoolean("LogFile", "LogToSyslog", false)) {
+        return false;
+    }
 
 	if (m_logFile) {
 		PTRACEX(1, "GK\tLogging closed (reopen log file)");

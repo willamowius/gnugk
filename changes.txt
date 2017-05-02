@@ -1,5 +1,8 @@
 Changes from 4.5 to 4.6
 =======================
+- send non-standard H.245 userIndication as keep-alive
+- new switch [RoutedMode] DisableGnuGkH245TcpKeepAlive=1
+- new switch [LogFile] TraceToSyslog=1 to send trace output to syslog (Unix only)
 - BUGFIX(ProxyChannel.cxx) fix port detection for re-opened channels with IgnoreSignaledIPs=1
 - new switch [CTI::MakeCall] Bandwidth= to set the maximum bandwidth for the call
 - new switch [RasSrv::ARQFeatures] LeastUsedRouting=1 to select the least used gateway

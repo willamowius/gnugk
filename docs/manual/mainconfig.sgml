@@ -490,7 +490,7 @@ gatekeepers on the same machine you should turn this off.
 <item><tt/UnicastRasPort=1719/<newline>
 Default: <tt/1719/<newline>
 <p>
-The RAS channel TSAP identifier for unicast.
+The RAS channel TSAP identifier for unicast, aka "the normal RAS UDP port".
 
 <item><tt/UseMulticastListener=0/<newline>
 Default: <tt/1/<newline>
@@ -730,6 +730,11 @@ This section defines log file related parameters. Currently, it allows
 users to specify log file rotation options.
 
 <itemize>
+<item><tt>LogToSyslog=1</tt><newline>
+Default: <tt>0</tt><newline>
+<p>
+Send trace output to the syslog (Unix only).
+
 <item><tt>Filename=/var/log/gk_trace.log</tt><newline>
 Default: <tt>N/A</tt><newline>
 <p>
