@@ -1833,7 +1833,7 @@ This section configure the GeoIP authentication.
 Default: <tt>N/A</tt>
 <p>
 Path to the Maxmind GeoIP database. You can download the latest copy of the GeoIP database from
-<htmlurl url="http://dev.maxmind.com/geoip/legacy/geolite/" Name="http://dev.maxmind.com/geoip/legacy/geolite/">
+<htmlurl url="https://dev.maxmind.com/geoip/legacy/geolite/" Name="https://dev.maxmind.com/geoip/legacy/geolite/">
 
 <item><tt>AllowedCountries=US,CA,PRIVATE</tt><newline>
 Default: <tt>N/A</tt>

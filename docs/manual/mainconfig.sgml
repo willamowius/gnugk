@@ -138,7 +138,7 @@ When using stored procedures for accounting, make sure they return at least one 
 Some GnuGk modules allow executing dynamic scripts written in LUA, eg. <ref id="routinglua" name="[Routing::Lua]"> or <ref id="luaauth" name="[LuaAuth]">.
 
 LUA is a simple scripting language which is also used by other networking tools like Wireshark, FreeSWITCH or nmap.
-For details on the LUA language, please see <url url="http://www.lua.org/docs.html" name="http://www.lua.org/docs.html">.
+For details on the LUA language, please see <url url="https://www.lua.org/docs.html" name="https://www.lua.org/docs.html">.
 
 Depending on the module, you'll get some variables to see details eg. about the incoming call and your script can set
 certain output variables to define what GnuGk should do with the call. You'll find more details in the documentation for each module.
@@ -158,7 +158,7 @@ All LUA modules have a common LUA library called "gnugk" that allows access to G
 In a few places in the configuration file, GnuGk allows regular expressions.
 The syntax for these regular expressions is "extended POSIX 1003.2 regular expressions".
 On Unix systems you can usually get a manual page explaining the syntax with "man 7 regex"
-or see it online at <url url="http://www.kernel.org/doc/man-pages/online/pages/man7/regex.7.html" name="http://www.kernel.org/doc/man-pages/online/pages/man7/regex.7.html">.
+or see it online at <url url="http://man7.org/linux/man-pages/man7/regex.7.html" name="http://man7.org/linux/man-pages/man7/regex.7.html">.
 
 
 <sect1>Section &lsqb;Gatekeeper::Main&rsqb;
@@ -329,7 +329,7 @@ to register with the alternate gatekeeper specified here.
 
 <bf>NOTE:</bf>  Depending on the endpoint, it may not attempt to re-establish a 
 connection to its original gatekeeper.  Support for "Assigned Gatekeepers" was added
-in H.323v6.  See <url url="http://www.packetizer.com/ipmc/h323/whatsnew_v6.html" name="http://www.packetizer.com/ipmc/h323/whatsnew_v6.html"> for additional information.
+in H.323v6.  See <url url="https://www.packetizer.com/ipmc/h323/whatsnew_v6.html" name="https://www.packetizer.com/ipmc/h323/whatsnew_v6.html"> for additional information.
 
 The primary gatekeeper includes a field in the RCF to inform endpoints which alternate
 IP and gatekeeper identifier to use.

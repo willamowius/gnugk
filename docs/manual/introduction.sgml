@@ -29,19 +29,19 @@ following services:
 
 The GNU Gatekeeper implements all of these functions and a number of additional features.
 For the protocol handling and encoding and decoding of the messages, it uses the
-<url url="http://sourceforge.net/projects/h323plus" name="H323Plus"> library
+<url url="https://sourceforge.net/projects/h323plus" name="H323Plus"> library
 (a continuation of the now defunct OpenH323 project).
 
 H.323 is an international standard published by the <url
-url="http://www.itu.int/" name="ITU">.  It is a communications standard for
+url="https://www.itu.int/" name="ITU">.  It is a communications standard for
 audio, video, and data over the Internet.  See also Paul Jones' <url
-url="http://www.packetizer.com/voip/h323/papers/primer/" name="A Primer on
+url="https://www.packetizer.com/voip/h323/papers/primer/" name="A Primer on
 the H.323 Series Standard">.
 
 <sect1>Copyright
 <p>
 The GNU Gatekeeper is covered by the <htmlurl
-url="http://www.gnu.org/licenses/old-licenses/gpl-2.0.html" name="GNU
+url="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html" name="GNU
 General Public License version 2"> (GNU GPL v2).  In addition, we explicitly
 grant the right to link this code to the OpenH323/H323Plus and OpenSSL
 library.
@@ -97,16 +97,16 @@ name="here">.
 To report problems or submit bugs/patches, send email to the
 <url url="mailto:Openh323gk-developer@sourceforge.net" name="developers
 mailing list">.  The list archive is <url
-url="http://sourceforge.net/mailarchive/forum.php?forum_name=openh323gk-developer"
+url="https://sourceforge.net/mailarchive/forum.php?forum_name=openh323gk-developer"
 name="here">.  Please send user questions to the users mailing list and keep
 this list for development!  If you want to contribute to the project, please
-<url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-developer"
+<url url="https://lists.sourceforge.net/lists/listinfo/openh323gk-developer"
 name="join the developers mailing list">.
 
 <sect1>Contributors
 <p>
 The project founder and current maintainer is
-<url url="http://www.willamowius.com/gnugk-support.html" name="Jan Willamowius">
+<url url="https://www.willamowius.com/gnugk-support.html" name="Jan Willamowius">
 <tt><htmlurl url="mailto:jan@willamowius.de" name="&lt;jan@willamowius.de&gt;"></tt>
 
 Over the years many people have contributed, most notable Simon Horne,
