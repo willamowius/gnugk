@@ -3,7 +3,7 @@
 // GkStatus.h	thread listening for connections to receive
 //		status updates from the gatekeeper
 //
-// Copyright (c) 2000-2015, Jan Willamowius
+// Copyright (c) 2000-2017, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -126,6 +126,7 @@ public:
 		e_ClearCalls,                  /// disconnect all calls
 		e_UnregisterAllEndpoints,      /// force unregisterung of all andpoints
 		e_UnregisterIp,                /// force unregisterung of one andpoint by IP number
+		e_UnregisterEP,                /// force unregisterung of one andpoint by endpoint ID
 		e_UnregisterAlias,             /// force unregisterung of one andpoint by alias
 		e_TransferCall,                /// transfer call from one endpoint to another
 		e_RerouteCall,                 /// transfer call with pause and reroute

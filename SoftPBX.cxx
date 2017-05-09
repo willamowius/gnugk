@@ -2,7 +2,7 @@
 //
 // SoftPBX.cxx
 //
-// Copyright (c) 2000-2016, Jan Willamowius
+// Copyright (c) 2000-2017, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -162,6 +162,30 @@ void SoftPBX::UnregisterIp(const PString & Ip)
 	RegistrationTable::Instance()->RemoveByEndptr(ep);
 
 	PString msg("Endpoint " + AsDotString(callSignalAddress) + " unregistered!");
+	PTRACE(2, "GK\tSoftPBX: " + msg);
+	GkStatus::Instance()->SignalStatus(msg + "\r\n");
+}
+
+void SoftPBX::UnregisterEndpoint(const PString & idStr)
+{
+	H225_EndpointIdentifier epId;
+	epId = idStr;
+	PTRACE(3, "GK\tSoftPBX: UnregisterEP " << idStr);
+
+	const endptr ep = RegistrationTable::Instance()->FindByEndpointId(epId);
+	if (!ep) {
+		PString msg("Endpoint ID " + idStr + " not found!");
+		PTRACE(1, "GK\tSoftPBX: " + msg);
+		GkStatus::Instance()->SignalStatus(msg + "\r\n");
+		return;
+	}
+	DisconnectEndpoint(ep);
+	ep->Unregister();
+
+	// remove the endpoint (even if we don't get a UCF - the endoint might be dead)
+	RegistrationTable::Instance()->RemoveByEndptr(ep);
+
+	PString msg("Endpoint " + idStr + " unregistered!");
 	PTRACE(2, "GK\tSoftPBX: " + msg);
 	GkStatus::Instance()->SignalStatus(msg + "\r\n");
 }

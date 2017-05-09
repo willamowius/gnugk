@@ -411,6 +411,22 @@ Endpoint 10.0.1.31:1720 unregistered!
 </verb></tscreen>
 </descrip>
 
+<item><tt/UnregisterEP/<newline>
+<p>
+Forcefully unregister an endpoint by it's endpoint ID.
+<descrip>
+<tag/Format:/
+<tscreen><verb>
+UnregisterEP endpoint-id
+</verb></tscreen>
+<tag/Example:/
+<tscreen><verb>
+UnregisterEP 1326_endp
+URQ|10.0.1.31:1032|1326_endp|maintenance;
+Endpoint 1326_endp unregistered!
+</verb></tscreen>
+</descrip>
+
 <item><tt/UnregisterAlias/<newline>
 <p>Forcefully unregister an endpoint by one of its aliases. To match an alias
 of the specified type (h323_ID, dialedDigits), prepend the alias type name

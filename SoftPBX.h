@@ -2,7 +2,7 @@
 //
 // SoftPBX.h
 //
-// Copyright (c) 2000-2011, Jan Willamowius
+// Copyright (c) 2000-2017, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -37,6 +37,7 @@ namespace SoftPBX
 	void UnregisterAllEndpoints();
 	void UnregisterAlias(const PString & Alias);
 	void UnregisterIp(const PString & Ip);
+	void UnregisterEndpoint(const PString & idStr);
 	void DisconnectAll();
 	void DisconnectCall(unsigned CallNumber);
 	void DisconnectCallId(const PString & CallId);

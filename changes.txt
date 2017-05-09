@@ -1,5 +1,6 @@
 Changes from 4.5 to 4.6
 =======================
+- new status port command: UnregisterEP <ep-id>
 - BUGFIX(RasSrv.cxx) remove IPv6 addresses before processing RRQs when IPv6 is not enabled
 - send non-standard H.245 userIndication as keep-alive
 - new switch [RoutedMode] DisableGnuGkH245TcpKeepAlive=1

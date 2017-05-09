@@ -1776,6 +1776,13 @@ void StatusClient::ExecCommand(
 		else
 			CommandError("Syntax Error: UnregisterIp IP_ADDRESS");
 		break;
+	case GkStatus::e_UnregisterEP:
+		// unregister this endpoint ID
+		if (args.GetSize() == 2)
+			SoftPBX::UnregisterEndpoint(args[1]);
+		else
+			CommandError("Syntax Error: UnregisterEP ENDPOINT-ID");
+		break;
 	case GkStatus::e_TransferCall:
 		if (args.GetSize() == 3)
 			SoftPBX::TransferCall(args[1], args[2]);
