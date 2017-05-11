@@ -2204,9 +2204,12 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 	}
 
 	if (m_call && (m_call->GetRerouteState() == RerouteInitiated) && (msg->GetTag() == Q931::ReleaseCompleteMsg)) {
-		PTRACE(1, "Q931\tReroute failed, terminating call");
-		SNMP_TRAP(7, SNMPError, Network, "Reroute failed");
-		// don't end reroute on RC to dropped party		m_call->SetRerouteState(NoReroute);
+		// don't end reroute on RC to/from dropped party
+		if ( (m_callerSocket && m_call->GetRerouteDirection() == Caller)
+            || (!m_callerSocket && m_call->GetRerouteDirection() == Called)) {
+            PTRACE(1, "Q931\tReroute failed, terminating call");
+            m_call->SetRerouteState(NoReroute);
+		}
 	}
 
 	if (m_call && (m_call->GetRerouteState() == RerouteInitiated) && (msg->GetTag() != Q931::SetupMsg) && (msg->GetTag() != Q931::ConnectMsg)) {
