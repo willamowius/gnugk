@@ -1,5 +1,6 @@
 Changes from 4.5 to 4.6
 =======================
+- BUGFIX(ProxyChannel.cxx) drop un-en/decrypatble RTP packets at end of call when adding encryption
 - new status port command: UnregisterEP <ep-id>
 - BUGFIX(RasSrv.cxx) remove IPv6 addresses before processing RRQs when IPv6 is not enabled
 - send non-standard H.245 userIndication as keep-alive

@@ -10527,6 +10527,12 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	}
 
 #ifdef HAS_H235_MEDIA
+    if (isRTP && (!m_call || (m_call && !(*m_call)))) {
+		if (m_encryptingLC || m_decryptingLC) {
+            PTRACE(7, "JW RTP dropping crypto RTP packet (call object already gone)");
+            return NoData;
+        }
+    }
 	// H.235.6 sect 9.3.3 says RTCP encryption is for further study, so we don't encrypt/decrypt RTCP
 	if (m_call && (*m_call) && (*m_call)->IsMediaEncryption() && isRTP) {
 		bool ready = false;
