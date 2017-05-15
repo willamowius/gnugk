@@ -32,7 +32,7 @@ class CLIRewrite {
 public:
 	/// a single CLI/ANI rewrite rule
 	struct RewriteRule {
-		
+
 		RewriteRule();
 		PString AsString() const;
 
@@ -42,7 +42,7 @@ public:
 			MatchDestinationNumber, /// dailed number after global rewrite
 			MatchCallerNumber /// CLI/ANI
 		};
-		
+
 		/// how to perform number matching and rewritting
 		enum RewriteType {
 			PrefixToNumber, /// match by a prefix, replace with a complete number
@@ -51,7 +51,7 @@ public:
 			PrefixToH323Id, /// match by a prefix, replace H.323 ID only with a complete number
 			NumberToH323Id  /// match by a complete number, replace H.323 ID only with a complete number
 		};
-		
+
 		/// how to hide caller's number
 		enum ScreeningType {
 			NoScreening, /// leave as it is
@@ -59,21 +59,21 @@ public:
 			AlwaysHide /// always hide
 		};
 
-		/// manual CLIR (presentatio indicator) control
+		/// manual CLIR (presentation indicator) control
 		enum CLIRType {
 			CLIRPassthrough, /// leave PI as received from a caller
 			RestrictPresentation, /// set PI to restricted
 			AllowPresentation /// set PI to allowed
 		};
 
-		/// how to process received CLIR (PI) information		
+		/// how to process received CLIR (PI) information
 		enum CLIRRule {
 			IgnoreCLIR, /// use the global settings to make the decission
 			ForwardCLIR, /// do nothing, just forward as received
 			ApplyCLIRForTerminals, /// hide caller's number, if the callee is a terminal and PI=restricted
 			AlwaysApplyCLIR /// always hide caller's number, if PI=restricted
 		};
-		
+
 		int m_matchType; /// match condition
 		int m_rewriteType; /// number matching/rewritting rule
 		int m_screeningType; /// caller's number hiding
@@ -88,14 +88,14 @@ public:
 	typedef std::vector<SingleIpRule> SingleIpRules;
 	typedef std::pair<NetworkAddress, SingleIpRules> DoubleIpRule;
 	typedef std::vector<DoubleIpRule> DoubleIpRules;
-	
+
 	CLIRewrite();
 
-	/// Rewrite CLI before any Setup message processing, like auth & routing	
+	/// Rewrite CLI before any Setup message processing, like auth & routing
 	void InRewrite(
 		SetupMsg &msg /// Q.931 Setup message to be rewritten
 		);
-		
+
 	/** Rewrite CLI before the Setup is sent to the terminating party
 	    and after auth/acct/routing is performed.
 	*/
@@ -104,7 +104,7 @@ public:
 		SetupAuthData &authData, /// additional data
 		const PIPSocket::Address &destAddr /// destination address
 		);
-		
+
 protected:
 	void Rewrite(
 		SetupMsg &msg, /// Q.931 Setup message to be rewritten
@@ -118,7 +118,7 @@ protected:
 
 	CLIRewrite(const CLIRewrite &);
 	CLIRewrite & operator=(const CLIRewrite &);
-	
+
 private:
 	SingleIpRules m_inboundRules; /// a set of inbound CLI/ANI rewrite rules
 	DoubleIpRules m_outboundRules; /// a set of outbound CLI/ANI rewrite rules
