@@ -170,6 +170,12 @@ ifeq "$(GCCMAJORGT4)" "1"
 STDCCFLAGS += -Wtype-limits -Wstrict-overflow=5 -fstrict-overflow -Wsign-compare -Wno-unused-variable
 endif
 
+ifeq "$(CXX)" "clang++"
+# avoid a ton of warnings about PTLib
+STDCCFLAGS += -Wno-unknown-pragmas -Wno-overloaded-virtual -Wno-unused-const-variable -Wno-unused-private-field
+endif
+
+
 # special dependency to ensure version.cxx is rebuilt each time gnugk is recompiled
 # so the proper build timestamp is included
 versionts.h: $(subst version.cxx,,$(SOURCES)) $(HEADERS) $(OH323_LIBDIR)/$(OH323_FILE) $(PT_LIBDIR)/$(PTLIB_FILE)
