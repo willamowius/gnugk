@@ -176,7 +176,7 @@ STDCCFLAGS += -Wno-unknown-pragmas -Wno-overloaded-virtual -Wno-unused-const-var
 endif
 
 
-# special dependency to ensure version.cxx is rebuilt each time gnugk is recompiled
+# special dependency to ensure version.cxx is rebuilt each time gnugk is recompiled BROKEN
 # so the proper build timestamp is included
 versionts.h: $(subst version.cxx,,$(SOURCES)) $(HEADERS) $(OH323_LIBDIR)/$(OH323_FILE) $(PT_LIBDIR)/$(PTLIB_FILE)
 	@touch $@
