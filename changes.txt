@@ -1,5 +1,6 @@
 Changes from 4.5 to 4.6
 =======================
+- add callID to H.245 trace messages for easier debugging
 - BUGFIX(ProxyChannel.cxx) forward ReleaseComplete from remaining party while doing call reroute
 - BUGFIX(ProxyChannel.cxx) drop un-en/decrypatble RTP packets at end of call when adding encryption
 - new status port command: UnregisterEP <ep-id>

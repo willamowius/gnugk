@@ -852,6 +852,7 @@ public:
 	bool Reverting(const H225_TransportAddress &);
 	void OnSignalingChannelClosed();
 	void SetSigSocket(CallSignalSocket *socket) { sigSocket = socket; }
+	PString GetCallIdentifierAsString() const;
 
 protected:
 	// override from class TCPProxySocket
@@ -865,8 +866,8 @@ protected:
 
 private:
 	H245Socket();
-	H245Socket(const H245Socket&);
-	H245Socket& operator=(const H245Socket&);
+	H245Socket(const H245Socket &);
+	H245Socket & operator=(const H245Socket &);
 
 	// override from class ServerSocket
 	virtual void Dispatch() { /* useless */ }
@@ -889,8 +890,8 @@ public:
 
 private:
 	NATH245Socket();
-	NATH245Socket(const NATH245Socket&);
-	NATH245Socket& operator=(const NATH245Socket&);
+	NATH245Socket(const NATH245Socket &);
+	NATH245Socket & operator=(const NATH245Socket &);
 
 	// override from class H245Socket
 	virtual bool ConnectRemote();
@@ -906,20 +907,20 @@ public:
 #endif
 
 	T120ProxySocket(T120LogicalChannel *);
-	T120ProxySocket(T120ProxySocket * = 0, WORD = 0);
+	T120ProxySocket(T120ProxySocket * = NULL, WORD = 0);
 
 	// override from class ProxySocket
 	virtual bool ForwardData();
 
 private:
-	T120ProxySocket(const T120ProxySocket&);
-	T120ProxySocket& operator=(const T120ProxySocket&);
+	T120ProxySocket(const T120ProxySocket &);
+	T120ProxySocket & operator=(const T120ProxySocket &);
 
 	// override from class ServerSocket
 	virtual void Dispatch();
 
 private:
-	T120LogicalChannel *t120lc;
+	T120LogicalChannel * t120lc;
 };
 
 class LogicalChannel {
@@ -2614,7 +2615,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		return false;
 	}
 
-	PTRACE(4, "H245\tReceived from " << GetName() << ": " << setprecision(2) << h245msg);
+	PTRACE(4, "H245\tReceived from " << GetName() << " (CallID: " << GetCallIdentifierAsString() << "): " << setprecision(2) << h245msg);
 
 	// remove t38FaxUdpOptions from t38FaxProfile eg. for Avaya Communication Manager
 	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request
@@ -3011,7 +3012,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 	h245msg.Encode(strm);
 	strm.CompleteEncoding();
 	if (!suppress) {
-        PTRACE(5, "H245\tTo send: " << setprecision(2) << h245msg);
+        PTRACE(5, "H245\tTo send (CallID: " << GetCallIdentifierAsString() << "): " << setprecision(2) << h245msg);
     }
 
 	return true;
@@ -3283,7 +3284,7 @@ void CallSignalSocket::SendEncryptionUpdateCommand(WORD flcn, BYTE oldPT, BYTE p
 			if (m_h245Tunneling)
 				SendTunneledH245(h245msg);
 			else {
-				PTRACE(4, "H245\tTo send: " << h245msg);
+				PTRACE(4, "H245\tTo send (CallID: " << GetCallIdentifierAsString() << "): " << h245msg);
 				if (m_h245socket)
 					m_h245socket->Send(h245msg);
 			}
@@ -3315,7 +3316,7 @@ void CallSignalSocket::SendEncryptionUpdateRequest(WORD flcn, BYTE oldPT, BYTE p
 	if (m_h245Tunneling) {
 		SendTunneledH245(h245msg);
 	} else {
-		PTRACE(4, "H245\tTo send: " << h245msg);
+		PTRACE(4, "H245\tTo send (CallID: " << GetCallIdentifierAsString() << "): " << h245msg);
 		if (m_h245socket)
 			m_h245socket->Send(h245msg);
 	}
@@ -8556,6 +8557,14 @@ H245Socket::~H245Socket()
 		sigSocket->OnH245ChannelClosed();
 }
 
+PString H245Socket::GetCallIdentifierAsString() const
+{
+    if (sigSocket) {
+        return sigSocket->GetCallIdentifierAsString();
+    }
+    return "unknown";
+}
+
 void H245Socket::OnSignalingChannelClosed()
 {
 	PWaitAndSignal lock(m_signalingSocketMutex);
@@ -8908,7 +8917,7 @@ PBoolean H245Socket::Accept(PSocket & socket)
 		WORD p;
 		GetLocalAddress(addr, p);
 		UnmapIPv4Address(addr);
-		PTRACE(3, "H245\tConnected from " << GetName() << " on " << AsString(addr, p));
+		PTRACE(3, "H245\tConnected from " << GetName() << " on " << AsString(addr, p) << " (CallID: " << GetCallIdentifierAsString() << ")");
 	} else if (peerH245Addr) {
 		result = H245Socket::ConnectRemote();
 	}
@@ -8941,7 +8950,7 @@ bool H245Socket::ConnectRemote()
 		WORD pt = H245PortRange.GetPort();
 		if (Connect(localAddr, pt, peerAddr)) {
 			SetConnected(true);
-			PTRACE(3, "H245\tConnect to " << GetName() << " from " << AsString(localAddr, pt) << " successful");
+			PTRACE(3, "H245\tConnect to " << GetName() << " from " << AsString(localAddr, pt) << " successful" << " (CallID: " << GetCallIdentifierAsString() << ")");
 
 			// RE - TOS - H.245 outbound - TCS messages etc.
             int dscp = GkConfig()->GetInteger(RoutedSec, "H245DiffServ", 0);
@@ -8988,7 +8997,7 @@ bool H245Socket::ConnectRemote()
 			<< errorNumber << ": " << GetErrorText(PSocket::LastGeneralError)
 			<< " remote addr: " << AsString(peerAddr));
 		Close();
-		PTRACE(3, "H245\t" << AsString(peerAddr, peerPort) << " DIDN'T ACCEPT THE CALL");
+		PTRACE(3, "H245\t" << AsString(peerAddr, peerPort) << " DIDN'T ACCEPT THE CALL" << " (CallID: " << GetCallIdentifierAsString() << ")");
 		SNMP_TRAP(10, SNMPError, Network, "H.245 connection to " + AsString(peerAddr, peerPort) + " failed");
 	}
 	return false;
@@ -9020,7 +9029,7 @@ bool H245Socket::SetH245Address(H225_TransportAddress & h245addr, const Address 
 	m_signalingSocketMutex.Signal();
 
 	h245addr = SocketToH225TransportAddr(myip, socket->listener->GetPort());
-	PTRACE(3, "H245\tSet h245Address to " << AsDotString(h245addr));
+	PTRACE(3, "H245\tSet h245Address to " << AsDotString(h245addr) << " (CallID: " << GetCallIdentifierAsString() << ")");
 	return swapped;
 }
 
@@ -12978,7 +12987,7 @@ bool H245ProxyHandler::HandleEncryptionUpdateRequest(H245_MiscellaneousCommand &
 			misc.m_direction.SetTag(H245_EncryptionUpdateDirection::e_slaveToMaster); // this update was requested by the slave
 			rtplc->GenerateNewMediaKey(newPayloadType, update.m_encryptionSync);
 			if (h245sock) {
-				PTRACE(4, "H245\tTo send: " << h245msg);
+				PTRACE(4, "H245\tTo send (CallID: " << h245sock->GetCallIdentifierAsString() << "): " << h245msg);
 				h245sock->Send(h245msg);
 			} else {
 				// send tunneled (to slave)
@@ -13022,7 +13031,7 @@ bool H245ProxyHandler::HandleEncryptionUpdateCommand(H245_MiscellaneousCommand &
 			misc.m_direction.SetTag(H245_EncryptionUpdateDirection::e_slaveToMaster);
 			ack.m_synchFlag = update.m_encryptionSync.m_synchFlag;
 			if (h245sock) {
-				PTRACE(4, "H245\tTo send: " << h245msg);
+				PTRACE(4, "H245\tTo send (CallID: " << h245sock->GetCallIdentifierAsString() << "): " << h245msg);
 				h245sock->Send(h245msg);
 			} else {
 				// send tunneled to master side (only the master issues UpdateCommand, slave would have sent UpdateRequest)
