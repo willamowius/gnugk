@@ -938,7 +938,13 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 {
 	bool changed = false;
 
-	// If URL remove the domain if default domain
+	// remove trailing character
+	if (s.GetLength() > 1 && s[s.GetLength() - 1] == m_TrailingChar) {
+		s = s.Left(s.GetLength() - 1);
+		changed = true;
+	}
+
+	// if URL remove the domain if default domain
 	PINDEX at = s.Find('@');
 	if (at != P_MAX_INDEX) {
 		PString num = s.Left(at);
@@ -964,11 +970,6 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 		}
 	}
 
-	// remove trailing character
-	if (s.GetLength() > 1 && s[s.GetLength() - 1] == m_TrailingChar) {
-		s = s.Left(s.GetLength() - 1);
-		changed = true;
-	}
 	// startsWith?
 	if (strncmp(s, m_RewriteFastmatch, m_RewriteFastmatch.GetLength()) != 0)
 		return changed;
