@@ -200,11 +200,13 @@ The endpoint shall release the call immediately and re-send call Setup
 to the gatekeeper.
 
 <item><tt/RemoveTrailingChar=#/<newline>
-Default: <tt>N/A</tt><newline>
+Default: <tt>(space)</tt><newline>
 <p>
 Specify the trailing character to be removed in <bf/destinationInfo/.
 For example, if your endpoint incorrectly contains a termination character
 such as `&num;' in <bf/destinationInfo/ you may remove it with this option.
+
+This switch also applies to unregistered calls.
 
 <item><tt/RoundRobinGateways=0/<newline>
 Default: <tt/1/<newline>
@@ -213,11 +215,15 @@ Enable/disable round-robin gateway selection if more than one gateway
 matches a dialed number. If disabled, the first available gateway will be selected.
 Otherwise, subsequent calls will be sent to gateways in round-robin fashion.
 
+This switch also applies to unregistered calls.
+
 <item><tt/LeastUsedRouting=1/<newline>
 Default: <tt/0/<newline>
 <p>
 Select the least used gateway when routing calls to achieve a more even usage.
 This switch is logically incompatible with round-robin.
+
+This switch also applies to unregistered calls.
 
 <item><tt/SendRIP=9000/<newline>
 Default: <tt/0/<newline>
