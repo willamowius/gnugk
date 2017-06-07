@@ -566,6 +566,9 @@ received.  It can also be used in conjunction with the
 [RasSrv::RewriteAlias] section to convert the received URI into an E.164
 number for further processing and routing. 
 
+NOTE: To change this settings, you must restart GnuGk.
+A configuration reload will not re-read this configuration item.
+
 <item><tt/Authenticators=H.235.1,CAT/<newline>
 Default: <tt>H.235.1,MD5,CAT</tt><newline>
 <p>
