@@ -938,7 +938,7 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 {
 	bool changed = false;
 
-	// remove trailing character
+	// remove trailing character TODO: loop and replace multiple chars ?
 	if (s.GetLength() > 1 && s[s.GetLength() - 1] == m_TrailingChar) {
 		s = s.Left(s.GetLength() - 1);
 		changed = true;
