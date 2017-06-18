@@ -128,7 +128,9 @@ void BuildReceiverReport(const callptr & call, WORD sessionID, const RTP_Control
 H245_H2250LogicalChannelParameters *GetLogicalChannelParameters(H245_OpenLogicalChannel & olc, bool & isReverseLC);
 
 
+#ifdef HAS_H46018
 bool odd(unsigned n) { return (n % 2) != 0; }
+#endif
 
 template <class UUIE>
 inline unsigned GetH225Version(const UUIE & uuie)
