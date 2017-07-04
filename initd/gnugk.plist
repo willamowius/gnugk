@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>org.gnugk.gnugk</string>
+	<key>Program</key>
+	<string>/opt/local/bin/gnugk</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/opt/local/bin/gnugk</string>
+		<string>-c</string>
+		<string>/etc/gnugk.ini</string>
+		<string>-ttttt</string>
+		<string>-o</string>
+		<string>/var/log/gnugk.log</string>
+	</array>
+	<key>KeepAlive</key>
+	<true/>
+</dict>
+</plist>
