@@ -564,7 +564,7 @@ bool GkInterface::CreateListeners(RasServer *RasSrv)
 		}
 	}
 #endif
-	if (SetListener(statusPort, m_statusPort, m_statusListener, &GkInterface::CreateStatusListener))
+	if (statusPort > 0 && SetListener(statusPort, m_statusPort, m_statusListener, &GkInterface::CreateStatusListener))
 		m_rasSrv->AddListener(m_statusListener);
 
 	if (m_rasListener && m_callSignalListener) {

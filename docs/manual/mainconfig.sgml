@@ -376,12 +376,12 @@ Specify the other gatekeeper's IP in this list.
 <item><tt/StatusPort=7000/<newline>
 Default: <tt/7000/<newline>
 <p>
-Status port to monitor the gatekeeper.
+Status port to monitor the gatekeeper. Set to 0 to switch the port off.
 See <ref id="monitor" name="this section"> for details.
 
 The GNU Gatekeeper will listen to the status port on all IPs it is listening for call signaling.
 You should protect those ports in your firewall and set access control rules
-in the <ref id="gkstatusauth" name="[GkStatus::Auth]"> section for those you can't close completely.
+in the <ref id="gkstatusauth" name="[GkStatus::Auth]"> section for those you can't close completely in your firewall.
 
 <item><tt/StatusTraceLevel=2/<newline>
 Default: <tt/2/<newline>
