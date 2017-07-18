@@ -9943,7 +9943,7 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
 		fSrcPort(0), fDestPort(0), rSrcPort(0), rDestPort(0), m_sessionID(0),
 		m_encryptingLC(NULL), m_decryptingLC(NULL)
 #ifdef HAS_H46018
-	, m_h46019fc(false), m_useH46019(false), m_h46019uni(false), m_h46019DetectionDone(false),
+	, m_h46019fc(false), m_useH46019(false), m_h46019uni(false), m_h46019DetectionDone(false), m_forwardAndReverseSeen(false),
 	m_keepAlivePT_1(UNDEFINED_PAYLOAD_TYPE), m_keepAlivePT_2(UNDEFINED_PAYLOAD_TYPE),
 	m_multiplexID_A(INVALID_MULTIPLEX_ID), m_multiplexSocket_A(INVALID_OSSOCKET),
 	m_multiplexID_B(INVALID_MULTIPLEX_ID), m_multiplexSocket_B(INVALID_OSSOCKET)
@@ -10074,7 +10074,7 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 
 #ifdef HAS_H46018
-    if (m_ignoreSignaledIPs && m_h46019DetectionDone) {
+    if (m_ignoreSignaledIPs && m_h46019DetectionDone && m_forwardAndReverseSeen) {
         PTRACE(7, "JW RTP skip overwriting due to completed port detection");
         return;
     }
@@ -10128,7 +10128,7 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 
 #ifdef HAS_H46018
-    if (m_ignoreSignaledIPs && m_h46019DetectionDone) {
+    if (m_ignoreSignaledIPs && m_h46019DetectionDone && m_forwardAndReverseSeen) {
         PTRACE(7, "JW RTP skip overwriting due to completed port detection");
         return;
     }
@@ -10320,7 +10320,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 	PTRACE(7, "JW RTP DB on " << localport << " type=" << Type() << " this=" << this << " H.460.19=" << UsesH46019()
-		<< " fc=" << m_h46019fc << " m_h46019uni=" << m_h46019uni << " done=" << m_h46019DetectionDone
+		<< " fc=" << m_h46019fc << " m_h46019uni=" << m_h46019uni << " done=" << m_h46019DetectionDone << " fwd&rev=" << m_forwardAndReverseSeen
 		<< " multiplex: Dest A=" << AsString(m_multiplexDestination_A) << " ID A=" << m_multiplexID_A << " Socket A=" << m_multiplexSocket_A
 		<< " Dest B=" << AsString(m_multiplexDestination_B) << " ID B=" << m_multiplexID_B << " Socket B=" << m_multiplexSocket_B);
 
@@ -10655,7 +10655,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 #ifdef HAS_H46024B
             if (isRTP && m_call && (*m_call) && (*m_call)->GetNATStrategy() == CallRec::e_natAnnexB) {
 #ifdef HAS_H46018
-                m_h46019DetectionDone = true;  // We missed the probe packets but detection is done
+                m_h46019DetectionDone = true;  // we missed the probe packets but detection is done
 #endif
 			    (*m_call)->H46024BInitiate(m_sessionID, H323TransportAddress(fDestIP, fDestPort), H323TransportAddress(fromIP, fromPort));
             }
@@ -11693,6 +11693,8 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
             rtp->ZeroAllIPs();
             rtcp->ZeroAllIPs();
         }
+        rtp->ForwardAndReverseSeen();
+        rtcp->ForwardAndReverseSeen();
    }
 #endif
 

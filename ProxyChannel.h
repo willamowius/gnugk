@@ -232,6 +232,7 @@ public:
     void GetPorts(PIPSocket::Address & _fSrcIP, PIPSocket::Address & _fDestIP, PIPSocket::Address & _rSrcIP, PIPSocket::Address & _rDestIP,
                     WORD & _fSrcPort, WORD & _fDestPort, WORD & _rSrcPort, WORD & _rDestPort) const;
     void ZeroAllIPs();
+    void ForwardAndReverseSeen() { m_forwardAndReverseSeen = true; }
 
 
 protected:
@@ -270,6 +271,7 @@ protected:
 	bool m_h46019uni;
 	bool m_h46019DetectionDone;
 	PMutex m_h46019DetectionLock;
+	bool m_forwardAndReverseSeen;   // did we see logical channels for both directions, yet ?
 	bool m_checkH46019KeepAlivePT;
 	WORD m_keepAlivePT_1;
 	WORD m_keepAlivePT_2;
