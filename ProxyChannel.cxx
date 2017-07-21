@@ -10037,10 +10037,13 @@ bool UDPProxySocket::Bind(const Address & localAddr, WORD pt)
 
 void UDPProxySocket::SetNAT(bool rev)
 {
-	fSrcIP = 0;
-	fSrcPort = 0;
-	rSrcIP = 0;
-	rSrcPort = 0;
+    PTRACE(7, "JW RTP SetNat() fSrc=0, rSrc=0");
+    if (!m_ignoreSignaledIPs) { // skip old NAT logic if we do port detection
+        fSrcIP = 0;
+        fSrcPort = 0;
+        rSrcIP = 0;
+        rSrcPort = 0;
+    }
 
 	// if the handler of lc is NATed,
 	// the destination of reverse direction should be changed
