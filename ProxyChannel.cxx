@@ -1064,7 +1064,7 @@ private:
 
 class NATHandler {
 public:
-	NATHandler(const PIPSocket::Address & remote) : remoteAddr(remote) {}
+	NATHandler(const PIPSocket::Address & remote) : remoteAddr(remote) { }
 
 	void TranslateH245Address(H225_TransportAddress &);
 	bool HandleOpenLogicalChannel(H245_OpenLogicalChannel &);
@@ -10037,7 +10037,7 @@ bool UDPProxySocket::Bind(const Address & localAddr, WORD pt)
 
 void UDPProxySocket::SetNAT(bool rev)
 {
-    PTRACE(7, "JW RTP SetNat() fSrc=0, rSrc=0");
+    PTRACE(7, "JW RTP UDPProxySocket::SetNAT() fSrc=0, rSrc=0");
     if (!m_ignoreSignaledIPs) { // skip old NAT logic if we do port detection
         fSrcIP = 0;
         fSrcPort = 0;
@@ -11756,6 +11756,7 @@ void RTPLogicalChannel::OnHandlerSwapped(bool nated)
 
 void RTPLogicalChannel::SetNAT(bool nated)
 {
+    PTRACE(7, "JW RTP RTPLogicalChannel::SetNAT() nated=" << nated);
 	if (nated) {
 		if (rtp)
 			rtp->SetNAT(reversed);
