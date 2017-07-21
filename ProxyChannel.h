@@ -232,7 +232,7 @@ public:
     void GetPorts(PIPSocket::Address & _fSrcIP, PIPSocket::Address & _fDestIP, PIPSocket::Address & _rSrcIP, PIPSocket::Address & _rDestIP,
                     WORD & _fSrcPort, WORD & _fDestPort, WORD & _rSrcPort, WORD & _rDestPort) const;
     void ZeroAllIPs();
-    void ForwardAndReverseSeen() { m_forwardAndReverseSeen = true; }
+    void ForwardAndReverseSeen() { PTRACE(7, "JW RTP ForwardAndReverseSeen"); m_forwardAndReverseSeen = true; }
 
 
 protected:

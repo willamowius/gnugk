@@ -11658,6 +11658,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 #ifdef HAS_H46018
 	if (m_ignoreSignaledIPs) {
         bool zeroNow = false;
+        bool forwardAndReverseSeen = false;
         PIPSocket::Address fSrcIP, fDestIP, rSrcIP, rDestIP;
         WORD fSrcPort, fDestPort, rSrcPort, rDestPort;
         GetRTPPorts(fSrcIP, fDestIP, rSrcIP, rDestIP, fSrcPort, fDestPort, rSrcPort, rDestPort);
@@ -11672,6 +11673,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
                 PTRACE(5, "RTP\tNon-symetric port usage, disable auto-detect");
                 call->SetIgnoreSignaledIPs(false);
             }
+            forwardAndReverseSeen = true;
         } else {
             if (fSrcPort > 0 && fDestPort > 0 && rSrcPort > 0 && rDestPort > 0 && !isUnidirectional) {
                 if (IsInNetworks(fSrcIP, m_keepSignaledIPs) || IsInNetworks(fDestIP, m_keepSignaledIPs) || IsInNetworks(rSrcIP, m_keepSignaledIPs) || IsInNetworks(rDestIP, m_keepSignaledIPs)) {
@@ -11686,6 +11688,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
                 	PTRACE(5, "RTP\tNon-symetric port usage, disable auto-detect");
                     call->SetIgnoreSignaledIPs(false);
                 }
+                forwardAndReverseSeen = true;
             }
         }
         if (zeroNow) {
@@ -11693,8 +11696,10 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
             rtp->ZeroAllIPs();
             rtcp->ZeroAllIPs();
         }
-        rtp->ForwardAndReverseSeen();
-        rtcp->ForwardAndReverseSeen();
+        if (forwardAndReverseSeen) {
+            rtp->ForwardAndReverseSeen();
+            rtcp->ForwardAndReverseSeen();
+        }
    }
 #endif
 
