@@ -1256,7 +1256,7 @@ inline TCPProxySocket::TPKTV3::TPKTV3(WORD len)
 // class TCPProxySocket
 TCPProxySocket::TCPProxySocket(const char * t, TCPProxySocket * s, WORD p)
       : ServerSocket(p), ProxySocket(this, t), remote(s), bufptr(NULL), tpkt(0), tpktlen(0),
-        m_keepAliveInterval(19), m_keepAliveTimer(GkTimerManager::INVALID_HANDLE)
+        m_h46018KeepAlive(true), m_keepAliveInterval(19), m_keepAliveTimer(GkTimerManager::INVALID_HANDLE)
 {
 }
 
@@ -1425,20 +1425,38 @@ void TCPProxySocket::SendKeepAlive(GkTimer * timer)
     }
     H245Socket * h245sock = dynamic_cast<H245Socket*>(this);
     if (h245sock != NULL) {
-        h245sock->SendH245KeepAlive();
+        if (m_h46018KeepAlive) {
+            SendEmptyTPKTKeepAlive();
+        } else {
+            h245sock->SendH245KeepAlive();
+        }
     } else {
-        PBYTEArray tbuf(sizeof(TPKTV3));
-        BYTE *bptr = tbuf.GetPointer();
-        new (bptr) TPKTV3(0); // placement operator
-        WriteData(bptr, sizeof(TPKTV3));
+        if (m_h46018KeepAlive) {
+            SendEmptyTPKTKeepAlive();
+        } else {
+            CallSignalSocket * sig_sock = dynamic_cast<CallSignalSocket*>(this);
+            if (sig_sock != NULL) {
+                sig_sock->SendFacilityKeepAlive();
+            }
+        }
 	}
+}
+
+void TCPProxySocket::SendEmptyTPKTKeepAlive()
+{
+    PBYTEArray tbuf(sizeof(TPKTV3));
+    BYTE *bptr = tbuf.GetPointer();
+    new (bptr) TPKTV3(0); // placement operator
+    WriteData(bptr, sizeof(TPKTV3));
 }
 
 void TCPProxySocket::RegisterKeepAlive(int h46018_interval)
 {
 	if (h46018_interval > 0) {
+		m_h46018KeepAlive = true;
 		m_keepAliveInterval = h46018_interval;
 	} else {
+		m_h46018KeepAlive = false;
         m_keepAliveInterval = GkConfig()->GetInteger(RoutedSec, "GnuGkTcpKeepAliveInterval", 19);
 	}
 	UnregisterKeepAlive();  // make sure old registrations get deleted
@@ -4891,6 +4909,8 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		|| m_call->IsH46018ReverseSetup() ) {
 		m_call->SetProxyMode(CallRec::ProxyEnabled);
 		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled (H.460.18/.19)");
+        PTRACE(5, "H46018\tEnable keep-alive for incoming H.460.18 call");
+        RegisterKeepAlive(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19));
 	}
 
 	// use delayed connecting if called party is a traversal client
@@ -7217,6 +7237,9 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					// deleting setup also disposes q931pdu and uuie
 					delete setup;
 					setup = NULL;
+
+                    PTRACE(5, "H46018\tEnable keep-alive for call to H.460.18 endpoint");
+                    RegisterKeepAlive(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19));
 				}
 				m_result = DelayedConnecting;	// don't forward, this was just to open the connection
 			} else {
@@ -8067,7 +8090,7 @@ bool CallSignalSocket::SendTunneledH245(const PPER_Stream & strm)
 	H225_Facility_UUIE & facility_uuie = uuie.m_h323_uu_pdu.m_h323_message_body;
 	if (m_h225Version < 4) {
 		// prior to H.225.0 version 4 we send an empty body
-		uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
+		facility_uuie.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
 	} else {
 		// starting with version 4 we send reason transportedInformation plus callID
         if (ProtocolVersion(H225_ProtocolID) > 4) {
@@ -8105,7 +8128,7 @@ bool CallSignalSocket::SendTunneledH245(const H245_MultimediaSystemControlMessag
 	H225_Facility_UUIE & facility_uuie = uuie.m_h323_uu_pdu.m_h323_message_body;
 	if (m_h225Version < 4) {
 		// prior to H.225.0 version 4 we send an empty body
-		uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
+		facility_uuie.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
 	} else {
 		// starting with version 4 we send reason transportedInformation plus callID
         if (ProtocolVersion(H225_ProtocolID) > 4) {
@@ -8132,6 +8155,62 @@ bool CallSignalSocket::SendTunneledH245(const H245_MultimediaSystemControlMessag
 
 	PrintQ931(3, "Send to ", GetName(), &q931, &uuie);
 	return TransmitData(lBuffer);
+}
+
+void CallSignalSocket::SendFacilityKeepAlive()
+{
+/*
+    PBoolean fromDest = m_crv & 0x8000u;
+    Q931 InformationPDU;
+    H225_H323_UserInformation uuie;
+    InformationPDU.BuildInformation(m_crv, fromDest);
+    InformationPDU.SetCallState(Q931::CallState_CallInitiated);
+    GetUUIE(InformationPDU, uuie);
+    uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
+    uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+    uuie.m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
+    SetUUIE(InformationPDU, uuie);
+
+    // TODO: remove tracing ?
+    PrintQ931(3, "Send to ", GetName(), &InformationPDU, &uuie);
+
+    PBYTEArray buf;
+    InformationPDU.Encode(buf);
+    TransmitData(buf);
+*/
+
+    Q931 FacilityPDU;
+    H225_H323_UserInformation uuie;
+    BuildFacilityPDU(FacilityPDU, H225_FacilityReason::e_transportedInformation);
+    GetUUIE(FacilityPDU, uuie);
+    H225_Facility_UUIE & facility_uuie = uuie.m_h323_uu_pdu.m_h323_message_body;
+	facility_uuie.RemoveOptionalField(H225_Facility_UUIE::e_conferenceID);
+    facility_uuie.RemoveOptionalField(H225_Facility_UUIE::e_callIdentifier);
+	facility_uuie.RemoveOptionalField(H225_Facility_UUIE::e_multipleCalls);
+	facility_uuie.RemoveOptionalField(H225_Facility_UUIE::e_maintainConnection);
+    if (m_h225Version < 4) {
+        // prior to H.225.0 version 4 we send an empty body
+        facility_uuie.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
+    } else {
+        // starting with version 4 we send reason transportedInformation plus callID
+        if (ProtocolVersion(H225_ProtocolID) > 4) {
+            facility_uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
+        } else {
+            facility_uuie.m_protocolIdentifier.SetValue(H225_ProtocolIDv4);	// we are at least version 4
+        }
+        facility_uuie.m_protocolIdentifier.SetValue(H225_ProtocolIDv4);	// we are at least version 4
+        facility_uuie.m_reason.SetTag(H225_FacilityReason::e_transportedInformation);
+    }
+    uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+    uuie.m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
+    SetUUIE(FacilityPDU, uuie);
+
+    // TODO: remove tracing ?
+    PrintQ931(3, "Send to ", GetName(), &FacilityPDU, &uuie);
+
+    PBYTEArray buf;
+    FacilityPDU.Encode(buf);
+    TransmitData(buf);
 }
 
 bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
@@ -8526,7 +8605,12 @@ H245Socket::H245Socket(CallSignalSocket *sig)
 	}
 	SetHandler(sig->GetHandler());
 	if (!GkConfig()->GetBoolean(RoutedSec, "DisableGnuGkH245TcpKeepAlive", false)) {
-        RegisterKeepAlive();
+        if (sig->UsesH460KeepAlive()) {
+            PTRACE(5, "H46018\tEnable keep-alive for H.245 in H.460.18 call");
+            RegisterKeepAlive(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19));
+        } else {
+            RegisterKeepAlive();
+        }
 	}
 }
 
@@ -8537,7 +8621,12 @@ H245Socket::H245Socket(H245Socket *socket, CallSignalSocket *sig)
 	peerH245Addr = NULL;
 	socket->remote = this;
     if (!GkConfig()->GetBoolean(RoutedSec, "DisableGnuGkH245TcpKeepAlive", false)) {
-        RegisterKeepAlive();
+        if (sig->UsesH460KeepAlive()) {
+            PTRACE(5, "H46018\tEnable keep-alive for H.245 in H.460.18 call");
+            RegisterKeepAlive(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19));
+        } else {
+            RegisterKeepAlive();
+        }
     }
 }
 
@@ -9052,7 +9141,12 @@ bool H245Socket::Reverting(const H225_TransportAddress & h245addr)
 bool NATH245Socket::ConnectRemote()
 {
     if (!GkConfig()->GetBoolean(RoutedSec, "DisableGnuGkH245TcpKeepAlive", false)) {
-        RegisterKeepAlive();   // if enabled, start a keep-alive with default interval
+        if (sigSocket && sigSocket->UsesH460KeepAlive()) {
+            PTRACE(5, "H46018\tEnable keep-alive for H.245 in H.460.18 call");
+            RegisterKeepAlive(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19));
+        } else {
+            RegisterKeepAlive();
+        }
     }
 
 #ifdef HAS_H46018

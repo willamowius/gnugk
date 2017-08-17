@@ -169,8 +169,10 @@ protected:
 public:
 	bool InternalWrite(const PBYTEArray & buf);
 	void SendKeepAlive(GkTimer * timer);
+	void SendEmptyTPKTKeepAlive();
 	void RegisterKeepAlive(int h46018_interval = 0);
 	void UnregisterKeepAlive();
+	bool UsesH460KeepAlive() const { return (m_keepAliveTimer != GkTimerManager::INVALID_HANDLE) && m_h46018KeepAlive; }
 
 protected:
 	bool SetMinBufSize(WORD);
@@ -179,6 +181,7 @@ protected:
 	TPKTV3 tpkt;
 	unsigned tpktlen;
 
+	bool m_h46018KeepAlive;
 	int m_keepAliveInterval;
 	GkTimerManager::GkTimerHandle m_keepAliveTimer;
 };
@@ -359,6 +362,8 @@ public:
 	unsigned GetNextTCSSeq() { return ++m_tcsRecSeq; }
 	bool SendTunneledH245(const PPER_Stream & strm);
 	bool SendTunneledH245(const H245_MultimediaSystemControlMessage & h245msg);
+    void SendFacilityKeepAlive();
+
 #ifdef HAS_H235_MEDIA
 	bool IsH245Master() const { return m_isH245Master; }
     bool HandleH235TCS(H245_TerminalCapabilitySet & tcs);
