@@ -1425,11 +1425,13 @@ void TCPProxySocket::SendKeepAlive(GkTimer * timer)
     }
     H245Socket * h245sock = dynamic_cast<H245Socket*>(this);
     if (h245sock != NULL) {
-        if (m_h46018KeepAlive) {
-            SendEmptyTPKTKeepAlive();
-        } else {
+        //if (m_h46018KeepAlive) {
+            //SendEmptyTPKTKeepAlive();
+        //} else {
+            // always send the userInput keep alive
+            // even when using H.460 Polycom RP gets confused by keep-alive
             h245sock->SendH245KeepAlive();
-        }
+        //}
     } else {
         if (m_h46018KeepAlive) {
             SendEmptyTPKTKeepAlive();
