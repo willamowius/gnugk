@@ -548,6 +548,8 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "GKRouted" },
 	{ "RoutedMode", "GenerateCallProceeding" },
 	{ "RoutedMode", "GnuGkTcpKeepAliveInterval" },
+	{ "RoutedMode", "GnuGkTcpKeepAliveMethodH225" },
+	{ "RoutedMode", "GnuGkTcpKeepAliveMethodH245" },
 #if defined(HAS_H235_MEDIA) && defined (HAS_SETTOKENLENGTH)
 	{ "RoutedMode", "H235HalfCallMaxTokenLength" },
 #endif
@@ -568,6 +570,8 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "H46024ForceDirect" },
 	{ "RoutedMode", "H46023ForceNat" },
 #endif
+	{ "RoutedMode", "H460KeepAliveMethodH225" },
+	{ "RoutedMode", "H460KeepAliveMethodH245" },
 	{ "RoutedMode", "NATStdMin" },
 	{ "RoutedMode", "ProxyHandlerHighPrio" },
 	{ "RoutedMode", "Q931PortRange" },

@@ -701,6 +701,50 @@ Default: <tt>0</tt><newline>
 Let the OS decide the source IP for UDP packets. Needed in some rare network configurations,
 but may break H.460.19 on interfaces with multiple IPs.
 
+<item><tt>EnableGnuGkTcpKeepAlive=1</tt><newline>
+Default: <tt>0</tt><newline>
+<p>
+Send a empty TPKT keep-alive on all H.225 and H.245 connections. For calls using H.460.18,
+these keep-alives are enabled automatically, whithout using this switch.
+
+<item><tt>DisableGnuGkH245TcpKeepAlive=1</tt><newline>
+Default: <tt>0</tt><newline>
+<p>
+Disable the keep-alive on H.245 connections for non-H.460.18 connections
+(needed due to interop issues with Polycom).
+
+<item><tt>GnuGkTcpKeepAliveInterval=29</tt><newline>
+Default: <tt>19</tt><newline>
+<p>
+Set keep alive interval in seconds.
+
+<item><tt>GnuGkTcpKeepAliveMethodH225=EmptyFacility</tt><newline>
+Default: <tt>TPKT</tt><newline>
+<p>
+Set the message to be used for the keep alive on the H.225 connection when H.460.18 is not used.
+
+Possible values: TPKT, EmptyFacility, Notify, Status, Information.
+
+<item><tt>H460KeepAliveMethodH225=EmptyFacility</tt><newline>
+Default: <tt>TPKT</tt><newline>
+<p>
+Set the message to be used for the keep alive on the H.225 connection when H.460.18 is used.
+
+Possible values: TPKT, EmptyFacility, Notify, Status, Information.
+
+<item><tt>GnuGkTcpKeepAliveMethodH245=TPKT</tt><newline>
+Default: <tt>UserInput</tt><newline>
+<p>
+Set the message to be used for the keep alive on the H.245 connection when H.460.18 is not used.
+
+Possible values: TPKT, UserInput.
+
+<item><tt>H460KeepAliveMethodH245=TPKT</tt><newline>
+Default: <tt>UserInput</tt><newline>
+<p>
+Set the message to be used for the keep alive on the H.245 connection when H.460.18 is used.
+
+Possible values: TPKT, UserInput.
 
 </itemize>
 
@@ -911,23 +955,6 @@ increases the bandwidth usage drastically and can worsen the situation.
 
 When you set this switch to 1, GnuGk will allow 1 update request per second.
 If you set it to 10, GnuGk will allow 1 request every 10 seconds.
-
-<item><tt>EnableGnuGkTcpKeepAlive=1</tt><newline>
-Default: <tt>0</tt><newline>
-<p>
-Send a empty TPKT keep-alive on all H.225 and H.245 connections. For calls using H.460.18,
-these keep-alives are enabled automatically, whithout using this switch.
-
-<item><tt>DisableGnuGkTcpKeepAlive=1</tt><newline>
-Default: <tt>0</tt><newline>
-<p>
-Disable the keep-alive on H.245 connections for non-H.460.18 connections
-(needed due to interop issues with Polycom).
-
-<item><tt>GnuGkTcpKeepAliveInterval=29</tt><newline>
-Default: <tt>19</tt><newline>
-<p>
-Set keep alive interval in seconds.
 
 </itemize>
 

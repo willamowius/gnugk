@@ -1258,6 +1258,58 @@ TCPProxySocket::TCPProxySocket(const char * t, TCPProxySocket * s, WORD p)
       : ServerSocket(p), ProxySocket(this, t), remote(s), bufptr(NULL), tpkt(0), tpktlen(0),
         m_h46018KeepAlive(true), m_keepAliveInterval(19), m_keepAliveTimer(GkTimerManager::INVALID_HANDLE)
 {
+    PCaselessString str;
+    // H.225: default to empty TPKT like standard says
+    str = GkConfig()->GetString(RoutedSec, "H460KeepAliveMethodH225", "TPKT");
+    m_h460KeepAliveMethodH225 = TPKTH225;
+    if (str == "TPKT") {
+        m_h460KeepAliveMethodH225 = TPKTH225;
+    } else if (str == "EmptyFacility") {
+        m_h460KeepAliveMethodH225 = EmptyFacility;
+    } else if (str == "Information") {
+        m_h460KeepAliveMethodH225 = Information;
+    } else if (str == "Notify") {
+        m_h460KeepAliveMethodH225 = Notify;
+    } else if (str == "Status") {
+        m_h460KeepAliveMethodH225 = Status;
+    } else {
+        PTRACE(1, "Error: Unknown H.460 Keepalive method for H.225: " << str);
+    }
+    str = GkConfig()->GetString(RoutedSec, "GnuGkTcpKeepAliveMethodH225", "TPKT");
+    m_nonStdKeepAliveMethodH225 = TPKTH225;
+    if (str == "TPKT") {
+        m_nonStdKeepAliveMethodH225 = TPKTH225;
+    } else if (str == "EmptyFacility") {
+        m_nonStdKeepAliveMethodH225 = EmptyFacility;
+    } else if (str == "Information") {
+        m_nonStdKeepAliveMethodH225 = Information;
+    } else if (str == "Notify") {
+        m_nonStdKeepAliveMethodH225 = Notify;
+    } else if (str == "Status") {
+        m_nonStdKeepAliveMethodH225 = Status;
+    } else {
+        PTRACE(1, "Error: Unknown GnuGk Keepalive method for H.225: " << str);
+    }
+
+    // H.245: default to UserInput for all due to Polycom issue
+    str = GkConfig()->GetString(RoutedSec, "H460KeepAliveMethodH245", "UserInput");
+    m_h460KeepAliveMethodH245 = UserInput;
+    if (str == "TPKT") {
+        m_h460KeepAliveMethodH245 = TPKTH245;
+    } else if (str == "UserInput") {
+        m_h460KeepAliveMethodH245 = UserInput;
+    } else {
+        PTRACE(1, "Error: Unknown H.460 Keepalive method for H.245: " << str);
+    }
+    str = GkConfig()->GetString(RoutedSec, "GnuGkTcpKeepAliveMethodH245", "UserInput");
+    m_nonStdKeepAliveMethodH245 = UserInput;
+    if (str == "TPKT") {
+        m_nonStdKeepAliveMethodH245 = TPKTH245;
+    } else if (str == "UserInput") {
+        m_nonStdKeepAliveMethodH245 = UserInput;
+    } else {
+        PTRACE(1, "Error: Unknown GnuGk Keepalive method for H.245: " << str);
+    }
 }
 
 TCPProxySocket::~TCPProxySocket()
@@ -1425,21 +1477,52 @@ void TCPProxySocket::SendKeepAlive(GkTimer * timer)
     }
     H245Socket * h245sock = dynamic_cast<H245Socket*>(this);
     if (h245sock != NULL) {
-        //if (m_h46018KeepAlive) {
-            //SendEmptyTPKTKeepAlive();
-        //} else {
-            // always send the userInput keep alive
-            // even when using H.460 Polycom RP gets confused by keep-alive
-            h245sock->SendH245KeepAlive();
-        //}
-    } else {
+        H245KeepAliveMethod method;
         if (m_h46018KeepAlive) {
-            SendEmptyTPKTKeepAlive();
+            method = m_h460KeepAliveMethodH245;
         } else {
-            CallSignalSocket * sig_sock = dynamic_cast<CallSignalSocket*>(this);
-            if (sig_sock != NULL) {
-                sig_sock->SendFacilityKeepAlive();
-            }
+            method = m_nonStdKeepAliveMethodH245;
+        }
+        switch(method) {
+            case TPKTH245:
+                SendEmptyTPKTKeepAlive();
+                break;
+            case UserInput:
+                h245sock->SendH245KeepAlive();
+                break;
+        }
+    } else {
+        CallSignalSocket * sig_sock = dynamic_cast<CallSignalSocket*>(this);
+        H225KeepAliveMethod method;
+        if (m_h46018KeepAlive) {
+            method = m_h460KeepAliveMethodH225;
+        } else {
+            method = m_nonStdKeepAliveMethodH225;
+        }
+        switch(method) {
+            case TPKTH225:
+                SendEmptyTPKTKeepAlive();
+                break;
+            case EmptyFacility:
+                if (sig_sock != NULL) {
+                    sig_sock->SendFacilityKeepAlive();
+                }
+                break;
+            case Information:
+                if (sig_sock != NULL) {
+                    sig_sock->SendInformationKeepAlive();
+                }
+                break;
+            case Notify:
+                if (sig_sock != NULL) {
+                    sig_sock->SendNotifyKeepAlive();
+                }
+                break;
+            case Status:
+                if (sig_sock != NULL) {
+                    sig_sock->SendStatusKeepAlive();
+                }
+                break;
         }
 	}
 }
@@ -2274,7 +2357,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			}
 		}
 
-/* don't send the Notify: it doesn't seem to help any endpoint and Polycom RealPresense starts a flood of Status messages
+/* don't send the Notify: it doesn't seem to help any endpoint and Polycom RealPresence starts a flood of Status messages
 
         // send Notify with new DisplayIE and BearerCapabilityIE
         if ((msg->GetQ931().HasIE(Q931::DisplayIE) || msg->GetQ931().HasIE(Q931::BearerCapabilityIE)) && GetRemote()) {
@@ -6698,6 +6781,7 @@ bool CallSignalSocket::SendH46026RTP(unsigned sessionID, bool isRTP, const void 
 		PASN_OctetString & raw = frame.m_frame[0];
 		raw = PBYTEArray((const BYTE *)data, len);
 
+		// TODO: this Information message is probably not correct, use BuildIOnformation() instead and re-test
 		PBoolean fromDest = m_crv & 0x8000u;
 		Q931 InformationPDU;
 		H225_H323_UserInformation uuie;
@@ -7600,6 +7684,34 @@ void CallSignalSocket::BuildNotifyPDU(Q931 & NotifyPDU, PBoolean fromDestination
 	SetUUIE(NotifyPDU, signal);
 }
 
+void CallSignalSocket::BuildStatusPDU(Q931 & StatusPDU, PBoolean fromDestination)
+{
+	H225_H323_UserInformation signal;
+	H225_H323_UU_PDU_h323_message_body & body = signal.m_h323_uu_pdu.m_h323_message_body;
+	body.SetTag(H225_H323_UU_PDU_h323_message_body::e_status);
+	H225_Status_UUIE & uuie = body;
+	uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
+	if (m_call) {
+		uuie.m_callIdentifier = m_call->GetCallIdentifier();
+	}
+	StatusPDU.BuildNotify(m_crv, fromDestination);
+	SetUUIE(StatusPDU, signal);
+}
+
+void CallSignalSocket::BuildInformationPDU(Q931 & InformationPDU, PBoolean fromDestination)
+{
+	H225_H323_UserInformation signal;
+	H225_H323_UU_PDU_h323_message_body & body = signal.m_h323_uu_pdu.m_h323_message_body;
+	body.SetTag(H225_H323_UU_PDU_h323_message_body::e_information);
+	H225_Information_UUIE & uuie = body;
+	uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
+	if (m_call) {
+		uuie.m_callIdentifier = m_call->GetCallIdentifier();
+	}
+	InformationPDU.BuildInformation(m_crv, fromDestination);
+	SetUUIE(InformationPDU, signal);
+}
+
 void CallSignalSocket::BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallIdentifier & callId, unsigned crv)
 {
 	H225_H323_UserInformation signal;
@@ -8161,26 +8273,6 @@ bool CallSignalSocket::SendTunneledH245(const H245_MultimediaSystemControlMessag
 
 void CallSignalSocket::SendFacilityKeepAlive()
 {
-/*
-    PBoolean fromDest = m_crv & 0x8000u;
-    Q931 InformationPDU;
-    H225_H323_UserInformation uuie;
-    InformationPDU.BuildInformation(m_crv, fromDest);
-    InformationPDU.SetCallState(Q931::CallState_CallInitiated);
-    GetUUIE(InformationPDU, uuie);
-    uuie.m_h323_uu_pdu.m_h323_message_body.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);
-    uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
-    uuie.m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
-    SetUUIE(InformationPDU, uuie);
-
-    // TODO: remove tracing ?
-    PrintQ931(3, "Send to ", GetName(), &InformationPDU, &uuie);
-
-    PBYTEArray buf;
-    InformationPDU.Encode(buf);
-    TransmitData(buf);
-*/
-
     Q931 FacilityPDU;
     H225_H323_UserInformation uuie;
     BuildFacilityPDU(FacilityPDU, H225_FacilityReason::e_transportedInformation);
@@ -8208,10 +8300,68 @@ void CallSignalSocket::SendFacilityKeepAlive()
     SetUUIE(FacilityPDU, uuie);
 
     // TODO: remove tracing ?
-    PrintQ931(3, "Send to ", GetName(), &FacilityPDU, &uuie);
+    PrintQ931(5, "Send to ", GetName(), &FacilityPDU, &uuie);
 
     PBYTEArray buf;
     FacilityPDU.Encode(buf);
+    TransmitData(buf);
+}
+
+void CallSignalSocket::SendInformationKeepAlive()
+{
+    PBoolean fromDest = m_crv & 0x8000u;
+    Q931 q931;
+    H225_H323_UserInformation uuie;
+    BuildInformationPDU(q931, fromDest);
+    q931.SetCallState(Q931::CallState_Active);
+    GetUUIE(q931, uuie);
+    uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+    uuie.m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
+    SetUUIE(q931, uuie);
+
+    // TODO: remove tracing ?
+    PrintQ931(5, "Send to ", GetName(), &q931, &uuie);
+
+    PBYTEArray buf;
+    q931.Encode(buf);
+    TransmitData(buf);
+}
+
+void CallSignalSocket::SendNotifyKeepAlive()
+{
+    PBoolean fromDest = m_crv & 0x8000u;
+    Q931 q931;
+    H225_H323_UserInformation uuie;
+    BuildNotifyPDU(q931, fromDest);
+    GetUUIE(q931, uuie);
+    uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+    uuie.m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
+    SetUUIE(q931, uuie);
+
+    // TODO: remove tracing ?
+    PrintQ931(5, "Send to ", GetName(), &q931, &uuie);
+
+    PBYTEArray buf;
+    q931.Encode(buf);
+    TransmitData(buf);
+}
+
+void CallSignalSocket::SendStatusKeepAlive()
+{
+    PBoolean fromDest = m_crv & 0x8000u;
+    Q931 q931;
+    H225_H323_UserInformation uuie;
+    BuildStatusPDU(q931, fromDest);
+    GetUUIE(q931, uuie);
+    uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+    uuie.m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
+    SetUUIE(q931, uuie);
+
+    // TODO: remove tracing ?
+    PrintQ931(5, "Send to ", GetName(), &q931, &uuie);
+
+    PBYTEArray buf;
+    q931.Encode(buf);
     TransmitData(buf);
 }
 

@@ -1,5 +1,7 @@
 Changes from 4.5 to 4.6
 =======================
+- new switches: [RoutedMode] H460KeepAliveMethodH225=, H460KeepAliveMethodH245=,
+  GnuGkTcpKeepAliveMethodH225=, GnuGkTcpKeepAliveMethodH245=
 - BUGFIX(ProxyChannel.cxx) TCP keep-alives for H.460.18 calls weren't always enabled correctly
 - don't open a status port listener if [Gatekeeper::Main] StatusPort=0
 - BUGFIX(Toolkit.cxx) remove trailing chars before checking for DefaultDomain
