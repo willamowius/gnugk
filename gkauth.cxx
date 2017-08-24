@@ -1059,7 +1059,7 @@ SimplePasswordAuth::SimplePasswordAuth(
 	if (GkConfig()->HasKey(name, "CheckID")) {
         m_checkID = GkConfig()->GetBoolean(name, "CheckID", true);  // backward compatibility, deprecated
 	}
-	GetConfig()->GetBoolean(name, "CheckID", true);
+	GetConfig()->GetBoolean(name, "CheckID", true); // TODO: this looks like a bug
 	m_cache = new CacheManager(GetConfig()->GetInteger(name, "PasswordTimeout", -1));
 	m_disabledAlgorithms = GetConfig()->GetString(name, "DisableAlgorithm", "").Tokenise(",;", FALSE);
 
