@@ -1,4 +1,4 @@
-// This is the modeling file for Coverity to avaoid false positives.
+// This is the modeling file for Coverity to avoid false positives.
 // This code is not supposed to be compiled into the GNU Gatekeeper!
 
 struct _ios_fields{
