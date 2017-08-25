@@ -723,14 +723,14 @@ Default: <tt>TPKT</tt><newline>
 <p>
 Set the message to be used for the keep alive on the H.225 connection when H.460.18 is not used.
 
-Possible values: TPKT, EmptyFacility, Notify, Status, Information.
+Possible values: TPKT, EmptyFacility, Notify, Status, StatusInquiry, Information.
 
 <item><tt>H460KeepAliveMethodH225=EmptyFacility</tt><newline>
 Default: <tt>TPKT</tt><newline>
 <p>
 Set the message to be used for the keep alive on the H.225 connection when H.460.18 is used.
 
-Possible values: TPKT, EmptyFacility, Notify, Status, Information.
+Possible values: TPKT, EmptyFacility, Notify, Status, StatusInquiry, Information.
 
 <item><tt>GnuGkTcpKeepAliveMethodH245=TPKT</tt><newline>
 Default: <tt>UserInput</tt><newline>

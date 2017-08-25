@@ -126,7 +126,7 @@ private:
 
 class TCPProxySocket : public ServerSocket, public ProxySocket {
 public:
-    enum H225KeepAliveMethod { TPKTH225, EmptyFacility, Information, Notify, Status };
+    enum H225KeepAliveMethod { TPKTH225, EmptyFacility, Information, Notify, Status, StatusInquiry };
     enum H245KeepAliveMethod { TPKTH245, UserInput };
 
 	TCPProxySocket(const char * t, TCPProxySocket * s = NULL, WORD p = 0);
@@ -352,6 +352,7 @@ public:
 	void BuildProgressPDU(Q931 &, PBoolean fromDestination);
 	void BuildNotifyPDU(Q931 &, PBoolean fromDestination);
 	void BuildStatusPDU(Q931 &, PBoolean fromDestination);
+	void BuildStatusInquiryPDU(Q931 &, PBoolean fromDestination);
 	void BuildInformationPDU(Q931 &, PBoolean fromDestination);
 	void BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallIdentifier & callId, unsigned crv);
 	void BuildSetupPDU(Q931 &, const H225_CallIdentifier & callid, unsigned crv, const PString & destination, bool h245tunneling);
@@ -375,6 +376,7 @@ public:
     void SendInformationKeepAlive();
     void SendNotifyKeepAlive();
     void SendStatusKeepAlive();
+    void SendStatusInquiryKeepAlive();
 
 #ifdef HAS_H235_MEDIA
 	bool IsH245Master() const { return m_isH245Master; }

@@ -1272,6 +1272,8 @@ TCPProxySocket::TCPProxySocket(const char * t, TCPProxySocket * s, WORD p)
         m_h460KeepAliveMethodH225 = Notify;
     } else if (str == "Status") {
         m_h460KeepAliveMethodH225 = Status;
+    } else if (str == "StatusInquiry") {
+        m_h460KeepAliveMethodH225 = StatusInquiry;
     } else {
         PTRACE(1, "Error: Unknown H.460 Keepalive method for H.225: " << str);
     }
@@ -1287,6 +1289,8 @@ TCPProxySocket::TCPProxySocket(const char * t, TCPProxySocket * s, WORD p)
         m_nonStdKeepAliveMethodH225 = Notify;
     } else if (str == "Status") {
         m_nonStdKeepAliveMethodH225 = Status;
+    } else if (str == "StatusInquiry") {
+        m_nonStdKeepAliveMethodH225 = StatusInquiry;
     } else {
         PTRACE(1, "Error: Unknown GnuGk Keepalive method for H.225: " << str);
     }
@@ -1521,6 +1525,11 @@ void TCPProxySocket::SendKeepAlive(GkTimer * timer)
             case Status:
                 if (sig_sock != NULL) {
                     sig_sock->SendStatusKeepAlive();
+                }
+                break;
+            case StatusInquiry:
+                if (sig_sock != NULL) {
+                    sig_sock->SendStatusInquiryKeepAlive();
                 }
                 break;
         }
@@ -7698,6 +7707,20 @@ void CallSignalSocket::BuildStatusPDU(Q931 & StatusPDU, PBoolean fromDestination
 	SetUUIE(StatusPDU, signal);
 }
 
+void CallSignalSocket::BuildStatusInquiryPDU(Q931 & StatusInquiryPDU, PBoolean fromDestination)
+{
+	H225_H323_UserInformation signal;
+	H225_H323_UU_PDU_h323_message_body & body = signal.m_h323_uu_pdu.m_h323_message_body;
+	body.SetTag(H225_H323_UU_PDU_h323_message_body::e_statusInquiry);
+	H225_StatusInquiry_UUIE & uuie = body;
+	uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
+	if (m_call) {
+		uuie.m_callIdentifier = m_call->GetCallIdentifier();
+	}
+	StatusInquiryPDU.BuildNotify(m_crv, fromDestination);
+	SetUUIE(StatusInquiryPDU, signal);
+}
+
 void CallSignalSocket::BuildInformationPDU(Q931 & InformationPDU, PBoolean fromDestination)
 {
 	H225_H323_UserInformation signal;
@@ -8352,6 +8375,25 @@ void CallSignalSocket::SendStatusKeepAlive()
     Q931 q931;
     H225_H323_UserInformation uuie;
     BuildStatusPDU(q931, fromDest);
+    GetUUIE(q931, uuie);
+    uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+    uuie.m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
+    SetUUIE(q931, uuie);
+
+    // TODO: remove tracing ?
+    PrintQ931(5, "Send to ", GetName(), &q931, &uuie);
+
+    PBYTEArray buf;
+    q931.Encode(buf);
+    TransmitData(buf);
+}
+
+void CallSignalSocket::SendStatusInquiryKeepAlive()
+{
+    PBoolean fromDest = m_crv & 0x8000u;
+    Q931 q931;
+    H225_H323_UserInformation uuie;
+    BuildStatusInquiryPDU(q931, fromDest);
     GetUUIE(q931, uuie);
     uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
     uuie.m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
