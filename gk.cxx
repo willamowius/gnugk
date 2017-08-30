@@ -576,6 +576,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "ProxyHandlerHighPrio" },
 	{ "RoutedMode", "Q931PortRange" },
 	{ "RoutedMode", "RDSservers" },
+	{ "RoutedMode", "RedirectCallsToGkIP" },
 	{ "RoutedMode", "RemoveCallOnDRQ" },
 	{ "RoutedMode", "RemoveFaxUDPOptionsFromRM" },
 	{ "RoutedMode", "RemoveH235Call" },

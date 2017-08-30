@@ -746,6 +746,19 @@ Set the message to be used for the keep alive on the H.245 connection when H.460
 
 Possible values: TPKT, UserInput.
 
+<item><tt>RedirectCallsToGkIP=1</tt><newline>
+Default: <tt>0</tt><newline>
+<p>
+Send a Facility redirect to callers when the destCallSIgnallAddress is not
+one of the gatekeeper's own IPs or the external IP.
+This can be used to redirect calls directly to the gatekeeper that have
+been forwarded to it by a load balancer that needs to be removed from the
+call path.
+
+Note that this is incompatible with the 'explicit' routing policy and
+endpoints won't be able to call any other IP via the gatekeeper than
+the gatekeeper's own IP in many cases.
+
 </itemize>
 
 <p>

@@ -3833,7 +3833,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 
 			/// we should perform accounting here for this new call
 			H225_H323_UserInformation userInfo;
-			H225_H323_UU_PDU_h323_message_body &msgBody = userInfo.m_h323_uu_pdu.m_h323_message_body;
+			H225_H323_UU_PDU_h323_message_body & msgBody = userInfo.m_h323_uu_pdu.m_h323_message_body;
 			msgBody.SetTag(H225_H323_UU_PDU_h323_message_body::e_releaseComplete);
 
 			H225_ReleaseComplete_UUIE & uuie = msgBody;
@@ -3863,6 +3863,78 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 	RasServer *rassrv = RasServer::Instance();
 	Toolkit *toolkit = Toolkit::Instance();
 	time_t setupTime = time(0); // record the timestamp here since processing may take much time
+
+	Address _peerAddr, _localAddr;
+	WORD _peerPort = 0, _localPort = 0;
+	msg->GetPeerAddr(_peerAddr, _peerPort);
+	msg->GetLocalAddr(_localAddr, _localPort);
+
+	// incompatible with 'explicit' routing
+	if (GkConfig()->GetBoolean(RoutedSec, "RedirectCallsToGkIP", false)) {
+        bool redirect = false;
+        WORD signalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "CallSignalPort", GK_DEF_CALL_SIGNAL_PORT);
+        H225_TransportAddress mainIP = SocketToH225TransportAddr(Toolkit::Instance()->GetRouteTable()->GetLocalAddress(_peerAddr), signalPort);
+        // check if our main or external IP is being called
+        if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
+            redirect = true;
+            if (setupBody.m_destCallSignalAddress == mainIP) {
+                redirect = false;
+            }
+            // also allow direct calls to all other Home IPs
+            PIPSocket::Address destIP;
+            GetIPFromTransportAddr(setupBody.m_destCallSignalAddress, destIP);
+            std::vector<PIPSocket::Address> homeIPs;
+            Toolkit::Instance()->GetGKHome(homeIPs);
+            for (unsigned i = 0; i < homeIPs.size(); ++i) {
+                if (destIP == homeIPs[i]) {
+                    redirect = false;
+                }
+            }
+        } else {
+            PTRACE(1, "Setup doesn't have destCallSignalAddress, can't decide redirect");
+        }
+        if (redirect) {
+            // build and send Facility Redirect
+            Q931 FacilityPDU;
+            FacilityPDU.BuildFacility(setup->GetCallReference(), true);
+            H225_H323_UserInformation uuie;
+            GetUUIE(FacilityPDU, uuie);
+            uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+            uuie.m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
+            H225_H323_UU_PDU_h323_message_body & body = uuie.m_h323_uu_pdu.m_h323_message_body;
+            body.SetTag(H225_H323_UU_PDU_h323_message_body::e_facility);
+            H225_Facility_UUIE & facility_uuie = body;
+            facility_uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
+            facility_uuie.m_reason.SetTag(H225_FacilityReason::e_callForwarded);
+            if (setupBody.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
+                facility_uuie.IncludeOptionalField(H225_Facility_UUIE::e_callIdentifier);
+                facility_uuie.m_callIdentifier = setupBody.m_callIdentifier;
+            }
+            facility_uuie.IncludeOptionalField(H225_Facility_UUIE::e_conferenceID);
+            facility_uuie.m_conferenceID = setupBody.m_conferenceID;
+
+            facility_uuie.IncludeOptionalField(H225_Facility_UUIE::e_alternativeAddress);
+            WORD signalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "CallSignalPort", GK_DEF_CALL_SIGNAL_PORT);
+            facility_uuie.m_alternativeAddress = SocketToH225TransportAddr(Toolkit::Instance()->GetRouteTable()->GetLocalAddress(_peerAddr), signalPort);
+            if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress) && setupBody.m_destinationAddress.GetSize() > 0) {
+                facility_uuie.IncludeOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress);
+                facility_uuie.m_alternativeAliasAddress = setupBody.m_destinationAddress;
+            }
+            SetUUIE(FacilityPDU, uuie);
+
+            PTRACE(1, "Redirecting call to " << AsString(facility_uuie.m_alternativeAddress));
+            PrintQ931(5, "Send to ", GetName(), &FacilityPDU, &uuie);
+
+            // send Facility
+            PBYTEArray buf;
+            FacilityPDU.Encode(buf);
+            TransmitData(buf);
+
+            // don't process the Setup further
+            m_result = NoData;
+            return;
+ 		}
+	}
 
 	if (GkConfig()->GetBoolean(RoutedSec, "GenerateCallProceeding", false)
 		&& !GkConfig()->GetBoolean(RoutedSec, "UseProvisionalRespToH245Tunneling", false)
@@ -4041,11 +4113,6 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		m_h46026PriorityQueue->SetPipeBandwidth(m_call->GetCallingParty()->GetH46026BW());
 	}
 #endif
-
-	Address _peerAddr, _localAddr;
-	WORD _peerPort = 0, _localPort = 0;
-	msg->GetPeerAddr(_peerAddr, _peerPort);
-	msg->GetLocalAddr(_localAddr, _localPort);
 
 	// perform inbound ANI/CLI rewrite
 	toolkit->RewriteCLI(*setup);
@@ -8302,9 +8369,6 @@ void CallSignalSocket::SendFacilityKeepAlive()
     GetUUIE(FacilityPDU, uuie);
     H225_Facility_UUIE & facility_uuie = uuie.m_h323_uu_pdu.m_h323_message_body;
 	facility_uuie.RemoveOptionalField(H225_Facility_UUIE::e_conferenceID);
-    facility_uuie.RemoveOptionalField(H225_Facility_UUIE::e_callIdentifier);
-	facility_uuie.RemoveOptionalField(H225_Facility_UUIE::e_multipleCalls);
-	facility_uuie.RemoveOptionalField(H225_Facility_UUIE::e_maintainConnection);
     if (m_h225Version < 4) {
         // prior to H.225.0 version 4 we send an empty body
         facility_uuie.SetTag(H225_H323_UU_PDU_h323_message_body::e_empty);

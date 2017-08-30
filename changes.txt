@@ -1,5 +1,6 @@
 Changes from 4.5 to 4.6
 =======================
+- new switch: [RoutedMode] RedirectCallsToGkIP=1
 - new switches: [RoutedMode] H460KeepAliveMethodH225=, H460KeepAliveMethodH245=,
   GnuGkTcpKeepAliveMethodH225=, GnuGkTcpKeepAliveMethodH245=
 - BUGFIX(ProxyChannel.cxx) TCP keep-alives for H.460.18 calls weren't always enabled correctly
