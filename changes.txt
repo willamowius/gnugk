@@ -1,3 +1,7 @@
+Changes from 4.6 to 4.7
+=======================
+
+
 Changes from 4.5 to 4.6
 =======================
 - new switch: [RoutedMode] RedirectCallsToGkIP=1
