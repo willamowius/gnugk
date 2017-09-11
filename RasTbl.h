@@ -729,11 +729,11 @@ public:
 	/// build a new call record from the received ARQ message
 	CallRec(
 		/// ARQ with call information
-		const RasPDU<H225_AdmissionRequest>& arq,
+		const RasPDU<H225_AdmissionRequest> & arq,
 		/// bandwidth occupied by the call
 		long bandwidth,
 		/// called party's aliases in a string form
-		const PString& destInfo,
+		const PString & destInfo,
 		/// override proxy mode global setting from the config
 		int proxyMode = ProxyDetect
 		);
@@ -741,13 +741,13 @@ public:
 	/// build a new call record from the received Setup message
 	CallRec(
 		/// Q.931 Setup pdu with call information
-		const Q931& q931pdu,
+		const Q931 & q931pdu,
 		/// H.225.0 Setup-UUIE pdu with call information
-		const H225_Setup_UUIE& setup,
+		const H225_Setup_UUIE & setup,
 		/// force H.245 routed mode
 		bool routeH245,
 		/// called party's aliases in a string form
-		const PString& destInfo,
+		const PString & destInfo,
 		/// override proxy mode global setting from the config
 		int proxyMode = ProxyDetect
 		);
@@ -1227,8 +1227,8 @@ public:
 		true if the address has been retrieved successfully, false otherwise.
 	*/
 	bool GetDestSignalAddr(
-		PIPSocket::Address& addr, /// will receive the IP address
-		WORD& port /// will receive the port number
+		PIPSocket::Address & addr, /// will receive the IP address
+		WORD & port /// will receive the port number
 		) const;
 
 	/** @return
@@ -1263,7 +1263,7 @@ public:
 
 	/// Set calling party's number
 	void SetCallingStationId(
-		const PString& id /// Calling-Station-Id
+		const PString & id /// Calling-Station-Id
 		);
 
 	/** @return
@@ -1313,7 +1313,7 @@ public:
 	H225_ArrayOf_AliasAddress GetRouteToAlias() const { return m_routeToAlias; }
 
 	/// Set fixed destination address for the call
-	void SetRouteToAlias(const H225_ArrayOf_AliasAddress& alias) { m_routeToAlias = alias; }
+	void SetRouteToAlias(const H225_ArrayOf_AliasAddress & alias) { m_routeToAlias = alias; }
 
 	// smart pointer for CallRec
 	typedef SmartPtr<CallRec> Ptr;
@@ -1322,9 +1322,9 @@ public:
 	void Update(const H225_InfoRequestResponse & irr);
 
 	void ClearRoutes();
-	void SetNewRoutes(const std::list<Routing::Route> &routes);
-	const std::list<Routing::Route> &GetNewRoutes() const { return m_newRoutes; }
-	const std::list<Routing::Route> &GetFailedRoutes() const { return m_failedRoutes; }
+	void SetNewRoutes(const std::list<Routing::Route> & routes);
+	const std::list<Routing::Route> & GetNewRoutes() const { return m_newRoutes; }
+	const std::list<Routing::Route> & GetFailedRoutes() const { return m_failedRoutes; }
 	bool MoveToNextRoute();
 
 	bool IsCallInProgress() const;

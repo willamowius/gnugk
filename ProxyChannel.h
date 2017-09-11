@@ -279,7 +279,8 @@ protected:
 	bool m_h46019fc;
 	bool m_useH46019;
 	bool m_h46019uni;
-	bool m_h46019DetectionDone;
+	bool m_portDetectionDone;
+	bool m_legacyPortDetection;
 	PMutex m_h46019DetectionLock;
 	bool m_forwardAndReverseSeen;   // did we see logical channels for both directions, yet ?
 	bool m_checkH46019KeepAlivePT;
@@ -302,6 +303,10 @@ protected:
     bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPs in signalling, do full auto-detect
     bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H239 streams
     list<NetworkAddress> m_keepSignaledIPs;   // don't do auto-detect on this network
+    bool m_restrictRTPSources;
+    NetworkAddress m_restrictRTPNetwork_A;
+    NetworkAddress m_restrictRTPNetwork_B;
+
 };
 
 #if H323_H450

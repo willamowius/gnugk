@@ -10295,7 +10295,7 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
 		fSrcPort(0), fDestPort(0), rSrcPort(0), rDestPort(0), m_sessionID(0),
 		m_encryptingLC(NULL), m_decryptingLC(NULL)
 #ifdef HAS_H46018
-	, m_h46019fc(false), m_useH46019(false), m_h46019uni(false), m_h46019DetectionDone(false), m_forwardAndReverseSeen(false),
+	, m_h46019fc(false), m_useH46019(false), m_h46019uni(false), m_portDetectionDone(false), m_forwardAndReverseSeen(false),
 	m_keepAlivePT_1(UNDEFINED_PAYLOAD_TYPE), m_keepAlivePT_2(UNDEFINED_PAYLOAD_TYPE),
 	m_multiplexID_A(INVALID_MULTIPLEX_ID), m_multiplexSocket_A(INVALID_OSSOCKET),
 	m_multiplexID_B(INVALID_MULTIPLEX_ID), m_multiplexSocket_B(INVALID_OSSOCKET)
@@ -10312,11 +10312,12 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
 	fnat = rnat = mute = false;
 	m_dontQueueRTP = GkConfig()->GetBoolean(ProxySection, "DisableRTPQueueing", true);
 	m_EnableRTCPStats = GkConfig()->GetBoolean(ProxySection, "EnableRTCPStats", false);
+	m_legacyPortDetection = GkConfig()->GetBoolean(ProxySection, "LegacyPortDetection", false);
     m_ignoreSignaledIPs = false;
     m_ignoreSignaledPrivateH239IPs = false;
+    callptr call = CallTable::Instance()->FindCallRec(m_callID);
 #ifdef HAS_H46018
 	m_checkH46019KeepAlivePT = GkConfig()->GetBoolean(ProxySection, "CheckH46019KeepAlivePT", true);
-    callptr call = CallTable::Instance()->FindCallRec(m_callID);
     if (call) {
         m_ignoreSignaledIPs = call->IgnoreSignaledIPs();
         if (m_ignoreSignaledIPs) {
@@ -10337,6 +10338,43 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
         }
     }
 #endif
+
+    PCaselessString restrictRTP = GkConfig()->GetString(ProxySection, "RestrictRTPSources", "");
+    m_restrictRTPSources = (restrictRTP != "");
+    if (m_restrictRTPSources && call) {
+        Address ip;
+        WORD port;
+        // source IP/net
+        call->GetSrcSignalAddr(ip, port);
+        if (restrictRTP == "NET") {
+            if (IsIPv4Address(ip)) {
+                m_restrictRTPNetwork_A = NetworkAddress(AsString(ip) + "/24");
+            } else {
+                m_restrictRTPNetwork_A = NetworkAddress(AsString(ip) + "/64");
+            }
+        } else {
+            if (IsIPv4Address(ip)) {
+                m_restrictRTPNetwork_A = NetworkAddress(AsString(ip) + "/32");
+            } else {
+                m_restrictRTPNetwork_A = NetworkAddress(AsString(ip) + "/128");
+            }
+        }
+        // destination IP/net
+        call->GetDestSignalAddr(ip, port);
+        if (restrictRTP == "Net") {
+            if (IsIPv4Address(ip)) {
+                m_restrictRTPNetwork_B = NetworkAddress(AsString(ip) + "/24");
+            } else {
+                m_restrictRTPNetwork_B = NetworkAddress(AsString(ip) + "/64");
+            }
+        } else {
+            if (IsIPv4Address(ip)) {
+                m_restrictRTPNetwork_B = NetworkAddress(AsString(ip) + "/32");
+            } else {
+                m_restrictRTPNetwork_B = NetworkAddress(AsString(ip) + "/128");
+            }
+        }
+    }
 }
 
 UDPProxySocket::~UDPProxySocket()
@@ -10429,7 +10467,7 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 
 #ifdef HAS_H46018
-    if (m_ignoreSignaledIPs && m_h46019DetectionDone && m_forwardAndReverseSeen) {
+    if (m_ignoreSignaledIPs && m_portDetectionDone && m_forwardAndReverseSeen) {
         PTRACE(7, "JW RTP skip overwriting due to completed port detection");
         return;
     }
@@ -10454,7 +10492,7 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 	SetMediaIP("DST", srcIP);
 
 #ifdef HAS_H46018
-    m_h46019DetectionDone = false;  // must re-do H.460.19 port detection, in case it has already been done by a previous channel on same port
+    m_portDetectionDone = false;  // must re-do H.460.19 port detection, in case it has already been done by a previous channel on same port
 #endif
 
 	PTRACE(7, "JW RTP SetFwdDest2 on " << localport
@@ -10483,7 +10521,7 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 
 #ifdef HAS_H46018
-    if (m_ignoreSignaledIPs && m_h46019DetectionDone && m_forwardAndReverseSeen) {
+    if (m_ignoreSignaledIPs && m_portDetectionDone && m_forwardAndReverseSeen) {
         PTRACE(7, "JW RTP skip overwriting due to completed port detection");
         return;
     }
@@ -10508,7 +10546,7 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 	SetMediaIP("DST", rDestIP);
 
 #ifdef HAS_H46018
-    m_h46019DetectionDone = false;  // must re-do H.460.19 port detection, in case it has already been done by a previous channel on same port
+    m_portDetectionDone = false;  // must re-do H.460.19 port detection, in case it has already been done by a previous channel on same port
 #endif
 
 	PTRACE(7, "JW RTP SetRevDest2 on " << localport
@@ -10547,7 +10585,7 @@ void UDPProxySocket::ZeroAllIPs()
         rDestIP = 0; rDestPort = 0;
     }
 #ifdef HAS_H46018
-    m_h46019DetectionDone = false;
+    m_portDetectionDone = false;
 #endif
 }
 
@@ -10675,11 +10713,21 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 	PTRACE(7, "JW RTP DB on " << localport << " type=" << Type() << " this=" << this << " H.460.19=" << UsesH46019()
-		<< " fc=" << m_h46019fc << " m_h46019uni=" << m_h46019uni << " done=" << m_h46019DetectionDone << " fwd&rev=" << m_forwardAndReverseSeen
+		<< " fc=" << m_h46019fc << " m_h46019uni=" << m_h46019uni << " done=" << m_portDetectionDone << " fwd&rev=" << m_forwardAndReverseSeen
 		<< " multiplex: Dest A=" << AsString(m_multiplexDestination_A) << " ID A=" << m_multiplexID_A << " Socket A=" << m_multiplexSocket_A
 		<< " Dest B=" << AsString(m_multiplexDestination_B) << " ID B=" << m_multiplexID_B << " Socket B=" << m_multiplexSocket_B);
 
-    if (m_ignoreSignaledIPs) {
+    // avoid RTP bleed attacks / DoS
+    if (m_restrictRTPSources) {
+        if (IsInNetwork(fromIP, m_restrictRTPNetwork_A) || IsInNetwork(fromIP, m_restrictRTPNetwork_B)) {
+            //PTRACE(7, "JW RTP IN on " << localport << " meets IP restrictions - accepting");
+        } else {
+            PTRACE(5, "JW RTP IN on " << localport << " violates IP restrictions: not in " << AsString(m_restrictRTPNetwork_A) << " or " << AsString(m_restrictRTPNetwork_B) << " - ignoring");
+            return NoData;
+        }
+    }
+
+    if (m_ignoreSignaledIPs && !m_portDetectionDone) {
         //// learn from data we already have (eg. from H.239 signaling)
         // set known destination as assumed source
         if (fSrcIP == 0 && rSrcIP == 0 && fDestIP !=0) {
@@ -10717,9 +10765,13 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
             fDestIP = fromIP, fDestPort = fromPort;
             PTRACE(7, "JW RTP IN on " << localport << " learned fDest " << AsString(fDestIP, fDestPort) << " from rSrc " << AsString(rSrcIP, rSrcPort));
         }
+        if (fSrcIP != 0 && rSrcIP != 0 && fDestIP !=0 && rDestIP != 0) {
+            PTRACE(7, "JW RTP IN on " << localport << " port detection done");
+            m_portDetectionDone = true; // stop using RTP packets for port detection, avoid RTP Bleed
+        }
     }
 	// check payloadType in keepAlive
-	if (isRTPKeepAlive && !m_h46019DetectionDone && m_checkH46019KeepAlivePT) {
+	if (isRTPKeepAlive && !m_portDetectionDone && m_checkH46019KeepAlivePT) {
 		if (m_keepAlivePT_1 != UNDEFINED_PAYLOAD_TYPE && m_keepAlivePT_2 != UNDEFINED_PAYLOAD_TYPE) {
 			// we get keep-alives from 2 sides, this keepAlive must match at least one
 			if (payloadType != m_keepAlivePT_1 && payloadType != m_keepAlivePT_2) {
@@ -10740,9 +10792,9 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	}
 
 	// detecting ports for H.460.19
-	if (!m_h46019DetectionDone) {
-		if (!UsesH46019()) {
-			m_h46019DetectionDone = true;	// skip H.460.19 port detection if H.460.19 isn't used
+	if (!m_portDetectionDone) {
+		if (!UsesH46019() && !m_ignoreSignaledIPs) {
+			m_portDetectionDone = true;	// skip H.460.19 port detection if H.460.19 isn't used
 		}
 		if ((isRTCP || isRTPKeepAlive) && UsesH46019()) {
 			PWaitAndSignal mutexWait (m_h46019DetectionLock);
@@ -10828,7 +10880,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 #endif
 
 			if ((fDestIP != 0) && (rDestIP != 0)) {
-				m_h46019DetectionDone = true;
+				m_portDetectionDone = true;
 				// note: we don't do port switching at this time, once the ports are set they stay
 #ifdef HAS_H46024B
 				// If required begin Annex B probing
@@ -10848,14 +10900,14 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	}
 
 	// set of fixes for H.460.19 port detection
-	if (UsesH46019() && !m_h46019DetectionDone) {
+	if (UsesH46019() && !m_portDetectionDone) {
 		// fix for H.239 from H.460.19 client
 		if (m_h46019uni && !isRTCP
 			&& fSrcIP == 0 && fDestIP != 0 && rDestIP == 0
 			&& fromAddr != H323TransportAddress(fDestIP, fDestPort)) {	// never create a loop
 			PTRACE(5, "H46018\tSetting forward source on unidirectional channel to " << AsString(fromIP, fromPort));
 			fSrcIP = fromIP, fSrcPort = fromPort;
-			m_h46019DetectionDone = true;
+			m_portDetectionDone = true;
 		}
 		if (m_h46019uni && !isRTCP
 			&& fSrcIP != 0 && fDestIP != 0 && rSrcIP != 0 && rDestIP == 0
@@ -10863,7 +10915,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			&& fromAddr != H323TransportAddress(rSrcIP, rSrcPort)) {	// never create a loop
 			PTRACE(5, "H46018\tSetting reverse destination on unidirectional channel to " << AsString(fromIP, fromPort));
 			rDestIP = fromIP, rDestPort = fromPort;
-			m_h46019DetectionDone = true;
+			m_portDetectionDone = true;
 		}
 		// fix for H.224 connection: m100 1.0.6 doesn't send keepAlive, but we can see where it apparently comes from
 		PTimeInterval channelUpTime = PTime() - m_channelStartTime;
@@ -10991,7 +11043,8 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	// fSrcIP = forward-Source-IP, fDest-IP = forward destination IP, rDestIP = reverse destination IP
 	/* autodetect channel source IP:PORT that was not specified by OLCs */
 	if (rSrcIP == 0 && fromIP == fDestIP) {
-		rSrcIP = fromIP, rSrcPort = fromPort;
+        PTRACE(7, "JW RTP setting rSrcIP = " << AsString(rSrcIP, rSrcPort));
+        rSrcIP = fromIP, rSrcPort = fromPort;
 	}
 	if (fSrcIP == 0 && fromIP == rDestIP) {
 		fSrcIP = fromIP, fSrcPort = fromPort;
@@ -11004,13 +11057,13 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 
 	// Workaround: some bad endpoints don't send packets from the specified port
 	if ((fromIP == fSrcIP && fromPort == fSrcPort)
-		|| (fromIP == rDestIP && fromIP != rSrcIP)) {
-		if (fDestPort) {
-			PTRACE(6, Type() << "\tforward " << fromIP << ':' << fromPort << " to " << AsString(fDestIP, fDestPort));
+		|| (fromIP == rDestIP && fromIP != rSrcIP)) {   // TODO: BUG ? (fromIP == rDestIP && fromPort != rDestPort) ?
+        if (fDestPort) {
+            PTRACE(6, Type() << "\tforward " << fromIP << ':' << fromPort << " to " << AsString(fDestIP, fDestPort));
 #ifdef HAS_H46024B
             if (isRTP && m_call && (*m_call) && (*m_call)->GetNATStrategy() == CallRec::e_natAnnexB) {
 #ifdef HAS_H46018
-                m_h46019DetectionDone = true;  // we missed the probe packets but detection is done
+                m_portDetectionDone = true;  // we missed the probe packets but detection is done
 #endif
 			    (*m_call)->H46024BInitiate(m_sessionID, H323TransportAddress(fDestIP, fDestPort), H323TransportAddress(fromIP, fromPort));
             }
@@ -11028,9 +11081,11 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			if (m_dontQueueRTP)
 				return NoData;
 		}
-		if (rnat) {
-			rDestIP = fromIP, rDestPort = fromPort;
-		}
+        if (rnat && (!m_portDetectionDone || m_legacyPortDetection)) {
+            // RTP bleed
+            PTRACE(7, "JW RTP setting rDestIP = " << AsString(rDestIP, rDestPort));
+            rDestIP = fromIP, rDestPort = fromPort;
+        }
 	} else {
 		if (rDestPort) {
 			PTRACE(6, Type() << "\tForward " << AsString(fromIP, fromPort)
@@ -11047,10 +11102,12 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				<< ") not yet known or ready");
 			if (m_dontQueueRTP)
 				return NoData;
-		}
-		if (fnat) {
-			fDestIP = fromIP, fDestPort = fromPort;
-		}
+        }
+        if (fnat && (!m_portDetectionDone || m_legacyPortDetection)) {
+            // RTP bleed
+            PTRACE(7, "JW RTP setting fDestIP = " << AsString(fDestIP, fDestPort));
+            fDestIP = fromIP, fDestPort = fromPort;
+        }
 	}
 
 	if (isRTCP && m_EnableRTCPStats && m_call && (*m_call))

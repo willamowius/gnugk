@@ -390,6 +390,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "Proxy", "IgnoreSignaledPrivateH239IPs" },
 #endif
 	{ "Proxy", "InternalNetwork" },
+#ifdef HAS_H46018
+	{ "Proxy", "LegacyPortDetection" },
+#endif
 	{ "Proxy", "ProxyAlways" },
 	{ "Proxy", "ProxyForNAT" },
 	{ "Proxy", "ProxyForSameNAT" },
@@ -399,6 +402,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Proxy", "RTCPMultiplexPort" },
 	{ "Proxy", "RTPPortRange" },
 	{ "Proxy", "RemoveMCInFastStartTransmitOffer" },
+	{ "Proxy", "RestrictRTPSources" },
 	{ "Proxy", "SearchBothSidesOnCLC" },
 	{ "Proxy", "T120PortRange" },
 	{ "RadAcct", "AppendCiscoAttributes" },
