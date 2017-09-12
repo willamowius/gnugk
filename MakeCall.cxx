@@ -16,6 +16,7 @@
 #include "gk_const.h"
 #include "snmp.h"
 #include "config.h"
+#include <math.h>
 
 MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndPoint")
 {
