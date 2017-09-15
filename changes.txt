@@ -1,5 +1,6 @@
 Changes from 4.6 to 4.7
 =======================
+- BUGFIX(ProxyChannel.cxx) remove @ip or ip## from aliases when using RedirectCallsToGkIP
 - fixes for RTP Bleed
 - new switch [Proxy] RestrictRTPSources=IP or Net to limit accepting RTP from the
   call signal IPs or the respective class C network

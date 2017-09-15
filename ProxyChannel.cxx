@@ -3918,7 +3918,20 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
             facility_uuie.m_alternativeAddress = SocketToH225TransportAddr(Toolkit::Instance()->GetRouteTable()->GetLocalAddress(_peerAddr), signalPort);
             if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress) && setupBody.m_destinationAddress.GetSize() > 0) {
                 facility_uuie.IncludeOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress);
-                facility_uuie.m_alternativeAliasAddress = setupBody.m_destinationAddress;
+                facility_uuie.m_alternativeAliasAddress.SetSize(setupBody.m_destinationAddress.GetSize());
+                // remove @ip or ip## from aliases before looping them back
+                for (PINDEX i = 0; i < setupBody.m_destinationAddress.GetSize(); ++i) {
+                    PString alias = AsString(setupBody.m_destinationAddress[i], false);
+                    PINDEX at = alias.Find('@');
+                    if (at != P_MAX_INDEX) {
+                        alias = alias.Left(at);
+                    }
+                    PINDEX hashhash = alias.Find("##");
+                    if (hashhash != P_MAX_INDEX) {
+                        alias = alias.Mid(hashhash + 1);
+                    }
+                    H323SetAliasAddress(alias, facility_uuie.m_alternativeAliasAddress[i]);
+                }
             }
             SetUUIE(FacilityPDU, uuie);
 
