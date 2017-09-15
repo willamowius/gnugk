@@ -3915,7 +3915,8 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 
             facility_uuie.IncludeOptionalField(H225_Facility_UUIE::e_alternativeAddress);
             WORD signalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "CallSignalPort", GK_DEF_CALL_SIGNAL_PORT);
-            facility_uuie.m_alternativeAddress = SocketToH225TransportAddr(Toolkit::Instance()->GetRouteTable()->GetLocalAddress(_peerAddr), signalPort);
+            H225_TransportAddress newIP = SocketToH225TransportAddr(Toolkit::Instance()->GetRouteTable()->GetLocalAddress(_peerAddr), signalPort);
+            facility_uuie.m_alternativeAddress = newIP;
             if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress) && setupBody.m_destinationAddress.GetSize() > 0) {
                 facility_uuie.IncludeOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress);
                 facility_uuie.m_alternativeAliasAddress.SetSize(setupBody.m_destinationAddress.GetSize());
@@ -3924,11 +3925,11 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
                     PString alias = AsString(setupBody.m_destinationAddress[i], false);
                     PINDEX at = alias.Find('@');
                     if (at != P_MAX_INDEX) {
-                        alias = alias.Left(at);
+                        alias = alias.Left(at) + "@" + AsDotString(newIP, false);
                     }
                     PINDEX hashhash = alias.Find("##");
                     if (hashhash != P_MAX_INDEX) {
-                        alias = alias.Mid(hashhash + 1);
+                        alias = AsDotString(newIP, false) + "##" + alias.Mid(hashhash + 1);
                     }
                     H323SetAliasAddress(alias, facility_uuie.m_alternativeAliasAddress[i]);
                 }
