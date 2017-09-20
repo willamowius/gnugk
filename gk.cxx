@@ -1426,7 +1426,7 @@ const PString Gatekeeper::GetArgumentsParseString() const
 		 "-core:"
 		 "-mlock."
 #endif
-		 "-strict."
+		 "S-strict."
 		 "h-help:"
 		 );
 }
@@ -1549,7 +1549,7 @@ void Gatekeeper::PrintOpts()
 		"      --core n       : Enable core dumps (with max size of n bytes)\n"
 		"      --mlock        : Lock GnuGk into memory to prevent it being swapped out\n"
 #endif
-		"      --strict       : Strict config check (don't start with errors in config)\n"
+		"  -S  --strict       : Strict config check (don't start with errors in config)\n"
 		"  -h  --help         : Show this message\n" << endl;
 }
 
@@ -1646,7 +1646,7 @@ void Gatekeeper::Main()
 		ExitGK();
 	}
 
-	m_strictConfigCheck = args.HasOption("strict");
+	m_strictConfigCheck = args.HasOption('S');
 	if (!InitConfig(args) || !InitHandlers(args)) {
 		cerr << "ERROR: Serious error in the configuration - terminating" << endl;
 		PTRACE(0, "ERROR: Serious error in the configuration - terminating");

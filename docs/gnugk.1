@@ -30,7 +30,7 @@
 .Op Fl -pid Ar filename
 .Op Fl -core Ar n
 .Op Fl -mlock
-.Op Fl -strict
+.Op Fl S
 .Sh DESCRIPTION
 The GNU Gatekeeper is an open-source project that implements a H.323 gatekeeper.
 A H.323 gatekeeper controls all H.323 clients in its zone.
@@ -52,7 +52,7 @@ is the same as
 Show all available options and quit the program.
 .It Fl c -config Ar filename
 Specify the configuration file to use.
-.It Fl -strict
+.It Fl S -strict
 Strict configuration check (don't start with config errors)
 .It Fl s -section Ar section
 Specify which main section to use in the configuration file.
@@ -74,13 +74,13 @@ Only valid for Unix version.
 Run the gatekeeper process as this user.
 Only valid for Unix versions.
 .It Fl -core Ar n
-(Unix only) Enable writing core dump files when the application crashes.
+(Linux only) Enable writing core dump files when the application crashes.
 A core dump file will not exceed n bytes in size.
 A special constant
 .Dq unlimited
 may also be specified.
 .It Fl -mlock
-(Unix only) Lock GnuGk into memory to prevent it being swaped out.
+(Linux only) Lock GnuGk into memory to prevent it being swaped out.
 .El
 .Ss Gatekeeper Mode
 The options in this subsection override the settings in the [RoutedMode] section of the configuration file.
