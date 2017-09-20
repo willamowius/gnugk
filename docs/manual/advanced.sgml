@@ -53,7 +53,7 @@ cvs -d:pserver:anonymous@openh323gk.cvs.sourceforge.net:/cvsroot/openh323gk logi
 cvs -z3 -d:pserver:anonymous@openh323gk.cvs.sourceforge.net:/cvsroot/openh323gk co -P openh323gk
 
 cd openh323gk
-./configure --enable-h46018
+./configure --enable-h46018 --with-large_fdset=1024
 make optnoshared
 </verb>
 
