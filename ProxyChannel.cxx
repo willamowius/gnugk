@@ -546,7 +546,7 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 
 	ssize_t bytesSent = sendmsg(fd, &msgh, 0);
 	if (bytesSent < 0) {
-		PTRACE(7, "RTP\tSend error " << strerror(errno));
+		PTRACE(5, "RTP\tSend error " << strerror(errno));
 	}
 
 	return bytesSent;
