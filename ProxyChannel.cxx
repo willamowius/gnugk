@@ -469,7 +469,7 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 	// set source address
 	PIPSocket::Address src = RasServer::Instance()->GetLocalAddress(toIP);
 
-	struct msghdr msgh;
+	struct msghdr msgh = { };
 	struct cmsghdr *cmsg;
 	struct iovec iov;
 	char cbuf[256];
