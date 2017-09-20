@@ -7,3 +7,4 @@ Known bugs:
   in H.245 routed mode - this can cause a call to fail
 * authentication/accounting modules do not work fine for gatekeeper forwarded 
   calls (ForwardOnFacility=1), it is recommended to disable this flag
+* on BSD systems using PTLib 2.11.0 long-form commandline arguments don't work (eg. --strict)
