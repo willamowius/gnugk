@@ -34,6 +34,7 @@
 #include "gk_const.h"
 #include "SoftPBX.h"
 #include "snmp.h"
+#include "gk.h"
 
 #ifdef H323_H350
 const char * H350Section = "GkH350::Settings";
@@ -1853,6 +1854,8 @@ PConfig* Toolkit::ReloadConfig()
 	int maxSocketQueue = GkConfig()->GetInteger("MaxSocketQueue", 100);
 	if (maxSocketQueue > 0)
 		g_maxSocketQueue = maxSocketQueue;
+
+    g_disableSettingUDPSourceIP = GkConfig()->GetBoolean(RoutedSec, "DisableSettingUDPSourceIP", false);
 
 	m_encryptAllPasswords = Toolkit::AsBool(
 		Config()->GetString("EncryptAllPasswords", "0")

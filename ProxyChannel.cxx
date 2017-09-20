@@ -458,8 +458,7 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 	toAddress.GetIpAndPort(toIP, toPort);
 	SetSockaddr(dest, toIP, toPort);
 
-    // TODO: should we avoid reading the config for every UDP packet and store the setting in a global variable ?
-    if (GkConfig()->GetBoolean(RoutedSec, "DisableSettingUDPSourceIP", false)) {
+    if (g_disableSettingUDPSourceIP) {
         ssize_t bytesSent = sendto(fd, (char *)data, len, 0, (struct sockaddr*)&dest, sizeof(dest));
         if (bytesSent < 0) {
             PTRACE(7, "RTP\tSend error " << strerror(errno));
