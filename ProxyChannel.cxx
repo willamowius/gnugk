@@ -471,11 +471,9 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 
 	struct msghdr msgh = { };
 	struct cmsghdr *cmsg;
-	struct iovec iov;
+	struct iovec iov = { };
 	char cbuf[256];
-#ifdef _DEBUG
 	memset(&cbuf, 0, sizeof(cbuf));	// zero the buffer to shut up Valgrind
-#endif
 
 	// Set up iov and msgh structures
 	memset(&msgh, 0, sizeof(struct msghdr));
