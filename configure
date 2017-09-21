@@ -747,6 +747,7 @@ with_lua_include_dir
 with_lua_lib_dir
 with_lua_dir
 enable_geoip
+with_geoip_include_dir
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1416,6 +1417,7 @@ Optional Packages:
   --with-lua-include-dir=DIR directory where LUA includes may be found
   --with-lua-lib-dir=DIR     directory where LUA libraries may be found
   --with-lua-dir=DIR         base directory where LUA is installed
+  --with-geoip-include-dir=DIR directory where GeoIP includes may be found
 
 Some influential environment variables:
   CXX         C++ compiler command
@@ -5294,6 +5296,19 @@ else
 fi
 
 
+
+# Check whether --with-geoip-include-dir was given.
+if test "${with_geoip_include_dir+set}" = set; then :
+  withval=$with_geoip_include_dir;  geoip_include_dir="$withval"
+
+fi
+
+
+old_CFLAGS="$CFLAGS"
+if test "${geoip_include_dir:-unset}" != "unset" ; then
+	CFLAGS="$old_CFLAGS -I$geoip_include_dir"
+fi
+
 if test "x${geoip}" != "xno" ; then
    ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -5699,11 +5714,16 @@ fi
 
 
 fi
+CFLAGS="$old_CFLAGS"
+
 if test "${HAS_GEOIP:-unset}" != "unset" ; then
 	HAS_GEOIP=1
 	$as_echo "#define HAS_GEOIP 1" >>confdefs.h
 
 	STDCCFLAGS="-DHAS_GEOIP=1 $STDCCFLAGS"
+	if test "${geoip_include_dir:-unset}" != "unset" ; then
+		STDCCFLAGS="$STDCCFLAGS -I$geoip_include_dir"
+	fi
 	ENDLDLIBS="-lGeoIP $ENDLDLIBS"
 	echo "GeoIP support enabled"
 else

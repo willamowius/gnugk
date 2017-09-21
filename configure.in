@@ -1230,13 +1230,28 @@ AC_ARG_ENABLE(geoip,
 [ geoip="${enableval}" ], [geoip="yes"]
 )
 
+AC_ARG_WITH(geoip-include-dir,
+[  --with-geoip-include-dir=DIR directory where GeoIP includes may be found ],
+[ geoip_include_dir="$withval" ]
+)
+
+old_CFLAGS="$CFLAGS"
+if test "${geoip_include_dir:-unset}" != "unset" ; then
+	CFLAGS="$old_CFLAGS -I$geoip_include_dir"
+fi
+
 if test "x${geoip}" != "xno" ; then
    AC_CHECK_HEADER(GeoIP.h, HAS_GEOIP=1)
 fi
+CFLAGS="$old_CFLAGS"
+
 if test "${HAS_GEOIP:-unset}" != "unset" ; then
 	HAS_GEOIP=1
 	AC_DEFINE(HAS_GEOIP, 1)
 	STDCCFLAGS="-DHAS_GEOIP=1 $STDCCFLAGS"
+	if test "${geoip_include_dir:-unset}" != "unset" ; then
+		STDCCFLAGS="$STDCCFLAGS -I$geoip_include_dir"
+	fi
 	ENDLDLIBS="-lGeoIP $ENDLDLIBS"
 	echo "GeoIP support enabled"
 else
