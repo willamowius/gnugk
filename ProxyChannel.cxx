@@ -466,10 +466,7 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
         return bytesSent;
     }
 
-	// set source address
-	PIPSocket::Address src = RasServer::Instance()->GetLocalAddress(toIP);
-
-	struct msghdr msgh = { };
+	struct msghdr msgh;
 	struct cmsghdr *cmsg;
 	struct iovec iov = { };
 	char cbuf[256];
@@ -491,8 +488,11 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 #endif  // hasIPV6
 	msgh.msg_namelen = addr_len;
 
+	// set source address
+	PIPSocket::Address src = RasServer::Instance()->GetLocalAddress(toIP);
+
 #ifdef hasIPV6
-	if (Toolkit::Instance()->IsIPv6Enabled() && (((struct sockaddr*)&dest)->sa_family == AF_INET6)) {
+	if (Toolkit::Instance()->IsIPv6Enabled() && (src.GetVersion() == 6)) {
 		struct in6_pktinfo *pkt;
 
 		msgh.msg_control = cbuf;
