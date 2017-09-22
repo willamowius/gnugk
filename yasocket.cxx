@@ -477,12 +477,12 @@ bool YaTCPSocket::Connect(const Address & iface, WORD localPort, const Address &
 	SetSockaddr(peeraddr, addr, peerPort);
 	SetName(AsString(addr, port));
 
-#ifdef P_FREEBSD
-	// FreeBSD is extra picky about the size argument, not sure if thats the correct size for Linux
-	int r = ::connect(os_handle, (struct sockaddr*)&peeraddr, sizeof(struct sockaddr));
-#else
-	int r = ::connect(os_handle, (struct sockaddr*)&peeraddr, sizeof(peeraddr));
-#endif
+    size_t addr_len = sizeof(sockaddr_in);
+#ifdef hasIPV6
+    if (((struct sockaddr*)&peeraddr)->sa_family == AF_INET6)
+        addr_len = sizeof(sockaddr_in6);
+#endif  // hasIPV6
+	int r = ::connect(os_handle, (struct sockaddr*)&peeraddr, addr_len);
 
 #ifdef _WIN32
 	if ((r != 0) && (WSAGetLastError() != WSAEWOULDBLOCK))

@@ -459,9 +459,14 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 	SetSockaddr(dest, toIP, toPort);
 
     if (g_disableSettingUDPSourceIP) {
-        ssize_t bytesSent = sendto(fd, (char *)data, len, 0, (struct sockaddr*)&dest, sizeof(dest));
+        size_t addr_len = sizeof(sockaddr_in);
+#ifdef hasIPV6
+        if (toIP.GetVersion() == 6)
+            addr_len = sizeof(sockaddr_in6);
+#endif  // hasIPV6
+        ssize_t bytesSent = sendto(fd, (char *)data, len, 0, (struct sockaddr*)&dest, addr_len);
         if (bytesSent < 0) {
-            PTRACE(7, "RTP\tSend error " << strerror(errno));
+            PTRACE(5, "RTP\tSend error " << strerror(errno));
         }
         return bytesSent;
     }
