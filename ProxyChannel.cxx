@@ -364,7 +364,7 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 	SetSockaddr(dest, toIP, toPort);
 
 #if (_WIN32_WINNT >= WINDOWS_VISTA)
-	if (g_pfWSASendMsg) {
+	if (g_pfWSASendMsg && !g_disableSettingUDPSourceIP) {
 		// set source address
 		PIPSocket::Address src = RasServer::Instance()->GetLocalAddress(toIP);
 

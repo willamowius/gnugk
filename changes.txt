@@ -1,7 +1,7 @@
 Changes from 4.7 to 4.8
 =======================
-- BUGFIX(ProxyChannel.cxx) fix DisableSettingUDPSourceIP=1 for NetBSD
-- BUGFIX(yasocket.cxx) fix LARGE_FDSET for NetBSD
+- BUGFIX(ProxyChannel.cxx) fix DisableSettingUDPSourceIP=1 for Windows, NetBSD, OpenBSD and Solaris
+- BUGFIX(yasocket.cxx) fix LARGE_FDSET for NetBSD, OpenBSD and Solaris
 
 Changes from 4.6 to 4.7
 =======================
