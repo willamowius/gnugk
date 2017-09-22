@@ -3,7 +3,7 @@
 // yasocket.cxx
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2016, Jan Willamowius
+// Copyright (c) 2004-2017, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
