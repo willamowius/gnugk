@@ -2368,8 +2368,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			}
 		}
 
-/* don't send the Notify: it doesn't seem to help any endpoint and Polycom RealPresence starts a flood of Status messages
-
+/*      don't send the Notify: it doesn't seem to help any endpoint and Polycom RealPresence starts a flood of Status messages
         // send Notify with new DisplayIE and BearerCapabilityIE
         if ((msg->GetQ931().HasIE(Q931::DisplayIE) || msg->GetQ931().HasIE(Q931::BearerCapabilityIE)) && GetRemote()) {
             Q931 q931;
@@ -2392,7 +2391,9 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
             q931.Encode(lBuffer);
             PrintQ931(3, "Send to ", GetRemote()->GetName(), &q931, &uuie);
             GetRemote()->TransmitData(lBuffer);
-            // TODO: also send a Facility with H.450.8 Connected Party Name ?
+            // TODO:
+            // Also send a Facility with H.450.8 Connected Party Name ?
+            // H.450.8 says the ConnectedPartyName shall be sent in the Connect message
         }
 */
 		delete msg;
