@@ -10311,7 +10311,7 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
 		fSrcPort(0), fDestPort(0), rSrcPort(0), rDestPort(0), m_sessionID(0),
 		m_encryptingLC(NULL), m_decryptingLC(NULL)
 #ifdef HAS_H46018
-	, m_h46019fc(false), m_useH46019(false), m_h46019uni(false), m_portDetectionDone(false), m_forwardAndReverseSeen(false),
+	, m_h46019fc(false), m_useH46019(false), m_h46019uni(false),
 	m_keepAlivePT_1(UNDEFINED_PAYLOAD_TYPE), m_keepAlivePT_2(UNDEFINED_PAYLOAD_TYPE),
 	m_multiplexID_A(INVALID_MULTIPLEX_ID), m_multiplexSocket_A(INVALID_OSSOCKET),
 	m_multiplexID_B(INVALID_MULTIPLEX_ID), m_multiplexSocket_B(INVALID_OSSOCKET)
@@ -10319,6 +10319,7 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
 #ifdef HAS_H235_MEDIA
 	, m_haveShownPTWarning(false)
 #endif
+    , m_portDetectionDone(false), m_forwardAndReverseSeen(false)
 {
 	// set flags for RTP/RTCP to avoid string compares later on
 	m_isRTPType = PString(t) == "RTP";

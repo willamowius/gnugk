@@ -279,10 +279,7 @@ protected:
 	bool m_h46019fc;
 	bool m_useH46019;
 	bool m_h46019uni;
-	bool m_portDetectionDone;
-	bool m_legacyPortDetection;
 	PMutex m_h46019DetectionLock;
-	bool m_forwardAndReverseSeen;   // did we see logical channels for both directions, yet ?
 	bool m_checkH46019KeepAlivePT;
 	WORD m_keepAlivePT_1;
 	WORD m_keepAlivePT_2;
@@ -306,7 +303,9 @@ protected:
     bool m_restrictRTPSources;
     NetworkAddress m_restrictRTPNetwork_A;
     NetworkAddress m_restrictRTPNetwork_B;
-
+	bool m_portDetectionDone;
+	bool m_forwardAndReverseSeen;   // did we see logical channels for both directions, yet ?
+	bool m_legacyPortDetection;
 };
 
 #if H323_H450
