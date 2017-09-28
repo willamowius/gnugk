@@ -2350,7 +2350,7 @@ SSL_CTX * Toolkit::GetTLSContext()
 		OpenSSL_add_all_algorithms();	// needed for OpenSSL < 1.0
 		if (!RAND_status()) {
 			PTRACE(3, "TLS\tPRNG needs seeding");
-#ifdef P_LINUX
+#if defined(P_LINUX) || defined (P_FREEBSD)
 			RAND_load_file("/dev/urandom", 1024);
 #else
 			BYTE seed[1024];
