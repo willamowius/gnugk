@@ -3,8 +3,8 @@ Known bugs:
   this also affects the MakeCall command when TransferMethod=Reroute is set
 * H.245 sockets are bound to all interfaces (0.0.0.0), Home config option is ignored
   which may cause problems on multihomed hosts (virtual servers)
-* a race condition occurs when both endpoints try to establish H.245 connection
-  in H.245 routed mode - this can cause a call to fail
-* authentication/accounting modules do not work fine for gatekeeper forwarded 
+* authentication/accounting modules do not work well for gatekeeper forwarded 
   calls (ForwardOnFacility=1), it is recommended to disable this flag
-* on FreeBSD systems using PTLib 2.11.0 long-form commandline arguments don't work (eg. --strict)
+* on FreeBSD systems using PTLib 2.11.0 long-form commandline arguments don't work
+  use short form instead (eg. -S instead of --strict)
+
