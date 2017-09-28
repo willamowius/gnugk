@@ -642,8 +642,8 @@ configure
     <ClInclude Include="Toolkit.h" />
     <ClInclude Include="version.h" />
     <ClInclude Include="yasocket.h" />
-    <ClCompile Include="gkh235.h" />
-    <ClCompile Include="authenticators.h" />
+    <ClInclude Include="gkh235.h" />
+    <ClInclude Include="authenticators.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="changes.txt" />
