@@ -530,18 +530,37 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 		pkt->ipi_spec_dst = src;
 #else
 #ifdef IP_SENDSRCADDR	// FreeBSD
-		struct in_addr *in;
+		// FreeBSD doesn't allow IP_SENDSRCADDR on sockets bound to anything else than INADDR_ANY
+		bool skipSENDSRCADDR = false;
+		struct sockaddr name;
+		socklen_t name_len = sizeof(name);
+		if (getsockname(fd, &name, &name_len) >= 0) {
+			if (name.sa_family == AF_INET6) {
+				if (!IN6_IS_ADDR_UNSPECIFIED(&((struct sockaddr_in6 *)&name)->sin6_addr)) {
+					skipSENDSRCADDR = true;
+				}
+			} else {
+				if (((struct sockaddr_in *)&name)->sin_addr.s_addr != INADDR_ANY) {
+					skipSENDSRCADDR = true;
+				}
+			}
+		}
+		if (skipSENDSRCADDR) {
+			PTRACE(7, "JW RTP: Skipping IP_SENDSRCADDR on this socket");
+		} else {
+			struct in_addr *in;
 
-		msgh.msg_control = cbuf;
-		msgh.msg_controllen = CMSG_SPACE(sizeof(*in));
+			msgh.msg_control = cbuf;
+			msgh.msg_controllen = CMSG_SPACE(sizeof(*in));
 
-		cmsg = CMSG_FIRSTHDR(&msgh);
-		cmsg->cmsg_level = IPPROTO_IP;
-		cmsg->cmsg_type = IP_SENDSRCADDR;
-		cmsg->cmsg_len = CMSG_LEN(sizeof(*in));
+			cmsg = CMSG_FIRSTHDR(&msgh);
+			cmsg->cmsg_level = IPPROTO_IP;
+			cmsg->cmsg_type = IP_SENDSRCADDR;
+			cmsg->cmsg_len = CMSG_LEN(sizeof(*in));
 
-		in = (struct in_addr *) CMSG_DATA(cmsg);
-		*in = src;
+			in = (struct in_addr *) CMSG_DATA(cmsg);
+			*in = src;
+		}
 #endif  // IP_SENDSRCADDR
 #endif  // IP_PKTINFO else
 	}
