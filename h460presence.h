@@ -31,7 +31,7 @@ class GkPresence : public H323PresenceHandler
 {
 public:
 	GkPresence();
-	~GkPresence();
+	virtual ~GkPresence();
 
 	bool IsEnabled() const;
 	void Stop();
@@ -145,7 +145,6 @@ private:
 	PInt64					m_lastTimeStamp;
 	PBoolean				m_incrementalUpdate;
 #endif
-
 };
 
 #endif   // HAS_H460_H
