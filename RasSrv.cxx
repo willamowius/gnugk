@@ -1793,7 +1793,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
                     if (oid == OID_TSSM) {
                         // add TSSM token
                         gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_tokens);
-                        // TODO: don't overwrite pwdSymEnc token
+                        // don't overwrite pwdSymEnc token
                         gcf.m_tokens.SetSize(gcf.m_tokens.GetSize() + 1);
                         gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_tokenOID = OID_TSSM;
                         gcf.m_tokens[gcf.m_tokens.GetSize() - 1].IncludeOptionalField(H235_ClearToken::e_timeStamp);
@@ -3669,7 +3669,7 @@ bool AdmissionRequestPDU::Process()
 		&& GkConfig()->GetBoolean("GkQoSMonitor", "Enable", false)) {
 		H460_FeatureStd feat = H460_FeatureStd(9);
 		if (GkConfig()->GetBoolean("GkQoSMonitor", "CallEndOnly", true)) {
-            // PVX ignores this parameter and always sends data only in IRR
+            // PVX ignores this parameter and always sends data in IRR and DRQ
 			H460_FeatureID finalonly = H460_FeatureID(0);
 			feat.AddParameter(&finalonly);
 		}
