@@ -3669,7 +3669,8 @@ bool AdmissionRequestPDU::Process()
 		&& GkConfig()->GetBoolean("GkQoSMonitor", "Enable", false)) {
 		H460_FeatureStd feat = H460_FeatureStd(9);
 		if (GkConfig()->GetBoolean("GkQoSMonitor", "CallEndOnly", true)) {
-			H460_FeatureID finalonly = H460_FeatureID(0); // TODO: standard says 0, Wireshark says 1, PVX ignores both
+            // PVX ignores this parameter and always sends data only in IRR
+			H460_FeatureID finalonly = H460_FeatureID(0);
 			feat.AddParameter(&finalonly);
 		}
 		acf.IncludeOptionalField(H225_AdmissionConfirm::e_featureSet);
