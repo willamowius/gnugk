@@ -68,10 +68,6 @@
 #include <sys/uio.h>
 #endif
 
-#ifdef P_OPENBSD
-#include <sys/uio.h>
-#endif
-
 using namespace std;
 using Routing::Route;
 
@@ -3276,6 +3272,7 @@ bool CallSignalSocket::HandleH235TCS(H245_TerminalCapabilitySet & tcs)
 
     bool toRemove = ((!m_callerSocket && m_call && (m_call->GetEncryptDirection() == CallRec::callingParty))
 	                 || (m_callerSocket && m_call && (m_call->GetEncryptDirection() == CallRec::calledParty)));
+    bool foundEntriesToRemove = false;
 
     PStringList capList;
     if (m_call && !m_call->GetAuthenticators().GetAlgorithms(capList)) {
@@ -3297,8 +3294,10 @@ bool CallSignalSocket::HandleH235TCS(H245_TerminalCapabilitySet & tcs)
             H245_CapabilityTableEntryNumber & entryNumber = capStat[i].m_capabilityTableEntryNumber;
             H245_Capability & cap = capStat[i].m_capability;
             if (toRemove) {
-				if (cap.GetTag() == H245_Capability::e_h235SecurityCapability)
+				if (cap.GetTag() == H245_Capability::e_h235SecurityCapability) {
 					RemoveH235Capability(entryNumber.GetValue(), capTable, capDesc);
+					foundEntriesToRemove = true;
+                }
             } else {
                 // we currently support Audio, Video and Data
                 if ((cap.GetTag() >= H245_Capability::e_receiveVideoCapability)
@@ -3308,10 +3307,15 @@ bool CallSignalSocket::HandleH235TCS(H245_TerminalCapabilitySet & tcs)
             }
         }
     }
+    if (toRemove && !foundEntriesToRemove) {
+        PTRACE(1, "H235\tNo H.235 entries in TCS, not adding encryption");
+        m_call->SetMediaEncryption(CallRec::none);  // turn off encryption for this call
+        return false;
+    }
     return true;
 }
 
-// encryptionSync is handled in HandleOpenlogicalChannel
+// encryptionSync is handled in HandleOpenLogicalChannel
 bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 {
     if (!m_call)
@@ -3385,7 +3389,7 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 			cType.SetTag(H245_H235Media_mediaType::e_data);
 			(H245_DataApplicationCapability &)cType = (H245_DataApplicationCapability &)rawCap;
 		}
-		// don't touch the dynamicRTPPayloadType here, all cases are handled in HandleOpenLogicaChannel()
+		// don't touch the dynamicRTPPayloadType here, all cases are handled in HandleOpenLogicalChannel()
 	}
 
 	if (isReverse) {
