@@ -8426,7 +8426,6 @@ void CallSignalSocket::SendFacilityKeepAlive()
     uuie.m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
     SetUUIE(FacilityPDU, uuie);
 
-    // TODO: remove tracing ?
     PrintQ931(5, "Send to ", GetName(), &FacilityPDU, &uuie);
 
     PBYTEArray buf;
@@ -8446,7 +8445,6 @@ void CallSignalSocket::SendInformationKeepAlive()
     uuie.m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
     SetUUIE(q931, uuie);
 
-    // TODO: remove tracing ?
     PrintQ931(5, "Send to ", GetName(), &q931, &uuie);
 
     PBYTEArray buf;
@@ -8465,7 +8463,6 @@ void CallSignalSocket::SendNotifyKeepAlive()
     uuie.m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
     SetUUIE(q931, uuie);
 
-    // TODO: remove tracing ?
     PrintQ931(5, "Send to ", GetName(), &q931, &uuie);
 
     PBYTEArray buf;
@@ -8484,7 +8481,6 @@ void CallSignalSocket::SendStatusKeepAlive()
     uuie.m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
     SetUUIE(q931, uuie);
 
-    // TODO: remove tracing ?
     PrintQ931(5, "Send to ", GetName(), &q931, &uuie);
 
     PBYTEArray buf;
@@ -8503,7 +8499,6 @@ void CallSignalSocket::SendStatusInquiryKeepAlive()
     uuie.m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
     SetUUIE(q931, uuie);
 
-    // TODO: remove tracing ?
     PrintQ931(5, "Send to ", GetName(), &q931, &uuie);
 
     PBYTEArray buf;
