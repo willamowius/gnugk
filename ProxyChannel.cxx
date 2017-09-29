@@ -1491,7 +1491,6 @@ bool TCPProxySocket::InternalWrite(const PBYTEArray & buf)
 
 void TCPProxySocket::SendKeepAlive(GkTimer * timer)
 {
-    // TODO: do we need a mutex here ?
     if (!IsOpen()) {
         UnregisterKeepAlive();
         return;
@@ -6897,7 +6896,7 @@ bool CallSignalSocket::SendH46026RTP(unsigned sessionID, bool isRTP, const void 
 		PASN_OctetString & raw = frame.m_frame[0];
 		raw = PBYTEArray((const BYTE *)data, len);
 
-		// TODO: this Information message is probably not correct, use BuildIOnformation() instead and re-test
+		// TODO: this Information message is probably not correct, use BuildInformation() instead and re-test
 		PBoolean fromDest = m_crv & 0x8000u;
 		Q931 InformationPDU;
 		H225_H323_UserInformation uuie;
