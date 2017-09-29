@@ -1,5 +1,6 @@
 Changes from 4.7 to 4.8
 =======================
+- better handling of IPv6 GRQ without RAS address
 - BUGFIX(ProxyChannel.cxx) turn off encryption proxy if DH key is negotiated, but TCS
   doesn't contain any H.235 entries
 - BUGFIX(ProxyChannel.cxx) fix running in proxy mode on FreeBSD when one Home IP is set
