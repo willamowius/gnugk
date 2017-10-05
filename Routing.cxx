@@ -1046,6 +1046,9 @@ bool VirtualQueue::SendRouteRequest(
 	if (RouteRequest * r = InsertRequest(epid, crv, callID, destinationInfo, callSigAdr, bindIP, callerID, duprequest)) {
 		PString cid = callID;
 		cid.Replace(" ", "-", true);
+        PString vs = vendorString;
+		vs.Replace( ";", " ", true );
+		vs.Replace( "|", " ", true );
 		PString msg = "RouteRequest|" + source
 						+ "|" + epid
 						+ "|" + PString(crv)
@@ -1053,7 +1056,7 @@ bool VirtualQueue::SendRouteRequest(
 						+ "|" + sourceInfo
 						+ "|" + cid
 						+ "|" + calledip
-						+ "|" + vendorString
+						+ "|" + vs
 						+ "|" + fromIP
 						+ "|" + msgType
 						+ ";";
