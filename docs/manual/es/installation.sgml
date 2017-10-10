@@ -6,9 +6,7 @@ Para construír el gatekeeper se necesitan al menos PWLib 1.5.0 y OpenH323 1.12.0
 La version en desarrollo del gatekeeper normalmente necesita la 
 última version disponible de OpenH323.
 Esas librerias estan disponibles en la
-<url url="http://sourceforge.net/projects/openh323" name="Página de descargas de OpenH323">.
-Consulte las instrucciones sobre
-<url url="http://www.voxgratia.org/docs/faq.html" name="Cómo compilar el código OpenH323">.
+<url url="https://www.h323plus.org/" name="Página de descargas de H323Plus">.
 
 Orden de compilacion:
 <enum>
@@ -131,7 +129,7 @@ Consulte la seccion <ref id="commandline" name="Opciones de línea de comandos"> 
 <p>
 Si no desea compilar el gatekeeper desde el código fuente, 
 hay muchos 'paquetes' pre-construídos disponibles en 
-<url url="http://sourceforge.net/project/showfiles.php?group_id=4797" name="SourceForge">.
+<url url="https://www.gnugk.org/h323download.html" name="gnugk.org">.
 No todas las versiones serán puestas a disposición como binarios, compruebe cual está disponible.
 
 <bf/Paquetes Tar (.tgz or .tar.gz)/<p>

@@ -29,7 +29,7 @@ following services:
 
 The GNU Gatekeeper implements all of these functions and a number of additional features.
 For the protocol handling and encoding and decoding of the messages, it uses the
-<url url="https://sourceforge.net/projects/h323plus" name="H323Plus"> library
+<url url="https://www.h323plus.org/" name="H323Plus"> library
 (a continuation of the now defunct OpenH323 project).
 
 H.323 is an international standard published by the <url
@@ -75,9 +75,9 @@ that this is free software. Early versions were called the <em>OpenH323 Gatekeep
 The newest version is available at
 <url url="https://www.gnugk.org/h323download.html" name="the download page">.
 
-The very latest source code is in the CVS at <url
-url="http://openh323gk.cvs.sourceforge.net/openh323gk/openh323gk/"
-name="Sourceforge Web-GUI">.  Beware - that's the bleeding edge.
+The very latest source code is in the <url
+url="https://github.com/willamowius/gnugk"
+name="git repository">.  Beware - that's the bleeding edge.
 
 You can also download executables for a number of operating systems from
 <url url="https://www.gnugk.org/h323download.html" name="the download page">.
@@ -87,21 +87,15 @@ You can also download executables for a number of operating systems from
 There are two mailing list for the project, one for developers and one for users.
 
 General user questions should be sent to the <url
-url="mailto:Openh323gk-users@sourceforge.net" name="users mailing list">. 
+url="mailto:gnugk-users@lists.gnugk.org" name="mailing list">. 
 You can find the list archive <url
-url="https://sourceforge.net/mailarchive/forum.php?forum_name=openh323gk-users"
-name="here">.  To join this mailing list, click <url
-url="https://lists.sourceforge.net/lists/listinfo/openh323gk-users"
-name="here">.
+url="https://lists.gnugk.org/pipermail/gnugk-users/"
+name="here">.  Please <url
+url="https://lists.gnugk.org/cgi-bin/mailman/listinfo/gnugk-users"
+name="join the mailing list"> before posting.
 
 To report problems or submit bugs/patches, send email to the
-<url url="mailto:Openh323gk-developer@sourceforge.net" name="developers
-mailing list">.  The list archive is <url
-url="https://sourceforge.net/mailarchive/forum.php?forum_name=openh323gk-developer"
-name="here">.  Please send user questions to the users mailing list and keep
-this list for development!  If you want to contribute to the project, please
-<url url="https://lists.sourceforge.net/lists/listinfo/openh323gk-developer"
-name="join the developers mailing list">.
+<url url="mailto:gnugk-users@lists.gnugk.org" name="mailing list">.
 
 <sect1>Contributors
 <p>

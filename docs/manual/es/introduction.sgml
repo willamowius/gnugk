@@ -7,7 +7,7 @@ La versión en ingles es el documento maestro y será la que se actualize primero.
 <sect1>Acerca de
 <p>
 <bf>
-<url url="http://www.gnugk.org/" name="OpenH323 Gatekeeper - El GNU Gatekeeper">
+<url url="https://www.gnugk.org/" name="OpenH323 Gatekeeper - El GNU Gatekeeper">
 </bf>
 es un proyecto de código abierto que implementa un Gatekeeper H.323. 
 Un gatekeeper ofrece servicios de control de llamada a los clientes H.323. 
@@ -28,7 +28,7 @@ los siguientes servicios:
 </itemize>
 
 El GNU Gatekeeper implementa la mayor parte de estas funciones basadas en la pila de protocolos 
-<url url="http://sourceforge.net/projects/openh323/" name="OpenH323">
+<url url="https://www.h323plus.org/" name="H323Plus">
 
 La Recomendación H.323 es un estándar internacional publicado por el 
 <url url="http://www.itu.int/" name="ITU">. 
@@ -63,32 +63,25 @@ El nombre formal de este proyecto es
 <label id="download">
 <p>
 La versión más estable y la versión en desarrollo están disponibles en 
-<url url="http://www.gnugk.org/h323download.html" name="la página de descargas"> del GnuGk.
+<url url="https://www.gnugk.org/h323download.html" name="la página de descargas"> del GnuGk.
 
 La última versión del código fuente está en el CVS en 
-<url url="http://openh323gk.cvs.sourceforge.net/openh323gk/openh323gk/" name="Sourceforge Web-GUI">.
+<url url="https://github.com/willamowius/gnugk" name="Github">.
 Recuerde - Esta versión puede contener muchos fallos aun.
 
 También puede descargar algunos ejecutables desde 
-<url url="http://www.gnugk.org/h323download.html" name="la pagina de descargas">.
+<url url="https://www.gnugk.org/h323download.html" name="la pagina de descargas">.
 
 <sect1>Listas de correo
 <p>
 Existen dos listas de correo para el proyecto, una para los desarrolladores y otra para usuarios.
 
 Las preguntas de los usuarios deben de ser enviadas a 
-<url url="mailto:Openh323gk-users@sourceforge.net" name="lista para usuarios">. 
+<url url="mailto:gnugk-users@lists.gnugk.org" name="lista para usuarios">. 
 Puede encontrar un archivo de la lista de correo 
-<url url="http://sourceforge.net/mailarchive/forum.php?forum_name=openh323gk-users" name="aqui">.
+<url url="https://lists.gnugk.org/pipermail/gnugk-users/" name="aqui">.
 Para unirse a la lista de correo, pulse
-<url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-users" name="aqui">.
-
-Para notificar problemas o enviar bugs/parches, envíe los mails a la 
-<url url="mailto:Openh323gk-developer@sourceforge.net" name="lista para desarrolladores">.
-El archivo de la lista está <url url="http://sourceforge.net/mailarchive/forum.php?forum_name=openh323gk-developer" name="aqui">. 
-Por favor envie las preguntas de usuario a la lista para usuarios y deje esta lista solo para desarrolladores!. 
-Si desea contribuir al proyecto, por favor 
-<url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-developer" name="únase a la lista">.
+<url url="https://lists.gnugk.org/cgi-bin/mailman/listinfo/gnugk-users" name="aqui">.
 
 <bf/Nota/:
 Por favor no envíe preguntas a los mails privados de los desarrolladores. Normalmente estamos muy ocupados. 

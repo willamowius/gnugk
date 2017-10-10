@@ -6,7 +6,7 @@ Ce manuel est disponible en plusieurs langues. La version anglaise est le docume
 <sect1>A propos
 <p>
 <bf>
-<url url="http://www.gnugk.org/" name="OpenH323 Gatekeeper - The GNU Gatekeeper">
+<url url="https://www.gnugk.org/" name="OpenH323 Gatekeeper - The GNU Gatekeeper">
 </bf>
 est un projet open-source qui impl&#233;mente un gatekeeper H.323. Un gatekeeper fournit des services de contr&#244;le d'appel pour les terminaux H.323. Il s'agit d'une partie essentielle de la plupart des installations de t&#233;l&#233;phonie sur internet qui sont bas&#233;es sur la norme H.323.
 
@@ -23,7 +23,7 @@ Selon la recommandation H.323, un gatekeeper doit fournir les services suivants:
 </itemize>
 
 Le GNU Gatekeeper impl&#233;mente la plupart des fonctions bas&#233;es sur la pile du protocole
-<url url="http://sourceforge.net/projects/openh323" name="OpenH323">. 
+<url url="https://www.h323plus.org/" name="H323Plus">. 
 
 La recommandation H.323 est une norme internationale publi&#233;e par l'
 <url url="http://www.itu.int/" name="ITU">. Il s'agit d'une norme de communication pour l'audio, la vid&#233;o et les donn&#233;es sur Internet.
@@ -54,36 +54,29 @@ Le nom exact de ce projet est <em>GNU Gatekeeper</em>, mais il peut aussi &#234;
 <sect1>T&#233;l&#233;chargement
 <label id="download">
 <p>
-La derni&#232;re version est disponible sur <url url="http://www.gnugk.org/h323download.html" name="la page de t&#233;l&#233;chargement">.
+La derni&#232;re version est disponible sur <url url="https://www.gnugk.org/h323download.html" name="la page de t&#233;l&#233;chargement">.
 
 La toute derni&#232;re version du code source est sous CVS sur
-<url url="http://openh323gk.cvs.sourceforge.net/openh323gk/openh323gk/" name="Sourceforge Web-GUI">.
+<url url="https://github.com/willamowius/gnugk" name="Github">.
 Attention - il s'agit d'une version encore en d&#233;veloppement.
 
-Vous pouvez aussi t&#233;l&#233;charger certains ex&#233;cutables depuis <url url="http://www.gnugk.org/h323download.html" name="la page de t&#233;l&#233;chargement">.
+Vous pouvez aussi t&#233;l&#233;charger certains ex&#233;cutables depuis <url url="https://www.gnugk.org/h323download.html" name="la page de t&#233;l&#233;chargement">.
 
 <sect1>Liste de Diffusion
 <p>
 Il y a deux listes de diffusion pour le projet, une pour les d&#233;veloppeurs et une pour les utilisateurs.
 
 Les questions d'ordre g&#233;n&#233;ral doivent &#234;tre envoy&#233;es &#224; la
-<url url="mailto:Openh323gk-users@sourceforge.net" name="liste de diffusion des utilisateurs">.
+<url url="mailto:gnugk-users@lists.gnugk.org" name="liste de diffusion des utilisateurs">.
 Vous pouvez trouver les archives de la liste
-<url url="http://sourceforge.net/mailarchive/forum.php?forum_name=openh323gk-users" name="ici">.
+<url url="https://lists.gnugk.org/pipermail/gnugk-users/" name="ici">.
 Pour vous joindre &#224; cette liste de diffusion, cliquez
-<url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-users" name="ici">.
-
-Pour signaler des probl&#232;mes ou des anomalies/patchs, envoyer des mails &#224; la
-<url url="mailto:Openh323gk-developer@sourceforge.net" name="liste de diffusion des d&#233;veloppeurs">.
-Les archives de la liste sont
-<url url="http://sourceforge.net/mailarchive/forum.php?forum_name=openh323gk-developer" name="ici">.
-Veuillez envoyer les questions utilisateur &#224; la liste de diffusion des utilisateurs et garder cette liste pour le d&#233;veloppement! Si vous voulez contribuer au projet, veuillez
-<url url="http://lists.sourceforge.net/lists/listinfo/openh323gk-developer" name="rejoindre la liste de diffusion">.
+<url url="https://lists.gnugk.org/cgi-bin/mailman/listinfo/gnugk-users" name="ici">.
 
 <sect1>Participants
 <p>
 Le coordinateur actuel du projet est
-<url url="http://www.willamowius.com/gnugk-support.html" name="Jan Willamowius">
+<url url="https://www.willamowius.com/gnugk-support.html" name="Jan Willamowius">
 <tt><htmlurl url="mailto:jan@willamowius.de" name="&lt;jan@willamowius.de&gt;"></tt>
 
 Les principales caract&#233;ristiques et fonctions de la version 2.0 ont &#233;t&#233; contribu&#233;es par Chih-Wei Huang et Citron Network Inc., incluant l'enregistrement et les tables d'appel thread safe, une nouvelle architecture de mode rout&#233;, proxy H.323, l'authentification H.235 et le backend MySQL.
