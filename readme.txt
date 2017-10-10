@@ -17,12 +17,11 @@ on the project homepage.
 
 There are a number of documents in docs/ subdirectory to get you
 started working with the gatekeeper. The most important is the
-users manual. It's in SGML (linuxdoc) format. You can convert
-it into HTML, plain text or LaTeX format by sgmltools:
+manual directory. The manula is in SGML (linuxdoc) format. You can convert
+it into HTML or PDF with sgmltools:
 
-$ sgml2html manual.sgml
-$ sgml2txt manual.sgml
-$ sgml2latex manual.sgml
+$ sgml2html manual.sgml # HTML
+$ sgml2latex --output=dvi --style=gnugk manual.sgml ; dvipdfm manual.dvi # PDF
 
 There are a number of useful configuration examples in
 the etc/ subdirectory. Modify them to suit your needs.
