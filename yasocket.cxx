@@ -21,6 +21,7 @@
 #include "Toolkit.h"
 #include "snmp.h"
 #include "gk.h"
+#include <unistd.h>
 
 #ifdef _WIN32
 #	ifndef SHUT_RDWR

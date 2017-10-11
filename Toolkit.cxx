@@ -19,6 +19,7 @@
 #include <map>
 #include <vector>
 #include <cstdlib>
+#include <unistd.h>
 #include "stl_supp.h"
 #include "gktimer.h"
 #include "h323util.h"
