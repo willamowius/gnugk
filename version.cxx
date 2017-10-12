@@ -22,26 +22,11 @@
 const PString Toolkit::GKVersion()
 {
 	return PString(PString::Printf,
-		       "Gatekeeper(%s) Version(%s) Ext(pthreads=%d,radius=%d,mysql=%d,pgsql=%d,firebird=%d,odbc=%d,sqlite=%d,large_fdset=%d,crypto/ssl=%d,h46018=%d,h46023=%d,ldap=%d,ssh=%d,ipv6=%d,h235media=%d,lua=%d,h46017=%d,snmp=%d,h46026=%d,geoip=%d)"
+		       "Gatekeeper(%s) Version(%s) Ext(crypto/ssl=%d,firebird=%d,geoip=%d,h235media=%d,h46017=%d,h46018=%d,h46023=%d,h46026=%d,ipv6=%d,large_fdset=%d,ldap=%d,lua=%d,mysql=%d,odbc=%d,pgsql=%d,pthreads=%d,radius=%d,snmp=%d,ssh=%d,sqlite=%d)"
 		       " H323Plus(%d.%d.%d) PTLib(%d.%d.%d) Build(%s, %s) Sys(%s %s %s)\r\n",
 		       (const unsigned char*)(PProcess::Current().GetManufacturer()),
 		       (const unsigned char*)(PProcess::Current().GetVersion(true)),
-#ifdef P_PTHREADS
-				(int)1,
-#else
-				(int)0,
-#endif
-#if HAS_RADIUS
-				(int)1,
-#else
-				(int)0,
-#endif
-#if HAS_MYSQL
-				(int)1,
-#else
-				(int)0,
-#endif
-#if HAS_PGSQL
+#if P_SSL
 				(int)1,
 #else
 				(int)0,
@@ -51,22 +36,17 @@ const PString Toolkit::GKVersion()
 #else
 				(int)0,
 #endif
-#if HAS_ODBC
+#if HAS_GEOIP
 				(int)1,
 #else
 				(int)0,
 #endif
-#if HAS_SQLITE
+#ifdef HAS_H235_MEDIA
 				(int)1,
 #else
 				(int)0,
 #endif
-#ifdef LARGE_FDSET
-				(int)LARGE_FDSET,
-#else
-				(int)0,
-#endif
-#if P_SSL
+#if HAS_H46017
 				(int)1,
 #else
 				(int)0,
@@ -81,12 +61,7 @@ const PString Toolkit::GKVersion()
 #else
 				(int)0,
 #endif
-#if P_LDAP
-				(int)1,
-#else
-				(int)0,
-#endif
-#if HAS_LIBSSH
+#if HAS_H46026
 				(int)1,
 #else
 				(int)0,
@@ -96,7 +71,12 @@ const PString Toolkit::GKVersion()
 #else
 				(int)0,
 #endif
-#ifdef HAS_H235_MEDIA
+#ifdef LARGE_FDSET
+				(int)LARGE_FDSET,
+#else
+				(int)0,
+#endif
+#if P_LDAP
 				(int)1,
 #else
 				(int)0,
@@ -106,7 +86,27 @@ const PString Toolkit::GKVersion()
 #else
 				(int)0,
 #endif
-#if HAS_H46017
+#if HAS_MYSQL
+				(int)1,
+#else
+				(int)0,
+#endif
+#if HAS_ODBC
+				(int)1,
+#else
+				(int)0,
+#endif
+#if HAS_PGSQL
+				(int)1,
+#else
+				(int)0,
+#endif
+#ifdef P_PTHREADS
+				(int)1,
+#else
+				(int)0,
+#endif
+#if HAS_RADIUS
 				(int)1,
 #else
 				(int)0,
@@ -116,12 +116,12 @@ const PString Toolkit::GKVersion()
 #else
 				(int)0,
 #endif
-#if HAS_H46026
+#if HAS_LIBSSH
 				(int)1,
 #else
 				(int)0,
 #endif
-#if HAS_GEOIP
+#if HAS_SQLITE
 				(int)1,
 #else
 				(int)0,
