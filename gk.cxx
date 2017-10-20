@@ -141,6 +141,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "CallTable", "SingleFailoverCDR" },
 	{ "CallTable", "TimestampFormat" },
 	{ "CallTable", "UseDestCallSignalIPAsDialedNumber" },
+	{ "Endpoint", "Authenticators" },
 	{ "Endpoint", "Discovery" },
 	{ "Endpoint", "E164" },
 #ifdef HAS_H46018

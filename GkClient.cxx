@@ -3,7 +3,7 @@
 // GkClient.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2002-2016, Jan Willamowius
+// Copyright (c) 2002-2017, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1400,20 +1400,29 @@ GRQRequester::GRQRequester(const PString & gkid, H225_EndpointType & type) : Ras
 		grq.IncludeOptionalField(H225_GatekeeperRequest::e_gatekeeperIdentifier);
 		grq.m_gatekeeperIdentifier = gkid;
 	}
-	grq.IncludeOptionalField(H225_GatekeeperRequest::e_authenticationCapability);
-	grq.IncludeOptionalField(H225_GatekeeperRequest::e_algorithmOIDs);
-	// TODO: add mechanisms to select wich auth methods are presented [Endpoint] Authenticatiors=...
+    PString auth = GkConfig()->GetString(EndpointSection, "Authenticators", "");
+    PStringArray authlist(auth.Tokenise(" ,;\t"));
+	if (authlist.GetSize() == 0 || authlist.GetStringsIndex("NONE") == P_MAX_INDEX) {
+        grq.IncludeOptionalField(H225_GatekeeperRequest::e_authenticationCapability);
+        grq.IncludeOptionalField(H225_GatekeeperRequest::e_algorithmOIDs);
+    }
 #ifdef H323_H235
-	H235AuthProcedure1 h2351auth;
-	h2351auth.SetPassword("dummy"); // activate it
-	h2351auth.SetCapability(grq.m_authenticationCapability, grq.m_algorithmOIDs);
+	if (authlist.GetSize() == 0 || authlist.GetStringsIndex("H.235.1") != P_MAX_INDEX) {
+        H235AuthProcedure1 h2351auth;
+        h2351auth.SetPassword("dummy"); // activate it
+        h2351auth.SetCapability(grq.m_authenticationCapability, grq.m_algorithmOIDs);
+    }
 #endif
-	H235AuthSimpleMD5 md5auth;
-	md5auth.SetPassword("dummy"); // activate it
-	md5auth.SetCapability(grq.m_authenticationCapability, grq.m_algorithmOIDs);
-	H235AuthCAT catauth;
-	catauth.SetPassword("dummy"); // activate it
-	catauth.SetCapability(grq.m_authenticationCapability, grq.m_algorithmOIDs);
+	if (authlist.GetSize() == 0 || authlist.GetStringsIndex("MD5") != P_MAX_INDEX) {
+        H235AuthSimpleMD5 md5auth;
+        md5auth.SetPassword("dummy"); // activate it
+        md5auth.SetCapability(grq.m_authenticationCapability, grq.m_algorithmOIDs);
+	}
+	if (authlist.GetSize() == 0 || authlist.GetStringsIndex("CAT") != P_MAX_INDEX) {
+        H235AuthCAT catauth;
+        catauth.SetPassword("dummy"); // activate it
+        catauth.SetCapability(grq.m_authenticationCapability, grq.m_algorithmOIDs);
+    }
 	// TODO: we could also offer H235AuthDesECB, but then we have to implement the encryption part
 	m_rasSrv->RegisterHandler(this);
 }
@@ -2560,7 +2569,7 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 	}
 	rrq.m_keepAlive = FALSE;
 
-	// include passowrd as crypto token
+	// include password as crypto token
 	if (!m_password.IsEmpty()) {
 		rrq.IncludeOptionalField(H225_RegistrationRequest::e_cryptoTokens);
 		SetCryptoTokens(rrq.m_cryptoTokens, rrq.m_terminalAlias.GetSize() ? AsString(rrq.m_terminalAlias[0], false) : "");

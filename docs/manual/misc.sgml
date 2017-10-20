@@ -263,6 +263,15 @@ the <tt/addpasswd/ utility.
 <p>
 The password will be used in LRQs sent to neighbor gatekeepers.
 
+<item><tt/Authenticators=H.235.1,CAT/<newline>
+Default: <tt>H.235.1,MD5,CAT</tt><newline>
+<p>
+Selects the authenticators to sent be to the parent gatekeeper in GRQ 
+The default options are: H.235.1 (HMAC SHA1 / old H235AnnexD), MD5 (Digest Authentication) and CAT (Cisco Access Tokens ie RADIUS). 
+Setting a value of NONE will disable all authenticators.
+If this setting is omitted, all authenticators are enmabled by default. 
+Note: H.235.1 requires OpenSSL support compiled into GnuGk.
+
 <item><tt/Prefix=188886,188887/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
