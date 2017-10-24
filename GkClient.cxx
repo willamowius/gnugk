@@ -53,6 +53,23 @@ const char* const EndpointSection = "Endpoint";
 const char* const RewriteE164Section = "Endpoint::RewriteE164";
 }
 
+bool IsOIDForAlgo(const PString & oid, const PCaselessString & algo)
+{
+    if (algo == "MD5" && oid == OID_H235_MD5) {
+        return true;
+    };
+    if ( algo == "CAT" && oid == OID_H235_CAT) {
+        return true;
+    };
+    if (algo == "H.235.1"
+        && (oid == OID_H235_A_V1 || oid == OID_H235_A_V2 || oid == OID_H235_T_V1 || oid == OID_H235_T_V2 || oid == OID_H235_U_V1 || oid == OID_H235_U_V2)) {
+        return true;
+    };
+
+    return false;
+}
+
+
 class AlternateGKs {
 public:
 	AlternateGKs(const PIPSocket::Address &, WORD);
@@ -1455,7 +1472,7 @@ bool GRQRequester::SendRequest(const Address & addr, WORD pt, int r)
 		grq.m_rasAddress = socket->GetRasAddress(addr == INADDR_BROADCAST ? *i : addr);
 		if (addr == INADDR_BROADCAST)
 			socket->SetOption(SO_BROADCAST, 1);
-		socket->SendRas(grq_ras, addr, pt, NULL);   // TODO235
+		socket->SendRas(grq_ras, addr, pt, NULL);
 		if (addr == INADDR_BROADCAST)
 			socket->SetOption(SO_BROADCAST, 0);
 	}
@@ -1525,7 +1542,7 @@ GkClient::GkClient()
 	m_ttl(GkConfig()->GetInteger(EndpointSection, "TimeToLive", DEFAULT_TTL)),
 	m_timer(0),
 	m_retry(GkConfig()->GetInteger(EndpointSection, "RRQRetryInterval", DEFAULT_RRQ_RETRY)),
-	m_authMode(-1), m_rewriteInfo(NULL), m_natClient(NULL),
+	m_rewriteInfo(NULL), m_natClient(NULL),
 	m_parentVendor(ParentVendor_GnuGk), m_endpointType(EndpointType_Gateway),
 	m_discoverParent(true), m_enableGnuGkNATTraversal(false), m_enableH46018(false), m_registeredH46018(false), m_useTLS(false)
 #ifdef HAS_H46023
@@ -1546,14 +1563,19 @@ GkClient::GkClient()
 	m_handlers[3] = new GkClientHandler(this, &GkClient::OnIRQ, H225_RasMessage::e_infoRequest);
 
 	m_password = PString::Empty();
+	PString auth = GkConfig()->GetString(EndpointSection, "Authenticators", "");
+    PStringArray authlist(auth.Tokenise(" ,;\t"));
     m_h235Authenticators = new H235Authenticators();
     PFactory<H235Authenticator>::KeyList_T keyList = PFactory<H235Authenticator>::GetKeyList();
     PFactory<H235Authenticator>::KeyList_T::const_iterator r;
     for (r = keyList.begin(); r != keyList.end(); ++r) {
 		H235Authenticator * Auth = PFactory<H235Authenticator>::CreateInstance(*r);
-		if (Auth) {
+		if (Auth
+            && (authlist.GetSize() == 0 || authlist.GetStringsIndex(Auth->GetName()) != P_MAX_INDEX) ) {
     		m_h235Authenticators->Append(Auth);
-		}
+		} else {
+            delete Auth;
+        }
 	}
 }
 
@@ -1584,7 +1606,7 @@ void GkClient::OnReload()
 	m_password = Toolkit::Instance()->ReadPassword(EndpointSection, "Password");
 	m_retry = m_resend = cfg->GetInteger(EndpointSection, "RRQRetryInterval", DEFAULT_RRQ_RETRY);
 	m_gkfailtime = m_retry * 128;
-	m_authMode = -1;
+	m_authAlgo = "";
 
 	PCaselessString s = GkConfig()->GetString(EndpointSection, "Vendor", "GnuGk");
 	if (s.Find(',') != P_MAX_INDEX)
@@ -1771,7 +1793,7 @@ bool GkClient::OnSendingGRQ(H225_GatekeeperRequest & grq)
 	return true;
 }
 
-bool GkClient::OnSendingRRQ(H225_RegistrationRequest &rrq)
+bool GkClient::OnSendingRRQ(H225_RegistrationRequest & rrq)
 {
 	if ((m_parentVendor == ParentVendor_GnuGk) && m_enableGnuGkNATTraversal && !m_enableH46018) {
 		PIPSocket::Address sigip;
@@ -2100,7 +2122,6 @@ bool GkClient::SendLRQ(Routing::LocationRequest & lrq_obj)
 	}
 #endif
 
-
 	SetNBPassword(lrq);
 
 	if (!OnSendingLRQ(lrq, lrq_obj))
@@ -2157,11 +2178,22 @@ bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer)
 			H323SetAliasAddress(m_e164[0], arq.m_srcInfo[sz]);
 		}
 	}
+	if (answer) {
+        if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)) {
+            arq.m_srcCallSignalAddress = setup.m_sourceCallSignalAddress;
+        } else {
+            // remove field, because we don't know
+            arq.RemoveOptionalField(H225_AdmissionRequest::e_srcCallSignalAddress);
+        }
+	} else {
+		arq.m_srcCallSignalAddress = m_rasSrv->GetCallSignalAddress(m_loaddr); // our signal addr when we call to parent
+	}
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_destinationInfo);
 		arq.m_destinationInfo = setup.m_destinationAddress;
-		if (answer)
+		if (answer) {
 			RewriteE164(arq.m_destinationInfo, true);
+        }
 	}
 	arq.m_answerCall = answer;
 	// workaround for bandwidth
@@ -2397,9 +2429,8 @@ bool GkClient::Discovery()
 			if (gcf.HasOptionalField(H225_GatekeeperConfirm::e_gatekeeperIdentifier))
 				m_gatekeeperId = gcf.m_gatekeeperIdentifier;
 			GetIPAndPortFromTransportAddr(gcf.m_rasAddress, m_gkaddr, m_gkport);
-			// TODO: m_authMode is never looked at!! use alorithem OID to instatiate a proper authenticator to use
-			if (gcf.HasOptionalField(H225_GatekeeperConfirm::e_authenticationMode))
-				m_authMode = gcf.m_authenticationMode.GetTag();
+			if (gcf.HasOptionalField(H225_GatekeeperConfirm::e_algorithmOID))
+				m_authAlgo = gcf.m_algorithmOID;
 			PTRACE(2, "GKC\tDiscover GK " << AsString(m_gkaddr, m_gkport) << " at " << m_loaddr);
 			if (gcf.HasOptionalField(H225_RegistrationConfirm::e_assignedGatekeeper))
 					m_gkList->Set(gcf.m_assignedGatekeeper);
@@ -2568,12 +2599,6 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 		rrq.m_gatekeeperIdentifier = m_gatekeeperId;
 	}
 	rrq.m_keepAlive = FALSE;
-
-	// include password as crypto token
-	if (!m_password.IsEmpty()) {
-		rrq.IncludeOptionalField(H225_RegistrationRequest::e_cryptoTokens);
-		SetCryptoTokens(rrq.m_cryptoTokens, rrq.m_terminalAlias.GetSize() ? AsString(rrq.m_terminalAlias[0], false) : "");
-	}
 }
 
 void GkClient::BuildLightWeightRRQ(H225_RegistrationRequest & rrq)
@@ -2675,6 +2700,7 @@ H225_AdmissionRequest & GkClient::BuildARQ(H225_AdmissionRequest & arq)
 	arq.m_endpointIdentifier = m_endpointId;
 
 	arq.IncludeOptionalField(H225_AdmissionRequest::e_srcCallSignalAddress);
+	// ok for call to parent, not ok for answer, will be overwritten later
 	arq.m_srcCallSignalAddress = m_rasSrv->GetCallSignalAddress(m_loaddr);
 
 	arq.IncludeOptionalField(H225_AdmissionRequest::e_canMapAlias);
@@ -3061,26 +3087,28 @@ bool GkClient::RewriteString(PString & alias, bool fromInternal) const
 
 void GkClient::SetClearTokens(H225_ArrayOf_ClearToken & clearTokens, const PString & id)
 {
-    // TODO: check m_authMode
-	clearTokens.RemoveAll();
-	H235AuthCAT auth;
-	// avoid copying for thread-safely
-	auth.SetLocalId((const char *)id);
-	auth.SetPassword((const char *)m_password);
-	H225_ArrayOf_CryptoH323Token dumbTokens;
-	auth.PrepareTokens(clearTokens, dumbTokens);
+    if (m_authAlgo == OID_H235_CAT) {
+        clearTokens.RemoveAll();
+        H235AuthCAT auth;
+        // avoid copying for thread-safety
+        auth.SetLocalId((const char *)id);
+        auth.SetPassword((const char *)m_password);
+        H225_ArrayOf_CryptoH323Token dumbTokens;
+        auth.PrepareTokens(clearTokens, dumbTokens);
+    }
 }
 
 void GkClient::SetCryptoTokens(H225_ArrayOf_CryptoH323Token & cryptoTokens, const PString & id)
 {
-    // TODO: check m_authMode
-	cryptoTokens.RemoveAll();
-	H235AuthSimpleMD5 auth;
-	// avoid copying for thread-safely
-	auth.SetLocalId((const char *)id);
-	auth.SetPassword((const char *)m_password);
-	H225_ArrayOf_ClearToken dumbTokens;
-	auth.PrepareTokens(dumbTokens, cryptoTokens);
+    if (m_authAlgo == OID_H235_MD5) {
+        cryptoTokens.RemoveAll();
+        H235AuthSimpleMD5 auth;
+        // avoid copying for thread-safety
+        auth.SetLocalId((const char *)id);
+        auth.SetPassword((const char *)m_password);
+        H225_ArrayOf_ClearToken dumbTokens;
+        auth.PrepareTokens(dumbTokens, cryptoTokens);
+    }
 }
 
 void GkClient::SetRasAddress(H225_ArrayOf_TransportAddress & addr)
@@ -3205,8 +3233,9 @@ void GkClient::RemoveLocalAlias(const H225_ArrayOf_AliasAddress & aliases)
 				break;
 			}
 		}
-		if (!found)
+		if (!found) {
 			newAliasList.AppendString(m_h323Id[j]);
+        }
 	}
 	m_h323Id = newAliasList;
 }
@@ -3215,7 +3244,7 @@ bool GkClient::HandleSetup(SetupMsg & setup, bool fromInternal)
 {
 	RewriteE164(setup, fromInternal);
 
-	H225_Setup_UUIE &setupBody = setup.GetUUIEBody();
+	H225_Setup_UUIE & setupBody = setup.GetUUIEBody();
 	if (!fromInternal) {
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 #ifdef HAS_H46023

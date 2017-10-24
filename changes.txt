@@ -1,5 +1,6 @@
 Changes from 4.7 to 4.8
 =======================
+- BUGFIX(GkClient.*) fix password authentication with parent
 - new switch [Endpoint] Authenicators=
 - sort feature markers in version banner
 - BUGFIX(Routing.cxx) remove semicolon and pipe chars from vendor string in RouteRequests

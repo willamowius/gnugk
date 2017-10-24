@@ -3,7 +3,7 @@
 // GkClient.h
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2002-2013, Jan Willamowius
+// Copyright (c) 2002-2017, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -54,6 +54,9 @@ class STUNClient;
 class UDPProxySocket;
 class H46024B_AlternateAddress;
 class H46024B_ArrayOf_AlternateAddress;
+
+bool IsOIDForAlgo(const PString & oid, const PCaselessString & algo);
+
 class CallH46024Sockets
 {
 public:
@@ -103,14 +106,14 @@ public:
 	void AppendLocalAlias(const H225_ArrayOf_AliasAddress & aliases);
 	void RemoveLocalAlias(const H225_ArrayOf_AliasAddress & aliases);
 
-	bool OnSendingGRQ(H225_GatekeeperRequest &grq);
-	bool OnSendingRRQ(H225_RegistrationRequest &rrq);
-	bool OnSendingARQ(H225_AdmissionRequest &arq, Routing::AdmissionRequest &req);
-	bool OnSendingLRQ(H225_LocationRequest &lrq, Routing::LocationRequest &req);
-	bool OnSendingARQ(H225_AdmissionRequest &arq, Routing::SetupRequest &req, bool answer = false);
-	bool OnSendingARQ(H225_AdmissionRequest &arq, Routing::FacilityRequest &req);
-	bool OnSendingDRQ(H225_DisengageRequest &drq, const callptr &call);
-	bool OnSendingURQ(H225_UnregistrationRequest &urq);
+	bool OnSendingGRQ(H225_GatekeeperRequest & grq);
+	bool OnSendingRRQ(H225_RegistrationRequest & rrq);
+	bool OnSendingARQ(H225_AdmissionRequest & arq, Routing::AdmissionRequest & req);
+	bool OnSendingLRQ(H225_LocationRequest & lrq, Routing::LocationRequest & req);
+	bool OnSendingARQ(H225_AdmissionRequest & arq, Routing::SetupRequest & req, bool answer = false);
+	bool OnSendingARQ(H225_AdmissionRequest & arq, Routing::FacilityRequest & req);
+	bool OnSendingDRQ(H225_DisengageRequest & drq, const callptr & call);
+	bool OnSendingURQ(H225_UnregistrationRequest & urq);
 
 	bool SendARQ(Routing::AdmissionRequest &);
 	bool SendLRQ(Routing::LocationRequest &);
@@ -124,7 +127,7 @@ public:
 
 	bool RewriteE164(H225_AliasAddress & alias, bool);
 	bool RewriteE164(H225_ArrayOf_AliasAddress & alias, bool);
-	bool RewriteE164(SetupMsg &setup, bool);
+	bool RewriteE164(SetupMsg & setup, bool);
 
 	/** Fills LRQ with approtiation tokens/cryptoTokens containing
 		configured username/password data.
@@ -132,8 +135,8 @@ public:
 		depend on authMode.
 	*/
 	void SetNBPassword(
-		H225_LocationRequest& lrq, /// LRQ message to be filled with tokens
-		const PString& id // username to be put inside tokens/cryptoTokens
+		H225_LocationRequest & lrq, /// LRQ message to be filled with tokens
+		const PString & id // username to be put inside tokens/cryptoTokens
 		);
 
 	/** Fills LRQ with approtiation tokens/cryptoTokens containing,
@@ -141,7 +144,7 @@ public:
 		section.
 	*/
 	void SetNBPassword(
-		H225_LocationRequest& lrq /// LRQ message to be filled with tokens
+		H225_LocationRequest & lrq /// LRQ message to be filled with tokens
 		)
 	{
         SetPassword(lrq);
@@ -152,15 +155,20 @@ public:
 		for (PINDEX i = 0; i < m_h235Authenticators->GetSize();  i++) {
 			H235Authenticator * authenticator = (H235Authenticator *)(*m_h235Authenticators)[i].Clone();
 
-			if (authenticator && authenticator->IsSecuredPDU(rasmsg.GetTag(), FALSE)) {
-				authenticator->SetLocalId(id);
-				authenticator->SetPassword(m_password);
+			if (authenticator) {
+                authenticator->SetLocalId(id);
+                authenticator->SetPassword(m_password);
+                if (IsOIDForAlgo(m_authAlgo.AsString(), authenticator->GetName())
+                        && authenticator->IsSecuredPDU(rasmsg.GetTag(), FALSE)) {
+                    authenticator->SetLocalId(id);
+                    authenticator->SetPassword(m_password);
 
-				if (authenticator->PrepareTokens(rasmsg.m_tokens, rasmsg.m_cryptoTokens)) {
-					PTRACE(4, "GKClient\tPrepared PDU with authenticator " << authenticator);
-				}
-			}
-			delete authenticator;
+                    if (authenticator->PrepareTokens(rasmsg.m_tokens, rasmsg.m_cryptoTokens)) {
+                        PTRACE(4, "GKClient\tPrepared PDU with authenticator " << authenticator);
+                    }
+                }
+                delete authenticator;
+            }
 		}
 		if (rasmsg.m_tokens.GetSize() > 0)
 			rasmsg.IncludeOptionalField(RAS::e_tokens);
@@ -168,6 +176,7 @@ public:
 		if (rasmsg.m_cryptoTokens.GetSize() > 0)
 			rasmsg.IncludeOptionalField(RAS::e_cryptoTokens);
 	}
+
 	template<class RAS> void SetPassword(RAS & rasmsg)
 	{
 		SetPassword(rasmsg, m_h323Id.GetSize() > 0 ? m_h323Id[0] :
@@ -232,7 +241,7 @@ private:
 
 	AlternateGKs *m_gkList;
 	bool m_useAltGKPermanent;
-	int m_authMode;
+	PASN_ObjectId m_authAlgo;
 
 	Toolkit::RewriteData *m_rewriteInfo;
 
