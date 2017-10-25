@@ -2,7 +2,7 @@
 <p>
 This portion of the manual will cover advanced topics, such as compiling and debugging the GNU Gatekeeper.
 
-<sect1>Compiling GnuGk from CVS
+<sect1>Compiling GnuGk from Github
 <label id="compile">
 <p>
 The following instructions are an example of how to compile GnuGk from source on an Ubuntu platform.
@@ -10,18 +10,17 @@ The following instructions are an example of how to compile GnuGk from source on
 First make sure your system is up-to-date and install the tools needed for the compile
 <verb>
 sudo apt-get update
-sudo apt-get install flex bison build-essential subversion cvs pkg-config automake linuxdoc-tools
+sudo apt-get install flex bison build-essential git pkg-config automake linuxdoc-tools
 </verb>
 Also make sure the "...-devel" packages for all databases or LDAP servers you want to use are installed.
 <p>
-<bf>NOTE</bf>: It's recommended that you do not use PTLib SVN; it is undergoing
+<bf>NOTE</bf>: It's recommended that you do not use the latest PTLib from SourceForge; it is undergoing
 many changes that are incompatible with GnuGk. Use our patched version PTLib 2.10.9.
 
-Get and compile PTLib from SourceForge:
+Get and compile PTLib from Github:
 <verb>
 cd ~
-wget -O ptlib-v2.10.9-gnugk.tgz http://openh323gk.cvs.sourceforge.net/viewvc/openh323gk/ptlib/?view=tar
-tar xvzf ptlib-v2.10.9-gnugk.tgz
+git clone https://github.com/willamowius/ptlib.git
 cd ptlib
 export PTLIBDIR=~/ptlib
 ./configure --enable-ipv6 --disable-odbc --disable-sdl --disable-lua --disable-expat
@@ -31,12 +30,7 @@ make optnoshared
 Get and compile H323Plus:
 <verb>
 cd ~
-cvs -d:pserver:anonymous@h323plus.cvs.sourceforge.net:/cvsroot/h323plus login
-
-(just press enter when prompted for password)
-
-cvs -z3 -d:pserver:anonymous@h323plus.cvs.sourceforge.net:/cvsroot/h323plus co -P h323plus
-
+git clone https://github.com/willamowius/h323plus.git
 cd h323plus
 export OPENH323DIR=~/h323plus
 ./configure --enable-h235 -enable-h46017 --enable-h46026
@@ -46,27 +40,27 @@ make optnoshared
 Get and compile GnuGk:
 <verb>
 cd ~
-cvs -d:pserver:anonymous@openh323gk.cvs.sourceforge.net:/cvsroot/openh323gk login
-
-(just press enter when prompted for password)
-
-cvs -z3 -d:pserver:anonymous@openh323gk.cvs.sourceforge.net:/cvsroot/openh323gk co -P openh323gk
-
-cd openh323gk
+git clone https://github.com/willamowius/gnugk.git
+cd gnugk
 ./configure --enable-h46018 --with-large_fdset=1024
 make optnoshared
 </verb>
 
-Once the compile is finished, the binary can be found in the 
-obj_linux_x86_s subdirectory.
+Once the compile is finished, the binary can be found in
+~/gnugk/obj_linux_x86_64_s (assuming you use a 64bit system).
 
 In order to stay up-to-date, run the following:
 
 <verb>
+cd ~/ptlib
+git pull
+make clean ; make optnoshared
 cd ~/h323plus
-cvs update
-cd ~/openh323gk
-cvs update
+git pull
+make clean ; make optnoshared
+cd ~/gnugk
+git pull
+make clean ; make optnoshared
 </verb>
 If any of the source files are changed, you have to recompile.
 
