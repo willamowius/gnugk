@@ -46,8 +46,8 @@ cd gnugk
 make optnoshared
 </verb>
 
-Once the compile is finished, the binary can be found in
-~/gnugk/obj_linux_x86_64_s (assuming you use a 64bit system).
+Once the compile is finished, the binary can be found as
+<verb>~/gnugk/obj_linux_x86_64_s/gnugk</verb> (assuming you use a 64bit system).
 
 In order to stay up-to-date, run the following:
 
