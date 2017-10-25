@@ -1295,7 +1295,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 			PString calledIP = "unknown";
 			PString vendorInfo;
 			if (arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
-				calledIP = AsDotString(arq.m_destCallSignalAddress, false);
+				calledIP = AsDotString(arq.m_destCallSignalAddress, true);
 			}
 			if (ep->GetEndpointType().HasOptionalField(H225_EndpointType::e_vendor)) {
 				if (ep->GetEndpointType().m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)) {
@@ -1462,7 +1462,7 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 		PIPSocket::Address localAddr;
 		WORD localPort;
 		request.GetWrapper()->GetLocalAddr(localAddr, localPort);
-		PString calledIP = localAddr;
+		PString calledIP = AsString(localAddr, localPort);
 		PString vendorInfo;
 		if (setup.m_sourceInfo.HasOptionalField(H225_EndpointType::e_vendor)) {
 			if (setup.m_sourceInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)) {

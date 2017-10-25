@@ -1,5 +1,6 @@
 Changes from 4.7 to 4.8
 =======================
+- BUGFIX(Routing.cxx) show called port in RouteRequests (as documented)
 - default for [RoutedMode] GnuGkTcpKeepAliveMethodH225= is now EmptyFacility
 - BUGFIX(GkClient.*) fix password authentication with parent
 - new switch [Endpoint] Authenicators=
