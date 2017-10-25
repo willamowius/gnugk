@@ -1,5 +1,6 @@
 Changes from 4.7 to 4.8
 =======================
+- default for [RoutedMode] GnuGkTcpKeepAliveMethodH225= is now EmptyFacility
 - BUGFIX(GkClient.*) fix password authentication with parent
 - new switch [Endpoint] Authenicators=
 - sort feature markers in version banner

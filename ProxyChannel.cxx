@@ -1294,7 +1294,7 @@ TCPProxySocket::TCPProxySocket(const char * t, TCPProxySocket * s, WORD p)
     } else {
         PTRACE(1, "Error: Unknown H.460 Keepalive method for H.225: " << str);
     }
-    str = GkConfig()->GetString(RoutedSec, "GnuGkTcpKeepAliveMethodH225", "TPKT");
+    str = GkConfig()->GetString(RoutedSec, "GnuGkTcpKeepAliveMethodH225", "EmptyFacility");
     m_nonStdKeepAliveMethodH225 = TPKTH225;
     if (str == "TPKT") {
         m_nonStdKeepAliveMethodH225 = TPKTH225;

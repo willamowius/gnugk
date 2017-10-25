@@ -718,8 +718,8 @@ Default: <tt>19</tt><newline>
 <p>
 Set keep alive interval in seconds.
 
-<item><tt>GnuGkTcpKeepAliveMethodH225=EmptyFacility</tt><newline>
-Default: <tt>TPKT</tt><newline>
+<item><tt>GnuGkTcpKeepAliveMethodH225=Status</tt><newline>
+Default: <tt>EmptyFacility</tt><newline>
 <p>
 Set the message to be used for the keep alive on the H.225 connection when H.460.18 is not used.
 
