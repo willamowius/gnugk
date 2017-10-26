@@ -1554,6 +1554,7 @@ void TCPProxySocket::SendKeepAlive(GkTimer * timer)
 
 void TCPProxySocket::SendEmptyTPKTKeepAlive()
 {
+    PTRACE(6, "Send EmptyTPKT KeepAlive to " << GetName());
     PBYTEArray tbuf(sizeof(TPKTV3));
     BYTE *bptr = tbuf.GetPointer();
     new (bptr) TPKTV3(0); // placement operator
@@ -5047,6 +5048,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		setupBody.m_maintainConnection = (GetRemote() && GetRemote()->MaintainConnection());
 	}
 
+	// TODO: new setting "Verify" to set to registered alias/e.164 ?
 	const PString cli = toolkit->Config()->GetString(RoutedSec, "ScreenCallingPartyNumberIE", "");
 	if (!cli) {
 		unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType;
@@ -5109,8 +5111,12 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		|| m_call->IsH46018ReverseSetup() ) {
 		m_call->SetProxyMode(CallRec::ProxyEnabled);
 		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled (H.460.18/.19)");
-        PTRACE(5, "H46018\tEnable keep-alive for incoming H.460.18 call");
-        RegisterKeepAlive(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19));
+        if ( (m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None)
+            || (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018()) ) {
+            PTRACE(5, "H46018\tEnable keep-alive for incoming H.460.18 call (for calling party)");
+            RegisterKeepAlive(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19));
+        }
+        // enable keep alive for called party when Facility comes in
 	}
 
 	// use delayed connecting if called party is a traversal client
@@ -9239,6 +9245,8 @@ void H245Socket::SendH245KeepAlive()
     if (!IsConnected()) {
         return;
     }
+    PTRACE(6, "Send UserInput KeepAlive to " << GetName());
+
     H245_MultimediaSystemControlMessage h245msg;
     h245msg.SetTag(H245_MultimediaSystemControlMessage::e_indication);
     H245_IndicationMessage & h245ind = h245msg;

@@ -1,5 +1,6 @@
 Changes from 4.7 to 4.8
 =======================
+- BUGFIX(ProxyChannel.cxx) don't send H.460 keep-alive to non-H.460 party when calling H.460 party
 - BUGFIX(Routing.cxx) show called port in RouteRequests (as documented)
 - default for [RoutedMode] GnuGkTcpKeepAliveMethodH225= is now EmptyFacility
 - BUGFIX(GkClient.*) fix password authentication with parent
