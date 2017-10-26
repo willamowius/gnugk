@@ -5187,7 +5187,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 			}
 			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_supportedFeatures);
-				setupBody.m_supportedFeatures.SetSize(0);  // Always in first position - SH
+				setupBody.m_supportedFeatures.SetSize(0);
 			}
 			AddH460Feature(setupBody.m_supportedFeatures, feat);
         }
