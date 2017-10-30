@@ -509,6 +509,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "AcceptNeighborsCalls" },
 	{ "RoutedMode", "AcceptUnregisteredCalls" },
 	{ "RoutedMode", "ActivateFailover" },
+	{ "RoutedMode", "AppendToCallingPartyNumberIE" },
 	{ "RoutedMode", "AppendToDisplayIE" },
 	{ "RoutedMode", "AlertingTimeout" },
 	{ "RoutedMode", "AlwaysRewriteSourceCallSignalAddress" },

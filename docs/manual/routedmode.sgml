@@ -217,6 +217,15 @@ Default: <tt>N/A</tt><newline>
 <p>
 Modify the CallingPartyNumberIE of Q.931 to the specified value.
 
+When you set the string to <tt>RegisteredAlias</tt>, GnuGk will set it to the first registered E.164,
+falling back to the first alias if the endpoint doesn't have an E.164 registered
+or the empty string if the endpoint isn't registered.
+
+<item><tt/AppendScreenCallingPartyNumberIE=@example.com/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Append this string to the CallingPartyNumberIE when <tt>ScreenCallingPartyNumberIE=RegisteredAlias</tt>.
+
 <item><tt/ScreenSourceAddress=MyID/<newline>
 Default: <tt>N/A</tt><newline>
 <p>

@@ -5049,15 +5049,27 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 	}
 
 	// TODO: new setting "Verify" to set to registered alias/e.164 ?
-	const PString cli = toolkit->Config()->GetString(RoutedSec, "ScreenCallingPartyNumberIE", "");
-	if (!cli) {
+	PString cli = toolkit->Config()->GetString(RoutedSec, "ScreenCallingPartyNumberIE", "");
+	if (!cli.IsEmpty()) {
 		unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType;
 		unsigned presentation = (unsigned)-1, screening = (unsigned)-1;
 		if (q931.HasIE(Q931::CallingPartyNumberIE)) {
 			PString dummy;
 			q931.GetCallingPartyNumber(dummy, &plan, &type, &presentation, &screening, (unsigned)-1, (unsigned)-1);
 		}
-		q931.SetCallingPartyNumber(cli, plan, type, presentation, screening);
+		if (cli == "RegisteredAlias" && m_call) {
+            endptr ep = m_call->GetCallingParty();
+            if (ep) {
+                cli = m_call->GetCallingStationId();
+                const PString append = toolkit->Config()->GetString(RoutedSec, "AppendToCallingPartyNumberIE", "");
+                if (!append.IsEmpty()) {
+                    cli += append;
+                }
+            } else {
+                cli = "";
+            }
+		}
+        q931.SetCallingPartyNumber(cli, plan, type, presentation, screening);
 	}
 	SetCallTypePlan(&q931);
 
