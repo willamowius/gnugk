@@ -5053,24 +5053,23 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 	if (!cli.IsEmpty()) {
 		unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType;
 		unsigned presentation = (unsigned)-1, screening = (unsigned)-1;
+        PString oldCLI;
 		if (q931.HasIE(Q931::CallingPartyNumberIE)) {
-			PString dummy;
-			q931.GetCallingPartyNumber(dummy, &plan, &type, &presentation, &screening, (unsigned)-1, (unsigned)-1);
+			q931.GetCallingPartyNumber(oldCLI, &plan, &type, &presentation, &screening, (unsigned)-1, (unsigned)-1);
 		}
 		if (cli == "RegisteredAlias") {
             endptr ep = m_call ? m_call->GetCallingParty() : endptr(NULL);
             if (ep) {
                 cli = m_call->GetCallingStationId();
-                const PString append = toolkit->Config()->GetString(RoutedSec, "AppendToCallingPartyNumberIE", "");
-                if (!append.IsEmpty()) {
-                    cli += append;
-                }
             } else {
-                cli = "";
+                cli = oldCLI; // leave as is for unregistered endpoints
+            }
+            const PString append = toolkit->Config()->GetString(RoutedSec, "AppendToCallingPartyNumberIE", "");
+            if (!append.IsEmpty()) {
+                cli += append;
             }
 		}
-		if (!cli.IsEmpty())
-            q931.SetCallingPartyNumber(cli, plan, type, presentation, screening);
+        q931.SetCallingPartyNumber(cli, plan, type, presentation, screening);
 	}
 	SetCallTypePlan(&q931);
 
