@@ -5057,8 +5057,8 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 			PString dummy;
 			q931.GetCallingPartyNumber(dummy, &plan, &type, &presentation, &screening, (unsigned)-1, (unsigned)-1);
 		}
-		if (cli == "RegisteredAlias" && m_call) {
-            endptr ep = m_call->GetCallingParty();
+		if (cli == "RegisteredAlias") {
+            endptr ep = m_call ? m_call->GetCallingParty() : endptr(NULL);
             if (ep) {
                 cli = m_call->GetCallingStationId();
                 const PString append = toolkit->Config()->GetString(RoutedSec, "AppendToCallingPartyNumberIE", "");
@@ -5069,7 +5069,8 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
                 cli = "";
             }
 		}
-        q931.SetCallingPartyNumber(cli, plan, type, presentation, screening);
+		if (!cli.IsEmpty())
+            q931.SetCallingPartyNumber(cli, plan, type, presentation, screening);
 	}
 	SetCallTypePlan(&q931);
 
