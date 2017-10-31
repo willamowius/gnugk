@@ -3153,7 +3153,7 @@ bool GkClient::AdditiveRegister(H225_ArrayOf_AliasAddress & aliases, int & rejec
 	Requester<H225_RegistrationRequest> request(rrq_ras, m_loaddr);
 	BuildRRQ(rrq_ras);
 
-	H225_RegistrationRequest & rrq =  rrq_ras;
+	H225_RegistrationRequest & rrq = rrq_ras;
 	rrq.IncludeOptionalField(H225_RegistrationRequest::e_additiveRegistration);
 
 	rrq.IncludeOptionalField(H225_RegistrationRequest::e_terminalAlias);
