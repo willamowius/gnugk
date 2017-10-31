@@ -487,7 +487,6 @@ inline H225_RasMessage & RasPDU<RAS>::BuildConfirm()
 		m_msg->m_replyRAS.SetTag(tag);
 	ConfirmType & confirm = m_msg->m_replyRAS;
 	confirm.m_requestSeqNum = request.m_requestSeqNum;
-//	CopyNonStandardData(request, confirm);
 	return m_msg->m_replyRAS;
 }
 
@@ -502,7 +501,6 @@ inline H225_RasMessage & RasPDU<RAS>::BuildReject(unsigned reason)
 	RejectType & reject = m_msg->m_replyRAS;
 	reject.m_requestSeqNum = request.m_requestSeqNum;
 	reject.m_rejectReason.SetTag(reason);
-//	CopyNonStandardData(request, reject);
 	return m_msg->m_replyRAS;
 }
 
@@ -2953,13 +2951,13 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 
 PString AdmissionRequestPDU::GetCallingStationId(
 	/// additional data
-	ARQAuthData& authData
+	ARQAuthData & authData
 	) const
 {
 	if (!authData.m_callingStationId)
 		return authData.m_callingStationId;
 
-	const H225_AdmissionRequest& arq = request;
+	const H225_AdmissionRequest & arq = request;
 	const bool hasCall = authData.m_call.operator->() != NULL;
 	PString id;
 
