@@ -4,7 +4,7 @@
  * SQL authentication/authorization modules for GNU Gatekeeper
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
- * Copyright (c) 2006-2016, Jan Willamowius
+ * Copyright (c) 2006-2017, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -60,7 +60,9 @@ protected:
 		/// alias to check the password for
 		const PString & alias,
 		/// password string, if the match is found
-		PString & password
+		PString & password,
+		/// map of authentication parameters
+		std::map<PString, PString> & params
 		);
 
 private:
@@ -322,14 +324,11 @@ SQLPasswordAuth::~SQLPasswordAuth()
 	delete m_sqlConn;
 }
 
-bool SQLPasswordAuth::GetPassword(const PString & alias, PString & password)
+bool SQLPasswordAuth::GetPassword(const PString & alias, PString & password, std::map<PString, PString> & params)
 {
 	GkSQLResult::ResultRow result;
-	std::map<PString, PString> params;
 	params["1"] = alias;
-	params["u"] = alias;
 	params["2"] = Toolkit::GKName();
-	params["g"] = Toolkit::GKName();
 
 	if (!RunQuery("SQLAUTH\t" + GetName() + "('" + alias + "')", m_sqlConn, m_query, params, result, -1))
 		return false;

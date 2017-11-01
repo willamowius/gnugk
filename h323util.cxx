@@ -984,3 +984,24 @@ void ReplaceRegEx(PString & str, const PRegularExpression & re, const PString & 
         offset = pos + 1;
     }
 }
+
+// get the name for Q.931 message types
+PString Q931MessageName(unsigned messageType)
+{
+    switch (messageType) {
+        case Q931::AlertingMsg: return "Alerting";
+        case Q931::CallProceedingMsg: return "CallProceeding";
+        case Q931::ConnectMsg: return "Connect";
+        case Q931::ProgressMsg: return "Progress";
+        case Q931::SetupMsg: return "Setup";
+        case Q931::SetupAckMsg: return "SetupAck";
+        case Q931::ReleaseCompleteMsg: return "ReleaseComplete";
+        case Q931::InformationMsg: return "Information";
+        case Q931::NotifyMsg: return "Notify";
+        case Q931::StatusMsg: return "Status";
+        case Q931::StatusEnquiryMsg: return "StatusEnquiry";
+        case Q931::FacilityMsg: return "Facility";
+        default: return "unknown";
+    }
+}
+

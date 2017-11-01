@@ -748,8 +748,9 @@ protected:
 		/// alias to check the password for
 		const PString & alias,
 		/// password string, if the match is found
-		PString & password
-		);
+		PString & password,
+        /// map of authentication parameters
+		std::map<PString, PString> & params);
 
 private:
 	LuaPasswordAuth();
@@ -794,7 +795,7 @@ LuaPasswordAuth::~LuaPasswordAuth()
 	PWaitAndSignal lock(m_luaInterpreterLock);
 }
 
-bool LuaPasswordAuth::GetPassword(const PString & alias, PString & password)
+bool LuaPasswordAuth::GetPassword(const PString & alias, PString & password, std::map<PString, PString> & params)
 {
     if (!m_lua || m_script.IsEmpty()) {
 		PTRACE(1, "LuaPasswordAuth\tError: LUA not configured");
@@ -806,6 +807,7 @@ bool LuaPasswordAuth::GetPassword(const PString & alias, PString & password)
 	SetString("alias", alias);
 	SetString("gk", Toolkit::GKName());
 	SetString("password", "");
+	// TODO: add other parameters from param
 
 	if (!RunLua(m_script)) {
 		return false;

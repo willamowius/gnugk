@@ -3,7 +3,7 @@
  *
  * LDAP authentication/authorization modules for GNU Gatekeeper
  *
- * Copyright (c) 2013-2015, Jan Willamowius
+ * Copyright (c) 2013-2017, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -66,7 +66,7 @@ protected:
 	    @return
 	    True if the password has been found for the given alias.
 	*/
-	virtual bool GetPassword(const PString & alias, PString & password);
+	virtual bool GetPassword(const PString & alias, PString & password, std::map<PString, PString> & params);
 
 private:
 	LDAPPasswordAuth();
@@ -163,7 +163,7 @@ LDAPPasswordAuth::LDAPPasswordAuth(const char* authName)
 	m_attribute = GetConfig()->GetString(LDAPAttributeSect, "H235PassWord", "plaintextPassword");
 }
 
-bool LDAPPasswordAuth::GetPassword(const PString & alias, PString & password)
+bool LDAPPasswordAuth::GetPassword(const PString & alias, PString & password, std::map<PString, PString> & params)
 {
 	PLDAPSession * ldapClient = CreateConnection();
 	if (!ldapClient)

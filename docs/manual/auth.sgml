@@ -412,7 +412,7 @@ to define your database connection for this module.
 
 <itemize>
 <item><tt/CacheTimeout=120/<newline>
-Default: <tt/0/<newline>
+Default: <tt/-1/<newline>
 <p>
 This field defines how long (alias;password) pairs retrieved from the database 
 will be cached. The cache timeout value is expressed in seconds.
@@ -1768,6 +1768,13 @@ LUA script to be used to lookup the password for a user. Short scripts can be pu
 
 <item><tt>ScriptFile=/path/to/script</tt><newline>
 LUA script to be used to lookup the password for a user.
+
+<item><tt/PasswordTimeout=120/<newline>
+Default: <tt/-1/<newline>
+<p>
+This module will cache requested passwords. This field defines the cache timeout value in seconds.
+<tt/0/ means never cache the password, while a negative value means the cache never expires.
+
 </itemize>
 
 The script can use the following variables
@@ -1815,12 +1822,25 @@ A regular expression to use remove additional patterns from the extracted passwo
 Default: <tt>^$</tt>
 <p>
 If the HTTP response matches this regular expression it is considered invalid.
+
+<item><tt/PasswordTimeout=120/<newline>
+Default: <tt/-1/<newline>
+<p>
+This module will cache requested passwords. This field defines the cache timeout value in seconds.
+<tt/0/ means never cache the password, while a negative value means the cache never expires.
+
 </itemize>
 
 For <tt/HttpPasswordAuth/ two parameters are defined:
 <itemize>
 <item><tt/%u/ - the actual alias to query the password for
 <item><tt/%g/ - the gatekeeper identifier (name)
+<item><tt/%{message}/ - message that caused this authentication process (eg. RRQ, ARQ etc.)
+<item><tt/%{caller-ip}/ - IP of the calling party
+<item><tt/%{called-ip}/ - IP of the interface GnuGk received this call on (only available for RAS messages)
+<item><tt/%{caller-vendor}/ - product name and version of the caller (only available RRQ and Setup)
+<item><tt/%{caller-product-name}/ - product name of the caller (only available RRQ and Setup)
+<item><tt/%{caller-product-version}/ - product version of the caller (only available RRQ and Setup)
 </itemize>
 
 <sect1>Section &lsqb;GeoIPAuth&rsqb;

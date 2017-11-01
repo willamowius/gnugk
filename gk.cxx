@@ -340,11 +340,15 @@ const char * KnownConfigEntries[][2] = {
 	{ "H235", "UseEndpointIdentifier" },
 	{ "H235", "VerifyRandomNumber" },
 #endif // H323_H235
+#ifdef H323_H350
+	{ "H350PasswordAuth", "PasswordTimeout" },
+#endif
 #ifdef P_HTTP
 	{ "HttpPasswordAuth", "Body" },
 	{ "HttpPasswordAuth", "DeleteRegex" },
 	{ "HttpPasswordAuth", "ErrorRegex" },
 	{ "HttpPasswordAuth", "Method" },
+	{ "HttpPasswordAuth", "PasswordTimeout" },
 	{ "HttpPasswordAuth", "ResultRegex" },
 	{ "HttpPasswordAuth", "URL" },
 #endif // P_HTTP
@@ -356,6 +360,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "LuaAuth", "CallScriptFile" },
 	{ "LuaAuth", "RegistrationScript" },
 	{ "LuaAuth", "RegistrationScriptFile" },
+	{ "LuaPasswordAuth", "PasswordTimeout" },
 	{ "LuaPasswordAuth", "Script" },
 	{ "LuaPasswordAuth", "ScriptFile" },
 #endif
@@ -834,9 +839,6 @@ const char * KnownConfigEntries[][2] = {
 	{ "FileIPAuth", "*" },
 	{ "GkStatus::Auth", "*" },
 	{ "H225toQ931", "*" },
-#ifdef H323_H350
-	{ "H350PasswordAuth", "*" },
-#endif
 	{ "ModeSelection", "*" },
 	{ "ModeVendorSelection", "*" },
 	{ "NATedEndpoints", "*" },

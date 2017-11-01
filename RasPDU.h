@@ -131,6 +131,7 @@ public:
 
 	GatekeeperMessage *operator->() { return m_msg; }
 	const GatekeeperMessage *operator->() const { return m_msg; }
+	GatekeeperMessage * GetMsg() const { return m_msg; }
 
 	static void Initialize();
 protected:
@@ -166,7 +167,7 @@ public:
 	operator const RAS & () const { return request; }
 
 	H225_RasMessage & BuildConfirm();
-	H225_RasMessage & BuildReject(unsigned);
+	H225_RasMessage & BuildReject(unsigned reason);
 
 	void SetupResponseTokens(H225_RasMessage & responsePdu, const endptr & requestingEP);
 

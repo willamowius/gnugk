@@ -1216,8 +1216,9 @@ int SimplePasswordAuth::Check(
 
 bool SimplePasswordAuth::GetPassword(
 	const PString & id, /// get the password for this id
-	PString & passwd /// filled with the password on return
-	)
+	PString & passwd, /// filled with the password on return
+    std::map<PString, PString> & params /// map of authentication parameters
+)
 {
 	if (id.IsEmpty())
 		return false;
@@ -1237,14 +1238,17 @@ bool SimplePasswordAuth::GetPassword(
 
 bool SimplePasswordAuth::InternalGetPassword(
 	const PString & id, /// get the password for this id
-	PString & passwd /// filled with the password on return
+	PString & passwd, /// filled with the password on return
+    std::map<PString, PString> & params /// map of authentication parameters
 	)
 {
+    params["u"] = id;
+
 	if (m_cache->Retrieve(id, passwd)) {
 		PTRACE(5, "GKAUTH\t" << GetName() << " cached password found for '" << id << '\'');
 		return true;
 	}
-	if (GetPassword(id, passwd)) {
+	if (GetPassword(id, passwd, params)) {
 		m_cache->Save(id, passwd);
 		return true;
 	} else
@@ -1256,7 +1260,10 @@ int SimplePasswordAuth::CheckTokens(
 	/// an array of tokens to be checked
 	const H225_ArrayOf_ClearToken & tokens,
 	/// aliases for the endpoint that generated the tokens
-	const H225_ArrayOf_AliasAddress * aliases)
+	const H225_ArrayOf_AliasAddress * aliases,
+    /// map of authentication parameters
+    std::map<PString, PString> & params
+    )
 {
 	for (PINDEX i = 0; i < tokens.GetSize(); i++) {
 		H235_ClearToken & token = tokens[i];
@@ -1281,7 +1288,7 @@ int SimplePasswordAuth::CheckTokens(
 				return e_ok;
 
 			PString passwd;
-			if (!InternalGetPassword(id, passwd)) {
+			if (!InternalGetPassword(id, passwd, params)) {
 				PTRACE(3, "GKAUTH\t" << GetName() << " password not found for '" << id << '\'');
 				return e_fail;
 			}
@@ -1300,7 +1307,10 @@ int SimplePasswordAuth::CheckCryptoTokens(
 	/// aliases for the endpoint that generated the tokens
 	const H225_ArrayOf_AliasAddress * aliases,
 	/// allow any sendersID (eg. in RRQ)
-	bool acceptAnySendersID)
+	bool acceptAnySendersID,
+    /// map of authentication parameters
+    std::map<PString, PString> & params
+	)
 {
 	for (PINDEX i = 0; i < tokens.GetSize(); i++) {
 		if (tokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdHash) {
@@ -1319,7 +1329,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
 				return e_ok;
 
 			PString passwd;
-			if (!InternalGetPassword(id, passwd)) {
+			if (!InternalGetPassword(id, passwd, params)) {
 				PTRACE(3, "GKAUTH\t" << GetName() << " password not found for '" << id << '\'');
 				return e_fail;
 			}
@@ -1382,7 +1392,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
 
             // lookup password
 			PString passwd;
-            bool passwordFound = InternalGetPassword(sendersID, passwd);    // check if we have a password fro sendersID first
+            bool passwordFound = InternalGetPassword(sendersID, passwd, params); // check if we have a password for sendersID first
 
 			if (passwordFound) {
                 PTRACE(3, "GKAUTH\t" << GetName() << " Authenticating user " << sendersID);
@@ -1401,7 +1411,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
 				// check all endpoint aliases for a password
 				for (PINDEX i = 0; i < epAliases.GetSize(); i++) {
 					PString id = H323GetAliasAddressString(epAliases[i]);
-					passwordFound = InternalGetPassword(id, passwd);
+					passwordFound = InternalGetPassword(id, passwd, params);
 					if (passwordFound) {
                         PTRACE(3, "GKAUTH\t" << GetName() << " Authenticating user " << id);
                         // TODO235: set sendersID = id so the right id is set for H323Plus authenticator ????
@@ -1434,7 +1444,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
 			PString id, passwd;
 			for (PINDEX j = 0; j < aliases->GetSize(); j++) {
                 // check if we have a password fpr one of the aliases
-                if (InternalGetPassword(AsString(aliases[j], false), passwd)) {
+                if (InternalGetPassword(AsString(aliases[j], false), passwd, params)) {
                     id = AsString(aliases[j], false);
                     break;
                 }
@@ -1463,7 +1473,7 @@ H350PasswordAuth::~H350PasswordAuth()
 {
 }
 
-bool H350PasswordAuth::GetPassword(const PString & alias, PString & password)
+bool H350PasswordAuth::GetPassword(const PString & alias, PString & password, std::map<PString, PString> & params)
 {
 	// search the directory
 	PString search = GkConfig()->GetString(H350Section, "SearchBaseDN", "");
@@ -2269,7 +2279,9 @@ protected:
 		/// alias to check the password for
 		const PString & alias,
 		/// password string, if the match is found
-		PString & password
+		PString & password,
+		/// map of authentication parameters
+		std::map<PString, PString> & params
 		);
 
 private:
@@ -2278,7 +2290,7 @@ private:
 	HttpPasswordAuth & operator=(const HttpPasswordAuth &);
 
 protected:
-	PURL m_url;
+	PString m_url;
 	PString m_host;
 	PString m_body;
 	PCaselessString m_method;
@@ -2291,7 +2303,7 @@ HttpPasswordAuth::HttpPasswordAuth(const char* authName)
 	: SimplePasswordAuth(authName)
 {
 	m_url = GkConfig()->GetString("HttpPasswordAuth", "URL", "");
-	m_host = m_url.GetHostName();
+	m_host = PURL(m_url).GetHostName();
 	m_body = GkConfig()->GetString("HttpPasswordAuth", "Body", "");
 	m_method = GkConfig()->GetString("HttpPasswordAuth", "Method", "POST");
 	PString resultRegex = GkConfig()->GetString("HttpPasswordAuth", "ResultRegex", ".");
@@ -2319,13 +2331,11 @@ HttpPasswordAuth::~HttpPasswordAuth()
 {
 }
 
-bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password)
+bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, std::map<PString, PString> & params)
 {
     PHTTPClient http;
     PString result;
-	std::map<PString, PString> params;
-	params["u"] = alias;
-	params["g"] = Toolkit::GKName();
+
     PString url = ReplaceAuthParams(m_url, params);
     PString body = ReplaceAuthParams(m_body, params);
 

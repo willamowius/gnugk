@@ -2,7 +2,7 @@
 //
 // gkauth.h
 //
-// Copyright (c) 2001-2016, Jan Willamowius
+// Copyright (c) 2001-2017, Jan Willamowius
 //
 // Gatekeeper authentication modules
 //
@@ -669,7 +669,7 @@ public:
 
 	virtual ~SimplePasswordAuth();
 
-	// overriden from class GkAuthenticator
+	// overridden from class GkAuthenticator
 	virtual int Check(RasPDU<H225_UnregistrationRequest> & req, unsigned & rejectReason);
 	virtual int Check(RasPDU<H225_BandwidthRequest> & req, unsigned & rejectReason);
 	virtual int Check(RasPDU<H225_DisengageRequest> & req, unsigned & rejectReason);
@@ -729,7 +729,8 @@ protected:
 	*/
 	virtual bool GetPassword(
 		const PString & id, /// get the password for this id
-		PString & passwd /// filled with the password on return
+		PString & passwd, /// filled with the password on return
+		std::map<PString, PString> & params /// map of authentication parameters
 		);
 
 	/** Validate username/password carried inside the tokens. This method
@@ -746,7 +747,10 @@ protected:
 		/// an array of tokens to be checked
 		const H225_ArrayOf_ClearToken & tokens,
 		/// aliases for the endpoint that generated the tokens
-		const H225_ArrayOf_AliasAddress * aliases);
+		const H225_ArrayOf_AliasAddress * aliases,
+		/// map of authentication parameters
+		std::map<PString, PString> & params
+		);
 
 	/** Validate username/password carried inside the tokens.
 
@@ -763,7 +767,10 @@ protected:
 		/// aliases for the endpoint that generated the tokens
 		const H225_ArrayOf_AliasAddress * aliases,
         /// allow any sendersID (eg. in RRQ)
-        bool acceptAnySendersID = false);
+        bool acceptAnySendersID,
+		/// map of authentication parameters
+		std::map<PString, PString> & params
+		);
 
 
     int doCheck(const Q931 & msg, Q931AuthData & authData) {
@@ -803,8 +810,28 @@ protected:
 			return GetDefaultStatus();
 		}
 
-		if (CheckTokens(auth, *tokens, &authData.m_aliases) == e_fail
-			|| CheckCryptoTokens(auth, *cryptoTokens, &authData.m_aliases) == e_fail) {
+		std::map<PString, PString> params;
+        params["g"] = Toolkit::GKName();
+        params["caller-ip"] = AsString(authData.m_peerAddr);
+        params["called-ip"] = "unknown"; // TODO
+        params["message"] = Q931MessageName(msg.GetMessageType());
+        params["caller-product-name"] = "unknown";
+        params["caller-product-version"] = "unknown";
+        if (msg.GetMessageType() == Q931::SetupMsg) {
+            H225_Setup_UUIE & setupBody = uuie.m_h323_uu_pdu.m_h323_message_body;
+            if (setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_vendor)) {
+                if (setupBody.m_sourceInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)) {
+                    params["caller-product-name"] = setupBody.m_sourceInfo.m_vendor.m_productId.AsString();
+                }
+                if (setupBody.m_sourceInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_versionId)) {
+                     params["caller-product-version"] = setupBody.m_sourceInfo.m_vendor.m_versionId.AsString();
+                }
+            }
+        }
+        params["caller-vendor"] = params["caller-product-name"] + " " + params["caller-product-version"];
+
+		if (CheckTokens(auth, *tokens, &authData.m_aliases, params) == e_fail
+			|| CheckCryptoTokens(auth, *cryptoTokens, &authData.m_aliases, false, params) == e_fail) {
 			return e_fail;
 		}
 
@@ -834,23 +861,55 @@ protected:
 		/// Registration Auth data
 		GkH235Authenticators * & auth)
 	{
+		H225_ArrayOf_ClearToken emptyTokens;
+		H225_ArrayOf_CryptoH323Token emptyCryptoTokens;
+		const H225_ArrayOf_ClearToken * tokens = &emptyTokens;
+		const H225_ArrayOf_CryptoH323Token * cryptoTokens = &emptyCryptoTokens;
+
 		const RAS & req = request;
-		const H225_ArrayOf_ClearToken & tokens = req.m_tokens;
-		const H225_ArrayOf_CryptoH323Token & cryptoTokens = req.m_cryptoTokens;
+		if (req.HasOptionalField(RAS::e_tokens))
+            tokens = &req.m_tokens;
+		if (req.HasOptionalField(RAS::e_cryptoTokens))
+            cryptoTokens = &req.m_cryptoTokens;
 		// can't check sendersID on some messages (eg. for RRQ we don't know the aliases or endpointID, yet)
 		bool acceptAnySendersID = (request.GetTag() == H225_RasMessage::e_registrationRequest)
                                 || (request.GetTag() == H225_RasMessage::e_locationRequest)
                                 || (request.GetTag() == H225_RasMessage::e_infoRequest);
 
-		if (CheckTokens(auth, tokens, aliases) == e_fail
-			|| CheckCryptoTokens(auth, cryptoTokens, aliases, acceptAnySendersID) == e_fail) {
+		std::map<PString, PString> params;
+        params["g"] = Toolkit::GKName();
+        PIPSocket::Address callerIP;
+        request.GetPeerAddr(callerIP);
+        params["caller-ip"] = AsString(callerIP);
+        params["message"] = request.GetTagName();
+        params["caller-product-name"] = "unknown";
+        params["caller-product-version"] = "unknown";
+        if (request.GetMsg() != NULL) {
+            params["called-ip"] = AsString(request.GetMsg()->m_localAddr);
+            if (request.GetTag() == H225_RasMessage::e_registrationRequest) {
+                RasPDU<H225_RegistrationRequest> ras_rrq(new GatekeeperMessage(*request.GetMsg()));
+                H225_RegistrationRequest & rrq = ras_rrq;
+                if (rrq.m_terminalType.HasOptionalField(H225_EndpointType::e_vendor)) {
+                    if (rrq.m_terminalType.m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)) {
+                        params["caller-product-name"] = rrq.m_terminalType.m_vendor.m_productId.AsString();
+                    }
+                    if (rrq.m_terminalType.m_vendor.HasOptionalField(H225_VendorIdentifier::e_versionId)) {
+                        params["caller-product-version"] = rrq.m_terminalType.m_vendor.m_versionId.AsString();
+                    }
+                }
+            }
+        }
+        params["caller-vendor"] = params["caller-product-name"] + " " + params["caller-product-version"];
+
+		if (CheckTokens(auth, *tokens, aliases, params) == e_fail
+			|| CheckCryptoTokens(auth, *cryptoTokens, aliases, acceptAnySendersID, params) == e_fail) {
 			return e_fail;
 		}
 
 		if (auth == NULL)
 			return GetDefaultStatus();
 
-		int result = auth->Validate((const H225_RasMessage&)req, tokens, cryptoTokens, request->m_rasPDU);
+		int result = auth->Validate((const H225_RasMessage&)req, *tokens, *cryptoTokens, request->m_rasPDU);
 		if (result == H235Authenticator::e_OK)
 			return e_ok;
 		else {
@@ -859,6 +918,7 @@ protected:
 			return e_fail;
 		}
 	}
+
 
 	/// Set new timeout for username/password pairs cache
 	void SetCacheTimeout(long newTimeout) { m_cache->SetTimeout(newTimeout); }
@@ -871,7 +931,8 @@ private:
     */
 	bool InternalGetPassword(
 		const PString & id, /// get the password for this id
-		PString & passwd /// filled with the password on return
+		PString & passwd, /// filled with the password on return
+		std::map<PString, PString> & params /// map of authentication parameters
 		);
 
 	SimplePasswordAuth();
@@ -914,7 +975,9 @@ protected:
 		/// alias to check the password for
 		const PString & alias,
 		/// password string, if the match is found
-		PString & password
+		PString & password,
+		/// map of authentication parameters
+		std::map<PString, PString> & params
 		);
 };
 
