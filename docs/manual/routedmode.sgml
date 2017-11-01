@@ -207,6 +207,8 @@ If you set the switch to "Calling", the DisplayIE of the calling party is set to
 and with "Called" the respective is done to DisplayIEs from the called party.
 "Setting it to "CallingCalled" rewrites all DisplayIEs to the Calling/CalledStationID.
 
+If you set the switch to "Delete" all DisplayIEs will be removed.
+
 <item><tt/AppendToDisplayIE=SomeText/<newline>
 Default: <tt>N/A</tt><newline>
 <p>

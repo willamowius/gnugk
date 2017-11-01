@@ -2442,7 +2442,10 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
                 }
 			}
 		}
-		if (!newDisplayIE.IsEmpty()) {
+        if (screenDisplayIE == PCaselessString("Delete")) {
+			msg->GetQ931().RemoveIE(Q931::DisplayIE);
+			msg->SetChanged();
+		} else if (!newDisplayIE.IsEmpty()) {
             PTRACE(4, "Q931\tSetting DisplayIE to " << newDisplayIE);
 			msg->GetQ931().SetDisplayName(newDisplayIE);
 			msg->SetChanged();

@@ -1,5 +1,6 @@
 Changes from 4.7 to 4.8
 =======================
+- delete DisplayIE when [RoutedMode] ScreenDisplayIE=Delete
 - extend parameters for HttpPasswordAuth
 - new switch [RoutedMode] AppendToCallingPartyNumberIE= to append any string to the
   calling party number IE when ScreenCallingPartyNumberIE=RegisteredAlias
