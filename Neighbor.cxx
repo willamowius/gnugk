@@ -265,7 +265,7 @@ private:
 
 class NeighborPingThread : public PThread, public RasRequester {
 public:
-	NeighborPingThread(Neighbor * nb) : PThread(5000, AutoDeleteThread), m_nb(nb), m_stopThread(false) { }
+	NeighborPingThread(Neighbor * nb) : PThread(5000, AutoDeleteThread, NormalPriority, "NeighborPingThread"), m_nb(nb), m_stopThread(false) { }
 	virtual ~NeighborPingThread() { }
 	virtual void Main();
     virtual void Process(RasMsg * ras);

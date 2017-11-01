@@ -137,7 +137,7 @@ Worker::Worker(
 	/// timeout (seconds) for this Worker to be deleted, if idle
 	long idleTimeout
 	)
-	: PThread(5000, AutoDeleteThread),
+	: PThread(5000, AutoDeleteThread, NormalPriority, "Worker"),
 	m_idleTimeout(idleTimeout*1000), m_closed(false), m_job(NULL), m_id(0),
 	m_agent(agent)
 {

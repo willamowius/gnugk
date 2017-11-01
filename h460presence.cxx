@@ -65,7 +65,7 @@ private:
 };
 
 PresWorker::PresWorker(GkPresence * _handler , int _waitTime)
-: PThread(5000, AutoDeleteThread), handler(_handler), waitTime(_waitTime), processNow(false), shutDown(false)
+: PThread(5000, AutoDeleteThread, NormalPriority, "PresenceWorker"), handler(_handler), waitTime(_waitTime), processNow(false), shutDown(false)
 {
 	PTRACE(4, "PRES\tPresence Thread instance fire every " << waitTime << " sec");
 	Resume();
