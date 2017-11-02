@@ -1242,6 +1242,7 @@ bool SimplePasswordAuth::InternalGetPassword(
     std::map<PString, PString> & params /// map of authentication parameters
 	)
 {
+    PTRACE(0, "JW InternalGetPassword id=" << id);
     params["u"] = id;
 
 	if (m_cache->Retrieve(id, passwd)) {
@@ -1443,7 +1444,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
 
 			PString id, passwd;
 			for (PINDEX j = 0; j < aliases->GetSize(); j++) {
-                // check if we have a password fpr one of the aliases
+                // check if we have a password for one of the aliases
                 if (InternalGetPassword(AsString(aliases[j], false), passwd, params)) {
                     id = AsString(aliases[j], false);
                     break;
