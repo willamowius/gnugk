@@ -686,7 +686,6 @@ PString GkAuthenticator::GetInfo()
 	return "No information available\r\n";
 }
 
-// TODO: This method causes a signed-overflow warning in object.h when compiling with GCC 5. Why ?
 PString GkAuthenticator::ReplaceAuthParams(
 	/// parametrized string
 	const PString & str,
@@ -700,8 +699,9 @@ PString GkAuthenticator::ReplaceAuthParams(
 
 	while (pos != P_MAX_INDEX && pos < len) {
 		pos = finalStr.Find('%', pos);
-		if (pos++ == P_MAX_INDEX)
+		if (pos == P_MAX_INDEX || pos++ == P_MAX_INDEX)
 			break;
+
 		if (pos >= len) // strings ending with '%' - special case
 			break;
 		const char c = finalStr[pos]; // char next after '%'
