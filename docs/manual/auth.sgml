@@ -1797,6 +1797,7 @@ This section defines fow to fetch password information from an HTTP server.
 Default: <tt>N/A</tt>
 <p>
 The URL to fetch the passwords from. You can use the paremeters specified below to parameterize the URL.
+Currently GnuGk expects the cleartext password in the response.
 
 <item><tt/Body=user=%u/<newline>
 Default: <tt>empty</tt>
