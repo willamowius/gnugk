@@ -777,7 +777,7 @@ Changes from 2.2.6 to 2.2.7
 - BUGFIX SRV policy correctly detects E.164 number.
 - BUGFIX Radius module now sent public IP of endpoints behind NAT.
 - new switches [RoutedMode] GenerateCallProceeding, UseProvisionalRespToH245Tunneling (experimental)
-- new SQLAUth variable %{CallId}
+- new SQLAuth variable %{CallId}
 - BUGFIX(RasTbl.*,SoftPBX.cxx) status port commands (find,disconnectcall,transfercall) could influence round-robin order
 - enable auto-reconnect for MySQL >= 5.0
 - BUGFIX(capctrl.cxx) counters were incorrectly updated for H.323ID and CLI rules
