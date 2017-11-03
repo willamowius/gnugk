@@ -1802,12 +1802,12 @@ Currently GnuGk expects the cleartext password in the response.
 <item><tt/Body=user=%u/<newline>
 Default: <tt>empty</tt>
 <p>
-The HTTP body to use with PUT requests. You can use the paremeters specified below to parameterize the URL.
+The HTTP body to use with POST requests. You can use the paremeters specified below to parameterize the URL.
 
 <item><tt/Method=GET/<newline>
 Default: <tt>N/A</tt>
 <p>
-HTTP method to use. Currently GET and PUT are supported.
+HTTP method to use. Currently GET and POST are supported.
 
 <item><tt/ResultRegex=[0-9]+/<newline>
 Default: <tt>.</tt>
