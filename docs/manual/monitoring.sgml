@@ -869,7 +869,7 @@ Number of Neighbors: 2
 </itemize>
 
 
-<sect1>Messages (Reference)
+<sect1>Messages / Events (Reference)
 <p>The section describes the messages output to the status interface.
 
 <itemize>
