@@ -2421,8 +2421,11 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
         PString appendToDisplayIE = GkConfig()->GetString(RoutedSec, "AppendToDisplayIE", "");
 		if (m_crv & 0x8000u) {	// only rewrite DisplayIE from caller
             if (m_call) {
-                if (!m_call->GetCallerID().IsEmpty()) {
+                if (!m_call->GetCallerID().IsEmpty() || !m_call->GetDisplayIE().IsEmpty()) {
                     newDisplayIE = m_call->GetCallerID();
+                    if (!m_call->GetDisplayIE().IsEmpty()) {
+                        newDisplayIE = m_call->GetDisplayIE();
+                    }
                 } else if (screenDisplayIE != PCaselessString("Called")) {
                     newDisplayIE = screenDisplayIE + appendToDisplayIE;
                 }
@@ -3541,6 +3544,7 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 		m_call->SetToParent(true);
 	m_call->SetBindHint(request.GetSourceIP());
 	m_call->SetCallerID(request.GetCallerID());
+	m_call->SetDisplayIE(request.GetDisplayIE());
 	if (route.m_useTLS)
 		m_call->SetConnectWithTLS(true);
 
@@ -4662,6 +4666,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 #endif
 		call->SetBindHint(request.GetSourceIP());
 		call->SetCallerID(request.GetCallerID());
+		call->SetDisplayIE(request.GetDisplayIE());
 		call->SetCallingVendor(callingVendor, callingVersion);
 
 #ifdef HAS_H46018
@@ -8193,8 +8198,11 @@ ProxySocket::Result CallSignalSocket::RetrySetup()
         PString newDisplayIE;
         PString screenDisplayIE = GkConfig()->GetString(RoutedSec, "ScreenDisplayIE", "");
         PString appendToDisplayIE = GkConfig()->GetString(RoutedSec, "AppendToDisplayIE", "");
-        if (!m_call->GetCallerID().IsEmpty()) {
+        if (!m_call->GetCallerID().IsEmpty() || !m_call->GetDisplayIE().IsEmpty()) {
             newDisplayIE = m_call->GetCallerID();
+            if (!m_call->GetDisplayIE().IsEmpty()) {
+                newDisplayIE = m_call->GetDisplayIE();
+            }
         } else if (screenDisplayIE != PCaselessString("Called")) {
             newDisplayIE = screenDisplayIE + appendToDisplayIE;
         }

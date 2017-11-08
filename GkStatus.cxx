@@ -1880,9 +1880,20 @@ void StatusClient::ExecCommand(
 				args[1] = "";	// "-" is empty agent
 			args[4].Replace("-", " ", true);
 			args[4] = args[4].Trim();
+			if (args[5] == "-")
+                args[5] = ""; // "-" is empty callerID
 			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], "", args[2], args[3].AsUnsigned(), args[4], "", args[5]);
+		} else if (args.GetSize() == 7) {
+			if (args[1] == "-")
+				args[1] = "";	// "-" is empty agent
+			args[4].Replace("-", " ", true);
+			args[4] = args[4].Trim();
+			if (args[5] == "-")
+                args[5] = ""; // "-" is empty callerID
+			args[6].Replace("+", " ", true); // restore spaces in displayIE
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], "", args[2], args[3].AsUnsigned(), args[4], "", args[5], false, false, args[6]);
 		} else
-			CommandError("Syntax Error: RouteToAlias TARGET_ALIAS CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID]]");
+			CommandError("Syntax Error: RouteToAlias TARGET_ALIAS CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID [DISPLAY-IE]]]");
 		break;
 	case GkStatus::e_RouteToGateway:
 		if (args.GetSize() == 5) {
@@ -1894,9 +1905,18 @@ void StatusClient::ExecCommand(
 		} else if (args.GetSize() == 7) {
 			args[5].Replace("-", " ", true);
 			args[5] = args[5].Trim();
+			if (args[6] == "-")
+                args[6] = ""; // "-" is empty callerID
 			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], args[2], args[3], args[4].AsUnsigned(), args[5], "", args[6]);
+		} else if (args.GetSize() == 8) {
+			args[5].Replace("-", " ", true);
+			args[5] = args[5].Trim();
+			if (args[6] == "-")
+                args[6] = ""; // "-" is empty callerID
+			args[7].Replace("+", " ", true); // restore spaces in displayIE
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], args[2], args[3], args[4].AsUnsigned(), args[5], "", args[6], false, false, args[7]);
 		} else
-			CommandError("Syntax Error: RouteToGateway TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID]]");
+			CommandError("Syntax Error: RouteToGateway TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID [DISPLAY-IE]]]");
 		break;
 	case GkStatus::e_RouteToInternalGateway:
 		if (args.GetSize() == 5) {
@@ -1908,9 +1928,18 @@ void StatusClient::ExecCommand(
 		} else if (args.GetSize() == 7) {
 			args[5].Replace("-", " ", true);
 			args[5] = args[5].Trim();
+			if (args[6] == "-")
+                args[6] = ""; // "-" is empty callerID
 			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], args[2], args[3], args[4].AsUnsigned(), args[5], "", args[6], false, true);
+		} else if (args.GetSize() == 8) {
+			args[5].Replace("-", " ", true);
+			args[5] = args[5].Trim();
+			if (args[6] == "-")
+                args[6] = ""; // "-" is empty callerID
+			args[7].Replace("+", " ", true); // restore spaces in displayIE
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[1], args[2], args[3], args[4].AsUnsigned(), args[5], "", args[6], false, true, args[7]);
 		} else
-			CommandError("Syntax Error: RouteToInternalGateway TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID]]");
+			CommandError("Syntax Error: RouteToInternalGateway TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID [DISPLAY-IE]]]");
 		break;
 	case GkStatus::e_BindAndRouteToGateway:
 		if (args.GetSize() == 6) {
@@ -1922,9 +1951,18 @@ void StatusClient::ExecCommand(
 		} else if (args.GetSize() == 8) {
 			args[6].Replace("-", " ", true);
 			args[6] = args[6].Trim();
+			if (args[7] == "-")
+                args[7] = ""; // "-" is empty callerID
 			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[2], args[3], args[4], args[5].AsUnsigned(), args[6], args[1], args[7]);
+		} else if (args.GetSize() == 9) {
+			args[6].Replace("-", " ", true);
+			args[6] = args[6].Trim();
+			if (args[7] == "-")
+                args[7] = ""; // "-" is empty callerID
+			args[8].Replace("+", " ", true); // restore spaces in displayIE
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[2], args[3], args[4], args[5].AsUnsigned(), args[6], args[1], args[7], false, false, args[8]);
 		} else
-			CommandError("Syntax Error: BindAndRouteToGateway BIND_IP TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID]]");
+			CommandError("Syntax Error: BindAndRouteToGateway BIND_IP TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID [DISPLAY-IE]]]");
 		break;
 	case GkStatus::e_BindAndRouteToInternalGateway:
 		if (args.GetSize() == 6) {
@@ -1936,9 +1974,18 @@ void StatusClient::ExecCommand(
 		} else if (args.GetSize() == 8) {
 			args[6].Replace("-", " ", true);
 			args[6] = args[6].Trim();
+			if (args[7] == "-")
+                args[7] = ""; // "-" is empty callerID
 			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[2], args[3], args[4], args[5].AsUnsigned(), args[6], args[1], args[7], false, true);
+		} else if (args.GetSize() == 9) {
+			args[6].Replace("-", " ", true);
+			args[6] = args[6].Trim();
+			if (args[7] == "-")
+                args[7] = ""; // "-" is empty callerID
+			args[8].Replace("+", " ", true); // restore spaces in displayIE
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(args[2], args[3], args[4], args[5].AsUnsigned(), args[6], args[1], args[7], false, true, args[8]);
 		} else
-			CommandError("Syntax Error: BindAndRouteToInternalGateway BIND_IP TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID]]");
+			CommandError("Syntax Error: BindAndRouteToInternalGateway BIND_IP TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID [DISPLAY-IE]]]");
 		break;
 	case GkStatus::e_RouteReject:
 		if (args.GetSize() == 3) {

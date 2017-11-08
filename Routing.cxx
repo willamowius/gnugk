@@ -1020,6 +1020,8 @@ bool VirtualQueue::SendRouteRequest(
 	PString * bindIP,
 	/// caller ID
 	PString * callerID,
+	/// Display IE
+	PString * displayIE,
 	/// should the call be rejected modified by this function on return)
 	bool & reject,
     /// don't communicate updated route to caller
@@ -1043,7 +1045,7 @@ bool VirtualQueue::SendRouteRequest(
 {
 	bool result = false;
 	bool duprequest = false;
-	if (RouteRequest * r = InsertRequest(epid, crv, callID, destinationInfo, callSigAdr, bindIP, callerID, duprequest)) {
+	if (RouteRequest * r = InsertRequest(epid, crv, callID, destinationInfo, callSigAdr, bindIP, callerID, displayIE, duprequest)) {
 		PString cid = callID;
 		cid.Replace(" ", "-", true);
         PString vs = vendorString;
@@ -1119,7 +1121,9 @@ bool VirtualQueue::RouteToAlias(
 	/// should this call be rejected
 	bool reject,
     /// don't communicate updated route to caller
-    bool keepRouteInternal
+    bool keepRouteInternal,
+    /// Display IE or empty
+    const PString & displayIE
 	)
 {
 	PWaitAndSignal lock(m_listMutex);
@@ -1145,6 +1149,7 @@ bool VirtualQueue::RouteToAlias(
 					*(r->m_callsignaladdr) = destinationip;
 				*(r->m_sourceIP) = bindIP;	// BindAndRouteToGateway
 				*(r->m_callerID) = callerID;
+				*(r->m_displayIE) = displayIE;
 				r->m_keepRouteInternal = keepRouteInternal;  // RouteToInternalGateway
 			}
 			r->m_reject = reject;
@@ -1190,7 +1195,9 @@ bool VirtualQueue::RouteToAlias(
 	/// should this call be rejected
 	bool reject,
     /// don't communicate updated route to caller
-    bool keepRouteInternal
+    bool keepRouteInternal,
+    /// Display IE or empty
+    const PString & displayIE
 	)
 {
 	H225_ArrayOf_AliasAddress alias;
@@ -1198,7 +1205,7 @@ bool VirtualQueue::RouteToAlias(
 		alias.SetSize(1);
 		H323SetAliasAddress(targetAlias, alias[0]);
 	}
-	return RouteToAlias(alias, destinationIp, callingEpId, crv, callID, bindIP, callerID, reject, keepRouteInternal);
+	return RouteToAlias(alias, destinationIp, callingEpId, crv, callID, bindIP, callerID, reject, keepRouteInternal, displayIE);
 }
 
 bool VirtualQueue::RouteReject(
@@ -1231,6 +1238,8 @@ VirtualQueue::RouteRequest* VirtualQueue::InsertRequest(
 	PString * bindIP,
 	/// caller ID
 	PString * callerID,
+	/// Display IE
+	PString * displayIE,
 	/// set by the function to true if another route request for the same
 	/// call is pending
 	bool & duplicate
@@ -1257,7 +1266,7 @@ VirtualQueue::RouteRequest* VirtualQueue::InsertRequest(
 	}
 
 	// insert the new pending route request
-	RouteRequest* r = new RouteRequest(callingEpId, crv, callID, agent, callSigAdr, bindIP, callerID);
+	RouteRequest* r = new RouteRequest(callingEpId, crv, callID, agent, callSigAdr, bindIP, callerID, displayIE);
 	m_pendingRequests.push_back(r);
 	return r;
 }
@@ -1292,6 +1301,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 			PString * callSigAdr = new PString();
 			PString * bindIP = new PString();
 			PString * callerID = new PString();
+			PString * displayIE = new PString();
 			PString calledIP = "unknown";
 			PString vendorInfo;
 			if (arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
@@ -1314,7 +1324,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
             PString fromIP = AsString(remoteAddr, remotePort);
             bool keepRouteInternal = false;
 
-			if (m_vqueue->SendRouteRequest(source, epid, unsigned(arq.m_callReferenceValue), aliases, callSigAdr, bindIP, callerID, reject, keepRouteInternal,
+			if (m_vqueue->SendRouteRequest(source, epid, unsigned(arq.m_callReferenceValue), aliases, callSigAdr, bindIP, callerID, displayIE, reject, keepRouteInternal,
                 vq, AsString(arq.m_srcInfo), AsString(arq.m_callIdentifier.m_guid), calledIP, vendorInfo, fromIP, "ARQ")) {
                 if (keepRouteInternal) {
                     request.SetNewSetupInternalAliases(*request.GetAliases());
@@ -1327,6 +1337,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 			}
 			request.SetSourceIP(*bindIP);
 			request.SetCallerID(*callerID);
+			request.SetDisplayIE(*displayIE);
 			if (!callSigAdr->IsEmpty()) {
 				if (!arq.HasOptionalField(H225_AdmissionRequest::e_destCallSignalAddress)) {
 					arq.IncludeOptionalField(H225_AdmissionRequest::e_destCallSignalAddress);
@@ -1339,6 +1350,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 			delete callSigAdr;
 			delete bindIP;
 			delete callerID;
+			delete displayIE;
 		}
 		// the trick: if empty, the request is rejected
 		// so we return true to terminate the routing
@@ -1381,6 +1393,7 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 			PString * callSigAdr = new PString(); /* unused for LRQs */
 			PString * bindIP = new PString();
 			PString * callerID = new PString();
+			PString * displayIE = new PString();
 			PString sourceInfo = "";
 			if (lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo) && (lrq.m_sourceInfo.GetSize() > 0))
 				sourceInfo = AsString(lrq.m_sourceInfo);
@@ -1393,7 +1406,7 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
             PString fromIP = AsString(remoteAddr, remotePort);
             bool keepRouteInternal = false;
 
-			if (m_vqueue->SendRouteRequest(source, epid, unsigned(lrq.m_requestSeqNum), aliases, callSigAdr, bindIP, callerID, reject, keepRouteInternal,
+			if (m_vqueue->SendRouteRequest(source, epid, unsigned(lrq.m_requestSeqNum), aliases, callSigAdr, bindIP, callerID, displayIE, reject, keepRouteInternal,
                 vq, sourceInfo, callID, calledIP, vendorString, fromIP, "LRQ")) {
                 if (!keepRouteInternal) {
                     request.SetFlag(RoutingRequest::e_aliasesChanged);
@@ -1404,6 +1417,7 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 			}
 			request.SetSourceIP(*bindIP);
 			request.SetCallerID(*callerID);
+			request.SetDisplayIE(*displayIE);
 			if (!reject && !callSigAdr->IsEmpty()) {
 				// 'explicit' policy can't handle LRQs, so we do it directly
 				PStringArray adr_parts = SplitIPAndPort(*callSigAdr, GK_DEF_ENDPOINT_SIGNAL_PORT);
@@ -1417,11 +1431,13 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 				delete callSigAdr;
 				delete bindIP;
 				delete callerID;
+				delete displayIE;
 				return true;	// stop processing
 			}
 			delete callSigAdr;
 			delete bindIP;
 			delete callerID;
+			delete displayIE;
 			// the trick: if empty, the request is rejected
 			// so we return true to terminate the routing
 			// decision process, otherwise the aliases is
@@ -1451,6 +1467,7 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 		PString * callSigAdr = new PString();
 		PString * bindIP = new PString();
 		PString * callerID = new PString();
+		PString * displayIE = new PString();
 		PString callid = AsString(setup.m_callIdentifier.m_guid);
 		PString src;
 		if (!request.GetCallingStationId().IsEmpty()) {
@@ -1483,7 +1500,7 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 		PTRACE(5, "Routing\tPolicy " << m_name << " destination matched "
 			"a virtual queue " << vq << " (Setup " << crv << ')');
 
-		if (m_vqueue->SendRouteRequest(callerip, epid, crv, aliases, callSigAdr, bindIP, callerID, reject, keepRouteInternal,
+		if (m_vqueue->SendRouteRequest(callerip, epid, crv, aliases, callSigAdr, bindIP, callerID, displayIE, reject, keepRouteInternal,
             vq, src, callid, calledIP, vendorInfo, fromIP, "Setup")) {
 			request.SetFlag(RoutingRequest::e_aliasesChanged);
         }
@@ -1515,6 +1532,7 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 		delete callSigAdr;
 		delete bindIP;
 		delete callerID;
+		delete displayIE;
 		// the trick: if empty, the request is rejected
 		// so we return true to terminate the routing
 		// decision process, otherwise the aliases is

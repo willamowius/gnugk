@@ -127,6 +127,8 @@ public:
 	PString GetSourceIP() const { return m_sourceIP; }
 	void SetCallerID(const PString & id) { m_callerID = id; }
 	PString GetCallerID() const { return m_callerID; }
+	void SetDisplayIE(const PString & display) { m_displayIE = display; }
+	PString GetDisplayIE() const { return m_displayIE; }
 	void SetGatewayDestination(const H225_TransportAddress & gw) { m_gwDestination = gw; }
 	bool GetGatewayDestination(H225_TransportAddress & gw ) const;
 
@@ -149,6 +151,7 @@ private:
 	std::list<Route> m_failedRoutes;
 	PString m_sourceIP;
 	PString m_callerID;
+	PString m_displayIE;
 	H225_TransportAddress m_gwDestination;
 	PString m_serviceType;
 	/// new destination alias for this call, to be applied to Setup when it comes in
@@ -657,12 +660,14 @@ public:
 		PString * bindIP,
 		/// caller ID
 		PString * callerID,
+		/// DisplayIE
+		PString * displayIE,
 		/// should the call be rejected modified by this function on return)
 		bool & reject,
         /// don't communicate updated route to caller
         bool & keepRouteInternal,
 		/// an actual virtual queue name (should be present in destinationInfo too)
-		const PString& vqueue,
+		const PString & vqueue,
 		/// a sequence of aliases for the calling endpoint
 		/// (in the "alias:type[=alias:type]..." format)
 		const PString & sourceInfo,
@@ -704,7 +709,9 @@ public:
 		/// should this call be rejected
 		bool reject = false,
         /// don't communicate updated route to caller
-        bool keepRouteInternal = false
+        bool keepRouteInternal = false,
+        /// Display IE or empty
+        const PString & displayIE = PString::Empty()
 		);
 
 	/** Make a routing decision for a pending route request (inserted
@@ -732,7 +739,9 @@ public:
 		/// should this call be rejected
 		bool reject = false,
         /// don't communicate updated route to caller
-        bool keepRouteInternal = false
+        bool keepRouteInternal = false,
+        /// Display IE or empty
+        const PString & displayIE = PString::Empty()
 		);
 
 	/** Reject a pending route request (inserted by SendRequest).
@@ -767,12 +776,13 @@ private:
 			H225_ArrayOf_AliasAddress * agent,
 			PString * callsignaladdr,
 			PString * bindIP,
-			PString * callerID
+			PString * callerID,
+			PString * displayIE
 			)
 			:
 			m_callingEpId((const char*)callingEpId), m_crv(crv), m_callID(callID),
 			m_agent(agent), m_callsignaladdr(callsignaladdr), m_sourceIP(bindIP),
-			m_callerID(callerID), m_reject(false), m_keepRouteInternal(false) { }
+			m_callerID(callerID), m_displayIE(displayIE), m_reject(false), m_keepRouteInternal(false) { }
 
 		/// identifier for the endpoint associated with this request
 		PString m_callingEpId;
@@ -789,6 +799,8 @@ private:
 		PString * m_sourceIP;
 		/// callerID or empty
 		PString * m_callerID;
+		/// Display IE or empty
+		PString * m_displayIE;
 		/// should this call be rejected
 		bool m_reject;
         /// don't communicate changed route to caller
@@ -817,6 +829,8 @@ private:
 		PString * bindIP,
 		/// caller ID
 		PString * callerID,
+		/// Display IE
+		PString * displayIE,
 		/// set by the function to true if another route request for the same
 		/// call is pending
 		bool & duplicate

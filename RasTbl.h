@@ -1364,6 +1364,9 @@ public:
 	void SetCallerID(const PString & id) { m_callerID = id; }
 	PString GetCallerID() const { return m_callerID; }
 
+	void SetDisplayIE(const PString & display) { m_displayIE = display; }
+	PString GetDisplayIE() const { return m_displayIE; }
+
 	void AddDynamicPort(const DynamicPort & port);
 	void RemoveDynamicPort(const DynamicPort & port);
 
@@ -1621,6 +1624,7 @@ private:
 	bool m_callfromTraversalServer;
 	CallLeg m_rerouteDirection;
 	PString m_callerID;	// forced caller ID or empty
+	PString m_displayIE;	// forced Display IE or empty
 	PMutex m_portListMutex;
 	list<DynamicPort> m_dynamicPorts;
 	// should we use TLS on the outgoing leg, incoming determined by port caller uses
