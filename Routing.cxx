@@ -1508,8 +1508,9 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 		if (reject) {
 			request.SetFlag(RoutingRequest::e_Reject);
 		}
-		request.SetSourceIP(*bindIP);
-		request.SetCallerID(*callerID);
+        request.SetSourceIP(*bindIP);
+        request.SetCallerID(*callerID);
+        request.SetDisplayIE(*displayIE);
 		if (!reject && callSigAdr->IsEmpty()) {
 			if (!setup.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
 				setup.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
