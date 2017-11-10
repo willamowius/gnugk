@@ -31,7 +31,7 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 	// Set the various options
 	DisableFastStart(true);
 	DisableH245Tunneling(GkConfig()->GetBoolean("CTI::MakeCall", "DisableH245Tunneling", false));
-	m_bandwidth = GkConfig()->GetInteger("CTI::MakeCall", "Bandwidth", 386);
+	m_bandwidth = GkConfig()->GetInteger("CTI::MakeCall", "Bandwidth", 384);
 	m_rateMultiplier = ceil((float)m_bandwidth / 64);
 
 	// Set the default codecs
