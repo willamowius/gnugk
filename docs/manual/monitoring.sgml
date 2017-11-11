@@ -643,9 +643,10 @@ Depending on the message causing the RouteRequest, the reason is interpreted as 
 <tscreen><verb>
 RouteReject CallingEndpointID CallRef [CallID [reason]]
 </verb></tscreen>
-<tag/Example:/
+<tag/Examples:/
 <tscreen><verb>
 RouteReject endp_4711 1234
+RouteReject - - 40-06-dd-98-22-37-52-40-8c-b0-92-0e-18-60-99-07 2
 </verb></tscreen>
 </descrip>
 
