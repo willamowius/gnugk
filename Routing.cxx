@@ -1024,6 +1024,8 @@ bool VirtualQueue::SendRouteRequest(
 	PString * displayIE,
 	/// should the call be rejected modified by this function on return)
 	bool & reject,
+	/// H.225 ReleaseComplete reason
+	unsigned & rejectReason,
     /// don't communicate updated route to caller
     bool & keepRouteInternal,
 	/// actual virtual queue name (should be present in destinationInfo too)
@@ -1073,6 +1075,7 @@ bool VirtualQueue::SendRouteRequest(
 		// wait for an answer from the status line (routetoalias,routetogateway,routereject)
 		result = r->m_sync.Wait(m_requestTimeout);
 		reject = r->m_reject;   // set reject status
+		rejectReason = r->m_rejectReason;
 		keepRouteInternal = r->m_keepRouteInternal;
 		m_listMutex.Wait();
 		m_pendingRequests.remove(r);
@@ -1123,7 +1126,9 @@ bool VirtualQueue::RouteToAlias(
     /// don't communicate updated route to caller
     bool keepRouteInternal,
     /// Display IE or empty
-    const PString & displayIE
+    const PString & displayIE,
+    /// H.225 ReleaseComplete reason (only valid on reject)
+    unsigned reason
 	)
 {
 	PWaitAndSignal lock(m_listMutex);
@@ -1153,6 +1158,7 @@ bool VirtualQueue::RouteToAlias(
 				r->m_keepRouteInternal = keepRouteInternal;  // RouteToInternalGateway
 			}
 			r->m_reject = reject;
+			r->m_rejectReason = reason;
 			r->m_sync.Signal();
 			if (!foundrequest) {
 				foundrequest = true;
@@ -1197,7 +1203,9 @@ bool VirtualQueue::RouteToAlias(
     /// don't communicate updated route to caller
     bool keepRouteInternal,
     /// Display IE or empty
-    const PString & displayIE
+    const PString & displayIE,
+    /// H.225 ReleaseComplete reason
+    unsigned reason
 	)
 {
 	H225_ArrayOf_AliasAddress alias;
@@ -1214,11 +1222,13 @@ bool VirtualQueue::RouteReject(
 	/// CRV of the call associated with the route request
 	unsigned crv,
 	/// callID of the call associated with the route request
-	const PString & callID
+	const PString & callID,
+	/// H.225 ReleaseComplete reason
+	unsigned reason
 	)
 {
 	H225_ArrayOf_AliasAddress nullAgent;
-	return RouteToAlias(nullAgent, "", callingEpId, crv, callID, "", "", true);
+	return RouteToAlias(nullAgent, "", callingEpId, crv, callID, "", "", true, false, "", reason);
 }
 
 VirtualQueue::RouteRequest* VirtualQueue::InsertRequest(
@@ -1286,6 +1296,7 @@ bool VirtualQueuePolicy::IsActive() const
 bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 {
 	bool reject = false;
+	unsigned rejectReason = request.GetRejectReason();
 	H225_ArrayOf_AliasAddress * aliases = NULL;
 	PString vq = "";
 	if ((aliases = request.GetAliases()))
@@ -1324,12 +1335,13 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
             PString fromIP = AsString(remoteAddr, remotePort);
             bool keepRouteInternal = false;
 
-			if (m_vqueue->SendRouteRequest(source, epid, unsigned(arq.m_callReferenceValue), aliases, callSigAdr, bindIP, callerID, displayIE, reject, keepRouteInternal,
+			if (m_vqueue->SendRouteRequest(source, epid, unsigned(arq.m_callReferenceValue), aliases, callSigAdr, bindIP, callerID, displayIE, reject, rejectReason, keepRouteInternal,
                 vq, AsString(arq.m_srcInfo), AsString(arq.m_callIdentifier.m_guid), calledIP, vendorInfo, fromIP, "ARQ")) {
                 if (keepRouteInternal) {
                     request.SetNewSetupInternalAliases(*request.GetAliases());
                 } else {
                     request.SetFlag(RoutingRequest::e_aliasesChanged);
+                    request.SetRejectReason(rejectReason);
                 }
             }
 			if (reject) {
@@ -1366,6 +1378,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 {
 	bool reject = false;
+	unsigned rejectReason = request.GetRejectReason();
 	if (H225_ArrayOf_AliasAddress *aliases = request.GetAliases()) {
 		const PString vq(AsString((*aliases)[0], false));
 		if (m_vqueue->IsDestinationVirtualQueue(vq)) {
@@ -1406,7 +1419,7 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
             PString fromIP = AsString(remoteAddr, remotePort);
             bool keepRouteInternal = false;
 
-			if (m_vqueue->SendRouteRequest(source, epid, unsigned(lrq.m_requestSeqNum), aliases, callSigAdr, bindIP, callerID, displayIE, reject, keepRouteInternal,
+			if (m_vqueue->SendRouteRequest(source, epid, unsigned(lrq.m_requestSeqNum), aliases, callSigAdr, bindIP, callerID, displayIE, reject, rejectReason, keepRouteInternal,
                 vq, sourceInfo, callID, calledIP, vendorString, fromIP, "LRQ")) {
                 if (!keepRouteInternal) {
                     request.SetFlag(RoutingRequest::e_aliasesChanged);
@@ -1414,6 +1427,7 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
             }
 			if (reject) {
 				request.SetFlag(RoutingRequest::e_Reject);
+                request.SetRejectReason(rejectReason);
 			}
 			request.SetSourceIP(*bindIP);
 			request.SetCallerID(*callerID);
@@ -1453,6 +1467,7 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 {
 	bool reject = false;
+	unsigned rejectReason = request.GetRejectReason();
 	H225_ArrayOf_AliasAddress * aliases = new H225_ArrayOf_AliasAddress;
 	aliases->SetSize(1);
 	PString vq = "";
@@ -1500,13 +1515,14 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 		PTRACE(5, "Routing\tPolicy " << m_name << " destination matched "
 			"a virtual queue " << vq << " (Setup " << crv << ')');
 
-		if (m_vqueue->SendRouteRequest(callerip, epid, crv, aliases, callSigAdr, bindIP, callerID, displayIE, reject, keepRouteInternal,
+		if (m_vqueue->SendRouteRequest(callerip, epid, crv, aliases, callSigAdr, bindIP, callerID, displayIE, reject, rejectReason, keepRouteInternal,
             vq, src, callid, calledIP, vendorInfo, fromIP, "Setup")) {
 			request.SetFlag(RoutingRequest::e_aliasesChanged);
         }
 
 		if (reject) {
 			request.SetFlag(RoutingRequest::e_Reject);
+            request.SetRejectReason(rejectReason);
 		}
         request.SetSourceIP(*bindIP);
         request.SetCallerID(*callerID);

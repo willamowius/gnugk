@@ -1994,8 +1994,12 @@ void StatusClient::ExecCommand(
 			args[3].Replace("-", " ", true);
 			args[3] = args[3].Trim();
 			RasServer::Instance()->GetVirtualQueue()->RouteReject(args[1], args[2].AsUnsigned(), args[3]);
+		} else if (args.GetSize() == 5) {
+			args[3].Replace("-", " ", true);
+			args[3] = args[3].Trim();
+			RasServer::Instance()->GetVirtualQueue()->RouteReject(args[1], args[2].AsUnsigned(), args[3], args[4].AsUnsigned());
 		} else
-			CommandError("Syntax Error: RouteReject CALLING_ENDPOINT_ID CRV [CALLID]");
+			CommandError("Syntax Error: RouteReject CALLING_ENDPOINT_ID CRV [CALLID [REASON]]");
 		break;
 	case GkStatus::e_Trace:
 		if (args.GetSize() == 2) {

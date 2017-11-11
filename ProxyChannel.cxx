@@ -4588,9 +4588,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 				// eg. via canMapAlias in LRQ
 				if (request.GetFlags() & Routing::SetupRequest::e_aliasesChanged) {
 					if (request.GetFlags() & Routing::SetupRequest::e_Reject) {
-						PTRACE(3, Type() << "\tRejecting unregistered call "
-							<< callid << " from " << Name()
-							);
+						PTRACE(3, Type() << "\tRejecting unregistered call " << callid << " from " << Name());
 						authData.m_rejectReason = request.GetRejectReason();
 						rejectCall = true;
 					} else {

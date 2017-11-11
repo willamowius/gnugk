@@ -664,6 +664,8 @@ public:
 		PString * displayIE,
 		/// should the call be rejected modified by this function on return)
 		bool & reject,
+        /// H.225 ReleaseComplete reason
+        unsigned & rejectReason,
         /// don't communicate updated route to caller
         bool & keepRouteInternal,
 		/// an actual virtual queue name (should be present in destinationInfo too)
@@ -711,7 +713,9 @@ public:
         /// don't communicate updated route to caller
         bool keepRouteInternal = false,
         /// Display IE or empty
-        const PString & displayIE = PString::Empty()
+        const PString & displayIE = PString::Empty(),
+		/// H.225 ReleaseComplete reason
+		unsigned reason = H225_ReleaseCompleteReason::e_calledPartyNotRegistered
 		);
 
 	/** Make a routing decision for a pending route request (inserted
@@ -741,7 +745,9 @@ public:
         /// don't communicate updated route to caller
         bool keepRouteInternal = false,
         /// Display IE or empty
-        const PString & displayIE = PString::Empty()
+        const PString & displayIE = PString::Empty(),
+		/// H.225 ReleaseComplete reason
+		unsigned reason = H225_ReleaseCompleteReason::e_calledPartyNotRegistered
 		);
 
 	/** Reject a pending route request (inserted by SendRequest).
@@ -755,7 +761,9 @@ public:
 		/// CRV of the call associated with the route request
 		unsigned crv,
 		/// callID of the call associated with the route request
-		const PString & callID
+		const PString & callID,
+		/// H.225 ReleaseComplete reason
+		unsigned reason = H225_ReleaseCompleteReason::e_calledPartyNotRegistered
 		);
 
 	/** @return
@@ -782,7 +790,9 @@ private:
 			:
 			m_callingEpId((const char*)callingEpId), m_crv(crv), m_callID(callID),
 			m_agent(agent), m_callsignaladdr(callsignaladdr), m_sourceIP(bindIP),
-			m_callerID(callerID), m_displayIE(displayIE), m_reject(false), m_keepRouteInternal(false) { }
+			m_callerID(callerID), m_displayIE(displayIE),
+			m_reject(false), m_rejectReason(H225_ReleaseCompleteReason::e_calledPartyNotRegistered),
+			m_keepRouteInternal(false) { }
 
 		/// identifier for the endpoint associated with this request
 		PString m_callingEpId;
@@ -803,6 +813,8 @@ private:
 		PString * m_displayIE;
 		/// should this call be rejected
 		bool m_reject;
+        /// H.225 ReleaseComplete reason
+        unsigned m_rejectReason;
         /// don't communicate changed route to caller
         bool m_keepRouteInternal;
 		/// a synchronization point for signaling that routing decision

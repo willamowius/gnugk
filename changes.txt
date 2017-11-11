@@ -1,5 +1,6 @@
 Changes from 4.7 to 4.8
 =======================
+- extend status port command RouteReject to set reject reason
 - extend status port commands RouteToAlias, RouteToGateway etc. to set display IE
 - delete DisplayIE when [RoutedMode] ScreenDisplayIE=Delete
 - extend parameters for HttpPasswordAuth

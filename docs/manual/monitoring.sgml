@@ -635,10 +635,13 @@ This command is used as a response to a RouteRequest event (see below).
 CallingEndpointID and CallRef must be passed back as they are in the corresponding RouteRequest.
 The CallID parameter is optional; if it is given it has to be the same format as
 signaled by RouteRequest.
+You can optionally also set the numeric H.225 reject reason. If you do so, the callID parameter must be present.
+Depending on the message causing the RouteRequest, the reason is interpreted as ReleaseCompleteReason or ARQRejectReason.
+
 <descrip>
 <tag/Format:/
 <tscreen><verb>
-RouteReject CallingEndpointID CallRef [CallID]
+RouteReject CallingEndpointID CallRef [CallID [reason]]
 </verb></tscreen>
 <tag/Example:/
 <tscreen><verb>
