@@ -126,8 +126,8 @@ private:
 
 class TCPProxySocket : public ServerSocket, public ProxySocket {
 public:
-    enum H225KeepAliveMethod { TPKTH225, EmptyFacility, Information, Notify, Status, StatusInquiry };
-    enum H245KeepAliveMethod { TPKTH245, UserInput };
+    enum H225KeepAliveMethod { TPKTH225, EmptyFacility, Information, Notify, Status, StatusInquiry, NoneH225 };
+    enum H245KeepAliveMethod { TPKTH245, UserInput, NoneH245 };
 
 	TCPProxySocket(const char * t, TCPProxySocket * s = NULL, WORD p = 0);
 	virtual ~TCPProxySocket();

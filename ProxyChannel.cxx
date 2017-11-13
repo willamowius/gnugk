@@ -1277,7 +1277,7 @@ TCPProxySocket::TCPProxySocket(const char * t, TCPProxySocket * s, WORD p)
 {
     PCaselessString str;
     // H.225: default to empty TPKT like standard says
-    str = GkConfig()->GetString(RoutedSec, "H460KeepAliveMethodH225", "TPKT");
+    str = GkConfig()->GetString(RoutedSec, "H460KeepAliveMethodH225", "EmptyFacility");
     m_h460KeepAliveMethodH225 = TPKTH225;
     if (str == "TPKT") {
         m_h460KeepAliveMethodH225 = TPKTH225;
@@ -1291,6 +1291,8 @@ TCPProxySocket::TCPProxySocket(const char * t, TCPProxySocket * s, WORD p)
         m_h460KeepAliveMethodH225 = Status;
     } else if (str == "StatusInquiry") {
         m_h460KeepAliveMethodH225 = StatusInquiry;
+    } else if (str == "None") {
+        m_nonStdKeepAliveMethodH225 = NoneH225;
     } else {
         PTRACE(1, "Error: Unknown H.460 Keepalive method for H.225: " << str);
     }
@@ -1308,6 +1310,8 @@ TCPProxySocket::TCPProxySocket(const char * t, TCPProxySocket * s, WORD p)
         m_nonStdKeepAliveMethodH225 = Status;
     } else if (str == "StatusInquiry") {
         m_nonStdKeepAliveMethodH225 = StatusInquiry;
+    } else if (str == "None") {
+        m_nonStdKeepAliveMethodH225 = NoneH225;
     } else {
         PTRACE(1, "Error: Unknown GnuGk Keepalive method for H.225: " << str);
     }
@@ -1319,6 +1323,8 @@ TCPProxySocket::TCPProxySocket(const char * t, TCPProxySocket * s, WORD p)
         m_h460KeepAliveMethodH245 = TPKTH245;
     } else if (str == "UserInput") {
         m_h460KeepAliveMethodH245 = UserInput;
+    } else if (str == "None") {
+        m_h460KeepAliveMethodH245 = NoneH245;
     } else {
         PTRACE(1, "Error: Unknown H.460 Keepalive method for H.245: " << str);
     }
@@ -1328,6 +1334,8 @@ TCPProxySocket::TCPProxySocket(const char * t, TCPProxySocket * s, WORD p)
         m_nonStdKeepAliveMethodH245 = TPKTH245;
     } else if (str == "UserInput") {
         m_nonStdKeepAliveMethodH245 = UserInput;
+    } else if (str == "None") {
+        m_nonStdKeepAliveMethodH245 = NoneH245;
     } else {
         PTRACE(1, "Error: Unknown GnuGk Keepalive method for H.245: " << str);
     }
@@ -1510,6 +1518,9 @@ void TCPProxySocket::SendKeepAlive(GkTimer * timer)
             case UserInput:
                 h245sock->SendH245KeepAlive();
                 break;
+            case NoneH245:
+                // do nothing
+                break;
         }
     } else {
         CallSignalSocket * sig_sock = dynamic_cast<CallSignalSocket*>(this);
@@ -1547,6 +1558,9 @@ void TCPProxySocket::SendKeepAlive(GkTimer * timer)
                 if (sig_sock != NULL) {
                     sig_sock->SendStatusInquiryKeepAlive();
                 }
+                break;
+            case NoneH225:
+                // do nothing
                 break;
         }
 	}
