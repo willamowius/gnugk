@@ -7449,6 +7449,30 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 						}
 						uuie->m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
 					}
+                    // screen displayIE
+                    if (q931pdu->HasIE(Q931::DisplayIE)) {
+                        PString newDisplayIE;
+                        PString screenDisplayIE = GkConfig()->GetString(RoutedSec, "ScreenDisplayIE", "");
+                        PString appendToDisplayIE = GkConfig()->GetString(RoutedSec, "AppendToDisplayIE", "");
+                        if (!m_call->GetCallerID().IsEmpty() || !m_call->GetDisplayIE().IsEmpty()) {
+                            newDisplayIE = m_call->GetCallerID();
+                            if (!m_call->GetDisplayIE().IsEmpty()) {
+                                newDisplayIE = m_call->GetDisplayIE();
+                            }
+                        } else if (screenDisplayIE != PCaselessString("Called")) {
+                            newDisplayIE = screenDisplayIE + appendToDisplayIE;
+                        }
+                        if (screenDisplayIE == PCaselessString("Calling") || screenDisplayIE == PCaselessString("CallingCalled")) {
+                            if (m_call) {
+                                newDisplayIE = m_call->GetCallingStationId() + appendToDisplayIE;
+                            }
+                        }
+                        if (!newDisplayIE.IsEmpty()) {
+                            PTRACE(4, "Q931\tSetting DisplayIE to " << newDisplayIE);
+                            q931pdu->SetDisplayName(newDisplayIE);
+                        }
+                    }
+
 					setup->SetUUIEChanged();
 
 					if (HandleH245Address(setupBody))
