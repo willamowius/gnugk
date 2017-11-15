@@ -127,8 +127,10 @@ public:
 	PString GetSourceIP() const { return m_sourceIP; }
 	void SetCallerID(const PString & id) { m_callerID = id; }
 	PString GetCallerID() const { return m_callerID; }
-	void SetDisplayIE(const PString & display) { m_displayIE = display; }
-	PString GetDisplayIE() const { return m_displayIE; }
+	void SetCallerDisplayIE(const PString & display) { m_callerDisplayIE = display; }
+	PString GetCallerDisplayIE() const { return m_callerDisplayIE; }
+	void SetCalledDisplayIE(const PString & display) { m_calledDisplayIE = display; }
+	PString GetCalledDisplayIE() const { return m_calledDisplayIE; }
 	void SetGatewayDestination(const H225_TransportAddress & gw) { m_gwDestination = gw; }
 	bool GetGatewayDestination(H225_TransportAddress & gw ) const;
 
@@ -151,7 +153,8 @@ private:
 	std::list<Route> m_failedRoutes;
 	PString m_sourceIP;
 	PString m_callerID;
-	PString m_displayIE;
+	PString m_callerDisplayIE;
+	PString m_calledDisplayIE;
 	H225_TransportAddress m_gwDestination;
 	PString m_serviceType;
 	/// new destination alias for this call, to be applied to Setup when it comes in
@@ -660,8 +663,10 @@ public:
 		PString * bindIP,
 		/// caller ID
 		PString * callerID,
-		/// DisplayIE
-		PString * displayIE,
+		/// DisplayIE of caller
+		PString * callerDisplayIE,
+		/// DisplayIE of called party
+		PString * calledDisplayIE,
 		/// should the call be rejected modified by this function on return)
 		bool & reject,
         /// H.225 ReleaseComplete reason
@@ -714,6 +719,8 @@ public:
         bool keepRouteInternal = false,
         /// Display IE or empty
         const PString & displayIE = PString::Empty(),
+        /// Display IE of called party or empty
+        const PString & calledDisplayIE = PString::Empty(),
 		/// H.225 ReleaseComplete reason
 		unsigned reason = H225_ReleaseCompleteReason::e_calledPartyNotRegistered
 		);
@@ -746,6 +753,8 @@ public:
         bool keepRouteInternal = false,
         /// Display IE or empty
         const PString & displayIE = PString::Empty(),
+        /// Display IE of called party or empty
+        const PString & calledDisplayIE = PString::Empty(),
 		/// H.225 ReleaseComplete reason
 		unsigned reason = H225_ReleaseCompleteReason::e_calledPartyNotRegistered
 		);
@@ -785,12 +794,13 @@ private:
 			PString * callsignaladdr,
 			PString * bindIP,
 			PString * callerID,
-			PString * displayIE
+			PString * callerDisplayIE,
+			PString * calledDisplayIE
 			)
 			:
 			m_callingEpId((const char*)callingEpId), m_crv(crv), m_callID(callID),
 			m_agent(agent), m_callsignaladdr(callsignaladdr), m_sourceIP(bindIP),
-			m_callerID(callerID), m_displayIE(displayIE),
+			m_callerID(callerID), m_callerDisplayIE(callerDisplayIE), m_calledDisplayIE(calledDisplayIE),
 			m_reject(false), m_rejectReason(H225_ReleaseCompleteReason::e_calledPartyNotRegistered),
 			m_keepRouteInternal(false) { }
 
@@ -809,8 +819,10 @@ private:
 		PString * m_sourceIP;
 		/// callerID or empty
 		PString * m_callerID;
-		/// Display IE or empty
-		PString * m_displayIE;
+		/// Display IE of caller or empty
+		PString * m_callerDisplayIE;
+		/// Display IE of called party or empty
+		PString * m_calledDisplayIE;
 		/// should this call be rejected
 		bool m_reject;
         /// H.225 ReleaseComplete reason
@@ -841,8 +853,10 @@ private:
 		PString * bindIP,
 		/// caller ID
 		PString * callerID,
-		/// Display IE
-		PString * displayIE,
+		/// Display IE of caller
+		PString * callerDisplayIE,
+		/// Display IE of called
+		PString * calledDisplayIE,
 		/// set by the function to true if another route request for the same
 		/// call is pending
 		bool & duplicate

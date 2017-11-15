@@ -1292,7 +1292,7 @@ TCPProxySocket::TCPProxySocket(const char * t, TCPProxySocket * s, WORD p)
     } else if (str == "StatusInquiry") {
         m_h460KeepAliveMethodH225 = StatusInquiry;
     } else if (str == "None") {
-        m_nonStdKeepAliveMethodH225 = NoneH225;
+        m_h460KeepAliveMethodH225 = NoneH225;
     } else {
         PTRACE(1, "Error: Unknown H.460 Keepalive method for H.225: " << str);
     }
@@ -2433,12 +2433,12 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		PString newDisplayIE;
         PString screenDisplayIE = GkConfig()->GetString(RoutedSec, "ScreenDisplayIE", "");
         PString appendToDisplayIE = GkConfig()->GetString(RoutedSec, "AppendToDisplayIE", "");
-		if (m_crv & 0x8000u) {	// only rewrite DisplayIE from caller
+		if (m_crv & 0x8000u) {	// rewrite DisplayIE from caller
             if (m_call) {
-                if (!m_call->GetCallerID().IsEmpty() || !m_call->GetDisplayIE().IsEmpty()) {
+                if (!m_call->GetCallerID().IsEmpty() || !m_call->GetCallerDisplayIE().IsEmpty()) {
                     newDisplayIE = m_call->GetCallerID();
-                    if (!m_call->GetDisplayIE().IsEmpty()) {
-                        newDisplayIE = m_call->GetDisplayIE();
+                    if (!m_call->GetCallerDisplayIE().IsEmpty()) {
+                        newDisplayIE = m_call->GetCallerDisplayIE();
                     }
                 } else if (screenDisplayIE != PCaselessString("Called")) {
                     newDisplayIE = screenDisplayIE + appendToDisplayIE;
@@ -2450,14 +2450,18 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
                 }
 			}
 		} else {
-            if (screenDisplayIE != PCaselessString("Calling")) {
-                newDisplayIE = screenDisplayIE + appendToDisplayIE;
-            }
-			if (screenDisplayIE == PCaselessString("Called") || screenDisplayIE == PCaselessString("CallingCalled")) {
-                if (m_call) {
-                    newDisplayIE = m_call->GetCalledStationId() + appendToDisplayIE;
+            if (m_call) {
+                if (!m_call->GetCalledDisplayIE().IsEmpty()) {
+                    newDisplayIE = m_call->GetCalledDisplayIE();
+                } else if (screenDisplayIE != PCaselessString("Calling")) {
+                    newDisplayIE = screenDisplayIE + appendToDisplayIE;
                 }
-			}
+                if (screenDisplayIE == PCaselessString("Called") || screenDisplayIE == PCaselessString("CallingCalled")) {
+                    if (m_call) {
+                        newDisplayIE = m_call->GetCalledStationId() + appendToDisplayIE;
+                    }
+                }
+            }
 		}
         if (screenDisplayIE == PCaselessString("Delete")) {
 			msg->GetQ931().RemoveIE(Q931::DisplayIE);
@@ -3558,7 +3562,8 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 		m_call->SetToParent(true);
 	m_call->SetBindHint(request.GetSourceIP());
 	m_call->SetCallerID(request.GetCallerID());
-	m_call->SetDisplayIE(request.GetDisplayIE());
+	m_call->SetCallerDisplayIE(request.GetCallerDisplayIE());
+	m_call->SetCalledDisplayIE(request.GetCalledDisplayIE());
 	if (route.m_useTLS)
 		m_call->SetConnectWithTLS(true);
 
@@ -4678,7 +4683,8 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 #endif
 		call->SetBindHint(request.GetSourceIP());
 		call->SetCallerID(request.GetCallerID());
-		call->SetDisplayIE(request.GetDisplayIE());
+		call->SetCallerDisplayIE(request.GetCallerDisplayIE());
+		call->SetCalledDisplayIE(request.GetCalledDisplayIE());
 		call->SetCallingVendor(callingVendor, callingVersion);
 
 #ifdef HAS_H46018
@@ -7454,10 +7460,10 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
                         PString newDisplayIE;
                         PString screenDisplayIE = GkConfig()->GetString(RoutedSec, "ScreenDisplayIE", "");
                         PString appendToDisplayIE = GkConfig()->GetString(RoutedSec, "AppendToDisplayIE", "");
-                        if (!m_call->GetCallerID().IsEmpty() || !m_call->GetDisplayIE().IsEmpty()) {
+                        if (!m_call->GetCallerID().IsEmpty() || !m_call->GetCallerDisplayIE().IsEmpty()) {
                             newDisplayIE = m_call->GetCallerID();
-                            if (!m_call->GetDisplayIE().IsEmpty()) {
-                                newDisplayIE = m_call->GetDisplayIE();
+                            if (!m_call->GetCallerDisplayIE().IsEmpty()) {
+                                newDisplayIE = m_call->GetCallerDisplayIE();
                             }
                         } else if (screenDisplayIE != PCaselessString("Called")) {
                             newDisplayIE = screenDisplayIE + appendToDisplayIE;
@@ -8234,10 +8240,10 @@ ProxySocket::Result CallSignalSocket::RetrySetup()
         PString newDisplayIE;
         PString screenDisplayIE = GkConfig()->GetString(RoutedSec, "ScreenDisplayIE", "");
         PString appendToDisplayIE = GkConfig()->GetString(RoutedSec, "AppendToDisplayIE", "");
-        if (!m_call->GetCallerID().IsEmpty() || !m_call->GetDisplayIE().IsEmpty()) {
+        if (!m_call->GetCallerID().IsEmpty() || !m_call->GetCallerDisplayIE().IsEmpty()) {
             newDisplayIE = m_call->GetCallerID();
-            if (!m_call->GetDisplayIE().IsEmpty()) {
-                newDisplayIE = m_call->GetDisplayIE();
+            if (!m_call->GetCallerDisplayIE().IsEmpty()) {
+                newDisplayIE = m_call->GetCallerDisplayIE();
             }
         } else if (screenDisplayIE != PCaselessString("Called")) {
             newDisplayIE = screenDisplayIE + appendToDisplayIE;

@@ -1,9 +1,9 @@
 Changes from 4.7 to 4.8
 =======================
 - new default: [RoutedMode] H460KeepAliveMethodH225=EmptyFacility for Cisco interop
-- new setting "None" for H.225 and H.245 keep-alive methods
+- new setting "None" for keep-alive methods
 - extend status port command RouteReject to set reject reason
-- extend status port commands RouteToAlias, RouteToGateway etc. to set display IE
+- extend status port commands RouteToAlias, RouteToGateway etc. to set display IE for calling and called
 - delete DisplayIE when [RoutedMode] ScreenDisplayIE=Delete
 - extend parameters for HttpPasswordAuth
 - new switch [RoutedMode] AppendToCallingPartyNumberIE= to append any string to the

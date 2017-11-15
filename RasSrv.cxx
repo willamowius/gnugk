@@ -3473,7 +3473,8 @@ bool AdmissionRequestPDU::Process()
             pCallRec->SetNewSetupInternalAliases(arq.GetNewSetupInternalAliases());
         }
 		pCallRec->SetCallerID(arq.GetCallerID());
-		pCallRec->SetDisplayIE(arq.GetDisplayIE());
+		pCallRec->SetCallerDisplayIE(arq.GetCallerDisplayIE());
+		pCallRec->SetCalledDisplayIE(arq.GetCalledDisplayIE());
 		if (CalledEP) {
 			pCallRec->SetCalled(CalledEP);
 		} else {
