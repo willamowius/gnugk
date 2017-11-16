@@ -1242,7 +1242,6 @@ bool SimplePasswordAuth::InternalGetPassword(
     std::map<PString, PString> & params /// map of authentication parameters
 	)
 {
-    PTRACE(0, "JW InternalGetPassword id=" << id);
     params["u"] = id;
 
 	if (m_cache->Retrieve(id, passwd)) {
