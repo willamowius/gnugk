@@ -10120,6 +10120,7 @@ bool MultiplexedRTPHandler::HandlePacket(PUInt32b receivedMultiplexID, const H32
 			iter != m_h46019channels.end() ; ++iter) {
 		if ((iter->m_multiplexID_fromA == receivedMultiplexID)
 			|| (iter->m_multiplexID_fromB == receivedMultiplexID)) {
+			ReadUnlock unlock(m_listLock); // release read lock to avoid possible dead lock
 			iter->HandlePacket(receivedMultiplexID, fromAddress, data, len, isRTCP);
 			return true;
 		}
