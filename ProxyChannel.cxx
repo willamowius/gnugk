@@ -1500,7 +1500,8 @@ bool TCPProxySocket::InternalWrite(const PBYTEArray & buf)
 void TCPProxySocket::SendKeepAlive(GkTimer * timer)
 {
     if (!IsOpen()) {
-        UnregisterKeepAlive();
+        // don't unregister KeepAlive here, we are called from within CheckTimers()
+        // wait until it gets deleted in the d'tor
         return;
     }
     H245Socket * h245sock = dynamic_cast<H245Socket*>(this);
