@@ -4,7 +4,7 @@
  * Generic support for time-based events.
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
- * Copyright (c) 2006-2010, Jan Willamowius
+ * Copyright (c) 2006-2017, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -77,7 +77,7 @@ GkTimerManager::GkTimerManager()
 
 GkTimerManager::GkTimerHandle GkTimerManager::RegisterTimer(
 	void (*timerFunc)(), /// timer function
-	const PTime& tm /// timer expiration time
+	const PTime & tm /// timer expiration time
 	)
 {
 	GkTimer* const t = new GkVoidFuncTimer(tm, timerFunc);
@@ -124,8 +124,7 @@ GkTimerManager::GkTimerHandle GkTimerManager::RegisterTimer(
 bool GkTimerManager::UnregisterTimer(GkTimerManager::GkTimerHandle timer)
 {
 	PWaitAndSignal lock(m_timersMutex);
-	std::list<GkTimerHandle>::iterator i 
-		= find(m_timers.begin(), m_timers.end(), timer);
+	std::list<GkTimerHandle>::iterator i = find(m_timers.begin(), m_timers.end(), timer);
 	if (i != m_timers.end()) {
 		m_timers.erase(i);
 		delete timer;
@@ -133,18 +132,18 @@ bool GkTimerManager::UnregisterTimer(GkTimerManager::GkTimerHandle timer)
 	} else
 		return false;
 }
-	
+
 void GkTimerManager::CheckTimers()
 {
 	PWaitAndSignal lock(m_timersMutex);
 	std::list<GkTimerHandle>::iterator i = m_timers.begin();
 	while (i != m_timers.end()) {
-		GkTimer* timer = *i++;
+		GkTimer * timer = *i++;
 		if (timer->IsExpired()) {
 			timer->SetFired(true);
 			timer->OnTimerExpired();
 			if (timer->IsPeriodic())
-				timer->SetExpirationTime(timer->GetExpirationTime() 
+				timer->SetExpirationTime(timer->GetExpirationTime()
 					+ PTimeInterval(timer->GetInterval() * 1000)
 					);
 		}
