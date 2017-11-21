@@ -642,7 +642,7 @@ bool Toolkit::VirtualRouteTable::CreateTable()
 
 	// If we have an external IP setting then load the detected Route Table and add a route for the external IP
 	// If dynamic IP then only store the PString value and resolve the DNS when required.
-	PString extip = GkConfig()->GetString("ExternalIP", "");
+	PString extip = Toolkit::Instance()->GetExternalIP();
     if (!extip.IsEmpty()) {
         DynExtIP = AsBool(GkConfig()->GetString("ExternalIsDynamic", "0"));
 
@@ -3425,7 +3425,7 @@ GkPresence & Toolkit::GetPresenceHandler()
 
 std::vector<NetworkAddress> Toolkit::GetInternalNetworks() const
 {
-	return !GkConfig()->GetString("ExternalIP", "").IsEmpty() ? m_VirtualRouteTable.GetInternalNetworks() : m_RouteTable.GetInternalNetworks();
+	return !Toolkit::Instance()->GetExternalIP().IsEmpty() ? m_VirtualRouteTable.GetInternalNetworks() : m_RouteTable.GetInternalNetworks();
 }
 
 bool Toolkit::IsSNMPEnabled() const
@@ -3595,6 +3595,24 @@ bool Toolkit::IsGKHome(const PIPSocket::Address & addr) const
 		}
 	}
 	return false;
+}
+
+PString Toolkit::GetExternalIP() const
+{
+    PTRACE(0, "JW GetExternalIP cmdline=" << m_extIPFromCmdLine);
+    if (!m_extIPFromCmdLine.IsEmpty()) {
+        PTRACE(0, "JW GetExternalIP=" << m_extIPFromCmdLine);
+        return m_extIPFromCmdLine;
+    } else {
+        PTRACE(0, "JW GetExternalIP=" << m_Config->GetString("ExternalIP", ""));
+        return m_Config->GetString("ExternalIP", "");
+    }
+}
+
+void Toolkit::SetExternalIPFromCmdLine(const PString & ip)
+{
+    m_extIPFromCmdLine = ip;
+    PTRACE(0, "JW SetExternalIP cmdline=" << m_extIPFromCmdLine);
 }
 
 int Toolkit::GetInternalExtensionCode( const unsigned & country,

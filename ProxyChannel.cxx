@@ -4308,7 +4308,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		}
 #endif
 		//  also remove destCallSigAddr if its the ExternalIP
-		PString extip = GkConfig()->GetString("ExternalIP", "");
+		PString extip = Toolkit::Instance()->GetExternalIP();
 		if (!extip.IsEmpty()) {
 			PIPSocket::Address ext((DWORD)0);
 			H323TransportAddress ex = H323TransportAddress(extip);

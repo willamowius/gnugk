@@ -1421,6 +1421,7 @@ const PString Gatekeeper::GetArgumentsParseString() const
 		 "d-direct."
 		 "l-timetolive:"
 		 "b-bandwidth:"
+		 "e-externalip:"
 #ifdef HAS_SETUSERNAME
 		 "u-user:"
 #endif
@@ -1544,6 +1545,7 @@ void Gatekeeper::PrintOpts()
 		"  -d  --direct       : Use direct endpoint call signaling\n"
 		"  -l  --timetolive n : Time to live for client registration\n"
 		"  -b  --bandwidth n  : Specify the total bandwidth\n"
+		"  -e  --externalip x.x.x.x : Specify the external IP\n"
 #ifdef HAS_SETUSERNAME
 		"  -u  --user name    : Run as this user\n"
 #endif
@@ -1652,6 +1654,18 @@ void Gatekeeper::Main()
 		PrintOpts();
 		ExitGK();
 	}
+
+	// must be set very early before Toolkit get instatiated and does IP detection
+    PString externalIP;
+    if (args.HasOption('e')) {
+        externalIP = args.GetOptionString('e');
+        if (IsIPAddress(externalIP)) {
+            PTRACE(3, "External IP set to " << externalIP);
+            Toolkit::Instance()->SetExternalIPFromCmdLine(externalIP);
+        } else {
+            PTRACE(2, "Invalid external IP: " << externalIP << " (ignored)");
+        }
+    }
 
 	m_strictConfigCheck = args.HasOption('S');
 	if (!InitConfig(args) || !InitHandlers(args)) {

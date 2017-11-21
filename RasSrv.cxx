@@ -231,7 +231,7 @@ RasListener::RasListener(const Address & addr, WORD pt) : UDPSocket(0, addr.GetV
 	m_virtualInterface = (!GkConfig()->GetString("NetworkInterfaces", "").IsEmpty());
 	// Check if we have external IP setting
 	if (!m_virtualInterface) {
-		m_virtualInterface = (!GkConfig()->GetString("ExternalIP", "").IsEmpty());
+		m_virtualInterface = (!Toolkit::Instance()->GetExternalIP().IsEmpty());
 	}
 }
 

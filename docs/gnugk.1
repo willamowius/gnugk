@@ -23,6 +23,7 @@
 .Op Fl s Ar section
 .Op Fl l Ar n
 .Op Fl b Ar n
+.Op Fl e Ar x.x.x.x
 .Op Fl u Ar name
 .Op Fl d Ar name
 .Op Fl rr
@@ -67,6 +68,8 @@ A detailed explanation can be found in the manual.
 .It Fl b -bandwidth Ar n
 Specify the total bandwidth available for the gatekeeper.
 Without specifying this option, bandwidth management is disabled by default.
+.It Fl e -externalip Ar x.x.x.x
+Specify the external IP, overrides [Gatekeeper::Main] ExternalIP=.
 .It Fl -pid Ar filename
 Specify the pid file.
 Only valid for Unix version.

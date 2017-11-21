@@ -128,7 +128,7 @@ class Toolkit : public Singleton<Toolkit>
 		typedef PIPSocket::InterfaceTable InterfaceTable;
 
 	public:
-		RouteTable() : rtable_begin(NULL), rtable_end(NULL), DynExtIP(false), ExtIP("") { /* initialize later */ }
+		RouteTable() : rtable_begin(NULL), rtable_end(NULL), DynExtIP(false) { /* initialize later */ }
 		virtual ~RouteTable() { ClearTable(); }
 		Address GetLocalAddress(unsigned version) const;
 		Address GetLocalAddress(const Address & dest) const;
@@ -457,6 +457,10 @@ class Toolkit : public Singleton<Toolkit>
 	void SetGKHome(const PStringArray &);
 	bool IsGKHome(const PIPSocket::Address & addr) const;
 
+    PString GetExternalIP() const;
+    void SetExternalIPFromCmdLine(const PString & ip);
+
+
 	bool RemoveAllH235Tokens() const { return m_alwaysRemoveH235Tokens; }
 	bool RemoveH235TokensFrom(const PIPSocket::Address & addr) const;
 #ifdef HAS_H235_MEDIA
@@ -768,6 +772,7 @@ private:
 	SSL_CTX * m_sslCtx;
 	PString m_passphrase;
 #endif
+    PString m_extIPFromCmdLine;
 };
 
 
