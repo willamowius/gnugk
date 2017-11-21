@@ -3599,12 +3599,9 @@ bool Toolkit::IsGKHome(const PIPSocket::Address & addr) const
 
 PString Toolkit::GetExternalIP() const
 {
-    PTRACE(0, "JW GetExternalIP cmdline=" << m_extIPFromCmdLine);
     if (!m_extIPFromCmdLine.IsEmpty()) {
-        PTRACE(0, "JW GetExternalIP=" << m_extIPFromCmdLine);
         return m_extIPFromCmdLine;
     } else {
-        PTRACE(0, "JW GetExternalIP=" << m_Config->GetString("ExternalIP", ""));
         return m_Config->GetString("ExternalIP", "");
     }
 }
@@ -3612,7 +3609,6 @@ PString Toolkit::GetExternalIP() const
 void Toolkit::SetExternalIPFromCmdLine(const PString & ip)
 {
     m_extIPFromCmdLine = ip;
-    PTRACE(0, "JW SetExternalIP cmdline=" << m_extIPFromCmdLine);
 }
 
 int Toolkit::GetInternalExtensionCode( const unsigned & country,
