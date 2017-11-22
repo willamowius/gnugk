@@ -3614,7 +3614,7 @@ PString Toolkit::GetExternalIP() const
             } else {
                 ext = "";
             }
-            PTRACE(2, "AWS\tSetting ExternalIP tp " << ext);
+            PTRACE(2, "AWS\tSetting ExternalIP to " << ext);
             // TODO: write to config ?
         }
 #endif // P_HTTP
