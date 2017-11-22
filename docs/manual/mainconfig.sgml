@@ -545,6 +545,8 @@ resolved to an IP address on startup or configuration reload.  If
 <tt>ExternalIsDynamic</tt> is set to true, the name will be stored and
 resolved when needed.
 
+If you set this switch to "AWSPublicIP", GnuGk will fetch the public / elastic IP from AWS meta data.
+
 <item><tt/ExternalIsDynamic=1/<newline>
 Default: <tt/0/<newline>
 <p>

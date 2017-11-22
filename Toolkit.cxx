@@ -15,6 +15,7 @@
 #include <ptlib.h>
 #include <ptclib/pdns.h>
 #include <ptclib/cypher.h>
+#include <ptclib/http.h>
 #include <h323pdu.h>
 #include <map>
 #include <vector>
@@ -3602,7 +3603,22 @@ PString Toolkit::GetExternalIP() const
     if (!m_extIPFromCmdLine.IsEmpty()) {
         return m_extIPFromCmdLine;
     } else {
-        return m_Config->GetString("ExternalIP", "");
+        PCaselessString ext = m_Config->GetString("ExternalIP", "");
+#ifdef P_HTTP
+        if (ext == "AWSPublicIP") {
+            // fetch public / elastic IP from AWS meta data
+            PHTTPClient http;
+            PString result;
+            if (http.GetTextDocument("http://169.254.169.254/latest/meta-data/public-ipv4", result)) {
+                ext = result;
+            } else {
+                ext = "";
+            }
+            PTRACE(2, "AWS\tSetting ExternalIP tp " << ext);
+            // TODO: write to config ?
+        }
+#endif // P_HTTP
+        return ext;
     }
 }
 
