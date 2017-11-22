@@ -459,7 +459,7 @@ class Toolkit : public Singleton<Toolkit>
 
     PString GetExternalIP() const;
     void SetExternalIPFromCmdLine(const PString & ip);
-
+    PString ReplaceGlobalParams(const PString & str);
 
 	bool RemoveAllH235Tokens() const { return m_alwaysRemoveH235Tokens; }
 	bool RemoveH235TokensFrom(const PIPSocket::Address & addr) const;

@@ -223,10 +223,12 @@ When you set the string to <tt>RegisteredAlias</tt>, GnuGk will set it to the fi
 falling back to the first alias if the endpoint doesn't have an E.164 registered
 or the empty string if the endpoint isn't registered.
 
-<item><tt/AppendScreenCallingPartyNumberIE=@example.com/<newline>
+<item><tt/AppendToCallingPartyNumberIE=@example.com/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 Append this string to the CallingPartyNumberIE when <tt>ScreenCallingPartyNumberIE=RegisteredAlias</tt>.
+
+The placeholder %{external-ip} will be replaced by the configured external IP.
 
 <item><tt/ScreenSourceAddress=MyID/<newline>
 Default: <tt>N/A</tt><newline>

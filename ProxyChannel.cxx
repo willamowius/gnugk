@@ -5091,8 +5091,9 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
             } else {
                 cli = oldCLI; // leave as is for unregistered endpoints
             }
-            const PString append = toolkit->Config()->GetString(RoutedSec, "AppendToCallingPartyNumberIE", "");
+            PString append = toolkit->Config()->GetString(RoutedSec, "AppendToCallingPartyNumberIE", "");
             if (!append.IsEmpty()) {
+                append = Toolkit::Instance()->ReplaceGlobalParams(append);
                 cli += append;
             }
 		}

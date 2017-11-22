@@ -3609,6 +3609,14 @@ PString Toolkit::GetExternalIP() const
 void Toolkit::SetExternalIPFromCmdLine(const PString & ip)
 {
     m_extIPFromCmdLine = ip;
+    // TODO: write into config instead so we can read it from the status port ?
+}
+
+PString Toolkit::ReplaceGlobalParams(const PString & str)
+{
+    PString result = str;
+    result.Replace("%{external-ip}", GetExternalIP(), true);
+    return result;
 }
 
 int Toolkit::GetInternalExtensionCode( const unsigned & country,
