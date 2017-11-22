@@ -3615,6 +3615,13 @@ void Toolkit::SetExternalIPFromCmdLine(const PString & ip)
 PString Toolkit::ReplaceGlobalParams(const PString & str)
 {
     PString result = str;
+    vector<PIPSocket::Address> interfaces;
+	GetGKHome(interfaces);
+
+    if (interfaces.empty())
+		result.Replace("%{gkip}", "", true);
+	else
+		result.Replace("%{gkip}", interfaces.front().AsString(), true);
     result.Replace("%{external-ip}", GetExternalIP(), true);
     return result;
 }

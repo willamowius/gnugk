@@ -159,6 +159,7 @@ void GkAcctLogger::SetupAcctParams(
 		params["gkip"] = "";
 	else
 		params["gkip"] = interfaces.front().AsString();
+    // TODO: set gkip to ExternalIP if set ?
 	params["CallId"] = ::AsString(call->GetCallIdentifier().m_guid);
 	params["ConfId"] = ::AsString(call->GetConferenceIdentifier());
 	params["CallLink"] = call->GetCallLinkage();

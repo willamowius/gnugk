@@ -228,7 +228,11 @@ Default: <tt>N/A</tt><newline>
 <p>
 Append this string to the CallingPartyNumberIE when <tt>ScreenCallingPartyNumberIE=RegisteredAlias</tt>.
 
-The placeholder %{external-ip} will be replaced by the configured external IP.
+The following placeholders will be replaced:
+<itemize>
+<item><tt/%{gkip}/ - IP address of the gatekeeper
+<item><tt/%{external-ip}/ - external IP, if configured
+</itemize>
 
 <item><tt/ScreenSourceAddress=MyID/<newline>
 Default: <tt>N/A</tt><newline>
