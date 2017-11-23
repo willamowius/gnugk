@@ -14529,6 +14529,7 @@ void ProxyHandler::OnStart()
 {
 	if (m_proxyHandlerHighPrio) {
 		PThread::Current()->SetPriority(PThread::HighPriority);
+		// TODO: check with GetPriority() if it worked and set m_proxyHandlerHighPrio=false if it didn't so we only get 1 error message in the trace ?
 	}
 }
 
