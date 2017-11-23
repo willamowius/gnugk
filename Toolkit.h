@@ -772,7 +772,6 @@ private:
 	SSL_CTX * m_sslCtx;
 	PString m_passphrase;
 #endif
-    PString m_extIPFromCmdLine;
 };
 
 

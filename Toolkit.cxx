@@ -3600,32 +3600,29 @@ bool Toolkit::IsGKHome(const PIPSocket::Address & addr) const
 
 PString Toolkit::GetExternalIP() const
 {
-    if (!m_extIPFromCmdLine.IsEmpty()) {
-        return m_extIPFromCmdLine;
-    } else {
-        PCaselessString ext = m_Config->GetString("ExternalIP", "");
+
+    PCaselessString ext = m_Config->GetString("ExternalIP", "");
 #ifdef P_HTTP
-        if (ext == "AWSPublicIP") {
-            // fetch public / elastic IP from AWS meta data
-            PHTTPClient http;
-            PString result;
-            if (http.GetTextDocument("http://169.254.169.254/latest/meta-data/public-ipv4", result)) {
-                ext = result;
-            } else {
-                ext = "";
-            }
-            PTRACE(2, "AWS\tSetting ExternalIP to " << ext);
-            // TODO: write to config ?
+    if (ext == "AWSPublicIP") {
+        // fetch public / elastic IP from AWS meta data
+        PHTTPClient http;
+        PString result;
+        if (http.GetTextDocument("http://169.254.169.254/latest/meta-data/public-ipv4", result)) {
+            ext = result;
+        } else {
+            ext = "";
         }
-#endif // P_HTTP
-        return ext;
+        PTRACE(2, "AWS\tSetting ExternalIP to " << ext);
+        // write to config so we don't have to re-do the HTTP request next time
+        m_Config->SetString("ExternalIP", ext);
     }
+#endif // P_HTTP
+    return ext;
 }
 
 void Toolkit::SetExternalIPFromCmdLine(const PString & ip)
 {
-    m_extIPFromCmdLine = ip;
-    // TODO: write into config instead so we can read it from the status port ?
+    m_Config->SetString("ExternalIP", ip);
 }
 
 PString Toolkit::ReplaceGlobalParams(const PString & str)
