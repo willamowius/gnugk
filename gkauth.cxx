@@ -1077,7 +1077,7 @@ SimplePasswordAuth::SimplePasswordAuth(
 					if ((Auth->GetApplication() == H235Authenticator::EPAuthentication)
 						||(Auth->GetApplication() == H235Authenticator::GKAdmission)
 						||(Auth->GetApplication() == H235Authenticator::AnyApplication) ) {
-						AppendH235Authenticator(Auth);  // TODO/BUG: this authenticator is not free()'d
+						AppendH235Authenticator(Auth);
 					} else {
 						delete Auth;
 					}
@@ -1113,7 +1113,7 @@ int SimplePasswordAuth::Check(
 	H225_RegistrationRequest & rrq = request;
 	GkH235Authenticators * auth = NULL;
 	int result = doCheck(request, rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) ? &rrq.m_terminalAlias : NULL, auth);
-    authData.m_authenticator = auth;    // save auth  // TODO/BUG: the authenticator is never free()'d
+    authData.m_authenticator = auth;    // save auth
     return result;
 }
 

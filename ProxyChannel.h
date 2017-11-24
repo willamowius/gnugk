@@ -664,6 +664,8 @@ public:
 	static void Send(PUInt32b sendMultiplexID, const H323TransportAddress & toAddress, int ossocket, void * data, unsigned len, bool bufferHasRoomForID = false);
 
 //protected:
+    bool m_deleted; // logically deleted, but still in list so other threads can leave methods
+    PTime m_deleteTime;
 	H225_CallIdentifier m_callid;
 	WORD m_session;
 	WORD m_flcn;		// only used to assign master assigned RTP session IDs
@@ -736,11 +738,16 @@ public:
 	virtual PUInt32b GetMultiplexID(const H225_CallIdentifier & callid, WORD session, void * to);
 	virtual PUInt32b GetNewMultiplexID();
 
+	// delete sessions marked as deleted
+	void SessionCleanup(GkTimer* timer);
+
 protected:
 	MultiplexedRTPReader * m_reader;
 	mutable PReadWriteMutex m_listLock;
 	list<H46019Session> m_h46019channels;
 	PUInt32b idCounter; // we should make sure this counter is _not_ reset on reload
+	GkTimerManager::GkTimerHandle m_cleanupTimer;
+	PTimeInterval m_deleteDelay;    // how long to wait before deleting a session marked for delete
 };
 #endif
 

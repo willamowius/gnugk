@@ -9697,6 +9697,8 @@ void MultiplexRTPListener::ReceiveData()
 
 H46019Session::H46019Session(const H225_CallIdentifier & callid, WORD session, void * openedBy)
 {
+    m_deleted = false;
+    m_deleteTime = 0;
 	m_callid = callid;
 	m_session = session;
 	m_flcn = 0;	// only used for master assigned sessions
@@ -9735,6 +9737,9 @@ H46019Session H46019Session::SwapSides() const
 
 void H46019Session::Dump() const
 {
+    if (m_deleted)
+        return;
+
 	PTRACE(7, "JW H46019Session: session=" << m_session << " openedBy=" << m_openedBy << " flcn=" << m_flcn
 			<< " IDfromA=" << m_multiplexID_fromA << " IDtoA=" << m_multiplexID_toA
 			<< " IDfromB=" << m_multiplexID_fromB << " IDtoB=" << m_multiplexID_toB
@@ -9749,6 +9754,9 @@ void H46019Session::Dump() const
 
 void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP)
 {
+    if (m_deleted)
+        return;
+
 	PTRACE(7, "JW RTP DB: multiplexID=" << receivedMultiplexID
 					 << " isRTCP=" << isRTCP << " ka=" << IsKeepAlive(len, isRTCP)
 					 << " from=" << AsString(fromAddress));
@@ -9967,13 +9975,20 @@ MultiplexedRTPHandler::MultiplexedRTPHandler() : Singleton<MultiplexedRTPHandler
 	idCounter = 0;
 	if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false)) {
 		m_reader = new MultiplexedRTPReader();
+		PTime now;
+        m_cleanupTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(this, &MultiplexedRTPHandler::SessionCleanup, now, 30);
+        m_deleteDelay.SetMilliSeconds(30 * 1000); // wait 30 sec. before really deleting a deleted session
 	} else {
 		m_reader = NULL;
+		m_cleanupTimer = GkTimerManager::INVALID_HANDLE;
 	}
 }
 
 MultiplexedRTPHandler::~MultiplexedRTPHandler()
 {
+    if (m_cleanupTimer != GkTimerManager::INVALID_HANDLE)
+		Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_cleanupTimer);
+    // TODO: delete remaining sessions in list ?
 }
 
 void MultiplexedRTPHandler::AddChannel(const H46019Session & chan)
@@ -10008,17 +10023,19 @@ void MultiplexedRTPHandler::UpdateChannelSession(const H225_CallIdentifier & cal
 	WriteLock lock(m_listLock);
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; ++iter ) {
-		if (   (iter->m_callid == callid)
-			&& (iter->m_session == session) ) {
-			return;	// session already in list - all is well
-		}
-		if (   (iter->m_callid == callid)
-			&& (iter->m_flcn == flcn)
-			&& (iter->m_openedBy == openedBy) ) {
-				iter->m_session = session;
-				iter->m_flcn = 0;	// reset
-			DumpChannels(" UpdateChannelSession() done ");
-			return;
+        if (!iter->m_deleted) {
+            if (   (iter->m_callid == callid)
+                && (iter->m_session == session) ) {
+                return;	// session already in list - all is well
+            }
+            if (   (iter->m_callid == callid)
+                && (iter->m_flcn == flcn)
+                && (iter->m_openedBy == openedBy) ) {
+                    iter->m_session = session;
+                    iter->m_flcn = 0;	// reset
+                DumpChannels(" UpdateChannelSession() done ");
+                return;
+            }
 		}
 	}
 	PTRACE(1, "H46019\tError: Updating master assigned RTP session failed: flcn=" << flcn << " openedBy=" << openedBy);
@@ -10029,16 +10046,18 @@ void MultiplexedRTPHandler::UpdateChannel(const H46019Session & chan)
 	WriteLock lock(m_listLock);
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; ++iter ) {
-		if (   (iter->m_callid == chan.m_callid)
-			&& (iter->m_session == chan.m_session)) {
-			if (iter->m_openedBy == chan.m_openedBy) {
-				*iter = chan;
-			} else {
-				*iter = chan.SwapSides();
-			}
-			DumpChannels(" UpdateChannel() done ");
-			return;
-		}
+        if (!iter->m_deleted) {
+            if (   (iter->m_callid == chan.m_callid)
+                && (iter->m_session == chan.m_session)) {
+                if (iter->m_openedBy == chan.m_openedBy) {
+                    *iter = chan;
+                } else {
+                    *iter = chan.SwapSides();
+                }
+                DumpChannels(" UpdateChannel() done ");
+                return;
+            }
+        }
 	}
 }
 
@@ -10047,13 +10066,15 @@ H46019Session MultiplexedRTPHandler::GetChannelSwapped(const H225_CallIdentifier
 	ReadLock lock(m_listLock);
 	for (list<H46019Session>::const_iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; ++iter ) {
-		if (iter->m_callid == callid && iter->m_session == session) {
-			if (iter->m_openedBy == openedBy) {
-				return *iter;
-			} else {
-				return iter->SwapSides();
-			}
-		}
+        if (!iter->m_deleted) {
+            if (iter->m_callid == callid && iter->m_session == session) {
+                if (iter->m_openedBy == openedBy) {
+                    return *iter;
+                } else {
+                    return iter->SwapSides();
+                }
+            }
+        }
 	}
 	return H46019Session(0, 0, NULL);	// not found
 }
@@ -10063,7 +10084,7 @@ H46019Session MultiplexedRTPHandler::GetChannel(const H225_CallIdentifier & call
 	ReadLock lock(m_listLock);
 	for (list<H46019Session>::const_iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; ++iter ) {
-		if (iter->m_callid == callid && iter->m_session == session) {
+		if (!iter->m_deleted && iter->m_callid == callid && iter->m_session == session) {
 			return *iter;
 		}
 	}
@@ -10075,8 +10096,10 @@ void MultiplexedRTPHandler::RemoveChannels(H225_CallIdentifier callid)
 	WriteLock lock(m_listLock);
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; /* nothing */ ) {
-		if (iter->m_callid == callid) {
-			m_h46019channels.erase(iter++);
+		if (!iter->m_deleted && iter->m_callid == callid) {
+            iter->m_deleted = true; // mark as logically deleted
+            iter->m_deleteTime = PTime();
+			//m_h46019channels.erase(iter++);
 		} else {
 			++iter;
 		}
@@ -10090,7 +10113,7 @@ void MultiplexedRTPHandler::RemoveChannel(H225_CallIdentifier callid, RTPLogical
 	WriteLock lock(m_listLock);
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; /* nothing */ ) {
-		if (iter->m_callid == callid) {
+		if (!iter->m_deleted && iter->m_callid == callid) {
 			if (iter->m_encryptingLC == rtplc)
 				iter->m_encryptingLC = NULL;
 			if (iter->m_decryptingLC == rtplc)
@@ -10122,9 +10145,11 @@ bool MultiplexedRTPHandler::HandlePacket(PUInt32b receivedMultiplexID, const H32
 			iter != m_h46019channels.end() ; ++iter) {
 		if ((iter->m_multiplexID_fromA == receivedMultiplexID)
 			|| (iter->m_multiplexID_fromB == receivedMultiplexID)) {
-			ReadUnlock unlock(m_listLock); // release read lock to avoid possible dead lock
-			iter->HandlePacket(receivedMultiplexID, fromAddress, data, len, isRTCP);
-			return true;
+			if (!iter->m_deleted) {
+                ReadUnlock unlock(m_listLock); // release read lock to avoid possible dead lock
+                iter->HandlePacket(receivedMultiplexID, fromAddress, data, len, isRTCP);
+            }
+            return true;
 		}
 	}
 	PTRACE(3, "RTP\tWarning: Didn't find a channel for receivedMultiplexID " << receivedMultiplexID << " from " << AsString(fromAddress));
@@ -10138,7 +10163,7 @@ bool MultiplexedRTPHandler::HandlePacket(const H225_CallIdentifier & callid, con
 	// find the matching channel by callID and sessionID
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; ++iter) {
-		if ((iter->m_callid == callid) && (iter->m_session == data.m_sessionId)) {
+		if (!iter->m_deleted && (iter->m_callid == callid) && (iter->m_session == data.m_sessionId)) {
 			// found session, now send all RTP packets
 			for (PINDEX i = 0; i < data.m_frame.GetSize(); i++) {
 				PASN_OctetString & bytes = data.m_frame[i];
@@ -10181,7 +10206,7 @@ PUInt32b MultiplexedRTPHandler::GetMultiplexID(const H225_CallIdentifier & calli
 	ReadLock lock(m_listLock);
 	for (list<H46019Session>::const_iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; ++iter) {
-		if (iter->m_callid == callid && iter->m_session == session) {
+		if (!iter->m_deleted && iter->m_callid == callid && iter->m_session == session) {
 			if (iter->m_openedBy == to && iter->m_multiplexID_fromA != INVALID_MULTIPLEX_ID) {
 				return iter->m_multiplexID_fromA;
 			}
@@ -10201,6 +10226,23 @@ PUInt32b MultiplexedRTPHandler::GetNewMultiplexID()
 	}
 	return idCounter = idCounter + 1;
 }
+
+// delete sessions marked as deleted
+void MultiplexedRTPHandler::SessionCleanup(GkTimer* /* timer */)
+{
+	WriteLock lock(m_listLock);
+	PTime now;
+	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
+			iter != m_h46019channels.end() ; /* nothing */ ) {
+		if (iter->m_deleted && (now - iter->m_deleteTime > m_deleteDelay)) {
+			m_h46019channels.erase(iter++);
+		} else {
+			++iter;
+		}
+	}
+	DumpChannels(" RemoveChannels() done ");
+}
+
 #endif
 
 
