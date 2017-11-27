@@ -163,6 +163,7 @@ private:
 
 NATClient::NATClient(const H225_TransportAddress & addr, const H225_EndpointIdentifier & id)
 {
+    gkport = 0; // make sure port gets initialized, even if addr is invalid
 	GetIPAndPortFromTransportAddr(addr, gkip, gkport);
 	endpointId = id.GetValue();
 	socket = NULL;

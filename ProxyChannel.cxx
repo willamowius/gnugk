@@ -8145,6 +8145,7 @@ void CallSignalSocket::Dispatch()
 //					}
 				return;
 			}
+            // fallthrough intended
 
 		default:
 			OnError();
@@ -8384,6 +8385,7 @@ void CallSignalSocket::DispatchNextRoute()
 //					}
 			return;
 		}
+		// fallthrough intended
 
 	default:
 		OnError();
@@ -11515,6 +11517,7 @@ bool UDPProxySocket::ErrorHandler(PSocket::ErrorGroup group)
 			break;
 		case PSocket::NotOpen:
 			CloseSocket();
+			// fallthrough intended
 		default:
 			PTRACE(3, msg << " Error(" << group << "): "
 				<< PSocket::GetErrorText(e) << " (" << e << ':'
