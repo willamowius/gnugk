@@ -4865,6 +4865,7 @@ callptr CallTable::FindCallRec(const H225_CallIdentifier & CallId) const
 	return InternalFind(bind2nd(mem_fun(&CallRec::CompareCallId), &CallId));
 }
 
+// copy call ID for thread safety
 callptr CallTable::FindCallRecByValue(H225_CallIdentifier CallId) const
 {
 	return InternalFind(bind2nd(mem_fun(&CallRec::CompareCallId), &CallId));
