@@ -3373,7 +3373,7 @@ void Toolkit::LoadH46023STUN()
 			PString newhost = addresses[j].Mid(5);
 			PIPSocket::Address ip;
 			WORD port;
-			GetTransportAddress(newhost, GK_DEF_STUN_PORT, ip, port);
+			(void)GetTransportAddress(newhost, GK_DEF_STUN_PORT, ip, port);
 			if (ip.IsValid()) {
 				int intID = m_ProxyCriterion.IsInternal(ip);
 				std::map<int, std::vector<H323TransportAddress> >::iterator inf = m_H46023STUN.find(intID);

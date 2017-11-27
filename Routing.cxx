@@ -766,6 +766,7 @@ DNSPolicy::DNSPolicy()
 {
 	m_name = "DNS";
 	m_iniSection = "Routing::DNS";
+    m_resolveNonLocalLRQs = true;
 }
 
 void DNSPolicy::LoadConfig(const PString & instance)

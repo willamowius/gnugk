@@ -159,7 +159,7 @@ bool YaSocket::Close()
 	struct linger so_linger;
 	so_linger.l_onoff = 0;
 	so_linger.l_linger = 0;
-	::setsockopt(handle, SOL_SOCKET, SO_LINGER, &so_linger, sizeof(so_linger));
+	(void)::setsockopt(handle, SOL_SOCKET, SO_LINGER, &so_linger, sizeof(so_linger));
 	::close(handle);
 	return true;
 }
@@ -498,7 +498,7 @@ bool YaTCPSocket::Connect(const Address & iface, WORD localPort, const Address &
 	struct timeval tval = { 6, 0 };
 	if ((r = ::select(os_handle + 1, 0, fdset, exset, &tval)) > 0) {
 		optval = -1;
-		::getsockopt(os_handle, SOL_SOCKET, SO_ERROR, &optval, &optlen);
+		(void)::getsockopt(os_handle, SOL_SOCKET, SO_ERROR, &optval, &optlen);
 		if (optval == 0) // connected
 			return SetLinger();
 		errno = optval;

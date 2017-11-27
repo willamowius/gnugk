@@ -2318,14 +2318,16 @@ void RegistrationTable::LoadConfig()
 				ep = new GatewayRec(rrq_ras, true);
 			}
 			GatewayRec *gw = dynamic_cast<GatewayRec *>(ep);
-			gw->AddPrefixes(sp[1]);
-			gw->SortPrefixes();
-			// Vendor Information (if any) for OID9
-			if (sp.GetSize() > 2) {
-				PStringList gwVen = sp[2].Tokenise(",", FALSE);
-				if (gwVen.GetSize() > 1) {
-					gw->SetEndpointInfo(gwVen[0], gwVen[1]);
-				}
+			if (gw) {
+                gw->AddPrefixes(sp[1]);
+                gw->SortPrefixes();
+                // Vendor Information (if any) for OID9
+                if (sp.GetSize() > 2) {
+                    PStringList gwVen = sp[2].Tokenise(",", FALSE);
+                    if (gwVen.GetSize() > 1) {
+                        gw->SetEndpointInfo(gwVen[0], gwVen[1]);
+                    }
+                }
 			}
 		} else {
 			rrq.m_terminalType.IncludeOptionalField(H225_EndpointType::e_terminal);
