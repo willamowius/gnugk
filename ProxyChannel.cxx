@@ -9764,7 +9764,10 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 
 	bool isFromA = (receivedMultiplexID == m_multiplexID_fromA);
 	bool isFromB = (receivedMultiplexID == m_multiplexID_fromB);
-	callptr call = CallTable::Instance()->FindCallRec(m_callid);
+	callptr call = CallTable::Instance()->FindCallRecByValue(m_callid);
+	// re-check deleted status after waiting for call table lock
+    if (m_deleted)
+        return;
 	if (IsKeepAlive(len, isRTCP)) {
 		if (isFromA) {
 			if (isRTCP) {

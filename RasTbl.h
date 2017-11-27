@@ -1677,6 +1677,8 @@ public:
 	void UpdateEPBandwidth(const endptr & ep, long bw);
 
 	callptr FindCallRec(const H225_CallIdentifier & CallId) const;
+	// copy call ID for thread safety
+	callptr FindCallRecByValue(H225_CallIdentifier CallId) const;
 	callptr FindCallRec(const H225_CallReferenceValue & CallRef) const;
 	callptr FindCallRec(PINDEX CallNumber) const;
 	callptr FindCallRec(const endptr &) const;

@@ -4865,6 +4865,11 @@ callptr CallTable::FindCallRec(const H225_CallIdentifier & CallId) const
 	return InternalFind(bind2nd(mem_fun(&CallRec::CompareCallId), &CallId));
 }
 
+callptr CallTable::FindCallRecByValue(H225_CallIdentifier CallId) const
+{
+	return InternalFind(bind2nd(mem_fun(&CallRec::CompareCallId), &CallId));
+}
+
 callptr CallTable::FindCallRec(const H225_CallReferenceValue & CallRef) const
 {
 	return InternalFind(bind2nd(mem_fun(&CallRec::CompareCRV), CallRef.GetValue()));
