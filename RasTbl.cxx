@@ -1969,9 +1969,9 @@ endptr RegistrationTable::InternalFindFirstEP(const H225_ArrayOf_AliasAddress & 
 	const_iterator Iter = List->begin(), IterLast = List->end();
 	while (Iter != IterLast) {
 		if ((*Iter)->IsGateway()) {
-			int dummymatchedalias, priority = 1;
 			GatewayRec * gw = dynamic_cast<GatewayRec *>(*Iter);
 			if (gw) {
+                int dummymatchedalias, priority = 1;
                 int len = gw->PrefixMatch(alias, dummymatchedalias, priority);
                 if (maxlen < len) {
                     GWlist.clear();
@@ -2021,9 +2021,9 @@ bool RegistrationTable::InternalFindEP(
 	const_iterator Iter = endpoints->begin(), IterLast = endpoints->end();
 	while (Iter != IterLast) {
 		if ((*Iter)->IsGateway()) {
-			int matchedalias, priority = 1;
 			GatewayRec * gw = dynamic_cast<GatewayRec *>(*Iter);
 			if (gw) {
+                int matchedalias, priority = 1;
                 int len = gw->PrefixMatch(aliases, matchedalias, priority);
                 if (maxlen < len) {
                     GWlist.clear();
