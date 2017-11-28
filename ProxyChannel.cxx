@@ -788,15 +788,15 @@ H245_GenericParameter & BuildH245GenericUnsigned(H245_GenericParameter & param, 
 #endif
 
 struct PortRange {
-	PortRange() : port(0), minport(0), maxport(0) {}
+	PortRange() : port(0), minport(0), maxport(0) { }
 
 	WORD GetPort();
 	int GetNumPorts() const;
 	void LoadConfig(const char *, const char *, const char * = "");
 
 private:
-	PortRange(const PortRange&);
-	PortRange& operator=(const PortRange&);
+	PortRange(const PortRange &);
+	PortRange & operator=(const PortRange &);
 
 private:
 	WORD port, minport, maxport;
