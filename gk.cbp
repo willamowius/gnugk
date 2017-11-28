@@ -126,6 +126,7 @@
 		<Unit filename="copying" />
 		<Unit filename="factory.h" />
 		<Unit filename="forwarding.cxx" />
+		<Unit filename="geoip.cxx" />
 		<Unit filename="gk.cxx" />
 		<Unit filename="gk.h" />
 		<Unit filename="gk_const.h" />
