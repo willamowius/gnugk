@@ -745,6 +745,12 @@ On Windows, backslashes in the file name have to be escaped.
 <p>
 <bf/This setting doesn't change when the config is reloaded!/
 
+The following placeholders will be replaced:
+<itemize>
+<item><tt/%{gkip}/ - IP address of the gatekeeper
+<item><tt/%{external-ip}/ - external IP, if configured
+</itemize>
+
 <item><tt/Rotate=Hourly | Daily | Weekly | Monthly/<newline>
 Default: <tt>N/A</tt><newline>
 <p>

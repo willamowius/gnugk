@@ -1692,6 +1692,7 @@ void Gatekeeper::Main()
 	}
 	if (!args.HasOption('o')) {
 		PString log_trace_file = GkConfig()->GetString("LogFile", "Filename", "");
+		log_trace_file = Toolkit::Instance()->ReplaceGlobalParams(log_trace_file);
 		if (!log_trace_file.IsEmpty())
 			fake_cmdline += " -o " + log_trace_file;
 	}
