@@ -1361,8 +1361,18 @@ public:
 	void SetCalledVideoBitrate(unsigned bitrate);
 	unsigned GetCalledVideoBitrate() const;
 
-	void SetMediaOriginatingIp(const PIPSocket::Address & addr);
-	bool GetMediaOriginatingIp(PIPSocket::Address & addr) const;
+	void SetCallerAudioIP(const PIPSocket::Address & addr);
+	bool GetCallerAudioIP(PIPSocket::Address & addr) const;
+	void SetCalledAudioIP(const PIPSocket::Address & addr);
+	bool GetCalledAudioIP(PIPSocket::Address & addr) const;
+	void SetCallerVideoIP(const PIPSocket::Address & addr);
+	bool GetCallerVideoIP(PIPSocket::Address & addr) const;
+	void SetCalledVideoIP(const PIPSocket::Address & addr);
+	bool GetCalledVideoIP(PIPSocket::Address & addr) const;
+	void SetCallerH239IP(const PIPSocket::Address & addr);
+	bool GetCallerH239IP(PIPSocket::Address & addr) const;
+	void SetCalledH239IP(const PIPSocket::Address & addr);
+	bool GetCalledH239IP(PIPSocket::Address & addr) const;
 
 	PBYTEArray GetRADIUSClass() const;
 
@@ -1631,7 +1641,12 @@ private:
 	unsigned m_calledAudioBitrate;
 	unsigned m_callerVideoBitrate;
 	unsigned m_calledVideoBitrate;
-	PIPSocket::Address m_mediaOriginatingIp;
+	PIPSocket::Address m_callerAudioIP;
+	PIPSocket::Address m_calledAudioIP;
+	PIPSocket::Address m_callerVideoIP;
+	PIPSocket::Address m_calledVideoIP;
+	PIPSocket::Address m_callerH239IP;
+	PIPSocket::Address m_calledH239IP;
 	PBYTEArray m_radiusClass;
 	bool m_proceedingSent;
 #ifdef HAS_H46018
