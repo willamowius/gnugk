@@ -869,6 +869,35 @@ Number of Neighbors: 2
 </verb></tscreen>
 </descrip>
 
+<item><tt/PrintCallInfo, pci/<newline>
+<p>
+Print detailed information about a single call.
+<descrip>
+<tag/Format:/
+<tscreen><verb>
+PrintCallInfo CALL-ID
+</verb></tscreen>
+<tag/Example:/
+<tscreen><verb>
+tba
+</verb></tscreen>
+</descrip>
+
+<item><tt/MaintenanceMode/<newline>
+<p>
+Enable or disable maintenance mode.
+<descrip>
+<tag/Format:/
+<tscreen><verb>
+MaintenanceMode [Alternate-IP]
+MaintenanceMode OFF
+</verb></tscreen>
+<tag/Example:/
+<tscreen><verb>
+tba
+</verb></tscreen>
+</descrip>
+
 
 </itemize>
 

@@ -564,6 +564,21 @@ void SoftPBX::PrintNeighbors(USocket *client)
     client->TransmitData(PString("Number of Neighbors: ") + PString(neighbors.size()) + "\r\n;\r\n");
 }
 
+void SoftPBX::PrintCallInfo(USocket *client, const PString & callid)
+{
+	PTRACE(3, "GK\tSoftPBX: PrintCallInfo");
+    client->TransmitData("CallInfo\r\n");
+    CallTable::Instance()->PrintCallInfo(client, callid);
+    client->TransmitData(";\r\n");
+}
+
+void SoftPBX::MaintenanceMode(bool on, const PString & alternate)
+{
+	PTRACE(3, "GK\tSoftPBX: MaintenanceMode " << (on ? "ON" : "OFF") << " " << alternate);
+	// TODO: enable/disable maintenace mode
+    GkStatus::Instance()->SignalStatus(PString("MaintenanceMode ") + (on ? "ON" : "OFF") + " " + alternate + "\r\n");
+}
+
 PString SoftPBX::Uptime()
 {
 	long total = (PTime() - SoftPBX::StartUp).GetSeconds();

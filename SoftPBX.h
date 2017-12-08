@@ -54,6 +54,8 @@ namespace SoftPBX
 	void PrintCapacityControlRules(USocket *client);
 	void PrintEndpointQoS(USocket *client);
 	void PrintNeighbors(USocket *client);
+	void PrintCallInfo(USocket *client, const PString & callid);
+	void MaintenanceMode(bool on, const PString & alternate = "");
 
 	PString Uptime();
 

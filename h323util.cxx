@@ -263,7 +263,7 @@ PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, bool includeAl
 	return (aliasListString);
 }
 
-PString AsString(const PASN_OctetString & Octets)
+PString AsString(const PASN_OctetString & Octets, bool noSpaces)
 {
 	PString result;
 	if (Octets.GetDataLength() > 0) {
@@ -271,6 +271,8 @@ PString AsString(const PASN_OctetString & Octets)
 		for (PINDEX i = 1; i < Octets.GetDataLength(); ++i)
 			result += PString(PString::Printf, " %02x", Octets[i]);
 	}
+	if (noSpaces)
+        result.Replace(" ", "-", true);
 	return result;
 }
 

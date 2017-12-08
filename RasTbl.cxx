@@ -2637,7 +2637,9 @@ CallRec::CallRec(
 	m_unregNAT(false), m_h245Routed(RasServer::Instance()->IsH245Routed()),
 	m_toParent(false), m_fromParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
-	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
+	m_failoverActive(false), m_singleFailoverCDR(true),
+	m_callerAudioBitrate(0), m_calledAudioBitrate(0), m_callerVideoBitrate(0), m_calledVideoBitrate(0),
+	m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
 	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalClient(false), m_callfromTraversalServer(false),
 	m_rerouteDirection(Caller), m_connectWithTLS(false)
 #ifdef HAS_H235_MEDIA
@@ -2698,7 +2700,9 @@ CallRec::CallRec(
 	m_unregNAT(false), m_h245Routed(routeH245),
 	m_toParent(false), m_fromParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
-	m_failoverActive(false), m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
+	m_failoverActive(false), m_singleFailoverCDR(true),
+	m_callerAudioBitrate(0), m_calledAudioBitrate(0), m_callerVideoBitrate(0), m_calledVideoBitrate(0),
+	m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
 	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalClient(false), m_callfromTraversalServer(false),
 	m_rerouteDirection(Caller), m_connectWithTLS(false)
 #ifdef HAS_H235_MEDIA
@@ -2751,7 +2755,9 @@ CallRec::CallRec(const H225_CallIdentifier & callID, H225_TransportAddress sigAd
 	m_unregNAT(false), m_h245Routed(true),
 	m_toParent(false), m_fromParent(false), m_forwarded(false), m_proxyMode(ProxyEnabled),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
-	m_singleFailoverCDR(true), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
+	m_singleFailoverCDR(true),
+	m_callerAudioBitrate(0), m_calledAudioBitrate(0), m_callerVideoBitrate(0), m_calledVideoBitrate(0),
+	m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(false),
 	m_rerouteState(NoReroute), m_h46018ReverseSetup(true), m_callfromTraversalClient(true), m_callfromTraversalServer(false),
 	m_rerouteDirection(Caller), m_connectWithTLS(false)
 #ifdef HAS_H235_MEDIA
@@ -2792,7 +2798,10 @@ CallRec::CallRec(
 	m_failedRoutes(oldCall->m_failedRoutes), m_newRoutes(oldCall->m_newRoutes),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_failoverActive(oldCall->m_failoverActive),
-	m_singleFailoverCDR(oldCall->m_singleFailoverCDR), m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(oldCall->m_proceedingSent),
+	m_singleFailoverCDR(oldCall->m_singleFailoverCDR),
+	m_callerAudioBitrate(oldCall->m_callerAudioBitrate), m_calledAudioBitrate(oldCall->m_calledAudioBitrate),
+	m_callerVideoBitrate(oldCall->m_callerVideoBitrate), m_calledVideoBitrate(oldCall->m_calledVideoBitrate),
+	m_mediaOriginatingIp(GNUGK_INADDR_ANY), m_proceedingSent(oldCall->m_proceedingSent),
 #if HAS_H46018
 	m_ignoreSignaledIPs(oldCall->m_ignoreSignaledIPs),
 #endif
@@ -3510,8 +3519,7 @@ PString CallRec::PrintOn(bool verbose) const
 	const time_t timer = time(0) - m_timer;
 	const time_t left = m_timeout > timer ? m_timeout - timer : 0;
 
-    PString callid = AsString(m_callIdentifier.m_guid);
-	callid.Replace(" ", "-", true);
+    PString callid = AsString(m_callIdentifier.m_guid, true);
 
 	PString result = PString(PString::Printf,
 		"Call No. %d | CallID %s | %ld | %ld\r\nDial %s\r\n",
@@ -3573,6 +3581,71 @@ PString CallRec::PrintPorts() const
 		}
 		result += AsString(iter->m_ip, iter->m_port) + "\r\n";
 	}
+	return result;
+}
+
+PString CallRec::PrintFullInfo() const
+{
+	PString result;
+
+	result += "CallID: " + AsString(m_callIdentifier.m_guid, true) + "\r\n";
+	result += "Status: " + PString((m_connectTime != 0) ? "Connected" : "Establishing") + "\r\n";
+	PString callType = "Audio";
+	if (!GetCallerVideoCodec().IsEmpty() || !GetCalledVideoCodec().IsEmpty())
+        callType = "Video";
+	result += "CallType: " + callType + "\r\n";
+	result += "MediaRouting: " + GetMediaRouting() + "\r\n";
+	result += "SetupTime: " + Toolkit::Instance()->AsString(m_setupTime, "RFC822") + "\r\n";
+	result += "ConnectTime: " + Toolkit::Instance()->AsString(m_connectTime, "RFC822") + "\r\n";
+	result += "Duration: " + PString(time(0) - m_timer) + " sec \r\n";
+	result += "CallerIP: " + m_callerAddr + "\r\n";
+	result += "CalledIP: " + m_calleeAddr + "\r\n";
+	result += "CallerAlias: " + GetCallingStationId() + "\r\n";
+	result += "CalledAlias: " + GetCalledStationId() + "\r\n";
+	result += "DialedNumber: " + m_dialedNumber + "\r\n";
+	PString vendorStr = "unknown";
+	PString vendor, version;
+	if (GetCallingVendor(vendor, version))
+        vendorStr = vendor + " " + version;
+	result += "CallerVendor: " + vendorStr + "\r\n";
+	vendorStr = "unknown";
+	if (GetCalledVendor(vendor, version))
+        vendorStr = vendor + " " + version;
+	result += "CalledVendor: " + vendorStr + "\r\n";
+	result += "GrantedBandwidth: " + PString(m_bandwidth / 10) + " kbps\r\n";
+	PString encryption = "On";
+	if (!GetCallerAudioCodec().IsEmpty() && GetCallerAudioCodec().Find("H.235") == P_MAX_INDEX)
+        encryption = "Off";
+	if (!GetCalledAudioCodec().IsEmpty() && GetCalledAudioCodec().Find("H.235") == P_MAX_INDEX)
+        encryption = "Off";
+	if (!GetCallerVideoCodec().IsEmpty() && GetCallerVideoCodec().Find("H.235") == P_MAX_INDEX)
+        encryption = "Off";
+	if (!GetCalledVideoCodec().IsEmpty() && GetCalledVideoCodec().Find("H.235") == P_MAX_INDEX)
+        encryption = "Off";
+	result += "Encryption: " + encryption + "\r\n";
+
+	result += "AudioCodecCaller: " + GetCallerAudioCodec() + "\r\n";
+	result += "AudioCodecCalled: " + GetCalledAudioCodec() + "\r\n";
+	result += "AudioBitrateCaller: " + PString(GetCallerAudioBitrate() / 10) + " kbps\r\n";
+	result += "AudioBitrateCalled: " + PString(GetCalledAudioBitrate() / 10) + " kbps\r\n";
+//	result += "AudioMediaIPCaller: " + PString("TODO") + "\r\n";
+//	result += "AudioMediaIPCalled: " + PString("TODO") + "\r\n";
+	if (GkConfig()->GetBoolean(ProxySection, "EnableRTCPStats", false)) {
+        result += "AudioPacketlossCaller: " + psprintf(PString("%0.2f"), GetRTCP_SRC_packet_loss_percent()) + " %\r\n";
+        result += "AudioPacketlossCalled: " + psprintf(PString("%0.2f"), GetRTCP_DST_packet_loss_percent()) + " %\r\n";
+	}
+
+	result += "VideoCodecCaller: " + GetCallerVideoCodec() + "\r\n";
+	result += "VideoCodecCalled: " + GetCalledVideoCodec() + "\r\n";
+	result += "VideoBitrateCaller: " + PString(GetCallerVideoBitrate() / 10) + " kbps\r\n";
+	result += "VideoBitrateCalled: " + PString(GetCallerVideoBitrate() / 10) + " kbps\r\n";
+//	result += "VideoMediaIPCaller: " + PString("TODO") + "\r\n";
+//	result += "VideoMediaIPCalled: " + PString("TODO") + "\r\n";
+	if (GkConfig()->GetBoolean(ProxySection, "EnableRTCPStats", false)) {
+        result += "VideoPacketlossCaller: " + psprintf(PString("%0.2f"), GetRTCP_SRC_video_packet_loss_percent()) + " %\r\n";
+        result += "VideoPacketlossCalled: " + psprintf(PString("%0.2f"), GetRTCP_DST_video_packet_loss_percent()) + " %\r\n";
+    }
+
 	return result;
 }
 
@@ -3694,7 +3767,7 @@ time_t CallRec::GetDuration() const
 		return 0;
 }
 
-PString CallRec::GetCallingStationId()
+PString CallRec::GetCallingStationId() const
 {
 	PWaitAndSignal lock(m_usedLock);
 	return m_callingStationId;
@@ -3706,7 +3779,7 @@ void CallRec::SetCallingStationId(const PString & id)
 	m_callingStationId = id;
 }
 
-PString CallRec::GetCalledStationId()
+PString CallRec::GetCalledStationId() const
 {
 	PWaitAndSignal lock(m_usedLock);
 	return m_calledStationId;
@@ -3884,16 +3957,100 @@ bool CallRec::DisableRetryChecks() const
 	return Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "DisableRetryChecks", "0"));
 }
 
-void CallRec::SetCodec(const PString & codec)
+void CallRec::SetCallerAudioCodec(const PString & codec)
 {
 	PWaitAndSignal lock(m_usedLock);
-	m_codec = codec;
+	m_callerAudioCodec = codec;
 }
 
-PString CallRec::GetCodec() const
+PString CallRec::GetCallerAudioCodec() const
 {
 	PWaitAndSignal lock(m_usedLock);
-	return m_codec;
+	return m_callerAudioCodec;
+}
+
+void CallRec::SetCalledAudioCodec(const PString & codec)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_calledAudioCodec = codec;
+}
+
+PString CallRec::GetCalledAudioCodec() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_calledAudioCodec;
+}
+
+void CallRec::SetCallerVideoCodec(const PString & codec)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_callerVideoCodec = codec;
+}
+
+PString CallRec::GetCallerVideoCodec() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_callerVideoCodec;
+}
+
+void CallRec::SetCalledVideoCodec(const PString & codec)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_calledVideoCodec = codec;
+}
+
+PString CallRec::GetCalledVideoCodec() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_calledVideoCodec;
+}
+
+void CallRec::SetCallerAudioBitrate(unsigned bitrate)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_callerAudioBitrate = bitrate;
+}
+
+unsigned CallRec::GetCallerAudioBitrate() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_callerAudioBitrate;
+}
+
+void CallRec::SetCalledAudioBitrate(unsigned bitrate)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_calledAudioBitrate = bitrate;
+}
+
+unsigned CallRec::GetCalledAudioBitrate() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_calledAudioBitrate;
+}
+
+void CallRec::SetCallerVideoBitrate(unsigned bitrate)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_callerVideoBitrate = bitrate;
+}
+
+unsigned CallRec::GetCallerVideoBitrate() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_callerVideoBitrate;
+}
+
+void CallRec::SetCalledVideoBitrate(unsigned bitrate)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_calledVideoBitrate = bitrate;
+}
+
+unsigned CallRec::GetCalledVideoBitrate() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_calledVideoBitrate;
 }
 
 void CallRec::SetMediaOriginatingIp(const PIPSocket::Address & addr)
@@ -5404,6 +5561,16 @@ PString CallTable::PrintStatistics() const
 		"Total Calls: %u  Successful: %u  From Neighbor: %u  From Parent: %u  Proxied: %u  Peak: %u at %s\r\n",
 		n, act, nb, np, npr,
 		m_CallCount, m_successCall, m_neighborCall, m_parentCall, m_proxiedCall, m_peakCall, (const char *)m_peakTime.AsString());
+}
+
+void CallTable::PrintCallInfo(USocket *client, const PString & callid) const
+{
+	callptr call = FindCallRec(StringToCallId(callid));
+	if (call) {
+        client->TransmitData(call->PrintFullInfo());
+	} else {
+        PTRACE(3, "PrintCallInfo: CallID << " << callid << " not found");
+	}
 }
 
 PreliminaryCallTable::PreliminaryCallTable() : Singleton<PreliminaryCallTable>("PreliminaryCallTable")

@@ -953,6 +953,7 @@ public:
 	PString PrintOn(bool verbose) const;
 	PString GetMediaRouting() const;
 	PString PrintPorts() const;
+    PString PrintFullInfo() const;
 
 	void Lock();
 	void Unlock();
@@ -1259,7 +1260,7 @@ public:
 	    Calling party's number or an empty string, if the number has not been
 	    yet determined.
 	*/
-	PString GetCallingStationId();
+	PString GetCallingStationId() const;
 
 	/// Set calling party's number
 	void SetCallingStationId(
@@ -1270,7 +1271,7 @@ public:
 	    Called party's number or an empty string, if the number has not been
 	    yet determined.
 	*/
-	PString GetCalledStationId();
+	PString GetCalledStationId() const;
 
 	/// Set call linkage This the party to be charged for the call.
 	void SetCallLinkage(
@@ -1328,7 +1329,7 @@ public:
 	bool MoveToNextRoute();
 
 	bool IsCallInProgress() const;
-	void SetCallInProgress(bool val=true);
+	void SetCallInProgress(bool val = true);
 
 	bool IsH245ResponseReceived() const;
 	void SetH245ResponseReceived();
@@ -1342,11 +1343,26 @@ public:
 	int GetNoRemainingRoutes() const;
 	bool DisableRetryChecks() const;
 
-	void SetCodec(const PString & codec);
-	PString GetCodec() const;
+	void SetCallerAudioCodec(const PString & codec);
+	PString GetCallerAudioCodec() const;
+	void SetCalledAudioCodec(const PString & codec);
+	PString GetCalledAudioCodec() const;
+	void SetCallerVideoCodec(const PString & codec);
+	PString GetCallerVideoCodec() const;
+	void SetCalledVideoCodec(const PString & codec);
+	PString GetCalledVideoCodec() const;
 
-	void SetMediaOriginatingIp(const PIPSocket::Address &addr);
-	bool GetMediaOriginatingIp(PIPSocket::Address &addr) const;
+    void SetCallerAudioBitrate(unsigned bitrate);
+	unsigned GetCallerAudioBitrate() const;
+	void SetCalledAudioBitrate(unsigned bitrate);
+	unsigned GetCalledAudioBitrate() const;
+	void SetCallerVideoBitrate(unsigned bitrate);
+	unsigned GetCallerVideoBitrate() const;
+	void SetCalledVideoBitrate(unsigned bitrate);
+	unsigned GetCalledVideoBitrate() const;
+
+	void SetMediaOriginatingIp(const PIPSocket::Address & addr);
+	bool GetMediaOriginatingIp(PIPSocket::Address & addr) const;
 
 	PBYTEArray GetRADIUSClass() const;
 
@@ -1607,7 +1623,14 @@ private:
 	bool m_failoverActive;
 	bool m_singleFailoverCDR;
 
-	PString m_codec;
+	PString m_callerAudioCodec;
+	PString m_calledAudioCodec;
+	PString m_callerVideoCodec;
+	PString m_calledVideoCodec;
+	unsigned m_callerAudioBitrate;
+	unsigned m_calledAudioBitrate;
+	unsigned m_callerVideoBitrate;
+	unsigned m_calledVideoBitrate;
 	PIPSocket::Address m_mediaOriginatingIp;
 	PBYTEArray m_radiusClass;
 	bool m_proceedingSent;
@@ -1699,6 +1722,7 @@ public:
 	void PrintCurrentCalls(USocket *client, bool verbose=FALSE) const;
 	void PrintCurrentCallsPorts(USocket *client) const;
 	PString PrintStatistics() const;
+	void PrintCallInfo(USocket *client, const PString & callid) const;
 
 #ifdef HAS_H460
 	void OnQosMonitoringReport(const PString &,const endptr &, H4609_QosMonitoringReportData &);

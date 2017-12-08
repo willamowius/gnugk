@@ -1,7 +1,7 @@
 /*
  * radacct.cxx
  *
- * RADIUS protocol accounting logger module for GNU Gatekeeper. 
+ * RADIUS protocol accounting logger module for GNU Gatekeeper.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
  * Copyright (c) 2005-2012, Jan Willamowius
@@ -28,7 +28,7 @@
 using std::vector;
 
 
-RadAcct::RadAcct( 
+RadAcct::RadAcct(
 	const char* moduleName,
 	const char* cfgSecName
 	)
@@ -38,14 +38,14 @@ RadAcct::RadAcct(
 	m_radiusClient(NULL),
 	m_attrH323CallOrigin(RadiusAttr::CiscoVSA_h323_call_origin, false,
 		PString("proxy")),
-	m_attrH323CallType(RadiusAttr::CiscoVSA_h323_call_type, false, 
+	m_attrH323CallType(RadiusAttr::CiscoVSA_h323_call_type, false,
 		PString("VoIP"))
 {
 	// it is very important to set what type of accounting events
 	// are supported for each accounting module, otherwise Log method
 	// will no get called
 	SetSupportedEvents(RadAcctEvents);
-	
+
 	PConfig* cfg = GetConfig();
 	const PString& cfgSec = GetConfigSectionName();
 
@@ -77,7 +77,7 @@ RadAcct::~RadAcct()
 }
 
 GkAcctLogger::Status RadAcct::Log(
-	GkAcctLogger::AcctEvent evt, 
+	GkAcctLogger::AcctEvent evt,
 	const callptr& call
 	)
 {
@@ -85,7 +85,7 @@ GkAcctLogger::Status RadAcct::Log(
 	// if it is not interested in this event type
 	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
 		return Next;
-		
+
 	if (m_radiusClient == NULL) {
 		PTRACE(1, "RADACCT\t"<<GetName()<<" - null RADIUS client instance");
 		return Fail;
@@ -95,11 +95,11 @@ GkAcctLogger::Status RadAcct::Log(
 		PTRACE(1, "RADACCT\t"<<GetName()<<" - missing call info for event "<<evt);
 		return Fail;
 	}
-	
+
 	// build RADIUS Accounting-Request
 	RadiusPDU* const pdu = new RadiusPDU(RadiusPDU::AccountingRequest);
 
-	pdu->AppendAttr(RadiusAttr::AcctStatusType, 
+	pdu->AppendAttr(RadiusAttr::AcctStatusType,
 		(evt & AcctStart) ? RadiusAttr::AcctStatus_Start
 		: ((evt & AcctStop) ? RadiusAttr::AcctStatus_Stop
 		: ((evt & AcctUpdate) ? RadiusAttr::AcctStatus_InterimUpdate
@@ -108,7 +108,7 @@ GkAcctLogger::Status RadAcct::Log(
 		))));
 
 	PIPSocket::Address addr;
-					
+
 	// Gk works as NAS point, so append NAS IP
 	if (m_nasIpAddress.GetVersion() == 6)
 		pdu->AppendAttr(RadiusAttr::NasIpv6Address, m_nasIpAddress);
@@ -116,19 +116,19 @@ GkAcctLogger::Status RadAcct::Log(
 		pdu->AppendAttr(RadiusAttr::NasIpAddress, m_nasIpAddress);
 	pdu->AppendAttr(m_attrNasIdentifier);
 	pdu->AppendAttr(RadiusAttr::NasPortType, RadiusAttr::NasPort_Virtual);
-		
+
 	if (evt & (AcctStart | AcctStop | AcctUpdate)) {
 		pdu->AppendAttr(RadiusAttr::ServiceType, RadiusAttr::ST_Login);
 		pdu->AppendAttr(RadiusAttr::AcctSessionId, call->GetAcctSessionId());
-		
+
 		PBYTEArray classAttr(call->GetRADIUSClass());
 		if (classAttr.GetSize() > 0)
 			pdu->AppendAttr(RadiusAttr::AttrTypeClass, (const BYTE*)classAttr, classAttr.GetSize());
 
 		endptr callingEP = call->GetCallingParty();
 		PIPSocket::Address callerIP(0);
-		WORD callerPort = 0;		
-		
+		WORD callerPort = 0;
+
 		call->GetSrcSignalAddr(callerIP, callerPort);
 
 		const PString username = GetUsername(call);
@@ -136,15 +136,15 @@ GkAcctLogger::Status RadAcct::Log(
 			PTRACE(3, "RADACCT\t" << GetName() << " could not determine User-Name"
 				<< " for the call no. " << call->GetCallNumber());
 		else
-			pdu->AppendAttr(RadiusAttr::UserName, 
+			pdu->AppendAttr(RadiusAttr::UserName,
 				m_fixedUsername.IsEmpty() ? username : m_fixedUsername);
-		
+
 		if (callerIP.IsValid())
 			pdu->AppendAttr(RadiusAttr::FramedIpAddress, callerIP);
-		
+
 		if ((evt & AcctStart) == 0)
 			pdu->AppendAttr(RadiusAttr::AcctSessionTime, (long)call->GetDuration());
-	
+
 		PString stationId = GetCallingStationId(call);
 		if (!stationId)
 			pdu->AppendAttr(RadiusAttr::CallingStationId, stationId);
@@ -158,41 +158,41 @@ GkAcctLogger::Status RadAcct::Log(
 		else
 			PTRACE(3, "RADACCT\t" << GetName() << " could not determine"
 				<< " Called-Station-Id for the call no. " << call->GetCallNumber());
-		
+
 		if (m_appendCiscoAttributes) {
 			pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_conf_id,
 				GetGUIDString(call->GetConferenceIdentifier())
 				);
-						
+
 			pdu->AppendAttr(m_attrH323GwId);
 			pdu->AppendAttr(m_attrH323CallOrigin);
 			pdu->AppendAttr(m_attrH323CallType);
 
 			Toolkit * const toolkit = Toolkit::Instance();
-				
+
 			time_t tm = call->GetSetupTime();
 			if (tm != 0)
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_setup_time,
 					toolkit->AsString(PTime(tm), m_timestampFormat));
-			
+
 			if (evt & (AcctStop | AcctUpdate)) {
 				tm = call->GetConnectTime();
 				if (tm != 0)
 					pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_connect_time,
 						toolkit->AsString(PTime(tm), m_timestampFormat));
 			}
-			
+
 			if (evt & AcctStop) {
 				tm = call->GetDisconnectTime();
 				if (tm != 0)
 					pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_disconnect_time,
 						toolkit->AsString(PTime(tm), m_timestampFormat));
-				
+
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_disconnect_cause,
 					PString(PString::Unsigned, (long)(call->GetDisconnectCause()), 16)
 					);
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_release_source, call->GetReleaseSource());
-				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_preferred_codec, call->GetCodec());
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_preferred_codec, call->GetCallerAudioCodec());
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_rewritten_e164_num, call->GetCalledStationId());
 
 				// Post Dial Delay Time
@@ -207,7 +207,7 @@ GkAcctLogger::Status RadAcct::Log(
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
 					PString("h323routeattempts=")+PString(PString::Unsigned,call->GetNoCallAttempts()),
 					true);
-				
+
 				// Proxy Mode
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
 					PString("h323_rtp_proxy=")+PString(PString::Unsigned,
@@ -217,11 +217,11 @@ GkAcctLogger::Status RadAcct::Log(
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
 				    PString("RTP_source_IP=")+call->GetSRC_media_IP(),
 					true);
-				
+
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
 				    PString("RTP_destination_IP=")+call->GetDST_media_IP(),
 					true);
-				
+
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
 				    PString("RTCP_source_packet_count=")+PString(PString::Unsigned, call->GetRTCP_SRC_packet_count()),
 					true);
@@ -231,7 +231,7 @@ GkAcctLogger::Status RadAcct::Log(
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
 				    PString("RTCP_source_jitter=")+PString(PString::Unsigned, call->GetRTCP_SRC_jitter_min())+PString("|")+PString(PString::Unsigned,call->GetRTCP_SRC_jitter_avg())+PString("|")+PString(PString::Unsigned, call->GetRTCP_SRC_jitter_max()),
 				    true);
-				
+
 				PINDEX i_sdes = 0;
 				PStringList sdes = call->GetRTCP_SRC_sdes();
 				while (i_sdes < sdes.GetSize()) {
@@ -258,7 +258,7 @@ GkAcctLogger::Status RadAcct::Log(
 						true);
 				    i_sdes ++;
 				}
-			}					
+			}
 
 			WORD port;
 			if (call->GetDestSignalAddr(addr, port))
@@ -268,12 +268,12 @@ GkAcctLogger::Status RadAcct::Log(
 			pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
 				PString("h323-ivr-out=h323-call-id:") + GetGUIDString(call->GetCallIdentifier().m_guid),
 				true);
-			
+
 		}
-	
+
 		pdu->AppendAttr(RadiusAttr::AcctDelayTime, 0);
 	}
-		
+
 	// send request and wait for response
 	RadiusPDU * response = NULL;
 	bool result = true;
@@ -285,14 +285,14 @@ GkAcctLogger::Status RadAcct::Log(
 	} else {
 		result = m_radiusClient->MakeRequest(*pdu, response) && (response != NULL);
 	}
-			
+
 	delete pdu;
 
 	if (!result) {
 		delete response;
 		return Fail;
 	}
-				
+
 	if (response) {
 		// check if Access-Request has been accepted
 		result = (response->GetCode() == RadiusPDU::AccountingResponse);

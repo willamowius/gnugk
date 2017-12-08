@@ -221,7 +221,7 @@ void GkAcctLogger::SetupAcctParams(
 
 	if ((call->GetMediaOriginatingIp(addr)))
 		params["media-oip"] = addr.AsString();
-	params["codec"] = call->GetCodec();
+	params["codec"] = call->GetCallerAudioCodec();
 	params["bandwidth"] = call->GetBandwidth();
 	params["client-auth-id"] = call->GetClientAuthId();
 	PString vendor, version;

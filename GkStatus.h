@@ -167,6 +167,8 @@ public:
 		e_PrintAllConfigSwitches,      /// print all known config switches
 		e_PrintEventBacklog,           /// print buffered events
 		e_PrintNeighbors,              /// print list of neighbors
+		e_PrintCallInfo,               /// print detailed infor for a call
+		e_MaintenanceMode,             /// switch in or out of maitenance mode
 		e_numCommands
 		/// Number of different strings
 	};

@@ -62,7 +62,7 @@ PString AsString(const PBYTEArray & array);
 
 PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, bool includeAliasTypeName = true);
 
-PString AsString(const PASN_OctetString & Octets);
+PString AsString(const PASN_OctetString & Octets, bool noSpaces = false);
 
 PString StripAliasType(const PString & alias);
 

@@ -1179,6 +1179,9 @@ void GkStatus::OnStart()
 	m_commands["printallconfigswitches"] = e_PrintAllConfigSwitches;
 	m_commands["printeventbacklog"] = e_PrintEventBacklog;
 	m_commands["printneighbors"] = e_PrintNeighbors;
+	m_commands["printcallinfo"] = e_PrintCallInfo;
+	m_commands["pci"] = e_PrintCallInfo;
+	m_commands["maintenancemode"] = e_MaintenanceMode;
 }
 
 void GkStatus::ReadSocket(IPSocket * clientSocket)
@@ -2205,6 +2208,25 @@ void StatusClient::ExecCommand(
 		break;
 	case GkStatus::e_PrintNeighbors:
 	    SoftPBX::PrintNeighbors(this);
+		break;
+	case GkStatus::e_PrintCallInfo:
+		if (args.GetSize() == 2)
+            SoftPBX::PrintCallInfo(this, args[1]);
+		else
+			CommandError("Syntax Error: PrintCallInfo|pci CALL-ID");
+		break;
+	case GkStatus::e_MaintenanceMode:
+		if (args.GetSize() == 1) {
+            SoftPBX::MaintenanceMode(true);
+		} else if (args.GetSize() == 2) {
+            if (PCaselessString(args[1]) == "OFF") {
+                SoftPBX::MaintenanceMode(false);
+            } else {
+                SoftPBX::MaintenanceMode(true, args[1]);
+            }
+		} else {
+			CommandError("Syntax Error: MaintenanceMode [Alternate-IP | OFF]");
+        }
 		break;
 	default:
 		// commmand not recognized

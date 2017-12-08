@@ -235,8 +235,90 @@ PString GetH245CodecName(const H245_AudioCapability & cap)
 		return "GSMHR";
 	case H245_AudioCapability::e_gsmEnhancedFullRate:
 		return "GSMEFR";
+	case H245_AudioCapability::e_genericAudioCapability:
+        // TODO: check for G722.1, G.722.2 etc ?
+		return "GenericAudio";
 	}
 	return "Unknown";
+}
+
+PString GetH245CodecName(const H245_VideoCapability & cap)
+{
+	switch (cap.GetTag()) {
+	case H245_VideoCapability::e_h261VideoCapability:
+		return "H.261";
+	case H245_VideoCapability::e_h263VideoCapability:
+		return "H.263";
+	case H245_VideoCapability::e_genericVideoCapability:
+		return "H.264";
+	case H245_VideoCapability::e_extendedVideoCapability:
+		return "H.239";
+	}
+	return "Unknown";
+}
+
+unsigned GetH245CodecBitrate(const H245_AudioCapability & cap)
+{
+	switch (cap.GetTag()) {
+	case H245_AudioCapability::e_g711Alaw64k:
+		return 640;
+	case H245_AudioCapability::e_g711Alaw56k:
+		return 560;
+	case H245_AudioCapability::e_g711Ulaw64k:
+		return 640;
+	case H245_AudioCapability::e_g711Ulaw56k:
+		return 560;
+	case H245_AudioCapability::e_g722_64k:
+		return 640;
+	case H245_AudioCapability::e_g722_56k:
+		return 560;
+	case H245_AudioCapability::e_g722_48k:
+		return 480;
+	case H245_AudioCapability::e_g7231:
+		return 63;
+	case H245_AudioCapability::e_g728:
+		return 160;
+	case H245_AudioCapability::e_g729:
+		return 80;
+	case H245_AudioCapability::e_g729AnnexA:
+		return 80;
+	case H245_AudioCapability::e_g729wAnnexB:
+		return 80;
+	case H245_AudioCapability::e_g729AnnexAwAnnexB:
+		return 80;
+	case H245_AudioCapability::e_g7231AnnexCCapability:
+		return 63;
+	case H245_AudioCapability::e_gsmFullRate:
+		return 130;
+	case H245_AudioCapability::e_gsmHalfRate:
+		return 56;
+	case H245_AudioCapability::e_gsmEnhancedFullRate:
+		return 122;
+	case H245_AudioCapability::e_genericAudioCapability: {
+            const H245_GenericCapability & genericcap = cap;
+            return genericcap.m_maxBitRate;
+		}
+	}
+	return 0;
+}
+
+unsigned GetH245CodecBitrate(const H245_VideoCapability & cap)
+{
+	switch (cap.GetTag()) {
+	case H245_VideoCapability::e_h261VideoCapability: {
+            const H245_H261VideoCapability & h261cap = cap;
+            return h261cap.m_maxBitRate;
+		}
+	case H245_VideoCapability::e_h263VideoCapability: {
+            const H245_H263VideoCapability & h263cap = cap;
+            return h263cap.m_maxBitRate;
+		}
+	case H245_VideoCapability::e_genericVideoCapability: {
+            const H245_GenericCapability & genericcap = cap;
+            return genericcap.m_maxBitRate;
+		}
+	}
+	return 0;
 }
 
 #ifdef HAS_H235_MEDIA
@@ -2809,13 +2891,18 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 #endif
 		// store originating media IP
 		if (m_callerSocket) {
+            // TODO: save dest media IP, too
 			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)) {
 				H245_OpenLogicalChannel_reverseLogicalChannelParameters & revParams = olc.m_reverseLogicalChannelParameters;
 				bool isAudio = (revParams.m_dataType.GetTag() == H245_DataType::e_audioData);
+				bool isVideo = (revParams.m_dataType.GetTag() == H245_DataType::e_videoData);
 				if (revParams.m_dataType.GetTag() == H245_DataType::e_h235Media) {
 					const H245_H235Media & h235data = revParams.m_dataType;
 					if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_audioData) {
 						isAudio = true;
+					}
+					if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_videoData) {
+						isVideo = true;
 					}
 				}
 				if (isAudio
@@ -2830,12 +2917,14 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 							PIPSocket::Address ip;
 							*addr >> ip;
 							m_call->SetMediaOriginatingIp(ip);
+							// TODO: update later with detected IP ?
 						}
 					}
 				}
 			}
 		}
-		H245_AudioCapability *audioCap = NULL;
+
+		H245_AudioCapability * audioCap = NULL;
 		bool h235Audio = false;
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
 				&& olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData) {
@@ -2856,8 +2945,46 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 				h235Audio = true;
 			}
 		}
-		if (audioCap != NULL && m_call)
-			m_call->SetCodec(GetH245CodecName(*audioCap) + (h235Audio ? " (H.235)" : ""));
+		if (audioCap != NULL && m_call) {
+            if (m_callerSocket) {
+                m_call->SetCallerAudioCodec(GetH245CodecName(*audioCap) + (h235Audio ? " (H.235)" : ""));
+                m_call->SetCallerAudioBitrate(GetH245CodecBitrate(*audioCap));
+            } else {
+                m_call->SetCalledAudioCodec(GetH245CodecName(*audioCap) + (h235Audio ? " (H.235)" : ""));
+                m_call->SetCalledAudioBitrate(GetH245CodecBitrate(*audioCap));
+            }
+        }
+
+		H245_VideoCapability * videoCap = NULL;
+		bool h235Video = false;
+		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
+				&& olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_videoData) {
+			videoCap = &((H245_VideoCapability&)olc.m_reverseLogicalChannelParameters.m_dataType);
+		} else if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_videoData) {
+			videoCap = &((H245_VideoCapability&)olc.m_forwardLogicalChannelParameters.m_dataType);
+		} else if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
+				&& olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_h235Media) {
+			H245_H235Media & h235data = olc.m_reverseLogicalChannelParameters.m_dataType;
+			if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_videoData) {
+				videoCap = &((H245_VideoCapability&)h235data.m_mediaType);
+				h235Video = true;
+			}
+		} else if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_h235Media) {
+			H245_H235Media & h235data = olc.m_forwardLogicalChannelParameters.m_dataType;
+			if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_videoData) {
+				videoCap = &((H245_VideoCapability&)h235data.m_mediaType);
+				h235Video = true;
+			}
+		}
+		if (videoCap != NULL && videoCap->GetTag() != H245_VideoCapability::e_extendedVideoCapability && m_call) {
+            if (m_callerSocket) {
+                m_call->SetCallerVideoCodec(GetH245CodecName(*videoCap) + (h235Video ? " (H.235)" : ""));
+                m_call->SetCallerVideoBitrate(GetH245CodecBitrate(*videoCap));
+            } else {
+                m_call->SetCalledVideoCodec(GetH245CodecName(*videoCap) + (h235Video ? " (H.235)" : ""));
+                m_call->SetCalledVideoBitrate(GetH245CodecBitrate(*videoCap));
+            }
+        }
 	}
 
     if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_indication) {
@@ -7687,17 +7814,70 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 					}
 				}
 			}
-		} else {
-			H245_AudioCapability *audioCap = NULL;
-			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
-					&& olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData) {
-				audioCap = &((H245_AudioCapability&)olc.m_reverseLogicalChannelParameters.m_dataType);
-			} else if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData) {
-				audioCap = &((H245_AudioCapability&)olc.m_forwardLogicalChannelParameters.m_dataType);
-			}
-			if (audioCap != NULL && m_call)
-				m_call->SetCodec(GetH245CodecName(*audioCap));
 		}
+
+        // TODO: refactor code duplication
+		H245_AudioCapability * audioCap = NULL;
+		bool h235Audio = false;
+		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
+				&& olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData) {
+			audioCap = &((H245_AudioCapability&)olc.m_reverseLogicalChannelParameters.m_dataType);
+		} else if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData) {
+			audioCap = &((H245_AudioCapability&)olc.m_forwardLogicalChannelParameters.m_dataType);
+		} else if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
+				&& olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_h235Media) {
+			H245_H235Media & h235data = olc.m_reverseLogicalChannelParameters.m_dataType;
+			if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_audioData) {
+				audioCap = &((H245_AudioCapability&)h235data.m_mediaType);
+				h235Audio = true;
+			}
+		} else if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_h235Media) {
+			H245_H235Media & h235data = olc.m_forwardLogicalChannelParameters.m_dataType;
+			if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_audioData) {
+				audioCap = &((H245_AudioCapability&)h235data.m_mediaType);
+				h235Audio = true;
+			}
+		}
+		if (audioCap != NULL && m_call) {
+            if (m_callerSocket) {
+                m_call->SetCallerAudioCodec(GetH245CodecName(*audioCap) + (h235Audio ? " (H.235)" : ""));
+                m_call->SetCallerAudioBitrate(GetH245CodecBitrate(*audioCap));
+            } else {
+                m_call->SetCalledAudioCodec(GetH245CodecName(*audioCap) + (h235Audio ? " (H.235)" : ""));
+                m_call->SetCalledAudioBitrate(GetH245CodecBitrate(*audioCap));
+            }
+        }
+
+		H245_VideoCapability * videoCap = NULL;
+		bool h235Video = false;
+		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
+				&& olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_videoData) {
+			videoCap = &((H245_VideoCapability&)olc.m_reverseLogicalChannelParameters.m_dataType);
+		} else if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_videoData) {
+			videoCap = &((H245_VideoCapability&)olc.m_forwardLogicalChannelParameters.m_dataType);
+		} else if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
+				&& olc.m_reverseLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_h235Media) {
+			H245_H235Media & h235data = olc.m_reverseLogicalChannelParameters.m_dataType;
+			if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_videoData) {
+				videoCap = &((H245_VideoCapability&)h235data.m_mediaType);
+				h235Video = true;
+			}
+		} else if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_h235Media) {
+			H245_H235Media & h235data = olc.m_forwardLogicalChannelParameters.m_dataType;
+			if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_videoData) {
+				videoCap = &((H245_VideoCapability&)h235data.m_mediaType);
+				h235Video = true;
+			}
+		}
+		if (videoCap != NULL && videoCap->GetTag() != H245_VideoCapability::e_extendedVideoCapability && m_call) {
+            if (m_callerSocket) {
+                m_call->SetCallerVideoCodec(GetH245CodecName(*videoCap) + (h235Video ? " (H.235)" : ""));
+                m_call->SetCallerVideoBitrate(GetH245CodecBitrate(*videoCap));
+            } else {
+                m_call->SetCalledVideoCodec(GetH245CodecName(*videoCap) + (h235Video ? " (H.235)" : ""));
+                m_call->SetCalledVideoBitrate(GetH245CodecBitrate(*videoCap));
+            }
+        }
 	}
 	if (changed) {
 		PTRACE(4, "New FastStart: " << setprecision(2) << fastStart);
