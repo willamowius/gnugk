@@ -484,7 +484,7 @@ protected:
 
 private:
 	CallSignalSocket(const CallSignalSocket &);
-	CallSignalSocket& operator=(const CallSignalSocket &);
+	CallSignalSocket & operator=(const CallSignalSocket &);
 
 	void InternalInit();
 	void BuildReleasePDU(Q931 &, const H225_CallTerminationCause *) const;
@@ -650,6 +650,10 @@ class H46019Session
 {
 public:
 	H46019Session(const H225_CallIdentifier & callid, WORD session, void * openedBy);
+    ~H46019Session();
+
+	H46019Session(const H46019Session & other);
+	H46019Session & operator=(const H46019Session & other);
 
 	void Dump() const;
 
@@ -663,7 +667,7 @@ public:
 	void HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP);
 	static void Send(PUInt32b sendMultiplexID, const H323TransportAddress & toAddress, int ossocket, void * data, unsigned len, bool bufferHasRoomForID = false);
 
-//protected:
+public:
     bool m_deleted; // logically deleted, but still in list so other threads can leave methods
     PTime m_deleteTime;
 	H225_CallIdentifier m_callid;

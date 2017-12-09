@@ -236,7 +236,7 @@ PString GetH245CodecName(const H245_AudioCapability & cap)
 	case H245_AudioCapability::e_gsmEnhancedFullRate:
 		return "GSMEFR";
 	case H245_AudioCapability::e_genericAudioCapability:
-        // TODO: check for G722.1, G.722.2 etc ?
+        // TODO: check for G722.1, G.722.2 etc by looking at m_capabilityIdentifier OID ?
 		return "GenericAudio";
 	}
 	return "Unknown";
@@ -9931,6 +9931,76 @@ H46019Session::H46019Session(const H225_CallIdentifier & callid, WORD session, v
 #endif
 }
 
+H46019Session::~H46019Session()
+{
+    // don't free any pointers
+}
+
+H46019Session::H46019Session(const H46019Session & other)
+{
+    m_deleted = other.m_deleted;
+    m_deleteTime = other.m_deleteTime;
+	m_callid = other.m_callid;
+	m_session = other.m_session;
+	m_flcn = other.m_flcn;
+	m_openedBy = other.m_openedBy;
+	m_otherSide = other.m_otherSide;
+    m_addrA = other.m_addrA;
+	m_addrA_RTCP = other.m_addrA_RTCP;
+	m_addrB = other.m_addrB;
+	m_addrB_RTCP = other.m_addrB_RTCP;
+	m_multiplexID_fromA = other.m_multiplexID_fromA;
+	m_multiplexID_toA = other.m_multiplexID_toA;
+	m_multiplexID_fromB = other.m_multiplexID_fromB;
+	m_multiplexID_toB = other.m_multiplexID_toB;
+	m_osSocketToA = other.m_osSocketToA;
+	m_osSocketToA_RTCP = other.m_osSocketToA_RTCP;
+	m_osSocketToB = other.m_osSocketToB;
+	m_osSocketToB_RTCP = other.m_osSocketToB_RTCP;
+	m_EnableRTCPStats = other.m_EnableRTCPStats;
+#ifdef HAS_H235_MEDIA
+	m_encryptingLC = other.m_encryptingLC;
+	m_decryptingLC = other.m_decryptingLC;
+	m_encryptMultiplexID = other.m_encryptMultiplexID;
+	m_decryptMultiplexID = other.m_decryptMultiplexID;
+#endif
+}
+
+H46019Session & H46019Session::operator=(const H46019Session & other)
+{
+    if (this == &other)
+        return *this;
+
+    m_deleted = other.m_deleted;
+    m_deleteTime = other.m_deleteTime;
+	m_callid = other.m_callid;
+	m_session = other.m_session;
+	m_flcn = other.m_flcn;
+	m_openedBy = other.m_openedBy;
+	m_otherSide = other.m_otherSide;
+    m_addrA = other.m_addrA;
+	m_addrA_RTCP = other.m_addrA_RTCP;
+	m_addrB = other.m_addrB;
+	m_addrB_RTCP = other.m_addrB_RTCP;
+	m_multiplexID_fromA = other.m_multiplexID_fromA;
+	m_multiplexID_toA = other.m_multiplexID_toA;
+	m_multiplexID_fromB = other.m_multiplexID_fromB;
+	m_multiplexID_toB = other.m_multiplexID_toB;
+	m_osSocketToA = other.m_osSocketToA;
+	m_osSocketToA_RTCP = other.m_osSocketToA_RTCP;
+	m_osSocketToB = other.m_osSocketToB;
+	m_osSocketToB_RTCP = other.m_osSocketToB_RTCP;
+	m_EnableRTCPStats = other.m_EnableRTCPStats;
+#ifdef HAS_H235_MEDIA
+	m_encryptingLC = other.m_encryptingLC;
+	m_decryptingLC = other.m_decryptingLC;
+	m_encryptMultiplexID = other.m_encryptMultiplexID;
+	m_decryptMultiplexID = other.m_decryptMultiplexID;
+#endif
+
+    return *this;
+}
+
 // return a copy with side A and B swapped
 H46019Session H46019Session::SwapSides() const
 {
@@ -9972,13 +10042,16 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 					 << " from=" << AsString(fromAddress));
 	Dump();
 
-	bool isFromA = (receivedMultiplexID == m_multiplexID_fromA);
-	bool isFromB = (receivedMultiplexID == m_multiplexID_fromB);
-	callptr call = CallTable::Instance()->FindCallRecByValue(m_callid);
+	// re-check status after waiting for I/O
+    if (m_deleted)
+        return;
+	callptr call = CallTable::Instance()->FindCallRecByValue(m_callid); // TODO/BUG: crash is here, accessing m_callid
 	// re-check deleted status after waiting for call table lock
     if (m_deleted)
         return;
-	if (IsKeepAlive(len, isRTCP)) {
+	bool isFromA = (receivedMultiplexID == m_multiplexID_fromA);
+	bool isFromB = (receivedMultiplexID == m_multiplexID_fromB);
+    if (IsKeepAlive(len, isRTCP)) {
 		if (isFromA) {
 			if (isRTCP) {
 				m_addrA_RTCP = fromAddress;
