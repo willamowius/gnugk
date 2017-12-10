@@ -98,10 +98,9 @@ PBoolean DH_Save(DH * dh, const PFilePath & dhFile, const PString & oid)
 
 PBoolean DH_ExportPEM(DH * dh, const PFilePath & dhFile)
 {
-  BIO *out=NULL;
   bool success = true;
   
-  out=BIO_new(BIO_s_file());
+  BIO * out = BIO_new(BIO_s_file());
   if (BIO_write_filename(out,(char *)(const char *)dhFile) <= 0)
     success = false;
 
