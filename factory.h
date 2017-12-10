@@ -100,7 +100,7 @@ namespace std {
 
 // gcc 3.x said specialization can't be put in different namespace
 template<> struct less<const char *> : public binary_function<const char *, const char *, bool> {
-	bool operator()(const char *s1, const char *s2) const { return strcmp(s1, s2) < 0; }
+	bool operator()(const char *s1, const char *s2) const { return (strcmp(s1, s2) < 0); }
 };
 
 }
