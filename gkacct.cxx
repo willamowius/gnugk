@@ -219,7 +219,7 @@ void GkAcctLogger::SetupAcctParams(
 	params["call-attempts"] = PString(call->GetNoCallAttempts());
 	params["last-cdr"] = call->GetNoRemainingRoutes() > 0 ? "0" : "1";
 
-	if ((call->GetCallerAudioIP(addr)))
+	if ((call->GetCallerAudioIP(addr, port)))
 		params["media-oip"] = addr.AsString();
 	params["codec"] = call->GetCallerAudioCodec();
 	params["bandwidth"] = call->GetBandwidth();

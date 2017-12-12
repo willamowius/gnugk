@@ -1361,18 +1361,18 @@ public:
 	void SetCalledVideoBitrate(unsigned bitrate);
 	unsigned GetCalledVideoBitrate() const;
 
-	void SetCallerAudioIP(const PIPSocket::Address & addr);
-	bool GetCallerAudioIP(PIPSocket::Address & addr) const;
-	void SetCalledAudioIP(const PIPSocket::Address & addr);
-	bool GetCalledAudioIP(PIPSocket::Address & addr) const;
-	void SetCallerVideoIP(const PIPSocket::Address & addr);
-	bool GetCallerVideoIP(PIPSocket::Address & addr) const;
-	void SetCalledVideoIP(const PIPSocket::Address & addr);
-	bool GetCalledVideoIP(PIPSocket::Address & addr) const;
-	void SetCallerH239IP(const PIPSocket::Address & addr);
-	bool GetCallerH239IP(PIPSocket::Address & addr) const;
-	void SetCalledH239IP(const PIPSocket::Address & addr);
-	bool GetCalledH239IP(PIPSocket::Address & addr) const;
+	void SetCallerAudioIP(const PIPSocket::Address & addr, WORD port);
+	bool GetCallerAudioIP(PIPSocket::Address & addr, WORD & port) const;
+	void SetCalledAudioIP(const PIPSocket::Address & addr, WORD port);
+	bool GetCalledAudioIP(PIPSocket::Address & addr, WORD & port) const;
+	void SetCallerVideoIP(const PIPSocket::Address & addr, WORD port);
+	bool GetCallerVideoIP(PIPSocket::Address & addr, WORD & port) const;
+	void SetCalledVideoIP(const PIPSocket::Address & addr, WORD port);
+	bool GetCalledVideoIP(PIPSocket::Address & addr, WORD & port) const;
+	void SetCallerH239IP(const PIPSocket::Address & addr, WORD port);
+	bool GetCallerH239IP(PIPSocket::Address & addr, WORD & port) const;
+	void SetCalledH239IP(const PIPSocket::Address & addr, WORD port);
+	bool GetCalledH239IP(PIPSocket::Address & addr, WORD & port) const;
 
 	PBYTEArray GetRADIUSClass() const;
 
@@ -1647,6 +1647,12 @@ private:
 	PIPSocket::Address m_calledVideoIP;
 	PIPSocket::Address m_callerH239IP;
 	PIPSocket::Address m_calledH239IP;
+	PIPSocket::Address m_callerAudioPort;
+	PIPSocket::Address m_calledAudioPort;
+	PIPSocket::Address m_callerVideoPort;
+	PIPSocket::Address m_calledVideoPort;
+	PIPSocket::Address m_callerH239Port;
+	PIPSocket::Address m_calledH239Port;
 	PBYTEArray m_radiusClass;
 	bool m_proceedingSent;
 #ifdef HAS_H46018

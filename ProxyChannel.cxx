@@ -1241,9 +1241,9 @@ public:
 	void SetRequestRTPMultiplexing(bool epCanTransmitMultipled);
 	void SetUsesH46026(bool val) { m_usesH46026 = val; }
 	bool UsesH46026() const { return m_usesH46026; }
-#ifdef HAS_H235_MEDIA
-	void SetH235Role(bool isCaller, bool isH245Master) { m_isCaller = isCaller; m_isH245Master = isH245Master; }
-#endif
+	void SetRoles(bool isCaller, bool isH245Master) { m_isCaller = isCaller; m_isH245Master = isH245Master; }
+	bool IsCaller() const { return m_isCaller; }
+	bool IsH245Master() const { return m_isH245Master; }
 
 protected:
 	// override from class H245Handler
@@ -1298,10 +1298,8 @@ protected:
 	WORD m_multiplexedRTPPort;
 	WORD m_multiplexedRTCPPort;
 	bool m_usesH46026;
-#ifdef HAS_H235_MEDIA
 	bool m_isCaller;
 	bool m_isH245Master;
-#endif
     bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPs in signalling, do full auto-detect
     bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H.239 streams
     list<NetworkAddress> m_keepSignaledIPs;   // don't do auto-detect on this network
@@ -2925,23 +2923,24 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
                     if (addr != NULL && m_call) {
                         PIPSocket::Address ip;
                         *addr >> ip;
+                        WORD port = GetH245Port(*addr);
                         if (isAudio && m_callerSocket) {
-                            m_call->SetCallerAudioIP(ip);
+                            m_call->SetCallerAudioIP(ip, port);
                         }
                         if (isVideo && m_callerSocket) {
-                            m_call->SetCallerVideoIP(ip);
+                            m_call->SetCallerVideoIP(ip, port);
                         }
                         if (isH239 && m_callerSocket) {
-                            m_call->SetCallerH239IP(ip);
+                            m_call->SetCallerH239IP(ip, port);
                         }
                         if (isAudio && !m_callerSocket) {
-                            m_call->SetCalledAudioIP(ip);
+                            m_call->SetCalledAudioIP(ip, port);
                         }
                         if (isVideo && !m_callerSocket) {
-                            m_call->SetCalledVideoIP(ip);
+                            m_call->SetCalledVideoIP(ip, port);
                         }
                         if (isH239 && !m_callerSocket) {
-                            m_call->SetCalledH239IP(ip);
+                            m_call->SetCalledH239IP(ip, port);
                         }
                     }
                 }
@@ -3078,16 +3077,14 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		}
 #endif
 
-#ifdef HAS_H235_MEDIA
 		if (rmsg.GetTag() == H245_ResponseMessage::e_masterSlaveDeterminationAck) {
 			H245_MasterSlaveDeterminationAck msAck = rmsg;
 			// the master tells the other endpoint to be slave
 			m_isH245Master = (msAck.m_decision.GetTag() == H245_MasterSlaveDeterminationAck_decision::e_slave);
 			H245ProxyHandler * h245ProxyHandler = dynamic_cast<H245ProxyHandler *>(m_h245handler);
 			if (h245ProxyHandler)
-				h245ProxyHandler->SetH235Role(m_callerSocket, m_isH245Master);
+				h245ProxyHandler->SetRoles(m_callerSocket, m_isH245Master);
 		}
-#endif
 
 		if (rmsg.GetTag() == H245_ResponseMessage::e_openLogicalChannelAck) {
 			H245_OpenLogicalChannelAck & olcack = rmsg;
@@ -3102,23 +3099,24 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
                     if (addr != NULL && m_call) {
                         PIPSocket::Address ip;
                         *addr >> ip;
+                        WORD port = GetH245Port(*addr);
                         if (isAudio && m_callerSocket) {
-                            m_call->SetCallerAudioIP(ip);
+                            m_call->SetCallerAudioIP(ip, port);
                         }
                         if (isVideo && m_callerSocket) {
-                            m_call->SetCallerVideoIP(ip);
+                            m_call->SetCallerVideoIP(ip, port);
                         }
                         if (isH239 && m_callerSocket) {
-                            m_call->SetCallerH239IP(ip);
+                            m_call->SetCallerH239IP(ip, port);
                         }
                         if (isAudio && !m_callerSocket) {
-                            m_call->SetCalledAudioIP(ip);
+                            m_call->SetCalledAudioIP(ip, port);
                         }
                         if (isVideo && !m_callerSocket) {
-                            m_call->SetCalledVideoIP(ip);
+                            m_call->SetCalledVideoIP(ip, port);
                         }
                         if (isH239 && !m_callerSocket) {
-                            m_call->SetCalledH239IP(ip);
+                            m_call->SetCalledH239IP(ip, port);
                         }
                     }
                 }
@@ -7842,17 +7840,18 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
                     if (addr != NULL && m_call) {
                         PIPSocket::Address ip;
                         *addr >> ip;
+                        WORD port = GetH245Port(*addr);
                         if (isAudio && fromCaller) {
-                            m_call->SetCallerAudioIP(ip);
+                            m_call->SetCallerAudioIP(ip, port);
                         }
                         if (isVideo && fromCaller) {
-                            m_call->SetCallerVideoIP(ip);
+                            m_call->SetCallerVideoIP(ip, port);
                         }
                         if (isAudio && !fromCaller) {
-                            m_call->SetCalledAudioIP(ip);
+                            m_call->SetCalledAudioIP(ip, port);
                         }
                         if (isVideo && !fromCaller) {
-                            m_call->SetCalledVideoIP(ip);
+                            m_call->SetCalledVideoIP(ip, port);
                         }
                     }
                 }
@@ -10468,7 +10467,7 @@ bool MultiplexedRTPHandler::HandlePacket(PUInt32b receivedMultiplexID, const H32
 			|| (iter->m_multiplexID_fromB == receivedMultiplexID)) {
 			if (!iter->m_deleted) {
                 ReadUnlock unlock(m_listLock); // release read lock to avoid possible dead lock
-                PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " HandlePacket ended READ lock");
+                //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " HandlePacket ended READ lock");
                 iter->HandlePacket(receivedMultiplexID, fromAddress, data, len, isRTCP);
             }
             return true;
@@ -10549,6 +10548,28 @@ PUInt32b MultiplexedRTPHandler::GetNewMultiplexID()
 		idCounter = 0;
 	}
 	return idCounter = idCounter + 1;
+}
+
+bool MultiplexedRTPHandler::GetDetectedMediaIP(const H225_CallIdentifier & callID, WORD sessionID, bool forCaller, /* out */ PIPSocket::Address & addr, WORD & port) const
+{
+	H46019Session h46019chan = GetChannel(callID, sessionID);
+	if (h46019chan.IsValid()) {
+        H245ProxyHandler * h245handler = (H245ProxyHandler *)h46019chan.m_openedBy;
+        if (h245handler) {
+            if ((forCaller && h245handler->IsCaller()) || (!forCaller && !h245handler->IsCaller())) {
+                h46019chan.m_addrA.GetIpAndPort(addr, port);
+            } else {
+                h46019chan.m_addrB.GetIpAndPort(addr, port);
+            }
+        }
+	}
+	if (addr.IsValid()) {
+        PTRACE(0, "JW RTP found detected media IP for session=" << sessionID << " caller=" << forCaller << " = " << AsString(addr));
+	} else {
+        PTRACE(0, "JW RTP NOT found detected media IP for session=" << sessionID << " caller=" << forCaller);
+	}
+    // TODO: check if we have a detected IP from H.460.19 non-multiplexed or non-std port detection (IgnoreSignaledPorts=1)
+	return addr.IsValid();
 }
 
 // delete sessions marked as deleted
@@ -11360,7 +11381,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 
 			if ((fDestIP != 0) && (rDestIP != 0)) {
 				m_portDetectionDone = true;
-				// note: we don't do port switching at this time, once the ports are set they stay
+				// note: we don't do port switching at this time, once the ports are set they stay (this also avoid RTPBleed)
 #ifdef HAS_H46024B
 				// If required begin Annex B probing
 				if (isRTPKeepAlive && m_call && (*m_call) && (*m_call)->GetNATStrategy() == CallRec::e_natAnnexB) {
@@ -11605,7 +11626,8 @@ void ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & 
 {
 	bool direct = (call->GetSRC_media_control_IP() == fromIP.AsString());
 	PIPSocket::Address addr = (DWORD)0;
-	call->GetCallerAudioIP(addr);
+	WORD notused = 0;
+	call->GetCallerAudioIP(addr, notused);
 	if (buflen < 4) {
 		PTRACE(1, "RTCP\tInvalid RTCP frame");
 		return;

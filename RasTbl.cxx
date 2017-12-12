@@ -2640,7 +2640,9 @@ CallRec::CallRec(
 	m_failoverActive(false), m_singleFailoverCDR(true),
 	m_callerAudioBitrate(0), m_calledAudioBitrate(0), m_callerVideoBitrate(0), m_calledVideoBitrate(0),
 	m_callerAudioIP(GNUGK_INADDR_ANY), m_calledAudioIP(GNUGK_INADDR_ANY), m_callerVideoIP(GNUGK_INADDR_ANY), m_calledVideoIP(GNUGK_INADDR_ANY),
-	m_callerH239IP(GNUGK_INADDR_ANY), m_calledH239IP(GNUGK_INADDR_ANY), m_proceedingSent(false),
+	m_callerH239IP(GNUGK_INADDR_ANY), m_calledH239IP(GNUGK_INADDR_ANY),
+	m_callerAudioPort(0), m_calledAudioPort(0), m_callerVideoPort(0), m_calledVideoPort(0), m_callerH239Port(0), m_calledH239Port(0),
+	m_proceedingSent(false),
 	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalClient(false), m_callfromTraversalServer(false),
 	m_rerouteDirection(Caller), m_connectWithTLS(false)
 #ifdef HAS_H235_MEDIA
@@ -2704,7 +2706,9 @@ CallRec::CallRec(
 	m_failoverActive(false), m_singleFailoverCDR(true),
 	m_callerAudioBitrate(0), m_calledAudioBitrate(0), m_callerVideoBitrate(0), m_calledVideoBitrate(0),
 	m_callerAudioIP(GNUGK_INADDR_ANY), m_calledAudioIP(GNUGK_INADDR_ANY), m_callerVideoIP(GNUGK_INADDR_ANY), m_calledVideoIP(GNUGK_INADDR_ANY),
-	m_callerH239IP(GNUGK_INADDR_ANY), m_calledH239IP(GNUGK_INADDR_ANY), m_proceedingSent(false),
+	m_callerH239IP(GNUGK_INADDR_ANY), m_calledH239IP(GNUGK_INADDR_ANY),
+    m_callerAudioPort(0), m_calledAudioPort(0), m_callerVideoPort(0), m_calledVideoPort(0), m_callerH239Port(0), m_calledH239Port(0),
+	m_proceedingSent(false),
 	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalClient(false), m_callfromTraversalServer(false),
 	m_rerouteDirection(Caller), m_connectWithTLS(false)
 #ifdef HAS_H235_MEDIA
@@ -2760,7 +2764,9 @@ CallRec::CallRec(const H225_CallIdentifier & callID, H225_TransportAddress sigAd
 	m_singleFailoverCDR(true),
 	m_callerAudioBitrate(0), m_calledAudioBitrate(0), m_callerVideoBitrate(0), m_calledVideoBitrate(0),
 	m_callerAudioIP(GNUGK_INADDR_ANY), m_calledAudioIP(GNUGK_INADDR_ANY), m_callerVideoIP(GNUGK_INADDR_ANY), m_calledVideoIP(GNUGK_INADDR_ANY),
-	m_callerH239IP(GNUGK_INADDR_ANY), m_calledH239IP(GNUGK_INADDR_ANY), m_proceedingSent(false),
+	m_callerH239IP(GNUGK_INADDR_ANY), m_calledH239IP(GNUGK_INADDR_ANY),
+    m_callerAudioPort(0), m_calledAudioPort(0), m_callerVideoPort(0), m_calledVideoPort(0), m_callerH239Port(0), m_calledH239Port(0),
+	m_proceedingSent(false),
 	m_rerouteState(NoReroute), m_h46018ReverseSetup(true), m_callfromTraversalClient(true), m_callfromTraversalServer(false),
 	m_rerouteDirection(Caller), m_connectWithTLS(false)
 #ifdef HAS_H235_MEDIA
@@ -2807,6 +2813,9 @@ CallRec::CallRec(
 	m_callerAudioIP(oldCall->m_callerAudioIP), m_calledAudioIP(oldCall->m_calledAudioIP),
 	m_callerVideoIP(oldCall->m_callerVideoIP), m_calledVideoIP(oldCall->m_calledVideoIP),
 	m_callerH239IP(oldCall->m_callerH239IP), m_calledH239IP(oldCall->m_calledH239IP),
+    m_callerAudioPort(oldCall->m_callerAudioPort), m_calledAudioPort(oldCall->m_calledAudioPort),
+    m_callerVideoPort(oldCall->m_callerVideoPort), m_calledVideoPort(oldCall->m_calledVideoPort),
+    m_callerH239Port(oldCall->m_callerH239Port), m_calledH239Port(oldCall->m_calledH239Port),
 	m_proceedingSent(oldCall->m_proceedingSent),
 #if HAS_H46018
 	m_ignoreSignaledIPs(oldCall->m_ignoreSignaledIPs),
@@ -3635,9 +3644,10 @@ PString CallRec::PrintFullInfo() const
 	result += "AudioBitrateCaller: " + PString(GetCallerAudioBitrate() / 10) + " kbps\r\n";
 	result += "AudioBitrateCalled: " + PString(GetCalledAudioBitrate() / 10) + " kbps\r\n";
 	PIPSocket::Address addr;
-	if (GetCallerAudioIP(addr))
+	WORD port = 0;
+	if (GetCallerAudioIP(addr, port))
         result += "AudioMediaIPCaller: " + AsString(addr) + "\r\n";
-	if (GetCalledAudioIP(addr))
+	if (GetCalledAudioIP(addr, port))
         result += "AudioMediaIPCalled: " + AsString(addr) + "\r\n";
 	if (GkConfig()->GetBoolean(ProxySection, "EnableRTCPStats", false)) {
         result += "AudioPacketlossCaller: " + psprintf(PString("%0.2f"), GetRTCP_SRC_packet_loss_percent()) + " %\r\n";
@@ -3648,17 +3658,17 @@ PString CallRec::PrintFullInfo() const
 	result += "VideoCodecCalled: " + GetCalledVideoCodec() + "\r\n";
 	result += "VideoBitrateCaller: " + PString(GetCallerVideoBitrate() / 10) + " kbps\r\n";
 	result += "VideoBitrateCalled: " + PString(GetCallerVideoBitrate() / 10) + " kbps\r\n";
-	if (GetCallerVideoIP(addr))
+	if (GetCallerVideoIP(addr, port))
         result += "VideoMediaIPCaller: " + AsString(addr) + "\r\n";
-	if (GetCalledVideoIP(addr))
+	if (GetCalledVideoIP(addr, port))
         result += "VideoMediaIPCalled: " + AsString(addr) + "\r\n";
 	if (GkConfig()->GetBoolean(ProxySection, "EnableRTCPStats", false)) {
         result += "VideoPacketlossCaller: " + psprintf(PString("%0.2f"), GetRTCP_SRC_video_packet_loss_percent()) + " %\r\n";
         result += "VideoPacketlossCalled: " + psprintf(PString("%0.2f"), GetRTCP_DST_video_packet_loss_percent()) + " %\r\n";
     }
-	if (GetCallerH239IP(addr))
+	if (GetCallerH239IP(addr, port))
         result += "H239MediaIPCaller: " + AsString(addr) + "\r\n";
-	if (GetCalledH239IP(addr))
+	if (GetCalledH239IP(addr, port))
         result += "H239MediaIPCalled: " + AsString(addr) + "\r\n";
 
 	return result;
@@ -4068,97 +4078,137 @@ unsigned CallRec::GetCalledVideoBitrate() const
 	return m_calledVideoBitrate;
 }
 
-void CallRec::SetCallerAudioIP(const PIPSocket::Address & addr)
+void CallRec::SetCallerAudioIP(const PIPSocket::Address & addr, WORD port)
 {
 	PWaitAndSignal lock(m_usedLock);
 	m_callerAudioIP = addr;
+	m_callerAudioPort = port;
 }
 
-bool CallRec::GetCallerAudioIP(PIPSocket::Address & addr) const
+bool CallRec::GetCallerAudioIP(PIPSocket::Address & addr, WORD & port) const
 {
 	PWaitAndSignal lock(m_usedLock);
-	if (m_callerAudioIP.IsValid()) {
-		addr = m_callerAudioIP;
-		return true;
-	} else
-		return false;
+	// check if we have a detected H.460.19 RTP multiplex IP
+	bool foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 1, true, addr, port);
+	if (!foundDetectedIP) {
+        // use signeled media IP
+        if (m_callerAudioIP.IsValid()) {
+            addr = m_callerAudioIP;
+            port = m_callerAudioPort;
+            return true;
+        } else {
+            return false;
+        }
+    }
+    return true;
 }
 
-void CallRec::SetCalledAudioIP(const PIPSocket::Address & addr)
+void CallRec::SetCalledAudioIP(const PIPSocket::Address & addr, WORD port)
 {
 	PWaitAndSignal lock(m_usedLock);
 	m_calledAudioIP = addr;
+	m_calledAudioPort = port;
 }
 
-bool CallRec::GetCalledAudioIP(PIPSocket::Address & addr) const
+bool CallRec::GetCalledAudioIP(PIPSocket::Address & addr, WORD & port) const
 {
 	PWaitAndSignal lock(m_usedLock);
-	if (m_calledAudioIP.IsValid()) {
-		addr = m_calledAudioIP;
-		return true;
-	} else
-		return false;
+	// check if we have a detected H.460.19 RTP multiplex IP
+	bool foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 1, false, addr, port);
+	if (!foundDetectedIP) {
+        // use signeled media IP
+        if (m_calledAudioIP.IsValid()) {
+            addr = m_calledAudioIP;
+            port = m_calledAudioPort;
+            return true;
+        } else {
+            return false;
+        }
+    }
+    return true;
 }
 
-void CallRec::SetCallerVideoIP(const PIPSocket::Address & addr)
+void CallRec::SetCallerVideoIP(const PIPSocket::Address & addr, WORD port)
 {
 	PWaitAndSignal lock(m_usedLock);
 	m_callerVideoIP = addr;
+	m_callerVideoPort = port;
 }
 
-bool CallRec::GetCallerVideoIP(PIPSocket::Address & addr) const
+bool CallRec::GetCallerVideoIP(PIPSocket::Address & addr, WORD & port) const
 {
 	PWaitAndSignal lock(m_usedLock);
-	if (m_callerVideoIP.IsValid()) {
-		addr = m_callerVideoIP;
-		return true;
-	} else
-		return false;
+	// check if we have a detected H.460.19 RTP multiplex IP
+	bool foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 2, true, addr, port);
+	if (!foundDetectedIP) {
+        // use signeled media IP
+        if (m_callerVideoIP.IsValid()) {
+            addr = m_callerVideoIP;
+            port = m_callerVideoPort;
+            return true;
+        } else {
+            return false;
+        }
+    }
+    return true;
 }
 
-void CallRec::SetCalledVideoIP(const PIPSocket::Address & addr)
+void CallRec::SetCalledVideoIP(const PIPSocket::Address & addr, WORD port)
 {
 	PWaitAndSignal lock(m_usedLock);
 	m_calledVideoIP = addr;
+	m_calledVideoPort = port;
 }
 
-bool CallRec::GetCalledVideoIP(PIPSocket::Address & addr) const
+bool CallRec::GetCalledVideoIP(PIPSocket::Address & addr, WORD & port) const
 {
 	PWaitAndSignal lock(m_usedLock);
-	if (m_calledVideoIP.IsValid()) {
-		addr = m_calledVideoIP;
-		return true;
-	} else
-		return false;
+	// check if we have a detected H.460.19 RTP multiplex IP
+	bool foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 2, false, addr, port);
+	if (!foundDetectedIP) {
+        // use signeled media IP
+        if (m_calledVideoIP.IsValid()) {
+            addr = m_calledVideoIP;
+            port = m_calledVideoPort;
+            return true;
+        } else {
+            return false;
+        }
+    }
+    return true;
 }
 
-void CallRec::SetCallerH239IP(const PIPSocket::Address & addr)
+void CallRec::SetCallerH239IP(const PIPSocket::Address & addr, WORD port)
 {
 	PWaitAndSignal lock(m_usedLock);
 	m_callerH239IP = addr;
+	m_callerH239Port = port;
 }
 
-bool CallRec::GetCallerH239IP(PIPSocket::Address & addr) const
+bool CallRec::GetCallerH239IP(PIPSocket::Address & addr, WORD & port) const
 {
 	PWaitAndSignal lock(m_usedLock);
 	if (m_callerH239IP.IsValid()) {
 		addr = m_callerH239IP;
+		port = m_callerH239Port;
 		return true;
 	} else
 		return false;
 }
 
-void CallRec::SetCalledH239IP(const PIPSocket::Address & addr)
+void CallRec::SetCalledH239IP(const PIPSocket::Address & addr, WORD port)
 {
 	PWaitAndSignal lock(m_usedLock);
 	m_calledH239IP = addr;
+	m_calledH239Port = port;
 }
 
-bool CallRec::GetCalledH239IP(PIPSocket::Address & addr) const
+bool CallRec::GetCalledH239IP(PIPSocket::Address & addr, WORD & port) const
 {
 	PWaitAndSignal lock(m_usedLock);
 	if (m_calledH239IP.IsValid()) {
 		addr = m_calledH239IP;
+		port = m_calledH239Port;
 		return true;
 	} else
 		return false;

@@ -657,7 +657,7 @@ public:
 
 	void Dump() const;
 
-	bool IsValid() const { return (m_session != INVALID_RTP_SESSION) || (m_flcn > 0); }
+	bool IsValid() const { return !m_deleted && ((m_session != INVALID_RTP_SESSION) || (m_flcn > 0)); }
 	bool sideAReady(bool isRTCP) const { return isRTCP ? IsSet(m_addrA_RTCP) : IsSet(m_addrA); }
 	bool sideBReady(bool isRTCP) const { return isRTCP ? IsSet(m_addrB_RTCP) : IsSet(m_addrB); }
 	H46019Session SwapSides() const; // return a copy with side A and B swapped
@@ -742,6 +742,8 @@ public:
 
 	virtual PUInt32b GetMultiplexID(const H225_CallIdentifier & callid, WORD session, void * to);
 	virtual PUInt32b GetNewMultiplexID();
+
+	bool GetDetectedMediaIP(const H225_CallIdentifier & callID, WORD sessionID, bool forCaller, /* out */ PIPSocket::Address & addr, WORD & port) const;
 
 	// delete sessions marked as deleted
 	void SessionCleanup(GkTimer* timer);
