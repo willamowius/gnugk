@@ -1369,9 +1369,9 @@ public:
 	bool GetCallerVideoIP(PIPSocket::Address & addr, WORD & port) const;
 	void SetCalledVideoIP(const PIPSocket::Address & addr, WORD port);
 	bool GetCalledVideoIP(PIPSocket::Address & addr, WORD & port) const;
-	void SetCallerH239IP(const PIPSocket::Address & addr, WORD port);
+	void SetCallerH239IP(const PIPSocket::Address & addr, WORD port, WORD sessionID);
 	bool GetCallerH239IP(PIPSocket::Address & addr, WORD & port) const;
-	void SetCalledH239IP(const PIPSocket::Address & addr, WORD port);
+	void SetCalledH239IP(const PIPSocket::Address & addr, WORD port, WORD sessionID);
 	bool GetCalledH239IP(PIPSocket::Address & addr, WORD & port) const;
 
 	PBYTEArray GetRADIUSClass() const;
@@ -1647,12 +1647,13 @@ private:
 	PIPSocket::Address m_calledVideoIP;
 	PIPSocket::Address m_callerH239IP;
 	PIPSocket::Address m_calledH239IP;
-	PIPSocket::Address m_callerAudioPort;
-	PIPSocket::Address m_calledAudioPort;
-	PIPSocket::Address m_callerVideoPort;
-	PIPSocket::Address m_calledVideoPort;
-	PIPSocket::Address m_callerH239Port;
-	PIPSocket::Address m_calledH239Port;
+	WORD m_callerAudioPort;
+	WORD m_calledAudioPort;
+	WORD m_callerVideoPort;
+	WORD m_calledVideoPort;
+	WORD m_callerH239Port;
+	WORD m_calledH239Port;
+	WORD m_H239SessionID;
 	PBYTEArray m_radiusClass;
 	bool m_proceedingSent;
 #ifdef HAS_H46018

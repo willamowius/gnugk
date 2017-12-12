@@ -2642,7 +2642,7 @@ CallRec::CallRec(
 	m_callerAudioIP(GNUGK_INADDR_ANY), m_calledAudioIP(GNUGK_INADDR_ANY), m_callerVideoIP(GNUGK_INADDR_ANY), m_calledVideoIP(GNUGK_INADDR_ANY),
 	m_callerH239IP(GNUGK_INADDR_ANY), m_calledH239IP(GNUGK_INADDR_ANY),
 	m_callerAudioPort(0), m_calledAudioPort(0), m_callerVideoPort(0), m_calledVideoPort(0), m_callerH239Port(0), m_calledH239Port(0),
-	m_proceedingSent(false),
+	m_H239SessionID(0), m_proceedingSent(false),
 	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalClient(false), m_callfromTraversalServer(false),
 	m_rerouteDirection(Caller), m_connectWithTLS(false)
 #ifdef HAS_H235_MEDIA
@@ -2708,7 +2708,7 @@ CallRec::CallRec(
 	m_callerAudioIP(GNUGK_INADDR_ANY), m_calledAudioIP(GNUGK_INADDR_ANY), m_callerVideoIP(GNUGK_INADDR_ANY), m_calledVideoIP(GNUGK_INADDR_ANY),
 	m_callerH239IP(GNUGK_INADDR_ANY), m_calledH239IP(GNUGK_INADDR_ANY),
     m_callerAudioPort(0), m_calledAudioPort(0), m_callerVideoPort(0), m_calledVideoPort(0), m_callerH239Port(0), m_calledH239Port(0),
-	m_proceedingSent(false),
+	m_H239SessionID(0), m_proceedingSent(false),
 	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalClient(false), m_callfromTraversalServer(false),
 	m_rerouteDirection(Caller), m_connectWithTLS(false)
 #ifdef HAS_H235_MEDIA
@@ -2766,7 +2766,7 @@ CallRec::CallRec(const H225_CallIdentifier & callID, H225_TransportAddress sigAd
 	m_callerAudioIP(GNUGK_INADDR_ANY), m_calledAudioIP(GNUGK_INADDR_ANY), m_callerVideoIP(GNUGK_INADDR_ANY), m_calledVideoIP(GNUGK_INADDR_ANY),
 	m_callerH239IP(GNUGK_INADDR_ANY), m_calledH239IP(GNUGK_INADDR_ANY),
     m_callerAudioPort(0), m_calledAudioPort(0), m_callerVideoPort(0), m_calledVideoPort(0), m_callerH239Port(0), m_calledH239Port(0),
-	m_proceedingSent(false),
+	m_H239SessionID(0), m_proceedingSent(false),
 	m_rerouteState(NoReroute), m_h46018ReverseSetup(true), m_callfromTraversalClient(true), m_callfromTraversalServer(false),
 	m_rerouteDirection(Caller), m_connectWithTLS(false)
 #ifdef HAS_H235_MEDIA
@@ -2816,7 +2816,7 @@ CallRec::CallRec(
     m_callerAudioPort(oldCall->m_callerAudioPort), m_calledAudioPort(oldCall->m_calledAudioPort),
     m_callerVideoPort(oldCall->m_callerVideoPort), m_calledVideoPort(oldCall->m_calledVideoPort),
     m_callerH239Port(oldCall->m_callerH239Port), m_calledH239Port(oldCall->m_calledH239Port),
-	m_proceedingSent(oldCall->m_proceedingSent),
+	m_H239SessionID(oldCall->m_H239SessionID), m_proceedingSent(oldCall->m_proceedingSent),
 #if HAS_H46018
 	m_ignoreSignaledIPs(oldCall->m_ignoreSignaledIPs),
 #endif
@@ -4178,40 +4178,58 @@ bool CallRec::GetCalledVideoIP(PIPSocket::Address & addr, WORD & port) const
     return true;
 }
 
-void CallRec::SetCallerH239IP(const PIPSocket::Address & addr, WORD port)
+void CallRec::SetCallerH239IP(const PIPSocket::Address & addr, WORD port, WORD sessionID)
 {
 	PWaitAndSignal lock(m_usedLock);
 	m_callerH239IP = addr;
 	m_callerH239Port = port;
+    if (sessionID > 0)
+        m_H239SessionID = sessionID;
 }
 
 bool CallRec::GetCallerH239IP(PIPSocket::Address & addr, WORD & port) const
 {
 	PWaitAndSignal lock(m_usedLock);
-	if (m_callerH239IP.IsValid()) {
-		addr = m_callerH239IP;
-		port = m_callerH239Port;
-		return true;
-	} else
-		return false;
+	// check if we have a detected H.460.19 RTP multiplex IP
+	bool foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, m_H239SessionID, true, addr, port);
+	if (!foundDetectedIP) {
+        // use signeled media IP
+        if (m_callerH239IP.IsValid()) {
+            addr = m_callerH239IP;
+            port = m_callerH239Port;
+            return true;
+        } else {
+            return false;
+        }
+    }
+    return true;
 }
 
-void CallRec::SetCalledH239IP(const PIPSocket::Address & addr, WORD port)
+void CallRec::SetCalledH239IP(const PIPSocket::Address & addr, WORD port, WORD sessionID)
 {
 	PWaitAndSignal lock(m_usedLock);
 	m_calledH239IP = addr;
 	m_calledH239Port = port;
+    if (sessionID > 0)
+        m_H239SessionID = sessionID;
 }
 
 bool CallRec::GetCalledH239IP(PIPSocket::Address & addr, WORD & port) const
 {
 	PWaitAndSignal lock(m_usedLock);
-	if (m_calledH239IP.IsValid()) {
-		addr = m_calledH239IP;
-		port = m_calledH239Port;
-		return true;
-	} else
-		return false;
+	// check if we have a detected H.460.19 RTP multiplex IP
+	bool foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, m_H239SessionID, false, addr, port);
+	if (!foundDetectedIP) {
+        // use signeled media IP
+        if (m_calledH239IP.IsValid()) {
+            addr = m_calledH239IP;
+            port = m_calledH239Port;
+            return true;
+        } else {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool CallRec::SingleGatekeeper() const

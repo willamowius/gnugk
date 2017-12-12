@@ -2931,7 +2931,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
                             m_call->SetCallerVideoIP(ip, port);
                         }
                         if (isH239 && m_callerSocket) {
-                            m_call->SetCallerH239IP(ip, port);
+                            m_call->SetCallerH239IP(ip, port, channel.m_sessionID);
                         }
                         if (isAudio && !m_callerSocket) {
                             m_call->SetCalledAudioIP(ip, port);
@@ -2940,7 +2940,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
                             m_call->SetCalledVideoIP(ip, port);
                         }
                         if (isH239 && !m_callerSocket) {
-                            m_call->SetCalledH239IP(ip, port);
+                            m_call->SetCalledH239IP(ip, port, channel.m_sessionID);
                         }
                     }
                 }
@@ -3107,7 +3107,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
                             m_call->SetCallerVideoIP(ip, port);
                         }
                         if (isH239 && m_callerSocket) {
-                            m_call->SetCallerH239IP(ip, port);
+                            m_call->SetCallerH239IP(ip, port, channel.m_sessionID);
                         }
                         if (isAudio && !m_callerSocket) {
                             m_call->SetCalledAudioIP(ip, port);
@@ -3116,7 +3116,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
                             m_call->SetCalledVideoIP(ip, port);
                         }
                         if (isH239 && !m_callerSocket) {
-                            m_call->SetCalledH239IP(ip, port);
+                            m_call->SetCalledH239IP(ip, port, channel.m_sessionID);
                         }
                     }
                 }
