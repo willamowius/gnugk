@@ -4234,6 +4234,7 @@ bool CallRec::GetCalledH239IP(PIPSocket::Address & addr, WORD & port) const
     return true;
 }
 
+#ifdef HAS_H46023
 bool CallRec::SingleGatekeeper() const
 {
 	if (!m_Calling || !m_Called)  // Default Single Gatekeeper TRUE!
@@ -4245,6 +4246,7 @@ bool CallRec::SingleGatekeeper() const
 
 	return false;
 }
+#endif // HAS_H46023
 
 bool CallRec::GetRemoteInfo(PString & vendor, PString & version)
 {

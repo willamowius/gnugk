@@ -335,7 +335,7 @@ public:
 #ifdef HAS_LANGUAGE
 	bool SetAssignedLanguage(const H225_RegistrationRequest_language & rrqLang, H225_RegistrationConfirm_language & rcfLang);
 	bool SetAssignedLanguage(H225_LocationConfirm_language & lcfLang);
-#endif
+#endif // HAS_LANGUAGE
 	void SetLanguages(const PStringList & languages) { m_languages = languages; }
 	const PStringList & GetLanguages() { return m_languages; }
 	PString GetDefaultLanguage();
@@ -690,8 +690,8 @@ public:
 class H4609_QosMonitoringReportData;
 #ifdef HAS_H46024B
 class H323TransportAddress;
-#endif
-#endif
+#endif // HAS_H46024B
+#endif // HAS_H460
 
 #ifdef HAS_H46018
 // direction definitions for H.460.19
@@ -699,7 +699,7 @@ class H323TransportAddress;
 #define H46019_CALLER	1	// m_h46019dir = 1 ' Caller needs H.460.19
 #define H46019_CALLED	2	// m_h46019dir = 2 ' Called needs H.460.19
 #define H46019_BOTH		(H46019_CALLER + H46019_CALLED)	// m_h46019dir = 3 ' Both need it
-#endif
+#endif // HAS_H46018
 
 
 class CallRec {
@@ -848,7 +848,7 @@ public:
 
 	/** GetSignallingSocket */
 	CallSignalSocket * H46024ASignalSocket();
-#endif
+#endif // HAS_H46024A
 
 #ifdef HAS_H46024B
     /** GetSignallingSocket */
@@ -865,14 +865,13 @@ public:
 
 	/** Handle H46024B Request */
 	bool HandleH46024BRequest(const H245_ArrayOf_GenericParameter & content);
-#endif
-
-#endif
+#endif // HAS_H46024B
 
 	/** Return whether the endpoints are registered at the same gatekeeper so
 	    only 1 gatekeeper is involved in the call
 	  */
 	bool SingleGatekeeper() const;
+#endif // HAS_H46023
 
 	/** Return remote party device information
 	  */
