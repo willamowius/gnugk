@@ -668,6 +668,7 @@ public:
 	static void Send(PUInt32b sendMultiplexID, const H323TransportAddress & toAddress, int ossocket, void * data, unsigned len, bool bufferHasRoomForID = false);
 
 public:
+	//mutable PTimedMutex m_usedLock;
     bool m_deleted; // logically deleted, but still in list so other threads can leave methods
     PTime m_deleteTime;
 	H225_CallIdentifier m_callid;

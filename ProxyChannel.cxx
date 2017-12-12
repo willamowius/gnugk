@@ -9933,6 +9933,10 @@ H46019Session::H46019Session(const H225_CallIdentifier & callid, WORD session, v
 
 H46019Session::~H46019Session()
 {
+    //PTRACE(0, "JW-S " << PThread::Current()->GetThreadId() << " d'tor wait lock for " << this);
+    //PWaitAndSignal lock(m_usedLock);
+    //PTRACE(0, "JW-S " << PThread::Current()->GetThreadId() << " d'tor got lock for " << this);
+
     // don't free any pointers
 }
 
@@ -9968,12 +9972,18 @@ H46019Session::H46019Session(const H46019Session & other)
 
 H46019Session & H46019Session::operator=(const H46019Session & other)
 {
+    //PTRACE(0, "JW-S " << PThread::Current()->GetThreadId() << " operator= wait lock for " << this);
+    //PWaitAndSignal lock(m_usedLock);
+    //PTRACE(0, "JW-S " << PThread::Current()->GetThreadId() << " operator= got lock for " << this);
+
     if (this == &other)
         return *this;
 
     m_deleted = other.m_deleted;
     m_deleteTime = other.m_deleteTime;
-	m_callid = other.m_callid;
+    // only re-assign callid if its different
+    if (m_callid != other.m_callid)
+        m_callid = other.m_callid;
 	m_session = other.m_session;
 	m_flcn = other.m_flcn;
 	m_openedBy = other.m_openedBy;
@@ -10004,6 +10014,10 @@ H46019Session & H46019Session::operator=(const H46019Session & other)
 // return a copy with side A and B swapped
 H46019Session H46019Session::SwapSides() const
 {
+    //PTRACE(0, "JW-S " << PThread::Current()->GetThreadId() << " SwapSides wait lock for " << this);
+    //PWaitAndSignal lock(m_usedLock);
+    //PTRACE(0, "JW-S " << PThread::Current()->GetThreadId() << " SwapSides got lock for " << this);
+
 	H46019Session result = *this;
 	swap(result.m_openedBy, result.m_otherSide);
 	swap(result.m_addrA, result.m_addrB);
@@ -10012,6 +10026,7 @@ H46019Session H46019Session::SwapSides() const
 	swap(result.m_multiplexID_toA, result.m_multiplexID_toB);
 	swap(result.m_osSocketToA, result.m_osSocketToB);
 	swap(result.m_osSocketToA_RTCP, result.m_osSocketToB_RTCP);
+
 	return result;
 }
 
@@ -10034,6 +10049,10 @@ void H46019Session::Dump() const
 
 void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP)
 {
+    //PTRACE(0, "JW-S " << PThread::Current()->GetThreadId() << " HandlePacket wait lock for " << this);
+    //PWaitAndSignal lock(m_usedLock);
+    //PTRACE(0, "JW-S " << PThread::Current()->GetThreadId() << " HandlePacket got lock for " << this);
+
     if (m_deleted)
         return;
 
@@ -10279,7 +10298,9 @@ MultiplexedRTPHandler::~MultiplexedRTPHandler()
 
 void MultiplexedRTPHandler::AddChannel(const H46019Session & chan)
 {
+    //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " AddChannel wait WRITE lock");
 	WriteLock lock(m_listLock);
+    //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " AddChannel got WRITE lock");
 	if (chan.IsValid()) {
 		bool found = false;
 		// update if we have a channel for this session
@@ -10306,7 +10327,9 @@ void MultiplexedRTPHandler::AddChannel(const H46019Session & chan)
 
 void MultiplexedRTPHandler::UpdateChannelSession(const H225_CallIdentifier & callid, WORD flcn, void * openedBy, WORD session)
 {
+    //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " UpdateChannelSession wait WRITE lock");
 	WriteLock lock(m_listLock);
+    //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " UpdateChannelSession got WRITE lock");
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; ++iter ) {
         if (!iter->m_deleted) {
@@ -10329,7 +10352,9 @@ void MultiplexedRTPHandler::UpdateChannelSession(const H225_CallIdentifier & cal
 
 void MultiplexedRTPHandler::UpdateChannel(const H46019Session & chan)
 {
+    //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " UpdateChannel wait WRITE lock");
 	WriteLock lock(m_listLock);
+	//PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " UpdateChannel got WRITE lock");
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; ++iter ) {
         if (!iter->m_deleted) {
@@ -10349,7 +10374,9 @@ void MultiplexedRTPHandler::UpdateChannel(const H46019Session & chan)
 
 H46019Session MultiplexedRTPHandler::GetChannelSwapped(const H225_CallIdentifier & callid, WORD session, void * openedBy) const
 {
+    //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " GetChannelSwapped wait READ lock");
 	ReadLock lock(m_listLock);
+    //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " GetChannelSwapped got READ lock");
 	for (list<H46019Session>::const_iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; ++iter ) {
         if (!iter->m_deleted) {
@@ -10367,7 +10394,9 @@ H46019Session MultiplexedRTPHandler::GetChannelSwapped(const H225_CallIdentifier
 
 H46019Session MultiplexedRTPHandler::GetChannel(const H225_CallIdentifier & callid, WORD session) const
 {
+    //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " GetChannel wait READ lock");
 	ReadLock lock(m_listLock);
+    //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " GetChannel got READ lock");
 	for (list<H46019Session>::const_iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; ++iter ) {
 		if (!iter->m_deleted && iter->m_callid == callid && iter->m_session == session) {
@@ -10379,7 +10408,9 @@ H46019Session MultiplexedRTPHandler::GetChannel(const H225_CallIdentifier & call
 
 void MultiplexedRTPHandler::RemoveChannels(H225_CallIdentifier callid)
 {
+    //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " RemoveChannels wait WRITE lock");
 	WriteLock lock(m_listLock);
+    //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " RemoveChannels got WRITE lock");
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; /* nothing */ ) {
 		if (!iter->m_deleted && iter->m_callid == callid) {
@@ -10396,7 +10427,9 @@ void MultiplexedRTPHandler::RemoveChannels(H225_CallIdentifier callid)
 #ifdef HAS_H235_MEDIA
 void MultiplexedRTPHandler::RemoveChannel(H225_CallIdentifier callid, RTPLogicalChannel * rtplc)
 {
+    //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " RemoveChannel wait WRITE lock");
 	WriteLock lock(m_listLock);
+    //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " RemoveChannel got WRITE lock");
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; /* nothing */ ) {
 		if (!iter->m_deleted && iter->m_callid == callid) {
@@ -10425,7 +10458,9 @@ void MultiplexedRTPHandler::DumpChannels(const PString & msg) const
 
 bool MultiplexedRTPHandler::HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP)
 {
+    //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " HandlePacket wait READ lock");
 	ReadLock lock(m_listLock);
+    //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " HandlePacket got READ lock");
 	// find the matching channel for the multiplex ID and let it handle the packet
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; ++iter) {
@@ -10433,6 +10468,7 @@ bool MultiplexedRTPHandler::HandlePacket(PUInt32b receivedMultiplexID, const H32
 			|| (iter->m_multiplexID_fromB == receivedMultiplexID)) {
 			if (!iter->m_deleted) {
                 ReadUnlock unlock(m_listLock); // release read lock to avoid possible dead lock
+                PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " HandlePacket ended READ lock");
                 iter->HandlePacket(receivedMultiplexID, fromAddress, data, len, isRTCP);
             }
             return true;
@@ -10489,7 +10525,9 @@ bool MultiplexedRTPHandler::HandlePacket(const H225_CallIdentifier & callid, con
 
 PUInt32b MultiplexedRTPHandler::GetMultiplexID(const H225_CallIdentifier & callid, WORD session, void * to)
 {
+    //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " GetMultiplexID wait READ lock");
 	ReadLock lock(m_listLock);
+    //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " GetMultiplexID got READ lock");
 	for (list<H46019Session>::const_iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; ++iter) {
 		if (!iter->m_deleted && iter->m_callid == callid && iter->m_session == session) {
@@ -10516,7 +10554,9 @@ PUInt32b MultiplexedRTPHandler::GetNewMultiplexID()
 // delete sessions marked as deleted
 void MultiplexedRTPHandler::SessionCleanup(GkTimer* /* timer */)
 {
+    //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " SessionCleanup wait WRITE lock");
 	WriteLock lock(m_listLock);
+    //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " SessionCleanup got WRITE lock");
 	PTime now;
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; /* nothing */ ) {
