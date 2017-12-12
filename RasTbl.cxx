@@ -3646,9 +3646,9 @@ PString CallRec::PrintFullInfo() const
 	PIPSocket::Address addr;
 	WORD port = 0;
 	if (GetCallerAudioIP(addr, port))
-        result += "AudioMediaIPCaller: " + AsString(addr) + "\r\n";
+        result += "AudioMediaIPCaller: " + AsString(addr, port) + "\r\n";
 	if (GetCalledAudioIP(addr, port))
-        result += "AudioMediaIPCalled: " + AsString(addr) + "\r\n";
+        result += "AudioMediaIPCalled: " + AsString(addr, port) + "\r\n";
 	if (GkConfig()->GetBoolean(ProxySection, "EnableRTCPStats", false)) {
         result += "AudioPacketlossCaller: " + psprintf(PString("%0.2f"), GetRTCP_SRC_packet_loss_percent()) + " %\r\n";
         result += "AudioPacketlossCalled: " + psprintf(PString("%0.2f"), GetRTCP_DST_packet_loss_percent()) + " %\r\n";
@@ -3659,17 +3659,17 @@ PString CallRec::PrintFullInfo() const
 	result += "VideoBitrateCaller: " + PString(GetCallerVideoBitrate() / 10) + " kbps\r\n";
 	result += "VideoBitrateCalled: " + PString(GetCallerVideoBitrate() / 10) + " kbps\r\n";
 	if (GetCallerVideoIP(addr, port))
-        result += "VideoMediaIPCaller: " + AsString(addr) + "\r\n";
+        result += "VideoMediaIPCaller: " + AsString(addr, port) + "\r\n";
 	if (GetCalledVideoIP(addr, port))
-        result += "VideoMediaIPCalled: " + AsString(addr) + "\r\n";
+        result += "VideoMediaIPCalled: " + AsString(addr, port) + "\r\n";
 	if (GkConfig()->GetBoolean(ProxySection, "EnableRTCPStats", false)) {
         result += "VideoPacketlossCaller: " + psprintf(PString("%0.2f"), GetRTCP_SRC_video_packet_loss_percent()) + " %\r\n";
         result += "VideoPacketlossCalled: " + psprintf(PString("%0.2f"), GetRTCP_DST_video_packet_loss_percent()) + " %\r\n";
     }
 	if (GetCallerH239IP(addr, port))
-        result += "H239MediaIPCaller: " + AsString(addr) + "\r\n";
+        result += "H239MediaIPCaller: " + AsString(addr, port) + "\r\n";
 	if (GetCalledH239IP(addr, port))
-        result += "H239MediaIPCalled: " + AsString(addr) + "\r\n";
+        result += "H239MediaIPCalled: " + AsString(addr, port) + "\r\n";
 
 	return result;
 }
