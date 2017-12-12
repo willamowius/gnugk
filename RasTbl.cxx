@@ -4191,7 +4191,8 @@ bool CallRec::GetCallerH239IP(PIPSocket::Address & addr, WORD & port) const
 {
 	PWaitAndSignal lock(m_usedLock);
 	// check if we have a detected H.460.19 RTP multiplex IP
-	bool foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, m_H239SessionID, true, addr, port);
+	bool foundDetectedIP = (m_H239SessionID > 0)
+        && MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, m_H239SessionID, true, addr, port);
 	if (!foundDetectedIP) {
         // use signeled media IP
         if (m_callerH239IP.IsValid()) {
@@ -4218,7 +4219,8 @@ bool CallRec::GetCalledH239IP(PIPSocket::Address & addr, WORD & port) const
 {
 	PWaitAndSignal lock(m_usedLock);
 	// check if we have a detected H.460.19 RTP multiplex IP
-	bool foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, m_H239SessionID, false, addr, port);
+	bool foundDetectedIP = (m_H239SessionID > 0)
+        && MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, m_H239SessionID, false, addr, port);
 	if (!foundDetectedIP) {
         // use signeled media IP
         if (m_calledH239IP.IsValid()) {
