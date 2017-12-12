@@ -10555,7 +10555,6 @@ bool MultiplexedRTPHandler::GetDetectedMediaIP(const H225_CallIdentifier & callI
     if (sessionID == 0)
         return false;
 
-    addr = (DOWRD)0; // make sure addr is invalid
 	H46019Session h46019chan = GetChannel(callID, sessionID);
 	if (h46019chan.IsValid()) {
         H245ProxyHandler * h245handler = (H245ProxyHandler *)h46019chan.m_openedBy;
@@ -10565,15 +10564,11 @@ bool MultiplexedRTPHandler::GetDetectedMediaIP(const H225_CallIdentifier & callI
             } else {
                 h46019chan.m_addrB.GetIpAndPort(addr, port);
             }
+            return addr.IsValid();
         }
 	}
-	if (addr.IsValid()) {
-        PTRACE(0, "JW RTP found detected media IP for session=" << sessionID << " caller=" << forCaller << " = " << AsString(addr));
-	} else {
-        PTRACE(0, "JW RTP NOT found detected media IP for session=" << sessionID << " caller=" << forCaller);
-	}
     // TODO: check if we have a detected IP from H.460.19 non-multiplexed or non-std port detection (IgnoreSignaledPorts=1)
-	return addr.IsValid();
+    return false;
 }
 
 // delete sessions marked as deleted
