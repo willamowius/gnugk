@@ -10552,6 +10552,10 @@ PUInt32b MultiplexedRTPHandler::GetNewMultiplexID()
 
 bool MultiplexedRTPHandler::GetDetectedMediaIP(const H225_CallIdentifier & callID, WORD sessionID, bool forCaller, /* out */ PIPSocket::Address & addr, WORD & port) const
 {
+    if (sessionID == 0)
+        return false;
+
+    addr = (DOWRD)0; // make sure addr is invalid
 	H46019Session h46019chan = GetChannel(callID, sessionID);
 	if (h46019chan.IsValid()) {
         H245ProxyHandler * h245handler = (H245ProxyHandler *)h46019chan.m_openedBy;
