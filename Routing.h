@@ -721,8 +721,8 @@ public:
         const PString & displayIE = PString::Empty(),
         /// Display IE of called party or empty
         const PString & calledDisplayIE = PString::Empty(),
-		/// H.225 ReleaseComplete reason
-		unsigned reason = H225_ReleaseCompleteReason::e_calledPartyNotRegistered
+		/// H225_AdmissionRejectReason/H.225 ReleaseComplete reason
+		int reason = -1
 		);
 
 	/** Make a routing decision for a pending route request (inserted
@@ -755,8 +755,8 @@ public:
         const PString & displayIE = PString::Empty(),
         /// Display IE of called party or empty
         const PString & calledDisplayIE = PString::Empty(),
-		/// H.225 ReleaseComplete reason
-		unsigned reason = H225_ReleaseCompleteReason::e_calledPartyNotRegistered
+		/// H225_AdmissionRejectReason/H.225 ReleaseComplete reason
+		int reason = -1
 		);
 
 	/** Reject a pending route request (inserted by SendRequest).
@@ -771,8 +771,8 @@ public:
 		unsigned crv,
 		/// callID of the call associated with the route request
 		const PString & callID,
-		/// H.225 ReleaseComplete reason
-		unsigned reason = H225_ReleaseCompleteReason::e_calledPartyNotRegistered
+		/// H225_AdmissionRejectReason/H.225 ReleaseComplete reason
+		int reason = -1
 		);
 
 	/** @return
@@ -801,7 +801,7 @@ private:
 			m_callingEpId((const char*)callingEpId), m_crv(crv), m_callID(callID),
 			m_agent(agent), m_callsignaladdr(callsignaladdr), m_sourceIP(bindIP),
 			m_callerID(callerID), m_callerDisplayIE(callerDisplayIE), m_calledDisplayIE(calledDisplayIE),
-			m_reject(false), m_rejectReason(H225_ReleaseCompleteReason::e_calledPartyNotRegistered),
+			m_reject(false), m_rejectReason(-1),
 			m_keepRouteInternal(false) { }
 
 		/// identifier for the endpoint associated with this request
@@ -825,8 +825,8 @@ private:
 		PString * m_calledDisplayIE;
 		/// should this call be rejected
 		bool m_reject;
-        /// H.225 ReleaseComplete reason
-        unsigned m_rejectReason;
+        /// H225_AdmissionRejectReasonH225_AdmissionRejectReasonH.225 ReleaseComplete reason
+        int m_rejectReason;
         /// don't communicate changed route to caller
         bool m_keepRouteInternal;
 		/// a synchronization point for signaling that routing decision

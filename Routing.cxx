@@ -1078,7 +1078,8 @@ bool VirtualQueue::SendRouteRequest(
 		// wait for an answer from the status line (routetoalias,routetogateway,routereject)
 		result = r->m_sync.Wait(m_requestTimeout);
 		reject = r->m_reject;   // set reject status
-		rejectReason = r->m_rejectReason;
+		if (r->m_rejectReason > -1)
+            rejectReason = r->m_rejectReason;
 		keepRouteInternal = r->m_keepRouteInternal;
 		m_listMutex.Wait();
 		m_pendingRequests.remove(r);
@@ -1132,8 +1133,8 @@ bool VirtualQueue::RouteToAlias(
     const PString & displayIE,
     /// Display IE of called party or empty
     const PString & calledDisplayIE,
-    /// H.225 ReleaseComplete reason (only valid on reject)
-    unsigned reason
+    /// H225_AdmissionRejectReason/H.225 ReleaseComplete reason (only valid on reject)
+    int reason
 	)
 {
 	PWaitAndSignal lock(m_listMutex);
@@ -1164,7 +1165,8 @@ bool VirtualQueue::RouteToAlias(
 				r->m_keepRouteInternal = keepRouteInternal;  // RouteToInternalGateway
 			}
 			r->m_reject = reject;
-			r->m_rejectReason = reason;
+			if (reason > -1)
+                r->m_rejectReason = reason;
 			r->m_sync.Signal();
 			if (!foundrequest) {
 				foundrequest = true;
@@ -1212,8 +1214,8 @@ bool VirtualQueue::RouteToAlias(
     const PString & displayIE,
     /// Display IE of called party or empty
     const PString & calledDisplayIE,
-    /// H.225 ReleaseComplete reason
-    unsigned reason
+    /// H225_AdmissionRejectReason/H.225 ReleaseComplete reason
+    int reason
 	)
 {
 	H225_ArrayOf_AliasAddress alias;
@@ -1232,7 +1234,7 @@ bool VirtualQueue::RouteReject(
 	/// callID of the call associated with the route request
 	const PString & callID,
 	/// H.225 ReleaseComplete reason
-	unsigned reason
+	int reason
 	)
 {
 	H225_ArrayOf_AliasAddress nullAgent;
@@ -1306,7 +1308,7 @@ bool VirtualQueuePolicy::IsActive() const
 bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 {
 	bool reject = false;
-	unsigned rejectReason = request.GetRejectReason();
+	unsigned rejectReason = H225_AdmissionRejectReason::e_calledPartyNotRegistered;
 	H225_ArrayOf_AliasAddress * aliases = NULL;
 	PString vq = "";
 	if ((aliases = request.GetAliases()))
@@ -1391,7 +1393,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 {
 	bool reject = false;
-	unsigned rejectReason = request.GetRejectReason();
+	unsigned rejectReason = H225_ReleaseCompleteReason::e_calledPartyNotRegistered;
 	if (H225_ArrayOf_AliasAddress *aliases = request.GetAliases()) {
 		const PString vq(AsString((*aliases)[0], false));
 		if (m_vqueue->IsDestinationVirtualQueue(vq)) {
@@ -1484,7 +1486,7 @@ bool VirtualQueuePolicy::OnRequest(LocationRequest & request)
 bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 {
 	bool reject = false;
-	unsigned rejectReason = request.GetRejectReason();
+	unsigned rejectReason = H225_ReleaseCompleteReason::e_calledPartyNotRegistered;
 	H225_ArrayOf_AliasAddress * aliases = new H225_ArrayOf_AliasAddress;
 	aliases->SetSize(1);
 	PString vq = "";
