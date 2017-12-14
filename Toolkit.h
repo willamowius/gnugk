@@ -457,6 +457,11 @@ class Toolkit : public Singleton<Toolkit>
 	void SetGKHome(const PStringArray &);
 	bool IsGKHome(const PIPSocket::Address & addr) const;
 
+	void SetMaintenanceMode(bool val) { m_maintenanceMode = val; }
+	bool IsMaintenanceMode() const { return m_maintenanceMode; }
+	void SetMaintenanceAlternate(const PString & alternate) { m_maintenanceAlternate = alternate; }
+	PString GetMaintenanceAlternate() const { return m_maintenanceAlternate; }
+
     PString GetExternalIP() const;
     void SetExternalIPFromCmdLine(const PString & ip);
     PString ReplaceGlobalParams(const PString & str);
@@ -726,6 +731,8 @@ protected:
 	PMutex m_acctSessionMutex;
 
 private:
+    bool m_maintenanceMode;
+    PString m_maintenanceAlternate;
 	PFilePath m_tmpconfig;
 	/// global manager for time-based events
 	GkTimerManager* m_timerManager;

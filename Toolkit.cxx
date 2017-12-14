@@ -1266,7 +1266,7 @@ Toolkit::VendorData::~VendorData()
 Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit"),
 	m_Config(NULL), m_ConfigDirty(false),
 	m_acctSessionCounter(0), m_acctSessionBase((long)time(NULL)),
-	m_timerManager(new GkTimerManager()),
+    m_maintenanceMode(false), m_timerManager(new GkTimerManager()),
 	m_timestampFormatStr("Cisco"),
 	m_encKeyPaddingByte(-1), m_encryptAllPasswords(false),
 	m_cliRewrite(NULL), m_causeCodeTranslationActive(false)

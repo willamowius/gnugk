@@ -575,7 +575,12 @@ void SoftPBX::PrintCallInfo(USocket *client, const PString & callid)
 void SoftPBX::MaintenanceMode(bool on, const PString & alternate)
 {
 	PTRACE(3, "GK\tSoftPBX: MaintenanceMode " << (on ? "ON" : "OFF") << " " << alternate);
-	// TODO: enable/disable maintenace mode
+	Toolkit::Instance()->SetMaintenanceMode(on);
+	if (IsIPAddress(alternate)) {
+        Toolkit::Instance()->SetMaintenanceAlternate(alternate);
+    } else {
+        Toolkit::Instance()->SetMaintenanceAlternate("");
+    }
     GkStatus::Instance()->SignalStatus(PString("MaintenanceMode ") + (on ? "ON" : "OFF") + " " + alternate + "\r\n");
 }
 

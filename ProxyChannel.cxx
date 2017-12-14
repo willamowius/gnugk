@@ -4051,6 +4051,12 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 	rc_remote = NULL;
 #endif
 
+	if (Toolkit::Instance()->IsMaintenanceMode()) {
+        PTRACE(1, "Rejecting new call in maintenance mode");
+		m_result = Error;
+		return;
+	}
+
 	// prevent from multiple calls over the same signaling channel
 	if (remote
 #ifdef HAS_H46018
@@ -4067,6 +4073,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 				);
 
 			/// we should perform accounting here for this new call
+			// TODO: refector to use SendReleaseComplete() ?
 			H225_H323_UserInformation userInfo;
 			H225_H323_UU_PDU_h323_message_body & msgBody = userInfo.m_h323_uu_pdu.m_h323_message_body;
 			msgBody.SetTag(H225_H323_UU_PDU_h323_message_body::e_releaseComplete);

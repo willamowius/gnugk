@@ -3104,6 +3104,11 @@ bool AdmissionRequestPDU::Process()
 	bool answer = request.m_answerCall;
 	PString in_rewrite_source, out_rewrite_source;
 
+	if (Toolkit::Instance()->IsMaintenanceMode()) {
+        PTRACE(1, "Rejecting new call in maintenance mode");
+		return BuildReply(H225_AdmissionRejectReason::e_resourceUnavailable);
+	}
+
 	// find the caller
 	RequestingEP = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
 	if (!RequestingEP) {
@@ -3956,6 +3961,12 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 	// OnLRQ
 	PString log;
 	bool fromTraversalClient = false;
+
+    if (Toolkit::Instance()->IsMaintenanceMode()) {
+        PTRACE(1, "Rejecting LRQ in maintenance mode");
+        BuildReject(H225_LocationRejectReason::e_requestDenied);
+        return true;
+	}
 
 	if (request.m_destinationInfo.GetSize() > 0) {
 		// Do a check and make sure this is not a ping
