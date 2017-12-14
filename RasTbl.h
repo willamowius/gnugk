@@ -1350,6 +1350,10 @@ public:
 	PString GetCallerVideoCodec() const;
 	void SetCalledVideoCodec(const PString & codec);
 	PString GetCalledVideoCodec() const;
+	void SetCallerH239Codec(const PString & codec);
+	PString GetCallerH239Codec() const;
+	void SetCalledH239Codec(const PString & codec);
+	PString GetCalledH239Codec() const;
 
     void SetCallerAudioBitrate(unsigned bitrate);
 	unsigned GetCallerAudioBitrate() const;
@@ -1359,6 +1363,10 @@ public:
 	unsigned GetCallerVideoBitrate() const;
 	void SetCalledVideoBitrate(unsigned bitrate);
 	unsigned GetCalledVideoBitrate() const;
+	void SetCallerH239Bitrate(unsigned bitrate);
+	unsigned GetCallerH239Bitrate() const;
+	void SetCalledH239Bitrate(unsigned bitrate);
+	unsigned GetCalledH239Bitrate() const;
 
 	void SetCallerAudioIP(const PIPSocket::Address & addr, WORD port);
 	bool GetCallerAudioIP(PIPSocket::Address & addr, WORD & port) const;
@@ -1636,10 +1644,14 @@ private:
 	PString m_calledAudioCodec;
 	PString m_callerVideoCodec;
 	PString m_calledVideoCodec;
+	PString m_callerH239Codec;
+	PString m_calledH239Codec;
 	unsigned m_callerAudioBitrate;
 	unsigned m_calledAudioBitrate;
 	unsigned m_callerVideoBitrate;
 	unsigned m_calledVideoBitrate;
+	unsigned m_callerH239Bitrate;
+	unsigned m_calledH239Bitrate;
 	PIPSocket::Address m_callerAudioIP;
 	PIPSocket::Address m_calledAudioIP;
 	PIPSocket::Address m_callerVideoIP;

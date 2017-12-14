@@ -2999,13 +2999,28 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 				h235Video = true;
 			}
 		}
-		if (videoCap != NULL && videoCap->GetTag() != H245_VideoCapability::e_extendedVideoCapability && m_call) {
-            if (m_callerSocket) {
-                m_call->SetCallerVideoCodec(GetH245CodecName(*videoCap) + (h235Video ? " (H.235)" : ""));
-                m_call->SetCallerVideoBitrate(GetH245CodecBitrate(*videoCap));
+		if (videoCap != NULL && m_call) {
+            if (videoCap->GetTag() != H245_VideoCapability::e_extendedVideoCapability) {
+                if (m_callerSocket) {
+                    m_call->SetCallerVideoCodec(GetH245CodecName(*videoCap) + (h235Video ? " (H.235)" : ""));
+                    m_call->SetCallerVideoBitrate(GetH245CodecBitrate(*videoCap));
+                } else {
+                    m_call->SetCalledVideoCodec(GetH245CodecName(*videoCap) + (h235Video ? " (H.235)" : ""));
+                    m_call->SetCalledVideoBitrate(GetH245CodecBitrate(*videoCap));
+                }
             } else {
-                m_call->SetCalledVideoCodec(GetH245CodecName(*videoCap) + (h235Video ? " (H.235)" : ""));
-                m_call->SetCalledVideoBitrate(GetH245CodecBitrate(*videoCap));
+                // H.239
+                H245_ExtendedVideoCapability & extendedVideoCap = *videoCap;
+                if (extendedVideoCap.m_videoCapability.GetSize() > 0) {
+                    videoCap = &(extendedVideoCap.m_videoCapability[0]);
+                    if (m_callerSocket) {
+                        m_call->SetCallerH239Codec(GetH245CodecName(*videoCap) + (h235Video ? " (H.235)" : ""));
+                        m_call->SetCallerH239Bitrate(GetH245CodecBitrate(*videoCap));
+                    } else {
+                        m_call->SetCalledH239Codec(GetH245CodecName(*videoCap) + (h235Video ? " (H.235)" : ""));
+                        m_call->SetCalledH239Bitrate(GetH245CodecBitrate(*videoCap));
+                    }
+                }
             }
         }
 	}

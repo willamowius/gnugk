@@ -2638,7 +2638,7 @@ CallRec::CallRec(
 	m_toParent(false), m_fromParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_failoverActive(false), m_singleFailoverCDR(true),
-	m_callerAudioBitrate(0), m_calledAudioBitrate(0), m_callerVideoBitrate(0), m_calledVideoBitrate(0),
+	m_callerAudioBitrate(0), m_calledAudioBitrate(0), m_callerVideoBitrate(0), m_calledVideoBitrate(0), m_callerH239Bitrate(0), m_calledH239Bitrate(0),
 	m_callerAudioIP(GNUGK_INADDR_ANY), m_calledAudioIP(GNUGK_INADDR_ANY), m_callerVideoIP(GNUGK_INADDR_ANY), m_calledVideoIP(GNUGK_INADDR_ANY),
 	m_callerH239IP(GNUGK_INADDR_ANY), m_calledH239IP(GNUGK_INADDR_ANY),
 	m_callerAudioPort(0), m_calledAudioPort(0), m_callerVideoPort(0), m_calledVideoPort(0), m_callerH239Port(0), m_calledH239Port(0),
@@ -2704,7 +2704,7 @@ CallRec::CallRec(
 	m_toParent(false), m_fromParent(false), m_forwarded(false), m_proxyMode(proxyMode),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_failoverActive(false), m_singleFailoverCDR(true),
-	m_callerAudioBitrate(0), m_calledAudioBitrate(0), m_callerVideoBitrate(0), m_calledVideoBitrate(0),
+	m_callerAudioBitrate(0), m_calledAudioBitrate(0), m_callerVideoBitrate(0), m_calledVideoBitrate(0), m_callerH239Bitrate(0), m_calledH239Bitrate(0),
 	m_callerAudioIP(GNUGK_INADDR_ANY), m_calledAudioIP(GNUGK_INADDR_ANY), m_callerVideoIP(GNUGK_INADDR_ANY), m_calledVideoIP(GNUGK_INADDR_ANY),
 	m_callerH239IP(GNUGK_INADDR_ANY), m_calledH239IP(GNUGK_INADDR_ANY),
     m_callerAudioPort(0), m_calledAudioPort(0), m_callerVideoPort(0), m_calledVideoPort(0), m_callerH239Port(0), m_calledH239Port(0),
@@ -2762,7 +2762,7 @@ CallRec::CallRec(const H225_CallIdentifier & callID, H225_TransportAddress sigAd
 	m_toParent(false), m_fromParent(false), m_forwarded(false), m_proxyMode(ProxyEnabled),
 	m_callInProgress(false), m_h245ResponseReceived(false), m_fastStartResponseReceived(false),
 	m_singleFailoverCDR(true),
-	m_callerAudioBitrate(0), m_calledAudioBitrate(0), m_callerVideoBitrate(0), m_calledVideoBitrate(0),
+	m_callerAudioBitrate(0), m_calledAudioBitrate(0), m_callerVideoBitrate(0), m_calledVideoBitrate(0), m_callerH239Bitrate(0), m_calledH239Bitrate(0),
 	m_callerAudioIP(GNUGK_INADDR_ANY), m_calledAudioIP(GNUGK_INADDR_ANY), m_callerVideoIP(GNUGK_INADDR_ANY), m_calledVideoIP(GNUGK_INADDR_ANY),
 	m_callerH239IP(GNUGK_INADDR_ANY), m_calledH239IP(GNUGK_INADDR_ANY),
     m_callerAudioPort(0), m_calledAudioPort(0), m_callerVideoPort(0), m_calledVideoPort(0), m_callerH239Port(0), m_calledH239Port(0),
@@ -2810,6 +2810,7 @@ CallRec::CallRec(
 	m_singleFailoverCDR(oldCall->m_singleFailoverCDR),
 	m_callerAudioBitrate(oldCall->m_callerAudioBitrate), m_calledAudioBitrate(oldCall->m_calledAudioBitrate),
 	m_callerVideoBitrate(oldCall->m_callerVideoBitrate), m_calledVideoBitrate(oldCall->m_calledVideoBitrate),
+    m_callerH239Bitrate(oldCall->m_callerH239Bitrate), m_calledH239Bitrate(oldCall->m_calledH239Bitrate),
 	m_callerAudioIP(oldCall->m_callerAudioIP), m_calledAudioIP(oldCall->m_calledAudioIP),
 	m_callerVideoIP(oldCall->m_callerVideoIP), m_calledVideoIP(oldCall->m_calledVideoIP),
 	m_callerH239IP(oldCall->m_callerH239IP), m_calledH239IP(oldCall->m_calledH239IP),
@@ -3666,6 +3667,10 @@ PString CallRec::PrintFullInfo() const
         result += "VideoPacketlossCaller: " + psprintf(PString("%0.2f"), GetRTCP_SRC_video_packet_loss_percent()) + " %\r\n";
         result += "VideoPacketlossCalled: " + psprintf(PString("%0.2f"), GetRTCP_DST_video_packet_loss_percent()) + " %\r\n";
     }
+	result += "H239CodecCaller: " + GetCallerH239Codec() + "\r\n";
+	result += "H239CodecCalled: " + GetCalledH239Codec() + "\r\n";
+	result += "H239BitrateCaller: " + PString(GetCallerH239Bitrate() / 10) + " kbps\r\n";
+	result += "H239BitrateCalled: " + PString(GetCallerH239Bitrate() / 10) + " kbps\r\n";
 	if (GetCallerH239IP(addr, port))
         result += "H239MediaIPCaller: " + AsString(addr, port) + "\r\n";
 	if (GetCalledH239IP(addr, port))
@@ -4030,6 +4035,30 @@ PString CallRec::GetCalledVideoCodec() const
 	return m_calledVideoCodec;
 }
 
+void CallRec::SetCallerH239Codec(const PString & codec)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_callerH239Codec = codec;
+}
+
+PString CallRec::GetCallerH239Codec() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_callerH239Codec;
+}
+
+void CallRec::SetCalledH239Codec(const PString & codec)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_calledH239Codec = codec;
+}
+
+PString CallRec::GetCalledH239Codec() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_calledH239Codec;
+}
+
 void CallRec::SetCallerAudioBitrate(unsigned bitrate)
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -4076,6 +4105,30 @@ unsigned CallRec::GetCalledVideoBitrate() const
 {
 	PWaitAndSignal lock(m_usedLock);
 	return m_calledVideoBitrate;
+}
+
+void CallRec::SetCallerH239Bitrate(unsigned bitrate)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_callerH239Bitrate = bitrate;
+}
+
+unsigned CallRec::GetCallerH239Bitrate() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_callerH239Bitrate;
+}
+
+void CallRec::SetCalledH239Bitrate(unsigned bitrate)
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_calledH239Bitrate = bitrate;
+}
+
+unsigned CallRec::GetCalledH239Bitrate() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_calledH239Bitrate;
 }
 
 void CallRec::SetCallerAudioIP(const PIPSocket::Address & addr, WORD port)
