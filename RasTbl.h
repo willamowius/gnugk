@@ -1394,9 +1394,17 @@ public:
 	void SetBindHint(const PString & ip) { m_bindHint = ip; }
 	PString GetBindHint() const { return m_bindHint; }
 
+	// if set, the callerID to put into calling party number IE
 	void SetCallerID(const PString & id) { m_callerID = id; }
 	PString GetCallerID() const { return m_callerID; }
 
+	// calling/called party number IE (after rewriting)
+    void SetCallingPartyNumberIE(const PString & ie) { m_callingPartyNumberIE = ie; }
+	PString GetCallingPartyNumberIE() const { return m_callingPartyNumberIE; }
+	void SetCalledPartyNumberIE(const PString & ie) { m_calledPartyNumberIE = ie; }
+	PString GetCalledPartyNumberIE() const { return m_calledPartyNumberIE; }
+
+	// if set, the display IE to set for the caller/called party
 	void SetCallerDisplayIE(const PString & display) { m_callerDisplayIE = display; }
 	PString GetCallerDisplayIE() const { return m_callerDisplayIE; }
 	void SetCalledDisplayIE(const PString & display) { m_calledDisplayIE = display; }
@@ -1665,6 +1673,10 @@ private:
 	WORD m_callerH239Port;
 	WORD m_calledH239Port;
 	WORD m_H239SessionID;
+
+	PString m_callingPartyNumberIE;
+	PString m_calledPartyNumberIE;
+
 	PBYTEArray m_radiusClass;
 	bool m_proceedingSent;
 #ifdef HAS_H46018

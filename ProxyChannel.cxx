@@ -5283,6 +5283,24 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 	}
 	SetCallTypePlan(&q931);
 
+	// store (rewritten) CallingPartyNumberIE, eg. for PrintCallInfo
+    if (q931.HasIE(Q931::CallingPartyNumberIE)) {
+        unsigned planIgnored = Q931::ISDNPlan, typeIgnored = Q931::InternationalType;
+        unsigned presentationIgnored = (unsigned)-1, screeningIgnored = (unsigned)-1;
+        PString callingPartyNumberIE;
+        q931.GetCallingPartyNumber(callingPartyNumberIE, &planIgnored, &typeIgnored, &presentationIgnored, &screeningIgnored, (unsigned)-1, (unsigned)-1);
+        m_call->SetCallingPartyNumberIE(callingPartyNumberIE);
+    }
+
+	// store (rewritten) CalledPartyNumberIE, eg. for PrintCallInfo
+    if (q931.HasIE(Q931::CalledPartyNumberIE)) {
+        unsigned planIgnored = Q931::ISDNPlan, typeIgnored = Q931::InternationalType;
+        unsigned presentationIgnored = (unsigned)-1, screeningIgnored = (unsigned)-1;
+        PString calledPartyNumberIE;
+        q931.GetCalledPartyNumber(calledPartyNumberIE, &planIgnored, &typeIgnored);
+        m_call->SetCalledPartyNumberIE(calledPartyNumberIE);
+    }
+
 	// add destination alias (for Swyx trunk)
 	if (m_call->GetCalledParty()) {
 		PString addAlias = m_call->GetCalledParty()->GetAdditionalDestinationAlias();

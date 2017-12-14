@@ -3619,6 +3619,8 @@ PString CallRec::PrintFullInfo() const
 	result += "CallerAlias: " + GetCallingStationId() + "\r\n";
 	result += "CalledAlias: " + GetCalledStationId() + "\r\n";
 	result += "DialedNumber: " + m_dialedNumber + "\r\n";
+	result += "CallingPartyNumberIE: " + GetCallingPartyNumberIE() + "\r\n";
+	result += "CalledPartyNumberIE: " + GetCalledPartyNumberIE() + "\r\n";
 	PString vendorStr = "unknown";
 	PString vendor, version;
 	if (GetCallingVendor(vendor, version))
