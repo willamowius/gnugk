@@ -199,6 +199,9 @@ public:
 #if HAS_DATABASE
 		Toolkit::Instance()->AlternateGKs().GetAlternateGK(ip.m_address, alternates);
 #endif
+        if (Toolkit::Instance()->IsMaintenanceMode() && alternates.GetSize() == 0) {
+            alternates = Toolkit::Instance()->GetMaintenanceAlternate();
+        }
 		if (alternates.GetSize() > 0) {
 			// add alternates by IP
 			ras.IncludeOptionalField(RAS::e_altGKInfo);

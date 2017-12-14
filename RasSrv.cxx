@@ -80,7 +80,7 @@ private:
 		e_acf = -1,
 		e_routeRequest = -2
 	};
-	bool BuildReply(int, bool h460 = false, CallRec * rec = NULL);
+	bool BuildReply(int reason, bool h460 = false, CallRec * rec = NULL);
 
 	/** @return
 	    A string that can be used to identify a calling number.
@@ -2140,6 +2140,14 @@ bool RegistrationRequestPDU::Process()
 			(request.m_callSignalAddress.GetSize() >= 1) ?
 			EndpointTbl->FindBySignalAdr(request.m_callSignalAddress[0], rx_addr) : endptr(0);
 		bool bReject = !ep;
+		if (Toolkit::Instance()->IsMaintenanceMode()) {
+            callptr call = CallTbl->FindCallRec(ep);
+            if (!call) {
+                PTRACE(1, "Rejecting registration update in maintenance mode, endpoint not in call");
+                EndpointTbl->RemoveByEndptr(ep);
+                return BuildRRJ(H225_RegistrationRejectReason::e_resourceUnavailable, true);
+            }
+        }
 	    if (bReject) {
 			PString epid = request.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier) ?
 				request.m_endpointIdentifier.GetValue() : "<none>";
@@ -2347,7 +2355,7 @@ bool RegistrationRequestPDU::Process()
 
 			return bSendReply;
 		}
-	}
+	} // end lightweight
 
 	if (request.m_rasAddress.GetSize() == 0)
 		return BuildRRJ(H225_RegistrationRejectReason::e_invalidRASAddress);
@@ -2406,6 +2414,22 @@ bool RegistrationRequestPDU::Process()
             PTRACE(1, "RAS\tNew registration with existing endpointID, but different IP: oldIP=" << AsDotString(ep->GetCallSignalAddress()) << " newIP=" << AsDotString(SignalAddr));
 			// no reason named invalidEndpointIdentifier? :(
 			return BuildRRJ(H225_RegistrationRejectReason::e_securityDenial);
+        }
+        if (Toolkit::Instance()->IsMaintenanceMode()) {
+            callptr call = callptr(NULL);
+            if (ep)
+                CallTbl->FindCallRec(ep);
+            if (!ep || !call) {
+                PTRACE(1, "Rejecting registration in maintenance mode, endpoint not in call");
+                if (ep)
+                    EndpointTbl->RemoveByEndptr(ep);
+                return BuildRRJ(H225_RegistrationRejectReason::e_resourceUnavailable, true);
+            }
+        }
+	} else {
+        if (Toolkit::Instance()->IsMaintenanceMode()) {
+            PTRACE(1, "Rejecting new registration in maintenance mode");
+            return BuildRRJ(H225_RegistrationRejectReason::e_resourceUnavailable, true);
         }
 	}
 

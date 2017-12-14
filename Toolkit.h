@@ -460,7 +460,7 @@ class Toolkit : public Singleton<Toolkit>
 	void SetMaintenanceMode(bool val) { m_maintenanceMode = val; }
 	bool IsMaintenanceMode() const { return m_maintenanceMode; }
 	void SetMaintenanceAlternate(const PString & alternate) { m_maintenanceAlternate = alternate; }
-	PString GetMaintenanceAlternate() const { return m_maintenanceAlternate; }
+	H225_ArrayOf_AlternateGK GetMaintenanceAlternate() const;
 
     PString GetExternalIP() const;
     void SetExternalIPFromCmdLine(const PString & ip);

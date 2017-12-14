@@ -2952,7 +2952,7 @@ bool Toolkit::AlternateGatekeepers::GetAlternateGK(const PIPSocket::Address & ip
 			PStringArray tokens = SplitIPAndPort(num, GK_DEF_UNICAST_RAS_PORT);
 			WORD port = (WORD)tokens[1].AsUnsigned();
 			PIPSocket::Address ipAddress;
-			PIPSocket::GetHostAddress(tokens[0],ipAddress);
+			PIPSocket::GetHostAddress(tokens[0], ipAddress);
 			int sz = gklist.GetSize();
 			gklist.SetSize(sz+1);
 			H225_AlternateGK & alt = gklist[sz];
@@ -3596,6 +3596,24 @@ bool Toolkit::IsGKHome(const PIPSocket::Address & addr) const
 		}
 	}
 	return false;
+}
+
+H225_ArrayOf_AlternateGK Toolkit::GetMaintenanceAlternate() const
+{
+    H225_ArrayOf_AlternateGK gklist;
+    gklist.SetSize(0);
+    if (!m_maintenanceAlternate.IsEmpty()) {
+        gklist.SetSize(1);
+        PStringArray tokens = SplitIPAndPort(m_maintenanceAlternate, GK_DEF_UNICAST_RAS_PORT);
+        WORD port = (WORD)tokens[1].AsUnsigned();
+        PIPSocket::Address ipAddress;
+        PIPSocket::GetHostAddress(tokens[0], ipAddress);
+        H225_AlternateGK & alt = gklist[0];
+        alt.m_rasAddress = SocketToH225TransportAddr(ipAddress,port);
+        alt.m_needToRegister = true;
+        alt.m_priority = 1;
+    }
+    return gklist;
 }
 
 PString Toolkit::GetExternalIP() const
