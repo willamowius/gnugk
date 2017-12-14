@@ -3648,6 +3648,7 @@ PString CallRec::PrintFullInfo() const
 	result += "AudioBitrateCalled: " + PString(GetCalledAudioBitrate() / 10) + " kbps\r\n";
 	PIPSocket::Address addr;
 	WORD port = 0;
+	// TODO: media IPs are not correct for detected IPs/ports unless H.460.19 RTP multiplexing is used
 	if (GetCallerAudioIP(addr, port))
         result += "AudioMediaIPCaller: " + AsString(addr, port) + "\r\n";
 	if (GetCalledAudioIP(addr, port))
