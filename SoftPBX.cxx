@@ -581,6 +581,9 @@ void SoftPBX::MaintenanceMode(bool on, const PString & alternate)
     } else {
         Toolkit::Instance()->SetMaintenanceAlternate("");
     }
+    if (on) {
+        RegistrationTable::Instance()->UnregisterAllEndpointsNotInCall();
+    }
     GkStatus::Instance()->SignalStatus(PString("MaintenanceMode ") + (on ? "ON" : "OFF") + " " + alternate + "\r\n");
 }
 

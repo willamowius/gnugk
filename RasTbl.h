@@ -599,6 +599,7 @@ public:
 #ifdef HAS_H46017
 	void UnregisterAllH46017Endpoints();
 #endif
+    void UnregisterAllEndpointsNotInCall();
 
 	void PrintAllRegistrations(USocket *client, bool verbose=FALSE);
 	void PrintAllCached(USocket *client, bool verbose=FALSE);

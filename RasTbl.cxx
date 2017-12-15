@@ -1020,7 +1020,7 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 		&& !UsesH46017())
 		return false;  // no valid RAS address
 
-	RasServer *RasSrv = RasServer::Instance();
+	RasServer * RasSrv = RasServer::Instance();
 	H225_RasMessage ras_msg;
 	ras_msg.SetTag(H225_RasMessage::e_unregistrationRequest);
 	H225_UnregistrationRequest & urq = ras_msg;
@@ -1031,6 +1031,13 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 	urq.m_endpointIdentifier = GetEndpointIdentifier();
 	urq.m_callSignalAddress.SetSize(1);
 	urq.m_callSignalAddress[0] = GetCallSignalAddress();
+    if (Toolkit::Instance()->IsMaintenanceMode()) {
+        H225_ArrayOf_AlternateGK alternates = Toolkit::Instance()->GetMaintenanceAlternate();
+		if (alternates.GetSize() > 0) {
+			urq.IncludeOptionalField(H225_UnregistrationRequest::e_alternateGatekeeper);
+			urq.m_alternateGatekeeper = alternates;
+        }
+    }
 
 	SetUsesH460P(false);
 #ifdef HAS_H46017
@@ -1822,12 +1829,14 @@ void RegistrationTable::RemoveByEndptr(const endptr & eptr)
 {
 	RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctUnregister, eptr);
 	EndpointRec *ep = eptr.operator->(); // evil
-	if (RasServer::Instance()->IsPassThroughRegistrant())
-		RasServer::Instance()->RemoveAdditiveRegistration(ep->GetAliases());
-	ep->SetUsesH460P(false);
-	ep->RemoveNATSocket();
-	WriteLock lock(listLock);
-	InternalRemove(find(EndpointList.begin(), EndpointList.end(), ep));
+	if (ep) {
+        if (RasServer::Instance()->IsPassThroughRegistrant())
+            RasServer::Instance()->RemoveAdditiveRegistration(ep->GetAliases());
+        ep->SetUsesH460P(false);
+        ep->RemoveNATSocket();
+        WriteLock lock(listLock);
+        InternalRemove(find(EndpointList.begin(), EndpointList.end(), ep));
+	}
 }
 
 void RegistrationTable::InternalRemove(iterator Iter)
@@ -2434,6 +2443,25 @@ void RegistrationTable::OnNATSocketClosed(CallSignalSocket * s)
 				(const unsigned char *) ep->GetEndpointIdentifier().GetValue(),
 				"natSocketClosed");
 		    GkStatus::Instance()->SignalStatus(msg, STATUS_TRACE_LEVEL_RAS);
+		}
+		else ++Iter;
+	}
+}
+
+void RegistrationTable::UnregisterAllEndpointsNotInCall()
+{
+	WriteLock lock(listLock);
+
+	iterator Iter = EndpointList.begin();
+	while (Iter != EndpointList.end()) {
+		EndpointRec *ep = *Iter;
+        callptr call = CallTable::Instance()->FindCallRec(endptr(ep));
+        if (!call) {
+			ep->Unregister();
+			RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctUnregister, endptr(ep));
+			RemovedList.push_back(ep);
+			Iter = EndpointList.erase(Iter);
+			--regSize;
 		}
 		else ++Iter;
 	}
