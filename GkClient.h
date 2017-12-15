@@ -48,14 +48,14 @@ class SignalingMsg;
 template <class> class H225SignalingMsg;
 typedef H225SignalingMsg<H225_Setup_UUIE> SetupMsg;
 
+bool IsOIDForAlgo(const PString & oid, const PCaselessString & algo);
+
 #ifdef HAS_H46023
 class H460_FeatureStd;
 class STUNClient;
 class UDPProxySocket;
 class H46024B_AlternateAddress;
 class H46024B_ArrayOf_AlternateAddress;
-
-bool IsOIDForAlgo(const PString & oid, const PCaselessString & algo);
 
 class CallH46024Sockets
 {
@@ -79,7 +79,7 @@ protected:
 
 typedef std::map<H225_CallIdentifier, std::list<CallH46024Sockets> > GkNATSocketMap;
 
-#endif
+#endif // HAS_H46023
 
 class GkClient {
 public:
