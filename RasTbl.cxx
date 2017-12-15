@@ -4172,8 +4172,11 @@ void CallRec::SetCallerAudioIP(const PIPSocket::Address & addr, WORD port)
 bool CallRec::GetCallerAudioIP(PIPSocket::Address & addr, WORD & port) const
 {
 	PWaitAndSignal lock(m_usedLock);
+	bool foundDetectedIP = false;
+#ifdef HAS_H46018
 	// check if we have a detected H.460.19 RTP multiplex IP
-	bool foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 1, true, addr, port);
+	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 1, true, addr, port);
+#endif
 	if (!foundDetectedIP) {
         // use signeled media IP
         if (m_callerAudioIP.IsValid()) {
@@ -4197,8 +4200,11 @@ void CallRec::SetCalledAudioIP(const PIPSocket::Address & addr, WORD port)
 bool CallRec::GetCalledAudioIP(PIPSocket::Address & addr, WORD & port) const
 {
 	PWaitAndSignal lock(m_usedLock);
+	bool foundDetectedIP = false;
+#ifdef HAS_H46018
 	// check if we have a detected H.460.19 RTP multiplex IP
-	bool foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 1, false, addr, port);
+	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 1, false, addr, port);
+#endif
 	if (!foundDetectedIP) {
         // use signeled media IP
         if (m_calledAudioIP.IsValid()) {
@@ -4222,8 +4228,11 @@ void CallRec::SetCallerVideoIP(const PIPSocket::Address & addr, WORD port)
 bool CallRec::GetCallerVideoIP(PIPSocket::Address & addr, WORD & port) const
 {
 	PWaitAndSignal lock(m_usedLock);
+	bool foundDetectedIP = false;
+#ifdef HAS_H46018
 	// check if we have a detected H.460.19 RTP multiplex IP
-	bool foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 2, true, addr, port);
+	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 2, true, addr, port);
+#endif
 	if (!foundDetectedIP) {
         // use signeled media IP
         if (m_callerVideoIP.IsValid()) {
@@ -4247,8 +4256,11 @@ void CallRec::SetCalledVideoIP(const PIPSocket::Address & addr, WORD port)
 bool CallRec::GetCalledVideoIP(PIPSocket::Address & addr, WORD & port) const
 {
 	PWaitAndSignal lock(m_usedLock);
+	bool foundDetectedIP = false;
+#ifdef HAS_H46018
 	// check if we have a detected H.460.19 RTP multiplex IP
-	bool foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 2, false, addr, port);
+	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 2, false, addr, port);
+#endif
 	if (!foundDetectedIP) {
         // use signeled media IP
         if (m_calledVideoIP.IsValid()) {
@@ -4274,8 +4286,11 @@ void CallRec::SetCallerH239IP(const PIPSocket::Address & addr, WORD port, WORD s
 bool CallRec::GetCallerH239IP(PIPSocket::Address & addr, WORD & port) const
 {
 	PWaitAndSignal lock(m_usedLock);
+	bool foundDetectedIP = false;
+#ifdef HAS_H46018
 	// check if we have a detected H.460.19 RTP multiplex IP
-	bool foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, m_H239SessionID, true, addr, port);
+	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, m_H239SessionID, true, addr, port);
+#endif
 	if (!foundDetectedIP) {
         // use signeled media IP
         if (m_callerH239IP.IsValid()) {
@@ -4301,8 +4316,11 @@ void CallRec::SetCalledH239IP(const PIPSocket::Address & addr, WORD port, WORD s
 bool CallRec::GetCalledH239IP(PIPSocket::Address & addr, WORD & port) const
 {
 	PWaitAndSignal lock(m_usedLock);
+	bool foundDetectedIP = false;
+#ifdef HAS_H46018
 	// check if we have a detected H.460.19 RTP multiplex IP
-	bool foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, m_H239SessionID, false, addr, port);
+	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, m_H239SessionID, false, addr, port);
+#endif
 	if (!foundDetectedIP) {
         // use signeled media IP
         if (m_calledH239IP.IsValid()) {
