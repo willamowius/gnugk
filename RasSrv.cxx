@@ -1746,6 +1746,11 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		bReject = true;
 		rsn = H225_GatekeeperRejectReason::e_resourceUnavailable;
 	}
+	if (Toolkit::Instance()->IsMaintenanceMode()) {
+        PTRACE(1, "Rejecting GRQ in maintenance mode");
+		bReject = true;
+		rsn = H225_GatekeeperRejectReason::e_resourceUnavailable;
+	}
 	if (bReject) {
 		H225_GatekeeperReject & grj = BuildReject(rsn);
 		grj.m_protocolIdentifier = request.m_protocolIdentifier;
@@ -3988,7 +3993,8 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 
     if (Toolkit::Instance()->IsMaintenanceMode()) {
         PTRACE(1, "Rejecting LRQ in maintenance mode");
-        BuildReject(H225_LocationRejectReason::e_requestDenied);
+        H225_LocationReject & lrj = BuildReject(H225_LocationRejectReason::e_resourceUnavailable);
+        RasSrv->SetAltGKInfo(lrj, m_msg->m_peerAddr);
         return true;
 	}
 
