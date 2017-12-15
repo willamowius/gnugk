@@ -2729,6 +2729,8 @@ void CallSignalSocket::BuildReleasePDU(Q931 & ReleasePDU, const H225_CallTermina
 	if (m_call) {
 		uuie.IncludeOptionalField(H225_ReleaseComplete_UUIE::e_callIdentifier);
 		uuie.m_callIdentifier = m_call->GetCallIdentifier();
+	} else {
+		uuie.RemoveOptionalField(H225_ReleaseComplete_UUIE::e_callIdentifier);
 	}
 	if (cause) {
 		if (cause->GetTag() == H225_CallTerminationCause::e_releaseCompleteReason) {
