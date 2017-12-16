@@ -483,11 +483,11 @@ public:
 	*/
 	virtual int PrefixMatch(
 		/// aliases to be matched (one of them)
-		const H225_ArrayOf_AliasAddress& aliases,
+		const H225_ArrayOf_AliasAddress & aliases,
 		/// filled with an index of the matching alias (if found)
-		int& matchedalias,
+		int & matchedalias,
 		/// priority of matched prefix
-		int& priority
+		int & priority
 		) const;
 
 	//virtual void BuildLCF(H225_LocationConfirm &) const;
@@ -511,8 +511,8 @@ private:
 	void LoadGatewayConfig();
 
 	GatewayRec();
-	GatewayRec(const GatewayRec&);
-	GatewayRec& operator=(const GatewayRec&);
+	GatewayRec(const GatewayRec &);
+	GatewayRec & operator=(const GatewayRec &);
 
 protected:
 	std::map<std::string, int> Prefixes;
