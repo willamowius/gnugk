@@ -202,11 +202,11 @@ PString GetH245CodecName(const H245_AudioCapability & cap)
 {
 	switch (cap.GetTag()) {
 	case H245_AudioCapability::e_g711Alaw64k:
-		return "G711A64";
+		return "G711A";
 	case H245_AudioCapability::e_g711Alaw56k:
 		return "G711A56";
 	case H245_AudioCapability::e_g711Ulaw64k:
-		return "G711U64";
+		return "G711U";
 	case H245_AudioCapability::e_g711Ulaw56k:
 		return "G711U56";
 	case H245_AudioCapability::e_g722_64k:

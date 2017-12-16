@@ -3686,10 +3686,14 @@ PString CallRec::PrintFullInfo() const
         result += "AudioPacketlossCalled: " + psprintf(PString("%0.2f"), GetRTCP_DST_packet_loss_percent()) + " %\r\n";
 	}
 
-	result += "VideoCodecCaller: " + GetCallerVideoCodec() + "\r\n";
-	result += "VideoCodecCalled: " + GetCalledVideoCodec() + "\r\n";
-	result += "VideoBitrateCaller: " + PString(GetCallerVideoBitrate() / 10) + " kbps\r\n";
-	result += "VideoBitrateCalled: " + PString(GetCallerVideoBitrate() / 10) + " kbps\r\n";
+    if (!GetCallerVideoCodec().IsEmpty())
+        result += "VideoCodecCaller: " + GetCallerVideoCodec() + "\r\n";
+    if (!GetCalledVideoCodec().IsEmpty())
+        result += "VideoCodecCalled: " + GetCalledVideoCodec() + "\r\n";
+    if (!GetCallerVideoCodec().IsEmpty())
+        result += "VideoBitrateCaller: " + PString(GetCallerVideoBitrate() / 10) + " kbps\r\n";
+    if (!GetCalledVideoCodec().IsEmpty())
+        result += "VideoBitrateCalled: " + PString(GetCallerVideoBitrate() / 10) + " kbps\r\n";
 	if (GetCallerVideoIP(addr, port))
         result += "VideoMediaIPCaller: " + AsString(addr, port) + "\r\n";
 	if (GetCalledVideoIP(addr, port))
@@ -3698,10 +3702,14 @@ PString CallRec::PrintFullInfo() const
         result += "VideoPacketlossCaller: " + psprintf(PString("%0.2f"), GetRTCP_SRC_video_packet_loss_percent()) + " %\r\n";
         result += "VideoPacketlossCalled: " + psprintf(PString("%0.2f"), GetRTCP_DST_video_packet_loss_percent()) + " %\r\n";
     }
-	result += "H239CodecCaller: " + GetCallerH239Codec() + "\r\n";
-	result += "H239CodecCalled: " + GetCalledH239Codec() + "\r\n";
-	result += "H239BitrateCaller: " + PString(GetCallerH239Bitrate() / 10) + " kbps\r\n";
-	result += "H239BitrateCalled: " + PString(GetCallerH239Bitrate() / 10) + " kbps\r\n";
+    if (!GetCallerH239Codec().IsEmpty())
+        result += "H239CodecCaller: " + GetCallerH239Codec() + "\r\n";
+    if (!GetCalledH239Codec().IsEmpty())
+        result += "H239CodecCalled: " + GetCalledH239Codec() + "\r\n";
+    if (!GetCallerH239Codec().IsEmpty())
+        result += "H239BitrateCaller: " + PString(GetCallerH239Bitrate() / 10) + " kbps\r\n";
+    if (!GetCalledH239Codec().IsEmpty())
+        result += "H239BitrateCalled: " + PString(GetCallerH239Bitrate() / 10) + " kbps\r\n";
 	if (GetCallerH239IP(addr, port))
         result += "H239MediaIPCaller: " + AsString(addr, port) + "\r\n";
 	if (GetCalledH239IP(addr, port))
@@ -4177,6 +4185,9 @@ bool CallRec::GetCallerAudioIP(PIPSocket::Address & addr, WORD & port) const
 	// check if we have a detected H.460.19 RTP multiplex IP
 	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 1, true, addr, port);
 #endif
+    if (IgnoreSignaledIPs() || (GetCallingParty() && GetCallingParty()->GetTraversalRole() != None)) {
+        return false;   // we don't know which side is which in these cases
+    }
 	if (!foundDetectedIP) {
         // use signeled media IP
         if (m_callerAudioIP.IsValid()) {
@@ -4205,6 +4216,10 @@ bool CallRec::GetCalledAudioIP(PIPSocket::Address & addr, WORD & port) const
 	// check if we have a detected H.460.19 RTP multiplex IP
 	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 1, false, addr, port);
 #endif
+    PTRACE(0, "JW ignore=" << IgnoreSignaledIPs() << " role=" << GetCalledParty()->GetTraversalRole());
+    if (IgnoreSignaledIPs() || (GetCalledParty() && GetCalledParty()->GetTraversalRole() != None)) {
+        return false;   // we don't know which side is which in these cases
+    }
 	if (!foundDetectedIP) {
         // use signeled media IP
         if (m_calledAudioIP.IsValid()) {
@@ -4233,6 +4248,9 @@ bool CallRec::GetCallerVideoIP(PIPSocket::Address & addr, WORD & port) const
 	// check if we have a detected H.460.19 RTP multiplex IP
 	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 2, true, addr, port);
 #endif
+    if (IgnoreSignaledIPs() || (GetCallingParty() && GetCallingParty()->GetTraversalRole() != None)) {
+        return false;   // we don't know which side is which in these cases
+    }
 	if (!foundDetectedIP) {
         // use signeled media IP
         if (m_callerVideoIP.IsValid()) {
@@ -4261,6 +4279,9 @@ bool CallRec::GetCalledVideoIP(PIPSocket::Address & addr, WORD & port) const
 	// check if we have a detected H.460.19 RTP multiplex IP
 	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 2, false, addr, port);
 #endif
+    if (IgnoreSignaledIPs() || (GetCalledParty() && GetCalledParty()->GetTraversalRole() != None)) {
+        return false;   // we don't know which side is which in these cases
+    }
 	if (!foundDetectedIP) {
         // use signeled media IP
         if (m_calledVideoIP.IsValid()) {
@@ -4291,6 +4312,9 @@ bool CallRec::GetCallerH239IP(PIPSocket::Address & addr, WORD & port) const
 	// check if we have a detected H.460.19 RTP multiplex IP
 	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, m_H239SessionID, true, addr, port);
 #endif
+    if (IgnoreSignaledIPs() || (GetCallingParty() && GetCallingParty()->GetTraversalRole() != None)) {
+        return false;   // we don't know which side is which in these cases
+    }
 	if (!foundDetectedIP) {
         // use signeled media IP
         if (m_callerH239IP.IsValid()) {
@@ -4321,6 +4345,9 @@ bool CallRec::GetCalledH239IP(PIPSocket::Address & addr, WORD & port) const
 	// check if we have a detected H.460.19 RTP multiplex IP
 	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, m_H239SessionID, false, addr, port);
 #endif
+    if (IgnoreSignaledIPs() || (GetCalledParty() && GetCalledParty()->GetTraversalRole() != None)) {
+        return false;   // we don't know which side is which in these cases
+    }
 	if (!foundDetectedIP) {
         // use signeled media IP
         if (m_calledH239IP.IsValid()) {
