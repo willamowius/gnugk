@@ -4216,7 +4216,6 @@ bool CallRec::GetCalledAudioIP(PIPSocket::Address & addr, WORD & port) const
 	// check if we have a detected H.460.19 RTP multiplex IP
 	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 1, false, addr, port);
 #endif
-    PTRACE(0, "JW ignore=" << IgnoreSignaledIPs() << " role=" << GetCalledParty()->GetTraversalRole());
     if (IgnoreSignaledIPs() || (GetCalledParty() && GetCalledParty()->GetTraversalRole() != None)) {
         return false;   // we don't know which side is which in these cases
     }
