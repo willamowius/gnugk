@@ -3982,6 +3982,11 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
     // set H.235.1 tokens
 	SetupResponseTokens(m_msg->m_replyRAS, ep);
 
+    if (ep && Toolkit::Instance()->IsMaintenanceMode()) {
+        PTRACE(1, "DRQ in maintenance mode, send URQ");
+        ep->Unregister();
+	}
+
 	return PrintStatus(log);
 }
 
