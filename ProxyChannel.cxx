@@ -235,9 +235,19 @@ PString GetH245CodecName(const H245_AudioCapability & cap)
 		return "GSMHR";
 	case H245_AudioCapability::e_gsmEnhancedFullRate:
 		return "GSMEFR";
-	case H245_AudioCapability::e_genericAudioCapability:
-        // TODO: check for G722.1, G.722.2 etc by looking at m_capabilityIdentifier OID ?
-		return "GenericAudio";
+	case H245_AudioCapability::e_genericAudioCapability: {
+            const H245_GenericCapability & genericcap = cap;
+            if (genericcap.m_capabilityIdentifier.GetTag() == H245_CapabilityIdentifier::e_standard) {
+                const PASN_ObjectId & id = genericcap.m_capabilityIdentifier;
+                if (id == "0.0.7.7221.1.0")
+                    return "G722.1";
+                if (id == "0.0.7.7221.1.1.0")
+                    return "G722.1C";
+                if (id == "0.0.7.7221.2.0")
+                    return "G722.2";
+            }
+            return "GenericAudio";
+		}
 	}
 	return "Unknown";
 }
