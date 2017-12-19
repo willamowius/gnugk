@@ -306,7 +306,7 @@ unsigned GetH245CodecBitrate(const H245_AudioCapability & cap)
 		return 122;
 	case H245_AudioCapability::e_genericAudioCapability: {
             const H245_GenericCapability & genericcap = cap;
-            return genericcap.m_maxBitRate;
+            return genericcap.m_maxBitRate / 100; // G.722.1 Annex A changes units to bit/s, not 100 bit/s !!!
 		}
 	}
 	return 0;
