@@ -4185,10 +4185,10 @@ bool CallRec::GetCallerAudioIP(PIPSocket::Address & addr, WORD & port) const
 	// check if we have a detected H.460.19 RTP multiplex IP
 	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 1, true, addr, port);
 #endif
-    if (IgnoreSignaledIPs() || (GetCallingParty() && GetCallingParty()->GetTraversalRole() != None)) {
-        return false;   // we don't know which side is which in these cases
-    }
 	if (!foundDetectedIP) {
+        if (IgnoreSignaledIPs() || (GetCallingParty() && GetCallingParty()->GetTraversalRole() != None)) {
+            return false;   // we don't know which side is which in these cases
+        }
         // use signeled media IP
         if (m_callerAudioIP.IsValid()) {
             addr = m_callerAudioIP;
@@ -4216,10 +4216,10 @@ bool CallRec::GetCalledAudioIP(PIPSocket::Address & addr, WORD & port) const
 	// check if we have a detected H.460.19 RTP multiplex IP
 	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 1, false, addr, port);
 #endif
-    if (IgnoreSignaledIPs() || (GetCalledParty() && GetCalledParty()->GetTraversalRole() != None)) {
-        return false;   // we don't know which side is which in these cases
-    }
 	if (!foundDetectedIP) {
+        if (IgnoreSignaledIPs() || (GetCalledParty() && GetCalledParty()->GetTraversalRole() != None)) {
+            return false;   // we don't know which side is which in these cases
+        }
         // use signeled media IP
         if (m_calledAudioIP.IsValid()) {
             addr = m_calledAudioIP;
@@ -4247,10 +4247,10 @@ bool CallRec::GetCallerVideoIP(PIPSocket::Address & addr, WORD & port) const
 	// check if we have a detected H.460.19 RTP multiplex IP
 	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 2, true, addr, port);
 #endif
-    if (IgnoreSignaledIPs() || (GetCallingParty() && GetCallingParty()->GetTraversalRole() != None)) {
-        return false;   // we don't know which side is which in these cases
-    }
 	if (!foundDetectedIP) {
+        if (IgnoreSignaledIPs() || (GetCallingParty() && GetCallingParty()->GetTraversalRole() != None)) {
+            return false;   // we don't know which side is which in these cases
+        }
         // use signeled media IP
         if (m_callerVideoIP.IsValid()) {
             addr = m_callerVideoIP;
@@ -4278,10 +4278,10 @@ bool CallRec::GetCalledVideoIP(PIPSocket::Address & addr, WORD & port) const
 	// check if we have a detected H.460.19 RTP multiplex IP
 	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 2, false, addr, port);
 #endif
-    if (IgnoreSignaledIPs() || (GetCalledParty() && GetCalledParty()->GetTraversalRole() != None)) {
-        return false;   // we don't know which side is which in these cases
-    }
 	if (!foundDetectedIP) {
+        if (IgnoreSignaledIPs() || (GetCalledParty() && GetCalledParty()->GetTraversalRole() != None)) {
+            return false;   // we don't know which side is which in these cases
+        }
         // use signeled media IP
         if (m_calledVideoIP.IsValid()) {
             addr = m_calledVideoIP;
@@ -4311,10 +4311,10 @@ bool CallRec::GetCallerH239IP(PIPSocket::Address & addr, WORD & port) const
 	// check if we have a detected H.460.19 RTP multiplex IP
 	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, m_H239SessionID, true, addr, port);
 #endif
-    if (IgnoreSignaledIPs() || (GetCallingParty() && GetCallingParty()->GetTraversalRole() != None)) {
-        return false;   // we don't know which side is which in these cases
-    }
 	if (!foundDetectedIP) {
+        if (IgnoreSignaledIPs() || (GetCallingParty() && GetCallingParty()->GetTraversalRole() != None)) {
+            return false;   // we don't know which side is which in these cases
+        }
         // use signeled media IP
         if (m_callerH239IP.IsValid()) {
             addr = m_callerH239IP;
@@ -4344,10 +4344,10 @@ bool CallRec::GetCalledH239IP(PIPSocket::Address & addr, WORD & port) const
 	// check if we have a detected H.460.19 RTP multiplex IP
 	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, m_H239SessionID, false, addr, port);
 #endif
-    if (IgnoreSignaledIPs() || (GetCalledParty() && GetCalledParty()->GetTraversalRole() != None)) {
-        return false;   // we don't know which side is which in these cases
-    }
 	if (!foundDetectedIP) {
+        if (IgnoreSignaledIPs() || (GetCalledParty() && GetCalledParty()->GetTraversalRole() != None)) {
+            return false;   // we don't know which side is which in these cases
+        }
         // use signeled media IP
         if (m_calledH239IP.IsValid()) {
             addr = m_calledH239IP;
