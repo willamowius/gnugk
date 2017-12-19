@@ -103,6 +103,11 @@ const char *H245_Protocol_Version[MAX_H323_VERSION+1] = {
 #define UNDEFINED_PAYLOAD_TYPE		255
 #define H46019_AUTO_DETECTION_WAIT	4000 // wait n millisec before doing H.460.19 port auto-detection
 
+#define G722_1_OID  "0.0.7.7221.1.0"
+#define G722_1C_OID "0.0.7.7221.1.1.0"
+#define G722_2_OID  "0.0.7.7221.2.0"
+
+
 namespace {
 // default timeout (ms) for initial Setup message,
 // if not specified in the config file
@@ -239,11 +244,11 @@ PString GetH245CodecName(const H245_AudioCapability & cap)
             const H245_GenericCapability & genericcap = cap;
             if (genericcap.m_capabilityIdentifier.GetTag() == H245_CapabilityIdentifier::e_standard) {
                 const PASN_ObjectId & id = genericcap.m_capabilityIdentifier;
-                if (id == "0.0.7.7221.1.0")
+                if (id == G722_1_OID)
                     return "G722.1";
-                if (id == "0.0.7.7221.1.1.0")
+                if (id == G722_1C_OID)
                     return "G722.1C";
-                if (id == "0.0.7.7221.2.0")
+                if (id == G722_2_OID)
                     return "G722.2";
             }
             return "GenericAudio";
@@ -308,7 +313,7 @@ unsigned GetH245CodecBitrate(const H245_AudioCapability & cap)
             const H245_GenericCapability & genericcap = cap;
             if (genericcap.m_capabilityIdentifier.GetTag() == H245_CapabilityIdentifier::e_standard) {
                 const PASN_ObjectId & id = genericcap.m_capabilityIdentifier;
-                if (id == "0.0.7.7221.1.0")
+                if (id == G722_1_OID)
                     return genericcap.m_maxBitRate / 100; // G.722.1 Annex A changes units to bit/s, not 100 bit/s !!!
             }
             return genericcap.m_maxBitRate;
