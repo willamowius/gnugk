@@ -1,5 +1,6 @@
 Changes from 4.7 to 4.8
 =======================
+- allow placeholder %{env1} ... %{env3} in HttpPasswordAuth
 - new status port command: MaintenanceMode
 - new status port command: PrintCallInfo
 - allow placeholder %{gkip} and %{external-ip} in [LogFile] Filename=

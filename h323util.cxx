@@ -987,6 +987,24 @@ void ReplaceRegEx(PString & str, const PRegularExpression & re, const PString & 
     }
 }
 
+bool GetUUIE(const Q931 & q931, H225_H323_UserInformation & uuie)
+{
+	if (q931.HasIE(Q931::UserUserIE)) {
+		PPER_Stream strm(q931.GetIE(Q931::UserUserIE));
+		if (uuie.Decode(strm))
+			return true;
+	}
+	return false;
+}
+
+void SetUUIE(Q931 & q931, const H225_H323_UserInformation & uuie)
+{
+	PPER_Stream strm;
+	uuie.Encode(strm);
+	strm.CompleteEncoding();
+	q931.SetIE(Q931::UserUserIE, strm);
+}
+
 // get the name for Q.931 message types
 PString Q931MessageName(unsigned messageType)
 {

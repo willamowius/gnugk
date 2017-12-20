@@ -285,6 +285,10 @@ unsigned ProtocolVersion(const char * protocolIdentifier);
 // replace a regular expression in a string
 void ReplaceRegEx(PString & str, const PRegularExpression & re, const PString & subs, PBoolean all = false, PINDEX offset = 0);
 
+bool GetUUIE(const Q931 & q931, H225_H323_UserInformation & uuie);
+
+void SetUUIE(Q931 & q931, const H225_H323_UserInformation & uuie);
+
 // get the name for Q.931 message types
 PString Q931MessageName(unsigned messageType);
 

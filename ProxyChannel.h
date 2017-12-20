@@ -71,10 +71,6 @@ const WORD DEFAULT_PACKET_BUFFER_SIZE = 2048;
 
 void PrintQ931(int, const char *, const char *, const Q931 *, const H225_H323_UserInformation *);
 
-bool GetUUIE(const Q931 & q931, H225_H323_UserInformation & uuie);
-
-void SetUUIE(Q931 & q931, const H225_H323_UserInformation & uuie);
-
 ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323TransportAddress & toAddress);
 ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const PIPSocket::Address & ip, WORD port);
 

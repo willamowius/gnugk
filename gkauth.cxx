@@ -2291,7 +2291,6 @@ private:
 
 protected:
 	PString m_url;
-	PString m_host;
 	PString m_body;
 	PCaselessString m_method;
 	PRegularExpression m_resultRegex;
@@ -2303,7 +2302,6 @@ HttpPasswordAuth::HttpPasswordAuth(const char* authName)
 	: SimplePasswordAuth(authName)
 {
 	m_url = GkConfig()->GetString("HttpPasswordAuth", "URL", "");
-	m_host = PURL(m_url).GetHostName();
 	m_body = GkConfig()->GetString("HttpPasswordAuth", "Body", "");
 	m_method = GkConfig()->GetString("HttpPasswordAuth", "Method", "POST");
 	PString resultRegex = GkConfig()->GetString("HttpPasswordAuth", "ResultRegex", ".");
@@ -2337,11 +2335,12 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
     PString result;
 
     PString url = ReplaceAuthParams(m_url, params);
+    PString host = PURL(url).GetHostName();
     PString body = ReplaceAuthParams(m_body, params);
 
     if (m_method == "GET") {
         if (!http.GetTextDocument(url, result)) {
-            PTRACE(2, "HttpPasswordAuth\tCould not GET password from " << m_host);
+            PTRACE(2, "HttpPasswordAuth\tCould not GET password from " << host);
             return false;
         }
     } else if (m_method == "POST") {
@@ -2349,7 +2348,7 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
         outMIME.SetAt(PMIMEInfo::ContentTypeTag(), "text/plain");
         PMIMEInfo replyMIME;
         if (!http.PostData(url, outMIME, body, replyMIME, result)) {
-            PTRACE(2, "HttpPasswordAuth\tCould not POST to " << m_host);
+            PTRACE(2, "HttpPasswordAuth\tCould not POST to " << host);
             return false;
         }
     } else {
@@ -2359,7 +2358,7 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
 	PTRACE(5, "HttpPasswordAuth\tServer response = " << result);
     PINDEX pos, len;
     if (result.FindRegEx(m_errorRegex, pos, len)) {
-        PTRACE(4, "HttpPasswordAuth\tErrorRegex matches result from " << m_host);
+        PTRACE(4, "HttpPasswordAuth\tErrorRegex matches result from " << host);
         return false;
     }
     if (result.FindRegEx(m_resultRegex, pos, len)) {
@@ -2368,7 +2367,7 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
         PTRACE(5, "HttpPasswordAuth\tPassword = " << password);
         return true;
     } else {
-        PTRACE(2, "HttpPasswordAuth\tError: No answer found in response from " << m_host);
+        PTRACE(2, "HttpPasswordAuth\tError: No answer found in response from " << host);
         return false;
     }
 }

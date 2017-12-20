@@ -1842,6 +1842,9 @@ For <tt/HttpPasswordAuth/ two parameters are defined:
 <item><tt/%{caller-vendor}/ - product name and version of the caller (only available RRQ and Setup)
 <item><tt/%{caller-product-name}/ - product name of the caller (only available RRQ and Setup)
 <item><tt/%{caller-product-version}/ - product version of the caller (only available RRQ and Setup)
+<item><tt/%{env1}/ - content of environment variable GNUGK_ENV1
+<item><tt/%{env2}/ - content of environment variable GNUGK_ENV2
+<item><tt/%{env3}/ - content of environment variable GNUGK_ENV3
 </itemize>
 
 <sect1>Section &lsqb;GeoIPAuth&rsqb;

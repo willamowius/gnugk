@@ -24,7 +24,6 @@
 #include "Toolkit.h"
 #include "snmp.h"
 #include "h323util.h"
-#include "ProxyChannel.h"   // TODO: move GetUUIE()
 
 class H225_GatekeeperRequest;
 class H225_GatekeeperConfirm;
@@ -900,6 +899,9 @@ protected:
             }
         }
         params["caller-vendor"] = params["caller-product-name"] + " " + params["caller-product-version"];
+        params["env1"] = PString(::getenv("GNUGK_ENV1"));
+        params["env2"] = PString(::getenv("GNUGK_ENV2"));
+        params["env3"] = PString(::getenv("GNUGK_ENV3"));
 
 		if (CheckTokens(auth, *tokens, aliases, params) == e_fail
 			|| CheckCryptoTokens(auth, *cryptoTokens, aliases, acceptAnySendersID, params) == e_fail) {

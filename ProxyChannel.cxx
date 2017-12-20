@@ -2067,24 +2067,6 @@ void PrintQ931(int tlevel, const char *msg1, const char *msg2, const Q931 *q931,
 	PTRACE(tlevel, pstrm);
 }
 
-bool GetUUIE(const Q931 & q931, H225_H323_UserInformation & uuie)
-{
-	if (q931.HasIE(Q931::UserUserIE)) {
-		PPER_Stream strm(q931.GetIE(Q931::UserUserIE));
-		if (uuie.Decode(strm))
-			return true;
-	}
-	return false;
-}
-
-void SetUUIE(Q931 & q931, const H225_H323_UserInformation & uuie)
-{
-	PPER_Stream strm;
-	uuie.Encode(strm);
-	strm.CompleteEncoding();
-	q931.SetIE(Q931::UserUserIE, strm);
-}
-
 void CallSignalSocket::RemoveCall()
 {
 	if (m_call) {
