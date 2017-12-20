@@ -11690,26 +11690,26 @@ void ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & 
 		}
 		switch (frame.GetPayloadType()) {
 		case RTP_ControlFrame::e_SenderReport :
-			PTRACE(5, "RTCP\tSenderReport packet");
+			PTRACE(7, "RTCP\tSenderReport packet");
 			if (size >= (sizeof(RTP_ControlFrame::SenderReport) + frame.GetCount() * sizeof(RTP_ControlFrame::ReceiverReport))) {
 				const RTP_ControlFrame::SenderReport & sr = *(const RTP_ControlFrame::SenderReport *)(payload);
 				if (direct) {
 					if (sessionID == RTP_Session::DefaultAudioSessionID) {
 						call->SetRTCP_DST_packet_count(sr.psent);
-						PTRACE(5, "RTCP\tSetRTCP_DST_packet_count:" << sr.psent);
+						PTRACE(7, "RTCP\tSetRTCP_DST_packet_count: " << sr.psent);
 					}
 					if (sessionID == RTP_Session::DefaultVideoSessionID) {
 						call->SetRTCP_DST_video_packet_count(sr.psent);
-						PTRACE(5, "RTCP\tSetRTCP_DST_video_packet_count:" << sr.psent);
+						PTRACE(7, "RTCP\tSetRTCP_DST_video_packet_count: " << sr.psent);
 					}
 				} else {
 					if (sessionID == RTP_Session::DefaultAudioSessionID) {
 						call->SetRTCP_SRC_packet_count(sr.psent);
-						PTRACE(5, "RTCP\tSetRTCP_SRC_packet_count:" << sr.psent);
+						PTRACE(7, "RTCP\tSetRTCP_SRC_packet_count: " << sr.psent);
 					}
 					if (sessionID == RTP_Session::DefaultVideoSessionID) {
 						call->SetRTCP_SRC_video_packet_count(sr.psent);
-						PTRACE(5, "RTCP\tSetRTCP_SRC_video_packet_count:" << sr.psent);
+						PTRACE(7, "RTCP\tSetRTCP_SRC_video_packet_count: " << sr.psent);
 					}
 				}
 				BuildReceiverReport(call, sessionID, frame, sizeof(RTP_ControlFrame::SenderReport), direct);
@@ -11718,7 +11718,7 @@ void ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & 
 			}
 			break;
 		case RTP_ControlFrame::e_ReceiverReport:
-			PTRACE(5, "RTCP\tReceiverReport packet");
+			PTRACE(7, "RTCP\tReceiverReport packet");
 			if (size >= (frame.GetCount()*sizeof(RTP_ControlFrame::ReceiverReport))) {
 				BuildReceiverReport(call, sessionID, frame, sizeof(PUInt32b), direct);
 			} else {
@@ -11726,7 +11726,7 @@ void ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & 
 			}
 			break;
 		case RTP_ControlFrame::e_SourceDescription :
-			PTRACE(5, "RTCP\tSourceDescription packet");
+			PTRACE(7, "RTCP\tSourceDescription packet");
 			if ((!call->GetRTCP_SRC_sdes_flag() && direct) || (!call->GetRTCP_DST_sdes_flag() && !direct))
 				if (size >= (frame.GetCount()*sizeof(RTP_ControlFrame::SourceDescription))) {
 					const RTP_ControlFrame::SourceDescription * sdes = (const RTP_ControlFrame::SourceDescription *)payload;
@@ -11759,14 +11759,14 @@ void ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & 
 									call->SetRTCP_sdes(direct, "note="+((PString)(item->data)).Left(item->length));
 									break;
 								default:
-									PTRACE(5, "RTCP\tSourceDescription unknown item type " << item->type);
+									PTRACE(7, "RTCP\tSourceDescription unknown item type " << item->type);
 									break;
 								}
 							}
 							item = item->GetNextItem();
 						}
 						/* RTP_ControlFrame::e_END doesn't have a length field, so do NOT call item->GetNextItem()
-						otherwise it reads over the buffer */
+						   otherwise it reads over the buffer */
 						if ((item == NULL)
 							|| (item->type == RTP_ControlFrame::e_END)
 							|| ((sdes = (const RTP_ControlFrame::SourceDescription *)item->GetNextItem()) == NULL)){
@@ -11776,10 +11776,10 @@ void ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & 
 			}
 			break;
 		case RTP_ControlFrame::e_Goodbye:
-			PTRACE(5, "RTCP\tGoodbye packet");
+			PTRACE(7, "RTCP\tGoodbye packet");
 			break;
 		case RTP_ControlFrame::e_ApplDefined:
-			PTRACE(5, "RTCP\tApplDefined packet");
+			PTRACE(7, "RTCP\tApplDefined packet");
 			break;
 		default:
 			PTRACE(5, "RTCP\tUnknown control payload type: " << frame.GetPayloadType());
@@ -11796,27 +11796,27 @@ void BuildReceiverReport(const callptr & call, WORD sessionID, const RTP_Control
 			if (sessionID == RTP_Session::DefaultAudioSessionID) {
 				call->SetRTCP_DST_packet_lost(rr->GetLostPackets());
 				call->SetRTCP_DST_jitter(rr->jitter / 8);
-				PTRACE(5, "RTCP\tSetRTCP_DST_packet_lost:" << rr->GetLostPackets());
-				PTRACE(5, "RTCP\tSetRTCP_DST_jitter:" << (rr->jitter / 8));
+				PTRACE(7, "RTCP\tSetRTCP_DST_packet_lost: " << rr->GetLostPackets());
+				PTRACE(7, "RTCP\tSetRTCP_DST_jitter: " << (rr->jitter / 8));
 			}
 			if (sessionID == RTP_Session::DefaultVideoSessionID) {
 				call->SetRTCP_DST_video_packet_lost(rr->GetLostPackets());
 				call->SetRTCP_DST_video_jitter(rr->jitter / 90);
-				PTRACE(5, "RTCP\tSetRTCP_DST_video_packet_lost:" << rr->GetLostPackets());
-				PTRACE(5, "RTCP\tSetRTCP_DST_video_jitter:" << (rr->jitter / 90));
+				PTRACE(7, "RTCP\tSetRTCP_DST_video_packet_lost: " << rr->GetLostPackets());
+				PTRACE(7, "RTCP\tSetRTCP_DST_video_jitter: " << (rr->jitter / 90));
 			}
 		} else {
 			if (sessionID == RTP_Session::DefaultAudioSessionID) {
 				call->SetRTCP_SRC_packet_lost(rr->GetLostPackets());
 				call->SetRTCP_SRC_jitter(rr->jitter / 8);
-				PTRACE(5, "RTCP\tSetRTCP_SRC_packet_lost:" << rr->GetLostPackets());
-				PTRACE(5, "RTCP\tSetRTCP_SRC_jitter:" << (rr->jitter / 8));
+				PTRACE(7, "RTCP\tSetRTCP_SRC_packet_lost: " << rr->GetLostPackets());
+				PTRACE(7, "RTCP\tSetRTCP_SRC_jitter: " << (rr->jitter / 8));
 			}
 			if (sessionID == RTP_Session::DefaultVideoSessionID) {
 				call->SetRTCP_SRC_video_packet_lost(rr->GetLostPackets());
 				call->SetRTCP_SRC_video_jitter(rr->jitter / 90);
-				PTRACE(5, "RTCP\tSetRTCP_SRC_video_packet_lost:" << rr->GetLostPackets());
-				PTRACE(5, "RTCP\tSetRTCP_SRC_video_jitter:" << (rr->jitter / 90));
+				PTRACE(7, "RTCP\tSetRTCP_SRC_video_packet_lost: " << rr->GetLostPackets());
+				PTRACE(7, "RTCP\tSetRTCP_SRC_video_jitter: " << (rr->jitter / 90));
 			}
 		}
 		rr++;
