@@ -871,7 +871,7 @@ Number of Neighbors: 2
 
 <item><tt/PrintCallInfo, pci/<newline>
 <p>
-Print detailed information about a single call.
+Print lots of detailed information about a single call, eg. codecs used, bandwith, IPs etc.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
@@ -879,7 +879,7 @@ PrintCallInfo CALL-ID
 </verb></tscreen>
 <tag/Example:/
 <tscreen><verb>
-tba
+PrintCallInfo 40-06-dd-98-22-37-52-40-8c-b0-92-0e-18-60-99-07
 </verb></tscreen>
 </descrip>
 
@@ -901,7 +901,7 @@ MaintenanceMode OFF
 </verb></tscreen>
 <tag/Example:/
 <tscreen><verb>
-tba
+MaintenanceMode 1.2.3.4
 </verb></tscreen>
 </descrip>
 
