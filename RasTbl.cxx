@@ -979,6 +979,8 @@ PString EndpointRec::PrintOn(bool verbose) const
 	PString msg;
 	std::map<PString, PString> params;
 	PString format = GkConfig()->GetString("GkStatus::Message", "RCF", "");
+    PString vendor, version;
+    GetEndpointInfo(vendor, version);
 	if (!verbose && !format.IsEmpty()) {
 		bool compact = Toolkit::AsBool(GkConfig()->GetString("GkStatus::Message", "Compact", "0"));
 		params["IP:Port"] = AsDotString(GetCallSignalAddress());
@@ -986,8 +988,6 @@ PString EndpointRec::PrintOn(bool verbose) const
 		params["Endpoint_Type"] = AsString(GetEndpointType());
 		params["EndpointID"] = GetEndpointIdentifier().GetValue();
 		params["NATType"] = PrintNatInfo(!compact);
-		PString vendor, version;
-		GetEndpointInfo(vendor, version);
 		params["Vendor"] = vendor + version;
 		msg = ReplaceParameters(format, params);
 	} else {
@@ -1008,7 +1008,9 @@ PString EndpointRec::PrintOn(bool verbose) const
 		PString natType = PrintNatInfo(verbose);
 		if (!natType.IsEmpty())
 			msg += " (" + natType + ")";
-		msg += " bw:" + PString(m_bandwidth) + "/" + PString(m_maxBandwidth) + "\r\n";
+		msg += " bw:" + PString(m_bandwidth) + "/" + PString(m_maxBandwidth);
+		msg += " vendor:" + vendor + " " + version;
+		msg += "\r\n";
 	}
 	return msg;
 }
