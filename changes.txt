@@ -1,6 +1,6 @@
 Changes from 4.7 to 4.8
 =======================
-- PrintRegistrationsVerbose now also shows the endpoint vendor
+- PrintAllRegistrationsVerbose now also shows the endpoint vendor
 - allow placeholder %{env1} ... %{env3} in HttpPasswordAuth
 - new status port command: MaintenanceMode
 - new status port command: PrintCallInfo

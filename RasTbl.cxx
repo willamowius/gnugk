@@ -988,7 +988,7 @@ PString EndpointRec::PrintOn(bool verbose) const
 		params["Endpoint_Type"] = AsString(GetEndpointType());
 		params["EndpointID"] = GetEndpointIdentifier().GetValue();
 		params["NATType"] = PrintNatInfo(!compact);
-		params["Vendor"] = vendor + version;
+		params["Vendor"] = vendor + " " + version;
 		msg = ReplaceParameters(format, params);
 	} else {
 		msg = AsDotString(GetCallSignalAddress())
@@ -1079,7 +1079,7 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 		params["URQReason"] = urq.m_reason.GetTagName();
 		PString vendor, version;
 		GetEndpointInfo(vendor, version);
-		params["Vendor"] = vendor + version;
+		params["Vendor"] = vendor + " " + version;
 		msg = "URQ|"+ ReplaceParameters(format, params) + ";\r\n";
 	} else {
 		msg = PString(PString::Printf, "URQ|%s|%s|%s;\r\n",
