@@ -886,6 +886,13 @@ tba
 <item><tt/MaintenanceMode/<newline>
 <p>
 Enable or disable maintenance mode.
+<p>
+Ongoing calls remain active, endpoints that are in a call remain registered.
+All other registered endpoints will be unregistered, no new registrations or calls are accepted.
+Endpoints in a call will be unregistered as soon as they end the call.
+
+You can optionally set the IP of an alternate gatekeeper where registered endpoints will be directed to.
+This alterate gatekeeper will only be used during maitenance mode.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
