@@ -1,0 +1,75 @@
+#!/bin/bash
+# Copyright (c) 2014-7 Jan Willamowius, <jan@willamowius.de>, https://www.willamowius.com/
+#
+# gnugk        Startup script for the GNU Gatekeeper
+#
+# chkconfig: - 85 15
+# description: The GNU Gatekeeper is a free H.323 gatekeeper
+# processname: gnugk
+# config: /etc/gnugk.ini
+#
+### BEGIN INIT INFO
+# Provides: gnugk
+# Required-Start: $local_fs $remote_fs $network $named
+# Required-Stop: $local_fs $remote_fs $network
+# Short-Description: start and stop GNU Gatekeeper
+# Description: The GNU Gatekeeper is a free H.323 gatekeeper
+### END INIT INFO
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Path to the apachectl script, server binary, and short-form for messages.
+gnugk=/usr/local/bin/gnugk
+args="-c /etc/gnugk.ini -ttttt -o /var/log/gnugk.log"
+prog=gnugk
+RETVAL=0
+
+start() {
+        echo -n $"Starting $prog: "
+        $gnugk $args > /dev/null 2>&1 &
+        RETVAL=$?
+        echo
+        return $RETVAL
+}
+
+stop() {
+	echo -n $"Stopping $prog: "
+	/usr/bin/killall $gnugk
+	RETVAL=$?
+	echo
+}
+reload() {
+    echo -n $"Reloading $prog: "
+    /usr/bin/killall -HUP $gnugk
+    RETVAL=$?
+    echo
+}
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  restart)
+	stop
+	start
+	;;
+  condrestart|try-restart)
+	if status -p ${pidfile} $gnugk >&/dev/null; then
+		stop
+		start
+	fi
+	;;
+  force-reload|reload)
+        reload
+	;;
+  *)
+	echo $"Usage: $prog {start|stop|restart|condrestart|try-restart|force-reload|reload}"
+	RETVAL=2
+esac
+
+exit $RETVAL
