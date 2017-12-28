@@ -14,8 +14,9 @@ Changes from 4.7 to 4.8
 - extend status port commands RouteToAlias, RouteToGateway etc. to set display IE for calling and called
 - delete DisplayIE when [RoutedMode] ScreenDisplayIE=Delete
 - extend parameters for HttpPasswordAuth
-- new switch [RoutedMode] AppendToCallingPartyNumberIE= to append any string to the
-  calling party number IE when ScreenCallingPartyNumberIE=RegisteredAlias
+- new switches: [RoutedMode] AppendToCallingPartyNumberIE= / PrependToCallingPartyNumberIE=
+  to add any string before or after the calling party number IE when
+  ScreenCallingPartyNumberIE=RegisteredAlias
 - when [RoutedMode] ScreenCallingPartyNumberIE= is set to RegisteredAlias, GnuGk
   sets calling party number IE to the registered alias (forced screening)
 - BUGFIX(ProxyChannel.cxx) don't send H.460 keep-alive to non-H.460 party when calling H.460 party

@@ -5289,6 +5289,11 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
                 append = Toolkit::Instance()->ReplaceGlobalParams(append);
                 cli += append;
             }
+            PString prepend = toolkit->Config()->GetString(RoutedSec, "PrependToCallingPartyNumberIE", "");
+            if (!prepend.IsEmpty()) {
+                prepend = Toolkit::Instance()->ReplaceGlobalParams(prepend);
+                cli = prepend + cli;
+            }
 		}
         q931.SetCallingPartyNumber(cli, plan, type, presentation, screening);
 	}

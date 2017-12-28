@@ -214,6 +214,11 @@ Default: <tt>N/A</tt><newline>
 <p>
 When ScreenDisplayIE= is set, this text is appended to the new DisplayIE.
 
+<item><tt/PrependToDisplayIE=SomeText/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+When ScreenDisplayIE= is set, this text is prepended to the new DisplayIE.
+
 <item><tt/ScreenCallingPartyNumberIE=0965123456/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
