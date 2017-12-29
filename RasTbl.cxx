@@ -3165,25 +3165,30 @@ void CallRec::AddDisabledCodecs(const PString & codecs)
 
 void CallRec::SetSRC_media_control_IP(const PString & IP)
 {
+	PWaitAndSignal lock(m_usedLock);
     m_src_media_control_IP = IP;
 }
 
 void CallRec::SetDST_media_control_IP(const PString & IP)
 {
+	PWaitAndSignal lock(m_usedLock);
     m_dst_media_control_IP = IP;
 }
 
 void CallRec::SetSRC_media_IP(const PString & IP)
 {
+	PWaitAndSignal lock(m_usedLock);
     m_src_media_IP = IP;
 }
 
 void CallRec::SetDST_media_IP(const PString & IP)
 {
+	PWaitAndSignal lock(m_usedLock);
     m_dst_media_IP = IP;
 }
 
-void CallRec::InitRTCP_report() {
+void CallRec::InitRTCP_report()
+{
 	// audio values
     m_rtcp_source_packet_count = 0;
     m_rtcp_destination_packet_count = 0;
