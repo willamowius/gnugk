@@ -601,7 +601,7 @@ void Neighbor::SetH46018GkKeepAliveInterval(int interval)
 // initialize neighbor object created by SRV policy
 bool Neighbor::SetProfile(const PString & name, const H323TransportAddress & addr)
 {
-	addr.GetIpAndPort(m_ip,m_port);
+	addr.GetIpAndPort(m_ip, m_port);
 	m_id = "SRVrec";
 	m_name = name;
 	m_dynamic = false;
