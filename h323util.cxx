@@ -170,12 +170,9 @@ WORD GetH225Port(const H225_TransportAddress & addr)
 
 PString AsString(const H323TransportAddress & ta)
 {
-	if (!IsSet(ta))
-		return "";
-
 	PIPSocket::Address ip;
 	WORD port = 0;
-	if (ta.GetIpAndPort(ip, port))
+	if (IsSet(ta) && ta.GetIpAndPort(ip, port))
 		return AsString(ip, port);
 	else
 		return "";
@@ -390,7 +387,8 @@ H225_TransportAddress H323ToH225TransportAddress(const H323TransportAddress & h3
 {
 	PIPSocket::Address ip;
 	WORD port = 0;
-	h323addr.GetIpAndPort(ip, port);
+	if (IsSet(h323addr))
+        h323addr.GetIpAndPort(ip, port);
 	return SocketToH225TransportAddr(ip, port);
 }
 
@@ -505,11 +503,12 @@ void SetSockaddr(sockaddr_in & sin, const H323TransportAddress & addr)
 {
 	PIPSocket::Address ip;
 	WORD port = 0;
-	addr.GetIpAndPort(ip, port);
 	memset(&sin, 0, sizeof(sin));
-	sin.sin_family = AF_INET;
-	sin.sin_addr = ip;
-	sin.sin_port = htons(port);
+	if (IsSet(addr) && addr.GetIpAndPort(ip, port)) {
+        sin.sin_family = AF_INET;
+        sin.sin_addr = ip;
+        sin.sin_port = htons(port);
+	}
 }
 
 void SetSockaddr(sockaddr_in & sin, const H245_UnicastAddress & addr)
@@ -542,16 +541,17 @@ void SetSockaddr(sockaddr_in6 & sin6, const H323TransportAddress & addr)
 {
 	PIPSocket::Address ip;
 	WORD port = 0;
-	addr.GetIpAndPort(ip, port);
 	memset(&sin6, 0, sizeof(sin6));
-	if (ip.GetVersion() == 6) {
-		sin6.sin6_family = AF_INET6;
-		sin6.sin6_addr = ip;
-		sin6.sin6_port = htons(port);
-	} else {
-		((struct sockaddr_in*)&sin6)->sin_family = AF_INET;
-		((struct sockaddr_in*)&sin6)->sin_addr = ip;
-		((struct sockaddr_in*)&sin6)->sin_port = htons(port);
+	if (IsSet(addr) && addr.GetIpAndPort(ip, port)) {
+        if (ip.GetVersion() == 6) {
+            sin6.sin6_family = AF_INET6;
+            sin6.sin6_addr = ip;
+            sin6.sin6_port = htons(port);
+        } else {
+            ((struct sockaddr_in*)&sin6)->sin_family = AF_INET;
+            ((struct sockaddr_in*)&sin6)->sin_addr = ip;
+            ((struct sockaddr_in*)&sin6)->sin_port = htons(port);
+        }
 	}
 }
 

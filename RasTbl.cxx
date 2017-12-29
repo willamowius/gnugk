@@ -5457,25 +5457,35 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 
 	for (PINDEX i=0; i < report.GetSize(); i++) {
 		// int worstdelay = -1; int packetlossrate = -1; int maxjitter = -1;
-		int meandelay = -1; int packetslost = -1;
-		int packetlosspercent = -1; int bandwidth = -1; int meanjitter = -1;
-		H323TransportAddress sendAddr; H323TransportAddress recvAddr; PIPSocket::Address send;
-		WORD sport = 0; PIPSocket::Address recv; WORD rport = 0; int session = 0;
+		int meandelay = -1;
+		int packetslost = -1;
+		int packetlosspercent = -1;
+		int bandwidth = -1;
+		int meanjitter = -1;
+		H323TransportAddress sendAddr;
+		H323TransportAddress recvAddr;
+		PIPSocket::Address send;
+		WORD sport = 0;
+		PIPSocket::Address recv;
+		WORD rport = 0;
+		int session = 0;
 
 		H4609_RTCPMeasures & info = report[i];
 		session = info.m_sessionId;
 		PTRACE(4, "QoS\tPreparing QoS Report Session " << session);
 
 	    H225_TransportChannelInfo & rtp = info.m_rtpAddress;
-	    if (rtp.HasOptionalField(H225_TransportChannelInfo::e_sendAddress))
+	    if (rtp.HasOptionalField(H225_TransportChannelInfo::e_sendAddress)) {
 		    sendAddr = H323TransportAddress(rtp.m_sendAddress);
-	    if (rtp.HasOptionalField(H225_TransportChannelInfo::e_recvAddress))
+            sendAddr.GetIpAndPort(send, sport);
+        }
+	    if (rtp.HasOptionalField(H225_TransportChannelInfo::e_recvAddress)) {
 		    recvAddr = H323TransportAddress(rtp.m_recvAddress);
+            recvAddr.GetIpAndPort(recv, rport);
+        }
 
-		sendAddr.GetIpAndPort(send,sport);
 		if (ep->IsNATed())   // Rewrite to External IP
 			  send = ep->GetNATIP();
-        recvAddr.GetIpAndPort(recv,rport);
 
 		if (info.HasOptionalField(H4609_RTCPMeasures::e_mediaSenderMeasures)) {
 			H4609_RTCPMeasures_mediaSenderMeasures & sender = info.m_mediaSenderMeasures;

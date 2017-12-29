@@ -458,7 +458,10 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 	// set dest address
 	PIPSocket::Address toIP;
 	WORD toPort = 0;
-	toAddress.GetIpAndPort(toIP, toPort);
+	if (!IsSet(toAddress) || !	toAddress.GetIpAndPort(toIP, toPort)) {
+        PTRACE(5, "RTP\tSend error, toAddress not set");
+        return -1;
+	}
 	SetSockaddr(dest, toIP, toPort);
 
 #if (_WIN32_WINNT >= WINDOWS_VISTA)
@@ -553,7 +556,10 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 	// set dest address
 	PIPSocket::Address toIP;
 	WORD toPort = 0;
-	toAddress.GetIpAndPort(toIP, toPort);
+	if (!IsSet(toAddress) || !	toAddress.GetIpAndPort(toIP, toPort)) {
+        PTRACE(5, "RTP\tSend error, toAddress not set");
+        return -1;
+	}
 	SetSockaddr(dest, toIP, toPort);
 
     if (g_disableSettingUDPSourceIP) {
