@@ -3147,8 +3147,7 @@ void CallRec::SetDurationLimit(long seconds)
 {
 	PWaitAndSignal lock(m_usedLock);
 	// allow only to restrict duration limit
-	const time_t sec = (m_durationLimit && seconds)
-		? PMIN((long)m_durationLimit,seconds) : PMAX((long)m_durationLimit,seconds);
+	const time_t sec = (m_durationLimit && seconds) ? PMIN((long)m_durationLimit, seconds) : PMAX((long)m_durationLimit, seconds);
 	m_durationLimit = sec;
 	if (IsConnected())
 		m_timeout = sec;
