@@ -10609,11 +10609,10 @@ bool MultiplexedRTPHandler::GetDetectedMediaIP(const H225_CallIdentifier & callI
         H245ProxyHandler * h245handler = (H245ProxyHandler *)h46019chan.m_openedBy;
         if (h245handler) {
             if ((forCaller && h245handler->IsCaller()) || (!forCaller && !h245handler->IsCaller())) {
-                h46019chan.m_addrA.GetIpAndPort(addr, port);
+                return IsSet(h46019chan.m_addrA) && h46019chan.m_addrA.GetIpAndPort(addr, port);
             } else {
-                h46019chan.m_addrB.GetIpAndPort(addr, port);
+                return IsSet(h46019chan.m_addrB) && h46019chan.m_addrB.GetIpAndPort(addr, port);
             }
-            return addr.IsValid();
         }
 	}
     // TODO: check if we have a detected IP from H.460.19 non-multiplexed or non-std port detection (IgnoreSignaledPorts=1)
