@@ -11036,8 +11036,8 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 
 	SetConnected(true);
 
-	SetMediaIP("SRC", fDestIP);
-	SetMediaIP("DST", srcIP);
+	SetMediaIP(true, fDestIP);  // SRC
+	SetMediaIP(false, srcIP);   // DST
 
 #ifdef HAS_H46018
     m_portDetectionDone = false;  // must re-do H.460.19 port detection, in case it has already been done by a previous channel on same port
@@ -11090,8 +11090,8 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 
 	SetConnected(true);
 
-	SetMediaIP("SRC", srcIP);
-	SetMediaIP("DST", rDestIP);
+	SetMediaIP(true, srcIP);   // SRC
+	SetMediaIP(false, rDestIP); // DST
 
 #ifdef HAS_H46018
     m_portDetectionDone = false;  // must re-do H.460.19 port detection, in case it has already been done by a previous channel on same port
@@ -11175,19 +11175,19 @@ void UDPProxySocket::SetMultiplexSocket(int multiplexSocket, H46019Side side)
 }
 #endif
 
-void UDPProxySocket::SetMediaIP(const PString & direction, const Address & ip)
+void UDPProxySocket::SetMediaIP(bool isSRC, const Address & ip)
 {
 	if (m_call && *m_call) {
 		if (m_isRTCPType) {
-			if (direction == "SRC")
+			if (isSRC)
 				(*m_call)->SetSRC_media_control_IP(ip.AsString());
-			else if (direction == "DST")
+			else
 				(*m_call)->SetDST_media_control_IP(ip.AsString());
 		}
 		if (m_isRTPType) {
-			if (direction == "SRC")
+			if (isSRC)
 				(*m_call)->SetSRC_media_IP(ip.AsString());
-			else if (direction == "DST")
+			else
 				(*m_call)->SetDST_media_IP(ip.AsString());
 		}
 	}
@@ -11357,7 +11357,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				PTRACE(5, "H46018\tSetting forward destination to " << AsString(fromIP, fromPort) << " based on " << Type() << " keepAlive");
 				fDestIP = fromIP; fDestPort = fromPort;
 				rSrcIP = fromIP; rSrcPort = fromPort;
-				SetMediaIP("SRC", fDestIP);
+				SetMediaIP(true, fDestIP); // SRC
 				UpdateSocketName();
 			}
 			else if ((rDestIP == 0) && (fromAddr != fDestAddr) && ((fSrcIP == 0) || (fSrcAddr == fromAddr))) {
@@ -11365,7 +11365,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				PTRACE(5, "H46018\tSetting reverse destination to " << AsString(fromIP, fromPort) << " based on " << Type() << " keepAlive");
 				rDestIP = fromIP; rDestPort = fromPort;
 				fSrcIP = fromIP; fSrcPort = fromPort;
-				SetMediaIP("DST", rDestIP);
+				SetMediaIP(false, rDestIP); // DST
 				UpdateSocketName();
 			}
 

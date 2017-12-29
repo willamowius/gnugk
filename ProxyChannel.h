@@ -246,7 +246,7 @@ protected:
 	virtual bool Flush();
 	virtual bool ErrorHandler(PSocket::ErrorGroup);
 
-	void SetMediaIP(const PString & direction, const Address & ip);
+	void SetMediaIP(bool isSRC, const Address & ip);
 
 	// RTCP handler
 	void BuildReceiverReport(const RTP_ControlFrame & frame, PINDEX offset, bool dst);
