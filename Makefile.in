@@ -137,6 +137,7 @@ endif
 ifeq "$(CXX)" "g++"
 	GCCMAJOREQ4 := $(shell expr 4 = `$(CXX) -dumpversion | cut -f1 -d.`)
 	GCCMAJORGT4 := $(shell expr 4 \< `$(CXX) -dumpversion | cut -f1 -d.`)
+	GCCMAJORGT7 := $(shell expr 7 \< `$(CXX) -dumpversion | cut -f1 -d.`)
 	GCCMAJORGTEQ4 := $(shell expr 4 \<= `$(CXX) -dumpversion | cut -f1 -d.`)
 	GCCMINORGTEQ4 := $(shell expr 4 \<= `$(CXX) -dumpversion | cut -f2 -d.`)
 endif
@@ -169,7 +170,10 @@ STDCCFLAGS += -Wtype-limits -Wstrict-overflow=5 -fstrict-overflow -Wsign-compare
 endif
 endif
 ifeq "$(GCCMAJORGT4)" "1"
-STDCCFLAGS += -Wtype-limits -Wstrict-overflow=5 -fstrict-overflow -Wsign-compare -Wno-unused-variable -Wno-misleading-indentation
+STDCCFLAGS += -Wtype-limits -Wstrict-overflow=5 -fstrict-overflow -Wsign-compare -Wno-unused-variable
+endif
+ifeq "$(GCCMAJORGT7)" "1"
+STDCCFLAGS += -Wno-misleading-indentation
 endif
 
 ifeq "$(CXX)" "clang++"
