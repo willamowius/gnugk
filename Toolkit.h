@@ -48,6 +48,8 @@ template <class> class H225SignalingMsg;
 typedef H225SignalingMsg<H225_Setup_UUIE> SetupMsg;
 struct SetupAuthData;
 
+extern bool g_disableSettingUDPSourceIP;
+
 /// Hold an address of a single host or a whole network
 class NetworkAddress {
 public:

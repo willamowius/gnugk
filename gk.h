@@ -43,8 +43,6 @@ extern const char * KnownConfigEntries[][2];
 extern LPFN_WSASENDMSG g_pfWSASendMsg;
 #endif
 
-extern bool g_disableSettingUDPSourceIP;
-
 class GkTimer;
 
 extern bool IsGatekeeperShutdown();

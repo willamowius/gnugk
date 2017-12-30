@@ -54,8 +54,6 @@ PCREATE_PROCESS(Gatekeeper)
 LPFN_WSASENDMSG g_pfWSASendMsg = NULL;
 #endif
 
-bool g_disableSettingUDPSourceIP = false;
-
 PTextFile* Gatekeeper::m_logFile = NULL;
 PFilePath Gatekeeper::m_logFilename;
 PMutex Gatekeeper::m_logFileMutex;

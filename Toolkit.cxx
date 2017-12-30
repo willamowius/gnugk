@@ -51,6 +51,7 @@ PIPSocket::Address GNUGK_INADDR_ANY(INADDR_ANY);
 PReadWriteMutex ConfigReloadMutex;
 PSemaphore ShutdownMutex(1, 1);
 bool ShutdownFlag = false;	// you may only set this flag if you own the ShutdownMutex, once it is set, it can never be cleared!
+bool g_disableSettingUDPSourceIP = false;
 
 extern const char *ProxySection;
 extern const char *RoutedSec;
