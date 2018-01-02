@@ -1,5 +1,6 @@
 Changes from 4.7 to 4.8
 =======================
+- fix for RTP Bleed with multiplexed RTP
 - PrintAllRegistrationsVerbose now also shows the endpoint vendor
 - allow placeholder %{env1} ... %{env3} in HttpPasswordAuth
 - new status port command: MaintenanceMode
