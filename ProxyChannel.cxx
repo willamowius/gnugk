@@ -10118,7 +10118,9 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 	// re-check status after waiting for I/O
     if (m_deleted)
         return;
-	callptr call = CallTable::Instance()->FindCallRecByValue(m_callid); // TODO/BUG: crash is here, accessing m_callid
+	callptr call = CallTable::Instance()->FindCallRecByValue(m_callid);
+	if (!call)
+        return;
 	// re-check deleted status after waiting for call table lock
     if (m_deleted)
         return;
@@ -10126,26 +10128,26 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 	bool isFromB = (receivedMultiplexID == m_multiplexID_fromB);
     if (IsKeepAlive(len, isRTCP)) {
 		if (isFromA) {
-			if (isRTCP) {
+			if (isRTCP && !IsSet(m_addrA_RTCP)) {
 				m_addrA_RTCP = fromAddress;
-			} else {
+                call->SetSessionMultiplexDestination(m_session, m_openedBy, isRTCP, fromAddress, SideA);
+			} else if (!IsSet(m_addrA)) {
 				m_addrA = fromAddress;
+                call->SetSessionMultiplexDestination(m_session, m_openedBy, isRTCP, fromAddress, SideA);
 			}
-			if (call)
-				call->SetSessionMultiplexDestination(m_session, m_openedBy, isRTCP, fromAddress, SideA);
-		} else if (receivedMultiplexID == m_multiplexID_fromB) {
-			if (isRTCP) {
+		} else if (isFromB) {
+			if (isRTCP && !IsSet(m_addrB_RTCP)) {
 				m_addrB_RTCP = fromAddress;
-			} else {
+                call->SetSessionMultiplexDestination(m_session, m_openedBy, isRTCP, fromAddress, SideB);
+			} else if (!IsSet(m_addrB)) {
 				m_addrB = fromAddress;
+                call->SetSessionMultiplexDestination(m_session, m_openedBy, isRTCP, fromAddress, SideB);
 			}
-			if (call)
-				call->SetSessionMultiplexDestination(m_session, m_openedBy, isRTCP, fromAddress, SideB);
 		}
 		MultiplexedRTPHandler::Instance()->DumpChannels(" keepAlive handled ");
 
 #ifdef HAS_H46024B
-		if (call && call->GetNATStrategy() == CallRec::e_natAnnexB)
+		if (call->GetNATStrategy() == CallRec::e_natAnnexB)
 			call->H46024BInitiate(m_session, m_addrA, m_addrB, m_multiplexID_toA, m_multiplexID_toB);
 #endif	// HAS_H46024B
 
@@ -10168,7 +10170,7 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 	}
 
 #ifdef HAS_H235_MEDIA
-	if (!isRTCP && call && call->IsMediaEncryption() && IsSet(m_addrA) && IsSet(m_addrB)) {
+	if (!isRTCP && call->IsMediaEncryption() && IsSet(m_addrA) && IsSet(m_addrB)) {
 		WORD wlen = len;
 		bool succesful = false;
 		unsigned char ivSequence[6];
@@ -10208,19 +10210,17 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 
 #ifdef HAS_H46026
 	// send RTP for H.460.26 endpoints via TCP
-	if (call) {
-		if (call->GetCallingParty() && call->GetCallingParty()->UsesH46026()) {
-			if (call->GetCallingParty()->GetSocket()) {
-				call->GetCallingParty()->GetSocket()->SendH46026RTP(m_session, !isRTCP, data, len);
-			}
-			return;
-		} else if (call->GetCalledParty() && call->GetCalledParty()->UsesH46026()) {
-			if (call->GetCalledParty()->GetSocket()) {
-				call->GetCalledParty()->GetSocket()->SendH46026RTP(m_session, !isRTCP, data, len);
-			}
-			return;
-		}
-	}
+    if (call->GetCallingParty() && call->GetCallingParty()->UsesH46026()) {
+        if (call->GetCallingParty()->GetSocket()) {
+            call->GetCallingParty()->GetSocket()->SendH46026RTP(m_session, !isRTCP, data, len);
+        }
+        return;
+    } else if (call->GetCalledParty() && call->GetCalledParty()->UsesH46026()) {
+        if (call->GetCalledParty()->GetSocket()) {
+            call->GetCalledParty()->GetSocket()->SendH46026RTP(m_session, !isRTCP, data, len);
+        }
+        return;
+    }
 #endif
 
 	if (receivedMultiplexID == m_multiplexID_fromA) {
@@ -10236,7 +10236,7 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 			PTRACE(5, "RTPM\tReceiver not ready");
 		}
 	}
-	if (isRTCP && m_EnableRTCPStats && call)
+	if (isRTCP && m_EnableRTCPStats)
 		ParseRTCP(call, m_session, PIPSocket::Address(fromAddress), (BYTE*)data, len);
 }
 
@@ -11677,7 +11677,7 @@ namespace {
 
 void ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & fromIP, BYTE * wbuffer, WORD buflen)
 {
-	bool direct = (call->GetSRC_media_control_IP() == fromIP.AsString());
+	bool direct = (call->GetSRC_media_control_IP() == fromIP.AsString());   // TODO: is this still correct in presence of NAT traversal protocols ???
 	PIPSocket::Address addr = (DWORD)0;
 	WORD notused = 0;
 	call->GetCallerAudioIP(addr, notused);
