@@ -215,7 +215,7 @@ GkAcctLogger::Status RadAcct::Log(
 
 				// RTCP SOURCE REPORT
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
-				    PString("RTP_source_IP=")+call->GetSRC_media_IP(),
+				    PString("RTP_source_IP=")+call->GetSRC_media_IP(),  // TODO: switch to GetCallerAudioIP() ?
 					true);
 
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
