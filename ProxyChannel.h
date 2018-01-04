@@ -3,7 +3,7 @@
 // ProxyChannel.h
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2002-2017, Jan Willamowius
+// Copyright (c) 2002-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -71,7 +71,7 @@ const WORD DEFAULT_PACKET_BUFFER_SIZE = 2048;
 
 void PrintQ931(int, const char *, const char *, const Q931 *, const H225_H323_UserInformation *);
 
-ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323TransportAddress & toAddress);
+ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddress & toAddress);
 ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const PIPSocket::Address & ip, WORD port);
 
 
@@ -226,8 +226,8 @@ public:
 	bool UsesH46019() const { return m_useH46019; }
 	void SetH46019UniDirectional(bool val) { m_h46019uni = val; }
 	void AddKeepAlivePT(BYTE pt);
-	void SetMultiplexDestination(const H323TransportAddress & toAddress, H46019Side side);
-	void SetMultiplexID(PUInt32b multiplexID, H46019Side side);
+	void SetMultiplexDestination(const IPAndPortAddress & toAddress, H46019Side side);
+	void SetMultiplexID(DWORD multiplexID, H46019Side side);
 	void SetMultiplexSocket(int multiplexSocket, H46019Side side);
 #endif
 
@@ -282,11 +282,11 @@ protected:
 	PTime m_channelStartTime;
 	// two (!), one or zero parties in a call through a UDPProxySocket may by multiplexed
 	// UDPProxySocket always receives regular RTP, but may send out multiplexed
-	H323TransportAddress m_multiplexDestination_A;	// OLC side of first logical channel in this session
-	PUInt32b m_multiplexID_A;	// ID _to_ A side (only valid if m_multiplexDestination_A is set)
+	IPAndPortAddress m_multiplexDestination_A;	// OLC side of first logical channel in this session
+	DWORD m_multiplexID_A;	// ID _to_ A side (only valid if m_multiplexDestination_A is set)
 	int m_multiplexSocket_A;	// only valid if m_multiplexDestination_A is set
-	H323TransportAddress m_multiplexDestination_B;	// OLCAck side of first logical channel in this session
-	PUInt32b m_multiplexID_B;	// ID _to_ B side (only valid if m_multiplexDestination_B is set)
+	IPAndPortAddress m_multiplexDestination_B;	// OLCAck side of first logical channel in this session
+	DWORD m_multiplexID_B;	// ID _to_ B side (only valid if m_multiplexDestination_B is set)
 	int m_multiplexSocket_B;	// only valid if m_multiplexDestination_ is set)
 	PMutex m_multiplexMutex;	// protect multiplex IDs, addresses and sockets against access from concurrent threads
 #endif
@@ -412,7 +412,7 @@ public:
 	bool OnSCICall(const H225_CallIdentifier & callID, H225_TransportAddress sigAdr, bool useTLS);
 	bool IsCallFromTraversalServer() const { return m_callFromTraversalServer; }
 	bool IsCallToTraversalServer() const { return m_callToTraversalServer; }
-	void SetSessionMultiplexDestination(WORD session, bool isRTCP, const H323TransportAddress & toAddress, H46019Side side);
+	void SetSessionMultiplexDestination(WORD session, bool isRTCP, const IPAndPortAddress & toAddress, H46019Side side);
 	const H245Handler * GetH245Handler() const { return m_h245handler; }
 #endif
 	void LockH245Handler() { m_h245handlerLock.Wait(); }
@@ -654,14 +654,14 @@ public:
 	void Dump() const;
 
 	bool IsValid() const { return !m_deleted && ((m_session != INVALID_RTP_SESSION) || (m_flcn > 0)); }
-	bool sideAReady(bool isRTCP) const { return isRTCP ? IsSet(m_addrA_RTCP) : IsSet(m_addrA); }
-	bool sideBReady(bool isRTCP) const { return isRTCP ? IsSet(m_addrB_RTCP) : IsSet(m_addrB); }
+	bool sideAReady(bool isRTCP) const { return isRTCP ? m_addrA_RTCP.IsSet() : m_addrA.IsSet(); }
+	bool sideBReady(bool isRTCP) const { return isRTCP ? m_addrB_RTCP.IsSet() : m_addrB.IsSet(); }
 	H46019Session SwapSides() const; // return a copy with side A and B swapped
 
 	static bool IsKeepAlive(unsigned len, bool isRTCP) { return isRTCP ? true : (len == 12); }
 
-	void HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP);
-	static void Send(PUInt32b sendMultiplexID, const H323TransportAddress & toAddress, int ossocket, void * data, unsigned len, bool bufferHasRoomForID = false);
+	void HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddress & fromAddress, void * data, unsigned len, bool isRTCP);
+	static void Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddress, int ossocket, void * data, unsigned len, bool bufferHasRoomForID = false);
 
 public:
 	//mutable PTimedMutex m_usedLock;
@@ -672,14 +672,14 @@ public:
 	WORD m_flcn;		// only used to assign master assigned RTP session IDs
 	void * m_openedBy;	// side A (pointer to H245ProxyHandler used as an ID)
 	void * m_otherSide;	// side B (pointer to H245ProxyHandler used as an ID)
-	H323TransportAddress m_addrA;
-	H323TransportAddress m_addrA_RTCP;
-	H323TransportAddress m_addrB;
-	H323TransportAddress m_addrB_RTCP;
-	PUInt32b m_multiplexID_fromA;
-	PUInt32b m_multiplexID_toA;
-	PUInt32b m_multiplexID_fromB;
-	PUInt32b m_multiplexID_toB;
+	IPAndPortAddress m_addrA;
+	IPAndPortAddress m_addrA_RTCP;
+	IPAndPortAddress m_addrB;
+	IPAndPortAddress m_addrB_RTCP;
+	DWORD m_multiplexID_fromA;
+	DWORD m_multiplexID_toA;
+	DWORD m_multiplexID_fromB;
+	DWORD m_multiplexID_toB;
 	int m_osSocketToA;
 	int m_osSocketToA_RTCP;
 	int m_osSocketToB;
@@ -688,8 +688,8 @@ public:
 #ifdef HAS_H235_MEDIA
 	RTPLogicalChannel * m_encryptingLC;
 	RTPLogicalChannel * m_decryptingLC;
-	PUInt32b m_encryptMultiplexID;
-	PUInt32b m_decryptMultiplexID;
+	DWORD m_encryptMultiplexID;
+	DWORD m_decryptMultiplexID;
 #endif
 };
 
@@ -728,7 +728,7 @@ public:
 #endif
 	virtual void DumpChannels(const PString & msg = "") const;
 
-	virtual bool HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP);
+	virtual bool HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddress & fromAddress, void * data, unsigned len, bool isRTCP);
 #ifdef HAS_H46026
 	virtual bool HandlePacket(const H225_CallIdentifier & callid, const H46026_UDPFrame & data);
 #endif
@@ -736,8 +736,8 @@ public:
 	virtual int GetRTPOSSocket() const { return m_reader ? m_reader->GetRTPOSSocket() : INVALID_OSSOCKET; }
 	virtual int GetRTCPOSSocket() const { return m_reader ? m_reader->GetRTCPOSSocket() : INVALID_OSSOCKET; }
 
-	virtual PUInt32b GetMultiplexID(const H225_CallIdentifier & callid, WORD session, void * to);
-	virtual PUInt32b GetNewMultiplexID();
+	virtual DWORD GetMultiplexID(const H225_CallIdentifier & callid, WORD session, void * to);
+	virtual DWORD GetNewMultiplexID();
 
 	bool GetDetectedMediaIP(const H225_CallIdentifier & callID, WORD sessionID, bool forCaller, /* out */ PIPSocket::Address & addr, WORD & port) const;
 
@@ -748,7 +748,7 @@ protected:
 	MultiplexedRTPReader * m_reader;
 	mutable PReadWriteMutex m_listLock;
 	list<H46019Session> m_h46019channels;
-	PUInt32b idCounter; // we should make sure this counter is _not_ reset on reload
+	DWORD idCounter; // we should make sure this counter is _not_ reset on reload
 	GkTimerManager::GkTimerHandle m_cleanupTimer;
 	PTimeInterval m_deleteDelay;    // how long to wait before deleting a session marked for delete
 };
@@ -763,7 +763,7 @@ class H46026Session
 public:
 	H46026Session() : m_isValid(false) { }
 	H46026Session(const H225_CallIdentifier & callid, WORD session, int osRTPSocket, int osRTCPSocket,
-					const H323TransportAddress & toRTP, const H323TransportAddress & toRTCP);
+					const IPAndPortAddress & toRTP, const IPAndPortAddress & toRTCP);
 
 	void Send(void * data, unsigned len, bool isRTCP);
 	bool IsValid() const { return m_isValid; }
@@ -774,8 +774,8 @@ public:
 	WORD m_session;
 	int m_osRTPSocket;
 	int m_osRTCPSocket;
-	H323TransportAddress m_toAddressRTP;
-	H323TransportAddress m_toAddressRTCP;
+	IPAndPortAddress m_toAddressRTP;
+	IPAndPortAddress m_toAddressRTCP;
 
 #ifdef HAS_H235_MEDIA
 	RTPLogicalChannel * m_encryptingLC;
@@ -793,8 +793,8 @@ public:
 
 	virtual void AddChannel(const H46026Session & chan);
 	virtual void ReplaceChannel(const H46026Session & chan);
-	virtual void UpdateChannelRTP(const H225_CallIdentifier & callid, WORD session, H323TransportAddress toRTP);
-	virtual void UpdateChannelRTCP(const H225_CallIdentifier & callid, WORD session, H323TransportAddress toRTCP);
+	virtual void UpdateChannelRTP(const H225_CallIdentifier & callid, WORD session, IPAndPortAddress toRTP);
+	virtual void UpdateChannelRTCP(const H225_CallIdentifier & callid, WORD session, IPAndPortAddress toRTCP);
 	virtual void RemoveChannels(H225_CallIdentifier callid);	// pass by value in case call gets removed
 	H46026Session FindSession(const H225_CallIdentifier & callid, WORD session) const;
 #ifdef HAS_H235_MEDIA

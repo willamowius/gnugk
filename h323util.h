@@ -2,7 +2,7 @@
 //
 // H.323 utility functions
 //
-// Copyright (c) 2000-2017, Jan Willamowius
+// Copyright (c) 2000-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -35,6 +35,7 @@ class H245_UnicastAddress;
 class PASN_OctetString;
 class H460_Feature;
 class NetworkAddress;
+class IPAndPortAddress;
 
 PString AsString(const PIPSocket::Address &);
 
@@ -51,6 +52,8 @@ PString AsString(const H225_TransportAddress & ta);
 PString AsDotString(const H225_TransportAddress & ip, bool showPort=true);
 
 PString AsString(const H323TransportAddress & ta);
+
+PString AsString(const IPAndPortAddress & addr);
 
 PString AsString(const NetworkAddress & na);
 
@@ -78,6 +81,9 @@ H245_TransportAddress IPToH245TransportAddr(const PIPSocket::Address & ip, WORD 
 H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr, WORD Port);
 
 // convert a H.323 transport address into an H225 transport address
+H225_TransportAddress H245ToH225TransportAddress(const H245_TransportAddress & h245addr);
+
+// convert a H.245 transport address into an H225 transport address
 H225_TransportAddress H323ToH225TransportAddress(const H323TransportAddress & h323addr);
 
 // convert a H.245 unicast address into a socket address
@@ -91,8 +97,10 @@ bool GetTransportAddress(const PString & addr, WORD def_port, PIPSocket::Address
 bool GetTransportAddress(const PString & addr, WORD def_port, H225_TransportAddress & Result);
 
 bool GetIPFromTransportAddr(const H225_TransportAddress & addr, PIPSocket::Address & ip);
-
 bool GetIPAndPortFromTransportAddr(const H225_TransportAddress & addr, PIPSocket::Address & ip, WORD & port);
+
+bool GetIPFromTransportAddr(const H245_TransportAddress & addr, PIPSocket::Address & ip);
+bool GetIPAndPortFromTransportAddr(const H245_TransportAddress & addr, PIPSocket::Address & ip, WORD & port);
 
 PStringArray SplitIPAndPort(const PString & str, WORD default_port);
 
@@ -137,7 +145,11 @@ bool IsInNetwork(const PIPSocket::Address & ip, const NetworkAddress & net);
 // is this IP part of this network list
 bool IsInNetworks(const PIPSocket::Address & ip, const list<NetworkAddress> & nets);
 
+bool IsSet(const H225_TransportAddress & addr);
+
 bool IsSet(const H323TransportAddress & addr);
+
+bool IsSet(const IPAndPortAddress & addr);
 
 // check if s only contains characters that are valid for E.164s (1234567890*#+,)
 bool IsValidE164(const PString & s);
@@ -291,5 +303,40 @@ void SetUUIE(Q931 & q931, const H225_H323_UserInformation & uuie);
 
 // get the name for Q.931 message types
 PString Q931MessageName(unsigned messageType);
+
+
+class IPAndPortAddress
+{
+public:
+    IPAndPortAddress() : m_port(0) { }
+    IPAndPortAddress(const PIPSocket::Address & ip, WORD port) : m_ip(ip), m_port(port) { }
+    IPAndPortAddress(const H225_TransportAddress & addr) { (void)Set(addr); }
+    IPAndPortAddress(const H245_TransportAddress & addr) { (void)Set(addr); }
+    IPAndPortAddress(const H245_UnicastAddress & addr) { (void)Set(addr); }
+    ~IPAndPortAddress() { };
+
+    PIPSocket::Address GetIP() const { return m_ip;}
+    WORD GetPort() const { return m_port; }
+    PString AsString() const { return ::AsString(m_ip, m_port); }
+    inline friend ostream & operator<<(ostream & stream, const IPAndPortAddress & addr) { return stream << addr.AsString(); }
+
+    bool IsSet() const { return m_port > 0; }
+    bool Set(const PIPSocket::Address & ip, WORD port) { m_ip = ip; m_port = port; return true; }
+    bool Set(const H225_TransportAddress & addr) { return GetIPAndPortFromTransportAddr(addr, m_ip, m_port); }
+    bool Set(const H245_TransportAddress & addr) { return GetIPAndPortFromTransportAddr(addr, m_ip, m_port); }
+    bool Set(const H245_UnicastAddress & addr) { m_ip = H245UnicastToSocketAddr(addr); m_port = GetH245Port(addr); return true; }
+
+    bool operator==(const IPAndPortAddress & other) const { return (m_ip == other.m_ip) && (m_port == other.m_port); }
+    bool operator!=(const IPAndPortAddress & other) const { return !(*this == other); }
+
+    // compatibility with H323TransportAddress
+    PBoolean SetPDU(H225_TransportAddress & addr) const { addr = SocketToH225TransportAddr(m_ip, m_port); return true; }
+    PBoolean SetPDU(H245_TransportAddress & addr) const { addr = IPToH245TransportAddr(m_ip, m_port); return true; }
+    bool GetIpAndPort(PIPSocket::Address & ip, WORD & port) const { ip = m_ip; port = m_port; return true; }
+
+protected:
+    PIPSocket::Address m_ip;
+    WORD m_port;
+};
 
 #endif // H323UTIL_H

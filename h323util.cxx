@@ -2,7 +2,7 @@
 //
 // H.323 utility functions
 //
-// Copyright (c) 2000-2017, Jan Willamowius
+// Copyright (c) 2000-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -73,6 +73,10 @@ PString AsString(const PIPSocket::Address & ip, WORD pt)
 	return ip.AsString() + ":" + PString(pt);
 }
 
+PString AsString(const IPAndPortAddress & addr) {
+    return AsString(addr.GetIP(), addr.GetPort());
+}
+
 PString AsString(const H245_UnicastAddress & ip)
 {
 	if (ip.GetTag() == H245_UnicastAddress::e_iPAddress) {
@@ -126,9 +130,10 @@ void SetH245Port(H245_UnicastAddress & addr, WORD port)
 
 PString AsString(const H225_TransportAddress & ta)
 {
-	PStringStream stream;
-	stream << ta;
-	return stream;
+//	PStringStream stream;
+//	stream << ta;
+//	return stream;
+    return AsDotString(ta);
 }
 
 PString AsDotString(const H225_TransportAddress & addr, bool showPort)
@@ -366,13 +371,13 @@ H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr,
 	H225_TransportAddress Result;
 
 	if (Addr.GetVersion() == 6) {
-		Result.SetTag( H225_TransportAddress::e_ip6Address );
+		Result.SetTag(H225_TransportAddress::e_ip6Address);
 		H225_TransportAddress_ip6Address & ResultIP = Result;
 		for (int i = 0; i < 16; ++i)
 			ResultIP.m_ip[i] = Addr[i];
 		ResultIP.m_port = Port;
 	} else {
-		Result.SetTag( H225_TransportAddress::e_ipAddress );
+		Result.SetTag(H225_TransportAddress::e_ipAddress);
 		H225_TransportAddress_ipAddress & ResultIP = Result;
 		for (int i = 0; i < 4; ++i)
 			ResultIP.m_ip[i] = Addr[i];
@@ -380,6 +385,15 @@ H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr,
 	}
 
 	return Result;
+}
+
+// convert a H.245 transport address into an H225 transport address
+H225_TransportAddress H245ToH225TransportAddress(const H245_TransportAddress & h245addr)
+{
+	PIPSocket::Address ip;
+	WORD port;
+    (void)GetIPAndPortFromTransportAddr(h245addr, ip, port);
+    return SocketToH225TransportAddr(ip, port);
 }
 
 // convert a H.323 transport address into an H225 transport address
@@ -460,6 +474,34 @@ bool GetIPAndPortFromTransportAddr(const H225_TransportAddress & addr, PIPSocket
 		return true;
 	}
 	return false;
+}
+
+bool GetIPFromTransportAddr(const H245_TransportAddress & addr, PIPSocket::Address & ip)
+{
+    WORD notused;
+    return GetIPAndPortFromTransportAddr(addr, ip, notused);
+}
+
+bool GetIPAndPortFromTransportAddr(const H245_TransportAddress & h245addr, PIPSocket::Address & ip, WORD & port)
+{
+	if (h245addr.GetTag() == H245_TransportAddress::e_unicastAddress) {
+		const H245_UnicastAddress & h245unicast = h245addr;
+        if (h245unicast.GetTag() == H245_UnicastAddress::e_iPAddress) {
+            const H245_UnicastAddress_iPAddress & ipv4 = h245unicast;
+            ip = PIPSocket::Address(ipv4.m_network.GetSize(), ipv4.m_network.GetValue());
+            port = ipv4.m_tsapIdentifier;
+            return true;
+        } else if (h245unicast.GetTag() == H245_UnicastAddress::e_iP6Address) {
+            const H245_UnicastAddress_iP6Address & ipv6 = h245unicast;
+            ip = PIPSocket::Address(ipv6.m_network.GetSize(), ipv6.m_network.GetValue());
+            port = ipv6.m_tsapIdentifier;
+            return true;
+        }
+        PTRACE(1, "Unsupported H245_UnicastAddress: " << h245unicast.GetTagName());
+        return false;
+	}
+    PTRACE(1, "Unsupported H245_TransportAddress: " << h245addr.GetTagName());
+    return false;
 }
 
 PStringArray SplitIPAndPort(const PString & str, WORD default_port)
@@ -693,9 +735,19 @@ bool IsInNetworks(const PIPSocket::Address & ip, const list<NetworkAddress> & ne
     return false;
 }
 
+bool IsSet(const H225_TransportAddress & addr)
+{
+	return (addr != H225_TransportAddress());   // TODO: use IsValid() ?
+}
+
 bool IsSet(const H323TransportAddress & addr)
 {
 	return (addr != H323TransportAddress());
+}
+
+bool IsSet(const IPAndPortAddress & addr)
+{
+	return addr.IsSet();
 }
 
 bool IsValidE164(const PString & s)

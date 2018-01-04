@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2017, Jan Willamowius
+// Copyright (c) 2000-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -46,7 +46,7 @@ enum RerouteState { NoReroute, RerouteInitiated, Rerouting };
 enum H46019Side { SideA, SideB };
 const int INVALID_OSSOCKET = -1;
 const WORD INVALID_RTP_SESSION = 0;
-const PUInt32b INVALID_MULTIPLEX_ID = 0;
+const DWORD INVALID_MULTIPLEX_ID = 0;
 const BYTE GNUGK_KEEPALIVE_RTP_PAYLOADTYPE = 116;	// must at least be 1 less than MAX_DYNAMIC_PAYLOAD_TYPE
 const BYTE MIN_DYNAMIC_PAYLOAD_TYPE = 96;
 const BYTE MAX_DYNAMIC_PAYLOAD_TYPE = 127;
@@ -676,11 +676,11 @@ public:
 
 	unsigned flcn;
 	KeepAliveType type;
-	H323TransportAddress dest;
+	IPAndPortAddress dest;
 	unsigned interval;
 	unsigned seq;
 	int ossocket;
-	PUInt32b multiplexID;
+	DWORD multiplexID;
 	BYTE payloadType;
 	GkTimerManager::GkTimerHandle timer;
 };
@@ -856,7 +856,7 @@ public:
     CallSignalSocket * H46024BSignalSocket(bool response);
 
 	/** Initiate Probe */
-	void H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, const H323TransportAddress & rev, unsigned muxID_fwd=0, unsigned muxID_rev=0);
+	void H46024BInitiate(WORD sessionID, const IPAndPortAddress & fwd, const IPAndPortAddress & rev, unsigned muxID_fwd = 0, unsigned muxID_rev = 0);
 
 	/** Response Probe */
 	void H46024BRespond();
@@ -1427,15 +1427,15 @@ public:
 	PBYTEArray RetrieveSetup();
 	int GetH46019Direction() const;
 
-	void AddRTPKeepAlive(unsigned flcn, const H323TransportAddress & keepAliveRTPAddr, unsigned keepAliveInterval, PUInt32b multiplexID);
+	void AddRTPKeepAlive(unsigned flcn, const IPAndPortAddress & keepAliveRTPAddr, unsigned keepAliveInterval, DWORD multiplexID);
 	void SetRTPKeepAlivePayloadType(unsigned flcn, BYTE payloadType);
 	void StartRTPKeepAlive(unsigned flcn, int RTPOSSocket);
-	void AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAliveRTCPAddr, unsigned keepAliveInterval, PUInt32b multiplexID);
+	void AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAliveRTCPAddr, unsigned keepAliveInterval, DWORD multiplexID);
 	void StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket);
 	void RemoveKeepAlives(unsigned flcn);
 	void RemoveKeepAllAlives();
 
-	void SetSessionMultiplexDestination(WORD session, void * openedBy, bool isRTCP, const H323TransportAddress & toAddress, H46019Side side);
+	void SetSessionMultiplexDestination(WORD session, void * openedBy, bool isRTCP, const IPAndPortAddress & toAddress, H46019Side side);
 	bool IgnoreSignaledIPs() const { return m_ignoreSignaledIPs; }
 	void SetIgnoreSignaledIPs(bool val) { m_ignoreSignaledIPs = val; }
 #endif

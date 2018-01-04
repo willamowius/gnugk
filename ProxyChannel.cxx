@@ -3,7 +3,7 @@
 // ProxyChannel.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2002
-// Copyright (c) 2002-2017, Jan Willamowius
+// Copyright (c) 2002-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -448,7 +448,7 @@ bool IsOldH263(const H245_DataType & type)
 // the method is highly OS specific
 
 #ifdef _WIN32
-ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323TransportAddress & toAddress)
+ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddress & toAddress)
 {
 #ifdef hasIPV6
 	struct sockaddr_in6 dest;
@@ -546,7 +546,7 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 
 #else // Unix
 
-ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323TransportAddress & toAddress)
+ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddress & toAddress)
 {
 #ifdef hasIPV6
 	struct sockaddr_in6 dest;
@@ -556,7 +556,7 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 	// set dest address
 	PIPSocket::Address toIP;
 	WORD toPort = 0;
-	if (!IsSet(toAddress) || !	toAddress.GetIpAndPort(toIP, toPort)) {
+	if (!IsSet(toAddress) || !toAddress.GetIpAndPort(toIP, toPort)) {
         PTRACE(5, "RTP\tSend error, toAddress not set");
         return -1;
 	}
@@ -680,7 +680,7 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const H323Transport
 
 ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const PIPSocket::Address & ip, WORD port)
 {
-	const H323TransportAddress to(ip, port);
+	const IPAndPortAddress to(ip, port);
 	return UDPSendWithSourceIP(fd, data, len, to);
 }
 
@@ -1108,8 +1108,8 @@ public:
 	int GetRTCPOSSocket() const { return rtcp ? rtcp->GetOSSocket() : INVALID_OSSOCKET; }
 
 	void AddLCKeepAlivePT(unsigned pt);
-	void SetLCMultiplexDestination(bool isRTCP, const H323TransportAddress & toAddress, H46019Side side);
-	void SetLCMultiplexID(bool isRTCP, PUInt32b multiplexID, H46019Side side);
+	void SetLCMultiplexDestination(bool isRTCP, const IPAndPortAddress & toAddress, H46019Side side);
+	void SetLCMultiplexID(bool isRTCP, DWORD multiplexID, H46019Side side);
 	void SetLCMultiplexSocket(bool isRTCP, int multiplexSocket, H46019Side side);
 #endif
 
@@ -1295,11 +1295,11 @@ protected:
 		const H245_GenericInformation & genericInfo,
 		/* out */
 		unsigned & payloadtype,
-		H323TransportAddress & keepAliveRTPAddr,
+		H225_TransportAddress & keepAliveRTPAddr,
 		unsigned & keepAliveInterval,
-		H323TransportAddress & multiplexedRTPAddr,
-		H323TransportAddress & multiplexedRTCPAddr,
-		PUInt32b & multiplexID) const;
+		H225_TransportAddress & multiplexedRTPAddr,
+		H225_TransportAddress & multiplexedRTCPAddr,
+		DWORD & multiplexID) const;
 
 	RTPLogicalChannel *CreateRTPLogicalChannel(WORD sessionId, WORD flcn, RTPSessionTypes sessionType);
 	RTPLogicalChannel *CreateFastStartLogicalChannel(WORD sessionId, RTPSessionTypes sessionType);
@@ -7264,7 +7264,7 @@ bool CallSignalSocket::OnSCICall(const H225_CallIdentifier & callID, H225_Transp
 	return true;
 }
 
-void CallSignalSocket::SetSessionMultiplexDestination(WORD session, bool isRTCP, const H323TransportAddress & toAddress, H46019Side side)
+void CallSignalSocket::SetSessionMultiplexDestination(WORD session, bool isRTCP, const IPAndPortAddress & toAddress, H46019Side side)
 {
 	H245ProxyHandler * handler = dynamic_cast<H245ProxyHandler*>(m_h245handler);
 	if (handler) {
@@ -9947,7 +9947,7 @@ void MultiplexRTPListener::ReceiveData()
 	GetLocalAddress(localAddr, localPort);
 	UnmapIPv4Address(localAddr);
 	WORD buflen = (WORD)GetLastReadCount();
-	PUInt32b multiplexID = INVALID_MULTIPLEX_ID;
+	DWORD multiplexID = INVALID_MULTIPLEX_ID;
 	if (buflen >= 4)
 		multiplexID = ((int)wbuffer[0] * 16777216) + ((int)wbuffer[1] * 65536) + ((int)wbuffer[2] * 256) + (int)wbuffer[3];
 
@@ -9956,7 +9956,8 @@ void MultiplexRTPListener::ReceiveData()
 		return;
 	}
 
-	MultiplexedRTPHandler::Instance()->HandlePacket(multiplexID, H323TransportAddress(fromIP, fromPort), wbuffer+4, buflen-4, odd(localPort));
+	PTRACE(0, "JW DBG received multiplexID=" << multiplexID << " buflen=" << buflen << " len=" << (buflen-4) << " from " << AsString(fromIP, fromPort));
+	MultiplexedRTPHandler::Instance()->HandlePacket(multiplexID, IPAndPortAddress(fromIP, fromPort), wbuffer+4, buflen-4, odd(localPort));
 }
 
 H46019Session::H46019Session(const H225_CallIdentifier & callid, WORD session, void * openedBy)
@@ -10101,7 +10102,7 @@ void H46019Session::Dump() const
 #endif
 }
 
-void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP)
+void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddress & fromAddress, void * data, unsigned len, bool isRTCP)
 {
     //PTRACE(0, "JW-S " << PThread::Current()->GetThreadId() << " HandlePacket wait lock for " << this);
     //PWaitAndSignal lock(m_usedLock);
@@ -10119,8 +10120,10 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
     if (m_deleted)
         return;
 	callptr call = CallTable::Instance()->FindCallRecByValue(m_callid);
-	if (!call)
+	if (!call) {
+        PTRACE(0, "JW DBG: Can't find call " << m_callid);
         return;
+    }
 	// re-check deleted status after waiting for call table lock
     if (m_deleted)
         return;
@@ -10236,12 +10239,14 @@ void H46019Session::HandlePacket(PUInt32b receivedMultiplexID, const H323Transpo
 			PTRACE(5, "RTPM\tReceiver not ready");
 		}
 	}
-	if (isRTCP && m_EnableRTCPStats)
-		ParseRTCP(call, m_session, PIPSocket::Address(fromAddress), (BYTE*)data, len);
+	if (isRTCP && m_EnableRTCPStats) {
+        ParseRTCP(call, m_session, fromAddress.GetIP(), (BYTE*)data, len);
+    }
 }
 
-void H46019Session::Send(PUInt32b sendMultiplexID, const H323TransportAddress & toAddress, int osSocket, void * data, unsigned len, bool bufferHasRoomForID)
+void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddress, int osSocket, void * data, unsigned len, bool bufferHasRoomForID)
 {
+    PTRACE(0, "JW DBG: Send sendMultiplexID=" << sendMultiplexID << " to " << AsString(toAddress));
 	size_t lenToSend = len;
 	size_t sent = 0;
 
@@ -10262,7 +10267,8 @@ void H46019Session::Send(PUInt32b sendMultiplexID, const H323TransportAddress & 
 			multiplexMsg = (BYTE*)malloc(len+4);
 			memcpy(multiplexMsg+4, data, len);
 		}
-		*((PUInt32b*)multiplexMsg) = sendMultiplexID;	// set multiplexID
+		PUInt32b networkID = sendMultiplexID;   // convert multiplex ID to network format
+		*((PUInt32b*)multiplexMsg) = networkID;	// set multiplexID
 
 		sent = UDPSendWithSourceIP(osSocket, multiplexMsg, lenToSend, toAddress);
 		if (!bufferHasRoomForID)
@@ -10510,7 +10516,7 @@ void MultiplexedRTPHandler::DumpChannels(const PString & msg) const
 	}
 }
 
-bool MultiplexedRTPHandler::HandlePacket(PUInt32b receivedMultiplexID, const H323TransportAddress & fromAddress, void * data, unsigned len, bool isRTCP)
+bool MultiplexedRTPHandler::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddress & fromAddress, void * data, unsigned len, bool isRTCP)
 {
     //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " HandlePacket wait READ lock");
 	ReadLock lock(m_listLock);
@@ -10577,7 +10583,7 @@ bool MultiplexedRTPHandler::HandlePacket(const H225_CallIdentifier & callid, con
 }
 #endif // HAS_H46026
 
-PUInt32b MultiplexedRTPHandler::GetMultiplexID(const H225_CallIdentifier & callid, WORD session, void * to)
+DWORD MultiplexedRTPHandler::GetMultiplexID(const H225_CallIdentifier & callid, WORD session, void * to)
 {
     //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " GetMultiplexID wait READ lock");
 	ReadLock lock(m_listLock);
@@ -10596,9 +10602,9 @@ PUInt32b MultiplexedRTPHandler::GetMultiplexID(const H225_CallIdentifier & calli
 	return INVALID_MULTIPLEX_ID;	// not found
 }
 
-PUInt32b MultiplexedRTPHandler::GetNewMultiplexID()
+DWORD MultiplexedRTPHandler::GetNewMultiplexID()
 {
-	static const PUInt32b MAX_MULTIPLEX_ID = 2147483647;
+	static const DWORD MAX_MULTIPLEX_ID = 2147483647;
 	if (idCounter >= MAX_MULTIPLEX_ID) {
 		idCounter = 0;
 	}
@@ -10649,7 +10655,7 @@ void MultiplexedRTPHandler::SessionCleanup(GkTimer* /* timer */)
 #ifdef HAS_H46026
 H46026Session::H46026Session(const H225_CallIdentifier & callid, WORD session,
 							int osRTPSocket, int osRTCPSocket,
-							const H323TransportAddress & toRTP, const H323TransportAddress & toRTCP)
+							const IPAndPortAddress & toRTP, const IPAndPortAddress & toRTCP)
 	: m_isValid(true), m_callid(callid), m_session(session),
 	  m_osRTPSocket(osRTPSocket), m_osRTCPSocket(osRTCPSocket), m_toAddressRTP(toRTP), m_toAddressRTCP(toRTCP)
 {
@@ -10664,7 +10670,7 @@ void H46026Session::Send(void * data, unsigned len, bool isRTCP)
 	size_t lenToSend = len;
 	size_t sent = 0;
 	int osSocket = INVALID_OSSOCKET;
-	H323TransportAddress toAddress;
+	IPAndPortAddress toAddress;
 
 	if (isRTCP) {
 		osSocket = m_osRTCPSocket;
@@ -10723,7 +10729,7 @@ void H46026RTPHandler::ReplaceChannel(const H46026Session & chan)
 	DumpChannels(" ReplaceChannel() done ");
 }
 
-void H46026RTPHandler::UpdateChannelRTP(const H225_CallIdentifier & callid, WORD session, H323TransportAddress toRTP)
+void H46026RTPHandler::UpdateChannelRTP(const H225_CallIdentifier & callid, WORD session, IPAndPortAddress toRTP)
 {
 	WriteLock lock(m_listLock);
 	// find the matching channel by callID and sessionID
@@ -10737,7 +10743,7 @@ void H46026RTPHandler::UpdateChannelRTP(const H225_CallIdentifier & callid, WORD
 	DumpChannels(" UpdateChannelRTP() done ");
 }
 
-void H46026RTPHandler::UpdateChannelRTCP(const H225_CallIdentifier & callid, WORD session, H323TransportAddress toRTCP)
+void H46026RTPHandler::UpdateChannelRTCP(const H225_CallIdentifier & callid, WORD session, IPAndPortAddress toRTCP)
 {
 	WriteLock lock(m_listLock);
 	// find the matching channel by callID and sessionID
@@ -11152,7 +11158,7 @@ void UDPProxySocket::AddKeepAlivePT(BYTE pt)
 		m_keepAlivePT_2 = pt;
 }
 
-void UDPProxySocket::SetMultiplexDestination(const H323TransportAddress & toAddress, H46019Side side)
+void UDPProxySocket::SetMultiplexDestination(const IPAndPortAddress & toAddress, H46019Side side)
 {
 	PWaitAndSignal lock(m_multiplexMutex);
 	if (side == SideA)
@@ -11161,7 +11167,7 @@ void UDPProxySocket::SetMultiplexDestination(const H323TransportAddress & toAddr
 		m_multiplexDestination_B = toAddress;
 }
 
-void UDPProxySocket::SetMultiplexID(PUInt32b multiplexID, H46019Side side)
+void UDPProxySocket::SetMultiplexID(DWORD multiplexID, H46019Side side)
 {
 	PWaitAndSignal lock(m_multiplexMutex);
 	if (side == SideA)
@@ -11218,7 +11224,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		return NoData;
 
 	UnmapIPv4Address(fromIP);
-	H323TransportAddress fromAddr(fromIP, fromPort);	// for easier comparison
+	IPAndPortAddress fromAddr(fromIP, fromPort);	// for easier comparison
 	unsigned int version = 0;	// RTP version
 	if (buflen >= 1)
 		version = (((int)wbuffer[0] & 0xc0) >> 6);
@@ -11352,10 +11358,10 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		if ((isRTCP || isRTPKeepAlive) && UsesH46019()) {
 			PWaitAndSignal mutexWait (m_h46019DetectionLock);
 			// combine IP+port for easier comparison
-			H323TransportAddress fSrcAddr(fSrcIP, fSrcPort);
-			H323TransportAddress fDestAddr(fDestIP, fDestPort);
-			H323TransportAddress rSrcAddr(rSrcIP, rSrcPort);
-			H323TransportAddress rDestAddr(rDestIP, rDestPort);
+			IPAndPortAddress fSrcAddr(fSrcIP, fSrcPort);
+			IPAndPortAddress fDestAddr(fDestIP, fDestPort);
+			IPAndPortAddress rSrcAddr(rSrcIP, rSrcPort);
+			IPAndPortAddress rDestAddr(rDestIP, rDestPort);
 			PTRACE(5, "H46018\t" << (isRTCP ? "RTCP" : "RTP") << " keepAlive from " << AsString(fromIP, fromPort));
 			if ((fDestIP == 0) && (fromAddr != rDestAddr) && ((rSrcIP == 0) || (rSrcAddr == fromAddr))) {
 				// fwd dest was unset and packet didn't come from other side
@@ -11438,7 +11444,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 #ifdef HAS_H46024B
 				// If required begin Annex B probing
 				if (isRTPKeepAlive && m_call && (*m_call) && (*m_call)->GetNATStrategy() == CallRec::e_natAnnexB) {
-					(*m_call)->H46024BInitiate(m_sessionID, H323TransportAddress(fDestIP, fDestPort), H323TransportAddress(rDestIP, rDestPort));
+					(*m_call)->H46024BInitiate(m_sessionID, IPAndPortAddress(fDestIP, fDestPort), IPAndPortAddress(rDestIP, rDestPort));
 				}
 #endif	// HAS_H46024B
 			}
@@ -11457,15 +11463,15 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		// fix for H.239 from H.460.19 client
 		if (m_h46019uni && !isRTCP
 			&& fSrcIP == 0 && fDestIP != 0 && rDestIP == 0
-			&& fromAddr != H323TransportAddress(fDestIP, fDestPort)) {	// never create a loop
+			&& fromAddr != IPAndPortAddress(fDestIP, fDestPort)) {	// never create a loop
 			PTRACE(5, "H46018\tSetting forward source on unidirectional channel to " << AsString(fromIP, fromPort));
 			fSrcIP = fromIP, fSrcPort = fromPort;
 			m_portDetectionDone = true;
 		}
 		if (m_h46019uni && !isRTCP
 			&& fSrcIP != 0 && fDestIP != 0 && rSrcIP != 0 && rDestIP == 0
-			&& fromAddr == H323TransportAddress(fSrcIP, fSrcPort)
-			&& fromAddr != H323TransportAddress(rSrcIP, rSrcPort)) {	// never create a loop
+			&& fromAddr == IPAndPortAddress(fSrcIP, fSrcPort)
+			&& fromAddr != IPAndPortAddress(rSrcIP, rSrcPort)) {	// never create a loop
 			PTRACE(5, "H46018\tSetting reverse destination on unidirectional channel to " << AsString(fromIP, fromPort));
 			rDestIP = fromIP, rDestPort = fromPort;
 			m_portDetectionDone = true;
@@ -11473,17 +11479,17 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		// fix for H.224 connection: m100 1.0.6 doesn't send keepAlive, but we can see where it apparently comes from
 		PTimeInterval channelUpTime = PTime() - m_channelStartTime;
 		if (!m_h46019uni && (channelUpTime.GetMilliSeconds() > H46019_AUTO_DETECTION_WAIT)) {
-			H323TransportAddress rSrcAddr(rSrcIP, rSrcPort);
+			IPAndPortAddress rSrcAddr(rSrcIP, rSrcPort);
 			if (fSrcIP == 0 && rDestIP == 0 && fDestIP != 0
 				&& rSrcIP != 0 && fromAddr != rSrcAddr
-				&& fromAddr != H323TransportAddress(fDestIP, fDestPort)) {	// never create a loop
+				&& fromAddr != IPAndPortAddress(fDestIP, fDestPort)) {	// never create a loop
 				PTRACE(5, "H46018\tAuto-detecting forward source on H.460.19 channel to " << AsString(fromIP, fromPort));
 				fSrcIP = fromIP, fSrcPort = fromPort;
 			}
-			H323TransportAddress fSrcAddr(fSrcIP, fSrcPort);
+			IPAndPortAddress fSrcAddr(fSrcIP, fSrcPort);
 			if (fSrcIP != 0 && rDestIP != 0 && fDestIP == 0
 				&& rSrcIP == 0 && fromAddr != fSrcAddr
-				&& fromAddr != H323TransportAddress(rDestIP, rDestPort)) {	// never create a loop
+				&& fromAddr != IPAndPortAddress(rDestIP, rDestPort)) {	// never create a loop
 				PTRACE(5, "H46018\tAuto-detecting reverse source on H.460.19 channel to " << AsString(fromIP, fromPort));
 				rSrcIP = fromIP, rSrcPort = fromPort;
 			}
@@ -11618,7 +11624,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 #ifdef HAS_H46018
                 m_portDetectionDone = true;  // we missed the probe packets but detection is done
 #endif
-			    (*m_call)->H46024BInitiate(m_sessionID, H323TransportAddress(fDestIP, fDestPort), H323TransportAddress(fromIP, fromPort));
+			    (*m_call)->H46024BInitiate(m_sessionID, IPAndPortAddress(fDestIP, fDestPort), IPAndPortAddress(fromIP, fromPort));
             }
 #endif
 #ifndef P_LINUX
@@ -11730,7 +11736,7 @@ void ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & 
 		case RTP_ControlFrame::e_ReceiverReport:
 			PTRACE(7, "RTCP\tReceiverReport packet");
 			if (size >= (frame.GetCount()*sizeof(RTP_ControlFrame::ReceiverReport))) {
-				BuildReceiverReport(call, sessionID, frame, sizeof(PUInt32b), direct);
+				BuildReceiverReport(call, sessionID, frame, sizeof(DWORD), direct);
 			} else {
 				PTRACE(5, "RTCP\tReceiverReport packet truncated");
 			}
@@ -12191,7 +12197,7 @@ void RTPLogicalChannel::SetUsesH46019()
 		rtcp->SetUsesH46019();
 }
 
-void RTPLogicalChannel::SetLCMultiplexDestination(bool isRTCP, const H323TransportAddress & toAddress, H46019Side side)
+void RTPLogicalChannel::SetLCMultiplexDestination(bool isRTCP, const IPAndPortAddress & toAddress, H46019Side side)
 {
 	if (isRTCP && rtcp) {
 		rtcp->SetMultiplexDestination(toAddress, side);
@@ -12208,7 +12214,7 @@ void RTPLogicalChannel::AddLCKeepAlivePT(unsigned pt)
 	}
 }
 
-void RTPLogicalChannel::SetLCMultiplexID(bool isRTCP, PUInt32b multiplexID, H46019Side side)
+void RTPLogicalChannel::SetLCMultiplexID(bool isRTCP, DWORD multiplexID, H46019Side side)
 {
 	if (isRTCP && rtcp) {
 		rtcp->SetMultiplexID(multiplexID, side);
@@ -13072,11 +13078,11 @@ bool H245ProxyHandler::ParseTraversalParameters(
 	const H245_GenericInformation & genericInfo,
 	/* out */
 	unsigned & payloadtype,
-	H323TransportAddress & keepAliveRTPAddr,
+	H225_TransportAddress & keepAliveRTPAddr,
 	unsigned & keepAliveInterval,
-	H323TransportAddress & multiplexedRTPAddr,
-	H323TransportAddress & multiplexedRTCPAddr,
-	PUInt32b & multiplexID) const
+	H225_TransportAddress & multiplexedRTPAddr,
+	H225_TransportAddress & multiplexedRTCPAddr,
+	DWORD & multiplexID) const
 {
 	// get the keepalive information (if present)
 	H46019_TraversalParameters params;
@@ -13091,7 +13097,7 @@ bool H245ProxyHandler::ParseTraversalParameters(
 			PTRACE(5, "H46018\tReceived KeepAlive PayloadType=" << payloadtype);
 		}
 		if (params.HasOptionalField(H46019_TraversalParameters::e_keepAliveChannel)) {
-			keepAliveRTPAddr = params.m_keepAliveChannel;
+			keepAliveRTPAddr = H245ToH225TransportAddress(params.m_keepAliveChannel);
 			PTRACE(5, "H46018\tReceived KeepAlive Channel=" << keepAliveRTPAddr);
 		}
 		if (params.HasOptionalField(H46019_TraversalParameters::e_keepAliveInterval)) {
@@ -13099,11 +13105,11 @@ bool H245ProxyHandler::ParseTraversalParameters(
 			PTRACE(5, "H46018\tReceived KeepAlive Interval=" << keepAliveInterval);
 		}
 		if (params.HasOptionalField(H46019_TraversalParameters::e_multiplexedMediaChannel)) {
-			multiplexedRTPAddr = params.m_multiplexedMediaChannel;
+			multiplexedRTPAddr = H245ToH225TransportAddress(params.m_multiplexedMediaChannel);
 			PTRACE(5, "H46018\tReceived multiplexed RTP Channel=" << multiplexedRTPAddr);
 		}
 		if (params.HasOptionalField(H46019_TraversalParameters::e_multiplexedMediaControlChannel)) {
-			multiplexedRTCPAddr = params.m_multiplexedMediaControlChannel;
+			multiplexedRTCPAddr = H245ToH225TransportAddress(params.m_multiplexedMediaControlChannel);
 			PTRACE(5, "H46018\tReceived multiplexed RTCP Channel=" << multiplexedRTCPAddr);
 		}
 		if (params.HasOptionalField(H46019_TraversalParameters::e_multiplexID)) {
@@ -13246,12 +13252,12 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 					PASN_Integer & n = ident;
 					if (gid == H46019_OID && n == 1) {
 						unsigned payloadtype = UNDEFINED_PAYLOAD_TYPE;
-						H323TransportAddress keepAliveRTPAddr;
+						H225_TransportAddress keepAliveRTPAddr;
 						H245_UnicastAddress keepAliveRTCPAddr;
 						unsigned keepAliveInterval = 0;
-						H323TransportAddress multiplexedRTPAddr;
-						H323TransportAddress multiplexedRTCPAddr;
-						PUInt32b multiplexID = INVALID_MULTIPLEX_ID;
+						H225_TransportAddress multiplexedRTPAddr;
+						H225_TransportAddress multiplexedRTCPAddr;
+						DWORD multiplexID = INVALID_MULTIPLEX_ID;
 						if (ParseTraversalParameters(olc.m_genericInformation[i], payloadtype, keepAliveRTPAddr, keepAliveInterval,
 								multiplexedRTPAddr, multiplexedRTCPAddr, multiplexID)) {
 							H245_UnicastAddress * control = NULL;
@@ -13671,7 +13677,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 			rtplc->SetUsesH46019();
 	}
 	H46019Session h46019chan(0, INVALID_RTP_SESSION, NULL);
-	PUInt32b assignedMultiplexID = INVALID_MULTIPLEX_ID;
+	DWORD assignedMultiplexID = INVALID_MULTIPLEX_ID;
  	if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing || peer->m_requestRTPMultiplexing || peer->m_remoteRequestsRTPMultiplexing) {
 		// update session ID if assigned by master
 		if (sessionID > 3) {
@@ -13696,12 +13702,12 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 					PASN_Integer & n = ident;
 					if (gid == H46019_OID && n == 1) {
 						unsigned payloadtype = UNDEFINED_PAYLOAD_TYPE;
-						H323TransportAddress keepAliveRTPAddr;
+						H225_TransportAddress keepAliveRTPAddr;
 						H245_UnicastAddress keepAliveRTCPAddr;
 						unsigned keepAliveInterval = 0;
-						H323TransportAddress multiplexedRTPAddr;
-						H323TransportAddress multiplexedRTCPAddr;
-						PUInt32b multiplexID = INVALID_MULTIPLEX_ID;
+						H225_TransportAddress multiplexedRTPAddr;
+						H225_TransportAddress multiplexedRTCPAddr;
+						DWORD multiplexID = INVALID_MULTIPLEX_ID;
 						if (ParseTraversalParameters(olca.m_genericInformation[i], payloadtype, keepAliveRTPAddr, keepAliveInterval,
 								multiplexedRTPAddr, multiplexedRTCPAddr, multiplexID)) {
 							m_remoteRequestsRTPMultiplexing = m_isRTPMultiplexingEnabled && (multiplexID != INVALID_MULTIPLEX_ID);
@@ -13809,9 +13815,9 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 				if (ackparams.GetTag() == H245_OpenLogicalChannelAck_forwardMultiplexAckParameters::e_h2250LogicalChannelAckParameters) {
 					H245_H2250LogicalChannelAckParameters & h225Params = ackparams;
 					if (h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaControlChannel))
-						h46019chan.m_addrB_RTCP = h225Params.m_mediaControlChannel;
+						h46019chan.m_addrB_RTCP = H245ToH225TransportAddress(h225Params.m_mediaControlChannel);
 					if (h225Params.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel))
-						h46019chan.m_addrB = h225Params.m_mediaChannel;
+						h46019chan.m_addrB = H245ToH225TransportAddress(h225Params.m_mediaChannel);
 				}
 			}
 		}
@@ -13882,7 +13888,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 #ifdef HAS_H46026
 	if (UsesH46026() || (peer && peer->UsesH46026())) {
 		// we'll save a channel object if any side uses .26
-		H323TransportAddress toRTP, toRTCP;
+		IPAndPortAddress toRTP, toRTCP;
 		if (!UsesH46026() && peer && peer->UsesH46026()) {
 			PTRACE(4, "H46026\tRemoving mediaChannel + mediaControlChannel");
 			if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)

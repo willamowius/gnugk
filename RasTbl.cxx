@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2017, Jan Willamowius
+// Copyright (c) 2000-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -2529,7 +2529,7 @@ struct RTPKeepAliveFrame
 
 struct MultiplexedRTPKeepAliveFrame
 {
-	PUInt32b multiplexID;
+	DWORD multiplexID;
 	BYTE b1;
 	BYTE pt;
 	WORD seq;
@@ -2552,7 +2552,7 @@ struct RTCPKeepAliveFrame
 
 struct MultiplexedRTCPKeepAliveFrame
 {
-	PUInt32b multiplexID;
+	DWORD multiplexID;
 	BYTE b1;
 	BYTE pt;
 	WORD len;
@@ -4884,9 +4884,9 @@ void CallRec::H46024BSessionFlag(WORD sessionID)
 		m_h46024Bflag.push_back(sessionID);
 }
 
-void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, const H323TransportAddress & rev, unsigned muxID_fwd, unsigned muxID_rev)
+void CallRec::H46024BInitiate(WORD sessionID, const IPAndPortAddress & fwd, const IPAndPortAddress & rev, unsigned muxID_fwd, unsigned muxID_rev)
 {
-	if (fwd.IsEmpty() || rev.IsEmpty()) {
+	if (!fwd.IsSet() || !rev.IsSet()) {
 		PTRACE(4, "H46024B\tSession " << sessionID << " NAT offload probe not ready");
 		return;
 	}
@@ -4900,8 +4900,8 @@ void CallRec::H46024BInitiate(WORD sessionID, const H323TransportAddress & fwd, 
 
 	PTRACE(5, "H46024B\tNAT offload probes S:" << sessionID << " F:" << fwd << " R:" << rev << " mux " << muxID_fwd << " " << muxID_rev);
 
-    PIPSocket::Address addr;  rev.GetIpAddress(addr);
-    bool revDir  = (GetCallSignalSocketCalled()->GetPeerAddr() == addr);
+    PIPSocket::Address addr = rev.GetIP();
+    bool revDir = (GetCallSignalSocketCalled()->GetPeerAddr() == addr);
 	//PTRACE(1, "SH\tNAT offload probe " << GetCallSignalSocketCalled()->GetPeerAddr() << " " << addr << " " << revDir);
 
 	H46024Balternate alt;
@@ -5017,7 +5017,7 @@ int CallRec::GetH46019Direction() const
 	return dir;
 }
 
-void CallRec::AddRTPKeepAlive(unsigned flcn, const H323TransportAddress & keepAliveRTPAddr, unsigned keepAliveInterval, PUInt32b multiplexID)
+void CallRec::AddRTPKeepAlive(unsigned flcn, const IPAndPortAddress & keepAliveRTPAddr, unsigned keepAliveInterval, DWORD multiplexID)
 {
 	H46019KeepAlive ka;
 	ka.type = RTP;
@@ -5051,12 +5051,12 @@ void CallRec::StartRTPKeepAlive(unsigned flcn, int RTPOSSocket)
 	}
 }
 
-void CallRec::AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAliveRTCPAddr, unsigned keepAliveInterval, PUInt32b multiplexID)
+void CallRec::AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAliveRTCPAddr, unsigned keepAliveInterval, DWORD multiplexID)
 {
 	H46019KeepAlive ka;
 	ka.type = RTCP;
 	ka.flcn = flcn;
-	ka.dest = H245UnicastToH323TransportAddr(keepAliveRTCPAddr);
+	ka.dest = keepAliveRTCPAddr;
 	ka.interval = keepAliveInterval;
 	ka.multiplexID = multiplexID;
 	m_RTCPkeepalives[flcn] = ka;
@@ -5086,7 +5086,7 @@ void CallRec::RemoveKeepAllAlives()
 	m_RTCPkeepalives.clear();
 }
 
-void CallRec::SetSessionMultiplexDestination(WORD session, void * openedBy, bool isRTCP, const H323TransportAddress & toAddress, H46019Side side)
+void CallRec::SetSessionMultiplexDestination(WORD session, void * openedBy, bool isRTCP, const IPAndPortAddress & toAddress, H46019Side side)
 {
 	// try to find LC for this session
 	if (m_callingSocket && (m_callingSocket->GetH245Handler() == openedBy)) {

@@ -3,7 +3,7 @@
  *
  * unit tests for h323util.cxx
  *
- * Copyright (c) 2011-2013, Jan Willamowius
+ * Copyright (c) 2011-2018, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -84,7 +84,8 @@ TEST_F(H323UtilTest, H245Port) {
 }
 
 TEST_F(H323UtilTest, H225TransportAddressAsString) {
-	EXPECT_TRUE(AsString(h225transport_withipv4).Find("03 04 05 06") != P_MAX_INDEX);
+	EXPECT_STREQ("3.4.5.6:999", AsString(h225transport_withipv4));
+	//EXPECT_TRUE(AsString(h225transport_withipv4).Find("03 04 05 06") != P_MAX_INDEX); // behaviour changed!
 	EXPECT_STREQ("3.4.5.6:999", AsDotString(h225transport_withipv4));
 	EXPECT_STREQ("3.4.5.6:999", AsDotString(h225transport_withipv4));
 	EXPECT_STREQ("3.4.5.6:999", AsDotString(h225transport_withipv4, true));
@@ -318,6 +319,26 @@ TEST_F(H323UtilTest, IsInNetwork) {
 	EXPECT_TRUE(IsInNetworks(ip3, net_list));
 }
 
+TEST_F(H323UtilTest, IsSetH225) {
+	PIPSocket::Address ip("4.5.6.7");
+	WORD port = 123;
+    H323TransportAddress h225addr;
+	EXPECT_FALSE(IsSet(h225addr));
+	h225addr = SocketToH225TransportAddr(ip, port);
+	EXPECT_TRUE(IsSet(h225addr));
+	h225addr = (DWORD)0;
+	EXPECT_FALSE(IsSet(h225addr));
+}
+
+TEST_F(H323UtilTest, IsSetH323) {
+	PIPSocket::Address ip("4.5.6.7");
+	WORD port = 123;
+    H323TransportAddress h323addr;
+	EXPECT_FALSE(IsSet(h323addr));
+	h323addr = H323TransportAddress(ip, port);
+	EXPECT_TRUE(IsSet(h323addr));
+}
+
 TEST_F(H323UtilTest, SplitIPAndPort) {
 	PStringArray parts;
 	parts = SplitIPAndPort("1.2.3.4", 1234);
@@ -397,5 +418,25 @@ TEST_F(H323UtilTest, ProtocolVersion) {
 	EXPECT_EQ(3, ProtocolVersion(H245_ProtocolIDv3));
 }
 
+TEST_F(H323UtilTest, IPAndPortAddress) {
+	PIPSocket::Address ip1("1.2.3.4");
+	PIPSocket::Address ip2("4.5.6.7");
+	WORD port = 123;
+    IPAndPortAddress addr1;
+    IPAndPortAddress addr2(ip2, port);
+
+    EXPECT_FALSE(IsSet(addr1));
+    EXPECT_FALSE(addr1.IsSet());
+    EXPECT_TRUE(IsSet(addr2));
+    EXPECT_TRUE(addr2.IsSet());
+
+    EXPECT_FALSE(addr1 == addr2);
+    addr1.Set(ip1, port);
+    EXPECT_FALSE(addr1 == addr2);
+    EXPECT_TRUE(addr1 != addr2);
+    addr1.Set(ip2, port);
+    EXPECT_TRUE(addr1 == addr2);
+    EXPECT_FALSE(addr1 != addr2);
+}
 
 }  // namespace
