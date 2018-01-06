@@ -5373,11 +5373,6 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		|| m_call->IsH46018ReverseSetup() ) {
 		m_call->SetProxyMode(CallRec::ProxyEnabled);
 		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled (H.460.18/.19)");
-        if ( (m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None)
-            || (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018()) ) {
-            PTRACE(5, "H46018\tEnable keep-alive for incoming H.460.18 call (for calling party)");
-            RegisterKeepAlive(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19));
-        }
         // enable keep alive for called party when Facility comes in
 	}
 
