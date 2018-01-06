@@ -5274,7 +5274,6 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		setupBody.m_maintainConnection = (GetRemote() && GetRemote()->MaintainConnection());
 	}
 
-	// TODO: new setting "Verify" to set to registered alias/e.164 ?
 	PString cli = toolkit->Config()->GetString(RoutedSec, "ScreenCallingPartyNumberIE", "");
 	if (!cli.IsEmpty()) {
 		unsigned plan = Q931::ISDNPlan, type = Q931::InternationalType;
@@ -7159,7 +7158,6 @@ bool CallSignalSocket::SendH46026RTP(unsigned sessionID, bool isRTP, const void 
 		PASN_OctetString & raw = frame.m_frame[0];
 		raw = PBYTEArray((const BYTE *)data, len);
 
-		// TODO: this Information message is probably not correct, use BuildInformation() instead and re-test
 		PBoolean fromDest = m_crv & 0x8000u;
 		Q931 InformationPDU;
 		H225_H323_UserInformation uuie;
