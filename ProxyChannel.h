@@ -668,7 +668,7 @@ public:
     bool m_deleted; // logically deleted, but still in list so other threads can leave methods
     PTime m_deleteTime;
 	H225_CallIdentifier m_callid;
-	WORD m_session;
+	WORD m_session;     // RTP session ID
 	WORD m_flcn;		// only used to assign master assigned RTP session IDs
 	void * m_openedBy;	// side A (pointer to H245ProxyHandler used as an ID)
 	void * m_otherSide;	// side B (pointer to H245ProxyHandler used as an ID)
