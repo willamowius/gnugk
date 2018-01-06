@@ -9956,7 +9956,6 @@ void MultiplexRTPListener::ReceiveData()
 		return;
 	}
 
-	PTRACE(0, "JW DBG received multiplexID=" << multiplexID << " buflen=" << buflen << " len=" << (buflen-4) << " from " << AsString(fromIP, fromPort));
 	MultiplexedRTPHandler::Instance()->HandlePacket(multiplexID, IPAndPortAddress(fromIP, fromPort), wbuffer+4, buflen-4, odd(localPort));
 }
 
@@ -10121,7 +10120,7 @@ void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddre
         return;
 	callptr call = CallTable::Instance()->FindCallRecByValue(m_callid);
 	if (!call) {
-        PTRACE(0, "JW DBG: Can't find call " << m_callid);
+        PTRACE(1, "RTPM\tCan't find call " << m_callid);
         return;
     }
 	// re-check deleted status after waiting for call table lock
@@ -10246,7 +10245,6 @@ void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddre
 
 void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddress, int osSocket, void * data, unsigned len, bool bufferHasRoomForID)
 {
-    PTRACE(0, "JW DBG: Send sendMultiplexID=" << sendMultiplexID << " to " << AsString(toAddress));
 	size_t lenToSend = len;
 	size_t sent = 0;
 
