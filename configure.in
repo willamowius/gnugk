@@ -1261,6 +1261,35 @@ fi
 AC_SUBST(HAS_GEOIP)
 
 dnl ########################################################################
+dnl check for libcurl
+dnl ########################################################################
+
+dnl MSWIN_DISPLAY    libcurl,libcurl support
+dnl MSWIN_CHECK_FILE libcurl,curl.h,HAS_LIBCURL=1
+
+AC_ARG_ENABLE(libcurl,
+[  --enable-libcurl        enable libcurl support (default=yes)],
+[ libcurl="${enableval}" ], [libcurl="yes"]
+)
+
+if test "x${libcurl}" != "xno" ; then
+    AC_PATH_PROG(CURL_CONFIG, curl-config, no)
+    if test "$CURL_CONFIG" = "no" ; then
+        echo "libcurl support disabled"
+        HAS_LIBCURL=0
+    else
+        HAS_LIBCURL=1
+        AC_DEFINE(HAS_LIBCURL, 1)
+        CURL_CFLAGS=`$CURL_CONFIG --cflags`
+        CURL_LIBS=`$CURL_CONFIG --libs`
+        STDCCFLAGS="-DHAS_LIBCURL=1 $STDCCFLAGS $CURL_CFLAGS"
+        ENDLDLIBS="$CURL_LIBS $ENDLDLIBS"
+        echo "libcurl support enabled"
+    fi
+fi
+AC_SUBST(HAS_LIBCURL)
+
+dnl ########################################################################
 dnl make directives
 
 dnl ########################################################################

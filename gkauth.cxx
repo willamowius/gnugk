@@ -31,7 +31,7 @@
 extern const char *H350Section;
 #include <ptclib/pldap.h>
 #include "h350/h350.h"
-#endif
+#endif // H323_H350
 
 #ifdef HAS_H46018
 #include <h460/h4601.h>
@@ -42,6 +42,11 @@ extern const char *H350Section;
 #endif // P_SSL
 
 #include <ptclib/http.h>
+
+#ifdef HAS_LIBCURL
+#include <curl/curl.h>
+#endif // HAS_LIBCURL
+
 
 namespace {
 const char* const GkAuthSectionName = "Gatekeeper::Auth";
@@ -2260,7 +2265,7 @@ int PrefixAuth::doCheck(const AuthObj & aobj)
 }
 
 
-#ifdef P_HTTP
+#if defined(P_HTTP) || defined (HAS_LIBCURL)
 
 class HttpPasswordAuth : public SimplePasswordAuth
 {
@@ -2329,15 +2334,63 @@ HttpPasswordAuth::~HttpPasswordAuth()
 {
 }
 
+#ifdef HAS_LIBCURL
+static size_t CurlWriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+    *((PString*)userp) = PString((const char*)contents, size * nmemb);
+    return size * nmemb;
+}
+#endif // HAS_LIBCURL
+
 bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, std::map<PString, PString> & params)
 {
-    PHTTPClient http;
     PString result;
 
     PString url = ReplaceAuthParams(m_url, params);
+    url.Replace(" ", "%20", true);  // TODO: better URL escaping ?
     PString host = PURL(url).GetHostName();
     PString body = ReplaceAuthParams(m_body, params);
 
+#ifdef HAS_LIBCURL
+    CURL * curl = NULL;
+    CURLcode curl_res = CURLE_FAILED_INIT;
+
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+    curl = curl_easy_init();
+    if (curl) {
+        if (m_method == "GET") {
+            curl_easy_setopt(curl, CURLOPT_URL, (const char *)url);
+        } else if (m_method == "POST") {
+            PStringArray parts = url.Tokenise("?");
+            if (parts.GetSize() == 2) {
+                url = parts[0];
+                PString postfields = parts[1];
+                curl_easy_setopt(curl, CURLOPT_URL, (const char *)url);
+                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, (const char *)postfields);
+            } else {
+                PTRACE(2, "HttpPasswordAuth\tCan't find post fields");
+            }
+        } else {
+            PTRACE(2, "HttpPasswordAuth\tUnsupported method " << m_method);
+        }
+        curl_easy_setopt(curl, CURLOPT_URL, (const char *)url);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
+        if (PTrace::CanTrace(6)) {
+            curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+        }
+        curl_res = curl_easy_perform(curl);
+        curl_easy_cleanup(curl);
+    }
+
+    if (curl_res != CURLE_OK) {
+        PTRACE(2, "HttpPasswordAuth\tCould not GET password from " << host << " : " << curl_easy_strerror(curl_res));
+        curl_global_cleanup();
+        return false;
+    }
+    curl_global_cleanup();
+#else
+    PHTTPClient http;
     if (m_method == "GET") {
         if (!http.GetTextDocument(url, result)) {
             PTRACE(2, "HttpPasswordAuth\tCould not GET password from " << host);
@@ -2355,6 +2408,8 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
         PTRACE(2, "HttpPasswordAuth\tUnsupported method " << m_method);
         return false;
     }
+#endif // HAS_LIBCURL
+
 	PTRACE(5, "HttpPasswordAuth\tServer response = " << result);
     PINDEX pos, len;
     if (result.FindRegEx(m_errorRegex, pos, len)) {
@@ -2459,7 +2514,7 @@ namespace { // anonymous namespace
 #endif
 	GkAuthCreator<AliasAuth> AliasAuthCreator("AliasAuth");
 	GkAuthCreator<PrefixAuth> PrefixAuthCreator("PrefixAuth");
-#ifdef P_HTTP
+#if defined(P_HTTP) || defined (HAS_LIBCURL)
 	GkAuthCreator<HttpPasswordAuth> HttpPasswordAuthCreator("HttpPasswordAuth");
 #endif
 	GkAuthCreator<TwoAliasAuth> TwoAliasAuthCreator("TwoAliasAuth");

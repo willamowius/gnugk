@@ -46,6 +46,9 @@
 // GeoIP
 #undef HAS_GEOIP
 
+// libcurl
+#undef HAS_LIBCURL
+
 // MYSQL
 #undef HAS_MYSQL
 #if defined(_MSC_VER) && HAS_MYSQL
