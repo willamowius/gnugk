@@ -3624,10 +3624,10 @@ PString Toolkit::GetExternalIP() const
 #ifdef P_HTTP
     if (ext == "AWSPublicIP") {
         // fetch public / elastic IP from AWS meta data
-        PHTTPClient http;
+        PHTTPClient http;	// TODO: add libcurl version ?
         PString result;
         if (http.GetTextDocument("http://169.254.169.254/latest/meta-data/public-ipv4", result)) {
-            ext = result;
+            ext = result.Trim();	// TODO: Is this enough to remove special chars, newline etc. ?
         } else {
             ext = "";
         }
