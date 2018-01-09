@@ -1869,7 +1869,7 @@ void StatusClient::ExecCommand(
 		break;
 	case GkStatus::e_RouteToAlias:
 		if (args.GetSize() < 4 || args.GetSize() > 8) {
-			CommandError("Syntax Error: RouteToAlias TARGET_ALIAS CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID [DISPLAY-IE [CALLED-DISPLAY-IE]]]]");
+			CommandError("Syntax Error: RouteToAlias TARGET_ALIAS CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID [CALLER-DISPLAY-IE [CALLED-DISPLAY-IE]]]]");
         } else {
             PString alias = args[1];
 			if (alias == "-")
@@ -1887,12 +1887,12 @@ void StatusClient::ExecCommand(
                 if (callerID == "-")
                     callerID = ""; // "-" is empty callerID
             }
-            PString displayIE = "";
+            PString callerDisplayIE = "";
             if (args.GetSize() > 6) {
-                displayIE = args[6];
-                if (displayIE == "-")
-                    displayIE = ""; // "-" is empty displayIE
-                displayIE.Replace("+", " ", true); // restore spaces in displayIE
+                callerDisplayIE = args[6];
+                if (callerDisplayIE == "-")
+                    callerDisplayIE = ""; // "-" is empty displayIE
+                callerDisplayIE.Replace("+", " ", true); // restore spaces in displayIE
             }
             PString calledDisplayIE = "";
             if (args.GetSize() > 7) {
@@ -1901,12 +1901,12 @@ void StatusClient::ExecCommand(
                     calledDisplayIE = ""; // "-" is empty displayIE
                 calledDisplayIE.Replace("+", " ", true); // restore spaces in displayIE
             }
-			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(alias, "", epid, crv, callID, "", callerID, false, false, displayIE, calledDisplayIE);
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(alias, "", epid, crv, callID, "", callerID, false, false, callerDisplayIE, calledDisplayIE);
         }
 		break;
 	case GkStatus::e_RouteToGateway:
 		if (args.GetSize() < 5 || args.GetSize() > 9) {
-			CommandError("Syntax Error: RouteToGateway TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID [DISPLAY-IE [CALLED-DISPLAY-IE]]]]");
+			CommandError("Syntax Error: RouteToGateway TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID [CALLER-DISPLAY-IE [CALLED-DISPLAY-IE]]]]");
         } else {
             PString alias = args[1];
 			if (alias == "-")
@@ -1925,12 +1925,12 @@ void StatusClient::ExecCommand(
                 if (callerID == "-")
                     callerID = ""; // "-" is empty callerID
             }
-            PString displayIE = "";
+            PString callerDisplayIE = "";
             if (args.GetSize() > 7) {
-                displayIE = args[7];
-                if (displayIE == "-")
-                    displayIE = ""; // "-" is empty displayIE
-                displayIE.Replace("+", " ", true); // restore spaces in displayIE
+                callerDisplayIE = args[7];
+                if (callerDisplayIE == "-")
+                    callerDisplayIE = ""; // "-" is empty displayIE
+                callerDisplayIE.Replace("+", " ", true); // restore spaces in displayIE
             }
             PString calledDisplayIE = "";
             if (args.GetSize() > 8) {
@@ -1939,12 +1939,12 @@ void StatusClient::ExecCommand(
                     calledDisplayIE = ""; // "-" is empty displayIE
                 calledDisplayIE.Replace("+", " ", true); // restore spaces in displayIE
             }
-			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(alias, ip, epid, crv, callID, "", callerID, false, false, displayIE, calledDisplayIE);
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(alias, ip, epid, crv, callID, "", callerID, false, false, callerDisplayIE, calledDisplayIE);
         }
 		break;
 	case GkStatus::e_RouteToInternalGateway:
 		if (args.GetSize() < 5 || args.GetSize() > 9) {
-			CommandError("Syntax Error: RouteToInternalGateway TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID [DISPLAY-IE [CALLED-DISPLAY-IE]]]]");
+			CommandError("Syntax Error: RouteToInternalGateway TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID [CALLER-DISPLAY-IE [CALLED-DISPLAY-IE]]]]");
         } else {
             PString alias = args[1];
 			if (alias == "-")
@@ -1963,12 +1963,12 @@ void StatusClient::ExecCommand(
                 if (callerID == "-")
                     callerID = ""; // "-" is empty callerID
             }
-            PString displayIE = "";
+            PString callerDisplayIE = "";
             if (args.GetSize() > 7) {
-                displayIE = args[7];
-                if (displayIE == "-")
-                    displayIE = ""; // "-" is empty displayIE
-                displayIE.Replace("+", " ", true); // restore spaces in displayIE
+                callerDisplayIE = args[7];
+                if (callerDisplayIE == "-")
+                    callerDisplayIE = ""; // "-" is empty displayIE
+                callerDisplayIE.Replace("+", " ", true); // restore spaces in displayIE
             }
             PString calledDisplayIE = "";
             if (args.GetSize() > 8) {
@@ -1977,12 +1977,12 @@ void StatusClient::ExecCommand(
                     calledDisplayIE = ""; // "-" is empty displayIE
                 calledDisplayIE.Replace("+", " ", true); // restore spaces in displayIE
             }
-			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(alias, ip, epid, crv, callID, "", callerID, false, true, displayIE, calledDisplayIE);
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(alias, ip, epid, crv, callID, "", callerID, false, true, callerDisplayIE, calledDisplayIE);
         }
 		break;
 	case GkStatus::e_BindAndRouteToGateway:
 		if (args.GetSize() < 6 || args.GetSize() > 10) {
-			CommandError("Syntax Error: BindAndRouteToGateway BIND_IP TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID [DISPLAY-IE [CALLED-DISPLAY-IE]]]]");
+			CommandError("Syntax Error: BindAndRouteToGateway BIND_IP TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID [CALLER-DISPLAY-IE [CALLED-DISPLAY-IE]]]]");
         } else {
             PString bindIP = args[1];
             PString alias = args[2];
@@ -2002,12 +2002,12 @@ void StatusClient::ExecCommand(
                 if (callerID == "-")
                     callerID = ""; // "-" is empty callerID
             }
-            PString displayIE = "";
+            PString callerDisplayIE = "";
             if (args.GetSize() > 8) {
-                displayIE = args[8];
-                if (displayIE == "-")
-                    displayIE = ""; // "-" is empty displayIE
-                displayIE.Replace("+", " ", true); // restore spaces in displayIE
+                callerDisplayIE = args[8];
+                if (callerDisplayIE == "-")
+                    callerDisplayIE = ""; // "-" is empty displayIE
+                callerDisplayIE.Replace("+", " ", true); // restore spaces in displayIE
             }
             PString calledDisplayIE = "";
             if (args.GetSize() > 9) {
@@ -2016,12 +2016,12 @@ void StatusClient::ExecCommand(
                     calledDisplayIE = ""; // "-" is empty displayIE
                 calledDisplayIE.Replace("+", " ", true); // restore spaces in displayIE
             }
-			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(alias, ip, epid, crv, callID, bindIP, callerID, false, false, displayIE, calledDisplayIE);
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(alias, ip, epid, crv, callID, bindIP, callerID, false, false, callerDisplayIE, calledDisplayIE);
         }
 		break;
 	case GkStatus::e_BindAndRouteToInternalGateway:
 		if (args.GetSize() < 6 || args.GetSize() > 10) {
-			CommandError("Syntax Error: BindAndRouteToInternalGateway BIND_IP TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID [DISPLAY-IE [CALLED-DISPLAY-IE]]]]");
+			CommandError("Syntax Error: BindAndRouteToInternalGateway BIND_IP TARGET_ALIAS TARGET_IP CALLING_ENDPOINT_ID CRV [CALLID [CALLER-ID [CALLER-DISPLAY-IE [CALLED-DISPLAY-IE]]]]");
         } else {
             PString bindIP = args[1];
             PString alias = args[2];
@@ -2041,12 +2041,12 @@ void StatusClient::ExecCommand(
                 if (callerID == "-")
                     callerID = ""; // "-" is empty callerID
             }
-            PString displayIE = "";
+            PString callerDisplayIE = "";
             if (args.GetSize() > 8) {
-                displayIE = args[8];
-                if (displayIE == "-")
-                    displayIE = ""; // "-" is empty displayIE
-                displayIE.Replace("+", " ", true); // restore spaces in displayIE
+                callerDisplayIE = args[8];
+                if (callerDisplayIE == "-")
+                    callerDisplayIE = ""; // "-" is empty displayIE
+                callerDisplayIE.Replace("+", " ", true); // restore spaces in displayIE
             }
             PString calledDisplayIE = "";
             if (args.GetSize() > 9) {
@@ -2055,7 +2055,7 @@ void StatusClient::ExecCommand(
                     calledDisplayIE = ""; // "-" is empty displayIE
                 calledDisplayIE.Replace("+", " ", true); // restore spaces in displayIE
             }
-			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(alias, ip, epid, crv, callID, bindIP, callerID, false, true, displayIE, calledDisplayIE);
+			RasServer::Instance()->GetVirtualQueue()->RouteToAlias(alias, ip, epid, crv, callID, bindIP, callerID, false, true, callerDisplayIE, calledDisplayIE);
         }
 		break;
 	case GkStatus::e_RouteReject:

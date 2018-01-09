@@ -1130,7 +1130,7 @@ bool VirtualQueue::RouteToAlias(
     /// don't communicate updated route to caller
     bool keepRouteInternal,
     /// Display IE or empty
-    const PString & displayIE,
+    const PString & callerDisplayIE,
     /// Display IE of called party or empty
     const PString & calledDisplayIE,
     /// H225_AdmissionRejectReason/H.225 ReleaseComplete reason (only valid on reject)
@@ -1160,7 +1160,7 @@ bool VirtualQueue::RouteToAlias(
 					*(r->m_callsignaladdr) = destinationip;
 				*(r->m_sourceIP) = bindIP;	// BindAndRouteToGateway
 				*(r->m_callerID) = callerID;
-				*(r->m_callerDisplayIE) = displayIE;
+				*(r->m_callerDisplayIE) = callerDisplayIE;
 				*(r->m_calledDisplayIE) = calledDisplayIE;
 				r->m_keepRouteInternal = keepRouteInternal;  // RouteToInternalGateway
 			}
@@ -1211,7 +1211,7 @@ bool VirtualQueue::RouteToAlias(
     /// don't communicate updated route to caller
     bool keepRouteInternal,
     /// Display IE or empty
-    const PString & displayIE,
+    const PString & callerDisplayIE,
     /// Display IE of called party or empty
     const PString & calledDisplayIE,
     /// H225_AdmissionRejectReason/H.225 ReleaseComplete reason
@@ -1223,7 +1223,7 @@ bool VirtualQueue::RouteToAlias(
 		alias.SetSize(1);
 		H323SetAliasAddress(targetAlias, alias[0]);
 	}
-	return RouteToAlias(alias, destinationIp, callingEpId, crv, callID, bindIP, callerID, reject, keepRouteInternal, displayIE, calledDisplayIE, reason);
+	return RouteToAlias(alias, destinationIp, callingEpId, crv, callID, bindIP, callerID, reject, keepRouteInternal, callerDisplayIE, calledDisplayIE, reason);
 }
 
 bool VirtualQueue::RouteReject(
@@ -1535,7 +1535,7 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 		PTRACE(5, "Routing\tPolicy " << m_name << " destination matched "
 			"a virtual queue " << vq << " (Setup " << crv << ')');
 
-		if (m_vqueue->SendRouteRequest(callerip, epid, crv, aliases, callSigAdr, bindIP, callerID, callerDisplayIE, callerDisplayIE, reject, rejectReason, keepRouteInternal,
+		if (m_vqueue->SendRouteRequest(callerip, epid, crv, aliases, callSigAdr, bindIP, callerID, callerDisplayIE, calledDisplayIE, reject, rejectReason, keepRouteInternal,
             vq, src, callid, calledIP, vendorInfo, fromIP, "Setup")) {
 			request.SetFlag(RoutingRequest::e_aliasesChanged);
         }
