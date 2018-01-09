@@ -1286,6 +1286,9 @@ if test "x${libcurl}" != "xno" ; then
         ENDLDLIBS="$CURL_LIBS $ENDLDLIBS"
         echo "libcurl support enabled"
     fi
+else
+    echo "libcurl support disabled"
+    HAS_LIBCURL=0
 fi
 AC_SUBST(HAS_LIBCURL)
 
