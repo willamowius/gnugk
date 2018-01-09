@@ -659,7 +659,7 @@ signaled by RouteRequest. As additional parameters you can set the CLI and displ
 <descrip>
 <tag/Format:/
 <tscreen><verb>
-RouteToAlias Alias CallingEndpointID CallRef [CallID [CLI [DISPLAY-IE]]]
+RouteToAlias Alias CallingEndpointID CallRef [CallID [CLI [CALLER-DISPLAY-IE [CALLED-DISPLAY-IE]]]]
 </verb></tscreen>
 <tag/Example:/
 <tscreen><verb>
@@ -681,7 +681,7 @@ no alias will be set in the destination, just the IP.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
-RouteToGateway Alias IP:Port CallingEndpointID CallRef [CallID [CLI [DISPLAY-IE]]]
+RouteToGateway Alias IP:Port CallingEndpointID CallRef [CallID [CLI [CALLER-DISPLAY-IE [CALLED-DISPLAY-IE]]]]
 </verb></tscreen>
 <tag/Example:/
 <tscreen><verb>
@@ -698,7 +698,7 @@ IP of a multi-homed server to use for the outgoing call.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
-BindAndRouteToGateway IP Alias IP:Port CallingEndpointID CallRef [CallID [CLI [DISPLAY-IE]]]
+BindAndRouteToGateway IP Alias IP:Port CallingEndpointID CallRef [CallID [CLI [CALLER-DISPLAY-IE [CALLED-DISPLAY-IE]]]]
 </verb></tscreen>
 <tag/Example:/
 <tscreen><verb>
@@ -706,7 +706,7 @@ BindAndRouteToGateway 192.168.0.2 Suzi 192.168.0.50 endp_4711 1234
 </verb></tscreen>
 </descrip>
 
-<item><tt/BindAndRouteToGateway/<newline>
+<item><tt/BindAndRouteToInternalGateway/<newline>
 <p>Same as BindAndRouteToGateway, but does not tell caller about about an updated destination alias.
 
 <item><tt/SendProceeding/<newline>
