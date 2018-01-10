@@ -2348,6 +2348,7 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
 
     PString url = ReplaceAuthParams(m_url, params);
     url.Replace(" ", "%20", true);  // TODO: better URL escaping ?
+    PTRACE(6, "HttpPasswordAuth\tURL=" << url);
     PString host = PURL(url).GetHostName();
     PString body = ReplaceAuthParams(m_body, params);
 
@@ -2377,7 +2378,7 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
         if (PTrace::CanTrace(6)) {
-            curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+            curl_easy_setopt(curl, CURLOPT_VERBOSE, 1); // TODO: don't send to stderr !!!
         }
         curl_res = curl_easy_perform(curl);
         curl_easy_cleanup(curl);
