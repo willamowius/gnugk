@@ -2335,10 +2335,18 @@ HttpPasswordAuth::~HttpPasswordAuth()
 }
 
 #ifdef HAS_LIBCURL
+// receives the document data
 static size_t CurlWriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
     *((PString*)userp) = PString((const char*)contents, size * nmemb);
     return size * nmemb;
+}
+
+// receives debug output
+static int DebugToTrace(CURL *handle, curl_infotype type, char *data, size_t size, void *userp)
+{
+  PTRACE (6, "CURL\t" << PString((const char *)data, size).Trim());
+  return 0;
 }
 #endif // HAS_LIBCURL
 
@@ -2378,7 +2386,8 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
         if (PTrace::CanTrace(6)) {
-            curl_easy_setopt(curl, CURLOPT_VERBOSE, 1); // TODO: don't send to stderr !!!
+            curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, DebugToTrace);
+            curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
         }
         curl_res = curl_easy_perform(curl);
         curl_easy_cleanup(curl);
