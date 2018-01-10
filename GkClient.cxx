@@ -645,7 +645,7 @@ STUNClient::STUNClient(GkClient * _client, const H323TransportAddress & addr)
    m_socketsForPairing(4), m_pollRetries(3)
 {
 	PIPSocket::Address ip;
-	WORD port;
+	WORD port = 0;
 	addr.GetIpAndPort(ip, port);
 #ifdef hasNewSTUN
 	m_serverAddress = PIPSocketAddressAndPort(ip, port);
