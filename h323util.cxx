@@ -74,7 +74,11 @@ PString AsString(const PIPSocket::Address & ip, WORD pt)
 }
 
 PString AsString(const IPAndPortAddress & addr) {
-    return AsString(addr.GetIP(), addr.GetPort());
+    if (addr.IsSet()) {
+        return AsString(addr.GetIP(), addr.GetPort());
+    } else {
+        return "0.0.0.0:0";
+    }
 }
 
 PString AsString(const H245_UnicastAddress & ip)
