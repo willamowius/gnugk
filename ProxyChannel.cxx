@@ -7723,9 +7723,6 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					// deleting setup also disposes q931pdu and uuie
 					delete setup;
 					setup = NULL;
-
-                    PTRACE(5, "H46018\tEnable keep-alive for call to H.460.18 endpoint");
-                    RegisterKeepAlive(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19));
 				}
 				m_result = DelayedConnecting;	// don't forward, this was just to open the connection
 			} else {
