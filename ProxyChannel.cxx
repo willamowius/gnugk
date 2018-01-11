@@ -10120,18 +10120,18 @@ void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddre
 	bool isFromB = (receivedMultiplexID == m_multiplexID_fromB);
     if (IsKeepAlive(len, isRTCP)) {
 		if (isFromA) {
-			if (isRTCP && !IsSet(m_addrA_RTCP)) {
+			if (isRTCP && (m_addrA_RTCP != fromAddress)) {
 				m_addrA_RTCP = fromAddress;
                 call->SetSessionMultiplexDestination(m_session, m_openedBy, isRTCP, fromAddress, SideA);
-			} else if (!IsSet(m_addrA)) {
+			} else if (m_addrA != fromAddress) {
 				m_addrA = fromAddress;
                 call->SetSessionMultiplexDestination(m_session, m_openedBy, isRTCP, fromAddress, SideA);
 			}
 		} else if (isFromB) {
-			if (isRTCP && !IsSet(m_addrB_RTCP)) {
+			if (isRTCP && (m_addrB_RTCP != fromAddress)) {
 				m_addrB_RTCP = fromAddress;
                 call->SetSessionMultiplexDestination(m_session, m_openedBy, isRTCP, fromAddress, SideB);
-			} else if (!IsSet(m_addrB)) {
+			} else if (m_addrB != fromAddress) {
 				m_addrB = fromAddress;
                 call->SetSessionMultiplexDestination(m_session, m_openedBy, isRTCP, fromAddress, SideB);
 			}
@@ -10149,15 +10149,15 @@ void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddre
 
 	// port detection by first media packet for channels from client to server that won't have a keepAlive
 	if (isFromA) {
-		if (isRTCP && !IsSet(m_addrA_RTCP))
+		if (isRTCP && (m_addrA_RTCP != fromAddress))
 			m_addrA_RTCP = fromAddress;
-		if (!isRTCP && !IsSet(m_addrA))
+		if (!isRTCP && (m_addrA != fromAddress))
 			m_addrA = fromAddress;
 	}
 	if (isFromB) {
-		if (isRTCP && !IsSet(m_addrB_RTCP))
+		if (isRTCP && (m_addrB_RTCP != fromAddress))
 			m_addrB_RTCP = fromAddress;
-		if (!isRTCP && !IsSet(m_addrB))
+		if (!isRTCP && (m_addrB != fromAddress))
 			m_addrB = fromAddress;
 	}
 
@@ -10522,7 +10522,10 @@ bool MultiplexedRTPHandler::HandlePacket(DWORD receivedMultiplexID, const IPAndP
             return true;
 		}
 	}
-	PTRACE(3, "RTP\tWarning: Didn't find a channel for receivedMultiplexID " << receivedMultiplexID << " from " << AsString(fromAddress));
+	if (!isRTCP) {
+        // no warning for RTCP, probably a Polycom RTCP packet with missing multiplex ID
+        PTRACE(3, "RTP\tWarning: Didn't find a channel for receivedMultiplexID " << receivedMultiplexID << " from " << AsString(fromAddress));
+    }
 	return false;
 }
 
