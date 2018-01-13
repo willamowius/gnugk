@@ -362,6 +362,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "LuaPasswordAuth", "Script" },
 	{ "LuaPasswordAuth", "ScriptFile" },
 #endif
+	{ "LogFile", "DeleteOnRotation" },
 	{ "LogFile", "Filename" },
 #ifndef _WIN32
 	{ "LogFile", "LogToSyslog" },
@@ -2107,20 +2108,23 @@ bool Gatekeeper::RotateLogFile()
 	if (m_logFilename.IsEmpty())
 		return false;
 
-	PFile* const oldLogFile = new PTextFile(m_logFilename, PFile::WriteOnly,
-		PFile::MustExist
-		);
+	PFile* const oldLogFile = new PTextFile(m_logFilename, PFile::WriteOnly, PFile::MustExist);
 	if (oldLogFile->IsOpen()) {
-		// Backup of log file
-		PFilePath filename = oldLogFile->GetFilePath();
-		const PString timeStr = PTime().AsString("yyyyMMdd_hhmmss");
-		const PINDEX lastDot = filename.FindLast('.');
-		if (lastDot != P_MAX_INDEX)
-			filename.Replace(".", "." + timeStr + ".", FALSE, lastDot);
-		else
-			filename += "." + timeStr;
-		oldLogFile->Close();
-		oldLogFile->Move(oldLogFile->GetFilePath(), filename);
+        if (GkConfig()->GetBoolean("LogFile", "DeleteOnRotation", false)) {
+            oldLogFile->Close();
+            oldLogFile->Remove(oldLogFile->GetFilePath());
+        } else {
+            // Backup of log file
+            PFilePath filename = oldLogFile->GetFilePath();
+            const PString timeStr = PTime().AsString("yyyyMMdd_hhmmss");
+            const PINDEX lastDot = filename.FindLast('.');
+            if (lastDot != P_MAX_INDEX)
+                filename.Replace(".", "." + timeStr + ".", FALSE, lastDot);
+            else
+                filename += "." + timeStr;
+            oldLogFile->Close();
+            oldLogFile->Move(oldLogFile->GetFilePath(), filename);
+		}
 	}
 	delete oldLogFile;
 

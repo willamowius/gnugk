@@ -762,6 +762,12 @@ file is renamed to CURRENT_FILENAME.YYYYMMDD-HHMMSS, where YYYYMMDD-HHMMSS
 is replaced with the current timestamp, and new lines are logged to an empty 
 file. To disable rotation, do not configure the <tt/Rotate/ parameter or set it to 0.
 
+<item><tt/DeleteOnRotation=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Delete the old logfile when rotating instead of renaming it.
+All data from the previous rotation period is lost, but there is less chance that your disk will overflow.
+
 <descrip>
 <tag/Example 1 - rotate every hour (00:45, 01:45, ..., 23:45):/
 <tt/&lsqb;LogFile&rsqb;/<newline>

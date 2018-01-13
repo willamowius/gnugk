@@ -1,5 +1,6 @@
 Changes from 4.7 to 4.8
 =======================
+- new switch: [LogFile] DeleteOnRotation=1 to delete the old logfile when rotating instead of renaming it
 - support https in HttpPasswordAuth
 - fix for RTP Bleed with multiplexed RTP
 - PrintAllRegistrationsVerbose now also shows the endpoint vendor
