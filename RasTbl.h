@@ -50,6 +50,7 @@ const DWORD INVALID_MULTIPLEX_ID = 0;
 const BYTE GNUGK_KEEPALIVE_RTP_PAYLOADTYPE = 116;	// must at least be 1 less than MAX_DYNAMIC_PAYLOAD_TYPE
 const BYTE MIN_DYNAMIC_PAYLOAD_TYPE = 96;
 const BYTE MAX_DYNAMIC_PAYLOAD_TYPE = 127;
+const unsigned WAIT_DELETE_AFTER_DISCONNECT = 30;   // time to wait after disconnect before deleting call object
 
 enum PortType { RASPort=1, Q931Port=2, H245Port=3, RTPPort=4, T120Port=5, RadiusPort=6, StatusPort=7 };
 enum PortAction { PortOpen=1, PortClose=2 };
@@ -929,8 +930,6 @@ public:
 	bool CompareSigAdr(const H225_TransportAddress *adr) const;
 	bool CompareSigAdrIgnorePort(const H225_TransportAddress *adr) const;
 
-	bool IsUsed() const { return (m_usedCount != 0); }
-
 	/** @return
 		true if the call has been connected - a Connect message
 		has been received in gk routed signaling or the call has been admitted
@@ -957,6 +956,7 @@ public:
 
 	void Lock();
 	void Unlock();
+	bool IsUsed() const;
 
 	/** @return
 		Q.931 ReleaseComplete cause code for the call.
@@ -1432,8 +1432,8 @@ public:
 	void StartRTPKeepAlive(unsigned flcn, int RTPOSSocket);
 	void AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAliveRTCPAddr, unsigned keepAliveInterval, DWORD multiplexID);
 	void StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket);
-	void RemoveKeepAlives(unsigned flcn);
-	void RemoveKeepAllAlives();
+	void RemoveRTPKeepAlives(unsigned flcn);
+	void RemoveAllRTPKeepAlives();
 
 	void SetSessionMultiplexDestination(WORD session, void * openedBy, bool isRTCP, const IPAndPortAddress & toAddress, H46019Side side);
 	bool IgnoreSignaledIPs() const { return m_ignoreSignaledIPs; }
@@ -1813,7 +1813,7 @@ private:
 	        return callptr((Iter != CallList.end()) ? *Iter : 0);
 	}
 
-	bool InternalRemovePtr(CallRec *call);
+	void InternalRemovePtr(CallRec *call);
 	void InternalRemove(iterator);
 	void InternalRemoveFailedLeg(iterator);
 
@@ -2124,6 +2124,18 @@ inline void CallRec::Unlock()
 	PWaitAndSignal lock(m_usedLock);
 	--m_usedCount;
 }
+
+inline bool CallRec::IsUsed() const {
+    if (m_usedCount != 0)
+        return true;
+    // also consider all calls that ever connected as used until 30 sec after disconnect (due to late arriving RTP)
+    if ((m_disconnectTime > 0) && (time(NULL) - m_disconnectTime > WAIT_DELETE_AFTER_DISCONNECT))
+        return true;
+    if ((m_connectTime > 0) && (time(NULL) - m_connectTime > WAIT_DELETE_AFTER_DISCONNECT))
+        return true;
+    return false;
+}
+
 
 inline bool CallRec::CompareCallId(const H225_CallIdentifier *CallId) const
 {

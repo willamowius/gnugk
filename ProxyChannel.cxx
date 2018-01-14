@@ -1055,7 +1055,6 @@ public:
 	LogicalChannel(WORD flcn = 0) : channelNumber(flcn), port(0), used(false) { }
 	virtual ~LogicalChannel() { }
 
-	bool IsUsed() const { return used; }
 	bool Compare(WORD lcn) const { return channelNumber == lcn; }
 	WORD GetPort() const { return port; }
 	WORD GetChannelNumber() const { return channelNumber; }
@@ -10330,7 +10329,7 @@ MultiplexedRTPHandler::MultiplexedRTPHandler() : Singleton<MultiplexedRTPHandler
 		m_reader = new MultiplexedRTPReader();
 		PTime now;
         m_cleanupTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(this, &MultiplexedRTPHandler::SessionCleanup, now, 30);
-        m_deleteDelay.SetMilliSeconds(30 * 1000); // wait 30 sec. before really deleting a deleted session
+        m_deleteDelay.SetMilliSeconds(WAIT_DELETE_AFTER_DISCONNECT * 1000); // wait 30 sec. before really deleting a deleted session
 	} else {
 		m_reader = NULL;
 		m_cleanupTimer = GkTimerManager::INVALID_HANDLE;
@@ -10524,7 +10523,7 @@ bool MultiplexedRTPHandler::HandlePacket(DWORD receivedMultiplexID, const IPAndP
 	}
 	if (!isRTCP) {
         // no warning for RTCP, probably a Polycom RTCP packet with missing multiplex ID
-        PTRACE(3, "RTP\tWarning: Didn't find a channel for receivedMultiplexID " << receivedMultiplexID << " from " << AsString(fromAddress));
+        PTRACE(7, "RTP\tWarning: Didn't find a channel for receivedMultiplexID " << receivedMultiplexID << " from " << AsString(fromAddress));
     }
 	return false;
 }
@@ -14105,7 +14104,7 @@ bool H245ProxyHandler::HandleCloseLogicalChannel(H245_CloseLogicalChannel & clc,
 			second->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber);
 	}
 #ifdef HAS_H46018
-	call->RemoveKeepAlives(clc.m_forwardLogicalChannelNumber);
+	call->RemoveRTPKeepAlives(clc.m_forwardLogicalChannelNumber);
 #endif
 	return false; // nothing changed
 }

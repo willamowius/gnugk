@@ -2879,7 +2879,7 @@ CallRec::~CallRec()
 {
 	PTRACE(3, "Gk\tDelete Call No. " << m_CallNumber);
 #ifdef HAS_H46018
-	RemoveKeepAllAlives();
+	RemoveAllRTPKeepAlives();
 #endif
     delete(m_newSetupInternalAliases);
 
@@ -5074,13 +5074,13 @@ void CallRec::StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket)
 	}
 }
 
-void CallRec::RemoveKeepAlives(unsigned flcn)
+void CallRec::RemoveRTPKeepAlives(unsigned flcn)
 {
 	m_RTPkeepalives.erase(flcn);
 	m_RTCPkeepalives.erase(flcn);
 }
 
-void CallRec::RemoveKeepAllAlives()
+void CallRec::RemoveAllRTPKeepAlives()
 {
 	m_RTPkeepalives.clear();
 	m_RTCPkeepalives.clear();
@@ -5691,12 +5691,11 @@ void CallTable::RemoveCall(const callptr & call)
 		InternalRemovePtr(call.operator->());
 }
 
-bool CallTable::InternalRemovePtr(CallRec *call)
+void CallTable::InternalRemovePtr(CallRec *call)
 {
 	PTRACE(6, "GK\tRemoving callptr: " << AsString(call->GetCallIdentifier().m_guid));
 	WriteLock lock(listLock);
 	InternalRemove(find(CallList.begin(), CallList.end(), call));
-	return true; // useless, workaround for VC
 }
 
 void CallTable::RemoveFailedLeg(const callptr & call)
