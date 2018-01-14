@@ -5315,7 +5315,6 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 	// store (rewritten) CalledPartyNumberIE, eg. for PrintCallInfo
     if (q931.HasIE(Q931::CalledPartyNumberIE)) {
         unsigned planIgnored = Q931::ISDNPlan, typeIgnored = Q931::InternationalType;
-        unsigned presentationIgnored = (unsigned)-1, screeningIgnored = (unsigned)-1;
         PString calledPartyNumberIE;
         q931.GetCalledPartyNumber(calledPartyNumberIE, &planIgnored, &typeIgnored);
         m_call->SetCalledPartyNumberIE(calledPartyNumberIE);

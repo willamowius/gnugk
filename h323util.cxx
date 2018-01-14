@@ -395,7 +395,7 @@ H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr,
 H225_TransportAddress H245ToH225TransportAddress(const H245_TransportAddress & h245addr)
 {
 	PIPSocket::Address ip;
-	WORD port;
+	WORD port = 0;
     (void)GetIPAndPortFromTransportAddr(h245addr, ip, port);
     return SocketToH225TransportAddr(ip, port);
 }
