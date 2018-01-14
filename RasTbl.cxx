@@ -5757,6 +5757,9 @@ void CallTable::InternalRemove(iterator Iter)
 
 	call->RemoveAll();
 	call->RemoveSocket();
+#ifdef HAS_H46018
+	call->RemoveAllRTPKeepAlives();
+#endif
 }
 
 void CallTable::InternalRemoveFailedLeg(iterator Iter)
