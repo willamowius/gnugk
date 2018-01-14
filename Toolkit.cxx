@@ -20,7 +20,9 @@
 #include <map>
 #include <vector>
 #include <cstdlib>
+#ifndef _WIN32
 #include <unistd.h>
+#endif // _WIN32
 #include "stl_supp.h"
 #include "gktimer.h"
 #include "h323util.h"

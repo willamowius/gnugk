@@ -25,7 +25,9 @@
 #include <sys/resource.h>
 #include <sys/mman.h>
 #endif
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 #include <h225.h>
 #include "h323util.h"
 #include "Toolkit.h"
