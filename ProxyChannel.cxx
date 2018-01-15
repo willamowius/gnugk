@@ -123,7 +123,7 @@ const unsigned MAX_HANDLER_NUMBER = 200;
 enum RTPSessionTypes { Unknown = 0, Audio, Video, Presentation, Data };
 
 // RTCP functions used in UDPProxySocket and H46019Session
-void ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & fromIP, BYTE * wbuffer, WORD buflen);
+void ParseRTCP(const callptr & call, WORD sessionID, PIPSocket::Address fromIP, BYTE * wbuffer, WORD buflen);
 void BuildReceiverReport(const callptr & call, WORD sessionID, const RTP_ControlFrame & frame, PINDEX offset, bool dst);
 
 H245_H2250LogicalChannelParameters *GetLogicalChannelParameters(H245_OpenLogicalChannel & olc, bool & isReverseLC);
@@ -11670,26 +11670,24 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 
 namespace {
 
-void ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & fromIP, BYTE * wbuffer, WORD buflen)
+void ParseRTCP(const callptr & call, WORD sessionID, PIPSocket::Address fromIP, BYTE * wbuffer, WORD buflen)
 {
-	bool direct = (call->GetSRC_media_control_IP() == fromIP.AsString());   // TODO: is this still correct in presence of NAT traversal protocols ???
-	PIPSocket::Address addr = (DWORD)0;
-	WORD notused = 0;
-	call->GetCallerAudioIP(addr, notused);
 	if (buflen < 4) {
 		PTRACE(1, "RTCP\tInvalid RTCP frame");
 		return;
 	}
 
+	bool fromDST = (call->GetSRC_media_control_IP() == fromIP.AsString());   // TODO: is this still correct in presence of NAT traversal protocols ???
+
 	RTP_ControlFrame frame(2048);
 	frame.Attach(wbuffer, buflen);
 	do {
 		BYTE * payload = frame.GetPayloadPtr();
-		unsigned size = frame.GetPayloadSize();	// TODO: check size against buflen ?
+		unsigned size = frame.GetPayloadSize();
 		if ((payload == NULL) || (size == 0)
 			|| (frame.GetVersion() != 2)
 			|| ((payload + size) > (frame.GetPointer() + frame.GetSize()))) {
-			// TODO: test for a maximum size ? what is the max size ?
+			// TODO: test for a maximum size ? what is the max size ? check size against buflen ?
 			PTRACE(1, "RTCP\tInvalid RTCP frame");
 			return;
 		}
@@ -11698,7 +11696,7 @@ void ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & 
 			PTRACE(7, "RTCP\tSenderReport packet");
 			if (size >= (sizeof(RTP_ControlFrame::SenderReport) + frame.GetCount() * sizeof(RTP_ControlFrame::ReceiverReport))) {
 				const RTP_ControlFrame::SenderReport & sr = *(const RTP_ControlFrame::SenderReport *)(payload);
-				if (direct) {
+				if (fromDST) {
 					if (sessionID == RTP_Session::DefaultAudioSessionID) {
 						call->SetRTCP_DST_packet_count(sr.psent);
 						PTRACE(7, "RTCP\tSetRTCP_DST_packet_count: " << sr.psent);
@@ -11717,7 +11715,7 @@ void ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & 
 						PTRACE(7, "RTCP\tSetRTCP_SRC_video_packet_count: " << sr.psent);
 					}
 				}
-				BuildReceiverReport(call, sessionID, frame, sizeof(RTP_ControlFrame::SenderReport), direct);
+				BuildReceiverReport(call, sessionID, frame, sizeof(RTP_ControlFrame::SenderReport), fromDST);
 			} else {
 				PTRACE(5, "RTCP\tSenderReport packet truncated");
 			}
@@ -11725,14 +11723,14 @@ void ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & 
 		case RTP_ControlFrame::e_ReceiverReport:
 			PTRACE(7, "RTCP\tReceiverReport packet");
 			if (size >= (frame.GetCount()*sizeof(RTP_ControlFrame::ReceiverReport))) {
-				BuildReceiverReport(call, sessionID, frame, sizeof(DWORD), direct);
+				BuildReceiverReport(call, sessionID, frame, sizeof(DWORD), fromDST);
 			} else {
 				PTRACE(5, "RTCP\tReceiverReport packet truncated");
 			}
 			break;
 		case RTP_ControlFrame::e_SourceDescription :
 			PTRACE(7, "RTCP\tSourceDescription packet");
-			if ((!call->GetRTCP_SRC_sdes_flag() && direct) || (!call->GetRTCP_DST_sdes_flag() && !direct))
+			if ((!call->GetRTCP_SRC_sdes_flag() && fromDST) || (!call->GetRTCP_DST_sdes_flag() && !fromDST))
 				if (size >= (frame.GetCount()*sizeof(RTP_ControlFrame::SourceDescription))) {
 					const RTP_ControlFrame::SourceDescription * sdes = (const RTP_ControlFrame::SourceDescription *)payload;
 					for (PINDEX srcIdx = 0; srcIdx < (PINDEX)frame.GetCount(); srcIdx++) {
@@ -11743,25 +11741,25 @@ void ParseRTCP(const callptr & call, WORD sessionID, const PIPSocket::Address & 
 							if (item->length != 0) {
 								switch (item->type) {
 								case RTP_ControlFrame::e_CNAME:
-									call->SetRTCP_sdes(direct, "cname="+((PString)(item->data)).Left(item->length));
+									call->SetRTCP_sdes(fromDST, "cname="+((PString)(item->data)).Left(item->length));
 									break;
 								case RTP_ControlFrame::e_NAME:
-									call->SetRTCP_sdes(direct, "name="+((PString)(item->data)).Left(item->length));
+									call->SetRTCP_sdes(fromDST, "name="+((PString)(item->data)).Left(item->length));
 									break;
 								case RTP_ControlFrame::e_EMAIL:
-									call->SetRTCP_sdes(direct, "email="+((PString)(item->data)).Left(item->length));
+									call->SetRTCP_sdes(fromDST, "email="+((PString)(item->data)).Left(item->length));
 									break;
 								case RTP_ControlFrame::e_PHONE:
-									call->SetRTCP_sdes(direct, "phone="+((PString)(item->data)).Left(item->length));
+									call->SetRTCP_sdes(fromDST, "phone="+((PString)(item->data)).Left(item->length));
 									break;
 								case RTP_ControlFrame::e_LOC:
-									call->SetRTCP_sdes(direct, "loc="+((PString)(item->data)).Left(item->length));
+									call->SetRTCP_sdes(fromDST, "loc="+((PString)(item->data)).Left(item->length));
 									break;
 								case RTP_ControlFrame::e_TOOL:
-									call->SetRTCP_sdes(direct, "tool="+((PString)(item->data)).Left(item->length));
+									call->SetRTCP_sdes(fromDST, "tool="+((PString)(item->data)).Left(item->length));
 									break;
 								case RTP_ControlFrame::e_NOTE:
-									call->SetRTCP_sdes(direct, "note="+((PString)(item->data)).Left(item->length));
+									call->SetRTCP_sdes(fromDST, "note="+((PString)(item->data)).Left(item->length));
 									break;
 								default:
 									PTRACE(7, "RTCP\tSourceDescription unknown item type " << item->type);
