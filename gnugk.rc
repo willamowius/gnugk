@@ -35,7 +35,7 @@ LANGUAGE 0, SUBLANG_NEUTRAL
             VALUE "FileDescription", "GNU Gatekeeper"
             VALUE "FileVersion", "4.8"
             VALUE "InternalName", "GnuGk"
-            VALUE "LegalCopyright", "(c) 2017, GNU General Public License v2"
+            VALUE "LegalCopyright", "(c) 2018, GNU General Public License v2"
             VALUE "LegalTrademarks", " "
             VALUE "OriginalFilename", "gnugk.exe"
             VALUE "ProductName", "GnuGk"
