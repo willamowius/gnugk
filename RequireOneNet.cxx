@@ -3,7 +3,7 @@
  *
  * accounting module for GNU Gatekeeper used for authentication - make sure one side of the call is within our network
  *
- * Copyright (c) 2016, Jan Willamowius
+ * Copyright (c) 2016-2018, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -61,19 +61,7 @@ GkAcctLogger::Status RequireOneNet::Log(GkAcctLogger::AcctEvent evt, const callp
 
 	if (call) {
         PIPSocket::Address ip;
-        WORD port;
-
-/*        if (call->GetCallingParty()) {
-            GetIPFromTransportAddr(call->GetCallingParty()->GetRasAddress(), ip);
-            if (IsInNetworks(ip, m_myNetworks))
-                return Ok;
-        }
-        if (call->GetCalledParty()) {
-            GetIPFromTransportAddr(call->GetCalledParty()->GetRasAddress(), ip);
-            if (IsInNetworks(ip, m_myNetworks))
-                return Ok;
-        }
-*/
+        WORD port = 0;
         call->GetSrcSignalAddr(ip, port);
         if (IsInNetworks(ip, m_myNetworks))
             return Ok;
