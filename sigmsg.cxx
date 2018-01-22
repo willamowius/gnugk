@@ -4,7 +4,7 @@
  * Structures to hold and process signaling messages
  *
  * Copyright (c) 2005, Michal Zygmuntowicz
- * Copyright (c) 2005-2016, Jan Willamowius
+ * Copyright (c) 2005-2018, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -22,16 +22,18 @@
 
 
 SignalingMsg::SignalingMsg(
-	Q931 *q931pdu, /// this pointer is not cloned and deleted by this class destructor
-	H225_H323_UserInformation *uuie, /// decoded User-User IE
-	const PIPSocket::Address &localAddr, /// an address the message has been received on
+	Q931 * q931pdu, /// this pointer is not cloned and deleted by this class destructor
+	H225_H323_UserInformation * uuie, /// decoded User-User IE
+	const PIPSocket::Address & localAddr, /// an address the message has been received on
 	WORD localPort, /// a port number the message has been received on
-	const PIPSocket::Address &peerAddr, /// an address the message has been received from
+	const PIPSocket::Address & peerAddr, /// an address the message has been received from
 	WORD peerPort /// a port number the message has been received from
 	) : m_q931(q931pdu), m_uuie(uuie), m_localAddr(localAddr), m_localPort(localPort),
 	m_peerAddr(peerAddr), m_peerPort(peerPort), m_changed(false), m_uuieChanged(false)
 {
-	PAssertNULL(q931pdu);
+    if (q931pdu == NULL) {
+        PTRACE(1, "Q.931\tError: Q.931 PDU is NULL");
+    }
 }
 
 SignalingMsg::~SignalingMsg()
@@ -42,10 +44,8 @@ SignalingMsg::~SignalingMsg()
 
 SignalingMsg* SignalingMsg::Clone()
 {
-	return new SignalingMsg(new Q931(*m_q931),
-		(H225_H323_UserInformation*)(m_uuie->Clone()),
-		m_localAddr, m_localPort, m_peerAddr, m_peerPort
-		);
+	return new SignalingMsg(new Q931(*m_q931), (H225_H323_UserInformation*)(m_uuie->Clone()),
+		m_localAddr, m_localPort, m_peerAddr, m_peerPort);
 }
 
 unsigned SignalingMsg::GetTag() const
@@ -63,35 +63,24 @@ unsigned SignalingMsg::GetCallReference() const
 	return m_q931->GetCallReference();
 }
 
-
-void SignalingMsg::GetLocalAddr(
-	PIPSocket::Address & addr,
-	WORD & port
-	) const
+void SignalingMsg::GetLocalAddr(PIPSocket::Address & addr, WORD & port) const
 {
 	addr = m_localAddr;
 	port = m_localPort;
 }
 
-void SignalingMsg::GetLocalAddr(
-	PIPSocket::Address & addr
-	) const
+void SignalingMsg::GetLocalAddr(PIPSocket::Address & addr) const
 {
 	addr = m_localAddr;
 }
 
-void SignalingMsg::GetPeerAddr(
-	PIPSocket::Address & addr,
-	WORD & port
-	) const
+void SignalingMsg::GetPeerAddr(PIPSocket::Address & addr, WORD & port) const
 {
 	addr = m_peerAddr;
 	port = m_peerPort;
 }
 
-void SignalingMsg::GetPeerAddr(
-	PIPSocket::Address & addr
-	) const
+void SignalingMsg::GetPeerAddr(PIPSocket::Address & addr) const
 {
 	addr = m_peerAddr;
 }
@@ -113,11 +102,11 @@ bool SignalingMsg::Decode(const PBYTEArray & buffer)
 }
 
 SignalingMsg* SignalingMsg::Create(
-	Q931 *q931pdu, /// this pointer is not cloned and deleted by this class destructor
-	H225_H323_UserInformation *uuie, /// decoded User-User IE
-	const PIPSocket::Address &localAddr, /// an address the message has been received on
+	Q931 * q931pdu, /// this pointer is not cloned and deleted by this class destructor
+	H225_H323_UserInformation * uuie, /// decoded User-User IE
+	const PIPSocket::Address & localAddr, /// an address the message has been received on
 	WORD localPort, /// a port number the message has been received on
-	const PIPSocket::Address &peerAddr, /// an address the message has been received from
+	const PIPSocket::Address & peerAddr, /// an address the message has been received from
 	WORD peerPort /// a port number the message has been received from
 	)
 {

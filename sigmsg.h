@@ -4,7 +4,7 @@
  * Structures to hold and process signaling messages
  *
  * Copyright (c) 2005, Michal Zygmuntowicz
- * Copyright (c) 2005-2015, Jan Willamowius
+ * Copyright (c) 2005-2018, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -16,9 +16,9 @@
 #ifndef SIGMSG_H
 #define SIGMSG_H "@(#) $Id$"
 
-
 #include <ptlib/sockets.h>
 #include "q931.h"
+
 class H225_H323_UserInformation;
 class H225_Setup_UUIE;
 class H225_SetupAck_UUIE;
@@ -40,7 +40,7 @@ public:
 
 	/// @return	a cloned object of this or a derived class
 	virtual SignalingMsg* Clone();
-	
+
 	/// @return	signaling message type (#Q931::MsgTypes enum#)
 	unsigned GetTag() const;
 
@@ -51,28 +51,18 @@ public:
 	unsigned GetCallReference() const;
 
 	/// @return	a reference to the Q.931 message stored
-	Q931& GetQ931() const { return *m_q931; }
+	Q931 & GetQ931() const { return *m_q931; }
 
 	/// @return a pointer to the User-User IE, NULL if not present
 	H225_H323_UserInformation* GetUUIE() { return m_uuie; }
 
 	/// Get an address the message has been received on
-	void GetLocalAddr(
-		PIPSocket::Address &addr,
-		WORD & port
-		) const;
-	void GetLocalAddr(
-		PIPSocket::Address &addr
-		) const;
+	void GetLocalAddr(PIPSocket::Address & addr, WORD & port) const;
+	void GetLocalAddr(PIPSocket::Address & addr) const;
 
 	/// Get an address the message has been received from
-	void GetPeerAddr(
-		PIPSocket::Address &addr,
-		WORD & port
-		) const;
-	void GetPeerAddr(
-		PIPSocket::Address &addr
-		) const;
+	void GetPeerAddr(PIPSocket::Address & addr, WORD & port) const;
+	void GetPeerAddr(PIPSocket::Address & addr) const;
 
 	/// Set a flag to indicate that the Q.931 message has been modified
 	void SetChanged() { m_changed = true; }
@@ -82,11 +72,11 @@ public:
 	*/
 	void SetUUIEChanged() { m_changed = m_uuieChanged = true; }
 
-	/// @return	true if the Q.931 message has been modified	
+	/// @return	true if the Q.931 message has been modified
 	bool IsChanged() const { return m_changed; }
 
 	/** Encode the Q.931 message back into a binary form.
-	
+
 	    @return
 	    True if the message has been encoded successfully.
 	*/
@@ -96,7 +86,7 @@ public:
 	bool Decode(
 		const PBYTEArray & buffer /// buffer holding the encoded message
 		);
-			
+
 	/// factory constructor for signaling messages
 	static SignalingMsg* Create(
 		Q931 * q931pdu, /// this pointer is not cloned and deleted by this class destructor
@@ -116,7 +106,7 @@ protected:
 		const PIPSocket::Address & peerAddr, /// an address the message has been received from
 		WORD peerPort /// a port number the message has been received from
 		);
-		
+
 private:
 	SignalingMsg();
 	SignalingMsg(const SignalingMsg &);
@@ -142,7 +132,7 @@ public:
 	H225SignalingMsg(
 		Q931 * q931pdu, /// this pointer is not cloned and deleted by this class destructor
 		H225_H323_UserInformation * uuie, /// decoded User-User IE
-		UUIE& /*uuieBody*/, /// decoded UUIE body
+		UUIE & /*uuieBody*/, /// decoded UUIE body
 		const PIPSocket::Address & localAddr, /// an address the message has been received on
 		WORD localPort, /// a port number the message has been received on
 		const PIPSocket::Address & peerAddr, /// an address the message has been received from
@@ -150,22 +140,21 @@ public:
 		) : SignalingMsg(q931pdu, uuie, localAddr, localPort, peerAddr, peerPort),
 			m_uuieBody(uuie->m_h323_uu_pdu.m_h323_message_body) { }
 
-	UUIE& GetUUIEBody() const { return m_uuieBody; }
+	UUIE & GetUUIEBody() const { return m_uuieBody; }
 
 	virtual SignalingMsg * Clone()
 	{
 		H225_H323_UserInformation *uuieClone = (H225_H323_UserInformation*)(m_uuie->Clone());
 		return new H225SignalingMsg<UUIE>(new Q931(*m_q931), uuieClone,
 			(UUIE&)(uuieClone->m_h323_uu_pdu.m_h323_message_body),
-			m_localAddr, m_localPort, m_peerAddr, m_peerPort
-			);
+			m_localAddr, m_localPort, m_peerAddr, m_peerPort);
 	}
-	
+
 private:
 	H225SignalingMsg();
 	H225SignalingMsg(const H225SignalingMsg &);
 	H225SignalingMsg& operator=(const H225SignalingMsg &);
-	
+
 protected:
 	UUIE & m_uuieBody; /// H.225.0 UUIE structure associated with the message
 };
@@ -183,4 +172,3 @@ typedef H225SignalingMsg<H225_Status_UUIE> StatusMsg;
 //typedef H225SignalingMsg<H225_StatusInquiry_UUIE> StatusInquiryMsg;
 
 #endif // SIGMSG_H
-
