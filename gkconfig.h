@@ -5,7 +5,7 @@
  * than one config source (file) and access them through a single config instance.
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
- * Copyright (c) 2006-2010, Jan Willamowius
+ * Copyright (c) 2006-2018, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -14,7 +14,7 @@
  *
  */
 
-#ifndef GKCONFIG_H 
+#ifndef GKCONFIG_H
 #define GKCONFIG_H "@(#) $Id$"
 
 #include "config.h"
@@ -26,13 +26,13 @@ class GatekeeperConfig : public PConfig
 public:
 	/** Create a new configuration object. */
 	GatekeeperConfig(
-		const PFilePath& filename, /// Explicit name of the configuration file.
-		const PString& section, /// Default section to search for variables.
-		PConfig* chainedConfig = NULL /// a next config in the chain
+		const PFilePath & filename, /// Explicit name of the configuration file.
+		const PString & section, /// Default section to search for variables.
+		PConfig * chainedConfig = NULL /// a next config in the chain
 		);
 
 	virtual ~GatekeeperConfig();
-	
+
 	/**@name Section functions */
 	//@{
 	/** Get all of the section names currently specified in the file. A section
@@ -55,7 +55,7 @@ public:
 #else
 	virtual PStringList GetKeys(
 #endif
-		const PString& theSection /// Section to use instead of the default.
+		const PString & theSection /// Section to use instead of the default.
 		) const;
 
 	/** Get all of the keys in the section and their values.
@@ -63,7 +63,7 @@ public:
 	    @return Dictionary of all key names and their values.
 	*/
 	virtual PStringToString GetAllKeyValues(
-		const PString& section /// Section to use instead of the default.
+		const PString & section /// Section to use instead of the default.
 		) const;
 
     /** Delete all variables in the specified section.
@@ -72,7 +72,7 @@ public:
 	    appear in the GetSections() function.
 	*/
 	virtual void DeleteSection(
-		const PString& theSection /// Name of section to delete.
+		const PString & theSection /// Name of section to delete.
 		);
 
 	/** Delete the particular variable in the specified section.
@@ -83,8 +83,8 @@ public:
 	    string.
 	*/
 	virtual void DeleteKey(
-		const PString& theSection, /// Section to use instead of the default.
-		const PString& theKey /// Key of the variable to delete.
+		const PString & theSection, /// Section to use instead of the default.
+		const PString & theKey /// Key of the variable to delete.
     );
 
 	/** Determine if the particular variable in the section is actually present.
@@ -96,15 +96,15 @@ public:
 	    value "DefVal" into the PConfig.
 	*/
 	virtual PBoolean HasKey(
-		const PString& theSection, /// Section to use instead of the default.
-		const PString& theKey /// Key of the variable.
+		const PString & theSection, /// Section to use instead of the default.
+		const PString & theKey /// Key of the variable.
 		) const;
 	//@}
 
 	/**@name Get/Set variables */
 	//@{
 	/** Get a string variable determined by the key in the section.
-       
+
 	    If the key is not present the value returned is the that provided by
 	    the #dlft# parameter. Note that this is different from the
 	    key being present but having no value, in which case an empty string is
@@ -113,9 +113,9 @@ public:
 	    @return string value of the variable.
 	*/
 	virtual PString GetString(
-		const PString& theSection,  /// Section to use instead of the default.
-		const PString& theKey,      /// The key name for the variable.
-		const PString& dflt      /// Default value for the variable.
+		const PString & theSection,  /// Section to use instead of the default.
+		const PString & theKey,      /// The key name for the variable.
+		const PString & dflt      /// Default value for the variable.
 		) const;
 
 	/** Get a boolean variable determined by the key in the section.
@@ -134,8 +134,8 @@ public:
 	    @return boolean value of the variable.
 	*/
 	virtual PBoolean GetBoolean(
-		const PString& section, /// Section to use instead of the default.
-		const PString& key, /// The key name for the variable.
+		const PString & section, /// Section to use instead of the default.
+		const PString & key, /// The key name for the variable.
 		PBoolean dflt = FALSE /// Default value for the variable.
 		) const;
 
@@ -149,60 +149,11 @@ public:
 	    @return integer value of the variable.
 	*/
 	virtual long GetInteger(
-		const PString& section, /// Section to use instead of the default.
-		const PString& key, /// The key name for the variable.
+		const PString & section, /// Section to use instead of the default.
+		const PString & key, /// The key name for the variable.
 		long dflt = 0 /// Default value for the variable.
 		) const;
 
-	/** Get a 64 bit integer variable determined by the key in the section.
-
-	    If the key is not present the value returned is the that provided by
-	    the #dlft# parameter. Note that this is different from the
-	    key being present but having no value, in which case zero is returned.
-
-	    @return integer value of the variable.
-	*/
-	virtual PInt64 GetInt64(
-		const PString& section, /// Section to use instead of the default.
-		const PString& key, /// The key name for the variable.
-		PInt64 dflt = 0 /// Default value for the variable.
-		) const;
-
-	/** Get a floating point variable determined by the key in the section. If
-	    the section name is not specified then the default section is used.
-
-	    If the key is not present the value returned is the that provided by
-	    the #dlft# parameter. Note that this is different from the
-	    key being present but having no value, in which case zero is returned.
-
-	    @return floating point value of the variable.
-	*/
-	virtual double GetReal(
-		const PString &section, /// Section to use instead of the default.
-		const PString &key, /// The key name for the variable.
-		double dflt = 0 /// Default value for the variable.
-		) const;
-
-	/** Get a #PTime# variable determined by the key in the section. If
-	    the section name is not specified then the default section is used.
-
-	    If the key is not present the value returned is the that provided by
-	    the #dlft# parameter. Note that this is different from the
-	    key being present but having no value, in which case zero is returned.
-
-	    @return time/date value of the variable.
-	*/
-	virtual PTime GetTime(
-		const PString& section, /// Section to use instead of the default.
-		const PString& key /// The key name for the variable.
-		) const;
-	/** Get a #PTime# variable determined by the key in the section. */
-	virtual PTime GetTime(
-		const PString& section, /// Section to use instead of the default.
-		const PString& key, /// The key name for the variable.
-		const PTime& dflt /// Default value for the variable.
-		) const;
-		
 private:
 	/// a next config in the chain (or NULL if this is the last one)
 	PConfig* m_chainedConfig;

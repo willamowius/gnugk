@@ -1,17 +1,25 @@
 /*
  * gkconfig.cxx
  *
- * Copyright (c) 2006-2010, Jan Willamowius
+ * Custom PConfig implementation that allows chaining together more
+ * than one config source (file) and access them through a single config instance.
  *
+ * Copyright (c) 2006-2018, Jan Willamowius
+ *
+ * This work is published under the GNU Public License version 2 (GPLv2)
+ * see file COPYING for details.
+ * We also explicitly grant the right to link this code
+ * with the OpenH323/H323Plus and OpenSSL library.
+*
  */
 
 #include <ptlib.h>
 #include "gkconfig.h"
 
 GatekeeperConfig::GatekeeperConfig(
-	const PFilePath& filename, /// Explicit name of the configuration file.
-	const PString& section, /// Default section to search for variables.
-	PConfig* chainedConfig /// a next config in the chain
+	const PFilePath & filename, /// Explicit name of the configuration file.
+	const PString & section, /// Default section to search for variables.
+	PConfig * chainedConfig /// a next config in the chain
 	) : PConfig(filename, section), m_chainedConfig(chainedConfig)
 {
 }
@@ -81,7 +89,7 @@ PBoolean GatekeeperConfig::HasKey(const PString & theSection, const PString & th
 		|| (m_chainedConfig != NULL && m_chainedConfig->HasKey(theSection, theKey));
 }
 
-PStringToString GatekeeperConfig::GetAllKeyValues(const PString& section) const
+PStringToString GatekeeperConfig::GetAllKeyValues(const PString & section) const
 {
 	PStringToString dict = PConfig::GetAllKeyValues(section);
 
@@ -119,36 +127,4 @@ long GatekeeperConfig::GetInteger(const PString & section, const PString & key, 
 		return PConfig::GetInteger(section, key, dflt);
 	else
 		return m_chainedConfig->GetInteger(section, key, dflt);
-}
-
-PInt64 GatekeeperConfig::GetInt64(const PString & section, const PString & key, PInt64 dflt) const
-{
-	if (m_chainedConfig == NULL || PConfig::HasKey(section, key))
-		return PConfig::GetInt64(section, key, dflt);
-	else
-		return m_chainedConfig->GetInt64(section, key, dflt);
-}
-
-double GatekeeperConfig::GetReal(const PString & section, const PString & key, double dflt) const
-{
-	if (m_chainedConfig == NULL || PConfig::HasKey(section, key))
-		return PConfig::GetReal(section, key, dflt);
-	else
-		return m_chainedConfig->GetReal(section, key, dflt);
-}
-
-PTime GatekeeperConfig::GetTime(const PString & section, const PString & key) const
-{
-	if (m_chainedConfig == NULL || PConfig::HasKey(section, key))
-		return PConfig::GetTime(section, key);
-	else
-		return m_chainedConfig->GetTime(section, key);
-}
-
-PTime GatekeeperConfig::GetTime(const PString & section, const PString & key, const PTime & dflt) const
-{
-	if (m_chainedConfig == NULL || PConfig::HasKey(section, key))
-		return PConfig::GetTime(section, key, dflt);
-	else
-		return m_chainedConfig->GetTime(section, key, dflt);
 }
