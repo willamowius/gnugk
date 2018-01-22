@@ -1,10 +1,10 @@
 /*
  * radacct.h
  *
- * RADIUS protocol accounting module for GNU Gatekeeper. 
+ * RADIUS protocol accounting module for GNU Gatekeeper.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2005-2011, Jan Willamowius
+ * Copyright (c) 2005-2018, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -13,10 +13,10 @@
  *
  */
 
-#if HAS_RADIUS
-
 #ifndef __RADACCT_H
 #define __RADACCT_H "@(#) $Id$"
+
+#if HAS_RADIUS
 
 #include "RasTbl.h"
 #include "gkacct.h"
@@ -37,33 +37,30 @@ public:
 		RadAcctEvents = AcctStart | AcctStop | AcctUpdate | AcctOn | AcctOff,
 		CiscoVendorId = 9
 	};
-	
+
 	/** Create GkAcctLogger for RADIUS protocol
 	*/
-	RadAcct( 
+	RadAcct(
 		/// name from Gatekeeper::Acct section
-		const char* moduleName,
+		const char * moduleName,
 		/// config section name to be used with an instance of this module,
 		/// pass NULL to use a default section (named "moduleName")
-		const char* cfgSecName = NULL
+		const char * cfgSecName = NULL
 		);
-		
+
 	/// Destroy the accounting logger
 	virtual ~RadAcct();
 
 	/// overriden from GkAcctLogger
-	virtual Status Log(
-		AcctEvent evt,
-		const callptr& call
-		);
-		
+	virtual Status Log(AcctEvent evt, const callptr & call);
+
 private:
 	RadAcct();
 	/* No copy constructor allowed */
-	RadAcct(const RadAcct&);
+	RadAcct(const RadAcct &);
 	/* No operator= allowed */
-	RadAcct& operator=(const RadAcct&);
-	
+	RadAcct& operator=(const RadAcct &);
+
 private:
 	/// if true Cisco VSAs are appended to the RADIUS packets
 	bool m_appendCiscoAttributes;
@@ -76,7 +73,7 @@ private:
 	/// timestamp formatting string
 	PString m_timestampFormat;
 	/// RADIUS protocol client class associated with this authenticator
-	RadiusClient* m_radiusClient;
+	RadiusClient * m_radiusClient;
 	/// false to use rewritten number, true to use the original one for Called-Station-Id
 	bool m_useDialedNumber;
 	/// radius attributes that do not change - x4 performance boost
@@ -86,6 +83,6 @@ private:
 	RadiusAttr m_attrH323CallType;
 };
 
-#endif /* __RADACCT_H */
-
 #endif /* HAS_RADIUS */
+
+#endif /* __RADACCT_H */

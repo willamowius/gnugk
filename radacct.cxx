@@ -4,7 +4,7 @@
  * RADIUS protocol accounting logger module for GNU Gatekeeper.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2005-2012, Jan Willamowius
+ * Copyright (c) 2005-2018, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -28,18 +28,13 @@
 using std::vector;
 
 
-RadAcct::RadAcct(
-	const char* moduleName,
-	const char* cfgSecName
-	)
+RadAcct::RadAcct(const char* moduleName, const char* cfgSecName)
 	:
 	GkAcctLogger(moduleName, cfgSecName),
 	m_nasIdentifier(Toolkit::Instance()->GKName()),
 	m_radiusClient(NULL),
-	m_attrH323CallOrigin(RadiusAttr::CiscoVSA_h323_call_origin, false,
-		PString("proxy")),
-	m_attrH323CallType(RadiusAttr::CiscoVSA_h323_call_type, false,
-		PString("VoIP"))
+	m_attrH323CallOrigin(RadiusAttr::CiscoVSA_h323_call_origin, false, PString("proxy")),
+	m_attrH323CallType(RadiusAttr::CiscoVSA_h323_call_type, false, PString("VoIP"))
 {
 	// it is very important to set what type of accounting events
 	// are supported for each accounting module, otherwise Log method
@@ -47,7 +42,7 @@ RadAcct::RadAcct(
 	SetSupportedEvents(RadAcctEvents);
 
 	PConfig* cfg = GetConfig();
-	const PString& cfgSec = GetConfigSectionName();
+	const PString & cfgSec = GetConfigSectionName();
 
 	m_radiusClient = new RadiusClient(*cfg, cfgSec);
 
@@ -59,8 +54,7 @@ RadAcct::RadAcct(
 		if (!interfaces.empty())
 			m_nasIpAddress = interfaces.front();
 		else
-			PTRACE(1, "RADACCT\t" << GetName() << " cannot determine "
-				" NAS IP address");
+			PTRACE(1, "RADACCT\t" << GetName() << " cannot determine NAS IP address");
 	}
 
 	m_appendCiscoAttributes = Toolkit::AsBool(cfg->GetString(cfgSec, "AppendCiscoAttributes", "1"));
@@ -76,10 +70,7 @@ RadAcct::~RadAcct()
 	delete m_radiusClient;
 }
 
-GkAcctLogger::Status RadAcct::Log(
-	GkAcctLogger::AcctEvent evt,
-	const callptr& call
-	)
+GkAcctLogger::Status RadAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & call)
 {
 	// a workaround to prevent processing end on "sufficient" module
 	// if it is not interested in this event type
@@ -92,7 +83,7 @@ GkAcctLogger::Status RadAcct::Log(
 	}
 
 	if ((evt & (AcctStart | AcctStop | AcctUpdate)) && (!call)) {
-		PTRACE(1, "RADACCT\t"<<GetName()<<" - missing call info for event "<<evt);
+		PTRACE(1, "RADACCT\t" << GetName() << " - missing call info for event " << evt);
 		return Fail;
 	}
 
@@ -133,11 +124,9 @@ GkAcctLogger::Status RadAcct::Log(
 
 		const PString username = GetUsername(call);
 		if (username.IsEmpty() && m_fixedUsername.IsEmpty())
-			PTRACE(3, "RADACCT\t" << GetName() << " could not determine User-Name"
-				<< " for the call no. " << call->GetCallNumber());
+			PTRACE(3, "RADACCT\t" << GetName() << " could not determine User-Name" << " for the call no. " << call->GetCallNumber());
 		else
-			pdu->AppendAttr(RadiusAttr::UserName,
-				m_fixedUsername.IsEmpty() ? username : m_fixedUsername);
+			pdu->AppendAttr(RadiusAttr::UserName, m_fixedUsername.IsEmpty() ? username : m_fixedUsername);
 
 		if (callerIP.IsValid())
 			pdu->AppendAttr(RadiusAttr::FramedIpAddress, callerIP);
@@ -149,20 +138,16 @@ GkAcctLogger::Status RadAcct::Log(
 		if (!stationId)
 			pdu->AppendAttr(RadiusAttr::CallingStationId, stationId);
 		else
-			PTRACE(3, "RADACCT\t" << GetName() << " could not determine"
-				<< " Calling-Station-Id for the call " << call->GetCallNumber());
+			PTRACE(3, "RADACCT\t" << GetName() << " could not determine" << " Calling-Station-Id for the call " << call->GetCallNumber());
 
 		stationId = m_useDialedNumber ? GetDialedNumber(call) : GetCalledStationId(call);
 		if (!stationId)
 			pdu->AppendAttr(RadiusAttr::CalledStationId, stationId);
 		else
-			PTRACE(3, "RADACCT\t" << GetName() << " could not determine"
-				<< " Called-Station-Id for the call no. " << call->GetCallNumber());
+			PTRACE(3, "RADACCT\t" << GetName() << " could not determine Called-Station-Id for the call no. " << call->GetCallNumber());
 
 		if (m_appendCiscoAttributes) {
-			pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_conf_id,
-				GetGUIDString(call->GetConferenceIdentifier())
-				);
+			pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_conf_id, GetGUIDString(call->GetConferenceIdentifier()));
 
 			pdu->AppendAttr(m_attrH323GwId);
 			pdu->AppendAttr(m_attrH323CallOrigin);
@@ -172,25 +157,20 @@ GkAcctLogger::Status RadAcct::Log(
 
 			time_t tm = call->GetSetupTime();
 			if (tm != 0)
-				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_setup_time,
-					toolkit->AsString(PTime(tm), m_timestampFormat));
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_setup_time, toolkit->AsString(PTime(tm), m_timestampFormat));
 
 			if (evt & (AcctStop | AcctUpdate)) {
 				tm = call->GetConnectTime();
 				if (tm != 0)
-					pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_connect_time,
-						toolkit->AsString(PTime(tm), m_timestampFormat));
+					pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_connect_time, toolkit->AsString(PTime(tm), m_timestampFormat));
 			}
 
 			if (evt & AcctStop) {
 				tm = call->GetDisconnectTime();
 				if (tm != 0)
-					pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_disconnect_time,
-						toolkit->AsString(PTime(tm), m_timestampFormat));
+					pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_disconnect_time, toolkit->AsString(PTime(tm), m_timestampFormat));
 
-				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_disconnect_cause,
-					PString(PString::Unsigned, (long)(call->GetDisconnectCause()), 16)
-					);
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_disconnect_cause, PString(PString::Unsigned, (long)(call->GetDisconnectCause()), 16));
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_release_source, call->GetReleaseSource());
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_preferred_codec, call->GetCallerAudioCodec());
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_rewritten_e164_num, call->GetCalledStationId());
@@ -204,9 +184,7 @@ GkAcctLogger::Status RadAcct::Log(
 					PString("h323ringtime=")+PString(PString::Unsigned,(long)call->GetRingTime()), true);
 
 				// Number of Route Attempts
-				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
-					PString("h323routeattempts=")+PString(PString::Unsigned,call->GetNoCallAttempts()),
-					true);
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair, PString("h323routeattempts=")+PString(PString::Unsigned,call->GetNoCallAttempts()), true);
 
 				// Proxy Mode
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
@@ -218,16 +196,12 @@ GkAcctLogger::Status RadAcct::Log(
 				    PString("RTP_source_IP=")+call->GetSRC_media_IP(),  // TODO: switch to GetCallerAudioIP() ?
 					true);
 
-				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
-				    PString("RTP_destination_IP=")+call->GetDST_media_IP(),
-					true);
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair, PString("RTP_destination_IP=")+call->GetDST_media_IP(), true);
 
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
-				    PString("RTCP_source_packet_count=")+PString(PString::Unsigned, call->GetRTCP_SRC_packet_count()),
-					true);
+				    PString("RTCP_source_packet_count=")+PString(PString::Unsigned, call->GetRTCP_SRC_packet_count()), true);
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
-				    PString("RTCP_source_packet_lost=")+PString(PString::Unsigned, call->GetRTCP_SRC_packet_lost()),
-				    true);
+				    PString("RTCP_source_packet_lost=")+PString(PString::Unsigned, call->GetRTCP_SRC_packet_lost()), true);
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
 				    PString("RTCP_source_jitter=")+PString(PString::Unsigned, call->GetRTCP_SRC_jitter_min())+PString("|")+PString(PString::Unsigned,call->GetRTCP_SRC_jitter_avg())+PString("|")+PString(PString::Unsigned, call->GetRTCP_SRC_jitter_max()),
 				    true);
@@ -235,40 +209,31 @@ GkAcctLogger::Status RadAcct::Log(
 				PINDEX i_sdes = 0;
 				PStringList sdes = call->GetRTCP_SRC_sdes();
 				while (i_sdes < sdes.GetSize()) {
-				    pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
-						PString("RTCP_source_sdes_")+sdes[i_sdes],
-						true);
-				    i_sdes ++;
+				    pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair, PString("RTCP_source_sdes_")+sdes[i_sdes], true);
+				    i_sdes++;
 				}
 				// RTCP DESTINATION REPORT
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
-				    PString("RTCP_destination_packet_count=")+PString(PString::Unsigned, call->GetRTCP_DST_packet_count()),
-				    true);
+				    PString("RTCP_destination_packet_count=")+PString(PString::Unsigned, call->GetRTCP_DST_packet_count()), true);
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
-				    PString("RTCP_destination_packet_lost=")+PString(PString::Unsigned, call->GetRTCP_DST_packet_lost()),
-				    true);
+				    PString("RTCP_destination_packet_lost=")+PString(PString::Unsigned, call->GetRTCP_DST_packet_lost()), true);
 				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
 				    PString("RTCP_destination_jitter=")+PString(PString::Unsigned,call->GetRTCP_DST_jitter_min())+PString("|")+PString(PString::Unsigned, call->GetRTCP_DST_jitter_avg())+PString("|")+PString(PString::Unsigned, call->GetRTCP_DST_jitter_max()),
 				    true);
 				i_sdes = 0;
 				sdes = call->GetRTCP_DST_sdes();
 				while (i_sdes < sdes.GetSize()) {
-				    pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
-						PString("RTCP_destination_sdes_")+sdes[i_sdes],
-						true);
-				    i_sdes ++;
+				    pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair, PString("RTCP_destination_sdes_")+sdes[i_sdes], true);
+				    i_sdes++;
 				}
 			}
 
 			WORD port;
 			if (call->GetDestSignalAddr(addr, port))
-				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_remote_address,
-					addr.AsString());
+				pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_h323_remote_address, addr.AsString());
 
 			pdu->AppendCiscoAttr(RadiusAttr::CiscoVSA_AV_Pair,
-				PString("h323-ivr-out=h323-call-id:") + GetGUIDString(call->GetCallIdentifier().m_guid),
-				true);
-
+				PString("h323-ivr-out=h323-call-id:") + GetGUIDString(call->GetCallIdentifier().m_guid), true);
 		}
 
 		pdu->AppendAttr(RadiusAttr::AcctDelayTime, 0);
@@ -297,8 +262,7 @@ GkAcctLogger::Status RadAcct::Log(
 		// check if Access-Request has been accepted
 		result = (response->GetCode() == RadiusPDU::AccountingResponse);
 		if (!result) {
-			PTRACE(4, "RADACCT\t" << GetName() << " - received response is not "
-				" an AccountingResponse, event " << evt << ", call no. "
+			PTRACE(4, "RADACCT\t" << GetName() << " - received response is not an AccountingResponse, event " << evt << ", call no. "
 				<< (call ? call->GetCallNumber() : 0));
 		}
 		delete response;
