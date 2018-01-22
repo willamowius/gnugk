@@ -10147,16 +10147,24 @@ void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddre
 
 	// port detection by first media packet for channels from client to server that won't have a keepAlive
 	if (isFromA) {
-		if (isRTCP && (m_addrA_RTCP != fromAddress))
+		if (isRTCP && (m_addrA_RTCP != fromAddress)) {
 			m_addrA_RTCP = fromAddress;
-		if (!isRTCP && (m_addrA != fromAddress))
+            call->SetSessionMultiplexDestination(m_session, m_openedBy, isRTCP, fromAddress, SideA);
+        }
+		if (!isRTCP && (m_addrA != fromAddress)) {
 			m_addrA = fromAddress;
+            call->SetSessionMultiplexDestination(m_session, m_openedBy, isRTCP, fromAddress, SideA);
+        }
 	}
 	if (isFromB) {
-		if (isRTCP && (m_addrB_RTCP != fromAddress))
+		if (isRTCP && (m_addrB_RTCP != fromAddress)) {
 			m_addrB_RTCP = fromAddress;
-		if (!isRTCP && (m_addrB != fromAddress))
+            call->SetSessionMultiplexDestination(m_session, m_openedBy, isRTCP, fromAddress, SideB);
+        }
+		if (!isRTCP && (m_addrB != fromAddress)) {
 			m_addrB = fromAddress;
+            call->SetSessionMultiplexDestination(m_session, m_openedBy, isRTCP, fromAddress, SideB);
+        }
 	}
 
 #ifdef HAS_H235_MEDIA
