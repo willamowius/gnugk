@@ -1,9 +1,9 @@
 /*
  * syslogacct.h
  *
- * accounting module for GNU Gatekeeper that send it's output to the syslog. 
+ * accounting module for GNU Gatekeeper that send it's output to the syslog.
  *
- * Copyright (c) 2006-2010, Jan Willamowius
+ * Copyright (c) 2006-2018, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -14,6 +14,7 @@
 
 #ifndef __SYSLOGACCT_H
 #define __SYSLOGACCT_H "@(#) $Id$"
+
 #ifndef _WIN32
 
 #include "gkacct.h"
@@ -32,32 +33,29 @@ public:
 		SyslogAcctEvents = AcctStart | AcctStop | AcctUpdate | AcctConnect
 	};
 
-	SyslogAcct( 
+	SyslogAcct(
 		/// name from Gatekeeper::Acct section
 		const char* moduleName,
 		/// config section name to be used with an instance of this module,
 		/// pass NULL to use a default section (named "moduleName")
 		const char* cfgSecName = NULL
 		);
-		
+
 	/// Destroy the accounting logger
 	virtual ~SyslogAcct();
 
 	/// overriden from GkAcctLogger
-	virtual Status Log(
-		AcctEvent evt,
-		const callptr& call
-		);
+	virtual Status Log(AcctEvent evt, const callptr & call);
 
 	/// overriden from GkAcctLogger
-	virtual PString EscapeAcctParam(const PString& param) const;
-		
+	virtual PString EscapeAcctParam(const PString & param) const;
+
 private:
 	SyslogAcct();
 	/* No copy constructor allowed */
-	SyslogAcct(const SyslogAcct&);
+	SyslogAcct(const SyslogAcct &);
 	/* No operator= allowed */
-	SyslogAcct& operator=(const SyslogAcct&);
+	SyslogAcct& operator=(const SyslogAcct &);
 
 private:
 	/// parametrized string for the call start event
@@ -73,4 +71,5 @@ private:
 };
 
 #endif // not _WIN32
+
 #endif /* __SYSLOGACCT_H */

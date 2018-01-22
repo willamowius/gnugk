@@ -3,7 +3,7 @@
  *
  * accounting module for GNU Gatekeeper for the syslog.
  *
- * Copyright (c) 2006-2016, Jan Willamowius
+ * Copyright (c) 2006-2018, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -11,7 +11,7 @@
  * with the OpenH323/H323Plus and OpenSSL library.
  *
  */
- 
+
 #ifndef _WIN32
 
 #include "config.h"
@@ -26,20 +26,16 @@ const char* const SyslogSec = "SyslogAcct";
 static int syslog_level = LOG_INFO;
 static int syslog_facility = LOG_USER;
 
-SyslogAcct::SyslogAcct( 
-	const char* moduleName,
-	const char* cfgSecName
-	)
-	:
-	GkAcctLogger(moduleName, cfgSecName)
+SyslogAcct::SyslogAcct(const char* moduleName, const char* cfgSecName)
+	: GkAcctLogger(moduleName, cfgSecName)
 {
 	// it is very important to set what type of accounting events
 	// are supported for each accounting module, otherwise the Log method
 	// will no get called
 	SetSupportedEvents(SyslogAcctEvents);
 
-	PConfig* cfg = GetConfig();
-	const PString& cfgSec = GetConfigSectionName();
+	PConfig * cfg = GetConfig();
+	const PString & cfgSec = GetConfigSectionName();
 	m_timestampFormat = cfg->GetString(cfgSec, "TimestampFormat", "");
 	m_startEvent = cfg->GetString(cfgSec, "StartEvent", "CALL|Start|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}");
 	m_stopEvent = cfg->GetString(cfgSec, "StopEvent", "CALL|Stop|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}");
@@ -51,16 +47,13 @@ SyslogAcct::~SyslogAcct()
 {
 }
 
-GkAcctLogger::Status SyslogAcct::Log(
-	GkAcctLogger::AcctEvent evt, 
-	const callptr& call
-	)
+GkAcctLogger::Status SyslogAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & call)
 {
 	// a workaround to prevent processing end on "sufficient" module
 	// if it is not interested in this event type
 	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
 		return Next;
-		
+
 	if (!call) {
 		PTRACE(1, "SYSLOGACCT\t" << GetName() << " - missing call info for event " << evt);
 		return Fail;
@@ -139,7 +132,7 @@ GkAcctLogger::Status SyslogAcct::Log(
 	return Ok;
 }
 
-PString SyslogAcct::EscapeAcctParam(const PString& param) const
+PString SyslogAcct::EscapeAcctParam(const PString & param) const
 {
 	return "\"" + param + "\"";	// test: quote
 }
