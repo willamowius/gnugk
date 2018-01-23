@@ -7265,6 +7265,8 @@ void CallSignalSocket::SetSessionMultiplexDestination(WORD session, bool isRTCP,
 		} else {
 			PTRACE(1, "Error: No RTP channel found in SetSessionMultiplexDestination() session=" << session << " to=" << AsString(toAddress));
 		}
+	} else {
+        PTRACE(1, "Error: No H.245 handler channel found in SetSessionMultiplexDestination() session=" << session << " to=" << AsString(toAddress));
 	}
 }
 #endif
@@ -12194,11 +12196,19 @@ void RTPLogicalChannel::SetUsesH46019()
 
 void RTPLogicalChannel::SetLCMultiplexDestination(bool isRTCP, const IPAndPortAddress & toAddress, H46019Side side)
 {
-	if (isRTCP && rtcp) {
-		rtcp->SetMultiplexDestination(toAddress, side);
+	if (isRTCP) {
+        if (rtcp) {
+            rtcp->SetMultiplexDestination(toAddress, side);
+        } else {
+            PTRACE(2, "Error: No RTCP channel set in SetLCMultiplexDestination()");
+        }
 	}
-	if (!isRTCP && rtp) {
-		rtp->SetMultiplexDestination(toAddress, side);
+	if (!isRTCP) {
+        if (rtp) {
+            rtp->SetMultiplexDestination(toAddress, side);
+        } else {
+            PTRACE(2, "Error: No RTP channel set in SetLCMultiplexDestination()");
+        }
 	}
 }
 
@@ -13844,6 +13854,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 				rtplc->SetLCMultiplexSocket(false, h46019chan.m_osSocketToB, SideB);
 				rtplc->SetLCMultiplexSocket(true, h46019chan.m_osSocketToB_RTCP, SideB);
 			}
+		} else {
+            PTRACE(1, "Error: RTPLogicalChannel cast failed");
 		}
 	}
 #endif
