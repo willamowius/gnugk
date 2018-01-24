@@ -1251,7 +1251,7 @@ public:
 	void UpdateLogicalChannelSessionID(WORD flcn, WORD id);
 	LogicalChannel * FindLogicalChannel(WORD flcn);
 	RTPLogicalChannel * FindRTPLogicalChannelBySessionID(WORD id);
-	RTPLogicalChannel * FindRTPLogicalChannelBySessionType(RTPSessionTypes sessionType, WORD id);
+	RTPLogicalChannel * FindRTPLogicalChannelBySessionType(RTPSessionTypes sessionType);
 	bool UsesH46019() const { return m_useH46019; }
 	void SetTraversalRole(H46019TraversalType type) { m_traversalType = type; m_useH46019 = (type != None); }
 	H46019TraversalType GetTraversalRole() const { return m_traversalType; }
@@ -1304,6 +1304,7 @@ protected:
 	RTPLogicalChannel *CreateFastStartLogicalChannel(WORD sessionId, RTPSessionTypes sessionType);
 	T120LogicalChannel *CreateT120LogicalChannel(WORD sessionId);
 	bool RemoveLogicalChannel(WORD flcn);
+	//void DumpChannels(const PString & msg, bool dumpPeer = true) const;
 
 	std::map<WORD, LogicalChannel *> logicalChannels;
 	std::map<WORD, RTPLogicalChannel *> sessionIDs;
@@ -10361,7 +10362,7 @@ void MultiplexedRTPHandler::AddChannel(const H46019Session & chan)
 		bool found = false;
 		// update if we have a channel for this session
 		for (list<H46019Session>::iterator iter = m_h46019channels.begin();
-				iter != m_h46019channels.end() ; ++iter ) {
+				iter != m_h46019channels.end() ; ++iter) {
 			if (   (iter->m_callid == chan.m_callid)
 				&& (iter->m_session == chan.m_session)) {
 				if (iter->m_openedBy == chan.m_openedBy) {
@@ -10387,7 +10388,7 @@ void MultiplexedRTPHandler::UpdateChannelSession(const H225_CallIdentifier & cal
 	WriteLock lock(m_listLock);
     //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " UpdateChannelSession got WRITE lock");
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
-			iter != m_h46019channels.end() ; ++iter ) {
+			iter != m_h46019channels.end() ; ++iter) {
         if (!iter->m_deleted) {
             if (   (iter->m_callid == callid)
                 && (iter->m_session == session) ) {
@@ -10412,7 +10413,7 @@ void MultiplexedRTPHandler::UpdateChannel(const H46019Session & chan)
 	WriteLock lock(m_listLock);
 	//PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " UpdateChannel got WRITE lock");
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
-			iter != m_h46019channels.end() ; ++iter ) {
+			iter != m_h46019channels.end() ; ++iter) {
         if (!iter->m_deleted) {
             if (   (iter->m_callid == chan.m_callid)
                 && (iter->m_session == chan.m_session)) {
@@ -10434,7 +10435,7 @@ H46019Session MultiplexedRTPHandler::GetChannelSwapped(const H225_CallIdentifier
 	ReadLock lock(m_listLock);
     //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " GetChannelSwapped got READ lock");
 	for (list<H46019Session>::const_iterator iter = m_h46019channels.begin();
-			iter != m_h46019channels.end() ; ++iter ) {
+			iter != m_h46019channels.end() ; ++iter) {
         if (!iter->m_deleted) {
             if (iter->m_callid == callid && iter->m_session == session) {
                 if (iter->m_openedBy == openedBy) {
@@ -10454,7 +10455,7 @@ H46019Session MultiplexedRTPHandler::GetChannel(const H225_CallIdentifier & call
 	ReadLock lock(m_listLock);
     //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " GetChannel got READ lock");
 	for (list<H46019Session>::const_iterator iter = m_h46019channels.begin();
-			iter != m_h46019channels.end() ; ++iter ) {
+			iter != m_h46019channels.end() ; ++iter) {
 		if (!iter->m_deleted && iter->m_callid == callid && iter->m_session == session) {
 			return *iter;
 		}
@@ -10505,7 +10506,7 @@ void MultiplexedRTPHandler::DumpChannels(const PString & msg) const
 	if (PTrace::CanTrace(7)) {
 		PTRACE(7, "JW ===" << msg << "=== Dump19Channels Begin (" << m_h46019channels.size() << " channels) ===");
 		for (list<H46019Session>::const_iterator iter = m_h46019channels.begin();
-				iter != m_h46019channels.end() ; ++iter ) {
+				iter != m_h46019channels.end() ; ++iter) {
 			iter->Dump();
 		}
 		PTRACE(7, "JW =================== Dump19Channels End ====================");
@@ -10816,7 +10817,7 @@ void H46026RTPHandler::DumpChannels(const PString & msg) const
 	if (PTrace::CanTrace(7) && !m_h46026channels.empty()) {
 		PTRACE(7, "JW ===" << msg << "=== Dump26Channels Begin (" << m_h46026channels.size() << " channels) ===");
 		for (list<H46026Session>::const_iterator iter = m_h46026channels.begin();
-				iter != m_h46026channels.end() ; ++iter ) {
+				iter != m_h46026channels.end() ; ++iter) {
 			iter->Dump();
 		}
 		PTRACE(7, "JW =================== Dump26Channels End ====================");
@@ -11164,6 +11165,12 @@ void UDPProxySocket::SetMultiplexDestination(const IPAndPortAddress & toAddress,
 		m_multiplexDestination_A = toAddress;
 	else
 		m_multiplexDestination_B = toAddress;
+	PTRACE(7, "JW after SetMultiplexDestination "
+		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
+		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
+	PTRACE(7, "JW AFTER2 " << " type=" << Type() << " this=" << this << " H.460.19=" << UsesH46019()
+		<< " multiplex: Dest A=" << AsString(m_multiplexDestination_A) << " ID A=" << m_multiplexID_A << " Socket A=" << m_multiplexSocket_A
+		<< " Dest B=" << AsString(m_multiplexDestination_B) << " ID B=" << m_multiplexID_B << " Socket B=" << m_multiplexSocket_B);
 }
 
 void UDPProxySocket::SetMultiplexID(DWORD multiplexID, H46019Side side)
@@ -14105,20 +14112,13 @@ void H245ProxyHandler::HandleMuteRTPChannel()
 
 bool H245ProxyHandler::HandleCloseLogicalChannel(H245_CloseLogicalChannel & clc, callptr & call)
 {
-	H245ProxyHandler *first, *second;
-	if (clc.m_source.GetTag() == H245_CloseLogicalChannel_source::e_user) {
-		first = this;
-		second = peer;
-	} else {
-		first = peer;
-		second = this;
-	}
-	bool found = first && first->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber);
+	bool found = this->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber);
 	if (!found && GkConfig()->GetBoolean(ProxySection, "SearchBothSidesOnCLC", false)) {
 		// due to bad implementation of some endpoints, we check the
 		// forwardLogicalChannelNumber on both sides
-		if (second)
-			second->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber);
+		// JW: maybe this isn't needed any more after the bug in interpreting the source parameter is fixed now 2018-01-24
+		if (peer)
+			peer->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber);
 	}
 #ifdef HAS_H46018
 	call->RemoveRTPKeepAlives(clc.m_forwardLogicalChannelNumber);
@@ -14283,9 +14283,9 @@ RTPLogicalChannel * H245ProxyHandler::FindRTPLogicalChannelBySessionID(WORD id)
 	return (iter != sessionIDs.end()) ? iter->second : NULL;
 }
 
-RTPLogicalChannel * H245ProxyHandler::FindRTPLogicalChannelBySessionType(RTPSessionTypes sessionType, WORD id)
+RTPLogicalChannel * H245ProxyHandler::FindRTPLogicalChannelBySessionType(RTPSessionTypes sessionType)
 {
-	for (siterator iter = sessionIDs.begin(); iter != sessionIDs.end() ; ++iter ) {
+	for (siterator iter = sessionIDs.begin(); iter != sessionIDs.end() ; ++iter) {
         if (iter->second->GetType() == sessionType) {
             RTPLogicalChannel * lc = iter->second;
             return lc;
@@ -14293,6 +14293,23 @@ RTPLogicalChannel * H245ProxyHandler::FindRTPLogicalChannelBySessionType(RTPSess
 	}
     return NULL;
 }
+
+//void H245ProxyHandler::DumpChannels(const PString & msg, bool dumpPeer) const
+//{
+//	if (PTrace::CanTrace(7)) {
+//		PTRACE(7, "JW === " << msg << " === DumpChannels Begin === for handler=" << this);
+//        for (const_iterator iter = logicalChannels.begin(); iter != logicalChannels.end() ; ++iter) {
+//            PTRACE(7, "JW LogicalChannel: flcn=" << iter->first << " port=" << iter->second->GetPort() << " this=" << iter->second);
+//        }
+//        for (const_siterator iter = sessionIDs.begin(); iter != sessionIDs.end() ; ++iter) {
+//            PTRACE(7, "JW RTPChannel: session=" << iter->first << " port=" << iter->second->GetPort() << " type=" << iter->second->GetType() << " this=" << iter->second);
+//        }
+//		PTRACE(7, "JW =================== DumpChannels End ====================");
+//	}
+//	if (peer && dumpPeer) {
+//        peer->DumpChannels(msg + " (peer)", false);
+//	}
+//}
 
 RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn, RTPSessionTypes sessionType)
 {
@@ -14304,7 +14321,7 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
 
     if (!lc && ((id == 0) || (id > 2)) && m_ignoreSignaledPrivateH239IPs) {
         // look for channel with same media type
-        lc = peer->FindRTPLogicalChannelBySessionType(sessionType, id);
+        lc = peer->FindRTPLogicalChannelBySessionType(sessionType);
     }
 
 	if (lc && !lc->IsAttached()) {
@@ -14380,7 +14397,7 @@ bool H245ProxyHandler::RemoveLogicalChannel(WORD flcn)
 {
 	iterator iter = logicalChannels.find(flcn);
 	if (iter == logicalChannels.end()) {
-		PTRACE(3, "Proxy\tLogical channel " << flcn << " not found for removing");
+		PTRACE(3, "Proxy\tError: Logical channel " << flcn << " not found for removing");
 		return false;
 	}
 	LogicalChannel * lc = iter->second;
