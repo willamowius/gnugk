@@ -10342,7 +10342,8 @@ void MultiplexedRTPReader::ReadSocket(IPSocket * socket)
 
 MultiplexedRTPHandler::MultiplexedRTPHandler() : Singleton<MultiplexedRTPHandler>("MultiplexedRTPHandler")
 {
-	idCounter = 0;
+	m_idCounter = 0;
+    m_deleteDelay = WAIT_DELETE_AFTER_DISCONNECT; // wait 30 sec. before really deleting a deleted session
     m_inactivityCheck = GkConfig()->GetBoolean(ProxySection, "RTPInactivityCheck", false);
     m_inactivityTimeout = GkConfig()->GetInteger(ProxySection, "RTPInactivityTimeout", 300);    // 300 sec = 5 min
     PCaselessString sessionType = GkConfig()->GetString(ProxySection, "RTPInactivityCheckSession", "Audio");
@@ -10358,7 +10359,6 @@ MultiplexedRTPHandler::MultiplexedRTPHandler() : Singleton<MultiplexedRTPHandler
 		m_reader = new MultiplexedRTPReader();
 		PTime now;
         m_cleanupTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(this, &MultiplexedRTPHandler::SessionCleanup, now, 30);
-        m_deleteDelay = WAIT_DELETE_AFTER_DISCONNECT; // wait 30 sec. before really deleting a deleted session
 	} else {
 		m_reader = NULL;
 		m_cleanupTimer = GkTimerManager::INVALID_HANDLE;
@@ -10624,10 +10624,10 @@ DWORD MultiplexedRTPHandler::GetMultiplexID(const H225_CallIdentifier & callid, 
 DWORD MultiplexedRTPHandler::GetNewMultiplexID()
 {
 	static const DWORD MAX_MULTIPLEX_ID = 2147483647;
-	if (idCounter >= MAX_MULTIPLEX_ID) {
-		idCounter = 0;
+	if (m_idCounter >= MAX_MULTIPLEX_ID) {
+		m_idCounter = 0;
 	}
-	return idCounter = idCounter + 1;
+	return m_idCounter = m_idCounter + 1;
 }
 
 bool MultiplexedRTPHandler::GetDetectedMediaIP(const H225_CallIdentifier & callID, WORD sessionID, bool forCaller, /* out */ PIPSocket::Address & addr, WORD & port) const

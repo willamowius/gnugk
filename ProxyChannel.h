@@ -752,7 +752,7 @@ protected:
 	MultiplexedRTPReader * m_reader;
 	mutable PReadWriteMutex m_listLock;
 	list<H46019Session> m_h46019channels;
-	DWORD idCounter; // we should make sure this counter is _not_ reset on reload
+	DWORD m_idCounter; // we should make sure this counter is _not_ reset on reload
 	GkTimerManager::GkTimerHandle m_cleanupTimer;
 	unsigned m_deleteDelay;    // how long to wait before deleting a session marked for delete in sec.
 	bool m_inactivityCheck;
