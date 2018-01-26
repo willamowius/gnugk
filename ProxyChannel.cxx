@@ -9954,6 +9954,8 @@ H46019Session::H46019Session(const H225_CallIdentifier & callid, WORD session, v
 {
     m_deleted = false;
     m_deleteTime = 0;
+    m_lastPacketFromA = time(NULL);
+    m_lastPacketFromB = time(NULL);
 	m_callid = callid;
 	m_session = session;
 	m_flcn = 0;	// only used for master assigned sessions
@@ -9989,6 +9991,8 @@ H46019Session::H46019Session(const H46019Session & other)
 {
     m_deleted = other.m_deleted;
     m_deleteTime = other.m_deleteTime;
+    m_lastPacketFromA = other.m_lastPacketFromA;
+    m_lastPacketFromB = other.m_lastPacketFromB;
 	m_callid = other.m_callid;
 	m_session = other.m_session;
 	m_flcn = other.m_flcn;
@@ -10119,6 +10123,10 @@ void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddre
         return;
 	bool isFromA = (receivedMultiplexID == m_multiplexID_fromA);
 	bool isFromB = (receivedMultiplexID == m_multiplexID_fromB);
+    if (isFromA)
+        m_lastPacketFromA = time(NULL);
+    if (isFromB)
+        m_lastPacketFromB = time(NULL);
     if (IsKeepAlive(len, isRTCP)) {
 		if (isFromA) {
 			if (isRTCP && (m_addrA_RTCP != fromAddress)) {
@@ -10335,11 +10343,22 @@ void MultiplexedRTPReader::ReadSocket(IPSocket * socket)
 MultiplexedRTPHandler::MultiplexedRTPHandler() : Singleton<MultiplexedRTPHandler>("MultiplexedRTPHandler")
 {
 	idCounter = 0;
+    m_inactivityCheck = GkConfig()->GetBoolean(ProxySection, "RTPInactivityCheck", false);
+    m_inactivityTimeout = GkConfig()->GetInteger(ProxySection, "RTPInactivityTimeout", 300);    // 300 sec = 5 min
+    PCaselessString sessionType = GkConfig()->GetString(ProxySection, "RTPInactivityCheckSession", "Audio");
+    if (sessionType == "Audio") {
+        m_inactivityCheckSession = 1;
+    } else if (sessionType == "Video") {
+        m_inactivityCheckSession = 2;
+    } else {
+        PTRACE(1, "RTPM\tError: You can only check audio or video sessions for inactivity");
+        m_inactivityCheckSession = 1; // default to audio
+    }
 	if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false)) {
 		m_reader = new MultiplexedRTPReader();
 		PTime now;
         m_cleanupTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(this, &MultiplexedRTPHandler::SessionCleanup, now, 30);
-        m_deleteDelay.SetMilliSeconds(WAIT_DELETE_AFTER_DISCONNECT * 1000); // wait 30 sec. before really deleting a deleted session
+        m_deleteDelay = WAIT_DELETE_AFTER_DISCONNECT; // wait 30 sec. before really deleting a deleted session
 	} else {
 		m_reader = NULL;
 		m_cleanupTimer = GkTimerManager::INVALID_HANDLE;
@@ -10472,7 +10491,7 @@ void MultiplexedRTPHandler::RemoveChannels(H225_CallIdentifier callid)
 			iter != m_h46019channels.end() ; /* nothing */ ) {
 		if (!iter->m_deleted && iter->m_callid == callid) {
             iter->m_deleted = true; // mark as logically deleted
-            iter->m_deleteTime = PTime();
+            iter->m_deleteTime = time(NULL);
 			//m_h46019channels.erase(iter++);
 		} else {
 			++iter;
@@ -10631,22 +10650,40 @@ bool MultiplexedRTPHandler::GetDetectedMediaIP(const H225_CallIdentifier & callI
     return false;
 }
 
-// delete sessions marked as deleted
+// delete sessions marked as deleted (runs every 30 sec)
 void MultiplexedRTPHandler::SessionCleanup(GkTimer* /* timer */)
 {
     //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " SessionCleanup wait WRITE lock");
 	WriteLock lock(m_listLock);
     //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " SessionCleanup got WRITE lock");
-	PTime now;
+	time_t now = time(NULL);
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; /* nothing */ ) {
 		if (iter->m_deleted && (now - iter->m_deleteTime > m_deleteDelay)) {
 			m_h46019channels.erase(iter++);
 		} else {
+            // inactivity check
+            if (m_inactivityCheck && iter->m_session == m_inactivityCheckSession) {
+                if (iter->m_multiplexID_fromA != INVALID_MULTIPLEX_ID && (now - iter->m_lastPacketFromA > m_inactivityTimeout) ) {
+                    PTRACE(1, "RTPM\tTerminating call because of RTP inactivity from " << iter->m_addrA << " CallID " << AsString(iter->m_callid.m_guid));
+                    callptr call = CallTable::Instance()->FindCallRec(iter->m_callid);
+                    if (call) {
+                        call->Disconnect();
+                    }
+                }
+                if (iter->m_multiplexID_fromB != INVALID_MULTIPLEX_ID && (now - iter->m_lastPacketFromB > m_inactivityTimeout) ) {
+                    PTRACE(1, "RTPM\tTerminating call because of RTP inactivity from " << iter->m_addrB << " CallID " << AsString(iter->m_callid.m_guid));
+                    callptr call = CallTable::Instance()->FindCallRec(iter->m_callid);
+                    if (call) {
+                        call->Disconnect();
+                    }
+                }
+            }
+
 			++iter;
 		}
 	}
-	DumpChannels(" RemoveChannels() done ");
+	DumpChannels(" SessionCleanup() done ");
 }
 
 #endif
@@ -10934,6 +10971,8 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
             }
         }
     }
+    m_lastPacketFromForwardSrc = time(NULL);
+    m_lastPacketFromReverseSrc = time(NULL);
 }
 
 UDPProxySocket::~UDPProxySocket()
@@ -11460,6 +11499,13 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			);
 		}
 	}
+    // inactivity checking
+    if (fromIP == fSrcIP && fromPort == fSrcPort) {
+        m_lastPacketFromForwardSrc = time(NULL);
+    }
+    if (fromIP == rSrcIP && fromPort == rSrcPort) {
+        m_lastPacketFromReverseSrc = time(NULL);
+    }
 	if (isRTPKeepAlive) {
 		return NoData;	// don't forward RTP keepAlive (RTCP uses first data packet which must be forwarded)
 	}

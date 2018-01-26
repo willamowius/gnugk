@@ -1,5 +1,6 @@
 Changes from 4.8 to 4.9
 =======================
+- RTP inactivity checking
 - BUGFIX(ProxyChannel.cxx) fix handling of CloseLogicalChannel
 
 

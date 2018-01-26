@@ -302,6 +302,8 @@ protected:
 	bool m_portDetectionDone;
 	bool m_forwardAndReverseSeen;   // did we see logical channels for both directions, yet ?
 	bool m_legacyPortDetection;
+	time_t m_lastPacketFromForwardSrc;
+	time_t m_lastPacketFromReverseSrc;
 };
 
 #if H323_H450
@@ -666,7 +668,7 @@ public:
 public:
 	//mutable PTimedMutex m_usedLock;
     bool m_deleted; // logically deleted, but still in list so other threads can leave methods
-    PTime m_deleteTime;
+    time_t m_deleteTime;
 	H225_CallIdentifier m_callid;
 	WORD m_session;     // RTP session ID
 	WORD m_flcn;		// only used to assign master assigned RTP session IDs
@@ -691,6 +693,8 @@ public:
 	DWORD m_encryptMultiplexID;
 	DWORD m_decryptMultiplexID;
 #endif
+    time_t m_lastPacketFromA;   // time stamps for inactivity detection
+    time_t m_lastPacketFromB;
 };
 
 class MultiplexedRTPReader : public SocketsReader {
@@ -750,7 +754,10 @@ protected:
 	list<H46019Session> m_h46019channels;
 	DWORD idCounter; // we should make sure this counter is _not_ reset on reload
 	GkTimerManager::GkTimerHandle m_cleanupTimer;
-	PTimeInterval m_deleteDelay;    // how long to wait before deleting a session marked for delete
+	unsigned m_deleteDelay;    // how long to wait before deleting a session marked for delete in sec.
+	bool m_inactivityCheck;
+	unsigned m_inactivityTimeout;
+	short m_inactivityCheckSession;
 };
 #endif
 
