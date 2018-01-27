@@ -1282,7 +1282,7 @@ void showFDInfo(int fd)
     if (fl_flags & O_NONBLOCK)  msg += "nonblock ";
 
     // acc mode
-    if (fl_flags & O_RDONLY  )  msg += "read-only ";
+    if (fl_flags == O_RDONLY )  msg += "read-only ";
     if (fl_flags & O_RDWR    )  msg += "read-write ";
     if (fl_flags & O_WRONLY  )  msg += "write-only ";
 
