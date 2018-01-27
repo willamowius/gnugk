@@ -4,7 +4,7 @@
  * RADIUS protocol classes.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2003-2016, Jan Willamowius
+ * Copyright (c) 2003-2018, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -1346,36 +1346,33 @@ bool RadiusPDU::EncryptPasswords(
 #define DEFAULT_PERMANENT_SYNCPOINTS 8
 #endif
 
-RadiusSocket::RadiusSocket(
-	WORD _port
-	) : m_permanentSyncPoints(DEFAULT_PERMANENT_SYNCPOINTS),
+RadiusSocket::RadiusSocket(WORD port)
+  : m_permanentSyncPoints(DEFAULT_PERMANENT_SYNCPOINTS),
 	m_isReading(false), m_nestedCount(0),
 	m_idCacheTimeout(RadiusClient::DefaultIdCacheTimeout)
 {
-	if (!Listen(GNUGK_INADDR_ANY, 0, _port)) {
-		PTRACE(1, "RADIUS\tCould not bind socket to the port " << _port
+	if (!Listen(GNUGK_INADDR_ANY, 0, port)) {
+		PTRACE(1, "RADIUS\tCould not bind socket to the port " << port
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
 			<< GetErrorNumber(PSocket::LastGeneralError) << ": "
-			<< GetErrorText(PSocket::LastGeneralError)
-			);
+			<< GetErrorText(PSocket::LastGeneralError));
 		Close();
 	}
 	m_addr = GNUGK_INADDR_ANY;
-	m_port = _port;
+	m_port = port;
 	if (Toolkit::Instance()->IsPortNotificationActive())
-		Toolkit::Instance()->PortNotification(RadiusPort, PortOpen, "udp", GNUGK_INADDR_ANY, _port);
+		Toolkit::Instance()->PortNotification(RadiusPort, PortOpen, "udp", GNUGK_INADDR_ANY, port);
 
 	PRandom random;
 	const unsigned _id_ = random;
 	m_oldestId = m_nextId = (BYTE)(_id_^(_id_>>8)^(_id_>>16)^(_id_>>24));
 
 	memset(m_readSyncPoints, 0, sizeof(m_readSyncPoints));
+    memset(m_pendingRequests, 0, sizeof(m_pendingRequests));
+    memset(m_syncPointMap, 0, sizeof(m_syncPointMap));
+    memset(m_idTimestamps, 0, sizeof(m_idTimestamps));
 
 	if (IsOpen()) {
-		memset(m_pendingRequests, 0, sizeof(m_pendingRequests));
-		memset(m_syncPointMap, 0, sizeof(m_syncPointMap));
-		memset(m_idTimestamps, 0, sizeof(m_idTimestamps));
-
 		for (int i = 0; i < 256; i++)
 			m_readSyncPointIndices[i] = P_MAX_INDEX;
 
@@ -1384,15 +1381,13 @@ RadiusSocket::RadiusSocket(
 	}
 }
 
-RadiusSocket::RadiusSocket(
-	const PIPSocket::Address & addr,
-	WORD _port
-	) : m_permanentSyncPoints(DEFAULT_PERMANENT_SYNCPOINTS),
+RadiusSocket::RadiusSocket(const PIPSocket::Address & addr, WORD port)
+  : m_permanentSyncPoints(DEFAULT_PERMANENT_SYNCPOINTS),
 	m_isReading(false), m_nestedCount(0),
 	m_idCacheTimeout(RadiusClient::DefaultIdCacheTimeout)
 {
-	if (!Listen(addr, 0, _port)) {
-		PTRACE(1, "RADIUS\tCould not bind socket to " << AsString(addr, _port)
+	if (!Listen(addr, 0, port)) {
+		PTRACE(1, "RADIUS\tCould not bind socket to " << AsString(addr, port)
 			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
 			<< GetErrorNumber(PSocket::LastGeneralError) << ": "
 			<< GetErrorText(PSocket::LastGeneralError)
@@ -1400,26 +1395,24 @@ RadiusSocket::RadiusSocket(
 		Close();
 	}
 	m_addr = addr;
-	m_port = _port;
+	m_port = port;
 	if (Toolkit::Instance()->IsPortNotificationActive())
-		Toolkit::Instance()->PortNotification(RadiusPort, PortOpen, "udp", addr, _port);
+		Toolkit::Instance()->PortNotification(RadiusPort, PortOpen, "udp", addr, port);
 
 	PRandom random;
 	const unsigned _id_ = random;
 	m_oldestId = m_nextId = (BYTE)(_id_^(_id_>>8)^(_id_>>16)^(_id_>>24));
 
 	memset(m_readSyncPoints, 0, sizeof(m_readSyncPoints));
+    memset(m_pendingRequests, 0, sizeof(m_pendingRequests));
+    memset(m_syncPointMap, 0, sizeof(m_syncPointMap));
+    memset(m_idTimestamps, 0, sizeof(m_idTimestamps));
 
 	if (IsOpen()) {
-		memset(m_pendingRequests, 0, sizeof(m_pendingRequests));
-		memset(m_syncPointMap, 0, sizeof(m_syncPointMap));
-		memset(m_idTimestamps, 0, sizeof(m_idTimestamps));
-
-		int i;
-		for (i = 0; i < 256; i++)
+		for (int i = 0; i < 256; i++)
 			m_readSyncPointIndices[i] = P_MAX_INDEX;
 
-		for (i = 0; i < m_permanentSyncPoints; i++)
+		for (int i = 0; i < m_permanentSyncPoints; i++)
 			m_readSyncPoints[i] = new PSyncPoint();
 	}
 }
@@ -1473,12 +1466,7 @@ void RadiusSocket::FreeReadSyncPoint(PINDEX syncPointIndex)
 	}
 }
 
-bool RadiusSocket::MakeRequest(
-	const RadiusPDU* request,
-	const Address& serverAddress,
-	WORD serverPort,
-	RadiusPDU*& pdu
-	)
+bool RadiusSocket::MakeRequest(const RadiusPDU * request, const Address & serverAddress, WORD serverPort, RadiusPDU * & pdu)
 {
 	if (!IsOpen() || request == NULL || !request->IsValid())
 		return false;
@@ -1591,10 +1579,7 @@ bool RadiusSocket::MakeRequest(
 			PWaitAndSignal lock(m_readMutex, FALSE);
 
 			if (m_pendingRequests[newId] == NULL) {
-				PTRACE(5, "RADIUS\tUnmatched PDU received (code:"
-					<< (PINDEX)response->GetCode() << ",id:"
-					<< (PINDEX)newId << ')'
-					);
+				PTRACE(5, "RADIUS\tUnmatched PDU received (code:" << (PINDEX)response->GetCode() << ",id:" << (PINDEX)newId << ')');
 				delete response;
 				response = NULL;
 				continue;
@@ -1701,11 +1686,7 @@ bool RadiusSocket::MakeRequest(
 	return result;
 }
 
-bool RadiusSocket::SendRequest(
-	const RadiusPDU* request,
-	const Address& serverAddress,
-	WORD serverPort
-	)
+bool RadiusSocket::SendRequest(const RadiusPDU * request, const Address& serverAddress, WORD serverPort)
 {
 	if (!IsOpen() || request == NULL || !request->IsValid())
 		return false;
@@ -1725,8 +1706,7 @@ bool RadiusSocket::SendRequest(
 
 void RadiusSocket::RefreshIdCache(const time_t now)
 {
-	const PINDEX lastId = ((m_nextId >= m_oldestId)
-		? m_nextId : ((PINDEX)m_nextId + 256));
+	const PINDEX lastId = ((m_nextId >= m_oldestId) ? m_nextId : ((PINDEX)m_nextId + 256));
 	const long timeout = m_idCacheTimeout.GetSeconds();
 	PINDEX i = m_oldestId;
 
@@ -1752,11 +1732,11 @@ PINDEX RadiusSocket::GenerateNewId()
 
 RadiusClient::RadiusClient(
 	/// primary RADIUS server
-	const PString& servers,
+	const PString & servers,
 	/// local address for RADIUS client
-	const PString& address,
+	const PString & address,
 	/// default secret shared between the client and the server
-	const PString& sharedSecret
+	const PString & sharedSecret
 	) : m_sharedSecret((const char*)sharedSecret),
 	m_authPort(RadiusClient::GetDefaultAuthPort()),
 	m_acctPort(RadiusClient::GetDefaultAcctPort()),
@@ -1771,8 +1751,7 @@ RadiusClient::RadiusClient(
 
 	if (!address) {
 		if (!PIPSocket::IsLocalHost(address)) {
-			PTRACE(1, "RADIUS\tSpecified local client address " << address
-				<< " is not bound to any local interface");
+			PTRACE(1, "RADIUS\tSpecified local client address " << address << " is not bound to any local interface");
 		} else {
 			PIPSocket::GetHostAddress(address, m_localAddress);
 		}
@@ -1784,12 +1763,12 @@ RadiusClient::RadiusClient(
 		s << "RADIUS\tCreated instance of RADIUS client (local if: "
 			<< m_localAddress << ", default ports: " << m_authPort << ','
 			<< m_acctPort << ") for RADIUS servers group:";
-		for (unsigned i = 0; i < m_radiusServers.size(); i++)
+		for (unsigned i = 0; i < m_radiusServers.size(); i++) {
 			s << '\n' << setw(indent + m_radiusServers[i]->m_serverAddress.GetLength())
 				<< m_radiusServers[i]->m_serverAddress << " (auth port: "
 				<< (m_radiusServers[i]->m_authPort == 0 ? m_authPort : m_radiusServers[i]->m_authPort)
-				<< ", acct port: " << (m_radiusServers[i]->m_acctPort == 0 ? m_acctPort : m_radiusServers[i]->m_acctPort)
-				<< ')';
+				<< ", acct port: " << (m_radiusServers[i]->m_acctPort == 0 ? m_acctPort : m_radiusServers[i]->m_acctPort) << ')';
+        }
 		PTrace::End(s);
 	}
 }
@@ -1799,21 +1778,14 @@ RadiusClient::RadiusClient(
 	const PString& sectionName /// config section with the settings
 	)
 	: m_sharedSecret(Toolkit::Instance()->ReadPassword(sectionName, "SharedSecret")),
-	m_authPort((WORD)config.GetInteger(sectionName, "DefaultAuthPort",
-		RadiusClient::GetDefaultAuthPort())),
-	m_acctPort((WORD)config.GetInteger(sectionName, "DefaultAcctPort",
-		RadiusClient::GetDefaultAcctPort())),
+	m_authPort((WORD)config.GetInteger(sectionName, "DefaultAuthPort", RadiusClient::GetDefaultAuthPort())),
+	m_acctPort((WORD)config.GetInteger(sectionName, "DefaultAcctPort", RadiusClient::GetDefaultAcctPort())),
 	m_portBase(1024), m_portMax(65535),
-	m_requestTimeout(config.GetInteger(sectionName, "RequestTimeout",
-		DefaultRequestTimeout)),
-	m_idCacheTimeout(config.GetInteger(sectionName, "IdCacheTimeout",
-		DefaultIdCacheTimeout)),
-	m_socketDeleteTimeout(config.GetInteger(sectionName, "SocketDeleteTimeout",
-		DefaultSocketDeleteTimeout)),
-	m_numRetries(config.GetInteger(sectionName, "RequestRetransmissions",
-		DefaultRetries)),
-	m_roundRobinServers(config.GetBoolean(
-		sectionName, "RoundRobinServers", TRUE)),
+	m_requestTimeout(config.GetInteger(sectionName, "RequestTimeout", DefaultRequestTimeout)),
+	m_idCacheTimeout(config.GetInteger(sectionName, "IdCacheTimeout", DefaultIdCacheTimeout)),
+	m_socketDeleteTimeout(config.GetInteger(sectionName, "SocketDeleteTimeout", DefaultSocketDeleteTimeout)),
+	m_numRetries(config.GetInteger(sectionName, "RequestRetransmissions", DefaultRetries)),
+	m_roundRobinServers(config.GetBoolean(sectionName, "RoundRobinServers", TRUE)),
 	m_localAddress(GNUGK_INADDR_ANY)
 {
 	GetServersFromString(config.GetString(sectionName, "Servers", ""));
@@ -1822,8 +1794,7 @@ RadiusClient::RadiusClient(
 
 	if (!addr) {
 		if (!PIPSocket::IsLocalHost(addr)) {
-			PTRACE(2, "RADIUS\tSpecified local client address '" << addr
-				<< "' is not bound to any local interface");
+			PTRACE(2, "RADIUS\tSpecified local client address '" << addr << "' is not bound to any local interface");
 		} else {
 			PIPSocket::GetHostAddress(addr, m_localAddress);
 		}
@@ -2045,15 +2016,14 @@ bool RadiusClient::MakeRequest(
 			delete clonedRequestPDU;
 
 			if (PTrace::CanTrace(3)) {
-				ostream& strm = PTrace::Begin(3, __FILE__, __LINE__);
+				ostream & strm = PTrace::Begin(3, __FILE__, __LINE__);
 				strm << "RADIUS\tReceived PDU from RADIUS server "
 					<< server->m_serverAddress << " (" << AsString(serverAddress, serverPort)
 					<< ')' << " by socket " << (*socket) << ", PDU: ";
 				if (PTrace::CanTrace(5))
 					strm << (*response);
 				else
-					strm << PMAP_CODE_TO_NAME(response->GetCode()) << ", id "
-						<< (PINDEX)(response->GetId());
+					strm << PMAP_CODE_TO_NAME(response->GetCode()) << ", id " << (PINDEX)(response->GetId());
 				PTrace::End(strm);
 			}
 
@@ -2072,9 +2042,9 @@ bool RadiusClient::SendRequest(
 	if (!requestPDU.IsValid())
 		return false;
 
-	RadiusSocket* socket = NULL;
+	RadiusSocket * socket = NULL;
 	unsigned char id;
-	RadiusPDU* clonedRequestPDU = NULL;
+	RadiusPDU * clonedRequestPDU = NULL;
 
 	if (m_radiusServers.empty()) {
 		PTRACE(1, "RADIUS\tNo RADIUS servers configured");
@@ -2089,11 +2059,8 @@ bool RadiusClient::SendRequest(
 		? m_sharedSecret : server->m_sharedSecret;
 
 	PIPSocket::Address serverAddress;
-	if (!PIPSocket::GetHostAddress(server->m_serverAddress, serverAddress)
-			|| !serverAddress.IsValid()) {
-		PTRACE(3, "RADIUS\tCould not get IP address for RADIUS server host: "
-			<< server->m_serverAddress
-			);
+	if (!PIPSocket::GetHostAddress(server->m_serverAddress, serverAddress) || !serverAddress.IsValid()) {
+		PTRACE(3, "RADIUS\tCould not get IP address for RADIUS server host: " << server->m_serverAddress);
 		return false;
 	}
 
@@ -2111,9 +2078,7 @@ bool RadiusClient::SendRequest(
 	PMessageDigest5 md5;
 	clonedRequestPDU->SetAuthenticator(secret, md5);
 	if (!clonedRequestPDU->EncryptPasswords(secret, md5)) {
-		PTRACE(3, "RADIUS\tCould not encrypt passwords "
-			"(id:" << (PINDEX)(clonedRequestPDU->GetId()) << ')'
-			);
+		PTRACE(3, "RADIUS\tCould not encrypt passwords (id:" << (PINDEX)(clonedRequestPDU->GetId()) << ')');
 		delete clonedRequestPDU;
 		return false;
 	}
@@ -2126,8 +2091,7 @@ bool RadiusClient::SendRequest(
 		if (PTrace::CanTrace(5))
 			strm << *clonedRequestPDU;
 		else
-			strm << PMAP_CODE_TO_NAME(clonedRequestPDU->GetCode()) << ", id "
-				<< (PINDEX)(clonedRequestPDU->GetId());
+			strm << PMAP_CODE_TO_NAME(clonedRequestPDU->GetCode()) << ", id " << (PINDEX)(clonedRequestPDU->GetId());
 		PTrace::End(strm);
 	}
 
@@ -2142,11 +2106,7 @@ bool RadiusClient::SendRequest(
 	return true;
 }
 
-bool RadiusClient::VerifyResponseAuthenticator(
-	const RadiusPDU* request,
-	const RadiusPDU* response,
-	const PString& secret
-	)
+bool RadiusClient::VerifyResponseAuthenticator(const RadiusPDU * request, const RadiusPDU * response, const PString & secret)
 {
 	PMessageDigest5 md5;
 	PMessageDigest::Result digest;
@@ -2157,8 +2117,7 @@ bool RadiusClient::VerifyResponseAuthenticator(
 	if (len > RadiusPDU::FixedHeaderLength)
 		md5.Process(
 			reinterpret_cast<const char*>(response) + RadiusPDU::FixedHeaderLength,
-			len - RadiusPDU::FixedHeaderLength
-			);
+			len - RadiusPDU::FixedHeaderLength);
 
 	const PINDEX secretLength = secret.GetLength();
 	if (secretLength > 0)
@@ -2180,7 +2139,7 @@ bool RadiusClient::IsAcctPDU(const RadiusPDU & pdu) const
 		|| (c == RadiusPDU::AccountingMessage);
 }
 
-bool RadiusClient::GetSocket(RadiusSocket*& socket, unsigned char& id)
+bool RadiusClient::GetSocket(RadiusSocket * & socket, unsigned char & id)
 {
 	PWaitAndSignal lock(m_socketMutex);
 
@@ -2265,7 +2224,6 @@ bool RadiusClient::GetSocket(RadiusSocket*& socket, unsigned char& id)
 	newSocket->SetReadTimeout(m_requestTimeout);
 	newSocket->SetWriteTimeout(m_requestTimeout);
 	newSocket->SetIdCacheTimeout(m_idCacheTimeout);
-
 
 	const PINDEX newId = newSocket->GenerateNewId();
 	if (newId == P_MAX_INDEX) {
