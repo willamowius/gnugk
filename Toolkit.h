@@ -737,7 +737,7 @@ private:
     PString m_maintenanceAlternate;
 	PFilePath m_tmpconfig;
 	/// global manager for time-based events
-	GkTimerManager* m_timerManager;
+	GkTimerManager * m_timerManager;
 	/// a default timestamp format string
 	PString m_timestampFormatStr;
 	/// a padding byte used during config passwords decryption
