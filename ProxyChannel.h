@@ -768,7 +768,7 @@ protected:
 class H46026Session
 {
 public:
-	H46026Session() : m_isValid(false) { }
+	H46026Session();
 	H46026Session(const H225_CallIdentifier & callid, WORD session, int osRTPSocket, int osRTCPSocket,
 					const IPAndPortAddress & toRTP, const IPAndPortAddress & toRTCP);
 

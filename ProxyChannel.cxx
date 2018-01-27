@@ -5883,16 +5883,15 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 				|| RasServer::Instance()->IsCallFromTraversalClient(_peerAddr) || RasServer::Instance()->IsCallFromTraversalServer(_peerAddr)
 				|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018()) ) {
 				// set traversal role for called party (needed for H.460.17, doesn't hurt H.460.18)
-				if (isH46019Client
-					&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
-					dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(TraversalClient);
+				H245ProxyHandler * proxyhandler = dynamic_cast<H245ProxyHandler *>(m_h245handler);
+				if (isH46019Client && proxyhandler) {
+					proxyhandler->SetTraversalRole(TraversalClient);
 					if (m_call && m_call->GetCalledParty()) {
 						m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
 					}
 				}
-				if (senderSupportsH46019Multiplexing
-					&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
-					dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(true);
+				if (senderSupportsH46019Multiplexing && proxyhandler)
+					proxyhandler->SetRequestRTPMultiplexing(true);
 			}
 			if (cpBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				cpBody.m_featureSet.RemoveOptionalField(H225_FeatureSet::e_supportedFeatures);
@@ -6256,10 +6255,11 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 		unsigned unused = 0;
 		if (FindH460Descriptor(26, connectBody.m_featureSet.m_neededFeatures, unused)) {
 			// must reset .19 for called party, CP might have set it before UsesH46026() was set in 2nd ARQ
-			if (dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
-				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(None);
-				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(false);
-				dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetUsesH46026(true);
+			H245ProxyHandler * proxyhandler = dynamic_cast<H245ProxyHandler*>(m_h245handler);
+			if (proxyhandler) {
+				proxyhandler->SetTraversalRole(None);
+				proxyhandler->SetRequestRTPMultiplexing(false);
+				proxyhandler->SetUsesH46026(true);
 			}
 			if (m_call->GetCalledParty()) {
 				m_call->GetCalledParty()->SetTraversalRole(None);
@@ -6380,16 +6380,15 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 				|| RasServer::Instance()->IsCallFromTraversalClient(_peerAddr) || RasServer::Instance()->IsCallFromTraversalServer(_peerAddr)
 				|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018()) ) {
 				// set traversal role for called party (needed for H.460.17, doesn't hurt H.460.18)
-				if (isH46019Client
-					&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
-					dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(TraversalClient);
+				H245ProxyHandler * proxyhandler = dynamic_cast<H245ProxyHandler *>(m_h245handler);
+				if (isH46019Client && proxyhandler) {
+					proxyhandler->SetTraversalRole(TraversalClient);
 					if (m_call->GetCalledParty()) {
 						m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
 					}
 				}
-				if (senderSupportsH46019Multiplexing
-					&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
-					dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(true);
+				if (senderSupportsH46019Multiplexing && proxyhandler) {
+					proxyhandler->SetRequestRTPMultiplexing(true);
 				}
 			}
 			if (alertingBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
@@ -10690,6 +10689,15 @@ void MultiplexedRTPHandler::SessionCleanup(GkTimer* /* timer */)
 
 
 #ifdef HAS_H46026
+H46026Session::H46026Session()
+	: m_isValid(false), m_session(-1), m_osRTPSocket(.1), m_osRTCPSocket(-1)
+{
+#ifdef HAS_H235_MEDIA
+	m_encryptingLC = NULL;
+	m_decryptingLC = NULL;
+#endif
+}
+
 H46026Session::H46026Session(const H225_CallIdentifier & callid, WORD session,
 							int osRTPSocket, int osRTCPSocket,
 							const IPAndPortAddress & toRTP, const IPAndPortAddress & toRTCP)
