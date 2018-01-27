@@ -6206,16 +6206,15 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 				|| RasServer::Instance()->IsCallFromTraversalClient(_peerAddr) || RasServer::Instance()->IsCallFromTraversalServer(_peerAddr)
 				|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018()) ) {
 				// set traversal role for called party (needed for H.460.17, doesn't hurt H.460.18)
-				if (isH46019Client
-					&& dynamic_cast<H245ProxyHandler*>(m_h245handler)) {
-					dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetTraversalRole(TraversalClient);
+				H245ProxyHandler * proxyhandler = dynamic_cast<H245ProxyHandler*>(m_h245handler);
+				if (isH46019Client && proxyhandler) {
+					proxyhandler->SetTraversalRole(TraversalClient);
 					if (m_call->GetCalledParty()) {
 						m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
 					}
 				}
-				if (senderSupportsH46019Multiplexing
-					&& dynamic_cast<H245ProxyHandler*>(m_h245handler))
-					dynamic_cast<H245ProxyHandler*>(m_h245handler)->SetRequestRTPMultiplexing(true);
+				if (senderSupportsH46019Multiplexing && proxyhandler)
+					proxyhandler->SetRequestRTPMultiplexing(true);
 			}
 			if (connectBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				connectBody.m_featureSet.RemoveOptionalField(H225_FeatureSet::e_supportedFeatures);
