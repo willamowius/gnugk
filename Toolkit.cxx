@@ -2,7 +2,7 @@
 //
 // Toolkit base class for the GnuGk
 //
-// Copyright (c) 2000-2017, Jan Willamowius
+// Copyright (c) 2000-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1857,9 +1857,11 @@ PConfig* Toolkit::ReloadConfig()
         minH323Version = 1;
 	if (minH323Version > MAX_H323_VERSION)
         minH323Version = MAX_H323_VERSION;
-	strncpy(H225_ProtocolID, H225_Protocol_Version[minH323Version], ProtocolID_BufferSize);
+	strncpy(H225_ProtocolID, H225_Protocol_Version[minH323Version], ProtocolID_BufferSize-1);
+	H225_ProtocolID[ProtocolID_BufferSize-1] = '\0';
 	PTRACE(3, "Minimum H.225 version for GK generated messages: " << PString(H225_ProtocolID));
-	strncpy(H245_ProtocolID, H245_Protocol_Version[minH323Version], ProtocolID_BufferSize);
+	strncpy(H245_ProtocolID, H245_Protocol_Version[minH323Version], ProtocolID_BufferSize-1);
+	H245_ProtocolID[ProtocolID_BufferSize-1] = '\0';
 	PTRACE(3, "Minimum H.245 version for GK generated messages: " << PString(H245_ProtocolID));
 
 	// set the max size of an array in an ASN encoded message (eg. max length of alias list)
