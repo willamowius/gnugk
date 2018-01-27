@@ -558,7 +558,7 @@ bool YaUDPSocket::Listen(const Address & addr, unsigned, WORD pt, PSocket::Reusa
 #ifdef hasIPV6
 	if (addr.GetVersion() == 6) {
 		os_handle = ::socket(PF_INET6, SOCK_DGRAM, 0);
-		if (addr.IsAny() && !SetOption(IPV6_V6ONLY, 0, IPPROTO_IPV6)) {
+		if (os_handle >= 0 && addr.IsAny() && !SetOption(IPV6_V6ONLY, 0, IPPROTO_IPV6)) {
 			PTRACE(1, "Removing of IPV6_V6ONLY failed");
 			SNMP_TRAP(10, SNMPWarning, Network, "IPv6 error");
 		}
