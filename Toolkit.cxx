@@ -1278,6 +1278,20 @@ Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit"),
 #ifdef HAS_TLS
 	m_sslCtx = NULL;
 #endif
+    // real values are set in ReloadConfig()
+    m_alwaysRemoveH235Tokens = false;
+#ifdef HAS_H235_MEDIA
+	m_H235HalfCallMediaEnabled = false;
+	m_H235HalfCallMediaKeyUpdatesEnabled = false;
+#endif
+	// is H460.18 enabled ?
+#ifdef HAS_H46018
+	m_H46018Enabled = false;
+#endif
+	// is H460.23 enabled ?
+#ifdef HAS_H46023
+	m_H46023Enabled = false;
+#endif // HAS_H46023
 }
 
 Toolkit::~Toolkit()
