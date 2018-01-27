@@ -3,7 +3,7 @@
 // GkClient.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2002-2017, Jan Willamowius
+// Copyright (c) 2002-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -2320,7 +2320,7 @@ void GkClient::SendDRQ(const callptr & call)
 
 	if (OnSendingDRQ(drq, call)) {
 		request.SendRequest(m_gkaddr, m_gkport);
-		request.WaitForResponse(3000);
+		(void)request.WaitForResponse(3000);
 	}
 	// ignore response
 }
