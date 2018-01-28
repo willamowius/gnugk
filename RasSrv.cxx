@@ -1770,20 +1770,22 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		// make sure we respond with the unicast RAS IP and port, even if the GRQ came in through multicast
 		// or doesn't have a rasAddress set for any other reason
 		WORD unicastRasPort = (WORD)GkConfig()->GetInteger("UnicastRasPort", GK_DEF_UNICAST_RAS_PORT);
-		H225_TransportAddress_ipAddress & rasip = gcf.m_rasAddress;
 		if (gcf.m_rasAddress.GetTag() == H225_TransportAddress::e_ipAddress) {
+            H225_TransportAddress_ipAddress & rasip = gcf.m_rasAddress;
 			if (rasip.m_ip[0] == 0 && rasip.m_ip[1] == 0 && rasip.m_ip[2] == 0 && rasip.m_ip[3] == 0) {
 				gcf.m_rasAddress = SocketToH225TransportAddr(Toolkit::Instance()->GetRouteTable()->GetLocalAddress(m_msg->m_peerAddr), unicastRasPort);
 			}
+            rasip.m_port = unicastRasPort;
 		} else if (gcf.m_rasAddress.GetTag() == H225_TransportAddress::e_ip6Address) {
+            H225_TransportAddress_ip6Address & rasip = gcf.m_rasAddress;
 			unsigned sum = 0;
 			for (unsigned i = 0; i < 15; i++)
 				sum +=  rasip.m_ip[i];
 			if (sum == 0) {
 				gcf.m_rasAddress = SocketToH225TransportAddr(Toolkit::Instance()->GetRouteTable()->GetLocalAddress(m_msg->m_peerAddr), unicastRasPort);
 			}
+            rasip.m_port = unicastRasPort;
 		}
-		rasip.m_port = unicastRasPort;
 		gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_gatekeeperIdentifier);
 		gcf.m_gatekeeperIdentifier = Toolkit::GKName();
 
