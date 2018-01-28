@@ -1,6 +1,7 @@
 Changes from 4.8 to 4.9
 =======================
 - RTP inactivity checking
+- BUGFIX(RasSrv.cxx) fix crash when using IPv6
 - BUGFIX(ProxyChannel.cxx) fix handling of CloseLogicalChannel
 
 
