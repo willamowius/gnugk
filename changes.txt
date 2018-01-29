@@ -162,7 +162,7 @@ Changes from 4.0 to 4.1
 - BUGFIX(ProxyChannel.cxx) removing H.235 capabilities might have skipped items
 - BUGFIX(lua.cxx) initialize all LUA variables for LUA routing
 - status port configuration (MaxStatusClients, StatusEventBacklog, StatusEventBacklogRegex) now
-  changable at runtime
+  changeable at runtime
 - BUGFIX(GkStatus.cxx) fix StatusEventBacklogRegex for patterns that start at the beginning of the event line
 - BUGFIX(ProxyChannel.cxx) use RealPresence Group 0-Byte keep-alive for
   IgnoreSignaledH239PrivateIPs (needs LARGE_FDSET to work)
