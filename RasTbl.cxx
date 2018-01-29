@@ -5117,6 +5117,14 @@ BYTE CallRec::GetNewDynamicPayloadType()
 }
 #endif
 
+bool CallRec::IsRTPInactive(short session) const
+{
+    if (m_callingSocket) {
+        return m_callingSocket->IsRTPInactive(session);
+    } else {
+        return (m_calledSocket && m_calledSocket->IsRTPInactive(session));
+    }
+}
 
 /*
 bool CallRec::IsTimeout(
@@ -5217,28 +5225,28 @@ void CallTable::LoadConfig()
 	SetTotalBandwidth(GKCapacity);	// will take into account ongoing calls
 	m_minimumBandwidthPerCall = GkConfig()->GetInteger("MinimumBandwidthPerCall", -1);
 	m_maximumBandwidthPerCall = GkConfig()->GetInteger("MaximumBandwidthPerCall", -1);
-	m_signalTimeout = std::max(
-		GkConfig()->GetInteger(RoutedSec, "SignalTimeout", DEFAULT_SIGNAL_TIMEOUT),
-		5000L
-		);
-	m_alertingTimeout = std::max(
-		GkConfig()->GetInteger(RoutedSec, "AlertingTimeout", DEFAULT_ALERTING_TIMEOUT),
-		5000L
-		);
-	m_defaultDurationLimit = GkConfig()->GetInteger(
-		CallTableSection, "DefaultCallDurationLimit", 0
-		);
+	m_signalTimeout = std::max(GkConfig()->GetInteger(RoutedSec, "SignalTimeout", DEFAULT_SIGNAL_TIMEOUT), 5000L);
+	m_alertingTimeout = std::max(GkConfig()->GetInteger(RoutedSec, "AlertingTimeout", DEFAULT_ALERTING_TIMEOUT), 5000L);
+	m_defaultDurationLimit = GkConfig()->GetInteger(CallTableSection, "DefaultCallDurationLimit", 0);
 	// backward compatibility - check DefaultCallTimeout
 	if (m_defaultDurationLimit == 0)
-		m_defaultDurationLimit = GkConfig()->GetInteger(
-			CallTableSection, "DefaultCallTimeout", 0
-			);
+		m_defaultDurationLimit = GkConfig()->GetInteger(CallTableSection, "DefaultCallTimeout", 0);
 	m_acctUpdateInterval = GkConfig()->GetInteger(CallTableSection, "AcctUpdateInterval", 0);
 	if( m_acctUpdateInterval != 0)
 		m_acctUpdateInterval = std::max(m_acctUpdateInterval, 10L);
 
 	m_timestampFormat = GkConfig()->GetString(CallTableSection, "TimestampFormat", "RFC822");
 	m_singleFailoverCDR = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "SingleFailoverCDR", "1"));
+    m_inactivityCheck = GkConfig()->GetBoolean(ProxySection, "RTPInactivityCheck", false);
+    PCaselessString sessionType = GkConfig()->GetString(ProxySection, "RTPInactivityCheckSession", "Audio");
+    if (sessionType == "Audio") {
+        m_inactivityCheckSession = 1;
+    } else if (sessionType == "Video") {
+        m_inactivityCheckSession = 2;
+    } else {
+        PTRACE(1, "CallTable\tError: You can only check audio or video sessions for inactivity");
+        m_inactivityCheckSession = 1; // default to audio
+    }
 }
 
 void CallTable::Insert(CallRec * NewRec)
@@ -5374,12 +5382,11 @@ void CallTable::CheckCalls(RasServer * rassrv)
 {
 	std::list<callptr> m_callsToDisconnect;
 	std::list<callptr> m_callsToUpdate;
-	time_t now;
+	time_t now = time(NULL);
 
 	{
 		WriteLock lock(listLock);
 		iterator Iter = CallList.begin(), eIter = CallList.end();
-		now = time(0);
 		while (Iter != eIter) {
 			if ((*Iter)->IsTimeout(now))
 				m_callsToDisconnect.push_back(callptr(*Iter));
@@ -5397,10 +5404,9 @@ void CallTable::CheckCalls(RasServer * rassrv)
 
 	std::list<callptr>::iterator call = m_callsToDisconnect.begin();
 	while (call != m_callsToDisconnect.end()) {
-		(*call)->SetDisconnectCause((*call)->IsConnected()
-			? Q931::ResourceUnavailable : Q931::TemporaryFailure
-			);
+		(*call)->SetDisconnectCause((*call)->IsConnected() ? Q931::ResourceUnavailable : Q931::TemporaryFailure);
 		(*call)->SetReleaseSource(CallRec::ReleasedByGatekeeper);
+
 		if (((*call)->GetNoRemainingRoutes() == 0)
 			|| (! (*call)->IsFailoverActive())
 			|| (now - (*call)->GetSetupTime() > (GetSignalTimeout() / 1000) * 5)) {
@@ -5423,6 +5429,17 @@ void CallTable::CheckCalls(RasServer * rassrv)
 			rassrv->LogAcctEvent(GkAcctLogger::AcctUpdate, *call, now);
 		++call;
 	}
+}
+
+void CallTable::CheckRTPInactive()
+{
+    WriteLock lock(listLock);
+    for (iterator iter = CallList.begin(); iter != CallList.end(); ++iter) {
+        if (m_inactivityCheck && (*iter)->IsRTPInactive(m_inactivityCheckSession)) {
+            PTRACE(1, "CallTable\tTerminating call because of RTP inactivity CallID " << AsString((*iter)->GetCallIdentifier().m_guid));
+            (*iter)->Disconnect();
+        }
+    }
 }
 
 #ifdef HAS_H460

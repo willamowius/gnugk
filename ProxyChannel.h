@@ -239,6 +239,7 @@ public:
                     WORD & _fSrcPort, WORD & _fDestPort, WORD & _rSrcPort, WORD & _rDestPort) const;
     void ZeroAllIPs();
     void ForwardAndReverseSeen() { PTRACE(7, "JW RTP ForwardAndReverseSeen"); m_forwardAndReverseSeen = true; }
+    bool IsRTPInactive() const;
 
 
 protected:
@@ -302,6 +303,7 @@ protected:
 	bool m_portDetectionDone;
 	bool m_forwardAndReverseSeen;   // did we see logical channels for both directions, yet ?
 	bool m_legacyPortDetection;
+	unsigned m_inactivityTimeout;
 	time_t m_lastPacketFromForwardSrc;
 	time_t m_lastPacketFromReverseSrc;
 };
@@ -427,6 +429,8 @@ public:
 	bool SetupResponseTokens(SignalingMsg * msg, GkH235Authenticators * auth, const endptr & ep);
 
 	CallSignalSocket * GetRemote() const { return dynamic_cast<CallSignalSocket *>(remote); }
+
+    bool IsRTPInactive(short session) const;
 
 protected:
 	void ForwardCall(FacilityMsg *msg);
@@ -719,7 +723,7 @@ public:
 	MultiplexedRTPHandler();
 	virtual ~MultiplexedRTPHandler();
 
-	virtual void OnReload() { /* currently not runtime changable */ }
+	virtual void OnReload() { /* currently not runtime changeable */ }
 
 	virtual void AddChannel(const H46019Session & cha);
 	virtual void UpdateChannelSession(const H225_CallIdentifier & callid, WORD flcn, void * openedBy, WORD session);

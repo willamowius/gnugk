@@ -1126,6 +1126,7 @@ public:
 
     void GetRTPPorts(PIPSocket::Address & fSrcIP, PIPSocket::Address & fDestIP, PIPSocket::Address & rSrcIP, PIPSocket::Address & rDestIP,
                         WORD & fSrcPort, WORD & dDestPort, WORD & rSrcPort, WORD & rDestPort) const;
+    bool IsRTPInactive() const;
 
 private:
 	void SetNAT(bool);
@@ -1250,8 +1251,8 @@ public:
 	H245ProxyHandler * GetPeer() const { return peer; }
 	void UpdateLogicalChannelSessionID(WORD flcn, WORD id);
 	LogicalChannel * FindLogicalChannel(WORD flcn);
-	RTPLogicalChannel * FindRTPLogicalChannelBySessionID(WORD id);
-	RTPLogicalChannel * FindRTPLogicalChannelBySessionType(RTPSessionTypes sessionType);
+	RTPLogicalChannel * FindRTPLogicalChannelBySessionID(WORD id) const;
+	RTPLogicalChannel * FindRTPLogicalChannelBySessionType(RTPSessionTypes sessionType) const;
 	bool UsesH46019() const { return m_useH46019; }
 	void SetTraversalRole(H46019TraversalType type) { m_traversalType = type; m_useH46019 = (type != None); }
 	H46019TraversalType GetTraversalRole() const { return m_traversalType; }
@@ -1269,6 +1270,8 @@ public:
 	void SetRoles(bool isCaller, bool isH245Master) { m_isCaller = isCaller; m_isH245Master = isH245Master; }
 	bool IsCaller() const { return m_isCaller; }
 	bool IsH245Master() const { return m_isH245Master; }
+    bool IsRTPInactive(short session) const;
+
 
 protected:
 	// override from class H245Handler
@@ -9059,6 +9062,17 @@ void CallSignalSocket::SetCallTypePlan(Q931 *q931)
 	}
 }
 
+bool CallSignalSocket::IsRTPInactive(short session) const
+{
+    H245ProxyHandler * proxyhandler = dynamic_cast<H245ProxyHandler *>(m_h245handler);
+    if (proxyhandler) {
+        return proxyhandler->IsRTPInactive(session);
+    } else {
+        return false;
+    }
+}
+
+
 // class H245Handler
 H245Handler::H245Handler(const PIPSocket::Address & local, const PIPSocket::Address & remote, const PIPSocket::Address & masq)
       : localAddr(local), remoteAddr(remote), masqAddr(masq), isH245ended(false), m_lastVideoFastUpdatePicture(0)
@@ -10980,6 +10994,7 @@ UDPProxySocket::UDPProxySocket(const char *t, const H225_CallIdentifier & id)
     }
     m_lastPacketFromForwardSrc = time(NULL);
     m_lastPacketFromReverseSrc = time(NULL);
+    m_inactivityTimeout = GkConfig()->GetInteger(ProxySection, "RTPInactivityTimeout", 300);    // 300 sec = 5 min
 }
 
 UDPProxySocket::~UDPProxySocket()
@@ -11254,6 +11269,20 @@ void UDPProxySocket::SetMediaIP(bool isSRC, const Address & ip)
 				(*m_call)->SetDST_media_IP(ip.AsString());
 		}
 	}
+}
+
+bool UDPProxySocket::IsRTPInactive() const
+{
+    time_t now = time(NULL);
+    if ( (fSrcIP != 0 && fSrcPort != 0) && (now - m_lastPacketFromForwardSrc > m_inactivityTimeout) ) {
+        PTRACE(1, "RTP\tTerminating call because of RTP inactivity from " << AsString(fSrcIP, fSrcPort) << " CallID " << AsString(m_callID.m_guid));
+        return true;
+    }
+    if ( (rSrcIP != 0 && rSrcPort != 0) && (now - m_lastPacketFromReverseSrc > m_inactivityTimeout) ) {
+        PTRACE(1, "RTP\tTerminating call because of RTP inactivity from " << AsString(rSrcIP, rSrcPort) << " CallID " << AsString(m_callID.m_guid));
+        return true;
+    }
+    return false;
 }
 
 // this method handles either RTP, RTCP or T.38 data
@@ -12540,6 +12569,11 @@ void RTPLogicalChannel::GetRTPPorts(PIPSocket::Address & fSrcIP, PIPSocket::Addr
     if (rtp) {
         rtp->GetPorts(fSrcIP, fDestIP, rSrcIP, rDestIP, fSrcPort, dDestPort, rSrcPort, rDestPort);
     }
+}
+
+bool RTPLogicalChannel::IsRTPInactive() const
+{
+    return (rtp && rtp->IsRTPInactive());
 }
 
 void RTPLogicalChannel::SetRTPSessionID(WORD id)
@@ -14330,21 +14364,31 @@ LogicalChannel * H245ProxyHandler::FindLogicalChannel(WORD flcn)
 	return (iter != logicalChannels.end()) ? iter->second : NULL;
 }
 
-RTPLogicalChannel * H245ProxyHandler::FindRTPLogicalChannelBySessionID(WORD id)
+RTPLogicalChannel * H245ProxyHandler::FindRTPLogicalChannelBySessionID(WORD id) const
 {
-	siterator iter = sessionIDs.find(id);
+	const_siterator iter = sessionIDs.find(id);
 	return (iter != sessionIDs.end()) ? iter->second : NULL;
 }
 
-RTPLogicalChannel * H245ProxyHandler::FindRTPLogicalChannelBySessionType(RTPSessionTypes sessionType)
+RTPLogicalChannel * H245ProxyHandler::FindRTPLogicalChannelBySessionType(RTPSessionTypes sessionType) const
 {
-	for (siterator iter = sessionIDs.begin(); iter != sessionIDs.end() ; ++iter) {
+	for (const_siterator iter = sessionIDs.begin(); iter != sessionIDs.end() ; ++iter) {
         if (iter->second->GetType() == sessionType) {
             RTPLogicalChannel * lc = iter->second;
             return lc;
         }
 	}
     return NULL;
+}
+
+bool H245ProxyHandler::IsRTPInactive(short session) const
+{
+    bool inactive = false;
+    RTPLogicalChannel * lc = FindRTPLogicalChannelBySessionID(session);
+    if (lc) {
+        inactive = lc->IsRTPInactive();
+    }
+    return inactive;
 }
 
 //void H245ProxyHandler::DumpChannels(const PString & msg, bool dumpPeer) const
