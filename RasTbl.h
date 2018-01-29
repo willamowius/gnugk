@@ -1214,8 +1214,8 @@ public:
 		true if the address has been retrieved successfully, false otherwise.
 	*/
 	bool GetSrcSignalAddr(
-		PIPSocket::Address& addr, /// will receive the IP address
-		WORD& port /// will receive the port number
+		PIPSocket::Address & addr, /// will receive the IP address
+		WORD & port /// will receive the port number
 		) const;
 
 	H225_TransportAddress GetDestSignalAddr() const;
@@ -1443,7 +1443,7 @@ public:
 #endif // HAS_H46018
 
 	// should we use TLS on the outgoing leg, incoming determined by port caller uses
-	bool ConnectWithTLS() const { return m_connectWithTLS || (m_Called && m_Called->UseTLS()); }	// per call dynamicly and config setting
+	bool ConnectWithTLS() const { return m_connectWithTLS || (m_Called && m_Called->UseTLS()); }	// per call dynamically and config setting
 	void SetConnectWithTLS(bool val) { m_connectWithTLS = val; }
 
 #ifdef HAS_H235_MEDIA
@@ -1454,6 +1454,8 @@ public:
     EncDir GetEncryptDirection() const { return m_encyptDir; }
 	BYTE GetNewDynamicPayloadType();
 #endif
+
+    bool IsRTPInactive(short session) const;
 
 private:
 	void SendDRQ();
@@ -1760,6 +1762,7 @@ public:
 	void CheckCalls(
 		RasServer* rassrv // to avoid call RasServer::Instance every second
 		);
+    void CheckRTPInactive();
 
 	void RemoveCall(const H225_DisengageRequest & obj_drq, const endptr &);
 	void RemoveCall(const callptr &);
@@ -1852,9 +1855,11 @@ private:
 	PString m_timestampFormat;
 	/// flag to trigger per call leg accounting
 	bool m_singleFailoverCDR;
+	bool m_inactivityCheck;
+    short m_inactivityCheckSession;
 
 	CallTable(const CallTable &);
-	CallTable& operator==(const CallTable &);
+	CallTable & operator==(const CallTable &);
 };
 
 // inline functions of EndpointRec

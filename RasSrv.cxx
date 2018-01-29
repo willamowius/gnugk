@@ -1612,8 +1612,10 @@ void RasServer::HouseKeeping()
 
 			ReadLock lock(ConfigReloadMutex);
 
-			if (!(count % 60)) // one minute
+			if (!(count % 60)) { // one minute
 				RegistrationTable::Instance()->CheckEndpoints();
+                CallTable::Instance()->CheckRTPInactive();
+			}
 
 			CallTable::Instance()->CheckCalls(this);
 
