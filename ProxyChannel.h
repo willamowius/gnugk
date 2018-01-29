@@ -800,7 +800,7 @@ public:
 	H46026RTPHandler();
 	virtual ~H46026RTPHandler();
 
-	virtual void OnReload() { /* currently not runtime changable */ }
+	virtual void OnReload() { /* currently not runtime changeable */ }
 
 	virtual void AddChannel(const H46026Session & chan);
 	virtual void ReplaceChannel(const H46026Session & chan);
