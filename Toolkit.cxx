@@ -273,7 +273,7 @@ Toolkit::RouteTable::RouteEntry::RouteEntry(
 	}
 	for (i = 0; i < it.GetSize(); ++i) {
 		const Address & ip = it[i].GetAddress();
-		if (Toolkit::Instance()->IsGKHome(ip) && Compare(&ip)) {    // skip IPs we don't listen to
+		if (Toolkit::Instance()->IsGKHome(ip) && CompareWithoutMask(&ip)) {    // skip IPs we don't listen to
 			destination = ip;
 			return;
 		}
@@ -286,7 +286,7 @@ Toolkit::RouteTable::RouteEntry::RouteEntry(
 	}
 }
 
-inline bool Toolkit::RouteTable::RouteEntry::Compare(const Address *ip) const
+inline bool Toolkit::RouteTable::RouteEntry::CompareWithoutMask(const Address *ip) const
 {
 	return (*ip == destination) || (((*ip & net_mask) == network) && (ip->GetVersion() == network.GetVersion()));
 }

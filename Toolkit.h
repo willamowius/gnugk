@@ -150,7 +150,7 @@ class Toolkit : public Singleton<Toolkit>
 		public:
 			RouteEntry(const PString &);
 			RouteEntry(const PIPSocket::RouteEntry &, const InterfaceTable &);
-			bool Compare(const Address *) const;
+			bool CompareWithoutMask(const Address *) const;
 			bool CompareWithMask(const Address *) const;
 		};
 		virtual bool CreateTable() { return CreateRouteTable(); }
