@@ -470,7 +470,7 @@ PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(const Address & addr) co
 		if (addr << m_internalnetworks[j]) {
 			// check if internal network is in route table, but don't use the default route
 			RouteEntry *entry = find_if(rtable_begin, rtable_end,
-				bind2nd(mem_fun_ref(&RouteEntry::Compare), &addr));
+				bind2nd(mem_fun_ref(&RouteEntry::CompareWithoutMask), &addr));
 			if ((entry != rtable_end) && (entry->GetNetMask() != INADDR_ANY)
 #ifdef hasIPV6
 				&& (entry->GetNetMask() != in6addr_any)
