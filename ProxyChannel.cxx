@@ -10703,7 +10703,7 @@ void MultiplexedRTPHandler::SessionCleanup(GkTimer* /* timer */)
 
 #ifdef HAS_H46026
 H46026Session::H46026Session()
-	: m_isValid(false), m_session(-1), m_osRTPSocket(.1), m_osRTCPSocket(-1)
+	: m_isValid(false), m_session(-1), m_osRTPSocket(-1), m_osRTCPSocket(-1)
 {
 #ifdef HAS_H235_MEDIA
 	m_encryptingLC = NULL;
