@@ -2135,9 +2135,9 @@ inline bool CallRec::IsUsed() const
     if (m_usedCount != 0)
         return true;
     // also consider all calls that ever connected as used until 30 sec after disconnect (due to late arriving RTP)
-    if ((m_disconnectTime > 0) && ((time(NULL) - m_disconnectTime) < WAIT_DELETE_AFTER_DISCONNECT))
+    if ((m_disconnectTime > 0) && ((unsigned)(time(NULL) - m_disconnectTime) < WAIT_DELETE_AFTER_DISCONNECT))
         return true;
-    if ((m_connectTime > 0) && ((time(NULL) - m_connectTime) < WAIT_DELETE_AFTER_DISCONNECT))
+    if ((m_connectTime > 0) && ((unsigned)(time(NULL) - m_connectTime) < WAIT_DELETE_AFTER_DISCONNECT))
         return true;
     return false;
 }
