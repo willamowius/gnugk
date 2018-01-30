@@ -610,7 +610,7 @@ public:
 
 	virtual bool Connect(const Address & addr);
 	virtual PBoolean Connect(const Address & iface, WORD localPort, const Address & addr);	// override from TCPProxySocket
-	virtual bool Read(void * buf, int sz);
+	virtual bool Read(void * buf, int sz, bool wantZeroReads = false);
 	virtual int GetLastReadCount() const { return m_lastReadCount; }
 	virtual bool Write(const void * buf, int sz);
 	virtual int GetLastWriteCount() const { return m_lastWriteCount; }

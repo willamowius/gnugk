@@ -14835,7 +14835,7 @@ PBoolean TLSCallSignalSocket::Connect(const Address & iface, WORD localPort, con
 	return result;
 }
 
-bool TLSCallSignalSocket::Read(void * buf, int sz)
+bool TLSCallSignalSocket::Read(void * buf, int sz, bool /* wantZeroReads */)
 {
 	if (!m_ssl) {
 		PTRACE(1, "TLS\tError: Not initialized");
