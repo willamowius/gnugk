@@ -1437,7 +1437,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
 				authenticators = new GkH235Authenticators;
 
 			if (aliases == NULL) {
-				PTRACE(3, "GKAUTH\t" << GetName() << " needa a user alias to authenticate");
+				PTRACE(3, "GKAUTH\t" << GetName() << " need a user alias to authenticate");
 				return e_fail;
 			}
 
