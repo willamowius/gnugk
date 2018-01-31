@@ -149,6 +149,8 @@ PBoolean H235AuthDesECB::SetCapability(H225_ArrayOf_AuthenticationMechanism & me
 PBoolean H235AuthDesECB::IsSecuredPDU(unsigned rasPDU, PBoolean received) const
 {
   switch (rasPDU) {
+    case H225_RasMessage::e_gatekeeperRequest :
+      return received ? !remoteId.IsEmpty() : !localId.IsEmpty();
     case H225_RasMessage::e_registrationRequest :
       return received ? !remoteId.IsEmpty() : !localId.IsEmpty();
 
