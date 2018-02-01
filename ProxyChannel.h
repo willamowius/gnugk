@@ -382,8 +382,8 @@ public:
     void SendStatusKeepAlive();
     void SendStatusInquiryKeepAlive();
 
-#ifdef HAS_H235_MEDIA
 	bool IsH245Master() const { return m_isH245Master; }
+#ifdef HAS_H235_MEDIA
     bool HandleH235TCS(H245_TerminalCapabilitySet & tcs);
     bool HandleH235OLC(H245_OpenLogicalChannel & olc);
 	void SendEncryptionUpdateCommand(WORD flcn, BYTE oldPT, BYTE plainPT);
@@ -567,9 +567,7 @@ private:
 	bool m_callToTraversalServer;
 	bool m_senderSupportsH46019Multiplexing;
 #endif
-#ifdef HAS_H235_MEDIA
 	bool m_isH245Master;
-#endif
 #ifdef HAS_H46026
 	H46026ChannelManager * m_h46026PriorityQueue;
 #endif

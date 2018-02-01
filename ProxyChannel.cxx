@@ -1769,8 +1769,8 @@ void CallSignalSocket::InternalInit()
 #endif
 #ifdef HAS_H235_MEDIA
 	m_setupClearTokens = NULL;
-	m_isH245Master = false;
 #endif
+	m_isH245Master = false;
 #ifdef HAS_H46026
 	if (Toolkit::Instance()->IsH46026Enabled() && GkConfig()->GetBoolean(RoutedSec, "UseH46026PriorityQueue", true)) {
 		m_h46026PriorityQueue = new H46026ChannelManager();
@@ -1832,8 +1832,8 @@ void CallSignalSocket::CleanupCall()
 	if (m_setupClearTokens)
 		delete m_setupClearTokens;
 	m_setupClearTokens = NULL;
-	m_isH245Master = false;
 #endif
+	m_isH245Master = false;
 	m_h225Version = 0;
 }
 #endif
@@ -12564,7 +12564,7 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 #endif
 	return (processed.GetSize() > 0);
 }
-#endif
+#endif // HAS_H235_MEDIA
 
 void RTPLogicalChannel::GetRTPPorts(PIPSocket::Address & fSrcIP, PIPSocket::Address & fDestIP, PIPSocket::Address & rSrcIP, PIPSocket::Address & rDestIP,
                                     WORD & fSrcPort, WORD & dDestPort, WORD & rSrcPort, WORD & rDestPort) const
@@ -13000,8 +13000,8 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 	m_multiplexedRTCPPort = (WORD)GkConfig()->GetInteger(ProxySection, "RTCPMultiplexPort", GK_DEF_MULTIPLEX_RTCP_PORT);
 #ifdef HAS_H235_MEDIA
 	m_isCaller = false;
-	m_isH245Master = false;
 #endif
+	m_isH245Master = false;
 }
 
 H245ProxyHandler::~H245ProxyHandler()
