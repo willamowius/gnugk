@@ -1349,7 +1349,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
             bool keepRouteInternal = false;
 
 			if (m_vqueue->SendRouteRequest(source, epid, unsigned(arq.m_callReferenceValue), aliases, callSigAdr, bindIP, callerID, callerDisplayIE, calledDisplayIE, reject, rejectReason, keepRouteInternal,
-                vq, AsString(arq.m_srcInfo), AsString(arq.m_callIdentifier.m_guid), calledIP, vendorInfo, fromIP, "ARQ")) {
+                vq, AsString(arq.m_srcInfo), AsString(arq.m_callIdentifier), calledIP, vendorInfo, fromIP, "ARQ")) {
                 if (keepRouteInternal) {
                     request.SetNewSetupInternalAliases(*request.GetAliases());
                 } else {
@@ -1503,7 +1503,7 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 		PString * callerID = new PString();
 		PString * callerDisplayIE = new PString();
 		PString * calledDisplayIE = new PString();
-		PString callid = AsString(setup.m_callIdentifier.m_guid);
+		PString callid = AsString(setup.m_callIdentifier);
 		PString src;
 		if (!request.GetCallingStationId().IsEmpty()) {
             H225_AliasAddress srcAlias;
@@ -1876,7 +1876,7 @@ bool DynamicPolicy::OnRequest(AdmissionRequest & request)
 		PString calledIP = "";	/* not available for ARQs */
 		PString caller = AsString(arq.m_srcInfo, FALSE);
 		PString callingStationId = request.GetCallingStationId();
-		PString callid = AsString(arq.m_callIdentifier.m_guid);
+		PString callid = AsString(arq.m_callIdentifier);
 		PString messageType = "ARQ";
 		PString clientauthid = request.GetClientAuthId();
 		PString language = ep->GetDefaultLanguage();
@@ -1996,7 +1996,7 @@ bool DynamicPolicy::OnRequest(SetupRequest & request)
 	PString calledIP = localAddr;	// TODO: only correct if a gatekeeper IP was called, should we use explicit IP if present ?
 	PString caller = request.GetCallingStationId();
 	PString callingStationId = request.GetCallingStationId();
-	PString callid = AsString(setup.m_callIdentifier.m_guid);
+	PString callid = AsString(setup.m_callIdentifier);
 	PString messageType = "Setup";
 	PString clientauthid = request.GetClientAuthId();
 	PString language = "";

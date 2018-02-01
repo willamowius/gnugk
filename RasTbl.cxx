@@ -3527,7 +3527,7 @@ PString CallRec::GenerateCDR(const PString & timestampFormat) const
 	}
 
 	return PString("CDR|" + PString(m_CallNumber)
-					+ "|" + AsString(m_callIdentifier.m_guid)
+					+ "|" + AsString(m_callIdentifier)
 					+ "|" + timeString
 					+ "|" + m_callerAddr
 					+ "|" + m_callerId
@@ -3569,11 +3569,11 @@ PString CallRec::PrintOn(bool verbose) const
 	const time_t timer = time(0) - m_timer;
 	const time_t left = m_timeout > timer ? m_timeout - timer : 0;
 
-    PString callid = AsString(m_callIdentifier.m_guid, true);
+    PString callid = AsString(m_callIdentifier, true);
 
 	PString result = PString(PString::Printf,
 		"Call No. %d | CallID %s | %ld | %ld\r\nDial %s\r\n",
-		m_CallNumber, (const char *)AsString(m_callIdentifier.m_guid), (unsigned long)timer, (unsigned long)left,
+		m_CallNumber, (const char *)AsString(m_callIdentifier), (unsigned long)timer, (unsigned long)left,
 		(const char *)m_destInfo)
 		// 1st ACF
 		+ "ACF|" + m_callerAddr
@@ -3612,7 +3612,7 @@ PString CallRec::PrintPorts() const
 {
 	PString result = PString(PString::Printf,
 		"Call No. %d | CallID %s | %ld | Dial %s\r\n",
-		m_CallNumber, (const char *)AsString(m_callIdentifier.m_guid),
+		m_CallNumber, (const char *)AsString(m_callIdentifier),
 		(unsigned long)(time(0) - m_timer), (const char *)m_destInfo)
 		+ m_callerAddr
 		+ "|" + m_srcInfo
@@ -3638,7 +3638,7 @@ PString CallRec::PrintFullInfo() const
 {
 	PString result;
 
-	result += "CallID: " + AsString(m_callIdentifier.m_guid, true) + "\r\n";
+	result += "CallID: " + AsString(m_callIdentifier, true) + "\r\n";
 	result += "Status: " + PString((m_connectTime != 0) ? "Connected" : "Establishing") + "\r\n";
 	PString callType = "Audio";
 	if (!GetCallerVideoCodec().IsEmpty() || !GetCalledVideoCodec().IsEmpty())
@@ -5436,7 +5436,7 @@ void CallTable::CheckRTPInactive()
     WriteLock lock(listLock);
     for (iterator iter = CallList.begin(); iter != CallList.end(); ++iter) {
         if (m_inactivityCheck && (*iter)->IsRTPInactive(m_inactivityCheckSession)) {
-            PTRACE(1, "CallTable\tTerminating call because of RTP inactivity CallID " << AsString((*iter)->GetCallIdentifier().m_guid));
+            PTRACE(1, "CallTable\tTerminating call because of RTP inactivity CallID " << AsString((*iter)->GetCallIdentifier()));
             (*iter)->Disconnect();
         }
     }
@@ -5659,7 +5659,7 @@ void CallTable::QoSReport(const H225_InfoRequestResponse & /* obj_irr */, const 
     H4609_QosMonitoringReportData report;
 	if (report.Decode(argStream) && report.GetTag() == H4609_QosMonitoringReportData::e_periodic) {
 		PTRACE(5, "QoS\tReport " << report);
-		OnQosMonitoringReport(AsString(call->GetCallIdentifier().m_guid), ep, report);
+		OnQosMonitoringReport(AsString(call->GetCallIdentifier()), ep, report);
 	} else {
 		PTRACE(4, "QoS\tIRR Call Statistics decode failure");
 	}
@@ -5710,7 +5710,7 @@ void CallTable::RemoveCall(const callptr & call)
 
 void CallTable::InternalRemovePtr(CallRec *call)
 {
-	PTRACE(6, "GK\tRemoving callptr: " << AsString(call->GetCallIdentifier().m_guid));
+	PTRACE(6, "GK\tRemoving callptr: " << AsString(call->GetCallIdentifier()));
 	WriteLock lock(listLock);
 	InternalRemove(find(CallList.begin(), CallList.end(), call));
 }
@@ -5719,7 +5719,7 @@ void CallTable::RemoveFailedLeg(const callptr & call)
 {
 	if (call) {
 		CallRec *callrec = call.operator->();
-		PTRACE(6, "GK\tRemoving callptr: " << AsString(call->GetCallIdentifier().m_guid));
+		PTRACE(6, "GK\tRemoving callptr: " << AsString(call->GetCallIdentifier()));
 		WriteLock lock(listLock);
 		InternalRemoveFailedLeg(find(CallList.begin(), CallList.end(), callrec));
 	}

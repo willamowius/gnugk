@@ -581,7 +581,7 @@ int LuaAuth::Check(
 		PString calledIP = "";	/* not available for ARQs */
 		PString caller = AsString(arq.m_srcInfo, FALSE);
 		PString callingStationId = authData.m_callingStationId;
-		PString callid = AsString(arq.m_callIdentifier.m_guid);
+		PString callid = AsString(arq.m_callIdentifier);
 		PString srcinfo = AsString(arq.m_srcInfo, false);
 		PString vendor;
         if (ep->GetEndpointType().HasOptionalField(H225_EndpointType::e_vendor)) {
@@ -621,7 +621,7 @@ int LuaAuth::Check(
 		calledIP = AsDotString(setup_uuie.m_destCallSignalAddress);
 	PString callingStationId = GetCallingStationId(setup, authData);
 	PString caller = callingStationId;
-	PString callid = AsString(setup_uuie.m_callIdentifier.m_guid);
+	PString callid = AsString(setup_uuie.m_callIdentifier);
 	PString srcinfo;
 	if (setup.GetUUIEBody().HasOptionalField(H225_Setup_UUIE::e_sourceAddress)
         && setup.GetUUIEBody().m_sourceAddress.GetSize() > 0) {

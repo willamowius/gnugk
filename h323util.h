@@ -67,6 +67,8 @@ PString AsString(const H225_ArrayOf_AliasAddress & terminalAlias, bool includeAl
 
 PString AsString(const PASN_OctetString & Octets, bool noSpaces = false);
 
+PString AsString(const H225_CallIdentifier & callid, bool noSpaces = false);
+
 PString StripAliasType(const PString & alias);
 
 // check if an alias is a valid US 10 digit or 11 digit number (no formatting allowed)
@@ -184,7 +186,7 @@ inline unsigned AliasAddressTagMask(unsigned tag) { return 1U << tag; }
     A string with the alias found or an empty string if there was no match.
 */
 PString GetBestAliasAddressString(
-	const H225_ArrayOf_AliasAddress& aliases, /// aliases to be searched
+	const H225_ArrayOf_AliasAddress & aliases, /// aliases to be searched
 	bool exactMatch, /// search only specified tags or find any alias
 	unsigned primaryTags, /// ORed tag flags (BestAliasTagMask)
 	unsigned secondaryTags = 0 /// ORed tag flags (BestAliasTagMask)
@@ -198,7 +200,7 @@ PString GetBestAliasAddressString(
     A string with properly formatted identifier.
 */
 PString GetGUIDString(
-	const H225_GloballyUniqueID& id, /// 128-bit identifier to convert
+	const H225_GloballyUniqueID & id, /// 128-bit identifier to convert
 	bool fixedLength = false /// skip leading zeros (false) or not (true)
 	);
 
@@ -212,8 +214,8 @@ H225_CallIdentifier StringToCallId(PString CallId);
     An index of the alias on the list or P_MAX_INDEX if the alias is not found.
 */
 PINDEX FindAlias(
-	const H225_ArrayOf_AliasAddress& aliases, /// the list of aliases to check
-	const PString& alias /// alias to find on the list
+	const H225_ArrayOf_AliasAddress & aliases, /// the list of aliases to check
+	const PString & alias /// alias to find on the list
 	);
 
 /** Check if the given alias matches the prefix. The prefix can be preceeded

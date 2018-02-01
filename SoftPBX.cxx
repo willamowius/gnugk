@@ -331,7 +331,7 @@ void SoftPBX::SendProceeding(const PString & CallId)
 			return;
 		}
 	} else {
-		PString msg("No call to send CallProceeding! " + AsString(cid.m_guid));
+		PString msg("No call to send CallProceeding! " + AsString(cid));
 		PTRACE(1, "GK\tSoftPBX: " + msg);
 		GkStatus::Instance()->SignalStatus(msg + "\r\n");
 		return;

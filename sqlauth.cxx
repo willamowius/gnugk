@@ -646,7 +646,7 @@ int SQLAuth::Check(
 	params["bandwidth"] = PString(arq.m_bandWidth.GetValue());
 	params["answer"] = arq.m_answerCall ? "1" : "0";
 	params["arq"] = "1";
-	params["CallId"] = AsString(arq.m_callIdentifier.m_guid);
+	params["CallId"] = AsString(arq.m_callIdentifier);
 	params["SrcInfo"] = AsString(arq.m_srcInfo, false);
     params["Vendor"] = "";
     endptr ep = RegistrationTable::Instance()->FindByEndpointId(arq.m_endpointIdentifier);
@@ -884,7 +884,7 @@ int SQLAuth::Check(
 	params["Dialed-Number"] = GetDialedNumber(setup, authData);
 	params["answer"] = "0";
 	params["arq"] = "0";
-	params["CallId"] = AsString(setup.GetUUIEBody().m_callIdentifier.m_guid);
+	params["CallId"] = AsString(setup.GetUUIEBody().m_callIdentifier);
     params["SrcInfo"] = "";
 	if (setup.GetUUIEBody().HasOptionalField(H225_Setup_UUIE::e_sourceAddress)
         && setup.GetUUIEBody().m_sourceAddress.GetSize() > 0) {

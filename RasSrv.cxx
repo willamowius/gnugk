@@ -3790,7 +3790,7 @@ bool AdmissionRequestPDU::BuildReply(int reason, bool h460, CallRec * rec)
 				+ "|" + PString(request.m_callReferenceValue)
 				+ "|" + destinationString
 				+ "|" + srcInfo;
-		PString callid = AsString(request.m_callIdentifier.m_guid);
+		PString callid = AsString(request.m_callIdentifier);
 		callid.Replace(" ", "-", true);
 		log += PString("|") + callid;
 		log += PString("|") + (rec ? rec->GetMediaRouting() : " ");
@@ -3802,7 +3802,7 @@ bool AdmissionRequestPDU::BuildReply(int reason, bool h460, CallRec * rec)
 				+ "|" + destinationString
 				+ "|" + srcInfo
 				+ "|" + answerCall;
-		PString callid = AsString(request.m_callIdentifier.m_guid);
+		PString callid = AsString(request.m_callIdentifier);
 		callid.Replace(" ", "-", true);
 		log += PString("|") + callid;
 		log += PString("|") + (rec ? rec->GetMediaRouting() : " ");
@@ -3824,7 +3824,7 @@ bool AdmissionRequestPDU::BuildReply(int reason, bool h460, CallRec * rec)
 				+ "|" + srcInfo
 				+ "|" + answerCall
 				+ "|" + arj.m_rejectReason.GetTagName();
-		PString callid = AsString(request.m_callIdentifier.m_guid);
+		PString callid = AsString(request.m_callIdentifier);
 		callid.Replace(" ", "-", true);
 		log += PString("|") + callid;
 		log += PString(";");
@@ -3961,7 +3961,7 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 				(unsigned) request.m_callReferenceValue,
 				(const unsigned char *) drj.m_rejectReason.GetTagName()
 		      	);
-		PString callid = AsString(request.m_callIdentifier.m_guid);
+		PString callid = AsString(request.m_callIdentifier);
 		callid.Replace(" ", "-", true);
 		log += PString("|") + callid;
 		log += PString(";");
@@ -3974,7 +3974,7 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 				(unsigned) request.m_callReferenceValue,
 				(const unsigned char *) request.m_disengageReason.GetTagName()
 		      	);
-		PString callid = AsString(request.m_callIdentifier.m_guid);
+		PString callid = AsString(request.m_callIdentifier);
 		callid.Replace(" ", "-", true);
 		log += PString("|") + callid;
 		log += PString(";");
@@ -4465,7 +4465,7 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 						incomingCall = true;
 						H225_TransportAddress sigAddr = incomingIndication.m_callSignallingAddress;
 						PTRACE(2, "Incomming H.460.18 call from neighbor/parent sigAdr=" << AsDotString(sigAddr)
-							<< " callID=" << AsString(incomingIndication.m_callID.m_guid) << " TLS=" << useTLS);
+							<< " callID=" << AsString(incomingIndication.m_callID) << " TLS=" << useTLS);
 						CallSignalSocket * outgoingSocket = NULL;
 #ifdef HAS_TLS
 						if (Toolkit::Instance()->IsTLSEnabled() && useTLS) {

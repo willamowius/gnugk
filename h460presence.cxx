@@ -1659,13 +1659,13 @@ void GkPresence::OnSubscription(MsgType tag, const H460P_PresenceSubscription & 
 		H460P_PresencePDU msg;
 		BuildSubscriptionMsg(subscription,msg);
 		if (!HandleForwardPresence(subscription.m_identifier, msg)) {
-			PTRACE(2, "PRES\tSubscription received " << AsString(subscription.m_identifier.m_guid) << " from " << AsString(addr,0) << " not handled");
+			PTRACE(2, "PRES\tSubscription received " << AsString(subscription.m_identifier) << " from " << AsString(addr, 0) << " not handled");
 			return;
 		}
 	}
 
 	// Handle the senders side
-	for (PINDEX i=0; i<subscription.m_aliases.GetSize(); i++) {
+	for (PINDEX i = 0; i<subscription.m_aliases.GetSize(); i++) {
 #ifdef HAS_H460P_VER_1
 		const H225_AliasAddress & sub = subscription.m_aliases[i];
 #else

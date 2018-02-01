@@ -4364,17 +4364,17 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 	if (!m_call) {
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
 			m_call = CallTable::Instance()->FindCallRec(setupBody.m_callIdentifier);
-			callid = AsString(setupBody.m_callIdentifier.m_guid);
+			callid = AsString(setupBody.m_callIdentifier);
 		} else { // try CallReferenceValue
 			PTRACE(3, Type() << "\tSetup_UUIE from " << Name() << " doesn't contain CallIdentifier!");
 			H225_CallReferenceValue crv;
 			crv.SetValue(msg->GetCallReference());
 			m_call = CallTable::Instance()->FindCallRec(crv);
 			H225_CallIdentifier callIdentifier; // empty callIdentifier
-			callid = AsString(callIdentifier.m_guid);
+			callid = AsString(callIdentifier);
 		}
 	} else
-		callid = AsString(m_call->GetCallIdentifier().m_guid);
+		callid = AsString(m_call->GetCallIdentifier());
 
 #ifdef HAS_H46026
 	// now that we have a call associated with this socket, set the H.460.26 pipe bandwidth
@@ -4576,7 +4576,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 			rejectCall = true;
 			// suppress 2nd AcctStart for same callid
 			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
-				secondSetup = (AsString(m_call->GetCallIdentifier().m_guid) == AsString(setupBody.m_callIdentifier.m_guid));
+				secondSetup = (AsString(m_call->GetCallIdentifier()) == AsString(setupBody.m_callIdentifier));
 			}
 		} else if (m_call->IsToParent() && !m_call->IsForwarded()) {
 			if (gkClient->CheckFrom(_peerAddr)) {
@@ -6804,7 +6804,7 @@ bool CallSignalSocket::OnH450CallTransfer(PASN_OctetString * argument)
 				CreateJob(m_call->GetCallSignalSocketCalling(), &CallSignalSocket::RerouteCaller, remoteParty, "Reroute to " + remoteParty);
 			}
 		} else {
-			PString callid = AsString(m_call->GetCallIdentifier().m_guid);
+			PString callid = AsString(m_call->GetCallIdentifier());
 			callid.Replace(" ", "-", true);
 			PCaselessString which = (this == m_call->GetCallSignalSocketCalling()) ? "called" : "calling";
 			SoftPBX::TransferCall(callid, which, remoteParty, method);
@@ -7728,7 +7728,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 				}
 				m_result = DelayedConnecting;	// don't forward, this was just to open the connection
 			} else {
-				PTRACE(1, "No matching call found for callid " << facilityBody.m_callIdentifier.m_guid << " will forward");
+				PTRACE(1, "No matching call found for callid " << AsString(facilityBody.m_callIdentifier) << " will forward");
 			}
 		}
 		break;
@@ -10100,7 +10100,8 @@ void H46019Session::Dump() const
 			<< " IDfromA=" << m_multiplexID_fromA << " IDtoA=" << m_multiplexID_toA
 			<< " IDfromB=" << m_multiplexID_fromB << " IDtoB=" << m_multiplexID_toB
 			<< " addrA=" << AsString(m_addrA) << " addrA_RTCP=" << AsString(m_addrA_RTCP)
-			<< " addrB=" << AsString(m_addrB) << " addrB_RTCP=" << AsString(m_addrB_RTCP));
+			<< " addrB=" << AsString(m_addrB) << " addrB_RTCP=" << AsString(m_addrB_RTCP)
+			<< " callID=" << AsString(m_callid));
 #ifdef HAS_H235_MEDIA
 	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
 		PTRACE(7, "JW session=" << m_session << " encryptLC=" << m_encryptingLC << " decryptLC=" << m_decryptingLC);
@@ -10127,7 +10128,7 @@ void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddre
         return;
 	callptr call = CallTable::Instance()->FindCallRecByValue(m_callid);
 	if (!call) {
-        PTRACE(5, "RTPM\tCan't find call " << AsString(m_callid.m_guid));
+        PTRACE(5, "RTPM\tCan't find call " << AsString(m_callid));
         return;
     }
 	// re-check deleted status after waiting for call table lock
@@ -10676,18 +10677,21 @@ void MultiplexedRTPHandler::SessionCleanup(GkTimer* /* timer */)
 		} else {
             // inactivity check
             if (m_inactivityCheck && iter->m_session == m_inactivityCheckSession) {
+                bool terminate = false;
                 if (iter->m_multiplexID_fromA != INVALID_MULTIPLEX_ID && (now - iter->m_lastPacketFromA > m_inactivityTimeout) ) {
-                    PTRACE(1, "RTPM\tTerminating call because of RTP inactivity from " << iter->m_addrA << " CallID " << AsString(iter->m_callid.m_guid));
-                    callptr call = CallTable::Instance()->FindCallRec(iter->m_callid);
-                    if (call) {
-                        call->Disconnect();
-                    }
+                    PTRACE(1, "RTPM\tTerminating call because of RTP inactivity from " << iter->m_addrA << " CallID " << AsString(iter->m_callid));
+                    terminate = true;
                 }
                 if (iter->m_multiplexID_fromB != INVALID_MULTIPLEX_ID && (now - iter->m_lastPacketFromB > m_inactivityTimeout) ) {
-                    PTRACE(1, "RTPM\tTerminating call because of RTP inactivity from " << iter->m_addrB << " CallID " << AsString(iter->m_callid.m_guid));
+                    PTRACE(1, "RTPM\tTerminating call because of RTP inactivity from " << iter->m_addrB << " CallID " << AsString(iter->m_callid));
+                    terminate = true;
+                }
+                if (terminate) {
                     callptr call = CallTable::Instance()->FindCallRec(iter->m_callid);
                     if (call) {
                         call->Disconnect();
+                    } else {
+                        PTRACE(1, "RTPM\tError: Can't find call to terminate");
                     }
                 }
             }
@@ -10747,7 +10751,7 @@ void H46026Session::Send(void * data, unsigned len, bool isRTCP)
 void H46026Session::Dump() const
 {
 	PTRACE(7, "JW H46026Session: session=" << m_session
-//			<< " callID=" << AsString(m_callid.m_guid)
+//			<< " callID=" << AsString(m_callid)
 			<< " osRTPSocket=" << m_osRTPSocket << " toRTP=" << m_toAddressRTP
 			<< " osRTCPSocket=" << m_osRTCPSocket << " toRTCP=" << m_toAddressRTCP);
 #ifdef HAS_H235_MEDIA
@@ -10897,7 +10901,7 @@ bool H46026RTPHandler::HandlePacket(const H225_CallIdentifier & callid, H46026_U
 			return true;
 		}
 	}
-	PTRACE(3, "H46026\tWarning: Didn't find a H.460.26 channel for session " << data.m_sessionId << " of callID " << AsString(callid.m_guid));
+	PTRACE(3, "H46026\tWarning: Didn't find a H.460.26 channel for session " << data.m_sessionId << " of callID " << AsString(callid));
 	return false;
 }
 
@@ -11275,11 +11279,11 @@ bool UDPProxySocket::IsRTPInactive() const
 {
     time_t now = time(NULL);
     if ( (fSrcIP != 0 && fSrcPort != 0) && (now - m_lastPacketFromForwardSrc > m_inactivityTimeout) ) {
-        PTRACE(1, "RTP\tTerminating call because of RTP inactivity from " << AsString(fSrcIP, fSrcPort) << " CallID " << AsString(m_callID.m_guid));
+        PTRACE(1, "RTP\tTerminating call because of RTP inactivity from " << AsString(fSrcIP, fSrcPort) << " CallID " << AsString(m_callID));
         return true;
     }
     if ( (rSrcIP != 0 && rSrcPort != 0) && (now - m_lastPacketFromReverseSrc > m_inactivityTimeout) ) {
-        PTRACE(1, "RTP\tTerminating call because of RTP inactivity from " << AsString(rSrcIP, rSrcPort) << " CallID " << AsString(m_callID.m_guid));
+        PTRACE(1, "RTP\tTerminating call because of RTP inactivity from " << AsString(rSrcIP, rSrcPort) << " CallID " << AsString(m_callID));
         return true;
     }
     return false;

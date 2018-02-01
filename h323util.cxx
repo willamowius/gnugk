@@ -282,6 +282,11 @@ PString AsString(const PASN_OctetString & Octets, bool noSpaces)
 	return result;
 }
 
+PString AsString(const H225_CallIdentifier & callid, bool noSpaces)
+{
+    return AsString(callid.m_guid, noSpaces);
+}
+
 PString AsString(const PBYTEArray & array)
 {
 	PString result;
