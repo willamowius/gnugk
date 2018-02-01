@@ -10689,7 +10689,7 @@ void MultiplexedRTPHandler::SessionCleanup(GkTimer* /* timer */)
                 if (terminate) {
                     callptr call = CallTable::Instance()->FindCallRec(iter->m_callid);
                     if (call) {
-                        call->Disconnect();
+                        call->Disconnect(true);
                     } else {
                         PTRACE(1, "RTPM\tError: Can't find call to terminate");
                     }

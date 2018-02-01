@@ -3439,6 +3439,7 @@ void CallRec::Disconnect(bool force)
 	if ((force || Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "DropCallsByReleaseComplete", "0"))) && (m_callingSocket || m_calledSocket)) {
 		SendReleaseComplete();
 	} else {
+	    // TODO: also use SendReleaseComplete() if one party is unregistered ?!
 		SendDRQ();
     }
 
@@ -5437,7 +5438,7 @@ void CallTable::CheckRTPInactive()
     for (iterator iter = CallList.begin(); iter != CallList.end(); ++iter) {
         if (m_inactivityCheck && (*iter)->IsRTPInactive(m_inactivityCheckSession)) {
             PTRACE(1, "CallTable\tTerminating call because of RTP inactivity CallID " << AsString((*iter)->GetCallIdentifier()));
-            (*iter)->Disconnect();
+            (*iter)->Disconnect(true);
         }
     }
 }
