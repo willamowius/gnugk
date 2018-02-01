@@ -10,9 +10,9 @@ The following instructions are an example of how to compile GnuGk from source on
 First make sure your system is up-to-date and install the tools needed for the compile
 <verb>
 sudo apt-get update
-sudo apt-get install flex bison build-essential git pkg-config automake linuxdoc-tools
+sudo apt-get install flex bison build-essential git pkg-config automake linuxdoc-tools libssl-dev
 </verb>
-Also make sure the "...-devel" packages for all databases or LDAP servers you want to use are installed.
+Also make sure the "...-dev" packages for all databases or LDAP servers you want to use are installed.
 <p>
 <bf>NOTE</bf>: It's recommended that you do not use the latest PTLib from SourceForge; it is undergoing
 many changes that are incompatible with GnuGk. Use our patched version PTLib 2.10.9.
