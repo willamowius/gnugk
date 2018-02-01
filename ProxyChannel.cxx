@@ -10687,7 +10687,9 @@ void MultiplexedRTPHandler::SessionCleanup(GkTimer* /* timer */)
                     PTRACE(1, "RTPM\tTerminating call because of RTP inactivity from " << iter->m_addrB << " CallID " << AsString(iter->m_callid.m_guid));
                     callptr call = CallTable::Instance()->FindCallRec(iter->m_callid);
                     if (call) {
-                        call->Disconnect();
+                        call->Disconnect(true);
+                    } else {
+                        PTRACE(1, "RTPM\tError: Can't find call to terminate");
                     }
                 }
             }
