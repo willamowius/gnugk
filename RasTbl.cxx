@@ -3439,7 +3439,10 @@ void CallRec::Disconnect(bool force)
 	if ((force || Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "DropCallsByReleaseComplete", "0"))) && (m_callingSocket || m_calledSocket)) {
 		SendReleaseComplete();
 	} else {
-	    // TODO: also use SendReleaseComplete() if one party is unregistered ?!
+	    // also use SendReleaseComplete() if at least one party is unregistered
+	    if ((!GetCallingParty() || !GetCalledParty()) && (m_callingSocket || m_calledSocket)) {
+            SendReleaseComplete();
+	    }
 		SendDRQ();
     }
 
