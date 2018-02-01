@@ -1438,7 +1438,9 @@ public:
 	void SetSessionMultiplexDestination(WORD session, void * openedBy, bool isRTCP, const IPAndPortAddress & toAddress, H46019Side side);
 	bool IgnoreSignaledIPs() const { return m_ignoreSignaledIPs; }
 	void SetIgnoreSignaledIPs(bool val) { m_ignoreSignaledIPs = val; }
-#endif
+#else
+	bool IgnoreSignaledIPs() const { return false; }
+#endif // HAS_H46018
 
 	// should we use TLS on the outgoing leg, incoming determined by port caller uses
 	bool ConnectWithTLS() const { return m_connectWithTLS || (m_Called && m_Called->UseTLS()); }	// per call dynamically and config setting
