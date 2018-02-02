@@ -106,11 +106,6 @@ GkAcctLogger::Status StatusAcct::Log(GkAcctLogger::AcctEvent evt, const endptr &
 	return Ok;
 }
 
-PString StatusAcct::EscapeAcctParam(const PString & param) const
-{
-	return param;	// don't quote here, quote in template if needed
-}
-
 // override output format of callid
 PString StatusAcct::ReplaceAcctParams(
 		/// parametrized accounting string

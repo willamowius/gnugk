@@ -49,9 +49,6 @@ public:
 	virtual Status Log(AcctEvent evt, const endptr & ep);
 
 	/// overridden from GkAcctLogger
-	virtual PString EscapeAcctParam(const PString & param) const;
-
-	/// overridden from GkAcctLogger
 	PString ReplaceAcctParams(
 		/// parametrized accounting string
 		const PString & cdrStr,
