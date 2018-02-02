@@ -2,7 +2,7 @@
 //
 // snmp.cxx for GNU Gatekeeper
 //
-// Copyright (c) 2012-2014, Jan Willamowius
+// Copyright (c) 2012-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -285,7 +285,7 @@ void NetSNMPAgent::Run()
 	} else {
 		// run as AgentX sub-agent
 		netsnmp_ds_set_boolean(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_ROLE, 1);
-		// use 127.0.0.1:705 by default, can be overriden in $HOME/.snmp/agentx.conf
+		// use 127.0.0.1:705 by default, can be overridden in $HOME/.snmp/agentx.conf
 		netsnmp_ds_set_string(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_AGENT_X_SOCKET, "tcp:127.0.0.1:705");
 		netsnmp_enable_subagent();
 	}

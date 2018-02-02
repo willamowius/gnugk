@@ -3,7 +3,7 @@
  *
  * accounting module for GNU Gatekeeper that sends it's output to the status port.
  *
- * Copyright (c) 2005-2016, Jan Willamowius
+ * Copyright (c) 2005-2018, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -42,16 +42,16 @@ public:
 	/// Destroy the accounting logger
 	virtual ~StatusAcct();
 
-	/// overriden from GkAcctLogger
+	/// overridden from GkAcctLogger
 	virtual Status Log(AcctEvent evt, const callptr & call);
 
-	/// overriden from GkAcctLogger
+	/// overridden from GkAcctLogger
 	virtual Status Log(AcctEvent evt, const endptr & ep);
 
-	/// overriden from GkAcctLogger
+	/// overridden from GkAcctLogger
 	virtual PString EscapeAcctParam(const PString & param) const;
 
-	/// overriden from GkAcctLogger
+	/// overridden from GkAcctLogger
 	PString ReplaceAcctParams(
 		/// parametrized accounting string
 		const PString & cdrStr,

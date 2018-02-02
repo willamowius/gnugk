@@ -165,7 +165,7 @@ public:
 
 	/** Load additional endpoint settings from the config file.
 	    Derived classes should call LoadConfig method of their base class
-	    at the beginning of the overriden LoadConfig.
+	    at the beginning of the overridden LoadConfig.
 
 	    @return
 		True if the configuration has been updated successfully.

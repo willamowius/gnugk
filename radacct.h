@@ -51,7 +51,7 @@ public:
 	/// Destroy the accounting logger
 	virtual ~RadAcct();
 
-	/// overriden from GkAcctLogger
+	/// overridden from GkAcctLogger
 	virtual Status Log(AcctEvent evt, const callptr & call);
 
 private:

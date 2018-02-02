@@ -44,10 +44,10 @@ public:
 	/// Destroy the accounting logger
 	virtual ~SyslogAcct();
 
-	/// overriden from GkAcctLogger
+	/// overridden from GkAcctLogger
 	virtual Status Log(AcctEvent evt, const callptr & call);
 
-	/// overriden from GkAcctLogger
+	/// overridden from GkAcctLogger
 	virtual PString EscapeAcctParam(const PString & param) const;
 
 private:
@@ -55,7 +55,7 @@ private:
 	/* No copy constructor allowed */
 	SyslogAcct(const SyslogAcct &);
 	/* No operator= allowed */
-	SyslogAcct& operator=(const SyslogAcct &);
+	SyslogAcct & operator=(const SyslogAcct &);
 
 private:
 	/// parametrized string for the call start event

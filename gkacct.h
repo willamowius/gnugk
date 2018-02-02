@@ -5,7 +5,7 @@
  * support for accounting to the gatekeeper.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2005-2016, Jan Willamowius
+ * Copyright (c) 2005-2018, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -69,7 +69,7 @@ public:
 		AcctOn = 0x0008, /// accounting enabled (GK start)
 		AcctOff = 0x0010, /// accounting disabled (GK stop)
 		AcctConnect = 0x0020, /// call connected
-		AcctAlert = 0x0040, /// call allerting
+		AcctAlert = 0x0040, /// call alerting
 		AcctRegister = 0x0100, /// endpoint registered
 		AcctUnregister = 0x0200, /// endpoint unregistered
 		AcctAll = -1,
@@ -88,7 +88,7 @@ public:
 	virtual ~GkAcctLogger();
 
 	/** @return
-		Control flag determining processing behaviour for this module
+		Control flag determining processing behavior for this module
 		(optional,sufficient,required).
 	*/
 	Control GetControlFlag() const { return m_controlFlag; }
@@ -247,13 +247,13 @@ private:
 	GkAcctLogger & operator=(const GkAcctLogger &);
 
 private:
-	/// processing behaviour (see #Control enum#)
+	/// processing behavior (see #Control enum#)
 	Control m_controlFlag;
 	/// status for "default" logger - accept (Ok) or reject (Fail)
 	Status m_defaultStatus;
 	/// ORed #AcctEvent enum# constants - define which events are logged
 	int m_enabledEvents;
-	/// all supported (recongized) event types ORed together
+	/// all supported (recognized) event types ORed together
 	int m_supportedEvents;
 	/// module settings
 	PConfig* m_config;
@@ -308,7 +308,7 @@ public:
 
 protected:
 	/** Called to get CDR text to be stored in the CDR file.
-		Can be overriden to provide custom CDR text.
+		Can be overridden to provide custom CDR text.
 
 		@return
 		true if the text is available, false otherwise
@@ -430,7 +430,7 @@ public:
 	/** Get a module information string for the selected module.
 
 	    @return
-		The module information string for status port diplay.
+		The module information string for status port display.
 	*/
 	PString GetInfo(
 		const PString & moduleName /// module to retrieve information for

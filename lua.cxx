@@ -4,7 +4,7 @@
 //
 // LUA routing and authentication policies for GNU Gatekeeper
 //
-// Copyright (c) 2012-2017, Jan Willamowius
+// Copyright (c) 2012-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -364,7 +364,7 @@ public:
 
 	virtual ~LuaAuth();
 
-	// overriden from class GkAuthenticator
+	// overridden from class GkAuthenticator
 //	virtual int Check(RasPDU<H225_UnregistrationRequest> & req, unsigned & rejectReason);
 //	virtual int Check(RasPDU<H225_BandwidthRequest> & req, unsigned & rejectReason);
 //	virtual int Check(RasPDU<H225_DisengageRequest> & req, unsigned & rejectReason);
@@ -842,10 +842,10 @@ public:
 	/// Destroy the accounting logger
 	virtual ~LuaAcct();
 
-	/// overriden from GkAcctLogger
+	/// overridden from GkAcctLogger
 	virtual Status Log(AcctEvent evt, const callptr & call);
 
-	/// overriden from GkAcctLogger
+	/// overridden from GkAcctLogger
 	virtual Status Log(AcctEvent evt, const endptr & ep);
 
 private:

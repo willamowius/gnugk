@@ -2,7 +2,7 @@
 //
 // gkauth.h
 //
-// Copyright (c) 2001-2017, Jan Willamowius
+// Copyright (c) 2001-2018, Jan Willamowius
 //
 // Gatekeeper authentication modules
 //
@@ -149,7 +149,7 @@ struct ARQAuthData
 
 	/// -1 if not set, H225_AdmissionRejectReason enum otherwise
 	int m_rejectReason;
-	/// -1 if not set, max allowe call duration in seconds otherwise
+	/// -1 if not set, max allowed call duration in seconds otherwise
 	long m_callDurationLimit;
 	/// disabled codecs
 	PString m_disabledcodecs;
@@ -208,7 +208,7 @@ struct SetupAuthData
 	int m_rejectReason;
 	/// -1 if not set, Q931 cause value otherwise
 	int m_rejectCause;
-	/// -1 if not set, max allowe call duration in seconds otherwise
+	/// -1 if not set, max allowed call duration in seconds otherwise
 	long m_callDurationLimit;
 	/// disabled codecs
 	PString m_disabledcodecs;
@@ -363,7 +363,7 @@ public:
 		) const;
 
 	/** @return
-	    Control flag determining authenticator behaviour
+	    Control flag determining authenticator behavior
 	    (optional, sufficient, required).
 	*/
 	Control GetControlFlag() const { return m_controlFlag; }
@@ -381,11 +381,11 @@ public:
 		{ return (m_enabledMiscChecks & m_supportedMiscChecks & miscCheck) == miscCheck; }
 
     /** @return
-        Enum code for supported checks for thsi Q.931 message type
+        Enum code for supported checks for this Q.931 message type
     */
     int AuthEnum(unsigned msgCode) const;
 
-	/** Virtual methods overriden in derived classes to perform
+	/** Virtual methods overridden in derived classes to perform
 		the actual authentication. The first parameter is a request
 	    to be checked, the second is a H225_XXXRejectReason that can
 	    be set if the authentication rejects the request.
@@ -1049,7 +1049,7 @@ protected:
 	/** Get AliasAuth condition string for the given alias.
 	    This implementation searches RasSrv::RRQAuth section for the string.
 	    The string is then used to accept/reject the request, optionally
-	    checking its source signaliing addresses. The string consists of
+	    checking its source signaling addresses. The string consists of
 	    one or more auth rules separated by '|' or '&' character.
 
 		@return
@@ -1095,7 +1095,7 @@ private:
 class GkAuthenticatorList
 {
 public:
-	/// creates an empty list - OnRealod builds the actual stack of authenticator
+	/// creates an empty list - OnReload builds the actual stack of authenticator
 	GkAuthenticatorList();
 	virtual ~GkAuthenticatorList();
 
@@ -1198,7 +1198,7 @@ public:
 	/** Get a module information string for the selected module.
 
 	    @return
-		The module information string for status port diplay.
+		The module information string for status port display.
 	*/
 	PString GetInfo(
 		const PString & moduleName /// module to retrieve information for
