@@ -13,8 +13,6 @@
  */
 
 #include "config.h"
-#include <ptlib.h>
-#include <h323pdu.h>
 #include "RequireOneNet.h"
 #include "Toolkit.h"
 
@@ -75,6 +73,6 @@ GkAcctLogger::Status RequireOneNet::Log(GkAcctLogger::AcctEvent evt, const callp
 
 
 namespace {
-	// append status port accounting logger to the global list of loggers
+	// append the new accounting logger to the global list of loggers
 	GkAcctLoggerCreator<RequireOneNet> StatusAcctCreator("RequireOneNet");
 }
