@@ -13,8 +13,6 @@
  */
 
 #include "config.h"
-#include <ptlib.h>
-#include <h323pdu.h>
 #include "GkStatus.h"
 #include "statusacct.h"
 

@@ -16,9 +16,6 @@
 
 #include "config.h"
 #include <syslog.h>
-#include <ptlib.h>
-#include <h323pdu.h>
-#include "GkStatus.h"
 #include "syslogacct.h"
 #include "Toolkit.h"
 
