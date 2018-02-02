@@ -34,11 +34,11 @@ public:
 		/// if cannot log an accounting event
 		/// silently ignore the module and process remaining acct modules
 		Optional,
-		/// if cannot log an accounting event do not allow futher
+		/// if cannot log an accounting event do not allow further
 		/// call processing (e.g. call should not be connected, etc.)
 		/// always process remaining acct modules
 		Required,
-		/// if cannot log an accounting event do not allow futher
+		/// if cannot log an accounting event do not allow further
 		/// call processing (e.g. call should not be connected, etc.)
 		/// - always process remaining acct modules,
 		/// if the event has been logged, do not process remaining acct modules
@@ -201,7 +201,7 @@ protected:
 
 	/** Read a list of events to be logged (ORed #AccEvent enum# constants)
 		from the passed tokens. Override this method if new event types
-		are being introduced in derived loggers, then invokde it from constructor.
+		are being introduced in derived loggers, then invoked it from constructor.
 
 		@return
 		Resulting event mask.
@@ -359,7 +359,7 @@ private:
 	PMutex m_cdrFileMutex;
 	/// rotate file after the specified amount of lines is reached (if > 0)
 	long m_rotateLines;
-	/// rotate file after the specified fize size is reached (if > 0)
+	/// rotate file after the specified file size is reached (if > 0)
 	long m_rotateSize;
 	/// rotate file after the specified period of time (if >= 0)
 	int m_rotateInterval;
