@@ -3,7 +3,7 @@
 // Presence in H.323 gatekeeper
 //
 // Copyright (c) 2009-2012, Simon Horne
-// Copyright (c) 2009-2012, Jan Willamowius
+// Copyright (c) 2009-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
@@ -294,7 +294,7 @@ bool RemoveInstruction(const H225_AliasAddress & addr, H323PresenceInstructions 
 {
 	bool found = false;
 	int sz = list.GetSize();
-	for (PINDEX i=0; i<sz;  ++i) {
+	for (PINDEX i = 0; i < sz;  ++i) {
 		if (addr == list[i]) {
 			found = true;
 			continue;
@@ -312,7 +312,7 @@ bool RemoveInstruction(const H225_AliasAddress & addr, H323PresenceInstructions 
 bool UpdateInstruction(const H460P_PresenceInstruction & addr, H323PresenceInstructions & inst)
 {
 	bool found = false;
-	for (PINDEX i=0; i< inst.GetSize(); ++i) {
+	for (PINDEX i = 0; i < inst.GetSize(); ++i) {
 #ifdef HAS_H460P_VER_1
 		const H225_AliasAddress & alias = addr;
 #else
@@ -469,61 +469,52 @@ void GkPresence::LoadConfig(PConfig * cfg)
 
 	const PString driverName = cfg->GetString(authName, "Driver", "");
 	if (driverName.IsEmpty()) {
-		PTRACE(0, "H460PSQL\tModule creation failed: "
-			"no SQL driver selected"
-			);
-		PTRACE(0, "H460PSQL\tFATAL: Shutting down");
+		PTRACE(1, "H460PSQL\tModule creation failed: no SQL driver selected");
+		PTRACE(1, "H460PSQL\tFATAL: Shutting down");
 		return;
 	}
 
 	m_sqlConn = GkSQLConnection::Create(driverName, "GkPresence");
 	if (m_sqlConn == NULL) {
-		PTRACE(0, "H460PSQL\tModule creation failed: "
-			"Could not find " << driverName << " database driver"
-			);
-		PTRACE(0, "H460PSQL\tFATAL: Shutting down");
+		PTRACE(1, "H460PSQL\tModule creation failed: Could not find " << driverName << " database driver");
+		PTRACE(1, "H460PSQL\tFATAL: Shutting down");
 		return;
 	}
 
 	m_queryList = cfg->GetString(authName, "QueryList", "");
 	if (m_queryList.IsEmpty()) {
-		PTRACE(0, "H460PSQL\tModule creation failed: No QueryList configured"
-			);
-		PTRACE(0, "H460PSQL\tFATAL: Shutting down");
+		PTRACE(1, "H460PSQL\tModule creation failed: No QueryList configured");
+		PTRACE(1, "H460PSQL\tFATAL: Shutting down");
 		return;
 	} else
 		PTRACE(4, "H460PSQL\tQuerylist: " << m_queryList);
 
 	m_queryAdd = cfg->GetString(authName, "QueryAdd", "");
 	if (m_queryAdd.IsEmpty()) {
-		PTRACE(0, "H460PSQL\tModule creation failed: No QueryAdd configured"
-			);
-		PTRACE(0, "H460PSQL\tFATAL: Shutting down");
+		PTRACE(1, "H460PSQL\tModule creation failed: No QueryAdd configured");
+		PTRACE(1, "H460PSQL\tFATAL: Shutting down");
 		return;
 	} else
 		PTRACE(4, "H460PSQL\tQueryAdd: " << m_queryAdd);
 
 	m_queryDelete = cfg->GetString(authName, "QueryDelete", "");
 	if (m_queryDelete.IsEmpty()) {
-		PTRACE(0, "H460PSQL\tModule creation failed: No QueryDelete configured"
-			);
-		PTRACE(0, "H460PSQL\tFATAL: Shutting down");
+		PTRACE(1, "H460PSQL\tModule creation failed: No QueryDelete configured");
+		PTRACE(1, "H460PSQL\tFATAL: Shutting down");
 		return;
 	} else
 		PTRACE(4, "H460PSQL\tQueryDelete: " << m_queryDelete);
 
 	m_queryUpdate = cfg->GetString(authName, "QueryUpdate", "");
 	if (m_queryUpdate.IsEmpty()) {
-		PTRACE(0, "H460PSQL\tModule creation failed: No QueryUpdate configured"
-			);
-		PTRACE(0, "H460PSQL\tFATAL: Shutting down");
+		PTRACE(1, "H460PSQL\tModule creation failed: No QueryUpdate configured");
+		PTRACE(1, "H460PSQL\tFATAL: Shutting down");
 		return;
 	} else
 		PTRACE(4, "H460PSQL\tQueryUpdate: " << m_queryUpdate);
 
 	if (!m_sqlConn->Initialize(cfg, authName)) {
-		PTRACE(0, "H460PSQL\tModule creation failed: Could not connect to the database"
-			);
+		PTRACE(1, "H460PSQL\tModule creation failed: Could not connect to the database");
 		return;
 	}
 
@@ -585,9 +576,9 @@ void UpdateLocalPresence(H460P_PresenceNotification & local, const H460P_Presenc
 	if (r.HasOptionalField(H460P_Presentity::e_genericData)) {
 		l.IncludeOptionalField(H460P_Presentity::e_genericData);
 		bool found;
-		for (PINDEX i=0; i < r.m_genericData.GetSize(); ++i) {
+		for (PINDEX i = 0; i < r.m_genericData.GetSize(); ++i) {
 		   found = false;
-			for (PINDEX j=0; i < l.m_genericData.GetSize(); ++j) {
+			for (PINDEX j = 0; i < l.m_genericData.GetSize(); ++j) {
 				if (r.m_genericData[i].m_id == l.m_genericData[j].m_id) {
 					l.m_genericData[j] = r.m_genericData[i];
 					found = true;
@@ -618,8 +609,7 @@ bool GkPresence::DatabaseLoad(PBoolean incremental)
 
 	int fieldCount = 7;
 	if (result->GetNumRows() > 0 && result->GetNumFields() < fieldCount) {
-		PTRACE(2, "H460PSQL\tBad-formed query - "
-			"insufficient columns found in the result set expect " << fieldCount);
+		PTRACE(2, "H460PSQL\tBad-formed query - insufficient columns found in the result set expect " << fieldCount);
 		SNMP_TRAP(5, SNMPError, Database, "Presense SQL query failed");
 		delete result;
 		return false;
@@ -643,7 +633,7 @@ bool GkPresence::DatabaseLoad(PBoolean incremental)
 	}
 
 #if PTRACING
-	PINDEX j=0;
+	PINDEX j = 0;
 #endif
 	PStringArray retval;
 	while (result->FetchRow(retval)) {
@@ -655,7 +645,7 @@ bool GkPresence::DatabaseLoad(PBoolean incremental)
 
 #if PTRACING
 		PStringStream results;
-		for (PINDEX i=0; i < retval.GetSize(); ++i) {
+		for (PINDEX i = 0; i < retval.GetSize(); ++i) {
 			results << " " << presenceFieldName(i) << " ";
 			if (i == 4) results << H323PresenceInstruction::GetInstructionString(retval[i].AsInteger());
 #ifndef HAS_H460P_VER_1
@@ -856,7 +846,7 @@ bool GkPresence::RegisterEndpoint(const H225_EndpointIdentifier & ep, const H225
 		}
 
 		// Queue up any notifications of existing registrations
-		for (PINDEX i=0; i< itx->second.m_Instruction.GetSize(); i++) {
+		for (PINDEX i = 0; i < itx->second.m_Instruction.GetSize(); i++) {
 		   // Queue up info from the datastore to supply to the endpoint
 			H460P_PresencePDU msg;
 			BuildInstructionMsg(itx->second.m_Instruction[i],msg);
@@ -902,7 +892,7 @@ void GkPresence::UnRegisterEndpoint(const H225_ArrayOf_AliasAddress & addr)
 	H460P_PresenceNotification & n = msg;
 	n.m_presentity.m_state = H460P_PresenceState::e_offline;
 
-	for (PINDEX i=0; i < addr.GetSize(); i++) {
+	for (PINDEX i = 0; i < addr.GetSize(); i++) {
 		// Send Notification
 		OnNotification(H323PresenceHandler::e_Status, n, addr[i]);
 
@@ -1391,8 +1381,7 @@ PBoolean GkPresence::BuildIdentifiers(bool alive, const H225_TransportAddress & 
 
 
 bool GkPresence::HandleStatusUpdates(const H460P_PresenceIdentifier & pid, const H225_AliasAddress & local,
-									 unsigned type, const H225_AliasAddress & remote,
-									 const H323PresenceID * id)
+									 unsigned type, const H225_AliasAddress & remote, const H323PresenceID * id)
 {
 		H460P_PresencePDU msg;
 		H460P_PresenceInstruction & inst = BuildInstructionMsg(type,remote,msg);
@@ -1536,7 +1525,7 @@ bool GkPresence::HandleNewInstruction(unsigned tag, const H225_AliasAddress & ad
 		return true;
 
 	// Check to see if we already have this instruction
-	for (PINDEX i=0; i< instructions.GetSize(); i++) {
+	for (PINDEX i = 0; i < instructions.GetSize(); i++) {
 #ifdef HAS_H460P_VER_1
 		const H225_AliasAddress & b = instruction;
 #else
@@ -1621,7 +1610,7 @@ void GkPresence::OnNotification(MsgType tag, const H460P_PresenceNotification & 
 				UpdateLocalPresence(ep.m_Notify[0], notify);
 			}
 
-			for (PINDEX i=0; i < ep.m_Instruction.GetSize(); i++) {
+			for (PINDEX i = 0; i < ep.m_Instruction.GetSize(); i++) {
 				if (ep.m_Instruction[i].GetTag() == H460P_PresenceInstruction::e_subscribe) {
 #ifdef HAS_H460P_VER_1
 					const H225_AliasAddress & a = ep.m_Instruction[i];
@@ -1646,7 +1635,7 @@ void GkPresence::OnInstructions(MsgType tag, const H460P_ArrayOf_PresenceInstruc
 	H323PresenceStore::iterator itx = localStore.find(addr);
 	if (itx != localStore.end()) {
 		H323PresenceEndpoint & ep = itx->second;
-		for (PINDEX i=0; i<instruction.GetSize(); i++) {
+		for (PINDEX i = 0; i<instruction.GetSize(); i++) {
 			HandleNewInstruction(instruction[i].GetTag(), addr, instruction[i], ep.m_Instruction);
 		}
 	}
@@ -1659,7 +1648,7 @@ void GkPresence::OnSubscription(MsgType tag, const H460P_PresenceSubscription & 
 		H460P_PresencePDU msg;
 		BuildSubscriptionMsg(subscription,msg);
 		if (!HandleForwardPresence(subscription.m_identifier, msg)) {
-			PTRACE(2, "PRES\tSubscription received " << AsString(subscription.m_identifier) << " from " << AsString(addr, 0) << " not handled");
+			PTRACE(2, "PRES\tSubscription received " << AsString(subscription.m_identifier.m_guid) << " from " << AsString(addr, 0) << " not handled");
 			return;
 		}
 	}
@@ -1689,7 +1678,7 @@ void GkPresence::OnNotification(MsgType tag, const H460P_PresenceNotification & 
 	if (!notify.HasOptionalField(H460P_PresenceNotification::e_subscribers))
 			return;
 
-	for (PINDEX i=0; i<notify.m_subscribers.GetSize(); ++i) {
+	for (PINDEX i = 0; i<notify.m_subscribers.GetSize(); ++i) {
 		// need to find the local alias
 		H323PresenceIds::const_iterator it = remoteIds.find(notify.m_subscribers[i]);
 		if (it != remoteIds.end()) {
@@ -1714,8 +1703,8 @@ void GkPresence::OnNotification(MsgType tag, const H460P_PresenceNotification & 
 
 void GkPresence::OnSubscription(MsgType tag,const H460P_PresenceSubscription & subscription,const H225_TransportAddress & ip)
 {
-	bool approved;
-	if (!HandleSubscriptionLocal(subscription,approved)) {
+	bool approved = false;
+	if (!HandleSubscriptionLocal(subscription, approved)) {
 		H460P_PresencePDU msg;
 		BuildSubscriptionMsg(subscription,msg);
 		if (!HandleForwardPresence(subscription.m_identifier, msg)) {
@@ -1752,5 +1741,3 @@ void GkPresence::OnIdentifiers(MsgType tag, const H460P_PresenceIdentifier & ide
 	}
 }
 #endif
-
-

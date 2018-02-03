@@ -3,7 +3,7 @@
 // Presence in H.323 gatekeeper
 //
 // Copyright (c) 2009-2010, Simon Horne
-// Copyright (c) 2009-2017, Jan Willamowius
+// Copyright (c) 2009-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
@@ -112,38 +112,38 @@ protected:
 	bool DatabaseUpdate(unsigned tag, const PString & identifier);
 
 private:
-	H323PresenceStore		localStore;    // Subscription/Block list for Local Registered endpoints
+    H323PresenceStore localStore;    // Subscription/Block list for Local Registered endpoints
 
-	H323PresenceAlias		aliasList;	   // list of presence Aliases registered locally
-	H323PresenceLocal		pendingStore;  // Local Message handling store
+    H323PresenceAlias aliasList;	   // list of presence Aliases registered locally
+    H323PresenceLocal pendingStore;  // Local Message handling store
 
-    H323PresenceExternal    remoteList;    // remote aliases and their transport address
-	H323PresenceRemote		remoteStore;   // Messages to/from remote gatekeepers
+    H323PresenceExternal remoteList;    // remote aliases and their transport address
+    H323PresenceRemote remoteStore;   // Messages to/from remote gatekeepers
 
-	H323PresenceIds			remoteIds;
-	H323PresenceIdMap		remoteIdmap;
-	H323PresenceLRQRelay	remoteRelay;
+    H323PresenceIds remoteIds;
+    H323PresenceIdMap remoteIdmap;
+    H323PresenceLRQRelay remoteRelay;
 
-	PMutex					m_AliasMutex;
+    PMutex m_AliasMutex;
 
-	bool					m_enabled;
-	bool					m_sqlactive;
+    bool m_enabled;
+    bool m_sqlactive;
 
-	PresWorker*				m_worker;
+    PresWorker *	m_worker;
 
 #if HAS_DATABASE
-	// connection to the SQL database
-	GkSQLConnection*		m_sqlConn;
+    // connection to the SQL database
+    GkSQLConnection * m_sqlConn;
 
-	PString					m_queryList;
-    PString					m_queryAdd;
-	PString 				m_queryDelete;
-	PString					m_queryUpdate;
+    PString m_queryList;
+    PString	m_queryAdd;
+    PString m_queryDelete;
+    PString	m_queryUpdate;
 
-	// query timeout
-	long					m_timeout;
-	PInt64					m_lastTimeStamp;
-	PBoolean				m_incrementalUpdate;
+    // query timeout
+    long m_timeout;
+    PInt64 m_lastTimeStamp;
+    PBoolean m_incrementalUpdate;
 #endif
 };
 
