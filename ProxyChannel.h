@@ -342,7 +342,7 @@ public:
 	bool IsH245Tunneling() const { return m_h245Tunneling; }
 	bool IsH245TunnelingTranslation() const { return m_h245TunnelingTranslation; }
 	PASN_OctetString * GetNextQueuedH245Message();
-	unsigned GetH245MessageQueueSize() const { return  m_h245Queue.size(); }
+	unsigned GetH245MessageQueueSize() const { return m_h245Queue.size(); }
 	bool HandleH245Mesg(PPER_Stream &, bool & suppress, H245Socket * h245sock = NULL);
 	void SendPostDialDigits();
 	void OnH245ChannelClosed() { m_h245socket = NULL; }
@@ -609,9 +609,9 @@ public:
 	virtual bool Connect(const Address & addr);
 	virtual PBoolean Connect(const Address & iface, WORD localPort, const Address & addr);	// override from TCPProxySocket
 	virtual bool Read(void * buf, int sz, bool wantZeroReads = false);
-	virtual int GetLastReadCount() const { return m_lastReadCount; }
+	virtual PINDEX GetLastReadCount() const { return m_lastReadCount; }
 	virtual bool Write(const void * buf, int sz);
-	virtual int GetLastWriteCount() const { return m_lastWriteCount; }
+	virtual PINDEX GetLastWriteCount() const { return m_lastWriteCount; }
 	virtual void Dispatch();
 
 protected:
