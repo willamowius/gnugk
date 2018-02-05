@@ -984,6 +984,121 @@ is not specified, the global one from the main gatekeeper section is used.
 
 </itemize>
 
+
+<sect1>Section &lsqb;HttpAcct&rsqb;
+<label id="httpacct">
+<p>
+This accounting module sends accounting information via HTTP.
+
+You can use the <ref id="cdrparameters" name="common CDR parameters"> to define
+what to include into your request URL or body.
+
+<itemize>
+<item><tt/Method=GET/<newline>
+Default: <tt>N/A</tt>
+<p>
+HTTP method to use. Currently GET and POST are supported.
+
+<item><tt/TimestampFormat=MySQL/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Format of timestamp strings. If this setting
+is not specified, the global one from the main gatekeeper section is used.
+
+<item><tt>StartURL=http://example.com/call-start</tt><newline>
+Default: <tt>N/A</tt>
+<p>
+The URL to fetch for call start events. You can use the paremeters specified below to parameterize the URL.
+
+<item><tt/StartBody=gatekeeper=%g/<newline>
+Default: <tt>empty</tt>
+<p>
+The HTTP body for call start events to use with POST requests. You can use the paremeters specified below to parameterize the URL.
+if no body is specified for POSTs, the body will be constructed from the URL parameters, if present.
+
+<item><tt>StopURL=http://example.com/call-stop</tt><newline>
+Default: <tt>N/A</tt>
+<p>
+The URL to fetch for call stop events.
+
+<item><tt/StopBody=gatekeeper=%g/<newline>
+Default: <tt>empty</tt>
+<p>
+The HTTP body for call stop events to use with POST requests.
+
+<item><tt>UpdateURL=http://example.com/call-update</tt><newline>
+Default: <tt>N/A</tt>
+<p>
+The URL to fetch for call update events.
+
+<item><tt/UpdateBody=gatekeeper=%g/<newline>
+Default: <tt>empty</tt>
+<p>
+The HTTP body for call update events to use with POST requests.
+
+<item><tt>AlertURL=http://example.com/call-alert</tt><newline>
+Default: <tt>N/A</tt>
+<p>
+The URL to fetch for call alert events.
+
+<item><tt/AlertBody=gatekeeper=%g/<newline>
+Default: <tt>empty</tt>
+<p>
+The HTTP body for call alert events to use with POST requests.
+
+<item><tt>ConnectURL=http://example.com/call-connect</tt><newline>
+Default: <tt>N/A</tt>
+<p>
+The URL to fetch for call connect events.
+
+<item><tt/ConnectBody=gatekeeper=%g/<newline>
+Default: <tt>empty</tt>
+<p>
+The HTTP body for call connect events to use with POST requests.
+
+<item><tt>RegisterURL=http://example.com/ep-register</tt><newline>
+Default: <tt>N/A</tt>
+<p>
+The URL to fetch for endpoint registration events.
+
+<item><tt/RegisterBody=gatekeeper=%g/<newline>
+Default: <tt>empty</tt>
+<p>
+The HTTP body for endpoint registration events to use with POST requests.
+
+<item><tt>UnregisterURL=http://example.com/ep-unregister</tt><newline>
+Default: <tt>N/A</tt>
+<p>
+The URL to fetch for endpoint unregistration events.
+
+<item><tt/UnregisterBody=gatekeeper=%g/<newline>
+Default: <tt>empty</tt>
+<p>
+The HTTP body for endpoint unregistration events to use with POST requests.
+
+<item><tt>OnURL=http://example.com/gatekeeper-up</tt><newline>
+Default: <tt>N/A</tt>
+<p>
+The URL to fetch for gatekeeper start events.
+
+<item><tt/OnBody=gatekeeper=%g/<newline>
+Default: <tt>empty</tt>
+<p>
+The HTTP body for gatekeeper start events to use with POST requests.
+
+<item><tt>OffURL=http://example.com/gatekeeper-down</tt><newline>
+Default: <tt>N/A</tt>
+<p>
+The URL to fetch for gatekeeper ststop events.
+
+<item><tt/OffBody=gatekeeper=%g/<newline>
+Default: <tt>empty</tt>
+<p>
+The HTTP body for gatekeeper stop events to use with POST requests.
+
+</itemize>
+
+
 <sect1>Section &lsqb;RequireOneNet&rsqb;
 <label id="requireonenet">
 <p>

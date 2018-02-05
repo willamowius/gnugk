@@ -1,5 +1,6 @@
 Changes from 4.8 to 4.9
 =======================
+- new accounting module: HttpAcct
 - BUGFIX(RasTbl.cxx) fix disconnecting unregistered endpoints
 - RTP inactivity checking
 - BUGFIX(RasSrv.cxx) fix crash when using IPv6

@@ -146,6 +146,15 @@ void GkAcctLogger::SetupAcctParams(
 	toolkit->GetGKHome(interfaces);
 
 	params["g"] = toolkit->GKName();
+	if (interfaces.empty())
+		params["gkip"] = "";
+	else
+		params["gkip"] = interfaces.front().AsString();
+    // TODO: set gkip to ExternalIP if set ?
+
+	if (!call)
+        return;
+
 	params["n"] = PString(call->GetCallNumber());
 	params["u"] = GetUsername(call);
 	params["d"] = call->GetDuration();
@@ -155,11 +164,6 @@ void GkAcctLogger::SetupAcctParams(
 	params["p"] = call->GetPostDialDelay();
 	params["r"] = call->GetReleaseSource();
 	params["t"] = call->GetTotalCallDuration();
-	if (interfaces.empty())
-		params["gkip"] = "";
-	else
-		params["gkip"] = interfaces.front().AsString();
-    // TODO: set gkip to ExternalIP if set ?
 	params["CallId"] = ::AsString(call->GetCallIdentifier());
 	params["ConfId"] = ::AsString(call->GetConferenceIdentifier());
 	params["CallLink"] = call->GetCallLinkage();

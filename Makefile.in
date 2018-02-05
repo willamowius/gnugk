@@ -30,7 +30,7 @@ SOURCES	 = singleton.cxx job.cxx yasocket.cxx h323util.cxx \
            sigmsg.cxx clirw.cxx cisco.cxx ipauth.cxx statusacct.cxx \
            syslogacct.cxx capctrl.cxx MakeCall.cxx h460presence.cxx \
            forwarding.cxx snmp.cxx lua.cxx ldap.cxx geoip.cxx \
-		   gkh235.cxx authenticators.cxx RequireOneNet.cxx \
+		   gkh235.cxx authenticators.cxx RequireOneNet.cxx httpacct.cxx \
            @SOURCES@
 
 HEADERS  = GkClient.h GkStatus.h Neighbor.h ProxyChannel.h RasPDU.h \
@@ -39,7 +39,7 @@ HEADERS  = GkClient.h GkStatus.h Neighbor.h ProxyChannel.h RasPDU.h \
            singleton.h stl_supp.h version.h yasocket.h gktimer.h \
            gkconfig.h configure Makefile sigmsg.h clirw.h cisco.h ipauth.h \
            statusacct.h syslogacct.h capctrl.h MakeCall.h h460presence.h snmp.h \
-           gkh235.h authenticators.h RequireOneNet.h \
+           gkh235.h authenticators.h RequireOneNet.h httpacct.h \
            @HEADERS@
 
 # add cleanup files for non-default targets
