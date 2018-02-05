@@ -475,6 +475,10 @@
 				>
 			</File>
 			<File
+				RelativePath="httpacct.cxx"
+				>
+			</File>
+			<File
 				RelativePath=".\h460presence.cxx"
 				>
 			</File>
@@ -741,6 +745,10 @@
 			</File>
 			<File
 				RelativePath="h323util.h"
+				>
+			</File>
+			<File
+				RelativePath="httpacct.h"
 				>
 			</File>
 			<File

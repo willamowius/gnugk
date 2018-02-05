@@ -518,6 +518,7 @@
     <ClCompile Include="GkStatus.cxx" />
     <ClCompile Include="gktimer.cxx" />
     <ClCompile Include="h323util.cxx" />
+    <ClCompile Include="httpacct.cxx" />
     <ClCompile Include="h460presence.cxx" />
     <ClCompile Include="ipauth.cxx" />
     <ClCompile Include="job.cxx" />
@@ -615,6 +616,7 @@ configure
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(RootDir)%(Directory)gnugkbuildopts.h;%(Outputs)</Outputs>
     </CustomBuild>
     <ClInclude Include="h323util.h" />
+    <ClInclude Include="httpacct.h" />
     <ClInclude Include="h460presence.h" />
     <ClInclude Include="ipauth.h" />
     <ClInclude Include="job.h" />
