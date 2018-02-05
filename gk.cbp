@@ -154,6 +154,8 @@
 		<Unit filename="h323util.t.cxx" />
 		<Unit filename="h460presence.cxx" />
 		<Unit filename="h460presence.h" />
+		<Unit filename="httpacct.cxx" />
+		<Unit filename="httpacct.h" />
 		<Unit filename="ipauth.cxx" />
 		<Unit filename="ipauth.h" />
 		<Unit filename="job.cxx">
