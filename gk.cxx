@@ -182,7 +182,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "FileAcct", "TimestampFormat" },
 	{ "Gatekeeper::Acct", "CapacityControl" },
 	{ "Gatekeeper::Acct", "FileAcct" },
+#if defined (P_HTTP) || defined (HAS_LIBCURL)
 	{ "Gatekeeper::Acct", "HttpAcct" },
+#endif
 	{ "Gatekeeper::Acct", "LuaAcct" },
 	{ "Gatekeeper::Acct", "RadAcct" },
 	{ "Gatekeeper::Acct", "SQLAcct" },
@@ -193,7 +195,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Gatekeeper::Auth", "CapacityControl" },
 	{ "Gatekeeper::Auth", "FileIPAuth" },
 	{ "Gatekeeper::Auth", "H350PasswordAuth" },
-#ifdef P_HTTP
+#if defined (P_HTTP) || defined (HAS_LIBCURL)
 	{ "Gatekeeper::Auth", "HttpPasswordAuth" },
 #endif // P_HTTP
 #ifdef HAS_LUA
