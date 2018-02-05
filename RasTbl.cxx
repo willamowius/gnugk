@@ -5437,7 +5437,7 @@ void CallTable::CheckRTPInactive()
     WriteLock lock(listLock);
     for (iterator iter = CallList.begin(); iter != CallList.end(); ++iter) {
         if (m_inactivityCheck && (*iter)->IsRTPInactive(m_inactivityCheckSession)) {
-            PTRACE(1, "CallTable\tTerminating call because of RTP inactivity CallID " << AsString((*iter)->GetCallIdentifier()));
+            PTRACE(1, "CallTable\tTerminating call because of RTP inactivity CallID " << AsString((*iter)->GetCallIdentifier().m_guid));
             (*iter)->Disconnect(true);
         }
     }
