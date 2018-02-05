@@ -2368,17 +2368,14 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
     curl = curl_easy_init();
     if (curl) {
         if (m_method == "GET") {
-            curl_easy_setopt(curl, CURLOPT_URL, (const char *)url);
+            // nothing special to do
         } else if (m_method == "POST") {
             PStringArray parts = url.Tokenise("?");
-            if (parts.GetSize() == 2) {
+            if (body.IsEmpty() && parts.GetSize() == 2) {
                 url = parts[0];
-                PString postfields = parts[1];
-                curl_easy_setopt(curl, CURLOPT_URL, (const char *)url);
-                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, (const char *)postfields);
-            } else {
-                PTRACE(2, "HttpPasswordAuth\tCan't find post fields");
+                body = parts[1];
             }
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, (const char *)body);
         } else {
             PTRACE(2, "HttpPasswordAuth\tUnsupported method " << m_method);
         }
@@ -2411,6 +2408,11 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
             return false;
         }
     } else if (m_method == "POST") {
+        PStringArray parts = url.Tokenise("?");
+        if (body.IsEmpty() && parts.GetSize() == 2) {
+            url = parts[0];
+            body = parts[1];
+        }
         PMIMEInfo outMIME;
         outMIME.SetAt(PMIMEInfo::ContentTypeTag(), "text/plain");
         PMIMEInfo replyMIME;
