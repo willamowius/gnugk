@@ -3439,6 +3439,7 @@ bool AdmissionRequestPDU::Process()
 		}
 	}
 	if (bReject) {
+        // TODO: fire new accounting event for rejected call
         // set H.235.1 tokens
 		SetupResponseTokens(m_msg->m_replyRAS, RequestingEP);
 		return BuildReply(H225_AdmissionRejectReason::e_requestDenied);

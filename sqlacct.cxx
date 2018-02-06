@@ -284,7 +284,7 @@ GkAcctLogger::Status SQLAcct::Log(GkAcctLogger::AcctEvent evt, const endptr & ep
 	}
 
 	std::map<PString, PString> params;
-	SetupAcctEndpointParams(params, ep);
+	SetupAcctEndpointParams(params, ep, m_timestampFormat);
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(query, params);
 	if (result == NULL) {
 		PTRACE(2, "GKACCT\t" << GetName() << " failed to store accounting "

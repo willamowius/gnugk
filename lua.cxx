@@ -1012,7 +1012,7 @@ GkAcctLogger::Status LuaAcct::Log(GkAcctLogger::AcctEvent evt, const endptr & ep
 	}
 
 	std::map<PString, PString> params;
-	SetupAcctEndpointParams(params, ep);
+	SetupAcctEndpointParams(params, ep, m_timestampFormat);
 
 	PWaitAndSignal lock(m_luaInterpreterLock);
 
