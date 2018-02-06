@@ -138,6 +138,7 @@ void GkAcctLogger::SetupAcctParams(
 	const PString & timestampFormat
 	) const
 {
+    OpalGloballyUniqueID eventID;
 	PIPSocket::Address addr;
 	WORD port = 0;
 	time_t t;
@@ -145,6 +146,8 @@ void GkAcctLogger::SetupAcctParams(
 	Toolkit* const toolkit = Toolkit::Instance();
 	toolkit->GetGKHome(interfaces);
 
+	params["event-uuid"] = eventID.AsString();
+	params["event-time"] = toolkit->AsString(PTime(), timestampFormat);
 	params["g"] = toolkit->GKName();
 	if (interfaces.empty())
 		params["gkip"] = "";
@@ -208,7 +211,6 @@ void GkAcctLogger::SetupAcctParams(
 
 	if (GetConfig()->GetBoolean(CallTableSection, "SetCalledStationIdToDialedIP", false)
 		&& IsIPAddress(params["Dialed-Number"])) {
-		PTRACE(0, "JW SetCalledStationIdToDialedIP active: csi was " << params["Called-Station-Id"]);
 		params["Called-Station-Id"] = params["Dialed-Number"];
 	}
 
@@ -224,8 +226,9 @@ void GkAcctLogger::SetupAcctParams(
 	params["last-cdr"] = call->GetNoRemainingRoutes() > 0 ? "0" : "1";
 
 	if ((call->GetCallerAudioIP(addr, port)))
-		params["media-oip"] = addr.AsString();
-	params["codec"] = call->GetCallerAudioCodec();
+		params["caller-media-ip"] = addr.AsString();
+	if ((call->GetCalledAudioIP(addr, port)))
+		params["callee-media-ip"] = addr.AsString();
 	params["bandwidth"] = call->GetBandwidth();
 	params["client-auth-id"] = call->GetClientAuthId();
 	PString vendor, version;
@@ -234,17 +237,51 @@ void GkAcctLogger::SetupAcctParams(
 	call->GetCalledVendor(vendor, version);
 	params["callee-vendor"] = vendor + " " + version;
 	params["sinfo-ip"] = call->GetSInfoIP();
+
+	params["bandwidth-kbps"] = PString(call->GetBandwidth() / 10); // in kbps
+	params["caller-audio-codec"] = call->GetCallerAudioCodec();
+	params["callee-audio-codec"] = call->GetCalledAudioCodec();
+	params["caller-video-codec"] = call->GetCallerVideoCodec();
+	params["callee-video-codec"] = call->GetCalledVideoCodec();
+	params["caller-audio-bitrate"] = PString(call->GetCallerAudioBitrate() / 10); // in kbps
+	params["callee-audio-bitrate"] = PString(call->GetCalledAudioBitrate() / 10); // in kbps
+	params["caller-video-bitrate"] = PString(call->GetCallerVideoBitrate() / 10); // in kbps
+	params["callee-video-bitrate"] = PString(call->GetCalledVideoBitrate() / 10); // in kbps
+
+	PString encryption = "On";
+	if (!params["caller-audio-codec"].IsEmpty() && params["caller-audio-codec"].Find("H.235") == P_MAX_INDEX)
+        encryption = "Off";
+	if (!params["callee-audio-codec"].IsEmpty() && params["callee-audio-codec"].Find("H.235") == P_MAX_INDEX)
+        encryption = "Off";
+	if (!params["caller-video-codec"].IsEmpty() && params["caller-video-codec"].Find("H.235") == P_MAX_INDEX)
+        encryption = "Off";
+	if (!params["callee-video-codec"].IsEmpty() && params["callee-video-codec"].Find("H.235") == P_MAX_INDEX)
+        encryption = "Off";
+	params["callee-video-bitrate"] = encryption;
+
+	params["codec"] = call->GetCallerAudioCodec();  // deprecated
+    params["media-oip"] = addr.AsString(); // deprecated
 }
 
 void GkAcctLogger::SetupAcctEndpointParams(
 	/// parameter (name => value) associations
 	std::map<PString, PString> & params,
 	/// endpoint associated with an accounting event being logged
-	const endptr & ep
+	const endptr & ep,
+	/// timestamp formatting string
+	const PString & timestampFormat
 	) const
 {
+    OpalGloballyUniqueID eventID;
 	PIPSocket::Address addr;
 	WORD port = 0;
+
+	params["event-uuid"] = eventID.AsString();
+	params["event-time"] = Toolkit::Instance()->AsString(PTime(), timestampFormat);
+	params["g"] = Toolkit::GKName();
+
+	if (!ep)
+        return;
 
 	H225_TransportAddress sigip = ep->GetCallSignalAddress();
 	if (GetIPAndPortFromTransportAddr(sigip, addr, port)) {
@@ -261,8 +298,10 @@ void GkAcctLogger::SetupAcctEndpointParams(
     if (aliasList.GetSize() > 0)
 	    params["u"] = aliasList[aliasList.GetSize()-1];
 
+    params["Calling-Station-Id"] = GetBestAliasAddressString(ep->GetAliases(), false,
+                                                             AliasAddressTagMask(H225_AliasAddress::e_dialedDigits) | AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
+
 	params["epid"] = ep->GetEndpointIdentifier().GetValue();
-	params["g"] = Toolkit::GKName();
 }
 
 void GkAcctLogger::SetupAcctParams(

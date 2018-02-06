@@ -141,7 +141,7 @@ GkAcctLogger::Status HttpAcct::Log(GkAcctLogger::AcctEvent evt, const endptr & e
 	}
 
     std::map<PString, PString> params;
-    SetupAcctEndpointParams(params, ep);
+    SetupAcctEndpointParams(params, ep, m_timestampFormat);
     PString url = ReplaceAcctParams(eventURL, params);
     url = Toolkit::Instance()->ReplaceGlobalParams(url);
     PString body = ReplaceAcctParams(eventBody, params);

@@ -96,7 +96,7 @@ GkAcctLogger::Status StatusAcct::Log(GkAcctLogger::AcctEvent evt, const endptr &
 
 	if (!eventTmpl.IsEmpty()) {		// don't send event if the template string is empty
 		std::map<PString, PString> params;
-		SetupAcctEndpointParams(params, ep);
+		SetupAcctEndpointParams(params, ep, m_timestampFormat);
 		PString msg = ReplaceAcctParams(eventTmpl, params);
 		GkStatus::Instance()->SignalStatus(msg + "\r\n", STATUS_TRACE_LEVEL_CDR);
 	}

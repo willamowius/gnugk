@@ -20,7 +20,7 @@ All CDRs are also sent to the status port and can be used by external applicatio
 <tscreen><verb>
 acctmod=actions
 
- <acctmod> := FileAcct | RadAcct | SQLAcct | StatusAcct | SyslogAcct | LuaAcct | RequireOneNet | CapacityControl | ...
+ <acctmod> := FileAcct | RadAcct | SQLAcct | HttpAcct | StatusAcct | SyslogAcct | LuaAcct | RequireOneNet | CapacityControl | ...
  <actions> := <control>[;<event>,<event>,...]
  <control> := optional | required | sufficient | alternative
  <event>   := start | stop | alert | connect | update | register | unregister | on | off
@@ -93,6 +93,11 @@ See section <ref id="radacct" name="[RadAcct]"> for configuration details.
 This module performs direct SQL accounting. It supports (start, connect, stop, update, alert, register, unregister)
 event types. 
 See section <ref id="sqlacct" name="[SQLAcct]"> for configuration details.
+
+<item><tt>HttpAcct</tt>
+<p>
+This module logs all accounting events over HTTP. It supports (start, connect, stop, update, alert, register, unregister, on, off)
+See section <ref id="httpacct" name="[HttpAcct]"> for configuration details.
 
 <item><tt>StatusAcct</tt>
 <p>
@@ -197,6 +202,8 @@ parameters are recognized in all call related accounting events:
 <item><tt/%p/ - PDD (Post Dial Delay) in seconds
 <item><tt/%s/ - unique (for this gatekeeper) session identifier (Acct-Session-Id)
 <item><tt/%u/ - H.323 ID of the calling party
+<item><tt/%{event-uuid}/ - UUID of this event
+<item><tt/%{event-time}/ - time when the event is generated
 <item><tt/%{gkip}/ - IP address of the gatekeeper
 <item><tt/%{CallId}/ - H.323 call identifier (16 hex 8-bit digits)
 <item><tt/%{ConfId}/ - H.323 conference identifier (16 hex 8-bit digits)
@@ -219,23 +226,38 @@ parameters are recognized in all call related accounting events:
 <item><tt/%{callee-epid}/ - endpoint identifier of the called party
 <item><tt/%{call-attempts}/ - number of attempts to establish the calls (with failover this can be > 1)
 <item><tt/%{last-cdr}/ - is this the last CDR for this call ? (0 / 1) only when using failover this can be 0
-<item><tt/%{media-oip}/ - caller's RTP media IP (only for H.245 routed/tunneled calls)
-<item><tt/%{codec}/ - audio codec used during the call (only for H.245 routed/tunneled calls)
-<item><tt/%{bandwidth}/ - bandwidth for this call
 <item><tt/%{client-auth-id}/ - a 64 bit integer ID provided to GnuGk when authenticating the call (through SQLAuth)
 <item><tt/%{caller-vendor}/ - vendor and version info of the calling endpoint
 <item><tt/%{callee-vendor}/ - vendor and version info of the called endpoint
 <item><tt/%{sinfo-ip}/ - IP from Sorenson SInfo (only available when TranslateSorensonSourceInfo=1)
+<item><tt/%{bandwidth}/ - bandwidth for this call
+<item><tt/%{bandwidth-kbps}/ - bandwidth granted to this call (in kbps)
+<item><tt/%{caller-audio-codec}/ - audio codec used by the caller for sending
+<item><tt/%{callee-audio-codec}/ - audio codec used by the called for sending
+<item><tt/%{caller-video-codec}/ - video codec used by the caller for sending
+<item><tt/%{callee-video-codec}/ - video codec used by the called for sending
+<item><tt/%{caller-audio-bitrate}/ - audio bitrate used by the caller for sending (in kbps)
+<item><tt/%{callee-audio-bitrate}/ - audio bitrate used by the called for sending (in kbps)
+<item><tt/%{caller-video-bitrate}/ - video bitrate used by the caller for sending (in kbps)
+<item><tt/%{callee-video-bitrate}/ - video bitrate used by the called for sending (in kbps)
+<item><tt/%{caller-media-ip}/ - media IP (audio) used by the caller
+<item><tt/%{callee-media-ip}/ - media IP (audio) used by the called
+<item><tt/%{encryption}/ - "On" if all audio and video chanels are encrypted, otherwise "Off"
+<item><tt/%{media-oip}/ - caller's RTP media IP (only for H.245 routed/tunneled calls) DEPRECATED
+<item><tt/%{codec}/ - audio codec used during the call (only for H.245 routed/tunneled calls) DEPRECATED
 </itemize>
 
 For Register and Unregister events you can use the following parameters:
 <itemize>
 <item><tt/%g/ - gatekeeper name
 <item><tt/%u/ - H.323 ID of the registering party
+<item><tt/%{event-uuid}/ - UUID of this event
+<item><tt/%{event-time}/ - time when the event is generated
 <item><tt/%{endpoint-ip}/ - IP number of the endpoint
 <item><tt/%{endpoint-port}/ - port number of the endpoint
 <item><tt/%{epid}/ - the endpoint ID
 <item><tt/%{aliases}/ - the comma deparated list of aliases the endpoint has registered with
+<item><tt/%{Calling-Station-Id}/ - the caaling party number of this endpoint
 </itemize>
 
 For On and Off events you can use the following parameters:

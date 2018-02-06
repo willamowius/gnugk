@@ -167,7 +167,9 @@ protected:
 		/// accounting parameters (name => value) associations
 		std::map<PString, PString> & params,
 		/// endpoint associated with an accounting event being logged
-		const endptr & ep
+		const endptr & ep,
+		/// timestamp formatting string
+		const PString & timestampFormat
 		) const;
 
 	/** Fill the map with accounting parameters for On/Off events (name => value associations).
