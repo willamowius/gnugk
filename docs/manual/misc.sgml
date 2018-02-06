@@ -72,7 +72,7 @@ Use the destCallSignalIP for CDRs in %{DialedNumber} if no dialed alias is avail
 <item><tt/SetCalledStationIdToDialedIP=1/<newline>
 Default: <tt/0/<newline>
 <p>
-Alwways set %{called_station_id} to the dialed IP in CDRs if %{DialedNumber} contains an IP number.
+Always set %{called_station_id} to the dialed IP in CDRs if %{DialedNumber} contains an IP number.
 
 <item><tt/DisabledCodecs=g711Alaw64k;g711Ulaw64k;h263VideoCapability;genericVideoCapability;basicString;/<newline>
 Default: <tt>N/A</tt><newline>
