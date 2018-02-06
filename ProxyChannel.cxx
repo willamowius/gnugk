@@ -10680,7 +10680,7 @@ void MultiplexedRTPHandler::SessionCleanup(GkTimer* /* timer */)
                     PTRACE(1, "RTPM\tTerminating call because of RTP inactivity from " << iter->m_addrA << " CallID " << AsString(iter->m_callid.m_guid));
                     callptr call = CallTable::Instance()->FindCallRec(iter->m_callid);
                     if (call) {
-                        call->Disconnect();
+                        call->Disconnect(true);
                     }
                 }
                 if (iter->m_multiplexID_fromB != INVALID_MULTIPLEX_ID && (now - iter->m_lastPacketFromB > m_inactivityTimeout) ) {
