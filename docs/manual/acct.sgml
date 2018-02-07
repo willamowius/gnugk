@@ -23,7 +23,7 @@ acctmod=actions
  <acctmod> := FileAcct | RadAcct | SQLAcct | HttpAcct | StatusAcct | SyslogAcct | LuaAcct | RequireOneNet | CapacityControl | ...
  <actions> := <control>[;<event>,<event>,...]
  <control> := optional | required | sufficient | alternative
- <event>   := start | stop | alert | connect | update | register | unregister | on | off
+ <event>   := start | stop | alert | connect | update | register | unregister | on | off | reject
 </verb></tscreen>
 </descrip>
 The event list tells the gatekeeper which events should trigger logging
@@ -39,6 +39,7 @@ with the given accounting module (if an event type is supported by the module):
 <item><tt/register/ - an endpoint has registered
 <item><tt/unregister/ - an endpoint has unregistered
 <item><tt/stop/ - a call has been disconnected (removed from the gatekeeper call table)
+<item><tt/reject/ - a call has been rejected (ARJ) before becomming a true call by GnuGk's terms
 <item><tt/on/ - the gatekeeper has been started
 <item><tt/off/ - the gatekeeper has been shut down
 </itemize>
@@ -96,7 +97,7 @@ See section <ref id="sqlacct" name="[SQLAcct]"> for configuration details.
 
 <item><tt>HttpAcct</tt>
 <p>
-This module logs all accounting events over HTTP. It supports (start, connect, stop, update, alert, register, unregister, on, off)
+This module logs all accounting events over HTTP. It supports (start, connect, stop, update, alert, reject, register, unregister, on, off)
 See section <ref id="httpacct" name="[HttpAcct]"> for configuration details.
 
 <item><tt>StatusAcct</tt>
@@ -1005,6 +1006,7 @@ Format of timestamp strings. If this setting
 is not specified, the global one from the main gatekeeper section is used.
 
 </itemize>
+
 
 <sect1>Section &lsqb;RequireOneNet&rsqb;
 <label id="requireonenet">

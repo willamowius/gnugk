@@ -343,7 +343,7 @@ const char * KnownConfigEntries[][2] = {
 #ifdef H323_H350
 	{ "H350PasswordAuth", "PasswordTimeout" },
 #endif
-#ifdef P_HTTP
+#if defined (P_HTTP) || defined (HAS_LIBCURL)
 	{ "HttpPasswordAuth", "Body" },
 	{ "HttpPasswordAuth", "DeleteRegex" },
 	{ "HttpPasswordAuth", "ErrorRegex" },

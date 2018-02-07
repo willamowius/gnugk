@@ -72,6 +72,7 @@ public:
 		AcctAlert = 0x0040, /// call allerting
 		AcctRegister = 0x0100, /// endpoint registered
 		AcctUnregister = 0x0200, /// endpoint unregistered
+		AcctReject = 0x0400, /// rejected calls (ARJ)
 		AcctAll = -1,
 		AcctNone = 0
 	};

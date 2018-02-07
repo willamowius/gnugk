@@ -1375,7 +1375,7 @@ bool RasServer::ValidateAdditivePDU(RasPDU<H225_RegistrationRequest> & ras, RRQA
 	return (gkClient && gkClient->AdditiveRegister(rrq.m_terminalAlias, authData.m_rejectReason, tokens, cryptotokens));
 }
 
-bool RasServer::LogAcctEvent(int evt, callptr & call, time_t now)
+bool RasServer::LogAcctEvent(int evt, const callptr & call, time_t now)
 {
 	return acctList->LogAcctEvent((GkAcctLogger::AcctEvent)evt, call, now);
 }
@@ -3139,12 +3139,16 @@ bool AdmissionRequestPDU::Process()
 
 	if (Toolkit::Instance()->IsMaintenanceMode()) {
         PTRACE(1, "Rejecting new call in maintenance mode");
+        CallRec dummyCall(*this, 0, destinationString); // dummy call object so accounting variables can be filled
+        (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctReject, callptr(&dummyCall));	// ignore success/failure
 		return BuildReply(H225_AdmissionRejectReason::e_resourceUnavailable);
 	}
 
 	// find the caller
 	RequestingEP = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
 	if (!RequestingEP) {
+        CallRec dummyCall(*this, 0, destinationString); // dummy call object so accounting variables can be filled
+        (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctReject, callptr(&dummyCall));	// ignore success/failure
 		return BuildReply(H225_AdmissionRejectReason::e_callerNotRegistered);
 	}
 
@@ -3154,6 +3158,8 @@ bool AdmissionRequestPDU::Process()
 		if (GetIPAndPortFromTransportAddr(RequestingEP->GetRasAddress(), storedAddr, storedPort)) {
 		    if (storedAddr != m_msg->m_peerAddr) {
                 PTRACE(1, "RAS\tSender address of ARQ didn't match: " << AsString(storedAddr) << " != " << AsString(m_msg->m_peerAddr));
+                CallRec dummyCall(*this, 0, destinationString); // dummy call object so accounting variables can be filled
+                (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctReject, callptr(&dummyCall));	// ignore success/failure
                 return BuildReply(H225_AdmissionRejectReason::e_callerNotRegistered);
 		    }
 		} else {
@@ -3171,6 +3177,9 @@ bool AdmissionRequestPDU::Process()
 
 	if (RasSrv->IsRedirected(H225_RasMessage::e_admissionRequest) && !answer) {
 		PTRACE(1, "RAS\tWarning: Exceed call limit!!");
+        CallRec dummyCall(*this, 0, destinationString); // dummy call object so accounting variables can be filled
+        (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctReject, callptr(&dummyCall));	// ignore success/failure
+
 		return BuildReply(H225_AdmissionRejectReason::e_resourceUnavailable);
 	}
 
@@ -3249,6 +3258,10 @@ bool AdmissionRequestPDU::Process()
 		if (authData.m_rejectReason < 0) {
 			authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
 		}
+        PTRACE(0, "JW fire reject event");
+        CallRec dummyCall(*this, 0, destinationString, authData.m_proxyMode); // dummy call object so accounting variables can be filled
+        (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctReject, callptr(&dummyCall));	// ignore success/failure
+
 		return BuildReply(authData.m_rejectReason);
 	}
 
@@ -3274,6 +3287,8 @@ bool AdmissionRequestPDU::Process()
 				}
 			}
 			if (bReject) {
+                CallRec dummyCall(*this, 0, destinationString, authData.m_proxyMode); // dummy call object so accounting variables can be filled
+                (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctReject, callptr(&dummyCall));	// ignore success/failure
 				return BuildReply(H225_AdmissionRejectReason::e_routeCallToGatekeeper);
 			}
 		}
@@ -3358,6 +3373,8 @@ bool AdmissionRequestPDU::Process()
 			arq.Process();
 
 		if (arq.GetRoutes().empty()) {
+            CallRec dummyCall(*this, 0, destinationString, authData.m_proxyMode); // dummy call object so accounting variables can be filled
+            (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctReject, callptr(&dummyCall));	// ignore success/failure
             SetupResponseTokens(m_msg->m_replyRAS, RequestingEP);
             return BuildReply(arq.GetRejectReason());
 		}
@@ -3375,6 +3392,8 @@ bool AdmissionRequestPDU::Process()
 
 		if ((arq.GetRoutes().size() == 1 || !Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ActivateFailover", "0")))
 				&& route.m_destEndpoint	&& !route.m_destEndpoint->HasAvailableCapacity(request.m_destinationInfo)) {
+            CallRec dummyCall(*this, 0, destinationString, authData.m_proxyMode); // dummy call object so accounting variables can be filled
+            (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctReject, callptr(&dummyCall));	// ignore success/failure
             SetupResponseTokens(m_msg->m_replyRAS, RequestingEP);
 			return BuildReply(H225_AdmissionRejectReason::e_resourceUnavailable);
         }
@@ -3439,7 +3458,8 @@ bool AdmissionRequestPDU::Process()
 		}
 	}
 	if (bReject) {
-        // TODO: fire new accounting event for rejected call
+        CallRec dummyCall(*this, BWRequest, destinationString, authData.m_proxyMode); // dummy call object so accounting variables can be filled
+        (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctReject, callptr(&dummyCall));	// ignore success/failure
         // set H.235.1 tokens
 		SetupResponseTokens(m_msg->m_replyRAS, RequestingEP);
 		return BuildReply(H225_AdmissionRejectReason::e_requestDenied);
@@ -3566,9 +3586,11 @@ bool AdmissionRequestPDU::Process()
 		if (Toolkit::Instance()->IsH46023Enabled() && !EPRequiresH46026) {
 			// Std24 proxy offload. See if the media can go direct.
 			if (natoffloadsupport == CallRec::e_natUnknown) {
-				if (!pCallRec->NATOffLoad(answer,natoffloadsupport)) {
+				if (!pCallRec->NATOffLoad(answer, natoffloadsupport)) {
 					if (natoffloadsupport == CallRec::e_natFailure) {
 						PTRACE(2, "RAS\tWarning: NAT Media Failure detected " << (unsigned)request.m_callReferenceValue);
+                        CallRec dummyCall(*this, BWRequest, destinationString, authData.m_proxyMode); // dummy call object so accounting variables can be filled
+                        (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctReject, callptr(&dummyCall));	// ignore success/failure
                         SetupResponseTokens(m_msg->m_replyRAS, RequestingEP);
 						return BuildReply(H225_AdmissionRejectReason::e_noRouteToDestination, true);
 					 }
