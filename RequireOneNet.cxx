@@ -74,5 +74,5 @@ GkAcctLogger::Status RequireOneNet::Log(GkAcctLogger::AcctEvent evt, const callp
 
 namespace {
 	// append the new accounting logger to the global list of loggers
-	GkAcctLoggerCreator<RequireOneNet> StatusAcctCreator("RequireOneNet");
+	GkAcctLoggerCreator<RequireOneNet> RequireOneNetAcctCreator("RequireOneNet");
 }

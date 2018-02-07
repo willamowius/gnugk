@@ -1047,7 +1047,7 @@ GkAcctLogger::Status LuaAcct::Log(GkAcctLogger::AcctEvent evt, const endptr & ep
 
 namespace {
 	// append status port accounting logger to the global list of loggers
-	GkAcctLoggerCreator<LuaAcct> StatusAcctCreator("LuaAcct");
+	GkAcctLoggerCreator<LuaAcct> LuaAcctCreator("LuaAcct");
 }
 
 #endif	// HAS_LUA

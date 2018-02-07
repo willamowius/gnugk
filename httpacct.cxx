@@ -247,7 +247,7 @@ GkAcctLogger::Status HttpAcct::HttpLog(PString url, PString body)
 
 namespace {
 	// append HTTP accounting logger to the global list of loggers
-	GkAcctLoggerCreator<HttpAcct> StatusAcctCreator("HttpAcct");
+	GkAcctLoggerCreator<HttpAcct> HttpAcctCreator("HttpAcct");
 }
 
 #endif // defined(P_HTTP) || defined (HAS_LIBCURL)
