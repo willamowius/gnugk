@@ -180,11 +180,8 @@ GkAcctLogger::Status HttpAcct::HttpLog(PString url, PString body)
 
     // TODO: check CURL concurrency
 #ifdef HAS_LIBCURL
-    CURL * curl = NULL;
     CURLcode curl_res = CURLE_FAILED_INIT;
-
-    curl_global_init(CURL_GLOBAL_DEFAULT);
-    curl = curl_easy_init();
+    CURL * curl = curl_easy_init();
     if (curl) {
         if (m_method == "GET") {
             // nothing special to do
@@ -212,7 +209,6 @@ GkAcctLogger::Status HttpAcct::HttpLog(PString url, PString body)
 
     if (curl_res != CURLE_OK) {
         PTRACE(2, "HttpAcct\tCould not GET password from " << host << " : " << curl_easy_strerror(curl_res));
-        curl_global_cleanup();
         return Fail;
     }
 #else

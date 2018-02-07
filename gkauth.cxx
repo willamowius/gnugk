@@ -2361,11 +2361,8 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
     PString body = ReplaceAuthParams(m_body, params);
 
 #ifdef HAS_LIBCURL
-    CURL * curl = NULL;
     CURLcode curl_res = CURLE_FAILED_INIT;
-
-    curl_global_init(CURL_GLOBAL_DEFAULT);
-    curl = curl_easy_init();
+    CURL * curl = curl_easy_init();
     if (curl) {
         if (m_method == "GET") {
             // nothing special to do
@@ -2392,10 +2389,8 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
 
     if (curl_res != CURLE_OK) {
         PTRACE(2, "HttpPasswordAuth\tCould not GET password from " << host << " : " << curl_easy_strerror(curl_res));
-        curl_global_cleanup();
         return false;
     }
-    curl_global_cleanup();
 #else
     if (url.Left(5) == "https") {
         PTRACE(2, "HttpPasswordAuth\tPlease compile GnuGk with libcurl for https support");

@@ -46,6 +46,10 @@ const char * H350Section = "GkH350::Settings";
 #include "h350/h350.h"
 #endif
 
+#ifdef HAS_LIBCURL
+#include <curl/curl.h>
+#endif // HAS_LIBCURL
+
 using namespace std;
 
 PIPSocket::Address GNUGK_INADDR_ANY(INADDR_ANY);
@@ -1292,6 +1296,9 @@ Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit"),
 #ifdef HAS_H46023
 	m_H46023Enabled = false;
 #endif // HAS_H46023
+#ifdef HAS_LIBCURL
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+#endif // HAS_LIBCURL
 }
 
 Toolkit::~Toolkit()
@@ -1303,6 +1310,9 @@ Toolkit::~Toolkit()
 	if (m_sslCtx)
 		SSL_CTX_free(m_sslCtx);
 #endif
+#ifdef HAS_LIBCURL
+    curl_global_cleanup();
+#endif // HAS_LIBCURL
 	if (m_Config) {
 		delete m_Config;
 		PFile::Remove(m_tmpconfig);
