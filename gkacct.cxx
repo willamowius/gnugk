@@ -5,7 +5,7 @@
  * support for accounting to the gatekeeper.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2005-2017, Jan Willamowius
+ * Copyright (c) 2005-2018, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -79,7 +79,7 @@ GkAcctLogger::GkAcctLogger(
 
 GkAcctLogger::~GkAcctLogger()
 {
-	PTRACE(1, "GKACCT\tDestroyed module "<<GetName());
+	PTRACE(1, "GKACCT\tDestroyed module " << GetName());
 }
 
 int GkAcctLogger::GetEvents(
@@ -89,7 +89,7 @@ int GkAcctLogger::GetEvents(
 	int mask = 0;
 
 	for( PINDEX i = 1; i < tokens.GetSize(); i++ ) {
-		const PString& token = tokens[i];
+		const PString & token = tokens[i];
 		if( token *= "start" )
 			mask |= AcctStart;
 		else if( token *= "stop" )
@@ -108,6 +108,8 @@ int GkAcctLogger::GetEvents(
 			mask |= AcctOn;
 		else if( token *= "off" )
 			mask |= AcctOff;
+		else if( token *= "reject" )
+			mask |= AcctReject;
 	}
 
 	return mask;

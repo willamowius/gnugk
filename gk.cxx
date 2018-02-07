@@ -358,6 +358,8 @@ const char * KnownConfigEntries[][2] = {
 	{ "HttpAcct", "OnURL" },
 	{ "HttpAcct", "RegisterBody" },
 	{ "HttpAcct", "RegisterURL" },
+	{ "HttpAcct", "RejectBody" },
+	{ "HttpAcct", "RejectURL" },
 	{ "HttpAcct", "StartBody" },
 	{ "HttpAcct", "StartURL" },
 	{ "HttpAcct", "StopBody" },

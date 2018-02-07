@@ -28,7 +28,7 @@ public:
 	enum Constants
 	{
 		/// events recognized by this module
-		HttpAcctEvents = AcctStart | AcctStop | AcctUpdate | AcctConnect | AcctAlert | AcctRegister | AcctUnregister | AcctOn | AcctOff
+		HttpAcctEvents = AcctStart | AcctStop | AcctUpdate | AcctConnect | AcctAlert | AcctRegister | AcctUnregister | AcctOn | AcctOff | AcctReject
 	};
 
 	HttpAcct(
@@ -83,9 +83,12 @@ private:
 	/// parametrized strings for the ON event
 	PString m_onURL;
 	PString m_onBody;
-	/// parametrized strings for the ON event
+	/// parametrized strings for the OFF event
 	PString m_offURL;
 	PString m_offBody;
+	/// parametrized strings for the reject event
+	PString m_rejectURL;
+	PString m_rejectBody;
 	/// HTTP method: GET or POST
 	PString m_method;
 	/// timestamp formatting string

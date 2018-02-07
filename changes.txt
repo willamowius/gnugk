@@ -1,5 +1,6 @@
 Changes from 4.8 to 4.9
 =======================
+- new accounting event 'reject' for calls rejected with ARJ
 - new accounting module: HttpAcct
 - many new accounting placeholder
 - BUGFIX(RasTbl.cxx) fix disconnecting unregistered endpoints

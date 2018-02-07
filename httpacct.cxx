@@ -55,6 +55,8 @@ HttpAcct::HttpAcct(const char* moduleName, const char* cfgSecName)
 	m_onBody = cfg->GetString(cfgSec, "OnBody", "");
 	m_offURL = cfg->GetString(cfgSec, "OffURL", "");
 	m_offBody = cfg->GetString(cfgSec, "OffBody", "");
+	m_rejectURL = cfg->GetString(cfgSec, "RejectURL", "");
+	m_rejectBody = cfg->GetString(cfgSec, "RejectBody", "");
 }
 
 HttpAcct::~HttpAcct()
@@ -96,6 +98,9 @@ GkAcctLogger::Status HttpAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & 
 	} else if (evt == AcctOff) {
 		eventURL = m_offURL;
 		eventBody = m_offBody;
+	} else if (evt == AcctReject) {
+		eventURL = m_rejectURL;
+		eventBody = m_rejectBody;
 	}
 
 	if (eventURL.IsEmpty()) {
