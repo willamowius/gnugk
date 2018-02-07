@@ -20,7 +20,7 @@ All CDRs are also sent to the status port and can be used by external applicatio
 <tscreen><verb>
 acctmod=actions
 
- <acctmod> := FileAcct | RadAcct | SQLAcct | HttpAcct | StatusAcct | SyslogAcct | LuaAcct | RequireOneNet | CapacityControl | ...
+ <acctmod> := FileAcct | RadAcct | SQLAcct | HttpAcct | AMQPAcct | StatusAcct | SyslogAcct | LuaAcct | RequireOneNet | CapacityControl | ...
  <actions> := <control>[;<event>,<event>,...]
  <control> := optional | required | sufficient | alternative
  <event>   := start | stop | alert | connect | update | register | unregister | on | off | reject
@@ -99,6 +99,11 @@ See section <ref id="sqlacct" name="[SQLAcct]"> for configuration details.
 <p>
 This module logs all accounting events over HTTP. It supports (start, connect, stop, update, alert, reject, register, unregister, on, off)
 See section <ref id="httpacct" name="[HttpAcct]"> for configuration details.
+
+<item><tt>AMQPAcct</tt>
+<p>
+This module logs all accounting events to an AMQP queue, eg. RabbitMQ. It supports (start, connect, stop, update, alert, reject, register, unregister, on, off)
+See section <ref id="amqpacct" name="[AMQPAcct]"> for configuration details.
 
 <item><tt>StatusAcct</tt>
 <p>
@@ -1031,12 +1036,12 @@ is not specified, the global one from the main gatekeeper section is used.
 <item><tt>StartURL=http://example.com/call-start</tt><newline>
 Default: <tt>N/A</tt>
 <p>
-The URL to fetch for call start events. You can use the paremeters specified below to parameterize the URL.
+The URL to fetch for call start events. You can use the parameters specified below to parameterize the URL.
 
 <item><tt/StartBody=gatekeeper=%g/<newline>
 Default: <tt>empty</tt>
 <p>
-The HTTP body for call start events to use with POST requests. You can use the paremeters specified below to parameterize the URL.
+The HTTP body for call start events to use with POST requests. You can use the parameters specified below to parameterize the URL.
 if no body is specified for POSTs, the body will be constructed from the URL parameters, if present.
 
 <item><tt>StopURL=http://example.com/call-stop</tt><newline>
@@ -1128,6 +1133,116 @@ The URL to fetch for gatekeeper ststop events.
 Default: <tt>empty</tt>
 <p>
 The HTTP body for gatekeeper stop events to use with POST requests.
+
+</itemize>
+
+
+<sect1>Section &lsqb;AMQPAcct&rsqb;
+<label id="httpacct">
+<p>
+This accounting module sends accounting information to AMQP queues, eg, RabbitMQ.
+
+You can use the <ref id="cdrparameters" name="common CDR parameters"> to define
+what to include into your request URL or body.
+
+<itemize>
+
+<item><tt/Host=192.168.1.1/<newline>
+Default: <tt>localhost</tt><newline>
+<p>
+Set the host where the message broker runs.
+
+<item><tt/Port=5672/<newline>
+Default: <tt>5672</tt><newline>
+<p>
+The port of the message broker.
+
+<item><tt/User=admin/<newline>
+Default: <tt>guest</tt><newline>
+<p>
+The user name.
+
+<item><tt/Password=secret/<newline>
+Default: <tt>guest</tt><newline>
+<p>
+The password.
+
+<item><tt/Exchange=foo/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The exchange to use.
+
+<item><tt/RoutingKey=bar/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The routing key.
+
+<item><tt>VHost=/</tt>/<newline>
+Default: <tt>/</tt><newline>
+<p>
+The virtual host.
+
+<item><tt>ContentType=application/json</tt>/<newline>
+Default: <tt>text/plain</tt><newline>
+<p>
+The content type header to send.
+
+
+<item><tt>StartEvent=Start Call GK=%g</tt>/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for call start events. You can use the standard account parameters.
+
+<item><tt>StopEvent=End Call GK=%g</tt>/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for call stop events. You can use the standard account parameters.
+
+<item><tt>UpdateEvent=Update Call GK=%g</tt>/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for call update events. You can use the standard account parameters.
+
+<item><tt>AlertEvent=Alert Call GK=%g</tt>/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for call alert events. You can use the standard account parameters.
+
+<item><tt>ConnectEvent=Connect Call GK=%g</tt>/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for call conect events. You can use the standard account parameters.
+
+<item><tt>RejectEvent=Reject Call GK=%g</tt>/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for call reject events. You can use the standard account parameters.
+
+<item><tt>RegisterEvent=Register Endpoint GK=%g</tt>/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for endpoint registration events. You can use the standard account parameters.
+
+<item><tt>UnregisterEvent=Unregister Endpoint GK=%g</tt>/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for endpoint unregistration events. You can use the standard account parameters.
+
+<item><tt>OnEvent=GK Start %g</tt>/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for ON events. You can use the standard account parameters.
+
+<item><tt>OffEvent=GK Stop %g</tt>/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for OFF events. You can use the standard account parameters.
+
+<item><tt/TimestampFormat=MySQL/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Format of timestamp strings. If this setting
+is not specified, the global one from the main gatekeeper section is used.
 
 </itemize>
 

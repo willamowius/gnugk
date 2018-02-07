@@ -1,7 +1,8 @@
 Changes from 4.8 to 4.9
 =======================
-- new accounting event 'reject' for calls rejected with ARJ
+- new accounting module: AMQPAcct
 - new accounting module: HttpAcct
+- new accounting event 'reject' for calls rejected with ARJ
 - many new accounting placeholder
 - BUGFIX(RasTbl.cxx) fix disconnecting unregistered endpoints
 - RTP inactivity checking

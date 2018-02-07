@@ -79,6 +79,27 @@ const char * KnownConfigEntries[][2] = {
 	{ "AlternateGatekeepers::SQL", "Query" },
 	{ "AlternateGatekeepers::SQL", "ReadTimeout" },
 	{ "AlternateGatekeepers::SQL", "Username" },
+#ifdef HAS_LIBRABBITMQ
+	{ "AMQPAcct", "AlertEvent" },
+	{ "AMQPAcct", "ConnectEvent" },
+	{ "AMQPAcct", "ContentType" },
+	{ "AMQPAcct", "Exchange" },
+	{ "AMQPAcct", "Host" },
+	{ "AMQPAcct", "OffEvent" },
+	{ "AMQPAcct", "OnEvent" },
+	{ "AMQPAcct", "Password" },
+	{ "AMQPAcct", "Port" },
+	{ "AMQPAcct", "RegisterEvent" },
+	{ "AMQPAcct", "RejectEvent" },
+	{ "AMQPAcct", "RoutingKey" },
+	{ "AMQPAcct", "StartEvent" },
+	{ "AMQPAcct", "StopEvent" },
+	{ "AMQPAcct", "TimestampFormat" },
+	{ "AMQPAcct", "UnregisterEvent" },
+	{ "AMQPAcct", "User" },
+	{ "AMQPAcct", "UpdateEvent" },
+	{ "AMQPAcct", "VHost" },
+#endif // HAS_LIBRABBITMQ
 	{ "AssignedAliases::SQL", "CacheTimeout" },
 	{ "AssignedAliases::SQL", "ConnectTimeout" },
 	{ "AssignedAliases::SQL", "Database" },
@@ -180,6 +201,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "FileAcct", "RotateTime" },
 	{ "FileAcct", "StandardCDRFormat" },
 	{ "FileAcct", "TimestampFormat" },
+#ifdef HAS_LIBRABBITMQ
+	{ "Gatekeeper::Acct", "AMQPAcct" },
+#endif // HAS_LIBRABBITMQ
 	{ "Gatekeeper::Acct", "CapacityControl" },
 	{ "Gatekeeper::Acct", "FileAcct" },
 #if defined (P_HTTP) || defined (HAS_LIBCURL)

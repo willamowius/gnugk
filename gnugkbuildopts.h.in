@@ -49,6 +49,9 @@
 // libcurl
 #undef HAS_LIBCURL
 
+// librabbitmq
+#undef HAS_LIBRABBITMQ
+
 // MYSQL
 #undef HAS_MYSQL
 #if defined(_MSC_VER) && HAS_MYSQL

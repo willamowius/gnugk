@@ -636,6 +636,7 @@ GNUGK_BUILD_NUMBER
 GNUGK_MINOR_VERSION
 GNUGK_MAJOR_VERSION
 GNUGK_VERSION
+HAS_LIBRABBITMQ
 HAS_LIBCURL
 CURL_CONFIG
 HAS_GEOIP
@@ -751,6 +752,7 @@ with_lua_dir
 enable_geoip
 with_geoip_include_dir
 enable_libcurl
+enable_librabbitmq
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1397,6 +1399,7 @@ Optional Features:
   --enable-lua            enable LUA support (default=yes)
   --enable-geoip          enable GeoIP support (default=yes)
   --enable-libcurl        enable libcurl support (default=yes)
+  --enable-rabbitmq       enable RabbitMQ support (default=yes)
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -5805,6 +5808,40 @@ fi
 else
     echo "libcurl support disabled"
     HAS_LIBCURL=0
+fi
+
+
+
+
+
+# Check whether --enable-librabbitmq was given.
+if test "${enable_librabbitmq+set}" = set; then :
+  enableval=$enable_librabbitmq;  librabbitmq="${enableval}"
+else
+  librabbitmq="yes"
+
+fi
+
+
+if test "x${librabbitmq}" != "xno" ; then
+   ac_fn_c_check_header_mongrel "$LINENO" "amqp.h" "ac_cv_header_amqp_h" "$ac_includes_default"
+if test "x$ac_cv_header_amqp_h" = xyes; then :
+  HAS_LIBRABBITMQ=1
+fi
+
+
+fi
+
+if test "${HAS_LIBRABBITMQ:-unset}" != "unset" ; then
+	HAS_LIBRABBITMQ=1
+	$as_echo "#define HAS_LIBRABBITMQ 1" >>confdefs.h
+
+	STDCCFLAGS="-DHAS_LIBRABBITMQ=1 $STDCCFLAGS"
+	ENDLDLIBS="-lrabbitmq $ENDLDLIBS"
+	echo "RabbitMQ support enabled"
+else
+    echo "RabbitMQ support disabled"
+    HAS_LIBRABBITMQ=0
 fi
 
 
