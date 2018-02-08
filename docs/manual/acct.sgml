@@ -1138,7 +1138,7 @@ The HTTP body for gatekeeper stop events to use with POST requests.
 
 
 <sect1>Section &lsqb;AMQPAcct&rsqb;
-<label id="httpacct">
+<label id="amqpacct">
 <p>
 This accounting module sends accounting information to AMQP queues, eg, RabbitMQ.
 
