@@ -109,6 +109,7 @@
 		<Unit filename="Toolkit.cxx" />
 		<Unit filename="Toolkit.h" />
 		<Unit filename="Toolkit.t.cxx" />
+		<Unit filename="amqpacct.cxx" />
 		<Unit filename="authenticators.cxx" />
 		<Unit filename="authenticators.h" />
 		<Unit filename="capctrl.cxx" />
