@@ -206,6 +206,7 @@ parameters are recognized in all call related accounting events:
 <item><tt/%{event-uuid}/ - UUID of this event
 <item><tt/%{event-time}/ - time when the event is generated
 <item><tt/%{gkip}/ - IP address of the gatekeeper
+<item><tt/%{external-ip}/ - external IP address of the gatekeeper, if set
 <item><tt/%{CallId}/ - H.323 call identifier (16 hex 8-bit digits)
 <item><tt/%{ConfId}/ - H.323 conference identifier (16 hex 8-bit digits)
 <item><tt/%{CallLink}/ - Linked H.323 conference identifier (billing account for H.450 call transfer)
@@ -244,6 +245,9 @@ parameters are recognized in all call related accounting events:
 <item><tt/%{caller-media-ip}/ - media IP (audio) used by the caller
 <item><tt/%{callee-media-ip}/ - media IP (audio) used by the called
 <item><tt/%{encryption}/ - "On" if all audio and video chanels are encrypted, otherwise "Off"
+<item><tt/%{env1}/ - content of environment variable GNUGK_ENV1
+<item><tt/%{env2}/ - content of environment variable GNUGK_ENV2
+<item><tt/%{env3}/ - content of environment variable GNUGK_ENV3
 <item><tt/%{media-oip}/ - caller's RTP media IP (only for H.245 routed/tunneled calls) DEPRECATED
 <item><tt/%{codec}/ - audio codec used during the call (only for H.245 routed/tunneled calls) DEPRECATED
 </itemize>
@@ -251,6 +255,8 @@ parameters are recognized in all call related accounting events:
 For Register and Unregister events you can use the following parameters:
 <itemize>
 <item><tt/%g/ - gatekeeper name
+<item><tt/%{gkip}/ - IP address of the gatekeeper
+<item><tt/%{external-ip}/ - external IP address of the gatekeeper, if set
 <item><tt/%u/ - H.323 ID of the registering party
 <item><tt/%{event-uuid}/ - UUID of this event
 <item><tt/%{event-time}/ - time when the event is generated
@@ -259,12 +265,19 @@ For Register and Unregister events you can use the following parameters:
 <item><tt/%{epid}/ - the endpoint ID
 <item><tt/%{aliases}/ - the comma deparated list of aliases the endpoint has registered with
 <item><tt/%{Calling-Station-Id}/ - the caaling party number of this endpoint
+<item><tt/%{env1}/ - content of environment variable GNUGK_ENV1
+<item><tt/%{env2}/ - content of environment variable GNUGK_ENV2
+<item><tt/%{env3}/ - content of environment variable GNUGK_ENV3
 </itemize>
 
 For On and Off events you can use the following parameters:
 <itemize>
 <item><tt/%g/ - gatekeeper name
 <item><tt/%{gkip}/ - IP address of the gatekeeper
+<item><tt/%{external-ip}/ - external IP address of the gatekeeper, if set
+<item><tt/%{env1}/ - content of environment variable GNUGK_ENV1
+<item><tt/%{env2}/ - content of environment variable GNUGK_ENV2
+<item><tt/%{env3}/ - content of environment variable GNUGK_ENV3
 </itemize>
 
 <sect1>Section &lsqb;FileAcct&rsqb;

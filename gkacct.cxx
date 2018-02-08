@@ -151,6 +151,14 @@ void GkAcctLogger::SetupAcctParams(
 	params["event-uuid"] = eventID.AsString();
 	params["event-time"] = toolkit->AsString(PTime(), timestampFormat);
 	params["g"] = toolkit->GKName();
+	if (interfaces.empty())
+		params["gkip"] = "";
+	else
+		params["gkip"] = interfaces.front().AsString();
+
+	if (!call)
+        return;
+
 	params["n"] = PString(call->GetCallNumber());
 	params["u"] = GetUsername(call);
 	params["d"] = call->GetDuration();
@@ -160,11 +168,6 @@ void GkAcctLogger::SetupAcctParams(
 	params["p"] = call->GetPostDialDelay();
 	params["r"] = call->GetReleaseSource();
 	params["t"] = call->GetTotalCallDuration();
-	if (interfaces.empty())
-		params["gkip"] = "";
-	else
-		params["gkip"] = interfaces.front().AsString();
-    // TODO: set gkip to ExternalIP if set ?
 	params["CallId"] = ::AsString(call->GetCallIdentifier().m_guid);
 	params["ConfId"] = ::AsString(call->GetConferenceIdentifier());
 	params["CallLink"] = call->GetCallLinkage();
@@ -273,10 +276,16 @@ void GkAcctLogger::SetupAcctEndpointParams(
     OpalGloballyUniqueID eventID;
 	PIPSocket::Address addr;
 	WORD port = 0;
+	vector<PIPSocket::Address> interfaces;
+	Toolkit::Instance()->GetGKHome(interfaces);
 
 	params["event-uuid"] = eventID.AsString();
 	params["event-time"] = Toolkit::Instance()->AsString(PTime(), timestampFormat);
 	params["g"] = Toolkit::GKName();
+	if (interfaces.empty())
+		params["gkip"] = "";
+	else
+		params["gkip"] = interfaces.front().AsString();
 
 	if (!ep)
         return;
