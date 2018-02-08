@@ -150,7 +150,6 @@ void GkAcctLogger::SetupAcctParams(
 		params["gkip"] = "";
 	else
 		params["gkip"] = interfaces.front().AsString();
-    // TODO: set gkip to ExternalIP if set ?
 
 	if (!call)
         return;
@@ -272,10 +271,16 @@ void GkAcctLogger::SetupAcctEndpointParams(
     OpalGloballyUniqueID eventID;
 	PIPSocket::Address addr;
 	WORD port = 0;
+	vector<PIPSocket::Address> interfaces;
+	Toolkit::Instance()->GetGKHome(interfaces);
 
 	params["event-uuid"] = eventID.AsString();
 	params["event-time"] = Toolkit::Instance()->AsString(PTime(), timestampFormat);
 	params["g"] = Toolkit::GKName();
+	if (interfaces.empty())
+		params["gkip"] = "";
+	else
+		params["gkip"] = interfaces.front().AsString();
 
 	if (!ep)
         return;
