@@ -3258,7 +3258,6 @@ bool AdmissionRequestPDU::Process()
 		if (authData.m_rejectReason < 0) {
 			authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
 		}
-        PTRACE(0, "JW fire reject event");
         CallRec dummyCall(*this, 0, destinationString, authData.m_proxyMode); // dummy call object so accounting variables can be filled
         (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctReject, callptr(&dummyCall));	// ignore success/failure
 
