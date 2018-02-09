@@ -1188,7 +1188,8 @@ The exchange to use.
 <item><tt/RoutingKey=bar/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-The routing key.
+The routing key for the message broker. If you don't specify a routing key in the configuration,
+GnuGk will set "gnugk.call.status" or "gnugk.registration.status" as routing key.
 
 <item><tt>VHost=/</tt>/<newline>
 Default: <tt>/</tt><newline>
@@ -1199,7 +1200,6 @@ The virtual host.
 Default: <tt>text/plain</tt><newline>
 <p>
 The content type header to send.
-
 
 <item><tt>StartEvent=Start Call GK=%g</tt>/<newline>
 Default: <tt>N/A</tt><newline>
