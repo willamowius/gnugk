@@ -358,10 +358,7 @@ PString GkAcctLogger::ReplaceAcctParams(
 					len = len + escapedLen - paramLen - 3;
 					pos = pos - 2 + escapedLen;
 				} else {
-					// replace out of range parameter with an empty string
-					finalCDR.Delete(pos - 2, paramLen + 3);
-					len -= paramLen + 3;
-					pos -= 2;
+                    // leave unknown placeholders intact so a 2nd stage can replace them
 				}
 			}
 		} else { // simple syntax (%c)
@@ -372,10 +369,7 @@ PString GkAcctLogger::ReplaceAcctParams(
 				len = len + escapedLen - 2;
 				pos = pos - 1 + escapedLen;
 			} else {
-				// replace out of range parameter with an empty string
-				finalCDR.Delete(pos - 1, 2);
-				len -= 2;
-				pos--;
+                // leave unknown placeholders intact so a 2nd stage can replace them
 			}
 		}
 	}
