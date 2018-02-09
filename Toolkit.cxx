@@ -3683,6 +3683,17 @@ PString Toolkit::ReplaceGlobalParams(const PString & str)
 	else
 		result.Replace("%{gkip}", interfaces.front().AsString(), true);
     result.Replace("%{external-ip}", GetExternalIP(), true);
+
+    result.Replace("%{env1}", ::getenv("GNUGK_ENV1"), true);
+    result.Replace("%{env2}", ::getenv("GNUGK_ENV2"), true);
+    result.Replace("%{env3}", ::getenv("GNUGK_ENV3"), true);
+    result.Replace("%{env4}", ::getenv("GNUGK_ENV4"), true);
+    result.Replace("%{env5}", ::getenv("GNUGK_ENV5"), true);
+    result.Replace("%{env6}", ::getenv("GNUGK_ENV6"), true);
+    result.Replace("%{env7}", ::getenv("GNUGK_ENV7"), true);
+    result.Replace("%{env8}", ::getenv("GNUGK_ENV8"), true);
+    result.Replace("%{env9}", ::getenv("GNUGK_ENV9"), true);
+
     return result;
 }
 

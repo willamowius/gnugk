@@ -251,8 +251,8 @@ parameters are recognized in all call related accounting events:
 <item><tt/%{callee-media-ip}/ - media IP (audio) used by the called
 <item><tt/%{encryption}/ - "On" if all audio and video chanels are encrypted, otherwise "Off"
 <item><tt/%{env1}/ - content of environment variable GNUGK_ENV1
-<item><tt/%{env2}/ - content of environment variable GNUGK_ENV2
-<item><tt/%{env3}/ - content of environment variable GNUGK_ENV3
+<item><tt/.../
+<item><tt/%{env9}/ - content of environment variable GNUGK_ENV9
 <item><tt/%{media-oip}/ - caller's RTP media IP (only for H.245 routed/tunneled calls) DEPRECATED
 <item><tt/%{codec}/ - audio codec used during the call (only for H.245 routed/tunneled calls) DEPRECATED
 </itemize>
@@ -271,8 +271,8 @@ For Register and Unregister events you can use the following parameters:
 <item><tt/%{aliases}/ - the comma deparated list of aliases the endpoint has registered with
 <item><tt/%{Calling-Station-Id}/ - the caaling party number of this endpoint
 <item><tt/%{env1}/ - content of environment variable GNUGK_ENV1
-<item><tt/%{env2}/ - content of environment variable GNUGK_ENV2
-<item><tt/%{env3}/ - content of environment variable GNUGK_ENV3
+<item><tt/.../
+<item><tt/%{env9}/ - content of environment variable GNUGK_ENV9
 </itemize>
 
 For On and Off events you can use the following parameters:
@@ -281,8 +281,8 @@ For On and Off events you can use the following parameters:
 <item><tt/%{gkip}/ - IP address of the gatekeeper
 <item><tt/%{external-ip}/ - external IP address of the gatekeeper, if set
 <item><tt/%{env1}/ - content of environment variable GNUGK_ENV1
-<item><tt/%{env2}/ - content of environment variable GNUGK_ENV2
-<item><tt/%{env3}/ - content of environment variable GNUGK_ENV3
+<item><tt/.../
+<item><tt/%{env9}/ - content of environment variable GNUGK_ENV9
 </itemize>
 
 <sect1>Section &lsqb;FileAcct&rsqb;
@@ -1258,6 +1258,9 @@ Format of timestamp strings. If this setting
 is not specified, the global one from the main gatekeeper section is used.
 
 </itemize>
+
+In the settings for Host, Uses, Password and CACert you can use %{env1} to %{env9}
+to insert the environment variables GNUGK_ENV1 ... GNUGK_ENV9.
 
 
 <sect1>Section &lsqb;RequireOneNet&rsqb;
