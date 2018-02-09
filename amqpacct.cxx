@@ -50,7 +50,7 @@ public:
 	virtual Status Log(AcctEvent evt, const endptr & ep);
 
 protected:
-	virtual Status AMQPLog(const PString & event);
+	virtual Status AMQPLog(const PString & event, const PString & routingKey);
 
 private:
 	AMQPAcct();
@@ -226,7 +226,11 @@ GkAcctLogger::Status AMQPAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & 
     event = ReplaceAcctParams(event, params);
     event = Toolkit::Instance()->ReplaceGlobalParams(event);
 
-	return AMQPLog(event);
+    PString routingKey = m_routingKey;
+    if (routingKey.IsEmpty())
+        routingKey = "gnugk.call.status";
+
+	return AMQPLog(event, routingKey);
 }
 
 GkAcctLogger::Status AMQPAcct::Log(GkAcctLogger::AcctEvent evt, const endptr & ep)
@@ -263,10 +267,14 @@ GkAcctLogger::Status AMQPAcct::Log(GkAcctLogger::AcctEvent evt, const endptr & e
     event = ReplaceAcctParams(event, params);
     event = Toolkit::Instance()->ReplaceGlobalParams(event);
 
-	return AMQPLog(event);
+    PString routingKey = m_routingKey;
+    if (routingKey.IsEmpty())
+        routingKey = "gnugk.registration.status";
+
+	return AMQPLog(event, routingKey);
 }
 
-GkAcctLogger::Status AMQPAcct::AMQPLog(const PString & event)
+GkAcctLogger::Status AMQPAcct::AMQPLog(const PString & event, const PString & routingKey)
 {
     PTRACE(5, "AMQPAcct\tLogging message=" << event);
     amqp_basic_properties_t props;
@@ -274,7 +282,7 @@ GkAcctLogger::Status AMQPAcct::AMQPLog(const PString & event)
     props.content_type = amqp_cstring_bytes((const char *)m_contentType);
     props.delivery_mode = 2; /* persistent delivery mode */
     int status = amqp_basic_publish(m_conn, m_channelID, amqp_cstring_bytes((const char *)m_exchange),
-                                    amqp_cstring_bytes((const char *)m_routingKey), 0, 0,
+                                    amqp_cstring_bytes((const char *)routingKey), 0, 0,
                                     &props, amqp_cstring_bytes((const char *)event));
     if (status) {
         PTRACE(1, "AMQPAcct\tError publishing event");
