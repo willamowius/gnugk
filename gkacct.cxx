@@ -253,7 +253,10 @@ void GkAcctLogger::SetupAcctParams(
         encryption = "Off";
 	if (!params["callee-video-codec"].IsEmpty() && params["callee-video-codec"].Find("H.235") == P_MAX_INDEX)
         encryption = "Off";
-	params["callee-video-bitrate"] = encryption;
+	if (params["caller-audio-codec"].IsEmpty() && params["callee-audio-codec"].IsEmpty()
+        && params["caller-video-codec"].IsEmpty() && params["callee-video-codec"].IsEmpty())
+        encryption = "Off";
+	params["encryption"] = encryption;
 
 	params["codec"] = call->GetCallerAudioCodec();  // deprecated
     params["media-oip"] = addr.AsString(); // deprecated
