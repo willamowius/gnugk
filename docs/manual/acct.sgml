@@ -1259,7 +1259,7 @@ is not specified, the global one from the main gatekeeper section is used.
 
 </itemize>
 
-In the settings for Host, Uses, Password and CACert you can use %{env1} to %{env9}
+In the settings for Host, Port, User, Password, UseSSL, CACert, Exchange and RoutingKey you can use %{env1} to %{env9}
 to insert the environment variables GNUGK_ENV1 ... GNUGK_ENV9.
 
 

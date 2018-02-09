@@ -104,15 +104,22 @@ AMQPAcct::AMQPAcct(const char* moduleName, const char* cfgSecName)
 
 	m_host = cfg->GetString(cfgSec, "Host", "localhost");
     m_host = Toolkit::Instance()->ReplaceGlobalParams(m_host);
-	m_port = (WORD)cfg->GetInteger(cfgSec, "Port", 5672);
+	PString port = cfg->GetString(cfgSec, "Port", "5672");
+    port = Toolkit::Instance()->ReplaceGlobalParams(port);
+    m_port = (WORD)port.AsUnsigned();
 	m_user = cfg->GetString(cfgSec, "User", "guest");
     m_user = Toolkit::Instance()->ReplaceGlobalParams(m_user);
 	m_password = cfg->GetString(cfgSec, "Password", "guest");
     m_password = Toolkit::Instance()->ReplaceGlobalParams(m_password);
 	m_exchange = cfg->GetString(cfgSec, "Exchange", "");
+    m_exchange = Toolkit::Instance()->ReplaceGlobalParams(m_exchange);
 	m_routingKey = cfg->GetString(cfgSec, "RoutingKey", "");
+    m_routingKey = Toolkit::Instance()->ReplaceGlobalParams(m_routingKey);
 	m_vhost = cfg->GetString(cfgSec, "VHost", "/");
-	m_useSSL = cfg->GetBoolean(cfgSec, "UseSSL", false);
+    m_vhost = Toolkit::Instance()->ReplaceGlobalParams(m_vhost);
+	PString useSSL = cfg->GetString(cfgSec, "UseSSL", "0");
+    useSSL = Toolkit::Instance()->ReplaceGlobalParams(useSSL);
+    m_useSSL = Toolkit::AsBool(useSSL);
 	m_caCert = cfg->GetString(cfgSec, "CACert", "");
     m_caCert = Toolkit::Instance()->ReplaceGlobalParams(m_caCert);
 	m_contentType = cfg->GetString(cfgSec, "ContentType", "text/plain");
