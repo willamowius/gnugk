@@ -2355,10 +2355,12 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
     PString result;
 
     PString url = ReplaceAuthParams(m_url, params);
+    url = Toolkit::Instance()->ReplaceGlobalParams(url);
     url.Replace(" ", "%20", true);  // TODO: better URL escaping ?
     PTRACE(6, "HttpPasswordAuth\tURL=" << url);
     PString host = PURL(url).GetHostName();
     PString body = ReplaceAuthParams(m_body, params);
+    body = Toolkit::Instance()->ReplaceGlobalParams(body);
 
 #ifdef HAS_LIBCURL
     CURL * curl = NULL;

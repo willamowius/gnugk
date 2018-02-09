@@ -246,8 +246,8 @@ parameters are recognized in all call related accounting events:
 <item><tt/%{callee-media-ip}/ - media IP (audio) used by the called
 <item><tt/%{encryption}/ - "On" if all audio and video chanels are encrypted, otherwise "Off"
 <item><tt/%{env1}/ - content of environment variable GNUGK_ENV1
-<item><tt/%{env2}/ - content of environment variable GNUGK_ENV2
-<item><tt/%{env3}/ - content of environment variable GNUGK_ENV3
+<item><tt/.../
+<item><tt/%{env9}/ - content of environment variable GNUGK_ENV9
 <item><tt/%{media-oip}/ - caller's RTP media IP (only for H.245 routed/tunneled calls) DEPRECATED
 <item><tt/%{codec}/ - audio codec used during the call (only for H.245 routed/tunneled calls) DEPRECATED
 </itemize>
@@ -266,8 +266,8 @@ For Register and Unregister events you can use the following parameters:
 <item><tt/%{aliases}/ - the comma deparated list of aliases the endpoint has registered with
 <item><tt/%{Calling-Station-Id}/ - the caaling party number of this endpoint
 <item><tt/%{env1}/ - content of environment variable GNUGK_ENV1
-<item><tt/%{env2}/ - content of environment variable GNUGK_ENV2
-<item><tt/%{env3}/ - content of environment variable GNUGK_ENV3
+<item><tt/.../
+<item><tt/%{env9}/ - content of environment variable GNUGK_ENV9
 </itemize>
 
 For On and Off events you can use the following parameters:
@@ -276,8 +276,8 @@ For On and Off events you can use the following parameters:
 <item><tt/%{gkip}/ - IP address of the gatekeeper
 <item><tt/%{external-ip}/ - external IP address of the gatekeeper, if set
 <item><tt/%{env1}/ - content of environment variable GNUGK_ENV1
-<item><tt/%{env2}/ - content of environment variable GNUGK_ENV2
-<item><tt/%{env3}/ - content of environment variable GNUGK_ENV3
+<item><tt/.../
+<item><tt/%{env9}/ - content of environment variable GNUGK_ENV9
 </itemize>
 
 <sect1>Section &lsqb;FileAcct&rsqb;
@@ -1019,6 +1019,119 @@ Format of timestamp strings. If this setting
 is not specified, the global one from the main gatekeeper section is used.
 
 </itemize>
+
+
+<sect1>Section &lsqb;AMQPAcct&rsqb;
+<label id="amqpacct">
+<p>
+This accounting module sends accounting information to AMQP queues, eg, RabbitMQ.
+
+You can use the <ref id="cdrparameters" name="common CDR parameters"> to define
+what to include into your request URL or body.
+
+<itemize>
+
+<item><tt/Host=192.168.1.1/<newline>
+Default: <tt>localhost</tt><newline>
+<p>
+Set the host where the message broker runs.
+
+<item><tt/Port=5672/<newline>
+Default: <tt>5672</tt><newline>
+<p>
+The port of the message broker.
+
+<item><tt/User=admin/<newline>
+Default: <tt>guest</tt><newline>
+<p>
+The user name.
+
+<item><tt/Password=secret/<newline>
+Default: <tt>guest</tt><newline>
+<p>
+The password.
+
+<item><tt/Exchange=foo/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The exchange to use.
+
+<item><tt/RoutingKey=bar/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The routing key.
+
+<item><tt>VHost=/</tt>/<newline>
+Default: <tt>/</tt><newline>
+<p>
+The virtual host.
+
+<item><tt>ContentType=application/json</tt>/<newline>
+Default: <tt>text/plain</tt><newline>
+<p>
+The content type header to send.
+
+
+<item><tt>StartEvent=Start Call GK=%g</tt>/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for call start events. You can use the standard account parameters.
+
+<item><tt>StopEvent=End Call GK=%g</tt>/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for call stop events. You can use the standard account parameters.
+
+<item><tt>UpdateEvent=Update Call GK=%g</tt>/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for call update events. You can use the standard account parameters.
+
+<item><tt>AlertEvent=Alert Call GK=%g</tt>/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for call alert events. You can use the standard account parameters.
+
+<item><tt>ConnectEvent=Connect Call GK=%g</tt>/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for call conect events. You can use the standard account parameters.
+
+<item><tt>RejectEvent=Reject Call GK=%g</tt>/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for call reject events. You can use the standard account parameters.
+
+<item><tt>RegisterEvent=Register Endpoint GK=%g</tt>/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for endpoint registration events. You can use the standard account parameters.
+
+<item><tt>UnregisterEvent=Unregister Endpoint GK=%g</tt>/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for endpoint unregistration events. You can use the standard account parameters.
+
+<item><tt>OnEvent=GK Start %g</tt>/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for ON events. You can use the standard account parameters.
+
+<item><tt>OffEvent=GK Stop %g</tt>/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for OFF events. You can use the standard account parameters.
+
+<item><tt/TimestampFormat=MySQL/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Format of timestamp strings. If this setting
+is not specified, the global one from the main gatekeeper section is used.
+
+</itemize>
+
+In the settings for Host, Uses, Password and CACert you can use %{env1} to %{env9}
+to insert the environment variables GNUGK_ENV1 ... GNUGK_ENV9.
 
 
 <sect1>Section &lsqb;RequireOneNet&rsqb;
