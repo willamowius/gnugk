@@ -3675,6 +3675,9 @@ PString CallRec::PrintFullInfo() const
         encryption = "Off";
 	if (!GetCalledVideoCodec().IsEmpty() && GetCalledVideoCodec().Find("H.235") == P_MAX_INDEX)
         encryption = "Off";
+	if (GetCallerAudioCodec().IsEmpty() && GetCalledAudioCodec().IsEmpty()
+        && GetCallerVideoCodec().IsEmpty() && GetCalledVideoCodec().IsEmpty())
+        encryption = "Off";
 	result += "Encryption: " + encryption + "\r\n";
 
 	result += "AudioCodecCaller: " + GetCallerAudioCodec() + "\r\n";
