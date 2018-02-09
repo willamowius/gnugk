@@ -1,7 +1,7 @@
 /*
  * amqpacct.cxx
  *
- * accounting module for GNU Gatekeeper that sends it's messages to AMQP queues
+ * accounting module for GNU Gatekeeper that sends messages to AMQP queues
  *
  * Copyright (c) 2018, Jan Willamowius
  *
@@ -139,9 +139,6 @@ AMQPAcct::AMQPAcct(const char* moduleName, const char* cfgSecName)
                 if (status) {
                     PTRACE(1, "AMQPAcct\tError setting CA certificate");
                 }
-                amqp_ssl_socket_set_verify(m_socket, 0);
-                //amqp_ssl_socket_set_verify_peer(m_socket, false);
-                //amqp_ssl_socket_set_verify_hostname(m_socket, false);
             }
         }
     } else {
