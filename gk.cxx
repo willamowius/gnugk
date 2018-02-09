@@ -81,6 +81,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "AlternateGatekeepers::SQL", "Username" },
 #ifdef HAS_LIBRABBITMQ
 	{ "AMQPAcct", "AlertEvent" },
+	{ "AMQPAcct", "CACert" },
 	{ "AMQPAcct", "ConnectEvent" },
 	{ "AMQPAcct", "ContentType" },
 	{ "AMQPAcct", "Exchange" },
@@ -97,6 +98,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "AMQPAcct", "TimestampFormat" },
 	{ "AMQPAcct", "UnregisterEvent" },
 	{ "AMQPAcct", "User" },
+	{ "AMQPAcct", "UseSSL" },
 	{ "AMQPAcct", "UpdateEvent" },
 	{ "AMQPAcct", "VHost" },
 #endif // HAS_LIBRABBITMQ
