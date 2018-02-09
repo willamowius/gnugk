@@ -4,7 +4,7 @@
  * Generic interface to access SQL databases
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
- * Copyright (c) 2006-2015, Jan Willamowius
+ * Copyright (c) 2006-2018, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -338,7 +338,7 @@ PString GkSQLConnection::ReplaceQueryParams(
 	/// parametrized query string
 	const char* queryStr,
 	/// parameter values
-	const PStringArray& queryParams
+	const PStringArray & queryParams
 	)
 {
 	const PINDEX numParams = queryParams.GetSize();
@@ -367,10 +367,8 @@ PString GkSQLConnection::ReplaceQueryParams(
 				queryLen = queryLen + escapedLen - paramLen - 1;
 				pos = pos - 1 + escapedLen;
 			} else if (paramNo && paramLen) {
-				// replace out of range parameter with an empty string
-				finalQuery.Delete(pos - 1, paramLen + 1);
-				queryLen -= paramLen + 1;
-				pos--;
+                // leave unknown placeholders intact so a 2nd stage can replace them
+
 			}
 		} else if (c == '{') { // escaped syntax (%{1})
 			const PINDEX closingBrace = finalQuery.Find('}', ++pos);
@@ -384,10 +382,7 @@ PString GkSQLConnection::ReplaceQueryParams(
 					queryLen = queryLen + escapedLen - paramLen - 3;
 					pos = pos - 2 + escapedLen;
 				} else if (paramNo && paramLen) {
-					// replace out of range parameter with an empty string
-					finalQuery.Delete(pos - 2, paramLen + 3);
-					queryLen -= paramLen + 3;
-					pos -= 2;
+				    // leave unknown placeholders intact so a 2nd stage can replace them
 				}
 			}
 		}
@@ -402,7 +397,7 @@ PString GkSQLConnection::ReplaceQueryParams(
 	/// parametrized query string
 	const char* queryStr,
 	/// parameter values
-	const std::map<PString, PString>& queryParams
+	const std::map<PString, PString> & queryParams
 	)
 {
 	PString finalQuery(queryStr);
@@ -433,10 +428,7 @@ PString GkSQLConnection::ReplaceQueryParams(
 					queryLen = queryLen + escapedLen - paramLen - 3;
 					pos = pos - 2 + escapedLen;
 				} else {
-					// replace out of range parameter with an empty string
-					finalQuery.Delete(pos - 2, paramLen + 3);
-					queryLen -= paramLen + 3;
-					pos -= 2;
+                    // leave unknown placeholders intact so a 2nd stage can replace them
 				}
 			}
 		} else { // simple syntax (%1)
@@ -448,10 +440,7 @@ PString GkSQLConnection::ReplaceQueryParams(
 				queryLen = queryLen + escapedLen - 2;
 				pos = pos - 1 + escapedLen;
 			} else {
-				// replace out of range parameter with an empty string
-				finalQuery.Delete(pos - 1, 2);
-				queryLen -= 2;
-				pos--;
+                // leave unknown placeholders intact so a 2nd stage can replace them
 			}
 		}
 	}

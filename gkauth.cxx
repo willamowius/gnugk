@@ -724,10 +724,7 @@ PString GkAuthenticator::ReplaceAuthParams(
 					len = len + escapedLen - paramLen - 3;
 					pos = pos - 2 + escapedLen;
 				} else {
-					// replace out of range parameter with an empty string
-					finalStr.Delete(pos - 2, paramLen + 3);
-					len -= paramLen + 3;
-					pos -= 2;
+				    // leave unknown placeholders intact so a 2nd stage can replace them
 				}
 			}
 		} else { // simple syntax (%c)
@@ -738,10 +735,7 @@ PString GkAuthenticator::ReplaceAuthParams(
 				len = len + escapedLen - 2;
 				pos = pos - 1 + escapedLen;
 			} else {
-				// replace out of range parameter with an empty string
-				finalStr.Delete(pos - 1, 2);
-				len -= 2;
-				pos--;
+                // leave unknown placeholders intact so a 2nd stage can replace them
 			}
 		}
 	}
@@ -2354,8 +2348,11 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
 {
     PString result;
 
+    PTRACE(0, "JW 0 m_url=" << m_url);
     PString url = ReplaceAuthParams(m_url, params);
+    PTRACE(0, "JW 1 url=" << url);
     url = Toolkit::Instance()->ReplaceGlobalParams(url);
+    PTRACE(0, "JW 2 url=" << url);
     url.Replace(" ", "%20", true);  // TODO: better URL escaping ?
     PTRACE(6, "HttpPasswordAuth\tURL=" << url);
     PString host = PURL(url).GetHostName();
