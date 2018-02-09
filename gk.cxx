@@ -2,7 +2,7 @@
 //
 // gk.cxx for GNU Gatekeeper
 //
-// Copyright (c) 2000-2017, Jan Willamowius
+// Copyright (c) 2000-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1200,7 +1200,7 @@ BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 
 	// CTRL_CLOSE_EVENT:
 	// this case needs special treatment as Windows would
-	// immidiately call ExitProcess() upon returning TRUE,
+	// immediately call ExitProcess() upon returning TRUE,
 	// and the GK has no chance to clean-up. The call to
 	// WaitForSingleObject() results in around 5 sec's of
 	// clean-up time - This may at times not be sufficient
@@ -1711,7 +1711,7 @@ void Gatekeeper::Main()
 		ExitGK();
 	}
 
-	// must be set very early before Toolkit get instatiated and does IP detection
+	// must be set very early before Toolkit gets instantiated and does IP detection
     PString externalIP;
     if (args.HasOption('e')) {
         externalIP = args.GetOptionString('e');
@@ -1733,13 +1733,13 @@ void Gatekeeper::Main()
 #ifndef _WIN32
     if (GkConfig()->GetBoolean("LogFile", "LogToSyslog", false)) {
         PTrace::SetOptions(PTrace::SystemLogStream);
-        PTrace::SetStream(new PSystemLog(PSystemLog::Debug6)); // Debug6 = dont filter more than the global trace level
+        PTrace::SetStream(new PSystemLog(PSystemLog::Debug6)); // Debug6 = don't filter more than the global trace level
         PSystemLog::SetTarget(new GnuGkToSyslog());
         PSystemLog::GetTarget().SetThresholdLevel(PSystemLog::Debug6);
     }
 #endif
 
-	// set trace level + output file from config , if not set on the command line (for service)
+	// set trace level + output file from config, if not set on the command line (for service)
 	PString fake_cmdline;
 	if (args.GetOptionCount('t') == 0) {
 		int log_trace_level = GkConfig()->GetInteger("TraceLevel", 0);
@@ -1880,7 +1880,7 @@ void Gatekeeper::Main()
 	//    dialog box from being displayed.
 	// 2) set process shutdown priority - we want as much time as possible
 	//    for tasks, such as unregistering endpoints during the shut down process.
-	//    0x3ff is a maximimum permitted for windows app
+	//    0x3ff is a maximum permitted for windows app
 	SetProcessShutdownParameters(0x3ff, SHUTDOWN_NORETRY);
 #endif
 
@@ -2011,25 +2011,19 @@ void Gatekeeper::EnableLogFileRotation(bool enable)
 		if (rotateTime <= now)
 			rotateTime += PTimeInterval(0, 0, 0, 1); // 1 hour
 		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
-			&Gatekeeper::RotateOnTimer, rotateTime, 60*60
-			);
+			&Gatekeeper::RotateOnTimer, rotateTime, 60*60);
 		PTRACEX(5, "GK\tHourly log file rotation enabled (first "
-			"rotation scheduled at " << rotateTime
-			);
+			"rotation scheduled at " << rotateTime);
 		break;
 
 	case Daily:
 		rotateTime = PTime(0, m_rotateMinute, m_rotateHour, now.GetDay(),
-			now.GetMonth(), now.GetYear(), now.GetTimeZone()
-			);
+			now.GetMonth(), now.GetYear(), now.GetTimeZone());
 		if (rotateTime <= now)
 			rotateTime += PTimeInterval(0, 0, 0, 0, 1); // 1 day
 		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
-			&Gatekeeper::RotateOnTimer, rotateTime, 60*60*24
-			);
-		PTRACEX(5, "GK\tDaily rotation enabled (first rotation scheduled at "
-			<< rotateTime
-			);
+			&Gatekeeper::RotateOnTimer, rotateTime, 60*60*24);
+		PTRACEX(5, "GK\tDaily rotation enabled (first rotation scheduled at " << rotateTime);
 		break;
 
 	case Weekly:
@@ -2049,15 +2043,12 @@ void Gatekeeper::EnableLogFileRotation(bool enable)
 		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
 			&Gatekeeper::RotateOnTimer, rotateTime, 60*60*24*7
 			);
-		PTRACEX(5, "GK\tWeekly rotation enabled (first rotation scheduled at "
-			<< rotateTime
-		      );
+		PTRACEX(5, "GK\tWeekly rotation enabled (first rotation scheduled at " << rotateTime);
 		break;
 
 	case Monthly:
 		rotateTime = PTime(0, m_rotateMinute, m_rotateHour, 1,
-			now.GetMonth(), now.GetYear(), now.GetTimeZone()
-			);
+			now.GetMonth(), now.GetYear(), now.GetTimeZone());
 		rotateTime += PTimeInterval(0, 0, 0, 0, m_rotateDay - 1);
 		while (rotateTime.GetMonth() != now.GetMonth())
 			rotateTime -= PTimeInterval(0, 0, 0, 0, 1); // 1 day
@@ -2066,8 +2057,7 @@ void Gatekeeper::EnableLogFileRotation(bool enable)
 			rotateTime = PTime(0, m_rotateMinute, m_rotateHour, 1,
 				now.GetMonth() + (now.GetMonth() == 12 ? -11 : 1),
 				now.GetYear() + (now.GetMonth() == 12 ? 1 : 0),
-				now.GetTimeZone()
-				);
+				now.GetTimeZone());
 			const int month = rotateTime.GetMonth();
 			rotateTime += PTimeInterval(0, 0, 0, 0, m_rotateDay - 1);
 			while (rotateTime.GetMonth() != month)
@@ -2075,11 +2065,8 @@ void Gatekeeper::EnableLogFileRotation(bool enable)
 		}
 
 		m_rotateTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(
-			&Gatekeeper::RotateOnTimer, rotateTime
-			);
-		PTRACEX(5, "GK\tMonthly rotation enabled (first rotation scheduled at "
-			<< rotateTime
-			);
+			&Gatekeeper::RotateOnTimer, rotateTime);
+		PTRACEX(5, "GK\tMonthly rotation enabled (first rotation scheduled at " << rotateTime);
 		break;
 	}
 }
@@ -2094,8 +2081,7 @@ void Gatekeeper::RotateOnTimer(GkTimer* timer)
 			rotateTime.GetHour(), 1,
 			rotateTime.GetMonth() < 12 ? rotateTime.GetMonth() + 1 : 1,
 			rotateTime.GetMonth() < 12 ? rotateTime.GetYear() : rotateTime.GetYear() + 1,
-			rotateTime.GetTimeZone()
-			);
+			rotateTime.GetTimeZone());
 
 		newRotateTime += PTimeInterval(0, 0, 0, 0, m_rotateDay - 1);
 
@@ -2116,8 +2102,7 @@ bool Gatekeeper::SetLogFilename(const PString & filename)
 		return false;
 
 	PWaitAndSignal lock(m_logFileMutex);
-	if (!m_logFilename && m_logFile != NULL && m_logFile->IsOpen()
-		&& m_logFilename == filename)
+	if (!m_logFilename && m_logFile != NULL && m_logFile->IsOpen() && m_logFilename == filename)
 		return true;
 
 	if (m_logFile) {
@@ -2186,8 +2171,7 @@ bool Gatekeeper::RotateLogFile()
 
 	m_logFile = new PTextFile(m_logFilename, PFile::WriteOnly, PFile::Create);
 	if (!m_logFile->IsOpen()) {
-		cerr << "Warning: could not open the log file \""
-		     << m_logFilename << "\" after rotation" << endl;
+		cerr << "Warning: could not open the log file \"" << m_logFilename << "\" after rotation" << endl;
 		delete m_logFile;
 		m_logFile = NULL;
 		return false;
@@ -2230,8 +2214,7 @@ bool Gatekeeper::ReopenLogFile()
 	if (m_logFile == NULL) {
 		m_logFile = new PTextFile(m_logFilename, PFile::WriteOnly, PFile::Create);
 		if (!m_logFile->IsOpen()) {
-			cerr << "Warning: could not open the log file \""
-			     << m_logFilename << "\" after rotation" << endl;
+			cerr << "Warning: could not open the log file \"" << m_logFilename << "\" after rotation" << endl;
 			delete m_logFile;
 			m_logFile = NULL;
 			return false;
