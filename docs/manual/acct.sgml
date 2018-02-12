@@ -267,6 +267,7 @@ For Register and Unregister events you can use the following parameters:
 <item><tt/%{event-time}/ - time when the event is generated
 <item><tt/%{endpoint-ip}/ - IP number of the endpoint
 <item><tt/%{endpoint-port}/ - port number of the endpoint
+<item><tt/%{endpoint-vendor}/ - vendor and version info of the endpoint
 <item><tt/%{epid}/ - the endpoint ID
 <item><tt/%{aliases}/ - the comma deparated list of aliases the endpoint has registered with
 <item><tt/%{Calling-Station-Id}/ - the caaling party number of this endpoint
