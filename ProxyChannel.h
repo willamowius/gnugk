@@ -200,7 +200,7 @@ public:
 	~UDPProxySocket();
 
 	void UpdateSocketName();
-	void RemoveCallPtr() { m_call = NULL; }
+	void RemoveCallPtr() { PWaitAndSignal lock(m_callMutex); m_call = NULL; }
 	void SetDestination(H245_UnicastAddress &, callptr &);
 	void SetForwardDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call);
 	void SetReverseDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call);
@@ -254,6 +254,7 @@ protected:
 
 	H225_CallIdentifier m_callID;
 	callptr * m_call;
+	PMutex m_callMutex;
 
 private:
 	UDPProxySocket();
