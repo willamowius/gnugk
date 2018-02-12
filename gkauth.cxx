@@ -2348,11 +2348,8 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
 {
     PString result;
 
-    PTRACE(0, "JW 0 m_url=" << m_url);
     PString url = ReplaceAuthParams(m_url, params);
-    PTRACE(0, "JW 1 url=" << url);
     url = Toolkit::Instance()->ReplaceGlobalParams(url);
-    PTRACE(0, "JW 2 url=" << url);
     url.Replace(" ", "%20", true);  // TODO: better URL escaping ?
     PTRACE(6, "HttpPasswordAuth\tURL=" << url);
     PString host = PURL(url).GetHostName();
