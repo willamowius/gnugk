@@ -6036,27 +6036,6 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 
 	m_h225Version = GetH225Version(connectBody);
 
-	if (m_call) {
-		m_call->SetConnected();
-		RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctConnect, m_call);
-	}
-
-	if (HandleFastStart(connectBody, false))
-		msg->SetUUIEChanged();
-
-	if (HandleH245Address(connectBody))
-		msg->SetUUIEChanged();
-
-	if (connectBody.HasOptionalField(H225_Connect_UUIE::e_multipleCalls)
-			&& connectBody.m_multipleCalls) {
-		connectBody.m_multipleCalls = FALSE;
-		msg->SetUUIEChanged();
-	}
-	if (connectBody.HasOptionalField(H225_Connect_UUIE::e_maintainConnection)) {
-		connectBody.m_maintainConnection = (GetRemote() && GetRemote()->MaintainConnection());
-		msg->SetUUIEChanged();
-	}
-
 	// store called party vendor info
 	if (connectBody.m_destinationInfo.HasOptionalField(H225_EndpointType::e_vendor)) {
 		PString vendor, version;
@@ -6086,6 +6065,27 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 					break;
 			}
 		}
+	}
+
+	if (m_call) {
+		m_call->SetConnected();
+		RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctConnect, m_call);
+	}
+
+	if (HandleFastStart(connectBody, false))
+		msg->SetUUIEChanged();
+
+	if (HandleH245Address(connectBody))
+		msg->SetUUIEChanged();
+
+	if (connectBody.HasOptionalField(H225_Connect_UUIE::e_multipleCalls)
+			&& connectBody.m_multipleCalls) {
+		connectBody.m_multipleCalls = FALSE;
+		msg->SetUUIEChanged();
+	}
+	if (connectBody.HasOptionalField(H225_Connect_UUIE::e_maintainConnection)) {
+		connectBody.m_maintainConnection = (GetRemote() && GetRemote()->MaintainConnection());
+		msg->SetUUIEChanged();
 	}
 
 	// For compatibility with endpoints which do not support large Setup messages or send incorrect tokens
