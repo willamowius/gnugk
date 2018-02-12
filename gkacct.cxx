@@ -298,6 +298,9 @@ void GkAcctLogger::SetupAcctEndpointParams(
 		params["endpoint-ip"] = addr.AsString();
 		params["endpoint-port"] = port;
 	}
+	PString vendor, version;
+	ep->GetEndpointInfo(vendor, version);
+	params["endpoint-vendor"] = vendor + " " + version;
 
 	PString aliasString = AsString(ep->GetAliases(), false);
 	aliasString.Replace(PString("="), PString(","), true);	// make list comma separated
