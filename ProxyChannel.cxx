@@ -11166,7 +11166,8 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 
-	m_call = &call;
+    if (call)
+        m_call = &call;
 }
 
 void UDPProxySocket::GetPorts(PIPSocket::Address & _fSrcIP, PIPSocket::Address & _fDestIP, PIPSocket::Address & _rSrcIP, PIPSocket::Address & _rDestIP,
@@ -11248,6 +11249,7 @@ void UDPProxySocket::SetMultiplexSocket(int multiplexSocket, H46019Side side)
 
 void UDPProxySocket::SetMediaIP(bool isSRC, const Address & ip)
 {
+    PWaitAndSignal lock(m_callMutex);
 	if (m_call && *m_call) {
 		if (m_isRTCPType) {
 			if (isSRC)
@@ -11289,6 +11291,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		ErrorHandler(PSocket::LastReadError);
 		return NoData;
 	}
+	PWaitAndSignal lockCall(m_callMutex);
 	Address fromIP;
 	WORD fromPort;
 	GetLastReceiveAddress(fromIP, fromPort);
