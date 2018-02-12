@@ -283,7 +283,7 @@ GkAcctLogger::Status AMQPAcct::Log(GkAcctLogger::AcctEvent evt, const endptr & e
 
 GkAcctLogger::Status AMQPAcct::AMQPLog(const PString & event, const PString & routingKey)
 {
-    PTRACE(5, "AMQPAcct\tLogging message=" << event);
+    PTRACE(5, "AMQPAcct\tLogging message=" << event << " routing key=" << routingKey);
     amqp_basic_properties_t props;
     props._flags = AMQP_BASIC_CONTENT_TYPE_FLAG | AMQP_BASIC_DELIVERY_MODE_FLAG;
     props.content_type = amqp_cstring_bytes((const char *)m_contentType);
@@ -292,7 +292,7 @@ GkAcctLogger::Status AMQPAcct::AMQPLog(const PString & event, const PString & ro
                                     amqp_cstring_bytes((const char *)routingKey), 0, 0,
                                     &props, amqp_cstring_bytes((const char *)event));
     if (status) {
-        PTRACE(1, "AMQPAcct\tError publishing event");
+        PTRACE(1, "AMQPAcct\tError publishing event: " << amqp_error_string2(status));
         return Fail;
     }
 
