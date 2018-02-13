@@ -385,6 +385,10 @@ class Toolkit : public Singleton<Toolkit>
     bool CreateH350Session(H350_Session * session);
 #endif
 
+#ifdef P_SSL
+    void InitOpenSSL();
+#endif
+
 #ifdef HAS_TLS
 	bool IsTLSEnabled() const;
 	SSL_CTX * GetTLSContext();
@@ -780,6 +784,9 @@ private:
 #ifdef HAS_TLS
 	SSL_CTX * m_sslCtx;
 	PString m_passphrase;
+#endif
+#ifdef P_SSL
+    bool m_OpenSSLInitialized;
 #endif
 };
 

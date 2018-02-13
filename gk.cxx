@@ -1843,6 +1843,10 @@ void Gatekeeper::Main()
 		SNMP_TRAP(1, SNMPInfo, General, "GnuGk started");	// when NOT registering as agent, send started trap here already
 #endif
 
+#ifdef P_SSL
+    Toolkit::Instance()->InitOpenSSL(); // makes sure  OpenSSL gets initialized exactly once for the whole application
+#endif // P_SSL
+
 #ifdef HAS_LIBSSH
     if (ssh_init() < 0) {
         PTRACE(1, "ssh_init() failed");

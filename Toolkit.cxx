@@ -1275,6 +1275,9 @@ Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit"),
 	m_cliRewrite(NULL), m_causeCodeTranslationActive(false)
 {
 	srand((unsigned int)time(0));
+#ifdef P_SSL
+	m_OpenSSLInitialized = false;
+#endif // P_SSL
 #ifdef HAS_TLS
 	m_sslCtx = NULL;
 #endif
@@ -2279,6 +2282,35 @@ bool Toolkit::AssignedAliases::QueryH350Directory(const PString & alias, PString
 }
 #endif
 
+#ifdef P_SSL
+void Toolkit::InitOpenSSL()
+{
+    if (!m_OpenSSLInitialized) {
+		// init OpenSSL exactly once and in application
+        PTRACE(1, "Initializing OpenSSL");
+		if (!SSL_library_init()) {
+			PTRACE(1, "TLS\tOpenSSL init failed");
+			return;
+		}
+		SSL_load_error_strings();
+		OpenSSL_add_all_algorithms();	// needed for OpenSSL < 1.0
+		if (!RAND_status()) {
+			PTRACE(3, "TLS\tPRNG needs seeding");
+#if defined(P_LINUX) || defined (P_FREEBSD)
+			RAND_load_file("/dev/urandom", 1024);
+#else
+			BYTE seed[1024];
+			for (size_t i = 0; i < sizeof(seed); i++)
+				seed[i] = (BYTE)rand();
+			RAND_seed(seed, sizeof(seed));
+#endif
+		}
+
+        m_OpenSSLInitialized = true;    // don't do again
+    }
+}
+#endif
+
 #ifdef HAS_TLS
 
 void apps_ssl_info_callback(const SSL * s, int where, int ret)
@@ -2345,24 +2377,7 @@ bool Toolkit::IsTLSEnabled() const
 SSL_CTX * Toolkit::GetTLSContext()
 {
 	if (!m_sslCtx) {
-		// TODO: init OpenSSL only once in application
-		if (!SSL_library_init()) {
-			PTRACE(1, "TLS\tOpenSSL init failed");
-			return NULL;
-		}
-		SSL_load_error_strings();
-		OpenSSL_add_all_algorithms();	// needed for OpenSSL < 1.0
-		if (!RAND_status()) {
-			PTRACE(3, "TLS\tPRNG needs seeding");
-#if defined(P_LINUX) || defined (P_FREEBSD)
-			RAND_load_file("/dev/urandom", 1024);
-#else
-			BYTE seed[1024];
-			for (size_t i = 0; i < sizeof(seed); i++)
-				seed[i] = (BYTE)rand();
-			RAND_seed(seed, sizeof(seed));
-#endif
-		}
+        InitOpenSSL(); // makes sure  OpenSSL gets initialized exactly once for the whole application
 
 		m_sslCtx = SSL_CTX_new(SSLv23_method());	// allow only TLS (SSLv2+v3 are removed below)
 		SSL_CTX_set_options(m_sslCtx, SSL_OP_NO_SSLv2);	// remove unsafe SSLv2 (eg. due to DROWN)
