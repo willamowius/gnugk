@@ -50,6 +50,8 @@ public:
 	virtual Status Log(AcctEvent evt, const endptr & ep);
 
 protected:
+    virtual void Connect();
+    virtual void Disconnect();
 	virtual Status AMQPLog(const PString & event, const PString & routingKey);
 
 private:
@@ -60,7 +62,6 @@ private:
 	AMQPAcct & operator=(const AMQPAcct &);
 
 private:
-    bool m_active;
     PString m_host;
     WORD m_port;
     PString m_user;
@@ -137,7 +138,16 @@ AMQPAcct::AMQPAcct(const char* moduleName, const char* cfgSecName)
 	m_offEvent = cfg->GetString(cfgSec, "OffEvent", "");
 	m_rejectEvent = cfg->GetString(cfgSec, "RejectEvent", "");
 
-	m_active = false;
+    Connect();
+}
+
+AMQPAcct::~AMQPAcct()
+{
+    Disconnect();
+}
+
+void AMQPAcct::Connect()
+{
 	int status = 0;
     m_conn = amqp_new_connection();
     if (m_useSSL) {
@@ -171,17 +181,14 @@ AMQPAcct::AMQPAcct(const char* moduleName, const char* cfgSecName)
                 r = amqp_get_rpc_reply(m_conn);
                 if (r.reply_type != AMQP_RESPONSE_NORMAL) {
                     PTRACE(1, "AMQPAcct\tError opening channel");
-                } else {
-                    m_active = true;
                 }
             }
         }
     }
 }
 
-AMQPAcct::~AMQPAcct()
+void AMQPAcct::Disconnect()
 {
-    m_active = false;
     amqp_channel_close(m_conn, m_channelID, AMQP_REPLY_SUCCESS);
     amqp_connection_close(m_conn, AMQP_REPLY_SUCCESS);
     amqp_destroy_connection(m_conn);
@@ -193,11 +200,6 @@ GkAcctLogger::Status AMQPAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & 
 	// if it is not interested in this event type
 	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
 		return Next;
-
-    if (!m_active) {
-		PTRACE(1, "AMQPAcct\t" << GetName() << " not ready");
-		return Fail;
-    }
 
 	if (!call && evt != AcctOn && evt != AcctOff) {
 		PTRACE(1, "AMQPAcct\t" << GetName() << " - missing call info for event " << evt);
@@ -247,11 +249,6 @@ GkAcctLogger::Status AMQPAcct::Log(GkAcctLogger::AcctEvent evt, const endptr & e
 	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
 		return Next;
 
-    if (!m_active) {
-		PTRACE(1, "AMQPAcct\t" << GetName() << " not ready");
-		return Fail;
-    }
-
 	if (!ep) {
 		PTRACE(1, "AMQPAcct\t" << GetName() << " - missing endpoint info for event " << evt);
 		return Fail;
@@ -292,8 +289,16 @@ GkAcctLogger::Status AMQPAcct::AMQPLog(const PString & event, const PString & ro
                                     amqp_cstring_bytes((const char *)routingKey), 0, 0,
                                     &props, amqp_cstring_bytes((const char *)event));
     if (status) {
-        PTRACE(1, "AMQPAcct\tError publishing event: " << amqp_error_string2(status));
-        return Fail;
+        PTRACE(1, "AMQPAcct\tError publishing event: " << amqp_error_string2(status) << " (will re-try)");
+        Disconnect();
+        Connect();
+        status = amqp_basic_publish(m_conn, m_channelID, amqp_cstring_bytes((const char *)m_exchange),
+                                    amqp_cstring_bytes((const char *)routingKey), 0, 0,
+                                    &props, amqp_cstring_bytes((const char *)event));
+        if (status) {
+            PTRACE(1, "AMQPAcct\tError publishing event: " << amqp_error_string2(status) << " (after re-try)");
+            return Fail;
+        }
     }
 
     return Ok;
