@@ -138,6 +138,10 @@ AMQPAcct::AMQPAcct(const char* moduleName, const char* cfgSecName)
 	m_offEvent = cfg->GetString(cfgSec, "OffEvent", "");
 	m_rejectEvent = cfg->GetString(cfgSec, "RejectEvent", "");
 
+#ifdef P_SSL
+    Toolkit::Instance()->InitOpenSSL(); // makes sure  OpenSSL gets initialized exactly once for the whole application
+#endif // P_SSL
+
     Connect();
 }
 
@@ -148,7 +152,10 @@ AMQPAcct::~AMQPAcct()
 
 void AMQPAcct::Connect()
 {
+    PTRACE(3, "AMQPAcct\tConnecting to AMQP server " << m_host);
+    m_socket = NULL;
 	int status = 0;
+	amqp_set_initialize_ssl_library(0); // don't init SSL lib, GnuGk does it once for all modules
     m_conn = amqp_new_connection();
     if (m_useSSL) {
         m_socket = amqp_ssl_socket_new(m_conn);
@@ -189,9 +196,10 @@ void AMQPAcct::Connect()
 
 void AMQPAcct::Disconnect()
 {
-    amqp_channel_close(m_conn, m_channelID, AMQP_REPLY_SUCCESS);
-    amqp_connection_close(m_conn, AMQP_REPLY_SUCCESS);
-    amqp_destroy_connection(m_conn);
+    PTRACE(3, "AMQPAcct\tDisconnecting from AMQP server " << m_host);
+    (void)amqp_channel_close(m_conn, m_channelID, AMQP_REPLY_SUCCESS);
+    (void)amqp_connection_close(m_conn, AMQP_REPLY_SUCCESS);
+    (void)amqp_destroy_connection(m_conn);
 }
 
 GkAcctLogger::Status AMQPAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & call)
@@ -298,6 +306,8 @@ GkAcctLogger::Status AMQPAcct::AMQPLog(const PString & event, const PString & ro
         if (status) {
             PTRACE(1, "AMQPAcct\tError publishing event: " << amqp_error_string2(status) << " (after re-try)");
             return Fail;
+        } else {
+            PTRACE(3, "AMQPAcct\tRe-try to publish event successful");
         }
     }
 
