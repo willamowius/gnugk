@@ -89,6 +89,7 @@ private:
 	PString m_rejectEvent;
 	/// timestamp formatting string
 	PString m_timestampFormat;
+	PMutex m_threadMutex;
 };
 
 
@@ -155,7 +156,7 @@ void AMQPAcct::Connect()
     PTRACE(3, "AMQPAcct\tConnecting to AMQP server " << m_host);
     m_socket = NULL;
 	int status = 0;
-	amqp_set_initialize_ssl_library(0); // don't init SSL lib, GnuGk does it once for all modules
+	amqp_set_initialize_ssl_library(0); // don't init OpenSSL, GnuGk does it once for all modules
     m_conn = amqp_new_connection();
     if (m_useSSL) {
         m_socket = amqp_ssl_socket_new(m_conn);
@@ -200,6 +201,7 @@ void AMQPAcct::Disconnect()
     (void)amqp_channel_close(m_conn, m_channelID, AMQP_REPLY_SUCCESS);
     (void)amqp_connection_close(m_conn, AMQP_REPLY_SUCCESS);
     (void)amqp_destroy_connection(m_conn);
+    m_socket = NULL; // free()ed by amqp_destroy_connection()
 }
 
 GkAcctLogger::Status AMQPAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & call)
@@ -288,6 +290,8 @@ GkAcctLogger::Status AMQPAcct::Log(GkAcctLogger::AcctEvent evt, const endptr & e
 
 GkAcctLogger::Status AMQPAcct::AMQPLog(const PString & event, const PString & routingKey)
 {
+    PWaitAndSignal lock(m_threadMutex);
+
     PTRACE(5, "AMQPAcct\tLogging message=" << event << " routing key=" << routingKey);
     amqp_basic_properties_t props;
     props._flags = AMQP_BASIC_CONTENT_TYPE_FLAG | AMQP_BASIC_DELIVERY_MODE_FLAG;
