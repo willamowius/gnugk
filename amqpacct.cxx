@@ -198,8 +198,10 @@ void AMQPAcct::Connect()
 void AMQPAcct::Disconnect()
 {
     PTRACE(3, "AMQPAcct\tDisconnecting from AMQP server " << m_host);
-    (void)amqp_channel_close(m_conn, m_channelID, AMQP_REPLY_SUCCESS);
-    (void)amqp_connection_close(m_conn, AMQP_REPLY_SUCCESS);
+    if (m_socket) {
+        (void)amqp_channel_close(m_conn, m_channelID, AMQP_REPLY_SUCCESS);
+        (void)amqp_connection_close(m_conn, AMQP_REPLY_SUCCESS);
+    }
     (void)amqp_destroy_connection(m_conn);
     m_socket = NULL; // free()ed by amqp_destroy_connection()
 }
