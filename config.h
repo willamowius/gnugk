@@ -17,10 +17,9 @@
 
 #include <ptlib.h>
 #include <ptlib/ipsock.h>
-
-#ifdef _WIN32
 #include "gnugkbuildopts.h"
-#else
+
+#ifndef _WIN32
 #define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 #endif
 
@@ -31,7 +30,6 @@
 #else
     #include <ptlib_config.h>
 #endif
-#include "gnugkbuildopts.h"
 
 // use at least PWLib Pandora
 #if PWLIB_MAJOR == 1

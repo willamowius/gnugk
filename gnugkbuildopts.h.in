@@ -44,7 +44,11 @@
 #undef HAS_LUA
 
 // GeoIP
-#undef HAS_GEOIP
+#undef HAS_GEOIP1
+#undef HAS_GEOIP2
+#if defined(HAS_GEOIP1) || defined(HAS_GEOPI2)
+#define HAS_GEOIP 1
+#endif
 
 // libcurl
 #undef HAS_LIBCURL

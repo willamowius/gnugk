@@ -4,7 +4,7 @@
 //
 // GeoIP authentication policy for GNU Gatekeeper
 //
-// Copyright (c) 2015, Jan Willamowius
+// Copyright (c) 2015-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -22,9 +22,13 @@
 #include "RasPDU.h"
 #include "gkauth.h"
 
+#ifdef HAS_GEOIP2
+#include <maxminddb.h>
+#else
 extern "C" {
 #include "GeoIP.h"
 }
+#endif
 
 /// GeoIP authentication policy
 
@@ -34,13 +38,31 @@ public:
 	enum SupportedRasChecks {
 		/// bitmask of RAS checks implemented by this module
 		GeoIPAuthRasChecks = RasInfo<H225_RegistrationRequest>::flag
+			| RasInfo<H225_AdmissionRequest>::flag
+			| RasInfo<H225_GatekeeperRequest>::flag
 			| RasInfo<H225_UnregistrationRequest>::flag
 			| RasInfo<H225_BandwidthRequest>::flag
 			| RasInfo<H225_DisengageRequest>::flag
 			| RasInfo<H225_LocationRequest>::flag
 			| RasInfo<H225_InfoRequest>::flag
-			| RasInfo<H225_AdmissionRequest>::flag,
-		GeoIPAuthMiscChecks = e_Setup | e_SetupUnreg
+			| RasInfo<H225_ResourcesAvailableIndicate>::flag
+	};
+	enum SupportedMiscChecks {
+		/// bitmask of Misc checks implemented by this module
+        GeoIPAuthMiscChecks = e_Setup
+            | e_SetupUnreg
+            | e_Connect
+            | e_CallProceeding
+            | e_Alerting
+            | e_Information
+            | e_ReleaseComplete
+            | e_Facility
+            | e_Progress
+            | e_Empty
+            | e_Status
+            | e_StatusEnquiry
+            | e_SetupAck
+            | e_Notify
 	};
 
 	GeoIPAuth(
@@ -61,13 +83,17 @@ public:
 	             or cannot be determined (SQL failure, no cryptoTokens, ...)
 	*/
 	virtual int Check(RasPDU<H225_RegistrationRequest> & request, RRQAuthData & authData);
+	virtual int Check(RasPDU<H225_AdmissionRequest> & request, ARQAuthData & authData);
+	virtual int Check(RasPDU<H225_GatekeeperRequest> & grqPdu, unsigned & rejectReason);
 	virtual int Check(RasPDU<H225_UnregistrationRequest> & req, unsigned & rejectReason);
 	virtual int Check(RasPDU<H225_BandwidthRequest> & req, unsigned & rejectReason);
 	virtual int Check(RasPDU<H225_DisengageRequest> & req, unsigned & rejectReason);
 	virtual int Check(RasPDU<H225_LocationRequest> & req, unsigned & rejectReason);
 	virtual int Check(RasPDU<H225_InfoRequest> & req, unsigned & rejectReason);
-	virtual int Check(RasPDU<H225_AdmissionRequest> & request, ARQAuthData & authData);
+	virtual int Check(RasPDU<H225_ResourcesAvailableIndicate> & req, unsigned & rejectReason);
+
 	virtual int Check(SetupMsg & setup, SetupAuthData & authData);
+    virtual int Check(Q931 & msg, Q931AuthData & authData);
 
 protected:
 	/** run the check on the IP
@@ -77,7 +103,7 @@ protected:
 		e_fail	if authentication failed
 		e_next	go to next policy
 	*/
-	int doGeoCheck(PIPSocket::Address & ip) const;
+	int doGeoCheck(PIPSocket::Address & ip);
 
 private:
 	GeoIPAuth();
@@ -85,36 +111,58 @@ private:
 	GeoIPAuth & operator=(const GeoIPAuth &);
 
 protected:
+#ifdef HAS_GEOIP2
+    MMDB_s m_mmdb;
+#else
     GeoIP * m_gi;
+#endif
     PStringArray m_allowedCountries;
 };
 
-GeoIPAuth::GeoIPAuth(
-	const char * name,
-	unsigned supportedRasChecks,
-	unsigned supportedMiscChecks)
+GeoIPAuth::GeoIPAuth(const char * name, unsigned supportedRasChecks, unsigned supportedMiscChecks)
 	: GkAuthenticator(name, supportedRasChecks, supportedMiscChecks)
 {
 	PString database = GkConfig()->GetString("GeoIPAuth", "Database", "geoip.dat");
-    m_gi = GeoIP_open(database, GEOIP_MEMORY_CACHE);
-	if (m_gi) {
-		m_allowedCountries = GkConfig()->GetString("GeoIPAuth", "AllowedCountries", "").Tokenise(", ", false);
-	} else {
-		PTRACE(2, "GeoIPAuth\tCan't read database " << database);
+#ifdef HAS_GEOIP2
+    int status = MMDB_open(database, MMDB_MODE_MMAP, &m_mmdb);
+	if (status != MMDB_SUCCESS) {
+		PTRACE(2, "GeoIPAuth\tCan't read database " << database << " (expecting GeoIP2 database)");
 		SNMP_TRAP(4, SNMPError, General, "GeoIPAuth: Can't read database");
 	}
+#else
+    m_gi = GeoIP_open(database, GEOIP_MEMORY_CACHE);
+	if (!m_gi) {
+		PTRACE(2, "GeoIPAuth\tCan't read database " << database << " (expecting legacy GeoIP database)");
+		SNMP_TRAP(4, SNMPError, General, "GeoIPAuth: Can't read database");
+	}
+#endif
+    m_allowedCountries = GkConfig()->GetString("GeoIPAuth", "AllowedCountries", "").Tokenise(", ", false);
 }
 
 GeoIPAuth::~GeoIPAuth()
 {
+#ifdef HAS_GEOIP2
+    MMDB_close(&m_mmdb);
+#else
     if (m_gi) {
         GeoIP_delete(m_gi);
     }
+#endif
 }
 
 int GeoIPAuth::Check(RasPDU<H225_RegistrationRequest> & rrqPdu, RRQAuthData & authData)
 {
 	return doGeoCheck((rrqPdu.operator->())->m_peerAddr);
+}
+
+int GeoIPAuth::Check(RasPDU<H225_AdmissionRequest> & request, ARQAuthData & authData)
+{
+	return doGeoCheck((request.operator->())->m_peerAddr);
+}
+
+int GeoIPAuth::Check(RasPDU<H225_GatekeeperRequest> & request, unsigned &)
+{
+	return doGeoCheck((request.operator->())->m_peerAddr);
 }
 
 int GeoIPAuth::Check(RasPDU<H225_UnregistrationRequest> & request, unsigned &)
@@ -142,7 +190,7 @@ int GeoIPAuth::Check(RasPDU<H225_InfoRequest> & request, unsigned &)
 	return doGeoCheck((request.operator->())->m_peerAddr);
 }
 
-int GeoIPAuth::Check(RasPDU<H225_AdmissionRequest> & request, ARQAuthData & authData)
+int GeoIPAuth::Check(RasPDU<H225_ResourcesAvailableIndicate> & request, unsigned &)
 {
 	return doGeoCheck((request.operator->())->m_peerAddr);
 }
@@ -155,13 +203,43 @@ int GeoIPAuth::Check(SetupMsg & setup, SetupAuthData & authData)
 	return doGeoCheck(addr);
 }
 
-int GeoIPAuth::doGeoCheck(PIPSocket::Address & ip) const
+int GeoIPAuth::Check(Q931 & msg, Q931AuthData & authData)
 {
-    PString country;
+	return doGeoCheck(authData.m_peerAddr);
+}
+
+int GeoIPAuth::doGeoCheck(PIPSocket::Address & ip)
+{
+#ifdef HAS_GEOIP2
+#else
+    if (!m_gi)
+        return e_fail;
+#endif
+
+    PString country = "unknown";
     if (ip.IsRFC1918()) {
         country = "PRIVATE";
+        // TODO: add similar check for IPv6 ?
     } else {
+#ifdef HAS_GEOIP2
+        int gai_error, mmdb_error;
+        MMDB_lookup_result_s result = MMDB_lookup_string(&m_mmdb, ip.AsString(), &gai_error, &mmdb_error);
+        if (gai_error == 0) {
+            if (mmdb_error == MMDB_SUCCESS) {
+                MMDB_entry_data_s entry_data;
+                int status = MMDB_get_value(&result.entry, &entry_data, "country", "iso_code", NULL);
+                if (status == MMDB_SUCCESS) {
+                    if (entry_data.has_data) {
+                        country = PString(entry_data.utf8_string, entry_data.data_size);
+                    }
+                }
+            }
+        } else {
+            PTRACE(3, "GeoIPAuth\tError " << MMDB_strerror(mmdb_error));
+        }
+#else
         country = GeoIP_country_code_by_addr(m_gi, ip.AsString());
+#endif
     }
     PTRACE(5, "GeoIPAuth\t" << ip.AsString() << " => " << country);
     for (PINDEX i = 0; i < m_allowedCountries.GetSize(); i++) {

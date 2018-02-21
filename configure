@@ -639,7 +639,8 @@ GNUGK_VERSION
 HAS_LIBRABBITMQ
 HAS_LIBCURL
 CURL_CONFIG
-HAS_GEOIP
+HAS_GEOIP2
+HAS_GEOIP1
 EGREP
 GREP
 CPP
@@ -5716,27 +5717,49 @@ done
 
 ac_fn_c_check_header_mongrel "$LINENO" "GeoIP.h" "ac_cv_header_GeoIP_h" "$ac_includes_default"
 if test "x$ac_cv_header_GeoIP_h" = xyes; then :
-  HAS_GEOIP=1
+  HAS_GEOIP1=1
+fi
+
+
+   ac_fn_c_check_header_mongrel "$LINENO" "maxminddb.h" "ac_cv_header_maxminddb_h" "$ac_includes_default"
+if test "x$ac_cv_header_maxminddb_h" = xyes; then :
+  HAS_GEOIP2=1
 fi
 
 
 fi
 CFLAGS="$old_CFLAGS"
 
-if test "${HAS_GEOIP:-unset}" != "unset" ; then
-	HAS_GEOIP=1
-	$as_echo "#define HAS_GEOIP 1" >>confdefs.h
+if test "${HAS_GEOIP2:-unset}" != "unset" ; then
+	HAS_GEOIP1=0
+	HAS_GEOIP2=1
+	$as_echo "#define HAS_GEOIP2 1" >>confdefs.h
 
-	STDCCFLAGS="-DHAS_GEOIP=1 $STDCCFLAGS"
+	STDCCFLAGS="-DHAS_GEOIP2=1 $STDCCFLAGS"
 	if test "${geoip_include_dir:-unset}" != "unset" ; then
 		STDCCFLAGS="$STDCCFLAGS -I$geoip_include_dir"
 	fi
-	ENDLDLIBS="-lGeoIP $ENDLDLIBS"
-	echo "GeoIP support enabled"
+	ENDLDLIBS="-lmaxminddb $ENDLDLIBS"
+	echo "GeoIP2 support enabled"
 else
-	echo "GeoIP support disabled"
-	HAS_GEOIP=0
+    if test "${HAS_GEOIP1:-unset}" != "unset" ; then
+        HAS_GEOIP1=1
+        HAS_GEOIP2=0
+        $as_echo "#define HAS_GEOIP1 1" >>confdefs.h
+
+        STDCCFLAGS="-DHAS_GEOIP1=1 $STDCCFLAGS"
+        if test "${geoip_include_dir:-unset}" != "unset" ; then
+            STDCCFLAGS="$STDCCFLAGS -I$geoip_include_dir"
+        fi
+        ENDLDLIBS="-lGeoIP $ENDLDLIBS"
+        echo "GeoIP support enabled"
+    else
+        echo "GeoIP support disabled"
+        HAS_GEOIP1=0
+        HAS_GEOIP2=0
+    fi
 fi
+
 
 
 
