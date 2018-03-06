@@ -290,7 +290,7 @@
     #define HAS_H2351_CONFIG 1
 #endif
 
-#if defined(H323_H235) && hasCipertextStealing
+#if defined(H323_H235) && hasCipertextStealing && (H323PLUS_VER >= 1270)
     #define HAS_DES_ECB 1
 #endif
 
