@@ -13783,7 +13783,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 			rtplc->SetUsesH46019();
 	}
 	H46019Session h46019chan(0, INVALID_RTP_SESSION, NULL);
-	DWORD assignedMultiplexID = INVALID_MULTIPLEX_ID;
+	DWORD assignedMultiplexID = INVALID_MULTIPLEX_ID; // only used when HAS_H235_MEDIA
  	if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing || peer->m_requestRTPMultiplexing || peer->m_remoteRequestsRTPMultiplexing) {
 		// update session ID if assigned by master
 		if (sessionID > 3) {
@@ -13989,9 +13989,9 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 			}
 			MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
 		}
-#endif
+#endif // HAS_H46018
 	}
-#endif
+#endif // HAS_H235_MEDIA
 
 #ifdef HAS_H46026
 	if (UsesH46026() || (peer && peer->UsesH46026())) {
