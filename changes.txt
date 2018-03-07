@@ -1,6 +1,5 @@
 Changes from 4.8 to 4.9
 =======================
-- OpenSSL 1.1.x compatibility (with H323Plus 1.27.0)
 - extend GeoIPAuth to support all RAS and all Q.931 messages
 - support GeoIP2 databases (using libmaxminddb) for GeoIPAuth
 - BUGFIX(ProxyChannel.cxx) fix crash while handling RTP packets
