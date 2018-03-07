@@ -28,7 +28,6 @@
 
 static const char OID_DesECB[] = "1.3.14.3.2.6";
 
-
 H235AuthDesECB::H235AuthDesECB()
 {
   usage = AnyApplication; // Can be used either for GKAdmission or EPAuthenticstion
@@ -96,10 +95,9 @@ H235Authenticator::ValidationResult H235AuthDesECB::ValidateCryptoToken(
   PBYTEArray remoteEncryptedData = ((H235_ENCRYPTED<H235_EncodedPwdCertToken>)cryptoToken).m_encryptedData;
   PBYTEArray decryptedToken(remoteEncryptedData.GetSize());
 
-  EVP_CIPHER_CTX * cipher = EVP_CIPHER_CTX_new();
-  EVP_CIPHER_CTX_init(cipher);
-  EVP_CIPHER_CTX_set_padding(cipher, 1);
-  H235CryptoHelper decryptHelper;
+  EVP_CIPHER_CTX cipher;
+  EVP_CIPHER_CTX_init(&cipher);
+  EVP_CIPHER_CTX_set_padding(&cipher, 1);
 
   PBYTEArray key(8);
   // Build key from password according to H.235.0/8.2.1
@@ -107,22 +105,20 @@ H235Authenticator::ValidationResult H235AuthDesECB::ValidateCryptoToken(
   for (PINDEX i = key.GetSize(); i < password.GetLength(); ++i)
 	key[i%key.GetSize()] ^= password[i];
 
-  EVP_CipherInit_ex(cipher, EVP_des_ecb(), NULL, key, NULL, 0);
-  decryptHelper.Reset();
+  EVP_CipherInit_ex(&cipher, EVP_des_ecb(), NULL, key, NULL, 0);
 
   int len = -1;
-  if (!decryptHelper.DecryptUpdateCTS(cipher, decryptedToken.GetPointer(), &len, remoteEncryptedData.GetPointer(), remoteEncryptedData.GetSize())) {
+  if (!EVP_DecryptUpdate_cts(&cipher, decryptedToken.GetPointer(), &len, remoteEncryptedData.GetPointer(), remoteEncryptedData.GetSize())) {
         PTRACE(1, "H235RAS\tEVP_DecryptUpdate_cts failed");
   }
   int f_len = -1;
-  if(!decryptHelper.DecryptFinalCTS(cipher, decryptedToken.GetPointer() + len, &f_len)) {
+  if(!EVP_DecryptFinal_cts(&cipher, decryptedToken.GetPointer() + len, &f_len)) {
     char buf[256];
     ERR_error_string(ERR_get_error(), buf);
     PTRACE(1, "H235RAS\tEVP_DecryptFinal_cts failed: " << buf);
   }
 
-  EVP_CIPHER_CTX_cleanup(cipher);
-  EVP_CIPHER_CTX_free(cipher);
+  EVP_CIPHER_CTX_cleanup(&cipher);
 
   PPER_Stream asn(decryptedToken);
   H235_ClearToken clearToken;
