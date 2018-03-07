@@ -10045,28 +10045,28 @@ H46019Session & H46019Session::operator=(const H46019Session & other)
     // only re-assign callid if its different
     if (m_callid != other.m_callid)
         m_callid = other.m_callid;
-	m_session = other.m_session;
-	m_flcn = other.m_flcn;
-	m_openedBy = other.m_openedBy;
-	m_otherSide = other.m_otherSide;
+    m_session = other.m_session;
+    m_flcn = other.m_flcn;
+    m_openedBy = other.m_openedBy;
+    m_otherSide = other.m_otherSide;
     m_addrA = other.m_addrA;
-	m_addrA_RTCP = other.m_addrA_RTCP;
-	m_addrB = other.m_addrB;
-	m_addrB_RTCP = other.m_addrB_RTCP;
-	m_multiplexID_fromA = other.m_multiplexID_fromA;
-	m_multiplexID_toA = other.m_multiplexID_toA;
-	m_multiplexID_fromB = other.m_multiplexID_fromB;
-	m_multiplexID_toB = other.m_multiplexID_toB;
-	m_osSocketToA = other.m_osSocketToA;
-	m_osSocketToA_RTCP = other.m_osSocketToA_RTCP;
-	m_osSocketToB = other.m_osSocketToB;
-	m_osSocketToB_RTCP = other.m_osSocketToB_RTCP;
-	m_EnableRTCPStats = other.m_EnableRTCPStats;
+    m_addrA_RTCP = other.m_addrA_RTCP;
+    m_addrB = other.m_addrB;
+    m_addrB_RTCP = other.m_addrB_RTCP;
+    m_multiplexID_fromA = other.m_multiplexID_fromA;
+    m_multiplexID_toA = other.m_multiplexID_toA;
+    m_multiplexID_fromB = other.m_multiplexID_fromB;
+    m_multiplexID_toB = other.m_multiplexID_toB;
+    m_osSocketToA = other.m_osSocketToA;
+    m_osSocketToA_RTCP = other.m_osSocketToA_RTCP;
+    m_osSocketToB = other.m_osSocketToB;
+    m_osSocketToB_RTCP = other.m_osSocketToB_RTCP;
+    m_EnableRTCPStats = other.m_EnableRTCPStats;
 #ifdef HAS_H235_MEDIA
-	m_encryptingLC = other.m_encryptingLC;
-	m_decryptingLC = other.m_decryptingLC;
-	m_encryptMultiplexID = other.m_encryptMultiplexID;
-	m_decryptMultiplexID = other.m_decryptMultiplexID;
+    m_encryptingLC = other.m_encryptingLC;
+    m_decryptingLC = other.m_decryptingLC;
+    m_encryptMultiplexID = other.m_encryptMultiplexID;
+    m_decryptMultiplexID = other.m_decryptMultiplexID;
 #endif
 
     return *this;
@@ -10126,16 +10126,16 @@ void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddre
 	// re-check status after waiting for I/O
     if (m_deleted)
         return;
-	callptr call = CallTable::Instance()->FindCallRecByValue(m_callid);
-	if (!call) {
+    callptr call = CallTable::Instance()->FindCallRecByValue(m_callid);
+    if (!call) {
         PTRACE(5, "RTPM\tCan't find call " << AsString(m_callid));
         return;
     }
-	// re-check deleted status after waiting for call table lock
+    // re-check deleted status after waiting for call table lock
     if (m_deleted)
         return;
-	bool isFromA = (receivedMultiplexID == m_multiplexID_fromA);
-	bool isFromB = (receivedMultiplexID == m_multiplexID_fromB);
+    bool isFromA = (receivedMultiplexID == m_multiplexID_fromA);
+    bool isFromB = (receivedMultiplexID == m_multiplexID_fromB);
     if (isFromA)
         m_lastPacketFromA = time(NULL);
     if (isFromB)
@@ -10648,8 +10648,8 @@ bool MultiplexedRTPHandler::GetDetectedMediaIP(const H225_CallIdentifier & callI
     if (sessionID == 0)
         return false;
 
-	H46019Session h46019chan = GetChannel(callID, sessionID);
-	if (h46019chan.IsValid()) {
+    H46019Session h46019chan = GetChannel(callID, sessionID);
+    if (h46019chan.IsValid()) {
         H245ProxyHandler * h245handler = (H245ProxyHandler *)h46019chan.m_openedBy;
         if (h245handler) {
             if ((forCaller && h245handler->IsCaller()) || (!forCaller && !h245handler->IsCaller())) {
@@ -10658,7 +10658,7 @@ bool MultiplexedRTPHandler::GetDetectedMediaIP(const H225_CallIdentifier & callI
                 return IsSet(h46019chan.m_addrB) && h46019chan.m_addrB.GetIpAndPort(addr, port);
             }
         }
-	}
+    }
     // TODO: check if we have a detected IP from H.460.19 non-multiplexed or non-std port detection (IgnoreSignaledPorts=1)
     return false;
 }

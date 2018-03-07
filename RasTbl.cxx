@@ -3707,11 +3707,11 @@ PString CallRec::PrintFullInfo() const
         result += "VideoBitrateCaller: " + PString(GetCallerVideoBitrate() / 10) + " kbps\r\n";
     if (!GetCalledVideoCodec().IsEmpty())
         result += "VideoBitrateCalled: " + PString(GetCallerVideoBitrate() / 10) + " kbps\r\n";
-	if (GetCallerVideoIP(addr, port))
+    if (GetCallerVideoIP(addr, port))
         result += "VideoMediaIPCaller: " + AsString(addr, port) + "\r\n";
-	if (GetCalledVideoIP(addr, port))
+    if (GetCalledVideoIP(addr, port))
         result += "VideoMediaIPCalled: " + AsString(addr, port) + "\r\n";
-	if (GkConfig()->GetBoolean(ProxySection, "EnableRTCPStats", false)) {
+    if (GkConfig()->GetBoolean(ProxySection, "EnableRTCPStats", false)) {
         result += "VideoPacketlossCaller: " + psprintf(PString("%0.2f"), GetRTCP_SRC_video_packet_loss_percent()) + " %\r\n";
         result += "VideoPacketlossCalled: " + psprintf(PString("%0.2f"), GetRTCP_DST_video_packet_loss_percent()) + " %\r\n";
     }
@@ -3723,12 +3723,12 @@ PString CallRec::PrintFullInfo() const
         result += "H239BitrateCaller: " + PString(GetCallerH239Bitrate() / 10) + " kbps\r\n";
     if (!GetCalledH239Codec().IsEmpty())
         result += "H239BitrateCalled: " + PString(GetCallerH239Bitrate() / 10) + " kbps\r\n";
-	if (GetCallerH239IP(addr, port))
+    if (GetCallerH239IP(addr, port))
         result += "H239MediaIPCaller: " + AsString(addr, port) + "\r\n";
-	if (GetCalledH239IP(addr, port))
+    if (GetCalledH239IP(addr, port))
         result += "H239MediaIPCalled: " + AsString(addr, port) + "\r\n";
 
-	return result;
+    return result;
 }
 
 void CallRec::SetSetupTime(time_t tm)
