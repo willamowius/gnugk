@@ -156,7 +156,7 @@ void PresWorker::ProcessMessages()
 			endptr ep = RegistrationTable::Instance()->FindByEndpointId(*i);
 			if (ep) {
 #ifdef HAS_H460P_VER_3
-				bool dataToSend=false;
+				bool dataToSend = false;
 				list<PASN_OctetString> element;
 				if (ep->HasPresenceData())
 					dataToSend = handler->BuildPresenceElement(H225_RasMessage::e_registrationRequest, *i, element);
@@ -166,12 +166,12 @@ void PresWorker::ProcessMessages()
 				if (dataToSend) {
 					PASN_OctetString data;
 					H225_RasMessage sci_ras;
-					while (element.size() > 0) {
+					while (!element.empty()) {
 						data = element.front();
 						element.pop_front();
 						BuildSCI(sci_ras,data);
 						RasServer::Instance()->SendRas(sci_ras, ep->GetRasAddress());
-						if (element.size() > 0)
+						if (!element.empty())
 							PThread::Sleep(10);
 					}
 				}
@@ -196,10 +196,10 @@ void PresWorker::ProcessMessages()
 		while (i != gkip.end()) {
 #ifdef HAS_H460P_VER_3
 			list<PASN_OctetString> element;
-			if (handler->BuildPresenceElement(H225_RasMessage::e_locationRequest,*i, element)) {
+			if (handler->BuildPresenceElement(H225_RasMessage::e_locationRequest, *i, element)) {
 				PASN_OctetString data;
 				H225_RasMessage lrq_ras;
-				while (element.size() > 0) {
+				while (!element.empty()) {
 					data = element.front();
 					element.pop_front();
 					BuildLRQ(lrq_ras,data);
