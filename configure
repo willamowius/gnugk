@@ -5847,11 +5847,18 @@ fi
 
 
 if test "x${librabbitmq}" != "xno" ; then
-   ac_fn_c_check_header_mongrel "$LINENO" "amqp.h" "ac_cv_header_amqp_h" "$ac_includes_default"
-if test "x$ac_cv_header_amqp_h" = xyes; then :
-  HAS_LIBRABBITMQ=1
+   for ac_header in amqp.h amqp_tcp_socket.h
+do :
+  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
+_ACEOF
+ HAS_LIBRABBITMQ=1
 fi
 
+done
 
 fi
 
@@ -5863,7 +5870,7 @@ if test "${HAS_LIBRABBITMQ:-unset}" != "unset" ; then
 	ENDLDLIBS="-lrabbitmq $ENDLDLIBS"
 	echo "RabbitMQ support enabled"
 else
-    echo "RabbitMQ support disabled"
+    echo "RabbitMQ support disabled (need >= 0.7)"
     HAS_LIBRABBITMQ=0
 fi
 
