@@ -1962,8 +1962,7 @@ void Gatekeeper::GetRotateInterval(PConfig & cfg, const PString & section)
 		m_rotateDay = cfg.GetInteger(section, "RotateDay", 1);
 		if (m_rotateDay < 1 || m_rotateDay > 31) {
 			PTRACEX(1, "GK\tInvalid RotateDay specified: "
-				<< cfg.GetString(section, "RotateDay", "")
-				);
+				<< cfg.GetString(section, "RotateDay", ""));
 			m_rotateDay = 1;
 		}
 	}
@@ -1981,11 +1980,9 @@ void Gatekeeper::EnableLogFileRotation(bool enable)
 	if (!enable)
 		return;
 
-	PConfig* const config = GkConfig();
+	PConfig * const config = GkConfig();
 	// determine rotation type (by lines, by size, by time)
-	const PString rotateCondition = config->GetString(
-		logConfigSectionName, "Rotate", ""
-		).Trim();
+	const PString rotateCondition = config->GetString(logConfigSectionName, "Rotate", "").Trim();
 	if (rotateCondition.IsEmpty())
 		return;
 
@@ -1994,9 +1991,7 @@ void Gatekeeper::EnableLogFileRotation(bool enable)
 			m_rotateInterval = i;
 
 	if (m_rotateInterval < 0 || m_rotateInterval >= RotationIntervalMax) {
-		PTRACEX(1, "GK\tUnsupported log file rotation method: "
-			<< rotateCondition << " - rotation disabled"
-			);
+		PTRACEX(1, "GK\tUnsupported log file rotation method: " << rotateCondition << " - rotation disabled");
 		return;
 	}
 
