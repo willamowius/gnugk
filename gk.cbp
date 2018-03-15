@@ -170,9 +170,6 @@
 		<Unit filename="name.h">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
-		<Unit filename="precompile.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
 		<Unit filename="radacct.cxx">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>

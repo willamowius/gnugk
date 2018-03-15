@@ -468,9 +468,6 @@
 				RelativePath="Neighbor.cxx">
 			</File>
 			<File
-				RelativePath="precompile.cxx">
-			</File>
-			<File
 				RelativePath="ProxyChannel.cxx">
 			</File>
 			<File
