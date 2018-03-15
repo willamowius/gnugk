@@ -78,11 +78,10 @@ ForwardingPolicy::ForwardingPolicy()
 {
 	m_active = false;
 	m_sqlConn = NULL;
-#if HAS_DATABASE
 	m_name = "Forwarding";
 	m_iniSection = "Routing::Forwarding";
 	m_timeout = -1;
-#else
+#ifndef HAS_DATABASE
 	PTRACE(1, m_name << " not available - no database driver compiled into GnuGk");
 #endif // HAS_DATABASE
 }
