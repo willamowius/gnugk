@@ -1,7 +1,7 @@
 The GNU Gatekeeper
 ------------------
 
-It is covered by the GNU Public License (GPL) v2; for details
+The GNU Gatekeeper is covered by the GNU Public License (GPL) v2; for details
 see the file COPYING. In addition to that, we explicitely grant
 the right to link this code to the OpenH323/H323Plus and
 OpenSSL library.
