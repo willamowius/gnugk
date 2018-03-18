@@ -1,5 +1,5 @@
 gnugkbuildopts.h
-config.log
+*.log
 config.cache
 config.status
 Makefile
