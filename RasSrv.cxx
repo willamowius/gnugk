@@ -2,7 +2,7 @@
 //
 // RAS Server for GNU Gatekeeper
 //
-// Copyright (c) 2000-2017, Jan Willamowius
+// Copyright (c) 2000-2018, Jan Willamowius
 // Copyright (c) Citron Network Inc. 2001-2003
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
@@ -1905,9 +1905,19 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		}
 #endif // HAS_H460PRE
 
+        // Avaya hack
+        // TODO: add config switch ? or do always ?
+        if (request.HasOptionalField(H225_GatekeeperRequest::e_nonStandardData)
+            && request.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_object) {
+            const PASN_ObjectId & id = request.m_nonStandardData.m_nonStandardIdentifier;
+            if (id.AsString() == "2.16.840.1.113778.4.2.1") {
+                gcf.RemoveOptionalField(H225_GatekeeperConfirm::e_gatekeeperIdentifier); // Avaya crashes when GCF contains gatekeeper ID
+            }
+        }
+
 #ifdef h323v6
 	    if (request.HasOptionalField(H225_GatekeeperRequest::e_supportsAssignedGK) &&
-            RasSrv->HasAssignedGK(alias, m_msg->m_peerAddr,gcf))
+            RasSrv->HasAssignedGK(alias, m_msg->m_peerAddr, gcf))
 			PTRACE(2, "GCF\t" << alias << " redirected to assigned Gatekeeper");
 		else
 #endif
@@ -2733,9 +2743,9 @@ bool RegistrationRequestPDU::Process()
 				bool h46023nat = nated || h46018nat || GkConfig()->GetBoolean(RoutedSec, "H46018NoNAT", true);
 
 				H460_FeatureStd natfs = H460_FeatureStd(23);
-				natfs.Add(Std23_IsNAT,H460_FeatureContent(h46023nat));
+				natfs.Add(Std23_IsNAT, H460_FeatureContent(h46023nat));
 				if (h46023nat) {
-					natfs.Add(Std23_STUNAddr,H460_FeatureContent(stunaddr));
+					natfs.Add(Std23_STUNAddr, H460_FeatureContent(stunaddr));
 				} else {
 					// If not NAT then provide the RAS address to the client to determine
 					// whether there is an ALG (or someother device) making things appear as they are not
@@ -4238,16 +4248,16 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 								bool mustproxy = !Toolkit::Instance()->H46023SameNetwork(remoteIP,
 									  WantedEndPoint->IsNATed() ? WantedEndPoint->GetNATIP() :WantedEndPoint->GetIP());
 
-								std24.Add(Std24_RemoteNAT,H460_FeatureContent(WantedEndPoint->SupportH46024()));
+								std24.Add(Std24_RemoteNAT, H460_FeatureContent(WantedEndPoint->SupportH46024()));
 								if (mustproxy) {
 									std24.Add(Std24_MustProxy,H460_FeatureContent(mustproxy));
 								} else {
-									std24.Add(Std24_IsNAT,H460_FeatureContent(true));
-									std24.Add(Std24_NATdet,H460_FeatureContent(WantedEndPoint->GetEPNATType(), 8));
-									std24.Add(Std24_ProxyNAT,H460_FeatureContent(WantedEndPoint->HasNATProxy()));
-									std24.Add(Std24_SourceAddr,H460_FeatureContent(H323TransportAddress(WantedEndPoint->GetNATIP(), 0)));
-									std24.Add(Std24_AnnexA,H460_FeatureContent(WantedEndPoint->SupportH46024A()));
-									std24.Add(Std24_AnnexB,H460_FeatureContent(WantedEndPoint->SupportH46024B()));
+									std24.Add(Std24_IsNAT, H460_FeatureContent(true));
+									std24.Add(Std24_NATdet, H460_FeatureContent(WantedEndPoint->GetEPNATType(), 8));
+									std24.Add(Std24_ProxyNAT, H460_FeatureContent(WantedEndPoint->HasNATProxy()));
+									std24.Add(Std24_SourceAddr, H460_FeatureContent(H323TransportAddress(WantedEndPoint->GetNATIP(), 0)));
+									std24.Add(Std24_AnnexA, H460_FeatureContent(WantedEndPoint->SupportH46024A()));
+									std24.Add(Std24_AnnexB, H460_FeatureContent(WantedEndPoint->SupportH46024B()));
 								}
 								lastPos++;
 								data.SetSize(lastPos);
@@ -4261,8 +4271,8 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 							PString vendor, version;
 							if (WantedEndPoint->GetEndpointInfo(vendor, version)) {
 								H460_FeatureOID foid9 = H460_FeatureOID(OID9);
-								foid9.Add(PString(VendorProdOID),H460_FeatureContent(vendor));
-								foid9.Add(PString(VendorVerOID),H460_FeatureContent(version));
+								foid9.Add(PString(VendorProdOID), H460_FeatureContent(vendor));
+								foid9.Add(PString(VendorVerOID), H460_FeatureContent(version));
 								lastPos++;
 								data.SetSize(lastPos);
 								data[lastPos-1] = foid9;
