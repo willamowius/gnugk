@@ -113,4 +113,16 @@
    fun:_Z10DnsQuery_APKctjPvPP9DnsRecordS1_
    fun:_ZN4PDNS15Cached_DnsQueryEPKctjPvPP9DnsRecordS2_
 }
+{
+   <global_hostname_cache>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:__res_vinit
+   fun:__res_maybe_init
+   fun:gaih_inet
+   fun:getaddrinfo
+   fun:_ZN11PHostByName7GetHostERK7PString
+   fun:_ZN11PHostByName14GetHostAddressERK7PStringRN9PIPSocket7AddressE
+}
 
