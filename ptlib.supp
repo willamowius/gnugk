@@ -104,3 +104,13 @@
    Memcheck:Cond
    fun:_ZNK6PTimer15GetMilliSecondsEv
 }
+{
+   <global_dns_cache>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:_ZL17ProcessDNSRecordsPKhS0_PhiiiPP9DnsRecord
+   fun:_Z10DnsQuery_APKctjPvPP9DnsRecordS1_
+   fun:_ZN4PDNS15Cached_DnsQueryEPKctjPvPP9DnsRecordS2_
+}
+
