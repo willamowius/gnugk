@@ -119,11 +119,11 @@ o administrada por un servidor web sobre el mismo número de IP del gatekeeper
 (usted no puede ejecutar esta GUI como un applet mediante el archivo local).
 
 La aplicación está disponible en
-<url url="http://www.gnugk.org/h323gui.html" name="GnuGk Java GUI">
+<url url="https://www.gnugk.org/h323gui.html" name="GnuGk Java GUI">
 
 <item>GkGUI<p>
 Una nueva aplicación standalone Java desarrollado por
-<url url="http://www.citron.com.tw/" name="Citron Network Inc.">
+Citron Network Inc.
 Este requiere Java 1.4. Entre las nuevas características se incluyen:
 
 <itemize>
@@ -138,7 +138,7 @@ Este requiere Java 1.4. Entre las nuevas características se incluyen:
 </itemize>
 
 El GkGUI está lanzada bajo GNU General Public License, disponible en
-<url url="http://www.gnugk.org/h323develop.html#java" name="GnuGk Development">
+<url url="https://www.gnugk.org/h323develop.html#java" name="GnuGk Development">
 </itemize>
 
 <sect1>Comandos de Referencia

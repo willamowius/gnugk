@@ -31,18 +31,15 @@ El GNU Gatekeeper implementa la mayor parte de estas funciones basadas en la pil
 <url url="https://www.h323plus.org/" name="H323Plus">
 
 La Recomendación H.323 es un estándar internacional publicado por el 
-<url url="http://www.itu.int/" name="ITU">. 
+<url url="https://www.itu.int/" name="ITU">. 
 Es un estándar de comunicaciones para audio, video y datos a traves de Internet. 
 Puedes consultar también 
-<url url="http://www.packetizer.com/voip/h323/papers/primer/" name="A primer on the H.323 Series Standard"> de Paul Jones. 
-
-Para una descripcion detallada de lo que hace un gatekeeper consulte 
-<url url="http://www.iec.org/online/tutorials/h323/topic06.html" name="aqui">.
+<url url="https://www.packetizer.com/voip/h323/papers/primer/" name="A primer on the H.323 Series Standard"> de Paul Jones. 
 
 <sect1>Copyright
 <p>
 El GNU Gatekeeper como su nombre lo indica, está publicado bajo la licencia 
-<htmlurl url=" http://www.fsf.org/licensing/licenses/gpl.html" name="GNU General Public License"> (GNU GPL). 
+<htmlurl url="https://www.fsf.org/licensing/licenses/gpl.html" name="GNU General Public License"> (GNU GPL). 
 Además, otorgamos explicitamente el derecho a enlazar este código a las librerias OpenH323 y OpenSSL.
 
 Generalmente hablando, la GNU GPL le permite copiar, distribuir, revender o modificar este software, 
@@ -97,13 +94,12 @@ Describa sus problemas de forma clara y precisa. Muestrenos los mensajes de erro
 <sect1>Colaboradores
 <p>
 El coordinador del proyecto actual es
-<url url="http://www.willamowius.com/" name="Jan Willamowius">
+<url url="https://www.willamowius.com/" name="Jan Willamowius">
 <tt><htmlurl url="mailto:jan@willamowius.de" name="&lt;jan@willamowius.de&gt;"></tt>
 
 Las principales características y funciones de la versión 2.0 lo son gracias a 
 Chih-Wei Huang <tt><htmlurl url="mailto:cwhuang@linux.org.tw" name="&lt;cwhuang@linux.org.tw&gt;"></tt>
-y
-<url url="http://www.citron.com.tw/" name="Citron Network Inc.">,
+y Citron Network Inc.,
 incluyendo el registro a traves de thread-safe y tablas de llamada, nueva arquitectura de modo de enrutado, 
 proxy H.323, H.235 authentication y MySQL backend.
 	
