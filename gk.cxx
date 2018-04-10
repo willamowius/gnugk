@@ -1302,7 +1302,7 @@ void UnixReloadHandler(int sig) // for HUP Signal
 
 #ifdef P_LINUX
 // dumping descriptor usage on Linux according to
-// http://oroboro.com/file-handle-leaks-server/
+// https://oroboro.com/file-handle-leaks-server/
 void showFDInfo(int fd)
 {
     PString msg;

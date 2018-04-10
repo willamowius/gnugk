@@ -317,7 +317,7 @@
 extern PIPSocket::Address GNUGK_INADDR_ANY;
 
 // a snprintf() implementation for Visual C++ prior to 2015
-// found at http://stackoverflow.com/questions/2915672/snprintf-and-visual-studio-2010
+// found at https://stackoverflow.com/questions/2915672/snprintf-and-visual-studio-2010
 
 #if defined(_MSC_VER) && _MSC_VER < 1900
 

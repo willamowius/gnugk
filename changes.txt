@@ -1503,7 +1503,7 @@ Changes from 2.0.0 to 2.0.1 (by cwhuang)
 - add H.245 Reverting technology(Patent Pending)
 - fix H.225.0 procotolID problem
 - fix a long existing bug according to Packetizer
-  http://www.packetizer.com/in/q14.html
+  https://www.packetizer.com/in/q14.html
 - add TOS flag for RTP/RTCP, thanks to Thomas Jalsovsky
 - add Citron NAT technology(Patent Pending)
 - allow multiple nated endpoints with the same private IP but
