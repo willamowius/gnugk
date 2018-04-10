@@ -30,7 +30,7 @@ Le fait qu'un appel puisse &#234;tre accept&#233; par un voisin d&#233;pend &#23
 Les types du gatekeeper ont les caract&#233;ristiques suivantes:
 <itemize>
 <item><tt/GnuGk/<newline>
-En cas de doute, utiliser le type <htmlurl url="http://www.gnugk.org/" name="GnuGk gatekeeper">. Ceci activera &#233;galement H.460.23/H.460.24. 
+En cas de doute, utiliser le type <htmlurl url="https://www.gnugk.org/" name="GnuGk gatekeeper">. Ceci activera &#233;galement H.460.23/H.460.24. 
 
 <item><tt/CiscoGk/<newline>
 GnuGk agira comme s'il &#233;tait un gatekeeper Cisco et enverra des fausses donn&#233;es constructeur. 
@@ -129,7 +129,7 @@ Param&#232;tre d&#233;fnisissant si les LRQ transmis par des utilisateurs non d&
 D&#233;fault: <tt/0/<newline>
 <p>
 Ce param&#232;tre d&#233;sactive l'identification de l'addresse IP du r&#233;pondeur LRQ avec les addresses IP sp&#233;cifi&#233;es comme voisines: ceci permet d'accepter des r&#233;ponses &#224; des messages LCF depuis n'importe quelle addresse IP. Ceci est particuli&#232;rement important lorsque qu'un gatekeeper &#224; plusieurs niveaux est utilis&#232; sans signalement de routage Q.931. 
-Afin d'assurer une s&#233;curit&#233; minimale, seulement les num&#233;ros de s&#233;quence LRQ/LCF seront v&#233;rifi&#233;s.  Cette fonctionnalit&#233; est requise par les gatekeepers nationaux connect&#233;s au Global Dialing Scheme (GDS): voir <url url="http://www.vide.net/help/gdsintro.shtml" name ="http://www.vide.net/help/gdsintro.shtml"> pour plus d'informations. 
+Afin d'assurer une s&#233;curit&#233; minimale, seulement les num&#233;ros de s&#233;quence LRQ/LCF seront v&#233;rifi&#233;s.  Cette fonctionnalit&#233; est requise par les gatekeepers nationaux connect&#233;s au Global Dialing Scheme (GDS): voir http://www.vide.net/help/gdsintro.shtml pour plus d'informations. 
 ATTENTION: Activer la r&#233;ception de LCF depuis des addresses IP autres que celle de destinataire LRQ pose un important risque de s&#233;curit&#233;. Utiliser ce param&#233;tre avec pr&#233;caution.  
 </itemize>
 

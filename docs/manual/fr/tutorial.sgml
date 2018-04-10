@@ -7,7 +7,7 @@
 Pour s'assurer que tous les composants fonctionnent, trouvez
 2 stations de travail Linux, toutes les deux connect&#233;es au r&#233;seau local.
 Ces exemples utilisent &#233;galement le logiciel "OhPhone".
-Sur la premi&#232;re machine, &#233;x&#233;cuter le <htmlurl url="http://www.gnugk.org/"name="gatekeeper"> en mode direct:
+Sur la premi&#232;re machine, &#233;x&#233;cuter le <htmlurl url="https://www.gnugk.org/"name="gatekeeper"> en mode direct:
 
 <tscreen><verb>
 jan@machine1 > gnugk -ttt

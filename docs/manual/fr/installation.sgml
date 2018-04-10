@@ -6,7 +6,7 @@
 <p>
 Pour construire le gatekeeper, vous aurez besoin de PWLib et OpenH323 ou PTLib et H323Plus: 
 Se référer à 
-<url url="http://www.gnugk.org/compiling-gnugk.html" name="http://www.gnugk.org/compiling-gnugk.html"> pour les dernières informations concernant les versions nécessaires de ces bibliothèques. 
+<url url="https://www.gnugk.org/compiling-gnugk.html" name="https://www.gnugk.org/compiling-gnugk.html"> pour les dernières informations concernant les versions nécessaires de ces bibliothèques. 
 <p>
 <bf>NB:</bf> Afin d'utiliser les fonctionalit&#233;s H.460, vous devez compiler avec H323Plus. 
 
@@ -24,7 +24,7 @@ Sous Unix, &#233;x&#233;cuter <tt/configure/ et <tt/make debug/ ou <tt/make optn
 
 <sect1>Installation sous Unix
 <p>
-La premi&#232;re &#233;tape est d'obtenir un &#233;x&#233;cutable. Vous pouvez soit t&#233;l&#233;charger un &#233;x&#233;cutable pour votre version d'Unix sur <url url = "http://www.gnugk.org/h323download.html" name="gnugk.org">, utiliser l'&#233;x&#233;cutable de votre distribution ou compiler GNU Gatekeeper vous-m&#234;me. Pour des installations simples ou pour essayer les fonctionnalit&#233;s de Gatekeeper, l'utilisation d'&#233;x&#233;cutables pr&#233;-construists ne devrait pas poser de probl&#232;mes, mais pour une utilisation professionnelle il est recommand&#233; de compiler Gatekeeper vous-m&#234;me. 
+La premi&#232;re &#233;tape est d'obtenir un &#233;x&#233;cutable. Vous pouvez soit t&#233;l&#233;charger un &#233;x&#233;cutable pour votre version d'Unix sur <url url="https://www.gnugk.org/h323download.html" name="gnugk.org">, utiliser l'&#233;x&#233;cutable de votre distribution ou compiler GNU Gatekeeper vous-m&#234;me. Pour des installations simples ou pour essayer les fonctionnalit&#233;s de Gatekeeper, l'utilisation d'&#233;x&#233;cutables pr&#233;-construists ne devrait pas poser de probl&#232;mes, mais pour une utilisation professionnelle il est recommand&#233; de compiler Gatekeeper vous-m&#234;me. 
 
 <sect2>Installation du binaire de Gnugk
 <p>
@@ -61,7 +61,7 @@ La derni&#232;re &#233;tape est d'&#233;xiicuter soit <tt/make debug/ ou <tt/mak
 
 <sect1>Installation sous Windows
 <p>
-La premi&#232;re &#233;tape est d'obtenir un programme &#233;x&#233;cutable: vous pouvez soit le t&#233;l&#233;charger depuis <url url="http://www.gnugk.org/h323download.html" name="gnugk.org"> ou compiler GNU Gatekeeper vous-m&#234;me. 
+La premi&#232;re &#233;tape est d'obtenir un programme &#233;x&#233;cutable: vous pouvez soit le t&#233;l&#233;charger depuis <url url="https://www.gnugk.org/h323download.html" name="gnugk.org"> ou compiler GNU Gatekeeper vous-m&#234;me. 
 
 Il y a deux version de Gatekeeper disponibles: un programme normal et un service. 
 

@@ -124,7 +124,7 @@ Cette interface graphique fonctionne avec Java 1.0 pr&#233;sent dans la plupart 
 Pour des raisons de s&#233;curit&#233; l'interface graphique doit fonctionner comme une application autonome ou &#234;tre mise &#224; disposition par un serveur web sur le m&#234;me
 num&#233;ro IP que le gatekeeper (vous ne pouvez pas le lancer en tant qu'applet depuis un fichier local).
 
-Le programme est disponible sur <url url="http://www.gnugk.org/h323gui.html" name="GnuGk Java GUI">
+Le programme est disponible sur <url url="https://www.gnugk.org/h323gui.html" name="GnuGk Java GUI">
 
 <sect1>Commandes (R&#233;f&#233;rence)
 <p>

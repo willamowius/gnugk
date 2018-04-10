@@ -26,17 +26,14 @@ Le GNU Gatekeeper impl&#233;mente la plupart des fonctions bas&#233;es sur la pi
 <url url="https://www.h323plus.org/" name="H323Plus">. 
 
 La recommandation H.323 est une norme internationale publi&#233;e par l'
-<url url="http://www.itu.int/" name="ITU">. Il s'agit d'une norme de communication pour l'audio, la vid&#233;o et les donn&#233;es sur Internet.
+<url url="https://www.itu.int/" name="ITU">. Il s'agit d'une norme de communication pour l'audio, la vid&#233;o et les donn&#233;es sur Internet.
 Voir aussi
-<url url="http://www.packetizer.com/voip/h323/papers/primer/" name="l'introduction &#224; la s&#233;rie des normes H.323"> de Paul Jones.
-
-Pour une description de ce que fait un gatekeeper, voir
-<url url="http://www.iec.org/online/tutorials/h323/topic06.html" name="ici">.
+<url url="https://www.packetizer.com/voip/h323/papers/primer/" name="l'introduction &#224; la s&#233;rie des normes H.323"> de Paul Jones.
 
 <sect1>Copyright
 <p>
 Le GNU Gatekeeper est couvert par la
-<htmlurl url="http://www.gnu.org/licenses/gpl.html" name="GNU General Public License"> (GNU GPL).
+<htmlurl url="https://www.gnu.org/licenses/gpl.html" name="GNU General Public License"> (GNU GPL).
 En suppl&#233;ment de celle-ci, nous autorisons explicitement &#224; allier ce code &#224; la biblioth&#233;que OpenH323/OpenH323Plus et &#224; la biblioth&#233;que OpenSSL.
 
 Certains protocoles impl&#233;ment&#233;s par GNU Gatekeeper sont couverts par des brevets (en particulier le pare-feu/protocoles NAT transverses). Pour autant que nous sachions, le projet GNU Gatekeeper a une license valide pour leur utilisation. Cependant, les utilisateurs d&#233;sirant faire des versions d&#233;rv&#233;es de ce code doivent s'assurer qu'ils ont une license valide avant d'activer ces fonctionnalit&#233;s. 

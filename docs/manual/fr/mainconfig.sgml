@@ -3,7 +3,7 @@
 <sect1>Fichier de Configuration
 <label id="config">
 <p>
-Le fichier de configuration <htmlurl url="http://www.gnugk.org/" name="GNU Gatekeeper"> est un fichier texte normal. Le format de base est:
+Le fichier de configuration <htmlurl url="https://www.gnugk.org/" name="GNU Gatekeeper"> est un fichier texte normal. Le format de base est:
 
 <tscreen><verb>
 [Section String]
@@ -156,7 +156,7 @@ D&#233;faut: <tt>N/A</tt><newline>
 <p>
 Si le terminal perd sa connection avec GnuGk, il doit automatiquement essayer de s'enregistrer avec le gatekeeper alternatif sp&#233;cifi&#233; ici. 
 
-<bf>NB:</bf>Selon le terminal, il se peut qu'il n'essaie pas de r&#233;&#233;tablir la connexion avec le gatekeeper d'origine. La fonctionnalit&#233; "Assigned Gatek&#232;pers" a &#233;t&#233; ajout&#233;e dans H.323v6. Se r&#233;f&#233;rer &#224; <url url="http://www.packetizer.com/ipmc/h323/whatsnew_v6.html" name="http://www.packetizer.com/ipmc/h323/whatsnew_v6.html"> pour plus d'informations. 
+<bf>NB:</bf>Selon le terminal, il se peut qu'il n'essaie pas de r&#233;&#233;tablir la connexion avec le gatekeeper d'origine. La fonctionnalit&#233; "Assigned Gatek&#232;pers" a &#233;t&#233; ajout&#233;e dans H.323v6. Se r&#233;f&#233;rer &#224; <url url="https://www.packetizer.com/ipmc/h323/whatsnew_v6.html" name="https://www.packetizer.com/ipmc/h323/whatsnew_v6.html"> pour plus d'informations. 
 
 The GK primaire inclut un champ dans le RCF pour indiquer aux terminaux quels IP
 et gatekeeper alternatifs utiliser.
