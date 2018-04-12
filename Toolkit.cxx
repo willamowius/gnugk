@@ -3512,20 +3512,19 @@ bool Toolkit::IsPortNotificationActive()	// not const to allow simple map access
 }
 
 void Toolkit::PortNotification(PortType type, PortAction action, const PString & protocol,
-								const PIPSocket::Address & addr, WORD port,
-								const H225_CallIdentifier & callID)
+								const PIPSocket::Address & addr, WORD port, PINDEX callNo)
 {
 	PTRACE(5, "Port Notification " << ((action == PortOpen) ? "OPEN " : "CLOSE ") << type << " " << protocol << " " << ::AsString(addr, port));
 
 	// book keeping for status port command
-	if (callID != H225_CallIdentifier(0)) {
-		callptr call = CallTable::Instance()->FindCallRec(callID);
-		if (call) {
-			if (action == PortOpen)
-				call->AddDynamicPort(DynamicPort(type, addr, port));
-			else
-				call->RemoveDynamicPort(DynamicPort(type, addr, port));
-		}
+	if (callNo != 0) {
+        callptr call = CallTable::Instance()->FindCallRec(callNo);
+        if (call) {
+            if (action == PortOpen)
+                call->AddDynamicPort(DynamicPort(type, addr, port));
+            else
+                call->RemoveDynamicPort(DynamicPort(type, addr, port));
+        }
 	}
 
 	// execute notification command

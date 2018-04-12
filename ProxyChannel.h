@@ -190,13 +190,14 @@ protected:
 };
 
 class RTPLogicalChannel;
+
 class UDPProxySocket : public UDPSocket, public ProxySocket {
 public:
 #ifndef LARGE_FDSET
 	PCLASSINFO( UDPProxySocket, UDPSocket )
 #endif
 
-	UDPProxySocket(const char * t, const H225_CallIdentifier & id);
+	UDPProxySocket(const char * t, PINDEX no);
 	~UDPProxySocket();
 
 	void UpdateSocketName();
@@ -252,7 +253,7 @@ protected:
 	// RTCP handler
 	void BuildReceiverReport(const RTP_ControlFrame & frame, PINDEX offset, bool dst);
 
-	H225_CallIdentifier m_callID;
+	PINDEX m_callNo;
 	callptr * m_call;
 	PMutex m_callMutex;
 
@@ -650,7 +651,7 @@ class RTPLogicalChannel;
 class H46019Session
 {
 public:
-	H46019Session(const H225_CallIdentifier & callid, WORD session, void * openedBy);
+	H46019Session(PINDEX callno, WORD session, void * openedBy);
     ~H46019Session();
 
 	H46019Session(const H46019Session & other);
@@ -669,10 +670,9 @@ public:
 	static void Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddress, int ossocket, void * data, unsigned len, bool bufferHasRoomForID = false);
 
 public:
-	//mutable PTimedMutex m_usedLock;
     bool m_deleted; // logically deleted, but still in list so other threads can leave methods
     time_t m_deleteTime;
-	H225_CallIdentifier m_callid;
+	PINDEX m_callno;
 	WORD m_session;     // RTP session ID
 	WORD m_flcn;		// only used to assign master assigned RTP session IDs
 	void * m_openedBy;	// side A (pointer to H245ProxyHandler used as an ID)
@@ -725,28 +725,28 @@ public:
 	virtual void OnReload() { /* currently not runtime changeable */ }
 
 	virtual void AddChannel(const H46019Session & cha);
-	virtual void UpdateChannelSession(const H225_CallIdentifier & callid, WORD flcn, void * openedBy, WORD session);
+	virtual void UpdateChannelSession(PINDEX callno, WORD flcn, void * openedBy, WORD session);
 	virtual void UpdateChannel(const H46019Session & cha);
-	virtual H46019Session GetChannel(const H225_CallIdentifier & callid, WORD session) const;
-	virtual H46019Session GetChannelSwapped(const H225_CallIdentifier & callid, WORD session, void * openedBy) const;
-	virtual void RemoveChannels(H225_CallIdentifier callid);	// pass by value in case call gets removed
+	virtual H46019Session GetChannel(PINDEX callno, WORD session) const;
+	virtual H46019Session GetChannelSwapped(PINDEX callno, WORD session, void * openedBy) const;
+	virtual void RemoveChannels(PINDEX callno);
 #ifdef HAS_H235_MEDIA
-	virtual void RemoveChannel(H225_CallIdentifier callid, RTPLogicalChannel * rtplc);
+	virtual void RemoveChannel(PINDEX callno, RTPLogicalChannel * rtplc);
 #endif
 	virtual void DumpChannels(const PString & msg = "") const;
 
 	virtual bool HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddress & fromAddress, void * data, unsigned len, bool isRTCP);
 #ifdef HAS_H46026
-	virtual bool HandlePacket(const H225_CallIdentifier & callid, const H46026_UDPFrame & data);
+	virtual bool HandlePacket(PINDEX callno, const H46026_UDPFrame & data);
 #endif
 
 	virtual int GetRTPOSSocket() const { return m_reader ? m_reader->GetRTPOSSocket() : INVALID_OSSOCKET; }
 	virtual int GetRTCPOSSocket() const { return m_reader ? m_reader->GetRTCPOSSocket() : INVALID_OSSOCKET; }
 
-	virtual DWORD GetMultiplexID(const H225_CallIdentifier & callid, WORD session, void * to);
+	virtual DWORD GetMultiplexID(PINDEX callno, WORD session, void * to);
 	virtual DWORD GetNewMultiplexID();
 
-	bool GetDetectedMediaIP(const H225_CallIdentifier & callID, WORD sessionID, bool forCaller, /* out */ PIPSocket::Address & addr, WORD & port) const;
+	bool GetDetectedMediaIP(PINDEX callno, WORD sessionID, bool forCaller, /* out */ PIPSocket::Address & addr, WORD & port) const;
 
 	// delete sessions marked as deleted
 	void SessionCleanup(GkTimer* timer);
@@ -772,7 +772,7 @@ class H46026Session
 {
 public:
 	H46026Session();
-	H46026Session(const H225_CallIdentifier & callid, WORD session, int osRTPSocket, int osRTCPSocket,
+	H46026Session(PINDEX callno, WORD session, int osRTPSocket, int osRTCPSocket,
 					const IPAndPortAddress & toRTP, const IPAndPortAddress & toRTCP);
 
 	void Send(void * data, unsigned len, bool isRTCP);
@@ -780,7 +780,7 @@ public:
 	void Dump() const;
 
 	bool m_isValid;
-	H225_CallIdentifier m_callid;
+	PINDEX m_callno;
 	WORD m_session;
 	int m_osRTPSocket;
 	int m_osRTCPSocket;
@@ -803,17 +803,17 @@ public:
 
 	virtual void AddChannel(const H46026Session & chan);
 	virtual void ReplaceChannel(const H46026Session & chan);
-	virtual void UpdateChannelRTP(const H225_CallIdentifier & callid, WORD session, IPAndPortAddress toRTP);
-	virtual void UpdateChannelRTCP(const H225_CallIdentifier & callid, WORD session, IPAndPortAddress toRTCP);
-	virtual void RemoveChannels(H225_CallIdentifier callid);	// pass by value in case call gets removed
-	H46026Session FindSession(const H225_CallIdentifier & callid, WORD session) const;
+	virtual void UpdateChannelRTP(PINDEX callno, WORD session, IPAndPortAddress toRTP);
+	virtual void UpdateChannelRTCP(PINDEX callno, WORD session, IPAndPortAddress toRTCP);
+	virtual void RemoveChannels(PINDEX callno);	// pass by value in case call gets removed
+	H46026Session FindSession(PINDEX callno, WORD session) const;
 #ifdef HAS_H235_MEDIA
-	virtual void UpdateChannelEncryptingLC(const H225_CallIdentifier & callid, WORD session, RTPLogicalChannel * lc);
-	virtual void UpdateChannelDecryptingLC(const H225_CallIdentifier & callid, WORD session, RTPLogicalChannel * lc);
+	virtual void UpdateChannelEncryptingLC(PINDEX callno, WORD session, RTPLogicalChannel * lc);
+	virtual void UpdateChannelDecryptingLC(PINDEX callno, WORD session, RTPLogicalChannel * lc);
 #endif
 	virtual void DumpChannels(const PString & msg = "") const;
 
-	virtual bool HandlePacket(const H225_CallIdentifier & callid, H46026_UDPFrame & data);
+	virtual bool HandlePacket(PINDEX callno, H46026_UDPFrame & data);
 
 protected:
 	mutable PReadWriteMutex m_listLock;

@@ -4196,7 +4196,7 @@ bool CallRec::GetCallerAudioIP(PIPSocket::Address & addr, WORD & port) const
 	bool foundDetectedIP = false;
 #ifdef HAS_H46018
 	// check if we have a detected H.460.19 RTP multiplex IP
-	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 1, true, addr, port);
+	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_CallNumber, 1, true, addr, port);
 #endif
 	if (!foundDetectedIP) {
         if (IgnoreSignaledIPs() || (GetCallingParty() && GetCallingParty()->GetTraversalRole() != None)) {
@@ -4227,7 +4227,7 @@ bool CallRec::GetCalledAudioIP(PIPSocket::Address & addr, WORD & port) const
 	bool foundDetectedIP = false;
 #ifdef HAS_H46018
 	// check if we have a detected H.460.19 RTP multiplex IP
-	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 1, false, addr, port);
+	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_CallNumber, 1, false, addr, port);
 #endif
 	if (!foundDetectedIP) {
         if (IgnoreSignaledIPs() || (GetCalledParty() && GetCalledParty()->GetTraversalRole() != None)) {
@@ -4258,7 +4258,7 @@ bool CallRec::GetCallerVideoIP(PIPSocket::Address & addr, WORD & port) const
 	bool foundDetectedIP = false;
 #ifdef HAS_H46018
 	// check if we have a detected H.460.19 RTP multiplex IP
-	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 2, true, addr, port);
+	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_CallNumber, 2, true, addr, port);
 #endif
 	if (!foundDetectedIP) {
         if (IgnoreSignaledIPs() || (GetCallingParty() && GetCallingParty()->GetTraversalRole() != None)) {
@@ -4289,7 +4289,7 @@ bool CallRec::GetCalledVideoIP(PIPSocket::Address & addr, WORD & port) const
 	bool foundDetectedIP = false;
 #ifdef HAS_H46018
 	// check if we have a detected H.460.19 RTP multiplex IP
-	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, 2, false, addr, port);
+	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_CallNumber, 2, false, addr, port);
 #endif
 	if (!foundDetectedIP) {
         if (IgnoreSignaledIPs() || (GetCalledParty() && GetCalledParty()->GetTraversalRole() != None)) {
@@ -4322,7 +4322,7 @@ bool CallRec::GetCallerH239IP(PIPSocket::Address & addr, WORD & port) const
 	bool foundDetectedIP = false;
 #ifdef HAS_H46018
 	// check if we have a detected H.460.19 RTP multiplex IP
-	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, m_H239SessionID, true, addr, port);
+	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_CallNumber, m_H239SessionID, true, addr, port);
 #endif
 	if (!foundDetectedIP) {
         if (IgnoreSignaledIPs() || (GetCallingParty() && GetCallingParty()->GetTraversalRole() != None)) {
@@ -4355,7 +4355,7 @@ bool CallRec::GetCalledH239IP(PIPSocket::Address & addr, WORD & port) const
 	bool foundDetectedIP = false;
 #ifdef HAS_H46018
 	// check if we have a detected H.460.19 RTP multiplex IP
-	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_callIdentifier, m_H239SessionID, false, addr, port);
+	foundDetectedIP = MultiplexedRTPHandler::Instance()->GetDetectedMediaIP(m_CallNumber, m_H239SessionID, false, addr, port);
 #endif
 	if (!foundDetectedIP) {
         if (IgnoreSignaledIPs() || (GetCalledParty() && GetCalledParty()->GetTraversalRole() != None)) {
@@ -5334,12 +5334,6 @@ void CallTable::UpdateEPBandwidth(const endptr & ep, long bw)
 }
 
 callptr CallTable::FindCallRec(const H225_CallIdentifier & CallId) const
-{
-	return InternalFind(bind2nd(mem_fun(&CallRec::CompareCallId), &CallId));
-}
-
-// copy call ID for thread safety
-callptr CallTable::FindCallRecByValue(H225_CallIdentifier CallId) const
 {
 	return InternalFind(bind2nd(mem_fun(&CallRec::CompareCallId), &CallId));
 }

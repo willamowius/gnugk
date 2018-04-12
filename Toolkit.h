@@ -501,8 +501,7 @@ class Toolkit : public Singleton<Toolkit>
 	bool IsIPv6Enabled() const;
 	bool IsPortNotificationActive();
 	void PortNotification(PortType type, PortAction action, const PString & protocol,
-							const PIPSocket::Address & addr, WORD port,
-							const H225_CallIdentifier & callID = 0);
+							const PIPSocket::Address & addr, WORD port, PINDEX callNo = 0);
 
 	// accessors
 	/** Accessor and 'Factory' to the static Toolkit.

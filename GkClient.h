@@ -315,7 +315,7 @@ public:
 	// NAT type detected
 	void H46023_TypeDetected(int nattype);
     // Create socket pair
-	bool H46023_CreateSocketPair(const H225_CallIdentifier & id, WORD sessionID, UDPProxySocket * & rtp, UDPProxySocket * & rtcp, bool & nated);
+	bool H46023_CreateSocketPair(const H225_CallIdentifier & id, PINDEX callNo, WORD sessionID, UDPProxySocket * & rtp, UDPProxySocket * & rtcp, bool & nated);
 	// Set the NAT Strategy
 	void H46023_SetNATStategy(const H225_CallIdentifier & id, unsigned nat);
 	// Find the NAT Strategy

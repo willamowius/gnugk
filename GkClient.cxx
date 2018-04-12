@@ -517,10 +517,10 @@ public:
 
 //
 
-class STUNsocket  : public UDPProxySocket
+class STUNsocket : public UDPProxySocket
 {
 public:
-    STUNsocket(const char * t, const H225_CallIdentifier & id);
+    STUNsocket(const char * t, PINDEX callNo);
 #ifdef LARGE_FDSET
 	// the YaSocket based UDPSocket has a const GetLocalAddress()
 	virtual PBoolean GetLocalAddress(PIPSocket::Address &) const;
@@ -534,8 +534,8 @@ public:
 	PIPSocket::Address externalIP;
 };
 
-STUNsocket::STUNsocket(const char * t, const H225_CallIdentifier & id)
-  : UDPProxySocket(t,id), externalIP(0)
+STUNsocket::STUNsocket(const char * t, PINDEX callNo)
+  : UDPProxySocket(t, callNo), externalIP(0)
 {
 }
 
@@ -614,7 +614,7 @@ class STUNClient	:  public  Job,
 	virtual void Run();
 
 	virtual bool CreateSocketPair(
-			const H225_CallIdentifier & id,
+			PINDEX callNo,
 			UDPProxySocket * & rtp,
 			UDPProxySocket * & rtcp,
 			const PIPSocket::Address & binding = PIPSocket::GetDefaultIpAny()
@@ -781,7 +781,7 @@ bool STUNClient::OpenSocketA(UDPSocket & socket, PortInfo & portInfo, const PIPS
 }
 #endif
 
-bool STUNClient::CreateSocketPair(const H225_CallIdentifier & id, UDPProxySocket * & rtp, UDPProxySocket * & rtcp, const PIPSocket::Address & binding)
+bool STUNClient::CreateSocketPair(PINDEX callNo, UDPProxySocket * & rtp, UDPProxySocket * & rtcp, const PIPSocket::Address & binding)
 {
 	// We only create port pairs, a pair at a time.
 	PWaitAndSignal m(m_portCreateMutex);
@@ -803,7 +803,7 @@ bool STUNClient::CreateSocketPair(const H225_CallIdentifier & id, UDPProxySocket
 	for (i = 0; i < m_socketsForPairing; i++)
 	{
 		PString t = (i%2 == 0 ? "rtp" : "rtcp");
-		PINDEX idx = stunSocket.Append(new STUNsocket(t,id));
+		PINDEX idx = stunSocket.Append(new STUNsocket(t, callNo));
 		if (!OpenSocketA(stunSocket[idx], pairedPortInfo, binding)) {
 			PTRACE(1, "STUN\tUnable to open socket to server " << GetServer());
 			return false;
@@ -865,10 +865,11 @@ bool STUNClient::CreateSocketPair(const H225_CallIdentifier & id, UDPProxySocket
 
 
 class GkClient;
+
 class H46024Socket : public UDPProxySocket
 {
 public:
-    H46024Socket(GkClient * client, bool rtp, const H225_CallIdentifier & id, CallRec::NatStrategy strategy, WORD sessionID);
+    H46024Socket(GkClient * client, bool rtp, const H225_CallIdentifier & id, PINDEX callNo, CallRec::NatStrategy strategy, WORD sessionID);
 
 	enum  probe_state {
 		e_notRequired,			///< Polling has not started
@@ -943,8 +944,8 @@ private:
 
 };
 
-H46024Socket::H46024Socket(GkClient * client, bool rtp, const H225_CallIdentifier & id, CallRec::NatStrategy strategy, WORD sessionID)
-	:UDPProxySocket((rtp ? "rtp" : "rtcp"), id),
+H46024Socket::H46024Socket(GkClient * client, bool rtp, const H225_CallIdentifier & id, PINDEX callNo, CallRec::NatStrategy strategy, WORD sessionID)
+	:UDPProxySocket((rtp ? "rtp" : "rtcp"), callNo),
 	m_natStrategy(strategy), m_sessionID(sessionID), m_callIdentifier(id),
 	m_rtp(rtp), m_state(e_notRequired),	m_remPort(0), m_detPort(0), m_pendPort(0), m_altPort(0),
 	m_altMuxID(0), m_probes(0), SSRC(0), m_keepseqno(100)
@@ -2828,7 +2829,7 @@ void GkClient::H46023_ACF(callptr m_call, H460_FeatureStd * feat)
 	}
 }
 
-bool GkClient::H46023_CreateSocketPair(const H225_CallIdentifier & id, WORD sessionID, UDPProxySocket * & rtp, UDPProxySocket * & rtcp, bool & nated)
+bool GkClient::H46023_CreateSocketPair(const H225_CallIdentifier & id, PINDEX callNo, WORD sessionID, UDPProxySocket * & rtp, UDPProxySocket * & rtcp, bool & nated)
 {
 	if (!m_registeredH46023)
 		return false;
@@ -2846,18 +2847,18 @@ bool GkClient::H46023_CreateSocketPair(const H225_CallIdentifier & id, WORD sess
 		case CallRec::e_natAnnexA:
 		case CallRec::e_natAnnexB:
 			nated = false;
-			rtp = new H46024Socket(this, true, id, strategy, sessionID);
-			rtcp = new H46024Socket(this, false, id, strategy, sessionID);
+			rtp = new H46024Socket(this, true, id, callNo, strategy, sessionID);
+			rtcp = new H46024Socket(this, false, id, callNo, strategy, sessionID);
 			H46023_SetSocketPair(id, sessionID, rtp, rtcp);
 			return true;
 		case CallRec::e_natLocalMaster:
 			nated = true;
 			return (m_stunClient &&
-					m_stunClient->CreateSocketPair(id, rtp, rtcp));
+					m_stunClient->CreateSocketPair(callNo, rtp, rtcp));
 		case CallRec::e_natRemoteMaster:
 			nated = false;
 			return (m_stunClient &&
-					m_stunClient->CreateSocketPair(id, rtp, rtcp));
+					m_stunClient->CreateSocketPair(callNo, rtp, rtcp));
 		case CallRec::e_natFailure:
 			// TODO signal the call will fail!
 			PTRACE(1, "H46023\tNAT failure: Call will fail");

@@ -1,6 +1,6 @@
 Changes from 4.9 to 5.0
 =======================
-
+- internal performance optimization
 
 Changes from 4.8 to 4.9
 =======================
@@ -16,7 +16,6 @@ Changes from 4.8 to 4.9
 - RTP inactivity checking
 - BUGFIX(RasSrv.cxx) fix crash when using IPv6
 - BUGFIX(ProxyChannel.cxx) fix handling of CloseLogicalChannel
-
 
 Changes from 4.7 to 4.8
 =======================
