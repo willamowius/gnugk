@@ -11350,7 +11350,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
         }
 
         //// learn from this RTP packet
-        // no source set, this musst be one of them
+        // no source set, this must be one of them
         if (fSrcIP == 0 && rSrcIP == 0) {
             fSrcIP = fromIP, fSrcPort = fromPort;
             PTRACE(7, "JW RTP IN on " << localport << " learned fSrc " << AsString(fSrcIP, fSrcPort));
@@ -12717,14 +12717,14 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
                 PTRACE(7, "JW RTP zero to traversal");
                 zeroNow = true;
             } else {
-                PTRACE(5, "RTP\tNon-symetric port usage, disable auto-detect");
+                PTRACE(5, "RTP\tNon-symmetric port usage, disable auto-detect");
                 call->SetIgnoreSignaledIPs(false);
             }
             forwardAndReverseSeen = true;
         } else {
             if (fSrcPort > 0 && fDestPort > 0 && rSrcPort > 0 && rDestPort > 0 && !isUnidirectional) {
                 if (IsInNetworks(fSrcIP, m_keepSignaledIPs) || IsInNetworks(fDestIP, m_keepSignaledIPs) || IsInNetworks(rSrcIP, m_keepSignaledIPs) || IsInNetworks(rDestIP, m_keepSignaledIPs)) {
-                    // assume symetric port ussage if one side ist set to allowed IPs
+                    // assume symmetric port usage if one side is set to allowed IPs
                     PTRACE(7, "JW RTP zero with any AllowedIP");
                     zeroNow = true;
                 } else if ((fSrcPort == rDestPort) && (rSrcPort == fDestPort)) { /* TODO: && fSrcIP == rDestIP && fDestIP == rSrcIP */
@@ -12897,8 +12897,7 @@ void T120LogicalChannel::Create(T120ProxySocket *socket)
 		WORD pt = T120PortRange.GetPort();
 		if (remote->Connect(GNUGK_INADDR_ANY, pt, peerAddr)) {
 			PTRACE(3, "T120\tConnect to " << remote->GetName()
-				<< " from " << AsString(GNUGK_INADDR_ANY, pt) << " successful"
-				);
+				<< " from " << AsString(GNUGK_INADDR_ANY, pt) << " successful");
 			socket->SetConnected(true);
 			remote->SetConnected(true);
 			handler->Insert(socket, remote);
@@ -12910,8 +12909,7 @@ void T120LogicalChannel::Create(T120ProxySocket *socket)
 		int errorNumber = remote->GetErrorNumber(PSocket::LastGeneralError);
 		PTRACE(1, remote->Type() << "\tCould not open/connect T.120 socket at " << AsString(GNUGK_INADDR_ANY, pt)
 			<< " - error " << remote->GetErrorCode(PSocket::LastGeneralError) << '/'
-			<< errorNumber << ": " << remote->GetErrorText(PSocket::LastGeneralError)
-			);
+			<< errorNumber << ": " << remote->GetErrorText(PSocket::LastGeneralError));
 		remote->Close();
 		PTRACE(3, "T120\t" << AsString(peerAddr, peerPort) << " DIDN'T ACCEPT THE CALL");
 	}
@@ -13629,7 +13627,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 								mediaPayloadType = desc.m_payloadType;
 							}
 						}
-						// look at h263Options do make destinction between old H.263 and H.263+
+						// look at h263Options do make distinction between old H.263 and H.263+
 						if ( 	(isReverseLC && IsOldH263(olc.m_reverseLogicalChannelParameters.m_dataType))
 							|| (!isReverseLC && IsOldH263(olc.m_forwardLogicalChannelParameters.m_dataType)) ) {
 							mediaPayloadType = 34;	// use static payload type for H.263
@@ -13667,7 +13665,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 #ifdef HAS_H46018
 			if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing
 				|| peer->m_requestRTPMultiplexing || peer->m_remoteRequestsRTPMultiplexing) {
-				// get the H46019Session object in standard (unswapped) format
+				// get the H46019Session object in standard (un-swapped) format
 				H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(call->GetCallNumber(), sessionID);
 				if (encrypting) {
 					h46019chan.m_encryptingLC = rtplc;
@@ -13897,7 +13895,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		}
 		MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
 
-		// now get the same H46019Session object, but in standard (unswapped) format to update the RTP LC
+		// now get the same H46019Session object, but in standard (un-swapped) format to update the RTP LC
 		h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(call->GetCallNumber(), sessionID);
 		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(lc);
 		if (rtplc) {
@@ -13946,7 +13944,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 #ifdef HAS_H46018
 		if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing
 			|| peer->m_requestRTPMultiplexing || peer->m_remoteRequestsRTPMultiplexing) {
-			// get the H46019Session object in standard (unswapped) format
+			// get the H46019Session object in standard (un-swapped) format
 			H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(call->GetCallNumber(), sessionID);
 			if (encrypting) {
 				h46019chan.m_encryptingLC = rtplc;
