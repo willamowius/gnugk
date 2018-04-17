@@ -2388,10 +2388,6 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
         return false;
     }
 #else
-    if (url.Left(5) == "https") {
-        PTRACE(2, "HttpPasswordAuth\tPlease compile GnuGk with libcurl for https support");
-        return false;
-    }
     PHTTPClient http;
     if (m_method == "GET") {
         if (!http.GetTextDocument(url, result)) {
