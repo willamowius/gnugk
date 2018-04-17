@@ -963,7 +963,7 @@ Default: <tt>0</tt><newline>
 <p>
 Also ignore IPs signaled for H.239 streams if they are private IPs.
 
-<item><tt>AllowSignaledIPs=192.168.1.0/24,10.0.0.0/</tt><newline>
+<item><tt>AllowSignaledIPs=192.168.1.0/24,10.0.0.0/8</tt><newline>
 Default: <tt>n/a</tt><newline>
 <p>
 When IgnoreSignaledIPs is active, don't ignore IPs from these networks
