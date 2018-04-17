@@ -2360,6 +2360,7 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
     CURLcode curl_res = CURLE_FAILED_INIT;
     CURL * curl = curl_easy_init();
     if (curl) {
+        struct curl_slist *headerlist = NULL;
         if (m_method == "GET") {
             // nothing special to do
         } else if (m_method == "POST") {
@@ -2367,6 +2368,9 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
             if (body.IsEmpty() && parts.GetSize() == 2) {
                 url = parts[0];
                 body = parts[1];
+            } else {
+                headerlist = curl_slist_append(headerlist, "Content-Type: text/plain");
+                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
             }
             curl_easy_setopt(curl, CURLOPT_POSTFIELDS, (const char *)body);
         } else {
@@ -2380,6 +2384,7 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
             curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
         }
         curl_res = curl_easy_perform(curl);
+        curl_slist_free_all(headerlist);
         curl_easy_cleanup(curl);
     }
 
