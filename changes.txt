@@ -1,5 +1,6 @@
 Changes from 4.9 to 5.0
 =======================
+- allocate new LUA interpreter to each request so multiple LUA scripts can run at the same time
 - internal performance optimization
 
 Changes from 4.8 to 4.9

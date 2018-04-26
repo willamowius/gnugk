@@ -2,7 +2,7 @@
 //
 // lua.cxx
 //
-// LUA routing and authentication policies for GNU Gatekeeper
+// LUA routing, authentication and accounting policies for the GNU Gatekeeper
 //
 // Copyright (c) 2012-2018, Jan Willamowius
 //
@@ -86,44 +86,47 @@ public:
 	LuaBase();
 	virtual ~LuaBase();
 
-	void InitLua();
-    bool RunLua(const PString & script);
+	void InitLua(lua_State ** lua);
+    void ShutdownLua(lua_State ** lua);
+    bool RunLua(lua_State * lua, const PString & script);
 
-	void SetString(const char * name, const char * value);
-	PString GetString(const char * name) const;
-	void SetNumber(const char * name, double value);
-	double GetNumber(const char * name) const;
-	void SetBoolean(const char * name, bool value);
-	bool GetBoolean(const char * name) const;
-
-protected:
-	// LUA interpreter
-	lua_State * m_lua;
-	PMutex m_luaInterpreterLock;
+	void SetString(lua_State * lua, const char * name, const char * value);
+	PString GetString(lua_State * lua, const char * name) const;
+	void SetNumber(lua_State * lua, const char * name, double value);
+	double GetNumber(lua_State * lua, const char * name) const;
+	void SetBoolean(lua_State * lua, const char * name, bool value);
+	bool GetBoolean(lua_State * lua, const char * name) const;
 };
 
 
 LuaBase::LuaBase()
 {
-	m_lua = NULL;
 }
 
-void LuaBase::InitLua()
+void LuaBase::InitLua(lua_State ** pLua)
 {
-	if (!m_lua) {
-		m_lua = luaL_newstate();
-		luaL_openlibs(m_lua);
+	if (pLua && !*pLua) {
+		*pLua = luaL_newstate();
+		luaL_openlibs(*pLua);
 		// register "gnugk" lib
-        luaL_newlib(m_lua, gnugklib);
-        lua_setglobal(m_lua, LUA_GNUGKLIBNAME);
+        luaL_newlib(*pLua, gnugklib);
+        lua_setglobal(*pLua, LUA_GNUGKLIBNAME);
 	}
 }
 
-bool LuaBase::RunLua(const PString & script)
+void LuaBase::ShutdownLua(lua_State ** pLua)
 {
-	if (luaL_loadstring(m_lua, script) != 0 || lua_pcall(m_lua, 0, 0, 0) != 0) {
-		PTRACE(1, "LUA\tError in LUA script: " << lua_tostring(m_lua, -1));
-		lua_pop(m_lua, 1);
+	if (pLua && *pLua) {
+        lua_close(*pLua);
+        *pLua = NULL;
+	}
+}
+
+bool LuaBase::RunLua(lua_State * lua, const PString & script)
+{
+	if (luaL_loadstring(lua, script) != 0 || lua_pcall(lua, 0, 0, 0) != 0) {
+		PTRACE(1, "LUA\tError in LUA script: " << lua_tostring(lua, -1));
+		lua_pop(lua, 1);
 		return false;
 	}
 	return true;
@@ -131,56 +134,52 @@ bool LuaBase::RunLua(const PString & script)
 
 LuaBase::~LuaBase()
 {
-    if (m_lua) {
-        lua_close(m_lua);
-        m_lua = NULL;
-    }
 }
 
-void LuaBase::SetString(const char * name, const char * value)
+void LuaBase::SetString(lua_State * lua, const char * name, const char * value)
 {
     PTRACE(6, "LUA\tSet String " << name << " = " << value);
-	lua_pushstring(m_lua, value);
-	lua_setglobal(m_lua, name);
+	lua_pushstring(lua, value);
+	lua_setglobal(lua, name);
 }
 
-PString LuaBase::GetString(const char * name) const
+PString LuaBase::GetString(lua_State * lua, const char * name) const
 {
-	lua_getglobal(m_lua, name);
-	PString result = lua_tostring(m_lua, -1);
-	lua_pop(m_lua, 1);
+	lua_getglobal(lua, name);
+	PString result = lua_tostring(lua, -1);
+	lua_pop(lua, 1);
 	return result;
 }
 
 /*
-void LuaBase::SetNumber(const char * name, double value)
+void LuaBase::SetNumber(lua_State * lua, const char * name, double value)
 {
     PTRACE(6, "LUA\tSet Number " << name << " = " << value);
-	lua_pushnumber(m_lua, value);
-	lua_setglobal(m_lua, name);
+	lua_pushnumber(lua, value);
+	lua_setglobal(lua, name);
 }
 
-double LuaBase::GetNumber(const char * name) const
+double LuaBase::GetNumber(lua_State * lua, const char * name) const
 {
-	lua_getglobal(m_lua, name);
-	double result = lua_tonumber(m_lua, -1);
-	lua_pop(m_lua, 1);
+	lua_getglobal(lua, name);
+	double result = lua_tonumber(lua, -1);
+	lua_pop(lua, 1);
 	return result;
 }
 */
 
-void LuaBase::SetBoolean(const char * name, bool value)
+void LuaBase::SetBoolean(lua_State * lua, const char * name, bool value)
 {
     PTRACE(6, "LUA\tSet Boolean" << name << " = " << value);
-	lua_pushboolean(m_lua, value);
-	lua_setglobal(m_lua, name);
+	lua_pushboolean(lua, value);
+	lua_setglobal(lua, name);
 }
 
-bool LuaBase::GetBoolean(const char * name) const
+bool LuaBase::GetBoolean(lua_State * lua, const char * name) const
 {
-	lua_getglobal(m_lua, name);
-	bool result = lua_toboolean(m_lua, -1);
-	lua_pop(m_lua, 1);
+	lua_getglobal(lua, name);
+	bool result = lua_toboolean(lua, -1);
+	lua_pop(lua, 1);
 	return result;
 }
 
@@ -246,14 +245,11 @@ void LuaPolicy::LoadConfig(const PString & instance)
 		return;
 	}
 
-    InitLua();
-
 	m_active = true;
 }
 
 LuaPolicy::~LuaPolicy()
 {
-	PWaitAndSignal lock(m_luaInterpreterLock);
 }
 
 void LuaPolicy::RunPolicy(
@@ -270,33 +266,36 @@ void LuaPolicy::RunPolicy(
 		/* out: */
 		DestinationRoutes & destination)
 {
-	PWaitAndSignal lock(m_luaInterpreterLock);
+	lua_State * lua = NULL;
+    InitLua(&lua);
 
-	SetString("source", source);
-	SetString("calledAlias", calledAlias);
-	SetString("calledIP", calledIP);
-	SetString("caller", caller);
-	SetString("callingStationId", callingStationId);
-	SetString("callid", callid);
-	SetString("messageType", messageType);
-	SetString("clientauthid", clientauthid);
-	SetString("language", language);
-	SetString("destAlias", "");
-	SetString("destIP", "");
-	SetString("action", "");
-	SetString("rejectCode", "");
+	SetString(lua, "source", source);
+	SetString(lua, "calledAlias", calledAlias);
+	SetString(lua, "calledIP", calledIP);
+	SetString(lua, "caller", caller);
+	SetString(lua, "callingStationId", callingStationId);
+	SetString(lua, "callid", callid);
+	SetString(lua, "messageType", messageType);
+	SetString(lua, "clientauthid", clientauthid);
+	SetString(lua, "language", language);
+	SetString(lua, "destAlias", "");
+	SetString(lua, "destIP", "");
+	SetString(lua, "action", "");
+	SetString(lua, "rejectCode", "");
 
-	if (!RunLua(m_script)) {
+	if (!RunLua(lua, m_script)) {
+        ShutdownLua(&lua);
 		return;
 	}
 
-	PString action = GetString("action");
-	PString rejectCode = GetString("rejectCode");
-	PString destAlias = GetString("destAlias");
-	PString destIP = GetString("destIP");
+	PString action = GetString(lua, "action");
+	PString rejectCode = GetString(lua, "rejectCode");
+	PString destAlias = GetString(lua, "destAlias");
+	PString destIP = GetString(lua, "destIP");
 
 	if (action.ToUpper() == "SKIP") {
 		PTRACE(5, m_name << "\tSkipping to next policy");
+        ShutdownLua(&lua);
 		return;
 	}
 
@@ -306,6 +305,7 @@ void LuaPolicy::RunPolicy(
 		if (!rejectCode.IsEmpty()) {
 			destination.SetRejectReason(rejectCode.AsInteger());
 		}
+        ShutdownLua(&lua);
 		return;
 	}
 
@@ -329,6 +329,8 @@ void LuaPolicy::RunPolicy(
 			route.m_destNumber = destAlias;
 		destination.AddRoute(route);
 	}
+
+    ShutdownLua(&lua);
 }
 
 namespace { // anonymous namespace
@@ -495,13 +497,10 @@ LuaAuth::LuaAuth(
 		SNMP_TRAP(4, SNMPError, General, "LuaAuth: no script");
 		return;
 	}
-
-    InitLua();
 }
 
 LuaAuth::~LuaAuth()
 {
-	PWaitAndSignal lock(m_luaInterpreterLock);
 }
 
 /*
@@ -648,32 +647,37 @@ int LuaAuth::doRegistrationCheck(
 		const PString & message
 		)
 {
-    if (!m_lua || m_registrationScript.IsEmpty()) {
+	lua_State * lua = NULL;
+    InitLua(&lua);
+
+    if (!lua || m_registrationScript.IsEmpty()) {
 		PTRACE(1, "LuaAuth\tError: LUA not configured");
+        ShutdownLua(&lua);
 		return e_fail;
     }
 
-	PWaitAndSignal lock(m_luaInterpreterLock);
+	SetString(lua, "username", username);
+	SetString(lua, "callerIP", callerIP);
+	SetString(lua, "aliases", aliases);
+	SetString(lua, "messageType", messageType);
+	SetString(lua, "message", message);
+	SetString(lua, "result", "FAIL");
 
-	SetString("username", username);
-	SetString("callerIP", callerIP);
-	SetString("aliases", aliases);
-	SetString("messageType", messageType);
-	SetString("message", message);
-	SetString("result", "FAIL");
-
-	if (!RunLua(m_registrationScript)) {
+	if (!RunLua(lua, m_registrationScript)) {
+        ShutdownLua(&lua);
 		return e_fail;
 	}
 
-	PString result = GetString("result");
+	PString result = GetString(lua, "result");
+	int resultCode = e_fail;
 	if (result.ToUpper() == "OK") {
-		return e_ok;
+		resultCode = e_ok;
 	} else if (result.ToUpper() == "NEXT") {
-		return e_next;
-	} else {
-		return e_fail;
+		resultCode = e_next;
 	}
+
+    ShutdownLua(&lua);
+    return resultCode;
 }
 
 int LuaAuth::doCallCheck(
@@ -689,37 +693,42 @@ int LuaAuth::doCallCheck(
 		const PString & vendor
 		)
 {
-    if (!m_lua || m_callScript.IsEmpty()) {
+	lua_State * lua = NULL;
+    InitLua(&lua);
+
+    if (!lua || m_callScript.IsEmpty()) {
 		PTRACE(1, "LuaAuth\tError: LUA not configured");
+        ShutdownLua(&lua);
 		return e_fail;
     }
 
-	PWaitAndSignal lock(m_luaInterpreterLock);
+	SetString(lua, "messageType", messageType);
+	SetString(lua, "message", message);
+	SetString(lua, "source", source);
+	SetString(lua, "calledAlias", calledAlias);
+	SetString(lua, "calledIP", calledIP);
+	SetString(lua, "caller", caller);
+	SetString(lua, "callingStationId", callingStationId);
+	SetString(lua, "callid", callid);
+	SetString(lua, "srcInfo", srcinfo);
+	SetString(lua, "vendor", vendor);
+	SetString(lua, "result", "FAIL");
 
-	SetString("messageType", messageType);
-	SetString("message", message);
-	SetString("source", source);
-	SetString("calledAlias", calledAlias);
-	SetString("calledIP", calledIP);
-	SetString("caller", caller);
-	SetString("callingStationId", callingStationId);
-	SetString("callid", callid);
-	SetString("srcInfo", srcinfo);
-	SetString("vendor", vendor);
-	SetString("result", "FAIL");
-
-	if (!RunLua(m_callScript)) {
+	if (!RunLua(lua, m_callScript)) {
+        ShutdownLua(&lua);
 		return e_fail;
 	}
 
-	PString result = GetString("result");
+	PString result = GetString(lua, "result");
+	int resultCode = e_fail;
 	if (result.ToUpper() == "OK") {
-		return e_ok;
+		resultCode = e_ok;
 	} else if (result.ToUpper() == "NEXT") {
-		return e_next;
-	} else {
-		return e_fail;
+		resultCode = e_next;
 	}
+
+    ShutdownLua(&lua);
+    return resultCode;
 }
 
 namespace { // anonymous namespace
@@ -786,34 +795,35 @@ LuaPasswordAuth::LuaPasswordAuth(const char* authName)
 		SNMP_TRAP(4, SNMPError, General, "LuaPasswordAuth: no script");
 		return;
 	}
-
-    InitLua();
 }
 
 LuaPasswordAuth::~LuaPasswordAuth()
 {
-	PWaitAndSignal lock(m_luaInterpreterLock);
 }
 
 bool LuaPasswordAuth::GetPassword(const PString & alias, PString & password, std::map<PString, PString> & params)
 {
-    if (!m_lua || m_script.IsEmpty()) {
+	lua_State * lua = NULL;
+    InitLua(&lua);
+
+    if (!lua || m_script.IsEmpty()) {
 		PTRACE(1, "LuaPasswordAuth\tError: LUA not configured");
+        ShutdownLua(&lua);
 		return false;
     }
 
-	PWaitAndSignal lock(m_luaInterpreterLock);
-
-	SetString("alias", alias);
-	SetString("gk", Toolkit::GKName());
-	SetString("password", "");
+	SetString(lua, "alias", alias);
+	SetString(lua, "gk", Toolkit::GKName());
+	SetString(lua, "password", "");
 	// TODO: add other parameters from param
 
-	if (!RunLua(m_script)) {
+	if (!RunLua(lua, m_script)) {
+        ShutdownLua(&lua);
 		return false;
 	}
 
-	password = GetString("password");
+	password = GetString(lua, "password");
+    ShutdownLua(&lua);
 	return true;
 }
 
@@ -892,13 +902,10 @@ LuaAcct::LuaAcct(const char* moduleName, const char* cfgSecName)
 		SNMP_TRAP(4, SNMPError, General, GetName() + " creation failed");
 		return;
 	}
-
-    InitLua();
 }
 
 LuaAcct::~LuaAcct()
 {
-	PWaitAndSignal lock(m_luaInterpreterLock);
 }
 
 GkAcctLogger::Status LuaAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & call)
@@ -908,13 +915,18 @@ GkAcctLogger::Status LuaAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & c
 	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
 		return Next;
 
-    if (!m_lua || m_script.IsEmpty()) {
+	lua_State * lua = NULL;
+    InitLua(&lua);
+
+    if (!lua || m_script.IsEmpty()) {
 		PTRACE(1, GetName() + "\tError: LUA not configured");
+        ShutdownLua(&lua);
 		return Fail;
     }
 
 	if (!call && evt != AcctOn && evt != AcctOff) {
 		PTRACE(1, GetName() << "\tMissing call info for event " << evt);
+        ShutdownLua(&lua);
 		return Fail;
 	}
 
@@ -952,34 +964,34 @@ GkAcctLogger::Status LuaAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & c
         SetupAcctParams(params, call, m_timestampFormat);
     }
 
-	PWaitAndSignal lock(m_luaInterpreterLock);
-
-	SetString("event", eventName);
-	SetString("result", "OK");
-	if (!lua_checkstack(m_lua, params.size())) {
+	SetString(lua, "event", eventName);
+	SetString(lua, "result", "OK");
+	if (!lua_checkstack(lua, params.size())) {
         PTRACE(1, "LuaAcct\tError: Not enough room on stack");
+        ShutdownLua(&lua);
         return Fail;
 	}
     for(std::map<PString, PString>::const_iterator it = params.begin(); it != params.end(); ++it) {
         PString varName = PString("param_") + it->first;
         varName.Replace("-", "_", true);    // - not allowed in LUA variable name
-        SetString(varName, PString(it->second));
+        SetString(lua, varName, PString(it->second));
     }
 
-	if (!RunLua(m_script)) {
+	if (!RunLua(lua, m_script)) {
+        ShutdownLua(&lua);
 		return Fail;
 	}
 
-	PString result = GetString("result");
+	PString result = GetString(lua, "result");
+	GkAcctLogger::Status resultCode = Fail;
 	if (result.ToUpper() == "OK") {
-		return Ok;
+		resultCode = Ok;
 	} else if (result.ToUpper() == "NEXT") {
-		return Next;
-	} else {
-		return Fail;
+		resultCode = Next;
 	}
 
-	return Ok;
+    ShutdownLua(&lua);
+	return resultCode;
 }
 
 GkAcctLogger::Status LuaAcct::Log(GkAcctLogger::AcctEvent evt, const endptr & ep)
@@ -989,13 +1001,18 @@ GkAcctLogger::Status LuaAcct::Log(GkAcctLogger::AcctEvent evt, const endptr & ep
 	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
 		return Next;
 
-    if (!m_lua || m_script.IsEmpty()) {
+	lua_State * lua = NULL;
+    InitLua(&lua);
+
+    if (!lua || m_script.IsEmpty()) {
 		PTRACE(1, GetName() + "\tError: LUA not configured");
+        ShutdownLua(&lua);
 		return Fail;
     }
 
 	if (!ep) {
 		PTRACE(1, GetName() << "\tMissing endpoint info for event " << evt);
+        ShutdownLua(&lua);
 		return Fail;
 	}
 
@@ -1014,34 +1031,34 @@ GkAcctLogger::Status LuaAcct::Log(GkAcctLogger::AcctEvent evt, const endptr & ep
 	std::map<PString, PString> params;
 	SetupAcctEndpointParams(params, ep, m_timestampFormat);
 
-	PWaitAndSignal lock(m_luaInterpreterLock);
-
-	SetString("event", eventName);
-	SetString("result", "OK");
-	if (!lua_checkstack(m_lua, params.size())) {
+	SetString(lua, "event", eventName);
+	SetString(lua, "result", "OK");
+	if (!lua_checkstack(lua, params.size())) {
         PTRACE(1, "LuaAcct\tError: Not enough room on stack");
+        ShutdownLua(&lua);
         return Fail;
 	}
     for(std::map<PString, PString>::const_iterator it = params.begin(); it != params.end(); ++it) {
         PString varName = PString("param_") + it->first;
         varName.Replace("-", "_", true);    // - not allowed in LUA variable name
-        SetString(varName, PString(it->second));
+        SetString(lua, varName, PString(it->second));
     }
 
-	if (!RunLua(m_script)) {
+	if (!RunLua(lua, m_script)) {
+        ShutdownLua(&lua);
 		return Fail;
 	}
 
-	PString result = GetString("result");
+	PString result = GetString(lua, "result");
+	GkAcctLogger::Status resultCode = Fail;
 	if (result.ToUpper() == "OK") {
-		return Ok;
+		resultCode = Ok;
 	} else if (result.ToUpper() == "NEXT") {
-		return Next;
-	} else {
-		return Fail;
+		resultCode = Next;
 	}
 
-	return Ok;
+    ShutdownLua(&lua);
+	return resultCode;
 }
 
 
