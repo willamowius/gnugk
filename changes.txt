@@ -1,6 +1,8 @@
 Changes from 4.9 to 5.0
 =======================
+- BUGFIX(gnugkbuildopts.h.in) fix building with libmaxmind
 - allocate new LUA interpreter to each request so multiple LUA scripts can run at the same time
+- BUGFIX(gkauth.cxx) let HttpPasswordAuth with libcurl behave the same as when using PTlib
 - internal performance optimization
 
 Changes from 4.8 to 4.9
