@@ -1,8 +1,8 @@
 //////////////////////////////////////////////////////////////////
 //
-// gnugkbuildopts.h autoconfig results (currently only used on Windows)
+// gnugkbuildopts.h autoconfig results
 //
-// Copyright (c) 2008-2016, Jan Willamowius
+// Copyright (c) 2008-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -46,7 +46,7 @@
 // GeoIP
 #undef HAS_GEOIP1
 #undef HAS_GEOIP2
-#if defined(HAS_GEOIP1) || defined(HAS_GEOPI2)
+#if defined(HAS_GEOIP1) || defined(HAS_GEOIP2)
 #define HAS_GEOIP 1
 #endif
 
