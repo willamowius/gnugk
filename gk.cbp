@@ -87,12 +87,8 @@
 		<Unit filename="H46023_license.txt" />
 		<Unit filename="MakeCall.cxx" />
 		<Unit filename="MakeCall.h" />
-		<Unit filename="Neighbor.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="Neighbor.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
+		<Unit filename="Neighbor.cxx" />
+		<Unit filename="Neighbor.h" />
 		<Unit filename="ProxyChannel.cxx" />
 		<Unit filename="ProxyChannel.h" />
 		<Unit filename="RasPDU.h" />
@@ -114,9 +110,7 @@
 		<Unit filename="authenticators.h" />
 		<Unit filename="capctrl.cxx" />
 		<Unit filename="capctrl.h" />
-		<Unit filename="changes.txt">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
+		<Unit filename="changes.txt" />
 		<Unit filename="cisco.asn" />
 		<Unit filename="cisco.cxx" />
 		<Unit filename="cisco.h" />
@@ -159,38 +153,18 @@
 		<Unit filename="httpacct.h" />
 		<Unit filename="ipauth.cxx" />
 		<Unit filename="ipauth.h" />
-		<Unit filename="job.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="job.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
+		<Unit filename="job.cxx" />
+		<Unit filename="job.h" />
 		<Unit filename="ldap.cxx" />
 		<Unit filename="lua.cxx" />
-		<Unit filename="name.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="radacct.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="radacct.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="radauth.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="radauth.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="radproto.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="radproto.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="rasinfo.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
+		<Unit filename="name.h" />
+		<Unit filename="radacct.cxx" />
+		<Unit filename="radacct.h" />
+		<Unit filename="radauth.cxx" />
+		<Unit filename="radauth.h" />
+		<Unit filename="radproto.cxx" />
+		<Unit filename="radproto.h" />
+		<Unit filename="rasinfo.h" />
 		<Unit filename="rwlock.h" />
 		<Unit filename="sigmsg.cxx" />
 		<Unit filename="sigmsg.h" />
@@ -198,24 +172,12 @@
 		<Unit filename="singleton.h" />
 		<Unit filename="snmp.cxx" />
 		<Unit filename="snmp.h" />
-		<Unit filename="sqlacct.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="sqlacct.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="sqlauth.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="statusacct.cxx">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="statusacct.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
-		<Unit filename="stl_supp.h">
-			<Option target="&lt;{~None~}&gt;" />
-		</Unit>
+		<Unit filename="sqlacct.cxx" />
+		<Unit filename="sqlacct.h" />
+		<Unit filename="sqlauth.cxx" />
+		<Unit filename="statusacct.cxx" />
+		<Unit filename="statusacct.h" />
+		<Unit filename="stl_supp.h" />
 		<Unit filename="syslogacct.cxx" />
 		<Unit filename="syslogacct.h" />
 		<Unit filename="testrunner.cxx" />
