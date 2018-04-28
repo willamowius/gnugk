@@ -2067,32 +2067,28 @@ void SqlPolicy::LoadConfig(const PString & instance)
 
 	const PString driverName = GkConfig()->GetString(m_iniSection, "Driver", "");
 	if (driverName.IsEmpty()) {
-		PTRACE(2, m_name << "\tmodule creation failed: "
-			"no SQL driver selected");
+		PTRACE(2, m_name << "\tmodule creation failed: no SQL driver selected");
 		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
 		return;
 	}
 
 	m_sqlConn = GkSQLConnection::Create(driverName, m_name);
 	if (m_sqlConn == NULL) {
-		PTRACE(2, m_name << "\tmodule creation failed: "
-			"could not find " << driverName << " database driver");
+		PTRACE(2, m_name << "\tmodule creation failed: could not find " << driverName << " database driver");
 		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
 		return;
 	}
 
 	m_query = GkConfig()->GetString(m_iniSection, "Query", "");
 	if (m_query.IsEmpty()) {
-		PTRACE(2, m_name << "\tmodule creation failed: "
-			"no query configured");
+		PTRACE(2, m_name << "\tmodule creation failed: no query configured");
 		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
 		return;
 	} else
 		PTRACE(4, m_name << "\tQuery: " << m_query);
 
 	if (!m_sqlConn->Initialize(GkConfig(), m_iniSection)) {
-		PTRACE(2, m_name << "\tmodule creation failed: "
-			"could not connect to the database");
+		PTRACE(2, m_name << "\tmodule creation failed: could not connect to the database");
 		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " creation failed");
 		return;
 	}
@@ -2139,8 +2135,7 @@ void SqlPolicy::RunPolicy(
 	}
 
 	if (!result->IsValid()) {
-		PTRACE(2, m_name << ": query failed (" << result->GetErrorCode()
-			<< ") - " << result->GetErrorMessage());
+		PTRACE(2, m_name << ": query failed (" << result->GetErrorCode() << ") - " << result->GetErrorMessage());
 		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " query failed");
 		delete result;
 		return;
@@ -2149,9 +2144,7 @@ void SqlPolicy::RunPolicy(
 	if (result->GetNumRows() < 1)
 		PTRACE(3, m_name << ": query returned no rows");
 	else if (result->GetNumFields() < 1)
-		PTRACE(2, m_name << ": bad query - "
-			"no columns found in the result set"
-			);
+		PTRACE(2, m_name << ": bad query - no columns found in the result set");
 	else if (!result->FetchRow(resultRow) || resultRow.empty()) {
 		PTRACE(2, m_name << ": query failed - could not fetch the result row");
 		SNMP_TRAP(4, SNMPError, Database, PString(m_name) + " query failed");
@@ -2171,7 +2164,8 @@ void SqlPolicy::RunPolicy(
 
 				Route route("Sql", SocketToH225TransportAddr(ip, port));
 				route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
-				if (!language) route.m_language.AppendString(language);
+				if (!language.IsEmpty())
+				    route.m_language.AppendString(language);
 				destination.AddRoute(route);
 
 				row++;
@@ -2183,8 +2177,8 @@ void SqlPolicy::RunPolicy(
 		} else {
 			H225_ArrayOf_AliasAddress newAliases;
 			newAliases.SetSize(1);
-			if (GkConfig()->GetBoolean(m_iniSection, "EnableRegexRewrite", 0))
-				newDestination = RewriteWildcard(calledAlias,newDestination);
+			if (GkConfig()->GetBoolean(m_iniSection, "EnableRegexRewrite", false))
+				newDestination = RewriteWildcard(calledAlias, newDestination);
 			H323SetAliasAddress(newDestination, newAliases[0]);
 			destination.SetNewAliases(newAliases);
 		}
@@ -2198,11 +2192,16 @@ void SqlPolicy::RunPolicy(
 		} else {
 			H225_ArrayOf_AliasAddress newAliases;
 			newAliases.SetSize(1);
+			if (GkConfig()->GetBoolean(m_iniSection, "EnableRegexRewrite", false))
+				newDestinationAlias = RewriteWildcard(calledAlias, newDestinationAlias);
 			H323SetAliasAddress(newDestinationAlias, newAliases[0]);
 			destination.SetNewAliases(newAliases);
 			int row = 0;
 			do {
 				PString destinationAlias = resultRow[0].first;
+                if (GkConfig()->GetBoolean(m_iniSection, "EnableRegexRewrite", false))
+				    destinationAlias = RewriteWildcard(calledAlias, destinationAlias);
+
 				PString destinationIp = resultRow[1].first;
 				PStringArray adr_parts = SplitIPAndPort(destinationIp, GK_DEF_ENDPOINT_SIGNAL_PORT);
 				PIPSocket::Address ip(adr_parts[0]);
@@ -2211,7 +2210,8 @@ void SqlPolicy::RunPolicy(
 				Route route("Sql", SocketToH225TransportAddr(ip, port));
 				route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
 				route.m_destNumber = destinationAlias;
-				if (!language) route.m_language.AppendString(language);
+				if (!language.IsEmpty())
+				    route.m_language.AppendString(language);
 				destination.AddRoute(route);
 
 				row++;
