@@ -1754,7 +1754,7 @@ void CallSignalSocket::InternalInit()
 	m_crv = 0;
 	m_h245handler = NULL;
 	m_h245socket = NULL;
-	m_h245TunnelingTranslation = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "H245TunnelingTranslation", 0);
+	m_h245TunnelingTranslation = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "H245TunnelingTranslation", false);
 	m_isnatsocket = false;
 	m_maintainConnection = false;
 	m_result = NoData;
