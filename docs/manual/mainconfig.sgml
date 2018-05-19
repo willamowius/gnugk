@@ -166,7 +166,7 @@ or see it online at <url url="http://man7.org/linux/man-pages/man7/regex.7.html"
 <p>
 <itemize>
 <item><tt/Name=GnuGk/<newline>
-Default: <tt/OpenH323GK/<newline>
+Default: <tt/GnuGk/<newline>
 <p>
 Gatekeeper identifier of this gatekeeper. The gatekeeper will only respond to
 GRQs for this ID and will use it in a number of messages to its endpoints.

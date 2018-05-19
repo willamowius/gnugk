@@ -1859,7 +1859,7 @@ PConfig* Toolkit::ReloadConfig()
 	// read the toolkit config values
 
 	// read the gatekeeper name from the config file, because it might be used as a key into the SQL config
-	m_GKName = Config()->GetString("Name", "OpenH323GK");
+	m_GKName = Config()->GetString("Name", "GnuGk");
 
 	PTrace::SetLevel(GkConfig()->GetInteger("TraceLevel", PTrace::GetLevel()));
 
@@ -1902,7 +1902,7 @@ PConfig* Toolkit::ReloadConfig()
 	ReloadSQLConfig();
 
 	// update the gatekeeper name, in case it was set in the SQL config
-	m_GKName = m_Config->GetString("Name", "OpenH323GK");
+	m_GKName = m_Config->GetString("Name", "GnuGk");
 
 	PString removeH235Call = m_Config->GetString(RoutedSec, "RemoveH235Call", "0");
 	m_alwaysRemoveH235Tokens = (removeH235Call.AsUnsigned() == 1);
