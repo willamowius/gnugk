@@ -190,7 +190,7 @@ AC_SUBST(OPENH323DIR)
 AC_SUBST(OPENH323MAKEDIR)
 
 dnl ########################################################################
-dnl extract the OpenH323 version
+dnl extract the OpenH323/H323Plus version
 if test -d ${OPENH323DIR}; then
   AC_CHECK_FILE(${OPENH323DIR}/version.h, HAS_OPENH323_VERSIONFILE=1)
   if test "${HAS_OPENH323_VERSIONFILE:-unset}" != "unset"; then
@@ -225,7 +225,7 @@ if test "${HAS_OPENH323_VERSIONFILE:-unset}" != "unset"; then
     exit
   fi
   OPENH323_VERSION="${OPENH323_MAJOR_VERSION}.${OPENH323_MINOR_VERSION}.${OPENH323_BUILD_NUMBER}"
-  echo "OpenH323 version is ${OPENH323_VERSION}"
+  echo "OpenH323/H323Plus version is ${OPENH323_VERSION}"
 else
   echo "Error: Could not determine OpenH323/H323Plus version"
   exit
