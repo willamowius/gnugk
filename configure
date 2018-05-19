@@ -1400,7 +1400,7 @@ Optional Features:
   --enable-lua            enable LUA support (default=yes)
   --enable-geoip          enable GeoIP support (default=yes)
   --enable-libcurl        enable libcurl support (default=yes)
-  --enable-rabbitmq       enable RabbitMQ support (default=yes)
+  --enable-librabbitmq    enable RabbitMQ support (default=yes)
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
