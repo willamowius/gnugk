@@ -251,7 +251,7 @@ GkAcctLogger::Status AMQPAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & 
     if (routingKey.IsEmpty())
         routingKey = "gnugk.call.status";
 
-	return AMQPLog(event, routingKey);
+    return AMQPLog(event, routingKey);
 }
 
 GkAcctLogger::Status AMQPAcct::Log(GkAcctLogger::AcctEvent evt, const endptr & ep)
@@ -287,7 +287,7 @@ GkAcctLogger::Status AMQPAcct::Log(GkAcctLogger::AcctEvent evt, const endptr & e
     if (routingKey.IsEmpty())
         routingKey = "gnugk.registration.status";
 
-	return AMQPLog(event, routingKey);
+    return AMQPLog(event, routingKey);
 }
 
 GkAcctLogger::Status AMQPAcct::AMQPLog(const PString & event, const PString & routingKey)
