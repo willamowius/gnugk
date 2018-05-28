@@ -1730,9 +1730,11 @@ endptr RegistrationTable::InternalInsertEP(H225_RasMessage & ras_msg)
 	bool isGW = (rrq.m_terminalType.HasOptionalField(H225_EndpointType::e_gateway)
 			|| rrq.m_terminalType.HasOptionalField(H225_EndpointType::e_mcu));
 	if (rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) && rrq.m_terminalAlias.GetSize() > 0) {
-		PString alias = AsString(rrq.m_terminalAlias[0], false);
-		if (GkConfig()->GetBoolean("EP::" + alias, "ForceGateway", false)) {
-			isGW = true;
+        for (PINDEX i = 0; i < rrq.m_terminalAlias.GetSize(); i++) {
+    		PString alias = AsString(rrq.m_terminalAlias[i], false);
+    		if (GkConfig()->GetBoolean("EP::" + alias, "ForceGateway", false)) {
+	    		isGW = true;
+    		}
 		}
 	}
 	EndpointRec * ep = isGW ? new GatewayRec(ras_msg) : new EndpointRec(ras_msg);

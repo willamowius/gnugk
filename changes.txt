@@ -1,5 +1,6 @@
 Changes from 4.9 to 5.0
 =======================
+- BUGFIX(RasSrv.cxx) match [EP::] ForceGateway= on any alias, not only the first
 - new default: [Gatekeeper::Main] Name=GnuGk
 - BUGFIX(configure.in) fix RabbitMQ config option
 - BUGFIX(Routing.cxx) fix regex replace in SQL routing policy
