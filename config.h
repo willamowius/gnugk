@@ -282,7 +282,6 @@
 
 #if (H323PLUS_VER >= 1254)
     #define HAS_LANGUAGE 1
-    #define hasCipertextStealing 1
     #define HAS_SETTOKENLENGTH 1
 #endif
 
@@ -290,7 +289,8 @@
     #define HAS_H2351_CONFIG 1
 #endif
 
-#if defined(H323_H235) && hasCipertextStealing
+#if (H323PLUS_VER >= 1270)
+    // DES_ECB code uses new OpenSSL 1.1 code in H323Plus
     #define HAS_DES_ECB 1
 #endif
 
