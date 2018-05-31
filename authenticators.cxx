@@ -106,13 +106,14 @@ H235Authenticator::ValidationResult H235AuthDesECB::ValidateCryptoToken(
 	key[i%key.GetSize()] ^= password[i];
 
   EVP_CipherInit_ex(cipher, EVP_des_ecb(), NULL, key, NULL, 0);
+  H235CryptoHelper cryptoHelper;
 
   int len = -1;
-  if (!EVP_DecryptUpdate_cts(cipher, decryptedToken.GetPointer(), &len, remoteEncryptedData.GetPointer(), remoteEncryptedData.GetSize())) {
+  if (!cryptoHelper.DecryptUpdateCTS(cipher, decryptedToken.GetPointer(), &len, remoteEncryptedData.GetPointer(), remoteEncryptedData.GetSize())) {
         PTRACE(1, "H235RAS\tEVP_DecryptUpdate_cts failed");
   }
   int f_len = -1;
-  if(!EVP_DecryptFinal_cts(cipher, decryptedToken.GetPointer() + len, &f_len)) {
+  if(!cryptoHelper.DecryptFinalCTS(cipher, decryptedToken.GetPointer() + len, &f_len)) {
     char buf[256];
     ERR_error_string(ERR_get_error(), buf);
     PTRACE(1, "H235RAS\tEVP_DecryptFinal_cts failed: " << buf);
