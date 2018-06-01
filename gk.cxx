@@ -657,6 +657,7 @@ const char * KnownConfigEntries[][2] = {
 #ifdef HAS_H235_MEDIA
 	{ "RoutedMode", "RequireH235HalfCallMedia" },
 #endif
+	{ "RoutedMode", "RerouteOnFacility" },
 	{ "RoutedMode", "RtpHandlerNumber" },
 	{ "RoutedMode", "ScreenCallingPartyNumberIE" },
 	{ "RoutedMode", "ScreenDisplayIE" },

@@ -449,7 +449,7 @@ void SoftPBX::RerouteCall(const PString & CallId, const PCaselessString & whichL
 				return;
 			}
 		} else {
-			PString msg("SoftPBX: can't find signalling socket (direct mode ?)");
+			PString msg("SoftPBX: can't find signaling socket (direct mode ?)");
 			PTRACE(1, "GK\t" + msg);
 			GkStatus::Instance()->SignalStatus(msg + "\r\n");
 			return;
@@ -481,7 +481,7 @@ void SoftPBX::TransferCall(const PString & CallId, const PCaselessString & which
 			lForwardedSocket = lCall->GetCallSignalSocketCalling();
 		}
 		if (!lForwardedSocket) {
-			PString msg("SoftPBX: can't find signalling socket (direct mode ?)");
+			PString msg("SoftPBX: can't find signaling socket (direct mode ?)");
 			PTRACE(1, "GK\t" + msg);
 			GkStatus::Instance()->SignalStatus(msg + "\r\n");
 			return;

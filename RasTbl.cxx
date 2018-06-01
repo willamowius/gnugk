@@ -3081,6 +3081,7 @@ bool CallRec::DropCalledAndTryNextRoute()
 	CallTable::Instance()->UpdateEPBandwidth(m_Called, -GetBandwidth());
 	m_Called = endptr(0);
 	if (m_calledSocket) {
+        PTRACE(0, "JW DropCalledAndTryNextRoute -> SendReleaseComplete");
 		m_calledSocket->SendReleaseComplete(H225_ReleaseCompleteReason::e_undefinedReason);
 		if (MoveToNextRoute()) {
 			if (!DisableRetryChecks() && (IsFastStartResponseReceived() || IsH245ResponseReceived())) {
@@ -3438,6 +3439,7 @@ void CallRec::RemoveSocket()
 
 void CallRec::Disconnect(bool force)
 {
+    PTRACE(0, "JW Disconnect() -> SendReleaseComplete()");
 	if ((force || Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "DropCallsByReleaseComplete", "0"))) && (m_callingSocket || m_calledSocket)) {
 		SendReleaseComplete();
 	} else {
@@ -5697,6 +5699,7 @@ void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq, const endptr &
 			? CallRec::ReleasedByCaller : CallRec::ReleasedByCallee
 			);
 		if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SendReleaseCompleteOnDRQ", "0"))) {
+            PTRACE(0, "JW RemoveCall on DRQ -> SendReleaseComplete()");
 			if( obj_drq.m_disengageReason.GetTag() == H225_DisengageReason::e_normalDrop )
 				call->SetDisconnectCause(Q931::NormalCallClearing);
 			call->SendReleaseComplete(obj_drq.HasOptionalField(H225_DisengageRequest::e_terminationCause) ? &obj_drq.m_terminationCause : NULL);

@@ -436,6 +436,7 @@ public:
 
 protected:
 	void ForwardCall(FacilityMsg *msg);
+	void RerouteCall(FacilityMsg *msg);
 
 	/// signaling message handlers
 	void OnSetup(SignalingMsg *msg);

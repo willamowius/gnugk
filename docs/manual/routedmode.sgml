@@ -247,8 +247,8 @@ Modify the sourceAddress field of UUIE element from Q.931 Setup message.
 <item><tt/ForwardOnFacility=1/<newline>
 Default: <tt/0/<newline>
 <p>
-If yes, on receiving Q.931 Facility with reason <bf/callForwarded/, <bf/routeCallToGatekeeper/ or <bf/routeCallToMC/,
-the gatekeeper will forwards call Setup directly to the forwarded endpoint,
+If set, the gatekeeper will forward calls directly to the forwarded endpoint when it receives a
+Q.931 Facility with reason <bf/callForwarded/, <bf/routeCallToGatekeeper/ or <bf/routeCallToMC/,
 instead of passing the message back to the caller.
 If you have broken endpoints that can't handle Q.931 Facility with reason
 <bf/callForwarded/ (or the other reasons), turn on this option. Note that this feature
@@ -256,6 +256,15 @@ may not always work correctly, as it does not provide any means
 of capability renegotiation and media channel reopening.
 The call is only forwarded if the forwarder is the called party and
 the H.245 channel is not established, yet.
+
+<item><tt/RerouteOnFacility=1/<newline>
+Default: <tt/0/<newline>
+<p>
+If set, GnuGk will translate received Q.931 Facility with reason <bf/callForwarded/ or <bf/routeCallToMC/
+into gatekeeper based call reroutes. This will enable call transfers for established calls with almost all endpoints,
+even those that do not understand how to process call transfers by themselves.
+
+H.245 tunneling should be disabled for rerouting ([RoutedMode] DisableH245Tunneling=1).
 
 <item><tt/ShowForwarderNumber=0/<newline>
 Default: <tt/0/<newline>

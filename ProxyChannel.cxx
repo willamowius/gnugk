@@ -3686,6 +3686,15 @@ void CallSignalSocket::SendEncryptionUpdateRequest(WORD flcn, BYTE oldPT, BYTE p
 
 bool CallSignalSocket::EndSession()
 {
+    if (m_call && m_call->GetRerouteState() != NoReroute
+        && ((m_call->GetRerouteDirection() == Caller && m_callerSocket) || (m_call->GetRerouteDirection() == Called || !m_callerSocket))) {
+        PTRACE(0, "JW EndSession: call in reroute: dir=" << m_call->GetRerouteDirection() << " callersocket=" << m_callerSocket);
+        PTRACE(1, "Q931\tDon't send ReleaseComplete on EndSession to remaining party in reroute");
+        // don't hang up when dropped party sends H.245 EndSession
+        return true;
+    }
+
+    PTRACE(0, "JW EndSession -> SendReleaseComplete()");
 	SendReleaseComplete();
 	return TCPProxySocket::EndSession();
 }
@@ -3701,6 +3710,7 @@ void CallSignalSocket::RemoveH245Handler()
 
 void CallSignalSocket::OnError()
 {
+    PTRACE(0, "JW CallSignalSocket::OnError()");
 	if (m_call) {
 		m_call->SetDisconnectCause(Q931::ProtocolErrorUnspecified);
 		RemoveCall();
@@ -3889,6 +3899,27 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 	}
 	delete msg;
 	msg = NULL;
+}
+
+void CallSignalSocket::RerouteCall(FacilityMsg * msg)
+{
+	H225_Facility_UUIE & facilityBody = msg->GetUUIEBody();
+
+    PString callID = AsString(m_call->GetCallIdentifier(), true);
+    PString which = m_callerSocket ? "CALLED" : "CALLER";
+    PString destination;
+    if (facilityBody.HasOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress) &&
+        facilityBody.m_alternativeAliasAddress.GetSize() > 0)
+        destination = H323GetAliasAddressString(facilityBody.m_alternativeAliasAddress[0]);
+
+    if (facilityBody.HasOptionalField(H225_Facility_UUIE::e_alternativeAddress)) {
+        if (!destination.IsEmpty())
+            destination += '@';
+        destination += H323TransportAddress(facilityBody.m_alternativeAddress);
+    }
+
+    PTRACE(0, "JW RerouteCall " << callID << " side=" << which << " dest=" << destination);
+    SoftPBX::RerouteCall(callID, which, destination);
 }
 
 PString CallSignalSocket::GetCallingStationId(
@@ -6834,7 +6865,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 	CallSignalSocket * droppedSocket = NULL;
 	CallSignalSocket * remainingSocket = NULL;
 
-	// check if we have access to signalling channel of endpoint to be transferred
+	// check if we have access to signaling channel of endpoint to be transferred
 	if (which == Called) {
 		droppedSocket = m_call->GetCallSignalSocketCalling();
 		remainingSocket = m_call->GetCallSignalSocketCalled();
@@ -6867,7 +6898,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
         // remove H.235.6 tokens: caller probably connected without encryption to first destination and resetting keys won't work with most endpoints
         // TODO: make sure we don't remove other tokens
         setup.m_tokens.SetSize(0);
-		// check if destination contains IP to set destCallSigAdr
+		// check if destination contains IP to set destCallSigAddr
 		PString alias;
 		PString destip;
 		PINDEX at = destination.Find("@");
@@ -6977,7 +7008,8 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
     m_call->ClearChannelFlcnList();
 
 	// send TCS0 to dropping party
-	if (droppedSocket->m_h245socket) {
+    PTRACE(1, "Q931\tSending TCS0 to dropped tunneling=" << droppedSocket->IsH245Tunneling());
+	if (!droppedSocket->IsH245Tunneling()) {
 		droppedSocket->m_h245socket->SendTCS(NULL, droppedSocket->GetNextTCSSeq());
 	} else {
 		// send tunneled TCS0
@@ -6986,8 +7018,8 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 	}
 
 	// send TCS0 to forwarded (remaining) party
-	if (m_h245socket) {
-		PTRACE(1, "Q931\tSending TCS0 to forwarded");
+    PTRACE(1, "Q931\tSending TCS0 to forwarded tunneling=" << remainingSocket->IsH245Tunneling());
+	if (!remainingSocket->IsH245Tunneling()) {
 		m_h245socket->SendTCS(NULL, GetNextTCSSeq());
 		for (unsigned i = 0; i < flcnList.size(); i++) {
             PTRACE(2, "Q931\tSending CLC " << flcnList[i] << " to forwarded");
@@ -7537,21 +7569,31 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 	case H225_FacilityReason::e_routeCallToGatekeeper:
 	case H225_FacilityReason::e_callForwarded:
 	case H225_FacilityReason::e_routeCallToMC:
-		if (!GkConfig()->GetBoolean(RoutedSec, "ForwardOnFacility", false))
-			break;
+	    // TODO: only if calls is connected
+		if (GkConfig()->GetBoolean(RoutedSec, "RerouteOnFacility", false)
+            && facilityBody.m_reason.GetTag() != H225_FacilityReason::e_routeCallToGatekeeper) {
+            // make sure the call is still active
+            if (m_call && CallTable::Instance()->FindCallRec(m_call->GetCallNumber())) {
+                CreateJob(this, &CallSignalSocket::RerouteCall, dynamic_cast<FacilityMsg*>(facility->Clone()), "RerouteCall");
+                m_result = NoData;
+                return;
+            }
+		} else {
+            if (!GkConfig()->GetBoolean(RoutedSec, "ForwardOnFacility", false))
+                break;
 
-		// to avoid complicated handling of H.245 channel on forwarding,
-		// we only do forward if forwarder is the called party (and thus doesn't have a saved Setup) and
-		// H.245 channel is not established yet
-		if (m_setupPdu || (m_h245socket && m_h245socket->IsConnected()))
-			break;
-		// make sure the call is still active
-		if (m_call && CallTable::Instance()->FindCallRec(m_call->GetCallNumber())) {
-			MarkBlocked(true);
-			CreateJob(this, &CallSignalSocket::ForwardCall,
-				dynamic_cast<FacilityMsg*>(facility->Clone()), "ForwardCall");
-			m_result = NoData;
-			return;
+            // to avoid complicated handling of H.245 channel on forwarding,
+            // we only do forward if forwarder is the called party (and thus doesn't have a saved Setup) and
+            // H.245 channel is not established yet
+            if (m_setupPdu || (m_h245socket && m_h245socket->IsConnected()))
+                break;
+            // make sure the call is still active
+            if (m_call && CallTable::Instance()->FindCallRec(m_call->GetCallNumber())) {
+                MarkBlocked(true);
+                CreateJob(this, &CallSignalSocket::ForwardCall, dynamic_cast<FacilityMsg*>(facility->Clone()), "ForwardCall");
+                m_result = NoData;
+                return;
+            }
 		}
 		break;
 
@@ -8403,6 +8445,7 @@ void CallSignalSocket::Dispatch()
             // fallthrough intended
 
 		default:
+		    PTRACE(0, "JW CallSignalSocket::Dispatch() -> OnError()");
 			OnError();
 			timeout = 0;
 			break;
@@ -8643,6 +8686,7 @@ void CallSignalSocket::DispatchNextRoute()
 		// fallthrough intended
 
 	default:
+	    PTRACE(0, "JW DispatchNextRoute OnError()");
 		OnError();
 		break;
 	} /* switch */
@@ -8654,6 +8698,7 @@ void CallSignalSocket::DispatchNextRoute()
 
 bool CallSignalSocket::SendTunneledH245(const PPER_Stream & strm)
 {
+    PTRACE(0, "JW SendTunneledH245 PER");
 	Q931 q931;
 	H225_H323_UserInformation uuie;
 	PBYTEArray lBuffer;
@@ -8693,6 +8738,7 @@ bool CallSignalSocket::SendTunneledH245(const PPER_Stream & strm)
 
 bool CallSignalSocket::SendTunneledH245(const H245_MultimediaSystemControlMessage & h245msg)
 {
+    PTRACE(0, "JW SendTunneledH245 H245");
 	Q931 q931;
 	H225_H323_UserInformation uuie;
 	PBYTEArray lBuffer;
@@ -9291,6 +9337,7 @@ PString H245Socket::GetCallIdentifierAsString() const
 
 void H245Socket::OnSignalingChannelClosed()
 {
+    PTRACE(0, "JW H245 OnSignalingChannelClosed");
 	PWaitAndSignal lock(m_signalingSocketMutex);
 	sigSocket = NULL;
 	EndSession();
@@ -15194,6 +15241,7 @@ void ProxyHandler::ReadSocket(IPSocket * socket)
 			}
 			break;
 		case ProxySocket::Error:
+		    PTRACE(0, "JW ProxySocket OnError");
 			psocket->OnError();
 			socket->Close();
 			break;
