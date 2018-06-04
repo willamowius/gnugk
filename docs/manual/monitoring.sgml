@@ -752,7 +752,8 @@ TransferCall ee-ab-8f-81-58-57-df-11-95-39-00-1e-c9-7e-69-ec caller Peter
 
 <item><tt/RerouteCall/<newline>
 <p>
-Gatekeeper based call transfer using TCS0 pause and reroute. H.245 tunneling must be actively disabled ([RoutedMode] DisableH245Tunneling=1).
+Gatekeeper based call transfer using TCS0 pause and reroute. H.245 tunneling must be disabled ([RoutedMode] DisableH245Tunneling=1)
+as well as media encryption (RemoveH235Call=1).
 
 <descrip>
 <tag/Format:/

@@ -264,7 +264,7 @@ If set, GnuGk will translate received Q.931 Facility with reason <bf/callForward
 into gatekeeper based call reroutes. This will enable call transfers for established calls with almost all endpoints,
 even those that do not understand how to process call transfers by themselves.
 
-H.245 tunneling should be disabled for rerouting ([RoutedMode] DisableH245Tunneling=1).
+H.245 tunneling should be disabled for rerouting ([RoutedMode] DisableH245Tunneling=1) as well as media encryption (RemoveH235Call=1).
 
 <item><tt/ShowForwarderNumber=0/<newline>
 Default: <tt/0/<newline>
