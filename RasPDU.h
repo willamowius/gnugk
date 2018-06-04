@@ -19,6 +19,7 @@
 #define RASPDU_H "@(#) $Id$"
 
 #include <list>
+#include <utility>
 #include "yasocket.h"
 #include "factory.h"
 #include "rasinfo.h"
@@ -364,7 +365,11 @@ public:
 	typedef typename RasInfo<RAS>::ConfirmTag ConfirmTag;
 	typedef typename RasInfo<RAS>::RejectTag RejectTag;
 	Requester(H225_RasMessage &, const Address &);
-	virtual ~Requester() { this->m_rasSrv->UnregisterHandler(this); } // fix for GCC 3.4.2
+	virtual ~Requester()
+	{
+		typedef typename std::pair< RasServer*, RAS* >::first_type RasServerPtr;
+		static_cast< RasServerPtr >(this->m_rasSrv)->UnregisterHandler(this); // fix for GCC 3.4.2
+	}
 };
 
 template<class RAS>
@@ -375,7 +380,9 @@ Requester<RAS>::Requester(H225_RasMessage & obj_ras, const Address & ip) : RasRe
 	ras.m_requestSeqNum = GetSeqNum();
 	AddFilter(ConfirmTag());
 	AddFilter(RejectTag());
-	this->m_rasSrv->RegisterHandler(this); // fix for GCC 3.4.2
+
+	typedef typename std::pair< RasServer*, RAS* >::first_type RasServerPtr;
+	static_cast< RasServerPtr >(this->m_rasSrv)->RegisterHandler(this); // fix for GCC 3.4.2
 }
 
 #endif // RASPDU_H
