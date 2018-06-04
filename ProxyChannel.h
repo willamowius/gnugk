@@ -557,6 +557,8 @@ private:
 	unsigned m_h225Version;
 	/// raw Setup data as received from the caller (for failover)
 	PBYTEArray m_rawSetup;
+	/// raw Conect data as received from the called (for reroute CALLED)
+	PBYTEArray m_rawConnect;
 	PMutex infomutex;    // Information PDU processing Mutex
 	H245_TerminalCapabilitySet m_savedTCS;	// saved tcs to re-send
 	unsigned m_tcsRecSeq;

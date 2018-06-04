@@ -2394,6 +2394,8 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		OnCallProceeding(msg);
 		break;
 	case Q931::ConnectMsg:
+		m_rawConnect = buffer;
+		m_rawConnect.MakeUnique();
 		OnConnect(msg);
 		break;
 	case Q931::AlertingMsg:
@@ -2566,7 +2568,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		}
 	}
 
-	// just copy unknow IEs in Notify
+	// just copy unknown IEs in Notify
 	if ((q931pdu->GetMessageType() == Q931::NotifyMsg)
 		&& (q931pdu->HasIE(Q931::UserUserIE))
 		&& (uuie == NULL)) {
@@ -6888,8 +6890,10 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 		// use saved Setup and just change the destination
 		q931.Decode(m_rawSetup);
 		GetUUIE(q931, uuie);
-		if (uuie.m_h323_uu_pdu.m_h323_message_body.GetTag() != H225_H323_UU_PDU_h323_message_body::e_setup)
+		if (uuie.m_h323_uu_pdu.m_h323_message_body.GetTag() != H225_H323_UU_PDU_h323_message_body::e_setup) {
+            PTRACE(1, "Error: Saved Setup is no Setup");
             return false;
+		}
 		H225_Setup_UUIE & setup = uuie.m_h323_uu_pdu.m_h323_message_body;
 		uuie.m_h323_uu_pdu.m_h245Tunneling = tunneling;
 		// remove old destination
@@ -6932,17 +6936,36 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, b
 				q931.SetCalledPartyNumber(alias);
 			}
 		}
-	} else {
+	} else {    // which == Called
 		BuildSetupPDU(q931, m_call->GetCallIdentifier(), m_call->GetCallRef(), destination, tunneling);
 		GetUUIE(q931, uuie);
 		H225_Setup_UUIE & setup_uuie = uuie.m_h323_uu_pdu.m_h323_message_body;
 		setup_uuie.IncludeOptionalField(H225_Setup_UUIE::e_sourceAddress);
 		setup_uuie.m_sourceAddress.SetSize(1);
-		if (which == Called) {
-			H323SetAliasAddress(m_call->GetCalledStationId(), setup_uuie.m_sourceAddress[0]);
-		} else {
-			H323SetAliasAddress(m_call->GetCallingStationId(), setup_uuie.m_sourceAddress[0]);
+        H323SetAliasAddress(m_call->GetCalledStationId(), setup_uuie.m_sourceAddress[0]);
+        // TODO: set displayIE, bearer capability + vendor from saved Connect
+    	Q931 connectQ931;
+	    H225_H323_UserInformation connectUuie;
+	    PTRACE(0, "JW m_rawConnect size=" << m_rawConnect.GetSize());
+		connectQ931.Decode(m_rawConnect);
+		GetUUIE(connectQ931, connectUuie);
+		if (connectUuie.m_h323_uu_pdu.m_h323_message_body.GetTag() != H225_H323_UU_PDU_h323_message_body::e_connect) {
+            PTRACE(1, "Error: Saved Connect is no Connect");
+            return false;
 		}
+		H225_Connect_UUIE & connect_uuie = connectUuie.m_h323_uu_pdu.m_h323_message_body;
+		if (!connectQ931.GetDisplayName().IsEmpty())
+            q931.SetDisplayName(connectQ931.GetDisplayName());
+        Q931::InformationTransferCapability capability;
+        unsigned transferRate;
+        unsigned codingStandard;
+        unsigned userInfoLayer1;
+        connectQ931.GetBearerCapabilities(capability, transferRate, &codingStandard, &userInfoLayer1);
+        q931.SetBearerCapabilities(capability, transferRate, codingStandard, userInfoLayer1);
+        if (connect_uuie.m_destinationInfo.HasOptionalField(H225_EndpointType::e_vendor)) {
+            setup_uuie.m_sourceInfo.IncludeOptionalField(H225_EndpointType::e_vendor);
+            setup_uuie.m_sourceInfo.m_vendor = connect_uuie.m_destinationInfo.m_vendor;
+        }
 	}
 	SetUUIE(q931, uuie);
 	q931.Encode(perBuffer);
