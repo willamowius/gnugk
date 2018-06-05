@@ -442,7 +442,7 @@ void SoftPBX::RerouteCall(const PString & CallId, const PCaselessString & whichL
 			lForwardedSocket = lCall->GetCallSignalSocketCalling();
 		}
 		if (lForwardedSocket) {
-			if (!lForwardedSocket->RerouteCall(which, destination, false)) {
+			if (!lForwardedSocket->RerouteCall(which, destination)) {
 				PString msg("SoftPBX: Reroute failed");
 				PTRACE(1, "GK\t" + msg);
 				GkStatus::Instance()->SignalStatus(msg + "\r\n");

@@ -363,7 +363,7 @@ public:
 	void BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallIdentifier & callId, unsigned crv);
 	void BuildSetupPDU(Q931 &, const H225_CallIdentifier & callid, unsigned crv, const PString & destination, bool h245tunneling);
 	void RemoveCall();
-	bool RerouteCall(CallLeg which, const PString & destination, bool h450transfer);
+	bool RerouteCall(CallLeg which, const PString & destination);
 	void RerouteCaller(PString destination);
 	void RerouteCalled(PString destination);
 	void PerformConnecting();

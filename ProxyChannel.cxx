@@ -6853,16 +6853,16 @@ bool CallSignalSocket::OnH450CallTransfer(PASN_OctetString * argument)
 // helper method to start a thread with only one parameter (which would be 2nd)
 void CallSignalSocket::RerouteCaller(PString destination)
 {
-	RerouteCall(Caller, destination, true);
+	RerouteCall(Caller, destination);
 }
 
 void CallSignalSocket::RerouteCalled(PString destination)
 {
-	RerouteCall(Called, destination, true);
+	RerouteCall(Called, destination);
 }
 
 // to be called on the remaining socket !!!
-bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination, bool h450transfer)
+bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 {
 	CallSignalSocket * droppedSocket = NULL;
 	CallSignalSocket * remainingSocket = NULL;
