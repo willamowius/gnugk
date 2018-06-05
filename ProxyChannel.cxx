@@ -6946,7 +6946,6 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
         // TODO: set displayIE, bearer capability + vendor from saved Connect
     	Q931 connectQ931;
 	    H225_H323_UserInformation connectUuie;
-	    PTRACE(0, "JW m_rawConnect size=" << m_rawConnect.GetSize());
 		connectQ931.Decode(m_rawConnect);
 		GetUUIE(connectQ931, connectUuie);
 		if (connectUuie.m_h323_uu_pdu.m_h323_message_body.GetTag() != H225_H323_UU_PDU_h323_message_body::e_connect) {
@@ -7086,6 +7085,13 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 
 	CallRec * newCall = new CallRec(m_call.operator ->());
 	CallTable::Instance()->RemoveFailedLeg(m_call);
+	// set calling and called party
+	if (which == Called) {
+	    newCall->SetCalling(m_call->GetCalledParty());
+	} else {
+	    newCall->SetCalling(m_call->GetCallingParty());
+	}
+	newCall->SetCalled(route.m_destEndpoint);
 
 	m_remoteLock.Wait();
 	CallSignalSocket * callingSocket = static_cast<CallSignalSocket*>(remote);

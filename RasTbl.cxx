@@ -5692,6 +5692,7 @@ void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq, const endptr &
 		if (ep == call->GetForwarder())
 			return;
 		if (ep != call->GetCallingParty() && ep != call->GetCalledParty()) {
+            // can happen for dropping endpoint in a reroute
 			PTRACE(3, "GK\tWarning: CallRec doesn't belong to the requesting endpoint!");
 			return;
 		}
