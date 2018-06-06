@@ -772,6 +772,8 @@ public:
 	const H225_CallIdentifier & GetCallIdentifier() const { return m_callIdentifier; }
 	void ClearCallIdentifier() { m_callIdentifier = 0; }
 	unsigned GetCallRef() const { return m_crv; }
+	void SetCallRefFixup(bool val) { m_callRefFixup = val; }
+	bool IsCallRefFixup() const { return m_callRefFixup; }
 	const H225_ConferenceIdentifier & GetConferenceIdentifier() const { return m_conferenceIdentifier; }
 	endptr GetCallingParty() const { return m_Calling; }
 	endptr GetCalledParty() const { return m_Called; }
@@ -1473,6 +1475,8 @@ private:
 	H225_ConferenceIdentifier m_conferenceIdentifier;
 	/// Call Reference Value for the call
 	WORD m_crv;
+	/// update call ref flag: both sides think they are the destination after a "reroute CALLED"
+	bool m_callRefFixup;
 	/// EndpointRec for the calling party (if it is a registered endpoint)
 	/// NOTE: it does not change during CallRec lifetime
 	endptr m_Calling;

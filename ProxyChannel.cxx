@@ -2524,6 +2524,12 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		return m_result;
 	}
 
+	if (m_call->IsCallRefFixup()) {
+        PTRACE(3, "CallRefFixup: Set IsFromDestination=" << !q931pdu->IsFromDestination());
+        q931pdu->SetFromDestination(!q931pdu->IsFromDestination());
+        msg->SetChanged();
+	}
+
 	if (msg->GetQ931().HasIE(Q931::DisplayIE)) {
 		PString newDisplayIE;
         PString screenDisplayIE = GkConfig()->GetString(RoutedSec, "ScreenDisplayIE", "");
@@ -7088,6 +7094,9 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 	// set calling and called party
 	if (which == Called) {
 	    newCall->SetCalling(m_call->GetCalledParty());
+	    // now both sides think they are called and we need to fix the Q.931 CallRef flag
+	    newCall->SetCallRefFixup(true);
+	    m_call->SetCallRefFixup(true);
 	} else {
 	    newCall->SetCalling(m_call->GetCallingParty());
 	}
@@ -7116,6 +7125,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 
 	droppedSocket->SendReleaseComplete(H225_ReleaseCompleteReason::e_undefinedReason);      // callDeflection ?
 
+	// TODO: set these into newCall instead of m_call ??? or both ?
 	if (route.m_destEndpoint)
 		m_call->SetCalled(route.m_destEndpoint);
 	else
