@@ -2682,7 +2682,7 @@ CallRec::CallRec(
     ,m_encyptDir(none), m_dynamicPayloadTypeCounter(MIN_DYNAMIC_PAYLOAD_TYPE)
 #endif
 {
-	const H225_AdmissionRequest& arq = arqPdu;
+	const H225_AdmissionRequest & arq = arqPdu;
 
 	if (arq.HasOptionalField(H225_AdmissionRequest::e_destinationInfo))
 		m_destinationAddress = arq.m_destinationInfo;
@@ -5420,14 +5420,14 @@ void CallTable::CheckCalls(RasServer * rassrv)
 		if (((*call)->GetNoRemainingRoutes() == 0)
 			|| (! (*call)->IsFailoverActive())
 			|| (now - (*call)->GetSetupTime() > (GetSignalTimeout() / 1000) * 5)) {
-			PTRACE(5, "Disconnecting call on signalling timeout");
+			PTRACE(3, "Error: Disconnecting call on signaling timeout (Call No. " << (*call)->GetCallNumber() << ", CallID " << AsString((*call)->GetCallIdentifier()));
 			(*call)->Disconnect();	// sends ReleaseComplete to both parties
 			RemoveCall((*call));
 		} else {
 			(*call)->SetCallInProgress(false);
 			if (!(*call)->DropCalledAndTryNextRoute()) {
 				(*call)->Disconnect();	// sends ReleaseComplete to both parties
-				PTRACE(5, "Disconnecting call on signalling timeout");
+			    PTRACE(3, "Error: Disconnecting call on signaling timeout (Call No. " << (*call)->GetCallNumber() << ", CallID " << AsString((*call)->GetCallIdentifier()));
 			}
 		}
 		++call;
