@@ -6959,11 +6959,16 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 		H225_Connect_UUIE & connect_uuie = connectUuie.m_h323_uu_pdu.m_h323_message_body;
 		if (!connectQ931.GetDisplayName().IsEmpty())
             q931.SetDisplayName(connectQ931.GetDisplayName());
-        Q931::InformationTransferCapability capability;
+        Q931::InformationTransferCapability capability = Q931::TransferUnrestrictedDigital;
         unsigned transferRate = 0;
         unsigned codingStandard = 0;    ///<  0 = ITU-T standardized coding
         unsigned userInfoLayer1 = 5;    ///<  5 = Recommendations H.221 and H.242
         if (connectQ931.GetBearerCapabilities(capability, transferRate, &codingStandard, &userInfoLayer1)) {
+            q931.SetBearerCapabilities(capability, transferRate, codingStandard, userInfoLayer1);
+        } else {
+            transferRate = ceil((float)m_call->GetBandwidth() / 640); // divide by 2 ?
+            if (transferRate > 127)
+                transferRate = 32; // 2 Mbps
             q931.SetBearerCapabilities(capability, transferRate, codingStandard, userInfoLayer1);
         }
         if (connect_uuie.m_destinationInfo.HasOptionalField(H225_EndpointType::e_vendor)) {
