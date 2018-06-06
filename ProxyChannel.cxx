@@ -6962,11 +6962,12 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 		if (!connectQ931.GetDisplayName().IsEmpty())
             q931.SetDisplayName(connectQ931.GetDisplayName());
         Q931::InformationTransferCapability capability;
-        unsigned transferRate;
-        unsigned codingStandard;
-        unsigned userInfoLayer1;
-        connectQ931.GetBearerCapabilities(capability, transferRate, &codingStandard, &userInfoLayer1);
-        q931.SetBearerCapabilities(capability, transferRate, codingStandard, userInfoLayer1);
+        unsigned transferRate = 0;
+        unsigned codingStandard = 0;    ///<  0 = ITU-T standardized coding
+        unsigned userInfoLayer1 = 5;    ///<  5 = Recommendations H.221 and H.242
+        if (connectQ931.GetBearerCapabilities(capability, transferRate, &codingStandard, &userInfoLayer1)) {
+            q931.SetBearerCapabilities(capability, transferRate, codingStandard, userInfoLayer1);
+        }
         if (connect_uuie.m_destinationInfo.HasOptionalField(H225_EndpointType::e_vendor)) {
             setup_uuie.m_sourceInfo.IncludeOptionalField(H225_EndpointType::e_vendor);
             setup_uuie.m_sourceInfo.m_vendor = connect_uuie.m_destinationInfo.m_vendor;
