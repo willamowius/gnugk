@@ -7089,8 +7089,6 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 	GetHandler()->Remove(droppedSocket);
 
 	CallRec * newCall = new CallRec(m_call.operator ->());
-	PTRACE(0, "JW m_call this=" << m_call);
-	PTRACE(0, "JW newCall this=" << newCall);
 	CallTable::Instance()->RemoveFailedLeg(m_call);
 	// set calling and called party
 	if (which == Called) {
@@ -7123,6 +7121,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 		callingSocket->buffer.MakeUnique();
 	}
 	m_remoteLock.Signal();
+	m_call = callptr(newCall);
 
 	droppedSocket->SendReleaseComplete(H225_ReleaseCompleteReason::e_undefinedReason);      // callDeflection ?
 
