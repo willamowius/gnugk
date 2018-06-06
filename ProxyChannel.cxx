@@ -3696,7 +3696,6 @@ bool CallSignalSocket::EndSession()
 {
     if (m_call && m_call->GetRerouteState() != NoReroute
         && ((m_call->GetRerouteDirection() == Caller && m_callerSocket) || (m_call->GetRerouteDirection() == Called || !m_callerSocket))) {
-        PTRACE(0, "JW EndSession: call in reroute: dir=" << m_call->GetRerouteDirection() << " callersocket=" << m_callerSocket);
         PTRACE(1, "Q931\tDon't send ReleaseComplete on EndSession to remaining party in reroute");
         // don't hang up when dropped party sends H.245 EndSession
         return true;
@@ -3926,7 +3925,6 @@ void CallSignalSocket::RerouteCall(FacilityMsg * msg)
         destination += H323TransportAddress(facilityBody.m_alternativeAddress);
     }
 
-    PTRACE(0, "JW RerouteCall " << callID << " side=" << which << " dest=" << destination);
     SoftPBX::RerouteCall(callID, which, destination);
 }
 
@@ -6846,7 +6844,7 @@ bool CallSignalSocket::OnH450CallTransfer(PASN_OctetString * argument)
 		} else {
 			PString callid = AsString(m_call->GetCallIdentifier());
 			callid.Replace(" ", "-", true);
-			PCaselessString which = (this == m_call->GetCallSignalSocketCalling()) ? "called" : "calling";
+			PCaselessString which = (this == m_call->GetCallSignalSocketCalling()) ? "CALLED" : "CALLER";
 			SoftPBX::TransferCall(callid, which, remoteParty, method);
 		}
 		return true;
@@ -7091,6 +7089,8 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 	GetHandler()->Remove(droppedSocket);
 
 	CallRec * newCall = new CallRec(m_call.operator ->());
+	PTRACE(0, "JW m_call this=" << m_call);
+	PTRACE(0, "JW newCall this=" << newCall);
 	CallTable::Instance()->RemoveFailedLeg(m_call);
 	// set calling and called party
 	if (which == Called) {

@@ -431,8 +431,8 @@ void SoftPBX::RerouteCall(const PString & CallId, const PCaselessString & whichL
 {
 	PTRACE(1, "GK\tSoftPBX: RerouteCall " << CallId << " (" << whichLeg << ") -> " << destination);
 
-	if (whichLeg != "called" && whichLeg != "calling") {
-        PString msg("SoftPBX: Error: reroute direction must be either CALLING or CALLED");
+	if (whichLeg != "CALLER" && whichLeg != "CALLED") {
+        PString msg("SoftPBX: Error: reroute direction must be either CALLER or CALLED");
         PTRACE(1, "GK\t" + msg);
         GkStatus::Instance()->SignalStatus(msg + "\r\n");
         return;
