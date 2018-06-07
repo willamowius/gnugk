@@ -2524,7 +2524,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		return m_result;
 	}
 
-	if (m_call->IsCallRefFixup()) {
+	if (m_call && m_call->IsCallRefFixup()) {
         PTRACE(3, "CallRefFixup: Set IsFromDestination=" << !q931pdu->IsFromDestination());
         q931pdu->SetFromDestination(!q931pdu->IsFromDestination());
         msg->SetChanged();
