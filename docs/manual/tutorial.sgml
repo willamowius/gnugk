@@ -22,7 +22,7 @@ file with "<tt/-o logfilename.log/"
 
 Now, start SimpH323 on another console on the same system:
 <tscreen><verb>
-jan@server1> simph323 -l -a -u jan
+jan@server1> simph323 -l --listenport 1722 -a -u jan
 </verb></tscreen>
 
 SimpH323 is now listening (<tt/-l/) for calls and will automatically accept
@@ -36,7 +36,7 @@ detection fails, use "<tt/-g 1.2.3.4/" to specify the IP address.
 On the second client run simph323 this way:
 
 <tscreen><verb>
-peter@client2> simph323 -u peter jan
+peter@client2> simph323 --listenport 1724 -u peter jan
 </verb></tscreen>
 
 This instance of SimpH323 registers with the auto-detected gatekeeper as user
