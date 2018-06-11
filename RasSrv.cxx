@@ -1906,7 +1906,6 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 #endif // HAS_H460PRE
 
         // Avaya hack
-        // TODO: add config switch ? or do always ?
         if (request.HasOptionalField(H225_GatekeeperRequest::e_nonStandardData)
             && request.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_object) {
             const PASN_ObjectId & id = request.m_nonStandardData.m_nonStandardIdentifier;
@@ -1917,13 +1916,13 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 
 #ifdef h323v6
 	    if (request.HasOptionalField(H225_GatekeeperRequest::e_supportsAssignedGK) &&
-            RasSrv->HasAssignedGK(alias, m_msg->m_peerAddr, gcf))
+            RasSrv->HasAssignedGK(alias, m_msg->m_peerAddr, gcf)) {
 			PTRACE(2, "GCF\t" << alias << " redirected to assigned Gatekeeper");
-		else
+		} else
 #endif
 		{
 			if (request.HasOptionalField(H225_GatekeeperRequest::e_supportsAltGK))
-			RasSrv->SetAlternateGK(gcf, m_msg->m_peerAddr);
+			    RasSrv->SetAlternateGK(gcf, m_msg->m_peerAddr);
 
 			RasSrv->SelectH235Capability(request, gcf);
 		}
