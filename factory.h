@@ -3,7 +3,7 @@
 // Object factory for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2003
-// Copyright (c) 2006-2010, Jan Willamowius
+// Copyright (c) 2006-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -272,14 +272,14 @@ Functor<Product *> *Factory<Product, Identifier>::FindCreator(Identifier n)
 		return i->second;
 	else if (m_default)
 		return m_default;
-	PTRACE(1, "Init\tCan't create unknown class " << n);
+	PTRACE(1, "Init\tError: Can't create unknown class " << n);
 	return NULL;
 }
 
 template<class Product, typename Identifier>
 bool Factory<Product, Identifier>::ParmMismatch(Identifier n, int i)
 {
-	PTRACE(1, "Init\tCan't create " << n << " with " << i << " parameter(s)");
+	PTRACE(1, "Init\tError: Can't create " << n << " with " << i << " parameter(s)");
 	return false;
 }
 
