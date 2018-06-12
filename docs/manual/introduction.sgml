@@ -52,6 +52,11 @@ knowledge, the GNU Gatekeeper Project has a valid license for all its
 releases, but users making derived versions of this code must ensure that
 they have a valid license before enabling those features.
 
+The GNU Gatekeeper contains H.460.18 and H.460.19 technology patented by Tandberg
+and licensed to the GNU Gatekeeper Project.
+It also also contains patented H.460.23 and H.460.24 technology
+licensed to the GNU Gatekeeper Project.
+
 Generally speaking, the GNU GPL allows you to copy, distribute, resell or
 modify the software, but it requires that all derived works must also be
 published under the GNU GPL.  This means that you must publish full source

@@ -1818,7 +1818,7 @@ void Gatekeeper::Main()
 #endif
 
 #ifdef HAS_H46023
-	cout << "This program contains H.460.23 and H.460.24 technology\n"
+	cout << "This program contains patented H.460.23 and H.460.24 technology\n"
             "licensed to the GNU Gatekeeper Project.\n"
 		 << endl;
 #endif
