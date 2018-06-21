@@ -3665,16 +3665,21 @@ PString Toolkit::GetExternalIP() const
 
     PCaselessString ext = m_Config->GetString("ExternalIP", "");
 #ifdef P_HTTP
-    if (ext == "AWSPublicIP") {
-        // fetch public / elastic IP from AWS meta data
+    if (ext == "AlibabaPublicIP" || ext == "AWSPublicIP" || ext == "AzurePublicIP") {
+        // fetch public / elastic IP from meta data
         PHTTPClient http;	// TODO: add libcurl version ?
         PString result;
-        if (http.GetTextDocument("http://169.254.169.254/latest/meta-data/public-ipv4", result)) {
-            ext = result.Trim();	// TODO: Is this enough to remove special chars, newline etc. ?
+        PString url = "http://169.254.169.254/latest/meta-data/public-ipv4"; // AWS
+        if (ext == "AlibabaPublicIP")
+            url = "http://100.100.100.200/latest/meta-data/eipv4"; // Alibaba TODO: when use public-ipv4 instead?
+        if (ext == "AzurePublicIP")
+            url = "http://169.254.169.254/metadata/instance/network/interface/0/ipv4/ipAddress/0/publicIpAddress?api-version=2017-08-01&format=text"; // Azure
+        if (http.GetTextDocument(url, result)) {
+            ext = result.Trim();
         } else {
             ext = "";
         }
-        PTRACE(2, "AWS\tSetting ExternalIP to " << ext);
+        PTRACE(2, "Cloud\tSetting ExternalIP to " << ext);
         // write to config so we don't have to re-do the HTTP request next time
         m_Config->SetString("ExternalIP", ext);
     }

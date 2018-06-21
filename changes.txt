@@ -1,5 +1,6 @@
 Changes from 4.9 to 5.0
 =======================
+- public IP detection for Azure and Alibaba Cloud
 - new switch [RoutedMode] RerouteOnFacility=1 to translate Facility transfers into
   gatekeeper TCS0 reroutes
 - support OpenSSL 1.1
