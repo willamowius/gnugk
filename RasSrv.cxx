@@ -4088,12 +4088,12 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 		RasSrv->SendRIP(request.m_requestSeqNum, ripDelay, m_msg->m_peerAddr, m_msg->m_peerPort, ep ? ep->GetH235Authenticators() : NULL);
 	}
 
-    // Neighbors do not need Validation
+    // neighbors do not need validation
 	bool bReject = !(fromRegEndpoint || RasSrv->GetNeighbors()->CheckLRQ(this));
 
-	// If not Neighbor and support non neighbor LRQ's then validate the PDU
+	// ff not neighbor and support non neighbor LRQ's then validate the PDU
 	if (bReject && (Toolkit::AsBool(GkConfig()->GetString(LRQFeaturesSection, "AcceptNonNeighborLRQ", "0"))))
-		                   bReject = !RasSrv->ValidatePDU(*this, reason);
+        bReject = !RasSrv->ValidatePDU(*this, reason);
 
 	PString sourceInfoString(fromRegEndpoint ? request.m_endpointIdentifier.GetValue() : request.HasOptionalField(H225_LocationRequest::e_gatekeeperIdentifier) ? request.m_gatekeeperIdentifier.GetValue() : m_msg->m_peerAddr.AsString());
 
@@ -4170,7 +4170,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 					}
 #endif
 
-/* The access token should be standarized somehow and use a correct object
+/* The access token should be standardized somehow and use a correct object
    identifier. As it does not (currently), we disable it to remove interop problems.
 				PINDEX s = 0;
 				if (lcf.HasOptionalField(H225_LocationConfirm::e_cryptoTokens))
@@ -4245,7 +4245,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 								PIPSocket::Address remoteIP;
 								GetIPFromTransportAddr(request.m_replyAddress,remoteIP);
 								bool mustproxy = !Toolkit::Instance()->H46023SameNetwork(remoteIP,
-									  WantedEndPoint->IsNATed() ? WantedEndPoint->GetNATIP() :WantedEndPoint->GetIP());
+									  WantedEndPoint->IsNATed() ? WantedEndPoint->GetNATIP() : WantedEndPoint->GetIP());
 
 								std24.Add(Std24_RemoteNAT, H460_FeatureContent(WantedEndPoint->SupportH46024()));
 								if (mustproxy) {
