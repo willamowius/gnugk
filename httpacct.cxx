@@ -213,13 +213,13 @@ GkAcctLogger::Status HttpAcct::HttpLog(PString url, PString body)
     }
 #else
     if (url.Left(5) == "https") {
-        PTRACE(2, "HttpPasswordAuth\tPlease compile GnuGk with libcurl for https support");
+        PTRACE(2, "HttpAcct\tPlease compile GnuGk with libcurl for https support");
         return Fail;
     }
     PHTTPClient http;
     if (m_method == "GET") {
         if (!http.GetTextDocument(url, result)) {
-            PTRACE(2, "HttpPasswordAuth\tCould not GET password from " << host);
+            PTRACE(2, "HttpAcct\tCould not GET password from " << host);
             return Fail;
         }
     } else if (m_method == "POST") {
@@ -232,11 +232,11 @@ GkAcctLogger::Status HttpAcct::HttpLog(PString url, PString body)
         outMIME.SetAt(PMIMEInfo::ContentTypeTag(), "text/plain");
         PMIMEInfo replyMIME;
         if (!http.PostData(url, outMIME, body, replyMIME, result)) {
-            PTRACE(2, "HttpPasswordAuth\tCould not POST to " << host);
+            PTRACE(2, "HttpAcct\tCould not POST to " << host);
             return Fail;
         }
     } else {
-        PTRACE(2, "HttpPasswordAuth\tUnsupported method " << m_method);
+        PTRACE(2, "HttpAcct\tUnsupported method " << m_method);
         return Fail;
     }
 #endif // HAS_LIBCURL
