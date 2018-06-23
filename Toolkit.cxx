@@ -3669,12 +3669,15 @@ PString Toolkit::GetExternalIP() const
         // fetch public / elastic IP from meta data
         PHTTPClient http;	// TODO: add libcurl version ?
         PString result;
+        PMIMEInfo outMIME, replyMIME;
         PString url = "http://169.254.169.254/latest/meta-data/public-ipv4"; // AWS
         if (ext == "AlibabaPublicIP")
             url = "http://100.100.100.200/latest/meta-data/eipv4"; // Alibaba TODO: when use public-ipv4 instead?
-        if (ext == "AzurePublicIP")
+        if (ext == "AzurePublicIP") {
             url = "http://169.254.169.254/metadata/instance/network/interface/0/ipv4/ipAddress/0/publicIpAddress?api-version=2017-08-01&format=text"; // Azure
-        if (http.GetTextDocument(url, result)) {
+            outMIME.SetAt("Metadata", "true");
+        }
+        if (http.GetDocument(url, outMIME, replyMIME) && http.ReadContentBody(replyMIME, result)) {
             ext = result.Trim();
         } else {
             ext = "";
