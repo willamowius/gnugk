@@ -2439,7 +2439,7 @@ bool GkClient::Discovery()
 				m_authAlgo = gcf.m_algorithmOID;
 			PTRACE(2, "GKC\tDiscover GK " << AsString(m_gkaddr, m_gkport) << " at " << m_loaddr);
 			if (gcf.HasOptionalField(H225_RegistrationConfirm::e_assignedGatekeeper))
-					m_gkList->Set(gcf.m_assignedGatekeeper);
+                m_gkList->Set(gcf.m_assignedGatekeeper);
 			else
 				return true;
 		} else if (ras->GetTag() == H225_RasMessage::e_gatekeeperReject) {
@@ -2730,9 +2730,12 @@ void GkClient::OnRCF(RasMsg *ras)
 		m_gatekeeperId = rcf.m_gatekeeperIdentifier;
 		if (rcf.HasOptionalField(H225_RegistrationConfirm::e_alternateGatekeeper))
 			m_gkList->Set(rcf.m_alternateGatekeeper);
-		if (rcf.HasOptionalField(H225_RegistrationConfirm::e_supportsAdditiveRegistration)
-			&& GkConfig()->GetBoolean(EndpointSection, "EnableAdditiveRegistration", false))
+        if (GkConfig()->GetBoolean(EndpointSection, "EnableAdditiveRegistration", false)) {
+		    if (rcf.HasOptionalField(H225_RegistrationConfirm::e_supportsAdditiveRegistration))
 				m_useAdditiveRegistration = true;
+            else
+                PTRACE(1, "GKC\tError:Parent doesn't support additive registrations");
+        }
 
 		if (m_useAdditiveRegistration)
 			RegistrationTable::Instance()->UpdateTable();
