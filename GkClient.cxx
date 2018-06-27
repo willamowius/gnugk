@@ -1668,7 +1668,7 @@ void GkClient::OnReload()
 
 	PStringList gkHost;
 #if P_DNS
-	if (gk != "no") {
+	if (gk != "no" && !IsIPAddress(gk)) {
 		PString number = "h323:user@" + gk;
 		PStringList str;
 		if (PDNS::LookupSRV(number, "_h323rs._udp.", str)) {
