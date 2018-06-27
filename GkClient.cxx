@@ -2562,6 +2562,7 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 	rrq.m_terminalAlias.SetSize(s);
 	for (PINDEX p = as; p < s; ++p)
 		H323SetAliasAddress(m_e164[p-as], rrq.m_terminalAlias[p]);
+    // TODO: with additive registrations enabled, the first RRQ should contain all aliases of endpoints registered so far
 
 	int ttl = GkConfig()->GetInteger(EndpointSection, "TimeToLive", DEFAULT_TTL);
 	if (ttl > 0) {
@@ -3086,7 +3087,7 @@ bool GkClient::RewriteString(PString & alias, bool fromInternal) const
 		int len = prefix.GetLength();
 		if (len == 0 || strncmp(prefix, alias, len) == 0){
 			PString result = insert + alias.Mid(len);
-			PTRACE(2, "GKC\tRewritePString: " << alias << " to " << result);
+			PTRACE(2, "GKC\tRewriteString: " << alias << " to " << result);
 			alias = result;
 			return true;
 		}
@@ -3227,16 +3228,16 @@ bool GkClient::AdditiveUnRegister(const H225_ArrayOf_AliasAddress & aliases)
 
 void GkClient::AppendLocalAlias(const H225_ArrayOf_AliasAddress & aliases)
 {
-	for (PINDEX i=0; i < aliases.GetSize(); ++i)
+	for (PINDEX i = 0; i < aliases.GetSize(); ++i)
 		m_h323Id.AppendString(AsString(aliases[i], false));
 }
 
 void GkClient::RemoveLocalAlias(const H225_ArrayOf_AliasAddress & aliases)
 {
 	PStringArray newAliasList;
-	for (PINDEX j=0; j < m_h323Id.GetSize(); ++j) {
+	for (PINDEX j = 0; j < m_h323Id.GetSize(); ++j) {
 		int found = false;
-		for (PINDEX i=0; i < aliases.GetSize(); ++i) {
+		for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
 			if (AsString(aliases[i], false) == m_h323Id[j]) {
 				found = true;
 				break;
@@ -3274,8 +3275,8 @@ bool GkClient::HandleSetup(SetupMsg & setup, bool fromInternal)
 #ifdef HAS_H46023
 		unsigned nonce = 0;
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)
-			&& FindH460Descriptor(24,setupBody.m_supportedFeatures, nonce))
-			RemoveH460Descriptor(24,setupBody.m_supportedFeatures);
+			&& FindH460Descriptor(24, setupBody.m_supportedFeatures, nonce))
+			RemoveH460Descriptor(24, setupBody.m_supportedFeatures);
 
 		if (m_registeredH46023) {
 			CallRec::NatStrategy natoffload = H46023_GetNATStategy(setupBody.m_callIdentifier);
