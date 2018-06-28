@@ -595,7 +595,7 @@ request and to get additional information:
 	<item>If there exists a column called <tt/'aliases'/, replace original endpoint
 		aliases with these new ones
 	<item>If there exists a column called <tt/'billingmode'/, set a billing mode
-		associated with the endpoint (0 - credit, <>0 - debit)
+		associated with the endpoint (0 - credit, &lt;&gt;0 - debit)
 	<item>If there exists a column called <tt/'creditamount'/, set account balance
 		associated with the endpoint (this is an arbitrary string)
 </enum>
@@ -680,7 +680,7 @@ result and to get additional information:
       are examined:
 <enum>
 	<item>If there exists a column called <tt/'billingmode'/, set a billing mode
-		associated with the endpoint (0 - credit, <>0 - debit)
+		associated with the endpoint (0 - credit, &lt;&gt;0 - debit)
 	<item>If there exists a column called <tt/'creditamount'/, set account balance
 		associated with the endpoint (this is an arbitrary string)
 	<item>If there exists a column called <tt/'credittime'/, use its integer
