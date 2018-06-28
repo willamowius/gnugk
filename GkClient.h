@@ -204,11 +204,13 @@ private:
 	bool OnBRQ(RasMsg *);
 	bool OnIRQ(RasMsg *);
 
-	bool RewriteString(PString &, bool) const;
+	bool RewriteString(PString & alias, bool fromInternal) const;
 	void SetClearTokens(H225_ArrayOf_ClearToken &, const PString &);
 	void SetCryptoTokens(H225_ArrayOf_CryptoH323Token &, const PString &);
-	void SetRasAddress(H225_ArrayOf_TransportAddress &);
-	void SetCallSignalAddress(H225_ArrayOf_TransportAddress &);
+	void SetRasAddress(H225_ArrayOf_TransportAddress & addr);
+	void SetRasAddress(H225_TransportAddress & addr);
+	void SetCallSignalAddress(H225_ArrayOf_TransportAddress & addr);
+	void SetCallSignalAddress(H225_TransportAddress & addr);
 
 	RasServer *m_rasSrv;
 

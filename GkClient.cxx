@@ -3068,6 +3068,16 @@ bool GkClient::OnIRQ(RasMsg * ras)
 	(*ras)->m_replyRAS.SetTag(H225_RasMessage::e_infoRequestResponse);
 	H225_InfoRequestResponse & irr = (*ras)->m_replyRAS;
 	irr.m_requestSeqNum = irq.m_requestSeqNum;
+    irr.m_endpointIdentifier = m_endpointId;
+	if (!Toolkit::AsBool(GkConfig()->GetInteger(EndpointSection, "HideGk", 0)))
+		irr.m_endpointType.IncludeOptionalField(H225_EndpointType::e_gatekeeper);
+	if (m_endpointType == EndpointType_Terminal) {
+		irr.m_endpointType.IncludeOptionalField(H225_EndpointType::e_terminal);
+	} else {
+		irr.m_endpointType.IncludeOptionalField(H225_EndpointType::e_gateway);
+	}
+	SetRasAddress(irr.m_rasAddress);
+	SetCallSignalAddress(irr.m_callSignalAddress);
 	return true;
 }
 
@@ -3127,10 +3137,20 @@ void GkClient::SetRasAddress(H225_ArrayOf_TransportAddress & addr)
 	addr[0] = m_rasSrv->GetRasAddress(m_loaddr);
 }
 
+void GkClient::SetRasAddress(H225_TransportAddress & addr)
+{
+	addr = m_rasSrv->GetRasAddress(m_loaddr);
+}
+
 void GkClient::SetCallSignalAddress(H225_ArrayOf_TransportAddress & addr)
 {
 	addr.SetSize(1);
 	addr[0] = m_rasSrv->GetCallSignalAddress(m_loaddr);
+}
+
+void GkClient::SetCallSignalAddress(H225_TransportAddress & addr)
+{
+	addr = m_rasSrv->GetCallSignalAddress(m_loaddr);
 }
 
 void GkClient::SetNBPassword(
