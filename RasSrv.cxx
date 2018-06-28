@@ -2946,6 +2946,8 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 			}
 		}
 
+		// TODO/BUG: H.323 clause 7.2.2 says that for every endpoint (not only those who use additive registrations)
+		// an URQ with a partial list of aliases means to unregister only those aliases, not the whole endpoint
 		if (ep->IsAdditiveRegistrant()
 			&& request.HasOptionalField(H225_UnregistrationRequest::e_endpointAlias)
 			&& !ep->RemoveAliases(request.m_endpointAlias)) {
