@@ -577,9 +577,9 @@ replacement is made before each query is executed. The following parameters are 
 <item><tt/%g/ - the gatekeeper identifier
 <item><tt/%{gkip}/ - a gatekeeper IP the request has been received on
 <item><tt/%u/ - username associated with an endpoint (usually a H.323 ID)
-<item><tt/%{callerip}/ - caller's IP (the request has been received from - NAT IP for NATted endpoints)
+<item><tt/%{callerip}/ - caller's/registrant's IP (where the registration request has been received from - NAT IP for NATted endpoints)
 <item><tt/%{aliases}/ - a comma separated list of endpoint aliases
-<item><tt/%{additive-rrq}/ - whether an additive rrq  0 - false 1 - true
+<item><tt/%{additive-rrq}/ - whether it is an additive rrq (0 = false, 1 = true)
 </itemize>
 <p>
 If the query returns no rows, the result is undefined, which basically
@@ -618,7 +618,7 @@ replacement is made before each query is executed. The following parameters are 
 <item><tt/%g/ - the gatekeeper identifier
 <item><tt/%{gkip}/ - a gatekeeper IP the request has been received on
 <item><tt/%{nbid/ - neighbor identifier from the config
-<item><tt/%{nbip}/ - neighbor IP (the request has been received from)
+<item><tt/%{nbip}/ - neighbor IP (where the request has been received from)
 <item><tt/%{Calling-Station-Id}/ - caller's number, if available
 <item><tt/%{src-info}/ - content of sourceInfo LRQ field, if available
 <item><tt/%{Called-Station-Id}/ - destination number
@@ -657,7 +657,7 @@ replacement is made before each query is executed. The following parameters are 
 <item><tt/%g/ - the gatekeeper identifier
 <item><tt/%{gkip}/ - a gatekeeper IP the request has been received on
 <item><tt/%u/ - a username associated with the caller
-<item><tt/%{callerip}/ - caller's IP (the request has been received from - NAT IP for NATted endpoints)
+<item><tt/%{callerip}/ - caller's IP (where the request has been received from - NAT IP for NATted endpoints)
 <item><tt/%{Calling-Station-Id}/ - caller's number, if available
 <item><tt/%{Called-Station-Id}/ - destination number
 <item><tt/%{Dialed-Number}/ - original destination number (before rewrite)
