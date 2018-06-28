@@ -2104,7 +2104,7 @@ void RegistrationTable::GenerateEndpointId(H225_EndpointIdentifier & NewEndpoint
     do {
         unsigned randomNum;
 #ifdef P_SSL
-        if(RAND_bytes((unsigned char *)&randomNum, sizeof(randomNum)) != 1) {
+        if (RAND_bytes((unsigned char *)&randomNum, sizeof(randomNum)) != 1) {
             randomNum = rand();
         }
 #else
@@ -3085,7 +3085,6 @@ bool CallRec::DropCalledAndTryNextRoute()
 	CallTable::Instance()->UpdateEPBandwidth(m_Called, -GetBandwidth());
 	m_Called = endptr(0);
 	if (m_calledSocket) {
-        PTRACE(0, "JW DropCalledAndTryNextRoute -> SendReleaseComplete");
 		m_calledSocket->SendReleaseComplete(H225_ReleaseCompleteReason::e_undefinedReason);
 		if (MoveToNextRoute()) {
 			if (!DisableRetryChecks() && (IsFastStartResponseReceived() || IsH245ResponseReceived())) {
@@ -3105,14 +3104,14 @@ void CallRec::SetSocket(CallSignalSocket * calling, CallSignalSocket * called)
 {
 	PWaitAndSignal lock(m_sockLock);
 	m_callingSocket = calling, m_calledSocket = called;
-	if( calling ) {
+	if (calling) {
 		m_callerAddr = calling->GetName();
-		if( !m_srcSignalAddress.IsValid() ) {
+		if (!m_srcSignalAddress.IsValid()) {
 			PIPSocket::Address addr(0);
 			WORD port = 0;
 			calling->GetPeerAddress(addr, port);
 			UnmapIPv4Address(addr);
-			m_srcSignalAddress = SocketToH225TransportAddr(addr,port);
+			m_srcSignalAddress = SocketToH225TransportAddr(addr, port);
 		}
 	}
 }
@@ -3443,7 +3442,6 @@ void CallRec::RemoveSocket()
 
 void CallRec::Disconnect(bool force)
 {
-    PTRACE(0, "JW Disconnect() -> SendReleaseComplete()");
 	if ((force || Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "DropCallsByReleaseComplete", "0"))) && (m_callingSocket || m_calledSocket)) {
 		SendReleaseComplete();
 	} else {
@@ -3811,13 +3809,11 @@ time_t CallRec::GetPostDialDelay() const
 time_t CallRec::GetRingTime() const
 {
 	PWaitAndSignal lock(m_usedLock);
-	if( m_alertingTime ) {
-		if( m_connectTime ) {
-			return (m_connectTime > m_alertingTime)
-				? (m_connectTime-m_alertingTime) : 0;
+	if (m_alertingTime) {
+		if (m_connectTime) {
+			return (m_connectTime > m_alertingTime) ? (m_connectTime-m_alertingTime) : 0;
 		} else {
-			return (m_disconnectTime > m_alertingTime)
-				? (m_disconnectTime-m_alertingTime) : 0;
+			return (m_disconnectTime > m_alertingTime) ? (m_disconnectTime-m_alertingTime) : 0;
 		}
 	}
 	return 0;
@@ -3826,9 +3822,8 @@ time_t CallRec::GetRingTime() const
 time_t CallRec::GetTotalCallDuration() const
 {
 	PWaitAndSignal lock(m_usedLock);
-	if( m_disconnectTime ) {
-		return (m_disconnectTime > m_setupTime)
-			? (m_disconnectTime-m_setupTime) : 1;
+	if (m_disconnectTime) {
+		return (m_disconnectTime > m_setupTime) ? (m_disconnectTime-m_setupTime) : 1;
 	}
 	return 0;
 }
@@ -3847,10 +3842,9 @@ void CallRec::SetReleaseSource(int releaseSource)
 time_t CallRec::GetDuration() const
 {
 	PWaitAndSignal lock(m_usedLock);
-	if( m_connectTime ) {
-		if( m_disconnectTime )
-			return (m_disconnectTime > m_connectTime)
-				? (m_disconnectTime - m_connectTime) : 1;
+	if (m_connectTime) {
+		if (m_disconnectTime)
+			return (m_disconnectTime > m_connectTime) ? (m_disconnectTime - m_connectTime) : 1;
 		else
 			return (time(NULL) - m_connectTime);
 	} else
@@ -5151,22 +5145,22 @@ bool CallRec::IsTimeout(
 
 	// check timeout for signaling channel creation after ARQ->ACF
 	// or for the call being connected in direct signaling mode
-	if( connectTimeout > 0 && m_setupTime == 0 && m_connectTime == 0)
-		if( (now-m_creationTime)*1000 > connectTimeout ) {
+	if (connectTimeout > 0 && m_setupTime == 0 && m_connectTime == 0)
+		if ( (now-m_creationTime)*1000 > connectTimeout ) {
 			PTRACE(2, "Q931\tCall #"<<m_CallNumber<<" timed out waiting for its signaling channel to be opened");
 			return true;
 		} else
 			return false;
 
 	// is signaling channel present?
-	if( m_setupTime && m_connectTime == 0 && connectTimeout > 0)
-		if( (now-m_setupTime)*1000 > connectTimeout ) {
+	if (m_setupTime && m_connectTime == 0 && connectTimeout > 0)
+		if ( (now-m_setupTime)*1000 > connectTimeout ) {
 			PTRACE(2, "Q931\tCall #"<<m_CallNumber<<" timed out waiting for a Connect message");
 			return true;
 		} else
 			return false;
 
-	if( m_durationLimit > 0 && m_connectTime
+	if (m_durationLimit > 0 && m_connectTime
 		&& ((now - m_connectTime) >= m_durationLimit) ) {
 		PTRACE(4, "GK\tCall #" << m_CallNumber << " duration limit exceeded");
 		return true;
@@ -5247,7 +5241,7 @@ void CallTable::LoadConfig()
 	if (m_defaultDurationLimit == 0)
 		m_defaultDurationLimit = GkConfig()->GetInteger(CallTableSection, "DefaultCallTimeout", 0);
 	m_acctUpdateInterval = GkConfig()->GetInteger(CallTableSection, "AcctUpdateInterval", 0);
-	if( m_acctUpdateInterval != 0)
+	if (m_acctUpdateInterval != 0)
 		m_acctUpdateInterval = std::max(m_acctUpdateInterval, 10L);
 
 	m_timestampFormat = GkConfig()->GetString(CallTableSection, "TimestampFormat", "RFC822");
@@ -5400,7 +5394,7 @@ void CallTable::CheckCalls(RasServer * rassrv)
 			if ((*Iter)->IsTimeout(now))
 				m_callsToDisconnect.push_back(callptr(*Iter));
 			else if (m_acctUpdateInterval && (*Iter)->IsConnected()) {
-				if((now - (*Iter)->GetLastAcctUpdateTime()) >= m_acctUpdateInterval)
+				if ((now - (*Iter)->GetLastAcctUpdateTime()) >= m_acctUpdateInterval)
 					m_callsToUpdate.push_back(callptr(*Iter));
 			}
 			++Iter;
@@ -5704,8 +5698,7 @@ void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq, const endptr &
 			? CallRec::ReleasedByCaller : CallRec::ReleasedByCallee
 			);
 		if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SendReleaseCompleteOnDRQ", "0"))) {
-            PTRACE(0, "JW RemoveCall on DRQ -> SendReleaseComplete()");
-			if( obj_drq.m_disengageReason.GetTag() == H225_DisengageReason::e_normalDrop )
+			if (obj_drq.m_disengageReason.GetTag() == H225_DisengageReason::e_normalDrop)
 				call->SetDisconnectCause(Q931::NormalCallClearing);
 			call->SendReleaseComplete(obj_drq.HasOptionalField(H225_DisengageRequest::e_terminationCause) ? &obj_drq.m_terminationCause : NULL);
 		}
