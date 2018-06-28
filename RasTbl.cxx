@@ -186,7 +186,7 @@ void EndpointRec::LoadAliases(const H225_ArrayOf_AliasAddress & aliases, const H
 				PStringList filterlist = filtertype[1].ToLower().Tokenise(",", false);
 				for (PINDEX i = 0; i< aliases.GetSize(); i++) {
 					PString aliasType = h225aliastypes[aliases[i].GetTag()];
-					for (PINDEX j=0; j < filterlist.GetSize(); j++) {
+					for (PINDEX j = 0; j < filterlist.GetSize(); j++) {
 						if (aliasType == filterlist[j]) {
 							m_terminalAliases.SetSize(m_terminalAliases.GetSize() + 1);
 							m_terminalAliases[m_terminalAliases.GetSize() - 1] = aliases[i];
@@ -293,7 +293,7 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 	if (lcf.HasOptionalField(H225_LocationConfirm::e_genericData)) {
 		H225_ArrayOf_GenericData & data = lcf.m_genericData;
 
-		for (PINDEX i=0; i < data.GetSize(); i++) {
+		for (PINDEX i = 0; i < data.GetSize(); i++) {
 			H460_Feature & feat = (H460_Feature &)data[i];
 #ifdef HAS_H46023
 			if (Toolkit::Instance()->IsH46023Enabled()) {
@@ -653,8 +653,7 @@ void EndpointRec::SetNATSocket(CallSignalSocket * socket)
 	if (m_natsocket != socket) {
 		PTRACE(3, "Q931\tNAT socket detected at " << socket->Name() << " for endpoint " << GetEndpointIdentifier().GetValue());
 		if (m_natsocket) {
-			PTRACE(1, "Q931\tWarning: natsocket " << m_natsocket->Name()
-				<< " is overwritten by " << socket->Name());
+			PTRACE(1, "Q931\tWarning: natsocket " << m_natsocket->Name() << " is overwritten by " << socket->Name());
 			m_natsocket->Close();
 			m_natsocket->SetDeletable();
 		}
@@ -715,8 +714,8 @@ bool EndpointRec::RemoveAliases(const H225_ArrayOf_AliasAddress & aliases)
 	bool compareAliasType = GkConfig()->GetBoolean("CompareAliasType", true);
 	bool compareAliasCase = GkConfig()->GetBoolean("CompareAliasCase", true);
 
-	for(PINDEX i=0; i < aliases.GetSize(); i++) {
-		for(PINDEX j=0; j < m_terminalAliases.GetSize(); j++) {
+	for(PINDEX i = 0; i < aliases.GetSize(); i++) {
+		for(PINDEX j = 0; j < m_terminalAliases.GetSize(); j++) {
 			bool typeMatch = compareAliasType ? (aliases[i].GetTag() == m_terminalAliases[j].GetTag()) : true;
 			bool contentMatch = false;
 			if (typeMatch) {
@@ -728,7 +727,7 @@ bool EndpointRec::RemoveAliases(const H225_ArrayOf_AliasAddress & aliases)
 			}
 			if (typeMatch && contentMatch) {
 				// delete, move others 1 up
-				for(PINDEX k=j+1; k < m_terminalAliases.GetSize(); k++)
+				for(PINDEX k = j + 1; k < m_terminalAliases.GetSize(); k++)
 					m_terminalAliases[k-1] = m_terminalAliases[k];
 				m_terminalAliases.SetSize(m_terminalAliases.GetSize() - 1);
 			}
@@ -788,7 +787,7 @@ bool EndpointRec::SetAssignedAliases(H225_ArrayOf_AliasAddress & assigned)
 {
 	PWaitAndSignal lock(m_usedLock);
 
-	bool newalias = Toolkit::Instance()->GetAssignedEPAliases().GetAliases(m_terminalAliases,assigned);
+	bool newalias = Toolkit::Instance()->GetAssignedEPAliases().GetAliases(m_terminalAliases, assigned);
 	// If we have assigned Aliases then replace the existing list of aliases
 	if (newalias) {
 		m_terminalAliases.RemoveAll();
@@ -1225,7 +1224,7 @@ void EndpointRec::SetUsesH460P(bool uses)
 #ifdef HAS_H460P
 	GkPresence & handler = Toolkit::Instance()->GetPresenceHandler();
 	if (uses)
-	   handler.RegisterEndpoint(m_endpointIdentifier,m_terminalAliases);
+	   handler.RegisterEndpoint(m_endpointIdentifier, m_terminalAliases);
 	else
 	   handler.UnRegisterEndpoint(m_terminalAliases);
 	m_usesH460P = uses;
@@ -1246,7 +1245,7 @@ void EndpointRec::ParsePresencePDU(const PASN_OctetString & pdu)
 bool EndpointRec::BuildPresencePDU(unsigned msgtag, PASN_OctetString & pdu)
 {
 	GkPresence & handler  = Toolkit::Instance()->GetPresenceHandler();
-	return handler.BuildPresenceElement(msgtag,m_endpointIdentifier, pdu);
+	return handler.BuildPresenceElement(msgtag, m_endpointIdentifier, pdu);
 }
 #endif
 
@@ -1584,7 +1583,7 @@ void GatewayRec::BuildLCF(H225_LocationConfirm & obj_lcf) const
 		H225_ArrayOf_SupportedPrefix & supportedPrefixes = ((H225_VoiceCaps &)protocol).m_supportedPrefixes;
 		supportedPrefixes.SetSize(as);
 		const_prefix_iterator Iter = Prefixes.begin();
-		for (PINDEX p=0; p < as; ++p, ++Iter)
+		for (PINDEX p = 0; p < as; ++p, ++Iter)
 			H323SetAliasAddress(PString(Iter->c_str()), supportedPrefixes[p].m_prefix);
 	}
 }
@@ -1794,7 +1793,7 @@ endptr RegistrationTable::InternalInsertOZEP(const H225_Setup_UUIE & setupBody, 
 	if (ep && Toolkit::Instance()->IsH46023Enabled()
 		&& setupBody.HasOptionalField(H225_Setup_UUIE::e_supportedFeatures)) {
 		const H225_ArrayOf_FeatureDescriptor & data = setupBody.m_supportedFeatures;
-		for (PINDEX i =0; i < data.GetSize(); i++) {
+		for (PINDEX i = 0; i < data.GetSize(); i++) {
 		H460_Feature & feat = (H460_Feature &)data[i];
 
 		 if (feat.GetFeatureID() == H460_FeatureID(19)) {
@@ -5487,7 +5486,7 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
         report = rep.m_mediaInfo;
 	}
 
-	for (PINDEX i=0; i < report.GetSize(); i++) {
+	for (PINDEX i = 0; i < report.GetSize(); i++) {
 		// int worstdelay = -1; int packetlossrate = -1; int maxjitter = -1;
 		int meandelay = -1;
 		int packetslost = -1;
