@@ -3701,7 +3701,6 @@ bool CallSignalSocket::EndSession()
         return true;
     }
 
-    PTRACE(0, "JW EndSession -> SendReleaseComplete()");
 	SendReleaseComplete();
 	return TCPProxySocket::EndSession();
 }
@@ -3717,7 +3716,6 @@ void CallSignalSocket::RemoveH245Handler()
 
 void CallSignalSocket::OnError()
 {
-    PTRACE(0, "JW CallSignalSocket::OnError()");
 	if (m_call) {
 		m_call->SetDisconnectCause(Q931::ProtocolErrorUnspecified);
 		RemoveCall();
@@ -5923,12 +5921,17 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 				&& !m_call->GetCalledParty()->UsesH46026() )
 				|| RasServer::Instance()->IsCallFromTraversalClient(_peerAddr) || RasServer::Instance()->IsCallFromTraversalServer(_peerAddr)
 				|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018()) ) {
-				// set traversal role for called party (needed for H.460.17, doesn't hurt H.460.18)
+				// set traversal role for called party (needed for H.460.17 and H.460.18)
 				H245ProxyHandler * proxyhandler = dynamic_cast<H245ProxyHandler *>(m_h245handler);
 				if (isH46019Client && proxyhandler) {
 					proxyhandler->SetTraversalRole(TraversalClient);
 					if (m_call && m_call->GetCalledParty()) {
 						m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
+					}
+				} else {
+					proxyhandler->SetTraversalRole(TraversalServer);
+					if (m_call->GetCalledParty()) {
+						m_call->GetCalledParty()->SetTraversalRole(TraversalServer);
 					}
 				}
 				if (senderSupportsH46019Multiplexing && proxyhandler)
@@ -6246,12 +6249,17 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 					&& !m_call->GetCalledParty()->UsesH46026() )
 				|| RasServer::Instance()->IsCallFromTraversalClient(_peerAddr) || RasServer::Instance()->IsCallFromTraversalServer(_peerAddr)
 				|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018()) ) {
-				// set traversal role for called party (needed for H.460.17, doesn't hurt H.460.18)
+				// set traversal role for called party (needed for H.460.17 and H.460.18)
 				H245ProxyHandler * proxyhandler = dynamic_cast<H245ProxyHandler*>(m_h245handler);
 				if (isH46019Client && proxyhandler) {
 					proxyhandler->SetTraversalRole(TraversalClient);
 					if (m_call->GetCalledParty()) {
 						m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
+					}
+				} else {
+					proxyhandler->SetTraversalRole(TraversalServer);
+					if (m_call->GetCalledParty()) {
+						m_call->GetCalledParty()->SetTraversalRole(TraversalServer);
 					}
 				}
 				if (senderSupportsH46019Multiplexing && proxyhandler)
@@ -6419,12 +6427,17 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 					&& !m_call->GetCalledParty()->UsesH46026() )
 				|| RasServer::Instance()->IsCallFromTraversalClient(_peerAddr) || RasServer::Instance()->IsCallFromTraversalServer(_peerAddr)
 				|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018()) ) {
-				// set traversal role for called party (needed for H.460.17, doesn't hurt H.460.18)
+				// set traversal role for called party (needed for H.460.17 and H.460.18)
 				H245ProxyHandler * proxyhandler = dynamic_cast<H245ProxyHandler *>(m_h245handler);
 				if (isH46019Client && proxyhandler) {
 					proxyhandler->SetTraversalRole(TraversalClient);
 					if (m_call->GetCalledParty()) {
 						m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
+					}
+				} else {
+					proxyhandler->SetTraversalRole(TraversalServer);
+					if (m_call->GetCalledParty()) {
+						m_call->GetCalledParty()->SetTraversalRole(TraversalServer);
 					}
 				}
 				if (senderSupportsH46019Multiplexing && proxyhandler) {
@@ -7613,7 +7626,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 	case H225_FacilityReason::e_routeCallToGatekeeper:
 	case H225_FacilityReason::e_callForwarded:
 	case H225_FacilityReason::e_routeCallToMC:
-	    // TODO: only if calls is connected
+	    // TODO: only if call is connected
 		if (GkConfig()->GetBoolean(RoutedSec, "RerouteOnFacility", false)
             && facilityBody.m_reason.GetTag() != H225_FacilityReason::e_routeCallToGatekeeper) {
             // make sure the call is still active
@@ -8489,7 +8502,6 @@ void CallSignalSocket::Dispatch()
             // fallthrough intended
 
 		default:
-		    PTRACE(0, "JW CallSignalSocket::Dispatch() -> OnError()");
 			OnError();
 			timeout = 0;
 			break;
@@ -8730,7 +8742,6 @@ void CallSignalSocket::DispatchNextRoute()
 		// fallthrough intended
 
 	default:
-	    PTRACE(0, "JW DispatchNextRoute OnError()");
 		OnError();
 		break;
 	} /* switch */
@@ -8742,7 +8753,6 @@ void CallSignalSocket::DispatchNextRoute()
 
 bool CallSignalSocket::SendTunneledH245(const PPER_Stream & strm)
 {
-    PTRACE(0, "JW SendTunneledH245 PER");
 	Q931 q931;
 	H225_H323_UserInformation uuie;
 	PBYTEArray lBuffer;
@@ -8782,7 +8792,6 @@ bool CallSignalSocket::SendTunneledH245(const PPER_Stream & strm)
 
 bool CallSignalSocket::SendTunneledH245(const H245_MultimediaSystemControlMessage & h245msg)
 {
-    PTRACE(0, "JW SendTunneledH245 H245");
 	Q931 q931;
 	H225_H323_UserInformation uuie;
 	PBYTEArray lBuffer;
@@ -9381,7 +9390,6 @@ PString H245Socket::GetCallIdentifierAsString() const
 
 void H245Socket::OnSignalingChannelClosed()
 {
-    PTRACE(0, "JW H245 OnSignalingChannelClosed");
 	PWaitAndSignal lock(m_signalingSocketMutex);
 	sigSocket = NULL;
 	EndSession();
@@ -15285,7 +15293,6 @@ void ProxyHandler::ReadSocket(IPSocket * socket)
 			}
 			break;
 		case ProxySocket::Error:
-		    PTRACE(0, "JW ProxySocket OnError");
 			psocket->OnError();
 			socket->Close();
 			break;

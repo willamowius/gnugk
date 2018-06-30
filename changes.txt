@@ -1,5 +1,6 @@
 Changes from 4.9 to 5.0
 =======================
+- BUGFIX(ProxyChannel.cxx) fix RTP multiplexing when child calls parent
 - BUGFIX(GkClient.cxx) generate valid IRRs as child
 - BUGFIX(GkClient.cxx) only negotiate password algo with parent when a password is set
 - public IP detection for Azure and Alibaba Cloud
