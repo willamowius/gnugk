@@ -10623,7 +10623,6 @@ bool MultiplexedRTPHandler::HandlePacket(DWORD receivedMultiplexID, const IPAndP
 			|| (iter->m_multiplexID_fromB == receivedMultiplexID)) {
 			if (!iter->m_deleted) {
                 ReadUnlock unlock(m_listLock); // release read lock to avoid possible dead lock
-                //PTRACE(0, "JW " << PThread::Current()->GetThreadId() << " HandlePacket ended READ lock");
                 iter->HandlePacket(receivedMultiplexID, fromAddress, data, len, isRTCP);
             }
             return true;
