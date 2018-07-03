@@ -186,11 +186,12 @@ void MakeCallEndPoint::OnConnectionEstablished(H323Connection & connection, cons
 		PTRACE(1, "MakeCallEndpoint: H.450.2 Not supported, please recompile");
 #endif
 	} else if (transferMethod == "Reroute") {
-		PTRACE(3, "MakeCallEndpoint: Using Reroute to transfer call");
+        PTRACE(3, "MakeCallEndpoint: Using Reroute to transfer call");
+        // TODO: fork a thread to start the reroute like we do for RerouteOnFacility
         PTCPSocket client(m_gkAddress, GkConfig()->GetInteger("StatusPort", GK_DEF_STATUS_PORT));
         PString callid = connection.GetCallIdentifier().AsString();
         callid.Replace(" ", "-", true);
-        PString cmd = "reroutecall " + callid + " called " + second_party + "\r\n";
+        PString cmd = "RerouteCall " + callid + " CALLED " + second_party + "\r\n";
         client.Write((const char *)cmd, cmd.GetLength());
         cmd = "quit\r\n";
         client.Write((const char *)cmd, cmd.GetLength());
