@@ -323,7 +323,7 @@ bool Toolkit::RouteTable::RouteEntry::CompareWithMask(const Address *ip) const
         }
         networkStarted = true;
         BYTE match = (unsigned char)ipByte & (unsigned char)maskByte;
-        if ((unsigned char)match != (unsigned char)maskByte){
+        if ((unsigned char)match != (unsigned char)network[m]){
             maskValid = false;
             break;
         }
