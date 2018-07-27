@@ -942,7 +942,7 @@ public:
 
 	void SetH245Routed(PBoolean routed) { m_h245Routed = routed; }
 	bool IsH245Routed() const { return m_h245Routed; }
-	bool IsToParent() const { return m_toParent; }	// to _or_ from parnet
+	bool IsToParent() const { return m_toParent; }	// to _or_ from parent
 	bool IsFromParent() const { return m_fromParent; }	// from parent only
 	bool IsForwarded() const { return m_forwarded; }
 	bool IsSocketAttached() const { return (m_callingSocket != NULL); }

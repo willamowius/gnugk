@@ -1,5 +1,6 @@
 Changes from 4.9 to 5.0
 =======================
+- new variable %{from-parent} for SQLAuth CallQuery
 - new variable %{Calling-Station-Id} for SQLAuth RegQuery
 - BUGFIX(Toolkit.cxx) fix route matching
 - BUGFIX(ProxyChannel.cxx) fix RTP multiplexing when child calls parent

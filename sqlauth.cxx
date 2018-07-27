@@ -159,7 +159,7 @@ public:
 		#GkAuthenticator::Status enum# with the result of authentication.
 	*/
 	virtual int Check(
-		/// ARQ nessage to be authenticated
+		/// ARQ message to be authenticated
 		RasPDU<H225_AdmissionRequest> & arqPdu,
 		/// authorization data (call duration limit, reject reason, ...)
 		ARQAuthData & authData
@@ -620,7 +620,7 @@ int SQLAuth::Check(
 }
 
 int SQLAuth::Check(
-	/// ARQ nessage to be authenticated
+	/// ARQ message to be authenticated
 	RasPDU<H225_AdmissionRequest> & arqPdu,
 	/// authorization data (call duration limit, reject reason, ...)
 	ARQAuthData & authData
@@ -648,6 +648,7 @@ int SQLAuth::Check(
 	params["bandwidth"] = PString(arq.m_bandWidth.GetValue());
 	params["answer"] = arq.m_answerCall ? "1" : "0";
 	params["arq"] = "1";
+	params["from-parent"] = "0";
 	params["CallId"] = AsString(arq.m_callIdentifier);
 	params["SrcInfo"] = AsString(arq.m_srcInfo, false);
     params["Vendor"] = "";
@@ -886,6 +887,7 @@ int SQLAuth::Check(
 	params["Dialed-Number"] = GetDialedNumber(setup, authData);
 	params["answer"] = "0";
 	params["arq"] = "0";
+	params["from-parent"] = authData.m_call->IsFromParent() ? "1" : "0";
 	params["CallId"] = AsString(setup.GetUUIEBody().m_callIdentifier);
     params["SrcInfo"] = "";
 	if (setup.GetUUIEBody().HasOptionalField(H225_Setup_UUIE::e_sourceAddress)
