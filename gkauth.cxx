@@ -630,6 +630,23 @@ PString GkAuthenticator::GetUsername(
 }
 
 PString GkAuthenticator::GetCallingStationId(
+	/// RRQ message
+	const RasPDU<H225_RegistrationRequest> & request,
+	/// additional data
+	RRQAuthData & /* authData */
+	) const
+{
+    PString id;
+    const H225_RegistrationRequest & rrq = request;
+    if (rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
+        id = GetBestAliasAddressString(rrq.m_terminalAlias, false,
+			AliasAddressTagMask(H225_AliasAddress::e_dialedDigits)
+				| AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
+    };
+    return id;
+}
+
+PString GkAuthenticator::GetCallingStationId(
 	/// ARQ message with additional data
 	const RasPDU<H225_AdmissionRequest> & /*request*/,
 	/// additional data

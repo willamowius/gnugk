@@ -576,7 +576,8 @@ replacement is made before each query is executed. The following parameters are 
 <itemize>
 <item><tt/%g/ - the gatekeeper identifier
 <item><tt/%{gkip}/ - a gatekeeper IP the request has been received on
-<item><tt/%u/ - username associated with an endpoint (usually a H.323 ID)
+<item><tt/%u/ - username associated with the endpoint (usually a H.323 ID)
+<item><tt/%{Calling-Station-Id}/ - E.164 associated with the endpoint
 <item><tt/%{callerip}/ - caller's/registrant's IP (where the registration request has been received from - NAT IP for NATted endpoints)
 <item><tt/%{aliases}/ - a comma separated list of endpoint aliases
 <item><tt/%{additive-rrq}/ - whether it is an additive rrq (0 = false, 1 = true)

@@ -491,6 +491,12 @@ protected:
 	    A string that can be used to identify a calling number.
 	*/
 	virtual PString GetCallingStationId(
+		/// RRQ message with additional data
+		const RasPDU<H225_RegistrationRequest> & request,
+		/// additional data
+		RRQAuthData & authData
+		) const;
+	virtual PString GetCallingStationId(
 		/// ARQ message with additional data
 		const RasPDU<H225_AdmissionRequest> & request,
 		/// additional data, like call record and requesting endpoint

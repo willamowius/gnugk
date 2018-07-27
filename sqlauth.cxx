@@ -526,17 +526,19 @@ int SQLAuth::Check(
 	H225_RegistrationRequest & rrq = rrqPdu;
 	std::map<PString, PString> params;
 
-	// get the username for User-Name attribute
-	params["u"] = GetUsername(rrqPdu);
-	params["g"] = Toolkit::GKName();
-
-	// Whether a full or additive registration
-	params["additive-rrq"] = rrq.HasOptionalField(H225_RegistrationRequest::e_additiveRegistration) ? 1 : 0;
-
 	PIPSocket::Address addr = (rrqPdu.operator->())->m_peerAddr;
 
 	const PString traceStr = "SQLAUTH\t" + GetName() + "(RRQ from "
 		+ addr.AsString() + " Username=" + params["u"] + ")";
+
+	// get the username for User-Name attribute
+	params["u"] = GetUsername(rrqPdu);
+	params["g"] = Toolkit::GKName();
+	params["Calling-Station-Id"] = GetCallingStationId(rrqPdu, authData);
+
+	// Whether a full or additive registration
+	params["additive-rrq"] = rrq.HasOptionalField(H225_RegistrationRequest::e_additiveRegistration) ? 1 : 0;
+
 	params["callerip"] = addr.AsString();
 
 	addr = (rrqPdu.operator->())->m_localAddr;
