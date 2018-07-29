@@ -128,7 +128,8 @@ SetupAuthData::SetupAuthData(const SetupAuthData & obj)
 	m_callDurationLimit(obj.m_callDurationLimit), m_call(obj.m_call),
 	m_fromRegistered(obj.m_fromRegistered),
 	m_routeToAlias(obj.m_routeToAlias), m_destinationRoutes(obj.m_destinationRoutes),
-	m_proxyMode(obj.m_proxyMode), m_clientAuthId(0), m_overTLS(false)
+	m_proxyMode(obj.m_proxyMode), m_clientAuthId(0), m_overTLS(false),
+	m_fromNeighbor(obj.m_fromNeighbor)
 {
 }
 
@@ -145,6 +146,7 @@ SetupAuthData & SetupAuthData::operator=(const SetupAuthData & obj)
 		m_routeToAlias = obj.m_routeToAlias;
 		m_destinationRoutes = obj.m_destinationRoutes;
 		m_overTLS = obj.m_overTLS;
+		m_fromNeighbor = obj.m_fromNeighbor;
 	}
 
 	return *this;
