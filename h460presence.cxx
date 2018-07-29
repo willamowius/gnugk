@@ -796,6 +796,7 @@ bool GkPresence::HandleNewAlias(const H225_AliasAddress & addr)
 		id.m_Alias = addr;
 		id.m_Active = true;
 		id.m_isSubscriber = true;
+		id.m_Category = H323PresenceInstruction::e_UnknownCategory;
 
 	DatabaseAdd(uid.AsString().ToUpper(),id);
     DatabaseUpdate(H323PresenceInstruction::e_subscribe,uid.AsString());
