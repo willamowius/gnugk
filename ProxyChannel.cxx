@@ -5925,19 +5925,21 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 				|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018()) ) {
 				// set traversal role for called party (needed for H.460.17 and H.460.18)
 				H245ProxyHandler * proxyhandler = dynamic_cast<H245ProxyHandler *>(m_h245handler);
-				if (isH46019Client && proxyhandler) {
-					proxyhandler->SetTraversalRole(TraversalClient);
-					if (m_call && m_call->GetCalledParty()) {
-						m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
-					}
-				} else {
-					proxyhandler->SetTraversalRole(TraversalServer);
-					if (m_call->GetCalledParty()) {
-						m_call->GetCalledParty()->SetTraversalRole(TraversalServer);
-					}
+				if (proxyhandler) {
+                    if (isH46019Client) {
+                        proxyhandler->SetTraversalRole(TraversalClient);
+                        if (m_call && m_call->GetCalledParty()) {
+                            m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
+                        }
+                    } else {
+                        proxyhandler->SetTraversalRole(TraversalServer);
+                        if (m_call->GetCalledParty()) {
+                            m_call->GetCalledParty()->SetTraversalRole(TraversalServer);
+                        }
+                    }
+                    if (senderSupportsH46019Multiplexing && proxyhandler)
+                        proxyhandler->SetRequestRTPMultiplexing(true);
 				}
-				if (senderSupportsH46019Multiplexing && proxyhandler)
-					proxyhandler->SetRequestRTPMultiplexing(true);
 			}
 			if (cpBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				cpBody.m_featureSet.RemoveOptionalField(H225_FeatureSet::e_supportedFeatures);
@@ -6253,19 +6255,21 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 				|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018()) ) {
 				// set traversal role for called party (needed for H.460.17 and H.460.18)
 				H245ProxyHandler * proxyhandler = dynamic_cast<H245ProxyHandler*>(m_h245handler);
-				if (isH46019Client && proxyhandler) {
-					proxyhandler->SetTraversalRole(TraversalClient);
-					if (m_call->GetCalledParty()) {
-						m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
-					}
-				} else {
-					proxyhandler->SetTraversalRole(TraversalServer);
-					if (m_call->GetCalledParty()) {
-						m_call->GetCalledParty()->SetTraversalRole(TraversalServer);
-					}
+				if (proxyhandler) {
+                    if (isH46019Client) {
+                        proxyhandler->SetTraversalRole(TraversalClient);
+                        if (m_call->GetCalledParty()) {
+                            m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
+                        }
+                    } else {
+                        proxyhandler->SetTraversalRole(TraversalServer);
+                        if (m_call->GetCalledParty()) {
+                            m_call->GetCalledParty()->SetTraversalRole(TraversalServer);
+                        }
+                    }
+                    if (senderSupportsH46019Multiplexing && proxyhandler)
+                        proxyhandler->SetRequestRTPMultiplexing(true);
 				}
-				if (senderSupportsH46019Multiplexing && proxyhandler)
-					proxyhandler->SetRequestRTPMultiplexing(true);
 			}
 			if (connectBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
 				connectBody.m_featureSet.RemoveOptionalField(H225_FeatureSet::e_supportedFeatures);
@@ -6431,19 +6435,21 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 				|| (gkClient && gkClient->CheckFrom(m_call->GetDestSignalAddr()) && gkClient->UsesH46018()) ) {
 				// set traversal role for called party (needed for H.460.17 and H.460.18)
 				H245ProxyHandler * proxyhandler = dynamic_cast<H245ProxyHandler *>(m_h245handler);
-				if (isH46019Client && proxyhandler) {
-					proxyhandler->SetTraversalRole(TraversalClient);
-					if (m_call->GetCalledParty()) {
-						m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
-					}
-				} else {
-					proxyhandler->SetTraversalRole(TraversalServer);
-					if (m_call->GetCalledParty()) {
-						m_call->GetCalledParty()->SetTraversalRole(TraversalServer);
-					}
-				}
-				if (senderSupportsH46019Multiplexing && proxyhandler) {
-					proxyhandler->SetRequestRTPMultiplexing(true);
+				if (proxyhandler) {
+                    if (isH46019Client) {
+                        proxyhandler->SetTraversalRole(TraversalClient);
+                        if (m_call->GetCalledParty()) {
+                            m_call->GetCalledParty()->SetTraversalRole(TraversalClient);
+                        }
+                    } else {
+                        proxyhandler->SetTraversalRole(TraversalServer);
+                        if (m_call->GetCalledParty()) {
+                            m_call->GetCalledParty()->SetTraversalRole(TraversalServer);
+                        }
+                    }
+                    if (senderSupportsH46019Multiplexing && proxyhandler) {
+                        proxyhandler->SetRequestRTPMultiplexing(true);
+                    }
 				}
 			}
 			if (alertingBody.m_featureSet.m_supportedFeatures.GetSize() == 0)
