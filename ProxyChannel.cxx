@@ -3997,7 +3997,7 @@ PString CallSignalSocket::GetCalledStationId(
 	if (!id)
 		return id;
 
-	H225_Setup_UUIE &setupBody = setup.GetUUIEBody();
+	H225_Setup_UUIE & setupBody = setup.GetUUIEBody();
 
 	if (id.IsEmpty() && setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress))
 		id = GetBestAliasAddressString(setupBody.m_destinationAddress, false,
@@ -4426,7 +4426,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 	// store dialed number
 	const PString dialedNumber = GetDialedNumber(*setup);
 
-    // do rewrite initated by RouteToInternalGateway
+    // do rewrite initiated by RouteToInternalGateway
     if (m_call && m_call->HasNewSetupInternalAliases()) {
         PTRACE(2, Type() << "\tSet new internal aliases: " << *(m_call->GetNewSetupInternalAliases()));
         setupBody.m_destinationAddress = *(m_call->GetNewSetupInternalAliases());
@@ -4583,11 +4583,13 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 #endif
 
 	bool rejectCall = false;
+    bool fromNeighbor = rassrv->GetNeighbors()->GetNeighborIdBySigAdr(_peerAddr) != "";
+
 	bool overTLS = false;
 #ifdef HAS_TLS
 	overTLS = (dynamic_cast<TLSCallSignalSocket *>(this) != NULL);
 #endif
-	SetupAuthData authData(m_call, m_call ? true : false, overTLS);
+	SetupAuthData authData(m_call, m_call ? true : false, overTLS, fromNeighbor);
 
 #ifdef HAS_H46023
 	CallRec::NatStrategy natoffloadsupport = CallRec::e_natUnknown;
@@ -7007,10 +7009,11 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 
 	// invoke authentication
 	bool overTLS = false;
+	bool fromNeighbor = false;
 #ifdef HAS_TLS
 	overTLS = (dynamic_cast<TLSCallSignalSocket *>(this) != NULL);
 #endif
-	SetupAuthData authData(m_call, m_call ? true : false, overTLS);
+	SetupAuthData authData(m_call, m_call ? true : false, overTLS, fromNeighbor);
 	authData.m_callingStationId = GetCallingStationId(*setup, authData);
 	authData.m_calledStationId = GetCalledStationId(*setup, authData);
 	if (!RasServer::Instance()->ValidatePDU(*setup, authData)) {

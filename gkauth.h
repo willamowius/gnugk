@@ -195,7 +195,9 @@ struct SetupAuthData
 		/// is the Setup message from a registered endpoint
 		bool fromRegistered,
 		/// did the Setup come in over TLS
-		bool overTLS = false
+		bool overTLS,
+		/// did the Setup come from a neighbor gatekeeper
+		bool fromNeighbor
 		);
 	~SetupAuthData();
 
@@ -212,7 +214,7 @@ struct SetupAuthData
 	long m_callDurationLimit;
 	/// disabled codecs
 	PString m_disabledcodecs;
-	/// call associated with the message (if any)
+	/// call associated with the message (if any), only available for registered calls (created on ACF)
 	callptr m_call;
 	/// is the Setup message from a registered endpoint
 	bool m_fromRegistered;
@@ -234,6 +236,8 @@ struct SetupAuthData
 	PUInt64 m_clientAuthId;
 	/// True if Setup came in over TLS
 	bool m_overTLS;
+    /// True if the Setup came from a neighbor gatekeeper
+    bool m_fromNeighbor;
 
 private:
 	SetupAuthData();

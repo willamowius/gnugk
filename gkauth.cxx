@@ -2,7 +2,7 @@
 //
 // gkauth.cxx
 //
-// Copyright (c) 2001-2017, Jan Willamowius
+// Copyright (c) 2001-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -113,11 +113,13 @@ SetupAuthData::SetupAuthData(
 	/// is the Setup message from a registered endpoint
 	bool fromRegistered,
 	/// did the Setup come in over TLS
-	bool overTLS
+	bool overTLS,
+    /// did the Setup come from a neighbor gatekeeper
+	bool fromNeighbor
 	) : m_rejectReason(-1), m_rejectCause(-1), m_callDurationLimit(-1),
 	m_call(call), m_fromRegistered(fromRegistered),
 	m_proxyMode(CallRec::ProxyDetect),
-	m_clientAuthId(0), m_overTLS(overTLS)
+	m_clientAuthId(0), m_overTLS(overTLS), m_fromNeighbor(fromNeighbor)
 {
 }
 
@@ -130,7 +132,7 @@ SetupAuthData::SetupAuthData(const SetupAuthData & obj)
 {
 }
 
-SetupAuthData& SetupAuthData::operator=(const SetupAuthData & obj)
+SetupAuthData & SetupAuthData::operator=(const SetupAuthData & obj)
 {
 	if (this != &obj) {
 		m_rejectReason = obj.m_rejectReason;

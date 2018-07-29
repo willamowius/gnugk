@@ -668,7 +668,7 @@ replacement is made before each query is executed. The following parameters are 
 <item><tt/%{bandwidth}/ - requested bandwidth, if present in the ARQ
 <item><tt/%{answer}/ - 1, if the request is an answering ARQ
 <item><tt/%{arq}/ - 1 for ARQ triggered query, 0 for Setup triggered query
-<item><tt/%{from-parent}/ - 1 calls from parent gatekeeper, 0 for other calls
+<item><tt/%{from-neighbor}/ - 1 calls from neighbor gatekeeper, 0 for other calls
 </itemize>
 <p>
 If the query returns no rows, the result is undefined, which basically

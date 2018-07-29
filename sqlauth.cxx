@@ -4,7 +4,7 @@
  * SQL authentication/authorization modules for GNU Gatekeeper
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
- * Copyright (c) 2006-2017, Jan Willamowius
+ * Copyright (c) 2006-2018, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -43,7 +43,7 @@ public:
 	/// build authenticator reading settings from the config
 	SQLPasswordAuth(
 		/// name for this authenticator and for the config section to read settings from
-		const char* authName
+		const char * authName
 		);
 
 	virtual ~SQLPasswordAuth();
@@ -72,7 +72,7 @@ private:
 
 protected:
 	/// connection to the SQL database
-	GkSQLConnection* m_sqlConn;
+	GkSQLConnection * m_sqlConn;
 	/// parametrized query string for password retrieval
 	PString m_query;
 };
@@ -262,10 +262,7 @@ bool RunQuery(
 	return false;
 }
 
-inline GkSQLResult::ResultRow::iterator FindField(
-	GkSQLResult::ResultRow& result,
-	const PString& fieldName
-	)
+inline GkSQLResult::ResultRow::iterator FindField( GkSQLResult::ResultRow & result, const PString & fieldName)
 {
 	GkSQLResult::ResultRow::iterator i = result.begin();
 	while (i != result.end() && i->second != fieldName)
@@ -276,7 +273,7 @@ inline GkSQLResult::ResultRow::iterator FindField(
 } /* namespace */
 
 
-SQLPasswordAuth::SQLPasswordAuth(const char* authName)
+SQLPasswordAuth::SQLPasswordAuth(const char * authName)
 	: SimplePasswordAuth(authName), m_sqlConn(NULL)
 {
 	PConfig* cfg = GetConfig();
@@ -359,7 +356,7 @@ PString SQLPasswordAuth::GetInfo()
 	return result;
 }
 
-SQLAliasAuth::SQLAliasAuth(const char* authName)
+SQLAliasAuth::SQLAliasAuth(const char * authName)
 	: AliasAuth(authName), m_sqlConn(NULL)
 {
 	PConfig* cfg = GetConfig();
@@ -623,10 +620,9 @@ int SQLAuth::Check(
 	/// ARQ message to be authenticated
 	RasPDU<H225_AdmissionRequest> & arqPdu,
 	/// authorization data (call duration limit, reject reason, ...)
-	ARQAuthData & authData
-	)
+	ARQAuthData & authData)
 {
-	const H225_AdmissionRequest &arq = arqPdu;
+	const H225_AdmissionRequest & arq = arqPdu;
 	std::map<PString, PString> params;
 
 	PIPSocket::Address addr = (arqPdu.operator->())->m_peerAddr;
@@ -648,7 +644,7 @@ int SQLAuth::Check(
 	params["bandwidth"] = PString(arq.m_bandWidth.GetValue());
 	params["answer"] = arq.m_answerCall ? "1" : "0";
 	params["arq"] = "1";
-	params["from-parent"] = "0";
+	params["from-neighbor"] = "0";
 	params["CallId"] = AsString(arq.m_callIdentifier);
 	params["SrcInfo"] = AsString(arq.m_srcInfo, false);
     params["Vendor"] = "";
@@ -737,7 +733,7 @@ int SQLAuth::Check(
 
 	iter = FindField(result, "redirectip");
 	if (iter != result.end()) {
-		const PString &s = iter->first;
+		const PString & s = iter->first;
 		if (!s) {
 			PStringArray tokens(s.Tokenise("; \t", FALSE));
 			for (PINDEX i = 0; i < tokens.GetSize(); ++i) {
@@ -767,7 +763,7 @@ int SQLAuth::Check(
 
 	iter = FindField(result, "proxy");
 	if (iter != result.end()) {
-		const PString &s = iter->first;
+		const PString & s = iter->first;
 		if (!s) {
 			authData.m_proxyMode = Toolkit::AsBool(s)
 				? CallRec::ProxyEnabled : CallRec::ProxyDisabled;
@@ -796,8 +792,7 @@ int SQLAuth::Check(RasPDU<H225_LocationRequest> & lrqPdu, unsigned & rejectReaso
 
 	PIPSocket::Address addr = (lrqPdu.operator->())->m_peerAddr;
 
-	const PString traceStr = "SQLAUTH\t" + GetName() + "(LRQ from "
-		+ addr.AsString() + ")";
+	const PString traceStr = "SQLAUTH\t" + GetName() + "(LRQ from " + addr.AsString() + ")";
 	params["nbip"] = addr.AsString();
 	params["nbid"] = RasServer::Instance()->GetNeighbors()->GetNeighborIdBySigAdr(addr);
 	params["g"] = Toolkit::GKName();
@@ -887,7 +882,8 @@ int SQLAuth::Check(
 	params["Dialed-Number"] = GetDialedNumber(setup, authData);
 	params["answer"] = "0";
 	params["arq"] = "0";
-	params["from-parent"] = authData.m_call->IsFromParent() ? "1" : "0";
+	PTRACE(0, "JW call=" << authData.m_call);
+	params["from-neighbor"] = authData.m_fromNeighbor ? "1" : "0";
 	params["CallId"] = AsString(setup.GetUUIEBody().m_callIdentifier);
     params["SrcInfo"] = "";
 	if (setup.GetUUIEBody().HasOptionalField(H225_Setup_UUIE::e_sourceAddress)
@@ -943,7 +939,7 @@ int SQLAuth::Check(
 	// check for extra fields for accepted calls
 	GkSQLResult::ResultRow::const_iterator iter = FindField(result, "credittime");
 	if (iter != result.end()) {
-		const PString &s = iter->first;
+		const PString & s = iter->first;
 		if (s.GetLength() > 0
 			&& strspn((const char*)s, "0123456789") == (size_t)s.GetLength()) {
 			PUInt64 limit = s.AsUnsigned64();
@@ -964,7 +960,7 @@ int SQLAuth::Check(
 	PStringArray numbersToDial;
 	iter = FindField(result, "redirectnumber");
 	if (iter != result.end()) {
-		const PString &s = iter->first;
+		const PString & s = iter->first;
 		if (!s) {
 			numbersToDial = s.Tokenise("; \t", FALSE);
 			if (numbersToDial.GetSize() > 0) {
@@ -980,7 +976,7 @@ int SQLAuth::Check(
 
 	iter = FindField(result, "redirectip");
 	if (iter != result.end()) {
-		const PString &s = iter->first;
+		const PString & s = iter->first;
 		if (!s) {
 			PStringArray tokens(s.Tokenise("; \t", FALSE));
 			for (PINDEX i = 0; i < tokens.GetSize(); ++i) {
@@ -1010,7 +1006,7 @@ int SQLAuth::Check(
 
 	iter = FindField(result, "proxy");
 	if (iter != result.end()) {
-		const PString &s = iter->first;
+		const PString & s = iter->first;
 		if (!s) {
 			authData.m_proxyMode = Toolkit::AsBool(s)
 				? CallRec::ProxyEnabled : CallRec::ProxyDisabled;
