@@ -1192,62 +1192,62 @@ Default: <tt>N/A</tt><newline>
 The routing key for the message broker. If you don't specify a routing key in the configuration,
 GnuGk will set "gnugk.call.status" or "gnugk.registration.status" as routing key.
 
-<item><tt>VHost=/</tt>/<newline>
+<item><tt>VHost=/</tt><newline>
 Default: <tt>/</tt><newline>
 <p>
 The virtual host.
 
-<item><tt>ContentType=application/json</tt>/<newline>
+<item><tt>ContentType=application/json</tt><newline>
 Default: <tt>text/plain</tt><newline>
 <p>
 The content type header to send.
 
-<item><tt>StartEvent=Start Call GK=%g</tt>/<newline>
+<item><tt>StartEvent=Start Call GK=%g</tt><newline>
 Default: <tt>N/A</tt><newline>
 <p>
 The text for call start events. You can use the standard account parameters.
 
-<item><tt>StopEvent=End Call GK=%g</tt>/<newline>
+<item><tt>StopEvent=End Call GK=%g</tt><newline>
 Default: <tt>N/A</tt><newline>
 <p>
 The text for call stop events. You can use the standard account parameters.
 
-<item><tt>UpdateEvent=Update Call GK=%g</tt>/<newline>
+<item><tt>UpdateEvent=Update Call GK=%g</tt><newline>
 Default: <tt>N/A</tt><newline>
 <p>
 The text for call update events. You can use the standard account parameters.
 
-<item><tt>AlertEvent=Alert Call GK=%g</tt>/<newline>
+<item><tt>AlertEvent=Alert Call GK=%g</tt><newline>
 Default: <tt>N/A</tt><newline>
 <p>
 The text for call alert events. You can use the standard account parameters.
 
-<item><tt>ConnectEvent=Connect Call GK=%g</tt>/<newline>
+<item><tt>ConnectEvent=Connect Call GK=%g</tt><newline>
 Default: <tt>N/A</tt><newline>
 <p>
 The text for call conect events. You can use the standard account parameters.
 
-<item><tt>RejectEvent=Reject Call GK=%g</tt>/<newline>
+<item><tt>RejectEvent=Reject Call GK=%g</tt><newline>
 Default: <tt>N/A</tt><newline>
 <p>
 The text for call reject events. You can use the standard account parameters.
 
-<item><tt>RegisterEvent=Register Endpoint GK=%g</tt>/<newline>
+<item><tt>RegisterEvent=Register Endpoint GK=%g</tt><newline>
 Default: <tt>N/A</tt><newline>
 <p>
 The text for endpoint registration events. You can use the standard account parameters.
 
-<item><tt>UnregisterEvent=Unregister Endpoint GK=%g</tt>/<newline>
+<item><tt>UnregisterEvent=Unregister Endpoint GK=%g</tt><newline>
 Default: <tt>N/A</tt><newline>
 <p>
 The text for endpoint unregistration events. You can use the standard account parameters.
 
-<item><tt>OnEvent=GK Start %g</tt>/<newline>
+<item><tt>OnEvent=GK Start %g</tt><newline>
 Default: <tt>N/A</tt><newline>
 <p>
 The text for ON events. You can use the standard account parameters.
 
-<item><tt>OffEvent=GK Stop %g</tt>/<newline>
+<item><tt>OffEvent=GK Stop %g</tt><newline>
 Default: <tt>N/A</tt><newline>
 <p>
 The text for OFF events. You can use the standard account parameters.
