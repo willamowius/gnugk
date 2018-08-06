@@ -151,7 +151,7 @@ protected:
 	bool m_H46018Server;
 	bool m_H46018Client;
 	bool m_useTLS;
-	bool m_disabled; // is this neighnor disabled (eg. because of no responses)
+	bool m_disabled; // is this neighbor disabled (eg. because of no responses)
 };
 
 class NeighborList {

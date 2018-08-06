@@ -316,7 +316,7 @@ public:
 	/// bit masks for event types other than RAS - see miscCheckFlags variable
 	enum MiscCheckEvents {
 		e_Setup             = 0x0001,   /// Q.931/H.225 Setup message
-		e_SetupUnreg        = 0x0002,   /// Q.931/H.225 Setup message only from an unregistered endpoin
+		e_SetupUnreg        = 0x0002,   /// Q.931/H.225 Setup message only from an unregistered endpoint
 		e_Connect           = 0x0004,   /// Q.931/H.225 Connect message
 		e_CallProceeding    = 0x0008,   /// Q.931/H.225 CallProceeding message
 		e_Alerting          = 0x0010,   /// Q.931/H.225 Alerting message
