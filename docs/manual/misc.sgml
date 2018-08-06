@@ -158,7 +158,7 @@ The following parameters are defined:
 <item><tt/%{session}/ - session
 <item><tt/%{caller-ip}/ - caller IP
 <item><tt/%{caller-port}/ - caller port
-<item><tt/%{caller-nat}/ - is caller NATted (0 or 1)
+<item><tt/%{caller-nat}/ - is caller NATed (0 or 1)
 <item><tt/%{callee-ip}/ - caller IP
 <item><tt/%{callee-port}/ - caller port
 <item><tt/%{avgdelay}/ - average delay
