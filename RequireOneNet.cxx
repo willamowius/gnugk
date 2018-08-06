@@ -15,6 +15,7 @@
 #include "config.h"
 #include "RequireOneNet.h"
 #include "Toolkit.h"
+#include "h323util.h"
 
 RequireOneNet::RequireOneNet(const char* moduleName, const char* cfgSecName)
     : GkAcctLogger(moduleName, cfgSecName)
@@ -52,20 +53,21 @@ GkAcctLogger::Status RequireOneNet::Log(GkAcctLogger::AcctEvent evt, const callp
 	if ((evt & GetEnabledEvents() & GetSupportedEvents()) == 0)
 		return Next;
 
-	if (!call) {
-		PTRACE(1, "RequireOneNet\t" << GetName() << " - missing call info for event " << evt);
-		return Fail;
-	}
-
 	if (call) {
-        PIPSocket::Address ip;
-        WORD port = 0;
-        call->GetSrcSignalAddr(ip, port);
-        if (IsInNetworks(ip, m_myNetworks))
+        PIPSocket::Address fromIP, toIP;
+        WORD unused = 0;
+        call->GetSrcSignalAddr(fromIP, unused);
+        if (IsInNetworks(fromIP, m_myNetworks))
             return Ok;
-        call->GetDestSignalAddr(ip, port);
-        if (IsInNetworks(ip, m_myNetworks))
+        call->GetDestSignalAddr(toIP, unused);
+        if (IsInNetworks(toIP, m_myNetworks))
             return Ok;
+
+        // all other fail
+        PTRACE(1, "RequireOneNet\tRejecting call from " << AsString(fromIP) << " to " << AsString(toIP));
+	} else {
+		PTRACE(1, "RequireOneNet\tRejecting call with missing call info for event " << evt);
+		return Fail;
 	}
 
 	return Fail;
