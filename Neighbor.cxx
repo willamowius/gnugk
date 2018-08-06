@@ -558,6 +558,7 @@ void Neighbor::SetLRQPingInterval(int interval)
 void Neighbor::SendH46018GkKeepAlive(GkTimer* timer)
 {
 #ifdef HAS_H46018
+    // TODO: set this neighbor to disabled if we didn't receive any messages since INTERVAL sec
 	// send SCI to open the pinhole to neighbor GK
 	H225_RasMessage sci_ras;
 	sci_ras.SetTag(H225_RasMessage::e_serviceControlIndication);
