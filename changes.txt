@@ -1,7 +1,7 @@
 Changes from 4.9 to 5.0
 =======================
 - new variable %{from-neighbor} for SQLAuth CallQuery
-- new variable %{Calling-Station-Id} for SQLAuth RegQuery
+- new variable %{Calling-Station-Id} for SQLAuth/LuaAuth RegQuery
 - BUGFIX(Toolkit.cxx) fix route matching
 - BUGFIX(ProxyChannel.cxx) fix RTP multiplexing when child calls parent
 - BUGFIX(GkClient.cxx) generate valid IRRs as child

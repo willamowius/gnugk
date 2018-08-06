@@ -417,6 +417,7 @@ protected:
 	*/
 	int doRegistrationCheck(
 		const PString & username,
+        const PString & callingStationId,
 		const PString & callerIP,
 		const PString & aliases,
 		const PString & messageType,
@@ -537,6 +538,7 @@ int LuaAuth::Check(
 	H225_RegistrationRequest & rrq = rrqPdu;
 
 	PString username = GetUsername(rrqPdu);
+	PString callingStationId = GetCallingStationId(rrqPdu, authData);
 	PIPSocket::Address addr = (rrqPdu.operator->())->m_peerAddr;
 	PString callerIP = addr.AsString();
     PString aliases = "";
@@ -553,7 +555,9 @@ int LuaAuth::Check(
     PStringStream strm;
     rrq.PrintOn(strm);
     PString message = strm;
-	return doRegistrationCheck(username, callerIP, aliases, messageType, message);
+
+
+	return doRegistrationCheck(username, callingStationId, callerIP, aliases, messageType, message);
 }
 
 int LuaAuth::Check(
@@ -641,6 +645,7 @@ int LuaAuth::Check(
 
 int LuaAuth::doRegistrationCheck(
 		const PString & username,
+		const PString & callingStationId,
 		const PString & callerIP,
 		const PString & aliases,
 		const PString & messageType,
@@ -657,6 +662,7 @@ int LuaAuth::doRegistrationCheck(
     }
 
 	SetString(lua, "username", username);
+	SetString(lua, "callingStationId", callingStationId);
 	SetString(lua, "callerIP", callerIP);
 	SetString(lua, "aliases", aliases);
 	SetString(lua, "messageType", messageType);

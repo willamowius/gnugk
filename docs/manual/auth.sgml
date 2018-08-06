@@ -578,7 +578,7 @@ replacement is made before each query is executed. The following parameters are 
 <item><tt/%{gkip}/ - a gatekeeper IP the request has been received on
 <item><tt/%u/ - username associated with the endpoint (usually a H.323 ID)
 <item><tt/%{Calling-Station-Id}/ - E.164 associated with the endpoint
-<item><tt/%{callerip}/ - caller's/registrant's IP (where the registration request has been received from - NAT IP for NATted endpoints)
+<item><tt/%{callerip}/ - caller's/registrant's IP (where the registration request has been received from - NAT IP for NATed endpoints)
 <item><tt/%{aliases}/ - a comma separated list of endpoint aliases
 <item><tt/%{additive-rrq}/ - whether it is an additive rrq (0 = false, 1 = true)
 </itemize>
@@ -658,7 +658,7 @@ replacement is made before each query is executed. The following parameters are 
 <item><tt/%g/ - the gatekeeper identifier
 <item><tt/%{gkip}/ - a gatekeeper IP the request has been received on
 <item><tt/%u/ - a username associated with the caller
-<item><tt/%{callerip}/ - caller's IP (where the request has been received from - NAT IP for NATted endpoints)
+<item><tt/%{callerip}/ - caller's IP (where the request has been received from - NAT IP for NATed endpoints)
 <item><tt/%{Calling-Station-Id}/ - caller's number, if available
 <item><tt/%{Called-Station-Id}/ - destination number
 <item><tt/%{Dialed-Number}/ - original destination number (before rewrite)
@@ -1722,7 +1722,8 @@ LUA script to be used for ARQs and Setups.
 Registration authentication scripts can use the following variables
 <itemize>
 <item><tt/username/ - a username associated with the caller
-<item><tt/callerIP/ - caller's IP (the request has been received from - NAT IP for NATted endpoints)
+<item><tt/callingStationId/ - caller's number, if available
+<item><tt/callerIP/ - caller's IP (the request has been received from - NAT IP for NATed endpoints)
 <item><tt/aliases/ - the list of aliases in the registration
 <item><tt/messageType/ - always "RRQ" for registrations
 <item><tt/message/ - the full RRQ message as multi-line text block
