@@ -1842,7 +1842,7 @@ void StatusClient::ExecCommand(
 				}
 				ConfigReloadMutex.EndWrite();
 			} else {
-				ConfigReloadMutex.EndRead();	// ReloadHandler() re-aquires a write lock
+				ConfigReloadMutex.EndRead();	// ReloadHandler() re-acquires a write lock
 				ReloadHandler();
 				ConfigReloadMutex.StartRead();
 				PTRACE(1, "STATUS\tFull Config reloaded.");
