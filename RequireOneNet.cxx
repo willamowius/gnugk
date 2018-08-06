@@ -20,9 +20,7 @@
 RequireOneNet::RequireOneNet(const char* moduleName, const char* cfgSecName)
     : GkAcctLogger(moduleName, cfgSecName)
 {
-	// it is very important to set what type of accounting events
-	// are supported for each accounting module, otherwise the Log method
-	// will no get called
+	// set which type of accounting events are supported, otherwise the Log() method will no get called
 	SetSupportedEvents(StatusAcctEvents);
 
 	PConfig* cfg = GetConfig();

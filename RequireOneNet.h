@@ -18,9 +18,7 @@
 #include "gkacct.h"
 
 
-/** Accounting module for the status port.
-	It sends accounting call start/stop/update/connect events
-	to the status port.
+/** Accounting module to make sure one side of the call is within our network
 */
 class RequireOneNet : public GkAcctLogger
 {
