@@ -4,7 +4,7 @@
 //
 // Supplementary of STL
 //
-// Copyright (c) 2001-2015, Jan Willamowius
+// Copyright (c) 2001-2018, Jan Willamowius
 //
 // Part of this code is adapted from the SGI implementation
 //
@@ -23,7 +23,7 @@
 #include <algorithm>
 #include <functional>
 
-// Composition adaptor is not part of C++ standard
+// Composition adapter is not part of C++ standard
 #if !defined(__GNUC__) || (defined(__GNUC__) && __GNUC__ >= 3)
 template <class _Operation1, class _Operation2>
 class unary_compose
