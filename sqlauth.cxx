@@ -644,6 +644,7 @@ int SQLAuth::Check(
 	params["bandwidth"] = PString(arq.m_bandWidth.GetValue());
 	params["answer"] = arq.m_answerCall ? "1" : "0";
 	params["arq"] = "1";
+	params["from-registered"] = "1";
 	params["from-neighbor"] = "0";
 	params["CallId"] = AsString(arq.m_callIdentifier);
 	params["SrcInfo"] = AsString(arq.m_srcInfo, false);
@@ -882,7 +883,7 @@ int SQLAuth::Check(
 	params["Dialed-Number"] = GetDialedNumber(setup, authData);
 	params["answer"] = "0";
 	params["arq"] = "0";
-	PTRACE(0, "JW call=" << authData.m_call);
+	params["from-registered"] = (authData.m_call && authData.m_call->GetCallingParty()) ? "1" : "0";
 	params["from-neighbor"] = authData.m_fromNeighbor ? "1" : "0";
 	params["CallId"] = AsString(setup.GetUUIEBody().m_callIdentifier);
     params["SrcInfo"] = "";
