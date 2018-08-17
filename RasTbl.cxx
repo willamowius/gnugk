@@ -1571,24 +1571,6 @@ int GatewayRec::PrefixMatch(
 	return -1;
 }
 
-/*
-void GatewayRec::BuildLCF(H225_LocationConfirm & obj_lcf) const
-{
-	EndpointRec::BuildLCF(obj_lcf);
-	if (PINDEX as = Prefixes.size()) {
-		obj_lcf.IncludeOptionalField(H225_LocationConfirm::e_supportedProtocols);
-		obj_lcf.m_supportedProtocols.SetSize(1);
-		H225_SupportedProtocols &protocol = obj_lcf.m_supportedProtocols[0];
-		protocol.SetTag(H225_SupportedProtocols::e_voice);
-		H225_ArrayOf_SupportedPrefix & supportedPrefixes = ((H225_VoiceCaps &)protocol).m_supportedPrefixes;
-		supportedPrefixes.SetSize(as);
-		const_prefix_iterator Iter = Prefixes.begin();
-		for (PINDEX p = 0; p < as; ++p, ++Iter)
-			H323SetAliasAddress(PString(Iter->c_str()), supportedPrefixes[p].m_prefix);
-	}
-}
-*/
-
 PString GatewayRec::PrintOn(bool verbose) const
 {
 	PString msg = EndpointRec::PrintOn(verbose);
@@ -5447,15 +5429,11 @@ void CallTable::CheckRTPInactive()
 
 #ifdef HAS_H460
 
-static PTextFile* OpenQoSFile(const PFilePath & fn)
+static PTextFile * OpenQoSFile(const PFilePath & fn)
 {
-	PTextFile* qosFile = new PTextFile(fn, PFile::ReadWrite,
-		PFile::Create | PFile::DenySharedWrite
-		);
+	PTextFile* qosFile = new PTextFile(fn, PFile::ReadWrite, PFile::Create | PFile::DenySharedWrite);
 	if (!qosFile->IsOpen()) {
-   	    PTRACE(1, "QoS\tCould not open log file "
-			<< fn << "\" :" << qosFile->GetErrorText()
-			);
+   	    PTRACE(1, "QoS\tCould not open log file " << fn << "\" :" << qosFile->GetErrorText());
 		delete qosFile;
 	    return NULL;
 	}
@@ -5471,7 +5449,7 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 
 	H4609_ArrayOf_RTCPMeasures report;
 
-	if (qosdata.GetTag() == H4609_QosMonitoringReportData::e_periodic) {
+    if (qosdata.GetTag() == H4609_QosMonitoringReportData::e_periodic) {
         H4609_PeriodicQoSMonReport & rep = qosdata;
 		H4609_ArrayOf_PerCallQoSReport & percall = rep.m_perCallInfo;
         report = percall[0].m_mediaChannelsQoS;
@@ -5602,7 +5580,6 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
 			params["t"] = nowtime.AsString();
 
 			toolkit->QoS().PostRecord(params);
-			//return;	// disabled: allow DB plus file to be active at same time
 		}
 #endif  // HAS_DATABASE
 
@@ -5676,12 +5653,11 @@ void CallTable::QoSReport(const H225_DisengageRequest & obj_drq, const endptr & 
 		&& ((report.GetTag() == H4609_QosMonitoringReportData::e_final) || (report.GetTag() == H4609_QosMonitoringReportData::e_periodic))) {
 		PTRACE(5, "QoS\tReport " << report);
 		OnQosMonitoringReport(AsString(obj_drq.m_conferenceID), ep, report);
-
 	} else {
 		PTRACE(4, "QoS\tDRQ Call Statistics decode failure");
 	}
 }
-#endif
+#endif // HAS_H460
 
 void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq, const endptr & ep)
 {

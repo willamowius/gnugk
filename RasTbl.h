@@ -105,7 +105,7 @@ public:
 	*/
 	EndpointRec(
 		/// RRQ, ARQ, ACF or LCF that contains a description of the endpoint
-		const H225_RasMessage& ras,
+		const H225_RasMessage & ras,
 		/// permanent endpoint flag
 		bool permanent = false
 		);
@@ -179,9 +179,6 @@ public:
 	virtual EndpointRec *Reregister();
 	virtual EndpointRec *Unregister();
 	virtual EndpointRec *Expired();
-
-	//virtual void BuildACF(H225_AdmissionConfirm &) const;
-	//virtual void BuildLCF(H225_LocationConfirm &) const;
 
 	virtual PString PrintOn(bool verbose) const;
 	PString PrintPrefixCapacities() const;
@@ -491,8 +488,6 @@ public:
 		int & priority
 		) const;
 
-	//virtual void BuildLCF(H225_LocationConfirm &) const;
-
 	virtual PString PrintOn(bool verbose) const;
 
 	void AddPrefixes(const H225_ArrayOf_SupportedProtocols &);
@@ -690,9 +685,6 @@ public:
 // record of one active call
 #ifdef HAS_H460
 class H4609_QosMonitoringReportData;
-#ifdef HAS_H46024B
-class H323TransportAddress;
-#endif // HAS_H46024B
 #endif // HAS_H460
 
 #ifdef HAS_H46018
@@ -1730,8 +1722,6 @@ typedef CallRec::Ptr callptr;
 
 // all active calls
 
-class H4609_QosMonitoringReportData;
-
 class CallTable : public Singleton<CallTable>
 {
 public:
@@ -1779,7 +1769,7 @@ public:
 	void PrintCallInfo(USocket *client, const PString & callid) const;
 
 #ifdef HAS_H460
-	void OnQosMonitoringReport(const PString &,const endptr &, H4609_QosMonitoringReportData &);
+	void OnQosMonitoringReport(const PString &, const endptr &, H4609_QosMonitoringReportData &);
     void QoSReport(const H225_DisengageRequest &, const endptr &, const PASN_OctetString &);
     void QoSReport(const H225_InfoRequestResponse &, const callptr &, const endptr &, const PASN_OctetString &);
 #endif
@@ -1790,7 +1780,7 @@ public:
 
 	PINDEX Size() const { return m_activeCall; }	// number of currently active calls
 	unsigned TotalCallCount() const { return m_CallCount; }	// number of calls since startup
-	unsigned SuccessfulCallCount() const { return m_successCall; }	// number of succesfull calls since startup
+	unsigned SuccessfulCallCount() const { return m_successCall; }	// number of successful calls since startup
 
 	/** @return
 	    Timeout value for a signaling channel to be opened after ACF
