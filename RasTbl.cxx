@@ -1247,7 +1247,8 @@ bool EndpointRec::BuildPresencePDU(unsigned msgtag, PASN_OctetString & pdu)
 	GkPresence & handler  = Toolkit::Instance()->GetPresenceHandler();
 	return handler.BuildPresenceElement(msgtag, m_endpointIdentifier, pdu);
 }
-#endif
+
+#else
 
 bool EndpointRec::HasPresenceData()
 {
@@ -1257,7 +1258,8 @@ bool EndpointRec::HasPresenceData()
     m_hasH460PData = false;
     return true;
 }
-#endif
+#endif // HAS_H460P_VER_3
+#endif // HAS_H460P
 
 #ifdef H323_H350
 static const char * LDAPServiceOID = "1.3.6.1.4.1.17090.2.1";
@@ -5427,7 +5429,7 @@ void CallTable::CheckRTPInactive()
     }
 }
 
-#ifdef HAS_H460
+#ifdef H323_H4609
 
 static PTextFile * OpenQoSFile(const PFilePath & fn)
 {
@@ -5657,7 +5659,7 @@ void CallTable::QoSReport(const H225_DisengageRequest & obj_drq, const endptr & 
 		PTRACE(4, "QoS\tDRQ Call Statistics decode failure");
 	}
 }
-#endif // HAS_H460
+#endif // H323_H4609
 
 void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq, const endptr & ep)
 {

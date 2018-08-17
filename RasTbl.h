@@ -242,13 +242,14 @@ public:
 
 	void SetUsesH460P(bool uses);
 	bool UsesH460P() const { return m_usesH460P; }
-	bool HasPresenceData();
 #ifdef HAS_H460P
 	void ParsePresencePDU(const PASN_OctetString & pdu);
-#ifndef HAS_H460P_VER_3
+#ifdef HAS_H460P_VER_3
+	bool HasPresenceData();
+#else
 	bool BuildPresencePDU(unsigned msgtag, PASN_OctetString & pdu);
-#endif
-#endif
+#endif // HAS_H460P_VER_3
+#endif // HAS_H460P
 
 	/** If this Endpoint would be register itself again with all the same data
 	 * how would this RRQ would look like? May be implemented with a
@@ -1768,11 +1769,11 @@ public:
 	PString PrintStatistics() const;
 	void PrintCallInfo(USocket *client, const PString & callid) const;
 
-#ifdef HAS_H460
+#ifdef H323_H4609
 	void OnQosMonitoringReport(const PString &, const endptr &, H4609_QosMonitoringReportData &);
     void QoSReport(const H225_DisengageRequest &, const endptr &, const PASN_OctetString &);
     void QoSReport(const H225_InfoRequestResponse &, const callptr &, const endptr &, const PASN_OctetString &);
-#endif
+#endif // H323_H4609
 	void SupplyEndpointQoS(std::map<PString, EPQoS> & epqos) const;
 
 	void LoadConfig();

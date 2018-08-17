@@ -3969,7 +3969,7 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 		}
 	}
 
-#ifdef HAS_H460
+#ifdef H323_H4609
 	if (request.HasOptionalField(H225_DisengageRequest::e_genericData)) {
 		H225_ArrayOf_GenericData & data = request.m_genericData;
 		for (PINDEX i = 0; i < data.GetSize(); i++) {
@@ -4360,7 +4360,7 @@ template<> bool RasPDU<H225_InfoRequestResponse>::Process()
 			call = CallTbl->FindBySignalAdr(request.m_callSignalAddress[0]);
 		if (call)
 			call->Update(request);
-#ifdef HAS_H460
+#ifdef H323_H4609
 		if (call && request.HasOptionalField(H225_InfoRequestResponse::e_genericData)) {
 			H225_ArrayOf_GenericData & data = request.m_genericData;
 			for (PINDEX i = 0; i < data.GetSize(); i++) {
