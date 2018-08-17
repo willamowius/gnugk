@@ -28,8 +28,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 5,0,0,0
- PRODUCTVERSION 5,0,0,0
+ FILEVERSION 5,1,0,0
+ PRODUCTVERSION 5,1,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x2bL
@@ -47,14 +47,14 @@ BEGIN
             VALUE "Comments", "The OpenSource H.323 Gatekeeper\0"
             VALUE "CompanyName", "GnuGk.org\0"
             VALUE "FileDescription", "gnugk\0"
-            VALUE "FileVersion", "5.0\0"
+            VALUE "FileVersion", "5.1\0"
             VALUE "InternalName", "gnugk\0"
             VALUE "LegalCopyright", "Copyright (c) 1999-2018, Published under the terms of the GNU General Public License version 2.\0"
             VALUE "LegalTrademarks", "GNU Gatekeeper\0"
             VALUE "OriginalFilename", "gnugk.exe\0"
             VALUE "PrivateBuild", "\0"
             VALUE "ProductName", "GNU Gatekeeper\0"
-            VALUE "ProductVersion", "5.0\0"
+            VALUE "ProductVersion", "5.1\0"
             VALUE "SpecialBuild", "\0"
         END
     END
