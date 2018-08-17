@@ -6987,7 +6987,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
         if (connectQ931.GetBearerCapabilities(capability, transferRate, &codingStandard, &userInfoLayer1)) {
             q931.SetBearerCapabilities(capability, transferRate, codingStandard, userInfoLayer1);
         } else {
-            transferRate = ceil((float)m_call->GetBandwidth() / 640); // divide by 2 ?
+            transferRate = static_cast<unsigned>(ceil((float)m_call->GetBandwidth() / 640)); // divide by 2 ?
             if (transferRate > 127)
                 transferRate = 32; // 2 Mbps
             q931.SetBearerCapabilities(capability, transferRate, codingStandard, userInfoLayer1);
