@@ -546,7 +546,7 @@ resolved to an IP address on startup or configuration reload.  If
 resolved when needed.
 
 If you set this switch to "AWSPublicIP", GnuGk will fetch the public / elastic IP from AWS meta data.
-Same with "AzurePublicIP" and "AlibabaPublicIP" for Azure and Alibaba Cloud.
+Same with "GooglePublicIP", "AzurePublicIP" and "AlibabaPublicIP" for Google Cloud, Azure and Alibaba Cloud.
 
 <item><tt/ExternalIsDynamic=1/<newline>
 Default: <tt/0/<newline>

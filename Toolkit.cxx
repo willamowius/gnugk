@@ -3665,7 +3665,7 @@ PString Toolkit::GetExternalIP() const
 
     PCaselessString ext = m_Config->GetString("ExternalIP", "");
 #ifdef P_HTTP
-    if (ext == "AlibabaPublicIP" || ext == "AWSPublicIP" || ext == "AzurePublicIP") {
+    if (ext == "AlibabaPublicIP" || ext == "AWSPublicIP" || ext == "AzurePublicIP" || ext == "GooglePublicIP") {
         // fetch public / elastic IP from meta data
         PHTTPClient http;	// TODO: add libcurl version ?
         PString result;
@@ -3676,6 +3676,10 @@ PString Toolkit::GetExternalIP() const
         if (ext == "AzurePublicIP") {
             url = "http://169.254.169.254/metadata/instance/network/interface/0/ipv4/ipAddress/0/publicIpAddress?api-version=2017-08-01&format=text"; // Azure
             outMIME.SetAt("Metadata", "true");
+        }
+        if (ext == "GooglePublicIP") {
+            url = "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip"; // Google Cloud
+            outMIME.SetAt("Metadata-Flavor", "Google");
         }
         if (http.GetDocument(url, outMIME, replyMIME) && http.ReadContentBody(replyMIME, result)) {
             ext = result.Trim();
