@@ -1129,6 +1129,12 @@ public:
     bool IsRTPInactive() const;
 
 private:
+	/* No copy constructor allowed */
+	RTPLogicalChannel(const RTPLogicalChannel &);
+	/* No operator= allowed */
+	RTPLogicalChannel & operator=(const RTPLogicalChannel &);
+
+private:
 	void SetNAT(bool);
 	static WORD GetPortNumber();	// get a new port number to use
 
@@ -1169,6 +1175,12 @@ public:
 	bool OnSeparateStack(H245_NetworkAccessParameters &, H245Handler *);
 
 private:
+	/* No copy constructor allowed */
+	T120LogicalChannel(const T120LogicalChannel &);
+	/* No operator= allowed */
+	T120LogicalChannel & operator=(const T120LogicalChannel &);
+
+private:
 	class T120Listener : public TCPListenSocket {
 	public:
 		T120Listener(T120LogicalChannel *lc);
@@ -1176,6 +1188,13 @@ private:
 	private:
 		// override from class TCPListenSocket
 		virtual ServerSocket *CreateAcceptor() const;
+
+	private:
+		/* No copy constructor allowed */
+		T120Listener(const T120Listener &);
+		/* No operator= allowed */
+		T120Listener & operator=(const T120Listener &);
+
 
 		T120LogicalChannel *t120lc;
 	};

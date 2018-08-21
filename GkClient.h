@@ -185,6 +185,12 @@ public:
 	}
 
 private:
+	/* No copy constructor allowed */
+	GkClient(const GkClient &);
+	/* No operator= allowed */
+	GkClient & operator=(const GkClient &);
+
+private:
 	bool Discovery();
 	void Register();
 	void Unregister();

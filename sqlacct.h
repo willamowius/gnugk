@@ -68,9 +68,9 @@ public:
 
 private:
 	/* No copy constructor allowed */
-	SQLAcct(const SQLAcct&);
+	SQLAcct(const SQLAcct &);
 	/* No operator= allowed */
-	SQLAcct& operator=(const SQLAcct&);
+	SQLAcct & operator=(const SQLAcct &);
 
 private:
 	/// connection to the SQL database
