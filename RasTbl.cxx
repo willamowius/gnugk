@@ -2788,12 +2788,28 @@ CallRec::CallRec(const H225_CallIdentifier & callID, H225_TransportAddress sigAd
 	m_callerH239IP(GNUGK_INADDR_ANY), m_calledH239IP(GNUGK_INADDR_ANY),
     m_callerAudioPort(0), m_calledAudioPort(0), m_callerVideoPort(0), m_calledVideoPort(0), m_callerH239Port(0), m_calledH239Port(0),
 	m_H239SessionID(0), m_proceedingSent(false),
-	m_rerouteState(NoReroute), m_h46018ReverseSetup(true), m_callfromTraversalClient(true), m_callfromTraversalServer(false),
+	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(true), m_callfromTraversalClient(true), m_callfromTraversalServer(false),
 	m_rerouteDirection(Caller), m_connectWithTLS(false)
 #ifdef HAS_H235_MEDIA
     ,m_encyptDir(none), m_dynamicPayloadTypeCounter(MIN_DYNAMIC_PAYLOAD_TYPE)
 #endif
 {
+	m_timer = m_acctUpdateTime = m_creationTime = time(NULL);
+	m_callerId = m_calleeId = m_callerAddr = m_calleeAddr = " ";
+
+	CallTable* const ctable = CallTable::Instance();
+	m_timeout = ctable->GetSignalTimeout() / 1000;
+	m_durationLimit = ctable->GetDefaultDurationLimit();
+	m_failoverActive = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ActivateFailover", "0"));
+	m_singleFailoverCDR = ctable->SingleFailoverCDR();
+	m_disabledcodecs = GkConfig()->GetString(CallTableSection, "DisabledCodecs", "");
+	if (!m_disabledcodecs.IsEmpty() && m_disabledcodecs.Right(1) != ";")
+		m_disabledcodecs += ";";
+
+	m_irrFrequency = GkConfig()->GetInteger(CallTableSection, "IRRFrequency", 120);
+	m_irrCheck = Toolkit::AsBool(GkConfig()->GetString(CallTableSection, "IRRCheck", "0"));
+	m_irrCallerTimer = m_irrCalleeTimer = time(NULL);
+
 #if HAS_H46018
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
 #endif
