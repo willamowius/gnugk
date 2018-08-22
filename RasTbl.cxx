@@ -5385,9 +5385,9 @@ void CallTable::CheckCalls(RasServer * rassrv)
 			++Iter;
 		}
 
-		Iter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&CallRec::IsUsed));
-		DeleteObjects(Iter, RemovedList.end());
-		RemovedList.erase(Iter, RemovedList.end());
+		iterator RemIter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&CallRec::IsUsed));
+		DeleteObjects(RemIter, RemovedList.end());
+		RemovedList.erase(RemIter, RemovedList.end());
 	}
 
 	std::list<callptr>::iterator call = m_callsToDisconnect.begin();
