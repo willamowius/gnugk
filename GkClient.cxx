@@ -79,6 +79,11 @@ public:
 	bool Get(PIPSocket::Address &, WORD &);
 
 private:
+    /* No copy constructor allowed */
+	AlternateGKs(const AlternateGKs &);
+	/* No operator= allowed */
+	AlternateGKs & operator=(const AlternateGKs &);
+
 	typedef multimap<int, H225_TransportAddress> GKList;
 	GKList AltGKs;
 	GKList::iterator index;
