@@ -2692,6 +2692,7 @@ CallRec::CallRec(
 #if HAS_H46018
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
 #endif
+    InitRTCP_report();
 }
 
 CallRec::CallRec(
@@ -2762,6 +2763,7 @@ CallRec::CallRec(
 #if HAS_H46018
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
 #endif
+    InitRTCP_report();
 }
 
 // a pretty empty CallRec, the rest is set when the Setup comes in (used with H.460.18 on SCI)
@@ -2795,6 +2797,7 @@ CallRec::CallRec(const H225_CallIdentifier & callID, H225_TransportAddress sigAd
 #if HAS_H46018
     m_ignoreSignaledIPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledIPs", false);
 #endif
+    InitRTCP_report();
 }
 
 CallRec::CallRec(
@@ -2864,6 +2867,7 @@ CallRec::CallRec(
 		m_setupTime = oldCall->m_setupTime;
 		m_CallNumber = oldCall->m_CallNumber; // if we have 1 CDR, we need to preserve internal call number
 	}
+    // TODO: copy RTCP_report fields ?
 }
 
 CallRec::~CallRec()
@@ -5252,7 +5256,6 @@ void CallTable::Insert(CallRec * NewRec)
 	}
 	CallList.push_back(NewRec);
 	++m_activeCall;
-	NewRec->InitRTCP_report();
 	PTRACE(2, "CallTable::Insert(CALL) Call No. " << NewRec->GetCallNumber() << ", total sessions : " << m_activeCall);
 }
 
