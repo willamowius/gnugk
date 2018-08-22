@@ -2396,17 +2396,17 @@ void RegistrationTable::CheckEndpoints()
 		else ++Iter;
 	}
 
-	Iter = partition(OutOfZoneList.begin(), OutOfZoneList.end(), bind2nd(mem_fun(&EndpointRec::IsUpdated), &now));
-	if (ptrdiff_t s = distance(Iter, OutOfZoneList.end())) {
+	iterator OOZIter = partition(OutOfZoneList.begin(), OutOfZoneList.end(), bind2nd(mem_fun(&EndpointRec::IsUpdated), &now));
+	if (ptrdiff_t s = distance(OOZIter, OutOfZoneList.end())) {
 		PTRACE(2, s << " out-of-zone endpoint(s) expired");
 	}
-	copy(Iter, OutOfZoneList.end(), back_inserter(RemovedList));
-	OutOfZoneList.erase(Iter, OutOfZoneList.end());
+	copy(OOZIter, OutOfZoneList.end(), back_inserter(RemovedList));
+	OutOfZoneList.erase(OOZIter, OutOfZoneList.end());
 
 	// Cleanup unused EndpointRec in RemovedList
-	Iter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&EndpointRec::IsUsed));
-	DeleteObjects(Iter, RemovedList.end());
-	RemovedList.erase(Iter, RemovedList.end());
+	iterator RemIter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&EndpointRec::IsUsed));
+	DeleteObjects(RemIter, RemovedList.end());
+	RemovedList.erase(RemIter, RemovedList.end());
 }
 
 
