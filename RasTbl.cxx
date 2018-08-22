@@ -107,6 +107,9 @@ EndpointRec::EndpointRec(
     m_usesH46017(false), m_usesH46026(false), m_traversalType(None), m_bandwidth(0), m_maxBandwidth(-1), m_useTLS(false),
      m_useIPSec(false), m_additiveRegistrant(false), m_addCallingPartyToSourceAddress(false), m_authenticators(NULL)
 {
+	static H225_EndpointType defaultTermType; // nouse
+	m_terminalType = &defaultTermType;
+
 	switch (m_RasMsg.GetTag())
 	{
 		case H225_RasMessage::e_registrationRequest:
@@ -234,11 +237,9 @@ void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
 
 void EndpointRec::SetEndpointRec(H225_AdmissionRequest & arq)
 {
-	static H225_EndpointType termType; // nouse
 	// we set it to non-standard address to avoid misuse
 	m_rasAddress.SetTag(H225_TransportAddress::e_nonStandardAddress);
 	m_callSignalAddress = arq.m_destCallSignalAddress;
-	m_terminalType = &termType;
 	m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
 	m_fromParent = false;
     m_remote = true;
