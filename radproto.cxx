@@ -410,15 +410,15 @@ bool RadiusAttr::Read(const void* rawData, PINDEX rawLength)
 }
 
 void RadiusAttr::PrintOn(
-	ostream &strm   /// Stream to print the object into.
+	ostream & strm   /// Stream to print the object into.
     ) const
 {
+    const ios::fmtflags flags = strm.flags();   // save stream state
 	const std::streamsize indent = strm.precision() + 2;
 
 	if (!IsValid()) {
 		strm << "(Invalid) {\n";
 		if (m_length > 0) {
-			const ios::fmtflags flags = strm.flags();
 			const PBYTEArray value((const BYTE*)m_data, m_length, FALSE);
 
 			strm << hex << setfill('0') << resetiosflags(ios::floatfield)
@@ -433,9 +433,9 @@ void RadiusAttr::PrintOn(
 			}
 
 			strm << dec << setfill(' ');
-			strm.flags(flags);
 		}
 		strm << setw(indent) << "}\n" << setprecision(indent-2);
+    	strm.flags(flags);  // restore stream state
 		return;
 	}
 
@@ -448,7 +448,6 @@ void RadiusAttr::PrintOn(
 	strm << setw(indent+9) << "length = " << totalLen << " octets\n";
 
 	if (!IsVsa()) {
-		const ios::fmtflags flags = strm.flags();
 		const PINDEX valueLen = (totalLen <= FixedHeaderLength)
 			? 0 : (totalLen - FixedHeaderLength);
 		const PBYTEArray value((const BYTE*)m_value, valueLen, FALSE);
@@ -458,7 +457,7 @@ void RadiusAttr::PrintOn(
 			<< setprecision(indent+2) << setw(16);
 
 		if (value.GetSize() > 0) {
-			if (value.GetSize() <= 32 || (flags&ios::floatfield) != ios::fixed)
+			if (value.GetSize() <= 32 || (flags & ios::floatfield) != ios::fixed)
 				strm << value << '\n';
 			else {
 				const PBYTEArray truncatedArray((const BYTE*)value, 32, FALSE);
@@ -468,13 +467,11 @@ void RadiusAttr::PrintOn(
 		}
 
 		strm << dec << setfill(' ') << setprecision(indent);
-		strm.flags(flags);
 		strm << setw(indent+2) << "}\n";
 	} else {
 		strm << setw(indent+11) << "vendorId = "
 			<< GetVsaVendorId() << '\n';
 
-		const ios::fmtflags flags = strm.flags();
 		PINDEX valueLen = (totalLen <= VsaFixedHeaderLength)
 			? 0 : (totalLen - VsaFixedHeaderLength);
 		PINDEX headerLen = VsaFixedHeaderLength;
@@ -494,7 +491,7 @@ void RadiusAttr::PrintOn(
 			<< setprecision(indent+2) << setw(16);
 
 		if (value.GetSize() > 0) {
-			if (value.GetSize() <= 32 || (flags&ios::floatfield) != ios::fixed)
+			if (value.GetSize() <= 32 || (flags & ios::floatfield) != ios::fixed)
 				strm << value << '\n';
 			else {
 				const PBYTEArray truncatedArray((const BYTE*)value, 32, FALSE);
@@ -504,10 +501,10 @@ void RadiusAttr::PrintOn(
 		}
 
 		strm << dec << setfill(' ') << setprecision(indent);
-		strm.flags(flags);
 		strm << setw(indent+2) << "}\n";
 	}
 	strm << setw(indent) << "}\n" << setprecision(indent-2);
+	strm.flags(flags);  // restore stream state
 }
 
 PINDEX RadiusAttr::GetVsaValueLength() const
@@ -567,8 +564,7 @@ PString RadiusAttr::AsString() const
 		return PString::Empty();
 
 	const PINDEX len = m_length;
-	const PINDEX headerLen = (m_type == VendorSpecific)
-			? VsaFixedHeaderLength : FixedHeaderLength;
+	const PINDEX headerLen = (m_type == VendorSpecific) ? VsaFixedHeaderLength : FixedHeaderLength;
 
 	if (len <= headerLen)
 		return PString::Empty();
@@ -586,10 +582,10 @@ int RadiusAttr::AsInteger() const
 
 PIPSocket::Address RadiusAttr::AsAddress() const
 {
-	if (m_length < (FixedHeaderLength+4) || m_type == VendorSpecific)
+	if (m_length < (FixedHeaderLength + 4) || m_type == VendorSpecific)
 		return 0;
 
-	if (m_length == (FixedHeaderLength+16)) {
+	if (m_length == (FixedHeaderLength + 16)) {
 		return PIPSocket::Address(16, (const BYTE*)m_value);
 	} else {
 		DWORD addr = 0;
@@ -627,8 +623,7 @@ PString RadiusAttr::AsCiscoString() const
 	while (CiscoAttrNames[i].m_name != NULL)
 		if (CiscoAttrNames[i].m_type == m_vendorType) {
 			if (CiscoAttrNames[i].m_nameLen < (size_t)(len - offset))
-				if (memcmp(m_data + offset, CiscoAttrNames[i].m_name,
-						CiscoAttrNames[i].m_nameLen) == 0
+				if (memcmp(m_data + offset, CiscoAttrNames[i].m_name, CiscoAttrNames[i].m_nameLen) == 0
 						&& m_data[offset + CiscoAttrNames[i].m_nameLen] == '=')
 					offset += CiscoAttrNames[i].m_nameLen + 1;
 			break;
@@ -643,7 +638,7 @@ PString RadiusAttr::AsCiscoString() const
 
 int RadiusAttr::AsVsaInteger() const
 {
-	if (m_length < (VsaRfc2865FixedHeaderLength+4) || m_type != VendorSpecific)
+	if (m_length < (VsaRfc2865FixedHeaderLength + 4) || m_type != VendorSpecific)
 		return 0;
 
 	return GetRadiusInteger(m_vendorValue);
@@ -697,9 +692,10 @@ RadiusPDU::RadiusPDU(
 }
 
 void RadiusPDU::PrintOn(
-	ostream& strm /// Stream to print the object into.
+	ostream & strm /// Stream to print the object into.
 	) const
 {
+	const ios::fmtflags flags = strm.flags(); // save stream state
 	const std::streamsize indent = strm.precision() + 2;
 
 	strm << ((!IsValid()) ? "(Invalid) {\n" : "{\n");
@@ -709,7 +705,6 @@ void RadiusPDU::PrintOn(
 	strm << setw(indent+5) << "id = " << (unsigned)m_id << '\n';
 	strm << setw(indent+9) << "length = " << GetLength() << " octets\n";
 
-	const ios::fmtflags flags = strm.flags();
 	const PBYTEArray value((const BYTE*)m_authenticator, AuthenticatorLength, FALSE);
 
 	strm << setw(indent+28) << "authenticator = 16 octets {\n";
@@ -717,7 +712,6 @@ void RadiusPDU::PrintOn(
 		<< setprecision(indent+2) << setw(16);
 	strm << value << '\n';
 	strm << dec << setfill(' ') << setprecision(indent);
-	strm.flags(flags);
 	strm << setw(indent+2) << "}\n";
 
 	const PINDEX numAttributes = GetNumAttributes();
@@ -740,6 +734,7 @@ void RadiusPDU::PrintOn(
 	}
 
 	strm << setw(indent-1) << "}\n" << setprecision(indent-2);
+	strm.flags(flags);  // restore stream state
 }
 
 bool RadiusPDU::IsValid() const
@@ -756,8 +751,7 @@ bool RadiusPDU::IsValid() const
 		const RadiusAttr* const attr
 			= reinterpret_cast<const RadiusAttr*>(m_data + currLen);
 		const PINDEX remainingLen = len - currLen;
-		if (remainingLen < RadiusAttr::FixedHeaderLength
-			|| remainingLen < attr->GetLength() || !attr->IsValid())
+		if (remainingLen < RadiusAttr::FixedHeaderLength || remainingLen < attr->GetLength() || !attr->IsValid())
 			break;
 		currLen += attr->GetLength();
 	}
@@ -769,9 +763,7 @@ void RadiusPDU::GetAuthenticator(PBYTEArray & vector, PINDEX offset) const
 {
 	if (offset == P_MAX_INDEX)
 		offset = vector.GetSize();
-	memcpy(vector.GetPointer(offset + AuthenticatorLength) + offset,
-		m_authenticator, AuthenticatorLength
-		);
+	memcpy(vector.GetPointer(offset + AuthenticatorLength) + offset, m_authenticator, AuthenticatorLength);
 }
 
 bool RadiusPDU::SetAuthenticator(const PBYTEArray & vector, PINDEX offset)
@@ -783,9 +775,7 @@ bool RadiusPDU::SetAuthenticator(const PBYTEArray & vector, PINDEX offset)
 	len -= offset;
 
 	if (len > 0)
-		memcpy(m_authenticator, ((const BYTE*)vector)+offset,
-			(len < AuthenticatorLength) ? len : AuthenticatorLength
-			);
+		memcpy(m_authenticator, ((const BYTE*)vector) + offset, (len < AuthenticatorLength) ? len : AuthenticatorLength);
 
 	return true;
 }
@@ -888,7 +878,7 @@ bool RadiusPDU::AppendAttr(
 
 bool RadiusPDU::AppendAttr(
 	unsigned char attrType, /// Attribute Type
-	const PString& stringValue /// string to be stored in the attribute Value data
+	const PString & stringValue /// string to be stored in the attribute Value data
 	)
 {
 	const PINDEX len = GetLength();
