@@ -2883,7 +2883,7 @@ CallRec::CallRec(
 		m_setupTime = oldCall->m_setupTime;
 		m_CallNumber = oldCall->m_CallNumber; // if we have 1 CDR, we need to preserve internal call number
 	}
-    // TODO: copy RTCP_report fields ?
+    InitRTCP_report(); // reset RTCP_report fields
 }
 
 CallRec::~CallRec()
