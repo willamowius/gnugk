@@ -139,15 +139,15 @@ const char *RasName[] = {
 	"LRQ",				// Location Request
 	"LCF",				// Location Confirm
 	"LRJ",				// Location Reject
-	"IRQ",				// Infomation Request
-	"IRR",				// Infomation Request Response
+	"IRQ",				// Information Request
+	"IRR",				// Information Request Response
 	"NonStandardMessage",
 	"UnknownMessageResponse",
 	"RIP",				// Request In Progress
 	"RAI",				// Resources Available Indicate
 	"RAC",				// Resources Available Confirm
-	"IACK",				// Infomation Request Acknowledgement
-	"INAK",				// Infomation Request Negative Acknowledgement
+	"IACK",				// Information Request Acknowledgement
+	"INAK",				// Information Request Negative Acknowledgement
 	"SCI",				// Service Control Indication
 	"SCR",				// Service Control Response
 	"NotRecognized"		// for new messages not recognized by the supported
