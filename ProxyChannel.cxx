@@ -13563,7 +13563,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 				} else {
 					lc = FindLogicalChannel(flcn);
 				}
-				if (lc) {
+				if (lc && h225Params) {
 					params.m_keepAliveChannel = IPToH245TransportAddr(GetMasqAddr(), lc->GetPort()); // use RTP port for keepAlives
 					((RTPLogicalChannel*)lc)->SetUsesH46019fc(UsesH46019fc());
 					((RTPLogicalChannel*)lc)->SetRTPSessionID((WORD)h225Params->m_sessionID);
