@@ -1313,7 +1313,7 @@ void RasServer::ForwardRasMsg(H225_RasMessage & msg)
 	else
 		sobj->IncludeOptionalField(tag);
 
-	// include the "this is a forwared message" tag (could be a static variable to increase performance)
+	// include the "this is a forwarded message" tag (could be a static variable to increase performance)
 	H225_NonStandardIdentifier & id = nonStandardParam->m_nonStandardIdentifier;
 	id.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
 	H225_H221NonStandard & h221 = id;
@@ -1643,7 +1643,7 @@ void RasServer::ReadH46017Message(const PBYTEArray & ras, const PIPSocket::Addre
 		msg->m_localAddr = localAddr;
 		msg->m_h46017Socket = s;
 		PTRACE(3, "RAS\tH460.17 RAS\n" << setprecision(2) << msg->m_recvRAS);
-		// execute job syncronously, so we don't return to signalling thread before processing is done
+		// execute job synchronously, so we don't return to signaling thread before processing is done
 		CreateRasJob(msg, true);
 	}
 }
@@ -2082,7 +2082,7 @@ bool RegistrationRequestPDU::Process()
 			supportH46023 = fs.HasFeature(23);
 			if (supportH46023) {
 				H460_FeatureStd * natfeat = (H460_FeatureStd *)fs.GetFeature(23);
-				// Check whether the endpoint supports Remote Nat directly (NATOffoad)
+				// Check whether the endpoint supports Remote Nat directly (NATOffload)
 				if (natfeat->Contains(Std23_RemoteNAT))
 					supportH46024 = natfeat->Value(Std23_RemoteNAT);
 				// Check whether the endpoint supports SameNAT H.460.24AnnexA
@@ -2204,9 +2204,9 @@ bool RegistrationRequestPDU::Process()
 		}
 		if (bReject) {
 			if (ep && bSendReply) {
-                PTRACE(1, "RAS\tWarning: Possible endpointId collission, security attack or IP change");
+                PTRACE(1, "RAS\tWarning: Possible endpointId collision, security attack or IP change");
                 if (Toolkit::AsBool(GkConfig()->GetString(RRQFeatureSection, "SupportDynamicIP", "0"))) {
-                    PTRACE(1, "RAS\tDynamic IP?  Removing existing Endpoint record and force reregistration. Disconnecting calls.");
+                    PTRACE(1, "RAS\tDynamic IP?  Removing existing endpoint record and force re-registration. Disconnecting calls.");
                     while (callptr call = CallTbl->FindCallRec(ep)) {
                         call->Disconnect();
                         CallTbl->RemoveCall(call);
@@ -2391,7 +2391,7 @@ bool RegistrationRequestPDU::Process()
 				}
 			}
 		}
-		//validaddress = PIPSocket::IsLocalHost(rx_addr.AsString());
+		//valid address = PIPSocket::IsLocalHost(rx_addr.AsString());
 		if (!bSendReply) { // don't check forwarded RRQ
 			validaddress = true;
 		} else if (!validaddress && !IsLoopback(ipaddr)) { // do not allow nated from loopback
@@ -2426,7 +2426,7 @@ bool RegistrationRequestPDU::Process()
 //		  return BuildRRJ(H225_RegistrationRejectReason::e_invalidRASAddress);
 
 		endptr ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
-		// endpoint exists, but has different IP or port - this could be a new registration from a NATed endpoint where the fiewall close the pinhole
+		// endpoint exists, but has different IP or port - this could be a new registration from a NATed endpoint where the firewall close the pinhole
 		if (ep && ep->GetCallSignalAddress() != SignalAddr
             && !GkConfig()->GetBoolean("RasSrv::RRQFeatures", "OverwriteEPOnSameAddress", false) ) {
             PTRACE(1, "RAS\tNew registration with existing endpointID, but different IP: oldIP=" << AsDotString(ep->GetCallSignalAddress()) << " newIP=" << AsDotString(SignalAddr));
