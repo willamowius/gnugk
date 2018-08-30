@@ -28,7 +28,7 @@ public:
 	enum Constants
 	{
 		/// events recognized by this module
-		StatusAcctEvents = AcctStart | AcctStop | AcctUpdate | AcctConnect | AcctAlert | AcctRegister | AcctUnregister
+		StatusAcctEvents = AcctStart | AcctStop | AcctUpdate | AcctConnect | AcctAlert | AcctRegister | AcctUnregister | AcctReject | AcctMediaFail
 	};
 
 	StatusAcct(
@@ -78,6 +78,10 @@ private:
 	PString m_registerEvent;
 	/// parametrized string for the endpoint un-register event
 	PString m_unregisterEvent;
+	/// parametrized string for the call reject event
+	PString m_rejectEvent;
+	/// parametrized string for the call mediafail event
+	PString m_mediaFailEvent;
 	/// timestamp formatting string
 	PString m_timestampFormat;
 };

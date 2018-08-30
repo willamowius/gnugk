@@ -377,6 +377,8 @@ const char * KnownConfigEntries[][2] = {
 	{ "HttpAcct", "AlertURL" },
 	{ "HttpAcct", "ConnectBody" },
 	{ "HttpAcct", "ConnectURL" },
+	{ "HttpAcct", "MediaFailBody" },
+	{ "HttpAcct", "MediaFailURL" },
 	{ "HttpAcct", "Method" },
 	{ "HttpAcct", "OffBody" },
 	{ "HttpAcct", "OffURL" },
@@ -453,6 +455,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Proxy", "InternalNetwork" },
 #ifdef HAS_H46018
 	{ "Proxy", "LegacyPortDetection" },
+	{ "Proxy", "PortDetectionTimeout" },
 #endif
 	{ "Proxy", "ProxyAlways" },
 	{ "Proxy", "ProxyForNAT" },

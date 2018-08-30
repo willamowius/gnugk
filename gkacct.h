@@ -73,6 +73,7 @@ public:
 		AcctRegister = 0x0100, /// endpoint registered
 		AcctUnregister = 0x0200, /// endpoint unregistered
 		AcctReject = 0x0400, /// rejected calls (ARJ)
+		AcctMediaFail = 0x0800, /// media failure
 		AcctAll = -1,
 		AcctNone = 0
 	};

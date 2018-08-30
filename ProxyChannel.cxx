@@ -1291,6 +1291,7 @@ public:
 	bool IsCaller() const { return m_isCaller; }
 	bool IsH245Master() const { return m_isH245Master; }
     bool IsRTPInactive(short session) const;
+    void AbortLogicalChannel(short session);
 
 
 protected:
@@ -9200,6 +9201,14 @@ bool CallSignalSocket::IsRTPInactive(short session) const
     }
 }
 
+void CallSignalSocket::AbortLogicalChannel(short session)
+{
+    H245ProxyHandler * proxyhandler = dynamic_cast<H245ProxyHandler *>(m_h245handler);
+    if (proxyhandler) {
+        proxyhandler->AbortLogicalChannel(session);
+    }
+}
+
 
 // class H245Handler
 H245Handler::H245Handler(const PIPSocket::Address & local, const PIPSocket::Address & remote, const PIPSocket::Address & masq)
@@ -11088,6 +11097,9 @@ UDPProxySocket::UDPProxySocket(const char *t, PINDEX no)
     m_lastPacketFromForwardSrc = time(NULL);
     m_lastPacketFromReverseSrc = time(NULL);
     m_inactivityTimeout = GkConfig()->GetInteger(ProxySection, "RTPInactivityTimeout", 300);    // 300 sec = 5 min
+    m_portDetectionTimeout = GkConfig()->GetInteger(ProxySection, "PortDetectionTimeout", -1);    // in seconds, -1 is off
+    m_firstMedia = 0;
+    m_mediaFailDetected = false;
 }
 
 UDPProxySocket::~UDPProxySocket()
@@ -11582,7 +11594,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 					}
 				}
 				if (!IsSet(m_multiplexDestination_A) && !IsSet(m_multiplexDestination_B)) {
-					// set if only one side sends multiplexex to GnuGk
+					// set if only one side sends multiplexed to GnuGk
 					H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(m_callNo, m_sessionID);
 					if ((h46019chan.m_multiplexID_fromA != INVALID_MULTIPLEX_ID) && (h46019chan.m_multiplexID_fromB == INVALID_MULTIPLEX_ID)) {
 						if (h46019chan.IsValid()) {
@@ -11821,6 +11833,22 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			PTRACE(6, Type() << "\tForward from " << AsString(fromIP, fromPort)
 				<< " blocked, remote socket (" << AsString(fDestIP, fDestPort)
 				<< ") not yet known or ready");
+
+            PTRACE(0, "JW Check1: rtp=" << isRTP << " ignore=" << m_ignoreSignaledIPs << " timeout=" << m_portDetectionTimeout);
+            if (isRTP && m_ignoreSignaledIPs && m_portDetectionTimeout > 0) {
+                time_t now = time(NULL);
+                PTRACE(0, "JW checking firstmedia=" << m_firstMedia << " now=" << now << " diff=" << (now - m_firstMedia));
+                if (m_firstMedia == 0)
+                    m_firstMedia = now;
+                // TODO: add check if we were able to send packets in the mean time ?
+                if (!m_mediaFailDetected && (now - m_firstMedia >= m_portDetectionTimeout)) {
+                    PTRACE(0, "JW media fail");
+                    m_mediaFailDetected = true;
+                    (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctMediaFail, *m_call); // plus string "H.239" ?
+                    //(*m_call)->AbortLogicalChannel(m_sessionID);
+                }
+            }
+
 			if (m_dontQueueRTP)
 				return NoData;
 		}
@@ -11843,6 +11871,22 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			PTRACE(6, Type() << "\tForward from " << AsString(fromIP, fromPort)
 				<< " blocked, remote socket (" << AsString(rDestIP, rDestPort)
 				<< ") not yet known or ready");
+
+            PTRACE(0, "JW Check2: rtp=" << isRTP << " ignore=" << m_ignoreSignaledIPs << " timeout=" << m_portDetectionTimeout);
+            if (isRTP && m_ignoreSignaledIPs && m_portDetectionTimeout > 0) {
+                time_t now = time(NULL);
+                PTRACE(0, "JW checking firstmedia=" << m_firstMedia << " now=" << now << " diff=" << (now - m_firstMedia));
+                if (m_firstMedia == 0)
+                    m_firstMedia = now;
+                // TODO: add check if we were able to send packets in the mean time ?
+                if (!m_mediaFailDetected && (now - m_firstMedia >= m_portDetectionTimeout)) {
+                    PTRACE(0, "JW media fail");
+                    m_mediaFailDetected = true;
+                    (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctMediaFail, *m_call); // plus string "H.239" ?
+                    //(*m_call)->AbortLogicalChannel(m_sessionID);
+                }
+            }
+
 			if (m_dontQueueRTP)
 				return NoData;
         }
@@ -14488,6 +14532,23 @@ bool H245ProxyHandler::IsRTPInactive(short session) const
         inactive = lc->IsRTPInactive();
     }
     return inactive;
+}
+
+void H245ProxyHandler::AbortLogicalChannel(short session)
+{
+    RTPLogicalChannel * lc = FindRTPLogicalChannelBySessionID(session);
+    if (lc) {
+        WORD flcn = lc->GetChannelNumber();
+/*
+        if (h245sock) {
+            PTRACE(4, "H245\tTo send (CallID: " << h245sock->GetCallIdentifierAsString() << "): " << h245msg);
+            h245sock->Send(h245msg);
+        } else {
+            CallSignalSocket * css = call->GetCallSignalSocketCalling();
+            css->SendTunneledH245(h245msg);
+        }
+*/
+    }
 }
 
 //void H245ProxyHandler::DumpChannels(const PString & msg, bool dumpPeer) const

@@ -105,6 +105,8 @@ int GkAcctLogger::GetEvents(const PStringArray & tokens) const
 			mask |= AcctOff;
 		else if (token *= "reject")
 			mask |= AcctReject;
+		else if (token *= "mediafail")
+			mask |= AcctMediaFail;
 	}
 
 	return mask;

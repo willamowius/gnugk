@@ -3,7 +3,7 @@
  *
  * accounting module for GNU Gatekeeper for the status port.
  *
- * Copyright (c) 2005-2016, Jan Willamowius
+ * Copyright (c) 2005-2018, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -34,6 +34,8 @@ StatusAcct::StatusAcct(const char* moduleName, const char* cfgSecName)
 	m_alertEvent = cfg->GetString(cfgSec, "AlertEvent", "CALL|Alert|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}");
 	m_registerEvent = cfg->GetString(cfgSec, "RegisterEvent", "EP|Register|%{endpoint-ip}:%{endpoint-port}|%{aliases}");
 	m_unregisterEvent = cfg->GetString(cfgSec, "UnregisterEvent", "EP|Unregister|%{endpoint-ip}:%{endpoint-port}|%{aliases}");
+	m_rejectEvent = cfg->GetString(cfgSec, "RejectEvent", "CALL|Reject|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}");
+	m_mediaFailEvent = cfg->GetString(cfgSec, "MediaFailEvent", "CALL|MediaFail|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}");
 }
 
 StatusAcct::~StatusAcct()
@@ -63,6 +65,10 @@ GkAcctLogger::Status StatusAcct::Log(GkAcctLogger::AcctEvent evt, const callptr 
 		eventTmpl = m_stopEvent;
 	} else if (evt == AcctAlert) {
 		eventTmpl = m_alertEvent;
+	} else if (evt == AcctReject) {
+		eventTmpl = m_rejectEvent;
+	} else if (evt == AcctMediaFail) {
+		eventTmpl = m_mediaFailEvent;
 	}
 
 	if (!eventTmpl.IsEmpty()) {		// don't send event if the template string is empty

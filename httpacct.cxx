@@ -57,6 +57,8 @@ HttpAcct::HttpAcct(const char* moduleName, const char* cfgSecName)
 	m_offBody = cfg->GetString(cfgSec, "OffBody", "");
 	m_rejectURL = cfg->GetString(cfgSec, "RejectURL", "");
 	m_rejectBody = cfg->GetString(cfgSec, "RejectBody", "");
+	m_mediaFailURL = cfg->GetString(cfgSec, "MediaFailURL", "");
+	m_mediaFailBody = cfg->GetString(cfgSec, "MediaFailBody", "");
 }
 
 HttpAcct::~HttpAcct()
@@ -101,6 +103,9 @@ GkAcctLogger::Status HttpAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & 
 	} else if (evt == AcctReject) {
 		eventURL = m_rejectURL;
 		eventBody = m_rejectBody;
+	} else if (evt == AcctMediaFail) {
+		eventURL = m_mediaFailURL;
+		eventBody = m_mediaFailBody;
 	}
 
 	if (eventURL.IsEmpty()) {

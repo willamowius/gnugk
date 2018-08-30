@@ -308,6 +308,9 @@ protected:
 	int m_inactivityTimeout;
 	time_t m_lastPacketFromForwardSrc;
 	time_t m_lastPacketFromReverseSrc;
+	int m_portDetectionTimeout;
+	time_t m_firstMedia;
+	bool m_mediaFailDetected;
 };
 
 #if H323_H450
@@ -433,6 +436,7 @@ public:
 	CallSignalSocket * GetRemote() const { return dynamic_cast<CallSignalSocket *>(remote); }
 
     bool IsRTPInactive(short session) const;
+    void AbortLogicalChannel(short session);
 
 protected:
 	void ForwardCall(FacilityMsg *msg);

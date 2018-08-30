@@ -28,7 +28,7 @@ public:
 	enum Constants
 	{
 		/// events recognized by this module
-		HttpAcctEvents = AcctStart | AcctStop | AcctUpdate | AcctConnect | AcctAlert | AcctRegister | AcctUnregister | AcctOn | AcctOff | AcctReject
+		HttpAcctEvents = AcctStart | AcctStop | AcctUpdate | AcctConnect | AcctAlert | AcctRegister | AcctUnregister | AcctOn | AcctOff | AcctReject | AcctMediaFail
 	};
 
 	HttpAcct(
@@ -89,6 +89,9 @@ private:
 	/// parametrized strings for the reject event
 	PString m_rejectURL;
 	PString m_rejectBody;
+	/// parametrized strings for the mediafail event
+	PString m_mediaFailURL;
+	PString m_mediaFailBody;
 	/// HTTP method: GET or POST
 	PString m_method;
 	/// timestamp formatting string

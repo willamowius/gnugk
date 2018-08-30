@@ -1451,6 +1451,7 @@ public:
 #endif
 
     bool IsRTPInactive(short session) const;
+    void AbortLogicalChannel(short session);
 
 private:
 	void SendDRQ();

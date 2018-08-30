@@ -5140,6 +5140,16 @@ bool CallRec::IsRTPInactive(short session) const
     }
 }
 
+void CallRec::AbortLogicalChannel(short session)
+{
+    if (m_callingSocket) {
+        m_callingSocket->AbortLogicalChannel(session);
+    }
+    if (m_calledSocket) {
+        m_calledSocket->AbortLogicalChannel(session);
+    }
+}
+
 /*
 bool CallRec::IsTimeout(
 	const time_t now,
