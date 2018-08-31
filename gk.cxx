@@ -819,7 +819,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "SQLPasswordAuth", "Username" },
 #endif
 	{ "StatusAcct", "ConnectEvent" },
+	{ "StatusAcct", "MediaFailEvent" },
 	{ "StatusAcct", "RegisterEvent" },
+	{ "StatusAcct", "RejectEvent" },
 	{ "StatusAcct", "StartEvent" },
 	{ "StatusAcct", "StopEvent" },
 	{ "StatusAcct", "TimestampFormat" },

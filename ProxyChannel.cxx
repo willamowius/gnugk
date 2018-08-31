@@ -1264,8 +1264,8 @@ public:
 	virtual ~H245ProxyHandler();
 
 	// override from class H245Handler
-	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &,callptr &);
-	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &,callptr &);
+	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &, callptr &);
+	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &, callptr &);
 
 	void SetHandler(ProxyHandler *);
 	H245ProxyHandler * GetPeer() const { return peer; }
@@ -1291,7 +1291,6 @@ public:
 	bool IsCaller() const { return m_isCaller; }
 	bool IsH245Master() const { return m_isH245Master; }
     bool IsRTPInactive(short session) const;
-    void AbortLogicalChannel(short session);
 
 
 protected:
@@ -1350,7 +1349,7 @@ protected:
 	bool m_usesH46026;
 	bool m_isCaller;
 	bool m_isH245Master;
-    bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPs in signalling, do full auto-detect
+    bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPs in signaling, do full auto-detect
     bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H.239 streams
     list<NetworkAddress> m_keepSignaledIPs;   // don't do auto-detect on this network
 };
@@ -9205,7 +9204,26 @@ void CallSignalSocket::AbortLogicalChannel(short session)
 {
     H245ProxyHandler * proxyhandler = dynamic_cast<H245ProxyHandler *>(m_h245handler);
     if (proxyhandler) {
-        proxyhandler->AbortLogicalChannel(session);
+        RTPLogicalChannel * lc = proxyhandler->FindRTPLogicalChannelBySessionID(session);
+        if (lc) {
+            WORD flcn = lc->GetChannelNumber();
+
+            H245_MultimediaSystemControlMessage h245msg;
+            h245msg.SetTag(H245_MultimediaSystemControlMessage::e_request);
+            H245_RequestMessage & h245req = h245msg;
+            h245req.SetTag(H245_RequestMessage::e_requestChannelClose);
+            H245_RequestChannelClose & requestClose = h245req;
+            requestClose.m_forwardLogicalChannelNumber = flcn;
+            requestClose.IncludeOptionalField(H245_RequestChannelClose::e_reason);
+            requestClose.m_reason.SetTag(H245_RequestChannelClose_reason::e_unknown);
+
+            if (m_h245socket) {
+                PTRACE(4, "H245\tTo send (CallID: " << GetCallIdentifierAsString() << "): " << h245msg);
+                m_h245socket->Send(h245msg);
+            } else {
+                SendTunneledH245(h245msg);
+            }
+        }
     }
 }
 
@@ -11834,18 +11852,15 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				<< " blocked, remote socket (" << AsString(fDestIP, fDestPort)
 				<< ") not yet known or ready");
 
-            PTRACE(0, "JW Check1: rtp=" << isRTP << " ignore=" << m_ignoreSignaledIPs << " timeout=" << m_portDetectionTimeout);
-            if (isRTP && m_ignoreSignaledIPs && m_portDetectionTimeout > 0) {
+            if (isRTP && m_ignoreSignaledIPs && m_portDetectionTimeout > 0 && !m_mediaFailDetected) {
                 time_t now = time(NULL);
-                PTRACE(0, "JW checking firstmedia=" << m_firstMedia << " now=" << now << " diff=" << (now - m_firstMedia));
                 if (m_firstMedia == 0)
                     m_firstMedia = now;
-                // TODO: add check if we were able to send packets in the mean time ?
-                if (!m_mediaFailDetected && (now - m_firstMedia >= m_portDetectionTimeout)) {
-                    PTRACE(0, "JW media fail");
+                if (now - m_firstMedia >= m_portDetectionTimeout) {
+                    PTRACE(1, "RTP\tError: Port detection failed for RTP session " << m_sessionID);
                     m_mediaFailDetected = true;
-                    (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctMediaFail, *m_call); // plus string "H.239" ?
-                    //(*m_call)->AbortLogicalChannel(m_sessionID);
+                    (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctMediaFail, *m_call);
+                    (*m_call)->AbortLogicalChannel(m_sessionID);
                 }
             }
 
@@ -11872,18 +11887,15 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				<< " blocked, remote socket (" << AsString(rDestIP, rDestPort)
 				<< ") not yet known or ready");
 
-            PTRACE(0, "JW Check2: rtp=" << isRTP << " ignore=" << m_ignoreSignaledIPs << " timeout=" << m_portDetectionTimeout);
-            if (isRTP && m_ignoreSignaledIPs && m_portDetectionTimeout > 0) {
+            if (isRTP && m_ignoreSignaledIPs && m_portDetectionTimeout > 0 && !m_mediaFailDetected) {
                 time_t now = time(NULL);
-                PTRACE(0, "JW checking firstmedia=" << m_firstMedia << " now=" << now << " diff=" << (now - m_firstMedia));
                 if (m_firstMedia == 0)
                     m_firstMedia = now;
-                // TODO: add check if we were able to send packets in the mean time ?
-                if (!m_mediaFailDetected && (now - m_firstMedia >= m_portDetectionTimeout)) {
-                    PTRACE(0, "JW media fail");
+                if (now - m_firstMedia >= m_portDetectionTimeout) {
+                    PTRACE(1, "RTP\tError: Port detection failed for RTP session " << m_sessionID);
                     m_mediaFailDetected = true;
-                    (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctMediaFail, *m_call); // plus string "H.239" ?
-                    //(*m_call)->AbortLogicalChannel(m_sessionID);
+                    (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctMediaFail, *m_call);
+                    (*m_call)->AbortLogicalChannel(m_sessionID);
                 }
             }
 
@@ -14532,23 +14544,6 @@ bool H245ProxyHandler::IsRTPInactive(short session) const
         inactive = lc->IsRTPInactive();
     }
     return inactive;
-}
-
-void H245ProxyHandler::AbortLogicalChannel(short session)
-{
-    RTPLogicalChannel * lc = FindRTPLogicalChannelBySessionID(session);
-    if (lc) {
-        WORD flcn = lc->GetChannelNumber();
-/*
-        if (h245sock) {
-            PTRACE(4, "H245\tTo send (CallID: " << h245sock->GetCallIdentifierAsString() << "): " << h245msg);
-            h245sock->Send(h245msg);
-        } else {
-            CallSignalSocket * css = call->GetCallSignalSocketCalling();
-            css->SendTunneledH245(h245msg);
-        }
-*/
-    }
 }
 
 //void H245ProxyHandler::DumpChannels(const PString & msg, bool dumpPeer) const

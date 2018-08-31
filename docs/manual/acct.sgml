@@ -23,7 +23,7 @@ acctmod=actions
  <acctmod> := FileAcct | RadAcct | SQLAcct | HttpAcct | AMQPAcct | StatusAcct | SyslogAcct | LuaAcct | RequireOneNet | CapacityControl | ...
  <actions> := <control>[;<event>,<event>,...]
  <control> := optional | required | sufficient | alternative
- <event>   := start | stop | alert | connect | update | register | unregister | on | off | reject
+ <event>   := start | stop | alert | connect | update | register | unregister | on | off | reject | mediafail
 </verb></tscreen>
 </descrip>
 The event list tells the gatekeeper which events should trigger logging
@@ -40,6 +40,7 @@ with the given accounting module (if an event type is supported by the module):
 <item><tt/unregister/ - an endpoint has unregistered
 <item><tt/stop/ - a call has been disconnected (removed from the gatekeeper call table)
 <item><tt/reject/ - a call has been rejected (ARJ) before becomming a true call by GnuGk's terms
+<item><tt/mediafail/ - port detection in a channel of this has failed
 <item><tt/on/ - the gatekeeper has been started
 <item><tt/off/ - the gatekeeper has been shut down
 </itemize>
@@ -927,6 +928,16 @@ Default: <tt>CALL|Connect|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port
 <p>
 Defines the event when a call is connected. The syntax and parameters are the same as for <tt/StartEvent/.
 
+<item><tt/RejectEvent=CALL|Reject|%{CallId}/<newline>
+Default: <tt>CALL|Reject|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+Defines the event when a call is rejected. The syntax and parameters are the same as for <tt/StartEvent/.
+
+<item><tt/MediaFailEvent=CALL|MediaFail|%{CallId}/<newline>
+Default: <tt>CALL|MediaFail|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+Defines the message for the MediaFail event. The syntax and parameters are the same as for <tt/StartEvent/.
+
 <item><tt/RegisterEvent=EP|Register|%{endpoint-ip}/<newline>
 Default: <tt>EP|Register|%{endpoint-ip}:%{endpoint-port}|%{aliases}</tt><newline>
 <p>
@@ -1107,6 +1118,16 @@ The URL to fetch for call reject events.
 Default: <tt>empty</tt>
 <p>
 The HTTP body for call reject events to use with POST requests.
+
+<item><tt>MediaFailURL=http://example.com/media-fail</tt><newline>
+Default: <tt>N/A</tt>
+<p>
+The URL to fetch for MediaFail events.
+
+<item><tt/MediaFailBody=gatekeeper=%g/<newline>
+Default: <tt>empty</tt>
+<p>
+The HTTP body for MediaFail events to use with POST requests.
 
 <item><tt>RegisterURL=http://example.com/ep-register</tt><newline>
 Default: <tt>N/A</tt>

@@ -1,7 +1,7 @@
 Changes from 5.0 to 5.1
 =======================
 - new accounting event MediaFail
-- new switch: [Proxy] PortDetectionTimeout=
+- new switch: [Proxy] PortDetectionTimeout=n
 - public IP detection for Google Cloud
 
 

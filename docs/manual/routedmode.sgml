@@ -978,6 +978,16 @@ Default: <tt>n/a</tt><newline>
 When IgnoreSignaledIPs is active, don't ignore IPs from these networks
 (eg. because they don't actively send an RTP stream and only provide a loopback).
 
+<item><tt>PortDetectionTimeout=5</tt><newline>
+Default: <tt>-1</tt><newline>
+<p>
+When using port detection with IgnoreSignaledIPs=1, this switch lets GnuGk consider
+the port detection as failed, if no packets could be forwarded within the first
+n seconds after the channel was opened.
+GnuGk will then send a CloseChannelRequest to both sides to let them close their channel
+and fire a MediaFail accounting event.
+A value &lt;= zero disables the detection.
+
 <item><tt>UpdateCalledPartyToH225Destination=1</tt><newline>
 Default: <tt>0</tt><newline>
 <p>
