@@ -3280,7 +3280,8 @@ bool Toolkit::RewriteE164(H225_AliasAddress & alias)
 {
 	if ((alias.GetTag() != H225_AliasAddress::e_dialedDigits) &&
 		(alias.GetTag() != H225_AliasAddress::e_h323_ID) &&
-		(alias.GetTag() != H225_AliasAddress::e_url_ID)) {
+		(alias.GetTag() != H225_AliasAddress::e_url_ID) &&
+		(alias.GetTag() != H225_AliasAddress::e_email_ID)) {
 		if (alias.GetTag() != H225_AliasAddress::e_partyNumber)
 			return false;
 		H225_PartyNumber & partyNumber = alias;
