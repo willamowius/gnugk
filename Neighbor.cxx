@@ -1149,7 +1149,7 @@ bool GnuGK::IsAcceptable(RasMsg *ras) const
 
 
 // class CiscoGK
-bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const AdmissionRequest &req)
+bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & req)
 {
 	const H225_AdmissionRequest &arq = req.GetRequest();
 	Cisco_LRQnonStandardInfo nonStandardData;
@@ -1185,7 +1185,7 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const AdmissionRequest &re
 }
 
 // class CiscoGK
-bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const LocationRequest & /*req*/)
+bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq, const LocationRequest & /*req*/)
 {
 	if (lrq.HasOptionalField(H225_LocationRequest::e_nonStandardData)
 			&& lrq.m_nonStandardData.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
@@ -1224,7 +1224,7 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const LocationRequest & /*
 }
 
 // class CiscoGK
-bool CiscoGK::OnSendingLRQ(H225_LocationRequest &lrq, const SetupRequest &req)
+bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & req)
 {
 	const Q931 &setup = req.GetWrapper()->GetQ931();
 	const H225_Setup_UUIE &setupBody = req.GetRequest();
@@ -1691,7 +1691,7 @@ PString NeighborList::GetNeighborIdBySigAdr(const H225_TransportAddress & sigAd)
 {
 	PIPSocket::Address ipaddr;
 
-	// Get the Neigbor IP address from the transport address
+	// Get the Neighbor IP address from the transport address
 	if (!GetIPFromTransportAddr(sigAd, ipaddr))
 	{
 		return PString::Empty();
@@ -1702,7 +1702,7 @@ PString NeighborList::GetNeighborIdBySigAdr(const H225_TransportAddress & sigAd)
 
 PString NeighborList::GetNeighborIdBySigAdr(const PIPSocket::Address & sigAd)
 {
-	// Attempt to find the neigbor in the list
+	// Attempt to find the neighbor in the list
 	List::iterator findNeighbor = find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsFrom), &sigAd));
 	if (findNeighbor == m_neighbors.end())
 	{
@@ -1713,7 +1713,7 @@ PString NeighborList::GetNeighborIdBySigAdr(const PIPSocket::Address & sigAd)
 
 PString NeighborList::GetNeighborGkIdBySigAdr(const PIPSocket::Address & sigAd)
 {
-	// Attempt to find the neigbor in the list
+	// Attempt to find the neighbor in the list
 	List::iterator findNeighbor = find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsFrom), &sigAd));
 
 	if (findNeighbor == m_neighbors.end())
@@ -1726,7 +1726,7 @@ PString NeighborList::GetNeighborGkIdBySigAdr(const PIPSocket::Address & sigAd)
 
 bool NeighborList::GetNeighborTLSBySigAdr(const PIPSocket::Address & sigAd)
 {
-	// Attempt to find the neigbor in the list
+	// Attempt to find the neighbor in the list
 	List::iterator findNeighbor = find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsFrom), &sigAd));
 	if (findNeighbor == m_neighbors.end())
 	{
@@ -1739,7 +1739,7 @@ PString NeighborList::GetNeighborGkIdBySigAdr(const H225_TransportAddress & sigA
 {
 	PIPSocket::Address ipaddr;
 
-	// Get the Neigbor IP address from the transport address
+	// Get the Neighbor IP address from the transport address
 	if (!GetIPFromTransportAddr(sigAd, ipaddr))
 	{
 		return PString::Empty();
@@ -1751,7 +1751,7 @@ bool NeighborList::GetNeighborTLSBySigAdr(const H225_TransportAddress & sigAd)
 {
 	PIPSocket::Address ipaddr;
 
-	// Get the Neigbor IP address from the transport address
+	// Get the Neighbor IP address from the transport address
 	if (!GetIPFromTransportAddr(sigAd, ipaddr))
 	{
 		return false;

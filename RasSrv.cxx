@@ -1257,7 +1257,7 @@ void RasServer::ForwardRasMsg(H225_RasMessage & msg)
 
 	// ATS 2004-01-16 Forward messages to alternates using our own sequence numbers
 	// instead of using those supplied by the originator of the message, this will
-	// result in clashes in RasMSG::EqualTo() by the receiver of this message
+	// result in clashes in RasMsg::EqualTo() by the receiver of this message
 
 	switch (msg.GetTag())
 	{
@@ -4542,7 +4542,7 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 			// set interval
 			if (from_neighbor && neighbor_authenticated) {
 				from_neighbor->SetH46018Server(true);	// remember to use H.460.18 with this neighbor
-				// keepAlive from a neigbor, send out a SCR with a keepAliveInterval
+				// keepAlive from a neighbor, send out a SCR with a keepAliveInterval
 				H460_FeatureStd feat = H460_FeatureStd(18);
 				scr.IncludeOptionalField(H225_ServiceControlResponse::e_featureSet);
 				scr.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);

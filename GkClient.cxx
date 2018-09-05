@@ -1912,7 +1912,7 @@ bool GkClient::OnSendingARQ(H225_AdmissionRequest & arq, Routing::AdmissionReque
 	return true;
 }
 
-bool GkClient::OnSendingLRQ(H225_LocationRequest &lrq, Routing::LocationRequest & /*req*/)
+bool GkClient::OnSendingLRQ(H225_LocationRequest & lrq, Routing::LocationRequest & /*req*/)
 {
 	if (m_parentVendor == ParentVendor_Cisco) {
 		Cisco_LRQnonStandardInfo nonStandardData;
