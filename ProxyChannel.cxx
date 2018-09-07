@@ -1327,7 +1327,7 @@ protected:
 	RTPLogicalChannel *CreateFastStartLogicalChannel(WORD sessionId, RTPSessionTypes sessionType);
 	T120LogicalChannel *CreateT120LogicalChannel(WORD sessionId);
 	bool RemoveLogicalChannel(WORD flcn);
-	//void DumpChannels(const PString & msg, bool dumpPeer = true) const;
+	void DumpChannels(const PString & msg, bool dumpPeer = true) const;
 
 	std::map<WORD, LogicalChannel *> logicalChannels;
 	std::map<WORD, RTPLogicalChannel *> sessionIDs;
@@ -14546,34 +14546,38 @@ bool H245ProxyHandler::IsRTPInactive(short session) const
     return inactive;
 }
 
-//void H245ProxyHandler::DumpChannels(const PString & msg, bool dumpPeer) const
-//{
-//	if (PTrace::CanTrace(7)) {
-//		PTRACE(7, "JW === " << msg << " === DumpChannels Begin === for handler=" << this);
-//        for (const_iterator iter = logicalChannels.begin(); iter != logicalChannels.end() ; ++iter) {
-//            PTRACE(7, "JW LogicalChannel: flcn=" << iter->first << " port=" << iter->second->GetPort() << " this=" << iter->second);
-//        }
-//        for (const_siterator iter = sessionIDs.begin(); iter != sessionIDs.end() ; ++iter) {
-//            PTRACE(7, "JW RTPChannel: session=" << iter->first << " port=" << iter->second->GetPort() << " type=" << iter->second->GetType() << " this=" << iter->second);
-//        }
-//		PTRACE(7, "JW =================== DumpChannels End ====================");
-//	}
-//	if (peer && dumpPeer) {
-//        peer->DumpChannels(msg + " (peer)", false);
-//	}
-//}
+void H245ProxyHandler::DumpChannels(const PString & msg, bool dumpPeer) const
+{
+	if (PTrace::CanTrace(7)) {
+		PTRACE(7, "JW === " << msg << " === DumpChannels Begin === for handler=" << this);
+        for (const_iterator iter = logicalChannels.begin(); iter != logicalChannels.end() ; ++iter) {
+            PTRACE(7, "JW LogicalChannel: flcn=" << iter->first << " port=" << iter->second->GetPort() << " this=" << iter->second);
+        }
+        for (const_siterator iter = sessionIDs.begin(); iter != sessionIDs.end() ; ++iter) {
+            PTRACE(7, "JW RTPChannel: session=" << iter->first << " port=" << iter->second->GetPort() << " type=" << iter->second->GetType() << " this=" << iter->second);
+        }
+		PTRACE(7, "JW =================== DumpChannels End ====================");
+	}
+	if (peer && dumpPeer) {
+        peer->DumpChannels(msg + " (peer)", false);
+	}
+}
 
 RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn, RTPSessionTypes sessionType)
 {
+    DumpChannels("CreateRTPLogicalChannel id=" + PString(id) + " type=" + PString(sessionType), true);
 	if (FindLogicalChannel(flcn)) {
 		PTRACE(3, "Proxy\tRTP logical channel " << flcn << " already exist?");
 		return NULL;
 	}
 	RTPLogicalChannel * lc = peer->FindRTPLogicalChannelBySessionID(id);
 
-    if (!lc && ((id == 0) || (id > 2)) && m_ignoreSignaledPrivateH239IPs) {
+    if (!lc && ((id == 0) || (id > 2))) {
         // look for channel with same media type
         lc = peer->FindRTPLogicalChannelBySessionType(sessionType);
+        if (lc) {
+            PTRACE(0, "JW FOUND channel!!!");
+        }
     }
 
 	if (lc && !lc->IsAttached()) {

@@ -1,5 +1,6 @@
 Changes from 5.0 to 5.1
 =======================
+- BUGFIX(ProxyChannel.cxx) better OLC sessionType matching (fix for Yealink H.239)
 - BUGFIX(Toolkit.cxx) fix handling aliases of type email_ID
 - new accounting event MediaFail
 - new switch: [Proxy] PortDetectionTimeout=n
