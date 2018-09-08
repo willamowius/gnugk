@@ -68,6 +68,10 @@
 #include <sys/uio.h>
 #endif
 
+#ifdef P_SOLARIS
+#include <math.h> // needed for ceil() on Solaris 11
+#endif
+
 using namespace std;
 using Routing::Route;
 
