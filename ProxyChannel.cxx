@@ -14569,7 +14569,7 @@ void H245ProxyHandler::DumpChannels(const PString & msg, bool dumpPeer) const
 
 RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn, RTPSessionTypes sessionType)
 {
-    DumpChannels("CreateRTPLogicalChannel id=" + PString(id) + " type=" + PString(sessionType), true);
+    //DumpChannels("CreateRTPLogicalChannel id=" + PString(id) + " type=" + PString(sessionType), true);
 	if (FindLogicalChannel(flcn)) {
 		PTRACE(3, "Proxy\tRTP logical channel " << flcn << " already exist?");
 		return NULL;
@@ -14579,9 +14579,6 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
     if (!lc && ((id == 0) || (id > 2))) {
         // look for channel with same media type
         lc = peer->FindRTPLogicalChannelBySessionType(sessionType);
-        if (lc) {
-            PTRACE(0, "JW FOUND channel!!!");
-        }
     }
 
 	if (lc && !lc->IsAttached()) {
