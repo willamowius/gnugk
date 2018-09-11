@@ -5856,14 +5856,15 @@ if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
 #define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
 _ACEOF
  HAS_LIBRABBITMQ=1
+else
+  HAS_LIBRABBITMQ=0
 fi
 
 done
 
 fi
 
-if test "${HAS_LIBRABBITMQ:-unset}" != "unset" ; then
-	HAS_LIBRABBITMQ=1
+if test "x${HAS_LIBRABBITMQ}" != "x0" ; then
 	$as_echo "#define HAS_LIBRABBITMQ 1" >>confdefs.h
 
 	STDCCFLAGS="-DHAS_LIBRABBITMQ=1 $STDCCFLAGS"
@@ -5871,7 +5872,6 @@ if test "${HAS_LIBRABBITMQ:-unset}" != "unset" ; then
 	echo "RabbitMQ support enabled"
 else
     echo "RabbitMQ support disabled (need >= 0.7)"
-    HAS_LIBRABBITMQ=0
 fi
 
 
