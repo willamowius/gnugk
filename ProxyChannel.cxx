@@ -2547,11 +2547,13 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		return m_result;
 	}
 
+#if (H323PLUS_VER >= 1268)
 	if (m_call && m_call->IsCallRefFixup()) {
         PTRACE(3, "CallRefFixup: Set IsFromDestination=" << !q931pdu->IsFromDestination());
         q931pdu->SetFromDestination(!q931pdu->IsFromDestination());
         msg->SetChanged();
 	}
+#endif
 
 	if (msg->GetQ931().HasIE(Q931::DisplayIE)) {
 		PString newDisplayIE;
