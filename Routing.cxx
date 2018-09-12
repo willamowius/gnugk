@@ -922,7 +922,7 @@ bool DNSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 
 
 VirtualQueue::VirtualQueue()
-	: m_active(false), m_requestTimeout(DEFAULT_ROUTE_REQUEST_TIMEOUT*1000)
+	: m_active(false), m_requestTimeout(DEFAULT_ROUTE_REQUEST_TIMEOUT * 1000)
 {
 }
 
@@ -954,10 +954,8 @@ void VirtualQueue::OnReload()
 
 	m_requestTimeout = GkConfig()->GetInteger(
 		CTIsection,
-		GkConfig()->HasKey(CTIsection, "RequestTimeout") ? "RequestTimeout" : "CTI_Timeout",
-		DEFAULT_ROUTE_REQUEST_TIMEOUT
-		) * 1000;
-	m_requestTimeout = PMAX((long)100,m_requestTimeout);	// min wait: 100 msec
+		GkConfig()->HasKey(CTIsection, "RequestTimeout") ? "RequestTimeout" : "CTI_Timeout", DEFAULT_ROUTE_REQUEST_TIMEOUT) * 1000;
+	m_requestTimeout = PMAX((long)100, m_requestTimeout);	// min wait: 100 msec
 
 	m_active = false;
 
