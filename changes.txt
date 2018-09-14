@@ -1,5 +1,6 @@
 Changes from 5.0 to 5.1
 =======================
+- BUGFIX(ProxyChannel.cxx) don't include 'bearer service changed' in keep-alive Notify
 - BUGFIX(ProxyChannel.cxx) fix building Status and StatusInquiry keep-alives
 - BUGFIX(configure.in) fix check for librabbitmq
 - BUGFIX(ProxyChannel.cxx) Solaris 11 compile fix

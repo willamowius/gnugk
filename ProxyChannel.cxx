@@ -2520,7 +2520,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
         if ((msg->GetQ931().HasIE(Q931::DisplayIE) || msg->GetQ931().HasIE(Q931::BearerCapabilityIE)) && GetRemote()) {
             Q931 q931;
 			H225_H323_UserInformation uuie;
-            BuildNotifyPDU(q931, true);
+            BuildNotifyPDU(q931, true, 0x82); // bearer service changed
             GetUUIE(q931, uuie);
             if (msg->GetQ931().HasIE(Q931::DisplayIE)) {
                 q931.SetIE(Q931::DisplayIE, msg->GetQ931().GetIE(Q931::DisplayIE));
@@ -8238,7 +8238,7 @@ void CallSignalSocket::BuildProgressPDU(Q931 & ProgressPDU, PBoolean fromDestina
 	SetUUIE(ProgressPDU, signal);
 }
 
-void CallSignalSocket::BuildNotifyPDU(Q931 & NotifyPDU, PBoolean fromDestination)
+void CallSignalSocket::BuildNotifyPDU(Q931 & NotifyPDU, PBoolean fromDestination, int indication)
 {
 	H225_H323_UserInformation signal;
 	H225_H323_UU_PDU_h323_message_body & body = signal.m_h323_uu_pdu.m_h323_message_body;
@@ -8250,10 +8250,12 @@ void CallSignalSocket::BuildNotifyPDU(Q931 & NotifyPDU, PBoolean fromDestination
 	}
 	NotifyPDU.BuildNotify(m_crv, fromDestination);
 	// H.225.0 clause 7.4.2 says that a Notify must include a NotificationIndicationIE (0x27)
-	PBYTEArray NotificationIndicatonIE;
-	NotificationIndicatonIE.SetSize(1);
-	NotificationIndicatonIE[0] = 0x82;  // bearer service changed
-    NotifyPDU.SetIE((Q931::InformationElementCodes)0x27, NotificationIndicatonIE);
+	if (indication > 0) {
+		PBYTEArray NotificationIndicatonIE;
+		NotificationIndicatonIE.SetSize(1);
+		NotificationIndicatonIE[0] = indication;
+    	NotifyPDU.SetIE((Q931::InformationElementCodes)0x27, NotificationIndicatonIE);
+	}
 	SetUUIE(NotifyPDU, signal);
 }
 

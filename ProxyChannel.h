@@ -359,7 +359,7 @@ public:
 	PString GetCallIdentifierAsString() const { return m_call ? AsString(m_call->GetCallIdentifier()) : "unknown"; }
 	void BuildFacilityPDU(Q931 &, int, const PObject * = NULL, bool h46017 = false);
 	void BuildProgressPDU(Q931 &, PBoolean fromDestination);
-	void BuildNotifyPDU(Q931 &, PBoolean fromDestination);
+	void BuildNotifyPDU(Q931 &, PBoolean fromDestination, int indication = 0);
 	void BuildStatusPDU(Q931 &, PBoolean fromDestination);
 	void BuildStatusInquiryPDU(Q931 &, PBoolean fromDestination);
 	void BuildInformationPDU(Q931 &, PBoolean fromDestination);
