@@ -8267,7 +8267,7 @@ void CallSignalSocket::BuildStatusPDU(Q931 & StatusPDU, PBoolean fromDestination
 	if (m_call) {
 		uuie.m_callIdentifier = m_call->GetCallIdentifier();
 	}
-	StatusPDU.BuildNotify(m_crv, fromDestination);
+	StatusPDU.BuildStatus(m_crv, fromDestination);
 	SetUUIE(StatusPDU, signal);
 }
 
@@ -8281,7 +8281,7 @@ void CallSignalSocket::BuildStatusInquiryPDU(Q931 & StatusInquiryPDU, PBoolean f
 	if (m_call) {
 		uuie.m_callIdentifier = m_call->GetCallIdentifier();
 	}
-	StatusInquiryPDU.BuildNotify(m_crv, fromDestination);
+	StatusInquiryPDU.BuildStatusEnquiry(m_crv, fromDestination);
 	SetUUIE(StatusInquiryPDU, signal);
 }
 
