@@ -2,7 +2,7 @@
 //
 // config.h PWLib/PTLib and H323Plus compatibility header
 //
-// Copyright (c) 2006-2016, Jan Willamowius
+// Copyright (c) 2006-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -289,7 +289,7 @@
     #define HAS_H2351_CONFIG 1
 #endif
 
-#if (H323PLUS_VER >= 1270 && defined(P_SSL))
+#if (H323PLUS_VER >= 1270 && defined(H323_H235))
     // DES_ECB code uses new OpenSSL 1.1 code in H323Plus
     #define HAS_DES_ECB 1
 #endif
