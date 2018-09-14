@@ -1101,16 +1101,14 @@ be able to see their true IPs. Also DNS lookups may be slow, so this check is di
 <item><tt/RequireRemoteCertificate=1/<newline>
 Default: <tt>1</tt><newline>
 <p>
-WARNING: USE SWITCH WITH CAUTION. It is highly recommended that TLS be established between 2 parties that both authenticate each other via 
+It is recommended that TLS be established between 2 parties that both authenticate each other via 
 digital certificates. However there are use cases where generation and distribution of certificates to remote/distant endpoints becomes 
-difficult or impossible. This switch when set to 0 will only authenticate TLS connections that the gatekeeper initiates and NOT ones it receives. 
+difficult or impossible. This switch when set to 0 will only authenticate TLS connections that the gatekeeper initiates and NOT those it receives. 
 For this reason it should ONLY be used in a gatekeeper environment where other security is present such as defining explicit Neighbors in Neighbors policy.
 For Endpoints it should ONLY be used with trusted endpoints and in conjunction with H.460.17 (recommended) and .18 where the endpoint always initiates 
 the TLS connection and can vertify the certificate of the gatekeeper. If H.460.18 is used it is highly recommended to set [RoutedMode]NATStdMin=18 
 to ensure all endpoints MUST support H.460.18.
 <p>
-This switch is only available if GnuGk is compiled with --eanble-weaktls and might be removed from future versions.
-
 </itemize>
 
 <sect2>Generating keys and certificates with OpenSSL
@@ -1125,7 +1123,7 @@ Set you own CA with the CAFile= switch and leave CADir= unset.
 
 To follow the step-by-step instructions, you need a definition file for your CA, called root.cnf and one for the server called server.cnf (see below).
 While following these steps, you will be asked a few times for the passphrase for the generated files.
-You should use the same for all of them and add it to your GnbuGk config with the Passphrase= switch.
+You should use the same for all of them and add it to your GnuGk config with the Passphrase= switch.
 
 First, generate your CA and self-sign it:
 <tscreen><verb>

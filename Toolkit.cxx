@@ -2341,23 +2341,26 @@ void Toolkit::InitOpenSSL()
 
 void apps_ssl_info_callback(const SSL * s, int where, int ret)
 {
-	const char * str = NULL;
+	const char * funcname = NULL;
 	int w = where & ~SSL_ST_MASK;
 
-	if (w & SSL_ST_CONNECT) str = "SSL_connect";
-	else if (w & SSL_ST_ACCEPT) str = "SSL_accept";
-	else str = "undefined";
+	if (w & SSL_ST_CONNECT)
+	    funcname = "SSL_connect";
+	else if (w & SSL_ST_ACCEPT)
+	    funcname = "SSL_accept";
+	else
+	    funcname = "unknown_function";
 
 	if (where & SSL_CB_LOOP) {
-		PTRACE(5, "TLS\t" << str << ": " << SSL_state_string_long(s));
+		PTRACE(6, "TLS\t" << funcname << ": " << SSL_state_string_long(s));
 	} else if (where & SSL_CB_ALERT) {
-		str = (where & SSL_CB_READ)?"read":"write";
-		PTRACE(5, "TLS\tSSL3 alert " <<	str << ": " << SSL_alert_type_string_long(ret) << ":" << SSL_alert_desc_string_long(ret));
+		funcname = (where & SSL_CB_READ) ? "read" : "write";
+		PTRACE(5, "TLS\tSSL3 alert " <<	funcname << ": " << SSL_alert_type_string_long(ret) << ": " << SSL_alert_desc_string_long(ret));
 	} else if (where & SSL_CB_EXIT) {
 		if (ret == 0)
-			PTRACE(5, str << ":failed in " << SSL_state_string_long(s));
+			PTRACE(5, funcname << ": failed in " << SSL_state_string_long(s));
 		else if (ret < 0) {
-			//PTRACE(5, "TLS\t" << str << ": error in " << SSL_state_string_long(s));	// huge volume of messages when using async sockets
+			//PTRACE(5, "TLS\t" << funcname << ": error in " << SSL_state_string_long(s));	// huge volume of messages when using async sockets
 		}
 	}
 }
