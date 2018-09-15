@@ -47,11 +47,9 @@ See section <ref id="commandline" name="Command Line Options"> for details on th
 
 <sect2>Compiling the Gatekeeper
 <p>
-<bf>NOTE:</bf>  you must use GCC 3.3.x or later.
-
 You are strongly encouraged to execute <tt/make debugdepend/ or <tt/make optdepend/
 in the gatekeeper directory before starting actual compilation - these commands
-build appropriate dependency lists, so any CVS updates to the source code will force
+build appropriate dependency lists, so any updates to the source code will force
 all affected files to get recompiled and will prevent the resulting binary from being compiled
 with a mix of old and updated headers.
 
