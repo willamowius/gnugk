@@ -88,7 +88,7 @@ Windows
 =======
 
 Search Knowledge Base for article ID 120642:
-http://support.microsoft.com/kb/120642/EN-US
+https://web.archive.org/web/20140904162603/http://support.microsoft.com/kb/120642/EN-US
 
 Basically, you need to tweak some registry entries under
 HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters
