@@ -34,7 +34,6 @@ class MulticastListener;
 class CallSignalListener;
 class TLSCallSignalListener;
 class StatusListener;
-class MultiplexRTPListener;
 class RasServer;
 class CallSignalSocket;
 
