@@ -2493,7 +2493,7 @@ bool Toolkit::MatchHostCert(SSL * ssl, PIPSocket::Address addr)
 		for (int i = 0; i < sk_GENERAL_NAME_num(altnames); i++) {
 			GENERAL_NAME * gn = sk_GENERAL_NAME_value(altnames, i);
 			if (gn && (gn->type == GEN_DNS)) {
-				char * dns = (char *)ASN1_STRING_data(gn->d.ia5);
+				char * dns = (char *)ASN1_STRING_data(gn->d.ia5); // TODO: ASN1_STRING_data is deprecated in OpenSSL 1.1
 				if (dns) {
 					PTRACE(5, "TLS\tChecking Certificate DNS " << dns);
 					if (::AsString(addr) == dns) {
