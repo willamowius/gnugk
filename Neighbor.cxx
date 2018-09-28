@@ -1184,7 +1184,6 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & 
 	return true;
 }
 
-// class CiscoGK
 bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq, const LocationRequest & /*req*/)
 {
 	if (lrq.HasOptionalField(H225_LocationRequest::e_nonStandardData)
@@ -1223,7 +1222,6 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq, const LocationRequest & /
 	return true;
 }
 
-// class CiscoGK
 bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & req)
 {
 	const Q931 &setup = req.GetWrapper()->GetQ931();
