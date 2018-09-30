@@ -85,14 +85,14 @@ NetworkAddress::NetworkAddress() : m_address(0), m_netmask(0)
 }
 
 NetworkAddress::NetworkAddress(
-	const PIPSocket::Address &addr
+	const PIPSocket::Address & addr
 	) : m_address(addr), m_netmask(addr.GetSize(), AnyRawAddress)
 {
 }
 
 NetworkAddress::NetworkAddress(
-	const PIPSocket::Address &addr,
-	const PIPSocket::Address &nm
+	const PIPSocket::Address & addr,
+	const PIPSocket::Address & nm
 	) : m_netmask(nm)
 {
 	// normalize the address
@@ -108,7 +108,7 @@ NetworkAddress::NetworkAddress(
 }
 
 NetworkAddress::NetworkAddress(
-	const PString &str /// an address in a form A.B.C.D, A.B.C.D/24 or A.B.C.D/255.255.255.0
+	const PString & str /// an address in a form A.B.C.D, A.B.C.D/24 or A.B.C.D/255.255.255.0
 	)
 {
 	Toolkit::GetNetworkFromString(str, m_address, m_netmask);
@@ -143,7 +143,7 @@ bool NetworkAddress::operator==(const NetworkAddress & addr) const
 	return true;
 }
 
-bool NetworkAddress::operator==(const PIPSocket::Address &addr) const
+bool NetworkAddress::operator==(const PIPSocket::Address & addr) const
 {
 	if (m_address.GetSize() != addr.GetSize())
 		return false;
@@ -156,7 +156,7 @@ bool NetworkAddress::operator==(const PIPSocket::Address &addr) const
 	return true;
 }
 
-bool NetworkAddress::operator>>(const NetworkAddress &addr) const
+bool NetworkAddress::operator>>(const NetworkAddress & addr) const
 {
 	if (m_address.GetSize() != addr.m_address.GetSize())
 		return false;
@@ -170,12 +170,12 @@ bool NetworkAddress::operator>>(const NetworkAddress &addr) const
 	return true;
 }
 
-bool NetworkAddress::operator<<(const NetworkAddress &addr) const
+bool NetworkAddress::operator<<(const NetworkAddress & addr) const
 {
 	return addr >> *this;
 }
 
-bool NetworkAddress::operator>>(const PIPSocket::Address &addr) const
+bool NetworkAddress::operator>>(const PIPSocket::Address & addr) const
 {
 	if (m_address.GetSize() != addr.GetSize())
 		return false;
@@ -215,32 +215,32 @@ bool NetworkAddress::IsAny() const
 	return m_address.IsAny() && (GetNetmaskLen() == 0);
 }
 
-bool NetworkAddress::operator<(const NetworkAddress &addr) const
+bool NetworkAddress::operator<(const NetworkAddress & addr) const
 {
 	return Compare(addr) < 0;
 }
 
-bool NetworkAddress::operator<=(const NetworkAddress &addr) const
+bool NetworkAddress::operator<=(const NetworkAddress & addr) const
 {
 	return Compare(addr) <= 0;
 }
 
-bool NetworkAddress::operator>(const NetworkAddress &addr) const
+bool NetworkAddress::operator>(const NetworkAddress & addr) const
 {
 	return Compare(addr) > 0;
 }
 
-bool NetworkAddress::operator>=(const NetworkAddress &addr) const
+bool NetworkAddress::operator>=(const NetworkAddress & addr) const
 {
 	return Compare(addr) >= 0;
 }
 
-bool operator==(const PIPSocket::Address &addr, const NetworkAddress &net)
+bool operator==(const PIPSocket::Address & addr, const NetworkAddress & net)
 {
 	return net == addr;
 }
 
-bool operator<<(const PIPSocket::Address &addr, const NetworkAddress &net)
+bool operator<<(const PIPSocket::Address & addr, const NetworkAddress & net)
 {
 	return net >> addr;
 }
@@ -267,7 +267,7 @@ Toolkit::RouteTable::RouteEntry::RouteEntry(
 {
 	// look at the interface table which local IP to use for this route entry
 	PINDEX i;
-	// try to select outgoing ip from network - check if ip is valid with netmask
+	// try to select outgoing IP from network - check if IP is valid with netmask
 	for (i = 0; i < it.GetSize(); ++i) {
 		const Address & ip = it[i].GetAddress();
 	    if (Toolkit::Instance()->IsGKHome(ip) && CompareWithMask(&ip)) {
@@ -388,10 +388,10 @@ void Toolkit::RouteTable::InitTable()
 #endif
 
 	// if we have a list of Home IPs and the default address is not in it, use the first IPv4 Home IP,
-	// unless the default IP was explicitely specified in Bind=
+	// unless the default IP was explicitly specified in Bind=
 	if (bind.IsEmpty() &&
 		!home.empty() && (find(home.begin(), home.end(), defAddr) == home.end())) {
-		for (unsigned i=0; i < home.size(); ++i) {
+		for (unsigned i = 0; i < home.size(); ++i) {
 			if (home[i].GetVersion() == 4) {
 				defAddr = home[i];
 				break;
@@ -401,7 +401,7 @@ void Toolkit::RouteTable::InitTable()
 #ifdef hasIPV6
 	if (bind.IsEmpty() &&
 		!home.empty() && (find(home.begin(), home.end(), defAddrV6) == home.end())) {
-		for (unsigned i=0; i < home.size(); ++i) {
+		for (unsigned i = 0; i < home.size(); ++i) {
 			if (home[i].GetVersion() == 6) {
 				defAddrV6 = home[i];
 				break;
@@ -509,7 +509,7 @@ PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(const Address & addr) co
 			if (extip.IsValid()) {
 				return extip;
 			} else {
-				PTRACE(2, "NAT\tERROR: ExtIP " << ExtIP << " unuseable." );
+				PTRACE(2, "NAT\tERROR: ExtIP " << ExtIP << " unusable." );
 				SNMP_TRAP(10, SNMPError, Configuration, "External IP " + ExtIP + " unusable");
 			}
 		}
@@ -545,14 +545,14 @@ bool Toolkit::RouteTable::CreateRouteTable(const PString & extroute)
 	}
 	// filter out route with destination localhost
 	// we can't use those for routing calls, unless the net itself is localhost
-	for(PINDEX i=0; i < r_table.GetSize(); ++i) {
+	for(PINDEX i = 0; i < r_table.GetSize(); ++i) {
 		if ((r_table[i].GetDestination().IsLoopback())
 			&& !r_table[i].GetNetwork().IsLoopback()) {
 				r_table.RemoveAt(i--);
 		}
 	}
 	// filter out IPv6 networks if IPv6 is not enabled
-	for(PINDEX i=0; i < r_table.GetSize(); ++i) {
+	for(PINDEX i = 0; i < r_table.GetSize(); ++i) {
 		if ((r_table[i].GetNetwork().GetVersion() == 6)
 			&& !Toolkit::Instance()->IsIPv6Enabled()) {
 				r_table.RemoveAt(i--);
@@ -825,7 +825,7 @@ int Toolkit::ProxyCriterion::SelectRoutingMode(const Address & ip1, const Addres
 				PTRACE(5, "ModeSelection: Both IPs on same network: mode=" << mode);
 			}
 		} else {
-			// on different networks, use maximum poxying
+			// on different networks, use maximum proxying
 			iter = m_modeselection.find(bestMatchIP1);
 			int mode1 = iter->second.fromExternal;	// no check, must exist
 			iter = m_modeselection.find(bestMatchIP2);
@@ -891,7 +891,7 @@ void Toolkit::RewriteData::AddSection(PConfig * config, const PString & section)
 		}
 		// now the rules are ascendantly sorted by the keys
 		if ((n_size = rules.size()) > 0) {
-			// Add any existing rules to be resorted
+			// add any existing rules to be resorted
 			if (m_size > 0) {
 				for (PINDEX j = 0; j < m_size; ++j) {
 					rules[Key(j)] = Value(j);
@@ -900,16 +900,13 @@ void Toolkit::RewriteData::AddSection(PConfig * config, const PString & section)
 			m_size = m_size + n_size;
 			// replace array constructor with explicit memory allocation
 			// and in-place new operators - workaround for VC compiler
-//			m_RewriteKey = new PString[m_size * 2];
 			m_RewriteKey = (PString*)(new BYTE[sizeof(PString) * m_size * 2]);
 			m_RewriteValue = m_RewriteKey + m_size;
 			std::map<PString, PString, pstr_prefix_lesser>::iterator iter = rules.begin();
 
 			// reverse the order
 			for (int i = m_size; i-- > 0; ++iter) {
-//				m_RewriteKey[i] = iter->first;
 				::new(m_RewriteKey + i) PString(iter->first);
-//				m_RewriteValue[i] = iter->second;
 				::new(m_RewriteValue + i) PString(iter->second);
 			}
 		}
@@ -963,7 +960,7 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 		PIPSocket::Address domIP(domain);
 
 		// Check if we have a default domain and strip it
-		for (PINDEX i=0; i < m_defaultDomain.GetSize(); i++) {
+		for (PINDEX i = 0; i < m_defaultDomain.GetSize(); i++) {
 			if (domain == m_defaultDomain[i]) {
 				PTRACE(2, "\tRewriteDomain: " << s << " to " << num);
 				s = num;
@@ -1482,7 +1479,7 @@ void Toolkit::ReloadSQLConfig()
 	if (m_Config->GetSections().GetStringsIndex("SQLConfig") == P_MAX_INDEX)
 		return;
 
-	// TODO: if SQLConfig is configured, but we can't connect to DB, should we shut down Gnugk ?
+	// TODO: if SQLConfig is configured, but we can't connect to DB, should we shut down GnuGk ?
 	const PString driverName = m_Config->GetString("SQLConfig", "Driver", "");
 	if (driverName.IsEmpty()) {
 		PTRACE(1, "SQLCONF\tFailed to read config settings from SQL: no driver specified");
@@ -1884,7 +1881,7 @@ PConfig* Toolkit::ReloadConfig()
 		PASN_Object::SetMaximumArraySize(maxArraySize);
     }
 
-	// set max bytes to queue for a socket, before asuming its dead (probably only an issue with H.460.17)
+	// set max bytes to queue for a socket, before assuming its dead (probably only an issue with H.460.17)
 	int maxSocketQueue = GkConfig()->GetInteger("MaxSocketQueue", 100);
 	if (maxSocketQueue > 0)
 		g_maxSocketQueue = maxSocketQueue;
@@ -1909,7 +1906,7 @@ PConfig* Toolkit::ReloadConfig()
 	m_removeH235TokensfromNetwork.clear();
 	if (removeH235Call.GetLength() >= 7) {
 		PStringArray networks = removeH235Call.Tokenise(",", FALSE);
-		for (PINDEX n=0; n < networks.GetSize(); ++n) {
+		for (PINDEX n = 0; n < networks.GetSize(); ++n) {
 			if (networks[n].Find('/') == P_MAX_INDEX) {
                 if (IsIPv4Address(networks[n])) {
                     networks[n] += "/32";	// add netmask to pure IPs
@@ -2029,7 +2026,7 @@ void Toolkit::LoadCauseMap(
 }
 
 // load H.225 reason to Q.931 cause mapping
-void Toolkit::LoadReasonMap(PConfig *cfg)
+void Toolkit::LoadReasonMap(PConfig * cfg)
 {
 	// default to ITU-T Recommendation H.225 clause 7.2.2.8, table 5
 	unsigned DefaultH225ReasonToQ931Cause[] =	{
@@ -2053,12 +2050,11 @@ bool Toolkit::MatchRegex(const PString & str, const PString & regexStr)
 	PINDEX pos = 0;
 	PRegularExpression regex(regexStr, PRegularExpression::Extended);
 	if(regex.GetErrorCode() != PRegularExpression::NoError) {
-		PTRACE(2, "Errornous '"<< regex.GetErrorText() <<"' compiling regex: " << regexStr);
+		PTRACE(2, "Error '"<< regex.GetErrorText() <<"' compiling regex: " << regexStr);
 		SNMP_TRAP(7, SNMPError, Configuration, "Invalid RegEx");
 		return FALSE;
 	}
 	if(!regex.Execute(str, pos)) {
-		// PTRACE(6, "Gk\tRegex '" << regexStr << "' did not match '" << str << "'");
 		return FALSE;
 	}
 	return TRUE;
@@ -2179,10 +2175,10 @@ void Toolkit::AssignedAliases::LoadConfig(PConfig * m_config)
 #endif
 	{
 		const PStringToString kv = m_config->GetAllKeyValues(AssignedAliasSection);
-		for (PINDEX i=0; i < kv.GetSize(); i++) {
+		for (PINDEX i = 0; i < kv.GetSize(); i++) {
 			PString data = kv.GetDataAt(i);
 			PStringArray datalines = data.Tokenise(" ,;\t");
-			for (PINDEX j=0; j < datalines.GetSize(); j++)
+			for (PINDEX j = 0; j < datalines.GetSize(); j++)
 				gkAssignedAliases.push_back(std::pair<PString, PString>(kv.GetKeyAt(i),datalines[j]));
 		}
 	}
@@ -2281,17 +2277,17 @@ bool Toolkit::AssignedAliases::QueryH350Directory(const PString & alias, PString
 		PINDEX i;
 		if (session.GetAttribute(entry, "h323Identityh323-ID", al)) {
 			PStringList als = al.Lines();
-			for (i=0; i< als.GetSize(); i++)
+			for (i = 0; i< als.GetSize(); i++)
 				aliases.AppendString(als[i]);
 		}
 		if (session.GetAttribute(entry, "h323IdentitydialedDigits", al)) {
 			PStringList als = al.Lines();
-			for (i=0; i< als.GetSize(); i++)
+			for (i = 0; i< als.GetSize(); i++)
 				aliases.AppendString(als[i]);
 		}
 		if (session.GetAttribute(entry, "h323IdentityURL-ID", al)) {
 			PStringList als = al.Lines();
-			for (i=0; i< als.GetSize(); i++)
+			for (i = 0; i< als.GetSize(); i++)
 				aliases.AppendString(als[i]);
 		}
 		session.Close();
@@ -2493,7 +2489,7 @@ bool Toolkit::MatchHostCert(SSL * ssl, PIPSocket::Address addr)
 		for (int i = 0; i < sk_GENERAL_NAME_num(altnames); i++) {
 			GENERAL_NAME * gn = sk_GENERAL_NAME_value(altnames, i);
 			if (gn && (gn->type == GEN_DNS)) {
-				char * dns = (char *)ASN1_STRING_data(gn->d.ia5); // TODO: ASN1_STRING_data is deprecated in OpenSSL 1.1
+				char * dns = (char *)ASN1_STRING_data(gn->d.ia5);
 				if (dns) {
 					PTRACE(5, "TLS\tChecking Certificate DNS " << dns);
 					if (::AsString(addr) == dns) {
@@ -2595,15 +2591,15 @@ bool Toolkit::AssignedAliases::GetAliases(const H225_ArrayOf_AliasAddress & alia
 
 	PStringArray newaliases;
 	bool found = false;
-	for (PINDEX h=0; h < alias.GetSize(); h++) {
+	for (PINDEX h = 0; h < alias.GetSize(); h++) {
 		if (QueryAssignedAliases(H323GetAliasAddressString(alias[h]), newaliases))
 			found = true;
 	}
 
 	if (!found) {
-		for (PINDEX i=0; i < alias.GetSize(); i++) {
+		for (PINDEX i = 0; i < alias.GetSize(); i++) {
 			PString search = H323GetAliasAddressString(alias[i]);
-			for (unsigned j=0; j < gkAssignedAliases.size(); j++) {
+			for (unsigned j = 0; j < gkAssignedAliases.size(); j++) {
 				PTRACE(5, "Alias\tCompare " << gkAssignedAliases[j].first << " to " << search);
 				if (gkAssignedAliases[j].first == search) {
 					newaliases.AppendString(gkAssignedAliases[j].second);
@@ -2617,10 +2613,10 @@ bool Toolkit::AssignedAliases::GetAliases(const H225_ArrayOf_AliasAddress & alia
 	if (found) {
 		// add existing items to the end of the list
 		if (aliaslist.GetSize() > 0) {
-			for (PINDEX l=0; l < aliaslist.GetSize(); l++) {
+			for (PINDEX l = 0; l < aliaslist.GetSize(); l++) {
 				PString a = H323GetAliasAddressString(aliaslist[l]);
 				bool located = false;
-			    for (PINDEX m=0; m < newaliases.GetSize(); m++) {
+			    for (PINDEX m = 0; m < newaliases.GetSize(); m++) {
 					if (newaliases[m] == a) located = true;
 				}
 				if (!located)
@@ -2630,7 +2626,7 @@ bool Toolkit::AssignedAliases::GetAliases(const H225_ArrayOf_AliasAddress & alia
 
 		aliaslist.RemoveAll();
 
-		for (PINDEX k=0; k < newaliases.GetSize(); k++) {
+		for (PINDEX k = 0; k < newaliases.GetSize(); k++) {
 			H225_AliasAddress * aliasaddress = new H225_AliasAddress();
 			H323SetAliasAddress(newaliases[k], *aliasaddress);
 			aliaslist.Append(aliasaddress);
@@ -2775,7 +2771,7 @@ void Toolkit::AssignedGatekeepers::LoadConfig(PConfig * m_config)
 #endif
 	{
 		const PStringToString kv = m_config->GetAllKeyValues(AssignedGatekeeperSection);
-		for (PINDEX i=0; i < kv.GetSize(); i++)
+		for (PINDEX i = 0; i < kv.GetSize(); i++)
 			assignedGKList.push_back(std::pair<PString, PString>(kv.GetKeyAt(i),kv.GetDataAt(i)));
 	}
 }
@@ -2872,7 +2868,7 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias, const PI
 	bool found = QueryAssignedGK(alias, ip, assignedGK);
 
 	if (!found) {
-		for (unsigned j=0; j < assignedGKList.size(); j++) {
+		for (unsigned j = 0; j < assignedGKList.size(); j++) {
 			PString match = assignedGKList[j].first.Trim();
 			if (match.Left(1) != "^") {
 				// prefix match
@@ -2892,7 +2888,7 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias, const PI
 
 	if (found) {
 		PStringArray ipaddresses;
-		for (PINDEX k=0; k < assignedGK.GetSize(); k++) {
+		for (PINDEX k = 0; k < assignedGK.GetSize(); k++) {
 			PString number = assignedGK[k];
 
 			if (IsIPAddress(number))
@@ -3178,7 +3174,7 @@ bool Toolkit::AssignedLanguage::QueryAssignedLanguage(const PString & alias, PSt
 
 bool Toolkit::AssignedLanguage::GetLanguage(const H225_ArrayOf_AliasAddress & alias, PStringArray & aliaslist)
 {
-	for (PINDEX i=0; i < alias.GetSize(); ++i) {
+	for (PINDEX i = 0; i < alias.GetSize(); ++i) {
 		QueryAssignedLanguage(H323GetAliasAddressString(alias[i]),aliaslist);
 	}
 	return (aliaslist.GetSize() > 0);
@@ -3330,7 +3326,7 @@ bool Toolkit::GWRewriteE164(const PString & gw, bool direction, H225_AliasAddres
 	if (alias.GetTag() != H225_AliasAddress::e_dialedDigits) {
 		if (alias.GetTag() != H225_AliasAddress::e_partyNumber)
 			return false;
-		H225_PartyNumber &partyNumber = alias;
+		H225_PartyNumber & partyNumber = alias;
 		if (partyNumber.GetTag() != H225_PartyNumber::e_e164Number && partyNumber.GetTag() != H225_PartyNumber::e_privateNumber)
 			return false;
 	}
@@ -3371,7 +3367,7 @@ bool Toolkit::RemoveH235TokensFrom(const PIPSocket::Address & addr) const
 {
 	if (m_alwaysRemoveH235Tokens)
 		return true;
-	for (unsigned i=0; i < m_removeH235TokensfromNetwork.size(); ++i) {
+	for (unsigned i = 0; i < m_removeH235TokensfromNetwork.size(); ++i) {
 		if (addr << m_removeH235TokensfromNetwork[i])
 			return true;
 	}
@@ -3418,7 +3414,7 @@ void Toolkit::LoadH46023STUN()
 			addresses.AppendString("h323:" + stunlist[i]);
 #endif
 
-		for (PINDEX j=0; j < addresses.GetSize(); ++j) {
+		for (PINDEX j = 0; j < addresses.GetSize(); ++j) {
 			PString newhost = addresses[j].Mid(5);
 			PIPSocket::Address ip;
 			WORD port;
@@ -3583,7 +3579,7 @@ void Toolkit::SetGKHome(const PStringArray & home)
 				if (m_GKHome[n] == it[i].GetAddress())
 					break;
 			if (i == is) {
-				// just warn, secondardy IPs or IPv6 IPs (w older PTLib) aren't found this way
+				// just warn, secondary IPs or IPv6 IPs (w older PTLib) aren't found this way
 				PTRACE(1, "GK\tAddress " << m_GKHome[n] << " not found"
 					" in the PTLib interface table");
 			}
@@ -3626,7 +3622,7 @@ void Toolkit::SetGKHome(const PStringArray & home)
 
 	// move loopback interfaces to the end
 	std::list<PIPSocket::Address> sortedHomes;
-	for (unsigned j=0; j < m_GKHome.size(); j++) {
+	for (unsigned j = 0; j < m_GKHome.size(); j++) {
 		if (m_GKHome[j].IsLoopback()) {
 			sortedHomes.push_back(m_GKHome[j]);
 		} else {
@@ -3728,7 +3724,7 @@ PString Toolkit::ReplaceGlobalParams(const PString & str)
     return result;
 }
 
-int Toolkit::GetInternalExtensionCode( const unsigned & country,
+int Toolkit::GetInternalExtensionCode(const unsigned & country,
 				   const unsigned & extension,
 				   const unsigned & manufacturer) const
 {
@@ -3983,7 +3979,7 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 					++j;
 				}
 				if (!sdigits) {  // replace the URI with the dialedDigits URI
-					j=0;
+					j = 0;
 					while(j < setupBody.m_sourceAddress.GetSize()) {  // Find longest DialedDigits
 						if (setupBody.m_sourceAddress[j].GetTag() == H225_AliasAddress::e_url_ID) {
 							PString s = ::AsString(setupBody.m_sourceAddress[j],false);
@@ -4006,7 +4002,7 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 				destination = ::AsString(setupBody.m_destinationAddress[0],false);
 				if (!rewriteChar) {
 					PStringArray rewrite  = rewriteChar.Tokenise(";");
-					for (PINDEX i=0; i < rewrite.GetSize(); ++i) {
+					for (PINDEX i = 0; i < rewrite.GetSize(); ++i) {
 						PStringArray cRule = rewrite[i].Tokenise(",");
 						if (cRule.GetSize() == 2)
 							destination.Replace(cRule[0],cRule[1],true);
@@ -4055,7 +4051,7 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 
 	if (!rewriteChar) {
 		PStringArray rewrite  = rewriteChar.Tokenise(";");
-		for (PINDEX j=0; i < rewrite.GetSize(); ++j) {
+		for (PINDEX j = 0; i < rewrite.GetSize(); ++j) {
 			PStringArray cRule = rewrite[j].Tokenise(",");
 			if (cRule.GetSize() == 2) {
 				source.Replace(cRule[0], cRule[1],true);
@@ -4065,8 +4061,8 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 	}
 	if (!rules) {
 		PStringArray sRules = rules.Tokenise(";");
-		if (sRules.GetSize() > 0 && IsValidE164(source)) {  // Only support E164 for now.
-			for (PINDEX i=0; i < sRules.GetSize(); ++i) {
+		if (sRules.GetSize() > 0 && IsValidE164(source)) {  // only support E164 for now
+			for (PINDEX i = 0; i < sRules.GetSize(); ++i) {
 				PStringArray cRule = sRules[i].Tokenise(",");
 				if (cRule.GetSize() == 2 && cRule[0] == source.Left(cRule[0].GetLength())) {
 					PTRACE(4,"SWRITE\tSource Address " << source << " rewritten to " << cRule[1]);
