@@ -780,7 +780,7 @@ Possible values: TPKT, UserInput, None.
 <item><tt>RedirectCallsToGkIP=1</tt><newline>
 Default: <tt>0</tt><newline>
 <p>
-Send a Facility redirect to callers when the destCallSIgnallAddress is not
+Send a Facility redirect to callers when the destCallSignallAddress is not
 one of the gatekeeper's own IPs or the external IP.
 This can be used to redirect calls directly to the gatekeeper that have
 been forwarded to it by a load balancer that needs to be removed from the
