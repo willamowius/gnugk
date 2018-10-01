@@ -2033,7 +2033,7 @@ bool RadiusClient::SendRequest(
 		return false;
 
 	RadiusSocket * socket = NULL;
-	unsigned char id;
+	unsigned char id = '\0';
 	RadiusPDU * clonedRequestPDU = NULL;
 
 	if (m_radiusServers.empty()) {
@@ -2041,7 +2041,7 @@ bool RadiusClient::SendRequest(
 		return false;
 	}
 
-	const RadiusServer*	const server = m_radiusServers.front();
+	const RadiusServer * const server = m_radiusServers.front();
 	const WORD authPort = server->m_authPort == 0 ? m_authPort : server->m_authPort;
 	const WORD acctPort = server->m_acctPort == 0 ? m_acctPort : server->m_acctPort;
 	const WORD serverPort = IsAcctPDU(requestPDU) ? acctPort : authPort;
@@ -2074,7 +2074,7 @@ bool RadiusClient::SendRequest(
 	}
 
 	if (PTrace::CanTrace(3)) {
-		ostream& strm = PTrace::Begin(3, __FILE__, __LINE__);
+		ostream & strm = PTrace::Begin(3, __FILE__, __LINE__);
 		strm << "RADIUS\tSending PDU to RADIUS server "
 			<< server->m_serverAddress << " (" << AsString(serverAddress, serverPort)
 			<< ')' << " from " << (*socket) << ", PDU: ";
@@ -2176,7 +2176,7 @@ bool RadiusClient::GetSocket(RadiusSocket * & socket, unsigned char & id)
 
 	// all sockets are busy, create a new one
 	PRandom random;
-	PINDEX randCount = (unsigned)(m_portMax-m_portBase+1) / 3;
+	PINDEX randCount = (unsigned)(m_portMax-m_portBase + 1) / 3;
 	RadiusSocket* newSocket = NULL;
 
 	if (randCount > 0)
