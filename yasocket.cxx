@@ -335,6 +335,7 @@ bool YaSocket::Bind(const Address & addr, WORD pt)
 // class YaTCPSocket
 YaTCPSocket::YaTCPSocket(WORD pt)
 {
+    memset(&peeraddr, 0, sizeof(peeraddr));
 	((struct sockaddr*)&peeraddr)->sa_family = AF_INET;		// overwritten in Connect()
 	SetPort(pt);
 }
@@ -865,8 +866,9 @@ bool USocket::Flush()
 
 bool USocket::WriteData(const BYTE * buf, int len)
 {
-	if (!IsSocketOpen())
+	if (!IsSocketOpen()) {
 		return false;
+	}
 
 	int remaining = len;
 	if (qsize == 0 && writeMutex.Wait(0)) {
@@ -906,7 +908,7 @@ bool USocket::ErrorHandler(PSocket::ErrorGroup group)
 	switch (e)
 	{
 		case PSocket::Timeout:
-			PTRACE(4, msg << " Error(" << group << "): Timeout");
+			PTRACE(4, msg << " Error(" << group << "): Timeout: " + Name());
 			SNMP_TRAP(10, SNMPError, Network, "Socket timeout: " + Name());
 			break;
 		case PSocket::NoError:
@@ -1182,7 +1184,7 @@ void TCPServer::ReadSocket(IPSocket * socket)
 		return;
 
 	ServerSocket *acceptor = listener->CreateAcceptor();
-	if (acceptor->Accept(*listener)) {
+	if (acceptor && acceptor->Accept(*listener)) {
 		PTRACE(6, GetName() << "\tAccepted new connection on " << socket->GetName() << " from " << acceptor->GetName());
 		CreateJob(acceptor, &ServerSocket::Dispatch, "Acceptor");
 	} else {
