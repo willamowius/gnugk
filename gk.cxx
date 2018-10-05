@@ -595,6 +595,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "EnableH235HalfCallMedia" },
 	{ "RoutedMode", "EnableH235HalfCallMediaKeyUpdates" },
 #endif
+#ifdef HAS_H46018
+	{ "RoutedMode", "EnableH245Multiplexing" },
+#endif
 	{ "RoutedMode", "EnableH450.2" },
 #ifdef HAS_H46017
 	{ "RoutedMode", "EnableH46017" },
@@ -627,6 +630,9 @@ const char * KnownConfigEntries[][2] = {
 #endif
 	{ "RoutedMode", "H225DiffServ" },
 	{ "RoutedMode", "H245DiffServ" },
+#ifdef HAS_H46018
+	{ "RoutedMode", "H245MultiplexPort" },
+#endif
 	{ "RoutedMode", "H245PortRange" },
 	{ "RoutedMode", "H245Routed" },
 	{ "RoutedMode", "H245TunnelingTranslation" },

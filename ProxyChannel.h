@@ -83,7 +83,8 @@ public:
 		Forwarding,
 		Closing,
 		Error,
-		DelayedConnecting	// H.460.18
+		DelayedConnecting,	// H.460.18
+		NoDataAndDone       // H.460.18 H.245 multiplexed connection
 	};
 
 	ProxySocket(
@@ -145,6 +146,9 @@ public:
 	void SetRemoteSocket(TCPProxySocket * ret) { remote = ret; }
 	void LockRemote() { m_remoteLock.Wait(); }
 	void UnlockRemote() { m_remoteLock.Signal(); }
+
+    virtual int GetOSSocket() const { return os_handle; }
+	virtual void SetOSSocket(int sock, const PString & name) { PTRACE(0, "JW SetOSSocket this=" << this << " os socket=" << sock); os_handle = sock; SetName(name); }
 
 private:
 	TCPProxySocket();
@@ -346,6 +350,7 @@ public:
 
 	bool IsH245Tunneling() const { return m_h245Tunneling; }
 	bool IsH245TunnelingTranslation() const { return m_h245TunnelingTranslation; }
+	void QueueH245Message(PASN_OctetString & msg) { m_h245Queue.push(msg); }
 	PASN_OctetString * GetNextQueuedH245Message();
 	unsigned GetH245MessageQueueSize() const { return m_h245Queue.size(); }
 	bool HandleH245Mesg(PPER_Stream &, bool & suppress, H245Socket * h245sock = NULL);
@@ -412,9 +417,9 @@ public:
 	void PollPriorityQueue();
 #endif
 	bool MaintainConnection() const { return m_maintainConnection; }
+	bool IsCaller() const { return m_callerSocket; }
 
 #ifdef HAS_H46018
-	bool IsCaller() const { return m_callerSocket; }
 	bool IsTraversalClient() const;
 	bool IsTraversalServer() const;
 	bool CreateRemote(const H225_TransportAddress & addr);
@@ -423,6 +428,7 @@ public:
 	bool IsCallToTraversalServer() const { return m_callToTraversalServer; }
 	void SetSessionMultiplexDestination(WORD session, bool isRTCP, const IPAndPortAddress & toAddress, H46019Side side);
 	const H245Handler * GetH245Handler() const { return m_h245handler; }
+	void SetH245OSSocket(int socket, const PString & name);
 #endif
 	void LockH245Handler() { m_h245handlerLock.Wait(); }
 	void UnlockH245Handler() { m_h245handlerLock.Signal(); }
@@ -561,7 +567,7 @@ private:
 	unsigned m_h225Version;
 	/// raw Setup data as received from the caller (for failover)
 	PBYTEArray m_rawSetup;
-	/// raw Conect data as received from the called (for reroute CALLED)
+	/// raw Connect data as received from the called (for reroute CALLED)
 	PBYTEArray m_rawConnect;
 	PMutex infomutex;    // Information PDU processing Mutex
 	H245_TerminalCapabilitySet m_savedTCS;	// saved tcs to re-send
@@ -632,6 +638,21 @@ protected:
 
 
 #ifdef HAS_H46018
+
+class MultiplexH245Listener : public TCPListenSocket {
+#ifndef LARGE_FDSET
+	PCLASSINFO ( MultiplexH245Listener, TCPListenSocket )
+#endif
+public:
+	MultiplexH245Listener(const Address &, WORD);
+	~MultiplexH245Listener();
+
+	// override from class TCPListenSocket
+	virtual ServerSocket *CreateAcceptor() const;
+
+protected:
+	Address m_addr;
+};
 
 class MultiplexRTPListener : public UDPSocket {
 #ifndef LARGE_FDSET

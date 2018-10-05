@@ -985,6 +985,12 @@ public:
 	void SetSigSocket(CallSignalSocket *socket) { sigSocket = socket; }
 	PString GetCallIdentifierAsString() const;
 
+	WORD GetMPort() const { return m_port; }    // TODO: remove after debugging is done
+	void SetIgnoreAcceptError() { m_ignoreAcceptError = true; }
+
+	// new virtual function
+	virtual bool ConnectRemote();
+
 protected:
 	// override from class TCPProxySocket
 #ifdef LARGE_FDSET
@@ -992,8 +998,6 @@ protected:
 #else
 	virtual PBoolean Accept(PSocket &);
 #endif
-	// new virtual function
-	virtual bool ConnectRemote();
 
 private:
 	H245Socket();
@@ -1010,6 +1014,7 @@ protected:
 	TCPSocket *listener;
 	/// to avoid race condition inside calls between this socket and its signaling socket
 	PMutex m_signalingSocketMutex;
+	bool m_ignoreAcceptError;
 };
 
 class NATH245Socket : public H245Socket {
@@ -1017,16 +1022,38 @@ public:
 #ifndef LARGE_FDSET
 	PCLASSINFO ( NATH245Socket, H245Socket )
 #endif
-	NATH245Socket(CallSignalSocket *sig) : H245Socket(sig) {}
+	NATH245Socket(CallSignalSocket * sig) : H245Socket(sig) { }
+	virtual ~NATH245Socket() { PTRACE(0, "JW NATH245Socket d'tor this=" << this << " port=" << m_port); }
+
+	// override from class H245Socket
+	virtual bool ConnectRemote();
 
 private:
 	NATH245Socket();
 	NATH245Socket(const NATH245Socket &);
 	NATH245Socket & operator=(const NATH245Socket &);
 
-	// override from class H245Socket
-	virtual bool ConnectRemote();
 };
+
+#ifdef HAS_H46018
+class MultiplexedH245Socket : public H245Socket {
+public:
+#ifndef LARGE_FDSET
+	PCLASSINFO ( NATH245Socket, H245Socket )
+#endif
+	MultiplexedH245Socket(CallSignalSocket *sig) : H245Socket(sig) { PTRACE(0, "JW MultiplexedH245Socket c'tor this=" << this << " port=" << m_port << " listener=" << listener); }
+	virtual ~MultiplexedH245Socket() { PTRACE(0, "JW MultiplexedH245Socket d'tor this=" << this << " port=" << m_port); }
+
+private:
+	MultiplexedH245Socket();
+	MultiplexedH245Socket(const MultiplexedH245Socket &);
+	MultiplexedH245Socket & operator=(const MultiplexedH245Socket &);
+
+	// override from class H245Socket
+	virtual void Dispatch();
+    virtual Result ReceiveData();
+};
+#endif // HAS_H46018
 
 
 class T120LogicalChannel;
@@ -1158,7 +1185,7 @@ private:
 #endif
 	H225_CallIdentifier m_callID;
 	PINDEX m_callNo;
-    bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPs in signalling, do full auto-detect
+    bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPs in signaling, do full auto-detect
     bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H.239 streams
     list<NetworkAddress> m_keepSignaledIPs;   // don't do auto-detect on this network
     bool m_isUnidirectional;
@@ -1387,6 +1414,7 @@ ProxySocket::Result ProxySocket::ReceiveData()
 
 bool ProxySocket::ForwardData()
 {
+    PTRACE(0, "JW ProxySocket::ForwardData()");
 	return WriteData(wbuffer, buflen);
 }
 
@@ -1494,6 +1522,7 @@ void TCPProxySocket::DetachRemote()
 
 bool TCPProxySocket::ForwardData()
 {
+    PTRACE(0, "JW TCPProxySocket::ForwardData() this=" << this << " remote=" << remote << " os_socket=" << GetHandle() << " remote os_socket=" << remote->GetHandle() << " remote connected=" << (remote ? remote->IsConnected() : false));
 	PWaitAndSignal lock(m_remoteLock);
 	return (remote) ? remote->InternalWrite(buffer) : false;
 }
@@ -1844,7 +1873,7 @@ void CallSignalSocket::CleanupCall()
 	if (m_setupPdu)
 		delete m_setupPdu;
 	m_setupPdu = NULL;
-	// std::queue douesn't have a clear() operation, swap in an empty queue instead
+	// std::queue doesn't have a clear() operation, swap in an empty queue instead
 	std::queue<PASN_OctetString> empty;
 	std::swap(m_h245Queue, empty);
 #ifdef HAS_H46018
@@ -2057,7 +2086,7 @@ CallSignalSocket::~CallSignalSocket()
 	m_h245handlerLock.Signal();
 	delete m_setupPdu;
 	m_setupPdu = NULL;
-	// std::queue douesn't have a clear() operation, swap in an empty queue instead
+	// std::queue doesn't have a clear() operation, swap in an empty queue instead
 	std::queue<PASN_OctetString> empty;
 	std::swap(m_h245Queue, empty);
 #ifdef HAS_H235_MEDIA
@@ -2116,7 +2145,7 @@ void RemoveHopToHopTokens(Q931 * msg, H225_H323_UserInformation * uuie)
 
     GkH235Authenticators::GetQ931Tokens(msg->GetMessageType(), uuie, &tokens, &cryptoTokens);
 
-    if (!cryptoTokens) {
+    if (!cryptoTokens || !uuie) {
         return;
     }
 
@@ -2344,7 +2373,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			GetRemote()->m_h245Tunneling = false;
 	}
 
-	if (m_h245TunnelingTranslation) {
+	if (m_h245TunnelingTranslation && uuie != NULL) {
 		// un-tunnel H.245 messages
 		if (m_h245Tunneling && GetRemote() && !GetRemote()->m_h245Tunneling) {
 			if (uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Control)
@@ -2358,8 +2387,8 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 						if (remoteHasH245Connection) {
 							GetRemote()->m_h245socket->Send(uuie->m_h323_uu_pdu.m_h245Control[i]);
 						} else {
-							PTRACE(4, "H245\tQueueing H.245 messages until connected");
-							m_h245Queue.push(uuie->m_h323_uu_pdu.m_h245Control[i]);
+							PTRACE(4, "H245\tQueuing H.245 messages until connected");
+							QueueH245Message(uuie->m_h323_uu_pdu.m_h245Control[i]);
 						}
 					}
 				}
@@ -2388,8 +2417,8 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 				OnTunneledH245(msg->GetUUIE()->m_h323_uu_pdu.m_h245Control, suppress);
 				if (!suppress) {
 					for (PINDEX i = 0; i < uuie->m_h323_uu_pdu.m_h245Control.GetSize(); ++i) {
-						PTRACE(4, "H245\tQueueing H.245 messages from Setup");
-						m_h245Queue.push(uuie->m_h323_uu_pdu.m_h245Control[i]);
+						PTRACE(4, "H245\tQueuing H.245 messages from Setup");
+						QueueH245Message(uuie->m_h323_uu_pdu.m_h245Control[i]);
 					}
 				}
 			}
@@ -2833,7 +2862,7 @@ void CallSignalSocket::SendReleaseComplete(H225_ReleaseCompleteReason::Choices r
 	SendReleaseComplete(&cause);
 }
 
-// calling party must delete returned pointer
+// calling code must delete returned pointer
 PASN_OctetString * CallSignalSocket::GetNextQueuedH245Message()
 {
 	if (m_h245Queue.empty())
@@ -3074,7 +3103,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 
     if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_indication) {
 #ifdef HAS_H46023
-		H245_IndicationMessage & imsg  = h245msg;
+		H245_IndicationMessage & imsg = h245msg;
 		if (imsg.GetTag() == H245_IndicationMessage::e_genericIndication) {
 			H245_GenericMessage & gmsg = imsg;
 			H245_CapabilityIdentifier & id = gmsg.m_messageIdentifier;
@@ -3103,7 +3132,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 
 	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request) {
 #ifdef HAS_H46024B
-		H245_RequestMessage & reqmsg  = h245msg;
+		H245_RequestMessage & reqmsg = h245msg;
 		if (reqmsg.GetTag() == H245_RequestMessage::e_genericRequest) {
 		    H245_GenericMessage & gmsg = reqmsg;
 		    H245_CapabilityIdentifier & id = gmsg.m_messageIdentifier;
@@ -3123,7 +3152,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
     }
 
 	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_response) {
-		H245_ResponseMessage & rmsg  = h245msg;
+		H245_ResponseMessage & rmsg = h245msg;
 #ifdef HAS_H46024B
 		if (rmsg.GetTag() == H245_ResponseMessage::e_genericResponse) {
  			H245_GenericMessage & gmsg = rmsg;
@@ -3155,7 +3184,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
                 H245_H2250LogicalChannelAckParameters & channel = olcack.m_forwardMultiplexAckParameters;
                 bool isAudio = (channel.m_sessionID == 1);
                 bool isVideo = (channel.m_sessionID == 2);
-                bool isH239 = (channel.m_sessionID != 1 && channel.m_sessionID != 2);   // TODO: clould also be H.224
+                bool isH239 = (channel.m_sessionID != 1 && channel.m_sessionID != 2);   // TODO: could also be H.224
                 if (channel.HasOptionalField(H245_H2250LogicalChannelAckParameters::e_mediaChannel)) {
                     H245_UnicastAddress *addr = GetH245UnicastAddress(channel.m_mediaChannel);
                     if (addr != NULL && m_call) {
@@ -4089,6 +4118,71 @@ PString CallSignalSocket::GetDialedNumber(const SetupMsg & setup) const
 	return dialedNumber;
 }
 
+#ifdef HAS_H46018
+void CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
+{
+    PTRACE(0, "JW CallSignalSocket::SetH245OSSocket START os_socket=" << socket << " this=" << this << " remote=" << remote << " m_h245socket=" << m_h245socket);
+    if (m_h245socket) {
+        if (m_h245socket->IsConnected()) {
+            PTRACE(0, "JW H.245 socket is already connected");
+            return;
+        }
+        ProxyHandler * oldhandler = m_h245socket->GetHandler();
+        if (!oldhandler) {
+            oldhandler = RasServer::Instance()->GetSigProxyHandler();
+        }
+        oldhandler->Detach(m_h245socket);
+        m_h245socket->SetOSSocket(socket, name);
+        m_h245socket->SetConnected(true);
+        oldhandler->Insert(m_h245socket);
+        if (remote) {
+    		CallSignalSocket * css = dynamic_cast<CallSignalSocket *>(remote);
+    		if (css && css->m_h245socket) {
+                PTRACE(0, "JW H.245 Sockets: A=" << m_h245socket << " B=" << css->m_h245socket
+                       << " handler A=" << m_h245socket->GetHandler() << " handler B=" << css->m_h245socket->GetHandler()
+                       << " name A=" << m_h245socket->GetName() << " name B=" << css->m_h245socket->GetName()
+                       << " connected A=" << m_h245socket->IsConnected() << " connected B=" << css->m_h245socket->IsConnected());
+                m_h245socket->SetRemoteSocket(css->m_h245socket);
+                css->m_h245socket->SetRemoteSocket(m_h245socket);
+    		    if (css->m_h245socket->IsConnected()) {
+                    PTRACE(0, "JW CallSignalSocket::SetH245OSSocket queue=" << (GetRemote() ? GetRemote()->GetH245MessageQueueSize() : 0));
+                    if (GetRemote() && GetRemote()->GetH245MessageQueueSize() > 0) {
+    				    // send all queued H.245 messages now
+	    			    PTRACE(3, "H245\tSending " << GetRemote()->GetH245MessageQueueSize() << " queued H.245 messages now");
+		    		    while (PASN_OctetString * h245msg = GetRemote()->GetNextQueuedH245Message()) {
+			    		    if (!m_h245socket->Send(*h245msg)) {
+				    		    PTRACE(1, "H245\tSending queued messages failed");
+					        }
+					        delete h245msg;
+				        }
+                    }
+    		    } else {
+    		        PTRACE(0, "JW ConnectRemote() after multiplex connect - other side is NAT=" << dynamic_cast<NATH245Socket *>(css->m_h245socket) << " caller=" << css->IsCaller());
+    		        if (!dynamic_cast<NATH245Socket *>(css->m_h245socket) && css->IsCaller()) {
+    		            PTRACE(0, "JW non-H.460 caller, wait for connect");
+    		        } else {
+    		            // connect to or send startH245
+                        css->m_h245socket->SetIgnoreAcceptError();
+                        bool result = css->m_h245socket->ConnectRemote();
+                        if (result) {
+                            //ConfigReloadMutex.StartRead();
+                            m_h245socket->SetConnected(true);
+                            css->m_h245socket->SetConnected(true);
+                            PTRACE(0, "JW re-set OSSocket");
+                            m_h245socket->SetOSSocket(socket, name); // re-set socket (only needed when running under Valgrind ?)
+                            oldhandler->Insert(m_h245socket, css->m_h245socket);
+                            //ConfigReloadMutex.EndRead();
+                        }
+                        // no else, failure is OK eg when both sides use H.245 multiplexing
+    		        }
+        		}
+    		}
+        }
+    }
+    //PTRACE(0, "JW CallSignalSocket::SetH245OSSocket DONE os_socket=" << socket << " this=" << this << " remote=" << remote << " m_h245socket=" << m_h245socket);
+}
+#endif // HAS_H46018
+
 #ifdef HAS_H46023
 bool CallSignalSocket::IsH46024Call(const H225_Setup_UUIE & setupBody)
 {
@@ -4641,7 +4735,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
 				secondSetup = (AsString(m_call->GetCallIdentifier()) == AsString(setupBody.m_callIdentifier));
 			}
-		} else if (m_call->IsToParent() && !m_call->IsForwarded()) {
+		} else if (m_call->IsToParent() && gkClient && !m_call->IsForwarded()) {
 			if (gkClient->CheckFrom(_peerAddr)) {
 				// looped call
 				PTRACE(2, Type() << "\tWarning: a registered call from my GK(" << GetName() << ')');
@@ -4838,7 +4932,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 				route.m_destEndpoint = called;
 				request.AddRoute(route);
 
-				if (!useParent) {
+				if (!useParent && gkClient) {
 					Address toIP;
 					GetIPFromTransportAddr(calledAddr, toIP);
 					useParent = gkClient->IsRegistered() && gkClient->CheckFrom(toIP);
@@ -4919,7 +5013,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 
 		// if I'm behind NAT and the call is from parent, always use H.245 routed,
 		// also make sure all calls from endpoints with H.460.17/.18 are H.245 routed
-		bool h245Routed = rassrv->IsH245Routed() || (useParent && (gkClient->IsNATed() || gkClient->UsesH46018()));
+		bool h245Routed = rassrv->IsH245Routed() || (useParent && gkClient && (gkClient->IsNATed() || gkClient->UsesH46018()));
 		bool callFromTraversalClient = false;
 		bool callFromTraversalServer = false;
 #ifdef HAS_H46017
@@ -7623,8 +7717,8 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 
 	if (GkConfig()->GetBoolean(RoutedSec, "FilterEmptyFacility", false)) {
 		H225_H323_UserInformation * uuie = facility->GetUUIE();
-		if ( (uuie && (uuie->m_h323_uu_pdu.m_h323_message_body.GetTag() == H225_H323_UU_PDU_h323_message_body::e_empty))
-			|| (facilityBody.m_reason.GetTag() == H225_FacilityReason::e_transportedInformation) ) {
+		if ( uuie && ((uuie->m_h323_uu_pdu.m_h323_message_body.GetTag() == H225_H323_UU_PDU_h323_message_body::e_empty)
+			|| (facilityBody.m_reason.GetTag() == H225_FacilityReason::e_transportedInformation)) ) {
 			// filter out Facility messages with reason transportedInformation, but without h245Control or h4501SuplementaryService
 			// needed for Avaya interop
 			if (   !uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Control)
@@ -8128,6 +8222,8 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 			if (m_call && m_call->GetCalledParty() && m_call->H46019Required()
 				&& (m_call->GetCalledParty()->GetTraversalRole() != None) )
 			{
+                if (GkConfig()->GetBoolean(RoutedSec, "EnableH245Multiplexing", false))
+                    SetH225Port(uuie.m_h245Address, GkConfig()->GetInteger(RoutedSec, "H245MultiplexPort", 1722));
 				m_crv = m_call->GetCallRef();	// make sure m_crv is set
 				uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
 				uuie.RemoveOptionalField(H225_Facility_UUIE::e_conferenceID);
@@ -8414,7 +8510,7 @@ void CallSignalSocket::Dispatch()
 				GetHandler()->Insert(this);
 				return;
 			}
-			// update timeout to reflect remaing time
+			// update timeout to reflect remaining time
 			timeout = setupTimeout - (PTime() - channelStart).GetInterval();
 			break;
 
@@ -8989,7 +9085,7 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 	m_h245handler->OnH245Address(h245addr);
 	if (m_h245socket) {
 		if (m_h245socket->IsConnected()) {
-			PTRACE(4, "H245\t" << GetName() << " H245 channel already established");
+			PTRACE(4, "H245\t" << GetName() << " H.245 channel already established");
 			return false;
 		} else {
 			if (m_h245socket->SetH245Address(h245addr, masqAddr)) {
@@ -9002,19 +9098,35 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 		}
 	}
 	bool userevert = m_isnatsocket;
+	bool setMultiplexPort = false;
 #ifdef HAS_H46018
 	if (m_call->H46019Required() && IsTraversalClient()) {
 		userevert = true;
 	}
+    PTRACE(0, "JW check for H.245 multiplexing 46019=" << m_call->H46019Required() << " travesalclient=" << IsTraversalClient() << " remote-client=" << GetRemote()->IsTraversalClient() << " userevert=" << userevert);
+	if (m_call->H46019Required() && GetRemote() && GetRemote()->IsTraversalClient()) {
+		if (GkConfig()->GetBoolean(RoutedSec, "EnableH245Multiplexing", false)) {
+		    setMultiplexPort = true;
+            PTRACE(0, "JW use H.245 multiplexing");
+		}
+	}
 #endif
-	m_h245socket = userevert ? new NATH245Socket(this) : new H245Socket(this);	// TODO: handle TLS
+	m_h245socket = userevert ? new NATH245Socket(this) : new H245Socket(this);	// TODO: handle TLS (must use H.245 tunneling for now)
+	PTRACE(0, "JW new H245Socket ptr=" << m_h245socket << " port=" << m_h245socket->GetMPort());
 	if (!(m_call->GetRerouteState() == RerouteInitiated)) {
-		ret->m_h245socket = new H245Socket(m_h245socket, ret);	// TODO: handle TLS
+		ret->m_h245socket = new H245Socket(m_h245socket, ret);	// TODO: handle TLS (must use H.245 tunneling for now)
+		if (setMultiplexPort) {
+		    ret->m_h245socket->SetPort(m_h245socket->GetPort());
+		}
 	}
 
 	m_h245socket->SetH245Address(h245addr, masqAddr);
+	if (setMultiplexPort) {
+	    SetH225Port(h245addr, GkConfig()->GetInteger(RoutedSec, "H245MultiplexPort", 1722));
+	}
+
 	if (m_h245TunnelingTranslation && !m_h245Tunneling && GetRemote() && GetRemote()->m_h245Tunneling) {
-		CreateJob(m_h245socket, &H245Socket::ConnectToDirectly, "H245ActiveConnector");	// connnect directly
+		CreateJob(m_h245socket, &H245Socket::ConnectToDirectly, "H245ActiveConnector");	// connect directly
 		return false;	// remove H.245Address from message if it goes to tunneling side
 	}
 	if (m_call->GetRerouteState() == RerouteInitiated) {
@@ -9042,7 +9154,7 @@ bool CallSignalSocket::InternalConnectTo()
 				<< AsString(localAddr, pt) << " successful");
 			SetConnected(true);
 			remote->SetConnected(true);
-			// RE - TOS H.225 outbound - setup, releaseComplete etc.
+			// TOS H.225 outbound - setup, releaseComplete etc.
 			int dscp = GkConfig()->GetInteger(RoutedSec, "H225DiffServ", 0);
             if (dscp > 0) {
                 int h225TypeOfService = (dscp << 2);
@@ -9058,7 +9170,7 @@ bool CallSignalSocket::InternalConnectTo()
                 } else
 #endif
                 {
-                    // setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (the 2.6.24.4), now it doesn't anymore
+                    // setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (kernel 2.6.24.4), now it doesn't anymore
                     // setting IP_TOS will silently fail on Windows XP, Vista and Win7, supposed to work again on Win8
                     if (!ConvertOSError(::setsockopt(remote->GetHandle(), IPPROTO_IP, IP_TOS, (char *)&h225TypeOfService, sizeof(int)))) {
                         PTRACE(1, remote->Type() << "\tCould not set TOS field in IP header: "
@@ -9348,7 +9460,7 @@ bool H245Handler::HandleCommand(H245_CommandMessage & Command, bool & suppress, 
 
 // class H245Socket
 H245Socket::H245Socket(CallSignalSocket *sig)
-      : TCPProxySocket("H245d"), sigSocket(sig), listener(new TCPSocket)
+      : TCPProxySocket("H245d"), sigSocket(sig), listener(new TCPSocket), m_ignoreAcceptError(false)
 {
 	m_port = 0;
 	peerH245Addr = NULL;
@@ -9362,10 +9474,10 @@ H245Socket::H245Socket(CallSignalSocket *sig)
 #endif
 			PIPSocket::Address notused;
 			listener->GetLocalAddress(notused, m_port);
-			if (Toolkit::Instance()->IsPortNotificationActive())
+			if (Toolkit::Instance()->IsPortNotificationActive() && sig)
 				Toolkit::Instance()->PortNotification(H245Port, PortOpen, "tcp", GNUGK_INADDR_ANY, m_port, sig->GetCallNumber());
 
-			// RE - TOS - H.245 inbound TCS etc.
+			// TOS - H.245 inbound TCS etc.
 			int dscp = GkConfig()->GetInteger(RoutedSec, "H245DiffServ", 0);	// default: 0
             if (dscp > 0) {
                 int h245TypeOfService = (dscp << 2);
@@ -9379,7 +9491,7 @@ H245Socket::H245Socket(CallSignalSocket *sig)
                         << GetErrorText(PSocket::LastGeneralError));
                 }
 #endif
-                // setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (the 2.6.24.4), now it doesn't anymore
+                // setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (kernel 2.6.24.4), now it doesn't anymore
                 // setting IP_TOS will silently fail on Windows XP, Vista and Win7, supposed to work again on Win8
                 if (!ConvertOSError(::setsockopt(listener->GetHandle(), IPPROTO_IP, IP_TOS, (char *)&h245TypeOfService, sizeof(int)))) {
                     PTRACE(1, Type() << "\tCould not set TOS field in IP header: "
@@ -9398,19 +9510,25 @@ H245Socket::H245Socket(CallSignalSocket *sig)
 			);
 		listener->Close();
 	}
-	SetHandler(sig->GetHandler());
-	if (!GkConfig()->GetBoolean(RoutedSec, "DisableGnuGkH245TcpKeepAlive", false)) {
-        if (sig->UsesH460KeepAlive()) {
-            PTRACE(5, "H46018\tEnable keep-alive for H.245 in H.460.18 call");
-            RegisterKeepAlive(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19));
-        } else {
-            RegisterKeepAlive();
+	if (sig) {
+        SetHandler(sig->GetHandler());
+        if (!GkConfig()->GetBoolean(RoutedSec, "DisableGnuGkH245TcpKeepAlive", false)) {
+            if (sig->UsesH460KeepAlive()) {
+                PTRACE(5, "H46018\tEnable keep-alive for H.245 in H.460.18 call");
+                RegisterKeepAlive(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19));
+            } else {
+                RegisterKeepAlive();
+            }
         }
+	} else {
+	    // MultiplexedH245Socket doesn't have a signal channel, yet
+        SetHandler(RasServer::Instance()->GetSigProxyHandler());
 	}
+    PTRACE(0, "JW H245Socket c'tor DEST this=" << this << " port=" << m_port << " listener=" << listener << " os_handle=" << GetHandler());
 }
 
 H245Socket::H245Socket(H245Socket *socket, CallSignalSocket *sig)
-      : TCPProxySocket("H245s", socket), sigSocket(sig), listener(NULL)
+      : TCPProxySocket("H245s", socket), sigSocket(sig), listener(NULL), m_ignoreAcceptError(false)
 {
 	m_port = 0;
 	peerH245Addr = NULL;
@@ -9423,10 +9541,12 @@ H245Socket::H245Socket(H245Socket *socket, CallSignalSocket *sig)
             RegisterKeepAlive();
         }
     }
+    PTRACE(0, "JW H245Socket c'tor SOURCE this=" << this << " port=" << m_port << " listener=" << listener << " os_handle=" << GetHandle());
 }
 
 H245Socket::~H245Socket()
 {
+    PTRACE(0, "JW H245Socket d'tor this=" << this << " port=" << port);
 	if (Toolkit::Instance()->IsPortNotificationActive() && (m_port != 0)) {
 		PINDEX callNo = 0;
 		if (sigSocket) {
@@ -9461,16 +9581,21 @@ void H245Socket::OnSignalingChannelClosed()
 
 void H245Socket::ConnectTo()
 {
+    PTRACE(0, "JW H245Socket::ConnectTo queue=" << (sigSocket ? sigSocket->GetH245MessageQueueSize() : 0) << " this=" << this << " port=" << m_port << " caller=" << (sigSocket ? sigSocket->IsCaller() : 3) << " listener=" << listener << " os_handle=" << GetHandle());
 	if (remote->Accept(*listener)) {
-		if (sigSocket && sigSocket->IsH245Tunneling() && sigSocket->IsH245TunnelingTranslation()) {
-			// H.245 connect for tunneling leg - must be mixed mode
-			H245Socket * remoteH245Socket = dynamic_cast<H245Socket *>(remote);
-			if (remoteH245Socket) {
-				ConfigReloadMutex.StartRead();
-				remote->SetConnected(true);
-				SetConnected(true);	// avoid deletion of this unconnected socket
-				GetHandler()->Insert(this, remote);
-				ConfigReloadMutex.EndRead();
+        remote->SetConnected(true);
+        GetHandler()->Insert(remote);
+        PTRACE(0, "JW H245Socket::ConnectTo queue=" << (sigSocket ? sigSocket->GetH245MessageQueueSize() : 0) << " this=" << this);
+        if (sigSocket && sigSocket->GetH245MessageQueueSize() > 0) {
+            PTRACE(0, "JW H245Socket::ConnectTo connecting sockets this=" << this << " remote=" << remote);
+	    	// H.245 connect for tunneling leg - must be mixed mode
+		    H245Socket * remoteH245Socket = dynamic_cast<H245Socket *>(remote);
+	    	if (remoteH245Socket) {
+		    	ConfigReloadMutex.StartRead();
+			    remote->SetConnected(true);
+	    		SetConnected(true);	// avoid deletion of this unconnected socket
+		    	GetHandler()->Insert(this, remote);
+			    ConfigReloadMutex.EndRead();
 				// send all queued H.245 messages now
 				PTRACE(3, "H245\tSending " << sigSocket->GetH245MessageQueueSize() << " queued H.245 messages now");
 				while (PASN_OctetString * h245msg = sigSocket->GetNextQueuedH245Message()) {
@@ -9480,7 +9605,6 @@ void H245Socket::ConnectTo()
 					delete h245msg;
 				}
 			}
-            //RegisterKeepAlive();   // if enabled, start a keep-alive with default interval
 			return;
 		}
 		if (ConnectRemote()) {
@@ -9489,9 +9613,10 @@ void H245Socket::ConnectTo()
 			remote->SetConnected(true);
 			GetHandler()->Insert(this, remote);
 			ConfigReloadMutex.EndRead();
-            //RegisterKeepAlive();   // if enabled, start a keep-alive with default interval
 #ifdef HAS_H46018
+            PTRACE(0, "JW check if we should send genericIndication to traversal server isFrom=" << sigSocket->IsCallFromTraversalServer() << " isTo=" << sigSocket->IsCallToTraversalServer());
 			if (sigSocket && (sigSocket->IsCallFromTraversalServer() || sigSocket->IsCallToTraversalServer())) {
+                PTRACE(0, "JW send genericIndication to traversal server");
 				SendH46018Indication();
                 RegisterKeepAlive(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19));
 			}
@@ -9499,8 +9624,14 @@ void H245Socket::ConnectTo()
 			return;
 		}
 	} else {
-		PTRACE(1, "Error: H.245 Accept() failed");
-		SNMP_TRAP(10, SNMPError, Network, "H.245 accept failed");
+	    if (m_ignoreAcceptError) {
+            PTRACE(0, "JW ignoring Accept error as intended");
+            // need when using H.245 multiplexing, where we close the listen socket from another thread
+            return;
+	    } else {
+    		PTRACE(1, "Error: H.245 Accept() failed this=" << this << " os_socket=" << GetHandle());
+	    	SNMP_TRAP(10, SNMPError, Network, "H.245 accept failed");
+	    }
 	}
 
 	ReadLock lockConfig(ConfigReloadMutex);
@@ -9607,9 +9738,15 @@ void H245Socket::ConnectToDirectly()
 
 ProxySocket::Result H245Socket::ReceiveData()
 {
-	if (!ReadTPKT())
+	if (!ReadTPKT()) {
+        PTRACE(0, "JW H245Socket::ReceiveData() NODATA this=" << this << " port=" << m_port << " connected=" << IsConnected() << " os_socket=" << GetHandle());
 		return NoData;
+	}
 
+PTRACE(0, "JW H245Socket::ReceiveData() this=" << this << " port=" << m_port << " connected=" << IsConnected() << " handler=" << GetHandler()
+        << " peerH245Addr=" << (peerH245Addr ? AsString(*peerH245Addr) : "-")
+        << " remote=" << remote << " connected=" << (remote ? remote->IsConnected() : false) << " remote handler=" << (remote ? remote->GetHandler() : NULL)
+        << " sigSocket=" << sigSocket << " sig handler=" << (sigSocket ? sigSocket->GetHandler() : NULL) << " os_socket=" << GetHandle());
 	PPER_Stream strm(buffer);
 
 	bool suppress = false;
@@ -9626,6 +9763,16 @@ ProxySocket::Result H245Socket::ReceiveData()
 				PTRACE(1, "Error: H.245 tunnel send failed to " << sigSocket->GetRemote()->GetName());
 			}
 			return NoData;	// already forwarded through tunnel
+		}
+		// check if other H.245 socket is connected already, otherwise queue messages until connected
+		if (!remote || !remote->IsConnected() || remote->GetOSSocket() < 0) {
+            if (sigSocket) {
+                PASN_OctetString h245msg;
+                h245msg.SetValue(strm);
+                PTRACE(0, "JW queuing H.245 message");
+                sigSocket->QueueH245Message(h245msg);
+		        return NoData; // queued, don't forward now
+            }
 		}
 		return Forwarding;
 	}
@@ -9799,7 +9946,9 @@ bool H245Socket::Accept(YaTCPSocket & socket)
 PBoolean H245Socket::Accept(PSocket & socket)
 #endif
 {
+    PTRACE(0, "JW Accept this=" << this << " os_handle=" << socket.GetHandle());
 	bool result = TCPProxySocket::Accept(socket);
+	PTRACE(0, "JW Accept result=" << result);
 	if (result) {
 		Address addr;
 		WORD p;
@@ -9807,6 +9956,7 @@ PBoolean H245Socket::Accept(PSocket & socket)
 		UnmapIPv4Address(addr);
 		PTRACE(3, "H245\tConnected from " << GetName() << " on " << AsString(addr, p) << " (CallID: " << GetCallIdentifierAsString() << ")");
 	} else if (peerH245Addr) {
+	    PTRACE(0, "JW ConnectRemote after Accept fail");
 		result = H245Socket::ConnectRemote();
 	}
 	return result;
@@ -9814,8 +9964,14 @@ PBoolean H245Socket::Accept(PSocket & socket)
 
 bool H245Socket::ConnectRemote()
 {
-	if (listener)
+    PTRACE(0, "JW H245Socket::ConnectRemote START queue=" << (sigSocket ? sigSocket->GetH245MessageQueueSize() : 0)
+           << " this=" << this << " port=" << m_port << " peerH245Addr=" << (peerH245Addr ? AsString(*peerH245Addr) : "none"));
+
+	if (listener) {
+        PTRACE(0, "JW before close listener=" << listener);
 		listener->Close(); // don't accept other connection
+        PTRACE(0, "JW after close listener");
+	}
 	PIPSocket::Address peerAddr, localAddr(0);
 	WORD peerPort;
 
@@ -9824,9 +9980,12 @@ bool H245Socket::ConnectRemote()
 	if (!peerH245Addr || !GetIPAndPortFromTransportAddr(*peerH245Addr, peerAddr, peerPort) || !peerPort) {
 		m_signalingSocketMutex.Signal();
 		PTRACE(3, "H245\tInvalid address");
+        PTRACE(0, "JW H245Socket::ConnectRemote DONE Error"
+           << " this=" << this << " port=" << m_port << " peerH245Addr=" << (peerH245Addr ? AsString(*peerH245Addr) : "none"));
 		return false;
 	}
 	SetPort(peerPort);
+	PTRACE(0, "JW peerAddr=" << AsString(peerAddr) << " peerPort=" << peerPort);
 	if (sigSocket != NULL) {
 		sigSocket->GetLocalAddress(localAddr);
 		UnmapIPv4Address(localAddr);
@@ -9836,11 +9995,16 @@ bool H245Socket::ConnectRemote()
 	int numPorts = min(H245PortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS);
 	for (int i = 0; i < numPorts; ++i) {
 		WORD pt = H245PortRange.GetPort();
+		PTRACE(0, "JW vor CONNECT: localAddr+pt=" << AsString(localAddr, pt) << " peerAddr=" << AsString(peerAddr));
 		if (Connect(localAddr, pt, peerAddr)) {
 			SetConnected(true);
 			PTRACE(3, "H245\tConnect to " << GetName() << " from " << AsString(localAddr, pt) << " successful" << " (CallID: " << GetCallIdentifierAsString() << ")");
+            PTRACE(0, "JW H.245 Sockets: A=" << this << " B=" << remote
+                   << " handler A=" << GetHandler() << " handler B=" << remote->GetHandler()
+                   << " name A=" << GetName() << " name B=" << remote->GetName()
+                   << " os socket A=" << GetHandle() << " os socket B=" << remote->GetHandle());
 
-			// RE - TOS - H.245 outbound - TCS messages etc.
+			// TOS - H.245 outbound - TCS messages etc.
             int dscp = GkConfig()->GetInteger(RoutedSec, "H245DiffServ", 0);
             if (dscp > 0) {
                 int h245TypeOfService = (dscp << 2);
@@ -9856,7 +10020,7 @@ bool H245Socket::ConnectRemote()
                 } else
 #endif
                 {
-                    // setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (the 2.6.24.4), now it doesn't anymore
+                    // setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (kernel 2.6.24.4), now it doesn't anymore
                     // setting IP_TOS will silently fail on Windows XP, Vista and Win7, supposed to work again on Win8
                     if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IP, IP_TOS, (char *)&h245TypeOfService, sizeof(int)))) {
                         PTRACE(1, remote->Type() << "\tCould not set TOS field in IP header: "
@@ -9867,7 +10031,16 @@ bool H245Socket::ConnectRemote()
                 }
             }
 
-			if (sigSocket && sigSocket->GetRemote() && sigSocket->GetRemote()->IsH245TunnelingTranslation()) {
+#ifdef HAS_H46018
+            PTRACE(0, "JW check 2 if we should send genericIndication to traversal server isFrom=" << sigSocket->IsCallFromTraversalServer() << " isTo=" << sigSocket->IsCallToTraversalServer());
+			if (sigSocket && (sigSocket->IsCallFromTraversalServer() || sigSocket->IsCallToTraversalServer())) {
+                PTRACE(0, "JW send genericIndication to traversal server");
+				SendH46018Indication();
+                RegisterKeepAlive(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19));
+			}
+#endif
+
+            if (sigSocket && sigSocket->GetRemote() && sigSocket->GetRemote()->GetH245MessageQueueSize() > 0) {
 				// send all queued H.245 messages now
 				PTRACE(3, "H245\tSending " << sigSocket->GetRemote()->GetH245MessageQueueSize() << " queued H.245 messages now");
 				while (PASN_OctetString * h245msg = sigSocket->GetRemote()->GetNextQueuedH245Message()) {
@@ -9877,6 +10050,8 @@ bool H245Socket::ConnectRemote()
 					delete h245msg;
 				}
 			}
+            PTRACE(0, "JW H245Socket::ConnectRemote DONE OK"
+               << " this=" << this << " port=" << m_port << " peerH245Addr=" << (peerH245Addr ? AsString(*peerH245Addr) : "none"));
 			return true;
 		}
 		int errorNumber = GetErrorNumber(PSocket::LastGeneralError);
@@ -9888,6 +10063,8 @@ bool H245Socket::ConnectRemote()
 		PTRACE(3, "H245\t" << AsString(peerAddr, peerPort) << " DIDN'T ACCEPT THE CALL" << " (CallID: " << GetCallIdentifierAsString() << ")");
 		SNMP_TRAP(10, SNMPError, Network, "H.245 connection to " + AsString(peerAddr, peerPort) + " failed");
 	}
+    PTRACE(0, "JW H245Socket::ConnectRemote DONE Error2"
+           << " this=" << this << " port=" << m_port << " peerH245Addr=" << (peerH245Addr ? AsString(*peerH245Addr) : "none"));
 	return false;
 }
 
@@ -9898,6 +10075,7 @@ H225_TransportAddress H245Socket::GetH245Address(const Address & myip)
 
 bool H245Socket::SetH245Address(H225_TransportAddress & h245addr, const Address & myip)
 {
+    PTRACE(0, "JW H245Socket::SetH245Address this=" << this << " BEFORE: port=" << m_port);
 	bool swapped = false;
 	H245Socket * socket = NULL;
 
@@ -9937,6 +10115,7 @@ bool H245Socket::Reverting(const H225_TransportAddress & h245addr)
 // class NATH245Socket
 bool NATH245Socket::ConnectRemote()
 {
+    PTRACE(0, "JW NATH245Socket::ConnectRemote");
     if (!GkConfig()->GetBoolean(RoutedSec, "DisableGnuGkH245TcpKeepAlive", false)) {
         if (sigSocket && sigSocket->UsesH460KeepAlive()) {
             PTRACE(5, "H46018\tEnable keep-alive for H.245 in H.460.18 call");
@@ -9974,9 +10153,116 @@ bool NATH245Socket::ConnectRemote()
 	return result;
 }
 
+#ifdef HAS_H46018
+// class MultiplexedH245Socket
+void MultiplexedH245Socket::Dispatch()
+{
+    SetReadTimeout(PTimeInterval(100));
+    ProxySocket::Result result = NoData;
+    time_t startTime = time(NULL);
+    bool loopDone = false;
+    do {
+        switch (result = ReceiveData()) {
+            case NoData:
+                PTRACE(0, "JW Dispatch: NoData");
+                break;
+            case NoDataAndDone:
+                PTRACE(0, "JW Dispatch: NoDataAndDone");
+                loopDone = true;
+                break;
+            case Error:
+                PTRACE(0, "JW Dispatch: Error");
+                OnError();
+                break;
+            default:
+                PTRACE(0, "JW Dispatch: default");
+                break;
+        }
+        // TODO: make 10 sec timeout configurable ?
+        time_t now = time(NULL);
+        if (now - startTime >= 10) {
+            loopDone = true;
+        }
+    } while (!loopDone);
+
+    if (result == NoDataAndDone) {
+        PTRACE(0, "JW clear os_socket this=" << this);
+        SetOSSocket(-99, "removed"); // make sure our socket isn't closed when we delete this object
+    } else {
+        PTRACE(0, "JW Timeout in H.245 multiplex connection");
+    }
+
+    delete this;
+}
+
+ProxySocket::Result MultiplexedH245Socket::ReceiveData()
+{
+	if (!ReadTPKT()) {
+        PTRACE(0, "JW MultiplexedH245Socket::ReceiveData NODATA this=" << this << " port=" << m_port << " os_socket=" << GetHandle());
+		return NoData;
+	}
+
+	PPER_Stream strm(buffer);
+	H245_MultimediaSystemControlMessage h245msg;
+	if (!h245msg.Decode(strm)) {
+		PTRACE(3, "H245M\tERROR DECODING H.245 from " << GetName());
+		return Error;
+	}
+
+	bool isH46018Indication = false;
+	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_indication) {
+        const H245_IndicationMessage & Indication = h245msg;
+    	if (Indication.GetTag() == H245_IndicationMessage::e_genericIndication) {
+	    	const H245_GenericMessage & generic = Indication;
+		    const PASN_ObjectId & gid = generic.m_messageIdentifier;
+		    if (gid == H46018_OID) {
+        	    isH46018Indication = true;
+        	    PTRACE(0, "JW H46018Indication=" << h245msg);
+        	    bool isAnswer = false;
+    			H225_CallIdentifier callIdentifier;
+    			for (PINDEX i = 0; i < generic.m_messageContent.GetSize(); ++i) {
+                    const H245_ParameterIdentifier & idm = generic.m_messageContent[i].m_parameterIdentifier;
+		            if (idm.GetTag() == H245_ParameterIdentifier::e_standard) {
+			            const PASN_Integer & id = idm;
+			            if (id == 1) {
+                            if (generic.m_messageContent[i].m_parameterValue.GetTag() == H245_ParameterValue::e_octetString) {
+                                const PASN_OctetString & value = generic.m_messageContent[i].m_parameterValue;
+            			        callIdentifier.m_guid = value;
+                            }
+			            }
+        			    if (id == 2) {
+        			        isAnswer = true;
+    	    		    }
+    			    }
+    			}
+	    		callptr call = CallTable::Instance()->FindCallRec(callIdentifier);
+			    if (call) {
+			        PTRACE(0, "JW found call " << AsString (callIdentifier) << " answer=" << isAnswer);
+			        // detach from current handler so it can be added to handler of H245Socket in CallSignalSocket
+			        ProxyHandler * handler = GetHandler();
+			        if (handler)
+			            handler->Detach(this);
+			        // patch socket into H245Socket pair in call
+                    call->SetH245OSSocket(GetOSSocket(), isAnswer, GetName());
+			    } else {
+			        PTRACE(0, "H245M\tDidn't find call " << AsString (callIdentifier));
+			    }
+		    }
+    	}
+
+	}
+	if (!isH46018Indication) {
+	    PTRACE(0, "H245M\tJW Error: Received wrong H.245 message: " << h245msg);
+	    return Error;
+	}
+    return NoDataAndDone;
+}
+#endif
+
+
 namespace { // anonymous namespace
 
-inline bool compare_lc(pair<const WORD, RTPLogicalChannel *> p, LogicalChannel *lc)
+inline bool compare_lc(pair<const WORD, RTPLogicalChannel *> p, LogicalChannel * lc)
 {
 	return p.second == lc;
 }
@@ -10007,11 +10293,11 @@ H245_H2250LogicalChannelParameters *GetLogicalChannelParameters(H245_OpenLogical
 			return NULL;
 		H245_OpenLogicalChannel_reverseLogicalChannelParameters_multiplexParameters & params = olc.m_reverseLogicalChannelParameters.m_multiplexParameters;
 		isReverseLC = true;
-		return (params.GetTag() == H245_OpenLogicalChannel_reverseLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters) ?  &((H245_H2250LogicalChannelParameters &)params) : NULL;
+		return (params.GetTag() == H245_OpenLogicalChannel_reverseLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters) ? &((H245_H2250LogicalChannelParameters &)params) : NULL;
 	} else {
 		H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters & params = olc.m_forwardLogicalChannelParameters.m_multiplexParameters;
 		isReverseLC = false;
-		return (params.GetTag() == H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters) ?  &((H245_H2250LogicalChannelParameters &)params) : NULL;
+		return (params.GetTag() == H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters) ? &((H245_H2250LogicalChannelParameters &)params) : NULL;
 	}
 }
 
@@ -10039,6 +10325,64 @@ bool GetChannelsFromOLCA(H245_OpenLogicalChannelAck & olca, H245_UnicastAddress 
 
 
 #ifdef HAS_H46018
+
+// class MultiplexH245Listener
+MultiplexH245Listener::MultiplexH245Listener(const Address & addr, WORD pt)
+{
+	unsigned queueSize = GkConfig()->GetInteger("ListenQueueLength", GK_DEF_LISTEN_QUEUE_LENGTH);
+	if (!Listen(addr, queueSize, pt, PSocket::CanReuseAddress)) {
+		PTRACE(1, "H245M\tCould not open H.245 multiplex listening socket at " << AsString(addr, pt)
+			<< " - error " << GetErrorCode(PSocket::LastGeneralError) << '/'
+			<< GetErrorNumber(PSocket::LastGeneralError) << ": "
+			<< GetErrorText(PSocket::LastGeneralError));
+		Close();
+	}
+
+	// TOS - H.225 listener - callProceeding, alerting, connect etc.
+	int dscp = GkConfig()->GetInteger(RoutedSec, "H245DiffServ", 0);	// default: 0
+    if (dscp > 0) {
+        int h245TypeOfService = (dscp << 2);
+#if defined(hasIPV6) && defined(IPV6_TCLASS)
+        if (addr.GetVersion() == 6) {
+            // for IPv6 set TCLASS
+            if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IPV6, IPV6_TCLASS, (char *)&h245TypeOfService, sizeof(int)))) {
+                PTRACE(1, "H245M\tCould not set TCLASS field in IPv6 header: "
+                    << GetErrorCode(PSocket::LastGeneralError) << '/'
+                    << GetErrorNumber(PSocket::LastGeneralError) << ": "
+                    << GetErrorText(PSocket::LastGeneralError));
+            }
+        } else
+#endif
+        {
+            // setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (kernel 2.6.24.4), now it doesn't anymore
+            // setting IP_TOS will silently fail on Windows XP, Vista and Win7, supposed to work again on Win8
+            if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IP, IP_TOS, (char *)&h245TypeOfService, sizeof(int)))) {
+                PTRACE(1, "H245M\tCould not set TOS field in IP header: "
+                    << GetErrorCode(PSocket::LastGeneralError) << '/'
+                    << GetErrorNumber(PSocket::LastGeneralError) << ": "
+                    << GetErrorText(PSocket::LastGeneralError));
+            }
+        }
+    }
+
+	SetName(AsString(addr, GetPort()));
+	if (Toolkit::Instance()->IsPortNotificationActive())
+		Toolkit::Instance()->PortNotification(H245Port, PortOpen, "tcp", addr, pt);
+	m_addr = addr;
+}
+
+MultiplexH245Listener::~MultiplexH245Listener()
+{
+	if (Toolkit::Instance()->IsPortNotificationActive())
+		Toolkit::Instance()->PortNotification(Q931Port, PortClose, "tcp", m_addr, port);
+}
+
+ServerSocket *MultiplexH245Listener::CreateAcceptor() const
+{
+    PTRACE(0, "JW H.245 Multiplex connect");
+	return new MultiplexedH245Socket(NULL);
+}
+
 
 // class MultiplexRTPListener
 MultiplexRTPListener::MultiplexRTPListener(WORD pt, WORD buffSize)
@@ -10077,7 +10421,7 @@ MultiplexRTPListener::MultiplexRTPListener(WORD pt, WORD buffSize)
 		} else
 #endif
 		{
-			// setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (the 2.6.24.4), now it doesn't anymore
+			// setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (kernel 2.6.24.4), now it doesn't anymore
 			// setting IP_TOS will silently fail on Windows XP, Vista and Win7, supposed to work again on Win8
 			if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IP, IP_TOS, (char *)&rtpIpTypeofService, sizeof(int)))) {
 				PTRACE(1, "RTPM\tCould not set TOS field in IP header: "
@@ -10444,6 +10788,7 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
 	}
 }
 
+
 MultiplexedRTPReader::MultiplexedRTPReader()
 {
 	m_multiplexRTPListener = NULL;
@@ -10465,7 +10810,7 @@ MultiplexedRTPReader::~MultiplexedRTPReader()
 void MultiplexedRTPReader::OnStart()
 {
 	if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false)) {
-		// create mutiplex RTP listeners
+		// create multiplex RTP listeners
 		 m_multiplexRTPListener = new MultiplexRTPListener((WORD)GkConfig()->GetInteger(ProxySection, "RTPMultiplexPort", GK_DEF_MULTIPLEX_RTP_PORT));
 		 if (m_multiplexRTPListener->IsOpen()) {
 			PTRACE(1, "RTPM\tMultiplex RTP listener listening on port " << m_multiplexRTPListener->GetPort());
@@ -11160,7 +11505,7 @@ bool UDPProxySocket::Bind(const Address & localAddr, WORD pt)
 		} else
 #endif
 		{
-			// setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (the 2.6.24.4), now it doesn't anymore
+			// setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (kernel 2.6.24.4), now it doesn't anymore
 			// setting IP_TOS will silently fail on Windows XP, Vista and Win7, supposed to work again on Win8
 			if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IP, IP_TOS, (char *)&rtpIpTypeofService, sizeof(int)))) {
 				PTRACE(1, Type() << "\tCould not set TOS field in IP header: "
@@ -14311,7 +14656,7 @@ bool H245ProxyHandler::HandleIndication(H245_IndicationMessage & Indication, boo
 #ifdef HAS_H46018
 	// filter out genericIndications for H.460.18
 	if (Indication.GetTag() == H245_IndicationMessage::e_genericIndication) {
-		H245_GenericMessage generic = Indication;
+		H245_GenericMessage & generic = Indication;
 		PASN_ObjectId & gid = generic.m_messageIdentifier;
 		if (gid == H46018_OID) {
 			suppress = true;
@@ -14773,7 +15118,7 @@ CallSignalListener::CallSignalListener(const Address & addr, WORD pt)
 		Close();
 	}
 
-	//RE - TOS - H.225 listener - callProceeding, alerting, connect etc.
+	// TOS - H.225 listener - callProceeding, alerting, connect etc.
 	int dscp = GkConfig()->GetInteger(RoutedSec, "H225DiffServ", 0);	// default: 0
     if (dscp > 0) {
         int h225TypeOfService = (dscp << 2);
@@ -14789,7 +15134,7 @@ CallSignalListener::CallSignalListener(const Address & addr, WORD pt)
         } else
 #endif
         {
-            // setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (the 2.6.24.4), now it doesn't anymore
+            // setting IPTOS_PREC_CRITIC_ECP required root permission on Linux until 2008 (kernel 2.6.24.4), now it doesn't anymore
             // setting IP_TOS will silently fail on Windows XP, Vista and Win7, supposed to work again on Win8
             if (!ConvertOSError(::setsockopt(os_handle, IPPROTO_IP, IP_TOS, (char *)&h225TypeOfService, sizeof(int)))) {
                 PTRACE(1, "Q931\tCould not set TOS field in IP header: "
@@ -15512,6 +15857,7 @@ void ProxyHandler::CleanUp()
 				}
 			}
 #endif
+            PTRACE(0, "JW delete socket " << s);
 			delete s;
 			delete t;
 			--m_rmsize;

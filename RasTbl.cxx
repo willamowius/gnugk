@@ -3115,8 +3115,8 @@ void CallRec::SetSocket(CallSignalSocket * calling, CallSignalSocket * called)
 			PIPSocket::Address addr(0);
 			WORD port = 0;
 			calling->GetPeerAddress(addr, port);
-			UnmapIPv4Address(addr);
-			m_srcSignalAddress = SocketToH225TransportAddr(addr, port);
+            UnmapIPv4Address(addr);
+            m_srcSignalAddress = SocketToH225TransportAddr(addr, port);
 		}
 	}
 }
@@ -3143,6 +3143,15 @@ void CallRec::SetCallSignalSocketCalled(CallSignalSocket * socket)
 	m_calledSocket = socket;
 }
 
+#ifdef HAS_H46018
+void CallRec::SetH245OSSocket(int socket, bool isAnswer, const PString & name)
+{
+    if (m_callingSocket && !isAnswer)
+        m_callingSocket->SetH245OSSocket(socket, name);
+    if (m_calledSocket && isAnswer)
+        m_calledSocket->SetH245OSSocket(socket, name);
+}
+#endif // HAS_H46018
 
 void CallRec::SetConnected()
 {

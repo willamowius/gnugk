@@ -904,6 +904,9 @@ public:
 	void SetSocket(CallSignalSocket *, CallSignalSocket *);
 	void SetCallSignalSocketCalling(CallSignalSocket* socket);
 	void SetCallSignalSocketCalled(CallSignalSocket* socket);
+#ifdef HAS_H46018
+    void SetH245OSSocket(int socket, bool isAnswer, const PString & name);
+#endif
 	void SetToParent(bool toParent) { m_toParent = toParent; }
 	void SetFromParent(bool fromParent) { m_fromParent = fromParent; }
 	void SetAccessTokens(const H225_ArrayOf_CryptoH323Token & tokens) { m_accessTokens = tokens; }
@@ -1615,8 +1618,8 @@ private:
 		 int sent;
 	};
 
-	std::map<WORD,H46024Balternate> m_H46024Balternate;
-	void BuildH46024AnnexBRequest(bool initiate,H245_MultimediaSystemControlMessage & h245msg, const std::map<WORD,H46024Balternate> & alt);
+	std::map<WORD, H46024Balternate> m_H46024Balternate;
+	void BuildH46024AnnexBRequest(bool initiate, H245_MultimediaSystemControlMessage & h245msg, const std::map<WORD,H46024Balternate> & alt);
 	list<int> m_h46024Bflag;
 #endif
 	/// unregistered caller NAT'd

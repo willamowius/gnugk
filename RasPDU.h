@@ -33,6 +33,7 @@ class RasListener;
 class MulticastListener;
 class CallSignalListener;
 class TLSCallSignalListener;
+class MultiplexH245Listener;
 class StatusListener;
 class RasServer;
 class CallSignalSocket;
@@ -270,6 +271,10 @@ protected:
 	TLSCallSignalListener *m_tlsCallSignalListener;
 	WORD m_tlsSignalPort;
 #endif
+#ifdef HAS_H46018
+	MultiplexH245Listener *m_multiplexH245Listener;
+	WORD m_h245MultiplexPort;
+#endif
 	RasServer *m_rasSrv;
 
 private:
@@ -278,6 +283,9 @@ private:
 	virtual CallSignalListener *CreateCallSignalListener();
 #ifdef HAS_TLS
 	virtual TLSCallSignalListener *CreateTLSCallSignalListener();
+#endif
+#ifdef HAS_H46018
+	virtual MultiplexH245Listener *CreateMultiplexH245Listener();
 #endif
 	virtual StatusListener *CreateStatusListener();
 };

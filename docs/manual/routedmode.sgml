@@ -539,6 +539,16 @@ Enable H.460.18 even if the endpoint is not behind a NAT. Setting to 0 will
 disable H.460.18 if the endpoint is detected as not being behind a NAT. If H.460.23 is supported
 and enabled then direct media is still supported.
 
+<item><tt/EnableH245Multiplexing=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Enable H.245 multiplexing for H.460.18 endpoints.
+
+<item><tt/H245MultiplexPort=3006/<newline>
+Default: <tt>1722</tt><newline>
+<p>
+Set the TCP port to be used for H.245 multiplexing.
+
 <item><tt/EnableH46023=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
@@ -780,7 +790,7 @@ Possible values: TPKT, UserInput, None.
 <item><tt>RedirectCallsToGkIP=1</tt><newline>
 Default: <tt>0</tt><newline>
 <p>
-Send a Facility redirect to callers when the destCallSignallAddress is not
+Send a Facility redirect to callers when the destCallSIgnallAddress is not
 one of the gatekeeper's own IPs or the external IP.
 This can be used to redirect calls directly to the gatekeeper that have
 been forwarded to it by a load balancer that needs to be removed from the

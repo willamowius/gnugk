@@ -517,6 +517,10 @@ GkInterface::GkInterface(const PIPSocket::Address & addr) : m_address(addr)
 	m_tlsSignalPort = 0;
 	m_tlsCallSignalListener = NULL;
 #endif
+#ifdef HAS_H46018
+	m_h245MultiplexPort = 0;
+	m_multiplexH245Listener = NULL;
+#endif
 }
 
 GkInterface::~GkInterface()
@@ -531,6 +535,10 @@ GkInterface::~GkInterface()
 #ifdef HAS_TLS
 	if (m_tlsCallSignalListener)
 		m_rasSrv->CloseListener(m_tlsCallSignalListener);
+#endif
+#ifdef HAS_H46018
+	if (m_multiplexH245Listener)
+		m_rasSrv->CloseListener(m_multiplexH245Listener);
 #endif
 	if (m_statusListener)
 		m_rasSrv->CloseListener(m_statusListener);
@@ -547,6 +555,9 @@ bool GkInterface::CreateListeners(RasServer *RasSrv)
 #ifdef HAS_TLS
 	WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
 #endif
+#ifdef HAS_H46018
+	WORD h245MultiplexPort = (WORD)GkConfig()->GetInteger(RoutedSec, "H245MultiplexPort", GK_DEF_MULTIPLEX_H245_PORT);
+#endif
 	WORD statusPort = (WORD)GkConfig()->GetInteger("StatusPort", GK_DEF_STATUS_PORT);
 
 	if (SetListener(rasPort, m_rasPort, m_rasListener, &GkInterface::CreateRasListener))
@@ -559,6 +570,13 @@ bool GkInterface::CreateListeners(RasServer *RasSrv)
 	if (Toolkit::Instance()->IsTLSEnabled()) {
 		if (SetListener(tlsSignalPort, m_tlsSignalPort, m_tlsCallSignalListener, &GkInterface::CreateTLSCallSignalListener)) {
 			m_rasSrv->AddListener(m_tlsCallSignalListener);
+		}
+	}
+#endif
+#ifdef HAS_H46018
+	if (GkConfig()->GetBoolean(RoutedSec, "EnableH245Multiplexing", false)) {
+		if (SetListener(h245MultiplexPort, m_h245MultiplexPort, m_multiplexH245Listener, &GkInterface::CreateMultiplexH245Listener)) {
+			m_rasSrv->AddListener(m_multiplexH245Listener);
 		}
 	}
 #endif
@@ -633,6 +651,13 @@ CallSignalListener *GkInterface::CreateCallSignalListener()
 TLSCallSignalListener *GkInterface::CreateTLSCallSignalListener()
 {
 	return m_rasSrv->IsGKRouted() ? new TLSCallSignalListener(m_address, m_tlsSignalPort) : NULL;
+}
+#endif
+
+#ifdef HAS_H46018
+MultiplexH245Listener *GkInterface::CreateMultiplexH245Listener()
+{
+	return m_rasSrv->IsGKRouted() ? new MultiplexH245Listener(m_address, m_h245MultiplexPort) : NULL;
 }
 #endif
 
@@ -1019,7 +1044,7 @@ void RasServer::LoadConfig()
 #endif
 
 #ifdef HAS_H46018
-	// create mutiplex RTP listeners
+	// create multiplex RTP listeners
 	if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false)) {
 		if (Toolkit::Instance()->IsH46018Enabled()) {
 			MultiplexedRTPHandler::Instance()->OnReload();
