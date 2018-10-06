@@ -3786,6 +3786,11 @@ void CallSignalSocket::OnError()
 
 void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 {
+    if (!msg) {
+        PTRACE(1, "Error: Invalid Facility message");
+        return;
+    }
+
 	ReadLock configLock(ConfigReloadMutex);
 	MarkSocketBlocked lock(this);
 
@@ -3962,6 +3967,11 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 
 void CallSignalSocket::RerouteCall(FacilityMsg * msg)
 {
+    if (!msg) {
+        PTRACE(1, "Error: Invalid Facility message");
+        return;
+    }
+
 	H225_Facility_UUIE & facilityBody = msg->GetUUIEBody();
 
     PString callID = AsString(m_call->GetCallIdentifier(), true);

@@ -145,8 +145,7 @@ public:
 	virtual SignalingMsg * Clone()
 	{
 		if (!m_uuie)
-			return new H225SignalingMsg<UUIE>(new Q931(*m_q931), NULL, NULL,
-    			m_localAddr, m_localPort, m_peerAddr, m_peerPort);;
+			return NULL;
 
 		H225_H323_UserInformation *uuieClone = (H225_H323_UserInformation*)(m_uuie->Clone());
 		return new H225SignalingMsg<UUIE>(new Q931(*m_q931), uuieClone,
