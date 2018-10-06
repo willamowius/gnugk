@@ -179,7 +179,7 @@ void PresWorker::ProcessMessages()
 				PASN_OctetString element;
 				if (handler->BuildPresenceElement(H225_RasMessage::e_serviceControlIndication, *i, element)) {
 					H225_RasMessage sci_ras;
-					BuildSCI(sci_ras,element);
+					BuildSCI(sci_ras, element);
 					RasServer::Instance()->SendRas(sci_ras, ep->GetRasAddress());
 				}
 #endif
@@ -209,9 +209,9 @@ void PresWorker::ProcessMessages()
 			}
 #else
 			PASN_OctetString element;
-			if (handler->BuildPresenceElement(H225_RasMessage::e_locationRequest,*i, element)) {
+			if (handler->BuildPresenceElement(H225_RasMessage::e_locationRequest, *i, element)) {
 				H225_RasMessage lrq_ras;
-				BuildLRQ(lrq_ras,element);
+				BuildLRQ(lrq_ras, element);
 				RasServer::Instance()->SendRas(lrq_ras, *i);
 			}
 #endif
@@ -238,7 +238,7 @@ H460P_PresenceInstruction & BuildInstructionMsg(unsigned type, const H225_AliasA
 												const PString & display = PString(), const PString & avatar = PString())
 {
 	H323PresenceInstruction instruct((H323PresenceInstruction::Instruction)type, AsString(addr,0), display, avatar);
-	return BuildInstructionMsg(instruct,msg);
+	return BuildInstructionMsg(instruct, msg);
 }
 
 H460P_PresenceSubscription & BuildSubscriptionMsg(const H460P_PresenceSubscription & subscription, H460P_PresencePDU & msg)
@@ -265,8 +265,8 @@ H460P_PresenceSubscription & BuildSubscriptionMsg(const OpalGloballyUniqueID & i
 {
 	H323PresenceSubscription sub;
 	sub.SetSubscription(id);
-	sub.SetSubscriptionDetails(pid.m_subscriber,pid.m_Alias,pid.m_Display,pid.m_Avatar,pid.m_Category);
-	return BuildSubscriptionMsg(sub,msg);
+	sub.SetSubscriptionDetails(pid.m_subscriber, pid.m_Alias, pid.m_Display,pid.m_Avatar, pid.m_Category);
+	return BuildSubscriptionMsg(sub, msg);
 }
 #endif
 
@@ -319,7 +319,7 @@ bool UpdateInstruction(const H460P_PresenceInstruction & addr, H323PresenceInstr
 		const H460P_PresenceAlias & palias = addr;
 		const H225_AliasAddress & alias = palias.m_alias;
 #endif
-		if (AsString(alias,0) == inst[i].GetAlias()) {
+		if (AsString(alias, false) == inst[i].GetAlias()) {
 			found = true;
 			inst[i] = (const H323PresenceInstruction &)addr;
 		}
