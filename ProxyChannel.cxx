@@ -4150,14 +4150,16 @@ void CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
         ConfigReloadMutex.EndRead();
         if (remote) {
     		CallSignalSocket * css = dynamic_cast<CallSignalSocket *>(remote);
-    		if (css && css->m_h245socket) {
+    		if ((css && css->m_h245socket) || css->IsH245Tunneling()) {
                 PTRACE(0, "JW H.245 Sockets: A=" << m_h245socket << " B=" << css->m_h245socket
                        << " handler A=" << m_h245socket->GetHandler() << " handler B=" << css->m_h245socket->GetHandler()
                        << " name A=" << m_h245socket->GetName() << " name B=" << css->m_h245socket->GetName()
                        << " connected A=" << m_h245socket->IsConnected() << " connected B=" << css->m_h245socket->IsConnected());
-                m_h245socket->SetRemoteSocket(css->m_h245socket);
-                css->m_h245socket->SetRemoteSocket(m_h245socket);
-    		    if (css->m_h245socket->IsConnected()) {
+                if (!css->IsH245Tunneling()) {
+                    m_h245socket->SetRemoteSocket(css->m_h245socket);
+                    css->m_h245socket->SetRemoteSocket(m_h245socket);
+                }
+    		    if (css->m_h245socket->IsConnected() || css->IsH245Tunneling()) {
                     PTRACE(0, "JW CallSignalSocket::SetH245OSSocket queue=" << (GetRemote() ? GetRemote()->GetH245MessageQueueSize() : 0));
                     if (GetRemote() && GetRemote()->GetH245MessageQueueSize() > 0) {
     				    // send all queued H.245 messages now
@@ -4171,7 +4173,7 @@ void CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
                     }
     		    } else {
     		        PTRACE(0, "JW ConnectRemote() after multiplex connect - other side is NAT=" << dynamic_cast<NATH245Socket *>(css->m_h245socket) << " caller=" << css->IsCaller());
-    		        if (!dynamic_cast<NATH245Socket *>(css->m_h245socket) && css->IsCaller()) {
+    		        if ((!dynamic_cast<NATH245Socket *>(css->m_h245socket) && css->IsCaller()) || css->IsH245Tunneling()) {
     		            PTRACE(0, "JW non-H.460 caller, wait for connect");
     		        } else {
     		            // connect to or send startH245
