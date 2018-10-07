@@ -4137,6 +4137,7 @@ void CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
             PTRACE(0, "JW H.245 socket is already connected");
             return;
         }
+        ConfigReloadMutex.StartRead();
         ProxyHandler * oldhandler = m_h245socket->GetHandler();
         if (!oldhandler) {
             oldhandler = RasServer::Instance()->GetSigProxyHandler();
@@ -4146,6 +4147,7 @@ void CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
         m_h245socket->SetOSSocket(socket, name);
         m_h245socket->SetConnected(true);
         oldhandler->Insert(m_h245socket);
+        ConfigReloadMutex.EndRead();
         if (remote) {
     		CallSignalSocket * css = dynamic_cast<CallSignalSocket *>(remote);
     		if (css && css->m_h245socket) {
@@ -4176,13 +4178,13 @@ void CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
                         css->m_h245socket->SetIgnoreAcceptError();
                         bool result = css->m_h245socket->ConnectRemote();
                         if (result) {
-                            //ConfigReloadMutex.StartRead();
+                            ConfigReloadMutex.StartRead();
                             m_h245socket->SetConnected(true);
                             css->m_h245socket->SetConnected(true);
                             PTRACE(0, "JW re-set OSSocket");
                             m_h245socket->SetOSSocket(socket, name); // re-set socket (only needed when running under Valgrind ?)
                             oldhandler->Insert(m_h245socket, css->m_h245socket); // TODO: handler warning
-                            //ConfigReloadMutex.EndRead();
+                            ConfigReloadMutex.EndRead();
                         }
                         // no else, failure is OK eg when both sides use H.245 multiplexing
     		        }
