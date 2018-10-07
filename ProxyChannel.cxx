@@ -3787,7 +3787,7 @@ void CallSignalSocket::OnError()
 void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 {
     if (!msg) {
-        PTRACE(1, "Error: Invalid Facility message");
+        PTRACE(1, Type() << "\tError: Invalid Facility message");
         return;
     }
 
@@ -4142,6 +4142,7 @@ void CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
             oldhandler = RasServer::Instance()->GetSigProxyHandler();
         }
         oldhandler->Detach(m_h245socket);
+        m_h245socket->SetHandler(NULL);
         m_h245socket->SetOSSocket(socket, name);
         m_h245socket->SetConnected(true);
         oldhandler->Insert(m_h245socket);
@@ -4180,7 +4181,7 @@ void CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
                             css->m_h245socket->SetConnected(true);
                             PTRACE(0, "JW re-set OSSocket");
                             m_h245socket->SetOSSocket(socket, name); // re-set socket (only needed when running under Valgrind ?)
-                            oldhandler->Insert(m_h245socket, css->m_h245socket);
+                            oldhandler->Insert(m_h245socket, css->m_h245socket); // TODO: handler warning
                             //ConfigReloadMutex.EndRead();
                         }
                         // no else, failure is OK eg when both sides use H.245 multiplexing
@@ -15577,20 +15578,23 @@ void ProxyHandler::Insert(TCPProxySocket * socket)
 	if (h == NULL) {
 		socket->SetHandler(this);
 		AddSocket(socket);
-	} else
-	h->MoveTo(this, socket);
+	} else {
+        h->MoveTo(this, socket);
+	}
 }
 
-void ProxyHandler::Insert(TCPProxySocket *first, TCPProxySocket *second)
+void ProxyHandler::Insert(TCPProxySocket * first, TCPProxySocket * second)
 {
 	if (first == NULL || second == NULL)
 		return;
 
 	ProxyHandler *h = first->GetHandler();
+	PTRACE(0, "JW ProxyHandler::Insert first handler=" << h << " socket=" << first);
 	if (h != NULL && h != this)
 		h->DetachSocket(first);
 	first->SetHandler(this);
 	h = second->GetHandler();
+	PTRACE(0, "JW ProxyHandler::Insert second handler=" << h << " socket=" << second);
 	if (h != NULL && h != this)
 		h->DetachSocket(second);
 	second->SetHandler(this);
