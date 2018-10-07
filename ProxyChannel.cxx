@@ -4151,11 +4151,11 @@ void CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
         if (remote) {
     		CallSignalSocket * css = dynamic_cast<CallSignalSocket *>(remote);
     		if ((css && css->m_h245socket) || css->IsH245Tunneling()) {
-                PTRACE(0, "JW H.245 Sockets: A=" << m_h245socket << " B=" << css->m_h245socket
+                if (!css->IsH245Tunneling()) {
+                	PTRACE(0, "JW H.245 Sockets: A=" << m_h245socket << " B=" << css->m_h245socket
                        << " handler A=" << m_h245socket->GetHandler() << " handler B=" << css->m_h245socket->GetHandler()
                        << " name A=" << m_h245socket->GetName() << " name B=" << css->m_h245socket->GetName()
                        << " connected A=" << m_h245socket->IsConnected() << " connected B=" << css->m_h245socket->IsConnected());
-                if (!css->IsH245Tunneling()) {
                     m_h245socket->SetRemoteSocket(css->m_h245socket);
                     css->m_h245socket->SetRemoteSocket(m_h245socket);
                 }
