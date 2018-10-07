@@ -10165,6 +10165,18 @@ bool NATH245Socket::ConnectRemote()
 	bool result = Accept(*listener);
 	PTRACE_IF(3, result, "H245\tChannel established for NAT EP");
 	listener->Close();
+
+    PTRACE(0, "JW NATH245Socket::ConnectRemote queue=" << ((sigSocket && sigSocket->GetRemote()) ? sigSocket->GetRemote()->GetH245MessageQueueSize() : 0) << " this=" << this);
+    if (sigSocket && sigSocket->GetRemote() && sigSocket->GetRemote()->GetH245MessageQueueSize() > 0) {
+        PTRACE(3, "H245\tSending " << sigSocket->GetRemote()->GetH245MessageQueueSize() << " queued H.245 messages now");
+        while (PASN_OctetString * h245msg = sigSocket->GetRemote()->GetNextQueuedH245Message()) {
+            if (!Send(*h245msg)) {
+                PTRACE(1, "H245\tSending queued messages failed");
+            }
+            delete h245msg;
+        }
+    }
+
 	return result;
 }
 
