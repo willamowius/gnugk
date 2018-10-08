@@ -927,6 +927,7 @@ WORD PortRange::GetPort()
 		port = minport;
 	if (port == 0)
 		port = 1;
+    PTRACE(0, "JW GetPort this=" << this << " result=" << result << " (port=" << port << " minport=" << minport << " maxport=" << maxport << ")");
 	return result;
 }
 
@@ -985,7 +986,6 @@ public:
 	void SetSigSocket(CallSignalSocket *socket) { sigSocket = socket; }
 	PString GetCallIdentifierAsString() const;
 
-	WORD GetMPort() const { return m_port; }    // TODO: remove after debugging is done
 	void SetIgnoreAcceptError() { m_ignoreAcceptError = true; }
 
 	// new virtual function
@@ -1041,7 +1041,7 @@ public:
 #ifndef LARGE_FDSET
 	PCLASSINFO ( NATH245Socket, H245Socket )
 #endif
-	MultiplexedH245Socket(CallSignalSocket *sig) : H245Socket(sig) { PTRACE(0, "JW MultiplexedH245Socket c'tor this=" << this << " port=" << m_port << " listener=" << listener); }
+	MultiplexedH245Socket(CallSignalSocket * sig);
 	virtual ~MultiplexedH245Socket() { PTRACE(0, "JW MultiplexedH245Socket d'tor this=" << this << " port=" << m_port); }
 
 private:
@@ -9127,7 +9127,7 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 	}
 #endif
 	m_h245socket = userevert ? new NATH245Socket(this) : new H245Socket(this);	// TODO: handle TLS (must use H.245 tunneling for now)
-	PTRACE(0, "JW new H245Socket ptr=" << m_h245socket << " port=" << m_h245socket->GetMPort());
+	PTRACE(0, "JW new H245Socket ptr=" << m_h245socket);
 	if (!(m_call->GetRerouteState() == RerouteInitiated)) {
 		ret->m_h245socket = new H245Socket(m_h245socket, ret);	// TODO: handle TLS (must use H.245 tunneling for now)
 		if (setMultiplexPort) {
@@ -10182,6 +10182,16 @@ bool NATH245Socket::ConnectRemote()
 
 #ifdef HAS_H46018
 // class MultiplexedH245Socket
+
+MultiplexedH245Socket::MultiplexedH245Socket(CallSignalSocket *sig)
+    : H245Socket(sig)
+{
+    PTRACE(0, "JW MultiplexedH245Socket c'tor this=" << this << " port=" << m_port << " listener=" << listener);
+    if (listener)
+        listener->Close(); // we don't need the listener
+}
+
+
 void MultiplexedH245Socket::Dispatch()
 {
     SetReadTimeout(PTimeInterval(100));
