@@ -4150,52 +4150,50 @@ void CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
         m_h245socket->SetConnected(true);
         oldhandler->Insert(m_h245socket);
         ConfigReloadMutex.EndRead();
-        if (remote) {
-    		CallSignalSocket * css = dynamic_cast<CallSignalSocket *>(remote);
-    		if (css) {
-                if (css->m_h245socket || css->IsH245Tunneling()) {
-                    if (!css->IsH245Tunneling()) {
-                        PTRACE(0, "JW H.245 Sockets: A=" << m_h245socket << " B=" << css->m_h245socket
-                           << " handler A=" << m_h245socket->GetHandler() << " handler B=" << css->m_h245socket->GetHandler()
-                           << " name A=" << m_h245socket->GetName() << " name B=" << css->m_h245socket->GetName()
-                           << " connected A=" << m_h245socket->IsConnected() << " connected B=" << css->m_h245socket->IsConnected());
-                        m_h245socket->SetRemoteSocket(css->m_h245socket);
-                        css->m_h245socket->SetRemoteSocket(m_h245socket);
+        CallSignalSocket * css = dynamic_cast<CallSignalSocket *>(remote);
+        if (css) {
+            if (css->m_h245socket || css->IsH245Tunneling()) {
+                if (!css->IsH245Tunneling()) {
+                    PTRACE(0, "JW H.245 Sockets: A=" << m_h245socket << " B=" << css->m_h245socket
+                       << " handler A=" << m_h245socket->GetHandler() << " handler B=" << css->m_h245socket->GetHandler()
+                       << " name A=" << m_h245socket->GetName() << " name B=" << css->m_h245socket->GetName()
+                       << " connected A=" << m_h245socket->IsConnected() << " connected B=" << css->m_h245socket->IsConnected());
+                    m_h245socket->SetRemoteSocket(css->m_h245socket);
+                    css->m_h245socket->SetRemoteSocket(m_h245socket);
+                }
+                if ((css->m_h245socket && css->m_h245socket->IsConnected()) || css->IsH245Tunneling()) {
+                    PTRACE(0, "JW CallSignalSocket::SetH245OSSocket queue=" << (GetRemote() ? GetRemote()->GetH245MessageQueueSize() : 0));
+                    if (GetRemote() && GetRemote()->GetH245MessageQueueSize() > 0) {
+                        // send all queued H.245 messages now
+                        PTRACE(3, "H245\tSending " << GetRemote()->GetH245MessageQueueSize() << " queued H.245 messages now");
+                        while (PASN_OctetString * h245msg = GetRemote()->GetNextQueuedH245Message()) {
+                            if (!m_h245socket->Send(*h245msg)) {
+                                PTRACE(1, "H245\tSending queued messages failed");
+                            }
+                            delete h245msg;
+                        }
                     }
-                    if ((css->m_h245socket && css->m_h245socket->IsConnected()) || css->IsH245Tunneling()) {
-                        PTRACE(0, "JW CallSignalSocket::SetH245OSSocket queue=" << (GetRemote() ? GetRemote()->GetH245MessageQueueSize() : 0));
-                        if (GetRemote() && GetRemote()->GetH245MessageQueueSize() > 0) {
-                            // send all queued H.245 messages now
-                            PTRACE(3, "H245\tSending " << GetRemote()->GetH245MessageQueueSize() << " queued H.245 messages now");
-                            while (PASN_OctetString * h245msg = GetRemote()->GetNextQueuedH245Message()) {
-                                if (!m_h245socket->Send(*h245msg)) {
-                                    PTRACE(1, "H245\tSending queued messages failed");
-                                }
-                                delete h245msg;
-                            }
-                        }
+                } else {
+                    PTRACE(0, "JW ConnectRemote() after multiplex connect - other side is NAT=" << dynamic_cast<NATH245Socket *>(css->m_h245socket) << " caller=" << css->IsCaller());
+                    if ((!dynamic_cast<NATH245Socket *>(css->m_h245socket) && css->IsCaller()) || css->IsH245Tunneling()) {
+                        PTRACE(0, "JW non-H.460 caller, wait for connect");
                     } else {
-                        PTRACE(0, "JW ConnectRemote() after multiplex connect - other side is NAT=" << dynamic_cast<NATH245Socket *>(css->m_h245socket) << " caller=" << css->IsCaller());
-                        if ((!dynamic_cast<NATH245Socket *>(css->m_h245socket) && css->IsCaller()) || css->IsH245Tunneling()) {
-                            PTRACE(0, "JW non-H.460 caller, wait for connect");
-                        } else {
-                            // connect to or send startH245
-                            css->m_h245socket->SetIgnoreAcceptError();
-                            bool result = css->m_h245socket->ConnectRemote();
-                            if (result) {
-                                ConfigReloadMutex.StartRead();
-                                m_h245socket->SetConnected(true);
-                                css->m_h245socket->SetConnected(true);
-                                PTRACE(0, "JW re-set OSSocket");
-                                m_h245socket->SetOSSocket(socket, name); // re-set socket (only needed when running under Valgrind ?)
-                                oldhandler->Insert(m_h245socket, css->m_h245socket); // TODO: handler warning
-                                ConfigReloadMutex.EndRead();
-                            }
-                            // no else, failure is OK eg when both sides use H.245 multiplexing
+                        // connect to or send startH245
+                        css->m_h245socket->SetIgnoreAcceptError();
+                        bool result = css->m_h245socket->ConnectRemote();
+                        if (result) {
+                            ConfigReloadMutex.StartRead();
+                            m_h245socket->SetConnected(true);
+                            css->m_h245socket->SetConnected(true);
+                            PTRACE(0, "JW re-set OSSocket");
+                            m_h245socket->SetOSSocket(socket, name); // re-set socket (only needed when running under Valgrind ?)
+                            oldhandler->Insert(m_h245socket, css->m_h245socket); // TODO: handler warning
+                            ConfigReloadMutex.EndRead();
                         }
+                        // no else, failure is OK eg when both sides use H.245 multiplexing
                     }
                 }
-    		}
+            }
         }
     }
     //PTRACE(0, "JW CallSignalSocket::SetH245OSSocket DONE os_socket=" << socket << " this=" << this << " remote=" << remote << " m_h245socket=" << m_h245socket);
