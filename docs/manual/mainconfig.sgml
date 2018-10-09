@@ -321,7 +321,7 @@ will not register with this gatekeeper again.
 compliant endpoints.
 
 <label id="alternategks">
-<item><tt/AlternateGKs=1.2.3.4;1719;false;120;GnuGk/<newline>
+<item><tt/AlternateGKs=1.2.3.4;1719;false;1;GnuGk2/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 If the endpoint loses connectivity with GnuGk it should automatically try 
@@ -342,11 +342,11 @@ The AlternateGKs config option specifies the fields contained in
 the primary gatekeeper's RCF. The first and second fields of this string define
 where (IP, port) to forward to.
 The third tells endpoints whether they need to register with the alternate gatekeeper
-before placing calls. They usually don't because we forward their RRQs, so they
+before placing calls. They usually don't if we forward their RRQs and they
 are automatically known to the alternate gatekeeper.
 The fourth field specifies the priority for this gatekeeper.
 Lower is better; usually the primary gatekeeper is considered to have priority 1.
-The last field specifies the alternate gatekeeper's identifier.
+The last (optional) field specifies the alternate gatekeeper's identifier.
 
 You may specify multiple alternate gatekeepers as a comma separated list.
 

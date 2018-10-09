@@ -295,8 +295,8 @@ all other networks will use the globally defined alternate gatekeeper.
 
 <tscreen><verb>
 [RasSrv::AlternateGatekeeper]
-192.168.0.0/18=1.2.3.4;1719;true;120;GnuGk4
-192.168.1.10=1.2.3.10;1719;true;120;GnuGk10
+192.168.0.0/18=1.2.3.4;1719;true;1;GnuGk4
+192.168.1.10=1.2.3.10;1719;true;1;GnuGk10
 </verb></tscreen>
 
 </descrip>
