@@ -10203,7 +10203,6 @@ void MultiplexedH245Socket::Dispatch()
     do {
         switch (result = ReceiveData()) {
             case NoData:
-                PTRACE(0, "JW Dispatch: NoData");
                 break;
             case NoDataAndDone:
                 PTRACE(0, "JW Dispatch: NoDataAndDone");
@@ -10377,7 +10376,7 @@ MultiplexH245Listener::MultiplexH245Listener(const Address & addr, WORD pt)
 		Close();
 	}
 
-	// TOS - H.225 listener - callProceeding, alerting, connect etc.
+	// TOS - H.245 listener
 	int dscp = GkConfig()->GetInteger(RoutedSec, "H245DiffServ", 0);	// default: 0
     if (dscp > 0) {
         int h245TypeOfService = (dscp << 2);
