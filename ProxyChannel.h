@@ -148,7 +148,7 @@ public:
 	void UnlockRemote() { m_remoteLock.Signal(); }
 
     virtual int GetOSSocket() const { return os_handle; }
-	virtual void SetOSSocket(int sock, const PString & name) { PTRACE(0, "JW SetOSSocket this=" << this << " os socket=" << sock); os_handle = sock; SetName(name); }
+	virtual void SetOSSocket(int sock, const PString & name) { os_handle = sock; SetName(name); }
 
 private:
 	TCPProxySocket();

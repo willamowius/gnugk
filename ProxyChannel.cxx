@@ -927,7 +927,6 @@ WORD PortRange::GetPort()
 		port = minport;
 	if (port == 0)
 		port = 1;
-    PTRACE(0, "JW GetPort this=" << this << " result=" << result << " (port=" << port << " minport=" << minport << " maxport=" << maxport << ")");
 	return result;
 }
 
@@ -1023,7 +1022,7 @@ public:
 	PCLASSINFO ( NATH245Socket, H245Socket )
 #endif
 	NATH245Socket(CallSignalSocket * sig) : H245Socket(sig) { }
-	virtual ~NATH245Socket() { PTRACE(0, "JW NATH245Socket d'tor this=" << this << " port=" << m_port); }
+	virtual ~NATH245Socket() { }
 
 	// override from class H245Socket
 	virtual bool ConnectRemote();
@@ -1042,7 +1041,7 @@ public:
 	PCLASSINFO ( NATH245Socket, H245Socket )
 #endif
 	MultiplexedH245Socket(CallSignalSocket * sig);
-	virtual ~MultiplexedH245Socket() { PTRACE(0, "JW MultiplexedH245Socket d'tor this=" << this << " port=" << m_port); }
+	virtual ~MultiplexedH245Socket() { }
 
 private:
 	MultiplexedH245Socket();
@@ -1414,7 +1413,6 @@ ProxySocket::Result ProxySocket::ReceiveData()
 
 bool ProxySocket::ForwardData()
 {
-    PTRACE(0, "JW ProxySocket::ForwardData()");
 	return WriteData(wbuffer, buflen);
 }
 
@@ -4136,7 +4134,7 @@ void CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
     PTRACE(0, "JW CallSignalSocket::SetH245OSSocket START os_socket=" << socket << " this=" << this << " remote=" << remote << " m_h245socket=" << m_h245socket);
     if (m_h245socket) {
         if (m_h245socket->IsConnected()) {
-            PTRACE(0, "JW H.245 socket is already connected");
+            PTRACE(1, "H245M\tH.245 socket is already connected");
             return;
         }
         ConfigReloadMutex.StartRead();
@@ -4185,7 +4183,6 @@ void CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
                             ConfigReloadMutex.StartRead();
                             m_h245socket->SetConnected(true);
                             css->m_h245socket->SetConnected(true);
-                            PTRACE(0, "JW re-set OSSocket");
                             m_h245socket->SetOSSocket(socket, name); // re-set socket (only needed when running under Valgrind ?)
                             oldhandler->Insert(m_h245socket, css->m_h245socket); // TODO: handler warning
                             ConfigReloadMutex.EndRead();
@@ -4196,7 +4193,6 @@ void CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
             }
         }
     }
-    //PTRACE(0, "JW CallSignalSocket::SetH245OSSocket DONE os_socket=" << socket << " this=" << this << " remote=" << remote << " m_h245socket=" << m_h245socket);
 }
 #endif // HAS_H46018
 
@@ -9642,7 +9638,6 @@ void H245Socket::ConnectTo()
 		}
 	} else {
 	    if (m_ignoreAcceptError) {
-            PTRACE(0, "JW ignoring Accept error as intended");
             // need when using H.245 multiplexing, where we close the listen socket from another thread
             return;
 	    } else {
@@ -9973,7 +9968,6 @@ PBoolean H245Socket::Accept(PSocket & socket)
 		UnmapIPv4Address(addr);
 		PTRACE(3, "H245\tConnected from " << GetName() << " on " << AsString(addr, p) << " (CallID: " << GetCallIdentifierAsString() << ")");
 	} else if (peerH245Addr) {
-	    PTRACE(0, "JW ConnectRemote after Accept fail");
 		result = H245Socket::ConnectRemote();
 	}
 	return result;
@@ -9985,9 +9979,7 @@ bool H245Socket::ConnectRemote()
            << " this=" << this << " port=" << m_port << " peerH245Addr=" << (peerH245Addr ? AsString(*peerH245Addr) : "none"));
 
 	if (listener) {
-        PTRACE(0, "JW before close listener=" << listener);
 		listener->Close(); // don't accept other connection
-        PTRACE(0, "JW after close listener");
 	}
 	PIPSocket::Address peerAddr, localAddr(0);
 	WORD peerPort;
@@ -10205,15 +10197,14 @@ void MultiplexedH245Socket::Dispatch()
             case NoData:
                 break;
             case NoDataAndDone:
-                PTRACE(0, "JW Dispatch: NoDataAndDone");
                 loopDone = true;
                 break;
             case Error:
-                PTRACE(0, "JW Dispatch: Error");
+                PTRACE(1, "H245M\tError in H.245 multiplex connection");
                 OnError();
                 break;
             default:
-                PTRACE(0, "JW Dispatch: default");
+                PTRACE(1, "H245M\tDefault case in H.245 multiplex dispatch");
                 break;
         }
         // TODO: make 10 sec timeout configurable ?
@@ -10224,10 +10215,9 @@ void MultiplexedH245Socket::Dispatch()
     } while (!loopDone);
 
     if (result == NoDataAndDone) {
-        PTRACE(0, "JW clear os_socket this=" << this);
         SetOSSocket(-99, "removed"); // make sure our socket isn't closed when we delete this object
     } else {
-        PTRACE(0, "JW Timeout in H.245 multiplex connection");
+        PTRACE(1, "H245M\tTimeout in H.245 multiplex connection");
     }
 
     delete this;
@@ -10290,7 +10280,7 @@ ProxySocket::Result MultiplexedH245Socket::ReceiveData()
 
 	}
 	if (!isH46018Indication) {
-	    PTRACE(0, "H245M\tJW Error: Received wrong H.245 message: " << h245msg);
+	    PTRACE(1, "H245M\tError: Received wrong H.245 message: " << h245msg);
 	    return Error;
 	}
     return NoDataAndDone;
@@ -15898,7 +15888,6 @@ void ProxyHandler::CleanUp()
 				}
 			}
 #endif
-            PTRACE(0, "JW delete socket " << s);
 			delete s;
 			delete t;
 			--m_rmsize;
