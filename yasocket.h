@@ -3,7 +3,7 @@
 // yasocket.h
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2016, Jan Willamowius
+// Copyright (c) 2004-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -176,12 +176,12 @@ public:
 		size_t reserve = 512
 	) : maxfd(0), m_name(name) { fds.reserve(reserve); }
 
-	/// build a select list for signle socket only
+	/// build a select list for single socket only
 	YaSelectList(
 		YaSocket * singleSocket /// socket to be put on the list
 		) : fds(1, singleSocket), maxfd(singleSocket->GetHandle()) { }
 
-	/// build a select list for signle socket only
+	/// build a select list for single socket only
 	YaSelectList(
 		/// name for this select list
 		const PString & name,

@@ -3,7 +3,7 @@
 // yasocket.cxx
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2017, Jan Willamowius
+// Copyright (c) 2004-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -290,7 +290,7 @@ bool YaSocket::SetNonBlockingMode()
 {
 	if (!IsOpen())
 		return false;
-	// is call to F_SETFD with F_CLOEXEC really neccessary?
+	// is call to F_SETFD with F_CLOEXEC really necessary?
 	int cmd = 1;
 	if (ConvertOSError(::ioctl(os_handle, FIONBIO, &cmd))
 			&& ConvertOSError(::fcntl(os_handle, F_SETFD, 1)))
@@ -944,7 +944,7 @@ bool USocket::InternalWriteData(const BYTE * buf, int len)
 		PTRACE(4, type << '\t' << Name() << " blocked, " << wcount << " bytes written, " << len << " bytes queued");
 		// InternalWriteData can be called
 		// either when flushing the queue (so any remaining unflushed data
-		// should be put back at the queue front) or when the queue is epmty
+		// should be put back at the queue front) or when the queue is empty
 		PWaitAndSignal lock(queueMutex);
 		std::list<PBYTEArray*>::iterator i = queue.begin();
 		while (len > 0) {
