@@ -371,7 +371,7 @@ int RadiusAttr::GetVsaVendorId() const
 bool RadiusAttr::Write(
 	PBYTEArray& buffer, /// buffer the attribute data will be written to
 	PINDEX& written, /// number of bytes written (if successful return)
-	PINDEX offset /// offset into the buffer, where writting starts
+	PINDEX offset /// offset into the buffer, where writing starts
 	) const
 {
 	if (!IsValid())
@@ -421,15 +421,13 @@ void RadiusAttr::PrintOn(
 		if (m_length > 0) {
 			const PBYTEArray value((const BYTE*)m_data, m_length, FALSE);
 
-			strm << hex << setfill('0') << resetiosflags(ios::floatfield)
-				<< setprecision(indent) << setw(16);
+			strm << hex << setfill('0') << resetiosflags(ios::floatfield) << setprecision(indent) << setw(16);
 
 			if (value.GetSize() <= 32 || (flags&ios::floatfield) != ios::fixed)
 				strm << value << '\n';
 			else {
 				const PBYTEArray truncatedArray((const BYTE*)value, 32, FALSE);
-				strm << truncatedArray << '\n'
-					<< setfill(' ') << setw(indent+4) << "...\n";
+				strm << truncatedArray << '\n' << setfill(' ') << setw(indent+4) << "...\n";
 			}
 
 			strm << dec << setfill(' ');
@@ -441,47 +439,39 @@ void RadiusAttr::PrintOn(
 
 	strm << "{\n";
 
-	strm << setw(indent+7) << "type = " << (unsigned)m_type
-		<< " (" << PMAP_ATTR_TYPE_TO_NAME(m_type) << ")\n";
+	strm << setw(indent+7) << "type = " << (unsigned)m_type << " (" << PMAP_ATTR_TYPE_TO_NAME(m_type) << ")\n";
 	const PINDEX totalLen = m_length;
 
 	strm << setw(indent+9) << "length = " << totalLen << " octets\n";
 
 	if (!IsVsa()) {
-		const PINDEX valueLen = (totalLen <= FixedHeaderLength)
-			? 0 : (totalLen - FixedHeaderLength);
+		const PINDEX valueLen = (totalLen <= FixedHeaderLength) ? 0 : (totalLen - FixedHeaderLength);
 		const PBYTEArray value((const BYTE*)m_value, valueLen, FALSE);
 
 		strm << setw(indent+8) << "value = " << value.GetSize() << " octets {\n";
-		strm << hex << setfill('0') << resetiosflags(ios::floatfield)
-			<< setprecision(indent+2) << setw(16);
+		strm << hex << setfill('0') << resetiosflags(ios::floatfield) << setprecision(indent+2) << setw(16);
 
 		if (value.GetSize() > 0) {
 			if (value.GetSize() <= 32 || (flags & ios::floatfield) != ios::fixed)
 				strm << value << '\n';
 			else {
 				const PBYTEArray truncatedArray((const BYTE*)value, 32, FALSE);
-				strm << truncatedArray << '\n'
-					<< setfill(' ') << setw(indent+6) << "...\n";
+				strm << truncatedArray << '\n' << setfill(' ') << setw(indent+6) << "...\n";
 			}
 		}
 
 		strm << dec << setfill(' ') << setprecision(indent);
 		strm << setw(indent+2) << "}\n";
 	} else {
-		strm << setw(indent+11) << "vendorId = "
-			<< GetVsaVendorId() << '\n';
+		strm << setw(indent+11) << "vendorId = " << GetVsaVendorId() << '\n';
 
-		PINDEX valueLen = (totalLen <= VsaFixedHeaderLength)
-			? 0 : (totalLen - VsaFixedHeaderLength);
+		PINDEX valueLen = (totalLen <= VsaFixedHeaderLength) ? 0 : (totalLen - VsaFixedHeaderLength);
 		PINDEX headerLen = VsaFixedHeaderLength;
 		if (valueLen > 2) {
 			valueLen -= 2;
 			headerLen += 2;
-			strm << setw(indent+13) << "vendorType = "
-				<< (unsigned)m_vendorType << '\n';
-			strm << setw(indent+15) << "vendorLength = "
-				<< (unsigned)m_vendorLength << '\n';
+			strm << setw(indent+13) << "vendorType = " << (unsigned)m_vendorType << '\n';
+			strm << setw(indent+15) << "vendorLength = " << (unsigned)m_vendorLength << '\n';
 		}
 
 		const PBYTEArray value((const BYTE*)(m_data + headerLen), valueLen, FALSE);
@@ -536,8 +526,7 @@ bool RadiusAttr::GetValue(PBYTEArray& buffer, PINDEX offset) const
 
 	if (len > 0)
 		memcpy(buffer.GetPointer(offset + len) + offset,
-			m_data + (IsVsa() ? VsaFixedHeaderLength : FixedHeaderLength), len
-			);
+			m_data + (IsVsa() ? VsaFixedHeaderLength : FixedHeaderLength), len);
 
 	return true;
 }
@@ -748,8 +737,7 @@ bool RadiusPDU::IsValid() const
 
 	PINDEX currLen = FixedHeaderLength;
 	while (currLen < len) {
-		const RadiusAttr* const attr
-			= reinterpret_cast<const RadiusAttr*>(m_data + currLen);
+		const RadiusAttr* const attr = reinterpret_cast<const RadiusAttr*>(m_data + currLen);
 		const PINDEX remainingLen = len - currLen;
 		if (remainingLen < RadiusAttr::FixedHeaderLength || remainingLen < attr->GetLength() || !attr->IsValid())
 			break;
@@ -967,7 +955,7 @@ bool RadiusPDU::AppendVsaAttr(
 }
 
 bool RadiusPDU::AppendVsaAttr(
-	const PString& stringValue, /// string to be stored in the attribute Value
+	const PString & stringValue, /// string to be stored in the attribute Value
 	int vendorId, /// 32 bit vendor identifier
 	unsigned char vendorType /// vendor-specific attribute type
 	)
@@ -1014,7 +1002,7 @@ bool RadiusPDU::AppendVsaAttr(
 }
 
 bool RadiusPDU::AppendVsaAttr(
-	const PIPSocket::Address& addressValue, /// IP address to be stored in the attribute Value
+	const PIPSocket::Address & addressValue, /// IP address to be stored in the attribute Value
 	int vendorId, /// 32 bit vendor identifier
 	unsigned char vendorType /// vendor-specific attribute type
 	)
@@ -1048,7 +1036,7 @@ bool RadiusPDU::AppendVsaAttr(
 /// Append a string Cisco VSA attribute
 bool RadiusPDU::AppendCiscoAttr(
 	unsigned char vendorType, /// vendor-specific attribute type
-	const PString& stringValue, /// string to be stored in the attribute Value
+	const PString & stringValue, /// string to be stored in the attribute Value
 	bool vsaHack /// true to not prepend attribute name to its value
 	)
 {
@@ -1150,7 +1138,7 @@ const RadiusAttr* RadiusPDU::FindVsaAttr(
 	return attr;
 }
 
-bool RadiusPDU::Write(PBYTEArray& buffer, PINDEX& written, PINDEX offset) const
+bool RadiusPDU::Write(PBYTEArray & buffer, PINDEX & written, PINDEX offset) const
 {
 	if (!IsValid())
 		return false;
@@ -1200,7 +1188,7 @@ bool RadiusPDU::Read(const void* rawData, PINDEX rawLength)
 }
 
 bool RadiusPDU::Read(
-		const PBYTEArray& buffer, /// buffer with RADIUS packet data
+		const PBYTEArray & buffer, /// buffer with RADIUS packet data
 		PINDEX offset /// offset into the buffer, where data starts
 		)
 {
@@ -1212,7 +1200,7 @@ bool RadiusPDU::Read(
 	return Read(((const BYTE*)buffer) + offset, len - offset);
 }
 
-void RadiusPDU::CopyContents(const RadiusPDU& pdu)
+void RadiusPDU::CopyContents(const RadiusPDU & pdu)
 {
 	memcpy(m_data, pdu.m_data, FixedHeaderLength);
 
@@ -1317,7 +1305,7 @@ bool RadiusPDU::EncryptPasswords(
 
 	// delete the old (clear text) User-Password attribute and append the new
 	// one (encrypted) at the end
-	// this is done by overwritting the old User-Password with attributes
+	// this is done by overwriting the old User-Password with attributes
 	// present after it (memory block holding remaining attributes is moved)
 	SetLength(len + encPwdAttr->GetLength() - pwdAttr->GetLength());
 	memmove(pwdAttr,
@@ -1418,7 +1406,7 @@ RadiusSocket::~RadiusSocket()
 		delete m_readSyncPoints[i];
 }
 
-void RadiusSocket::PrintOn(ostream& strm) const
+void RadiusSocket::PrintOn(ostream & strm) const
 {
 	strm << "port:" << GetPort()
 		<< "[active requests: " << m_nestedCount << ", ID space: "
@@ -1676,7 +1664,7 @@ bool RadiusSocket::MakeRequest(const RadiusPDU * request, const Address & server
 	return result;
 }
 
-bool RadiusSocket::SendRequest(const RadiusPDU * request, const Address& serverAddress, WORD serverPort)
+bool RadiusSocket::SendRequest(const RadiusPDU * request, const Address & serverAddress, WORD serverPort)
 {
 	if (!IsOpen() || request == NULL || !request->IsValid())
 		return false;
@@ -1936,8 +1924,7 @@ bool RadiusClient::MakeRequest(
 		if (!PIPSocket::GetHostAddress(server->m_serverAddress, serverAddress)
 			|| !serverAddress.IsValid()) {
 			PTRACE(3, "RADIUS\tCould not get IP address for RADIUS server "
-				"host: " << server->m_serverAddress
-				);
+				"host: " << server->m_serverAddress);
 			continue;
 		}
 
@@ -1962,8 +1949,7 @@ bool RadiusClient::MakeRequest(
 			clonedRequestPDU->SetAuthenticator(*secret, md5);
 			if (!clonedRequestPDU->EncryptPasswords(*secret, md5)) {
 				PTRACE(3, "RADIUS\tCould not encrypt passwords "
-					"(id:" << (PINDEX)(clonedRequestPDU->GetId()) << ')'
-					);
+					"(id:" << (PINDEX)(clonedRequestPDU->GetId()) << ')');
 				delete clonedRequestPDU;
 				return false;
 			}
@@ -1997,8 +1983,7 @@ bool RadiusClient::MakeRequest(
 					clonedRequestPDU, response, *secret)) {
 				PTRACE(5, "RADIUS\tReceived PDU (id: "
 					<< (PINDEX)clonedRequestPDU->GetId()
-					<< ") has an invalid response authenticator"
-					);
+					<< ") has an invalid response authenticator");
 				delete clonedRequestPDU;
 				continue;
 			}
