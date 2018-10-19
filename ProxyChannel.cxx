@@ -34,6 +34,7 @@
 #include "ProxyChannel.h"
 #include "GkStatus.h"
 #include <queue>
+#include <math.h> // needed for ceil() on Solaris 11, OpenBSD
 
 #ifdef H323_H450
  #ifdef h323pluslib
@@ -66,10 +67,6 @@
 
 #ifdef P_OPENBSD
 #include <sys/uio.h>
-#endif
-
-#ifdef P_SOLARIS
-#include <math.h> // needed for ceil() on Solaris 11
 #endif
 
 using namespace std;
