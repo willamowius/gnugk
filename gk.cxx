@@ -1034,9 +1034,11 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 			j++;
 		}
 		if (!found) {
-			cerr << "WARNING: Config section [" << sect << "] unknown" << endl;
-			PTRACE(0, "WARNING: Config section [" << sect << "] unknown");
-			SNMP_TRAP(7, SNMPError, Configuration, "Config section [" + sect + "] unknown");
+            PString msg = "WARNING: Config section [" + sect + "] unknown";
+			cerr << msg << endl;
+			PTRACE(0, msg);
+            GkStatus::Instance()->SignalStatus(msg + "\r\n");
+			SNMP_TRAP(7, SNMPError, Configuration, msg);
 			warnings++;
 		} else if (!section_checkable) {
 			// section can't be checked in detail
@@ -1061,9 +1063,11 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 					}
 				}
 				if (!entry_found) {
-					cerr << "WARNING: Config entry [" << fullSectionName << "] " << key << "=" << value << " unknown" << endl;
-					PTRACE(0, "WARNING: Config entry [" << fullSectionName << "] " << key << "=" << value << " unknown");
-					SNMP_TRAP(7, SNMPError, Configuration, "Config entry [" + fullSectionName + "] " + key + " unknown");
+				    PString msg = "WARNING: Config entry [" + fullSectionName + "] " + key + " unknown";
+					cerr << msg << endl;
+					PTRACE(0, msg);
+                    GkStatus::Instance()->SignalStatus(msg + "\r\n");
+					SNMP_TRAP(7, SNMPError, Configuration, msg);
 					warnings++;
 				}
 			}
@@ -1136,6 +1140,9 @@ void ReloadHandler()
 		** Force reloading config
 		*/
 		Toolkit::Instance()->ReloadConfig();
+
+		// check config again, cause error messages for invalid config options
+		CheckConfig(GkConfig(), "Gatekeeper::Main");
 
 		SoftPBX::TimeToLive = GkConfig()->GetInteger("TimeToLive", SoftPBX::TimeToLive);
 
