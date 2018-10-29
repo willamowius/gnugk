@@ -1,5 +1,7 @@
 Changes from 5.0 to 5.1
 =======================
+- BUGFIX(ProxyChannel.cxx) set H.245 address in Connect and Facility(startH245) even when
+  a H.460.18 client doesn't send one (Scopia VC240 interop)
 - re-check config on reload and also send error messages to status port
 - BUGFIX(ProxyChannel.cxx) fix H.245 tunneling translation with H.460.18 endpoints
 - support for H.245 multiplexing with H.460.18: [RoutedMode] EnableH245Multiplexing=1, H245MultiplexPort=1722

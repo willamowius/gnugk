@@ -6249,6 +6249,13 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 	if (HandleFastStart(connectBody, false))
 		msg->SetUUIEChanged();
 
+#ifdef HAS_H46018
+    // add h245Address if missing from H.460.18 client, so the remote side gets a rewritten version
+    if (IsTraversalClient() && !connectBody.HasOptionalField(H225_Connect_UUIE::e_h245Address)) {
+        connectBody.IncludeOptionalField(H225_Connect_UUIE::e_h245Address);
+        connectBody.m_h245Address = H323ToH225TransportAddress("127.0.0.1:0"); // init with any value, not used on traversal clients
+    }
+#endif
 	if (HandleH245Address(connectBody))
 		msg->SetUUIEChanged();
 
@@ -7758,6 +7765,11 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 			if (ret && ret->IsTraversalServer()) {
 				m_result = NoData;
 			}
+            // add h245Address if missing from H.460.18 client, so the remote side gets a rewritten version
+			if (IsTraversalClient() && !facilityBody.HasOptionalField(H225_Facility_UUIE::e_h245Address)) {
+			    facilityBody.IncludeOptionalField(H225_Facility_UUIE::e_h245Address);
+			    facilityBody.m_h245Address = H323ToH225TransportAddress("127.0.0.1:0"); // init with any value, not used on traversal clients
+			}
 #endif
 		}
 		break;
@@ -9093,20 +9105,6 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 		return false;
 	}
 	m_h245handler->OnH245Address(h245addr);
-	if (m_h245socket) {
-		if (m_h245socket->IsConnected()) {
-			PTRACE(4, "H245\t" << GetName() << " H.245 channel already established");
-			return false;
-		} else {
-			if (m_h245socket->SetH245Address(h245addr, masqAddr)) {
-				std::swap(m_h245socket, ret->m_h245socket);
-			}
-			if (m_h245TunnelingTranslation && !m_h245Tunneling && GetRemote() && GetRemote()->m_h245Tunneling) {
-				return false;	// remove H245Address from message if it goes to tunneling side
-			}
-			return true;
-		}
-	}
 	bool userevert = m_isnatsocket;
 	bool setMultiplexPort = false;
 #ifdef HAS_H46018
@@ -9121,6 +9119,23 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 		}
 	}
 #endif
+	if (m_h245socket) {
+		if (m_h245socket->IsConnected()) {
+			PTRACE(4, "H245\t" << GetName() << " H.245 channel already established");
+			return false;
+		} else {
+			if (m_h245socket->SetH245Address(h245addr, masqAddr)) {
+				std::swap(m_h245socket, ret->m_h245socket);
+			}
+			if (m_h245TunnelingTranslation && !m_h245Tunneling && GetRemote() && GetRemote()->m_h245Tunneling) {
+				return false;	// remove H245Address from message if it goes to tunneling side
+			}
+            if (setMultiplexPort) {
+                SetH225Port(h245addr, GkConfig()->GetInteger(RoutedSec, "H245MultiplexPort", 1722));
+            }
+			return true;
+		}
+	}
 	m_h245socket = userevert ? new NATH245Socket(this) : new H245Socket(this);	// TODO: handle TLS (must use H.245 tunneling for now)
 	PTRACE(0, "JW new H245Socket ptr=" << m_h245socket);
 	if (!(m_call->GetRerouteState() == RerouteInitiated)) {
@@ -10081,7 +10096,6 @@ H225_TransportAddress H245Socket::GetH245Address(const Address & myip)
 
 bool H245Socket::SetH245Address(H225_TransportAddress & h245addr, const Address & myip)
 {
-    PTRACE(0, "JW H245Socket::SetH245Address this=" << this << " BEFORE: port=" << m_port);
 	bool swapped = false;
 	H245Socket * socket = NULL;
 
