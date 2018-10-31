@@ -1,7 +1,6 @@
 Changes from 5.0 to 5.1
 =======================
-- also use regular RTP for H.460.19 port detection from multiplexed to non-multiplexed
-  destinations (Yealink Mobile interop)
+- use regular RTP for H.460.19 port detection, too (Yealink Mobile interop)
 - BUGFIX(ProxyChannel.cxx) set H.245 address in Connect and Facility(startH245) even when
   a H.460.18 client doesn't send one (Scopia VC240 interop)
 - re-check config on reload and also send error messages to status port
