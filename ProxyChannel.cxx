@@ -11846,7 +11846,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		payloadType = wbuffer[1] & 0x7f;
 #endif
 
-#ifdef HAS_H46018   // this code section also needed when working without H.460.18, but with ignores signaled IPs
+#ifdef HAS_H46018   // this code section also needed when working without H.460.18, but with ignored signaled IPs
 	PWaitAndSignal lock(m_multiplexMutex);
 	bool isRTPKeepAlive = isRTP && (buflen == 12);
 	// Polycom RealPresence Group 300 hack for ignored IPs (needs LARGE_FDSET to work)
@@ -11954,34 +11954,12 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		if (!UsesH46019() && !m_ignoreSignaledIPs) {
 			m_portDetectionDone = true;	// skip H.460.19 port detection if H.460.19 isn't used
 		}
-		if ((isRTCP || isRTPKeepAlive) && UsesH46019()) {
+		if (UsesH46019()) {
 			PWaitAndSignal mutexWait (m_h46019DetectionLock);
-			// combine IP+port for easier comparison
-			IPAndPortAddress fSrcAddr(fSrcIP, fSrcPort);
-			IPAndPortAddress fDestAddr(fDestIP, fDestPort);
-			IPAndPortAddress rSrcAddr(rSrcIP, rSrcPort);
-			IPAndPortAddress rDestAddr(rDestIP, rDestPort);
-			PTRACE(5, "H46018\t" << (isRTCP ? "RTCP" : "RTP") << " keepAlive from " << AsString(fromIP, fromPort));
-			if ((fDestIP == 0) && (fromAddr != rDestAddr) && ((rSrcIP == 0) || (rSrcAddr == fromAddr))) {
-				// fwd dest was unset and packet didn't come from other side
-				PTRACE(5, "H46018\tSetting forward destination to " << AsString(fromIP, fromPort) << " based on " << Type() << " keepAlive");
-				fDestIP = fromIP; fDestPort = fromPort;
-				rSrcIP = fromIP; rSrcPort = fromPort;
-				SetMediaIP(true, fDestIP); // SRC
-				UpdateSocketName();
-			}
-			else if ((rDestIP == 0) && (fromAddr != fDestAddr) && ((fSrcIP == 0) || (fSrcAddr == fromAddr))) {
-				// reverse dest was unset and packet didn't come from other side
-				PTRACE(5, "H46018\tSetting reverse destination to " << AsString(fromIP, fromPort) << " based on " << Type() << " keepAlive");
-				rDestIP = fromIP; rDestPort = fromPort;
-				fSrcIP = fromIP; fSrcPort = fromPort;
-				SetMediaIP(false, rDestIP); // DST
-				UpdateSocketName();
-			}
-
-			// use keep-alive for multiplexing channel, too
+			// do port-detection for multiplexing channel, too
 			// (it might have multiplexed RTP coming in to be forwarded as regular RTP)
 			// set based on addr
+			// use with keepalives _and_regular RTP, because Yealink Mobile doesn't send keepalives for audio
 			if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false)) {
 				if (IsSet(m_multiplexDestination_A) && (m_multiplexDestination_A != fromAddr)) {
 					H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(m_callNo, m_sessionID);
@@ -12026,6 +12004,32 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 					}
 				}
 			}
+	    }
+		if ((isRTCP || isRTPKeepAlive) && UsesH46019()) {
+			PWaitAndSignal mutexWait (m_h46019DetectionLock);
+			// combine IP+port for easier comparison
+			IPAndPortAddress fSrcAddr(fSrcIP, fSrcPort);
+			IPAndPortAddress fDestAddr(fDestIP, fDestPort);
+			IPAndPortAddress rSrcAddr(rSrcIP, rSrcPort);
+			IPAndPortAddress rDestAddr(rDestIP, rDestPort);
+			PTRACE(5, "H46018\t" << (isRTCP ? "RTCP" : "RTP") << " keepAlive from " << AsString(fromIP, fromPort));
+			if ((fDestIP == 0) && (fromAddr != rDestAddr) && ((rSrcIP == 0) || (rSrcAddr == fromAddr))) {
+				// fwd dest was unset and packet didn't come from other side
+				PTRACE(5, "H46018\tSetting forward destination to " << AsString(fromIP, fromPort) << " based on " << Type() << " keepAlive");
+				fDestIP = fromIP; fDestPort = fromPort;
+				rSrcIP = fromIP; rSrcPort = fromPort;
+				SetMediaIP(true, fDestIP); // SRC
+				UpdateSocketName();
+			}
+			else if ((rDestIP == 0) && (fromAddr != fDestAddr) && ((fSrcIP == 0) || (fSrcAddr == fromAddr))) {
+				// reverse dest was unset and packet didn't come from other side
+				PTRACE(5, "H46018\tSetting reverse destination to " << AsString(fromIP, fromPort) << " based on " << Type() << " keepAlive");
+				rDestIP = fromIP; rDestPort = fromPort;
+				fSrcIP = fromIP; fSrcPort = fromPort;
+				SetMediaIP(false, rDestIP); // DST
+				UpdateSocketName();
+			}
+
 #ifdef HAS_H46026
 			// update new H.460.19 address in H.460.26 session
 			if (Toolkit::Instance()->IsH46026Enabled()) {
@@ -13764,6 +13768,7 @@ bool H245ProxyHandler::ParseTraversalParameters(
 		}
 		return true;
 	} else {
+		PTRACE(1, "H46018\tError decoding TraversalParameters = " << raw);
 		return false;
 	}
 }
