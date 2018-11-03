@@ -18,6 +18,7 @@
 #ifdef HAS_GEOIP
 
 #include "snmp.h"
+#include "Toolkit.h"
 #include "rasinfo.h"
 #include "RasPDU.h"
 #include "gkauth.h"
