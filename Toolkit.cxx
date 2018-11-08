@@ -1343,7 +1343,7 @@ PConfig * Toolkit::Config(const char * section)
 	return m_Config;
 }
 
-PConfig* Toolkit::SetConfig(const PFilePath &fp, const PString &section)
+PConfig* Toolkit::SetConfig(const PFilePath & fp, const PString &section)
 {
 	m_ConfigFilePath = fp;
 	m_ConfigDefaultSection = section;
@@ -4137,10 +4137,20 @@ unsigned Toolkit::TranslateSentCause(unsigned cause) const
 		return cause;
 }
 
-PStringList Toolkit::GetAuthenticatorList()
+PStringList Toolkit::GetAuthenticatorList() const
 {
 	PString auth = GkConfig()->GetString("Gatekeeper::Main", "Authenticators", "");
 	PStringArray authlist(auth.Tokenise(" ,;\t"));
 
 	return authlist;
+}
+
+bool Toolkit::IsAuthenticatorEnabled(const PString & algo) const
+{
+	PString algolist = GkConfig()->GetString("Gatekeeper::Main", "Authenticators", "");
+    if (algolist.IsEmpty()) {
+        return true;    // all algos enabled by default
+    } else {
+        return algolist.Find(algo) != P_MAX_INDEX;
+    }
 }

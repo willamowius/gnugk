@@ -448,7 +448,7 @@ bool GkAuthenticator::IsH235Capable() const
 }
 
 void GkAuthenticator::AppendH235Authenticator(
-	H235Authenticator* h235Auth /// H.235 authenticator to append
+	H235Authenticator * h235Auth /// H.235 authenticator to append
 	)
 {
 	if (h235Auth) {
@@ -463,7 +463,7 @@ PString GkAuthenticator::GetUsername(
 	const RasPDU<H225_RegistrationRequest> & request
 	) const
 {
-	const H225_RegistrationRequest& rrq = request;
+	const H225_RegistrationRequest & rrq = request;
 
 	PString username;
 
@@ -772,7 +772,7 @@ GkAuthenticatorList::GkAuthenticatorList()
 	PFactory<H235Authenticator>::KeyList_T keyList = PFactory<H235Authenticator>::GetKeyList();
 	PFactory<H235Authenticator>::KeyList_T::const_iterator r;
 
-	// if a global list of autenticators is configured, use it in the priority order supplied
+	// if a global list of authenticators is configured, use it in the priority order supplied
 	PStringList authlist = Toolkit::Instance()->GetAuthenticatorList();
 	if (authlist.GetSize() > 0) {
 		for (PINDEX i = 0; i < authlist.GetSize(); ++i) {
@@ -1086,7 +1086,7 @@ SimplePasswordAuth::SimplePasswordAuth(
     PFactory<H235Authenticator>::KeyList_T::const_iterator r;
 
 	PStringList authlist = Toolkit::Instance()->GetAuthenticatorList();
-	// if a global list of autenticators is configured, use it in the priority order supplied
+	// if a global list of authenticators is configured, use it in the priority order supplied
 	if (authlist.GetSize() > 0) {
 		for (PINDEX i = 0; i < authlist.GetSize(); ++i) {
 			for (r = keyList.begin(); r != keyList.end(); ++r) {
@@ -1289,7 +1289,8 @@ int SimplePasswordAuth::CheckTokens(
 		H235_ClearToken & token = tokens[i];
 
 		// check for Cisco Access Token
-		if (token.m_tokenOID == OID_H235_CAT) {
+		// TODO: ignore when CAT authenticator is disabled ??
+		if (token.m_tokenOID == OID_H235_CAT && Toolkit::Instance()->IsAuthenticatorEnabled("CAT")) {
 			if (authenticators == NULL)
 				authenticators = new GkH235Authenticators;
 
@@ -1333,7 +1334,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
 	)
 {
 	for (PINDEX i = 0; i < tokens.GetSize(); i++) {
-		if (tokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdHash) {
+		if (tokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdHash && Toolkit::Instance()->IsAuthenticatorEnabled("MD5")) {
 			if (authenticators == NULL)
 				authenticators = new GkH235Authenticators;
 
@@ -1356,7 +1357,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
 
 			authenticators->SetSimpleMD5Data(id, passwd);
 #if P_SSL
-		} else if (tokens[i].GetTag() == H225_CryptoH323Token::e_nestedcryptoToken) {
+		} else if (tokens[i].GetTag() == H225_CryptoH323Token::e_nestedcryptoToken && Toolkit::Instance()->IsAuthenticatorEnabled("H.235.1")) {
 			const H235_CryptoToken & nestedCryptoToken = tokens[i];
 
 			if (nestedCryptoToken.GetTag() != H235_CryptoToken::e_cryptoHashedToken)
@@ -1386,7 +1387,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
 			}
 
             // verify correct value of sendersID (avoid replay attack)
-            // must be either the endpointID or one of the aliasses
+            // must be either the endpointID or one of the aliases
 			H225_EndpointIdentifier epId;
 			epId = sendersID;
             endptr ep = RegistrationTable::Instance()->FindByEndpointId(epId);  // check if sendersID is the endpointID

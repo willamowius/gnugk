@@ -693,7 +693,8 @@ class Toolkit : public Singleton<Toolkit>
 	bool IsCauseCodeTranslationActive() const { return m_causeCodeTranslationActive; }
 	void SetCauseCodeTranslationActive(bool val) { m_causeCodeTranslationActive = val; }
 
-	PStringList GetAuthenticatorList();
+	PStringList GetAuthenticatorList() const;
+	bool IsAuthenticatorEnabled(const PString & algo) const;
 
 protected:
 	void CreateConfig();
