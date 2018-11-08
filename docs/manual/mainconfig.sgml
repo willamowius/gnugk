@@ -570,7 +570,7 @@ received.  It can also be used in conjunction with the
 number for further processing and routing. 
 
 <item><tt/Authenticators=H.235.1,CAT/<newline>
-Default: <tt>H.235.1,MD5,CAT</tt><newline>
+Default: <tt>H.235.1,MD5,CAT,DES</tt><newline>
 <p>
 Selects the specific authenticators to use when authenticating endpoints. 
 The default options are: H.235.1 (HMAC SHA1 / old H235AnnexD), MD5 (Digest Authentication) and CAT (Cisco Access Tokens ie RADIUS). 

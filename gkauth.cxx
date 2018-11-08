@@ -1448,7 +1448,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
 
 			authenticators->SetProcedure1Data(Toolkit::GKName(), sendersID, passwd, requireGeneralID);
 #endif
-		} else if (tokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdEncr) {
+		} else if (tokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdEncr && Toolkit::Instance()->IsAuthenticatorEnabled("DES")) {
 			if (authenticators == NULL)
 				authenticators = new GkH235Authenticators;
 
