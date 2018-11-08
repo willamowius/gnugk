@@ -222,7 +222,7 @@ int GkH235Authenticators::Validate(
 	for (i = 0; i < clearTokens.GetSize(); i++) {
 		const H235_ClearToken & token = clearTokens[i];
 		// check for CAT (Cisco Access Token)
-  		if (token.m_tokenOID == OID_H235_CAT) {
+  		if (token.m_tokenOID == OID_H235_CAT && Toolkit::Instance()->IsAuthenticatorEnabled("CAT")) {
 			catFound = true;
 			if (m_authCAT == NULL)
 				m_authCAT = new H235AuthCAT;
@@ -251,7 +251,7 @@ int GkH235Authenticators::Validate(
 
 	for (i = 0; i < cryptoTokens.GetSize(); i++) {
 		const H225_CryptoH323Token& token = cryptoTokens[i];
-		if (token.GetTag() == H225_CryptoH323Token::e_cryptoEPPwdHash) {
+		if (token.GetTag() == H225_CryptoH323Token::e_cryptoEPPwdHash && Toolkit::Instance()->IsAuthenticatorEnabled("MD5")) {
 			const H225_CryptoH323Token_cryptoEPPwdHash & cryptoEPPwdHash = token;
 			if (cryptoEPPwdHash.m_token.m_algorithmOID == OID_H235_MD5) {
 				md5Found = true;
@@ -275,7 +275,7 @@ int GkH235Authenticators::Validate(
 					return m_authResultMD5;
 				}
 			}
-		} else if (token.GetTag() == H225_CryptoH323Token::e_nestedcryptoToken) {
+		} else if (token.GetTag() == H225_CryptoH323Token::e_nestedcryptoToken && Toolkit::Instance()->IsAuthenticatorEnabled("H.235.1")) {
 #ifdef H323_H235
 			const H235_CryptoToken & nestedCryptoToken = token;
 			if (nestedCryptoToken.GetTag() == H235_CryptoToken::e_cryptoHashedToken) {
@@ -311,7 +311,7 @@ int GkH235Authenticators::Validate(
 		} else if (token.GetTag() == H225_CryptoH323Token::e_cryptoEPPwdEncr) {
 		    H235_ENCRYPTED<H235_EncodedPwdCertToken> cryptoEPPwdEncr = (H235_ENCRYPTED<H235_EncodedPwdCertToken>)token;
 #ifdef HAS_DES_ECB
-		    if (cryptoEPPwdEncr.m_algorithmOID == OID_H235_DES) {
+		    if (cryptoEPPwdEncr.m_algorithmOID == OID_H235_DES && Toolkit::Instance()->IsAuthenticatorEnabled("DES")) {
 				desFound = true;
 				if (m_authDES == NULL)
 					m_authDES = new H235AuthDesECB();
