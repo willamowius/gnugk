@@ -2199,7 +2199,7 @@ bool RegistrationRequestPDU::Process()
 		// check if the RRQ was sent from the registered endpoint
 		if (ep && bSendReply) { // not forwarded RRQ
 			if (ep->IsNATed() || ep->IsTraversalClient() || ep->UsesH46017()) {
-				// for nated endpoint, only check rx_addr
+				// for NATed endpoint, only check rx_addr
 			    bReject = (ep->GetNATIP() != rx_addr);
 			    if (bReject) {
 					PTRACE(3, "RAS\tLightweight registration rejected, because IP doesn't match");
@@ -2419,7 +2419,7 @@ bool RegistrationRequestPDU::Process()
 		//valid address = PIPSocket::IsLocalHost(rx_addr.AsString());
 		if (!bSendReply) { // don't check forwarded RRQ
 			validaddress = true;
-		} else if (!validaddress && !IsLoopback(ipaddr)) { // do not allow nated from loopback
+		} else if (!validaddress && !IsLoopback(ipaddr)) { // do not allow NATed from loopback
 			nated = true;
 			PString featureRequired = GkConfig()->GetString(RoutedSec, "NATStdMin", "");
 			if (!featureRequired && ( 0
@@ -2447,7 +2447,7 @@ bool RegistrationRequestPDU::Process()
 	if (request.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier)) {
 
 	// Alternate Gatekeepers based on rules
-//	   if (ResolveAlternateGatekeeper(request.m_endpointIdentifier,rx_addr))
+//	   if (ResolveAlternateGatekeeper(request.m_endpointIdentifier, rx_addr))
 //		  return BuildRRJ(H225_RegistrationRejectReason::e_invalidRASAddress);
 
 		endptr ep = EndpointTbl->FindByEndpointId(request.m_endpointIdentifier);
