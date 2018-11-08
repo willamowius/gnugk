@@ -681,7 +681,7 @@ void EndpointRec::NullNATSocket()
 	m_natsocket = NULL;
 }
 
-// return true if aliasses were added to existing list
+// return true if aliases were added to existing list
 bool EndpointRec::SetAliases(const H225_ArrayOf_AliasAddress & a, PBoolean additive)
 {
 	PWaitAndSignal lock(m_usedLock);
@@ -887,8 +887,11 @@ void EndpointRec::Update(const H225_RasMessage & ras_msg)
 	if (ras_msg.GetTag() == H225_RasMessage::e_registrationRequest) {
 		const H225_RegistrationRequest & rrq = ras_msg;
 
-		// don't update rasAddress for nated endpoint
+		// don't update rasAddress for NATed endpoints
 		if (!m_nat && (rrq.m_rasAddress.GetSize() >= 1))
+			SetRasAddress(rrq.m_rasAddress[0]);
+        // but for NATed H.460.18 clients, we have to update the rasAddress
+		if (IsTraversalClient() && (rrq.m_rasAddress.GetSize() >= 1))
 			SetRasAddress(rrq.m_rasAddress[0]);
 
 		if (rrq.HasOptionalField(H225_RegistrationRequest::e_timeToLive))
@@ -896,7 +899,7 @@ void EndpointRec::Update(const H225_RasMessage & ras_msg)
 
 		if (rrq.HasOptionalField(H225_RegistrationRequest::e_additiveRegistration)
 			&& rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) ) {
-			// Set the flag to say we have additive registrations
+			// set the flag to say we have additive registrations
 			if (SetAliases(rrq.m_terminalAlias, true)) {
 				SetAdditiveRegistrant();
 				// Log the additive registration, if we have new aliases
