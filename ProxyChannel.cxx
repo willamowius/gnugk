@@ -6253,7 +6253,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
     // add h245Address if missing from H.460.18 client, so the remote side gets a rewritten version
     if (IsTraversalClient() && !connectBody.HasOptionalField(H225_Connect_UUIE::e_h245Address)) {
         connectBody.IncludeOptionalField(H225_Connect_UUIE::e_h245Address);
-        connectBody.m_h245Address = H323ToH225TransportAddress("127.0.0.1:0"); // init with any value, not used on traversal clients
+        connectBody.m_h245Address = H323ToH225TransportAddress("127.0.0.1:1"); // init with any value, not used on traversal clients
     }
 #endif
 	if (HandleH245Address(connectBody))
