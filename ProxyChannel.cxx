@@ -63,7 +63,7 @@
 
 #ifdef _WIN32
 #include <mswsock.h>
-#define poll WSAPoll
+#define poll WSAPoll    // not available on Windows XP!!
 #else
 #include <sys/poll.h>
 #endif
@@ -10212,8 +10212,7 @@ void MultiplexedH245Socket::Dispatch()
 
     bool loopDone = false;
     do {
-        int rc = poll(fds, 1, timeout * 1000);
-        PTRACE(0, "JW poll=" << rc);
+        (void)poll(fds, 1, timeout * 1000); // error handling in ReceiveData()
         switch (result = ReceiveData()) {
             case NoData:
                 break;
