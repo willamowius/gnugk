@@ -69,7 +69,7 @@ bool YaSelectList::Select(SelectType t, const PTimeInterval & timeout)
 	struct timeval tval;
 	tval.tv_sec = msec / 1000;
 	tval.tv_usec = (msec - tval.tv_sec * 1000) * 1000;
-	int r = ::select(maxfd + 1, readfds, writefds, 0, &tval);
+	int r = ::select(maxfd + 1, readfds, writefds, NULL, &tval);
 	if (r > 0) {
 #if 1
 		std::vector<YaSocket*>::iterator last = remove_if(
@@ -424,7 +424,7 @@ bool YaTCPSocket::Accept(YaTCPSocket & socket)
 		YaSelectList::large_fd_set fdset;
 		fdset.add(fd);
 		struct timeval tval = { 1, 0 };
-		int r = ::select(fd + 1, fdset, 0, 0, &tval);
+		int r = ::select(fd + 1, fdset, NULL, NULL, &tval);
 		if (r < 0)
 			break;
 		else if (r == 0)
@@ -499,7 +499,7 @@ bool YaTCPSocket::Connect(const Address & iface, WORD localPort, const Address &
 	fdset.add(os_handle);
 	YaSelectList::large_fd_set exset = fdset;
 	struct timeval tval = { 6, 0 };
-	if ((r = ::select(os_handle + 1, 0, fdset, exset, &tval)) > 0) {
+	if ((r = ::select(os_handle + 1, NULL, fdset, exset, &tval)) > 0) {
 		optval = -1;
 		(void)::getsockopt(os_handle, SOL_SOCKET, SO_ERROR, &optval, &optlen);
 		if (optval == 0) // connected

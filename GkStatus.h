@@ -3,7 +3,7 @@
 // GkStatus.h	thread listening for connections to receive
 //		status updates from the gatekeeper
 //
-// Copyright (c) 2000-2017, Jan Willamowius
+// Copyright (c) 2000-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -53,7 +53,7 @@ public:
 	*/
 	void AuthenticateClient(
 		/// new status interface client to be authenticated
-		StatusClient* newClient
+		StatusClient * newClient
 		);
 
 	/** Broadcast the message to all active client connected
@@ -63,7 +63,7 @@ public:
 	*/
 	void SignalStatus(
 		/// message string to be broadcasted
-		const PString& msg,
+		const PString & msg,
 		/// trace level at which the message should be broadcasted
 		/// if the current output trace level is less than this value,
 		/// the client will not receive this message
@@ -105,7 +105,7 @@ public:
 	*/
 	void PrintHelp(
 		/// client that requested the help message
-		StatusClient* requestingClient
+		StatusClient * requestingClient
 		) const;
 
 	enum StatusInterfaceCommands {
@@ -124,10 +124,10 @@ public:
 		e_DisconnectEndpoint,          /// disconnect a call by endpoint ID
 		e_DisconnectSession,           /// disconnect a user from status port
 		e_ClearCalls,                  /// disconnect all calls
-		e_UnregisterAllEndpoints,      /// force unregisterung of all andpoints
-		e_UnregisterIp,                /// force unregisterung of one andpoint by IP number
-		e_UnregisterEP,                /// force unregisterung of one andpoint by endpoint ID
-		e_UnregisterAlias,             /// force unregisterung of one andpoint by alias
+		e_UnregisterAllEndpoints,      /// force unregistering of all endpoints
+		e_UnregisterIp,                /// force unregistering of one endpoint by IP number
+		e_UnregisterEP,                /// force unregistering of one endpoint by endpoint ID
+		e_UnregisterAlias,             /// force unregistering of one endpoint by alias
 		e_TransferCall,                /// transfer call from one endpoint to another
 		e_RerouteCall,                 /// transfer call with pause and reroute
 		e_MakeCall,                    /// establish a new call from endpoint A to endpoint B
@@ -167,8 +167,8 @@ public:
 		e_PrintAllConfigSwitches,      /// print all known config switches
 		e_PrintEventBacklog,           /// print buffered events
 		e_PrintNeighbors,              /// print list of neighbors
-		e_PrintCallInfo,               /// print detailed infor for a call
-		e_MaintenanceMode,             /// switch in or out of maitenance mode
+		e_PrintCallInfo,               /// print detailed information for a call
+		e_MaintenanceMode,             /// switch in or out of maintenance mode
 		e_numCommands
 		/// Number of different strings
 	};
@@ -182,9 +182,9 @@ public:
 	*/
 	int ParseCommand(
 		/// message to be parsed
-		const PString& msg,
+		const PString & msg,
 		/// message split into tokens upon successful return
-		PStringArray& args
+		PStringArray & args
 		);
 
 protected:
@@ -219,7 +219,7 @@ public:
 	/// create the new listener socket
 	StatusListener(
 		/// address the socket is to be bound to
-		const Address& addr,
+		const Address & addr,
 		/// port number the socket is to be bound to
 		WORD port
 		);
