@@ -63,6 +63,9 @@
 
 #ifdef _WIN32
 #include <mswsock.h>
+#define poll WSAPoll
+#else
+#include <sys/poll.h>
 #endif
 
 #ifdef P_OPENBSD
@@ -1037,11 +1040,10 @@ public:
 #ifndef LARGE_FDSET
 	PCLASSINFO ( NATH245Socket, H245Socket )
 #endif
-	MultiplexedH245Socket(CallSignalSocket * sig);
+	MultiplexedH245Socket();
 	virtual ~MultiplexedH245Socket() { }
 
 private:
-	MultiplexedH245Socket();
 	MultiplexedH245Socket(const MultiplexedH245Socket &);
 	MultiplexedH245Socket & operator=(const MultiplexedH245Socket &);
 
@@ -8245,7 +8247,7 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 				&& (m_call->GetCalledParty()->GetTraversalRole() != None) )
 			{
                 if (GkConfig()->GetBoolean(RoutedSec, "EnableH245Multiplexing", false))
-                    SetH225Port(uuie.m_h245Address, GkConfig()->GetInteger(RoutedSec, "H245MultiplexPort", 1722));
+                    SetH225Port(uuie.m_h245Address, (WORD)GkConfig()->GetInteger(RoutedSec, "H245MultiplexPort", 1722));
 				m_crv = m_call->GetCallRef();	// make sure m_crv is set
 				uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
 				uuie.RemoveOptionalField(H225_Facility_UUIE::e_conferenceID);
@@ -9131,7 +9133,7 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 				return false;	// remove H245Address from message if it goes to tunneling side
 			}
             if (setMultiplexPort) {
-                SetH225Port(h245addr, GkConfig()->GetInteger(RoutedSec, "H245MultiplexPort", 1722));
+                SetH225Port(h245addr, (WORD)GkConfig()->GetInteger(RoutedSec, "H245MultiplexPort", 1722));
             }
 			return true;
 		}
@@ -9147,7 +9149,7 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 
 	m_h245socket->SetH245Address(h245addr, masqAddr);
 	if (setMultiplexPort) {
-	    SetH225Port(h245addr, GkConfig()->GetInteger(RoutedSec, "H245MultiplexPort", 1722));
+	    SetH225Port(h245addr, (WORD)GkConfig()->GetInteger(RoutedSec, "H245MultiplexPort", 1722));
 	}
 
 	if (m_h245TunnelingTranslation && !m_h245Tunneling && GetRemote() && GetRemote()->m_h245Tunneling) {
@@ -10188,8 +10190,8 @@ bool NATH245Socket::ConnectRemote()
 #ifdef HAS_H46018
 // class MultiplexedH245Socket
 
-MultiplexedH245Socket::MultiplexedH245Socket(CallSignalSocket *sig)
-    : H245Socket(sig)
+MultiplexedH245Socket::MultiplexedH245Socket()
+    : H245Socket(NULL)
 {
     PTRACE(0, "JW MultiplexedH245Socket c'tor this=" << this << " port=" << m_port << " listener=" << listener);
     if (listener)
@@ -10199,11 +10201,19 @@ MultiplexedH245Socket::MultiplexedH245Socket(CallSignalSocket *sig)
 
 void MultiplexedH245Socket::Dispatch()
 {
-    SetReadTimeout(PTimeInterval(100));
     ProxySocket::Result result = NoData;
     time_t startTime = time(NULL);
+    // TODO: make 10 sec timeout configurable ?
+    int timeout = 10;    // wait max 10 sec
+    struct pollfd fds[1];
+    memset(fds, 0 , sizeof(fds));
+    fds[0].fd = GetOSSocket();
+    fds[0].events = POLLIN;
+
     bool loopDone = false;
     do {
+        int rc = poll(fds, 1, timeout * 1000);
+        PTRACE(0, "JW poll=" << rc);
         switch (result = ReceiveData()) {
             case NoData:
                 break;
@@ -10218,9 +10228,8 @@ void MultiplexedH245Socket::Dispatch()
                 PTRACE(1, "H245M\tDefault case in H.245 multiplex dispatch");
                 break;
         }
-        // TODO: make 10 sec timeout configurable ?
         time_t now = time(NULL);
-        if (now - startTime >= 10) {
+        if (now - startTime >= timeout) {
             loopDone = true;
         }
     } while (!loopDone);
@@ -10419,7 +10428,7 @@ MultiplexH245Listener::~MultiplexH245Listener()
 ServerSocket *MultiplexH245Listener::CreateAcceptor() const
 {
     PTRACE(0, "JW H.245 Multiplex connect");
-	return new MultiplexedH245Socket(NULL);
+	return new MultiplexedH245Socket();
 }
 
 
