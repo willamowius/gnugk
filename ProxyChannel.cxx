@@ -63,9 +63,6 @@
 
 #ifdef _WIN32
 #include <mswsock.h>
-#define poll WSAPoll    // not available on Windows XP!!
-#else
-#include <sys/poll.h>
 #endif
 
 #ifdef P_OPENBSD
@@ -121,7 +118,7 @@ const long DEFAULT_SOCKET_CLEANUP_TIMEOUT = 5000;
 // if socket bind fails, try next DEFAULT_NUM_SEQ_PORTS subsequent port numbers
 const int DEFAULT_NUM_SEQ_PORTS = 500;
 
-// maximum number of handlder threads GnuGk will start (call signaling or RTP)
+// maximum number of handler threads GnuGk will start (call signaling or RTP)
 const unsigned MAX_HANDLER_NUMBER = 200;
 
 enum RTPSessionTypes { Unknown = 0, Audio, Video, Presentation, Data };
@@ -10205,14 +10202,10 @@ void MultiplexedH245Socket::Dispatch()
     time_t startTime = time(NULL);
     // TODO: make 10 sec timeout configurable ?
     int timeout = 10;    // wait max 10 sec
-    struct pollfd fds[1];
-    memset(fds, 0 , sizeof(fds));
-    fds[0].fd = GetOSSocket();
-    fds[0].events = POLLIN;
-
+    SocketSelectList rlist(this);
     bool loopDone = false;
     do {
-        (void)poll(fds, 1, timeout * 1000); // error handling in ReceiveData()
+        (void)rlist.Select(SocketSelectList::Read, PTimeInterval(timeout * 1000)); // error handling in ReceiveData()
         switch (result = ReceiveData()) {
             case NoData:
                 break;
