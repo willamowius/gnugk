@@ -4161,7 +4161,7 @@ void CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
                         PTRACE(3, "H245\tSending " << GetRemote()->GetH245MessageQueueSize() << " queued H.245 messages now");
                         while (PASN_OctetString * h245msg = GetRemote()->GetNextQueuedH245Message()) {
                             if (!m_h245socket->Send(*h245msg)) {
-                                PTRACE(1, "H245\tSending queued messages failed");
+                                PTRACE(1, "H245\tError: Sending queued message failed");
                             }
                             delete h245msg;
                         }
@@ -9623,7 +9623,7 @@ void H245Socket::ConnectTo()
 				PTRACE(3, "H245\tSending " << sigSocket->GetH245MessageQueueSize() << " queued H.245 messages now");
 				while (PASN_OctetString * h245msg = sigSocket->GetNextQueuedH245Message()) {
 					if (!remoteH245Socket->Send(*h245msg)) {
-						PTRACE(1, "H245\tSending queued messages failed");
+						PTRACE(1, "H245\tError: Sending queued message failed");
 					}
 					delete h245msg;
 				}
@@ -9975,11 +9975,6 @@ PBoolean H245Socket::Accept(PSocket & socket)
 		GetLocalAddress(addr, p);
 		UnmapIPv4Address(addr);
 		PTRACE(3, "H245\tConnected from " << GetName() << " on " << AsString(addr, p) << " (CallID: " << GetCallIdentifierAsString() << ")");
-		PTRACE(0, "JW TODO should we send out queued H.245 messages from other side here ?");
-		H245Socket * remoteSock = (H245Socket*)remote;
-		PTRACE(0, "JW TODO check queue size this=" << (sigSocket ? sigSocket->GetH245MessageQueueSize() : 0)
-            << " remote=" << remoteSock
-            << " queue size remote=" << ((remoteSock && remoteSock->sigSocket) ? remoteSock->sigSocket->GetH245MessageQueueSize() : 0));
 	} else if (peerH245Addr) {
 		result = H245Socket::ConnectRemote();
 	}
@@ -10067,7 +10062,7 @@ bool H245Socket::ConnectRemote()
 				PTRACE(3, "H245\tSending " << sigSocket->GetRemote()->GetH245MessageQueueSize() << " queued H.245 messages now");
 				while (PASN_OctetString * h245msg = sigSocket->GetRemote()->GetNextQueuedH245Message()) {
 					if (!Send(*h245msg)) {
-						PTRACE(1, "H245\tSending queued messages failed");
+						PTRACE(1, "H245\tError: Sending queued message failed");
 					}
 					delete h245msg;
 				}
@@ -10173,13 +10168,16 @@ bool NATH245Socket::ConnectRemote()
 	listener->Close();
 
     PTRACE(0, "JW NATH245Socket::ConnectRemote queue=" << ((sigSocket && sigSocket->GetRemote()) ? sigSocket->GetRemote()->GetH245MessageQueueSize() : 0) << " this=" << this);
-    if (sigSocket && sigSocket->GetRemote() && sigSocket->GetRemote()->GetH245MessageQueueSize() > 0) {
-        PTRACE(3, "H245\tSending " << sigSocket->GetRemote()->GetH245MessageQueueSize() << " queued H.245 messages now");
-        while (PASN_OctetString * h245msg = sigSocket->GetRemote()->GetNextQueuedH245Message()) {
-            if (!Send(*h245msg)) {
-                PTRACE(1, "H245\tSending queued messages failed");
+    if (result) {
+        SetConnected(true); // set socket to connected state so we can send queued messages now
+        if (sigSocket && sigSocket->GetRemote() && sigSocket->GetRemote()->GetH245MessageQueueSize() > 0) {
+            PTRACE(3, "H245\tSending " << sigSocket->GetRemote()->GetH245MessageQueueSize() << " queued H.245 messages now");
+            while (PASN_OctetString * h245msg = sigSocket->GetRemote()->GetNextQueuedH245Message()) {
+                if (!Send(*h245msg)) {
+                    PTRACE(1, "H245\tError: Sending queued message failed");
+                }
+                delete h245msg;
             }
-            delete h245msg;
         }
     }
 

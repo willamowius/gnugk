@@ -1,5 +1,6 @@
 Changes from 5.0 to 5.1
 =======================
+- BUGFIX(ProxyChannel.cxx) fix sending of queued H.245 messages
 - BUGFIX(gkauth.cxx) don't check tokens for disabled authenticators (Lifesize Icon interop)
 - BUGFIX(RasTbl.cxx) update RAS port when NAT mapping for H.460.18 endpoint changes
 - use regular RTP for H.460.19 port detection, too (Yealink Mobile interop)
