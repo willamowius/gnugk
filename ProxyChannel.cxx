@@ -9637,9 +9637,7 @@ void H245Socket::ConnectTo()
 			GetHandler()->Insert(this, remote);
 			ConfigReloadMutex.EndRead();
 #ifdef HAS_H46018
-            PTRACE(0, "JW check if we should send genericIndication to traversal server isFrom=" << sigSocket->IsCallFromTraversalServer() << " isTo=" << sigSocket->IsCallToTraversalServer());
 			if (sigSocket && (sigSocket->IsCallFromTraversalServer() || sigSocket->IsCallToTraversalServer())) {
-                PTRACE(0, "JW send genericIndication to traversal server");
 				SendH46018Indication();
                 RegisterKeepAlive(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19));
 			}
@@ -9791,7 +9789,7 @@ PTRACE(0, "JW H245Socket::ReceiveData() this=" << this << " port=" << m_port << 
             if (sigSocket) {
                 PASN_OctetString h245msg;
                 h245msg.SetValue(strm);
-                PTRACE(0, "JW queuing H.245 message");
+                PTRACE(4, "H245\tQueuing H.245 message until connected");
                 sigSocket->QueueH245Message(h245msg);
 		        return NoData; // queued, don't forward now
             }
@@ -9977,6 +9975,11 @@ PBoolean H245Socket::Accept(PSocket & socket)
 		GetLocalAddress(addr, p);
 		UnmapIPv4Address(addr);
 		PTRACE(3, "H245\tConnected from " << GetName() << " on " << AsString(addr, p) << " (CallID: " << GetCallIdentifierAsString() << ")");
+		PTRACE(0, "JW TODO should we send out queued H.245 messages from other side here ?");
+		H245Socket * remoteSock = (H245Socket*)remote;
+		PTRACE(0, "JW TODO check queue size this=" << (sigSocket ? sigSocket->GetH245MessageQueueSize() : 0)
+            << " remote=" << remoteSock
+            << " queue size remote=" << ((remoteSock && remoteSock->sigSocket) ? remoteSock->sigSocket->GetH245MessageQueueSize() : 0));
 	} else if (peerH245Addr) {
 		result = H245Socket::ConnectRemote();
 	}
@@ -9992,7 +9995,7 @@ bool H245Socket::ConnectRemote()
 		listener->Close(); // don't accept other connection
 	}
 	PIPSocket::Address peerAddr, localAddr(0);
-	WORD peerPort;
+	WORD peerPort = 0;
 
 	// peerH245Addr may be accessed from multiple threads
 	m_signalingSocketMutex.Wait();
