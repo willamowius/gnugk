@@ -3096,8 +3096,8 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
         }
 	}
 
-    if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_indication) {
 #ifdef HAS_H46023
+    if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_indication) {
 		H245_IndicationMessage & imsg = h245msg;
 		if (imsg.GetTag() == H245_IndicationMessage::e_genericIndication) {
 			H245_GenericMessage & gmsg = imsg;
@@ -3122,11 +3122,11 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 #endif
 			}
 		}
-#endif
     }
+#endif // HAS_H46023
 
-	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request) {
 #ifdef HAS_H46024B
+	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request) {
 		H245_RequestMessage & reqmsg = h245msg;
 		if (reqmsg.GetTag() == H245_RequestMessage::e_genericRequest) {
 		    H245_GenericMessage & gmsg = reqmsg;
@@ -3143,8 +3143,8 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 				}
 			}
 		}
-#endif
     }
+#endif // HAS_H46024B
 
 	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_response) {
 		H245_ResponseMessage & rmsg = h245msg;
@@ -3172,6 +3172,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 				h245ProxyHandler->SetRoles(m_callerSocket, m_isH245Master);
 		}
 
+		// save media IPs
 		if (rmsg.GetTag() == H245_ResponseMessage::e_openLogicalChannelAck) {
 			H245_OpenLogicalChannelAck & olcack = rmsg;
             if (olcack.HasOptionalField(H245_OpenLogicalChannelAck::e_forwardMultiplexAckParameters)
@@ -3215,7 +3216,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
         H245_CloseLogicalChannel & clc = (H245_RequestMessage&)h245msg;
 
 		if (m_call && m_call->GetRerouteState() == RerouteInitiated) {
-            // Ack CLCs during closedown of initial call
+            // Ack CLCs during close down of initial call
 			PTRACE(2, "H245\tReroute: Ack CLC from " << GetName() << " during Reroute");
             H245_MultimediaSystemControlMessage h245msg_clcAck;
             h245msg_clcAck.SetTag(H245_MultimediaSystemControlMessage::e_response);
