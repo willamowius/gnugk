@@ -1515,7 +1515,6 @@ void TCPProxySocket::DetachRemote()
 
 bool TCPProxySocket::ForwardData()
 {
-    PTRACE(0, "JW TCPProxySocket::ForwardData() this=" << this << " remote=" << remote << " os_socket=" << GetHandle() << " remote os_socket=" << remote->GetHandle() << " remote connected=" << (remote ? remote->IsConnected() : false));
 	PWaitAndSignal lock(m_remoteLock);
 	return (remote) ? remote->InternalWrite(buffer) : false;
 }
@@ -4127,7 +4126,6 @@ PString CallSignalSocket::GetDialedNumber(const SetupMsg & setup) const
 #ifdef HAS_H46018
 void CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
 {
-    PTRACE(0, "JW CallSignalSocket::SetH245OSSocket START os_socket=" << socket << " this=" << this << " remote=" << remote << " m_h245socket=" << m_h245socket);
     if (m_h245socket) {
         if (m_h245socket->IsConnected()) {
             PTRACE(1, "H245M\tH.245 socket is already connected");
@@ -4148,15 +4146,10 @@ void CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
         if (css) {
             if (css->m_h245socket || css->IsH245Tunneling()) {
                 if (!css->IsH245Tunneling()) {
-                    PTRACE(0, "JW H.245 Sockets: A=" << m_h245socket << " B=" << css->m_h245socket
-                       << " handler A=" << m_h245socket->GetHandler() << " handler B=" << css->m_h245socket->GetHandler()
-                       << " name A=" << m_h245socket->GetName() << " name B=" << css->m_h245socket->GetName()
-                       << " connected A=" << m_h245socket->IsConnected() << " connected B=" << css->m_h245socket->IsConnected());
                     m_h245socket->SetRemoteSocket(css->m_h245socket);
                     css->m_h245socket->SetRemoteSocket(m_h245socket);
                 }
                 if ((css->m_h245socket && css->m_h245socket->IsConnected()) || css->IsH245Tunneling()) {
-                    PTRACE(0, "JW CallSignalSocket::SetH245OSSocket queue=" << (GetRemote() ? GetRemote()->GetH245MessageQueueSize() : 0));
                     if (GetRemote() && GetRemote()->GetH245MessageQueueSize() > 0) {
                         // send all queued H.245 messages now
                         PTRACE(3, "H245\tSending " << GetRemote()->GetH245MessageQueueSize() << " queued H.245 messages now");
@@ -4168,9 +4161,7 @@ void CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
                         }
                     }
                 } else {
-                    PTRACE(0, "JW ConnectRemote() after multiplex connect - other side is NAT=" << dynamic_cast<NATH245Socket *>(css->m_h245socket) << " caller=" << css->IsCaller());
                     if ((!dynamic_cast<NATH245Socket *>(css->m_h245socket) && css->IsCaller()) || css->IsH245Tunneling()) {
-                        PTRACE(0, "JW non-H.460 caller, wait for connect");
                     } else {
                         // connect to or send startH245
                         css->m_h245socket->SetIgnoreAcceptError();
@@ -9110,11 +9101,9 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 	if (m_call->H46019Required() && IsTraversalClient()) {
 		userevert = true;
 	}
-    PTRACE(0, "JW check for H.245 multiplexing 46019=" << m_call->H46019Required() << " travesalclient=" << IsTraversalClient() << " remote-client=" << GetRemote()->IsTraversalClient() << " userevert=" << userevert);
 	if (m_call->H46019Required() && GetRemote() && GetRemote()->IsTraversalClient()) {
 		if (GkConfig()->GetBoolean(RoutedSec, "EnableH245Multiplexing", false)) {
 		    setMultiplexPort = true;
-            PTRACE(0, "JW use H.245 multiplexing");
 		}
 	}
 #endif
@@ -9136,7 +9125,6 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 		}
 	}
 	m_h245socket = userevert ? new NATH245Socket(this) : new H245Socket(this);	// TODO: handle TLS (must use H.245 tunneling for now)
-	PTRACE(0, "JW new H245Socket ptr=" << m_h245socket);
 	if (!(m_call->GetRerouteState() == RerouteInitiated)) {
 		ret->m_h245socket = new H245Socket(m_h245socket, ret);	// TODO: handle TLS (must use H.245 tunneling for now)
 		if (setMultiplexPort) {
@@ -9548,7 +9536,6 @@ H245Socket::H245Socket(CallSignalSocket *sig)
 	    // MultiplexedH245Socket doesn't have a signal channel, yet
         SetHandler(RasServer::Instance()->GetSigProxyHandler());
 	}
-    PTRACE(0, "JW H245Socket c'tor DEST this=" << this << " port=" << m_port << " listener=" << listener << " os_handle=" << GetHandler());
 }
 
 H245Socket::H245Socket(H245Socket *socket, CallSignalSocket *sig)
@@ -9565,12 +9552,10 @@ H245Socket::H245Socket(H245Socket *socket, CallSignalSocket *sig)
             RegisterKeepAlive();
         }
     }
-    PTRACE(0, "JW H245Socket c'tor SOURCE this=" << this << " port=" << m_port << " listener=" << listener << " os_handle=" << GetHandle());
 }
 
 H245Socket::~H245Socket()
 {
-    PTRACE(0, "JW H245Socket d'tor this=" << this << " port=" << port);
 	if (Toolkit::Instance()->IsPortNotificationActive() && (m_port != 0)) {
 		PINDEX callNo = 0;
 		if (sigSocket) {
@@ -9605,13 +9590,10 @@ void H245Socket::OnSignalingChannelClosed()
 
 void H245Socket::ConnectTo()
 {
-    PTRACE(0, "JW H245Socket::ConnectTo queue=" << (sigSocket ? sigSocket->GetH245MessageQueueSize() : 0) << " this=" << this << " port=" << m_port << " caller=" << (sigSocket ? sigSocket->IsCaller() : 3) << " listener=" << listener << " os_handle=" << GetHandle());
 	if (remote->Accept(*listener)) {
         remote->SetConnected(true);
         GetHandler()->Insert(remote);
-        PTRACE(0, "JW H245Socket::ConnectTo queue=" << (sigSocket ? sigSocket->GetH245MessageQueueSize() : 0) << " this=" << this);
         if (sigSocket && sigSocket->GetH245MessageQueueSize() > 0) {
-            PTRACE(0, "JW H245Socket::ConnectTo connecting sockets this=" << this << " remote=" << remote);
 	    	// H.245 connect for tunneling leg - must be mixed mode
 		    H245Socket * remoteH245Socket = dynamic_cast<H245Socket *>(remote);
 	    	if (remoteH245Socket) {
@@ -9760,14 +9742,9 @@ void H245Socket::ConnectToDirectly()
 ProxySocket::Result H245Socket::ReceiveData()
 {
 	if (!ReadTPKT()) {
-        PTRACE(0, "JW H245Socket::ReceiveData() NODATA this=" << this << " port=" << m_port << " connected=" << IsConnected() << " os_socket=" << GetHandle());
 		return NoData;
 	}
 
-PTRACE(0, "JW H245Socket::ReceiveData() this=" << this << " port=" << m_port << " connected=" << IsConnected() << " handler=" << GetHandler()
-        << " peerH245Addr=" << (peerH245Addr ? AsString(*peerH245Addr) : "-")
-        << " remote=" << remote << " connected=" << (remote ? remote->IsConnected() : false) << " remote handler=" << (remote ? remote->GetHandler() : NULL)
-        << " sigSocket=" << sigSocket << " sig handler=" << (sigSocket ? sigSocket->GetHandler() : NULL) << " os_socket=" << GetHandle());
 	PPER_Stream strm(buffer);
 
 	bool suppress = false;
@@ -9967,9 +9944,7 @@ bool H245Socket::Accept(YaTCPSocket & socket)
 PBoolean H245Socket::Accept(PSocket & socket)
 #endif
 {
-    PTRACE(0, "JW Accept this=" << this << " os_handle=" << socket.GetHandle());
 	bool result = TCPProxySocket::Accept(socket);
-	PTRACE(0, "JW Accept result=" << result);
 	if (result) {
 		Address addr;
 		WORD p;
@@ -9984,9 +9959,6 @@ PBoolean H245Socket::Accept(PSocket & socket)
 
 bool H245Socket::ConnectRemote()
 {
-    PTRACE(0, "JW H245Socket::ConnectRemote START queue=" << (sigSocket ? sigSocket->GetH245MessageQueueSize() : 0)
-           << " this=" << this << " port=" << m_port << " peerH245Addr=" << (peerH245Addr ? AsString(*peerH245Addr) : "none"));
-
 	if (listener) {
 		listener->Close(); // don't accept other connection
 	}
@@ -9998,12 +9970,9 @@ bool H245Socket::ConnectRemote()
 	if (!peerH245Addr || !GetIPAndPortFromTransportAddr(*peerH245Addr, peerAddr, peerPort) || !peerPort) {
 		m_signalingSocketMutex.Signal();
 		PTRACE(3, "H245\tInvalid address");
-        PTRACE(0, "JW H245Socket::ConnectRemote DONE Error"
-           << " this=" << this << " port=" << m_port << " peerH245Addr=" << (peerH245Addr ? AsString(*peerH245Addr) : "none"));
 		return false;
 	}
 	SetPort(peerPort);
-	PTRACE(0, "JW peerAddr=" << AsString(peerAddr) << " peerPort=" << peerPort);
 	if (sigSocket != NULL) {
 		sigSocket->GetLocalAddress(localAddr);
 		UnmapIPv4Address(localAddr);
@@ -10013,14 +9982,9 @@ bool H245Socket::ConnectRemote()
 	int numPorts = min(H245PortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS);
 	for (int i = 0; i < numPorts; ++i) {
 		WORD pt = H245PortRange.GetPort();
-		PTRACE(0, "JW vor CONNECT: localAddr+pt=" << AsString(localAddr, pt) << " peerAddr=" << AsString(peerAddr));
 		if (Connect(localAddr, pt, peerAddr)) {
 			SetConnected(true);
 			PTRACE(3, "H245\tConnect to " << GetName() << " from " << AsString(localAddr, pt) << " successful" << " (CallID: " << GetCallIdentifierAsString() << ")");
-            PTRACE(0, "JW H.245 Sockets: A=" << this << " B=" << remote
-                   << " handler A=" << GetHandler() << " handler B=" << remote->GetHandler()
-                   << " name A=" << GetName() << " name B=" << remote->GetName()
-                   << " os socket A=" << GetHandle() << " os socket B=" << remote->GetHandle());
 
 			// TOS - H.245 outbound - TCS messages etc.
             int dscp = GkConfig()->GetInteger(RoutedSec, "H245DiffServ", 0);
@@ -10050,9 +10014,7 @@ bool H245Socket::ConnectRemote()
             }
 
 #ifdef HAS_H46018
-            PTRACE(0, "JW check 2 if we should send genericIndication to traversal server isFrom=" << sigSocket->IsCallFromTraversalServer() << " isTo=" << sigSocket->IsCallToTraversalServer());
 			if (sigSocket && (sigSocket->IsCallFromTraversalServer() || sigSocket->IsCallToTraversalServer())) {
-                PTRACE(0, "JW send genericIndication to traversal server");
 				SendH46018Indication();
                 RegisterKeepAlive(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19));
 			}
@@ -10068,8 +10030,6 @@ bool H245Socket::ConnectRemote()
 					delete h245msg;
 				}
 			}
-            PTRACE(0, "JW H245Socket::ConnectRemote DONE OK"
-               << " this=" << this << " port=" << m_port << " peerH245Addr=" << (peerH245Addr ? AsString(*peerH245Addr) : "none"));
 			return true;
 		}
 		int errorNumber = GetErrorNumber(PSocket::LastGeneralError);
@@ -10081,8 +10041,6 @@ bool H245Socket::ConnectRemote()
 		PTRACE(3, "H245\t" << AsString(peerAddr, peerPort) << " DIDN'T ACCEPT THE CALL" << " (CallID: " << GetCallIdentifierAsString() << ")");
 		SNMP_TRAP(10, SNMPError, Network, "H.245 connection to " + AsString(peerAddr, peerPort) + " failed");
 	}
-    PTRACE(0, "JW H245Socket::ConnectRemote DONE Error2"
-           << " this=" << this << " port=" << m_port << " peerH245Addr=" << (peerH245Addr ? AsString(*peerH245Addr) : "none"));
 	return false;
 }
 
@@ -10132,7 +10090,6 @@ bool H245Socket::Reverting(const H225_TransportAddress & h245addr)
 // class NATH245Socket
 bool NATH245Socket::ConnectRemote()
 {
-    PTRACE(0, "JW NATH245Socket::ConnectRemote");
     if (!GkConfig()->GetBoolean(RoutedSec, "DisableGnuGkH245TcpKeepAlive", false)) {
         if (sigSocket && sigSocket->UsesH460KeepAlive()) {
             PTRACE(5, "H46018\tEnable keep-alive for H.245 in H.460.18 call");
@@ -10168,7 +10125,6 @@ bool NATH245Socket::ConnectRemote()
 	PTRACE_IF(3, result, "H245\tChannel established for NAT EP");
 	listener->Close();
 
-    PTRACE(0, "JW NATH245Socket::ConnectRemote queue=" << ((sigSocket && sigSocket->GetRemote()) ? sigSocket->GetRemote()->GetH245MessageQueueSize() : 0) << " this=" << this);
     if (result) {
         SetConnected(true); // set socket to connected state so we can send queued messages now
         if (sigSocket && sigSocket->GetRemote() && sigSocket->GetRemote()->GetH245MessageQueueSize() > 0) {
@@ -10191,7 +10147,6 @@ bool NATH245Socket::ConnectRemote()
 MultiplexedH245Socket::MultiplexedH245Socket()
     : H245Socket(NULL)
 {
-    PTRACE(0, "JW MultiplexedH245Socket c'tor this=" << this << " port=" << m_port << " listener=" << listener);
     if (listener)
         listener->Close(); // we don't need the listener
 }
@@ -10239,7 +10194,6 @@ void MultiplexedH245Socket::Dispatch()
 ProxySocket::Result MultiplexedH245Socket::ReceiveData()
 {
 	if (!ReadTPKT()) {
-        PTRACE(0, "JW MultiplexedH245Socket::ReceiveData NODATA this=" << this << " port=" << m_port << " os_socket=" << GetHandle());
 		return NoData;
 	}
 
@@ -10258,7 +10212,6 @@ ProxySocket::Result MultiplexedH245Socket::ReceiveData()
 		    const PASN_ObjectId & gid = generic.m_messageIdentifier;
 		    if (gid == H46018_OID) {
         	    isH46018Indication = true;
-        	    PTRACE(0, "JW H46018Indication=" << h245msg);
         	    bool isAnswer = false;
     			H225_CallIdentifier callIdentifier;
     			for (PINDEX i = 0; i < generic.m_messageContent.GetSize(); ++i) {
@@ -10278,7 +10231,6 @@ ProxySocket::Result MultiplexedH245Socket::ReceiveData()
     			}
 	    		callptr call = CallTable::Instance()->FindCallRec(callIdentifier);
 			    if (call) {
-			        PTRACE(0, "JW found call " << AsString (callIdentifier) << " answer=" << isAnswer);
 			        // detach from current handler so it can be added to handler of H245Socket in CallSignalSocket
 			        ProxyHandler * handler = GetHandler();
 			        if (handler)
@@ -10286,7 +10238,7 @@ ProxySocket::Result MultiplexedH245Socket::ReceiveData()
 			        // patch socket into H245Socket pair in call
                     call->SetH245OSSocket(GetOSSocket(), isAnswer, GetName());
 			    } else {
-			        PTRACE(0, "H245M\tDidn't find call " << AsString (callIdentifier));
+			        PTRACE(1, "H245M\tError: Didn't find call " << AsString (callIdentifier));
 			    }
 		    }
     	}
@@ -10420,7 +10372,7 @@ MultiplexH245Listener::~MultiplexH245Listener()
 
 ServerSocket *MultiplexH245Listener::CreateAcceptor() const
 {
-    PTRACE(0, "JW H.245 Multiplex connect");
+    PTRACE(4, "H245M\tMultiplex connect");
 	return new MultiplexedH245Socket();
 }
 
@@ -15624,12 +15576,10 @@ void ProxyHandler::Insert(TCPProxySocket * first, TCPProxySocket * second)
 		return;
 
 	ProxyHandler *h = first->GetHandler();
-	PTRACE(0, "JW ProxyHandler::Insert first handler=" << h << " socket=" << first);
 	if (h != NULL && h != this)
 		h->DetachSocket(first);
 	first->SetHandler(this);
 	h = second->GetHandler();
-	PTRACE(0, "JW ProxyHandler::Insert second handler=" << h << " socket=" << second);
 	if (h != NULL && h != this)
 		h->DetachSocket(second);
 	second->SetHandler(this);
