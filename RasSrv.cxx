@@ -4560,6 +4560,7 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 						neighbor_authenticated = from_neighbor->Authenticate(this);
 						if (neighbor_authenticated) {
 							from_neighbor->SetApparentIP(m_msg->m_peerAddr, m_msg->m_peerPort);
+							from_neighbor->SetDisabled(false); // is reachable
                         }
 					}
 				}
@@ -4620,30 +4621,37 @@ template<> bool RasPDU<H225_ServiceControlResponse>::Process()
 	// OnSCR
 #ifdef HAS_H46018
 	// check if it belongs to a neighbor SCI and use the keepAliveInterval
-	if (request.HasOptionalField(H225_ServiceControlResponse::e_featureSet)) {
-		H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
-		if (fs.HasFeature(18) && Toolkit::Instance()->IsH46018Enabled()) {
-			for (PINDEX i = 0; i < request.m_genericData.GetSize(); i++) {
-				H460_FeatureStd & feat = (H460_FeatureStd &)request.m_genericData[i];
-				if (feat.Contains(H460_FeatureID(2))) {
-					PASN_OctetString rawKeepAlive = feat.Value(H460_FeatureID(2));
-					H46018_LRQKeepAliveData lrqKeepAlive;
-					PPER_Stream raw(rawKeepAlive);
-					if (lrqKeepAlive.Decode(raw)) {
-						// find matching neighbor and set interval
-						NeighborList::List & neighbors = *RasServer::Instance()->GetNeighbors();
-						NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind2nd(mem_fun(&Neighbors::Neighbor::IsFrom), &m_msg->m_peerAddr));
-						if (iter != neighbors.end()) {
-							(*iter)->SetH46018GkKeepAliveInterval(lrqKeepAlive.m_lrqKeepAliveInterval);
-						}
-					} else {
-						PTRACE(1, "Error decoding LRQKeepAlive");
-						SNMP_TRAP(9, SNMPError, Network, "Error decoding LRQKeepAlive");
-					}
-				}
-			}
-		}
-	}
+    NeighborList::List & neighbors = *RasServer::Instance()->GetNeighbors();
+    NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind2nd(mem_fun(&Neighbors::Neighbor::IsFrom), &m_msg->m_peerAddr));
+    if (iter != neighbors.end()) {
+        if (request.HasOptionalField(H225_ServiceControlResponse::e_result)) {
+            if (request.m_result.GetTag() == H225_ServiceControlResponse_result::e_started) {
+                (*iter)->SetDisabled(false);
+
+                if (request.HasOptionalField(H225_ServiceControlResponse::e_featureSet)) {
+                    H460_FeatureSet fs = H460_FeatureSet(request.m_featureSet);
+                    if (fs.HasFeature(18) && Toolkit::Instance()->IsH46018Enabled()) {
+                        for (PINDEX i = 0; i < request.m_genericData.GetSize(); i++) {
+                            H460_FeatureStd & feat = (H460_FeatureStd &)request.m_genericData[i];
+                            if (feat.Contains(H460_FeatureID(2))) {
+                                PASN_OctetString rawKeepAlive = feat.Value(H460_FeatureID(2));
+                                H46018_LRQKeepAliveData lrqKeepAlive;
+                                PPER_Stream raw(rawKeepAlive);
+                                if (lrqKeepAlive.Decode(raw)) {
+                                    (*iter)->SetH46018GkKeepAliveInterval(lrqKeepAlive.m_lrqKeepAliveInterval);
+                                } else {
+                                    PTRACE(1, "Error decoding LRQKeepAlive");
+                                    SNMP_TRAP(9, SNMPError, Network, "Error decoding LRQKeepAlive");
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if (request.m_result.GetTag() == H225_ServiceControlResponse_result::e_failed) {
+                (*iter)->SetDisabled(true);
+            }
+        }
+    }
 #endif
 	// do nothing
 	return false;
