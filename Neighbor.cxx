@@ -1658,7 +1658,7 @@ void NeighborList::OnReload()
 			if (newnb)
 				m_neighbors.push_back(nb);
 		} else {
-			PTRACE(1, "NB\tCan't get profile for neighbor " << nbid);
+			PTRACE(1, "NB\tError: Can't get profile for neighbor " << nbid);
 			delete nb;
 			nb = NULL;
 			if (!newnb)
