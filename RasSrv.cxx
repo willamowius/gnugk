@@ -4515,7 +4515,7 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 			for (PINDEX i = 0; i < request.m_genericData.GetSize(); i++) {
 				H460_FeatureStd & feat = (H460_FeatureStd &)request.m_genericData[i];
 				if (feat.GetFeatureID() == H460_FeatureID(18) && feat.Contains(H460_FeatureID(1))) {
-					// incoming call from parent or neighor
+					// incoming call from parent or neighbor
 					PASN_OctetString rawIncomingIndication = feat.Value(H460_FeatureID(1));
 					H46018_IncomingCallIndication incomingIndication;
 					PPER_Stream raw(rawIncomingIndication);
