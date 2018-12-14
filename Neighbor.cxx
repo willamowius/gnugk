@@ -3,7 +3,7 @@
 // Neighboring System for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2016, Jan Willamowius
+// Copyright (c) 2004-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -434,7 +434,7 @@ H225_LocationRequest & Neighbor::BuildLRQ(H225_RasMessage & lrq_ras, WORD seqnum
 	return lrq;
 }
 
-bool Neighbor::SetProfile(const PString & id, const PString & type)
+bool Neighbor::SetProfile(const PString & id, const PString & type, bool reload)
 {
 	PConfig *config = GkConfig();
 	PString section("Neighbor::" + (m_id = id));
@@ -456,7 +456,6 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
         && !m_H46018Server
 #endif // HAS_H46018
         && !GetTransportAddress(m_name, GK_DEF_UNICAST_RAS_PORT, m_ip, m_port)) {
-        PTRACE(0, "JW no neighbor transport address");
 		return false;
 	}
 
@@ -537,6 +536,13 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 	if (!aprefix)
 		info += " accept=" + aprefix;
 	PTRACE(1, "Set neighbor " << id << '(' << (m_dynamic ? m_name : AsString(m_ip, m_port)) << ')' << info);
+
+	if (!reload && (m_H46018Client || m_H46018Server)) {
+	    // H.460 client and server start out disabled and get enabled on the first SCI/SCR
+	    // don't do on reload, otherwise working neighbors become unavailable for a short time on config reload
+	    SetDisabled(true);
+	}
+
 	return true;
 }
 
@@ -1654,7 +1660,7 @@ void NeighborList::OnReload()
 				compose1(bind2nd(equal_to<PString>(), nbid), mem_fun(&Neighbor::GetId)));
 		bool newnb = (iter == m_neighbors.end());
 		Neighbor *nb = newnb ? Factory<Neighbor>::Create(type) : *iter;
-		if (nb && nb->SetProfile(nbid, type)) {
+		if (nb && nb->SetProfile(nbid, type, !newnb)) {
 			if (newnb)
 				m_neighbors.push_back(nb);
 		} else {
@@ -2533,7 +2539,7 @@ bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 
 				int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
 
-				// Send LRQ to retreive callers signaling address
+				// Send LRQ to retrieve callers signaling address
 				// Caution: we may only use the functor object of the right type and never touch the others!
 				LRQSender<AdmissionRequest> ArqFunctor((AdmissionRequest &)request);
 				LRQSender<SetupRequest> SetupFunctor((SetupRequest &)request);
@@ -2664,7 +2670,7 @@ bool NeighborSqlPolicy::ResolveRoute(RoutingRequest & request, DestinationRoutes
 
 	int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
 
-	// Send LRQ to retreive callers signaling address
+	// Send LRQ to retrieve callers signaling address
 	// Caution: we may only use the functor object of the right type and never touch the others!
 	LRQSender<AdmissionRequest> ArqFunctor((AdmissionRequest &)request);
 	LRQSender<SetupRequest> SetupFunctor((SetupRequest &)request);

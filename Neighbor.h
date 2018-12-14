@@ -3,7 +3,7 @@
 // Neighboring System for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2012, Jan Willamowius
+// Copyright (c) 2004-2018, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -84,7 +84,7 @@ public:
 	// new virtual functions
 
 	// the real constructor, get profile of this neighbor
-	virtual bool SetProfile(const PString &, const PString &);
+	virtual bool SetProfile(const PString & id, const PString & type, bool reload);
     // Sent profile based on SRV Record
 	virtual bool SetProfile(const PString &, const H323TransportAddress &);
 
@@ -176,7 +176,7 @@ public:
 	PString GetNeighborGkIdBySigAdr(const H225_TransportAddress & sigAd);
 	PString GetNeighborGkIdBySigAdr(const PIPSocket::Address & sigAd);
 
-	// return the neighbor's use eof TLS from the list by signal address
+	// return the neighbor's use of TLS from the list by signal address
 	bool GetNeighborTLSBySigAdr(const H225_TransportAddress & sigAd);
 	bool GetNeighborTLSBySigAdr(const PIPSocket::Address & sigAd);
 
