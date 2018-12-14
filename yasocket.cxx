@@ -82,7 +82,7 @@ bool YaSelectList::Select(SelectType t, const PTimeInterval & timeout)
 #else
 		/* This unrolled implementation of the above code may give
 		   another 10-15% of performance gain. As it is not much under normal
-		   conditions, I leave it for thouse who want to squeeze a few more
+		   conditions, I leave it for those who want to squeeze a few more
 		   calls from their proxies;-)
 
 		   I did some performance tests (Duron 1.1GHz) with simulation of
