@@ -444,12 +444,21 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 	m_dynamic = Toolkit::AsBool(config->GetString(section, "Dynamic", "0"));
 	m_externalGK = false;
 	m_authUser = config->GetString(section, "AuthUser", m_gkid);	// defaults to GatekeeperIdentifier
-	m_password = Toolkit::Instance()->ReadPassword(section, "Password");	// checking incomming password in LRQ (not implemented, yet)
+	m_password = Toolkit::Instance()->ReadPassword(section, "Password");	// checking incoming password in LRQ (not implemented, yet)
 	m_sendAuthUser = config->GetString(section, "SendAuthUser", Toolkit::GKName());	// defaults to own GatekeeperId
 	m_sendPassword = Toolkit::Instance()->ReadPassword(section, "SendPassword");	// password to send to neighbor
+#ifdef HAS_H46018
+	m_H46018Server = Toolkit::AsBool(config->GetString(section, "H46018Server", "0"));
+#endif // HAS_H46018
 
-	if (!m_dynamic && !GetTransportAddress(m_name, GK_DEF_UNICAST_RAS_PORT, m_ip, m_port))
+	if (!m_dynamic
+#ifdef HAS_H46018
+        && !m_H46018Server
+#endif // HAS_H46018
+        && !GetTransportAddress(m_name, GK_DEF_UNICAST_RAS_PORT, m_ip, m_port)) {
+        PTRACE(0, "JW no neighbor transport address");
 		return false;
+	}
 
 	m_sendPrefixes.clear();
 	PString sprefix(config->GetString(section, "SendPrefixes", ""));
@@ -504,8 +513,7 @@ bool Neighbor::SetProfile(const PString & id, const PString & type)
 		int h46018GkKeepAliveInterval = config->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19);
 		SetH46018GkKeepAliveInterval(h46018GkKeepAliveInterval);
 	}
-	m_H46018Server = Toolkit::AsBool(config->GetString(section, "H46018Server", "0"));
-#endif
+#endif // HAS_H46018
 	if (m_lrqPingTimer != GkTimerManager::INVALID_HANDLE)
 		Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_lrqPingTimer);
 	if (config->GetBoolean(LRQFeaturesSection, "SendLRQPing", false) || config->GetBoolean(section, "SendLRQPing", false)) {

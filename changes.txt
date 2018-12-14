@@ -1,5 +1,6 @@
 Changes from 5.0 to 5.1
 =======================
+- BUGFIX(Neighbor.cxx) allow ommitting Host= switch in Neighbor section for H.460.18 clients
 - BUGFIX(ProxyChannel.cxx) fix sending of queued H.245 messages
 - BUGFIX(gkauth.cxx) don't check tokens for disabled authenticators (Lifesize Icon interop)
 - BUGFIX(RasTbl.cxx) update RAS port when NAT mapping for H.460.18 endpoint changes
