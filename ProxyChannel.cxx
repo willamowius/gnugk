@@ -1621,8 +1621,8 @@ bool TCPProxySocket::ReadTPKT()
 	// some endpoints may send TPKT header and payload in separate
 	// packets, so we have to check again if data available
 	// TLS adds another layer of buffering, so this optimization will fail -> disable
-	if (this->GetHandle() < (int)FD_SETSIZE) {
-		if (!YaSelectList(GetName(), this).Select(YaSelectList::Read, 0)) {
+	if (this->GetHandle() < (int)LARGE_FDSET) {
+		if (!SocketSelectList(GetName(), this).Select(SocketSelectList::Read, 0)) {
 			return false;
 		}
 	}
@@ -15887,6 +15887,7 @@ void ProxyHandler::AddPairSockets(IPSocket *first, IPSocket *second)
 
 void ProxyHandler::FlushSockets()
 {
+    static PTimeInterval flush_timeout(10);
 	SocketSelectList wlist(GetName());
 	m_listmutex.StartRead();
 	iterator i = m_sockets.begin(), j = m_sockets.end();
@@ -15930,7 +15931,7 @@ void ProxyHandler::FlushSockets()
 	if (wlist.IsEmpty())
 		return;
 
-	if (!wlist.Select(SocketSelectList::Write, PTimeInterval(10)))
+	if (!wlist.Select(SocketSelectList::Write, flush_timeout))
 	       return;
 
 	PTRACE(5, "Proxy\t" << wlist.GetSize() << " sockets to flush...");
