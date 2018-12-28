@@ -62,7 +62,6 @@ cd ~/gnugk
 git pull
 make clean ; make optnoshared
 </verb>
-If any of the source files are changed, you have to recompile.
 
 <sect1>Tracing GnuGk
 <label id="tracing">
