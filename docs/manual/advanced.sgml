@@ -13,8 +13,9 @@ sudo apt-get update
 sudo apt-get install automake flex bison build-essential git pkg-config automake linuxdoc-tools libssl-dev
 </verb>
 Also make sure the "...-dev" packages for all databases or LDAP servers you want to use are installed.
+Do NOT install PTlib or H323Plus packages from your Linux distribution.
 <p>
-<bf>NOTE</bf>: It's recommended that you do not use the latest PTLib from SourceForge; it is undergoing
+<bf>NOTE</bf>: You can't use the latest PTLib from the OPAL project; it is undergoing
 many changes that are incompatible with GnuGk. Use our patched version PTLib 2.10.9.
 
 Get and compile PTLib from Github:
