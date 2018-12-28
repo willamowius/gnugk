@@ -367,7 +367,7 @@ With a few exception, most current operating systems support this.
 Operating System Overview:
 <itemize>
 <item><bf/Linux/ OK
-<item><bf/Windows 7/ OK
+<item><bf/Windows 7, 8 and 10/ OK
 <item><bf/Windows Server 2008/ OK
 <item><bf/Windows Vista/ OK
 <item><bf/Windows XP/ either IPv4 or IPv6
@@ -390,7 +390,7 @@ As of December 2011, IPv6 support in endpoints is known to work with the followi
 <item>Spranto 2.6.0.14 or higher.
 </itemize>
 
-Known to not work:
+Known not to work (December 2011):
 <itemize>
 <item>LifeSize endpoints do not support an IPv6 gatekeeper.
 </itemize>
