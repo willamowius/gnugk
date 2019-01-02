@@ -2254,7 +2254,7 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 
 					int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
 
-					// Send LRQ to retreive callers signaling address
+					// Send LRQ to retrieve callers signaling address
 					// Caution: we may only use the functor object of the right type and never touch the others!
 					LRQSender<AdmissionRequest> ArqFunctor((AdmissionRequest &)request);
 					LRQSender<SetupRequest> SetupFunctor((SetupRequest &)request);
@@ -2357,7 +2357,7 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly,
 
 				// If we have a gateway destination replace destination with our destination.
 				PStringArray parts;
-				if (!gateway) {
+				if (!gateway.IsEmpty()) {
 					parts = SplitIPAndPort(gateway, GK_DEF_ENDPOINT_SIGNAL_PORT);
 					PIPSocket::Address addr;
 					if (PIPSocket::GetHostAddress(parts[0], addr))
@@ -2373,7 +2373,7 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly,
 					if (!(GetIPFromTransportAddr(dest, addr) && addr.IsValid()))
 						continue;
 
-					if (!gateway) {  // If we have a gateway destination send full URI
+					if (!gateway.IsEmpty()) {  // If we have a gateway destination send full URI
 						PStringArray parts = SplitIPAndPort(cs[j].Mid(in+1), schemaPort);
 						PString finalDest =  parts[0] + ":" + parts[1];
 						if (in > 0) finalDest = cs[j].Left(in) + "@" + finalDest;
