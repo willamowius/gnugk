@@ -1,3 +1,7 @@
+Changes from 5.1 to 5.2
+=======================
+
+
 Changes from 5.0 to 5.1
 =======================
 - use SCI/SCR between H.460.18 neighbors to update ping status
