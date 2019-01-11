@@ -4477,7 +4477,7 @@ bool CallRec::NATAssistCallerUnknown(NatStrategy & natinst)
 				natinst = CallRec::e_natNoassist;
 				return true;
 			} else {
-				PTRACE(4, "RAS\tH.460.24 Startegy Unresolvable revert to proxy media");
+				PTRACE(4, "RAS\tH.460.24 Strategy Unresolvable revert to proxy media");
 			}
 		}
 	}
@@ -4498,7 +4498,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 		PIPSocket::Address remAddr;
 		GetIPFromTransportAddr(m_destSignalAddress, remAddr);
 		PStringStream info;
-		info << "Called Endpoint not define:\n";
+		info << "Called Endpoint not defined:\n";
 		info << "IP " << remAddr << "\n";
 		info << "Calling Endpoint:\n";
 		info << "    Support H.460.24 " << (m_Calling->SupportH46024() ? "Yes" : "No") << "\n";
@@ -4520,7 +4520,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 				natinst = CallRec::e_natNoassist;
 				return true;
 			} else {
-				PTRACE(4, "RAS\tH.460.24 Startegy Unresolvable revert to proxy media");
+				PTRACE(4, "RAS\tH.460.24 Strategy Unresolvable revert to proxy media");
 				return false;
 			}
 		}
