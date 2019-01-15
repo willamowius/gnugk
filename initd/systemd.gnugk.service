@@ -1,4 +1,4 @@
-; place into /etc/systemd/system/ as gnugk.service
+; place into /etc/systemd/system/ as gnugk.service and "systemctl enable gnugk.service"
 
 [Unit]
 Description=GNU Gatekeeper
@@ -7,8 +7,9 @@ After=network-online.target
 [Service]
 Type=simple
 ExecStart=/usr/local/bin/gnugk -c /etc/gnugk.ini -ttttt -o /var/log/gnugk.log
-ExecReload=/usr/bin/killall -HUP gnugk
+ExecReload=/bin/kill -HUP $MAINPID
 LimitRTPRIO=100
+LimitNOFILE=10240
 
 [Install]
 WantedBy=multi-user.target
