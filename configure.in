@@ -381,21 +381,22 @@ AC_SUBST(HAS_RADIUS)
 dnl #########################################################################
 dnl Check for LARGE FDSET
 dnl ########################################################################
-AC_ARG_WITH(large-fdset,
-[  --with-large-fdset[=MAXFD]      Maximum number of sockets supported (default=1024)],
-[ largefdset="$withval" ],
-[ largefdset="no" ]
+
+dnl MSWIN_DISPLAY    large-fdset,LARGE_FDSET
+dnl MSWIN_DEFAULT    large-fdset,Disabled
+dnl MSWIN_DEFINE     large-fdset,LARGE_FDSET=1
+
+AC_ARG_ENABLE(large-fdset,
+[  --enable-large-fdset    support large number of sockets (default=no)],
+[ largefdset="${enableval}" ], [largefdset="yes"]
 )
 
 if test "x${largefdset}" != "xno" ; then
-	if test "x${largefdset}" = "xyes"; then
-		LARGE_FDSET=8192
-	else
-   		LARGE_FDSET=${largefdset}
-	fi
-   	STDCCFLAGS="-DLARGE_FDSET=${LARGE_FDSET} $STDCCFLAGS"
+    LARGE_FDSET=1
+   	STDCCFLAGS="-DLARGE_FDSET=1 $STDCCFLAGS"
    	echo "LARGE FDSET support enabled"
 else
+    LARGE_FDSET=0
 	echo "LARGE FDSET support disabled"
 fi
 AC_SUBST(LARGE_FDSET)

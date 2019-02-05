@@ -14,6 +14,9 @@
 #ifndef GNUGKBUILDOPTS_H
 #define GNUGKBUILDOPTS_H 1
 
+// LARGE_FDSET
+#undef LARGE_FDSET
+
 // H.460.17
 #undef HAS_H46017
 

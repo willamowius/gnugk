@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2018, Jan Willamowius
+// Copyright (c) 2000-2019, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1333,7 +1333,7 @@ H323TransportAddress EndpointRec::GetTLSAddress() const
 #ifdef HAS_LANGUAGE
 bool EndpointRec::SetAssignedLanguage(const H225_RegistrationRequest_language & rrqLang, H225_RegistrationConfirm_language & rcfLang)
 {
-	H323GetLanguages(m_languages,rrqLang);
+	H323GetLanguages(m_languages, rrqLang);
 
 	PStringArray langs;
 	bool loadLanguage = Toolkit::Instance()->GetAssignedLanguages().GetLanguage(m_terminalAliases, langs);
@@ -1348,7 +1348,7 @@ bool EndpointRec::SetAssignedLanguage(const H225_RegistrationRequest_language & 
 
 bool EndpointRec::SetAssignedLanguage(H225_LocationConfirm_language & lcfLang)
 {
-	return H323SetLanguages(m_languages,lcfLang);
+	return H323SetLanguages(m_languages, lcfLang);
 }
 #endif
 
@@ -1376,7 +1376,7 @@ bool GatewayRec::LoadConfig()
 
 void GatewayRec::LoadGatewayConfig()
 {
-	PConfig* const cfg = GkConfig();
+	PConfig * const cfg = GkConfig();
 	const PStringList sections = cfg->GetSections();
 
 	Prefixes.clear();
@@ -1947,7 +1947,7 @@ bool RegistrationTable::FindEndpoint(
 }
 
 namespace {
-// a specialized comparision operator to have a gwlist sorted by increasing priority value
+// a specialized comparison operator to have a gwlist sorted by increasing priority value
 inline bool ComparePriority(const pair<int, GatewayRec*>& x, const pair<int, GatewayRec*>& y)
 {
 	return x.first < y.first;
@@ -1993,7 +1993,7 @@ endptr RegistrationTable::InternalFindFirstEP(const H225_ArrayOf_AliasAddress & 
 		return endptr(e);
 	}
 
-	return endptr(0);
+	return endptr(NULL);
 }
 
 bool RegistrationTable::InternalFindEP(
@@ -2116,7 +2116,7 @@ void RegistrationTable::PrintAllRegistrations(USocket *client, bool verbose)
 	InternalPrint(client, verbose, &EndpointList, msg);
 }
 
-void RegistrationTable::PrintEndpointQoS(USocket *client) //const
+void RegistrationTable::PrintEndpointQoS(USocket *client) const
 {
 	std::map<PString, EPQoS> epqos;
 	// copy data into a temporary container to avoid long locking
@@ -2236,7 +2236,7 @@ void RegistrationTable::LoadConfig()
 				++epIter;
 				continue;
 			}
-			// find a corresponing permanent endpoint entry in the config file
+			// find a corresponding permanent endpoint entry in the config file
 			const H225_TransportAddress& epSigAddr = ep->GetCallSignalAddress();
 			PINDEX i;
 			for (i = 0; i < cfgs.GetSize(); ++i) {
@@ -2309,7 +2309,7 @@ void RegistrationTable::LoadConfig()
 			rrq.m_terminalType.IncludeOptionalField(H225_EndpointType::e_gateway);
 			if (eptr && !eptr->IsGateway()) {
 				RemoveByEndptr(eptr);
-				eptr = endptr(0);
+				eptr = endptr(NULL);
 			}
 			if (eptr) {
 				eptr->Update(rrq_ras);
@@ -2333,7 +2333,7 @@ void RegistrationTable::LoadConfig()
 			rrq.m_terminalType.IncludeOptionalField(H225_EndpointType::e_terminal);
 			if (eptr && eptr->IsGateway()) {
 				RemoveByEndptr(eptr);
-				eptr = endptr(0);
+				eptr = endptr(NULL);
 			}
 			if (eptr) {
 				eptr->Update(rrq_ras);
@@ -3048,7 +3048,7 @@ void CallRec::SetForward(
 {
 	m_usedLock.Wait();
 	m_forwarded = true;
-	m_Forwarder = (socket == m_calledSocket) ? m_Called : endptr(0);
+	m_Forwarder = (socket == m_calledSocket) ? m_Called : endptr(NULL);
 	if (m_Forwarder) {
 		SetSrcSignalAddr(m_Forwarder->GetCallSignalAddress());
 		m_callerId = m_Forwarder->GetEndpointIdentifier().GetValue();
@@ -3073,7 +3073,7 @@ void CallRec::RerouteDropCalling()
 	m_Forwarder = m_Calling;
 	m_callingSocket = NULL;
 	CallTable::Instance()->UpdateEPBandwidth(m_Calling, -GetBandwidth());
-	m_Calling = endptr(0);
+	m_Calling = endptr(NULL);
 }
 
 void CallRec::RerouteDropCalled()
@@ -3083,7 +3083,7 @@ void CallRec::RerouteDropCalled()
 	m_Forwarder = m_Called;
 	m_calledSocket = NULL;
 	CallTable::Instance()->UpdateEPBandwidth(m_Called, -GetBandwidth());
-	m_Called = endptr(0);
+	m_Called = endptr(NULL);
 }
 
 // used for failover of GK terminated calls
@@ -3091,7 +3091,7 @@ bool CallRec::DropCalledAndTryNextRoute()
 {
 	PWaitAndSignal lock(m_sockLock);
 	CallTable::Instance()->UpdateEPBandwidth(m_Called, -GetBandwidth());
-	m_Called = endptr(0);
+	m_Called = endptr(NULL);
 	if (m_calledSocket) {
 		m_calledSocket->SendReleaseComplete(H225_ReleaseCompleteReason::e_undefinedReason);
 		if (MoveToNextRoute()) {
@@ -4221,7 +4221,7 @@ bool CallRec::GetCallerAudioIP(PIPSocket::Address & addr, WORD & port) const
         if (IgnoreSignaledIPs() || (GetCallingParty() && GetCallingParty()->GetTraversalRole() != None)) {
             return false;   // we don't know which side is which in these cases
         }
-        // use signeled media IP
+        // use signaled media IP
         if (m_callerAudioIP.IsValid()) {
             addr = m_callerAudioIP;
             port = m_callerAudioPort;
@@ -4252,7 +4252,7 @@ bool CallRec::GetCalledAudioIP(PIPSocket::Address & addr, WORD & port) const
         if (IgnoreSignaledIPs() || (GetCalledParty() && GetCalledParty()->GetTraversalRole() != None)) {
             return false;   // we don't know which side is which in these cases
         }
-        // use signeled media IP
+        // use signaled media IP
         if (m_calledAudioIP.IsValid()) {
             addr = m_calledAudioIP;
             port = m_calledAudioPort;
@@ -4283,7 +4283,7 @@ bool CallRec::GetCallerVideoIP(PIPSocket::Address & addr, WORD & port) const
         if (IgnoreSignaledIPs() || (GetCallingParty() && GetCallingParty()->GetTraversalRole() != None)) {
             return false;   // we don't know which side is which in these cases
         }
-        // use signeled media IP
+        // use signaled media IP
         if (m_callerVideoIP.IsValid()) {
             addr = m_callerVideoIP;
             port = m_callerVideoPort;
@@ -4314,7 +4314,7 @@ bool CallRec::GetCalledVideoIP(PIPSocket::Address & addr, WORD & port) const
         if (IgnoreSignaledIPs() || (GetCalledParty() && GetCalledParty()->GetTraversalRole() != None)) {
             return false;   // we don't know which side is which in these cases
         }
-        // use signeled media IP
+        // use signaled media IP
         if (m_calledVideoIP.IsValid()) {
             addr = m_calledVideoIP;
             port = m_calledVideoPort;
@@ -4347,7 +4347,7 @@ bool CallRec::GetCallerH239IP(PIPSocket::Address & addr, WORD & port) const
         if (IgnoreSignaledIPs() || (GetCallingParty() && GetCallingParty()->GetTraversalRole() != None)) {
             return false;   // we don't know which side is which in these cases
         }
-        // use signeled media IP
+        // use signaled media IP
         if (m_callerH239IP.IsValid()) {
             addr = m_callerH239IP;
             port = m_callerH239Port;
@@ -4380,7 +4380,7 @@ bool CallRec::GetCalledH239IP(PIPSocket::Address & addr, WORD & port) const
         if (IgnoreSignaledIPs() || (GetCalledParty() && GetCalledParty()->GetTraversalRole() != None)) {
             return false;   // we don't know which side is which in these cases
         }
-        // use signeled media IP
+        // use signaled media IP
         if (m_calledH239IP.IsValid()) {
             addr = m_calledH239IP;
             port = m_calledH239Port;
@@ -4395,7 +4395,7 @@ bool CallRec::GetCalledH239IP(PIPSocket::Address & addr, WORD & port) const
 #ifdef HAS_H46023
 bool CallRec::SingleGatekeeper() const
 {
-	if (!m_Calling || !m_Called)  // Default Single Gatekeeper TRUE!
+	if (!m_Calling || !m_Called)  // Default Single Gatekeeper TRUE
 		return true;
 
     if (!m_Calling->IsRemote() &&
@@ -4587,7 +4587,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	else if (!goDirect && !m_Calling->IsRemote() && !m_Called->IsRemote() && GetProxyMode() == CallRec::ProxyEnabled)
 			natinst = CallRec::e_natFullProxy;
 
-	// If both parties must proxy (ie if both on seperate distinct networks)
+	// If both parties must proxy (ie if both on separate distinct networks)
 	else if (!goDirect && m_Called->IsInternal() && GetProxyMode() == CallRec::ProxyEnabled)
 			natinst = CallRec::e_natFullProxy;
 
@@ -4620,7 +4620,7 @@ bool CallRec::NATOffLoad(bool iscalled, NatStrategy & natinst)
 	}
 
 	// Both parties are behind private NAT but the called has no detected NAT (direct IP calling)
-	// assume the parties can reach eachother.
+	// assume the parties can reach each other.
 	else if (goDirect &&
 			(m_Calling->IsNATed() && m_Called->GetEPNATType() < EndpointRec::FirewallSymmetric &&
             !m_Called->IsNATed() && IsPrivate(m_Called->GetIP())))
@@ -4709,7 +4709,7 @@ bool CallRec::NATSignallingOffload(bool isAnswer) const
 	if (isAnswer)
 			return false;
 
-	// If signalling must be routed or not remote certificate required
+	// If signaling must be routed or not remote certificate required
 	if (GkConfig()->GetBoolean(RoutedSec, "H46023SignalGKRouted", false) ||
 		!GkConfig()->GetBoolean(TLSSec, "RequireRemoteCertificate", true))
 			return false;
@@ -4928,7 +4928,7 @@ void CallRec::H46024BInitiate(WORD sessionID, const IPAndPortAddress & fwd, cons
 
     PIPSocket::Address addr = rev.GetIP();
     bool revDir = (GetCallSignalSocketCalled()->GetPeerAddr() == addr);
-	//PTRACE(1, "SH\tNAT offload probe " << GetCallSignalSocketCalled()->GetPeerAddr() << " " << addr << " " << revDir);
+	//PTRACE(1, "H46024B\tNAT offload probe " << GetCallSignalSocketCalled()->GetPeerAddr() << " " << addr << " " << revDir);
 
 	H46024Balternate alt;
 	bool callerIsSymmetric = (m_Calling->GetEPNATType() > 5);
@@ -4954,7 +4954,7 @@ void CallRec::H46024BInitiate(WORD sessionID, const IPAndPortAddress & fwd, cons
 
 		PTRACE(4, "H46024B\tRequest Message\n" << h245msg);
 
-		// If we are tunnneling
+		// If we are tunneling
 		SendH46024Facility(H46024BSignalSocket(false), h245msg);
 	}
 }
@@ -5327,7 +5327,7 @@ void CallTable::UpdateTotalBandwidth(long bw)
 	if (m_capacity >= 0) {
 		m_capacity -= bw;
 		if (m_capacity < 0)	{
-			// shouldn't happen, just to make sure we can destinguish the disabled state
+			// shouldn't happen, just to make sure we can distinguish the disabled state
 			m_capacity = 0;
 		}
 		PTRACE(2, "GK\tAvailable Bandwidth " << m_capacity);

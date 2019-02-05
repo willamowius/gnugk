@@ -2,7 +2,7 @@
 //
 // Toolkit base class for the GnuGk
 //
-// Copyright (c) 2000-2018, Jan Willamowius
+// Copyright (c) 2000-2019, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1138,7 +1138,7 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig * config)
 			sorted_in_strings.clear();
 			sorted_out_strings.clear();
 
-			// Split the config data into seperate lines
+			// Split the config data into separate lines
 			PStringArray lines = cfg_value.Tokenise(PString(";"));
 			PINDEX lines_size = lines.GetSize();
 
@@ -1217,7 +1217,7 @@ int Toolkit::VendorModeTool::ModeSelection(const PString & str) const
 }
 
 Toolkit::VendorData::VendorData(PConfig *config, const PString & section)
-: m_VendorKey(NULL), m_VendorValue(NULL), m_size(0)
+    : m_VendorKey(NULL), m_VendorValue(NULL), m_size(0)
 {
 	AddSection(config, section);
 }
@@ -1430,7 +1430,7 @@ void Toolkit::CreateConfig()
 
 	// generate a unique name
 	do {
-		m_tmpconfig = tmpdir + PDIR_SEPARATOR + "gnugk.ini-" + PString(PString::Unsigned, rand()%10000);
+		m_tmpconfig = tmpdir + PDIR_SEPARATOR + "gnugk.ini-" + PString(PString::Unsigned, rand() % 10000);
 		PTRACE(5, "GK\tTrying file name "<< m_tmpconfig << " for temp config");
 	} while (PFile::Exists(m_tmpconfig));
 
@@ -1466,7 +1466,7 @@ void Toolkit::CreateConfig()
 
 	// generate a unique name
 	do {
-		m_extConfigFilePath = tmpdir + PDIR_SEPARATOR + "gnugk.ini-" + PString(PString::Unsigned, rand()%10000);
+		m_extConfigFilePath = tmpdir + PDIR_SEPARATOR + "gnugk.ini-" + PString(PString::Unsigned, rand() % 10000);
 		PTRACE(5, "GK\tTrying file name "<< m_extConfigFilePath << " for external config");
 	} while (PFile::Exists(m_extConfigFilePath));
 
@@ -3672,7 +3672,7 @@ PString Toolkit::GetExternalIP() const
         PMIMEInfo outMIME, replyMIME;
         PString url = "http://169.254.169.254/latest/meta-data/public-ipv4"; // AWS
         if (ext == "AlibabaPublicIP")
-            url = "http://100.100.100.200/latest/meta-data/eipv4"; // Alibaba TODO: when use public-ipv4 instead?
+            url = "http://100.100.100.200/latest/meta-data/eipv4"; // Alibaba TODO: when use public-ipv4 instead ?
         if (ext == "AzurePublicIP") {
             url = "http://169.254.169.254/metadata/instance/network/interface/0/ipv4/ipAddress/0/publicIpAddress?api-version=2017-08-01&format=text"; // Azure
             outMIME.SetAt("Metadata", "true");
@@ -4073,7 +4073,7 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 			}
 		}
 	}
-	// TODO: Add Database rewrite here - SH
+	// TODO: Add Database rewrite here
 	if (changed) {
 		setupBody.IncludeOptionalField(H225_Setup_UUIE::e_sourceAddress);
 		setupBody.m_sourceAddress.SetSize(1);

@@ -3,7 +3,7 @@
 // ProxyChannel.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2002
-// Copyright (c) 2002-2018, Jan Willamowius
+// Copyright (c) 2002-2019, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -471,14 +471,18 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddr
 		PIPSocket::Address src = RasServer::Instance()->GetLocalAddress(toIP);
 
 		WSABUF wsabuf;
-		WSAMSG msg;
-
 		wsabuf.buf = (CHAR *)data;
 		wsabuf.len = len;
 
+		WSAMSG msg;
 		memset(&msg, 0, sizeof(msg));
 		msg.name = (struct sockaddr*)&dest;
-		msg.namelen = sizeof(dest);
+		size_t addr_len = sizeof(sockaddr_in);
+#ifdef hasIPV6
+	if (toIP.GetVersion() == 6)
+		addr_len = sizeof(sockaddr_in6);
+#endif  // hasIPV6
+		msg.namelen = addr_len;
 		msg.lpBuffers = &wsabuf;
 		msg.dwBufferCount = 1;
 
@@ -525,7 +529,7 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddr
 				memcpy(WSA_CMSG_DATA(cm), &ipi, sizeof(ipi));
 			}
 		}
-#endif
+#endif // hasIPV6
 
 		DWORD bytesSent = 0;
 		int rc = g_pfWSASendMsg(fd, &msg, 0, &bytesSent, NULL, NULL);
@@ -537,7 +541,7 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddr
 			return -1;
 		}
 	} else
-#endif
+#endif // WINDOWS_VISTA
 	{
         // on XP we fall back to sendto()
         // we can't set the source addr and XP seems to have trouble with IPv6, but IPv4 works OK
@@ -1621,11 +1625,9 @@ bool TCPProxySocket::ReadTPKT()
 	// some endpoints may send TPKT header and payload in separate
 	// packets, so we have to check again if data available
 	// TLS adds another layer of buffering, so this optimization will fail -> disable
-	if (this->GetHandle() < (int)LARGE_FDSET) {
-		if (!SocketSelectList(GetName(), this).Select(SocketSelectList::Read, 0)) {
-			return false;
-		}
-	}
+    if (!SocketSelectList(GetName(), this).Select(SocketSelectList::Read, 0)) {
+        return false;
+    }
 #endif
 	if (!Read(bufptr, buflen))
 		return ErrorHandler(PSocket::LastReadError);
@@ -3106,14 +3108,14 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 				PASN_ObjectId & val = id;
 #ifdef HAS_H46024A
 				if (val.AsString() == H46024A_OID) {
-					// TODO Signal to shutdown proxy support - SH
+					// TODO Signal to shutdown proxy support
 					suppress = false;  // Allow to travel to the other party
 					return false;
 				}
 #endif
 #ifdef HAS_H46024B
 				if (val.AsString() == H46024B_OID) {
-					// TODO shutdown the proxy channel if media going direct - SH
+					// TODO shutdown the proxy channel if media going direct
 					suppress = true;
 					return false;
 				}
@@ -4390,7 +4392,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 
 	if (GkConfig()->GetBoolean(RoutedSec, "TranslateSorensonSourceInfo", false)) {
 		// Viable VPAD (Viable firmware, SBN Tech device), remove the CallingPartyNumber information
-		// (its under the sorenson switch, even though not sorenson, can be moved later to own switch - SH)
+		// (its under the Sorenson switch, even though not Sorenson, can be moved later to own switch)
 		if (setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_vendor)
 			&& setupBody.m_sourceInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)
             && setupBody.m_sourceInfo.m_vendor.m_productId.AsString().Left(11) == "viable vpad") {
@@ -5739,7 +5741,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 		// Although not covered in H.460.22 for H.460.18. The SCI needs to include H.460.22
-		// to notify the endpoint to establish the TCP connection to the TLS port. - SH
+		// to notify the endpoint to establish the TCP connection to use the TLS port.
 		if (Toolkit::Instance()->IsTLSEnabled() && m_call->GetCalledParty()->UseTLS()) {
 			H460_FeatureStd h46022 = H460_FeatureStd(22);
 			H460_FeatureStd settings;
@@ -5755,6 +5757,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		}
 #endif
 
+		// TODO: on a multi-homed server, the SCI may get the wrong source address and the call fails
 		RasSrv->SendRas(sci_ras, m_call->GetCalledParty()->GetRasAddress(), NULL, m_call->GetCalledParty()->GetH235Authenticators());
 
 		// store Setup
@@ -9489,8 +9492,8 @@ H245Socket::H245Socket(CallSignalSocket *sig)
 			if (Toolkit::Instance()->IsPortNotificationActive() && sig)
 				Toolkit::Instance()->PortNotification(H245Port, PortOpen, "tcp", GNUGK_INADDR_ANY, m_port, sig->GetCallNumber());
 
-			// TOS - H.245 inbound TCS etc.
-			int dscp = GkConfig()->GetInteger(RoutedSec, "H245DiffServ", 0);	// default: 0
+			// TOS H.245 inbound TCS etc.
+			int dscp = GkConfig()->GetInteger(RoutedSec, "H245DiffServ", 0);
             if (dscp > 0) {
                 int h245TypeOfService = (dscp << 2);
                 // set IPv4 and IPv6
@@ -9986,7 +9989,7 @@ bool H245Socket::ConnectRemote()
 			SetConnected(true);
 			PTRACE(3, "H245\tConnect to " << GetName() << " from " << AsString(localAddr, pt) << " successful" << " (CallID: " << GetCallIdentifierAsString() << ")");
 
-			// TOS - H.245 outbound - TCS messages etc.
+			// TOS H.245 outbound - TCS messages etc.
             int dscp = GkConfig()->GetInteger(RoutedSec, "H245DiffServ", 0);
             if (dscp > 0) {
                 int h245TypeOfService = (dscp << 2);
@@ -10331,8 +10334,8 @@ MultiplexH245Listener::MultiplexH245Listener(const Address & addr, WORD pt)
 		Close();
 	}
 
-	// TOS - H.245 listener
-	int dscp = GkConfig()->GetInteger(RoutedSec, "H245DiffServ", 0);	// default: 0
+	// TOS H.245 listener
+	int dscp = GkConfig()->GetInteger(RoutedSec, "H245DiffServ", 0);
     if (dscp > 0) {
         int h245TypeOfService = (dscp << 2);
 #if defined(hasIPV6) && defined(IPV6_TCLASS)
@@ -15116,8 +15119,8 @@ CallSignalListener::CallSignalListener(const Address & addr, WORD pt)
 		Close();
 	}
 
-	// TOS - H.225 listener - callProceeding, alerting, connect etc.
-	int dscp = GkConfig()->GetInteger(RoutedSec, "H225DiffServ", 0);	// default: 0
+	// TOS H.225 listener - callProceeding, alerting, connect etc.
+	int dscp = GkConfig()->GetInteger(RoutedSec, "H225DiffServ", 0);
     if (dscp > 0) {
         int h225TypeOfService = (dscp << 2);
 #if defined(hasIPV6) && defined(IPV6_TCLASS)
@@ -15622,18 +15625,11 @@ bool ProxyHandler::BuildSelectList(SocketSelectList & slist)
 		ProxySocket *socket = dynamic_cast<ProxySocket *>(*k);
 		if (socket && !socket->IsBlocked()) {
 			if (socket->IsSocketOpen()) {
+#ifndef LARGE_FDSET
 #ifdef _WIN32
 				if (slist.GetSize() >= FD_SETSIZE) {
 					PTRACE(0, "Proxy\tToo many sockets in this proxy handler "
 						"(FD_SETSIZE=" << ((int)FD_SETSIZE) << ")");
-					SNMP_TRAP(10, SNMPError, Network, "Too many sockets in proxy handler");
-				}
-#else
-#ifdef LARGE_FDSET
-				const int large_fdset = (int)LARGE_FDSET;
-				if (socket->Self()->GetHandle() >= large_fdset) {
-					PTRACE(0, "Proxy\tToo many opened file handles, skipping handle #"
-						<< socket->Self()->GetHandle() << " (limit=" << large_fdset	<< ")");
 					SNMP_TRAP(10, SNMPError, Network, "Too many sockets in proxy handler");
 				}
 #else
@@ -15642,9 +15638,9 @@ bool ProxyHandler::BuildSelectList(SocketSelectList & slist)
 						<< socket->Self()->GetHandle() << " (limit=" << ((int)FD_SETSIZE) << ")");
 					SNMP_TRAP(10, SNMPError, Network, "Too many sockets in proxy handler");
 				}
-#endif
-#endif
-				else
+#endif // _WIN32
+                else
+#endif // LARGE_FDSET
 					slist.Append(*k);
 			} else if (socket && !socket->IsConnected()) {
 				Remove(k);
@@ -15900,18 +15896,11 @@ void ProxyHandler::FlushSockets()
 			continue;
 		}
 		if (s->CanFlush()) {
+#ifndef LARGE_FDSET
 #ifdef _WIN32
 			if (wlist.GetSize() >= FD_SETSIZE) {
 				PTRACE(0, "Proxy\tToo many sockets in this proxy handler "
 					"(limit=" << ((int)FD_SETSIZE) << ")");
-				SNMP_TRAP(10, SNMPError, Network, "Out of sockets");
-			}
-#else
-#ifdef LARGE_FDSET
-			const int large_fdset = (int)LARGE_FDSET;
-			if ((*i)->GetHandle() >= large_fdset) {
-				PTRACE(0, "Proxy\tToo many opened file handles, skipping handle #"
-					<< (*i)->GetHandle() << " (limit=" << large_fdset << ")");
 				SNMP_TRAP(10, SNMPError, Network, "Out of sockets");
 			}
 #else
@@ -15920,9 +15909,9 @@ void ProxyHandler::FlushSockets()
 					<< (*i)->GetHandle() << " (limit=" << ((int)FD_SETSIZE) << ")");
 				SNMP_TRAP(10, SNMPError, Network, "Out of sockets");
 			}
-#endif
-#endif
+#endif // _WIN32
 			else
+#endif // LARGE_FDSET
 				wlist.Append(*i);
 		}
 		++i;

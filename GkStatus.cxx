@@ -2,7 +2,7 @@
 //
 // GkStatus.cxx
 //
-// Copyright (c) 2000-2017, Jan Willamowius
+// Copyright (c) 2000-2019, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -323,7 +323,7 @@ protected:
 
 #ifdef HAS_LIBSSH
 
-// SSH version of the staus client
+// SSH version of the status client
 class SSHStatusClient : public StatusClient {
 public:
 	SSHStatusClient(int instanceNo);
@@ -467,6 +467,7 @@ bool SSHStatusClient::Authenticate()
 	const time_t now = time(NULL);
 	const int loginTimeout = GkConfig()->GetInteger(authsec, "LoginTimeout", 120);
     bool auth = false;
+    const int MAX_RETRIES = 3;
     int retries = 0;
     do {
         m_message = ssh_message_get(m_session);
@@ -497,7 +498,7 @@ bool SSHStatusClient::Authenticate()
                 ssh_message_reply_default(m_message);
         }
         ssh_message_free(m_message);
-    } while (!auth && (retries < 3) && ((time(NULL) - now) < loginTimeout));
+    } while (!auth && (retries < MAX_RETRIES) && ((time(NULL) - now) < loginTimeout));
 
     if (!auth) {
         return false;
@@ -864,10 +865,6 @@ PString PrintGkVersion()
 // class GkStatus
 GkStatus::GkStatus() : Singleton<GkStatus>("GkStatus"), SocketsReader(500)
 {
-#ifdef LARGE_FDSET
-	PTRACE(1, "STATUS\tLarge fd_set(" << LARGE_FDSET << ") enabled");
-#endif
-
 	SetName("GkStatus");
 	m_statusClients = 0;
     LoadConfig();
@@ -927,7 +924,7 @@ class ClientSignalStatus
 public:
 	ClientSignalStatus(
 		/// message to be sent
-		const PString& msg,
+		const PString & msg,
 		/// output trace level assigned to the message
 		int level
 		) : m_message(msg), m_traceLevel(level) { }
@@ -1008,12 +1005,12 @@ class WriteWhoAmI
 public:
 	WriteWhoAmI(
 		/// status interface client to send the information to
-		StatusClient* requestingClient
-		) : m_requestingClient(requestingClient) {}
+		StatusClient * requestingClient
+		) : m_requestingClient(requestingClient) { }
 
 	void operator()(
 		/// status interface client to send the information to
-		const IPSocket* clientSocket
+		const IPSocket * clientSocket
 		) const
 	{
 		const StatusClient* client = static_cast<const StatusClient *>(clientSocket);
@@ -1049,7 +1046,7 @@ void GkStatus::PrintEventBacklog(StatusClient * requestingClient) const
 
 void GkStatus::PrintHelp(
 	/// client that requested the help message
-	StatusClient* requestingClient
+	StatusClient * requestingClient
 	) const
 {
 	requestingClient->WriteString("Commands:\r\n");
@@ -1250,7 +1247,7 @@ StatusClient::~StatusClient()
 
 void StatusClient::OnDo(BYTE code)
 {
-	if (code == 6)  // Ctrl-C from Linux telnet clinet
+	if (code == 6)  // Ctrl-C from Linux telnet client
         Close();
 }
 
@@ -2229,7 +2226,7 @@ void StatusClient::ExecCommand(
         }
 		break;
 	default:
-		// commmand not recognized
+		// command not recognized
 		CommandError("Error: Unknown command '" + cmd + "'");
 		break;
 	}
@@ -2239,9 +2236,9 @@ void StatusClient::ExecCommand(
 
 void StatusClient::AddFilter(
     // vector of filters
-    std::vector<PString>& regexFilters,
+    std::vector<PString> & regexFilters,
     // Regular expression
-    const PString& regex
+    const PString & regex
     )
 {
     regexFilters.push_back(regex);
@@ -2249,7 +2246,7 @@ void StatusClient::AddFilter(
 
 void StatusClient::RemoveFilter(
     // vector of filters
-    std::vector<PString>& regexFilters,
+    std::vector<PString> & regexFilters,
     // Index of filter to be removed
     unsigned int index
     )
@@ -2264,8 +2261,8 @@ void StatusClient::RemoveFilter(
 }
 
 bool StatusClient::IsExcludeMessage(
-    // String to be chacked against exclude regular expressions
-    const PString &msg
+    // String to be checked against exclude regular expressions
+    const PString & msg
     ) const
 {
     return MatchFilter(m_excludeFilterRegex, msg);
@@ -2275,7 +2272,7 @@ bool StatusClient::MatchFilter(
     // filter vector
     const std::vector<PString>& regexFilters,
     // String to be matched against filters
-    const PString &msg
+    const PString & msg
     ) const
 {
     std::vector<PString>::const_iterator it = regexFilters.begin();
@@ -2289,8 +2286,8 @@ bool StatusClient::MatchFilter(
 }
 
 bool StatusClient::IsIncludeMessage(
-    // String to be chacked against include regular expressions
-    const PString &msg
+    // String to be checked against include regular expressions
+    const PString & msg
     ) const
 {
     return MatchFilter(m_includeFilterRegex, msg);
@@ -2298,7 +2295,7 @@ bool StatusClient::IsIncludeMessage(
 
 void StatusClient::PrintFilters(
     // filter vector
-    std::vector<PString>& regexFilters
+    std::vector<PString> & regexFilters
     )
 {
 	PString msg;

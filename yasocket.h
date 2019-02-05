@@ -3,7 +3,7 @@
 // yasocket.h
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2018, Jan Willamowius
+// Copyright (c) 2004-2019, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -23,7 +23,7 @@
 
 #ifdef LARGE_FDSET
 
-// yet another socket class to replace PSocket (Unix only)
+// yet another socket class to replace PSocket (Unix and Windows >= Vista)
 
 class YaSocket : public NamedObject {
 public:
@@ -166,7 +166,7 @@ public:
 	YaSelectList(
 		/// estimated number of sockets to be put in this select list
 		size_t reserve = 512
-	) : maxfd(0) { fds.reserve(reserve); }
+	) { fds.reserve(reserve); }
 
 	/// build a select list for more than one socket
 	YaSelectList(
@@ -174,19 +174,19 @@ public:
 		const PString & name,
 		/// estimated number of sockets to be put in this select list
 		size_t reserve = 512
-	) : maxfd(0), m_name(name) { fds.reserve(reserve); }
+	) : m_name(name) { fds.reserve(reserve); }
 
 	/// build a select list for single socket only
 	YaSelectList(
 		YaSocket * singleSocket /// socket to be put on the list
-		) : fds(1, singleSocket), maxfd(singleSocket->GetHandle()) { }
+		) : fds(1, singleSocket) { }
 
 	/// build a select list for single socket only
 	YaSelectList(
 		/// name for this select list
 		const PString & name,
 		YaSocket* singleSocket /// socket to be put on the list
-		) : fds(1, singleSocket), maxfd(singleSocket->GetHandle()), m_name(name) { }
+		) : fds(1, singleSocket), m_name(name) { }
 
 	void Append(
 		YaSocket * s /// the socket to be appended
@@ -194,8 +194,6 @@ public:
 	{
 		if (s && s->IsOpen()) {
 			fds.push_back(s);
-			if (s->GetHandle() > maxfd)
-				maxfd = s->GetHandle();
 		}
 	}
 
@@ -210,23 +208,10 @@ public:
 
 	bool Select(SelectType, const PTimeInterval &);
 
-	struct large_fd_set {
-		large_fd_set() { memset(this, 0, sizeof(large_fd_set)); }
-		void add(int fd) { if (fd >= 0 && fd < LARGE_FDSET) FD_SET(fd, &__fdset__); }
-		bool has(int fd) { return (fd >= 0 && fd < LARGE_FDSET) ? FD_ISSET(fd, &__fdset__) : false; }
-		operator fd_set *() { return &__fdset__; }
-
-		union {
-			fd_set __fdset__;
-			char __mem__[LARGE_FDSET / 8];
-		};
-	};
-
 	PString GetName() const { return m_name; }
 
 private:
 	std::vector<YaSocket *> fds;
-	int maxfd;
 	PString m_name;
 };
 

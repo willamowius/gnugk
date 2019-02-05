@@ -3,7 +3,7 @@
 // Routing Mechanism for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2003
-// Copyright (c) 2004-2017, Jan Willamowius
+// Copyright (c) 2004-2019, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1073,7 +1073,7 @@ bool VirtualQueue::SendRouteRequest(
 			GkStatus::Instance()->SignalStatus(msg + "\r\n", STATUS_TRACE_LEVEL_ROUTEREQ);
 		}
 
-		// wait for an answer from the status line (routetoalias,routetogateway,routereject)
+		// wait for an answer from the status line (routetoalias, routetogateway, routereject)
 		result = r->m_sync.Wait(m_requestTimeout);
 		reject = r->m_reject;   // set reject status
 		if (r->m_rejectReason > -1)
@@ -1192,7 +1192,7 @@ bool VirtualQueue::RouteToAlias(
 	/// alias for the routing target that
 	/// will replace the original destination info
 	const PString & targetAlias,
-	/// will replace the original destinationCallSignallAddress
+	/// will replace the original destinationCallSignalAddress
 	const PString & destinationIp,
 	/// identifier of the endpoint associated with the route request
 	const PString & callingEpId,
@@ -1626,7 +1626,7 @@ void NumberAnalysisPolicy::LoadConfig(const PString & instance)
 		<< " prefix entries");
 
 	if (PTrace::CanTrace(6)) {
-		ostream &strm = PTrace::Begin(6, __FILE__, __LINE__);
+		ostream & strm = PTrace::Begin(6, __FILE__, __LINE__);
 		strm << "ROUTING\t" << m_name << " policy prefixes:" << endl;
 		for (unsigned i = 0; i < m_prefixes.size(); i++)
 			strm << "\t" << m_prefixes[i].m_prefix.c_str() << " => min len: "
@@ -1774,7 +1774,7 @@ bool ENUMPolicy::FindByAliasesInternal(const PString & schema, RoutingRequest & 
 #if P_DNS
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
 		PString alias(AsString(aliases[i], FALSE));
-		if (alias.Left(2) *= "00") { // Check if not GDS number  - SH
+		if (alias.Left(2) *= "00") { // Check if not GDS number
 			PTRACE(4, "\t" << m_name << " " << schema << " Ignored " << alias << " Not ENUM format.");
 			continue;
 		}
@@ -1881,7 +1881,7 @@ bool DynamicPolicy::OnRequest(AdmissionRequest & request)
 		DestinationRoutes destination;
 
 		RunPolicy(	/* in */ source, calledAlias, calledIP, caller, callingStationId, callid, messageType, clientauthid, language,
-						/* out: */ destination);
+                    /* out: */ destination);
 
 		if (destination.m_routes.empty() && !ResolveRoute(request,destination))
 			destination.SetRejectCall(true);

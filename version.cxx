@@ -3,7 +3,7 @@
 // PURPOSE OF THIS FILE: Give version info
 //
 // Copyright (C) 2003 Nils.Bokermann@mediaways.net
-// Copyright (c) 2006-2018, Jan Willamowius
+// Copyright (c) 2006-2019, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -82,7 +82,7 @@ const PString Toolkit::GKVersion()
 				(int)0,
 #endif
 #ifdef LARGE_FDSET
-				(int)LARGE_FDSET,
+				(int)1,
 #else
 				(int)0,
 #endif

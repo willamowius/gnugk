@@ -598,11 +598,11 @@ public:
 #endif
     void UnregisterAllEndpointsNotInCall();
 
-	void PrintAllRegistrations(USocket *client, bool verbose=FALSE);
-	void PrintAllCached(USocket *client, bool verbose=FALSE);
-	void PrintRemoved(USocket *client, bool verbose=FALSE);
+	void PrintAllRegistrations(USocket *client, bool verbose = FALSE);
+	void PrintAllCached(USocket *client, bool verbose = FALSE);
+	void PrintRemoved(USocket *client, bool verbose = FALSE);
 	void PrintPrefixCapacities(USocket *client, PString alias) const;
-	void PrintEndpointQoS(USocket *client); //const;
+	void PrintEndpointQoS(USocket *client) const;
 
 	PString PrintStatistics() const;
 

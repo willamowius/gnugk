@@ -3,7 +3,7 @@
 // yasocket.cxx
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2018, Jan Willamowius
+// Copyright (c) 2004-2019, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -21,15 +21,26 @@
 #include "Toolkit.h"
 #include "snmp.h"
 #include "gk.h"
-#ifndef _WIN32
-#include <unistd.h>
-#endif // _WIN32
+#include "gnugkbuildopts.h"
+#include "ptbuildopts.h"	// sets WINVER needed for WSAPoll
 
 #ifdef _WIN32
 #	ifndef SHUT_RDWR
 #   	define SHUT_RDWR SD_BOTH
 #	endif
-#endif
+#else
+#include <unistd.h>
+#endif // _WIN32
+
+#ifdef LARGE_FDSET
+#ifdef _WIN32
+#	include <winsock2.h>
+#	define poll WSAPoll
+#else
+#	include <poll.h>
+#endif // _WIN32
+#endif // LARGE_FDSET
+
 
 using std::mem_fun;
 using std::bind1st;
@@ -42,7 +53,7 @@ using std::find;
 namespace {
 /// time to recheck state of closed sockets owned by a proxy handler
 const long SOCKETSREADER_IDLE_TIMEOUT = 1000;
-const long SOCKET_CHUNK_PAUSE = 250;	// send in 10K chunks
+const long SOCKET_CHUNK_PAUSE = 250;	// pause 250ms between chunks
 const int MAX_SOCKET_CHUNK = 10240;	// send in 10K chunks
 }
 
@@ -52,83 +63,32 @@ int g_maxSocketQueue = 100;	// set with [Gatekeeper::Main] MaxSocketQueue=
 
 bool YaSelectList::Select(SelectType t, const PTimeInterval & timeout)
 {
-	large_fd_set fdset;
-	// add handles to the fdset
-	const_iterator i = fds.begin();
-	const_iterator endIter = fds.end();
-	while (i != endIter)
-		fdset.add((*i++)->GetHandle());
+	struct pollfd * pfds = new pollfd[GetSize()]; // dynamic alloc for VS2008
+    memset(pfds, 0 , sizeof(*pfds));
+    // add handles to pollfd
+    for (int i = 0; i < GetSize(); ++i) {
+        pfds[i].fd = fds[i]->GetHandle();
+        pfds[i].events = (t == Read) ? POLLIN : POLLOUT;
+    }
 
-	fd_set *readfds, *writefds;
-	if (t == Read)
-		readfds = fdset, writefds = NULL;
-	else
-		writefds = fdset, readfds = NULL;
-
-	const unsigned long msec = timeout.GetInterval();
-	struct timeval tval;
-	tval.tv_sec = msec / 1000;
-	tval.tv_usec = (msec - tval.tv_sec * 1000) * 1000;
-	int r = ::select(maxfd + 1, readfds, writefds, NULL, &tval);
+	const int msec = timeout.GetInterval();
+	int r = ::poll(pfds, GetSize(), msec);
 	if (r > 0) {
-#if 1
-		std::vector<YaSocket*>::iterator last = remove_if(
-			fds.begin(), fds.end(),
-			not1(compose1(
-				bind1st(mem_fun(&large_fd_set::has), &fdset),
-				mem_fun(&YaSocket::GetHandle)
-				)));
-		fds.erase(last, fds.end());
-#else
-		/* This unrolled implementation of the above code may give
-		   another 10-15% of performance gain. As it is not much under normal
-		   conditions, I leave it for those who want to squeeze a few more
-		   calls from their proxies;-)
-
-		   I did some performance tests (Duron 1.1GHz) with simulation of
-		   various fds selected sockets coverage (10%, 33%, 50%, 75%, 90%):
-
-		   LARGE_FDSET=1024  - 12% performance gain
-		   LARGE_FDSET=4096  - 15% performance gain
-		   LARGE_FDSET=16384 - 13% performance gain
-
-		   For LARGE_FDSET=4096 it took less than 1ms to manipulate the fdset
-		   and this grows in a linear fashion (LARGE_FDSET=16384 takes a few
-		   milliseconds to perform the same task).
-		*/
-		std::vector<YaSocket*>::reverse_iterator j = fds.rbegin();
-		std::vector<YaSocket*>::iterator k = fds.end();
-		const std::vector<YaSocket*>::reverse_iterator rendIter = fds.rend();
-		bool hasfd = false;
-
-		// start from the end of the list, skip consecutive sockets
-		// that were not selected (find the first one selected)
-		while (j != rendIter) {
-			k--;
-			if (fdset.has((*j)->GetHandle())) {
-				hasfd = true;
-				break;
-			} else
-				++j;
-		}
-		// reorder remaining sockets, so non-selected sockets
-		// are moved to the end of the vector
-		if (hasfd) {
-			while (++j != rendIter) {
-				if (!fdset.has((*j)->GetHandle())) {
-					*j = *k--;
-				}
-			}
-			// at this point the vector [begin(),k] should contain
-			// all selected sockets, so erase the remaining vector elements
-			fds.erase(++k, fds.end());
-		} else {
-			fds.clear();
-		}
-#endif
+    	iterator i = fds.begin();
+    	int j = 0;
+	    while (i != fds.end()) {
+            if (pfds[j].revents & (t == Read ? POLLIN : POLLOUT)) {
+                // keep and move to next element
+	            ++i;
+            } else {
+                i = fds.erase(i);	// first erase then move to next valid element
+            }
+            ++j; // always to to next element in pfds array
+        }
 	} else if (r < 0) {
-		PTRACE(3, GetName() << "\tSelect " << (t == Read ? "read" : "write") << " error - errno: " << errno);
+		PTRACE(3, GetName() << "\tSelect (poll) " << (t == Read ? "read" : "write") << " error - errno: " << errno);
 	}
+	delete [] pfds;
 	return r > 0;
 }
 
@@ -161,8 +121,12 @@ bool YaSocket::Close()
 	struct linger so_linger;
 	so_linger.l_onoff = 0;
 	so_linger.l_linger = 0;
-	(void)::setsockopt(handle, SOL_SOCKET, SO_LINGER, &so_linger, sizeof(so_linger));
+	(void)::setsockopt(handle, SOL_SOCKET, SO_LINGER, (const char *)&so_linger, sizeof(so_linger));
+#ifdef _WIN32
+	::closesocket(handle);
+#else
 	::close(handle);
+#endif
 	return true;
 }
 
@@ -183,13 +147,11 @@ bool YaSocket::CanRead(long timeout) const
 	if (h < 0)
 		return false;
 
-	YaSelectList::large_fd_set fdset;
-	fdset.add(h);
-
-	struct timeval tval;
-	tval.tv_sec = timeout / 1000;
-	tval.tv_usec = (timeout - tval.tv_sec * 1000) * 1000;
-	return ::select(h + 1, (fd_set*)fdset, NULL, NULL, &tval) > 0;
+    struct pollfd fds[1];
+    memset(fds, 0 , sizeof(fds));
+    fds[0].fd = h;
+    fds[0].events = POLLIN;
+    return ::poll(fds, 1, timeout) > 0;
 }
 
 bool YaSocket::CanWrite(long timeout) const
@@ -198,13 +160,11 @@ bool YaSocket::CanWrite(long timeout) const
 	if (h < 0)
 		return false;
 
-	YaSelectList::large_fd_set fdset;
-	fdset.add(h);
-
-	struct timeval tval;
-	tval.tv_sec = timeout / 1000;
-	tval.tv_usec = (timeout - tval.tv_sec * 1000) * 1000;
-	return ::select(h + 1, NULL, (fd_set*)fdset, NULL, &tval) > 0;
+    struct pollfd fds[1];
+    memset(fds, 0 , sizeof(fds));
+    fds[0].fd = h;
+    fds[0].events = POLLOUT;
+    return ::poll(fds, 1, timeout) > 0;
 }
 
 bool YaSocket::Write(const void * buf, int sz)
@@ -290,11 +250,17 @@ bool YaSocket::SetNonBlockingMode()
 {
 	if (!IsOpen())
 		return false;
-	// is call to F_SETFD with F_CLOEXEC really necessary?
+#ifdef _WIN32
+	u_long cmd = 1;
+	if (ConvertOSError(::ioctlsocket(os_handle, FIONBIO, &cmd)))
+		return true;
+#else
+	// is call to F_SETFD with F_CLOEXEC really necessary ?
 	int cmd = 1;
 	if (ConvertOSError(::ioctl(os_handle, FIONBIO, &cmd))
 			&& ConvertOSError(::fcntl(os_handle, F_SETFD, 1)))
 		return true;
+#endif
 	Close();
 	return false;
 
@@ -421,10 +387,12 @@ bool YaTCPSocket::Accept(YaTCPSocket & socket)
 			break;
 		}
 
-		YaSelectList::large_fd_set fdset;
-		fdset.add(fd);
-		struct timeval tval = { 1, 0 };
-		int r = ::select(fd + 1, fdset, NULL, NULL, &tval);
+        struct pollfd fds[1];
+        memset(fds, 0 , sizeof(fds));
+        fds[0].fd = fd;
+        fds[0].events = POLLIN;
+        int timeout = 1000; // 1 sec
+        int r = ::poll(fds, 1, timeout);
 		if (r < 0)
 			break;
 		else if (r == 0)
@@ -495,13 +463,14 @@ bool YaTCPSocket::Connect(const Address & iface, WORD localPort, const Address &
 #endif
 		return ConvertOSError(r);
 
-	YaSelectList::large_fd_set fdset;
-	fdset.add(os_handle);
-	YaSelectList::large_fd_set exset = fdset;
-	struct timeval tval = { 6, 0 };
-	if ((r = ::select(os_handle + 1, NULL, fdset, exset, &tval)) > 0) {
+    struct pollfd fds[1];
+    memset(fds, 0 , sizeof(fds));
+    fds[0].fd = os_handle;
+    fds[0].events = POLLOUT;
+    int timeout = 6000; // 6 sec
+    if ((r = ::poll(fds, 1, timeout)) > 0) {
 		optval = -1;
-		(void)::getsockopt(os_handle, SOL_SOCKET, SO_ERROR, &optval, &optlen);
+		(void)::getsockopt(os_handle, SOL_SOCKET, SO_ERROR, (char *)&optval, &optlen);
 		if (optval == 0) // connected
 			return SetLinger();
 		errno = optval;
@@ -527,7 +496,7 @@ int YaTCPSocket::os_recv(void * buf, int sz)
 #if HAS_MSG_NOSIGNAL
 	return ::recv(os_handle, buf, sz, MSG_NOSIGNAL);
 #else
-	return ::recv(os_handle, buf, sz, 0);
+	return ::recv(os_handle, (char *)buf, sz, 0);
 #endif
 }
 
@@ -536,7 +505,7 @@ int YaTCPSocket::os_send(const void * buf, int sz)
 #if HAS_MSG_NOSIGNAL
 	return ::send(os_handle, buf, sz, MSG_NOSIGNAL);
 #else
-	return ::send(os_handle, buf, sz, 0);
+	return ::send(os_handle, (const char *)buf, sz, 0);
 #endif
 }
 
@@ -636,19 +605,19 @@ bool YaUDPSocket::WriteTo(const void * buf, PINDEX len, const Address & addr, WO
 int YaUDPSocket::os_recv(void * buf, int sz)
 {
 	socklen_t addrlen = sizeof(recvaddr);
-	return ::recvfrom(os_handle, buf, sz, 0, (struct sockaddr *)&recvaddr, &addrlen);
+	return ::recvfrom(os_handle, (char *)buf, sz, 0, (struct sockaddr *)&recvaddr, &addrlen);
 }
 
 int YaUDPSocket::os_send(const void * buf, int sz)
 {
 	// must pass short len when sending to IPv4 address on Solaris 11, OpenBSD and NetBSD
-	// sizeof(sockaddr) would OK on Linux and FreeBSD
+	// sizeof(sockaddr) would be OK on Linux and FreeBSD
 	size_t addr_len = sizeof(sockaddr_in);
 #ifdef hasIPV6
 	if (((struct sockaddr*)&sendaddr)->sa_family == AF_INET6)
 		addr_len = sizeof(sockaddr_in6);
 #endif  // hasIPV6
-	return ::sendto(os_handle, buf, sz, 0, (struct sockaddr *)&sendaddr, addr_len);
+	return ::sendto(os_handle, (const char *)buf, sz, 0, (struct sockaddr *)&sendaddr, addr_len);
 }
 
 #else // LARGE_FDSET

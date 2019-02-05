@@ -3,7 +3,7 @@
 // Neighboring System for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2018, Jan Willamowius
+// Copyright (c) 2004-2019, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -990,7 +990,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
 	}
 #endif
 #ifdef HAS_H460VEN
-	/// OID9  'Remote endpoint vendor info THIS IS "1.3.6.1.4.1.17090.0.9" NOT H.460.9	- SH
+	/// OID9  'Remote endpoint vendor info THIS IS "1.3.6.1.4.1.17090.0.9" NOT H.460.9
 	H460_FeatureOID foid9 = H460_FeatureOID(OID9);
 	int sz = lrq.m_genericData.GetSize();
 	lrq.m_genericData.SetSize(sz + 1);
@@ -1067,7 +1067,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & reques
 	}
 #endif
 #ifdef HAS_H460VEN
-	/// OID9  'Remote endpoint vendor info THIS IS "1.3.6.1.4.1.17090.0.9" NOT H.460.9	- SH
+	/// OID9  'Remote endpoint vendor info THIS IS "1.3.6.1.4.1.17090.0.9" NOT H.460.9
 	H460_FeatureOID foid9 = H460_FeatureOID(OID9);
 	int sz = lrq.m_genericData.GetSize();
 	lrq.m_genericData.SetSize(sz + 1);
@@ -1132,7 +1132,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & /*r
 	}
 #endif
 #ifdef HAS_H460VEN
-	/// OID9  'Remote endpoint vendor info THIS IS "1.3.6.1.4.1.17090.0.9" NOT H.460.9	- SH
+	/// OID9  'Remote endpoint vendor info THIS IS "1.3.6.1.4.1.17090.0.9" NOT H.460.9
 	H460_FeatureOID foid9 = H460_FeatureOID(OID9);
 	int sz = lrq.m_genericData.GetSize();
 	lrq.m_genericData.SetSize(sz + 1);

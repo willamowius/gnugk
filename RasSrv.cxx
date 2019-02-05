@@ -2181,7 +2181,7 @@ bool RegistrationRequestPDU::Process()
 		endptr ep = request.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier) ?
 			EndpointTbl->FindByEndpointId(request.m_endpointIdentifier) :
 			(request.m_callSignalAddress.GetSize() >= 1) ?
-			EndpointTbl->FindBySignalAdr(request.m_callSignalAddress[0], rx_addr) : endptr(0);
+			EndpointTbl->FindBySignalAdr(request.m_callSignalAddress[0], rx_addr) : endptr(NULL);
 		bool bReject = !ep;
 		if (Toolkit::Instance()->IsMaintenanceMode()) {
             callptr call = CallTbl->FindCallRec(ep);
@@ -2961,7 +2961,7 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 	PString endpointId(request.HasOptionalField(H225_UnregistrationRequest::e_endpointIdentifier) ? request.m_endpointIdentifier.GetValue() : PString(" "));
 	endptr ep = request.HasOptionalField(H225_UnregistrationRequest::e_endpointIdentifier) ?
 		EndpointTbl->FindByEndpointId(request.m_endpointIdentifier) :
-		request.m_callSignalAddress.GetSize() ? EndpointTbl->FindBySignalAdr(request.m_callSignalAddress[0], m_msg->m_peerAddr) : endptr(0);
+		request.m_callSignalAddress.GetSize() ? EndpointTbl->FindBySignalAdr(request.m_callSignalAddress[0], m_msg->m_peerAddr) : endptr(NULL);
 	if (ep) {
 		if (RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
 			if (GetIPAndPortFromTransportAddr(ep->GetRasAddress(), m_msg->m_peerAddr, m_msg->m_peerPort)) {

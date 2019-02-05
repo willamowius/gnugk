@@ -721,7 +721,7 @@ enable_h46017
 enable_h46018
 enable_h46023
 enable_radius
-with_large_fdset
+enable_large_fdset
 enable_mysql
 with_mysql_include_dir
 with_mysql_dir
@@ -1389,6 +1389,7 @@ Optional Features:
   --enable-h46018         enable H.460.18 / H.460.19 support (default=no) check patent license before enabling
   --enable-h46023         enable H.460.23 / H.460.24 support (default=yes)
   --enable-radius         enable RADIUS support (default=yes)
+  --enable-large-fdset    support large number of sockets (default=no)
   --enable-mysql          enable MySQL support (default=yes)
   --enable-pgsql          enable PostgreSQL support (default=yes)
   --enable-firebird       enable Interbase/Firebird support (default=yes)
@@ -1405,7 +1406,6 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-large-fdset=MAXFD      Maximum number of sockets supported (default=1024)
   --with-mysql-include-dir=DIR  directory where the MySQL includes may be found
   --with-mysql-dir=DIR          base directory where MySQL is installed
   --with-pgsql-include-dir=DIR  directory where the PostgreSQL includes may be found
@@ -4106,24 +4106,22 @@ fi
 
 
 
-# Check whether --with-large-fdset was given.
-if test "${with_large_fdset+set}" = set; then :
-  withval=$with_large_fdset;  largefdset="$withval"
+
+# Check whether --enable-large-fdset was given.
+if test "${enable_large_fdset+set}" = set; then :
+  enableval=$enable_large_fdset;  largefdset="${enableval}"
 else
-   largefdset="no"
+  largefdset="yes"
 
 fi
 
 
 if test "x${largefdset}" != "xno" ; then
-	if test "x${largefdset}" = "xyes"; then
-		LARGE_FDSET=8192
-	else
-   		LARGE_FDSET=${largefdset}
-	fi
-   	STDCCFLAGS="-DLARGE_FDSET=${LARGE_FDSET} $STDCCFLAGS"
+    LARGE_FDSET=1
+   	STDCCFLAGS="-DLARGE_FDSET=1 $STDCCFLAGS"
    	echo "LARGE FDSET support enabled"
 else
+    LARGE_FDSET=0
 	echo "LARGE FDSET support disabled"
 fi
 
