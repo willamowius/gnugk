@@ -605,7 +605,7 @@ This probably is only an issue with H.460.17.
 <item><tt/TTLExpireDropCall=0/<newline>
 Default: <tt>1</tt><newline>
 <p>
-Set whether to drop a registration on TTL expiry even if there appears to be a current call for the endpoint. 
+Set whether to drop a registration on TTL expiry even if there appears to be an active call for the endpoint. 
 By default it will force the drop of the call before unregistering the endpoint. 
 A situation may occur if there are bandwidth congestion, RRQ packets are being lost but an active call (likely causing the congestion) is still in progress.
 By enabling this switch the registration remains current until a RRQ is received or the apparent call either times out or is dropped. 
