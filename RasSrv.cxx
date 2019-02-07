@@ -179,7 +179,7 @@ bool GatekeeperMessage::Read(RasListener * socket)
 	PTRACE(2, "RAS\tRead from " << AsString(m_peerAddr, m_peerPort));
 	m_rasPDU = PPER_Stream(buffer, socket->GetLastReadCount());
 	bool result = m_recvRAS.Decode(m_rasPDU);
-	PTRACE_IF(1, !result, "RAS\tCould not decode message from " << AsString(m_peerAddr, m_peerPort));
+	PTRACE_IF(1, !result, "RAS\tError: Could not decode message from " << AsString(m_peerAddr, m_peerPort));
 	return result;
 }
 
