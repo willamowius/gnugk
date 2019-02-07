@@ -593,7 +593,7 @@ in routed mode and proxy mode calls will still get disrupted when the gatekeeper
 Default: <tt>128</tt><newline>
 <p>
 Sets the maximum number of elements in an ASN encoded array, eg. the max. number of aliases in a list.
-Versions of PTLib through v2.10.1 default to 128 elements. Beware of hitting the limits of other vendors if you
+Versions of PTLib through v2.10.10 default to 128 elements. Beware of hitting the limits of other vendors implementations if you
 increase this setting.
 
 <item><tt/MaxSocketQueue=10000/<newline>
