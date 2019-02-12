@@ -936,6 +936,7 @@ void Toolkit::RewriteTool::LoadConfig(PConfig *config)
 	m_TrailingChar = config->GetString("RasSrv::ARQFeatures", "RemoveTrailingChar", " ")[0];
 	PString defDomain = config->GetString("Gatekeeper::Main", "DefaultDomain", "");
 	m_defaultDomain = defDomain.Tokenise(",");
+	m_externalIP = config->GetString("Gatekeeper::Main", "ExternalIP", "");
 	delete m_Rewrite;
 	m_Rewrite = new RewriteData(config, RewriteSection);
 	m_Rewrite->AddSection(config,AliasRewriteSection);
@@ -962,7 +963,7 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 		// Check if we have a default domain and strip it
 		for (PINDEX i = 0; i < m_defaultDomain.GetSize(); i++) {
 			if (domain == m_defaultDomain[i]) {
-				PTRACE(2, "\tRewriteDomain: " << s << " to " << num);
+				PTRACE(2, "\tRewriteDomain (default domain): " << s << " to " << num);
 				s = num;
 				changed = true;
 				break;
@@ -971,7 +972,12 @@ bool Toolkit::RewriteTool::RewritePString(PString & s) const
 
 		// Check that the domain is not a local IP address.
 		if (!changed && domIP.IsValid() && Toolkit::Instance()->IsGKHome(domIP)) {
-			PTRACE(2, "\tRemoveDomain: " << domain << " to " << num);
+			PTRACE(2, "\tRemoveDomain (local IP): " << domain << " to " << num);
+			s = num;
+			changed = true;
+		}
+		if (!changed && domIP.IsValid() && !m_externalIP.IsEmpty() && domIP.AsString() == m_externalIP) {
+			PTRACE(2, "\tRemoveDomain (external IP): " << domain << " to " << num);
 			s = num;
 			changed = true;
 		}

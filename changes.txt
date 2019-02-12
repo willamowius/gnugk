@@ -1,5 +1,6 @@
 Changes from 5.1 to 5.2
 =======================
+- ExternalIP is automatically added to the default domains
 - BUGFIX(ProxyChannel.cxx) fix setting UDP source IP on Windows when compiled for Vista or higher
 - re-implement LARGE_FDSET using poll(), enable with configure option --enable-large-fdset
 
