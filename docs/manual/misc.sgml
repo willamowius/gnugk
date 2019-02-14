@@ -1083,8 +1083,8 @@ Default: <tt>n/a</tt><newline>
 <p>
 The passphrase to open the above certificate files, if you have set one.
 
-<item><tt/CipherList=ALL:!ADH:!LOW:!EXP:!MD5:!RC4:!SHA1:!ECDH:!ECDSA:@STRENGTH/<newline>
-Default: <tt>ALL:!ADH:!LOW:!EXP:!MD5:!RC4:!SHA1:!ECDH:!ECDSA:@STRENGTH</tt><newline>
+<item><tt/CipherList=ALL:!ADH:!LOW:!EXP:!MD5:!RC4:!SHA1:@STRENGTH/<newline>
+Default: <tt>ALL:!ADH:!LOW:!EXP:!MD5:!RC4:!SHA1:@STRENGTH</tt><newline>
 <p>
 Set the OpenSSL cipher list to be used for TLS connections.
 

@@ -2416,8 +2416,8 @@ SSL_CTX * Toolkit::GetTLSContext()
 		SSL_CTX_set_options(m_sslCtx, SSL_OP_NO_COMPRESSION);	// remove unsafe SSL compression (eg. due to CRIME)
 		SSL_CTX_set_mode(m_sslCtx, SSL_MODE_AUTO_RETRY); // handle re-negotiations automatically
 		// exclude insecure / broken ciphers
-		// no anonymous DH (ADH), no <= 64 bit (LOW), no export ciphers (EXP), no MD5 + RC4 + SHA1, no elliptic curve ciphers (ECDH + ECDSA)
-		PString cipherList = m_Config->GetString(TLSSec, "CipherList", "ALL:!ADH:!LOW:!EXP:!MD5:!RC4:!SHA1:!ECDH:!ECDSA:@STRENGTH");
+		// no anonymous DH (ADH), no <= 64 bit (LOW), no export ciphers (EXP), no MD5 + RC4 + SHA1
+		PString cipherList = m_Config->GetString(TLSSec, "CipherList", "ALL:!ADH:!LOW:!EXP:!MD5:!RC4:!SHA1:@STRENGTH");
 		SSL_CTX_set_cipher_list(m_sslCtx, cipherList);
 
 		SSL_CTX_set_info_callback(m_sslCtx, apps_ssl_info_callback);
@@ -2449,8 +2449,7 @@ SSL_CTX * Toolkit::GetTLSContext()
 
 		if (!m_Config->GetBoolean(TLSSec, "RequireRemoteCertificate", true)) {
 			SSL_CTX_set_verify(m_sslCtx, SSL_VERIFY_PEER, verify_callback); // do not require a client certificate
-		} else
-		{
+		} else {
 			SSL_CTX_set_verify(m_sslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, verify_callback); // context is used both in client and server mode
 		}
 
