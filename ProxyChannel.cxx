@@ -7152,7 +7152,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 	authData.m_callingStationId = GetCallingStationId(*setup, authData);
 	authData.m_calledStationId = GetCalledStationId(*setup, authData);
 	if (!RasServer::Instance()->ValidatePDU(*setup, authData)) {
-		PTRACE(1, "Q931\tAutentication of reroute destination failed");
+		PTRACE(1, "Q931\tAuthentication of reroute destination failed");
 		SNMP_TRAP(8, SNMPError, Authentication, "Reroute authentication failed");
 		return false;
 	}
