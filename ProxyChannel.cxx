@@ -7819,6 +7819,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 			&& facilityBody.HasOptionalField(H225_Facility_UUIE::e_callIdentifier)) {
 			H225_CallIdentifier callIdentifier = facilityBody.m_callIdentifier;
 			m_call = CallTable::Instance()->FindCallRec(callIdentifier);
+			// TODO/BUG: call not found if its a call Reroute
 			if (m_call) {
 				m_call->SetCallSignalSocketCalled(this);
 				PBYTEArray rawSetup = m_call->RetrieveSetup();
