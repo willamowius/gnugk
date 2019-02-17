@@ -811,9 +811,10 @@ bool GetH245GenericStringOctetString(unsigned id, const H245_ArrayOf_GenericPara
 				if (genvalue.GetTag() == H245_ParameterValue::e_octetString) {
 					const PASN_OctetString & valg = genvalue;
 					PASN_IA5String data;
-					valg.DecodeSubType(data);
-					str = data;
-					return true;
+					if (valg.DecodeSubType(data)) {
+    					str = data;
+	    				return true;
+					}
 				}
 			}
 		}
@@ -855,9 +856,10 @@ bool GetH245TransportGenericOctetString(unsigned id, const H245_ArrayOf_GenericP
 				if (genvalue.GetTag() == H245_ParameterValue::e_octetString) {
 					const PASN_OctetString & valg = genvalue;
 					H245_TransportAddress addr;
-					valg.DecodeSubType(addr);
-					str = H323TransportAddress(addr);
-					return true;
+					if (valg.DecodeSubType(addr)) {
+    					str = H323TransportAddress(addr);
+	    				return true;
+					}
 				}
 			}
 		}
@@ -12870,7 +12872,10 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 	m_cipherPayloadType = encryptionSync.m_synchFlag;
 	PBYTEArray mediaKey;
 	H235_H235Key h235key;
-    encryptionSync.m_h235Key.DecodeSubType(h235key);
+    if (!encryptionSync.m_h235Key.DecodeSubType(h235key)) {
+		PTRACE(1, "H235\tCan't decode H.235.6 key");
+        return false;
+    }
     if (h235key.GetTag() == H235_H235Key::e_secureSharedSecret) {
 		const H235_V3KeySyncMaterial & v3data = h235key;
 	    PTRACE(5, "H235\tH235_V3KeySyncMaterial=" << v3data);
