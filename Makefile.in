@@ -150,7 +150,7 @@ ifeq "$(GCCMAJORGTEQ4)" "1"
 	LDFLAGS += -Wl,-z,relro,-z,now
 	# Ubuntu optimization flag
 	LDFLAGS += -Wl,--hash-style=gnu
-	# Export variables to dinamically loaded libraries;
+	# Export variables to dynamically loaded libraries;
 	# solves "Undefined symbol lua_settop" error when lua 
 	# script tries to request external library
 	LDFLAGS += -Wl,--export-dynamic
