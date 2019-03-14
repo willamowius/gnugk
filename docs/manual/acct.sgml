@@ -881,7 +881,7 @@ StartQuery= insert into CDR (gatekeeper_name, call_number, call_duration, discon
 
 StartQueryAlt= insert into CDR (gatekeeper_name, call_number, call_duration, disconnect_cause, acct_session_id, h323_id, gkip, CallId, ConfID, setup_time, connect_time, disconnect_time, caller_ip, caller_port, callee_ip, callee_port, src_info, dest_info, Calling_Station_Id, Called_Station_Id, Dialed_Number) values ('%g', '%n', %d, %c, '%s', '%u', '%{gkip}', '%{CallId}', '%{ConfID}', '%{setup-time}', '%{connect-time}', '%{disconnect-time}', '%{caller-ip}', '%{caller-port}', '%{callee-ip}', '%{callee-port}', '%{src-info}', '%{dest-info}', '%{Calling-Station-Id}', '%{Called-Station-Id}', '%{Dialed-Number}')
 
-UpdateQuery= update CDR set connect_time='%{connect-time}', call_duration=%d where gatekeeper_name='%g' and acct_session_id='%s'
+UpdateQuery= update CDR set call_duration=%d where gatekeeper_name='%g' and acct_session_id='%s'
 
 StopQuery= update CDR set connect_time='%{connect-time}', call_duration=%d, disconnect_cause=%c, disconnect_time='%{disconnect-time}' where gatekeeper_name='%g' and acct_session_id='%s'
 
