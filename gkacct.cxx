@@ -5,7 +5,7 @@
  * support for accounting to the gatekeeper.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2005-2018, Jan Willamowius
+ * Copyright (c) 2005-2019, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -170,23 +170,20 @@ void GkAcctLogger::SetupAcctParams(
 	params["CallLink"] = call->GetCallLinkage();
 
 	t = call->GetSetupTime();
-	if (t)
-		params["setup-time"] = toolkit->AsString(PTime(t), timestampFormat);
+    params["setup-time"] = t ? toolkit->AsString(PTime(t), timestampFormat) : "";
 	t = call->GetAlertingTime();
-	if (t)
-		params["alerting-time"] = toolkit->AsString(PTime(t), timestampFormat);
+    params["alerting-time"] = t ? toolkit->AsString(PTime(t), timestampFormat) : "";
 	t = call->GetConnectTime();
-	if (t)
-		params["connect-time"] = toolkit->AsString(PTime(t), timestampFormat);
+    params["connect-time"] = t ? toolkit->AsString(PTime(t), timestampFormat) : "";
 	t = call->GetDisconnectTime();
-	if (t)
-		params["disconnect-time"] = toolkit->AsString(PTime(t), timestampFormat);
+    params["disconnect-time"] = t ? toolkit->AsString(PTime(t), timestampFormat) : "";
 	params["ring-time"] = call->GetRingTime();
 
 	if (call->GetSrcSignalAddr(addr, port)) {
 		params["caller-ip"] = addr.AsString();
 		params["caller-port"] = port;
 	} else {
+		params["caller-ip"] = "";
 		params["caller-port"] = 0;
 	}
 
@@ -200,6 +197,7 @@ void GkAcctLogger::SetupAcctParams(
 		params["callee-ip"] = addr.AsString();
 		params["callee-port"] = port;
 	} else {
+		params["callee-ip"] = "";
 		params["callee-port"] = 0;
 	}
 
@@ -215,18 +213,28 @@ void GkAcctLogger::SetupAcctParams(
 	endptr caller;
 	if ((caller = call->GetCallingParty())) {
 		params["caller-epid"] = caller->GetEndpointIdentifier().GetValue();
+	} else {
+		params["caller-epid"] = "";
 	}
 	endptr callee;
 	if ((callee = call->GetCalledParty())) {
 		params["callee-epid"] = callee->GetEndpointIdentifier().GetValue();
+	} else {
+		params["callee-epid"] = "";
 	}
 	params["call-attempts"] = PString(call->GetNoCallAttempts());
 	params["last-cdr"] = call->GetNoRemainingRoutes() > 0 ? "0" : "1";
 
-	if ((call->GetCallerAudioIP(addr, port)))
+	if ((call->GetCallerAudioIP(addr, port))) {
 		params["caller-media-ip"] = addr.AsString();
-	if ((call->GetCalledAudioIP(addr, port)))
+    } else {
+		params["caller-media-ip"] = "";
+    }
+	if ((call->GetCalledAudioIP(addr, port))) {
 		params["callee-media-ip"] = addr.AsString();
+	} else {
+		params["callee-media-ip"] = "";
+	}
 	params["bandwidth"] = call->GetBandwidth();
 	params["client-auth-id"] = call->GetClientAuthId();
 	PString vendor, version;
@@ -294,6 +302,9 @@ void GkAcctLogger::SetupAcctEndpointParams(
 	if (GetIPAndPortFromTransportAddr(sigip, addr, port)) {
 		params["endpoint-ip"] = addr.AsString();
 		params["endpoint-port"] = port;
+	} else {
+		params["endpoint-ip"] = "";
+		params["endpoint-port"] = 0;
 	}
 	PString vendor, version;
 	ep->GetEndpointInfo(vendor, version);
@@ -305,8 +316,11 @@ void GkAcctLogger::SetupAcctEndpointParams(
 
 	// The username is always the last in the Alias List
 	PStringArray aliasList = aliasString.Tokenise(",");
-    if (aliasList.GetSize() > 0)
+    if (aliasList.GetSize() > 0) {
 	    params["u"] = aliasList[aliasList.GetSize()-1];
+    } else {
+	    params["u"] = "";
+    }
 
     params["Calling-Station-Id"] = GetBestAliasAddressString(ep->GetAliases(), false,
                                                              AliasAddressTagMask(H225_AliasAddress::e_dialedDigits) | AliasAddressTagMask(H225_AliasAddress::e_partyNumber));
