@@ -29,7 +29,7 @@ long g_workerIdleTimeout = DEFAULT_WORKER_IDLE_TIMEOUT;
     idle and busy. When it accepts a new Job, it becomes busy. When the job
     is finished it becomes idle. Each idle Worker is stopped (deleted) after
     the specified timeout, so Workers that are not needed anymore do not use
-    system resources. This makes passible to create dynamic sets of Workers.
+    system resources. This makes possible to create dynamic sets of Workers.
 */
 class Agent;
 class Worker : public PThread

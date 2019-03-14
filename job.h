@@ -26,7 +26,7 @@ extern long g_workerIdleTimeout;
 /** The base abstract class that represents job objects.
     This class implements the way to execute the job.
     Derived classes implement actual jobs (override Run()).
-	Jobs are executed and managed by the internal Job managment system
+	Jobs are executed and managed by the internal Job management system
 	consisting of the singleton Agent object and Worker threads
 	that accept and execute new Jobs.
 
@@ -65,7 +65,7 @@ private:
 
 /** Similar to the Job, but is even more abstract. It does not contain
 	any Task management routines. Main purpose of this class it to provide
-	a way to represent a serie of Tasks that are to be executed one after another.
+	a way to represent a series of Tasks that are to be executed one after another.
 */
 class Task
 {
@@ -118,7 +118,7 @@ private:
 };
 
 
-/// Execute a task or a serie of tasks
+/// Execute a task or a series of tasks
 class Jobs : public Job
 {
 public:
@@ -184,10 +184,10 @@ protected:
 	/** Wait for a signal (Signal()).
 
 	    @return
-	    true if the sync point has been signalled.
+	    true if the sync point has been signaled.
 	*/
 	bool Wait(
-		/// time to wait for the sync point to be signalled
+		/// time to wait for the sync point to be signaled
 		const PTimeInterval& timeout
 		)
 	{
