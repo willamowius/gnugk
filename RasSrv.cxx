@@ -2287,13 +2287,15 @@ bool RegistrationRequestPDU::Process()
 				// Authenticate the new registration
 				RRQAuthData authData;
 				authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
-				if (!RasSrv->ValidatePDU(*this, authData))
+				if (!RasSrv->ValidatePDU(*this, authData)) {
 					return BuildRRJ(authData.m_rejectReason);
+				}
 
 				// Check for existing aliases
 				const endptr lep = EndpointTbl->FindByAliases(request.m_terminalAlias);
-				if (lep && (lep->GetCallSignalAddress() != ep->GetCallSignalAddress()))
+				if (lep && (lep->GetCallSignalAddress() != ep->GetCallSignalAddress())) {
 					return BuildRRJ(H225_RegistrationRejectReason::e_invalidTerminalAliases);
+				}
 			}
 
 			// endpoint was already registered
@@ -2478,8 +2480,9 @@ bool RegistrationRequestPDU::Process()
 
 	RRQAuthData authData;
 	authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
-	if (!RasSrv->IsPassThroughRegistrant() && !RasSrv->ValidatePDU(*this, authData))
+	if (!RasSrv->IsPassThroughRegistrant() && !RasSrv->ValidatePDU(*this, authData)) {
 		return BuildRRJ(authData.m_rejectReason);
+	}
 
 	bool bNewEP = true;
 	if (request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) && (request.m_terminalAlias.GetSize() >= 1)) {
@@ -2564,8 +2567,9 @@ bool RegistrationRequestPDU::Process()
 			PString s = AsString(Alias[0], FALSE);
 			// reject the empty string
 			//if (s.GetLength() < 1 || !(isalnum(s[0]) || s[0]=='#') )
-			if (s.GetLength() < 1)
+			if (s.GetLength() < 1) {
 				return BuildRRJ(H225_RegistrationRejectReason::e_invalidAlias);
+			}
 			if (!nated && !s)
 				nated = GkConfig()->HasKey("NATedEndpoints", s);
 		}
@@ -2576,10 +2580,6 @@ bool RegistrationRequestPDU::Process()
 			case H225_EndpointType::e_gateway:
 			case H225_EndpointType::e_mcu:
 				return BuildRRJ(H225_RegistrationRejectReason::e_invalidAlias);
-			/* only while debugging
-			default:
-				return BuildRRJ(H225_RegistrationRejectReason::e_invalidAlias);
-			 */
 		}
 	}
 
@@ -2615,8 +2615,9 @@ bool RegistrationRequestPDU::Process()
 	request.m_callSignalAddress.SetSize(1);
 	request.m_callSignalAddress[0] = SignalAddr;
 
-	if (RasSrv->IsPassThroughRegistrant() && !RasSrv->ValidateAdditivePDU(*this, authData))
+	if (RasSrv->IsPassThroughRegistrant() && !RasSrv->ValidateAdditivePDU(*this, authData)) {
  		return BuildRRJ(authData.m_rejectReason);
+	}
 
 	endptr ep = EndpointTbl->InsertRec(m_msg->m_recvRAS, nated ? rx_addr : PIPSocket::Address(GNUGK_INADDR_ANY));
 	if (!ep) {
@@ -2672,6 +2673,7 @@ bool RegistrationRequestPDU::Process()
 	ep->SetPreemption(preemptsupport);
 
 	ep->SetH235Authenticators(authData.m_authenticator);
+	authData.m_authenticator = NULL; // make sure we don't delete authenticator object when authData gets deleted
 
 	if (bSendReply) {
 		//

@@ -293,7 +293,7 @@ GkAuthenticator::GkAuthenticator(
 
 GkAuthenticator::~GkAuthenticator()
 {
-	delete m_h235Authenticators;
+    delete m_h235Authenticators;
 	PTRACE(1, "GKAUTH\t" << GetName() << " rule removed");
 }
 
@@ -1131,9 +1131,7 @@ int SimplePasswordAuth::Check(
 	RRQAuthData & authData)
 {
 	H225_RegistrationRequest & rrq = request;
-	GkH235Authenticators * auth = NULL;
-	int result = doCheck(request, rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) ? &rrq.m_terminalAlias : NULL, auth);
-    authData.m_authenticator = auth;    // save auth
+	int result = doCheck(request, rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias) ? &rrq.m_terminalAlias : NULL, authData.m_authenticator);
     return result;
 }
 

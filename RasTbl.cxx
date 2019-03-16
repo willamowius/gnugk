@@ -874,9 +874,7 @@ void EndpointRec::SetH235Authenticators(GkH235Authenticators * auth)
     PWaitAndSignal lock(m_usedLock);
     if (m_authenticators == auth) {
         // do nothing
-    } else if (m_authenticators == NULL) {
-        m_authenticators = auth;
-    } else if (auth != NULL) {
+    } else {
         delete m_authenticators;
         m_authenticators = auth;
     };

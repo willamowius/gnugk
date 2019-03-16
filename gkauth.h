@@ -123,6 +123,7 @@ class H235AuthDesECB : public H235Authenticator
 struct RRQAuthData
 {
 	RRQAuthData() : m_rejectReason(-1), m_billingMode(-1), m_authenticator(NULL) { }
+	~RRQAuthData() { delete m_authenticator; }
 
 	/// -1 if not set, H225_RegistrationRejectReason enum otherwise
 	int m_rejectReason;

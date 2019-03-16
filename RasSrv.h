@@ -138,9 +138,9 @@ public:
 		return authList->Validate(ras, reason);
 	}
 
-	bool ValidateAdditivePDU(RasPDU<H225_RegistrationRequest>& ras, RRQAuthData& authData);
+	bool ValidateAdditivePDU(RasPDU<H225_RegistrationRequest>& ras, RRQAuthData & authData);
 
-	bool ValidatePDU(RasPDU<H225_RegistrationRequest> & ras, RRQAuthData& authData)
+	bool ValidatePDU(RasPDU<H225_RegistrationRequest> & ras, RRQAuthData & authData)
 	{
 		return authList->Validate(ras, authData);
 	}

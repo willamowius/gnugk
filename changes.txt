@@ -1,5 +1,6 @@
 Changes from 5.1 to 5.2
 =======================
+- BUGFIX(gkauth.h) fix memory leak in H.235 password auth
 - BUGFIX(gkacct.cxx) set known, but unavailable accounting parameters to empty string
 - support running LUA scripts that require dynamic libraries
 - change default for [TLS] CipherList= to allow elliptical curve ciphers
