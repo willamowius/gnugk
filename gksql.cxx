@@ -281,7 +281,7 @@ void GkSQLConnection::ReleaseSQLConnection(
 
 GkSQLResult* GkSQLConnection::ExecuteQuery(
 	const char* queryStr,
-	const PStringArray* queryParams,
+	const PStringArray * queryParams,
 	long timeout)
 {
 	SQLConnPtr connptr;
@@ -307,7 +307,7 @@ GkSQLResult* GkSQLConnection::ExecuteQuery(
 
 GkSQLResult* GkSQLConnection::ExecuteQuery(
 	const char* queryStr,
-	const std::map<PString, PString>& queryParams,
+	const std::map<PString, PString> & queryParams,
 	long timeout
 	)
 {

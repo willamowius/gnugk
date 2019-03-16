@@ -89,11 +89,11 @@ public:
 	*/
 	virtual bool FetchRow(
 		/// array to be filled with string representations of the row fields
-		PStringArray& result
+		PStringArray & result
 		);
 	virtual bool FetchRow(
 		/// array to be filled with string representations of the row fields
-		ResultRow& result
+		ResultRow & result
 		);
 
 private:
@@ -106,7 +106,7 @@ protected:
 	MYSQL_RES * m_sqlResult;
 	/// the most recent row returned by fetch operation
 	MYSQL_ROW m_sqlRow;
-	/// lenghts (bytes) for each field in m_sqlRow result row
+	/// lengths (bytes) for each field in m_sqlRow result row
 	unsigned long * m_sqlRowLengths;
 	/// MySQL specific error code (if the query failed)
 	unsigned int m_errorCode;
