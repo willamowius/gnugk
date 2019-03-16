@@ -1101,6 +1101,8 @@ SimplePasswordAuth::SimplePasswordAuth(
 					} else {
 						delete Auth;
 					}
+				} else {
+                    delete Auth;
 				}
 			}
 		}
@@ -1116,6 +1118,8 @@ SimplePasswordAuth::SimplePasswordAuth(
 				} else {
 					delete Auth;
 				}
+			} else {
+                delete Auth;
 			}
 		}
 	}
