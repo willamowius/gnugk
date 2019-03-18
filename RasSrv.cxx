@@ -732,10 +732,10 @@ bool RasRequester::WaitForResponse(int timeout)
 	return m_iterator != m_queue.end();
 }
 
-RasMsg *RasRequester::GetReply()
+RasMsg * RasRequester::GetReply()
 {
 	PWaitAndSignal lock(m_qmutex);
-	return m_iterator != m_queue.end() ? *m_iterator++ : 0;
+	return m_iterator != m_queue.end() ? *m_iterator++ : NULL;
 }
 
 bool RasRequester::IsExpected(const RasMsg * ras) const
