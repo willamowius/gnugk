@@ -1,6 +1,8 @@
 Changes from 5.2 to 5.3
 =======================
-
+- changed default: ForwardResponse now defaults to 1 in [RasSrv::LRQFeatures] and [Neighbor::...]
+- new feature: loop detection for LRQs [RasSrv::LRQFeatures] LoopDetection=1
+- BUGFIX(Neighbor.cxx) some settings in [RasSrv::LRQFeatures] were ignored if not set in [Neighbor::...]
 
 Changes from 5.1 to 5.2
 =======================

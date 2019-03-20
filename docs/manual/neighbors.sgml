@@ -29,10 +29,10 @@ The gatekeeper types have the following characteristics:
 For neighbors from any H.323 compliant vendor. (This setting is identical to 'GnuGk'.)
 
 <item><tt/GnuGk/<newline>
-When in doubt, use the <htmlurl url="https://www.gnugk.org/" name="GnuGk gatekeeper"> type. This also activates H.460.23 / H.460.24.
+When in doubt, use the GnuGk gatekeeper type. This also activates H.460.23 / H.460.24.
 
 <item><tt/CiscoGk/<newline>
-GnuGk will pretend to be a Cisco gatekeeper and send fake manufacturer data.
+GnuGk will pretend to be a Cisco gatekeeper and send fake manufacturer data. Use only for really old Cisco gatekeepers.
 
 <item><tt/ClarentGk/<newline>
 Clarent gatekeeper can't decode nonStandardData in LRQs, so GnuGk will filter it out.
@@ -102,6 +102,8 @@ This option defines the number of gatekeepers through which a LRQ
 may propagate. Note that it only affects the sender of LRQ, not the forwarder.
 This setting can be overridden via the configuration section for a particular neighbor.
 
+This setting also limits the hop count for forwarded LRQs.
+
 <item><tt/AcceptForwardedLRQ=1/<newline>
 Default: <tt/1/<newline>
 <p>
@@ -110,7 +112,7 @@ This setting can be overridden with configuration
 of a particular neighbor.
 
 <item><tt/ForwardResponse=0/<newline>
-Default: <tt/0/<newline>
+Default: <tt/1/<newline>
 <p>
 If the gatekeeper forwards a received LRQ message it can decide either
 to receive the LCF response or to let it travel back directly to the LRQ
@@ -179,6 +181,19 @@ You can configure the alias in the LRQ with the PingAlias switch.
 Default: <tt>60</tt><newline>
 <p>
 Interval to be used for sending LRQ pings.
+
+<item><tt/LoopDetection=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Reject LRQs for calls that GnuGk has already seen recently. Use this to avoid call loops and
+LRQ storms when you have multiple gatekeepers who forward all calls to each other.
+
+This feature works only with neighbors of type 'GnuGk' or 'Generic'.
+
+<item><tt/LoopDetectionExpireTime=120/<newline>
+Default: <tt>60</tt><newline>
+<p>
+Time duration in seconds how long to store data about calls GnuGk has seen.
 
 </itemize>
 
@@ -272,17 +287,19 @@ If <bf/hopCount/ has reached 0, the gatekeeper shall not forward the message.
 This options defines the number of gatekeepers through which an LRQ
 may propagate. Note it only affects the sender of LRQ, not the forwarder.
 
+This setting also limits the hop count for forwarded LRQs.
+
 <item><tt/AcceptForwardedLRQ=1/<newline>
 Default: <tt/1/<newline>
 <p>
 Whether to accept an LRQ forwarded from this neighbor.
 
 <item><tt/ForwardResponse=0/<newline>
-Default: <tt/0/<newline>
+Default: <tt/1/<newline>
 <p>
 If the gatekeeper forwards received LRQ message it can decide either
 to receive the LCF response or to let it travel back directly to the LRQ
-originator. Set this option to "1" if the gatekeeper needs to receive LCF
+originator. Set this option to "1" if the gatekeeper should to receive LCF
 messages for forwarded LRQs.
 
 <item><tt/ForwardLRQ=always | never | depends/<newline>

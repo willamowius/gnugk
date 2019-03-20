@@ -3,7 +3,7 @@
 // Neighboring System for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2018, Jan Willamowius
+// Copyright (c) 2004-2019, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -152,6 +152,7 @@ protected:
 	bool m_H46018Client;
 	bool m_useTLS;
 	bool m_disabled; // is this neighbor disabled (eg. because of no responses)
+	bool m_loopDetection;
 };
 
 class NeighborList {

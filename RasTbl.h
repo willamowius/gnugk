@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2018, Jan Willamowius
+// Copyright (c) 2000-2019, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -2306,6 +2306,45 @@ private:
 	mutable PReadWriteMutex tableLock;
 	// cid -> call
 	std::map<H225_CallIdentifier, PreliminaryCall*> calls;
+};
+
+// LRQ loop detection
+
+class RequestData
+{
+public:
+    RequestData()
+        : m_added(0), m_requestSeqNum(0) { }
+    RequestData(time_t added, unsigned seq, PString from)
+        : m_added(added), m_requestSeqNum(seq), m_from(from) { }
+
+    time_t m_added;
+    unsigned m_requestSeqNum;
+    PString m_from;
+};
+
+class CallLoopTable : public Singleton<CallLoopTable>
+{
+public:
+    CallLoopTable();
+    virtual ~CallLoopTable();
+
+    enum LoopResult { NoLoop, Loop, Resent };
+
+    LoopResult IsLoop(const H225_LocationRequest & lrq, const PString & from) const;
+    void CollectLoopData(const H225_LocationRequest & lrq, const PString & from);
+    void Expire();
+
+protected:
+	CallLoopTable(const CallLoopTable &);
+	CallLoopTable & operator==(const CallLoopTable &);
+
+	PString CreateCallKey(const H225_LocationRequest & lrq) const;
+    PString CreateCallKey(const H225_CallIdentifier & callid, const H225_AliasAddress & alias) const;
+
+	mutable PReadWriteMutex tableLock;
+    std::map<PString, RequestData> m_knownCalls;
+    unsigned m_expireTime;
 };
 
 #endif // RASTBL_H

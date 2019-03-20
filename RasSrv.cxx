@@ -2,7 +2,7 @@
 //
 // RAS Server for GNU Gatekeeper
 //
-// Copyright (c) 2000-2018, Jan Willamowius
+// Copyright (c) 2000-2019, Jan Willamowius
 // Copyright (c) Citron Network Inc. 2001-2003
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
@@ -1630,6 +1630,7 @@ void RasServer::ClearAltGKsTable()
 
 void RasServer::HouseKeeping()
 {
+    bool loopDetection = GkConfig()->GetBoolean("RasSrv::LRQFeatures", "LoopDetection", false);
 	for (unsigned count = 0; IsRunning(); ++count)
 		if (!Wait(1000)) {
 			if( !IsRunning() )
@@ -1640,6 +1641,10 @@ void RasServer::HouseKeeping()
 			if (!(count % 60)) { // one minute
 				RegistrationTable::Instance()->CheckEndpoints();
                 CallTable::Instance()->CheckRTPInactive();
+			}
+			if (!(count % 10)) { // every 10 sec
+                if (loopDetection)
+                    CallLoopTable::Instance()->Expire();
 			}
 
 			CallTable::Instance()->CheckCalls(this);
@@ -4072,8 +4077,24 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 		PString pingAlias = GkConfig()->GetString(LRQFeaturesSection, "PingAlias", "gatekeeper-monitoring-check");
 		if (pingAlias == AsString(request.m_destinationInfo[0], false)) {
             BuildReject(H225_LocationRejectReason::e_undefinedReason);
-            PTRACE(5,"LRQ PING caught from " << AsDotString(request.m_replyAddress));
+            PTRACE(5, "LRQ PING caught from " << AsDotString(request.m_replyAddress));
             return true;
+		}
+
+		bool loopDetection = GkConfig()->GetBoolean(LRQFeaturesSection, "LoopDetection", false);
+		if (loopDetection) {
+            switch (CallLoopTable::Instance()->IsLoop(request, AsString(m_msg->m_peerAddr))) {
+                case CallLoopTable::NoLoop:
+        		    CallLoopTable::Instance()->CollectLoopData(request, AsString(m_msg->m_peerAddr));
+                    break;
+                case CallLoopTable::Loop:
+                    BuildReject(H225_LocationRejectReason::e_undefinedReason);
+                    PTRACE(2, "LRQ loop detected from " << AsString(m_msg->m_peerAddr));
+                    return true;
+		        case CallLoopTable::Resent:
+                    PTRACE(2, "LRQ resent from " << AsString(m_msg->m_peerAddr));
+		            return false; // don't answer
+            }
 		}
 
 		// do GWRewriteE164 for neighbor before processing

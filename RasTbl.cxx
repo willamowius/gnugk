@@ -5950,3 +5950,73 @@ PreliminaryCall * PreliminaryCallTable::Find(const H225_CallIdentifier & id) con
 	std::map<H225_CallIdentifier, PreliminaryCall*>::const_iterator iter = calls.find(id);
 	return (iter != calls.end()) ? iter->second : NULL;
 }
+
+CallLoopTable::CallLoopTable() : Singleton<CallLoopTable>("CallLoopTable")
+{
+    m_expireTime = GkConfig()->GetInteger("RasSrv::LRQFeatures", "LoopDetectionExpireTime", 60);
+}
+
+CallLoopTable::~CallLoopTable()
+{
+}
+
+CallLoopTable::LoopResult CallLoopTable::IsLoop(const H225_LocationRequest & lrq, const PString & from) const
+{
+	ReadLock lock(tableLock);
+
+    PString key = CreateCallKey(lrq);
+    if (!key.IsEmpty()) {
+        std::map<PString, RequestData>::const_iterator iter = m_knownCalls.find(key);
+        if (iter == m_knownCalls.end()) {
+            return NoLoop;
+        }
+        if ((*iter).second.m_requestSeqNum == lrq.m_requestSeqNum
+            && (*iter).second.m_from == from) {
+            return Resent; // same request we saw before, probably resent, maybe still being processed
+        } else {
+            return Loop; // loop found
+        }
+    }
+
+    return NoLoop;
+}
+
+void CallLoopTable::CollectLoopData(const H225_LocationRequest & lrq, const PString & from)
+{
+	WriteLock lock(tableLock);
+
+    PString key = CreateCallKey(lrq);
+    if (!key.IsEmpty()) {
+        m_knownCalls[key] = RequestData(time(NULL), lrq.m_requestSeqNum, from);
+    }
+}
+
+void CallLoopTable::Expire()
+{
+    time_t expirePoint = time(NULL) - m_expireTime;
+
+	WriteLock lock(tableLock);
+
+	std::map<PString, RequestData>::iterator iter = m_knownCalls.begin();
+	while (iter !=  m_knownCalls.end()) {
+	    if (iter->second.m_added < expirePoint) {
+            m_knownCalls.erase(iter++);
+	    } else {
+	        ++iter;
+	    }
+	}
+}
+
+PString CallLoopTable::CreateCallKey(const H225_LocationRequest & lrq) const
+{
+    if (lrq.HasOptionalField(H225_LocationRequest::e_callIdentifier) && lrq.m_destinationInfo.GetSize() > 0) {
+        return CreateCallKey(lrq.m_callIdentifier, lrq.m_destinationInfo[0]);
+    }
+    return "";
+}
+
+PString CallLoopTable::CreateCallKey(const H225_CallIdentifier & callid, const H225_AliasAddress & alias) const
+{
+    return AsString(callid) + AsString(alias, false);
+}
+

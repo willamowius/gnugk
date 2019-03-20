@@ -109,7 +109,7 @@ class ClarentGK : public Neighbor {
 	virtual bool OnSendingLRQ(H225_LocationRequest &);
 };
 
-// a gatekeeper by Korea vendor
+// a gatekeeper from a Korean vendor
 class GlonetGK : public Neighbor {
 	// override from class Neighbor
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const AdmissionRequest &);
@@ -225,7 +225,7 @@ public:
 	bool Send(NeighborList::List &, Neighbor * requester = NULL);
 	bool Send(Neighbor * nb);
 	int GetReqNumber() const { return m_requests.size(); }
-	H225_LocationConfirm *WaitForDestination(int timeout);
+	H225_LocationConfirm * WaitForDestination(int timeout);
 	PString GetNeighborUsed() const { return m_neighbor_used; }
 	bool IsTraversalClient() const { return m_h46018_client; }
 	bool IsTraversalServer() const { return m_h46018_server; }
@@ -349,6 +349,7 @@ Neighbor::Neighbor()
 	m_H46018Client = false;
 	m_useTLS = false;
 	m_disabled = false;
+	m_loopDetection = false;
 }
 
 Neighbor::~Neighbor()
@@ -527,6 +528,7 @@ bool Neighbor::SetProfile(const PString & id, const PString & type, bool reload)
 #ifdef HAS_TLS
 	m_useTLS = Toolkit::AsBool(config->GetString(section, "UseTLS", "0")); // forced use of TLS
 #endif
+    m_loopDetection = config->GetBoolean(LRQFeaturesSection, "LoopDetection", false);
 
 	SetForwardedInfo(section);
 
@@ -670,7 +672,7 @@ PrefixInfo Neighbor::GetPrefixInfo(const H225_ArrayOf_AliasAddress & aliases, H2
 			}
 		}
 	}
-	// send allways ? (handled last, treated as shortest match)
+	// send always ? (handled last, treated as shortest match)
 	iter = m_sendPrefixes.find("*");
 	if (iter == eiter)
 		return nomatch;
@@ -737,6 +739,17 @@ bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq, const LocationRequest & 
 	if (orig_lrq.GetRequest().HasOptionalField(H225_LocationRequest::e_canMapAlias)) {
 		lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 		lrq.m_canMapAlias = orig_lrq.GetRequest().m_canMapAlias;
+	}
+
+	if (m_loopDetection) {
+    	if (orig_lrq.GetRequest().HasOptionalField(H225_LocationRequest::e_callIdentifier)) {
+			lrq.IncludeOptionalField(H225_LocationRequest::e_callIdentifier);
+			lrq.m_callIdentifier = orig_lrq.GetRequest().m_callIdentifier;
+    	}
+    	if (orig_lrq.GetRequest().HasOptionalField(H225_LocationRequest::e_sourceEndpointInfo)) {
+			lrq.IncludeOptionalField(H225_LocationRequest::e_sourceEndpointInfo);
+			lrq.m_sourceEndpointInfo = orig_lrq.GetRequest().m_sourceEndpointInfo;
+    	}
 	}
 
 	return OnSendingLRQ(lrq);
@@ -869,11 +882,11 @@ bool Neighbor::IsAcceptable(RasMsg *ras) const
 
 void Neighbor::SetForwardedInfo(const PString & section)
 {
-	PConfig *config = GkConfig();
-	m_forwardHopCount = (WORD)config->GetInteger(section, "ForwardHopCount", 0);
-	m_acceptForwarded = Toolkit::AsBool(config->GetString(section, "AcceptForwardedLRQ", "1"));
-	m_forwardResponse = Toolkit::AsBool(config->GetString(section, "ForwardResponse", "0"));
-	PString forwardto(config->GetString(section, "ForwardLRQ", "0"));
+	PConfig * config = GkConfig();
+	m_forwardHopCount = (WORD)config->GetInteger(section, "ForwardHopCount", config->GetInteger(LRQFeaturesSection, "ForwardHopCount", 0));
+	m_acceptForwarded = config->GetBoolean(section, "AcceptForwardedLRQ", config->GetBoolean(LRQFeaturesSection, "AcceptForwardedLRQ", true));
+	m_forwardResponse = config->GetBoolean(section, "ForwardResponse", config->GetBoolean(LRQFeaturesSection, "ForwardResponse", true));
+	PString forwardto(config->GetString(section, "ForwardLRQ", config->GetString(LRQFeaturesSection, "ForwardLRQ", "0")));
 	if (forwardto *= "never")
 		m_forwardto = -1;
 	else if (forwardto *= "always")
@@ -939,6 +952,13 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & re
 		lrq.IncludeOptionalField(H225_LocationRequest::e_callIdentifier);
 		lrq.m_callIdentifier = arq.m_callIdentifier;
 	}
+
+    lrq.IncludeOptionalField(H225_LocationRequest::e_sourceEndpointInfo);
+    lrq.m_sourceEndpointInfo = arq.m_srcInfo;
+
+    if (m_loopDetection) {
+        CallLoopTable::Instance()->CollectLoopData(lrq, "");
+    }
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
@@ -1020,11 +1040,10 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & reques
 	lrq.m_nonStandardData.m_data.SetValue(m_id);
 
 	const H225_Setup_UUIE & setup = request.GetRequest();
-	if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
-		lrq.IncludeOptionalField(H225_LocationRequest::e_sourceInfo);
-		lrq.m_sourceInfo = setup.m_sourceAddress;
-	}
-
+    if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
+        lrq.IncludeOptionalField(H225_LocationRequest::e_sourceInfo);
+        lrq.m_sourceInfo = setup.m_sourceAddress;
+    }
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 	lrq.m_canMapAlias = TRUE;
 
@@ -1032,6 +1051,15 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & reques
 	if (setup.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
 		lrq.IncludeOptionalField(H225_LocationRequest::e_callIdentifier);
 		lrq.m_callIdentifier = setup.m_callIdentifier;
+	}
+
+	if (setup.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
+		lrq.IncludeOptionalField(H225_LocationRequest::e_sourceEndpointInfo);
+		lrq.m_sourceEndpointInfo = setup.m_sourceAddress;
+ 	}
+
+	if (m_loopDetection) {
+        CallLoopTable::Instance()->CollectLoopData(lrq, "");
 	}
 
 #if defined(HAS_TLS) && defined(HAS_H460)
@@ -1084,7 +1112,7 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & reques
 	return true;
 }
 
-bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & /*request*/)
+bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & request)
 {
 	lrq.IncludeOptionalField(H225_LocationRequest::e_gatekeeperIdentifier);
 	lrq.m_gatekeeperIdentifier = Toolkit::GKName();
@@ -1098,6 +1126,16 @@ bool GnuGK::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest & /*r
 
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 	lrq.m_canMapAlias = TRUE;
+
+	const H225_Facility_UUIE & facility = request.GetRequest();
+	if (facility.HasOptionalField(H225_Facility_UUIE::e_callIdentifier)) {
+		lrq.IncludeOptionalField(H225_LocationRequest::e_callIdentifier);
+		lrq.m_callIdentifier = facility.m_callIdentifier;
+	}
+
+    if (m_loopDetection) {
+        CallLoopTable::Instance()->CollectLoopData(lrq, "");
+    }
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
@@ -1195,6 +1233,7 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & 
 
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 	lrq.m_canMapAlias = TRUE;
+
 	return true;
 }
 
@@ -1233,13 +1272,14 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq, const LocationRequest & /
 
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 	lrq.m_canMapAlias = TRUE;
+
 	return true;
 }
 
 bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & req)
 {
 	const Q931 &setup = req.GetWrapper()->GetQ931();
-	const H225_Setup_UUIE &setupBody = req.GetRequest();
+	const H225_Setup_UUIE & setupBody = req.GetRequest();
 	Cisco_LRQnonStandardInfo nonStandardData;
 
 	nonStandardData.m_ttl = m_forwardHopCount >= 1 ? m_forwardHopCount : 5;
@@ -1278,6 +1318,7 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & req)
 
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 	lrq.m_canMapAlias = TRUE;
+
 	return true;
 }
 

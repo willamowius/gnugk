@@ -2,7 +2,7 @@
 //
 // gk.cxx for GNU Gatekeeper
 //
-// Copyright (c) 2000-2018, Jan Willamowius
+// Copyright (c) 2000-2019, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -531,6 +531,8 @@ const char * KnownConfigEntries[][2] = {
 	{ "RasSrv::LRQFeatures", "ForwardHopCount" },
 	{ "RasSrv::LRQFeatures", "ForwardLRQ" },
 	{ "RasSrv::LRQFeatures", "ForwardResponse" },
+	{ "RasSrv::LRQFeatures", "LoopDetection" },
+	{ "RasSrv::LRQFeatures", "LoopDetectionExpireTime" },
 	{ "RasSrv::LRQFeatures", "LRQPingInterval" },
 	{ "RasSrv::LRQFeatures", "NeighborTimeout" },
 	{ "RasSrv::LRQFeatures", "PingAlias" },
@@ -972,6 +974,8 @@ void ShutdownHandler()
 #endif
 	if (CapacityControl::InstanceExists())
 		delete CapacityControl::Instance();
+	if (CallLoopTable::InstanceExists())
+		delete CallLoopTable::Instance();
 	if (PreliminaryCallTable::InstanceExists())
 		delete PreliminaryCallTable::Instance();
 	if (CallTable::InstanceExists())
