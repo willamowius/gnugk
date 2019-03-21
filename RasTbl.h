@@ -2314,13 +2314,14 @@ class RequestData
 {
 public:
     RequestData()
-        : m_added(0), m_requestSeqNum(0) { }
+        : m_added(0), m_requestSeqNum(0), m_cachedLCF(NULL) { }
     RequestData(time_t added, unsigned seq, PString from)
-        : m_added(added), m_requestSeqNum(seq), m_from(from) { }
+        : m_added(added), m_requestSeqNum(seq), m_from(from), m_cachedLCF(NULL) { }
 
     time_t m_added;
     unsigned m_requestSeqNum;
     PString m_from;
+    H225_LocationConfirm * m_cachedLCF;
 };
 
 class CallLoopTable : public Singleton<CallLoopTable>
@@ -2329,10 +2330,11 @@ public:
     CallLoopTable();
     virtual ~CallLoopTable();
 
-    enum LoopResult { NoLoop, Loop, Resent };
+    enum LoopResult { NoLoop, Loop, Resent, CachedLCF };
 
-    LoopResult IsLoop(const H225_LocationRequest & lrq, const PString & from) const;
+    LoopResult IsLoop(const H225_LocationRequest & lrq, const PString & from, H225_LocationConfirm & cachedLCF) const;
     void CollectLoopData(const H225_LocationRequest & lrq, const PString & from);
+    void CacheLCF(const H225_LocationConfirm & lcf, const H225_CallIdentifier & callid, const H225_AliasAddress & alias);
     void Expire();
 
 protected:

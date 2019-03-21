@@ -5958,17 +5958,30 @@ CallLoopTable::CallLoopTable() : Singleton<CallLoopTable>("CallLoopTable")
 
 CallLoopTable::~CallLoopTable()
 {
+	WriteLock lock(tableLock);
+
+	std::map<PString, RequestData>::iterator iter = m_knownCalls.begin();
+	while (iter !=  m_knownCalls.end()) {
+        delete (*iter).second.m_cachedLCF;
+        iter++;
+	}
+    m_knownCalls.clear();
 }
 
-CallLoopTable::LoopResult CallLoopTable::IsLoop(const H225_LocationRequest & lrq, const PString & from) const
+CallLoopTable::LoopResult CallLoopTable::IsLoop(const H225_LocationRequest & lrq, const PString & from, H225_LocationConfirm & cachedLCF) const
 {
+    PString key = CreateCallKey(lrq);
+
 	ReadLock lock(tableLock);
 
-    PString key = CreateCallKey(lrq);
     if (!key.IsEmpty()) {
         std::map<PString, RequestData>::const_iterator iter = m_knownCalls.find(key);
         if (iter == m_knownCalls.end()) {
             return NoLoop;
+        }
+        if ((*iter).second.m_cachedLCF) {
+            cachedLCF = *(*iter).second.m_cachedLCF;
+            return CachedLCF;
         }
         if ((*iter).second.m_requestSeqNum == lrq.m_requestSeqNum
             && (*iter).second.m_from == from) {
@@ -5983,11 +5996,27 @@ CallLoopTable::LoopResult CallLoopTable::IsLoop(const H225_LocationRequest & lrq
 
 void CallLoopTable::CollectLoopData(const H225_LocationRequest & lrq, const PString & from)
 {
+    PString key = CreateCallKey(lrq);
+
 	WriteLock lock(tableLock);
 
-    PString key = CreateCallKey(lrq);
     if (!key.IsEmpty()) {
         m_knownCalls[key] = RequestData(time(NULL), lrq.m_requestSeqNum, from);
+    }
+}
+
+void CallLoopTable::CacheLCF(const H225_LocationConfirm & lcf, const H225_CallIdentifier & callid, const H225_AliasAddress & alias)
+{
+    PString key = CreateCallKey(callid, alias);
+
+	WriteLock lock(tableLock);
+
+    if (!key.IsEmpty()) {
+        std::map<PString, RequestData>::iterator iter = m_knownCalls.find(key);
+        if (iter != m_knownCalls.end()) {
+            delete (*iter).second.m_cachedLCF;
+            (*iter).second.m_cachedLCF = (H225_LocationConfirm *)lcf.Clone();
+        }
     }
 }
 
@@ -6000,6 +6029,7 @@ void CallLoopTable::Expire()
 	std::map<PString, RequestData>::iterator iter = m_knownCalls.begin();
 	while (iter !=  m_knownCalls.end()) {
 	    if (iter->second.m_added < expirePoint) {
+            delete (*iter).second.m_cachedLCF;
             m_knownCalls.erase(iter++);
 	    } else {
 	        ++iter;

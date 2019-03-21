@@ -4064,6 +4064,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 	// OnLRQ
 	PString log;
 	bool fromTraversalClient = false;
+    bool loopDetection = GkConfig()->GetBoolean(LRQFeaturesSection, "LoopDetection", false);
 
     if (Toolkit::Instance()->IsMaintenanceMode()) {
         PTRACE(1, "Rejecting LRQ in maintenance mode");
@@ -4081,18 +4082,25 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
             return true;
 		}
 
-		bool loopDetection = GkConfig()->GetBoolean(LRQFeaturesSection, "LoopDetection", false);
 		if (loopDetection) {
-            switch (CallLoopTable::Instance()->IsLoop(request, AsString(m_msg->m_peerAddr))) {
+            H225_LocationConfirm cachedLCF;
+            switch (CallLoopTable::Instance()->IsLoop(request, AsString(m_msg->m_peerAddr), cachedLCF)) {
                 case CallLoopTable::NoLoop:
         		    CallLoopTable::Instance()->CollectLoopData(request, AsString(m_msg->m_peerAddr));
                     break;
+                case CallLoopTable::CachedLCF: {
+                    H225_LocationConfirm & lcf = BuildConfirm();
+                    lcf = cachedLCF;
+    				lcf.m_requestSeqNum = request.m_requestSeqNum; // use same sequence number as current request
+                    PTRACE(2, "RAS\tSending cached LCF");
+                    return true;
+                }
                 case CallLoopTable::Loop:
                     BuildReject(H225_LocationRejectReason::e_undefinedReason);
-                    PTRACE(2, "LRQ loop detected from " << AsString(m_msg->m_peerAddr));
+                    PTRACE(2, "RAS\tLRQ loop detected from " << AsString(m_msg->m_peerAddr));
                     return true;
 		        case CallLoopTable::Resent:
-                    PTRACE(2, "LRQ resent from " << AsString(m_msg->m_peerAddr));
+                    PTRACE(2, "RAS\tLRQ resent from " << AsString(m_msg->m_peerAddr));
 		            return false; // don't answer
             }
 		}
@@ -4342,6 +4350,11 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				} else
 #endif	// HAS_H460
 				{
+				    if (loopDetection
+                        && request.HasOptionalField(H225_LocationRequest::e_callIdentifier)
+                        && request.m_destinationInfo.GetSize() > 0) {
+    				    CallLoopTable::Instance()->CacheLCF(lcf, request.m_callIdentifier, request.m_destinationInfo[0]);
+				    }
 					log = "LCF|" + m_msg->m_peerAddr.AsString()
 							+ "|" + (WantedEndPoint ? WantedEndPoint->GetEndpointIdentifier().GetValue() : AsDotString(route.m_destAddr))
 							+ "|" + AsString(request.m_destinationInfo),
