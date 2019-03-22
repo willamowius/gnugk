@@ -5997,11 +5997,16 @@ CallLoopTable::LoopResult CallLoopTable::IsLoop(const H225_LocationRequest & lrq
 void CallLoopTable::CollectLoopData(const H225_LocationRequest & lrq, const PString & from)
 {
     PString key = CreateCallKey(lrq);
-
 	WriteLock lock(tableLock);
 
     if (!key.IsEmpty()) {
-        m_knownCalls[key] = RequestData(time(NULL), lrq.m_requestSeqNum, from);
+        std::map<PString, RequestData>::iterator iter = m_knownCalls.find(key);
+        if (iter != m_knownCalls.end()) {
+            // merge new entry with existing one, keep cached LCF
+            (*iter).second = RequestData(time(NULL), lrq.m_requestSeqNum, from, (*iter).second.m_cachedLCF);
+        } else {
+            m_knownCalls[key] = RequestData(time(NULL), lrq.m_requestSeqNum, from);
+        }
     }
 }
 

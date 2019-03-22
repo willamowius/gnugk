@@ -2315,8 +2315,8 @@ class RequestData
 public:
     RequestData()
         : m_added(0), m_requestSeqNum(0), m_cachedLCF(NULL) { }
-    RequestData(time_t added, unsigned seq, PString from)
-        : m_added(added), m_requestSeqNum(seq), m_from(from), m_cachedLCF(NULL) { }
+    RequestData(time_t added, unsigned seq, PString from, H225_LocationConfirm * cachedLCF = NULL)
+        : m_added(added), m_requestSeqNum(seq), m_from(from), m_cachedLCF(cachedLCF) { }
 
     time_t m_added;
     unsigned m_requestSeqNum;
