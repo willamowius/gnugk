@@ -2,7 +2,7 @@
 //
 // H.323 utility functions
 //
-// Copyright (c) 2000-2018, Jan Willamowius
+// Copyright (c) 2000-2019, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -49,7 +49,7 @@ PString AsString(const H245_UnicastAddress_iP6Address &);
 
 PString AsString(const H225_TransportAddress & ta);
 
-PString AsDotString(const H225_TransportAddress & ip, bool showPort=true);
+PString AsDotString(const H225_TransportAddress & ip, bool showPort = true);
 
 PString AsString(const H323TransportAddress & ta);
 
