@@ -533,6 +533,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RasSrv::LRQFeatures", "ForwardResponse" },
 	{ "RasSrv::LRQFeatures", "LoopDetection" },
 	{ "RasSrv::LRQFeatures", "LoopDetectionExpireTime" },
+	{ "RasSrv::LRQFeatures", "LoopDetectionReprocessLCFs" },
 	{ "RasSrv::LRQFeatures", "LRQPingInterval" },
 	{ "RasSrv::LRQFeatures", "NeighborTimeout" },
 	{ "RasSrv::LRQFeatures", "PingAlias" },

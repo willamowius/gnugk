@@ -2347,6 +2347,7 @@ protected:
 	mutable PReadWriteMutex tableLock;
     std::map<PString, RequestData> m_knownCalls;
     unsigned m_expireTime;
+    bool m_reprocessLCFs;
 };
 
 #endif // RASTBL_H

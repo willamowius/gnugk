@@ -195,6 +195,11 @@ Default: <tt>60</tt><newline>
 <p>
 Time duration in seconds how long to store data about calls GnuGk has seen.
 
+<item><tt/LoopDetectionReprocessLCFs=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Don't cache any LCFs in the loop detection. Use if cached LCFs with incorrect data (for another endpoint) break the routing.
+
 </itemize>
 
 

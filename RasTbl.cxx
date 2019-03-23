@@ -5954,6 +5954,7 @@ PreliminaryCall * PreliminaryCallTable::Find(const H225_CallIdentifier & id) con
 CallLoopTable::CallLoopTable() : Singleton<CallLoopTable>("CallLoopTable")
 {
     m_expireTime = GkConfig()->GetInteger("RasSrv::LRQFeatures", "LoopDetectionExpireTime", 60);
+    m_reprocessLCFs = GkConfig()->GetInteger("RasSrv::LRQFeatures", "LoopDetectionReprocessLCFs", false);
 }
 
 CallLoopTable::~CallLoopTable()
@@ -5980,6 +5981,16 @@ CallLoopTable::LoopResult CallLoopTable::IsLoop(const H225_LocationRequest & lrq
             return NoLoop;
         }
         if ((*iter).second.m_cachedLCF) {
+            if (m_reprocessLCFs) {
+                // reprocess all LCFs if switch is set
+                return NoLoop;
+            }
+            if (AsDotString((*iter).second.m_cachedLCF->m_rasAddress, false) == from
+                || AsDotString((*iter).second.m_cachedLCF->m_callSignalAddress, false) == from) {
+                // don't use a cached LCF if it points back to the sender
+                // must be a cached version for sender further down the stream
+                return NoLoop;
+            }
             cachedLCF = *(*iter).second.m_cachedLCF;
             return CachedLCF;
         }
