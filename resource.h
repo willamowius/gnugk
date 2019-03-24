@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Developer Studio generated include file.
-// Used by gk.rc
+// Used by gnugk.rc
 //
 #define IDI_ICON_GNUGK                  101
 
