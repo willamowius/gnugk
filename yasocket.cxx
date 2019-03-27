@@ -890,7 +890,6 @@ bool USocket::ErrorHandler(PSocket::ErrorGroup group)
 			PTRACE(3, msg << " Error(" << group << "): "
 				<< PSocket::GetErrorText(e) << " (" << e << ':'
 				<< self->GetErrorNumber(group) << ')');
-			SNMP_TRAP(10, SNMPError, Network, "Socket error " + PSocket::GetErrorText(e));
 			CloseSocket();
 			break;
 	}
