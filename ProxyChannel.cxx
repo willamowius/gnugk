@@ -8052,7 +8052,7 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 		H245_OpenLogicalChannel olc;
 		if (!olc.Decode(strm)) {
 			PTRACE(1, "Q931\t" << GetName() << " ERROR DECODING FAST START ELEMENT " << i);
-			SNMP_TRAP(9, SNMPWarning, Network, "Error decofing fastStart element");
+			SNMP_TRAP(9, SNMPWarning, Network, "Error decoding fastStart element");
 			return false;
 		}
 		PTRACE(6, "Q931\nfastStart[" << i << "] received: " << setprecision(2) << olc);
