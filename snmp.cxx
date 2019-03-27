@@ -2,7 +2,7 @@
 //
 // snmp.cxx for GNU Gatekeeper
 //
-// Copyright (c) 2012-2018, Jan Willamowius
+// Copyright (c) 2012-2019, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -44,6 +44,7 @@ const char * const displayMsgOIDStr      = "1.3.6.1.4.1.27938.11.2.3";
 #include <net-snmp/agent/net-snmp-agent-includes.h>
 
 const char * agent_name = "gnugk-agent";
+PMutex g_NetSNMPMutex;
 
 static oid snmptrap_oid[]       = { 1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0 };
 static oid ShortVersionOID[]    = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 1 };
@@ -61,13 +62,15 @@ static oid displayMsgOID[]      = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 3 };
 
 void SendNetSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg)
 {
+    PWaitAndSignal lock(g_NetSNMPMutex);
+
 	PTRACE(5, "SNMP\tSendSNMPTrap " << trapNumber << ", " << severity << ", " << group << ", " << msg);
-	oid trapOID[]              = { 1, 3, 6, 1, 4, 1, 27938, 11, 0, 99999 };
+	oid trapOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 0, 99999 };
 
 	// insert trapNumber as last digit
 	trapOID[ OID_LENGTH(trapOID) - 1 ] = trapNumber;
 
-	netsnmp_variable_list *var_list = NULL;
+	netsnmp_variable_list * var_list = NULL;
 	// set snmpTrapOid.0 value
     snmp_varlist_add_variable(&var_list,
                               snmptrap_oid, OID_LENGTH(snmptrap_oid),
@@ -98,6 +101,8 @@ int short_version_handler(netsnmp_mib_handler * /* handler */,
 							netsnmp_agent_request_info * reqinfo,
 							netsnmp_request_info * requests)
 {
+    PWaitAndSignal lock(g_NetSNMPMutex);
+
     if (reqinfo->mode != MODE_GET)
 		return SNMPERR_SUCCESS;
     for (netsnmp_request_info *request = requests; request; request = request->next) {
@@ -112,6 +117,8 @@ int long_version_handler(netsnmp_mib_handler * /* handler */,
 							netsnmp_agent_request_info * reqinfo,
 							netsnmp_request_info * requests)
 {
+    PWaitAndSignal lock(g_NetSNMPMutex);
+
     if (reqinfo->mode != MODE_GET)
 		return SNMPERR_SUCCESS;
     for (netsnmp_request_info *request = requests; request; request = request->next) {
@@ -125,6 +132,8 @@ int registrations_handler(netsnmp_mib_handler * /* handler */,
 							netsnmp_agent_request_info * reqinfo,
 							netsnmp_request_info * requests)
 {
+    PWaitAndSignal lock(g_NetSNMPMutex);
+
     if (reqinfo->mode != MODE_GET)
 		return SNMPERR_SUCCESS;
     for (netsnmp_request_info *request = requests; request; request = request->next) {
@@ -139,6 +148,8 @@ int calls_handler(netsnmp_mib_handler * /* handler */,
 							netsnmp_agent_request_info * reqinfo,
 							netsnmp_request_info * requests)
 {
+    PWaitAndSignal lock(g_NetSNMPMutex);
+
     if (reqinfo->mode != MODE_GET)
 		return SNMPERR_SUCCESS;
     for (netsnmp_request_info *request = requests; request; request = request->next) {
@@ -153,6 +164,8 @@ int totalcalls_handler(netsnmp_mib_handler * /* handler */,
 							netsnmp_agent_request_info * reqinfo,
 							netsnmp_request_info * requests)
 {
+    PWaitAndSignal lock(g_NetSNMPMutex);
+
     if (reqinfo->mode != MODE_GET)
 		return SNMPERR_SUCCESS;
     for (netsnmp_request_info *request = requests; request; request = request->next) {
@@ -167,6 +180,8 @@ int successfulcalls_handler(netsnmp_mib_handler * /* handler */,
 							netsnmp_agent_request_info * reqinfo,
 							netsnmp_request_info * requests)
 {
+    PWaitAndSignal lock(g_NetSNMPMutex);
+
     if (reqinfo->mode != MODE_GET)
 		return SNMPERR_SUCCESS;
     for (netsnmp_request_info *request = requests; request; request = request->next) {
@@ -181,6 +196,8 @@ int tracelevel_handler(netsnmp_mib_handler * /* handler */,
 							netsnmp_agent_request_info * reqinfo,
 							netsnmp_request_info * requests)
 {
+    PWaitAndSignal lock(g_NetSNMPMutex);
+
     for (netsnmp_request_info *request = requests; request; request = request->next) {
 		if (reqinfo->mode == MODE_GET) {
 			snmp_set_var_typed_integer(request->requestvb, ASN_UNSIGNED, PTrace::GetLevel());
@@ -200,6 +217,8 @@ int catchall_handler(netsnmp_mib_handler * /* handler */,
 							netsnmp_agent_request_info * reqinfo,
 							netsnmp_request_info * requests)
 {
+    PWaitAndSignal lock(g_NetSNMPMutex);
+
     for (netsnmp_request_info *request = requests; request; request = request->next) {
 		if (reqinfo->mode == MODE_GET) {
 			PString catchAllDest = GkConfig()->GetString("Routing::CatchAll", "CatchAllIP", "");

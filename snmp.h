@@ -2,7 +2,7 @@
 //
 // snmp.h for GNU Gatekeeper
 //
-// Copyright (c) 2012, Jan Willamowius
+// Copyright (c) 2012-2019, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -22,8 +22,8 @@
 
 const char * const SNMPSection = "SNMP";
 
-enum SNMPLevel { SNMPError=1, SNMPWarning=2, SNMPInfo=3 };
-enum SNMPGroup { General=1, Network=2, Database=3, Accounting=4, Authentication=5, Configuration=6 };
+enum SNMPLevel { SNMPError = 1, SNMPWarning = 2, SNMPInfo = 3 };
+enum SNMPGroup { General = 1, Network = 2, Database = 3, Accounting = 4, Authentication = 5, Configuration = 6 };
 
 PCaselessString SelectSNMPImplementation();
 
