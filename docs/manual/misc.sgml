@@ -841,6 +841,7 @@ Enable SNMP support. GnuGk must be compiled with SNMP support.
 Default: <tt>Net-SNMP</tt><newline>
 <p>
 Select the SNMP implementation to use. Possible values are <tt>Net-SNMP</tt>, <tt>PTLib</tt> and <tt>Windows</tt>.
+The Net-SNMP implementation is by far the best implementation, use it if you can.
 
 <item><tt/EnableWarningTraps=1/<newline>
 Default: <tt>0</tt><newline>
@@ -852,7 +853,7 @@ Many warnings can be generated in harmles situations where GnuGk can't decide if
 
 If the GnuGk configuration file enables SNMP, and the Net-SNMP implementation is selected,
 then GnuGk will register as an AgentX sub-agent with
-the Net-SNMP daemon.  By default GnuGk will connect to the localhost IP address (127.0.0.1) and TCP
+the Net-SNMP daemon. By default GnuGk will connect to the localhost IP address (127.0.0.1) and TCP
 port 705. Registering as a sub-agent allows you to continue querying Net-SNMP about
 the general health of the server and adds a GnuGk specific object.
 
@@ -1001,7 +1002,7 @@ Run SNMP-Agent standalone, and don't connect to AgentX master agent.
 PTlib supports SNMP version 1 and 2 GET requests and will always send version 1 traps in a version 2c message.
 GETNEXT (for 'walk') and SET requests are not supported.
 
-When using PTLib, you can use these additional switches:
+When using the PTLib implementation, you should use these additional switches:
 <itemize>
 <item><tt>TrapHost=192.168.1.100</tt><newline>
 Default: <tt/none/<newline>
@@ -1023,7 +1024,7 @@ Default: <tt>161</tt><newline>
 <p>
 Define the UDP port the SNMP agent should listen on.
 
-<item><tt>AllowRequestsFrom=192.168.1.0/22</tt><newline>
+<item><tt>AllowRequestsFrom=192.168.1.0/24</tt><newline>
 Default: <tt>n/a</tt><newline>
 <p>
 A comma separated list of IPs or networks which are allowed to send us SNMP requests.

@@ -461,7 +461,7 @@ PBoolean PTLibSNMPAgent::ConfirmVersion(PASN_Integer vers)
 
 void SetRFC1155Object(PRFC1155_ObjectSyntax & obj, unsigned i)
 {
-	// according to RFC 1902 Gauge32 is identical ro Unsigned32; PTLib only has Gauge
+	// according to RFC 1902 Gauge32 is identical to Unsigned32; PTLib only has Gauge
 	PRFC1155_ApplicationSyntax appl(PRFC1155_ApplicationSyntax::e_gauge);
 	PRFC1155_ObjectSyntax * newObj = (PRFC1155_ObjectSyntax*)&appl;
 	PASN_Integer * num = (PASN_Integer *)&appl.GetObject();
