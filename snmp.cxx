@@ -20,6 +20,10 @@
 #include "job.h"
 #include "SoftPBX.h"
 
+#ifdef HAS_PTLIBSNMP
+#include "RasSrv.h"
+#endif
+
 void ReloadHandler();
 
 const char * const GnuGkMIBStr           = "1.3.6.1.4.1.27938.11";
@@ -728,7 +732,12 @@ void StartSNMPAgent()
 #endif
 #ifdef HAS_PTLIBSNMP
 	if (implementation == "PTLib") {
-		new PTLibSNMPAgent();   // will be deleted when GnuGk shuts down
+		PTLibSNMPAgent * agent = new PTLibSNMPAgent();   // will be deleted when GnuGk shuts down
+		if (!agent->IsOpen()) {
+		    PTRACE(1, "SNMP\tFATAL: Error starting PTLib SNMP agent - shutting down");
+		    cout <<  "Error starting PTLib SNMP agent - shutting down" << endl;
+            RasServer::Instance()->Stop();
+		}
 		return;
 	}
 #endif

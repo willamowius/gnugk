@@ -1,5 +1,6 @@
 Changes from 5.2 to 5.3
 =======================
+- BUGFIX(snmp.cxx) shutdown GnuGk when SNMP agent can't be started
 - BUGFIX(snmp.cxx) protect NetSNMP library calls with mutex
 - changed default: ForwardResponse now defaults to 1 in [RasSrv::LRQFeatures] and [Neighbor::...]
 - new feature: loop detection for LRQs [RasSrv::LRQFeatures] LoopDetection=1
