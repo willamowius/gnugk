@@ -737,6 +737,7 @@ void StartSNMPAgent()
 		    PTRACE(1, "SNMP\tFATAL: Error starting PTLib SNMP agent - shutting down");
 		    cout <<  "Error starting PTLib SNMP agent - shutting down" << endl;
             RasServer::Instance()->Stop();
+            _exit(1);
 		}
 		return;
 	}
