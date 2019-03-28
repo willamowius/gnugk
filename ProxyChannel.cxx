@@ -10045,7 +10045,8 @@ bool H245Socket::ConnectRemote()
 			<< " remote addr: " << AsString(peerAddr));
 		Close();
 		PTRACE(3, "H245\t" << AsString(peerAddr, peerPort) << " DIDN'T ACCEPT THE CALL" << " (CallID: " << GetCallIdentifierAsString() << ")");
-		SNMP_TRAP(10, SNMPError, Network, "H.245 connection to " + AsString(peerAddr, peerPort) + " failed");
+		// don't throw a trap here, was crashing under load with Net-SNMP implementation
+		//SNMP_TRAP(10, SNMPError, Network, "H.245 connection to " + AsString(peerAddr, peerPort) + " failed");
 	}
 	return false;
 }
