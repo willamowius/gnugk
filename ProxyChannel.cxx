@@ -8107,7 +8107,8 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 			} else
 #endif
 			{
-				altered = m_h245handler->HandleFastStartResponse(olc, m_call);
+				if ( m_h245handler)
+					altered = m_h245handler->HandleFastStartResponse(olc, m_call);
 			}
 		}
 		if (altered) {
