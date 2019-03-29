@@ -697,9 +697,9 @@ PCaselessString SelectSNMPImplementation()
 
 void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg)
 {
-	if ((severity == SNMPWarning)
-		&& !GkConfig()->GetBoolean(SNMPSection, "EnableWarningTraps", false)) {
-		// don't throw warning trap
+	if (!GkConfig()->GetBoolean(SNMPSection, "EnableTraps", true)
+        || ( (severity == SNMPWarning) && !GkConfig()->GetBoolean(SNMPSection, "EnableWarningTraps", false)) ) {
+		// don't throw trap
 		return;
 	}
 

@@ -1,5 +1,6 @@
 Changes from 5.2 to 5.3
 =======================
+- new switch to disable SNMP traps [SNMP] EnableTraps=0
 - BUGFIX(ProxyChannel.cxx) don't throw SNMP trap on H.245 connection errors (causes crash under load with Net-SNMP)
 - BUGFIX(snmp.cxx) shutdown GnuGk when SNMP agent can't be started
 - BUGFIX(snmp.cxx) protect NetSNMP library calls with mutex

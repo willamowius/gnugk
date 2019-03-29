@@ -843,6 +843,10 @@ Default: <tt>Net-SNMP</tt><newline>
 Select the SNMP implementation to use. Possible values are <tt>Net-SNMP</tt>, <tt>PTLib</tt> and <tt>Windows</tt>.
 The Net-SNMP implementation is by far the best implementation, use it if you can.
 
+<item><tt/EnableTraps=0/<newline>
+Default: <tt>1</tt><newline>
+Enable or disable throwing SNMP traps. By default error traps are thrown.
+
 <item><tt/EnableWarningTraps=1/<newline>
 Default: <tt>0</tt><newline>
 Also throw traps with warnings. If you enable warning traps, make sure you have
