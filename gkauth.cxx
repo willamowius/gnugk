@@ -1220,7 +1220,10 @@ int SimplePasswordAuth::Check(
 	if (authData.m_requestingEP) {
         H225_ArrayOf_AliasAddress aliases = authData.m_requestingEP->GetAliases();
         GkH235Authenticators * auth = authData.m_requestingEP->GetH235Authenticators();
-        return doCheck(request, &aliases, auth);
+        bool result = doCheck(request, &aliases, auth);
+        // save auth in case it has been newly allocated - does nothing if its the same we had before
+        authData.m_requestingEP->SetH235Authenticators(auth);
+        return result;
     } else {
         return e_fail;
     }
