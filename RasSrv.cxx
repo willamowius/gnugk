@@ -1154,9 +1154,16 @@ GkInterface *RasServer::SelectInterface(const Address & addr)
 {
 	if (interfaces.empty())
 		return NULL;
-	ifiterator iter = find_if(interfaces.begin(), interfaces.end(), bind2nd(mem_fun(&GkInterface::IsReachable), &addr));
-	if (iter != interfaces.end())
+    // prefer the interface that actually has the IP bound to it
+	ifiterator iter = find_if(interfaces.begin(), interfaces.end(), bind2nd(mem_fun(&GkInterface::IsBoundTo), &addr));
+	if (iter != interfaces.end()) {
         return *iter;
+	}
+	// otherwise use an interface that can reach the IP
+	iter = find_if(interfaces.begin(), interfaces.end(), bind2nd(mem_fun(&GkInterface::IsReachable), &addr));
+	if (iter != interfaces.end()) {
+        return *iter;
+	}
     else
         return SelectDefaultInterface(addr.GetVersion());
 }
@@ -1227,6 +1234,16 @@ bool RasServer::SendRas(H225_RasMessage & rasobj, const Address & addr, WORD pt,
 	if (listener == NULL)
 		return false;
 	return listener->SendRas(rasobj, addr, pt, auth);
+}
+
+bool RasServer::SendRas(H225_RasMessage & rasobj, const H225_TransportAddress & dest, const Address & local, GkH235Authenticators * auth)
+{
+	PIPSocket::Address addr;
+	WORD pt;
+	if (GetIPAndPortFromTransportAddr(dest, addr, pt))
+		return SendRas(rasobj, addr, pt, local, auth);
+	PTRACE(1, "RAS\tInvalid address when trying to send " << rasobj.GetTagName());
+	return false;
 }
 
 bool RasServer::SendRIP(H225_RequestSeqNum seqNum, unsigned ripDelay, const Address & addr, WORD port, GkH235Authenticators * auth)
@@ -2014,9 +2031,7 @@ bool RegistrationRequestPDU::Process()
 		WORD port = 0;
 		if (!GetIPAndPortFromTransportAddr(request.m_rasAddress[i], addr, port)
 				|| !addr.IsValid() || port == 0) {
-			PTRACE(5, "RAS\tRemoving RAS address "
-				<< AsString(request.m_rasAddress[i]) << " from RRQ"
-				);
+			PTRACE(5, "RAS\tRemoving RAS address " << AsString(request.m_rasAddress[i]) << " from RRQ");
 			request.m_rasAddress.RemoveAt(i--);
 		}
 	}
@@ -2629,6 +2644,7 @@ bool RegistrationRequestPDU::Process()
 		PTRACE(3, "RAS\tRRQ rejected by unknown reason from " << rx_addr);
 		return BuildRRJ(H225_RegistrationRejectReason::e_undefinedReason);
 	}
+	ep->SetRasServerIP(m_msg->m_localAddr); // remember which of our IPs the endpoint has sent the RRQ to (need for H.460.18 SCI)
 
 #ifdef HAS_H46017
 	if (usesH46017) {

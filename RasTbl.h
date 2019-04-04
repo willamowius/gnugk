@@ -116,6 +116,8 @@ public:
 	H225_TransportAddress GetRasAddress() const;
 	H225_TransportAddress GetCallSignalAddress() const;
 	PIPSocket::Address GetIP() const;
+	// for multi-homed servers: the IP that the endpoint sent his RAS messages to (needed for H.460.18 SCI)
+	PIPSocket::Address GetRasServerIP() const { return m_rasServerIP; }
 	H225_EndpointIdentifier GetEndpointIdentifier() const;
 	H225_ArrayOf_AliasAddress GetAliases() const;
 	H225_EndpointType GetEndpointType() const;
@@ -131,6 +133,7 @@ public:
 
 	virtual void SetRasAddress(const H225_TransportAddress &);
 	virtual void SetCallSignalAddress(const H225_TransportAddress &);
+	virtual void SetRasServerIP(const PIPSocket::Address & ip) { m_rasServerIP = ip; }
 	virtual void SetTimeToLive(int);
 	virtual bool SetAliases(const H225_ArrayOf_AliasAddress &, PBoolean = false);
 	virtual bool RemoveAliases(const H225_ArrayOf_AliasAddress &);
@@ -372,6 +375,7 @@ protected:
 
 	H225_TransportAddress m_rasAddress;
 	H225_TransportAddress m_callSignalAddress;
+	PIPSocket::Address m_rasServerIP;
 	H225_EndpointIdentifier m_endpointIdentifier;
 	H225_ArrayOf_AliasAddress m_terminalAliases;
 	H225_EndpointType *m_terminalType;

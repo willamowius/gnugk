@@ -107,6 +107,7 @@ public:
 	bool SendRas(H225_RasMessage &, const Address &, WORD, RasListener * = NULL, GkH235Authenticators * auth = NULL);
 	bool SendRas(H225_RasMessage &, const H225_TransportAddress &, RasListener * = NULL, GkH235Authenticators * auth = NULL);
 	bool SendRas(H225_RasMessage &, const Address &, WORD, const Address &, GkH235Authenticators * auth);
+    bool SendRas(H225_RasMessage & rasobj, const H225_TransportAddress & dest, const Address & local, GkH235Authenticators * auth);
 	bool SendRIP(H225_RequestSeqNum seqNum, unsigned ripDelay, const Address & addr, WORD port, GkH235Authenticators * auth);
 
 	bool IsRedirected(unsigned = 0) const;

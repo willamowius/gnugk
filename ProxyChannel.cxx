@@ -5759,8 +5759,8 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		}
 #endif
 
-		// TODO: on a multi-homed server, the SCI may get the wrong source address and the call fails
-		RasSrv->SendRas(sci_ras, m_call->GetCalledParty()->GetRasAddress(), NULL, m_call->GetCalledParty()->GetH235Authenticators());
+		// on a multi-homed server, the SCI may get the wrong source address and the call fails
+		RasSrv->SendRas(sci_ras, m_call->GetCalledParty()->GetRasAddress(), m_call->GetCalledParty()->GetRasServerIP(), m_call->GetCalledParty()->GetH235Authenticators());
 
 		// store Setup
 		m_call->StoreSetup(msg);
