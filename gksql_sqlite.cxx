@@ -278,7 +278,7 @@ GkSQLiteConnection::GkSQLiteConnection(
 	const char* name
 	) : GkSQLConnection(name)
 {
-	m_escapeDoubleQuotes = true;	// TODO: add config switch to turn this off when user can assure no double qoutes are used for literals
+	m_escapeDoubleQuotes = true;
 }
 	
 GkSQLiteConnection::~GkSQLiteConnection()
