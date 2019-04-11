@@ -1294,7 +1294,6 @@ int SimplePasswordAuth::CheckTokens(
 		H235_ClearToken & token = tokens[i];
 
 		// check for Cisco Access Token
-		// TODO: ignore when CAT authenticator is disabled ??
 		if (token.m_tokenOID == OID_H235_CAT && Toolkit::Instance()->IsAuthenticatorEnabled("CAT")) {
 			if (authenticators == NULL)
 				authenticators = new GkH235Authenticators;
