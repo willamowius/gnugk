@@ -32,6 +32,8 @@
   #include <h460/h4601.h>
 #endif
 
+#include <ptclib/http.h>
+
 #ifdef HAS_LIBCURL
 #include <curl/curl.h>
 #endif // HAS_LIBCURL
