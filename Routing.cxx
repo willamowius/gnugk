@@ -26,10 +26,15 @@
 #include "sigmsg.h"
 #include "Routing.h"
 #include "gksql.h"
+#include "gkauth.h" // for reusing GkAuthenticator::ReplaceAuthParams()
 
 #ifdef HAS_H46023
   #include <h460/h4601.h>
 #endif
+
+#ifdef HAS_LIBCURL
+#include <curl/curl.h>
+#endif // HAS_LIBCURL
 
 using std::string;
 using std::vector;
@@ -2160,7 +2165,7 @@ void SqlPolicy::RunPolicy(
 				PIPSocket::Address ip(adr_parts[0]);
 				WORD port = (WORD)(adr_parts[1].AsInteger());
 
-				Route route("Sql", SocketToH225TransportAddr(ip, port));
+				Route route(m_name , SocketToH225TransportAddr(ip, port));
 				route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
 				if (!language.IsEmpty())
 				    route.m_language.AppendString(language);
@@ -2205,7 +2210,7 @@ void SqlPolicy::RunPolicy(
 				PIPSocket::Address ip(adr_parts[0]);
 				WORD port = (WORD)(adr_parts[1].AsInteger());
 
-				Route route("Sql", SocketToH225TransportAddr(ip, port));
+				Route route(m_name, SocketToH225TransportAddr(ip, port));
 				route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
 				route.m_destNumber = destinationAlias;
 				if (!language.IsEmpty())
@@ -2222,6 +2227,200 @@ void SqlPolicy::RunPolicy(
 	}
 	delete result;
 #endif // HAS_DATABASE
+}
+
+
+HttpPolicy::HttpPolicy()
+{
+	m_active = false;
+	m_name = "Http";
+	m_iniSection = "Routing::Http";
+}
+
+void HttpPolicy::LoadConfig(const PString & instance)
+{
+	if (GkConfig()->GetAllKeyValues(m_iniSection).GetSize() <= 0) {
+		PTRACE(1, m_name << "\tConfig section " << m_iniSection << " doesn't exist");
+		return;
+	}
+
+	m_url = GkConfig()->GetString(m_iniSection, "URL", "");
+	m_body = GkConfig()->GetString(m_iniSection, "Body", "");
+	m_method = GkConfig()->GetString(m_iniSection, "Method", "POST");
+	PString resultRegex = GkConfig()->GetString(m_iniSection, "ResultRegex", ".*"); // match everything
+	m_resultRegex = PRegularExpression(resultRegex, PRegularExpression::Extended);
+	m_resultRegex = PRegularExpression(resultRegex);
+	if (m_resultRegex.GetErrorCode() != PRegularExpression::NoError) {
+		PTRACE(2, "Error '"<< m_resultRegex.GetErrorText() <<"' compiling ResultRegex: " << resultRegex);
+		m_resultRegex = PRegularExpression(".", PRegularExpression::Extended);
+	}
+	PString deleteRegex = GkConfig()->GetString(m_iniSection, "DeleteRegex", "XXXXXXXXXX");   // default should never match
+	m_deleteRegex = PRegularExpression(deleteRegex, PRegularExpression::Extended);
+	if (m_deleteRegex.GetErrorCode() != PRegularExpression::NoError) {
+		PTRACE(2, "Error '"<< m_deleteRegex.GetErrorText() <<"' compiling DeleteRegex: " << deleteRegex);
+		m_deleteRegex = PRegularExpression("XXXXXXXXXX", PRegularExpression::Extended);
+	}
+	PString errorRegex = GkConfig()->GetString(m_iniSection, "ErrorRegex", "^$");
+	m_errorRegex = PRegularExpression(errorRegex, PRegularExpression::Extended);
+	if (m_errorRegex.GetErrorCode() != PRegularExpression::NoError) {
+		PTRACE(2, "Error '"<< m_errorRegex.GetErrorText() <<"' compiling ErrorRegex: " << errorRegex);
+		m_errorRegex = PRegularExpression("^$", PRegularExpression::Extended);
+	}
+	m_active = true;
+}
+
+HttpPolicy::~HttpPolicy()
+{
+}
+
+#ifdef HAS_LIBCURL
+// receives the document data
+static size_t CurlWriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+    *((PString*)userp) = PString((const char*)contents, size * nmemb);
+    return size * nmemb;
+}
+
+// receives debug output
+static int DebugToTrace(CURL *handle, curl_infotype type, char *data, size_t size, void *userp)
+{
+  PTRACE (6, "CURL\t" << PString((const char *)data, size).Trim());
+  return 0;
+}
+#endif // HAS_LIBCURL
+
+void HttpPolicy::RunPolicy(
+		/* in */
+		const PString & source,
+		const PString & calledAlias,
+		const PString & calledIP,
+		const PString & caller,
+		const PString & callingStationId,
+		const PString & callid,
+		const PString & messageType,
+		const PString & clientauthid,
+		const PString & language,
+		/* out: */
+		DestinationRoutes & destination)
+{
+	std::map<PString, PString> params;
+	params["s"] = source;
+	params["c"] = calledAlias;
+	params["p"] = calledIP;
+	params["r"] = caller;
+	params["Calling-Station-Id"] = callingStationId;
+	params["i"] = callid;
+	params["m"] = messageType;
+	params["client-auth-id"] = clientauthid;
+	params["language"] = language;
+
+    PString result;
+
+    PString url = GkAuthenticator::ReplaceAuthParams(m_url, params);
+    url = Toolkit::Instance()->ReplaceGlobalParams(url);
+    url.Replace(" ", "%20", true);  // TODO: better URL escaping ?
+    PTRACE(6, m_iniSection + "\tURL=" << url);
+    PString host = PURL(url).GetHostName();
+    PString body = GkAuthenticator::ReplaceAuthParams(m_body, params);
+    body = Toolkit::Instance()->ReplaceGlobalParams(body);
+
+#ifdef HAS_LIBCURL
+    CURLcode curl_res = CURLE_FAILED_INIT;
+    CURL * curl = curl_easy_init();
+    if (curl) {
+        struct curl_slist *headerlist = NULL;
+        if (m_method == "GET") {
+            // nothing special to do
+        } else if (m_method == "POST") {
+            PStringArray parts = url.Tokenise("?");
+            if (body.IsEmpty() && parts.GetSize() == 2) {
+                url = parts[0];
+                body = parts[1];
+            } else {
+                headerlist = curl_slist_append(headerlist, "Content-Type: text/plain");
+                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
+            }
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, (const char *)body);
+        } else {
+            PTRACE(2, m_name << "\tUnsupported method " << m_method);
+        }
+        curl_easy_setopt(curl, CURLOPT_URL, (const char *)url);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
+        if (PTrace::CanTrace(6)) {
+            curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, DebugToTrace);
+            curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+        }
+        curl_res = curl_easy_perform(curl);
+        curl_slist_free_all(headerlist);
+        curl_easy_cleanup(curl);
+    }
+
+    if (curl_res != CURLE_OK) {
+        PTRACE(2, m_name << "\tCould not get routing destination from " << host << " : " << curl_easy_strerror(curl_res));
+        return;
+    }
+#else
+    PHTTPClient http;
+    if (m_method == "GET") {
+        if (!http.GetTextDocument(url, result)) {
+            PTRACE(2, m_iniSection << "\tCould not GET routing destination from " << host);
+            return;
+        }
+    } else if (m_method == "POST") {
+        PStringArray parts = url.Tokenise("?");
+        if (body.IsEmpty() && parts.GetSize() == 2) {
+            url = parts[0];
+            body = parts[1];
+        }
+        PMIMEInfo outMIME;
+        outMIME.SetAt(PMIMEInfo::ContentTypeTag(), "text/plain");
+        PMIMEInfo replyMIME;
+        if (!http.PostData(url, outMIME, body, replyMIME, result)) {
+            PTRACE(2, m_name << "\tCould not POST to " << host);
+            return;
+        }
+    } else {
+        PTRACE(2, m_name << "\tUnsupported method " << m_method);
+        return;
+    }
+#endif // HAS_LIBCURL
+
+    result = result.Trim();
+	PTRACE(5, m_name << "\tServer response = " << result);
+    PINDEX pos, len;
+    if (result.FindRegEx(m_errorRegex, pos, len)) {
+        PTRACE(4, m_name << "\tErrorRegex matches result from " << host);
+        return;
+    }
+    PString newDestination;
+    if (result.FindRegEx(m_resultRegex, pos, len)) {
+        newDestination = result.Mid(pos, len);
+        ReplaceRegEx(newDestination, m_deleteRegex, "", true);
+        PTRACE(5, m_name << "\tDestination = " << newDestination);
+    } else {
+        PTRACE(2, m_name << "\tError: No answer found in response from " << host);
+        return;
+    }
+
+    if (newDestination.ToUpper() == "REJECT") {
+        destination.SetRejectCall(true);
+    } else if (IsIPAddress(newDestination)) {
+        PStringArray adr_parts = SplitIPAndPort(newDestination, GK_DEF_ENDPOINT_SIGNAL_PORT);
+        PIPSocket::Address ip(adr_parts[0]);
+        WORD port = (WORD)(adr_parts[1].AsInteger());
+
+        Route route(m_name, SocketToH225TransportAddr(ip, port));
+        route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
+        if (!language.IsEmpty())
+            route.m_language.AppendString(language);
+        destination.AddRoute(route);
+    } else {
+        H225_ArrayOf_AliasAddress newAliases;
+        newAliases.SetSize(1);
+        H323SetAliasAddress(newDestination, newAliases[0]);
+        destination.SetNewAliases(newAliases);
+    }
 }
 
 
@@ -2421,6 +2620,7 @@ namespace { // anonymous namespace
 	SimpleCreator<NumberAnalysisPolicy> NumberAnalysisPolicyCreator("numberanalysis");
 	SimpleCreator<ENUMPolicy> ENUMPolicyCreator("enum");
 	SimpleCreator<SqlPolicy> SqlPolicyCreator("sql");
+	SimpleCreator<HttpPolicy> HttpPolicyCreator("http");
 	SimpleCreator<CatchAllPolicy> CatchAllPolicyCreator("catchall");
 	SimpleCreator<URIServicePolicy> URISevicePolicyCreator("uriservice");
 }

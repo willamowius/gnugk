@@ -709,6 +709,14 @@ const char * KnownConfigEntries[][2] = {
 	{ "Routing::Forwarding", "Query" },
 	{ "Routing::Forwarding", "ReadTimeout" },
 	{ "Routing::Forwarding", "Username" },
+#if defined (P_HTTP) || defined (HAS_LIBCURL)
+	{ "Routing::Http", "Body" },
+	{ "Routing::Http", "DeleteRegex" },
+	{ "Routing::Http", "ErrorRegex" },
+	{ "Routing::Http", "Method" },
+	{ "Routing::Http", "ResultRegex" },
+	{ "Routing::Http", "URL" },
+#endif // P_HTTP
 #ifdef HAS_LUA
 	{ "Routing::Lua", "Script" },
 	{ "Routing::Lua", "ScriptFile" },

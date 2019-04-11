@@ -2330,7 +2330,7 @@ HttpPasswordAuth::HttpPasswordAuth(const char* authName)
 	m_url = GkConfig()->GetString("HttpPasswordAuth", "URL", "");
 	m_body = GkConfig()->GetString("HttpPasswordAuth", "Body", "");
 	m_method = GkConfig()->GetString("HttpPasswordAuth", "Method", "POST");
-	PString resultRegex = GkConfig()->GetString("HttpPasswordAuth", "ResultRegex", ".");
+	PString resultRegex = GkConfig()->GetString("HttpPasswordAuth", "ResultRegex", ".*"); // match everything
 	m_resultRegex = PRegularExpression(resultRegex, PRegularExpression::Extended);
 	m_resultRegex = PRegularExpression(resultRegex);
 	if (m_resultRegex.GetErrorCode() != PRegularExpression::NoError) {
@@ -2445,6 +2445,7 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
     }
 #endif // HAS_LIBCURL
 
+    result = result.Trim();
 	PTRACE(5, "HttpPasswordAuth\tServer response = " << result);
     PINDEX pos, len;
     if (result.FindRegEx(m_errorRegex, pos, len)) {

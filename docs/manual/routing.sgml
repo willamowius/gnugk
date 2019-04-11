@@ -60,6 +60,10 @@ This policy can be configured in the <ref id="routingdns" name="Routing::DNS"> s
 <p>
 Route calls by rewriting the called alias with a database query or send them directly to a destination IP. The database parameters are specified in the <ref id="routingsql" name="Routing::Sql"> section.
 
+<item><tt/http/<newline>
+<p>
+Route calls by rewriting the called alias with a HTTP query. The HTTP parameters are specified in the <ref id="routinghttp" name="Routing::Http"> section.
+
 <item><tt/ldap/<newline>
 <p>
 Route calls by looking up the called alias in an LDAP server (searching the H323ID and TelephoneNo attribute)
@@ -602,6 +606,62 @@ Assuming the called alias was "12345678" and the database returns
 "{\1}@my.com" then all character are inserted so the new destination is "1234578@my.com".
 
 If the database returns "{^\d(4)}@my.com" the first 4 digits are inserted so the new destination is "1234@my.com" and with "{\d(4)$}@my.com" from the database, the call is sent to "4578@my.com".
+</itemize>
+
+
+<sect1>Section &lsqb;Routing::Http&rsqb;
+<label id="routinghttp">
+<p>
+Rewrite the called alias with a HTTP query.
+Supports routing OnARQ, OnLRQ and OnSetup.
+
+If the string returned from the is 'REJECT' (upper or lower case),
+the call is rejected. If the string matches a dotted IP address, it is
+taken as destination IP otherwise it is treated as a new destination alias.
+<p>
+<itemize>
+<item><tt>URL=http://example.com/passwords</tt><newline>
+Default: <tt>N/A</tt>
+<p>
+The URL to fetch the routing destination from. You can use the parameters specified below to parameterize the URL.
+
+<item><tt/Body=user=%u/<newline>
+Default: <tt>empty</tt>
+<p>
+The HTTP body to use with POST requests. You can use the parameters specified below to parameterize the URL.
+
+<item><tt/Method=GET/<newline>
+Default: <tt>POST</tt>
+<p>
+HTTP method to use. Currently GET and POST are supported.
+
+<item><tt/ResultRegex=[0-9]+/<newline>
+Default: <tt>.*</tt>
+<p>
+The regular expression to extract the destination from the HTTP response.
+
+<item><tt/DeleteRegex=5544/<newline>
+Default: <tt>N/A</tt>
+<p>
+A regular expression to use remove additional patterns from the extracted destination. Optional.
+
+<item><tt/ErrorRegex=error/<newline>
+Default: <tt>^$</tt>
+<p>
+If the HTTP response matches this regular expression it is considered invalid.
+</itemize>
+
+The following parameters are available for the URL and Body strings:
+<itemize>
+<item><tt/%c/ - the called alias
+<item><tt/%p/ - the called IP (only available on Setup, empty otherwise)
+<item><tt/%s/ - the calling IP
+<item><tt/%r/ - the calling aliases
+<item><tt/%{Calling-Station-Id}/ - the calling station ID (same value as used in accounting and authentication events)
+<item><tt/%i/ - the call ID
+<item><tt/%m/ - the message type (ARQ, LRQ or Setup)
+<item><tt/%{client-auth-id}/ - a 64 bit integer ID provided to GnuGk when authenticating the call (through SQLAuth)
+<item><tt/%{language}/ - language if available
 </itemize>
 
 

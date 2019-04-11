@@ -566,6 +566,38 @@ protected:
 	long m_timeout;
 };
 
+// a policy to route calls via an SQL database
+class HttpPolicy : public DynamicPolicy {
+public:
+	HttpPolicy();
+	virtual ~HttpPolicy();
+
+protected:
+	virtual void LoadConfig(const PString & instance);
+
+	virtual void RunPolicy(
+		/*in */
+		const PString & source,
+		const PString & calledAlias,
+		const PString & calledIP,
+		const PString & caller,
+		const PString & callingStationId,
+		const PString & callid,
+		const PString & messageType,
+		const PString & clientauthid,
+		const PString & language,
+		/* out: */
+		DestinationRoutes & destination);
+
+protected:
+	PString m_url;
+	PString m_body;
+	PCaselessString m_method;
+	PRegularExpression m_resultRegex;
+	PRegularExpression m_deleteRegex;
+	PRegularExpression m_errorRegex;
+};
+
 
 // a policy to route all calls to one default endpoint
 class CatchAllPolicy : public Policy {

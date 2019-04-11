@@ -546,6 +546,7 @@ protected:
 		SetupAuthData & authData
 		) const;
 
+public:
     /** Replace parameters placeholders (%a, %{Name}, ...) with actual values.
         Similar to Acct and Query params, but without the escaping.
 
@@ -559,6 +560,7 @@ protected:
 		const std::map<PString, PString> & params
 	);
 
+protected:
 	/// a list of H.235 capabilities supported by this module (if any)
 	H235Authenticators* m_h235Authenticators;
 
