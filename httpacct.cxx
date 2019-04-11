@@ -183,7 +183,6 @@ GkAcctLogger::Status HttpAcct::HttpLog(PString url, PString body)
     PString host = PURL(url).GetHostName();
     PString result; // we have to capture the response, but we ignore it for now
 
-    // TODO: check CURL concurrency
 #ifdef HAS_LIBCURL
     CURLcode curl_res = CURLE_FAILED_INIT;
     CURL * curl = curl_easy_init();
@@ -213,18 +212,14 @@ GkAcctLogger::Status HttpAcct::HttpLog(PString url, PString body)
     }
 
     if (curl_res != CURLE_OK) {
-        PTRACE(2, "HttpAcct\tCould not GET password from " << host << " : " << curl_easy_strerror(curl_res));
+        PTRACE(2, "HttpAcct\tCould not send accounting message to " << host << " : " << curl_easy_strerror(curl_res));
         return Fail;
     }
 #else
-    if (url.Left(5) == "https") {
-        PTRACE(2, "HttpAcct\tPlease compile GnuGk with libcurl for https support");
-        return Fail;
-    }
     PHTTPClient http;
     if (m_method == "GET") {
         if (!http.GetTextDocument(url, result)) {
-            PTRACE(2, "HttpAcct\tCould not GET password from " << host);
+            PTRACE(2, "HttpAcct\tCould not send accounting message to " << host);
             return Fail;
         }
     } else if (m_method == "POST") {
