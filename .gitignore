@@ -16,6 +16,7 @@ gk.opt
 .sniffdir
 autom4te.cache
 cov-int
+cov-int.tgz
 *.proj
 *.save
 *.layout
