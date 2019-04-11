@@ -1800,21 +1800,21 @@ This section defines fow to fetch password information from an HTTP server.
 <item><tt>URL=http://example.com/passwords</tt><newline>
 Default: <tt>N/A</tt>
 <p>
-The URL to fetch the passwords from. You can use the paremeters specified below to parameterize the URL.
+The URL to fetch the passwords from. You can use the parameters specified below to parameterize the URL.
 Currently GnuGk expects the cleartext password in the response.
 
 <item><tt/Body=user=%u/<newline>
 Default: <tt>empty</tt>
 <p>
-The HTTP body to use with POST requests. You can use the paremeters specified below to parameterize the URL.
+The HTTP body to use with POST requests. You can use the parameters specified below to parameterize the URL.
 
 <item><tt/Method=GET/<newline>
-Default: <tt>N/A</tt>
+Default: <tt>POST</tt>
 <p>
 HTTP method to use. Currently GET and POST are supported.
 
 <item><tt/ResultRegex=[0-9]+/<newline>
-Default: <tt>.</tt>
+Default: <tt>.*</tt>
 <p>
 The regular expression to extract the password from the HTTP response.
 
@@ -1836,7 +1836,7 @@ This module will cache requested passwords. This field defines the cache timeout
 
 </itemize>
 
-For <tt/HttpPasswordAuth/ two parameters are defined:
+For <tt/HttpPasswordAuth/ these parameters are defined:
 <itemize>
 <item><tt/%u/ - the actual alias to query the password for
 <item><tt/%g/ - the gatekeeper identifier (name)
@@ -1850,6 +1850,7 @@ For <tt/HttpPasswordAuth/ two parameters are defined:
 <item><tt/.../
 <item><tt/%{env9}/ - content of environment variable GNUGK_ENV9
 </itemize>
+
 
 <sect1>Section &lsqb;GeoIPAuth&rsqb;
 <label id="geoipauth">
