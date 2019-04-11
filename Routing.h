@@ -5,7 +5,7 @@
 // Routing Mechanism for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2003
-// Copyright (c) 2004-2017, Jan Willamowius
+// Copyright (c) 2004-2019, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -353,7 +353,7 @@ private:
 };
 
 
-// the classical policy, find the dstination from the RegistrationTable
+// the classical policy, find the destination from the RegistrationTable
 class InternalPolicy : public AliasesPolicy {
 public:
 	InternalPolicy();
@@ -497,7 +497,7 @@ protected:
 	PStringList m_language;
 };
 
-// superclass for dynamic policies like sql and lua scripring
+// superclass for dynamic policies like sql and lua scripting
 class DynamicPolicy : public Policy {
 public:
 	DynamicPolicy();
@@ -645,7 +645,7 @@ inline bool Request<R, W>::Process()
 }
 
 /** A class that supports ACD (Automatic Call Distribution). A call
-    made to specified alias(-es) (called virtual queue) is signalled
+    made to specified alias(-es) (called virtual queue) is signaled
 	via the GK status line to an external application (an ACD application)
 	that decides where the call should be routed (e.g. what agent should
 	answe the call). Basically, it rewrites virtual queue alias
@@ -676,7 +676,7 @@ public:
 		True if the external application routed the call (either by specifying
 		an alias or by rejecting the call), false if timed out waiting
 		for the routing decision.
-		If the request was rejected, destinationInfo is set to an epmty array
+		If the request was rejected, destinationInfo is set to an empty array
 		(0 elements).
 	*/
 	bool SendRouteRequest(

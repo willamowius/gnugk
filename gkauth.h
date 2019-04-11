@@ -2,7 +2,7 @@
 //
 // gkauth.h
 //
-// Copyright (c) 2001-2018, Jan Willamowius
+// Copyright (c) 2001-2019, Jan Willamowius
 //
 // Gatekeeper authentication modules
 //

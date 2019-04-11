@@ -601,7 +601,7 @@ class Toolkit : public Singleton<Toolkit>
 	 * extension known to the GnuGk this method returns its 'internal extension code'
 	 # #iecXXX' or #iecUnknow# otherwise.
 	 *
-	 * Overwriting methods should use a simlilar scheme and call
+	 * Overwriting methods should use a similar scheme and call
 	 * <code>
 	 * if(inherited::GnuGKExtension(country,extension,menufacturer) == iecUnknown) {
 	 *   ...
@@ -690,7 +690,7 @@ class Toolkit : public Singleton<Toolkit>
 	/// global translation of cause codes (called from endpoint specific method)
 	unsigned TranslateReceivedCause(unsigned cause) const;
 	unsigned TranslateSentCause(unsigned cause) const;
-	// check if cause contranslation feature is active (global or per endpoint)
+	// check if cause code translation feature is active (global or per endpoint)
 	bool IsCauseCodeTranslationActive() const { return m_causeCodeTranslationActive; }
 	void SetCauseCodeTranslationActive(bool val) { m_causeCodeTranslationActive = val; }
 
