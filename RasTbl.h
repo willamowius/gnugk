@@ -834,7 +834,7 @@ public:
 	/** Set the NATStrategy */
 	void SetNATStrategy(NatStrategy strategy) { m_natstrategy = strategy; }
 
-	/** Can Signalling be offloaded
+	/** Can signaling be offloaded
 	  */
 	bool NATSignallingOffload(bool isAnswer) const;
 
@@ -847,12 +847,12 @@ public:
 	 */
 	PBoolean H46024AMessage();
 
-	/** GetSignallingSocket */
+	/** GetSignalingSocket */
 	CallSignalSocket * H46024ASignalSocket();
 #endif // HAS_H46024A
 
 #ifdef HAS_H46024B
-    /** GetSignallingSocket */
+    /** GetSignalingSocket */
     CallSignalSocket * H46024BSignalSocket(bool response);
 
 	/** Initiate Probe */
@@ -1134,7 +1134,7 @@ public:
 	}
 
 	/* Reset timeout
-       Used when switching from routed to direct mode to avoid signalling timeouts
+       Used when switching from routed to direct mode to avoid signaling timeouts
 	*/
 	void ResetTimeOut();
 
@@ -1175,7 +1175,7 @@ public:
 	time_t GetRingTime() const;
 
 	/** @return
-		A string that identifies uniquelly this call for accounting
+		A string that identifies uniquely this call for accounting
 		purposes. This string should be unique across subsequent GK
 		start/stop events.
 	*/

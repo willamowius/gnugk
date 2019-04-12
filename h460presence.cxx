@@ -3,7 +3,7 @@
 // Presence in H.323 gatekeeper
 //
 // Copyright (c) 2009-2012, Simon Horne
-// Copyright (c) 2009-2018, Jan Willamowius
+// Copyright (c) 2009-2019, Jan Willamowius
 //
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
@@ -603,14 +603,14 @@ bool GkPresence::DatabaseLoad(PBoolean incremental)
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_queryList,params, m_timeout);
 	if (result == NULL) {
 		PTRACE(2, "H460PSQL\tSubList failed - timeout or fatal error");
-		SNMP_TRAP(5, SNMPError, Database, "Presense SQL query failed");
+		SNMP_TRAP(5, SNMPError, Database, "Presence SQL query failed");
 		return false;
 	}
 
 	int fieldCount = 7;
 	if (result->GetNumRows() > 0 && result->GetNumFields() < fieldCount) {
 		PTRACE(2, "H460PSQL\tBad-formed query - insufficient columns found in the result set expect " << fieldCount);
-		SNMP_TRAP(5, SNMPError, Database, "Presense SQL query failed");
+		SNMP_TRAP(5, SNMPError, Database, "Presence SQL query failed");
 		delete result;
 		return false;
 	}
@@ -639,7 +639,7 @@ bool GkPresence::DatabaseLoad(PBoolean incremental)
 	while (result->FetchRow(retval)) {
 		if (retval[0].IsEmpty()) {
 			PTRACE(1, "H460PSQL\tQuery Invalid value found.");
-			SNMP_TRAP(5, SNMPError, Database, "Presense SQL query failed");
+			SNMP_TRAP(5, SNMPError, Database, "Presence SQL query failed");
 			continue;
 		}
 
@@ -970,7 +970,7 @@ void GkPresence::ProcessPresenceElement(const PASN_OctetString & pdu)
 
 	if (!ReceivedPDU(pdu)) {
 		PTRACE(4, "H460P\tError processing PDU");
-		SNMP_TRAP(9, SNMPError, Network, "Error decoding Presense PDU");
+		SNMP_TRAP(9, SNMPError, Network, "Error decoding Presence PDU");
 	}
 }
 
@@ -1696,7 +1696,7 @@ void GkPresence::OnNotification(MsgType tag, const H460P_PresenceNotification & 
 			notification.m_subscribers.SetSize(1);
 			notification.m_subscribers[0] = notify.m_subscribers[i];
 			if (!HandleForwardPresence(notification.m_subscribers[0], msg)) {
-				PTRACE(4, "PRES\tUnknown Notification received " << notification.m_subscribers[0] << " from " << ip << " disgarding.");
+				PTRACE(4, "PRES\tUnknown Notification received " << notification.m_subscribers[0] << " from " << ip << " disregarding.");
 			}
 		}
 	}
@@ -1709,7 +1709,7 @@ void GkPresence::OnSubscription(MsgType tag,const H460P_PresenceSubscription & s
 		H460P_PresencePDU msg;
 		BuildSubscriptionMsg(subscription,msg);
 		if (!HandleForwardPresence(subscription.m_identifier, msg)) {
-			PTRACE(4, "PRES\tUnknown Subscription received " << subscription.m_identifier << " from " << ip << " disgarding.");
+			PTRACE(4, "PRES\tUnknown Subscription received " << subscription.m_identifier << " from " << ip << " disregarding.");
 			return;
 		}
 	}
@@ -1737,7 +1737,7 @@ void GkPresence::OnIdentifiers(MsgType tag, const H460P_PresenceIdentifier & ide
 		H460P_PresencePDU msg;
 		BuildIdentifierMsg(identifier,msg);
 		if (!HandleForwardPresence(identifier, msg)) {
-			PTRACE(4, "PRES\tUnknown Identifier received " << identifier << " from " << ip << " disgarding.");
+			PTRACE(4, "PRES\tUnknown Identifier received " << identifier << " from " << ip << " disregarding.");
 		}
 	}
 }

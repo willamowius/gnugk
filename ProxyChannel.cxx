@@ -2429,7 +2429,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		}
 	}
 	if (disableH245Tunneling && uuie && uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)) {
-		// if the h245Tunnelling field isn't present, that means no tunneling anyway
+		// if the h245Tunneling field isn't present, that means no tunneling anyway
 		uuie->m_h323_uu_pdu.m_h245Tunneling.SetValue(false);
 		msg->SetUUIEChanged();
 	}
@@ -2876,7 +2876,7 @@ void CallSignalSocket::SendPostDialDigits()
 	// TODO: add check if master/slave and TCS have already been exchanged
 	if (m_call && m_call->HasPostDialDigits()) {
 		bool sendOK = false;
-		PTRACE(3, "H245\tSending PostDialDigts " << m_call->GetPostDialDigits());
+		PTRACE(3, "H245\tSending PostDialDigits " << m_call->GetPostDialDigits());
 		for (PINDEX i = 0; i < m_call->GetPostDialDigits().GetLength(); i++) {
 			H245_MultimediaSystemControlMessage ui;
 			ui.SetTag(H245_MultimediaSystemControlMessage::e_indication);
@@ -3624,7 +3624,7 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
 
     if ((toRemove && (rawCap.GetTag() != H245_DataType::e_h235Media))
 		|| (!toRemove && (rawCap.GetTag() == H245_DataType::e_h235Media))) {
-			PTRACE(1, "H235\tOLC Logic Error! ABORTIING REWRITE!");
+			PTRACE(1, "H235\tOLC Logic Error! ABORTING REWRITE!");
 			return false;
     }
 
@@ -3644,7 +3644,7 @@ bool CallSignalSocket::HandleH235OLC(H245_OpenLogicalChannel & olc)
     } else {
         PStringList m_capList;
         if (m_call && !m_call->GetAuthenticators().GetAlgorithms(m_capList)) {
-            PTRACE(1, "H235\tOLC No Algorithms! ABORTIING REWRITE!");
+            PTRACE(1, "H235\tOLC No Algorithms! ABORTING REWRITE!");
             return false;
         }
 
@@ -4245,7 +4245,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 				);
 
 			/// we should perform accounting here for this new call
-			// TODO: refector to use SendReleaseComplete() ?
+			// TODO: refactor to use SendReleaseComplete() ?
 			H225_H323_UserInformation userInfo;
 			H225_H323_UU_PDU_h323_message_body & msgBody = userInfo.m_h323_uu_pdu.m_h323_message_body;
 			msgBody.SetTag(H225_H323_UU_PDU_h323_message_body::e_releaseComplete);
@@ -4815,7 +4815,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 				rejectCall = true;
 			}
 		} else
-			PTRACE(5, Type() << "\tSupressing accounting start event for call #"
+			PTRACE(5, Type() << "\tSuppressing accounting start event for call #"
 				<< m_call->GetCallNumber());
 
         PString statusCallID = callid;
@@ -5199,7 +5199,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		auth.SetEncryptionPolicy(1);	// request encryption
 		auth.SetMaxCipherLength(128);
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens) && SupportsH235Media(setupBody.m_tokens)) {
-			// make sure clear and crypto token fields are pesent, at least with 0 size
+			// make sure clear and crypto token fields are present, at least with 0 size
 			if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_tokens)) {
 				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_tokens);
 				setupBody.m_tokens.SetSize(0);
@@ -5631,7 +5631,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 #ifdef HAS_H46018
 	else {
 		// call to H.460.18 traversal client
-		// can't connect the 2 sockets now, remember the calling socket until the called has pinholed throuth the NAT
+		// can't connect the 2 sockets now, remember the calling socket until the called has pinholed through the NAT
 		// this may set the wrong localAddr, because we don't know the peerAddr, yet, updated later in OnFacility()
 		localAddr = RasServer::Instance()->GetLocalAddress(peerAddr);
 		UnmapIPv4Address(localAddr);
@@ -6310,7 +6310,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			m_call->SetMediaEncryption(CallRec::none);
 			PTRACE(3, "H235\tNo Media Encryption Support Detected: Disabling!");
 			if (Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "RequireH235HalfCallMedia", false)) {
-				PTRACE(1, "H235\tDiconnection call because of missing H.235 support");
+				PTRACE(1, "H235\tDisconnecting call because of missing H.235 support");
 				m_call->SetDisconnectCause(Q931::NormalUnspecified); //Q.931 code for reason=SecurityDenied
 				m_result = Error;
 				return;
@@ -6320,7 +6320,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 		  && connectBody.HasOptionalField(H225_Connect_UUIE::e_tokens) && SupportsH235Media(connectBody.m_tokens)) {
 			// there were no tokens in Setup (but we added some), but there are in Connect
 
-			// make sure crypto token fields are pesent, at least with 0 size
+			// make sure crypto token fields are present, at least with 0 size
 			if (!connectBody.HasOptionalField(H225_Connect_UUIE::e_cryptoTokens)) {
 				connectBody.IncludeOptionalField(H225_Connect_UUIE::e_cryptoTokens);
 				connectBody.m_cryptoTokens.SetSize(0);
@@ -7731,7 +7731,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 		H225_H323_UserInformation * uuie = facility->GetUUIE();
 		if ( uuie && ((uuie->m_h323_uu_pdu.m_h323_message_body.GetTag() == H225_H323_UU_PDU_h323_message_body::e_empty)
 			|| (facilityBody.m_reason.GetTag() == H225_FacilityReason::e_transportedInformation)) ) {
-			// filter out Facility messages with reason transportedInformation, but without h245Control or h4501SuplementaryService
+			// filter out Facility messages with reason transportedInformation, but without h245Control or h4501SupplementaryService
 			// needed for Avaya interop
 			if (   !uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Control)
 				&& !uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h4501SupplementaryService) ) {
@@ -10405,7 +10405,7 @@ MultiplexRTPListener::MultiplexRTPListener(WORD pt, WORD buffSize)
 	if (Toolkit::Instance()->IsPortNotificationActive())
 		Toolkit::Instance()->PortNotification(RTPPort, PortOpen, "udp", GNUGK_INADDR_ANY, pt);
 
-	// Set the IP Type Of Service field for prioritisation of media UDP / RTP packets
+	// Set the IP Type Of Service field for prioritization of media UDP / RTP packets
 	int dscp = GkConfig()->GetInteger(ProxySection, "RTPDiffServ", 4);	// default: IPTOS_LOWDELAY
 	if (dscp > 0) {
 		int rtpIpTypeofService = (dscp << 2);
@@ -10463,7 +10463,7 @@ void MultiplexRTPListener::ReceiveData()
 		multiplexID = ((int)wbuffer[0] * 16777216) + ((int)wbuffer[1] * 65536) + ((int)wbuffer[2] * 256) + (int)wbuffer[3];
 
 	if (multiplexID == INVALID_MULTIPLEX_ID) {
-		PTRACE(1, "RTPM\tInvalid multiplexID reveived - ignoring packet on port " << localPort << " from " << AsString(fromIP, fromPort));
+		PTRACE(1, "RTPM\tInvalid multiplexID received - ignoring packet on port " << localPort << " from " << AsString(fromIP, fromPort));
 		return;
 	}
 
@@ -11489,7 +11489,7 @@ bool UDPProxySocket::Bind(const Address & localAddr, WORD pt)
 #endif
 		return false;
 
-	// Set the IP Type Of Service field for prioritisation of media UDP / RTP packets
+	// Set the IP Type Of Service field for prioritization of media UDP / RTP packets
 	int dscp = GkConfig()->GetInteger(ProxySection, "RTPDiffServ", 4);	// default: IPTOS_LOWDELAY
 	if (dscp > 0) {
 		int rtpIpTypeofService = (dscp << 2);
@@ -13036,7 +13036,7 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 		if (payloadType == m_cipherPayloadType) {
 			processed = m_H235CryptoEngine->Decrypt(data, ivsequence, rtpPadding);
 		} else {
-			PTRACE(1, "H235\tUnexpected chipher payload type " << (int)payloadType << " expecting " << (int)m_cipherPayloadType);
+			PTRACE(1, "H235\tUnexpected cipher payload type " << (int)payloadType << " expecting " << (int)m_cipherPayloadType);
 			SNMP_TRAP(10, SNMPWarning, Authentication, "H.235.6 payload type mismatch");
 		}
 		payloadType = m_plainPayloadType;

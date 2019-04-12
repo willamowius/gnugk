@@ -4,7 +4,7 @@
  * Generic interface to access SQL databases
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
- * Copyright (c) 2006-2018, Jan Willamowius
+ * Copyright (c) 2006-2019, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -132,7 +132,7 @@ GkSQLConnection::~GkSQLConnection()
 	const PTime timeStart;
 
 	m_destroying = true;
-	// wakeup any waiting threads
+	// wake up any waiting threads
 	m_connectionAvailable.Signal();
 
 	// wait for still active connections (should not happen, but...)

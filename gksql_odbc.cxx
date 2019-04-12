@@ -3,7 +3,7 @@
  *
  * native ODBC / unixODBC driver module for GnuGk
  *
- * Copyright (c) 2008-2015, Jan Willamowius
+ * Copyright (c) 2008-2019, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -84,7 +84,7 @@ static SQLRETURN (SQL_API *g_SQLSetStmtAttr)(SQLHSTMT StatementHandle,
 PString GetODBCDiagMsg(SQLRETURN result, SQLSMALLINT handleType, SQLHANDLE handle)
 {
 	if (result == SQL_SUCCESS)
-		return "Sucesss";
+		return "Success";
 	if (result == SQL_INVALID_HANDLE)
 		return "Invalid ODBC handle passed";
 	if (result == SQL_NO_DATA)

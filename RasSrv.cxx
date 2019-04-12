@@ -146,8 +146,8 @@ const char *RasName[] = {
 	"RIP",				// Request In Progress
 	"RAI",				// Resources Available Indicate
 	"RAC",				// Resources Available Confirm
-	"IACK",				// Information Request Acknowledgement
-	"INAK",				// Information Request Negative Acknowledgement
+	"IACK",				// Information Request Acknowledgment
+	"INAK",				// Information Request Negative Acknowledgment
 	"SCI",				// Service Control Indication
 	"SCR",				// Service Control Response
 	"NotRecognized"		// for new messages not recognized by the supported
@@ -860,7 +860,7 @@ void RasServer::SetRoutedMode(bool routedSignaling, bool routedH245)
 
 	const char *modemsg = GKRoutedSignaling ? "Routed" : "Direct";
 	const char *h245msg = GKRoutedH245 ? "Enabled" : "Disabled";
-	PTRACE(2, "GK\tUsing " << modemsg << " Signalling");
+	PTRACE(2, "GK\tUsing " << modemsg << " Signaling");
 	PTRACE(2, "GK\tH.245 Routed " << h245msg);
 	const char * h245tunnelingmsg = GkConfig()->GetBoolean("RoutedMode", "H245TunnelingTranslation", false) ? "Enabled" : "Disabled";
 	PTRACE(2, "GK\tH.245 tunneling translation " << h245tunnelingmsg);
@@ -2795,7 +2795,7 @@ bool RegistrationRequestPDU::Process()
 					natfs.Add(Std23_STUNAddr, H460_FeatureContent(stunaddr));
 				} else {
 					// If not NAT then provide the RAS address to the client to determine
-					// whether there is an ALG (or someother device) making things appear as they are not
+					// whether there is an ALG (or some other device) making things appear as they are not
 					natfs.Add(Std23_DetRASAddr, H460_FeatureContent(H323TransportAddress(request.m_rasAddress[0])));
 				}
 
@@ -3672,7 +3672,7 @@ bool AdmissionRequestPDU::Process()
 				 natoffloadsupport == CallRec::e_natRemoteProxy ||
 				 natoffloadsupport == CallRec::e_natAnnexB)) {
 					// Where the remote will handle the NAT Traversal
-					// the local gatekeeper may not receive any signalling so
+					// the local gatekeeper may not receive any signaling so
 					// set the call as connected.
 					if (!RasSrv->IsGKRouted())
 						pCallRec->SetConnected();
@@ -3962,7 +3962,7 @@ template<> bool RasPDU<H225_BandwidthRequest>::Process()
 			}
 		} else {
 			// the endpoint has requested to lower the bandwidth
-			// fow now we just agree, we could also reduce update the current total, per call and per endpoint usage
+			// for now we just agree, we could also reduce update the current total, per call and per endpoint usage
 		}
 	}
 	if (bReject) {
@@ -4218,11 +4218,11 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 					if (Toolkit::Instance()->IsTLSEnabled()) {
 						// enable TLS by config file
 						bool useTLS = RasSrv->GetNeighbors()->GetNeighborTLSBySigAdr(request.m_replyAddress);
-						// include H.460.22 if UseTLS configured for this neighbotr or if H.460.22 in LRQ
+						// include H.460.22 if UseTLS configured for this neighbor or if H.460.22 in LRQ
 						if (useTLS || senderSupportsH46022) {
 							// tell endpoint to use the TLS port
 							WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
-							// force TLS signalling port if UseTLS switch was set
+							// force TLS signaling port if UseTLS switch was set
 							if (useTLS) {
 								SetH225Port(lcf.m_callSignalAddress, tlsSignalPort);
 							}
@@ -4574,7 +4574,7 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 					if (incomingIndication.Decode(raw)) {
 						incomingCall = true;
 						H225_TransportAddress sigAddr = incomingIndication.m_callSignallingAddress;
-						PTRACE(2, "Incomming H.460.18 call from neighbor/parent sigAdr=" << AsDotString(sigAddr)
+						PTRACE(2, "Incoming H.460.18 call from neighbor/parent sigAdr=" << AsDotString(sigAddr)
 							<< " callID=" << AsString(incomingIndication.m_callID) << " TLS=" << useTLS);
 						CallSignalSocket * outgoingSocket = NULL;
 #ifdef HAS_TLS
