@@ -445,7 +445,7 @@ bool IsOldH263(const H245_DataType & type)
 } // end of anonymous namespace
 
 
-// send a UPD datagram and set the source IP (used only for RTP, RAS is using sockets bound to specific IPs)
+// send a UDP datagram and set the source IP (used only for RTP, RAS is using sockets bound to specific IPs)
 // the method is highly OS specific
 
 #ifdef _WIN32
@@ -13779,6 +13779,8 @@ void GetSessionType(const H245_OpenLogicalChannel & olc, RTPSessionTypes & sessi
             }
             // no else: leave other data types as Unknown
         }
+    } else if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_nullData) {
+		// ignore nullData, leave as Unknown
     } else {
         PTRACE(1, "Warning: Unhandled dataType in GetSessionType() - " << olc.m_forwardLogicalChannelParameters.m_dataType.GetTagName());
     }
