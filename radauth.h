@@ -196,7 +196,7 @@ public:
 	
 protected:		
 
-	/// Overriden from RadAuthBase
+	/// Overridden from RadAuthBase
 	virtual int AppendUsernameAndPassword(
 		RadiusPDU& pdu,
 		RasPDU<H225_RegistrationRequest>& rrqPdu,
@@ -255,7 +255,7 @@ public:
 	virtual ~RadAliasAuth();
 	
 protected:		
-	/// Overriden from RadAuthBase
+	/// Overridden from RadAuthBase
 	virtual int AppendUsernameAndPassword(
 		RadiusPDU& pdu,
 		RasPDU<H225_RegistrationRequest>& rrqPdu,

@@ -66,7 +66,7 @@ public:
 	virtual ~FileIPAuth();
 
 protected:
-	/// Overriden from IPAuthBase
+	/// Overridden from IPAuthBase
 	virtual int CheckAddress(
 		const PIPSocket::Address & addr, /// IP address the request comes from
 		WORD port, /// port number the request comes from
