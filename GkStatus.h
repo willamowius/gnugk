@@ -169,6 +169,8 @@ public:
 		e_PrintNeighbors,              /// print list of neighbors
 		e_PrintCallInfo,               /// print detailed information for a call
 		e_MaintenanceMode,             /// switch in or out of maintenance mode
+		e_GetLicenseStatus,            /// get license status
+		e_GetServerID,                 /// get server ID
 		e_numCommands
 		/// Number of different strings
 	};

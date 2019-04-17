@@ -1179,6 +1179,8 @@ void GkStatus::OnStart()
 	m_commands["printcallinfo"] = e_PrintCallInfo;
 	m_commands["pci"] = e_PrintCallInfo;
 	m_commands["maintenancemode"] = e_MaintenanceMode;
+	m_commands["getlicensestatus"] = e_GetLicenseStatus;
+	m_commands["getserverid"] = e_GetServerID;
 }
 
 void GkStatus::ReadSocket(IPSocket * clientSocket)
@@ -2224,6 +2226,22 @@ void StatusClient::ExecCommand(
 		} else {
 			CommandError("Syntax Error: MaintenanceMode [Alternate-IP | OFF]");
         }
+		break;
+	case GkStatus::e_GetLicenseStatus:
+		{
+		PString license;
+		if (Toolkit::Instance()->IsLicenseValid(license)) {
+			license = "OK: " + Toolkit::Instance()->GetLicenseType();
+		} else {
+			license = "Invalid license: " + license + "\r\n";
+		}
+		WriteString(license + "\r\n");
+		WriteString(";\r\n");
+		}
+		break;
+	case GkStatus::e_GetServerID:
+		WriteString(Toolkit::Instance()->GetServerID() + "\r\n");
+		WriteString(";\r\n");
 		break;
 	default:
 		// command not recognized

@@ -4205,6 +4205,13 @@ bool CallSignalSocket::IsH46024Call(const H225_Setup_UUIE & setupBody)
 
 void CallSignalSocket::OnSetup(SignalingMsg * msg)
 {
+	PString err_msg;
+	if (!Toolkit::Instance()->IsLicenseValid(err_msg)) {
+		PTRACE(2, "Error: No license: " << err_msg);
+		SNMP_TRAP(9, SNMPError, General, "No license: " + err_msg);
+		return;
+	}
+
 	SetupMsg* setup = dynamic_cast<SetupMsg*>(msg);
 	if (setup == NULL) {
 		PTRACE(2, Type() << "\tError: Setup message from " << GetName() << " without associated UUIE");

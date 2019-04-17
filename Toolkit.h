@@ -396,6 +396,10 @@ class Toolkit : public Singleton<Toolkit>
 	bool MatchHostCert(SSL * ssl, PIPSocket::Address addr);
 #endif
 
+	void CheckLicense();
+	bool IsLicenseValid(PString & message) const;
+	PString GetServerID() const;
+	PString GetLicenseType() const;
 
 #ifdef HAS_LANGUAGE
 	class AssignedLanguage {
@@ -789,6 +793,9 @@ private:
 #ifdef P_SSL
     bool m_OpenSSLInitialized;
 #endif
+	bool m_licenseValid;
+	PString m_licenseError;
+	PString m_licenseType;
 };
 
 

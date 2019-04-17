@@ -257,6 +257,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "Gatekeeper::Main", "FortyTwo" },	// obsolete
 	{ "Gatekeeper::Main", "FourtyTwo" },	// obsolete
 	{ "Gatekeeper::Main", "Home" },
+#ifdef HAS_OLM
+	{ "Gatekeeper::Main", "LicenseFile" },
+#endif
 	{ "Gatekeeper::Main", "ListenQueueLength" },
 	{ "Gatekeeper::Main", "MaxASNArraySize" },
 	{ "Gatekeeper::Main", "MaxSocketQueue" },
@@ -1854,6 +1857,18 @@ void Gatekeeper::Main()
 	cout << "This program contains patented H.460.23 and H.460.24 technology\n"
             "licensed to the GNU Gatekeeper Project.\n"
 		 << endl;
+#endif
+
+#ifdef HAS_OLM
+	PString msg;
+	if (Toolkit::Instance()->IsLicenseValid(msg)) {
+		cout << "Valid license: " << Toolkit::Instance()->GetLicenseType() << "\n"
+			 << endl;
+	} else {
+		cout << "Invalid license: " << msg << "\n"
+			 << "Server ID: " << Toolkit::Instance()->GetServerID() << "\n"
+			 << endl;
+	}
 #endif
 
 	// read capacity from commandline

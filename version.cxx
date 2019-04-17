@@ -22,7 +22,7 @@
 const PString Toolkit::GKVersion()
 {
 	return PString(PString::Printf,
-		       "Gatekeeper(%s) Version(%s) Ext(amqp=%d,curl=%d,crypto/ssl=%d,firebird=%d,geoip=%d,h235media=%d,h46017=%d,h46018=%d,h46023=%d,h46026=%d,ipv6=%d,large_fdset=%d,ldap=%d,lua=%d,mysql=%d,odbc=%d,pgsql=%d,pthreads=%d,radius=%d,snmp=%d,ssh=%d,sqlite=%d)"
+		       "Gatekeeper(%s) Version(%s) Ext(amqp=%d,curl=%d,crypto/ssl=%d,firebird=%d,geoip=%d,h235media=%d,h46017=%d,h46018=%d,h46023=%d,h46026=%d,ipv6=%d,large_fdset=%d,ldap=%d,lua=%d,mysql=%d,odbc=%d,olm=%d,pgsql=%d,pthreads=%d,radius=%d,snmp=%d,ssh=%d,sqlite=%d)"
 		       " H323Plus(%d.%d.%d) PTLib(%d.%d.%d) Build(%s, %s) Sys(%s %s %s)\r\n",
 		       (const unsigned char*)(PProcess::Current().GetManufacturer()),
 		       (const unsigned char*)(PProcess::Current().GetVersion(true)),
@@ -102,6 +102,11 @@ const PString Toolkit::GKVersion()
 				(int)0,
 #endif
 #if HAS_ODBC
+				(int)1,
+#else
+				(int)0,
+#endif
+#if HAS_OLM
 				(int)1,
 #else
 				(int)0,

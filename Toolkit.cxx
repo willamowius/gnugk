@@ -50,6 +50,12 @@ const char * H350Section = "GkH350::Settings";
 #include <curl/curl.h>
 #endif // HAS_LIBCURL
 
+#ifdef HAS_OLM
+#include "api/license++.h"
+#include "pc-identifiers.h"
+#endif
+
+
 using namespace std;
 
 PIPSocket::Address GNUGK_INADDR_ANY(INADDR_ANY);
@@ -1279,7 +1285,7 @@ Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit"),
     m_maintenanceMode(false), m_timerManager(new GkTimerManager()),
 	m_timestampFormatStr("Cisco"),
 	m_encKeyPaddingByte(-1), m_encryptAllPasswords(false),
-	m_cliRewrite(NULL), m_causeCodeTranslationActive(false)
+	m_cliRewrite(NULL), m_causeCodeTranslationActive(false), m_licenseValid(false)
 {
 	srand((unsigned int)time(0));
 #ifdef P_SSL
@@ -1858,6 +1864,8 @@ PConfig* Toolkit::ReloadConfig()
 {
 	// make a new symlink if needed
 	PrepareReloadConfig();
+
+	CheckLicense();
 
 	// read the toolkit config values
 
@@ -2573,6 +2581,89 @@ bool Toolkit::MatchHostCert(SSL * ssl, PIPSocket::Address addr)
 }
 
 #endif
+
+void Toolkit::CheckLicense()
+{
+#ifdef HAS_OLM
+	map<EVENT_TYPE, string> stringByEventType;
+    stringByEventType[LICENSE_OK                      ] = "OK";
+    stringByEventType[LICENSE_FILE_NOT_FOUND          ] = "license file not found";
+    stringByEventType[LICENSE_SERVER_NOT_FOUND        ] = "license server can't be contacted";
+    stringByEventType[ENVIRONMENT_VARIABLE_NOT_DEFINED] = "environment variable not defined";
+    stringByEventType[FILE_FORMAT_NOT_RECOGNIZED      ] = "license file has invalid format (not .ini file)";
+    stringByEventType[LICENSE_MALFORMED               ] = "some mandatory field are missing, or data can't be fully read";
+    stringByEventType[PRODUCT_NOT_LICENSED            ] = "this product was not licensed";
+    stringByEventType[PRODUCT_EXPIRED                 ] = "license expired";
+    stringByEventType[LICENSE_CORRUPTED               ] = "license signature doesn't match";
+    stringByEventType[IDENTIFIERS_MISMATCH            ] = "calculated identifier and the one provided in license didn't match";
+    stringByEventType[LICENSE_FILE_FOUND              ] = "license file not found";
+    stringByEventType[LICENSE_VERIFIED                ] = "license verified";
+    
+	LicenseInfo licenseInfo;
+	PString licenseFile = GkConfig()->GetString("LicenseFile", "gnugk.lic");
+    LicenseLocation licenseLocation;
+    licenseLocation.openFileNearModule = false;
+    licenseLocation.licenseFileLocation = licenseFile;
+    licenseLocation.environmentVariableName = "";
+    EVENT_TYPE result = acquire_license("gnugk", licenseLocation, &licenseInfo);
+    
+	if (result == LICENSE_OK) {
+		PString IDinLicense;
+		PConfig licenseIni(PFilePath(licenseFile), "gnugk");
+		IDinLicense = licenseIni.GetString("client_signature");
+		if (IDinLicense != GetServerID()) {
+			m_licenseValid = false;
+			m_licenseError = "Server ID doesn't match";
+			m_licenseType = "Invalid license";
+			return;
+		}
+	}
+
+	if (result != LICENSE_OK) {
+		m_licenseValid = false;
+        m_licenseError = stringByEventType[result].c_str();
+		m_licenseType = "Invalid license";
+		return;
+    }
+    else {
+		m_licenseValid = true;
+		m_licenseError = "OK";
+		if (licenseInfo.has_expiry) {
+			m_licenseType = "Time limited license, valid until " + PString(licenseInfo.expiry_date);
+		} else {
+			m_licenseType = "Unlimited license";
+		}
+		return;
+	}
+#else
+	m_licenseValid = true;
+	m_licenseError = "OK";
+	m_licenseType = "GPLv2";
+#endif
+}
+
+bool Toolkit::IsLicenseValid(PString & message) const
+{
+	message = m_licenseError;
+	return m_licenseValid;
+}
+
+PString Toolkit::GetServerID() const
+{
+#ifdef HAS_OLM
+	PcSignature signature;
+	FUNCTION_RETURN generate_ok = generate_user_pc_signature(signature, ETHERNET);
+	return signature;
+#else
+	return "";
+#endif
+}
+
+// Trial until X, unlimited license etc.
+PString Toolkit::GetLicenseType() const
+{
+	return m_licenseType;
+}
 
 
 bool Toolkit::AssignedAliases::QueryAssignedAliases(const PString & alias, PStringArray & aliases)

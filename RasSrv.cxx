@@ -3196,6 +3196,13 @@ bool AdmissionRequestPDU::Process()
 	bool answer = request.m_answerCall;
 	PString in_rewrite_source, out_rewrite_source;
 
+	PString msg;
+	if (!Toolkit::Instance()->IsLicenseValid(msg)) {
+		PTRACE(2, "Error: No license: " << msg);
+		SNMP_TRAP(9, SNMPError, General, "No license: " + msg);
+		return BuildReply(H225_AdmissionRejectReason::e_undefinedReason);
+	}
+
 	if (Toolkit::Instance()->IsMaintenanceMode()) {
         PTRACE(1, "Rejecting new call in maintenance mode");
         CallRec dummyCall(*this, 0, destinationString); // dummy call object so accounting variables can be filled
@@ -4081,6 +4088,14 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 	PString log;
 	bool fromTraversalClient = false;
     bool loopDetection = GkConfig()->GetBoolean(LRQFeaturesSection, "LoopDetection", false);
+
+	PString msg;
+	if (!Toolkit::Instance()->IsLicenseValid(msg)) {
+		PTRACE(2, "Error: No license: " << msg);
+		SNMP_TRAP(9, SNMPError, General, "No license: " + msg);
+		BuildReject(H225_LocationRejectReason::e_undefinedReason);
+		return true;
+	}
 
     if (Toolkit::Instance()->IsMaintenanceMode()) {
         PTRACE(1, "Rejecting LRQ in maintenance mode");
