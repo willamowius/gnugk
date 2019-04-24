@@ -2598,7 +2598,7 @@ void Toolkit::CheckLicense()
     stringByEventType[IDENTIFIERS_MISMATCH            ] = "calculated identifier and the one provided in license didn't match";
     stringByEventType[LICENSE_FILE_FOUND              ] = "license file not found";
     stringByEventType[LICENSE_VERIFIED                ] = "license verified";
-    
+
 	LicenseInfo licenseInfo;
 	PString licenseFile = GkConfig()->GetString("LicenseFile", "gnugk.lic");
     LicenseLocation licenseLocation;
@@ -2606,11 +2606,10 @@ void Toolkit::CheckLicense()
     licenseLocation.licenseFileLocation = licenseFile;
     licenseLocation.environmentVariableName = "";
     EVENT_TYPE result = acquire_license("gnugk", licenseLocation, &licenseInfo);
-    
+
 	if (result == LICENSE_OK) {
-		PString IDinLicense;
 		PConfig licenseIni(PFilePath(licenseFile), "gnugk");
-		IDinLicense = licenseIni.GetString("client_signature");
+		PString IDinLicense = licenseIni.GetString("client_signature");
 		if (IDinLicense != GetServerID()) {
 			m_licenseValid = false;
 			m_licenseError = "Server ID doesn't match";
