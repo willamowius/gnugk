@@ -412,7 +412,7 @@ to define your database connection for this module.
 
 <itemize>
 <item><tt/CacheTimeout=120/<newline>
-Default: <tt/-1/<newline>
+Default: <tt/0/<newline>
 <p>
 This field defines how long (alias;password) pairs retrieved from the database 
 will be cached. The cache timeout value is expressed in seconds.
