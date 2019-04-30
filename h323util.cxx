@@ -22,6 +22,9 @@
 #include <h460/h4601.h>
 #endif
 
+#if (!_WIN32) && (GCC_VERSION >= 40600)
+#pragma GCC diagnostic ignored "-Wstrict-overflow"
+#endif
 
 #if defined(_WIN32) && defined(hasIPV6)
 // Windows doesn't have inet_ntop, so we fake it

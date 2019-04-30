@@ -55,6 +55,9 @@ const char * H350Section = "GkH350::Settings";
 #include "pc-identifiers.h"
 #endif
 
+#if (!_WIN32) && (GCC_VERSION >= 40600)
+#pragma GCC diagnostic ignored "-Wstrict-overflow"
+#endif
 
 using namespace std;
 
@@ -301,10 +304,6 @@ inline bool Toolkit::RouteTable::RouteEntry::CompareWithoutMask(const Address *i
 	return (*ip == destination) || (((*ip & net_mask) == network) && (ip->GetVersion() == network.GetVersion()));
 }
 
-#if (!_WIN32) && (GCC_VERSION >= 40600)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstrict-overflow"
-#endif
 bool Toolkit::RouteTable::RouteEntry::CompareWithMask(const Address *ip) const
 {
 	if (ip->GetVersion() != network.GetVersion())
@@ -336,9 +335,6 @@ bool Toolkit::RouteTable::RouteEntry::CompareWithMask(const Address *ip) const
     }
     return (maskValid);
 }
-#if (!_WIN32) && (GCC_VERSION >= 40600)
-#pragma GCC diagnostic pop
-#endif
 
 // class Toolkit::RouteTable
 void Toolkit::RouteTable::InitTable()
@@ -3643,7 +3639,6 @@ void Toolkit::PortNotification(PortType type, PortAction action, const PString &
 		SNMP_TRAP(6, SNMPError, General, "Error executing port notification: " + cmd);
 	}
 }
-
 
 PString Toolkit::GetGKHome(vector<PIPSocket::Address> & GKHome) const
 {
