@@ -2651,7 +2651,7 @@ PString Toolkit::GetServerID() const
 {
 #ifdef HAS_OLM
 	PcSignature signature;
-	FUNCTION_RETURN generate_ok = generate_user_pc_signature(signature, ETHERNET);
+	FUNCTION_RETURN generate_ok = generate_user_pc_signature(signature, DEFAULT);
 	return signature;
 #else
 	return "";
