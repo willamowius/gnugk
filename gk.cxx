@@ -446,7 +446,6 @@ const char * KnownConfigEntries[][2] = {
 	{ "Proxy", "AllowSignaledIPs" },
 #endif
 	{ "Proxy", "CheckH46019KeepAlivePT" },
-	{ "Proxy", "DisableRTPQueueing" },
 	{ "Proxy", "Enable" },
 	{ "Proxy", "EnableRTCPStats" },
 	{ "Proxy", "EnableRTPMute" },

@@ -7859,7 +7859,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					// always proxy H.245 for H.460.18/19
 					Address calling = GNUGK_INADDR_ANY, called = GNUGK_INADDR_ANY;
 					m_call->GetNATType(calling, called);
-					// H.245 proxy hander for calling (doesn't have to use H.460.18/.19)
+					// H.245 proxy handler for calling (doesn't have to use H.460.18/.19)
 					H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), callingSocket->localAddr, calling, callingSocket->masqAddr);
 #ifdef HAS_H46026
 					if (m_call->GetCallingParty())
@@ -8114,7 +8114,7 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 			} else
 #endif
 			{
-				if ( m_h245handler)
+				if (m_h245handler)
 					altered = m_h245handler->HandleFastStartResponse(olc, m_call);
 			}
 		}
@@ -11408,7 +11408,6 @@ UDPProxySocket::UDPProxySocket(const char *t, PINDEX no)
 	SetReadTimeout(PTimeInterval(50));
 	SetWriteTimeout(PTimeInterval(50));
 	fnat = rnat = mute = false;
-	m_dontQueueRTP = GkConfig()->GetBoolean(ProxySection, "DisableRTPQueueing", true);
 	m_EnableRTCPStats = GkConfig()->GetBoolean(ProxySection, "EnableRTCPStats", false);
 	m_legacyPortDetection = GkConfig()->GetBoolean(ProxySection, "LegacyPortDetection", false);
     m_ignoreSignaledIPs = false;
@@ -12227,8 +12226,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
                 }
             }
 
-			if (m_dontQueueRTP)
-				return NoData;
+			return NoData;
 		}
         if (rnat && (!m_portDetectionDone || m_legacyPortDetection)) {
             // RTP bleed
@@ -12262,8 +12260,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
                 }
             }
 
-			if (m_dontQueueRTP)
-				return NoData;
+			return NoData;
         }
         if (fnat && (!m_portDetectionDone || m_legacyPortDetection)) {
             // RTP bleed
@@ -12450,18 +12447,10 @@ bool UDPProxySocket::WriteData(const BYTE *buffer, int len)
 	if (isMute())
 		return true;
 
-	// TODO: since we have to send data in 2 directions (fDestIP + rDestIP),
-	// we should have 2 queues to avoid loopback
-	const int queueSize = GetQueueSize();
-	if (queueSize > 0) {
-		if (queueSize < 50 && !m_dontQueueRTP) {
-			QueuePacket(buffer, len);
-			PTRACE(3, Type() << '\t' << Name() << " socket is busy, " << len << " bytes queued");
-			return false;
-		} else {
-			ClearQueue();
-			PTRACE(3, Type() << '\t' << Name() << " socket queue overflow, dropping queued packets");
-		}
+	// don't queue any RTP data
+	if (GetQueueSize() > 0) {
+		ClearQueue();
+		PTRACE(3, Type() << '\t' << Name() << " socket queue overflow, dropping queued packets");
 	}
 
 	// check if the remote address to send data to has been already determined
@@ -12469,8 +12458,7 @@ bool UDPProxySocket::WriteData(const BYTE *buffer, int len)
 	WORD wport = 0;
 	GetSendAddress(addr, wport);
 	if (wport == 0) {
-		QueuePacket(buffer, len);
-		PTRACE(3, Type() << '\t' << Name() << " socket has no destination address yet, " << len << " bytes queued");
+		PTRACE(3, Type() << '\t' << Name() << " socket has no destination address yet, " << len << " bytes dropped");
 		return false;
 	}
 

@@ -1,5 +1,6 @@
 Changes from 5.2 to 5.3
 =======================
+- remove switch [Proxy]DisableRTPQueueing, always disabled now
 - new routing policy: http with config section [Routing::Http]
 - BUGFIX(ProxyChannel.cxx) fix H.460.18 on multi-homed servers (SCI comes from the correct IP now)
 - new switch to disable SNMP traps [SNMP] EnableTraps=0
@@ -862,7 +863,7 @@ Changes from 2.2.6 to 2.2.7
 - clarified optional rule effect on auth modules, new "alternative" rule added
   WARNING: semantics of optional rules has changed slightly
 - BUGFIX(gk.cxx) don't look for the default config file gatekeeper.ini if -c switch is given
-- BUGFIX(RasTbl.cxx) honor setting of Called/CallingTypeOfNumber in [EP::..] section (patch by Mauricio Nuñez)
+- BUGFIX(RasTbl.cxx) honor setting of Called/CallingTypeOfNumber in [EP::..] section
 - BUGFIX(Toolkit.cxx) fix detection of default IP when host has a default route, but no default gateway
 - SQLBill: implement fixed per-call billing
 - BUGFIX(contrib/sqlbill/sql/src/upgrade_tables.sql): fix wrong foreign key reference

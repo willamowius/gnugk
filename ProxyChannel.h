@@ -273,7 +273,6 @@ protected:
 	bool mute;
 	bool m_isRTPType;
 	bool m_isRTCPType;
-	bool m_dontQueueRTP;
 	bool m_EnableRTCPStats;
 	WORD m_sessionID;
 	RTPLogicalChannel * m_encryptingLC;

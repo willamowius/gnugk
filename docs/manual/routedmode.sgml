@@ -885,14 +885,6 @@ There is a degree of uncertainty when endpoints are behind the same NAT as to
 whether they can communicate directly as one or both may be on subNATs. Disable
 this feature with caution.
 
-<item><tt/DisableRTPQueueing=0/<newline>
-Default: <tt/1/<newline>
-<p>
-Sometimes GnuGk will receive RTP data before it knows where to forward it to.
-GnuGk can buffer this data up to a certain amount and send it once
-the destination becomes available. In some cases this can cause a short loopback
-of RTP data.
-
 <item><tt/EnableRTPMute=1/<newline>
 Default: <tt/0/<newline>
 <p>
