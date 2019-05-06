@@ -1,5 +1,6 @@
 Changes from 5.2 to 5.3
 =======================
+- re-authenticate lightweight, additive registrations only when new aliases differ
 - remove switch [Proxy]DisableRTPQueueing, always disabled now
 - new routing policy: http with config section [Routing::Http]
 - BUGFIX(ProxyChannel.cxx) fix H.460.18 on multi-homed servers (SCI comes from the correct IP now)

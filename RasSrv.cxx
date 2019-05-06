@@ -2303,7 +2303,8 @@ bool RegistrationRequestPDU::Process()
 
 			// Additive Registration lightweightRRQ
 			if (request.HasOptionalField(H225_RegistrationRequest::e_additiveRegistration)
-				&& request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
+				&& request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)
+                && (request.m_terminalAlias != ep->GetAliases())) {
 				// Authenticate the new registration
 				RRQAuthData authData;
 				authData.m_rejectReason = H225_RegistrationRejectReason::e_securityDenial;
