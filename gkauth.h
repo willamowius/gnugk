@@ -596,7 +596,8 @@ class CacheManager
 public:
 	CacheManager(
 		long timeout = -1 /// cache timeout - expiry period (seconds)
-		) : m_ttl(timeout) { }
+		);
+    ~CacheManager();
 
 	/** Get a value associated with the key.
 
@@ -619,6 +620,9 @@ public:
 		long newTimeout /// new cache expiration timeout
 		) { m_ttl = newTimeout; }
 
+    // delete expired entries (doesn't need to run often)
+	void Expire(GkTimer* timer);
+
 private:
 	CacheManager(const CacheManager &);
 	CacheManager & operator=(const CacheManager &);
@@ -632,6 +636,8 @@ private:
 	std::map<PString, time_t> m_ctime;
 	/// mutex for multiple read/mutual write access to the cache
 	mutable PReadWriteMutex m_rwmutex;
+	/// timer to expire entries every now and then to save memory
+    GkTimerManager::GkTimerHandle m_expireTimer;
 };
 
 /** A base class for all authenticators that only checks if username-password

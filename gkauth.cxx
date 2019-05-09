@@ -1026,7 +1026,21 @@ bool GkAuthenticatorList::Validate(Q931 & msg, Q931AuthData & authData)
 	return true;
 }
 
+
 // class CacheManager
+CacheManager::CacheManager(long timeout) : m_ttl(timeout)
+{
+    // start expire timer: every 10 min
+    PTime now;
+    m_expireTimer = Toolkit::Instance()->GetTimerManager()->RegisterTimer(this, &CacheManager::Expire, now, 10 * 60);
+}
+
+CacheManager::~CacheManager()
+{
+    if (m_expireTimer != GkTimerManager::INVALID_HANDLE)
+		Toolkit::Instance()->GetTimerManager()->UnregisterTimer(m_expireTimer);
+}
+
 bool CacheManager::Retrieve(
 	const PString & key, /// the key to look for
 	PString & value /// filled with the value on return
@@ -1060,6 +1074,20 @@ void CacheManager::Save(
 		m_cache[key] = (const char*)value;
 		m_ctime[key] = time(NULL);
 	}
+}
+
+void CacheManager::Expire(GkTimer* /* timer */)
+{
+	ReadLock lock(m_rwmutex);
+
+    for (std::map<PString, time_t>::iterator iter = m_ctime.begin(); iter != m_ctime.end() ; /* nothing */ ) {
+		if (iter->second >= m_ttl) {
+            m_cache.erase(iter->first);
+			m_ctime.erase(iter++);
+		} else {
+            ++ iter;
+		}
+    }
 }
 
 
