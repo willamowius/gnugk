@@ -14867,8 +14867,6 @@ void H245ProxyHandler::UpdateLogicalChannelSessionID(WORD flcn, WORD id)
 		&& (sessionIter != sessionIDs.end())) {
 		sessionIDs.erase(sessionIter);		// remove 0 sessionID
 		sessionIDs[id] = dynamic_cast<RTPLogicalChannel *>(flcnIter->second);	// add new session ID
-	} else {
-		PTRACE(1, "Error: No logical channel found to update");
 	}
 }
 
