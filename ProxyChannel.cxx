@@ -5754,7 +5754,8 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		if (Toolkit::Instance()->IsTLSEnabled() && m_call->GetCalledParty()->UseTLS()) {
 			H460_FeatureStd h46022 = H460_FeatureStd(22);
 			H460_FeatureStd settings;
-			settings.Add(Std22_Priority, H460_FeatureContent(1, 8)); // Priority=1, type=number8
+			// H.460.22 v2.0 says not to send the priority field
+			//settings.Add(Std22_Priority, H460_FeatureContent(1, 8)); // Priority=1, type=number8
 			WORD tlsSignalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "TLSCallSignalPort", GK_DEF_TLS_CALL_SIGNAL_PORT);
 			H225_TransportAddress h225Addr = RasServer::Instance()->GetCallSignalAddress(m_call->GetCalledParty()->GetIP());
 			SetH225Port(h225Addr, tlsSignalPort);
