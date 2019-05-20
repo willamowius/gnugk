@@ -622,7 +622,11 @@ public:
 
 	virtual bool Connect(const Address & addr);
 	virtual PBoolean Connect(const Address & iface, WORD localPort, const Address & addr);	// override from TCPProxySocket
+#ifdef LARGE_FDSET
 	virtual bool Read(void * buf, int sz, bool wantZeroReads = false);
+#else
+	virtual bool Read(void * buf, int sz);
+#endif
 	virtual PINDEX GetLastReadCount() const { return m_lastReadCount; }
 	virtual bool Write(const void * buf, int sz);
 	virtual PINDEX GetLastWriteCount() const { return m_lastWriteCount; }

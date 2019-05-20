@@ -1,5 +1,6 @@
 Changes from 5.2 to 5.3
 =======================
+- BUGFIX(ProxyChannel.cxx) fix TLS without LARGE_FDSET
 - BUGFIX(ProxyChannel.cxx) don't send H.460.22 priority field in SCI
 - BUGFIX(gkauth.cxx) free memory from cached and expired passwords
 - re-authenticate lightweight, additive registrations only when new aliases differ
