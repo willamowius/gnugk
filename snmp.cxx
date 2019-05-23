@@ -35,6 +35,7 @@ const char * const TraceLevelOIDStr      = "1.3.6.1.4.1.27938.11.1.5";
 const char * const CatchAllOIDStr        = "1.3.6.1.4.1.27938.11.1.6";
 const char * const TotalCallsOIDStr      = "1.3.6.1.4.1.27938.11.1.7";
 const char * const SuccessfulCallsOIDStr = "1.3.6.1.4.1.27938.11.1.8";
+const char * const TotalBandwidthOIDStr  = "1.3.6.1.4.1.27938.11.1.9";
 const char * const severityOIDStr        = "1.3.6.1.4.1.27938.11.2.1";
 const char * const groupOIDStr           = "1.3.6.1.4.1.27938.11.2.2";
 const char * const displayMsgOIDStr      = "1.3.6.1.4.1.27938.11.2.3";
@@ -59,6 +60,7 @@ static oid TraceLevelOID[]      = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 5 };
 static oid CatchAllOID[]        = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 6 };
 static oid TotalCallsOID[]      = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 7 };
 static oid SuccessfulCallsOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 8 };
+static oid TotalBandwidthOID[]  = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 9 };
 static oid severityOID[]        = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 1 };
 static oid groupOID[]           = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 2 };
 static oid displayMsgOID[]      = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 3 };
@@ -159,6 +161,22 @@ int calls_handler(netsnmp_mib_handler * /* handler */,
     for (netsnmp_request_info *request = requests; request; request = request->next) {
 		unsigned no_calls = CallTable::Instance()->Size();
 		snmp_set_var_typed_integer(request->requestvb, ASN_UNSIGNED, no_calls);
+	}
+	return SNMPERR_SUCCESS;
+}
+
+int bandwidth_handler(netsnmp_mib_handler * /* handler */,
+							netsnmp_handler_registration * /* reg */,
+							netsnmp_agent_request_info * reqinfo,
+							netsnmp_request_info * requests)
+{
+    PWaitAndSignal lock(g_NetSNMPMutex);
+
+    if (reqinfo->mode != MODE_GET)
+		return SNMPERR_SUCCESS;
+    for (netsnmp_request_info *request = requests; request; request = request->next) {
+		unsigned total_bandwidth = CallTable::Instance()->GetTotalAllocatedBandwidth();
+		snmp_set_var_typed_integer(request->requestvb, ASN_UNSIGNED, total_bandwidth);
 	}
 	return SNMPERR_SUCCESS;
 }
@@ -331,6 +349,8 @@ void NetSNMPAgent::Run()
 		netsnmp_create_handler_registration("catchall", tracelevel_handler, TraceLevelOID, OID_LENGTH(TraceLevelOID), HANDLER_CAN_RWRITE));
 	netsnmp_register_scalar(
 		netsnmp_create_handler_registration("catchall", catchall_handler, CatchAllOID, OID_LENGTH(CatchAllOID), HANDLER_CAN_RWRITE));
+	netsnmp_register_scalar(
+		netsnmp_create_handler_registration("bandwidth", bandwidth_handler, CallsOID, OID_LENGTH(CallsOID), HANDLER_CAN_RONLY));
 
 	init_snmp(agent_name);   // reads $HOME/.snmp/gnugk-agent.conf + $HOME/.snmp/agentx.conf
 
@@ -505,6 +525,9 @@ PBoolean PTLibSNMPAgent::MIB_LocalMatch(PSNMP_PDU & answerPDU)
 		} else if (vars[i].m_name == CallsOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, CallTable::Instance()->Size());
 			found = true;
+		} else if (vars[i].m_name == TotalBandwidthOIDStr + PString(".0")) {
+			SetRFC1155Object(vars[i].m_value, CallTable::Instance()->GetTotalAllocatedBandwidth());
+			found = true;
 		} else if (vars[i].m_name == TotalCallsOIDStr + PString(".0")) {
 			SetRFC1155CounterObject(vars[i].m_value, CallTable::Instance()->TotalCallCount());
 			found = true;
@@ -614,6 +637,9 @@ PString WindowsSNMPAgent::HandleRequest(const PString & request)
 		}
 		if (token[1] == CallsOIDStr + PString(".0")) {
 			return "GET_RESPONSE u " + PString(PString::Unsigned, CallTable::Instance()->Size());
+		}
+		if (token[1] == TotalBandwidthOIDStr + PString(".0")) {
+			return "GET_RESPONSE u " + PString(PString::Unsigned, CallTable::Instance()->GetTotalAllocatedBandwidth());
 		}
 		if (token[1] == TotalCallsOIDStr + PString(".0")) {
 			return "GET_RESPONSE c " + PString(PString::Unsigned, CallTable::Instance()->TotalCallCount());

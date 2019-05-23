@@ -903,6 +903,7 @@ The following OIDs are available:
 <item>1.3.6.1.4.1.27938.11.1.6 CatchAll destination (GET, SET)
 <item>1.3.6.1.4.1.27938.11.1.7 Total calls since startup (GET)
 <item>1.3.6.1.4.1.27938.11.1.8 Successful calls since startup (GET)
+<item>1.3.6.1.4.1.27938.11.1.9 Total bandwidth allocated to ongoing calls in kbps (GET)
 </itemize>
 All of these OIDs are scalars, so please remember to append '.0' when querying them eg. with 'snmpget'.
 

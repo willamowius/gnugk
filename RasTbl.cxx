@@ -5359,6 +5359,17 @@ void CallTable::UpdateEPBandwidth(const endptr & ep, long bw)
 	}
 }
 
+unsigned CallTable::GetTotalAllocatedBandwidth() const // in kbps
+{
+    long used = 0;
+    WriteLock lock(listLock);
+    const_iterator Iter = CallList.begin(), eIter = CallList.end();
+    while (Iter != eIter)
+        used += (*Iter++)->GetBandwidth();
+
+    return ::round(used / 10);
+}
+
 callptr CallTable::FindCallRec(const H225_CallIdentifier & CallId) const
 {
 	return InternalFind(bind2nd(mem_fun(&CallRec::CompareCallId), &CallId));

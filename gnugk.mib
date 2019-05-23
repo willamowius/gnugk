@@ -1,9 +1,9 @@
 -- *****************************************************************
 -- A MIB for the GNU Gatekeeper (GnuGk)
 --
--- May 2012, Jan Willamowius
+-- May 2019, Jan Willamowius
 --
--- Copyright (c) 2008-2012 by Jan Willamowius, https://www.willamowius.com
+-- Copyright (c) 2008-2019 by Jan Willamowius, https://www.willamowius.com
 -- All rights reserved.
 -- *****************************************************************
 --
@@ -22,14 +22,14 @@ IMPORTS
                         FROM SNMPv2-CONF;
 
 gnugkMIB MODULE-IDENTITY
-        LAST-UPDATED    "201205070000Z"
+        LAST-UPDATED    "201905230000Z"
         ORGANIZATION    "GNU Gatekeeper Project"
         CONTACT-INFO
                 "       Jan Willamowius
                    Web: https://www.gnugk.org
                  Email: jan@willamowius.de"
         DESCRIPTION "SNMP MIB for the GNU Gatekeeper"
-        REVISION    "201205070000Z"
+        REVISION    "201905230000Z"
         DESCRIPTION "Draft"
         ::= { enterprises 27938 }
 
@@ -108,6 +108,13 @@ gnugkSuccessfulCalls OBJECT-TYPE
         STATUS        current
         DESCRIPTION   "Successful calls since startup"
         ::= { gnugkStatusObjects 8 }
+
+gnugkBandwidthAllocated OBJECT-TYPE
+        SYNTAX        Unsigned32
+        MAX-ACCESS    read-only
+        STATUS        current
+        DESCRIPTION   "Total bandwidth allocated for all ongoing calls in kbps"
+        ::= { gnugkStatusObjects 9 }
 
 -- data objects for traps / notifications
 

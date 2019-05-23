@@ -1753,6 +1753,8 @@ public:
 	long CheckEPBandwidth(const endptr & ep, long bw) const;
 	void UpdateEPBandwidth(const endptr & ep, long bw);
 
+	unsigned GetTotalAllocatedBandwidth() const; // in kbps
+
 	callptr FindCallRec(const H225_CallIdentifier & CallId) const;
 	callptr FindCallRec(const H225_CallReferenceValue & CallRef) const;
 	callptr FindCallRec(PINDEX CallNumber) const;
