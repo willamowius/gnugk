@@ -15201,7 +15201,10 @@ TLSCallSignalSocket::TLSCallSignalSocket(CallSignalSocket * s, WORD port) : Call
 TLSCallSignalSocket::~TLSCallSignalSocket()
 {
 	if (m_ssl) {
-		SSL_shutdown(m_ssl);
+        ::shutdown(GetHandle(), SHUT_WR);
+		// don't call SSL_shutdown here, it will end other connections from the same parent context
+		// not sure why, but it does
+		//SSL_shutdown(m_ssl);
 		SSL_free(m_ssl);
 		m_ssl = NULL;
 	}

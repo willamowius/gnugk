@@ -1,5 +1,6 @@
 Changes from 5.2 to 5.3
 =======================
+- BUGFIX(ProxyChannel.cxx) fix hangup when making many TLS calls quickly one after another
 - BUGFIX(RasSrv.cxx) don't require H.460.22 parameters in ARQs
 - BUGFIX(ProxyChannel.cxx) fix TLS without LARGE_FDSET
 - BUGFIX(ProxyChannel.cxx) don't send H.460.22 priority field in SCI
