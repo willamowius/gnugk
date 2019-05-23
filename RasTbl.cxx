@@ -5367,7 +5367,7 @@ unsigned CallTable::GetTotalAllocatedBandwidth() const // in kbps
     while (Iter != eIter)
         used += (*Iter++)->GetBandwidth();
 
-    return ::round(used / 10);
+    return used / 10;
 }
 
 callptr CallTable::FindCallRec(const H225_CallIdentifier & CallId) const
