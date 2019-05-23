@@ -5297,7 +5297,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		return;
 	}
 
-	if (!rejectCall && strlen(authData.m_disabledcodecs) > 0)
+	if (!rejectCall && !authData.m_disabledcodecs.IsEmpty())
 		m_call->SetDisabledCodecs(authData.m_disabledcodecs);
 
 	// remove endpointIdentifier from the forwarded Setup
