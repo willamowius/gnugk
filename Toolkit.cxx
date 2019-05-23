@@ -2467,7 +2467,7 @@ bool Toolkit::MatchHostCert(SSL * ssl, PIPSocket::Address addr)
 {
 	bool found = false;
 
-	if (!Toolkit::AsBool(GkConfig()->GetString(TLSSec, "CheckCertificateIP", "0")))
+	if (!GkConfig()->GetBoolean(TLSSec, "CheckCertificateIP", false))
 		return true;	// check disabled
 
 	X509 * cert = SSL_get_peer_certificate(ssl);
