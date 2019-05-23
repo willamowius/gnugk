@@ -3385,7 +3385,6 @@ bool AdmissionRequestPDU::Process()
 		// H.460.22
 		if (fs.HasFeature(22)) {
 			EPSupportsH46022 = true;
-			H460_FeatureStd * std22 = (H460_FeatureStd *)fs.GetFeature(22);
 			EPSupportsH46022TLS = RequestingEP->UseTLS();
 			EPSupportsH46022IPSec = RequestingEP->UseIPSec();
 		}
