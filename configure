@@ -4111,7 +4111,7 @@ fi
 if test "${enable_large_fdset+set}" = set; then :
   enableval=$enable_large_fdset;  largefdset="${enableval}"
 else
-  largefdset="yes"
+  largefdset="no"
 
 fi
 

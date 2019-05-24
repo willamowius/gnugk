@@ -388,7 +388,7 @@ dnl MSWIN_DEFINE     large-fdset,LARGE_FDSET=1
 
 AC_ARG_ENABLE(large-fdset,
 [  --enable-large-fdset    support large number of sockets (default=no)],
-[ largefdset="${enableval}" ], [largefdset="yes"]
+[ largefdset="${enableval}" ], [largefdset="no"]
 )
 
 if test "x${largefdset}" != "xno" ; then
