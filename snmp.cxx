@@ -40,7 +40,10 @@ const char * const severityOIDStr        = "1.3.6.1.4.1.27938.11.2.1";
 const char * const groupOIDStr           = "1.3.6.1.4.1.27938.11.2.2";
 const char * const displayMsgOIDStr      = "1.3.6.1.4.1.27938.11.2.3";
 
+const char * const sysDescrOIDStr        = "1.3.6.1.2.1.1.1";
+const char * const sysObjectIDOIDStr     = "1.3.6.1.2.1.1.2";
 const char * const sysUpTimeOIDStr       = "1.3.6.1.2.1.1.3";
+const char * const sysNameOIDStr         = "1.3.6.1.2.1.1.5";
 
 
 #ifdef HAS_NETSNMP
@@ -520,52 +523,59 @@ void SetRFC1155Object(PRFC1155_ObjectSyntax & obj, const PString & str)
 	obj = *newObj;
 }
 
+void SetRFC1155OIDObject(PRFC1155_ObjectSyntax & obj, const PString & str)
+{
+	PRFC1155_SimpleSyntax simple(PRFC1155_SimpleSyntax::e_object);
+	PRFC1155_ObjectSyntax * newObj = (PRFC1155_ObjectSyntax*)&simple;
+	PASN_ObjectId * idObj = (PASN_ObjectId *)&simple.GetObject();
+	idObj->SetValue(str);
+	obj = *newObj;
+}
+
 PBoolean PTLibSNMPAgent::MIB_LocalMatch(PSNMP_PDU & answerPDU)
 {
 	PSNMP_VarBindList & vars = answerPDU.m_variable_bindings;
-	bool found = false;
 
 	for (PINDEX i = 0; i < vars.GetSize(); i++){
+        // GnuGk's OIDs
 		if (vars[i].m_name == ShortVersionOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, PProcess::Current().GetVersion(true));
-			found = true;
 		} else if (vars[i].m_name == LongVersionOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, Toolkit::GKVersion());
-			found = true;
 		} else if (vars[i].m_name == RegistrationsOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, RegistrationTable::Instance()->Size());
-			found = true;
 		} else if (vars[i].m_name == CallsOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, CallTable::Instance()->Size());
-			found = true;
 		} else if (vars[i].m_name == TotalBandwidthOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, CallTable::Instance()->GetTotalAllocatedBandwidth());
-			found = true;
 		} else if (vars[i].m_name == TotalCallsOIDStr + PString(".0")) {
 			SetRFC1155CounterObject(vars[i].m_value, CallTable::Instance()->TotalCallCount());
-			found = true;
 		} else if (vars[i].m_name == SuccessfulCallsOIDStr + PString(".0")) {
 			SetRFC1155CounterObject(vars[i].m_value, CallTable::Instance()->SuccessfulCallCount());
-			found = true;
 		} else if (vars[i].m_name == TraceLevelOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, PTrace::GetLevel());
-			found = true;
 		} else if (vars[i].m_name == CatchAllOIDStr + PString(".0")) {
 			PString catchAllDest = GkConfig()->GetString("Routing::CatchAll", "CatchAllIP", "");
 			if (catchAllDest.IsEmpty())
 				catchAllDest = GkConfig()->GetString("Routing::CatchAll", "CatchAllAlias", "catchall");
 			SetRFC1155Object(vars[i].m_value, catchAllDest);
-			found = true;
+
+        // generic OIDs
+		} else if (vars[i].m_name == sysDescrOIDStr + PString(".0")) {
+			SetRFC1155Object(vars[i].m_value, "GNU Gatekeeper " + PProcess::Current().GetVersion(true));
+		} else if (vars[i].m_name == sysObjectIDOIDStr + PString(".0")) {
+			SetRFC1155OIDObject(vars[i].m_value, LongVersionOIDStr);
 		} else if (vars[i].m_name == sysUpTimeOIDStr + PString(".0")) {
 			SetRFC1155TicksObject(vars[i].m_value, SoftPBX::UptimeTicks());
-			found = true;
-
+		} else if (vars[i].m_name == sysNameOIDStr + PString(".0")) {
+			SetRFC1155Object(vars[i].m_value, Toolkit::Instance()->GKName());
 		} else {
 		    PTRACE(2, "SNMP\tWarning: Ignoring SNMP GET (unsupported OID " << vars[i].m_name << ")");
+		    return false;
 		}
 	}
 
-	return found;
+	return true;
 }
 
 #endif	// HAS_PTLIBSNMP
