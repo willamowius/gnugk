@@ -40,6 +40,8 @@ const char * const severityOIDStr        = "1.3.6.1.4.1.27938.11.2.1";
 const char * const groupOIDStr           = "1.3.6.1.4.1.27938.11.2.2";
 const char * const displayMsgOIDStr      = "1.3.6.1.4.1.27938.11.2.3";
 
+const char * const sysUpTimeOIDStr       = "1.3.6.1.2.1.1.3";
+
 
 #ifdef HAS_NETSNMP
 
@@ -445,9 +447,11 @@ PBoolean PTLibSNMPAgent::Authorise(const PIPSocket::Address & ip)
 
 		NetworkAddress net = NetworkAddress(networks[n]);
 		if (ip << net) {
+            PTRACE(4, "SNMP\tAccepting SNMP request from " << ip);
 			return PTrue;
 		}
 	}
+    PTRACE(2, "SNMP\tWarning: Rejecting SNMP request from " << ip);
 	return PFalse;
 }
 
@@ -492,6 +496,15 @@ void SetRFC1155Object(PRFC1155_ObjectSyntax & obj, unsigned i)
 void SetRFC1155CounterObject(PRFC1155_ObjectSyntax & obj, unsigned i)
 {
 	PRFC1155_ApplicationSyntax appl(PRFC1155_ApplicationSyntax::e_counter);
+	PRFC1155_ObjectSyntax * newObj = (PRFC1155_ObjectSyntax*)&appl;
+	PASN_Integer * num = (PASN_Integer *)&appl.GetObject();
+	num->SetValue(i);
+	obj = *newObj;
+}
+
+void SetRFC1155TicksObject(PRFC1155_ObjectSyntax & obj, unsigned i)
+{
+	PRFC1155_ApplicationSyntax appl(PRFC1155_ApplicationSyntax::e_ticks);
 	PRFC1155_ObjectSyntax * newObj = (PRFC1155_ObjectSyntax*)&appl;
 	PASN_Integer * num = (PASN_Integer *)&appl.GetObject();
 	num->SetValue(i);
@@ -543,6 +556,12 @@ PBoolean PTLibSNMPAgent::MIB_LocalMatch(PSNMP_PDU & answerPDU)
 				catchAllDest = GkConfig()->GetString("Routing::CatchAll", "CatchAllAlias", "catchall");
 			SetRFC1155Object(vars[i].m_value, catchAllDest);
 			found = true;
+		} else if (vars[i].m_name == sysUpTimeOIDStr + PString(".0")) {
+			SetRFC1155TicksObject(vars[i].m_value, SoftPBX::UptimeTicks());
+			found = true;
+
+		} else {
+		    PTRACE(2, "SNMP\tWarning: Ignoring SNMP GET (unsupported OID " << vars[i].m_name << ")");
 		}
 	}
 
@@ -628,40 +647,33 @@ PString WindowsSNMPAgent::HandleRequest(const PString & request)
 	if ((token.GetSize() == 2) && (token[0] == "GET")) {
 		if (token[1] == ShortVersionOIDStr + PString(".0")) {
 			return "GET_RESPONSE s " + PProcess::Current().GetVersion(true);
-		}
-		if (token[1] == LongVersionOIDStr + PString(".0")) {
+		} else if (token[1] == LongVersionOIDStr + PString(".0")) {
 			return "GET_RESPONSE s " + Toolkit::GKVersion();
-		}
-		if (token[1] == RegistrationsOIDStr + PString(".0")) {
+		} else if (token[1] == RegistrationsOIDStr + PString(".0")) {
 			return "GET_RESPONSE u " + PString(PString::Unsigned, RegistrationTable::Instance()->Size());
-		}
-		if (token[1] == CallsOIDStr + PString(".0")) {
+		} else if (token[1] == CallsOIDStr + PString(".0")) {
 			return "GET_RESPONSE u " + PString(PString::Unsigned, CallTable::Instance()->Size());
-		}
-		if (token[1] == TotalBandwidthOIDStr + PString(".0")) {
+		} else if (token[1] == TotalBandwidthOIDStr + PString(".0")) {
 			return "GET_RESPONSE u " + PString(PString::Unsigned, CallTable::Instance()->GetTotalAllocatedBandwidth());
-		}
-		if (token[1] == TotalCallsOIDStr + PString(".0")) {
+		} else if (token[1] == TotalCallsOIDStr + PString(".0")) {
 			return "GET_RESPONSE c " + PString(PString::Unsigned, CallTable::Instance()->TotalCallCount());
-		}
-		if (token[1] == SuccessfulCallsOIDStr + PString(".0")) {
+		} else if (token[1] == SuccessfulCallsOIDStr + PString(".0")) {
 			return "GET_RESPONSE c " + PString(PString::Unsigned, CallTable::Instance()->SuccessfulCallCount());
-		}
-		if (token[1] == TraceLevelOIDStr + PString(".0")) {
+		} else if (token[1] == TraceLevelOIDStr + PString(".0")) {
 			return "GET_RESPONSE u " + PString(PString::Unsigned, PTrace::GetLevel());
-		}
-		if (token[1] == CatchAllOIDStr + PString(".0")) {
+		} else if (token[1] == CatchAllOIDStr + PString(".0")) {
 			PString catchAllDest = GkConfig()->GetString("Routing::CatchAll", "CatchAllIP", "");
 			if (catchAllDest.IsEmpty())
 				catchAllDest = GkConfig()->GetString("Routing::CatchAll", "CatchAllAlias", "catchall");
 			return "GET_RESPONSE s " + catchAllDest;
+		} else {
+		    PTRACE(2, "SNMP\tWarning: Ignoring SNMP GET (unsupported OID " << token[1] << ")");
 		}
 	} else if ((token.GetSize() == 3) && (token[0] == "SET")) {
 		if (token[1] == TraceLevelOIDStr + PString(".0")) {
 			PTrace::SetLevel(token[2].AsUnsigned());
 			return "SET_RESPONSE u " + PString(PString::Unsigned, PTrace::GetLevel());
-		}
-		if (token[1] == CatchAllOIDStr + PString(".0")) {
+		} else if (token[1] == CatchAllOIDStr + PString(".0")) {
 			if (IsIPAddress(token[2])) {
 				Toolkit::Instance()->SetConfig(1, "Routing::CatchAll", "CatchAllIP", token[2]);
 				Toolkit::Instance()->SetConfig(1, "Routing::CatchAll", "CatchAllAlias", "");
@@ -671,6 +683,8 @@ PString WindowsSNMPAgent::HandleRequest(const PString & request)
 			}
 			ReloadHandler();
 			return "SET_RESPONSE s " + token[2];
+		} else {
+		    PTRACE(2, "SNMP\tError: Ignoring SNMP SET (unsupported OID " << token[1] << ")");
 		}
 	}
 	return "ERROR";

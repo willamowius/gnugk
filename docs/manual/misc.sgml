@@ -907,6 +907,9 @@ The following OIDs are available:
 </itemize>
 All of these OIDs are scalars, so please remember to append '.0' when querying them eg. with 'snmpget'.
 
+When running as a standalone agent, the PTLib SNMP agent will also answer to sysUptime (OID 1.3.6.1.2.1.1.3)
+that is often used to 'ping' SNMP devices.
+
 Note: Setting the CatchAll destination via SNMP will update the config file
 to make the change permanent. Setting the trace level is a temporary setting.
 

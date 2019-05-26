@@ -1,5 +1,6 @@
 Changes from 5.2 to 5.3
 =======================
+- support SNMP sysUpTime when running as standalone agent
 - BUGFIX(configure.in) LARGE_FDSET defaults to off
 - new SNMP OID 1.3.6.1.4.1.27938.11.1.9 to query total bandwidth allocated to ongoing calls
 - BUGFIX(ProxyChannel.cxx) fix hangup when making many TLS calls quickly one after another

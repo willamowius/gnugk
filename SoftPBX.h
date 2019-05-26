@@ -58,6 +58,7 @@ namespace SoftPBX
 	void MaintenanceMode(bool on, const PString & alternate = "");
 
 	PString Uptime();
+	unsigned UptimeTicks();
 
 	extern int TimeToLive;
 	extern PTime StartUp;

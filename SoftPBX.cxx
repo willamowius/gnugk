@@ -607,3 +607,8 @@ PString SoftPBX::Uptime()
 			(const char *)SoftPBX::StartUp.AsString(),
 			days, hour, min, sec);
 }
+
+unsigned SoftPBX::UptimeTicks()
+{
+	return (PTime() - SoftPBX::StartUp).GetMilliSeconds() / 10;
+}
