@@ -44,6 +44,7 @@ HEADERS  = GkClient.h GkStatus.h Neighbor.h ProxyChannel.h RasPDU.h \
 
 # add cleanup files for non-default targets
 CLEAN_FILES += docs/manual/*.html
+CLEAN_FILES += testrunner
 # add cleanup files for autoconf
 #CLEAN_FILES += Makefile config.*
 
