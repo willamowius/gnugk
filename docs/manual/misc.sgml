@@ -874,7 +874,7 @@ process, so if SNMP doesn't work ensure that your PTLib <tt>wasn't</tt>
 compiled with <tt>--disable-snmp</tt>
 
 Using PTLib rather than the fully-featured Net-SNMP means that only traps
-and GET requests are supported.  See below for the additional switches
+and GET / GET-NEXT requests are supported.  See below for the additional switches
 which are required when using PTLib for SNMP.
 
 The <tt>Windows</tt> implementation integrates as a sub-agent into

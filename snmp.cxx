@@ -26,6 +26,12 @@
 
 void ReloadHandler();
 
+// NOTE: all OIDs must also be in m_nextList for PTLib-SNMP !
+const char * const sysDescrOIDStr        = "1.3.6.1.2.1.1.1";
+const char * const sysObjectIDOIDStr     = "1.3.6.1.2.1.1.2";
+const char * const sysUpTimeOIDStr       = "1.3.6.1.2.1.1.3";
+const char * const sysNameOIDStr         = "1.3.6.1.2.1.1.5";
+
 const char * const GnuGkMIBStr           = "1.3.6.1.4.1.27938.11";
 const char * const ShortVersionOIDStr    = "1.3.6.1.4.1.27938.11.1.1";
 const char * const LongVersionOIDStr     = "1.3.6.1.4.1.27938.11.1.2";
@@ -36,14 +42,12 @@ const char * const CatchAllOIDStr        = "1.3.6.1.4.1.27938.11.1.6";
 const char * const TotalCallsOIDStr      = "1.3.6.1.4.1.27938.11.1.7";
 const char * const SuccessfulCallsOIDStr = "1.3.6.1.4.1.27938.11.1.8";
 const char * const TotalBandwidthOIDStr  = "1.3.6.1.4.1.27938.11.1.9";
+
 const char * const severityOIDStr        = "1.3.6.1.4.1.27938.11.2.1";
 const char * const groupOIDStr           = "1.3.6.1.4.1.27938.11.2.2";
 const char * const displayMsgOIDStr      = "1.3.6.1.4.1.27938.11.2.3";
 
-const char * const sysDescrOIDStr        = "1.3.6.1.2.1.1.1";
-const char * const sysObjectIDOIDStr     = "1.3.6.1.2.1.1.2";
-const char * const sysUpTimeOIDStr       = "1.3.6.1.2.1.1.3";
-const char * const sysNameOIDStr         = "1.3.6.1.2.1.1.5";
+const char * const NoNextOIDStr          = "99.99";
 
 
 #ifdef HAS_NETSNMP
@@ -66,6 +70,7 @@ static oid CatchAllOID[]        = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 6 };
 static oid TotalCallsOID[]      = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 7 };
 static oid SuccessfulCallsOID[] = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 8 };
 static oid TotalBandwidthOID[]  = { 1, 3, 6, 1, 4, 1, 27938, 11, 1, 9 };
+
 static oid severityOID[]        = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 1 };
 static oid groupOID[]           = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 2 };
 static oid displayMsgOID[]      = { 1, 3, 6, 1, 4, 1, 27938, 11, 2, 3 };
@@ -420,7 +425,7 @@ public:
 	virtual PBoolean MIB_LocalMatch(PSNMP_PDU & answerPDU);
 
   protected:
-    PRFC1155_SimpleSyntax sys_description;
+    list<PString> m_nextList;
 };
 
 
@@ -429,6 +434,21 @@ PTLibSNMPAgent::PTLibSNMPAgent()
 		(WORD)GkConfig()->GetInteger(SNMPSection, "AgentListenPort", 161))
 {
 	PTRACE(1, "SNMP\tStarting SNMP agent (PTLib)");
+	// NOTE: the list must have _all_ OIDs we support in _numerical_order_
+	m_nextList.push_back(sysDescrOIDStr);
+	m_nextList.push_back(sysObjectIDOIDStr);
+	m_nextList.push_back(sysUpTimeOIDStr);
+	m_nextList.push_back(sysNameOIDStr);
+
+	m_nextList.push_back(ShortVersionOIDStr);
+	m_nextList.push_back(LongVersionOIDStr);
+	m_nextList.push_back(RegistrationsOIDStr);
+	m_nextList.push_back(CallsOIDStr);
+	m_nextList.push_back(TraceLevelOIDStr);
+	m_nextList.push_back(CatchAllOIDStr);
+	m_nextList.push_back(TotalCallsOIDStr);
+	m_nextList.push_back(SuccessfulCallsOIDStr);
+	m_nextList.push_back(TotalBandwidthOIDStr);
 }
 
 PTLibSNMPAgent::~PTLibSNMPAgent()
@@ -439,7 +459,7 @@ PTLibSNMPAgent::~PTLibSNMPAgent()
 PBoolean PTLibSNMPAgent::Authorise(const PIPSocket::Address & ip)
 {
 	PStringArray networks = GkConfig()->GetString(SNMPSection, "AllowRequestsFrom", "").Tokenise(",", FALSE);
-	for (PINDEX n=0; n < networks.GetSize(); ++n) {
+	for (PINDEX n = 0; n < networks.GetSize(); ++n) {
 		if (networks[n].Find('/') == P_MAX_INDEX) {
             if (IsIPv4Address(networks[n])) {
                 networks[n] += "/32";	// add netmask to pure IPs
@@ -471,7 +491,18 @@ PBoolean PTLibSNMPAgent::OnGetRequest(PINDEX reqID, PSNMP::BindingList & vars, P
 
 PBoolean PTLibSNMPAgent::OnGetNextRequest(PINDEX reqID, PSNMP::BindingList & vars, PSNMP::ErrorType & errCode)
 {
-	return PTrue; // allow GETNEXT requests
+    PString oid = vars.front().first;
+    list<PString>::iterator it = m_nextList.begin();
+    while(it != m_nextList.end() && *it < oid) { // TODO: fix < operator, using string compare, should use numerical compare
+        ++it;
+    }
+    if (it != m_nextList.end() /* TODO: && is in same space? */) {
+        vars.front().first = *it + PString(".0");
+	    return PTrue; // allow GET-NEXT requests
+    } else {
+        vars.front().first = NoNextOIDStr + PString(".0");
+        return PTrue; // no further OID found
+    }
 }
 
 PBoolean PTLibSNMPAgent::OnSetRequest(PINDEX reqID, PSNMP::BindingList & vars, PSNMP::ErrorType & errCode)
@@ -541,7 +572,7 @@ PBoolean PTLibSNMPAgent::MIB_LocalMatch(PSNMP_PDU & answerPDU)
 		if (vars[i].m_name == ShortVersionOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, PProcess::Current().GetVersion(true));
 		} else if (vars[i].m_name == LongVersionOIDStr + PString(".0")) {
-			SetRFC1155Object(vars[i].m_value, Toolkit::GKVersion());
+			SetRFC1155Object(vars[i].m_value, Toolkit::GKVersion().Trim());
 		} else if (vars[i].m_name == RegistrationsOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, RegistrationTable::Instance()->Size());
 		} else if (vars[i].m_name == CallsOIDStr + PString(".0")) {
@@ -569,6 +600,11 @@ PBoolean PTLibSNMPAgent::MIB_LocalMatch(PSNMP_PDU & answerPDU)
 			SetRFC1155TicksObject(vars[i].m_value, SoftPBX::UptimeTicks());
 		} else if (vars[i].m_name == sysNameOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, Toolkit::Instance()->GKName());
+
+        // dummy OID to signal end in Get-Next
+		} else if (vars[i].m_name == NoNextOIDStr + PString(".0")) {
+			SetRFC1155Object(vars[i].m_value, 0);
+
 		} else {
 		    PTRACE(2, "SNMP\tWarning: Ignoring SNMP GET (unsupported OID " << vars[i].m_name << ")");
 		    return false;
