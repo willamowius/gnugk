@@ -388,9 +388,9 @@ class PTLibSNMPAgent;
 
 void SendPTLibSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg)
 {
-	PTRACE(5, "SNMP\tSendSNMPTrap " << trapNumber << ", " << severity << ", " << group << ", " << msg);
 	PString trapHost = GkConfig()->GetString(SNMPSection, "TrapHost", "");
 	if (!trapHost.IsEmpty()) {
+    	PTRACE(5, "SNMP\tSendSNMPTrap " << trapNumber << ", " << severity << ", " << group << ", " << msg);
 		// DNS resolve TrapHost
 		PIPSocket::Address trapHostIP;
 		H323TransportAddress addr = H323TransportAddress(trapHost);
@@ -491,7 +491,7 @@ PBoolean PTLibSNMPAgent::OnGetRequest(PINDEX reqID, PSNMP::BindingList & vars, P
 
 PBoolean PTLibSNMPAgent::OnGetNextRequest(PINDEX reqID, PSNMP::BindingList & vars, PSNMP::ErrorType & errCode)
 {
-    PString oid = vars.front().first;
+    const PString & oid = vars.front().first;
     list<PString>::const_iterator it = m_nextList.begin();
     while(it != m_nextList.end() && (OIDCmp(*it, oid) == -1)) {
         ++it;
