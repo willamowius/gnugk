@@ -208,6 +208,10 @@ PString GetGUIDString(
  */
 H225_CallIdentifier StringToCallId(PString CallId);
 
+/** compare two OIDs in string format numerically
+ */
+int OIDCmp(const PString & oid1, const PString & oid2);
+
 /** Check if the given #alias# is present on the list of #aliases#.
 
     @return

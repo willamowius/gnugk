@@ -3,7 +3,7 @@
  *
  * unit tests for h323util.cxx
  *
- * Copyright (c) 2011-2018, Jan Willamowius
+ * Copyright (c) 2011-2019, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -437,6 +437,14 @@ TEST_F(H323UtilTest, IPAndPortAddress) {
     addr1.Set(ip2, port);
     EXPECT_TRUE(addr1 == addr2);
     EXPECT_FALSE(addr1 != addr2);
+}
+
+TEST_F(H323UtilTest, OIDCompare) {
+	PString oid1 = "1.2.9.4";
+	PString oid2 = "1.2.10.4";
+    EXPECT_TRUE(OIDCmp(oid1, oid1) == 0);
+    EXPECT_TRUE(OIDCmp(oid1, oid2) < 0);
+    EXPECT_TRUE(OIDCmp(oid2, oid1) > 0);
 }
 
 }  // namespace

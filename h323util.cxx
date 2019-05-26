@@ -2,7 +2,7 @@
 //
 // H.323 utility functions
 //
-// Copyright (c) 2000-2018, Jan Willamowius
+// Copyright (c) 2000-2019, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -802,6 +802,21 @@ H225_CallIdentifier StringToCallId(PString CallId)
 	OpalGloballyUniqueID tmp_guid(CallId);
 	result.m_guid = tmp_guid;
 	return result;
+}
+
+/** compare two OIDs in string format numerically
+ */
+int OIDCmp(const PString & oid1, const PString & oid2)
+{
+	if (oid1 == oid2)
+		return 0;
+
+	PASN_ObjectId o1;
+	o1.SetValue(oid1);
+	PASN_ObjectId o2;
+	o2.SetValue(oid2);
+
+	return (o1 < o2 ? -1 : +1);
 }
 
 PINDEX GetBestAliasAddressIndex(

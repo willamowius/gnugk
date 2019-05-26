@@ -486,19 +486,19 @@ PBoolean PTLibSNMPAgent::ConfirmCommunity(PASN_OctetString & community)
 
 PBoolean PTLibSNMPAgent::OnGetRequest(PINDEX reqID, PSNMP::BindingList & vars, PSNMP::ErrorType & errCode)
 {
-	return PTrue; // allow GET requests
+	return PTrue; // respond to GET request
 }
 
 PBoolean PTLibSNMPAgent::OnGetNextRequest(PINDEX reqID, PSNMP::BindingList & vars, PSNMP::ErrorType & errCode)
 {
     PString oid = vars.front().first;
-    list<PString>::iterator it = m_nextList.begin();
-    while(it != m_nextList.end() && *it < oid) { // TODO: fix < operator, using string compare, should use numerical compare
+    list<PString>::const_iterator it = m_nextList.begin();
+    while(it != m_nextList.end() && (OIDCmp(*it, oid) == -1)) {
         ++it;
     }
     if (it != m_nextList.end() /* TODO: && is in same space? */) {
         vars.front().first = *it + PString(".0");
-	    return PTrue; // allow GET-NEXT requests
+	    return PTrue; // respond to GET-NEXT request
     } else {
         vars.front().first = NoNextOIDStr + PString(".0");
         return PTrue; // no further OID found
@@ -507,8 +507,45 @@ PBoolean PTLibSNMPAgent::OnGetNextRequest(PINDEX reqID, PSNMP::BindingList & var
 
 PBoolean PTLibSNMPAgent::OnSetRequest(PINDEX reqID, PSNMP::BindingList & vars, PSNMP::ErrorType & errCode)
 {
-	// SET operation is broken in PTLib PSNMPServer, at least in 2.10.x
-	return PFalse;	// doesn't work
+	// SET operation is broken in PTLib PSNMPServer, you need a patched 2.10.9 version later than 2019-05-26
+    list< pair<PString, PRFC1155_ObjectSyntax> >::const_iterator iter = vars.begin();
+    while (iter != vars.end()) {
+        const PString & oid = iter->first;
+        const PRFC1155_ObjectSyntax & value = iter->second;
+
+		if (oid == TraceLevelOIDStr + PString(".0")) {
+            if (value.GetTag() == PRFC1155_SimpleSyntax::e_number) {
+                const PRFC1155_SimpleSyntax & simple = value;
+                const PASN_Integer & num = simple;
+                PTRACE(4, "SNMP\tSetting trace level to " << num.GetValue());
+                PTrace::SetLevel(num.GetValue());
+            } else {
+                errCode = BadValue;
+            }
+		} else if (oid == CatchAllOIDStr + PString(".0")) {
+            if (value.GetTag() == PRFC1155_SimpleSyntax::e_string) {
+                const PRFC1155_SimpleSyntax & simple = value;
+                const PASN_OctetString & str = simple;
+                PString dest = AsString(str.GetValue());
+                PTRACE(4, "SNMP\tSetting CatchAll to " << dest);
+                if (IsIPAddress(dest)) {
+                    Toolkit::Instance()->SetConfig(1, "Routing::CatchAll", "CatchAllIP", dest);
+                    Toolkit::Instance()->SetConfig(1, "Routing::CatchAll", "CatchAllAlias", "");
+                } else {
+                    Toolkit::Instance()->SetConfig(1, "Routing::CatchAll", "CatchAllIP", "");
+                    Toolkit::Instance()->SetConfig(1, "Routing::CatchAll", "CatchAllAlias", dest);
+                }
+                ReloadHandler();
+            } else {
+                errCode = BadValue;
+            }
+		} else {
+		    PTRACE(2, "SNMP\tWarning: SNMP SET for unsupported OID " << oid);
+		    errCode = NoSuchName;
+		}
+        ++iter;
+    }
+	return PTrue; // send response
 }
 
 // 0=SNMPv1, 1=SNMPv2
@@ -565,49 +602,50 @@ void SetRFC1155OIDObject(PRFC1155_ObjectSyntax & obj, const PString & str)
 
 PBoolean PTLibSNMPAgent::MIB_LocalMatch(PSNMP_PDU & answerPDU)
 {
-	PSNMP_VarBindList & vars = answerPDU.m_variable_bindings;
+	const PSNMP_VarBindList & vars = answerPDU.m_variable_bindings;
 
-	for (PINDEX i = 0; i < vars.GetSize(); i++){
+	for (PINDEX i = 0; i < vars.GetSize(); i++) {
+        const PRFC1155_ObjectName & oid = vars[i].m_name;
         // GnuGk's OIDs
-		if (vars[i].m_name == ShortVersionOIDStr + PString(".0")) {
+		if (oid == ShortVersionOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, PProcess::Current().GetVersion(true));
-		} else if (vars[i].m_name == LongVersionOIDStr + PString(".0")) {
+		} else if (oid == LongVersionOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, Toolkit::GKVersion().Trim());
-		} else if (vars[i].m_name == RegistrationsOIDStr + PString(".0")) {
+		} else if (oid == RegistrationsOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, RegistrationTable::Instance()->Size());
-		} else if (vars[i].m_name == CallsOIDStr + PString(".0")) {
+		} else if (oid == CallsOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, CallTable::Instance()->Size());
-		} else if (vars[i].m_name == TotalBandwidthOIDStr + PString(".0")) {
+		} else if (oid == TotalBandwidthOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, CallTable::Instance()->GetTotalAllocatedBandwidth());
-		} else if (vars[i].m_name == TotalCallsOIDStr + PString(".0")) {
+		} else if (oid == TotalCallsOIDStr + PString(".0")) {
 			SetRFC1155CounterObject(vars[i].m_value, CallTable::Instance()->TotalCallCount());
-		} else if (vars[i].m_name == SuccessfulCallsOIDStr + PString(".0")) {
+		} else if (oid == SuccessfulCallsOIDStr + PString(".0")) {
 			SetRFC1155CounterObject(vars[i].m_value, CallTable::Instance()->SuccessfulCallCount());
-		} else if (vars[i].m_name == TraceLevelOIDStr + PString(".0")) {
+		} else if (oid == TraceLevelOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, PTrace::GetLevel());
-		} else if (vars[i].m_name == CatchAllOIDStr + PString(".0")) {
+		} else if (oid == CatchAllOIDStr + PString(".0")) {
 			PString catchAllDest = GkConfig()->GetString("Routing::CatchAll", "CatchAllIP", "");
 			if (catchAllDest.IsEmpty())
 				catchAllDest = GkConfig()->GetString("Routing::CatchAll", "CatchAllAlias", "catchall");
 			SetRFC1155Object(vars[i].m_value, catchAllDest);
 
         // generic OIDs
-		} else if (vars[i].m_name == sysDescrOIDStr + PString(".0")) {
+		} else if (oid == sysDescrOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, "GNU Gatekeeper " + PProcess::Current().GetVersion(true));
-		} else if (vars[i].m_name == sysObjectIDOIDStr + PString(".0")) {
+		} else if (oid == sysObjectIDOIDStr + PString(".0")) {
 			SetRFC1155OIDObject(vars[i].m_value, LongVersionOIDStr);
-		} else if (vars[i].m_name == sysUpTimeOIDStr + PString(".0")) {
+		} else if (oid == sysUpTimeOIDStr + PString(".0")) {
 			SetRFC1155TicksObject(vars[i].m_value, SoftPBX::UptimeTicks());
-		} else if (vars[i].m_name == sysNameOIDStr + PString(".0")) {
+		} else if (oid == sysNameOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, Toolkit::Instance()->GKName());
 
         // dummy OID to signal end in Get-Next
-		} else if (vars[i].m_name == NoNextOIDStr + PString(".0")) {
+		} else if (oid == NoNextOIDStr + PString(".0")) {
 			SetRFC1155Object(vars[i].m_value, 0);
 
 		} else {
-		    PTRACE(2, "SNMP\tWarning: Ignoring SNMP GET (unsupported OID " << vars[i].m_name << ")");
-		    return false;
+		    PTRACE(2, "SNMP\tWarning: SNMP GET for unsupported OID " << oid);
+		    answerPDU.m_error_status = PSNMP::NoSuchName;
 		}
 	}
 
