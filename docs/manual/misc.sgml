@@ -845,10 +845,12 @@ The Net-SNMP implementation is by far the best implementation, use it if you can
 
 <item><tt/EnableTraps=0/<newline>
 Default: <tt>1</tt><newline>
+<p>
 Enable or disable throwing SNMP traps. By default error traps are thrown.
 
 <item><tt/EnableWarningTraps=1/<newline>
 Default: <tt>0</tt><newline>
+<p>
 Also throw traps with warnings. If you enable warning traps, make sure you have
 good trap filtering in place in your management application.
 Many warnings can be generated in harmles situations where GnuGk can't decide if its a real error or not.
