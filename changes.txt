@@ -1,6 +1,6 @@
 Changes from 5.2 to 5.3
 =======================
-- changed default: PTlib
+- changed default: [SNMP] Implementation=PTlib
 - remove unfinished Windows-SNMP implementation, use PTLib-SNMP on Windows
 - support SET and GET-NEXT in PTLib-SNMP
 - support SNMP sysUpTime when running as standalone agent
