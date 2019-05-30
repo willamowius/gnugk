@@ -1,5 +1,7 @@
 Changes from 5.2 to 5.3
 =======================
+- changed default: PTlib
+- remove unfinished Windows-SNMP implementation, use PTLib-SNMP on Windows
 - support SET and GET-NEXT in PTLib-SNMP
 - support SNMP sysUpTime when running as standalone agent
 - BUGFIX(configure.in) LARGE_FDSET defaults to off

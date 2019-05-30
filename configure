@@ -5079,8 +5079,6 @@ fi
 
 
 
-
-
 # Check whether --enable-ptlibsnmp was given.
 if test "${enable_ptlibsnmp+set}" = set; then :
   enableval=$enable_ptlibsnmp;  ptlibsnmp="${enableval}"

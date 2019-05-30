@@ -1046,13 +1046,6 @@ fi
 AC_SUBST(HAS_NETSNMP)
 
 dnl ########################################################################
-dnl Set support for Windows SNMP
-dnl ########################################################################
-
-dnl MSWIN_DISPLAY    winsnmp,Windows SNMP support
-dnl MSWIN_DEFINE     winsnmp,HAS_WINSNMP
-
-dnl ########################################################################
 dnl Check for PTLib SNMP
 dnl ########################################################################
 

@@ -276,7 +276,7 @@
 	#endif
 #endif
 
-#if defined(HAS_PTLIBSNMP) || defined(HAS_NETSNMP) || defined(HAS_WINSNMP)
+#if defined(HAS_PTLIBSNMP) || defined(HAS_NETSNMP)
     #define HAS_SNMP 1
 #endif
 

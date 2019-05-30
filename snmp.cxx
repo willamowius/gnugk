@@ -655,147 +655,9 @@ PBoolean PTLibSNMPAgent::MIB_LocalMatch(PSNMP_PDU & answerPDU)
 #endif	// HAS_PTLIBSNMP
 
 
-#ifdef HAS_WINSNMP
-
-#define BUFSIZE 512
-const char * const getPipename = "\\\\.\\pipe\\GnuGkGetSNMP";
-const char * const trapPipename = "\\\\.\\pipe\\GnuGkTrapSNMP";
-
-class WindowsSNMPAgent : public Singleton<WindowsSNMPAgent>
-{
-public:
-	WindowsSNMPAgent();
-	virtual ~WindowsSNMPAgent();
-
-	virtual void Run();
-	virtual void Stop();
-	virtual PString HandleRequest(const PString & request);
-
-	virtual void SendWindowsSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg);
-
-protected:
-	HANDLE m_getPipe;
-	bool m_shutdown;
-};
-
-WindowsSNMPAgent::WindowsSNMPAgent() : Singleton<WindowsSNMPAgent>("WindowsSNMPAgent")
-{
-	PTRACE(1, "SNMP\tStarting SNMP agent (Windows)");
-	m_shutdown = false;
-	m_getPipe = CreateNamedPipe(getPipename,
-		PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
-		1, BUFSIZE, BUFSIZE, 0, NULL);
-}
-
-WindowsSNMPAgent::~WindowsSNMPAgent()
-{
-	PTRACE(1, "SNMP\tDeleting SNMP agent (Windows)");
-	// CloseHandle(m_getPipe);	// don't close get pipe, will hang in blocking ConnectNamedPipe()
-}
-
-void WindowsSNMPAgent::Stop()
-{
-	PTRACE(1, "SNMP\tStopping SNMP agent (Windows)");
-	m_shutdown = true;
-}
-
-void WindowsSNMPAgent::Run()
-{
-	SNMP_TRAP(1, SNMPInfo, General, "GnuGk started");
-	while (!m_shutdown) {	// main loop: wait for connection from extension DLL until shutdown
-		if (ConnectNamedPipe(m_getPipe, NULL)) {	// wait for DLL to connect
-			// the pipe is connected; change to message-read mode.
-			DWORD dwMode = PIPE_READMODE_MESSAGE;
-			if (!SetNamedPipeHandleState(m_getPipe, &dwMode, NULL, NULL)) {
-				PTRACE(1, "SNMP\tSetNamedPipeHandleState failed. GLE=" << GetLastError());
-			}
-
-			// read server request and respond, then disconnect
-			char buffer[BUFSIZE];
-			DWORD bytesRead;
-			if (ReadFile(m_getPipe, buffer, sizeof(buffer), &bytesRead, NULL)) {
-				PString request((const char *)&buffer, bytesRead);
-				PString response = HandleRequest(request);
-				// Send response to the pipe server
-				DWORD bytesWritten;
-				WriteFile(m_getPipe, response.GetPointer(), response.GetLength(), &bytesWritten, NULL);
-			}
-			DisconnectNamedPipe(m_getPipe);
-		}
-	} // while running
-}
-
-PString WindowsSNMPAgent::HandleRequest(const PString & request)
-{
-	PStringArray token = request.Tokenise(" ", FALSE);
-	if ((token.GetSize() == 2) && (token[0] == "GET")) {
-		if (token[1] == ShortVersionOIDStr + PString(".0")) {
-			return "GET_RESPONSE s " + PProcess::Current().GetVersion(true);
-		} else if (token[1] == LongVersionOIDStr + PString(".0")) {
-			return "GET_RESPONSE s " + Toolkit::GKVersion();
-		} else if (token[1] == RegistrationsOIDStr + PString(".0")) {
-			return "GET_RESPONSE u " + PString(PString::Unsigned, RegistrationTable::Instance()->Size());
-		} else if (token[1] == CallsOIDStr + PString(".0")) {
-			return "GET_RESPONSE u " + PString(PString::Unsigned, CallTable::Instance()->Size());
-		} else if (token[1] == TotalBandwidthOIDStr + PString(".0")) {
-			return "GET_RESPONSE u " + PString(PString::Unsigned, CallTable::Instance()->GetTotalAllocatedBandwidth());
-		} else if (token[1] == TotalCallsOIDStr + PString(".0")) {
-			return "GET_RESPONSE c " + PString(PString::Unsigned, CallTable::Instance()->TotalCallCount());
-		} else if (token[1] == SuccessfulCallsOIDStr + PString(".0")) {
-			return "GET_RESPONSE c " + PString(PString::Unsigned, CallTable::Instance()->SuccessfulCallCount());
-		} else if (token[1] == TraceLevelOIDStr + PString(".0")) {
-			return "GET_RESPONSE u " + PString(PString::Unsigned, PTrace::GetLevel());
-		} else if (token[1] == CatchAllOIDStr + PString(".0")) {
-			PString catchAllDest = GkConfig()->GetString("Routing::CatchAll", "CatchAllIP", "");
-			if (catchAllDest.IsEmpty())
-				catchAllDest = GkConfig()->GetString("Routing::CatchAll", "CatchAllAlias", "catchall");
-			return "GET_RESPONSE s " + catchAllDest;
-		} else {
-		    PTRACE(2, "SNMP\tWarning: Ignoring SNMP GET (unsupported OID " << token[1] << ")");
-		}
-	} else if ((token.GetSize() == 3) && (token[0] == "SET")) {
-		if (token[1] == TraceLevelOIDStr + PString(".0")) {
-			PTrace::SetLevel(token[2].AsUnsigned());
-			return "SET_RESPONSE u " + PString(PString::Unsigned, PTrace::GetLevel());
-		} else if (token[1] == CatchAllOIDStr + PString(".0")) {
-			if (IsIPAddress(token[2])) {
-				Toolkit::Instance()->SetConfig(1, "Routing::CatchAll", "CatchAllIP", token[2]);
-				Toolkit::Instance()->SetConfig(1, "Routing::CatchAll", "CatchAllAlias", "");
-			} else {
-				Toolkit::Instance()->SetConfig(1, "Routing::CatchAll", "CatchAllIP", "");
-				Toolkit::Instance()->SetConfig(1, "Routing::CatchAll", "CatchAllAlias", token[2]);
-			}
-			ReloadHandler();
-			return "SET_RESPONSE s " + token[2];
-		} else {
-		    PTRACE(2, "SNMP\tError: Ignoring SNMP SET (unsupported OID " << token[1] << ")");
-		}
-	}
-	return "ERROR";
-}
-
-void WindowsSNMPAgent::SendWindowsSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, const PString & msg)
-{
-	PTRACE(5, "SNMP\tSendSNMPTrap " << trapNumber << ", " << severity << ", " << group << ", " << msg);
-	if (!m_shutdown) {
-		PString trap = "TRAP " + PString(PString::Unsigned, trapNumber)
-						+ " " + PString(PString::Unsigned, severity)
-						+ " " + PString(PString::Unsigned, group)
-						+ " " + msg;
-		CallNamedPipe(trapPipename, (void *)trap.GetPointer(), trap.GetLength(), NULL, 0, NULL, 1000);
-	}
-}
-
-#endif // HAS_WINSNMP
-
-
 PCaselessString SelectSNMPImplementation()
 {
-#ifdef HAS_NETSNMP
-	PCaselessString implementation = GkConfig()->GetString(SNMPSection, "Implementation", "Net-SNMP");
-#else
 	PCaselessString implementation = GkConfig()->GetString(SNMPSection, "Implementation", "PTLib");
-#endif
 
 	// switch to other implementation if only one is available
 #ifndef HAS_NETSNMP
@@ -808,12 +670,6 @@ PCaselessString SelectSNMPImplementation()
 	if (implementation == "PTLib") {
 		PTRACE(1, "SNMP\tPTLib implementation not available, using Net-SNMP implementation");
 		implementation = "Net-SNMP";
-	}
-#endif
-#ifndef HAS_WINSNMP
-	if (implementation == "Windows") {
-		PTRACE(1, "SNMP\tWindows implementation not available, using PTLib implementation");
-		implementation = "PTLib";
 	}
 #endif
 	return implementation;
@@ -836,11 +692,6 @@ void SendSNMPTrap(unsigned trapNumber, SNMPLevel severity, SNMPGroup group, cons
 #ifdef HAS_PTLIBSNMP
 	if (implementation == "PTLib") {
 		SendPTLibSNMPTrap(trapNumber, severity, group, msg);
-	}
-#endif
-#ifdef HAS_WINSNMP
-	if (implementation == "Windows") {
-		WindowsSNMPAgent::Instance()->SendWindowsSNMPTrap(trapNumber, severity, group, msg);
 	}
 #endif
 }
@@ -866,12 +717,6 @@ void StartSNMPAgent()
 		return;
 	}
 #endif
-#ifdef HAS_WINSNMP
-	if (implementation == "Windows") {
-		CreateJob(WindowsSNMPAgent::Instance(), &WindowsSNMPAgent::Run, "SNMPAgent");
-		return;
-	}
-#endif
 }
 
 void StopSNMPAgent()
@@ -884,11 +729,6 @@ void StopSNMPAgent()
 #ifdef HAS_PTLIBSNMP
 	// nothing to do
 #endif
-#ifdef HAS_WINSNMP
-	if (WindowsSNMPAgent::InstanceExists()) {
-		WindowsSNMPAgent::Instance()->Stop();
-	}
-#endif
 }
 
 void DeleteSNMPAgent()
@@ -900,11 +740,6 @@ void DeleteSNMPAgent()
 #endif
 #ifdef HAS_PTLIBSNMP
     // nothing to delete
-#endif
-#ifdef HAS_WINSNMP
-	if (WindowsSNMPAgent::InstanceExists()) {
-		delete WindowsSNMPAgent::Instance();
-	}
 #endif
 }
 

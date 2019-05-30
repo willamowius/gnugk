@@ -837,11 +837,12 @@ Default: <tt>0</tt><newline>
 <p>
 Enable SNMP support. GnuGk must be compiled with SNMP support.
 
-<item><tt/Implementation=PTLib/<newline>
-Default: <tt>Net-SNMP</tt><newline>
+<item><tt/Implementation=Net-SNMP/<newline>
+Default: <tt>PTLib</tt><newline>
 <p>
-Select the SNMP implementation to use. Possible values are <tt>Net-SNMP</tt>, <tt>PTLib</tt> and <tt>Windows</tt>.
-The Net-SNMP implementation is by far the best implementation, use it if you can.
+Select the SNMP implementation to use. Possible values are <tt>Net-SNMP</tt> and <tt>PTLib</tt>.
+The PTLib implementation works standalone, for the Net-SNMP implementation you have to install
+the Net-SNMP on your server as well, so GnuGk can register as a sub-agent.
 
 <item><tt/EnableTraps=0/<newline>
 Default: <tt>1</tt><newline>
@@ -878,11 +879,6 @@ compiled with <tt>--disable-snmp</tt>
 Using PTLib rather than the fully-featured Net-SNMP means that only traps
 and GET / GET-NEXT requests are supported.  See below for the additional switches
 which are required when using PTLib for SNMP.
-
-The <tt>Windows</tt> implementation integrates as a sub-agent into
-Windows' SNMP service. This implementation is incomplete.
-You can use the <tt>PTLib</tt> implementation on Windows, for the same limited SNMP support as on Unix.
-Please contact the authors if you need full SNMP support on Windows.
 
 <sect2>GNU Gatekeeper Enterprise MIB
 <p>

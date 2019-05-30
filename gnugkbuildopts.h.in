@@ -41,7 +41,6 @@
 // SNMP
 #undef HAS_NETSNMP
 #undef HAS_PTLIBSNMP
-#undef HAS_WINSNMP
 
 // LUA
 #undef HAS_LUA
