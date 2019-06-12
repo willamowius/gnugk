@@ -11797,9 +11797,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	if (buflen >= 1)
 		version = (((int)wbuffer[0] & 0xc0) >> 6);
 	bool isRTCP = m_isRTCPType && (version == 2);
-#if defined(HAS_H46018) || defined(HAS_H46024B) || defined(HAS_H235_MEDIA)
 	bool isRTP = m_isRTPType && (version == 2);
-#endif
 #ifdef HAS_H235_MEDIA
 	unsigned char ivSequence[6];
 	bool rtpPadding = false;
