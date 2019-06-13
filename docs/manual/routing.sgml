@@ -87,8 +87,8 @@ This also partially supports Setup messages (no overlapped sending
 <item><tt/enum/<newline>
 <p>
 ENUM (RFC3761) is a method to use DNS lookups to convert
-real International Direct Dialing E.164 numbers into H.323 dialing information. The default servers
-are <tt/e164.org/ and <tt/e164.arpa/.
+real International Direct Dialing E.164 numbers into H.323 dialing information. The default server
+is <tt/e164.arpa/.
 To specify your own list of servers use the <tt/ENUMservers/ switch in the RoutedMode section.
 
 The enum policy replaces the destination with the information returned by the ENUM server, 

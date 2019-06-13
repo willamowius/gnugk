@@ -405,7 +405,7 @@ Default: <tt>N/A</tt><newline>
 Sets Calling-Numbering-Plan of number to the specified value
 (0 - UnknownType, 1 - ISDN, 3 - X.121 numbering, 4 - Telex, 8 - National standard, 9 - private numbering).
 
-<item><tt/ENUMservers=e164.org,e164.arpa/<newline>
+<item><tt/ENUMservers=e164.arpa/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 Sets the enum server list in priority order separated by (,) for the enum policy. 
