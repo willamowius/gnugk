@@ -1281,7 +1281,8 @@ Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit"),
     m_maintenanceMode(false), m_timerManager(new GkTimerManager()),
 	m_timestampFormatStr("Cisco"),
 	m_encKeyPaddingByte(-1), m_encryptAllPasswords(false),
-	m_cliRewrite(NULL), m_causeCodeTranslationActive(false), m_licenseValid(false)
+	m_cliRewrite(NULL), m_causeCodeTranslationActive(false), m_licenseValid(false),
+	m_snmpEnabled(false), m_ipv6Enabled(false)
 {
 	srand((unsigned int)time(0));
 #ifdef P_SSL
@@ -2005,6 +2006,13 @@ PConfig* Toolkit::ReloadConfig()
 	m_portCloseNotifications[T120Port] = m_Config->GetString("PortNotifications", "T120PortClose", "");
 	m_portCloseNotifications[StatusPort] = m_Config->GetString("PortNotifications", "StatusPortClose", "");
 	m_portCloseNotifications[RadiusPort] = m_Config->GetString("PortNotifications", "RadiusPortClose", "");
+
+#ifdef HAS_SNMP
+	m_snmpEnabled = AsBool(GkConfig()->GetString(SNMPSection, "EnableSNMP", "0"));
+#endif
+#ifdef hasIPV6
+	m_ipv6Enabled = AsBool(GkConfig()->GetString("EnableIPv6", "0"));
+#endif
 
 	return m_Config;
 }
@@ -3563,24 +3571,6 @@ GkPresence & Toolkit::GetPresenceHandler()
 std::vector<NetworkAddress> Toolkit::GetInternalNetworks() const
 {
 	return !Toolkit::Instance()->GetExternalIP().IsEmpty() ? m_VirtualRouteTable.GetInternalNetworks() : m_RouteTable.GetInternalNetworks();
-}
-
-bool Toolkit::IsSNMPEnabled() const
-{
-#ifdef HAS_SNMP
-	return AsBool(GkConfig()->GetString(SNMPSection, "EnableSNMP", "0"));
-#else
-	return false;
-#endif
-}
-
-bool Toolkit::IsIPv6Enabled() const
-{
-#ifdef hasIPV6
-	return AsBool(GkConfig()->GetString("EnableIPv6", "0"));
-#else
-	return false;
-#endif
 }
 
 bool Toolkit::IsPortNotificationActive()	// not const to allow simple map access

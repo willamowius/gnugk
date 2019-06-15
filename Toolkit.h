@@ -502,8 +502,8 @@ class Toolkit : public Singleton<Toolkit>
 	bool IsH460PEnabled() const;
 	GkPresence & GetPresenceHandler();
 #endif
-	bool IsSNMPEnabled() const;
-	bool IsIPv6Enabled() const;
+	bool IsSNMPEnabled() const { return m_snmpEnabled; }
+	bool IsIPv6Enabled() const { return m_ipv6Enabled; }
 	bool IsPortNotificationActive();
 	void PortNotification(PortType type, PortAction action, const PString & protocol,
 							const PIPSocket::Address & addr, WORD port, PINDEX callNo = 0);
@@ -796,6 +796,8 @@ private:
 	bool m_licenseValid;
 	PString m_licenseError;
 	PString m_licenseType;
+	bool m_snmpEnabled;
+	bool m_ipv6Enabled;
 };
 
 
