@@ -1383,6 +1383,7 @@ protected:
     bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPs in signaling, do full auto-detect
     bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H.239 streams
     list<NetworkAddress> m_keepSignaledIPs;   // don't do auto-detect on this network
+    unsigned m_filterFastUpdatePeriod;
 };
 
 
@@ -12147,17 +12148,17 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 #ifdef HAS_H46026
 	// send packets to H.460.26 endpoints via TCP
     if (Toolkit::Instance()->IsH46026Enabled()) {
-        if (m_call && (*m_call) && (*m_call)->GetCallingParty() && (*m_call)->GetCallingParty()->UsesH46026()) {
-            if (m_call && (*m_call) && (*m_call)->GetCallingParty()->GetSocket()) {
-                (*m_call)->GetCallingParty()->GetSocket()->SendH46026RTP(m_sessionID, isRTP, wbuffer, buflen);
-            }
-            return NoData;	// already forwarded via TCP
-        } else if (m_call && (*m_call) && (*m_call)->GetCalledParty() && (*m_call)->GetCalledParty()->UsesH46026()) {
-            if (m_call && (*m_call) && (*m_call)->GetCalledParty()->GetSocket()) {
-                (*m_call)->GetCalledParty()->GetSocket()->SendH46026RTP(m_sessionID, isRTP, wbuffer, buflen);
-            }
-            return NoData;	// already forwarded via TCP
-        }
+	if (m_call && (*m_call) && (*m_call)->GetCallingParty() && (*m_call)->GetCallingParty()->UsesH46026()) {
+		if (m_call && (*m_call) && (*m_call)->GetCallingParty()->GetSocket()) {
+			(*m_call)->GetCallingParty()->GetSocket()->SendH46026RTP(m_sessionID, isRTP, wbuffer, buflen);
+		}
+		return NoData;	// already forwarded via TCP
+	} else if (m_call && (*m_call) && (*m_call)->GetCalledParty() && (*m_call)->GetCalledParty()->UsesH46026()) {
+		if (m_call && (*m_call) && (*m_call)->GetCalledParty()->GetSocket()) {
+			(*m_call)->GetCalledParty()->GetSocket()->SendH46026RTP(m_sessionID, isRTP, wbuffer, buflen);
+		}
+		return NoData;	// already forwarded via TCP
+	}
     }
 #endif
 
@@ -13508,6 +13509,7 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 	m_isCaller = false;
 #endif
 	m_isH245Master = false;
+    m_filterFastUpdatePeriod = GkConfig()->GetInteger(RoutedSec, "FilterVideoFastUpdatePicture", 0);
 }
 
 H245ProxyHandler::~H245ProxyHandler()
@@ -13561,12 +13563,11 @@ bool H245ProxyHandler::HandleCommand(H245_CommandMessage & Command, bool & suppr
 {
 	PTRACE(4, "H245\tCommand: " << Command.GetTagName());
 
-	unsigned filterFastUpdatePeriod = GkConfig()->GetInteger(RoutedSec, "FilterVideoFastUpdatePicture", 0);
-	if (filterFastUpdatePeriod > 0 && Command.GetTag() == H245_CommandMessage::e_miscellaneousCommand) {
+	if (m_filterFastUpdatePeriod > 0 && Command.GetTag() == H245_CommandMessage::e_miscellaneousCommand) {
 		H245_MiscellaneousCommand miscCommand = Command;
         if (miscCommand.m_type.GetTag() == H245_MiscellaneousCommand_type::e_videoFastUpdatePicture) {
             PTime now;
-            if (now - m_lastVideoFastUpdatePicture > PTimeInterval(0, filterFastUpdatePeriod)) {
+            if (now - m_lastVideoFastUpdatePicture > PTimeInterval(0, m_filterFastUpdatePeriod)) {
                 m_lastVideoFastUpdatePicture = now;
                 PTRACE(3, "H245\tAllow VideoFastUpdatePicture");
             } else {
