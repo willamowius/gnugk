@@ -1281,7 +1281,8 @@ Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit"),
     m_maintenanceMode(false), m_timerManager(new GkTimerManager()),
 	m_timestampFormatStr("Cisco"),
 	m_encKeyPaddingByte(-1), m_encryptAllPasswords(false),
-	m_cliRewrite(NULL), m_causeCodeTranslationActive(false), m_licenseValid(false),
+	m_cliRewrite(NULL), m_causeCodeTranslationActive(false),
+	m_H46026Enabled(false), m_licenseValid(false),
 	m_snmpEnabled(false), m_ipv6Enabled(false)
 {
 	srand((unsigned int)time(0));
@@ -1941,6 +1942,7 @@ PConfig* Toolkit::ReloadConfig()
 	m_H46023Enabled	= (m_Config->GetBoolean(RoutedSec, "EnableH46023", false) &&
 						!m_Config->GetString(RoutedSec, "H46023STUN", ""));
 #endif
+    m_H46026Enabled = m_Config->GetBoolean(RoutedSec, "EnableH46026", false);
 
 	PString GKHome(m_Config->GetString("Home", ""));
 	if (GKHome == "0.0.0.0") {
@@ -3486,13 +3488,6 @@ bool Toolkit::IsH46023Enabled() const
 			m_H46018Enabled ||			// used with H.460.18 or
 #endif
 			m_Config->GetBoolean(RoutedSec, "SupportCallingNATedEndpoints", true))); // GnuGk Native NAT Support
-}
-#endif
-
-#ifdef HAS_H46026
-bool Toolkit::IsH46026Enabled() const
-{
-    return m_Config->GetBoolean(RoutedSec, "EnableH46026", false);
 }
 #endif
 

@@ -495,9 +495,7 @@ class Toolkit : public Singleton<Toolkit>
 	bool GetH46023STUN(const PIPSocket::Address & addr,  H323TransportAddress & stun);
 	bool H46023SameNetwork(const PIPSocket::Address & addr1, const PIPSocket::Address & addr2);
 #endif
-#ifdef HAS_H46026
-	bool IsH46026Enabled() const;
-#endif
+	bool IsH46026Enabled() const { return m_H46026Enabled; }
 #ifdef HAS_H460P
 	bool IsH460PEnabled() const;
 	GkPresence & GetPresenceHandler();
@@ -779,6 +777,7 @@ private:
 	std::map<int,std::vector<H323TransportAddress> > m_H46023STUN;
 	PMutex m_stunMutex;
 #endif
+    bool m_H46026Enabled;
 
 #ifdef HAS_H460P
 	GkPresence m_presence;

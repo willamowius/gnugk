@@ -12146,17 +12146,19 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 
 #ifdef HAS_H46026
 	// send packets to H.460.26 endpoints via TCP
-	if (m_call && (*m_call) && (*m_call)->GetCallingParty() && (*m_call)->GetCallingParty()->UsesH46026()) {
-		if (m_call && (*m_call) && (*m_call)->GetCallingParty()->GetSocket()) {
-			(*m_call)->GetCallingParty()->GetSocket()->SendH46026RTP(m_sessionID, isRTP, wbuffer, buflen);
-		}
-		return NoData;	// already forwarded via TCP
-	} else if (m_call && (*m_call) && (*m_call)->GetCalledParty() && (*m_call)->GetCalledParty()->UsesH46026()) {
-		if (m_call && (*m_call) && (*m_call)->GetCalledParty()->GetSocket()) {
-			(*m_call)->GetCalledParty()->GetSocket()->SendH46026RTP(m_sessionID, isRTP, wbuffer, buflen);
-		}
-		return NoData;	// already forwarded via TCP
-	}
+    if (Toolkit::Instance()->IsH46026Enabled()) {
+        if (m_call && (*m_call) && (*m_call)->GetCallingParty() && (*m_call)->GetCallingParty()->UsesH46026()) {
+            if (m_call && (*m_call) && (*m_call)->GetCallingParty()->GetSocket()) {
+                (*m_call)->GetCallingParty()->GetSocket()->SendH46026RTP(m_sessionID, isRTP, wbuffer, buflen);
+            }
+            return NoData;	// already forwarded via TCP
+        } else if (m_call && (*m_call) && (*m_call)->GetCalledParty() && (*m_call)->GetCalledParty()->UsesH46026()) {
+            if (m_call && (*m_call) && (*m_call)->GetCalledParty()->GetSocket()) {
+                (*m_call)->GetCalledParty()->GetSocket()->SendH46026RTP(m_sessionID, isRTP, wbuffer, buflen);
+            }
+            return NoData;	// already forwarded via TCP
+        }
+    }
 #endif
 
 	// send packets for a multiplexing destination out through multiplexing socket
