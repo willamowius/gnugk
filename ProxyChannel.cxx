@@ -10620,14 +10620,17 @@ void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddre
     if (m_deleted)
         return;
 
-	PTRACE(7, "JW RTP DB: multiplexID=" << receivedMultiplexID
-					 << " isRTCP=" << isRTCP << " ka=" << IsKeepAlive(len, isRTCP)
-					 << " from=" << AsString(fromAddress));
-	Dump();
+    if (PTrace::CanTrace(7)) {
+    	PTRACE(7, "JW RTP DB: multiplexID=" << receivedMultiplexID
+	    				 << " isRTCP=" << isRTCP << " ka=" << IsKeepAlive(len, isRTCP)
+		    			 << " from=" << AsString(fromAddress));
+	    Dump();
+    }
 
 	// re-check status after waiting for I/O
     if (m_deleted)
         return;
+    // TODO: could we cache the call ptr in the session as a performance optimization ? how to avoid race condition on call shutdown ?
     callptr call = CallTable::Instance()->FindCallRec(m_callno);
     if (!call) {
         PTRACE(5, "RTPM\tCan't find call " << m_callno);
