@@ -10734,17 +10734,19 @@ void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddre
 
 #ifdef HAS_H46026
 	// send RTP for H.460.26 endpoints via TCP
-    if (call->GetCallingParty() && call->GetCallingParty()->UsesH46026()) {
-        if (call->GetCallingParty()->GetSocket()) {
-            call->GetCallingParty()->GetSocket()->SendH46026RTP(m_session, !isRTCP, data, len);
+	if (Toolkit::Instance()->IsH46026Enabled()) {
+        if (call->GetCallingParty() && call->GetCallingParty()->UsesH46026()) {
+            if (call->GetCallingParty()->GetSocket()) {
+                call->GetCallingParty()->GetSocket()->SendH46026RTP(m_session, !isRTCP, data, len);
+            }
+            return;
+        } else if (call->GetCalledParty() && call->GetCalledParty()->UsesH46026()) {
+            if (call->GetCalledParty()->GetSocket()) {
+                call->GetCalledParty()->GetSocket()->SendH46026RTP(m_session, !isRTCP, data, len);
+            }
+            return;
         }
-        return;
-    } else if (call->GetCalledParty() && call->GetCalledParty()->UsesH46026()) {
-        if (call->GetCalledParty()->GetSocket()) {
-            call->GetCalledParty()->GetSocket()->SendH46026RTP(m_session, !isRTCP, data, len);
-        }
-        return;
-    }
+	}
 #endif
 
 	if (receivedMultiplexID == m_multiplexID_fromA) {
