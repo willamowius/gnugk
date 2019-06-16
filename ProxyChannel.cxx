@@ -11488,6 +11488,7 @@ UDPProxySocket::UDPProxySocket(const char *t, PINDEX no)
     m_portDetectionTimeout = GkConfig()->GetInteger(ProxySection, "PortDetectionTimeout", -1);    // in seconds, -1 is off
     m_firstMedia = 0;
     m_mediaFailDetected = false;
+    m_RTPMultiplexingEnabled = GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false);
 }
 
 UDPProxySocket::~UDPProxySocket()
@@ -11959,7 +11960,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
             // do port-detection for multiplexing channel, too
 			// (it might have multiplexed RTP coming in to be forwarded as regular RTP)
 			// set based on addr
-			if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false)) {
+			if (m_RTPMultiplexingEnabled) {
 				if (IsSet(m_multiplexDestination_A) && (m_multiplexDestination_A != fromAddr)) {
 					H46019Session h46019chan = MultiplexedRTPHandler::Instance()->GetChannel(m_callNo, m_sessionID);
 					if (h46019chan.IsValid()) {

@@ -314,6 +314,7 @@ protected:
 	int m_portDetectionTimeout;
 	time_t m_firstMedia;
 	bool m_mediaFailDetected;
+	bool m_RTPMultiplexingEnabled;
 };
 
 #if H323_H450
