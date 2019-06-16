@@ -9118,6 +9118,9 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 		userevert = true;
 	}
 	if (m_call->H46019Required() && GetRemote() && GetRemote()->IsTraversalClient()) {
+        if (GetRemote() && GetRemote()->m_h245Tunneling) {
+            return false;	// remove H245Address from message if it goes to tunneling H.460.19 endpoint
+        }
 		if (GkConfig()->GetBoolean(RoutedSec, "EnableH245Multiplexing", false)) {
 		    setMultiplexPort = true;
 		}

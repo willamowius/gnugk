@@ -1,5 +1,6 @@
 Changes from 5.2 to 5.3
 =======================
+- BUGFIX(ProxyChannel.cxx) don't send H.245 address to tunneling H.460.18 endpoint, breaks call when H.245 multiplexing
 - performance optimization: 5% faster UDP handling
 - changed default: [SNMP] Implementation=PTlib
 - remove unfinished Windows-SNMP implementation, use PTLib-SNMP on Windows
