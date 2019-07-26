@@ -63,6 +63,12 @@
 
 #ifdef _WIN32
 #include <mswsock.h>
+#	ifndef SHUT_RDWR
+#   	define SHUT_RDWR SD_BOTH
+#	endif
+#	ifndef SHUT_WR
+#   	define SHUT_WR SD_SEND
+#	endif
 #endif
 
 #ifdef P_OPENBSD
