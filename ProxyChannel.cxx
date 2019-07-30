@@ -4173,6 +4173,7 @@ void CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
                     }
                 } else {
                     if ((!dynamic_cast<NATH245Socket *>(css->m_h245socket) && css->IsCaller()) || css->IsH245Tunneling()) {
+                        // do nothing
                     } else {
                         // connect to or send startH245
                         css->m_h245socket->SetIgnoreAcceptError();
@@ -8247,9 +8248,11 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 			if (CallSignalSocket *ret = dynamic_cast<CallSignalSocket *>(remote)) {
 				if (m_h245socket) {
 					uuie.m_h245Address = m_h245socket->GetH245Address(ret->masqAddr);
+				} else {
+    				PTRACE(2, "Error: Don't know H.245 address for startH245");
 				}
 			} else {
-				PTRACE(2, "Warning: " << GetName() << " has no remote party?");
+				PTRACE(2, "Error: " << GetName() << " has no remote party?");
 			}
 #ifdef HAS_H46018
 			// add H.460.19 indicator if this is sent out to an endpoint that uses it
@@ -9124,7 +9127,7 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 		userevert = true;
 	}
 	if (m_call->H46019Required() && GetRemote() && GetRemote()->IsTraversalClient()) {
-        if (GetRemote() && GetRemote()->m_h245Tunneling) {
+        if (GetRemote() && GetRemote()->m_h245Tunneling && m_h245Tunneling) {
             return false;	// remove H245Address from message if it goes to tunneling H.460.19 endpoint
         }
 		if (GkConfig()->GetBoolean(RoutedSec, "EnableH245Multiplexing", false)) {
