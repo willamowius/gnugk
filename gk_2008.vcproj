@@ -455,6 +455,10 @@
 				>
 			</File>
 			<File
+				RelativePath="gksql_redis.cxx"
+				>
+			</File>
+			<File
 				RelativePath="gksql_sqlite.cxx"
 				>
 			</File>

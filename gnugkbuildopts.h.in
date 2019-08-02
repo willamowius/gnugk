@@ -95,4 +95,11 @@
 #endif
 
 
+// redis
+#undef HAS_REDIS
+#if defined(_MSC_VER) && HAS_SQLITE
+  #pragma include_alias(<hiredis.h>, <@REDIS_DIR_DIR@/hiredis.h>)
+#endif
+
+
 #endif

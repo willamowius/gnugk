@@ -36,11 +36,11 @@ You have to repeat all settings for each module, even if they are the same.
 But you are also free to use differend database drivers and options for each module.
 
 <itemize>
-<item><tt/Driver=MySQL | PostgreSQL | Firebird | ODBC | SQLite/<newline>
+<item><tt/Driver=MySQL | PostgreSQL | Firebird | ODBC | SQLite | redis/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 Database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/, <tt/Firebird/,
-<tt/ODBC/ and <tt/SQLite/ drivers are implemented.
+<tt/ODBC/, <tt/SQLite/ and <tt/redis/ drivers are implemented.
 The MySQL driver can also be used for MariaDB and other MySQL forks.
 Not all of these driver are always available. When GnuGk is compiled, only those
 drivers are included where the necessary database libraries and header files are
@@ -49,6 +49,8 @@ are included in your executable.
 At runtime, GnuGk will load the shared library (DLL) for the database you have configured.
 
 GnuGk supports version 3 of SQLite.
+
+redis currently only works for reading from the database, not for SQLAcct.
 
 Make sure your database is configured to support password-based
 authentication - Microsoft SQL Server must use "Mixed Mode" for this feature

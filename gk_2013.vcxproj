@@ -514,6 +514,7 @@
     <ClCompile Include="gksql_mysql.cxx" />
     <ClCompile Include="gksql_odbc.cxx" />
     <ClCompile Include="gksql_pgsql.cxx" />
+    <ClCompile Include="gksql_redis.cxx" />
     <ClCompile Include="gksql_sqlite.cxx" />
     <ClCompile Include="GkStatus.cxx" />
     <ClCompile Include="gktimer.cxx" />

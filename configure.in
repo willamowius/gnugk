@@ -810,11 +810,93 @@ else
 fi
 AC_SUBST(HAS_SQLITE)
 
+dnl #########################################################################
+dnl Check for redis
+dnl ########################################################################
+
+dnl MSWIN_DISPLAY    redis,redis
+dnl MSWIN_CHECK_FILE redis,hiredis.h,HAS_REDIS=1
+dnl MSWIN_DIR_SYMBOL redis,REDIS_DIR
+dnl MSWIN_CHECK_DIR  redis,\redis\
+
+
+AC_ARG_ENABLE(redis,
+[  --enable-redis          enable redis support (default=yes)],
+[ redis="${enableval}" ], [ redis="yes" ]
+)
+
+AC_ARG_WITH(redis-include-dir,
+[  --with-redis-include-dir=DIR   directory where redis includes may be found ],
+[ redis_include_dir="$withval" ]
+)
+
+AC_ARG_WITH(redis-dir,
+[  --with-redis-dir=DIR           base directory where redis is installed ],
+[ redis_include_dir="$withval/include"
+]
+)
+
+if test "x${redis}" != "xno"; then
+
+	AC_MSG_CHECKING([for hiredis.h])
+
+	AC_TRY_COMPILE([#include <hiredis.h>], [int a = 1;],
+		REDIS_INCLUDE=" ",
+		REDIS_INCLUDE=
+	)
+
+	if test "x$REDIS_INCLUDE" = "x"; then
+		old_CFLAGS="$CFLAGS"
+
+		for try in /usr/include/hiredis /usr/local/include /usr/local/include/hiredis $redis_include_dir; do
+			if test -d $try; then
+				CFLAGS="$old_CFLAGS -I$try"
+				AC_TRY_COMPILE([#include <hiredis.h>], [int a = 1;],
+					REDIS_INCLUDE="-I$try",
+					REDIS_INCLUDE=
+				)
+				if test "x$REDIS_INCLUDE" != "x"; then
+					break;
+				fi
+			fi
+		done
+		CFLAGS="$old_CFLAGS"
+	fi
+
+	if test "x$REDIS_INCLUDE" = "x"; then
+		AC_MSG_RESULT(no)
+		AC_MSG_WARN([redis headers not found. Use --with-redis-include-dir=<path>])
+		redis="no"
+	else
+		sql_redis_cflags="${sql_redis_cflags} ${REDIS_INCLUDE}"
+		AC_MSG_RESULT(yes)
+	fi
+
+	if test "x$redis" = "xno"; then
+		AC_MSG_WARN([redis disabled])
+	fi
+else
+	redis="no"
+fi
+
+if test "x$redis" != "xno"; then
+	HAS_REDIS=1
+	AC_DEFINE(HAS_REDIS, 1)
+	SOURCES="$SOURCES gksql_redis.cxx"
+	STDCCFLAGS="${sql_redis_cflags} -DHAS_REDIS=1 $STDCCFLAGS"
+	ENDLDLIBS="-lhiredis $ENDLDLIBS"
+    echo "redis support enabled"
+else
+    echo "redis support disabled"
+	HAS_REDIS=0
+fi
+AC_SUBST(HAS_REDIS)
+
 dnl ########################################################################
 dnl enable sqlauth, sqlacc if any DB present
 dnl ########################################################################
 
-if test "x$pgsql" != "xno" -o "x$mysql" != "xno" -o "x$firebird" != "xno" -o "x$unixodbc" != "xno" -o "x$sqlite" != "xno"; then
+if test "x$pgsql" != "xno" -o "x$mysql" != "xno" -o "x$firebird" != "xno" -o "x$unixodbc" != "xno" -o "x$sqlite" != "xno" -o "x$redis" != "xno"; then
 	SOURCES="$SOURCES sqlauth.cxx sqlacct.cxx gksql.cxx"
 	HEADERS="$HEADERS sqlacct.h gksql.h"
 fi
@@ -1092,17 +1174,17 @@ AC_ARG_ENABLE(lua,
 )
 
 AC_ARG_WITH(lua-include-dir,
-[  --with-lua-include-dir=DIR directory where LUA includes may be found ],
+[  --with-lua-include-dir=DIR     directory where LUA includes may be found ],
 [ lua_include_dir="$withval" ]
 )
 
 AC_ARG_WITH(lua-lib-dir,
-[  --with-lua-lib-dir=DIR     directory where LUA libraries may be found ],
+[  --with-lua-lib-dir=DIR         directory where LUA libraries may be found ],
 [ lua_lib_dir="$withval" ]
 )
 
 AC_ARG_WITH(lua-dir,
-[  --with-lua-dir=DIR         base directory where LUA is installed ],
+[  --with-lua-dir=DIR             base directory where LUA is installed ],
 [ lua_lib_dir="$withval/lib"
   lua_include_dir="$withval/include"
 ]
@@ -1226,7 +1308,7 @@ AC_ARG_ENABLE(geoip,
 )
 
 AC_ARG_WITH(geoip-include-dir,
-[  --with-geoip-include-dir=DIR directory where GeoIP includes may be found ],
+[  --with-geoip-include-dir=DIR   directory where GeoIP includes may be found ],
 [ geoip_include_dir="$withval" ]
 )
 

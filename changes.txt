@@ -1,5 +1,6 @@
 Changes from 5.3 to 5.4
 =======================
+- support redis as database
 - BUGFIX(ProxyChannel.cxx) fix H.245 tunneling translation with H.460.18 endpoints
 
 

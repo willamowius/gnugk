@@ -139,6 +139,7 @@
 		<Unit filename="gksql_mysql.cxx" />
 		<Unit filename="gksql_odbc.cxx" />
 		<Unit filename="gksql_pgsql.cxx" />
+		<Unit filename="gksql_redis.cxx" />
 		<Unit filename="gksql_sqlite.cxx" />
 		<Unit filename="gktimer.cxx" />
 		<Unit filename="gktimer.h" />

@@ -648,6 +648,7 @@ HAS_LUA
 HAS_PTLIBSNMP
 HAS_NETSNMP
 HAS_LIBSSH
+HAS_REDIS
 HAS_SQLITE
 HAS_ODBC
 HAS_FIREBIRD
@@ -737,6 +738,9 @@ with_unixodbc_dir
 enable_sqlite
 with_sqlite_include_dir
 with_sqlite_dir
+enable_redis
+with_redis_include_dir
+with_redis_dir
 enable_libssh
 with_libssh_include_dir
 with_libssh_lib_dir
@@ -1395,6 +1399,7 @@ Optional Features:
   --enable-firebird       enable Interbase/Firebird support (default=yes)
   --enable-unixodbc       enable unixODBC support (default=yes)
   --enable-sqlite         enable SQLite support (default=yes)
+  --enable-redis          enable redis support (default=yes)
   --enable-libssh         enable libssh support (default=yes)
   --enable-netsnmp        enable Net-SNMP support (default=yes)
   --enable-ptlibsnmp      enable PTLib SNMP support (default=yes)
@@ -1416,16 +1421,18 @@ Optional Packages:
   --with-unixodbc-dir=DIR          base directory where unixODBC is installed
   --with-sqlite-include-dir=DIR  directory where SQLite includes may be found
   --with-sqlite-dir=DIR          base directory where SQLite is installed
+  --with-redis-include-dir=DIR   directory where redis includes may be found
+  --with-redis-dir=DIR           base directory where redis is installed
   --with-libssh-include-dir=DIR  directory where libssh includes may be found
   --with-libssh-lib-dir=DIR      directory where libssh libraries may be found
   --with-libssh-dir=DIR          base directory where libssh is installed
   --with-netsnmp-include-dir=DIR directory where Net-SNMP includes may be found
   --with-netsnmp-lib-dir=DIR     directory where Net-SNMP libraries may be found
   --with-netsnmp-dir=DIR         base directory where Net-SNMP is installed
-  --with-lua-include-dir=DIR directory where LUA includes may be found
-  --with-lua-lib-dir=DIR     directory where LUA libraries may be found
-  --with-lua-dir=DIR         base directory where LUA is installed
-  --with-geoip-include-dir=DIR directory where GeoIP includes may be found
+  --with-lua-include-dir=DIR     directory where LUA includes may be found
+  --with-lua-lib-dir=DIR         directory where LUA libraries may be found
+  --with-lua-dir=DIR             base directory where LUA is installed
+  --with-geoip-include-dir=DIR   directory where GeoIP includes may be found
 
 Some influential environment variables:
   CXX         C++ compiler command
@@ -4758,7 +4765,126 @@ fi
 
 
 
-if test "x$pgsql" != "xno" -o "x$mysql" != "xno" -o "x$firebird" != "xno" -o "x$unixodbc" != "xno" -o "x$sqlite" != "xno"; then
+
+
+# Check whether --enable-redis was given.
+if test "${enable_redis+set}" = set; then :
+  enableval=$enable_redis;  redis="${enableval}"
+else
+   redis="yes"
+
+fi
+
+
+
+# Check whether --with-redis-include-dir was given.
+if test "${with_redis_include_dir+set}" = set; then :
+  withval=$with_redis_include_dir;  redis_include_dir="$withval"
+
+fi
+
+
+
+# Check whether --with-redis-dir was given.
+if test "${with_redis_dir+set}" = set; then :
+  withval=$with_redis_dir;  redis_include_dir="$withval/include"
+
+
+fi
+
+
+if test "x${redis}" != "xno"; then
+
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for hiredis.h" >&5
+$as_echo_n "checking for hiredis.h... " >&6; }
+
+	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <hiredis.h>
+int
+main ()
+{
+int a = 1;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  REDIS_INCLUDE=" "
+else
+  REDIS_INCLUDE=
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+	if test "x$REDIS_INCLUDE" = "x"; then
+		old_CFLAGS="$CFLAGS"
+
+		for try in /usr/include/hiredis /usr/local/include /usr/local/include/hiredis $redis_include_dir; do
+			if test -d $try; then
+				CFLAGS="$old_CFLAGS -I$try"
+				cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <hiredis.h>
+int
+main ()
+{
+int a = 1;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  REDIS_INCLUDE="-I$try"
+else
+  REDIS_INCLUDE=
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+				if test "x$REDIS_INCLUDE" != "x"; then
+					break;
+				fi
+			fi
+		done
+		CFLAGS="$old_CFLAGS"
+	fi
+
+	if test "x$REDIS_INCLUDE" = "x"; then
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: redis headers not found. Use --with-redis-include-dir=<path>" >&5
+$as_echo "$as_me: WARNING: redis headers not found. Use --with-redis-include-dir=<path>" >&2;}
+		redis="no"
+	else
+		sql_redis_cflags="${sql_redis_cflags} ${REDIS_INCLUDE}"
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+	fi
+
+	if test "x$redis" = "xno"; then
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: redis disabled" >&5
+$as_echo "$as_me: WARNING: redis disabled" >&2;}
+	fi
+else
+	redis="no"
+fi
+
+if test "x$redis" != "xno"; then
+	HAS_REDIS=1
+	$as_echo "#define HAS_REDIS 1" >>confdefs.h
+
+	SOURCES="$SOURCES gksql_redis.cxx"
+	STDCCFLAGS="${sql_redis_cflags} -DHAS_REDIS=1 $STDCCFLAGS"
+	ENDLDLIBS="-lhiredis $ENDLDLIBS"
+    echo "redis support enabled"
+else
+    echo "redis support disabled"
+	HAS_REDIS=0
+fi
+
+
+
+if test "x$pgsql" != "xno" -o "x$mysql" != "xno" -o "x$firebird" != "xno" -o "x$unixodbc" != "xno" -o "x$sqlite" != "xno" -o "x$redis" != "xno"; then
 	SOURCES="$SOURCES sqlauth.cxx sqlacct.cxx gksql.cxx"
 	HEADERS="$HEADERS sqlacct.h gksql.h"
 fi
