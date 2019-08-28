@@ -1886,6 +1886,10 @@ PConfig* Toolkit::ReloadConfig()
 	H245_ProtocolID[ProtocolID_BufferSize-1] = '\0';
 	PTRACE(3, "Minimum H.245 version for GK generated messages: " << PString(H245_ProtocolID));
 
+#ifdef hasIPV6
+	m_ipv6Enabled = AsBool(GkConfig()->GetString("EnableIPv6", "0"));
+#endif
+
 	// set the max size of an array in an ASN encoded message (eg. max length of alias list)
 	PINDEX maxArraySize = GkConfig()->GetInteger("MaxASNArraySize", 0);
 	if (maxArraySize > 0) {
@@ -2011,9 +2015,6 @@ PConfig* Toolkit::ReloadConfig()
 
 #ifdef HAS_SNMP
 	m_snmpEnabled = AsBool(GkConfig()->GetString(SNMPSection, "EnableSNMP", "0"));
-#endif
-#ifdef hasIPV6
-	m_ipv6Enabled = AsBool(GkConfig()->GetString("EnableIPv6", "0"));
 #endif
 
 	return m_Config;
