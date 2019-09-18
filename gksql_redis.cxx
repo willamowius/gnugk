@@ -237,7 +237,7 @@ GkSQLConnection::SQLConnPtr GkRedisConnection::CreateNewConnection(
 	)
 {
 	redisContext *conn;
-	struct timeval timeout = { m_connectTimeout, 0 };
+	struct timeval timeout = { (time_t)m_connectTimeout, 0 };
     if (m_port <= 0) {
         m_port = 6379; // default port
     }
