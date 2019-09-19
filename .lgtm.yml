@@ -32,5 +32,6 @@ extraction:
       - "VERBOSE=1 make optnoshared"
       - "cd .."
       - "./configure --enable-h46018 --enable-large-fdset"
-      - "VERBOSE=1 make optnoshared"
+    index:
+      build_command: "make optnoshared"
 
