@@ -33,5 +33,5 @@ extraction:
       - "cd .."
       - "./configure --enable-h46018 --enable-large-fdset"
     index:
-      build_command: "make optnoshared"
+      build_command: "PTLIBDIR=$(pwd)/ptlib-master OPENH323DIR=$(pwd)/h323plus-master make optnoshared"
 
