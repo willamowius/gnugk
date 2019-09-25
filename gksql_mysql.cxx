@@ -41,6 +41,9 @@ static const char * (STDCALL *g_mysql_error)(MYSQL *mysql) = NULL;
 static my_ulonglong (STDCALL *g_mysql_affected_rows)(MYSQL *mysql) = NULL;
 
 
+#ifndef my_bool
+#define my_bool int
+#endif
 
 /** Class that encapsulates SQL query result for MySQL backend.
 	It does not provide any multithread safety, so should be accessed
