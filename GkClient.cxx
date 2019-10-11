@@ -1834,7 +1834,7 @@ bool GkClient::OnSendingRRQ(H225_RegistrationRequest & rrq)
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
-	if (Toolkit::Instance()->IsTLSEnabled()) {
+	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
 		H460_FeatureStd settings;
@@ -2619,6 +2619,11 @@ void GkClient::BuildLightWeightRRQ(H225_RegistrationRequest & rrq)
 	rrq.m_endpointIdentifier = m_endpointId;
 	rrq.IncludeOptionalField(H225_RegistrationRequest::e_gatekeeperIdentifier);
 	rrq.m_gatekeeperIdentifier = m_gatekeeperId;
+	if (m_ttl > 0)
+	{
+		rrq.IncludeOptionalField(H225_RegistrationRequest::e_timeToLive);
+		rrq.m_timeToLive = (int)m_ttl;
+	}
 	rrq.m_keepAlive = TRUE;
 	H225_VendorIdentifier & vendor = rrq.m_endpointVendor;
 	vendor.m_vendor.m_t35CountryCode = Toolkit::t35cPoland;
