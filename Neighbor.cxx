@@ -2355,7 +2355,7 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 					route->m_flags |= Route::e_Reject;
 					return route;
 				} else {
-					PTRACE(4, "ROUTING\tDNS SRV no applied to LRQ");
+					PTRACE(4, "ROUTING\tDNS SRV not applied to LRQ");
 				}
 			}
 		}
