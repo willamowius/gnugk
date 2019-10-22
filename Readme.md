@@ -3,7 +3,7 @@
 
 ### A H.323 gatekeeper for video conferencing and VoIP.
 
-The GNU Gatekeeper can be the basis for an IP telephony (VOIP) or video conferencing network. 
+The GNU Gatekeeper can be the central server for an IP telephony (VoIP) or video conferencing network. 
 It handles call routing, NAT traversal, call authorization and accounting. It can be extensively configured and has an API for applications.
 
 License: GPLv2  ![](https://img.shields.io/badge/license-GPL-green.svg)
