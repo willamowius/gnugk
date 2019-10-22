@@ -11941,7 +11941,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			m_portDetectionDone = true;	// skip H.460.19 port detection if H.460.19 isn't used
 		}
 		if (UsesH46019()) {
-			// use with keepalives _and_regular RTP, because Yealink Mobile doesn't send keepalives for audio
+			// use with keepalives _and_ regular RTP, because Yealink Mobile doesn't send keepalives for audio
 			PWaitAndSignal mutexWait (m_h46019DetectionLock);
 			// combine IP+port for easier comparison
 			IPAndPortAddress fSrcAddr(fSrcIP, fSrcPort);
