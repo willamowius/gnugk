@@ -1769,7 +1769,7 @@ bool GkClient::OnSendingGRQ(H225_GatekeeperRequest & grq)
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
-	if (Toolkit::Instance()->IsTLSEnabled()) {
+	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
 		H460_FeatureStd settings;
@@ -2048,7 +2048,7 @@ bool GkClient::SendARQ(Routing::AdmissionRequest & arq_obj)
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
-	if (Toolkit::Instance()->IsTLSEnabled()) {
+	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
 		H460_FeatureStd settings;
@@ -2112,7 +2112,7 @@ bool GkClient::SendLRQ(Routing::LocationRequest & lrq_obj)
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
-	if (Toolkit::Instance()->IsTLSEnabled()) {
+	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
 		H460_FeatureStd settings;
@@ -2216,7 +2216,7 @@ bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer)
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
-	if (Toolkit::Instance()->IsTLSEnabled()) {
+	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
 		H460_FeatureStd settings;
@@ -2292,7 +2292,7 @@ bool GkClient::SendARQ(Routing::FacilityRequest & facility_obj)
 
 #if defined(HAS_TLS) && defined(HAS_H460)
 	// H.460.22
-	if (Toolkit::Instance()->IsTLSEnabled()) {
+	if (Toolkit::Instance()->IsTLSEnabled() && m_useTLS) {
 		// include H.460.22 in supported features
 		H460_FeatureStd h46022 = H460_FeatureStd(22);
 		H460_FeatureStd settings;
@@ -2619,8 +2619,7 @@ void GkClient::BuildLightWeightRRQ(H225_RegistrationRequest & rrq)
 	rrq.m_endpointIdentifier = m_endpointId;
 	rrq.IncludeOptionalField(H225_RegistrationRequest::e_gatekeeperIdentifier);
 	rrq.m_gatekeeperIdentifier = m_gatekeeperId;
-	if (m_ttl > 0)
-	{
+	if (m_ttl > 0) {
 		rrq.IncludeOptionalField(H225_RegistrationRequest::e_timeToLive);
 		rrq.m_timeToLive = (int)m_ttl;
 	}
