@@ -2332,7 +2332,7 @@ void GkClient::SendDRQ(const callptr & call)
         drq.m_answeredCall = false;
 	if (call->IsFromParent())
         drq.m_answeredCall = true;
-    // fix call reverence according to answerCall flag
+    // fix call reference according to answerCall flag
     drq.m_callReferenceValue = call->GetCallRef() | (drq.m_answeredCall * 0x8000u);
 	SetPassword(drq);
 
