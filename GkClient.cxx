@@ -2325,7 +2325,13 @@ void GkClient::SendDRQ(const callptr & call)
 	drq.IncludeOptionalField(H225_DisengageRequest::e_gatekeeperIdentifier);
 	drq.m_gatekeeperIdentifier = m_gatekeeperId;
 	drq.m_endpointIdentifier = m_endpointId;
-	drq.m_answeredCall = !call->GetCallingParty();
+	drq.m_answeredCall = false;
+	// TODO: the toParent and fromParent flags don't seem to be set correctly in the CallRec on the child
+	//PTRACE(0, "JW SendDRQ m_toParent=" << call->IsToParent() << " m_fromParent=" << call->IsFromParent());
+	if (call->IsToParent())
+        drq.m_answeredCall = false;
+	if (call->IsFromParent())
+        drq.m_answeredCall = true;
 	SetPassword(drq);
 
 	if (OnSendingDRQ(drq, call)) {
