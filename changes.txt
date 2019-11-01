@@ -1,5 +1,6 @@
 Changes from 5.3 to 5.4
 =======================
+- BUGFIX(GkClient.cxx) improve DRQ from client gatekeeper
 - BUGFIX(GkClient.cxx) fix TLS with neighbor gatekeeper
 - BUGFIX(Toolkit.cxx) read EnableIPv6 switch earlier during startup
 - support redis as database
