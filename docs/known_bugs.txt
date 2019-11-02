@@ -1,5 +1,7 @@
 Known bugs:
 * call failover and call rerouting fail when the new call destination is using H.460.18
+* DRQs sent from a child gatekeeper sometimes have an incorrect answerCall flag
+  and thus an incorrect call reference value
 * H.245 sockets are bound to all interfaces (0.0.0.0), Home config option is ignored
   which may cause problems on multihomed hosts (virtual servers)
 * authentication/accounting modules do not work well for gatekeeper forwarded 
