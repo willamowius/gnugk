@@ -197,7 +197,7 @@ GkRedisResult::GkRedisResult(
 GkRedisResult::~GkRedisResult()
 {
 	if (m_sqlResult != NULL) {
-		for(unsigned i=0; i < m_sqlResult->size(); i++){
+		for(unsigned i = 0; i < m_sqlResult->size(); i++){
 			delete (*m_sqlResult)[i];
 		}
 		delete m_sqlResult;

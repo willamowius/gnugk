@@ -5,7 +5,7 @@
  * than one config source (file) and access them through a single config instance.
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
- * Copyright (c) 2006-2018, Jan Willamowius
+ * Copyright (c) 2006-2019, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.

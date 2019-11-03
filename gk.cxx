@@ -1779,7 +1779,7 @@ void Gatekeeper::Main()
 	PString fake_cmdline;
 	if (args.GetOptionCount('t') == 0) {
 		int log_trace_level = GkConfig()->GetInteger("TraceLevel", 0);
-		for (int t=0; t < log_trace_level; t++)
+		for (int t = 0; t < log_trace_level; t++)
 			fake_cmdline += " -t";
 	}
 	if (!args.HasOption('o')) {

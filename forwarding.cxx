@@ -2,7 +2,7 @@
 //
 // Call Forwarding Poliy for GNU Gatekeeper
 //
-// Copyright (c) 2012-2016, Jan Willamowius
+// Copyright (c) 2012-2019, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -22,10 +22,10 @@
 
 // forwards are handled in ascending order of their type
 enum ForwardingTypes {
-	FORWARD_UNCONDITIONAL=1,
-	FORWARD_BUSY=2,
-	FORWARD_NOANSWER=3,
-	FORWARD_ERROR=4 };
+	FORWARD_UNCONDITIONAL = 1,
+	FORWARD_BUSY = 2,
+	FORWARD_NOANSWER = 3,
+	FORWARD_ERROR = 4 };
 
 const unsigned MAX_RECURSION_DEPTH = 25;
 const unsigned DEFAULT_PRIORITY = 1;

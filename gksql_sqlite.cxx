@@ -3,7 +3,7 @@
  *
  * SQLite driver module for GnuGk
  *
- * Copyright (c) 2007-2014, Jan Willamowius
+ * Copyright (c) 2007-2019, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -52,22 +52,22 @@ public:
 		/// SQLite specific error message text
 		const char* errorMsg
 		);
-	
+
 	virtual ~GkSQLiteResult();
-	
+
 	/** @return
 	    Backend specific error message, if the query failed.
-	*/	
+	*/
 	virtual PString GetErrorMessage();
-	
+
 	/** @return
 	    Backend specific error code, if the query failed.
-	*/	
+	*/
 	virtual long GetErrorCode();
-	
+
 	/** Fetch a single row from the result set. After each row is fetched,
 	    cursor position is moved to a next row.
-		
+
 	    @return
 	    True if the row has been fetched, false if no more rows are available.
 	*/
@@ -79,12 +79,12 @@ public:
 		/// array to be filled with string representations of the row fields
 		ResultRow & result
 		);
-		
+
 private:
 	GkSQLiteResult();
 	GkSQLiteResult(const GkSQLiteResult &);
 	GkSQLiteResult& operator=(const GkSQLiteResult &);
-	
+
 protected:
 	/// query result for SELECT type queries
 	vector<ResultRow*> * m_sqlResult;
@@ -105,7 +105,7 @@ public:
 		/// name to use in the log
 		const char* name = "SQLite"
 		);
-	
+
 	virtual ~GkSQLiteConnection();
 
 protected:
@@ -135,14 +135,14 @@ protected:
 	    using delete operator.
 
 	    @return
-	    NULL if database connection could not be established 
+	    NULL if database connection could not be established
 	    or an object of GkSQLiteConnWrapper class.
 	*/
 	virtual SQLConnPtr CreateNewConnection(
 		/// unique identifier for this connection
 		int id
 		);
-	
+
 	/** Execute the query using specified SQL connection.
 
 		@return
@@ -156,7 +156,7 @@ protected:
 		/// maximum time (ms) for the query execution, -1 means infinite
 		long timeout = -1
 		);
-		
+
 	/** Escape any special characters in the string, so it can be used in a SQL query.
 
 		@return
@@ -181,7 +181,7 @@ GkSQLiteResult::GkSQLiteResult(
 	long numRowsAffected,
 	/// query result
 	vector<ResultRow*> * selectResult
-	) 
+	)
 	: GkSQLResult(false), m_sqlResult(selectResult), m_sqlRow(-1),
 	m_errorCode(0)
 {
@@ -201,7 +201,7 @@ GkSQLiteResult::GkSQLiteResult(
 	unsigned int errorCode,
 	/// SQLite specific error message text
 	const char* errorMsg
-	) 
+	)
 	: GkSQLResult(true), m_sqlResult(NULL), m_sqlRow(-1),
 	m_errorCode(errorCode), m_errorMessage(errorMsg)
 {
@@ -211,7 +211,7 @@ GkSQLiteResult::GkSQLiteResult(
 GkSQLiteResult::~GkSQLiteResult()
 {
 	if (m_sqlResult != NULL) {
-		for(unsigned i=0; i < m_sqlResult->size(); i++){
+		for(unsigned i = 0; i < m_sqlResult->size(); i++){
 			delete (*m_sqlResult)[i];
 		}
 		delete m_sqlResult;
@@ -222,7 +222,7 @@ PString GkSQLiteResult::GetErrorMessage()
 {
 	return m_errorMessage;
 }
-	
+
 long GkSQLiteResult::GetErrorCode()
 {
 	return m_errorCode;
@@ -235,19 +235,19 @@ bool GkSQLiteResult::FetchRow(
 {
 	if (m_sqlResult == NULL || m_numRows <= 0)
 		return false;
-	
+
 	if (m_sqlRow < 0)
 		m_sqlRow = 0;
-		
+
 	if (m_sqlRow >= m_numRows)
 		return false;
 
-	for (int i=0; i < m_numFields; i++) {
+	for (int i = 0; i < m_numFields; i++) {
 		result[i] = (*((*m_sqlResult)[m_sqlRow]))[i].first;
 	}
-	
+
 	m_sqlRow++;
-	
+
 	return true;
 }
 
@@ -258,17 +258,17 @@ bool GkSQLiteResult::FetchRow(
 {
 	if (m_sqlResult == NULL || m_numRows <= 0)
 		return false;
-	
+
 	if (m_sqlRow < 0)
 		m_sqlRow = 0;
-		
+
 	if (m_sqlRow >= m_numRows)
 		return false;
 
 	result = *((*m_sqlResult)[m_sqlRow]);
-	
+
 	m_sqlRow++;
-	
+
 	return true;
 }
 
@@ -280,7 +280,7 @@ GkSQLiteConnection::GkSQLiteConnection(
 {
 	m_escapeDoubleQuotes = true;
 }
-	
+
 GkSQLiteConnection::~GkSQLiteConnection()
 {
 }
@@ -331,12 +331,12 @@ GkSQLConnection::SQLConnPtr GkSQLiteConnection::CreateNewConnection(
 	sqlite3 *conn;
 	int rc = (*g_sqlite3_open)(m_database, &conn);
 	if (rc) {
-		PTRACE(2, GetName() << "\tSQLite connection to " << m_database 
+		PTRACE(2, GetName() << "\tSQLite connection to " << m_database
 			<< " failed (sqlite3_open failed): " << (*g_sqlite3_errmsg)(conn));
 		(*g_sqlite3_close)(conn);
 		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed")
 		return NULL;
-	}	
+	}
 
 	PTRACE(5, GetName() << "\tSQLite connection to " << m_database << " established successfully");
 	return new GkSQLiteConnWrapper(id, conn);
@@ -346,7 +346,7 @@ static int sqlite_callback(void * result, int argc, char **argv, char **azColNam
 {
 	GkSQLResult::ResultRow * row = new GkSQLResult::ResultRow();
 	((vector<GkSQLResult::ResultRow*> *)result)->push_back(row);
-	for(int i=0; i < argc; i++){
+	for(int i = 0; i < argc; i++){
 		row->push_back(pair<PString, PString>(argv[i] ? argv[i] : "", azColName[i]));
 	}
 	return 0;

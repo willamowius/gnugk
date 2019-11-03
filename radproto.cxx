@@ -4,7 +4,7 @@
  * RADIUS protocol classes.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2003-2018, Jan Willamowius
+ * Copyright (c) 2003-2019, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -257,7 +257,7 @@ RadiusAttr::RadiusAttr(
 		PAssertAlways(PInvalidParameter);
 
 	if (addressValue.GetVersion() == 6) {
-		for (unsigned i=0; i < 15; i++)
+		for (unsigned i = 0; i < 15; i++)
 			m_value[i] = addressValue[i];
 	} else {
 		const DWORD addr = (DWORD)addressValue;
@@ -314,7 +314,7 @@ RadiusAttr::RadiusAttr(
 	SetRadiusInteger(m_vendorId, vendorId);
 
 	if (addressValue.GetVersion() == 6) {
-		for (unsigned i=0; i < 15; i++)
+		for (unsigned i = 0; i < 15; i++)
 			m_vendorValue[i] = addressValue[i];
 	} else {
 		const DWORD addr = (DWORD)addressValue;
@@ -916,7 +916,7 @@ bool RadiusPDU::AppendAttr(
 	attr->m_type = attrType;
 	attr->m_length = attrLen;
 	if (addressValue.GetVersion() == 6) {
-		for (unsigned i=0; i < 15; i++)
+		for (unsigned i = 0; i < 15; i++)
 			attr->m_value[i] = addressValue[i];
 	} else {
 		const DWORD addr = (DWORD)addressValue;
@@ -1019,7 +1019,7 @@ bool RadiusPDU::AppendVsaAttr(
 	attr->m_vendorType = vendorType;
 	attr->m_vendorLength = _addrLen(addressValue) + 2;
 	if (addressValue.GetVersion() == 6) {
-		for (unsigned i=0; i < 15; i++)
+		for (unsigned i = 0; i < 15; i++)
 			attr->m_vendorValue[i] = addressValue[i];
 	} else {
 		const DWORD addr = (DWORD)addressValue;
@@ -1844,8 +1844,8 @@ void RadiusClient::GetServersFromString(const PString & servers)
 			serverTokens.SetSize(1);
 			serverTokens[0] = tokens[i].Mid(1, ip_end-1);
 			const PStringArray detailsTokens = tokens[i].Mid(ip_end+1).Tokenise(":", FALSE);
-			for (PINDEX j=0; j < detailsTokens.GetSize(); ++j) {
-				serverTokens.SetSize(serverTokens.GetSize()+1);
+			for (PINDEX j = 0; j < detailsTokens.GetSize(); ++j) {
+				serverTokens.SetSize(serverTokens.GetSize() + 1);
 				serverTokens[j+1] = detailsTokens[j];
 			}
 		} else {

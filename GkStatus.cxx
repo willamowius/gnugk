@@ -1664,7 +1664,7 @@ void StatusClient::ExecCommand(
 	case GkStatus::e_DisconnectCall:
 		// disconnect call with this call number
 		if (args.GetSize() >= 2)
-			for (PINDEX p=1; p < args.GetSize(); ++p)
+			for (PINDEX p = 1; p < args.GetSize(); ++p)
 				SoftPBX::DisconnectCall(args[p].AsInteger());
 		else
 			CommandError("Syntax Error: DisconnectCall CALL_NUMBER [CALL_NUMBER...]");

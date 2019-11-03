@@ -688,7 +688,7 @@ PrefixInfo Neighbor::GetIPInfo(const H225_TransportAddress & ip, H225_ArrayOf_Al
     }
 
 	PStringArray sendNet(m_sendIPs.Tokenise(","));
-	for (PINDEX i=0; i < sendNet.GetSize(); ++i) {
+	for (PINDEX i = 0; i < sendNet.GetSize(); ++i) {
 		bool noMatch = false;
 		if (sendNet[i].Left(1) == "!") {
 			noMatch = true;
@@ -2250,7 +2250,7 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 		// LS Record lookup
 		PStringList ls;
 		if (PDNS::LookupSRV(number, schema, ls)) {
-			for (PINDEX i=0; i < ls.GetSize(); i++) {
+			for (PINDEX i = 0; i < ls.GetSize(); i++) {
 				PINDEX at = ls[i].Find('@');
 				PString ipaddr = ls[i].Mid(at + 1);
 				if (ipaddr.Left(7) == "0.0.0.0") {
@@ -2563,7 +2563,7 @@ bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 		// LS Record lookup
 		PStringList ls;
 		if (PDNS::RDSLookup(number, "H323+D2U", ls)) {
-			for (PINDEX i=0; i<ls.GetSize(); i++) {
+			for (PINDEX i = 0; i<ls.GetSize(); i++) {
 				PINDEX pos = ls[i].Find('@');
 				PString ipaddr = ls[i].Mid(pos + 1);
 				PTRACE(4, "ROUTING\tRDS LS located domain " << domain << " at " << ipaddr);

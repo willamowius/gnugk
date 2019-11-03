@@ -3,7 +3,7 @@
 // GkClient.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2002-2018, Jan Willamowius
+// Copyright (c) 2002-2019, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1298,7 +1298,7 @@ void H46024Socket::H46024Bdirect(const H323TransportAddress & address, unsigned 
 	// Sending an empty RTP frame to the alternate address
 	// will add a mapping to the router to receive RTP from
 	// the remote
-	for (PINDEX i=0; i<3; i++) {
+	for (PINDEX i = 0; i < 3; i++) {
 		SendRTPPing(m_altAddr, m_altPort, m_altMuxID);
 		PThread::Sleep(10);
 	}
