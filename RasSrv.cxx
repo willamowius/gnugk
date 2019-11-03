@@ -1964,15 +1964,14 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 #ifdef h323v6
 	    if (request.HasOptionalField(H225_GatekeeperRequest::e_supportsAssignedGK) &&
             RasSrv->HasAssignedGK(alias, m_msg->m_peerAddr, gcf)) {
-			PTRACE(2, "GCF\t" << alias << " redirected to assigned Gatekeeper");
-		} else
-#endif
-		{
-			if (request.HasOptionalField(H225_GatekeeperRequest::e_supportsAltGK))
-			    RasSrv->SetAlternateGK(gcf, m_msg->m_peerAddr);
-
-			RasSrv->SelectH235Capability(request, gcf);
+			PTRACE(2, "GCF\t" << alias << " informed of assigned gatekeeper");
 		}
+#endif
+
+        if (request.HasOptionalField(H225_GatekeeperRequest::e_supportsAltGK))
+		    RasSrv->SetAlternateGK(gcf, m_msg->m_peerAddr);
+
+		RasSrv->SelectH235Capability(request, gcf);
 
 /*      TODO: set up temp EP if we want to add tokens to GCF
         EndpointRec * tmpep = new EndpointRec(m_msg->m_recvRAS);
@@ -2866,8 +2865,16 @@ bool RegistrationRequestPDU::Process()
 
 #ifdef h323v6
 		// Assigned GKs
-		if (request.HasOptionalField(H225_RegistrationRequest::e_assignedGatekeeper))
+		if (request.HasOptionalField(H225_RegistrationRequest::e_assignedGatekeeper)) {
 			ep->SetAssignedGatekeeper(rcf.m_assignedGatekeeper);
+			PString alias;
+			if (ep->GetAliases().GetSize() > 0) {
+                alias = AsString(ep->GetAliases()[0], false);
+			}
+            if (RasSrv->HasAssignedGK(alias, m_msg->m_peerAddr, rcf)) {
+			    PTRACE(2, "RCF\t" << alias << " informed of assigned gatekeeper");
+            }
+		}
 #endif
 
 		// Alternate GKs

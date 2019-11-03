@@ -5,7 +5,7 @@
 // Multi-threaded RAS Server for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2000-2014, Jan Willamowius
+// Copyright (c) 2000-2019, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -224,8 +224,6 @@ public:
 
 		// Queries a DB for gatekeeper registrations with the first being
 		// the assigned gatekeeper. The alternates are then in preference order
-		// Note: If an assigned gatekeeper is found then the registration is not
-		// handled by this gatekeeper but by the assigned gatekeeper.
 		if (!Toolkit::Instance()->AssignedGKs().GetAssignedGK(alias, ip, assignedGK))
 			return false;
 
@@ -235,12 +233,12 @@ public:
         ras.IncludeOptionalField(RAS::e_assignedGatekeeper);
 		ras.m_assignedGatekeeper = assignedGK[0];
 
-		if (assignedGK.GetSize() > 1) {
-			for (PINDEX i=1; i< assignedGK.GetSize(); i++) {
+		if (assignedGK.GetSize() > 0) {
+			ras.IncludeOptionalField(RAS::e_alternateGatekeeper);
+			for (PINDEX i = 0; i< assignedGK.GetSize(); i++) {
 			   ras.m_alternateGatekeeper.SetSize(i);
 			   ras.m_alternateGatekeeper[i-1] = assignedGK[i];
 			}
-			ras.IncludeOptionalField(RAS::e_alternateGatekeeper);
 		}
 
 		return true;
