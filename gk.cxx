@@ -212,6 +212,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "Gatekeeper::Acct", "HttpAcct" },
 #endif
 	{ "Gatekeeper::Acct", "LuaAcct" },
+#ifdef HAS_LIBMOSQUITTO
+	{ "Gatekeeper::Acct", "MQTTAcct" },
+#endif // HAS_LIBMOSQUITTO
 	{ "Gatekeeper::Acct", "RadAcct" },
 	{ "Gatekeeper::Acct", "SQLAcct" },
 	{ "Gatekeeper::Acct", "StatusAcct" },
@@ -428,6 +431,27 @@ const char * KnownConfigEntries[][2] = {
 	{ "LogFile", "Rotate" },
 	{ "LogFile", "RotateDay" },
 	{ "LogFile", "RotateTime" },
+#ifdef HAS_LIBMOSQUITTO
+	{ "MQTTAcct", "AlertEvent" },
+	{ "MQTTAcct", "CACert" },
+	{ "MQTTAcct", "CallTopic" },
+	{ "MQTTAcct", "ConnectEvent" },
+	{ "MQTTAcct", "Host" },
+	{ "MQTTAcct", "OffEvent" },
+	{ "MQTTAcct", "OnEvent" },
+	{ "MQTTAcct", "Password" },
+	{ "MQTTAcct", "Port" },
+	{ "MQTTAcct", "RegistrationTopic" },
+	{ "MQTTAcct", "RegisterEvent" },
+	{ "MQTTAcct", "RejectEvent" },
+	{ "MQTTAcct", "StartEvent" },
+	{ "MQTTAcct", "StopEvent" },
+	{ "MQTTAcct", "TimestampFormat" },
+	{ "MQTTAcct", "UnregisterEvent" },
+	{ "MQTTAcct", "User" },
+	{ "MQTTAcct", "UseSSL" },
+	{ "MQTTAcct", "UpdateEvent" },
+#endif // HAS_LIBMOSQUITTO
 	{ "PortNotifications", "H245PortOpen" },
 	{ "PortNotifications", "H245PortClose" },
 	{ "PortNotifications", "Q931PortOpen" },

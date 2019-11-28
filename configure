@@ -637,6 +637,7 @@ GNUGK_MINOR_VERSION
 GNUGK_MAJOR_VERSION
 GNUGK_VERSION
 HAS_LIBRABBITMQ
+HAS_LIBMOSQUITTO
 HAS_LIBCURL
 CURL_CONFIG
 HAS_GEOIP2
@@ -757,6 +758,7 @@ with_lua_dir
 enable_geoip
 with_geoip_include_dir
 enable_libcurl
+enable_mqtt
 enable_librabbitmq
 '
       ac_precious_vars='build_alias
@@ -1406,6 +1408,7 @@ Optional Features:
   --enable-lua            enable LUA support (default=yes)
   --enable-geoip          enable GeoIP support (default=yes)
   --enable-libcurl        enable libcurl support (default=yes)
+  --enable-mqtt           enable MQTT support (default=yes)
   --enable-librabbitmq    enable RabbitMQ support (default=yes)
 
 Optional Packages:
@@ -5955,6 +5958,45 @@ else
     HAS_LIBCURL=0
 fi
 
+
+
+
+
+# Check whether --enable-mqtt was given.
+if test "${enable_mqtt+set}" = set; then :
+  enableval=$enable_mqtt;  mqtt="${enableval}"
+else
+  mqtt="yes"
+
+fi
+
+
+if test "x${mqtt}" != "xno" ; then
+   for ac_header in mosquitto.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "mosquitto.h" "ac_cv_header_mosquitto_h" "$ac_includes_default"
+if test "x$ac_cv_header_mosquitto_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_MOSQUITTO_H 1
+_ACEOF
+ HAS_LIBMOSQUITTO=1
+else
+  HAS_LIBMOSQUITTO=0
+fi
+
+done
+
+fi
+
+if test "x${HAS_LIBMOSQUITTO}" != "x0" ; then
+	$as_echo "#define HAS_LIBMOSQUITTO 1" >>confdefs.h
+
+	STDCCFLAGS="-DHAS_LIBMOSQUITTO=1 $STDCCFLAGS"
+	ENDLDLIBS="-lmosquitto $ENDLDLIBS"
+	echo "MQTT support enabled"
+else
+    echo "MQTT support disabled)"
+fi
 
 
 

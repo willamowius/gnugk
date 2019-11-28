@@ -20,7 +20,7 @@ All CDRs are also sent to the status port and can be used by external applicatio
 <tscreen><verb>
 acctmod=actions
 
- <acctmod> := FileAcct | RadAcct | SQLAcct | HttpAcct | AMQPAcct | StatusAcct | SyslogAcct | LuaAcct | RequireOneNet | CapacityControl | ...
+ <acctmod> := FileAcct | RadAcct | SQLAcct | HttpAcct | AMQPAcct | MQTTAcct | StatusAcct | SyslogAcct | LuaAcct | RequireOneNet | CapacityControl | ...
  <actions> := <control>[;<event>,<event>,...]
  <control> := optional | required | sufficient | alternative
  <event>   := start | stop | alert | connect | update | register | unregister | on | off | reject | mediafail
@@ -105,6 +105,11 @@ See section <ref id="httpacct" name="[HttpAcct]"> for configuration details.
 <p>
 This module logs all accounting events to an AMQP queue, eg. RabbitMQ. It supports (start, connect, stop, update, alert, reject, register, unregister, on, off)
 See section <ref id="amqpacct" name="[AMQPAcct]"> for configuration details.
+
+<item><tt>MQTTAcct</tt>
+<p>
+This module logs all accounting events to an MQTT server. It supports (start, connect, stop, update, alert, reject, register, unregister, on, off)
+See section <ref id="mqttacct" name="[MQTTAcct]"> for configuration details.
 
 <item><tt>StatusAcct</tt>
 <p>
@@ -1202,6 +1207,16 @@ Default: <tt>guest</tt><newline>
 <p>
 The password.
 
+<item><tt/UseSSL=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Use SSL for the AMQP connection.
+
+<item><tt>CACert=/path/to/cert</tt><newline>
+Default: <tt>n/a</tt><newline>
+<p>
+Path to certificate file.
+
 <item><tt/Exchange=foo/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
@@ -1282,6 +1297,118 @@ is not specified, the global one from the main gatekeeper section is used.
 </itemize>
 
 In the settings for Host, Port, User, Password, UseSSL, CACert, Exchange and RoutingKey you can use %{env1} to %{env9}
+to insert the environment variables GNUGK_ENV1 ... GNUGK_ENV9.
+
+
+<sect1>Section &lsqb;MQTTAcct&rsqb;
+<label id="mqttacct">
+<p>
+This accounting module sends accounting information to an MQTT server.
+
+You can use the <ref id="cdrparameters" name="common CDR parameters"> to define
+what to include into your request URL or body.
+
+<itemize>
+
+<item><tt/Host=192.168.1.1/<newline>
+Default: <tt>localhost</tt><newline>
+<p>
+Set the host where the message broker runs.
+
+<item><tt/Port=1883/<newline>
+Default: <tt>1883</tt><newline>
+<p>
+The port of the message broker.
+
+<item><tt/UseSSL=0/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Currently not implemented.
+
+<item><tt>CACert=/path/to/cert</tt><newline>
+Default: <tt>n/a</tt><newline>
+<p>
+Currently not implemented.
+
+<item><tt/User=admin/<newline>
+Default: <tt>guest</tt><newline>
+<p>
+The user name.
+
+<item><tt/Password=secret/<newline>
+Default: <tt>guest</tt><newline>
+<p>
+The password.
+
+<item><tt>CallTopic=foo/bar</tt><newline>
+Default: <tt>gnugk/call/status</tt><newline>
+<p>
+The topic for call related events.
+
+<item><tt>RegistrationTopic=foo/bar</tt><newline>
+Default: <tt>gnugk/registration/status</tt><newline>
+<p>
+The topic for registration related events.
+
+<item><tt>StartEvent=Start Call GK=%g</tt><newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for call start events. You can use the standard account parameters.
+
+<item><tt>StopEvent=End Call GK=%g</tt><newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for call stop events. You can use the standard account parameters.
+
+<item><tt>UpdateEvent=Update Call GK=%g</tt><newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for call update events. You can use the standard account parameters.
+
+<item><tt>AlertEvent=Alert Call GK=%g</tt><newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for call alert events. You can use the standard account parameters.
+
+<item><tt>ConnectEvent=Connect Call GK=%g</tt><newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for call conect events. You can use the standard account parameters.
+
+<item><tt>RejectEvent=Reject Call GK=%g</tt><newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for call reject events. You can use the standard account parameters.
+
+<item><tt>RegisterEvent=Register Endpoint GK=%g</tt><newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for endpoint registration events. You can use the standard account parameters.
+
+<item><tt>UnregisterEvent=Unregister Endpoint GK=%g</tt><newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for endpoint unregistration events. You can use the standard account parameters.
+
+<item><tt>OnEvent=GK Start %g</tt><newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for ON events. You can use the standard account parameters.
+
+<item><tt>OffEvent=GK Stop %g</tt><newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The text for OFF events. You can use the standard account parameters.
+
+<item><tt/TimestampFormat=MySQL/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Format of timestamp strings. If this setting
+is not specified, the global one from the main gatekeeper section is used.
+
+</itemize>
+
+In the settings for Host, Port, User, Password, UseSSL and CACert you can use %{env1} to %{env9}
 to insert the environment variables GNUGK_ENV1 ... GNUGK_ENV9.
 
 
