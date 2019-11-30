@@ -8,7 +8,6 @@ Changes from 5.3 to 5.4
 - support redis as database
 - BUGFIX(ProxyChannel.cxx) fix H.245 tunneling translation with H.460.18 endpoints
 
-
 Changes from 5.2 to 5.3
 =======================
 - BUGFIX(ProxyChannel.cxx) don't send H.245 address to tunneling H.460.18 endpoint, breaks call when H.245 multiplexing
