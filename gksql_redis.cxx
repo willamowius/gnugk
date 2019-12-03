@@ -258,11 +258,11 @@ GkSQLConnection::SQLConnPtr GkRedisConnection::CreateNewConnection(
         redisReply * reply = (redisReply *)redisCommand(conn, "AUTH %s", (const char *)m_password);
         if (!reply || !reply->str || PString(reply->str).Left(2) != "OK") {
     		if (reply && reply->str) {
-    		    PTRACE(2, GetName() << "\tredis authentication failed: " << reply->str);
-    		}
+                PTRACE(2, GetName() << "\tredis authentication failed: " << reply->str);
+            }
             if (reply)
                 freeReplyObject(reply);
-    		return NULL;
+            return NULL;
         }
         freeReplyObject(reply);
     }
