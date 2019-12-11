@@ -371,7 +371,7 @@ AMQPAcct::AMQPAcct(const char* moduleName, const char* cfgSecName)
     m_regTopic = m_routingKey;
     if (m_regTopic.IsEmpty())
         m_regTopic = "gnugk.registration.status";
-	m_vhost = cfg->GetString(cfgSec, "VHost", "/");
+    m_vhost = cfg->GetString(cfgSec, "VHost", "/");
     m_vhost = Toolkit::Instance()->ReplaceGlobalParams(m_vhost);
 	m_contentType = cfg->GetString(cfgSec, "ContentType", "text/plain");
 	m_channelID = 1;
