@@ -491,9 +491,11 @@ PBoolean PTLibSNMPAgent::OnGetRequest(PINDEX reqID, PSNMP::BindingList & vars, P
 
 PBoolean PTLibSNMPAgent::OnGetNextRequest(PINDEX reqID, PSNMP::BindingList & vars, PSNMP::ErrorType & errCode)
 {
-    const PString & oid = vars.front().first;
+    PString oid = vars.front().first;
+    if (oid.Right(2) == ".0")
+        oid = oid.Left(oid.GetLength() - 2);
     list<PString>::const_iterator it = m_nextList.begin();
-    while(it != m_nextList.end() && (OIDCmp(*it, oid) == -1)) {
+    while(it != m_nextList.end() && (OIDCmp(*it, oid) <= 0)) {
         ++it;
     }
     if (it != m_nextList.end() /* TODO: && is in same space? */) {

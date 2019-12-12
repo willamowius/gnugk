@@ -1,5 +1,6 @@
 Changes from 5.3 to 5.4
 =======================
+- BUGFIX(snmp.cxx) fix GET-NEXT in PTLib-SNMP (for snmpwalk)
 - new module: MQTTAcct - send accounting to MQTT server
 - BUGFIX(RasSrv.*) fix sending alternate gatekeeper list to endpoints with assigned gatekeeper
 - BUGFIX(GkClient.cxx) improve DRQ from client gatekeeper
