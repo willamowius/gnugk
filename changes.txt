@@ -1,12 +1,12 @@
 Changes from 5.3 to 5.4
 =======================
-- BUGFIX(snmp.cxx) fix GET-NEXT in PTLib-SNMP (for snmpwalk)
 - new module: MQTTAcct - send accounting to MQTT server
+- support redis as database
+- BUGFIX(snmp.cxx) fix GET-NEXT in PTLib-SNMP (for snmpwalk)
 - BUGFIX(RasSrv.*) fix sending alternate gatekeeper list to endpoints with assigned gatekeeper
-- BUGFIX(GkClient.cxx) improve DRQ from client gatekeeper
+- BUGFIX(GkClient.cxx) improve DRQ from child gatekeeper
 - BUGFIX(GkClient.cxx) fix TLS with neighbor gatekeeper
 - BUGFIX(Toolkit.cxx) read EnableIPv6 switch earlier during startup
-- support redis as database
 - BUGFIX(ProxyChannel.cxx) fix H.245 tunneling translation with H.460.18 endpoints
 
 Changes from 5.2 to 5.3
