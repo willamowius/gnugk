@@ -1408,7 +1408,7 @@ if test "x${HAS_LIBMOSQUITTO}" != "x0" ; then
 	ENDLDLIBS="-lmosquitto $ENDLDLIBS"
 	echo "MQTT support enabled"
 else
-    echo "MQTT support disabled)"
+    echo "MQTT support disabled"
 fi
 AC_SUBST(HAS_LIBMOSQUITTO)
 
