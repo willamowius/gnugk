@@ -3,7 +3,7 @@
 // PURPOSE OF THIS FILE: Give version info
 //
 // Copyright (C) 2003 Nils.Bokermann@mediaways.net
-// Copyright (c) 2006-2019, Jan Willamowius
+// Copyright (c) 2006-2020, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -22,7 +22,7 @@
 const PString Toolkit::GKVersion()
 {
 	return PString(PString::Printf,
-		       "Gatekeeper(%s) Version(%s) Ext(amqp=%d,curl=%d,crypto/ssl=%d,firebird=%d,geoip=%d,h235media=%d,h46017=%d,h46018=%d,h46023=%d,h46026=%d,ipv6=%d,large_fdset=%d,ldap=%d,lua=%d,mysql=%d,odbc=%d,olm=%d,pgsql=%d,pthreads=%d,radius=%d,redis=%d,snmp=%d,ssh=%d,sqlite=%d)"
+		       "Gatekeeper(%s) Version(%s) Ext(amqp=%d,curl=%d,crypto/ssl=%d,firebird=%d,geoip=%d,h235media=%d,h46017=%d,h46018=%d,h46023=%d,h46026=%d,ipv6=%d,large_fdset=%d,ldap=%d,lua=%d,mqtt=%d,mysql=%d,odbc=%d,olm=%d,pgsql=%d,pthreads=%d,radius=%d,redis=%d,snmp=%d,ssh=%d,sqlite=%d)"
 		       " H323Plus(%d.%d.%d) PTLib(%d.%d.%d) Build(%s, %s) Sys(%s %s %s)\r\n",
 		       (const unsigned char*)(PProcess::Current().GetManufacturer()),
 		       (const unsigned char*)(PProcess::Current().GetVersion(true)),
@@ -92,6 +92,11 @@ const PString Toolkit::GKVersion()
 				(int)0,
 #endif
 #ifdef HAS_LUA
+				(int)1,
+#else
+				(int)0,
+#endif
+#if HAS_LIBMOSQUITTO
 				(int)1,
 #else
 				(int)0,
