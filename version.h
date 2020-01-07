@@ -3,7 +3,7 @@
 // Version number for GnuGk
 //
 // Copyright (c) 2002, Dr.-Ing. Martin Froehlich <Martin.Froehlich@mediaWays.net>
-// Copyright (c) 2006-2019, Jan Willamowius
+// Copyright (c) 2006-2020, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
