@@ -931,6 +931,7 @@ const char * KnownConfigEntries[][2] = {
 #endif
 	{ "Neighbor::", "Host" },
 	{ "Neighbor::", "Password" },
+	{ "Neighbor::", "SendAliases" },
 	{ "Neighbor::", "SendAuthUser" },
 	{ "Neighbor::", "SendIPs" },
 	{ "Neighbor::", "SendLRQPing" },

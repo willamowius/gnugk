@@ -1,6 +1,6 @@
 Changes from 5.4 to 5.5
 =======================
-
+- BUGFIX(gk.cxx) don't complain about [Neighbor::xxx] SendAliases switch when using --strict
 
 Changes from 5.3 to 5.4
 =======================
