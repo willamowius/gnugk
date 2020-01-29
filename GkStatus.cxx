@@ -586,14 +586,32 @@ bool SSHStatusClient::AuthenticateUser()
 
 	// PTRACE(1, "User " << login << " wants to authenticate with password " << password);
 
-	const PString storedPassword = GetPassword(login);
-	if (storedPassword.IsEmpty())
-		PTRACE(5, "STATUS\tCould not find password in the config for user " << login);
-	else if (!password && password == storedPassword) {
-		m_user = login;
-		return true;
-	} else
-		PTRACE(5, "STATUS\tPassword mismatch for user " << login);
+#ifdef P_SSL
+    PString rawPassword = GkConfig()->GetString(authsec, login, "");
+    if (rawPassword.Left(7) == "PBKDF2:") {
+        const PINDEX dashPos = rawPassword.Find("-");
+        const PString salt = rawPassword.Mid(7, dashPos - 7);
+        const PString digest = rawPassword.Mid(dashPos + 1);
+        if (PBKDF2_Digest(salt, password) == digest) {
+            m_user = login;
+            return true;
+        } else {
+            PTRACE(3, "STATUS\tPassword digest mismatch for user " << login);
+        }
+    }
+    else
+#endif
+    {
+        const PString storedPassword = GetPassword(login);
+        if (storedPassword.IsEmpty())
+            PTRACE(5, "STATUS\tCould not find password in the config for user " << login);
+        else if (!password && password == storedPassword) {
+            m_user = login;
+            return true;
+        } else {
+            PTRACE(5, "STATUS\tPassword mismatch for user " << login);
+        }
+    }
 
 	PThread::Sleep(delay * 1000);
 
