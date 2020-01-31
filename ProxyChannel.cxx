@@ -13735,6 +13735,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
                 zeroIP = false;
             }
             if (zeroIP) {
+                PTRACE(7, "JW RTP IN zero media channel source (IgnoreSignaledIPs)");
                 lc->ZeroMediaControlChannelSource();
             }
         }
@@ -13752,22 +13753,23 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 				lc->ZeroMediaChannelSource();
 			}
 #endif
-        PIPSocket::Address ip = H245UnicastToSocketAddr(*addr);
-        if (m_ignoreSignaledIPs && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
-            zeroIP = true;
-        }
-        if (m_ignoreSignaledIPs && isUnidirectional && m_ignoreSignaledAllH239IPs) {
-            zeroIP = true;
-        }
-        if (m_ignoreSignaledIPs && isUnidirectional && IsInNetworks(ip, m_ignorePublicH239IPs)) {
-            zeroIP = true;
-        }
-        if (IsInNetworks(ip, m_keepSignaledIPs)) {
-            zeroIP = false;
-        }
-        if (zeroIP) {
-				lc->ZeroMediaChannelSource();
+            PIPSocket::Address ip = H245UnicastToSocketAddr(*addr);
+            if (m_ignoreSignaledIPs && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
+                zeroIP = true;
             }
+            if (m_ignoreSignaledIPs && isUnidirectional && m_ignoreSignaledAllH239IPs) {
+                zeroIP = true;
+            }
+            if (m_ignoreSignaledIPs && isUnidirectional && IsInNetworks(ip, m_ignorePublicH239IPs)) {
+                zeroIP = true;
+            }
+            if (IsInNetworks(ip, m_keepSignaledIPs)) {
+                zeroIP = false;
+            }
+            if (zeroIP) {
+                PTRACE(7, "JW RTP IN zero media channel source (IgnoreSignaledIPs)");
+                lc->ZeroMediaChannelSource();
+            };
 		} else {
 			*addr << GetMasqAddr() << (WORD)0;
 		}
