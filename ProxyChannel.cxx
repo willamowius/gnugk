@@ -1193,6 +1193,8 @@ private:
 	PINDEX m_callNo;
     bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPs in signaling, do full auto-detect
     bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H.239 streams
+    bool m_ignoreSignaledAllH239IPs;   // also ignore all IPs signaled in H.239 streams
+    list<NetworkAddress> m_ignorePublicH239IPs;   // do auto-detect for H.239 on this network
     list<NetworkAddress> m_keepSignaledIPs;   // don't do auto-detect on this network
     bool m_isUnidirectional;
     RTPSessionTypes m_sessionType;
@@ -1388,6 +1390,8 @@ protected:
 	bool m_isH245Master;
     bool m_ignoreSignaledIPs;   // ignore all RTP/RTCP IPs in signaling, do full auto-detect
     bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H.239 streams
+    bool m_ignoreSignaledAllH239IPs;   // also ignore all IPs signaled in H.239 streams
+    list<NetworkAddress> m_ignorePublicH239IPs;   // do auto-detect for H.239 on this network
     list<NetworkAddress> m_keepSignaledIPs;   // don't do auto-detect on this network
     unsigned m_filterFastUpdatePeriod;
 };
@@ -11431,6 +11435,7 @@ UDPProxySocket::UDPProxySocket(const char *t, PINDEX no)
 	m_legacyPortDetection = GkConfig()->GetBoolean(ProxySection, "LegacyPortDetection", false);
     m_ignoreSignaledIPs = false;
     m_ignoreSignaledPrivateH239IPs = false;
+    m_ignoreSignaledAllH239IPs = false;
     callptr call = CallTable::Instance()->FindCallRec(m_callNo);
 #ifdef HAS_H46018
 	m_checkH46019KeepAlivePT = GkConfig()->GetBoolean(ProxySection, "CheckH46019KeepAlivePT", true);
@@ -11438,6 +11443,20 @@ UDPProxySocket::UDPProxySocket(const char *t, PINDEX no)
         m_ignoreSignaledIPs = call->IgnoreSignaledIPs();
         if (m_ignoreSignaledIPs) {
             m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
+            m_ignoreSignaledAllH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledAllH239IPs", false);
+            PStringArray ignorePublicH239IPs = GkConfig()->GetString(ProxySection, "IgnoreSignaledPublicH239IPsFrom", "").Tokenise(",", FALSE);
+            for (PINDEX i = 0; i < ignorePublicH239IPs.GetSize(); ++i) {
+                PString ip = ignorePublicH239IPs[i];
+                if (ip.Find('/') == P_MAX_INDEX) {
+                    // add netmask to pure IPs
+                    if (IsIPv4Address(ip)) {
+                        ip += "/32";
+                    } else {
+                        ip += "/128";
+                    }
+                }
+                m_ignorePublicH239IPs.push_back(NetworkAddress(ip));
+            }
             PStringArray keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "").Tokenise(",", FALSE);
             for (PINDEX i = 0; i < keepSignaledIPs.GetSize(); ++i) {
                 PString ip = keepSignaledIPs[i];
@@ -12572,6 +12591,7 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
 {
     m_ignoreSignaledIPs = false;
     m_ignoreSignaledPrivateH239IPs = false;
+    m_ignoreSignaledAllH239IPs = false;
     m_callNo = 0;
     callptr call = CallTable::Instance()->FindCallRec(id);
     if (call) {
@@ -12587,6 +12607,20 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
                 call->SetIgnoreSignaledIPs(false);
             } else {
                 m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
+                m_ignoreSignaledAllH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledAllH239IPs", false);
+                PStringArray ignorePublicH239IPs = GkConfig()->GetString(ProxySection, "IgnoreSignaledPublicH239IPsFrom", "").Tokenise(",", FALSE);
+                for (PINDEX i = 0; i < ignorePublicH239IPs.GetSize(); ++i) {
+                    PString ip = ignorePublicH239IPs[i];
+                    if (ip.Find('/') == P_MAX_INDEX) {
+                        // add netmask to pure IPs
+                        if (IsIPv4Address(ip)) {
+                            ip += "/32";
+                        } else {
+                            ip += "/128";
+                        }
+                    }
+                    m_ignorePublicH239IPs.push_back(NetworkAddress(ip));
+                }
                 PStringArray keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "").Tokenise(",", FALSE);
                 for (PINDEX i = 0; i < keepSignaledIPs.GetSize(); ++i) {
                     PString ip = keepSignaledIPs[i];
@@ -12671,6 +12705,7 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool na
 {
     m_ignoreSignaledIPs = false;
     m_ignoreSignaledPrivateH239IPs = false;
+    m_ignoreSignaledAllH239IPs = false;
 #ifdef HAS_H46018
     callptr call = CallTable::Instance()->FindCallRec(flc->m_callNo);
     if (call) {
@@ -12682,6 +12717,20 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool na
                 call->SetIgnoreSignaledIPs(false);
             } else {
                 m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
+                m_ignoreSignaledAllH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledAllH239IPs", false);
+                PStringArray ignorePublicH239IPs = GkConfig()->GetString(ProxySection, "IgnoreSignaledPublicH239IPsFrom", "").Tokenise(",", FALSE);
+                for (PINDEX i = 0; i < ignorePublicH239IPs.GetSize(); ++i) {
+                    PString ip = ignorePublicH239IPs[i];
+                    if (ip.Find('/') == P_MAX_INDEX) {
+                        // add netmask to pure IPs
+                        if (IsIPv4Address(ip)) {
+                            ip += "/32";
+                        } else {
+                            ip += "/128";
+                        }
+                    }
+                    m_ignorePublicH239IPs.push_back(NetworkAddress(ip));
+                }
                 PStringArray keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "").Tokenise(",", FALSE);
                 for (PINDEX i = 0; i < keepSignaledIPs.GetSize(); ++i) {
                     PString ip = keepSignaledIPs[i];
@@ -13194,12 +13243,19 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
         if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
             zeroIP = true;
         }
+        if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && m_ignoreSignaledAllH239IPs) {
+            zeroIP = true;
+        }
+        if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsInNetworks(ip, m_ignorePublicH239IPs)) {
+            zeroIP = true;
+        }
         if (IsInNetworks(ip, m_keepSignaledIPs)) {
             zeroIP = false;
         }
         if (zeroIP) {
             PTRACE(7, "JW RTP IN zero RTCP src + dest (IgnoreSignaledIPs)");
             (rtcp->*SetDest)(0, 0, NULL, call);
+        // TODO: check else condition is it correct ? do we need to add m_ignoreSignaledAllH239IPs ?
         } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs)) {
             // only zero out source IP
             PTRACE(7, "JW RTP IN zero RTCP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
@@ -13238,12 +13294,19 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
             if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
                 zeroIP = true;
             }
+            if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && m_ignoreSignaledAllH239IPs) {
+                zeroIP = true;
+            }
+            if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsInNetworks(ip, m_ignorePublicH239IPs)) {
+                zeroIP = true;
+            }
             if (IsInNetworks(ip, m_keepSignaledIPs)) {
                 zeroIP = false;
             }
             if (zeroIP) {
                 PTRACE(7, "JW RTP IN zero RTP src + dest (IgnoreSignaledIPs)");
                 (rtp->*SetDest)(0, 0, NULL, call);
+            // TODO: check else condition: is it correct ? do we need to add m_ignoreSignaledAllH239IPs ?
             } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs)) {
                 // only zero out source IP
                 PTRACE(7, "JW RTP IN zero RTP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
@@ -13500,6 +13563,7 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 
     m_ignoreSignaledIPs = false;
     m_ignoreSignaledPrivateH239IPs = false;
+    m_ignoreSignaledAllH239IPs = false;
 #ifdef HAS_H46018
     callptr call = CallTable::Instance()->FindCallRec(callid);
     if (call) {
@@ -13511,6 +13575,7 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
                 call->SetIgnoreSignaledIPs(false);
             } else {
                 m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
+                m_ignoreSignaledAllH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledAllH239IPs", false);
             }
         }
     }
@@ -13660,6 +13725,12 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
             if (m_ignoreSignaledIPs && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
                 zeroIP = true;
             }
+            if (m_ignoreSignaledIPs && isUnidirectional && m_ignoreSignaledAllH239IPs) {
+                zeroIP = true;
+            }
+            if (m_ignoreSignaledIPs && isUnidirectional && IsInNetworks(ip, m_ignorePublicH239IPs)) {
+                zeroIP = true;
+            }
             if (IsInNetworks(ip, m_keepSignaledIPs)) {
                 zeroIP = false;
             }
@@ -13683,6 +13754,12 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 #endif
         PIPSocket::Address ip = H245UnicastToSocketAddr(*addr);
         if (m_ignoreSignaledIPs && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
+            zeroIP = true;
+        }
+        if (m_ignoreSignaledIPs && isUnidirectional && m_ignoreSignaledAllH239IPs) {
+            zeroIP = true;
+        }
+        if (m_ignoreSignaledIPs && isUnidirectional && IsInNetworks(ip, m_ignorePublicH239IPs)) {
             zeroIP = true;
         }
         if (IsInNetworks(ip, m_keepSignaledIPs)) {

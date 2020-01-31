@@ -475,8 +475,10 @@ const char * KnownConfigEntries[][2] = {
 	{ "Proxy", "EnableRTPMute" },
 	{ "Proxy", "ExplicitRoutes" },
 #ifdef HAS_H46018
+	{ "Proxy", "IgnoreSignaledAllH239IPs" },
 	{ "Proxy", "IgnoreSignaledIPs" },
 	{ "Proxy", "IgnoreSignaledPrivateH239IPs" },
+	{ "Proxy", "IgnoreSignaledPublicH239IPsFrom" },
 #endif
 	{ "Proxy", "InternalNetwork" },
 #ifdef HAS_H46018

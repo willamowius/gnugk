@@ -972,7 +972,19 @@ by nature so we can't use auto detection.
 <item><tt>IgnoreSignaledPrivateH239IPs=1</tt><newline>
 Default: <tt>0</tt><newline>
 <p>
-Also ignore IPs signaled for H.239 streams if they are private IPs.
+Ignore IPs signaled for H.239 streams if they are private IPs.
+
+<item><tt>IgnoreSignaledAllH239IPs=1</tt><newline>
+Default: <tt>0</tt><newline>
+<p>
+Ignore all public and private IPs/ports signaled for H.239 streams. For this to work the desination
+of the H.239 steam must either send keepalive packets to aid port detection
+or be included in the list of AllowSignaledIPs (see below).
+
+<item><tt>IgnoreSignaledPublicH239IPsFrom=1.2.3.0/24,4.5.6.7</tt><newline>
+Default: <tt>n/a</tt><newline>
+<p>
+Ignore all public and private IPs/ports signaled for H.239 streams for specific IPs or IP ranges.
 
 <item><tt>AllowSignaledIPs=192.168.1.0/24,10.0.0.0/8</tt><newline>
 Default: <tt>n/a</tt><newline>

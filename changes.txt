@@ -1,5 +1,9 @@
 Changes from 5.4 to 5.5
 =======================
+- new switch [Proxy] IgnoreSignaledPublicH239IPsFrom=x.x.x.x to ignore public H.239 IPs/ports
+  from certain IP ranges
+- new switch [Proxy] IgnoreSignaledAllH239IPs=1 to ignore all public H.239 IPs/ports in
+  signaling (use pure port detection)
 - BUGFIX(GkStatus.cxx) support new PBKDF2 password hashes for ssh logins to the status port
 - BUGFIX(gk.cxx) don't complain about [Neighbor::xxx] SendAliases switch when using --strict
 
