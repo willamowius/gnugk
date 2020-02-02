@@ -184,7 +184,6 @@
 		<Unit filename="testrunner.cxx" />
 		<Unit filename="version.cxx" />
 		<Unit filename="version.h" />
-		<Unit filename="versionts.h" />
 		<Unit filename="yasocket.cxx" />
 		<Unit filename="yasocket.h" />
 		<Extensions>
