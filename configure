@@ -5986,6 +5986,8 @@ fi
 
 done
 
+else
+   HAS_LIBMOSQUITTO=0
 fi
 
 if test "x${HAS_LIBMOSQUITTO}" != "x0" ; then
@@ -6026,6 +6028,8 @@ fi
 
 done
 
+else
+   HAS_LIBRABBITMQ=0
 fi
 
 if test "x${HAS_LIBRABBITMQ}" != "x0" ; then
