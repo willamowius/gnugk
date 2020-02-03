@@ -13240,27 +13240,31 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 
     PIPSocket::Address ip = H245UnicastToSocketAddr(*dest);
     if (isUnidirectional) {
-        if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
+        PTRACE(7, "JW RTP zero check 1: dest=" << AsString(ip) << " src=" << AsString(tmpSrcIP));
+        if (m_ignoreSignaledIPs && !fromTraversalClient && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
             zeroIP = true;
         }
-        if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && m_ignoreSignaledAllH239IPs) {
+        if (m_ignoreSignaledIPs && !fromTraversalClient && m_ignoreSignaledAllH239IPs) {
             zeroIP = true;
         }
-        if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsInNetworks(ip, m_ignorePublicH239IPs)) {
+        if (m_ignoreSignaledIPs && !fromTraversalClient && IsInNetworks(ip, m_ignorePublicH239IPs)) {
             zeroIP = true;
         }
-        if (IsInNetworks(ip, m_keepSignaledIPs)) {
-            zeroIP = false;
-        }
-        if (zeroIP) {
-            PTRACE(7, "JW RTP IN zero RTCP src + dest (IgnoreSignaledIPs)");
-            (rtcp->*SetDest)(0, 0, NULL, call);
-        // TODO: check else condition is it correct ? do we need to add m_ignoreSignaledAllH239IPs ?
-        } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs)) {
-            // only zero out source IP
-            PTRACE(7, "JW RTP IN zero RTCP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
-            (rtcp->*SetDest)(0, 0, dest, call);
-        }
+    }
+    if (IsInNetworks(ip, m_keepSignaledIPs)) {
+        zeroIP = false;
+    }
+    if (zeroIP) {
+        PTRACE(7, "JW RTP IN zero RTCP src + dest (IgnoreSignaledIPs)");
+        (rtcp->*SetDest)(0, 0, NULL, call);
+    } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs)) {
+        // only zero out source IP
+        PTRACE(7, "JW RTP IN zero RTCP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
+        (rtcp->*SetDest)(0, 0, dest, call);
+    } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsInNetworks(tmpSrcIP, m_ignorePublicH239IPs) && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs)) {
+        // only zero out source IP
+        PTRACE(7, "JW RTP IN zero RTCP src (IgnoreSignaledIPs && IgnoreSignaledPublicH239IPsFrom)");
+        (rtcp->*SetDest)(0, 0, dest, call);
     }
 
 	if (useRTPMultiplexing) {
@@ -13288,30 +13292,33 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 		}
 #endif
 
-        PIPSocket::Address ip = H245UnicastToSocketAddr(*dest);
         if (isUnidirectional) {
-            // TODO: check if we should default zeroIP to false, before we do these checks
-            if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
+            PIPSocket::Address ip = H245UnicastToSocketAddr(*dest);
+            PTRACE(7, "JW RTP zero check 2: dest=" << AsString(ip) << " src=" << AsString(tmpSrcIP));
+            if (m_ignoreSignaledIPs && !fromTraversalClient && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
                 zeroIP = true;
             }
-            if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && m_ignoreSignaledAllH239IPs) {
+            if (m_ignoreSignaledIPs && !fromTraversalClient && m_ignoreSignaledAllH239IPs) {
                 zeroIP = true;
             }
-            if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsInNetworks(ip, m_ignorePublicH239IPs)) {
+            if (m_ignoreSignaledIPs && !fromTraversalClient && IsInNetworks(ip, m_ignorePublicH239IPs)) {
                 zeroIP = true;
             }
-            if (IsInNetworks(ip, m_keepSignaledIPs)) {
-                zeroIP = false;
-            }
-            if (zeroIP) {
-                PTRACE(7, "JW RTP IN zero RTP src + dest (IgnoreSignaledIPs)");
-                (rtp->*SetDest)(0, 0, NULL, call);
-            // TODO: check else condition: is it correct ? do we need to add m_ignoreSignaledAllH239IPs ?
-            } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs)) {
-                // only zero out source IP
-                PTRACE(7, "JW RTP IN zero RTP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
-                (rtp->*SetDest)(0, 0, dest, call);
-            }
+        }
+        if (IsInNetworks(ip, m_keepSignaledIPs)) {
+            zeroIP = false;
+        }
+        if (zeroIP) {
+            PTRACE(7, "JW RTP IN zero RTP src + dest (IgnoreSignaledIPs)");
+            (rtp->*SetDest)(0, 0, NULL, call);
+        } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs)) {
+            // only zero out source IP
+            PTRACE(7, "JW RTP IN zero RTP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
+            (rtp->*SetDest)(0, 0, dest, call);
+        } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsInNetworks(tmpSrcIP, m_ignorePublicH239IPs) && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs)) {
+            // only zero out source IP
+            PTRACE(7, "JW RTP IN zero RTP src (IgnoreSignaledIPs && IgnoreSignaledPublicH239IPsFrom)");
+            (rtp->*SetDest)(0, 0, dest, call);
         }
 
 		if (useRTPMultiplexing) {
@@ -13576,6 +13583,32 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
             } else {
                 m_ignoreSignaledPrivateH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledPrivateH239IPs", false);
                 m_ignoreSignaledAllH239IPs = GkConfig()->GetBoolean(ProxySection, "IgnoreSignaledAllH239IPs", false);
+                PStringArray ignorePublicH239IPs = GkConfig()->GetString(ProxySection, "IgnoreSignaledPublicH239IPsFrom", "").Tokenise(",", FALSE);
+                for (PINDEX i = 0; i < ignorePublicH239IPs.GetSize(); ++i) {
+                    PString ip = ignorePublicH239IPs[i];
+                    if (ip.Find('/') == P_MAX_INDEX) {
+                        // add netmask to pure IPs
+                        if (IsIPv4Address(ip)) {
+                            ip += "/32";
+                        } else {
+                            ip += "/128";
+                        }
+                    }
+                    m_ignorePublicH239IPs.push_back(NetworkAddress(ip));
+                }
+                PStringArray keepSignaledIPs = GkConfig()->GetString(ProxySection, "AllowSignaledIPs", "").Tokenise(",", FALSE);
+                for (PINDEX i = 0; i < keepSignaledIPs.GetSize(); ++i) {
+                    PString ip = keepSignaledIPs[i];
+                    if (ip.Find('/') == P_MAX_INDEX) {
+                        // add netmask to pure IPs
+                        if (IsIPv4Address(ip)) {
+                            ip += "/32";
+                        } else {
+                            ip += "/128";
+                        }
+                    }
+                    m_keepSignaledIPs.push_back(NetworkAddress(ip));
+                }
             }
         }
     }
@@ -13711,6 +13744,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 
 	if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)
 		&& (addr = GetH245UnicastAddress(h225Params->m_mediaControlChannel)) ) {
+        PIPSocket::Address signaledSrcIP = H245UnicastToSocketAddr(*addr);
 
 		lc->SetMediaControlChannelSource(*addr);
 		*addr << GetMasqAddr() << (lc->GetPort() + 1);
@@ -13720,24 +13754,27 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 			lc->ZeroMediaControlChannelSource();
 		}
 #endif
-        PIPSocket::Address ip = H245UnicastToSocketAddr(*addr);
         if (isUnidirectional) {
-            if (m_ignoreSignaledIPs && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
+            PTRACE(7, "JW RTP zero check 4: rtcp src=" << AsString(signaledSrcIP) << " # public H239 IPs=" << m_ignorePublicH239IPs.size());
+            for (list<NetworkAddress>::const_iterator i = m_ignorePublicH239IPs.begin(); i != m_ignorePublicH239IPs.end(); ++i) {
+                PTRACE(7, "JW RTP m_ignorePublicH239IPs: " << AsString(*i));
+            }
+            if (m_ignoreSignaledIPs && IsPrivate(signaledSrcIP) && m_ignoreSignaledPrivateH239IPs) {
                 zeroIP = true;
             }
-            if (m_ignoreSignaledIPs && isUnidirectional && m_ignoreSignaledAllH239IPs) {
+            if (m_ignoreSignaledIPs && m_ignoreSignaledAllH239IPs) {
                 zeroIP = true;
             }
-            if (m_ignoreSignaledIPs && isUnidirectional && IsInNetworks(ip, m_ignorePublicH239IPs)) {
+            if (m_ignoreSignaledIPs && IsInNetworks(signaledSrcIP, m_ignorePublicH239IPs)) {
                 zeroIP = true;
             }
-            if (IsInNetworks(ip, m_keepSignaledIPs)) {
-                zeroIP = false;
-            }
-            if (zeroIP) {
-                PTRACE(7, "JW RTP IN zero media channel source (IgnoreSignaledIPs)");
-                lc->ZeroMediaControlChannelSource();
-            }
+        }
+        if (IsInNetworks(signaledSrcIP, m_keepSignaledIPs)) {
+            zeroIP = false;
+        }
+        if (zeroIP) {
+            PTRACE(7, "JW RTP IN zero media control channel source (IgnoreSignaledIPs)");
+            lc->ZeroMediaControlChannelSource();
         }
 		changed = true;
 	}
@@ -13754,14 +13791,17 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 			}
 #endif
             PIPSocket::Address ip = H245UnicastToSocketAddr(*addr);
-            if (m_ignoreSignaledIPs && isUnidirectional && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
-                zeroIP = true;
-            }
-            if (m_ignoreSignaledIPs && isUnidirectional && m_ignoreSignaledAllH239IPs) {
-                zeroIP = true;
-            }
-            if (m_ignoreSignaledIPs && isUnidirectional && IsInNetworks(ip, m_ignorePublicH239IPs)) {
-                zeroIP = true;
+            if (isUnidirectional) {
+                PTRACE(7, "JW RTP zero check 3: rtp src=" << AsString(ip));
+                if (m_ignoreSignaledIPs && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
+                    zeroIP = true;
+                }
+                if (m_ignoreSignaledIPs && m_ignoreSignaledAllH239IPs) {
+                    zeroIP = true;
+                }
+                if (m_ignoreSignaledIPs && IsInNetworks(ip, m_ignorePublicH239IPs)) {
+                    zeroIP = true;
+                }
             }
             if (IsInNetworks(ip, m_keepSignaledIPs)) {
                 zeroIP = false;

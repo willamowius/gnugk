@@ -1037,10 +1037,10 @@ where call signaling and RTP come from different IPs.
 <item><tt>LegacyPortDetection=1</tt><newline>
 Default: <tt>0</tt><newline>
 <p>
-Keep port detection help for some very old and broken endpoints that will
-make your gatekeeper vulnerable to RTP Bleed attacks.
+Keep legacy port detection help for some very old and broken endpoints.
 
-Note: This is a SECURITY RISK!
+Note: This will make your gatekeeper vulnerable to RTP Bleed attacks and is
+a SECURITY RISK!
 
 </itemize>
 

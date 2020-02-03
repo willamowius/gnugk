@@ -1,5 +1,6 @@
 Changes from 5.4 to 5.5
 =======================
+- BUGFIX(ProxyChannel.cxx) fix reading of AllowSignaledIPs= switch
 - new switch [Proxy] IgnoreSignaledPublicH239IPsFrom=x.x.x.x to ignore public H.239 IPs/ports
   from certain IP ranges
 - new switch [Proxy] IgnoreSignaledAllH239IPs=1 to ignore all public H.239 IPs/ports in
