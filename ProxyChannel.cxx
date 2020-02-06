@@ -11690,8 +11690,8 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 	SetConnected(true);
 
     if (!onlySetDest)
-    	SetMediaIP(true, srcIP);   // SRC
-	SetMediaIP(false, rDestIP); // DST
+        SetMediaIP(true, srcIP);   // SRC
+    SetMediaIP(false, rDestIP); // DST
 
 #ifdef HAS_H46018
     m_portDetectionDone = false;  // must re-do H.460.19 port detection, in case it has already been done by a previous channel on same port
