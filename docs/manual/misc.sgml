@@ -159,8 +159,8 @@ The following parameters are defined:
 <item><tt/%{caller-ip}/ - caller IP
 <item><tt/%{caller-port}/ - caller port
 <item><tt/%{caller-nat}/ - is caller NATed (0 or 1)
-<item><tt/%{callee-ip}/ - caller IP
-<item><tt/%{callee-port}/ - caller port
+<item><tt/%{callee-ip}/ - callee IP
+<item><tt/%{callee-port}/ - callee port
 <item><tt/%{avgdelay}/ - average delay
 <item><tt/%{packetloss}/ - packet loss
 <item><tt/%{packetloss-percent}/ - packet loss percentage
