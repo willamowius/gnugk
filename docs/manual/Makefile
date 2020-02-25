@@ -15,16 +15,16 @@ DVIPDFM = dvipdfm
 all:	html pdf
 
 html:
-	$(SGML2HTML) -s 1 manual.sgml
+	$(SGML2HTML) -s 0 manual.sgml
 
 html-fr:
-	cd fr ; $(SGML2HTML) --language=fr -s 1 manual-fr.sgml
+	cd fr ; $(SGML2HTML) --language=fr -s 0 manual-fr.sgml
 
 html-es:
 	cd es ; $(SGML2HTML) --language=es -s 1 manual-es.sgml
 
 html-zn_CN:
-	cd zn_CN ; $(SGML2HTML) --language=en -s 1 manual-zn_CN.sgml
+	cd zn_CN ; SP_CHARSET_FIXED=yes SP_ENCODING=xml $(SGML2HTML) --language=en -s 0 manual-zn_CN.sgml
 
 pdf:
 	$(SGML2LATEX) --output=dvi --style=gnugk manual.sgml ; $(DVIPDFM) manual.dvi ; rm -f manual.dvi
@@ -36,7 +36,7 @@ pdf-es:
 	cd es ; $(SGML2LATEX) --language=es --style=gnugk manual-es.sgml ; $(DVIPDFM) manual-es.dvi ; rm -f manual-es.dvi
 
 pdf-zn_CN:
-	cd zn_CN ; $(SGML2LATEX) --language=en --style=gnugk manual-zn_CN.sgml ; $(DVIPDFM) manual-zn_CN.dvi ; rm -f manual-zn_CN.dvi
+	cd zn_CN ; SP_CHARSET_FIXED=yes SP_ENCODING=xml $(SGML2LATEX) --language=en --style=gnugk manual-zn_CN.sgml ; $(DVIPDFM) manual-zn_CN.dvi ; rm -f manual-zn_CN.dvi
 
 txt:
 	$(SGML2TXT) --charset=latin manual.sgml
@@ -48,8 +48,8 @@ txt-es:
 	cd es ; $(SGML2TXT) --language=es --charset=latin manual-es.sgml
 
 txt-zn_CN:
-	cd zn_CN ; $(SGML2TXT) --language=en --charset=latin manual-zn_CN.sgml
+	cd zn_CN ; SP_CHARSET_FIXED=yes SP_ENCODING=xml $(SGML2TXT) --language=en --charset=latin manual-zn_CN.sgml
 
 clean:
-	rm -f *.html *.pdf *.dvi *.txt fr/*.html fr/*.pdf fr/*.dvi fr/[a-zA-Z]*.txt es/*.html es/*.pdf es/*.dvi es/*.txtzn_CN/*.html zn_CN/*.pdf zn_CN/*.dvi zn_CN/*.txt
+	rm -f *.html *.pdf *.dvi *.txt fr/*.html fr/*.pdf fr/*.dvi fr/[a-zA-Z]*.txt es/*.html es/*.pdf es/*.dvi es/*.txt zn_CN/*.html zn_CN/*.pdf zn_CN/*.dvi zn_CN/*.txt
 
