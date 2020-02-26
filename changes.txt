@@ -1,5 +1,6 @@
 Changes from 5.4 to 5.5
 =======================
+- manual translated into Simplified Chinese by Zhang Tao
 - BUGFIX(ProxyChannel.cxx) fix reading of AllowSignaledIPs= switch
 - new switch [Proxy] IgnoreSignaledPublicH239IPsFrom=x.x.x.x to ignore public H.239 IPs/ports
   from certain IP ranges
