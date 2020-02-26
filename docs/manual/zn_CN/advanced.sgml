@@ -1,0 +1,131 @@
+<sect>高级主题
+<p>
+本手册的这一部分将涵盖高级主题，例如编译和调试GnuGK。
+
+<sect1>从Github获取代码并编译GnuGk
+<label id="compile">
+<p>
+以下说明是如何在Ubuntu平台上从源代码编译GnuGk的示例。
+<p>
+首先，确保系统是最新的，并安装编译所需的工具
+<verb>
+sudo apt-get update
+sudo apt-get install automake flex bison build-essential git pkg-config automake linuxdoc-tools libssl-dev
+</verb>
+另外，请确保已安装要使用的所有数据库或LDAP服务器的 "...-dev" 软件包。
+<p>
+不要从Linux发行版中安装PTlib或H323Plus软件包。
+<p>
+<bf>注意</bf>: 不能使用OPAL项目中的最新PTLib；请参见第11页上的“ PTLib”。它正在进行许多与GnuGk不兼容的更改。使用我们的修补版本PTLib 2.10.9。
+
+从Github获取并编译PTLib：
+<verb>
+cd ~
+git clone https://github.com/willamowius/ptlib.git
+cd ptlib
+export PTLIBDIR=~/ptlib
+./configure --enable-ipv6 --disable-odbc --disable-sdl --disable-lua --disable-expat
+make optnoshared
+</verb>
+
+获取并编译H323Plus：
+<verb>
+cd ~
+git clone https://github.com/willamowius/h323plus.git
+cd h323plus
+export OPENH323DIR=~/h323plus
+./configure --enable-h235 -enable-h46017 --enable-h46026
+make optnoshared
+</verb>
+
+获取并编译GnuGk：
+<verb>
+cd ~
+git clone https://github.com/willamowius/gnugk.git
+cd gnugk
+./configure --enable-h46018 --enable-large-fdset
+make optnoshared
+</verb>
+
+编译完成后，可找到二进制文件为
+<verb>~/gnugk/obj_linux_x86_64_s/gnugk</verb> (如，64位系统下).
+
+为了保持最新，请运行以下命令：
+In order to stay up-to-date, run the following:
+
+<verb>
+cd ~/ptlib
+git pull
+make clean ; make optnoshared
+cd ~/h323plus
+git pull
+make clean ; make optnoshared
+cd ~/gnugk
+git pull
+make clean ; make optnoshared
+</verb>
+
+<sect1>Tracing GnuGk
+<label id="tracing">
+<p>
+若GnuGk无法按预期处理呼叫，则可以启用跟踪以查看GnuGk在内部执行的操作。
+这不应与连接到状态端口并查看事件("telnet 127.0.0.1 7000")相混淆。
+创建跟踪文件将揭示更多内部工作原理。
+
+在命令行上，使用-ttttt和-o启动GnuGk，以将跟踪信息写入文件：
+<verb>
+gnugk -c gnugk.ini -ttttt -o trace.log
+</verb> 
+
+若有很多呼叫，trace.log可能会变得很大，因此请确保在测试完成后将其禁用，或者至少将生产的跟踪级别降低到2或3。
+
+还可在配置文件中启用跟踪：
+<verb>
+[Gatekeeper::Main]
+TraceLevel=5
+
+[LogFile]
+Filename=trace.log
+</verb> 
+
+或可通过状态端口启用跟踪：
+<verb>
+setlog trace.log
+debug trc 5
+</verb> 
+
+通过状态端口执行此操作的优点是您不会中断正在进行的呼叫，并且可以快速打开或关闭它。
+
+跟踪文件将包含详细说明GnuGk所做的一切的信息。
+要将其简化为单个呼叫，您可以搜索callID或编写一个小的Perl脚本以仅提取您感兴趣的消息。
+
+<sect1>Debugging GnuGk (on Linux)
+<label id="debug">
+<p>
+为了在GnuGk中使用gdb，必须在调试支持下编译软件和库。
+
+可按照上述说明获取软件，每个子目录中的编译必须为：
+<verb>
+make debugnoshared
+</verb>
+
+允许无限的核心转储：
+<verb>
+ulimit -c unlimited
+</verb>
+
+运行GnuGk:
+<verb>
+~/openh323/obj_linux_x86_64_d_s/gnugk -c your.ini
+</verb>
+
+等待崩溃并运行GDB以获取堆栈回溯：
+<verb>
+gdb obj_linux_x86_64_d_s/gnugk core
+bt
+</verb>
+
+获得回溯后，将其发布到邮件列表。
+
+注意：在某些系统上，核心转储名为“ core.xxx”，其中xxx是崩溃的GnuGk进程的进程号。
+

@@ -1,0 +1,164 @@
+<sect>端点配置
+<label id="epconfig">
+<p>
+除了标准配置文件选项外，还可以在<htmlurl url="https://www.gnugk.org/" name="GnuGk">配置文件中指定每个端点的配置设置 。
+
+<sect1>Section &lsqb;EP::...&rsqb;
+<p>
+<tscreen><verb>
+[EP::ALIAS]
+Key Name=Value String
+</verb></tscreen>
+
+<tt/ALIAS/应该用设置应适用的端点的实际别名替换。如果端点具有多个别名，则可以选择其中一个。GnuGk将浏览所有别名，并使用找到的第一个[EP：..]部分
+
+当前，可识别以下选项：
+
+<itemize>
+<item><tt/Capacity=10/<newline>
+Default: <tt/-1/<newline>
+<p>
+端点的呼叫容量。不超过<tt/Capacity/并发呼叫将被发送到该端点。
+对于网关，如果有多个网关与拨打的号码匹配，则会将呼叫发送到第一个具有可用容量的可用网关。
+
+<item><tt/PrefixCapacities=^0049:=10,^(0044|0045):=20/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+限制某些前缀的容量。正则表达式可用于指定前缀，并为一组前缀指定组合容量。
+对于认为网关可用的网关，a.)前缀必须剩余容量，b.)不得超过网关的总容量。
+
+<item><tt/ForceGateway=1/<newline>
+Default: <tt/0/<newline>
+<p>
+如果您的端点未注册为网关或MCU，则无法分配网关前缀。不管端点如何注册，都可以使用此开关将端点视为网关。
+
+<item><tt/GatewayPriority=1/<newline>
+Default: <tt/1/<newline>
+<p>
+仅适用于网关。当多个网关与拨号号码匹配时，允许基于优先级的路由。较低的值表示较高的网关优先级。
+呼叫被路由到优先级最高（tt/GatewayPriority/ 值最低）的第一个可用网关（具有可用容量 ）。
+如果网关优先级与前缀优先级冲突（有关详细信息，请参见 <ref id="gwprefixes" name="[RasSrv::GWPrefixes]">），则前缀优先级优先。
+
+<item><tt/GatewayPrefixes=0048,0049:=2,0044/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+此网关的其他前缀，仅适用于网关。特殊字符<tt/./ and <tt/!/可用于匹配任何数字或禁用前缀。您可以使用:=语法以与<ref id="gwprefixes" name="[RasSrv::GWPrefixes]">部分相同的方式设置前缀优先级。
+如果没有为前缀明确配置优先级，则使用网关优先级。
+
+
+<item><tt/AddNumbers=4212,5650-5630,6000/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+将E.164号码添加到此端点。可以将新别名指定为数字列表或数字范围。
+
+<item><tt/CalledTypeOfNumber=1/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+将发送到此结点的呼叫的被叫方号码类型设置为指定值(0 - UnknownType, 1 - InternationalType, 2 - NationalType,
+3 - NetworkSpecificType, 4 - SubscriberType, 6 - AbbreviatedType, 7 - ReservedType)。
+
+<item><tt/CallingTypeOfNumber=1/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+将发送给此结点的呼叫的号码的“呼叫方号码”类型设置为指定的值(0 - UnknownType, 1 - InternationalType, 2 - NationalType,
+    3 - NetworkSpecificType, 4 - SubscriberType, 6 - AbbreviatedType, 7 - ReservedType)。
+
+<item><tt/CalledPlanOfNumber=1/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+将发送给此结点的呼叫的号码的被叫号码计划设置为指定的值(0 - UnknownType, 1 - ISDN, 3 - X.121 numbering, 4 - Telex, 8 - National standard, 9 - private numbering)。
+
+<item><tt/CallingPlanOfNumber=1/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+将发送给此结点的呼叫的号码的呼叫编号计划设置为指定值(0 - UnknownType, 1 - ISDN, 3 - X.121 numbering, 4 - Telex, 8 - National standard, 9 - private numbering)。
+
+<item><tt/Proxy=1/<newline>
+Default: <tt/0/<newline>
+<p>
+启用/禁用发送到此结点的代理呼叫（0-不更改全局代理设置，1-强制代理模式，2-禁用代理模式）。
+
+<item><tt/TranslateReceivedQ931Cause=17:=34/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+在此结点的ReleaseComplete消息中转换收到的原因代码。在上面的示例中，代码17-用户忙，将转换为原因代码34-无可用的电路/通道。
+
+<item><tt/TranslateSentQ931Cause=21:=34,27:=34/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+转换发送到此端点的ReleaseComplete消息中的原因代码。在上面的示例中，代码21和27将转换为原因代码34，因为此特定网关可能比其他网关更好地处理错误代码34。
+
+<item><tt/DisableH46017=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+对此端点禁用H.460.17。
+
+<item><tt/DisableH46018=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+对此端点禁用H.460.18/.19。
+
+<item><tt/MaxBandwidth=81920/<newline>
+Default: <tt>-1</tt><newline>
+<p>
+该结点可以使用的最大带宽，以每秒100位为单位。
+
+这包括入站和出站带宽，因此对于对称呼叫，应将其增加一倍。
+
+常用带宽设置及其等效的GnuGk：<newline>
+384K  =  7680<newline>
+512K  =  10240<newline>
+768K  =  15360<newline>
+1024K =  20480<newline>
+1920K =  38400<newline>
+2048K =  40960<newline>
+4096K =  81920<newline>
+
+若不想限制带宽，请使用"-1"。
+
+<item><tt/AdditionalDestinationAlias=H323-TRUNK/<newline>
+Default: <tt>n/a</tt><newline>
+<p>
+如果还没有别名，则向该端点的所有呼叫添加一个别名。这可用于添加Swxy版本6及更高版本所需的中继ID。
+
+<item><tt/UseTLS=1/<newline>
+Default: <tt/0/<newline>
+<p>
+呼叫此端点时，请使用TLS（传输层安全性）。另请参阅<ref id="tls" name="[TLS] section">部分。如果端点能够通过H.460.22发出使用TLS的信号，则无需明确配置它。
+
+<item><tt/DisableCallCreditCapabilities/<newline>
+Default: <tt/0/<newline>
+<p>
+如果您有一个指示呼叫信用功能的端点，但是在使用时崩溃，则可以使用此开关禁用此端点的功能。
+
+<item><tt/AddCallingPartyToSourceAddress=1/<newline>
+Default: <tt/0/<newline>
+<p>
+告诉GnuGk将来自主叫方IE的号码添加到Setup消息中的源地址列表中。
+
+<item><tt/DisabledCodecs=h261VideoCapability/<newline>
+Default: <tt>n/a</tt><newline>
+<p>
+过滤此特定端点的编解码器。与[CallTable]部分中的全局开关类似 。
+
+</itemize>
+
+示例如何将[EP :: ..]节附加到端点：
+Example how to attach an [EP::..] section to an endpoint:
+
+<tscreen><verb>
+[RasSrv::PermanentEndpoints]
+192.168.1.1=gw1;48
+192.168.1.2=gw2;48,!4850,!4860,!4869,!4888
+
+[EP::gw1]
+Capacity=60
+GatewayPriority=1
+
+[EP::gw2]
+Capacity=30
+GatewayPriority=2
+</verb></tscreen>
+
+在此示例中，呼叫将被发送到网关，<tt/gw1/直到其容量被完全利用（60个并发呼叫），然后再发送到网关<tt/gw2/。
+

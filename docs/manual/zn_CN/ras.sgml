@@ -1,0 +1,421 @@
+<sect>RAS 配置
+<p>
+<sect1>Section &lsqb;ReplyToRasAddress&rsqb;
+<p>
+从端点到网守的信令消息(GatekeeperRequest,RegistrationRequest and InfoRequestResponse)包含<it/rasAddress/元素 ，端点告诉网守将这些响应的消息发送到目的地。
+默认情况下，GnuGk将忽略该地址，并响应从其接收请求的IP和端口。原因是某些端点依赖于此项，如在某些情况下，使用NAT，则若将响应发送到另一个IP和端口，
+则该响应可能不会到达发送方。一般，端点无论如何都会从其RAS端口发送RAS消息，都没有区别。
+
+
+本部分允许自定义GnuGk接收到的消息中，何时使用rasAddress，而不是接收消息的地址。
+
+<descrip>
+<tag/句法:/
+
+<tt/network=True|False/
+</descrip>
+
+该网络由IP加上可选的CIDR指定，例如，192.168.1.0/24。网络指定从其接收RAS消息的IP，该设置指定是否使用rasAddress。
+默认是不使用它。使用网络掩码最长的网络规则（最具体）。
+<p>
+
+<descrip>
+<tag/例：/
+
+在此示例中，来自192.168.0.0/18的消息将使用rasAddress，但来自192.168.4.0/24网络的消息除外。
+
+<tscreen><verb>
+[ReplyToRasAddress]
+192.168.0.0/18=True
+192.168.4.0/24=False
+</verb></tscreen>
+
+</descrip>
+
+
+<sect1>Section &lsqb;RasSrv::GWPrefixes&rsqb;
+<label id="gwprefixes">
+<p>
+本部分配置如何将拨打的E.164号码路由到指定网关。
+
+<descrip>
+<tag/Format:/
+<tt>gw-alias=prefix[:=priority][,prefix[:=priority],...]</tt>
+<p>
+注意，必须指定网关的别名，若网关已使用指定的别名注册，则所有以前缀开头的数字都将路由到该网关。
+特殊字符 <tt/./ and <tt/!/ 可在此处用于匹配任何数字或禁用前缀。可为每个网关的每个前缀赋予一个优先级(using := syntax)，
+若多个网关与所拨打的号码匹配，则会选择前缀优先级最高的网关来路由呼叫（当ActivateFailover开关为ON时，
+呼叫将按照前缀优先级的顺序路由到所有选定的网关）。较小的值对应较高的优先级。默认值为1。
+若前缀优先级与GatewayPriority重复（请参阅 <ref id="epconfig" name="[EP::...]">部分），则将优先使用前缀优先级。
+
+在以下示例中，网关"test-gw"将负责优先级为3的前缀"02" 和 "03"，以及优先级为1的前缀 "04"。
+
+<tag/例：/
+<tt/test-gw=02,03:=3,04:=1/
+</descrip>
+
+<sect1>Section &lsqb;RasSrv::PermanentEndpoints&rsqb;
+<p>
+在本节中，可配置不支持RAS或不想过期的端点。他们的记录将始终保留在GK的注册列表中。但仍然可以通过状态端口取消注册。特殊字符<tt/./ and <tt/!/ 可以在此处与前缀一起使用，以匹配任何数字并禁用前缀。
+可使用:= 语法以与 <ref id="gwprefixes" name="[RasSrv::GWPrefixes]"> 部分相同的方式设置前缀优先级。
+
+确保为所有网关至少添加一个前缀，即使在其他位置（例如[EP::...]部分中分配了前缀）也是如此，否则端点将不被视为网关，并且这些设置也不会被视为网关申请！
+
+网关条目还可以选择包含与网关记录一起存储的供应商信息
+
+<descrip>
+<tag/Format:/
+<tt>IP[:port]=alias[,alias,...;prefix[:=priority][,prefix[:=priority]]...;[vendor,product]</tt>
+<tag/例：/
+对于网关,
+<quote/<tt/10.0.1.5=MyGW;009,008:=2,0.7:=3//
+<quote/<tt/10.0.1.5=MyGW;009,008:=2,0.7:=3;yate,4.1.0//
+对于终端,
+<quote/<tt/10.0.1.10:1720=700//
+</descrip>
+
+
+<sect1>Section &lsqb;RasSrv::RRQFeatures&rsqb;
+<p>
+<itemize>
+<item><tt/AcceptEndpointIdentifier=1/<newline>
+默认：<tt/1/<newline>
+<p>
+是否接受完整RRQ中指定的<bf/endpointIdentifier/ 。
+
+<item><tt/AcceptGatewayPrefixes=1/<newline>
+默认：<tt/1/<newline>
+<p>
+网关可以通过在RRQ的<bf/terminalType/字段中发送<bf/supportedPrefixes/ 向网守注册其前缀。
+此选项定义是否接受网关的指定前缀。
+
+<item><tt/AcceptMCUPrefixes=1/<newline>
+默认：<tt/1/<newline>
+<p>
+MCU可以通过在RRQ的<bf/terminalType/字段中发送<bf/supportedPrefixes/向网守注册其前缀。
+此选项定义是否接受MCU的指定前缀。
+
+
+<item><tt/OverwriteEPOnSameAddress=1/<newline>
+默认：<tt/0/<newline>
+<p>
+有些网络中，端点的IP地址可能会意外更改。当端点使用PPP连接（例如调制解调器或ADSL）时，可能会发生这种情况。
+此选项定义了如何处理与我们存储的IP地址不匹配的IP地址的注册请求(RRQ)。默认操作是拒绝请求。
+启用此选项后，冲突的请求将导致针对现有IP地址发送注销请求(URQ)，并删除条目，从而允许端点向新地址注册。
+
+<item><tt/IRQPollCount=0/<newline>
+默认：<tt/1/<newline>
+<p>
+当网守在TimeToLive时间段内未从端点接收到保持活动的RRQ时，它将发送IRQ消息以“轮询”端点并检查其是否还处于活动状态。
+发送IRQPollCount消息且未收到任何答复后，将取消注册端点。要禁用此功能（并在TimeToLive超时后立即注销端点），
+请将此值设置为0。IRQ轮询间隔为60秒
+
+<item><tt/SupportDynamicIP=1/<newline>
+默认：<tt/0/<newline>
+<p>
+当端点的IP地址更改时，网守可以保持注册。若IP地址更改，这将强制EP完全重新注册。
+
+<item><tt>AccHTTPLink=https://billing.mysite.com?account=%a&amp;password=%p</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+可以为客户分配一个URL，以供其查看账单信息。若用PacPhone，还可以添加通配符供客户端使用，以便客户端H323ID和密码可用于直接访问其帐户信息。
+%a - H323ID   %p - password 
+
+<item><tt>AliasTypeFilter=terminal;h323id,dialeddigits</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+在端点发送多个H225_AliasAddress且某些别名在多个注册之间共享的情况下，请使用此设置。可以过滤出任何给定端点类型的共享别名类型。
+这些注册将保留过滤器设置中列出的所有别名类型，并删除所有其他类型。
+每个端点类型必须具有单独的AliasTypeFilter条目。
+有效的端点类型是：网守，网关，mcu和终端。有效过滤器为：h323id，拨号数字，URL，传输，电子邮件和会议室号码。
+注意：若未找到与过滤器匹配的别名，则将注册所有别名。
+
+<item><tt/GatewayAssignAliases=0/<newline>
+默认：<tt/1/<newline>
+<p>
+若已配置AssignedAliases::SQL，则将分配应用于网关注册（默认）。当将此开关设置为0时，可以将其与网关一起使用additionalRegistration，
+以便在注册时不会全部分配assignedAliases，而仅在进行additiveRegistration时才分配。这样可以确保仅当前注册的端点出现在端点列表中。
+
+<item><tt/AuthenticatedAliasesOnly=1/<newline>
+默认：<tt/0/<newline>
+<p>
+在注册期间，此开关将删除所有未通过身份验证的TerminalAliases。
+支持的身份验证模块是SQLAuth，SimplePasswordAuth和SQLPasswordAuth。
+
+</itemize>
+
+
+<sect1>Section &lsqb;RasSrv::ARQFeatures&rsqb;
+<p>
+<itemize>
+<item><tt/ArjReasonRouteCallToGatekeeper=1/<newline>
+默认：<tt/1/<newline>
+<p>
+若启用，则网守将拒绝应答的ARQ，而不会在CallTable中找到已存在的CallRec，原因是路由模式下的<bf/routeCallToGatekeeper/。端点应立即释放呼叫，然后将呼叫建立重新发送给网守。
+
+<item><tt/RemoveTrailingChar=#/<newline>
+默认：<tt>(space)</tt><newline>
+<p>
+在 <bf/destinationInfo/中指定要删除的结尾字符。例如，若端点在<bf/destinationInfo/中错误地包含终止符（如，‘#’），则可以使用此选项将其删除。
+
+此开关也适用于未注册的呼叫。
+
+<item><tt/RoundRobinGateways=0/<newline>
+默认：<tt/1/<newline>
+<p>
+若有多个网关与拨打的号码匹配，则启用/禁用循环网关选择。若禁用，将选择第一个可用网关。否则，后续呼叫将以循环方式发送到网关。
+
+此开关也适用于未注册的呼叫。
+
+<item><tt/LeastUsedRouting=1/<newline>
+默认：<tt/0/<newline>
+<p>
+路由呼叫时选择最少使用的网关，以实现更均匀的使用。
+此开关在逻辑上与轮询不兼容。
+
+此开关也适用于未注册的呼叫。
+
+<item><tt/SendRIP=9000/<newline>
+默认：<tt/0/<newline>
+<p>
+收到ARQ后，发送带有此延迟值的RequestInProgress (RIP)消息。此开关可用于延长呼叫者等待应答的持续时间。当延迟ist设置为0时，不发送RIP。
+
+<item><tt/CheckSenderIP=1/<newline>
+默认：<tt/0/<newline>
+<p>
+验证ARQ是从与RRQ相同的IP发送的。
+
+</itemize>
+
+<sect1>Section &lsqb;RasSrv::AssignedAlias&rsqb;
+<p>
+这允许根据H323ID或注册端点的显示源IP地址分配网守。检查GRQ中收到的H323ID，以查看其是否具有分配的网守的前缀或IP是否在分配的网守的范围内。
+然后，建议GCF中的端点向该网守注册。一个特定的前缀可能有多个网守。第一个被分配为主数据库，其他则为备用数据库。（需要H.323v6）
+
+<descrip>
+<tag/例：/
+<verb>
+[RasSrv::AssignedAlias]
+1234=3323465777,me@mysite.com 
+</verb>
+</descrip>
+
+<sect1>Section &lsqb;AssignedAliases::SQL&rsqb;
+<p>
+本节将GnuGk配置为从数据库读取分配的别名。可使用<ref id="sqlpasswordauth" name="[SQLPasswordAuth]">中定义的相同数据库参数。
+
+<itemize>
+<item><tt/Query=SELECT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义用于从数据库检索分配的网守的SQL查询。
+
+定义了一个参数：
+<itemize>
+<item><tt/%u/ - 端点别名
+</itemize>
+<p>
+示例查询字符串：
+<tscreen><verb>
+SELECT assignedalias FROM users WHERE alias = '%u' AND active
+</verb></tscreen>
+
+</itemize>
+
+<sect1>Section &lsqb;RasSrv::AlternateGatekeeper&rsqb;
+<label id="rassrvalternategatekeeper">
+<p>
+本部分允许你从[Gatekeeper::Main]部分覆盖某些IP或IP范围的<ref id="alternategks" name="AlternateGKs">全局定义。
+有关配置选项的详细定义，请参见此处。
+
+该网络由IP加上可选的CIDR指定，例如，192.168.1.0/24。使用网络掩码最长的网络规则（最具体）。
+
+<p>
+
+<descrip>
+<tag/例：/
+
+在此示例中，192.168.1.10被分配了GnuGk10作为备用网守，而192.168.0.0/18网络的其余部分将使用GnuGk4。所有其他网络中的端点将使用全局定义的备用网守。
+
+<tscreen><verb>
+[RasSrv::AlternateGatekeeper]
+192.168.0.0/18=1.2.3.4;1719;true;1;GnuGk4
+192.168.1.10=1.2.3.10;1719;true;1;GnuGk10
+</verb></tscreen>
+
+</descrip>
+
+
+<sect1>Section &lsqb;RasSrv::AssignedGatekeeper&rsqb;
+<p>
+这允许根据H323ID或注册端点的显示源IP地址分配网守。检查GRQ中收到的H323ID，以查看其是否具有分配的网守的前缀或IP是否在分配的网守的范围内。
+然后，建议GCF中的端点向该网守注册。一个特定的前缀可能有多个网守。第一个被分配为主数据库，其他则为备用数据库。(需要H.323v6)
+
+<descrip>
+<tag/Examples:/
+<verb>
+[RasSrv::AssignedGatekeeper]
+;;对于别名以01234开头的端点
+01234=192.168.1.100:1719
+;;对于以999开头的别名的端点
+999=[2a01:4f8:61:2243::99]:1719
+;;适用于195.71.129.0/24或195.71.131.0/24范围内的端点
+^195\.71\.(129|131)\.[0-9]+$=10.10.0.5:1719
+;;对于以^2a01拖皮的端点：
+^2a01:=[2a01:4f8:61:2243::199]:1719
+</verb>
+</descrip>
+
+
+<sect1>Section &lsqb;AssignedGatekeepers::SQL&rsqb;
+<p>
+本部分允许<htmlurl url="https://www.gnugk.org/" name="GnuGk">从数据库读取分配的网守。
+可使用 <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">中定义的相同数据库参数 。
+
+<itemize>
+<item><tt/Query=SELECT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义用于从数据库检索分配的网守的SQL查询。
+
+定义了以下参数：
+<itemize>
+<item><tt/%u/ - 端点别名
+<item><tt/%i/ - 端点IP
+<item><tt/%g/ - GK ID
+</itemize>
+<p>
+示例查询字符串
+<tscreen><verb>
+SELECT assignedgatekeeper FROM users WHERE alias = '%u' AND active
+</verb></tscreen>
+
+</itemize>
+
+
+<sect1>Section &lsqb;AlternateGatekeepers::SQL&rsqb;
+<p>
+本部分允许<htmlurl url="https://www.gnugk.org/" name="GnuGk">从数据库中读取备用网守。
+可使用<ref id="sqlpasswordauth" name="[SQLPasswordAuth]">中定义的相同数据库参数。
+
+<itemize>
+<item><tt/Query=SELECT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义用于从数据库检索备用网守的SQL查询。
+
+示例查询字符串：
+One parameter is defined:
+<itemize>
+<item><tt/%i/ - endpoint IP
+</itemize>
+<p>
+Sample query string:
+<tscreen><verb>
+SELECT alternategatekeeper FROM users WHERE ip = '%i' AND active
+</verb></tscreen>
+
+</itemize>
+
+
+<sect1>Section &lsqb;AssignedLanguage::SQL&rsqb;
+<p>
+本节将GnuGk配置为从数据库读取分配的语言。可使用<ref id="sqlpasswordauth" name="[SQLPasswordAuth]">中定义的相同数据库参数。
+
+<itemize>
+<item><tt/Query=SELECT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义用于从数据库检索分配的语言的SQL查询。
+
+定义了一个参数：
+<itemize>
+<item><tt/%u/ - 端点别名
+</itemize>
+<p>
+示例查询字符串：
+<tscreen><verb>
+SELECT assignedlanguage FROM users WHERE alias = '%u' AND active
+</verb></tscreen>
+
+</itemize>
+
+
+<sect1>Section &lsqb;NATedEndpoints&rsqb;
+<p>
+网守可以自动检测端点是否在NAT之后。
+若检测失败，则可以在本节中手动指定它。
+
+<descrip>
+<tag/Format:/
+<tt/alias=true | yes | 1/
+<tag/例：/
+指定别名为601的端点在NAT之后。
+<quote/<tt/601=true//
+</descrip>
+
+
+<sect1>Section &lsqb;GkPresence::SQL&rsqb;
+<p>
+H323 SQL Presence系统：高度实验性使用 <ref id="database" name="公共数据库配置选项 ">来定义此模块的数据库连接。
+
+<p>
+<itemize>
+<item><tt/IncrementalUpdate=1/<newline>
+默认：<tt/0/<newline>
+<p>
+是否轮询数据库以检查状态更新
+
+<item><tt/UpdateWorkerTimer=10/<newline>
+默认：<tt/5/<newline>
+<p>
+更新H.460状态信息之间的Sleep时间。
+
+<item><tt/QueryList=SELECT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义用于执行数据库查询以检索联系人信息的SQL查询（顺序很重要）
+
+<itemize>
+<item><tt/%i/ - 在外部创建状态标识符GUID值。
+<item><tt/%u/ - 存在信息所属的别名
+<item><tt/%a/ - 联系人别名
+<item><tt/%s/ - 是订阅用户（默认值应为0）
+<item><tt/%b/ - 联系指示值 0-subscribe 1-unsubscribe  2-block  3-unblock  4-waiting approval
+<item><tt/%y/ - 指令是否有效（默认值应为1）
+<item><tt/%z/ - 更新时间（应该是当前的UNIX时间）
+<item><tt/%d/ - 显示名称或相对较友好的别名名称（可选）
+<item><tt/%v/ - 联系人URL的路径（可选）
+<item><tt/%c/ - 联系人类别（可选）values 0-Audio 1-Video 2-data 3-H.239 4-generic
+<item><tt/%t/ - 用于查询的增量时间戳 (set by Gatekeeper)
+</itemize>
+<p>
+示例
+QueryList=SELECT subscriptionID,h323id,alias,0,status,1,updated,display,avatar,category FROM subscription WHERE timestamp > '%t' ORDER BY h323id,alias
+<p>
+
+<item><tt/QueryAdd=INSERT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义SQL查询以将联系人记录添加到数据库
+示例
+QueryAdd=INSERT INTO subscription (subscriptionID,h323id,alias,isSubscriber,display) VALUES('%i','%u','%a','%s', '%d');
+<p>
+
+<item><tt/QueryDelete=Delete .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义SQL查询以从数据库中删除联系人
+示例
+QueryDelete=DELETE FROM subscription WHERE subscriptionID = '%i'
+<p>
+
+item><tt/QueryUpdate=UPDATE .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义SQL查询以更新联系人记录状态
+示例
+QueryUpdate=UPDATE subscription SET status = '%b' WHERE subscriptionID = '%i'
+<p>
+</itemize>
+

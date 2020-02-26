@@ -1,0 +1,1091 @@
+<sect>高级配置
+<p>
+<sect1>Section &lsqb;CallTable&rsqb;
+<label id="calltable">
+<p>
+<itemize>
+<item><tt/GenerateNBCDR=0/<newline>
+默认：<tt/1/<newline>
+<p>
+为来自状态端口上相邻区域的呼叫生成CDR。主叫方的IP和端点ID被打印为空。
+通常用于调试目的。计费模块将始终获取所有呼叫的CDR数据。
+
+<item><tt/GenerateUCCDR=0/<newline>
+默认：<tt/0/<newline>
+<p>
+为未连接的呼叫生成CDR。通常用于调试目的。请注意，只有当网守使用路由模式并且网守未收到 Q.931 "Connect" 消息时，呼叫才被视为未连接。在直接模式下，始终将呼叫视为已连接。
+
+<item><tt/DefaultCallDurationLimit=3600/<newline>
+默认：<tt/0/<newline>
+<p>
+默认最大通话时间限制（秒）。设置<tt/0/为禁用此功能而不限制通话时间。
+
+<item><tt/AcctUpdateInterval=60/<newline>
+默认：<tt/0/<newline>
+<p>
+一个时间间隔（秒），用于记录正在进行的每个呼叫的计费更新。记帐更新的详细信息取决于所选的记帐记录器模块（请参阅<ref id="gkacct" name="[Gatekeeper::Acct]">部分）。
+通常，计费更新将为后端服务提供增加的已连接呼叫持续时间。
+默认值"0"禁用记帐更新。请注意，将其设置为较短的时间间隔可能会降低网守的性能。
+
+<item><tt/TimestampFormat=Cisco/<newline>
+默认：<tt/RFC822/<newline>
+<p>
+CDR内打印的时间戳字符串的格式。可使用<ref id="gkmain" name="[Gatekeeper::Main]">部分中指定的相同格式列表 。
+
+<item><tt/IRRFrequency=60/<newline>
+默认：<tt/120/<newline>
+<p>
+在ACF消息中设置irrFrequency。0将其关闭。
+
+<item><tt/IRRCheck=0/<newline>
+默认：<tt/1/<newline>
+<p>
+检查通话中的两个端点是否都发送了所请求的IRR。若2 * irrFrequency之后端点之一未发送IRR，则呼叫将终止。
+
+<item><tt/SingleFailoverCDR=0/<newline>
+默认：<tt/1/<newline>
+<p>
+故障转移处于活动状态时，可以尝试多个网关建立呼叫。此开关定义是否为此类呼叫生成一个或多个CDR。
+
+<item><tt/UseDestCallSignalIPAsDialedNumber=1/<newline>
+默认：<tt/0/<newline>
+<p>
+若ARQ或Setup中没有可用的拨号别名，请对%{DialedNumber}中的CDR使用destCallSignalIP。
+
+<item><tt/SetCalledStationIdToDialedIP=1/<newline>
+默认：<tt/0/<newline>
+<p>
+若%{called_station_id}包含IP地址，请务必在CDR中将 %{DialedNumber}设置为已拨IP。
+
+<item><tt/DisabledCodecs=g711Alaw64k;g711Ulaw64k;h263VideoCapability;genericVideoCapability;basicString;/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+过滤掉某些编解码器。必须对呼叫进行H.245路由或代理，才能使编解码器过滤正常工作。还可以过滤掉整个功能集，
+例如。"nonStandard"的"receiveVideoCapability", "receiveAndTransmitDataApplicationCapability"。
+通过使用Radius属性'disable-codec'或<ref id="epconfig" name="[EP::...] section">部分中的每个端点，可以按呼叫覆盖此设置 。
+
+</itemize>
+
+<sect1>Section &lsqb;H225toQ931&rsqb;
+<label id="h225toq931">
+<p>
+在H.225原因和Q.931原因代码之间进行转换时，GnuGk使用转换表。使用此部分，可更改此映射。
+
+<quote><tt>[H225toQ931]<newline>
+;0=34 # noBandwidth<newline>
+;1=47 # gatekeeperResources<newline>
+2=34 # unreachableDestination => NoCircuitChannelAvailable (default 3)<newline>
+;3=16 # destinationRejection<newline>
+;4=88 # invalidRevision<newline>
+;5=111 # noPermission<newline>
+;6=38 # unreachableGatekeeper<newline>
+;7=42 # gatewayResources<newline>
+;8=28 # badFormatAddress<newline>
+;9=41 # adaptiveBusy<newline>
+;10=17 # inConf<newline>
+;11=31 # undefinedReason<newline>
+;12=16 # facilityCallDeflection<newline>
+;13=31 # securityDenied<newline>
+14=34 # calledPartyNotRegistered => NoCircuitChannelAvailable (default 20)<newline>
+;15=31 # callerNotRegistered<newline>
+;16=47 # newConnectionNeeded<newline>
+;17=127 # nonStandardReason<newline>
+;18=31 # replaceWithConferenceInvite<newline>
+;19=31 # genericDataReason<newline>
+;20=31 # neededFeatureNotSupported<newline>
+;21=127 # tunnelledSignallingRejected<newline></tt></quote>
+
+<sect1>Section &lsqb;GkQoSMonitor&rsqb;
+<label id="gkqosmonitor">
+<p>
+使用H.460.9收集来自端点的服务质量信息。端点必须支持H.460.9，此服务才能正常运行。
+
+<itemize>
+<item><tt/Enable=1/<newline>
+默认：<tt/0/<newline>
+<p>
+定义是启用还是禁用该功能。若启用，此功能将响应客户端支持的功能请求，因此客户端知道将QoS统计信息发送到网守。
+
+<item><tt/CallEndOnly=0/<newline>
+默认：<tt/1/<newline>
+<p>
+定义是通过IRR消息收集信息还是仅在呼叫结束时收集QoS信息。
+
+<item><tt/DetailFile=qos.txt/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义QoS日志的输出文件。若未定义文件，则在跟踪级别4的跟踪文件中将QoS信息作为一项输出。
+</itemize>
+
+<sect1>Section &lsqb;GkQoSMonitor::SQL&rsqb;
+<p>
+本部分允许将QoS信息存储在数据库中，可以使用<ref id="sqlpasswordauth" name="[SQLPasswordAuth]">中定义的相同数据库参数。
+
+<itemize>
+<item><tt/Query=INSERT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义用于存储QoS信息的SQL查询。
+
+定义了以下参数：
+<itemize>
+<item><tt/%g/ - GK ID
+<item><tt/%{ConfId}/ - 会议ID
+<item><tt/%{session}/ - 会话
+<item><tt/%{caller-ip}/ - 来电者IP
+<item><tt/%{caller-port}/ - 呼叫者端口
+<item><tt/%{caller-nat}/ - 呼叫者是否已NAT (0 or 1)
+<item><tt/%{callee-ip}/ - 被叫IP
+<item><tt/%{callee-port}/ - 被叫端口
+<item><tt/%{avgdelay}/ - 平均延迟
+<item><tt/%{packetloss}/ - 数据包丢失
+<item><tt/%{packetloss-percent}/ - 丢包率
+<item><tt/%{avgjitter}/ - 平均抖动
+<item><tt/%{bandwidth}/ - 带宽（以每秒100位为单位）
+<item><tt/%t/ - timestamp
+
+</itemize>
+<p>
+示例查询字符串：
+<tscreen><verb>
+INSERT INTO qos SET caller_ip="%{caller-ip}", bandwidth="%{bandwidth}, timestamp=%t
+</verb></tscreen>
+
+</itemize>
+
+<sect1>Section &lsqb;Endpoint&rsqb;
+<label id="endpoint">
+<p>
+通过向其他网守注册，网守可以充当端点，从而允许您构建网守层次结构。本节定义了网守的端点功能。
+
+<itemize>
+<item><tt/Gatekeeper=10.0.1.1/<newline>
+默认：<tt/no/<newline>
+<p>
+为<htmlurl url="https://www.gnugk.org/" name="GnuGk">定义要注册的父网守。当路由过程中的呼叫到达'parent'路由策略时，它将所有呼叫路由到该网守。若将其设置为<tt/auto/，则GnuGk将发送IPv4广播GRQ。
+
+确保不向自己注册，结果可能会非常令人困惑。
+
+<item><tt/Type=Gateway/<newline>
+默认：<tt/Gateway/<newline>
+<p>
+定义GnuGk注册时将使用的终端类型。有效选项为<tt/Gateway/ 或 <tt/Terminal/。
+
+<item><tt/Vendor=Cisco | GnuGk | Generic/<newline>
+默认：<tt/GnuGk/<newline>
+<p>
+选择父网守类型，以启用供应商特定的扩展。也可以通过为供应商指定T.35 ID(&lt;country&gt;,&lt;manufacturer&gt;,&lt;extension&gt;) 的三元组来配置供应商ID，而不启用任何扩展名，从而配置此设置。
+
+<descrip>
+<tag/示例:/
+<tscreen><verb>
+Vendor=GnuGk
+; Aculab ID
+Vendor=222,173,0
+</verb></tscreen>
+</descrip>
+
+<item><tt/HideGk=1/<newline>
+默认：<tt/0/<newline>
+<p>
+隐藏网守正在注册的事实，例如，不要在终端类型中设置网守标志。
+
+<item><tt/ProductId=Any Product Name/<newline>
+默认：<tt/GnuGk's name/<newline>
+<p>
+此设置将允许配置注册请求中使用的"product ID" 字符串。此设置的主要用途是解决互通性问题。
+
+<item><tt/ProductVersion=1.2.3/<newline>
+默认：<tt/GnuGk version/<newline>
+<p>
+此设置允许您在注册请求中配置产品版本字符串，以解决兼容性问题。
+
+<item><tt/H323ID=ProxyGK/<newline>
+默认：<tt>&lt;Name&gt;</tt><newline>
+<p>
+指定端点的H.323 ID别名。多个别名可以用逗号分隔。
+
+<item><tt/E164=18888600000,18888700000/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义端点的E.164（dialedDigits）别名。多个别名可以用逗号分隔。
+
+<item><tt/Password=123456/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+指定要发送给父网守的密码。
+
+所有RAS请求都将在<bf/cryptoTokens/字段（MD5＆HMAC-SHA1-96）和<bf/tokens/（CAT）中包含密码。要发送不带有<bf/cryptoTokens/和令牌字段的RAS请求，请配置一个空密码。
+若<tt/EncryptAllPasswords/ 已启用，或者<tt/KeyFilled/在本节中定义了变量，则密码采用加密形式，应使用<tt/addpasswd/实用程序创建。
+
+<p>
+该密码将在发送给邻域网守的LRQ中使用。
+
+<item><tt/Authenticators=H.235.1,CAT/<newline>
+默认：<tt>H.235.1,MD5,CAT</tt><newline>
+<p>
+选择要发送给GRQ中的父网守的身份验证器。默认选项为：H.235.1（HMAC SHA1 /旧的H235AnnexD），MD5（摘要式身份验证）和CAT（Cisco访问令牌，即RADIUS）。
+设置值为NONE将禁用所有身份验证。若省略此设置，则默认情况下将启用所有身份验证。注意：H.235.1需要将OpenSSL支持编译到GnuGk中。
+
+<item><tt/Prefix=188886,188887/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+向父网守注册指定的前缀。仅在Type为时生效<tt/Gateway/。
+
+<item><tt/TimeToLive=900/<newline>
+默认：<tt>60</tt><newline>
+<p>
+建议注册的生存时间值（以秒为单位）。请注意，实时生存计时器是由父网守指定的，RCF是回复RRQ消息。
+
+<item><tt/RRQRetryInterval=10/<newline>
+默认：<tt/3/<newline>
+<p>
+若未收到父网守的响应，请定义重试间隔（以秒为单位），以重新发送RRQ。每次失败，此间隔都会加倍，最大RRQRetryInterval * 128超时。
+
+<item><tt/UnregisterOnReload=1/<newline>
+默认：<tt/0/<newline>
+<p>
+定义子网守在从状态端口接收到“重载”命令后是否注销并向其父级重新注册。
+
+<item><tt/NATRetryInterval=60/<newline>
+默认：<tt/60/<newline>
+<p>
+尝试重新连接TCP NAT信令套接字之前等待的时间（秒）。当无法建立连接或连接断开时，可能会发生这种情况。
+
+<item><tt/NATKeepaliveInterval=86400/<newline>
+默认：<tt/86400/<newline>
+<p>
+定义刷新与父网守的TCP NAT信令连接的频率。由于NAT服务器通常会将TCP映射保留一定的时间，因此强烈建议将其设置为比NAT服务器映射超时稍短的值。
+通过发送特殊的Q.931 IncomingCallProceeding消息来完成刷新。若NAT执行TCP端口转换，则可能需要将其设置为缩短至60秒的值。
+
+<item><tt/Discovery=0/<newline>
+默认：<tt/1/<newline>
+<p>
+配置GnuGk尝试通过首先发送GRQ来发现父网守。
+
+<item><tt/UseAlternateGK=0/<newline>
+默认：<tt/1/<newline>
+<p>
+启用备用网守功能。若从父网守收到的GRJ/GCF/RCF消息包含备用网守列表，则此信息将被存储，并在发生故障时可用于向其他网守重新注册。若您不想使用此功能，请将此变量设置为<tt/0/。
+
+<item><tt/GatekeeperIdentifier=ParentGK/<newline>
+默认：<tt/Not set/<newline>
+<p>
+若只想接受与该网守标识符匹配的父网守，则定义此参数。对GRQ发现很有用，可以防止意外的网守匹配。若不关心网守标识符，或者使用具有不同网守标识符的备用网守，请不要设置此变量。
+
+<item><tt/EndpointIdentifier=ChildGK/<newline>
+默认：<tt/Not set/<newline>
+<p>
+若要为此子网守使用特定的端点标识符，请设置此选项。若未设置此选项（默认），则标识符由父网守在GCF/RCF消息中分配。
+
+<item><tt/ForwardDestIp=0/<newline>
+默认：<tt/1/<newline>
+<p>
+将ARQ中的destCallSignalAddress转发给父网守。
+
+<item><tt/EnableAdditiveRegistration=1/<newline>
+默认：<tt/0/<newline>
+<p>
+子网守是否支持将注册信息传递给父级。若您希望在父网守而不是子网守中管理包括身份验证在内的注册，请使用此选项。
+
+<item><tt/EnableGnuGkNATTraversal=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+启用对GnuGk的旧NAT穿透方法的支持。对于新安装，应使用H.460.18/.19。
+
+<item><tt/EnableH46018=1/<newline>
+默认：<tt/0/<newline>
+<p>
+子节点应答是否向父节点提供H.460.18/.19支持。
+
+<item><tt/EnableH46023=1/<newline>
+默认：<tt/0/<newline>
+<p>
+子节点应答是否向父节点提供H.460.23/.24支持。
+
+<item><tt/UseTLS=1/<newline>
+默认：<tt/0/<newline>
+<p>
+通过此网守使用TLS（传输层安全性）。另请参阅<ref id="tls" name="[TLS] section">部分。
+
+</itemize>
+
+<sect1>Section &lsqb;CTI::Agents&rsqb;
+<p>
+本部分允许配置所谓的虚拟队列，以允许外部应用程序通过状态端口分配入站呼叫。
+虚拟队列具有H.323别名，可以像端点一样呼叫它，也可以回答一组别名。
+
+呼叫到达虚拟队列后，网守将在状态端口上发出RouteRequest信号，并等待外部应用程序通过RouteReject（这将导致呼叫被拒绝）
+或通过RouteToAlias/RouteToGateway进行响应，该路由将导致目的地被重写，因此呼叫将被路由到外部应用程序指定的别名（例如，呼叫中心代理）。
+
+若超时后仍未收到应答，则通话将终止。
+
+可通过三种方式指定虚拟队列
+<itemize>
+<item><tt/exact alias name/ - 给出别名列表。若请求目标别名与这些名称之一匹配，则会激活虚拟队列。
+<item><tt/prefix/ - 给出前缀列表。若请求目标别名以这些前缀之一开头，则会激活虚拟队列。
+<item><tt/regular expression/ - 给出正则表达式。若请求目标别名与表达式匹配，则激活虚拟队列。
+</itemize>
+
+要将虚拟队列应用于所有呼叫，请指定匹配所有内容的正则表达式，请参见下面的示例。
+
+有关消息和响应的详细信息，请参见监视部分。
+
+<itemize>
+<item>
+<tt/VirtualQueueAliases/<newline>
+默认：<tt>none</tt><newline>
+<p>
+这为虚拟队列定义了H.323别名列表（与vqueue RoutingPolicy一起使用）。
+
+<descrip>
+<tag/示例:/
+<quote/<tt/VirtualQueueAliases=sales,support//
+<newline>
+</descrip>
+
+<item>
+<tt/VirtualQueuePrefixes/<newline>
+默认：<tt>none</tt><newline>
+<p>
+这定义了虚拟队列的前缀列表（与vqueue RoutingPolicy一起使用）。
+
+<descrip>
+<tag/示例:/
+<quote/<tt/VirtualQueuePrefixes=001215,1215//
+<newline>
+</descrip>
+
+<item>
+<tt/VirtualQueueRegex/<newline>
+默认：<tt>none</tt><newline>
+<p>
+这为虚拟队列定义了一个正则表达式（与vqueue RoutingPolicy一起使用）。
+
+<descrip>
+<tag/示例 (以001215或1215开头的数字):/
+<quote/<tt/VirtualQueueRegex=^(001|1)215[0-9]*$//
+<newline>
+<tag/示例 匹配所有呼叫的:/
+<quote/<tt/VirtualQueueRegex=^.*$//
+<newline>
+</descrip>
+
+<item>
+<tt/RequestTimeout/<newline>
+默认：<tt/10/<newline>
+外部应用程序回答RouteRequest的超时时间（以秒为单位）。若在此期间未收到应答，则呼叫将被拒绝。
+</itemize>
+
+
+<sect1>Section &lsqb;CTI::MakeCall&rsqb;
+<label id="ctimakecall">
+<p>
+本节包含状态端口命令<ref id="makecall" name="MakeCall">的设置 
+<itemize>
+<item>
+<tt/EndpointAlias=DialOut/<newline>
+默认：<tt>InternalMakeCallEP</tt><newline>
+<p>
+这定义了用于拨号的伪端点的别名。
+
+<item>
+<tt/TransferMethod=H.450.2/<newline>
+默认：<tt>FacilityForward</tt><newline>
+<p>
+设置将呼叫从伪端点转移到实际目的地的方法。可能的值为：FacilityForward，FacilityRouteCallToToMC，Reroute和H.450.2。
+
+<item>
+<tt/UseH450=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+<bf>不建议使用：改用TransferMethod开关。</bf>
+
+使用H.450.2转移而不是Facility消息将呼叫从伪端点转移到实际目的地。
+
+<item>
+<tt/Gatekeeper=192.168.1.2/<newline>
+默认：<tt>127.0.0.1</tt><newline>
+<p>
+伪端点要注册的网守IP。
+
+<item>
+<tt/Interface=192.168.1.1:1730/<newline>
+默认：<tt>*:1722</tt><newline>
+<p>
+用于伪端点的接口和端口。
+
+<item>
+<tt/DisableH245Tunneling=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+对伪端点禁用H.245隧道。
+
+<item>
+<tt/Bandwidth=786/<newline>
+默认：<tt>384</tt><newline>
+<p>
+呼叫带宽（以kbps为单位）。许多端点不会建立比此处指定的带宽更高的呼叫。
+
+</itemize>
+
+
+<sect1>Section &lsqb;SQLConfig&rsqb;
+<label id="sqlconf">
+<p>
+从SQL数据库加载网守设置（除了从配置文件读取的设置外。
+一个通用的<tt/ConfigQuery/可以用来从数据库中读取和/或一个几乎所有的设置<tt/[RasSrv::RewriteE164]/,
+<tt/[RasSrv::PermanentEndpoints]/, <tt/[RasSrv::Neighbors]/, <tt/[RasSrv::GWPrefixes]/查询可以用来加载特定设置。
+从SQL数据库读取的条目优先于配置文件中的设置。
+
+使用<ref id="database" name="公共数据库配置选项">来定义此模块的数据库连接。
+
+<itemize>
+<item><tt/ConfigQuery=SELECT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义用于从数据库读取网守设置的SQL查询。查询已参数化-这意味着参数替换会在执行查询之前发生。
+参数占位符由<bf/%1/, <bf/%2/, ...字符串表示。指定%%将百分号字符嵌入字符串中的数字之前（例如<bf/%%1/），指定<bf/%{1}/以允许在复杂表达式如<bf/%{1}123/之内扩展。
+对于<tt/ConfigQuery/只有一个参数定义为：
+<itemize>
+<item><tt/%1/ - GK标识符
+</itemize>
+
+预计查询将返回零个或更多数据行，每行包含<bf/three/列：
+<itemize>
+<item><tt/column at index 0/ - 配置部分名称
+<item><tt/column at index 1/ - 配置键（选项名称）
+<item><tt/column at index 2/ - 配置值（选项数值）
+</itemize>
+<p>
+示例查询字符串：
+<tscreen><verb>
+ConfigQuery=SELECT secname, seckey, secval FROM sqlconfig WHERE gk = '%1'
+ConfigQuery=SELECT 'RasSrv::RRQAuth', alias, rule FROM rrqauth WHERE gk = '%1'
+</verb></tscreen>
+
+<item><tt/RewriteE164Query=SELECT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义一个SQL查询，用于从数据库中检索该<tt/[RasSrv::RewriteE164]/部分的重写规则。查询已参数化-这意味着在执行每个查询之前都会进行参数替换。
+参数占位符由<bf/%1/, <bf/%2/, ...字符串表示。指定%%将百分号字符插入数字到字符串中（例如<bf/%1/），指定<bf/%1/以允许在<bf/%{1}123/之类的复杂表达式内扩展。
+对于RewriteE164Query只有一个参数定义为：
+
+<itemize>
+<item><tt/%1/ - GK标识符
+</itemize>
+预计查询将返回零个或更多数据行，每行包含两列：
+<itemize>
+<item><tt/column at index 0/ - 重写规则键
+<item><tt/column at index 1/ - 重写规则值
+</itemize>
+<p>
+示例查询字符串：
+<tscreen><verb>
+RewriteE164Query=SELECT rkey, rvalue FROM rewriterule WHERE gk = '%1'
+</verb></tscreen>
+
+<item><tt/RewriteAliasQuery=SELECT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义一个SQL查询，用于从数据库中检索该<tt/[RasSrv::RewriteAlias]/部分的重写规则。查询已参数化-这意味着在执行每个查询之前都会进行参数替换。
+参数占位符由<bf/%1/, <bf/%2/, ... 字符串表示。指定%%将百分号字符插入数字到字符串中（如<bf/%%1/)），指定<bf/%{1}/以允许在<bf/%{1}123/之类的复杂表达式内扩展。
+对于<tt/RewriteAliasQuery/只有一个参数定义为：
+
+<itemize>
+<item><tt/%1/ - GK标识符
+</itemize>
+预计查询将返回零个或更多数据行，每行包含两列：
+<itemize>
+<item><tt/column at index 0/ - 重写规则键
+<item><tt/column at index 1/ - 重写规则值
+</itemize>
+<p>
+示例查询字符串：
+<tscreen><verb>
+RewriteAliasQuery=SELECT rkey, rvalue FROM assignedalias WHERE gk = '%1'
+</verb></tscreen>
+
+<item><tt/AssignedAliasQuery=SELECT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义一个SQL查询，用于从数据库中检索该<tt/[RasSrv::AssignedAlias]/ 部分的重写规则。查询已参数化-这意味着在执行每个查询之前都会进行参数替换。
+参数占位符由<bf/%1/, <bf/%2/, ...字符串表示。指定%%将百分号字符插入数字到字符串中（如<bf/%%1/)），指定<bf/%{1}/以允许在<bf/%{1}123/之类的复杂表达式内扩展。
+对于<tt/AssignedAliasQuery/只有一个参数定义为：
+<itemize>
+<item><tt/%1/ - GK标识符
+</itemize>
+预计查询将返回零个或更多数据行，每行包含两列：
+<itemize>
+<item><tt/column at index 0/ - 重写规则键
+<item><tt/column at index 1/ - 重写规则值
+</itemize>
+<p>
+示例查询字符串：
+<tscreen><verb>
+AssignedAliasQuery=SELECT rkey, rvalue FROM assignedalias WHERE gk = '%1'
+</verb></tscreen>
+
+<item><tt/NeighborsQuery=SELECT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义一个SQL查询，用于从该<tt/[RasSrv::Neighbors]/部分的数据库中检索邻域条目。查询已参数化-这意味着在执行每个查询之前都会进行参数替换。
+参数占位符由<bf/%1/, <bf/%2/, ...字符串表示。指定 %% 将百分号字符插入数字到字符串中（如<bf/%%1/），指定<bf/%{1}/以允许在<bf/%{1}123/之类的复杂表达式内扩展。为<tt/NeighborsQuery/一个参数定义：
+<itemize>
+<item><tt/%1/ - GK标识符
+</itemize>
+查询返回零个或更多数据行，每行包含六列：
+<itemize>
+<item><tt/column at index 0/ - 邻域名称（标识符）
+<item><tt/column at index 1/ - 邻域IP地址
+<item><tt/column at index 2/ - 邻域端口号
+<item><tt/column at index 3/ - 可选前缀（逗号分隔）
+<item><tt/column at index 4/ - 可选密码
+<item><tt/column at index 5/ - 可选的动态IP标志
+</itemize>
+<p>
+示例查询字符串：
+<tscreen><verb>
+NeighborsQuery=SELECT nid, nip, nport, npfx, NULL, 0 FROM neighbor WHERE gk = '%1'
+</verb></tscreen>
+
+<item><tt/NeighborsQuery2=SELECT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义一个SQL查询，用于从该<tt/[RasSrv::Neighbors]/部分的数据库中检索新样式格式的邻域条目。查询已参数化-这意味着在执行每个查询之前都会进行参数替换。
+参数占位符由<bf/%1/, <bf/%2/, ...字符串表示。指定%%将百分号字符插入数字到字符串中（例<bf/%%1/），指定<bf/%{1}/以允许在<bf/%{1}123/之类的复杂表达式内扩展。
+为<tt/NeighborsQuery/一个参数定义：
+<itemize>
+<item><tt/%1/ - GK标识符
+</itemize>
+期望查询返回零个或更多数据行，每行包含六列：
+<itemize>
+<item><tt/column at index  0/ - 邻域名称（标识符）
+<item><tt/column at index  1/ - 邻域类型 (GnuGk, Cisco, Generic)
+<item><tt/column at index  2/ - 邻域主机 (IP &lsqb;and port&rsqb;)
+<item><tt/column at index  3/ - 可选的 SendPrefixes（逗号分隔
+<item><tt/column at index  4/ - 可选的 AcceptPrefixes（逗号分隔
+<item><tt/column at index  5/ - 可选的 ForwardHopCount
+<item><tt/column at index  6/ - 可选的 AcceptForwardedLRQ
+<item><tt/column at index  7/ - 可选的 ForwardResponse
+<item><tt/column at index  8/ - 可选的 H46018Type (0-none 1-server 2-client)
+<item><tt/column at index  9/ - 可选的 SendAuthUser (H46018)
+<item><tt/column at index 10/ - 可选的 SendPassword (H46018)
+</itemize>
+<p>
+示例查询字符串：
+<tscreen><verb>
+NeighborsQuery2=SELECT id, gtype, host, sendPrefix, recvPrefix FROM neighbor WHERE gk ='%1';
+</verb></tscreen>
+
+<item><tt/PermanentEndpointsQuery=SELECT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义一个SQL查询，用于从该<tt/[RasSrv::PermanentEndpoints]/部分的数据库中检索永久端点。查询已参数化-这意味着在执行每个查询之前都会进行参数替换。
+参数占位符由<bf/%1/, <bf/%2/, ...字符串表示。指定%%将百分号字符插入数字到字符串中（例如<bf/%%1/），指定<bf/%{1}/以允许在<bf/%{1}123/之类的复杂表达式内扩展。
+对于<tt/PermanentEndpointsQuery/只有一个参数定义为：
+<itemize>
+<item><tt/%1/ - GK标识符
+</itemize>
+预计查询将返回零或更多数据行，每行包含3或5列：
+<itemize>
+<item><tt/column at index 0/ - 永久端点IP地址
+<item><tt/column at index 1/ - 永久端点端口号
+<item><tt/column at index 2/ - 永久端点别名
+<item><tt/column at index 3/ - 可选：永久端点前缀和优先级（逗号分隔）
+<item><tt/column at index 4/ - 可选：永久端点供应商
+<item><tt/column at index 5/ - 可选：永久性端点产品
+</itemize>
+<p>
+示例查询字符串：
+<tscreen><verb>
+PermanentEndpointsQuery=SELECT peip, 1720, pealias, NULL FROM permanentep WHERE gk = '%1'
+</verb></tscreen>
+
+<item><tt/GWPrefixesQuery=SELECT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义用于从该<tt/[RasSrv::GWPrefixes]/部分的数据库中检索网关前缀的SQL查询。查询已参数化-这意味着在执行每个查询之前都要进行参数替换。
+参数占位符由<bf/%1/, <bf/%2/, ... 字符串表示。指定%%将百分号字符插入数字到字符串中（如<bf/%{1}/），指定％{1}以允许在<bf/%{1}123/之类的复杂表达式内扩展。
+对于<tt/GWPrefixesQuery/只有一个参数定义为
+<itemize>
+<item><tt/%1/ - GK标识符
+</itemize>
+预计查询将返回零个或更多数据行，每行包含两列：
+<itemize>
+<item><tt/column at index 0/ - 网关别名
+<item><tt/column at index 1/ - 网关前缀（逗号分隔）
+</itemize>
+<p>
+示例查询字符串：
+<tscreen><verb>
+GWPrefixesQuery=SELECT gwalias, gwpfx FROM gwprefix WHERE gk = '%1'
+</verb></tscreen>
+
+</itemize>
+
+<sect1>Section &lsqb;PortNotifications&rsqb;
+<p>
+只要打开新端口进行监听，GnuGk就可以执行系统命令。例如，这可以用于自动更新防火墙配置。
+<p>
+可以使用以下占位符：
+<itemize>
+<item><tt/%p/ - 协议 ("udp" or "tcp")
+<item><tt/%n/ - 端口
+<item><tt/%i/ - IP
+</itemize>
+<p>
+通过将命令配置为针对某些类型的端口运行，而不针对其他类型的端口运行，可轻松选择要处理的端口和要忽略的端口。
+<p>
+<itemize>
+<item><tt>Q931PortOpen=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+默认：<tt/none/<newline>
+<p>
+<item><tt>Q931PortClose=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+默认：<tt/none/<newline>
+<p>
+<item><tt>H245PortOpen=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+默认：<tt/none/<newline>
+<p>
+<item><tt>H245PortClose=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+默认：<tt/none/<newline>
+<p>
+<item><tt>RTPPortOpen=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+默认：<tt/none/<newline>
+<p>
+<item><tt>RTPPortClose=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+默认：<tt/none/<newline>
+<p>
+<item><tt>T120PortOpen=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+默认：<tt/none/<newline>
+<p>
+<item><tt>T120PortClose=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+默认：<tt/none/<newline>
+<p>
+<item><tt>RASPortOpen=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+默认：<tt/none/<newline>
+<p>
+<item><tt>RASPortClose=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+默认：<tt/none/<newline>
+<p>
+<item><tt>StatusPortOpen=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+默认：<tt/none/<newline>
+<p>
+<item><tt>StatusPortClose=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+默认：<tt/none/<newline>
+<p>
+<item><tt>RadiusPortOpen=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+默认：<tt/none/<newline>
+<p>
+<item><tt>RadiusPortClose=/usr/local/bin/ports.sh %p %n %i</tt><newline>
+默认：<tt/none/<newline>
+<p>
+</itemize>
+
+<descrip>
+例：
+<tscreen><verb>
+[PortNotifications]
+Q931PortOpen=/usr/local/bin/ports.sh %p %n %i
+Q931PortClose=/usr/local/bin/ports.sh %p %n %i
+H245PortOpen=/usr/local/bin/ports.sh %p %n %i
+H245PortClose=/usr/local/bin/ports.sh %p %n %i
+RTPPortOpen=/usr/local/bin/ports.sh %p %n %i
+RTPPortClose=/usr/local/bin/ports.sh %p %n %i
+RASPortOpen=/usr/local/bin/ports.sh %p %n %i
+RASPortClose=/usr/local/bin/ports.sh %p %n %i
+T120PortOpen=/usr/local/bin/ports.sh %p %n %i
+T120PortClose=/usr/local/bin/ports.sh %p %n %i
+</verb></tscreen>
+</descrip>
+
+<sect1>Section &lsqb;SNMP&rsqb;
+<label id="snmp">
+<p>
+简单网络管理协议（SNMP）使可在操作过程中监视GNU Gatekeeper，并允许在发生错误时为通知（"traps"）配置目标系统。
+<itemize>
+
+<item><tt/EnableSNMP=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+启用S​​NMP支持。GnuGk必须在SNMP支持下进行编译。
+
+<item><tt/Implementation=Net-SNMP/<newline>
+默认：<tt>PTLib</tt><newline>
+<p>
+选择要使用的SNMP实现。可能的值为<tt>Net-SNMP</tt> 和 <tt>PTLib</tt>。PTLib实现独立运行，对于Net-SNMP实现，还必须在服务器上安装Net-SNMP，因此GnuGk可以注册为子代理。
+
+<item><tt/EnableTraps=0/<newline>
+默认：<tt>1</tt><newline>
+<p>
+启用或禁用抛出SNMP陷阱。默认情况下会引发错误陷阱。
+
+<item><tt/EnableWarningTraps=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+还会引发带有警告的陷阱。若启用警告陷阱，请确保您的管理应用程序中有适当的陷阱筛选。在GnuGk无法确定其是否为真正错误的危害情况下，可能会生成许多警告。
+
+</itemize>
+
+若GnuGk配置文件启用了SNMP，并且选择了Net-SNMP实现，则GnuGk将向Net-SNMP守护程序注册为AgentX子代理。
+默认情况下，GnuGk将连接到本地主机IP地址（127.0.0.1）和TCP端口705。注册为子代理程序使可继续查询Net-SNMP有关服务器的总体运行状况，并添加GnuGk特定对象。
+
+所有GET/SET请求和SNMP陷阱都由Net-SNMP守护程序执行，因此访问控制，陷阱目标和SNMP版本信息的配置必须在Net-SNMP .conf文件中完成。
+
+若选择了PTLib的SNMP实现，则GnuGk将启动独立的SNMP代理。 <bf>注意</bf>：只有一个SNMP代理可以绑定到UDP/161，因此，若您在服务器上使用另一个SNMP代理，则可能必须使用非标准端口。
+
+<bf>注意</bf>：默认情况下，PTLib在配置过程中启用SNMP，因此，若SNMP不起作用，请确保使用以下命令wasn't 编译您的PTLib <tt>--disable-snmp</tt>
+
+使用PTLib而不是功能齐全的Net-SNMP意味着仅支持陷阱和GET / GET-NEXT请求。有关将PTLib用于SNMP所需的其他开关，请参见下文。
+
+<sect2>GnuGk企业MIB
+<p>
+GnuGk项目已由IANA（互联网编号分配机构）分配了企业编号27938，因此GnuGk的所有OID均在1.3.6.1.4.1.27938之内。
+
+正式的MIB规范（SMIv2）可以在GnuGk分发的文件'gnugk.mib'中找到。您可能需要将其导入到SNMP管理软件中，以查看GnuGk的OID的符号名称。
+
+可以使用以下OID：
+The following OIDs are available:
+<itemize>
+<item>1.3.6.1.4.1.27938.11.1.1 GnuGk 版本 (GET)
+<item>1.3.6.1.4.1.27938.11.1.2 具有模块标志（GET）的GnuGk版本
+<item>1.3.6.1.4.1.27938.11.1.3 当前端点注册（GET）的数量
+<item>1.3.6.1.4.1.27938.11.1.4 正在进行的呼叫数（GET
+<item>1.3.6.1.4.1.27938.11.1.5 跟踪调试级别（GET，SET）
+<item>1.3.6.1.4.1.27938.11.1.6 CatchAll目标（GET，SET）
+<item>1.3.6.1.4.1.27938.11.1.7 自启动以来的总呼叫数（GET）
+<item>1.3.6.1.4.1.27938.11.1.8 自启动以来成功呼叫（GET）
+<item>1.3.6.1.4.1.27938.11.1.9 以kbps（GET）分配给正在进行的呼叫的总带宽
+</itemize>
+所有这些OID都是标量，因此在查询它们时请记住要附加'.0'，例如，与'snmpget'。
+
+当作为独立代理运行时，PTLib SNMP代理还将回答一些通用系统OID，例如。sysUptime（OID 1.3.6.1.2.1.1.3）和sysName（OID 1.3.6.1.2.1.1.5）。
+
+注意：通过SNMP设置CatchAll目标将更新配置文件以使更改永久生效。设置跟踪级别是一个临时设置。
+
+有以下定义:
+<itemize>
+<item>1 GnuGk started
+<item>2 GnuGk stopped
+<item>3 Config Reload
+<item>4 Module creation failed
+<item>5 Database operation failure
+<item>6 IO operation failure
+<item>7 General error
+<item>8 Authentication error
+<item>9 Message encoding/decoding error
+<item>10 Network error
+<item>11 Neighbor error
+</itemize>
+
+可能具有3个可选数据元素：
+<itemize>
+<item>Severity level (OID 1.3.6.1.4.1.27938.11.2.1): Error=1, Warning=2, Info=3
+<item>Group (OID 1.3.6.1.4.1.27938.11.2.2): General=1, Network=2, Database=3, Accounting=4, Authentication=5, Configuration=6
+<item>Display string (OID 1.3.6.1.4.1.27938.11.2.3)
+</itemize>
+
+<sect2>配置Net-SNMP
+<p>
+Net-SNMP配置通常在/etc/snmp/snmpd.conf中找到。该配置文件定义了SNMP管理器的访问控制规则，并定义了诸如只读和读写团体名之类的设置，向何处发送陷阱等。
+
+根据您使用的陷阱主机定义，Net-SNMP会将陷阱转换为适当的版本。若要发送版本1陷阱，请使用'trapsink'；若要发送版本2陷阱，请使用'trap2sink'；对于SNMP v3通知消息，请使用'informsink'。
+
+请确保在Net-SNMP守护程序中启用了AgentX支持。
+<p>
+<descrip>
+SNMP版本2c的snmpd.conf的简单示例：
+<tscreen><verb>
+# server location and contact
+syslocation Server Room
+syscontact Sysadmin (root@example.com)
+
+# read-only access only from this network, access to all MIBs
+rocommunity public 192.168.1.0/24
+# read-write access only from this network, restricted to the GnuGk MIB
+rwcommunity mysecret 192.168.1.0/24	1.3.6.1.4.1.27938
+
+# send traps as version 2 to this host with community string 'public'
+trap2sink   192.168.1.64    public
+
+# enable AgentX support
+master agentx
+agentxsocket tcp:localhost:705
+</verb></tscreen>
+
+对于SNMP版本3，配置文件如下所示：
+<tscreen><verb>
+# server location and contact
+syslocation Server Room
+syscontact Sysadmin (root@example.com)
+
+# read-only access for user 'peter'
+rouser peter
+# full read-write access for user 'paul'
+rwuser paul
+# read-write access only for the GnuGk MIB for user 'mary'
+rwuser mary auth 1.3.6.1.4.1.27938
+
+# create the user accounts and set passwords
+createUser peter MD5 peterpeter DES
+createUser paul MD5 paulpaul DES
+createUser mary MD5 marymary DES
+
+# send traps as version 3 Inform messages with community string 'public'
+informsink   192.168.1.64    public
+
+# enable AgentX support
+master agentx
+agentxsocket tcp:localhost:705
+</verb></tscreen>
+</descrip>
+
+也可以将基于Net-SNMP的代理配置为在没有Net-SNMP守护程序的情况下独立运行，但是不建议这样做。
+
+<itemize>
+<item><tt>Standalone=1</tt><newline>
+默认：<tt/0/<newline>
+独立运行SNMP-Agent，并且不连接到AgentX主代理。
+</itemize>
+
+<p>
+<sect2>使用 PTLib's SNMP 实现
+<p>
+PTlib支持SNMP版本1和2 GET请求，并且将始终在版本2c消息中发送版本1陷阱。不支持GETNEXT（用于'walk'）和SET请求。
+
+使用PTLib实现时，应使用以下附加开关：
+<itemize>
+<item><tt>TrapHost=192.168.1.100</tt><newline>
+默认：<tt/none/<newline>
+<p>
+定义陷阱目标主机。若未定义主机，则不会发送陷阱。可指定IP或DNS名称。
+
+<item><tt>TrapCommunity=public</tt><newline>
+默认：<tt/public/<newline>
+<p>
+定义陷阱的社区字符串。
+
+<item><tt>AgentListenIP=192.168.1.100</tt><newline>
+默认：<tt>127.0.0.1</tt><newline>
+<p>
+定义SNMP代理应侦听的IP。
+
+<item><tt>AgentListenPort=11161</tt><newline>
+默认：<tt>161</tt><newline>
+<p>
+定义SNMP代理应侦听的UDP端口。
+
+<item><tt>AllowRequestsFrom=192.168.1.0/24</tt><newline>
+默认：<tt>n/a</tt><newline>
+<p>
+以逗号分隔的IP或网络列表，允许向我们发送SNMP请求。
+
+</itemize>
+
+<sect1>Section &lsqb;TLS&rsqb;
+<label id="tls">
+<p>
+使用TLS（传输层安全性），可加密Q.931信令信道（例如，通过隧道传输时为H.245）。启用TLS后，GnuGk将在端口1300上侦听TLS连接。
+<p>
+呼叫的每个分支不能单独使用TLS。例如，一个端点可能会将其发往GNU Gatekeeper的信号加密，而发往另一端点的呼叫的第二部分可能未加密。
+<p>
+必须通过在[EP::...]部分中设置一个开关来手动定义哪些端点在使用TLS时使用它们。类似的，可为邻域和父网守启用TLS。
+因没有很多端点支持TLS加密，因此此功能对于保护到分支机构等的“中继”连接或穿越区域非常有用。
+<p>
+使用TLS对于避免对H.235.6媒体加密的中间人攻击也很重要。
+<p>
+注意：当前，当您使用TLS时，您必须使用H.245隧道，当并非所有端点都本身启用隧道时，请考虑使用H245TunnelingTranslation = 1在网守之间建立H.245隧道。
+
+<itemize>
+
+<item><tt/EnableTLS=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+启用TLS支持。GnuGk必须已使用OpenSSL支持进行编译。
+
+<item><tt/PrivateKey=server_key.pem/<newline>
+默认：<tt>tls_private_key.pem</tt><newline>
+<p>
+具有此服务器私钥的文件。
+
+<item><tt/Certificates=server_cert.pem/<newline>
+默认：<tt>tls_certificate.pem</tt><newline>
+<p>
+此服务器的证书文件。
+
+<item><tt/CAFile=root_cert.pem/<newline>
+默认：<tt>n/a</tt><newline>
+<p>
+带有根CA证书的文件。
+
+<item><tt>CADir=/etc/certs/</tt><newline>
+默认：<tt>n/a</tt><newline>
+<p>
+搜索根CA证书的目录。
+
+<item><tt/Passphrase=whatever/<newline>
+默认：<tt>n/a</tt><newline>
+<p>
+若已设置一个密码，则打开上述证书文件的密码。
+
+<item><tt/CipherList=ALL:!ADH:!LOW:!EXP:!MD5:!RC4:!SHA1:@STRENGTH/<newline>
+默认：<tt>ALL:!ADH:!LOW:!EXP:!MD5:!RC4:!SHA1:@STRENGTH</tt><newline>
+<p>
+设置要用于TLS连接的OpenSSL密码列表。
+
+<item><tt/CheckCertificateIP=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+除了检查对等证书是否正确签名之外，GnuGk还可以检查X.509扩展名之一是否包含DNS名称，或者证书中的commonName是否与IP（实际来自连接）相匹配。
+<p>
+并非所有证书都包含正确的DNS名称，若您的对等方位于NAT之后，则可能无法看到其真实IP。另外，DNS查找可能很慢，因此默认情况下禁用此检查。
+
+<item><tt/RequireRemoteCertificate=1/<newline>
+默认：<tt>1</tt><newline>
+<p>
+建议在双方之间通过数字证书进行身份验证的TLS之间建立TLS。但是，在某些情况下，很难或不可能将证书生成和分发到远程/远程端点。
+将此开关设置为0时，它将仅验证网守发起的TLS连接，而不验证其收到的TLS连接。因此，仅应在存在其他安全性的网守环境中使用它，例如在邻域策略中定义显式邻域。
+对于端点，仅应将其与受信任的端点一起使用，并与H.460.17（推荐）和.18结合使用，在端点处，端点始终会启动TLS连接并可以验证网守的证书。若是H.460。
+<p>
+</itemize>
+
+<sect2>使用OpenSSL生成密钥和证书
+<p>
+不必信任用于Web浏览等的相同CA（证书颁发机构）。默认情况下，GnuGk会忽略服务器上随OpenSSL一起安装的根证书，但可以通过设置CADir= 来启用它们。
+<p>
+要严格控制信任的人，可以使用OpenSSL生成自己的CA，并且仅允许使用由CA签名的证书进行连接。使用CAFile= 开关设置您自己的CA，而未设置CADir=。
+
+要按照分步说明进行操作，您需要为CA定义一个文件，名为root.cnf，为服务器定义一个文件，名为server.cnf（请参见下文）。
+在执行这些步骤时，系统将询问您几次生成文件的密码。您应该对所有这些都使用相同的名称，并使用Passphrase= 开关将其添加到您的GnuGk配置中。
+
+首先，生成您的CA并对其进行自我签名：
+<tscreen><verb>
+openssl req -newkey rsa:2048 -sha256 -keyout root_key.pem -out root_req.pem -config root.cnf
+openssl x509 -req -in root_req.pem -sha256 -extfile root.cnf -days 365 -extensions certificate_extensions -signkey root_key.pem -out root_cert.pem
+</verb></tscreen>
+
+然后为每个服务器或端点生成一个密钥，并使用CA证书对其进行签名：
+<tscreen><verb>
+openssl req -newkey rsa:2048 -sha256 -keyout server_key.pem -out server_req.pem -config server.cnf -reqexts req_extensions
+openssl x509 -req -in server_req.pem -sha256 -extfile root.cnf -days 365 -extensions certificate_extensions -CA root_cert.pem -CAkey root_key.pem -CAcreateserial -out server_cert.pem
+</verb></tscreen>
+然后重复以生成所需数量的证书。
+
+上面生成的证书有效期为365天。确保在它们到期之前将其更换，否则将无法拨打电话！
+
+要检查生成的证书的内容（例如，查看证书是否已过期或DNS名称是否正确），可使用
+<tscreen><verb>
+openssl x509 -text -in server_cert.pem
+</verb></tscreen>
+
+这是可修改的示例root.cnf文件：
+<tscreen><verb>
+[ ca ]
+default_ca       = gnugk_ca
+
+[ gnugk_ca ]
+dir              = /opt/gnugk-ca
+certificate      = $dir/cacert.pem
+database         = $dir/index.txt
+new_certs_dir    = $dir/certs
+private_key      = $dir/private/cakey.pem
+serial           = $dir/serial
+ 
+default_crl_days = 7
+default_days     = 365
+default_md       = sha256
+ 
+policy           = gnugk_ca_policy
+x509_extensions  = certificate_extensions
+ 
+[ gnugk_ca_policy ]
+commonName             = supplied
+stateOrProvinceName    = supplied
+countryName            = supplied
+emailAddress           = supplied
+organizationName       = supplied
+organizationalUnitName = optional
+ 
+[ req ]
+default_bits        = 2048
+default_keyfile     = privkey.pem
+default_md          = sha256
+
+prompt              = no
+distinguished_name  = req_distinguished_name
+x509_extensions     = req_extensions
+
+# the following sections are specific to the request we're building
+
+[ certificate_extensions ]
+basicConstraints = CA:true
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer:always
+
+[ req_distinguished_name ]
+countryName         = US
+stateOrProvinceName = Virginia
+localityName        = Fairfax
+organizationName    = Zork.org
+commonName          = GnuGk Root CA
+
+[ req_extensions ]
+basicConstraints = CA:true
+</verb></tscreen>
+
+这是可修改的示例server.cnf文件：
+<tscreen><verb>
+[ ca ]
+default_ca       = gnugk_ca
+
+[ gnugk_ca ]
+dir              = /opt/gnugk-ca
+certificate      = $dir/cacert.pem
+database         = $dir/index.txt
+new_certs_dir    = $dir/certs
+private_key      = $dir/private/cakey.pem
+serial           = $dir/serial
+ 
+default_crl_days = 7
+default_days     = 365
+default_md       = sha256
+ 
+policy           = gnugk_ca_policy
+x509_extensions  = certificate_extensions
+ 
+[ gnugk_ca_policy ]
+countryName            = supplied
+stateOrProvinceName    = supplied
+localityName           = supplied
+organizationName       = supplied
+organizationalUnitName = optional
+commonName             = supplied
+emailAddress           = optional
+ 
+[ req ]
+default_bits        = 2048
+default_keyfile     = privkey.pem
+default_md          = sha256
+
+prompt              = no
+distinguished_name  = req_distinguished_name
+x509_extensions     = req_extensions
+
+# the following sections are specific to the request we're building       
+
+[ certificate_extensions ]
+basicConstraints = CA:false
+subjectAltName = DNS:gk1.zork.org
+
+[ req_distinguished_name ]
+countryName            = US
+stateOrProvinceName    = Virginia
+localityName           = Fairfax
+organizationName       = Zork.org
+commonName             = gatekeeper.zork.org
+
+[ req_extensions ]
+basicConstraints = CA:true
+subjectAltName = DNS:gk1.zork.org
+</verb></tscreen>
+

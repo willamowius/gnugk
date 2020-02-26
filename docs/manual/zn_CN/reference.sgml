@@ -1,0 +1,63 @@
+<sect>GK 基础配置
+<p>
+<htmlurl url="https://www.gnugk.org/" name="GnuGk"> 的功能
+由命令行选项和配置文件确定。 某些命令行选项可能会覆盖配置文件中的设置。
+例如，<tt/-l/ 该选项将覆盖 <tt/TimeToLive/ 在配置文件中的设置。
+
+<sect1>命令行选项
+<label id="commandline">
+<p>
+每个选项都有长短格式，例如
+<tt/-c/ 与 <tt/--config/ 相同。
+<p>
+<sect2>基本的
+<p>
+<descrip>
+<tag/<tt/-h  --help//
+显示所有可获得的选项后退出程序。
+<tag/<tt/-c  --config filename//
+指定要使用的配置文件。
+<tag/<tt/--strict//
+配置的严格检查（不要以配置错误开头）
+<tag/<tt/-s  --section section//
+指定在配置文件中使用那一节做为主要章节。默认值为 [Gatekeeper::Main]。
+<tag/<tt/-l  --timetolive n//
+指定终端注册的保活时间（以秒为单位） 覆盖 <tt/TimeToLive/ 配置文件中的设置。
+See <ref id="ttl" name="此处"> 有关详细说明。
+<tag/<tt/-b  --bandwidth n//
+指定GK可用的总带宽，以每秒100位为单位。若没有此选项，则禁用带宽管理。
+<tag/<tt/-e  --externalip x.x.x.x//
+指定外部IP，覆盖配置文件中 [Gatekeeper::Main] ExternalIP=
+<tag/<tt/--pid filename//
+指定pid文件。仅对Unix版本有效。
+<tag/<tt/-u  --user name//
+以该用户身份运行GK进程。仅对Unix版本有效。
+<tag/<tt/--core n//
+当应用程序崩溃时，启用写入核心转储文件。核心转储文件的大小不会超过n个字节。
+特殊常量“ unlimited”可用于不强制执行任何特定限制。仅在Linux上有效。
+<tag/<tt/--mlock//
+将GnuGk锁定到内存中以防止被换出。仅在Linux上有效。
+</descrip>
+
+<sect2>GK 模式
+<p>
+本小节中的选项将覆盖配置文件的 <ref id="routed" name="[RoutedMode] 部分"> 中的设置。
+<descrip>
+<tag/<tt/-d  --direct//
+使用终端直接呼叫信令。
+<tag/<tt/-r  --routed//
+使用GK路由的呼叫信令
+<tag/<tt/-rr  --h245routed//
+使用GK路由的呼叫信令和H.245控制信道。
+</descrip>
+
+<sect2>调试信息
+<p>
+<descrip>
+<tag/<tt/-o  --output filename//
+将跟踪日志写入指定的文件。
+<tag/<tt/-t  --trace//
+设置跟踪详细程度。每 <tt/-t/ 增加一个，都会给输出增加更多的详细程度。
+例如，用 <tt/-ttttt/ 将跟踪级别设置为5。
+</descrip>
+

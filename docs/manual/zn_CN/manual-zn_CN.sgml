@@ -1,0 +1,54 @@
+<!doctype linuxdoc system[
+<!ENTITY introduction SYSTEM "introduction.sgml">
+<!ENTITY installation SYSTEM "installation.sgml">
+<!ENTITY tutorial SYSTEM "tutorial.sgml">
+<!ENTITY reference SYSTEM "reference.sgml">
+<!ENTITY mainconfig SYSTEM "mainconfig.sgml">
+<!ENTITY routedmode SYSTEM "routedmode.sgml">
+<!ENTITY routing SYSTEM "routing.sgml">
+<!ENTITY ras SYSTEM "ras.sgml">
+<!ENTITY misc SYSTEM "misc.sgml">
+<!ENTITY neighbors SYSTEM "neighbors.sgml">
+<!ENTITY auth SYSTEM "auth.sgml">
+<!ENTITY acct SYSTEM "acct.sgml">
+<!ENTITY endpointconfig SYSTEM "endpointconfig.sgml">
+<!ENTITY monitoring SYSTEM "monitoring.sgml">
+<!ENTITY advanced SYSTEM "advanced.sgml">
+]>
+<!-- This is the User Manual for the GNU Gatekeeper -->
+
+<article>
+<!-- Title information -->
+<title>The GNU Gatekeeper
+<author>Maintainer of this manual:
+<htmlurl url="https://www.willamowius.com/" name="Jan Willamowius">
+<tt><htmlurl url="mailto:jan@willamowius.de" name="&lt;jan@willamowius.de&gt;"></tt>
+
+<date>Version 5.5, January 2020</date>
+
+<abstract>
+This User Manual
+explains how to compile, install, configure and monitor the
+<htmlurl url="https://www.gnugk.org/" name="GNU Gatekeeper (GnuGk)">.
+</abstract>
+
+<toc>
+
+&introduction;
+&installation;
+&tutorial;
+&reference;
+&mainconfig;
+&routedmode;
+&routing;
+&ras;
+&auth;
+&acct;
+&neighbors;
+&endpointconfig;
+&misc;
+&monitoring;
+&advanced;
+
+</article>
+

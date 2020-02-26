@@ -1,0 +1,1595 @@
+<sect>认证配置
+<p>
+config文件中的以下部分可用于配置身份验证。
+
+<sect1>Section &lsqb;Gatekeeper::Auth&rsqb;
+<label id="gkauth">
+<p>
+本部分定义了<htmlurl url="https://www.gnugk.org/" name="GnuGk">的身份验证机制/模块。
+定义要使用的模块后，必须为每个模块添加相应的配置部分。
+
+<descrip>
+<tag/写法：/
+<tscreen><verb>
+authrule=actions
+
+ <authrule> := SimplePasswordAuth | AliasAuth | FileIPAuth | PrefixAuth | RadAuth | RadAliasAuth | SQLAuth | SQLAliasAuth | SQLPasswordAuth | H350PasswordAuth | LDAPPasswordAuth | LDAPAliasAuth | LuaAuth | LuaPasswordAuth | HttpPasswordAuth | GeoIPAUth | TwoAliasAuth | CapacityControl | ...
+ <actions>  := <control>[;<ras>|<q931>,<ras>|<q931>,...]
+ <control>  := optional | required | sufficient | alternative
+ <ras>      := GRQ | RRQ | URQ | ARQ | BRQ | DRQ | LRQ | IRQ | RAI
+ <q931>     := Setup | SetupUnreg | Connect | CallProceeding | Alerting | Information | ReleaseComplete | Facility | Progress | Empty | Status | StatusEnquiry | SetupAck | Notify    
+
+</verb></tscreen>
+</descrip>
+
+规则可能会导致以下三个代码之一：正常，失败，下一步。
+<itemize>
+<item><tt/ok/ - 该模块对请求进行了身份验证。
+<item><tt/fail/ - 身份验证失败，应被拒绝。
+<item><tt/next/ - 规则无法确定请求。
+</itemize>
+There are also three ways to control a rule:
+<itemize>
+<item><tt/optional/ - 若规则无法确定或接受请求，则将其传递到下一个规则。否则，处理将停止并且该请求将被拒绝。
+<item><tt/required/ - 请求应由此模块验证，否则将被拒绝。经过身份验证的请求将被传递到下一个规则。
+<item><tt/sufficient/ - 若请求已通过验证，则该请求被接受，否则将被拒绝。也就是说，规则决定了请求的结果。没有规则应该放在足够的规则之后，因它不会生效。
+<item><tt/alternative/ - 与 <tt/sufficient/ 规则类似，不同之处在于，如果模块无法确定结果，则将请求传递给下一个模块。
+</itemize>
+
+当前支持的模块：（大多数仅支持RAS或Q.931操作的子集）
+Currently supported modules: (most only support a subset of the RAS or Q.931 actions)
+<itemize>
+<item><tt>SimplePasswordAuth/SQLPasswordAuth/H350PasswordAuth/LuaPasswordAuth/HttpPasswordAuth</tt>
+<p>
+该模块检查RAS消息的令牌或cryptoTokens字段。令牌应至少包含generalID和密码。对于cryptoToken，
+支持由简单MD5哈希的cryptoEPPwdHash令牌和由HMAC-SHA1-96哈希的nestedcryptoToken令牌。
+对于由CAT散列的令牌（Cisco访问令牌），支持明文用户名/密码。从<ref id="password" name="[SimplePasswordAuth]">节
+或用于<tt/SimplePasswordAuth/ 和 <tt/SQLPasswordAuth/模块的SQL数据库中读取ID和密码 。
+使用<ref id="luapasswordauth" name="LuaPasswordAuth">，可使用Lua脚本来查找密码，而<ref id="httppasswordauth" name="HttpPasswordAuth">则可以从HTTP服务器（例如，从REST服务）获取密码。
+<p>
+对于H.350.2身份验证(<tt/H350PasswordAuth/)， 必须完成<ref id="h350settings" name="[GkH350::Settings]">连接信息。的<ref id="h350passwordauth" name="[H350PasswordAuth]">部分是可选的。
+
+<item><tt>AliasAuth/SQLAliasAuth</tt>
+<p>
+该模块只能用于认证RegistrationRequest (RRQ)。具有给定别名的端点的IP应该匹配指定的模式。
+对于<tt/AliasAuth/模式，在 <ref id="rrqauth" name="[RasSrv::RRQAuth]">部分中定义。对于SQLAliasAuth，从 <ref id="sqlaliasauth" name="[SQLAliasAuth]">部分中定义的SQL数据库中检索模式。
+
+<item><tt>FileIPAuth</tt>
+<p>
+该模块提供了一种基于呼叫者的IP或网络来限制对网守访问的简单方法。
+
+<item><tt>PrefixAuth</tt>
+<p>
+具有给定前缀的请求的IP或别名必须与指定的模式匹配。有关详细信息，请参见<ref id="prefixauth" name="[PrefixAuth]">部分。
+该模块可授权AdmissionRequest (ARQ)，LocationRequest (LRQ)，Setup和SetupUnreg。
+
+<item><tt>RadAuth</tt>
+<p>
+提供基于H.235用户名/密码安全方案的身份验证。通过远程RADIUS服务器对RRQ，ARQ和Q.931 Setup进行身份验证。
+它将从RRQ，ARQ或Setup数据包内携带的CAT（思科访问令牌）令牌中提取的用户名和密码发送到RADIUS服务器。
+若端点不支持CAT，或者不需要基于单独分配的用户名/密码的身份验证方案，那么该模块将不合适（可以检查该<tt/RadAliasAuth/模块）。
+有关详细信息，请参见<ref id="radauth" name="[RadAuth]">部分 。
+
+<item><tt>RadAliasAuth</tt>
+<p>
+提供基于端点别名和/或远程RADIUS服务器的呼叫信令IP地址的身份验证。它在RAS消息中不需要任何H.235令牌，
+因此与相比，它可以在更广泛的系统上使用<tt/RadAuth/。RRQ，ARQ和Q.931 Setup消息可以使用此模块进行身份验证。
+有关详细信息，请参见<ref id="radaliasauth" name="[RadAliasAuth]">部分 。
+
+<item><tt>SQLAuth</tt>
+<p>
+一个强大的模块，用于认证和授权RRQ，ARQ，LRQ和Setup消息。它可以根据各种参数执行检查，例如呼叫者的号码，目的地号码，用户名等。
+它还支持强制呼叫持续时间限制，号码重写，呼叫路由，别名验证和分配。有关更多详细信息，请参见<ref id="sqlauth" name="[SQLAuth]">部分 。
+
+<item><tt>LDAPPasswordAuth</tt>
+<p>
+该模块将在LDAP模式中查找被叫别名，搜索H323ID和TelephoneNumber属性，并检查H235Password属性中的密码是否与H.235加密令牌匹配。
+<p>
+LDAP服务器在<ref id="ldapsettings" name="GkLDAP::Settings">部分中配置，且属性匹配在<ref id="ldapattributes" name="GkLDAP::LDAPAttributeNames">部分中定义 。
+
+<item><tt>LDAPAliasAuth</tt>
+<p>
+该模块将在LDAP模式中查找被叫别名，搜索H323ID和TelephoneNumber属性，并检查IP是否与IPAddress属性匹配。
+
+<p>
+LDAP服务器在<ref id="ldapsettings" name="GkLDAP::Settings">部分中配置， 并且属性匹配在<ref id="ldapattributes" name="GkLDAP::LDAPAttributeNames"> 部分中定义 。
+
+<item><tt>LuaAuth</tt>
+<p>
+该模块利用用户定义的LUA脚本执行身份验证。这些脚本在<ref id="luaauth" name="LuaAuth">部分中配置 。
+
+<item><tt>GeoIPAuth</tt>
+<p>
+该模块通过查看IP来检查消息来自哪个国家。该模块在<ref id="geoipauth" name="GeoIPAuth">部分中配置 。
+
+<item><tt>TwoAliasAuth</tt>
+<p>
+此模块检查端点是否具有2个匹配的别名。这是一个非常弱的身份验证，仅在没有其他可能的情况下才使用。该模块在<ref id="twoaliasauth" name="TwoAliasAuth">部分中配置 。
+
+该模块可以授权RegistrationRequest (RRQ)，Setup和SetupUnreg。
+
+<item><tt>CapacityControl</tt>
+<p>
+灵活的模块，可以配置各种条件，以控制入站呼叫量。重要说明：它必须与<tt/CapacityControl/ 计费模块一起使用。有关更多详细信息，请参见<ref id="capctrl" name="[CapacityControl]"> 部分 。
+ 
+</itemize>
+
+还可以配置规则以仅检查特定的RAS消息。以下示例配置<tt/SimplePasswordAuth/为检查RRQ和ARQ的可选规则。
+如果未检查RRQ（不包含令牌或cryptoTokens字段），则通过对其进行检查<tt/AliasAuth/。默认为检查所有受支持的请求。
+
+<descrip>
+<tag/例 1:/
+<tt/SimplePasswordAuth=alternative;RRQ,ARQ/<newline>
+<tt/AliasAuth=sufficient;RRQ/<newline>
+</descrip>
+
+下面的示例使用RadAliasAuth模块对所有呼叫进行身份验证，并检查信令Setup消息的详细信息。
+<descrip>
+<tag/例 2:/
+<tt/RadAliasAuth=required;Setup/<newline>
+<tt/default=allow/
+</descrip>
+
+本示例通过用户名/密码（RadAuth）或别名/IP（RadAliasAuth）检查端点注册（RRQ）和允许呼叫（ARQ）。
+此外，若呼叫来自未注册的端点（因此未执行RRQ或ARQ身份验证），则会使用RadAliasAuth进行Setup消息身份验证（SetupUnreg）。
+
+<descrip>
+<tag/例 3:/
+<tt/RadAuth=alternative;RRQ,ARQ/<newline>
+<tt/RadAliasAuth=alternative;RRQ,ARQ,SetupUnreg/<newline>
+<tt/default=reject/
+</descrip>
+
+<sect1>Section &lsqb;FileIPAuth&rsqb;
+<label id="fileipauth">
+<p>
+本节定义了允许访问网守资源的IP地址/网络列表。可以指定允许的前缀列表以及IP地址。
+支持的网守::验证事件有：<tt/GRQ/, <tt/RRQ/, <tt/ARQ/, <tt/LRQ/, <tt/Setup/ and <tt/SetupUnreg/。
+
+单个条目的格式为：
+<p><tt/IP=[allow | reject | onlyTLS][;prefix[,prefix...]]/
+<p>
+其中IP是单个IP​​地址，网络地址（A.B.C.D/M.M.M.M or A.B.C.D/LENGTH格式或IPv6格式）或字符串<tt/'any'/ 或 <tt/'*'/ 与任何地址匹配的地址。
+访问列表也可以使用<tt/include/指令从外部文件加载。在身份验证期间，网络掩码长度定义了每个条目的优先级，因此规则192.168.1.1=allow优先于192.168.1.0/24=reject。
+<p>
+<tt/'onlyTLS'/ 等同于<tt/'allow'/呼叫是通过<ref id="tls" name="TLS">安全连接<tt/'reject'/传入的，并且意味着未加密的呼叫。
+<p>
+除了端点的IP外，还可指定端点可以呼叫的前缀列表。仅在ARQ和Setup消息上检查目标前缀。
+
+<descrip><tag/例 #1:/
+<tscreen><verb>
+[Gatekeeper::Auth]
+FileIPAuth=required;RRQ,ARQ,LRQ,Setup
+
+[FileIPAuth]
+192.168.1.240=reject
+192.168.1.0/24=allow
+192.168.2.0/255.255.255.0=allow;48,49,44
+2a01:4f8:61:2243::2=allow
+2a01:4f8:61:2243::10/128=allow
+2a01:4f8:61:2243::/64=allow
+any=reject
+</verb></tscreen>
+</descrip>
+
+<descrip><tag/例 #2:/
+
+将IP规则列表放入另一个文件。
+
+<tscreen><verb>
+[Gatekeeper::Auth]
+FileIPAuth=required;Setup
+
+[FileIPAuth]
+include=/etc/gnugk/accesslist.ini
+
+(EOF)
+
+Contents of /etc/gnugk/accesslist.ini:
+
+[FileIPAuth]
+192.168.1.1=allow
+192.168.1.100=allow
+any=reject
+</verb></tscreen>
+</descrip>
+
+<descrip><tag/例 #3:/
+
+允许来自本地网络的所有连接，但要求对其他所有内容进行TLS加密和身份验证。
+
+<tscreen><verb>
+[Gatekeeper::Auth]
+FileIPAuth=required;Setup
+
+[FileIPAuth]
+192.168.1.0/24=allow
+any=onlyTLS
+</verb></tscreen>
+</descrip>
+
+
+<sect1>Section &lsqb;H235&rsqb;
+<label id="h235">
+<p>
+本部分包含适用于所有使用H.235.1密码的身份验证策略的设置。
+
+使用H.235身份验证时，网守和所有端点配置正确的时间（例如使用NTP）非常重要。
+如果它们的变化超过定义的宽限期（请参阅下文），则将拒绝有效令牌！
+
+<itemize>
+<item><tt/UseEndpointIdentifier=0/<newline>
+默认: <tt/1/<newline>
+<p>
+使用端点标识符作为RemoteID。
+呼叫Innovaphone r6端点时，必须将其关闭。使用Innovaphone r11可能已打开。
+
+<item><tt/RequireGeneralID=1/<newline>
+默认: <tt/0/<newline>
+<p>
+H.235v3规范要求端点在H.235.1令牌内发送GeneralID。一些端点供应商不包括GeneralID，例如，AudioCodes和Innovaphone。
+
+<item><tt/FullQ931Checking=1/<newline>
+默认: <tt/0/<newline>
+<p>
+H.235v3规范要求使用H.235.1令牌保护所有Q.931信令消息（Setup, Alerting, Connect等）。
+这是好的做法，但并非所有供应商都实施。（AudioCodes和Innovaphone都可以。）
+
+<item><tt/CheckSendersID=0/<newline>
+默认: <tt/1/<newline>
+<p>
+检查令牌中的SendersID是否匹配其别名或endpointID。此开关替换[... PasswordAuth]节中的CheckID=switch。
+
+<item><tt/VerifyRandomNumber=0/<newline>
+默认: <tt/1/<newline>
+<p>
+禁用检查端点是否针对同一时间戳多次发送相同的随机数。
+Innovaphone r6- r11有时会发送带有高位的32位随机数，这些随机数都被H323Plus解码为-1，从而导致检查失败。这可能是PTLib ASN解码器中的错误。
+
+<item><tt/TimestampGracePeriod=60/<newline>
+默认: <tt/7210/<newline>
+<p>
+端点和网守之间H.235.1令牌内部时间戳的可接受差异（以秒为单位）。
+
+默认值为2小时10秒，以适应时钟设置错误且在不同时区的端点。
+
+建议使用NTP同步所有设备中的时钟，并相应缩短此宽限期。
+
+</itemize>
+
+<descrip><tag/例 #1/
+
+非常宽松的H.235配置，允许在供应商实现中进行多种更改。
+
+<tscreen><verb>
+[H235]
+UseEndpointIdentifier=0
+RequireGeneralID=0
+FullQ931Checking=0
+CheckSendersID=0
+VerifyRandomNumber=0
+TimestampGracePeriod=7210
+</verb></tscreen>
+</descrip>
+
+<descrip><tag/例 #2/
+
+非常安全的H.235配置，检查ITU定义的所有地方。
+
+<tscreen><verb>
+[H235]
+UseEndpointIdentifier=1
+RequireGeneralID=1
+FullQ931Checking=1
+CheckSendersID=1
+VerifyRandomNumber=1
+TimestampGracePeriod=60
+</verb></tscreen>
+</descrip>
+
+
+<sect1>Section &lsqb;SimplePasswordAuth&rsqb;
+<label id="password">
+<p>
+本节定义<tt/SimplePasswordAuth/模块使用的用户名和密码对 。使用该<tt/addpasswd/程序对所有密码进行加密。
+
+用法:
+<tscreen><verb>
+addpasswd config section userid password
+</verb></tscreen>
+
+例:
+<tscreen><verb>
+addpasswd config.ini SimplePasswordAuth frank secret
+</verb></tscreen>
+
+选项:
+<itemize>
+<item><tt/KeyFilled=123/<newline>
+默认: <tt/0/<newline>
+<p>
+在密码加密/解密过程中用作填充字节的默认值。
+
+<item><tt/CheckID=1/<newline>
+默认: <tt/0/<newline>
+<p>
+不推荐使用：请使用[H235]部分中的CheckSendersID= switch。
+
+检查别名是否与令牌中的ID相匹配。某些端点将单独的名称用于其别名和身份验证。如果所有端点都将其别名用作令牌中的ID，则可以通过检查安全性来加强安全性。
+
+此开关适用于所有密码认证的RAS令牌。
+
+<item><tt/PasswordTimeout=120/<newline>
+默认: <tt/-1/<newline>
+<p>
+该模块<tt/SimplePasswordAuth/将缓存经过身份认证的密码。
+此字段以秒为单位定义高速缓存超时值。 <tt/0/表示永不缓存密码，而负值表示缓存永不过期。
+
+<item><tt/DisableAlgorithm=MD5,H.235.1,CAT/<newline>
+默认: <tt>N/A</tt><newline>
+<p>
+在GRQ/GCF协商中禁用H.235认证算法，否则将使用GnuGk支持的所有算法。
+若端点未经协商使用了禁用的算法，则仍将使用该算法。
+此开关可用于避免与供应商实现不兼容。
+
+</itemize>
+
+
+<sect1>Section &lsqb;SQLPasswordAuth&rsqb;
+<label id="sqlpasswordauth">
+<p>
+使用存储在SQL数据库中的密码对启用H.235的端点进行身份认证。
+本节定义要使用的SQL驱动程序，SQL数据库连接参数以及用于检索密码的查询。
+
+使用 <ref id="database" name="公共数据库配置选项">来定义此模块的数据库连接。
+
+<itemize>
+<item><tt/CacheTimeout=120/<newline>
+默认: <tt/0/<newline>
+<p>
+该字段定义将从数据库检索的对（别名；密码）对缓存的时间。缓存超时值以秒为单位。 <tt/0/表示不缓存密码，而负值表示缓存永不过期（仅<tt/reload/命令将刷新缓存）。
+
+<item><tt/Query=SELECT .../<newline>
+默认: <tt>N/A</tt><newline>
+<p>
+定义用于从数据库检索H.235密码的SQL查询。查询已参数化-这意为在执行每个查询之前都要进行参数替换。
+参数占位符由<bf/%1/, <bf/%2/, ...字符串表示。指定%%将百分号字符插入数字到字符串中（如<bf/%%1/），
+指定<bf/%{1}/以允许在<bf/%{1}123/之类的复杂表达式内扩展。为<tt/SQLPasswordAuth/两个参数定义了：
+<itemize>
+<item><tt/%1/ - 查询别名的实际密码
+<item><tt/%2/ - GK标识符
+</itemize>
+<p>
+示例查询字符串：
+<tscreen><verb>
+SELECT h235password FROM users WHERE alias = '%1' AND active
+SELECT h235password FROM users WHERE alias = '%1' AND gk = '%2'
+</verb></tscreen>
+
+</itemize>
+
+<sect1>Section &lsqb;H350PasswordAuth&rsqb;
+<label id="h350passwordauth">
+<p>
+<itemize>
+<item><tt/PasswordTimeout=120/<newline>
+默认: <tt/-1/<newline>
+<p>
+该模块<tt/SimplePasswordAuth/将缓存经过身份验证的密码。此字段以秒为单位定义高速缓存超时值。 <tt/0/表示永不缓存密码，而负值表示缓存永不过期。
+</itemize>
+
+<sect1>Section &lsqb;RasSrv::RRQAuth&rsqb;
+<label id="rrqauth">
+<p>
+指定<tt/AliasAuth/模块对RRQ接收的操作（确认或拒绝）。在此部分中查找要注册的端点的第一个别名（主要是H323ID）。
+若找到参数，则该值将作为规则应用。规则由以"&"分隔的条件组成。在满足所有条件的情况下接受注册。
+如果端点使用H.460.18，则身份验证规则中的端口将被忽略。
+
+<descrip>
+<tag/写法：/
+<tscreen><verb>
+&lt;authrules&gt; :=  empty  |  &lt;authrule&gt; "&" &lt;authrules&gt;
+
+  &lt;authrule&gt;  := &lt;authtype&gt; ":" &lt;authparams&gt;
+  &lt;authtype&gt;  := "sigaddr" | "sigip"
+  &lt;autparams&gt; := [!&]*
+</verb></tscreen>
+</descrip>
+
+的符号和含义&lt;authparams&gt;取决于 &lt;authtype&gt;：
+The notation and meaning of <tt/&lt;authparams&gt;/ depends on
+<tt/&lt;authtype&gt;/:
+
+<itemize>
+<item><tt/sigaddr/ - 扩展的正则表达式，必须与请求信号地址的``PrintOn(ostream)''表示形式匹配
+<p>
+例子:
+<tscreen><verb>
+sigaddr:.*ipAddress .* ip = .* c0 a8 e2 a5 .*port = 1720.*
+</verb></tscreen>
+
+<item><tt/sigip/ - `<tt/sigaddr/'的特殊形式。写信令IP地址。如果省略端口，则假定为1720
+
+<p>
+Examples:
+<tscreen><verb>
+sigip:192.168.242.165:1720
+sigip:[2a01:4f8:61:2243::2]:1720
+sigip:2a01:4f8:61:2243::2
+</verb></tscreen>
+
+<item><tt/allow/ - 始终接受别名
+
+<item><tt/deny/ - 始终拒绝别名.
+
+</itemize>
+
+例子:
+<tscreen><verb>
+[RasSrv::RRQAuth]
+; The endpoint with alias 'cwhuang' must register from 10.0.1.10:1720
+cwhuang=sigip:10.0.1.10:1720
+; The endpoint with alias 'gw1' must register from 10.0.1.0/24
+gw1=sigaddr:.*ipAddress .* ip = .* 0a 00 01 .*port = 1720.*
+; The endpoint with alias 'gw2' must register from [2a01:4f8:61:2243::2]:1720
+gw2=sigip:[2a01:4f8:61:2243::2]:1720
+</verb></tscreen>
+
+<sect1>Section &lsqb;SQLAliasAuth&rsqb;
+<label id="sqlaliasauth">
+<p>
+使用存储在SQL数据库中的规则对端点进行身份验证（这些规则符合<ref id="rrqauth" name="[RasSrv::RRQAuth]">部分中定义的格式）。
+本部分定义了要使用的SQL驱动程序，SQL数据库连接参数以及用于检索模式的查询。
+
+使用<ref id="database" name="公共数据库配置选项">来定义此模块的数据库连接。
+
+<itemize>
+<item><tt/CacheTimeout=120/<newline>
+默认: <tt/0/<newline>
+<p>
+此字段定义将从数据库检索的对（别名；身份）对缓存的时间。缓存超时值以秒为单位。 <tt/0/表示不缓存规则，而负值表示缓存永不过期（仅<tt/reload/命令将刷新缓存）。
+
+<item><tt/Query=SELECT .../<newline>
+默认: <tt>N/A</tt><newline>
+<p>
+定义用于从数据库检索别名规则的SQL查询。查询已参数化-这意味着在执行每个查询之前都要进行参数替换。参数占位符由<bf/%1/, <bf/%2/, ...字符串表示。
+指定%%将百分号字符插入数字到字符串中(例如<bf/%%1/)，指定％{1}以允许在<bf/%{1}123/之类的复杂表达式内扩展。
+为<tt/SQLAliasAuth/两个参数定义了：
+
+<itemize>
+<item><tt/%1/ - 规则查询实际别名
+<item><tt/%2/ - GK标识符
+</itemize>
+<p>
+示例查询字符串：
+<tscreen><verb>
+SELECT authrule FROM users WHERE alias = '%1' AND active
+SELECT 'sigip:' || host(ip) || port FROM users WHERE alias = '%1'
+</verb></tscreen>
+
+</itemize>
+
+<sect1>Section &lsqb;SQLAuth&rsqb;
+<label id="sqlauth">
+<p>
+使用SQL数据库对端点/呼叫进行身份验证和授权。提供了对ARQ,LRQ和Setup事件的支持。
+
+使用<ref id="database" name="公共数据库配置选项">来定义此模块的数据库连接。
+
+<itemize>
+<item><tt/RegQuery=SELECT .../<newline>
+默认: <tt>N/A</tt><newline>
+<p>
+定义用于执行端点注册的身份验证和授权的SQL查询。查询已参数化-这意味着在执行每个查询之前都要进行参数替换。
+定义了以下参数：
+
+<itemize>
+<item><tt/%g/ -GK标识符
+<item><tt/%{gkip}/ - -已收到请求的GK的IP
+<item><tt/%u/ - 与端点关联的用户名（通常是H.323 ID）
+<item><tt/%{Calling-Station-Id}/ - 与端点相关的E.164
+<item><tt/%{callerip}/ - 呼叫者/注册者的IP（已收到注册请求的地址-NAT端点的NAT IP）
+<item><tt/%{aliases}/ - 端点别名的逗号分隔列表
+<item><tt/%{additive-rrq}/ -是否为增加rrq (0 = false, 1 = true)
+</itemize>
+<p>
+如果查询不返回任何行，则结果是不确定的，这基本上意味着<tt/required/规则失败，而可选规则则“尝试下一个”。
+否则，将检查第一个结果行以确定身份验证请求的结果并获取其他信息：
+<enum>
+<item>第一列转换为布尔值（1，T，TRUE，allow，y，yes为true），并且是认证结果（接受/拒绝）。
+<item>如果注册成功通过身份认证，则会检查其余的列：
+<enum>
+	<item>若存在名为的列<tt/'aliases'/，请用这些新别名替换原始端点别名		
+	<item>若存在名为的列'billingmode'，请设置与端点关联的计费方式(0 - 租赁方, &lt;&gt;0 - 借方)		
+	<item>若存在名为的列<tt/'creditamount'/，请设置与端点关联的帐户余额（任意字符串）
+</enum>
+</enum>
+<p>
+查询字符串示例：
+<tscreen><verb>
+SELECT 1, 0 AS billingmode, '12.00 USD' AS creditamount
+SELECT NOT disabled, assignaliases AS aliases, balance FROM users WHERE h323id = '%u'
+SELECT * FROM get_registration_auth('%g', '%u', '%{callerip}', '%{aliases}') AS result(accept, aliases, billingmode, creditamount)
+</verb></tscreen>
+
+<item><tt/NbQuery=SELECT .../<newline>
+默认: <tt>N/A</tt><newline>
+<p>
+定义用于对邻域发送的位置请求执行身份验证和授权的SQL查询。
+查询已参数化-这意味着在执行每个查询之前都要进行参数替换。定义了以下参数：
+<itemize>
+<item><tt/%g/ - GK标识符
+<item><tt/%{gkip}/ - 已收到请求GK的IP
+<item><tt/%{nbid/ - 来自配置的邻域标识符
+<item><tt/%{nbip}/ - 邻域IP（收到请求的地方）
+<item><tt/%{Calling-Station-Id}/ - 来电号码（若有）
+<item><tt/%{src-info}/ - sourceInfo LRQ字段的内容（若有）
+<item><tt/%{Called-Station-Id}/ - 目的地号码
+<item><tt/%{dest-info}/ - destinationInfo LRQ字段的内容
+<item><tt/%{bandwidth}/ - 请求的带宽（如果存在于LRQ中）
+</itemize>
+<p>
+如果查询不返回任何行，则结果是不确定的，这基本上意味着<tt/required/规则失败，而可选规则则“尝试下一个”。
+否则，将检查第一个结果行以确定身份验证结果并获取其他信息：
+<enum>
+<item>第一列转换为布尔值(1, T, TRUE, allow, y, yes 为 true)，并且是认证结果（接受/拒绝）。
+<item>如果请求通过身份验证成功，则会检查其余的列：
+<enum>
+	<item>若存在名为的列<tt/'destination'/, 请使用这些新别名填充原始的destinationInfo字段-这可能会影响在auth步骤之后做出的路由决策。
+</enum>
+</enum>
+<p>
+查询字符串示例：
+<tscreen><verb>
+SELECT active FROM neighbors WHERE name = '%{nbid}' AND ip = '%{nbip}' UNION SELECT 0
+</verb></tscreen>
+
+<item><tt/CallQuery=SELECT .../<newline>
+默认: <tt>N/A</tt><newline>
+<p>
+定义用于执行呼叫(ARQ 和 Setup)的身份验证和授权的SQL查询。查询已参数化-这意味着在执行每个查询之前都要进行参数替换。
+定义了以下参数：
+<itemize>
+<item><tt/%g/ - GK的标识符
+<item><tt/%{gkip}/ -已收到请求GK的IP
+<item><tt/%u/ - 与呼叫者相关的用户名
+<item><tt/%{callerip}/ - -呼叫者的IP（已收到请求的地址-NAT端点的NAT IP）
+<item><tt/%{Calling-Station-Id}/ - 来电号码（若有）
+<item><tt/%{Called-Station-Id}/ - 目的地号码
+<item><tt/%{Dialed-Number}/ - -原始目的地号码（重写之前）
+<item><tt/%{CallId}/ - H.323呼叫标识符（16个十六进制8位数字）
+<item><tt/%{SrcInfo}/ - Setup中的ARQ或sourceAddress的srcInfo字段
+<item><tt/%{Vendor}/ - productId 和 versionId
+<item><tt/%{bandwidth}/ - 请求的带宽（如果存在于ARQ中）
+<item><tt/%{answer}/ - 1, 如果请求是应答ARQ
+<item><tt/%{arq}/ - 1, 代表ARQ触发查询，0代表Setup触发查询
+<item><tt/%{from-registered}/ - 来自注册端点的1个呼叫，其他呼叫0个
+<item><tt/%{from-neighbor}/ - 来自邻域网守的1个呼叫，其他呼叫0个
+</itemize>
+<p>
+如果查询不返回任何行，则结果是不确定的，这基本上意味着<tt/required/ 规则失败，而可选规则则“尝试下一个”。
+否则，将检查第一个结果行以确定身份验证结果并获取其他信息：
+<enum>
+<item>第一列转换为布尔值(1, T, TRUE, allow, y, yes 为 true)并且是认证结果（接受/拒绝呼叫）。
+<item>如果请求通过身份验证成功，则会检查其余的列：
+<enum>
+	<item>若存在的列名为 <tt/'billingmode'/, 请设置与端点关联的计费方式(0 - 租赁方, &lt;&gt;0 - 借方)
+	<item>若存在的列名为 <tt/'creditamount'/, 请设置与端点关联的帐户余额（这是一个任意字符串）
+	<item>若存在的列名为 <tt/'credittime'/, 请使用其整数值设置通话时间限制
+	<item>若存在的列名为 <tt/'redirectnumber'/, 请用该列替换原始目的地号码。
+		可输入多个数字（对应于多个<tt/'redirectip'/条目），以分号分隔。
+		还可通过在改写的号码后附加'='来指定出站号码(发送到端点网关)(like 485811001001=1234485811001001)
+	<item>若存在的列名为 <tt/'redirectip'/, 则将呼叫强制发送到指定的IP（如果激活了故障转移，则可以将多个目标之间用分号分隔，将用于故障转移）。
+	<item>若存在的列名为 <tt/'proxy'/, 则强制网守为该呼叫启用/禁用（取决于'proxy'列的值）RTP代理
+	<item>若存在的列名为 <tt/'clientauthid'/, 则网守会将这个ID存储在其呼叫记录中，并在所有记帐事件中将其发送回去。这必须是一个最大为64位的无符号整数（如，MySQL中的'bigint unsigned'）。
+</enum>
+<item>如果请求被拒绝，则检查其余的列：
+<enum>
+	<item>若存在的列名为 <tt/'q931cause'/, 请在“释放完成”中将Q.931原因设置为此值。
+	<item>若存在的列名为 <tt/'clientauthid'/, 则网守会将这个ID存储在其呼叫记录中，并在所有记帐事件中将其发送回去。这必须是一个最大为64位的无符号整数（如，MySQL中的'bigint unsigned'）。
+</enum>
+</enum>
+<p>
+查询字符串示例：
+<tscreen><verb>
+SELECT 1, 360 AS credittime, 0 AS proxy
+SELECT * FROM auth_call('%g', '%u', '%{Calling-Station-Id}', '%{callerip}', '%{Called-Station-Id}') AS result(accept, credittime)
+SELECT 1, '1234' AS redirectnumber, '192.168.1.1' AS redirectip
+</verb></tscreen>
+
+</itemize>
+
+
+<sect1>Section &lsqb;PrefixAuth&rsqb;
+<label id="prefixauth">
+<p>
+本部分定义<tt/PrefixAuth/模块的身份验证规则。可使用此模块授权ARQ，LRQ和Setup。
+
+首先，依据接收到的请求的 <bf/destinationInfo/字段选择最特定的前缀。然后，根据具有最特定网络掩码的匹配规则，接受或拒绝请求。
+若找不到匹配的前缀，并且<tt/default/指定了选项，则根据该请求接受或拒绝请求。否则，将根据模块要求将其拒绝或传递给下一个身份验证模块。
+
+<descrip>
+<tag/Format:/
+<tscreen><verb>
+prefix=authrule[|authrule|...]
+</verb></tscreen>
+
+<tag/写法：/
+<tscreen><verb>
+&lt;authrule&gt; :=  &lt;result&gt; &lt;authrule&gt;
+
+  &lt;result&gt;    := deny | allow
+  &lt;authrule&gt;  := [!]ip:&lt;iprule&gt; | [!]ipv4:&lt;iprule&gt; | [!]ipv6:&lt;iprule&gt; | [!]alias:&lt;aliasrule&gt;
+</verb></tscreen>
+</descrip>
+在<tt/&lt;iprule&gt;/可以在指定的十进制点符号或CIDR表示或IPv6符号，<tt/&lt;aliasrule&gt;/ 在正则表达式来表示。如果`<tt/!/'标志位于规则之前，则含义相反。
+与IP号码规则<tt/ip:/, <tt/ipv4:/, <tt/ipv6:/所有的行为相同。
+不同的前缀仅用于文档说明以及与旧版本GnuGk的兼容性。
+
+<descrip>
+<tag/例子:/
+<tscreen><verb>
+555=deny ipv4:10.0.0.0/27|allow ipv4:0/0
+5555=allow ipv4:192.168.1.1|deny ipv4:192.168.1.0/255.255.255.0
+86=deny !ipv4:172.16.0.0/24
+09=deny alias:^188884.*
+99=deny ipv6:2021:4ad0:ff00:99a::/64
+ALL=allow ipv4:0/0|allow ipv6:::/0
+</verb></tscreen>
+</descrip>
+在此配置中，除了来网络<tt>10.0.0.0/27</tt>端点外，所有端点都可以呼叫前缀555（5555除外）。
+192.168.1.0/24中的端点不允许呼叫前缀5555，除了192.168.1.1。
+不允许来自网络的端点呼叫前缀86，除了<tt>192.168.1.0/24</tt>以外，不允许以别名别名188884开头的端点呼叫前缀09。
+不允许将2021:4ad0:ff00:99a::/64的IPv6端点呼叫前缀99。所有其他情况被允许。
+
+<sect1>Section &lsqb;RadAuth&rsqb;
+<label id="radauth">
+<p>
+本部分定义了基于RRQ，ARQ RAS请求和Q.931 Setup消息中存在的H.235 CAT（Cisco访问令牌）来启用RADIUS身份认证的配置。
+<itemize>
+<item><tt/Servers=SERVER1[:AUTH_PORT[:ACCT_PORT[:SECRET]]];SERVER2[:AUTH_PORT[:ACCT_PORT[:SECRET]]];.../<newline>
+默认: <tt>N/A</tt><newline>
+<p>
+用于身份认证的RADIUS服务器。该列表可以包含任意数量的服务器。服务器的顺序很重要，因为RADIUS模块将按给定顺序查询服务器。
+如果未提供端口信息，<tt/DefaultAuthPort/将使用端口号from 。
+如果未设置密码，<tt/SharedSecret/ 则采用默认的共享密码。服务器名称可以是IP地址或DNS名称。IPv6地址必须始终写在方括号中。
+
+<descrip>
+<tag>Sample <tt/Servers/ lines:</tag>
+<tt>Servers=192.168.1.1</tt><newline>
+<tt>Servers=192.168.1.1:1645</tt><newline>
+<tt>Servers=192.168.1.1:1645:1646:secret1</tt><newline>
+<tt>Servers=radius1.mycompany.com:1812</tt><newline>
+<tt>Servers=radius1.mycompany.com;radius2.mycompany.com</tt><newline>
+<tt>Servers=radius1.mycompany.com:1812:1813:secret1;radius2.mycompany.com:1812:1813:secret2</tt><newline>
+<tt>Servers=[2501:4f3:61:2143::2]</tt><newline>
+<tt>Servers=[2501:4f3:61:2143::2]:1645</tt><newline>
+<tt>Servers=[2501:4f3:61:2143::2]:1645:1646</tt><newline>
+<tt>Servers=[2501:4f3:61:2143::2]:1645:1646:secret1</tt><newline>
+<tt>Servers=[2501:4f3:61:2143::2]:1645:1646:secret1;[2501:4f3:61:2143::3]:1645:1646:secret2</tt><newline>
+</descrip>
+
+<item><tt/LocalInterface=IP_OR_FQDN/<newline>
+默认: <tt>N/A</tt><newline>
+<p>
+GnuGk应该用来与RADIUS服务器通信的特定本地网络接口。此参数在NAT机器上很有用，以限制将某些网络接口用于RADIUS通信。
+默认情况下，此值为空，并允许RADIUS请求在任何（最合适的）网络接口上发送。如果不确定，最好不要设置此选项。
+
+<item><tt/RadiusPortRange=10000-11000/<newline>
+默认: <tt>N/A</tt><newline>
+<p>
+默认情况下，GnuGk根据操作系统的指定动态分配端口。如果要限制应使用的端口，请配置此参数。
+
+<item><tt/DefaultAuthPort=PORT_NO/<newline>
+默认: <tt>1812</tt><newline>
+<p>
+用于RADIUS身份验证请求（访问请求数据包）的默认端口号。可以被<tt/Servers/属性覆盖。
+
+<item><tt/SharedSecret=SECRET/<newline>
+默认: <tt>N/A (empty string)</tt><newline>
+<p>
+用于将此GnuGk（NAS客户端）认证到RADIUS服务器的密钥。它应该是加密强度很高的密码。
+若未在<tt/Servers/配置选项中设置特定于服务器的机密，则使用此默认值。
+若<tt/EncryptAllPasswords/已启用，或者<tt/KeyFilled/在本节中定义了变量，则密码采用加密形式，应使用<tt/addpasswd/实用程序创建。
+
+<item><tt/RequestTimeout=TIMEOUT_MS/<newline>
+默认: <tt/2000/ (milliseconds)<newline>
+<p>
+RADIUS服务器响应GnuGk发送的请求的超时（毫秒）。如果在此时间段内未收到响应，则查询下一个RADIUS服务器。
+
+<item><tt/IdCacheTimeout=TIMEOUT_MS/<newline>
+默认: <tt/9000/ (milliseconds)<newline>
+<p>
+RADIUS请求8位标识符的超时（毫秒）是唯一的。若整个8位标识符范围在此期间内都用尽，则RADIUS模块将分配一个新的客户端套接字（UDP套接字）。
+以下这个例子为例：我们大约有60个RRQ / sec- 4秒的8位标识符范围已用尽-分配了新的套接字-在接下来的4秒后，第二个8位标识符范围已用尽-分配了第三个套接字-在池1中的第9个第二个标识符再次可用之后。
+
+通常，如果超时时间太长，则会消耗太多资源。如果超时时间太短，则RADIUS服务器可能会将传入的数据包当作重复数据包，因此将其丢弃。
+
+<item><tt/SocketDeleteTimeout=TIMEOUT_MS/<newline>
+默认: <tt/60000/ (milliseconds) - 60 s<newline>
+<p>
+关闭未使用的RADIUS套接字的超时。
+它与<tt/IdCacheTimeout/-在网守负载较重时创建的，用于服务传入请求的其他套接字在空闲期间关闭使用。
+
+<item><tt/RequestRetransmissions=NUMBER/<newline>
+默认: <tt/2/<newline>
+<p>
+单个RADIUS请求发送到每个已配置的RADIUS服务器的次数（如果未收到响应）。1表示一次传输尝试，没有重传，2表示单次重传，...。实际的重传方法由<tt/RoundRobinServers/属性定义。
+
+<item><tt/RoundRobinServers=BOOLEAN/<newline>
+默认: <tt/1/<newline>
+<p>
+RADIUS请求重传方法。
+<p>
+如果设置为1，则以以下方式发送RADIUS请求（直到收到响应）
+<tscreen><verb>
+Server #1 Attempt #1, Server #2 Attempt #1, ..., Server #N Attempt #1
+...
+Server #1 Attempt #RequestRetransmissions, ..., Server #1 Attempt #RequestRetransmissions
+</verb></tscreen>
+<p>
+如果设置为0，则保留以下顺序：
+<tscreen><verb>
+Server #1 Attempt #1, ..., Server #1 Attempt #RequestRetransmissions
+...
+Server #N Attempt #1, ..., Server #N Attempt #RequestRetransmissions
+</verb></tscreen>
+
+<item><tt/AppendCiscoAttributes=BOOLEAN/<newline>
+默认: <tt/0/<newline>
+<p>
+如果设置，则在RADIUS请求中包括Cisco Vendor Specific RADIUS属性 (h323-conf-id,h323-call-origin,h323-call-type)。
+
+<item><tt/IncludeTerminalAliases=BOOLEAN/<newline>
+默认: <tt/1/<newline>
+<p>
+如果设置，则将发送Cisco VSA'h323-ivr-out'属性以及端点正在注册的别名列表（RRQ.m_terminalAlias）。
+提供此属性是为了对允许端点注册的别名列表提供更好的控制。
+该属性的格式为：
+<tscreen><verb>
+	Cisco-AV-Pair = "h323-ivr-out=terminal-alias:" alias [,alias] [;]
+例子:
+	Cisco-AV-Pair = "h323-ivr-out=terminal-alias:helpdesk,support,77771;"
+</verb></tscreen>
+
+<item><tt/UseDialedNumber=BOOLEAN/<newline>
+默认: <tt/0/<newline>
+<p>
+在原始号码（由用户拨打）<tt/UseDialedNumber=1/和改写的号码之一之间选择被叫站ID号类型<tt/UseDialedNumber=0/。
+
+</itemize>
+
+<sect2>&lsqb;RadAuth&rsqb; Access-Request Radius Attributes
+<p>
+对于RRQs, Access-Request数据包中包括以下RADIUS属性：
+<p>
+<itemize>
+<item><tt>User-Name</tt><newline>
+<p>
+		H225_RegistrationRequest.tokens[CAT].m_generalID
+
+<item><tt>CHAP-Password</tt><newline>
+<p>
+		H225_RegistrationRequest.tokens[CAT].m_random 
+		+ H225_RegistrationRequest.tokens[CAT].m_challenge
+
+<item><tt>CHAP-Challenge</tt><newline>
+<p>
+		H225_RegistrationRequest.tokens[CAT].m_timeStamp
+
+<item><tt>NAS-IP-Address</tt><newline>
+<p>	
+		GnuGk Home或通过'LocalInterface'配置参数设置的特定本地网络接口
+
+<item><tt>NAS-Identifier</tt><newline>
+<p>
+		GnuGk名称
+
+<item><tt>NAS-Port-Type</tt><newline>
+<p>
+		虚拟的（GnuGk没有物理端口的概念）
+
+<item><tt>Framed-IP-Address</tt><newline>
+<p>
+		注册端点信令通道的IP地址
+
+<item><tt>Service-Type</tt><newline>
+<p>
+		登录用户
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, h323-ivr-out</tt><newline>
+<p>
+		端点注册时使用的别名列表（仅当设置了IncludeTerminalAliases配置选项时）
+
+<p>
+		注意：h323-ivr-out内部的别名列表采用以下格式：<newline>
+		<tt>h323-ivr-out="h323-ivr-out=terminal-alias:alias1,alias2,...,aliasN;"</tt><newline>
+		h323-ivr-out属性可以（将来）在单个Access-Request中多次实例化，并且还可能包含“ terminal-alias”，因此RADIUS服务器在处理此属性时应该足够灵活。
+</itemize>
+<p>
+	对于ARQ和Setup消息，Access-Request数据包中包含以下RADIUS属性：
+<p>
+<itemize>
+
+<item><tt>User-Name</tt><newline>
+<p>
+		ARQ.tokens[CAT].m_generalID
+
+<item><tt>CHAP-Password</tt><newline>
+<p>
+		ARQ.tokens[CAT].m_random + ARQ.tokens[CAT].m_challenge
+
+<item><tt>CHAP-Challenge</tt><newline>
+<p>
+		ARQ.tokens[CAT].m_timeStamp
+
+<item><tt>NAS-IP-Address</tt><newline>
+<p>
+		GnuGk Home或通过'LocalInterface'配置参数设置的特定本地网络接口
+
+<item><tt>NAS-Identifier</tt><newline>
+<p>
+	GnuGk名称
+
+<item><tt>NAS-Port-Type</tt><newline>
+<p>
+		虚拟的（GnuGk没有物理端口的概念）
+
+<item><tt>Framed-IP-Address</tt><newline>
+<p>
+		注册端点信令通道的IP地址
+
+<item><tt>Service-Type</tt><newline>
+<p>
+		登录用户（用于来自始发端点的ARQ）或呼叫检查（用于应答端点的ARQ）
+	
+<item><tt>Calling-Station-Id</tt><newline>
+<p>
+		主叫方号码（若有）
+		
+<item><tt>Called-Station-Id</tt><newline>
+<p>
+		被叫方号码
+
+<item><tt>(optional) VSA: VendorId=Cisco, h323-conf-id</tt><newline>
+<p>
+		来自ARQ的H.323会议ID
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-call-type</tt><newline>
+<p>
+		呼叫类型（固定值："h323-call-type=VoIP"）
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-call-origin</tt><newline>
+<p>
+		呼叫来源（"answer","originate"）
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-gw-id</tt><newline>
+<p>
+		与NAS-Identifier相同
+</itemize>
+
+
+<sect2>&lsqb;RadAuth&rsqb; Access-Accept Radius Attributes
+<p>
+对于RRQs，在Access-Accept数据包中识别以下RADIUS属性：
+<p>
+<itemize>
+<item><tt>VSA: VendorId=Cisco, h323-return-code</tt><newline>
+<p>
+		如果存在但不为0，则拒绝该请求。提供此检查是为了允许与某些计费系统不兼容，该系统会发送带有非零h323返回码的Access-Accept来拒绝呼叫，而不是Access-Reject。
+		该属性可以采用h323-return-code =“ 1”或h323-return-code =“ h323-return-code = 1”的形式。请注意，返回码是字符串，而不是整数。
+
+<item><tt>VSA: VendorId=Cisco, h323-billing-model</tt><newline>
+<p>
+		此帐户的结算方式。可以是0（贷方），1或2（借方）。如果端点可以理解H.225.0 CallCreditServiceControl消息，则此信息用于构建消息。
+		
+<item><tt>VSA: VendorId=Cisco, h323-credit-amount</tt><newline>
+<p>
+		代表当前用户帐户余额的字符串。如果端点可以理解H.225.0 CallCreditServiceControl消息，则此信息用于构建消息。
+		
+<item><tt>VSA: VendorId=Cisco, Cisco-AVPair, h323-ivr-in</tt><newline>
+<p>
+		如果存在，将扫描'terminal-alias'变量，该变量可以包含应分配给正在注册的端点的别名列表。与该列表不匹配的所有RRQ别名都将被删除。
+		还支持'disable-codec'变量，以禁止此呼叫使用某些编解码器。'proxy'变量可以包含'yes' 或 'no'，以启用/禁用此呼叫的代理模式。这些属性的格式为：
+<p>
+<tt>Cisco-AVPair = "h323-ivr-in=variable:value;[variable:value;]"</tt><newline>
+<p>
+		其中“变量”可以是“端点别名”：
+<p>
+		Cisco-AVPair = "h323-ivr-in=terminal-alias:alias1[,alias2,...];"
+<p>
+<descrip>
+<tag/例 1:/
+<tscreen><verb>
+RRQ {
+	m_terminalAlias = { "myalias", "1234" }
+}
+
+if RADIUS server returns the following h323-ivr-in:
+
+Access-Accept {
+	Cisco-AVPair = "h323-ivr-in=terminal-alias:anotheralias,6789;"
+}
+
+the endpoint will get registered with aliases "anotheralias" and "6789".
+Also RCF will contain:
+
+RCF {
+	m_terminalAlias = { "anotheralias", "6789" }
+}
+</verb></tscreen>
+</descrip>
+		
+<descrip>
+<tag/例 2 (将E164添加到现有别名):/
+<tscreen><verb>
+RRQ {
+	m_terminalAlias = { "it_s_me" }
+}
+
+if RADIUS server returns the following h323-ivr-in:
+
+Access-Accept {
+	Cisco-AVPair = "h323-ivr-in=terminal-alias:it_s_me,48586259732;"
+}
+
+RCF will contain:
+
+RCF {
+	m_terminalAlias = { "it_s_me", "48586259732" }
+}
+</verb></tscreen>
+</descrip>
+
+<descrip>
+<tag/例 3 (禁用G.711和G.729编解码器):/
+<tscreen><verb>
+Access-Accept {
+	Cisco-AVPair = "h323-ivr-in=codec-disable:g711Ulaw64k;g729;g711Alaw64k;g729AnnexA;"
+}
+</verb></tscreen>
+</descrip>
+
+<descrip>
+<tag/例 4 (启用代理模式):/
+<tscreen><verb>
+Access-Accept {
+	Cisco-AVPair = "h323-ivr-in=proxy:yes"
+}
+</verb></tscreen>
+</descrip>
+
+</itemize>
+<p>	
+对于ARQ，在Access-Accept数据包中识别以下RADIUS属性：
+<p>
+<itemize>
+<item><tt>VSA: VendorId=Cisco, h323-return-code</tt><newline>
+<p>
+		若存在但不为0，则拒绝该请求。提供此检查是为了允许与某些计费系统不兼容，该系统会发送带有非零h323返回码的Access-Accept来拒绝呼叫，而不是Access-Reject。
+		该属性可以采用h323-return-code="1" 或 h323-return-code="h323-return-code=1"的形式。请注意，返回码是字符串，而不是整数。
+
+<item><tt>VSA: VendorId=Cisco, h323-billing-model</tt><newline>
+<p>
+		此帐户的结算方式。可以是0（租赁方），1或2（借方）。如果端点可以理解H.225.0 CallCreditServiceControl消息，则此信息用于构建消息。
+		
+<item><tt>VSA: VendorId=Cisco, h323-credit-amount</tt><newline>
+<p>
+		代表当前用户帐户余额的字符串。如果端点可以理解H.225.0 CallCreditServiceControl消息，则此信息用于构建消息。
+		
+<item><tt>VSA: VendorId=Cisco, h323-credit-time</tt><newline>
+<p>
+		若存在，它将强制执行最长呼叫持续时间（以秒为单位）。该属性可以采用h323-credit-time="120" 或 h323-credit-time="h323-credit-time=120"的形式。
+		请注意，返回码是字符串，而不是整数。
+					   
+<item><tt>Session-Timeout</tt><newline>
+<p>
+		若存在，它将强制执行最长呼叫持续时间（以秒为单位）。这是整数类型的标准RADIUS属性。
+
+<item><tt>VSA: VendorId=Cisco, h323-redirect-ip-address</tt><newline>
+<p>
+		若存在，则将呼叫发送到此属性中存在的IP地址。可以将多个目的地用分号隔开。
+
+<item><tt>VSA: VendorId=Cisco, h323-redirect-number</tt><newline>
+<p>
+		若存在，则将被叫电台ID改写为该号码。可以将多个数字用分号隔开。
+		对于每个号码，还可以通过在其后面附加一个'='来指定出站号码（发送到端点网关）。
+</itemize>
+<p>
+注意：如果同时存在Session-Timeout 和 h323-credit-time，则使用较小的值。
+<p>
+注意：如果指定了多种故障转移机制，如在H323重定向数倍数<bf/and/在H323重定向IP地址的多个IP地址，也不能保证第一个数字被用于第一IP和第二IP的第2个数字。
+通常是这种情况，但是例如，当容量限制禁用一个IP时，关联将改变。
+<p>
+
+<sect1>Section &lsqb;RadAliasAuth&rsqb;
+<label id="radaliasauth">
+<p>
+本节定义配置设置，这些配置设置可基于RRQ RAS，ARQ RAS 或 Q.931 Setup请求中存在的端点别名和/或IP地址来启用RADIUS身份验证。
+此身份验证方案对于在网守注册的端点(ARQ, RRQ)和从未注册的端点进行的呼叫(Setup)都非常有用。
+
+<itemize>
+<item><tt/Servers=SERVER1[:AUTH_PORT[:ACCT_PORT[:SECRET]]];SERVER2[:AUTH_PORT[:ACCT_PORT[:SECRET]]];.../<newline>
+默认: <tt>N/A</tt><newline>
+<p>
+用于RAS的RADIUS服务器请求身份验证。该列表可以包含任意数量的服务器。服务器的顺序很重要，因为RADIUS模块将按给定顺序查询服务器。
+若未指定端口信息，<tt/DefaultAuthPort/ 将使用端口号from 。如果未设置密码，<tt/SharedSecret/ 则使用默认的共享密码自。服务器可以是IP地址或DNS名称。
+
+<descrip>
+<tag/例子:/
+<tt/Servers=192.168.3.1:1645;192.168.3.2:1812:1813:mysecret;radius.mycompany.com/
+</descrip>
+
+<item><tt/LocalInterface=IP_OR_FQDN/<newline>
+默认: <tt>N/A</tt><newline>
+<p>
+GnuGk应该用来与RADIUS服务器通信的特定本地网络接口。此参数在NAT机器上很有用，以限制用于RADIUS通信的网络接口的数量。
+默认情况下，此值为空，并允许RADIUS请求在任何（最合适的）网络接口上发送。如果不确定自己在做什么，最好不要设置此选项。
+
+<item><tt/RadiusPortRange=10000-11000/<newline>
+默认: <tt>N/A</tt><newline>
+<p>
+缺省情况下（如果未设置此选项），RADIUS客户端根据操作系统的指定动态分配端口。如果要限制RADIUS客户端仅使用特定范围内的端口，请设置此参数。
+
+<item><tt/DefaultAuthPort=PORT_NO/<newline>
+默认: <tt>1812</tt><newline>
+<p>
+如果未被<tt/Servers/属性覆盖，则用于RADIUS身份验证请求（访问请求数据包）的默认端口号。
+
+<item><tt/SharedSecret=SECRET/<newline>
+默认: <tt>N/A (empty string)</tt><newline>
+<p>
+用于将此GnuGk（NAS客户端）认证到RADIUS服务器的密钥。它应该是加密强度很高的密码。如果未在中设置服务器特定的机密，则这是使用的默认值<tt/Servers/。
+若<tt/EncryptAllPasswords/已启用，或者<tt/KeyFilled/在本节中定义了变量，则密码采用加密形式，应使用<tt/addpasswd/实用程序创建。
+
+<item><tt/RequestTimeout=TIMEOUT_MS/<newline>
+默认: <tt/2000/ (milliseconds)<newline>
+<p>
+RADIUS服务器响应GnuGk发送的请求的超时（毫秒）。如果在此时间段内未收到响应，则查询下一个RADIUS服务器。
+
+<item><tt/IdCacheTimeout=TIMEOUT_MS/<newline>
+默认: <tt/9000/ (milliseconds)<newline>
+<p>
+RADIUS请求8位标识符的超时（毫秒）是唯一的。若在此期间内所有8位标识符范围均已用尽，则RADIUS模块将分配新的客户端套接字（UDP套接字）。
+以下例：我们大约有60个RRQ / sec- 4秒8位标识符范围已用尽-分配了新的套接字-接下来的4秒后，
+第二个8位标识符范围已用尽-分配了第三个套接字-在池1中的第9个标识符再次可用之后......。通常，
+超时时间太长-消耗过多的资源，超时时间太短-RADIUS服务器可能会将传入的数据包视为重复的数据包，因此将其丢弃。
+
+<item><tt/SocketDeleteTimeout=TIMEOUT_MS/<newline>
+默认: <tt/60000/ (milliseconds) - 60 s<newline>
+<p>
+关闭未使用的RADIUS套接字的超时。它与<tt/IdCacheTimeout/ - 在网守负载较重时创建的用于服务传入请求的其他套接字在空闲期间关闭一起使用。
+
+<item><tt/RequestRetransmissions=NUMBER/<newline>
+默认: <tt/2/<newline>
+<p>
+单个RADIUS请求发送到每个已配置的RADIUS服务器的次数（如果未收到响应）。1表示无重传，2表示单重传，...实际的重传方法由<tt/RoundRobinServers/属性定义。
+
+<item><tt/RoundRobinServers=BOOLEAN/<newline>
+默认: <tt/1/<newline>
+<p>
+RADIUS请求重传方法。
+<p>
+如果设置为1，则以以下方式发送RADIUS请求（直到收到响应）：
+<tscreen><verb>
+Server #1 Attempt #1, Server #2 Attempt #1, ..., Server #N Attempt #1
+...
+Server #1 Attempt #RequestRetransmissions, ..., Server #1 Attempt #RequestRetransmissions
+</verb></tscreen>
+<p>
+如果设置为0，则保留以下顺序：
+<tscreen><verb>
+Server #1 Attempt #1, ..., Server #1 Attempt #RequestRetransmissions
+...
+Server #N Attempt #1, ..., Server #N Attempt #RequestRetransmissions
+</verb></tscreen>
+
+<item><tt/AppendCiscoAttributes=BOOLEAN/<newline>
+默认: <tt/1/<newline>
+<p>
+若设置，则在RADIUS请求中包括Cisco Vendor Specific RADIUS属性(h323-conf-id,h323-call-origin,h323-call-type)。
+
+<item><tt/IncludeTerminalAliases=BOOLEAN/<newline>
+默认: <tt/1/<newline>
+<p>
+若设置，则将发送Cisco VSA'h323-ivr-out'属性以及端点正在注册的别名列表(RRQ.m_terminalAlias)。
+提供此属性是为了对允许端点注册的别名列表提供更好的控制。
+该属性的格式为：
+<tscreen><verb>
+	Cisco-AV-Pair = "h323-ivr-out=terminal-alias:" alias [,alias] [;]
+例子:
+	Cisco-AV-Pair = "h323-ivr-out=terminal-alias:helpdesk,support,77771;"
+</verb></tscreen>
+
+<item><tt/EmptyUsername/<newline>
+默认: <tt>N/A</tt><newline>
+<p>
+若设置了此参数，则在呼叫未提供身份验证用户名的情况下使用该值。
+
+<item><tt/FixedUsername/<newline>
+默认: <tt>N/A</tt><newline>
+<p>
+若设置了此参数，它将覆盖传出RADIUS请求的“用户名RADIUS”属性值。这意味着每个访问请求都将按照user进行身份验证<tt/FixedUsername/。
+
+<item><tt/FixedPassword/<newline>
+默认: <tt>N/A</tt><newline>
+<p>
+若未设置，则用户密码是用户名的副本。例如，如果User-Name为'john'，则User-Password也将设置为'john'。
+设置此参数将覆盖此行为，并且User-Password属性将始终设置为的值<tt/FixedPassword/。
+若<tt/EncryptAllPasswords/已启用，或者<tt/KeyFilled/在本节中定义了变量，则密码采用加密形式，应使用<tt/addpasswd/实用程序创建。
+
+<descrip>
+<tag/例 1:/
+<tscreen><verb>
+(Neither FixedUsername nor FixedPassword set)
+</verb></tscreen>
+所有端点将使用其别名作为用户名和密码进行身份验证。就如，端点'EP1'将使用用户名'EP1'和密码'EP1'进行身份验证。
+</descrip>
+
+<descrip>
+<tag/例 2:/
+<tscreen><verb>
+(FixedUsername not set)
+FixedPassword=ppp
+</verb></tscreen>
+所有端点将使用其别名和密码'ppp'进行身份验证。
+</descrip>
+
+<descrip>
+<tag/例 3:/
+<tscreen><verb>
+FixedUsername=ppp
+FixedPassword=ppp
+</verb></tscreen>
+将使用用户名'ppp'和密码'ppp'对所有端点进行身份验证。
+</descrip>
+
+<item><tt/UseDialedNumber=BOOLEAN/<newline>
+默认: <tt/0/<newline>
+<p>
+在原始号码（由用户拨打）<tt/UseDialedNumber=1/和改写的号码之一之间选择被叫站ID号类型<tt/UseDialedNumber=0/。
+</itemize>
+
+<sect2>&lsqb;RadAliasAuth&rsqb; Access-Request Radius Attributes
+<p>
+对于RRQ，将发送与RadAuth相同的属性，但用户名/密码属性(CHAP-密码，CHAP-挑战，用户名)除外：
+<p>
+<itemize>
+<item><tt>User-Name</tt><newline>
+<p>
+RRQ的端点别名或FixedUsername配置参数的值。若不存在别名，则使用IP地址
+
+<item><tt>User-Password</tt><newline>
+<p>
+与用户名相同或FixedPassword配置参数的值
+</itemize>
+<p>
+对于ARQ和Setup消息，将发送与RadAuth相同的属性，但用户名/密码属性(CHAP-Password,	CHAP-Challenge, User-Name)除外
+<p>
+<itemize>
+<item><tt>User-Name</tt><newline>
+<p>
+		端点别名或FixedUsername配置参数的值
+
+<item><tt>User-Password</tt><newline>
+<p>
+		与用户名相同或FixedPassword配置参数的值
+</itemize>
+
+
+<sect2>&lsqb;RadAliasAuth&rsqb; Access-Accept Radius Attributes
+<p>
+可以识别与RadAuth模块完全相同的属性。
+<p>
+
+<sect1>Section &lsqb;CapacityControl&rsqb;
+<label id="capctrl">
+<p>
+本节包含一组规则，用于根据各种条件控制入站呼叫量。为了使该模块正常工作，必须启用CapacityControl身份验证和计费模块，如下所示：
+<tscreen><verb>
+[Gatekeeper::Auth]
+CapacityControl=required;Setup
+ 
+[Gatekeeper::Acct]
+CapacityControl=required;start,stop
+</verb></tscreen>
+<p>
+容量规则可以与呼叫者的IP，呼叫者的H.323 ID和/或呼叫者的号码（CLI）匹配-按指定的顺序。
+另外，可以通过指定被叫号码模式来缩小匹配范围。
+该模块通过保存每个入站路由（规则）的当前呼叫量列表来工作-通过将<tt/CapacityControl/计费模块配置为从匹配的路由添加/删除活动的呼叫来完成。
+该<tt/CapacityControl/认证模块检查规则和接受/拒绝基于电流/最大呼叫量用于匹配接收的路由的呼叫。
+
+<p>
+<descrip>
+<tag/入站路由规则的格式:/
+<tt>[ip:CALLER_IP|h323id:CALLER_H323ID|cli:CALLER_NUMBER]=[CALLED NUMBER REGEX PATTERN] MAX_CAPACITY</tt>
+<p>
+<tt/ip:/, <tt/h323id:/ and <tt/cli:/前缀定义规则类型。入站呼叫将通过呼叫者的IP，H.323ID或CLI进行匹配。
+可选的<tt/CALLED NUMBER REGEX PATTERN/ 是一个正则表达式，被叫号码应匹配以应用此规则。<tt/MAX_CAPACITY/是此路由的最大活动呼叫数。
+
+<p>
+规则按以下顺序匹配：:
+<itemize>
+<item>IP规则
+<item>H.323ID规则
+<item>CLI规则
+</itemize>
+
+使用第一个匹配类别中最长的匹配。
+
+<tag/例 1:/
+<tscreen><verb>
+[CapacityControl]
+ip:192.168.1.0/24=30
+ip:any=120
+</verb></tscreen>
+<p>
+这些规则表明，192.168.1.0/24子网最多可以发送30个并发呼叫，而所有其他IP最多可以发送120个并发呼叫。
+ 
+<tag/例 2:/
+<tscreen><verb>
+[CapacityControl]
+%r1% cli:1001=30
+%r2% cli:1001=^48(50|51) 5
+</verb></tscreen>
+<p>
+这些规则限制了使用CLI 1001的呼叫者最多可以将5个呼叫发送到4850/4851目的地，将最多30个呼叫发送到其他目的地。
+%r1% 和 %r2% 是特殊的构造，以允许<tt/cli:1001/多次拥有相同的配置密钥。
+</descrip>
+
+
+<sect1>Section &lsqb;GkH350::Settings&rsqb;
+<label id="h350settings">
+<p>
+本节定义了LDAP服务器和要使用的标准H.350目录操作参数。
+
+<itemize>
+<item><tt/ServerName=127.0.0.1/<newline>
+默认: <tt/127.0.0.1/
+<p>
+LDAP服务器IP地址。
+
+<item><tt/ServerPort=389/<newline>
+默认: <tt/389/
+<p>
+LDAP服务器的TCP端口（通常为389）。
+
+<item><tt/StartTLS=1/<newline>
+默认: <tt/0/
+<p>
+使用StartTLS加密LDAP连接。
+
+<item><tt/SearchBaseDN=ou=commObjects,dc=gnugk,dc=org/<newline>
+默认: <tt>N/A</tt>
+<p>
+服务器的H.350目录结构的入口点。仅在此根节点下进行搜索。
+
+<item><tt/BindUserDN=cn=admin,dc=gnugk,dc=org/<newline>
+默认: <tt>N/A</tt>
+<p>
+网守用来绑定到LDAP服务器的专有名称。如果要匿名访问LDAP服务器，请保留为空。
+
+<item><tt/BindUserPW=secret/<newline>
+默认: <tt>N/A</tt>
+<p>
+若指定<tt/BindUserDN/，则在此处指定用于绑定的相应密码。如果<tt/EncryptAllPasswords/已启用，或者<tt/KeyFilled/在本节中定义了变量，
+则密码采用加密形式，应使用<tt/addpasswd/实用程序创建。
+
+<item><tt/BindAuthMode=simple/<newline>
+默认: <tt>simple</tt>
+<p>
+绑定身份验证方法的选择是<tt/simple,sasl,kerberos/
+
+<item><tt/ServiceControl=1/<newline>
+默认: <tt/0/<newline>
+<p>
+使用RRQ/RCF服务控制字段来建议H.350目录的端点和searchDN用于白页查找。
+
+<item><tt/AssignedAliases=1/<newline>
+默认: <tt/0/<newline>
+<p>
+使用H.350.1通知端点其分配的别名。
+
+<item><tt/GatekeeperDiscovery=1/<newline>
+默认: <tt/0/<newline>
+<p>
+使用H.350.1在GRQ/GCF上解析分配给网守的注册端点(h323IdentityGKDomain)。
+
+</itemize>
+
+<sect1>Section &lsqb;GkLDAP::Settings&rsqb;
+<label id="ldapsettings">
+<p>
+本部分定义了LDAP身份验证模块（LDAPAliasAuth和LDAPPasswordAuth）和LDAP路由策略('ldap')的LDAP服务器和连接参数。
+
+<itemize>
+<item><tt/ServerName=127.0.0.1/<newline>
+默认: <tt/127.0.0.1/
+<p>
+LDAP服务器IP地址。
+
+<item><tt/ServerPort=389/<newline>
+默认: <tt/389/
+<p>
+LDAP服务器的TCP端口（通常为389）。
+
+<item><tt/StartTLS=1/<newline>
+默认: <tt/0/
+<p>
+使用StartTLS加密LDAP连接。
+
+<item><tt/SearchBaseDN=ou=commObjects,dc=gnugk,dc=org/<newline>
+默认: <tt>N/A</tt>
+<p>
+服务器目录结构的入口点。仅在此根节点下进行搜索。
+
+<item><tt/BindUserDN=cn=admin,dc=gnugk,dc=org/<newline>
+默认: <tt>N/A</tt>
+<p>
+网守用来绑定到LDAP服务器的专有名称。若要匿名访问LDAP服务器，请保留为空。
+
+<item><tt/BindUserPW=secret/<newline>
+默认: <tt>N/A</tt>
+<p>
+如果指定<tt/BindUserDN/，则在此处指定用于绑定的相应密码。如果<tt/EncryptAllPasswords/已启用，或者<tt/KeyFilled/在本节中定义了变量，
+则密码采用加密形式，应使用<tt/addpasswd/实用程序创建。
+
+<item><tt/BindAuthMode=simple/<newline>
+默认: <tt>simple</tt>
+<p>
+绑定身份验证方法的选择是<tt/simple,sasl,kerberos/
+
+</itemize>
+
+<descrip>
+<tag/例子:/
+<tscreen><verb>
+[GkLDAP::Settings]
+ServerName=192.168.1.1
+BindAuthMode=simple
+SearchBaseDN=dc=gnugk,dc=org
+BindUserDN=cn=admin,dc=gnugk,dc=org
+BindUserPW=secret
+</verb></tscreen>
+</descrip>
+
+
+<sect1>Section &lsqb;GkLDAP::LDAPAttributes&rsqb;
+<label id="ldapattributes">
+<p>
+通过此部分，可以将LDAP属性GnuGk查询映射到对应的LDAP模式。
+
+<itemize>
+<item><tt/CallDestination=H323IP/<newline>
+默认: <tt/voIPIpAddress/
+<p>
+LDAP实体的呼叫应路由到的IP。
+
+<item><tt/H323ID=mail/<newline>
+默认: <tt/mail/
+<p>
+LDAP实体的H.323别名。此属性用于在LDAP模式中查找被叫实体。
+
+<item><tt/H235PassWord=secret/<newline>
+默认: <tt/none/
+<p>
+在LDAPPasswordAuth中使用的密码属性。
+
+<item><tt/IPAddress=voIPIpAddress/<newline>
+默认: <tt/voIPIpAddress/
+<p>
+LDAP实体的H.323 IP。此属性用于在LDAP模式中查找被叫实体。
+
+<item><tt/TelephoneNo=telephoneNumber/<newline>
+默认: <tt/telephoneNumber/
+<p>
+LDAP实体的电话号码。此属性用于在LDAP模式中查找被叫实体。
+
+</itemize>
+
+<descrip>
+<tag/例子:/
+<tscreen><verb>
+[GkLDAP::LDAPAttributeNames]
+IPAddress=voIPIpAddress
+H235PassWord=plaintextPassword
+H323ID=sn
+TelephonNo=telephoneNumber
+CallDestination=roomNumber
+</verb></tscreen>
+</descrip>
+
+<sect1>Section &lsqb;LuaAuth&rsqb;
+<label id="luaauth">
+<p>
+本部分配置用于LUA身份验证的脚本。
+<p>
+有关在GNUGK Lua脚本的一般信息，请参见章<ref id="luascripting" name="LUA脚本">。
+<p>
+<itemize>
+<item><tt/RegistrationScript=<em>script</em>/<newline>
+默认: <tt>N/A</tt>
+<p>
+用于RRQ的LUA脚本。简短的脚本可以直接放入配置文件中。对于更长的脚本，请使用RegistrationScriptFile=。
+
+<item><tt>RegistrationScriptFile=/path/to/script</tt><newline>
+默认: <tt>N/A</tt>
+<p>
+用于RRQ的LUA脚本。
+
+<item><tt/CallScript=<em>script</em>/<newline>
+默认: <tt>N/A</tt>
+<p>
+用于ARQs和Setups的LUA脚本。
+简短的脚本可以直接放入配置文件中。对于更长的脚本，请使用CallScriptFile=。
+
+<item><tt>CallScriptFile=/path/to/script</tt><newline>
+默认: <tt>N/A</tt>
+<p>
+用于ARQ和设置的LUA脚本。
+</itemize>
+
+注册身份验证脚本可以使用以下变量
+<itemize>
+<item><tt/username/ - 与呼叫者相关的用户名
+<item><tt/callingStationId/ - 来电号码（若有）
+<item><tt/callerIP/ - 呼叫者的IP（已从-NAT端点的NAT IP收到请求）
+<item><tt/aliases/ - 注册中的别名列表
+<item><tt/messageType/ - "RRQ" 始终注册
+<item><tt/message/ - 完整的RRQ消息为多行文本块
+</itemize>
+
+Call authentication scripts can use the following variables
+<itemize>
+<item><tt/messageType/ - "ARQ" 或 "Setup"
+<item><tt/message/ - 完整的ARQ或Setup消息为多行文本块
+<item><tt/source/ - 呼叫端点的信令IP
+<item><tt/calledAlias/ - 被叫别名
+<item><tt/calledIP/ - 被叫IP
+<item><tt/callingStationId/ - 来电号码（若有）
+<item><tt/caller/ - 来自ARQ的呼叫端点的srcInfo或来自Setup中callingStationId的srcInfo
+<item><tt/callid/ - 通话ID
+<item><tt/srcInfo/ - Setup中的ARQ或sourceAddress的srcInfo字段
+<item><tt/vendor/ - productId 和 versionId
+</itemize>
+
+脚本必须将认证结果存储在变量 <em>result</em>中。可能的值为"OK"，"OK", "FAIL" and "NEXT"；其他所有内容都将被视为"FAIL"。
+
+<descrip>
+<tag/例子:/
+<tscreen><verb>
+[LuaAuth]
+; only let use "boss" register
+RegistrationScript=if (username == "boss") then result = "OK" else result = "FAIL" end
+; call authentication is in a script file
+CallScriptFile=/path/to/callauth.lua
+</verb></tscreen>
+</descrip>
+
+<sect1>Section &lsqb;LuaPasswordAuth&rsqb;
+<label id="luapasswordauth">
+<p>
+本部分配置用于LUA密码身份验证的脚本。
+<p>
+有关在GNUGK Lua脚本的一般信息，请参见章<ref id="luascripting" name="LUA脚本">。
+<p>
+<itemize>
+<item><tt/Script=<em>script</em>/<newline>
+默认: <tt>N/A</tt>
+<p>
+用于查找用户密码的LUA脚本。简短的脚本可以直接放入配置文件中。对于更长的脚本，请使用ScriptFile=。
+
+<item><tt>ScriptFile=/path/to/script</tt><newline>
+用于查找用户密码的LUA脚本
+
+<item><tt/PasswordTimeout=120/<newline>
+默认: <tt/-1/<newline>
+<p>
+该模块将缓存请求的密码。此字段以秒为单位定义高速缓存超时值。 <tt/0/表示永不缓存密码，而负值表示缓存永不过期。
+
+</itemize>
+
+该脚本可以使用以下变量
+<itemize>
+<item><tt/alias/ - 要认证的用户的别名
+<item><tt/gk/ - 正在运行的GK的名称
+</itemize>
+
+该脚本必须将用户的密码存储<tt>alias</tt>到<tt>password</tt>的变量中，以便进一步处理。
+
+
+<sect1>Section &lsqb;HttpPasswordAuth&rsqb;
+<label id="httppasswordauth">
+<p>
+本节定义了从HTTP服务器获取密码信息的流程。
+<p>
+<itemize>
+<item><tt>URL=http://example.com/passwords</tt><newline>
+默认: <tt>N/A</tt>
+<p>
+从中获取密码的URL。可使用下面指定的参数来参数化URL。当前，GnuGk期望响应中使用明文密码。
+
+<item><tt/Body=user=%u/<newline>
+默认: <tt>empty</tt>
+<p>
+用于POST请求的HTTP正文。可使用下面指定的参数来参数化URL。
+
+<item><tt/Method=GET/<newline>
+默认: <tt>POST</tt>
+<p>
+要使用的HTTP方法。当前支持GET和POST。
+
+<item><tt/ResultRegex=[0-9]+/<newline>
+默认: <tt>.*</tt>
+<p>
+从HTTP响应中提取密码的正则表达式。
+
+<item><tt/DeleteRegex=5544/<newline>
+默认: <tt>N/A</tt>
+<p>
+要使用的正则表达式会从提取的密码中删除其他模式。可选的。
+
+<item><tt/ErrorRegex=error/<newline>
+默认: <tt>^$</tt>
+<p>
+若HTTP响应与此正则表达式匹配，则将其视为无效。
+
+<item><tt/PasswordTimeout=120/<newline>
+默认: <tt/-1/<newline>
+<p>
+该模块将缓存请求的密码。此字段以秒为单位定义高速缓存超时值。 <tt/0/表示永不缓存密码，而负值表示缓存永不过期。
+
+</itemize>
+
+为<tt/HttpPasswordAuth/这些参数定义：
+<itemize>
+<item><tt/%u/ - 查询密码的实际别名
+<item><tt/%g/ - GK标识符（名称
+<item><tt/%{message}/ - 处理身份验证的消息（如RRQ，ARQ等）
+<item><tt/%{caller-ip}/ - 主叫方的IP
+<item><tt/%{called-ip}/ - GnuGk的IP收到此呼叫接口(仅适用于 RRQ and Setup)
+<item><tt/%{caller-vendor}/ - 呼叫者的产品名称和版本(仅适用于 RRQ and Setup)
+<item><tt/%{caller-product-name}/ - 呼叫者的产品名称(仅适用于 RRQ and Setup)
+<item><tt/%{caller-product-version}/ - 呼叫者的产品版本(仅适用于 RRQ and Setup)
+<item><tt/%{env1}/ - 环境变量GNUGK_ENV1的内容
+<item><tt/.../
+<item><tt/%{env9}/ - 环境变量GNUGK_ENV9的内容
+</itemize>
+
+
+<sect1>Section &lsqb;GeoIPAuth&rsqb;
+<label id="geoipauth">
+<p>
+本节配置GeoIP身份验证。
+<p>
+<itemize>
+<item><tt>Database=/path/to/GeoIP.dat</tt><newline>
+默认: <tt>N/A</tt>
+<p>
+Maxmind GeoIP数据库的路径。可从<htmlurl url="https://dev.maxmind.com/geoip/legacy/geolite/" Name="https://dev.maxmind.com/geoip/legacy/geolite/">下载GeoIP数据库的最新副本。
+
+<item><tt>AllowedCountries=US,CA,PRIVATE</tt><newline>
+默认: <tt>N/A</tt>
+<p>
+定义要接受来自哪些国家的邮件。特殊国家'PRIVATE'表示私有IP。
+</itemize>
+
+<sect1>Section &lsqb;TwoAliasAuth&rsqb;
+<label id="twoaliasauth">
+<p>
+本节配置TwoAlias身份验证。它包含一个别名列表，其中包含第二个("secret")别名。如果端点具有一对匹配的别名，则可以接受它们。
+<p>
+不要将所有这些信息都以明文形式传输，并且很容易被数据包捕获所拦截。这是一种极其脆弱的身份验证形式。
+<p>
+还要注意，Setup消息中的sourceAddress字段是可选的，并且许多端点未向网守注册时就不会发送它，因此即使它们具有匹配的别名，也会使身份验证失败。
+
+<descrip>
+<tag/例子:/
+<tscreen><verb>
+[TwoAliasAuth]
+100=SecretA
+101=MoreSecretB
+102=WhateverSecretC
+</verb></tscreen>
+</descrip>
+

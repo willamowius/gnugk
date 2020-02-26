@@ -1,0 +1,887 @@
+<sect>路由模式和代理配置
+
+<sect1>Section &lsqb;RoutedMode&rsqb;
+<label id="routed">
+<p>
+呼叫信令消息可以通过两种方式传输：第一种方法是端点直接呼叫，其呼叫信令消息直接在端点之间传递。
+第二种方法是GK路由呼叫。使用第二种方法，呼叫信令消息通过GK路由。
+
+使用GK路由呼叫时，有三个不同的选项可用于路由H.245信道和媒体信道。
+
+<descrip>
+<tag/案例 I./
+GK不路由H.245和媒体。H.245信道和媒体信道直接在端点之间建立。
+<tag/案例 II./
+H.245通道通过网守路由，而媒体通道则直接在端点之间建立。
+<tag/案例 III./
+GK路由H.245信道以及媒体信道，包括用于音频和视频的RTP / RTCP，以及用于数据的T.120信道。在这种情况下，没有流量直接在端点之间传递。
+通称其为H.323代理，并且可以将其视为H.323-H.323网关。
+</descrip>
+
+本节定义了网守路由模式选项（案例I和II）。代理功能在 <ref id="proxy" name="[Proxy] section">定义。
+
+在GK运行时，可以通过重新加载配置来更新此部分中的设置。
+
+<itemize>
+<item><tt/GKRouted=1/<newline>
+默认： <tt/0/<newline>
+<p>
+启用GK路由的信令模式。
+
+<item><tt/H245Routed=1/<newline>
+默认：<tt/0/<newline>
+<p>
+通过GK启用H.245控制信道的路由。若<tt/GKRouted=1/在呼叫中禁用了H.245隧道，则将接受此设置。
+即使禁用此选项，若Proxy或ProxyForNAT生效，也会始终通过GK路由H.245信道以代理呼叫。
+
+<item><tt/CallSignalPort=1721/<newline>
+默认：<tt/1720/<newline>
+<p>
+GK上用于呼叫信令的端口。您可以将其设置 <tt/0/ 为让GK选择任意端口。
+
+<item><tt/TLSCallSignalPort=1300/<newline>
+默认：<tt/1300/<newline>
+<p>
+若在 <ref id="tls" name="[TLS] 部分">中启用了，则GnuGk应该侦听TLS（传输层安全性）信令的端口。
+
+<item><tt/CallSignalHandlerNumber=10/<newline>
+默认：<tt/5/<newline>
+<p>
+指定处理器的线程数，处理信令/H.245通道的（介于1-200之间）。可以在负载很重的GK中增加此数目。
+每个线程一次可以处理一个信令消息，因此增加此数量将增加呼叫吞吐量。在Windows下，单个信令线程默认使用64个套接字，
+因此每个信令线程最多可以处理32个呼叫（启用H.245隧道）。
+
+<item><tt/RtpHandlerNumber=2/<newline>
+默认：<tt/1/<newline>
+<p>
+RTP代理处理线程的数量。仅当遇到RTP延迟问题或在GK负载过重时出现抖动时，才应增加此值。在Windows上必须格外小心，
+因为RTP处理线程与信令线程一样受64个Sockets的限制。因此，在Windows上，每个RTP线程最多可以处理32个代理呼叫（每个呼叫2个Sockets）。
+
+<item><tt/AcceptNeighborsCalls=1/<newline>
+默认：<tt/1/<newline>
+<p>
+启用后，只要可以在RegistrationTable中找到与Setup中的destinationAddress相对应的结点，并且呼叫方是邻居或父GK，
+则呼叫信令线程将接受呼叫，而不会在CallTable中找到预先存在的CallRec。当响应LRQ时，GK还将在LCF中使用其自己的呼叫信令地址。
+呼叫信令将在GK到GK的呼叫中路由到GK2。结果，GK2中的CDR将正确显示连接时间，而不是“未连接”。
+
+<item><tt/AcceptUnregisteredCalls=1/<newline>
+默认：<tt/0/<newline>
+<p>
+启用后，GK将接受来自任何未注册端点的呼叫。若不想让每个人都使用GK，请确保对这些呼叫进行正确的身份认证。
+使用未注册的端点时，您可能还希望将CallSignalPort更改为1720。
+
+<item><tt/RemoveH245AddressOnTunneling=1/<newline>
+默认：<tt/0/<newline>
+<p>
+即使将h245Tunneling设置为TRUE，某些端点也会在Q.931的UUIE中发送h245Address。这可能会导致互通性问题。
+若选项为TRUE，则当h245Tunneling标志为TRUE时，GK将删除h245Address。这将强制远程方保持在隧道模式下。
+
+<item><tt/RemoveH245AddressFromSetup=1/<newline>
+默认：<tt/0/<newline>
+<p>
+此开关，GnuGk将从传入的Setup消息中剥离H.245地址，以避免互通性问题。
+
+<item><tt/DisableH245Tunneling=1/<newline>
+默认：<tt/0/<newline>
+<p>
+强制通话双方禁用H.245隧道。
+
+<item><tt/H245TunnelingTranslation=1/<newline>
+默认：<tt/0/<newline>
+<p>
+允许呼叫的一侧使用H.245隧道，即使另一侧不使用，通过网守执行适当的H.245消息转换。
+这将减少连接的隧道侧所需的端口数量。
+
+<item><tt/RemoveCallOnDRQ=0/<newline>
+默认：<tt/1/<newline>
+<p>
+关闭此选项时，GK不会在收到DRQ时移除该通话，而仅在收到Release Complete 时才会移除。
+这避免了某些可能的竞争情况(race condition)。当然此选项仅有在路由模式下才有意义，因为在直接模式下，GK仅会收到DRQ。
+使用呼叫故障转移时，必须将其设置为0。
+
+<item><tt/DropCallsByReleaseComplete=1/<newline>
+默认：<tt/0/<newline>
+<p>
+根据建议H.323，网守可以通过向端点发送RAS DisengageRequest来断开呼叫。但是，某些错误的端点只会忽略此命令。
+启用此选项后，网守将向两个端点节点发送Q.931 Release Complete（而不是RAS DRQ），以迫使他们放弃呼叫。
+
+<item><tt/SendReleaseCompleteOnDRQ=1/<newline>
+默认：<tt/0/<newline>
+<p>
+在通话结束时，端点会同时通过H.225/Q.931发出Release Complete，以及通过RAS发出DRQ。有可能因为DRQ先被收到处理，
+导致GK关闭信号通道，而使得Release Complete 无法被送到另一端点。某些端点(例如Cisco CallManager)
+即使当信号通道关闭时也不会自动挂断通话，而导致问题，例如假使呼叫侧挂断了，被叫端仍持续响钤。
+将此选项 <tt/1/ 打开可让GK在收到DRQ而关闭信号通道前主动送出Release Complete。
+
+<item><tt/SupportNATedEndpoints=1/<newline>
+默认：<tt/0/<newline>
+<p>
+是否允许NAT服务器后的端点节点注册到网守。若是，则网守会将Q.931和H.245通道中的IP地址转换为NAT服务器的IP。
+GnuGk直接支持NAT出站呼叫（从NAT后的端点到公共网络），而无需对端点或NAT服务器进行任何必要的修改。
+只需在GnuGk中注册端点，即可立即呼叫。
+
+<item><tt/SupportCallingNATedEndpoints=0/<newline>
+默认：<tt/1/<newline>
+<p>
+是否允许支持GnuGk NAT穿越技术的NAT后面的端点节点接收呼叫。使用此选项可以阻止不正确支持GnuGk Nat Traversal技术的
+错误网关在尝试呼叫网关时导致音频问题。到网关的呼叫使主叫者无法到达。为了有效将SupportNATedEndpoints设置为1。
+
+<item><tt/TreatUnregisteredNAT=1/<newline>
+默认：<tt/0/<newline>
+<p>
+与AcceptUnregisteredCalls和SupportNATedEndpoints结合使用，自动将所有无法确定为NAT的未注册呼叫视为NAT。
+并非所有端点都在设置消息中发送sourceSignalAddress，可用于确定呼叫者是否为NAT。这为没有此功能的设备增加了支持。
+
+<item><tt/ScreenDisplayIE=MyID/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+将Q.931的DisplayIE修改为指定值。
+
+若将开关设置为“ Calling”，则将主叫方的DisplayIE设置为CallingStationID，并通过“ Called”将被叫方的DisplayIE设置为DisplayIE。
+将其设置为” CallingCalled”会将所有DisplayIE重写为Calling / CalledStationID。
+
+若将开关设置为“删除”，则将删除所有DisplayIE。
+
+<item><tt/AppendToDisplayIE=SomeText/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+When ScreenDisplayIE= is set, this text is appended to the new DisplayIE.
+
+<item><tt/PrependToDisplayIE=SomeText/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+设置ScreenDisplayIE= 时，此文本将附加到新的DisplayIE。
+
+<item><tt/ScreenCallingPartyNumberIE=0965123456/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+设置ScreenDisplayIE= 时，此文本将放在新的DisplayIE之前。
+
+当字符串设置 <tt>RegisteredAlias</tt>, GnuGk会将其设置为第一个注册的E.164，若端点未注册E.164，则回退到第一个别名，
+若端点未注册，则返回空字符串。
+
+<item><tt/AppendToCallingPartyNumberIE=@example.com/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+将此字符串附加到 CallingPartyNumberIE when <tt>ScreenCallingPartyNumberIE=RegisteredAlias</tt>.
+
+下面符号将被替换：
+<itemize>
+<item><tt/%{gkip}/ - GK的IP地址
+<item><tt/%{external-ip}/ - 外部IP（如果已配置）
+</itemize>
+
+<item><tt/ScreenSourceAddress=MyID/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+在Q.931 Setup消息中修改UUIE节点的sourceAddress字段。
+
+<item><tt/ForwardOnFacility=1/<newline>
+默认：<tt/0/<newline>
+<p>
+若打开本选项，GK当收到Q.931 Facility 因<bf/callForwarded/, <bf/routeCallToGatekeeper/ 或 <bf/routeCallToMC/时，
+GK将会直接将Setup信令转送给被转接的端点，而并非信令回传给主叫端。
+若因 <bf/callForwarded/（或其他原因）而导致无法处理Q.931设备的端点损坏，请启用此选项。请注意，此功能可能无法始终正常运行，
+因为它不提供任何重新协商和重打开媒体通道的功能。仅在转发者是被叫方并且尚未建立H.245信道的情况下才转发呼叫。
+
+<item><tt/RerouteOnFacility=1/<newline>
+默认：<tt/0/<newline>
+<p>
+若设置，GnuGk会将具有因<bf/callForwarded/ 或 <bf/routeCallToMC/收到的Q.931 Facility转换为基于GK的呼叫重新路由。
+这将启用几乎所有端点的已建立会话的呼叫转移，即使那些不了解如何自行处理呼叫转移的端点也一样。
+
+应该禁用H.245隧道以进行重新路由 ([RoutedMode] DisableH245Tunneling=1) 以及媒体加密 (RemoveH235Call=1) 。
+
+<item><tt/ShowForwarderNumber=0/<newline>
+默认：<tt/0/<newline>
+<p>
+是否将主叫方号码改写为转发方号码。通常用于计费目的。仅在时有效 <tt/ForwardOnFacility=1/ 。
+
+<item><tt/Q931PortRange=20000-20999/<newline>
+默认：<tt>N/A (let the OS allocate ports)</tt><newline>
+<p>
+指定Q.931信令的TCP端口号范围。请注意，范围大小可能会限制同时通话数量。确保此范围足够大，
+可以在关闭后重新使用套接字之前考虑TIME_WAIT TCP套接字超时。TIME_WAIT可能从15秒到几分钟不等，
+具体取决于操作系统。因此，若范围是2000-2001，并且您进行了两次呼叫，则可以在TIME_WAIT超时时间结束后再进行下两个呼叫，
+并且可以重用套接字。相同应用<tt/H245PortRange/ and <tt/T120PortRange/ 。通常可以在大多数操作系统上谨慎TIME_WAIT。
+
+<item><tt/H245PortRange=30000-30999/<newline>
+默认：<tt>N/A (let the OS allocate ports)</tt><newline>
+<p>
+指定H.245控制通道的TCP端口号范围。注意，此范围可能会限制同时通话的数量。
+请参阅说明中有关TIME_WAIT socket state超时的 <tt/Q931PortRange/ 注释。
+
+<item><tt/SetupTimeout=4000/<newline>
+默认：<tt>8000</tt><newline>
+<p>
+在打开TCP信令通道之后，待接收第一条消息 (Setup) 的超时值（毫秒）。
+
+<item><tt/SignalTimeout=10000/<newline>
+默认：<tt>30000</tt><newline>
+<p>
+发送ACF消息,待信令信道打开或信令信道打开后等待响玲消息的超时值（以毫秒为单位）。
+可以将此选项视为允许的最大PDD（拨号后延迟）值。
+
+<item><tt/AlertingTimeout=60000/<newline>
+默认：<tt>180000</tt><newline>
+<p>
+呼叫进入响铃状态后等待连接消息的超时值（以毫秒为单位）。该选项可以被认为是最大的“响铃时间”。
+
+<item><tt/TcpKeepAlive=1/<newline>
+默认：<tt/0/<newline>
+<p>
+在TCP信令套接字上启用/禁用keepalive功能，可以帮助检测无效的信令信道并防止无效呼叫挂在呼叫表中。
+为了使此项起作用，还需要调整系统设置以调整保活超时。有关更多详细信息，请参阅docs / keepalive.txt。
+若配置中不存在此开关，则保持socket不变。
+
+<item><tt/TranslateFacility=1/<newline>
+默认：<tt/0/<newline>
+<p>
+若在H.323v4和非这个协议版本端点之间存在互通性问题，请启用此选项。它将reason = transportedInformation的
+Facility消息转换为具有空主体的Facility消息，若该主体不为空，则某些端点将不处理Facility内部的隧道H.245消息。
+仅在必要时执行转换-若两个端点均为v4或之前版本，则不会更改。
+
+<item><tt/FilterEmptyFacility=1/<newline>
+默认：<tt/0/<newline>
+<p>
+过滤transportedInformation中的Facility消息，但不包含h245Control或h4501SupplementaryService字段。Avaya互通性需要。
+
+<item><tt/SocketCleanupTimeout=1000/<newline>
+默认：<tt/5000/<newline>
+<p>
+在关闭未使用的套接字之时的等待时间。（若尚未关闭和删除释放其内存）若使用很小的端口范围，例如几个端口（例如RTPPortRange = 2000-2009），
+则需减小此值以使套接字可以更快地重用。
+
+<item><tt/ActivateFailover=1/<newline>
+默认：<tt/0/<newline>
+<p>
+激活呼叫故障转移：激活后，如果呼叫在第一个路由上失败，GnuGk将尝试查找到目的地的其他可用路由。呼叫的路由列表是在呼叫首次进入时建立的，
+当前并非所有路由策略都能够提供多条路由。您可以使用“内部”和“ sql”策略来提供多个路由。此外，SQL和Radius身份验证器可以设置多个路由。    
+
+有关使用故障转移的呼叫列表，请参阅 <ref id="calltable" name="[CallTable]"> 部分中的SingleFailoverCDR开关。
+
+<item><tt/FailoverCauses=1-15,21-127/<newline>
+默认：<tt/1-15,21-127/<newline>
+<p>
+定义ReleaseComplete中的错误码将触发呼叫故障转移。
+
+<item><tt/DisableRetryChecks=1/<newline>
+默认：<tt/0/<newline>
+<p>
+若呼叫失败则已收到FastStart或H.245消息，这将禁用所有检查。警告：使用此开关可以重试更多次呼叫，但是存在一些重试呼叫失败的风险，
+因呼叫者已经处于通话的状态则无法再与新的呼叫通信。
+
+<item><tt/CalledTypeOfNumber=1/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+将所有呼叫的被叫方号码类型设置为指定值。(0 - UnknownType, 1 - InternationalType, 2 - NationalType,
+3 - NetworkSpecificType, 4 - SubscriberType, 6 - AbbreviatedType, 7 - ReservedType)
+
+<item><tt/CallingTypeOfNumber=1/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+将所有主呼叫方号码类型设置为指定值。(0 - UnknownType, 1 - InternationalType, 2 - NationalType,
+3 - NetworkSpecificType, 4 - SubscriberType, 6 - AbbreviatedType, 7 - ReservedType)
+
+<item><tt/CalledPlanOfNumber=1/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+将被呼叫的号码类型设置为指定的值。(0 - UnknownType, 1 - ISDN, 3 - X.121 numbering, 4 - Telex, 
+8 - National standard, 9 - private numbering)
+
+<item><tt/CallingPlanOfNumber=1/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+将主呼叫的号码类型设置为指定的值。(0 - UnknownType, 1 - ISDN, 3 - X.121 numbering, 
+4 - Telex, 8 - National standard, 9 - private numbering).
+
+<item><tt/ENUMservers=e164.arpa/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+设置枚举服务器列表优先级顺序，以 (,) 分隔枚举策略。这将覆盖PWLIB_ENUM_PATH环境变量。
+
+<item><tt/RDSservers=myvirtualhost.com/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+使用此选项可指定RDS服务器以查询rds路由策略。这将设置域以用于解析没有SRV记录且可能被虚拟托管或
+SRV记录存储在其他主机中的URI。会覆盖PWLIB_RDS_PATH环境变量。
+
+<item><tt/CpsLimit=10/<newline>
+默认：<tt>0</tt><newline>
+<p>
+将拨入电话的速率限制为每秒n个电话。若收到更多呼叫，它们将在TCP级别被拒绝，而不会出现H.323错误消息，
+因此它们不会显示在CDR中。零值（默认）将禁用该功能。
+<p>
+该限制仅在检查间隔中的呼叫大于检查间隔* CPS速率时适用。这样可以在没有很大负载的情况下在机器上产生较小的呼叫峰值，
+但在总体负载较高时将应用严格的限制。    
+<p>
+此功能意在保护网守免受过载影响，并避免在过载情况下尽可能多地使用资源。    
+<p>
+当前，首条消息进入信令端口时，呼叫被阻止。这对于未注册的呼叫非常有效。但是，ARQ不会被阻止，因此对于已注册的呼叫，其效果会较差。    
+
+<item><tt/CpsCheckInterval=1/<newline>
+默认：<tt>5</tt><newline>
+<p>
+定义应用CpsLimit之前的检查间隔（秒）。    
+
+<item><tt/GenerateCallProceeding=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+设置后，GnuGk为每个收到Setup消息生成一个CallProceeding。若远端需要较长时间来应答或在虚拟队列中处理了呼叫，
+这有助于避免主叫端点超时。若不设置UseProvisionalRespToH245Tunneling = 1，则将禁用H.245隧道。    
+<p>
+端点或网关发送的CallProceeding消息将转换为Facility或Progress消息。
+
+<item><tt/UseProvisionalRespToH245Tunneling=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+警告：这是一项实验性功能，并未完全测试。
+<p>
+若仅使用支持临时RespToH245Tunneling的H.323设备，则可以设置此开关以在使用网守生成的CallProceeding时
+保持启用H.245隧道的功能。
+
+<item><tt/EnableH450.2=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+设置后，GnuGk将拦截H.450.2呼叫转移消息，并在可能的情况下代表端点转移呼叫。这允许端点发起呼叫转移，
+而远端可能不支持H.450，且网守发起呼叫转移。    
+
+<item><tt/H4502EmulatorTransferMethod=Reroute/<newline>
+默认：<tt>callForwarded</tt><newline>
+<p>
+设置H.450.2仿真器的呼叫转移方法。默认情况下，将callFordwarded Facility发送到端点。将其设置为“Reroute”将使用基于网守的TCS = 0传输。
+（“Reroute”仍处于考虑和实验状态，应谨慎使用。）    
+
+<item><tt/TranslateReceivedQ931Cause=17:=34/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+翻译所有ReleaseComplete消息中的原因代码。在上面的示例中，代码17（用户忙）将转换为原因代码34（无可用的/无效通道）。    
+
+<item><tt/TranslateSentQ931Cause=21:=34,27:=34/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+转换发出的ReleaseComplete消息中的所有原因代码。在上面的示例中，代码21和27将转换为原因代码34，
+因特定网关可能比其他网关更好地处理错误代码34。    
+
+<item><tt/RemoveH235Call=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+为了与不支持大型Setup消息的端点兼容，或者端点发送不正确的H.235令牌，
+此开关将从 Setup 和 Connect messages中删除所有clearTokens和cryptoTokens。    
+
+若将开关设置为1时，打开该功能，则H.235令牌将从所有呼叫中删除。还可以指定网络列表，从这些网络发出的呼叫会删除H.235令牌，
+例如，RemoveH235Call = 192.168.1.0 / 24，10.0.1.0/32。
+
+<item><tt/RemoveH460Call=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+为了与不支持H.460的H323v4之前的设备兼容，此开关从设置Setup PDU中剥离H.460功能通告。
+通常，无论如何都应该忽略它们。如果它们引起麻烦，请使用此开关。 
+
+<item><tt/EnableGnuGkNATTraversal=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+为老旧的端点启用对GnuGk的旧的NAT穿透支持。对于新的穿越支持，应使用H.460.17/.18/.19。    
+
+<item><tt/ForceNATKeepAlive=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+强制所有非H.460注册使用GnuGk的旧NAT穿透方法，即使它们似乎没有被NAT。仅在启用GnuGk的NAT穿透方法时可用。    
+
+<item><tt/EnableH46017=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+启用对H.460.17的支持。要为媒体流启用H.460.19，还应该设置EnableH46018=1。
+
+<item><tt/EnableH46018=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+启用对H.460.18和H.460.19的支持。此功能由Tandberg拥有的专利涵盖。若你不使用GnuGK项目的正式版本，
+请在启用前确保您具有有效的许可证。
+
+<item><tt/H46018KeepAliveInterval=19/<newline>
+默认：<tt>19</tt><newline>
+<p>
+设置用于H.460.19端点以及在具有邻域的H.460.18穿越区域时使用的H.460.18保活间隔。    
+
+<item><tt/H46018NoNat=0/<newline>
+默认：<tt>1</tt><newline>
+<p>
+即使端点不在NAT之后，也要启用H.460.18。若检测到端点不在NAT后面，则设置为0将禁用H.460.18。
+若支持并启用了H.460.23，则仍然支持直接媒体。    
+
+<item><tt/EnableH245Multiplexing=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+为H.460.18端点启用H.245复用。
+
+<item><tt/H245MultiplexPort=3006/<newline>
+默认：<tt>1722</tt><newline>
+<p>
+设置用于H.245的TCP端口多路复用。    
+
+<item><tt/EnableH46023=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+启用对 H.460.23/.24的支持。您还必须将STUN服务器设置为启用H.460.23/.24。
+
+<item><tt/H46023STUN=stun.ekiga.net,192.168.1.10/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+设置要与H.460.23一起使用的STUN服务器列表，以(,)分隔。每个网络接口必须为该接口上的H.460.23支持，设置一个STUNserver。    
+
+<item><tt/H46023PublicIP=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+公用IP地址上的较新端点可以从NAT后的端点接收呼叫。启用此功能后，将假定所有非NAT的端点都可以从NAT后的端点接收呼叫，
+以进行H.460.24媒体路径计算，从而避免媒体代理。可以将其与AlwaysRewriteSourceCallSignalAddress=0结合使用，
+以欺骗远程端点，以为该呼叫是直接从NAT后发起的，而不是通过网守路由的。
+
+<item><tt/H46023SignalGKRouted=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+强制对NAT的所有呼叫信令进行GK路由。在许多情况下，使用H.460.23/.24时，呼叫信令可能会被卸载（offloaded）。此开关将强制将所有信令路由到网守。    
+
+<item><tt/H46024ForceDirect=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+若不确定远程NAT状态，则强制所有媒体不进行代理。若在公共IP上，大多数（不是全部）H.323设备都能够从NAT后的端点接收呼叫。请谨慎使用此开关。
+
+<item><tt/H46024ForceNat=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+在检测到端点位于公共互联网上的情况下，该设备将被视为防火墙。这样可以解决公共IP上的防火墙端点出现没有受到防火墙保护的不一致行为。   
+
+<item><tt/NATStdMin=18/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+要求注册检测到位于NAT之后的端点，以支持标准NAT穿透机制。当端点从NAT后注册并且不支持最小NAT标准时，注册将被拒绝，
+其因是featureNotSupported。对于H.460.18/.19，有效值为“ 18”；对于H.460.23/.24，有效值为“ 23”    
+
+<item><tt/EnableH46026=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+启用对H.460.26（媒体在TCP上）的支持。
+
+<item><tt/UseH46026PriorityQueue=0/<newline>
+默认：<tt>1</tt><newline>
+<p>
+发送到H.460.26端点时，使用优先级队列。它将把RTP包批处理在一起，并确保端点不会被过多的消息覆盖。    
+
+<item><tt/TranslateSorensonSourceInfo=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+转换呼叫者非标准信息，例如，从Sorenson VP200到sourceAddress和CallingPartyIE。    
+
+<item><tt/RemoveSorensonSourceInfo=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+转换呼叫者非标准信息，例如，转换后从Sorenson VP200中获取。    
+
+<item><tt/RemoveFaxUDPOptionsFromRM=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+装有TN2602AP媒体处理器的Avaya Communication Manager 3.1系统在H.245 RequestMode的t38FaxProfile中收到t38FaxUdpOptions时
+会感到困惑。AddPac VoiceFinder是执行此操作的应用程序示例。届时，TN2602AP将开始发送比接收器可以处理的更大的T.38数据包，
+从而导致传真文档失真。此开关将从RequestMode中删除t38FaxUdpOptions，使配备Avaya Communication Manager 3.1和TN2602AP
+媒体处理器的组合与在RM中发送t38FaxUdpOptions的端点兼容。
+
+<item><tt/AlwaysRewriteSourceCallSignalAddress=0/<newline>
+默认：<tt>1</tt><newline>
+<p>
+设置为false或0时，GnuGk不会在路由模式下将sourceCallSignalAddress改写为其自己的IP。这有助于某些端点通过NAT。
+在代理模式下，无论此开关如何，该IP始终都会改写为GnuGk的IP。    
+
+<item><tt/AutoProxyIPv4ToIPv6Calls=0/<newline>
+默认：<tt/1/<newline>
+<p>
+自动将不同IP版本之间的呼叫，置于全代理模式。请注意，此自动检测就通过查看呼叫信号地址来决定的。
+一个端点可能稍后决定使用H.245或具有不同IP版本的媒体IP，并且如果接收端点无法处理多个IP版本，则呼叫将失败。
+
+<item><tt/EnableH235HalfCallMedia=1/<newline>
+默认：<tt/0/<newline>
+<p>
+当呼叫一侧的端点支持加密而另一侧的端点不支持加密时，网守将充当“中间人”并将媒体流加密到具有加密功能的系统中。
+解密的媒体流将被发送到未加密的端点，否则由于许可问题，硬件中缺少对加密芯片的支持，老旧等原因，该端点将无法对流量进行加密/解密。
+若尝试访问的是外网系统，内部流量可以保持未加密状态，则外部流量将是安全的。
+
+启用此功能将强制所有呼叫的呼叫信令为路由模式，并将加密呼叫的呼叫信令设置为代理模式。
+
+当不使用RTP多路复用时，主叫端和被叫端必须位于不同的IP上，并且不得位于同一NAT之后。端点还必须从与其信令消息相同的IP发送RTP。
+
+从GnuGk的3.x版本开始，不支持数据通道的加密。
+
+<item><tt/RequireH235HalfCallMedia=1/<newline>
+默认：<tt/0/<newline>
+<p>
+要求呼叫的至少一端被加密。（若两端未加密，则终止通话。）
+
+<item><tt/H235HalfCallMaxTokenLength=2048/<newline>
+默认：<tt/1024/<newline>
+<p>
+设置H.235呼叫媒体的令牌最大长度。对于1024位令牌，将使用AES 128加密。对于大于1024 GnuGk的令牌长度，将使用AES 256。    
+
+<item><tt/EnableH235HalfCallMediaKeyUpdates=1/<newline>
+默认：<tt/0/<newline>
+<p>
+在对媒体密钥进行许多操作以保持加密安全之后，需对其进行更新。此功能仅经过GnuGk至GnuGk的测试。
+大多数厂家的端点都不支持H.235.6中定义的密钥更新。    
+
+<item><tt/Q931DecodingError=Drop/<newline>
+默认：<tt/Disconnect/<newline>
+<p>
+指定GnuGk对无法解码的无效Q.931消息的反应。在版本3.1之前，GnuGk会 "Disconnect" 以保护内部端点免受可能的恶意消息的侵害，
+但是若你有一些无法修复的错误端点，则可能只是“丢弃”该不会被解码的Q.931消息，会有所帮助。仅应谨慎使用“转发”消息的最后一个选项，
+因为无效的消息可能会导致端点崩溃或恶化。    
+
+<item><tt/PregrantARQ=1/<newline>
+默认：<tt/0/<newline>
+<p>
+使用预混合的ARQ模型：端点不必在呼叫之前发送ARQ，并且将在呼叫建立中保存一次消息往返。
+端点不支持此H.323 ver.2功能，并且将正常发送ARQ。
+<p>
+注意：在直接模式配置中使用此开关时，将失去对呼叫几乎所有控制。当网守处于路由模式时，
+没有ARQ的呼叫仍可以在 Setup 消息中进行身份验证。    
+
+<item><tt/EnableH460P=1/<newline>
+默认：<tt/0/<newline>
+<p>
+警告：这是一项实验性功能，用于支持尚未发布的H.460标准。    
+
+<item><tt/ProxyHandlerHighPrio=0/<newline>
+默认：<tt/1/<newline>
+<p>
+将用于信令连接的代理处理设置为高优先级。在某些虚拟服务器配置中，
+若PTLib失败并显示 "pthread_setschedparam failed"，则必须将其关闭。
+
+<item><tt/H225DiffServ=46/<newline>
+默认：<tt>0</tt><newline>
+<p>
+设置H.225消息的DiffServ类（DSCP）。（在大多数Windows版本上，以这种方式设置DSCP无效。）
+
+<item><tt/H245DiffServ=46/<newline>
+默认：<tt>0</tt><newline>
+<p>
+设置H.245消息的DiffServ类（DSCP）。（在大多数Windows版本上，以这种方式设置DSCP无效。）
+
+<item><tt/DisableFastStart=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+从信令消息中删除fastStart元素，以便端点无法建立fastStart连接。    
+
+<item><tt/DisableSettingUDPSourceIP=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+让操作系统决定UDP数据包的源IP。在一些少许的网络配置中需要，但可能会在具有多个IP的接口上破坏H.460.19。    
+
+<item><tt>EnableGnuGkTcpKeepAlive=1</tt><newline>
+默认：<tt>0</tt><newline>
+<p>
+在所有H.225和H.245连接上发送空的TPKT保活状态。对于使用H.460.18的呼叫，这些保持连接会自动启用，而无需使用此开关。
+
+<item><tt>DisableGnuGkH245TcpKeepAlive=1</tt><newline>
+默认：<tt>0</tt><newline>
+<p>
+对于非H.460.18连接，禁用H.245连接上的保活状态（由于Polycom的互通性问题，因此需要）。
+
+<item><tt>GnuGkTcpKeepAliveInterval=29</tt><newline>
+默认：<tt>19</tt><newline>
+<p>
+设置保持活动间隔（秒）。    
+
+<item><tt>GnuGkTcpKeepAliveMethodH225=Status</tt><newline>
+默认：<tt>EmptyFacility</tt><newline>
+<p>
+设置不使用H.460.18时，用于保持H.225连接的消息。    
+
+可能的值: TPKT, EmptyFacility, Notify, Status, StatusInquiry, Information, None.
+
+<item><tt>H460KeepAliveMethodH225=Status</tt><newline>
+默认：<tt>EmptyFacility</tt><newline>
+<p>
+设置使用H.460.18时，用于保持H.225连接的消息。
+
+可能的值: TPKT, EmptyFacility, Notify, Status, StatusInquiry, Information, None.
+
+<item><tt>GnuGkTcpKeepAliveMethodH245=TPKT</tt><newline>
+默认：<tt>UserInput</tt><newline>
+<p>
+设置不使用H.460.18时，用于保持H.245连接的消息。    
+
+可能的值: TPKT, UserInput, None.
+
+<item><tt>H460KeepAliveMethodH245=TPKT</tt><newline>
+默认：<tt>UserInput</tt><newline>
+<p>
+设置使用H.460.18时，用于保持H.245连接的消息。 
+
+可能的值: TPKT, UserInput, None.
+
+<item><tt>RedirectCallsToGkIP=1</tt><newline>
+默认：<tt>0</tt><newline>
+<p>
+当destCallSIgnallAddress不是网守自身的IP或外部IP之一时，将定向发送Facility给呼叫者。
+可用于将呼叫直接重定向到已由负载均衡器转发到网守的呼叫，该负载均衡器需要从呼叫路径中删除。
+
+请注意，这与“显式”路由策略不兼容，在许多情况下，端点将无法通过网守呼叫除网守自己的IP之外的任何其他IP。
+
+</itemize>
+
+<p>
+<sect1>Section &lsqb;Proxy&rsqb;
+<label id="proxy">
+<p>
+本节定义了H.323代理功能。这意味着网守将在主叫端和被叫端之间路由所有流量，因此两个端点之间没有直接流量。
+因此，若某些端点在NAT服务器后方使用私有IP，而某些端点在服务器外使用公有IP，则非常有用。
+
+GK可以代理RTP/RTCP（音频和视频）和T.120（数据）的逻辑通道。还支持通过快速连接过程或H.245隧道打开的逻辑通道。
+
+请注意，要使代理工作，网守必须 <bf/direct connection/ 到呼叫者和被呼叫者的两个网络。
+
+<itemize>
+<item><tt/Enable=1/<newline>
+默认：<tt/0/<newline>
+<p>
+是否启用代理功能。您必须首先启用网守路由模式（请参阅 <ref id="routed" name="上一节"> ）。您不必指定路由的H.245。若需要，它将自动使用。
+
+<item><tt>InternalNetwork=10.0.1.0/24</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+若要覆盖对代理后的网络的自动检测，可通过此处指定它来实现，允许多个内部网络。
+到内部网络的数据包将使用本地接口作为发送方，而不是默认IP或ExternalIP。对于内部网络，即使激活了全局代理，也可以禁用代理。
+
+<descrip>
+<tag/Format:/
+<tt>InternalNetwork=network address/netmask[,network address/netmask,...]</tt>
+<p>
+网络掩码可以用小数点表示法或CIDR表示法（前缀长度）表示，如示例所示。 
+<tag/例:/
+<tt>InternalNetwork=10.0.0.0/255.0.0.0,192.168.0.0/24</tt>
+</descrip>
+
+<item><tt/ProxyAlways=1/<newline>
+默认：<tt/0/<newline>
+<p>
+无论其他如何设置，始终代理所有呼叫。 
+
+<item><tt/T120PortRange=40000-40999/<newline>
+默认：<tt>N/A (let the OS allocate ports)</tt><newline>
+<p>
+指定T.120数据通道的TCP端口号的范围。请注意，范围大小可能会限制并发呼叫的数量。
+请参阅说明中有关TIME_WAIT套接字状态超时的 <tt/Q931PortRange/ 注释。 
+
+<item><tt/RTPPortRange=50000-59999/<newline>
+默认：<tt>1024-65535</tt><newline>
+<p>
+指定RTP/RTCP通道的UDP端口号范围。由于RTP流需要两个套接字，因此该范围必须包含偶数个端口。
+请注意，指定范围的大小可能会限制可能的并发呼叫数。
+
+<item><tt/ProxyForNAT=1/<newline>
+默认：<tt/0/<newline>
+<p>
+若设置，则GK将充当呼叫的代理，其中一参与的端点在NAT服务器后。这样可以确保RTP/RTCP流无需修改即可穿透到NAT盒中。
+但是，NAT服务后的端点必须使用相同的端口来发送和接收RTP/RTCP流。若端点的不良或损坏不满足前提条件，则应禁用此功能，
+并让NAT框为您转发RTP/RTCP流。
+
+<item><tt/ProxyForSameNAT=1/<newline>
+默认：<tt/0/<newline>
+<p>
+是否代理来自同一NAT服务器的端点之间的呼叫。当端点在同一个NAT后时，它们是否可以直接通信，因一个或两个都可以在子NAT上，
+会存在一定程度的不确定性。请谨慎禁用此功能。
+
+<item><tt/EnableRTPMute=1/<newline>
+默认：<tt/0/<newline>
+<p>
+此设置允许媒体代理模式下，任何呼叫方通过发送*作为字符串或tone.userinput来静音音频/视频。发送*将使音频/视频静音，
+随后的*的发送将使音频/视频静音。只有将通话静音的一方才能取消静音。该功能设计为不支持H450.4的端点保持的功能。
+
+<item><tt/EnableRTCPStats=1/<newline>
+默认：<tt/0/<newline>
+<p>
+启用后，GnuGk将收集RTCP发送者报告（例如，将其发送到Radius服务器）。
+
+<item><tt/RemoveMCInFastStartTransmitOffer=1/<newline>
+默认：<tt/0/<newline>
+<p>
+从fastStart发送应答中删除mediaChannel。对于单播传输通道，不应提供mediaChannel。被叫方应该在回答中提供mediaChannel。
+
+<item><tt/SearchBothSidesOnCLC=1/<newline>
+默认：<tt/0/<newline>
+<p>
+H.245 CloseLogicalChannel应请求仅引用端点自己的逻辑信道。
+一些不良的端点实现也需要搜索和关闭另一个端点的逻辑通道。
+在2.3.0版之前，GnuGk会自动执行此操作，但是在某些情况下它会中断通道的建立，若这些端点断开，则必须启用此开关。
+
+<item><tt/CheckH46019KeepAlivePT=0/<newline>
+默认：<tt/1/<newline>
+<p>
+验证H.460.19保持有效数据包的正确负载类型。对发布错误的有效负载类型的端点则禁用。
+
+<item><tt/RTPMultiplexing=1/<newline>
+默认：<tt/0/<newline>
+<p>
+启用H.460.19 RTP多路复用。必须启用H.460.19进行复用。
+<p>
+注意：要更改RTP多路复用设置（包括端口），必须重新启动GnuGk。
+重新加载配置不会重新读取此配置项。
+
+<item><tt/RTPMultiplexPort=4000/<newline>
+默认：<tt/3000/<newline>
+<p>
+设置用于H.460.19 RTP多路复用的RTP端口。
+
+<item><tt/RTCPMultiplexPort=4001/<newline>
+默认：<tt/3001/<newline>
+<p>
+设置用于H.460.19 RTP多路复用的RTCP端口。
+
+<item><tt/RTPDiffServ=46/<newline>
+默认：<tt/4/<newline>
+<p>
+为RTP代理设置DiffServ类（DSCP）。默认值对应于我们先前使用的旧IPTOS_LOWDELAY标志。
+新安装应使用例如，建议将DSCP EF推荐为46。对于IPv6数据包，将设置TCLASS。（在大多数Windows版本上，以这种方式设置DSCP无效。）
+
+<item><tt>ExplicitRoutes=10.2.1.5/16,10.6.1.3/16,11.0.0.0/8-20.1.1.1</tt><newline>
+默认：<tt>n/a</tt><newline>
+<p>
+将明确的路由规则添加到GnuGk的内部路由表中。有2种规则格式：<tt>sourceIP/mask</tt> 或 <tt>network/mask-sourceIP</tt> 。
+以上示例将使用 10.2.1.5 作为发向 10.2.0.0/16 网络的所有消息的发送方IP，并使用10.6.1.3作为发向10.6.0.0/16网络的消息的发送方IP。
+发送到 11.0.0.0/8 网络的消息将获得 20.1.1.1 作为发件人IP。所有发送者IP都应包括在归属IP列表中。
+
+<item><tt>IgnoreSignaledIPs=1</tt><newline>
+默认：<tt>0</tt><newline>
+<p>
+忽略端点发出所有信令的RTP流IP，并100%依赖端口自动检测。在某些情况下，这会导致未注册的端点和不支持NAT穿透协议的端点的NAT穿透更好。
+对于使用H.460 NAT穿透的端点的呼叫以及本质上是单向的H.239视频流，此功能将自动禁用。因此，我们不能使用自动检测。
+
+<item><tt>IgnoreSignaledPrivateH239IPs=1</tt><newline>
+默认：<tt>0</tt><newline>
+<p>
+若它们是专用IP，也请忽略为H.239流发出信令的IP。
+
+<item><tt>AllowSignaledIPs=192.168.1.0/24,10.0.0.0/8</tt><newline>
+默认：<tt>n/a</tt><newline>
+<p>
+当 IgnoreSignaledIPs 处于活动状态时，请勿忽略来自这些网络的IP（例如，因为它们不主动发送RTP流而仅提供环回）。    
+
+<item><tt>PortDetectionTimeout=5</tt><newline>
+默认：<tt>-1</tt><newline>
+<p>
+当使用IgnoreSignaledIPs=1的端口检测时，若在打开通道后的前n秒钟内无法转发任何数据包，此开关将使GnuGk认为端口检测失败。
+然后，GnuGk将向双方发送一个CloseChannelRequest，让其关闭自己的频道并触发MediaFail记录事件。
+值 &lt;= 零将禁用检测。
+
+<item><tt>UpdateCalledPartyToH225Destination=1</tt><newline>
+默认：<tt>0</tt><newline>
+<p>
+此开关，您可以让GnuGk将传出的Setup消息中的CalledPartyNumber节点更新为H.225 destinationAddress的第一个E.164号，
+若没有目的地是E164号，则将其删除。这旨在帮助与使用CalledPartyNumber而不是H.225 destinationAddress的网关进行互操作。
+
+<item><tt>FilterVideoFastUpdatePicture=10</tt><newline>
+默认：<tt>0</tt><newline>
+<p>
+当端点收到视频图像质量下降时，它们可以通过H.245 VideoFastUpdatePicture消息通知远端。
+远端通常通过发送完整的I帧而不是部分图像更新来进行响应。
+
+通常认为是一件好事。在某些情况下，更新请求太多会大大增加带宽使用量，并使情况恶化。
+
+将此设置为1时，GnuGk每秒允许1个更新请求。如果将其设置为10，GnuGk将每10秒允许1个请求。
+
+<item><tt>LimitRTPSources=IP</tt><newline>
+默认：<tt>n/a</tt><newline>
+<p>
+仅接受来自呼叫信令去往的相同IP的RTP。当设置为 'Net' 时，将接受来自整个C类网络（/24 netmask）的RTP（或IPv6 /64 netmask）。
+
+此设置可防止RTP漏洞攻击，但在呼叫信令和RTP来自不同IP的情况下，可能会中断有效呼叫。
+
+<item><tt>LegacyPortDetection=1</tt><newline>
+默认：<tt>0</tt><newline>
+<p>
+保留帮助非常老旧的端点的端口检测，这会使您的网守容易受到RTP Bleed攻击。
+
+注意：这是安全风险！
+
+</itemize>
+
+<p>
+<sect1>Section &lsqb;模式选择&rsqb;
+<label id="modeselection">
+<p>
+在路由模式或代理模式下，使用此节在每个IP网络的基础上指定确切的路由模式（路由模式，路由模式加上H.245路由或代理模式）。
+
+<descrip>
+<tag/语法:/
+
+<tt/network=mode[,mode]/
+</descrip>
+
+该网络由IP加上可选的CIDR指定，例如，192.168.1.0/24。
+使用网络掩码最长的网络规则（最具体）。
+<p>
+
+可能的模式是（名称不区分大小写）
+<itemize>
+<item><tt/ROUTED/<newline>
+路由模式，其中路由Q.931消息，但不路由H.245消息（除非H.245隧道处于活动状态）。
+<item><tt/H245ROUTED/<newline>
+路由模式加上H.245路由。
+<item><tt/PROXY/<newline>
+具有RTP代理的代理模式。
+</itemize>
+
+第一种模式用于呼入和呼出指定网络的呼叫。
+第二种模式用于设备在内部网络的呼叫。
+若仅指定一种模式，则在两种情况下都将使用该模式。
+
+<descrip>
+<tag/例:/
+
+在此示例中，代理了外部 1.2.3.0/24 网络的呼叫，但是保留在该网络内部的呼叫处于路由模式。
+除非涉及IP 3.4.5.6，否则 3.4.5.0/24 中的呼叫始终会被代理，即使它们保留在网络内部也是如此。
+若有2个网络有呼叫规则，则使用代理次数最多的网络。将会呼叫从 192.168.1.222 到 3.4.5.20 的呼叫。
+
+<tscreen><verb>
+[ModeSelection]
+127.0.0.0/24=ROUTED
+192.168.0.0/18=H245ROUTED,ROUTED
+1.2.3.0/24=PROXY,ROUTED
+3.4.5.0/24=PROXY,PROXY
+3.4.5.6=ROUTED
+2005:4dd0:ff00:99a::9/64=PROXY
+</verb></tscreen>
+
+</descrip>
+
+若没有规则与设置匹配，则使用[RoutedMode] GkRouted=，H245Routed= 或[Proxy]Enable= 来确定路由模式。
+<p>
+在某些情况下，这些规则不适用，因为 <htmlurl url="https://www.gnugk.org/" name="GnuGk"> 知道该呼叫需要代理：
+例如，始终会代理涉及H.460.18/.19的呼叫（因为此协议需要代理）
+
+<p>
+<sect1>Section &lsqb;ModeVendorSelection&rsqb;
+<label id="modeselection">
+<p>
+在路由模式或代理模式下，使用此部分以指定厂商的方式指定确切的路由模式（路由模式，路由模式以及H.245路由或代理模式）。
+供应商信息是从setup和connect消息的H225_EndpointType字段中获取。
+
+<descrip>
+<tag/语法:/
+
+<tt/vendor=mode/
+</descrip>
+
+供应商由字符串匹配值指定。使用最长字符串匹配的规则（最具体）。
+<p>
+
+可能的模式与上面的[ModeSelection]部分一致。
+
+<descrip>
+<tag/例:/
+
+<tscreen><verb>
+[ModeVendorSelection]
+VoIP Technologies=PROXY
+</verb></tscreen>
+
+</descrip>
+

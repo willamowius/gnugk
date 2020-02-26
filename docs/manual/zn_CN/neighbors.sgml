@@ -1,0 +1,349 @@
+<sect>邻域配置
+<p>
+<sect1>Section &lsqb;RasSrv::Neighbors&rsqb;
+<label id="neighbor">
+<p>
+若ARQ的目的地未知，则网守会将LRQ发送给其邻域，以询问它们是否具有目的地端点。
+若邻域的前缀之一与目的地匹配或前缀为``<tt/*/''，则选择邻域。可指定多个前缀。可使用特殊字符`` .''进行通配符匹配，并使用 ``<tt/!/''禁用特定前缀。
+
+网守仅回复从本节中定义的邻域发送的LRQ。若指定一个空的SendPrefixes条目，则不会向该邻域发送任何LRQ，但是网守将接受该邻域的LRQ。
+
+该<tt/password/字段用于验证来自该邻域的LRQ。有关详细信息，请参见<ref id="gkauth" name="[Gatekeeper::Auth]">部分。
+
+是否接受来自邻域的呼叫还取决于<ref id="routed" name="[RoutedMode]"> 部分中的AcceptNeighborsCalls开关 。
+
+<descrip>
+<tt>GKID="GnuGk" | "CiscoGk" | "ClarentGk" | "GlonetGk"</tt>
+</descrip>
+
+网守类型具有以下特征：
+<itemize>
+<item><tt/Generic/<newline>
+适用于任何符合H.323的供应商的邻域。（此设置与'GnuGk'相同。）
+
+<item><tt/GnuGk/<newline>
+如有疑问，请使用GnuGk网守类型。这也会激活H.460.23 / H.460.24。
+
+<item><tt/CiscoGk/<newline>
+GnuGk将伪装成思科的网守，并发送虚假的制造商数据。仅用于真正古老的思科网守。
+
+<item><tt/ClarentGk/<newline>
+Clarent的网守无法解码LRQ中的nonStandardData，因此GnuGk会将其过滤掉。
+
+<item><tt/GlonetGk/<newline>
+对LRQ转发有限的支持。
+</itemize>
+
+<p>
+<descrip>
+<tag/例：/<newline>
+<tt/[RasSrv::Neighbors]/<newline>
+<tt/GK1=CiscoGk/<newline>
+<tt/GK2=GnuGk/<newline>
+<newline>
+<tt/[Neighbor::GK1]/<newline>
+<tt/GatekeeperIdentifier=GK1/<newline>
+<tt/Host=192.168.1.1/<newline>
+<tt/SendPrefixes=02/<newline>
+<tt/AcceptPrefixes=*/<newline>
+<tt/ForwardLRQ=always/<newline>
+<newline>
+<tt/[Neighbor::GK2]/<newline>
+<tt/GatekeeperIdentifier=GK2/<newline>
+<tt/Host=192.168.1.2/<newline>
+<tt/SendPrefixes=03,0048/<newline>
+<tt/AcceptPrefixes=0049,001/<newline>
+<tt/ForwardHopCount=2/<newline>
+<tt/ForwardLRQ=depends/<newline>
+<newline>
+</descrip>
+
+该<tt/[RasSrv::Neighbors]/部分仅用于指定网守类型。每个邻域的配置都放在单独的部分中。
+
+<sect1>Section &lsqb;RasSrv::LRQFeatures&rsqb;
+<label id="lrqfeatures">
+<p>
+定义LRQ和LCF的某些功能。
+<itemize>
+<item><tt/NeighborTimeout=1/<newline>
+Default: <tt/2/<newline>
+<p>
+等待邻域响应的超时值（以秒为单位）。若没有邻域在超时之前做出响应，则网守将以ARJ答复发送ARQ的端点。
+
+此timout应用于每次重试（请参见下文）。
+
+<item><tt/SendRetries=4/<newline>
+Default: <tt/2/<newline>
+<p>
+向邻域发送LRQ的尝试次数。重试超时后，若域没有响应，则网守将以LRJ答复发送LRQ的端点。
+
+<item><tt/ForwardHopCount=2/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+若网守收到目的地未知的LRQ，则可将此消息转发给其邻域。
+
+当网守接收到LRQ并决定将消息转发到另一个网守时，它将首先递减 LRQ的<bf/hopCount/字段。
+若<bf/hopCount/已达到0，则网守将不转发该消息。此选项定义LRQ可通过其传播的网守数量。请注意，它仅影响LRQ的发送者，而不影响转发器。可通过配置部分为特定邻域覆盖此设置。
+
+此设置还限制了转发的LRQ的跳数。
+
+<item><tt/AcceptForwardedLRQ=1/<newline>
+Default: <tt/1/<newline>
+<p>
+是否接受邻域转发的LRQ。可用特定邻域的配置覆盖此设置。
+
+<item><tt/ForwardResponse=0/<newline>
+Default: <tt/1/<newline>
+<p>
+若网守转发收到的LRQ消息，它可决定接收LCF响应还是让它直接返回LRQ发起者。若网守需要接收转发的LRQ的LCF消息，则将此选项设置为1。可用特定邻域的配置覆盖此设置。
+
+<item><tt/ForwardLRQ=always | never | depends/<newline>
+Default: <tt/depends/<newline>
+<p>
+此设置确定是否应该转发收到的LRQ。<tt/always/无条件转发LRQ，<tt/never/阻止LRQ转发，<tt/depends/仅当其跳数大于1时，告诉网守转发LRQ。此设置可用特定邻域的配置来覆盖。
+
+<item><tt/AcceptNonNeighborLRQ=1/<newline>
+Default: <tt/0/<newline>
+<p>
+是否接受从未定义为邻域的各方转发的LRQ。可与SRV路由策略一起使用，以向第三方网守发出呼叫。这应该与LRQ身份验证策略结合使用。
+
+<item><tt/AcceptNonNeighborLCF=1/<newline>
+Default: <tt/0/<newline>
+<p>
+此设置禁用LRQ响应者的IP地址与指定的邻域IP地址的匹配，以便接受来自任何IP地址的LCF消息响应。当使用多级网守层次结构而不路由Q.931信令时，这具有最重要的意义。
+作为最低安全性，将仅检查LRQ/LCF序列号。连接到全球拨号方案（GDS）的国家网守需要此功能， 
+有关更多信息，请参阅<url url="https://community.jisc.ac.uk/library/videoconferencing-booking-service/global-dialing-scheme-explained" name="https://community.jisc.ac.uk/library/videoconferencing-booking-service/global-dialing-scheme-explained">。
+警告：启用从LRQ目标IP以外的其他位置接收LCF是一个重大的安全风险。使用此设置时要格外小心。
+
+<item><tt/SendRIP=9000/<newline>
+Default: <tt/0/<newline>
+<p>
+收到LRQ后，发送带有此延迟值的RequestInProgress (RIP)消息。此开关可用于延长呼叫者等待应答的持续时间。当延迟ist设置为0时，不发送RIP。
+
+<item><tt/EnableLanguageRouting=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+在确定路由请求时是否比较用户的语言设置。
+
+<item><tt/PingAlias=my-ping/<newline>
+Default: <tt>gatekeeper-monitoring-check</tt><newline>
+<p>
+用于LRQ ping的别名。与别名请求相比，使用此别名接收的LRQ的处理速度会更快。VCS在GDS拨号方案中也使用此功能。仅设置别名不会打开ping的发送。
+
+<item><tt/SendLRQPing=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+启用后，GnuGk将定期使用LRQ ping它的所有邻域。若邻域没有通过NeighborTimeout响应LRQ或LRJ，则邻域将被禁用，并且直到下一次LRQ ping成功后才用于路由。
+跳过禁用的邻域可加快某些配置中的路由。
+
+可使用PingAlias开关在LRQ中配置别名。
+
+<item><tt/LRQPingInterval=30/<newline>
+Default: <tt>60</tt><newline>
+<p>
+用于发送LRQ ping的时间间隔。
+
+<item><tt/LoopDetection=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+拒绝LRQ，以解决GnuGk最近已经看到的呼叫。当有多个将所有呼叫相互转发的网守时，请使用此方法来避免呼叫循环和LRQ风暴。
+
+此功能仅适用于'GnuGk' 或 'Generic'类型的邻域。
+
+<item><tt/LoopDetectionExpireTime=120/<newline>
+Default: <tt>60</tt><newline>
+<p>
+以秒为单位的持续时间，显示了有关GnuGk的呼叫数据存储的时间。
+
+<item><tt/LoopDetectionReprocessLCFs=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+不要在循环检测中缓存任何LCF。若缓存的具有错误数据的LCF（对于另一个端点）中断了路由，则使用此方法。
+
+</itemize>
+
+
+<sect1>Section &lsqb;Neighbor::...&rsqb;
+<p>
+以开头的<tt/[Neighbor::/部分特定于一个邻域。若定义&lsqb;Neighbor::...&rsqb部分，则<ref id="lrqfeatures" name="[RasSrv::LRQFeatures]">中所有设置的默认值都 将应用于此邻域。
+可通过每个特定于邻域的部分中的配置选项来覆盖全局默认值。
+
+<itemize>
+<item><tt/GatekeeperIdentifier=GKID/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+该邻域的网守标识符。若未指定此选项，则标识符从<tt/Neighbor::/节名称的第二部分获取。
+
+<item><tt/Host=192.168.1.1/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+该邻域的IP地址。
+
+<item><tt/Password=secret/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+用于验证传入的LRQ和SCI中收到的加密令牌的密码。若设置了Keyfilled= 则加密，否则设置为纯文本。
+
+<item><tt/AuthUser=Foo/<newline>
+Default: <tt>GKID</tt><newline>
+<p>
+用于验证传入的LRQ和SCI中收到的加密令牌的用户名。默认值为该邻域的网守标识符（请参见上文）。
+
+<item><tt/Dynamic=0/<newline>
+Default: <tt>0</tt><newline>
+<p>
+1 - 表示此邻域的IP地址可更改。
+
+<item><tt/SendPrefixes=004,002:=1,001:=2/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+该邻域希望接收其LRQ的前缀列表。若指定'*'，LRQ将始终发送到该邻域。
+可为每个邻域的每个前缀赋予一个优先级(using := syntax)，因此在从多个邻域接收到多个LCF的情况下，将选择优先级最高的那个来路由呼叫。
+也可根据别名类型指示网守将LRQ发送到此邻域：<newline>SendPrefixes=h323_ID，dialedDigits，001<newline>
+
+<item><tt/SendIPs=192.168.0.0&sol;16,172.16.0.0&sol;12/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+将通过IP拨号的呼叫发送到该邻域。可使用可选的网络掩码指定网络列表。也可放一个'！'在网络面前进行否定。
+特殊值是"*"发送所有IP呼叫，“私有”发送所有IPv4专用网络，“公共”发送所有公共IPv4地址到该邻域。
+若其中一个网络与拨打的IP地址匹配，则选择邻域。
+
+若呼叫来自已注册的端点，则此端点必须支持canMapAlias for ARQ。
+
+<item><tt/SendAliases=4526354,2000-2010,frank/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+该邻域希望接收其LRQ的特定别名的列表。对于E.164号码，可指定范围。
+
+<item><tt/AcceptPrefixes=*/<newline>
+Default: <tt>*</tt><newline>
+<p>
+GnuGk将在从该邻域收到的LRQ中接受的前缀列表。若指定'*'，则将从该邻域接收所有LRQ。也可根据别名类型指示网守从该邻域接受LRQ：<newline>
+AcceptPrefixes=dialedDigits<newline>
+
+<item><tt/ForwardHopCount=2/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+若网守收到目的地不明的LRQ，则可将此消息转发给其邻域。当网守接收到LRQ并决定将消息转发到另一个网守时，它将首先递减 LRQ的<bf/hopCount/字段。
+若<bf/hopCount/已达到0，则网守将不转发该消息。此选项定义LRQ可以通过其传播的网守数量。请注意，它仅影响LRQ的发送者，而不影响转发器。
+
+此设置还限制了转发的LRQ的跳数。
+
+<item><tt/AcceptForwardedLRQ=1/<newline>
+Default: <tt/1/<newline>
+<p>
+是否接受从该邻域转发的LRQ。
+
+<item><tt/ForwardResponse=0/<newline>
+Default: <tt/1/<newline>
+<p>
+若网守转发收到的LRQ消息，它可以决定接收LCF响应还是让它直接返回LRQ发起者。若网守应接收转发的LRQ的LCF消息，则将此选项设置为"1"。
+
+<item><tt/ForwardLRQ=always | never | depends/<newline>
+Default: <tt/depends/<newline>
+<p>
+此设置确定是否应该转发收到的LRQ。<tt/always/无条件转发LRQ，<tt/never/阻止LRQ转发，<tt/depends/仅在其跳数大于1时，通知网守转发LRQ。
+
+<item><tt/H46018Client=1/<newline>
+Default: <tt/0/<newline>
+<p>
+启用到此邻域的H.460.18保持活动消息并充当穿越客户端。
+
+<item><tt/H46018Server=1/<newline>
+Default: <tt/0/<newline>
+<p>
+充当另一个配置为穿越客户端的网守的穿越服务器。
+<p>
+我们充当穿越服务器的两个邻域都不应具有相同的AuthUser名称。由于穿越客户端的IP可能是未知的或正在更改，因此使用用户名来更新该邻域的IP。
+
+<item><tt/SendPassword=secret/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+发送给邻域的密码（目前仅用于H.460.18 SCI）。若设置了Keyfilled=则加密，否则设置为纯文本。
+
+<item><tt/SendAuthUser=Foo/<newline>
+Default: <tt>own GK-ID</tt><newline>
+<p>
+用于将加密令牌发送到此邻域的用户名（gatekeeprID）（目前仅用于H.460.18 SCI）。默认值为该网守的ID。
+
+<item><tt/UseTLS=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+与该邻域一起使用TLS（传输层安全性）。另请参阅<ref id="tls" name="[TLS] section">部分。
+
+<item><tt/SendLRQPing=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+仅为此邻域启用LRQ ping。
+
+</itemize>
+
+<sect1>使用GnuGk作为穿透越服务器配置穿越区域
+<label id="traversalserver">
+<p>
+要使用腾保VCS配置穿越区域，请在VCS中添加类型为"Traversal client"的区域。
+
+在[Neighbor::..]部分中，应将VCS中配置的用户名和密码设置为AuthUser= 和Password=。
+若使用Keyfilled =开关，则必须使用addpasswd工具对密码进行编码，否则，将其作为纯文本输入配置中。
+请注意，要使任何密码认证有效，两个系统必须具有准确且同步的时间，因此强烈建议配置NTP。
+
+在VCS设置中启用H.323，将协议设置为H.460.18（未批准），端口设置为1719。
+
+在GCS中将GnuGk服务器的IP添加为对等1地址。
+
+在[RoutedMode]部分中的EnableH46018=1中，在GnuGk配置中启用H.460.18。在[Neighbor::..]部分中设置H46018Client=0和H46018Server=1。
+若全局启用了H.460.18，则GnuGk将自动检测到邻域的行为类似于H.460.18穿越区域客户端，并且它需要充当穿越服务器。
+但是由于穿越客户端可能来自未知或更改的IP，因此设置H46018Server标志明确允许GnuGk在第一个keepAlive SCI消息上更新客户端的IP。
+
+<descrip>
+<tag/例：/
+<tt/[RoutedMode]/<newline>
+<tt/EnableH46018=1/<newline>
+<newline>
+<tt/[RasSrv::Neighbors]/<newline>
+<tt/VCSClient=Generic/<newline>
+<newline>
+<tt/[Neighbor::VCSClient]/<newline>
+<tt/GatekeeperIdentifier=FooVCS/<newline>
+<tt/Host=192.168.1.1/<newline>
+<tt/SendPrefixes=02/<newline>
+<tt/AcceptPrefixes=*/<newline>
+<tt/H46018Client=0/<newline>
+<tt/H46018Server=1/<newline>
+<tt/AuthUser=clientuser/<newline>
+<tt/Password=clientpw/<newline>
+<newline>
+</descrip>
+
+<sect1>使用GnuGk作为穿越客户端配置穿越区域
+<label id="traversalclient">
+<p>
+要使用Tandberg VCS配置穿越区域，请在VCS中添加类型为“ Traversal服务器”的区域。用作穿越服务器时，VCS通常使用其他端口，因此请确保将端口添加到主机交换机。
+<p>
+在VCS设置中启用H.323，将协议设置为H.460.18（未批准），然后选择端口（不能使用1719！）。
+必须在GnuGk配置中为此邻域指定此端口。在VCS中设置用户名和密码，并将其放入GnuGk配置中的SendAuthUser= 和SendPaswword= 中。
+<p>
+在GnuGk配置中，在[RoutedMode]中设置EnableH46018=1，并在[Neighbor::..]部分中设置H46018Client=1。
+
+请注意，要使任何密码认证有效，两个系统必须具有准确且同步的时间，因此强烈建议配置NTP。
+
+<descrip>
+<tag/例：/
+<tt/[RoutedMode]/<newline>
+<tt/EnableH46018=1/<newline>
+<newline>
+<tt/[RasSrv::Neighbors]/<newline>
+<tt/VCSServer=Generic/<newline>
+<newline>
+<tt/[Neighbor::VCSServer]/<newline>
+<tt/;from unknown IP/<newline>
+<tt/Host=211.211.10.10:9004/<newline>
+<tt/SendPrefixes=*/<newline>
+<tt/AcceptPrefixes=*/<newline>
+<tt/H46018Client=1/<newline>
+<tt/H46018Server=0/<newline>
+<tt/SendAuthUser=serveruser/<newline>
+<tt/SendPassword=serverpw/<newline>
+<newline>
+</descrip>
+

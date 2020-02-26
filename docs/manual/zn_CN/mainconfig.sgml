@@ -1,0 +1,664 @@
+<sect1>配置文件
+<label id="config">
+<p>
+在 <htmlurl url="https://www.gnugk.org/" name="GnuGk">
+的配置文件是一个标准的文本文件。基本格式为：
+
+<tscreen><verb>
+[节点]
+键名=键值
+</verb></tscreen>
+
+注释需在行的开头用 (<tt/#/) 或 (<tt/;/)
+
+<tt/complete.ini/ 该文件包含GnuGk的所有可用部分。
+在大多数情况下，一次全部使用它们是没有意义的。该文件只是作为许多设置示例的集合。
+
+可以在运行时更改配置文件。修改配置文件后，您可以通过 <tt/reload/ 状态端口发出命令, 或将 <tt/HUP/ 信号发送给网守进程：
+<tscreen><verb>
+kill -HUP `cat /var/run/gnugk.pid`
+</verb></tscreen>
+
+
+<sect1>数据库配置
+<label id="database">
+<p>
+所有使用数据库的GnuGk模块（例如 <ref id="sqlauth" name="[SQLAuth]">,
+<ref id="sqlacct" name="[SQLAcct]"> 等）都支持一组通用的配置参数，在此进行介绍。
+即使配置相同，也得为每个模块重复所有设置。同时，也可以为每个模块自由使用differend数据库驱动程序和选项。
+
+<itemize>
+<item><tt/Driver=MySQL | PostgreSQL | Firebird | ODBC | SQLite | redis/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+要使用的数据库驱动程序。如, <tt/MySQL/, <tt/PostgreSQL/, <tt/Firebird/,
+<tt/ODBC/, <tt/SQLite/ 和 <tt/redis/ 驱动程序来实现。
+MySQL驱动程序还可用于MariaDB和其他MySQL分支。并非所有这些驱动程序都始终可用。编译GnuGk时，
+仅包含那些具有必要的数据库库和头文件的驱动程序。启动GnuGk时，您可以在版本信息中查看可执行文件中包含哪些驱动程序。
+在运行时，GnuGk将为您配置的数据库加载共享库（DLL）。
+GnuGk支持SQLite的版本3。
+
+redis当前仅适用于从数据库读取，不适用于SQLAcct。
+
+确保您的数据库配置为支持基于密码的身份验证-Microsoft SQL Server必须使用“混合模式”，此功能才能正常运行。
+
+<item><tt>Library=c:/Program Files/Mysql/libmysql.dll</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+如果未自动找到共享库或DLL，则可以在此处设置其他文件名或提供库的绝对路径。
+
+<item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
+默认：<tt/localhost/<newline>
+<p>
+SQL Server主机地址。可以采用 <tt/DNS[:PORT]/ 或 <tt/IP[:PORT]/。
+像 <tt/sql.mycompany.com/ 或 <tt/sql.mycompany.com:3306/ 或 <tt/192.168.3.100/。
+ODBC 驱动程序将忽略此设置。
+
+<item><tt/Database=billing/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+要连接的数据库名称。
+<p>
+要从Windows服务器连接到 <bf/ODBC 数据源 /, 请通过“控制面板” /“管理工具” /“数据源（ODBC）”创建数据源，然后添加系统DSN。在GnuGk的 Database= setting 中使用系统DSN的名称。
+<p>
+要从Unix服务器连接到 <bf/ODBC 数据源 /, 请使用在unixODBC中配置的DSN定义。一些unixODBC驱动程序似乎忽略了GnuGk配置中设置的用户名和密码。
+对于这些，您应该使用形式的DSN DSN=GnuGk;UID=admin;PWD=secret;。即使在这种情况下，GnuGk的Usename = 和 Password = setting 也必须始终存在。
+根据您的unixODBX配置，您可能必须在启动GnuGk之前export ODBCINI=/etc/unixODBC/odbc.ini 和 export ODBCSYSINI=/etc/unixODBC 之前启动。
+
+<item><tt/Username=gnugk/<newline>
+<p>
+用于连接数据库的用户名。
+
+<item><tt/Password=secret/<newline>
+<p>
+用于连接数据库的密码。若未指定密码，将尝试不使用任何密码的数据库连接。
+若<tt/EncryptAllPasswords/ 已启用， 或 <tt/KeyFilled/ 在本节中定义了变量，则连接到数据库的密码采用加密形式，应使用该
+<tt/addpasswd/ 程序创建。
+
+<item><tt/MinPoolSize=5/<newline>
+默认：<tt/1/<newline>
+<p>
+定义活动的SQL连接数。这可以在重负载下实现更好的性能，因为可以同时执行多个并发查询。
+<tt/MinPoolSize=1/ 当序列化对SQL数据库的访问（一次查询）时，设置将模拟旧行为。
+不要被这个名字迷惑，这里是实际的连接数。
+
+<item><tt/ConnectTimeout=5/<newline>
+默认：<tt/10/<newline>
+<p>
+数据库连接超时（以秒为单位）。
+
+当前仅由MySQL驱动程序使用；其他驱动程序使用库默认值。
+
+<item><tt/ReadTimeout=10/<newline>
+默认：<tt/60/<newline>
+<p>
+数据库读取超时（以秒为单位）。
+
+当前仅由MySQL驱动程序使用；其他驱动程序使用库默认值。
+
+</itemize>
+
+<sect2>查询中的占位符
+<p>
+许多SQL模块提供了一组可以在查询中使用的占位符，例如SqlAcct中的 %{CallId}。
+
+占位符始终以百分号开头。请注意，若查询中的其他内容（例如LIKE）中需要百分号，则必须转义百分号。一种方法是使用CHAR（37），
+例如：concat（alias，CHAR（37））而不是concat（alias，'%'）。
+
+<sect2>存储过程
+<p>
+使用MySQL时，存储过程做得很好。
+
+使用ODBC时，不能使用“ CALL ProcedureName”语法调用使用参数的存储过程，但是可以使用“ EXEC ProcedureName”调用它们。
+
+使用存储过程进行处理时，请确保它们至少返回一个副本，以便GnuGk不会放弃该调用。
+
+<sect1>LUA脚本
+<label id="luascripting">
+<p>
+一些GnuGk模块允许执行用LUA编写的动态脚本，例如：<ref id="routinglua" name="[Routing::Lua]"> 和 <ref id="luaauth" name="[LuaAuth]">.
+
+LUA是一种简单的脚本语言，Wireshark，FreeSWITCH或nmap等其他网络工具也使用它。有关LUA语言的详细信息，请参阅 <url url="https://www.lua.org/docs.html" name="https://www.lua.org/docs.html">.
+
+根据模块的不同，将获得一些变量以查看详细信息，例如：有关传入呼叫的​​信息，您的脚本可以设置某些输出变量来定义GnuGk应该如何处理该呼叫。您将在每个模块的文档中找到更多详细信息。
+
+所有LUA模块都有一个通用的LUA库，称为“ gnugk”，该库允许访问GnuGk功能。
+
+<itemize>
+<item><tt/gnugk.trace(level, "message")/ - write to the GnuGk trace file
+<item><tt/gnugk.get_config_string("section", "switch", "default")/ - read a string from the GnuGk config
+<item><tt/gnugk.get_config_integer("section", "switch", default)/ - read an integer from the GnuGk config
+</itemize>
+
+
+<sect1>正则表达式
+<label id="regex">
+<p>
+在配置文件的某些地方，GnuGk允许使用正则表达式。这些正则表达式的语法是“扩展的POSIX 1003.2正则表达式”。在Unix系统上，通常可以得到一个手册页，
+以“ man 7 regex”解释语法，或者可以在 <url url="http://man7.org/linux/man-pages/man7/regex.7.html" name="http://man7.org/linux/man-pages/man7/regex.7.html"> 在线查看该手册。
+
+
+<sect1> &lsqb;Gatekeeper::Main&rsqb;
+<label id="gkmain">
+<p>
+<itemize>
+<item><tt/Name=GnuGk/<newline>
+默认：<tt/GnuGk/<newline>
+<p>
+该GK的标识符。GK将仅响应此ID的GRQ，并将在发送给其端点的很多消息中使用它。
+
+<item><tt/EnableIPv6=1/<newline>
+默认：<tt/0/<newline>
+<p>
+若GnuGk编译时选择支持了IPv6，则可以使用此开关将其打开。
+
+确保为服务器分配常规的IPv6地址。GnuGk将不使用其它本地地址 (fe80::/10).
+
+<item><tt/Home=192.168.1.1/<newline>
+默认：<tt/listen to all IPs/<newline>
+<p>
+GK将侦听此IP地址上的请求。若未设置，则GK将侦听主机的所有IP。可以使用多个home地址，并且必须用分号（;）或逗号（，）分隔。
+
+<item><tt>NetworkInterfaces=192.168.1.1/24,10.0.0.1/0</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+指定GK的网络接口。默认情况下，GK会自动检测主机的接口，因此通常不需要此设置，但若自动检测失败，此设置将可用。
+若在NAT后使用GnuGk，则应使用ExternalIP设置（如下所述），该设置将自动配置GnuGk使其像在NAT上一样工作。
+ExternalIP设置将优先，并将覆盖此值。
+
+<bf/注意：/ 若更改此设置，则必须重新启动网守。从状态端口重新加载不会导致该值被重新读取。
+
+<item><tt/Bind=192.168.1.1/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+指定默认路由的IP地址。此选项可指定在一个主机上可能有许多虚拟接口的多宿主虚拟环境中使用哪个默认IP地址。
+
+<item><tt/EndpointIDSuffix=_tgdz646438/<newline>
+默认：<tt/_endp/<newline>
+<p>
+GK将为每个注册的端点分配唯一的标识符。此选项可用于指定后缀以附加到端点标识符。此选项对安全性很有用，它使攻击者更难猜测端点ID，
+并且应将其设置为不容易被猜测的值。
+
+<bf/This 重新加载配置后，此设置不会更改，您必须完全重启！/
+
+<item><label id="ttl"><tt/TimeToLive=300/<newline>
+默认：<tt/-1/<newline>
+<p>
+端点向GK注册可能会存在有限的时长。GK通过在RCF消息中包含 <bf/timeToLive/ 字段来指定端点的注册保活时间。
+在到达指定的时间长后，注册过期。 端点必须在到期时间之前定期发送 <bf/keepAlive/ RRQ保活。
+消息可以包括如H.225.0中所述的最少信息量，此为轻量级RRQ。
+
+端点可以在向GK发送的RRQ消息中请求更短的<bf/timeToLive/。
+
+为避免RRQ消息过时，若指定了较低的值，则GK将自动将此计时器重置为60秒。
+
+时间超时后，GK将使用IRQ消息进行两次尝试，以确定端点是否在线。若端点以IRR响应，则注册将被扩展。
+如果不是，则GK将向端点发送URQ原因为 <bf/ttlExpired/。然后，端点必须使用完整的RRQ消息向网守重新注册。
+
+要禁用此功能，请将其设置为 <tt/-1/。
+
+<item><label id="ttl"><tt/EnableTTLRestrictions=0/<newline>
+默认：<tt/1/<newline>
+<p>
+通过“ TimeToLive”参数配置的默认TimeToLive（TTL）不适用于使用H.460.17和H.460.18协议穿越防火墙的端点。为了保持防火墙的通道打开，
+这些端点的TimeToLive默认为19秒。“ TimeToLive”参数可让您将其更改为低至5秒，高至30秒。
+
+若您确定不需要保持活动状态，可以通过将此开关设置为0来禁用这些限制。若禁用了TTL限制，则TimeToLive会成为所有端点（包括H.460.17和H.460.18）
+的全局设置。
+
+<item><tt/CompareAliasType=0/<newline>
+默认：<tt/1/<newline>
+<p>
+默认情况下，比较别名时，H323ID'1234'与E164号码'1234'不匹配。使用此参数可以在执行比较时忽略别名类型。
+
+<item><tt/CompareAliasCase=0/<newline>
+默认：<tt/1/<newline>
+<p>
+默认情况下，别名“ jan”将与别名“ Jan”不匹配。若设置为false，则比较将不区分大小写。
+
+<item><tt/TraceLevel=2/<newline>
+默认：<tt/0/<newline>
+<p>
+设置跟踪级别（与命令行上的-t相同）。
+
+<item><tt/TotalBandwidth=100000/<newline>
+默认：<tt/-1/<newline>
+<p>
+所有端点可用的总带宽，以每秒100bit为单位（例如5120表示512 kbps）。默认情况下，此功能为关闭（-1）。
+
+<bf>注意：</bf> 目前，GnuGk仅检查与已注册端点之间的呼叫。
+
+<item><tt/MinimumBandwidthPerCall=1280/<newline>
+默认：<tt/-1/<newline>
+<p>
+将来自端点的带宽请求提高到至少此值，以每秒100bit为单位。该值包括两个方向，因此384 kbps呼叫的值为7680。
+当端点未报告正确的值（例如Netmeeting）时，设置最小值非常有用。若设置为零或更少，则不强制执行最小值（默认）。
+
+<bf>注意：</bf> 目前，GnuGk仅检查与已注册端点之间的呼叫。
+
+<item><tt/MaximumBandwidthPerCall=100000/<newline>
+默认：<tt/-1/<newline>
+<p>
+设置单个呼叫允许的最大带宽，以每秒100bit为单位。若设置为零或更少，则不强制最大值（默认）。
+
+<bf>注意：</bf> 目前，GnuGk仅检查与已注册端点之间的呼叫。
+
+<item><tt/RedirectGK=Endpoints > 100 | Calls > 50/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+若GK过载，则可以使用此选项将端点重定向到备用GK。在上面的示例中，若注册的端点数超过100，则GK将拒绝RRQ，
+若并发呼叫超过50，则将拒绝ARQ。
+
+此外，您可以通过将此选项设置为 <tt/temporary/ 或 <tt/permanent/ 来显式重定向所有端点
+GK将发送RAS拒绝消息，其中包含在中定义的备用GK列表 <tt/AlternateGKs/.
+注意 <tt/permanent/ 重定向意味着重定向的端点将不会再次向此GK注册。
+<bf>注意：</bf>  重定向功能仅适用于符合H.323版本4的端点。
+
+<label id="alternategks">
+<item><tt/AlternateGKs=1.2.3.4;1719;false;1;GnuGk2/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+若端点与GnuGk失去连接，它应自动尝试向此处指定的备用GK注册。
+
+<bf>注意：</bf> 根据端点，它可能不会尝试重新建立与其原始GK的连接。H.323v6中增加了对“分配的GK”的支持。
+有关其他信息，请参见 <url url="https://www.packetizer.com/ipmc/h323/whatsnew_v6.html" name="https://www.packetizer.com/ipmc/h323/whatsnew_v6.html">。
+
+主GK包括在RCF中的一个字段，用于通知端点要使用的备用GK的IP和标识符。
+
+备用GK需要知道主GK上的所有注册，否则它将拒绝呼叫。我们的GK可以将每个RRQ转发到备用IP地址。
+
+AlternateGKs配置选项指定主GK的RCF中包含的字段。该字符串的第一、二字段其含转发的位置（IP、端口）。
+第三字段指端点在发出呼叫之前是否需要向备用GK注册。若我们转发其RRQ，它们通常不会，而备用GK会自动知道它们。
+第四字段指定此GK的优先级。越低越好；通常，主GK被认为具有优先级1。最后一个（可选）字段指定备用GK的标识符。
+
+可以指定多个备用GK列表，以逗号分隔。
+
+可以通过 <ref id="rassrvalternategatekeeper" name="[RasSrv::AlternateGatekeeper]"> 中的每个IP规范覆盖此全局定义。
+
+<item><tt/SendTo=1.2.3.4:1719/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+尽管此信息包含在AlternateGK中，但仍然必须指定将RRQ转发到的地址。由于多宿主系统，这可能与AlternateGK的地址不同，因此它是一个单独的配置选项。
+
+可以指定多个GK列表，以逗号分隔。
+
+<item><tt/SkipForwards=1.2.3.4,5.6.7.8/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+为避免循环转发，不应转发从其他GK获得的RRQ（此语句对于主GK和备用GK均适用）。使用两种机制来明确是否应转发请求。
+第一个在RRQ中查找标志。由于很少有端点实现此目的，因此我们可以通过在此处指定它，来提高系统的整体可靠性。
+
+在此列表中指定其他GK的IP。
+
+<item><tt/StatusPort=7000/<newline>
+默认：<tt/7000/<newline>
+<p>
+状态端口，用于监视GK。设置为0可关闭端口。
+有关详细信息，请参见 <ref id="monitor" name="this section">。
+
+GnuGK将监听呼叫信令的所有IP上的状态端口。您应该防火墙中保护那些端口，并在 <ref id="gkstatusauth" name="[GkStatus::Auth]"> 部分中为无法在防火墙中完全关闭的端口设置访问控制规则。
+
+
+<item><tt/StatusTraceLevel=2/<newline>
+默认：<tt/2/<newline>
+<p>
+新状态界面默认输出跟踪级别。有关详细信息，请参见<ref id="monitor" name="this section">。
+
+<item><tt/MaxStatusClients=5/<newline>
+默认：<tt/20/<newline>
+<p>
+指定状态端口上的最大并发连接数。要禁用与状态端口的任何连接，此开关设置为0。
+
+<item><tt/SshStatusPort=1/<newline>
+默认：<tt/0/<newline>
+<p>
+对状态端口使用SSH协议。可以在 <ref id="gkstatusauth" name="[GkStatus::Auth]"> 部分中设置用户密码。
+
+连接命令示例：
+<tscreen><verb>
+ssh -p 7000 gnugk@1.2.3.4
+</verb></tscreen>
+
+<label id="statuseventbacklog">
+<item><tt/StatusEventBacklog=20/<newline>
+默认：<tt/0/<newline>
+<p>
+设置要保存的状态端口条目数量，以便以后在环形缓冲区中显示。
+
+<item><tt/StatusEventBacklogRegex=^[RA]RJ/<newline>
+默认：<tt/./<newline>
+<p>
+定义正则表达式以限制哪些状态端口事件保存在日志中。默认情况下，所有事件均被保存。
+
+<item><tt/TimestampFormat=ISO8601/<newline>
+默认：<tt/Cisco/<newline>
+<p>
+该设置配置GK生成的时间戳默认的字符串格式。此选项影响 <ref id="sqlacct" name="[SQLAcct]">, 
+<ref id="radacct" name="[RadAcct]">, <ref id="fileacct" name="[FileAcct]">
+和其他模块，不影响 <ref id="calltable" name="[CallTable]">.
+您可以通过<tt/TimestampFormat/ 在指定的部分配置各个模块的时间戳格式。
+<p>
+有四种预定义的格式：
+<itemize>
+<item><tt/RFC822/  - GK的默认使用模式 (例如：Wed, 10 Nov 2004 16:02:01 +0100)
+<item><tt/ISO8601/ - 标准ISO格式 (例如：2004-11-10 T 16:02:01 +0100)
+<item><tt/Cisco/ - Cisco设备使用的格式 (例如：16:02:01.534 CET Wed Nov 10 2004)
+<item><tt/MySQL/ - MySQL可以理解的简单格式 (例如：2004-11-10 16:02:01)
+</itemize>
+<p>
+若没有合适的预定义选项，则可以使用 <tt/strftime/ C 函数中的规则构建需要的字符串格式（请参阅man strftime或在MSDN中搜索strftime）。
+通常，格式字符串由常规字符和格式代码组成，后跟一个百分号。示例： "%Y-%m-%d and percent %%" 将返回 "2004-11-10 and percent %"。
+一些常见的格式代码：
+<itemize>
+<item><tt/%a/ - 星期几的简写
+<item><tt/%A/ - 星期几的全称
+<item><tt/%b/ - 月份的简写
+<item><tt/%B/ - 月份的全称
+<item><tt/%d/ - 每月的第几天（十进制）
+<item><tt/%H/ - 24小时制的小时
+<item><tt/%I/ - 12小时制的小时
+<item><tt/%m/ - 月份（十进制）
+<item><tt/%M/ - 分钟（十进制）
+<item><tt/%S/ - 秒数（十进制）
+<item><tt/%y/ - 不带世纪的十进制年份（值从0到99）
+<item><tt/%Y/ - 带世纪部分的十进制年份
+<item><tt/%u/ - 数微秒（十进制 GnuGk的扩展部分）
+<item><tt/%z/ - 时区缩写 (+0100)
+<item><tt/%Z/ - 时区名称
+<item><tt/%%/ - 百分号
+</itemize>
+
+<item><tt/EncryptAllPasswords=1/<newline>
+默认：<tt/0/<newline>
+<p>
+启用配置中所有密码的加密（SQL密码，RADIUS密码，[Password]密码，[GkStatus :: Auth]密码）。
+若启用，则必须使用该 <tt/addpasswd/ 工具对所有密码进行加密。 否则，仅 [Password] and [GkStatus::Auth] 密码被加密 (旧的机制)。
+
+<item><tt/KeyFilled=0/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义在密码加/解密期间要使用的全局填充字节数。可以通过 <tt/KeyFilled/ 在指定的配置部分来设置覆盖它。一般不需要更改此选项。
+
+</itemize>
+
+大多数情况下不需要改以下数值。主要是用于测试或非常复杂的应用程序。
+
+<itemize>
+<item><tt/UseBroadcastListener=0/<newline>
+默认：<tt/1/<newline>
+<p>
+定义是否监听广播的RAS请求。这需要绑定到计算机上的所有接口，因此，若要在同一计算机上运行多个GK，则应将其关闭。
+
+<item><tt/UnicastRasPort=1719/<newline>
+默认：<tt/1719/<newline>
+<p>
+
+单播的RAS通道TSAP标识符，也称为“普通RAS UDP端口”。
+
+<item><tt/UseMulticastListener=0/<newline>
+默认：<tt/1/<newline>
+<p>
+使用IPv4组播启用或禁用GK自动发现。默认情况下启用。
+
+<item><tt/MulticastPort=1718/<newline>
+默认：<tt/1718/<newline>
+<p>
+IPv4多播的RAS通道TSAP标识符。
+
+<item><tt/MulticastGroup=224.0.1.41/<newline>
+默认：<tt/224.0.1.41/<newline>
+<p>
+RAS通道的IPv4组播组。
+
+<item><tt/EndpointSignalPort=1720/<newline>
+默认：<tt/1720/<newline>
+<p>
+端点呼叫信令的默认端口。当实际的呼叫信令端口未知时，在端点注册列表中搜索查看。
+
+<item><tt/ListenQueueLength=1024/<newline>
+默认：<tt/1024/<newline>
+<p>
+呼入时TCP连接的队列长度。
+
+<item><tt/StatusSendBufferSize=16384/<newline>
+默认：<tt/16384/<newline>
+<p>
+设置状态端口连接的TCP发送缓冲区大小。
+
+<item><tt/StatusReceiveBufferSize=16384/<newline>
+默认：<tt/16384/<newline>
+<p>
+设置状态端口连接的TCP接收缓冲区大小。
+
+<item><tt/ExternalIP=myip.no-ip.com/<newline>
+默认：<tt>N/A</tt><newline>
+<p>    
+在NAT后使用GnuGk时，可设置GK伪装成的外部IP地址。允许外部端点和其他GK与NATed GK通信。
+在此，必须启用代理模式并将端口转发所需的端口到GK的IP或将GK放入NAT的DMZ中。这与绑定设置不同，该绑定在GnuGk设置中指定一个物理IP地址。
+
+可以指定IP地址或完全限定的域名（FQDN）。若使用FQDN并将 <tt>ExternalIsDynamic</tt> 其设置为false, 它将在启动或重新加载配置时解析为IP地址。
+若<tt>ExternalIsDynamic</tt>设置为true，则将在需要时存储并解析名称。
+
+若将此开关设置为“ AWSPublicIP”，则GnuGk将从AWS元数据中获取公共/弹性IP。与Google Cloud，Azure和Alibaba Cloud的“ GooglePublicIP”，“ AzurePublicIP”和“ AlibabaPublicIP”相同。
+
+<item><tt/ExternalIsDynamic=1/<newline>
+默认：<tt/0/<newline>
+<p>
+将GnuGk配置为支持外部动态地址。若启用，GnuGk将确保动态DNS（DDNS）服务接收保活消息以维护您的DDNS名称租约。
+您还必须 <tt>ExternalIP</tt> 使用DDNS服务（例如www.dyndns.com或www.no-ip.com）维护的DNS地址配置设置。
+
+<item><tt/DefaultDomain=gnugk.org,gnugk.de/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+若GnuGk收到格式为<bf>user@domain.com</bf>, 的地址请求 ，则该选项将在匹配 <tt>DefaultDomain</tt> 设置的情况下从地址中删除域，
+然后仅使用 "<bf>user</bf>" 字段处理请求。当接收通过接收完整URI的SRV路由策略发出的域间呼叫时，此功能很有用。它也可以与[RasSrv::RewriteAlias] 部分结合使用，
+将接收到的URI转换为E.164号码，以进行进一步的处理和路由。
+
+<item><tt/Authenticators=H.235.1,CAT/<newline>
+默认：<tt>H.235.1,MD5,CAT,DES</tt><newline>
+<p>
+选择在认证端点时要使用的指定认证方式。默认选项为：H.235.1（HMAC SHA1 /旧的H235AnnexD），MD5（摘要身份验证）和CAT（Cisco访问令牌，即RADIUS）。
+设置值为NONE将禁用身份验证。该顺序指示认证机制的优先级。若省略此设置，则默认情况下将加载所有认证机制。若使用的是插件方式身份校验，
+则可能需要禁用默认身份认证以提供最佳安全性。注意：H.235.1需要将OpenSSL支持编译到GnuGk中。
+
+<item><tt/DisconnectCallsOnShutdown=0/<newline>
+默认：<tt>1</tt><newline>
+<p>
+GnuGk在关闭时断开所有的呼叫，向所有端点发送注销请求。要覆盖此默认值，请将此参数设置为“ 0”。此开关主要用于以直接模式运行的GK。
+关守关闭时，在路由模式和代理模式下的呼叫仍会中断。
+
+<item><tt/MaxASNArraySize=400/<newline>
+默认：<tt>128</tt><newline>
+<p>
+设置ASN编码数组中元素的最大数量。最大 列表中的别名数。PTLib到v2.10.10的版本默认为128个元素。若增加此设置，请注意不要超出其他供应商实施的限制。
+
+<item><tt/MaxSocketQueue=10000/<newline>
+默认：<tt>100</tt><newline>
+<p>
+限制socket在被认为已死并且将被关闭之前要排队的字节数，这可能与H.460.17的问题有相应性。
+
+<item><tt/TTLExpireDropCall=0/<newline>
+默认：<tt>1</tt><newline>
+<p>
+TTL超时取消注册时是否结束端点呼叫，默认情况下，取消注册时，在端点注册之前强制断开呼叫。
+若存在带宽拥塞，RRQ数据包丢失但活动呼叫（可能导致拥塞）仍在进行中，则可能会发生这种情况。
+通过启用此开关，注册将保持最新状态，直到收到RRQ或明显的呼叫超时或掉线为止
+
+<item><tt/MinH323Version=7/<newline>
+默认：<tt>2</tt><newline>
+<p>
+为GK生成的信令中设置最小的H.225和H.245协议标识符。一般，无需设置此开关，最好将版本保持较低，以实现与较早端点的互通性。
+在特殊场景时，如在端点上使用新的功能特性，请使用此开关，因为他们收到版本号较低的消息时，将不会启用功能。
+
+<item><tt/RASDiffServ=46/<newline>
+默认：<tt>0</tt><newline>
+设置RAS消息的DiffServ类（DSCP）。（在大部分Windows版本上，以这种方式设置DSCP无效。）
+
+</itemize>
+
+
+<sect1>Section &lsqb;GkStatus::Auth&rsqb;
+<label id="gkstatusauth">
+<p>
+定义许多状态端口的连接规则。访问状态端口可以完全控制GK，确保正确设置。GnuGk侦听的所有IP上的状态端口均处于活动状态。
+您应该在设置允许的范围内，阻止外部穿透防火墙访问状态端口。
+若依赖密码规则来保护状态端口，则应添加其他基于IP的规则（“显式”或“正则表达式”）以限制允许登录的IP范围。
+<itemize>
+<item><tt/rule=allow/<newline>
+默认：<tt/forbid/<newline>
+<p>
+Possible values are
+<itemize>
+<item><tt/forbid/ - disallow any connection.
+<item><tt/allow/ - allow any connection
+<item><tt/explicit/ - reads the parameter <tt>ip=value</tt>
+where <tt/ip/ is the IP address of the client,
+<tt/value/ is <tt/1,0/ or <tt/allow,forbid/ or <tt/yes,no/.
+If <tt/ip/ is not listed the parameter <tt/default/ is used.
+<item><tt/regex/ - the IP of the client is matched against the given regular expression.
+<p><descrip>
+<tag/Example:/
+To allow client from 195.71.129.0/24 and 195.71.131.0/24:
+<quote><tt>regex=^195\.71\.(129|131)\.[0-9]+$</tt></quote>
+</descrip>
+<item><tt/password/ - 用户必须提供适当的用户名和密码才能登录。用户名/密码的格式与 <ref id="password" name="[SimplePasswordAuth]"> 部分相同。从GnuGk 4.0开始，只能在配置中存储密码的PBKDF2哈希，这样更安全。
+<p><descrip>
+<tag/Example:/
+<quote><tt>jan=PBKDF2:460461f264108e03-2fd2cef514844d45ce7180399cd87025153071fa926a0972a3d7e8c558418525</tt></quote>
+</descrip>
+
+</itemize>
+
+这些规则可以与“ |”组合 （“ OR”）或“&amp;”（“ AND”）。例如，
+<itemize>
+<item><tt>rule=explicit | regex</tt><newline>
+客户端的IP必须匹配 <tt/explicit/ <bf/或/ <tt/regex/ 规则。
+<p>
+<item><tt>rule=regex & password</tt><newline>
+客户端的IP必须匹配 <tt/regex/ 规则， <bf/and/ 以及用户通过用户名和密码必须登录。
+</itemize>
+
+对状态端口使用SSH协议，也就是所有用户都通过密码进行了身份验证，但是您可以加入其他IP规则，例如。“正则表达式和密码”。
+
+<item><tt/default=allow/<newline>
+默认：<tt/forbid/<newline>
+<p>
+仅在使用时 <tt/rule=explicit/.
+
+<item><tt>DSAKey=/etc/ssh/ssh_host_dsa_key</tt><newline>
+默认：<tt/ssh_host_dsa_key (in current working directory)/<newline>
+<p>
+包含DSA主机密钥的文件的路径。（仅用于SSH）
+
+对于SSH访问，您必须配置DSA密钥或RSA密钥，或两者同时配置。
+
+生成DSA密钥（若不设置密码，按Enter键两次）
+<tscreen><verb>
+ssh-keygen -t dsa -b 1024 -f ssh_host_dsa_key
+</verb></tscreen>
+
+<item><tt>RSAKey=/etc/ssh/ssh_host_rsa_key</tt><newline>
+默认：<tt/ssh_host_rsa_key (in current working directory)/<newline>
+<p>
+包含RSA主机密钥的文件的路径。（仅用于SSH）
+
+对于SSH访问，您必须配置DSA密钥或RSA密钥，或两者同时配置。
+
+生成RSA密钥（若不设置密码，按Enter键两次）
+<tscreen><verb>
+ssh-keygen -t rsa -b 2048 -f ssh_host_rsa_key
+</verb></tscreen>
+
+<item><tt/Shutdown=forbid/<newline>
+默认：<tt/allow/<newline>
+<p>
+允许通过状态端口关闭GK。
+
+<item><tt/DelayReject=5/<newline>
+默认：<tt/0/<newline>
+<p>
+拒绝无效的用户名/密码之前要等待的时间（秒）。有助于在暴力攻击时加入延迟。
+
+<item><tt/WorkerThreadIdleTimeout=7200/<newline>
+默认：<tt/3600/<newline>
+<p>
+默认超时（以秒为单位），之后从线程池中删除空闲的工作线程。
+
+当使用PTLib版本，在自动删除线程时出现内存泄漏，请勿将此值设置得太低。2.10.9。
+
+</itemize>
+
+<sect1>Section &lsqb;GkStatus::Filtering&rsqb;
+<label id="gkstatusfilteringsect">
+<p>
+请参阅 <ref id="statusportfiltering" name="状态端口过滤">.
+
+<sect1>Section &lsqb;LogFile&rsqb;
+<label id="logfile">
+<p>
+本节定义与日志文件相关的参数。当前，它允许用户指定日志文件轮换选项。
+
+<itemize>
+<item><tt>LogToSyslog=1</tt><newline>
+默认：<tt>0</tt><newline>
+<p>
+将跟踪输出发送到syslog（仅限Unix）。
+
+<item><tt>Filename=/var/log/gk_trace.log</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+设置日志文件的输出文件名（与命令行上的-o相同）。在Windows上，必须对文件名中的反斜杠进行转义。
+<p>
+<bf/重新加载配置后，此设置不会更改！/
+
+以下符号将被替换：
+<itemize>
+<item><tt/%{gkip}/ - GK的IP地址
+<item><tt/%{external-ip}/ - 外部IP（若已配置）
+</itemize>
+
+<item><tt/Rotate=Hourly | Daily | Weekly | Monthly/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+若设置，日志文件将根据此设置进行轮换。轮换一个周期可以每小时、每天、，每周、和每月。
+一个轮换的周期是由一个组合确定 <tt/RotateDay/ and <tt/RotateTime/ 变量。 在循环期间，现有文件将重命名为当前文件名.YYYYMMDD-HHMMSS, 其中 YYYYMMDD-HHMMSS 
+被替换为当前时间戳, 新行记录到空文件中。要禁用旋转，请不要配置 <tt/Rotate/ 参数或将其设置为0。
+
+<item><tt/DeleteOnRotation=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+反转时删除旧的日志文件，而不是重命名。上一个循环周期中的所有数据都将丢失。这样，磁盘溢出的可能性较小。
+
+<descrip>
+<tag/示例 1 - -每小时轮换一次 (00:45, 01:45, ..., 23:45):/
+<tt/&lsqb;LogFile&rsqb;/<newline>
+<tt>Rotate=Hourly</tt><newline>
+<tt>RotateTime=45</tt><newline>
+<tt>Filename=/var/log/gk_trace.log</tt><newline>
+</descrip>
+
+<descrip>
+<tag/示例 2 - 第天在 23:00 (11PM) 轮换 :/
+<tt/&lsqb;LogFile&rsqb;/<newline>
+<tt>Rotate=Daily</tt><newline>
+<tt>RotateTime=23:00</tt><newline>
+<tt>Filename=C:\\Logs\\GnuGk.log</tt><newline>
+</descrip>
+
+<descrip>
+<tag/示例 3 - 在每个星期日的 00:59 轮换 :/
+<tt/&lsqb;LogFile&rsqb;/<newline>
+<tt>Rotate=Weekly</tt><newline>
+<tt>RotateDay=Sun</tt><newline>
+<tt>RotateTime=00:59</tt><newline>
+</descrip>
+
+<descrip>
+<tag/示例 4 - 在第个月的最后一天 轮换 :/
+<tt/&lsqb;LogFile&rsqb;/<newline>
+<tt>Rotate=Monthly</tt><newline>
+<tt>RotateDay=31</tt><newline>
+<tt>RotateTime=23:00</tt><newline>
+</descrip>
+</itemize>
+

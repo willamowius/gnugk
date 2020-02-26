@@ -1,0 +1,1289 @@
+<sect>Accounting Configuration
+<p>
+配置文件中的以下部分可用于配置计费。
+
+<sect1>Section &lsqb;Gatekeeper::Acct&rsqb;
+<label id="gkacct">
+<p>
+本节定义了可用于执行计费的模块列表。记帐功能可用于记录网守的开/关事件和呼叫开始/停止/更新事件。每个计费模块将收到的事件记录到模块特定的存储中。
+各种存储选项包括纯文本文件，RADIUS服务器等等。该配置与网守身份验证的配置非常相似（请参阅 <ref id="gkauth" name="[Gatekeeper::Auth]">）。
+
+所有CDR也会发送到状态端口，并且可由外部应用程序使用。
+
+<descrip>
+<tag/Syntax:/
+<tscreen><verb>
+acctmod=actions
+
+ <acctmod> := FileAcct | RadAcct | SQLAcct | HttpAcct | AMQPAcct | MQTTAcct | StatusAcct | SyslogAcct | LuaAcct | RequireOneNet | CapacityControl | ...
+ <actions> := <control>[;<event>,<event>,...]
+ <control> := optional | required | sufficient | alternative
+ <event>   := start | stop | alert | connect | update | register | unregister | on | off | reject | mediafail
+</verb></tscreen>
+</descrip>
+列表事件告诉网守哪些事件应触发给定记帐模块的日志记录（若模块支持事件类型）：
+The event list tells the gatekeeper which events should trigger logging
+with the given accounting module (if an event type is supported by the module):
+<itemize>
+<item><tt/start/ - 呼叫已开始并且已收到设置消息（仅在路由模式下可用）
+<item><tt/alert/ - 通话正在提醒（仅在路由模式下可用）
+<item><tt/connect/ - 已连接呼叫（仅在路由模式下可用）
+<item><tt/update/ - 呼叫处于活动状态，并执行定期更新以反映新的呼叫持续时间。这些更新的频率由<ref id="calltable" name="[CallTable]">部分的<bf/AcctUpdateInterval/变量 确定。
+<item><tt/register/ - 终端已注册
+<item><tt/unregister/ - 终端未注册
+<item><tt/stop/ - 呼叫已断开连接（已从GK呼叫表中删除）
+<item><tt/reject/ - 在通过GnuGk的条款成为真正的呼叫之前，呼叫已被拒绝（ARJ）
+<item><tt/mediafail/ - 在此通道中的端口检测失败
+<item><tt/on/ - GK已经启动
+<item><tt/off/ - GK已关闭
+</itemize>
+模块记录的事件可能会导致以下三个结果代码之一： ok，fail，next。
+An event logged by a module may results in one of three result codes:
+<bf/ok/, <bf/fail/, <bf/next/.
+<itemize>
+<item><tt/ok/ - 该模块已成功记录该事件
+<item><tt/fail/ - 模块无法记录事件
+<item><tt/next/ - 该模块尚未记录该事件，因为该模块未配置为/不支持此事件类型
+</itemize>
+记帐模块可以堆叠在一起以记录多个模块的事件或创建故障转移setups。每个模块的<bf/控制/标志以及结果代码定义了整个模块堆栈进行事件处理的最终状态是什么。
+若最终结果是<bf/失败/，则可能会采取一些特殊措施。当前，若呼叫<bf/开始/事件记录失败，则呼叫将立即断开连接。可识别以下<bf/控制/标志：
+<itemize>
+<item><tt/required/ - 若模块无法记录事件，则最终状态将设置为“ failure”（失败），并将事件向下传递给所有剩余模块
+<item><tt/optional/ - 模块尝试记录事件，但最终状态不受成功或失败的影响（除非模块位于列表的最后）。该事件始终传递给任何剩余的模块。
+<item><tt/sufficient/ - 模块确定最终状态。若成功记录了事件，则不会处理剩余的模块。否则，最终状态将设置为“失败”，并且事件将传递给其余所有模块。
+<item><tt/alternative/ - 若模块成功记录了事件，则不会处理剩余的模块。否则，最终状态将不会被修改，并且事件将被传递给其余所有模块。
+</itemize>
+
+当前支持的计费模块：
+<itemize>
+<item><tt>FileAcct</tt>
+<p>
+普通的呼叫详细信息报告("CDR")文本文件记录器。它将CDR状态数据输出到指定的文本文件。该模块仅支持<bf/停止/计费事件。配置设置是从<ref id="fileacct" name="[FileAcct]">部分读取的。
+
+<item><tt>RadAcct</tt>
+<p>
+此模块执行RADIUS记帐。它支持事件类型开始，停止，更新，打开，关闭。有关配置详细信息，请参见<ref id="radacct" name="[RadAcct]">部分。
+
+<item><tt>SQLAcct</tt>
+<p>
+此模块执行直接SQL记帐。它支持（开始，连接，停止，更新，响玲，注册，注销）事件类型。有关配置详细信息，请参见<ref id="sqlacct" name="[SQLAcct]">部分。
+
+<item><tt>HttpAcct</tt>
+<p>
+此模块通过HTTP记录所有记帐事件。它支持（启动，连接，停止，更新，响玲，拒绝，注册，注销，打开，关闭）。有关详细配置，请参见<ref id="httpacct" name="[HttpAcct]">部分。
+
+<item><tt>AMQPAcct</tt>
+<p>
+该模块将所有记帐事件记录到AMQP队列中，例如。RabbitMQ。它支持（启动，连接，停止，更新，响玲，拒绝，注册，注销，打开，关闭），有关配置详细信息，请参见<ref id="amqpacct" name="[AMQPAcct]">部分。
+
+<item><tt>MQTTAcct</tt>
+<p>
+该模块将所有记帐事件记录到MQTT服务器。它支持（启动，连接，停止，更新，响玲，拒绝，注册，注销，打开，关闭），有关配置详细信息，请参见<ref id="mqttacct" name="[MQTTAcct]">部分 。
+
+<item><tt>StatusAcct</tt>
+<p>
+此模块将所有记帐事件记录在状态端口上。它可用于实时连接外部应用程序。它支持（开始，连接，停止，更新，响玲，注册，注销）事件类型。有关详细信息，请参见<ref id="statusacct" name="[StatusAcct]">部分 。
+
+<item><tt>SyslogAcct</tt>
+<p>
+此模块将所有记帐事件记录到Unix syslog。它支持（开始，连接，停止，更新）事件类型。有关配置详细信息，请参见<ref id="syslogacct" name="[SyslogAcct]">部分 。
+
+<item><tt>LuaAcct</tt>
+<p>
+该模块为每个记帐事件运行一个LUA脚本。它支持（开始，连接，停止，更新，响玲，注册，注销）事件类型。有关配置详细信息，请参见<ref id="luaacct" name="[LuaAcct]"> 部分 。
+
+<item><tt>RequireOneNet</tt>
+<p>
+从逻辑上讲，是一种验证方法，可确保所有呼叫在自己的网络中开始或终止。有关配置的详细信息，请参见<ref id="requireonenet" name="[RequireOneNet]">。
+
+<item><tt>CapacityControl</tt>
+<p>
+此模块执行入站呼叫量日志记录，这是<tt/CapacityControl/身份验证模块正常工作所必需的。有关 详细信息，请参见<ref id="capctrl" name="[CapacityControl]">部分 。
+ 
+<item><tt>default</tt>
+<p>
+这是一个特殊的伪模块-若其他模块尚未确定最终状态，则用于设置最终状态。格式为：
+<descrip>
+<tag/Syntax:/
+<tscreen><verb>
+ default=<status>[;<event>,<event>,...]
+ <status> := accept | fail
+ <event>  := start | stop | alert | connect | update | register | unregister | on | off
+</verb></tscreen>
+</descrip>
+
+</itemize>
+
+配置示例1（尝试使用RADIUS服务器记录呼叫开始/停止的日志，并始终将CDR写入文本文件）：
+<descrip>
+<tag/Example:/
+<tt/RadAcct=optional;start,stop/<newline>
+<tt/FileAcct=required/<newline>
+</descrip>
+
+配置示例2（尝试使用CDR日志文件记录RADIUS服务器的呼叫开始/停止，若失败）：
+<descrip>
+<tag/Example:/
+<tt/RadAcct=alternative;start,stop/<newline>
+<tt/FileAcct=sufficient;stop/<newline>
+<tt/default=accept/<newline>
+</descrip>
+这里需要使用<bf/默认/规则，以防止由于RadAcct启动事件记录失败而导致呼叫被拒绝。
+若RadAcct以失败返回码响应，则将其向下传递到FileAcct模块。
+FileAcct模块不支持启动事件，因此它返回<bf/下一个/代码。若没有<bf/默认/规则，则最终状态将为失败，因为没有模块能够记录该事件。
+
+配置示例3（始终使用RADIUS服务器记录呼叫开始和停止事件，如若叫停止事件失败，则使用CDR文件存储呼叫信息）：
+<descrip>
+<tag/Example:/
+<tt/RadAcct=alternative;start,stop/<newline>
+<tt/FileAcct=sufficient;stop/<newline>
+<tt/default=fail;start/<newline>
+</descrip>
+在<bf/默认/的规则是可选在这里。如果RadAcct返回开始事件的<bf/失败/代码，则该代码将传递到FileAcct模块。FileAcct模块不支持开始事件，因此它返回<bf/下一个/返回代码。
+该默认规则确保如果启动呼叫事件无法RadAcct记录的电话被挂断。但我们仍然希望将CDR存储在文本文件中，以防万一当呼叫断开时RADIUS服务器关闭，因此我们可稍后将呼叫持续时间获取到计费系统中。
+
+<sect1>自定义话单字符串和计费数据
+<label id="cdrparameters">
+<p>
+大多数计费模块可自定义它们存储的CDR数据。它们使用一组通用的参数来定义CDR字符串。
+
+参数是使用<tt/%/字符指定的，可以是一个字母（如<tt/%n/）或更长的字母（如<tt/%{CallId}/）。
+任何不是参数名称的剩余字符都将被简单地复制到最终的CDR字符串中。在所有与呼叫相关的记帐事件中都可识别以下参数：
+
+<itemize>
+<item><tt/%g/ - GK名称
+<item><tt/%n/ - 通话号码（GK重启后不唯一）
+<item><tt/%d/ - 通话时间（秒）
+<item><tt/%t/ - 总通话时间 (从Setup到Release Complete)
+<item><tt/%c/ - 收到最初的Q.931断开原因（十进制整数）
+<item><tt/%{cause-translated}/ - 转换规则后的Q.931断开原因（十进制整数）
+<item><tt/%r/ - 挂断会议者 (-1 - 未知, 0 - GK, 1 - 主叫, 2 - 被叫)
+<item><tt/%p/ - PDD（拨号后延迟）以秒为单位
+<item><tt/%s/ - 唯一的（对于此网守）会话标识符（Acct-Session-Id）
+<item><tt/%u/ - 主叫方的H.323 ID
+<item><tt/%{event-uuid}/ - 此事件的UUID
+<item><tt/%{event-time}/ - 产生事件的时间
+<item><tt/%{gkip}/ - GK的IP地址
+<item><tt/%{external-ip}/ - GK的外部IP地址（若已设置）
+<item><tt/%{CallId}/ - H.323呼叫标识符（十六进制8位数字）
+<item><tt/%{ConfId}/ - H.323会议标识符 (十六进制8位数字)
+<item><tt/%{CallLink}/ - 链接的H.323会议标识符（用于H.450呼叫转移的计费帐户）
+<item><tt/%{setup-time}/ - Q.931 Setup消息的时间戳字符串
+<item><tt/%{alerting-time}/ - Q.931 Alerting消息的时间戳字符串
+<item><tt/%{connect-time}/ - 呼叫连接事件的时间戳字符串
+<item><tt/%{disconnect-time}/ - 呼叫断开事件的时间戳字符串
+<item><tt/%{ring-time}/ - 远程电话响铃的时间 (从 Alerting till Connect 到 Release Complete)
+<item><tt/%{caller-ip}/ - 呼叫者的信令IP地址（仅在路由模式下可用）
+<item><tt/%{caller-port}/ - 呼叫者的信令端口（仅在路由模式下可用）
+<item><tt/%{callee-ip}/ - 被叫方的信令IP地址（仅在路由模式下可用）
+<item><tt/%{callee-port}/ - 被叫方的信令端口（仅在路由模式下可用）
+<item><tt/%{src-info}/ - 用冒号分隔的源别名列表
+<item><tt/%{dest-info}/ - 用冒号分隔的目标别名列表
+<item><tt/%{Calling-Station-Id}/ - 主叫方号码
+<item><tt/%{Called-Station-Id}/ - 被叫方号码（重写）
+<item><tt/%{Dialed-Number}/ - 拨号号码（从主叫方收到）
+<item><tt/%{caller-epid}/ - 主叫方的终端标识符
+<item><tt/%{callee-epid}/ - 被叫方的终端标识符
+<item><tt/%{call-attempts}/ - 建立呼叫的尝试次数（使用故障转移时，该次数可>1）
+<item><tt/%{last-cdr}/ - 该呼叫是否是最后一个CDR ? (0 / 1)仅在使用故障转移时可为0 
+<item><tt/%{client-auth-id}/ - 验证呼叫时（通过SQLAuth）提供给GnuGk的64位整数ID
+<item><tt/%{caller-vendor}/ - 呼叫终端的供应商和版本信息
+<item><tt/%{callee-vendor}/ - 被叫终端的供应商和版本信息
+<item><tt/%{sinfo-ip}/ - -来自Sorenson SInfo的IP（仅在TranslateSorensonSourceInfo=1时可用）
+<item><tt/%{bandwidth}/ - 此通话的带宽
+<item><tt/%{bandwidth-kbps}/ - 授予此呼叫的带宽（以kbps为单位）
+<item><tt/%{caller-audio-codec}/ - 主叫方用于发送的音频编解码器
+<item><tt/%{callee-audio-codec}/ - 被叫方用于发送的音频编解码器
+<item><tt/%{caller-video-codec}/ - 主叫方用于发送的视频编解码器
+<item><tt/%{callee-video-codec}/ - 被叫方用于发送的视频编解码器
+<item><tt/%{caller-audio-bitrate}/ - 主叫方用于发送的音频比特率（以kbps为单位）
+<item><tt/%{callee-audio-bitrate}/ - 被叫方用于发送的音频比特率（以kbps为单位）
+<item><tt/%{caller-video-bitrate}/ - 主叫方用于发送的视频比特率（以kbps为单位）
+<item><tt/%{callee-video-bitrate}/ - 被叫方用于发送的视频比特率（以kbps为单位）
+<item><tt/%{caller-media-ip}/ - 主叫方使用的媒体IP（音频）
+<item><tt/%{callee-media-ip}/ - 被叫方使用的媒体IP（音频）
+<item><tt/%{encryption}/ - 若所有音频和视频通道均已加密，则为"On"，否则为"Off" 
+<item><tt/%{env1}/ - 环境变量GNUGK_ENV1的内容
+<item><tt/.../
+<item><tt/%{env9}/ - 环境变量GNUGK_ENV9的内容
+<item><tt/%{media-oip}/ - 呼叫者的RTP媒体IP（仅适用于H.245路由/隧道呼叫）已弃用 
+<item><tt/%{codec}/ - 呼叫期间使用的音频编解码器（仅适用于H.245路由/隧道呼叫）
+</itemize>
+
+对于注册和注销事件，可使用以下参数：
+<itemize>
+<item><tt/%g/ - GK名称
+<item><tt/%{gkip}/ - GK的IP
+<item><tt/%{external-ip}/ - GK的外部IP地址（若已设置）
+<item><tt/%u/ - 注册方的H.323 ID
+<item><tt/%{event-uuid}/ - 此事件的UUID
+<item><tt/%{event-time}/ - 产生事件的时间
+<item><tt/%{endpoint-ip}/ - 终端的IP号码
+<item><tt/%{endpoint-port}/ - 终端的端口号
+<item><tt/%{endpoint-vendor}/ - 终端的供应商和版本信息
+<item><tt/%{epid}/ - 端点ID
+<item><tt/%{aliases}/ - 终端已注册的别名的逗号分隔列表
+<item><tt/%{Calling-Station-Id}/ - 此终端的呼叫方号码
+<item><tt/%{env1}/ - 环境变量GNUGK_ENV1的内容
+<item><tt/.../
+<item><tt/%{env9}/ - 环境变量GNUGK_ENV9的内容
+</itemize>
+
+对于打开和关闭事件，可使用以下参数：
+For On and Off events you can use the following parameters:
+<itemize>
+<item><tt/%g/ - GK的名称
+<item><tt/%{gkip}/ - GK的IP
+<item><tt/%{external-ip}/ - GK的外部IP地址（若已设置）
+<item><tt/%{env1}/ - 环境变量GNUGK_ENV1的内容
+<item><tt/.../
+<item><tt/%{env9}/ - 环境变量GNUGK_ENV9的内容
+</itemize>
+
+<sect1>Section &lsqb;FileAcct&rsqb;
+<label id="fileacct">
+<p>
+此计费模块将CDR行写入指定的文本文件。CDR格式可以是标准格式（与状态界面显示的格式相同）或定制格式（使用参数化查询字符串）。
+
+<itemize>
+<item>
+<tt/DetailFile=FULL_PATH_AND_FILENAME/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+CDR纯文本文件的完整路径。若已经存在具有给定名称的文件，则新的CDR将附加在文件末尾。
+
+<item>
+<tt/StandardCDRFormat=0/<newline>
+默认：<tt/1/<newline>
+<p>
+使用与状态界面CDR格式（1）兼容的CDR格式，或从CDRString参数化的字符串构建自定义CDR 字符串。
+<p>
+StandardCDRFormat等效于以下定义：
+<descrip>
+<tt/TimestampFormat=RFC822/<newline>
+<tt>CDRString=CDR|%n|%{CallId}|%d|%{connect-time}|%{disconnect-time}|%{caller-ip}:%{caller-port}|%{caller-epid}|%{callee-ip}:%{callee-port}|%{callee-epid}|%{dest-info}|%{src-info}|%g;</tt><newline>
+</descrip>
+
+<item>
+<tt/CDRString=%s|%g|%u|%{Calling-Station-Id}|%{Called-Station-Id}|%d|%c/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+若禁用了<bf/StandardCDRFormat/（0）或完全未指定，则此参数化字符串将指示网守如何构建自定义CDR。
+可使用 <ref id="cdrparameters" name="公共CDR参数">来定义要包含在CDR中的内容。
+
+<item><tt/TimestampFormat=Cisco/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+以CDR字符串打印的时间戳字符串的格式。若未指定此设置，则使用主网守部分中的全局设置。
+
+<item>
+<tt/Rotate=hourly | daily | weekly | monthly | L... | S.../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+若设置，则CDR文件将基于此设置进行翻转。每小时轮换可以每小时一次，每天一次-每天一次，每周一次-每周一次和每月一次-每月一次。
+实际的翻转步长由RotateDay和RotateTime的组合确定。在翻转过程中，现有文件被重命名为CURRENT_FILENAME.YYYYMMDD-HHMMSS，其中YYYYMMDD-HHMMSS被替换为当前时间戳，新的CDR被记录到一个空文件中。
+此外，还支持按写入的CDR数（L ...）和按文件大小（S ...）翻转。该<tt/L/前缀指定了一些CDR行写的，<tt/S/前缀指定CDR文件大小。<tt/k/和<tt/m/后缀可用于指定数千（千字节）和数百万（兆字节）。
+
+<descrip>
+<tag/示例 1 - 不轮询:/
+<tt/&lsqb;FileAcct&rsqb;/<newline>
+<tt>DetailFile=/var/log/gk/cdr.log</tt><newline>
+</descrip>
+
+<descrip>
+<tag/示例 2 - 每小时翻转一次 (00:45, 01:45, ..., 23:45):/
+<tt/&lsqb;FileAcct&rsqb;/<newline>
+<tt>DetailFile=/var/log/gk/cdr.log</tt><newline>
+<tt>Rotate=hourly</tt><newline>
+<tt>RotateTime=45</tt><newline>
+</descrip>
+
+<descrip>
+<tag/示例 3 - 每天23:00 (11PM):/
+<tt/&lsqb;FileAcct&rsqb;/<newline>
+<tt>DetailFile=/var/log/gk/cdr.log</tt><newline>
+<tt>Rotate=daily</tt><newline>
+<tt>RotateTime=23:00</tt><newline>
+</descrip>
+
+<descrip>
+<tag/示例 4 - -每个星期日在 00:59:/
+<tt/&lsqb;FileAcct&rsqb;/<newline>
+<tt>DetailFile=/var/log/gk/cdr.log</tt><newline>
+<tt>Rotate=weekly</tt><newline>
+<tt>RotateDay=Sun</tt><newline>
+<tt>RotateTime=00:59</tt><newline>
+</descrip>
+
+<descrip>
+<tag/示例 5 - 在每个月的最后一天翻转:/
+<tt/&lsqb;FileAcct&rsqb;/<newline>
+<tt>DetailFile=/var/log/gk/cdr.log</tt><newline>
+<tt>Rotate=monthly</tt><newline>
+<tt>RotateDay=31</tt><newline>
+<tt>RotateTime=23:00</tt><newline>
+</descrip>
+
+<descrip>
+<tag/示例 6 - 每10000个CDR翻转一次:/
+<tt/&lsqb;FileAcct&rsqb;/<newline>
+<tt>DetailFile=/var/log/gk/cdr.log</tt><newline>
+<tt>Rotate=L10000</tt><newline>
+</descrip>
+
+<descrip>
+<tag/示例 7 - 每10 KB翻转一次:/
+<tt/&lsqb;FileAcct&rsqb;/<newline>
+<tt>DetailFile=/var/log/gk/cdr.log</tt><newline>
+<tt>Rotate=S10k</tt><newline>
+</descrip>
+
+</itemize>
+
+<sect1>Section &lsqb;RadAcct&rsqb;
+<label id="radacct">
+<p>
+该计费模块将计费数据发送到RADIUS服务器。模块配置与RADIUS身份验证器几乎相同（有关参数的更多详细信息，请参见 <ref id="radauth" name="[RadAuth]"> 和 <ref id="radaliasauth" name="[RadAliasAuth]">）。
+<itemize>
+<item><tt/Servers=SERVER1[:AUTH_PORT:ACCT_PORT[:SECRET]];SERVER2[:AUTH_PORT:ACCT_PORT[:SECRET]];.../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+要将计费数据发送到的RADIUS服务器。若未提供端口信息，则使用端口号<tt/DefaultAcctPort/。若未设置密码，<tt/SharedSecret/则使用默认的共享密码自。
+服务器名称可通过IP地址或DNS名称指定。IPv6地址必须始终写在方括号中。
+
+<descrip>
+<tag>Sample <tt/Servers/ lines:</tag>
+<tt>Servers=192.168.1.1</tt><newline>
+<tt>Servers=192.168.1.1:1645:1646</tt><newline>
+<tt>Servers=192.168.1.1:1645:1646:secret1</tt><newline>
+<tt>Servers=radius1.mycompany.com:1812:1813</tt><newline>
+<tt>Servers=radius1.mycompany.com;radius2.mycompany.com</tt><newline>
+<tt>Servers=radius1.mycompany.com:1812:1813:secret1;radius2.mycompany.com:1812:1813:secret2</tt><newline>
+<tt>Servers=[2501:4f3:61:2143::2]</tt><newline>
+<tt>Servers=[2501:4f3:61:2143::2]:1645</tt><newline>
+<tt>Servers=[2501:4f3:61:2143::2]:1645:1646</tt><newline>
+<tt>Servers=[2501:4f3:61:2143::2]:1645:1646:secret1</tt><newline>
+<tt>Servers=[2501:4f3:61:2143::2]:1645:1646:secret1;[2501:4f3:61:2143::3]:1645:1646:secret2</tt><newline>
+</descrip>
+
+<item><tt/LocalInterface=IP_OR_FQDN/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+<htmlurl url="https://www.gnugk.org/" name="GnuGk">应该用来与RADIUS服务器通信的特定本地网络接口 。
+
+<item><tt/RadiusPortRange=10000-11000/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+默认情况下（若未设置此选项），GnuGk根据操作系统的指定动态分配端口。为了限制GnuGk将使用的端口，请适当配置此参数。
+
+<item><tt/DefaultAcctPort=PORT_NO/<newline>
+默认：<tt>1813</tt><newline>
+<p>
+用于RADIUS记帐请求的默认端口号。可被<tt/Servers/属性覆盖。
+
+<item><tt/SharedSecret=SECRET/<newline>
+默认：<tt>N/A (empty string)</tt><newline>
+<p>
+用于向RADIUS服务器验证此GnuGk（NAS客户端）的机密。它应该是加密强度很高的密码。若未在中设置服务器特定的机密，
+则使用默认值<tt/Servers/。若<tt/EncryptAllPasswords/已启用，或者<tt/KeyFilled/在本节中定义了变量，则密码采用加密形式，应使用<tt/addpasswd/实用程序创建。
+
+<item><tt/RequestTimeout=TIMEOUT_MS/<newline>
+默认：<tt/2000/ (milliseconds)<newline>
+<p>
+RADIUS服务器对GnuGk发送的请求的响应的超时时间（毫秒）。若在此时间段内未收到响应，则查询下一个RADIUS服务器。
+
+<item><tt/IdCacheTimeout=TIMEOUT_MS/<newline>
+默认：<tt/9000/ (milliseconds)<newline>
+<p>
+RADIUS请求8位标识符的超时（毫秒）是唯一的。
+
+<item><tt/SocketDeleteTimeout=TIMEOUT_MS/<newline>
+默认：<tt/60000/ (milliseconds) - 60 s<newline>
+<p>
+关闭未使用的RADIUS套接字的超时。
+
+<item><tt/RequestRetransmissions=NUMBER/<newline>
+默认：<tt/2/<newline>
+<p>
+单个RADIUS请求发送到每个已配置的RADIUS服务器的次数（若未收到响应）。
+
+<item><tt/RoundRobinServers=BOOLEAN/<newline>
+默认：<tt/1/<newline>
+<p>
+RADIUS请求重传方法。
+<p>
+若设置为1，则以以下方式发送RADIUS请求（直到收到响应）：
+<tscreen><verb>
+Server #1 Attempt #1, Server #2 Attempt #1, ..., Server #N Attempt #1
+...
+Server #1 Attempt #RequestRetransmissions, ..., Server #1 Attempt #RequestRetransmissions
+</verb></tscreen>
+<p>
+若设置为0，则保留以下顺序：
+<tscreen><verb>
+Server #1 Attempt #1, ..., Server #1 Attempt #RequestRetransmissions
+...
+Server #N Attempt #1, ..., Server #N Attempt #RequestRetransmissions
+</verb></tscreen>
+
+<item><tt/AppendCiscoAttributes=BOOLEAN/<newline>
+默认：<tt/0/<newline>
+<p>
+若设置，则在RADIUS请求中包括Cisco Vendor Specific RADIUS属性（h323-conf-id，h323-call-origin，h323-call-type）。
+
+<item><tt/TimestampFormat=ISO8601/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+RADIUS属性中发送的时间戳字符串的格式。若未指定此设置，则将应用来自主网守部分的全局设置。
+
+<item><tt/UseDialedNumber=BOOLEAN/<newline>
+默认：<tt/0/<newline>
+<p>
+在原始号码（由用户拨打）<tt/UseDialedNumber=1/和改写的号码之一之间选择被叫站ID号类型 <tt/UseDialedNumber=0/。
+
+</itemize>
+
+
+<sect2>&lsqb;RadAcct&rsqb; Accounting-Request RADIUS Attributes
+<p>
+对于计费请求，计费请求包中包含以下RADIUS属性。每个属性后都有一个记帐事件类型列表。
+<p>
+<itemize>
+<item><tt>Acct-Status-Type (start,update,stop,on,off)</tt><newline>
+<p>
+		记帐事件类型（开始，临时更新，停止，记帐开启，记帐关闭）
+		
+<item><tt>NAS-IP-Address (start,update,stop,on,off)</tt><newline>
+<p>
+		网守的IP地址。
+		
+<item><tt>NAS-Identifier (start,update,stop,on,off)</tt><newline>
+<p>
+		网守标识符（名称=GK参数）。
+		
+<item><tt>NAS-Port-Type (start,update,stop,on,off)</tt><newline>
+<p>
+		固定值虚拟。
+		
+<item><tt>Service-Type (start,update,stop)</tt><newline>
+<p>
+		固定值登录用户
+		
+<item><tt>Acct-Session-Id (start,update,stop)</tt><newline>
+<p>
+		唯一的计费会话标识符字符串。
+		
+<item><tt>User-Name (start,update,stop)</tt><newline>
+<p>
+		主叫方的帐户名。
+
+<item><tt>Framed-IP-Address (start,update,stop)</tt><newline>
+<p>
+		主叫方的IP地址。端点呼叫信令地址或信令信道的远程套接字地址。
+
+<item><tt>Acct-Session-Time (update,stop)</tt><newline>
+<p>
+		呼叫持续时间（秒）-对于临时更新事件，这是实际持续时间。
+		
+<item><tt>Calling-Station-Id (start,update,stop)</tt><newline>
+<p>
+		主叫方号码。
+		
+<item><tt>Called-Station-Id (start,update,stop)</tt><newline>
+<p>
+		被叫方号码。
+
+<item><tt>(optional) VSA: VendorId=Cisco, h323-gw-id (start,update,stop)</tt><newline>
+<p>
+		与NAS-Identifier相同。
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-conf-id (start,update,stop)</tt><newline>
+<p>
+		呼叫的H.323会议ID。
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-call-origin (start,update,stop)</tt><newline>
+<p>
+		固定字符串“ proxy”。
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-call-type (start,update,stop)</tt><newline>
+<p>
+		固定字符串“ VoIP”。
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-setup-time (start,update,stop)</tt><newline>
+<p>
+		GK收到Q.931 Setup消息的时间戳。
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-connect-time (update,stop)</tt><newline>
+<p>
+		呼叫已连接的时间戳（已收到Q.931 Setup消息或以直接信令模式发送了ACF）。
+	
+<item><tt>(optional) VSA: VendorId=Cisco, h323-disconnect-time (stop)</tt><newline>
+<p>
+		呼叫已断开连接的时间戳（已收到ReleaseComplete或DRQ）。
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-disconnect-cause (stop)</tt><newline>
+<p>
+		Q.931两位十六进制断开原因。
+		
+<item><tt>(optional) VSA: VendorId=Cisco, h323-remote-address (start,update,stop)</tt><newline>
+<p>
+		被叫方的IP地址（若知道）。
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, h323-ivr-out (start, update, stop)</tt><newline>
+<p>
+		包含一个H.323呼叫标识符的h323-call-id变量。语法为："h323-ivr-out=h323-call-id:123FDE 12348765 9abc1234 12"。
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, h323-ivr-out (start, update, stop)</tt><newline>
+<p>
+		rewriteed-e164-num包含重写的被叫方号码（与UseDialedNumber开关的设置无关）。
+
+<item><tt>Acct-Delay-Time (start,update,stop)</tt><newline>
+<p>
+		网守尝试发送请求的时间（秒）。当前始终为0。
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, h323_rtp_proxy (stop)</tt><newline>
+<p>
+		呼叫的代理模式（0 =关闭，1 =开启）
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTP_source_IP (stop)</tt><newline>
+<p>
+		RTCP源报告数据
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTP_destination_IP (stop)</tt><newline>
+<p>
+		RTCP源报告数据
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTCP_source_packet_count (stop)</tt><newline>
+<p>
+		RTCP源报告数据
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTCP_source_packet_lost (stop)</tt><newline>
+<p>
+		RTCP源报告数据
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTCP_source_jitter (stop)</tt><newline>
+<p>
+		RTCP源报告数据
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTCP_source_sdes_XXX (stop)</tt><newline>
+<p>
+		RTCP源报告数据（针对每个源描述（sdes））
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTCP_destination_packet_count (stop)</tt><newline>
+<p>
+		RTCP目标报告数据
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTCP_destination_packet_lost (stop)</tt><newline>
+<p>
+		RTCP目标报告数据
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTCP_destination_jitter (stop)</tt><newline>
+<p>
+		RTCP目标报告数据
+
+<item><tt>(optional) VSA: VendorId=Cisco, Cisco-AVPair, RTCP_destination_sdes_XXX (stop)</tt><newline>
+<p>
+		RTCP目标报告数据（针对每个源描述（sdes））
+
+</itemize>
+
+<sect2>&lsqb;RadAcct&rsqb; Accounting-Response Radius Attributes
+<p>
+网守将忽略计费响应半径数据包中存在的所有属性。
+<p>
+
+<sect1>Section &lsqb;SQLAcct&rsqb;
+<label id="sqlacct">
+<p>
+该计费模块将计费信息直接存储到SQL数据库中。许多配置设置与其他SQL模块相同。
+
+使用<ref id="database" name="公共数据库配置选项">来定义此模块的数据库连接。
+
+<itemize>
+<item><tt/StartQuery=INSERT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义用于将新的呼叫记录插入数据库的SQL查询。
+查询已参数化-这意味着在执行每个查询之前进行参数替换。可使用<ref id="cdrparameters" name="公共CDR参数">来定义要包含在CDR中的内容。
+<p>
+示例查询字符串：
+<tscreen><verb>
+INSERT INTO call (gkname, sessid, username, calling, called) 
+	VALUES ('%g', '%s', '%u', '%{Calling-Station-Id}', '%{Called-Station-Id}')
+</verb></tscreen>
+
+<item><tt/StartQueryAlt=INSERT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义一个SQL查询，该查询用于在<tt/StartQuery/由于某种原因而失败的情况下（例如，该呼叫已存在）将新的呼叫记录插入数据库。语法和参数与相同<tt/StartQuery/。
+
+<item><tt/UpdateQuery=UPDATE .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义用于使用当前呼叫状态更新数据库中的呼叫记录的SQL查询。它用于连接和更新记帐事件。语法和参数与相同<tt/StartQuery/。
+<p>
+示例查询字符串：
+<tscreen><verb>
+UPDATE call SET duration = %d WHERE gkname = '%g' AND sessid = '%s'
+</verb></tscreen>
+
+<item><tt/StopQuery=UPDATE .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义SQL查询，该查询用于在呼叫结束（断开连接）时更新数据库中的呼叫记录。语法和参数与相同<tt/StartQuery/。
+<p>
+示例查询字符串：
+<tscreen><verb>
+UPDATE call SET duration = %d, dtime = '%{disconnect-time}' WHERE gkname = '%g' AND sessid = '%s'
+</verb></tscreen>
+
+<item><tt/StopQueryAlt=INSERT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义一个SQL查询，该查询用于在常规结束时（例如，<tt/StopQuery/因为呼叫记录尚不存在）在呼叫结束（断开连接）时更新数据库中的呼叫记录。语法和参数与相同<tt/StartQuery/。
+<p>
+示例查询字符串：
+<tscreen><verb>
+INSERT INTO call (gkname, sessid, username, calling, called, duration) 
+	VALUES ('%g', '%s', '%u', '%{Calling-Station-Id}', '%{Called-Station-Id}', %d)
+</verb></tscreen>
+
+<item><tt/AlertQuery=UPDATE .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义SQL查询，用于在发出响玲时更新数据库中的呼叫记录。
+
+<item><tt/RegisterQuery=INSERT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义在端点注册时用于更新数据库的SQL查询。
+
+<item><tt/UnregisterQuery=DELETE .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义当端点注销时用于更新数据库的SQL查询。
+
+<item><tt/OnQuery=UPDATE .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义在网守启动时用于更新数据库中记录的SQL查询。
+
+<item><tt/OffQuery=UPDATE .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义在网守停止时用于更新数据库中记录的SQL查询。
+
+<item><tt/TimestampFormat=MySQL/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+查询中使用的时间戳字符串的格式。若未指定此设置，则使用主网守部分中的全局设置。
+
+<item><tt/MinPoolSize=5/<newline>
+默认：<tt>1</tt><newline>
+<p>
+池中的并发SQL连接数。池中的第一个可用连接用于存储计费数据。
+
+</itemize>
+
+<sect2>A Sample MySQL Schema
+<label id="mysqlscheme">
+<p>
+SQLAcct模块旨在适应已经拥有的任何数据库结构。可定义所有查询，以使其适合现有的表。这是这些表在MySQL中的外观示例，可将其用作起点。
+<p>
+创建一个新的数据库；在这里，我们使用名称'GNUGK'：
+
+<tscreen><verb>
+create database GNUGK;
+</verb></tscreen>
+
+然后在此数据库中创建一个表来存储会计数据；我们将表格称为'CDR'。
+
+<tscreen><verb>
+create table GNUGK.CDR (
+        gatekeeper_name varchar(255),
+        call_number int zerofill,
+        call_duration mediumint unsigned zerofill,
+                index duration_idx (call_duration),
+        disconnect_cause smallint unsigned zerofill,
+                index dcc_idx (disconnect_cause),
+        acct_session_id varchar(255),
+        h323_id varchar(255),
+        gkip varchar(15),
+        CallId varchar(255),
+        ConfID varchar(255),
+        setup_time datetime,
+        connect_time datetime,
+        disconnect_time datetime,
+        caller_ip varchar(15),
+                index srcip_idx (caller_ip),
+        caller_port smallint unsigned zerofill,
+        callee_ip varchar(15),
+                index destip_idx (callee_ip),
+        callee_port smallint unsigned zerofill,
+        src_info varchar(255),
+        dest_info varchar(255),
+        Calling_Station_Id varchar(255),
+        Called_Station_Id varchar(255),
+                index dialednumber_idx (Called_Station_Id (20)),
+        Dialed_Number varchar(255)
+);
+</verb></tscreen>
+
+然后，需要创建一个用于访问数据的用户名。
+
+<tscreen><verb>
+mysql> GRANT delete,insert,select,update ON GNUGK.* TO 'YourDesiredUsername'@'localhost' IDENTIFIED BY 'APassword';
+mysql> flush privileges;
+</verb></tscreen>
+
+使用此命令，将仅允许从本地服务器访问数据。若需要从任何其他计算机访问数据，则必须设置适当的安全性选项。
+
+例如，要允许从192.168.1.0/24网络访问：
+
+<tscreen><verb>
+mysql> GRANT delete,insert,select,update ON GNUGK.* TO 'YourDesiredUsername'@'192.168.1.%' IDENTIFIED BY 'APassword';
+mysql> flush privileges;
+</verb></tscreen>
+
+然后，可将以下设置添加到gnugk.ini文件中，以将呼叫的历史记录插入并更新到数据库中。
+
+<tscreen><verb>
+[Gatekeeper::Acct]
+SQLAcct=optional;start,stop,update
+FileAcct=sufficient;stop
+
+[FileAcct]
+DetailFile=Add your desire path here something like /var/log/cdr.log
+StandardCDRFormat=0
+CDRString=%g|%n|%d|%c|%s|%u|%{gkip}|%{CallId}|%{ConfId}|%{setup-time}|%{connect-time}|%{disconnect-time}|%{caller-ip}|%{caller-port}|%{callee-ip}|%{callee-port}|%{src-info}|%{dest-info}|%{Calling-Station-Id}|%{Called-Station-Id}|%{Dialed-Number}
+Rotate=daily
+RotateTime=23:59
+
+[SQLAcct]
+Driver=MySQL
+Database=GNUGK
+Username=YourDesiredUsername
+Password=APassword
+StartQuery= insert into CDR (gatekeeper_name, call_number, call_duration, disconnect_cause, acct_session_id, h323_id, gkip, CallId, ConfId, setup_time, connect_time, disconnect_time, caller_ip, caller_port, callee_ip, callee_port, src_info, dest_info, Calling_Station_Id, Called_Station_Id, Dialed_Number) values ('%g', '%n', %d, %c, '%s', '%u', '%{gkip}', '%{CallId}', '%{ConfId}', '%{setup-time}', '%{connect-time}', '%{disconnect-time}', '%{caller-ip}', '%{caller-port}', '%{callee-ip}', '%{callee-port}', '%{src-info}', '%{dest-info}', '%{Calling-Station-Id}', '%{Called-Station-Id}', '%{Dialed-Number}')
+
+StartQueryAlt= insert into CDR (gatekeeper_name, call_number, call_duration, disconnect_cause, acct_session_id, h323_id, gkip, CallId, ConfID, setup_time, connect_time, disconnect_time, caller_ip, caller_port, callee_ip, callee_port, src_info, dest_info, Calling_Station_Id, Called_Station_Id, Dialed_Number) values ('%g', '%n', %d, %c, '%s', '%u', '%{gkip}', '%{CallId}', '%{ConfID}', '%{setup-time}', '%{connect-time}', '%{disconnect-time}', '%{caller-ip}', '%{caller-port}', '%{callee-ip}', '%{callee-port}', '%{src-info}', '%{dest-info}', '%{Calling-Station-Id}', '%{Called-Station-Id}', '%{Dialed-Number}')
+
+UpdateQuery= update CDR set call_duration=%d where gatekeeper_name='%g' and acct_session_id='%s'
+
+StopQuery= update CDR set connect_time='%{connect-time}', call_duration=%d, disconnect_cause=%c, disconnect_time='%{disconnect-time}' where gatekeeper_name='%g' and acct_session_id='%s'
+
+StopQueryAlt= insert into CDR (gatekeeper_name, call_number, call_duration, disconnect_cause, acct_session_id, h323_id, gkip, CallId, ConfID, setup_time, connect_time, disconnect_time, caller_ip, caller_port, callee_ip, callee_port, src_info, dest_info, Calling_Station_Id, Called_Station_Id, Dialed_Number) values ('%g STOP Alt', '%n', %d, %c, '%s', '%u', '%{gkip}', '%{CallId}', '%{ConfID}', '%{setup-time}', '%{connect-time}', '%{disconnect-time}', '%{caller-ip}', '%{caller-port}', '%{callee-ip}', '%{callee-port}', '%{src-info}', '%{dest-info}', '%{Calling-Station-Id}', '%{Called-Station-Id}', '%{Dialed-Number}')
+
+TimestampFormat=MySQL
+</verb></tscreen>
+
+
+<sect1>Section &lsqb;StatusAcct&rsqb;
+<label id="statusacct">
+<p>
+该计费模块将所有计费信息发送到状态端口，该端口可用于实时连接外部系统。
+
+可使用<ref id="cdrparameters" name="公共CDR参数">来定义要包括在事件字符串中的内容。
+
+<itemize>
+<item><tt/StartEvent=CALL|Start|%{CallId}/<newline>
+默认：<tt>CALL|Start|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+定义要为新呼叫显示的事件。使用与其他计费模块相同的变量对字符串进行参数化（请参见 <ref id="sqlacct" name="[SQLAcct]">）。
+
+<item><tt/StopEvent=CALL|Stop|%{CallId}/<newline>
+默认：<tt>CALL|Stop|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+定义呼叫结束(disconnected)时的事件。语法和参数与相同<tt/StartEvent/。此事件等效于旧状态端口CDR事件，但更灵活。
+
+<item><tt/UpdateEvent=CALL|Update|%{CallId}/<newline>
+默认：<tt>CALL|Update|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+定义用于更新当前呼叫状态的事件。语法和参数与相同<tt/StartEvent/。
+
+<item><tt/AlertEvent=CALL|Alert|%{CallId}/<newline>
+默认：<tt>CALL|Alert|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+定义呼叫alerting时的事件。语法和参数与相同<tt/StartEvent/。
+
+<item><tt/ConnectEvent=CALL|Connect|%{CallId}/<newline>
+默认：<tt>CALL|Connect|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+定义连接呼叫时的事件。语法和参数与相同<tt/StartEvent/。
+
+<item><tt/RejectEvent=CALL|Reject|%{CallId}/<newline>
+默认：<tt>CALL|Reject|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+定义呼叫被拒绝时的事件。语法和参数与相同<tt/StartEvent/。
+
+<item><tt/MediaFailEvent=CALL|MediaFail|%{CallId}/<newline>
+默认：<tt>CALL|MediaFail|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+定义MediaFail事件的消息。语法和参数与相同<tt/StartEvent/。
+
+<item><tt/RegisterEvent=EP|Register|%{endpoint-ip}/<newline>
+默认：<tt>EP|Register|%{endpoint-ip}:%{endpoint-port}|%{aliases}</tt><newline>
+<p>
+定义端点注册时的事件。语法和参数与相同<tt/StartEvent/。
+
+<item><tt/UnregisterEvent=EP|Unregister|%{endpoint-ip}/<newline>
+默认：<tt>EP|Unregister|%{endpoint-ip}:%{endpoint-port}|%{aliases}</tt><newline>
+<p>
+定义端点注册时的事件。语法和参数与相同<tt/StartEvent/。
+
+<item><tt/TimestampFormat=MySQL/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+事件中使用的时间戳字符串的格式。若未指定此设置，则使用主网守部分中的全局设置。
+
+</itemize>
+
+
+<sect1>Section &lsqb;SyslogAcct&rsqb;
+<label id="syslogacct">
+<p>
+该计费模块将计费信息发送到Unix syslog，在Windows上不可用。然后，本地syslog守护程序将根据其配置（通常在/etc/syslog.conf中指定）来路由消息。
+
+可使用<ref id="cdrparameters" name="公共CDR参数">来定义要包括在事件字符串中的内容。
+
+<itemize>
+<item><tt/SyslogFacility=LOG_LOCAL1/<newline>
+默认：<tt>LOG_USER</tt><newline>
+<p>
+将系统日志功能设置为LOG_USER, LOG_DAEMON, LOG_AUTH, LOG_LOCAL0, LOG_LOCAL1, LOG_LOCAL2, LOG_LOCAL3, LOG_LOCAL4, LOG_LOCAL5, LOG_LOCAL6, LOG_LOCAL7中的一个。
+
+<item><tt/SyslogLevel=LOG_NOTICE/<newline>
+默认：<tt>LOG_INFO</tt><newline>
+<p>
+将系统日志级别设置为LOG_EMERG, LOG_ALERT, LOG_CRIT, LOG_ERR, LOG_WARNING, LOG_NOTICE, LOG_INFO 或 LOG_DEBUG。
+
+<item><tt/StartEvent=CALL|Start|%{CallId}/<newline>
+默认：<tt>CALL|Start|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+定义要为新呼叫显示的事件。使用与其他计费模块相同的变量对字符串进行参数设置（请参见 <ref id="sqlacct" name="[SQLAacct]">）。
+
+<item><tt/StopEvent=CALL|Stop|%{CallId}/<newline>
+默认：<tt>CALL|Stop|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+定义呼叫结束(disconnected)时的事件。语法和参数与相同<tt/StartEvent/。此事件等效于旧状态端口CDR事件，但更灵活。
+
+<item><tt/UpdateEvent=CALL|Update|%{CallId}/<newline>
+默认：<tt>CALL|Update|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+定义用于更新当前呼叫状态的事件。语法和参数与相同<tt/StartEvent/。
+
+<item><tt/ConnectEvent=CALL|Connect|%{CallId}/<newline>
+默认：<tt>CALL|Connect|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
+<p>
+定义连接呼叫时的事件。语法和参数与相同<tt/StartEvent/。
+
+<item><tt/TimestampFormat=MySQL/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+事件中使用的时间戳字符串的格式。若未指定此设置，则使用主网守部分中的全局设置。
+
+</itemize>
+
+<sect1>Section &lsqb;LuaAcct&rsqb;
+<label id="luaacct">
+<p>
+该计费模块为每个计费事件运行一个LUA脚本。
+
+在<ref id="cdrparameters" name="常见的CDR参数">可作为LUA变量<tt>param_g</tt>或<tt>param_Called_Station_Id</tt>。
+参数名中的减号用下划线代替，以构造有效的LUA变量名。
+
+变量中提供了当前正在处理的事件的名称，<tt>event</tt>结果("OK", "Fail", "Next") 可存储在result变量中。
+
+<itemize>
+<item><tt/Script=<em>script</em>/<newline>
+默认：<tt>N/A</tt>
+<p>
+为每个事件运行的LUA脚本。
+
+<item><tt/ScriptFile=<em>script</em>/<newline>
+默认：<tt>N/A</tt>
+<p>
+为每个事件运行的LUA文件。
+
+<item><tt/TimestampFormat=MySQL/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+时间戳字符串的格式。
+若未指定此设置，则使用主网守部分中的全局设置。
+
+</itemize>
+
+
+<sect1>Section &lsqb;HttpAcct&rsqb;
+<label id="httpacct">
+<p>
+该计费模块通过HTTP发送计费信息。
+
+可使用<ref id="cdrparameters" name="公共CDR参数"> 来定义要包含在请求URL或正文中的内容。
+
+<itemize>
+<item><tt/Method=GET/<newline>
+默认：<tt>N/A</tt>
+<p>
+要使用的HTTP方法。当前支持GET和POST。
+
+<item><tt/TimestampFormat=MySQL/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+时间戳字符串的格式。若未指定此设置，则使用主网守部分中的全局设置。
+
+<item><tt>StartURL=http://example.com/call-start</tt><newline>
+默认：<tt>N/A</tt>
+<p>
+要为呼叫开始事件获取的URL。可使用下面指定的参数来参数化URL。
+
+<item><tt/StartBody=gatekeeper=%g/<newline>
+默认：<tt>empty</tt>
+<p>
+用于POST请求的呼叫开始事件的HTTP正文。可使用下面指定的参数来参数化URL。若未为POST指定任何正文，则将从URL参数（若存在）构造正文。
+
+<item><tt>StopURL=http://example.com/call-stop</tt><newline>
+默认：<tt>N/A</tt>
+<p>
+要为通话停止事件获取的URL。
+
+<item><tt/StopBody=gatekeeper=%g/<newline>
+默认：<tt>empty</tt>
+<p>
+用于POST请求的呼叫停止事件的HTTP正文。
+
+<item><tt>UpdateURL=http://example.com/call-update</tt><newline>
+默认：<tt>N/A</tt>
+<p>
+用于获取呼叫更新事件的URL。
+
+<item><tt/UpdateBody=gatekeeper=%g/<newline>
+默认：<tt>empty</tt>
+<p>
+用于POST请求的呼叫更新事件的HTTP正文。
+
+<item><tt>AlertURL=http://example.com/call-alert</tt><newline>
+默认：<tt>N/A</tt>
+<p>
+用于获取呼叫响玲事件的URL。
+
+<item><tt/AlertBody=gatekeeper=%g/<newline>
+默认：<tt>empty</tt>
+<p>
+用于POST请求的呼叫响玲事件的HTTP正文。
+
+<item><tt>ConnectURL=http://example.com/call-connect</tt><newline>
+默认：<tt>N/A</tt>
+<p>
+要获取的呼叫连接事件的URL。
+
+<item><tt/ConnectBody=gatekeeper=%g/<newline>
+默认：<tt>empty</tt>
+<p>
+用于POST请求的呼叫连接事件的HTTP正文。
+
+<item><tt>RejectURL=http://example.com/call-rejected</tt><newline>
+默认：<tt>N/A</tt>
+<p>
+要为呼叫拒绝事件获取的URL。
+
+<item><tt/RejectBody=gatekeeper=%g/<newline>
+默认：<tt>empty</tt>
+<p>
+用于POST请求的呼叫拒绝事件的HTTP正文。
+
+<item><tt>MediaFailURL=http://example.com/media-fail</tt><newline>
+默认：<tt>N/A</tt>
+<p>
+要获取MediaFail事件的URL。
+
+<item><tt/MediaFailBody=gatekeeper=%g/<newline>
+默认：<tt>empty</tt>
+<p>
+用于POST请求的MediaFail事件的HTTP正文。
+
+<item><tt>RegisterURL=http://example.com/ep-register</tt><newline>
+默认：<tt>N/A</tt>
+<p>
+要获取端点注册事件的URL。
+
+<item><tt/RegisterBody=gatekeeper=%g/<newline>
+默认：<tt>empty</tt>
+<p>
+用于POST请求的端点注册事件的HTTP正文。
+
+<item><tt>UnregisterURL=http://example.com/ep-unregister</tt><newline>
+默认：<tt>N/A</tt>
+<p>
+端点注销事件要获取的URL。
+
+<item><tt/UnregisterBody=gatekeeper=%g/<newline>
+默认：<tt>empty</tt>
+<p>
+用于POST请求的端点注销事件的HTTP正文。
+
+<item><tt>OnURL=http://example.com/gatekeeper-up</tt><newline>
+默认：<tt>N/A</tt>
+<p>
+要获取网守启动事件的URL。
+
+<item><tt/OnBody=gatekeeper=%g/<newline>
+默认：<tt>empty</tt>
+<p>
+网守启动事件的HTTP正文，用于POST请求。
+
+<item><tt>OffURL=http://example.com/gatekeeper-down</tt><newline>
+默认：<tt>N/A</tt>
+<p>
+要获取网守停止事件的URL。
+
+<item><tt/OffBody=gatekeeper=%g/<newline>
+默认：<tt>empty</tt>
+<p>
+网守停止事件的HTTP正文与POST请求一起使用。
+
+</itemize>
+
+
+<sect1>Section &lsqb;AMQPAcct&rsqb;
+<label id="amqpacct">
+<p>
+该计费模块将计费信息发送到AMQP队列，例如RabbitMQ。
+
+可使用<ref id="cdrparameters" name="公共CDR参数">来定义要包含在请求URL或正文中的内容。
+
+<itemize>
+
+<item><tt/Host=192.168.1.1/<newline>
+默认：<tt>localhost</tt><newline>
+<p>
+设置运行消息代理的主机。
+
+<item><tt/Port=5672/<newline>
+默认：<tt>5672</tt><newline>
+<p>
+消息代理的端口。
+
+<item><tt/User=admin/<newline>
+默认：<tt>guest</tt><newline>
+<p>
+用户名。
+
+<item><tt/Password=secret/<newline>
+默认：<tt>guest</tt><newline>
+<p>
+密码。
+
+<item><tt/UseSSL=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+将SSL用于AMQP连接。
+
+<item><tt>CACert=/path/to/cert</tt><newline>
+默认：<tt>n/a</tt><newline>
+<p>
+证书文件的路径。
+
+<item><tt/Exchange=foo/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+交换使用。
+
+<item><tt/RoutingKey=bar/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+消息代理的路由密钥。若未在配置中指定路由密钥，则GnuGk会将"gnugk.call.status" 或 "gnugk.registration.status"设置为路由密钥。
+
+<item><tt>VHost=/</tt><newline>
+默认：<tt>/</tt><newline>
+<p>
+虚拟主机
+
+<item><tt>ContentType=application/json</tt><newline>
+默认：<tt>text/plain</tt><newline>
+<p>
+要发送的内容类型标头。
+
+<item><tt>StartEvent=Start Call GK=%g</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+呼叫开始事件的文本。可使用标准帐户参数。
+
+<item><tt>StopEvent=End Call GK=%g</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+呼叫停止事件的文本。可使用标准帐户参数。
+
+<item><tt>UpdateEvent=Update Call GK=%g</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+呼叫更新事件的文本。可使用标准帐户参数。
+
+<item><tt>AlertEvent=Alert Call GK=%g</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+呼叫响玲事件的文本。可使用标准帐户参数。
+
+<item><tt>ConnectEvent=Connect Call GK=%g</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+呼叫连接事件的文本。可使用标准帐户参数。
+
+<item><tt>RejectEvent=Reject Call GK=%g</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+呼叫连接事件的文本。可使用标准帐户参数。
+
+<item><tt>RegisterEvent=Register Endpoint GK=%g</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+端点注册事件的文本。可使用标准帐户参数。
+
+<item><tt>UnregisterEvent=Unregister Endpoint GK=%g</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+端点注销事件的文本。可使用标准帐户参数。
+
+<item><tt>OnEvent=GK Start %g</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+ON事件的文本。可使用标准帐户参数。
+
+<item><tt>OffEvent=GK Stop %g</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+OFF事件的文本。可使用标准帐户参数。
+
+<item><tt/TimestampFormat=MySQL/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+时间戳字符串的格式。若未指定此设置，则使用主网守部分中的全局设置。
+
+</itemize>
+
+在主机，Port, User, Password, UseSSL, CACert, Exchange and RoutingKey的设置中，可使用%{env1}至 %{env9}插入环境变量GNUGK_ENV1 ... GNUGK_ENV9。
+
+
+<sect1>Section &lsqb;MQTTAcct&rsqb;
+<label id="mqttacct">
+<p>
+该计费模块将计费信息发送到MQTT服务器。
+
+可使用<ref id="cdrparameters" name="公共CDR参数">来定义要包含在请求URL或正文中的内容。
+
+<itemize>
+
+<item><tt/Host=192.168.1.1/<newline>
+默认：<tt>localhost</tt><newline>
+<p>
+设置运行消息代理的主机。
+
+<item><tt/Port=1883/<newline>
+默认：<tt>1883</tt><newline>
+<p>
+消息代理的端口。
+
+<item><tt/UseSSL=0/<newline>
+默认：<tt>0</tt><newline>
+<p>
+目前尚未实施。
+
+<item><tt>CACert=/path/to/cert</tt><newline>
+默认：<tt>n/a</tt><newline>
+<p>
+目前尚未实施。
+
+<item><tt/User=admin/<newline>
+默认：<tt>guest</tt><newline>
+<p>
+用户名。
+
+<item><tt/Password=secret/<newline>
+默认：<tt>guest</tt><newline>
+<p>
+密码。
+
+<item><tt>CallTopic=foo/bar</tt><newline>
+默认：<tt>gnugk/call/status</tt><newline>
+<p>
+呼叫相关事件的主题。
+
+<item><tt>RegistrationTopic=foo/bar</tt><newline>
+默认：<tt>gnugk/registration/status</tt><newline>
+<p>
+注册相关事件的主题。
+
+<item><tt>StartEvent=Start Call GK=%g</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+呼叫开始事件的文本。可使用标准帐户参数。
+
+<item><tt>StopEvent=End Call GK=%g</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+呼叫停止事件的文本。可使用标准帐户参数。
+
+<item><tt>UpdateEvent=Update Call GK=%g</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+呼叫更新事件的文本。可使用标准帐户参数。
+
+<item><tt>AlertEvent=Alert Call GK=%g</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+呼叫响铃事件的文本。可使用标准帐户参数。
+
+<item><tt>ConnectEvent=Connect Call GK=%g</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+呼叫连接事件的文本。可使用标准帐户参数。
+
+<item><tt>RejectEvent=Reject Call GK=%g</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+呼叫拒绝事件的文本。可使用标准帐户参数。
+
+<item><tt>RegisterEvent=Register Endpoint GK=%g</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+端点注册事件的文本。可使用标准帐户参数。
+
+<item><tt>UnregisterEvent=Unregister Endpoint GK=%g</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+端点注销事件的文本。可使用标准帐户参数。
+
+<item><tt>OnEvent=GK Start %g</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+ON事件的文本。可使用标准帐户参数。
+
+<item><tt>OffEvent=GK Stop %g</tt><newline>
+默认：<tt>N/A</tt><newline>
+<p>
+OFF事件的文本。可使用标准帐户参数。
+
+<item><tt/TimestampFormat=MySQL/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+时间戳字符串的格式。若未指定此设置，则使用主网守部分中的全局设置。
+
+</itemize>
+
+在主机，Port, User, Password, UseSSL and CACert的设置中，可使用%{env1}至%{env9}插入环境变量GNUGK_ENV1 ... GNUGK_ENV9
+
+
+<sect1>Section &lsqb;RequireOneNet&rsqb;
+<label id="requireonenet">
+<p>
+尽管从技术上讲这是一个记帐模块，但其逻辑目的是对呼叫进行身份验证，并确保cal的至少一端在自己的网络中。
+这样做的目的是为了保护穿透网守免受滥用，因为这些滥用本来就需要每个想打入你的网络的人都可以访问，但不应允许它支持外部到外部的呼叫。
+
+<itemize>
+<item><tt>Networks=192.168.1.0/24,1.2.3.4/24</tt><newline>
+默认：<tt>N/A</tt>
+<p>
+列出GK支持的网络。所有呼叫的源或目的地必须在这些网络之中。
+
+</itemize>
+

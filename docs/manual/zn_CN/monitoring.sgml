@@ -1,0 +1,1069 @@
+<sect>监视GK
+<label id="monitor">
+<p>
+<sect1>状态端口
+<p>
+状态端口是用于监视和控制网守的外部接口。网守将向所有连接的客户端发送有关正在进行的呼叫的消息，并且它可以通过此接口接收命令。
+<p>
+对状态端口的访问受<ref id="gkstatusauth" name="GkStatus::Auth">中的规则限制 。出于安全原因，默认情况是在配置<ref id="gkstatusauth" name="GkStatus::Auth">之前不允许任何访问 。
+<p>
+网守发送到状态端口的消息分为三个输出跟踪级别：（这些跟踪级别仅适用于状态端口上显示的消息。不要将它们与GnuGk跟踪文件的跟踪级别混淆。）
+<itemize>
+<item>Level 0
+	<quote>
+	重新加载通知并直接回复输入的命令。
+	</quote>
+<item>Level 1
+	<quote>
+	重新加载通知，直接回复输入的命令，CDR和路由请求。
+	</quote>
+<item>Level 2
+	<quote>
+	输出所有内容（重新加载通知，对输入命令的直接答复，CDR，路由请求，RAS等）。这是<bf/default/的输出级别。
+	</quote>
+</itemize>
+连接到状态端口的客户端可以选择其感兴趣的输出级别。
+<p>
+该接口是一个简单的TCP端口（默认值：7000），可使用telnet或其他客户端连接到该端口。另一种客户端的示例是Java GUI，也称为GkGUI。另一个示例是自动呼叫分配应用程序，也称为GnuGk ACD。
+
+<sect2>应用领域
+<p>
+可使用状态界面的功能来完成操作，但是这里有一些建议：
+<itemize>
+<item>通话监控
+<item>监视端点的注册
+<item>GnuGk的图形用户界面
+<quote>
+请参阅GkGUI.
+</quote>
+<item>Call Routing
+<quote>
+请参阅GnuGk ACD.
+</quote>
+<item>计费应用
+<quote>
+分析CDR消息并将其转发到计费应用程序。
+</quote>
+<item>连接外部扩展
+<quote>
+若不想将源代码发布到其他功能，只需通过状态界面发布核心功能和接口，并将外部部分保密。
+</quote>
+</itemize>
+<p>
+<sect2>Examples
+<p>
+假设您只是对CDR（呼叫详细记录）感兴趣，并想定期对其进行批处理。
+
+这是一个简单的Perl脚本(<tt/gnugk_cdr.pl/)，它启动网守，并为状态接口派生一个非常简单的客户端，仅将CDR写入日志文件。则必须对其进行一些修改以适合您的需求。
+
+<verb>
+#!/usr/bin/perl
+# sample program that demonstrates how to write the CDRs to a log file
+use strict;
+use IO::Socket;
+use IO::Handle;
+
+my $logfile = "/home/jan/cdr.log";	# CHANGE THIS
+my $gk_host = "localhost";
+my $gk_port = 7000;
+my $gk_pid;
+
+if ($gk_pid = fork()) {
+	# parent will listen to gatekeeper status
+	sleep(1);	# wait for gk to start
+	my $sock = IO::Socket::INET->new(PeerAddr => $gk_host, PeerPort => $gk_port, Proto => 'tcp');
+	if (!defined $sock) {
+		die "Can't connect to gatekeeper at $gk_host:$gk_port";
+	}
+	$SIG{HUP} = sub { kill 1, $gk_pid; };	# pass HUP to gatekeeper
+	$SIG{INT} = sub { close (CDRFILE); kill 2, $gk_pid; };	# close file when terminated
+
+	open (CDRFILE, ">>$logfile");
+	CDRFILE->autoflush(1);	# don't buffer output
+	while (!$sock->eof()) {
+		my $msg = $sock->getline();
+		$msg = (split(/;/, $msg))[0];	# remove junk at end of line
+		my $msgtype = (split(/\|/, $msg))[0];
+		if ($msgtype eq "CDR") {
+			print CDRFILE "$msg\n";
+		}
+	}
+	close (CDRFILE);
+} else {
+	# child starts gatekeeper
+	exec("gnugk");
+}
+</verb>
+<p>
+记住，这只是显示状态端口用法的一个示例。可使用FileAcct模块在生产系统中记录CDR。
+
+<sect2>Java GUI for the Gatekeeper
+<p>
+由Jan Willamowius开发。
+<p>
+可监视通过网守的注册和呼叫。右键单击按钮可为该端点提供一个弹出菜单。
+
+该GUI与大多数Web浏览器中内置的Java 1.0一起使用。出于安全原因，GUI必须作为独立应用程序运行，或由与网守相同IP地址的Web服务器提供服务（不能通过本地文件将其作为applet运行）。
+
+该程序可在 GnuGk.org上找到。
+<url url="https://www.gnugk.org/h323gui.html" name="GnuGk.org">
+
+<sect1>Commands (Reference)
+<p>
+本节列出了可以发布到状态端口的所有命令（手动或使用外部应用程序）。命令不区分大小写，但参数可能不区分大小写。
+<p>
+输入<tt/help/或<tt/h/将显示所有可用命令的列表。
+<p>
+<itemize>
+<item><tt/Reload/<newline>
+<p>重新加载配置。
+
+重新加载配置不会终止现有呼叫，并且对设置的任何更改将仅对新呼叫生效。
+
+可添加可选参数以仅重新加载配置的一部分：
+<itemize>
+<item>AcctConfig - 仅重新加载记帐配置
+<item>AuthConfig - 仅重新加载身份验证配置
+<item>CapConfig - 仅重新加载CapacityControl规则
+<item>EpConfig - 仅重新加载端点配置（固定端点，端点部分，呼叫列表设置）
+</itemize>
+<p>
+<descrip>
+<tag/例：/
+<tscreen><verb>
+Reload
+Full Config reloaded.
+
+Reload EpConfig
+EP Config reloaded.
+</verb></tscreen>
+</descrip>
+
+<item><tt/Shutdown/<newline>
+<p>
+终止网守。可以通过<ref id="gkstatusauth" name="[GkStatus::Auth]">部分中的Shutdown=forbid禁用。
+
+<item><tt/Version/, <tt/v/<newline>
+<p>
+显示GK的版本和操作系统信息。
+
+<item><tt/Statistics/, <tt/s/<newline>
+<p>
+显示GK的统计信息。
+<descrip>
+<tag/例：/
+<tscreen><verb>
+Statistics
+-- Endpoint Statistics --
+Total Endpoints: 307  Terminals: 278  Gateways: 29  NATed: 0
+Cached Endpoints: 0  Terminals: 0  Gateways: 0
+-- Call Statistics --
+Current Calls: 7 Active: 7 From Neighbor: 4 From Parent: 0 Proxied: 3
+Total Calls: 1151  Successful: 485  From Neighbor: 836  From Parent: 0  Proxied: 193  Peak:  17 at Tue, 26 Nov 2013 19:32:04 +04:00
+Startup: Tue, 26 Nov 2013 18:45:35 +04:00   Running: 0 days 02:34:15
+;
+</verb></tscreen>
+</descrip>
+
+<item><tt/ResetCallCounters/<newline>
+<p>
+为全部呼叫，成功呼叫，邻居呼叫和父呼叫的统计信息计数器重置为零。
+
+<item><tt/PrintAllRegistrations/, <tt/r/, <tt/?/<newline>
+<p>显示所有已注册的端点。 
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+AllRegistrations
+RCF|IP:Port|Aliases|Terminal_Type|EndpointID
+...
+Number of Endpoints: n
+;
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+AllRegistrations
+RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp
+RCF|10.0.1.43:1720|613:dialedDigits=Jacky Tsai:h323_ID|terminal|1328_endp
+RCF|10.0.1.55:1720|705:dialedDigits=Sherry Liu:h323_ID|terminal|1333_endp
+Number of Endpoints: 3
+;
+</verb></tscreen>
+</descrip>
+
+<item><tt/PrintAllRegistrationsVerbose/, <tt/rv/, <tt/??/<newline>
+<p>显示所有已注册端点的详细信息。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+AllRegistrations
+RCF|IP:Port|Aliases|Terminal_Type|EndpointID
+Registration_Time C(Active_Call/Connected_Call/Total_Call) &lt;r&gt; (NAT type) bw:Bandwidth/Max_Bandwidth
+[Prefixes: ##] (gateway only)
+...
+Number of Endpoints: n
+;
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+AllRegistrations
+RCF|10.0.1.8:1720|Accel-GW2:h323_ID|gateway|1322_endp
+Wed, 26 Jun 2002 16:40:03 +0800 C(1/5/33) &lt;1&gt; bw:0/10240
+Prefixes: 09,002
+RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp
+Wed, 26 Jun 2002 16:40:55 +0800 C(0/32/39) &lt;1&gt; (H.460.18) bw:7680/10240
+RCF|10.0.1.66:1720|716:dialedDigits=Vicky:h323_ID|terminal|1425_endp
+Wed, 26 Jun 2002 16:40:58 +0800 C(1/47/53) &lt;1&gt; (H.460.17) bw:0/10240
+Number of Endpoints: 3
+;
+</verb></tscreen>
+</descrip>
+
+<item><tt/PrintAllCached/, <tt/rc/<newline>
+<p>
+打印所有缓存的区域外端点的列表。
+
+<item><tt/PrintCurrentCalls/, <tt/c/, <tt/!/<newline>
+<p>
+使用与呼叫建立中相同的ACF语法显示所有当前呼叫。还显示了媒体的路由方式。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+CurrentCalls
+Call No. # | CallID | Call_Duration | Left_Time
+Dialed_Number
+ACF|Caller_IP:Port|Caller_EPID|CRV|DestinationInfo|SrcInfo|IsAnswered|MediaRoute;
+ACF|Callee_IP:Port|Callee_EPID|CRV|DestinationInfo|SrcInfo|IsAnswered|MediaRoute;
+...
+Number of Calls: Current_Calls Active: Active_Calls From Neighbor: Calls_From_Neighbor \
+From Parent: Calls_From_Parent Proxied: Proxied_Calls
+;
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+CurrentCalls
+Call No. 29 | CallID bd c6 17 ff aa ea 18 10 85 95 44 45 53 54 77 77 | 109 | 491
+Dial 0953378875:dialedDigits
+ACF|10.0.1.49:1720|4048_CGK1|25263|frank:h323_ID|gunter:h323_ID|false|Proxy;
+ACF|10.1.1.1:1720|4037_CGK1|25263|gunter:h323_ID|frank:h323_ID|true|Proxy;
+Call No. 30 | CallID 70 0e dd c0 9a cf 11 5e 00 01 00 05 5d f9 28 4d | 37 | 563
+Dial 0938736860:dialedDigits
+ACF|10.0.1.48:1032|4041_CGK1|11896|sue:h323_ID|peter:h323_ID|false|-;
+ACF|10.1.1.1:1720|4037_CGK1|11896|peter:h323_ID|sue:h323_ID|true|-;
+Number of Calls: 2 Active: 2 From Neighbor: 0 From Parent: 0 Proxied: 1
+;
+</verb></tscreen>
+</descrip>
+
+<item><tt/PrintCurrentCallsVerbose/, <tt/cv/, <tt/!!/<newline>
+<p>
+显示所有当前通话的详细信息。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+CurrentCalls
+Call No. # | CallID | Call_Duration | Left_Time
+Dialed_Number
+ACF|Caller_IP:Port|Caller_EPID|CRV|DestinationInfo|SrcInfo|IsAnswered|MediaRoute;
+ACF|Callee_IP:Port|Callee_EPID|CRV|DestinationInfo|SrcInfo|IsAnswered|MediaRoute;
+# Caller_Aliases|Callee_Aliases|Bandwidth|Connected_Time &lt;r&gt; bw:Bandwidth
+...
+Number of Calls: Current_Calls Active: Active_Calls From Neighbor: Calls_From_Neighbor \
+From Parent: Calls_From_Parent Proxied: Proxied_Calls
+;
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+CurrentCalls
+Call No. 48 | CallID 7d 5a f1 0a ad ea 18 10 89 16 00 50 fc 3f 0c f5 | 30 | 570
+Dial 0225067272:dialedDigits
+ACF|10.0.1.200:1720|1448_endp|19618|frank:h323_ID|gunter:h323_ID|false|Proxy;
+ACF|10.0.1.7:1720|1325_endp|19618|gunter:h323_ID|frank:h323_ID|true|Proxy;
+# Sherry:h323_ID|Accel-GW1:h323_ID|200000|Wed, 26 Jun 2002 17:29:55 +0800 &lt;2&gt; bw:3840
+Number of Calls: 1 Active: 1 From Neighbor: 0 From Parent: 0 Proxied: 1
+;
+</verb></tscreen>
+</descrip>
+
+<item><tt/PrintCurrentCallsPorts/<newline>
+<p>
+显示用于传入数据包的每个正在进行的呼叫的动态分配端口。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+CurrentCallsPorts
+Call No. # | CallID | Call_Duration | Dialed_Number
+Caller_IP:Port|SrcInfo|Callee_IP:Port|DestinationInfo
+  PortType IP:port
+;
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+CurrentCallsPorts
+Call No. 1 | CallID b4 ef 4a e3 2a f8 e0 11 9f c6 00 1e c9 7e 69 ec | 62 | Dial peter:h323_ID
+10.0.1.200:1720|frank:h323_ID|10.0.1.7:1720|gunter:h323_ID
+  RTP 0.0.0.0:1024
+  RTP 0.0.0.0:1025
+  H.245 0.0.0.0:55674
+;
+</verb></tscreen>
+</descrip>
+
+<item><tt/PrintPrefixCapacities/, <tt/printpc/<newline>
+<p>
+打印所有端点或指定别名的前缀容量和当前计数器值。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+PrintPrefixCapacities [Alias]
+PrefixCapacities
+-- Endpoint: Alias (1.2.3.4:1720) --
+Total calls = 0
+prefix/capacity/curr: 125/5/0
+-- Endpoint: Alias2 (1.2.3.5:1720) --
+Total calls = 0
+prefix/capacity/curr: 125/5/0
+;
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+PrintPrefixCapacities OpenMCU
+PrefixCapacities
+-- Endpoint: OpenMCU (192.168.1.100:1720) --
+Total calls = 0
+prefix/capacity/curr: ^(123|124)/2/0
+prefix/capacity/curr: 125/5/0
+;
+</verb></tscreen>
+</descrip>
+<item><tt/printcc/<newline>
+<p>
+打印所有CapacityControl规则的当前计数器。
+
+<item><tt/Find/, <tt/f/<newline>
+<p>
+通过别名或前缀查找注册的端点。要查找指定类型的别名(h323_ID, dialedDigits)，请在别名之前加上别名类型名称(h323, e164, url, email)，然后加上冒号
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+Find Alias
+RCF|IP:Port|Aliases|Terminal_Type|EndpointID
+;
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+f 800
+RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp
+;
+f 801
+Alias 801 not found!
+f h323:Wei
+RCF|10.1.1.10:1720|800:dialedDigits=Wei:h323_ID|terminal|1289_endp
+;
+</verb></tscreen>
+</descrip>
+
+<item><tt/FindVerbose/, <tt/fv/<newline>
+<p>
+通过别名或前缀查找注册端点的详细信息。要查找指定类型的别名(h323_ID, dialedDigits)，请在别名之前加上别名类型名称(h323, e164, url, email)，然后加上冒号。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+FindVerbose Alias
+RCF|IP:Port|Aliases|Terminal_Type|EndpointID
+Registration_Time C(Active_Call/Connected_Call/Total_Call) &lt;r&gt;
+[Prefixes: ##] (gateway only)
+;
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+fv 02
+RCF|10.0.1.100:1720|TFN:h323_ID|gateway|4037_CGK1
+Wed, 26 Jun 2002 17:47:29 +0800 C(0/84/120) &lt;1&gt;
+Prefixes: 02,09
+;
+</verb></tscreen>
+</descrip>
+
+<item><tt/UnregisterIP/<newline>
+<p>
+通过IP和呼叫信令端口强制注销端点。若未指定呼叫信号端口，则GnuGk将注销在IP号码上找到的第一个端点
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+UnregisterIP IP[:Port]
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+UnregisterIP 10.0.1.31:1720
+URQ|10.0.1.31:1032|1326_endp|maintenance;
+Endpoint 10.0.1.31:1720 unregistered!
+</verb></tscreen>
+</descrip>
+
+<item><tt/UnregisterEP/<newline>
+<p>
+通过端点ID强制注销端点。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+UnregisterEP endpoint-id
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+UnregisterEP 1326_endp
+URQ|10.0.1.31:1032|1326_endp|maintenance;
+Endpoint 1326_endp unregistered!
+</verb></tscreen>
+</descrip>
+
+<item><tt/UnregisterAlias/<newline>
+<p>
+通过其别名之一强制注销端点。要匹配指定类型的别名(h323_ID, dialedDigits)，请在别名前面加上别名类型名称(h323, e164, url, email)，后跟冒号。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+UnregisterAlias Alias
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+UnregisterAlias 601
+URQ|10.0.1.31:1032|1326_endp|maintenance;
+Endpoint 601 unregistered!
+</verb></tscreen>
+</descrip>
+
+<item><tt/UnregisterAllEndpoints/<newline>
+<p>
+强制注销所有已注册的端点。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+UnregisterAllEndpoints
+URQ|10.0.1.7:1024|1325_endp|maintenance;
+URQ|10.0.1.8:1024|1322_endp|maintenance;
+URQ|10.0.1.32:1032|1324_endp|maintenance;
+URQ|10.0.1.36:1032|1323_endp|maintenance;
+URQ|10.0.1.42:1032|1318_endp|maintenance;
+Done
+;
+</verb></tscreen>
+</descrip>
+
+<item><tt/DisconnectCall/<newline>
+<p>
+断开具有给定号码的呼叫（内部，由网守分配的呼叫号码，而不是呼叫者，被叫者的电话号码）。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+DisconnectCall Number
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+DisconnectCall 1533
+</verb></tscreen>
+</descrip>
+
+<item><tt/DisconnectCallId/<newline>
+<p>
+断开具有给定呼叫ID的呼叫。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+DisconnectCallId CallId
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+DisconnectCallId ee-ab-8f-81-58-57-df-11-95-39-00-1e-c9-7e-69-ec
+</verb></tscreen>
+</descrip>
+
+<item><tt/DisconnectIP/<newline>
+<p>
+通过IP和呼叫信令端口断开端点的所有呼叫。若未指定呼叫信号端口，则GnuGk将断开在IP号码上找到的第一个端点
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+DisconnectIP IP[:Port]
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+DisconnectIP 10.0.1.31:1720
+</verb></tscreen>
+</descrip>
+
+<item><tt/DisconnectAlias/<newline>
+<p>
+通过别名之一断开已注册端点的所有呼叫。要匹配指定类型的别名(h323_ID, dialedDigits)，请在别名前面加上别名类型名称(h323, e164, url, email)，后跟冒号。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+DisconnectAlias Alias
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+DisconnectAlias 601
+</verb></tscreen>
+</descrip>
+
+<item><tt/DisconnectEndpoint/<newline>
+<p>
+通过其端点标识符之一断开已注册端点的所有呼叫。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+DisconnectEndpoint ID
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+DisconnectEndpoint 5624_endp
+</verb></tscreen>
+</descrip>
+
+<item><tt/ClearCalls/<newline>
+<p>
+断开网守上的所有呼叫。
+
+<item><tt/GK/<newline>
+<p>
+显示父网守的信息
+
+<item><tt/Trace/<newline>
+<p>
+设置状态界面输出跟踪级别。它控制将哪些消息发送到此客户端：
+<itemize>
+<item><tt/trace 0/ or <tt/trace min/<newline>
+	<p>仅直接响应命令并重新加载通知。
+<item><tt/trace 1/<newline>
+	<p>CDR，对命令的直接响应和重新加载通知
+<item><tt/trace 2/ or <tt/trace max/<newline>
+	<p>全部显示（RAS，CDR，对命令的直接响应，重新加载通知等）。
+</itemize>
+
+<item><tt/Debug/<newline>
+<p>仅用于调试目的。选项：
+<itemize>
+<item><tt/trc [+|-|n]/<newline>
+<p>显示/修改跟踪级别。
+<item><tt/cfg/<newline>
+<p>阅读并打印所有部分的列表。
+<item><tt/cfg all/<newline>
+<p>阅读并打印所有配置节的内容。
+<item><tt/cfg SEC/<newline>
+<p>阅读并打印配置部分。
+<item><tt/cfg SEC PAR/<newline>
+<p>在一节中读取并打印配置参数。
+<item><tt/set SEC PAR VAL/<newline>
+<p>在部分中编写配置值参数。（请注意，不能使用此命令设置包含空格的值！）
+<item><tt/remove SEC PAR/<newline>
+<p>在部分中删除配置值参数。
+<item><tt/remove SEC/<newline>
+<p>删除部分。
+<item><tt/printrm VERBOSE/<newline>
+<p>打印所有删除的端点记录。
+</itemize>
+<descrip>
+<tag/例：/
+<tscreen><verb>
+debug trc 3
+debug set RoutedMode H245Routed 1
+</verb></tscreen>
+</descrip>
+
+<item><tt/SetLog/<newline>
+<p>将跟踪输出发送到另一个文件。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+Setlog [filename]
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+Setlog /tmp/trace.log
+</verb></tscreen>
+</descrip>
+
+<item><tt/RotateLog/, <tt/rl/<newline>
+<p>轮询日志文件。
+
+<item><tt/Who/<newline>
+<p>
+在状态端口上显示所有人员。第一个字段是会话ID，可用于通过DisconnectSession命令断开用户连接。
+
+<item><tt/DisconnectSession/<newline>
+<p>断开用户与状态端口的连接。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+DisconnectSession [session id]
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+DisconnectSession 2
+</verb></tscreen>
+</descrip>
+
+<item><tt/Yell/, <tt/y/<newline>
+<p>向所有状态客户端发送消息。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+Yell [message text]
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+Yell Config reload in 5 minutes.
+</verb></tscreen>
+</descrip>
+
+<item><tt/RouteReject/<newline>
+<p>
+在虚拟队列上终止此呼叫。此命令用作对RouteRequest事件的响应（请参见下文）。必须将CallingEndpointID和CallRef传递回相应的RouteRequest中。
+CallID参数是可选的；如果给定，则其格式必须与RouteRequest发出的格式相同。还可选择设置数字H.225拒绝原因。
+若样做，则必须存在callID参数。根据导致RouteRequest的消息，原因被解释为ReleaseCompleteReason或ARQRejectReason。
+
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+RouteReject CallingEndpointID CallRef [CallID [reason]]
+</verb></tscreen>
+<tag/Examples:/
+<tscreen><verb>
+RouteReject endp_4711 1234
+RouteReject - - 40-06-dd-98-22-37-52-40-8c-b0-92-0e-18-60-99-07 2
+</verb></tscreen>
+</descrip>
+
+<item><tt/RouteToAlias/, <tt/rta/<newline>
+<p>
+将此呼叫在虚拟队列上路由到指定的别名。此命令用作对RouteRequest事件的响应（请参见下文）。
+必须将CallingEndpointID和CallRef传递回相应的RouteRequest中。CallID参数是可选的；若给定，则其格式必须与RouteRequest发出的格式相同。
+作为其他参数，可设置CLI并显示主叫方的IE。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+RouteToAlias Alias CallingEndpointID CallRef [CallID [CLI [CALLER-DISPLAY-IE [CALLED-DISPLAY-IE]]]]
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+RouteToAlias Suzi endp_4711 1234
+</verb></tscreen>
+</descrip>
+
+<item><tt/RouteToGateway/, <tt/rtg/<newline>
+<p>
+将此呼叫在虚拟队列上路由到指定的别名，并设置destinationSignalAddress。此命令用作对RouteRequest事件的响应（请参见下文）。
+可使用此命令将呼叫路由到未向网守注册的区域外网关或MCU。确保'vqueue' 和 'explicit'策略对这些呼叫有效。
+必须将CallingEndpointID和CallRef传递回相应的RouteRequest中。CallID参数是可选的；若给定，则其格式必须与RouteRequest发出的格式相同。
+作为附加参数，可设置呼叫方的CLI。alias参数是必需的，但若使用破折号("-")作为别名，则不会在目标中设置任何别名，而仅在IP中设置别名。
+
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+RouteToGateway Alias IP:Port CallingEndpointID CallRef [CallID [CLI [CALLER-DISPLAY-IE [CALLED-DISPLAY-IE]]]]
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+RouteToGateway Suzi 192.168.0.50 endp_4711 1234
+</verb></tscreen>
+</descrip>
+
+<item><tt/RouteToInternalGateway/<newline>
+<p>与RouteToGateway相同，但是不告诉呼叫者有关更新的目标别名的信息。
+
+<item><tt/BindAndRouteToGateway/<newline>
+<p>该命令与RouteToGateway相似，但也可以指定多宿主服务器的哪个IP用于拨出呼叫。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+BindAndRouteToGateway IP Alias IP:Port CallingEndpointID CallRef [CallID [CLI [CALLER-DISPLAY-IE [CALLED-DISPLAY-IE]]]]
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+BindAndRouteToGateway 192.168.0.2 Suzi 192.168.0.50 endp_4711 1234
+</verb></tscreen>
+</descrip>
+
+<item><tt/BindAndRouteToInternalGateway/<newline>
+<p>与BindAndRouteToGateway相同，但是不告诉呼叫者有关更新的目标别名的信息。
+
+<item><tt/SendProceeding/<newline>
+<p>
+发送CallProceeding消息给呼叫者。唯一有意义的时间是在针对未注册呼叫的RouteRequest事件之后。
+否则，状态端口应用程序将不知道是否已发送Setup消息，但尚未建立呼叫。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+SendProceeding CallID
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+SendProceeding 40-06-dd-98-22-37-52-40-8c-b0-92-0e-18-60-99-07
+</verb></tscreen>
+</descrip>
+
+<item><tt/Exit/, <tt/Quit/, <tt/q/, <tt/Ctrl-D/<newline>
+<p>退出状态端口。
+
+<item><tt/TransferCall/<newline>
+<p>
+将已建立的呼叫从端点A转移到端点B。
+
+通过呼叫ID选择要转移的呼叫，并使用字符串"caller" 或 "called"来指定应转移呼叫的哪一端。
+
+可使用可选的last参数选择传输方法。呼叫转移仅适用于正确支持Q.931 Facility callForwarded或routeCallToMC消息的端点（因此，它不适用于Netmeeting）。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+TransferCall <call-id> <CALLER | CALLED> <destination> [<FacilityForward | FacilityRouteCallToMC>]
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+TransferCall ee-ab-8f-81-58-57-df-11-95-39-00-1e-c9-7e-69-ec caller Peter
+</verb></tscreen>
+</descrip>
+
+<item><tt/RerouteCall/<newline>
+<p>
+使用TCS0暂停和重新路由的基于网守的呼叫转移。必须禁用H.245隧道（[RoutedMode] DisableH245Tunneling = 1）以及媒体加密（RemoveH235Call = 1）。
+
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+RerouteCall <call-id> <CALLER|CALLED> <destination>
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+RerouteCall 40-06-dd-98-22-37-52-40-8c-b0-92-0e-18-60-99-07 CALLER 192.168.1.222
+</verb></tscreen>
+</descrip>
+
+<label id="makecall">
+<item><tt/MakeCall/<newline>
+<p>
+从源到目标别名生成一个新呼叫。也可指定IP地址作为目的地。这是通过建立从网守中的伪端点到源别名/号码的呼叫，然后将呼叫从网守端点转移到目的地来完成的。
+可以配置此呼叫转移完成方法，因为并非所有端点都支持所有方法。
+
+有关配置选项，请参见 [CTI :: MakeCall]。
+See <ref id="ctimakecall" name="[CTI::MakeCall]"> for configuration options.
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+MakeCall Source-Alias Destination-Alias [Transfer-Method]
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+MakeCall 1234 5678
+MakeCall joe 192.168.6.1 H.450.2
+</verb></tscreen>
+</descrip>
+
+可选的传输方法参数可用于覆盖此单个MakeCall的<ref id="ctimakecall" name="[CTI::MakeCall]">中的全局TransferMethod开关 。
+
+传输方法的有效值为：
+<itemize>
+<item>FacilityForward
+<item>FacilityRouteCallToMC
+<item>H.450.2
+<!-- todo: fix Reroute CALLED
+<item>Reroute
+-->
+</itemize>
+
+<item><tt/GetAuthInfo,gai/<newline>
+<p>
+收集来自特定身份验证模块的信息（如果它提供了此类信息），并将其显示在状态端口上。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+GetAuthInfo ModuleName
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+GetAuthInfo RadAliasAuth
+</verb></tscreen>
+</descrip>
+
+<item><tt/GetAcctInfo,gci/<newline>
+<p>收集来自特定计费模块的信息（如果它提供了此类信息），并将其显示在状态端口上。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+GetAcctInfo ModuleName
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+GetAcctInfo SqlAcct
+</verb></tscreen>
+</descrip>
+
+<item><tt/PrintEndpointQoS/<newline>
+<p>
+显示所有端点的QoS值。这些值是通过H.460.9和/或代理的RTCP消息收集的，因此必须启用这些功能中的至少一项以使其具有丢包或抖动值。
+若端点有多个活动呼叫，则丢包和抖动值来自一个随机选择的呼叫。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+QoS|<endpoint aliases>|<last contact from endpoint>|<num calls>|<audio Rx packet loss percent>|<audio Rx jitter>|<video Rx packet loss percent>|<video Rx jitter>
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+EndpointQoS
+QoS|8001:dialedDigits=Peter:h323_ID|2011-02-10 T 09:23:08 Z|1|0.00%|0|0.00%|0
+QoS|Mary:h323_ID|2011-02-10 T 09:23:08 Z|1|0.00%|0|0.00%|0
+Number of Endpoints: 2
+;
+</verb></tscreen>
+</descrip>
+
+<item><tt/PrintEventBacklog/<newline>
+<p>
+在事件积压中打印保存的状态端口事件。要配置事件积压，请参见<ref id="statuseventbacklog" name="[Gatekeeper::Main] StatusEventBacklog">。
+
+<item><tt/PrintNeighbors/<newline>
+<p>
+打印具有IP地址和状态的所有邻居网守的列表。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+NB|<name>|<IP:port>|<enabled or disabled>|<H.460.18 server or client>
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+Neighbors
+NB|ClientGnuGk|192.168.1.101:7632|enabled|H.460.18 client
+NB|CountryGk|17.32.1.77:1719|enabled|
+Number of Neighbors: 2
+;
+</verb></tscreen>
+</descrip>
+
+<item><tt/PrintCallInfo, pci/<newline>
+<p>
+打印有关单个呼叫的大量详细信息，例如 使用的编解码器，带宽，IP等
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+PrintCallInfo CALL-ID
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+PrintCallInfo 40-06-dd-98-22-37-52-40-8c-b0-92-0e-18-60-99-07
+</verb></tscreen>
+</descrip>
+
+<item><tt/MaintenanceMode/<newline>
+<p>
+启用或禁用维护模式。
+<p>
+正在进行的呼叫保持活动状态，呼叫中的端点保持注册状态。所有其他已注册的端点将被取消注册，不接受新的注册或呼叫。通话中的端点在结束通话后将立即被注销。
+
+可选择设置备用网关守卫的IP，注册端点将定向到该网关守卫。该备用网守仅在维护模式下使用。
+<descrip>
+<tag/格式：/
+<tscreen><verb>
+MaintenanceMode [Alternate-IP]
+MaintenanceMode OFF
+</verb></tscreen>
+<tag/例：/
+<tscreen><verb>
+MaintenanceMode 1.2.3.4
+</verb></tscreen>
+</descrip>
+
+
+</itemize>
+
+
+<sect1>消息/事件（参考）
+<p>本节描述了输出到状态界面的消息。
+
+<itemize>
+<item><tt/GCF|IP|Aliases|Endpoint_Type;/<newline>
+<p>网守接收GatekeeperRequest（GRQ）并以GatekeeperConfirm（GCF）进行响应。
+
+<item><tt/GRJ|IP|Aliases|Endpoint_Type|RejectReason;/<newline>
+<p>网守接收GatekeeperRequest（GRQ）并以GatekeeperReject（GRJ）进行响应。
+
+<item><tt/RCF|IP:Port|Aliases|Endpoint_Type|EndpointID;/<newline>
+<p>网守接收注册请求（RRQ）并以注册确认（RCF）进行响应。
+
+<item><tt/RRJ|IP|Aliases|Endpoint_Type|RejectReason;/<newline>
+<p>网守接收注册请求（RRQ）并以注册拒绝（RRJ）进行响应。
+
+<item><tt/ACF|Caller_IP:Port|Caller_EndpointID|CRV|DestinationInfo|SrcInfo|IsAnswered|CallID|MediaRoute;/<newline>
+<p>网守接收到AdmissionRequest（ARQ）并以AdmissionConfirm（ACF）进行响应。
+
+<item><tt/ARJ|Caller_IP:Port|DestinationInfo|SrcInfo|IsAnswered|RejectReason|CallID;/<newline>
+<p>网守接收AdmissionRequest（ARQ）并以AdmissionReject（ARJ）进行响应。
+
+<item><tt/DCF|IP|EndpointID|CRV|DisengageReason|CallID;/<newline>
+<p>网守接收DisengageRequest（DRQ）并以DisengageConfirm（DCF）进行响应。
+
+<item><tt/DRJ|IP|EndpointID|CRV|RejectReason|CallID;/<newline>
+<p>网守接收DisengageRequest（DRQ）并以DisengageReject（DRJ）进行响应。
+
+<item><tt/LCF|IP|EndpointID|DestinationInfo|SrcInfo;/<newline>
+<p>网守接收到LocationRequest（LRQ）并以LocationConfirm（LCF）进行响应。
+
+<item><tt/LRJ|IP|DestinationInfo|SrcInfo|RejectReason;/<newline>
+<p>网守接收到LocationRequest（LRQ）并以LocationReject（LRJ）进行响应。
+
+<item><tt/BCF|IP|EndpointID|Bandwidth;/<newline>
+<p>网守接收带宽请求（BRQ）并以BandwidthConfirm（BCF）进行响应。
+
+<item><tt/BRJ|IP|EndpointID|Bandwidth|RejectReason;/<newline>
+<p>网守接收BandwidthRequest（BRQ）并以BandwidthReject（BRJ）进行响应。
+
+<item><tt/UCF|IP|EndpointID;/<newline>
+<p>网守接收到UnregistrationRequest（URQ），并以UnregistrationConfirm（UCF）进行响应。
+
+<item><tt/URJ|IP|EndpointID|RejectReason;/<newline>
+<p>网守接收到UnregistrationRequest（URQ），并以UnregistrationReject（URJ）进行响应。
+
+<item><tt/IRQ|IP:Port|EndpointID;/<newline>
+<p>网守将InfoRequest（IRQ）发送到端点以查询它是否仍然存在。端点必须立即以InfoRequestResponse（IRR）进行响应。
+
+<item><tt/URQ|IP:Port|EndpointID|Reason;/<newline>
+<p>网守将UnregistrationRequest（URQ）发送到端点以取消其注册。端点应以UnregistrationConfirm（UCF）响应。
+
+<item><tt/Setup|IP:Port|CallID;/<newline>
+<p>网守已从注册的端点接收到Setup消息。
+
+<item><tt/SetupUnreg|IP:Port|CallID;/<newline>
+<p>网守已从未注册的端点接收到Setup消息。
+
+<item><tt/CDR|CallNo|CallId|Duration|Starttime|Endtime|CallerIP|CallerEndId|/ \
+<newline><tt/CalledIP|CalledEndId|DestinationInfo|SrcInfo|GatekeeperID;/<newline>
+<p>断开呼叫后，将显示呼叫详细记录（一行）。
+
+<item><tt/RouteRequest|CallerIP:Port|CallerEndpointId|CallRef|VirtualQueue|CallerAlias|CallID|CalledIP:Port|VendorString|MsgFromIP:Port|MessageType;/<newline>
+<p>请求外部应用程序在虚拟队列上路由来电。这可以通过RouteToAlias/RouteToGateway或RouteReject命令来完成。
+
+</itemize>
+
+<sect1>Status Port Filtering
+<label id="statusportfiltering">
+<p>状态端口过滤有助于控制显示给最终用户的输出消息的数量和类型。过滤是使用正则表达式完成的，这些正则表达式用于确定是包含（显示）还是排除（忽略）输出消息。使用以下命令集执行过滤控制：
+
+<itemize>
+<item><tt/addincludefilter REGEX/<newline>
+将正则表达式添加到包含列表
+
+<item><tt/addexcludefilter REGEX/<newline>
+将正则表达式添加到排除列表
+
+<item><tt/removeincludefilter INDEX/<newline>
+从包含列表中删除给定索引处的过滤器
+
+<item><tt/removeexcludefilter INDEX/<newline>
+从排除列表中删除给定索引处的过滤器
+
+<item><tt/filter 1|0/<newline>
+启用/禁用邮件过滤
+
+<item><tt/printincludefilters/<newline>
+打印包含过滤器列表
+
+<item><tt/printexcludefilters/<newline>
+打印排除过滤器列表
+
+</itemize>
+<p>
+为了启用预定义的过滤器，引入了一个名为<ref id="gkstatusfilteringsect" name="[GkStatus::Filtering]">的新部分 。可指定在状态端口启动时要加载的预定义过滤器。
+<p>
+<descrip>
+<tag/例：/
+<tscreen><verb>
+[GkStatus::Filtering]
+IncludeFilter=.+
+ExcludeFilter=.RQ
+Enable=1
+</verb></tscreen>
+</descrip>
+<p>
+使用<tt/filter 1/命令启用过滤后，除带有ARQ，LRQ等的行外，将显示所有消息。也可在状态端口中键入以下内容：
+<tscreen><verb>
+addincludefilter .+
+addexcludefilter .RQ
+filter 1
+</verb></tscreen>
+<p>
+请注意，如果在未定义任何包含过滤器的情况下启用过滤，则会自动排除所有消息输出！
+<p>
+<descrip>
+<tag/示例： 隐藏Tandberg的邻居检查和穿透区域keepalive消息:/
+<tscreen><verb>
+[GkStatus::Filtering]
+Enable=1
+IncludeFilter=.+
+ExcludeFilter=gatekeeper-monitoring-check
+ExcludeFilter=SCR
+</verb></tscreen>
+</descrip>
+
+<descrip>
+<tag/There 另一个额外的开关，仅打印先前未注册的端点的RCF事件并禁止引用RCF:/
+<tscreen><verb>
+[GkStatus::Filtering]
+NewRCFOnly=1
+</verb></tscreen>
+</descrip>
+
+<sect1>Status Port Message Format
+<label id="statusportmessage">
+<p>
+状态端口事件消息的格式可以更改为重新排序，或包括标准输出格式中未包含的选项。注意：本节对状态端口命令的响应格式不起作用，例如。PrintAllRegistrations详细。
+
+在网守运行时，可以通过重新加载配置来更新此部分中的设置。
+<p>
+<itemize>
+<item><tt/Compact=1/<newline>
+Default: <tt/0/<newline>
+<p>
+是使用标准格式还是紧凑格式参数（主要与NATType变量一起使用）
+
+<item><tt/RCF=%{IP:Port}|%{Aliases}|%{Endpoint_Type}|%{EndpointID}|%{NATType}|%{Vendor}/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+RFC事件具有以下可用参数：
+<itemize>
+<item>IP:Port - 在其上检测到注册的IP和端口（如果位于NAT之后，则为外部NAT地址）
+<item>Aliases - 注册别名的完整列表
+<item>Endpoint_Type - 已注册端点的端点类型（即终端，网关）
+<item>EndpointID - 分配给注册的端点ID
+<item>NATType - NAT注册方法（即Native，GnuGk，H.460.17，H.460.18等）
+<item>Vendor - 注册设备的供应商信息
+</itemize>
+
+<item><tt/URQ=%{IP:Port}|%{Aliases}|%{Endpoint_Type}|%{EndpointID}|%{NATType}|%{Vendor}|%{EndpointRASAddr}|%{URQReason}/<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+URQ事件具有以下可用参数：
+<itemize>
+<item>IP:Port - 在其上检测到注册的IP和端口（如果位于NAT之后，则为外部NAT地址）
+<item>Aliases - 注册别名的完整列表
+<item>Endpoint_Type - 已注册端点的端点类型（即终端，网关）
+<item>EndpointID - 分配给注册的端点ID
+<item>NATType -NAT注册方法（即Native，GnuGk，H.460.17，H.460.18等）
+<item>Vendor - 注册设备的供应商信息
+<item>EndpointRASAddr - 端点RAS地址
+<item>URQReason - 注销原因
+</itemize>
+
+</itemize>
+<p>
+
+<descrip>
+<tag/例：/
+<tscreen><verb>
+[GkStatus::Message]
+Compact=0
+RCF=%{IP:Port}|%{Aliases}|%{Endpoint_Type}|%{EndpointID}|%{NATType}|%{Vendor}
+URQ=%{IP:Port}|%{Aliases}|%{Endpoint_Type}|%{EndpointID}|%{NATType}|%{Vendor}|%{EndpointRASAddr}|%{URQReason}
+</verb></tscreen>
+</descrip>
+

@@ -1,0 +1,168 @@
+<sect>编译安装
+<p>
+<sect1>编译前准备
+<p>
+要构建GnuGk，您需要PTLib和H323Plus。
+请参阅
+<url url="https://www.gnugk.org/compiling-gnugk.html" name="https://www.gnugk.org/compiling-gnugk.html">
+获得有关所需库版本的最新信息。
+<p>
+
+成功编译GnuGK，需要按以下顺序编译:
+<p>
+<enum>
+<item>PTLib
+<item>H323Plus
+</enum>
+
+在Unix上, 运行 <tt/configure/ 和 <tt/make debugnoshared/ 或者 <tt/make optnoshared/
+在GnuGK目录中构建调试或发行版本。
+
+<bf>注意:</bf>  整个编译过程你必须使用 <tt/make debugnoshared/ 或者 <tt/make optnoshared/
+例如，若使用 <tt/make
+optnoshared/ 则必须以相同方式编译所有内容。
+
+
+<sect1>在Unix上安装
+<p>
+第一步，获得一个可执行文件: 你可以从
+<url url="https://www.gnugk.org/h323download.html" name="gnugk.org">下载适合您的Unix系统可执行文件, 
+也可以自己编译GNU Gatekeeper。对于简单的安装或尝试使用Gatekeeper的功能，使用预构建的可执行文件不会造成任何问题，
+但是对于专业安装，建议您自编译GnuGk。
+
+<sect2>能过可执行文件来安装GnuGk
+<p>
+将可执行文件复制到所需的目录并创建一个配置文件。
+子目录中有几个配置示例和自动启动脚本 <tt>etc/</tt>有关配置参数的详细说明，请参见 <ref id="config" name="配置文件">
+
+例如，您可以将GnuGk复制到<tt>/usr/sbin/</tt>, 在
+<tt>/etc/gatekeeper.ini</tt> 创建配置，并通过以下方式启动它 
+<tscreen><verb>
+/usr/sbin/gnugk -c /etc/gatekeeper.ini -o /var/log/gnugk.log -ttt
+</verb></tscreen>
+有关 <ref id="commandline" name="命令行选项">的详细信息，请参见 “命令行选项”部分。
+
+若希望运行大量呼叫（超过100个并发呼叫），请确保GnuGK获得足够的sockets缓冲区和堆栈空间，
+例如：在启动之前设置“ ulimit -n 10240 -s unlimited”。
+
+
+<sect2>编译GnuGK
+<p>
+建议您在开始实际编译之前执行该命令 <tt/make debugdepend/ 或 <tt/make optdepend/
+在GnuGK目录中执行-这些命令将构建适当的依赖项列表，
+因此对源代码进行的任何更新都将强制重新编译所有关联的文件，确保混合生成最终的目标文件更新。
+
+Type <tscreen><verb>configure --help</verb></tscreen> 查看所有编译时选项的详细列表。您可以使用它们来启用或禁用GnuGK的功能。
+例如，若不需要RADIUS，可输入: <tscreen><verb>configure --disable-radius</verb></tscreen>
+
+为了在重负载下使用网守，建议启用LARGE_FDSET功能（configure --enable-large-fdset）。
+某些系统还需要使用ulimit才能为单个进程分配1024个以上的sockets缓冲区。
+视频通话所需的最大套接字数应根据预测的最大sockets缓冲区使用量，使用以下公式计算：
+
+<tscreen><verb>
+MAX_NUMBER_OF_CONCURRENT_CALLS * 10 * 120%
+
+Where:
+10 = 2 sockets for Q.931 + 2 sockets for H.245 + 6 sockets for RTP
+</verb></tscreen>
+因此，对于100个内并发语音通话，您不需要超过1024个sockets缓冲区。
+
+请不要在将H.245和RTP多路复用与H.460.18一起使用时使用更少的sockets缓冲区。
+
+最后，您必须使用 <tt/make debugnoshared/ or <tt/make optnoshared/, 
+具体取决于您对库的编译方式。
+
+<sect1>在Windows上安装
+<p>
+第一步是获取可执行程序，可以从
+<url url="https://www.gnugk.org/h323download.html" name="gnugk.org">
+也可以 自己编译GnuGK。
+
+有两个版本的GK可用: 一般程序启动运行和基于系统服务启动运行。
+
+<sect2>程序安装
+<p>
+这些是手动安装的步骤：
+
+拷贝 <tt/gnugk.exe/ 到您指定的文件夹并创建一个配置文件
+解压目录里有配置文件在 <tt>etc/</tt> 。
+参阅 <ref id="config" name="配置文件">
+部分获取详细说明。
+
+然后从命令行（'cmd.exe'）手动启动Gatekeeper，或创建一个批处理文件来启动它。
+
+例如，您可以将GnuGk复制到 <tt>C:\GnuGk\</tt>, 在该目录里创建一个配置文件
+<tt>C:\GnuGk\gatekeeper.ini</tt> 向下面一样启动它
+<tscreen><verb>
+C:\GnuGk\gnugk.exe -c C:\GnuGk\gatekeeper.ini -o C:\GnuGk\gnugk.log -ttt
+</verb></tscreen>
+有关 <ref id="commandline" name="命令行选项"> 的详细信息，请参见 “命令行选项”部分。
+
+记得在Windows防火墙中添加GnuGk为例外，确保它可以与网络通信。
+
+<sect2>以服务方式安装
+<p>
+这些是手动安装的步骤。 在生成时选择的Gatekeeper-as-service
+其中包括在下载位置可用的GUI安装程序。
+
+首先，在继续之前，请确保您有GnuGk的以服务方式启动的版本。
+
+复制 <tt/gnugk.exe/ 到您指定的目录，创建一个配置文件命名为<tt/gatekeeper.ini/ 像这样
+参阅 <ref id="config" name="配置文件">
+GnuGk作为服务运行时，没有命令行选项可用。
+
+要注册服务，请从命令行（'cmd.exe'）运行以下命令：
+
+<tscreen><verb>
+gnugk.exe install notray
+</verb></tscreen>
+
+您的服务现已安装，将在下次重新启动时启动，或者您可以使用Windows控制面板->服务功能手动启动它。
+在Windows Vista和Windows 7上，您可能必须在服务安装期间禁用UAC。
+
+当将GnuGk作为服务运行时，它将始终gatekeeper.ini 在当前目录中查找命名的配置文件。
+对跟踪级别和跟踪文件位置的任何更改都必须在配置文件而不是命令行中进行。
+
+记得在Windows防火墙中添加GnuGk为例外，确保它可以与网络通信。
+
+<sect2>编译GnuGK
+<p>
+编译时请按照前面描述，按顺序编译所需要的库
+请以文件扩展名为 (<tt/.sln/) 你需要的
+Microsoft Visual Studio版本打开并编译。若需要数据库支持，如(MySQL, PostgreSQL, ODBC etc.),
+请在编译GnuGk之前安装/编译适当的客户端库。
+
+<sect1>addpasswd程序
+<p>
+用于连接状态端口身份验证和许多其他身份验证模块（例如SimplePasswordAuth）要求将加密的密码存储在GnuGK配置文件中。
+GnuGK还支持对配置中的所有密码进行加密。<tt/addpasswd/ 需要该程序来生成和存储这些加密的密码。
+该实用程序包含在GnuGK中，可以使用以下命令进行编译：
+<tscreen><verb>
+$ cd addpasswd
+$ make optnoshared
+</verb></tscreen>
+
+用法是:
+<tscreen><verb>
+$ addpasswd CONFIG SECTION KEYNAME PASSWORD
+</verb></tscreen>
+
+示例1：必须将具有'secret'密码的'gkadmin'用户添加到[GkStatus :: Auth]配置部分，以在连接状态端口上启用身份验证：
+<tscreen><verb>
+$ addpasswd gatekeeper.ini GkStatus::Auth gkadmin secret
+</verb></tscreen>
+
+示例2：必须将具有“秘密”密码的“ joe”用户添加到[Password]配置部分，以启用终端身份验证：
+<tscreen><verb>
+$ addpasswd gatekeeper.ini Password joe secret
+</verb></tscreen>
+
+示例3：将加密的共享机密添加到RadAuth config部分：
+<tscreen><verb>
+$ addpasswd gatekeeper.ini RadAuth SharedSecret VerySecretPassword
+</verb></tscreen>
+
+重要说明：该 <tt/KeyFilled/ 变量定义了初始程序默认的密码加密密钥。可以在配置中将其省略（默认为0），
+但若指定了它，则每次更改时，都必须重新生成加密的密码(再次使用 <tt/addpasswd/ 加密)。
+</sect1>
+

@@ -1,0 +1,1062 @@
+<sect>路由配置
+<p>
+配置文件中的以下各节可用于配置呼叫的路由方式。
+
+对于GnuGk，“路由”表示网守必须为每个新呼叫找到目标IP。
+
+例如，GnuGk可能需要确定给定特定E.164目的地的语音呼叫的发送位置，可能有多个IP到ISDN网关可供选择，用于该E.164地址。
+
+路由决策通常是通过检查被叫方的别名或号码来实现的，但是GnuGk在评估内容方面具有灵活性，可以成功路由呼叫。
+
+<p>
+每路呼叫都沿路由策略传输。每个策略可以路由呼叫并终止链路或对其进行修改并继续。使用以下各节中的设置来指定要使用的策略并修改其行为。
+
+<sect1>Section &lsqb;RoutingPolicy&rsqb;
+<label id="routingpolicy">
+<p>
+本节说明如何 配置 <htmlurl url="https://www.gnugk.org/" name="GnuGk"> 路由策略。
+
+可以使用以下方法路由呼叫来电:
+
+<itemize>
+
+<item><tt/explicit/<newline>
+<p>
+在要路由的呼叫中明确指定了目的地。通过IP地址拨号需要此策略。您可以在 <ref id="routingexplicit" name="Routing::Explicit"> 部分中定义目标IP的映射。
+
+<item><tt/internal/<newline>
+<p>
+典型规则；在RegistrationTable中搜索目的地
+
+<item><tt/parent/<newline>
+<p>
+使用父级网守发送路由呼叫的信息，以回复网守将发送的ARQ（只有发给子级的LRQ才会作为LRQ转发）。您可以使用 <ref id="endpoint" name="Endpoint"> 部分定义父级网守。
+
+<item><tt/neighbor/<newline>
+<p>
+通过交换LRQ消息，使用邻域路由呼叫。
+
+<item><tt/dns/<newline>
+<p>
+使用DNS A记录或被叫别名中的IP地址来解析目标。可以在 <ref id="routingdns" name="Routing::DNS"> 部分中配置此策略。
+
+<item><tt/sql/<newline>
+<p>
+通过使用数据库查询重写被叫别名来路由呼叫，或将其直接发送到目标IP。数据库参数在 <ref id="routingsql" name="Routing::Sql"> 部分中指定。
+
+<item><tt/http/<newline>
+<p>
+通过使用HTTP查询改写被叫别名来路由呼叫。HTTP参数在 <ref id="routinghttp" name="Routing::Http"> 部分中指定。
+
+<item><tt/ldap/<newline>
+<p>
+通过在LDAP服务器中查找被叫别名（搜索H323ID和TelephoneNo属性）来路由呼叫，并将呼叫发送到CallDestination属性中的IP。
+
+<p>
+LDAP服务器在 <ref id="ldapsettings" name="GkLDAP::Settings"> 部分中配置，属性在
+<ref id="ldapattributes" name="GkLDAP::LDAPAttributeNames"> 部分中定义。
+
+<item><tt/vqueue/<newline>
+<p>
+使用虚拟队列机制并生成RouteRequest事件，以允许外部应用程序做出路由决策。    
+
+<item><tt/numberanalysis/<newline>
+<p>
+提供对ARQ消息重复号码发送的支持。这也部分支持安装程序消息（没有重叠的发送-仅数字长度验证）。
+
+<item><tt/enum/<newline>
+<p>
+ENUM（RFC3761）是一种使用DNS查找将真实的国际直拨E.164号码转换为H.323拨号信息的方法。默认服务器是 <tt/e164.arpa/。
+要指定服务器列表，则使用 <tt/ENUMservers/ 中 RoutedMode 部分中的开关。
+
+枚举策略用ENUM服务器返回的信息替换目标，因此，必须具有适当的路由策略才能在枚举策略之后继续处理呼叫。
+应该在枚举策略之后添加srv和dns策略，因为新位置通常以“number@gatekeeper”的形式返回，并且需要srv和dns策略来解决此问题。
+
+最后，请记住，使用枚举策略进行的每个路由检查都需要进行DNS查找。为了加快路由速度，请确保在应用枚举策略之前先解析内部目标。
+
+可以在 <ref id="routingenum" name="Routing::ENUM"> 部分中配置此策略。
+
+除了默认的“E2U + h323”外，还可以通过“enum::id”路由策略来支持网关的其他ENUM模式，请参阅<ref id="routingenum" name="Routing::ENUM"> 部分。
+
+<item><tt/srv/<newline>
+<p>
+DNS SRV或H.323 Annex O 允许使用H.323 URI路由呼叫。可以将地址配置为用户（所在）域。H.323 URI存储在域的SRV DNS记录中，并被查询以查找目的地。
+
+可以在 <ref id="routingsrv" name="Routing::SRV"> 部分中配置此策略。
+
+除默认的 "h323ls._udp." 外，网关的其他SRV模式。和 "h323cs._tcp." 可以通过 <ref id="routingsrv" name="Routing::SRV"> 路由策略获得支持，
+请参阅 <ref id="routingsrv" name="Routing::SRV"> 部分。
+
+<item><tt/rds/<newline>
+<p>
+RDS解析器发现服务或DDDS动态委托发现服务（RFC3404 第 5.2/5.3 节点的示例）此策略是一种机制，通过该机制，域名SRV记录托管在中央DNS服务器中。
+服务器由[RoutedMode] RDSServers设置，并被查询以便解析H323+D2U NAPTR记录，其中包含域的H.323附件O SRV记录。这可用于虚拟托管URL域或集中控制SRV记录。    
+
+可以在 <ref id="routingrds" name="Routing::RDS"> 部分中配置此策略。
+
+<item><tt/forwarding/<newline>
+<p>
+若应该转发对此目标的呼叫，则此策略将执行数据库查找。此策略的配置必须在 <ref id="routingforwarding" name="Routing::Forwarding"> 部分。
+
+<item><tt/catchall/<newline>
+<p>
+此策略会将路由到达它的所有呼叫在 <ref id="routingcatchall" name="Routing::CatchAll"> 部分中指定的一个端点。您可以将其用作策略链末尾的后备，以路由所有否则会失败的呼叫。
+This policy will route all calls that reach it to one endpoint specified in the <ref id="routingcatchall" name="Routing::CatchAll"> section.
+You can use it as a fallback at the end of the policy chain to route all calls which would otherwise fail.
+
+<item><tt/lua/<newline>
+<p>
+该策略运行在 <ref id="routinglua" name="Routing::Lua"> 部分中定义的LUA脚本来设置呼叫目的地。
+
+<item><tt/neighborsql/<newline>
+<p>
+除了从数据库检索LRQ消息的目标外，其余与邻域策略相同。数据库参数与sql路由策略相同。   
+
+<item><tt/uriservice/<newline>
+<p>
+根据URI模式应用路由策略，例如xmpp：me@mydomain.com或xmpp：192.168.1.1。该架构在 <ref id="routinguriservice" name="Routing::URIService"> 部分中定义。
+若架构是IP地址，则将返回[Routing::URIService]网关设置。
+可以与 [Routing::ENUM::schema] 和 [Routing::SRV::schema] 链接在一起使用，以完全解析地址。    
+</itemize>
+
+<p>
+路由策略的默认配置为：
+<descrip>
+<quote><tt>[RoutingPolicy]<newline>
+default=explicit,internal,parent,neighbor</tt></quote>
+</descrip>
+
+若一个策略不匹配，则尝试下一个策略。
+
+这些策略可以应用于多种路由请求类型和路由输入数据。不同的类型是 ARQ, LRQ, Setup 和 Facility（具有callForwarded原因）。还有通用的路由策略，这是其他类型的默认策略。
+
+<descrip>
+<tag/例:/
+<quote><tt>[RoutingPolicy]<newline>
+h323_ID=dns,internal<newline>
+002=neighbor,internal<newline>
+Default=internal,neighbor,parent</tt></quote>
+</descrip>
+收到需要决定路由的消息时，将使用DNS解析对h323_ID类型的别名的所有呼叫。若DNS无法解析别名，则将其与内部注册列表进行匹配。
+若请求呼叫以002开头的别名，则将首先检查邻域，然后检查内部注册表。若请求的别名不是h323_ID或以002开头的别名，
+则通过查询内部注册表（然后是邻域，若邻域失败，则是父级）来使用默认策略。
+
+路由策略适用于呼叫的第一条消息：来自注册端点的呼叫的ARQ，来自未注册端点的呼叫的设置，来自邻域的呼叫的LRQ以及GnuGk使用ForwardOnFacility功能转发的呼叫的某些 Facility 消息。
+您可以使用上述相同的语法，使用 [RoutingPolicy::OnARQ]，[RoutingPolicy::OnLRQ]，[RoutingPolicy::OnSetup]和[RoutingPolicy::OnFacility] 部分为每种呼叫类型指定不同的路由策略。
+
+<descrip>
+<tag/例：/
+<quote><tt>[RoutingPolicy::OnARQ]<newline>
+default=numberanalysis,internal,neighbor</tt></quote>
+</descrip>
+
+典型的ENUM路由设置如下所示：
+<descrip>
+<tag/例：/
+<quote><tt>[RoutingPolicy]<newline>
+default=explicit,internal,enum,srv,dns,internal,parent,neighbor</tt></quote>
+</descrip>
+
+
+<sect1>Section &lsqb;RasSrv::RewriteE164&rsqb;
+<label id="rewrite">
+<p>
+本节定义了DialedDigits（E.164号码）的改写规则。
+
+<descrip>
+<tag/Format:/
+<tt>[!]original-prefix=target-prefix</tt>
+<p>
+若数字以开头 <tt/original-prefix/，则将其重写为 <tt/target-prefix/。若`<tt/!/' 标志位于之前 <tt/original-prefix/，
+则含义相反，并且目标前缀在所拨打的号码之前。特殊的通配符 (<tt/'.'/ and <tt/'%'/) 可用。
+
+<tag/例：/
+<tt/08=18888/
+<p>
+若您呼叫 <tt/08345718/, 它将被重写为 <tt/18888345718/。
+<tag/例：/
+<tt/!08=18888/
+<p>
+若您呼叫 <tt/09345718/, 它将被重写为 <tt/1888809345718/。
+</descrip>
+
+Option:
+<itemize>
+<item><tt/Fastmatch=08/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+仅改写以指定前缀开头的DialDigits。
+</itemize>
+
+<sect1>Section &lsqb;RasSrv::RewriteAlias&rsqb;
+<label id="rewrite">
+<p>
+本节定义别名的改写规则，这可用于将网守分配的别名映射到注册的端点。
+
+<descrip>
+<tag/Format:/
+<tt>[!]original-alias=target-alias</tt>
+<p>
+若别名为 <tt/original-alias/,
+则将其重写为 <tt/target-alias/。
+<tag/例:/
+<tt/bill=033123456/
+</descrip>
+
+
+<sect1>Section &lsqb;RasSrv::GWRewriteE164&rsqb;
+<label id="gwrewrite">
+<p>
+本部分描述了根据呼叫来自或正在发送到的网关来重写DialedDigits E.164号码。这允许对DialedDigits进行路由等更灵活的操作。
+
+尽管有本节的名称，不仅可以重写往返于网关的呼叫，还可以重写来自端点（常规端点）和领域网守的呼叫。
+
+与 <ref id="rewrite" name="RasSrv::RewriteE164"> 结合使用， 您可以进行三阶段重写：
+
+<tscreen><verb>
+Call from "gw1", dialedDigits 0867822
+		|
+		|
+		V
+Input rules for "gw1", dialedDigits now 550867822
+		|
+		|
+		V
+Global rules, dialedDigits now 440867822
+		|
+		|
+		V
+Gateway selection, dialedDigits now 440867822, outbound gateway "gw2"
+		|
+		|
+		V
+Output rules for "gw2", dialedDigits now 0867822
+		|
+		|
+		V
+Call to "gw2", dialedDigits 0867822
+</verb></tscreen>
+
+<descrip>
+<tag/格式:/
+<tt>alias=in|out=[!]original-prefix=target-prefix[;in|out...]</tt>
+<p>
+若呼叫与别名相符，则该方向及其开头 <tt/original-prefix/ 将被重写为 <tt/target-prefix/。
+若 `<tt/!/' 标志位于之前 <tt/original-prefix/, 则含义相反。
+S特殊的通配符 (<tt/'.'/ and <tt/'%'/) 可用。
+'.' 匹配一个字符，'%' 匹配任意多个字符，同一网关的多个规则以';'分隔。
+<p>
+要将拨号呼叫转换为后拨号号码，并在呼叫作为UserInputIndications连接后发送到远端，请在前缀端使用 ‘I’（用于输入），
+在目标端使用 'P' （用于后拨）。请注意，通过网守的H.245路由必须处于活动状态才能发送后拨数字。
+<p>
+网关和终端之间的呼叫与它们的第一个别名匹配。与邻域之间的呼叫将通过GnuGk配置中的邻域ID（[Neighbor::XXX]部分名称中的XXX）或邻域的网守标识符（若已设置）进行匹配。
+
+请注意，若有多宿主邻域或正在接受非邻域LRQ时，无法始终确定呼叫源，并且邻域的IN规则都将不匹配。在这些情况下，仅应使用OUT和 [RasSrv::RewriteE164] 规则。
+
+<tag/例:/
+<tt/gw1=in=123=321/
+<p>
+若收到从 "gw1" 到的呼叫 <tt/12377897/，则将其重写为 <tt/32177897/ 在采取进一步措施之前。
+
+<tag/拨号示例:/
+<tt/gw1=out=09III=09PPP/
+<p>
+若通过 "gw1" 向发出呼叫，则该呼叫 <tt/09123/ 将被重写 <tt/09/ 并 <tt/123/ 作为后拨数字发送。
+
+<tag/ 邻域示例 1:/
+<p>
+在此示例中，邻域通过其ID进行标识，来自NbGk的传入呼叫会将其01前缀替换为04前缀。拨出电话会将04替换为01。
+
+<tscreen><verb>
+[RasSrv::Neighbors]
+NbGk=GnuGk
+
+[Neighbor::NbGk]
+GatekeeperIdentifier=GK-PW-Prox
+Host=192.168.1.100
+SendPrefixes=*
+AcceptPrefixes=*
+
+[RasSrv::GWRewriteE164]
+NbGk=in=01=04;out=04=01
+</verb></tscreen>
+
+<tag/ 邻域示例 2:/
+<p>
+在此示例中，邻域通过其网守标识符进行标识，并且来自GK-PW-Prox的不带有0049前缀的呼叫将获得前缀。对 "1234" 的呼叫将被重写为 "00491234"，
+而对 "00496789" 的呼叫将保持不变，因“若输入不以0049开头并且0049之后有任何数字，则前置非0049”（因开头已经有0049。）
+
+<tscreen><verb>
+[RasSrv::Neighbors]
+NbGk=GnuGk
+
+[Neighbor::NbGk]
+GatekeeperIdentifier=GK-PW-Prox
+Host=192.168.1.100
+SendPrefixes=*
+AcceptPrefixes=*
+
+[RasSrv::GWRewriteE164]
+GK-PW-Prox=in=!0049.=0049.
+</verb></tscreen>
+</descrip>
+
+
+<sect1>Section &lsqb;Endpoint::RewriteE164&rsqb;
+<p>
+为网守端点指定前缀后，父网守将使用以该前缀开头的 <bf/dialedDigits/ 路由呼叫。子网守可以根据本节中指定的规则重写目标。
+相对的，由子网守发出到父网守端点的通话也会经由此节改写其来源号码。
+
+<descrip>
+<tag/Format:/
+<tt/external prefix=internal prefix/
+</descrip>
+
+例如，若具有以下配置，
+
+<tscreen><verb>
+                        [Parent GK]
+                        ID=MasterGK
+                        /         \
+                       /           \
+                      /             \
+                     /               \
+                [Child GK]          [EP3]
+                ID=ProxyGK          E164=18888200
+                Prefix=188886
+                /       \
+               /         \
+              /           \
+           [EP1]         [EP2]
+           E164=601      E164=602
+</verb></tscreen>
+
+使用此规则:
+<tscreen><verb>
+188886=6
+</verb></tscreen>
+
+若EP1打<tt/18888200/呼叫EP3时，在Q.931 Setup中的CallingPartyNumber将被改写为 <tt/18888601/。相反的，EP3可打 <tt/18888601/和 <tt/18888602/来呼叫EP1或EP2。
+换句话说，每一个注册在Child GK上开头号码为 '<tt/6/'的端点，对注册在父GK的端点来说，看起来就像是直接注册在父GK且开头号码为'<tt/188886/'。
+
+该部分与 <ref id="rewrite" name="RasSrv::RewriteE164"> 的设定无关，而且后者会优先生效。
+
+
+<sect1>Section &lsqb;Routing::DNS&rsqb;
+<label id="routingdns">
+<p>
+<itemize>
+<item><tt/ResolveNonLocalLRQ=0/<newline>
+默认：<tt>1</tt><newline>
+<p>
+此开关确定DNS策略是否应解析不在本地端点的LRQ中的主机名或IP。
+
+<item><tt/RewriteARQDestination=0/<newline>
+默认：<tt>1</tt><newline>
+<p>
+在ARQ中保留目标完整URL，不告诉端点在后续的Setup中仅使用URL的本地名称部分。
+若呼叫目的地需要完整的URL，则为必需。
+
+</itemize>
+
+
+<sect1>Section &lsqb;Routing::ENUM&rsqb;
+<label id="routingenum">
+<p>
+<itemize>
+<item><tt/ResolveLRQ=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+此开关切换‘枚举’策略是否应解析LRQ。
+</itemize>
+
+其他的ENUM模式可以由 [Routing::ENUM::id] 配置
+<descrip>
+<tag/Format:/
+<tt/&lt;enum schema&gt;=&lt;protocol gateway&gt;/
+</descrip>
+
+<descrip>
+<tag/例：/
+<quote><tt>[Routing::ENUM::2]<newline>
+E2U+xmpp=mygateway@mydomain.com</tt></quote>
+</descrip>
+
+
+<sect1>Section &lsqb;Routing::SRV&rsqb;
+<label id="routingsrv">
+<p>
+<itemize>
+<item><tt/ResolveNonLocalLRQ=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+此开关选择 'srv' 策略是否应解析不在本地端点的LRQ中的主机名。
+</itemize>
+
+可以通过[Routing::SRV::id] 配置其他SRV模式。
+<descrip>
+<tag/Format:/
+<tt/&lt;SRV schema&gt;=&lt;protocol gateway&gt;[;default schema port]/
+</descrip>
+
+<descrip>
+<tag/例：/
+<quote><tt>[Routing::SRV::2]<newline>
+_xmpp-server._tcp=mygateway@mydomain.com</tt></quote>
+</descrip>
+
+<sect1>Section &lsqb;Routing::RDS&rsqb;
+<label id="routingrds">
+<p>
+<itemize>
+<item><tt/ResolveLRQ=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+此开关选择 'rds' 策略是否应解析LRQ中的主机名。
+</itemize>
+
+
+<sect1>Section &lsqb;Routing::Explicit&rsqb;
+<label id="routingexplicit">
+<p>
+可定义一个映射，在该映射中应通过 'explicit' 策略路由对某些IP的呼叫。新目标可以是另一个IP或任何类型的别名目标。
+若将目标重写为IP以外的其他地址，请确保在 'explicit' 策略后面的链中还有其他路由策略可以处理新的目标。
+
+<descrip>
+<tag/Format:/
+<tt/IP=newIP[:port] | E.164 | alias/
+</descrip>
+
+<descrip>
+<tag/例：/
+<quote><tt>[Routing::Explicit]<newline>
+192.168.1.100=10.10.1.100<newline>
+192.168.1.101=10.10.1.101:1720<newline>
+192.168.1.102=654251<newline>
+192.168.1.103=peter<newline>
+192.168.1.104=joe@company.com</tt></quote>
+</descrip>
+
+
+<sect1>Section &lsqb;Routing::Sql&rsqb;
+<label id="routingsql">
+<p>
+使用SQL查询重写被叫的别名。支持路由OnARQ，OnLRQ和OnSetup。
+
+若从数据库返回的字符串是'REJECT' （大写或小写），则呼叫被拒绝。若字符串与点分IP地址匹配，则将其视为目标IP，否则将被视为新的目标别名。
+若返回2列，则将第一列视为新的目标别名，将第二列视为新的目标IP。若第二列包含'IGNORE'，则将数据库结果视为仅包含1个结果列。
+（在某些情况下，这允许进行更简单的SQL查询。）
+
+若返回了目标IP的多行，它们将用作故障转移的备用路由，GnuGk将按顺序尝试它们。
+
+当至少指定一个目标IP或拒绝呼叫时，SQL策略将终止路由链接。若仅别名被更改，则链接将继续使用此更新的别名。
+
+拒绝呼叫时，第二列可包含一个整数，表示拒绝原因（已注册呼叫的H.225 AdmissionRejectReason，邻域呼叫的H.225 LocationRejectReason，未注册呼叫的H.225断开原因）。
+
+若数据库未返回任何内容，则呼叫将保持不变。
+
+使用<ref id="database" name="公共数据库配置选项">来定义此模块的数据库连接。
+
+<itemize>
+<item><tt/Query=SELECT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义一个SQL查询以获取新的目的地号码。查询已参数化-这意味着在执行每个查询之前都要进行参数替换。
+定义了以下参数：
+<itemize>
+<item><tt/%c/ - 被叫别名
+<item><tt/%p/ - 被叫IP（仅在Setup上可用，否则为空）
+<item><tt/%s/ - 主叫IP
+<item><tt/%r/ - 主叫别名
+<item><tt/%{Calling-Station-Id}/ - 主叫ID（与计费和身份验证事件中使用的值相同）
+<item><tt/%i/ - 通话ID
+<item><tt/%m/ - 消息类型（ARQ，LRQ、Setup）
+<item><tt/%{client-auth-id}/ - 验证呼叫时（通过SQLAuth）提供给GnuGk的64位整数ID
+<item><tt/%{language}/ - 语言（若有）
+</itemize>
+若其中一些未包含在ARQ，LRQ或Setup消息中，则可以为空。
+<p>
+若查询不返回任何行，则使用当前别名。否则，将使用第一个结果行。
+<p>
+查询字符串示例。注意，此为示例；实际的结构和模式是用户定义的，这些示例中的各个字段名称也是如此。GnuGk只是希望查询得到IP地址或别名。
+
+<tscreen><verb>
+SELECT destination FROM routes WHERE called = '%c'
+SELECT concat(prefix,'%c') FROM routes WHERE prefix = LEFT('%c', 5)
+SELECT gatewayip FROM routes WHERE prefix = LEFT('%c',5)
+SELECT concat(prefix,'%c'), gatewayip FROM routes WHERE route = LEFT('%c', 5) limit 3
+</verb></tscreen>
+
+<item><tt/EnableRegexRewrite=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+启用基本的正则表达式重写，其中将原称为别名的部分插入数据库查询的结果中。
+
+常用表达：
+
+<itemize>
+<item>{\1} - all of the original called alias
+<item>{^\d(4)} - first 4 digits
+<item>{\d(4)$} - last 4 digits
+</itemize>
+
+例子：
+
+假设被呼叫的别名为"12345678"，并且数据库返回"{\1}@my.com"，则插入所有字符，因此新的目标为"1234578@my.com"。
+
+若数据库返回"{^\d(4)}@my.com" ，则会插入前4位，因此新目的地为"1234@my.com"，并带有"{\d(4)$}@my.com"。 com”，则呼叫将发送到"4578@my.com"。
+</itemize>
+
+
+<sect1>Section &lsqb;Routing::Http&rsqb;
+<label id="routinghttp">
+<p>
+使用HTTP查询重写被叫的别名，支持路由OnARQ，OnLRQ和OnSetup。
+
+若从'REJECT'返回的字符串（大写或小写），则呼叫被拒绝。若字符串与点分IP地址匹配，则将其视为目标IP，否则将被视为新的目标别名。
+<p>
+<itemize>
+<item><tt>URL=http://example.com/passwords</tt><newline>
+默认：<tt>N/A</tt>
+<p>
+从中获取路由目标的URL。可使用下面指定的参数来设置URL。
+
+<item><tt/Body=user=%u/<newline>
+默认：<tt>empty</tt>
+<p>
+用于POST请求的HTTP正文。您可以使用下面指定的参数来设置URL。
+
+<item><tt/Method=GET/<newline>
+默认：<tt>POST</tt>
+<p>
+要使用的HTTP方法。当前支持GET和POST。
+
+<item><tt/ResultRegex=[0-9]+/<newline>
+默认：<tt>.*</tt>
+<p>
+从HTTP响应中提取目标的正则表达式。
+
+<item><tt/DeleteRegex=5544/<newline>
+默认：<tt>N/A</tt>
+<p>
+使用的正则表达式，从提取的目标中删除其他模式，可选的。
+
+<item><tt/ErrorRegex=error/<newline>
+默认：<tt>^$</tt>
+<p>
+若HTTP响应与此正则表达式匹配，则将其视为无效。 
+</itemize>
+
+以下参数可用于URL和Body字符串：
+<itemize>
+<item><tt/%c/ - 被叫别名
+<item><tt/%p/ - 被叫IP（仅在Setup上可用，否则为空）
+<item><tt/%s/ - 主叫IP
+<item><tt/%r/ - 呼叫别名
+<item><tt/%{Calling-Station-Id}/ - 呼叫ID（与计费和身份验证事件中使用的值相同）
+<item><tt/%i/ - 通话ID
+<item><tt/%m/ - 消息类型 (ARQ, LRQ 或 Setup)
+<item><tt/%{client-auth-id}/ - 验证呼叫时（通过SQLAuth）提供给GnuGk的64位整数ID
+<item><tt/%{language}/ - 语言（若有）
+</itemize>
+
+
+<sect1>Section &lsqb;Routing::NeighborSql&rsqb;
+<label id="neighborsql">
+<p>
+选择要查询哪个邻域的查询数据库。
+
+使用 <ref id="database" name="公共数据库配置选项"> 来定义此模块的数据库连接。
+
+<itemize>
+<item><tt/Query=SELECT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义一个SQL查询以获取新的邻域IP和端口。
+</itemize>
+
+
+<sect1>Section &lsqb;Routing::NumberAnalysis&rsqb;
+<label id="numberanalysis">
+<p>
+本部分定义 <tt/numberanalysis/ 路由策略的规则。该策略检查所拨号码的最小和/或最大位数，
+并在必要时发送ARJ（位数超出范围），以支持重复号码的发送。它还部分支持Setup消息（没有重复的发送-仅数字长度验证）。
+
+<descrip>
+<tag/Format:/
+<tt>prefix=MIN_DIGITS[:MAX_DIGITS]</tt>
+<p>
+若数字与匹配 <tt/prefix/，则验证它至少由 <tt/MIN_DIGITS/ 数字组成， 并且（若存在MAX_DIGITS）则由最多 <tt/MAX_DIGITS/ 数字组成。
+特殊通配符(<tt/!/, <tt/'.'/ 和 <tt/'%'/) 可供选择。若数字太短，则会将ARJ <tt/rejectReason/设置为<tt/incompleteAddress/。若数字太长，
+则会将ARJ <tt/rejectReason/设置为<tt/undefinedReason/。前缀列表从最长到最短的前缀进行搜索以进行匹配。对于安装程序消息，
+当数字的长度不正确时，将发送带有 "badFormatAddress" 的发行完成。
+
+<tag/例：/
+<tscreen><verb>
+[RoutingPolicy::OnARQ]
+default=numberanalysis,internal
+
+[Routing::NumberAnalysis]
+0048=12
+48=10
+.=6:20
+</verb></tscreen>
+<p>
+
+呼叫以0048开头的目的地至少需要12位数字，呼叫48则需要10位数字，而拨打所有其他目的地的电话至少需要6位数字，最多20位数字。
+</descrip>
+
+
+<sect1>Section &lsqb;Routing::Forwarding&rsqb;
+<label id="routingforwarding">
+<p>
+若对端点的呼叫应转发到另一个端点，则此路由策略执行查找数据库。
+它支持路由OnARQ，OnSetup和OnLRQ。
+
+有不同类型的转发：
+<itemize>
+<item><bf/无条件呼叫转移/ (CFU, code 1): 呼叫始终被转移。
+<item><bf/忙时呼叫转移（/ (CFB, code 2): 若被叫端点已经在呼叫中，则呼叫被转移。
+<item><bf/无应答呼叫转移/ (CFNA, code 3): 若被叫端点未在AlertingTimeout内应答呼叫，则转移呼叫。
+<item><bf/错误时呼叫转移/ (CFE, code 4): 若在呼叫路由到端点时出错，则呼叫将被转移。当前，这的行为类似于“无人接听电话转接”，只应定义其中之一。
+</itemize>
+
+将呼叫转发到的目的地应该是本地端点（包括固定端点）的别名或IP号码。对于本地别名，GnuGk将检查目的地是否也配置了转发并将其考虑在内。
+
+使用 <ref id="database" name="公共数据库配置选项">来定义此模块的数据库连接。
+
+针对此模块，可以指定查询以读取转发规则：
+<itemize>
+<item><tt/Query=SELECT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义一个SQL查询以获取转发规则。
+该查询必须返回2列：1. 转发类型的代码。2. 再是新目的地。
+必须确保结果通过转发代码升序排列。
+
+查询已参数化-这意味着在执行每个查询之前都要进行参数替换。定义了以下参数：
+<itemize>
+<item><tt/%c/ - 被叫别名
+<item><tt/%p/ - 被叫IP（仅在Setup上可用，否则为空）
+<item><tt/%s/ - 主叫IP
+<item><tt/%r/ - 呼叫别名
+<item><tt/%{Calling-Station-Id}/ - 呼叫协议栈上下文ID（与计费和身份验证事件中使用的值相同）
+<item><tt/%i/ - 通话ID
+<item><tt/%m/ - 消息类型(ARQ 或 Setup)
+<item><tt/%{client-auth-id}/ - -验证呼叫时（通过SQLAuth）提供给GnuGk的64位整数ID
+<item><tt/%{language}/ - 语言（若有）
+</itemize>
+若其中一些未包含在ARQ或Setup消息中，则可以为空。在大多数情况下，只应在SQL查询中使用被叫别名，因为它们仅适用于传入呼叫，并且在查找链接的转发规则时不会更改。
+<p>
+</itemize>
+
+<descrip>
+<tag/例：/
+<tscreen><verb>
+[RoutedMode]
+GKRouted=1
+AcceptUnregisteredCalls=1
+; failover must be on for forward on timeout
+ActivateFailover=1
+FailoverCauses=1-15,17-127
+DisableRetryChecks=1
+; 10 sec alerting timeout (for forward on no answer)
+AlertingTimeout=10000
+
+[RoutingPolicy]
+default=explicit,forwarding,internal,neighbor,explicit
+
+[Routing::Forwarding]
+Driver=MySQL
+Host=localhost
+Database=gnugk
+Username=gnugk
+Password=secret
+Query=SELECT forwardtype, destination FROM forwards WHERE called = '%c' order by forwardtype asc
+MinPoolSize=1
+</verb></tscreen>
+
+<tag/例 MySQL 模式:/
+<tscreen><verb>
+create table gnugk.forwards (
+    called varchar(30) not null,
+    forwardtype smallint not null,
+    destination varchar(30) not null default "",
+    PRIMARY KEY (called, forwardtype)
+);
+</verb></tscreen>
+
+<tag/例 转发规则:/
+<tscreen><verb>
+"1234", 1, "2000"
+"5678", 2, "4000"
+"5678", 3, "4000"
+"9876", 4, "5000"
+</verb></tscreen>
+
+</descrip>
+
+
+<sect1>Section &lsqb;Routing::CatchAll&rsqb;
+<label id="routingcatchall">
+<p>
+<itemize>
+<item><tt/CatchAllIP=1.2.3.4/<newline>
+默认：<tt>(empty)</tt><newline>
+<p>
+指定将所有呼叫到路由的IP地址。这将覆盖CatchAllAlias。
+
+<item><tt/CatchAllAlias=Frank/<newline>
+默认：<tt>catchall</tt><newline>
+<p>
+若未指定CatchAllIP，则将所有呼叫到路由该别名。
+</itemize>
+
+<sect1>Section &lsqb;Routing::Lua&rsqb;
+<label id="routinglua">
+<p>
+本节配置用于LUA路由的脚本。
+
+有关在GNUGK Lua脚本的一般信息，请参见章 <ref id="luascripting" name="LUA脚本">。
+
+LUA脚本具有以下 <bf/可输入变量/：
+<itemize>
+<item>source - 源IP
+<item>calledAlias - 被叫别名（仅首个别名）
+<item>calledIP - 若使用IP拨号，则为IP地址
+<item>caller - 主叫的别名
+<item>callingStationId -呼叫协议栈上下文ID
+<item>callid - 通话ID
+<item>messageType - 触发路由过程的消息 ('ARQ', 'LRQ', 'Setup' or 'Facility')
+<item>clientauthid - 客户端身份验证ID
+</itemize>
+
+LUA脚本可以设置以下 <bf/输出变量/ 以指定目标路由:
+<itemize>
+<item>action - 若不想路由呼叫，请将其设置为'SKIP' 或 'REJECT'，否则将呼叫路由至destAlias或destIp（请参见下文）
+<item>rejectCode - 拒绝与 'REJECT'原因一起使用
+<item>destAlias - 呼叫目标别名
+<item>destIP - 呼叫目标IP
+</itemize>
+
+要访问外部资源，LUA脚本可以使用LUA库，例如，LuaSocket。
+
+<itemize>
+<item><tt/Script=destAlias=string.gsub(calledAlias, "#", "*")/<newline>
+默认：<tt>(empty)</tt><newline>
+<p>
+在配置文件中，定义要运行的LUA脚本。
+
+<item><tt/ScriptFile=script.lua/<newline>
+默认：<tt>(empty)</tt><newline>
+<p>
+使用LUA脚本指定一个文件来为'lua'策略运行。
+
+</itemize>
+
+<sect1>Section &lsqb;Routing::URIService&rsqb;
+<label id="routinguriservice">
+<p>
+URI服务特定的路由策略。
+<descrip>
+<tag/Format:/
+<tt/&lt;schema&gt;=&lt;protocol gateway&gt;/
+</descrip>
+
+<descrip>
+<tag/例：/
+<quote><tt>[Routing::URIService]<newline>
+xmpp=mygateway.mydomain.com</tt></quote>
+</descrip>
+<p>
+此开关为给定的URI模式设置服务类型和默认网关。可以在[Routing::ENUM::&lt;schema&gt;]和[Routing::SRV::&lt;schema&gt;]的链接中使用，以提供特定于服务的路由策略。
+
+<sect1>Section &lsqb;RewriteCLI&rsqb;
+<label id="clirewrite">
+<p>
+本节包含一组ANI ANI/CLI/H.323_ID号码（呼叫者ID）的重写规则。重写过程分为两个阶段-入站重写和出站重写。
+入站重写在任何其他Q.931 Setup消息处理（例如入站GWRewrite，身份验证，计费等）之前完成，并且由于它更改了Calling-Station-Id，
+因此它将在授权和计费模块中起作用。出站重写将在转发Setup消息之前进行，且其效果仅对被叫方可见。
+<p>
+入站重写规则可以与呼叫者的IP和拨打的号码或原始的CLI/ANI相匹配。出站重写规则可以与主叫的IP，
+被叫的IP和拨打的号码或目标号码（重写后的拨号号码）或CLI/ANI（入站重写后）相匹配。
+<p>
+该模块还提供可为每个端点（规则）配置的CLIR（呼叫线路识别限制）功能。
+
+<itemize>
+<item><tt/ProcessSourceAddress=1/<newline>
+默认：<tt/1/<newline>
+<p>
+除了重写呼叫方号码信息元素("IE")之外，还可以重写H.225.0 Setup消息的sourceAddress节点，因此两者都包含信息一致。
+
+<item><tt/RemoveH323Id=1/<newline>
+默认：<tt/1/<newline>
+<p>
+重写H.225.0 Setup消息的sourceInfo元素时，若禁用此选项，则可以保留H323_ID，email_ID和url_ID类型的别名。
+
+<item><tt/CLIRPolicy=apply/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+可以设置一个全局的Presentation Indicator ("PI")处理策略。该策略将应用于所有不会覆盖它的CLI重写规则。
+可能的选择是 <tt/forward/ -仅按原样转发接收到的PI， <tt/apply/ 若将接收到的PI设置为“表示受限”，则检查接收的PI并隐藏CLI；
+以及<tt/applyforterminals/ - 与之类似，<tt/apply/ 不同之处在于仅当呼叫发送到端点时才删除该号码，不是网关。
+
+</itemize>
+
+<descrip>
+<tag/ 入站规则的格式：/
+<tt>in:CALLER_IP=[pi=[allow|restrict][,forward|apply|applyforterminals]] [cli:|dno:]number_prefix(=|*=|~=|^=|/=)NEW_CLI[,NEW_CLI]...</tt>
+<p>
+该 <tt/in:/ 前缀指定这是入站规则和 <tt/CALLER_IP/ 将用于匹配规则（它可以是一个单一的IP或整个子网）。您可以将IPv4或IPv6地址用于 <tt/CALLER_IP/.<newline>。
+
+可选 <tt/pi=/ 参数控制CLIR（呼叫线路识别限制）功能。指定 <tt/allow/ 或 <tt/restrict/ 强制将演示指示符设置为“允许演示”或“限制演示”。
+<tt/forward/, <tt/apply/ 和 <tt/applyforterminals/ 控制网守如何处理收到的演示指示符（若有）。<tt/forward/ 表示按原样将其转发给被呼叫者，
+<tt/apply/ 若PI设置为“演示受限”，则用于隐藏CLI，<tt/applyforterminals/ 类似于<tt/apply/，不同之处在于，仅在将呼叫发送给端点而不是网关时才隐藏CLI。<newline>
+
+前缀<tt/cli:/ 或 <tt/dno:/（默认值）选择将用于匹配 <tt/number_prefix/-呼叫方ID（CLI/ANI）或已拨号码的号码。号码匹配/重写可以通过以下五种方式完成：    
+
+<itemize>    
+<item><tt/=/ - 将使用前缀匹配项对<tt/cli/ or <tt/dno/ 数字进行匹配 <tt/number_prefix/，若找到匹配项，则CLI将被NEW_CLI替换。    
+<item><tt/~=/ - <tt/cli/ or <tt/dno/ 数字将使用与的身份匹配进行匹配 <tt/number_prefix/，若两个数字相同，则CLI将被NEW_CLI替换。
+    
+<item><tt/*=/ - (VALID ONLY FOR <tt/cli/). <tt/cli/ 将使用前缀匹配项匹配数字<tt/number_prefix/，若找到匹配项，则匹配的CLI前缀(<tt/number_prefix/)将替换为NEW_CLI前缀。
+   
+<item><tt/^=/ - 一个<tt/cli/或<tt/dno/数将使用针对前缀匹配匹配<tt/number_prefix/，若发现匹配，H.323_ID将与NEW_CLI更换，呼叫站ID将保持不变。
+    
+<item><tt>/=</tt> - 一个<tt/cli/ or <tt/dno/号码将使用与的身份匹配进行匹配<tt/number_prefix/，若两个号码相同，则将H.323_ID替换为NEW_CLI，Calling-Station=Id 将保持不变
+</itemize>
+在等号(=/~=/*=/^=//=)之后，是要使用的新CLI值的列表。若指定了多个值，则将随机选择一个。可以指定整数范围，例如49173600000-49173699999（对于数字范围，CLI应该具有固定的长度）。
+有一个特殊的字符串常量"any"可以代替<tt/CALLER_IP/或<tt/number_prefix/。要启用 <tt/CLIR/ 此规则，请使用特殊的字符串常量<tt/"hide"/ 而不是新的CLI值列表。请注意，CLIR对于出站规则更加有用。
+
+<tag/例 1:/
+<tscreen><verb>
+[RewriteCLI]
+in:192.168.1.1=dno:5551=3003
+in:192.168.1.1=cli:1001=2222
+in:192.168.1.1=any=1111
+</verb></tscreen>
+<p>
+这些规则说明，对于来自IP 192.168.1.1的呼叫：
+1) 若用户拨打的号码以5551开头，请将CLI设置为3003，
+2) 若呼叫来自具有CLI的用户以1001开头，则将CLI设置为2222，
+3) 对于从该IP进行的其他呼叫，请将CLI设置为1111。
+
+<tag/例 2:/
+<tscreen><verb>
+[RewriteCLI]
+in:192.168.1.0/24=any=18001111
+in:192.168.2.0/24=any=18002222
+in:2002:4ad0:ff00:79a::2/64=any=18003333
+in:any=any=0
+</verb></tscreen>
+<p>
+这些规则指出：
+1) 对于来自网络192.168.1.0/24的呼叫，将CLI设置为18001111，
+2) 对于来自网络192.168.2.0/24的呼叫，将CLI设置为18002222，
+3) 对于来自网络2002的呼叫： 4ad0：ff00：79a :: 2/64，将CLI设置为18003333，
+4) 对于其他呼叫，将设置为0。
+
+<tag/例 3:/
+<tscreen><verb>
+[RewriteCLI]
+in:192.168.1.0/24=0048*=48
+in:192.168.1.0/24=0*=48
+in:any=100.~=48900900900
+</verb></tscreen>
+<p>
+这些规则指出：
+1) 对于来自网络192.168.1.0/24的呼叫，将0048重写为48（例如-0048900900900 => 48900900900），
+2) 对于来自网络192.168.1.0/24的其他呼叫，将0重写为48（例如-0900900900 => 48900900900），
+3) 对于其他呼叫，若CLI是4位数字且以100开头，则将其设置为48900900900。
+
+<tag/例 4 (CLIR):/
+<tscreen><verb>
+[RewriteCLI]
+in:192.168.1.0/24=any=hide
+</verb></tscreen>
+<p>
+此示例使呼叫者的号码从源192.168.1.0/24网络的Setup消息中删除。它还会导致在Setup消息中设置正确的显示和筛选指示符。
+</descrip>
+
+<descrip>
+<tag/出站规则的格式：/
+<tt>out:CALLER_IP=CALLEE_IP [pi=[allow|restrict][,forward|apply|applyforterminals]] [cli:|dno:|cno:]number_prefix(=|~=|*=)NEW_CLI[,NEW_CLI]...</tt>
+<p>
+该<tt/out:/ 前缀告诉，这是一个出站规则，则 <tt/CALLER_IP/ 与<tt/CALLEE_IP/将用于匹配规则，可以是单个IP地址或子网地址。<newline>
+
+可选<tt/pi=/参数控制CLIR（限制识别呼叫线路）功能。指定<tt/allow/ or <tt/restrict/ 强制指示将演示符设置为“允许演示”或“限制演示”。
+<tt/forward/, <tt/apply/ and <tt/applyforterminals/控制网守如何处理收到的演示指示符（若有）。
+<tt/forward/ 表示仅按原样将其转发给被呼叫方， <tt/apply/ 表示若PI设置为“表示受限”，<tt/applyforterminals/ 则隐藏CLI，
+类似于<tt/apply/，不同之处在于，仅在将呼叫发送至端点而不是网关时才隐藏CLI。<newline>
+
+前缀 <tt/cli:/, <tt/dno:/（默认值）或<tt/cno:/ 选择将用于匹配的<tt/number_prefix/号码-呼叫者ID（CLI/ANI），已拨号码或目的地/被叫号码（重写后的已拨号码）。号码匹配/重写可以通过三种方式完成：
+<itemize>
+
+<item><tt/=/ - 将使用前缀匹配来匹配a cli或<tt/dno/ 数字<tt/number_prefix/，若找到匹配项，则CLI将被NEW_CLI替换
+<item><tt/~=/ - cli或dno数字将使用针对的身份匹配进行匹配<tt/number_prefix/，若两个数字相同，则CLI将被NEW_CLI替换，
+<item><tt/*=/ - （VALID ONLY FOR cli），cli将使用前缀匹配项匹配数字<tt/number_prefix/，若找到匹配项，则匹配的CLI前缀(<tt/number_prefix/) 将替换为NEW_CLI前缀。
+</itemize>
+在等号(=/~=/*=)之后，将指定要使用的新CLI值的列表。若配置了多个值，则将随机选择一个。可以指定整数范围，例如49173600000-49173699999。
+有一个特殊的字符串常量"any"可以代替CALLER_IP，CALLEE_IP或来使用<tt/number_prefix/。要启用CLIR此规则，请使用特殊的字符串常量<tt/"hide"/
+or <tt/"hidefromterminals"/ 代替新的CLI值列表。
+
+<tag/例 1:/
+<tscreen><verb>
+[RewriteCLI]
+out:any=192.168.1.1 any=1001
+out:any=192.168.1.2 any=1002
+out:any=any cno:123=1003
+</verb></tscreen>
+<p>
+这些规则为每个端点IP设置了固定的ANI/CLI：
+1) 向IP 192.168.1.1发送呼叫时向我展示ANI 1001
+2) 向IP 192.168.1.2发送呼叫时向我展示ANI 1002
+3) 拨打123时向我展示ANI 1003
+
+<tag/例 2:/
+<tscreen><verb>
+[RewriteCLI]
+out:any=192.168.1.1 any=1001-1999,3001-3999
+</verb></tscreen>
+<p>
+该规则从1001-1999的3001-3999范围内随机选择ANI/CLI，以发送到192.168.1.1。
+<tag/例 3 (CLIR):/
+<tscreen><verb>
+[RewriteCLI]
+out:any=any any=hidefromterminals
+out:192.168.1.1=any any=hide
+</verb></tscreen>
+<p>
+此示例中，每个用户都启用了CLIR，因此所有对终端的呼叫都将删除呼叫者的号码并设置演示/显示指示符。
+到网关的呼叫会将表示指示器设置为“表示受限”，并且不会删除呼叫者的号码，以允许在目标设备上进行正确的呼叫路由和号码删除。<newline>
+一个例外的规则，从192.168.1.1进行的呼叫，无论呼叫终端还是网关，该呼叫者的号码都会被删除。
+
+<tag/例 4 (CLIP):/
+<tscreen><verb>
+[RewriteCLI]
+out:any=192.168.1.1 any=hide
+</verb></tscreen>
+<p>
+在此示例中，用户192.168.1.1禁用了CLIP（演示呼叫线路识别）功能。
+
+<tag/例 5 (CLIR):/
+<tscreen><verb>
+[RewriteCLI]
+out:192.168.1.1=any pi=restrict,apply cli:.*=.
+out:any=any pi=allow cli:.*=.
+</verb></tscreen>
+<p>
+这些规则不会更改CLI(.*=.)，并且：
+1) 为端点192.168.1.1启用CLIR。apply告诉网守不仅设置PI，还隐藏号码。
+2) 强制对其他端点进行CLI演示。
+</descrip>
+
+<p>
+规则匹配过程具有严格定义的顺序：
+<enum>
+<item>
+确定最接近的呼叫者的IP匹配（最接近意为具有最长的网络掩码-单个IP具有最高优先级，"any" 具有最低优先级），
+<item>
+    （出站规则）确定最接近的被叫方的IP匹配，
+(outbound rules) the closest callee's IP match is determined,
+<item>
+按照以下顺序搜索最长的匹配前缀/编号以查找给定的IP/IP对：
+<enum>
+<item><tt/dno:/ 搜索类型（拨号号码）规则，
+<item><tt/cno:/ 搜索类型（目的地/被叫号码）规则，
+<item><tt/cli:/ 搜索类型（呼叫者ID）规则。
+</enum>
+</enum>
+找到与呼叫者/呼叫者的IP匹配之后，就不会再检查任何规则，即使这些IP的规则集中没有匹配前缀/号码。
+<p>
+在Windows平台上，INI文件中的配置键重复存在问题，因此GnuGk提供了解决此限制的方法。由于相同的键(<tt/in:192.168.1.1/):此示例无法正常工作：
+
+<tscreen><verb>
+[RewriteCLI]
+in:192.168.1.1=1001=2001
+in:192.168.1.1=any=2000
+
+</verb></tscreen>
+解决方法是，可以在键之前和之后使用带百分号 (%) 的字符串。在加载规则之前，该前缀将自动从键名中删除：
+<tscreen><verb>
+[RewriteCLI]
+%r1% in:192.168.1.1=1001=2001
+%r2% in:192.168.1.1=any=2000
+</verb></tscreen>
+
+<sect1>Section &lsqb;RewriteCLI::SQL&rsqb;
+<label id="clirewritesql">
+<p>
+使用<ref id="database" name="公共数据库配置选项"> 来定义此模块的数据库连接。
+
+注意，选择（而不是规则）<ref id="clirewrite" name="RewriteCLI">部分，像 <tt/ProcessSourceAddress=/, <tt/RemoveH323Id=/ and <tt/CLIRPolicy=/ 同时适用于本部分的重写规则。
+
+<itemize>
+<item><tt/InboundQuery=SELECT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义一个重写查询，在呼叫时执行。
+
+<item><tt/outboundQuery=SELECT .../<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+定义重写查询，在呼叫时执行。被叫号码参数重写已通过所有步骤。
+</itemize>
+
+查询第一个字段返回用作新的CLI。若查询不返回任何行，则CLI保持不变。
+可以对查询进行参数化-这意味着在执行每个查询之前进行参数替换，定义了以下参数：
+<itemize>
+<item><tt/%{cli}/ - 原始CLI或第一个sourceAddress（若不存在CLI）（在出站查询中，它可以已经由入站查询重写）
+<item><tt/%{callerip}/ - 主叫IP
+<item><tt/%{called}/ - 被叫号码（入站查询中的拨号号码和出站查询中的重写号码）
+</itemize>
+
+在大多数情况下，您可能只会使用 %{cli} 参数。
+
+
+<sect1>Section &lsqb;RewriteSourceAddress&rsqb;
+<label id="rewritesourceaddr">
+<p>
+此开关，可以过滤在Setup消息中传输的sourceAddress元素。（请注意，<ref id="clirewrite" name="RewriteCLI">和 <ref id="clirewritesql" name="RewriteCLI::SQL"> 规则也会影响sourceAddress）
+
+<itemize>
+<item><tt/OnlyE164=1/<newline>
+默认：<tt/0/<newline>
+<p>
+此开关，可以过滤掉非E.164类型的所有元素。
+
+<item><tt/OnlyValid10Dand11D=1/<newline>
+默认：<tt/0/<newline>
+<p>
+此开关，您可以过滤掉所有无效的10位或11位US数字的元素。可以是任何别名类型（除非设置了OnlyE164），但是不允许使用格式字符。11位数字必须以1开头，区号必须以2..9开头。
+
+<item><tt/MatchSourceTypeToDestination=1/<newline>
+默认：<tt/0/<newline>
+<p>
+使用此开关，您可以筛选出与目标类型（E.164或URI）不匹配的所有元素。若呼叫E.164号码（Q931 IE：存在被叫方号码），则除拨号外的所有其他内容。
+若呼叫URI（目标AliasAddress类型），则会过滤URI源以外的所有其他内容。此开关对任何其他目标类型均无效。例如，H323ID或TransportID AliasTypes。
+
+<item><tt/ForceAliasType=1/<newline>
+默认：<tt/-1/<newline>
+<p>
+值 0-dialedDigits 1-h323_ID 2-URI-ID使用此开关，您可以将源和目标AliasAddress强制设置为提供的类型。与MatchSourceTypeToDestination结合使用以更改AliasType。
+例如，将url_ID更改为h323_ID，以便远程网关可以处理该消息。
+
+<item><tt/ReplaceChar=+,0;#,*/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+此开关，可以删除/替换呼叫者源地址上的字符，例如 +。
+
+<item><tt/Rules=01,18001234567/<newline>
+默认：<tt>N/A</tt><newline>
+<p>
+若存在前缀匹配项，则可以使用此开关替换CallSourceAddress。
+可使用此功能将通用有效的E.164号码分配给非E.164号码，以用于callerID。
+
+<item><tt/TreatNumberURIDialedDigits=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+在设置MatchSourceTypeToDestination且目标为URI且主机部分为数字的情况下，通过采用DialedDigits源地址并将其与URI地址（若存在）混合，以确保源地址也是数字URI，因此源和目的地址。
+
+</itemize>
+
