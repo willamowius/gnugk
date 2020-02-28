@@ -44,7 +44,7 @@ Currently supported modules: (most only support a subset of the RAS or Q.931 act
 该模块检查RAS消息的令牌或cryptoTokens字段。令牌应至少包含generalID和密码。对于cryptoToken，
 支持由简单MD5哈希的cryptoEPPwdHash令牌和由HMAC-SHA1-96哈希的nestedcryptoToken令牌。
 对于由CAT散列的令牌（Cisco访问令牌），支持明文用户名/密码。从<ref id="password" name="[SimplePasswordAuth]">节
-或用于<tt/SimplePasswordAuth/ 和 <tt/SQLPasswordAuth/模块的SQL数据库中读取ID和密码 。
+或用于<tt/SimplePasswordAuth/ 和 <tt/SQLPasswordAuth/模块的SQL数据库中读取ID和密码。
 使用<ref id="luapasswordauth" name="LuaPasswordAuth">，可使用Lua脚本来查找密码，而<ref id="httppasswordauth" name="HttpPasswordAuth">则可以从HTTP服务器（例如，从REST服务）获取密码。
 <p>
 对于H.350.2身份验证(<tt/H350PasswordAuth/)， 必须完成<ref id="h350settings" name="[GkH350::Settings]">连接信息。的<ref id="h350passwordauth" name="[H350PasswordAuth]">部分是可选的。
@@ -68,49 +68,49 @@ Currently supported modules: (most only support a subset of the RAS or Q.931 act
 提供基于H.235用户名/密码安全方案的身份验证。通过远程RADIUS服务器对RRQ，ARQ和Q.931 Setup进行身份验证。
 它将从RRQ，ARQ或Setup数据包内携带的CAT（思科访问令牌）令牌中提取的用户名和密码发送到RADIUS服务器。
 若端点不支持CAT，或者不需要基于单独分配的用户名/密码的身份验证方案，那么该模块将不合适（可以检查该<tt/RadAliasAuth/模块）。
-有关详细信息，请参见<ref id="radauth" name="[RadAuth]">部分 。
+有关详细信息，请参见<ref id="radauth" name="[RadAuth]">部分。
 
 <item><tt>RadAliasAuth</tt>
 <p>
 提供基于端点别名和/或远程RADIUS服务器的呼叫信令IP地址的身份验证。它在RAS消息中不需要任何H.235令牌，
 因此与相比，它可以在更广泛的系统上使用<tt/RadAuth/。RRQ，ARQ和Q.931 Setup消息可以使用此模块进行身份验证。
-有关详细信息，请参见<ref id="radaliasauth" name="[RadAliasAuth]">部分 。
+有关详细信息，请参见<ref id="radaliasauth" name="[RadAliasAuth]">部分。
 
 <item><tt>SQLAuth</tt>
 <p>
 一个强大的模块，用于认证和授权RRQ，ARQ，LRQ和Setup消息。它可以根据各种参数执行检查，例如呼叫者的号码，目的地号码，用户名等。
-它还支持强制呼叫持续时间限制，号码重写，呼叫路由，别名验证和分配。有关更多详细信息，请参见<ref id="sqlauth" name="[SQLAuth]">部分 。
+它还支持强制呼叫持续时间限制，号码重写，呼叫路由，别名验证和分配。有关更多详细信息，请参见<ref id="sqlauth" name="[SQLAuth]">部分。
 
 <item><tt>LDAPPasswordAuth</tt>
 <p>
 该模块将在LDAP模式中查找被叫别名，搜索H323ID和TelephoneNumber属性，并检查H235Password属性中的密码是否与H.235加密令牌匹配。
 <p>
-LDAP服务器在<ref id="ldapsettings" name="GkLDAP::Settings">部分中配置，且属性匹配在<ref id="ldapattributes" name="GkLDAP::LDAPAttributeNames">部分中定义 。
+LDAP服务器在<ref id="ldapsettings" name="GkLDAP::Settings">部分中配置，且属性匹配在<ref id="ldapattributes" name="GkLDAP::LDAPAttributeNames">部分中定义。
 
 <item><tt>LDAPAliasAuth</tt>
 <p>
 该模块将在LDAP模式中查找被叫别名，搜索H323ID和TelephoneNumber属性，并检查IP是否与IPAddress属性匹配。
 
 <p>
-LDAP服务器在<ref id="ldapsettings" name="GkLDAP::Settings">部分中配置， 并且属性匹配在<ref id="ldapattributes" name="GkLDAP::LDAPAttributeNames"> 部分中定义 。
+LDAP服务器在<ref id="ldapsettings" name="GkLDAP::Settings">部分中配置， 并且属性匹配在<ref id="ldapattributes" name="GkLDAP::LDAPAttributeNames"> 部分中定义。
 
 <item><tt>LuaAuth</tt>
 <p>
-该模块利用用户定义的LUA脚本执行身份验证。这些脚本在<ref id="luaauth" name="LuaAuth">部分中配置 。
+该模块利用用户定义的LUA脚本执行身份验证。这些脚本在<ref id="luaauth" name="LuaAuth">部分中配置。
 
 <item><tt>GeoIPAuth</tt>
 <p>
-该模块通过查看IP来检查消息来自哪个国家。该模块在<ref id="geoipauth" name="GeoIPAuth">部分中配置 。
+该模块通过查看IP来检查消息来自哪个国家。该模块在<ref id="geoipauth" name="GeoIPAuth">部分中配置。
 
 <item><tt>TwoAliasAuth</tt>
 <p>
-此模块检查端点是否具有2个匹配的别名。这是一个非常弱的身份验证，仅在没有其他可能的情况下才使用。该模块在<ref id="twoaliasauth" name="TwoAliasAuth">部分中配置 。
+此模块检查端点是否具有2个匹配的别名。这是一个非常弱的身份验证，仅在没有其他可能的情况下才使用。该模块在<ref id="twoaliasauth" name="TwoAliasAuth">部分中配置。
 
 该模块可以授权RegistrationRequest (RRQ)，Setup和SetupUnreg。
 
 <item><tt>CapacityControl</tt>
 <p>
-灵活的模块，可以配置各种条件，以控制入站呼叫量。重要说明：它必须与<tt/CapacityControl/ 计费模块一起使用。有关更多详细信息，请参见<ref id="capctrl" name="[CapacityControl]"> 部分 。
+灵活的模块，可以配置各种条件，以控制入站呼叫量。重要说明：它必须与<tt/CapacityControl/ 计费模块一起使用。有关更多详细信息，请参见<ref id="capctrl" name="[CapacityControl]"> 部分。
  
 </itemize>
 
@@ -291,7 +291,7 @@ TimestampGracePeriod=60
 <sect1>Section &lsqb;SimplePasswordAuth&rsqb;
 <label id="password">
 <p>
-本节定义<tt/SimplePasswordAuth/模块使用的用户名和密码对 。使用该<tt/addpasswd/程序对所有密码进行加密。
+本节定义<tt/SimplePasswordAuth/模块使用的用户名和密码对。使用该<tt/addpasswd/程序对所有密码进行加密。
 
 用法:
 <tscreen><verb>
@@ -411,7 +411,7 @@ sigaddr:.*ipAddress .* ip = .* c0 a8 e2 a5 .*port = 1720.*
 <item><tt/sigip/ - `<tt/sigaddr/'的特殊形式。写信令IP地址。如果省略端口，则假定为1720
 
 <p>
-Examples:
+示例:
 <tscreen><verb>
 sigip:192.168.242.165:1720
 sigip:[2a01:4f8:61:2243::2]:1720
@@ -581,12 +581,12 @@ SELECT active FROM neighbors WHERE name = '%{nbid}' AND ip = '%{nbip}' UNION SEL
 		还可通过在改写的号码后附加'='来指定出站号码(发送到端点网关)(like 485811001001=1234485811001001)
 	<item>若存在的列名为 <tt/'redirectip'/, 则将呼叫强制发送到指定的IP（如果激活了故障转移，则可以将多个目标之间用分号分隔，将用于故障转移）。
 	<item>若存在的列名为 <tt/'proxy'/, 则强制网守为该呼叫启用/禁用（取决于'proxy'列的值）RTP代理
-	<item>若存在的列名为 <tt/'clientauthid'/, 则网守会将这个ID存储在其呼叫记录中，并在所有记帐事件中将其发送回去。这必须是一个最大为64位的无符号整数（如，MySQL中的'bigint unsigned'）。
+	<item>若存在的列名为 <tt/'clientauthid'/, 则网守会将这个ID存储在其呼叫记录中，并在所有记录事件中将其发送回去。这必须是一个最大为64位的无符号整数（如，MySQL中的'bigint unsigned'）。
 </enum>
 <item>如果请求被拒绝，则检查其余的列：
 <enum>
 	<item>若存在的列名为 <tt/'q931cause'/, 请在“释放完成”中将Q.931原因设置为此值。
-	<item>若存在的列名为 <tt/'clientauthid'/, 则网守会将这个ID存储在其呼叫记录中，并在所有记帐事件中将其发送回去。这必须是一个最大为64位的无符号整数（如，MySQL中的'bigint unsigned'）。
+	<item>若存在的列名为 <tt/'clientauthid'/, 则网守会将这个ID存储在其呼叫记录中，并在所有记录事件中将其发送回去。这必须是一个最大为64位的无符号整数（如，MySQL中的'bigint unsigned'）。
 </enum>
 </enum>
 <p>
@@ -651,7 +651,7 @@ ALL=allow ipv4:0/0|allow ipv6:::/0
 默认: <tt>N/A</tt><newline>
 <p>
 用于身份认证的RADIUS服务器。该列表可以包含任意数量的服务器。服务器的顺序很重要，因为RADIUS模块将按给定顺序查询服务器。
-如果未提供端口信息，<tt/DefaultAuthPort/将使用端口号from 。
+如果未提供端口信息，<tt/DefaultAuthPort/将使用端口号from。
 如果未设置密码，<tt/SharedSecret/ 则采用默认的共享密码。服务器名称可以是IP地址或DNS名称。IPv6地址必须始终写在方括号中。
 
 <descrip>
@@ -1013,7 +1013,7 @@ Access-Accept {
 默认: <tt>N/A</tt><newline>
 <p>
 用于RAS的RADIUS服务器请求身份验证。该列表可以包含任意数量的服务器。服务器的顺序很重要，因为RADIUS模块将按给定顺序查询服务器。
-若未指定端口信息，<tt/DefaultAuthPort/ 将使用端口号from 。如果未设置密码，<tt/SharedSecret/ 则使用默认的共享密码自。服务器可以是IP地址或DNS名称。
+若未指定端口信息，<tt/DefaultAuthPort/ 将使用端口号from。如果未设置密码，<tt/SharedSecret/ 则使用默认的共享密码自。服务器可以是IP地址或DNS名称。
 
 <descrip>
 <tag/例子:/

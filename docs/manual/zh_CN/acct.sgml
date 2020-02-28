@@ -1,14 +1,14 @@
 <sect>Accounting Configuration
 <p>
-配置文件中的以下部分可用于配置计费。
+配置文件中的以下部分可用于计费配置。
 
 <sect1>Section &lsqb;Gatekeeper::Acct&rsqb;
 <label id="gkacct">
 <p>
-本节定义了可用于执行计费的模块列表。记帐功能可用于记录网守的开/关事件和呼叫开始/停止/更新事件。每个计费模块将收到的事件记录到模块特定的存储中。
+本节定义了可用于执行计费的列表模块。记录功能可用于记录网守事件，如，开/关事件和呼叫开始/停止/更新。每个计费模块将收到的事件会记录到模块特定的存储中。
 各种存储选项包括纯文本文件，RADIUS服务器等等。该配置与网守身份验证的配置非常相似（请参阅 <ref id="gkauth" name="[Gatekeeper::Auth]">）。
 
-所有CDR也会发送到状态端口，并且可由外部应用程序使用。
+所有CDR也会发送到控制端口，可由外部应用程序使用。
 
 <descrip>
 <tag/Syntax:/
@@ -21,14 +21,12 @@ acctmod=actions
  <event>   := start | stop | alert | connect | update | register | unregister | on | off | reject | mediafail
 </verb></tscreen>
 </descrip>
-列表事件告诉网守哪些事件应触发给定记帐模块的日志记录（若模块支持事件类型）：
-The event list tells the gatekeeper which events should trigger logging
-with the given accounting module (if an event type is supported by the module):
+事件列表配置网守哪些事件应触发给定记事模块的日志记录（若模块支持事件类型）：
 <itemize>
-<item><tt/start/ - 呼叫已开始并且已收到设置消息（仅在路由模式下可用）
+<item><tt/start/ - 呼叫已开始并且已收到Setup消息（仅在路由模式下可用）
 <item><tt/alert/ - 通话正在提醒（仅在路由模式下可用）
 <item><tt/connect/ - 已连接呼叫（仅在路由模式下可用）
-<item><tt/update/ - 呼叫处于活动状态，并执行定期更新以反映新的呼叫持续时间。这些更新的频率由<ref id="calltable" name="[CallTable]">部分的<bf/AcctUpdateInterval/变量 确定。
+<item><tt/update/ - 呼叫处于活动状态，并执行定期更新以反映新的呼叫持续时间。这些更新的频率由<ref id="calltable" name="[CallTable]">部分的<bf/AcctUpdateInterval/变量确定。
 <item><tt/register/ - 终端已注册
 <item><tt/unregister/ - 终端未注册
 <item><tt/stop/ - 呼叫已断开连接（已从GK呼叫表中删除）
@@ -37,21 +35,19 @@ with the given accounting module (if an event type is supported by the module):
 <item><tt/on/ - GK已经启动
 <item><tt/off/ - GK已关闭
 </itemize>
-模块记录的事件可能会导致以下三个结果代码之一： ok，fail，next。
-An event logged by a module may results in one of three result codes:
-<bf/ok/, <bf/fail/, <bf/next/.
+记事模块记录的事件的结果会有三个状态代码，设置其之一：<bf/ok/, <bf/fail/, <bf/next/。
 <itemize>
 <item><tt/ok/ - 该模块已成功记录该事件
 <item><tt/fail/ - 模块无法记录事件
 <item><tt/next/ - 该模块尚未记录该事件，因为该模块未配置为/不支持此事件类型
 </itemize>
-记帐模块可以堆叠在一起以记录多个模块的事件或创建故障转移setups。每个模块的<bf/控制/标志以及结果代码定义了整个模块堆栈进行事件处理的最终状态是什么。
-若最终结果是<bf/失败/，则可能会采取一些特殊措施。当前，若呼叫<bf/开始/事件记录失败，则呼叫将立即断开连接。可识别以下<bf/控制/标志：
+记事模块可以重叠配置以记录多个模块的事件或创建故障转移setups。每个模块的<bf/控制/标志以及结果代码定义了整个模块队列进行事件处理的结果状态。
+若结果是<bf/失败/，则可能会采取一些特殊措施。当前，若呼叫<bf/开始/事件记录失败，则呼叫将立即断开连接。可识别以下<bf/控制/标志：
 <itemize>
-<item><tt/required/ - 若模块无法记录事件，则最终状态将设置为“ failure”（失败），并将事件向下传递给所有剩余模块
-<item><tt/optional/ - 模块尝试记录事件，但最终状态不受成功或失败的影响（除非模块位于列表的最后）。该事件始终传递给任何剩余的模块。
-<item><tt/sufficient/ - 模块确定最终状态。若成功记录了事件，则不会处理剩余的模块。否则，最终状态将设置为“失败”，并且事件将传递给其余所有模块。
-<item><tt/alternative/ - 若模块成功记录了事件，则不会处理剩余的模块。否则，最终状态将不会被修改，并且事件将被传递给其余所有模块。
+<item><tt/required/ - 若模块不能记录事件，则结果状态将设置为“ failure”（失败），并将事件向下传递给所有剩余模块
+<item><tt/optional/ - 模块尝试记录事件，但结果状态不受成功或失败的影响（除非模块位于列表的最后）。该事件始终传递给任何剩余的模块。
+<item><tt/sufficient/ - 模块确定结果状态。若成功记录了事件，则不会处理剩余的模块。否则，结果状态将设置为“失败”，并且事件将传递给其余所有模块。
+<item><tt/alternative/ - 若模块成功记录了事件，则不会处理剩余的模块。否则，结果状态将不会被修改，并且事件将被传递给其余所有模块。
 </itemize>
 
 当前支持的计费模块：
@@ -62,35 +58,35 @@ An event logged by a module may results in one of three result codes:
 
 <item><tt>RadAcct</tt>
 <p>
-此模块执行RADIUS记帐。它支持事件类型开始，停止，更新，打开，关闭。有关配置详细信息，请参见<ref id="radacct" name="[RadAcct]">部分。
+此模块执行RADIUS记录。它支持事件类型开始，停止，更新，打开，关闭。有关配置详细信息，请参见<ref id="radacct" name="[RadAcct]">部分。
 
 <item><tt>SQLAcct</tt>
 <p>
-此模块执行直接SQL记帐。它支持（开始，连接，停止，更新，响玲，注册，注销）事件类型。有关配置详细信息，请参见<ref id="sqlacct" name="[SQLAcct]">部分。
+此模块执行直接SQL记录。它支持（开始，连接，停止，更新，响玲，注册，注销）事件类型。有关配置详细信息，请参见<ref id="sqlacct" name="[SQLAcct]">部分。
 
 <item><tt>HttpAcct</tt>
 <p>
-此模块通过HTTP记录所有记帐事件。它支持（启动，连接，停止，更新，响玲，拒绝，注册，注销，打开，关闭）。有关详细配置，请参见<ref id="httpacct" name="[HttpAcct]">部分。
+此模块通过HTTP记录所有记录事件。它支持（启动，连接，停止，更新，响玲，拒绝，注册，注销，打开，关闭）。有关详细配置，请参见<ref id="httpacct" name="[HttpAcct]">部分。
 
 <item><tt>AMQPAcct</tt>
 <p>
-该模块将所有记帐事件记录到AMQP队列中，例如。RabbitMQ。它支持（启动，连接，停止，更新，响玲，拒绝，注册，注销，打开，关闭），有关配置详细信息，请参见<ref id="amqpacct" name="[AMQPAcct]">部分。
+该模块将所有记录事件记录到AMQP队列中，例如。RabbitMQ。它支持（启动，连接，停止，更新，响玲，拒绝，注册，注销，打开，关闭），有关配置详细信息，请参见<ref id="amqpacct" name="[AMQPAcct]">部分。
 
 <item><tt>MQTTAcct</tt>
 <p>
-该模块将所有记帐事件记录到MQTT服务器。它支持（启动，连接，停止，更新，响玲，拒绝，注册，注销，打开，关闭），有关配置详细信息，请参见<ref id="mqttacct" name="[MQTTAcct]">部分 。
+此模块将所有记录事件记录到MQTT服务器。它支持（启动，连接，停止，更新，响玲，拒绝，注册，注销，打开，关闭），有关配置详细信息，请参见<ref id="mqttacct" name="[MQTTAcct]">部分。
 
 <item><tt>StatusAcct</tt>
 <p>
-此模块将所有记帐事件记录在状态端口上。它可用于实时连接外部应用程序。它支持（开始，连接，停止，更新，响玲，注册，注销）事件类型。有关详细信息，请参见<ref id="statusacct" name="[StatusAcct]">部分 。
+此模块将所有记录事件记录在控制端口上。它可用于实时连接外部应用程序。它支持（开始，连接，停止，更新，响玲，注册，注销）事件类型。有关详细信息，请参见<ref id="statusacct" name="[StatusAcct]">部分。
 
 <item><tt>SyslogAcct</tt>
 <p>
-此模块将所有记帐事件记录到Unix syslog。它支持（开始，连接，停止，更新）事件类型。有关配置详细信息，请参见<ref id="syslogacct" name="[SyslogAcct]">部分 。
+此模块将所有记录事件记录到Unix syslog。它支持（开始，连接，停止，更新）事件类型。有关配置详细信息，请参见<ref id="syslogacct" name="[SyslogAcct]">部分。
 
 <item><tt>LuaAcct</tt>
 <p>
-该模块为每个记帐事件运行一个LUA脚本。它支持（开始，连接，停止，更新，响玲，注册，注销）事件类型。有关配置详细信息，请参见<ref id="luaacct" name="[LuaAcct]"> 部分 。
+此模块为每个记录事件运行一个LUA脚本。它支持（开始，连接，停止，更新，响玲，注册，注销）事件类型。有关配置详细信息，请参见<ref id="luaacct" name="[LuaAcct]"> 部分。
 
 <item><tt>RequireOneNet</tt>
 <p>
@@ -98,11 +94,11 @@ An event logged by a module may results in one of three result codes:
 
 <item><tt>CapacityControl</tt>
 <p>
-此模块执行入站呼叫量日志记录，这是<tt/CapacityControl/身份验证模块正常工作所必需的。有关 详细信息，请参见<ref id="capctrl" name="[CapacityControl]">部分 。
+此模块执行入站呼叫量日志记录，这是<tt/CapacityControl/身份验证模块正常工作所必需的。有关 详细信息，请参见<ref id="capctrl" name="[CapacityControl]">部分。
  
 <item><tt>default</tt>
 <p>
-这是一个特殊的伪模块-若其他模块尚未确定最终状态，则用于设置最终状态。格式为：
+这是一个特殊的伪模块-若其他模块尚未确定结果状态，则用于设置结果状态。格式为：
 <descrip>
 <tag/Syntax:/
 <tscreen><verb>
@@ -116,30 +112,30 @@ An event logged by a module may results in one of three result codes:
 
 配置示例1（尝试使用RADIUS服务器记录呼叫开始/停止的日志，并始终将CDR写入文本文件）：
 <descrip>
-<tag/Example:/
+<tag/示例:/
 <tt/RadAcct=optional;start,stop/<newline>
 <tt/FileAcct=required/<newline>
 </descrip>
 
 配置示例2（尝试使用CDR日志文件记录RADIUS服务器的呼叫开始/停止，若失败）：
 <descrip>
-<tag/Example:/
+<tag/示例:/
 <tt/RadAcct=alternative;start,stop/<newline>
 <tt/FileAcct=sufficient;stop/<newline>
 <tt/default=accept/<newline>
 </descrip>
 这里需要使用<bf/默认/规则，以防止由于RadAcct启动事件记录失败而导致呼叫被拒绝。
 若RadAcct以失败返回码响应，则将其向下传递到FileAcct模块。
-FileAcct模块不支持启动事件，因此它返回<bf/下一个/代码。若没有<bf/默认/规则，则最终状态将为失败，因为没有模块能够记录该事件。
+FileAcct模块不支持启动事件，因此它返回<bf/下一个/代码。若没有<bf/默认/规则，则结果状态将为失败，因为没有模块能够记录该事件。
 
 配置示例3（始终使用RADIUS服务器记录呼叫开始和停止事件，如若叫停止事件失败，则使用CDR文件存储呼叫信息）：
 <descrip>
-<tag/Example:/
+<tag/示例:/
 <tt/RadAcct=alternative;start,stop/<newline>
 <tt/FileAcct=sufficient;stop/<newline>
 <tt/default=fail;start/<newline>
 </descrip>
-在<bf/默认/的规则是可选在这里。如果RadAcct返回开始事件的<bf/失败/代码，则该代码将传递到FileAcct模块。FileAcct模块不支持开始事件，因此它返回<bf/下一个/返回代码。
+在<bf/默认/的规则在这里是可选。如果RadAcct返回开始事件的<bf/失败/代码，则该代码将传递到FileAcct模块。FileAcct模块不支持开始事件，因此它返回<bf/下一个/返回代码。
 该默认规则确保如果启动呼叫事件无法RadAcct记录的电话被挂断。但我们仍然希望将CDR存储在文本文件中，以防万一当呼叫断开时RADIUS服务器关闭，因此我们可稍后将呼叫持续时间获取到计费系统中。
 
 <sect1>自定义话单字符串和计费数据
@@ -148,7 +144,7 @@ FileAcct模块不支持启动事件，因此它返回<bf/下一个/代码。若�
 大多数计费模块可自定义它们存储的CDR数据。它们使用一组通用的参数来定义CDR字符串。
 
 参数是使用<tt/%/字符指定的，可以是一个字母（如<tt/%n/）或更长的字母（如<tt/%{CallId}/）。
-任何不是参数名称的剩余字符都将被简单地复制到最终的CDR字符串中。在所有与呼叫相关的记帐事件中都可识别以下参数：
+任何不是参数名称的剩余字符都将被简单地复制到最终的CDR字符串中。在所有与呼叫相关的记录事件中都可识别以下参数：
 
 <itemize>
 <item><tt/%g/ - GK名称
@@ -164,7 +160,7 @@ FileAcct模块不支持启动事件，因此它返回<bf/下一个/代码。若�
 <item><tt/%{event-uuid}/ - 此事件的UUID
 <item><tt/%{event-time}/ - 产生事件的时间
 <item><tt/%{gkip}/ - GK的IP地址
-<item><tt/%{external-ip}/ - GK的外部IP地址（若已设置）
+<item><tt/%{external-ip}/ - GK的外部IP地址（若存在）
 <item><tt/%{CallId}/ - H.323呼叫标识符（十六进制8位数字）
 <item><tt/%{ConfId}/ - H.323会议标识符 (十六进制8位数字)
 <item><tt/%{CallLink}/ - 链接的H.323会议标识符（用于H.450呼叫转移的计费帐户）
@@ -190,16 +186,16 @@ FileAcct模块不支持启动事件，因此它返回<bf/下一个/代码。若�
 <item><tt/%{caller-vendor}/ - 呼叫终端的供应商和版本信息
 <item><tt/%{callee-vendor}/ - 被叫终端的供应商和版本信息
 <item><tt/%{sinfo-ip}/ - -来自Sorenson SInfo的IP（仅在TranslateSorensonSourceInfo=1时可用）
-<item><tt/%{bandwidth}/ - 此通话的带宽
+<item><tt/%{bandwidth}/ - 通话的带宽
 <item><tt/%{bandwidth-kbps}/ - 授予此呼叫的带宽（以kbps为单位）
 <item><tt/%{caller-audio-codec}/ - 主叫方用于发送的音频编解码器
 <item><tt/%{callee-audio-codec}/ - 被叫方用于发送的音频编解码器
 <item><tt/%{caller-video-codec}/ - 主叫方用于发送的视频编解码器
 <item><tt/%{callee-video-codec}/ - 被叫方用于发送的视频编解码器
-<item><tt/%{caller-audio-bitrate}/ - 主叫方用于发送的音频比特率（以kbps为单位）
-<item><tt/%{callee-audio-bitrate}/ - 被叫方用于发送的音频比特率（以kbps为单位）
-<item><tt/%{caller-video-bitrate}/ - 主叫方用于发送的视频比特率（以kbps为单位）
-<item><tt/%{callee-video-bitrate}/ - 被叫方用于发送的视频比特率（以kbps为单位）
+<item><tt/%{caller-audio-bitrate}/ - 主叫方用于发送的音频比特率（kbps）
+<item><tt/%{callee-audio-bitrate}/ - 被叫方用于发送的音频比特率（kbps）
+<item><tt/%{caller-video-bitrate}/ - 主叫方用于发送的视频比特率（kbps）
+<item><tt/%{callee-video-bitrate}/ - 被叫方用于发送的视频比特率（kbps）
 <item><tt/%{caller-media-ip}/ - 主叫方使用的媒体IP（音频）
 <item><tt/%{callee-media-ip}/ - 被叫方使用的媒体IP（音频）
 <item><tt/%{encryption}/ - 若所有音频和视频通道均已加密，则为"On"，否则为"Off" 
@@ -214,7 +210,7 @@ FileAcct模块不支持启动事件，因此它返回<bf/下一个/代码。若�
 <itemize>
 <item><tt/%g/ - GK名称
 <item><tt/%{gkip}/ - GK的IP
-<item><tt/%{external-ip}/ - GK的外部IP地址（若已设置）
+<item><tt/%{external-ip}/ - GK的外部IP地址（若存在）
 <item><tt/%u/ - 注册方的H.323 ID
 <item><tt/%{event-uuid}/ - 此事件的UUID
 <item><tt/%{event-time}/ - 产生事件的时间
@@ -230,11 +226,10 @@ FileAcct模块不支持启动事件，因此它返回<bf/下一个/代码。若�
 </itemize>
 
 对于打开和关闭事件，可使用以下参数：
-For On and Off events you can use the following parameters:
 <itemize>
 <item><tt/%g/ - GK的名称
 <item><tt/%{gkip}/ - GK的IP
-<item><tt/%{external-ip}/ - GK的外部IP地址（若已设置）
+<item><tt/%{external-ip}/ - GK的外部IP地址（若存在）
 <item><tt/%{env1}/ - 环境变量GNUGK_ENV1的内容
 <item><tt/.../
 <item><tt/%{env9}/ - 环境变量GNUGK_ENV9的内容
@@ -280,18 +275,18 @@ StandardCDRFormat等效于以下定义：
 <tt/Rotate=hourly | daily | weekly | monthly | L... | S.../<newline>
 默认：<tt>N/A</tt><newline>
 <p>
-若设置，则CDR文件将基于此设置进行翻转。每小时轮换可以每小时一次，每天一次-每天一次，每周一次-每周一次和每月一次-每月一次。
-实际的翻转步长由RotateDay和RotateTime的组合确定。在翻转过程中，现有文件被重命名为CURRENT_FILENAME.YYYYMMDD-HHMMSS，其中YYYYMMDD-HHMMSS被替换为当前时间戳，新的CDR被记录到一个空文件中。
-此外，还支持按写入的CDR数（L ...）和按文件大小（S ...）翻转。该<tt/L/前缀指定了一些CDR行写的，<tt/S/前缀指定CDR文件大小。<tt/k/和<tt/m/后缀可用于指定数千（千字节）和数百万（兆字节）。
+若设置，则CDR文件将基于此设置进行轮循。每小时轮循、每天、每周和每月一次。
+实际的轮循周长由RotateDay和RotateTime的组合确定。在轮循过程中，现有文件被重命名为CURRENT_FILENAME.YYYYMMDD-HHMMSS，其中YYYYMMDD-HHMMSS被替换为当前时间戳，新的CDR被记录到一个空文件中。
+此外，还支持按写入的CDR数（L ...）和按文件大小（S ...）轮循。该<tt/L/前缀指定了一些CDR行写的，<tt/S/前缀指定CDR文件大小。<tt/k/和<tt/m/后缀可用于指定数千（千字节）和数百万（兆字节）。
 
 <descrip>
-<tag/示例 1 - 不轮询:/
+<tag/示例 1 - 不轮循:/
 <tt/&lsqb;FileAcct&rsqb;/<newline>
 <tt>DetailFile=/var/log/gk/cdr.log</tt><newline>
 </descrip>
 
 <descrip>
-<tag/示例 2 - 每小时翻转一次 (00:45, 01:45, ..., 23:45):/
+<tag/示例 2 - 每小时轮循一次 (00:45, 01:45, ..., 23:45):/
 <tt/&lsqb;FileAcct&rsqb;/<newline>
 <tt>DetailFile=/var/log/gk/cdr.log</tt><newline>
 <tt>Rotate=hourly</tt><newline>
@@ -316,7 +311,7 @@ StandardCDRFormat等效于以下定义：
 </descrip>
 
 <descrip>
-<tag/示例 5 - 在每个月的最后一天翻转:/
+<tag/示例 5 - 在每个月的最后一天轮循:/
 <tt/&lsqb;FileAcct&rsqb;/<newline>
 <tt>DetailFile=/var/log/gk/cdr.log</tt><newline>
 <tt>Rotate=monthly</tt><newline>
@@ -325,14 +320,14 @@ StandardCDRFormat等效于以下定义：
 </descrip>
 
 <descrip>
-<tag/示例 6 - 每10000个CDR翻转一次:/
+<tag/示例 6 - 每10000个CDR轮循一次:/
 <tt/&lsqb;FileAcct&rsqb;/<newline>
 <tt>DetailFile=/var/log/gk/cdr.log</tt><newline>
 <tt>Rotate=L10000</tt><newline>
 </descrip>
 
 <descrip>
-<tag/示例 7 - 每10 KB翻转一次:/
+<tag/示例 7 - 每10 KB轮循一次:/
 <tt/&lsqb;FileAcct&rsqb;/<newline>
 <tt>DetailFile=/var/log/gk/cdr.log</tt><newline>
 <tt>Rotate=S10k</tt><newline>
@@ -348,7 +343,7 @@ StandardCDRFormat等效于以下定义：
 <item><tt/Servers=SERVER1[:AUTH_PORT:ACCT_PORT[:SECRET]];SERVER2[:AUTH_PORT:ACCT_PORT[:SECRET]];.../<newline>
 默认：<tt>N/A</tt><newline>
 <p>
-要将计费数据发送到的RADIUS服务器。若未提供端口信息，则使用端口号<tt/DefaultAcctPort/。若未设置密码，<tt/SharedSecret/则使用默认的共享密码自。
+要将计费数据发送到的RADIUS服务器。若未提供端口信息，则使用端口号<tt/DefaultAcctPort/。若未设置密码，<tt/SharedSecret/则使用默认的共享密码。
 服务器名称可通过IP地址或DNS名称指定。IPv6地址必须始终写在方括号中。
 
 <descrip>
@@ -369,7 +364,7 @@ StandardCDRFormat等效于以下定义：
 <item><tt/LocalInterface=IP_OR_FQDN/<newline>
 默认：<tt>N/A</tt><newline>
 <p>
-<htmlurl url="https://www.gnugk.org/" name="GnuGk">应该用来与RADIUS服务器通信的特定本地网络接口 。
+<htmlurl url="https://www.gnugk.org/" name="GnuGk">应该用来与RADIUS服务器通信的特定本地网络接口。
 
 <item><tt/RadiusPortRange=10000-11000/<newline>
 默认：<tt>N/A</tt><newline>
@@ -379,7 +374,7 @@ StandardCDRFormat等效于以下定义：
 <item><tt/DefaultAcctPort=PORT_NO/<newline>
 默认：<tt>1813</tt><newline>
 <p>
-用于RADIUS记帐请求的默认端口号。可被<tt/Servers/属性覆盖。
+用于RADIUS记录请求的默认端口号。可被<tt/Servers/属性覆盖。
 
 <item><tt/SharedSecret=SECRET/<newline>
 默认：<tt>N/A (empty string)</tt><newline>
@@ -446,12 +441,12 @@ RADIUS属性中发送的时间戳字符串的格式。若未指定此设置，�
 
 <sect2>&lsqb;RadAcct&rsqb; Accounting-Request RADIUS Attributes
 <p>
-对于计费请求，计费请求包中包含以下RADIUS属性。每个属性后都有一个记帐事件类型列表。
+对于计费请求，计费请求包中包含以下RADIUS属性。每个属性后都有一个事件记录类型列表。
 <p>
 <itemize>
 <item><tt>Acct-Status-Type (start,update,stop,on,off)</tt><newline>
 <p>
-		记帐事件类型（开始，临时更新，停止，记帐开启，记帐关闭）
+		记录事件类型（开始，临时更新，停止，记录开启，记录关闭）
 		
 <item><tt>NAS-IP-Address (start,update,stop,on,off)</tt><newline>
 <p>
@@ -620,7 +615,7 @@ INSERT INTO call (gkname, sessid, username, calling, called)
 <item><tt/UpdateQuery=UPDATE .../<newline>
 默认：<tt>N/A</tt><newline>
 <p>
-定义用于使用当前呼叫状态更新数据库中的呼叫记录的SQL查询。它用于连接和更新记帐事件。语法和参数与相同<tt/StartQuery/。
+定义用于使用当前呼叫状态更新数据库中的呼叫记录的SQL查询。它用于连接和更新记录事件。语法和参数与相同<tt/StartQuery/。
 <p>
 示例查询字符串：
 <tscreen><verb>
@@ -781,7 +776,7 @@ TimestampFormat=MySQL
 <sect1>Section &lsqb;StatusAcct&rsqb;
 <label id="statusacct">
 <p>
-该计费模块将所有计费信息发送到状态端口，该端口可用于实时连接外部系统。
+该计费模块将所有计费信息发送到控制端口，该端口可用于实时连接外部系统。
 
 可使用<ref id="cdrparameters" name="公共CDR参数">来定义要包括在事件字符串中的内容。
 
@@ -794,7 +789,7 @@ TimestampFormat=MySQL
 <item><tt/StopEvent=CALL|Stop|%{CallId}/<newline>
 默认：<tt>CALL|Stop|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
 <p>
-定义呼叫结束(disconnected)时的事件。语法和参数与相同<tt/StartEvent/。此事件等效于旧状态端口CDR事件，但更灵活。
+定义呼叫结束(disconnected)时的事件。语法和参数与相同<tt/StartEvent/。此事件等效于旧控制端口CDR事件，但更灵活。
 
 <item><tt/UpdateEvent=CALL|Update|%{CallId}/<newline>
 默认：<tt>CALL|Update|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
@@ -865,7 +860,7 @@ TimestampFormat=MySQL
 <item><tt/StopEvent=CALL|Stop|%{CallId}/<newline>
 默认：<tt>CALL|Stop|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
 <p>
-定义呼叫结束(disconnected)时的事件。语法和参数与相同<tt/StartEvent/。此事件等效于旧状态端口CDR事件，但更灵活。
+定义呼叫结束(disconnected)时的事件。语法和参数与相同<tt/StartEvent/。此事件等效于旧控制端口CDR事件，但更灵活。
 
 <item><tt/UpdateEvent=CALL|Update|%{CallId}/<newline>
 默认：<tt>CALL|Update|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
@@ -1276,7 +1271,7 @@ OFF事件的文本。可使用标准帐户参数。
 <sect1>Section &lsqb;RequireOneNet&rsqb;
 <label id="requireonenet">
 <p>
-尽管从技术上讲这是一个记帐模块，但其逻辑目的是对呼叫进行身份验证，并确保cal的至少一端在自己的网络中。
+尽管从技术上讲这是一个记事模块，但其逻辑目的是对呼叫进行身份验证，并确保cal的至少一端在自己的网络中。
 这样做的目的是为了保护穿透网守免受滥用，因为这些滥用本来就需要每个想打入你的网络的人都可以访问，但不应允许它支持外部到外部的呼叫。
 
 <itemize>

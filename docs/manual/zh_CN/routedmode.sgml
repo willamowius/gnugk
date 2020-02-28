@@ -130,7 +130,7 @@ GnuGk直接支持NAT出站呼叫（从NAT后的端点到公共网络），而无
 默认：<tt/0/<newline>
 <p>
 与AcceptUnregisteredCalls和SupportNATedEndpoints结合使用，自动将所有无法确定为NAT的未注册呼叫视为NAT。
-并非所有端点都在设置消息中发送sourceSignalAddress，可用于确定呼叫者是否为NAT。这为没有此功能的设备增加了支持。
+并非所有端点都在Setup消息中发送sourceSignalAddress，可用于确定呼叫者是否为NAT。这为没有此功能的设备增加了支持。
 
 <item><tt/ScreenDisplayIE=MyID/<newline>
 默认：<tt>N/A</tt><newline>
@@ -190,12 +190,12 @@ GK将会直接将Setup信令转送给被转接的端点，而并非信令回传�
 若设置，GnuGk会将具有因<bf/callForwarded/ 或 <bf/routeCallToMC/收到的Q.931 Facility转换为基于GK的呼叫重新路由。
 这将启用几乎所有端点的已建立会话的呼叫转移，即使那些不了解如何自行处理呼叫转移的端点也一样。
 
-应该禁用H.245隧道以进行重新路由 ([RoutedMode] DisableH245Tunneling=1) 以及媒体加密 (RemoveH235Call=1) 。
+应该禁用H.245隧道以进行重新路由 ([RoutedMode] DisableH245Tunneling=1) 以及媒体加密 (RemoveH235Call=1)。
 
 <item><tt/ShowForwarderNumber=0/<newline>
 默认：<tt/0/<newline>
 <p>
-是否将主叫方号码改写为转发方号码。通常用于计费目的。仅在时有效 <tt/ForwardOnFacility=1/ 。
+是否将主叫方号码改写为转发方号码。通常用于计费目的。仅在时有效 <tt/ForwardOnFacility=1/。
 
 <item><tt/Q931PortRange=20000-20999/<newline>
 默认：<tt>N/A (let the OS allocate ports)</tt><newline>
@@ -203,7 +203,7 @@ GK将会直接将Setup信令转送给被转接的端点，而并非信令回传�
 指定Q.931信令的TCP端口号范围。请注意，范围大小可能会限制同时通话数量。确保此范围足够大，
 可以在关闭后重新使用套接字之前考虑TIME_WAIT TCP套接字超时。TIME_WAIT可能从15秒到几分钟不等，
 具体取决于操作系统。因此，若范围是2000-2001，并且您进行了两次呼叫，则可以在TIME_WAIT超时时间结束后再进行下两个呼叫，
-并且可以重用套接字。相同应用<tt/H245PortRange/ and <tt/T120PortRange/ 。通常可以在大多数操作系统上谨慎TIME_WAIT。
+并且可以重用套接字。相同应用<tt/H245PortRange/ and <tt/T120PortRange/。通常可以在大多数操作系统上谨慎TIME_WAIT。
 
 <item><tt/H245PortRange=30000-30999/<newline>
 默认：<tt>N/A (let the OS allocate ports)</tt><newline>
@@ -744,7 +744,7 @@ H.245 CloseLogicalChannel应请求仅引用端点自己的逻辑信道。
 <item><tt>ExplicitRoutes=10.2.1.5/16,10.6.1.3/16,11.0.0.0/8-20.1.1.1</tt><newline>
 默认：<tt>n/a</tt><newline>
 <p>
-将明确的路由规则添加到GnuGk的内部路由表中。有2种规则格式：<tt>sourceIP/mask</tt> 或 <tt>network/mask-sourceIP</tt> 。
+将明确的路由规则添加到GnuGk的内部路由表中。有2种规则格式：<tt>sourceIP/mask</tt> 或 <tt>network/mask-sourceIP</tt>。
 以上示例将使用 10.2.1.5 作为发向 10.2.0.0/16 网络的所有消息的发送方IP，并使用10.6.1.3作为发向10.6.0.0/16网络的消息的发送方IP。
 发送到 11.0.0.0/8 网络的消息将获得 20.1.1.1 作为发件人IP。所有发送者IP都应包括在归属IP列表中。
 

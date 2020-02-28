@@ -1,13 +1,13 @@
 <sect>监视GK
 <label id="monitor">
 <p>
-<sect1>状态端口
+<sect1>控制端口
 <p>
-状态端口是用于监视和控制网守的外部接口。网守将向所有连接的客户端发送有关正在进行的呼叫的消息，并且它可以通过此接口接收命令。
+控制端口是用于监视和控制网守的外部接口。网守将向所有连接的客户端发送有关正在进行的呼叫的消息，并且它可以通过此接口接收命令。
 <p>
-对状态端口的访问受<ref id="gkstatusauth" name="GkStatus::Auth">中的规则限制 。出于安全原因，默认情况是在配置<ref id="gkstatusauth" name="GkStatus::Auth">之前不允许任何访问 。
+对控制端口的访问受<ref id="gkstatusauth" name="GkStatus::Auth">中的规则限制。出于安全原因，默认情况是在配置<ref id="gkstatusauth" name="GkStatus::Auth">之前不允许任何访问。
 <p>
-网守发送到状态端口的消息分为三个输出跟踪级别：（这些跟踪级别仅适用于状态端口上显示的消息。不要将它们与GnuGk跟踪文件的跟踪级别混淆。）
+网守发送到控制端口的消息分为三个输出跟踪级别：（这些跟踪级别仅适用于控制端口上显示的消息。不要将它们与GnuGk跟踪文件的跟踪级别混淆。）
 <itemize>
 <item>Level 0
 	<quote>
@@ -22,7 +22,7 @@
 	输出所有内容（重新加载通知，对输入命令的直接答复，CDR，路由请求，RAS等）。这是<bf/default/的输出级别。
 	</quote>
 </itemize>
-连接到状态端口的客户端可以选择其感兴趣的输出级别。
+连接到控制端口的客户端可以选择其感兴趣的输出级别。
 <p>
 该接口是一个简单的TCP端口（默认值：7000），可使用telnet或其他客户端连接到该端口。另一种客户端的示例是Java GUI，也称为GkGUI。另一个示例是自动呼叫分配应用程序，也称为GnuGk ACD。
 
@@ -50,7 +50,7 @@
 </quote>
 </itemize>
 <p>
-<sect2>Examples
+<sect2>示例
 <p>
 假设您只是对CDR（呼叫详细记录）感兴趣，并想定期对其进行批处理。
 
@@ -95,7 +95,7 @@ if ($gk_pid = fork()) {
 }
 </verb>
 <p>
-记住，这只是显示状态端口用法的一个示例。可使用FileAcct模块在生产系统中记录CDR。
+记住，这只是显示控制端口用法的一个示例。可使用FileAcct模块在生产系统中记录CDR。
 
 <sect2>Java GUI for the Gatekeeper
 <p>
@@ -110,7 +110,7 @@ if ($gk_pid = fork()) {
 
 <sect1>Commands (Reference)
 <p>
-本节列出了可以发布到状态端口的所有命令（手动或使用外部应用程序）。命令不区分大小写，但参数可能不区分大小写。
+本节列出了可以发布到控制端口的所有命令（手动或使用外部应用程序）。命令不区分大小写，但参数可能不区分大小写。
 <p>
 输入<tt/help/或<tt/h/将显示所有可用命令的列表。
 <p>
@@ -122,7 +122,7 @@ if ($gk_pid = fork()) {
 
 可添加可选参数以仅重新加载配置的一部分：
 <itemize>
-<item>AcctConfig - 仅重新加载记帐配置
+<item>AcctConfig - 仅重新加载记录配置
 <item>AuthConfig - 仅重新加载身份验证配置
 <item>CapConfig - 仅重新加载CapacityControl规则
 <item>EpConfig - 仅重新加载端点配置（固定端点，端点部分，呼叫列表设置）
@@ -591,10 +591,10 @@ Setlog /tmp/trace.log
 
 <item><tt/Who/<newline>
 <p>
-在状态端口上显示所有人员。第一个字段是会话ID，可用于通过DisconnectSession命令断开用户连接。
+在控制端口上显示所有人员。第一个字段是会话ID，可用于通过DisconnectSession命令断开用户连接。
 
 <item><tt/DisconnectSession/<newline>
-<p>断开用户与状态端口的连接。
+<p>断开用户与控制端口的连接。
 <descrip>
 <tag/格式：/
 <tscreen><verb>
@@ -630,7 +630,7 @@ CallID参数是可选的；如果给定，则其格式必须与RouteRequest发�
 <tscreen><verb>
 RouteReject CallingEndpointID CallRef [CallID [reason]]
 </verb></tscreen>
-<tag/Examples:/
+<tag/示例:/
 <tscreen><verb>
 RouteReject endp_4711 1234
 RouteReject - - 40-06-dd-98-22-37-52-40-8c-b0-92-0e-18-60-99-07 2
@@ -693,7 +693,7 @@ BindAndRouteToGateway 192.168.0.2 Suzi 192.168.0.50 endp_4711 1234
 <item><tt/SendProceeding/<newline>
 <p>
 发送CallProceeding消息给呼叫者。唯一有意义的时间是在针对未注册呼叫的RouteRequest事件之后。
-否则，状态端口应用程序将不知道是否已发送Setup消息，但尚未建立呼叫。
+否则，控制端口应用程序将不知道是否已发送Setup消息，但尚未建立呼叫。
 <descrip>
 <tag/格式：/
 <tscreen><verb>
@@ -706,7 +706,7 @@ SendProceeding 40-06-dd-98-22-37-52-40-8c-b0-92-0e-18-60-99-07
 </descrip>
 
 <item><tt/Exit/, <tt/Quit/, <tt/q/, <tt/Ctrl-D/<newline>
-<p>退出状态端口。
+<p>退出控制端口。
 
 <item><tt/TransferCall/<newline>
 <p>
@@ -761,7 +761,7 @@ MakeCall joe 192.168.6.1 H.450.2
 </verb></tscreen>
 </descrip>
 
-可选的传输方法参数可用于覆盖此单个MakeCall的<ref id="ctimakecall" name="[CTI::MakeCall]">中的全局TransferMethod开关 。
+可选的传输方法参数可用于覆盖此单个MakeCall的<ref id="ctimakecall" name="[CTI::MakeCall]">中的全局TransferMethod开关。
 
 传输方法的有效值为：
 <itemize>
@@ -775,7 +775,7 @@ MakeCall joe 192.168.6.1 H.450.2
 
 <item><tt/GetAuthInfo,gai/<newline>
 <p>
-收集来自特定身份验证模块的信息（如果它提供了此类信息），并将其显示在状态端口上。
+收集来自特定身份验证模块的信息（如果它提供了此类信息），并将其显示在控制端口上。
 <descrip>
 <tag/格式：/
 <tscreen><verb>
@@ -788,7 +788,7 @@ GetAuthInfo RadAliasAuth
 </descrip>
 
 <item><tt/GetAcctInfo,gci/<newline>
-<p>收集来自特定计费模块的信息（如果它提供了此类信息），并将其显示在状态端口上。
+<p>收集来自特定计费模块的信息（如果它提供了此类信息），并将其显示在控制端口上。
 <descrip>
 <tag/格式：/
 <tscreen><verb>
@@ -821,7 +821,7 @@ Number of Endpoints: 2
 
 <item><tt/PrintEventBacklog/<newline>
 <p>
-在事件积压中打印保存的状态端口事件。要配置事件积压，请参见<ref id="statuseventbacklog" name="[Gatekeeper::Main] StatusEventBacklog">。
+在事件积压中打印保存的控制端口事件。要配置事件积压，请参见<ref id="statuseventbacklog" name="[Gatekeeper::Main] StatusEventBacklog">。
 
 <item><tt/PrintNeighbors/<newline>
 <p>
@@ -947,7 +947,7 @@ MaintenanceMode 1.2.3.4
 
 <sect1>Status Port Filtering
 <label id="statusportfiltering">
-<p>状态端口过滤有助于控制显示给最终用户的输出消息的数量和类型。过滤是使用正则表达式完成的，这些正则表达式用于确定是包含（显示）还是排除（忽略）输出消息。使用以下命令集执行过滤控制：
+<p>控制端口过滤有助于控制显示给最终用户的输出消息的数量和类型。过滤是使用正则表达式完成的，这些正则表达式用于确定是包含（显示）还是排除（忽略）输出消息。使用以下命令集执行过滤控制：
 
 <itemize>
 <item><tt/addincludefilter REGEX/<newline>
@@ -973,7 +973,7 @@ MaintenanceMode 1.2.3.4
 
 </itemize>
 <p>
-为了启用预定义的过滤器，引入了一个名为<ref id="gkstatusfilteringsect" name="[GkStatus::Filtering]">的新部分 。可指定在状态端口启动时要加载的预定义过滤器。
+为了启用预定义的过滤器，引入了一个名为<ref id="gkstatusfilteringsect" name="[GkStatus::Filtering]">的新部分。可指定在控制端口启动时要加载的预定义过滤器。
 <p>
 <descrip>
 <tag/例：/
@@ -985,7 +985,7 @@ Enable=1
 </verb></tscreen>
 </descrip>
 <p>
-使用<tt/filter 1/命令启用过滤后，除带有ARQ，LRQ等的行外，将显示所有消息。也可在状态端口中键入以下内容：
+使用<tt/filter 1/命令启用过滤后，除带有ARQ，LRQ等的行外，将显示所有消息。也可在控制端口中键入以下内容：
 <tscreen><verb>
 addincludefilter .+
 addexcludefilter .RQ
@@ -1016,7 +1016,7 @@ NewRCFOnly=1
 <sect1>Status Port Message Format
 <label id="statusportmessage">
 <p>
-状态端口事件消息的格式可以更改为重新排序，或包括标准输出格式中未包含的选项。注意：本节对状态端口命令的响应格式不起作用，例如。PrintAllRegistrations详细。
+控制端口事件消息的格式可以更改为重新排序，或包括标准输出格式中未包含的选项。注意：本节对控制端口命令的响应格式不起作用，例如。PrintAllRegistrations详细。
 
 在网守运行时，可以通过重新加载配置来更新此部分中的设置。
 <p>

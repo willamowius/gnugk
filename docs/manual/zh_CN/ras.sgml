@@ -56,7 +56,7 @@
 
 <sect1>Section &lsqb;RasSrv::PermanentEndpoints&rsqb;
 <p>
-在本节中，可配置不支持RAS或不想过期的端点。他们的记录将始终保留在GK的注册列表中。但仍然可以通过状态端口取消注册。特殊字符<tt/./ and <tt/!/ 可以在此处与前缀一起使用，以匹配任何数字并禁用前缀。
+在本节中，可配置不支持RAS或不想过期的端点。他们的记录将始终保留在GK的注册列表中。但仍然可以通过控制端口取消注册。特殊字符<tt/./ and <tt/!/ 可以在此处与前缀一起使用，以匹配任何数字并禁用前缀。
 可使用:= 语法以与 <ref id="gwprefixes" name="[RasSrv::GWPrefixes]"> 部分相同的方式设置前缀优先级。
 
 确保为所有网关至少添加一个前缀，即使在其他位置（例如[EP::...]部分中分配了前缀）也是如此，否则端点将不被视为网关，并且这些设置也不会被视为网关申请！
@@ -81,7 +81,7 @@
 <item><tt/AcceptEndpointIdentifier=1/<newline>
 默认：<tt/1/<newline>
 <p>
-是否接受完整RRQ中指定的<bf/endpointIdentifier/ 。
+是否接受完整RRQ中指定的<bf/endpointIdentifier/。
 
 <item><tt/AcceptGatewayPrefixes=1/<newline>
 默认：<tt/1/<newline>
@@ -252,7 +252,7 @@ SELECT assignedalias FROM users WHERE alias = '%u' AND active
 然后，建议GCF中的端点向该网守注册。一个特定的前缀可能有多个网守。第一个被分配为主数据库，其他则为备用数据库。(需要H.323v6)
 
 <descrip>
-<tag/Examples:/
+<tag/示例:/
 <verb>
 [RasSrv::AssignedGatekeeper]
 ;;对于别名以01234开头的端点
@@ -270,7 +270,7 @@ SELECT assignedalias FROM users WHERE alias = '%u' AND active
 <sect1>Section &lsqb;AssignedGatekeepers::SQL&rsqb;
 <p>
 本部分允许<htmlurl url="https://www.gnugk.org/" name="GnuGk">从数据库读取分配的网守。
-可使用 <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">中定义的相同数据库参数 。
+可使用 <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">中定义的相同数据库参数。
 
 <itemize>
 <item><tt/Query=SELECT .../<newline>

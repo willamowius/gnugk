@@ -2,7 +2,7 @@
 <label id="config">
 <p>
 在 <htmlurl url="https://www.gnugk.org/" name="GnuGk">
-的配置文件是一个标准的文本文件。基本格式为：
+的配置文件是一个标准的文本文件。其格式为：
 
 <tscreen><verb>
 [节点]
@@ -12,15 +12,15 @@
 注释需在行的开头用 (<tt/#/) 或 (<tt/;/)
 
 <tt/complete.ini/ 该文件包含GnuGk的所有可用部分。
-在大多数情况下，一次全部使用它们是没有意义的。该文件只是作为许多设置示例的集合。
+在大部分情况下，一次全部使用它们是没有意义的。该文件作为所有配置项的示例集合。
 
-可以在运行时更改配置文件。修改配置文件后，您可以通过 <tt/reload/ 状态端口发出命令, 或将 <tt/HUP/ 信号发送给网守进程：
+可以在运行时更改配置文件。修改配置文件后，您可以通过 <tt/reload/ 控制端口发出命令, 或将 <tt/HUP/ 信号发送给网守进程：
 <tscreen><verb>
 kill -HUP `cat /var/run/gnugk.pid`
 </verb></tscreen>
 
 
-<sect1>数据库配置
+<sect1>配置数据库
 <label id="database">
 <p>
 所有使用数据库的GnuGk模块（例如 <ref id="sqlauth" name="[SQLAuth]">,
@@ -166,7 +166,7 @@ GK将侦听此IP地址上的请求。若未设置，则GK将侦听主机的所�
 若在NAT后使用GnuGk，则应使用ExternalIP设置（如下所述），该设置将自动配置GnuGk使其像在NAT上一样工作。
 ExternalIP设置将优先，并将覆盖此值。
 
-<bf/注意：/ 若更改此设置，则必须重新启动网守。从状态端口重新加载不会导致该值被重新读取。
+<bf/注意：/ 若更改此设置，则必须重新启动网守。从控制端口重新加载不会导致该值被重新读取。
 
 <item><tt/Bind=192.168.1.1/<newline>
 默认：<tt>N/A</tt><newline>
@@ -293,10 +293,10 @@ AlternateGKs配置选项指定主GK的RCF中包含的字段。该字符串的第
 <item><tt/StatusPort=7000/<newline>
 默认：<tt/7000/<newline>
 <p>
-状态端口，用于监视GK。设置为0可关闭端口。
+控制端口，用于监视GK。设置为0可关闭端口。
 有关详细信息，请参见 <ref id="monitor" name="this section">。
 
-GnuGK将监听呼叫信令的所有IP上的状态端口。您应该防火墙中保护那些端口，并在 <ref id="gkstatusauth" name="[GkStatus::Auth]"> 部分中为无法在防火墙中完全关闭的端口设置访问控制规则。
+GnuGK将监听呼叫信令的所有IP上的控制端口。您应该防火墙中保护那些端口，并在 <ref id="gkstatusauth" name="[GkStatus::Auth]"> 部分中为无法在防火墙中完全关闭的端口设置访问控制规则。
 
 
 <item><tt/StatusTraceLevel=2/<newline>
@@ -307,12 +307,12 @@ GnuGK将监听呼叫信令的所有IP上的状态端口。您应该防火墙中�
 <item><tt/MaxStatusClients=5/<newline>
 默认：<tt/20/<newline>
 <p>
-指定状态端口上的最大并发连接数。要禁用与状态端口的任何连接，此开关设置为0。
+指定控制端口上的最大并发连接数。要禁用与控制端口的任何连接，此开关设置为0。
 
 <item><tt/SshStatusPort=1/<newline>
 默认：<tt/0/<newline>
 <p>
-对状态端口使用SSH协议。可以在 <ref id="gkstatusauth" name="[GkStatus::Auth]"> 部分中设置用户密码。
+对控制端口使用SSH协议。可以在 <ref id="gkstatusauth" name="[GkStatus::Auth]"> 部分中设置用户密码。
 
 连接命令示例：
 <tscreen><verb>
@@ -323,12 +323,12 @@ ssh -p 7000 gnugk@1.2.3.4
 <item><tt/StatusEventBacklog=20/<newline>
 默认：<tt/0/<newline>
 <p>
-设置要保存的状态端口条目数量，以便以后在环形缓冲区中显示。
+设置要保存的控制端口条目数量，以便以后在环形缓冲区中显示。
 
 <item><tt/StatusEventBacklogRegex=^[RA]RJ/<newline>
 默认：<tt/./<newline>
 <p>
-定义正则表达式以限制哪些状态端口事件保存在日志中。默认情况下，所有事件均被保存。
+定义正则表达式以限制哪些控制端口事件保存在日志中。默认情况下，所有事件均被保存。
 
 <item><tt/TimestampFormat=ISO8601/<newline>
 默认：<tt/Cisco/<newline>
@@ -381,7 +381,7 @@ ssh -p 7000 gnugk@1.2.3.4
 
 </itemize>
 
-大多数情况下不需要改以下数值。主要是用于测试或非常复杂的应用程序。
+大部分情况下不需要改以下数值。主要是用于测试或非常复杂的应用程序。
 
 <itemize>
 <item><tt/UseBroadcastListener=0/<newline>
@@ -423,12 +423,12 @@ RAS通道的IPv4组播组。
 <item><tt/StatusSendBufferSize=16384/<newline>
 默认：<tt/16384/<newline>
 <p>
-设置状态端口连接的TCP发送缓冲区大小。
+设置控制端口连接的TCP发送缓冲区大小。
 
 <item><tt/StatusReceiveBufferSize=16384/<newline>
 默认：<tt/16384/<newline>
 <p>
-设置状态端口连接的TCP接收缓冲区大小。
+设置控制端口连接的TCP接收缓冲区大小。
 
 <item><tt/ExternalIP=myip.no-ip.com/<newline>
 默认：<tt>N/A</tt><newline>
@@ -500,9 +500,9 @@ TTL超时取消注册时是否结束端点呼叫，默认情况下，取消注�
 <sect1>Section &lsqb;GkStatus::Auth&rsqb;
 <label id="gkstatusauth">
 <p>
-定义许多状态端口的连接规则。访问状态端口可以完全控制GK，确保正确设置。GnuGk侦听的所有IP上的状态端口均处于活动状态。
-您应该在设置允许的范围内，阻止外部穿透防火墙访问状态端口。
-若依赖密码规则来保护状态端口，则应添加其他基于IP的规则（“显式”或“正则表达式”）以限制允许登录的IP范围。
+定义许多控制端口的连接规则。访问控制端口可以完全控制GK，确保正确设置。GnuGk侦听的所有IP上的控制端口均处于活动状态。
+您应该在设置允许的范围内，阻止外部穿透防火墙访问控制端口。
+若依赖密码规则来保护控制端口，则应添加其他基于IP的规则（“显式”或“正则表达式”）以限制允许登录的IP范围。
 <itemize>
 <item><tt/rule=allow/<newline>
 默认：<tt/forbid/<newline>
@@ -517,13 +517,13 @@ where <tt/ip/ is the IP address of the client,
 If <tt/ip/ is not listed the parameter <tt/default/ is used.
 <item><tt/regex/ - the IP of the client is matched against the given regular expression.
 <p><descrip>
-<tag/Example:/
+<tag/示例:/
 To allow client from 195.71.129.0/24 and 195.71.131.0/24:
 <quote><tt>regex=^195\.71\.(129|131)\.[0-9]+$</tt></quote>
 </descrip>
 <item><tt/password/ - 用户必须提供适当的用户名和密码才能登录。用户名/密码的格式与 <ref id="password" name="[SimplePasswordAuth]"> 部分相同。从GnuGk 4.0开始，只能在配置中存储密码的PBKDF2哈希，这样更安全。
 <p><descrip>
-<tag/Example:/
+<tag/示例:/
 <quote><tt>jan=PBKDF2:460461f264108e03-2fd2cef514844d45ce7180399cd87025153071fa926a0972a3d7e8c558418525</tt></quote>
 </descrip>
 
@@ -538,7 +538,7 @@ To allow client from 195.71.129.0/24 and 195.71.131.0/24:
 客户端的IP必须匹配 <tt/regex/ 规则， <bf/and/ 以及用户通过用户名和密码必须登录。
 </itemize>
 
-对状态端口使用SSH协议，也就是所有用户都通过密码进行了身份验证，但是您可以加入其他IP规则，例如。“正则表达式和密码”。
+对控制端口使用SSH协议，也就是所有用户都通过密码进行了身份验证，但是您可以加入其他IP规则，例如。“正则表达式和密码”。
 
 <item><tt/default=allow/<newline>
 默认：<tt/forbid/<newline>
@@ -572,12 +572,12 @@ ssh-keygen -t rsa -b 2048 -f ssh_host_rsa_key
 <item><tt/Shutdown=forbid/<newline>
 默认：<tt/allow/<newline>
 <p>
-允许通过状态端口关闭GK。
+允许通过控制端口关闭GK。
 
 <item><tt/DelayReject=5/<newline>
 默认：<tt/0/<newline>
 <p>
-拒绝无效的用户名/密码之前要等待的时间（秒）。有助于在暴力攻击时加入延迟。
+拒绝无效的用户名/密码在下次登陆之前而要等待的时间（秒）。可防止暴力攻击时加入延迟。
 
 <item><tt/WorkerThreadIdleTimeout=7200/<newline>
 默认：<tt/3600/<newline>
@@ -591,7 +591,7 @@ ssh-keygen -t rsa -b 2048 -f ssh_host_rsa_key
 <sect1>Section &lsqb;GkStatus::Filtering&rsqb;
 <label id="gkstatusfilteringsect">
 <p>
-请参阅 <ref id="statusportfiltering" name="状态端口过滤">.
+请参阅 <ref id="statusportfiltering" name="控制端口过滤">.
 
 <sect1>Section &lsqb;LogFile&rsqb;
 <label id="logfile">

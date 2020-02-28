@@ -249,7 +249,7 @@ S特殊的通配符 (<tt/'.'/ and <tt/'%'/) 可用。
 要将拨号呼叫转换为后拨号号码，并在呼叫作为UserInputIndications连接后发送到远端，请在前缀端使用 ‘I’（用于输入），
 在目标端使用 'P' （用于后拨）。请注意，通过网守的H.245路由必须处于活动状态才能发送后拨数字。
 <p>
-网关和终端之间的呼叫与它们的第一个别名匹配。与邻域之间的呼叫将通过GnuGk配置中的邻域ID（[Neighbor::XXX]部分名称中的XXX）或邻域的网守标识符（若已设置）进行匹配。
+网关和终端之间的呼叫与它们的第一个别名匹配。与邻域之间的呼叫将通过GnuGk配置中的邻域ID（[Neighbor::XXX]部分名称中的XXX）或邻域的网守标识符（若存在）进行匹配。
 
 请注意，若有多宿主邻域或正在接受非邻域LRQ时，无法始终确定呼叫源，并且邻域的IN规则都将不匹配。在这些情况下，仅应使用OUT和 [RasSrv::RewriteE164] 规则。
 
@@ -646,7 +646,7 @@ default=numberanalysis,internal
 <item><tt/%{client-auth-id}/ - -验证呼叫时（通过SQLAuth）提供给GnuGk的64位整数ID
 <item><tt/%{language}/ - 语言（若有）
 </itemize>
-若其中一些未包含在ARQ或Setup消息中，则可以为空。在大多数情况下，只应在SQL查询中使用被叫别名，因为它们仅适用于传入呼叫，并且在查找链接的转发规则时不会更改。
+若其中一些未包含在ARQ或Setup消息中，则可以为空。在大部分情况下，只应在SQL查询中使用被叫别名，因为它们仅适用于传入呼叫，并且在查找链接的转发规则时不会更改。
 <p>
 </itemize>
 
@@ -957,8 +957,7 @@ out:any=any pi=allow cli:.*=.
 <item>
 确定最接近的呼叫者的IP匹配（最接近意为具有最长的网络掩码-单个IP具有最高优先级，"any" 具有最低优先级），
 <item>
-    （出站规则）确定最接近的被叫方的IP匹配，
-(outbound rules) the closest callee's IP match is determined,
+（转出规则）确定最接近的被叫方的IP匹配，
 <item>
 按照以下顺序搜索最长的匹配前缀/编号以查找给定的IP/IP对：
 <enum>
@@ -1011,7 +1010,7 @@ in:192.168.1.1=any=2000
 <item><tt/%{called}/ - 被叫号码（入站查询中的拨号号码和出站查询中的重写号码）
 </itemize>
 
-在大多数情况下，您可能只会使用 %{cli} 参数。
+在大部分情况下，您可能只会使用 %{cli} 参数。
 
 
 <sect1>Section &lsqb;RewriteSourceAddress&rsqb;

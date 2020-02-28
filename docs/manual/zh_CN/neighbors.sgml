@@ -10,7 +10,7 @@
 
 该<tt/password/字段用于验证来自该邻域的LRQ。有关详细信息，请参见<ref id="gkauth" name="[Gatekeeper::Auth]">部分。
 
-是否接受来自邻域的呼叫还取决于<ref id="routed" name="[RoutedMode]"> 部分中的AcceptNeighborsCalls开关 。
+是否接受来自邻域的呼叫还取决于<ref id="routed" name="[RoutedMode]"> 部分中的AcceptNeighborsCalls开关。
 
 <descrip>
 <tt>GKID="GnuGk" | "CiscoGk" | "ClarentGk" | "GlonetGk"</tt>

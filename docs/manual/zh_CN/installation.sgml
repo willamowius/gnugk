@@ -85,7 +85,7 @@ Where:
 这些是手动安装的步骤：
 
 拷贝 <tt/gnugk.exe/ 到您指定的文件夹并创建一个配置文件
-解压目录里有配置文件在 <tt>etc/</tt> 。
+解压目录里有配置文件在 <tt>etc/</tt>。
 参阅 <ref id="config" name="配置文件">
 部分获取详细说明。
 
@@ -134,7 +134,7 @@ Microsoft Visual Studio版本打开并编译。若需要数据库支持，如(My
 
 <sect1>addpasswd程序
 <p>
-用于连接状态端口身份验证和许多其他身份验证模块（例如SimplePasswordAuth）要求将加密的密码存储在GnuGK配置文件中。
+用于连接控制端口身份验证和许多其他身份验证模块（例如SimplePasswordAuth）要求将加密的密码存储在GnuGK配置文件中。
 GnuGK还支持对配置中的所有密码进行加密。<tt/addpasswd/ 需要该程序来生成和存储这些加密的密码。
 该实用程序包含在GnuGK中，可以使用以下命令进行编译：
 <tscreen><verb>
@@ -147,7 +147,7 @@ $ make optnoshared
 $ addpasswd CONFIG SECTION KEYNAME PASSWORD
 </verb></tscreen>
 
-示例1：必须将具有'secret'密码的'gkadmin'用户添加到[GkStatus :: Auth]配置部分，以在连接状态端口上启用身份验证：
+示例1：必须将具有'secret'密码的'gkadmin'用户添加到[GkStatus :: Auth]配置部分，以在连接控制端口上启用身份验证：
 <tscreen><verb>
 $ addpasswd gatekeeper.ini GkStatus::Auth gkadmin secret
 </verb></tscreen>

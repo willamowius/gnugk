@@ -1,7 +1,7 @@
 <sect>端点配置
 <label id="epconfig">
 <p>
-除了标准配置文件选项外，还可以在<htmlurl url="https://www.gnugk.org/" name="GnuGk">配置文件中指定每个端点的配置设置 。
+除了标准配置文件选项外，还可以在<htmlurl url="https://www.gnugk.org/" name="GnuGk">配置文件中指定每个端点的配置设置。
 
 <sect1>Section &lsqb;EP::...&rsqb;
 <p>
@@ -139,7 +139,7 @@ Default: <tt/0/<newline>
 <item><tt/DisabledCodecs=h261VideoCapability/<newline>
 Default: <tt>n/a</tt><newline>
 <p>
-过滤此特定端点的编解码器。与[CallTable]部分中的全局开关类似 。
+过滤此特定端点的编解码器。与[CallTable]部分中的全局开关类似。
 
 </itemize>
 

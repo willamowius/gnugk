@@ -7,7 +7,7 @@
 <item><tt/GenerateNBCDR=0/<newline>
 默认：<tt/1/<newline>
 <p>
-为来自状态端口上相邻区域的呼叫生成CDR。主叫方的IP和端点ID被打印为空。
+为来自控制端口上相邻区域的呼叫生成CDR。主叫方的IP和端点ID被打印为空。
 通常用于调试目的。计费模块将始终获取所有呼叫的CDR数据。
 
 <item><tt/GenerateUCCDR=0/<newline>
@@ -23,14 +23,14 @@
 <item><tt/AcctUpdateInterval=60/<newline>
 默认：<tt/0/<newline>
 <p>
-一个时间间隔（秒），用于记录正在进行的每个呼叫的计费更新。记帐更新的详细信息取决于所选的记帐记录器模块（请参阅<ref id="gkacct" name="[Gatekeeper::Acct]">部分）。
+一个时间间隔（秒），用于记录正在进行的每个呼叫的计费更新。记录更新的详细信息取决于所选的记事模块（请参阅<ref id="gkacct" name="[Gatekeeper::Acct]">部分）。
 通常，计费更新将为后端服务提供增加的已连接呼叫持续时间。
-默认值"0"禁用记帐更新。请注意，将其设置为较短的时间间隔可能会降低网守的性能。
+默认值"0"禁用记录更新。请注意，将其设置为较短的时间间隔可能会降低网守的性能。
 
 <item><tt/TimestampFormat=Cisco/<newline>
 默认：<tt/RFC822/<newline>
 <p>
-CDR内打印的时间戳字符串的格式。可使用<ref id="gkmain" name="[Gatekeeper::Main]">部分中指定的相同格式列表 。
+CDR内打印的时间戳字符串的格式。可使用<ref id="gkmain" name="[Gatekeeper::Main]">部分中指定的相同格式列表。
 
 <item><tt/IRRFrequency=60/<newline>
 默认：<tt/120/<newline>
@@ -62,7 +62,7 @@ CDR内打印的时间戳字符串的格式。可使用<ref id="gkmain" name="[Ga
 <p>
 过滤掉某些编解码器。必须对呼叫进行H.245路由或代理，才能使编解码器过滤正常工作。还可以过滤掉整个功能集，
 例如。"nonStandard"的"receiveVideoCapability", "receiveAndTransmitDataApplicationCapability"。
-通过使用Radius属性'disable-codec'或<ref id="epconfig" name="[EP::...] section">部分中的每个端点，可以按呼叫覆盖此设置 。
+通过使用Radius属性'disable-codec'或<ref id="epconfig" name="[EP::...] section">部分中的每个端点，可以按呼叫覆盖此设置。
 
 </itemize>
 
@@ -245,7 +245,7 @@ Vendor=222,173,0
 <item><tt/UnregisterOnReload=1/<newline>
 默认：<tt/0/<newline>
 <p>
-定义子网守在从状态端口接收到“重载”命令后是否注销并向其父级重新注册。
+定义子网守在从控制端口接收到“重载”命令后是否注销并向其父级重新注册。
 
 <item><tt/NATRetryInterval=60/<newline>
 默认：<tt/60/<newline>
@@ -312,10 +312,10 @@ Vendor=222,173,0
 
 <sect1>Section &lsqb;CTI::Agents&rsqb;
 <p>
-本部分允许配置所谓的虚拟队列，以允许外部应用程序通过状态端口分配入站呼叫。
+本部分允许配置所谓的虚拟队列，以允许外部应用程序通过控制端口分配入站呼叫。
 虚拟队列具有H.323别名，可以像端点一样呼叫它，也可以回答一组别名。
 
-呼叫到达虚拟队列后，网守将在状态端口上发出RouteRequest信号，并等待外部应用程序通过RouteReject（这将导致呼叫被拒绝）
+呼叫到达虚拟队列后，网守将在控制端口上发出RouteRequest信号，并等待外部应用程序通过RouteReject（这将导致呼叫被拒绝）
 或通过RouteToAlias/RouteToGateway进行响应，该路由将导致目的地被重写，因此呼叫将被路由到外部应用程序指定的别名（例如，呼叫中心代理）。
 
 若超时后仍未收到应答，则通话将终止。
@@ -381,7 +381,7 @@ Vendor=222,173,0
 <sect1>Section &lsqb;CTI::MakeCall&rsqb;
 <label id="ctimakecall">
 <p>
-本节包含状态端口命令<ref id="makecall" name="MakeCall">的设置 
+本节包含控制端口命令<ref id="makecall" name="MakeCall">的设置 
 <itemize>
 <item>
 <tt/EndpointAlias=DialOut/<newline>
@@ -926,7 +926,7 @@ PTlib支持SNMP版本1和2 GET请求，并且将始终在版本2c消息中发送
 <item><tt/Passphrase=whatever/<newline>
 默认：<tt>n/a</tt><newline>
 <p>
-若已设置一个密码，则打开上述证书文件的密码。
+若已设置密码，则打开上述证书文件的密码。
 
 <item><tt/CipherList=ALL:!ADH:!LOW:!EXP:!MD5:!RC4:!SHA1:@STRENGTH/<newline>
 默认：<tt>ALL:!ADH:!LOW:!EXP:!MD5:!RC4:!SHA1:@STRENGTH</tt><newline>

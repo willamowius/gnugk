@@ -1,8 +1,8 @@
 <sect>简介
 <p>
 <!--
-This manual is also available in other languages.
-The English version is the master document and will get updated first.
+本手册也有其他语言版本。
+英文版是主文档，会首先更新。
 -->
 <sect1>关于
 <p>
@@ -47,7 +47,7 @@ GNU Gatekeeper包含H.460.18和H.460.19技术，该技术已获得Tandberg的专
 有关详细信息，请参见文件COPYING。
 关于自由软件的概念或思想，可参考软体自由基金会网站的说明。
 
-若你不想这样做，则必须通过TCP方式（状态端口）连接到GnuGk通信，这样你可以只将基本的功能加入GK中，而不用公开程序的其它部分代码。
+若你不想这样做，则必须通过TCP方式（控制端口）连接到GnuGk通信，可将基本的功能加入GK中，而不用公开程序的其它部分代码。
 
 <sect1>名称
 <p>
