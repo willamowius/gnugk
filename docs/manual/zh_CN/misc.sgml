@@ -1,6 +1,6 @@
 <sect>高级配置
 <p>
-<sect1>Section &lsqb;CallTable&rsqb;
+<sect1> &lsqb;CallTable&rsqb;
 <label id="calltable">
 <p>
 <itemize>
@@ -62,11 +62,11 @@ CDR内打印的时间戳字符串的格式。可使用<ref id="gkmain" name="[Ga
 <p>
 过滤掉某些编解码器。必须对呼叫进行H.245路由或代理，才能使编解码器过滤正常工作。还可以过滤掉整个功能集，
 例如。"nonStandard"的"receiveVideoCapability", "receiveAndTransmitDataApplicationCapability"。
-通过使用Radius属性'disable-codec'或<ref id="epconfig" name="[EP::...] section">部分中的每个端点，可以按呼叫覆盖此设置。
+通过使用Radius属性'disable-codec'或<ref id="epconfig" name="[EP::...] ">部分中的每个端点，可以按呼叫覆盖此设置。
 
 </itemize>
 
-<sect1>Section &lsqb;H225toQ931&rsqb;
+<sect1> &lsqb;H225toQ931&rsqb;
 <label id="h225toq931">
 <p>
 在H.225原因和Q.931原因代码之间进行转换时，GnuGk使用转换表。使用此部分，可更改此映射。
@@ -95,7 +95,7 @@ CDR内打印的时间戳字符串的格式。可使用<ref id="gkmain" name="[Ga
 ;20=31 # neededFeatureNotSupported<newline>
 ;21=127 # tunnelledSignallingRejected<newline></tt></quote>
 
-<sect1>Section &lsqb;GkQoSMonitor&rsqb;
+<sect1> &lsqb;GkQoSMonitor&rsqb;
 <label id="gkqosmonitor">
 <p>
 使用H.460.9收集来自端点的服务质量信息。端点必须支持H.460.9，此服务才能正常运行。
@@ -117,7 +117,7 @@ CDR内打印的时间戳字符串的格式。可使用<ref id="gkmain" name="[Ga
 定义QoS日志的输出文件。若未定义文件，则在跟踪级别4的跟踪文件中将QoS信息作为一项输出。
 </itemize>
 
-<sect1>Section &lsqb;GkQoSMonitor::SQL&rsqb;
+<sect1> &lsqb;GkQoSMonitor::SQL&rsqb;
 <p>
 本部分允许将QoS信息存储在数据库中，可以使用<ref id="sqlpasswordauth" name="[SQLPasswordAuth]">中定义的相同数据库参数。
 
@@ -153,7 +153,7 @@ INSERT INTO qos SET caller_ip="%{caller-ip}", bandwidth="%{bandwidth}, timestamp
 
 </itemize>
 
-<sect1>Section &lsqb;Endpoint&rsqb;
+<sect1> &lsqb;Endpoint&rsqb;
 <label id="endpoint">
 <p>
 通过向其他网守注册，网守可以充当端点，从而允许您构建网守层次结构。本节定义了网守的端点功能。
@@ -224,7 +224,7 @@ Vendor=222,173,0
 <item><tt/Authenticators=H.235.1,CAT/<newline>
 默认：<tt>H.235.1,MD5,CAT</tt><newline>
 <p>
-选择要发送给GRQ中的父网守的身份验证器。默认选项为：H.235.1（HMAC SHA1 /旧的H235AnnexD），MD5（摘要式身份验证）和CAT（Cisco访问令牌，即RADIUS）。
+选择要发送给GRQ中的父网守的身份验证器。默认选项为：H.235.1（HMAC SHA1/旧的H235AnnexD），MD5（摘要式身份验证）和CAT（Cisco访问令牌，即RADIUS）。
 设置值为NONE将禁用所有身份验证。若省略此设置，则默认情况下将启用所有身份验证。注意：H.235.1需要将OpenSSL支持编译到GnuGk中。
 
 <item><tt/Prefix=188886,188887/<newline>
@@ -310,7 +310,7 @@ Vendor=222,173,0
 
 </itemize>
 
-<sect1>Section &lsqb;CTI::Agents&rsqb;
+<sect1> &lsqb;CTI::Agents&rsqb;
 <p>
 本部分允许配置所谓的虚拟队列，以允许外部应用程序通过控制端口分配入站呼叫。
 虚拟队列具有H.323别名，可以像端点一样呼叫它，也可以回答一组别名。
@@ -378,7 +378,7 @@ Vendor=222,173,0
 </itemize>
 
 
-<sect1>Section &lsqb;CTI::MakeCall&rsqb;
+<sect1> &lsqb;CTI::MakeCall&rsqb;
 <label id="ctimakecall">
 <p>
 本节包含控制端口命令<ref id="makecall" name="MakeCall">的设置 
@@ -430,7 +430,7 @@ Vendor=222,173,0
 </itemize>
 
 
-<sect1>Section &lsqb;SQLConfig&rsqb;
+<sect1> &lsqb;SQLConfig&rsqb;
 <label id="sqlconf">
 <p>
 从SQL数据库加载网守设置（除了从配置文件读取的设置外。
@@ -624,7 +624,7 @@ GWPrefixesQuery=SELECT gwalias, gwpfx FROM gwprefix WHERE gk = '%1'
 
 </itemize>
 
-<sect1>Section &lsqb;PortNotifications&rsqb;
+<sect1> &lsqb;PortNotifications&rsqb;
 <p>
 只要打开新端口进行监听，GnuGk就可以执行系统命令。例如，这可以用于自动更新防火墙配置。
 <p>
@@ -699,7 +699,7 @@ T120PortClose=/usr/local/bin/ports.sh %p %n %i
 </verb></tscreen>
 </descrip>
 
-<sect1>Section &lsqb;SNMP&rsqb;
+<sect1> &lsqb;SNMP&rsqb;
 <label id="snmp">
 <p>
 简单网络管理协议（SNMP）使可在操作过程中监视GNU Gatekeeper，并允许在发生错误时为通知（"traps"）配置目标系统。
@@ -736,7 +736,7 @@ T120PortClose=/usr/local/bin/ports.sh %p %n %i
 
 <bf>注意</bf>：默认情况下，PTLib在配置过程中启用SNMP，因此，若SNMP不起作用，请确保使用以下命令wasn't 编译您的PTLib <tt>--disable-snmp</tt>
 
-使用PTLib而不是功能齐全的Net-SNMP意味着仅支持陷阱和GET / GET-NEXT请求。有关将PTLib用于SNMP所需的其他开关，请参见下文。
+使用PTLib而不是功能齐全的Net-SNMP意味着仅支持陷阱和GET/GET-NEXT请求。有关将PTLib用于SNMP所需的其他开关，请参见下文。
 
 <sect2>GnuGk企业MIB
 <p>
@@ -882,7 +882,7 @@ PTlib支持SNMP版本1和2 GET请求，并且将始终在版本2c消息中发送
 
 </itemize>
 
-<sect1>Section &lsqb;TLS&rsqb;
+<sect1> &lsqb;TLS&rsqb;
 <label id="tls">
 <p>
 使用TLS（传输层安全性），可加密Q.931信令信道（例如，通过隧道传输时为H.245）。启用TLS后，GnuGk将在端口1300上侦听TLS连接。
@@ -894,7 +894,7 @@ PTlib支持SNMP版本1和2 GET请求，并且将始终在版本2c消息中发送
 <p>
 使用TLS对于避免对H.235.6媒体加密的中间人攻击也很重要。
 <p>
-注意：当前，当您使用TLS时，您必须使用H.245隧道，当并非所有端点都本身启用隧道时，请考虑使用H245TunnelingTranslation = 1在网守之间建立H.245隧道。
+注意：当前，当您使用TLS时，必须使用H.245隧道，当并非所有端点都本身启用隧道时，请考虑使用H245TunnelingTranslation = 1在网守之间建立H.245隧道。
 
 <itemize>
 

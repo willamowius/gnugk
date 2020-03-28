@@ -11,7 +11,7 @@
 <p>
 每路呼叫都沿路由策略传输。每个策略可以路由呼叫并终止链路或对其进行修改并继续。使用以下各节中的设置来指定要使用的策略并修改其行为。
 
-<sect1>Section &lsqb;RoutingPolicy&rsqb;
+<sect1> &lsqb;RoutingPolicy&rsqb;
 <label id="routingpolicy">
 <p>
 本节说明如何 配置 <htmlurl url="https://www.gnugk.org/" name="GnuGk"> 路由策略。
@@ -101,8 +101,6 @@ RDS解析器发现服务或DDDS动态委托发现服务（RFC3404 第 5.2/5.3 �
 <item><tt/catchall/<newline>
 <p>
 此策略会将路由到达它的所有呼叫在 <ref id="routingcatchall" name="Routing::CatchAll"> 部分中指定的一个端点。您可以将其用作策略链末尾的后备，以路由所有否则会失败的呼叫。
-This policy will route all calls that reach it to one endpoint specified in the <ref id="routingcatchall" name="Routing::CatchAll"> section.
-You can use it as a fallback at the end of the policy chain to route all calls which would otherwise fail.
 
 <item><tt/lua/<newline>
 <p>
@@ -158,7 +156,7 @@ default=explicit,internal,enum,srv,dns,internal,parent,neighbor</tt></quote>
 </descrip>
 
 
-<sect1>Section &lsqb;RasSrv::RewriteE164&rsqb;
+<sect1> &lsqb;RasSrv::RewriteE164&rsqb;
 <label id="rewrite">
 <p>
 本节定义了DialedDigits（E.164号码）的改写规则。
@@ -188,7 +186,7 @@ Option:
 仅改写以指定前缀开头的DialDigits。
 </itemize>
 
-<sect1>Section &lsqb;RasSrv::RewriteAlias&rsqb;
+<sect1> &lsqb;RasSrv::RewriteAlias&rsqb;
 <label id="rewrite">
 <p>
 本节定义别名的改写规则，这可用于将网守分配的别名映射到注册的端点。
@@ -204,7 +202,7 @@ Option:
 </descrip>
 
 
-<sect1>Section &lsqb;RasSrv::GWRewriteE164&rsqb;
+<sect1> &lsqb;RasSrv::GWRewriteE164&rsqb;
 <label id="gwrewrite">
 <p>
 本部分描述了根据呼叫来自或正在发送到的网关来重写DialedDigits E.164号码。这允许对DialedDigits进行路由等更灵活的操作。
@@ -302,7 +300,7 @@ GK-PW-Prox=in=!0049.=0049.
 </descrip>
 
 
-<sect1>Section &lsqb;Endpoint::RewriteE164&rsqb;
+<sect1> &lsqb;Endpoint::RewriteE164&rsqb;
 <p>
 为网守端点指定前缀后，父网守将使用以该前缀开头的 <bf/dialedDigits/ 路由呼叫。子网守可以根据本节中指定的规则重写目标。
 相对的，由子网守发出到父网守端点的通话也会经由此节改写其来源号码。
@@ -342,7 +340,7 @@ GK-PW-Prox=in=!0049.=0049.
 该部分与 <ref id="rewrite" name="RasSrv::RewriteE164"> 的设定无关，而且后者会优先生效。
 
 
-<sect1>Section &lsqb;Routing::DNS&rsqb;
+<sect1> &lsqb;Routing::DNS&rsqb;
 <label id="routingdns">
 <p>
 <itemize>
@@ -360,7 +358,7 @@ GK-PW-Prox=in=!0049.=0049.
 </itemize>
 
 
-<sect1>Section &lsqb;Routing::ENUM&rsqb;
+<sect1> &lsqb;Routing::ENUM&rsqb;
 <label id="routingenum">
 <p>
 <itemize>
@@ -383,7 +381,7 @@ E2U+xmpp=mygateway@mydomain.com</tt></quote>
 </descrip>
 
 
-<sect1>Section &lsqb;Routing::SRV&rsqb;
+<sect1> &lsqb;Routing::SRV&rsqb;
 <label id="routingsrv">
 <p>
 <itemize>
@@ -405,7 +403,7 @@ E2U+xmpp=mygateway@mydomain.com</tt></quote>
 _xmpp-server._tcp=mygateway@mydomain.com</tt></quote>
 </descrip>
 
-<sect1>Section &lsqb;Routing::RDS&rsqb;
+<sect1> &lsqb;Routing::RDS&rsqb;
 <label id="routingrds">
 <p>
 <itemize>
@@ -416,7 +414,7 @@ _xmpp-server._tcp=mygateway@mydomain.com</tt></quote>
 </itemize>
 
 
-<sect1>Section &lsqb;Routing::Explicit&rsqb;
+<sect1> &lsqb;Routing::Explicit&rsqb;
 <label id="routingexplicit">
 <p>
 可定义一个映射，在该映射中应通过 'explicit' 策略路由对某些IP的呼叫。新目标可以是另一个IP或任何类型的别名目标。
@@ -438,7 +436,7 @@ _xmpp-server._tcp=mygateway@mydomain.com</tt></quote>
 </descrip>
 
 
-<sect1>Section &lsqb;Routing::Sql&rsqb;
+<sect1> &lsqb;Routing::Sql&rsqb;
 <label id="routingsql">
 <p>
 使用SQL查询重写被叫的别名。支持路由OnARQ，OnLRQ和OnSetup。
@@ -508,7 +506,7 @@ SELECT concat(prefix,'%c'), gatewayip FROM routes WHERE route = LEFT('%c', 5) li
 </itemize>
 
 
-<sect1>Section &lsqb;Routing::Http&rsqb;
+<sect1> &lsqb;Routing::Http&rsqb;
 <label id="routinghttp">
 <p>
 使用HTTP查询重写被叫的别名，支持路由OnARQ，OnLRQ和OnSetup。
@@ -561,7 +559,7 @@ SELECT concat(prefix,'%c'), gatewayip FROM routes WHERE route = LEFT('%c', 5) li
 </itemize>
 
 
-<sect1>Section &lsqb;Routing::NeighborSql&rsqb;
+<sect1> &lsqb;Routing::NeighborSql&rsqb;
 <label id="neighborsql">
 <p>
 选择要查询哪个邻域的查询数据库。
@@ -576,7 +574,7 @@ SELECT concat(prefix,'%c'), gatewayip FROM routes WHERE route = LEFT('%c', 5) li
 </itemize>
 
 
-<sect1>Section &lsqb;Routing::NumberAnalysis&rsqb;
+<sect1> &lsqb;Routing::NumberAnalysis&rsqb;
 <label id="numberanalysis">
 <p>
 本部分定义 <tt/numberanalysis/ 路由策略的规则。该策略检查所拨号码的最小和/或最大位数，
@@ -607,7 +605,7 @@ default=numberanalysis,internal
 </descrip>
 
 
-<sect1>Section &lsqb;Routing::Forwarding&rsqb;
+<sect1> &lsqb;Routing::Forwarding&rsqb;
 <label id="routingforwarding">
 <p>
 若对端点的呼叫应转发到另一个端点，则此路由策略执行查找数据库。
@@ -697,7 +695,7 @@ create table gnugk.forwards (
 </descrip>
 
 
-<sect1>Section &lsqb;Routing::CatchAll&rsqb;
+<sect1> &lsqb;Routing::CatchAll&rsqb;
 <label id="routingcatchall">
 <p>
 <itemize>
@@ -712,7 +710,7 @@ create table gnugk.forwards (
 若未指定CatchAllIP，则将所有呼叫到路由该别名。
 </itemize>
 
-<sect1>Section &lsqb;Routing::Lua&rsqb;
+<sect1> &lsqb;Routing::Lua&rsqb;
 <label id="routinglua">
 <p>
 本节配置用于LUA路由的脚本。
@@ -754,7 +752,7 @@ LUA脚本可以设置以下 <bf/输出变量/ 以指定目标路由:
 
 </itemize>
 
-<sect1>Section &lsqb;Routing::URIService&rsqb;
+<sect1> &lsqb;Routing::URIService&rsqb;
 <label id="routinguriservice">
 <p>
 URI服务特定的路由策略。
@@ -771,7 +769,7 @@ xmpp=mygateway.mydomain.com</tt></quote>
 <p>
 此开关为给定的URI模式设置服务类型和默认网关。可以在[Routing::ENUM::&lt;schema&gt;]和[Routing::SRV::&lt;schema&gt;]的链接中使用，以提供特定于服务的路由策略。
 
-<sect1>Section &lsqb;RewriteCLI&rsqb;
+<sect1> &lsqb;RewriteCLI&rsqb;
 <label id="clirewrite">
 <p>
 本节包含一组ANI ANI/CLI/H.323_ID号码（呼叫者ID）的重写规则。重写过程分为两个阶段-入站重写和出站重写。
@@ -853,7 +851,7 @@ in:any=any=0
 这些规则指出：
 1) 对于来自网络192.168.1.0/24的呼叫，将CLI设置为18001111，
 2) 对于来自网络192.168.2.0/24的呼叫，将CLI设置为18002222，
-3) 对于来自网络2002的呼叫： 4ad0：ff00：79a :: 2/64，将CLI设置为18003333，
+3) 对于来自网络2002的呼叫： 4ad0:ff00:79a::2/64，将CLI设置为18003333，
 4) 对于其他呼叫，将设置为0。
 
 <tag/例 3:/
@@ -983,7 +981,7 @@ in:192.168.1.1=any=2000
 %r2% in:192.168.1.1=any=2000
 </verb></tscreen>
 
-<sect1>Section &lsqb;RewriteCLI::SQL&rsqb;
+<sect1> &lsqb;RewriteCLI::SQL&rsqb;
 <label id="clirewritesql">
 <p>
 使用<ref id="database" name="公共数据库配置选项"> 来定义此模块的数据库连接。
@@ -1013,7 +1011,7 @@ in:192.168.1.1=any=2000
 在大部分情况下，您可能只会使用 %{cli} 参数。
 
 
-<sect1>Section &lsqb;RewriteSourceAddress&rsqb;
+<sect1> &lsqb;RewriteSourceAddress&rsqb;
 <label id="rewritesourceaddr">
 <p>
 此开关，可以过滤在Setup消息中传输的sourceAddress元素。（请注意，<ref id="clirewrite" name="RewriteCLI">和 <ref id="clirewritesql" name="RewriteCLI::SQL"> 规则也会影响sourceAddress）

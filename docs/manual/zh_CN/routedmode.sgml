@@ -1,6 +1,6 @@
 <sect>路由模式和代理配置
 
-<sect1>Section &lsqb;RoutedMode&rsqb;
+<sect1>路由模式配置 &lsqb;RoutedMode&rsqb;
 <label id="routed">
 <p>
 呼叫信令消息可以通过两种方式传输：第一种方法是端点直接呼叫，其呼叫信令消息直接在端点之间传递。
@@ -14,7 +14,7 @@ GK不路由H.245和媒体。H.245信道和媒体信道直接在端点之间建�
 <tag/案例 II./
 H.245通道通过网守路由，而媒体通道则直接在端点之间建立。
 <tag/案例 III./
-GK路由H.245信道以及媒体信道，包括用于音频和视频的RTP / RTCP，以及用于数据的T.120信道。在这种情况下，没有流量直接在端点之间传递。
+GK路由H.245信道以及媒体信道，包括用于音频和视频的RTP/RTCP，以及用于数据的T.120信道。在这种情况下，没有流量直接在端点之间传递。
 通称其为H.323代理，并且可以将其视为H.323-H.323网关。
 </descrip>
 
@@ -137,8 +137,8 @@ GnuGk直接支持NAT出站呼叫（从NAT后的端点到公共网络），而无
 <p>
 将Q.931的DisplayIE修改为指定值。
 
-若将开关设置为“ Calling”，则将主叫方的DisplayIE设置为CallingStationID，并通过“ Called”将被叫方的DisplayIE设置为DisplayIE。
-将其设置为” CallingCalled”会将所有DisplayIE重写为Calling / CalledStationID。
+若将开关设置为“Calling”，则将主叫方的DisplayIE设置为CallingStationID，并通过“Called”将被叫方的DisplayIE设置为DisplayIE。
+将其设置为”CallingCalled”会将所有DisplayIE重写为Calling/CalledStationID。
 
 若将开关设置为“删除”，则将删除所有DisplayIE。
 
@@ -168,7 +168,7 @@ When ScreenDisplayIE= is set, this text is appended to the new DisplayIE.
 下面符号将被替换：
 <itemize>
 <item><tt/%{gkip}/ - GK的IP地址
-<item><tt/%{external-ip}/ - 外部IP（如果已配置）
+<item><tt/%{external-ip}/ - 外部IP（若已配置）
 </itemize>
 
 <item><tt/ScreenSourceAddress=MyID/<newline>
@@ -231,7 +231,7 @@ GK将会直接将Setup信令转送给被转接的端点，而并非信令回传�
 默认：<tt/0/<newline>
 <p>
 在TCP信令套接字上启用/禁用keepalive功能，可以帮助检测无效的信令信道并防止无效呼叫挂在呼叫表中。
-为了使此项起作用，还需要调整系统设置以调整保活超时。有关更多详细信息，请参阅docs / keepalive.txt。
+为了使此项起作用，还需要调整系统设置以调整保活超时。有关更多详细信息，请参阅docs/keepalive.txt。
 若配置中不存在此开关，则保持socket不变。
 
 <item><tt/TranslateFacility=1/<newline>
@@ -255,8 +255,8 @@ Facility消息转换为具有空主体的Facility消息，若该主体不为空�
 <item><tt/ActivateFailover=1/<newline>
 默认：<tt/0/<newline>
 <p>
-激活呼叫故障转移：激活后，如果呼叫在第一个路由上失败，GnuGk将尝试查找到目的地的其他可用路由。呼叫的路由列表是在呼叫首次进入时建立的，
-当前并非所有路由策略都能够提供多条路由。您可以使用“内部”和“ sql”策略来提供多个路由。此外，SQL和Radius身份验证器可以设置多个路由。    
+激活呼叫故障转移：激活后，若呼叫在第一个路由上失败，GnuGk将尝试查找到目的地的其他可用路由。呼叫的路由列表是在呼叫首次进入时建立的，
+当前并非所有路由策略都能够提供多条路由。您可以使用“内部”和“sql”策略来提供多个路由。此外，SQL和Radius身份验证器可以设置多个路由。    
 
 有关使用故障转移的呼叫列表，请参阅 <ref id="calltable" name="[CallTable]"> 部分中的SingleFailoverCDR开关。
 
@@ -370,13 +370,13 @@ SRV记录存储在其他主机中的URI。会覆盖PWLIB_RDS_PATH环境变量。
 此开关将从 Setup 和 Connect messages中删除所有clearTokens和cryptoTokens。    
 
 若将开关设置为1时，打开该功能，则H.235令牌将从所有呼叫中删除。还可以指定网络列表，从这些网络发出的呼叫会删除H.235令牌，
-例如，RemoveH235Call = 192.168.1.0 / 24，10.0.1.0/32。
+例如，RemoveH235Call = 192.168.1.0/24，10.0.1.0/32。
 
 <item><tt/RemoveH460Call=1/<newline>
 默认：<tt>0</tt><newline>
 <p>
 为了与不支持H.460的H323v4之前的设备兼容，此开关从设置Setup PDU中剥离H.460功能通告。
-通常，无论如何都应该忽略它们。如果它们引起麻烦，请使用此开关。 
+通常，无论如何都应该忽略它们。若它们引起麻烦，请使用此开关。 
 
 <item><tt/EnableGnuGkNATTraversal=1/<newline>
 默认：<tt>0</tt><newline>
@@ -456,7 +456,7 @@ SRV记录存储在其他主机中的URI。会覆盖PWLIB_RDS_PATH环境变量。
 默认：<tt>N/A</tt><newline>
 <p>
 要求注册检测到位于NAT之后的端点，以支持标准NAT穿透机制。当端点从NAT后注册并且不支持最小NAT标准时，注册将被拒绝，
-其因是featureNotSupported。对于H.460.18/.19，有效值为“ 18”；对于H.460.23/.24，有效值为“ 23”    
+其因是featureNotSupported。对于H.460.18/.19，有效值为“18”；对于H.460.23/.24，有效值为“23”    
 
 <item><tt/EnableH46026=1/<newline>
 默认：<tt>0</tt><newline>
@@ -496,7 +496,7 @@ SRV记录存储在其他主机中的URI。会覆盖PWLIB_RDS_PATH环境变量。
 默认：<tt/1/<newline>
 <p>
 自动将不同IP版本之间的呼叫，置于全代理模式。请注意，此自动检测就通过查看呼叫信号地址来决定的。
-一个端点可能稍后决定使用H.245或具有不同IP版本的媒体IP，并且如果接收端点无法处理多个IP版本，则呼叫将失败。
+一个端点可能稍后决定使用H.245或具有不同IP版本的媒体IP，并且若接收端点无法处理多个IP版本，则呼叫将失败。
 
 <item><tt/EnableH235HalfCallMedia=1/<newline>
 默认：<tt/0/<newline>
@@ -628,7 +628,7 @@ SRV记录存储在其他主机中的URI。会覆盖PWLIB_RDS_PATH环境变量。
 </itemize>
 
 <p>
-<sect1>Section &lsqb;Proxy&rsqb;
+<sect1>代理功能 &lsqb;Proxy&rsqb;
 <label id="proxy">
 <p>
 本节定义了H.323代理功能。这意味着网守将在主叫端和被叫端之间路由所有流量，因此两个端点之间没有直接流量。
@@ -642,7 +642,7 @@ GK可以代理RTP/RTCP（音频和视频）和T.120（数据）的逻辑通道�
 <item><tt/Enable=1/<newline>
 默认：<tt/0/<newline>
 <p>
-是否启用代理功能。您必须首先启用网守路由模式（请参阅 <ref id="routed" name="上一节"> ）。您不必指定路由的H.245。若需要，它将自动使用。
+是否启用代理功能。必须首先启用网守路由模式（请参阅 <ref id="routed" name="上一节"> ）。您不必指定路由的H.245。若需要，它将自动使用。
 
 <item><tt>InternalNetwork=10.0.1.0/24</tt><newline>
 默认：<tt>N/A</tt><newline>
@@ -785,12 +785,12 @@ H.245 CloseLogicalChannel应请求仅引用端点自己的逻辑信道。
 
 通常认为是一件好事。在某些情况下，更新请求太多会大大增加带宽使用量，并使情况恶化。
 
-将此设置为1时，GnuGk每秒允许1个更新请求。如果将其设置为10，GnuGk将每10秒允许1个请求。
+将此设置为1时，GnuGk每秒允许1个更新请求。若将其设置为10，GnuGk将每10秒允许1个请求。
 
 <item><tt>LimitRTPSources=IP</tt><newline>
 默认：<tt>n/a</tt><newline>
 <p>
-仅接受来自呼叫信令去往的相同IP的RTP。当设置为 'Net' 时，将接受来自整个C类网络（/24 netmask）的RTP（或IPv6 /64 netmask）。
+仅接受来自呼叫信令去往的相同IP的RTP。当设置为 'Net' 时，将接受来自整个C类网络（/24 netmask）的RTP（或IPv6/64 netmask）。
 
 此设置可防止RTP漏洞攻击，但在呼叫信令和RTP来自不同IP的情况下，可能会中断有效呼叫。
 
@@ -804,7 +804,7 @@ H.245 CloseLogicalChannel应请求仅引用端点自己的逻辑信道。
 </itemize>
 
 <p>
-<sect1>Section &lsqb;模式选择&rsqb;
+<sect1>模式选择 &lsqb;ModeSelection&rsqb;
 <label id="modeselection">
 <p>
 在路由模式或代理模式下，使用此节在每个IP网络的基础上指定确切的路由模式（路由模式，路由模式加上H.245路由或代理模式）。
@@ -858,7 +858,7 @@ H.245 CloseLogicalChannel应请求仅引用端点自己的逻辑信道。
 例如，始终会代理涉及H.460.18/.19的呼叫（因为此协议需要代理）
 
 <p>
-<sect1>Section &lsqb;ModeVendorSelection&rsqb;
+<sect1>为特定厂商指定路由模式 &lsqb;ModeVendorSelection&rsqb;
 <label id="modeselection">
 <p>
 在路由模式或代理模式下，使用此部分以指定厂商的方式指定确切的路由模式（路由模式，路由模式以及H.245路由或代理模式）。

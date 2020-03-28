@@ -2,9 +2,9 @@
 <p>
 <sect1>一个简单的呼叫
 <p>
-为了确认所有组件都已启动并且正在运行，我们将使用两个Linux系统，它们都连接到同一LAN中。在示例中，
-H.323客户端是一个名为“ SimpH323”的软件电话，它是一个示例程序，带有samples / simple /文件夹中的H323Plus。
-如果你的Linux发行版不包含它，则可以下载H323Plus源代码并自行编译，也可以使用其他H.323终端。
+为了确定所有组件都已启动并且正在运行，我们将使用两个Linux系统，它们都连接到同一LAN中。在示例中，
+H.323客户端是一个名为“SimpH323”的软件电话，它是一个示例程序，带有samples/simple/文件夹中的H323Plus。
+若你的Linux发行版不包含它，则可以下载H323Plus源代码并自行编译，也可以使用其他H.323终端。
 
 在第一台服务器上 <htmlurl url="https://www.gnugk.org/" name="gatekeeper">
 直接启动:
@@ -23,9 +23,9 @@ jan@server1> simph323 -l --listenport 1722 -a -u jan
 
 (<tt/-l/) SimpH323监听呼叫
 (<tt/-a/) 呼叫将会自动接听  
-以用户“ jan”的身份向GK注册，从而允许GK在用户“ jan”与其IP地址之间创建映射  
+以用户“jan”的身份向GK注册，从而允许GK在用户“jan”与其IP地址之间创建映射  
 
-SimpH323 将会自动发现本地GK,如果自动检测失败，请用 "<tt/-g 1.2.3.4/" 来指定注册GK的IP.
+SimpH323 将会自动发现本地GK,若自动检测失败，请用 "<tt/-g 1.2.3.4/" 来指定注册GK的IP.
 
 在第二个客户端上，以这种方式运行simph323：
 
@@ -33,17 +33,17 @@ SimpH323 将会自动发现本地GK,如果自动检测失败，请用 "<tt/-g 1.
 peter@client2> simph323 --listenport 1724 -u peter jan
 </verb></tscreen>
 
-SimpH323以用户“ peter”的身份向自动检测到的GK注册，并尝试请求用户“ jan”的地址。
-GK将接受来自“ peter”的请求，并将确定是否可以找到用户名“ jan”的IP地址。
+SimpH323以用户“peter”的身份向自动检测到的GK注册，并尝试请求用户“jan”的地址。
+GK将接受来自“peter”的请求，并将确定是否可以找到用户名“jan”的IP地址。
 
-因为“ jan”已经在GK中注册，它将把“ jan”的IP地址发送给“ peter”。
-然后，“ peter”的SimpH323将使用该IP地址来设置与server1上运行的“ jan”的SimpH323的直接通信。
+因为“jan”已经在GK中注册，它将把“jan”的IP地址发送给“peter”。
+然后，“peter”的SimpH323将使用该IP地址来设置与server1上运行的“jan”的SimpH323的直接通信。
 
 server1上SimpH323将自动接受呼叫，Peter和Jan可以聊天。
 
-<sect1>使用状态界面来查看GK
+<sect1>使用控制端口来查看GK状态信息
 <p>
-状态界面提供了基于文本的方式与运行中的GK交互。
+通过使用控制端口（Status interface）连接后来查看状态提供了基于文本的方式与运行中的GK交互。
 
 在新的控制台上，我们使用telnet连接到GK：
 
@@ -51,7 +51,7 @@ server1上SimpH323将自动接受呼叫，Peter和Jan可以聊天。
 jan@server1> telnet localhost 7000
 </verb></tscreen>
 
-你应该会收到“禁止访问！” 消息，因为默认情况下，对控制端口的访问受到限制。
+你应该会收到“禁止访问！”消息，因为默认情况下，限制控制端口的访问。
 
 在启动GK的目录中创建一个名为 <tt/gatekeeper.ini/ 的文件
 <tt/gatekeeper.ini/ 将包含以下三行:
@@ -62,7 +62,7 @@ jan@server1> telnet localhost 7000
 rule=allow
 </verb></tscreen>
 
-使用Ctrl-C停止GK并重新启动它，我们刚创建的GK指定配置文件 <tt/gatekeeper.ini/ :
+使用Ctrl-C停止GK并重新启动它，指定GK配置文件 <tt/gatekeeper.ini/ :
 
 <tscreen><verb>
 jan@server1> gnugk -ttt -c ./gatekeeper.ini
@@ -85,9 +85,9 @@ Startup: Sun, 31 Jul 2011 08:07:36 -0600   Running: 102 days 01:08:15
 
 现在重复第一个示例，在该示例中，Peter呼叫Jan，并查看GK以非路由模式处理哪些消息。
 
-telnet会话中可以有许多命令-键入“ help”以查看它们。
+telnet会话中可以有许多命令-键入“help”以查看它们。
 
-要退出telnet连接GK的会话，请键入“ quit”并按Enter。
+要退出telnet连接GK的会话，请键入“quit”并按Enter。
 
 我们创建的示例配置文件非常不安全，因为它默认的 <bf/allow/ 规则, 
 因此对于谁可以连接到控制端口以及可以执行哪些命令没有任何限制。
@@ -101,7 +101,7 @@ rule=password
 gkadmin=QC7VyAo5jEw=
 </verb></tscreen>
 
-第四行由addpasswd实用程序添加，该实用程序用于创建密码为“ secret”的用户“ gkadmin”。现在，此更改将强制对控制端口进行身份验证。
+第四行由addpasswd实用程序添加，该实用程序用于创建密码为“secret”的用户“gkadmin”。现在，此更改将强制对控制端口进行身份验证。
 
 使用此新配置重新启动GK，然后再次执行telnet。现在，将提示你输入用户名和密码：
 
@@ -138,7 +138,7 @@ jan@server2> gnugk -r
 
 <sect1>将呼叫路由到网关再到达外部的用户
 <p>
-如果不使用网关，则只能使用IP电话通过Internet呼叫其他人。要使用普通电话联系你，你必须使用网关。
+若不使用网关，则只能使用IP电话通过Internet呼叫其他人。要使用普通电话联系你，你必须使用网关。
 
 <tscreen><verb>
 _________________          ______________
@@ -159,7 +159,7 @@ _________________          |            |
 gw1=0
 </verb></tscreen>
 
-该项是告诉GK将所有以“ 0”开头的E.164号码的呼叫路由到以H.323别名“ gw1”注册的网关。如果没有使用该别名的注册网关，则呼叫将失败。
+该项是告诉GK将所有以“0”开头的E.164号码的呼叫路由到以H.323别名“gw1”注册的网关。若没有使用该别名的注册网关，则呼叫将失败。
 
 <bf>注意：</bf> 你必须使用网关别名-你不能使用网关的IP地址。
 
@@ -186,7 +186,7 @@ gw2=001..........
 可以使用 <ref id="rewrite" name="[RasSrv::RewriteE164]"> 部分进行配置。
 
 示例：
-如用IP电话拨打 12345，名为“ gw1”的网关后到达 08765。
+如用IP电话拨打 12345，名为“gw1”的网关后到达 08765。
 
 <tscreen><verb>
 [RasSrv::GWPrefixes]
@@ -200,7 +200,7 @@ gw1=0
 根据向其发送呼叫及接收呼叫的网关来配置E.164号码的改写。
 
 示例：
-你有两个不同的网关（“ gw1”和“ gw2”），若向其发送带有前缀0044的呼叫，
+你有两个不同的网关（“gw1”和“gw2”），若向其发送带有前缀0044的呼叫，
 但是在路由选择网关之后，需要将不同的前缀添加到该号码中。
 例如，是出于标识目的。
 
@@ -215,7 +215,7 @@ gw2=out=0044=88880044
 </verb></tscreen>
 
 示例：
-在将这些呼叫传递到另一个网关“ gw2”之前，你要标识来自具有指定前缀的特定网关“ gw1”的呼叫。
+在将这些呼叫传递到另一个网关“gw2”之前，你要标识来自具有指定前缀的特定网关“gw1”的呼叫。
 
 <tscreen><verb>
 [RasSrv::GWPrefixes]
@@ -251,15 +251,15 @@ gw1=in=00=123400
 <p>
 H.323协议在信令消息中包含了IP，并为单个呼叫建立多个TCP和UDP连接。事先不确定其中连接的建立方向。使得通过NAT实现H.323穿透的难度比其他协议要高。
 
-实现穿越防火墙和NAT，GnuGk支持很多不同协议的穿透方法。目前，H.460.18和H.460.19（通常简称为“ H.460 NAT穿越”）的组合是最常见的NAT穿越协议，
+实现穿越防火墙和NAT，GnuGk支持很多不同协议的穿透方法。目前，H.460.18和H.460.19（通常简称为“H.460 NAT穿越”）的组合是最常见的NAT穿越协议，
 并且今天几乎所有H.323端点都支持。
 
 最好是将 GnuGK 放在防火墙前的公共IP地址上，并启用H.460.18 NAT穿越。防火墙不需打开任何入站端口-只需在防火墙中允许传出连接即可（默认防火墙允许）。
 
-如果在防火墙进行了更高级设置，确认不要将NAT超时设置得太低：H.460.18假定GnuGk可以将UDP数据包发送到接收该数据包的同一端口至少大于或等于30秒钟。
-如果将防火墙规则设置为90秒，则表示安全。大多数消费类产品的超时时间更长，不必担心。
+若在防火墙进行了更高级设置，确认不要将NAT超时设置得太低：H.460.18假定GnuGk可以将UDP数据包发送到接收该数据包的同一端口至少大于或等于30秒钟。
+若将防火墙规则设置为90秒，则表示安全。大多数消费类产品的超时时间更长，不必担心。
 
-如果并非所有端点都支持H.460.18，或者你有很多内网呼叫，则可以在防火墙内部署第二个GnuGk，并使其通过隧道将所有内部端点组合起来。这称为“穿越区域”。
+并非所有端点都支持H.460.18，或者你有很多内网呼叫，则可以在防火墙内部署第二个GnuGk，并使其通过隧道将所有内部端点组合起来。这称为“穿越区域”。
 请参阅后面的章节，如何将外部GnuGk配置为 <ref id="traversalserver" name="穿越服务端"> 如何将防火墙内部的GnuGk配置为
 <ref id="traversalclient" name="穿越客户端">.
     
@@ -302,7 +302,7 @@ EnableIPv6=1
 </verb></tscreen>
 
 IPv4和IPv6端点之间的呼叫会自动进入代理模式，以允许GnuGk执行地址转换。
-如果你的端点可以自动处理混合的IPv4-IPv6呼叫，则可以使用<tt/AutoProxyIPv4ToIPv6Calls/ 
+若你的端点可以自动处理混合的IPv4-IPv6呼叫，则可以使用<tt/AutoProxyIPv4ToIPv6Calls/ 
 在 [RoutedMode] 部分中的开关禁用自动代理。到2011年11月10日，暂没有端点实现这一点。
 
 确认是服务器分配常规的IPv6地址。GnuGk将不使用任何链接本地地址 (fe80::/10).
@@ -322,7 +322,7 @@ IPv4和IPv6端点之间的呼叫会自动进入代理模式，以允许GnuGk执�
 <item><bf/Solaris/ OK
 </itemize>
 
-Windows，至少是Windows Vista，Windows Server 2008，Windows 7或更高版本。在Windows XP上，如果启用IPv6支持，
+Windows，至少是Windows Vista，Windows Server 2008，Windows 7或更高版本。在Windows XP上，若启用IPv6支持，
 则GnuGk将作为仅IPv6的GK运行。OpenBSD根本不支持IPv4映射的地址（最新测试的版本：OpenBSD 5.0），因此它只能将GnuGk作为IPv4或IPv6 的GK运行。
 
 自2011年12月起，已知对IPv6的支持的有以下端点：
@@ -343,16 +343,16 @@ Windows，至少是Windows Vista，Windows Server 2008，Windows 7或更高版�
 
 使用 Home=，可以选择GnuGk应该监听的网口。一般，会在有多个IP的计算机上选择1个或2个网口。是每个用户都可能考虑的事情。
 
-使用 Bind=，可以选择要用于发出消息的IP。如果GK侦听多个IP，这可能很有用，但它也可能带来一些明显的后果，大多数用户应避免此切换。
+使用 Bind=，可以选择要用于发出消息的IP。若GK侦听多个IP，这可能很有用，但它也可能带来一些明显的后果，大多数用户应避免此切换。
 
-使用 ExternalIP= 可以用于在消息中发送与实际收听时不同的IP。如果正使用端口转发，这可能很有用。尽量避免使用，应当使用防火墙穿越协议。
+使用 ExternalIP= 可以用于在消息中发送与实际收听时不同的IP。若正使用端口转发，这可能很有用。尽量避免使用，应当使用防火墙穿越协议。
 
 <sect1>启用音频和视频加密
 <p>
 你可以将GnuGk配置为代理加密，以确保对更多或所有发出的呼叫进行加密，无论端点是否支持加密。
 
 首先，启用“half call media”，意为若仅有呼叫侧支持加密，则GnuGk将添加加密。这将为你自己可能不支持加密的端点启用加密。
-你也可以设置是否需要128或256位AES。（在启动消息中选中“ h235media = 1”，以确保你的GnuGk启用了加密功能。）
+你也可以设置是否需要128或256位AES。（在启动消息中选中“h235media = 1”，以确保你的GnuGk启用了加密功能。）
 
 <tscreen><verb>
 [RoutedMode]
@@ -360,7 +360,7 @@ EnableH235HalfCallMedia=1
 H235HalfCallMediaStrength=256
 </verb></tscreen>
 
-要确保未加密不允许通话，你可以设置
+要强制加密，即不允许未加密通话，可设置
 
 <tscreen><verb>
 [RoutedMode]

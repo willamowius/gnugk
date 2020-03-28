@@ -3,7 +3,7 @@
 <p>
 除了标准配置文件选项外，还可以在<htmlurl url="https://www.gnugk.org/" name="GnuGk">配置文件中指定每个端点的配置设置。
 
-<sect1>Section &lsqb;EP::...&rsqb;
+<sect1>配置 &lsqb;EP::...&rsqb;
 <p>
 <tscreen><verb>
 [EP::ALIAS]
@@ -19,7 +19,7 @@ Key Name=Value String
 Default: <tt/-1/<newline>
 <p>
 端点的呼叫容量。不超过<tt/Capacity/并发呼叫将被发送到该端点。
-对于网关，如果有多个网关与拨打的号码匹配，则会将呼叫发送到第一个具有可用容量的可用网关。
+对于网关，若有多个网关与拨打的号码匹配，则会将呼叫发送到第一个具有可用容量的可用网关。
 
 <item><tt/PrefixCapacities=^0049:=10,^(0044|0045):=20/<newline>
 Default: <tt>N/A</tt><newline>
@@ -30,14 +30,14 @@ Default: <tt>N/A</tt><newline>
 <item><tt/ForceGateway=1/<newline>
 Default: <tt/0/<newline>
 <p>
-如果您的端点未注册为网关或MCU，则无法分配网关前缀。不管端点如何注册，都可以使用此开关将端点视为网关。
+若端点未注册为网关或MCU，则无法分配网关前缀。不管端点如何注册，都可以使用此开关将端点视为网关。
 
 <item><tt/GatewayPriority=1/<newline>
 Default: <tt/1/<newline>
 <p>
 仅适用于网关。当多个网关与拨号号码匹配时，允许基于优先级的路由。较低的值表示较高的网关优先级。
 呼叫被路由到优先级最高（tt/GatewayPriority/ 值最低）的第一个可用网关（具有可用容量 ）。
-如果网关优先级与前缀优先级冲突（有关详细信息，请参见 <ref id="gwprefixes" name="[RasSrv::GWPrefixes]">），则前缀优先级优先。
+若网关优先级与前缀优先级冲突（有关详细信息，请参见 <ref id="gwprefixes" name="[RasSrv::GWPrefixes]">），则前缀优先级优先。
 
 <item><tt/GatewayPrefixes=0048,0049:=2,0044/<newline>
 Default: <tt>N/A</tt><newline>
@@ -119,12 +119,12 @@ Default: <tt>-1</tt><newline>
 <item><tt/AdditionalDestinationAlias=H323-TRUNK/<newline>
 Default: <tt>n/a</tt><newline>
 <p>
-如果还没有别名，则向该端点的所有呼叫添加一个别名。这可用于添加Swxy版本6及更高版本所需的中继ID。
+若还没有别名，则向该端点的所有呼叫添加一个别名。这可用于添加Swxy版本6及更高版本所需的中继ID。
 
 <item><tt/UseTLS=1/<newline>
 Default: <tt/0/<newline>
 <p>
-呼叫此端点时，请使用TLS（传输层安全性）。另请参阅<ref id="tls" name="[TLS] section">部分。如果端点能够通过H.460.22发出使用TLS的信号，则无需明确配置它。
+呼叫此端点时，请使用TLS（传输层安全性）。另请参阅<ref id="tls" name="[TLS] section">部分。若端点能够通过H.460.22发出使用TLS的信号，则无需明确配置它。
 
 <item><tt/DisableCallCreditCapabilities/<newline>
 Default: <tt/0/<newline>

@@ -9,7 +9,7 @@
 <bf>
 <url url="https://www.gnugk.org/" name="The GNU Gatekeeper">
 </bf>
-是一个实现H.323 Gatekeeper的开源项目。网守向H.323端点提供呼叫控制服务，是数基于H.323标准的电话或视频会议组成部分。
+是一个实现H.323 Gatekeeper的开源项目。网守向H.323端点提供呼叫控制服务，是基于H.323标准的电话或视频会议组成部分。
 
 根据H.323标准，网守应提供以下服务:
 <itemize>
@@ -23,7 +23,7 @@
 <item>通话管理
 </itemize>
 
-GNU Gatekeeper 实现了所有这些功能以及许多其他功能。为了进行消息的协议处理以及编码和解码，它使用了<url url="https://www.h323plus.org/" name="H323Plus">库（是原来OpenH323项目分支版本）。
+GNU Gatekeeper 实现了所有这些功能以及其他的附属功能。为了进行信令的处理以及消息的编解码，它使用了<url url="https://www.h323plus.org/" name="H323Plus">库（是原来OpenH323项目分支版本）。
 
 
 H.323是 <url
@@ -42,7 +42,7 @@ url="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html" name="GNU
 GNU Gatekeeper包含H.460.18和H.460.19技术，该技术已获得Tandberg的专利权，并已获得GNU Gatekeeper项目的许可。
 还包含GNU Gatekeeper项目获得许可的H.460.23和H.460.24专利技术。
 
-简单的说, GNU通用公共许可证允许你可以自由的复制、分发、出售或者修改本软体。
+简单的说,GNU通用公共许可证允许你可以自由的复制、分发、出售或者修改本软体。
 但是它要求所有衍生的作品也必须在GNU GPL下发布。意思是，你必须公开所有修改本程序的软体代码，以及任何新增特性的软件程序。
 有关详细信息，请参见文件COPYING。
 关于自由软件的概念或思想，可参考软体自由基金会网站的说明。
@@ -52,7 +52,7 @@ GNU Gatekeeper包含H.460.18和H.460.19技术，该技术已获得Tandberg的专
 <sect1>名称
 <p>
 该项目的全名是 <em>GNU Gatekeeper</em>, 也可以称为<em>GnuGk</em>。
-名称中使用“ GNU”是为了强调这是自由软件, 早期版本称为 <em>OpenH323 Gatekeeper</em>。
+名称中使用“GNU”是为了强调这是自由软件, 早期版本称为 <em>OpenH323 Gatekeeper</em>。
 
 <sect1>下载
 <label id="download">
@@ -73,14 +73,17 @@ name="git 库">.  注意 - 这是最新的代码.
 
 一般用户问题应发送到 <url
 url="mailto:gnugk-users@lists.gnugk.org" name="邮件列表">。
-你可以找到邮件存档 <url
+您可以找到邮件存档 <url
 url="https://lists.gnugk.org/pipermail/gnugk-users/"
-name="点击此处">.  发布前请 <url
+name="点击此处">。 发布前请 <url
 url="https://lists.gnugk.org/cgi-bin/mailman/listinfo/gnugk-users"
 name="加入邮件列表">
 
 要报告问题或提交错误/补丁，请将电子邮件发送到
 <url url="mailto:gnugk-users@lists.gnugk.org" name="邮件列表">。
+
+中文手册由张涛维护并和英文手册保持同步，若您发现手册描述错误，请将电子邮件发送到
+<url url="mailto:zhangtao@gnugk.cn" name="邮箱">。
 
 <sect1>贡献者
 <p>
@@ -88,5 +91,5 @@ name="加入邮件列表">
 <url url="https://www.willamowius.com/gnugk-support.html" name="Jan Willamowius">
 <tt><htmlurl url="mailto:jan@willamowius.de" name="&lt;jan@willamowius.de&gt;"></tt>
 
-多年来，有很多人做出了贡献，其中最著名的是西蒙·霍恩（Simon Horne），米哈尔·齐格托维奇（Michal Zygmuntowicz）和黄智伟。
+多年来，有很多人做出了贡献，其中最著名的是西蒙·霍恩（Simon Horne），米哈尔·齐格托维奇（Michal Zygmuntowicz），黄智伟和张涛（Zhang Tao）。
 

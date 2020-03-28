@@ -1,6 +1,6 @@
 <sect>RAS 配置
 <p>
-<sect1>Section &lsqb;ReplyToRasAddress&rsqb;
+<sect1> &lsqb;ReplyToRasAddress&rsqb;
 <p>
 从端点到网守的信令消息(GatekeeperRequest,RegistrationRequest and InfoRequestResponse)包含<it/rasAddress/元素 ，端点告诉网守将这些响应的消息发送到目的地。
 默认情况下，GnuGk将忽略该地址，并响应从其接收请求的IP和端口。原因是某些端点依赖于此项，如在某些情况下，使用NAT，则若将响应发送到另一个IP和端口，
@@ -33,7 +33,7 @@
 </descrip>
 
 
-<sect1>Section &lsqb;RasSrv::GWPrefixes&rsqb;
+<sect1> &lsqb;RasSrv::GWPrefixes&rsqb;
 <label id="gwprefixes">
 <p>
 本部分配置如何将拨打的E.164号码路由到指定网关。
@@ -54,7 +54,7 @@
 <tt/test-gw=02,03:=3,04:=1/
 </descrip>
 
-<sect1>Section &lsqb;RasSrv::PermanentEndpoints&rsqb;
+<sect1> &lsqb;RasSrv::PermanentEndpoints&rsqb;
 <p>
 在本节中，可配置不支持RAS或不想过期的端点。他们的记录将始终保留在GK的注册列表中。但仍然可以通过控制端口取消注册。特殊字符<tt/./ and <tt/!/ 可以在此处与前缀一起使用，以匹配任何数字并禁用前缀。
 可使用:= 语法以与 <ref id="gwprefixes" name="[RasSrv::GWPrefixes]"> 部分相同的方式设置前缀优先级。
@@ -75,7 +75,7 @@
 </descrip>
 
 
-<sect1>Section &lsqb;RasSrv::RRQFeatures&rsqb;
+<sect1> &lsqb;RasSrv::RRQFeatures&rsqb;
 <p>
 <itemize>
 <item><tt/AcceptEndpointIdentifier=1/<newline>
@@ -145,7 +145,7 @@ MCU可以通过在RRQ的<bf/terminalType/字段中发送<bf/supportedPrefixes/�
 </itemize>
 
 
-<sect1>Section &lsqb;RasSrv::ARQFeatures&rsqb;
+<sect1> &lsqb;RasSrv::ARQFeatures&rsqb;
 <p>
 <itemize>
 <item><tt/ArjReasonRouteCallToGatekeeper=1/<newline>
@@ -187,7 +187,7 @@ MCU可以通过在RRQ的<bf/terminalType/字段中发送<bf/supportedPrefixes/�
 
 </itemize>
 
-<sect1>Section &lsqb;RasSrv::AssignedAlias&rsqb;
+<sect1> &lsqb;RasSrv::AssignedAlias&rsqb;
 <p>
 这允许根据H323ID或注册端点的显示源IP地址分配网守。检查GRQ中收到的H323ID，以查看其是否具有分配的网守的前缀或IP是否在分配的网守的范围内。
 然后，建议GCF中的端点向该网守注册。一个特定的前缀可能有多个网守。第一个被分配为主数据库，其他则为备用数据库。（需要H.323v6）
@@ -200,7 +200,7 @@ MCU可以通过在RRQ的<bf/terminalType/字段中发送<bf/supportedPrefixes/�
 </verb>
 </descrip>
 
-<sect1>Section &lsqb;AssignedAliases::SQL&rsqb;
+<sect1> &lsqb;AssignedAliases::SQL&rsqb;
 <p>
 本节将GnuGk配置为从数据库读取分配的别名。可使用<ref id="sqlpasswordauth" name="[SQLPasswordAuth]">中定义的相同数据库参数。
 
@@ -222,7 +222,7 @@ SELECT assignedalias FROM users WHERE alias = '%u' AND active
 
 </itemize>
 
-<sect1>Section &lsqb;RasSrv::AlternateGatekeeper&rsqb;
+<sect1> &lsqb;RasSrv::AlternateGatekeeper&rsqb;
 <label id="rassrvalternategatekeeper">
 <p>
 本部分允许你从[Gatekeeper::Main]部分覆盖某些IP或IP范围的<ref id="alternategks" name="AlternateGKs">全局定义。
@@ -246,7 +246,7 @@ SELECT assignedalias FROM users WHERE alias = '%u' AND active
 </descrip>
 
 
-<sect1>Section &lsqb;RasSrv::AssignedGatekeeper&rsqb;
+<sect1> &lsqb;RasSrv::AssignedGatekeeper&rsqb;
 <p>
 这允许根据H323ID或注册端点的显示源IP地址分配网守。检查GRQ中收到的H323ID，以查看其是否具有分配的网守的前缀或IP是否在分配的网守的范围内。
 然后，建议GCF中的端点向该网守注册。一个特定的前缀可能有多个网守。第一个被分配为主数据库，其他则为备用数据库。(需要H.323v6)
@@ -267,7 +267,7 @@ SELECT assignedalias FROM users WHERE alias = '%u' AND active
 </descrip>
 
 
-<sect1>Section &lsqb;AssignedGatekeepers::SQL&rsqb;
+<sect1> &lsqb;AssignedGatekeepers::SQL&rsqb;
 <p>
 本部分允许<htmlurl url="https://www.gnugk.org/" name="GnuGk">从数据库读取分配的网守。
 可使用 <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">中定义的相同数据库参数。
@@ -293,7 +293,7 @@ SELECT assignedgatekeeper FROM users WHERE alias = '%u' AND active
 </itemize>
 
 
-<sect1>Section &lsqb;AlternateGatekeepers::SQL&rsqb;
+<sect1> &lsqb;AlternateGatekeepers::SQL&rsqb;
 <p>
 本部分允许<htmlurl url="https://www.gnugk.org/" name="GnuGk">从数据库中读取备用网守。
 可使用<ref id="sqlpasswordauth" name="[SQLPasswordAuth]">中定义的相同数据库参数。
@@ -318,7 +318,7 @@ SELECT alternategatekeeper FROM users WHERE ip = '%i' AND active
 </itemize>
 
 
-<sect1>Section &lsqb;AssignedLanguage::SQL&rsqb;
+<sect1> &lsqb;AssignedLanguage::SQL&rsqb;
 <p>
 本节将GnuGk配置为从数据库读取分配的语言。可使用<ref id="sqlpasswordauth" name="[SQLPasswordAuth]">中定义的相同数据库参数。
 
@@ -341,7 +341,7 @@ SELECT assignedlanguage FROM users WHERE alias = '%u' AND active
 </itemize>
 
 
-<sect1>Section &lsqb;NATedEndpoints&rsqb;
+<sect1> &lsqb;NATedEndpoints&rsqb;
 <p>
 网守可以自动检测端点是否在NAT之后。
 若检测失败，则可以在本节中手动指定它。
@@ -355,7 +355,7 @@ SELECT assignedlanguage FROM users WHERE alias = '%u' AND active
 </descrip>
 
 
-<sect1>Section &lsqb;GkPresence::SQL&rsqb;
+<sect1> &lsqb;GkPresence::SQL&rsqb;
 <p>
 H323 SQL Presence系统：高度实验性使用 <ref id="database" name="公共数据库配置选项 ">来定义此模块的数据库连接。
 

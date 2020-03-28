@@ -1,12 +1,12 @@
-<sect>Accounting Configuration
+<sect>事务记录配置
 <p>
-配置文件中的以下部分可用于计费配置。
+配置文件中的以下部分可用于记录事务。
 
-<sect1>Section &lsqb;Gatekeeper::Acct&rsqb;
+<sect1>配置 &lsqb;Gatekeeper::Acct&rsqb;
 <label id="gkacct">
 <p>
-本节定义了可用于执行计费的列表模块。记录功能可用于记录网守事件，如，开/关事件和呼叫开始/停止/更新。每个计费模块将收到的事件会记录到模块特定的存储中。
-各种存储选项包括纯文本文件，RADIUS服务器等等。该配置与网守身份验证的配置非常相似（请参阅 <ref id="gkauth" name="[Gatekeeper::Auth]">）。
+本节定义了可用于执行事务的列表模块。记录功能可用于记录网守事件，如，开/关事件和呼叫开始/停止/更新。每个事务模块将收到的事件会记录到模块特定的存储中。
+各种存储选项包括纯文本文件，RADIUS服务器等等。该配置与网守身份验证的配置类似（请参阅 <ref id="gkauth" name="[Gatekeeper::Auth]">）。
 
 所有CDR也会发送到控制端口，可由外部应用程序使用。
 
@@ -44,17 +44,17 @@ acctmod=actions
 记事模块可以重叠配置以记录多个模块的事件或创建故障转移setups。每个模块的<bf/控制/标志以及结果代码定义了整个模块队列进行事件处理的结果状态。
 若结果是<bf/失败/，则可能会采取一些特殊措施。当前，若呼叫<bf/开始/事件记录失败，则呼叫将立即断开连接。可识别以下<bf/控制/标志：
 <itemize>
-<item><tt/required/ - 若模块不能记录事件，则结果状态将设置为“ failure”（失败），并将事件向下传递给所有剩余模块
+<item><tt/required/ - 若模块不能记录事件，则结果状态将设置为“failure”（失败），并将事件向下传递给所有剩余模块
 <item><tt/optional/ - 模块尝试记录事件，但结果状态不受成功或失败的影响（除非模块位于列表的最后）。该事件始终传递给任何剩余的模块。
 <item><tt/sufficient/ - 模块确定结果状态。若成功记录了事件，则不会处理剩余的模块。否则，结果状态将设置为“失败”，并且事件将传递给其余所有模块。
 <item><tt/alternative/ - 若模块成功记录了事件，则不会处理剩余的模块。否则，结果状态将不会被修改，并且事件将被传递给其余所有模块。
 </itemize>
 
-当前支持的计费模块：
+当前支持的事务模块：
 <itemize>
 <item><tt>FileAcct</tt>
 <p>
-普通的呼叫详细信息报告("CDR")文本文件记录器。它将CDR状态数据输出到指定的文本文件。该模块仅支持<bf/停止/计费事件。配置设置是从<ref id="fileacct" name="[FileAcct]">部分读取的。
+普通的呼叫详细信息报告("CDR")文本文件记录器。它将CDR状态数据输出到指定的文本文件。该模块仅支持<bf/停止/事务事件。配置设置是从<ref id="fileacct" name="[FileAcct]">部分读取的。
 
 <item><tt>RadAcct</tt>
 <p>
@@ -136,12 +136,12 @@ FileAcct模块不支持启动事件，因此它返回<bf/下一个/代码。若�
 <tt/default=fail;start/<newline>
 </descrip>
 在<bf/默认/的规则在这里是可选。如果RadAcct返回开始事件的<bf/失败/代码，则该代码将传递到FileAcct模块。FileAcct模块不支持开始事件，因此它返回<bf/下一个/返回代码。
-该默认规则确保如果启动呼叫事件无法RadAcct记录的电话被挂断。但我们仍然希望将CDR存储在文本文件中，以防万一当呼叫断开时RADIUS服务器关闭，因此我们可稍后将呼叫持续时间获取到计费系统中。
+该默认规则确保如果启动呼叫事件无法RadAcct记录的电话被挂断。但我们仍然希望将CDR存储在文本文件中，以防万一当呼叫断开时RADIUS服务器关闭，因此我们可稍后将呼叫持续时间获取到事务系统中。
 
-<sect1>自定义话单字符串和计费数据
+<sect1>自定义话单字符串和事务数据
 <label id="cdrparameters">
 <p>
-大多数计费模块可自定义它们存储的CDR数据。它们使用一组通用的参数来定义CDR字符串。
+大多数事务模块可自定义它们存储的CDR数据。它们使用一组通用的参数来定义CDR字符串。
 
 参数是使用<tt/%/字符指定的，可以是一个字母（如<tt/%n/）或更长的字母（如<tt/%{CallId}/）。
 任何不是参数名称的剩余字符都将被简单地复制到最终的CDR字符串中。在所有与呼叫相关的记录事件中都可识别以下参数：
@@ -163,7 +163,7 @@ FileAcct模块不支持启动事件，因此它返回<bf/下一个/代码。若�
 <item><tt/%{external-ip}/ - GK的外部IP地址（若存在）
 <item><tt/%{CallId}/ - H.323呼叫标识符（十六进制8位数字）
 <item><tt/%{ConfId}/ - H.323会议标识符 (十六进制8位数字)
-<item><tt/%{CallLink}/ - 链接的H.323会议标识符（用于H.450呼叫转移的计费帐户）
+<item><tt/%{CallLink}/ - 链接的H.323会议标识符（用于H.450呼叫转移的事务帐户）
 <item><tt/%{setup-time}/ - Q.931 Setup消息的时间戳字符串
 <item><tt/%{alerting-time}/ - Q.931 Alerting消息的时间戳字符串
 <item><tt/%{connect-time}/ - 呼叫连接事件的时间戳字符串
@@ -181,7 +181,7 @@ FileAcct模块不支持启动事件，因此它返回<bf/下一个/代码。若�
 <item><tt/%{caller-epid}/ - 主叫方的终端标识符
 <item><tt/%{callee-epid}/ - 被叫方的终端标识符
 <item><tt/%{call-attempts}/ - 建立呼叫的尝试次数（使用故障转移时，该次数可>1）
-<item><tt/%{last-cdr}/ - 该呼叫是否是最后一个CDR ? (0 / 1)仅在使用故障转移时可为0 
+<item><tt/%{last-cdr}/ - 该呼叫是否是最后一个CDR ? (0/1)仅在使用故障转移时可为0 
 <item><tt/%{client-auth-id}/ - 验证呼叫时（通过SQLAuth）提供给GnuGk的64位整数ID
 <item><tt/%{caller-vendor}/ - 呼叫终端的供应商和版本信息
 <item><tt/%{callee-vendor}/ - 被叫终端的供应商和版本信息
@@ -235,10 +235,10 @@ FileAcct模块不支持启动事件，因此它返回<bf/下一个/代码。若�
 <item><tt/%{env9}/ - 环境变量GNUGK_ENV9的内容
 </itemize>
 
-<sect1>Section &lsqb;FileAcct&rsqb;
+<sect1>写入指定文件 &lsqb;FileAcct&rsqb;
 <label id="fileacct">
 <p>
-此计费模块将CDR行写入指定的文本文件。CDR格式可以是标准格式（与状态界面显示的格式相同）或定制格式（使用参数化查询字符串）。
+此事务模块将CDR行写入指定的文本文件。CDR格式可以是标准格式（与状态界面显示的格式相同）或定制格式（使用参数化查询字符串）。
 
 <itemize>
 <item>
@@ -335,15 +335,15 @@ StandardCDRFormat等效于以下定义：
 
 </itemize>
 
-<sect1>Section &lsqb;RadAcct&rsqb;
+<sect1>RADIUS服务器 &lsqb;RadAcct&rsqb;
 <label id="radacct">
 <p>
-该计费模块将计费数据发送到RADIUS服务器。模块配置与RADIUS身份验证器几乎相同（有关参数的更多详细信息，请参见 <ref id="radauth" name="[RadAuth]"> 和 <ref id="radaliasauth" name="[RadAliasAuth]">）。
+该事务模块将事务数据发送到RADIUS服务器。模块配置与RADIUS身份验证器几乎相同（有关参数的更多详细信息，请参见 <ref id="radauth" name="[RadAuth]"> 和 <ref id="radaliasauth" name="[RadAliasAuth]">）。
 <itemize>
 <item><tt/Servers=SERVER1[:AUTH_PORT:ACCT_PORT[:SECRET]];SERVER2[:AUTH_PORT:ACCT_PORT[:SECRET]];.../<newline>
 默认：<tt>N/A</tt><newline>
 <p>
-要将计费数据发送到的RADIUS服务器。若未提供端口信息，则使用端口号<tt/DefaultAcctPort/。若未设置密码，<tt/SharedSecret/则使用默认的共享密码。
+要将事务数据发送到的RADIUS服务器。若未提供端口信息，则使用端口号<tt/DefaultAcctPort/。若未设置密码，<tt/SharedSecret/则使用默认的共享密码。
 服务器名称可通过IP地址或DNS名称指定。IPv6地址必须始终写在方括号中。
 
 <descrip>
@@ -441,7 +441,7 @@ RADIUS属性中发送的时间戳字符串的格式。若未指定此设置，�
 
 <sect2>&lsqb;RadAcct&rsqb; Accounting-Request RADIUS Attributes
 <p>
-对于计费请求，计费请求包中包含以下RADIUS属性。每个属性后都有一个事件记录类型列表。
+对于事务请求，事务请求包中包含以下RADIUS属性。每个属性后都有一个事件记录类型列表。
 <p>
 <itemize>
 <item><tt>Acct-Status-Type (start,update,stop,on,off)</tt><newline>
@@ -466,7 +466,7 @@ RADIUS属性中发送的时间戳字符串的格式。若未指定此设置，�
 		
 <item><tt>Acct-Session-Id (start,update,stop)</tt><newline>
 <p>
-		唯一的计费会话标识符字符串。
+		唯一的事务会话标识符字符串。
 		
 <item><tt>User-Name (start,update,stop)</tt><newline>
 <p>
@@ -498,11 +498,11 @@ RADIUS属性中发送的时间戳字符串的格式。若未指定此设置，�
 		
 <item><tt>(optional) VSA: VendorId=Cisco, h323-call-origin (start,update,stop)</tt><newline>
 <p>
-		固定字符串“ proxy”。
+		固定字符串“proxy”。
 		
 <item><tt>(optional) VSA: VendorId=Cisco, h323-call-type (start,update,stop)</tt><newline>
 <p>
-		固定字符串“ VoIP”。
+		固定字符串“VoIP”。
 		
 <item><tt>(optional) VSA: VendorId=Cisco, h323-setup-time (start,update,stop)</tt><newline>
 <p>
@@ -584,13 +584,13 @@ RADIUS属性中发送的时间戳字符串的格式。若未指定此设置，�
 
 <sect2>&lsqb;RadAcct&rsqb; Accounting-Response Radius Attributes
 <p>
-网守将忽略计费响应半径数据包中存在的所有属性。
+网守将忽略事务响应半径数据包中存在的所有属性。
 <p>
 
-<sect1>Section &lsqb;SQLAcct&rsqb;
+<sect1>SQL &lsqb;SQLAcct&rsqb;
 <label id="sqlacct">
 <p>
-该计费模块将计费信息直接存储到SQL数据库中。许多配置设置与其他SQL模块相同。
+该事务模块将事务信息直接存储到SQL数据库中。许多配置设置与其他SQL模块相同。
 
 使用<ref id="database" name="公共数据库配置选项">来定义此模块的数据库连接。
 
@@ -676,7 +676,7 @@ INSERT INTO call (gkname, sessid, username, calling, called, duration)
 <item><tt/MinPoolSize=5/<newline>
 默认：<tt>1</tt><newline>
 <p>
-池中的并发SQL连接数。池中的第一个可用连接用于存储计费数据。
+池中的并发SQL连接数。池中的第一个可用连接用于存储事务数据。
 
 </itemize>
 
@@ -773,10 +773,10 @@ TimestampFormat=MySQL
 </verb></tscreen>
 
 
-<sect1>Section &lsqb;StatusAcct&rsqb;
+<sect1>状态信息 &lsqb;StatusAcct&rsqb;
 <label id="statusacct">
 <p>
-该计费模块将所有计费信息发送到控制端口，该端口可用于实时连接外部系统。
+该事务模块将所有事务信息发送到控制端口，该端口可用于实时连接外部系统。
 
 可使用<ref id="cdrparameters" name="公共CDR参数">来定义要包括在事件字符串中的内容。
 
@@ -784,7 +784,7 @@ TimestampFormat=MySQL
 <item><tt/StartEvent=CALL|Start|%{CallId}/<newline>
 默认：<tt>CALL|Start|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
 <p>
-定义要为新呼叫显示的事件。使用与其他计费模块相同的变量对字符串进行参数化（请参见 <ref id="sqlacct" name="[SQLAcct]">）。
+定义要为新呼叫显示的事件。使用与其他事务模块相同的变量对字符串进行参数化（请参见 <ref id="sqlacct" name="[SQLAcct]">）。
 
 <item><tt/StopEvent=CALL|Stop|%{CallId}/<newline>
 默认：<tt>CALL|Stop|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
@@ -834,10 +834,10 @@ TimestampFormat=MySQL
 </itemize>
 
 
-<sect1>Section &lsqb;SyslogAcct&rsqb;
+<sect1>系统日志 &lsqb;SyslogAcct&rsqb;
 <label id="syslogacct">
 <p>
-该计费模块将计费信息发送到Unix syslog，在Windows上不可用。然后，本地syslog守护程序将根据其配置（通常在/etc/syslog.conf中指定）来路由消息。
+该事务模块将事务信息发送到Unix syslog，在Windows上不可用。然后，本地syslog守护程序将根据其配置（通常在/etc/syslog.conf中指定）来路由消息。
 
 可使用<ref id="cdrparameters" name="公共CDR参数">来定义要包括在事件字符串中的内容。
 
@@ -855,7 +855,7 @@ TimestampFormat=MySQL
 <item><tt/StartEvent=CALL|Start|%{CallId}/<newline>
 默认：<tt>CALL|Start|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
 <p>
-定义要为新呼叫显示的事件。使用与其他计费模块相同的变量对字符串进行参数设置（请参见 <ref id="sqlacct" name="[SQLAacct]">）。
+定义要为新呼叫显示的事件。使用与其他事务模块相同的变量对字符串进行参数设置（请参见 <ref id="sqlacct" name="[SQLAacct]">）。
 
 <item><tt/StopEvent=CALL|Stop|%{CallId}/<newline>
 默认：<tt>CALL|Stop|%{caller-ip}:%{caller-port}|%{callee-ip}:%{callee-port}|%{CallId}</tt><newline>
@@ -879,10 +879,10 @@ TimestampFormat=MySQL
 
 </itemize>
 
-<sect1>Section &lsqb;LuaAcct&rsqb;
+<sect1>Lua &lsqb;LuaAcct&rsqb;
 <label id="luaacct">
 <p>
-该计费模块为每个计费事件运行一个LUA脚本。
+该事务模块为每个事务事件运行一个LUA脚本。
 
 在<ref id="cdrparameters" name="常见的CDR参数">可作为LUA变量<tt>param_g</tt>或<tt>param_Called_Station_Id</tt>。
 参数名中的减号用下划线代替，以构造有效的LUA变量名。
@@ -909,10 +909,10 @@ TimestampFormat=MySQL
 </itemize>
 
 
-<sect1>Section &lsqb;HttpAcct&rsqb;
+<sect1>HTTP &lsqb;HttpAcct&rsqb;
 <label id="httpacct">
 <p>
-该计费模块通过HTTP发送计费信息。
+该事务模块通过HTTP发送事务信息。
 
 可使用<ref id="cdrparameters" name="公共CDR参数"> 来定义要包含在请求URL或正文中的内容。
 
@@ -1040,10 +1040,10 @@ TimestampFormat=MySQL
 </itemize>
 
 
-<sect1>Section &lsqb;AMQPAcct&rsqb;
+<sect1>AMQP &lsqb;AMQPAcct&rsqb;
 <label id="amqpacct">
 <p>
-该计费模块将计费信息发送到AMQP队列，例如RabbitMQ。
+该事务模块将事务信息发送到AMQP队列，例如RabbitMQ。
 
 可使用<ref id="cdrparameters" name="公共CDR参数">来定义要包含在请求URL或正文中的内容。
 
@@ -1159,10 +1159,10 @@ OFF事件的文本。可使用标准帐户参数。
 在主机，Port, User, Password, UseSSL, CACert, Exchange and RoutingKey的设置中，可使用%{env1}至 %{env9}插入环境变量GNUGK_ENV1 ... GNUGK_ENV9。
 
 
-<sect1>Section &lsqb;MQTTAcct&rsqb;
+<sect1>MQTT &lsqb;MQTTAcct&rsqb;
 <label id="mqttacct">
 <p>
-该计费模块将计费信息发送到MQTT服务器。
+该事务模块将事务信息发送到MQTT服务器。
 
 可使用<ref id="cdrparameters" name="公共CDR参数">来定义要包含在请求URL或正文中的内容。
 
@@ -1268,10 +1268,10 @@ OFF事件的文本。可使用标准帐户参数。
 在主机，Port, User, Password, UseSSL and CACert的设置中，可使用%{env1}至%{env9}插入环境变量GNUGK_ENV1 ... GNUGK_ENV9
 
 
-<sect1>Section &lsqb;RequireOneNet&rsqb;
+<sect1>强制网络一侧 &lsqb;RequireOneNet&rsqb;
 <label id="requireonenet">
 <p>
-尽管从技术上讲这是一个记事模块，但其逻辑目的是对呼叫进行身份验证，并确保cal的至少一端在自己的网络中。
+从技术上讲这是一个记事模块，其逻辑目的是对连接进行身份验证，并确保连接的一端至少在自己的网络中。
 这样做的目的是为了保护穿透网守免受滥用，因为这些滥用本来就需要每个想打入你的网络的人都可以访问，但不应允许它支持外部到外部的呼叫。
 
 <itemize>

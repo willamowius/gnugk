@@ -1,6 +1,6 @@
 <sect>邻域配置
 <p>
-<sect1>Section &lsqb;RasSrv::Neighbors&rsqb;
+<sect1> &lsqb;RasSrv::Neighbors&rsqb;
 <label id="neighbor">
 <p>
 若ARQ的目的地未知，则网守会将LRQ发送给其邻域，以询问它们是否具有目的地端点。
@@ -22,7 +22,7 @@
 适用于任何符合H.323的供应商的邻域。（此设置与'GnuGk'相同。）
 
 <item><tt/GnuGk/<newline>
-如有疑问，请使用GnuGk网守类型。这也会激活H.460.23 / H.460.24。
+如有疑问，请使用GnuGk网守类型。这也会激活H.460.23/H.460.24。
 
 <item><tt/CiscoGk/<newline>
 GnuGk将伪装成思科的网守，并发送虚假的制造商数据。仅用于真正古老的思科网守。
@@ -60,7 +60,7 @@ Clarent的网守无法解码LRQ中的nonStandardData，因此GnuGk会将其过�
 
 该<tt/[RasSrv::Neighbors]/部分仅用于指定网守类型。每个邻域的配置都放在单独的部分中。
 
-<sect1>Section &lsqb;RasSrv::LRQFeatures&rsqb;
+<sect1> &lsqb;RasSrv::LRQFeatures&rsqb;
 <label id="lrqfeatures">
 <p>
 定义LRQ和LCF的某些功能。
@@ -163,7 +163,7 @@ Default: <tt>0</tt><newline>
 </itemize>
 
 
-<sect1>Section &lsqb;Neighbor::...&rsqb;
+<sect1> &lsqb;Neighbor::...&rsqb;
 <p>
 以开头的<tt/[Neighbor::/部分特定于一个邻域。若定义&lsqb;Neighbor::...&rsqb部分，则<ref id="lrqfeatures" name="[RasSrv::LRQFeatures]">中所有设置的默认值都 将应用于此邻域。
 可通过每个特定于邻域的部分中的配置选项来覆盖全局默认值。
@@ -318,7 +318,7 @@ Default: <tt>0</tt><newline>
 <sect1>使用GnuGk作为穿越客户端配置穿越区域
 <label id="traversalclient">
 <p>
-要使用Tandberg VCS配置穿越区域，请在VCS中添加类型为“ Traversal服务器”的区域。用作穿越服务器时，VCS通常使用其他端口，因此请确保将端口添加到主机交换机。
+要使用Tandberg VCS配置穿越区域，请在VCS中添加类型为“Traversal服务器”的区域。用作穿越服务器时，VCS通常使用其他端口，因此请确保将端口添加到主机交换机。
 <p>
 在VCS设置中启用H.323，将协议设置为H.460.18（未批准），然后选择端口（不能使用1719！）。
 必须在GnuGk配置中为此邻域指定此端口。在VCS中设置用户名和密码，并将其放入GnuGk配置中的SendAuthUser= 和SendPaswword= 中。

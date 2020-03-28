@@ -18,7 +18,7 @@
 在Unix上, 运行 <tt/configure/ 和 <tt/make debugnoshared/ 或者 <tt/make optnoshared/
 在GnuGK目录中构建调试或发行版本。
 
-<bf>注意:</bf>  整个编译过程你必须使用 <tt/make debugnoshared/ 或者 <tt/make optnoshared/
+<bf>注意:</bf> 整个编译过程你必须使用 <tt/make debugnoshared/ 或者 <tt/make optnoshared/
 例如，若使用 <tt/make
 optnoshared/ 则必须以相同方式编译所有内容。
 
@@ -40,10 +40,10 @@ optnoshared/ 则必须以相同方式编译所有内容。
 <tscreen><verb>
 /usr/sbin/gnugk -c /etc/gatekeeper.ini -o /var/log/gnugk.log -ttt
 </verb></tscreen>
-有关 <ref id="commandline" name="命令行选项">的详细信息，请参见 “命令行选项”部分。
+有关 <ref id="commandline" name="命令行选项">的详细信息，请参见“命令行选项”部分。
 
 若希望运行大量呼叫（超过100个并发呼叫），请确保GnuGK获得足够的sockets缓冲区和堆栈空间，
-例如：在启动之前设置“ ulimit -n 10240 -s unlimited”。
+例如：在启动之前设置“ulimit -n 10240 -s unlimited”。
 
 
 <sect2>编译GnuGK
@@ -56,8 +56,8 @@ Type <tscreen><verb>configure --help</verb></tscreen> 查看所有编译时选�
 例如，若不需要RADIUS，可输入: <tscreen><verb>configure --disable-radius</verb></tscreen>
 
 为了在重负载下使用网守，建议启用LARGE_FDSET功能（configure --enable-large-fdset）。
-某些系统还需要使用ulimit才能为单个进程分配1024个以上的sockets缓冲区。
-视频通话所需的最大套接字数应根据预测的最大sockets缓冲区使用量，使用以下公式计算：
+某些系统还需要使用ulimit才能为单个进程分配1024个以上的sockets。
+视频通话所需的最大数量的sockets数，应根据预测的sockets最大使用量，使用以下公式计算：
 
 <tscreen><verb>
 MAX_NUMBER_OF_CONCURRENT_CALLS * 10 * 120%
@@ -65,12 +65,11 @@ MAX_NUMBER_OF_CONCURRENT_CALLS * 10 * 120%
 Where:
 10 = 2 sockets for Q.931 + 2 sockets for H.245 + 6 sockets for RTP
 </verb></tscreen>
-因此，对于100个内并发语音通话，您不需要超过1024个sockets缓冲区。
+因此，对于100个内并发语音通话，不需要超过1024个sockets。
 
-请不要在将H.245和RTP多路复用与H.460.18一起使用时使用更少的sockets缓冲区。
+在使用H.245和H.460.18的RTP多路复用时，尽量少的使用sockets，减少通道占用。
 
-最后，您必须使用 <tt/make debugnoshared/ or <tt/make optnoshared/, 
-具体取决于您对库的编译方式。
+最后，必须使用 <tt/make debugnoshared/ or <tt/make optnoshared/, 具体取决于您对库的编译方式。
 
 <sect1>在Windows上安装
 <p>
@@ -82,30 +81,30 @@ Where:
 
 <sect2>程序安装
 <p>
-这些是手动安装的步骤：
+下面是手动安装的步骤：
 
 拷贝 <tt/gnugk.exe/ 到您指定的文件夹并创建一个配置文件
 解压目录里有配置文件在 <tt>etc/</tt>。
 参阅 <ref id="config" name="配置文件">
 部分获取详细说明。
 
-然后从命令行（'cmd.exe'）手动启动Gatekeeper，或创建一个批处理文件来启动它。
+从命令行（'cmd.exe'）手动启动Gatekeeper，或创建一个批处理文件来启动它。
 
-例如，您可以将GnuGk复制到 <tt>C:\GnuGk\</tt>, 在该目录里创建一个配置文件
-<tt>C:\GnuGk\gatekeeper.ini</tt> 向下面一样启动它
+例如，可将GnuGk复制到 <tt>C:\GnuGk\</tt>, 在该目录里创建一个配置文件
+<tt>C:\GnuGk\gatekeeper.ini</tt> 启动它，如下示：
 <tscreen><verb>
 C:\GnuGk\gnugk.exe -c C:\GnuGk\gatekeeper.ini -o C:\GnuGk\gnugk.log -ttt
 </verb></tscreen>
-有关 <ref id="commandline" name="命令行选项"> 的详细信息，请参见 “命令行选项”部分。
+有关 <ref id="commandline" name="命令行选项"> 的详细信息，请参见“命令行选项”部分。
 
 记得在Windows防火墙中添加GnuGk为例外，确保它可以与网络通信。
 
 <sect2>以服务方式安装
 <p>
-这些是手动安装的步骤。 在生成时选择的Gatekeeper-as-service
+手动安装步骤，在编译生成时选择的Gatekeeper-as-service
 其中包括在下载位置可用的GUI安装程序。
 
-首先，在继续之前，请确保您有GnuGk的以服务方式启动的版本。
+首先，在继续之前，请确保您有GnuGk的以服务方式启动的软件版本。
 
 复制 <tt/gnugk.exe/ 到您指定的目录，创建一个配置文件命名为<tt/gatekeeper.ini/ 像这样
 参阅 <ref id="config" name="配置文件">
@@ -147,12 +146,12 @@ $ make optnoshared
 $ addpasswd CONFIG SECTION KEYNAME PASSWORD
 </verb></tscreen>
 
-示例1：必须将具有'secret'密码的'gkadmin'用户添加到[GkStatus :: Auth]配置部分，以在连接控制端口上启用身份验证：
+示例1：必须将具有'secret'密码的'gkadmin'用户添加到[GkStatus::Auth]配置部分，以在连接控制端口上启用身份验证：
 <tscreen><verb>
 $ addpasswd gatekeeper.ini GkStatus::Auth gkadmin secret
 </verb></tscreen>
 
-示例2：必须将具有“秘密”密码的“ joe”用户添加到[Password]配置部分，以启用终端身份验证：
+示例2：必须将具有“秘密”密码的“joe”用户添加到[Password]配置部分，以启用终端身份验证：
 <tscreen><verb>
 $ addpasswd gatekeeper.ini Password joe secret
 </verb></tscreen>
