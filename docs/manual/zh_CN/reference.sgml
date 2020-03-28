@@ -7,7 +7,7 @@
 <sect1>命令行选项
 <label id="commandline">
 <p>
-每个选项都有长短格式，例如
+每个选项都有全写和简写格式，例如
 <tt/-c/ 与 <tt/--config/ 相同。
 <p>
 <sect2>基本的
@@ -18,11 +18,11 @@
 <tag/<tt/-c  --config filename//
 指定要使用的配置文件。
 <tag/<tt/--strict//
-配置的严格检查（不要以配置错误开头）
+配置的严格检查（不要以错误配置开头）
 <tag/<tt/-s  --section section//
-指定在配置文件中使用那一节做为主要章节。默认值为 [Gatekeeper::Main]。
+指定在配置文件中主要章节，可指定节点。默认值为 [Gatekeeper::Main]。
 <tag/<tt/-l  --timetolive n//
-指定终端注册的保活时间（以秒为单位） 覆盖 <tt/TimeToLive/ 配置文件中的设置。
+指定终端注册的保活时间（以秒为单位）覆盖 <tt/TimeToLive/ 配置文件中的设置。
 See <ref id="ttl" name="此处"> 有关详细说明。
 <tag/<tt/-b  --bandwidth n//
 指定GK可用的总带宽，以每秒100位为单位。若没有此选项，则禁用带宽管理。
@@ -34,7 +34,7 @@ See <ref id="ttl" name="此处"> 有关详细说明。
 以该用户身份运行GK进程。仅对Unix版本有效。
 <tag/<tt/--core n//
 当应用程序崩溃时，启用写入核心转储文件。核心转储文件的大小不会超过n个字节。
-特殊常量“ unlimited”可用于不强制执行任何特定限制。仅在Linux上有效。
+特殊常量“unlimited”可用于不强制执行任何特定限制。仅在Linux上有效。
 <tag/<tt/--mlock//
 将GnuGk锁定到内存中以防止被换出。仅在Linux上有效。
 </descrip>

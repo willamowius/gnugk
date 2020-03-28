@@ -16,7 +16,7 @@ sudo apt-get install automake flex bison build-essential git pkg-config automake
 <p>
 不要从Linux发行版中安装PTlib或H323Plus软件包。
 <p>
-<bf>注意</bf>: 不能使用OPAL项目中的最新PTLib；请参见第11页上的“ PTLib”。它正在进行许多与GnuGk不兼容的更改。使用我们的修补版本PTLib 2.10.9。
+<bf>注意</bf>: 不能使用OPAL项目中的最新PTLib；请参见第11页上的“PTLib”。它正在进行许多与GnuGk不兼容的更改。使用我们的修补版本PTLib 2.10.9。
 
 从Github获取并编译PTLib：
 <verb>
@@ -65,7 +65,7 @@ git pull
 make clean ; make optnoshared
 </verb>
 
-<sect1>Tracing GnuGk
+<sect1>GnuGk 信息追踪
 <label id="tracing">
 <p>
 若GnuGk无法按预期处理呼叫，则可以启用跟踪以查看GnuGk在内部执行的操作。
@@ -94,12 +94,12 @@ setlog trace.log
 debug trc 5
 </verb> 
 
-通过控制端口执行此操作的优点是您不会中断正在进行的呼叫，并且可以快速打开或关闭它。
+通过控制端口执行此操作的优点是不会中断正在进行的呼叫，并且可以快速打开或关闭它。
 
 跟踪文件将包含详细说明GnuGk所做的一切的信息。
 要将其简化为单个呼叫，您可以搜索callID或编写一个小的Perl脚本以仅提取您感兴趣的消息。
 
-<sect1>Debugging GnuGk (on Linux)
+<sect1>调试 GnuGk (on Linux)
 <label id="debug">
 <p>
 为了在GnuGk中使用gdb，必须在调试支持下编译软件和库。
@@ -127,5 +127,5 @@ bt
 
 获得回溯后，将其发布到邮件列表。
 
-注意：在某些系统上，核心转储名为“ core.xxx”，其中xxx是崩溃的GnuGk进程的进程号。
+注意：在某些系统上，核心转储名为“core.xxx”，其中xxx是崩溃的GnuGk进程的进程号。
 

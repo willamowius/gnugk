@@ -1,4 +1,4 @@
-<sect>监视GK
+<sect>查看GK状态信息
 <label id="monitor">
 <p>
 <sect1>控制端口
@@ -108,7 +108,7 @@ if ($gk_pid = fork()) {
 该程序可在 GnuGk.org上找到。
 <url url="https://www.gnugk.org/h323gui.html" name="GnuGk.org">
 
-<sect1>Commands (Reference)
+<sect1>命令行 (说明)
 <p>
 本节列出了可以发布到控制端口的所有命令（手动或使用外部应用程序）。命令不区分大小写，但参数可能不区分大小写。
 <p>
@@ -622,7 +622,7 @@ Yell Config reload in 5 minutes.
 <item><tt/RouteReject/<newline>
 <p>
 在虚拟队列上终止此呼叫。此命令用作对RouteRequest事件的响应（请参见下文）。必须将CallingEndpointID和CallRef传递回相应的RouteRequest中。
-CallID参数是可选的；如果给定，则其格式必须与RouteRequest发出的格式相同。还可选择设置数字H.225拒绝原因。
+CallID参数是可选的；若给定，则其格式必须与RouteRequest发出的格式相同。还可选择设置数字H.225拒绝原因。
 若样做，则必须存在callID参数。根据导致RouteRequest的消息，原因被解释为ReleaseCompleteReason或ARQRejectReason。
 
 <descrip>
@@ -747,7 +747,7 @@ RerouteCall 40-06-dd-98-22-37-52-40-8c-b0-92-0e-18-60-99-07 CALLER 192.168.1.222
 从源到目标别名生成一个新呼叫。也可指定IP地址作为目的地。这是通过建立从网守中的伪端点到源别名/号码的呼叫，然后将呼叫从网守端点转移到目的地来完成的。
 可以配置此呼叫转移完成方法，因为并非所有端点都支持所有方法。
 
-有关配置选项，请参见 [CTI :: MakeCall]。
+有关配置选项，请参见 [CTI::MakeCall]。
 See <ref id="ctimakecall" name="[CTI::MakeCall]"> for configuration options.
 <descrip>
 <tag/格式：/
@@ -775,7 +775,7 @@ MakeCall joe 192.168.6.1 H.450.2
 
 <item><tt/GetAuthInfo,gai/<newline>
 <p>
-收集来自特定身份验证模块的信息（如果它提供了此类信息），并将其显示在控制端口上。
+收集来自特定身份验证模块的信息（若它提供了此类信息），并将其显示在控制端口上。
 <descrip>
 <tag/格式：/
 <tscreen><verb>
@@ -788,7 +788,7 @@ GetAuthInfo RadAliasAuth
 </descrip>
 
 <item><tt/GetAcctInfo,gci/<newline>
-<p>收集来自特定计费模块的信息（如果它提供了此类信息），并将其显示在控制端口上。
+<p>收集来自特定计费模块的信息（若它提供了此类信息），并将其显示在控制端口上。
 <descrip>
 <tag/格式：/
 <tscreen><verb>
@@ -879,7 +879,7 @@ MaintenanceMode 1.2.3.4
 
 
 <sect1>消息/事件（参考）
-<p>本节描述了输出到状态界面的消息。
+<p>本节描述了输出到控制台的消息。
 
 <itemize>
 <item><tt/GCF|IP|Aliases|Endpoint_Type;/<newline>
@@ -945,7 +945,7 @@ MaintenanceMode 1.2.3.4
 
 </itemize>
 
-<sect1>Status Port Filtering
+<sect1>控制端口信息过滤
 <label id="statusportfiltering">
 <p>控制端口过滤有助于控制显示给最终用户的输出消息的数量和类型。过滤是使用正则表达式完成的，这些正则表达式用于确定是包含（显示）还是排除（忽略）输出消息。使用以下命令集执行过滤控制：
 
@@ -992,7 +992,7 @@ addexcludefilter .RQ
 filter 1
 </verb></tscreen>
 <p>
-请注意，如果在未定义任何包含过滤器的情况下启用过滤，则会自动排除所有消息输出！
+请注意，若在未定义任何包含过滤器的情况下启用过滤，则会自动排除所有消息输出！
 <p>
 <descrip>
 <tag/示例： 隐藏Tandberg的邻居检查和穿透区域keepalive消息:/
@@ -1013,7 +1013,7 @@ NewRCFOnly=1
 </verb></tscreen>
 </descrip>
 
-<sect1>Status Port Message Format
+<sect1>控制端口消息格式
 <label id="statusportmessage">
 <p>
 控制端口事件消息的格式可以更改为重新排序，或包括标准输出格式中未包含的选项。注意：本节对控制端口命令的响应格式不起作用，例如。PrintAllRegistrations详细。
@@ -1031,7 +1031,7 @@ Default: <tt>N/A</tt><newline>
 <p>
 RFC事件具有以下可用参数：
 <itemize>
-<item>IP:Port - 在其上检测到注册的IP和端口（如果位于NAT之后，则为外部NAT地址）
+<item>IP:Port - 在其上检测到注册的IP和端口（若位于NAT之后，则为外部NAT地址）
 <item>Aliases - 注册别名的完整列表
 <item>Endpoint_Type - 已注册端点的端点类型（即终端，网关）
 <item>EndpointID - 分配给注册的端点ID
@@ -1044,7 +1044,7 @@ Default: <tt>N/A</tt><newline>
 <p>
 URQ事件具有以下可用参数：
 <itemize>
-<item>IP:Port - 在其上检测到注册的IP和端口（如果位于NAT之后，则为外部NAT地址）
+<item>IP:Port - 在其上检测到注册的IP和端口（若位于NAT之后，则为外部NAT地址）
 <item>Aliases - 注册别名的完整列表
 <item>Endpoint_Type - 已注册端点的端点类型（即终端，网关）
 <item>EndpointID - 分配给注册的端点ID

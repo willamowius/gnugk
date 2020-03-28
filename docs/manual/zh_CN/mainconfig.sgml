@@ -45,7 +45,7 @@ redis当前仅适用于从数据库读取，不适用于SQLAcct。
 <item><tt>Library=c:/Program Files/Mysql/libmysql.dll</tt><newline>
 默认：<tt>N/A</tt><newline>
 <p>
-如果未自动找到共享库或DLL，则可以在此处设置其他文件名或提供库的绝对路径。
+若未自动找到共享库或DLL，则可以在此处设置其他文件名或提供库的绝对路径。
 
 <item><tt/Host=DNS[:PORT] | IP[:PORT]/<newline>
 默认：<tt/localhost/<newline>
@@ -59,9 +59,9 @@ ODBC 驱动程序将忽略此设置。
 <p>
 要连接的数据库名称。
 <p>
-要从Windows服务器连接到 <bf/ODBC 数据源 /, 请通过“控制面板” /“管理工具” /“数据源（ODBC）”创建数据源，然后添加系统DSN。在GnuGk的 Database= setting 中使用系统DSN的名称。
+要从Windows服务器连接到 <bf/ODBC 数据源/, 请通过“控制面板”/“管理工具”/“数据源（ODBC）”创建数据源，然后添加系统DSN。在GnuGk的 Database= setting 中使用系统DSN的名称。
 <p>
-要从Unix服务器连接到 <bf/ODBC 数据源 /, 请使用在unixODBC中配置的DSN定义。一些unixODBC驱动程序似乎忽略了GnuGk配置中设置的用户名和密码。
+要从Unix服务器连接到 <bf/ODBC 数据源/, 请使用在unixODBC中配置的DSN定义。一些unixODBC驱动程序似乎忽略了GnuGk配置中设置的用户名和密码。
 对于这些，您应该使用形式的DSN DSN=GnuGk;UID=admin;PWD=secret;。即使在这种情况下，GnuGk的Usename = 和 Password = setting 也必须始终存在。
 根据您的unixODBX配置，您可能必须在启动GnuGk之前export ODBCINI=/etc/unixODBC/odbc.ini 和 export ODBCSYSINI=/etc/unixODBC 之前启动。
 
@@ -109,7 +109,7 @@ ODBC 驱动程序将忽略此设置。
 <p>
 使用MySQL时，存储过程做得很好。
 
-使用ODBC时，不能使用“ CALL ProcedureName”语法调用使用参数的存储过程，但是可以使用“ EXEC ProcedureName”调用它们。
+使用ODBC时，不能使用“CALL ProcedureName”语法调用使用参数的存储过程，但是可以使用“EXEC ProcedureName”调用它们。
 
 使用存储过程进行处理时，请确保它们至少返回一个副本，以便GnuGk不会放弃该调用。
 
@@ -122,7 +122,7 @@ LUA是一种简单的脚本语言，Wireshark，FreeSWITCH或nmap等其他网络
 
 根据模块的不同，将获得一些变量以查看详细信息，例如：有关传入呼叫的​​信息，您的脚本可以设置某些输出变量来定义GnuGk应该如何处理该呼叫。您将在每个模块的文档中找到更多详细信息。
 
-所有LUA模块都有一个通用的LUA库，称为“ gnugk”，该库允许访问GnuGk功能。
+所有LUA模块都有一个通用的LUA库，称为“gnugk”，该库允许访问GnuGk功能。
 
 <itemize>
 <item><tt/gnugk.trace(level, "message")/ - write to the GnuGk trace file
@@ -135,7 +135,7 @@ LUA是一种简单的脚本语言，Wireshark，FreeSWITCH或nmap等其他网络
 <label id="regex">
 <p>
 在配置文件的某些地方，GnuGk允许使用正则表达式。这些正则表达式的语法是“扩展的POSIX 1003.2正则表达式”。在Unix系统上，通常可以得到一个手册页，
-以“ man 7 regex”解释语法，或者可以在 <url url="http://man7.org/linux/man-pages/man7/regex.7.html" name="http://man7.org/linux/man-pages/man7/regex.7.html"> 在线查看该手册。
+以“man 7 regex”解释语法，或者可以在 <url url="http://man7.org/linux/man-pages/man7/regex.7.html" name="http://man7.org/linux/man-pages/man7/regex.7.html"> 在线查看该手册。
 
 
 <sect1> &lsqb;Gatekeeper::Main&rsqb;
@@ -179,7 +179,7 @@ ExternalIP设置将优先，并将覆盖此值。
 GK将为每个注册的端点分配唯一的标识符。此选项可用于指定后缀以附加到端点标识符。此选项对安全性很有用，它使攻击者更难猜测端点ID，
 并且应将其设置为不容易被猜测的值。
 
-<bf/This 重新加载配置后，此设置不会更改，您必须完全重启！/
+<bf/This 重新加载配置后，此设置不会更改，必须完全重启！/
 
 <item><label id="ttl"><tt/TimeToLive=300/<newline>
 默认：<tt/-1/<newline>
@@ -193,17 +193,17 @@ GK将为每个注册的端点分配唯一的标识符。此选项可用于指定
 为避免RRQ消息过时，若指定了较低的值，则GK将自动将此计时器重置为60秒。
 
 时间超时后，GK将使用IRQ消息进行两次尝试，以确定端点是否在线。若端点以IRR响应，则注册将被扩展。
-如果不是，则GK将向端点发送URQ原因为 <bf/ttlExpired/。然后，端点必须使用完整的RRQ消息向网守重新注册。
+若不是，则GK将向端点发送URQ原因为 <bf/ttlExpired/。然后，端点必须使用完整的RRQ消息向网守重新注册。
 
 要禁用此功能，请将其设置为 <tt/-1/。
 
 <item><label id="ttl"><tt/EnableTTLRestrictions=0/<newline>
 默认：<tt/1/<newline>
 <p>
-通过“ TimeToLive”参数配置的默认TimeToLive（TTL）不适用于使用H.460.17和H.460.18协议穿越防火墙的端点。为了保持防火墙的通道打开，
-这些端点的TimeToLive默认为19秒。“ TimeToLive”参数可让您将其更改为低至5秒，高至30秒。
+通过“TimeToLive”参数配置的默认TimeToLive（TTL）不适用于使用H.460.17和H.460.18协议穿越防火墙的端点。为了保持防火墙的通道打开，
+这些端点的TimeToLive默认为19秒。“TimeToLive”参数可让您将其更改为低至5秒，高至30秒。
 
-若您确定不需要保持活动状态，可以通过将此开关设置为0来禁用这些限制。若禁用了TTL限制，则TimeToLive会成为所有端点（包括H.460.17和H.460.18）
+若确定不需要保持活动状态，可以通过将此开关设置为0来禁用这些限制。若禁用了TTL限制，则TimeToLive会成为所有端点（包括H.460.17和H.460.18）
 的全局设置。
 
 <item><tt/CompareAliasType=0/<newline>
@@ -214,7 +214,7 @@ GK将为每个注册的端点分配唯一的标识符。此选项可用于指定
 <item><tt/CompareAliasCase=0/<newline>
 默认：<tt/1/<newline>
 <p>
-默认情况下，别名“ jan”将与别名“ Jan”不匹配。若设置为false，则比较将不区分大小写。
+默认情况下，别名“jan”将与别名“Jan”不匹配。若设置为false，则比较将不区分大小写。
 
 <item><tt/TraceLevel=2/<newline>
 默认：<tt/0/<newline>
@@ -439,7 +439,7 @@ RAS通道的IPv4组播组。
 可以指定IP地址或完全限定的域名（FQDN）。若使用FQDN并将 <tt>ExternalIsDynamic</tt> 其设置为false, 它将在启动或重新加载配置时解析为IP地址。
 若<tt>ExternalIsDynamic</tt>设置为true，则将在需要时存储并解析名称。
 
-若将此开关设置为“ AWSPublicIP”，则GnuGk将从AWS元数据中获取公共/弹性IP。与Google Cloud，Azure和Alibaba Cloud的“ GooglePublicIP”，“ AzurePublicIP”和“ AlibabaPublicIP”相同。
+若将此开关设置为“AWSPublicIP”，则GnuGk将从AWS元数据中获取公共/弹性IP。与Google Cloud，Azure和Alibaba Cloud的“GooglePublicIP”，“AzurePublicIP”和“AlibabaPublicIP”相同。
 
 <item><tt/ExternalIsDynamic=1/<newline>
 默认：<tt/0/<newline>
@@ -457,14 +457,14 @@ RAS通道的IPv4组播组。
 <item><tt/Authenticators=H.235.1,CAT/<newline>
 默认：<tt>H.235.1,MD5,CAT,DES</tt><newline>
 <p>
-选择在认证端点时要使用的指定认证方式。默认选项为：H.235.1（HMAC SHA1 /旧的H235AnnexD），MD5（摘要身份验证）和CAT（Cisco访问令牌，即RADIUS）。
+选择在认证端点时要使用的指定认证方式。默认选项为：H.235.1（HMAC SHA1/旧的H235AnnexD），MD5（摘要身份验证）和CAT（Cisco访问令牌，即RADIUS）。
 设置值为NONE将禁用身份验证。该顺序指示认证机制的优先级。若省略此设置，则默认情况下将加载所有认证机制。若使用的是插件方式身份校验，
 则可能需要禁用默认身份认证以提供最佳安全性。注意：H.235.1需要将OpenSSL支持编译到GnuGk中。
 
 <item><tt/DisconnectCallsOnShutdown=0/<newline>
 默认：<tt>1</tt><newline>
 <p>
-GnuGk在关闭时断开所有的呼叫，向所有端点发送注销请求。要覆盖此默认值，请将此参数设置为“ 0”。此开关主要用于以直接模式运行的GK。
+GnuGk在关闭时断开所有的呼叫，向所有端点发送注销请求。要覆盖此默认值，请将此参数设置为“0”。此开关主要用于以直接模式运行的GK。
 关守关闭时，在路由模式和代理模式下的呼叫仍会中断。
 
 <item><tt/MaxASNArraySize=400/<newline>
@@ -497,10 +497,10 @@ TTL超时取消注册时是否结束端点呼叫，默认情况下，取消注�
 </itemize>
 
 
-<sect1>Section &lsqb;GkStatus::Auth&rsqb;
+<sect1>控制端口连接认证 &lsqb;GkStatus::Auth&rsqb;
 <label id="gkstatusauth">
 <p>
-定义许多控制端口的连接规则。访问控制端口可以完全控制GK，确保正确设置。GnuGk侦听的所有IP上的控制端口均处于活动状态。
+定义控制端口的连接规则。访问控制端口可以完全控制GK，确保正确设置。GnuGk侦听的所有IP上的控制端口均处于活动状态。
 您应该在设置允许的范围内，阻止外部穿透防火墙访问控制端口。
 若依赖密码规则来保护控制端口，则应添加其他基于IP的规则（“显式”或“正则表达式”）以限制允许登录的IP范围。
 <itemize>
@@ -529,7 +529,7 @@ To allow client from 195.71.129.0/24 and 195.71.131.0/24:
 
 </itemize>
 
-这些规则可以与“ |”组合 （“ OR”）或“&amp;”（“ AND”）。例如，
+这些规则可以与“|”组合 （“OR”）或“&amp;”（“AND”）。例如，
 <itemize>
 <item><tt>rule=explicit | regex</tt><newline>
 客户端的IP必须匹配 <tt/explicit/ <bf/或/ <tt/regex/ 规则。
@@ -550,7 +550,7 @@ To allow client from 195.71.129.0/24 and 195.71.131.0/24:
 <p>
 包含DSA主机密钥的文件的路径。（仅用于SSH）
 
-对于SSH访问，您必须配置DSA密钥或RSA密钥，或两者同时配置。
+对于SSH访问，必须配置DSA密钥或RSA密钥，或两者同时配置。
 
 生成DSA密钥（若不设置密码，按Enter键两次）
 <tscreen><verb>
@@ -562,7 +562,7 @@ ssh-keygen -t dsa -b 1024 -f ssh_host_dsa_key
 <p>
 包含RSA主机密钥的文件的路径。（仅用于SSH）
 
-对于SSH访问，您必须配置DSA密钥或RSA密钥，或两者同时配置。
+对于SSH访问，必须配置DSA密钥或RSA密钥，或两者同时配置。
 
 生成RSA密钥（若不设置密码，按Enter键两次）
 <tscreen><verb>
@@ -588,12 +588,12 @@ ssh-keygen -t rsa -b 2048 -f ssh_host_rsa_key
 
 </itemize>
 
-<sect1>Section &lsqb;GkStatus::Filtering&rsqb;
+<sect1>信息过滤 &lsqb;GkStatus::Filtering&rsqb;
 <label id="gkstatusfilteringsect">
 <p>
 请参阅 <ref id="statusportfiltering" name="控制端口过滤">.
 
-<sect1>Section &lsqb;LogFile&rsqb;
+<sect1>日志文件 &lsqb;LogFile&rsqb;
 <label id="logfile">
 <p>
 本节定义与日志文件相关的参数。当前，它允许用户指定日志文件轮换选项。
