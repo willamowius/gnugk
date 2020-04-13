@@ -2,7 +2,7 @@
 //
 // RAS Server for GNU Gatekeeper
 //
-// Copyright (c) 2000-2019, Jan Willamowius
+// Copyright (c) 2000-2020, Jan Willamowius
 // Copyright (c) Citron Network Inc. 2001-2003
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
@@ -2605,7 +2605,7 @@ bool RegistrationRequestPDU::Process()
 
 	if (bNewEP && RasSrv->IsRedirected(H225_RasMessage::e_registrationRequest)) {
 		PTRACE(1, "RAS\tWarning: Exceed registration limit!!");
-		return BuildRRJ(H225_RegistrationRejectReason::e_resourceUnavailable);
+		return BuildRRJ(H225_RegistrationRejectReason::e_resourceUnavailable, true);
 	}
 
     bool enableGnuGkNATTraversal = GkConfig()->GetBoolean(RoutedSec, "EnableGnuGkNATTraversal", false);
