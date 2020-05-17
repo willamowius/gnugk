@@ -33,7 +33,7 @@ Don't confuse them with the trace level for GnuGk's trace file.)
 The client connected to the status port can choose the output level it is interested in.
 
 <p>
-The interface is a simple TCP port (default: 7000) which you can connect to with telnet or another client. One example of a different client is the Java GUI, aka GkGUI.
+The interface is a simple TCP port (default: 7000) which you can connect to with telnet or another client. One example of a different client is the GnuGk web interface.
 Another example is the Automatic Call Distribution application, aka GnuGk ACD.
 
 <sect2>Application Areas
@@ -108,18 +108,11 @@ if ($gk_pid = fork()) {
 Keep in mind that this is just an example to show the usage of the status port.
 You can use the FileAcct module to log CDRs in a production system.
 
-<sect2>Java GUI for the Gatekeeper
+<sect2>GUI for the Gatekeeper
 <p>
-Developed by Jan Willamowius.<p>
-You can monitor the registrations and calls that go through the gatekeeper.
-A right-click on a button gives you a pop up menu for that endpoint.
-
-This GUI works with Java 1.0 built into most web browsers.
-For security reasons the GUI must be run as a standalone application
-or served by a web server on the same IP number as the gatekeeper
-(you cannot run it as an applet via a local file).
-
-The program is available at
+There is a web interface that monitors the GNU Gatekeeper through the status port and allows you to change the configuration through a web interface.
+<p>
+See the demo at
 <url url="https://www.gnugk.org/h323gui.html" name="GnuGk.org">
 
 <sect1>Commands (Reference)
