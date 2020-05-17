@@ -254,9 +254,9 @@ CDR纯文本文件的完整路径。若已经存在具有给定名称的文件�
 使用与状态界面CDR格式（1）兼容的CDR格式，或从CDRString参数化的字符串构建自定义CDR 字符串。
 <p>
 StandardCDRFormat等效于以下定义：
-<descrip>
+<p>
 <tt/TimestampFormat=RFC822/<newline>
-<tt>CDRString=CDR|%n|%{CallId}|%d|%{connect-time}|%{disconnect-time}|%{caller-ip}:%{caller-port}|%{caller-epid}|%{callee-ip}:%{callee-port}|%{callee-epid}|%{dest-info}|%{src-info}|%g;</tt><newline>
+<tt>CDRString=CDR|%n|%{CallId}|%d|%{connect-time}|%{disconnect-time}|%{caller-ip}:%{caller-port}|%{caller-epid}|%{callee-ip}:%{callee-port}|%{callee-epid}|%{dest-info}|%{src-info}|%g;</tt>
 </descrip>
 
 <item>

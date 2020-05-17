@@ -341,7 +341,6 @@ Vendor=222,173,0
 <descrip>
 <tag/示例:/
 <quote/<tt/VirtualQueueAliases=sales,support//
-<newline>
 </descrip>
 
 <item>
@@ -353,7 +352,6 @@ Vendor=222,173,0
 <descrip>
 <tag/示例:/
 <quote/<tt/VirtualQueuePrefixes=001215,1215//
-<newline>
 </descrip>
 
 <item>
@@ -365,10 +363,8 @@ Vendor=222,173,0
 <descrip>
 <tag/示例 (以001215或1215开头的数字):/
 <quote/<tt/VirtualQueueRegex=^(001|1)215[0-9]*$//
-<newline>
 <tag/示例 匹配所有呼叫的:/
 <quote/<tt/VirtualQueueRegex=^.*$//
-<newline>
 </descrip>
 
 <item>
@@ -682,7 +678,6 @@ GWPrefixesQuery=SELECT gwalias, gwpfx FROM gwprefix WHERE gk = '%1'
 <p>
 </itemize>
 
-<descrip>
 例：
 <tscreen><verb>
 [PortNotifications]
@@ -697,7 +692,6 @@ RASPortClose=/usr/local/bin/ports.sh %p %n %i
 T120PortOpen=/usr/local/bin/ports.sh %p %n %i
 T120PortClose=/usr/local/bin/ports.sh %p %n %i
 </verb></tscreen>
-</descrip>
 
 <sect1> &lsqb;SNMP&rsqb;
 <label id="snmp">
@@ -793,7 +787,6 @@ Net-SNMP配置通常在/etc/snmp/snmpd.conf中找到。该配置文件定义了S
 
 请确保在Net-SNMP守护程序中启用了AgentX支持。
 <p>
-<descrip>
 SNMP版本2c的snmpd.conf的简单示例：
 <tscreen><verb>
 # server location and contact
@@ -838,7 +831,7 @@ informsink   192.168.1.64    public
 master agentx
 agentxsocket tcp:localhost:705
 </verb></tscreen>
-</descrip>
+
 
 也可以将基于Net-SNMP的代理配置为在没有Net-SNMP守护程序的情况下独立运行，但是不建议这样做。
 

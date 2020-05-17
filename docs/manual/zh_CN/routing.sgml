@@ -119,10 +119,10 @@ RDS解析器发现服务或DDDS动态委托发现服务（RFC3404 第 5.2/5.3 �
 
 <p>
 路由策略的默认配置为：
-<descrip>
-<quote><tt>[RoutingPolicy]<newline>
-default=explicit,internal,parent,neighbor</tt></quote>
-</descrip>
+<tscreen><verb>
+[RoutingPolicy]
+default=explicit,internal,parent,neighbor
+</verb></tscreen>
 
 若一个策略不匹配，则尝试下一个策略。
 
