@@ -2233,12 +2233,12 @@ void StatusClient::ExecCommand(
 			CommandError("Syntax Error: PrintCallInfo|pci CALL-ID");
 		break;
 	case GkStatus::e_MaintenanceMode:
-		if (args.GetSize() == 1) {
+		if (args.GetSize() == 1) {          // ON
             SoftPBX::MaintenanceMode(true);
-		} else if (args.GetSize() == 2) {
+		} else if (args.GetSize() == 2) {   // OFF
             if (PCaselessString(args[1]) == "OFF") {
                 SoftPBX::MaintenanceMode(false);
-            } else {
+            } else {                        // ON with alternate IP
                 SoftPBX::MaintenanceMode(true, args[1]);
             }
 		} else {
