@@ -206,7 +206,7 @@ public:
 		if (alternates.GetSize() > 0) {
 			// add alternates by IP
 			ras.IncludeOptionalField(RAS::e_altGKInfo);
-			ras.m_altGKInfo.m_altGKisPermanent = (redirectGK == e_permanentRedirect);
+			ras.m_altGKInfo.m_altGKisPermanent = true; // not just for this message
 			ras.m_altGKInfo.m_alternateGatekeeper = alternates;
 		} else	if (altGKs.GetSize() > 0) {
 			// use global configuration
