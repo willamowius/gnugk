@@ -15,16 +15,16 @@ DVIPDFM = dvipdfm
 all:	html pdf
 
 html:
-	$(SGML2HTML) -s 0 manual.sgml
+	$(SGML2HTML) -s 1 manual.sgml
 
 html-fr:
-	cd fr ; $(SGML2HTML) --language=fr -s 0 manual-fr.sgml
+	cd fr ; $(SGML2HTML) --language=fr -s 1 manual-fr.sgml
 
 html-es:
-	cd es ; $(SGML2HTML) --language=es -s 0 manual-es.sgml
+	cd es ; $(SGML2HTML) --language=es -s 1 manual-es.sgml
 
 html-zh_CN:
-	cd zh_CN ; SP_CHARSET_FIXED=yes SP_ENCODING=xml $(SGML2HTML) --language=en -s 0 manual-zh_CN.sgml
+	cd zh_CN ; SP_CHARSET_FIXED=yes SP_ENCODING=xml $(SGML2HTML) --language=en -s 1 manual-zh_CN.sgml
 
 pdf:
 	$(SGML2LATEX) --output=dvi --style=gnugk manual.sgml ; $(DVIPDFM) manual.dvi ; rm -f manual.dvi
