@@ -302,6 +302,33 @@ all other networks will use the globally defined alternate gatekeeper.
 </descrip>
 
 
+<sect1>Section &lsqb;AlternateGatekeepers::SQL&rsqb;
+<p>
+This section allows <htmlurl url="https://www.gnugk.org/" name="GnuGk"> to read the alternate gatekeepers from a database.
+
+Use the <ref id="database" name="common database configuration options">
+to define your database connection for this module.
+
+<itemize>
+<item><tt/Query=SELECT .../<newline>
+Default: <tt>N/A</tt><newline>
+<p>
+Defines the SQL query used to retrieve the alternate gatekeepers from the database.
+
+These parameters are defined:
+<itemize>
+<item><tt/%i/ - endpoint IP
+<item><tt/%g/ - gatekeeper ID
+</itemize>
+<p>
+Sample query string:
+<tscreen><verb>
+SELECT alternategatekeeper FROM users WHERE ip = '%i' AND active
+</verb></tscreen>
+
+</itemize>
+
+
 <sect1>Section &lsqb;RasSrv::AssignedGatekeeper&rsqb;
 <p>
 This allows the assigning of a gatekeeper based upon the H323ID or the
@@ -333,7 +360,9 @@ is assigned as the primary and others are then the alternates.
 <sect1>Section &lsqb;AssignedGatekeepers::SQL&rsqb;
 <p>
 This section allows <htmlurl url="https://www.gnugk.org/" name="GnuGk"> to read the assigned gatekeepers from a database.
-You can use the same database parameters as defined in <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">.
+
+Use the <ref id="database" name="common database configuration options">
+to define your database connection for this module.
 
 <itemize>
 <item><tt/Query=SELECT .../<newline>
@@ -355,26 +384,53 @@ SELECT assignedgatekeeper FROM users WHERE alias = '%u' AND active
 
 </itemize>
 
-
-<sect1>Section &lsqb;AlternateGatekeepers::SQL&rsqb;
+<sect1>Section &lsqb;GnuGkAssignedGatekeepers::SQL&rsqb;
 <p>
-This section allows <htmlurl url="https://www.gnugk.org/" name="GnuGk"> to read the alternate gatekeepers from a database.
-You can use the same database parameters as defined in <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">.
+Many endpoints that support alternate gatekeepers will move to the
+alternate once they can't reach their curent gatekeeper, but will
+never change back, causing uneven distribution of endpoints between
+gatekeepers.
+Many older endpoints don't support the assigned gatekeeper procedures
+defined by the ITU to move back, either.
+
+With this section, you can have GnuGk look up the intended home gatekeeper
+for each endpoint and GnuGk will push the endpoints back to their intended
+home gatekeeper.
+
+For this to work, the endpoint must signal support alternate gatekeepers
+in their RegistrationRequest (RRQ) and obey the alternate gatekeeper
+information provided in UnregistrationRequests (URQ) from GnuGk.
+
+The home gatekeepers must be defined as neighbors to GnuGk and should
+have the neighbor ping enabled so GnuGk will know when they are up or down.
+
+GnuGk will wait a defined amount of time before trying to move the endpoint
+back and will also not try to move it while it is actively in a call.
+
+Use the <ref id="database" name="common database configuration options">
+to define your database connection for this module.
 
 <itemize>
+<item><tt/RehomingWait=60/<newline>
+Default: <tt>300</tt><newline>
+<p>
+The number of seconds to wait until GnuGk tries ro send the endpoint back to it's home gatekeeper.
+
 <item><tt/Query=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Defines the SQL query used to retrieve the alternate gatekeepers from the database.
+Defines the SQL query used to retrieve the intended home gatekeepers from the database.
 
-One parameter is defined:
+These parameters are defined:
 <itemize>
+<item><tt/%u/ - endpoint alias (first alias)
 <item><tt/%i/ - endpoint IP
+<item><tt/%g/ - gatekeeper ID
 </itemize>
 <p>
 Sample query string:
 <tscreen><verb>
-SELECT alternategatekeeper FROM users WHERE ip = '%i' AND active
+SELECT home from users where alias = "%u"
 </verb></tscreen>
 
 </itemize>

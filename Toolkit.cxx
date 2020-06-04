@@ -1975,6 +1975,7 @@ PConfig* Toolkit::ReloadConfig()
 #endif
 #if HAS_DATABASE
 	m_AlternateGKs.LoadConfig(m_Config);
+	m_GnuGkAssignedGKs.LoadConfig(m_Config);
 	m_qosMonitor.LoadConfig(m_Config);
 #ifdef HAS_LANGUAGE
 	m_assignedLanguage.LoadSQL(m_Config);
@@ -2837,7 +2838,7 @@ bool Toolkit::AssignedGatekeepers::DatabaseLookup(
 				SNMP_TRAP(4, SNMPError, Database, "AssignedGatekeepers query failed");
 				continue;
 			}
-			if (!success) success = true;
+			success = true;
 		    PTRACE(5, "AssignSQL\tQuery result: " << retval[0]);
 
 			PStringArray adr_parts = SplitIPAndPort(retval[0],GK_DEF_UNICAST_RAS_PORT);
@@ -2976,13 +2977,13 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias, const PI
 				// prefix match
 				if (MatchPrefix(alias,assignedGKList[j].first)) {
 					assignedGK.AppendString(assignedGKList[j].second);
-					if (!found) found = true;
+					found = true;
 				}
 			} else {
 				// regex match for IP address
 				if (MatchRegex(ip.AsString(), match)) {
 					assignedGK.AppendString(assignedGKList[j].second);
-					if (!found) found = true;
+					found = true;
 				}
 			}
 		}
@@ -3024,7 +3025,7 @@ bool Toolkit::AssignedGatekeepers::GetAssignedGK(const PString & alias, const PI
 			int sz = gklist.GetSize();
 			gklist.SetSize(sz+1);
 			H225_AlternateGK & alt = gklist[sz];
-			alt.m_rasAddress = SocketToH225TransportAddr(PIPSocket::Address(tokens[0]),port);
+			alt.m_rasAddress = SocketToH225TransportAddr(PIPSocket::Address(tokens[0]), port);
 			alt.m_needToRegister = true;
 			alt.m_priority = k;
 		}
@@ -3118,6 +3119,7 @@ bool Toolkit::AlternateGatekeepers::QueryAlternateGK(const PIPSocket::Address & 
 
 	std::map<PString, PString> params;
 	params["i"] = ip.AsString();
+    params["g"] = GKName();
 	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, params, m_timeout);
 	if (result == NULL) {
 		PTRACE(2, "AltGKSQL\tQuery failed - timeout or fatal error");
@@ -3148,7 +3150,7 @@ bool Toolkit::AlternateGatekeepers::QueryAlternateGK(const PIPSocket::Address & 
 				SNMP_TRAP(5, SNMPError, Database, "AlternateGatekeepers query failed");
 				continue;
 			}
-			if (!success) success = true;
+			success = true;
 		    PTRACE(5, "AltGKSQL\tQuery result: " << retval[0]);
 			addresses.AppendString(retval[0]);
 		}
@@ -3156,6 +3158,113 @@ bool Toolkit::AlternateGatekeepers::QueryAlternateGK(const PIPSocket::Address & 
 	delete result;
 
 	return success;
+}
+#endif
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+#if HAS_DATABASE
+Toolkit::GnuGkAssignedGatekeepers::GnuGkAssignedGatekeepers()
+	: m_sqlactive(false), m_sqlConn(NULL), m_timeout(-1)
+{
+}
+
+Toolkit::GnuGkAssignedGatekeepers::~GnuGkAssignedGatekeepers()
+{
+}
+
+void Toolkit::GnuGkAssignedGatekeepers::LoadConfig(PConfig * cfg)
+{
+	delete m_sqlConn;
+	const PString authName = "GnuGkAssignedGatekeepers::SQL";
+
+	if (cfg->GetSections().GetStringsIndex(authName) == P_MAX_INDEX)
+		return;
+
+	const PString driverName = cfg->GetString(authName, "Driver", "");
+	if (driverName.IsEmpty()) {
+		PTRACE(1, "GnuGkAssignedGkSQL\tModule creation failed: no SQL driver selected");
+		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
+		PTRACE(0, "GnuGkAssignedGkSQL\tFATAL: Shutting down");
+		return;
+	}
+
+	m_sqlConn = GkSQLConnection::Create(driverName, authName);
+	if (m_sqlConn == NULL) {
+		PTRACE(1, "GnuGkAssignedGkSQL\tModule creation failed: "
+			"Could not find " << driverName << " database driver");
+		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
+		PTRACE(0, "GnuGkAssignedGkSQL\tFATAL: Shutting down");
+		return;
+	}
+
+	m_query = cfg->GetString(authName, "Query", "");
+	if (m_query.IsEmpty()) {
+		PTRACE(1, "GnuGkAssignedGkSQL\tModule creation failed: No query configured");
+		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
+		PTRACE(0, "GnuGkAssignedGkSQL\tFATAL: Shutting down");
+		return;
+	} else
+		PTRACE(4, "GnuGkAssignedGkSQL\tQuery: " << m_query);
+
+	if (!m_sqlConn->Initialize(cfg, authName)) {
+		PTRACE(1, "GnuGkAssignedGkSQL\tModule creation failed: Could not connect to the database");
+		SNMP_TRAP(4, SNMPError, Database, authName + " creation failed");
+		return;
+	}
+
+	m_sqlactive = true;
+}
+
+
+bool Toolkit::GnuGkAssignedGatekeepers::HasAssignedGk(endptr ep, const PIPSocket::Address & ip)
+{
+	if (!m_sqlactive)
+		return false;
+
+	std::map<PString, PString> params;
+	if (ep->GetAliases().GetSize() > 0) {
+        params["u"] = ::AsString((ep->GetAliases()[0]), false);  // TODO: repeat query for all aliases ???
+	}
+	params["i"] = ip.AsString();
+	params["g"] = GKName();
+	GkSQLResult* result = m_sqlConn->ExecuteQuery(m_query, params, m_timeout);
+	if (result == NULL) {
+		PTRACE(2, "GnuGkAssignedGkSQL\tQuery failed - timeout or fatal error");
+		SNMP_TRAP(5, SNMPError, Database, "GnuGkAssignedGatekeeper query failed");
+		return false;
+	}
+
+	if (!result->IsValid()) {
+		PTRACE(2, "GnuGkAssignedGkSQL\tQuery failed (" << result->GetErrorCode()
+			<< ") - " << result->GetErrorMessage());
+		SNMP_TRAP(5, SNMPError, Database, "GnuGkAssignedGatekeeper query failed");
+		delete result;
+		return false;
+	}
+
+	bool found = false;
+
+	if (result->GetNumRows() < 1)
+		PTRACE(3, "GnuGkAssignedGkSQL\tQuery returned no rows");
+	else if (result->GetNumRows() > 0 && result->GetNumFields() < 1) {
+		PTRACE(2, "GnuGkAssignedGkSQL\tBad-formed query - no columns found in the result set");
+		SNMP_TRAP(5, SNMPError, Database, "GnuGkAssignedGatekeeper query failed");
+	} else {
+		PStringArray retval;
+		while (result->FetchRow(retval)) {  // TODO: if instead of while ?
+		    PTRACE(5, "GnuGkAssignedGkSQL\tQuery result: " << retval[0]);
+		    PIPSocket::Address gkip = retval[0];
+		    if (!retval[0].IsEmpty() && !Toolkit::Instance()->IsGKHome(gkip)) {
+                // if an assigned GK IP is set and it is not one of our IPs, then save it in the EpRec and throw the endpoint back once the assigned gk is ready
+                ep->SetGnuGkAssignedGk(gkip);
+                found = true;
+		    }
+		}
+	}
+	delete result;
+
+	return found;
 }
 #endif
 
@@ -3735,6 +3844,7 @@ H225_ArrayOf_AlternateGK Toolkit::GetMaintenanceAlternate() const
     }
     return gklist;
 }
+
 
 PString Toolkit::GetExternalIP() const
 {

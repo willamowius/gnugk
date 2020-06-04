@@ -2644,7 +2644,7 @@ bool RegistrationRequestPDU::Process()
 		PTRACE(3, "RAS\tRRQ rejected by unknown reason from " << rx_addr);
 		return BuildRRJ(H225_RegistrationRejectReason::e_undefinedReason);
 	}
-	ep->SetRasServerIP(m_msg->m_localAddr); // remember which of our IPs the endpoint has sent the RRQ to (need for H.460.18 SCI)
+	ep->SetRasServerIP(m_msg->m_localAddr); // remember which of our IPs the endpoint has sent the RRQ to (needed for H.460.18 SCI)
 
 #ifdef HAS_H46017
 	if (usesH46017) {
@@ -2878,8 +2878,16 @@ bool RegistrationRequestPDU::Process()
 #endif
 
 		// Alternate GKs
-		if (request.HasOptionalField(H225_RegistrationRequest::e_supportsAltGK))
+		if (request.HasOptionalField(H225_RegistrationRequest::e_supportsAltGK)) {
 			RasSrv->SetAlternateGK(rcf, m_msg->m_peerAddr);
+#if HAS_DATABASE
+			// check if we have GnuGk-assigned home gatekeepers
+			// TODO: make sure this DB query only runs on new registrations
+            if (Toolkit::Instance()->GnuGkAssignedGKs().HasAssignedGk(ep, m_msg->m_peerAddr)) {
+			    PTRACE(2, "RCF\tEndpoint is assigned to other gatekeeper - will try to re-home");
+            }
+#endif // HAS_DATABASE
+		}
 
 		// Call credit display
 		if (ep->AddCallCreditServiceControl(rcf.m_serviceControl,

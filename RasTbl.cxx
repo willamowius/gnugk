@@ -105,10 +105,12 @@ EndpointRec::EndpointRec(
 	m_H46024a(false), m_H46024b(false), m_natproxy(GkConfig()->GetBoolean(proxysection, "ProxyForNAT", false)),
 	m_internal(false), m_remote(false), m_h46017disabled(false), m_h46018disabled(false), m_usesH460P(false), m_hasH460PData(false),
     m_usesH46017(false), m_usesH46026(false), m_traversalType(None), m_bandwidth(0), m_maxBandwidth(-1), m_useTLS(false),
-     m_useIPSec(false), m_additiveRegistrant(false), m_addCallingPartyToSourceAddress(false), m_authenticators(NULL)
+    m_useIPSec(false), m_additiveRegistrant(false), m_addCallingPartyToSourceAddress(false), m_authenticators(NULL),
+    m_hasGnuGkAssignedGk(false)
 {
 	static H225_EndpointType defaultTermType; // nouse
 	m_terminalType = &defaultTermType;
+    m_registrationTime = PTime();
 
 	switch (m_RasMsg.GetTag())
 	{
@@ -953,6 +955,13 @@ EndpointRec *EndpointRec::Unregister()
 	return this;
 }
 
+EndpointRec *EndpointRec::UnregisterWithAlternate(H225_ArrayOf_AlternateGK * setAlternate)
+{
+	if (!IsPermanent())
+		SendURQ(H225_UnregRequestReason::e_maintenance, 0, setAlternate);
+	return this;
+}
+
 EndpointRec *EndpointRec::Expired()
 {
 	SendURQ(H225_UnregRequestReason::e_ttlExpired, 0);
@@ -1016,7 +1025,7 @@ PString EndpointRec::PrintOn(bool verbose) const
 	return msg;
 }
 
-bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemption)
+bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemption, H225_ArrayOf_AlternateGK * setAlternate)
 {
 	if ((GetRasAddress().GetTag() != H225_TransportAddress::e_ipAddress)
 		&& (GetRasAddress().GetTag() != H225_TransportAddress::e_ip6Address)
@@ -1034,6 +1043,12 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 	urq.m_endpointIdentifier = GetEndpointIdentifier();
 	urq.m_callSignalAddress.SetSize(1);
 	urq.m_callSignalAddress[0] = GetCallSignalAddress();
+	// alternate given as parameter
+    if (setAlternate) {
+		urq.IncludeOptionalField(H225_UnregistrationRequest::e_alternateGatekeeper);
+		urq.m_alternateGatekeeper = *setAlternate;
+    }
+    // when in maintenance mode, use that as alternate
     if (Toolkit::Instance()->IsMaintenanceMode()) {
         H225_ArrayOf_AlternateGK alternates = Toolkit::Instance()->GetMaintenanceAlternate();
 		if (alternates.GetSize() > 0) {
@@ -2373,11 +2388,32 @@ void RegistrationTable::UpdateTable()
 void RegistrationTable::CheckEndpoints()
 {
 	PTime now;
+	RasServer * RasSrv = RasServer::Instance();
+	time_t rehomingWait = GkConfig()->GetInteger("GnuGkAssignedGatekeepers::SQL", "RehomingWait", 300); // in sec, default 5 min
 	WriteLock lock(listLock);
 
 	iterator Iter = EndpointList.begin();
 	while (Iter != EndpointList.end()) {
 		EndpointRec *ep = *Iter;
+        // check GnuGk-Assigned gatekeeper
+        if (ep->HasGnuGkAssignedGk()) {
+            // check how long EP is registered here, don't try sending it away before n sec/min (switch!)
+            if (now - ep->GetRegistrationTime() > rehomingWait) {
+                callptr call = CallTable::Instance()->FindCallRec(endptr(ep));
+                if (!call) {
+                    if (RasSrv->GetNeighbors()->IsAvailable(ep->GetGnuGkAssignedGk())) {
+                        H225_ArrayOf_AlternateGK alternate;
+                        alternate.SetSize(1);
+                        alternate[0].m_rasAddress = SocketToH225TransportAddr(ep->GetGnuGkAssignedGk(), GK_DEF_UNICAST_RAS_PORT);
+                        alternate[0].m_needToRegister = true;
+                        alternate[0].m_priority = 1;
+                        ep->UnregisterWithAlternate(&alternate);
+                    }
+                }
+            }
+        }
+
+		// check expired registrations
 		if (!ep->IsUpdated(&now) && !ep->SendIRQ()) {
 			if (!Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "TTLExpireDropCall", "1"))
 				&& CallTable::Instance()->FindCallRec(endptr(ep))) {
@@ -2388,7 +2424,7 @@ void RegistrationTable::CheckEndpoints()
 			}
 			SoftPBX::DisconnectEndpoint(endptr(ep));
 			ep->Expired();
-			RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctUnregister, endptr(ep));
+			RasSrv->LogAcctEvent(GkAcctLogger::AcctUnregister, endptr(ep));
 			RemovedList.push_back(ep);
 			Iter = EndpointList.erase(Iter);
 			--regSize;

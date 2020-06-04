@@ -1,5 +1,6 @@
 Changes from 5.4 to 5.5
 =======================
+- new feature GnuGkAssignedGatekeeper to push endpoints back to their intended home gatekeepers
 - BUGFIX(RasSrv.h) set altGKisPermanent=true when redirecting endpoints
 - BUGFIX(RasSrv.cxx) fix RRJ to include alternates when RedirectGK=Endpoints limit is reached
 - manual translated into Simplified Chinese by Zhang Tao

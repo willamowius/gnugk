@@ -1740,6 +1740,18 @@ bool NeighborList::IsTraversalServer(const PIPSocket::Address & addr) const
 	return find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsTraversalServer), &addr)) != m_neighbors.end();
 }
 
+// is IP a neighbor and is it not disabled ?
+bool NeighborList::IsAvailable(const PIPSocket::Address & ip)
+{
+	// Attempt to find the neighbor in the list
+	List::iterator findNeighbor = find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsFrom), &ip));
+	if (findNeighbor == m_neighbors.end())
+	{
+		return false;
+	}
+	return !(*findNeighbor)->IsDisabled();
+}
+
 PString NeighborList::GetNeighborIdBySigAdr(const H225_TransportAddress & sigAd)
 {
 	PIPSocket::Address ipaddr;

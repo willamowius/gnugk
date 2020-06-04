@@ -169,6 +169,9 @@ public:
 	bool IsTraversalClient(const PIPSocket::Address &) const;
 	bool IsTraversalServer(const PIPSocket::Address &) const;
 
+	// is IP a neighbor and is it not disabled ?
+	bool IsAvailable(const PIPSocket::Address & ip);
+
 	// return the neighbor's ID from the list by signal address
 	PString GetNeighborIdBySigAdr(const H225_TransportAddress & sigAd);
 	PString GetNeighborIdBySigAdr(const PIPSocket::Address & sigAd);

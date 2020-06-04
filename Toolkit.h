@@ -291,7 +291,7 @@ class Toolkit : public Singleton<Toolkit>
 	   bool m_sqlactive;
 	   // connection to the SQL database
 	   GkSQLConnection* m_sqlConn;
-	   // parametrized query string for the auth condition string retrieval
+	   // parametrized query string
 	   PString m_query;
 	   // query timeout
 	   long m_timeout;
@@ -313,9 +313,9 @@ class Toolkit : public Singleton<Toolkit>
 	    void LoadConfig(PConfig *);
 		bool QueryAssignedGK(const PString & alias, const PIPSocket::Address & ip, PStringArray & addresses);
 #ifdef H323_H350
-		bool QueryH350Directory(const PString & alias,const PIPSocket::Address & ip, PStringArray & addresses);
+		bool QueryH350Directory(const PString & alias, const PIPSocket::Address & ip, PStringArray & addresses);
 #endif
-        bool GetAssignedGK(const PString & alias,const PIPSocket::Address & ip, H225_ArrayOf_AlternateGK & gklist);
+        bool GetAssignedGK(const PString & alias, const PIPSocket::Address & ip, H225_ArrayOf_AlternateGK & gklist);
 
 	 protected:
 		 std::vector< std::pair<PString, PString> > assignedGKList;
@@ -325,7 +325,7 @@ class Toolkit : public Singleton<Toolkit>
 	   bool m_sqlactive;
 	   // connection to the SQL database
 	   GkSQLConnection* m_sqlConn;
-	   // parametrized query string for the auth condition string retrieval
+	   // parametrized query string
 	   PString m_query;
 	   // query timeout
 	   long m_timeout;
@@ -350,12 +350,33 @@ class Toolkit : public Singleton<Toolkit>
 	   bool m_sqlactive;
 	   // connection to the SQL database
 	   GkSQLConnection* m_sqlConn;
-	   // parametrized query string for the auth condition string retrieval
+	   // parametrized query string
 	   PString m_query;
 	   // query timeout
 	   long m_timeout;
 	};
 	AlternateGatekeepers AlternateGKs() const { return m_AlternateGKs; }
+#endif
+
+#if HAS_DATABASE
+	class GnuGkAssignedGatekeepers {
+	 public:
+	    GnuGkAssignedGatekeepers();
+		~GnuGkAssignedGatekeepers();
+
+	    void LoadConfig(PConfig *);
+        bool HasAssignedGk(endptr ep, const PIPSocket::Address & ip);
+
+     private:
+	   bool m_sqlactive;
+	   // connection to the SQL database
+	   GkSQLConnection* m_sqlConn;
+	   // parametrized query string
+	   PString m_query;
+	   // query timeout
+	   long m_timeout;
+	};
+	GnuGkAssignedGatekeepers GnuGkAssignedGKs() const { return m_GnuGkAssignedGKs; }
 #endif
 
 #if HAS_DATABASE
@@ -724,6 +745,7 @@ protected:
 	VendorModeTool m_venderMode;
 #if HAS_DATABASE
 	AlternateGatekeepers m_AlternateGKs;
+	GnuGkAssignedGatekeepers m_GnuGkAssignedGKs;
 	QoSMonitor m_qosMonitor;
 #endif
 	RouteTable m_RouteTable;

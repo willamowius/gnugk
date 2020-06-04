@@ -367,6 +367,20 @@ const char * KnownConfigEntries[][2] = {
 	{ "GkStatus::Message", "Compact" },
 	{ "GkStatus::Message", "RCF" },
 	{ "GkStatus::Message", "URQ" },
+#ifdef HAS_DATABASE
+	{ "GnuGkAssignedGatekeepers::SQL", "CacheTimeout" },
+	{ "GnuGkAssignedGatekeepers::SQL", "ConnectTimeout" },
+	{ "GnuGkAssignedGatekeepers::SQL", "Database" },
+	{ "GnuGkAssignedGatekeepers::SQL", "Driver" },
+	{ "GnuGkAssignedGatekeepers::SQL", "Host" },
+	{ "GnuGkAssignedGatekeepers::SQL", "Library" },
+	{ "GnuGkAssignedGatekeepers::SQL", "MinPoolSize" },
+	{ "GnuGkAssignedGatekeepers::SQL", "RehomingWait" },
+	{ "GnuGkAssignedGatekeepers::SQL", "Password" },
+	{ "GnuGkAssignedGatekeepers::SQL", "Query" },
+	{ "GnuGkAssignedGatekeepers::SQL", "ReadTimeout" },
+	{ "GnuGkAssignedGatekeepers::SQL", "Username" },
+#endif // HAS_DATABASE
 #ifdef H323_H235
 	{ "H235", "CheckSendersID" },
 	{ "H235", "FullQ931Checking" },

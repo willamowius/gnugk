@@ -181,6 +181,7 @@ public:
 	virtual EndpointRec *Unregisterpreempt(int type);
 	virtual EndpointRec *Reregister();
 	virtual EndpointRec *Unregister();
+	virtual EndpointRec *UnregisterWithAlternate(H225_ArrayOf_AlternateGK * setAlternate);
 	virtual EndpointRec *Expired();
 
 	virtual PString PrintOn(bool verbose) const;
@@ -242,6 +243,7 @@ public:
 
 	int  Priority() const { return m_registrationPriority; }
 	PTime GetUpdatedTime() const;
+	PTime GetRegistrationTime() const;
 
 	void SetUsesH460P(bool uses);
 	bool UsesH460P() const { return m_usesH460P; }
@@ -345,6 +347,10 @@ public:
 	bool AddCallingPartyToSourceAddress() const { return m_addCallingPartyToSourceAddress; }
     PString GetDisabledCodecs() const { return m_disabledcodecs; }
 
+    void SetGnuGkAssignedGk(const PIPSocket::Address & addr) { m_hasGnuGkAssignedGk = true; m_GnuGkAssignedGk = addr; }
+    bool HasGnuGkAssignedGk() const { return m_hasGnuGkAssignedGk; }
+    PIPSocket::Address GetGnuGkAssignedGk() const { return m_GnuGkAssignedGk; }
+
 	// smart pointer for EndpointRec
 	typedef SmartPtr<EndpointRec> Ptr;
 
@@ -355,7 +361,7 @@ protected:
 	void SetEndpointRec(H225_LocationConfirm &);
 	void SetEndpointRec(H225_UnregistrationRequest &);	// used for temp objects
 
-	bool SendURQ(H225_UnregRequestReason::Choices, int preemption);
+	bool SendURQ(H225_UnregRequestReason::Choices, int preemption, H225_ArrayOf_AlternateGK * setAlternate = NULL);
 
 private:
 	/// Load general endpoint settings from the config
@@ -390,7 +396,8 @@ protected:
 	int m_pollCount, m_usedCount;
 	mutable PMutex m_usedLock;
 
-	PTime m_updatedTime;
+	PTime m_updatedTime;  // last update from EP
+	PTime m_registrationTime; // time when the EP registered
 	bool m_fromParent, m_nat;
 	PIPSocket::Address m_natip;
 	CallSignalSocket *m_natsocket;
@@ -443,6 +450,8 @@ protected:
 	PString m_disabledcodecs;
 	/// H.235 used to authenticate this endpoint
 	GkH235Authenticators * m_authenticators;
+	bool m_hasGnuGkAssignedGk;
+	PIPSocket::Address m_GnuGkAssignedGk;
 };
 
 typedef EndpointRec::Ptr endptr;
@@ -460,7 +469,7 @@ public:
 	virtual void Update(const H225_RasMessage & lightweightRRQ);
 	virtual bool IsGateway() const { return true; }
 
-	/// Overiden from EndpointRec
+	/// Overridden from EndpointRec
 	virtual bool LoadConfig();
 
 	/** Find if at least one of the given aliases matches any prefix
@@ -2076,6 +2085,12 @@ inline PTime EndpointRec::GetUpdatedTime() const
 {
 	PWaitAndSignal lock(m_usedLock);
 	return m_updatedTime;
+}
+
+inline PTime EndpointRec::GetRegistrationTime() const
+{
+	PWaitAndSignal lock(m_usedLock);
+	return m_registrationTime;
 }
 
 inline H225_RasMessage EndpointRec::GetCompleteRegistrationRequest() const
