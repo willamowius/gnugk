@@ -2882,7 +2882,6 @@ bool RegistrationRequestPDU::Process()
 			RasSrv->SetAlternateGK(rcf, m_msg->m_peerAddr);
 #if HAS_DATABASE
 			// check if we have GnuGk-assigned home gatekeepers
-			// TODO: make sure this DB query only runs on new registrations
             if (Toolkit::Instance()->GnuGkAssignedGKs().HasAssignedGk(ep, m_msg->m_peerAddr)) {
 			    PTRACE(2, "RCF\tEndpoint is assigned to other gatekeeper - will try to re-home");
             }

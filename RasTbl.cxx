@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2019, Jan Willamowius
+// Copyright (c) 2000-2020, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -2397,7 +2397,7 @@ void RegistrationTable::CheckEndpoints()
 		EndpointRec *ep = *Iter;
         // check GnuGk-Assigned gatekeeper
         if (ep->HasGnuGkAssignedGk()) {
-            // check how long EP is registered here, don't try sending it away before n sec/min (switch!)
+            // check how long EP is registered here, don't try sending it away before n sec/min
             if (now - ep->GetRegistrationTime() > rehomingWait) {
                 callptr call = CallTable::Instance()->FindCallRec(endptr(ep));
                 if (!call) {
