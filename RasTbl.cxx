@@ -1107,7 +1107,8 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
     GkStatus::Instance()->SignalStatus(msg, STATUS_TRACE_LEVEL_RAS);
 
 	RasSrv->ForwardRasMsg(ras_msg);
-	if (reason == H225_UnregRequestReason::e_maintenance) {
+	if (reason == H225_UnregRequestReason::e_maintenance && !setAlternate) {
+        // set the regular alternates, unless a specific alternate was given
 		PIPSocket::Address ip;
 		WORD notused;
 		if (GetIPAndPortFromTransportAddr(GetRasAddress(), ip, notused)) {
@@ -1126,7 +1127,9 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 		}
 	} else
 #endif
+    {
 		RasSrv->SendRas(ras_msg, GetRasAddress());
+    }
 	return true;
 }
 
