@@ -3,7 +3,7 @@
 // Neighboring System for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2019, Jan Willamowius
+// Copyright (c) 2004-2020, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -270,6 +270,8 @@ public:
 	virtual void Main();
     virtual void Process(RasMsg * ras);
     virtual void StopThread() { m_stopThread = true; }
+    bool SendRequest(const Address & addr, WORD pt, int r);
+
 protected:
     Neighbor * m_nb;
     bool m_stopThread;
@@ -326,6 +328,26 @@ void NeighborPingThread::Process(RasMsg * ras)
             break;
     }
 	delete ras;
+}
+
+bool NeighborPingThread::SendRequest(const Address & addr, WORD pt, int r)
+{
+	m_txAddr = addr, m_txPort = pt, m_retry = r;
+	vector<Address> GKHome;
+	Toolkit::Instance()->GetGKHome(GKHome);
+	for (std::vector<Address>::iterator i = GKHome.begin(); i != GKHome.end(); ++i) {
+		if ((IsLoopback(addr) || IsLoopback(*i)) && addr != *i)
+			continue;
+		if (addr.GetVersion() != i->GetVersion())
+			continue;
+		GkInterface * inter = m_rasSrv->SelectInterface(*i);
+		if (inter == NULL)
+			return false;
+		RasListener *socket = inter->GetRasListener();
+		socket->SendRas(*m_request, addr, pt, NULL);
+	}
+	m_sentTime = PTime();
+	return true;
 }
 
 

@@ -1,5 +1,6 @@
 Changes from 5.4 to 5.5
 =======================
+- BUGFIX(Neighbor.cxx) select correct source IP for neighbor pings
 - new feature GnuGkAssignedGatekeeper to push endpoints back to their intended home gatekeepers
 - BUGFIX(RasSrv.h) set altGKisPermanent=true when redirecting endpoints
 - BUGFIX(RasSrv.cxx) fix RRJ to include alternates when RedirectGK=Endpoints limit is reached
