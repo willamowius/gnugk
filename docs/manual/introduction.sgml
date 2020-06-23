@@ -35,7 +35,7 @@ For the protocol handling and encoding and decoding of the messages, it uses the
 H.323 is an international standard published by the <url
 url="https://www.itu.int/" name="ITU">.  It is a communications standard for
 audio, video, and data over the Internet.  See also Paul Jones' <url
-url="https://www.packetizer.com/voip/h323/papers/primer/" name="A Primer on
+url="https://www.packetizer.com/ipmc/h323/papers/primer/" name="A Primer on
 the H.323 Series Standard">.
 
 <sect1>Copyright

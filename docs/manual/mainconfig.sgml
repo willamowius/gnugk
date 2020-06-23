@@ -160,7 +160,7 @@ All LUA modules have a common LUA library called "gnugk" that allows access to G
 In a few places in the configuration file, GnuGk allows regular expressions.
 The syntax for these regular expressions is "extended POSIX 1003.2 regular expressions".
 On Unix systems you can usually get a manual page explaining the syntax with "man 7 regex"
-or see it online at <url url="http://man7.org/linux/man-pages/man7/regex.7.html" name="http://man7.org/linux/man-pages/man7/regex.7.html">.
+or see it online at <url url="https://man7.org/linux/man-pages/man7/regex.7.html" name="https://man7.org/linux/man-pages/man7/regex.7.html">.
 
 
 <sect1>Section &lsqb;Gatekeeper::Main&rsqb;
