@@ -1416,7 +1416,7 @@ to insert the environment variables GNUGK_ENV1 ... GNUGK_ENV9.
 <label id="requireonenet">
 <p>
 While this is technically an accounting module, its logical purpose is to authenticate calls
-and make sure at least one end of the cal is inside one of your own networks.
+and make sure at least one end of the call is inside one of your own networks.
 This is designed to protect traversal gatekeepers from abuse that by nature
 need to be accessible for everybody who wants to call into your network,
 but that should not be allowed to support external to external calls.
