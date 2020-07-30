@@ -259,6 +259,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Gatekeeper::Main", "ExternalIsDynamic" },
 	{ "Gatekeeper::Main", "FortyTwo" },	// obsolete
 	{ "Gatekeeper::Main", "FourtyTwo" },	// obsolete
+	{ "Gatekeeper::Main", "GrantAllBRQ" },
 	{ "Gatekeeper::Main", "Home" },
 #ifdef HAS_OLM
 	{ "Gatekeeper::Main", "LicenseFile" },

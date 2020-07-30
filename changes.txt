@@ -1,6 +1,6 @@
 Changes from 5.6 to 5.6
 =======================
-
+- new switch: [Gatekeeper::Main] GrantAllBRQ=1 to accept any BRQ, even if the conferenceID is invalid
 
 Changes from 5.4 to 5.5
 =======================
