@@ -588,6 +588,9 @@ private:
 #ifdef HAS_H46026
 	H46026ChannelManager * m_h46026PriorityQueue;
 #endif
+    // remember that this socket was forwarded so we don't accidentally delete
+    // RTP multiplex sessions (H.460.19/H.460.26) when we delete the socket object
+    bool m_socketWasForwarded;
 };
 
 class CallSignalListener : public TCPListenSocket {

@@ -1838,6 +1838,7 @@ void CallSignalSocket::InternalInit()
 		m_h46026PriorityQueue = NULL;
 	}
 #endif
+    m_socketWasForwarded = false;
 	// m_callerSocket is always initialized in init list
 	m_h225Version = 0;
 	m_tcsRecSeq = 0;
@@ -1850,11 +1851,13 @@ void CallSignalSocket::InternalInit()
 void CallSignalSocket::CleanupCall()
 {
 #ifdef HAS_H46018
-	if (m_call && Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0")))
+	if (m_call && Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0")) && !m_socketWasForwarded) {
+        PTRACE(7, "JW Removing multiplex Channels on Cleanup of CallSignalSocket: call no=" << m_call->GetCallNumber());
 		MultiplexedRTPHandler::Instance()->RemoveChannels(m_call->GetCallNumber());
+	}
 #endif
 #ifdef HAS_H46026
-	if (m_call && Toolkit::Instance()->IsH46026Enabled())
+	if (m_call && Toolkit::Instance()->IsH46026Enabled() && !m_socketWasForwarded)
 		H46026RTPHandler::Instance()->RemoveChannels(m_call->GetCallNumber());
 	if (m_h46026PriorityQueue)
 		m_h46026PriorityQueue->BufferRelease(0);	// clear buffers for all calls on this socket
@@ -1888,6 +1891,7 @@ void CallSignalSocket::CleanupCall()
 	m_callToTraversalServer = false;
 	m_senderSupportsH46019Multiplexing = false;
 #endif
+    m_socketWasForwarded = false;
 #ifdef HAS_H235_MEDIA
 	if (m_setupClearTokens)
 		delete m_setupClearTokens;
@@ -2052,11 +2056,13 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 CallSignalSocket::~CallSignalSocket()
 {
 #ifdef HAS_H46018
-	if (m_call && Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0")))
+	if (m_call && Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0")) && !m_socketWasForwarded) {
+        PTRACE(7, "JW Removing multiplex Channels in CallSignalSocket d'tor: call no=" << m_call->GetCallNumber());
 		MultiplexedRTPHandler::Instance()->RemoveChannels(m_call->GetCallNumber());
+	}
 #endif
 #ifdef HAS_H46026
-	if (m_call && Toolkit::Instance()->IsH46026Enabled())
+	if (m_call && Toolkit::Instance()->IsH46026Enabled() && !m_socketWasForwarded)
 		H46026RTPHandler::Instance()->RemoveChannels(m_call->GetCallNumber());
 	if (m_h46026PriorityQueue)
 		delete m_h46026PriorityQueue;
@@ -3939,6 +3945,10 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 				}
 		}
 	}
+
+	// remember that this socket was forwarded so we don't accidentally delete
+	// RTP multiplex sessions (H.460.19/H.460.26) when we delete the socket object
+	m_socketWasForwarded = true;
 
 	// detach from the call
 	m_call->SetSocket(NULL, NULL);
@@ -10534,6 +10544,7 @@ H46019Session::H46019Session(PINDEX callno, WORD session, void * openedBy)
 
 H46019Session::~H46019Session()
 {
+	PTRACE(7, "JW H46019Session d'tor: session=" << m_session);
     // don't free any pointers
 }
 
