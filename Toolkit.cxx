@@ -2,7 +2,7 @@
 //
 // Toolkit base class for the GnuGk
 //
-// Copyright (c) 2000-2019, Jan Willamowius
+// Copyright (c) 2000-2020, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -3254,8 +3254,9 @@ bool Toolkit::GnuGkAssignedGatekeepers::HasAssignedGk(endptr ep, const PIPSocket
 		PStringArray retval;
 		while (result->FetchRow(retval)) {  // TODO: if instead of while ?
 		    PTRACE(5, "GnuGkAssignedGkSQL\tQuery result: " << retval[0]);
-		    PIPSocket::Address gkip = retval[0];
-		    if (!retval[0].IsEmpty() && !Toolkit::Instance()->IsGKHome(gkip)) {
+		    PIPSocket::Address gkip;
+		    WORD port_unused;
+		    if (!retval[0].IsEmpty() && GetTransportAddress(retval[0], 0, gkip, port_unused) && !Toolkit::Instance()->IsGKHome(gkip)) {
                 // if an assigned GK IP is set and it is not one of our IPs, then save it in the EpRec and throw the endpoint back once the assigned gk is ready
                 ep->SetGnuGkAssignedGk(gkip);
                 found = true;
