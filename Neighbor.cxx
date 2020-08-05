@@ -2237,6 +2237,7 @@ protected:
 	virtual void LoadConfig(const PString & instance);
 
 	bool m_resolveNonLocalLRQs;
+	bool m_convertURLs;
     PStringToString m_ls_schema;
     PStringToString m_cs_schema;
 };
@@ -2246,6 +2247,7 @@ SRVPolicy::SRVPolicy()
 	m_name = "SRV";
 	m_iniSection = "Routing::SRV";
 	m_resolveNonLocalLRQs = Toolkit::AsBool(GkConfig()->GetString(m_iniSection, "ResolveNonLocalLRQ", "0"));
+	m_convertURLs = GkConfig()->GetBoolean(m_iniSection, "ConvertURLs", false);
 	m_ls_schema.SetAt("_h323ls._udp.", "");
 	m_cs_schema.SetAt("_h323cs._tcp.", "");
 }
@@ -2268,6 +2270,9 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 			&& (aliases[i].GetTag() != H225_AliasAddress::e_h323_ID))
 			continue;
 		PString alias(AsString(aliases[i], FALSE));
+		if (aliases[i].GetTag() == H225_AliasAddress::e_url_ID && m_convertURLs) {
+		    H323SetAliasAddress(alias, aliases[i], H225_AliasAddress::e_h323_ID);
+		}
 		PINDEX at = alias.Find('@');
 		// skip empty aliases or those without at-sign
 	    if ((alias.GetLength() == 0) || (at == P_MAX_INDEX))
@@ -2307,7 +2312,7 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 					PINDEX numberat = number.Find('@');	// always has an @
 					H225_ArrayOf_AliasAddress find_aliases;
 					find_aliases.SetSize(1);
-					PString local_alias = number.Mid(5,numberat-5);
+					PString local_alias = number.Mid(5, numberat - 5);
 					H323SetAliasAddress(local_alias, find_aliases[0]);
 					endptr ep = RegistrationTable::Instance()->FindByAliases(find_aliases);
 					if (ep) {

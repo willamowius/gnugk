@@ -473,6 +473,12 @@ E2U+xmpp=mygateway@mydomain.com</tt></quote>
 Default: <tt>0</tt><newline>
 <p>
 This switch selects if the 'srv' policy should resolve hostnames in LRQs that don't terminate locally.
+
+<item><tt/ConvertURLs=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Convert URL_IDs into H323_IDs before sending out an LRQ to an LS service found in an SRV record.
+This is usefull if the called LS service doesn't understand URL_IDs.
 </itemize>
 
 Additional SRV schemas may be configured by the [Routing::SRV::id] 

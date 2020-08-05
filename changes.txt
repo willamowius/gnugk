@@ -1,5 +1,6 @@
 Changes from 5.6 to 5.6
 =======================
+- new switch: [Routing::SRV] ConvertURLs=1 to convert URL_IDs into H323_IDs
 - BUGFIX(ProxyChannel.cxx) fix RTP multiplexing and H.460.26 when ForwardOnFacility is used
 - BUGFIX(ProxyChannel.cxx) remove H.460.19 feature from Setup when using ForwardOnFacility=1
 - new switch: [Gatekeeper::Main] GrantAllBRQ=1 to accept any BRQ, even if the conferenceID is invalid

@@ -776,6 +776,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Routing::NeighborSql", "ReadTimeout" },
 	{ "Routing::NeighborSql", "Username" },
 	{ "Routing::RDS", "ResolveLRQ" },
+	{ "Routing::SRV", "ConvertURLs" },
 	{ "Routing::SRV", "ResolveNonLocalLRQ" },
 #ifdef HAS_DATABASE
 	{ "Routing::Sql", "CacheTimeout" },
