@@ -652,7 +652,7 @@ ALL=allow ipv4:0/0|allow ipv6:::/0
 <p>
 用于身份认证的RADIUS服务器。该列表可以包含任意数量的服务器。服务器的顺序很重要，因为RADIUS模块将按给定顺序查询服务器。
 若未提供端口信息，<tt/DefaultAuthPort/将使用端口号from。
-若未设置密码，<tt/SharedSecret/ 则采用默认的共享密码。服务器名称可以是IP地址或DNS名称。IPv6地址必须始终写在方括号中。
+若未设置密码，<tt/SharedSecret/ 则采用默认的共享密钥。服务器名称可以是IP地址或DNS名称。IPv6地址必须始终写在方括号中。
 
 <descrip>
 <tag>Sample <tt/Servers/ lines:</tag>
@@ -1013,7 +1013,7 @@ Access-Accept {
 默认: <tt>N/A</tt><newline>
 <p>
 用于RAS的RADIUS服务器请求身份验证。该列表可以包含任意数量的服务器。服务器的顺序很重要，因为RADIUS模块将按给定顺序查询服务器。
-若未指定端口信息，<tt/DefaultAuthPort/ 将使用端口号from。若未设置密码，<tt/SharedSecret/ 则使用默认的共享密码自。服务器可以是IP地址或DNS名称。
+若未指定端口信息，<tt/DefaultAuthPort/ 将使用端口号from。若未设置密码，<tt/SharedSecret/ 则使用默认的共享密钥。服务器可以是IP地址或DNS名称。
 
 <descrip>
 <tag/例子:/

@@ -390,6 +390,13 @@ E2U+xmpp=mygateway@mydomain.com</tt></quote>
 <p>
 此开关选择 'srv' 策略是否应解析不在本地端点的LRQ中的主机名。
 </itemize>
+<itemize>
+<item><tt/ConvertURLs=1/<newline>
+默认：<tt>0</tt><newline>
+<p>
+向SRV记录中找到的LS服务，在发送LRQ之前，将URL_ID转换成H323_ID。
+若被呼叫的LS服务不能解析H323_ID，这是很有用的。
+</itemize>
 
 可以通过[Routing::SRV::id] 配置其他SRV模式。
 <descrip>
@@ -488,7 +495,7 @@ SELECT concat(prefix,'%c'), gatewayip FROM routes WHERE route = LEFT('%c', 5) li
 <item><tt/EnableRegexRewrite=1/<newline>
 默认：<tt>0</tt><newline>
 <p>
-启用基本的正则表达式重写，其中将原称为别名的部分插入数据库查询的结果中。
+启用简单的正则表达式重写，其中将原称为别名的部分插入数据库查询的结果中。
 
 常用表达：
 

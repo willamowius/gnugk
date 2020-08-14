@@ -10,7 +10,7 @@
 每个选项都有全写和简写格式，例如
 <tt/-c/ 与 <tt/--config/ 相同。
 <p>
-<sect2>基本的
+<sect2>简单的命令行
 <p>
 <descrip>
 <tag/<tt/-h  --help//

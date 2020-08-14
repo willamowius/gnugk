@@ -342,7 +342,7 @@ StandardCDRFormat等效于以下定义：
 <item><tt/Servers=SERVER1[:AUTH_PORT:ACCT_PORT[:SECRET]];SERVER2[:AUTH_PORT:ACCT_PORT[:SECRET]];.../<newline>
 默认：<tt>N/A</tt><newline>
 <p>
-要将事务数据发送到的RADIUS服务器。若未提供端口信息，则使用端口号<tt/DefaultAcctPort/。若未设置密码，<tt/SharedSecret/则使用默认的共享密码。
+要将事务数据发送到的RADIUS服务器。若未提供端口信息，则使用端口号<tt/DefaultAcctPort/。若未设置密码，<tt/SharedSecret/则使用默认的共享密钥。
 服务器名称可通过IP地址或DNS名称指定。IPv6地址必须始终写在方括号中。
 
 <descrip>
@@ -679,7 +679,7 @@ INSERT INTO call (gkname, sessid, username, calling, called, duration)
 
 </itemize>
 
-<sect2>A Sample MySQL Schema
+<sect2>示例 MySQL 应用
 <label id="mysqlscheme">
 <p>
 SQLAcct模块旨在适应已经拥有的任何数据库结构。可定义所有查询，以使其适合现有的表。这是这些表在MySQL中的外观示例，可将其用作起点。
@@ -1270,7 +1270,7 @@ OFF事件的文本。可使用标准帐户参数。
 <sect1>强制网络一侧 &lsqb;RequireOneNet&rsqb;
 <label id="requireonenet">
 <p>
-从技术上讲这是一个记事模块，其逻辑目的是对连接进行身份验证，并确保连接的一端至少在自己的网络中。
+从技术上讲这是一个记事模块，其逻辑目的是对连接进行身份验证，并确保呼叫的一端至少在自己的网络中。
 这样做的目的是为了保护穿透网守免受滥用，因为这些滥用本来就需要每个想打入你的网络的人都可以访问，但不应允许它支持外部到外部的呼叫。
 
 <itemize>
