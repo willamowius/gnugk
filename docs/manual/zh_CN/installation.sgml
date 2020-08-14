@@ -146,17 +146,17 @@ $ make optnoshared
 $ addpasswd CONFIG SECTION KEYNAME PASSWORD
 </verb></tscreen>
 
-示例1：必须将具有'secret'密码的'gkadmin'用户添加到[GkStatus::Auth]配置部分，以在连接控制端口上启用身份验证：
+示例1：将用户'gkadmin'密码'secret'添加到[GkStatus::Auth]配置部分，以在连接控制端口上启用身份验证：
 <tscreen><verb>
 $ addpasswd gatekeeper.ini GkStatus::Auth gkadmin secret
 </verb></tscreen>
 
-示例2：必须将具有“秘密”密码的“joe”用户添加到[Password]配置部分，以启用终端身份验证：
+示例2：将用户'joe'密码'secret'添加到[Password]配置部分，以启用端点身份验证：
 <tscreen><verb>
 $ addpasswd gatekeeper.ini Password joe secret
 </verb></tscreen>
 
-示例3：将加密的共享机密添加到RadAuth config部分：
+示例3：将加密的共享密钥添加到[RadAuth]配置部分：
 <tscreen><verb>
 $ addpasswd gatekeeper.ini RadAuth SharedSecret VerySecretPassword
 </verb></tscreen>

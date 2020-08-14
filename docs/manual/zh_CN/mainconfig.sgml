@@ -134,7 +134,7 @@ LUA是一种简单的脚本语言，Wireshark，FreeSWITCH或nmap等其他网络
 <sect1>正则表达式
 <label id="regex">
 <p>
-在配置文件的某些地方，GnuGk允许使用正则表达式。这些正则表达式的语法是“扩展的POSIX 1003.2正则表达式”。在Unix系统上，通常可以得到一个手册页，
+在配置文件部分位置，GnuGk允许使用正则表达式。这些正则表达式的语法是“扩展的POSIX 1003.2正则表达式”。在Unix系统上，通常可以得到一个手册页，
 以“man 7 regex”解释语法，或者可以在 <url url="http://man7.org/linux/man-pages/man7/regex.7.html" name="http://man7.org/linux/man-pages/man7/regex.7.html"> 在线查看该手册。
 
 
@@ -620,17 +620,17 @@ ssh-keygen -t rsa -b 2048 -f ssh_host_rsa_key
 <item><tt/Rotate=Hourly | Daily | Weekly | Monthly/<newline>
 默认：<tt>N/A</tt><newline>
 <p>
-若设置，日志文件将根据此设置进行轮换。轮换一个周期可以每小时、每天、，每周、和每月。
-一个轮换的周期是由一个组合确定 <tt/RotateDay/ and <tt/RotateTime/ 变量。 在循环期间，现有文件将重命名为当前文件名.YYYYMMDD-HHMMSS, 其中 YYYYMMDD-HHMMSS 
-被替换为当前时间戳, 新行记录到空文件中。要禁用旋转，请不要配置 <tt/Rotate/ 参数或将其设置为0。
+若设置，日志文件将根据此设置进行循环记录日志。循环一个周期可以每小时、每天、每周、和每月。
+一个循环的周期是由一个组合确定 <tt/RotateDay/ and <tt/RotateTime/ 变量。 在循环期间，现有文件将重命名为当前文件名.YYYYMMDD-HHMMSS, 其中 YYYYMMDD-HHMMSS 
+被替换为当前时间戳, 新行记录到空文件中。要禁用循环，请不要配置 <tt/Rotate/ 参数或将其设置为0。
 
 <item><tt/DeleteOnRotation=1/<newline>
 默认：<tt>0</tt><newline>
 <p>
-反转时删除旧的日志文件，而不是重命名。上一个循环周期中的所有数据都将丢失。这样，磁盘溢出的可能性较小。
+触发时删除旧的日志文件，而不是重命名。上一个循环周期中的所有数据都将丢失。这样，磁盘溢出的可能性较小。
 
 <descrip>
-<tag/示例 1 - -每小时轮换一次 (00:45, 01:45, ..., 23:45):/
+<tag/示例 1 - -每小时循环一次 (00:45, 01:45, ..., 23:45):/
 <tt/&lsqb;LogFile&rsqb;/<newline>
 <tt>Rotate=Hourly</tt><newline>
 <tt>RotateTime=45</tt><newline>
@@ -638,7 +638,7 @@ ssh-keygen -t rsa -b 2048 -f ssh_host_rsa_key
 </descrip>
 
 <descrip>
-<tag/示例 2 - 第天在 23:00 (11PM) 轮换 :/
+<tag/示例 2 - 第天在 23:00 (11PM) 循环 :/
 <tt/&lsqb;LogFile&rsqb;/<newline>
 <tt>Rotate=Daily</tt><newline>
 <tt>RotateTime=23:00</tt><newline>
@@ -646,7 +646,7 @@ ssh-keygen -t rsa -b 2048 -f ssh_host_rsa_key
 </descrip>
 
 <descrip>
-<tag/示例 3 - 在每个星期日的 00:59 轮换 :/
+<tag/示例 3 - 在每个星期日的 00:59 循环 :/
 <tt/&lsqb;LogFile&rsqb;/<newline>
 <tt>Rotate=Weekly</tt><newline>
 <tt>RotateDay=Sun</tt><newline>
@@ -654,7 +654,7 @@ ssh-keygen -t rsa -b 2048 -f ssh_host_rsa_key
 </descrip>
 
 <descrip>
-<tag/示例 4 - 在第个月的最后一天 轮换 :/
+<tag/示例 4 - 在第个月的最后一天 循环 :/
 <tt/&lsqb;LogFile&rsqb;/<newline>
 <tt>Rotate=Monthly</tt><newline>
 <tt>RotateDay=31</tt><newline>

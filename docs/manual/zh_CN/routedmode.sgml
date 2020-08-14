@@ -103,7 +103,7 @@ RTP代理处理线程的数量。仅当遇到RTP延迟问题或在GK负载过重
 默认：<tt/0/<newline>
 <p>
 根据建议H.323，网守可以通过向端点发送RAS DisengageRequest来断开呼叫。但是，某些错误的端点只会忽略此命令。
-启用此选项后，网守将向两个端点节点发送Q.931 Release Complete（而不是RAS DRQ），以迫使他们放弃呼叫。
+启用此选项后，网守将向两个端点发送Q.931 Release Complete（而不是RAS DRQ），以迫使他们放弃呼叫。
 
 <item><tt/SendReleaseCompleteOnDRQ=1/<newline>
 默认：<tt/0/<newline>
@@ -116,14 +116,14 @@ RTP代理处理线程的数量。仅当遇到RTP延迟问题或在GK负载过重
 <item><tt/SupportNATedEndpoints=1/<newline>
 默认：<tt/0/<newline>
 <p>
-是否允许NAT服务器后的端点节点注册到网守。若是，则网守会将Q.931和H.245通道中的IP地址转换为NAT服务器的IP。
+是否允许NAT服务器后的端点注册到网守。若是，则网守会将Q.931和H.245通道中的IP地址转换为NAT服务器的IP。
 GnuGk直接支持NAT出站呼叫（从NAT后的端点到公共网络），而无需对端点或NAT服务器进行任何必要的修改。
 只需在GnuGk中注册端点，即可立即呼叫。
 
 <item><tt/SupportCallingNATedEndpoints=0/<newline>
 默认：<tt/1/<newline>
 <p>
-是否允许支持GnuGk NAT穿越技术的NAT后面的端点节点接收呼叫。使用此选项可以阻止不正确支持GnuGk Nat Traversal技术的
+是否允许支持GnuGk NAT穿越技术的NAT后面的端点接收呼叫。使用此选项可以阻止不正确支持GnuGk Nat Traversal技术的
 错误网关在尝试呼叫网关时导致音频问题。到网关的呼叫使主叫者无法到达。为了有效将SupportNATedEndpoints设置为1。
 
 <item><tt/TreatUnregisteredNAT=1/<newline>
@@ -181,7 +181,7 @@ When ScreenDisplayIE= is set, this text is appended to the new DisplayIE.
 <p>
 若打开本选项，GK当收到Q.931 Facility 因<bf/callForwarded/, <bf/routeCallToGatekeeper/ 或 <bf/routeCallToMC/时，
 GK将会直接将Setup信令转送给被转接的端点，而并非信令回传给主叫端。
-若因 <bf/callForwarded/（或其他原因）而导致无法处理Q.931设备的端点损坏，请启用此选项。请注意，此功能可能无法始终正常运行，
+若因 <bf/callForwarded/（或其他原因）而导致损坏设备，端点无法处理Q.931，请启用此选项。请注意，此功能可能无法始终正常运行，
 因为它不提供任何重新协商和重打开媒体通道的功能。仅在转发者是被叫方并且尚未建立H.245信道的情况下才转发呼叫。
 
 <item><tt/RerouteOnFacility=1/<newline>
@@ -632,7 +632,7 @@ SRV记录存储在其他主机中的URI。会覆盖PWLIB_RDS_PATH环境变量。
 <label id="proxy">
 <p>
 本节定义了H.323代理功能。这意味着网守将在主叫端和被叫端之间路由所有流量，因此两个端点之间没有直接流量。
-因此，若某些端点在NAT服务器后方使用私有IP，而某些端点在服务器外使用公有IP，则非常有用。
+若某些端点在NAT服务器后方使用私有IP，而某些端点在服务器外使用公有IP，则非常有用。
 
 GK可以代理RTP/RTCP（音频和视频）和T.120（数据）的逻辑通道。还支持通过快速连接过程或H.245隧道打开的逻辑通道。
 
@@ -680,7 +680,7 @@ GK可以代理RTP/RTCP（音频和视频）和T.120（数据）的逻辑通道�
 默认：<tt/0/<newline>
 <p>
 若设置，则GK将充当呼叫的代理，其中一参与的端点在NAT服务器后。这样可以确保RTP/RTCP流无需修改即可穿透到NAT盒中。
-但是，NAT服务后的端点必须使用相同的端口来发送和接收RTP/RTCP流。若端点的不良或损坏不满足前提条件，则应禁用此功能，
+但是，NAT服务后的端点必须使用相同的端口来发送和接收RTP/RTCP流。若端点的不良或损坏而不满足前提条件下，则应禁用此功能，
 并让NAT框为您转发RTP/RTCP流。
 
 <item><tt/ProxyForSameNAT=1/<newline>
@@ -829,7 +829,7 @@ H.245 CloseLogicalChannel应请求仅引用端点自己的逻辑信道。
 具有RTP代理的代理模式。
 </itemize>
 
-第一种模式用于呼入和呼出指定网络的呼叫。
+第一种模式用于呼进和呼出指定网络的呼叫。
 第二种模式用于设备在内部网络的呼叫。
 若仅指定一种模式，则在两种情况下都将使用该模式。
 
