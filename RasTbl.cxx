@@ -2149,7 +2149,7 @@ void RegistrationTable::PrintEndpointQoS(USocket *client) const
 	for (std::map<PString, EPQoS>::const_iterator i = epqos.begin(); i != epqos.end(); ++i)
 		msg += "QoS|" + i->first + "|" + i->second.AsString() + "\r\n";
 
-	msg += PString(PString::Printf, "Number of Endpoints: %u\r\n;\r\n", epqos.size());
+	msg += PString(PString::Printf, "Number of Endpoints: %u\r\n;\r\n", (unsigned) epqos.size());
 	client->TransmitData(msg);
 }
 
@@ -5930,7 +5930,7 @@ void CallTable::PrintCurrentCalls(USocket *client, bool verbose) const
 
 	PString bandstr;
 	if (m_capacity >= 0)
-		bandstr = PString(PString::Printf, "\r\nAvailable Bandwidth: %u", m_capacity);
+		bandstr = PString(PString::Printf, "\r\nAvailable Bandwidth: %ul", m_capacity);
 	msg += PString(PString::Printf, "Number of Calls: %u Active: %u From Neighbor: %u From Parent: %u Proxied: %u%s\r\n;\r\n", n, act, nb, np, npr, (const char *)bandstr);
 	client->TransmitData(msg);
 }

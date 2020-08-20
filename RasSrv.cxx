@@ -3996,7 +3996,7 @@ template<> bool RasPDU<H225_BandwidthRequest>::Process()
 			// ask the endpoint to try alternate gatekeepers
 			RasSrv->SetAltGKInfo(brj, m_msg->m_peerAddr);
 		}
-		log = PString(PString::Printf, "BRJ|%s|%s|%u|%s;",
+		log = PString(PString::Printf, "BRJ|%s|%s|%ul|%s;",
 			(const char *)m_msg->m_peerAddr.AsString(),
 			(const unsigned char *) request.m_endpointIdentifier.GetValue(),
 			bandwidth,
@@ -4005,7 +4005,7 @@ template<> bool RasPDU<H225_BandwidthRequest>::Process()
 	} else {
 		H225_BandwidthConfirm & bcf = BuildConfirm();
 		bcf.m_bandWidth = (int)bandwidth;
-		log = PString(PString::Printf, "BCF|%s|%s|%u;",
+		log = PString(PString::Printf, "BCF|%s|%s|%ul;",
 			(const char *)m_msg->m_peerAddr.AsString(),
 			(const unsigned char *) request.m_endpointIdentifier.GetValue(),
 			bandwidth
