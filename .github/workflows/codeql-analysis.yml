@@ -42,14 +42,16 @@ jobs:
     #    uses a compiled language
 
     - run: |
-       git clone https://github.com/willamowius/ptlib ..
-       ../ptlib/configure --enable-ipv6 --disable-odbc --disable-sdl --disable-lua --disable-expat
-       cd ../ptlib
-       pwd
+       cd ..
+       git clone https://github.com/willamowius/ptlib
+       cd ptlib
+       ./configure --enable-ipv6 --disable-odbc --disable-sdl --disable-lua --disable-expat
+       make optnoshared
+       cd ..
+       git clone https://github.com/willamowius/h323plus
+       ./configure --enable-h235 --enable-h46017 --enable-h46026 --enable-h46019m
        make optnoshared
        cd ../gnugk
-       git clone https://github.com/willamowius/h323plus ..
-       ../h323plus/configure --enable-h235 --enable-h46017 --enable-h46026 --enable-h46019m
        ./configure --enable-h46018 --disable-netsnmp --enable-large-fdset
        make optnoshared
 
