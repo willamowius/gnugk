@@ -42,6 +42,7 @@ jobs:
     #    uses a compiled language
 
     - run: |
+       apt-get install g++ pkg-config automake make flex bison libssl-dev libmysqlclient-dev libsqlite3-dev libpq-dev unixodbc-dev libldap2-dev liblua5.3-dev libgeoip-dev libcurl4-gnutls-dev libssh-dev libsnmp-dev firebird-dev librabbitmq-dev libhiredis-dev libmosquitto-dev
        cd ..
        git clone https://github.com/willamowius/ptlib
        cd ptlib
