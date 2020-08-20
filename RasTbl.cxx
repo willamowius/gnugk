@@ -5930,7 +5930,7 @@ void CallTable::PrintCurrentCalls(USocket *client, bool verbose) const
 
 	PString bandstr;
 	if (m_capacity >= 0)
-		bandstr = PString(PString::Printf, "\r\nAvailable Bandwidth: %ul", m_capacity);
+		bandstr = PString(PString::Printf, "\r\nAvailable Bandwidth: %lu", m_capacity);
 	msg += PString(PString::Printf, "Number of Calls: %u Active: %u From Neighbor: %u From Parent: %u Proxied: %u%s\r\n;\r\n", n, act, nb, np, npr, (const char *)bandstr);
 	client->TransmitData(msg);
 }
