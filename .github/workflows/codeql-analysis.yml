@@ -54,7 +54,7 @@ jobs:
        ./configure --enable-h235 --enable-h46017 --enable-h46026 --enable-h46019m
        make optnoshared
        cd ../gnugk
-       ./configure --enable-h46018 --disable-netsnmp --enable-large-fdset
+       ./configure --enable-h46018 --enable-large-fdset
        make optnoshared
 
     - name: Perform CodeQL Analysis
