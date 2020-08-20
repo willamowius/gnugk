@@ -42,6 +42,8 @@ jobs:
     #    uses a compiled language
 
     - run: |
+       git clone https://github.com/willamowius/ptlib
+       pwd
        ./configure
        make optnoshared
 
