@@ -50,6 +50,7 @@ jobs:
        make optnoshared
        cd ..
        git clone https://github.com/willamowius/h323plus
+       cd h323plus
        ./configure --enable-h235 --enable-h46017 --enable-h46026 --enable-h46019m
        make optnoshared
        cd ../gnugk
