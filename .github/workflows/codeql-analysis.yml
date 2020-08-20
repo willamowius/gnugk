@@ -42,9 +42,11 @@ jobs:
     #    uses a compiled language
 
     - run: |
-       git clone https://github.com/willamowius/ptlib
-       pwd
-       ./configure
+       git clone https://github.com/willamowius/ptlib ..
+       ../ptlib/configure --enable-ipv6 --disable-odbc --disable-sdl --disable-lua --disable-expat
+       git clone https://github.com/willamowius/h323plus ..
+       ../h323plus/configure --enable-h235 --enable-h46017 --enable-h46026 --enable-h46019m
+       ./configure --enable-h46018 --disable-netsnmp --enable-large-fdset
        make optnoshared
 
     - name: Perform CodeQL Analysis
