@@ -391,7 +391,7 @@ For example, if you have the following configuration,
 
 <tscreen><verb>
                         [Parent GK]
-                        ID=MasterGK
+                        ID=MainGK
                         /         \
                        /           \
                       /             \

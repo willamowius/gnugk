@@ -1000,7 +1000,7 @@ You can also configure the Net-SNMP based agent to run standalone without the Ne
 <itemize>
 <item><tt>Standalone=1</tt><newline>
 Default: <tt/0/<newline>
-Run SNMP-Agent standalone, and don't connect to AgentX master agent.
+Run SNMP-Agent standalone, and don't connect to AgentX "master" agent.
 </itemize>
 
 <p>
