@@ -3922,6 +3922,7 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 		setupUUIE.m_destCallSignalAddress = oldDestSignalAddr;
 	}
 
+#ifdef HAS_H46018
     // remove or add H.460.19 fields in supportedFeatures
     if (!forwarded || forwarded->GetTraversalRole() == None) {
         // the receiver is probably not a H.460.19 client
@@ -3930,6 +3931,7 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
         RemoveH46019Descriptor(setupUUIE.m_supportedFeatures, senderSupportsH46019Multiplexing, isH46019Client);
     }
 	// TODO: also handle the case of forwarding to a H.460.18 endpoint
+#endif
 
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ShowForwarderNumber", "0"))) {
 		if (endptr fwd = m_call->GetForwarder()) {
