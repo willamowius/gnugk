@@ -19,8 +19,8 @@ LANGUAGE 0, SUBLANG_NEUTRAL
 //
 LANGUAGE 0, SUBLANG_NEUTRAL
 1 VERSIONINFO
-    FILEVERSION     5,6,0,0
-    PRODUCTVERSION  5,6,0,0
+    FILEVERSION     5,7,0,0
+    PRODUCTVERSION  5,7,0,0
     FILEOS          VOS_UNKNOWN
     FILETYPE        VFT_UNKNOWN
     FILESUBTYPE     VFT2_UNKNOWN
@@ -33,13 +33,13 @@ LANGUAGE 0, SUBLANG_NEUTRAL
         {
             VALUE "CompanyName", "GNU Gatekeeper Project"
             VALUE "FileDescription", "GNU Gatekeeper"
-            VALUE "FileVersion", "5.6"
+            VALUE "FileVersion", "5.7"
             VALUE "InternalName", "GnuGk"
             VALUE "LegalCopyright", "(c) 2020, GNU General Public License v2"
             VALUE "LegalTrademarks", " "
             VALUE "OriginalFilename", "gnugk.exe"
             VALUE "ProductName", "GnuGk"
-            VALUE "ProductVersion", "5.6"
+            VALUE "ProductVersion", "5.7"
         }
     }
     BLOCK "VarFileInfo"
