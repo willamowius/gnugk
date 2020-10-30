@@ -17,6 +17,9 @@ all:	html
 html:
 	$(SGML2HTML) -s 0 manual.sgml
 
+html-pages:
+	$(SGML2HTML) -s 1 manual.sgml
+
 html-fr:
 	cd fr ; $(SGML2HTML) --language=fr -s 0 manual-fr.sgml
 
