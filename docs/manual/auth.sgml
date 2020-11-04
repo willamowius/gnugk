@@ -581,6 +581,7 @@ replacement is made before each query is executed. The following parameters are 
 <item><tt/%{callerip}/ - caller's/registrant's IP (where the registration request has been received from - NAT IP for NATed endpoints)
 <item><tt/%{aliases}/ - a comma separated list of endpoint aliases
 <item><tt/%{additive-rrq}/ - whether it is an additive rrq (0 = false, 1 = true)
+<item><tt/%{Vendor}/ - productId and versionId
 </itemize>
 <p>
 If the query returns no rows, the result is undefined, which basically

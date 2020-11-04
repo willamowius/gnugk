@@ -550,6 +550,15 @@ int SQLAuth::Check(
 		}
 		params["aliases"] = aliasList;
 	}
+    params["Vendor"] = "";
+    if (rrq.m_endpointVendor.HasOptionalField(H225_EndpointType::e_vendor)) {
+        if (rrq.m_endpointVendor.HasOptionalField(H225_VendorIdentifier::e_productId)) {
+            params["Vendor"] += rrq.m_endpointVendor.m_productId.AsString();
+        }
+        if (rrq.m_endpointVendor.HasOptionalField(H225_VendorIdentifier::e_versionId)) {
+            params["Vendor"] += rrq.m_endpointVendor.m_versionId.AsString();
+        }
+    }
 
 	GkSQLResult::ResultRow result;
 	if (!RunQuery(traceStr, m_sqlConn, m_regQuery, params, result, -1)) {
