@@ -4,7 +4,7 @@
 //
 // LUA routing, authentication and accounting policies for the GNU Gatekeeper
 //
-// Copyright (c) 2012-2018, Jan Willamowius
+// Copyright (c) 2012-2020, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -92,10 +92,12 @@ public:
 
 	void SetString(lua_State * lua, const char * name, const char * value);
 	PString GetString(lua_State * lua, const char * name) const;
+	/* currently unused
 	void SetNumber(lua_State * lua, const char * name, double value);
 	double GetNumber(lua_State * lua, const char * name) const;
 	void SetBoolean(lua_State * lua, const char * name, bool value);
 	bool GetBoolean(lua_State * lua, const char * name) const;
+	*/
 };
 
 
@@ -166,7 +168,6 @@ double LuaBase::GetNumber(lua_State * lua, const char * name) const
 	lua_pop(lua, 1);
 	return result;
 }
-*/
 
 void LuaBase::SetBoolean(lua_State * lua, const char * name, bool value)
 {
@@ -182,6 +183,7 @@ bool LuaBase::GetBoolean(lua_State * lua, const char * name) const
 	lua_pop(lua, 1);
 	return result;
 }
+*/
 
 
 namespace Routing {
@@ -420,6 +422,7 @@ protected:
         const PString & callingStationId,
 		const PString & callerIP,
 		const PString & aliases,
+		const PString & vendor,
 		const PString & messageType,
 		const PString & message
 		);
@@ -550,14 +553,22 @@ int LuaAuth::Check(
 			aliases += AsString(rrq.m_terminalAlias[i], FALSE);
 		}
 	}
+    PString vendor = "";
+    if (rrq.m_endpointVendor.HasOptionalField(H225_EndpointType::e_vendor)) {
+        if (rrq.m_endpointVendor.HasOptionalField(H225_VendorIdentifier::e_productId)) {
+            vendor += rrq.m_endpointVendor.m_productId.AsString();
+        }
+        if (rrq.m_endpointVendor.HasOptionalField(H225_VendorIdentifier::e_versionId)) {
+            vendor += rrq.m_endpointVendor.m_versionId.AsString();
+        }
+    }
 
 	PString messageType = "RRQ";
     PStringStream strm;
     rrq.PrintOn(strm);
     PString message = strm;
 
-
-	return doRegistrationCheck(username, callingStationId, callerIP, aliases, messageType, message);
+	return doRegistrationCheck(username, callingStationId, callerIP, aliases, vendor, messageType, message);
 }
 
 int LuaAuth::Check(
@@ -648,6 +659,7 @@ int LuaAuth::doRegistrationCheck(
 		const PString & callingStationId,
 		const PString & callerIP,
 		const PString & aliases,
+		const PString & vendor,
 		const PString & messageType,
 		const PString & message
 		)
@@ -665,6 +677,7 @@ int LuaAuth::doRegistrationCheck(
 	SetString(lua, "callingStationId", callingStationId);
 	SetString(lua, "callerIP", callerIP);
 	SetString(lua, "aliases", aliases);
+	SetString(lua, "vendor", vendor);
 	SetString(lua, "messageType", messageType);
 	SetString(lua, "message", message);
 	SetString(lua, "result", "FAIL");

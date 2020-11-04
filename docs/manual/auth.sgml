@@ -1727,6 +1727,7 @@ Registration authentication scripts can use the following variables
 <item><tt/callingStationId/ - caller's number, if available
 <item><tt/callerIP/ - caller's IP (the request has been received from - NAT IP for NATed endpoints)
 <item><tt/aliases/ - the list of aliases in the registration
+<item><tt/vendor/ - productId and versionId
 <item><tt/messageType/ - always "RRQ" for registrations
 <item><tt/message/ - the full RRQ message as multi-line text block
 </itemize>
@@ -1844,9 +1845,9 @@ For <tt/HttpPasswordAuth/ these parameters are defined:
 <item><tt/%{message}/ - message that caused this authentication process (eg. RRQ, ARQ etc.)
 <item><tt/%{caller-ip}/ - IP of the calling party
 <item><tt/%{called-ip}/ - IP of the interface GnuGk received this call on (only available for RAS messages)
-<item><tt/%{caller-vendor}/ - product name and version of the caller (only available RRQ and Setup)
-<item><tt/%{caller-product-name}/ - product name of the caller (only available RRQ and Setup)
-<item><tt/%{caller-product-version}/ - product version of the caller (only available RRQ and Setup)
+<item><tt/%{caller-vendor}/ - product name and version of the caller (only available for RRQ and Setup)
+<item><tt/%{caller-product-name}/ - product name of the caller (only available for RRQ and Setup)
+<item><tt/%{caller-product-version}/ - product version of the caller (only available for RRQ and Setup)
 <item><tt/%{env1}/ - content of environment variable GNUGK_ENV1
 <item><tt/.../
 <item><tt/%{env9}/ - content of environment variable GNUGK_ENV9
