@@ -3,7 +3,7 @@
 // ProxyChannel.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2002
-// Copyright (c) 2002-2019, Jan Willamowius
+// Copyright (c) 2002-2020, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -14507,7 +14507,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		if (sessionID > 3) {
 			MultiplexedRTPHandler::Instance()->UpdateChannelSession(call->GetCallNumber(), flcn, peer, sessionID);
 			peer->UpdateLogicalChannelSessionID(flcn, sessionID); // doesn't set if no channel with sessionID 0 found
-			PTRACE(0, "JW RTP checking if we should update sessionID to " << sessionID << ": was " << ((RTPLogicalChannel*)lc)->GetRTPSessionID());
+			PTRACE(7, "JW RTP checking if we should update sessionID to " << sessionID << ": was " << ((RTPLogicalChannel*)lc)->GetRTPSessionID());
 			if (((RTPLogicalChannel*)lc)->GetRTPSessionID() == 0) { // don't set blindly, check if the sessionID was zero
     			((RTPLogicalChannel*)lc)->SetRTPSessionID(sessionID);
 			}
@@ -15143,10 +15143,13 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
 	}
 	RTPLogicalChannel * lc = peer->FindRTPLogicalChannelBySessionID(id);
 
-    if (!lc && ((id == 0) || (id > 2))) {
-        // look for channel with same media type
-        lc = peer->FindRTPLogicalChannelBySessionType(sessionType);
-    }
+	bool m_matchRTPSessionsByType = false; // TODO: add a switch that defaults to TRUE
+	if (m_matchRTPSessionsByType || m_ignoreSignaledPrivateH239IPs) {
+        if (!lc && ((id == 0) || (id > 2))) {
+            // look for channel with same media type
+            lc = peer->FindRTPLogicalChannelBySessionType(sessionType);
+        }
+	}
 
 	if (lc && !lc->IsAttached()) {
 		lc = new RTPLogicalChannel(lc, flcn, hnat != NULL, sessionType);
