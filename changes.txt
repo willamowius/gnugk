@@ -6,7 +6,6 @@ Changes from 5.6 to 5.7
 - BUGFIX(RasSrv.cxx) look at all tokens for H.235.TSSM
 - add %{Vendor} variable for SqlAuth RegQuery and LuaAuth
 
-
 Changes from 5.5 to 5.6
 =======================
 - new switch: [Routing::SRV] ConvertURLs=1 to convert URL_IDs into H323_IDs
