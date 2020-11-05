@@ -11907,7 +11907,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		<< " seq=" << seq << " timestamp=" << timestamp << " len=" << buflen
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
-	PTRACE(7, "JW RTP DB on " << localport << " type=" << Type() << " this=" << this << " H.460.19=" << UsesH46019()
+	PTRACE(7, "JW RTP DB on " << localport << " type=" << Type() << " this=" << this << " H.460.19=" << UsesH46019() << " session=" << m_sessionID
 		<< " fc=" << m_h46019fc << " m_h46019uni=" << m_h46019uni << " done=" << m_portDetectionDone << " fwd&rev=" << m_forwardAndReverseSeen
 		<< " multiplex: Dest A=" << AsString(m_multiplexDestination_A) << " ID A=" << m_multiplexID_A << " Socket A=" << m_multiplexSocket_A
 		<< " Dest B=" << AsString(m_multiplexDestination_B) << " ID B=" << m_multiplexID_B << " Socket B=" << m_multiplexSocket_B);
@@ -12028,6 +12028,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 							h46019chan.m_addrB_RTCP = fromAddr;
 						else
 							h46019chan.m_addrB = fromAddr;
+                        PTRACE(7, "JW RTP Set multiplexB to " << AsString(fromAddr) << " based on sessionID=" << m_sessionID << " IDfromA=" << h46019chan.m_multiplexID_fromA  << " IDfromB=" << h46019chan.m_multiplexID_fromB);
 						MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
 					}
 				}
@@ -12038,6 +12039,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 							h46019chan.m_addrA_RTCP = fromAddr;
 						else
 							h46019chan.m_addrA = fromAddr;
+                        PTRACE(7, "JW RTP Set multiplexB to " << AsString(fromAddr) << " based on sessionID=" << m_sessionID << " IDfromA=" << h46019chan.m_multiplexID_fromA  << " IDfromB=" << h46019chan.m_multiplexID_fromB);
 						MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
 					}
 				}
@@ -12050,6 +12052,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 								h46019chan.m_addrB_RTCP = fromAddr;
 							else
 								h46019chan.m_addrB = fromAddr;
+                            PTRACE(7, "JW RTP Set multiplexB to " << AsString(fromAddr) << " based on sessionID=" << m_sessionID);
 							MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
 						}
 					}
@@ -12059,7 +12062,8 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 								h46019chan.m_addrA_RTCP = fromAddr;
 							else
 								h46019chan.m_addrA = fromAddr;
-							MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
+                            PTRACE(7, "JW RTP Set multiplexA to " << AsString(fromAddr) << " based on sessionID=" << m_sessionID);
+						    MultiplexedRTPHandler::Instance()->UpdateChannel(h46019chan);
 						}
 					}
 				}
