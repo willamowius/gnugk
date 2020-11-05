@@ -1042,6 +1042,15 @@ Keep legacy port detection help for some very old and broken endpoints.
 Note: This will make your gatekeeper vulnerable to RTP Bleed attacks and is
 a SECURITY RISK!
 
+<item><tt>MatchRTPSessionsByType=0</tt><newline>
+Default: <tt>1</tt><newline>
+<p>
+If GnuGk doesn't find the reverse channel for a new channel by RTP session ID, it will try to
+look for a matching reverse channel by session type.
+This helps some endpoints, especially for H.239, but may break some connections when endpoints
+pick different RTP sessions and receiving ports for different directions of the same session
+type (eg. some LifeSize endpoints).
+
 </itemize>
 
 <p>
