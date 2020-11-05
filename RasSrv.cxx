@@ -1842,8 +1842,8 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
         if (request.HasOptionalField(H225_GatekeeperRequest::e_authenticationCapability) &&
             request.HasOptionalField(H225_GatekeeperRequest::e_algorithmOIDs)) {
             for (PINDEX i = 0; i < request.m_authenticationCapability.GetSize(); i++) {
-                if (request.m_authenticationCapability[0].GetTag() == H235_AuthenticationMechanism::e_keyExch) {
-                    const PASN_ObjectId & oid = request.m_authenticationCapability[0];
+                if (request.m_authenticationCapability[i].GetTag() == H235_AuthenticationMechanism::e_keyExch) {
+                    const PASN_ObjectId & oid = request.m_authenticationCapability[i];
                     if (oid == OID_TSSM) {
                         // add TSSM token
                         gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_tokens);
