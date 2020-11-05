@@ -10682,17 +10682,21 @@ void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddre
         m_lastPacketFromB = time(NULL);
     if (IsKeepAlive(len, isRTCP)) {
 		if (isFromA) {
-			if (isRTCP && (m_addrA_RTCP != fromAddress)) {
-				m_addrA_RTCP = fromAddress;
-                call->SetSessionMultiplexDestination(m_session, m_openedBy, isRTCP, fromAddress, SideA);
+			if (isRTCP) {
+			    if(m_addrA_RTCP != fromAddress) {
+    				m_addrA_RTCP = fromAddress;
+                    call->SetSessionMultiplexDestination(m_session, m_openedBy, isRTCP, fromAddress, SideA);
+			    }
 			} else if (m_addrA != fromAddress) {
 				m_addrA = fromAddress;
                 call->SetSessionMultiplexDestination(m_session, m_openedBy, isRTCP, fromAddress, SideA);
 			}
 		} else if (isFromB) {
-			if (isRTCP && (m_addrB_RTCP != fromAddress)) {
-				m_addrB_RTCP = fromAddress;
-                call->SetSessionMultiplexDestination(m_session, m_openedBy, isRTCP, fromAddress, SideB);
+			if (isRTCP) {
+                if(m_addrB_RTCP != fromAddress) {
+    				m_addrB_RTCP = fromAddress;
+                    call->SetSessionMultiplexDestination(m_session, m_openedBy, isRTCP, fromAddress, SideB);
+                }
 			} else if (m_addrB != fromAddress) {
 				m_addrB = fromAddress;
                 call->SetSessionMultiplexDestination(m_session, m_openedBy, isRTCP, fromAddress, SideB);

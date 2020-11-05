@@ -1,5 +1,6 @@
 Changes from 5.6 to 5.7
 =======================
+- BUGFIX(ProxyChannel.cxx) make sure we don't set RTP address on multiplexed RTCP keepalive
 - BUGFIX(RasSrv.cxx) look at all tokens for H.235.TSSM
 - add %{Vendor} variable for SqlAuth RegQuery and LuaAuth
 
