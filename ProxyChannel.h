@@ -217,6 +217,7 @@ public:
 	bool isMute() { return mute; }
 	void SetMute(bool toMute) { mute = toMute; }
 	void OnHandlerSwapped() { std::swap(fnat, rnat); }
+	WORD GetRTPSessionID() const { return m_sessionID; }
 	void SetRTPSessionID(WORD id) { m_sessionID = id; }
 #ifdef HAS_H235_MEDIA
 	void SetEncryptingRTPChannel(RTPLogicalChannel * lc) { m_encryptingLC = lc; }

@@ -1116,6 +1116,7 @@ public:
 	RTPLogicalChannel(RTPLogicalChannel *flc, WORD flcn, bool nated, RTPSessionTypes sessionType);
 	virtual ~RTPLogicalChannel();
 
+	WORD GetRTPSessionID() const;
 	void SetRTPSessionID(WORD id);
 	void SetMediaChannelSource(const H245_UnicastAddress &);
 	void ZeroMediaChannelSource();
@@ -13192,6 +13193,15 @@ bool RTPLogicalChannel::IsRTPInactive() const
     return (rtp && rtp->IsRTPInactive());
 }
 
+WORD RTPLogicalChannel::GetRTPSessionID() const
+{
+	if (rtp)
+		return rtp->GetRTPSessionID();
+	if (rtcp)
+		return rtcp->GetRTPSessionID();
+    return 0; // avoid warning, should never happen, we are always either rtp or rtcp
+}
+
 void RTPLogicalChannel::SetRTPSessionID(WORD id)
 {
 	if (rtp)
@@ -14496,8 +14506,11 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		// update session ID if assigned by master
 		if (sessionID > 3) {
 			MultiplexedRTPHandler::Instance()->UpdateChannelSession(call->GetCallNumber(), flcn, peer, sessionID);
-			peer->UpdateLogicalChannelSessionID(flcn, sessionID);
-			((RTPLogicalChannel*)lc)->SetRTPSessionID(sessionID);
+			peer->UpdateLogicalChannelSessionID(flcn, sessionID); // doesn't set if no channel with sessionID 0 found
+			PTRACE(0, "JW RTP checking if we should update sessionID to " << sessionID << ": was " << ((RTPLogicalChannel*)lc)->GetRTPSessionID());
+			if (((RTPLogicalChannel*)lc)->GetRTPSessionID() == 0) { // don't set blindly, check if the sessionID was zero
+    			((RTPLogicalChannel*)lc)->SetRTPSessionID(sessionID);
+			}
 		}
 		h46019chan = MultiplexedRTPHandler::Instance()->GetChannelSwapped(call->GetCallNumber(), sessionID, peer);
 		if (!h46019chan.IsValid()) {
