@@ -1,6 +1,6 @@
 Changes from 5.6 to 5.7
 =======================
-- new switch: [RoutedMode] MatchRTPSessionsByType=0 to fix presentations with
+- new switch: [RoutedMode] MatchH239SessionsByType=0 to fix presentations with
   LifeSize endpoints over Poly's Microsoft Teams gateway
 - BUGFIX(ProxyChannel.cxx) make sure we don't set RTP address on multiplexed RTCP keepalive
 - BUGFIX(RasSrv.cxx) look at all tokens for H.235.TSSM

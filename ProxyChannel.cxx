@@ -1395,7 +1395,7 @@ protected:
     list<NetworkAddress> m_ignorePublicH239IPs;   // do auto-detect for H.239 on this network
     list<NetworkAddress> m_keepSignaledIPs;   // don't do auto-detect on this network
     unsigned m_filterFastUpdatePeriod;
-    bool m_matchRTPSessionsByType;
+    bool m_matchH239SessionsByType;
 };
 
 
@@ -13692,7 +13692,7 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 #endif
 	m_isH245Master = false;
     m_filterFastUpdatePeriod = GkConfig()->GetInteger(RoutedSec, "FilterVideoFastUpdatePicture", 0);
-    m_matchRTPSessionsByType = GkConfig()->GetBoolean(RoutedSec, "MatchRTPSessionsByType", true);
+    m_matchH239SessionsByType = GkConfig()->GetBoolean(RoutedSec, "MatchH239SessionsByType", true);
 }
 
 H245ProxyHandler::~H245ProxyHandler()
@@ -15144,8 +15144,13 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
 	}
 	RTPLogicalChannel * lc = peer->FindRTPLogicalChannelBySessionID(id);
 
-	if (m_matchRTPSessionsByType || m_ignoreSignaledPrivateH239IPs) {
+	if (m_matchH239SessionsByType || m_ignoreSignaledPrivateH239IPs) {
         if (!lc && ((id == 0) || (id > 2))) {
+            // look for channel with same media type
+            lc = peer->FindRTPLogicalChannelBySessionType(sessionType);
+        }
+	} else {
+        if (!lc && (id == 0)) {
             // look for channel with same media type
             lc = peer->FindRTPLogicalChannelBySessionType(sessionType);
         }
