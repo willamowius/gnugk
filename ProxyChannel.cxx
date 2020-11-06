@@ -14509,7 +14509,6 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		if (sessionID > 3) {
 			MultiplexedRTPHandler::Instance()->UpdateChannelSession(call->GetCallNumber(), flcn, peer, sessionID);
 			peer->UpdateLogicalChannelSessionID(flcn, sessionID); // doesn't set if no channel with sessionID 0 found
-			PTRACE(7, "JW RTP checking if we should update sessionID to " << sessionID << ": was " << ((RTPLogicalChannel*)lc)->GetRTPSessionID());
 			if (((RTPLogicalChannel*)lc)->GetRTPSessionID() == 0) { // don't set blindly, check if the sessionID was zero
     			((RTPLogicalChannel*)lc)->SetRTPSessionID(sessionID);
 			}
