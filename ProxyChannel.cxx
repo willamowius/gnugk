@@ -10447,7 +10447,8 @@ MultiplexRTPListener::MultiplexRTPListener(WORD pt, WORD buffSize)
 
 	if (!Listen(localAddr, 0, pt)) {
 		PTRACE(1, "RTPM\tError: Can't open multiplex RTP listener on " << AsString(localAddr, pt));
-		return;
+        cerr << "FATAL Error: Can't open multiplex RTP listener on " << AsString(localAddr, pt) << endl;
+        ExitGK();
 	}
 	SetName(AsString(localAddr, pt) + "(Multiplex)");
 	if (Toolkit::Instance()->IsPortNotificationActive())
@@ -10875,18 +10876,22 @@ void MultiplexedRTPReader::OnStart()
 			PTRACE(1, "RTPM\tMultiplex RTP listener listening on port " << m_multiplexRTPListener->GetPort());
 			AddSocket(m_multiplexRTPListener);
 		} else {
-			PTRACE(1, "RTPM\tError: Cannot start multiplex RTP listener on port " << m_multiplexRTPListener->GetPort());
+			PTRACE(1, "FATAL Error: Cannot start multiplex RTP listener on port " << m_multiplexRTPListener->GetPort());
+			cerr << "FATAL Error: Cannot start multiplex RTP listener on port " << m_multiplexRTPListener->GetPort() << endl;
 			delete m_multiplexRTPListener;
 			m_multiplexRTPListener = NULL;
+			ExitGK();
 		}
 		 m_multiplexRTCPListener = new MultiplexRTPListener((WORD)GkConfig()->GetInteger(ProxySection, "RTCPMultiplexPort", GK_DEF_MULTIPLEX_RTCP_PORT));
 		 if (m_multiplexRTCPListener->IsOpen()) {
 			PTRACE(1, "RTPM\tMultiplex RTCP listener listening on port " << m_multiplexRTCPListener->GetPort());
 			AddSocket(m_multiplexRTCPListener);
 		} else {
-			PTRACE(1, "RTPM\tError: Cannot start multiplex RTCP listener on port " << m_multiplexRTCPListener->GetPort());
+			PTRACE(1, "FATAL Error: Cannot start multiplex RTCP listener on port " << m_multiplexRTCPListener->GetPort());
+			cerr << "FATAL Error: Cannot start multiplex RTCP listener on port " << m_multiplexRTCPListener->GetPort() << endl;
 			delete m_multiplexRTCPListener;
 			m_multiplexRTCPListener = NULL;
+			ExitGK();
 		}
 	}
 }

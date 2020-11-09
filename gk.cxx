@@ -1142,6 +1142,8 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 	return (warnings == 0);
 }
 
+} // end of anonymous namespace
+
 // due to some unknown reason (PWLib bug?),
 // we have to delete Toolkit::Instance first,
 // or we get core dump
@@ -1154,8 +1156,6 @@ void ExitGK()
 	Gatekeeper::CloseLogFile();
 	_exit(0);	// skip exit handlers: we know GnuGk couldn't start, so avoid crash in useless cleanup
 }
-
-} // end of anonymous namespace
 
 
 #ifndef _WIN32
