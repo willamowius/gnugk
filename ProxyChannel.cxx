@@ -10446,7 +10446,7 @@ MultiplexRTPListener::MultiplexRTPListener(WORD pt, WORD buffSize)
 		localAddr = home[0];
 
 	if (!Listen(localAddr, 0, pt)) {
-		PTRACE(1, "RTPM\tCan't open multiplex RTP listener on " << AsString(localAddr, pt));
+		PTRACE(1, "RTPM\tError: Can't open multiplex RTP listener on " << AsString(localAddr, pt));
 		return;
 	}
 	SetName(AsString(localAddr, pt) + "(Multiplex)");
@@ -10875,7 +10875,7 @@ void MultiplexedRTPReader::OnStart()
 			PTRACE(1, "RTPM\tMultiplex RTP listener listening on port " << m_multiplexRTPListener->GetPort());
 			AddSocket(m_multiplexRTPListener);
 		} else {
-			PTRACE(1, "RTPM\tCannot start multiplex RTP listener on port " << m_multiplexRTPListener->GetPort());
+			PTRACE(1, "RTPM\tError: Cannot start multiplex RTP listener on port " << m_multiplexRTPListener->GetPort());
 			delete m_multiplexRTPListener;
 			m_multiplexRTPListener = NULL;
 		}
@@ -10884,7 +10884,7 @@ void MultiplexedRTPReader::OnStart()
 			PTRACE(1, "RTPM\tMultiplex RTCP listener listening on port " << m_multiplexRTCPListener->GetPort());
 			AddSocket(m_multiplexRTCPListener);
 		} else {
-			PTRACE(1, "RTPM\tCannot start multiplex RTCP listener on port " << m_multiplexRTCPListener->GetPort());
+			PTRACE(1, "RTPM\tError: Cannot start multiplex RTCP listener on port " << m_multiplexRTCPListener->GetPort());
 			delete m_multiplexRTCPListener;
 			m_multiplexRTCPListener = NULL;
 		}
