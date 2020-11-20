@@ -1995,8 +1995,8 @@ void Gatekeeper::Main()
 	FreeConsole();
 #endif // _WIN32
 
-#if defined(P_OPENBSD) || defined(P_NETBSD) || defined(P_MACOSX)
-	_exit(0);	// skip exit handlers, will hang on OpenBSD 5.3, crash on NetBSD 7.0 and crash on MacOSX
+#if defined(P_OPENBSD) || defined(P_NETBSD) || defined(P_MACOSX) || !defined(__GLIBC_)
+	_exit(0);	// skip exit handlers, will hang on OpenBSD 5.3, crash on NetBSD 7.0 and crash on MacOSX and hang on Alpine Linux
 #endif
 }
 
