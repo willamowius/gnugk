@@ -2,7 +2,7 @@
 //
 // GkStatus.cxx
 //
-// Copyright (c) 2000-2019, Jan Willamowius
+// Copyright (c) 2000-2020, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -47,8 +47,8 @@
 
 void ReloadHandler(); // avoid to include...
 
-static const char *authsec="GkStatus::Auth";
-static const char *filteringsec="GkStatus::Filtering";
+static const char *authsec = "GkStatus::Auth";
+static const char *filteringsec = "GkStatus::Filtering";
 
 // a very lightweight implementation of telnet socket
 class TelnetSocket : public ServerSocket {

@@ -4,7 +4,7 @@
  * SQL authentication/authorization modules for GNU Gatekeeper
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
- * Copyright (c) 2006-2019, Jan Willamowius
+ * Copyright (c) 2006-2020, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -577,7 +577,7 @@ int SQLAuth::Check(
 	if (iter != result.end()) {
 		const PString &s = iter->first;
 		if (!s) {
-			if (strspn((const char*)s,"0123456789.") == (size_t)s.GetLength()) {
+			if (strspn((const char*)s, "0123456789.") == (size_t)s.GetLength()) {
 				const int intVal = s.AsInteger();
 				if (intVal == 0)
 					authData.m_billingMode = H225_CallCreditServiceControl_billingMode::e_credit;
@@ -685,7 +685,7 @@ int SQLAuth::Check(
 	if (iter != result.end()) {
 		const PString &s = iter->first;
 		if (!s) {
-			if (strspn((const char*)s,"0123456789.") == (size_t)s.GetLength()) {
+			if (strspn((const char*)s, "0123456789.") == (size_t)s.GetLength()) {
 				const int intVal = s.AsInteger();
 				if (intVal == 0)
 					authData.m_billingMode = H225_CallCreditServiceControl_billingMode::e_credit;

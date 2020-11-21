@@ -5,7 +5,7 @@
  * Please see docs/radauth.txt for more details.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2005-2017, Jan Willamowius
+ * Copyright (c) 2005-2020, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -67,7 +67,7 @@ RadAuthBase::RadAuthBase(
 {
 	// read settings from the config
 	m_appendCiscoAttributes = Toolkit::AsBool(GetConfig()->GetString(
-		configSectionName,"AppendCiscoAttributes", "1"
+		configSectionName, "AppendCiscoAttributes", "1"
 		));
 	m_includeTerminalAliases = Toolkit::AsBool(GetConfig()->GetString(
 		configSectionName, "IncludeTerminalAliases", "1"
@@ -217,7 +217,7 @@ int RadAuthBase::Check(
 		if (attr != NULL) {
 			value = attr->AsCiscoString();
 			if (value.GetLength() > 0
-					&& strspn((const char*)value,"0123456789") == (size_t)value.GetLength()) {
+					&& strspn((const char*)value, "0123456789") == (size_t)value.GetLength()) {
 				const int intVal = value.AsInteger();
 				if (intVal == 0)
 					authData.m_billingMode = H225_CallCreditServiceControl_billingMode::e_credit;
@@ -238,7 +238,7 @@ int RadAuthBase::Check(
 		if (attr != NULL) {
 			value = attr->AsCiscoString();
 			if (value.GetLength() > 0
-					&& strspn((const char*)value,"0123456789.") == (size_t)value.GetLength()) {
+					&& strspn((const char*)value, "0123456789.") == (size_t)value.GetLength()) {
 				if (value.Find('.') == P_MAX_INDEX) {
 					PTRACE(3, "RADAUTH\t" << GetName() << " h323-credit-amount "
 						"without a decimal dot is ambiguous '" << value << '\'');
@@ -534,7 +534,7 @@ int RadAuthBase::Check(
 		if (attr != NULL) {
 			value = attr->AsCiscoString();
 			if (value.GetLength() > 0
-					&& strspn((const char*)value,"0123456789") == (size_t)value.GetLength()) {
+					&& strspn((const char*)value, "0123456789") == (size_t)value.GetLength()) {
 				authData.m_callDurationLimit = value.AsInteger();
 				PTRACE(5, "RADAUTH\t" << GetName() << " ARQ check set duration "
 					"limit: " << authData.m_callDurationLimit
@@ -573,7 +573,7 @@ int RadAuthBase::Check(
 		if (attr != NULL) {
 			value = attr->AsCiscoString();
 			if (value.GetLength() > 0
-					&& strspn((const char*)value,"0123456789") == (size_t)value.GetLength()) {
+					&& strspn((const char*)value, "0123456789") == (size_t)value.GetLength()) {
 				const int intVal = value.AsInteger();
 				if (intVal == 0)
 					authData.m_billingMode = H225_CallCreditServiceControl_billingMode::e_credit;
@@ -593,7 +593,7 @@ int RadAuthBase::Check(
 		if (attr != NULL) {
 			value = attr->AsCiscoString();
 			if (value.GetLength() > 0
-					&& strspn((const char*)value,"0123456789.") == (size_t)value.GetLength()) {
+					&& strspn((const char*)value, "0123456789.") == (size_t)value.GetLength()) {
 				if (value.Find('.') == P_MAX_INDEX) {
 					PTRACE(3, "RADAUTH\t" << GetName() << " h323-credit-amount "
 						"without a decimal dot is ambiguous '" << value << '\'');
@@ -883,7 +883,7 @@ int RadAuthBase::Check(
 		if (attr != NULL) {
 			value = attr->AsCiscoString();
 			if (value.GetLength() > 0
-					&& strspn((const char*)value,"0123456789") == (size_t)value.GetLength()) {
+					&& strspn((const char*)value, "0123456789") == (size_t)value.GetLength()) {
 				authData.m_callDurationLimit = value.AsInteger();
 				PTRACE(5, "RADAUTH\t" << GetName() << " Setup check set duration "
 					"limit: " << authData.m_callDurationLimit);

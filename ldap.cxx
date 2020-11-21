@@ -3,7 +3,7 @@
  *
  * LDAP authentication/authorization modules for GNU Gatekeeper
  *
- * Copyright (c) 2013-2017, Jan Willamowius
+ * Copyright (c) 2013-2020, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -132,7 +132,7 @@ PLDAPSession * LDAPBase::CreateConnection()
 	if (m_startTLS) {
 #ifdef hasLDAPStartTLS
 		if (!session->StartTLS()) {
-			PTRACE(1,"LDAP\tStartTLS failed");
+			PTRACE(1, "LDAP\tStartTLS failed");
 			return NULL;
 		}
 #else

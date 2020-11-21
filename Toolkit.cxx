@@ -4252,7 +4252,7 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 			for (PINDEX i = 0; i < sRules.GetSize(); ++i) {
 				PStringArray cRule = sRules[i].Tokenise(",");
 				if (cRule.GetSize() == 2 && cRule[0] == source.Left(cRule[0].GetLength())) {
-					PTRACE(4,"SWRITE\tSource Address " << source << " rewritten to " << cRule[1]);
+					PTRACE(4, "SWRITE\tSource Address " << source << " rewritten to " << cRule[1]);
 					source = cRule[1];
 					changed = true;
 					break;

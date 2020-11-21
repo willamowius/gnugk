@@ -744,7 +744,7 @@ bool FixH46024Multiplexing(const H225_ArrayOf_GenericData & data, H225_FeatureSe
 				int sz = supportedFeatures.GetSize();
 				supportedFeatures.SetSize(sz + 1);
 				supportedFeatures[sz] = (const H225_FeatureDescriptor &)data[i];
-				PTRACE(4,"H46023\tCorrecting message in generic field");
+				PTRACE(4, "H46023\tCorrecting message in generic field");
 				return true;
 			}
 		}
@@ -825,7 +825,7 @@ bool GetH245GenericStringOctetString(unsigned id, const H245_ArrayOf_GenericPara
 			}
 		}
 	}
-	PTRACE(4,"H46024A\tError finding String parameter " << id);
+	PTRACE(4, "H46024A\tError finding String parameter " << id);
 	return false;
 }
 
@@ -846,7 +846,7 @@ bool GetH245GenericUnsigned(unsigned id, const H245_ArrayOf_GenericParameter & p
 			}
 		}
 	}
-	PTRACE(4,"H46024A\tError finding unsigned parameter " << id);
+	PTRACE(4, "H46024A\tError finding unsigned parameter " << id);
 	return false;
 }
 
@@ -6687,7 +6687,7 @@ PBoolean ReadRTPFrame(const Q931 & q931, H46026_UDPFrame & data)
 {
     H225_H323_UserInformation uuie;
     if (!GetUUIE(q931, uuie)) {
-        PTRACE(2,"H46026\tError decoding Media PDU");
+        PTRACE(2, "H46026\tError decoding Media PDU");
         return false;
     }
 
@@ -6698,34 +6698,34 @@ PBoolean ReadRTPFrame(const Q931 & q931, H46026_UDPFrame & data)
         (uuie.m_h323_uu_pdu.m_genericData[0].m_parameters.GetSize() == 0) ||
         (!uuie.m_h323_uu_pdu.m_genericData[0].m_parameters[0].HasOptionalField(H225_EnumeratedParameter::e_content))
         ) {
-            //PTRACE(2,"H46026\tERROR Non-Media Frame structure"); // or simply a Information message with a different purpose
+            //PTRACE(2, "H46026\tERROR Non-Media Frame structure"); // or simply a Information message with a different purpose
             return false;
     }
     H225_GenericIdentifier & id = uuie.m_h323_uu_pdu.m_genericData[0].m_id;
     if (id.GetTag() != H225_GenericIdentifier::e_standard) {
-        PTRACE(2,"H46026\tERROR Bad Media Frame ID");
+        PTRACE(2, "H46026\tERROR Bad Media Frame ID");
         return false;
     }
     PASN_Integer & asnInt = id;
     if (asnInt.GetValue() != 26) {
-        PTRACE(2,"H46026\tERROR Wrong Media Frame ID " << asnInt.GetValue());
+        PTRACE(2, "H46026\tERROR Wrong Media Frame ID " << asnInt.GetValue());
         return false;
     }
     H225_GenericIdentifier & pid = uuie.m_h323_uu_pdu.m_genericData[0].m_parameters[0].m_id;
     if (id.GetTag() != H225_GenericIdentifier::e_standard) {
-        PTRACE(2,"H46026\tERROR BAD Media Parameter ID");
+        PTRACE(2, "H46026\tERROR BAD Media Parameter ID");
         return false;
     }
     PASN_Integer & pInt = pid;
     if (pInt.GetValue() != 1) {
-        PTRACE(2,"H46026\tERROR Wrong Media Parameter ID " << pInt.GetValue());
+        PTRACE(2, "H46026\tERROR Wrong Media Parameter ID " << pInt.GetValue());
         return false;
     }
 
     // Get the RTP Payload
     PASN_OctetString & val = uuie.m_h323_uu_pdu.m_genericData[0].m_parameters[0].m_content;
     if (!val.DecodeSubType(data)) {
-        PTRACE(2,"H46026\tERROR Decoding Media Frame");
+        PTRACE(2, "H46026\tERROR Decoding Media Frame");
         return false;
     }
 
@@ -14277,7 +14277,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
                     PASN_ObjectId & gid = olc.m_genericInformation[i].m_messageIdentifier;
                     if (gid == H46024A_OID && olc.m_genericInformation[i].HasOptionalField(H245_GenericInformation::e_messageContent)) {
                         const H245_ArrayOf_GenericParameter & msg = olc.m_genericInformation[i].m_messageContent;
-                        PTRACE(4,"H46024A\tAlt Port Info:\n" << msg);
+                        PTRACE(4, "H46024A\tAlt Port Info:\n" << msg);
                         PString m_CUI = PString();
                         H323TransportAddress m_altAddr1, m_altAddr2;
                         unsigned m_altMuxID = 0;

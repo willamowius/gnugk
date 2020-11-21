@@ -3,7 +3,7 @@
 // GkClient.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2002-2019, Jan Willamowius
+// Copyright (c) 2002-2020, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1292,7 +1292,7 @@ void H46024Socket::H46024Bdirect(const H323TransportAddress & address, unsigned 
 	address.GetIpAndPort(m_altAddr, m_altPort);
 	m_altMuxID = muxID;
 
-	PTRACE(6,"H46024b\ts: " << m_sessionID << " RTP Remote Alt: " << m_altAddr << ":" << m_altPort
+	PTRACE(6, "H46024b\ts: " << m_sessionID << " RTP Remote Alt: " << m_altAddr << ":" << m_altPort
 							<< " " << m_altMuxID);
 
 	// Sending an empty RTP frame to the alternate address
