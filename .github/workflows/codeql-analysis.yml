@@ -31,7 +31,7 @@ jobs:
 
     - run: |
        sudo apt-get install libssl-dev libmysqlclient-dev libsqlite3-dev libpq-dev unixodbc-dev liblua5.3-dev libgeoip-dev libssh-dev firebird-dev librabbitmq-dev libhiredis-dev libmosquitto-dev
-       # removed because missing in Google's Ubuntu: libldap2-dev libcurl4-gnutls-dev libsnmp-dev
+       # removed because missing in Github's Ubuntu: libldap2-dev libcurl4-gnutls-dev libsnmp-dev
        cd ..
        git clone https://github.com/willamowius/ptlib
        cd ptlib
