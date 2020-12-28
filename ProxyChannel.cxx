@@ -1606,14 +1606,14 @@ bool TCPProxySocket::ReadTPKT()
 
 		// TPKT Continuation - ignore
 		if (tpkt.header == 0 && tpkt.padding == 3 && tpkt.length == 1024) {
-			PTRACE(3, Type() << "\tignoring empty Tandberg TPKT from " << GetName() << " (keep-alive)");
+			PTRACE(5, Type() << "\tignoring empty Tandberg TPKT from " << GetName() << " (keep-alive)");
 			buflen = 0;
 			tpktlen = 0;
 			return false;
 		}
 		// some endpoints don't set padding to 0, e.g. Cisco AS5300 (setting it to 0 is only required in H.323v3 or later)
 		if (tpkt.header != 3) {
-			PTRACE(2, Type() << "\t" << GetName() << " NOT A TPKT PACKET!"
+			PTRACE(2, Type() << "\t" << GetName() << " ERROR: NOT A TPKT PACKET!"
 				<< " header=" << (int)tpkt.header << " padding=" << (int)tpkt.padding << " length=" << (int)tpkt.length);
 			tpktlen = 0;
 			errno = EINVAL;
@@ -1622,13 +1622,13 @@ bool TCPProxySocket::ReadTPKT()
 		}
 		buflen = PIPSocket::Net2Host(tpkt.length) - sizeof(TPKTV3);
 		if (buflen < 1) {
-			PTRACE(3, Type() << "\tignoring empty TPKT from " << GetName() << " (keep-alive)");
+			PTRACE(5, Type() << "\tignoring empty TPKT from " << GetName() << " (keep-alive)");
 			buflen = 0;
 			tpktlen = 0;
 			return false;
 		}
 		if (!SetMinBufSize(buflen)) {
-			PTRACE(1, Type() << "\t" << GetName() << " could not set new buffer size: " << buflen);
+			PTRACE(1, Type() << "\t" << GetName() << " Error: Could not set new buffer size: " << buflen);
 			errno = ENOMEM;
 			ConvertOSError(-1, PSocket::LastReadError);
 			return ErrorHandler(PSocket::LastReadError);
