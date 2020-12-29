@@ -1616,9 +1616,16 @@ bool TCPProxySocket::ReadTPKT()
 			PTRACE(2, Type() << "\t" << GetName() << " ERROR: NOT A TPKT PACKET!"
 				<< " header=" << (int)tpkt.header << " padding=" << (int)tpkt.padding << " length=" << (int)tpkt.length);
 			tpktlen = 0;
-			errno = EINVAL;
-			ConvertOSError(-1, PSocket::LastReadError);
-			return ErrorHandler(PSocket::LastReadError);
+			if (GkConfig()->GetBoolean(RoutedSec, "AbortOnInvalidTPKT", true)) {
+    			errno = EINVAL;
+	    		ConvertOSError(-1, PSocket::LastReadError);
+		    	return ErrorHandler(PSocket::LastReadError);
+			} else {
+			    Flush();
+                buflen = 0;
+    			PTRACE(2, Type() << "\t" << GetName() << " Trying to continue...");
+                return false;
+			}
 		}
 		buflen = PIPSocket::Net2Host(tpkt.length) - sizeof(TPKTV3);
 		if (buflen < 1) {

@@ -614,7 +614,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RewriteSourceAddress", "ReplaceChar" },
 	{ "RewriteSourceAddress", "Rules" },
 	{ "RewriteSourceAddress", "TreatNumberURIDialedDigits" },
-	{ "RoutedMode", "AcceptNeighborCalls" },
+	{ "RoutedMode", "AbortOnInvalidTPKT" },
 	{ "RoutedMode", "AcceptNeighborsCalls" },
 	{ "RoutedMode", "AcceptUnregisteredCalls" },
 	{ "RoutedMode", "ActivateFailover" },

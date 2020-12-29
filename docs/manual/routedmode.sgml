@@ -1051,6 +1051,12 @@ This helps some endpoints, especially for H.239, but may break some connections 
 pick different RTP sessions and receiving ports for different directions of the same session
 type (eg. some LifeSize endpoints).
 
+<item><tt>AbortOnInvalidTPKT=0</tt><newline>
+Default: <tt>1</tt><newline>
+<p>
+By default GnuGk will abort a signaling connection when an invalid TPKT packet is received.
+When you set this switch to 0, GnuGk will ignore the packet and try to continue.
+
 </itemize>
 
 <p>
