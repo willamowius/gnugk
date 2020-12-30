@@ -12013,7 +12013,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			IPAndPortAddress fDestAddr(fDestIP, fDestPort);
 			IPAndPortAddress rSrcAddr(rSrcIP, rSrcPort);
 			IPAndPortAddress rDestAddr(rDestIP, rDestPort);
-			PTRACE(5, "H46018\t" << (isRTCP ? "RTCP" : "RTP") << " keepAlive from " << AsString(fromIP, fromPort));
+			PTRACE(7, "H46018\t" << (isRTCP ? "RTCP" : "RTP") << " keepAlive from " << AsString(fromIP, fromPort));
 			if ((fDestIP == 0) && (fromAddr != rDestAddr) && ((rSrcIP == 0) || (rSrcAddr == fromAddr))) {
 				// fwd dest was unset and packet didn't come from other side
 				PTRACE(5, "H46018\tSetting forward destination to " << AsString(fromIP, fromPort) << " based on " << Type() << " keepAlive");
