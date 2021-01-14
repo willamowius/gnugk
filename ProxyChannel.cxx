@@ -1606,7 +1606,7 @@ bool TCPProxySocket::ReadTPKT()
 
 		// TPKT Continuation - ignore
 		if (tpkt.header == 0 && tpkt.padding == 3 && tpkt.length == 1024) {
-			PTRACE(5, Type() << "\tignoring empty Tandberg TPKT from " << GetName() << " (keep-alive)");
+			PTRACE(7, Type() << "\tignoring empty Tandberg TPKT from " << GetName() << " (keep-alive)");
 			buflen = 0;
 			tpktlen = 0;
 			return false;
@@ -1629,7 +1629,7 @@ bool TCPProxySocket::ReadTPKT()
 		}
 		buflen = PIPSocket::Net2Host(tpkt.length) - sizeof(TPKTV3);
 		if (buflen < 1) {
-			PTRACE(5, Type() << "\tignoring empty TPKT from " << GetName() << " (keep-alive)");
+			PTRACE(7, Type() << "\tignoring empty TPKT from " << GetName() << " (keep-alive)");
 			buflen = 0;
 			tpktlen = 0;
 			return false;
