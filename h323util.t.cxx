@@ -410,12 +410,12 @@ TEST_F(H323UtilTest, RewriteWildcard) {
 }
 
 TEST_F(H323UtilTest, ProtocolVersion) {
-	EXPECT_EQ(0, ProtocolVersion("invalid"));
-	EXPECT_EQ(2, ProtocolVersion(H225_ProtocolIDv2));
-	EXPECT_EQ(4, ProtocolVersion(H225_ProtocolIDv4));
-	EXPECT_EQ(6, ProtocolVersion(H225_ProtocolIDv6));
-	EXPECT_EQ(7, ProtocolVersion("0.0.8.2250.0.7"));
-	EXPECT_EQ(3, ProtocolVersion(H245_ProtocolIDv3));
+	EXPECT_EQ(0u, ProtocolVersion("invalid"));
+	EXPECT_EQ(2u, ProtocolVersion(H225_ProtocolIDv2));
+	EXPECT_EQ(4u, ProtocolVersion(H225_ProtocolIDv4));
+	EXPECT_EQ(6u, ProtocolVersion(H225_ProtocolIDv6));
+	EXPECT_EQ(7u, ProtocolVersion("0.0.8.2250.0.7"));
+	EXPECT_EQ(3u, ProtocolVersion(H245_ProtocolIDv3));
 }
 
 TEST_F(H323UtilTest, IPAndPortAddress) {
