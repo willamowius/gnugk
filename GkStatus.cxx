@@ -47,6 +47,10 @@
 
 void ReloadHandler(); // avoid to include...
 
+#ifdef UNIT_TEST
+void ExitGK() { }; // mockup function for unit testing
+#endif
+
 static const char *authsec = "GkStatus::Auth";
 static const char *filteringsec = "GkStatus::Filtering";
 
