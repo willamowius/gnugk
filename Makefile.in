@@ -197,7 +197,7 @@ doc:
 
 # test support using Google C++ Test Framework
 # Set GTEST_DIR as environment variable or define it here
-#GTEST_DIR = /usr/src/googletest/googletest/
+GTEST_DIR = /usr/src/googletest/googletest/
 TESTCASES = h323util.t.cxx Toolkit.t.cxx
 temp_TESTOBJS := $(subst $(OBJDIR)/gk.o,,$(OBJS))
 TESTOBJS = $(temp_TESTOBJS)
