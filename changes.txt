@@ -1,5 +1,6 @@
 Changes from 5.6 to 5.7
 =======================
+- return unused memory back to OS periodically
 - new switch: [RoutedMode] AbortOnInvalidTPKT=0 for more graceful handling of network errors
 - BUGFIX(gk.cxx) fix for running on Alpine Linux (needs updated PTLib, too)
 - don't start GnuGk if RTP multiplexing is configured, but we can't start the listener

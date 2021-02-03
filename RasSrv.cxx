@@ -13,6 +13,7 @@
 //////////////////////////////////////////////////////////////////
 
 #include "config.h"
+#include <malloc.h>
 #include <ptlib.h>
 #include <ptlib/sockets.h>
 #include <ptclib/enum.h>
@@ -1648,7 +1649,7 @@ void RasServer::ClearAltGKsTable()
 void RasServer::HouseKeeping()
 {
     bool loopDetection = GkConfig()->GetBoolean("RasSrv::LRQFeatures", "LoopDetection", false);
-	for (unsigned count = 0; IsRunning(); ++count)
+	for (unsigned count = 0; IsRunning(); ++count) {
 		if (!Wait(1000)) {
 			if( !IsRunning() )
 				break;
@@ -1658,6 +1659,10 @@ void RasServer::HouseKeeping()
 			if (!(count % 60)) { // one minute
 				RegistrationTable::Instance()->CheckEndpoints();
                 CallTable::Instance()->CheckRTPInactive();
+#ifdef __GNU_LIBRARY__
+                // give unused memory back to OS
+                malloc_trim(0);
+#endif
 			}
 			if (!(count % 10)) { // every 10 sec
                 if (loopDetection)
@@ -1670,6 +1675,7 @@ void RasServer::HouseKeeping()
 
 			Toolkit::Instance()->GetTimerManager()->CheckTimers();
 		}
+	}
 }
 
 void RasServer::ReadSocket(IPSocket *socket)
