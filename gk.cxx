@@ -1144,17 +1144,12 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 
 } // end of anonymous namespace
 
-// due to some unknown reason (PWLib bug?),
-// we have to delete Toolkit::Instance first,
-// or we get core dump
+// called on errors on startup, we know something wen't wrong, no elaborate shutdown, just get out
 void ExitGK()
 {
-	Gatekeeper::EnableLogFileRotation(false);
-
-	delete Toolkit::Instance();
-
+    // just close the trace and get out
 	Gatekeeper::CloseLogFile();
-	_exit(0);	// skip exit handlers: we know GnuGk couldn't start, so avoid crash in useless cleanup
+	_exit(1);	// skip exit handlers: we know GnuGk couldn't start, so avoid crash in useless cleanup
 }
 
 
@@ -1805,8 +1800,8 @@ void Gatekeeper::Main()
 
 	m_strictConfigCheck = args.HasOption('S');
 	if (!InitConfig(args) || !InitHandlers(args)) {
-		cerr << "ERROR: Serious error in the configuration - terminating" << endl;
-		PTRACE(0, "ERROR: Serious error in the configuration - terminating");
+		cerr << "FATAL ERROR: Serious error in the configuration - terminating" << endl;
+		PTRACE(0, "FATAL ERROR: Serious error in the configuration - terminating");
 		ExitGK();
 	}
 
@@ -1869,8 +1864,8 @@ void Gatekeeper::Main()
 	vector<PIPSocket::Address> GKHome;
 	PString home(Toolkit::Instance()->GetGKHome(GKHome));
 	if (GKHome.empty()) {
-		PTRACE(0, "Fatal: Cannot find any interface to run GnuGk!");
-		cerr << "Fatal: Cannot find any interface to run GnuGk!\n";
+		PTRACE(0, "Fatal Error: Cannot find any interface to run GnuGk!");
+		cerr << "Fatal Error: Cannot find any interface to run GnuGk!\n";
 		ExitGK();
 	}
 	cout << "Listen on " << home << "\n";

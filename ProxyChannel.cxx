@@ -10453,7 +10453,7 @@ MultiplexRTPListener::MultiplexRTPListener(WORD pt, WORD buffSize)
 		localAddr = home[0];
 
 	if (!Listen(localAddr, 0, pt)) {
-		PTRACE(1, "RTPM\tError: Can't open multiplex RTP listener on " << AsString(localAddr, pt));
+		PTRACE(1, "RTPM\tFATAL Error: Can't open multiplex RTP listener on " << AsString(localAddr, pt));
         cerr << "FATAL Error: Can't open multiplex RTP listener on " << AsString(localAddr, pt) << endl;
         ExitGK();
 	}
