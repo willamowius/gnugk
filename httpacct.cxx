@@ -195,17 +195,18 @@ GkAcctLogger::Status HttpAcct::HttpLog(PString url, PString body)
                 url = parts[0];
                 body = parts[1];
             }
-            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, (const char *)body);
+            (void)curl_easy_setopt(curl, CURLOPT_POSTFIELDS, (const char *)body);
         } else {
             PTRACE(2, "HttpAcct\tUnsupported method " << m_method);
+            curl_easy_cleanup(curl);
             return Fail;
         }
-        curl_easy_setopt(curl, CURLOPT_URL, (const char *)url);
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
+        (void)curl_easy_setopt(curl, CURLOPT_URL, (const char *)url);
+        (void)curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
+        (void)curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
         if (PTrace::CanTrace(6)) {
-            curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, DebugToTrace);
-            curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+            (void)curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, DebugToTrace);
+            (void)curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
         }
         curl_res = curl_easy_perform(curl);
         curl_easy_cleanup(curl);

@@ -871,7 +871,7 @@ void GkAuthenticatorList::SelectH235Capability(
 								gcf.m_tokens.SetSize(gcf.m_tokens.GetSize() + 1);
 								gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_tokenOID = "0.0";
 								gcf.m_tokens[gcf.m_tokens.GetSize() - 1].IncludeOptionalField(H235_ClearToken::e_timeStamp);
-								gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_timeStamp = (int)time(NULL); // Avaya seems to send a different timestamp that is 34 years back, but accpets this as well
+								gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_timeStamp = (int)time(NULL); // Avaya seems to send a different timestamp that is 34 years back, but accepts this as well
 								gcf.m_tokens[gcf.m_tokens.GetSize() - 1].IncludeOptionalField(H235_ClearToken::e_random);
 #ifdef PSSL
                                 // if we have OpenSSL, use it for random number generation, fall back on stdlib rand()
@@ -2424,18 +2424,18 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
                 body = parts[1];
             } else {
                 headerlist = curl_slist_append(headerlist, "Content-Type: text/plain");
-                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
+                (void)curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
             }
-            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, (const char *)body);
+            (void)curl_easy_setopt(curl, CURLOPT_POSTFIELDS, (const char *)body);
         } else {
             PTRACE(2, "HttpPasswordAuth\tUnsupported method " << m_method);
         }
-        curl_easy_setopt(curl, CURLOPT_URL, (const char *)url);
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
+        (void)curl_easy_setopt(curl, CURLOPT_URL, (const char *)url);
+        (void)curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
+        (void)curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
         if (PTrace::CanTrace(6)) {
-            curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, DebugToTrace);
-            curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+            (void)curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, DebugToTrace);
+            (void)curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
         }
         curl_res = curl_easy_perform(curl);
         curl_slist_free_all(headerlist);

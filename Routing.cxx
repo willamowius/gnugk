@@ -2340,18 +2340,18 @@ void HttpPolicy::RunPolicy(
                 body = parts[1];
             } else {
                 headerlist = curl_slist_append(headerlist, "Content-Type: text/plain");
-                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
+                (void)curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
             }
-            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, (const char *)body);
+            (void)curl_easy_setopt(curl, CURLOPT_POSTFIELDS, (const char *)body);
         } else {
             PTRACE(2, m_name << "\tUnsupported method " << m_method);
         }
-        curl_easy_setopt(curl, CURLOPT_URL, (const char *)url);
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
+        (void)curl_easy_setopt(curl, CURLOPT_URL, (const char *)url);
+        (void)curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
+        (void)curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
         if (PTrace::CanTrace(6)) {
-            curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, DebugToTrace);
-            curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+            (void)curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, DebugToTrace);
+            (void)curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
         }
         curl_res = curl_easy_perform(curl);
         curl_slist_free_all(headerlist);
