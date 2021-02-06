@@ -12310,8 +12310,8 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
                 if (now - m_firstMedia >= m_portDetectionTimeout) {
                     PTRACE(1, "RTP\tError: Port detection failed for RTP session " << m_sessionID);
                     m_mediaFailDetected = true;
-                    (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctMediaFail, *m_call);
                     if (m_call) {
+                        (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctMediaFail, *m_call);
                         (*m_call)->AbortLogicalChannel(m_sessionID);
                     }
                 }
