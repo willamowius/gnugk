@@ -18,6 +18,7 @@
 #include <h235.h>
 #include <h235auth.h>
 #include "Toolkit.h"
+#include "GkStatus.h"
 #include "authenticators.h"
 #include "gkh235.h"
 
@@ -152,6 +153,7 @@ int GkH235Authenticators::Validate(
 						PTRACE(2, "GKH235\tInvalid Procedure I timestamp ABS(" << now.GetTimeInSeconds()
 							<< '-' << (int)cryptoHashedToken.m_hashedVals.m_timeStamp << ") > "
 							<< m_timestampGracePeriod);
+                        GkStatus::Instance()->SignalStatus("Warning: Endpoint Procedure I password rejected due to invalid timestamp\r\n");
 						return m_authResultProcedure1 = H235Authenticator::e_InvalidTime;
 	  				}
 
@@ -237,6 +239,13 @@ int GkH235Authenticators::Validate(
 			if (std::abs(deltaTime) > m_timestampGracePeriod) {
 				PTRACE(2, "GKH235\tInvalid CAT timestamp ABS(" << now.GetTimeInSeconds()
 					<< '-' << (int)token.m_timeStamp << ") > " << m_timestampGracePeriod);
+                PString ep;
+                if (token.HasOptionalField(H235_ClearToken::e_generalID)) {
+                    ep = token.m_generalID;
+                } else if (token.HasOptionalField(H235_ClearToken::e_sendersID)) {
+                    ep = token.m_sendersID;
+                }
+                GkStatus::Instance()->SignalStatus("Warning: Endpoint " + ep + " CAT password rejected due to invalid timestamp\r\n");
 				return m_authResultCAT = H235Authenticator::e_InvalidTime;
   			}
 
@@ -263,6 +272,7 @@ int GkH235Authenticators::Validate(
 				if (std::abs(deltaTime) > m_timestampGracePeriod) {
 					PTRACE(2, "GKH235\tInvalid MD5 timestamp ABS(" << now.GetTimeInSeconds()
 						<< '-' << (int)cryptoEPPwdHash.m_timeStamp << ") > " << m_timestampGracePeriod);
+                    GkStatus::Instance()->SignalStatus("Warning: Endpoint " + AsString(cryptoEPPwdHash.m_alias, false) + " MD5 password rejected due to invalid timestamp\r\n");
 					return m_authResultMD5 = H235Authenticator::e_InvalidTime;
   				}
 
@@ -292,6 +302,7 @@ int GkH235Authenticators::Validate(
 						PTRACE(2, "GKH235\tInvalid Procedure I timestamp ABS(" << now.GetTimeInSeconds()
 							<< '-' << (int)cryptoHashedToken.m_hashedVals.m_timeStamp << ") > "
 							<< m_timestampGracePeriod);
+                        GkStatus::Instance()->SignalStatus("Warning: Endpoint Procedure I password rejected due to invalid timestamp\r\n");
 						return m_authResultProcedure1 = H235Authenticator::e_InvalidTime;
 	  				}
 

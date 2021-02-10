@@ -1,5 +1,6 @@
 Changes from 5.6 to 5.7
 =======================
+- print warning message on status port when passwords get rejected due to wrong time
 - BUGFIX(httpacct.cxx) fix memory leak
 - BUGFIX(ProxyChannel.cxx) fix possible crash
 - BUGFIX(gk.cxx) avoid crash when terminating in the middle of program startup,
