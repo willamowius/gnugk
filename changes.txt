@@ -1,5 +1,8 @@
 Changes from 5.6 to 5.7
 =======================
+- BUGFIX(ProxyChannel.cxx) fix crash on non-standard H.245 Indication from
+  Polycom RealPresence Capture Server
+- BUGFIX(ProxyChannel.cxx) fix possible crashes on non-standard generic information in OLCs
 - print warning message on status port when passwords get rejected due to wrong time
 - BUGFIX(httpacct.cxx) fix memory leak
 - BUGFIX(ProxyChannel.cxx) fix possible crash

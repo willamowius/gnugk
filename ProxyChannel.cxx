@@ -10272,38 +10272,41 @@ ProxySocket::Result MultiplexedH245Socket::ReceiveData()
         const H245_IndicationMessage & Indication = h245msg;
     	if (Indication.GetTag() == H245_IndicationMessage::e_genericIndication) {
 	    	const H245_GenericMessage & generic = Indication;
-		    const PASN_ObjectId & gid = generic.m_messageIdentifier;
-		    if (gid == H46018_OID) {
-        	    isH46018Indication = true;
-        	    bool isAnswer = false;
-    			H225_CallIdentifier callIdentifier;
-    			for (PINDEX i = 0; i < generic.m_messageContent.GetSize(); ++i) {
-                    const H245_ParameterIdentifier & idm = generic.m_messageContent[i].m_parameterIdentifier;
-		            if (idm.GetTag() == H245_ParameterIdentifier::e_standard) {
-			            const PASN_Integer & id = idm;
-			            if (id == 1) {
-                            if (generic.m_messageContent[i].m_parameterValue.GetTag() == H245_ParameterValue::e_octetString) {
-                                const PASN_OctetString & value = generic.m_messageContent[i].m_parameterValue;
-            			        callIdentifier.m_guid = value;
+            const H245_CapabilityIdentifier & capId = generic.m_messageIdentifier;
+            if (capId.GetTag() == H245_CapabilityIdentifier::e_standard) {
+                const PASN_ObjectId & gid = capId;
+                if (gid == H46018_OID) {
+                    isH46018Indication = true;
+                    bool isAnswer = false;
+                    H225_CallIdentifier callIdentifier;
+                    for (PINDEX i = 0; i < generic.m_messageContent.GetSize(); ++i) {
+                        const H245_ParameterIdentifier & idm = generic.m_messageContent[i].m_parameterIdentifier;
+                        if (idm.GetTag() == H245_ParameterIdentifier::e_standard) {
+                            const PASN_Integer & id = idm;
+                            if (id == 1) {
+                                if (generic.m_messageContent[i].m_parameterValue.GetTag() == H245_ParameterValue::e_octetString) {
+                                    const PASN_OctetString & value = generic.m_messageContent[i].m_parameterValue;
+                                    callIdentifier.m_guid = value;
+                                }
                             }
-			            }
-        			    if (id == 2) {
-        			        isAnswer = true;
-    	    		    }
-    			    }
-    			}
-	    		callptr call = CallTable::Instance()->FindCallRec(callIdentifier);
-			    if (call) {
-			        // detach from current handler so it can be added to handler of H245Socket in CallSignalSocket
-			        ProxyHandler * handler = GetHandler();
-			        if (handler)
-			            handler->Detach(this);
-			        // patch socket into H245Socket pair in call
-                    call->SetH245OSSocket(GetOSSocket(), isAnswer, GetName());
-			    } else {
-			        PTRACE(1, "H245M\tError: Didn't find call " << AsString (callIdentifier));
-			    }
-		    }
+                            if (id == 2) {
+                                isAnswer = true;
+                            }
+                        }
+                    }
+                    callptr call = CallTable::Instance()->FindCallRec(callIdentifier);
+                    if (call) {
+                        // detach from current handler so it can be added to handler of H245Socket in CallSignalSocket
+                        ProxyHandler * handler = GetHandler();
+                        if (handler)
+                            handler->Detach(this);
+                        // patch socket into H245Socket pair in call
+                        call->SetH245OSSocket(GetOSSocket(), isAnswer, GetName());
+                    } else {
+                        PTRACE(1, "H245M\tError: Didn't find call " << AsString (callIdentifier));
+                    }
+                }
+            }
     	}
 
 	}
@@ -14084,63 +14087,66 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_genericInformation)) {
 			// remove traversal parameters from sender before forwarding
 			for (PINDEX i = 0; i < olc.m_genericInformation.GetSize(); i++) {
-				PASN_ObjectId & gid = olc.m_genericInformation[i].m_messageIdentifier;
-				if (olc.m_genericInformation[i].m_messageContent.GetSize() > 0) {
-					H245_ParameterIdentifier & ident = olc.m_genericInformation[i].m_messageContent[0].m_parameterIdentifier;
-					PASN_Integer & n = ident;
-					if (gid == H46019_OID && n == 1) {
-						unsigned payloadtype = UNDEFINED_PAYLOAD_TYPE;
-						H225_TransportAddress keepAliveRTPAddr;
-						H245_UnicastAddress keepAliveRTCPAddr;
-						unsigned keepAliveInterval = 0;
-						H225_TransportAddress multiplexedRTPAddr;
-						H225_TransportAddress multiplexedRTCPAddr;
-						DWORD multiplexID = INVALID_MULTIPLEX_ID;
-						if (ParseTraversalParameters(olc.m_genericInformation[i], payloadtype, keepAliveRTPAddr, keepAliveInterval,
-								multiplexedRTPAddr, multiplexedRTCPAddr, multiplexID)) {
-							H245_UnicastAddress * control = NULL;
-							if (h225Params && h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)
-								&& (control = GetH245UnicastAddress(h225Params->m_mediaControlChannel)) ) {
-								keepAliveRTCPAddr = *control;
-							} else {
-								PTRACE(1, "H46018\tError: H.460.19 server didn't provide mediaControlChannel");
-								SNMP_TRAP(10, SNMPError, Network, "H.460.19 server didn't provide mediaControlChannel");
-							}
-							if (keepAliveInterval > 0) {
-								call->AddRTPKeepAlive(flcn, keepAliveRTPAddr, keepAliveInterval, multiplexID);
-								call->AddRTCPKeepAlive(flcn, keepAliveRTCPAddr, keepAliveInterval, multiplexID);
-							}
-							m_remoteRequestsRTPMultiplexing = m_isRTPMultiplexingEnabled && (multiplexID != INVALID_MULTIPLEX_ID);
-							if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing) {
-								if (!h46019chan.IsValid()) {
-									// eg. server requests multiplexing to it, but doesn't support sending multiplexed
-									h46019chan = H46019Session(call->GetCallNumber(), sessionID, this); // no existing found, create a new one
-								}
-								h46019chan.m_multiplexID_toA = multiplexID;
-								if (IsTraversalServer()) {
-									if (IsSet(multiplexedRTPAddr))
-										h46019chan.m_addrA = multiplexedRTPAddr;
-									else
-										h46019chan.m_addrA = keepAliveRTPAddr;
-									h46019chan.m_addrA_RTCP = multiplexedRTCPAddr;
-								}
-							}
-							if (payloadtype != UNDEFINED_PAYLOAD_TYPE) {
-								LogicalChannel * lc = FindLogicalChannel(flcn);
-								if (lc) {
-									((RTPLogicalChannel*)lc)->AddLCKeepAlivePT(payloadtype);
-								} else {
-									PTRACE(1, "H46019\tError: No logical channel to set keepAlive PT=" << payloadtype);
-								}
-							}
-						}
-						// move remaining elements down
-						for (PINDEX j = i + 1; j < olc.m_genericInformation.GetSize(); j++) {
-							olc.m_genericInformation[j - 1] = olc.m_genericInformation[j];
-						}
-						olc.m_genericInformation.SetSize(olc.m_genericInformation.GetSize() - 1);
-					}
-				}
+                const H245_CapabilityIdentifier & capId = olc.m_genericInformation[i].m_messageIdentifier;
+                if (capId.GetTag() == H245_CapabilityIdentifier::e_standard) {
+                    const PASN_ObjectId & gid = capId;
+                    if (olc.m_genericInformation[i].m_messageContent.GetSize() > 0) {
+                        const H245_ParameterIdentifier & ident = olc.m_genericInformation[i].m_messageContent[0].m_parameterIdentifier;
+                        const PASN_Integer & n = ident;
+                        if (gid == H46019_OID && n == 1) {
+                            unsigned payloadtype = UNDEFINED_PAYLOAD_TYPE;
+                            H225_TransportAddress keepAliveRTPAddr;
+                            H245_UnicastAddress keepAliveRTCPAddr;
+                            unsigned keepAliveInterval = 0;
+                            H225_TransportAddress multiplexedRTPAddr;
+                            H225_TransportAddress multiplexedRTCPAddr;
+                            DWORD multiplexID = INVALID_MULTIPLEX_ID;
+                            if (ParseTraversalParameters(olc.m_genericInformation[i], payloadtype, keepAliveRTPAddr, keepAliveInterval,
+                                    multiplexedRTPAddr, multiplexedRTCPAddr, multiplexID)) {
+                                H245_UnicastAddress * control = NULL;
+                                if (h225Params && h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)
+                                    && (control = GetH245UnicastAddress(h225Params->m_mediaControlChannel)) ) {
+                                    keepAliveRTCPAddr = *control;
+                                } else {
+                                    PTRACE(1, "H46018\tError: H.460.19 server didn't provide mediaControlChannel");
+                                    SNMP_TRAP(10, SNMPError, Network, "H.460.19 server didn't provide mediaControlChannel");
+                                }
+                                if (keepAliveInterval > 0) {
+                                    call->AddRTPKeepAlive(flcn, keepAliveRTPAddr, keepAliveInterval, multiplexID);
+                                    call->AddRTCPKeepAlive(flcn, keepAliveRTCPAddr, keepAliveInterval, multiplexID);
+                                }
+                                m_remoteRequestsRTPMultiplexing = m_isRTPMultiplexingEnabled && (multiplexID != INVALID_MULTIPLEX_ID);
+                                if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing) {
+                                    if (!h46019chan.IsValid()) {
+                                        // eg. server requests multiplexing to it, but doesn't support sending multiplexed
+                                        h46019chan = H46019Session(call->GetCallNumber(), sessionID, this); // no existing found, create a new one
+                                    }
+                                    h46019chan.m_multiplexID_toA = multiplexID;
+                                    if (IsTraversalServer()) {
+                                        if (IsSet(multiplexedRTPAddr))
+                                            h46019chan.m_addrA = multiplexedRTPAddr;
+                                        else
+                                            h46019chan.m_addrA = keepAliveRTPAddr;
+                                        h46019chan.m_addrA_RTCP = multiplexedRTCPAddr;
+                                    }
+                                }
+                                if (payloadtype != UNDEFINED_PAYLOAD_TYPE) {
+                                    LogicalChannel * lc = FindLogicalChannel(flcn);
+                                    if (lc) {
+                                        ((RTPLogicalChannel*)lc)->AddLCKeepAlivePT(payloadtype);
+                                    } else {
+                                        PTRACE(1, "H46019\tError: No logical channel to set keepAlive PT=" << payloadtype);
+                                    }
+                                }
+                            }
+                            // move remaining elements down
+                            for (PINDEX j = i + 1; j < olc.m_genericInformation.GetSize(); j++) {
+                                olc.m_genericInformation[j - 1] = olc.m_genericInformation[j];
+                            }
+                            olc.m_genericInformation.SetSize(olc.m_genericInformation.GetSize() - 1);
+                        }
+                    }
+                }
 			}
 			if (olc.m_genericInformation.GetSize() == 0)
 				olc.RemoveOptionalField(H245_OpenLogicalChannel::e_genericInformation);
@@ -14281,33 +14287,35 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 #ifdef HAS_H46024A
         if (call && !call->IsH46024APassThrough()) {
             if (olc.HasOptionalField(H245_OpenLogicalChannel::e_genericInformation)) {
-                PINDEX i = 0;
-                for (i = 0; i < olc.m_genericInformation.GetSize(); i++) {
-                    PASN_ObjectId & gid = olc.m_genericInformation[i].m_messageIdentifier;
-                    if (gid == H46024A_OID && olc.m_genericInformation[i].HasOptionalField(H245_GenericInformation::e_messageContent)) {
-                        const H245_ArrayOf_GenericParameter & msg = olc.m_genericInformation[i].m_messageContent;
-                        PTRACE(4, "H46024A\tAlt Port Info:\n" << msg);
-                        PString m_CUI = PString();
-                        H323TransportAddress m_altAddr1, m_altAddr2;
-                        unsigned m_altMuxID = 0;
-                        bool error = false;
-                        if (!GetH245GenericStringOctetString(0, msg, m_CUI))  error = true;
-                        if (!GetH245TransportGenericOctetString(1, msg, m_altAddr1))  error = true;
-                        if (!GetH245TransportGenericOctetString(2, msg, m_altAddr2))  error = true;
-                        GetH245GenericUnsigned(3, msg, m_altMuxID);
-                        if (!error) {
-                            GkClient * gkClient = RasServer::Instance()->GetGkClient();
-                            if (gkClient)
-                                gkClient->H46023_SetAlternates(call->GetCallIdentifier(), sessionID, m_CUI, m_altMuxID, m_altAddr1, m_altAddr2);
+                for (PINDEX i = 0; i < olc.m_genericInformation.GetSize(); i++) {
+                    const H245_CapabilityIdentifier & capId = olc.m_genericInformation[i].m_messageIdentifier;
+                    if (capId.GetTag() == H245_CapabilityIdentifier::e_standard) {
+                        const PASN_ObjectId & gid = capId;
+                        if (gid == H46024A_OID && olc.m_genericInformation[i].HasOptionalField(H245_GenericInformation::e_messageContent)) {
+                            const H245_ArrayOf_GenericParameter & msg = olc.m_genericInformation[i].m_messageContent;
+                            PTRACE(4, "H46024A\tAlt Port Info:\n" << msg);
+                            PString m_CUI = PString();
+                            H323TransportAddress m_altAddr1, m_altAddr2;
+                            unsigned m_altMuxID = 0;
+                            bool error = false;
+                            if (!GetH245GenericStringOctetString(0, msg, m_CUI))  error = true;
+                            if (!GetH245TransportGenericOctetString(1, msg, m_altAddr1))  error = true;
+                            if (!GetH245TransportGenericOctetString(2, msg, m_altAddr2))  error = true;
+                            GetH245GenericUnsigned(3, msg, m_altMuxID);
+                            if (!error) {
+                                GkClient * gkClient = RasServer::Instance()->GetGkClient();
+                                if (gkClient)
+                                    gkClient->H46023_SetAlternates(call->GetCallIdentifier(), sessionID, m_CUI, m_altMuxID, m_altAddr1, m_altAddr2);
+                            }
+                            for (PINDEX j = i + 1; j < olc.m_genericInformation.GetSize(); j++) {
+                                olc.m_genericInformation[j - 1] = olc.m_genericInformation[j];
+                            }
+                            olc.m_genericInformation.SetSize(olc.m_genericInformation.GetSize() - 1);
+                            if (olc.m_genericInformation.GetSize() == 0)
+                                olc.RemoveOptionalField(H245_OpenLogicalChannel::e_genericInformation);
+                            changed = true;
+                            break;
                         }
-                        for (PINDEX j = i + 1; j < olc.m_genericInformation.GetSize(); j++) {
-                            olc.m_genericInformation[j - 1] = olc.m_genericInformation[j];
-                        }
-                        olc.m_genericInformation.SetSize(olc.m_genericInformation.GetSize() - 1);
-                        if (olc.m_genericInformation.GetSize() == 0)
-                            olc.RemoveOptionalField(H245_OpenLogicalChannel::e_genericInformation);
-                        changed = true;
-                        break;
                     }
                 }
             } else {
@@ -14538,55 +14546,61 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 	if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_genericInformation)) {
 		for (PINDEX i = 0; i < olca.m_genericInformation.GetSize(); i++) {
 			if (olca.m_genericInformation[i].m_messageContent.GetSize() > 0) {
-				PASN_ObjectId & gid = olca.m_genericInformation[i].m_messageIdentifier;
-				if (olca.m_genericInformation[i].m_messageContent.GetSize() > 0) {
-					H245_ParameterIdentifier & ident = olca.m_genericInformation[i].m_messageContent[0].m_parameterIdentifier;
-					PASN_Integer & n = ident;
-					if (gid == H46019_OID && n == 1) {
-						unsigned payloadtype = UNDEFINED_PAYLOAD_TYPE;
-						H225_TransportAddress keepAliveRTPAddr;
-						H245_UnicastAddress keepAliveRTCPAddr;
-						unsigned keepAliveInterval = 0;
-						H225_TransportAddress multiplexedRTPAddr;
-						H225_TransportAddress multiplexedRTCPAddr;
-						DWORD multiplexID = INVALID_MULTIPLEX_ID;
-						if (ParseTraversalParameters(olca.m_genericInformation[i], payloadtype, keepAliveRTPAddr, keepAliveInterval,
-								multiplexedRTPAddr, multiplexedRTCPAddr, multiplexID)) {
-							m_remoteRequestsRTPMultiplexing = m_isRTPMultiplexingEnabled && (multiplexID != INVALID_MULTIPLEX_ID);
-							if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing) {
-								if (!h46019chan.IsValid()) {
-									// eg. server requests multiplexing to it, but doesn't support sending multiplexed
-									h46019chan = H46019Session(call->GetCallNumber(), sessionID, peer); // no existing session, create a new one
-									MultiplexedRTPHandler::Instance()->AddChannel(h46019chan);
-									h46019chan = MultiplexedRTPHandler::Instance()->GetChannelSwapped(call->GetCallNumber(), sessionID, peer);
-								}
-								h46019chan.m_multiplexID_toB = multiplexID;
-								if (IsTraversalServer()) {  // only save multiplex addresses if from server
-									if (IsSet(multiplexedRTPAddr))
-										h46019chan.m_addrB = multiplexedRTPAddr;
-									else
-										h46019chan.m_addrB = keepAliveRTPAddr;
-									h46019chan.m_addrB_RTCP = multiplexedRTCPAddr;
-								}
-							}
-							if ((payloadtype != UNDEFINED_PAYLOAD_TYPE) && rtplc)
-								rtplc->AddLCKeepAlivePT(payloadtype);
-						}
-					}
+                const H245_CapabilityIdentifier & capId = olca.m_genericInformation[i].m_messageIdentifier;
+                if (capId.GetTag() == H245_CapabilityIdentifier::e_standard) {
+                    const PASN_ObjectId & gid = capId;
+                    if (olca.m_genericInformation[i].m_messageContent.GetSize() > 0) {
+                        const H245_ParameterIdentifier & ident = olca.m_genericInformation[i].m_messageContent[0].m_parameterIdentifier;
+                        const PASN_Integer & n = ident;
+                        if (gid == H46019_OID && n == 1) {
+                            unsigned payloadtype = UNDEFINED_PAYLOAD_TYPE;
+                            H225_TransportAddress keepAliveRTPAddr;
+                            H245_UnicastAddress keepAliveRTCPAddr;
+                            unsigned keepAliveInterval = 0;
+                            H225_TransportAddress multiplexedRTPAddr;
+                            H225_TransportAddress multiplexedRTCPAddr;
+                            DWORD multiplexID = INVALID_MULTIPLEX_ID;
+                            if (ParseTraversalParameters(olca.m_genericInformation[i], payloadtype, keepAliveRTPAddr, keepAliveInterval,
+                                    multiplexedRTPAddr, multiplexedRTCPAddr, multiplexID)) {
+                                m_remoteRequestsRTPMultiplexing = m_isRTPMultiplexingEnabled && (multiplexID != INVALID_MULTIPLEX_ID);
+                                if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing) {
+                                    if (!h46019chan.IsValid()) {
+                                        // eg. server requests multiplexing to it, but doesn't support sending multiplexed
+                                        h46019chan = H46019Session(call->GetCallNumber(), sessionID, peer); // no existing session, create a new one
+                                        MultiplexedRTPHandler::Instance()->AddChannel(h46019chan);
+                                        h46019chan = MultiplexedRTPHandler::Instance()->GetChannelSwapped(call->GetCallNumber(), sessionID, peer);
+                                    }
+                                    h46019chan.m_multiplexID_toB = multiplexID;
+                                    if (IsTraversalServer()) {  // only save multiplex addresses if from server
+                                        if (IsSet(multiplexedRTPAddr))
+                                            h46019chan.m_addrB = multiplexedRTPAddr;
+                                        else
+                                            h46019chan.m_addrB = keepAliveRTPAddr;
+                                        h46019chan.m_addrB_RTCP = multiplexedRTCPAddr;
+                                    }
+                                }
+                                if ((payloadtype != UNDEFINED_PAYLOAD_TYPE) && rtplc)
+                                    rtplc->AddLCKeepAlivePT(payloadtype);
+                            }
+                        }
+                    }
 				}
 			}
 		}
 		// remove traversal parameters before forwarding OLCA
 		if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_genericInformation)) {
 			for (PINDEX i = 0; i < olca.m_genericInformation.GetSize(); i++) {
-				PASN_ObjectId & gid = olca.m_genericInformation[i].m_messageIdentifier;
-				if (gid == H46019_OID) {
-					// remove traversal parameters, move remaining elements down
-					for (PINDEX j = i + 1; j < olca.m_genericInformation.GetSize(); j++) {
-						olca.m_genericInformation[j - 1] = olca.m_genericInformation[j];
-					}
-					olca.m_genericInformation.SetSize(olca.m_genericInformation.GetSize() - 1);
-				}
+                const H245_CapabilityIdentifier & capId = olca.m_genericInformation[i].m_messageIdentifier;
+                if (capId.GetTag() == H245_CapabilityIdentifier::e_standard) {
+                    const PASN_ObjectId & gid = capId;
+                    if (gid == H46019_OID) {
+                        // remove traversal parameters, move remaining elements down
+                        for (PINDEX j = i + 1; j < olca.m_genericInformation.GetSize(); j++) {
+                            olca.m_genericInformation[j - 1] = olca.m_genericInformation[j];
+                        }
+                        olca.m_genericInformation.SetSize(olca.m_genericInformation.GetSize() - 1);
+                    }
+                }
 			}
 			if (olca.m_genericInformation.GetSize() == 0)
 				olca.RemoveOptionalField(H245_OpenLogicalChannelAck::e_genericInformation);
@@ -14891,11 +14905,14 @@ bool H245ProxyHandler::HandleIndication(H245_IndicationMessage & Indication, boo
 #ifdef HAS_H46018
 	// filter out genericIndications for H.460.18
 	if (Indication.GetTag() == H245_IndicationMessage::e_genericIndication) {
-		H245_GenericMessage & generic = Indication;
-		PASN_ObjectId & gid = generic.m_messageIdentifier;
-		if (gid == H46018_OID) {
-			suppress = true;
-			return false;
+		const H245_GenericMessage & generic = Indication;
+        const H245_CapabilityIdentifier & capId = generic.m_messageIdentifier;
+        if (capId.GetTag() == H245_CapabilityIdentifier::e_standard) {
+    		const PASN_ObjectId & gid = capId;
+	    	if (gid == H46018_OID) {
+		    	suppress = true;
+			    return false;
+	    	}
 		}
 	}
 #endif
