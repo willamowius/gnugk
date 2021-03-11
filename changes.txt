@@ -1,5 +1,6 @@
 Changes from 5.7 to 5.8
 =======================
+- BUGFIX(job.cxx) better endpointIDs on Windows when compiling without OpenSSL
 
 
 Changes from 5.6 to 5.7

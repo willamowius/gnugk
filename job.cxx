@@ -5,7 +5,7 @@
 // Abstraction of threads' jobs
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2006-2015, Jan Willamowius
+// Copyright (c) 2006-2021, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -141,6 +141,11 @@ Worker::Worker(
 	m_idleTimeout(idleTimeout*1000), m_closed(false), m_job(NULL), m_id(0),
 	m_agent(agent)
 {
+#ifdef _WIN32
+	// on Windows srand() is thread-local, thus we must initialized every thread to make them at least slightly better
+	// only used as fallback when OpenSSL isn't available, eg. for endpointIDs
+	srand((unsigned int)time(NULL) * GetThreadId());
+#endif
 	// resume suspended thread (and run Main)
 	Resume();
 }
