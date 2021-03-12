@@ -2,7 +2,7 @@
 //
 // H.323 utility functions
 //
-// Copyright (c) 2000-2019, Jan Willamowius
+// Copyright (c) 2000-2021, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -140,6 +140,9 @@ void MapIPv4Address(PIPSocket::Address & addr);
 bool IsLoopback(const PIPSocket::Address & addr);
 
 bool IsPrivate(const PIPSocket::Address & ip);
+
+// set IP to an invalid state, check with IsValid()
+void SetInvalid(PIPSocket::Address & ip);
 
 // is this IP part of this network
 bool IsInNetwork(const PIPSocket::Address & ip, const NetworkAddress & net);

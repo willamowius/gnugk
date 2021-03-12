@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2019, Jan Willamowius
+// Copyright (c) 2000-2021, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -117,7 +117,8 @@ public:
 	H225_TransportAddress GetCallSignalAddress() const;
 	PIPSocket::Address GetIP() const;
 	// for multi-homed servers: the IP that the endpoint sent his RAS messages to (needed for H.460.18 SCI)
-	PIPSocket::Address GetRasServerIP() const { return m_rasServerIP; }
+	PIPSocket::Address GetRasServerIP() const { return m_rasServerIP; } // caller need to check for IsValid()
+	//bool GetRasServerIP(PIPSocket::Address & ip) const { ip = m_rasServerIP; return m_rasServerIP.IsValid(); } // JWX
 	H225_EndpointIdentifier GetEndpointIdentifier() const;
 	H225_ArrayOf_AliasAddress GetAliases() const;
 	H225_EndpointType GetEndpointType() const;
@@ -692,6 +693,8 @@ public:
 	int ossocket;
 	DWORD multiplexID;
 	BYTE payloadType;
+	PIPSocket::Address gkIP; // source IP
+	PIPSocket::Address * gkIPptr; // source IP pointer if valid
 	GkTimerManager::GkTimerHandle timer;
 };
 #endif
@@ -1438,10 +1441,10 @@ public:
 	PBYTEArray RetrieveSetup();
 	int GetH46019Direction() const;
 
-	void AddRTPKeepAlive(unsigned flcn, const IPAndPortAddress & keepAliveRTPAddr, unsigned keepAliveInterval, DWORD multiplexID);
+	void AddRTPKeepAlive(unsigned flcn, const IPAndPortAddress & keepAliveRTPAddr, unsigned keepAliveInterval, DWORD multiplexID, PIPSocket::Address gkIP);
 	void SetRTPKeepAlivePayloadType(unsigned flcn, BYTE payloadType);
 	void StartRTPKeepAlive(unsigned flcn, int RTPOSSocket);
-	void AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAliveRTCPAddr, unsigned keepAliveInterval, DWORD multiplexID);
+	void AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAliveRTCPAddr, unsigned keepAliveInterval, DWORD multiplexID, PIPSocket::Address gkIP);
 	void StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket);
 	void RemoveRTPKeepAlives(unsigned flcn);
 	void RemoveAllRTPKeepAlives();
@@ -1468,6 +1471,10 @@ public:
 
     bool IsRTPInactive(short session) const;
     void AbortLogicalChannel(short session);
+
+    // which gatekeeper IP to use for sending to endpoint IP
+    void SetEndpointIPMapping(PIPSocket::Address epIP, PIPSocket::Address gkIP);
+    bool GetEndpointIPMapping(PIPSocket::Address epIP, PIPSocket::Address & gkIP) const;
 
 private:
 	void SendDRQ();
@@ -1734,6 +1741,9 @@ private:
 	// Sorenson SInfo
 	PString m_sinfoIP;
     vector<WORD> m_channelFlcnList; // list of all channel Flcn every _tried_ to open so we can close them on Reroute
+
+    std::map<PIPSocket::Address, PIPSocket::Address> m_endpointIPMapping;
+	PMutex m_endpointIPMappingMutex;
 };
 
 typedef CallRec::Ptr callptr;

@@ -1,5 +1,6 @@
 Changes from 5.7 to 5.8
 =======================
+- BUGFIX(ProxyChannel.cxx) fix H.460.18/.19 on multi-homed servers
 - BUGFIX(job.cxx) better endpointIDs on Windows when compiling without OpenSSL
 
 

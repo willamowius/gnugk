@@ -3,7 +3,7 @@
 // yasocket.cxx
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2019, Jan Willamowius
+// Copyright (c) 2004-2021, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -189,26 +189,27 @@ PBoolean YaSocket::GetLocalAddress(Address & addr) const
 	return GetLocalAddress(addr, pt);
 }
 
+// now returns the IP used by the client for sockets bound to INADDR_ANY, unlike PTLib
 PBoolean YaSocket::GetLocalAddress(Address & addr, WORD & pt) const
 {
 #ifdef hasIPV6
-	sockaddr_in6 inaddr;
+   	sockaddr_in6 inaddr;
 #else
-	sockaddr_in inaddr;
+    sockaddr_in inaddr;
 #endif
-	socklen_t insize = sizeof(inaddr);
-	if (::getsockname(os_handle, (struct sockaddr*)&inaddr, &insize) == 0) {
+    socklen_t insize = sizeof(inaddr);
+    if (::getsockname(os_handle, (struct sockaddr*)&inaddr, &insize) == 0) {
 #ifdef hasIPV6
-		if (((struct sockaddr*)&inaddr)->sa_family == AF_INET6) {
-			addr = ((struct sockaddr_in6*)&inaddr)->sin6_addr;
-			pt = ntohs(((struct sockaddr_in6*)&inaddr)->sin6_port);
-		} else
+	    if (((struct sockaddr*)&inaddr)->sa_family == AF_INET6) {
+		    addr = ((struct sockaddr_in6*)&inaddr)->sin6_addr;
+		    pt = ntohs(((struct sockaddr_in6*)&inaddr)->sin6_port);
+	    } else
 #endif
-		{
-			addr = ((struct sockaddr_in*)&inaddr)->sin_addr;
-			pt = ntohs(((struct sockaddr_in*)&inaddr)->sin_port);
-		}
-	}
+	    {
+		    addr = ((struct sockaddr_in*)&inaddr)->sin_addr;
+		    pt = ntohs(((struct sockaddr_in*)&inaddr)->sin_port);
+	    }
+    }
 	return true;
 }
 
@@ -519,6 +520,7 @@ YaUDPSocket::YaUDPSocket(WORD port, int iAddressFamily)
 	memset(&recvaddr, 0, sizeof(recvaddr));
 	((struct sockaddr*)&sendaddr)->sa_family = iAddressFamily;
 	((struct sockaddr_in*)&sendaddr)->sin_port = htons(port);
+	SetInvalid(lastDestAddress);
 }
 
 bool YaUDPSocket::Listen(unsigned, WORD pt, PSocket::Reusability reuse)
@@ -608,7 +610,96 @@ bool YaUDPSocket::WriteTo(const void * buf, PINDEX len, const Address & addr, WO
 int YaUDPSocket::os_recv(void * buf, int sz)
 {
 	socklen_t addrlen = sizeof(recvaddr);
+#if !defined(IP_PKTINFO) && !defined(IP_RECVDSTADDR)
 	return ::recvfrom(os_handle, (char *)buf, sz, 0, (struct sockaddr *)&recvaddr, &addrlen);
+#endif
+
+#if defined(IP_PKTINFO) || defined(IP_RECVDSTADDR)
+    // TODO: move setsockopts right after socket creation and do it only once ?
+    int yes = 1;
+    int e = 0;
+#ifdef IP_PKTINFO
+    // Linux
+    e = setsockopt(os_handle, IPPROTO_IP, IP_PKTINFO, &yes, sizeof(yes));
+#else
+#ifdef IP_RECVDSTADDR
+    // FreeBSD (also *BSD, MacOS X ?)
+    e = setsockopt(os_handle, IPPROTO_IP, IP_RECVDSTADDR, &yes, sizeof(yes));
+#endif
+#endif
+    if (e != 0) {
+        PTRACE(1, "Error: setsockopt IP_PKTINFO=" << errno);
+    }
+#ifdef hasIPV6
+	if (Toolkit::Instance()->IsIPv6Enabled()) {
+#ifdef IPV6_RECVPKTINFO
+        // Linux
+        e = setsockopt(os_handle, IPPROTO_IPV6, IPV6_RECVPKTINFO, &yes, sizeof(yes));
+#else
+#ifdef IPV6_PKTINFO
+        // Solaris (also BSD, Windows ?)
+        e = setsockopt(os_handle, IPPROTO_IPV6, IPV6_PKTINFO, &yes, sizeof(yes));
+#endif
+#endif
+        if (e != 0) {
+            PTRACE(1, "Error: setsockopt IPV6_PKTINFO=" << errno);
+        }
+	}
+#endif // hasIPV6
+    struct iovec vec;
+    const size_t CONTROL_DATA_SIZE = 1024;
+    char cmsg[CONTROL_DATA_SIZE];
+    struct msghdr hdr = {};
+
+    vec.iov_base = buf;
+    vec.iov_len = sz;
+
+    hdr.msg_name = &recvaddr;
+    hdr.msg_namelen = addrlen;
+    hdr.msg_iov = &vec;
+    hdr.msg_iovlen = 1;
+    hdr.msg_control = cmsg;
+    hdr.msg_controllen = sizeof(cmsg);
+
+    int result = ::recvmsg(os_handle, &hdr, 0);
+    PIPSocket::Address raddr;
+    WORD rpt;
+    GetLastReceiveAddress(raddr, rpt);
+    PTRACE(0, "JW recvmsg=" << result << " ep ip=" << AsString(raddr, rpt));
+
+    for ( // iterate through all control headers
+        struct cmsghdr *cmsg = CMSG_FIRSTHDR(&hdr);
+        cmsg != NULL;
+        cmsg = CMSG_NXTHDR(&hdr, cmsg))
+    {
+#ifdef IP_PKTINFO
+        PTRACE(0, "JW found CMSG type=" << cmsg->cmsg_type << " IP_PKTINFO=" << IP_PKTINFO << " IPV6_PKTINFO=" << IPV6_PKTINFO);
+        if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_PKTINFO) {
+            struct in_pktinfo * pi = (struct in_pktinfo *)CMSG_DATA(cmsg);
+            // pi->ipi_addr is our IP that the endpoint sent to (in_addr)
+            lastDestAddress = pi->ipi_addr;
+            PTRACE(0, "JW IP_PKTINFO lastDestAddress=" << AsString(lastDestAddress));
+        }
+#endif
+#ifdef IP_RECVDSTADDR
+        PTRACE(0, "JW found CMSG type=" << cmsg->cmsg_type << " IP_RECVDSTADDR=" << IP_RECVDSTADDR);
+        if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_RECVDSTADDR) {
+            struct in_addr * i = (struct in_addr *)CMSG_DATA(cmsg);
+            lastDestAddress = *i;
+            PTRACE(0, "JW IP_RECVDSTADDR lastDestAddress=" << AsString(lastDestAddress));
+        }
+#endif
+#if defined(hasIPV6) && defined (IPV6_PKTINFO)
+        if (cmsg->cmsg_level == IPPROTO_IPV6 && cmsg->cmsg_type == IPV6_PKTINFO) {
+            struct in6_pktinfo * pi = (struct in6_pktinfo *)CMSG_DATA(cmsg);
+            // pi->ipi_addr is our IP that the endpoint sent to (in_addr)
+            lastDestAddress = pi->ipi6_addr;
+            PTRACE(0, "JW IPV6_PKTINFO lastDestAddress=" << AsString(lastDestAddress));
+        }
+#endif
+    }
+	return result;
+#endif
 }
 
 int YaUDPSocket::os_send(const void * buf, int sz)

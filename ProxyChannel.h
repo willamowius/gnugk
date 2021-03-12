@@ -3,7 +3,7 @@
 // ProxyChannel.h
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2002-2020, Jan Willamowius
+// Copyright (c) 2002-2021, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -71,8 +71,8 @@ const WORD DEFAULT_PACKET_BUFFER_SIZE = 2048;
 
 void PrintQ931(int, const char *, const char *, const Q931 *, const H225_H323_UserInformation *);
 
-ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddress & toAddress);
-ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const PIPSocket::Address & ip, WORD port);
+ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddress & toAddress, PIPSocket::Address * gkIP);
+ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const PIPSocket::Address & ip, WORD port, PIPSocket::Address * gkIP);
 
 
 class ProxySocket : public USocket {
@@ -705,7 +705,7 @@ public:
 	static bool IsKeepAlive(unsigned len, bool isRTCP) { return isRTCP ? true : (len == 12); }
 
 	void HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddress & fromAddress, void * data, unsigned len, bool isRTCP);
-	static void Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddress, int ossocket, void * data, unsigned len, bool bufferHasRoomForID = false);
+	static void Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddress, int ossocket, void * data, unsigned len, bool bufferHasRoomForID, PIPSocket::Address * gkIP);
 
 public:
     bool m_deleted; // logically deleted, but still in list so other threads can leave methods

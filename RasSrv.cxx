@@ -2,7 +2,7 @@
 //
 // RAS Server for GNU Gatekeeper
 //
-// Copyright (c) 2000-2020, Jan Willamowius
+// Copyright (c) 2000-2021, Jan Willamowius
 // Copyright (c) Citron Network Inc. 2001-2003
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
@@ -13,7 +13,9 @@
 //////////////////////////////////////////////////////////////////
 
 #include "config.h"
-#include <malloc.h>
+#ifdef __GNU_LIBRARY__
+#include <malloc.h> // for  malloc_trim()
+#endif
 #include <ptlib.h>
 #include <ptlib/sockets.h>
 #include <ptclib/enum.h>
@@ -2650,7 +2652,9 @@ bool RegistrationRequestPDU::Process()
 		PTRACE(3, "RAS\tRRQ rejected by unknown reason from " << rx_addr);
 		return BuildRRJ(H225_RegistrationRejectReason::e_undefinedReason);
 	}
-	ep->SetRasServerIP(m_msg->m_localAddr); // remember which of our IPs the endpoint has sent the RRQ to (needed for H.460.18 SCI)
+	// remember which of our IPs the endpoint has sent the RRQ to (to keep all later signaling to this IP)
+	ep->SetRasServerIP(m_msg->m_localAddr); // JWX
+	PTRACE(0, "JW set rasserverip for " << m_msg->m_peerAddr << " to " << m_msg->m_localAddr);
 
 #ifdef HAS_H46017
 	if (usesH46017) {

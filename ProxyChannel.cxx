@@ -3,7 +3,7 @@
 // ProxyChannel.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2002
-// Copyright (c) 2002-2020, Jan Willamowius
+// Copyright (c) 2002-2021, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -455,7 +455,7 @@ bool IsOldH263(const H245_DataType & type)
 // the method is highly OS specific
 
 #ifdef _WIN32
-ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddress & toAddress)
+ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddress & toAddress, PIPSocket::Address * gkIP)
 {
 #ifdef hasIPV6
 	struct sockaddr_in6 dest;
@@ -474,7 +474,12 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddr
 #if (_WIN32_WINNT >= WINDOWS_VISTA)
 	if (g_pfWSASendMsg && !g_disableSettingUDPSourceIP) {
 		// set source address
-		PIPSocket::Address src = RasServer::Instance()->GetLocalAddress(toIP);
+        PIPSocket::Address src;
+        if (gkIP) {
+            src = * gkIP; // if we have a specific GK IP to use, use that
+        } else {
+            src = RasServer::Instance()->GetLocalAddress(toIP); // pick a source IP from gatekeeper interfaces
+        }
 
 		WSABUF wsabuf;
 		wsabuf.buf = (CHAR *)data;
@@ -557,7 +562,7 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddr
 
 #else // Unix
 
-ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddress & toAddress)
+ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddress & toAddress, PIPSocket::Address * gkIP)
 {
 #ifdef hasIPV6
 	struct sockaddr_in6 dest;
@@ -609,7 +614,12 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddr
 	msgh.msg_namelen = addr_len;
 
 	// set source address
-	PIPSocket::Address src = RasServer::Instance()->GetLocalAddress(toIP);
+	PIPSocket::Address src;
+	if (gkIP) {
+        src = * gkIP; // if we have a specific GK IP to use, use that
+	} else {
+	    src = RasServer::Instance()->GetLocalAddress(toIP); // pick a source IP from gatekeeper interfaces
+	}
 
 #ifdef hasIPV6
 	if (Toolkit::Instance()->IsIPv6Enabled() && (src.GetVersion() == 6)) {
@@ -689,10 +699,10 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddr
 }
 #endif
 
-ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const PIPSocket::Address & ip, WORD port)
+ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const PIPSocket::Address & ip, WORD port, PIPSocket::Address * gkIP)
 {
 	const IPAndPortAddress to(ip, port);
-	return UDPSendWithSourceIP(fd, data, len, to);
+	return UDPSendWithSourceIP(fd, data, len, to, gkIP);
 }
 
 
@@ -1949,6 +1959,10 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 	UnmapIPv4Address(localAddr);
 	masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
 	UnmapIPv4Address(masqAddr);
+	PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr); // JWXM
+    if (m_call->GetEndpointIPMapping(peerAddr, masqAddr)) {
+        PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr << " from IPMapping");
+    }
 
 	SetHandler(socket->GetHandler());
 	// don't rename the existing remote socket of a H.460.17 call
@@ -4331,6 +4345,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 	WORD _peerPort = 0, _localPort = 0;
 	msg->GetPeerAddr(_peerAddr, _peerPort);
 	msg->GetLocalAddr(_localAddr, _localPort);
+	PTRACE(0, "JW Setup from " << _peerAddr << " on " << _localAddr);
 
 	// incompatible with 'explicit' routing
 	if (GkConfig()->GetBoolean(RoutedSec, "RedirectCallsToGkIP", false)) {
@@ -4843,6 +4858,10 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 				<< " destination set to " << alias
 				);
 		}
+		if (!rejectCall) {
+            PTRACE(0, "JW SetEndpointIPMapping " << _peerAddr << " <=> " << _localAddr);
+		    m_call->SetEndpointIPMapping(_peerAddr, _localAddr); // JWXX
+		}
 		if (!rejectCall && authData.m_callDurationLimit > 0)
 			m_call->SetDurationLimit(authData.m_callDurationLimit);
 		if (!authData.m_callingStationId)
@@ -5200,6 +5219,10 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		m_call->SetSetupTime(setupTime);
 		CallTable::Instance()->Insert(call);
 
+		if (!rejectCall) {
+            PTRACE(0, "JW SetEndpointIPMapping " << _peerAddr << " <=> " << _localAddr);
+		    m_call->SetEndpointIPMapping(_peerAddr, _localAddr); // JWXX
+		}
 		if (!rejectCall && authData.m_callDurationLimit > 0)
 			m_call->SetDurationLimit(authData.m_callDurationLimit);
 		if (!authData.m_callingStationId)
@@ -5686,6 +5709,15 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		UnmapIPv4Address(localAddr);
 		masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
 		UnmapIPv4Address(masqAddr);
+    	PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr); // JWXM
+    	if (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->GetRasServerIP().IsValid()) {
+    	    PTRACE(0, "JW set masqAddr to called rasserverip=" << AsString(m_call->GetCalledParty()->GetRasServerIP()));
+            masqAddr = m_call->GetCalledParty()->GetRasServerIP();
+    	}
+        if (m_call->GetEndpointIPMapping(peerAddr, masqAddr)) {
+        	PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr << " from IPMapping");
+    	}
+
 		m_call->SetCallSignalSocketCalling(this);
 		SetConnected(true);	// avoid deletion
 
@@ -5772,14 +5804,8 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		H46018_IncomingCallIndication incoming;
 		incoming.m_callID = setupBody.m_callIdentifier;
 
-		// send GK's signal addr on the best interface for this endpoint
-		if (!m_call->GetDestSignalAddr(peerAddr, peerPort)) {
-			PTRACE(3, Type() << "\tINVALID DESTINATION ADDRESS for call from " << Name());
-			m_call->SetDisconnectCause(Q931::IncompatibleDestination);
-			m_result = Error;
-			return;
-		}
-		incoming.m_callSignallingAddress = RasServer::Instance()->GetCallSignalAddress(peerAddr);
+        WORD signalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "CallSignalPort", GK_DEF_CALL_SIGNAL_PORT);
+		incoming.m_callSignallingAddress = SocketToH225TransportAddr(m_call->GetCalledParty()->GetRasServerIP(), signalPort);
 
 		H460_FeatureStd feat = H460_FeatureStd(18);
 		PASN_OctetString rawIndication;
@@ -5809,7 +5835,6 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		}
 #endif
 
-		// on a multi-homed server, the SCI may get the wrong source address and the call fails
 		RasSrv->SendRas(sci_ras, m_call->GetCalledParty()->GetRasAddress(), m_call->GetCalledParty()->GetRasServerIP(), m_call->GetCalledParty()->GetH235Authenticators());
 
 		// store Setup
@@ -5841,6 +5866,14 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 		UnmapIPv4Address(localAddr);
 		masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
 		UnmapIPv4Address(masqAddr);
+    	PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr); // JWXM
+        if (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->GetRasServerIP().IsValid()) {
+    	    PTRACE(0, "JW set masqAddr to called rasserverip=" << AsString(m_call->GetCalledParty()->GetRasServerIP()));
+            masqAddr = m_call->GetCalledParty()->GetRasServerIP();
+    	}
+    	if (m_call->GetEndpointIPMapping(peerAddr, masqAddr)) {
+        	PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr << " from IPMapping");
+    	}
 	}
 	// only rewrite sourceCallSignalAddress if we are proxying,
 	// otherwise leave the receiving endpoint the option to deal with NATed caller itself
@@ -6000,6 +6033,10 @@ bool CallSignalSocket::CreateRemote(const H225_TransportAddress & addr)
 	UnmapIPv4Address(localAddr);
     masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
     UnmapIPv4Address(masqAddr);
+	PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr); // JWXM
+    if (m_call->GetEndpointIPMapping(peerAddr, masqAddr)) {
+        PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr << " from IPMapping");
+    }
 
 #ifdef HAS_TLS
 	if (Toolkit::Instance()->IsTLSEnabled() && m_call->ConnectWithTLS()) {
@@ -7885,6 +7922,14 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					UnmapIPv4Address(localAddr);
 					masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
 					UnmapIPv4Address(masqAddr);
+                	PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr); // JWXM
+                	if (m_call->GetCallingParty() && m_call->GetCallingParty()->GetRasServerIP().IsValid()) {
+                        PTRACE(0, "JW set masqAddr to calling rasserverip=" << AsString(m_call->GetCallingParty()->GetRasServerIP()));
+                        masqAddr = m_call->GetCallingParty()->GetRasServerIP();
+                	}
+                    if (m_call->GetEndpointIPMapping(peerAddr, masqAddr)) {
+                        PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr << " from IPMapping");
+                    }
 					callingSocket->remote = this;
 					// update localAddr and masqAddr in remote, now that we know their peerAddr
 					Address remote_peerAddr;
@@ -7894,6 +7939,16 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					UnmapIPv4Address(callingSocket->localAddr);
 					callingSocket->masqAddr = RasServer::Instance()->GetMasqAddress(remote_peerAddr);
 					UnmapIPv4Address(callingSocket->masqAddr);
+                	PTRACE(0, "JW set callingSocket->masqAddr=" << callingSocket->masqAddr << " for " << remote_peerAddr); // JWXM
+                	if (m_call->GetCalledParty() && m_call->GetCalledParty()->GetRasServerIP().IsValid()) {
+                        PTRACE(0, "JW set masqAddr to called rasserverip=" << AsString(m_call->GetCalledParty()->GetRasServerIP()));
+                        callingSocket->masqAddr = m_call->GetCalledParty()->GetRasServerIP();
+                	} else {
+                        PTRACE(0, "JW calling NO rasserverip");
+                	}
+                    if (m_call->GetEndpointIPMapping(remote_peerAddr, callingSocket->masqAddr)) {
+                        PTRACE(0, "JW set callingSocket->masqAddr=" << masqAddr << " for " << remote_peerAddr << " from IPMapping");
+                    }
 
 					callingSocket->SetConnected(true);
 					SetConnected(true);
@@ -8288,6 +8343,7 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 			} else {
 				PTRACE(2, "Error: " << GetName() << " has no remote party?");
 			}
+
 #ifdef HAS_H46018
 			// add H.460.19 indicator if this is sent out to an endpoint that uses it
 			if (m_call && m_call->GetCalledParty() && m_call->H46019Required()
@@ -8504,6 +8560,11 @@ void CallSignalSocket::BuildSetupPDU(Q931 & SetupPDU, const H225_CallIdentifier 
 	setup.m_conferenceID = callid.m_guid; // generate new: OpalGloballyUniqueID();
 	setup.m_callIdentifier.m_guid = setup.m_conferenceID;
 	masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
+	PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr); // JWXM
+    if (m_call->GetEndpointIPMapping(peerAddr, masqAddr)) {
+        PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr << " from IPMapping");
+    }
+
 	setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
 	setup.m_sourceCallSignalAddress = SocketToH225TransportAddr(masqAddr, GetPort());
 	// check if destination contain IP to set destCallSigAdr
@@ -10804,15 +10865,24 @@ void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddre
 	}
 #endif
 
+    PIPSocket::Address gkIP;
 	if (receivedMultiplexID == m_multiplexID_fromA) {
 		if (sideBReady(isRTCP)) {
-			Send(m_multiplexID_toB, (isRTCP ? m_addrB_RTCP : m_addrB), (isRTCP ? m_osSocketToB_RTCP : m_osSocketToB), data, len, true);
+            if (call->GetEndpointIPMapping((isRTCP ? m_addrB_RTCP.GetIP() : m_addrB.GetIP()), gkIP)) {
+    			Send(m_multiplexID_toB, (isRTCP ? m_addrB_RTCP : m_addrB), (isRTCP ? m_osSocketToB_RTCP : m_osSocketToB), data, len, true, &gkIP);
+            } else {
+    			Send(m_multiplexID_toB, (isRTCP ? m_addrB_RTCP : m_addrB), (isRTCP ? m_osSocketToB_RTCP : m_osSocketToB), data, len, true, NULL);
+            }
 		} else {
 			PTRACE(5, "RTPM\tReceiver not ready");
 		}
 	} else if (receivedMultiplexID == m_multiplexID_fromB) {
 		if (sideAReady(isRTCP)) {
-			Send(m_multiplexID_toA, (isRTCP ? m_addrA_RTCP : m_addrA), (isRTCP ? m_osSocketToA_RTCP : m_osSocketToA), data, len, true);
+            if (call->GetEndpointIPMapping((isRTCP ? m_addrA_RTCP.GetIP() : m_addrA.GetIP()), gkIP)) {
+			    Send(m_multiplexID_toA, (isRTCP ? m_addrA_RTCP : m_addrA), (isRTCP ? m_osSocketToA_RTCP : m_osSocketToA), data, len, true, &gkIP);
+            } else {
+			    Send(m_multiplexID_toA, (isRTCP ? m_addrA_RTCP : m_addrA), (isRTCP ? m_osSocketToA_RTCP : m_osSocketToA), data, len, true, NULL);
+            }
 		} else {
 			PTRACE(5, "RTPM\tReceiver not ready");
 		}
@@ -10822,7 +10892,7 @@ void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddre
     }
 }
 
-void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddress, int osSocket, void * data, unsigned len, bool bufferHasRoomForID)
+void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddress, int osSocket, void * data, unsigned len, bool bufferHasRoomForID, PIPSocket::Address * gkIP)
 {
 	size_t lenToSend = len;
 	size_t sent = 0;
@@ -10847,11 +10917,11 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
 		PUInt32b networkID = sendMultiplexID;   // convert multiplex ID to network format
 		*((PUInt32b*)multiplexMsg) = networkID;	// set multiplexID
 
-		sent = UDPSendWithSourceIP(osSocket, multiplexMsg, lenToSend, toAddress);
+		sent = UDPSendWithSourceIP(osSocket, multiplexMsg, lenToSend, toAddress, gkIP);
 		if (!bufferHasRoomForID)
 			free(multiplexMsg);
 	} else {
-		sent = UDPSendWithSourceIP(osSocket, data, lenToSend, toAddress);
+		sent = UDPSendWithSourceIP(osSocket, data, lenToSend, toAddress, gkIP);
 	}
 	if (sent != lenToSend) {
 		PTRACE(1, "RTPM\tError sending RTP to " << toAddress << ": should send=" << lenToSend << " did send=" << sent << " errno=" << errno);
@@ -11133,24 +11203,24 @@ bool MultiplexedRTPHandler::HandlePacket(PINDEX callno, const H46026_UDPFrame & 
 					if (!data.m_dataFrame) {
 						if (IsSet(iter->m_addrA_RTCP) && (iter->m_osSocketToA_RTCP != INVALID_OSSOCKET)) {
 							PTRACE(7, "JW send mux packet to " << iter->m_addrA_RTCP << " osSocket=" << iter->m_osSocketToA_RTCP);
-							iter->Send(iter->m_multiplexID_toA, iter->m_addrA_RTCP, iter->m_osSocketToA_RTCP, bytes.GetPointer(), bytes.GetSize(), false);
+							iter->Send(iter->m_multiplexID_toA, iter->m_addrA_RTCP, iter->m_osSocketToA_RTCP, bytes.GetPointer(), bytes.GetSize(), false, NULL); // JWX TODO
 						}
 					} else {
 						if (IsSet(iter->m_addrA) && (iter->m_osSocketToA != INVALID_OSSOCKET)) {
 							PTRACE(7, "JW send mux packet to " << iter->m_addrA << " osSocket=" << iter->m_osSocketToA);
-							iter->Send(iter->m_multiplexID_toA, iter->m_addrA, iter->m_osSocketToA, bytes.GetPointer(), bytes.GetSize(), false);
+							iter->Send(iter->m_multiplexID_toA, iter->m_addrA, iter->m_osSocketToA, bytes.GetPointer(), bytes.GetSize(), false, NULL); // JWX TODO
 						}
 					}
 				} else if (iter->m_multiplexID_toB != INVALID_MULTIPLEX_ID) {
 					if (!data.m_dataFrame) {
 						if (IsSet(iter->m_addrB_RTCP) && (iter->m_osSocketToB_RTCP != INVALID_OSSOCKET)) {
 							PTRACE(7, "JW send mux packet to " << iter->m_addrB_RTCP << " osSocket=" << iter->m_osSocketToB_RTCP);
-							iter->Send(iter->m_multiplexID_toB, iter->m_addrB_RTCP, iter->m_osSocketToB_RTCP, bytes.GetPointer(), bytes.GetSize(), false);
+							iter->Send(iter->m_multiplexID_toB, iter->m_addrB_RTCP, iter->m_osSocketToB_RTCP, bytes.GetPointer(), bytes.GetSize(), false, NULL); // JWX TODO
 						}
 					} else {
 						if (IsSet(iter->m_addrB) && (iter->m_osSocketToB != INVALID_OSSOCKET)) {
 							PTRACE(7, "JW send mux packet to " << iter->m_addrB << " osSocket=" << iter->m_osSocketToB);
-							iter->Send(iter->m_multiplexID_toB, iter->m_addrB, iter->m_osSocketToB, bytes.GetPointer(), bytes.GetSize(), false);
+							iter->Send(iter->m_multiplexID_toB, iter->m_addrB, iter->m_osSocketToB, bytes.GetPointer(), bytes.GetSize(), false, NULL); // JWX TODO
 						}
 					}
 				}
@@ -11285,7 +11355,7 @@ void H46026Session::Send(void * data, unsigned len, bool isRTCP)
 		toAddress = m_toAddressRTP;
 	}
 
-	sent = UDPSendWithSourceIP(osSocket, data, lenToSend, toAddress);
+	sent = UDPSendWithSourceIP(osSocket, data, lenToSend, toAddress, NULL);
 	if (sent != lenToSend) {
 		PTRACE(1, "H46026\tError sending RTP to " << toAddress << ": should send=" << lenToSend << " did send=" << sent << " errno=" << errno);
 	}
@@ -11913,6 +11983,9 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	Address localaddr;
 	WORD localport = 0;
 	GetLocalAddress(localaddr, localport);
+#ifdef LARGE_FDSET
+    GetLastDestAddress(localaddr);
+#endif
 	UnmapIPv4Address(localaddr);
 	unsigned int seq = 0;
 	unsigned int timestamp = 0;
@@ -11920,7 +11993,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		seq = ((int)wbuffer[2] * 256) + (int)wbuffer[3];
 	if (buflen >= 8)
 		timestamp = ((int)wbuffer[4] * 16777216) + ((int)wbuffer[5] * 65536) + ((int)wbuffer[6] * 256) + (int)wbuffer[7];
-	PTRACE(7, "JW RTP IN on " << localport << " from " << AsString(fromIP, fromPort) << " pType=" << (int)payloadType
+	PTRACE(7, "JW RTP IN on " << AsString(localaddr, localport) << " from " << AsString(fromIP, fromPort) << " pType=" << (int)payloadType
 		<< " seq=" << seq << " timestamp=" << timestamp << " len=" << buflen
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
@@ -11936,6 +12009,13 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
         } else {
             PTRACE(5, "JW RTP IN on " << localport << " violates IP restrictions: not in " << AsString(m_restrictRTPNetwork_A) << " or " << AsString(m_restrictRTPNetwork_B) << " - ignoring");
             return NoData;
+        }
+    }
+
+    // TODO: save which destination IP on the gatekeeper is used by remote endpoint and use that to send! JWX
+    if (!m_portDetectionDone) {
+        if (m_call && (*m_call)) {
+            (*m_call)->SetEndpointIPMapping(fromIP, localaddr);
         }
     }
 
@@ -12238,17 +12318,17 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 #ifdef HAS_H46026
 	// send packets to H.460.26 endpoints via TCP
     if (Toolkit::Instance()->IsH46026Enabled()) {
-	if (m_call && (*m_call) && (*m_call)->GetCallingParty() && (*m_call)->GetCallingParty()->UsesH46026()) {
-		if (m_call && (*m_call) && (*m_call)->GetCallingParty()->GetSocket()) {
-			(*m_call)->GetCallingParty()->GetSocket()->SendH46026RTP(m_sessionID, isRTP, wbuffer, buflen);
-		}
-		return NoData;	// already forwarded via TCP
-	} else if (m_call && (*m_call) && (*m_call)->GetCalledParty() && (*m_call)->GetCalledParty()->UsesH46026()) {
-		if (m_call && (*m_call) && (*m_call)->GetCalledParty()->GetSocket()) {
-			(*m_call)->GetCalledParty()->GetSocket()->SendH46026RTP(m_sessionID, isRTP, wbuffer, buflen);
-		}
-		return NoData;	// already forwarded via TCP
-	}
+        if (m_call && (*m_call) && (*m_call)->GetCallingParty() && (*m_call)->GetCallingParty()->UsesH46026()) {
+            if (m_call && (*m_call) && (*m_call)->GetCallingParty()->GetSocket()) {
+                (*m_call)->GetCallingParty()->GetSocket()->SendH46026RTP(m_sessionID, isRTP, wbuffer, buflen);
+            }
+            return NoData;	// already forwarded via TCP
+        } else if (m_call && (*m_call) && (*m_call)->GetCalledParty() && (*m_call)->GetCalledParty()->UsesH46026()) {
+            if (m_call && (*m_call) && (*m_call)->GetCalledParty()->GetSocket()) {
+                (*m_call)->GetCalledParty()->GetSocket()->SendH46026RTP(m_sessionID, isRTP, wbuffer, buflen);
+            }
+            return NoData;	// already forwarded via TCP
+        }
     }
 #endif
 
@@ -12256,13 +12336,23 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	if (IsSet(m_multiplexDestination_A) && (m_multiplexDestination_A != fromAddr)) {
 		if (isRTCP && m_EnableRTCPStats && m_call && (*m_call))
 			ParseRTCP(*m_call, m_sessionID, fromIP, wbuffer, buflen);
-		H46019Session::Send(m_multiplexID_A, m_multiplexDestination_A, m_multiplexSocket_A, wbuffer, buflen);
+        PIPSocket::Address gkIP;
+        if ((*m_call)->GetEndpointIPMapping(m_multiplexDestination_A.GetIP(), gkIP)) {
+		    H46019Session::Send(m_multiplexID_A, m_multiplexDestination_A, m_multiplexSocket_A, wbuffer, buflen, false, &gkIP); // JWX
+        } else {
+		    H46019Session::Send(m_multiplexID_A, m_multiplexDestination_A, m_multiplexSocket_A, wbuffer, buflen, false, NULL); // JWX
+        }
 		return NoData;	// already forwarded through multiplex socket
 	}
 	if (IsSet(m_multiplexDestination_B) && (m_multiplexDestination_B != fromAddr)) {
 		if (isRTCP && m_EnableRTCPStats && m_call && (*m_call))
 			ParseRTCP(*m_call, m_sessionID, fromIP, wbuffer, buflen);
-		H46019Session::Send(m_multiplexID_B, m_multiplexDestination_B, m_multiplexSocket_B, wbuffer, buflen);
+        PIPSocket::Address gkIP;
+        if ((*m_call)->GetEndpointIPMapping(m_multiplexDestination_B.GetIP(), gkIP)) {
+    		H46019Session::Send(m_multiplexID_B, m_multiplexDestination_B, m_multiplexSocket_B, wbuffer, buflen, false, &gkIP); // JWX
+        } else {
+    		H46019Session::Send(m_multiplexID_B, m_multiplexDestination_B, m_multiplexSocket_B, wbuffer, buflen, false, NULL); // JWX
+        }
 		return NoData;	// already forwarded through multiplex socket
 	}
 
@@ -12369,7 +12459,12 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	PIPSocket::Address toIP;
 	WORD toPort = 0;
 	GetSendAddress(toIP, toPort);
-	UDPSendWithSourceIP(os_handle, wbuffer, buflen, toIP, toPort);
+	PIPSocket::Address gkIP;
+	if (m_call && (*m_call) && (*m_call)->GetEndpointIPMapping(toIP, gkIP)) {
+	    UDPSendWithSourceIP(os_handle, wbuffer, buflen, toIP, toPort, &gkIP); // JWX add gkIP
+	} else {
+	    UDPSendWithSourceIP(os_handle, wbuffer, buflen, toIP, toPort, NULL);
+	}
 	return NoData;	// we just forwarded the data here
 }
 
@@ -13837,6 +13932,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 
 		lc->SetMediaControlChannelSource(*addr);
 		*addr << GetMasqAddr() << (lc->GetPort() + 1); // old RTP assumption
+        PTRACE(0, "JW OnLogicalChannelParameters setting mediaControl to " << AsString(GetMasqAddr()));
 #ifdef HAS_H46018
 		if (IsTraversalClient()) {
 			PTRACE(5, "H46018\tSetting control channel to 0");
@@ -13873,6 +13969,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 		if (GetH245Port(*addr) != 0) {
 			lc->SetMediaChannelSource(*addr);
 			*addr << GetMasqAddr() << lc->GetPort();
+            PTRACE(0, "JW OnLogicalChannelParameters setting media to " << AsString(GetMasqAddr()));
 #ifdef HAS_H46018
 			if (IsTraversalClient()) {
 				PTRACE(5, "H46018\tSetting media channel to 0");
@@ -13900,6 +13997,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
                 lc->ZeroMediaChannelSource();
             };
 		} else {
+            PTRACE(0, "JW OnLogicalChannelParameters setting media to " << AsString(GetMasqAddr()));
 			*addr << GetMasqAddr() << (WORD)0;
 		}
 		changed = true;
@@ -14053,7 +14151,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 				if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_transportCapability)) {
 					// just remove media channel capabilities
 					h225Params->m_transportCapability.RemoveOptionalField(H245_TransportCapability::e_mediaChannelCapabilities);
-					// remove transportCapability if it doesn't contain Q0S or nonStandard items
+					// remove transportCapability if it doesn't contain QOS or nonStandard items
 					if (!h225Params->m_transportCapability.HasOptionalField(H245_TransportCapability::e_qOSCapabilities)
 						&& !h225Params->m_transportCapability.HasOptionalField(H245_TransportCapability::e_nonStandard)) {
 						h225Params->RemoveOptionalField(H245_H2250LogicalChannelParameters::e_transportCapability);
@@ -14112,8 +14210,23 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
                                     SNMP_TRAP(10, SNMPError, Network, "H.460.19 server didn't provide mediaControlChannel");
                                 }
                                 if (keepAliveInterval > 0) {
-                                    call->AddRTPKeepAlive(flcn, keepAliveRTPAddr, keepAliveInterval, multiplexID);
-                                    call->AddRTCPKeepAlive(flcn, keepAliveRTCPAddr, keepAliveInterval, multiplexID);
+                                    PIPSocket::Address gkIP;
+                                    SetInvalid(gkIP); // so AddRTPKeepAlive() can detect if it was set
+                                    PIPSocket::Address epIP;
+                                    if (m_isCaller && call->GetCallingParty()) {
+                                        gkIP = call->GetCallingParty()->GetRasServerIP();
+                                        if (GetIPFromTransportAddr(keepAliveRTPAddr, epIP)) {
+                                            call->SetEndpointIPMapping(epIP, gkIP);
+                                        }
+                                    }
+                                    if (!m_isCaller && call->GetCalledParty()) {
+                                        gkIP = call->GetCalledParty()->GetRasServerIP();
+                                        if (GetIPFromTransportAddr(keepAliveRTPAddr, epIP)) {
+                                            call->SetEndpointIPMapping(epIP, gkIP);
+                                        }
+                                    }
+                                    call->AddRTPKeepAlive(flcn, keepAliveRTPAddr, keepAliveInterval, multiplexID, gkIP);
+                                    call->AddRTCPKeepAlive(flcn, keepAliveRTCPAddr, keepAliveInterval, multiplexID, gkIP);
                                 }
                                 m_remoteRequestsRTPMultiplexing = m_isRTPMultiplexingEnabled && (multiplexID != INVALID_MULTIPLEX_ID);
                                 if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing) {

@@ -3,7 +3,7 @@
 // yasocket.h
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2019, Jan Willamowius
+// Copyright (c) 2004-2021, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -140,6 +140,8 @@ public:
 	virtual bool ReadFrom(void *, PINDEX, Address &, WORD);
 	virtual bool WriteTo(const void *, PINDEX, const Address &, WORD);
 
+	virtual PBoolean GetLastDestAddress(Address & addr) const { addr = lastDestAddress; return true; }
+
 protected:
 	// override from class YaSocket
 	virtual int os_recv(void *, int);
@@ -155,6 +157,7 @@ private:
 #else
 	sockaddr_in recvaddr, sendaddr;
 #endif
+	Address lastDestAddress;
 };
 
 class YaSelectList {

@@ -2,7 +2,7 @@
 //
 // H.323 utility functions
 //
-// Copyright (c) 2000-2019, Jan Willamowius
+// Copyright (c) 2000-2021, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -729,6 +729,11 @@ bool IsPrivate(const PIPSocket::Address & ip)
     }
 #endif
     return result;
+}
+
+void SetInvalid(PIPSocket::Address & ip)
+{
+    ip = INADDR_ANY; // detected as !IsValid()
 }
 
 // is this IP part of this network

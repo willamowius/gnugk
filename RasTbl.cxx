@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2020, Jan Willamowius
+// Copyright (c) 2000-2021, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -135,6 +135,8 @@ EndpointRec::EndpointRec(
 	}
 	if (permanent)
 		m_timeToLive = 0;
+
+    SetInvalid(m_rasServerIP);
 
 	LoadEndpointConfig();
 }
@@ -2621,7 +2623,7 @@ void H46019KeepAlive::SendKeepAlive(GkTimer * t)
 			ka_ptr = (char*)&multiplexedRtpKeepAlive;
 			ka_size = sizeof(multiplexedRtpKeepAlive);
 		}
-		size_t sent = UDPSendWithSourceIP(ossocket, ka_ptr, ka_size, dest);
+		size_t sent = UDPSendWithSourceIP(ossocket, ka_ptr, ka_size, dest, gkIPptr); // JWX
 		if (sent != ka_size) {
 			PTRACE(1, "Error sending RTP keepAlive " << timer);
 			SNMP_TRAP(10, SNMPError, Network, "Sending multiplexed RTP keepAlive failed");
@@ -2657,7 +2659,7 @@ void H46019KeepAlive::SendKeepAlive(GkTimer * t)
 			ka_ptr = (char*)&multiplexedRtcpKeepAlive;
 			ka_size = sizeof(multiplexedRtcpKeepAlive);
 		}
-		size_t sent = UDPSendWithSourceIP(ossocket, ka_ptr, ka_size, dest);
+		size_t sent = UDPSendWithSourceIP(ossocket, ka_ptr, ka_size, dest, gkIPptr); // JWX
 		if (sent != ka_size) {
 			PTRACE(1, "Error sending RTCP keepAlive " << timer);
 			SNMP_TRAP(10, SNMPError, Network, "Sending multiplexed RTCP keepAlive failed");
@@ -5080,7 +5082,7 @@ int CallRec::GetH46019Direction() const
 	return dir;
 }
 
-void CallRec::AddRTPKeepAlive(unsigned flcn, const IPAndPortAddress & keepAliveRTPAddr, unsigned keepAliveInterval, DWORD multiplexID)
+void CallRec::AddRTPKeepAlive(unsigned flcn, const IPAndPortAddress & keepAliveRTPAddr, unsigned keepAliveInterval, DWORD multiplexID, PIPSocket::Address gkIP)
 {
 	H46019KeepAlive ka;
 	ka.type = RTP;
@@ -5089,6 +5091,12 @@ void CallRec::AddRTPKeepAlive(unsigned flcn, const IPAndPortAddress & keepAliveR
 	ka.interval = keepAliveInterval;
 	ka.multiplexID = multiplexID;
 	m_RTPkeepalives[flcn] = ka;
+	ka.gkIP = gkIP;
+	if (gkIP.IsValid()) {
+	    ka.gkIPptr = &gkIP;
+	} else {
+	    ka.gkIPptr = NULL;
+	}
 }
 
 void CallRec::SetRTPKeepAlivePayloadType(unsigned flcn, BYTE payloadType)
@@ -5114,7 +5122,7 @@ void CallRec::StartRTPKeepAlive(unsigned flcn, int RTPOSSocket)
 	}
 }
 
-void CallRec::AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAliveRTCPAddr, unsigned keepAliveInterval, DWORD multiplexID)
+void CallRec::AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAliveRTCPAddr, unsigned keepAliveInterval, DWORD multiplexID, PIPSocket::Address gkIP)
 {
 	H46019KeepAlive ka;
 	ka.type = RTCP;
@@ -5123,6 +5131,12 @@ void CallRec::AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAl
 	ka.interval = keepAliveInterval;
 	ka.multiplexID = multiplexID;
 	m_RTCPkeepalives[flcn] = ka;
+	ka.gkIP = gkIP;
+	if (gkIP.IsValid()) {
+	    ka.gkIPptr = &gkIP;
+	} else {
+	    ka.gkIPptr = NULL;
+	}
 }
 
 void CallRec::StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket)
@@ -5197,6 +5211,30 @@ void CallRec::AbortLogicalChannel(short session)
     if (m_calledSocket) {
         m_calledSocket->AbortLogicalChannel(session);
     }
+}
+
+// which gatekeeper IP to use for sending to endpoint IP
+void CallRec::SetEndpointIPMapping(PIPSocket::Address epIP, PIPSocket::Address gkIP)
+{
+    PWaitAndSignal lock(m_endpointIPMappingMutex);
+
+    std::map<PIPSocket::Address, PIPSocket::Address>::iterator it = m_endpointIPMapping.find(epIP);
+    if (it == m_endpointIPMapping.end()) {
+        PTRACE(0, "JW add mapping " << AsString(epIP) << " <=> " << AsString(gkIP));
+        m_endpointIPMapping[epIP] = gkIP;
+    }
+}
+
+bool CallRec::GetEndpointIPMapping(PIPSocket::Address epIP, PIPSocket::Address & gkIP) const
+{
+    PWaitAndSignal lock(m_endpointIPMappingMutex);
+
+    std::map<PIPSocket::Address, PIPSocket::Address>::const_iterator it = m_endpointIPMapping.find(epIP);
+    if (it != m_endpointIPMapping.end()) {
+        gkIP = it->second;
+        return true;
+    }
+    return false;
 }
 
 /*
