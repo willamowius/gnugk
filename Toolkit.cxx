@@ -2,7 +2,7 @@
 //
 // Toolkit base class for the GnuGk
 //
-// Copyright (c) 2000-2020, Jan Willamowius
+// Copyright (c) 2000-2021, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1285,7 +1285,7 @@ Toolkit::Toolkit() : Singleton<Toolkit>("Toolkit"),
 	m_H46026Enabled(false), m_licenseValid(false),
 	m_snmpEnabled(false), m_ipv6Enabled(false)
 {
-	srand((unsigned int)time(0));
+	srand((unsigned int)time(NULL));
 #ifdef P_SSL
 	m_OpenSSLInitialized = false;
 #endif // P_SSL
