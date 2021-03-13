@@ -127,6 +127,8 @@ const int DEFAULT_NUM_SEQ_PORTS = 500;
 // maximum number of handler threads GnuGk will start (call signaling or RTP)
 const unsigned MAX_HANDLER_NUMBER = 200;
 
+const WORD RTP_BASE_HEADER_LEN = 12;
+
 enum RTPSessionTypes { Unknown = 0, Audio, Video, Presentation, Data };
 
 // RTCP functions used in UDPProxySocket and H46019Session
@@ -12012,7 +12014,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
         }
     }
 
-    // TODO: save which destination IP on the gatekeeper is used by remote endpoint and use that to send! JWX
+    // save which destination IP on the gatekeeper is used by remote endpoint and use that to send! JWX
     if (!m_portDetectionDone) {
         if (m_call && (*m_call)) {
             (*m_call)->SetEndpointIPMapping(fromIP, localaddr);
@@ -13234,7 +13236,14 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 	if (!m_H235CryptoEngine)
 		return false;
 
-	unsigned rtpHeaderLen = 12;	// TODO: skip more if header has CSRC or extensions
+	unsigned rtpHeaderLen = RTP_BASE_HEADER_LEN;
+	// skip more if header has CSRC or extensions
+    bool extension = (((int)buffer[0] & 0x10) > 0);
+    int cc = (((int)buffer[0] & 0x0f) << 4); // CSRC count
+    if (extension)
+        rtpHeaderLen += 4;
+    if (cc)
+        rtpHeaderLen += (cc * 4);
 	PBYTEArray data(buffer+rtpHeaderLen, len-rtpHeaderLen);	// skip RTP header
 	PBYTEArray processed;
 

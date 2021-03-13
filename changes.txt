@@ -1,8 +1,8 @@
 Changes from 5.7 to 5.8
 =======================
+- BUGFIX(ProxyChannel.cxx) handle extensions and CSRC in RTP header with H.235 half-call media
 - BUGFIX(ProxyChannel.cxx) fix H.460.18/.19 on multi-homed servers
 - BUGFIX(job.cxx) better endpointIDs on Windows when compiling without OpenSSL
-
 
 Changes from 5.6 to 5.7
 =======================
