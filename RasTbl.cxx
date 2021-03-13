@@ -5090,13 +5090,12 @@ void CallRec::AddRTPKeepAlive(unsigned flcn, const IPAndPortAddress & keepAliveR
 	ka.dest = keepAliveRTPAddr;
 	ka.interval = keepAliveInterval;
 	ka.multiplexID = multiplexID;
-	m_RTPkeepalives[flcn] = ka;
 	ka.gkIP = gkIP;
-	if (gkIP.IsValid()) {
-	    ka.gkIPptr = &gkIP;
-	} else {
-	    ka.gkIPptr = NULL;
+    ka.gkIPptr = NULL;
+	if (ka.gkIP.IsValid()) {
+	    ka.gkIPptr = &ka.gkIP;
 	}
+	m_RTPkeepalives[flcn] = ka;
 }
 
 void CallRec::SetRTPKeepAlivePayloadType(unsigned flcn, BYTE payloadType)
@@ -5130,13 +5129,12 @@ void CallRec::AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAl
 	ka.dest = keepAliveRTCPAddr;
 	ka.interval = keepAliveInterval;
 	ka.multiplexID = multiplexID;
-	m_RTCPkeepalives[flcn] = ka;
 	ka.gkIP = gkIP;
-	if (gkIP.IsValid()) {
-	    ka.gkIPptr = &gkIP;
-	} else {
-	    ka.gkIPptr = NULL;
+    ka.gkIPptr = NULL;
+	if (ka.gkIP.IsValid()) {
+	    ka.gkIPptr = &ka.gkIP;
 	}
+	m_RTCPkeepalives[flcn] = ka;
 }
 
 void CallRec::StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket)
