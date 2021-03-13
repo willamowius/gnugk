@@ -142,6 +142,26 @@ H245_H2250LogicalChannelParameters *GetLogicalChannelParameters(H245_OpenLogical
 bool odd(unsigned n) { return (n % 2) != 0; }
 #endif
 
+WORD RTP_HeaderSize(const BYTE * buffer, WORD len)
+{
+	WORD header_size = RTP_BASE_HEADER_LEN;
+	// skip more if header has CSRC or extensions
+    bool has_extension = (((int)buffer[0] & 0x10) > 0);
+    int cc = (((int)buffer[0] & 0x0f) << 4);
+    if (cc)
+        header_size += (cc * 4);
+    if (has_extension && (len >= header_size + 4)) {
+        WORD extension_len = ((int)buffer[header_size+2] * 256) + (int)buffer[header_size+3] + 1;
+        header_size += (extension_len * 4);
+    }
+    PTRACE(0, "JW extension=" << has_extension << " cc=" << cc << " header_size=" << header_size << " of len=" << len);
+    if (header_size > len) {
+        PTRACE(1, "RTP\tError: RTP packet shorter than header");
+        return min(len, RTP_BASE_HEADER_LEN);
+    }
+    return header_size;
+}
+
 template <class UUIE>
 inline unsigned GetH225Version(const UUIE & uuie)
 {
@@ -11974,7 +11994,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 
 #ifdef HAS_H46018   // this code section also needed when working without H.460.18, but with ignored signaled IPs
 	PWaitAndSignal lock(m_multiplexMutex);
-	bool isRTPKeepAlive = isRTP && (buflen == 12);
+	bool isRTPKeepAlive = isRTP && (buflen == RTP_BASE_HEADER_LEN);
 	// Polycom RealPresence Group 300 hack for ignored IPs (needs LARGE_FDSET to work)
 	if (buflen == 0 && m_ignoreSignaledIPs) {
         PTRACE(7, "JW RTP IN from " << AsString(fromIP, fromPort) << " 0-Byte UDP keep-alive");
@@ -13236,14 +13256,7 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 	if (!m_H235CryptoEngine)
 		return false;
 
-	unsigned rtpHeaderLen = RTP_BASE_HEADER_LEN;
-	// skip more if header has CSRC or extensions
-    bool extension = (((int)buffer[0] & 0x10) > 0);
-    int cc = (((int)buffer[0] & 0x0f) << 4); // CSRC count
-    if (extension)
-        rtpHeaderLen += 4;
-    if (cc)
-        rtpHeaderLen += (cc * 4);
+	unsigned rtpHeaderLen = RTP_HeaderSize(buffer, len);
 	PBYTEArray data(buffer+rtpHeaderLen, len-rtpHeaderLen);	// skip RTP header
 	PBYTEArray processed;
 
