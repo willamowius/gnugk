@@ -700,6 +700,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "NATStdMin" },
 	{ "RoutedMode", "PrependToCallingPartyNumberIE" },
 	{ "RoutedMode", "ProxyHandlerHighPrio" },
+	{ "RoutedMode", "Q931DecodingError" },
 	{ "RoutedMode", "Q931PortRange" },
 	{ "RoutedMode", "RDSservers" },
 	{ "RoutedMode", "RedirectCallsToGkIP" },
