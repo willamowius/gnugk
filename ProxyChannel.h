@@ -694,6 +694,7 @@ public:
 
 	H46019Session(const H46019Session & other);
 	H46019Session & operator=(const H46019Session & other);
+	H46019Session & Merge(const H46019Session & other);
 
 	void Dump() const;
 

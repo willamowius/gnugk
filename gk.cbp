@@ -91,6 +91,7 @@
 		<Unit filename="Neighbor.h" />
 		<Unit filename="ProxyChannel.cxx" />
 		<Unit filename="ProxyChannel.h" />
+		<Unit filename="ProxyChannel.t.cxx" />
 		<Unit filename="RasPDU.h" />
 		<Unit filename="RasSrv.cxx" />
 		<Unit filename="RasSrv.h" />
@@ -186,10 +187,6 @@
 		<Unit filename="version.h" />
 		<Unit filename="yasocket.cxx" />
 		<Unit filename="yasocket.h" />
-		<Extensions>
-			<code_completion />
-			<debugger />
-			<envvars />
-		</Extensions>
+		<Extensions />
 	</Project>
 </CodeBlocks_project_file>

@@ -198,7 +198,7 @@ doc:
 # test support using Google C++ Test Framework
 # Set GTEST_DIR as environment variable or define it here
 GTEST_DIR = /usr/src/googletest/googletest/
-TESTCASES = h323util.t.cxx Toolkit.t.cxx
+TESTCASES = h323util.t.cxx Toolkit.t.cxx ProxyChannel.t.cxx
 temp_TESTOBJS := $(subst $(OBJDIR)/gk.o,,$(OBJS))
 TESTOBJS = $(temp_TESTOBJS)
 
@@ -209,6 +209,7 @@ libgtest.a:
 test: libgtest.a testrunner.cxx $(TESTCASES) $(TESTOBJS)
 	@rm -f ./testrunner $(OBJDIR)/GkStatus.o
 	@$(CXX) $(STDCCFLAGS) $(STDCXXFLAGS) $(CFLAGS) -DUNIT_TEST=1 -x c++ -c GkStatus.cxx -o $(OBJDIR)/GkStatus.o
+	@$(CXX) $(STDCCFLAGS) $(STDCXXFLAGS) $(CFLAGS) -DUNIT_TEST=1 -x c++ -c ProxyChannel.cxx -o $(OBJDIR)/ProxyChannel.o
 	$(CXX) -I${GTEST_DIR}/include $(STDCCFLAGS) testrunner.cxx $(TESTCASES) -o testrunner libgtest.a $(TESTOBJS) $(LDFLAGS) -lh323_linux_x86_64__s -lpt_s $(ENDLDLIBS)
 	./testrunner
 

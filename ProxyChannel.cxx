@@ -10622,7 +10622,11 @@ H46019Session::H46019Session(PINDEX callno, WORD session, void * openedBy)
 	m_osSocketToA_RTCP = INVALID_OSSOCKET;
 	m_osSocketToB = INVALID_OSSOCKET;
 	m_osSocketToB_RTCP = INVALID_OSSOCKET;
+#ifdef UNIT_TEST
+    m_EnableRTCPStats = false;
+#else
 	m_EnableRTCPStats = GkConfig()->GetBoolean(ProxySection, "EnableRTCPStats", false);
+#endif
 #ifdef HAS_H235_MEDIA
 	m_encryptingLC = NULL;
 	m_decryptingLC = NULL;
@@ -10699,6 +10703,28 @@ H46019Session & H46019Session::operator=(const H46019Session & other)
     m_decryptingLC = other.m_decryptingLC;
     m_encryptMultiplexID = other.m_encryptMultiplexID;
     m_decryptMultiplexID = other.m_decryptMultiplexID;
+#endif
+
+    return *this;
+}
+
+// merge deleted status and multiplex IDs
+H46019Session & H46019Session::Merge(const H46019Session & other)
+{
+    if (m_callno != other.m_callno || m_session != other.m_session)
+        return *this; // can't merge
+
+    m_deleted = (m_deleted || other.m_deleted);
+    m_deleteTime = (m_deleteTime > other.m_deleteTime) ? m_deleteTime : other.m_deleteTime;
+
+    m_multiplexID_fromA = (m_multiplexID_fromA == INVALID_MULTIPLEX_ID) ? other.m_multiplexID_fromA : m_multiplexID_fromA;
+    m_multiplexID_toA = (m_multiplexID_toA == INVALID_MULTIPLEX_ID) ? other.m_multiplexID_toA : m_multiplexID_toA;
+    m_multiplexID_fromB = (m_multiplexID_fromB == INVALID_MULTIPLEX_ID) ? other.m_multiplexID_fromB : m_multiplexID_fromB;
+    m_multiplexID_toB = (m_multiplexID_toB == INVALID_MULTIPLEX_ID) ? other.m_multiplexID_toB : m_multiplexID_toB;
+
+#ifdef HAS_H235_MEDIA
+    m_encryptMultiplexID = (m_encryptMultiplexID == INVALID_MULTIPLEX_ID) ? other.m_encryptMultiplexID : m_encryptMultiplexID;
+    m_decryptMultiplexID = (m_decryptMultiplexID == INVALID_MULTIPLEX_ID) ? other.m_decryptMultiplexID : INVALID_MULTIPLEX_ID;
 #endif
 
     return *this;
@@ -11042,11 +11068,12 @@ void MultiplexedRTPHandler::AddChannel(const H46019Session & chan)
 				iter != m_h46019channels.end() ; ++iter) {
 			if (   (iter->m_callno == chan.m_callno)
 				&& (iter->m_session == chan.m_session)) {
-				if (iter->m_openedBy == chan.m_openedBy) {
-					*iter = chan;
-				} else {
-					*iter = chan.SwapSides();
+                H46019Session c = chan;
+				if (iter->m_openedBy != c.m_openedBy) {
+                    c = chan.SwapSides();
 				}
+                c.Merge(*iter);
+                *iter = c;
 				found = true;
 			}
 		}
@@ -11090,11 +11117,12 @@ void MultiplexedRTPHandler::UpdateChannel(const H46019Session & chan)
         if (!iter->m_deleted) {
             if (   (iter->m_callno == chan.m_callno)
                 && (iter->m_session == chan.m_session)) {
-                if (iter->m_openedBy == chan.m_openedBy) {
-                    *iter = chan;
-                } else {
-                    *iter = chan.SwapSides();
+                H46019Session c = chan;
+                if (iter->m_openedBy != chan.m_openedBy) {
+                    c = chan.SwapSides();
                 }
+                c.Merge(*iter);
+                *iter = c;
                 DumpChannels(" UpdateChannel() done ");
                 return;
             }
