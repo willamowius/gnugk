@@ -2653,8 +2653,8 @@ bool RegistrationRequestPDU::Process()
 		return BuildRRJ(H225_RegistrationRejectReason::e_undefinedReason);
 	}
 	// remember which of our IPs the endpoint has sent the RRQ to (to keep all later signaling to this IP)
-	ep->SetRasServerIP(m_msg->m_localAddr); // JWX
-	PTRACE(0, "JW set rasserverip for " << m_msg->m_peerAddr << " to " << m_msg->m_localAddr);
+	ep->SetRasServerIP(m_msg->m_localAddr);
+	PTRACE(7, "JW RTP set rasserverip for " << m_msg->m_peerAddr << " to " << m_msg->m_localAddr);
 
 #ifdef HAS_H46017
 	if (usesH46017) {

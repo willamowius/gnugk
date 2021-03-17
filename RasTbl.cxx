@@ -2659,7 +2659,7 @@ void H46019KeepAlive::SendKeepAlive(GkTimer * t)
 			ka_ptr = (char*)&multiplexedRtcpKeepAlive;
 			ka_size = sizeof(multiplexedRtcpKeepAlive);
 		}
-		size_t sent = UDPSendWithSourceIP(ossocket, ka_ptr, ka_size, dest, gkIPptr); // JWX
+		size_t sent = UDPSendWithSourceIP(ossocket, ka_ptr, ka_size, dest, gkIPptr);
 		if (sent != ka_size) {
 			PTRACE(1, "Error sending RTCP keepAlive " << timer);
 			SNMP_TRAP(10, SNMPError, Network, "Sending multiplexed RTCP keepAlive failed");
@@ -5218,7 +5218,7 @@ void CallRec::SetEndpointIPMapping(PIPSocket::Address epIP, PIPSocket::Address g
 
     std::map<PIPSocket::Address, PIPSocket::Address>::iterator it = m_endpointIPMapping.find(epIP);
     if (it == m_endpointIPMapping.end()) {
-        PTRACE(0, "JW add mapping " << AsString(epIP) << " <=> " << AsString(gkIP));
+        PTRACE(7, "JW RTP add mapping " << AsString(epIP) << " <=> " << AsString(gkIP));
         m_endpointIPMapping[epIP] = gkIP;
     }
 }

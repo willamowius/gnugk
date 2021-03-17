@@ -118,7 +118,6 @@ public:
 	PIPSocket::Address GetIP() const;
 	// for multi-homed servers: the IP that the endpoint sent his RAS messages to (needed for H.460.18 SCI)
 	PIPSocket::Address GetRasServerIP() const { return m_rasServerIP; } // caller need to check for IsValid()
-	//bool GetRasServerIP(PIPSocket::Address & ip) const { ip = m_rasServerIP; return m_rasServerIP.IsValid(); } // JWX
 	H225_EndpointIdentifier GetEndpointIdentifier() const;
 	H225_ArrayOf_AliasAddress GetAliases() const;
 	H225_EndpointType GetEndpointType() const;

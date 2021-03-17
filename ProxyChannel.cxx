@@ -154,7 +154,7 @@ WORD RTP_HeaderSize(const BYTE * buffer, WORD len)
         WORD extension_len = ((int)buffer[header_size+2] * 256) + (int)buffer[header_size+3] + 1;
         header_size += (extension_len * 4);
     }
-    PTRACE(0, "JW extension=" << has_extension << " cc=" << cc << " header_size=" << header_size << " of len=" << len);
+    //PTRACE(0, "JW extension=" << has_extension << " cc=" << cc << " header_size=" << header_size << " of len=" << len);
     if (header_size > len) {
         PTRACE(1, "RTP\tError: RTP packet shorter than header");
         return min(len, RTP_BASE_HEADER_LEN);
@@ -1981,9 +1981,8 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 	UnmapIPv4Address(localAddr);
 	masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
 	UnmapIPv4Address(masqAddr);
-	PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr); // JWXM
     if (m_call->GetEndpointIPMapping(peerAddr, masqAddr)) {
-        PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr << " from IPMapping");
+        PTRACE(7, "JW RTP set masqAddr=" << masqAddr << " for " << peerAddr << " from IPMapping");
     }
 
 	SetHandler(socket->GetHandler());
@@ -4367,7 +4366,6 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 	WORD _peerPort = 0, _localPort = 0;
 	msg->GetPeerAddr(_peerAddr, _peerPort);
 	msg->GetLocalAddr(_localAddr, _localPort);
-	PTRACE(0, "JW Setup from " << _peerAddr << " on " << _localAddr);
 
 	// incompatible with 'explicit' routing
 	if (GkConfig()->GetBoolean(RoutedSec, "RedirectCallsToGkIP", false)) {
@@ -4881,8 +4879,8 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 				);
 		}
 		if (!rejectCall) {
-            PTRACE(0, "JW SetEndpointIPMapping " << _peerAddr << " <=> " << _localAddr);
-		    m_call->SetEndpointIPMapping(_peerAddr, _localAddr); // JWXX
+            PTRACE(7, "JW RTP SetEndpointIPMapping " << _peerAddr << " <=> " << _localAddr);
+		    m_call->SetEndpointIPMapping(_peerAddr, _localAddr);
 		}
 		if (!rejectCall && authData.m_callDurationLimit > 0)
 			m_call->SetDurationLimit(authData.m_callDurationLimit);
@@ -5242,8 +5240,8 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		CallTable::Instance()->Insert(call);
 
 		if (!rejectCall) {
-            PTRACE(0, "JW SetEndpointIPMapping " << _peerAddr << " <=> " << _localAddr);
-		    m_call->SetEndpointIPMapping(_peerAddr, _localAddr); // JWXX
+            PTRACE(7, "JW RTP SetEndpointIPMapping " << _peerAddr << " <=> " << _localAddr);
+		    m_call->SetEndpointIPMapping(_peerAddr, _localAddr);
 		}
 		if (!rejectCall && authData.m_callDurationLimit > 0)
 			m_call->SetDurationLimit(authData.m_callDurationLimit);
@@ -5731,13 +5729,13 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		UnmapIPv4Address(localAddr);
 		masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
 		UnmapIPv4Address(masqAddr);
-    	PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr); // JWXM
+    	PTRACE(7, "JW RTP set masqAddr=" << masqAddr << " for " << peerAddr);
     	if (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->GetRasServerIP().IsValid()) {
-    	    PTRACE(0, "JW set masqAddr to called rasserverip=" << AsString(m_call->GetCalledParty()->GetRasServerIP()));
+    	    PTRACE(7, "JW RTP set masqAddr to called rasserverip=" << AsString(m_call->GetCalledParty()->GetRasServerIP()));
             masqAddr = m_call->GetCalledParty()->GetRasServerIP();
     	}
         if (m_call->GetEndpointIPMapping(peerAddr, masqAddr)) {
-        	PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr << " from IPMapping");
+        	PTRACE(7, "JW RTP set masqAddr=" << masqAddr << " for " << peerAddr << " from IPMapping");
     	}
 
 		m_call->SetCallSignalSocketCalling(this);
@@ -5888,13 +5886,12 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 		UnmapIPv4Address(localAddr);
 		masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
 		UnmapIPv4Address(masqAddr);
-    	PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr); // JWXM
         if (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->GetRasServerIP().IsValid()) {
-    	    PTRACE(0, "JW set masqAddr to called rasserverip=" << AsString(m_call->GetCalledParty()->GetRasServerIP()));
+    	    PTRACE(7, "JW RTP set masqAddr to called rasserverip=" << AsString(m_call->GetCalledParty()->GetRasServerIP()));
             masqAddr = m_call->GetCalledParty()->GetRasServerIP();
     	}
     	if (m_call->GetEndpointIPMapping(peerAddr, masqAddr)) {
-        	PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr << " from IPMapping");
+        	PTRACE(7, "JW RTP set masqAddr=" << masqAddr << " for " << peerAddr << " from IPMapping");
     	}
 	}
 	// only rewrite sourceCallSignalAddress if we are proxying,
@@ -6055,9 +6052,8 @@ bool CallSignalSocket::CreateRemote(const H225_TransportAddress & addr)
 	UnmapIPv4Address(localAddr);
     masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
     UnmapIPv4Address(masqAddr);
-	PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr); // JWXM
     if (m_call->GetEndpointIPMapping(peerAddr, masqAddr)) {
-        PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr << " from IPMapping");
+        PTRACE(7, "JW RTP set masqAddr=" << masqAddr << " for " << peerAddr << " from IPMapping");
     }
 
 #ifdef HAS_TLS
@@ -7944,13 +7940,12 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					UnmapIPv4Address(localAddr);
 					masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
 					UnmapIPv4Address(masqAddr);
-                	PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr); // JWXM
                 	if (m_call->GetCallingParty() && m_call->GetCallingParty()->GetRasServerIP().IsValid()) {
-                        PTRACE(0, "JW set masqAddr to calling rasserverip=" << AsString(m_call->GetCallingParty()->GetRasServerIP()));
+                        PTRACE(7, "JW RTP set masqAddr to calling rasserverip=" << AsString(m_call->GetCallingParty()->GetRasServerIP()));
                         masqAddr = m_call->GetCallingParty()->GetRasServerIP();
                 	}
                     if (m_call->GetEndpointIPMapping(peerAddr, masqAddr)) {
-                        PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr << " from IPMapping");
+                        PTRACE(7, "JW RTP set masqAddr=" << masqAddr << " for " << peerAddr << " from IPMapping");
                     }
 					callingSocket->remote = this;
 					// update localAddr and masqAddr in remote, now that we know their peerAddr
@@ -7961,15 +7956,12 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					UnmapIPv4Address(callingSocket->localAddr);
 					callingSocket->masqAddr = RasServer::Instance()->GetMasqAddress(remote_peerAddr);
 					UnmapIPv4Address(callingSocket->masqAddr);
-                	PTRACE(0, "JW set callingSocket->masqAddr=" << callingSocket->masqAddr << " for " << remote_peerAddr); // JWXM
                 	if (m_call->GetCalledParty() && m_call->GetCalledParty()->GetRasServerIP().IsValid()) {
-                        PTRACE(0, "JW set masqAddr to called rasserverip=" << AsString(m_call->GetCalledParty()->GetRasServerIP()));
+                        PTRACE(7, "JW RTP set masqAddr to called rasserverip=" << AsString(m_call->GetCalledParty()->GetRasServerIP()));
                         callingSocket->masqAddr = m_call->GetCalledParty()->GetRasServerIP();
-                	} else {
-                        PTRACE(0, "JW calling NO rasserverip");
                 	}
                     if (m_call->GetEndpointIPMapping(remote_peerAddr, callingSocket->masqAddr)) {
-                        PTRACE(0, "JW set callingSocket->masqAddr=" << masqAddr << " for " << remote_peerAddr << " from IPMapping");
+                        PTRACE(7, "JW RTP set callingSocket->masqAddr=" << masqAddr << " for " << remote_peerAddr << " from IPMapping");
                     }
 
 					callingSocket->SetConnected(true);
@@ -8582,9 +8574,8 @@ void CallSignalSocket::BuildSetupPDU(Q931 & SetupPDU, const H225_CallIdentifier 
 	setup.m_conferenceID = callid.m_guid; // generate new: OpalGloballyUniqueID();
 	setup.m_callIdentifier.m_guid = setup.m_conferenceID;
 	masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
-	PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr); // JWXM
     if (m_call->GetEndpointIPMapping(peerAddr, masqAddr)) {
-        PTRACE(0, "JW set masqAddr=" << masqAddr << " for " << peerAddr << " from IPMapping");
+        PTRACE(7, "JW RTP set masqAddr=" << masqAddr << " for " << peerAddr << " from IPMapping");
     }
 
 	setup.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
@@ -12034,7 +12025,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
         }
     }
 
-    // save which destination IP on the gatekeeper is used by remote endpoint and use that to send! JWX
+    // save which destination IP on the gatekeeper is used by remote endpoint and use that to send!
     if (!m_portDetectionDone) {
         if (m_call && (*m_call)) {
             (*m_call)->SetEndpointIPMapping(fromIP, localaddr);
@@ -12360,9 +12351,9 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			ParseRTCP(*m_call, m_sessionID, fromIP, wbuffer, buflen);
         PIPSocket::Address gkIP;
         if ((*m_call)->GetEndpointIPMapping(m_multiplexDestination_A.GetIP(), gkIP)) {
-		    H46019Session::Send(m_multiplexID_A, m_multiplexDestination_A, m_multiplexSocket_A, wbuffer, buflen, false, &gkIP); // JWX
+		    H46019Session::Send(m_multiplexID_A, m_multiplexDestination_A, m_multiplexSocket_A, wbuffer, buflen, false, &gkIP);
         } else {
-		    H46019Session::Send(m_multiplexID_A, m_multiplexDestination_A, m_multiplexSocket_A, wbuffer, buflen, false, NULL); // JWX
+		    H46019Session::Send(m_multiplexID_A, m_multiplexDestination_A, m_multiplexSocket_A, wbuffer, buflen, false, NULL);
         }
 		return NoData;	// already forwarded through multiplex socket
 	}
@@ -12371,9 +12362,9 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			ParseRTCP(*m_call, m_sessionID, fromIP, wbuffer, buflen);
         PIPSocket::Address gkIP;
         if ((*m_call)->GetEndpointIPMapping(m_multiplexDestination_B.GetIP(), gkIP)) {
-    		H46019Session::Send(m_multiplexID_B, m_multiplexDestination_B, m_multiplexSocket_B, wbuffer, buflen, false, &gkIP); // JWX
+    		H46019Session::Send(m_multiplexID_B, m_multiplexDestination_B, m_multiplexSocket_B, wbuffer, buflen, false, &gkIP);
         } else {
-    		H46019Session::Send(m_multiplexID_B, m_multiplexDestination_B, m_multiplexSocket_B, wbuffer, buflen, false, NULL); // JWX
+    		H46019Session::Send(m_multiplexID_B, m_multiplexDestination_B, m_multiplexSocket_B, wbuffer, buflen, false, NULL);
         }
 		return NoData;	// already forwarded through multiplex socket
 	}
@@ -12483,7 +12474,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	GetSendAddress(toIP, toPort);
 	PIPSocket::Address gkIP;
 	if (m_call && (*m_call) && (*m_call)->GetEndpointIPMapping(toIP, gkIP)) {
-	    UDPSendWithSourceIP(os_handle, wbuffer, buflen, toIP, toPort, &gkIP); // JWX add gkIP
+	    UDPSendWithSourceIP(os_handle, wbuffer, buflen, toIP, toPort, &gkIP);
 	} else {
 	    UDPSendWithSourceIP(os_handle, wbuffer, buflen, toIP, toPort, NULL);
 	}
@@ -13954,7 +13945,6 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 
 		lc->SetMediaControlChannelSource(*addr);
 		*addr << GetMasqAddr() << (lc->GetPort() + 1); // old RTP assumption
-        PTRACE(0, "JW OnLogicalChannelParameters setting mediaControl to " << AsString(GetMasqAddr()));
 #ifdef HAS_H46018
 		if (IsTraversalClient()) {
 			PTRACE(5, "H46018\tSetting control channel to 0");
@@ -13991,7 +13981,6 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 		if (GetH245Port(*addr) != 0) {
 			lc->SetMediaChannelSource(*addr);
 			*addr << GetMasqAddr() << lc->GetPort();
-            PTRACE(0, "JW OnLogicalChannelParameters setting media to " << AsString(GetMasqAddr()));
 #ifdef HAS_H46018
 			if (IsTraversalClient()) {
 				PTRACE(5, "H46018\tSetting media channel to 0");
@@ -14019,7 +14008,6 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
                 lc->ZeroMediaChannelSource();
             };
 		} else {
-            PTRACE(0, "JW OnLogicalChannelParameters setting media to " << AsString(GetMasqAddr()));
 			*addr << GetMasqAddr() << (WORD)0;
 		}
 		changed = true;

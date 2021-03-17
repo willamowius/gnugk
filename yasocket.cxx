@@ -665,7 +665,6 @@ int YaUDPSocket::os_recv(void * buf, int sz)
     PIPSocket::Address raddr;
     WORD rpt;
     GetLastReceiveAddress(raddr, rpt);
-    PTRACE(0, "JW recvmsg=" << result << " ep ip=" << AsString(raddr, rpt));
 
     for ( // iterate through all control headers
         struct cmsghdr *cmsg = CMSG_FIRSTHDR(&hdr);
@@ -673,20 +672,16 @@ int YaUDPSocket::os_recv(void * buf, int sz)
         cmsg = CMSG_NXTHDR(&hdr, cmsg))
     {
 #ifdef IP_PKTINFO
-        PTRACE(0, "JW found CMSG type=" << cmsg->cmsg_type << " IP_PKTINFO=" << IP_PKTINFO << " IPV6_PKTINFO=" << IPV6_PKTINFO);
         if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_PKTINFO) {
             struct in_pktinfo * pi = (struct in_pktinfo *)CMSG_DATA(cmsg);
             // pi->ipi_addr is our IP that the endpoint sent to (in_addr)
             lastDestAddress = pi->ipi_addr;
-            PTRACE(0, "JW IP_PKTINFO lastDestAddress=" << AsString(lastDestAddress));
         }
 #endif
 #ifdef IP_RECVDSTADDR
-        PTRACE(0, "JW found CMSG type=" << cmsg->cmsg_type << " IP_RECVDSTADDR=" << IP_RECVDSTADDR);
         if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_RECVDSTADDR) {
             struct in_addr * i = (struct in_addr *)CMSG_DATA(cmsg);
             lastDestAddress = *i;
-            PTRACE(0, "JW IP_RECVDSTADDR lastDestAddress=" << AsString(lastDestAddress));
         }
 #endif
 #if defined(hasIPV6) && defined (IPV6_PKTINFO)
@@ -694,7 +689,6 @@ int YaUDPSocket::os_recv(void * buf, int sz)
             struct in6_pktinfo * pi = (struct in6_pktinfo *)CMSG_DATA(cmsg);
             // pi->ipi_addr is our IP that the endpoint sent to (in_addr)
             lastDestAddress = pi->ipi6_addr;
-            PTRACE(0, "JW IPV6_PKTINFO lastDestAddress=" << AsString(lastDestAddress));
         }
 #endif
     }
