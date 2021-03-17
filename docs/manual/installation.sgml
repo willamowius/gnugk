@@ -109,6 +109,7 @@ See section <ref id="commandline" name="Command Line Options"> for details on th
 Remember to add GnuGk as an exception for the Windows Firewall so it can communicate freely with the network.
 
 <sect2>Installing as a Service
+<label id="winservice">
 <p>
 These are the steps for a manual installation; there may be a binary version of the Gatekeeper-as-service which includes a GUI
 installer program available in the download location.

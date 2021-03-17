@@ -7,6 +7,11 @@ a setting from the configuration file.
 For example, the option <tt/-l/ overrides the setting <tt/TimeToLive/
 in the configuration file.
 
+Please note, that when installing GnuGk as a
+<ref id="winservice" name="service on Windows">,
+you only have the configuration file <tt/gatekeeper.ini/ and not the
+command line options available.
+
 <sect1>Command Line Options
 <label id="commandline">
 <p>
