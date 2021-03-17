@@ -11203,6 +11203,8 @@ bool MultiplexedRTPHandler::HandlePacket(DWORD receivedMultiplexID, const IPAndP
 #ifdef HAS_H46026
 bool MultiplexedRTPHandler::HandlePacket(PINDEX callno, const H46026_UDPFrame & data)
 {
+    // TODO: fix correct sender IP on multi-homed servers:
+    //       get call by callno and check if there is an IPMapping for the destination IP and pass it to Send(), otherwise leave NULL
 	ReadLock lock(m_listLock);
 	// find the matching channel by callID and sessionID
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
@@ -11216,24 +11218,24 @@ bool MultiplexedRTPHandler::HandlePacket(PINDEX callno, const H46026_UDPFrame & 
 					if (!data.m_dataFrame) {
 						if (IsSet(iter->m_addrA_RTCP) && (iter->m_osSocketToA_RTCP != INVALID_OSSOCKET)) {
 							PTRACE(7, "JW send mux packet to " << iter->m_addrA_RTCP << " osSocket=" << iter->m_osSocketToA_RTCP);
-							iter->Send(iter->m_multiplexID_toA, iter->m_addrA_RTCP, iter->m_osSocketToA_RTCP, bytes.GetPointer(), bytes.GetSize(), false, NULL); // JWX TODO
+							iter->Send(iter->m_multiplexID_toA, iter->m_addrA_RTCP, iter->m_osSocketToA_RTCP, bytes.GetPointer(), bytes.GetSize(), false, NULL);
 						}
 					} else {
 						if (IsSet(iter->m_addrA) && (iter->m_osSocketToA != INVALID_OSSOCKET)) {
 							PTRACE(7, "JW send mux packet to " << iter->m_addrA << " osSocket=" << iter->m_osSocketToA);
-							iter->Send(iter->m_multiplexID_toA, iter->m_addrA, iter->m_osSocketToA, bytes.GetPointer(), bytes.GetSize(), false, NULL); // JWX TODO
+							iter->Send(iter->m_multiplexID_toA, iter->m_addrA, iter->m_osSocketToA, bytes.GetPointer(), bytes.GetSize(), false, NULL);
 						}
 					}
 				} else if (iter->m_multiplexID_toB != INVALID_MULTIPLEX_ID) {
 					if (!data.m_dataFrame) {
 						if (IsSet(iter->m_addrB_RTCP) && (iter->m_osSocketToB_RTCP != INVALID_OSSOCKET)) {
 							PTRACE(7, "JW send mux packet to " << iter->m_addrB_RTCP << " osSocket=" << iter->m_osSocketToB_RTCP);
-							iter->Send(iter->m_multiplexID_toB, iter->m_addrB_RTCP, iter->m_osSocketToB_RTCP, bytes.GetPointer(), bytes.GetSize(), false, NULL); // JWX TODO
+							iter->Send(iter->m_multiplexID_toB, iter->m_addrB_RTCP, iter->m_osSocketToB_RTCP, bytes.GetPointer(), bytes.GetSize(), false, NULL);
 						}
 					} else {
 						if (IsSet(iter->m_addrB) && (iter->m_osSocketToB != INVALID_OSSOCKET)) {
 							PTRACE(7, "JW send mux packet to " << iter->m_addrB << " osSocket=" << iter->m_osSocketToB);
-							iter->Send(iter->m_multiplexID_toB, iter->m_addrB, iter->m_osSocketToB, bytes.GetPointer(), bytes.GetSize(), false, NULL); // JWX TODO
+							iter->Send(iter->m_multiplexID_toB, iter->m_addrB, iter->m_osSocketToB, bytes.GetPointer(), bytes.GetSize(), false, NULL);
 						}
 					}
 				}
