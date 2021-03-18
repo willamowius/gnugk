@@ -13511,7 +13511,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
         if (isUnidirectional) {
             PIPSocket::Address ip = H245UnicastToSocketAddr(*dest);
             PTRACE(7, "JW RTP zero check 2: dest=" << AsString(ip) << " src=" << AsString(tmpSrcIP));
-            if (m_ignoreSignaledIPs && !fromTraversalClient && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
+            if (m_ignoreSignaledIPs && !fromTraversalClient && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs && !IsInNetworks(ip, m_keepSignaledIPs)) {
                 // only zero out dest IP
                 PTRACE(7, "JW RTP IN zero RTP dest (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
 			    (rtp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call, false);
@@ -13519,7 +13519,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
             if (m_ignoreSignaledIPs && !fromTraversalClient && m_ignoreSignaledAllH239IPs) {
                 zeroIP = true;
             }
-            if (m_ignoreSignaledIPs && !fromTraversalClient && IsInNetworks(ip, m_ignorePublicH239IPs)) {
+            if (m_ignoreSignaledIPs && !fromTraversalClient && IsInNetworks(ip, m_ignorePublicH239IPs) && !IsInNetworks(ip, m_keepSignaledIPs)) {
                 // only zero out dest IP
                 PTRACE(7, "JW RTP IN zero RTP dest (IgnoreSignaledIPs && IgnoreSignaledPublicH239IPsFrom)");
 			    (rtp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call, false);

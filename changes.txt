@@ -1,5 +1,7 @@
 Changes from 5.7 to 5.8
 =======================
+- BUGFIX(ProxyChannel.cxx) always check AllowSignaledIPs= before applying
+  IgnoreSignaledAllH239IPs or IgnoreSignaledPrivateH239IPs
 - BUGFIX(ProxyChannel.cxx) fix race condition when handling H.460.19 multiplex IDs
 - BUGFIX(ProxyChannel.cxx) handle extensions and CSRC in RTP header with H.235 half-call media
 - BUGFIX(ProxyChannel.cxx) fix H.460.18/.19 on multi-homed servers
