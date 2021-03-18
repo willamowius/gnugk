@@ -977,7 +977,7 @@ Ignore IPs signaled for H.239 streams if they are private IPs.
 <item><tt>IgnoreSignaledAllH239IPs=1</tt><newline>
 Default: <tt>0</tt><newline>
 <p>
-Ignore all public and private IPs/ports signaled for H.239 streams. For this to work the desination
+Ignore all public and private IPs/ports signaled for H.239 streams. For this to work the destination
 of the H.239 steam must either send keepalive packets to aid port detection
 or be included in the list of AllowSignaledIPs (see below).
 
