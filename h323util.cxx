@@ -716,6 +716,12 @@ bool IsPrivate(const PIPSocket::Address & ip)
     bool result = false;
     if (ip.IsRFC1918())
         result = true;
+    NetworkAddress sharedNetworkSpace("100.64.0.0/10"); // RFC 6598 shared network space, carrier grade NAT
+    if (IsInNetwork(ip, sharedNetworkSpace))
+        result = true;
+    NetworkAddress zeroconf("169.254.0.0/16"); // RFC 3927 Zeroconf
+    if (IsInNetwork(ip, zeroconf))
+        result = true;
 #ifdef hasIPV6
     if (ip.GetVersion() == 6) {
         if (ip.IsLinkLocal())
