@@ -189,7 +189,7 @@ endif
 
 # special dependency to ensure version.cxx is rebuilt each time gnugk is recompiled
 # so the proper build timestamp is included
-version.cxx: $(subst version.cxx,,$(SOURCES)) $(HEADERS) $(OH323_LIBDIR)/$(OH323_FILE) $(PT_LIBDIR)/$(PTLIB_FILE)
+version.cxx: $(subst version.cxx,,$(SOURCES)) $(HEADERS)
 	@touch $@
 
 doc:
