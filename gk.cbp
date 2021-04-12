@@ -109,6 +109,8 @@
 		<Unit filename="amqpacct.cxx" />
 		<Unit filename="authenticators.cxx" />
 		<Unit filename="authenticators.h" />
+		<Unit filename="avaya.h" />
+		<Unit filename="avaya_station_1000.h" />
 		<Unit filename="capctrl.cxx" />
 		<Unit filename="capctrl.h" />
 		<Unit filename="changes.txt" />
