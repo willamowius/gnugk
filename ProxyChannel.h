@@ -584,7 +584,6 @@ protected:
 	WORD localPort;
 #endif
 
-
 private:
 	WORD m_crv;
 	PMutex m_h245handlerLock;
