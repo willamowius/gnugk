@@ -698,6 +698,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "H460KeepAliveMethodH245" },
 	{ "RoutedMode", "MatchH239SessionsByType" },
 	{ "RoutedMode", "NATStdMin" },
+	{ "RoutedMode", "PregrantARQ" },
 	{ "RoutedMode", "PrependToCallingPartyNumberIE" },
 	{ "RoutedMode", "ProxyHandlerHighPrio" },
 	{ "RoutedMode", "Q931DecodingError" },
