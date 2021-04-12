@@ -857,7 +857,7 @@ void GkAuthenticatorList::SelectH235Capability(
 					while (iter != m_authenticators.end()) {
 						GkAuthenticator* gkauth = *iter++;
 						if (gkauth->IsH235Capable() && gkauth->IsH235Capability(grq.m_authenticationCapability[cap], grq.m_algorithmOIDs[alg])) {
-							PTRACE(4, "GKAUTH\tGRQ accepted on " << H323TransportAddress(gcf.m_rasAddress)
+							PTRACE(4, "GKAUTH\tGRQ accepted on " << H323TransportAddress(gcf.m_rasAddress) << " for " << H323TransportAddress(grq.m_rasAddress)
 								<< " using authenticator " << m_h235authenticators[auth]);
                             // TODO: return authenticator or put it into tmp EPRec if we want to add tokens to GCF
 							gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_authenticationMode);
@@ -882,7 +882,13 @@ void GkAuthenticatorList::SelectH235Capability(
 								gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_random = rand();
 #endif // PSSL
 								gcf.m_tokens[gcf.m_tokens.GetSize() - 1].IncludeOptionalField(H235_ClearToken::e_generalID);
-								gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_generalID = Toolkit::GKName();
+                                gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_generalID = Toolkit::GKName();
+#ifdef HAS_AVAYA_SUPPORT
+								if (gcf.m_algorithmOID == "2.16.840.1.114187.1.3") {
+									gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_generalID = "DEFINITY-GK";
+									PTRACE(4, "GKAUTH\tGatekeeper generalID changed for interworking with Avaya endpoint");
+								}
+#endif
 							}
 							return;
 						}

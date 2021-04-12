@@ -1084,7 +1084,7 @@ bool VirtualQueue::SendRouteRequest(
 		result = r->m_sync.Wait(m_requestTimeout);
 		reject = r->m_reject;   // set reject status
 		if (r->m_rejectReason > -1)
-            rejectReason = r->m_rejectReason;
+		rejectReason = r->m_rejectReason;
 		keepRouteInternal = r->m_keepRouteInternal;
 		m_listMutex.Wait();
 		m_pendingRequests.remove(r);

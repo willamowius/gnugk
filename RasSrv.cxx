@@ -38,6 +38,10 @@
 #include "gktimer.h"
 #include "RasSrv.h"
 
+#ifdef HAS_AVAYA_SUPPORT
+#include "avaya.h"
+#endif
+
 #ifdef HAS_H460
 	#include <h460/h4601.h>
 	#ifdef HAS_H46018
@@ -51,7 +55,6 @@ const char *LRQFeaturesSection = "RasSrv::LRQFeatures";
 const char *RRQFeatureSection = "RasSrv::RRQFeatures";
 using namespace std;
 using Routing::Route;
-
 
 class RegistrationRequestPDU : public RasPDU<H225_RegistrationRequest> {
 public:
@@ -144,8 +147,8 @@ const char *RasName[] = {
 	"LRJ",				// Location Reject
 	"IRQ",				// Information Request
 	"IRR",				// Information Request Response
-	"NonStandardMessage",
-	"UnknownMessageResponse",
+	"NonStandardMessage",		// Non Standard Message
+	"UnknownMessageResponse",	// Unknown Message Response
 	"RIP",				// Request In Progress
 	"RAI",				// Resources Available Indicate
 	"RAC",				// Resources Available Confirm
@@ -1472,7 +1475,11 @@ void RasServer::Run()
 	RasPDU<H225_ResourcesAvailableIndicate>::Creator RAICreator;
 	RasPDU<H225_ServiceControlIndication>::Creator SCICreator;
 	RasPDU<H225_ServiceControlResponse>::Creator SCRCreator;
+#ifndef HAS_AVAYA_SUPPORT
 	RasPDU<H225_NonStandardMessage>::Creator NonStandardCreator;
+#else
+	RasPDU<H225_NonStandardMessage>::Creator NSMCreator;
+#endif
 
 	listeners = new TCPServer();
 	gkClient = new GkClient();
@@ -1769,6 +1776,48 @@ void RasMsg::Initialize()
 	RasSrv = RasServer::Instance();
 }
 
+#ifdef HAS_AVAYA_SUPPORT
+template<> bool RasPDU<H225_NonStandardMessage>::Process()
+{
+	/* Avaya hack NSM */
+	bool bSend = false;
+	const PASN_ObjectId & id = request.m_nonStandardData.m_nonStandardIdentifier;
+	if (id.AsString() == OID_AVAYA_H221nonStandardId) {
+		if (request.m_nonStandardData.m_data[0] == CCMS_switchInfoRequest_Id) {
+			PTRACE(5, "NSM\tAvaya: CCMS switchInfoRequest");
+			unsigned tag = H225_RasMessage::e_nonStandardMessage;
+			if (m_msg->m_replyRAS.GetTag() != tag) m_msg->m_replyRAS.SetTag(tag); // ?
+			H225_NonStandardMessage & nsm = m_msg->m_replyRAS;
+//			nsm.m_protocolIdentifier = request.m_protocolIdentifier;
+			nsm.m_requestSeqNum = request.m_requestSeqNum;
+			PASN_ObjectId & nsm_id = nsm.m_nonStandardData.m_nonStandardIdentifier;
+			nsm_id.SetValue(OID_AVAYA_H221nonStandardId);
+			/* TODO: proper button assignment from endpoint IP+port registration table NEW */
+			H225_TransportAddress _peerAddress = SocketToH225TransportAddr(m_msg->m_peerAddr, m_msg->m_peerPort);
+			endptr ep;
+			ep = RegistrationTable::Instance()->FindBySignalAdrIgnorePort(_peerAddress);
+			if (ep && ep->IsAvaya()) {
+				H225_ArrayOf_AliasAddress aliases = ep->GetAliases();
+				if (aliases.GetSize()) {
+					PString alias = AsString(aliases[0], false);
+					if (alias.GetLength() == 4) {
+						unsigned char CCMS_switchInfoResponse_Current[sizeof(CCMS_switchInfoResponse_1000_Complete)];
+						memcpy(CCMS_switchInfoResponse_Current, CCMS_switchInfoResponse_1000_Complete, sizeof(CCMS_switchInfoResponse_1000_Complete));
+						memcpy(&CCMS_switchInfoResponse_Current[8], (const unsigned char *) alias, 4);
+						nsm.m_nonStandardData.m_data = PASN_OctetString((const char *) CCMS_switchInfoResponse_Current, sizeof(CCMS_switchInfoResponse_1000_Complete));
+						bSend = true;
+					}
+				}
+
+			}
+			if (bSend) PTRACE(5, "NSM\tAvaya: switchInfoResponse Complete"); else PTRACE(5, "NSM\tAvaya: Unable to find endpoint or inconsistent extension");
+		}
+	} else
+	PTRACE(5, "NSM\tUnknown ID " + id.AsString());
+	return bSend;
+}
+#endif
+
 template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 {
 	// OnGRQ
@@ -1808,6 +1857,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		bReject = true;
 		rsn = H225_GatekeeperRejectReason::e_resourceUnavailable;
 	}
+
 	if (bReject) {
 		H225_GatekeeperReject & grj = BuildReject(rsn);
 		grj.m_protocolIdentifier = request.m_protocolIdentifier;
@@ -1960,14 +2010,81 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 		}
 #endif // HAS_H460PRE
 
-        // Avaya hack
-        if (request.HasOptionalField(H225_GatekeeperRequest::e_nonStandardData)
-            && request.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_object) {
-            const PASN_ObjectId & id = request.m_nonStandardData.m_nonStandardIdentifier;
-            if (id.AsString() == "2.16.840.1.113778.4.2.1") {
-                gcf.RemoveOptionalField(H225_GatekeeperConfirm::e_gatekeeperIdentifier); // Avaya crashes when GCF contains gatekeeper ID
-            }
-        }
+#ifdef HAS_AVAYA_SUPPORT
+		// Avaya hack GRQ
+		if (request.HasOptionalField(H225_GatekeeperRequest::e_nonStandardData)
+		&& request.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_object) {
+			const PASN_ObjectId & id = request.m_nonStandardData.m_nonStandardIdentifier;
+			if (id.AsString() == OID_AVAYA_H221nonStandardId) {
+				PASN_OctetString osDiscoveryReq((const char *)CCMS_discoveryRequest, sizeof(CCMS_discoveryRequest));
+				PASN_OctetString osCCMS = request.m_nonStandardData.m_data;
+				if (Toolkit::Instance()->PASNEqual(&osCCMS, &osDiscoveryReq)) {
+					PTRACE(5, "GRQ\tAvaya: CCMS discoveryRequest");
+				}
+
+				gcf.RemoveOptionalField(H225_GatekeeperConfirm::e_gatekeeperIdentifier); // Avaya crashes when GCF contains gatekeeper ID
+
+				if (!gcf.HasOptionalField(H225_GatekeeperConfirm::e_featureSet))
+					gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_featureSet);
+
+				gcf.m_featureSet.m_replacementFeatureSet = true;
+
+				if (!gcf.m_featureSet.HasOptionalField(H225_FeatureSet::e_desiredFeatures))
+					gcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_desiredFeatures);
+
+				H460_FeatureOID feat = H460_FeatureOID(OID_AVAYA_Feature10);
+				H460_FeatureID feat_id(1);		// Generic extensible framework
+				feat.AddParameter(&feat_id);
+				feat_id = H460_FeatureID(2);	// Number portability interworking of H.323 and circuit-switched nets
+				feat.AddParameter(&feat_id);
+				feat_id = H460_FeatureID(3);	// Circuit maps
+				feat.AddParameter(&feat_id);
+				feat_id = H460_FeatureID(5);	// H.225.0 transport of multiple Q.931 IE
+				feat.AddParameter(&feat_id);
+				feat_id = H460_FeatureID(6);	// Extended fast connect feature
+				feat.AddParameter(&feat_id);
+				feat_id = H460_FeatureID(7);	// Digits maps
+				feat.AddParameter(&feat_id);
+				feat_id = H460_FeatureID(9);	// Support for online QoS
+				feat.AddParameter(&feat_id);
+				feat_id = H460_FeatureID(10);	// Call party category
+				feat.AddParameter(&feat_id);
+				feat_id = H460_FeatureID(11);	// Delayed call establishment
+				feat.AddParameter(&feat_id);
+				feat_id = H460_FeatureID(17);	// Using H.225.0 call signaling for H.323 RAS
+				feat.AddParameter(&feat_id);
+				feat_id = H460_FeatureID(18);	// Traversal of H.323 signaling across NAT/FW
+				feat.AddParameter(&feat_id);
+				feat_id = H460_FeatureID(19);	// Traversal of H.323 media across NAT/FW
+				feat.AddParameter(&feat_id);
+				AddH460Feature(gcf.m_featureSet.m_desiredFeatures, feat);
+
+				H460_FeatureOID feat2 = H460_FeatureOID(OID_AVAYA_Feature9);
+				feat_id = H460_FeatureID(1);
+				feat2.AddParameter(&feat_id, H460_FeatureContent(1, 8));
+				feat_id = H460_FeatureID(2);
+				feat2.AddParameter(&feat_id, H460_FeatureContent(60, 16));
+				feat_id = H460_FeatureID(3);
+				feat2.AddParameter(&feat_id, H460_FeatureContent(0, 16));
+				feat_id = H460_FeatureID(4);	// Call priority designation and country/international network of call origination identification for priority call
+				feat2.AddParameter(&feat_id, H460_FeatureContent(true));
+				feat_id = H460_FeatureID(5);
+				feat2.AddParameter(&feat_id, H460_FeatureContent(true));
+				AddH460Feature(gcf.m_featureSet.m_desiredFeatures, feat2);
+
+				H460_Feature feat3 = H460_Feature(6);
+				AddH460Feature(gcf.m_featureSet.m_desiredFeatures, feat3);
+
+				// Supported = Desired
+				if (!gcf.m_featureSet.HasOptionalField(H225_FeatureSet::e_supportedFeatures))
+					gcf.m_featureSet.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
+				gcf.m_featureSet.m_supportedFeatures = gcf.m_featureSet.m_desiredFeatures;
+
+				// featureSets for CM18 software
+				PTRACE(5, "GCF\tAvaya: Added featureSets");
+			}
+		}
+#endif
 
 #ifdef h323v6
 	    if (request.HasOptionalField(H225_GatekeeperRequest::e_supportsAssignedGK) &&
@@ -1999,6 +2116,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 	return bSendReply;
 }
 
+
 bool RegistrationRequestPDU::Process()
 {
 	// OnRRQ
@@ -2006,6 +2124,9 @@ bool RegistrationRequestPDU::Process()
 	const PIPSocket::Address & rx_addr = m_msg->m_peerAddr;
 	const WORD rx_port = m_msg->m_peerPort;
 	bool bSendReply, bForwardRequest;
+#ifdef HAS_AVAYA_SUPPORT
+	bool bAvayaHack = false;
+#endif
 	bSendReply = bForwardRequest = !RasSrv->IsForwardedRas(request, rx_addr);
 #ifdef HAS_H46017
 	PBoolean usesH46017 = (m_msg->m_h46017Socket != NULL);
@@ -2713,6 +2834,65 @@ bool RegistrationRequestPDU::Process()
 		BuildRCF(ep);
 		H225_RegistrationConfirm & rcf = m_msg->m_replyRAS;
 
+
+#ifdef HAS_AVAYA_SUPPORT
+		// Avaya hack RRQ
+		if (request.HasOptionalField(H225_RegistrationRequest::e_nonStandardData)
+			&& request.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_object) {
+			const PASN_ObjectId & id = request.m_nonStandardData.m_nonStandardIdentifier;
+			if (id.AsString() == OID_AVAYA_H221nonStandardId) {
+				bAvayaHack = true;
+
+				if (rcf.HasOptionalField(H225_RegistrationConfirm::e_gatekeeperIdentifier))
+					rcf.RemoveOptionalField(H225_RegistrationConfirm::e_gatekeeperIdentifier);
+
+				PASN_OctetString & data = request.m_nonStandardData.m_data;
+				if (data.GetSize() >= 20) {
+					PTRACE(5, "RRQ\tAvaya: MAC "  + PString(PString::Printf, "%02x", ((unsigned char)data[13])) +
+						PString(PString::Printf, ":%02x", ((unsigned char)data[14])) +
+						PString(PString::Printf, ":%02x", ((unsigned char)data[15])) +
+						PString(PString::Printf, ":%02x", ((unsigned char)data[16])) +
+						PString(PString::Printf, ":%02x", ((unsigned char)data[17])) +
+						PString(PString::Printf, ":%02x", ((unsigned char)data[18])));
+				}
+
+				H225_VendorIdentifier & vi = request.m_endpointVendor;
+				PString out;
+				if (vi.m_vendor.m_manufacturerCode == Toolkit::t35mLucent) out = "Lucent"; else
+				if (vi.m_vendor.m_manufacturerCode == Toolkit::t35mAvaya) out = "Avaya"; else out = PString(vi.m_vendor.m_manufacturerCode);
+				if (vi.HasOptionalField(H225_VendorIdentifier::e_productId)) {
+					out += " " + vi.m_productId.AsString();
+				}
+				if (vi.HasOptionalField(H225_VendorIdentifier::e_versionId)) {
+					out += " " + vi.m_versionId.AsString();
+				}
+				PTRACE(5, "RRQ\tAvaya: " + out);
+
+				rcf.IncludeOptionalField(H225_RegistrationConfirm::e_nonStandardData);
+				PASN_ObjectId & rcf_id = rcf.m_nonStandardData.m_nonStandardIdentifier;
+				rcf_id.SetValue(OID_AVAYA_H221nonStandardId);
+				if (request.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
+					if (request.m_terminalAlias.GetSize()) {
+						PString ext = AsString(request.m_terminalAlias[0], false);
+						PTRACE(5, "RRQ\tAvaya: EXT " + ext);
+						unsigned char CCMS_loginAccepted_Current[sizeof(CCMS_loginAccepted_1000)];
+						memcpy(CCMS_loginAccepted_Current, CCMS_loginAccepted_1000, sizeof(CCMS_loginAccepted_1000));
+						if (ext.GetLength() == 4) {
+							memcpy(&CCMS_loginAccepted_Current[76], (const unsigned char *) ext, 4);
+							memcpy(&CCMS_loginAccepted_Current[84], (const unsigned char *) ext, 4);
+							rcf.m_nonStandardData.m_data = PASN_OctetString((const char *) CCMS_loginAccepted_Current, sizeof(CCMS_loginAccepted_1000));
+						} else bAvayaHack = false;
+					} else bAvayaHack = false;
+				} else bAvayaHack = false;
+
+				if (!bAvayaHack) {
+					PTRACE(5, "RAS\tAvaya: Sending RRJ due to inconsistent extension data");
+					return BuildRRJ(H225_RegistrationRejectReason::e_undefinedReason);
+				}
+			}
+        }
+#endif
+
 		if (GkConfig()->GetBoolean(RoutedSec, "PregrantARQ", false)) {
 			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_preGrantedARQ);
 			rcf.m_preGrantedARQ.m_makeCall = true;
@@ -2914,9 +3094,41 @@ bool RegistrationRequestPDU::Process()
 		   !rcf.HasOptionalField(H225_RegistrationConfirm::e_serviceControl))
 			      rcf.IncludeOptionalField(H225_RegistrationConfirm::e_serviceControl);
 #endif
-
         // set H.235.1 tokens
 		SetupResponseTokens(m_msg->m_replyRAS, ep);
+
+#ifdef HAS_AVAYA_SUPPORT
+		// Avaya hack RCF
+		if (bAvayaHack) {
+			if (!rcf.HasOptionalField(H225_RegistrationConfirm::e_maintainConnection))
+				rcf.IncludeOptionalField(H225_RegistrationConfirm::e_maintainConnection);
+			rcf.m_maintainConnection = true;
+
+			if (!rcf.HasOptionalField(H225_RegistrationConfirm::e_willRespondToIRR))
+				rcf.IncludeOptionalField(H225_RegistrationConfirm::e_willRespondToIRR);
+			rcf.m_willRespondToIRR = false;
+
+			if (!rcf.HasOptionalField(H225_RegistrationConfirm::e_alternateGatekeeper))
+				rcf.IncludeOptionalField(H225_RegistrationConfirm::e_alternateGatekeeper);
+
+			H225_AlternateGK altGK;
+			GetRasAddress(altGK.m_rasAddress);
+			altGK.m_needToRegister = true;
+			rcf.m_alternateGatekeeper.SetSize(1);
+			rcf.m_alternateGatekeeper[0] = altGK;
+
+			if (rcf.HasOptionalField(H225_RegistrationConfirm::e_timeToLive))
+				rcf.RemoveOptionalField(H225_RegistrationConfirm::e_timeToLive);
+
+			if (rcf.HasOptionalField(H225_RegistrationConfirm::e_terminalAlias))
+				rcf.RemoveOptionalField(H225_RegistrationConfirm::e_terminalAlias);
+
+			if (rcf.HasOptionalField(H225_RegistrationConfirm::e_supportsAdditiveRegistration))
+				rcf.RemoveOptionalField(H225_RegistrationConfirm::e_supportsAdditiveRegistration);
+
+			PTRACE(5, "RCF\tAvaya: Confirmation fulfilled");
+		}
+#endif
 
 	} else {
 		PIPSocket::Address rasip, sigip;
@@ -4093,7 +4305,6 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 		callid.Replace(" ", "-", true);
 		log += PString("|") + callid;
 		log += PString(";");
-
 		if (!RasSrv->IsGKRouted() || RasSrv->RemoveCallOnDRQ())
 			CallTbl->RemoveCall(request, ep);
 	}

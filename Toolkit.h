@@ -116,7 +116,7 @@ class GkTimerManager;
 class CLIRewrite;
 
 #define GW_REWRITE_IN		true
-#define GW_REWRITE_OUT	false
+#define GW_REWRITE_OUT		false
 
 class Toolkit : public Singleton<Toolkit>
 {
@@ -449,6 +449,8 @@ class Toolkit : public Singleton<Toolkit>
 	AssignedLanguage GetAssignedLanguages() const { return m_assignedLanguage; }
 #endif
 
+	bool PASNEqual(PASN_OctetString * str1, PASN_OctetString * str2);
+
 	/// maybe modifies #alias#. returns true if it did
 	bool RewriteE164(H225_AliasAddress & alias);
 	bool RewriteE164(H225_ArrayOf_AliasAddress & aliases);
@@ -609,7 +611,9 @@ class Toolkit : public Singleton<Toolkit>
 	enum T35ManufacturerCodes {
 		t35mOpenOrg = 4242,     /// manufacurers code for the "Open Source Organisation"
 		t35mGnuGk = 2,
-		t35mCisco = 18
+		t35mCisco = 18,
+		t35mAvaya = 16726,
+		t35mLucent = 19540
 	};
 	enum T35OpenOrgExtensions {
 		t35eFailoverRAS = 255

@@ -3485,7 +3485,19 @@ bool Toolkit::QoSMonitor::PostRecord(const std::map<PString, PString>& params)
 }
 #endif
 
-/////////////////////////////////////////////////////////////////////////////////////////
+bool Toolkit::PASNEqual(PASN_OctetString *str1, PASN_OctetString *str2)
+{
+	if (str1 && str2) {
+		if (str1->GetSize() < str2->GetSize()) return false;
+		const unsigned char *s1 = *str1;
+		const unsigned char *s2 = *str2;
+		for (int i = 0; i < str2->GetSize(); i++) {
+			if (s1[i] != s2[i]) return false;
+		}
+		return true;
+	}
+	return false;
+}
 
 bool Toolkit::RewriteE164(H225_AliasAddress & alias)
 {

@@ -101,5 +101,7 @@
   #pragma include_alias(<hiredis.h>, <@REDIS_DIR_DIR@/hiredis.h>)
 #endif
 
+// Avaya support
+#undef HAS_AVAYA_SUPPORT
 
 #endif

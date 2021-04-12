@@ -42,6 +42,10 @@
 #endif
 #endif
 
+#ifdef HAS_AVAYA_SUPPORT
+#include "avaya.h"
+#endif
+
 using std::copy;
 using std::partition;
 using std::back_inserter;
@@ -101,7 +105,11 @@ EndpointRec::EndpointRec(
 	m_capacity(-1), m_calledTypeOfNumber(-1), m_callingTypeOfNumber(-1),
 	m_calledPlanOfNumber(-1), m_callingPlanOfNumber(-1), m_proxy(0),
 	m_registrationPriority(0), m_registrationPreemption(false),
-    m_epnattype(NatUnknown), m_usesH46023(false), m_H46024(GkConfig()->GetBoolean(RoutedSec, "H46023PublicIP", false)),
+    m_epnattype(NatUnknown),
+#ifdef HAS_AVAYA_SUPPORT
+    m_hookstate(hsUnknown), m_ccmsCall(NULL), m_nextcrv(32767),
+#endif
+											m_usesH46023(false), m_H46024(GkConfig()->GetBoolean(RoutedSec, "H46023PublicIP", false)),
 	m_H46024a(false), m_H46024b(false), m_natproxy(GkConfig()->GetBoolean(proxysection, "ProxyForNAT", false)),
 	m_internal(false), m_remote(false), m_h46017disabled(false), m_h46018disabled(false), m_usesH460P(false), m_hasH460PData(false),
     m_usesH46017(false), m_usesH46026(false), m_traversalType(None), m_bandwidth(0), m_maxBandwidth(-1), m_useTLS(false),
@@ -163,6 +171,18 @@ const static PStringToOrdinal::Initialiser H225EndpointTypes[endpointcount] =
 	{"terminal",        H225_EndpointType::e_terminal}
 };
 const static PStringToOrdinal h225endpointtypes(endpointcount, H225EndpointTypes, false);
+
+#ifdef HAS_AVAYA_SUPPORT
+const int hookstateCount = 3;
+const static char * HookStateString[hookstateCount] = {"Unknown", "Onhook", "Offhook"};
+
+PString EndpointRec::GetHookString() const {
+	if ((m_hookstate >= 0) && (m_hookstate < hookstateCount)) {
+		return HookStateString[m_hookstate];
+	}
+	return HookStateString[0];
+};
+#endif
 
 void EndpointRec::LoadAliases(const H225_ArrayOf_AliasAddress & aliases, const H225_EndpointType & type)
 {
@@ -377,6 +397,21 @@ EndpointRec::~EndpointRec()
 {
 	PWaitAndSignal lock(m_usedLock);
 	PTRACE(3, "Gk\tDelete endpoint: " << m_endpointIdentifier.GetValue() << " " << m_usedCount);
+
+#ifdef HAS_AVAYA_SUPPORT
+	/* Avaya hack */
+	if (m_ccmsCall) {
+		CallSignalSocket * css = m_ccmsCall->GetCallSignalSocketCalling();
+		if (css)
+		    css->RemoveCall();
+		css = m_ccmsCall->GetCallSignalSocketCalled();
+		if (css)
+		css->RemoveCall();
+		m_ccmsCall->SetSocket(NULL, NULL);
+		delete m_ccmsCall;
+		m_ccmsCall = NULL;
+	}
+#endif
 
 	if (m_endpointVendor) {
 		delete m_endpointVendor;
@@ -936,6 +971,15 @@ void EndpointRec::Update(const H225_RasMessage & ras_msg)
 	m_pollCount = GkConfig()->GetInteger(RRQFeaturesSection, "IRQPollCount", DEFAULT_IRQ_POLL_COUNT);
 }
 
+#ifdef HAS_AVAYA_SUPPORT
+void EndpointRec::Update()
+{
+	PWaitAndSignal lock(m_usedLock);
+	m_updatedTime = PTime();
+	m_pollCount = GkConfig()->GetInteger(RRQFeaturesSection, "IRQPollCount", DEFAULT_IRQ_POLL_COUNT);
+}
+#endif
+
 EndpointRec *EndpointRec::Unregisterpreempt(int type)
 {
 	PTRACE(1, "EP\tUnregistering " << AsDotString(GetRasAddress()) << " Reason " << type);
@@ -1007,7 +1051,11 @@ PString EndpointRec::PrintOn(bool verbose) const
 				+ "|" + AsString(GetAliases())
 				+ "|" + AsString(GetEndpointType())
 				+ "|" + GetEndpointIdentifier().GetValue()
+#ifdef HAS_AVAYA_SUPPORT
+				+ (IsAvaya() ? "|" + GetHookString() + "\r\n" : "\r\n");
+#else
 				+ "\r\n";
+#endif
 	}
 
 	if (verbose) {
@@ -1022,7 +1070,13 @@ PString EndpointRec::PrintOn(bool verbose) const
 			msg += " (" + natType + ")";
 		msg += " bw:" + PString(m_bandwidth) + "/" + PString(m_maxBandwidth);
 		msg += " vendor:" + vendor + " " + version;
-		msg += "\r\n";
+#ifdef HAS_AVAYA_SUPPORT
+		if (IsAvaya()) {
+			msg += " specific:" + GetHookString() + " CCMS:\r\n";
+			msg += m_ccmsCall->PrintOn(false);
+		} else
+#endif
+			msg += "\r\n";
 	}
 	return msg;
 }
@@ -1168,6 +1222,46 @@ bool EndpointRec::SendIRQ()
 
 	return true;
 }
+
+#ifdef HAS_AVAYA_SUPPORT
+bool EndpointRec::SendCCMSUpdate()
+{
+	if (m_pollCount <= 0)
+		return false;
+
+	if ((GetRasAddress().GetTag() != H225_TransportAddress::e_ipAddress)
+		&& (GetRasAddress().GetTag() != H225_TransportAddress::e_ip6Address)
+		&& !UsesH46017()) {
+		return false;
+	}
+	if (!m_ccmsCall)
+	    return false;
+	CallSignalSocket *css = m_ccmsCall->GetCallSignalSocketCalling();
+	if (!css)
+	    return false;
+	--m_pollCount;
+
+	PString msg(PString::Printf, "UpdateCCMS|%s|%s;\r\n",
+			(const unsigned char *) AsDotString(GetRasAddress()),
+			(const unsigned char *) GetEndpointIdentifier().GetValue());
+        GkStatus::Instance()->SignalStatus(msg, STATUS_TRACE_LEVEL_RAS);
+
+	PBYTEArray	lBuffer;
+	Q931	newq931;
+
+	css->BuildInformationPDU(newq931, true, CCMS_vdtUpdate_switchHookInquiry, sizeof(CCMS_vdtUpdate_switchHookInquiry));
+	newq931.Encode(lBuffer);
+	css->TransmitData(lBuffer);
+	SETUP_SLEEP;
+
+	css->BuildInformationPDU(newq931, true, CCMS_vdtUpdate_terminalIDReq, sizeof(CCMS_vdtUpdate_terminalIDReq));
+	newq931.Encode(lBuffer);
+	css->TransmitData(lBuffer);
+	SETUP_SLEEP;
+
+	return true;
+}
+#endif
 
 bool EndpointRec::AddCallCreditServiceControl(
 	H225_ArrayOf_ServiceControlSession & sessions, /// array to add the service control descriptor to
@@ -1330,6 +1424,28 @@ bool EndpointRec::AddH350ServiceControl(H225_ArrayOf_ServiceControlSession & ses
 
 	data.EncodeSubType(svc);
 	return true;
+}
+#endif
+
+bool EndpointRec::IsAvaya() const
+{
+    // TODO: this probably needs to be more specific, some Avaya endpoints speak regular ITU H.323
+    // eg. Avaya Scopia series, the Avaya MCU or the Avaya IP Office trunk
+	return (m_endpointVendor ? (
+					((m_endpointVendor->m_vendor.m_manufacturerCode == Toolkit::t35mLucent) ||
+					(m_endpointVendor->m_vendor.m_manufacturerCode == Toolkit::t35mAvaya)) ? true : false ) : false);
+}
+
+#ifdef HAS_AVAYA_SUPPORT
+WORD EndpointRec::GetNextCRV()
+{
+	PWaitAndSignal lock(m_usedLock);
+	while(CallTable::Instance()->FindCallRec(H225_CallReferenceValue(m_nextcrv))) {
+		--m_nextcrv;
+		if (!m_nextcrv)
+		    m_nextcrv = 32767;
+	}
+	return m_nextcrv;
 }
 #endif
 
@@ -2419,6 +2535,10 @@ void RegistrationTable::CheckEndpoints()
         }
 
 		// check expired registrations
+#ifdef HAS_AVAYA_SUPPORT
+        if (!ep->IsAvaya()) {
+#endif
+
 		if (!ep->IsUpdated(&now) && !ep->SendIRQ()) {
 			if (!Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "TTLExpireDropCall", "1"))
 				&& CallTable::Instance()->FindCallRec(endptr(ep))) {
@@ -2436,6 +2556,26 @@ void RegistrationTable::CheckEndpoints()
 			PTRACE(2, "Endpoint " << ep->GetEndpointIdentifier().GetValue() << " expired");
 		}
 		else ++Iter;
+#ifdef HAS_AVAYA_SUPPORT
+        } else {
+            if (!ep->IsUpdated(&now) && !ep->SendCCMSUpdate()) {
+                if (!Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "TTLExpireDropCall", "1"))
+                    && CallTable::Instance()->FindCallRec(endptr(ep))) {
+                    ep->DeferTTL();
+                    PTRACE(2, "Endpoint (Avaya) " << ep->GetEndpointIdentifier().GetValue() << " TTL expiry deferred as current call.");
+                    ++Iter;
+                    continue;
+                }
+                SoftPBX::DisconnectEndpoint(endptr(ep));
+                ep->Expired();
+                RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctUnregister, endptr(ep));
+                RemovedList.push_back(ep);
+                Iter = EndpointList.erase(Iter);
+                --regSize;
+                PTRACE(2, "Endpoint (Avaya) " << ep->GetEndpointIdentifier().GetValue() << " expired");
+            } else ++Iter;
+        }
+#endif // HAS_AVAYA_SUPPORT
 	}
 
 	iterator OOZIter = partition(OutOfZoneList.begin(), OutOfZoneList.end(), bind2nd(mem_fun(&EndpointRec::IsUpdated), &now));
@@ -2934,7 +3074,7 @@ CallRec::~CallRec()
 #ifdef HAS_H46018
 	RemoveAllRTPKeepAlives();
 #endif
-    delete(m_newSetupInternalAliases);
+	delete(m_newSetupInternalAliases);
 
 	PWaitAndSignal lock(m_portListMutex);
 	m_dynamicPorts.clear();
@@ -3616,6 +3756,11 @@ PString CallRec::GetMediaRouting() const
 			break;
 		case ProxyDisabled: mode = "Direct";
 			break;
+#ifdef HAS_AVAYA_SUPPORT
+		// Avaya hack: for future use
+		case ProxyCCMS: mode = "CCMS";
+			break;
+#endif
 	}
 #ifdef HAS_H46023
 	if (m_natstrategy)
@@ -5827,7 +5972,7 @@ void CallTable::RemoveFailedLeg(const callptr & call)
 {
 	if (call) {
 		CallRec *callrec = call.operator->();
-		PTRACE(6, "GK\tRemoving callptr: " << AsString(call->GetCallIdentifier()));
+		PTRACE(6, "GK\tRemoving failedleg callptr: " << AsString(call->GetCallIdentifier()));
 		WriteLock lock(listLock);
 		InternalRemoveFailedLeg(find(CallList.begin(), CallList.end(), callrec));
 	}

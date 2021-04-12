@@ -173,7 +173,7 @@ Startup: Tue, 26 Nov 2013 18:45:35 +04:00   Running: 0 days 02:34:15
 <item><tt/ResetCallCounters/<newline>
 <p>Reset the statistics counters for total calls, successful calls, neighbor calls and parent calls to zero.
 
-<item><tt/PrintAllRegistrations/, <tt/r/, <tt/?/<newline>
+<item><tt/PrintAllRegistrations/, <tt/r/, <tt/?/, <tt/par/<newline>
 <p>Show all registered endpoints. 
 <descrip>
 <tag/Format:/
@@ -195,7 +195,7 @@ Number of Endpoints: 3
 </verb></tscreen>
 </descrip>
 
-<item><tt/PrintAllRegistrationsVerbose/, <tt/rv/, <tt/??/<newline>
+<item><tt/PrintAllRegistrationsVerbose/, <tt/rv/, <tt/??/, <tt/parv/<newline>
 <p>Show details of all registered endpoints.
 <descrip>
 <tag/Format:/
@@ -223,10 +223,10 @@ Number of Endpoints: 3
 </verb></tscreen>
 </descrip>
 
-<item><tt/PrintAllCached/, <tt/rc/<newline>
+<item><tt/PrintAllCached/, <tt/rc/, <tt/pac/<newline>
 <p>Print list of all cached out-of-zone endpoints.
 
-<item><tt/PrintCurrentCalls/, <tt/c/, <tt/!/<newline>
+<item><tt/PrintCurrentCalls/, <tt/c/, <tt/!/, <tt/pcc/<newline>
 <p>Show all current calls using the same ACF syntax as in call establishment. Also shows how media is being routed.
 <descrip>
 <tag/Format:/
@@ -257,7 +257,7 @@ Number of Calls: 2 Active: 2 From Neighbor: 0 From Parent: 0 Proxied: 1
 </verb></tscreen>
 </descrip>
 
-<item><tt/PrintCurrentCallsVerbose/, <tt/cv/, <tt/!!/<newline>
+<item><tt/PrintCurrentCallsVerbose/, <tt/cv/, <tt/!!/, <tt/pccv/<newline>
 <p>Show details of all current calls.
 <descrip>
 <tag/Format:/
@@ -286,7 +286,7 @@ Number of Calls: 1 Active: 1 From Neighbor: 0 From Parent: 0 Proxied: 1
 </verb></tscreen>
 </descrip>
 
-<item><tt/PrintCurrentCallsPorts/<newline>
+<item><tt/PrintCurrentCallsPorts/, <tt/pccp/<newline>
 <p>Show the dynamically allocated ports for each ongoing call that are used for <bf>incoming</bf> packets.
 <descrip>
 <tag/Format:/
@@ -386,7 +386,7 @@ Prefixes: 02,09
 </verb></tscreen>
 </descrip>
 
-<item><tt/UnregisterIP/<newline>
+<item><tt/UnregisterIP/, <tt/uip/<newline>
 <p>
 Forcefully unregister an endpoint by IP and call signaling port.
 If you don't specify a call signal port, GnuGk will unregister
@@ -420,7 +420,7 @@ Endpoint 1326_endp unregistered!
 </verb></tscreen>
 </descrip>
 
-<item><tt/UnregisterAlias/<newline>
+<item><tt/UnregisterAlias/, <tt/ua/<newline>
 <p>Forcefully unregister an endpoint by one of its aliases. To match an alias
 of the specified type (h323_ID, dialedDigits), prepend the alias type name
 (h323, e164, url, email) to the alias, followed by a colon.
@@ -437,7 +437,7 @@ Endpoint 601 unregistered!
 </verb></tscreen>
 </descrip>
 
-<item><tt/UnregisterAllEndpoints/<newline>
+<item><tt/UnregisterAllEndpoints/, <tt/uae/<newline>
 <p>Forcefully unregister all registered endpoints.
 <descrip>
 <tag/Format:/
@@ -456,7 +456,7 @@ Done
 </verb></tscreen>
 </descrip>
 
-<item><tt/DisconnectCall/<newline>
+<item><tt/DisconnectCall/, <tt/dc/<newline>
 <p>Disconnect a call with given number (internal, gatekeeper assigned call number,
 not the caller's, callee's phone number).
 <descrip>
@@ -483,7 +483,7 @@ DisconnectCallId ee-ab-8f-81-58-57-df-11-95-39-00-1e-c9-7e-69-ec
 </verb></tscreen>
 </descrip>
 
-<item><tt/DisconnectIP/<newline>
+<item><tt/DisconnectIP/, <tt/dip/<newline>
 <p>
 Disconnect all calls of an endpoint by IP and call signaling port.
 If you don't specify a call signal port, GnuGk will disconnect the
@@ -499,7 +499,7 @@ DisconnectIP 10.0.1.31:1720
 </verb></tscreen>
 </descrip>
 
-<item><tt/DisconnectAlias/<newline>
+<item><tt/DisconnectAlias/, <tt/dca/<newline>
 <p>Disconnect all calls of a registered endpoint by one of its aliases. To match an alias
 of the specified type (h323_ID, dialedDigits), prepend the alias type name
 (h323, e164, url, email) to the alias, followed by a colon.
@@ -514,7 +514,7 @@ DisconnectAlias 601
 </verb></tscreen>
 </descrip>
 
-<item><tt/DisconnectEndpoint/<newline>
+<item><tt/DisconnectEndpoint/, <tt/de/<newline>
 <p>Disconnect all calls of a registered endpoint by one of its endpoint identifier.
 <descrip>
 <tag/Format:/
@@ -527,7 +527,7 @@ DisconnectEndpoint 5624_endp
 </verb></tscreen>
 </descrip>
 
-<item><tt/ClearCalls/<newline>
+<item><tt/ClearCalls/, <tt/cc/<newline>
 <p>Disconnect all calls on the gatekeeper.
 
 <item><tt/GK/<newline>
@@ -596,7 +596,7 @@ Setlog /tmp/trace.log
 Show all people on the status port.  First field is the session id, which can be used to disconnect
 a user through the DisconnectSession command.
 
-<item><tt/DisconnectSession/<newline>
+<item><tt/DisconnectSession/, <tt/ds/<newline>
 <p>Disconnect a user from the status port.
 <descrip>
 <tag/Format:/
@@ -622,7 +622,7 @@ Yell Config reload in 5 minutes.
 </verb></tscreen>
 </descrip>
 
-<item><tt/RouteReject/<newline>
+<item><tt/RouteReject/, <tt/rr/<newline>
 <p>Terminate this call on a virtual queue.
 This command is used as a response to a RouteRequest event (see below).
 CallingEndpointID and CallRef must be passed back as they are in the corresponding RouteRequest.
@@ -682,10 +682,10 @@ RouteToGateway Suzi 192.168.0.50 endp_4711 1234
 </verb></tscreen>
 </descrip>
 
-<item><tt/RouteToInternalGateway/<newline>
+<item><tt/RouteToInternalGateway/, <tt/rtig/<newline>
 <p>Same as RouteToGateway, but does not tell caller about about an updated destination alias.
 
-<item><tt/BindAndRouteToGateway/<newline>
+<item><tt/BindAndRouteToGateway/, <tt/brtg/<newline>
 <p>This command is similar to RouteToGateway, but you can also specify which
 IP of a multi-homed server to use for the outgoing call.
 <descrip>
@@ -721,7 +721,7 @@ SendProceeding 40-06-dd-98-22-37-52-40-8c-b0-92-0e-18-60-99-07
 <item><tt/Exit/, <tt/Quit/, <tt/q/, <tt/Ctrl-D/<newline>
 <p>Quit the status port.
 
-<item><tt/TransferCall/<newline>
+<item><tt/TransferCall/, <tt/tc/<newline>
 <p>
 Transfer an established call from endpoint A to endpoint B. 
 
@@ -743,7 +743,7 @@ TransferCall ee-ab-8f-81-58-57-df-11-95-39-00-1e-c9-7e-69-ec caller Peter
 </verb></tscreen>
 </descrip>
 
-<item><tt/RerouteCall/<newline>
+<item><tt/RerouteCall/, <tt/rrc/<newline>
 <p>
 Gatekeeper based call transfer using TCS0 pause and reroute. H.245 tunneling must be disabled ([RoutedMode] DisableH245Tunneling=1)
 as well as media encryption (RemoveH235Call=1).
@@ -760,7 +760,7 @@ RerouteCall 40-06-dd-98-22-37-52-40-8c-b0-92-0e-18-60-99-07 CALLER 192.168.1.222
 </descrip>
 
 <label id="makecall">
-<item><tt/MakeCall/<newline>
+<item><tt/MakeCall/, <tt/mc/<newline>
 <p>Generate a new call from source to destination alias. You can also
 specify an IP number as destination. This is done by establishing a call
 from a pseudo endpoint in the gatekeeper to the source alias/number and then
@@ -822,7 +822,7 @@ GetAcctInfo SqlAcct
 </verb></tscreen>
 </descrip>
 
-<item><tt/PrintEndpointQoS/<newline>
+<item><tt/PrintEndpointQoS/, <tt/peq/<newline>
 <p>Display QoS values for all endpoints. The values are collected
 through H.460.9 and/or proxied RTCP messages, so at least one of these features
 must be enabled to have packet loss or jitter values.
@@ -845,7 +845,7 @@ Number of Endpoints: 2
 <item><tt/PrintEventBacklog/<newline>
 <p>Print the saved status port events in the event backlog. To configure the event backlog see <ref id="statuseventbacklog" name="[Gatekeeper::Main] StatusEventBacklog">.
 
-<item><tt/PrintNeighbors/<newline>
+<item><tt/PrintNeighbors/, <tt/pn/<newline>
 <p>
 Print a list of all neighbor gatekeepers with IP numbers and state.
 <descrip>
@@ -877,7 +877,7 @@ PrintCallInfo 40-06-dd-98-22-37-52-40-8c-b0-92-0e-18-60-99-07
 </verb></tscreen>
 </descrip>
 
-<item><tt/MaintenanceMode/<newline>
+<item><tt/MaintenanceMode/, <tt/maintenance/<newline>
 <p>
 Enable or disable maintenance mode.
 <p>

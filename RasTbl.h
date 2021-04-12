@@ -40,6 +40,7 @@ class CallSignalSocket;
 class RasServer;
 class Q931;
 class H323TransportAddress;
+class CallRec;
 
 enum CallLeg { Caller, Called };
 enum RerouteState { NoReroute, RerouteInitiated, Rerouting };
@@ -145,6 +146,9 @@ public:
 	virtual int GetMaxBandwidth() const { return m_maxBandwidth; }
 
 	virtual void Update(const H225_RasMessage & lightweightRRQ);
+#ifdef HAS_AVAYA_SUPPORT
+	virtual void Update();
+#endif
 	virtual bool IsGateway() const { return false; }
 
 	virtual void SetAdditiveRegistrant();
@@ -270,6 +274,9 @@ public:
 	void Unlock();
 
 	bool SendIRQ();
+#ifdef HAS_AVAYA_SUPPORT
+	bool SendCCMSUpdate();
+#endif
 
 	bool HasCallCreditCapabilities() const;
 
@@ -354,6 +361,24 @@ public:
 	// smart pointer for EndpointRec
 	typedef SmartPtr<EndpointRec> Ptr;
 
+	bool IsAvaya() const;
+
+#ifdef HAS_AVAYA_SUPPORT
+	// Avaya hack
+	CallRec* GetCCMS() const { return m_ccmsCall; }
+	void SetCCMS(CallRec* addr) { m_ccmsCall = addr; }
+	WORD GetNextCRV();
+	enum HookStates {
+		hsUnknown,
+		hsOnhook,
+		hsOffhook
+       };
+
+	void SetHook(int hook_state) { m_hookstate = (enum HookStates) hook_state; }
+	int GetHook() const { return (int)m_hookstate; }
+	PString GetHookString() const;
+#endif
+
 protected:
 	void SetEndpointRec(H225_RegistrationRequest &);
 	void SetEndpointRec(H225_AdmissionRequest &);
@@ -429,11 +454,20 @@ protected:
 	PString m_additionalDestAlias;
 
 	EPNatTypes m_epnattype;
+
+#ifdef HAS_AVAYA_SUPPORT
+	// Avaya hack
+	HookStates m_hookstate;		// current hook state of endpoint
+	CallRec* m_ccmsCall;		// reference to relative CallRec with CCMS
+	WORD m_nextcrv;				// next available CRV for AsteriskGW
+#endif
+
 	bool m_usesH46023, m_H46024, m_H46024a, m_H46024b, m_natproxy, m_internal, m_remote;
 	bool m_h46017disabled;
 	bool m_h46018disabled;
 	bool m_usesH460P;
 	bool m_hasH460PData;
+
 	bool m_usesH46017;
 	bool m_usesH46026;
 	H46019TraversalType m_traversalType;	// this is not what GnuGk acts like, but what this EPRec is a proxy for
@@ -718,7 +752,10 @@ public:
 	enum ProxyMode {
 		ProxyDetect, /// use global settings from the config
 		ProxyEnabled, /// force full proxy mode
-		ProxyDisabled /// disable full proxy mode
+		ProxyDisabled, /// disable full proxy mode
+#ifdef HAS_AVAYA_SUPPORT
+		ProxyCCMS	/// CCMS interworking mode
+#endif
 	};
 
 	/// the combination of ProxyMode, RoutedMode and H245 routing

@@ -36,6 +36,10 @@
 #include <queue>
 #include <math.h> // needed for ceil() on Solaris 11, OpenBSD
 
+#ifdef HAS_AVAYA_SUPPORT
+#include "avaya.h"
+#endif
+
 #ifdef H323_H450
  #ifdef h323pluslib
    #include "h450/h4501.h"
@@ -113,7 +117,6 @@ const char *H245_Protocol_Version[MAX_H323_VERSION + 1] = {
 #define G722_1_OID  "0.0.7.7221.1.0"
 #define G722_1C_OID "0.0.7.7221.1.1.0"
 #define G722_2_OID  "0.0.7.7221.2.0"
-
 
 namespace {
 // default timeout (ms) for initial Setup message,
@@ -1837,6 +1840,9 @@ CallSignalSocket::CallSignalSocket()
 	InternalInit();
 	localAddr = peerAddr = masqAddr = GNUGK_INADDR_ANY;
 	peerPort = 0;
+#ifdef HAS_AVAYA_SUPPORT
+	localPort = 0;
+#endif
 	m_h245Tunneling = true;
 	SetHandler(RasServer::Instance()->GetSigProxyHandler());
 }
@@ -1845,6 +1851,9 @@ CallSignalSocket::CallSignalSocket(CallSignalSocket *socket, WORD _port)
 	: TCPProxySocket("Q931d", socket, _port), m_callerSocket(false)
 {
 	InternalInit();
+#ifdef HAS_AVAYA_SUPPORT
+	localPort = 0;
+#endif
 	m_h245Tunneling = true;
 	SetRemote(socket);
 }
@@ -2191,6 +2200,10 @@ void CallSignalSocket::RemoveCall()
 	if (m_call) {
 		m_call->SetReleaseSource(CallRec::ReleasedByGatekeeper);
 		CallTable::Instance()->RemoveCall(m_call);
+#ifdef HAS_AVAYA_SUPPORT
+		// Avaya hack: TODO Check this
+		m_call = callptr(NULL);
+#endif
 	}
 }
 
@@ -4283,6 +4296,10 @@ bool CallSignalSocket::IsH46024Call(const H225_Setup_UUIE & setupBody)
 void CallSignalSocket::OnSetup(SignalingMsg * msg)
 {
 	PString err_msg;
+#ifdef HAS_AVAYA_SUPPORT
+	endptr ep;
+#endif
+
 	if (!Toolkit::Instance()->IsLicenseValid(err_msg)) {
 		PTRACE(2, "Error: No license: " << err_msg);
 		SNMP_TRAP(9, SNMPError, General, "No license: " + err_msg);
@@ -4448,9 +4465,11 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
  		}
 	}
 
+	// process tunneling flag
 	if (GkConfig()->GetBoolean(RoutedSec, "GenerateCallProceeding", false)
 		&& !GkConfig()->GetBoolean(RoutedSec, "UseProvisionalRespToH245Tunneling", false)
 		&& !m_h245TunnelingTranslation) {
+
 		// disable H.245 tunneling when the gatekeeper generates the CP
 		H225_H323_UserInformation * uuie = msg->GetUUIE();
 		if ((uuie != NULL) && uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling)) {
@@ -4462,7 +4481,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		m_h245Tunneling = false;
 	}
 
-	// save callers vendor info
+	// save callers vendor info in call
 	PString callingVendor, callingVersion;
 	if (setupBody.m_sourceInfo.HasOptionalField(H225_EndpointType::e_vendor)) {
 		if (setupBody.m_sourceInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId)) {
@@ -4476,6 +4495,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		}
 	}
 
+	// Sorenson specific
 	if (GkConfig()->GetBoolean(RoutedSec, "TranslateSorensonSourceInfo", false)) {
 		// Viable VPAD (Viable firmware, SBN Tech device), remove the CallingPartyNumber information
 		// (its under the Sorenson switch, even though not Sorenson, can be moved later to own switch)
@@ -4586,10 +4606,14 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		}
 	}
 
+	// M_CRV set with FromDestination bit set (!) in CSS
 	m_crv = (WORD)(setup->GetCallReference() | 0x8000u);
+
+	// Make a copy for further FORWARD
 	if (toolkit->Config()->GetBoolean(RoutedSec, "ForwardOnFacility", false) && m_setupPdu == NULL)
 		m_setupPdu = new Q931(q931);
 
+	// Check UUIE for destination and fulfill it from Q.931 CalledPtyNumber if absent
 	if (!setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)
 			|| setupBody.m_destinationAddress.GetSize() < 1) {
 		unsigned plan, type;
@@ -4603,6 +4627,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		}
 	}
 
+	// Get CALLID and validate M_CALL through it or CRV
 	PString callid;
 	if (!m_call) {
 		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_callIdentifier)) {
@@ -4707,6 +4732,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		}
 	}
 
+	// do we need to add calling party to sources
 	if (m_call && m_call->GetCallingParty() && m_call->GetCallingParty()->AddCallingPartyToSourceAddress()) {
 		PString callingParty;
 		q931.GetCallingPartyNumber(callingParty);
@@ -4730,6 +4756,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		}
 	}
 
+	// checking for external/traversal IP
 	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destCallSignalAddress)) {
 		// rewrite destination IP here (can't do it in Explicit policy, because local IPs are removed before they get there)
 		Routing::ExplicitPolicy::MapDestination(setupBody);
@@ -4766,14 +4793,50 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		}
 	}
 
+#ifdef HAS_AVAYA_SUPPORT
+	// Avaya hack
+	bool bAvaya = false;
+	bool bAvayaCCMS = false;
+	if ((m_crv & 0x7fffu) == 1) { /* CCMS sigchan */
+		H225_TransportAddress _peerAddress = SocketToH225TransportAddr(_peerAddr, _peerPort);
+		ep = RegistrationTable::Instance()->FindBySignalAdr(_peerAddress);
+		if (ep && ep->IsAvaya()) {
+			PTRACE(3, Type() << "\tAvaya: CCMS EP " << ep->PrintOn(false));
+			bAvayaCCMS = true;
+		}
+	}
+
 	// send a CallProceeding (to avoid caller timeouts)
+	bool proceedingSent = false;
+#endif
+
 	if (Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "GenerateCallProceeding", "0"))) {
 		PTRACE(4, "Q931\tGatekeeper generated CallProceeding");
 		Q931 proceedingQ931;
 		PBYTEArray lBuffer;
-		BuildProceedingPDU(proceedingQ931, setupBody.m_callIdentifier, m_crv | 0x8000u);
+
+#ifdef HAS_AVAYA_SUPPORT
+		/* CHECK THIS: why m_call have no display later for Avaya processing (maybe we must allocate logic further) */
+		if (m_call) {
+			/* NOT USED IN CCMS EITHER */
+			PTRACE(3, Type() << "\tAvaya: CHECK THIS POINT WITH NAME/NUMBER SET!");
+			PString newNum;
+			m_call->SetCallerDisplayIE(msg->GetQ931().GetDisplayName());
+			msg->GetQ931().GetCallingPartyNumber(newNum);
+			m_call->SetCallingPartyNumberIE(newNum);
+		}
+#endif
+		BuildProceedingPDU(proceedingQ931, setupBody.m_callIdentifier, m_crv
+#ifdef HAS_AVAYA_SUPPORT
+										, bAvayaCCMS
+#endif
+);
+
 		proceedingQ931.Encode(lBuffer);
 		TransmitData(lBuffer);
+#ifdef HAS_AVAYA_SUPPORT
+		proceedingSent = true;
+#endif
 	}
 
 	GkClient *gkClient = rassrv->GetGkClient();
@@ -4805,8 +4868,8 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 #ifdef HAS_H46018
 		&& !m_call->IsH46018ReverseSetup()
 #endif
-		) {
-		// existing CallRec
+		) // existing CallRec
+		{
 		bool secondSetup = false;	// second Setup with same call-id detected (avoid new acct start and overwriting acct data)
 		m_call->SetSetupTime(setupTime);
 		m_call->SetSrcSignalAddr(SocketToH225TransportAddr(_peerAddr, _peerPort));
@@ -4909,8 +4972,11 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
         PString statusCallID = callid;
         statusCallID.Replace(" ", "-", true);
         GkStatus::Instance()->SignalStatus("Setup|" + Name() + "|" + statusCallID + ";\r\n", STATUS_TRACE_LEVEL_RAS);
-	} else {
+	}
 		// no existing CallRec
+		else
+	{
+
 		authData.m_dialedNumber = dialedNumber;
 		authData.m_callingStationId = GetCallingStationId(*setup, authData);
 		authData.m_calledStationId = GetCalledStationId(*setup, authData);
@@ -5039,10 +5105,21 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 
         PString statusCallID = callid;
         statusCallID.Replace(" ", "-", true);
-        GkStatus::Instance()->SignalStatus("SetupUnreg|" + Name() + "|" + statusCallID + ";\r\n", STATUS_TRACE_LEVEL_RAS);
+#ifdef HAS_AVAYA_SUPPORT
+		if (bAvayaCCMS)
+			GkStatus::Instance()->SignalStatus("SetupCCMS|" + Name() + "|" + statusCallID + ";\r\n", STATUS_TRACE_LEVEL_RAS);
+		else
+#endif
+	        	GkStatus::Instance()->SignalStatus("SetupUnreg|" + Name() + "|" + statusCallID + ";\r\n", STATUS_TRACE_LEVEL_RAS);
 
+#ifndef HAS_AVAYA_SUPPORT
 		bool proceedingSent = false;
-		if (!rejectCall && !destFound) {
+#endif
+		if (!rejectCall && !destFound
+#ifdef HAS_AVAYA_SUPPORT
+						&& !bAvayaCCMS
+#endif
+								) {
 			// for compatible to old version
 			if (!(useParent || rassrv->AcceptUnregisteredCalls(_peerAddr) || rassrv->AcceptPregrantedCalls(setupBody, _peerAddr))) {
 				PTRACE(3, Type() << "\tReject unregistered call " << callid << " from " << Name());
@@ -5050,6 +5127,9 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 				rejectCall = true;
 			} else {
 				PreliminaryCall * tmpCall = new PreliminaryCall(this, setupBody.m_callIdentifier, m_crv);
+#ifdef HAS_AVAYA_SUPPORT
+				tmpCall->SetProceedingSent(proceedingSent);
+#endif
 				PreliminaryCallTable::Instance()->Insert(tmpCall);
 				request.Process();
 				proceedingSent = tmpCall->IsProceedingSent();
@@ -5139,6 +5219,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		call->SetCalledDisplayIE(request.GetCalledDisplayIE());
 		call->SetCallingVendor(callingVendor, callingVersion);
 
+
 #ifdef HAS_H46018
 		// special case for reverse H.460.18 Setup
 		if (m_call && m_call->IsH46018ReverseSetup()) {		// looking at the _old_ call
@@ -5163,7 +5244,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 #endif
 
 		// make sure we have an EPRec for traversal calls from neighbor
-        if (!call->GetCallingParty()) {
+	    if (!call->GetCallingParty()) {
 			if (callFromTraversalClient || callFromTraversalServer) {
 				endptr callingEP = RegistrationTable::Instance()->InsertRec(setupBody, SocketToH225TransportAddr(_peerAddr, _peerPort));
 				if (callFromTraversalClient)
@@ -5235,6 +5316,255 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 			authData.m_call = callptr(call);
 			savedPtr->ClearCallIdentifier(); // make sure multiplexed channels for this callID won't be deleted when tmp CallRec or socket get deleted
 		}
+
+#ifdef HAS_AVAYA_SUPPORT
+		/* Avaya hack */
+		if (bAvayaCCMS) {
+			/* No extra checks, call and ep structures must be already present in this point */
+//			PTRACE(3, Type() << "\tAvaya: CCMS EP " << ep->PrintOn(false));
+
+			ep->SetCCMS(call);
+			call->SetCalling(ep);
+			call->SetCallSignalSocketCalling(this);
+
+			PTRACE(3, Type() << "\tAvaya: CCMS Handling FastStart");
+			if (setupBody.HasOptionalField(H225_Setup_UUIE::e_fastStart)) {
+				OnFastStart(setupBody.m_fastStart, true);
+			}
+
+			PBYTEArray	lBuffer;
+			Q931	newq931;
+			time_t	t;
+			tm	*now;
+			unsigned char CCMS_vdtUpdate_displayUpdateDateTime_Current[CCMS_vdtUpdate_displayUpdateDateTime_Length];
+			memcpy(CCMS_vdtUpdate_displayUpdateDateTime_Current, CCMS_vdtUpdate_displayUpdateDateTime, CCMS_vdtUpdate_displayUpdateDateTime_Length);
+
+			/* Sending CON */
+			H225_ArrayOf_PASN_OctetString m_fastStart;
+			m_fastStart.SetSize(2);
+			{
+				H245_OpenLogicalChannel olc;
+				PPER_Stream wtstrm;
+				olc.m_forwardLogicalChannelNumber = 101;
+				olc.m_forwardLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_nullData);
+				olc.m_forwardLogicalChannelParameters.m_multiplexParameters.SetTag(H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_none);
+				olc.Encode(wtstrm);
+				wtstrm.CompleteEncoding();
+				m_fastStart[0].SetValue(wtstrm);
+				PTRACE(6, "Q931\nfastStart[0] to send: " << setprecision(2) << olc);
+			}
+
+			{
+				H245_OpenLogicalChannel olc;
+				PPER_Stream wtstrm;
+				olc.m_forwardLogicalChannelNumber = 101;
+				olc.m_forwardLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_nullData);
+				olc.m_forwardLogicalChannelParameters.m_multiplexParameters.SetTag(H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_none);
+					olc.IncludeOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters);
+				olc.m_reverseLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_nullData);
+				olc.Encode(wtstrm);
+				wtstrm.CompleteEncoding();
+				m_fastStart[1].SetValue(wtstrm);
+				PTRACE(6, "Q931\nfastStart[1] to send: " << setprecision(2) << olc);
+			}
+
+			BuildConnectPDU(newq931, setupBody.m_callIdentifier, m_crv | 0x8000u, &m_fastStart); // m_crv already have highest bit set to 1
+			newq931.Encode(lBuffer);
+			TransmitData(lBuffer);
+			SETUP_SLEEP;
+
+/*			call->SetCallInProgress(true); */
+			call->SetConnected();
+			call->SetProxyMode(CallRec::ProxyDisabled);
+
+			/* Sending CCMS specific INFOs */
+			{
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_auxActivateTerminal, sizeof(CCMS_vdtUpdate_auxActivateTerminal));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplay, sizeof(CCMS_vdtUpdate_loadDisplay));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_displayModuleInspect, sizeof(CCMS_vdtUpdate_displayModuleInspect));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_terminalRingChange, sizeof(CCMS_vdtUpdate_terminalRingChange));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					t = time(NULL);
+					now = localtime(&t);
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[8] =  now->tm_hour;
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[9] =  now->tm_min;
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[10] =  now->tm_sec;
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[11] =  now->tm_mday;
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[12] =  now->tm_mon+1;
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[13] =  now->tm_year / 100;
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_displayUpdateDateTime_Current, sizeof(CCMS_vdtUpdate_displayUpdateDateTime_Current));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_terminalTTNoInfo, sizeof(CCMS_vdtUpdate_terminalTTNoInfo));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					t = time(NULL);
+					now = localtime(&t);
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[8] =  now->tm_hour;
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[9] =  now->tm_min;
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[10] =  now->tm_sec;
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[11] =  now->tm_mday;
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[12] =  now->tm_mon + 1;
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[13] =  now->tm_year / 100;
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_displayUpdateDateTime_Current, sizeof(CCMS_vdtUpdate_displayUpdateDateTime_Current));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayLamp1, sizeof(CCMS_vdtUpdate_loadDisplayLamp1));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayLamp2, sizeof(CCMS_vdtUpdate_loadDisplayLamp2));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					t = time(NULL);
+					now = localtime(&t);
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[8] =  now->tm_hour;
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[9] =  now->tm_min;
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[10] =  now->tm_sec;
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[11] =  now->tm_mday;
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[12] =  now->tm_mon + 1;
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[13] =  now->tm_year / 100;
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_displayUpdateDateTime_Current, sizeof(CCMS_vdtUpdate_displayUpdateDateTime_Current));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayLamp3, sizeof(CCMS_vdtUpdate_loadDisplayLamp3));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+/*
+
+						newq931 newq931;
+						PBYTEArray lBuffer;
+						BuildInformationPDU(newq931, true, CCMS_vdtUpdate_terminalIDReq);
+						newq931.Encode(lBuffer);
+						TransmitData(lBuffer);
+						SETUP_SLEEP;
+					}
+*/
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayLamp4, sizeof(CCMS_vdtUpdate_loadDisplayLamp4));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					t = time(NULL);
+					now = localtime(&t);
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[8] =  now->tm_hour;
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[9] =  now->tm_min;
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[10] =  now->tm_sec;
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[11] =  now->tm_mday;
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[12] =  now->tm_mon + 1;
+					CCMS_vdtUpdate_displayUpdateDateTime_Current[13] =  now->tm_year / 100;
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_displayUpdateDateTime_Current, sizeof(CCMS_vdtUpdate_displayUpdateDateTime_Current));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayLamp5, sizeof(CCMS_vdtUpdate_loadDisplayLamp5));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+/* 2021-04-08/oryx@ukrserv.com:
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayLamp6, sizeof(CCMS_vdtUpdate_loadDisplayLamp6));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayLamp7, sizeof(CCMS_vdtUpdate_loadDisplayLamp7));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayLamp8, sizeof(CCMS_vdtUpdate_loadDisplayLamp8));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayLamp9, sizeof( CCMS_vdtUpdate_loadDisplayLamp9));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayLamp10, sizeof(CCMS_vdtUpdate_loadDisplayLamp10));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayLamp11, sizeof(CCMS_vdtUpdate_loadDisplayLamp11));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayLamp12, sizeof(CCMS_vdtUpdate_loadDisplayLamp12));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayLamp13, sizeof(CCMS_vdtUpdate_loadDisplayLamp13));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayLamp14, sizeof(CCMS_vdtUpdate_loadDisplayLamp14));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayLamp15, sizeof(CCMS_vdtUpdate_loadDisplayLamp15));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayLamp16, sizeof(CCMS_vdtUpdate_loadDisplayLamp16));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+*/
+
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_switchHookInquiry, sizeof(CCMS_vdtUpdate_switchHookInquiry));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+
+					BuildInformationPDU(newq931, true, CCMS_vdtUpdate_terminalIDReq, sizeof(CCMS_vdtUpdate_terminalIDReq));
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+					SETUP_SLEEP;
+					}
+
+			/* After this procedure we must run JOB continuously for updating lamps/time, etc */
+			rejectCall = false;
+			call->ResetTimeOut();
+			m_result = DelayedConnecting;
+			return;
+		}
+#endif
 
 		m_call->SetSetupTime(setupTime);
 		CallTable::Instance()->Insert(call);
@@ -5376,7 +5706,6 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 	}
 #endif
 
-
 	if (rejectCall) {
 		m_result = Error;
 		return;
@@ -5458,7 +5787,13 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 			if (!out_rewrite_id) {
 				PTRACE(4, Type() << "\tGWRewrite source for " << Name() << ": " << rewrite_type);
 			    toolkit->GWRewriteE164(out_rewrite_id, GW_REWRITE_OUT, setupBody.m_destinationAddress, m_call);
+#ifdef HAS_AVAYA_SUPPORT
+				/* Avaya hack? */
+				ep = m_call->GetCalledParty();
+				if (ep && ep->IsAvaya()) bAvaya = true;
+#endif
 			}
+
 		}
 	}
 
@@ -5717,8 +6052,162 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 #endif  // HAS_H46026
      }
 #endif
+#ifdef HAS_AVAYA_SUPPORT
+		/* Avaya hack */
+		if (bAvaya) {
+			CallRec* ccms = ep->GetCCMS();
+			/* We must check here that this is Avaya/Lucent EP */
+			if ((WORD)(m_call->GetCallRef() & 0x7fffu) != 1 && ccms) /* Not a CCMS sigchan, regular call, but we have CCMS EP */ {
+				PBYTEArray	lBuffer;
+				Q931		newq931;
 
-		CreateRemote(setupBody);
+				CallSignalSocket* css = ccms->GetCallSignalSocketCalling();
+				if (css) {
+					PTRACE(3, Type() << "\tAvaya: CCMS EP " << ep->PrintOn(true));
+					/* Send Alert to source */
+					BuildProgressPDU(newq931, msg->GetQ931().IsFromDestination());
+					newq931.Encode(lBuffer);
+					TransmitData(lBuffer);
+				} else {
+					PTRACE(3, Type() << "\tAvaya: CCMS no CSS");
+					m_result = Error;
+					return;
+				}
+
+				if (ep->GetHook() == EndpointRec::hsOffhook) {
+					m_call->SetDisconnectCause(Q931::UserBusy);
+					m_call->Disconnect(true);
+					// TODO: do we need here SendReleaseComplete() to originator?
+					m_result = Error;
+					return;
+				}
+
+				/* Send SETUP to destination */
+				{
+					unsigned char displayName[15]; /* Actual size is 14 with zero at the end */
+					unsigned char displayNum[19]; /* Actual size is 18 with zero at the end */
+					unsigned char CCMS_VDTU_RDNA_Current[CCMS_vdtUpdate_ringerDisplayName_NEW_Length];
+					unsigned char CCMS_VDTU_LDNA_Current[CCMS_vdtUpdate_loadDisplayName_NEW_Length];
+					/* Do not forget to send LDNA2 */
+					unsigned char CCMS_VDTU_LDNU_Current[CCMS_vdtUpdate_loadDisplayNum_NEW_Length];
+					unsigned char CCMS_VDTU_LDNUCA1F_Current[CCMS_vdtUpdate_loadDisplayCA1Flash_NEW_Length];
+
+					memcpy(CCMS_VDTU_RDNA_Current, CCMS_vdtUpdate_ringerDisplayName_NEW, CCMS_vdtUpdate_ringerDisplayName_NEW_Length);
+					memcpy(CCMS_VDTU_LDNA_Current, CCMS_vdtUpdate_loadDisplayName_NEW, CCMS_vdtUpdate_loadDisplayName_NEW_Length);
+					memcpy(CCMS_VDTU_LDNU_Current, CCMS_vdtUpdate_loadDisplayNum_NEW, CCMS_vdtUpdate_loadDisplayNum_NEW_Length);
+					memcpy(CCMS_VDTU_LDNUCA1F_Current,CCMS_vdtUpdate_loadDisplayCA1Flash_NEW, CCMS_vdtUpdate_loadDisplayCA1Flash_NEW_Length);
+
+					memset(displayName, 0x20, sizeof(displayName));
+					memset(displayNum, 0x20, sizeof(displayNum));
+
+					/* Using IE Display for update */
+					PString newDisplayIE = m_call->GetCallerDisplayIE();
+					PString newCallingPartyNumberIE = m_call->GetCallingPartyNumberIE();
+					PTRACE(3, Type() << "\tAvaya: Display \"" + newDisplayIE + "\" <" +
+						newCallingPartyNumberIE + ">");
+
+					/* Copying from Display IE to local buffer */
+					memcpy(displayName,( (const unsigned char *) newDisplayIE), ((newDisplayIE.GetLength() > 0) ?
+						((newDisplayIE.GetLength() <= 14) ? newDisplayIE.GetLength() : 14) : 0));
+
+					/* Copying from CPN IE to local buffer */
+					memcpy(displayNum, ( (const unsigned char *) newCallingPartyNumberIE), ((newCallingPartyNumberIE.GetLength() > 0) ?
+						((newCallingPartyNumberIE.GetLength() <= 18) ? newCallingPartyNumberIE.GetLength() : 18) : 0));
+
+					/* Sending INFOs */
+					CCMS_VDTU_RDNA_Current[19] = displayName[0];
+					css->BuildInformationPDU(newq931, true, CCMS_VDTU_RDNA_Current,
+						sizeof(CCMS_VDTU_RDNA_Current), 1 | 0x8000u);
+					newq931.Encode(lBuffer);
+					css->TransmitData(lBuffer);
+					PThread::Sleep(1);
+
+					/* Sending INFOs */
+					memcpy(&CCMS_VDTU_LDNA_Current[6], &displayName[1], 13);
+					css->BuildInformationPDU(newq931, true, CCMS_VDTU_LDNA_Current,
+						sizeof(CCMS_VDTU_LDNA_Current), 1 | 0x8000u);
+					newq931.Encode(lBuffer);
+					css->TransmitData(lBuffer);
+					PThread::Sleep(1);
+
+					/* Sending INFOs */
+					css->BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayName2, CCMS_vdtUpdate_loadDisplayName2_Length, 1 | 0x8000u);
+					newq931.Encode(lBuffer);
+					css->TransmitData(lBuffer);
+					PThread::Sleep(1);
+
+					/* Sending INFOs */
+					memcpy(&CCMS_VDTU_LDNU_Current[12], displayNum, 7);
+					css->BuildInformationPDU(newq931, true, CCMS_VDTU_LDNU_Current,
+						sizeof(CCMS_VDTU_LDNU_Current), 1 | 0x8000u);
+					newq931.Encode(lBuffer);
+					css->TransmitData(lBuffer);
+					PThread::Sleep(1);
+
+					/* Sending INFOs */
+					memcpy(&CCMS_VDTU_LDNUCA1F_Current[6], &displayNum[7], 11);
+					css->BuildInformationPDU(newq931, true, CCMS_VDTU_LDNUCA1F_Current,
+						sizeof(CCMS_VDTU_LDNUCA1F_Current), 1 | 0x8000u);
+					newq931.Encode(lBuffer);
+					css->TransmitData(lBuffer);
+					PThread::Sleep(1);
+				}
+
+				if (setupBody.HasOptionalField(H225_Setup_UUIE::e_fastStart)) {
+					H225_ArrayOf_PASN_OctetString m_fastStart;
+					m_fastStart.SetSize(2);
+					{
+						H245_OpenLogicalChannel olc;
+						PPER_Stream strm = setupBody.m_fastStart[0].GetValue();
+						if (!olc.Decode(strm)) {
+							PTRACE(1, "Q931\t" << GetName() << " ERROR DECODING FAST START ELEMENT 0");
+						} else {
+							olc.m_forwardLogicalChannelNumber = 101;
+							PTRACE(6, "Q931\nfastStart[0] to send: " << setprecision(2) << olc);
+							strm.BeginEncoding();
+							olc.Encode(strm);
+							strm.CompleteEncoding();
+							m_fastStart[0].SetValue(strm);
+						}
+					}
+
+					{
+						H245_OpenLogicalChannel olc;
+						PPER_Stream strm = setupBody.m_fastStart[1].GetValue();
+						if (!olc.Decode(strm)) {
+							PTRACE(1, "Q931\t" << GetName() << " ERROR DECODING FAST START ELEMENT 1");
+						} else {
+							olc.m_forwardLogicalChannelNumber = 13;
+							PTRACE(6, "Q931\nfastStart[1] to send: " << setprecision(2) << olc);
+							strm.BeginEncoding();
+							olc.Encode(strm);
+							strm.CompleteEncoding();
+							m_fastStart[1].SetValue(strm);
+						}
+					}
+
+					css->BuildFacilityPDU(newq931, H225_FacilityReason::e_undefinedReason, &(m_fastStart), false, true);
+				} else
+					css->BuildFacilityPDU(newq931, H225_FacilityReason::e_undefinedReason, NULL, false, true);
+
+				newq931.Encode(lBuffer);
+				css->TransmitData(lBuffer);
+				PThread::Sleep(1);
+
+				m_call->SetProxyMode(CallRec::ProxyDisabled); /* Must be ProxyCCMS */
+				SetConnected(true);
+				m_call->SetCallSignalSocketCalling(this);
+
+				m_call->ResetTimeOut();
+				m_result = DelayedConnecting;
+				return;
+			}
+		} else {
+#endif
+			CreateRemote(setupBody);
+#ifdef HAS_AVAYA_SUPPORT
+		}
+#endif
 	}
 #ifdef HAS_H46018
 	else {
@@ -6040,7 +6529,11 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 
 #ifdef HAS_H46018
 // used for calls to traversal clients
-bool CallSignalSocket::CreateRemote(const H225_TransportAddress & addr)
+bool CallSignalSocket::CreateRemote(const H225_TransportAddress & addr
+#ifdef HAS_AVAYA_SUPPORT
+									, bool bForwardData
+#endif
+												)
 {
 	if (!GetIPAndPortFromTransportAddr(addr, peerAddr, peerPort)) {
 		PTRACE(3, Type() << "\tINVALID DESTINATION ADDRESS for call from " << Name());
@@ -6065,7 +6558,11 @@ bool CallSignalSocket::CreateRemote(const H225_TransportAddress & addr)
 		remote = new CallSignalSocket(this, peerPort);
 	}
 
-	if (!InternalConnectTo()) {
+	if (!InternalConnectTo(
+#ifdef HAS_AVAYA_SUPPORT
+				bForwardData
+#endif
+						)) {
 		PTRACE(1, "CreateRemote: InternalConnectTo() failed");
 		SNMP_TRAP(10, SNMPWarning, Network, PString() + "Connection failed");
 		return false;
@@ -6098,6 +6595,23 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 	}
 	m_callerSocket = false;	// update for persistent H.460.17 sockets where this property can change
 
+#ifdef HAS_AVAYA_SUPPORT
+	/* Avaya hack */
+	/* Seems it can be an outgoing call from Avaya phone */
+	if (m_call) {
+		PTRACE(3, Type() << "\tAvaya: CG=" << m_call->GetCallingParty()->PrintOn(false));
+		PTRACE(3, Type() << "\tAvaya: CD=" << m_call->GetCalledParty()->PrintOn(false));
+		PTRACE(3, Type() << "\tAvaya: CGSS=" << m_call->GetCallSignalSocketCalling());
+		PTRACE(3, Type() << "\tAvaya: CDSS=" << m_call->GetCallSignalSocketCalled());
+		if (m_call->GetCallingParty()->IsAvaya()) {
+			PTRACE(3, Type() << "\tAvaya: Call from Avaya endpoint");
+			m_result = NoData;
+			return;
+		}
+	} else PTRACE(3, Type() << "\tAvaya: No m_call");
+
+	/* TODO: Investigate this */
+#endif
 	if (callProceeding->GetUUIEBody().GetTag() != H225_H323_UU_PDU_h323_message_body::e_callProceeding)
         return;
 
@@ -6256,7 +6770,7 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 			Q931 q931;
 			H225_H323_UserInformation uuie;
 			if (msg->GetUUIE()->m_h323_uu_pdu.m_h323_message_body.GetTag() != H225_H323_UU_PDU_h323_message_body::e_callProceeding)
-                return;
+				return;
 			H225_CallProceeding_UUIE & cp_uuie = msg->GetUUIE()->m_h323_uu_pdu.m_h323_message_body;
 			if ((cp_uuie.HasOptionalField(H225_CallProceeding_UUIE::e_fastStart)
 				|| cp_uuie.HasOptionalField(H225_CallProceeding_UUIE::e_fastConnectRefused))
@@ -6345,6 +6859,156 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 		m_call->SetConnected();
 		RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctConnect, m_call);
 	}
+
+#ifdef HAS_AVAYA_SUPPORT
+	/* Avaya hack */
+	/* Seems it can be an outgoing call from Avaya phone */
+	if (m_call) {
+		PTRACE(3, Type() << "\tAvaya: CG=" << m_call->GetCallingParty()->PrintOn(false));
+		PTRACE(3, Type() << "\tAvaya: CD=" << m_call->GetCalledParty()->PrintOn(false));
+		PTRACE(3, Type() << "\tAvaya: CGSS=" << m_call->GetCallSignalSocketCalling());
+		PTRACE(3, Type() << "\tAvaya: CDSS=" << m_call->GetCallSignalSocketCalled());
+		if (m_call->GetCallingParty()->IsAvaya()) {
+			PTRACE(3, Type() << "\tAvaya: Call from Avaya endpoint");
+			CallRec* ccms = m_call->GetCallingParty()->GetCCMS();
+			if (!ccms)
+			    return;
+			CallSignalSocket *css = ccms->GetCallSignalSocketCalling();
+			if (!css)
+			    return;
+
+			if (!m_call->IsFastStartResponseReceived()) {
+				/* We must inform Avaya phone about far end RTP and set proper lights */
+				if (!connectBody.HasOptionalField(H225_Connect_UUIE::e_fastStart) || !ccms || !css) {
+					PTRACE(3, Type() << "\tAvaya: No faststart and others, bailing out");
+					m_result = NoData;
+					return;
+				}
+				m_call->SetFastStartResponseReceived();
+				OnFastStart(connectBody.m_fastStart, false);
+			}
+
+			PIPSocket::Address ip;
+			WORD port = 0;
+			ccms->GetCallerAudioIP(ip, port);
+			PTRACE(3, Type() << "\tAvaya: Caller(ing) Audio IP: " << ip << ":" << port);
+			m_call->GetCalledAudioIP(ip, port);
+			PTRACE(3, Type() << "\tAvaya: Called Audio IP: " << ip << ":" << port);
+
+			H225_ArrayOf_PASN_OctetString m_fastStart;
+			m_fastStart.SetSize(2);
+
+			/* LC0 */
+			{
+			H245_OpenLogicalChannel olc;
+			PPER_Stream wtstrm;
+
+			olc.m_forwardLogicalChannelNumber = 13;
+			olc.m_forwardLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_audioData);
+			H245_OpenLogicalChannel_forwardLogicalChannelParameters & fwdParms = olc.m_forwardLogicalChannelParameters;
+
+			H245_AudioCapability & ac = fwdParms.m_dataType;
+			ac.SetTag(H245_AudioCapability::e_g711Ulaw64k);
+			PASN_Integer & value = ac;
+			value = 20;
+
+			fwdParms.m_multiplexParameters.SetTag(H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters);
+			H245_H2250LogicalChannelParameters & channel = olc.m_forwardLogicalChannelParameters.m_multiplexParameters;
+			channel.m_sessionID = 1;
+
+			channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel);
+			channel.m_mediaControlChannel.SetTag(H245_TransportAddress::e_unicastAddress);
+			{
+			H245_UnicastAddress & addr = channel.m_mediaControlChannel;
+			addr.SetTag(H245_UnicastAddress::e_iPAddress);
+			H245_UnicastAddress_iPAddress & ipaddr = addr;
+			for (int i = 0; i < 4; ++i) ipaddr.m_network[i] = ip[i];
+			ipaddr.m_tsapIdentifier = port+1;
+			}
+
+			olc.Encode(wtstrm);
+			wtstrm.CompleteEncoding();
+			m_fastStart[0].SetValue(wtstrm);
+			PTRACE(6, "Q931\nfastStart[0] to send: " << setprecision(2) << olc);
+			}
+			/* LC1 */
+			{
+			H245_OpenLogicalChannel olc;
+			PPER_Stream wtstrm;
+			olc.m_forwardLogicalChannelNumber = 101;
+			olc.m_forwardLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_nullData);
+			olc.m_forwardLogicalChannelParameters.m_multiplexParameters.SetTag(H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_none);
+
+			olc.IncludeOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters);
+			olc.m_reverseLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_audioData);
+
+			H245_OpenLogicalChannel_reverseLogicalChannelParameters & revParms = olc.m_reverseLogicalChannelParameters;
+			H245_AudioCapability & ac = revParms.m_dataType;
+			ac.SetTag(H245_AudioCapability::e_g711Ulaw64k);
+
+			PASN_Integer & value = ac;
+			value = 20;
+
+			revParms.IncludeOptionalField(H245_OpenLogicalChannel_reverseLogicalChannelParameters::e_multiplexParameters);
+			revParms.m_multiplexParameters.SetTag(H245_OpenLogicalChannel_reverseLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters);
+
+			H245_H2250LogicalChannelParameters & channel = olc.m_reverseLogicalChannelParameters.m_multiplexParameters;
+			channel.m_sessionID = 1;
+
+			channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel);
+			channel.m_mediaChannel.SetTag(H245_TransportAddress::e_unicastAddress);
+			{
+			H245_UnicastAddress & addr = channel.m_mediaChannel;
+			addr.SetTag(H245_UnicastAddress::e_iPAddress);
+			H245_UnicastAddress_iPAddress & ipaddr = addr;
+			for (int i = 0; i < 4; ++i) ipaddr.m_network[i] = ip[i];
+			ipaddr.m_tsapIdentifier = port;
+			}
+
+			channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel);
+			channel.m_mediaControlChannel.SetTag(H245_TransportAddress::e_unicastAddress);
+			{
+			H245_UnicastAddress & addr = channel.m_mediaControlChannel;
+			addr.SetTag(H245_UnicastAddress::e_iPAddress);
+			H245_UnicastAddress_iPAddress & ipaddr = addr;
+			for (int i = 0; i < 4; ++i) ipaddr.m_network[i] = ip[i];
+			ipaddr.m_tsapIdentifier = port+1;
+			}
+
+			olc.Encode(wtstrm);
+			wtstrm.CompleteEncoding();
+			m_fastStart[1].SetValue(wtstrm);
+			PTRACE(6, "Q931\nfastStart[1] to send: " << setprecision(2) << olc);
+			}
+
+			Q931 newq931;
+			PBYTEArray newbuf;
+
+			css->BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayRingerOff, sizeof(CCMS_vdtUpdate_loadDisplayRingerOff));
+			newq931.Encode(newbuf);
+			css->TransmitData(newbuf);
+			PThread::Sleep(1);
+
+			css->BuildInformationPDU(newq931, true, CCMS_vdtUpdate_displayControlCA1SteadyNEW, sizeof(CCMS_vdtUpdate_displayControlCA1SteadyNEW));
+			newq931.Encode(newbuf);
+			css->TransmitData(newbuf);
+			PThread::Sleep(1);
+
+			css->BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayControlTADial, sizeof(CCMS_vdtUpdate_loadDisplayControlTADial));
+			newq931.Encode(newbuf);
+			css->TransmitData(newbuf);
+			PThread::Sleep(1);
+
+			css->BuildFacilityPDU(newq931, H225_FacilityReason::e_undefinedReason, &m_fastStart, false, true);
+			newq931.Encode(newbuf);
+			css->TransmitData(newbuf);
+			PThread::Sleep(1);
+
+			m_result = NoData;
+			return;
+		}
+	} else PTRACE(3, Type() << "\tAvaya: No m_call");
+#endif
 
 	if (HandleFastStart(connectBody, false))
 		msg->SetUUIEChanged();
@@ -6619,6 +7283,33 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 	H225_Alerting_UUIE & alertingBody = alerting->GetUUIEBody();
 
 	m_h225Version = GetH225Version(alertingBody);
+
+#ifdef HAS_AVAYA_SUPPORT
+	/* Avaya hack */
+	/* Seems it can be an outgoing call from Avaya phone */
+	if (m_call->GetCallingParty()->IsAvaya()) {
+			PTRACE(3, Type() << "\tAvaya: CG=" << m_call->GetCallingParty()->PrintOn(false));
+			PTRACE(3, Type() << "\tAvaya: CD=" << m_call->GetCalledParty()->PrintOn(false));
+			PTRACE(3, Type() << "\tAvaya: CGSS=" << m_call->GetCallSignalSocketCalling());
+			PTRACE(3, Type() << "\tAvaya: CDSS=" << m_call->GetCallSignalSocketCalled());
+			PTRACE(3, Type() << "\tAvaya: Call from Avaya endpoint");
+			CallRec* ccms = m_call->GetCallingParty()->GetCCMS();
+			CallSignalSocket *css = ccms->GetCallSignalSocketCalling();
+
+			m_call->SetFastStartResponseReceived();
+			OnFastStart(alertingBody.m_fastStart, false);
+
+			PIPSocket::Address	ip;
+			WORD	port;
+			ccms->GetCallerAudioIP(ip, port);
+			PTRACE(3, Type() << "\tAvaya: Caller(ing) Audio IP: " << ip << ":" << port);
+			m_call->GetCalledAudioIP(ip, port);
+			PTRACE(3, Type() << "\tAvaya: Called Audio IP: " << ip << ":" << port);
+
+			m_result = NoData;
+			return;
+	}
+#endif
 
 	RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctAlert, m_call);	// ignore success/failure
 
@@ -6895,13 +7586,896 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 		}
 	}
 #endif
+#ifdef HAS_AVAYA_SUPPORT
+	/* Avaya hack */
+	if ((m_crv & 0x7fffu) == 1) {
+		H225_H323_UserInformation * uuie = msg->GetUUIE();
+		if (uuie) {
+			if (uuie->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_nonStandardControl)) {
+				if (uuie->m_h323_uu_pdu.m_nonStandardControl.GetSize() > 0) {
+					PASN_ObjectId & nsi = uuie->m_h323_uu_pdu.m_nonStandardControl[0].m_nonStandardIdentifier;
+					if (nsi.AsString() == "2.16.840.1.113778.4.2.10") {
+						PTRACE(3, Type() << "\tAvaya: INFO+CCMS");
+						Address _peerAddr;
+						WORD _peerPort;
+						msg->GetPeerAddr(_peerAddr, _peerPort);
+						H225_TransportAddress _peerAddress = SocketToH225TransportAddr(_peerAddr, _peerPort);
+						endptr ep = RegistrationTable::Instance()->FindBySignalAdr(_peerAddress);
+						if (ep && ep->IsAvaya()) {
+							PASN_OctetString osCCMS = uuie->m_h323_uu_pdu.m_nonStandardControl[0].m_data;
 
-	if (remote != NULL)
-		return;
+							PASN_OctetString osOnhook((const char *)CCMS_switchHookResponseOnhook, sizeof(CCMS_switchHookResponseOnhook));
+							PASN_OctetString osOnhook2((const char *)CCMS_switchHookResponseOnhook2, sizeof(CCMS_switchHookResponseOnhook2));
+							PASN_OctetString osOffhook((const char *)CCMS_switchHookResponseOffhook, sizeof(CCMS_switchHookResponseOffhook));
+							PASN_OctetString osOffhook2((const char *)CCMS_switchHookResponseOffhook2, sizeof(CCMS_switchHookResponseOffhook2));
+							PASN_OctetString osTerminalIDResponse((const char *)CCMS_terminalIDResponse, sizeof(CCMS_terminalIDResponse));
+
+							PASN_OctetString osDigit1((const char *)CCMS_vdtUpdate_Digit1, sizeof(CCMS_vdtUpdate_Digit1));
+							PASN_OctetString osDigit2((const char *)CCMS_vdtUpdate_Digit2, sizeof(CCMS_vdtUpdate_Digit2));
+							PASN_OctetString osDigit3((const char *)CCMS_vdtUpdate_Digit3, sizeof(CCMS_vdtUpdate_Digit3));
+							PASN_OctetString osDigit4((const char *)CCMS_vdtUpdate_Digit4, sizeof(CCMS_vdtUpdate_Digit4));
+							PASN_OctetString osDigit5((const char *)CCMS_vdtUpdate_Digit5, sizeof(CCMS_vdtUpdate_Digit5));
+							PASN_OctetString osDigit6((const char *)CCMS_vdtUpdate_Digit6, sizeof(CCMS_vdtUpdate_Digit6));
+							PASN_OctetString osDigit7((const char *)CCMS_vdtUpdate_Digit7, sizeof(CCMS_vdtUpdate_Digit7));
+							PASN_OctetString osDigit8((const char *)CCMS_vdtUpdate_Digit8, sizeof(CCMS_vdtUpdate_Digit8));
+							PASN_OctetString osDigit9((const char *)CCMS_vdtUpdate_Digit9, sizeof(CCMS_vdtUpdate_Digit9));
+							PASN_OctetString osDigit0((const char *)CCMS_vdtUpdate_Digit0, sizeof(CCMS_vdtUpdate_Digit0));
+							PASN_OctetString osDigitStar((const char *)CCMS_vdtUpdate_DigitStar, sizeof(CCMS_vdtUpdate_DigitStar));
+							PASN_OctetString osDigitPound((const char *)CCMS_vdtUpdate_DigitPound, sizeof(CCMS_vdtUpdate_DigitPound));
+
+							/* Taking in care schema, where Avaya phone establishes connection */
+							CallRec* ccms = ep->GetCCMS();
+							// this->GetCallSignalSocketCalling() - avaya CCMS signalling
+
+							callptr incall = (CallTable::Instance()->FindBySignalAdr(_peerAddress));
+							CallRec* call = NULL;
+							endptr calling, called;
+							if (incall) {
+								call = incall.operator->();
+								calling = call->GetCallingParty();
+								called = call->GetCalledParty();
+							}
+							PTRACE(6, Type() << "\tAvaya: CallRec " << call);
+							if (call) {
+								PTRACE(6, Type() << "\tAvaya: Calling " << calling->PrintOn(false));
+								PTRACE(6, Type() << "\tAvaya: Called " << called->PrintOn(false));
+							}
+
+							/* Checking if this is a DIGITS 1 command */
+							if (Toolkit::Instance()->PASNEqual(&osCCMS, &osDigit1)) {
+								PTRACE(3, Type() << "\tAvaya: CCMS EP DIGIT 1 " << ep->PrintOn(false));
+								if ((ep->GetHook() == EndpointRec::hsOffhook) && call) {
+									PBYTEArray	newBuf;
+									Q931		newq931;
+									CallSignalSocket *css = NULL;
+									if (calling && !calling->IsAvaya()) {
+										css = call->GetCallSignalSocketCalling();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLING INFO");
+											css->BuildInformationPDU(newq931, false, NULL, 0, 0);
+										} else
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLING");
+									}
+									if (called && !called->IsAvaya()) {
+										css = call->GetCallSignalSocketCalled();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLED INFO");
+											css->BuildInformationPDU(newq931, true, NULL, 0, 0);
+										}
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLED");
+									}
+									if (css) {
+										newq931.SetKeypad(PString("1"));
+										newq931.Encode(newBuf);
+										css->TransmitData(newBuf);
+										PThread::Sleep(1);
+									}
+								}
+							}
+
+							/* Checking if this is a DIGITS 2 command */
+							if (Toolkit::Instance()->PASNEqual(&osCCMS, &osDigit2)) {
+								PTRACE(3, Type() << "\tAvaya: CCMS EP DIGIT 2 " << ep->PrintOn(false));
+								if ((ep->GetHook() == EndpointRec::hsOffhook) && call) {
+									PBYTEArray	newBuf;
+									Q931		newq931;
+									CallSignalSocket *css = NULL;
+									if (calling && !calling->IsAvaya()) {
+										css = call->GetCallSignalSocketCalling();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLING INFO");
+											css->BuildInformationPDU(newq931, false, NULL, 0, 0);
+										} else
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLING");
+									}
+									if (called && !called->IsAvaya()) {
+										css = call->GetCallSignalSocketCalled();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLED INFO");
+											css->BuildInformationPDU(newq931, true, NULL, 0, 0);
+										}
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLED");
+									}
+									if (css) {
+										newq931.SetKeypad(PString("2"));
+										newq931.Encode(newBuf);
+										css->TransmitData(newBuf);
+										PThread::Sleep(1);
+									}
+								}
+							}
+
+							/* Checking if this is a DIGITS 3 command */
+							if (Toolkit::Instance()->PASNEqual(&osCCMS, &osDigit3)) {
+								PTRACE(3, Type() << "\tAvaya: CCMS EP DIGIT 3 " << ep->PrintOn(false));
+								if ((ep->GetHook() == EndpointRec::hsOffhook) && call) {
+									PBYTEArray	newBuf;
+									Q931		newq931;
+									CallSignalSocket *css = NULL;
+									if (calling && !calling->IsAvaya()) {
+										css = call->GetCallSignalSocketCalling();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLING INFO");
+											css->BuildInformationPDU(newq931, false, NULL, 0, 0);
+										} else
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLING");
+									}
+									if (called && !called->IsAvaya()) {
+										css = call->GetCallSignalSocketCalled();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLED INFO");
+											css->BuildInformationPDU(newq931, true, NULL, 0, 0);
+										}
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLED");
+									}
+									if (css) {
+										newq931.SetKeypad(PString("3"));
+										newq931.Encode(newBuf);
+										css->TransmitData(newBuf);
+										PThread::Sleep(1);
+									}
+								}
+							}
+
+							/* Checking if this is a DIGITS 4 command */
+							if (Toolkit::Instance()->PASNEqual(&osCCMS, &osDigit4)) {
+								PTRACE(3, Type() << "\tAvaya: CCMS EP DIGIT 4 " << ep->PrintOn(false));
+								if ((ep->GetHook() == EndpointRec::hsOffhook) && call) {
+									PBYTEArray	newBuf;
+									Q931		newq931;
+									CallSignalSocket *css = NULL;
+									if (calling && !calling->IsAvaya()) {
+										css = call->GetCallSignalSocketCalling();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLING INFO");
+											css->BuildInformationPDU(newq931, false, NULL, 0, 0);
+										} else
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLING");
+									}
+									if (called && !called->IsAvaya()) {
+										css = call->GetCallSignalSocketCalled();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLED INFO");
+											css->BuildInformationPDU(newq931, true, NULL, 0, 0);
+										}
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLED");
+									}
+									if (css) {
+										newq931.SetKeypad(PString("4"));
+										newq931.Encode(newBuf);
+										css->TransmitData(newBuf);
+										PThread::Sleep(1);
+									}
+								}
+							}
+
+							/* Checking if this is a DIGITS 5 command */
+							if (Toolkit::Instance()->PASNEqual(&osCCMS, &osDigit5)) {
+								PTRACE(3, Type() << "\tAvaya: CCMS EP DIGIT 5 " << ep->PrintOn(false));
+								if ((ep->GetHook() == EndpointRec::hsOffhook) && call) {
+									PBYTEArray	newBuf;
+									Q931		newq931;
+									CallSignalSocket *css = NULL;
+									if (calling && !calling->IsAvaya()) {
+										css = call->GetCallSignalSocketCalling();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLING INFO");
+											css->BuildInformationPDU(newq931, false, NULL, 0, 0);
+										} else
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLING");
+									}
+									if (called && !called->IsAvaya()) {
+										css = call->GetCallSignalSocketCalled();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLED INFO");
+											css->BuildInformationPDU(newq931, true, NULL, 0, 0);
+										}
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLED");
+									}
+									if (css) {
+										newq931.SetKeypad(PString("5"));
+										newq931.Encode(newBuf);
+										css->TransmitData(newBuf);
+										PThread::Sleep(1);
+									}
+								}
+							}
+
+							/* Checking if this is a DIGITS 6 command */
+							if (Toolkit::Instance()->PASNEqual(&osCCMS, &osDigit6)) {
+								PTRACE(3, Type() << "\tAvaya: CCMS EP DIGIT 6 " << ep->PrintOn(false));
+								if ((ep->GetHook() == EndpointRec::hsOffhook) && call) {
+									PBYTEArray	newBuf;
+									Q931		newq931;
+									CallSignalSocket *css = NULL;
+									if (calling && !calling->IsAvaya()) {
+										css = call->GetCallSignalSocketCalling();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLING INFO");
+											css->BuildInformationPDU(newq931, false, NULL, 0, 0);
+										} else
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLING");
+									}
+									if (called && !called->IsAvaya()) {
+										css = call->GetCallSignalSocketCalled();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLED INFO");
+											css->BuildInformationPDU(newq931, true, NULL, 0, 0);
+										}
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLED");
+									}
+									if (css) {
+										newq931.SetKeypad(PString("6"));
+										newq931.Encode(newBuf);
+										css->TransmitData(newBuf);
+										PThread::Sleep(1);
+									}
+								}
+							}
+
+							/* Checking if this is a DIGITS 7 command */
+							if (Toolkit::Instance()->PASNEqual(&osCCMS, &osDigit7)) {
+								PTRACE(3, Type() << "\tAvaya: CCMS EP DIGIT 7 " << ep->PrintOn(false));
+								if ((ep->GetHook() == EndpointRec::hsOffhook) && call) {
+									PBYTEArray	newBuf;
+									Q931		newq931;
+									CallSignalSocket *css = NULL;
+									if (calling && !calling->IsAvaya()) {
+										css = call->GetCallSignalSocketCalling();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLING INFO");
+											css->BuildInformationPDU(newq931, false, NULL, 0, 0);
+										} else
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLING");
+									}
+									if (called && !called->IsAvaya()) {
+										css = call->GetCallSignalSocketCalled();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLED INFO");
+											css->BuildInformationPDU(newq931, true, NULL, 0, 0);
+										}
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLED");
+									}
+									if (css) {
+										newq931.SetKeypad(PString("7"));
+										newq931.Encode(newBuf);
+										css->TransmitData(newBuf);
+										PThread::Sleep(1);
+									}
+								}
+							}
+
+							/* Checking if this is a DIGITS 8 command */
+							if (Toolkit::Instance()->PASNEqual(&osCCMS, &osDigit8)) {
+								PTRACE(3, Type() << "\tAvaya: CCMS EP DIGIT 8 " << ep->PrintOn(false));
+								if ((ep->GetHook() == EndpointRec::hsOffhook) && call) {
+									PBYTEArray	newBuf;
+									Q931		newq931;
+									CallSignalSocket *css = NULL;
+									if (calling && !calling->IsAvaya()) {
+										css = call->GetCallSignalSocketCalling();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLING INFO");
+											css->BuildInformationPDU(newq931, false, NULL, 0, 0);
+										} else
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLING");
+									}
+									if (called && !called->IsAvaya()) {
+										css = call->GetCallSignalSocketCalled();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLED INFO");
+											css->BuildInformationPDU(newq931, true, NULL, 0, 0);
+										}
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLED");
+									}
+									if (css) {
+										newq931.SetKeypad(PString("8"));
+										newq931.Encode(newBuf);
+										css->TransmitData(newBuf);
+										PThread::Sleep(1);
+									}
+								}
+							}
+
+							/* Checking if this is a DIGITS 9 command */
+							if (Toolkit::Instance()->PASNEqual(&osCCMS, &osDigit9)) {
+								PTRACE(3, Type() << "\tAvaya: CCMS EP DIGIT 9 " << ep->PrintOn(false));
+								if ((ep->GetHook() == EndpointRec::hsOffhook) && call) {
+									PBYTEArray	newBuf;
+									Q931		newq931;
+									CallSignalSocket *css = NULL;
+									if (calling && !calling->IsAvaya()) {
+										css = call->GetCallSignalSocketCalling();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLING INFO");
+											css->BuildInformationPDU(newq931, false, NULL, 0, 0);
+										} else
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLING");
+									}
+									if (called && !called->IsAvaya()) {
+										css = call->GetCallSignalSocketCalled();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLED INFO");
+											css->BuildInformationPDU(newq931, true, NULL, 0, 0);
+										}
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLED");
+									}
+									if (css) {
+										newq931.SetKeypad(PString("9"));
+										newq931.Encode(newBuf);
+										css->TransmitData(newBuf);
+										PThread::Sleep(1);
+									}
+								}
+							}
+
+							/* Checking if this is a DIGITS 0 command */
+							if (Toolkit::Instance()->PASNEqual(&osCCMS, &osDigit0)) {
+								PTRACE(3, Type() << "\tAvaya: CCMS EP DIGIT 0 " << ep->PrintOn(false));
+								if ((ep->GetHook() == EndpointRec::hsOffhook) && call) {
+									PBYTEArray	newBuf;
+									Q931		newq931;
+									CallSignalSocket *css = NULL;
+									if (calling && !calling->IsAvaya()) {
+										css = call->GetCallSignalSocketCalling();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLING INFO");
+											css->BuildInformationPDU(newq931, false, NULL, 0, 0);
+										} else
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLING");
+									}
+									if (called && !called->IsAvaya()) {
+										css = call->GetCallSignalSocketCalled();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLED INFO");
+											css->BuildInformationPDU(newq931, true, NULL, 0, 0);
+										}
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLED");
+									}
+									if (css) {
+										newq931.SetKeypad(PString("0"));
+										newq931.Encode(newBuf);
+										css->TransmitData(newBuf);
+										PThread::Sleep(1);
+									}
+								}
+							}
+
+							/* Checking if this is a DIGITS * command */
+							if (Toolkit::Instance()->PASNEqual(&osCCMS, &osDigitStar)) {
+								PTRACE(3, Type() << "\tAvaya: CCMS EP DIGIT * " << ep->PrintOn(false));
+								if ((ep->GetHook() == EndpointRec::hsOffhook) && call) {
+									PBYTEArray	newBuf;
+									Q931		newq931;
+
+									CallSignalSocket *css = NULL;
+									if (calling && !calling->IsAvaya()) {
+										css = call->GetCallSignalSocketCalling();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLING INFO");
+											css->BuildInformationPDU(newq931, false, NULL, 0, 0);
+										} else
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLING");
+									}
+									if (called && !called->IsAvaya()) {
+										css = call->GetCallSignalSocketCalled();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLED INFO");
+											css->BuildInformationPDU(newq931, true, NULL, 0, 0);
+										}
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLED");
+									}
+									if (css) {
+										newq931.SetKeypad(PString("*"));
+										newq931.Encode(newBuf);
+										css->TransmitData(newBuf);
+										PThread::Sleep(1);
+									}
+								}
+							}
+
+							/* Checking if this is a DIGITS # command */
+							if (Toolkit::Instance()->PASNEqual(&osCCMS, &osDigitPound)) {
+								PTRACE(3, Type() << "\tAvaya: CCMS EP DIGIT # " << ep->PrintOn(false));
+								if ((ep->GetHook() == EndpointRec::hsOffhook) && call) {
+									PBYTEArray	newBuf;
+									Q931		newq931;
+									CallSignalSocket *css = NULL;
+									if (calling && !calling->IsAvaya()) {
+										css = call->GetCallSignalSocketCalling();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLING INFO");
+											css->BuildInformationPDU(newq931, false, NULL, 0, 0);
+										} else
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLING");
+									}
+									if (called && !called->IsAvaya()) {
+										css = call->GetCallSignalSocketCalled();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLED INFO");
+											css->BuildInformationPDU(newq931, true, NULL, 0, 0);
+										}
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLED");
+									}
+									if (css) {
+										newq931.SetKeypad(PString("#"));
+										newq931.Encode(newBuf);
+										css->TransmitData(newBuf);
+										PThread::Sleep(1);
+									}
+								}
+							}
+
+							/* Checking if this is ON-HOOK command */
+							if (Toolkit::Instance()->PASNEqual(&osCCMS, &osOnhook) ||
+								Toolkit::Instance()->PASNEqual(&osCCMS, &osOnhook2)) {
+								PTRACE(3, Type() << "\tAvaya: CCMS EP ON-HOOK " << ep->PrintOn(false));
+								if (ep->GetHook() != EndpointRec::hsOnhook) {
+									if (1) {
+										PBYTEArray	lBuffer;
+										Q931		newq931;
+										BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayCA1Off,
+											sizeof(CCMS_vdtUpdate_loadDisplayCA1Off), 1 | 0x8000u);
+										newq931.Encode(lBuffer);
+										TransmitData(lBuffer);
+										PThread::Sleep(1);
+
+										H225_ArrayOf_PASN_OctetString m_fastStart;
+										m_fastStart.SetSize(2);
+										{
+											H245_OpenLogicalChannel olc;
+											PPER_Stream strm;
+											olc.m_forwardLogicalChannelNumber = 101;
+											olc.m_forwardLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_nullData);
+											olc.m_forwardLogicalChannelParameters.m_multiplexParameters.SetTag(H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_none);
+											olc.Encode(strm);
+											strm.CompleteEncoding();
+											m_fastStart[0].SetValue(strm);
+											PTRACE(6, "Q931\nfastStart[0] to send: " << setprecision(2) << olc);
+										}
+
+										{
+											H245_OpenLogicalChannel olc;
+											PPER_Stream strm;
+											olc.m_forwardLogicalChannelNumber = 101;
+											olc.m_forwardLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_nullData);
+											olc.m_forwardLogicalChannelParameters.m_multiplexParameters.SetTag(H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_none);
+											olc.IncludeOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters);
+											olc.m_reverseLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_nullData);
+											olc.Encode(strm);
+											strm.CompleteEncoding();
+											m_fastStart[1].SetValue(strm);
+											PTRACE(6, "Q931\nfastStart[1] to send: " << setprecision(2) << olc);
+										}
+										BuildFacilityPDU(newq931, H225_FacilityReason::e_undefinedReason, &(m_fastStart), false, true);
+										newq931.Encode(lBuffer);
+										TransmitData(lBuffer);
+										PThread::Sleep(1);
+									}
+									if (calling && !calling->IsAvaya()) {
+										CallSignalSocket *css = call->GetCallSignalSocketCalling();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLING REL_COM");
+											css->SendReleaseComplete();
+											// ?
+											// call->SetCallSignalSocketCalling(NULL);
+											// call->SetCallingParty(NULL);
+										} else
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLING");
+									}
+									if (called && !called->IsAvaya()) {
+										CallSignalSocket *css = call->GetCallSignalSocketCalled();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLED REL_COM");
+											css->SendReleaseComplete();
+											// ?
+											// call->SetCallSignalSocketCalled(NULL);
+											// call->SetCalledParty(NULL);
+										}
+											PTRACE(3, Type() << "\tAvaya: No CSS at CALLED");
+									}
+									ep->SetHook(EndpointRec::hsOnhook);
+									CallTable::Instance()->RemoveCall(incall);
+								}
+							}
+
+							/* Checking if this is OFF-HOOK command */
+							if (Toolkit::Instance()->PASNEqual(&osCCMS, &osOffhook) ||
+								Toolkit::Instance()->PASNEqual(&osCCMS, &osOffhook2)) {
+								PTRACE(3, Type() << "\tAvaya: CCMS EP OFF-HOOK " << ep->PrintOn(false));
+
+								if (ep->GetHook() != EndpointRec::hsOffhook) {
+									PBYTEArray	newBuf;
+									Q931		newq931;
+									PIPSocket::Address	ip;
+									WORD		port, newcrv;
+									m_call->GetCallerAudioIP(ip, port);
+									PTRACE(6, Type() << "\tAvaya: Caller(ing) Audio IP: " << ip << ":" <<  port); // TODO: move to CCMS, callerAudio contains RTP for Avaya
+
+									CallSignalSocket *css = NULL;
+
+									/* No calling party, we are trying to outcall, creating setup */
+									if (!call) {
+
+										/* Buffer for dialed number indication on display */
+										m_Avaya_Keypad = "";
+										/* Creating fastStart with Avaya addresses */
+										H225_ArrayOf_PASN_OctetString m_fastStart;
+										m_fastStart.SetSize(2);
+										/* LC0 */
+										{
+										H245_OpenLogicalChannel olc;
+										PPER_Stream wtstrm;
+
+										olc.m_forwardLogicalChannelNumber = 13;
+										olc.m_forwardLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_audioData);
+										H245_OpenLogicalChannel_forwardLogicalChannelParameters & fwdParms = olc.m_forwardLogicalChannelParameters;
+
+										H245_AudioCapability & ac = fwdParms.m_dataType;
+										ac.SetTag(H245_AudioCapability::e_g711Ulaw64k);
+										PASN_Integer & value = ac;
+										value = 20;
+
+										fwdParms.m_multiplexParameters.SetTag(H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters);
+										H245_H2250LogicalChannelParameters & channel = olc.m_forwardLogicalChannelParameters.m_multiplexParameters;
+										channel.m_sessionID = 1;
+
+										olc.Encode(wtstrm);
+										wtstrm.CompleteEncoding();
+										m_fastStart[0].SetValue(wtstrm);
+										PTRACE(6, "Q931\nfastStart[0] to send: " << setprecision(2) << olc);
+										}
+										/* LC1 */
+										{
+										H245_OpenLogicalChannel olc;
+										PPER_Stream wtstrm;
+										olc.m_forwardLogicalChannelNumber = 14;
+										olc.m_forwardLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_nullData);
+										olc.m_forwardLogicalChannelParameters.m_multiplexParameters.SetTag(H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_none);
+
+										olc.IncludeOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters);
+										olc.m_reverseLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_audioData);
+
+										H245_OpenLogicalChannel_reverseLogicalChannelParameters & revParms = olc.m_reverseLogicalChannelParameters;
+										H245_AudioCapability & ac = revParms.m_dataType;
+										ac.SetTag(H245_AudioCapability::e_g711Ulaw64k);
+
+										PASN_Integer & value = ac;
+										value = 20;
+
+										revParms.IncludeOptionalField(H245_OpenLogicalChannel_reverseLogicalChannelParameters::e_multiplexParameters);
+										revParms.m_multiplexParameters.SetTag(H245_OpenLogicalChannel_reverseLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters);
+
+										H245_H2250LogicalChannelParameters & channel = olc.m_reverseLogicalChannelParameters.m_multiplexParameters;
+										channel.m_sessionID = 1;
+
+										channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel);
+										channel.m_mediaChannel.SetTag(H245_TransportAddress::e_unicastAddress);
+										{
+											H245_UnicastAddress & addr = channel.m_mediaChannel;
+											addr.SetTag(H245_UnicastAddress::e_iPAddress);
+											H245_UnicastAddress_iPAddress & ipaddr = addr;
+											for (int i = 0; i < 4; ++i) ipaddr.m_network[i] = ip[i];
+											ipaddr.m_tsapIdentifier = port;
+										}
+
+										channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel);
+										channel.m_mediaControlChannel.SetTag(H245_TransportAddress::e_unicastAddress);
+										{
+											H245_UnicastAddress & addr = channel.m_mediaControlChannel;
+											addr.SetTag(H245_UnicastAddress::e_iPAddress);
+											H245_UnicastAddress_iPAddress & ipaddr = addr;
+											for (int i = 0; i < 4; ++i) ipaddr.m_network[i] = ip[i];
+											ipaddr.m_tsapIdentifier = port+1;
+										}
+
+										olc.Encode(wtstrm);
+										wtstrm.CompleteEncoding();
+										m_fastStart[1].SetValue(wtstrm);
+										PTRACE(6, "Q931\nfastStart[1] to send: " << setprecision(2) << olc);
+										}
+
+										H225_H323_UserInformation newuuie;
+										H225_ArrayOf_AliasAddress aliases;
+
+										aliases.SetSize(1);
+										H225_AliasAddress alias(H225_AliasAddress::e_h323_ID);
+										H323SetAliasAddress(GkConfig()->GetString(ProxySection, "AsteriskGWID", "ACE"), alias);
+										aliases[0] = alias;
+										endptr gwep = RegistrationTable::Instance()->FindByAliases(aliases);
+										if (!gwep) {
+											PTRACE(6, Type() << "\tAvaya: No GWEP found");
+											m_result = NoData;
+											return;
+										}
+										newcrv = gwep->GetNextCRV();
+										PTRACE(6, Type() << "\tAvaya: NextCRV=" << newcrv << ", GWEP " << gwep->PrintOn(false));
+										H225_TransportAddress gwaddr = gwep->GetCallSignalAddress();
+										Address _gwAddr;
+										WORD _gwPort;
+										GetIPAndPortFromTransportAddr(gwaddr, _gwAddr, _gwPort);
+
+//										remote = new CallSignalSocket(this, peerPort);
+										css = new CallSignalSocket();
+//										css = static_cast<CallSignalSocket*>(remote);
+
+										css->localAddr = RasServer::Instance()->GetLocalAddress(_gwAddr);
+										UnmapIPv4Address(css->localAddr);
+    									css->masqAddr = RasServer::Instance()->GetMasqAddress(_gwAddr);
+    									UnmapIPv4Address(css->masqAddr);
+										css->peerAddr = _gwAddr;
+										css->peerPort = _gwPort;
+//										css->m_callerSocket = false;
+//										css = new CallSignalSocket();
+										css->m_crv = newcrv;
+
+										css->BuildSetupPDU(newq931, m_call->GetCallIdentifier(), newcrv, GkConfig()->GetString(ProxySection, "AsteriskGWDN", "1999"), false);
+
+										newq931.SetBearerCapabilities(Q931::TransferUnrestrictedDigital, 32);
+										newq931.SetDisplayName(PString("AVAYA"));
+										aliases = ep->GetAliases();
+										if (aliases.GetSize()) {
+											newq931.SetCallingPartyNumber(H323GetAliasAddressString(aliases[0]));
+										}
+										GetUUIE(newq931, newuuie);
+
+										H225_Setup_UUIE & setup_uuie = newuuie.m_h323_uu_pdu.m_h323_message_body;
+
+										if (!setup_uuie.HasOptionalField(H225_Setup_UUIE::e_fastStart))
+											setup_uuie.IncludeOptionalField(H225_Setup_UUIE::e_fastStart);
+										setup_uuie.m_fastStart = m_fastStart;
+
+										CallRec *newCall = new CallRec(newq931, setup_uuie, false, GkConfig()->GetString(ProxySection, "AsteriskGWDN", "1999"), ProxySocket::DelayedConnecting);
+										if (!newCall) {
+											delete css;
+											m_result = NoData;
+											return;
+										}
+										css->m_call = callptr(newCall);
+
+										if (!css->CreateRemote(gwaddr, false)) {
+											PTRACE(6, Type() << "\tAvaya: Unable to create remote");
+											m_result = NoData;
+											delete newCall;
+											delete css;
+											return;
+										}
+
+										// it's dangerous if the remote socket has
+										// different handler than this
+										// so we move this socket to other handler
+//										css->SetHandler(GetHandler());
+//										css->remote->SetHandler(GetHandler());
+//										GetHandler()->MoveTo(css->GetHandler(), this);
+										CallSignalSocket *cssremote = static_cast<CallSignalSocket*>(css->remote);
+										GetHandler()->Insert(this, css->remote);
+
+										if (!setup_uuie.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress)) {
+											setup_uuie.IncludeOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress);
+										}
+										setup_uuie.m_sourceCallSignalAddress = SocketToH225TransportAddr(css->masqAddr, css->localPort); // check this
+										cssremote->m_call = callptr(newCall);
+
+										SetUUIE(newq931, newuuie);
+										newq931.Encode(css->buffer);
+
+										css->remote->TransmitData(css->buffer);
+										PThread::Sleep(1);
+
+										newCall->SetProxyMode(CallRec::ProxyDisabled);
+// It will be set in OnConnect
+//										newCall->SetConnected();
+										newCall->SetCalling(m_call->GetCallingParty());
+//!										newCall->SetCallRefFixup(true);
+										newCall->SetCalled(gwep);
+										newCall->SetCallSignalSocketCalled(cssremote);
+										newCall->SetDestSignalAddr(gwaddr);
+										H225_ArrayOf_AliasAddress destAlias(H225_AliasAddress::e_dialedDigits);
+										destAlias.SetSize(1);
+										H323SetAliasAddress(PString("1999"), destAlias[0]);
+										newCall->SetRouteToAlias(destAlias);
+
+										CallTable::Instance()->Insert(newCall);
+
+										PTRACE(3, Type() << "\tAvaya: NewCalling " << newCall->GetCallingParty()->PrintOn(false));
+										PTRACE(3, Type() << "\tAvaya: CGSS " << newCall->GetCallSignalSocketCalling());
+										PTRACE(3, Type() << "\tAvaya: NewCalled " << newCall->GetCalledParty()->PrintOn(false));
+										PTRACE(3, Type() << "\tAvaya: CDSS " << newCall->GetCallSignalSocketCalled());
+
+										PrintQ931(3, "Setup for outcalling ", css->GetName() + " : " + css->remote->GetName(), &newq931, &newuuie);
+									}
+
+									/* This is incoming call to us, we already have CSS and we answering to calling party */
+									else {
+										/* Creating fastStart with Avaya addresses */
+										H225_ArrayOf_PASN_OctetString m_fastStart;
+										m_fastStart.SetSize(2);
+										/* LC0 */
+										{
+										H245_OpenLogicalChannel olc;
+										PPER_Stream wtstrm;
+
+										olc.m_forwardLogicalChannelNumber = 1001;
+										olc.m_forwardLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_audioData);
+										H245_OpenLogicalChannel_forwardLogicalChannelParameters & fwdParms = olc.m_forwardLogicalChannelParameters;
+
+										H245_AudioCapability & ac = fwdParms.m_dataType;
+										ac.SetTag(H245_AudioCapability::e_g711Ulaw64k);
+										PASN_Integer & value = ac;
+										value = 20;
+
+										fwdParms.m_multiplexParameters.SetTag(H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters);
+										H245_H2250LogicalChannelParameters & channel = olc.m_forwardLogicalChannelParameters.m_multiplexParameters;
+										channel.m_sessionID = 1;
+
+										channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel);
+										channel.m_mediaChannel.SetTag(H245_TransportAddress::e_unicastAddress);
+										{
+											H245_UnicastAddress & addr = channel.m_mediaChannel;
+											addr.SetTag(H245_UnicastAddress::e_iPAddress);
+											H245_UnicastAddress_iPAddress & ipaddr = addr;
+											for (int i = 0; i < 4; ++i) ipaddr.m_network[i] = ip[i];
+											ipaddr.m_tsapIdentifier = port;
+										}
+
+										channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel);
+										channel.m_mediaControlChannel.SetTag(H245_TransportAddress::e_unicastAddress);
+										{
+											H245_UnicastAddress & addr = channel.m_mediaControlChannel;
+											addr.SetTag(H245_UnicastAddress::e_iPAddress);
+											H245_UnicastAddress_iPAddress & ipaddr = addr;
+											for (int i = 0; i < 4; ++i) ipaddr.m_network[i] = ip[i];
+											ipaddr.m_tsapIdentifier = port+1;
+										}
+
+										olc.Encode(wtstrm);
+										wtstrm.CompleteEncoding();
+										m_fastStart[0].SetValue(wtstrm);
+										PTRACE(6, "Q931\nfastStart[0] to send: " << setprecision(2) << olc);
+										}
+										/* LC1 */
+										{
+										H245_OpenLogicalChannel olc;
+										PPER_Stream wtstrm;
+										olc.m_forwardLogicalChannelNumber = 1002;
+										olc.m_forwardLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_nullData);
+										olc.m_forwardLogicalChannelParameters.m_multiplexParameters.SetTag(H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_none);
+
+										olc.IncludeOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters);
+										olc.m_reverseLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_audioData);
+
+										H245_OpenLogicalChannel_reverseLogicalChannelParameters & revParms = olc.m_reverseLogicalChannelParameters;
+										H245_AudioCapability & ac = revParms.m_dataType;
+										ac.SetTag(H245_AudioCapability::e_g711Ulaw64k);
+
+										PASN_Integer & value = ac;
+										value = 20;
+
+										revParms.IncludeOptionalField(H245_OpenLogicalChannel_reverseLogicalChannelParameters::e_multiplexParameters);
+										revParms.m_multiplexParameters.SetTag(H245_OpenLogicalChannel_reverseLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters);
+
+										H245_H2250LogicalChannelParameters & channel = olc.m_reverseLogicalChannelParameters.m_multiplexParameters;
+										channel.m_sessionID = 1;
+/*
+										channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel);
+										channel.m_mediaChannel.SetTag(H245_TransportAddress::e_unicastAddress);
+										{
+											H245_UnicastAddress & addr = channel.m_mediaChannel;
+											addr.SetTag(H245_UnicastAddress::e_iPAddress);
+											H245_UnicastAddress_iPAddress & ipaddr = addr;
+											for (int i = 0; i < 4; ++i) ipaddr.m_network[i] = ip[i];
+											ipaddr.m_tsapIdentifier = port;
+										}
+*/
+										channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel);
+										channel.m_mediaControlChannel.SetTag(H245_TransportAddress::e_unicastAddress);
+										{
+											H245_UnicastAddress & addr = channel.m_mediaControlChannel;
+											addr.SetTag(H245_UnicastAddress::e_iPAddress);
+											H245_UnicastAddress_iPAddress & ipaddr = addr;
+											for (int i = 0; i < 4; ++i) ipaddr.m_network[i] = ip[i];
+											ipaddr.m_tsapIdentifier = port+1;
+										}
+
+										olc.Encode(wtstrm);
+										wtstrm.CompleteEncoding();
+										m_fastStart[1].SetValue(wtstrm);
+										PTRACE(6, "Q931\nfastStart[1] to send: " << setprecision(2) << olc);
+										}
+
+										css = call->GetCallSignalSocketCalling();
+										if (css) {
+											PTRACE(3, Type() << "\tAvaya: Sending to CALLING CON");
+											css->BuildConnectPDU(newq931, css->GetCallIdentifier(), css->GetCRV() | 0x8000u, &m_fastStart, false);
+											newq931.Encode(newBuf);
+											css->TransmitData(newBuf);
+											PThread::Sleep(1);
+											PTRACE(6, Type() << "\tAvaya: CCMS EP RingerOffCA1Steady2");
+											BuildInformationPDU(newq931, true, CCMS_vdtUpdate_ringerOffCA1SteadyNEW,
+												sizeof(CCMS_vdtUpdate_ringerOffCA1SteadyNEW), 1 | 0x8000u);
+											newq931.Encode(newBuf);
+											TransmitData(newBuf);
+											PThread::Sleep(1);
+											call->SetConnected();
+										} else PTRACE(3,Type() << "\tAvaya: CCMS no CSS");
+									}
+									ep->SetHook(EndpointRec::hsOffhook);
+								}
+							}
+
+							/* Checking if this is TERMINAL RESP command */
+							if (Toolkit::Instance()->PASNEqual(&osCCMS, &osTerminalIDResponse)) {
+								PTRACE(3, Type() << "\tAvaya: CCMS EP TERM ID\r\n" << ep->PrintOn(true));
+								ep->Update();
+							}
+
+						} else PTRACE(3, Type() << "\tAvaya: No endpoint");
+
+						m_result = NoData;
+						return;
+					}
+				}
+			}
+		} else
+			PTRACE(3, Type() << "\tAvaya: No UUIE in Information");
+	} else {
+		if (m_call) {
+			PTRACE(3, Type() << "\tAvaya: CG=" << m_call->GetCallingParty()->PrintOn(false));
+			PTRACE(3, Type() << "\tAvaya: CD=" << m_call->GetCalledParty()->PrintOn(false));
+			PTRACE(3, Type() << "\tAvaya: CGSS=" << m_call->GetCallSignalSocketCalling());
+			PTRACE(3, Type() << "\tAvaya: CDSS=" << m_call->GetCallSignalSocketCalled());
+			if (m_call->GetCallingParty()->IsAvaya()) {
+				PTRACE(3, Type() << "\tAvaya: Call from Avaya endpoint");
+				if (q931.HasIE(Q931::KeypadIE)) {
+					PTRACE(3, Type() << "\tAvaya: Keypad IE present " + q931.GetKeypad());
+					CallRec* ccms = m_call->GetCallingParty()->GetCCMS();
+					CallSignalSocket *css = ccms->GetCallSignalSocketCalling();
+					Q931 newq931;
+					PBYTEArray newbuf;
+					css->BuildInformationPDU(newq931, true, CCMS_vdtUpdate_displayModuleInspect, sizeof(CCMS_vdtUpdate_displayModuleInspect));
+					newq931.Encode(newbuf);
+					css->TransmitData(newbuf);
+					PThread::Sleep(1);
+
+					css->BuildInformationPDU(newq931, true, CCMS_vdtUpdate_TARingbackRemoved, sizeof(CCMS_vdtUpdate_TARingbackRemoved));
+					newq931.Encode(newbuf);
+					css->TransmitData(newbuf);
+					PThread::Sleep(1);
+					m_result = NoData;
+					return;
+				}
+			}
+		}
+	}
+#endif
+
+// TODO: why did the Avaya patch introduce this ?
+//	if (remote != NULL)
+//	    return;
 
 	m_result = m_call ? Forwarding : NoData;
 
-    // If NAT support disabled then ignore the message.
+	// If NAT support disabled then ignore the message.
 	if (!Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SupportNATedEndpoints", "0")))
 		return;
 
@@ -7617,17 +9191,133 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg * msg)
 
 	unsigned cause = 0;
 	if (m_call) {
+#ifdef HAS_AVAYA_SUPPORT
+		/* Avaya hack */
+		endptr called = m_call->GetCalledParty();
+		endptr calling = m_call->GetCallingParty();
+		CallRec * ccms = NULL;
+		PTRACE(3, Type() << "\tAvaya: Calling " << (calling? "NOT NULL" : "NULL") << " Called " << (called ? "NOT NULL" : "NULL"));
+		if (called && called->IsAvaya()) {
+			ccms = called->GetCCMS();
+			PTRACE(3, Type() << "\tAvaya: Called CCMS " << ccms);
+			if (ccms && ((m_crv & 0x7fffu) != 1)) {
+				CallSignalSocket* css = ccms->GetCallSignalSocketCalling();
+				if (css) {
+					PTRACE(3, Type() << "\tAvaya: CCMS EP " << called->PrintOn(true));
+					PBYTEArray	lBuffer;
+					Q931		newq931;
+					css->BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayDisconnectCA1OFF,
+						sizeof(CCMS_vdtUpdate_loadDisplayDisconnectCA1OFF), 1 | 0x8000u);
+					newq931.Encode(lBuffer);
+					css->TransmitData(lBuffer);
+					called->SetHook(EndpointRec::hsOnhook);
+					PThread::Sleep(1);
+
+					/* Disconnect media */
+					H225_ArrayOf_PASN_OctetString m_fastStart;
+					m_fastStart.SetSize(2);
+					{
+						H245_OpenLogicalChannel olc;
+						PPER_Stream strm;
+						olc.m_forwardLogicalChannelNumber = 101;
+						olc.m_forwardLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_nullData);
+						olc.m_forwardLogicalChannelParameters.m_multiplexParameters.SetTag(H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_none);
+						olc.Encode(strm);
+						strm.CompleteEncoding();
+						m_fastStart[0].SetValue(strm);
+						PTRACE(6, "Q931\nfastStart[0] to send: " << setprecision(2) << olc);
+					}
+
+					{
+						H245_OpenLogicalChannel olc;
+						PPER_Stream strm;
+						olc.m_forwardLogicalChannelNumber = 101;
+						olc.m_forwardLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_nullData);
+						olc.m_forwardLogicalChannelParameters.m_multiplexParameters.SetTag(H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_none);
+						olc.IncludeOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters);
+						olc.m_reverseLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_nullData);
+						olc.Encode(strm);
+						strm.CompleteEncoding();
+						m_fastStart[1].SetValue(strm);
+						PTRACE(6, "Q931\nfastStart[1] to send: " << setprecision(2) << olc);
+					}
+					css->BuildFacilityPDU(newq931, H225_FacilityReason::e_undefinedReason, &(m_fastStart), false, true);
+					newq931.Encode(lBuffer);
+					css->TransmitData(lBuffer);
+					PThread::Sleep(1);
+//					ccms->SetConnected(false);
+//					css->SetDeletable(true);
+					//SetDeletable();
+				} else 	PTRACE(3, Type() << "\tAvaya: CCMS without CSS");
+			} else PTRACE(3, Type() << "\tAvaya: No CCMS or SigCRV");
+		} else PTRACE(3, Type() << "\tAvaya: CALLED IS NON-AVAYA");
+
+		if (calling && calling->IsAvaya()) {
+			ccms = calling->GetCCMS();
+			PTRACE(3, Type() << "\tAvaya: Calling CCMS " << ccms);
+			if (ccms && ((m_crv & 0x7fffu) != 1)) {
+				CallSignalSocket* css = ccms->GetCallSignalSocketCalling();
+				if (css) {
+					PTRACE(3, Type() << "\tAvaya: CCMS EP " << calling->PrintOn(true));
+					PBYTEArray	lBuffer;
+					Q931		newq931;
+					css->BuildInformationPDU(newq931, true, CCMS_vdtUpdate_loadDisplayDisconnectCA1OFF,
+						sizeof(CCMS_vdtUpdate_loadDisplayDisconnectCA1OFF), 1 | 0x8000u);
+					newq931.Encode(lBuffer);
+					css->TransmitData(lBuffer);
+					calling->SetHook(EndpointRec::hsOnhook);
+					PThread::Sleep(1);
+
+					/* Disconnect media */
+					H225_ArrayOf_PASN_OctetString m_fastStart;
+					m_fastStart.SetSize(2);
+					{
+						H245_OpenLogicalChannel olc;
+						PPER_Stream strm;
+						olc.m_forwardLogicalChannelNumber = 101;
+						olc.m_forwardLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_nullData);
+						olc.m_forwardLogicalChannelParameters.m_multiplexParameters.SetTag(H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_none);
+						olc.Encode(strm);
+						strm.CompleteEncoding();
+						m_fastStart[0].SetValue(strm);
+						PTRACE(6, "Q931\nfastStart[0] to send: " << setprecision(2) << olc);
+					}
+
+					{
+						H245_OpenLogicalChannel olc;
+						PPER_Stream strm;
+						olc.m_forwardLogicalChannelNumber = 101;
+						olc.m_forwardLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_nullData);
+						olc.m_forwardLogicalChannelParameters.m_multiplexParameters.SetTag(H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_none);
+						olc.IncludeOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters);
+						olc.m_reverseLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_nullData);
+						olc.Encode(strm);
+						strm.CompleteEncoding();
+						m_fastStart[1].SetValue(strm);
+						PTRACE(6, "Q931\nfastStart[1] to send: " << setprecision(2) << olc);
+					}
+					css->BuildFacilityPDU(newq931, H225_FacilityReason::e_undefinedReason, &(m_fastStart), false, true);
+					newq931.Encode(lBuffer);
+					css->TransmitData(lBuffer);
+					PThread::Sleep(1);
+//					ccms->SetConnected(false);
+//					css->SetDeletable(true);
+					//SetDeletable();
+				} else 	PTRACE(3, Type() << "\tAvaya: CCMS without CSS");
+			} else PTRACE(3, Type() << "\tAvaya: No CCMS or SigCRV");
+		} else PTRACE(3, Type() << "\tAvaya: CALLING IS NON-AVAYA");
+#endif
 		// regular ReleaseComplete processing
 		m_call->SetDisconnectTime(time(NULL));
 		m_call->SetReleaseSource(m_callerSocket ? CallRec::ReleasedByCaller : CallRec::ReleasedByCallee);
 		// fix Q.931 direction flag for rerouted calls
-        // TODO: only if call has been rerouted ?
-        // TODO: doesn't cover RP as caller in makeCall being hung up by remote
+		// TODO: only if call has been rerouted ?
+		// TODO: doesn't cover RP as caller in makeCall being hung up by remote
 #if (H323PLUS_VER >= 1268)
-        if (m_callerSocket != !msg->GetQ931().IsFromDestination()) {
-            msg->GetQ931().SetFromDestination(!m_callerSocket);
-            msg->SetChanged();
-        }
+		if (m_callerSocket != !msg->GetQ931().IsFromDestination()) {
+			msg->GetQ931().SetFromDestination(!m_callerSocket);
+			msg->SetChanged();
+		}
 #endif
 		// cause code rewriting
 		if (msg->GetQ931().HasIE(Q931::CauseIE)) {
@@ -7650,7 +9340,9 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg * msg)
 					if (m_call->GetSrcSignalAddr(addr, port))
 						calling = RegistrationTable::Instance()->FindBySignalAdr(SocketToH225TransportAddr(addr, GK_DEF_ENDPOINT_SIGNAL_PORT));
 				}
+#ifndef HAS_AVAYA_SUPPORT // TODO: why not set called with Avaya support ?
 				endptr called = m_call->GetCalledParty();
+#endif
 				if (!called)
 					called = RegistrationTable::Instance()->FindBySignalAdr(m_call->GetDestSignalAddr());
 				if (!called)
@@ -7679,6 +9371,7 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg * msg)
 					msg->SetChanged();
 					m_call->SetDisconnectCauseTranslated(new_cause);
 				}
+
 			}
 
 			m_call->SetDisconnectCause(cause);
@@ -8218,7 +9911,8 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 
 		bool altered = false;
 		if (fromCaller) {
-			altered = m_h245handler->HandleFastStartSetup(olc, m_call);
+			if (m_h245handler)
+                altered = m_h245handler->HandleFastStartSetup(olc, m_call);
 		} else {
 #ifdef HAS_H46018
 			if (m_call->H46019Required() && PIsDescendant(m_h245handler, H245ProxyHandler) && ((H245ProxyHandler*)m_h245handler)->UsesH46019()) {
@@ -8254,6 +9948,13 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
                         PIPSocket::Address ip;
                         *addr >> ip;
                         WORD port = GetH245Port(*addr);
+#ifdef HAS_AVAYA_SUPPORT
+			if (fromCaller) {
+				PTRACE(6, Type() << "\tfastStart fromCaller: " << ip << ":" << port);
+			} else {
+				PTRACE(6, Type() << "\tfastStart fromCalled: " << ip << ":" << port);
+			}
+#endif
                         if (isAudio && fromCaller) {
                             m_call->SetCallerAudioIP(ip, port);
                         }
@@ -8270,6 +9971,34 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
                 }
             }
         }
+
+#ifdef HAS_AVAYA_SUPPORT
+	/* Avaya hack ? */
+        if (!fromCaller && m_call->GetCallingParty()->IsAvaya()) {
+            H245_OpenLogicalChannel_forwardLogicalChannelParameters & fwdParams = olc.m_forwardLogicalChannelParameters;
+            bool isAudio = (fwdParams.m_dataType.GetTag() == H245_DataType::e_audioData);
+            bool isVideo = (fwdParams.m_dataType.GetTag() == H245_DataType::e_videoData);
+            if (fwdParams.m_multiplexParameters.GetTag() == H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters) {
+
+                H245_H2250LogicalChannelParameters & channel = olc.m_forwardLogicalChannelParameters.m_multiplexParameters;
+                if (channel.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel)) {
+                    H245_UnicastAddress *addr = GetH245UnicastAddress(channel.m_mediaChannel);
+                    if (addr != NULL && m_call) {
+                        PIPSocket::Address ip;
+                        *addr >> ip;
+                        WORD port = GetH245Port(*addr);
+						PTRACE(6, Type() << "\tfastStart fromCalled: " << ip << ":" << port);
+                        if (isAudio) {
+                            m_call->SetCalledAudioIP(ip, port);
+                        }
+                        if (isVideo) {
+                            m_call->SetCalledVideoIP(ip, port);
+						}
+                    }
+                }
+            }
+        }
+#endif
 
 		H245_AudioCapability * audioCap = NULL;
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
@@ -8325,7 +10054,11 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 	return changed;
 }
 
-void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PObject *parm, bool h46017)
+void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PObject *parm, bool h46017
+#ifdef HAS_AVAYA_SUPPORT
+													, bool bAvaya
+#endif
+															)
 {
 	PBoolean fromDest = m_crv & 0x8000u;
 	H225_H323_UserInformation signal;
@@ -8389,16 +10122,44 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 
 #ifdef HAS_H46018
 		case H225_FacilityReason::e_undefinedReason:
-			if (parm) {
+			if (parm
+#ifdef HAS_AVAYA_SUPPORT
+				&& !bAvaya
+#endif
+					) {
 				fromDest = PTrue;
 				uuie.IncludeOptionalField(H225_Facility_UUIE::e_callIdentifier);
 				uuie.m_callIdentifier = *dynamic_cast<const H225_CallIdentifier *>(parm);
 				// if configured minimum H.225 version is > 6 use that otherwise use at least 6
-                if (ProtocolVersion(H225_ProtocolID) > 6) {
-                    uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
-                } else {
-                    uuie.m_protocolIdentifier.SetValue(H225_ProtocolIDv6);
-                }
+				if (ProtocolVersion(H225_ProtocolID) > 6) {
+					 uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
+				} else {
+					uuie.m_protocolIdentifier.SetValue(H225_ProtocolIDv6);
+				}
+#ifdef HAS_AVAYA_SUPPORT
+				uuie.RemoveOptionalField(H225_Facility_UUIE::e_conferenceID);
+			}
+
+			/* Avaya hack */
+			if (parm && bAvaya) {
+				PTRACE(3, Type() << "\tAvaya: forming FAC");
+
+				uuie.m_protocolIdentifier.SetValue(H225_ProtocolIDv5);
+
+				if (!uuie.HasOptionalField(H225_Facility_UUIE::e_multipleCalls))
+					uuie.IncludeOptionalField(H225_Facility_UUIE::e_multipleCalls);
+				uuie.m_multipleCalls.SetValue(false);
+
+				if (!uuie.HasOptionalField(H225_Facility_UUIE::e_maintainConnection))
+				uuie.IncludeOptionalField(H225_Facility_UUIE::e_maintainConnection);
+				uuie.m_maintainConnection.SetValue(false);
+
+				if (!uuie.HasOptionalField(H225_Facility_UUIE::e_fastStart))
+					uuie.IncludeOptionalField(H225_Facility_UUIE::e_fastStart);
+
+				H225_ArrayOf_PASN_OctetString m_fastStart = *dynamic_cast<const H225_ArrayOf_PASN_OctetString *>(parm);
+				uuie.m_fastStart = m_fastStart;
+#endif
 				uuie.RemoveOptionalField(H225_Facility_UUIE::e_conferenceID);
 			}
 			break;
@@ -8458,6 +10219,9 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 		FacilityPDU.RemoveIE(Q931::FacilityIE);
 	}
 	SetUUIE(FacilityPDU, signal);
+#ifdef HAS_AVAYA_SUPPORT
+	PrintQ931(5, "Send to ", GetName(), &FacilityPDU, &signal);
+#endif
 }
 
 void CallSignalSocket::BuildProgressPDU(Q931 & ProgressPDU, PBoolean fromDestination)
@@ -8472,7 +10236,24 @@ void CallSignalSocket::BuildProgressPDU(Q931 & ProgressPDU, PBoolean fromDestina
 	}
 
 	ProgressPDU.BuildProgress(m_crv, fromDestination, Q931::ProgressInbandInformationAvailable);
+
+#ifdef HAS_AVAYA_SUPPORT
+	if (GkConfig()->GetBoolean(RoutedSec, "UseProvisionalRespToH245Tunneling", false)) {
+		signal.m_h323_uu_pdu.RemoveOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+		signal.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_provisionalRespToH245Tunneling);
+	} else {
+		signal.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+		if (m_h245TunnelingTranslation)
+			signal.m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
+		else
+			signal.m_h323_uu_pdu.m_h245Tunneling.SetValue(false);
+	}
+#endif
+
 	SetUUIE(ProgressPDU, signal);
+#ifdef HAS_AVAYA_SUPPORT
+	PrintQ931(5, "Send to ", GetName(), &ProgressPDU, &signal);
+#endif
 }
 
 void CallSignalSocket::BuildNotifyPDU(Q931 & NotifyPDU, PBoolean fromDestination, int indication)
@@ -8494,6 +10275,9 @@ void CallSignalSocket::BuildNotifyPDU(Q931 & NotifyPDU, PBoolean fromDestination
     	NotifyPDU.SetIE((Q931::InformationElementCodes)0x27, NotificationIndicatonIE);
 	}
 	SetUUIE(NotifyPDU, signal);
+#ifdef HAS_AVAYA_SUPPORT
+	PrintQ931(5, "Send to ", GetName(), &NotifyPDU, &signal);
+#endif
 }
 
 void CallSignalSocket::BuildStatusPDU(Q931 & StatusPDU, PBoolean fromDestination)
@@ -8508,6 +10292,9 @@ void CallSignalSocket::BuildStatusPDU(Q931 & StatusPDU, PBoolean fromDestination
 	}
 	StatusPDU.BuildStatus(m_crv, fromDestination);
 	SetUUIE(StatusPDU, signal);
+#ifdef HAS_AVAYA_SUPPORT
+	PrintQ931(5, "Send to ", GetName(), &StatusPDU, &signal);
+#endif
 }
 
 void CallSignalSocket::BuildStatusInquiryPDU(Q931 & StatusInquiryPDU, PBoolean fromDestination)
@@ -8522,31 +10309,86 @@ void CallSignalSocket::BuildStatusInquiryPDU(Q931 & StatusInquiryPDU, PBoolean f
 	}
 	StatusInquiryPDU.BuildStatusEnquiry(m_crv, fromDestination);
 	SetUUIE(StatusInquiryPDU, signal);
+#ifdef HAS_AVAYA_SUPPORT
+	PrintQ931(5, "Send to ", GetName(), &StatusInquiryPDU, &signal);
+#endif
 }
 
-void CallSignalSocket::BuildInformationPDU(Q931 & InformationPDU, PBoolean fromDestination)
+void CallSignalSocket::BuildInformationPDU(Q931 & InformationPDU, PBoolean fromDestination
+#ifdef HAS_AVAYA_SUPPORT
+											, const unsigned char * ccmsAvaya, unsigned int ccmsAvayaLen, unsigned callref
+#endif
+																					)
 {
 	H225_H323_UserInformation signal;
 	H225_H323_UU_PDU_h323_message_body & body = signal.m_h323_uu_pdu.m_h323_message_body;
 	body.SetTag(H225_H323_UU_PDU_h323_message_body::e_information);
 	H225_Information_UUIE & uuie = body;
+
 	uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
+
 	if (m_call) {
 		uuie.m_callIdentifier = m_call->GetCallIdentifier();
 	}
-	InformationPDU.BuildInformation(m_crv, fromDestination);
+
+
+	InformationPDU.BuildInformation(
+#ifdef HAS_AVAYA_SUPPORT
+					(callref ? callref :
+#endif
+					m_crv
+#ifdef HAS_AVAYA_SUPPORT
+						)
+#endif
+						, fromDestination);
+
+#ifdef HAS_AVAYA_SUPPORT
+	/* Avaya hack */
+	if (ccmsAvaya) {
+		PTRACE(3, Type() << "\tAvaya: forming INFO+CCMS");
+		/* was FOUND in Avaya exchange, for future development  */
+		if (!signal.m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Tunneling))
+			signal.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+		signal.m_h323_uu_pdu.m_h245Tunneling.SetValue(false);
+
+		if (!signal.m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_nonStandardControl))
+			signal.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_nonStandardControl);
+
+		if (ccmsAvaya && ccmsAvayaLen) {
+			signal.m_h323_uu_pdu.m_nonStandardControl.SetSize(1);
+			PASN_ObjectId & nsi = signal.m_h323_uu_pdu.m_nonStandardControl[0].m_nonStandardIdentifier;
+			nsi.SetValue("2.16.840.1.113778.4.2.10");
+			signal.m_h323_uu_pdu.m_nonStandardControl[0].m_data = PASN_OctetString((const char *)ccmsAvaya, ccmsAvayaLen);
+		}
+	}
+#endif
+
 	SetUUIE(InformationPDU, signal);
+
+#ifdef HAS_AVAYA_SUPPORT
+	PrintQ931(5, "Send to ", GetName(), &InformationPDU, &signal);
+#endif
 }
 
-void CallSignalSocket::BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallIdentifier & callId, unsigned crv)
+void CallSignalSocket::BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallIdentifier & callId, unsigned crv
+#ifdef HAS_AVAYA_SUPPORT
+														, bool avaya
+#endif
+																)
 {
 	H225_H323_UserInformation signal;
 	H225_H323_UU_PDU_h323_message_body & body = signal.m_h323_uu_pdu.m_h323_message_body;
 	body.SetTag(H225_H323_UU_PDU_h323_message_body::e_callProceeding);
 	H225_CallProceeding_UUIE & uuie = body;
+
 	uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
 	uuie.m_callIdentifier = callId;
 	uuie.m_destinationInfo.IncludeOptionalField(H225_EndpointType::e_gatekeeper);
+
+#ifdef HAS_AVAYA_SUPPORT
+	ProceedingPDU.BuildCallProceeding(crv);
+#endif
+
 	if (GkConfig()->GetBoolean(RoutedSec, "UseProvisionalRespToH245Tunneling", false)) {
 		signal.m_h323_uu_pdu.RemoveOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
 		signal.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_provisionalRespToH245Tunneling);
@@ -8557,11 +10399,201 @@ void CallSignalSocket::BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallI
 		else
 			signal.m_h323_uu_pdu.m_h245Tunneling.SetValue(false);
 	}
+
+#ifndef HAS_AVAYA_SUPPORT
 	ProceedingPDU.BuildCallProceeding(crv);
+#else
+	if (avaya) {
+		PTRACE(3, Type() << "\tAvaya: forming CALL_PROC");
+		if (!uuie.HasOptionalField(H225_CallProceeding_UUIE::e_multipleCalls))
+			uuie.IncludeOptionalField(H225_CallProceeding_UUIE::e_multipleCalls);
+		uuie.m_multipleCalls.SetValue(true);
+		if (!uuie.HasOptionalField(H225_CallProceeding_UUIE::e_maintainConnection))
+			uuie.IncludeOptionalField(H225_CallProceeding_UUIE::e_maintainConnection);
+		uuie.m_maintainConnection.SetValue(true);
+
+		if (!uuie.m_destinationInfo.HasOptionalField(H225_EndpointType::e_vendor))
+			uuie.m_destinationInfo.IncludeOptionalField(H225_EndpointType::e_vendor);
+		uuie.m_destinationInfo.m_vendor.m_vendor.m_t35CountryCode = Toolkit::t35cUSA;
+		uuie.m_destinationInfo.m_vendor.m_vendor.m_t35Extension = 0;
+		uuie.m_destinationInfo.m_vendor.m_vendor.m_manufacturerCode = Toolkit::t35mLucent;
+
+		if (!uuie.m_destinationInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId))
+			uuie.m_destinationInfo.m_vendor.IncludeOptionalField(H225_VendorIdentifier::e_productId);
+		uuie.m_destinationInfo.m_vendor.m_productId = "Avaya Multivantage";
+
+		if (!uuie.m_destinationInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_versionId))
+			uuie.m_destinationInfo.m_vendor.IncludeOptionalField(H225_VendorIdentifier::e_versionId);
+		uuie.m_destinationInfo.m_vendor.m_versionId = "R018x.01.0.890.0";
+
+		uuie.m_destinationInfo.m_mc.SetValue(true);
+		uuie.m_destinationInfo.m_undefinedNode.SetValue(false);
+
+		if (!uuie.m_destinationInfo.HasOptionalField(H225_EndpointType::e_mcu))
+			uuie.m_destinationInfo.IncludeOptionalField(H225_EndpointType::e_mcu);
+
+		if (!uuie.m_destinationInfo.HasOptionalField(H225_EndpointType::e_gateway))
+			uuie.m_destinationInfo.IncludeOptionalField(H225_EndpointType::e_gateway);
+		if (!uuie.m_destinationInfo.m_gateway.HasOptionalField(H225_GatewayInfo::e_protocol))
+			uuie.m_destinationInfo.m_gateway.IncludeOptionalField(H225_GatewayInfo::e_protocol);
+
+		uuie.m_destinationInfo.m_gateway.m_protocol.SetSize(3); /* H.320, H.323, Voice */
+
+		{
+			H225_SupportedProtocols &p = uuie.m_destinationInfo.m_gateway.m_protocol[0];
+			p.SetTag(H225_SupportedProtocols::e_h320);
+			H225_H320Caps &caps = p;
+			if (!caps.HasOptionalField(H225_H320Caps::e_supportedPrefixes))
+				caps.IncludeOptionalField(H225_H320Caps::e_supportedPrefixes);
+			caps.m_supportedPrefixes.SetSize(1);
+			H225_AliasAddress &a = caps.m_supportedPrefixes[0].m_prefix;
+			H323SetAliasAddress(PString("9"), a, H225_AliasAddress::e_dialedDigits);
+		}
+
+		{
+			H225_SupportedProtocols &p = uuie.m_destinationInfo.m_gateway.m_protocol[1];
+			p.SetTag(H225_SupportedProtocols::e_h323);
+			H225_H323Caps &caps = p;
+			if (!caps.HasOptionalField(H225_H323Caps::e_supportedPrefixes))
+				caps.IncludeOptionalField(H225_H323Caps::e_supportedPrefixes);
+			caps.m_supportedPrefixes.SetSize(1);
+			H225_AliasAddress &a = caps.m_supportedPrefixes[0].m_prefix;
+			H323SetAliasAddress(PString("9"), a, H225_AliasAddress::e_dialedDigits);
+		}
+
+		{
+			H225_SupportedProtocols &p = uuie.m_destinationInfo.m_gateway.m_protocol[2];
+			p.SetTag(H225_SupportedProtocols::e_voice);
+			H225_VoiceCaps &caps = p;
+			if (!caps.HasOptionalField(H225_VoiceCaps::e_supportedPrefixes))
+				caps.IncludeOptionalField(H225_VoiceCaps::e_supportedPrefixes);
+			caps.m_supportedPrefixes.SetSize(1);
+			H225_AliasAddress &a = caps.m_supportedPrefixes[0].m_prefix;
+			H323SetAliasAddress(PString("9"), a, H225_AliasAddress::e_dialedDigits);
+		}
+
+	}
+#endif
+
 	SetUUIE(ProceedingPDU, signal);
 
 	PrintQ931(5, "Send to ", GetName(), &ProceedingPDU, &signal);
 }
+
+#ifdef HAS_AVAYA_SUPPORT
+/* Avaya hack (ONLY 4) */
+void CallSignalSocket::BuildConnectPDU(Q931 & ConnectPDU, const H225_CallIdentifier & callId, unsigned crv, const PObject * parm, bool avaya)
+{
+	H225_H323_UserInformation signal;
+	H225_H323_UU_PDU_h323_message_body & body = signal.m_h323_uu_pdu.m_h323_message_body;
+	body.SetTag(H225_H323_UU_PDU_h323_message_body::e_connect);
+	H225_Connect_UUIE & uuie = body;
+
+	uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);
+	uuie.m_callIdentifier = callId;
+	uuie.m_destinationInfo.IncludeOptionalField(H225_EndpointType::e_gatekeeper);
+
+	ConnectPDU.BuildConnect(crv);
+
+/*?*/
+	if (m_call) {
+		uuie.m_conferenceID = m_call->GetConferenceIdentifier();
+	}
+
+	if (GkConfig()->GetBoolean(RoutedSec, "UseProvisionalRespToH245Tunneling", false)) {
+		signal.m_h323_uu_pdu.RemoveOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+		signal.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_provisionalRespToH245Tunneling);
+	} else {
+		signal.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_h245Tunneling);
+		if (m_h245TunnelingTranslation)
+			signal.m_h323_uu_pdu.m_h245Tunneling.SetValue(m_h245Tunneling);
+		else
+			signal.m_h323_uu_pdu.m_h245Tunneling.SetValue(false);
+	}
+
+	if (avaya) {
+		PTRACE(3, Type() << "\tAvaya: forming CON");
+
+		if (!uuie.HasOptionalField(H225_Connect_UUIE::e_multipleCalls))
+			uuie.IncludeOptionalField(H225_Connect_UUIE::e_multipleCalls);
+		uuie.m_multipleCalls.SetValue(true);
+		if (!uuie.HasOptionalField(H225_Connect_UUIE::e_maintainConnection))
+			uuie.IncludeOptionalField(H225_Connect_UUIE::e_maintainConnection);
+		uuie.m_maintainConnection.SetValue(true);
+
+		if (!uuie.m_destinationInfo.HasOptionalField(H225_EndpointType::e_vendor))
+			uuie.m_destinationInfo.IncludeOptionalField(H225_EndpointType::e_vendor);
+		uuie.m_destinationInfo.m_vendor.m_vendor.m_t35CountryCode = Toolkit::t35cUSA;
+		uuie.m_destinationInfo.m_vendor.m_vendor.m_t35Extension = 0;
+		uuie.m_destinationInfo.m_vendor.m_vendor.m_manufacturerCode = Toolkit::t35mLucent;
+
+		if (!uuie.m_destinationInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_productId))
+			uuie.m_destinationInfo.m_vendor.IncludeOptionalField(H225_VendorIdentifier::e_productId);
+		uuie.m_destinationInfo.m_vendor.m_productId = "Avaya Multivantage";
+
+		if (!uuie.m_destinationInfo.m_vendor.HasOptionalField(H225_VendorIdentifier::e_versionId))
+			uuie.m_destinationInfo.m_vendor.IncludeOptionalField(H225_VendorIdentifier::e_versionId);
+		uuie.m_destinationInfo.m_vendor.m_versionId = "R018x.01.0.890.0";
+
+		uuie.m_destinationInfo.m_mc.SetValue(true);
+		uuie.m_destinationInfo.m_undefinedNode.SetValue(false);
+
+		if (!uuie.m_destinationInfo.HasOptionalField(H225_EndpointType::e_mcu))
+			uuie.m_destinationInfo.IncludeOptionalField(H225_EndpointType::e_mcu);
+
+		if (!uuie.m_destinationInfo.HasOptionalField(H225_EndpointType::e_gateway))
+			uuie.m_destinationInfo.IncludeOptionalField(H225_EndpointType::e_gateway);
+		if (!uuie.m_destinationInfo.m_gateway.HasOptionalField(H225_GatewayInfo::e_protocol))
+			uuie.m_destinationInfo.m_gateway.IncludeOptionalField(H225_GatewayInfo::e_protocol);
+
+		uuie.m_destinationInfo.m_gateway.m_protocol.SetSize(3); /* H.320, H.323, Voice */
+
+		{
+			H225_SupportedProtocols &p = uuie.m_destinationInfo.m_gateway.m_protocol[0];
+			p.SetTag(H225_SupportedProtocols::e_h320);
+			H225_H320Caps &v = p;
+			if (!v.HasOptionalField(H225_H320Caps::e_supportedPrefixes))
+				v.IncludeOptionalField(H225_H320Caps::e_supportedPrefixes);
+			v.m_supportedPrefixes.SetSize(1);
+			H225_AliasAddress &a = v.m_supportedPrefixes[0].m_prefix;
+			H323SetAliasAddress(PString("9"), a, H225_AliasAddress::e_dialedDigits);
+
+		}
+		{
+			H225_SupportedProtocols &p = uuie.m_destinationInfo.m_gateway.m_protocol[1];
+			p.SetTag(H225_SupportedProtocols::e_h323);
+			H225_H323Caps &v = p;
+			if (!v.HasOptionalField(H225_H323Caps::e_supportedPrefixes))
+				v.IncludeOptionalField(H225_H323Caps::e_supportedPrefixes);
+			v.m_supportedPrefixes.SetSize(1);
+			H225_AliasAddress &a = v.m_supportedPrefixes[0].m_prefix;
+			H323SetAliasAddress(PString("9"), a, H225_AliasAddress::e_dialedDigits);
+		}
+		{
+			H225_SupportedProtocols &p = uuie.m_destinationInfo.m_gateway.m_protocol[2];
+			p.SetTag(H225_SupportedProtocols::e_voice);
+			H225_VoiceCaps &v = p;
+			if (!v.HasOptionalField(H225_VoiceCaps::e_supportedPrefixes))
+				v.IncludeOptionalField(H225_VoiceCaps::e_supportedPrefixes);
+			v.m_supportedPrefixes.SetSize(1);
+			H225_AliasAddress &a = v.m_supportedPrefixes[0].m_prefix;
+			H323SetAliasAddress(PString("9"), a, H225_AliasAddress::e_dialedDigits);
+		}
+
+
+	}
+
+	if (parm) {
+		if (!uuie.HasOptionalField(H225_Connect_UUIE::e_fastStart)) uuie.IncludeOptionalField(H225_Connect_UUIE::e_fastStart);
+			H225_ArrayOf_PASN_OctetString m_fastStart = *dynamic_cast<const H225_ArrayOf_PASN_OctetString *>(parm);
+		uuie.m_fastStart = m_fastStart;
+	}
+
+	SetUUIE(ConnectPDU, signal);
+
+	PrintQ931(5, "Send to ", GetName(), &ConnectPDU, &signal);
+}
+#endif
 
 void CallSignalSocket::BuildSetupPDU(Q931 & SetupPDU, const H225_CallIdentifier & callid, unsigned crv, const PString & destination, bool h245tunneling)
 {
@@ -8623,6 +10655,9 @@ void CallSignalSocket::BuildSetupPDU(Q931 & SetupPDU, const H225_CallIdentifier 
 	caps[3] = 0xa5;
 	SetupPDU.SetIE(Q931::BearerCapabilityIE, caps);
 	SetUUIE(SetupPDU, signal);
+#ifdef HAS_AVAYA_SUPPORT
+	PrintQ931(5, "Send to ", GetName(), &SetupPDU, &signal);
+#endif
 }
 
 // handle a new message on a new connection
@@ -9292,12 +11327,19 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 	return true;
 }
 
-bool CallSignalSocket::InternalConnectTo()
+bool CallSignalSocket::InternalConnectTo(
+#ifdef HAS_AVAYA_SUPPORT
+					bool bForwardData
+#endif
+							)
 {
 	int numPorts = min(Q931PortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS);
 	for (int i = 0; i < numPorts; ++i) {
 		WORD pt = Q931PortRange.GetPort();
 		if (remote->Connect(localAddr, pt, peerAddr)) {
+#ifdef HAS_AVAYA_SUPPORT
+			localPort = pt;
+#endif
 			PTRACE(3, "Q931\tConnect to " << remote->GetName() << " from "
 				<< AsString(localAddr, pt) << " successful");
 			SetConnected(true);
@@ -9329,6 +11371,9 @@ bool CallSignalSocket::InternalConnectTo()
                 }
             }
 
+#ifdef HAS_AVAYA_SUPPORT
+			if (bForwardData)
+#endif
 			ForwardData();
 			return true;
 		}

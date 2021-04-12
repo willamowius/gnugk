@@ -43,8 +43,13 @@
 #define GK_DEF_BANDWIDTH			1280
 
 const char * const H225_ProtocolIDv2 = "0.0.8.2250.0.2";
+
 const char * const H225_ProtocolIDv4 = "0.0.8.2250.0.4";
+
+const char * const H225_ProtocolIDv5 = "0.0.8.2250.0.5";
+
 const char * const H225_ProtocolIDv6 = "0.0.8.2250.0.6";
+
 const char * const H245_ProtocolIDv3 = "0.0.8.245.0.3";
 
 const int MAX_H323_VERSION = 7;  // for messages we generate

@@ -74,7 +74,7 @@ class H235AuthDesECB : public H235Authenticator
 #endif
 
 
-#ifdef OFF
+#ifndef OFF
 
 // This stub is enough to fake 2.16.840.1.114187.1.3 support.
 // We don't know what the actual crypto is.

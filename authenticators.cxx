@@ -138,6 +138,7 @@ H235Authenticator::ValidationResult H235AuthDesECB::ValidateCryptoToken(
 PBoolean H235AuthDesECB::IsCapability(const H235_AuthenticationMechanism & mechanism,
                                      const PASN_ObjectId & algorithmOID)
 {
+  PTRACE(5, "H235RAS\tmechanism.GetTag=" << mechanism.GetTag() << " OID=" << algorithmOID.AsString());
   return mechanism.GetTag() == H235_AuthenticationMechanism::e_pwdSymEnc &&
          algorithmOID.AsString() == OID_DesECB;
 }
@@ -179,7 +180,7 @@ static PFactory<H235Authenticator>::Worker<H235AuthDesECB> factoryH235AuthDesECB
 /////////////////////////////////////////////////////////////////////////////
 #endif
 
-#ifdef OFF
+#ifdef HAS_AVAYA_SUPPORT
 
 // This stub is enough to fake 2.16.840.1.114187.1.3 support.
 // We don't know what the actual crypto is.

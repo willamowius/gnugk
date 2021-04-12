@@ -1,3 +1,4 @@
+
 //////////////////////////////////////////////////////////////////
 //
 // ProxyChannel.h
@@ -359,20 +360,39 @@ public:
 	bool HandleH245Mesg(PPER_Stream &, bool & suppress, H245Socket * h245sock = NULL);
 	void SendPostDialDigits();
 	void OnH245ChannelClosed() { m_h245socket = NULL; }
-	Address GetLocalAddr() { return localAddr; }
-	Address GetPeerAddr() { return peerAddr; }
-	Address GetMasqAddr() { return masqAddr; }
+	Address GetLocalAddr() const { return localAddr; }
+#ifdef HAS_AVAYA_SUPPORT
+	WORD GetLocalPort() const { return localPort; }
+#endif
+	Address GetPeerAddr() const { return peerAddr; }
+	Address GetMasqAddr() const { return masqAddr; }
 	PINDEX GetCallNumber() const { return m_call ? m_call->GetCallNumber() : 0; }
 	H225_CallIdentifier GetCallIdentifier() const { return m_call ? m_call->GetCallIdentifier() : 0; }
 	PString GetCallIdentifierAsString() const { return m_call ? AsString(m_call->GetCallIdentifier()) : "unknown"; }
-	void BuildFacilityPDU(Q931 &, int, const PObject * = NULL, bool h46017 = false);
+	void BuildFacilityPDU(Q931 &, int, const PObject * = NULL, bool h46017 = false
+#ifdef HAS_AVAYA_SUPPORT
+											, bool avaya = false
+#endif
+														);
 	void BuildProgressPDU(Q931 &, PBoolean fromDestination);
 	void BuildNotifyPDU(Q931 &, PBoolean fromDestination, int indication = 0);
 	void BuildStatusPDU(Q931 &, PBoolean fromDestination);
 	void BuildStatusInquiryPDU(Q931 &, PBoolean fromDestination);
-	void BuildInformationPDU(Q931 &, PBoolean fromDestination);
-	void BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallIdentifier & callId, unsigned crv);
+	void BuildInformationPDU(Q931 &, PBoolean fromDestination
+#ifdef HAS_AVAYA_SUPPORT
+								, const unsigned char * ccmsAvaya = NULL, unsigned int ccmsAvayaLen = 0, unsigned callref = 0
+#endif
+																				);
+	void BuildProceedingPDU(Q931 & ProceedingPDU, const H225_CallIdentifier & callId, unsigned crv
+#ifdef HAS_AVAYA_SUPPORT
+													, bool avaya = false
+#endif
+																);
+#ifdef HAS_AVAYA_SUPPORT
+	void BuildConnectPDU(Q931 & ConnectPDU, const H225_CallIdentifier & callId, unsigned crv, const PObject * = NULL, bool avaya = true);
+#endif
 	void BuildSetupPDU(Q931 &, const H225_CallIdentifier & callid, unsigned crv, const PString & destination, bool h245tunneling);
+	WORD GetCRV() const { return m_crv; }
 	void RemoveCall();
 	bool RerouteCall(CallLeg which, const PString & destination);
 	void RerouteCaller(PString destination);
@@ -425,7 +445,11 @@ public:
 #ifdef HAS_H46018
 	bool IsTraversalClient() const;
 	bool IsTraversalServer() const;
-	bool CreateRemote(const H225_TransportAddress & addr);
+	bool CreateRemote(const H225_TransportAddress & addr
+#ifdef HAS_AVAYA_SUPPORT
+							, bool bForwardData = true
+#endif
+										);
 	bool OnSCICall(const H225_CallIdentifier & callID, H225_TransportAddress sigAdr, bool useTLS);
 	bool IsCallFromTraversalServer() const { return m_callFromTraversalServer; }
 	bool IsCallToTraversalServer() const { return m_callToTraversalServer; }
@@ -446,6 +470,11 @@ public:
 
     bool IsRTPInactive(short session) const;
     void AbortLogicalChannel(short session);
+
+#ifdef HAS_AVAYA_SUPPORT
+	PString	GetAvayaKeypad() const { return m_Avaya_Keypad; }
+	void SetAvayaKeypad(PString pad) { m_Avaya_Keypad = pad; }
+#endif
 
 protected:
 	void ForwardCall(FacilityMsg *msg);
@@ -509,7 +538,11 @@ private:
 	// if return false, the h245Address field will be removed
 	bool SetH245Address(H225_TransportAddress &);
 
-	bool InternalConnectTo();
+	bool InternalConnectTo(
+#ifdef HAS_AVAYA_SUPPORT
+				bool bForwardData = true
+#endif
+							);
 	bool ForwardCallConnectTo();
 
 	/** @return
@@ -546,7 +579,11 @@ protected:
 	// but the local address that remote socket bind to
 	// they may be different in multi-homed environment
 	Address localAddr, peerAddr, masqAddr;
-	WORD peerPort;
+    WORD peerPort;
+#ifdef HAS_AVAYA_SUPPORT
+	WORD localPort;
+#endif
+
 
 private:
 	WORD m_crv;
@@ -592,6 +629,9 @@ private:
     // remember that this socket was forwarded so we don't accidentally delete
     // RTP multiplex sessions (H.460.19/H.460.26) when we delete the socket object
     bool m_socketWasForwarded;
+#ifdef HAS_AVAYA_SUPPORT
+	PString m_Avaya_Keypad;
+#endif
 };
 
 class CallSignalListener : public TCPListenSocket {

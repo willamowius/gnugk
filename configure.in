@@ -1442,6 +1442,31 @@ else
 fi
 AC_SUBST(HAS_LIBRABBITMQ)
 
+dnl #########################################################################
+dnl Avaya support
+dnl ########################################################################
+
+dnl MSWIN_DISPLAY    avaya,AVAYA
+dnl MSWIN_DEFAULT    avaya,Disabled
+dnl MSWIN_DEFINE     avaya,HAS_AVAYA_SUPPORT=1
+
+AC_ARG_ENABLE(avaya,
+[  --enable-avaya          enable Avaya support (default=no)],
+[ avaya="${enableval}" ], [avaya="no"]
+)
+
+if test "x${avaya}" != "xno" ; then
+   HAS_AVAYA_SUPPORT=1
+   AC_DEFINE(HAS_AVAYA_SUPPORT, 1)
+   STDCCFLAGS="-DHAS_AVAYA_SUPPORT=1 $STDCCFLAGS"
+   HEADERS="$HEADERS avaya.h avaya_station_1000.h"
+   echo "Avaya support enabled"
+else
+   echo "Avaya support disabled"
+   HAS_AVAYA_SUPPORT=0
+fi
+AC_SUBST(HAS_AVAYA_SUPPORT)
+
 dnl ########################################################################
 dnl make directives
 
