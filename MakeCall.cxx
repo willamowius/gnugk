@@ -227,6 +227,8 @@ void MakeCallEndPoint::OnRegistrationReject()
 	isRegistered = FALSE;
 }
 
+#ifdef H323_AUDIO_CODECS
+
 PBoolean MakeCallEndPoint::OpenAudioChannel(H323Connection & /* connection */,
                                           PBoolean /* isEncoding */,
                                           unsigned /* bufferSize */,
@@ -235,6 +237,8 @@ PBoolean MakeCallEndPoint::OpenAudioChannel(H323Connection & /* connection */,
 	// don't open audio connection, we only need the signaling connection to do the transfer
 	return FALSE;
 }
+
+#endif
 
 H323Connection * MakeCallEndPoint::CreateConnection(unsigned callReference)
 {
@@ -273,6 +277,8 @@ PBoolean MakeCallConnection::OnSendSignalSetup(H323SignalPDU & setupPDU)
     return H323Connection::OnSendSignalSetup(setupPDU);
 }
 
+#ifdef H323_AUDIO_CODECS
+
 PBoolean MakeCallConnection::OpenAudioChannel(PBoolean isEncoding, unsigned bufferSize, H323AudioCodec & codec)
 {
     PIndirectChannel * channel = new SilentChannel();
@@ -280,6 +286,7 @@ PBoolean MakeCallConnection::OpenAudioChannel(PBoolean isEncoding, unsigned buff
     return true;
 }
 
+#endif
 
 PBoolean SilentChannel::Read(void * buf, PINDEX len)
 {

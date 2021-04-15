@@ -32,7 +32,9 @@ public:
     virtual PBoolean OnIncomingCall(H323Connection &, const H323SignalPDU &, H323SignalPDU &);
     virtual PBoolean OnConnectionForwarded(H323Connection &, const PString &, const H323SignalPDU &);
     virtual void OnConnectionEstablished(H323Connection & connection, const PString & token);
+#ifdef H323_AUDIO_CODECS
     virtual PBoolean OpenAudioChannel(H323Connection &, PBoolean, unsigned, H323AudioCodec &);
+#endif
 	virtual void OnRegistrationConfirm(const H323TransportAddress & rasAddress);
 	virtual void OnRegistrationReject();
 
@@ -71,7 +73,9 @@ public:
     virtual ~MakeCallConnection() { }
 
     PBoolean OnSendSignalSetup(H323SignalPDU & setupPDU);
+#ifdef H323_AUDIO_CODECS
     PBoolean OpenAudioChannel(PBoolean isEncoding, unsigned bufferSize, H323AudioCodec & codec);
+#endif
 
 protected:
     MakeCallEndPoint & m_ep;
