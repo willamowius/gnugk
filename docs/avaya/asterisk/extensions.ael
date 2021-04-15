@@ -1,0 +1,130 @@
+globals {
+};
+
+context default {
+	_X. => {
+		jump s;
+	};
+	1999 => {
+			answer;
+			disa(no-password,dialplan);
+	};
+	s => {
+		answer;
+		playback(ss-noservice);
+		jump s@dsp-normal;
+	};
+	h => {
+		set(CHANNEL(amaflags)=OMIT);
+//		set(CDR(disposition)=FAILED);
+		hangup(1);
+	};
+};
+
+context dialplan {
+	_1XXX => {
+		if (${CHANNEL(channeltype)} = OOH323) {
+			senddtmf(#);
+		};
+		noop(Calling party ${CALLERID(num)});
+		dial(OOH323/${EXTEN},,gtT);
+		jump s@dsp-busy;
+	};
+	_2XXX => {
+		if (${CHANNEL(channeltype)} = OOH323) {
+			senddtmf(#);
+		};
+		noop(Calling party ${CALLERID(num)});
+		dial(PJSIP/${EXTEN},,gtT);
+		jump s@dsp-busy;
+	};
+	_3XXX => {
+		if (${CHANNEL(channeltype)} = OOH323) {
+			senddtmf(#);
+		};
+		noop(Calling party ${CALLERID(num)});
+		answer;
+		playback(we-dont-have-tech-support);
+		musiconhold();
+	};
+	_4XXX => {
+		if (${CHANNEL(channeltype)} = OOH323) {
+			senddtmf(#);
+		};
+		noop(Calling party ${CALLERID(num)});
+		answer;
+		echo();
+	};
+	_5XXX => {
+		if (${CHANNEL(channeltype)} = OOH323) {
+			senddtmf(#);
+		};
+		noop(Calling party ${CALLERID(num)});
+		answer;
+		playtones(d1);
+		wait(10);
+		hangup(16);
+	};
+	_6XXX => {
+		if (${CHANNEL(channeltype)} = OOH323) {
+			senddtmf(#);
+		};
+		noop(Calling party ${CALLERID(num)});
+		answer;
+		playback(hello-world);
+		musiconhold();
+	};
+	_[7890*#]. => {
+		if (${CHANNEL(channeltype)} = OOH323) {
+			senddtmf(#);
+		};
+		noop(Calling party ${CALLERID(num)});
+		jump s@dsp-undefined;
+	};
+};
+
+context dsp-undefined {
+	s => {
+		answer;
+		playtones(busy);
+repeat:
+		wait(60);
+		goto repeat;
+	};
+	h => {
+		set(CHANNEL(amaflags)=DOCUMENTATION);
+//		set(CDR(disposition)=CONGESTION);
+		congestion();
+	};
+};
+
+
+context dsp-normal {
+	s => {
+		answer;
+		playtones(busy);
+repeat:
+		wait(60);
+		goto repeat;
+	};
+	h => {
+		set(CHANNEL(amaflags)=BILLING);
+//		set(CDR(disposition)=ANSWERED);
+	};
+};
+
+context dsp-busy {
+	s => {
+		answer;
+		playtones(busy);
+repeat:
+		wait(60);
+		goto repeat;
+	};
+	h => {
+		set(CHANNEL(amaflags)=BILLING);
+//		set(CDR(disposition)=BUSY);
+		busy();
+	};
+};
+

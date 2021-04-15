@@ -1,0 +1,81 @@
+Gnu Gatekeeper Avaya functionality installation & test scenario
+
+1. Avaya functionality was reverse engineered from lab CM switch version 18.
+
+The following features and limitations are now available:
+    - GnuGk works ONLY as signaling conversion gateway between Avaya CCMS protocol and true H.323
+    - Avaya phones can not work standalone (as more clever H.323 or SIP units),
+      one also needs an external switching software (eg. Asterisk) with DSP to provide tones (dial, busy)
+      and proper dialed digits treatment handling
+    - tested on 16xx hardware phones and only with Asterisk as switching engine
+    - 46xx, 96xx series should work too (untested)
+    - Avaya softphones are currently NOT supported
+    - only 4-digit extensions supported with password authentication
+    - TLS/SRTP is not supported currently
+    - only G.711u codec supported, only Q.931 Keypad IE is supported from GnuGk
+    - one call-appearance model, NO local phone features (transfer, conference, programmable &
+      menu feature buttons), targeted as simple basic call phone
+    - CallLog and Redial button implemented
+    - auto-start implemented for incoming calls
+    - NO auto-start implemented (digit-button press to start dialing out)
+    - incoming CallerID/Display name implemented
+    - outgoing CallerID/Display must be checked in switching engine logic
+
+2. Source code & requirements
+    - Avaya 16xx phone firmware 1.3.12 and config file 
+      example at: https://support.avaya.com/downloads/download-details.action?contentId=C201773928555860_8&productId=P0468&releaseId=1.3.x
+      firmware at: https://support.avaya.com/downloads/download-details.action?contentId=C2018929148159930_3&productId=P0468&releaseId=1.3.x
+    - PWLib 2.10.9 (https://www.gnugk.org/compiling-gnugk.html)
+    - H323Plus 1.27.2 (https://www.gnugk.org/compiling-gnugk.html)
+    - Asterisk 16.5.0 with OOH323 channel driver (https://downloads.asterisk.org)
+    - HTTP server to provide configuration file for Avaya 16xx
+      (optional, can be run as part of Asterisk, check "http.conf" example)
+
+3. Compiling libraries
+    - define OPENH323DIR
+    - define PTLIBDIR
+    - define PWLIBDIR
+    - for PWLib:
+      ./configure --enable-asn --disable-oss -disable-v4l2
+      make optnoshared
+    - for H323Plus: ./configure --enable-h235 --enable-h235-256 --enable-h460p --enable-h460pre --enable-h460com --enable-h460im --enable-h461 --enable-h249 -enable-h46017 --enable-h46018 --enable-h46025 --enable-h46026
+      make optnoshared
+    - for GnuGk: 
+      ./configure --enable-h46018 --enable-avaya 
+      make optnoshared
+    - for Asterisk - compile with OOH323 and applications described in "extensions.ael" example file through:
+      make menuselect
+
+4. Use the provided gatekeeper.ini as example configuration
+
+5. Change "ooh323.conf" and "extensions.ael" as example for yours configuration; be aware
+   that sending "#" in dialplan context after full number completion MUST BE SET to result
+   in "dialing complete" operation signaling back to phone; this will provide proper
+   CallLog and Redial operations on the phone.
+
+6. Recommendations to "46xxsettings.txt" file, your can locate it with firmware,
+   regarding example in "http.conf", into "/var/lib/asterisk/static-http/"
+    - SET SYSAUDIOPATH 1
+    - SET BAKLIGHTOFF 1
+
+7. Avaya phones get initial configuration data from DHCP option 242, here is example,
+   how to set it for dnsmasq (Avaya phones do not work with HTTP redirection, HTTPDIR must be set):
+    - dhcp-option=242,MCIPADD=192.168.77.107,HTTPSRVR=192.168.77.107,HTTPDIR=/static/
+
+8. Main target for this Avaya feature in GnuGk is to replace Avaya CM with GnuGk+Asterisk
+   to continue using existent phones; attached configuration files means that solution runs co-resident like:
+    - GnuGk at 192.168.77.107 (1719/UDP RAS and 1720/TCP for call control, etc);
+    - Asterisk at 192.168.77.107 (1820/TCP for call control, etc and 80/TCP for Avaya phone config/firmware);
+    - RTP/UDP as provisioned in Asterisk and Avaya phone configuration.
+
+9. Call setup path example with Avaya 1608 phone registered as 1000 extension (default context
+   for OOH323 is "default") and another user at SIP phone at 2000 (default context is "dialplan"):
+    - Incoming call from SIP phone at Asterisk routes through context "dialplan" into OOH323 channel driver
+      and further to GnuGk, where it signals to Avaya phone through CCMS about incoming call, treats info
+      about RTP and after handset/speaker lift up, GnuGk connects both endpoints;
+    - Outgoing call from Avaya phone, when handset/speaker goes up, GnuGk initiates call from itself
+      into Asterisk "default" context with DISA application and connects phone RTP stream;
+      digits dialed on the phone GnuGk translates from CCMS into Q.931 KeyPad and Asterisk can
+      gathers it properly as new extension, as described in "dialplan" context;
+      if dialed digits would be enough to route call, Asterisk will connect it into proper destination.
+
