@@ -626,7 +626,7 @@ the call is rejected. If the string matches a dotted IP address, it is
 taken as destination IP otherwise it is treated as a new destination alias.
 <p>
 <itemize>
-<item><tt>URL=http://example.com/passwords</tt><newline>
+<item><tt>URL=http://example.com/route</tt><newline>
 Default: <tt>N/A</tt>
 <p>
 The URL to fetch the routing destination from. You can use the parameters specified below to parameterize the URL.
