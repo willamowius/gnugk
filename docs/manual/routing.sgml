@@ -655,6 +655,11 @@ A regular expression to use remove additional patterns from the extracted destin
 Default: <tt>^$</tt>
 <p>
 If the HTTP response matches this regular expression it is considered invalid.
+
+<item><tt/JSONResponse=1/<newline>
+Default: <tt>0</tt>
+<p>
+Use JSON as HTTP response for structured results. You may still use the ErrorRegex switch when using JSON, but the ResultRegex and DeleteRegex switch will be ignored.
 </itemize>
 
 The following parameters are available for the URL and Body strings:
@@ -668,6 +673,25 @@ The following parameters are available for the URL and Body strings:
 <item><tt/%m/ - the message type (ARQ, LRQ or Setup)
 <item><tt/%{client-auth-id}/ - a 64 bit integer ID provided to GnuGk when authenticating the call (through SQLAuth)
 <item><tt/%{language}/ - language if available
+</itemize>
+
+A JSON response may contain any of the below fields:
+<itemize>
+<item><tt/reject/ - boolean value whether to reject the call or not
+<item><tt/reject-reason/ - integer, interpreted as either AdmissionRejectReason of registered calls or Q.931 reject reason or unregistered calls
+<item><tt/destination/ - string where to route the call, either an alias or an IP number
+<item><tt/gateway/ - string with IP where to route the call, the destination field must be present and will be interpreted as an alias
+</itemize>
+
+A JSON response must contain either a reject field or a destination flied. All other fields are optional.
+
+Example JSON responses:
+<itemize>
+<item><tt>{ "reject": true }</tt>
+<item><tt>{ "reject": true, "reject-reason": 2 }</tt>
+<item><tt>{ "destination": "support" }</tt>
+<item><tt>{ "destination": "1.2.3.4" }</tt>
+<item><tt>{ "destination": "support", "gateway": "1.2.3.4:1720" }</tt>
 </itemize>
 
 

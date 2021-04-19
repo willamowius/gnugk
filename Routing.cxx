@@ -3,7 +3,7 @@
 // Routing Mechanism for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2003
-// Copyright (c) 2004-2019, Jan Willamowius
+// Copyright (c) 2004-2021, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -37,6 +37,10 @@
 #ifdef HAS_LIBCURL
 #include <curl/curl.h>
 #endif // HAS_LIBCURL
+
+#ifdef HAS_JSON
+#include <nlohmann/json.hpp>
+#endif // HAS_JSON
 
 using std::string;
 using std::vector;
@@ -2207,8 +2211,7 @@ void SqlPolicy::RunPolicy(
                 if (GkConfig()->GetBoolean(m_iniSection, "EnableRegexRewrite", false))
 				    destinationAlias = RewriteWildcard(calledAlias, destinationAlias);
 
-				PString destinationIp = resultRow[1].first;
-				PStringArray adr_parts = SplitIPAndPort(destinationIp, GK_DEF_ENDPOINT_SIGNAL_PORT);
+				PStringArray adr_parts = SplitIPAndPort(newDestinationIP, GK_DEF_ENDPOINT_SIGNAL_PORT);
 				PIPSocket::Address ip(adr_parts[0]);
 				WORD port = (WORD)(adr_parts[1].AsInteger());
 
@@ -2268,6 +2271,11 @@ void HttpPolicy::LoadConfig(const PString & instance)
 		PTRACE(2, "Error '"<< m_errorRegex.GetErrorText() <<"' compiling ErrorRegex: " << errorRegex);
 		m_errorRegex = PRegularExpression("^$", PRegularExpression::Extended);
 	}
+#ifdef HAS_JSON
+	m_JSONResponse = GkConfig()->GetBoolean(m_iniSection, "JSONResponse", false);
+#else
+	m_JSONResponse = false;
+#endif
 	m_active = true;
 }
 
@@ -2395,33 +2403,89 @@ void HttpPolicy::RunPolicy(
         PTRACE(4, m_name << "\tErrorRegex matches result from " << host);
         return;
     }
-    PString newDestination;
-    if (result.FindRegEx(m_resultRegex, pos, len)) {
-        newDestination = result.Mid(pos, len);
-        ReplaceRegEx(newDestination, m_deleteRegex, "", true);
-        PTRACE(5, m_name << "\tDestination = " << newDestination);
-    } else {
-        PTRACE(2, m_name << "\tError: No answer found in response from " << host);
-        return;
-    }
 
-    if (newDestination.ToUpper() == "REJECT") {
-        destination.SetRejectCall(true);
-    } else if (IsIPAddress(newDestination)) {
-        PStringArray adr_parts = SplitIPAndPort(newDestination, GK_DEF_ENDPOINT_SIGNAL_PORT);
-        PIPSocket::Address ip(adr_parts[0]);
-        WORD port = (WORD)(adr_parts[1].AsInteger());
-
-        Route route(m_name, SocketToH225TransportAddr(ip, port));
-        route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
+    if (m_JSONResponse) {
+#ifdef HAS_JSON
+        auto json_response = nlohmann::json::parse((const char *)result, NULL, false);
+        // check parse error
+        if (json_response.is_discarded()) {
+            PTRACE(1, m_name << "\tError parsing JSON response");
+            return;
+        }
+        if (json_response.contains("reject") && json_response["reject"]) { // eg. { "reject": true, "reject-reason": 2 }
+            destination.SetRejectCall(true);
+            if (json_response.contains("reject-reason"))
+                destination.SetRejectReason(json_response["reject-reason"].get<int>());
+            return;
+        }
+        if (!json_response.contains("destination")) {
+            PTRACE(1, m_name << "\tError: not rejected and no destination in JSON response");
+            return;
+        }
+        // single new destination
+        PString destinationAlias = json_response["destination"].get<std::string>().c_str();
+        Route route;
+        if (json_response.contains("gateway")) { // eg. { "destination": "support", "gateway": "1.2.3.4:1720" }
+            PStringArray adr_parts = SplitIPAndPort(json_response["gateway"].get<std::string>().c_str(), GK_DEF_ENDPOINT_SIGNAL_PORT);
+            PIPSocket::Address ip(adr_parts[0]);
+            WORD port = (WORD)(adr_parts[1].AsInteger());
+            route = Route(m_name, SocketToH225TransportAddr(ip, port));
+            route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
+            // when a gateway is set the destination is treated as an alias
+            H225_ArrayOf_AliasAddress newAliases;
+            newAliases.SetSize(1);
+			H323SetAliasAddress(destinationAlias, newAliases[0]);
+			destination.SetNewAliases(newAliases);
+        } else {
+            // if we only have a destination without gateway it can be alias or IP
+            if (IsIPAddress(destinationAlias)) { // eg. { "destination": "1.2.3.4:1720" }
+                PStringArray adr_parts = SplitIPAndPort(destinationAlias, GK_DEF_ENDPOINT_SIGNAL_PORT);
+                PIPSocket::Address ip(adr_parts[0]);
+                WORD port = (WORD)(adr_parts[1].AsInteger());
+                Route route(m_name, SocketToH225TransportAddr(ip, port));
+                route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
+                route.m_destNumber = destinationAlias;
+            } else { // { "destination": "support" }
+                H225_ArrayOf_AliasAddress newAliases;
+                newAliases.SetSize(1);
+                H323SetAliasAddress(destinationAlias, newAliases[0]);
+                destination.SetNewAliases(newAliases);
+            }
+        }
         if (!language.IsEmpty())
             route.m_language.AppendString(language);
         destination.AddRoute(route);
+        return;
+#endif // HAS_JSON
     } else {
-        H225_ArrayOf_AliasAddress newAliases;
-        newAliases.SetSize(1);
-        H323SetAliasAddress(newDestination, newAliases[0]);
-        destination.SetNewAliases(newAliases);
+        PString newDestination;
+        if (result.FindRegEx(m_resultRegex, pos, len)) {
+            newDestination = result.Mid(pos, len);
+            ReplaceRegEx(newDestination, m_deleteRegex, "", true);
+            PTRACE(5, m_name << "\tDestination = " << newDestination);
+        } else {
+            PTRACE(2, m_name << "\tError: No answer found in response from " << host);
+            return;
+        }
+
+        if (newDestination.ToUpper() == "REJECT") {
+            destination.SetRejectCall(true);
+        } else if (IsIPAddress(newDestination)) {
+            PStringArray adr_parts = SplitIPAndPort(newDestination, GK_DEF_ENDPOINT_SIGNAL_PORT);
+            PIPSocket::Address ip(adr_parts[0]);
+            WORD port = (WORD)(adr_parts[1].AsInteger());
+
+            Route route(m_name, SocketToH225TransportAddr(ip, port));
+            route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
+            if (!language.IsEmpty())
+                route.m_language.AppendString(language);
+            destination.AddRoute(route);
+        } else {
+            H225_ArrayOf_AliasAddress newAliases;
+            newAliases.SetSize(1);
+            H323SetAliasAddress(newDestination, newAliases[0]);
+            destination.SetNewAliases(newAliases);
+        }
     }
 }
 

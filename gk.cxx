@@ -2,7 +2,7 @@
 //
 // gk.cxx for GNU Gatekeeper
 //
-// Copyright (c) 2000-2019, Jan Willamowius
+// Copyright (c) 2000-2021, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -763,6 +763,9 @@ const char * KnownConfigEntries[][2] = {
 	{ "Routing::Http", "Body" },
 	{ "Routing::Http", "DeleteRegex" },
 	{ "Routing::Http", "ErrorRegex" },
+#ifdef HAS_JSON
+	{ "Routing::Http", "JSONResponse" },
+#endif
 	{ "Routing::Http", "Method" },
 	{ "Routing::Http", "ResultRegex" },
 	{ "Routing::Http", "URL" },

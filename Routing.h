@@ -5,7 +5,7 @@
 // Routing Mechanism for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2003
-// Copyright (c) 2004-2019, Jan Willamowius
+// Copyright (c) 2004-2021, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -596,6 +596,7 @@ protected:
 	PRegularExpression m_resultRegex;
 	PRegularExpression m_deleteRegex;
 	PRegularExpression m_errorRegex;
+	bool m_JSONResponse;
 };
 
 

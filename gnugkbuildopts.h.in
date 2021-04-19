@@ -2,7 +2,7 @@
 //
 // gnugkbuildopts.h autoconfig results
 //
-// Copyright (c) 2008-2019, Jan Willamowius
+// Copyright (c) 2008-2021, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -54,6 +54,9 @@
 
 // libcurl
 #undef HAS_LIBCURL
+
+// nlohmann-json3
+#undef HAS_JSON
 
 // librabbitmq
 #undef HAS_LIBRABBITMQ
