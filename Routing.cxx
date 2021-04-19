@@ -2240,6 +2240,7 @@ HttpPolicy::HttpPolicy()
 	m_active = false;
 	m_name = "Http";
 	m_iniSection = "Routing::Http";
+	m_JSONResponse = false;
 }
 
 void HttpPolicy::LoadConfig(const PString & instance)
@@ -2273,8 +2274,6 @@ void HttpPolicy::LoadConfig(const PString & instance)
 	}
 #ifdef HAS_JSON
 	m_JSONResponse = GkConfig()->GetBoolean(m_iniSection, "JSONResponse", false);
-#else
-	m_JSONResponse = false;
 #endif
 	m_active = true;
 }
