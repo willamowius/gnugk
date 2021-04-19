@@ -2411,20 +2411,20 @@ void HttpPolicy::RunPolicy(
             PTRACE(1, m_name << "\tError parsing JSON response");
             return;
         }
-        if (json_response.contains("reject") && json_response["reject"]) { // eg. { "reject": true, "reject-reason": 2 }
+        if (json_response.find("reject") != json_response.end() && json_response["reject"]) { // eg. { "reject": true, "reject-reason": 2 }
             destination.SetRejectCall(true);
-            if (json_response.contains("reject-reason"))
+            if (json_response.find("reject-reason") != json_response.end())
                 destination.SetRejectReason(json_response["reject-reason"].get<int>());
             return;
         }
-        if (!json_response.contains("destination")) {
+        if (json_response.find("destination") == json_response.end()) {
             PTRACE(1, m_name << "\tError: not rejected and no destination in JSON response");
             return;
         }
         // single new destination
         PString destinationAlias = json_response["destination"].get<std::string>().c_str();
         Route route;
-        if (json_response.contains("gateway")) { // eg. { "destination": "support", "gateway": "1.2.3.4:1720" }
+        if (json_response.find("gateway") != json_response.end()) { // eg. { "destination": "support", "gateway": "1.2.3.4:1720" }
             PStringArray adr_parts = SplitIPAndPort(json_response["gateway"].get<std::string>().c_str(), GK_DEF_ENDPOINT_SIGNAL_PORT);
             PIPSocket::Address ip(adr_parts[0]);
             WORD port = (WORD)(adr_parts[1].AsInteger());
