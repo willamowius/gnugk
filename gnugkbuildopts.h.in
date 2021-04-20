@@ -106,5 +106,10 @@
 
 // Avaya support
 #undef HAS_AVAYA_SUPPORT
+#if defined (HAS_AVAYA_SUPPORT) && !defined (HAS_H46018)
+// TODO: move this check into configure ?
+#error "Avaya support needs H.460.18 enabled!"
+#endif
 
 #endif
+
