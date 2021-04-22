@@ -14425,7 +14425,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		if (isRTCP && m_EnableRTCPStats && m_call && (*m_call))
 			ParseRTCP(*m_call, m_sessionID, fromIP, wbuffer, buflen);
         PIPSocket::Address gkIP;
-        if ((*m_call)->GetEndpointIPMapping(m_multiplexDestination_A.GetIP(), gkIP)) {
+        if (m_call && (*m_call) && (*m_call)->GetEndpointIPMapping(m_multiplexDestination_A.GetIP(), gkIP)) {
 		    H46019Session::Send(m_multiplexID_A, m_multiplexDestination_A, m_multiplexSocket_A, wbuffer, buflen, false, &gkIP);
         } else {
 		    H46019Session::Send(m_multiplexID_A, m_multiplexDestination_A, m_multiplexSocket_A, wbuffer, buflen, false, NULL);
@@ -14436,7 +14436,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		if (isRTCP && m_EnableRTCPStats && m_call && (*m_call))
 			ParseRTCP(*m_call, m_sessionID, fromIP, wbuffer, buflen);
         PIPSocket::Address gkIP;
-        if ((*m_call)->GetEndpointIPMapping(m_multiplexDestination_B.GetIP(), gkIP)) {
+        if (m_call && (*m_call) && (*m_call)->GetEndpointIPMapping(m_multiplexDestination_B.GetIP(), gkIP)) {
     		H46019Session::Send(m_multiplexID_B, m_multiplexDestination_B, m_multiplexSocket_B, wbuffer, buflen, false, &gkIP);
         } else {
     		H46019Session::Send(m_multiplexID_B, m_multiplexDestination_B, m_multiplexSocket_B, wbuffer, buflen, false, NULL);
