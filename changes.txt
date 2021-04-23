@@ -4,7 +4,7 @@ Changes from 5.7 to 5.8
 - new switch [Routing::Http] JSONResponse=1 to send more flexible routing data in the HTML reponses
 - support for Avaya's non-standard version of H.323 (./configure --enable-avaya) (thanks Konstantin Prokazov)
 - many new status port shortcuts (see manual section)
-- consider RFC 6598 shared network space (100.64.0.0/10) and Zerocnf (169.254.0.0/16) as private IPs
+- consider RFC 6598 shared network space (100.64.0.0/10) and Zeroconf (169.254.0.0/16) as private IPs
 - BUGFIX(ProxyChannel.cxx) always check AllowSignaledIPs= before applying
   IgnoreSignaledAllH239IPs or IgnoreSignaledPrivateH239IPs
 - BUGFIX(ProxyChannel.cxx) fix race condition when handling H.460.19 multiplex IDs
