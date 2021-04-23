@@ -183,7 +183,11 @@ endif
 
 ifeq "$(CXX)" "clang++"
 # avoid a ton of warnings about PTLib
-STDCCFLAGS += -Wno-unknown-pragmas -Wno-overloaded-virtual -Wno-unused-const-variable -Wno-unused-private-field
+STDCCFLAGS += -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-overloaded-virtual -Wno-unused-const-variable -Wno-unused-private-field
+endif
+ifeq "$(CXX)" "clang++-12"
+# avoid a ton of warnings about PTLib
+STDCCFLAGS += -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-overloaded-virtual -Wno-unused-const-variable -Wno-unused-private-field
 endif
 
 
