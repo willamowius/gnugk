@@ -7294,13 +7294,13 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 			PTRACE(3, Type() << "\tAvaya: CDSS=" << m_call->GetCallSignalSocketCalled());
 			PTRACE(3, Type() << "\tAvaya: Call from Avaya endpoint");
 			CallRec* ccms = m_call->GetCallingParty()->GetCCMS();
-			CallSignalSocket *css = ccms->GetCallSignalSocketCalling();
+			//CallSignalSocket *css = ccms->GetCallSignalSocketCalling();
 
 			m_call->SetFastStartResponseReceived();
 			OnFastStart(alertingBody.m_fastStart, false);
 
-			PIPSocket::Address	ip;
-			WORD	port;
+			PIPSocket::Address ip;
+			WORD port;
 			ccms->GetCallerAudioIP(ip, port);
 			PTRACE(3, Type() << "\tAvaya: Caller(ing) Audio IP: " << ip << ":" << port);
 			m_call->GetCalledAudioIP(ip, port);
@@ -7624,7 +7624,7 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 							PASN_OctetString osDigitPound((const char *)CCMS_vdtUpdate_DigitPound, sizeof(CCMS_vdtUpdate_DigitPound));
 
 							/* Taking in care schema, where Avaya phone establishes connection */
-							CallRec* ccms = ep->GetCCMS();
+							//CallRec* ccms = ep->GetCCMS();
 							// this->GetCallSignalSocketCalling() - avaya CCMS signalling
 
 							callptr incall = (CallTable::Instance()->FindBySignalAdr(_peerAddress));
