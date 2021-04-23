@@ -360,7 +360,7 @@ void NetSNMPAgent::Run()
 	netsnmp_register_scalar(
 		netsnmp_create_handler_registration("catchall", catchall_handler, CatchAllOID, OID_LENGTH(CatchAllOID), HANDLER_CAN_RWRITE));
 	netsnmp_register_scalar(
-		netsnmp_create_handler_registration("bandwidth", bandwidth_handler, CallsOID, OID_LENGTH(CallsOID), HANDLER_CAN_RONLY));
+		netsnmp_create_handler_registration("bandwidth", bandwidth_handler, TotalBandwidthOID, OID_LENGTH(TotalBandwidthOID), HANDLER_CAN_RONLY));
 
 	init_snmp(agent_name);   // reads $HOME/.snmp/gnugk-agent.conf + $HOME/.snmp/agentx.conf
 

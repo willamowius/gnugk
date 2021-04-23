@@ -1,5 +1,6 @@
 Changes from 5.7 to 5.8
 =======================
+- BUGFIX(snmp.cxx) fix Net-SNMP query for total bandwidth
 - new switch [Routing::Http] JSONResponse=1 to send more flexible routing data in the HTML reponses
 - support for Avaya's non-standard version of H.323 (./configure --enable-avaya) (thanks Konstantin Prokazov)
 - many new status port shortcuts (see manual section)
