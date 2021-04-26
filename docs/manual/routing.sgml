@@ -683,7 +683,9 @@ A JSON response may contain any of the below fields:
 <item><tt/gateway/ - string with IP where to route the call, the destination field must be present and will be interpreted as an alias
 </itemize>
 
-A JSON response must contain either a reject field or a destination flied. All other fields are optional.
+A JSON response should contain either a reject field or a destination field. All other fields are optional.
+You may send an array of response objects to use as multiple routes for call failover.
+A call rejection must be sent as a single JSON object, not inside an array.
 
 Example JSON responses:
 <itemize>
@@ -692,6 +694,7 @@ Example JSON responses:
 <item><tt>{ "destination": "support" }</tt>
 <item><tt>{ "destination": "1.2.3.4" }</tt>
 <item><tt>{ "destination": "support", "gateway": "1.2.3.4:1720" }</tt>
+<item><tt>[ { "destination": "support", "gateway": "1.2.3.4:1720" }, { "destination": "support", "gateway": "5.6.7.8:1720" } ]</tt>
 </itemize>
 
 

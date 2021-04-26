@@ -24,6 +24,10 @@
 #include "RasTbl.h"
 #include "stl_supp.h"
 
+#ifdef HAS_JSON
+#include <nlohmann/json.hpp>
+#endif // HAS_JSON
+
 // forward references to avoid includes
 class H225_AdmissionRequest;
 class H225_LocationRequest;
@@ -588,6 +592,10 @@ protected:
 		const PString & language,
 		/* out: */
 		DestinationRoutes & destination);
+
+#ifdef HAS_JSON
+		virtual void ParseJSONRoute(const nlohmann::json & jsonRoute, const PString & language, DestinationRoutes & destination);
+#endif // HAS_JSON
 
 protected:
 	PString m_url;

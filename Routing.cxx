@@ -38,10 +38,6 @@
 #include <curl/curl.h>
 #endif // HAS_LIBCURL
 
-#ifdef HAS_JSON
-#include <nlohmann/json.hpp>
-#endif // HAS_JSON
-
 using std::string;
 using std::vector;
 using std::list;
@@ -2411,6 +2407,12 @@ void HttpPolicy::RunPolicy(
             PTRACE(1, m_name << "\tError parsing JSON response");
             return;
         }
+        if (json_response.is_array()) {
+            for(unsigned n = 0; n < json_response.size(); ++n) {
+                ParseJSONRoute(json_response[n], language, destination);
+            }
+            return;
+        }
         if (json_response.find("reject") != json_response.end() && json_response["reject"]) { // eg. { "reject": true, "reject-reason": 2 }
             destination.SetRejectCall(true);
             if (json_response.find("reject-reason") != json_response.end())
@@ -2418,42 +2420,11 @@ void HttpPolicy::RunPolicy(
             return;
         }
         if (json_response.find("destination") == json_response.end()) {
-            PTRACE(1, m_name << "\tError: not rejected and no destination in JSON response");
+            PTRACE(3, m_name << "\tNot rejected and no destination in JSON response");
             return;
         }
         // single new destination
-        PString destinationAlias = json_response["destination"].get<std::string>().c_str();
-        Route route;
-        if (json_response.find("gateway") != json_response.end()) { // eg. { "destination": "support", "gateway": "1.2.3.4:1720" }
-            PStringArray adr_parts = SplitIPAndPort(json_response["gateway"].get<std::string>().c_str(), GK_DEF_ENDPOINT_SIGNAL_PORT);
-            PIPSocket::Address ip(adr_parts[0]);
-            WORD port = (WORD)(adr_parts[1].AsInteger());
-            route = Route(m_name, SocketToH225TransportAddr(ip, port));
-            route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
-            // when a gateway is set the destination is treated as an alias
-            H225_ArrayOf_AliasAddress newAliases;
-            newAliases.SetSize(1);
-			H323SetAliasAddress(destinationAlias, newAliases[0]);
-			destination.SetNewAliases(newAliases);
-        } else {
-            // if we only have a destination without gateway it can be alias or IP
-            if (IsIPAddress(destinationAlias)) { // eg. { "destination": "1.2.3.4:1720" }
-                PStringArray adr_parts = SplitIPAndPort(destinationAlias, GK_DEF_ENDPOINT_SIGNAL_PORT);
-                PIPSocket::Address ip(adr_parts[0]);
-                WORD port = (WORD)(adr_parts[1].AsInteger());
-                Route route(m_name, SocketToH225TransportAddr(ip, port));
-                route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
-                route.m_destNumber = destinationAlias;
-            } else { // { "destination": "support" }
-                H225_ArrayOf_AliasAddress newAliases;
-                newAliases.SetSize(1);
-                H323SetAliasAddress(destinationAlias, newAliases[0]);
-                destination.SetNewAliases(newAliases);
-            }
-        }
-        if (!language.IsEmpty())
-            route.m_language.AppendString(language);
-        destination.AddRoute(route);
+        ParseJSONRoute(json_response, language, destination);
         return;
 #endif // HAS_JSON
     } else {
@@ -2487,6 +2458,44 @@ void HttpPolicy::RunPolicy(
         }
     }
 }
+
+#ifdef HAS_JSON
+void HttpPolicy::ParseJSONRoute(const nlohmann::json & jsonRoute, const PString & language, DestinationRoutes & destination)
+{
+    Route route;
+    PString destinationAlias = jsonRoute["destination"].get<std::string>().c_str();
+    if (jsonRoute.find("gateway") != jsonRoute.end()) { // eg. { "destination": "support", "gateway": "1.2.3.4:1720" }
+        PStringArray adr_parts = SplitIPAndPort(jsonRoute["gateway"].get<std::string>().c_str(), GK_DEF_ENDPOINT_SIGNAL_PORT);
+        PIPSocket::Address ip(adr_parts[0]);
+        WORD port = (WORD)(adr_parts[1].AsInteger());
+        route = Route(m_name, SocketToH225TransportAddr(ip, port));
+        route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
+        // when a gateway is set the destination is treated as an alias
+        H225_ArrayOf_AliasAddress newAliases;
+        newAliases.SetSize(1);
+        H323SetAliasAddress(destinationAlias, newAliases[0]);
+        destination.SetNewAliases(newAliases);
+    } else {
+        // if we only have a destination without gateway it can be alias or IP
+        if (IsIPAddress(destinationAlias)) { // eg. { "destination": "1.2.3.4:1720" }
+            PStringArray adr_parts = SplitIPAndPort(destinationAlias, GK_DEF_ENDPOINT_SIGNAL_PORT);
+            PIPSocket::Address ip(adr_parts[0]);
+            WORD port = (WORD)(adr_parts[1].AsInteger());
+            Route route(m_name, SocketToH225TransportAddr(ip, port));
+            route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
+            route.m_destNumber = destinationAlias;
+        } else { // { "destination": "support" }
+            H225_ArrayOf_AliasAddress newAliases;
+            newAliases.SetSize(1);
+            H323SetAliasAddress(destinationAlias, newAliases[0]);
+            destination.SetNewAliases(newAliases);
+        }
+    }
+    if (!language.IsEmpty())
+        route.m_language.AppendString(language);
+    destination.AddRoute(route);
+}
+#endif // HAS_JSON
 
 
 CatchAllPolicy::CatchAllPolicy()
