@@ -1057,6 +1057,26 @@ Default: <tt>1</tt><newline>
 By default GnuGk will abort a signaling connection when an invalid TPKT packet is received.
 When you set this switch to 0, GnuGk will ignore the packet and try to continue.
 
+<item><tt>AsteriskGWID=ACE</tt><newline>
+Default: <tt>ACE</tt><newline>
+<p>
+Specific to Avaya support:
+This switch sets the endpoint alias to identify the endpoint 
+(or gateway) where outgoing calls from Avaya phones are sent. Asterisk has to use this
+alias for the registration at GnuGk.
+
+<item><tt>AsteriskGWDN=1999</tt><newline>
+Default: <tt>1999</tt><newline>
+<p>
+Specific to Avaya support:
+DISA application, for providing emulation of Avaya switch 
+functionality. These digits will automatically dialed from Avaya phones
+to then start the digit collection.
+
+So, if your bring up the handset or turn the speaker on, GnuGK will automatically
+dial 1999@ACE, to fall into usual Avaya behavior - provide dialtone and
+awaits the actual destination to be dialed by the user.
+
 </itemize>
 
 <p>
