@@ -36,9 +36,9 @@ The following features and limitations are now available:
     - define PTLIBDIR
     - define PWLIBDIR
     - for PWLib:
-      ./configure --enable-asn --disable-oss -disable-v4l2
+      ./configure
       make optnoshared
-    - for H323Plus: ./configure --enable-h235 --enable-h235-256 --enable-h460p --enable-h460pre --enable-h460com --enable-h460im --enable-h461 --enable-h249 -enable-h46017 --enable-h46018 --enable-h46025 --enable-h46026
+    - for H323Plus: ./configure --enable-h235
       make optnoshared
     - for GnuGk: 
       ./configure --enable-h46018 --enable-avaya 
