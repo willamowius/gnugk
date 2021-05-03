@@ -1,5 +1,7 @@
 Changes from 5.7 to 5.8
 =======================
+- new switch [Proxy] AllowSignaledIPsFrom= to skip auto-detect for messages received directly
+  from certain IPs when IgnoreSignaledIPs=1
 - BUGFIX(snmp.cxx) fix Net-SNMP query for total bandwidth
 - new switch [Routing::Http] JSONResponse=1 to send more flexible routing data in the HTML reponses
 - support for Avaya's non-standard version of H.323 (./configure --enable-avaya) (thanks Konstantin Prokazov)

@@ -106,6 +106,9 @@ bool GetIPAndPortFromTransportAddr(const H245_TransportAddress & addr, PIPSocket
 
 PStringArray SplitIPAndPort(const PString & str, WORD default_port);
 
+// convert string to IP
+PIPSocket::Address GetIP(const PString & str);
+
 WORD GetH225Port(const H225_TransportAddress & addr);
 void SetH225Port(H225_TransportAddress & addr, WORD port);
 
@@ -261,7 +264,7 @@ int MatchPrefix(
     @return	Rewritten string.
 */
 PString RewriteString(
-	const PString& s,	/// original string to rewrite
+	const PString & s,	/// original string to rewrite
 	const char *prefix, /// prefix string that matched
 	const char *value,	/// new string that replaces the prefix string
 	PString & postdialdigts,

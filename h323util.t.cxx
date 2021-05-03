@@ -3,7 +3,7 @@
  *
  * unit tests for h323util.cxx
  *
- * Copyright (c) 2011-2019, Jan Willamowius
+ * Copyright (c) 2011-2021, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -360,6 +360,15 @@ TEST_F(H323UtilTest, SplitIPAndPort) {
 	parts = SplitIPAndPort("[2001:0db8:85a3:08d3:1319:8a2e:0370:7344]:1234", 1235);
 	EXPECT_STREQ(parts[0], "2001:0db8:85a3:08d3:1319:8a2e:0370:7344");
 	EXPECT_STREQ(parts[1], "1234");
+}
+
+TEST_F(H323UtilTest, GetIP) {
+    PString str1 = "1.2.3.4";
+    PString str2 = "4.5.6.7";
+	PIPSocket::Address ip1("1.2.3.4");
+	EXPECT_TRUE(GetIP(str1) == ip1);
+	EXPECT_TRUE(AsString(GetIP(str2)) == "4.5.6.7");
+	EXPECT_FALSE(AsString(GetIP(str1)) == "4.5.6.7");
 }
 
 TEST_F(H323UtilTest, GetGUIDString) {

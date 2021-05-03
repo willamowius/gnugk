@@ -545,6 +545,14 @@ PStringArray SplitIPAndPort(const PString & str, WORD default_port)
 	}
 }
 
+PIPSocket::Address GetIP(const PString & str)
+{
+    PIPSocket::Address ip((DWORD)0);
+    H323TransportAddress h323ta = H323TransportAddress(str);
+    h323ta.GetIpAddress(ip);
+    return ip;
+}
+
 void SetSockaddr(sockaddr_in & sin, const PIPSocket::Address & ip, WORD port)
 {
 	memset(&sin, 0, sizeof(sin));

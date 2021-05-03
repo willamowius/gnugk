@@ -483,6 +483,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "PortNotifications", "T120PortClose" },
 #ifdef HAS_H46018
 	{ "Proxy", "AllowSignaledIPs" },
+	{ "Proxy", "AllowSignaledIPsFrom" },
 #endif
 #ifdef HAS_AVAYA_SUPPORT
 	{ "Proxy", "AsteriskGWID" },

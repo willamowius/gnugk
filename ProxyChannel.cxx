@@ -1132,7 +1132,7 @@ public:
 	WORD GetChannelNumber() const { return channelNumber; }
 	void SetChannelNumber(WORD cn) { channelNumber = cn; }
 
-	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *, callptr &, bool fromTraversalClient, bool useRTPMultiplexing) = 0;
+	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *, callptr &, bool fromTraversalClient, bool useRTPMultiplexing, const PIPSocket::Address & sourceIP) = 0;
 	virtual void StartReading(ProxyHandler *) = 0;
 	virtual void SetRTPMute(bool toMute) = 0;
 
@@ -1158,11 +1158,13 @@ public:
 	void SetMediaControlChannelSource(const H245_UnicastAddress &);
 	void ZeroMediaControlChannelSource();
 	void HandleMediaChannel(H245_UnicastAddress *, H245_UnicastAddress *, const PIPSocket::Address &, bool, callptr &,
-		bool fromTraversalClient, bool useRTPMultiplexing, bool isUnidirectional);
-	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters &, const PIPSocket::Address &, bool, callptr &, bool, bool useRTPMultiplexing, bool isUnidirectional);
+		                    bool fromTraversalClient, bool useRTPMultiplexing, bool isUnidirectional, const PIPSocket::Address & sourceIP);
+	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters &, const PIPSocket::Address &, bool, callptr &,
+                                    bool, bool useRTPMultiplexing, bool isUnidirectional, const PIPSocket::Address & sourceIP);
 
 	// override from class LogicalChannel
-	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *, callptr &, bool fromTraversalClient, bool useRTPMultiplexing);
+	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *, callptr &, bool fromTraversalClient,
+                                bool useRTPMultiplexing, const PIPSocket::Address & sourceIP);
 	virtual void StartReading(ProxyHandler *);
 	virtual void SetRTPMute(bool toMute);
 
@@ -1231,7 +1233,8 @@ private:
     bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H.239 streams
     bool m_ignoreSignaledAllH239IPs;   // also ignore all IPs signaled in H.239 streams
     list<NetworkAddress> m_ignorePublicH239IPs;   // do auto-detect for H.239 on this network
-    list<NetworkAddress> m_keepSignaledIPs;   // don't do auto-detect on this network
+    list<NetworkAddress> m_keepSignaledIPs;   // don't do auto-detect on this network (by signaled IP)
+    list<NetworkAddress> m_keepSignaledIPsFrom;   // don't do auto-detect on this network (by source IP)
     bool m_isUnidirectional;
     RTPSessionTypes m_sessionType;
 };
@@ -1242,7 +1245,8 @@ public:
 	virtual ~T120LogicalChannel();
 
 	// override from class LogicalChannel
-	virtual bool SetDestination(H245_OpenLogicalChannelAck &, H245Handler *, callptr &, bool /*fromTraversalClient*/, bool);
+	virtual bool SetDestination(H245_OpenLogicalChannelAck & /*olca*/, H245Handler * /*_handler*/, callptr & /*call*/, bool /*fromTraversalClient*/,
+                             bool /*useRTPMultiplexing*/, const PIPSocket::Address & /*sourceIP*/);
 	virtual void StartReading(ProxyHandler *);
 	virtual void SetRTPMute(bool /*toMute*/) { }   /// We do not Mute T.120 Channels
 
@@ -1287,8 +1291,8 @@ public:
 	NATHandler(const PIPSocket::Address & remote) : remoteAddr(remote) { }
 
 	void TranslateH245Address(H225_TransportAddress &);
-	bool HandleOpenLogicalChannel(H245_OpenLogicalChannel &);
-	bool HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck &);
+	bool HandleOpenLogicalChannel(H245_OpenLogicalChannel &, const PIPSocket::Address & sourceIP);
+	bool HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck &, const PIPSocket::Address & sourceIP);
 
 private:
 	bool SetAddress(H245_UnicastAddress *);
@@ -1305,9 +1309,9 @@ public:
 	virtual ~H245Handler();
 
 	virtual void OnH245Address(H225_TransportAddress &);
-	virtual bool HandleMesg(H245_MultimediaSystemControlMessage &, bool & suppress, callptr & call, H245Socket * h245sock);
-	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &, callptr &);
-	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &, callptr &);
+	virtual bool HandleMesg(H245_MultimediaSystemControlMessage &, bool & suppress, callptr & call, H245Socket * h245sock, const PIPSocket::Address & sourceIP);
+	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &, callptr &, const PIPSocket::Address & sourceIP);
+	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &, callptr &, const PIPSocket::Address & sourceIP);
 	typedef bool (H245Handler::*pMem)(H245_OpenLogicalChannel &, callptr &);
 
 	PIPSocket::Address GetLocalAddr() const { return localAddr; }
@@ -1316,8 +1320,8 @@ public:
 	bool IsSessionEnded() const { return isH245ended; }
 
 protected:
-	virtual bool HandleRequest(H245_RequestMessage &, callptr &);
-	virtual bool HandleResponse(H245_ResponseMessage &, callptr &);
+	virtual bool HandleRequest(H245_RequestMessage &, callptr &, const PIPSocket::Address & sourceIP);
+	virtual bool HandleResponse(H245_ResponseMessage &, callptr &, const PIPSocket::Address & sourceIP);
 	virtual bool HandleCommand(H245_CommandMessage &, bool & suppress, callptr &, H245Socket * h245sock);
 	virtual bool HandleIndication(H245_IndicationMessage &, bool & suppress);
 
@@ -1339,8 +1343,8 @@ public:
 	virtual ~H245ProxyHandler();
 
 	// override from class H245Handler
-	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &, callptr &);
-	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &, callptr &);
+	virtual bool HandleFastStartSetup(H245_OpenLogicalChannel &, callptr &, const PIPSocket::Address & sourceIP);
+	virtual bool HandleFastStartResponse(H245_OpenLogicalChannel &, callptr &, const PIPSocket::Address & sourceIP);
 
 	void SetHandler(ProxyHandler *);
 	H245ProxyHandler * GetPeer() const { return peer; }
@@ -1370,16 +1374,16 @@ public:
 
 protected:
 	// override from class H245Handler
-	virtual bool HandleRequest(H245_RequestMessage &, callptr &);
-	virtual bool HandleResponse(H245_ResponseMessage &, callptr &);
+	virtual bool HandleRequest(H245_RequestMessage &, callptr &, const PIPSocket::Address & sourceIP);
+	virtual bool HandleResponse(H245_ResponseMessage &, callptr &, const PIPSocket::Address & sourceIP);
 	virtual bool HandleCommand(H245_CommandMessage &, bool & suppress, callptr &, H245Socket * h245sock);
 	virtual bool HandleIndication(H245_IndicationMessage &, bool & suppress);
 
-	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters *, WORD flcn, bool isUnidirectional, RTPSessionTypes sessionType);
-	bool HandleOpenLogicalChannel(H245_OpenLogicalChannel &, callptr &);
-	bool HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck &, callptr &);
+	bool OnLogicalChannelParameters(H245_H2250LogicalChannelParameters *, WORD flcn, bool isUnidirectional, RTPSessionTypes sessionType, const PIPSocket::Address & sourceIP);
+	bool HandleOpenLogicalChannel(H245_OpenLogicalChannel &, callptr &, const PIPSocket::Address & sourceIP);
+	bool HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck &, callptr &, const PIPSocket::Address & sourceIP);
 	bool HandleOpenLogicalChannelReject(H245_OpenLogicalChannelReject &, callptr & call);
-	bool HandleCloseLogicalChannel(H245_CloseLogicalChannel &, callptr &);
+	bool HandleCloseLogicalChannel(H245_CloseLogicalChannel &, callptr &, const PIPSocket::Address & sourceIP);
 	void HandleMuteRTPChannel();
 #ifdef HAS_H235_MEDIA
 	bool HandleEncryptionUpdateRequest(H245_MiscellaneousCommand & cmd, bool & suppress, callptr & call, H245Socket * h245sock);
@@ -1428,7 +1432,8 @@ protected:
     bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H.239 streams
     bool m_ignoreSignaledAllH239IPs;   // also ignore all IPs signaled in H.239 streams
     list<NetworkAddress> m_ignorePublicH239IPs;   // do auto-detect for H.239 on this network
-    list<NetworkAddress> m_keepSignaledIPs;   // don't do auto-detect on this network
+    list<NetworkAddress> m_keepSignaledIPs;   // don't do auto-detect on this network (by signaled IP)
+    list<NetworkAddress> m_keepSignaledIPsFrom;   // don't do auto-detect on this network (by source IP)
     unsigned m_filterFastUpdatePeriod;
     bool m_matchH239SessionsByType;
 };
@@ -3493,7 +3498,8 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
         }
 	}
 
-	if ((!m_h245handler || !m_h245handler->HandleMesg(h245msg, suppress, m_call, h245sock)) && !changed)
+	PIPSocket::Address sourceIP = GetIP(GetName());
+	if ((!m_h245handler || !m_h245handler->HandleMesg(h245msg, suppress, m_call, h245sock, sourceIP)) && !changed)
 		return false;
 
 	strm.BeginEncoding();
@@ -9910,18 +9916,20 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 		}
 
 		bool altered = false;
+        PIPSocket::Address sourceIP = GetIP(GetName());
 		if (fromCaller) {
-			if (m_h245handler)
-                altered = m_h245handler->HandleFastStartSetup(olc, m_call);
+			if (m_h245handler) {
+                altered = m_h245handler->HandleFastStartSetup(olc, m_call, sourceIP);
+			}
 		} else {
 #ifdef HAS_H46018
 			if (m_call->H46019Required() && PIsDescendant(m_h245handler, H245ProxyHandler) && ((H245ProxyHandler*)m_h245handler)->UsesH46019()) {
-				altered = ((H245ProxyHandler*)m_h245handler)->HandleFastStartResponse(olc, m_call);
+				altered = ((H245ProxyHandler*)m_h245handler)->HandleFastStartResponse(olc, m_call, sourceIP);
 			} else
 #endif
 			{
 				if (m_h245handler)
-					altered = m_h245handler->HandleFastStartResponse(olc, m_call);
+					altered = m_h245handler->HandleFastStartResponse(olc, m_call, sourceIP);
 			}
 		}
 		if (altered) {
@@ -11559,17 +11567,17 @@ void H245Handler::OnH245Address(H225_TransportAddress & addr)
 		hnat->TranslateH245Address(addr);
 }
 
-bool H245Handler::HandleMesg(H245_MultimediaSystemControlMessage & h245msg, bool & suppress, callptr & call, H245Socket * h245sock)
+bool H245Handler::HandleMesg(H245_MultimediaSystemControlMessage & h245msg, bool & suppress, callptr & call, H245Socket * h245sock, const PIPSocket::Address & sourceIP)
 {
 	bool changed = false;
 
 	switch (h245msg.GetTag())
 	{
 		case H245_MultimediaSystemControlMessage::e_request:
-			changed = HandleRequest(h245msg, call);
+			changed = HandleRequest(h245msg, call, sourceIP);
 			break;
 		case H245_MultimediaSystemControlMessage::e_response:
-			changed = HandleResponse(h245msg, call);
+			changed = HandleResponse(h245msg, call, sourceIP);
 			break;
 		case H245_MultimediaSystemControlMessage::e_command:
 			changed = HandleCommand(h245msg, suppress, call, h245sock);
@@ -11584,22 +11592,22 @@ bool H245Handler::HandleMesg(H245_MultimediaSystemControlMessage & h245msg, bool
 	return changed;
 }
 
-bool H245Handler::HandleFastStartSetup(H245_OpenLogicalChannel & olc, callptr & call)
+bool H245Handler::HandleFastStartSetup(H245_OpenLogicalChannel & olc, callptr & call, const PIPSocket::Address & sourceIP)
 {
-	return hnat ? hnat->HandleOpenLogicalChannel(olc) : false;
+	return hnat ? hnat->HandleOpenLogicalChannel(olc, sourceIP) : false;
 }
 
-bool H245Handler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, callptr & call)
+bool H245Handler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, callptr & call, const PIPSocket::Address & sourceIP)
 {
-	return hnat ? hnat->HandleOpenLogicalChannel(olc) : false;
+	return hnat ? hnat->HandleOpenLogicalChannel(olc, sourceIP) : false;
 }
 
-bool H245Handler::HandleRequest(H245_RequestMessage & Request, callptr & call)
+bool H245Handler::HandleRequest(H245_RequestMessage & Request, callptr & call, const PIPSocket::Address & sourceIP)
 {
 	PTRACE(4, "H245\tRequest: " << Request.GetTagName());
 	if (Request.GetTag() == H245_RequestMessage::e_openLogicalChannel) {
         if (hnat) {
-            return hnat->HandleOpenLogicalChannel(Request);
+            return hnat->HandleOpenLogicalChannel(Request, sourceIP);
         } else {
             // remember all channels FLCN so we can close them on Reroute
             H245_OpenLogicalChannel & olc = Request;
@@ -11612,11 +11620,11 @@ bool H245Handler::HandleRequest(H245_RequestMessage & Request, callptr & call)
 	}
 }
 
-bool H245Handler::HandleResponse(H245_ResponseMessage & Response, callptr & call)
+bool H245Handler::HandleResponse(H245_ResponseMessage & Response, callptr & call, const PIPSocket::Address & sourceIP)
 {
 	PTRACE(4, "H245\tResponse: " << Response.GetTagName());
 	if (hnat && Response.GetTag() == H245_ResponseMessage::e_openLogicalChannelAck)
-		return hnat->HandleOpenLogicalChannelAck(Response);
+		return hnat->HandleOpenLogicalChannelAck(Response, sourceIP);
 	else
 		return false;
 }
@@ -13671,6 +13679,19 @@ UDPProxySocket::UDPProxySocket(const char *t, PINDEX no)
                 }
                 m_keepSignaledIPs.push_back(NetworkAddress(ip));
             }
+            PStringArray keepSignaledIPsFrom = GkConfig()->GetString(ProxySection, "AllowSignaledIPsFrom", "").Tokenise(",", FALSE);
+            for (PINDEX i = 0; i < keepSignaledIPsFrom.GetSize(); ++i) {
+                PString ip = keepSignaledIPsFrom[i];
+                if (ip.Find('/') == P_MAX_INDEX) {
+                    // add netmask to pure IPs
+                    if (IsIPv4Address(ip)) {
+                        ip += "/32";
+                    } else {
+                        ip += "/128";
+                    }
+                }
+                m_keepSignaledIPsFrom.push_back(NetworkAddress(ip));
+            }
         }
     }
 #endif
@@ -14872,6 +14893,19 @@ RTPLogicalChannel::RTPLogicalChannel(const H225_CallIdentifier & id, WORD flcn, 
                     }
                     m_keepSignaledIPs.push_back(NetworkAddress(ip));
                 }
+                PStringArray keepSignaledIPsFrom = GkConfig()->GetString(ProxySection, "AllowSignaledIPsFrom", "").Tokenise(",", FALSE);
+                for (PINDEX i = 0; i < keepSignaledIPsFrom.GetSize(); ++i) {
+                    PString ip = keepSignaledIPsFrom[i];
+                    if (ip.Find('/') == P_MAX_INDEX) {
+                        // add netmask to pure IPs
+                        if (IsIPv4Address(ip)) {
+                            ip += "/32";
+                        } else {
+                            ip += "/128";
+                        }
+                    }
+                    m_keepSignaledIPsFrom.push_back(NetworkAddress(ip));
+                }
             }
         }
     }
@@ -14981,6 +15015,19 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool na
                         }
                     }
                     m_keepSignaledIPs.push_back(NetworkAddress(ip));
+                }
+                PStringArray keepSignaledIPsFrom = GkConfig()->GetString(ProxySection, "AllowSignaledIPsFrom", "").Tokenise(",", FALSE);
+                for (PINDEX i = 0; i < keepSignaledIPsFrom.GetSize(); ++i) {
+                    PString ip = keepSignaledIPsFrom[i];
+                    if (ip.Find('/') == P_MAX_INDEX) {
+                        // add netmask to pure IPs
+                        if (IsIPv4Address(ip)) {
+                            ip += "/32";
+                        } else {
+                            ip += "/128";
+                        }
+                    }
+                    m_keepSignaledIPsFrom.push_back(NetworkAddress(ip));
                 }
             }
         }
@@ -15435,7 +15482,8 @@ void RTPLogicalChannel::ZeroMediaChannelSource()
 }
 
 // called on OLCAck
-void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlChannel, H245_UnicastAddress * mediaChannel, const PIPSocket::Address & local, bool rev, callptr & call, bool fromTraversalClient, bool useRTPMultiplexing, bool isUnidirectional)
+void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlChannel, H245_UnicastAddress * mediaChannel, const PIPSocket::Address & local,
+                                           bool rev, callptr & call, bool fromTraversalClient, bool useRTPMultiplexing, bool isUnidirectional, const PIPSocket::Address & sourceIP)
 {
     PTRACE(7, "JW RTP HandleMediaChannel: fromTraversalClient=" << fromTraversalClient << " isUnidirectional=" << isUnidirectional << " m_ignoreSignaledIPs=" << m_ignoreSignaledIPs);
 	H245_UnicastAddress tmp, tmpmedia, tmpmediacontrol, *dest = mediaControlChannel;
@@ -15495,7 +15543,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
         PTRACE(7, "JW RTP zero check 1: dest=" << AsString(ip) << " src=" << AsString(tmpSrcIP));
         if (m_ignoreSignaledIPs && !fromTraversalClient && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
             // only zero out dest IP
-            PTRACE(7, "JW RTP IN zero RTCP dest (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
+            PTRACE(7, "JW RTP zero RTCP dest (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
     		(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call, false);
         }
         if (m_ignoreSignaledIPs && !fromTraversalClient && m_ignoreSignaledAllH239IPs) {
@@ -15503,23 +15551,30 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
         }
         if (m_ignoreSignaledIPs && !fromTraversalClient && IsInNetworks(ip, m_ignorePublicH239IPs)) {
             // only zero out dest IP
-            PTRACE(7, "JW RTP IN zero RTCP dest (IgnoreSignaledIPs && IgnoreSignaledPublicH239IPsFrom)");
+            PTRACE(7, "JW RTP zero RTCP dest (IgnoreSignaledIPs && IgnoreSignaledPublicH239IPsFrom)");
     		(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call, false);
         }
     }
     if (IsInNetworks(ip, m_keepSignaledIPs)) {
+        PTRACE(7, "JW RTP don't zero due to AllowSignaledIPs");
+        zeroIP = false;
+    }
+    if (IsInNetworks(sourceIP, m_keepSignaledIPsFrom)) {
+        PTRACE(7, "JW RTP don't zero due to AllowSignaledIPsFrom");
         zeroIP = false;
     }
     if (zeroIP) {
-        PTRACE(7, "JW RTP IN zero RTCP src + dest (IgnoreSignaledIPs)");
+        PTRACE(7, "JW RTP zero RTCP src + dest (IgnoreSignaledIPs)");
         (rtcp->*SetDest)(0, 0, NULL, call, false);
-    } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs)) {
+    } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs
+               && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs) && !IsInNetworks(sourceIP, m_keepSignaledIPsFrom)) {
         // only zero out source IP
-        PTRACE(7, "JW RTP IN zero RTCP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
+        PTRACE(7, "JW RTP zero RTCP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
         (rtcp->*SetDest)(0, 0, dest, call, false);
-    } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsInNetworks(tmpSrcIP, m_ignorePublicH239IPs) && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs)) {
+    } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsInNetworks(tmpSrcIP, m_ignorePublicH239IPs)
+               && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs) && !IsInNetworks(sourceIP, m_keepSignaledIPsFrom)) {
         // only zero out source IP
-        PTRACE(7, "JW RTP IN zero RTCP src (IgnoreSignaledIPs && IgnoreSignaledPublicH239IPsFrom)");
+        PTRACE(7, "JW RTP zero RTCP src (IgnoreSignaledIPs && IgnoreSignaledPublicH239IPsFrom)");
         (rtcp->*SetDest)(0, 0, dest, call, false);
     }
 
@@ -15556,33 +15611,42 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
         if (isUnidirectional) {
             PIPSocket::Address ip = H245UnicastToSocketAddr(*dest);
             PTRACE(7, "JW RTP zero check 2: dest=" << AsString(ip) << " src=" << AsString(tmpSrcIP));
-            if (m_ignoreSignaledIPs && !fromTraversalClient && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs && !IsInNetworks(ip, m_keepSignaledIPs)) {
+            if (m_ignoreSignaledIPs && !fromTraversalClient && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs
+                && !IsInNetworks(ip, m_keepSignaledIPs) && !IsInNetworks(sourceIP, m_keepSignaledIPsFrom)) {
                 // only zero out dest IP
-                PTRACE(7, "JW RTP IN zero RTP dest (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
+                PTRACE(7, "JW RTP zero RTP dest (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
 			    (rtp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call, false);
             }
             if (m_ignoreSignaledIPs && !fromTraversalClient && m_ignoreSignaledAllH239IPs) {
                 zeroIP = true;
             }
-            if (m_ignoreSignaledIPs && !fromTraversalClient && IsInNetworks(ip, m_ignorePublicH239IPs) && !IsInNetworks(ip, m_keepSignaledIPs)) {
+            if (m_ignoreSignaledIPs && !fromTraversalClient && IsInNetworks(ip, m_ignorePublicH239IPs)
+                && !IsInNetworks(ip, m_keepSignaledIPs) && !IsInNetworks(sourceIP, m_keepSignaledIPsFrom)) {
                 // only zero out dest IP
-                PTRACE(7, "JW RTP IN zero RTP dest (IgnoreSignaledIPs && IgnoreSignaledPublicH239IPsFrom)");
+                PTRACE(7, "JW RTP zero RTP dest (IgnoreSignaledIPs && IgnoreSignaledPublicH239IPsFrom)");
 			    (rtp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call, false);
             }
         }
         if (IsInNetworks(ip, m_keepSignaledIPs)) {
+            PTRACE(7, "JW RTP don't zero due to AllowSignaledIPs");
+            zeroIP = false;
+        }
+        if (IsInNetworks(sourceIP, m_keepSignaledIPsFrom)) {
+            PTRACE(7, "JW RTP don't zero due to AllowSignaledIPsFrom");
             zeroIP = false;
         }
         if (zeroIP) {
-            PTRACE(7, "JW RTP IN zero RTP src + dest (IgnoreSignaledIPs)");
+            PTRACE(7, "JW RTP zero RTP src + dest (IgnoreSignaledIPs)");
             (rtp->*SetDest)(0, 0, NULL, call, false);
-        } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs)) {
+        } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs
+                   && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs) && !IsInNetworks(sourceIP, m_keepSignaledIPsFrom)) {
             // only zero out source IP
-            PTRACE(7, "JW RTP IN zero RTP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
+            PTRACE(7, "JW RTP zero RTP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
             (rtp->*SetDest)(0, 0, dest, call, false);
-        } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsInNetworks(tmpSrcIP, m_ignorePublicH239IPs) && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs)) {
+        } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsInNetworks(tmpSrcIP, m_ignorePublicH239IPs)
+                   && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs) && !IsInNetworks(sourceIP, m_keepSignaledIPsFrom)) {
             // only zero out source IP
-            PTRACE(7, "JW RTP IN zero RTP src (IgnoreSignaledIPs && IgnoreSignaledPublicH239IPsFrom)");
+            PTRACE(7, "JW RTP zero RTP src (IgnoreSignaledIPs && IgnoreSignaledPublicH239IPsFrom)");
             (rtp->*SetDest)(0, 0, dest, call, false);
         }
 
@@ -15613,7 +15677,8 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
             forwardAndReverseSeen = true;
         } else {
             if (fSrcPort > 0 && fDestPort > 0 && rSrcPort > 0 && rDestPort > 0 && !isUnidirectional) {
-                if (IsInNetworks(fSrcIP, m_keepSignaledIPs) || IsInNetworks(fDestIP, m_keepSignaledIPs) || IsInNetworks(rSrcIP, m_keepSignaledIPs) || IsInNetworks(rDestIP, m_keepSignaledIPs)) {
+                if (IsInNetworks(fSrcIP, m_keepSignaledIPs) || IsInNetworks(fDestIP, m_keepSignaledIPs) || IsInNetworks(rSrcIP, m_keepSignaledIPs)
+                    || IsInNetworks(rDestIP, m_keepSignaledIPs) || IsInNetworks(sourceIP, m_keepSignaledIPsFrom) ) {
                     // assume symmetric port usage if one side is set to allowed IPs
                     PTRACE(7, "JW RTP zero with any AllowedIP");
                     zeroNow = true;
@@ -15629,7 +15694,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
             }
         }
         if (zeroNow) {
-            PTRACE(7, "JW RTP IN zero RTP src + dest (IgnoreSignaledIPs)");
+            PTRACE(7, "JW RTP zero RTP src + dest (IgnoreSignaledIPs)");
             rtp->ZeroAllIPs();
             rtcp->ZeroAllIPs();
         }
@@ -15639,7 +15704,8 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
         }
     }
     GetRTPPorts(fSrcIP, fDestIP, rSrcIP, rDestIP, fSrcPort, fDestPort, rSrcPort, rDestPort);
-    PTRACE(7, "JW RTP after handle OLCAck fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort) << " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
+    PTRACE(7, "JW RTP after handle OLCAck fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
+           << " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 #endif
 
 }
@@ -15650,18 +15716,20 @@ void RTPLogicalChannel::SetRTPMute(bool toMute)
 		rtp->SetMute(toMute);
 }
 
-bool RTPLogicalChannel::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters & h225Params, const PIPSocket::Address & local, bool rev, callptr & call, bool fromTraversalClient, bool useRTPMultiplexing, bool isUnidirectional)
+bool RTPLogicalChannel::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters & h225Params, const PIPSocket::Address & local, bool rev, callptr & call,
+                                                   bool fromTraversalClient, bool useRTPMultiplexing, bool isUnidirectional, const PIPSocket::Address & sourceIP)
 {
 	m_isUnidirectional = isUnidirectional;  // remember for handling OLCAck
 	if (!h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel))
 		return false;
 	H245_UnicastAddress *mediaControlChannel = GetH245UnicastAddress(h225Params.m_mediaControlChannel);
 	H245_UnicastAddress *mediaChannel = h225Params.HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel) ? GetH245UnicastAddress(h225Params.m_mediaChannel) : NULL;
-	HandleMediaChannel(mediaControlChannel, mediaChannel, local, rev, call, fromTraversalClient, useRTPMultiplexing, isUnidirectional);
+	HandleMediaChannel(mediaControlChannel, mediaChannel, local, rev, call, fromTraversalClient, useRTPMultiplexing, isUnidirectional, sourceIP);
 	return true;
 }
 
-bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler * handler, callptr & call, bool fromTraversalClient, bool useRTPMultiplexing)
+bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler * handler, callptr & call, bool fromTraversalClient, bool useRTPMultiplexing,
+                                       const PIPSocket::Address & sourceIP)
 {
 	H245_UnicastAddress * mediaControlChannel = NULL;
 	H245_UnicastAddress * mediaChannel = NULL;
@@ -15669,7 +15737,7 @@ bool RTPLogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Ha
 	if (mediaControlChannel == NULL && mediaChannel == NULL) {
 		return false;
 	}
-	HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetMasqAddr(), false, call, fromTraversalClient, useRTPMultiplexing, m_isUnidirectional);
+	HandleMediaChannel(mediaControlChannel, mediaChannel, handler->GetMasqAddr(), false, call, fromTraversalClient, useRTPMultiplexing, m_isUnidirectional, sourceIP);
 	return true;
 }
 
@@ -15741,7 +15809,8 @@ T120LogicalChannel::~T120LogicalChannel()
 	PTRACE(4, "T120\tDelete logical channel " << channelNumber);
 }
 
-bool T120LogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler * _handler, callptr & /*call*/, bool /*fromTraversalClient*/, bool /*useRTPMultiplexing*/)
+bool T120LogicalChannel::SetDestination(H245_OpenLogicalChannelAck & olca, H245Handler * _handler, callptr & /*call*/,
+                                        bool /*fromTraversalClient*/, bool /*useRTPMultiplexing*/, const PIPSocket::Address & /*sourceIP*/)
 {
 	return (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_separateStack)) ?
 		OnSeparateStack(olca.m_separateStack, _handler) : false;
@@ -15875,6 +15944,19 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
                     }
                     m_keepSignaledIPs.push_back(NetworkAddress(ip));
                 }
+                PStringArray keepSignaledIPsFrom = GkConfig()->GetString(ProxySection, "AllowSignaledIPsFrom", "").Tokenise(",", FALSE);
+                for (PINDEX i = 0; i < keepSignaledIPsFrom.GetSize(); ++i) {
+                    PString ip = keepSignaledIPsFrom[i];
+                    if (ip.Find('/') == P_MAX_INDEX) {
+                        // add netmask to pure IPs
+                        if (IsIPv4Address(ip)) {
+                            ip += "/32";
+                        } else {
+                            ip += "/128";
+                        }
+                    }
+                    m_keepSignaledIPsFrom.push_back(NetworkAddress(ip));
+                }
             }
         }
     }
@@ -15910,30 +15992,30 @@ H245ProxyHandler::~H245ProxyHandler()
 	DeleteObjectsInMap(fastStartLCs);
 }
 
-bool H245ProxyHandler::HandleRequest(H245_RequestMessage & Request, callptr & call)
+bool H245ProxyHandler::HandleRequest(H245_RequestMessage & Request, callptr & call, const PIPSocket::Address & sourceIP)
 {
 	PTRACE(4, "H245\tRequest: " << Request.GetTagName());
 	if (peer)
 		switch (Request.GetTag())
 		{
 			case H245_RequestMessage::e_openLogicalChannel:
-				return HandleOpenLogicalChannel(Request, call);
+				return HandleOpenLogicalChannel(Request, call, sourceIP);
 			case H245_RequestMessage::e_closeLogicalChannel:
-				return HandleCloseLogicalChannel(Request, call);
+				return HandleCloseLogicalChannel(Request, call, sourceIP);
 			default:
 				break;
 		}
 	return false;
 }
 
-bool H245ProxyHandler::HandleResponse(H245_ResponseMessage & Response, callptr & call)
+bool H245ProxyHandler::HandleResponse(H245_ResponseMessage & Response, callptr & call, const PIPSocket::Address & sourceIP)
 {
 	PTRACE(4, "H245\tResponse: " << Response.GetTagName());
 	if (peer)
 		switch (Response.GetTag())
 		{
 			case H245_ResponseMessage::e_openLogicalChannelAck:
-				return HandleOpenLogicalChannelAck(Response, call);
+				return HandleOpenLogicalChannelAck(Response, call, sourceIP);
 			case H245_ResponseMessage::e_openLogicalChannelReject:
 				return HandleOpenLogicalChannelReject(Response, call);
 			default:
@@ -15988,7 +16070,8 @@ bool H245ProxyHandler::HandleCommand(H245_CommandMessage & Command, bool & suppr
 }
 
 // called on OLC
-bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters * h225Params, WORD flcn, bool isUnidirectional, RTPSessionTypes sessionType)
+bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParameters * h225Params, WORD flcn, bool isUnidirectional,
+                                                  RTPSessionTypes sessionType, const PIPSocket::Address & sourceIP)
 {
 	RTPLogicalChannel * lc = flcn ?
 		CreateRTPLogicalChannel((WORD)h225Params->m_sessionID, flcn, sessionType) :
@@ -16042,10 +16125,15 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
             }
         }
         if (IsInNetworks(signaledSrcIP, m_keepSignaledIPs)) {
+            PTRACE(7, "JW RTP don't zero due to m_keepSignaledIPs");
+            zeroIP = false;
+        }
+        if (IsInNetworks(sourceIP, m_keepSignaledIPsFrom)) {
+            PTRACE(7, "JW RTP don't zero due to m_keepSignaledIPsFrom");
             zeroIP = false;
         }
         if (zeroIP) {
-            PTRACE(7, "JW RTP IN zero media control channel source (IgnoreSignaledIPs)");
+            PTRACE(7, "JW RTP zero media control channel source (IgnoreSignaledIPs)");
             lc->ZeroMediaControlChannelSource();
         }
 		changed = true;
@@ -16076,10 +16164,15 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
                 }
             }
             if (IsInNetworks(ip, m_keepSignaledIPs)) {
+                PTRACE(7, "JW RTP don't zero due to m_keepSignaledIPs");
+                zeroIP = false;
+            }
+            if (IsInNetworks(sourceIP, m_keepSignaledIPsFrom)) {
+                PTRACE(7, "JW RTP don't zero due to m_keepSignaledIPsFrom");
                 zeroIP = false;
             }
             if (zeroIP) {
-                PTRACE(7, "JW RTP IN zero media channel source (IgnoreSignaledIPs)");
+                PTRACE(7, "JW RTP zero media channel source (IgnoreSignaledIPs)");
                 lc->ZeroMediaChannelSource();
             };
 		} else {
@@ -16195,11 +16288,11 @@ void GetSessionType(const H245_OpenLogicalChannel & olc, RTPSessionTypes & sessi
 }
 
 
-bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, callptr & call)
+bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, callptr & call, const PIPSocket::Address & sourceIP)
 {
 	bool changed = false;
 	if (hnat && !UsesH46019())
-		changed = hnat->HandleOpenLogicalChannel(olc);
+		changed = hnat->HandleOpenLogicalChannel(olc, sourceIP);
 
 	if (UsesH46019fc()) {
 		switch (GetH46019fcState()) {
@@ -16357,9 +16450,9 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 
 		// create LC objects, rewrite for forwarding after H.460.19 parameters have been parsed
 		if (UsesH46019fc()) {
-			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, 0, isUnidirectional, sessionType) : false;
+			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, 0, isUnidirectional, sessionType, sourceIP) : false;
 		} else {
-			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, flcn, isUnidirectional, sessionType) : false;
+			changed |= (h225Params) ? OnLogicalChannelParameters(h225Params, flcn, isUnidirectional, sessionType, sourceIP) : false;
 		}
 
 		if (isUnidirectional) {
@@ -16679,7 +16772,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelReject(H245_OpenLogicalChannelRej
 	return false; // nothing changed
 }
 
-bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & olca, callptr & call)
+bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & olca, callptr & call, const PIPSocket::Address & sourceIP)
 {
 	bool changed = false;
 #ifdef HAS_H46026
@@ -16698,7 +16791,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 #endif
 
 	if (hnat)
-		hnat->HandleOpenLogicalChannelAck(olca);
+		hnat->HandleOpenLogicalChannelAck(olca, sourceIP);
 	WORD flcn = (WORD)olca.m_forwardLogicalChannelNumber;
 	LogicalChannel * lc = NULL;
 	if (peer)
@@ -16989,7 +17082,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 	}
 #endif
 
-	bool result = lc->SetDestination(olca, this, call, IsTraversalClient(), (peer && peer->m_requestRTPMultiplexing));
+	bool result = lc->SetDestination(olca, this, call, IsTraversalClient(), (peer && peer->m_requestRTPMultiplexing), sourceIP);
 	if (result)
 		lc->StartReading(handler);
 
@@ -17155,7 +17248,7 @@ void H245ProxyHandler::HandleMuteRTPChannel()
 	}
 }
 
-bool H245ProxyHandler::HandleCloseLogicalChannel(H245_CloseLogicalChannel & clc, callptr & call)
+bool H245ProxyHandler::HandleCloseLogicalChannel(H245_CloseLogicalChannel & clc, callptr & call, const PIPSocket::Address & sourceIP)
 {
 	bool found = this->RemoveLogicalChannel((WORD)clc.m_forwardLogicalChannelNumber);
 	if (!found && GkConfig()->GetBoolean(ProxySection, "SearchBothSidesOnCLC", false)) {
@@ -17171,14 +17264,14 @@ bool H245ProxyHandler::HandleCloseLogicalChannel(H245_CloseLogicalChannel & clc,
 	return false; // nothing changed
 }
 
-bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc, callptr & call)
+bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc, callptr & call, const PIPSocket::Address & sourceIP)
 {
 	if (!peer)
 		return false;
 
 	bool changed = false;
 	if (hnat && (GetTraversalRole() == None)) {
-		changed |= hnat->HandleOpenLogicalChannel(olc);
+		changed |= hnat->HandleOpenLogicalChannel(olc, sourceIP);
 	}
 
 	if (GkConfig()->GetBoolean(ProxySection, "RemoveMCInFastStartTransmitOffer", false)) {
@@ -17200,18 +17293,18 @@ bool H245ProxyHandler::HandleFastStartSetup(H245_OpenLogicalChannel & olc, callp
 	}
 
 	if (UsesH46019() && call->GetCalledParty() && call->GetCalledParty()->IsTraversalClient())
-		return (HandleOpenLogicalChannel(olc, call) || changed);
+		return (HandleOpenLogicalChannel(olc, call, sourceIP) || changed);
 	else {
 		bool nouse;
 		H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, nouse);
         bool isUnidirectional = false;
         RTPSessionTypes sessionType = Unknown;
         GetSessionType(olc, sessionType, isUnidirectional);
-		return ((h225Params) ? OnLogicalChannelParameters(h225Params, 0, isUnidirectional, sessionType) : false) || changed;
+		return ((h225Params) ? OnLogicalChannelParameters(h225Params, 0, isUnidirectional, sessionType, sourceIP) : false) || changed;
 	}
 }
 
-bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, callptr & call)
+bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, callptr & call, const PIPSocket::Address & sourceIP)
 {
 	if (!peer)
 		return false;
@@ -17227,10 +17320,10 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 	bool nouse;
 	GetSessionType(olc, sessionType, nouse);
 	if (hnat && (peer->GetTraversalRole() == None))
-		changed = hnat->HandleOpenLogicalChannel(olc);
+		changed = hnat->HandleOpenLogicalChannel(olc, sourceIP);
 
 	if (peer->IsTraversalClient() && call->GetCallingParty() && call->GetCallingParty()->IsTraversalClient())
-		changed |= HandleOpenLogicalChannel(olc, call);
+		changed |= HandleOpenLogicalChannel(olc, call, sourceIP);
 
 	WORD flcn = (WORD)olc.m_forwardLogicalChannelNumber;
 	H245_H2250LogicalChannelParameters *h225Params = GetLogicalChannelParameters(olc, isReverseLC);
@@ -17291,7 +17384,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 		H245_VideoCapability & vid = olc.m_forwardLogicalChannelParameters.m_dataType;
 		isUnidirectional = (vid.GetTag() == H245_VideoCapability::e_extendedVideoCapability);
     }
-	if (lc && (changed = lc->OnLogicalChannelParameters(*h225Params, GetMasqAddr(), isReverseLC, call, IsTraversalClient(), useMultiplexing, isUnidirectional)))
+	if (lc && (changed = lc->OnLogicalChannelParameters(*h225Params, GetMasqAddr(), isReverseLC, call, IsTraversalClient(), useMultiplexing, isUnidirectional, sourceIP)))
 		lc->StartReading(handler);
 	return changed;
 }
@@ -17492,7 +17585,7 @@ void NATHandler::TranslateH245Address(H225_TransportAddress & h245addr)
 	}
 }
 
-bool NATHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
+bool NATHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, const PIPSocket::Address & sourceIP)
 {
 	bool changed = false;
 	if (IsT120Channel(olc) && olc.HasOptionalField(H245_OpenLogicalChannel::e_separateStack)) {
@@ -17510,7 +17603,7 @@ bool NATHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc)
 	return changed;
 }
 
-bool NATHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & olca)
+bool NATHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & olca, const PIPSocket::Address & sourceIP)
 {
 	if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_separateStack)) {
 		H245_NetworkAccessParameters & sepStack = olca.m_separateStack;

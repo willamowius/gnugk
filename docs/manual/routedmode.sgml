@@ -991,6 +991,16 @@ Default: <tt>n/a</tt><newline>
 <p>
 When IgnoreSignaledIPs is active, don't ignore IPs from these networks
 (eg. because they don't actively send an RTP stream and only provide a loopback).
+This switch works best with public IPs.
+
+<item><tt>AllowSignaledIPsFrom=10.0.0.0/8</tt><newline>
+Default: <tt>n/a</tt><newline>
+<p>
+When IgnoreSignaledIPs is active, don't ignore IPs in messages received directly from these networks.
+This switch looks at the IP where GnuGk received the message from, in contrast to AllowSignaledIPs=
+which only looks at the IP inside the message.
+AllowSignaledIPsFrom= works better than AllowSignaledIPs= to whitelist private IPs from your own
+network that may also be inside messages from outside that happen to use the same private IPs behind a NAT.
 
 <item><tt>PortDetectionTimeout=5</tt><newline>
 Default: <tt>-1</tt><newline>

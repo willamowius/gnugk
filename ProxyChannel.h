@@ -305,7 +305,8 @@ protected:
     bool m_ignoreSignaledPrivateH239IPs;   // also ignore private IPs signaled in H239 streams
     bool m_ignoreSignaledAllH239IPs;   // also ignore all IPs signaled in H239 streams
     list<NetworkAddress> m_ignorePublicH239IPs;   // do auto-detect for H.239 on this network
-    list<NetworkAddress> m_keepSignaledIPs;   // don't do auto-detect on this network
+    list<NetworkAddress> m_keepSignaledIPs;   // don't do auto-detect on this network (by signaled IP)
+    list<NetworkAddress> m_keepSignaledIPsFrom;   // don't do auto-detect on this network (by source IP)
     bool m_restrictRTPSources;
     NetworkAddress m_restrictRTPNetwork_A;
     NetworkAddress m_restrictRTPNetwork_B;
