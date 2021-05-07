@@ -2462,19 +2462,21 @@ void HttpPolicy::RunPolicy(
 #ifdef HAS_JSON
 void HttpPolicy::ParseJSONRoute(const nlohmann::json & jsonRoute, const PString & language, DestinationRoutes & destination)
 {
-    Route route;
     PString destinationAlias = jsonRoute["destination"].get<std::string>().c_str();
     if (jsonRoute.find("gateway") != jsonRoute.end()) { // eg. { "destination": "support", "gateway": "1.2.3.4:1720" }
         PStringArray adr_parts = SplitIPAndPort(jsonRoute["gateway"].get<std::string>().c_str(), GK_DEF_ENDPOINT_SIGNAL_PORT);
         PIPSocket::Address ip(adr_parts[0]);
         WORD port = (WORD)(adr_parts[1].AsInteger());
-        route = Route(m_name, SocketToH225TransportAddr(ip, port));
+        Route route(m_name, SocketToH225TransportAddr(ip, port));
         route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
         // when a gateway is set the destination is treated as an alias
         H225_ArrayOf_AliasAddress newAliases;
         newAliases.SetSize(1);
         H323SetAliasAddress(destinationAlias, newAliases[0]);
         destination.SetNewAliases(newAliases);
+        if (!language.IsEmpty())
+            route.m_language.AppendString(language);
+        destination.AddRoute(route);
     } else {
         // if we only have a destination without gateway it can be alias or IP
         if (IsIPAddress(destinationAlias)) { // eg. { "destination": "1.2.3.4:1720" }
@@ -2484,6 +2486,9 @@ void HttpPolicy::ParseJSONRoute(const nlohmann::json & jsonRoute, const PString 
             Route route(m_name, SocketToH225TransportAddr(ip, port));
             route.m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(route.m_destAddr);
             route.m_destNumber = destinationAlias;
+            if (!language.IsEmpty())
+                route.m_language.AppendString(language);
+            destination.AddRoute(route);
         } else { // { "destination": "support" }
             H225_ArrayOf_AliasAddress newAliases;
             newAliases.SetSize(1);
@@ -2491,9 +2496,6 @@ void HttpPolicy::ParseJSONRoute(const nlohmann::json & jsonRoute, const PString 
             destination.SetNewAliases(newAliases);
         }
     }
-    if (!language.IsEmpty())
-        route.m_language.AppendString(language);
-    destination.AddRoute(route);
 }
 #endif // HAS_JSON
 
