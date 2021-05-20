@@ -208,8 +208,8 @@ public:
 	void UpdateSocketName();
 	void RemoveCallPtr() { PWaitAndSignal lock(m_callMutex); m_call = NULL; }
 	void SetDestination(H245_UnicastAddress &, callptr &);
-	void SetForwardDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call, bool onlySetDest = false);
-	void SetReverseDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call, bool onlySetDest = false);
+	void SetForwardDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call, bool onlySetDest);
+	void SetReverseDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call, bool onlySetDest);
 	typedef void (UDPProxySocket::*pMem)(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call, bool onlySetDest);
 
 	bool Bind(const Address & localAddr, WORD pt);
