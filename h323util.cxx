@@ -370,14 +370,14 @@ H245_TransportAddress IPToH245TransportAddr(const PIPSocket::Address & ip, WORD 
 //	uniaddr.SetTag(H245_UnicastAddress::e_iPAddress);
 //	H245_UnicastAddress_iPAddress & ipaddr = uniaddr;
 //	PIPSocket::Address ip(Addr);
-//	for (int i = 0; i < 4; ++i)
+//	for (int i = 0; i < 4; ++i) // TODO: add IPv6
 //		ipaddr.m_network[i] = ip[i];
 //	ipaddr.m_tsapIdentifier = Port;
 //
 //	return Result;
 //}
 
-// convert a socket IP address into an H225 transport address
+// convert a socket IP address into an H.225 transport address
 H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr, WORD Port)
 {
 	H225_TransportAddress Result;
@@ -399,7 +399,7 @@ H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr,
 	return Result;
 }
 
-// convert a H.245 transport address into an H225 transport address
+// convert a H.245 transport address into an H.225 transport address
 H225_TransportAddress H245ToH225TransportAddress(const H245_TransportAddress & h245addr)
 {
 	PIPSocket::Address ip;
@@ -408,7 +408,7 @@ H225_TransportAddress H245ToH225TransportAddress(const H245_TransportAddress & h
     return SocketToH225TransportAddr(ip, port);
 }
 
-// convert a H.323 transport address into an H225 transport address
+// convert a H.323 transport address into an H.225 transport address
 H225_TransportAddress H323ToH225TransportAddress(const H323TransportAddress & h323addr)
 {
 	PIPSocket::Address ip;
