@@ -1155,7 +1155,7 @@ public:
 	void SetRTPSessionID(WORD id);
 	void SetMediaChannelSource(const H245_UnicastAddress &);
 	void ZeroMediaChannelSource();
-	void SetMediaControlChannelSource(const H245_UnicastAddress &);
+	void SetMediaControlChannelSource(const H245_UnicastAddress & addr, const PIPSocket::Address & sourceIP, bool isUnidirectional);
 	void ZeroMediaControlChannelSource();
 	void HandleMediaChannel(H245_UnicastAddress *, H245_UnicastAddress *, const PIPSocket::Address &, bool, callptr &,
 		                    bool fromTraversalClient, bool useRTPMultiplexing, bool isUnidirectional, const PIPSocket::Address & sourceIP);
@@ -1201,6 +1201,8 @@ public:
 
     void GetRTPPorts(PIPSocket::Address & fSrcIP, PIPSocket::Address & fDestIP, PIPSocket::Address & rSrcIP, PIPSocket::Address & rDestIP,
                         WORD & fSrcPort, WORD & dDestPort, WORD & rSrcPort, WORD & rDestPort) const;
+    void GetRTCPPorts(PIPSocket::Address & fSrcIP, PIPSocket::Address & fDestIP, PIPSocket::Address & rSrcIP, PIPSocket::Address & rDestIP,
+                        WORD & fSrcPort, WORD & dDestPort, WORD & rSrcPort, WORD & rDestPort) const;
     bool IsRTPInactive() const;
 
 private:
@@ -1217,7 +1219,7 @@ private:
 	RTPLogicalChannel *peer;
 	UDPProxySocket *rtp, *rtcp;
 	PIPSocket::Address SrcIP;
-	WORD SrcPort; // RTP port from OLC (deduced from RTCP if not present)
+	WORD SrcPort; // RTP port from OLC (deduced from RTCP if not present) // old RTP assumption
 
 #ifdef HAS_H235_MEDIA
 	PMutex m_cryptoEngineMutex;
@@ -6928,8 +6930,9 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			H245_UnicastAddress & addr = channel.m_mediaControlChannel;
 			addr.SetTag(H245_UnicastAddress::e_iPAddress);
 			H245_UnicastAddress_iPAddress & ipaddr = addr;
-			for (int i = 0; i < 4; ++i) ipaddr.m_network[i] = ip[i];
-			ipaddr.m_tsapIdentifier = port+1;
+			for (int i = 0; i < 4; ++i) // TODO: use proper assignment
+			    ipaddr.m_network[i] = ip[i];
+            ipaddr.m_tsapIdentifier = port + 1;
 			}
 
 			olc.Encode(wtstrm);
@@ -6967,8 +6970,9 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			H245_UnicastAddress & addr = channel.m_mediaChannel;
 			addr.SetTag(H245_UnicastAddress::e_iPAddress);
 			H245_UnicastAddress_iPAddress & ipaddr = addr;
-			for (int i = 0; i < 4; ++i) ipaddr.m_network[i] = ip[i];
-			ipaddr.m_tsapIdentifier = port;
+			for (int i = 0; i < 4; ++i) // TODO: use proper assignment
+			    ipaddr.m_network[i] = ip[i];
+            ipaddr.m_tsapIdentifier = port;
 			}
 
 			channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel);
@@ -6977,8 +6981,9 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			H245_UnicastAddress & addr = channel.m_mediaControlChannel;
 			addr.SetTag(H245_UnicastAddress::e_iPAddress);
 			H245_UnicastAddress_iPAddress & ipaddr = addr;
-			for (int i = 0; i < 4; ++i) ipaddr.m_network[i] = ip[i];
-			ipaddr.m_tsapIdentifier = port+1;
+			for (int i = 0; i < 4; ++i) // TODO: use proper assignment
+			    ipaddr.m_network[i] = ip[i];
+            ipaddr.m_tsapIdentifier = port+1;
 			}
 
 			olc.Encode(wtstrm);
@@ -8181,7 +8186,8 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 											H245_UnicastAddress & addr = channel.m_mediaChannel;
 											addr.SetTag(H245_UnicastAddress::e_iPAddress);
 											H245_UnicastAddress_iPAddress & ipaddr = addr;
-											for (int i = 0; i < 4; ++i) ipaddr.m_network[i] = ip[i];
+											for (int i = 0; i < 4; ++i) // TODO: use proper assignment
+											    ipaddr.m_network[i] = ip[i];
 											ipaddr.m_tsapIdentifier = port;
 										}
 
@@ -8191,8 +8197,9 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 											H245_UnicastAddress & addr = channel.m_mediaControlChannel;
 											addr.SetTag(H245_UnicastAddress::e_iPAddress);
 											H245_UnicastAddress_iPAddress & ipaddr = addr;
-											for (int i = 0; i < 4; ++i) ipaddr.m_network[i] = ip[i];
-											ipaddr.m_tsapIdentifier = port+1;
+											for (int i = 0; i < 4; ++i) // TODO: use proper assignment
+											    ipaddr.m_network[i] = ip[i];
+                                            ipaddr.m_tsapIdentifier = port+1;
 										}
 
 										olc.Encode(wtstrm);
@@ -8340,7 +8347,8 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 											H245_UnicastAddress & addr = channel.m_mediaChannel;
 											addr.SetTag(H245_UnicastAddress::e_iPAddress);
 											H245_UnicastAddress_iPAddress & ipaddr = addr;
-											for (int i = 0; i < 4; ++i) ipaddr.m_network[i] = ip[i];
+											for (int i = 0; i < 4; ++i) // TODO: use proper assignment
+											    ipaddr.m_network[i] = ip[i];
 											ipaddr.m_tsapIdentifier = port;
 										}
 
@@ -8350,8 +8358,9 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 											H245_UnicastAddress & addr = channel.m_mediaControlChannel;
 											addr.SetTag(H245_UnicastAddress::e_iPAddress);
 											H245_UnicastAddress_iPAddress & ipaddr = addr;
-											for (int i = 0; i < 4; ++i) ipaddr.m_network[i] = ip[i];
-											ipaddr.m_tsapIdentifier = port+1;
+											for (int i = 0; i < 4; ++i) // TODO: use proper assignment
+											    ipaddr.m_network[i] = ip[i];
+											ipaddr.m_tsapIdentifier = port + 1;
 										}
 
 										olc.Encode(wtstrm);
@@ -8389,7 +8398,8 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 											H245_UnicastAddress & addr = channel.m_mediaChannel;
 											addr.SetTag(H245_UnicastAddress::e_iPAddress);
 											H245_UnicastAddress_iPAddress & ipaddr = addr;
-											for (int i = 0; i < 4; ++i) ipaddr.m_network[i] = ip[i];
+											for (int i = 0; i < 4; ++i) // TODO: use proper assignment
+											    ipaddr.m_network[i] = ip[i];
 											ipaddr.m_tsapIdentifier = port;
 										}
 */
@@ -8399,8 +8409,9 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 											H245_UnicastAddress & addr = channel.m_mediaControlChannel;
 											addr.SetTag(H245_UnicastAddress::e_iPAddress);
 											H245_UnicastAddress_iPAddress & ipaddr = addr;
-											for (int i = 0; i < 4; ++i) ipaddr.m_network[i] = ip[i];
-											ipaddr.m_tsapIdentifier = port+1;
+											for (int i = 0; i < 4; ++i) // TODO: use proper assignment
+											    ipaddr.m_network[i] = ip[i];
+											ipaddr.m_tsapIdentifier = port + 1;
 										}
 
 										olc.Encode(wtstrm);
@@ -13820,13 +13831,58 @@ void UDPProxySocket::UpdateSocketName()
 	SetName(src + "<=>" + AsString(laddr, lport) + "<=>" + dst);
 }
 
+// called on OLC
+void UDPProxySocket::SetRTCPDestination(const H245_UnicastAddress & dstAddr, const PIPSocket::Address & sourceIP, bool isUnidirectional)
+{
+    Address localaddr;
+    WORD localport = 0;
+    GetLocalAddress(localaddr, localport);
+    UnmapIPv4Address(localaddr);
+    PTRACE(7, "JW RTP before SetRTCPDestination on " << localport
+            << " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
+            << " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
+
+    PIPSocket::Address dstIP;
+    WORD dstPort = 0;
+    dstAddr >> dstIP >> dstPort;
+
+#ifdef HAS_H46018
+    if (m_ignoreSignaledIPs) {
+        bool skip = false;
+        if (!isUnidirectional)
+            skip = true;
+        if (isUnidirectional && m_ignoreSignaledAllH239IPs)
+            skip = true;
+        if (isUnidirectional && IsPrivate(dstIP) && m_ignoreSignaledPrivateH239IPs)
+            skip = true;
+        if (isUnidirectional && IsInNetworks(dstIP, m_ignorePublicH239IPs))
+            skip = true;
+        if (IsInNetworks(dstIP, m_keepSignaledIPs))
+            skip = false;
+        if (IsInNetworks(sourceIP, m_keepSignaledIPs))
+            skip = false;
+        if (skip) {
+            PTRACE(7, "JW RTP skip SetRTCPDestination");
+            return;
+        }
+    }
+#endif
+
+    rDestIP = dstIP;
+    rDestPort = dstPort;
+
+    PTRACE(7, "JW RTP after SetRTCPDestination on " << localport
+            << " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
+            << " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
+}
+
 void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call, bool onlySetDest)
 {
 	Address localaddr;
 	WORD localport = 0;
 	GetLocalAddress(localaddr, localport);
 	UnmapIPv4Address(localaddr);
-	PTRACE(7, "JW RTP SetFwdDest on " << localport
+	PTRACE(7, "JW RTP before SetForwardDestination on " << localport
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 
@@ -13862,7 +13918,7 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
     m_portDetectionDone = false;  // must re-do H.460.19 port detection, in case it has already been done by a previous channel on same port
 #endif
 
-	PTRACE(7, "JW RTP SetFwdDest2 on " << localport
+	PTRACE(7, "JW RTP after SetForwardDestination on " << localport
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 
@@ -13883,7 +13939,7 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 	WORD localport = 0;
 	GetLocalAddress(localaddr, localport);
 	UnmapIPv4Address(localaddr);
-	PTRACE(7, "JW RTP SetRevDest on " << localport
+	PTRACE(7, "JW RTP before SetReverseDestination on " << localport
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 
@@ -13919,7 +13975,7 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
     m_portDetectionDone = false;  // must re-do H.460.19 port detection, in case it has already been done by a previous channel on same port
 #endif
 
-	PTRACE(7, "JW RTP SetRevDest2 on " << localport
+	PTRACE(7, "JW RTP after SetReverseDestination on " << localport
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 
@@ -15433,6 +15489,19 @@ void RTPLogicalChannel::GetRTPPorts(PIPSocket::Address & fSrcIP, PIPSocket::Addr
     fSrcPort = dDestPort = rSrcPort = rDestPort = 0;
     if (rtp) {
         rtp->GetPorts(fSrcIP, fDestIP, rSrcIP, rDestIP, fSrcPort, dDestPort, rSrcPort, rDestPort);
+    } else {
+        PTRACE(0, "JW no RTP UDPProxySocket available to query");
+    }
+}
+
+void RTPLogicalChannel::GetRTCPPorts(PIPSocket::Address & fSrcIP, PIPSocket::Address & fDestIP, PIPSocket::Address & rSrcIP, PIPSocket::Address & rDestIP,
+                                    WORD & fSrcPort, WORD & dDestPort, WORD & rSrcPort, WORD & rDestPort) const
+{
+    fSrcPort = dDestPort = rSrcPort = rDestPort = 0;
+    if (rtcp) {
+        rtcp->GetPorts(fSrcIP, fDestIP, rSrcIP, rDestIP, fSrcPort, dDestPort, rSrcPort, rDestPort);
+    } else {
+        PTRACE(0, "JW no RTCP UDPProxySocket available to query");
     }
 }
 
@@ -15458,10 +15527,15 @@ void RTPLogicalChannel::SetRTPSessionID(WORD id)
 		rtcp->SetRTPSessionID(id);
 }
 
-void RTPLogicalChannel::SetMediaControlChannelSource(const H245_UnicastAddress & addr)
+void RTPLogicalChannel::SetMediaControlChannelSource(const H245_UnicastAddress & addr, const PIPSocket::Address & sourceIP, bool isUnidirectional)
 {
 	addr >> SrcIP >> SrcPort;
+    if (rtcp) {
+        PTRACE(0, "JW RTPX set RTCP port from OLC to " << AsString(addr));
+        rtcp->SetRTCPDestination(addr, sourceIP, isUnidirectional);
+    }
 	--SrcPort; // get the RTP port - old RTP assumption
+	PTRACE(0, "JW RTPX setting RTP port based on RTCP port to " << SrcPort);
 }
 
 void RTPLogicalChannel::ZeroMediaControlChannelSource()
@@ -15488,13 +15562,19 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
     PTRACE(7, "JW RTP HandleMediaChannel: fromTraversalClient=" << fromTraversalClient << " isUnidirectional=" << isUnidirectional << " m_ignoreSignaledIPs=" << m_ignoreSignaledIPs);
 	H245_UnicastAddress tmp, tmpmedia, tmpmediacontrol, *dest = mediaControlChannel;
 	PIPSocket::Address tmpSrcIP = SrcIP;
-	WORD tmpSrcPort = SrcPort + 1;
+	WORD tmpSrcPort = SrcPort + 1; // old RTP assumption
+	PTRACE(0, "JW RTPX setting RTCP port based on RTP port to " << tmpSrcPort);
     bool zeroIP = m_ignoreSignaledIPs && !fromTraversalClient && !isUnidirectional;
 
     PIPSocket::Address fSrcIP, fDestIP, rSrcIP, rDestIP;
     WORD fSrcPort, fDestPort, rSrcPort, rDestPort;
     GetRTPPorts(fSrcIP, fDestIP, rSrcIP, rDestIP, fSrcPort, fDestPort, rSrcPort, rDestPort);
     PTRACE(7, "JW RTP before handle OLCAck fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort) << " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
+
+    PIPSocket::Address fCSrcIP, fCDestIP, rCSrcIP, rCDestIP;
+    WORD fCSrcPort, fCDestPort, rCSrcPort, rCDestPort;
+    GetRTCPPorts(fCSrcIP, fCDestIP, rCSrcIP, rCDestIP, fCSrcPort, fCDestPort, rCSrcPort, rCDestPort);
+    PTRACE(7, "JW RTCP before handle OLCAck fCSrc=" << AsString(fCSrcIP, fCSrcPort) << " fCDest=" << AsString(fCDestIP, fCDestPort) << " rCSrc=" << AsString(rCSrcIP, rCSrcPort) << " rCDest=" << AsString(rCDestIP, rCDestPort));
 
 	if (mediaControlChannel == NULL) {
 		if (mediaChannel == NULL) {
@@ -15506,7 +15586,8 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 				// set mediaControlChannel to multiplexed port, LifeSize seems to use that instead of multiplexed port in TraversalParameters
 				SetH245Port(tmpmediacontrol, (WORD)GkConfig()->GetInteger(ProxySection, "RTCPMultiplexPort", GK_DEF_MULTIPLEX_RTCP_PORT));
 			} else {
-				SetH245Port(tmpmediacontrol, GetH245Port(tmpmediacontrol) + 1);
+				SetH245Port(tmpmediacontrol, GetH245Port(tmpmediacontrol) + 1); // old RTP assumption
+            	PTRACE(0, "JW RTPX setting RTCP port based on RTP port to " << GetH245Port(tmpmediacontrol));
 			}
 			mediaControlChannel = &tmpmediacontrol;
 			dest = mediaControlChannel;
@@ -15581,18 +15662,23 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 	if (useRTPMultiplexing) {
 		*mediaControlChannel << local << (WORD)GkConfig()->GetInteger(ProxySection, "RTCPMultiplexPort", GK_DEF_MULTIPLEX_RTCP_PORT);
 	} else {
-		*mediaControlChannel << local << (port + 1);    // old RTP assumption
+		*mediaControlChannel << local << (port + 1);    // old RTP assumption // define our local RTCP port to be next to RTP port as recommended in RFC 3550
+    	PTRACE(0, "JW RTPX setting RTCP port based on RTP port to " << (port + 1) << " GK defined port!");
 	}
 
 	if (mediaChannel) {
 		if (rev) {
-			if (GetH245Port(tmp) > 0)
+			if (GetH245Port(tmp) > 0) {
 				SetH245Port(tmp, GetH245Port(tmp) - 1); // old RTP assumption
+            	PTRACE(0, "JW RTPX setting RTP port based on RTCP port to " << GetH245Port(tmp));
+			};
 		} else {
 			dest = mediaChannel;
 		}
-		if (tmpSrcPort > 0)
+		if (tmpSrcPort > 0) {
 			tmpSrcPort -= 1;    // old RTP assumption
+           	PTRACE(0, "JW RTPX setting RTP port based on RTCP port to " << tmpSrcPort);
+		}
 		if (useRTPMultiplexing)
 			tmpSrcPort = (WORD)GkConfig()->GetInteger(ProxySection, "RTPMultiplexPort", GK_DEF_MULTIPLEX_RTP_PORT);
 		if (tmpSrcPort > 0) {
@@ -15661,10 +15747,16 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 	if (m_ignoreSignaledIPs) {
         bool zeroNow = false;
         bool forwardAndReverseSeen = false;
+
         PIPSocket::Address fSrcIP, fDestIP, rSrcIP, rDestIP;
         WORD fSrcPort, fDestPort, rSrcPort, rDestPort;
         GetRTPPorts(fSrcIP, fDestIP, rSrcIP, rDestIP, fSrcPort, fDestPort, rSrcPort, rDestPort);
         PTRACE(7, "JW RTP: fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort) << " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
+        PIPSocket::Address fCSrcIP, fCDestIP, rCSrcIP, rCDestIP;
+        WORD fCSrcPort, fCDestPort, rCSrcPort, rCDestPort;
+        GetRTCPPorts(fCSrcIP, fCDestIP, rCSrcIP, rCDestIP, fCSrcPort, fCDestPort, rCSrcPort, rCDestPort);
+        PTRACE(7, "JW RTCP: fCSrc=" << AsString(fCSrcIP, fCSrcPort) << " fCDest=" << AsString(fCDestIP, fCDestPort) << " rCSrc=" << AsString(rCSrcIP, rCSrcPort) << " rCDest=" << AsString(rCDestIP, rCDestPort));
+
         if (call && call->GetCalledParty() && call->GetCalledParty()->GetTraversalRole() != None && ( (fDestPort > 0 && rSrcPort > 0) || (fSrcPort > 0 && rDestPort > 0) ) ) {
             // TODO: should this really happen for unidirectional channels ?
             if ((fSrcPort > 0 && fSrcPort == rDestPort) || (rSrcPort > 0 && rSrcPort == fDestPort)) { /* TODO: IP check ? */
@@ -15706,6 +15798,9 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
     GetRTPPorts(fSrcIP, fDestIP, rSrcIP, rDestIP, fSrcPort, fDestPort, rSrcPort, rDestPort);
     PTRACE(7, "JW RTP after handle OLCAck fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
            << " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
+    GetRTCPPorts(fCSrcIP, fCDestIP, rCSrcIP, rCDestIP, fCSrcPort, fCDestPort, rCSrcPort, rCDestPort);
+    PTRACE(7, "JW RTCP after handle OLCAck fCSrc=" << AsString(fCSrcIP, fCSrcPort) << " fCDest=" << AsString(fCDestIP, fCDestPort)
+           << " rCSrc=" << AsString(rCSrcIP, rCSrcPort) << " rCDest=" << AsString(rCDestIP, rCDestPort));
 #endif
 
 }
@@ -16096,13 +16191,18 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
     WORD fSrcPort, fDestPort, rSrcPort, rDestPort;
     lc->GetRTPPorts(fSrcIP, fDestIP, rSrcIP, rDestIP, fSrcPort, fDestPort, rSrcPort, rDestPort);
     PTRACE(7, "JW RTP before handle OLC fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort) << " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
+    PIPSocket::Address fCSrcIP, fCDestIP, rCSrcIP, rCDestIP;
+    WORD fCSrcPort, fCDestPort, rCSrcPort, rCDestPort;
+    lc->GetRTCPPorts(fCSrcIP, fCDestIP, rCSrcIP, rCDestIP, fCSrcPort, fCDestPort, rCSrcPort, rCDestPort);
+    PTRACE(7, "JW RTCP before handle OLC fCSrc=" << AsString(fCSrcIP, fCSrcPort) << " fCDest=" << AsString(fCDestIP, fCDestPort) << " rCSrc=" << AsString(rCSrcIP, rCSrcPort) << " rCDest=" << AsString(rCDestIP, rCDestPort));
 
 	if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)
 		&& (addr = GetH245UnicastAddress(h225Params->m_mediaControlChannel)) ) {
         PIPSocket::Address signaledSrcIP = H245UnicastToSocketAddr(*addr);
 
-		lc->SetMediaControlChannelSource(*addr);
-		*addr << GetMasqAddr() << (lc->GetPort() + 1); // old RTP assumption
+		lc->SetMediaControlChannelSource(*addr, sourceIP, isUnidirectional);
+		*addr << GetMasqAddr() << (lc->GetPort() + 1); // old RTP assumption // define our local RTCP port to be next to RTP port as recommended in RFC 3550
+       	PTRACE(0, "JW RTPX setting RTCP port based on RTP port to " << (lc->GetPort() + 1) << " GK defined port!");
 #ifdef HAS_H46018
 		if (IsTraversalClient()) {
 			PTRACE(5, "H46018\tSetting control channel to 0");
@@ -16182,6 +16282,8 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 	}
     lc->GetRTPPorts(fSrcIP, fDestIP, rSrcIP, rDestIP, fSrcPort, fDestPort, rSrcPort, rDestPort);
     PTRACE(7, "JW RTP after handle OLC fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort) << " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
+    lc->GetRTCPPorts(fCSrcIP, fCDestIP, rCSrcIP, rCDestIP, fCSrcPort, fCDestPort, rCSrcPort, rCDestPort);
+    PTRACE(7, "JW RTCP after handle OLC fCSrc=" << AsString(fCSrcIP, fCSrcPort) << " fCDest=" << AsString(fCDestIP, fCDestPort) << " rCSrc=" << AsString(rCSrcIP, rCSrcPort) << " rCDest=" << AsString(rCDestIP, rCDestPort));
 
 	return changed;
 }

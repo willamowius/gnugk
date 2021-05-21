@@ -1,5 +1,6 @@
 Changes from 5.7 to 5.8
 =======================
+- BUGFIX(ProxyChannel.cxx) save RTCP address from OLC for port-detection
 - new switch [Proxy] AllowSignaledIPsFrom= to skip auto-detect for messages received directly
   from certain IPs when IgnoreSignaledIPs=1
 - BUGFIX(snmp.cxx) fix Net-SNMP query for total bandwidth

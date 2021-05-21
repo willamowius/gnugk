@@ -207,7 +207,7 @@ public:
 
 	void UpdateSocketName();
 	void RemoveCallPtr() { PWaitAndSignal lock(m_callMutex); m_call = NULL; }
-	void SetDestination(H245_UnicastAddress &, callptr &);
+	void SetRTCPDestination(const H245_UnicastAddress & addr, const PIPSocket::Address & sourceIP, bool isUnidirectional);
 	void SetForwardDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call, bool onlySetDest);
 	void SetReverseDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call, bool onlySetDest);
 	typedef void (UDPProxySocket::*pMem)(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call, bool onlySetDest);
