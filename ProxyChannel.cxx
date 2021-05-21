@@ -1404,7 +1404,7 @@ protected:
 		H225_TransportAddress & multiplexedRTCPAddr,
 		DWORD & multiplexID) const;
 
-	RTPLogicalChannel *CreateRTPLogicalChannel(WORD sessionId, WORD flcn, RTPSessionTypes sessionType);
+	RTPLogicalChannel *CreateRTPLogicalChannel(WORD sessionId, WORD flcn, RTPSessionTypes sessionType, const PIPSocket::Address & sourceIP);
 	RTPLogicalChannel *CreateFastStartLogicalChannel(WORD sessionId, RTPSessionTypes sessionType);
 	T120LogicalChannel *CreateT120LogicalChannel(WORD sessionId);
 	bool RemoveLogicalChannel(WORD flcn);
@@ -1438,6 +1438,7 @@ protected:
     list<NetworkAddress> m_keepSignaledIPsFrom;   // don't do auto-detect on this network (by source IP)
     unsigned m_filterFastUpdatePeriod;
     bool m_matchH239SessionsByType;
+    list<NetworkAddress> m_matchH239SessionsByIDOnly;   // never match H.239 reverse channels by type on these networks (by source IP)
 };
 
 
@@ -15531,7 +15532,7 @@ void RTPLogicalChannel::SetMediaControlChannelSource(const H245_UnicastAddress &
 {
 	addr >> SrcIP >> SrcPort;
     if (rtcp) {
-        PTRACE(0, "JW RTPX set RTCP port from OLC to " << AsString(addr));
+        PTRACE(7, "JW RTP set RTCP port from OLC to " << AsString(addr));
         rtcp->SetRTCPDestination(addr, sourceIP, isUnidirectional);
     }
 	--SrcPort; // get the RTP port - old RTP assumption
@@ -16070,6 +16071,20 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 	m_isH245Master = false;
     m_filterFastUpdatePeriod = GkConfig()->GetInteger(RoutedSec, "FilterVideoFastUpdatePicture", 0);
     m_matchH239SessionsByType = GkConfig()->GetBoolean(RoutedSec, "MatchH239SessionsByType", true);
+
+    PStringArray matchOnlyIDs = GkConfig()->GetString(RoutedSec, "MatchH239SessionsByIDOnly", "").Tokenise(",", FALSE);
+    for (PINDEX i = 0; i < matchOnlyIDs.GetSize(); ++i) {
+        PString ip = matchOnlyIDs[i];
+        if (ip.Find('/') == P_MAX_INDEX) {
+            // add netmask to pure IPs
+            if (IsIPv4Address(ip)) {
+                ip += "/32";
+            } else {
+                ip += "/128";
+            }
+        }
+        m_matchH239SessionsByIDOnly.push_back(NetworkAddress(ip));
+    }
 }
 
 H245ProxyHandler::~H245ProxyHandler()
@@ -16169,7 +16184,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
                                                   RTPSessionTypes sessionType, const PIPSocket::Address & sourceIP)
 {
 	RTPLogicalChannel * lc = flcn ?
-		CreateRTPLogicalChannel((WORD)h225Params->m_sessionID, flcn, sessionType) :
+		CreateRTPLogicalChannel((WORD)h225Params->m_sessionID, flcn, sessionType, sourceIP) :
 		CreateFastStartLogicalChannel((WORD)h225Params->m_sessionID, sessionType);
 	if (!lc)
 		return false;
@@ -17559,7 +17574,7 @@ void H245ProxyHandler::DumpChannels(const PString & msg, bool dumpPeer) const
 	}
 }
 
-RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn, RTPSessionTypes sessionType)
+RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn, RTPSessionTypes sessionType, const PIPSocket::Address & sourceIP)
 {
     //DumpChannels("CreateRTPLogicalChannel id=" + PString(id) + " type=" + PString(sessionType), true);
 	if (FindLogicalChannel(flcn)) {
@@ -17567,18 +17582,23 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
 		return NULL;
 	}
 	RTPLogicalChannel * lc = peer->FindRTPLogicalChannelBySessionID(id);
+    PTRACE(7, "JW RTP searching reverse channel by ID, found ptr=" << lc);
 
-	if (m_matchH239SessionsByType || m_ignoreSignaledPrivateH239IPs) {
-        if (!lc && ((id == 0) || (id > 2))) {
-            // look for channel with same media type
-            lc = peer->FindRTPLogicalChannelBySessionType(sessionType);
+    if (IsInNetworks(sourceIP, m_matchH239SessionsByIDOnly)) {
+        if ((m_matchH239SessionsByType || m_ignoreSignaledPrivateH239IPs)) {
+            if (!lc && ((id == 0) || (id > 2))) {
+                // look for channel with same media type
+                lc = peer->FindRTPLogicalChannelBySessionType(sessionType);
+                PTRACE(7, "JW RTP searching reverse channel by type, found ptr=" << lc);
+            }
+        } else {
+            if (!lc && (id == 0)) {
+                // look for channel with same media type
+                lc = peer->FindRTPLogicalChannelBySessionType(sessionType);
+                PTRACE(7, "JW RTP searching reverse channel by type, found ptr=" << lc);
+            }
         }
-	} else {
-        if (!lc && (id == 0)) {
-            // look for channel with same media type
-            lc = peer->FindRTPLogicalChannelBySessionType(sessionType);
-        }
-	}
+    }
 
 	if (lc && !lc->IsAttached()) {
 		lc = new RTPLogicalChannel(lc, flcn, hnat != NULL, sessionType);

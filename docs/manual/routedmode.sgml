@@ -1052,7 +1052,7 @@ Keep legacy port detection help for some very old and broken endpoints.
 Note: This will make your gatekeeper vulnerable to RTP Bleed attacks and is
 a SECURITY RISK!
 
-<item><tt>MatchRTPSessionsByType=0</tt><newline>
+<item><tt>MatchH239SessionsByType=0</tt><newline>
 Default: <tt>1</tt><newline>
 <p>
 If GnuGk doesn't find the reverse channel for a new channel by RTP session ID, it will try to
@@ -1060,6 +1060,11 @@ look for a matching reverse channel by session type.
 This helps some endpoints, especially for H.239, but may break some connections when endpoints
 pick different RTP sessions and receiving ports for different directions of the same session
 type (eg. some LifeSize endpoints).
+
+<item><tt>MatchH239SessionsByIDOnly=1.2.3.4,10.0.0.0/8</tt><newline>
+Default: <tt>n/a</tt><newline>
+<p>
+Never match the reverse H.239 channels by type on messages received from these IPs or networks.
 
 <item><tt>AbortOnInvalidTPKT=0</tt><newline>
 Default: <tt>1</tt><newline>
