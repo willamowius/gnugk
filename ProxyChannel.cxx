@@ -15491,7 +15491,7 @@ void RTPLogicalChannel::GetRTPPorts(PIPSocket::Address & fSrcIP, PIPSocket::Addr
     if (rtp) {
         rtp->GetPorts(fSrcIP, fDestIP, rSrcIP, rDestIP, fSrcPort, dDestPort, rSrcPort, rDestPort);
     } else {
-        PTRACE(0, "JW no RTP UDPProxySocket available to query");
+        PTRACE(1, "Error: No RTP UDPProxySocket available");
     }
 }
 
@@ -15502,7 +15502,7 @@ void RTPLogicalChannel::GetRTCPPorts(PIPSocket::Address & fSrcIP, PIPSocket::Add
     if (rtcp) {
         rtcp->GetPorts(fSrcIP, fDestIP, rSrcIP, rDestIP, fSrcPort, dDestPort, rSrcPort, rDestPort);
     } else {
-        PTRACE(0, "JW no RTCP UDPProxySocket available to query");
+        PTRACE(1, "Error: No RTCP UDPProxySocket available");
     }
 }
 
@@ -15536,7 +15536,7 @@ void RTPLogicalChannel::SetMediaControlChannelSource(const H245_UnicastAddress &
         rtcp->SetRTCPDestination(addr, sourceIP, isUnidirectional);
     }
 	--SrcPort; // get the RTP port - old RTP assumption
-	PTRACE(0, "JW RTPX setting RTP port based on RTCP port to " << SrcPort);
+	//PTRACE(0, "JW RTPX setting RTP port based on RTCP port to " << SrcPort);
 }
 
 void RTPLogicalChannel::ZeroMediaControlChannelSource()
@@ -15564,7 +15564,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 	H245_UnicastAddress tmp, tmpmedia, tmpmediacontrol, *dest = mediaControlChannel;
 	PIPSocket::Address tmpSrcIP = SrcIP;
 	WORD tmpSrcPort = SrcPort + 1; // old RTP assumption
-	PTRACE(0, "JW RTPX setting RTCP port based on RTP port to " << tmpSrcPort);
+	//PTRACE(0, "JW RTPX setting RTCP port based on RTP port to " << tmpSrcPort);
     bool zeroIP = m_ignoreSignaledIPs && !fromTraversalClient && !isUnidirectional;
 
     PIPSocket::Address fSrcIP, fDestIP, rSrcIP, rDestIP;
@@ -15588,7 +15588,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 				SetH245Port(tmpmediacontrol, (WORD)GkConfig()->GetInteger(ProxySection, "RTCPMultiplexPort", GK_DEF_MULTIPLEX_RTCP_PORT));
 			} else {
 				SetH245Port(tmpmediacontrol, GetH245Port(tmpmediacontrol) + 1); // old RTP assumption
-            	PTRACE(0, "JW RTPX setting RTCP port based on RTP port to " << GetH245Port(tmpmediacontrol));
+            	//PTRACE(0, "JW RTPX setting RTCP port based on RTP port to " << GetH245Port(tmpmediacontrol));
 			}
 			mediaControlChannel = &tmpmediacontrol;
 			dest = mediaControlChannel;
@@ -15663,22 +15663,21 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 	if (useRTPMultiplexing) {
 		*mediaControlChannel << local << (WORD)GkConfig()->GetInteger(ProxySection, "RTCPMultiplexPort", GK_DEF_MULTIPLEX_RTCP_PORT);
 	} else {
-		*mediaControlChannel << local << (port + 1);    // old RTP assumption // define our local RTCP port to be next to RTP port as recommended in RFC 3550
-    	PTRACE(0, "JW RTPX setting RTCP port based on RTP port to " << (port + 1) << " GK defined port!");
+		*mediaControlChannel << local << (port + 1);    // define our local RTCP port to be next to RTP port as recommended in RFC 3550
 	}
 
 	if (mediaChannel) {
 		if (rev) {
 			if (GetH245Port(tmp) > 0) {
 				SetH245Port(tmp, GetH245Port(tmp) - 1); // old RTP assumption
-            	PTRACE(0, "JW RTPX setting RTP port based on RTCP port to " << GetH245Port(tmp));
+            	//PTRACE(0, "JW RTPX setting RTP port based on RTCP port to " << GetH245Port(tmp));
 			};
 		} else {
 			dest = mediaChannel;
 		}
 		if (tmpSrcPort > 0) {
 			tmpSrcPort -= 1;    // old RTP assumption
-           	PTRACE(0, "JW RTPX setting RTP port based on RTCP port to " << tmpSrcPort);
+           	//PTRACE(0, "JW RTPX setting RTP port based on RTCP port to " << tmpSrcPort);
 		}
 		if (useRTPMultiplexing)
 			tmpSrcPort = (WORD)GkConfig()->GetInteger(ProxySection, "RTPMultiplexPort", GK_DEF_MULTIPLEX_RTP_PORT);
@@ -16216,8 +16215,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
         PIPSocket::Address signaledSrcIP = H245UnicastToSocketAddr(*addr);
 
 		lc->SetMediaControlChannelSource(*addr, sourceIP, isUnidirectional);
-		*addr << GetMasqAddr() << (lc->GetPort() + 1); // old RTP assumption // define our local RTCP port to be next to RTP port as recommended in RFC 3550
-       	PTRACE(0, "JW RTPX setting RTCP port based on RTP port to " << (lc->GetPort() + 1) << " GK defined port!");
+		*addr << GetMasqAddr() << (lc->GetPort() + 1); // define our local RTCP port to be next to RTP port as recommended in RFC 3550
 #ifdef HAS_H46018
 		if (IsTraversalClient()) {
 			PTRACE(5, "H46018\tSetting control channel to 0");
