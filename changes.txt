@@ -1,6 +1,7 @@
 Changes from 5.7 to 5.8
 =======================
 - new switch [RoutedMode] MatchH239SessionsByIDOnly= to never attempt to match a H.239 reverse channel by type
+  for improved interoperability with EdgeProtect
 - BUGFIX(ProxyChannel.cxx) save RTCP address from OLC for port-detection
 - new switch [Proxy] AllowSignaledIPsFrom= to skip auto-detect for messages received directly
   from certain IPs when IgnoreSignaledIPs=1

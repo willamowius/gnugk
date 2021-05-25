@@ -1059,12 +1059,13 @@ If GnuGk doesn't find the reverse channel for a new channel by RTP session ID, i
 look for a matching reverse channel by session type.
 This helps some endpoints, especially for H.239, but may break some connections when endpoints
 pick different RTP sessions and receiving ports for different directions of the same session
-type (eg. some LifeSize endpoints).
+type (eg. some LifeSize endpoints and EdgeProtect devices).
 
 <item><tt>MatchH239SessionsByIDOnly=1.2.3.4,10.0.0.0/8</tt><newline>
 Default: <tt>n/a</tt><newline>
 <p>
 Never match the reverse H.239 channels by type on messages received from these IPs or networks.
+This helps interoperability eg. with EdgeProtect devices.
 
 <item><tt>AbortOnInvalidTPKT=0</tt><newline>
 Default: <tt>1</tt><newline>
