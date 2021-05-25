@@ -10600,7 +10600,6 @@ void CallSignalSocket::BuildConnectPDU(Q931 & ConnectPDU, const H225_CallIdentif
 			H323SetAliasAddress(PString("9"), a, H225_AliasAddress::e_dialedDigits);
 		}
 
-
 	}
 
 	if (parm) {
@@ -10626,7 +10625,7 @@ void CallSignalSocket::BuildSetupPDU(Q931 & SetupPDU, const H225_CallIdentifier 
 	setup.m_conferenceID = callid.m_guid; // generate new: OpalGloballyUniqueID();
 	setup.m_callIdentifier.m_guid = setup.m_conferenceID;
 	masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
-    if (m_call->GetEndpointIPMapping(peerAddr, masqAddr)) {
+    if (m_call && m_call->GetEndpointIPMapping(peerAddr, masqAddr)) {
         PTRACE(7, "JW RTP set masqAddr=" << masqAddr << " for " << peerAddr << " from IPMapping");
     }
 
