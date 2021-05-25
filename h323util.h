@@ -76,17 +76,20 @@ bool Is10Dor11Dnumber(const H225_AliasAddress & alias);
 
 H245_TransportAddress IPToH245TransportAddr(const PIPSocket::Address & ip, WORD Port);
 
-// convert a string (dot notation without port) into an H245 transport address
+// convert a string (dot notation without port) into an H.245 transport address
 //H245_TransportAddress StringToH245TransportAddr(const PString & Addr, WORD Port);
 
-// convert a socket IP address into an H225 transport address
+// convert a socket IP address into an H.225 transport address
 H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr, WORD Port);
 
-// convert a H.323 transport address into an H225 transport address
+// convert a H.323 transport address into an H.225 transport address
 H225_TransportAddress H245ToH225TransportAddress(const H245_TransportAddress & h245addr);
 
-// convert a H.245 transport address into an H225 transport address
+// convert a H.245 transport address into an H.225 transport address
 H225_TransportAddress H323ToH225TransportAddress(const H323TransportAddress & h323addr);
+
+// convert a socket address into a H.245 unicast address
+H245_UnicastAddress SocketToH245UnicastAddr(const PIPSocket::Address & Addr, WORD Port);
 
 // convert a H.245 unicast address into a socket address
 PIPSocket::Address H245UnicastToSocketAddr(const H245_UnicastAddress & h245unicast);

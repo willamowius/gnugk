@@ -360,7 +360,7 @@ H245_TransportAddress IPToH245TransportAddr(const PIPSocket::Address & ip, WORD 
 	return Result;
 }
 
-// convert a string (dot notation without port) into an H245 transport address
+// convert a string (dot notation without port) into an H.245 transport address
 //H245_TransportAddress StringToH245TransportAddr(const PString & Addr, WORD Port)
 //{
 //	H245_TransportAddress Result;
@@ -397,6 +397,28 @@ H225_TransportAddress SocketToH225TransportAddr(const PIPSocket::Address & Addr,
 	}
 
 	return Result;
+}
+
+// convert a socket address into a H.245 unicast address
+H245_UnicastAddress SocketToH245UnicastAddr(const PIPSocket::Address & Addr, WORD Port)
+{
+    H245_UnicastAddress h245unicast;
+
+	if (Addr.GetVersion() == 6) {
+		h245unicast.SetTag(H245_UnicastAddress::e_iP6Address);
+		H245_UnicastAddress_iP6Address & ipv6 = h245unicast;
+		for (int i = 0; i < 16; ++i)
+			ipv6.m_network[i] = Addr[i];
+		ipv6.m_tsapIdentifier = Port;
+	} else {
+		h245unicast.SetTag(H245_UnicastAddress::e_iPAddress);
+        H245_UnicastAddress_iPAddress & ipv4 = h245unicast;
+		for (int i = 0; i < 4; ++i)
+			ipv4.m_network[i] = Addr[i];
+		ipv4.m_tsapIdentifier = Port;
+	}
+
+	return h245unicast;
 }
 
 // convert a H.245 transport address into an H.225 transport address

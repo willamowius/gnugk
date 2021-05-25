@@ -6926,15 +6926,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			channel.m_sessionID = 1;
 
 			channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel);
-			channel.m_mediaControlChannel.SetTag(H245_TransportAddress::e_unicastAddress);
-			{
-			H245_UnicastAddress & addr = channel.m_mediaControlChannel;
-			addr.SetTag(H245_UnicastAddress::e_iPAddress);
-			H245_UnicastAddress_iPAddress & ipaddr = addr;
-			for (int i = 0; i < 4; ++i) // TODO: use proper assignment
-			    ipaddr.m_network[i] = ip[i];
-            ipaddr.m_tsapIdentifier = port + 1;
-			}
+			channel.m_mediaControlChannel = SocketToH245UnicastAddr(ip, port + 1);
 
 			olc.Encode(wtstrm);
 			wtstrm.CompleteEncoding();
@@ -6966,27 +6958,10 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			channel.m_sessionID = 1;
 
 			channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel);
-			channel.m_mediaChannel.SetTag(H245_TransportAddress::e_unicastAddress);
-			{
-			H245_UnicastAddress & addr = channel.m_mediaChannel;
-			addr.SetTag(H245_UnicastAddress::e_iPAddress);
-			H245_UnicastAddress_iPAddress & ipaddr = addr;
-			for (int i = 0; i < 4; ++i) // TODO: use proper assignment
-			    ipaddr.m_network[i] = ip[i];
-            ipaddr.m_tsapIdentifier = port;
-			}
+			channel.m_mediaChannel = SocketToH245UnicastAddr(ip, port);
 
 			channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel);
-			channel.m_mediaControlChannel.SetTag(H245_TransportAddress::e_unicastAddress);
-			{
-			H245_UnicastAddress & addr = channel.m_mediaControlChannel;
-			addr.SetTag(H245_UnicastAddress::e_iPAddress);
-			H245_UnicastAddress_iPAddress & ipaddr = addr;
-			for (int i = 0; i < 4; ++i) // TODO: use proper assignment
-			    ipaddr.m_network[i] = ip[i];
-            ipaddr.m_tsapIdentifier = port+1;
-			}
-
+			channel.m_mediaControlChannel = SocketToH245UnicastAddr(ip, port);
 			olc.Encode(wtstrm);
 			wtstrm.CompleteEncoding();
 			m_fastStart[1].SetValue(wtstrm);
@@ -8182,26 +8157,10 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 										channel.m_sessionID = 1;
 
 										channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel);
-										channel.m_mediaChannel.SetTag(H245_TransportAddress::e_unicastAddress);
-										{
-											H245_UnicastAddress & addr = channel.m_mediaChannel;
-											addr.SetTag(H245_UnicastAddress::e_iPAddress);
-											H245_UnicastAddress_iPAddress & ipaddr = addr;
-											for (int i = 0; i < 4; ++i) // TODO: use proper assignment
-											    ipaddr.m_network[i] = ip[i];
-											ipaddr.m_tsapIdentifier = port;
-										}
+										channel.m_mediaChannel = (ip, port);
 
 										channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel);
-										channel.m_mediaControlChannel.SetTag(H245_TransportAddress::e_unicastAddress);
-										{
-											H245_UnicastAddress & addr = channel.m_mediaControlChannel;
-											addr.SetTag(H245_UnicastAddress::e_iPAddress);
-											H245_UnicastAddress_iPAddress & ipaddr = addr;
-											for (int i = 0; i < 4; ++i) // TODO: use proper assignment
-											    ipaddr.m_network[i] = ip[i];
-                                            ipaddr.m_tsapIdentifier = port+1;
-										}
+										channel.m_mediaControlChannel = ip, port + 1);
 
 										olc.Encode(wtstrm);
 										wtstrm.CompleteEncoding();
@@ -8343,26 +8302,10 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 										channel.m_sessionID = 1;
 
 										channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel);
-										channel.m_mediaChannel.SetTag(H245_TransportAddress::e_unicastAddress);
-										{
-											H245_UnicastAddress & addr = channel.m_mediaChannel;
-											addr.SetTag(H245_UnicastAddress::e_iPAddress);
-											H245_UnicastAddress_iPAddress & ipaddr = addr;
-											for (int i = 0; i < 4; ++i) // TODO: use proper assignment
-											    ipaddr.m_network[i] = ip[i];
-											ipaddr.m_tsapIdentifier = port;
-										}
+										channel.m_mediaChannel = SocketToH245UnicastAddr(ipm port);
 
 										channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel);
-										channel.m_mediaControlChannel.SetTag(H245_TransportAddress::e_unicastAddress);
-										{
-											H245_UnicastAddress & addr = channel.m_mediaControlChannel;
-											addr.SetTag(H245_UnicastAddress::e_iPAddress);
-											H245_UnicastAddress_iPAddress & ipaddr = addr;
-											for (int i = 0; i < 4; ++i) // TODO: use proper assignment
-											    ipaddr.m_network[i] = ip[i];
-											ipaddr.m_tsapIdentifier = port + 1;
-										}
+										channel.m_mediaControlChannel = SocketToH245UnicastAddr(ip, port + 1);
 
 										olc.Encode(wtstrm);
 										wtstrm.CompleteEncoding();
@@ -8394,26 +8337,10 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 										channel.m_sessionID = 1;
 /*
 										channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel);
-										channel.m_mediaChannel.SetTag(H245_TransportAddress::e_unicastAddress);
-										{
-											H245_UnicastAddress & addr = channel.m_mediaChannel;
-											addr.SetTag(H245_UnicastAddress::e_iPAddress);
-											H245_UnicastAddress_iPAddress & ipaddr = addr;
-											for (int i = 0; i < 4; ++i) // TODO: use proper assignment
-											    ipaddr.m_network[i] = ip[i];
-											ipaddr.m_tsapIdentifier = port;
-										}
+										channel.m_mediaChannel = SocketToH245UnicastAddr(ip, port);
 */
 										channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel);
-										channel.m_mediaControlChannel.SetTag(H245_TransportAddress::e_unicastAddress);
-										{
-											H245_UnicastAddress & addr = channel.m_mediaControlChannel;
-											addr.SetTag(H245_UnicastAddress::e_iPAddress);
-											H245_UnicastAddress_iPAddress & ipaddr = addr;
-											for (int i = 0; i < 4; ++i) // TODO: use proper assignment
-											    ipaddr.m_network[i] = ip[i];
-											ipaddr.m_tsapIdentifier = port + 1;
-										}
+										channel.m_mediaControlChannel = SocketToH245UnicastAddr(ip, port);
 
 										olc.Encode(wtstrm);
 										wtstrm.CompleteEncoding();
