@@ -15038,7 +15038,6 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool na
 	rtcp = flc->rtcp;
 	SrcIP = flc->SrcIP;     // gets overwritten with IP from OLC for this direction shortly
 	SrcPort = flc->SrcPort;
-    PTRACE(0, "JW RTP RTPLogicalChannel copy-ctor set SrcIP:Port=" << AsString(SrcIP, SrcPort));
 	reversed = !flc->reversed;
 	peer = flc, flc->peer = this;
 	SetChannelNumber(flcn);
@@ -15463,7 +15462,6 @@ void RTPLogicalChannel::SetRTPSessionID(WORD id)
 
 void RTPLogicalChannel::SetMediaControlChannelSource(const H245_UnicastAddress & addr, const PIPSocket::Address & sourceIP, bool isUnidirectional)
 {
-    PTRACE(0, "JW RTP SetMediaControlChannelSource set SrcIP:Port=" << AsString(addr));
 	addr >> SrcIP >> SrcPort;
     if (rtcp) {
         PTRACE(7, "JW RTP set RTCP port from OLC to " << AsString(addr));
@@ -15481,7 +15479,6 @@ void RTPLogicalChannel::ZeroMediaControlChannelSource()
 
 void RTPLogicalChannel::SetMediaChannelSource(const H245_UnicastAddress & addr)
 {
-    PTRACE(0, "JW RTP SetMediaChannelSource set SrcIP:Port=" << AsString(addr));
 	addr >> SrcIP >> SrcPort;
 }
 
@@ -15548,7 +15545,6 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 		}
 	}
 	UDPProxySocket::pMem SetDest = (reversed) ? &UDPProxySocket::SetReverseDestination : &UDPProxySocket::SetForwardDestination;
-	PTRACE(0, "JW RTP RTCP SetDest " << AsString(tmpSrcIP, tmpSrcPort));
 	(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, dest, call, false);
 #ifdef HAS_H46018
 	if (fromTraversalClient) {
@@ -15619,11 +15615,9 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 		if (useRTPMultiplexing)
 			tmpSrcPort = (WORD)GkConfig()->GetInteger(ProxySection, "RTPMultiplexPort", GK_DEF_MULTIPLEX_RTP_PORT);
 		if (tmpSrcPort > 0) {
-        	PTRACE(0, "JW RTP RTP SetDest " << AsString(tmpSrcIP, tmpSrcPort));
     		(rtp->*SetDest)(tmpSrcIP, tmpSrcPort, dest, call, false);
 		} else {
 		    // only set dest, don't overwrite source, if we don't know it, might already be set by port detection
-            PTRACE(0, "JW RTP RTP SetDest 0:0");
     		(rtp->*SetDest)(0, 0, dest, call, true);
 		}
 #ifdef HAS_H46018
