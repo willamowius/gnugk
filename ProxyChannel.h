@@ -320,6 +320,7 @@ protected:
 	time_t m_firstMedia;
 	bool m_mediaFailDetected;
 	bool m_RTPMultiplexingEnabled;
+	list<NetworkAddress> m_edgeProtectH239Hack; // list of device IPs where to apply the hack
 };
 
 #if H323_H450

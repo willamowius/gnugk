@@ -13633,6 +13633,19 @@ UDPProxySocket::UDPProxySocket(const char *t, PINDEX no)
         }
     }
 #endif
+    PStringArray edgeProtectH239Hack = GkConfig()->GetString(ProxySection, "EdgeProtectH239Hack", "").Tokenise(",", FALSE);
+    for (PINDEX i = 0; i < edgeProtectH239Hack.GetSize(); ++i) {
+        PString ip = edgeProtectH239Hack[i];
+        if (ip.Find('/') == P_MAX_INDEX) {
+            // add netmask to pure IPs
+            if (IsIPv4Address(ip)) {
+                ip += "/32";
+            } else {
+                ip += "/128";
+            }
+        }
+        m_edgeProtectH239Hack.push_back(NetworkAddress(ip));
+    }
 
     PCaselessString restrictRTP = GkConfig()->GetString(ProxySection, "RestrictRTPSources", "");
     m_restrictRTPSources = (restrictRTP != "");
@@ -14114,6 +14127,22 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
     if (!m_portDetectionDone) {
         if (m_call && (*m_call)) {
             (*m_call)->SetEndpointIPMapping(fromIP, localaddr);
+        }
+    }
+
+    if (m_h46019uni && IsInNetworks(fromIP, m_edgeProtectH239Hack)) {
+        // combine IP+port for easier comparison
+        IPAndPortAddress fSrcAddr(fSrcIP, fSrcPort);
+		IPAndPortAddress rSrcAddr(rSrcIP, rSrcPort);
+        if (fromAddr != fSrcAddr && fromAddr != rSrcAddr) {
+            if (fromIP == fSrcIP) {
+                fSrcPort = fromPort;
+                PTRACE(7, "JW RTP IN on " << localport << " learned fSrc " << AsString(fSrcIP, fSrcPort) << " (EdgeProtect H.239 Hack)");
+            }
+            if (fromIP == rSrcIP) {
+                rSrcPort = fromPort;
+                PTRACE(7, "JW RTP IN on " << localport << " learned rSrc " << AsString(rSrcIP, rSrcPort) << " (EdgeProtect H.239 Hack)");
+            }
         }
     }
 
