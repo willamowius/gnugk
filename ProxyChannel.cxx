@@ -13814,9 +13814,10 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 	WORD localport = 0;
 	GetLocalAddress(localaddr, localport);
 	UnmapIPv4Address(localaddr);
+	PTRACE(7, "JW RTP SetForwardDestination srcIP/srcPort=" << AsString(srcIP, srcPort) << " dstAddr=" << dstAddr << " onlySetDest=" << onlySetDest);
 	PTRACE(7, "JW RTP before SetForwardDestination on " << localport
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
-		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
+		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort) << " (" << Type() << ")");
 
 #ifdef HAS_H46018
     if (m_ignoreSignaledIPs && m_portDetectionDone && m_forwardAndReverseSeen) {
@@ -13852,7 +13853,7 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 
 	PTRACE(7, "JW RTP after SetForwardDestination on " << localport
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
-		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
+		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort) << " (" << Type() << ")");
 
 #if defined(HAS_H46018) && defined(HAS_H46024B)
 	// If required begin Annex B probing
@@ -15037,6 +15038,7 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool na
 	rtcp = flc->rtcp;
 	SrcIP = flc->SrcIP;     // gets overwritten with IP from OLC for this direction shortly
 	SrcPort = flc->SrcPort;
+    PTRACE(0, "JW RTP RTPLogicalChannel copy-ctor set SrcIP:Port=" << AsString(SrcIP, SrcPort));
 	reversed = !flc->reversed;
 	peer = flc, flc->peer = this;
 	SetChannelNumber(flcn);
@@ -15461,6 +15463,7 @@ void RTPLogicalChannel::SetRTPSessionID(WORD id)
 
 void RTPLogicalChannel::SetMediaControlChannelSource(const H245_UnicastAddress & addr, const PIPSocket::Address & sourceIP, bool isUnidirectional)
 {
+    PTRACE(0, "JW RTP SetMediaControlChannelSource set SrcIP:Port=" << AsString(addr));
 	addr >> SrcIP >> SrcPort;
     if (rtcp) {
         PTRACE(7, "JW RTP set RTCP port from OLC to " << AsString(addr));
@@ -15478,6 +15481,7 @@ void RTPLogicalChannel::ZeroMediaControlChannelSource()
 
 void RTPLogicalChannel::SetMediaChannelSource(const H245_UnicastAddress & addr)
 {
+    PTRACE(0, "JW RTP SetMediaChannelSource set SrcIP:Port=" << AsString(addr));
 	addr >> SrcIP >> SrcPort;
 }
 
@@ -15496,6 +15500,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 	PIPSocket::Address tmpSrcIP = SrcIP;
 	WORD tmpSrcPort = SrcPort + 1; // old RTP assumption
 	//PTRACE(0, "JW RTPX setting RTCP port based on RTP port to " << tmpSrcPort);
+	PTRACE(7, "JW RTP in HandleMediaChannel / OLCAck handling: saved RTP IP:port from OLC " << AsString(SrcIP, SrcPort) << " will assume RTCP + 1");
     bool zeroIP = m_ignoreSignaledIPs && !fromTraversalClient && !isUnidirectional;
 
     PIPSocket::Address fSrcIP, fDestIP, rSrcIP, rDestIP;
@@ -15543,6 +15548,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 		}
 	}
 	UDPProxySocket::pMem SetDest = (reversed) ? &UDPProxySocket::SetReverseDestination : &UDPProxySocket::SetForwardDestination;
+	PTRACE(0, "JW RTP RTCP SetDest " << AsString(tmpSrcIP, tmpSrcPort));
 	(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, dest, call, false);
 #ifdef HAS_H46018
 	if (fromTraversalClient) {
@@ -15554,7 +15560,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
     PIPSocket::Address ip = H245UnicastToSocketAddr(*dest);
     if (isUnidirectional) {
         PTRACE(7, "JW RTP zero check 1: dest=" << AsString(ip) << " src=" << AsString(tmpSrcIP));
-        if (m_ignoreSignaledIPs && !fromTraversalClient && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
+        if (m_ignoreSignaledIPs && !fromTraversalClient && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs && !IsInNetworks(ip, m_keepSignaledIPs) && !IsInNetworks(sourceIP, m_keepSignaledIPsFrom)) {
             // only zero out dest IP
             PTRACE(7, "JW RTP zero RTCP dest (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
     		(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call, false);
@@ -15613,9 +15619,11 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 		if (useRTPMultiplexing)
 			tmpSrcPort = (WORD)GkConfig()->GetInteger(ProxySection, "RTPMultiplexPort", GK_DEF_MULTIPLEX_RTP_PORT);
 		if (tmpSrcPort > 0) {
+        	PTRACE(0, "JW RTP RTP SetDest " << AsString(tmpSrcIP, tmpSrcPort));
     		(rtp->*SetDest)(tmpSrcIP, tmpSrcPort, dest, call, false);
 		} else {
 		    // only set dest, don't overwrite source, if we don't know it, might already be set by port detection
+            PTRACE(0, "JW RTP RTP SetDest 0:0");
     		(rtp->*SetDest)(0, 0, dest, call, true);
 		}
 #ifdef HAS_H46018
