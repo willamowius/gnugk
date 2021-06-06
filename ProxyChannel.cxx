@@ -13795,8 +13795,13 @@ void UDPProxySocket::SetRTCPDestination(const H245_UnicastAddress & dstAddr, con
     }
 #endif
 
-    rDestIP = dstIP;
-    rDestPort = dstPort;
+    if (fDestIP == 0 && rDestIP == 0) {
+        rDestIP = dstIP;
+        rDestPort = dstPort;
+    } else {
+        fDestIP = dstIP;
+        fDestPort = dstPort;
+    }
 
     PTRACE(7, "JW RTP after SetRTCPDestination on " << localport
             << " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
