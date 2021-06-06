@@ -13786,7 +13786,7 @@ void UDPProxySocket::SetRTCPDestination(const H245_UnicastAddress & dstAddr, con
             skip = true;
         if (IsInNetworks(dstIP, m_keepSignaledIPs))
             skip = false;
-        if (IsInNetworks(sourceIP, m_keepSignaledIPs))
+        if (IsInNetworks(sourceIP, m_keepSignaledIPsFrom))
             skip = false;
         if (skip) {
             PTRACE(7, "JW RTP skip SetRTCPDestination");
