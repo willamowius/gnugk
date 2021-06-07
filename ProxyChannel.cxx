@@ -13633,9 +13633,9 @@ UDPProxySocket::UDPProxySocket(const char *t, PINDEX no)
         }
     }
 #endif
-    PStringArray edgeProtectH239Hack = GkConfig()->GetString(ProxySection, "EdgeProtectH239Hack", "").Tokenise(",", FALSE);
-    for (PINDEX i = 0; i < edgeProtectH239Hack.GetSize(); ++i) {
-        PString ip = edgeProtectH239Hack[i];
+    PStringArray allowAnyRTPSourcePortForH239 = GkConfig()->GetString(ProxySection, "AllowAnyRTPSourcePortForH239From", "").Tokenise(",", FALSE);
+    for (PINDEX i = 0; i < allowAnyRTPSourcePortForH239.GetSize(); ++i) {
+        PString ip = allowAnyRTPSourcePortForH239[i];
         if (ip.Find('/') == P_MAX_INDEX) {
             // add netmask to pure IPs
             if (IsIPv4Address(ip)) {
@@ -13644,7 +13644,7 @@ UDPProxySocket::UDPProxySocket(const char *t, PINDEX no)
                 ip += "/128";
             }
         }
-        m_edgeProtectH239Hack.push_back(NetworkAddress(ip));
+        m_allowAnyRTPSourcePortForH239.push_back(NetworkAddress(ip));
     }
 
     PCaselessString restrictRTP = GkConfig()->GetString(ProxySection, "RestrictRTPSources", "");
@@ -14130,18 +14130,22 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
         }
     }
 
-    if (m_h46019uni && IsInNetworks(fromIP, m_edgeProtectH239Hack)) {
+    // some endpoint signal an incorrect RTCP port inside the H.239 OLC leads GnuGk to expect a different RTP source port than they actually use
+    // ignore the source port for this list of IPs/networks
+    if (m_h46019uni && IsInNetworks(fromIP, m_allowAnyRTPSourcePortForH239)) {
         // combine IP+port for easier comparison
         IPAndPortAddress fSrcAddr(fSrcIP, fSrcPort);
-		IPAndPortAddress rSrcAddr(rSrcIP, rSrcPort);
+        IPAndPortAddress fDestAddr(fDestIP, fDestPort);
+        IPAndPortAddress rSrcAddr(rSrcIP, rSrcPort);
+        IPAndPortAddress rDestAddr(rDestIP, rDestPort);
         if (fromAddr != fSrcAddr && fromAddr != rSrcAddr) {
-            if (fromIP == fSrcIP) {
+            if (fromIP == fSrcIP && fromAddr != fDestAddr) {
                 fSrcPort = fromPort;
-                PTRACE(7, "JW RTP IN on " << localport << " learned fSrc " << AsString(fSrcIP, fSrcPort) << " (EdgeProtect H.239 Hack)");
+                PTRACE(7, "JW RTP IN on " << localport << " learned fSrc " << AsString(fSrcIP, fSrcPort) << " (AllowAnyRTPSourcePortForH239From)");
             }
-            if (fromIP == rSrcIP) {
+            else if (fromIP == rSrcIP && fromAddr != rDestAddr) {
                 rSrcPort = fromPort;
-                PTRACE(7, "JW RTP IN on " << localport << " learned rSrc " << AsString(rSrcIP, rSrcPort) << " (EdgeProtect H.239 Hack)");
+                PTRACE(7, "JW RTP IN on " << localport << " learned rSrc " << AsString(rSrcIP, rSrcPort) << " (AllowAnyRTPSourcePortForH239From)");
             }
         }
     }

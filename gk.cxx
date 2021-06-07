@@ -481,6 +481,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "PortNotifications", "StatusPortClose" },
 	{ "PortNotifications", "T120PortOpen" },
 	{ "PortNotifications", "T120PortClose" },
+	{ "Proxy", "AllowAnyRTPSourcePortForH239From" },
 #ifdef HAS_H46018
 	{ "Proxy", "AllowSignaledIPs" },
 	{ "Proxy", "AllowSignaledIPsFrom" },
@@ -490,7 +491,6 @@ const char * KnownConfigEntries[][2] = {
 	{ "Proxy", "AsteriskGWDN" },
 #endif
 	{ "Proxy", "CheckH46019KeepAlivePT" },
-	{ "Proxy", "EdgeProtectH239Hack" },
 	{ "Proxy", "Enable" },
 	{ "Proxy", "EnableRTCPStats" },
 	{ "Proxy", "EnableRTPMute" },

@@ -1002,14 +1002,14 @@ which only looks at the IP inside the message.
 AllowSignaledIPsFrom= works better than AllowSignaledIPs= to whitelist private IPs from your own
 network that may also be inside messages from outside that happen to use the same private IPs behind a NAT.
 
-<item><tt>EdgeProtectH239Hack=1.2.3.4</tt><newline>
+<item><tt>AllowAnyRTPSourcePortForH239From=1.2.3.4</tt><newline>
 Default: <tt>n/a</tt><newline>
 <p>
-EdgeProtect devices sometimes signal an RTCP port for H.239 channels that is not adjacent to the
-RTP port that they will actually use. Listing the IPs of all EdgeProtect devices here will let
-GnuGk guess where the packts are supports to be sent by only looking at the destination port
-on the GnuGk server and the source IP on the EndgeProtect device and ignoring the source port.
-This switch also helps to get H.239 to work with Radvision VC240 endpoints.
+Some devices signal an incorrect RTCP port for H.239 channels in OLC which leads GnuGk
+to expect a different RTP port than they actually use.
+For IPs or networks listed in this switch, GnuGk will receive and forward RTP from any source port
+on the signalled IP for H.239 channels, regardless of the signalled ports.
+This switch helps interop eg. with EdgeProtect gatekeepers or Radvision VC240 endpoints.
 
 <item><tt>PortDetectionTimeout=5</tt><newline>
 Default: <tt>-1</tt><newline>

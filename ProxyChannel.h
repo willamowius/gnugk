@@ -282,7 +282,7 @@ protected:
 #ifdef HAS_H46018
 	bool m_h46019fc;
 	bool m_useH46019;
-	bool m_h46019uni;
+	bool m_h46019uni; // is this channel unidirectional/H.239 (not only when using H.460.19)
 	PMutex m_h46019DetectionLock;
 	bool m_checkH46019KeepAlivePT;
 	WORD m_keepAlivePT_1;
@@ -320,7 +320,7 @@ protected:
 	time_t m_firstMedia;
 	bool m_mediaFailDetected;
 	bool m_RTPMultiplexingEnabled;
-	list<NetworkAddress> m_edgeProtectH239Hack; // list of device IPs where to apply the hack
+	list<NetworkAddress> m_allowAnyRTPSourcePortForH239; // list of IPs/networks
 };
 
 #if H323_H450
