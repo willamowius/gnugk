@@ -2,7 +2,7 @@
 //
 // gkauth.cxx
 //
-// Copyright (c) 2001-2019, Jan Willamowius
+// Copyright (c) 2001-2021, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -2352,6 +2352,7 @@ protected:
 	PString m_url;
 	PString m_body;
 	PCaselessString m_method;
+	PString m_contentType;
 	PRegularExpression m_resultRegex;
 	PRegularExpression m_deleteRegex;
 	PRegularExpression m_errorRegex;
@@ -2363,6 +2364,7 @@ HttpPasswordAuth::HttpPasswordAuth(const char* authName)
 	m_url = GkConfig()->GetString("HttpPasswordAuth", "URL", "");
 	m_body = GkConfig()->GetString("HttpPasswordAuth", "Body", "");
 	m_method = GkConfig()->GetString("HttpPasswordAuth", "Method", "POST");
+	m_contentType = GkConfig()->GetString("HttpPasswordAuth", "ContentType", "text/plain");
 	PString resultRegex = GkConfig()->GetString("HttpPasswordAuth", "ResultRegex", ".*"); // match everything
 	m_resultRegex = PRegularExpression(resultRegex, PRegularExpression::Extended);
 	m_resultRegex = PRegularExpression(resultRegex);
@@ -2429,7 +2431,8 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
                 url = parts[0];
                 body = parts[1];
             } else {
-                headerlist = curl_slist_append(headerlist, "Content-Type: text/plain");
+                PString header = PString("Content-Type: ") + m_contentType;
+                headerlist = curl_slist_append(headerlist, (const char *)header);
                 (void)curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
             }
             (void)curl_easy_setopt(curl, CURLOPT_POSTFIELDS, (const char *)body);
@@ -2466,7 +2469,7 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
             body = parts[1];
         }
         PMIMEInfo outMIME;
-        outMIME.SetAt(PMIMEInfo::ContentTypeTag(), "text/plain");
+        outMIME.SetAt(PMIMEInfo::ContentTypeTag(), (const char *)m_contentType);
         PMIMEInfo replyMIME;
         if (!http.PostData(url, outMIME, body, replyMIME, result)) {
             PTRACE(2, "HttpPasswordAuth\tCould not POST to " << host);

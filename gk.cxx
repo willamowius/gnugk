@@ -398,6 +398,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "HttpAcct", "AlertURL" },
 	{ "HttpAcct", "ConnectBody" },
 	{ "HttpAcct", "ConnectURL" },
+	{ "HttpAcct", "ContentType" },
 	{ "HttpAcct", "MediaFailBody" },
 	{ "HttpAcct", "MediaFailURL" },
 	{ "HttpAcct", "Method" },
@@ -419,6 +420,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "HttpAcct", "UnregisterBody" },
 	{ "HttpAcct", "UnregisterURL" },
 	{ "HttpPasswordAuth", "Body" },
+	{ "HttpPasswordAuth", "ContentType" },
 	{ "HttpPasswordAuth", "DeleteRegex" },
 	{ "HttpPasswordAuth", "ErrorRegex" },
 	{ "HttpPasswordAuth", "Method" },
@@ -764,6 +766,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Routing::Forwarding", "Username" },
 #if defined (P_HTTP) || defined (HAS_LIBCURL)
 	{ "Routing::Http", "Body" },
+	{ "Routing::Http", "ContentType" },
 	{ "Routing::Http", "DeleteRegex" },
 	{ "Routing::Http", "ErrorRegex" },
 #ifdef HAS_JSON

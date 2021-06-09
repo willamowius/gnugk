@@ -1815,6 +1815,11 @@ Default: <tt>POST</tt>
 <p>
 HTTP method to use. Currently GET and POST are supported.
 
+<item><tt>ContentType=application/json</tt><newline>
+Default: <tt>text/plain</tt><newline>
+<p>
+The content type header to send in POST requests.
+
 <item><tt/ResultRegex=[0-9]+/<newline>
 Default: <tt>.*</tt>
 <p>

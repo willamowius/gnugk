@@ -3,7 +3,7 @@
  *
  * accounting module for GNU Gatekeeper that sends it's messages over HTTP
  *
- * Copyright (c) 2018, Jan Willamowius
+ * Copyright (c) 2018-2021, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -37,6 +37,7 @@ HttpAcct::HttpAcct(const char* moduleName, const char* cfgSecName)
 	const PString & cfgSec = GetConfigSectionName();
 	m_timestampFormat = cfg->GetString(cfgSec, "TimestampFormat", "");
     m_method = GkConfig()->GetString(cfgSec, "Method", "POST");
+    m_contentType = cfg->GetString(cfgSec, "ContentType", "text/plain");
 	m_startURL = cfg->GetString(cfgSec, "StartURL", "");
 	m_startBody = cfg->GetString(cfgSec, "StartBody", "");
 	m_stopURL = cfg->GetString(cfgSec, "StopURL", "");
@@ -187,6 +188,7 @@ GkAcctLogger::Status HttpAcct::HttpLog(PString url, PString body)
     CURLcode curl_res = CURLE_FAILED_INIT;
     CURL * curl = curl_easy_init();
     if (curl) {
+        struct curl_slist *headerlist = NULL;
         if (m_method == "GET") {
             // nothing special to do
         } else if (m_method == "POST") {
@@ -195,6 +197,9 @@ GkAcctLogger::Status HttpAcct::HttpLog(PString url, PString body)
                 url = parts[0];
                 body = parts[1];
             }
+            PString header = PString("Content-Type: ") + m_contentType;
+            headerlist = curl_slist_append(headerlist, (const char *)header);
+            (void)curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
             (void)curl_easy_setopt(curl, CURLOPT_POSTFIELDS, (const char *)body);
         } else {
             PTRACE(2, "HttpAcct\tUnsupported method " << m_method);
@@ -209,6 +214,7 @@ GkAcctLogger::Status HttpAcct::HttpLog(PString url, PString body)
             (void)curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
         }
         curl_res = curl_easy_perform(curl);
+        curl_slist_free_all(headerlist);
         curl_easy_cleanup(curl);
     }
 
@@ -230,7 +236,7 @@ GkAcctLogger::Status HttpAcct::HttpLog(PString url, PString body)
             body = parts[1];
         }
         PMIMEInfo outMIME;
-        outMIME.SetAt(PMIMEInfo::ContentTypeTag(), "text/plain");
+        outMIME.SetAt(PMIMEInfo::ContentTypeTag(), (const char *)m_contentType);
         PMIMEInfo replyMIME;
         if (!http.PostData(url, outMIME, body, replyMIME, result)) {
             PTRACE(2, "HttpAcct\tCould not POST to " << host);

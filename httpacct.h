@@ -3,7 +3,7 @@
  *
  * accounting module for GNU Gatekeeper that sends it's messages over HTTP
  *
- * Copyright (c) 2018, Jan Willamowius
+ * Copyright (c) 2018-2021, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -94,6 +94,8 @@ private:
 	PString m_mediaFailBody;
 	/// HTTP method: GET or POST
 	PString m_method;
+	/// HTTP Content-Type used for POSTs
+	PString m_contentType;
 	/// timestamp formatting string
 	PString m_timestampFormat;
 };

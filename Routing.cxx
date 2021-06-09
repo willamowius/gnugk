@@ -2249,6 +2249,7 @@ void HttpPolicy::LoadConfig(const PString & instance)
 	m_url = GkConfig()->GetString(m_iniSection, "URL", "");
 	m_body = GkConfig()->GetString(m_iniSection, "Body", "");
 	m_method = GkConfig()->GetString(m_iniSection, "Method", "POST");
+	m_contentType = GkConfig()->GetString(m_iniSection, "ContentType", "text/plain");
 	PString resultRegex = GkConfig()->GetString(m_iniSection, "ResultRegex", ".*"); // match everything
 	m_resultRegex = PRegularExpression(resultRegex, PRegularExpression::Extended);
 	m_resultRegex = PRegularExpression(resultRegex);
@@ -2342,7 +2343,8 @@ void HttpPolicy::RunPolicy(
                 url = parts[0];
                 body = parts[1];
             } else {
-                headerlist = curl_slist_append(headerlist, "Content-Type: text/plain");
+                PString header = PString("Content-Type: ") + m_contentType;
+                headerlist = curl_slist_append(headerlist, (const char *)header);
                 (void)curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
             }
             (void)curl_easy_setopt(curl, CURLOPT_POSTFIELDS, (const char *)body);
@@ -2379,7 +2381,7 @@ void HttpPolicy::RunPolicy(
             body = parts[1];
         }
         PMIMEInfo outMIME;
-        outMIME.SetAt(PMIMEInfo::ContentTypeTag(), "text/plain");
+        outMIME.SetAt(PMIMEInfo::ContentTypeTag(), (const char *)m_contentType);
         PMIMEInfo replyMIME;
         if (!http.PostData(url, outMIME, body, replyMIME, result)) {
             PTRACE(2, m_name << "\tCould not POST to " << host);

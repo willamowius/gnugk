@@ -601,6 +601,7 @@ protected:
 	PString m_url;
 	PString m_body;
 	PCaselessString m_method;
+	PString m_contentType;
 	PRegularExpression m_resultRegex;
 	PRegularExpression m_deleteRegex;
 	PRegularExpression m_errorRegex;

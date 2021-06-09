@@ -1,5 +1,7 @@
 Changes from 5.7 to 5.8
 =======================
+- new switches to set the HTTP Content-Type header: [HttpAcct] ContentType=, [HttpPasswordAuth] ContentType=
+  and [Routing::Http] ContentType=
 - new switch [Proxy] AllowAnyRTPSourcePortForH239From= to handle incorrect RTCP addresses in H.239 OLC (EdgeProtect interop)
 - new switch [RoutedMode] MatchH239SessionsByIDOnly= to never attempt to match a H.239 reverse channel by type
   for improved interoperability with EdgeProtect
