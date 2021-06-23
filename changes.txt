@@ -1,5 +1,6 @@
 Changes from 5.7 to 5.8
 =======================
+- BUGFIX(ProxyChannel.cxx) fix media loop on half port-detected channel when media is very early
 - new switches to set the HTTP Content-Type header: [HttpAcct] ContentType=, [HttpPasswordAuth] ContentType=
   and [Routing::Http] ContentType=
 - new switch [Proxy] AllowAnyRTPSourcePortForH239From= to handle incorrect RTCP addresses in H.239 OLC (EdgeProtect interop)

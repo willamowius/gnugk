@@ -35,6 +35,7 @@
 #include "GkStatus.h"
 #include <queue>
 #include <math.h> // needed for ceil() on Solaris 11, OpenBSD
+#include <algorithm>
 
 #ifdef HAS_AVAYA_SUPPORT
 #include "avaya.h"
@@ -13837,6 +13838,14 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
         PTRACE(7, "JW RTP skip overwriting due to completed port detection");
         return;
     }
+
+    // doing port detection and forward source is already set (probably by port detection) and set to same as forward dest -> swap the directions (OR skip the setting ?)
+    H245_UnicastAddress fSrc = SocketToH245UnicastAddr(fSrcIP, fSrcPort); // for easy comparison
+    if (m_ignoreSignaledIPs && fSrc == *dstAddr) {
+        PTRACE(7, "JW RTP swap directions before SetForwardDestination to avoid loop");
+        swap(fSrcIP, rSrcIP); swap(fSrcPort, rSrcPort);
+        swap(fDestIP, rDestIP); swap(fDestPort, rDestPort);
+    }
 #endif
 
     if (!onlySetDest) {
@@ -13893,6 +13902,14 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
     if (m_ignoreSignaledIPs && m_portDetectionDone && m_forwardAndReverseSeen) {
         PTRACE(7, "JW RTP skip overwriting due to completed port detection");
         return;
+    }
+
+    // doing port detection and reverse source is already set (probably by port detection) and set to same as reverse dest -> swap the directions (OR skip the setting ?)
+    H245_UnicastAddress rSrc = SocketToH245UnicastAddr(rSrcIP, rSrcPort); // for easy comparison
+    if (m_ignoreSignaledIPs && rSrc == *dstAddr) {
+        PTRACE(7, "JW RTP swap directions before SetReverseDestination to avoid loop");
+        swap(fSrcIP, rSrcIP); swap(fSrcPort, rSrcPort);
+        swap(fDestIP, rDestIP); swap(fDestPort, rDestPort);
     }
 #endif
 
@@ -14151,7 +14168,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
     }
 
     if (m_ignoreSignaledIPs && !m_portDetectionDone) {
-        //// learn from data we already have (eg. from H.239 signaling)
+        //// learn from data we already have (eg. from signaling)
         // set known destination as assumed source
         if (fSrcIP == 0 && rSrcIP == 0 && fDestIP != 0) {
             rSrcIP = fDestIP, rSrcPort = fDestPort;
