@@ -13841,7 +13841,7 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 
     // doing port detection and forward source is already set (probably by port detection) and set to same as forward dest -> swap the directions (OR skip the setting ?)
     H245_UnicastAddress fSrc = SocketToH245UnicastAddr(fSrcIP, fSrcPort); // for easy comparison
-    if (m_ignoreSignaledIPs && fSrc == *dstAddr) {
+    if (m_ignoreSignaledIPs && dstAddr && fSrc == *dstAddr) {
         PTRACE(7, "JW RTP swap directions before SetForwardDestination to avoid loop");
         swap(fSrcIP, rSrcIP); swap(fSrcPort, rSrcPort);
         swap(fDestIP, rDestIP); swap(fDestPort, rDestPort);
@@ -13906,7 +13906,7 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 
     // doing port detection and reverse source is already set (probably by port detection) and set to same as reverse dest -> swap the directions (OR skip the setting ?)
     H245_UnicastAddress rSrc = SocketToH245UnicastAddr(rSrcIP, rSrcPort); // for easy comparison
-    if (m_ignoreSignaledIPs && rSrc == *dstAddr) {
+    if (m_ignoreSignaledIPs && dstAddr && rSrc == *dstAddr) {
         PTRACE(7, "JW RTP swap directions before SetReverseDestination to avoid loop");
         swap(fSrcIP, rSrcIP); swap(fSrcPort, rSrcPort);
         swap(fDestIP, rDestIP); swap(fDestPort, rDestPort);
