@@ -1,5 +1,6 @@
 Changes from 5.8 to 5.9
 =======================
+- BUGFIX(ProxyChannel.cxx) fix regression introduced with MatchH239SessionsByIDOnly= switch
 
 
 Changes from 5.7 to 5.8

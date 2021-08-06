@@ -17565,7 +17565,7 @@ RTPLogicalChannel * H245ProxyHandler::CreateRTPLogicalChannel(WORD id, WORD flcn
 	RTPLogicalChannel * lc = peer->FindRTPLogicalChannelBySessionID(id);
     PTRACE(7, "JW RTP searching reverse channel by ID, found ptr=" << lc);
 
-    if (IsInNetworks(sourceIP, m_matchH239SessionsByIDOnly)) {
+    if (!IsInNetworks(sourceIP, m_matchH239SessionsByIDOnly)) {
         if ((m_matchH239SessionsByType || m_ignoreSignaledPrivateH239IPs)) {
             if (!lc && ((id == 0) || (id > 2))) {
                 // look for channel with same media type
