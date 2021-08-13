@@ -1,5 +1,6 @@
 Changes from 5.8 to 5.9
 =======================
+- BUGFIX(Routing.cxx) when DNS name resolves to IP without alias, remove alias from ACF completely
 - BUGFIX(ProxyChannel.cxx) fix regression introduced with MatchH239SessionsByIDOnly= switch
 
 
