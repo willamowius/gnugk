@@ -650,6 +650,7 @@ int YaUDPSocket::os_recv(void * buf, int sz)
     const size_t CONTROL_DATA_SIZE = 1024;
     char cmsg[CONTROL_DATA_SIZE];
     struct msghdr hdr = {};
+    memset(cmsg, 0, CONTROL_DATA_SIZE);
 
     vec.iov_base = buf;
     vec.iov_len = sz;
