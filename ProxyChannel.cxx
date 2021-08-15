@@ -6927,7 +6927,7 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			channel.m_sessionID = 1;
 
 			channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel);
-			channel.m_mediaControlChannel = SocketToH245UnicastAddr(ip, port + 1);
+			channel.m_mediaControlChannel = IPToH245TransportAddr(ip, port + 1);
 
 			olc.Encode(wtstrm);
 			wtstrm.CompleteEncoding();
@@ -6959,10 +6959,10 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 			channel.m_sessionID = 1;
 
 			channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel);
-			channel.m_mediaChannel = SocketToH245UnicastAddr(ip, port);
+			channel.m_mediaChannel = IPToH245TransportAddr(ip, port);
 
 			channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel);
-			channel.m_mediaControlChannel = SocketToH245UnicastAddr(ip, port);
+			channel.m_mediaControlChannel = IPToH245TransportAddr(ip, port);
 			olc.Encode(wtstrm);
 			wtstrm.CompleteEncoding();
 			m_fastStart[1].SetValue(wtstrm);
@@ -8158,10 +8158,10 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 										channel.m_sessionID = 1;
 
 										channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel);
-										channel.m_mediaChannel = (ip, port);
+										channel.m_mediaChannel = IPToH245TransportAddr(ip, port);
 
 										channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel);
-										channel.m_mediaControlChannel = ip, port + 1);
+										channel.m_mediaControlChannel = IPToH245TransportAddr(ip, port + 1);
 
 										olc.Encode(wtstrm);
 										wtstrm.CompleteEncoding();
@@ -8303,10 +8303,10 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 										channel.m_sessionID = 1;
 
 										channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel);
-										channel.m_mediaChannel = SocketToH245UnicastAddr(ipm port);
+										channel.m_mediaChannel = IPToH245TransportAddr(ip, port);
 
 										channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel);
-										channel.m_mediaControlChannel = SocketToH245UnicastAddr(ip, port + 1);
+										channel.m_mediaControlChannel = IPToH245TransportAddr(ip, port + 1);
 
 										olc.Encode(wtstrm);
 										wtstrm.CompleteEncoding();
@@ -8338,10 +8338,10 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 										channel.m_sessionID = 1;
 /*
 										channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel);
-										channel.m_mediaChannel = SocketToH245UnicastAddr(ip, port);
+										channel.m_mediaChannel = IPToH245TransportAddr(ip, port);
 */
 										channel.IncludeOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel);
-										channel.m_mediaControlChannel = SocketToH245UnicastAddr(ip, port);
+										channel.m_mediaControlChannel = IPToH245TransportAddr(ip, port);
 
 										olc.Encode(wtstrm);
 										wtstrm.CompleteEncoding();
