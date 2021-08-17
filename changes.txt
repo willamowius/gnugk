@@ -2,7 +2,7 @@ Changes from 5.8 to 5.9
 =======================
 - BUGFIX(ProxyChannel.cxx) fix compilation of Avaya support
 - BUGFIX(yasocket.cxx) initialized cmsg struct to zero before using
-- BUGFIX(Routing.cxx) when DNS name resolves to IP without alias, remove alias from ACF completely
+- BUGFIX(Routing.cxx) when DNS name resolves to IP without alias, remove alias from ACF completely (Cisco interop)
 - BUGFIX(ProxyChannel.cxx) fix regression introduced with MatchH239SessionsByIDOnly= switch
 
 
