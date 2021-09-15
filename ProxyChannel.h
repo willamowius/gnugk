@@ -810,6 +810,7 @@ public:
 	virtual H46019Session GetChannel(PINDEX callno, WORD session) const;
 	virtual H46019Session GetChannelSwapped(PINDEX callno, WORD session, void * openedBy) const;
 	virtual void RemoveChannels(PINDEX callno);
+	virtual void RemoveChannel(PINDEX callno, WORD session);
 #ifdef HAS_H235_MEDIA
 	virtual void RemoveChannel(PINDEX callno, RTPLogicalChannel * rtplc);
 #endif

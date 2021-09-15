@@ -1,5 +1,6 @@
 Changes from 5.8 to 5.9
 =======================
+- BUGFIX(ProxyChannel.cxx) remove RTP session 0 from internal tables once H.245 master has assigned a session ID
 - BUGFIX(ProxyChannel.cxx) fix compilation of Avaya support
 - BUGFIX(yasocket.cxx) initialized cmsg struct to zero before using
 - BUGFIX(Routing.cxx) when DNS name resolves to IP without alias, remove alias from ACF completely (Cisco interop)

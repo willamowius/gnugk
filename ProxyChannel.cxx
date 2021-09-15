@@ -718,7 +718,7 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddr
 
 	ssize_t bytesSent = sendmsg(fd, &msgh, 0);
 	if (bytesSent < 0) {
-		PTRACE(5, "RTP\tSend error " << strerror(errno));
+		PTRACE(5, "RTP\tSend error: " << strerror(errno));
 	}
 
 	return bytesSent;
@@ -12747,7 +12747,10 @@ void H46019Session::Dump() const
 			<< " IDfromB=" << m_multiplexID_fromB << " IDtoB=" << m_multiplexID_toB
 			<< " addrA=" << AsString(m_addrA) << " addrA_RTCP=" << AsString(m_addrA_RTCP)
 			<< " addrB=" << AsString(m_addrB) << " addrB_RTCP=" << AsString(m_addrB_RTCP)
-			<< " callNo=" << m_callno);
+			<< " callNo=" << m_callno
+            << " socketToA=" << m_osSocketToA << " socketToA_RTCP=" << m_osSocketToA_RTCP
+            << " socketToB=" << m_osSocketToB << " socketToB_RTCP=" << m_osSocketToB_RTCP
+			);
 #ifdef HAS_H235_MEDIA
 	if (Toolkit::Instance()->IsH235HalfCallMediaEnabled()) {
 		PTRACE(7, "JW session=" << m_session << " encryptLC=" << m_encryptingLC << " decryptLC=" << m_decryptingLC);
@@ -12955,7 +12958,7 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
 		sent = UDPSendWithSourceIP(osSocket, data, lenToSend, toAddress, gkIP);
 	}
 	if (sent != lenToSend) {
-		PTRACE(1, "RTPM\tError sending RTP to " << toAddress << ": should send=" << lenToSend << " did send=" << sent << " errno=" << errno);
+		PTRACE(1, "RTPM\tError sending RTP to " << toAddress << ": should send=" << lenToSend << " did send=" << (int)sent << " errno=" << errno << " osSocket=" << osSocket);
 	}
 }
 
@@ -13166,6 +13169,20 @@ void MultiplexedRTPHandler::RemoveChannels(PINDEX callno)
 		}
 	}
 	DumpChannels(" RemoveChannels() done ");
+}
+
+void MultiplexedRTPHandler::RemoveChannel(PINDEX callno, WORD session)
+{
+	WriteLock lock(m_listLock);
+	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
+			iter != m_h46019channels.end() ; /* nothing */ ) {
+		if (!iter->m_deleted && iter->m_callno == callno && iter->m_session == session) {
+            iter->m_deleted = true; // mark as logically deleted
+            iter->m_deleteTime = time(NULL);
+		}
+		++iter;
+	}
+	DumpChannels(" RemoveChannel() by session ID done ");
 }
 
 #ifdef HAS_H235_MEDIA
@@ -16922,6 +16939,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 			peer->UpdateLogicalChannelSessionID(flcn, sessionID); // doesn't set if no channel with sessionID 0 found
 			if (((RTPLogicalChannel*)lc)->GetRTPSessionID() == 0) { // don't set blindly, check if the sessionID was zero
     			((RTPLogicalChannel*)lc)->SetRTPSessionID(sessionID);
+                // also remove session 0 from multiplex channel table
+                MultiplexedRTPHandler::Instance()->RemoveChannel(call->GetCallNumber(), (WORD)0);
 			}
 		}
 		h46019chan = MultiplexedRTPHandler::Instance()->GetChannelSwapped(call->GetCallNumber(), sessionID, peer);
