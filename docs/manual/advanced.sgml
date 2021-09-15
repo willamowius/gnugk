@@ -133,3 +133,9 @@ Once you've obtained a backtrace, post it to the mailing list.
 Note: On some systems, the core dump is named "core.xxx" where xxx
 is the process number of the GnuGk process that crashed.
 
+On Linux, you can also let GnuGk dump it's current usage of file descriptors to the
+trace file at runtime eg. if you are suspecting a leak by sending it a USR2 signal:
+<verb>
+killall gnugk -USR2
+</verb>
+
