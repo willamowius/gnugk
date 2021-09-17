@@ -354,7 +354,6 @@ public:
 	bool AddCallingPartyToSourceAddress() const { return m_addCallingPartyToSourceAddress; }
     PString GetDisabledCodecs() const { return m_disabledcodecs; }
 
-    void SetForceTerminalType(int t) { m_forceTerminalType = t; }
     int GetForceTerminalType() const { return m_forceTerminalType; }
 
     void SetGnuGkAssignedGk(const PIPSocket::Address & addr) { m_hasGnuGkAssignedGk = true; m_GnuGkAssignedGk = addr; }
