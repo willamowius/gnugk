@@ -12925,7 +12925,7 @@ void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddre
     			Send(m_multiplexID_toB, (isRTCP ? m_addrB_RTCP : m_addrB), (isRTCP ? m_osSocketToB_RTCP : m_osSocketToB), data, len, true, NULL);
             }
 		} else {
-			PTRACE(5, "RTPM\tReceiver not ready");
+			PTRACE(5, "RTPM\tReceiver not ready (session " << m_session << (isRTCP ? " RTCP" : " RTP") << " from " << AsString(fromAddress) << ")");
 		}
 	} else if (receivedMultiplexID == m_multiplexID_fromB) {
 		if (sideAReady(isRTCP)) {
@@ -12935,7 +12935,7 @@ void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddre
 			    Send(m_multiplexID_toA, (isRTCP ? m_addrA_RTCP : m_addrA), (isRTCP ? m_osSocketToA_RTCP : m_osSocketToA), data, len, true, NULL);
             }
 		} else {
-			PTRACE(5, "RTPM\tReceiver not ready");
+			PTRACE(5, "RTPM\tReceiver not ready (session " << m_session << (isRTCP ? " RTCP" : " RTP") << " from " << AsString(fromAddress) << ")");
 		}
 	}
 	if (isRTCP && m_EnableRTCPStats) {
