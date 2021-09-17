@@ -941,6 +941,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "EP::", "DisableH46018" },
 #endif
 	{ "EP::", "ForceGateway" },
+	{ "EP::", "ForceTerminalType" },
 	{ "EP::", "GatewayPrefixes" },
 	{ "EP::", "GatewayPriority" },
 	{ "EP::", "MaxBandwidth" },

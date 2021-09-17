@@ -354,6 +354,9 @@ public:
 	bool AddCallingPartyToSourceAddress() const { return m_addCallingPartyToSourceAddress; }
     PString GetDisabledCodecs() const { return m_disabledcodecs; }
 
+    void SetForceTerminalType(int t) { m_forceTerminalType = t; }
+    int GetForceTerminalType() const { return m_forceTerminalType; }
+
     void SetGnuGkAssignedGk(const PIPSocket::Address & addr) { m_hasGnuGkAssignedGk = true; m_GnuGkAssignedGk = addr; }
     bool HasGnuGkAssignedGk() const { return m_hasGnuGkAssignedGk; }
     PIPSocket::Address GetGnuGkAssignedGk() const { return m_GnuGkAssignedGk; }
@@ -482,6 +485,7 @@ protected:
 	bool m_addCallingPartyToSourceAddress;	// per endpoint switch
 	/// list of disabled codes
 	PString m_disabledcodecs;
+	int m_forceTerminalType; // for endpoint type in master/slave decision to this, -1 leave alone
 	/// H.235 used to authenticate this endpoint
 	GkH235Authenticators * m_authenticators;
 	bool m_hasGnuGkAssignedGk;

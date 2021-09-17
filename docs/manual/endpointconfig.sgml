@@ -172,6 +172,11 @@ Default: <tt>n/a</tt><newline>
 <p>
 Filter codecs for this particular endpoint. Similar to the global switch in the <ref id="calltable" name="[CallTable] section">.
 
+<item><tt/ForceTerminalType=190/<newline>
+Default: <tt>n/a</tt><newline>
+<p>
+Force the terminal type for this endpoint in the master/slave negotiation to this value, eg. to cheat and be more likely to win.
+
 </itemize>
 
 Example how to attach an [EP::..] section to an endpoint:

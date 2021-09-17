@@ -3232,6 +3232,22 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
     }
 #endif // HAS_H46024B
 
+    // rewrite MSD
+	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request) {
+		H245_RequestMessage & reqmsg = h245msg;
+		if (reqmsg.GetTag() == H245_RequestMessage::e_masterSlaveDetermination) {
+            H245_MasterSlaveDetermination & msd = reqmsg;
+            if (m_callerSocket && m_call->GetCallingParty() && m_call->GetCallingParty()->GetForceTerminalType() != -1) {
+                msd.m_terminalType = m_call->GetCallingParty()->GetForceTerminalType();
+                changed = true;
+            }
+            if (!m_callerSocket && m_call->GetCalledParty() && m_call->GetCalledParty()->GetForceTerminalType() != -1) {
+                msd.m_terminalType = m_call->GetCalledParty()->GetForceTerminalType();
+                changed = true;
+            }
+        }
+	}
+
 	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_response) {
 		H245_ResponseMessage & rmsg = h245msg;
 #ifdef HAS_H46024B
@@ -3249,6 +3265,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		}
 #endif
 
+        // remember which endpoint is master
 		if (rmsg.GetTag() == H245_ResponseMessage::e_masterSlaveDeterminationAck) {
 			H245_MasterSlaveDeterminationAck msAck = rmsg;
 			// the master tells the other endpoint to be slave
