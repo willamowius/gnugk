@@ -12601,11 +12601,14 @@ void MultiplexRTPListener::ReceiveData()
 	UnmapIPv4Address(localAddr);
 	WORD buflen = (WORD)GetLastReadCount();
 	DWORD multiplexID = INVALID_MULTIPLEX_ID;
+	if (buflen < 16) // packet too small, a multiplexed RTP packet has at least 4 byte multiplex ID and 12 byte RTP header
+	    // no error, assume its some kind of keepalive
+	    return;
 	if (buflen >= 4)
 		multiplexID = ((int)wbuffer[0] * 16777216) + ((int)wbuffer[1] * 65536) + ((int)wbuffer[2] * 256) + (int)wbuffer[3];
 
 	if (multiplexID == INVALID_MULTIPLEX_ID) {
-		PTRACE(1, "RTPM\tInvalid multiplexID received - ignoring packet on port " << localPort << " from " << AsString(fromIP, fromPort));
+		PTRACE(1, "RTPM\tInvalid multiplexID received - ignoring packet on port " << localPort << " from " << AsString(fromIP, fromPort) << " size=" << buflen);
 		return;
 	}
 
