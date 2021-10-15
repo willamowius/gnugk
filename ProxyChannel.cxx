@@ -13734,6 +13734,7 @@ UDPProxySocket::~UDPProxySocket()
 {
 	if (Toolkit::Instance()->IsPortNotificationActive())
 		Toolkit::Instance()->PortNotification(RTPPort, PortClose, "udp", GNUGK_INADDR_ANY, GetPort(), m_callNo);
+    // TODO: delete OS socket from H.460.19 session table ?
 }
 
 bool UDPProxySocket::Bind(const Address & localAddr, WORD pt)
@@ -13859,7 +13860,7 @@ void UDPProxySocket::SetRTCPDestination(const H245_UnicastAddress & dstAddr, con
             << " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 }
 
-void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call, bool onlySetDest)
+void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call, bool onlySetDest, bool onlySetSrc)
 {
 	Address localaddr;
 	WORD localport = 0;
@@ -13890,19 +13891,24 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
             fSrcIP = srcIP, fSrcPort = srcPort;
         }
     }
-	if (dstAddr) {
-		*dstAddr >> fDestIP >> fDestPort;
-	} else {
-		fDestIP = 0;
-		fDestPort = 0;
-	}
+    if (onlySetSrc) {
+        PTRACE(7, "JW RTP skip set/zero dest IP");
+    } else {
+        if (dstAddr) {
+            *dstAddr >> fDestIP >> fDestPort;
+        } else {
+            fDestIP = 0;
+            fDestPort = 0;
+        }
 
-	UpdateSocketName();
-	PTRACE(5, Type() << "\tForward " << AsString(srcIP, srcPort)  << " to " << AsString(fDestIP, fDestPort));
+        UpdateSocketName();
+        PTRACE(5, Type() << "\tForward " << AsString(srcIP, srcPort)  << " to " << AsString(fDestIP, fDestPort));
+    }
 
 	SetConnected(true);
 
-	SetMediaIP(true, fDestIP);  // SRC
+    if (!onlySetSrc)
+        SetMediaIP(true, fDestIP);  // SRC
     if (!onlySetDest)
     	SetMediaIP(false, srcIP);   // DST
 
@@ -13925,7 +13931,7 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 		m_call = &call;
 }
 
-void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call, bool onlySetDest)
+void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call, bool onlySetDest, bool onlySetSrc)
 {
 	Address localaddr;
 	WORD localport = 0;
@@ -13955,21 +13961,26 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
             rSrcIP = srcIP, rSrcPort = srcPort;
         }
     }
-	if (dstAddr) {
-		*dstAddr >> rDestIP >> rDestPort;
-	} else {
-		rDestIP = 0;
-		rDestPort = 0;
-	}
+    if (onlySetSrc) {
+        PTRACE(7, "JW RTP skip set/zero dest IP");
+    } else {
+        if (dstAddr) {
+            *dstAddr >> rDestIP >> rDestPort;
+        } else {
+            rDestIP = 0;
+            rDestPort = 0;
+        }
 
-	UpdateSocketName();
-	PTRACE(5, Type() << "\tReverse " << AsString(srcIP, srcPort) << " to " << AsString(rDestIP, rDestPort));
+        UpdateSocketName();
+        PTRACE(5, Type() << "\tReverse " << AsString(srcIP, srcPort) << " to " << AsString(rDestIP, rDestPort));
+    }
 
 	SetConnected(true);
 
     if (!onlySetDest)
         SetMediaIP(true, srcIP);   // SRC
-    SetMediaIP(false, rDestIP); // DST
+    if (!onlySetSrc)
+        SetMediaIP(false, rDestIP); // DST
 
 #ifdef HAS_H46018
     m_portDetectionDone = false;  // must re-do H.460.19 port detection, in case it has already been done by a previous channel on same port
@@ -15632,21 +15643,21 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 		}
 	}
 	UDPProxySocket::pMem SetDest = (reversed) ? &UDPProxySocket::SetReverseDestination : &UDPProxySocket::SetForwardDestination;
-	(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, dest, call, false);
+	(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, dest, call, false, false);
 #ifdef HAS_H46018
 	if (fromTraversalClient) {
 		PTRACE(5, "H46018\tSetting control channel destination to 0");
-		(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call, false);
+		(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call, false, false);
 	}
 #endif
 
     PIPSocket::Address ip = H245UnicastToSocketAddr(*dest);
     if (isUnidirectional) {
-        PTRACE(7, "JW RTP zero check 1: dest=" << AsString(ip) << " src=" << AsString(tmpSrcIP));
+        PTRACE(7, "JW RTP zero check 1: dest=" << AsString(ip) << " src=" << AsString(tmpSrcIP)); // signaled media IPs
         if (m_ignoreSignaledIPs && !fromTraversalClient && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs && !IsInNetworks(ip, m_keepSignaledIPs) && !IsInNetworks(sourceIP, m_keepSignaledIPsFrom)) {
             // only zero out dest IP
             PTRACE(7, "JW RTP zero RTCP dest (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
-    		(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call, false);
+            (rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call, false, false);
         }
         if (m_ignoreSignaledIPs && !fromTraversalClient && m_ignoreSignaledAllH239IPs) {
             zeroIP = true;
@@ -15654,7 +15665,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
         if (m_ignoreSignaledIPs && !fromTraversalClient && IsInNetworks(ip, m_ignorePublicH239IPs)) {
             // only zero out dest IP
             PTRACE(7, "JW RTP zero RTCP dest (IgnoreSignaledIPs && IgnoreSignaledPublicH239IPsFrom)");
-    		(rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call, false);
+            (rtcp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call, false, false);
         }
     }
     if (IsInNetworks(ip, m_keepSignaledIPs)) {
@@ -15667,17 +15678,17 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
     }
     if (zeroIP) {
         PTRACE(7, "JW RTP zero RTCP src + dest (IgnoreSignaledIPs)");
-        (rtcp->*SetDest)(0, 0, NULL, call, false);
+        (rtcp->*SetDest)(0, 0, NULL, call, false, false);
     } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs
                && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs) && !IsInNetworks(sourceIP, m_keepSignaledIPsFrom)) {
         // only zero out source IP
         PTRACE(7, "JW RTP zero RTCP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
-        (rtcp->*SetDest)(0, 0, dest, call, false);
+        (rtcp->*SetDest)(0, 0, NULL, call, false, true);
     } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsInNetworks(tmpSrcIP, m_ignorePublicH239IPs)
                && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs) && !IsInNetworks(sourceIP, m_keepSignaledIPsFrom)) {
         // only zero out source IP
         PTRACE(7, "JW RTP zero RTCP src (IgnoreSignaledIPs && IgnoreSignaledPublicH239IPsFrom)");
-        (rtcp->*SetDest)(0, 0, dest, call, false);
+        (rtcp->*SetDest)(0, 0, NULL, call, false, true);
     }
 
 	if (useRTPMultiplexing) {
@@ -15702,15 +15713,15 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
 		if (useRTPMultiplexing)
 			tmpSrcPort = (WORD)GkConfig()->GetInteger(ProxySection, "RTPMultiplexPort", GK_DEF_MULTIPLEX_RTP_PORT);
 		if (tmpSrcPort > 0) {
-    		(rtp->*SetDest)(tmpSrcIP, tmpSrcPort, dest, call, false);
+            (rtp->*SetDest)(tmpSrcIP, tmpSrcPort, dest, call, false, false);
 		} else {
 		    // only set dest, don't overwrite source, if we don't know it, might already be set by port detection
-    		(rtp->*SetDest)(0, 0, dest, call, true);
+            (rtp->*SetDest)(0, 0, dest, call, true, false);
 		}
 #ifdef HAS_H46018
 		if (fromTraversalClient) {
 			PTRACE(5, "H46018\tSetting media channel destination to 0");
-			(rtp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call, false);
+			(rtp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call, false, false);
 		}
 #endif
 
@@ -15721,7 +15732,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
                 && !IsInNetworks(ip, m_keepSignaledIPs) && !IsInNetworks(sourceIP, m_keepSignaledIPsFrom)) {
                 // only zero out dest IP
                 PTRACE(7, "JW RTP zero RTP dest (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
-			    (rtp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call, false);
+			    (rtp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call, false, false);
             }
             if (m_ignoreSignaledIPs && !fromTraversalClient && m_ignoreSignaledAllH239IPs) {
                 zeroIP = true;
@@ -15730,7 +15741,7 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
                 && !IsInNetworks(ip, m_keepSignaledIPs) && !IsInNetworks(sourceIP, m_keepSignaledIPsFrom)) {
                 // only zero out dest IP
                 PTRACE(7, "JW RTP zero RTP dest (IgnoreSignaledIPs && IgnoreSignaledPublicH239IPsFrom)");
-			    (rtp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call, false);
+			    (rtp->*SetDest)(tmpSrcIP, tmpSrcPort, NULL, call, false, false);
             }
         }
         if (IsInNetworks(ip, m_keepSignaledIPs)) {
@@ -15743,17 +15754,17 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
         }
         if (zeroIP) {
             PTRACE(7, "JW RTP zero RTP src + dest (IgnoreSignaledIPs)");
-            (rtp->*SetDest)(0, 0, NULL, call, false);
+            (rtp->*SetDest)(0, 0, NULL, call, false, false);
         } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsPrivate(tmpSrcIP) && m_ignoreSignaledPrivateH239IPs
                    && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs) && !IsInNetworks(sourceIP, m_keepSignaledIPsFrom)) {
             // only zero out source IP
             PTRACE(7, "JW RTP zero RTP src (IgnoreSignaledIPs && IgnoreSignaledPrivateH239IPs)");
-            (rtp->*SetDest)(0, 0, dest, call, false);
+            (rtp->*SetDest)(0, 0, NULL, call, false, true);
         } else if (m_ignoreSignaledIPs && !fromTraversalClient && isUnidirectional && IsInNetworks(tmpSrcIP, m_ignorePublicH239IPs)
                    && !IsInNetworks(tmpSrcIP, m_keepSignaledIPs) && !IsInNetworks(sourceIP, m_keepSignaledIPsFrom)) {
             // only zero out source IP
             PTRACE(7, "JW RTP zero RTP src (IgnoreSignaledIPs && IgnoreSignaledPublicH239IPsFrom)");
-            (rtp->*SetDest)(0, 0, dest, call, false);
+            (rtp->*SetDest)(0, 0, NULL, call, false, true);
         }
 
 		if (useRTPMultiplexing) {
