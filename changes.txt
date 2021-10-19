@@ -1,5 +1,6 @@
 Changes from 5.8 to 5.9
 =======================
+- new switch [Proxy] CachePortDetection=1 to cache port detection packets when IgnoreSignaledIPs= is active
 - BUGFIX(ProxyChannel.cxx) fix bug in port detection with AllowSignaledIPsFrom=
 - new switch: [EP::] ForceTerminalType=
 - BUGFIX(ProxyChannel.cxx) remove RTP session 0 from internal tables once H.245 master has assigned a session ID

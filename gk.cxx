@@ -492,6 +492,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Proxy", "AsteriskGWID" },
 	{ "Proxy", "AsteriskGWDN" },
 #endif
+	{ "Proxy", "CachePortDetection" },
 	{ "Proxy", "CheckH46019KeepAlivePT" },
 	{ "Proxy", "Enable" },
 	{ "Proxy", "EnableRTCPStats" },

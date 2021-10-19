@@ -343,6 +343,8 @@ public:
 
     bool operator==(const IPAndPortAddress & other) const { return (m_ip == other.m_ip) && (m_port == other.m_port); }
     bool operator!=(const IPAndPortAddress & other) const { return !(*this == other); }
+    // std::set needs operator less
+    bool operator<(const IPAndPortAddress & other ) const { if (m_ip != other.m_ip) { return m_ip < other.m_ip; } else { return m_port < other.m_port; } }
 
     // compatibility with H323TransportAddress
     PBoolean SetPDU(H225_TransportAddress & addr) const { addr = SocketToH225TransportAddr(m_ip, m_port); return true; }

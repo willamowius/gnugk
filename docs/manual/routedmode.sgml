@@ -1021,6 +1021,15 @@ GnuGk will then send a CloseChannelRequest to both sides to let them close their
 and fire a MediaFail accounting event.
 A value &lt;= zero disables the detection.
 
+<item><tt>CachePortDetection=1</tt><newline>
+Default: <tt>0</tt><newline>
+<p>
+Cache port detection packets when IgnoreSignaledIPs= is active to achieve faster connection
+establishment. This will probably only help with channels that are opened and closed
+multiple times during a call, eg. H.239 channels.
+For this to work, endpoints must adhere to the RTP rule that wthin an RTP session ports may not change during a call.
+The cache is cleared when more than 2 different IPs have been seen on a single port or when the port is closed on the GnuGk side.
+
 <item><tt>UpdateCalledPartyToH225Destination=1</tt><newline>
 Default: <tt>0</tt><newline>
 <p>

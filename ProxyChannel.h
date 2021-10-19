@@ -247,7 +247,9 @@ public:
     void ZeroAllIPs();
     void ForwardAndReverseSeen() { PTRACE(7, "JW RTP ForwardAndReverseSeen"); m_forwardAndReverseSeen = true; }
     bool IsRTPInactive() const;
-
+    void CachePortDetectionData(Address fromIP, WORD fromPort);
+    void DoPortDetection(WORD localport, Address fromIP, WORD fromPort);
+    void ApplyPortDetectionCache();
 
 protected:
 	virtual bool WriteData(const BYTE *, int);
@@ -321,6 +323,8 @@ protected:
 	bool m_mediaFailDetected;
 	bool m_RTPMultiplexingEnabled;
 	list<NetworkAddress> m_allowAnyRTPSourcePortForH239; // list of IPs/networks
+	bool m_cachePortDetection;
+	set<IPAndPortAddress> m_portDetectionCache;
 };
 
 #if H323_H450

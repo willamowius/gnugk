@@ -13728,6 +13728,7 @@ UDPProxySocket::UDPProxySocket(const char *t, PINDEX no)
     m_firstMedia = 0;
     m_mediaFailDetected = false;
     m_RTPMultiplexingEnabled = GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false);
+    m_cachePortDetection = GkConfig()->GetBoolean(ProxySection, "CachePortDetection", false);
 }
 
 UDPProxySocket::~UDPProxySocket()
@@ -14104,6 +14105,63 @@ bool UDPProxySocket::IsRTPInactive() const
     return false;
 }
 
+void UDPProxySocket::ApplyPortDetectionCache()
+{
+    PTRACE(7, "JW ApplyPortDetectionCache");
+    if (m_cachePortDetection) {
+        for (IPAndPortAddress ip : m_portDetectionCache) {
+            PTRACE(7, "JW RTP Apply " << ip << " from port detection cache");
+            DoPortDetection(0, ip.GetIP(), ip.GetPort()); // don't bother fetching local port, only used in trace message
+        }
+    }
+}
+
+void UDPProxySocket::CachePortDetectionData(Address fromIP, WORD fromPort)
+{
+    IPAndPortAddress from(fromIP, fromPort);
+    PTRACE(7, "JW CachePortDetectionData: " << from);
+    m_portDetectionCache.insert(from);
+    if (m_portDetectionCache.size() > 2) {
+        // call only has 2 sides, so the cache must have some outdated data, clear it and keep only this last item
+        PTRACE(7, "JW RTP clear port detection cache with " << m_portDetectionCache.size() << " elements");
+        m_portDetectionCache.clear();
+        m_portDetectionCache.insert(from);
+    }
+}
+
+void UDPProxySocket::DoPortDetection(WORD localport, Address fromIP, WORD fromPort)
+{
+    // no source set, this must be one of them
+    if (fSrcIP == 0 && rSrcIP == 0) {
+        fSrcIP = fromIP, fSrcPort = fromPort;
+        PTRACE(7, "JW RTP IN on " << localport << " learned fSrc " << AsString(fSrcIP, fSrcPort));
+    }
+    // no forward source set and this is not from reverse source, so it must be from forward source
+    if ((rSrcIP != fromIP || rSrcPort != fromPort) && fSrcIP == 0) {
+        fSrcIP = fromIP, fSrcPort = fromPort;
+        PTRACE(7, "JW RTP IN on " << localport << " learned fSrc " << AsString(fSrcIP, fSrcPort));
+    }
+    // no reverse source set and this is not from forward source, so it must be from reverse source
+    if ((fSrcIP != fromIP || fSrcPort != fromPort) && rSrcIP == 0) {
+        rSrcIP = fromIP, rSrcPort = fromPort;
+        PTRACE(7, "JW RTP IN on " << localport << " learned rSrc " << AsString(rSrcIP, rSrcPort));
+    }
+    // this is from forward source and we we don't have reverse destination
+    if (fSrcIP == fromIP && fSrcPort == fromPort && rDestIP == 0) {
+        rDestIP = fromIP, rDestPort = fromPort;
+        PTRACE(7, "JW RTP IN on " << localport << " learned rDest " << AsString(rDestIP, rDestPort) << " from fSrc " << AsString(fSrcIP, fSrcPort));
+    }
+    // this is from reverse source and we we don't have forward destination
+    if (rSrcIP == fromIP && rSrcPort == fromPort && fDestIP == 0) {
+        fDestIP = fromIP, fDestPort = fromPort;
+        PTRACE(7, "JW RTP IN on " << localport << " learned fDest " << AsString(fDestIP, fDestPort) << " from rSrc " << AsString(rSrcIP, rSrcPort));
+    }
+    if (fSrcIP != 0 && rSrcIP != 0 && fDestIP != 0 && rDestIP != 0) {
+        PTRACE(7, "JW RTP IN on " << localport << " port detection done");
+        m_portDetectionDone = true; // stop using RTP packets for port detection, avoid RTP Bleed
+    }
+}
+
 // this method handles either RTP, RTCP or T.38 data
 ProxySocket::Result UDPProxySocket::ReceiveData()
 {
@@ -14194,6 +14252,9 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
             (*m_call)->SetEndpointIPMapping(fromIP, localaddr);
         }
     }
+    if (m_cachePortDetection && !m_portDetectionDone) {
+        CachePortDetectionData(fromIP, fromPort);
+    }
 
     // some endpoint signal an incorrect RTCP port inside the H.239 OLC leads GnuGk to expect a different RTP source port than they actually use
     // ignore the source port for this list of IPs/networks
@@ -14228,35 +14289,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
         }
 
         //// learn from this RTP packet
-        // no source set, this must be one of them
-        if (fSrcIP == 0 && rSrcIP == 0) {
-            fSrcIP = fromIP, fSrcPort = fromPort;
-            PTRACE(7, "JW RTP IN on " << localport << " learned fSrc " << AsString(fSrcIP, fSrcPort));
-        }
-        // no forward source set and this is not from reverse source, so it must be from forward source
-        if ((rSrcIP != fromIP || rSrcPort != fromPort) && fSrcIP == 0) {
-            fSrcIP = fromIP, fSrcPort = fromPort;
-            PTRACE(7, "JW RTP IN on " << localport << " learned fSrc " << AsString(fSrcIP, fSrcPort));
-        }
-        // no reverse source set and this is not from forward source, so it must be from reverse source
-        if ((fSrcIP != fromIP || fSrcPort != fromPort) && rSrcIP == 0) {
-            rSrcIP = fromIP, rSrcPort = fromPort;
-            PTRACE(7, "JW RTP IN on " << localport << " learned rSrc " << AsString(rSrcIP, rSrcPort));
-        }
-        // this is from forward source and we we don't have reverse destination
-        if (fSrcIP == fromIP && fSrcPort == fromPort && rDestIP == 0) {
-            rDestIP = fromIP, rDestPort = fromPort;
-            PTRACE(7, "JW RTP IN on " << localport << " learned rDest " << AsString(rDestIP, rDestPort) << " from fSrc " << AsString(fSrcIP, fSrcPort));
-        }
-        // this is from reverse source and we we don't have forward destination
-        if (rSrcIP == fromIP && rSrcPort == fromPort && fDestIP == 0) {
-            fDestIP = fromIP, fDestPort = fromPort;
-            PTRACE(7, "JW RTP IN on " << localport << " learned fDest " << AsString(fDestIP, fDestPort) << " from rSrc " << AsString(rSrcIP, rSrcPort));
-        }
-        if (fSrcIP != 0 && rSrcIP != 0 && fDestIP != 0 && rDestIP != 0) {
-            PTRACE(7, "JW RTP IN on " << localport << " port detection done");
-            m_portDetectionDone = true; // stop using RTP packets for port detection, avoid RTP Bleed
-        }
+        DoPortDetection(localport, fromIP, fromPort);
     }
 	// check payloadType in keepAlive
 	if (isRTPKeepAlive && !m_portDetectionDone && m_checkH46019KeepAlivePT) {
@@ -15825,6 +15858,9 @@ void RTPLogicalChannel::HandleMediaChannel(H245_UnicastAddress * mediaControlCha
             rtp->ForwardAndReverseSeen();
             rtcp->ForwardAndReverseSeen();
         }
+        // TODO: use port detection cache, if enabled, also use for H.460.18/.19 ?
+        rtp->ApplyPortDetectionCache();
+        rtcp->ApplyPortDetectionCache();
     }
     GetRTPPorts(fSrcIP, fDestIP, rSrcIP, rDestIP, fSrcPort, fDestPort, rSrcPort, rDestPort);
     PTRACE(7, "JW RTP after handle OLCAck fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
