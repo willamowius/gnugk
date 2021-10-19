@@ -14109,9 +14109,10 @@ void UDPProxySocket::ApplyPortDetectionCache()
 {
     PTRACE(7, "JW ApplyPortDetectionCache");
     if (m_cachePortDetection) {
-        for (IPAndPortAddress ip : m_portDetectionCache) {
-            PTRACE(7, "JW RTP Apply " << ip << " from port detection cache");
-            DoPortDetection(0, ip.GetIP(), ip.GetPort()); // don't bother fetching local port, only used in trace message
+		for (set<IPAndPortAddress>::const_iterator iter = m_portDetectionCache.begin();
+				iter != m_portDetectionCache.end() ; ++iter) {
+            PTRACE(7, "JW RTP Apply " << *iter << " from port detection cache");
+            DoPortDetection(0, iter->GetIP(), iter->GetPort()); // don't bother fetching local port, only used in trace message
         }
     }
 }
