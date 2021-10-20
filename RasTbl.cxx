@@ -70,6 +70,20 @@ const long DEFAULT_ALERTING_TIMEOUT = 180000;
 const int DEFAULT_IRQ_POLL_COUNT = 1;
 }
 
+PString AsString(PortType t)
+{
+    switch (t) {
+        case PortType::RASPort: return "RAS";
+        case PortType::Q931Port: return "Q.931";
+        case PortType::H245Port: return "H.245";
+        case PortType::RTPPort: return "RTP";
+        case PortType::T120Port: return "T.120";
+        case PortType::RadiusPort: return "Radius";
+        case PortType::StatusPort: return "Status";
+        default: return PString(t);
+    }
+}
+
 /////////////////////////////////////////////////////////////////////////////////
 
 void EPQoS::Init()

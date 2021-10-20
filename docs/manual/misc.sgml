@@ -757,6 +757,7 @@ The following placeholder are available:
 <item><tt/%p/ - protocol ("udp" or "tcp")
 <item><tt/%n/ - port number
 <item><tt/%i/ - IP
+<item><tt/%t/ - port type ("RAS", "Q.931", "H.245", "RTP" etc.)
 </itemize>
 <p>
 By configuring a command to run for some types of ports, but not for others,

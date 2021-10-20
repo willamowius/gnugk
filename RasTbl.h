@@ -56,6 +56,8 @@ const unsigned WAIT_DELETE_AFTER_DISCONNECT = 30;   // time to wait after discon
 enum PortType { RASPort=1, Q931Port=2, H245Port=3, RTPPort=4, T120Port=5, RadiusPort=6, StatusPort=7 };
 enum PortAction { PortOpen=1, PortClose=2 };
 
+PString AsString(PortType t);
+
 class DynamicPort
 {
 public:
