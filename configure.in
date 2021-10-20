@@ -358,11 +358,12 @@ dnl Check for RADIUS
 dnl ########################################################################
 
 dnl MSWIN_DISPLAY    radius,RADIUS
+dnl MSWIN_DEFAULT    radius,Disabled
 dnl MSWIN_DEFINE     radius,HAS_RADIUS=1
 
 AC_ARG_ENABLE(radius,
-[  --enable-radius         enable RADIUS support (default=yes)],
-[ radius="${enableval}" ], [radius="yes"]
+[  --enable-radius         enable RADIUS support (default=no)],
+[ radius="${enableval}" ], [radius="no"]
 )
 
 if test "x${radius}" != "xno" ; then

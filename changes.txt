@@ -1,5 +1,6 @@
 Changes from 5.8 to 5.9
 =======================
+- Radius support is disabled by default now
 - new place holder for port notifications: %t for port type
 - new switch [Proxy] CachePortDetection=1 to cache port detection packets when IgnoreSignaledIPs= is active
 - BUGFIX(ProxyChannel.cxx) fix bug in port detection with AllowSignaledIPsFrom=

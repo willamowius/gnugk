@@ -1400,7 +1400,7 @@ Optional Features:
   --enable-h46017         enable H.460.17 support (default=yes)
   --enable-h46018         enable H.460.18 / H.460.19 support (default=no) check patent license before enabling
   --enable-h46023         enable H.460.23 / H.460.24 support (default=yes)
-  --enable-radius         enable RADIUS support (default=yes)
+  --enable-radius         enable RADIUS support (default=no)
   --enable-large-fdset    support large number of sockets (default=no)
   --enable-mysql          enable MySQL support (default=yes)
   --enable-pgsql          enable PostgreSQL support (default=yes)
@@ -4229,7 +4229,7 @@ fi
 if test "${enable_radius+set}" = set; then :
   enableval=$enable_radius;  radius="${enableval}"
 else
-  radius="yes"
+  radius="no"
 
 fi
 
