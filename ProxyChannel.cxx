@@ -13741,11 +13741,14 @@ UDPProxySocket::~UDPProxySocket()
 bool UDPProxySocket::Bind(const Address & localAddr, WORD pt)
 {
 #ifdef hasIPV6
-	if (!DualStackListen(localAddr, pt))
+	if (!DualStackListen(localAddr, pt)) {
 #else
-	if (!Listen(localAddr, 0, pt))
+	if (!Listen(localAddr, 0, pt)) {
 #endif
+        PTRACE(1, "Error: UDPProxySocket::Bind failed");
 		return false;
+	}
+    PTRACE(7, "JW RTP UDPProxySocket::Bind allocated listen socket on port " << pt << " ossocket=" << os_handle);
 
 	// Set the IP Type Of Service field for prioritization of media UDP / RTP packets
 	int dscp = GkConfig()->GetInteger(ProxySection, "RTPDiffServ", 4);	// default: IPTOS_LOWDELAY
@@ -15105,7 +15108,7 @@ RTPLogicalChannel::RTPLogicalChannel(RTPLogicalChannel * flc, WORD flcn, bool na
         m_ignoreSignaledIPs = call->IgnoreSignaledIPs();
         if (m_ignoreSignaledIPs) {
             if (call && call->GetCallingParty() && call->GetCallingParty()->GetTraversalRole() != None) {
-                // disable, when caller has NAT traversal enabled (call isn't from an party that needs NAT help)
+                // disable when caller has NAT traversal enabled (call isn't from a party that needs NAT help)
                 m_ignoreSignaledIPs = false;
                 call->SetIgnoreSignaledIPs(false);
             } else {
