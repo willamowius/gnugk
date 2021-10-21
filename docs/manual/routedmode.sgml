@@ -1052,7 +1052,7 @@ increases the bandwidth usage drastically and can worsen the situation.
 When you set this switch to 1, GnuGk will allow 1 update request per second.
 If you set it to 10, GnuGk will allow 1 request every 10 seconds.
 
-<item><tt>LimitRTPSources=IP</tt><newline>
+<item><tt>RestrictRTPSources=IP</tt><newline>
 Default: <tt>n/a</tt><newline>
 <p>
 Only accept RTP form the same IP where the call signaling goes to.
