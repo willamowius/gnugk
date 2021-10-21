@@ -1030,6 +1030,11 @@ multiple times during a call, eg. H.239 channels.
 For this to work, endpoints must adhere to the RTP rule that wthin an RTP session ports may not change during a call.
 The cache is cleared when more than 2 different IPs have been seen on a single port or when the port is closed on the GnuGk side.
 
+<item><tt>CachePortDetectionDuration=60</tt><newline>
+Default: <tt>30</tt><newline>
+<p>
+Duration in seconds how long port detection packets are cached.
+
 <item><tt>UpdateCalledPartyToH225Destination=1</tt><newline>
 Default: <tt>0</tt><newline>
 <p>

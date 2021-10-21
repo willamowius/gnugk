@@ -13729,6 +13729,7 @@ UDPProxySocket::UDPProxySocket(const char *t, PINDEX no)
     m_mediaFailDetected = false;
     m_RTPMultiplexingEnabled = GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false);
     m_cachePortDetection = GkConfig()->GetBoolean(ProxySection, "CachePortDetection", false);
+    m_cachePortDetectionDuration = GkConfig()->GetInteger(ProxySection, "CachePortDetectionDuration", 30);
 }
 
 UDPProxySocket::~UDPProxySocket()
@@ -14112,10 +14113,12 @@ void UDPProxySocket::ApplyPortDetectionCache()
 {
     PTRACE(7, "JW ApplyPortDetectionCache");
     if (m_cachePortDetection) {
-		for (set<IPAndPortAddress>::const_iterator iter = m_portDetectionCache.begin();
+		for (map<IPAndPortAddress, time_t>::const_iterator iter = m_portDetectionCache.begin();
 				iter != m_portDetectionCache.end() ; ++iter) {
-            PTRACE(7, "JW RTP Apply " << *iter << " from port detection cache");
-            DoPortDetection(0, iter->GetIP(), iter->GetPort()); // don't bother fetching local port, only used in trace message
+            if (time(NULL) - iter->second > m_cachePortDetectionDuration)
+                continue; // skip old entry
+            PTRACE(7, "JW RTP Apply " << iter->first << " from port detection cache");
+            DoPortDetection(0, iter->first.GetIP(), iter->first.GetPort()); // don't bother fetching local port, only used in trace message
         }
     }
 }
@@ -14124,12 +14127,12 @@ void UDPProxySocket::CachePortDetectionData(Address fromIP, WORD fromPort)
 {
     IPAndPortAddress from(fromIP, fromPort);
     PTRACE(7, "JW CachePortDetectionData: " << from);
-    m_portDetectionCache.insert(from);
+    m_portDetectionCache.insert(make_pair(from, time(NULL)));
     if (m_portDetectionCache.size() > 2) {
         // call only has 2 sides, so the cache must have some outdated data, clear it and keep only this last item
         PTRACE(7, "JW RTP clear port detection cache with " << m_portDetectionCache.size() << " elements");
         m_portDetectionCache.clear();
-        m_portDetectionCache.insert(from);
+        m_portDetectionCache.insert(make_pair(from, time(NULL)));
     }
 }
 
@@ -14256,7 +14259,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
             (*m_call)->SetEndpointIPMapping(fromIP, localaddr);
         }
     }
-    if (m_cachePortDetection && !m_portDetectionDone) {
+    if (m_cachePortDetection) { // cache even when port detection is done, because we expire the entries
         CachePortDetectionData(fromIP, fromPort);
     }
 
