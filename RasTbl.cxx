@@ -73,13 +73,13 @@ const int DEFAULT_IRQ_POLL_COUNT = 1;
 PString AsString(PortType t)
 {
     switch (t) {
-        case PortType::RASPort: return "RAS";
-        case PortType::Q931Port: return "Q.931";
-        case PortType::H245Port: return "H.245";
-        case PortType::RTPPort: return "RTP";
-        case PortType::T120Port: return "T.120";
-        case PortType::RadiusPort: return "Radius";
-        case PortType::StatusPort: return "Status";
+        case 1: return "RAS";
+        case 2: return "Q.931";
+        case 3: return "H.245";
+        case 4: return "RTP";
+        case 5: return "T.120";
+        case 6: return "Radius";
+        case 7: return "Status";
         default: return PString(t);
     }
 }
