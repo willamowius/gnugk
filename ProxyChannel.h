@@ -752,7 +752,7 @@ public:
 	static bool IsKeepAlive(unsigned len, bool isRTCP) { return isRTCP ? true : (len == 12); }
 
 	void HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddress & fromAddress, void * data, unsigned len, bool isRTCP);
-	static void Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddress, int ossocket, void * data, unsigned len, bool bufferHasRoomForID, PIPSocket::Address * gkIP);
+	static void Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddress, int ossocket, void * data, unsigned len, bool bufferHasRoomForID, PIPSocket::Address * gkIP, bool isRetry = false);
 
 public:
     bool m_deleted; // logically deleted, but still in list so other threads can leave methods

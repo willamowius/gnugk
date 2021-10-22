@@ -12946,7 +12946,7 @@ void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddre
     }
 }
 
-void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddress, int osSocket, void * data, unsigned len, bool bufferHasRoomForID, PIPSocket::Address * gkIP)
+void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddress, int osSocket, void * data, unsigned len, bool bufferHasRoomForID, PIPSocket::Address * gkIP, bool isRetry)
 {
 	size_t lenToSend = len;
 	size_t sent = 0;
@@ -12956,6 +12956,11 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
 		SNMP_TRAP(10, SNMPError, Network, "Invalid multiplexing socket for " + AsString(toAddress));
 		return;
 	}
+// simulate bug
+// if (toAddress.GetIP().AsString() == "192.168.1.49" && !isRetry) {
+//    PTRACE(0, "JW simulate send bug");
+//    osSocket = 777;
+//}
 	if (sendMultiplexID != INVALID_MULTIPLEX_ID) {
 		lenToSend += 4;
 		BYTE * multiplexMsg = NULL;
@@ -12979,6 +12984,51 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
 	}
 	if (sent != lenToSend) {
 		PTRACE(1, "RTPM\tError sending RTP to " << toAddress << ": should send=" << lenToSend << " did send=" << (int)sent << " errno=" << errno << " osSocket=" << osSocket);
+#ifdef P_LINUX
+		// JWQ
+		if ((int)sent == -1 && errno == EBADF && !isRetry) {
+		    PTRACE(0, "JW trying multiplex error recovery");
+		    int newsocket = INVALID_OSSOCKET;
+		    WORD srcport = 6666; // default to any fixed port
+            // try to get the source port from the failing socket, will likely fail, but worth a try
+		    struct sockaddr_in sin;
+            socklen_t sin_len = sizeof(sin);
+            if (::getsockname(osSocket, (struct sockaddr *)&sin, &sin_len) == -1) {
+                PTRACE(0, "JW getsockname failed errno=" << errno);
+            } else {
+                srcport = ntohs(sin.sin_port);
+                PTRACE(0, "JW got port " << srcport << " from old socket");
+            }
+            // bind socket to one fixed port, if it fails sending will still work, but every packet will come from a different source port
+		    if (toAddress.GetIP().GetVersion() == 6) {
+                newsocket = ::socket(PF_INET6, SOCK_DGRAM, 0);
+                int enable = 1;
+                (void)::setsockopt(newsocket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
+		        struct sockaddr_in6 srcaddr6;
+                memset(&srcaddr6, 0, sizeof(srcaddr6));
+                srcaddr6.sin6_family = AF_INET6;
+                srcaddr6.sin6_addr = GNUGK_INADDR_ANY;
+                srcaddr6.sin6_port = htons(srcport);
+                if (bind(newsocket, (struct sockaddr *) &srcaddr6, sizeof(srcaddr6)) < 0) {
+                    PTRACE(0, "JW IPv6 bind to port " << srcport << " for multiplex re-try failed: errno=" << errno);
+                }
+		    } else {
+                newsocket = ::socket(PF_INET, SOCK_DGRAM, 0);
+                int enable = 1;
+                (void)::setsockopt(newsocket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
+		        struct sockaddr_in srcaddr;
+                memset(&srcaddr, 0, sizeof(srcaddr));
+                srcaddr.sin_family = AF_INET;
+                srcaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+                srcaddr.sin_port = htons(srcport);
+                if (bind(newsocket, (struct sockaddr *) &srcaddr, sizeof(srcaddr)) < 0) {
+                    PTRACE(0, "JW bind to port " << srcport << " for multiplex re-try failed: errno=" << errno);
+                }
+		    }
+            Send(sendMultiplexID, toAddress, newsocket, data, len, bufferHasRoomForID, gkIP, true); // re-try sending
+            close(newsocket);
+		}
+#endif // P_LINUX
 	}
 }
 
