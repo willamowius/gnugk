@@ -13031,10 +13031,10 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
 		    }
 		    if (newsocket > 0) {
                 Send(sendMultiplexID, toAddress, newsocket, data, len, bufferHasRoomForID, gkIP, true); // re-try sending
-                close(newsocket);
 		    } else {
 		        PTRACE(1, "JW Error: creating new socket for multiplex re-try failed");
 		    }
+            close(newsocket);
 		}
 #endif // P_LINUX
 	}
