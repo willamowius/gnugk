@@ -13000,6 +13000,7 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
                 PTRACE(0, "JW got port " << srcport << " from old socket");
             }
             // bind socket to one fixed port, if it fails sending will still work, but every packet will come from a different source port
+#ifdef hasIPV6
 		    if (toAddress.GetIP().GetVersion() == 6) {
                 newsocket = ::socket(PF_INET6, SOCK_DGRAM, 0);
                 if (newsocket > 0) {
@@ -13014,7 +13015,9 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
                         PTRACE(0, "JW IPv6 bind to port " << srcport << " for multiplex re-try failed: errno=" << errno);
                     }
                 }
-		    } else {
+		    } else
+#endif
+		    {
                 newsocket = ::socket(PF_INET, SOCK_DGRAM, 0);
                 if (newsocket > 0) {
                     int enable = 1;
