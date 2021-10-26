@@ -12984,7 +12984,6 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
 	}
 	if (sent != lenToSend) {
 		PTRACE(1, "RTPM\tError sending RTP to " << toAddress << ": should send=" << lenToSend << " did send=" << (int)sent << " errno=" << errno << " osSocket=" << osSocket);
-#ifdef P_LINUX
 		// JWQ
 		if ((int)sent == -1 && errno == EBADF && !isRetry) {
 		    PTRACE(0, "JW trying multiplex error recovery");
@@ -13005,7 +13004,7 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
                 newsocket = ::socket(PF_INET6, SOCK_DGRAM, 0);
                 if (newsocket > 0) {
                     int enable = 1;
-                    (void)::setsockopt(newsocket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
+                    (void)::setsockopt(newsocket, SOL_SOCKET, SO_REUSEADDR, (char *)&enable, sizeof(int));
                     struct sockaddr_in6 srcaddr6;
                     memset(&srcaddr6, 0, sizeof(srcaddr6));
                     srcaddr6.sin6_family = AF_INET6;
@@ -13021,7 +13020,7 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
                 newsocket = ::socket(PF_INET, SOCK_DGRAM, 0);
                 if (newsocket > 0) {
                     int enable = 1;
-                    (void)::setsockopt(newsocket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
+                    (void)::setsockopt(newsocket, SOL_SOCKET, SO_REUSEADDR, (char *)&enable, sizeof(int));
                     struct sockaddr_in srcaddr;
                     memset(&srcaddr, 0, sizeof(srcaddr));
                     srcaddr.sin_family = AF_INET;
@@ -13039,7 +13038,6 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
 		    }
             close(newsocket);
 		}
-#endif // P_LINUX
 	}
 }
 

@@ -1,6 +1,6 @@
 Changes from 5.8 to 5.9
 =======================
-- attempt error recovery if multiplexed RTP sending fails (experimental, Linux only)
+- attempt error recovery if multiplexed RTP sending fails (experimental)
 - new switches [Proxy] CachePortDetection=1 and CachePortDetectionDuration= to cache port
   detection packets when IgnoreSignaledIPs= is active
 - Radius support is disabled by default now
