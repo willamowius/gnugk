@@ -14172,7 +14172,7 @@ void UDPProxySocket::ApplyPortDetectionCache()
 {
     PTRACE(7, "JW ApplyPortDetectionCache");
     if (m_cachePortDetection) {
-		for (map<IPAndPortAddress, time_t>::const_iterator iter = m_portDetectionCache.begin();
+		for (std::map<IPAndPortAddress, time_t>::const_iterator iter = m_portDetectionCache.begin();
 				iter != m_portDetectionCache.end() ; ++iter) {
             if (time(NULL) - iter->second > m_cachePortDetectionDuration) {
                 PTRACE(7, "JW RTP Skip " << iter->first << " from port detection cache updated=" << iter->second << " now=" << time(NULL));

@@ -325,7 +325,7 @@ protected:
 	list<NetworkAddress> m_allowAnyRTPSourcePortForH239; // list of IPs/networks
 	bool m_cachePortDetection;
 	int m_cachePortDetectionDuration;
-	map<IPAndPortAddress, time_t> m_portDetectionCache;
+	std::map<IPAndPortAddress, time_t> m_portDetectionCache;
 };
 
 #if H323_H450
