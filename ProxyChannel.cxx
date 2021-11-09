@@ -12953,14 +12953,9 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
 
 	if (osSocket == INVALID_OSSOCKET) {
 		PTRACE(1, "RTPM\tError: OSSocket to " << toAddress << " not set");
-		SNMP_TRAP(10, SNMPError, Network, "Invalid multiplexing socket for " + AsString(toAddress));
 		return;
 	}
-// simulate bug
-// if (toAddress.GetIP().AsString() == "192.168.1.49" && !isRetry) {
-//    PTRACE(0, "JW simulate send bug");
-//    osSocket = 777;
-//}
+
 	if (sendMultiplexID != INVALID_MULTIPLEX_ID) {
 		lenToSend += 4;
 		BYTE * multiplexMsg = NULL;
@@ -12983,21 +12978,11 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
 		sent = UDPSendWithSourceIP(osSocket, data, lenToSend, toAddress, gkIP);
 	}
 	if (sent != lenToSend) {
-		PTRACE(1, "RTPM\tError sending RTP to " << toAddress << ": should send=" << lenToSend << " did send=" << (int)sent << " errno=" << errno << " osSocket=" << osSocket);
-		// JWQ
+		PTRACE(1, "RTPM\tError sending RTP to " << toAddress << ": should send=" << lenToSend << " did send=" << (int)sent << " errno=" << errno << " osSocket=" << osSocket << " retry=" isRetry);
 		if ((int)sent == -1 && errno == EBADF && !isRetry) {
-		    PTRACE(0, "JW trying multiplex error recovery");
 		    int newsocket = INVALID_OSSOCKET;
-		    WORD srcport = 6666; // default to any fixed port
-            // try to get the source port from the failing socket, will likely fail, but worth a try
-		    struct sockaddr_in sin;
-            socklen_t sin_len = sizeof(sin);
-            if (::getsockname(osSocket, (struct sockaddr *)&sin, &sin_len) == -1) {
-                PTRACE(0, "JW getsockname failed errno=" << errno);
-            } else {
-                srcport = ntohs(sin.sin_port);
-                PTRACE(0, "JW got port " << srcport << " from old socket");
-            }
+		    WORD srcport = 8888; // default to any fixed port
+
             // bind socket to one fixed port, if it fails sending will still work, but every packet will come from a different source port
 #ifdef hasIPV6
 		    if (toAddress.GetIP().GetVersion() == 6) {
@@ -13011,7 +12996,7 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
                     srcaddr6.sin6_addr = in6addr_any;
                     srcaddr6.sin6_port = htons(srcport);
                     if (bind(newsocket, (struct sockaddr *) &srcaddr6, sizeof(srcaddr6)) < 0) {
-                        PTRACE(0, "JW IPv6 bind to port " << srcport << " for multiplex re-try failed: errno=" << errno);
+                        PTRACE(7, "RTPM\tIPv6 bind to port " << srcport << " for multiplex re-try failed: errno=" << errno);
                     }
                 }
 		    } else
@@ -13027,14 +13012,14 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
                     srcaddr.sin_addr.s_addr = htonl(INADDR_ANY);
                     srcaddr.sin_port = htons(srcport);
                     if (bind(newsocket, (struct sockaddr *) &srcaddr, sizeof(srcaddr)) < 0) {
-                        PTRACE(0, "JW bind to port " << srcport << " for multiplex re-try failed: errno=" << errno);
+                        PTRACE(7, "RTPM\tIPv4 bind to port " << srcport << " for multiplex re-try failed: errno=" << errno);
                     }
                 }
 		    }
 		    if (newsocket > 0) {
                 Send(sendMultiplexID, toAddress, newsocket, data, len, bufferHasRoomForID, gkIP, true); // re-try sending
 		    } else {
-		        PTRACE(1, "JW Error: creating new socket for multiplex re-try failed");
+		        PTRACE(1, "RTPM\tError: creating new socket for multiplex re-try failed");
 		    }
             close(newsocket);
 		}
