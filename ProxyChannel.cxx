@@ -12978,7 +12978,7 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
 		sent = UDPSendWithSourceIP(osSocket, data, lenToSend, toAddress, gkIP);
 	}
 	if (sent != lenToSend) {
-		PTRACE(1, "RTPM\tError sending RTP to " << toAddress << ": should send=" << lenToSend << " did send=" << (int)sent << " errno=" << errno << " osSocket=" << osSocket << " retry=" isRetry);
+		PTRACE(1, "RTPM\tError sending RTP to " << toAddress << ": should send=" << lenToSend << " did send=" << (int)sent << " errno=" << errno << " osSocket=" << osSocket << " retry=" << isRetry);
 		if ((int)sent == -1 && errno == EBADF && !isRetry) {
 		    int newsocket = INVALID_OSSOCKET;
 		    WORD srcport = 8888; // default to any fixed port
