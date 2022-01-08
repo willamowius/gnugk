@@ -2684,6 +2684,7 @@ H46019KeepAlive::H46019KeepAlive()
 	multiplexID = INVALID_MULTIPLEX_ID;
 	payloadType = GNUGK_KEEPALIVE_RTP_PAYLOADTYPE;
 	seq = 1;
+	gkIPptr = NULL;
 	timer = GkTimerManager::INVALID_HANDLE;
 }
 
