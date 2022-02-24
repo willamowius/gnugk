@@ -2,7 +2,7 @@
 //
 // H.323 utility functions
 //
-// Copyright (c) 2000-2021, Jan Willamowius
+// Copyright (c) 2000-2022, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -325,9 +325,9 @@ class IPAndPortAddress
 public:
     IPAndPortAddress() : m_port(0) { }
     IPAndPortAddress(const PIPSocket::Address & ip, WORD port) : m_ip(ip), m_port(port) { }
-    IPAndPortAddress(const H225_TransportAddress & addr) { (void)Set(addr); }
-    IPAndPortAddress(const H245_TransportAddress & addr) { (void)Set(addr); }
-    IPAndPortAddress(const H245_UnicastAddress & addr) { (void)Set(addr); }
+    IPAndPortAddress(const H225_TransportAddress & addr) : m_port(0) { (void)Set(addr); }
+    IPAndPortAddress(const H245_TransportAddress & addr) : m_port(0) { (void)Set(addr); }
+    IPAndPortAddress(const H245_UnicastAddress & addr) : m_port(0) { (void)Set(addr); }
     ~IPAndPortAddress() { };
 
     PIPSocket::Address GetIP() const { return m_ip;}
