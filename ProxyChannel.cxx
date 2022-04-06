@@ -3212,7 +3212,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 #endif // HAS_H46023
 
 #ifdef HAS_H46024B
-	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request) {
+	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request && m_call) {
 		H245_RequestMessage & reqmsg = h245msg;
 		if (reqmsg.GetTag() == H245_RequestMessage::e_genericRequest) {
 		    H245_GenericMessage & gmsg = reqmsg;
@@ -3233,7 +3233,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 #endif // HAS_H46024B
 
     // rewrite MSD
-	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request) {
+	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request && m_call) {
 		H245_RequestMessage & reqmsg = h245msg;
 		if (reqmsg.GetTag() == H245_RequestMessage::e_masterSlaveDetermination) {
             H245_MasterSlaveDetermination & msd = reqmsg;
@@ -3256,7 +3256,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 			H245_CapabilityIdentifier & id = gmsg.m_messageIdentifier;
 			if (id.GetTag() == H245_CapabilityIdentifier::e_standard) {
 				PASN_ObjectId & val = id;
-				if (val.AsString() == H46024B_OID) {
+				if (val.AsString() == H46024B_OID && m_call) {
 					m_call->H46024BRespond();
 					suppress = true;
 					return false;

@@ -1,6 +1,6 @@
 Changes from 5.9 to 5.10
 ========================
-
+- fix crash when handling MSD
 
 
 Changes from 5.8 to 5.9
