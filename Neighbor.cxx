@@ -279,7 +279,7 @@ protected:
 
 void NeighborPingThread::Main()
 {
-    int timeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 1000;
+    int timeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
     PString pingAlias = GkConfig()->GetString(LRQFeaturesSection, "PingAlias", "gatekeeper-monitoring-check");
     H225_ArrayOf_AliasAddress aliases;
     aliases.SetSize(1);
@@ -1939,7 +1939,7 @@ private:
 
 NeighborPolicy::NeighborPolicy() : m_neighbors(*RasServer::Instance()->GetNeighbors())
 {
-	m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 1000;
+	m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
 	m_name = "Neighbor";
 }
 

@@ -73,9 +73,9 @@ The <tt/[RasSrv::Neighbors]/ section is only used to specify the gatekeeper type
 Defines some features of LRQ and LCF.
 <itemize>
 <item><tt/NeighborTimeout=1/<newline>
-Default: <tt/2/<newline>
+Default: <tt/5/<newline>
 <p>
-Timeout value in seconds to wait for responses from neighbors.
+Timeout value in 10th of a second to wait for responses from neighbors.
 If no neighbor responds before the timeout, the gatekeeper will
 reply with an ARJ to the endpoint sending the ARQ.
 
