@@ -2,7 +2,7 @@
 //
 // Toolkit base class for the GnuGk
 //
-// Copyright (c) 2000-2021, Jan Willamowius
+// Copyright (c) 2000-2022, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -3713,7 +3713,7 @@ bool Toolkit::IsPortNotificationActive()	// not const to allow simple map access
 void Toolkit::PortNotification(PortType type, PortAction action, const PString & protocol,
 								const PIPSocket::Address & addr, WORD port, PINDEX callNo)
 {
-	PTRACE(5, "Port Notification " << ((action == PortOpen) ? "OPEN " : "CLOSE ") << AsString(type) << " " << protocol << " " << ::AsString(addr, port));
+	PTRACE(5, "Port Notification " << ((action == PortOpen) ? "OPEN " : "CLOSE ") << PortTypeAsString(type) << " " << protocol << " " << ::AsString(addr, port));
 
 	// book keeping for status port command
 	if (callNo != 0) {
@@ -3741,7 +3741,7 @@ void Toolkit::PortNotification(PortType type, PortAction action, const PString &
 	cmd.Replace("%p", protocol);
 	cmd.Replace("%n", PString(port));
 	cmd.Replace("%i", ::AsString(addr));
-	cmd.Replace("%t", ::AsString(type));
+	cmd.Replace("%t", PortTypeAsString(type));
 
 	if(system(cmd) == -1) {
 		PTRACE(1, "Error executing port notification: " << cmd);

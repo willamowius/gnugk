@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2021, Jan Willamowius
+// Copyright (c) 2000-2022, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -70,7 +70,7 @@ const long DEFAULT_ALERTING_TIMEOUT = 180000;
 const int DEFAULT_IRQ_POLL_COUNT = 1;
 }
 
-PString AsString(PortType t)
+PString PortTypeAsString(PortType t)
 {
     switch (t) {
         case 1: return "RAS";

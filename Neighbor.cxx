@@ -3,7 +3,7 @@
 // Neighboring System for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2020, Jan Willamowius
+// Copyright (c) 2004-2022, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.

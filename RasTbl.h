@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2021, Jan Willamowius
+// Copyright (c) 2000-2022, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -56,7 +56,7 @@ const unsigned WAIT_DELETE_AFTER_DISCONNECT = 30;   // time to wait after discon
 enum PortType { RASPort=1, Q931Port=2, H245Port=3, RTPPort=4, T120Port=5, RadiusPort=6, StatusPort=7 };
 enum PortAction { PortOpen=1, PortClose=2 };
 
-PString AsString(PortType t);
+PString PortTypeAsString(PortType t);
 
 class DynamicPort
 {
