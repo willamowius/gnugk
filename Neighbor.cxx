@@ -2445,15 +2445,19 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly,
 				} else
 					parts = SplitIPAndPort(dom, GK_DEF_ENDPOINT_SIGNAL_PORT);
 
+				bool preserveDest = GkConfig()->GetBoolean(LRQFeaturesSection, "PreserveDestination", false);
+				if (preserveDest) {
+					PTRACE(4, "ROUTING\tSRV CS routes call to " << cs[j]);
+				} else {
+					PTRACE(4, "ROUTING\tSRV CS converted remote party " << alias << " to " << cs[j]);
+				}
 				dom = parts[0];
 				WORD port = (WORD)parts[1].AsUnsigned();
-				PTRACE(4, "ROUTING\tSRV CS converted remote party " << alias << " to " << cs[j]);
 				if (GetTransportAddress(dom, port, dest)) {
 					PIPSocket::Address addr;
 					if (!(GetIPFromTransportAddr(dest, addr) && addr.IsValid()))
 						continue;
 
-					bool preserveDest = GkConfig()->GetBoolean(LRQFeaturesSection, "PreserveDestination", false);
 					if (!preserveDest) {
 						if (!gateway.IsEmpty()) {  // If we have a gateway destination send full URI
 							PStringArray parts = SplitIPAndPort(cs[j].Mid(in+1), schemaPort);
