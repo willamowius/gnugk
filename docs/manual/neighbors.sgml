@@ -200,6 +200,11 @@ Default: <tt>0</tt><newline>
 <p>
 Don't cache any LCFs in the loop detection. Use if cached LCFs with incorrect data (for another endpoint) break the routing.
 
+<item><tt/PreserveDestination=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Don't rewrite the destinationInfo when resolving LRQs with the SRV policy
+
 </itemize>
 
 

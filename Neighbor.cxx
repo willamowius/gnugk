@@ -2453,14 +2453,19 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly,
 					if (!(GetIPFromTransportAddr(dest, addr) && addr.IsValid()))
 						continue;
 
-					if (!gateway.IsEmpty()) {  // If we have a gateway destination send full URI
-						PStringArray parts = SplitIPAndPort(cs[j].Mid(in+1), schemaPort);
-						PString finalDest =  parts[0] + ":" + parts[1];
-						if (in > 0) finalDest = cs[j].Left(in) + "@" + finalDest;
-						H323SetAliasAddress(finalDest, aliases[i]);
-						changed = true;
-					} else
-						H323SetAliasAddress(cs[j].Left(in), aliases[i]);
+					bool preserveDest = GkConfig()->GetBoolean(LRQFeaturesSection, "PreserveDestination", false);
+					if (!preserveDest) {
+						if (!gateway.IsEmpty()) {  // If we have a gateway destination send full URI
+							PStringArray parts = SplitIPAndPort(cs[j].Mid(in+1), schemaPort);
+							PString finalDest =  parts[0] + ":" + parts[1];
+							if (in > 0)
+								finalDest = cs[j].Left(in) + "@" + finalDest;
+							H323SetAliasAddress(finalDest, aliases[i]);
+							changed = true;
+						} else {
+							H323SetAliasAddress(cs[j].Left(in), aliases[i]);
+						}
+					}
 
 					Route * route = NULL;
 					if (Toolkit::Instance()->IsGKHome(addr)) {
