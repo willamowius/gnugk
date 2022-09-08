@@ -2332,7 +2332,7 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 						return NULL;
 					}
 
-					int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
+					int neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
 
 					// Send LRQ to retrieve callers signaling address
 					// Caution: we may only use the functor object of the right type and never touch the others!
@@ -2351,7 +2351,7 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 						pRequest = new LRQRequester(LrqFunctor);
 					}
 					if (pRequest && pRequest->Send(nb)) {
-						if (H225_LocationConfirm * lcf = pRequest->WaitForDestination(m_neighborTimeout)) {
+						if (H225_LocationConfirm * lcf = pRequest->WaitForDestination(neighborTimeout)) {
 							Route * route = new Route(m_name, lcf->m_callSignalAddress);
 #ifdef HAS_LANGUAGE
 							if (pRequest->SupportLanguages()) {
@@ -2622,7 +2622,7 @@ bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 					return false;
 				}
 
-				int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
+				int neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
 
 				// Send LRQ to retrieve callers signaling address
 				// Caution: we may only use the functor object of the right type and never touch the others!
@@ -2638,7 +2638,7 @@ bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 					pRequest = new LRQRequester(FacilityFunctor);
 				}
 				if (pRequest && pRequest->Send(nb)) {
-					if (H225_LocationConfirm *lcf = pRequest->WaitForDestination(m_neighborTimeout)) {
+					if (H225_LocationConfirm *lcf = pRequest->WaitForDestination(neighborTimeout)) {
 						Route route(m_name, lcf->m_callSignalAddress);
 #ifdef HAS_LANGUAGE
 						if (pRequest->SupportLanguages()) {
@@ -2753,7 +2753,7 @@ bool NeighborSqlPolicy::ResolveRoute(RoutingRequest & request, DestinationRoutes
 		return false;
 	}
 
-	int m_neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
+	int neighborTimeout = GkConfig()->GetInteger(LRQFeaturesSection, "NeighborTimeout", 5) * 100;
 
 	// Send LRQ to retrieve callers signaling address
 	// Caution: we may only use the functor object of the right type and never touch the others!
@@ -2772,7 +2772,7 @@ bool NeighborSqlPolicy::ResolveRoute(RoutingRequest & request, DestinationRoutes
 		pRequest = new LRQRequester(LrqFunctor);
 	}
 	if (pRequest && pRequest->Send(nb)) {
-		if (H225_LocationConfirm * lcf = pRequest->WaitForDestination(m_neighborTimeout)) {
+		if (H225_LocationConfirm * lcf = pRequest->WaitForDestination(neighborTimeout)) {
 			Route route(m_name, lcf->m_callSignalAddress);
 #ifdef HAS_LANGUAGE
 			if (pRequest->SupportLanguages()) {
