@@ -2447,7 +2447,7 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly,
 
 				bool preserveDest = GkConfig()->GetBoolean(LRQFeaturesSection, "PreserveDestination", false);
 				if (preserveDest) {
-					PTRACE(4, "ROUTING\tSRV CS routes call to " << cs[j]);
+					PTRACE(4, "ROUTING\tSRV CS routes call " << alias << " to " << dom);
 				} else {
 					PTRACE(4, "ROUTING\tSRV CS converted remote party " << alias << " to " << cs[j]);
 				}
