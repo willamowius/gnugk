@@ -96,6 +96,8 @@ private:
 	PString m_method;
 	/// HTTP Content-Type used for POSTs
 	PString m_contentType;
+	// HTTP Authorization header (optional)
+	PString m_authorization;
 	/// timestamp formatting string
 	PString m_timestampFormat;
 };

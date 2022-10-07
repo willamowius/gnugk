@@ -38,6 +38,7 @@ HttpAcct::HttpAcct(const char* moduleName, const char* cfgSecName)
 	m_timestampFormat = cfg->GetString(cfgSec, "TimestampFormat", "");
     m_method = GkConfig()->GetString(cfgSec, "Method", "POST");
     m_contentType = cfg->GetString(cfgSec, "ContentType", "text/plain");
+    m_authorization = cfg->GetString(cfgSec, "Authorization", "");
 	m_startURL = cfg->GetString(cfgSec, "StartURL", "");
 	m_startBody = cfg->GetString(cfgSec, "StartBody", "");
 	m_stopURL = cfg->GetString(cfgSec, "StopURL", "");
@@ -183,6 +184,8 @@ GkAcctLogger::Status HttpAcct::HttpLog(PString url, PString body)
     url.Replace(" ", "%20", true);  // TODO: better URL escaping ?
     PString host = PURL(url).GetHostName();
     PString result; // we have to capture the response, but we ignore it for now
+    const char lf = (char)10;
+    const char cr = (char)13;
 
 #ifdef HAS_LIBCURL
     CURLcode curl_res = CURLE_FAILED_INIT;
@@ -190,15 +193,25 @@ GkAcctLogger::Status HttpAcct::HttpLog(PString url, PString body)
     if (curl) {
         struct curl_slist *headerlist = NULL;
         if (m_method == "GET") {
-            // nothing special to do
+            if (!m_authorization.IsEmpty()) {
+                PString header = PString("Authorization: ") + m_authorization;
+                headerlist = curl_slist_append(headerlist, (const char *)header);
+                (void)curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
+            }
         } else if (m_method == "POST") {
             PStringArray parts = url.Tokenise("?");
             if (body.IsEmpty() && parts.GetSize() == 2) {
                 url = parts[0];
                 body = parts[1];
             }
+            body.Replace("\\n", lf, true);
+            body.Replace("\\r", cr, true);
             PString header = PString("Content-Type: ") + m_contentType;
             headerlist = curl_slist_append(headerlist, (const char *)header);
+            if (!m_authorization.IsEmpty()) {
+                header = PString("Authorization: ") + m_authorization;
+                headerlist = curl_slist_append(headerlist, (const char *)header);
+            }
             (void)curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
             (void)curl_easy_setopt(curl, CURLOPT_POSTFIELDS, (const char *)body);
         } else {
@@ -235,6 +248,8 @@ GkAcctLogger::Status HttpAcct::HttpLog(PString url, PString body)
             url = parts[0];
             body = parts[1];
         }
+        body.Replace("\\n", lf, true);
+        body.Replace("\\r", cr, true);
         PMIMEInfo outMIME;
         outMIME.SetAt(PMIMEInfo::ContentTypeTag(), (const char *)m_contentType);
         PMIMEInfo replyMIME;
