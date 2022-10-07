@@ -3,7 +3,7 @@
  *
  * accounting module for GNU Gatekeeper that sends it's messages over HTTP
  *
- * Copyright (c) 2018-2021, Jan Willamowius
+ * Copyright (c) 2018-2022, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -116,7 +116,7 @@ GkAcctLogger::Status HttpAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & 
 	}
 
 	if (eventURL.IsEmpty()) {
-		PTRACE(1, "HttpAcct\t" << GetName() << "Error: No URL configured for event " << evt);
+		PTRACE(1, "HttpAcct\t" << GetName() << " - Error: No URL configured for event " << evt);
 		return Fail;
 	}
 
@@ -153,7 +153,7 @@ GkAcctLogger::Status HttpAcct::Log(GkAcctLogger::AcctEvent evt, const endptr & e
 	}
 
 	if (eventURL.IsEmpty()) {
-		PTRACE(1, "HttpAcct\t" << GetName() << "Error: No URL configured for event " << evt);
+		PTRACE(1, "HttpAcct\t" << GetName() << " - Error: No URL configured for event " << evt);
 		return Fail;
 	}
 
