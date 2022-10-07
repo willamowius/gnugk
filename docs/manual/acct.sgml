@@ -261,6 +261,11 @@ parameters are recognized in all call related accounting events:
 <item><tt/%{env9}/ - content of environment variable GNUGK_ENV9
 <item><tt/%{media-oip}/ - caller's RTP media IP (only for H.245 routed/tunneled calls) DEPRECATED
 <item><tt/%{codec}/ - audio codec used during the call (only for H.245 routed/tunneled calls) DEPRECATED
+<item><tt/%{registrations}/ - number of endpoints currently registered
+<item><tt/%{calls}/ - number of ongoing calls
+<item><tt/%{total-calls}/ - total number of calls
+<item><tt/%{successful-calls}/ - total number of successful calls
+<item><tt/%{allocated-bandwidth}/ - currently allocated-bandwidth for all calls together
 </itemize>
 
 For Register and Unregister events you can use the following parameters:
@@ -280,6 +285,11 @@ For Register and Unregister events you can use the following parameters:
 <item><tt/%{env1}/ - content of environment variable GNUGK_ENV1
 <item><tt/.../
 <item><tt/%{env9}/ - content of environment variable GNUGK_ENV9
+<item><tt/%{registrations}/ - number of endpoints currently registered
+<item><tt/%{calls}/ - number of ongoing calls
+<item><tt/%{total-calls}/ - total number of calls
+<item><tt/%{successful-calls}/ - total number of successful calls
+<item><tt/%{allocated-bandwidth}/ - currently allocated-bandwidth for all calls together
 </itemize>
 
 For On and Off events you can use the following parameters:

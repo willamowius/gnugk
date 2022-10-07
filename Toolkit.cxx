@@ -3911,6 +3911,12 @@ PString Toolkit::ReplaceGlobalParams(const PString & str)
 		result.Replace("%{gkip}", interfaces.front().AsString(), true);
     result.Replace("%{external-ip}", GetExternalIP(), true);
 
+    result.Replace("%{registrations}", RegistrationTable::Instance()->Size(), true);
+    result.Replace("%{calls}", CallTable::Instance()->Size(), true);
+    result.Replace("%{allocated-bandwidth}", CallTable::Instance()->GetTotalAllocatedBandwidth(), true);
+    result.Replace("%{total-calls}", CallTable::Instance()->TotalCallCount(), true);
+    result.Replace("%{successful-calls}", CallTable::Instance()->SuccessfulCallCount(), true);
+
     result.Replace("%{env1}", ::getenv("GNUGK_ENV1"), true);
     result.Replace("%{env2}", ::getenv("GNUGK_ENV2"), true);
     result.Replace("%{env3}", ::getenv("GNUGK_ENV3"), true);
