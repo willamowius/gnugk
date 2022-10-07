@@ -1056,11 +1056,19 @@ what to include into your request URL or body.
 Default: <tt>N/A</tt>
 <p>
 HTTP method to use. Currently GET and POST are supported.
+When you use, post, you can specify a docuemnt body with on eof the switches below.
+In the body, \r and \n are replaced with carriage return and line feed characters.
 
 <item><tt>ContentType=application/json</tt><newline>
 Default: <tt>text/plain</tt><newline>
 <p>
 The content type header to send in POST requests.
+
+<item><tt>Authorization=Token abcdef</tt><newline>
+Default: <tt>N/A</tt><newline>
+<p>
+The authorization header to send in HTTP requests.
+GnuGk must be compiled with libcurl support for this.
 
 <item><tt/TimestampFormat=MySQL/<newline>
 Default: <tt>N/A</tt><newline>
