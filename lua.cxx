@@ -49,7 +49,7 @@ static int gnugk_trace(lua_State * L) {
 }
 
 static int gnugk_get_config_string(lua_State * L) {
-	if ((lua_gettop(L) != 3) || !lua_isstring(L, 1) || !lua_isstring(L, 2) | !lua_isstring(L, 3)) {
+	if ((lua_gettop(L) != 3) || !lua_isstring(L, 1) || !lua_isstring(L, 2) || !lua_isstring(L, 3)) {
 		lua_pushstring(L, "Incorrect arguments for 'get_config_string('section', 'switch', 'default')'");
 		lua_error(L);
 		return 0;
@@ -62,7 +62,7 @@ static int gnugk_get_config_string(lua_State * L) {
 }
 
 static int gnugk_get_config_integer(lua_State * L) {
-	if ((lua_gettop(L) != 3) || !lua_isstring(L, 1) || !lua_isstring(L, 2) | !lua_isnumber(L, 3)) {
+	if ((lua_gettop(L) != 3) || !lua_isstring(L, 1) || !lua_isstring(L, 2) || !lua_isnumber(L, 3)) {
 		lua_pushstring(L, "Incorrect arguments for 'get_config_integer('section', 'switch', default)'");
 		lua_error(L);
 		return 0;
