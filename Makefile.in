@@ -108,8 +108,6 @@ include $(OPENH323MAKEDIR)/openh323u.mak
 
 #CXX = callcatcher g++
 
-STDCCFLAGS += -Wall
-
 ### Remove -fdata-sections gcc option that cause problems during link step
 temp_STDCCFLAGS := $(subst -fdata-sections,,$(STDCCFLAGS))
 STDCCFLAGS = $(temp_STDCCFLAGS)
