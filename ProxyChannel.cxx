@@ -12759,8 +12759,8 @@ H46019Session H46019Session::SwapSides() const
 
 void H46019Session::Dump() const
 {
-    if (m_deleted)
-        return;
+	if (m_deleted)
+		return;
 
 	PTRACE(7, "JW H46019Session: session=" << m_session << " openedBy=" << m_openedBy << " flcn=" << m_flcn
 			<< " IDfromA=" << m_multiplexID_fromA << " IDtoA=" << m_multiplexID_toA
