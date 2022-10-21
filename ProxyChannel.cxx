@@ -12995,7 +12995,7 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
                     srcaddr6.sin6_family = AF_INET6;
                     srcaddr6.sin6_addr = in6addr_any;
                     srcaddr6.sin6_port = htons(srcport);
-                    if (bind(newsocket, (struct sockaddr *) &srcaddr6, sizeof(srcaddr6)) < 0) {
+                    if (::bind(newsocket, (struct sockaddr *) &srcaddr6, sizeof(srcaddr6)) < 0) {
                         PTRACE(7, "RTPM\tIPv6 bind to port " << srcport << " for multiplex re-try failed: errno=" << errno);
                     }
                 }
@@ -13011,7 +13011,7 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
                     srcaddr.sin_family = AF_INET;
                     srcaddr.sin_addr.s_addr = htonl(INADDR_ANY);
                     srcaddr.sin_port = htons(srcport);
-                    if (bind(newsocket, (struct sockaddr *) &srcaddr, sizeof(srcaddr)) < 0) {
+                    if (::bind(newsocket, (struct sockaddr *) &srcaddr, sizeof(srcaddr)) < 0) {
                         PTRACE(7, "RTPM\tIPv4 bind to port " << srcport << " for multiplex re-try failed: errno=" << errno);
                     }
                 }
