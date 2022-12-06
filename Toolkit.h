@@ -497,7 +497,6 @@ class Toolkit : public Singleton<Toolkit>
 	H225_ArrayOf_AlternateGK GetMaintenanceAlternate() const;
 
     PString GetExternalIP() const;
-    void SetExternalIPFromCmdLine(const PString & ip);
     PString ReplaceGlobalParams(const PString & str);
 
 	bool RemoveAllH235Tokens() const { return m_alwaysRemoveH235Tokens; }

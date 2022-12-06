@@ -37,8 +37,6 @@ See <ref id="ttl" name="there"> for detailed explanations.
 Specify the total bandwidth available for the gatekeeper in units of 100 bits per second.
 Without this option, bandwidth management
 is disabled.
-<tag/<tt/-e  --externalip x.x.x.x//
-Specify the external IP, overrides [Gatekeeper::Main] ExternalIP=
 <tag/<tt/--pid filename//
 Specify the pid file. Only valid for Unix version.
 <tag/<tt/-u  --user name//

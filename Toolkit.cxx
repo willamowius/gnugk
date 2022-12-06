@@ -3894,11 +3894,6 @@ PString Toolkit::GetExternalIP() const
     return ext;
 }
 
-void Toolkit::SetExternalIPFromCmdLine(const PString & ip)
-{
-    m_Config->SetString("ExternalIP", ip);
-}
-
 PString Toolkit::ReplaceGlobalParams(const PString & str)
 {
     PString result = str;
