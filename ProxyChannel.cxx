@@ -12965,6 +12965,11 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
 		return;
 	}
 
+	PIPSocket::Address * sourceIP = NULL;
+	if (gkIP && Toolkit::Instance()->GetExternalIP().IsEmpty()) { // let OS/firewall handle setting source IP with ExternalIP
+		sourceIP = gkIP;
+	}
+
 	if (sendMultiplexID != INVALID_MULTIPLEX_ID) {
 		lenToSend += 4;
 		BYTE * multiplexMsg = NULL;
@@ -12980,11 +12985,11 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
 		PUInt32b networkID = sendMultiplexID;   // convert multiplex ID to network format
 		*((PUInt32b*)multiplexMsg) = networkID;	// set multiplexID
 
-		sent = UDPSendWithSourceIP(osSocket, multiplexMsg, lenToSend, toAddress, gkIP);
+		sent = UDPSendWithSourceIP(osSocket, multiplexMsg, lenToSend, toAddress, sourceIP);
 		if (!bufferHasRoomForID)
 			free(multiplexMsg);
 	} else {
-		sent = UDPSendWithSourceIP(osSocket, data, lenToSend, toAddress, gkIP);
+		sent = UDPSendWithSourceIP(osSocket, data, lenToSend, toAddress, sourceIP);
 	}
 	if (sent != lenToSend) {
 		PTRACE(1, "RTPM\tError sending RTP to " << toAddress << ": should send=" << lenToSend << " did send=" << (int)sent << " errno=" << errno << " osSocket=" << osSocket << " retry=" << isRetry);
@@ -13026,7 +13031,7 @@ void H46019Session::Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddre
                 }
 		    }
 		    if (newsocket > 0) {
-                Send(sendMultiplexID, toAddress, newsocket, data, len, bufferHasRoomForID, gkIP, true); // re-try sending
+                Send(sendMultiplexID, toAddress, newsocket, data, len, bufferHasRoomForID, sourceIP, true); // re-try sending
 				close(newsocket);
 		    } else {
 		        PTRACE(1, "RTPM\tError: creating new socket for multiplex re-try failed");
@@ -14751,7 +14756,8 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	WORD toPort = 0;
 	GetSendAddress(toIP, toPort);
 	PIPSocket::Address gkIP;
-	if (m_call && (*m_call) && (*m_call)->GetEndpointIPMapping(toIP, gkIP)) {
+	if (m_call && (*m_call) && (*m_call)->GetEndpointIPMapping(toIP, gkIP)
+		&& Toolkit::Instance()->GetExternalIP().IsEmpty()) { // let OS/firewall handle setting source IP with ExternalIP
 	    UDPSendWithSourceIP(os_handle, wbuffer, buflen, toIP, toPort, &gkIP);
 	} else {
 	    UDPSendWithSourceIP(os_handle, wbuffer, buflen, toIP, toPort, NULL);

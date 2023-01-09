@@ -1,6 +1,6 @@
 Changes from 5.10 to 5.11
 =========================
-- fix bug with H.245 address when using ExternalIP=
+- fix bug with H.245 address and UDP source when using ExternalIP=
 - remove non-working command line switch -e / --externalip, use config file to set ExternalIP
 - new accounting variables %{registrations}, %{calls}, %{total-calls}, %{successful-calls}, %{allocated-bandwidth}
 - new switch [HttpAcct] Authorization= to send authorization headers to support InfluxDB
