@@ -4969,8 +4969,17 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 				);
 		}
 		if (!rejectCall) {
-            PTRACE(7, "JW RTP SetEndpointIPMapping " << _peerAddr << " <=> " << _localAddr);
-		    m_call->SetEndpointIPMapping(_peerAddr, _localAddr);
+			PString extip = Toolkit::Instance()->GetExternalIP();
+			if (extip.IsEmpty()) {
+				PTRACE(7, "JW RTP SetEndpointIPMapping " << _peerAddr << " <=> " << _localAddr);
+				m_call->SetEndpointIPMapping(_peerAddr, _localAddr);
+			} else {
+				PIPSocket::Address ext((DWORD)0);
+				H323TransportAddress ex = H323TransportAddress(extip);
+				ex.GetIpAddress(ext);
+				PTRACE(7, "JW RTP SetEndpointIPMapping to ExternalIP " << _peerAddr << " <=> " << ext);
+				m_call->SetEndpointIPMapping(_peerAddr, ext);
+			}
 		}
 		if (!rejectCall && authData.m_callDurationLimit > 0)
 			m_call->SetDurationLimit(authData.m_callDurationLimit);
