@@ -1078,7 +1078,6 @@ The content type header to send in POST requests.
 Default: <tt>N/A</tt><newline>
 <p>
 The authorization header to send in HTTP requests.
-GnuGk must be compiled with libcurl support for this.
 
 <item><tt/TimestampFormat=MySQL/<newline>
 Default: <tt>N/A</tt><newline>

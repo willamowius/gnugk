@@ -1,13 +1,12 @@
 Changes from 5.10 to 5.11
 =========================
-- fix bug with H.245 address and UDP source when using ExternalIP=
+- fix bug with H.245 address and UDP source when using ExternalIP= switch
 - remove non-working command line switch -e / --externalip, use config file to set ExternalIP
 - new accounting variables %{registrations}, %{calls}, %{total-calls}, %{successful-calls}, %{allocated-bandwidth}
 - new switch [HttpAcct] Authorization= to send authorization headers to support InfluxDB
-  (GnuGk needs to be compiled with libcurl)
 - replace \r and \n in HttpAcct body with carriage return and line feed characters
 - BUGFIX(Toolkit.cxx) fix tracing of port notifications
-- new switch: [RasSrv::LRQFeatures] PreserveDestination=1
+- new switch: [RasSrv::LRQFeatures] PreserveDestination=1 (helpful when calling Pexip servers)
 
 Changes from 5.9 to 5.10
 ========================

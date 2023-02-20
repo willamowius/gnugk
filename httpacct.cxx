@@ -257,6 +257,9 @@ GkAcctLogger::Status HttpAcct::HttpLog(PString url, PString body)
         body.Replace("\\r", cr, true);
         PMIMEInfo outMIME;
         outMIME.SetAt(PMIMEInfo::ContentTypeTag(), (const char *)m_contentType);
+        if (!m_authorization.IsEmpty()) {
+            outMIME.SetAt("Authorization", (const char *)m_authorization);
+        }
         PMIMEInfo replyMIME;
         if (!http.PostData(url, outMIME, body, replyMIME, result)) {
             PTRACE(2, "HttpAcct\tCould not POST to " << host);
