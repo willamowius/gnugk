@@ -3,7 +3,7 @@
 // Version number for GnuGk
 //
 // Copyright (c) 2002, Dr.-Ing. Martin Froehlich <Martin.Froehlich@mediaWays.net>
-// Copyright (c) 2006-2022, Jan Willamowius
+// Copyright (c) 2006-2023, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -22,7 +22,7 @@
 
 /* Minor version number of the gatekeeper */
 #ifndef GNUGK_MINOR_VERSION
-# define GNUGK_MINOR_VERSION 11
+# define GNUGK_MINOR_VERSION 12
 #endif
 
 /* Release status for the gatekeeper */
