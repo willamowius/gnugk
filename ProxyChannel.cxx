@@ -7531,8 +7531,11 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 							rtpPadding = bytes[0] & 0x20;
 						if (wlen >= 2)
 							payloadType = bytes[1] & 0x7f;
-						if (wlen >= 8)
+						if (wlen >= 8) {
 							memcpy(ivSequence, bytes.GetPointer() + 2, 6);
+						} else {
+							continue; // no data to en-/decrypt
+						}
 
 						bool encrypting = (m_callerSocket && m_call->GetEncryptDirection() == CallRec::callingParty)
 							|| (!m_callerSocket && m_call->GetEncryptDirection() == CallRec::calledParty);
@@ -12883,8 +12886,11 @@ void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddre
 			rtpPadding = (((BYTE*)data)[0] & 0x20);
 		if (len >= 2)
 			payloadType = ((BYTE*)data)[1] & 0x7f;
-		if (len >= 8)
+		if (len >= 8) {
 			memcpy(ivSequence, (BYTE*)data + 2, 6);
+		} else {
+		    return; // no data to en-/decrypt
+		}
 
 		if (receivedMultiplexID == m_encryptMultiplexID) {
 			if (m_encryptingLC) {
