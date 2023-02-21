@@ -39,11 +39,6 @@ HttpAcct::HttpAcct(const char* moduleName, const char* cfgSecName)
     m_method = GkConfig()->GetString(cfgSec, "Method", "POST");
     m_contentType = cfg->GetString(cfgSec, "ContentType", "text/plain");
     m_authorization = cfg->GetString(cfgSec, "Authorization", "");
-#ifndef HAS_LIBCURL
-	if (!m_authorization.IsEmpty()) {
-		PTRACE(1, "HttpAcct\t" << GetName() << " - Error: Authorization configured, but GnuGk is not compiled with libcurl");
-	}
-#endif
 	m_startURL = cfg->GetString(cfgSec, "StartURL", "");
 	m_startBody = cfg->GetString(cfgSec, "StartBody", "");
 	m_stopURL = cfg->GetString(cfgSec, "StopURL", "");
