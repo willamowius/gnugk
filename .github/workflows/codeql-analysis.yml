@@ -12,7 +12,7 @@ on:
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
 
     steps:
     - name: Checkout repository
@@ -30,8 +30,7 @@ jobs:
          languages: cpp
 
     - run: |
-       sudo apt-get install libssl-dev libmysqlclient-dev libsqlite3-dev libpq-dev unixodbc-dev liblua5.3-dev libgeoip-dev libssh-dev firebird-dev librabbitmq-dev libhiredis-dev libmosquitto-dev
-       # removed because missing in Github's Ubuntu: libldap2-dev libcurl4-gnutls-dev libsnmp-dev
+       sudo apt-get install g++ pkg-config automake make flex bison libssl-dev libmysqlclient-dev libsqlite3-dev libpq-dev unixodbc-dev libldap2-dev liblua5.3-dev libgeoip-dev libcurl4-gnutls-dev libssh-dev libsnmp-dev firebird-dev librabbitmq-dev libhiredis-dev libmosquitto-dev nlohmann-json3-dev
        cd ..
        git clone https://github.com/willamowius/ptlib
        cd ptlib
