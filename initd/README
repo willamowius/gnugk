@@ -1,6 +1,11 @@
-This folder contains initd scripts for various distributions to
+This folder contains startup scripts for various distributions to
 start GnuGk automatically when the server starts.
-Usually the scripts must be renamed to 'gnugk' and places into
+
+Recent distributions mostly use Systemd, so you can place
+systemd.gnugk.service as gnugk.service into /etc/systemd/system.
+
+On older distributions that use the Initd system, the scripts must
+usually be renamed to 'gnugk' and placed into
 the folder /etc/rc.d or /etc/init.d .
 
 If you modify one of these scripts to work with your distribution,
@@ -9,4 +14,3 @@ please send them in to jan@willamowius.de or post them on the mailinglist.
 OpenSuSE:   use gk.initd.suse12 for 12.x (with SysVInit, not systemd), gk.initd.suse10 for 10.x and gk.initd.suse for 9.x
 CentOS:     use gk.initd.redhat, gk.initd.centos53, gk.initd.centos65 or gk.initd.centos7
 MacOS X:	use gnugk.plist and place it in /Library/LaunchDaemons/
-
