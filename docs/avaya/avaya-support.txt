@@ -1,4 +1,4 @@
-Gnu Gatekeeper Avaya functionality installation & test scenario
+GNU Gatekeeper Avaya functionality installation & test scenario
 
 1. Avaya functionality was reverse engineered from lab CM switch version 18.
 
@@ -62,7 +62,7 @@ The following features and limitations are now available:
    how to set it for dnsmasq (Avaya phones do not work with HTTP redirection, HTTPDIR must be set):
     - dhcp-option=242,MCIPADD=192.168.77.107,HTTPSRVR=192.168.77.107,HTTPDIR=/static/
 
-8. Main target for this Avaya feature in GnuGk is to replace Avaya CM with GnuGk+Asterisk
+8. Main target for the Avaya feature in GnuGk is to replace Avaya CM with GnuGk+Asterisk
    to continue using existent phones; attached configuration files means that solution runs co-resident like:
     - GnuGk at 192.168.77.107 (1719/UDP RAS and 1720/TCP for call control, etc);
     - Asterisk at 192.168.77.107 (1820/TCP for call control, etc and 80/TCP for Avaya phone config/firmware);
