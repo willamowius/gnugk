@@ -1,5 +1,6 @@
 Changes from 5.11 to 5.12
 =========================
+- BUGFIX(RasSrv.cxx, gkauth.cxx) make sure time_t is handled unsigned to avoid Y2K38 issue
 - BUGFIX(ProxyChannel.cxx) check for too small packets when acting as encryption proxy
 
 Changes from 5.10 to 5.11
