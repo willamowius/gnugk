@@ -871,7 +871,7 @@ void GkAuthenticatorList::SelectH235Capability(
 								gcf.m_tokens.SetSize(gcf.m_tokens.GetSize() + 1);
 								gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_tokenOID = "0.0";
 								gcf.m_tokens[gcf.m_tokens.GetSize() - 1].IncludeOptionalField(H235_ClearToken::e_timeStamp);
-								gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_timeStamp = (int)time(NULL); // Avaya seems to send a different timestamp that is 34 years back, but accepts this as well
+								gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_timeStamp = (unsigned)time(NULL); // Avaya seems to send a different timestamp that is 34 years back, but accepts this as well
 								gcf.m_tokens[gcf.m_tokens.GetSize() - 1].IncludeOptionalField(H235_ClearToken::e_random);
 #ifdef PSSL
                                 // if we have OpenSSL, use it for random number generation, fall back on stdlib rand()

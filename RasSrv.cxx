@@ -1909,7 +1909,7 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
                         gcf.m_tokens.SetSize(gcf.m_tokens.GetSize() + 1);
                         gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_tokenOID = OID_TSSM;
                         gcf.m_tokens[gcf.m_tokens.GetSize() - 1].IncludeOptionalField(H235_ClearToken::e_timeStamp);
-                        gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_timeStamp = (int)time(NULL);
+                        gcf.m_tokens[gcf.m_tokens.GetSize() - 1].m_timeStamp = (unsigned)time(NULL);
                     }
                 }
             }
