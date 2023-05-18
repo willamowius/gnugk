@@ -2897,7 +2897,7 @@ bool RegistrationRequestPDU::Process()
 			rcf.IncludeOptionalField(H225_RegistrationConfirm::e_preGrantedARQ);
 			rcf.m_preGrantedARQ.m_makeCall = true;
 			rcf.m_preGrantedARQ.m_answerCall = true;
-			if (RasSrv->IsGKRouted()) {
+			if (RasSrv->IsGKRouted() && !ep->GetForceDirectMode()) {
 				// in routed-mode we require all calls to be placed through the gatekeeper
 				rcf.m_preGrantedARQ.m_useGKCallSignalAddressToMakeCall = true;
 				rcf.m_preGrantedARQ.m_useGKCallSignalAddressToAnswer = true;
@@ -3161,7 +3161,7 @@ bool RegistrationRequestPDU::BuildRCF(const endptr & ep, bool additiveRegistrati
 {
 	H225_RegistrationConfirm & rcf = BuildConfirm();
 	rcf.m_protocolIdentifier = request.m_protocolIdentifier;
-	if (RasSrv->IsGKRouted()) {
+	if (RasSrv->IsGKRouted() && !ep->GetForceDirectMode()) {
 		rcf.m_callSignalAddress.SetSize(1);
 		GetCallSignalAddress(rcf.m_callSignalAddress[0]);
 	} else {
@@ -3538,13 +3538,13 @@ bool AdmissionRequestPDU::Process()
 
 	 	if (!in_rewrite_source.IsEmpty()) {
 	 		if (Toolkit::Instance()->GWRewriteE164(in_rewrite_source, GW_REWRITE_IN, request.m_destinationInfo[0], pExistingCallRec)
-				&& !RasSrv->IsGKRouted()) {
+				&& (!RasSrv->IsGKRouted() || RequestingEP->GetForceDirectMode())) {
 				aliasesChanged = true;
 			}
 		}
 
 		// Normal rewriting
-		if (Toolkit::Instance()->RewriteE164(request.m_destinationInfo[0]) && !RasSrv->IsGKRouted()) {
+		if (Toolkit::Instance()->RewriteE164(request.m_destinationInfo[0]) && (!RasSrv->IsGKRouted() || RequestingEP->GetForceDirectMode())) {
 			aliasesChanged = true;
 		}
 	}
@@ -3574,12 +3574,12 @@ bool AdmissionRequestPDU::Process()
 		PTRACE(2, "RAS\tARQ destination set to " << authData.m_calledStationId);
 		hasDestInfo = true;
 		destinationString = AsString(request.m_destinationInfo);
-		if (!RasSrv->IsGKRouted()) {
+		if (!RasSrv->IsGKRouted() || RequestingEP->GetForceDirectMode()) {
 			aliasesChanged = true;
 		}
 	}
 
-	if (RasSrv->IsGKRouted() && answer && !pExistingCallRec) {
+	if (RasSrv->IsGKRouted() && answer && !(pExistingCallRec && RequestingEP->GetForceDirectMode())) {
 		if (GkConfig()->GetBoolean("RasSrv::ARQFeatures", "ArjReasonRouteCallToGatekeeper", true)) {
 			bReject = true;
 			if (request.HasOptionalField(H225_AdmissionRequest::e_srcCallSignalAddress)) {
@@ -3784,25 +3784,26 @@ bool AdmissionRequestPDU::Process()
 
 		if (!out_rewrite_source.IsEmpty())
 			if (Toolkit::Instance()->GWRewriteE164(out_rewrite_source, GW_REWRITE_OUT, request.m_destinationInfo[0], pExistingCallRec)
-				&& !RasSrv->IsGKRouted())
+				&& (!RasSrv->IsGKRouted() || RequestingEP->GetForceDirectMode()))
 				aliasesChanged = true;
 	}
 
 	if (hasDestInfo && CalledEP && RequestingEP != CalledEP && !arq.GetRoutes().empty() && !arq.GetRoutes().front().m_destOutNumber.IsEmpty()) {
+        bool forceDirectMode = (CalledEP && CalledEP->GetForceDirectMode());
 		for (PINDEX i = 0; i < request.m_destinationInfo.GetSize(); ++i)
 			if (request.m_destinationInfo[i].GetTag() == H225_AliasAddress::e_dialedDigits) {
 				H323SetAliasAddress(arq.GetRoutes().front().m_destOutNumber, request.m_destinationInfo[i], request.m_destinationInfo[i].GetTag());
-				aliasesChanged = aliasesChanged || RasSrv->IsGKRouted();
+				aliasesChanged = aliasesChanged || (RasSrv->IsGKRouted() && !forceDirectMode);
 			} else if (request.m_destinationInfo[i].GetTag() == H225_AliasAddress::e_partyNumber) {
 				H225_PartyNumber &partyNumber = request.m_destinationInfo[i];
 				if (partyNumber.GetTag() == H225_PartyNumber::e_e164Number) {
 					H225_PublicPartyNumber &number = partyNumber;
 					number.m_publicNumberDigits = arq.GetRoutes().front().m_destOutNumber;
-					aliasesChanged = aliasesChanged || RasSrv->IsGKRouted();
+					aliasesChanged = aliasesChanged || (RasSrv->IsGKRouted() && !forceDirectMode);
 				} else if (partyNumber.GetTag() == H225_PartyNumber::e_privateNumber) {
 					H225_PrivatePartyNumber &number = partyNumber;
 					number.m_privateNumberDigits = arq.GetRoutes().front().m_destOutNumber;
-					aliasesChanged = aliasesChanged || RasSrv->IsGKRouted();
+					aliasesChanged = aliasesChanged || (RasSrv->IsGKRouted() && !forceDirectMode);
 				}
 			}
 	}
@@ -3877,7 +3878,7 @@ bool AdmissionRequestPDU::Process()
 		if (authData.m_clientAuthId > 0)
 			pCallRec->SetClientAuthId(authData.m_clientAuthId);
 
-		if (!RasSrv->IsGKRouted())
+		if (!RasSrv->IsGKRouted() || (pExistingCallRec && pExistingCallRec->GetCallingParty() && pExistingCallRec->GetCallingParty()->GetForceDirectMode()))
 			pCallRec->SetConnected();
 		else if (acf.HasOptionalField(H225_AdmissionConfirm::e_cryptoTokens))
 			pCallRec->SetAccessTokens(acf.m_cryptoTokens);
@@ -3917,11 +3918,12 @@ bool AdmissionRequestPDU::Process()
 					// Where the remote will handle the NAT Traversal
 					// the local gatekeeper may not receive any signaling so
 					// set the call as connected.
-					if (!RasSrv->IsGKRouted())
+					if (!RasSrv->IsGKRouted() || (pExistingCallRec && pExistingCallRec->GetCallingParty() && pExistingCallRec->GetCallingParty()->GetForceDirectMode()))
 						pCallRec->SetConnected();
 			}
 
-			if (!RasSrv->IsGKRouted() && natoffloadsupport == CallRec::e_natUnknown)
+			if ((!RasSrv->IsGKRouted() || (pExistingCallRec && pExistingCallRec->GetCallingParty() && pExistingCallRec->GetCallingParty()->GetForceDirectMode()))
+                && natoffloadsupport == CallRec::e_natUnknown)
 				pCallRec->SetConnected();
 
 			pCallRec->SetNATStrategy(natoffloadsupport);
@@ -3948,7 +3950,7 @@ bool AdmissionRequestPDU::Process()
 
 	}
 
-	if (RasSrv->IsGKRouted() && !signalOffload) {
+	if (RasSrv->IsGKRouted() && !signalOffload && !(pCallRec->GetCallingParty() && pCallRec->GetCallingParty()->GetForceDirectMode())) {
 		acf.m_callModel.SetTag(H225_CallModel::e_gatekeeperRouted);
 		GetCallSignalAddress(acf.m_destCallSignalAddress);
 #ifdef HAS_TLS
@@ -4046,7 +4048,7 @@ bool AdmissionRequestPDU::Process()
 	// H.460.22
 	if (EPSupportsH46022) {
 		H460_FeatureStd H46022 = H460_FeatureStd(22);
-		if (RasSrv->IsGKRouted() && !signalOffload) {
+		if (RasSrv->IsGKRouted() && !signalOffload && !(CalledEP && CalledEP->GetForceDirectMode())) {
 			// inform endpoint about gatekeeper's capabilities
 #ifdef HAS_TLS
 			if (Toolkit::Instance()->IsTLSEnabled() && EPSupportsH46022TLS) {
@@ -4305,7 +4307,7 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 		callid.Replace(" ", "-", true);
 		log += PString("|") + callid;
 		log += PString(";");
-		if (!RasSrv->IsGKRouted() || RasSrv->RemoveCallOnDRQ())
+		if (!RasSrv->IsGKRouted() || RasSrv->RemoveCallOnDRQ() || (ep && ep->GetForceDirectMode()))
 			CallTbl->RemoveCall(request, ep);
 	}
 
@@ -4465,7 +4467,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				}
 #endif
 
-				if (RasSrv->IsGKRouted()) {
+				if (RasSrv->IsGKRouted() && !(WantedEndPoint && WantedEndPoint->GetForceDirectMode())) {
 					GetCallSignalAddress(lcf.m_callSignalAddress);
 #if defined(HAS_TLS) && defined(HAS_H460)
 					if (Toolkit::Instance()->IsTLSEnabled()) {

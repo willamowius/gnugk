@@ -127,7 +127,7 @@ EndpointRec::EndpointRec(
 	m_H46024a(false), m_H46024b(false), m_natproxy(GkConfig()->GetBoolean(proxysection, "ProxyForNAT", false)),
 	m_internal(false), m_remote(false), m_h46017disabled(false), m_h46018disabled(false), m_usesH460P(false), m_hasH460PData(false),
     m_usesH46017(false), m_usesH46026(false), m_traversalType(None), m_bandwidth(0), m_maxBandwidth(-1), m_useTLS(false),
-    m_useIPSec(false), m_additiveRegistrant(false), m_addCallingPartyToSourceAddress(false), m_forceTerminalType(-1), m_authenticators(NULL),
+    m_useIPSec(false), m_additiveRegistrant(false), m_addCallingPartyToSourceAddress(false), m_forceTerminalType(-1), m_forceDirectMode(false), m_authenticators(NULL),
     m_hasGnuGkAssignedGk(false)
 {
 	static H225_EndpointType defaultTermType; // nouse
@@ -515,6 +515,11 @@ void EndpointRec::LoadEndpointConfig()
             if (!m_disabledcodecs.IsEmpty() && m_disabledcodecs.Right(1) != ";")
                 m_disabledcodecs += ";";
 			m_forceTerminalType = cfg->GetInteger(key, "ForceTerminalType", -1);
+			m_forceDirectMode = cfg->GetBoolean(key, "ForceDirectMode", false);
+			if (m_forceDirectMode) { // direct mode implies disabling proxy methods
+                m_h46017disabled = true;
+                m_h46018disabled = true;
+			}
 
 			PTRACE(5, "RAS\tEndpoint " << key << " capacity: " << m_capacity << log);
 

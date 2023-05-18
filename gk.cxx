@@ -942,6 +942,7 @@ const char * KnownConfigEntries[][2] = {
 #ifdef HAS_H46018
 	{ "EP::", "DisableH46018" },
 #endif
+	{ "EP::", "ForceDirectMode" },
 	{ "EP::", "ForceGateway" },
 	{ "EP::", "ForceTerminalType" },
 	{ "EP::", "GatewayPrefixes" },

@@ -904,7 +904,7 @@ bool DNSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 				H323SetAliasAddress(aliasPart, find_aliases[0]);
 				endptr ep = RegistrationTable::Instance()->FindByAliases(find_aliases);
 				if (ep) {
-					if (!(RasServer::Instance()->IsGKRouted())) {
+					if (!(RasServer::Instance()->IsGKRouted()) && !ep->GetForceDirectMode()) {
 						// in direct mode, send call directly to EP
 						dest = ep->GetCallSignalAddress();
 					}

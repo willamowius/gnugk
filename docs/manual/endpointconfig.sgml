@@ -177,6 +177,11 @@ Default: <tt>n/a</tt><newline>
 <p>
 Force the terminal type for this endpoint in the master/slave negotiation to this value, eg. to cheat and be more likely to win.
 
+<item><tt/ForceDirectMode=1/<newline>
+Default: <tt>0</tt><newline>
+<p>
+Handle all calls from this endpoint in direct mode, don't route or proxy them.
+
 </itemize>
 
 Example how to attach an [EP::..] section to an endpoint:
