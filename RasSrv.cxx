@@ -2355,7 +2355,7 @@ bool RegistrationRequestPDU::Process()
 			} else {
 				PIPSocket::Address oaddr, raddr;
 				WORD oport = 0, rport = 0;
-				if (request.m_callSignalAddress.GetSize() >= 1) {
+				if (request.m_callSignalAddress.GetSize() >= 1 && !ep->GetForceDirectMode()) {
 					GetIPAndPortFromTransportAddr(ep->GetCallSignalAddress(), oaddr, oport);
 					for (int s = 0; s < request.m_callSignalAddress.GetSize(); ++s) {
 						GetIPAndPortFromTransportAddr(request.m_callSignalAddress[s], raddr, rport);
@@ -2387,7 +2387,7 @@ bool RegistrationRequestPDU::Process()
                     EndpointTbl->RemoveByEndptr(ep);
                 }
 			}
-			// endpoint was NOT registered and force Full Registration
+			// endpoint was NOT registered, force Full Registration
 			return BuildRRJ(H225_RegistrationRejectReason::e_fullRegistrationRequired);
 		} else {
 			 if (ntype < 8) {
