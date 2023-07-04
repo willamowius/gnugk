@@ -3950,7 +3950,7 @@ bool AdmissionRequestPDU::Process()
 
 	}
 
-	if (RasSrv->IsGKRouted() && !signalOffload && !(pCallRec->GetCallingParty() && pCallRec->GetCallingParty()->GetForceDirectMode())) {
+	if (RasSrv->IsGKRouted() && !signalOffload && !(pCallRec && pCallRec->GetCallingParty() && pCallRec->GetCallingParty()->GetForceDirectMode())) {
 		acf.m_callModel.SetTag(H225_CallModel::e_gatekeeperRouted);
 		GetCallSignalAddress(acf.m_destCallSignalAddress);
 #ifdef HAS_TLS
