@@ -246,14 +246,16 @@ void EndpointRec::LoadAliases(const H225_ArrayOf_AliasAddress & aliases, const H
 
 void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
 {
-	if (rrq.m_rasAddress.GetSize() > 0)
+	if (rrq.m_rasAddress.GetSize() > 0) {
 		m_rasAddress = rrq.m_rasAddress[0];
-	else
+	} else {
 		m_rasAddress.SetTag(H225_TransportAddress::e_nonStandardAddress);
-	if (rrq.m_callSignalAddress.GetSize() > 0)
+	}
+	if (rrq.m_callSignalAddress.GetSize() > 0) {
 		m_callSignalAddress = rrq.m_callSignalAddress[0];
-	else
+	} else {
 		m_callSignalAddress.SetTag(H225_TransportAddress::e_nonStandardAddress);
+	}
 	m_endpointIdentifier = rrq.m_endpointIdentifier;
     LoadAliases(rrq.m_terminalAlias,rrq.m_terminalType);
 	m_terminalType = &rrq.m_terminalType;
@@ -517,6 +519,7 @@ void EndpointRec::LoadEndpointConfig()
 			m_forceTerminalType = cfg->GetInteger(key, "ForceTerminalType", -1);
 			m_forceDirectMode = cfg->GetBoolean(key, "ForceDirectMode", false);
 			if (m_forceDirectMode) { // direct mode implies disabling proxy methods
+                log += " force-direct-mode";
                 m_h46017disabled = true;
                 m_h46018disabled = true;
 			}
