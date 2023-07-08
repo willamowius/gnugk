@@ -3579,7 +3579,7 @@ bool AdmissionRequestPDU::Process()
 		}
 	}
 
-	if (RasSrv->IsGKRouted() && answer && !(pExistingCallRec && RequestingEP->GetForceDirectMode())) {
+	if (RasSrv->IsGKRouted() && answer && !pExistingCallRec) {
 		if (GkConfig()->GetBoolean("RasSrv::ARQFeatures", "ArjReasonRouteCallToGatekeeper", true)) {
 			bReject = true;
 			if (request.HasOptionalField(H225_AdmissionRequest::e_srcCallSignalAddress)) {
@@ -3950,7 +3950,18 @@ bool AdmissionRequestPDU::Process()
 
 	}
 
-	if (RasSrv->IsGKRouted() && !signalOffload && !(pCallRec && pCallRec->GetCallingParty() && pCallRec->GetCallingParty()->GetForceDirectMode())) {
+	// decide routed or direct mode for the call
+    bool callerForcedDirect = false;
+    bool calledForcedDirect = false;
+    if (!answer && pCallRec && pCallRec->GetCallingParty() && pCallRec->GetCallingParty()->GetForceDirectMode()) {
+        callerForcedDirect = true;
+    }
+    if (answer && pCallRec && pCallRec->GetCalledParty() && pCallRec->GetCalledParty()->GetForceDirectMode()) {
+        calledForcedDirect = true;
+    }
+
+	if (RasSrv->IsGKRouted() && !signalOffload && !callerForcedDirect && !calledForcedDirect) {
+        // regular routed mode
 		acf.m_callModel.SetTag(H225_CallModel::e_gatekeeperRouted);
 		GetCallSignalAddress(acf.m_destCallSignalAddress);
 #ifdef HAS_TLS
@@ -3960,7 +3971,16 @@ bool AdmissionRequestPDU::Process()
 			SetH225Port(acf.m_destCallSignalAddress, tlsSignalPort);
 		}
 #endif
+	} else if (RasSrv->IsGKRouted() && !signalOffload && callerForcedDirect && !calledForcedDirect) {
+        // forced direct to routed EP
+	    if (!answer) {
+            acf.m_callModel.SetTag(H225_CallModel::e_direct);
+	    } else {
+            acf.m_callModel.SetTag(H225_CallModel::e_gatekeeperRouted);
+	    }
+        GetCallSignalAddress(acf.m_destCallSignalAddress); // set to GK IP
 	} else {
+        // regular direct mode
 		acf.m_callModel.SetTag(H225_CallModel::e_direct);
 		if (answer && pExistingCallRec && pExistingCallRec->GetCallingParty()) {
 			CalledAddress = pExistingCallRec->GetCallingParty()->GetCallSignalAddress();
