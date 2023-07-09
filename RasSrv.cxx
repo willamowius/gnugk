@@ -3953,10 +3953,16 @@ bool AdmissionRequestPDU::Process()
 	// decide routed or direct mode for the call
     bool callerForcedDirect = false;
     bool calledForcedDirect = false;
-    if (!answer && pCallRec && pCallRec->GetCallingParty() && pCallRec->GetCallingParty()->GetForceDirectMode()) {
+    if (pCallRec && pCallRec->GetCallingParty() && pCallRec->GetCallingParty()->GetForceDirectMode()) {
         callerForcedDirect = true;
     }
-    if (answer && pCallRec && pCallRec->GetCalledParty() && pCallRec->GetCalledParty()->GetForceDirectMode()) {
+    if (pExistingCallRec && pExistingCallRec->GetCallingParty() && pExistingCallRec->GetCallingParty()->GetForceDirectMode()) {
+        calledForcedDirect = true;
+    }
+    if (pCallRec && pCallRec->GetCalledParty() && pCallRec->GetCalledParty()->GetForceDirectMode()) {
+        calledForcedDirect = true;
+    }
+    if (pExistingCallRec && pExistingCallRec->GetCalledParty() && pExistingCallRec->GetCalledParty()->GetForceDirectMode()) {
         calledForcedDirect = true;
     }
 
@@ -3986,6 +3992,10 @@ bool AdmissionRequestPDU::Process()
 			CalledAddress = pExistingCallRec->GetCallingParty()->GetCallSignalAddress();
 		}
 		acf.m_destCallSignalAddress = CalledAddress;
+        if (pCallRec)
+            pCallRec->ResetTimeOut(); // disable checking for signaling timeout
+        if (pExistingCallRec)
+            pExistingCallRec->ResetTimeOut(); // disable checking for signaling timeout
 	}
 
 	long irrFrq = GkConfig()->GetInteger("CallTable", "IRRFrequency", 120);
