@@ -3985,6 +3985,14 @@ bool AdmissionRequestPDU::Process()
             acf.m_callModel.SetTag(H225_CallModel::e_gatekeeperRouted);
 	    }
         GetCallSignalAddress(acf.m_destCallSignalAddress); // set to GK IP
+	} else if (RasSrv->IsGKRouted() && !signalOffload && !callerForcedDirect && calledForcedDirect) {
+        // routed EP to forced direct EP
+	    if (answer) {
+            acf.m_callModel.SetTag(H225_CallModel::e_direct);
+	    } else {
+            acf.m_callModel.SetTag(H225_CallModel::e_gatekeeperRouted);
+	    }
+        GetCallSignalAddress(acf.m_destCallSignalAddress); // set to GK IP
 	} else {
         // regular direct mode
 		acf.m_callModel.SetTag(H225_CallModel::e_direct);
