@@ -331,7 +331,7 @@ to register with the alternate gatekeeper specified here.
 
 <bf>NOTE:</bf>  Depending on the endpoint, it may not attempt to re-establish a 
 connection to its original gatekeeper.  Support for "Assigned Gatekeepers" was added
-in H.323v6.  See <url url="https://www.packetizer.com/ipmc/h323/whatsnew_v6.html" name="https://www.packetizer.com/ipmc/h323/whatsnew_v6.html"> for additional information.
+in H.323v6.  See <url url="https://www.packetizer.com/voip/h323/whatsnew_v6.html" name="https://www.packetizer.com/voip/h323/whatsnew_v6.html"> for additional information.
 
 The primary gatekeeper includes a field in the RCF to inform endpoints which alternate
 IP and gatekeeper identifier to use.
