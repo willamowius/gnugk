@@ -1002,7 +1002,7 @@ which only looks at the IP inside the message.
 AllowSignaledIPsFrom= works better than AllowSignaledIPs= to whitelist private IPs from your own
 network that may also be inside messages from outside that happen to use the same private IPs behind a NAT.
 
-<item><tt>AllowAnyRTPSourcePortForH239From=1.2.3.4</tt><newline>
+<item><tt>AllowAnyRTPSourcePortForH239From=192.0.2.4</tt><newline>
 Default: <tt>n/a</tt><newline>
 <p>
 Some devices signal an incorrect RTCP port for H.239 channels in OLC which leads GnuGk
@@ -1084,7 +1084,7 @@ This helps some endpoints, especially for H.239, but may break some connections 
 pick different RTP sessions and receiving ports for different directions of the same session
 type (eg. some LifeSize endpoints and EdgeProtect devices).
 
-<item><tt>MatchH239SessionsByIDOnly=1.2.3.4,10.0.0.0/8</tt><newline>
+<item><tt>MatchH239SessionsByIDOnly=192.0.2.4,10.0.0.0/8</tt><newline>
 Default: <tt>n/a</tt><newline>
 <p>
 Never match the reverse H.239 channels by type on messages received from these IPs or networks.

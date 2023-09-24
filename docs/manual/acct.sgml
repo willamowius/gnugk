@@ -1444,7 +1444,7 @@ need to be accessible for everybody who wants to call into your network,
 but that should not be allowed to support external to external calls.
 
 <itemize>
-<item><tt>Networks=192.168.1.0/24,1.2.3.4/24</tt><newline>
+<item><tt>Networks=192.168.1.0/24,192.0.2.0/24</tt><newline>
 Default: <tt>N/A</tt>
 <p>
 List the networks your gatekeeper supports. Either the source or the destination of

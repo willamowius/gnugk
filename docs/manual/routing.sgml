@@ -697,9 +697,9 @@ Example JSON responses:
 <item><tt>{ "reject": true }</tt>
 <item><tt>{ "reject": true, "reject-reason": 2 }</tt>
 <item><tt>{ "destination": "support" }</tt>
-<item><tt>{ "destination": "1.2.3.4" }</tt>
-<item><tt>{ "destination": "support", "gateway": "1.2.3.4:1720" }</tt>
-<item><tt>[ { "destination": "support", "gateway": "1.2.3.4:1720" }, { "destination": "support", "gateway": "5.6.7.8:1720" } ]</tt>
+<item><tt>{ "destination": "192.0.2.4" }</tt>
+<item><tt>{ "destination": "support", "gateway": "192.0.2.4:1720" }</tt>
+<item><tt>[ { "destination": "support", "gateway": "192.0.2.4:1720" }, { "destination": "support", "gateway": "192.0.2.8:1720" } ]</tt>
 </itemize>
 
 
@@ -857,7 +857,7 @@ create table gnugk.forwards (
 <label id="routingcatchall">
 <p>
 <itemize>
-<item><tt/CatchAllIP=1.2.3.4/<newline>
+<item><tt/CatchAllIP=192.0.2.4/<newline>
 Default: <tt>(empty)</tt><newline>
 <p>
 Specify an IP address to route all calls to. This overrides CatchAllAlias.

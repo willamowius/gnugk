@@ -323,7 +323,7 @@ will not register with this gatekeeper again.
 compliant endpoints.
 
 <label id="alternategks">
-<item><tt/AlternateGKs=1.2.3.4;1719;false;1;GnuGk2/<newline>
+<item><tt/AlternateGKs=192.0.2.4;1719;false;1;GnuGk2/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 If the endpoint loses connectivity with GnuGk it should automatically try 
@@ -355,7 +355,7 @@ You may specify multiple alternate gatekeepers as a comma separated list.
 This global definition can be overriden by a per IP specification in
 <ref id="rassrvalternategatekeeper" name="[RasSrv::AlternateGatekeeper]">.
 
-<item><tt/SendTo=1.2.3.4:1719/<newline>
+<item><tt/SendTo=192.0.2.4:1719/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 Although this information is contained in AlternateGKs, you must still
@@ -364,7 +364,7 @@ address due to multihomed systems, so it's a separate config option.
 
 You can specify multiple gatekeepers in a comma separated list.
 
-<item><tt/SkipForwards=1.2.3.4,5.6.7.8/<newline>
+<item><tt/SkipForwards=192.0.2.4,192.0.2.5/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
 To avoid circular forwarding, you shouldn't forward RRQs you get from the
@@ -405,7 +405,7 @@ User passwords can be set in the <ref id="gkstatusauth" name="[GkStatus::Auth]">
 
 Example connection command:
 <tscreen><verb>
-ssh -p 7000 gnugk@1.2.3.4
+ssh -p 7000 gnugk@192.0.2.4
 </verb></tscreen>
 
 <label id="statuseventbacklog">

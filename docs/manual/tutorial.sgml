@@ -31,7 +31,7 @@ thereby allowing the gatekeeper to creating an association between the user
 "jan" and their IP address.  
 
 SimpH323 will attempt to automatically locate the gatekeeper, but if the auto
-detection fails, use "<tt/-g 1.2.3.4/" to specify the IP address.
+detection fails, use "<tt/-g 192.0.2.4/" to specify the IP address.
 
 On the second client run simph323 this way:
 
@@ -333,7 +333,7 @@ Because the gatekeeper has a lot of control over the calls,
 it can also be used to terminate them. While
 connected to the status port, you can list all active calls
 with "<tt/PrintCurrentCalls/". To terminate a call, type
-"<tt/Disconnectip 1.2.3.4/" for one of the endpoints.
+"<tt/Disconnectip 192.0.2.5/" for one of the endpoints.
 
 For example, a simple script could be written to connect to
 the status port, obtain a list of ongoing calls and terminate
