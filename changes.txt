@@ -1,5 +1,6 @@
 Changes from 5.11 to 5.12
 =========================
+- new database driver for Oracle and new timestamp format 'Oracle'
 - new switch [EP::xxx] ForceDirectMode=1 to handle all calls from this endpoint in direct mode
 - BUGFIX(RasSrv.cxx, gkauth.cxx) make sure time_t is handled unsigned to avoid Y2K38 issue
 - BUGFIX(ProxyChannel.cxx) check for too small packets when acting as encryption proxy

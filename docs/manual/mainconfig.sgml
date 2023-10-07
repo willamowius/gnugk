@@ -36,10 +36,10 @@ You have to repeat all settings for each module, even if they are the same.
 But you are also free to use differend database drivers and options for each module.
 
 <itemize>
-<item><tt/Driver=MySQL | PostgreSQL | Firebird | ODBC | SQLite | redis/<newline>
+<item><tt/Driver=MySQL | PostgreSQL | Oracle | Firebird | ODBC | SQLite | redis/<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/, <tt/Firebird/,
+Database driver to use. Currently, <tt/MySQL/, <tt/PostgreSQL/, <tt/Oracle/, <tt/Firebird/,
 <tt/ODBC/, <tt/SQLite/ and <tt/redis/ drivers are implemented.
 The MySQL driver can also be used for MariaDB and other MySQL forks.
 Not all of these driver are always available. When GnuGk is compiled, only those
@@ -435,6 +435,7 @@ There are four predefined formats:
 <item><tt/ISO8601/ - standard ISO format (example: 2004-11-10 T 16:02:01 +0100)
 <item><tt/Cisco/ - format used by Cisco equipment (example: 16:02:01.534 CET Wed Nov 10 2004)
 <item><tt/MySQL/ - simple format that MySQL can understand (example: 2004-11-10 16:02:01)
+<item><tt/Oracle/ - format suitable for Oracle TIMESTAMP fields (example: 10-Nov-2004 16:02:01 pm)
 </itemize>
 <p>
 If none of the predefined options is suitable, you can build your own format string using

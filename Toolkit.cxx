@@ -4042,8 +4042,10 @@ PString Toolkit::AsString(
 		return tm.AsString(PTime::LongISO8601);
 	else if (fmtStr *= "RFC822")
 		return tm.AsString(PTime::RFC1123);
-	else if (fmtStr *= "MySQL" )
+	else if (fmtStr *= "MySQL")
 		fmtStr = "%Y-%m-%d %H:%M:%S";
+	else if (fmtStr *= "Oracle")
+		fmtStr = "%d-%b-%Y %I:%M:%S %P";
 
 	struct tm _tm;
 	struct tm* tmptr = &_tm;

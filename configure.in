@@ -894,11 +894,133 @@ else
 fi
 AC_SUBST(HAS_REDIS)
 
+dnl #########################################################################
+dnl Check for Oracle and ODPI-C
+dnl ########################################################################
+
+dnl MSWIN_DISPLAY    oracle,oracle
+dnl MSWIN_CHECK_FILE oracle,dpi.h,HAS_ORACLE=1
+dnl MSWIN_DIR_SYMBOL oracle,ORACLE_DIR
+dnl MSWIN_CHECK_DIR  oracle,\odpi\
+
+
+AC_ARG_ENABLE(oracle,
+[  --enable-oracle         enable oracle support (default=yes)],
+[ oracle="${enableval}" ], [ oracle="yes" ]
+)
+
+AC_ARG_WITH(oracle-include-dir,
+[  --with-oracle-include-dir=DIR  directory where oracle includes may be found ],
+[ oracle_include_dir="$withval" ]
+)
+
+AC_ARG_WITH(oracle-dir,
+[  --with-oracle-dir=DIR          base directory where oracle is installed ],
+[ oracle_include_dir="$withval/include"
+]
+)
+
+if test "x${oracle}" != "xno"; then
+
+	AC_MSG_CHECKING([for Oracle ODPI-C header (dpi.h)])
+
+	AC_TRY_COMPILE([#include <dpi.h>], [int a = 1;],
+		ORACLE_INCLUDE=" ",
+		ORACLE_INCLUDE=
+	)
+
+	if test "x$ORACLE_INCLUDE" = "x"; then
+		old_CFLAGS="$CFLAGS"
+
+		for try in /usr/local/include/ $oracle_include_dir; do
+			if test -d $try; then
+				CFLAGS="$old_CFLAGS -I$try"
+				AC_TRY_COMPILE([#include <dpi.h>], [int a = 1;],
+					ORACLE_INCLUDE="-I$try",
+					ORACLE_INCLUDE=
+				)
+				if test "x$ORACLE_INCLUDE" != "x"; then
+					break;
+				fi
+			fi
+		done
+		CFLAGS="$old_CFLAGS"
+	fi
+
+	if test "x$ORACLE_INCLUDE" = "x"; then
+		AC_MSG_RESULT(no)
+		AC_MSG_WARN([Oracle ODPI headers not found. Use --with-oracle-include-dir=<path>])
+		oracle="no"
+	else
+		sql_oracle_cflags="${sql_oracle_cflags} ${ORACLE_INCLUDE}"
+		AC_MSG_RESULT(yes)
+
+		AC_MSG_CHECKING([for Oracle ODPI-C library])
+
+		old_CFLAGS="$CFLAGS"
+		old_LIBS="$LIBS"
+
+		for try in /usr/lib /usr/local/lib $oracle_lib_dir; do
+			if test -d $try; then
+				CFLAGS="$old_CFLAGS $ORACLE_INCLUDE"
+				LIBS="$old_LIBS -lodpic"
+				LDFLAGS="$old_LDFLAGS -L$try"
+				AC_TRY_LINK([#include <stddef.h>
+							#include <dpi.h>],
+					[dpiContext *gContext; dpiErrorInfo errorInfo; dpiContext_createWithParams(DPI_MAJOR_VERSION, DPI_MINOR_VERSION, NULL, &gContext, &errorInfo);],
+					[ ORACLE_LIBS="-lodpic"
+					  ORACLE_LDFLAGS="-L$try"
+					],
+					ORACLE_LDFLAGS=
+				)
+				if test "x$ORACLE_LDFLAGS" != "x"; then
+					break;
+				fi
+			fi
+		done
+		CFLAGS="$old_CFLAGS"
+		LIBS="$old_LIBS"
+
+		if test "x$ORACLE_LDFLAGS" = "x"; then
+			AC_MSG_RESULT(no)
+			ORACLE_INCLUDE=
+			AC_MSG_WARN([ODPI-C lib not found. Use --with-oracle-lib-dir=<path>])
+			oracle="no"
+		else
+			AC_MSG_RESULT(yes)
+			oracle_ldflags="$oracle_ldflags $ORACLE_LDFLAGS"
+		fi
+	fi
+
+	oracle_ldflags="$oracle_ldflags $LIBS"
+
+
+	if test "x$oracle" = "xno"; then
+		AC_MSG_WARN([Oracle disabled])
+	fi
+else
+	oracle="no"
+fi
+
+if test "x$oracle" != "xno"; then
+	HAS_ORACLE=1
+	AC_DEFINE(HAS_ORACLE, 1)
+	SOURCES="$SOURCES gksql_oracle.cxx"
+	STDCCFLAGS="${sql_oracle_cflags} -DHAS_ORACLE=1 $STDCCFLAGS"
+	LDFLAGS="$ORACLE_LDFLAGS $LDFLAGS"
+	ENDLDLIBS="$ORACLE_LIBS $ENDLDLIBS"
+    echo "Oracle support enabled"
+else
+    echo "Oracle support disabled"
+	HAS_ORACLE=0
+fi
+AC_SUBST(HAS_REDIS)
+
 dnl ########################################################################
 dnl enable sqlauth, sqlacc if any DB present
 dnl ########################################################################
 
-if test "x$pgsql" != "xno" -o "x$mysql" != "xno" -o "x$firebird" != "xno" -o "x$unixodbc" != "xno" -o "x$sqlite" != "xno" -o "x$redis" != "xno"; then
+if test "x$pgsql" != "xno" -o "x$mysql" != "xno" -o "x$firebird" != "xno" -o "x$unixodbc" != "xno" -o "x$sqlite" != "xno" -o "x$redis" != "xno" -o "x$oracle" != "xno"; then
 	SOURCES="$SOURCES sqlauth.cxx sqlacct.cxx gksql.cxx"
 	HEADERS="$HEADERS sqlacct.h gksql.h"
 fi
