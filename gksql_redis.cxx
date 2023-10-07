@@ -312,7 +312,7 @@ GkSQLResult* GkRedisConnection::ExecuteQuery(
 }
 
 namespace {
-	GkSQLCreator<GkRedisConnection> SQLiteCreator("redis");
+	GkSQLCreator<GkRedisConnection> RedisCreator("redis");
 }
 
 #endif // HAS_REDIS
