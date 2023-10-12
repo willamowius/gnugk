@@ -2,7 +2,7 @@
 //
 // config.h PWLib/PTLib and H323Plus compatibility header
 //
-// Copyright (c) 2006-2018, Jan Willamowius
+// Copyright (c) 2006-2023, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -310,7 +310,7 @@
 #define NEED_BROADCASTLISTENER 0
 #endif
 
-#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD || HAS_ODBC || HAS_SQLITE || HAS_REDIS
+#if HAS_MYSQL || HAS_PGSQL || HAS_FIREBIRD || HAS_ODBC || HAS_SQLITE || HAS_REDIS || HAS_ORACLE
 #define		HAS_DATABASE 1
 #endif
 

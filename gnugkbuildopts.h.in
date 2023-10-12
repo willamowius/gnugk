@@ -2,7 +2,7 @@
 //
 // gnugkbuildopts.h autoconfig results
 //
-// Copyright (c) 2008-2021, Jan Willamowius
+// Copyright (c) 2008-2023, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -100,8 +100,14 @@
 
 // redis
 #undef HAS_REDIS
-#if defined(_MSC_VER) && HAS_SQLITE
-  #pragma include_alias(<hiredis.h>, <@REDIS_DIR_DIR@/hiredis.h>)
+#if defined(_MSC_VER) && HAS_REDIS
+  #pragma include_alias(<hiredis.h>, <@REDIS_DIR@/hiredis.h>)
+#endif
+
+// Oracle
+#undef HAS_ORACLE
+#if defined(_MSC_VER) && HAS_ORACLE
+  #pragma include_alias(<dpi.h>, <@ORCALE_DIR@/dpi.h>)
 #endif
 
 // Avaya support
