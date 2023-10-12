@@ -5304,7 +5304,7 @@ $as_echo_n "checking for ssh_handle_key_exchange()/ssh_blocking_flush() in libss
 				fi
 				cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
-extern ssh_handle_key_exchange(); extern ssh_blocking_flush();
+extern int ssh_handle_key_exchange(); extern int ssh_blocking_flush();
 int
 main ()
 {

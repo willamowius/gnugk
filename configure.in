@@ -1092,7 +1092,7 @@ if test "x${libssh}" != "xno"; then
 				if test `uname` != "OpenBSD"; then
 					LIBS="$LIBS -lrt"
 				fi
-				AC_TRY_LINK([extern ssh_handle_key_exchange(); extern ssh_blocking_flush();], [ssh_handle_key_exchange(); ssh_blocking_flush();],
+				AC_TRY_LINK([extern int ssh_handle_key_exchange(); extern int ssh_blocking_flush();], [ssh_handle_key_exchange(); ssh_blocking_flush();],
 					[ LIBSSH_LIBS="-lssh -lcrypto -lz $GSSAPI_LIBS"
 					  LIBSSH_LDFLAGS="-L$try"
 					]
