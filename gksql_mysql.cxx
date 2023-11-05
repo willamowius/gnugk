@@ -4,7 +4,7 @@
  * MySQL driver module for GnuGk
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
- * Copyright (c) 2006-2015, Jan Willamowius
+ * Copyright (c) 2006-2023, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -324,7 +324,7 @@ GkSQLConnection::SQLConnPtr GkMySQLConnection::CreateNewConnection(
 {
 	if (!g_sharedLibrary.IsLoaded()) {
 		if (m_library.IsEmpty()) {
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 			m_library = "libmysql" + g_sharedLibrary.GetExtension();
 #else
 			m_library = "libmysqlclient" + g_sharedLibrary.GetExtension();

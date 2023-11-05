@@ -4,7 +4,7 @@
  * Firebird/Interbase driver module for GnuGk
  *
  * Copyright (c) 2006, Michal Zygmuntowicz
- * Copyright (c) 2006-2013, Jan Willamowius
+ * Copyright (c) 2006-2023, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -77,19 +77,19 @@ PString XSQLVARToPString(XSQLVAR *sqlvar)
 	case SQL_TEXT:
 		return PString(sqlvar->sqldata, sqlvar->sqllen);
 	case SQL_SHORT:
-		return sqlvar->sqlscale < 0 
-			? PString(PString::Decimal, *(int*)(sqlvar->sqldata) * pow(10.0, sqlvar->sqlscale), abs(sqlvar->sqlscale)) 
+		return sqlvar->sqlscale < 0
+			? PString(PString::Decimal, *(int*)(sqlvar->sqldata) * pow(10.0, sqlvar->sqlscale), abs(sqlvar->sqlscale))
 			: PString(*(short*)(sqlvar->sqldata));
 	case SQL_LONG:
 		return sqlvar->sqlscale < 0
-			? PString(PString::Decimal, *(long*)(sqlvar->sqldata) * pow(10.0, sqlvar->sqlscale), abs(sqlvar->sqlscale)) 
+			? PString(PString::Decimal, *(long*)(sqlvar->sqldata) * pow(10.0, sqlvar->sqlscale), abs(sqlvar->sqlscale))
 			: PString(*(long*)(sqlvar->sqldata));
 	case SQL_DOUBLE:
-		return sqlvar->sqlscale < 0 
+		return sqlvar->sqlscale < 0
 			? PString(PString::Decimal, *(double*)(sqlvar->sqldata) * pow(10.0, sqlvar->sqlscale), abs(sqlvar->sqlscale))
 			: PString(PString::Printf, "%f", *(double*)(sqlvar->sqldata));
 	case SQL_INT64:
-		return sqlvar->sqlscale < 0 
+		return sqlvar->sqlscale < 0
 			? PString(PString::Decimal, *(ISC_INT64*)(sqlvar->sqldata) * pow(10.0, sqlvar->sqlscale), abs(sqlvar->sqlscale))
 			: PString(*(ISC_INT64*)(sqlvar->sqldata));
 	case SQL_FLOAT:
@@ -133,22 +133,22 @@ public:
 		/// SELECT type query result
 		XSQLDA* selectResult = NULL
 		);
-	
+
 	virtual ~GkIBSQLResult();
-	
+
 	/** @return
 	    Backend specific error message, if the query failed.
-	*/	
+	*/
 	virtual PString GetErrorMessage();
-	
+
 	/** @return
 	    Backend specific error code, if the query failed.
-	*/	
+	*/
 	virtual long GetErrorCode();
-	
+
 	/** Fetch a single row from the result set. After each row is fetched,
 	    cursor position is moved to a next row.
-		
+
 	    @return
 	    True if the row has been fetched, false if no more rows are available.
 	*/
@@ -160,12 +160,12 @@ public:
 		/// array to be filled with string representations of the row fields
 		ResultRow& result
 		);
-			
+
 private:
 	GkIBSQLResult();
 	GkIBSQLResult(const GkIBSQLResult&);
 	GkIBSQLResult& operator=(const GkIBSQLResult&);
-	
+
 protected:
 	/// query result for SELECT type queries
 	XSQLDA* m_sqlResult;
@@ -190,7 +190,7 @@ public:
 		/// name to use in the log
 		const char* name = "Firebird"
 		);
-	
+
 	virtual ~GkIBSQLConnection();
 
 protected:
@@ -220,16 +220,16 @@ protected:
 	/** Create a new SQL connection using parameters stored in this object.
 	    When the connection is to be closed, the object is simply deleted
 	    using delete operator.
-	    
+
 	    @return
-	    NULL if database connection could not be established 
+	    NULL if database connection could not be established
 	    or an object of IBSQLConnWrapper class.
 	*/
 	virtual SQLConnPtr CreateNewConnection(
 		/// unique identifier for this connection
 		int id
 		);
-	
+
 	/** Execute the query using specified SQL connection.
 
 		@return
@@ -243,7 +243,7 @@ protected:
 		/// maximum time (ms) for the query execution, -1 means infinite
 		long timeout = -1
 		);
-		
+
 	/** Escape any special characters in the string, so it can be used in a SQL query.
 
 		@return
@@ -269,7 +269,7 @@ GkIBSQLResult::GkIBSQLResult(
 	isc_stmt_handle stmt,
 	/// SELECT type query result
 	XSQLDA* selectResult
-	) 
+	)
 	: GkSQLResult(false), m_sqlResult(selectResult), m_tr(tr), m_stmt(stmt), m_sqlRow(-1),
 	m_errorCode(0)
 {
@@ -298,7 +298,7 @@ GkIBSQLResult::GkIBSQLResult(
 	isc_stmt_handle stmt,
 	/// SELECT type query result
 	XSQLDA* selectResult
-	) 
+	)
 	: GkSQLResult(true), m_sqlResult(selectResult), m_tr(tr), m_stmt(stmt), m_sqlRow(-1),
 	m_errorCode(errorCode), m_errorMessage(errorMsg)
 {
@@ -307,7 +307,7 @@ GkIBSQLResult::GkIBSQLResult(
 GkIBSQLResult::~GkIBSQLResult()
 {
 	ISC_STATUS status[20];
-	
+
 	if (m_stmt != 0L)
 		(*g_isc_dsql_free_statement)(status, &m_stmt, DSQL_drop);
 	if (m_sqlResult != NULL) {
@@ -337,7 +337,7 @@ PString GkIBSQLResult::GetErrorMessage()
 {
 	return m_errorMessage;
 }
-	
+
 long GkIBSQLResult::GetErrorCode()
 {
 	return m_errorCode;
@@ -350,15 +350,15 @@ bool GkIBSQLResult::FetchRow(
 {
 	if (m_sqlResult == NULL || m_numRows <= 0)
 		return false;
-	
+
 	if (m_sqlRow < 0)
 		m_sqlRow = 0;
-		
+
 	if (m_sqlRow >= m_numRows)
 		return false;
-	
+
 	ISC_STATUS retval;
-	ISC_STATUS status[20];	
+	ISC_STATUS status[20];
 	retval = (*g_isc_dsql_fetch)(status, &m_stmt, 1, m_sqlResult);
 	if (status[0] == 1 && status[1] != 0) {
 		m_numRows = m_sqlRow;
@@ -370,7 +370,7 @@ bool GkIBSQLResult::FetchRow(
 				const ISC_STATUS *pvector = status;
 				(*g_fb_interpret)(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
 			} else {
-				(*g_isc_sql_interprete)(static_cast<short>(errcode), errormsg, FB_BUFF_SIZE); 
+				(*g_isc_sql_interprete)(static_cast<short>(errcode), errormsg, FB_BUFF_SIZE);
 			}
 			PTRACE(2, "Firebird\tFailed to fetch query row (" << errcode
 				<< "): SQL:" << errormsg);
@@ -378,9 +378,9 @@ bool GkIBSQLResult::FetchRow(
 		}
 		return false;
 	}
-		
+
 	result.SetSize(m_sqlResult->sqld);
-	
+
 	for (PINDEX i = 0; i < m_sqlResult->sqld; ++i)
 		result[i] = XSQLVARToPString(&(m_sqlResult->sqlvar[i]));
 
@@ -396,14 +396,14 @@ bool GkIBSQLResult::FetchRow(
 {
 	if (m_sqlResult == NULL || m_numRows <= 0)
 		return false;
-	
+
 	if (m_sqlRow < 0)
 		m_sqlRow = 0;
-		
+
 	if (m_sqlRow >= m_numRows)
 		return false;
-	ISC_STATUS retval;	
-	ISC_STATUS status[20];	
+	ISC_STATUS retval;
+	ISC_STATUS status[20];
 	retval = (*g_isc_dsql_fetch)(status, &m_stmt, 1, m_sqlResult);
 	if (status[0] == 1 && status[1] != 0) {
 		m_numRows = m_sqlRow;
@@ -415,7 +415,7 @@ bool GkIBSQLResult::FetchRow(
 				const ISC_STATUS *pvector = status;
 				(*g_fb_interpret)(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
 			} else {
-				(*g_isc_sql_interprete)(static_cast<short>(errcode), errormsg, FB_BUFF_SIZE); 
+				(*g_isc_sql_interprete)(static_cast<short>(errcode), errormsg, FB_BUFF_SIZE);
 			}
 			PTRACE(2, "Firebird\tFailed to fetch query row (" << errcode
 				<< "): SQL:" << errormsg);
@@ -425,14 +425,14 @@ bool GkIBSQLResult::FetchRow(
 	}
 
 	result.resize(m_numFields);
-	
+
 	for (PINDEX i = 0; i < m_numFields; i++) {
 		result[i].first = XSQLVARToPString(&(m_sqlResult->sqlvar[i]));
 		result[i].second = PString(m_sqlResult->sqlvar[i].aliasname, m_sqlResult->sqlvar[i].aliasname_length);
 	}
-	
+
 	m_sqlRow++;
-	
+
 	return true;
 }
 
@@ -443,7 +443,7 @@ GkIBSQLConnection::GkIBSQLConnection(
 	) : GkSQLConnection(name)
 {
 }
-	
+
 GkIBSQLConnection::~GkIBSQLConnection()
 {
 }
@@ -461,7 +461,7 @@ GkSQLConnection::SQLConnPtr GkIBSQLConnection::CreateNewConnection(
 {
 	if (!g_sharedLibrary.IsLoaded()) {
 		if (m_library.IsEmpty()) {
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 			m_library = "fbclient" + g_sharedLibrary.GetExtension();
 #else
 			m_library = "libfbclient" + g_sharedLibrary.GetExtension();
@@ -501,9 +501,9 @@ GkSQLConnection::SQLConnPtr GkIBSQLConnection::CreateNewConnection(
 
 	unsigned dpb_offset = 0;
 	std::vector<char> dpb(1);
-	
+
 	dpb[dpb_offset++] = isc_dpb_version1;
-	
+
 	if (!m_username) {
 		dpb.resize(dpb.size() + 2 + m_username.GetLength());
 		dpb[dpb_offset++] = isc_dpb_user_name;
@@ -512,34 +512,34 @@ GkSQLConnection::SQLConnPtr GkIBSQLConnection::CreateNewConnection(
 		dpb_offset += m_username.GetLength();
 	}
 
-	if (!m_password) {	
+	if (!m_password) {
 		dpb.resize(dpb.size() + 2 + m_password.GetLength());
 		dpb[dpb_offset++] = isc_dpb_password;
 		dpb[dpb_offset++] = m_password.GetLength();
 		memcpy(&(dpb[dpb_offset]), (const char*)m_password, m_password.GetLength());
 		dpb_offset += m_password.GetLength();
 	}
-	
+
 	ISC_STATUS status[20];
 	isc_db_handle conn = 0L;
 	std::string dbname((const char*)m_database);
-	
+
 	if (!m_host) {
 		dbname.insert(0, ":");
 		dbname.insert(0, (const char *)m_host);
 	}
-	
+
 	(*g_isc_attach_database)(status, 0, const_cast<char*>(dbname.c_str()), &conn, dpb_offset, &(dpb[0]));
 	if (status[0] == 1 && status[1] != 0) {
 		char errormsg[FB_BUFF_SIZE];
   		const ISC_STATUS *pvector = status;
 		(*g_fb_interpret)(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
-		PTRACE(2, GetName() << "\tFirebird connection to " << m_username << '@' << dbname 
+		PTRACE(2, GetName() << "\tFirebird connection to " << m_username << '@' << dbname
 			<< " failed (isc_attach_database failed): " << errormsg);
 		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
 		return NULL;
-	}	
-	
+	}
+
 	PTRACE(5, GetName() << "\tFirebird connection to " << m_username << '@' << dbname
 		<< " established successfully"
 		);
@@ -561,14 +561,14 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 	ISC_STATUS status[20];
 	isc_tr_handle tr = 0L;
 	isc_stmt_handle stmt = 0L;
-	
+
 	(*g_isc_start_transaction)(status, &tr, 1, &conn, 0, NULL);
 	if (status[0] == 1 && status[1] != 0) {
 		const ISC_STATUS *pvector = status;
 		(*g_fb_interpret)(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
 		return new GkIBSQLResult(status[1], errormsg);
 	}
-	
+
 	(*g_isc_dsql_allocate_statement)(status, &conn, &stmt);
 	if (status[0] == 1 && status[1] != 0) {
 		long errorcode = (*g_isc_sqlcode)(status);
@@ -588,7 +588,7 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 	memset(result, 0, XSQLDA_LENGTH(numcols));
 	result->version = SQLDA_VERSION1;
 	result->sqln = numcols;
-	
+
 	(*g_isc_dsql_prepare)(status, &tr, &stmt, 0, const_cast<char*>(queryStr), SQL_DIALECT_CURRENT, result);
 	if (status[0] == 1 && status[1] != 0) {
 		long errorcode = (*g_isc_sqlcode)(status);
@@ -602,7 +602,7 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 		Disconnect();
 		return new GkIBSQLResult(errorcode, errormsg, tr, stmt);
 	}
-	
+
 	if (result->sqld > result->sqln) {
 		numcols = result->sqld;
 		delete [] reinterpret_cast<char*>(result);
@@ -610,7 +610,7 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 		memset(result, 0, XSQLDA_LENGTH(numcols));
 		result->version = SQLDA_VERSION1;
 		result->sqln = numcols;
-	
+
 		(*g_isc_dsql_describe)(status, &stmt, SQLDA_VERSION1, result);
 		if (status[0] == 1 && status[1] != 0) {
 			long errorcode = (*g_isc_sqlcode)(status);

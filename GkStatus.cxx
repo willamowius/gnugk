@@ -2,7 +2,7 @@
 //
 // GkStatus.cxx
 //
-// Copyright (c) 2000-2020, Jan Willamowius
+// Copyright (c) 2000-2023, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -15,7 +15,7 @@
 
 #ifdef HAS_LIBSSH
 
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 #pragma comment(lib, LIBSSH_LIB)
 #endif
 #include "libssh/libssh.h"

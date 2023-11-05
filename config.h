@@ -19,7 +19,7 @@
 #include <ptlib/ipsock.h>
 #include "gnugkbuildopts.h"
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(_WIN64)
 #define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 #endif
 
@@ -137,7 +137,7 @@
 		#if PTLIB_BUILD >= 6
 			#define hasLDAPStartTLS 1
 		#endif
-		#ifdef _WIN32
+		#if _WIN32 || _WIN64
 			#define hasWorkerDeleteBug	1
 		#endif
 	#endif
@@ -155,7 +155,7 @@
 	#endif
 	// bug with no trailing NULL bytes in BMP strings, fixed in PTLib 2.7.1
 	#if ((PTLIB_MINOR == 2) || (PTLIB_MINOR == 4 && PTLIB_BUILD <= 5) || (PTLIB_MINOR == 5 && PTLIB_BUILD <= 2) || (PTLIB_MINOR == 6 && PTLIB_BUILD <= 4))
-		#ifdef _WIN32
+		#if _WIN32 || _WIN64
 			#pragma message("PTLib with MD5 token bug")
 		#else
 			#warning "PTLib with MD5 token bug"
@@ -174,7 +174,7 @@
 #endif
 
 #if !defined(PWLIB_MAJOR) && !defined(PTLIB_MAJOR)
-	#if _WIN32
+	#if _WIN32 || _WIN64
 		#pragma message ("warning: Can't detect PTLib version")
 	#else
 		#warning "Can't detect PTLib version"

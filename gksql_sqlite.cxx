@@ -3,7 +3,7 @@
  *
  * SQLite driver module for GnuGk
  *
- * Copyright (c) 2007-2019, Jan Willamowius
+ * Copyright (c) 2007-2023, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -297,7 +297,7 @@ GkSQLConnection::SQLConnPtr GkSQLiteConnection::CreateNewConnection(
 {
 	if (!g_sharedLibrary.IsLoaded()) {
 		if (m_library.IsEmpty()) {
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 			m_library = "sqlite3" + g_sharedLibrary.GetExtension();
 #else
 			m_library = "libsqlite3" + g_sharedLibrary.GetExtension();

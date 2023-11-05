@@ -2,7 +2,7 @@
 //
 // gk.cxx for GNU Gatekeeper
 //
-// Copyright (c) 2000-2022, Jan Willamowius
+// Copyright (c) 2000-2023, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -15,7 +15,7 @@
 #include "config.h"
 #include <ptlib.h>
 #include <ptlib/sockets.h>
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(_WIN64)
 #define HAS_SETUSERNAME
 #include <signal.h>
 #include <syslog.h>
@@ -25,7 +25,7 @@
 #include <sys/resource.h>
 #include <sys/mman.h>
 #endif
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(_WIN64)
 #include <unistd.h>
 #endif
 #include <h225.h>
@@ -52,7 +52,7 @@ using std::vector;
 
 PCREATE_PROCESS(Gatekeeper)
 
-#if defined(_WIN32) && (_WIN32_WINNT >= WINDOWS_VISTA)
+#if (defined(_WIN32) || defined(_WIN64)) && (_WIN32_WINNT >= WINDOWS_VISTA)
 LPFN_WSASENDMSG g_pfWSASendMsg = NULL;
 #endif
 
@@ -442,7 +442,7 @@ const char * KnownConfigEntries[][2] = {
 #endif
 	{ "LogFile", "DeleteOnRotation" },
 	{ "LogFile", "Filename" },
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(_WIN64)
 	{ "LogFile", "LogToSyslog" },
 #endif
 	{ "LogFile", "Rotate" },
@@ -1018,7 +1018,7 @@ namespace { // keep the global objects private
 
 PTimedMutex ReloadMutex;
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(_WIN64)
 PString pidfile("/var/run/gnugk.pid");
 #endif
 
@@ -1172,7 +1172,7 @@ void ExitGK()
 }
 
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(_WIN64)
 class GnuGkToSyslog : public PSystemLogToSyslog
 {
 public:
@@ -1262,7 +1262,7 @@ void ReloadHandler()
 	}
 }
 
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 
 BOOL WINAPI WinCtrlHandlerProc(DWORD dwCtrlType)
 {
@@ -1493,7 +1493,7 @@ Gatekeeper::Gatekeeper(const char * _manuf,
 #endif
 {
 	m_strictConfigCheck = false;
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 	// set data execution prevention (ignore if not available)
 	SetDEP(PROCESS_DEP_ENABLE);
 	InitializeRTPSending();	// check for Vista+ method
@@ -1505,7 +1505,7 @@ Gatekeeper::Gatekeeper(const char * _manuf,
 		savedArguments += GetArguments().GetParameter(i);
 		savedArguments += " ";
 	}
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(_WIN64)
 	// set startup arguments for service process
 	GetArguments().Parse(GetArgumentsParseString());
 	if (GetArguments().HasOption("pid"))
@@ -1591,7 +1591,7 @@ const PString Gatekeeper::GetArgumentsParseString() const
 
 bool Gatekeeper::InitHandlers(const PArgList & args)
 {
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 	SetConsoleCtrlHandler(WinCtrlHandlerProc, TRUE);
 #else
 	struct sigaction sigact;
@@ -1810,7 +1810,7 @@ void Gatekeeper::Main()
 		ExitGK();
 	}
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(_WIN64)
     if (GkConfig()->GetBoolean("LogFile", "LogToSyslog", false)) {
         PTrace::SetOptions(PTrace::SystemLogStream);
         PTrace::SetStream(new PSystemLog(PSystemLog::Debug6)); // Debug6 = don't filter more than the global trace level
@@ -1965,7 +1965,7 @@ void Gatekeeper::Main()
     }
 #endif
 
-#if defined(_WIN32)
+#if _WIN32 || _WIN64
 	// 1) prevent CTRL_CLOSE_EVENT, CTRL_LOGOFF_EVENT and CTRL_SHUTDOWN_EVENT
 	//    dialog box from being displayed.
 	// 2) set process shutdown priority - we want as much time as possible
@@ -1983,7 +1983,7 @@ void Gatekeeper::Main()
 	ShutdownHandler();
 	cerr << "done\n";
 
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 	// remove control handler/close console
 	SetConsoleCtrlHandler((PHANDLER_ROUTINE)WinCtrlHandlerProc, FALSE);
 	FreeConsole();

@@ -3,7 +3,7 @@
 // yasocket.cxx
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2021, Jan Willamowius
+// Copyright (c) 2004-2023, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -24,7 +24,7 @@
 #include "gnugkbuildopts.h"
 #include "ptbuildopts.h"	// sets WINVER needed for WSAPoll
 
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 #	ifndef SHUT_RDWR
 #   	define SHUT_RDWR SD_BOTH
 #	endif
@@ -36,7 +36,7 @@
 #endif // _WIN32
 
 #ifdef LARGE_FDSET
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 #	include <winsock2.h>
 #	define poll WSAPoll
 #else
@@ -125,7 +125,7 @@ bool YaSocket::Close()
 	so_linger.l_onoff = 0;
 	so_linger.l_linger = 0;
 	(void)::setsockopt(handle, SOL_SOCKET, SO_LINGER, (const char *)&so_linger, sizeof(so_linger));
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 	::closesocket(handle);
 #else
 	::close(handle);
@@ -254,7 +254,7 @@ bool YaSocket::SetNonBlockingMode()
 {
 	if (!IsOpen())
 		return false;
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 	u_long cmd = 1;
 	if (ConvertOSError(::ioctlsocket(os_handle, FIONBIO, &cmd)))
 		return true;
@@ -460,7 +460,7 @@ bool YaTCPSocket::Connect(const Address & iface, WORD localPort, const Address &
 #endif  // hasIPV6
 	int r = ::connect(os_handle, (struct sockaddr*)&peeraddr, addr_len);
 
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 	if ((r != 0) && (WSAGetLastError() != WSAEWOULDBLOCK))
 #else
 	if (r == 0 || errno != EINPROGRESS)
@@ -480,7 +480,7 @@ bool YaTCPSocket::Connect(const Address & iface, WORD localPort, const Address &
 		errno = optval;
 	} else {
 		if (r == 0) {
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 			errno = WSAETIMEDOUT;
 #else
 			errno = ETIMEDOUT;
@@ -1200,7 +1200,7 @@ void TCPServer::ReadSocket(IPSocket * socket)
 		int rej = ::accept(socket->GetHandle(), NULL, NULL);
 		if (rej >= 0) {
 			::shutdown(rej, SHUT_RDWR);
-#if defined(_WIN32)
+#if _WIN32 || _WIN64
 			::closesocket(rej);
 #else
 			::close(rej);
@@ -1223,7 +1223,7 @@ void TCPServer::ReadSocket(IPSocket * socket)
 			int rej = ::accept(socket->GetHandle(), NULL, NULL);
 			if (rej >= 0) {
 				::shutdown(rej, SHUT_RDWR);
-#if defined(_WIN32)
+#if _WIN32 || _WIN64
 				::closesocket(rej);
 #else
 				::close(rej);

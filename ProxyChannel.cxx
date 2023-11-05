@@ -3,7 +3,7 @@
 // ProxyChannel.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2002
-// Copyright (c) 2002-2021, Jan Willamowius
+// Copyright (c) 2002-2023, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -66,7 +66,7 @@
 	#include "h235/h235crypto.h"
 #endif
 
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 #include <mswsock.h>
 #	ifndef SHUT_RDWR
 #   	define SHUT_RDWR SD_BOTH
@@ -480,7 +480,7 @@ bool IsOldH263(const H245_DataType & type)
 // send a UDP datagram and set the source IP (used only for RTP, RAS is using sockets bound to specific IPs)
 // the method is highly OS specific
 
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddress & toAddress, PIPSocket::Address * gkIP)
 {
 #ifdef hasIPV6
@@ -18443,7 +18443,7 @@ bool ProxyHandler::BuildSelectList(SocketSelectList & slist)
 		if (socket && !socket->IsBlocked()) {
 			if (socket->IsSocketOpen()) {
 #ifndef LARGE_FDSET
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 				if (slist.GetSize() >= FD_SETSIZE) {
 					PTRACE(0, "Proxy\tToo many sockets in this proxy handler "
 						"(FD_SETSIZE=" << ((int)FD_SETSIZE) << ")");
@@ -18714,7 +18714,7 @@ void ProxyHandler::FlushSockets()
 		}
 		if (s->CanFlush()) {
 #ifndef LARGE_FDSET
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 			if (wlist.GetSize() >= FD_SETSIZE) {
 				PTRACE(0, "Proxy\tToo many sockets in this proxy handler "
 					"(limit=" << ((int)FD_SETSIZE) << ")");

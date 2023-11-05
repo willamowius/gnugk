@@ -2,7 +2,7 @@
 //
 // gk.h gatekeeper process
 //
-// Copyright (c) 2000-2015, Jan Willamowius
+// Copyright (c) 2000-2023, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -23,7 +23,7 @@
 #include <ptlib/pprocess.h>
 #endif
 
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 #include <mswsock.h>
 #endif
 
@@ -39,7 +39,7 @@ extern const char * KnownConfigEntries[][2];
 
 // you must change PTLib 2.10.x / 2.11.x configure.ac to set WINVER = 0x0600 to enable
 #define WINDOWS_VISTA	0x0600
-#if defined(_WIN32) && (_WIN32_WINNT >= WINDOWS_VISTA)
+#if (defined(_WIN32) || defined(_WIN64)) && (_WIN32_WINNT >= WINDOWS_VISTA)
 extern LPFN_WSASENDMSG g_pfWSASendMsg;
 #endif
 

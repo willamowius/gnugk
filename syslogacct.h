@@ -3,7 +3,7 @@
  *
  * accounting module for GNU Gatekeeper that send it's output to the syslog.
  *
- * Copyright (c) 2006-2018, Jan Willamowius
+ * Copyright (c) 2006-2023, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -15,7 +15,7 @@
 #ifndef __SYSLOGACCT_H
 #define __SYSLOGACCT_H "@(#) $Id$"
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(_WIN64)
 
 #include "gkacct.h"
 

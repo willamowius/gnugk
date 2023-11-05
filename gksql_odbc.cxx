@@ -3,7 +3,7 @@
  *
  * native ODBC / unixODBC driver module for GnuGk
  *
- * Copyright (c) 2008-2019, Jan Willamowius
+ * Copyright (c) 2008-2023, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -413,7 +413,7 @@ GkSQLConnection::SQLConnPtr GkODBCConnection::CreateNewConnection(
 
 	if (!g_sharedLibrary.IsLoaded()) {
 		if (m_library.IsEmpty()) {
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 			m_library = "odbc32" + g_sharedLibrary.GetExtension();
 #else
 			m_library = "libodbc" + g_sharedLibrary.GetExtension();

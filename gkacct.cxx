@@ -5,7 +5,7 @@
  * support for accounting to the gatekeeper.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2005-2019, Jan Willamowius
+ * Copyright (c) 2005-2023, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -15,7 +15,7 @@
  */
 
 // avoid warning in PTLib object.h
-#if (!_WIN32)
+#if (!_WIN32) && (!_WIN64)
 #define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 #if (GCC_VERSION >= 40400)
 #pragma GCC diagnostic ignored "-Wstrict-overflow"

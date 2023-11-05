@@ -2,7 +2,7 @@
 //
 // H.323 utility functions
 //
-// Copyright (c) 2000-2021, Jan Willamowius
+// Copyright (c) 2000-2023, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -26,7 +26,7 @@
 #pragma GCC diagnostic ignored "-Wstrict-overflow"
 #endif
 
-#if defined(_WIN32) && defined(hasIPV6)
+#if (defined(_WIN32) || defined(_WIN64)) && defined(hasIPV6)
 // Windows doesn't have inet_ntop, so we fake it
 const char * inet_ntop(int family, const void *src, char *dst, socklen_t cnt)
 {

@@ -20,7 +20,7 @@
 #include <map>
 #include <vector>
 #include <cstdlib>
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(_WIN64)
 #include <unistd.h>
 #endif // _WIN32
 #include "stl_supp.h"
@@ -1388,7 +1388,7 @@ PString Toolkit::GetTempDir() const
 {
 	PString tmpdir;
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(_WIN64)
 	// check if the directory exists and is accessible (access rights)
 	if (PFile::Exists("/tmp") && PFile::Access("/tmp", PFile::ReadWrite))
 		tmpdir = "/tmp";
@@ -1425,7 +1425,7 @@ void Toolkit::CreateConfig()
 
 	PString tmpdir = GetTempDir();
 
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 	if (tmpdir.IsEmpty())
 		if (PFile::Access(".", PFile::ReadWrite))
 			tmpdir = ".";
@@ -1444,7 +1444,7 @@ void Toolkit::CreateConfig()
 		PTRACE(5, "GK\tTrying file name "<< m_tmpconfig << " for temp config");
 	} while (PFile::Exists(m_tmpconfig));
 
-#ifdef _WIN32
+#if _WIN32 || _WIN64
 	if (PFile::Copy(m_ConfigFilePath, m_tmpconfig)) {
 #else
 	if (symlink(m_ConfigFilePath, m_tmpconfig) == 0) {
@@ -4051,7 +4051,7 @@ PString Toolkit::AsString(
 	struct tm* tmptr = &_tm;
 	time_t t = tm.GetTimeInSeconds();
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(_WIN64)
 	if (localtime_r(&t, tmptr) != tmptr) {
 #else
 	tmptr = localtime(&t);
