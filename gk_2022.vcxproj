@@ -253,7 +253,7 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>openh323d.lib;ptclibd.lib;ptlibd.lib;snmpapi.lib;Winmm.lib;mpr.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>snmpapi.lib;Winmm.lib;mpr.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>Debug/gnugk.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -294,7 +294,7 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>openh323d.lib;ptclibd.lib;ptlibd.lib;snmpapi.lib;Winmm.lib;mpr.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>snmpapi.lib;Winmm.lib;mpr.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>Debug/gnugk.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -335,7 +335,7 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>h323plus.lib;ptclib.lib;ptlibs.lib;snmpapi.lib;odbc32.lib;odbccp32.lib;wsock32.lib;mpr.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>h323plus.lib;ptlibs.lib;snmpapi.lib;odbc32.lib;odbccp32.lib;wsock32.lib;mpr.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>Release/gnugk.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ProgramDatabaseFile>.\Release/gnugk.pdb</ProgramDatabaseFile>
@@ -376,7 +376,7 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>h323plus.lib;ptclib.lib;ptlibs.lib;snmpapi.lib;odbc32.lib;odbccp32.lib;wsock32.lib;mpr.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>h323plus.lib;ptlibs.lib;snmpapi.lib;odbc32.lib;odbccp32.lib;wsock32.lib;mpr.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>Release/gnugk.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ProgramDatabaseFile>.\Release/gnugk.pdb</ProgramDatabaseFile>
