@@ -22,3 +22,5 @@ cov-int.tgz
 *.layout
 *.ipch
 *.bin
+*.obj
+*.tlog
