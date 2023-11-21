@@ -3660,6 +3660,7 @@ bool Toolkit::GetH46023STUN(const PIPSocket::Address & addr, H323TransportAddres
 	 std::map<int, std::vector<H323TransportAddress> >::iterator inf = m_H46023STUN.find(intID);
 	 if (inf != m_H46023STUN.end()) {
 		 if (inf->second.size() > 1)
+			// TODO random_shuffle is removed in C++17
 			std::random_shuffle(inf->second.begin(), inf->second.end());
 		 stun = inf->second.front();
 		 return true;
