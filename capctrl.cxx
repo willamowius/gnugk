@@ -31,6 +31,7 @@
 namespace {
 // greater operators for sorting route lists
 
+// TODO the use of binary_function needs a patch for C++17
 struct IpRule_greater : public std::binary_function<CapacityControl::IpCallVolume, CapacityControl::IpCallVolume, bool> {
 
 	bool operator()(const CapacityControl::IpCallVolume &e1, const CapacityControl::IpCallVolume &e2) const
@@ -49,6 +50,7 @@ struct IpRule_greater : public std::binary_function<CapacityControl::IpCallVolum
 	}
 };
 
+// TODO the use of binary_function needs a patch for C++17
 struct H323IdRule_greater : public std::binary_function<CapacityControl::H323IdCallVolume, CapacityControl::H323IdCallVolume, bool> {
 
 	bool operator()(const CapacityControl::H323IdCallVolume & e1, const CapacityControl::H323IdCallVolume & e2) const
@@ -57,6 +59,7 @@ struct H323IdRule_greater : public std::binary_function<CapacityControl::H323IdC
 	}
 };
 
+// TODO the use of binary_function needs a patch for C++17
 struct CLIRule_greater : public std::binary_function<CapacityControl::CLICallVolume, CapacityControl::CLICallVolume, bool> {
 
 	bool operator()(const CapacityControl::CLICallVolume & e1, const CapacityControl::CLICallVolume & e2) const

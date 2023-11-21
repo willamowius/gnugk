@@ -102,6 +102,7 @@ PString CLIRewrite::RewriteRule::AsString() const
 }
 
 namespace {
+// TODO the use of binary_function needs a patch for C++17
 struct RewriteRule_greater : public std::binary_function<CLIRewrite::RewriteRule, CLIRewrite::RewriteRule, bool> {
 
 	bool operator()(const CLIRewrite::RewriteRule &e1, const CLIRewrite::RewriteRule &e2) const
@@ -116,6 +117,7 @@ struct RewriteRule_greater : public std::binary_function<CLIRewrite::RewriteRule
 	}
 };
 
+// TODO the use of binary_function needs a patch for C++17
 struct SingleIpRule_greater : public std::binary_function<CLIRewrite::SingleIpRule, CLIRewrite::SingleIpRule, bool> {
 
 	bool operator()(const CLIRewrite::SingleIpRule &e1, const CLIRewrite::SingleIpRule &e2) const

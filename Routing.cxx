@@ -1595,6 +1595,7 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 	return false;
 }
 
+// TODO the use of binary_function needs a patch for C++17
 struct PrefixGreater : public binary_function<NumberAnalysisPolicy::PrefixEntry, NumberAnalysisPolicy::PrefixEntry, bool> {
 
 	bool operator()(const NumberAnalysisPolicy::PrefixEntry &e1, const NumberAnalysisPolicy::PrefixEntry &e2) const
