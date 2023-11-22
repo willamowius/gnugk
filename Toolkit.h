@@ -32,8 +32,6 @@ extern "C" {
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
-// on Windows PTLib 2.10.x doesn't set an #pragma include_alias for this file,
-// so the OpenSSL include dir must be added to IDE settings
 #include <openssl/x509v3.h>	// needed for certificate check
 }
 #endif

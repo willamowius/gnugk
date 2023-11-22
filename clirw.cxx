@@ -6,7 +6,7 @@
  * $Id$
  *
  * Copyright (c) 2005, Michal Zygmuntowicz
- * Copyright (c) 2007-2013, Jan Willamowius
+ * Copyright (c) 2007-2023, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -102,7 +102,14 @@ PString CLIRewrite::RewriteRule::AsString() const
 }
 
 namespace {
+#if (__cplusplus >= 201703L) // C++17
+struct RewriteRule_greater {
+	typedef CLIRewrite::RewriteRule first_argument_type;
+	typedef CLIRewrite::RewriteRule second_argument_type;
+	typedef bool result_type;
+#else
 struct RewriteRule_greater : public std::binary_function<CLIRewrite::RewriteRule, CLIRewrite::RewriteRule, bool> {
+#endif
 
 	bool operator()(const CLIRewrite::RewriteRule &e1, const CLIRewrite::RewriteRule &e2) const
 	{
@@ -116,7 +123,14 @@ struct RewriteRule_greater : public std::binary_function<CLIRewrite::RewriteRule
 	}
 };
 
+#if (__cplusplus >= 201703L) // C++17
+struct SingleIpRule_greater {
+	typedef CLIRewrite::SingleIpRule first_argument_type;
+	typedef CLIRewrite::SingleIpRule second_argument_type;
+	typedef bool result_type;
+#else
 struct SingleIpRule_greater : public std::binary_function<CLIRewrite::SingleIpRule, CLIRewrite::SingleIpRule, bool> {
+#endif
 
 	bool operator()(const CLIRewrite::SingleIpRule &e1, const CLIRewrite::SingleIpRule &e2) const
 	{
@@ -134,7 +148,14 @@ struct SingleIpRule_greater : public std::binary_function<CLIRewrite::SingleIpRu
 	}
 };
 
+#if (__cplusplus >= 201703L) // C++17
+struct DoubleIpRule_greater {
+	typedef CLIRewrite::DoubleIpRule first_argument_type;
+	typedef CLIRewrite::DoubleIpRule second_argument_type;
+	typedef bool result_type;
+#else
 struct DoubleIpRule_greater : public std::binary_function<CLIRewrite::DoubleIpRule, CLIRewrite::DoubleIpRule, bool> {
+#endif
 
 	bool operator()(const CLIRewrite::DoubleIpRule &e1, const CLIRewrite::DoubleIpRule &e2) const
 	{

@@ -99,10 +99,19 @@ factory.h(135)   Init    Can't create SampleC with 3 parameter(s)
 
 namespace std {
 
+#if (__cplusplus >= 201703L) // C++17
+template<> struct less<const char *> {
+	typedef const char * first_argument_type;
+	typedef const char * second_argument_type;
+	typedef bool result_type;
+	bool operator()(const char *s1, const char *s2) const { return (strcmp(s1, s2) < 0); }
+};
+#else
 // gcc 3.x said specialization can't be put in different namespace
 template<> struct less<const char *> : public binary_function<const char *, const char *, bool> {
 	bool operator()(const char *s1, const char *s2) const { return (strcmp(s1, s2) < 0); }
 };
+#endif
 
 }
 

@@ -6,7 +6,7 @@
  * @(#) $Id$
  *
  * Copyright (c) 2005, Michal Zygmuntowicz
- * Copyright (c) 2006-2016, Jan Willamowius
+ * Copyright (c) 2006-2023, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -194,7 +194,14 @@ int IPAuthBase::Check(
 namespace {
 const char *FileIPAuthSecName = "FileIPAuth";
 
+#if (__cplusplus >= 201703L) // C++17
+struct IPAuthEntry_greater {
+	typedef FileIPAuth::IPAuthEntry first_argument_type;
+	typedef FileIPAuth::IPAuthEntry second_argument_type;
+	typedef bool result_type;
+#else
 struct IPAuthEntry_greater : public binary_function<FileIPAuth::IPAuthEntry, FileIPAuth::IPAuthEntry, bool> {
+#endif
 
 	bool operator()(
 		const FileIPAuth::IPAuthEntry & a,

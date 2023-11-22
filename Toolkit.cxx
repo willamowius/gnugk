@@ -23,6 +23,9 @@
 #if !defined(_WIN32) && !defined(_WIN64)
 #include <unistd.h>
 #endif // _WIN32
+#if (__cplusplus >= 201703L) // C++17
+#include <random>
+#endif
 #include "stl_supp.h"
 #include "gktimer.h"
 #include "h323util.h"
@@ -476,7 +479,11 @@ PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(const Address & addr) co
 		if (addr << m_internalnetworks[j]) {
 			// check if internal network is in route table, but don't use the default route
 			RouteEntry *entry = find_if(rtable_begin, rtable_end,
+#if (__cplusplus >= 201703L) // C++17
+				bind(mem_fn(&RouteEntry::CompareWithoutMask), std::placeholders::_1, &addr));
+#else
 				bind2nd(mem_fun_ref(&RouteEntry::CompareWithoutMask), &addr));
+#endif
 			if ((entry != rtable_end) && (entry->GetNetMask() != INADDR_ANY)
 #ifdef hasIPV6
 				&& (entry->GetNetMask() != in6addr_any)
@@ -517,7 +524,11 @@ PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(const Address & addr) co
 		}
 	}
 	RouteEntry *entry = find_if(rtable_begin, rtable_end,
+#if (__cplusplus >= 201703L) // C++17
+		bind(mem_fn(&RouteEntry::CompareWithMask), std::placeholders::_1, &addr));
+#else
 		bind2nd(mem_fun_ref(&RouteEntry::CompareWithMask), &addr));
+#endif
 	if (entry != rtable_end) {
 		return entry->GetDestination();
 	}
@@ -3659,8 +3670,15 @@ bool Toolkit::GetH46023STUN(const PIPSocket::Address & addr, H323TransportAddres
 	 int intID = m_ProxyCriterion.IsInternal(addr);
 	 std::map<int, std::vector<H323TransportAddress> >::iterator inf = m_H46023STUN.find(intID);
 	 if (inf != m_H46023STUN.end()) {
-		 if (inf->second.size() > 1)
+		 if (inf->second.size() > 1) {
+#if (__cplusplus >= 201703L) // C++17
+            std::random_device rd;
+            std::mt19937 g(rd());
+			std::shuffle(inf->second.begin(), inf->second.end(), g);
+#else
 			std::random_shuffle(inf->second.begin(), inf->second.end());
+#endif
+         }
 		 stun = inf->second.front();
 		 return true;
 	 }

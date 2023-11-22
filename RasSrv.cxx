@@ -2,7 +2,7 @@
 //
 // RAS Server for GNU Gatekeeper
 //
-// Copyright (c) 2000-2021, Jan Willamowius
+// Copyright (c) 2000-2023, Jan Willamowius
 // Copyright (c) Citron Network Inc. 2001-2003
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
@@ -1009,7 +1009,11 @@ void RasServer::LoadConfig()
 
 	for (int i = 0; i < hsize; ++i) {
 		Address addr(GKHome[i]);
+#if (__cplusplus >= 201703L) // C++17
+		ifiterator iter = find_if(interfaces.begin(), interfaces.end(), bind(mem_fn(&GkInterface::IsBoundTo), std::placeholders::_1, &addr));
+#else
 		ifiterator iter = find_if(interfaces.begin(), interfaces.end(), bind2nd(mem_fun(&GkInterface::IsBoundTo), &addr));
+#endif
 		if (iter == interfaces.end()) {
 			GkInterface *gkif = CreateInterface(addr);
 			if (gkif->CreateListeners(this)) {
@@ -1161,12 +1165,20 @@ GkInterface *RasServer::SelectInterface(const Address & addr)
 	if (interfaces.empty())
 		return NULL;
     // prefer the interface that actually has the IP bound to it
+#if (__cplusplus >= 201703L) // C++17
+	ifiterator iter = find_if(interfaces.begin(), interfaces.end(), bind(mem_fn(&GkInterface::IsBoundTo), std::placeholders::_1, &addr));
+#else
 	ifiterator iter = find_if(interfaces.begin(), interfaces.end(), bind2nd(mem_fun(&GkInterface::IsBoundTo), &addr));
+#endif
 	if (iter != interfaces.end()) {
         return *iter;
 	}
 	// otherwise use an interface that can reach the IP
+#if (__cplusplus >= 201703L) // C++17
+	iter = find_if(interfaces.begin(), interfaces.end(), bind(mem_fn(&GkInterface::IsReachable), std::placeholders::_1, &addr));
+#else
 	iter = find_if(interfaces.begin(), interfaces.end(), bind2nd(mem_fun(&GkInterface::IsReachable), &addr));
+#endif
 	if (iter != interfaces.end()) {
         return *iter;
 	}
@@ -1718,9 +1730,17 @@ void RasServer::CreateRasJob(GatekeeperMessage * msg, bool syncronous)
 	PWaitAndSignal rlock(requests_mutex);
 	PWaitAndSignal hlock(handlers_mutex);
 	if (RasMsg *ras = RasFactory::Create(tag, msg)) {
+#if (__cplusplus >= 201703L) // C++17
+		std::list<RasHandler *>::iterator iter = find_if(handlers.begin(), handlers.end(), bind(mem_fn(&RasHandler::IsExpected), std::placeholders::_1, ras));
+#else
 		std::list<RasHandler *>::iterator iter = find_if(handlers.begin(), handlers.end(), bind2nd(mem_fun(&RasHandler::IsExpected), ras));
+#endif
 		if (iter == handlers.end()) {
+#if (__cplusplus >= 201703L) // C++17
+			std::list<RasMsg *>::iterator i = find_if(requests.begin(), requests.end(), bind(mem_fn(&RasMsg::EqualTo), std::placeholders::_1, ras));
+#else
 			std::list<RasMsg *>::iterator i = find_if(requests.begin(), requests.end(), bind2nd(mem_fun(&RasMsg::EqualTo), ras));
+#endif
 			if (i != requests.end() && !(*i)->IsDone()) {
 				PTRACE(2, "RAS\tDuplicate " << msg->GetTagName() << ", deleted");
 				delete ras;
@@ -1753,7 +1773,11 @@ void RasServer::CleanUp()
 {
 	PWaitAndSignal lock(requests_mutex);
 	if (!requests.empty()) {
+#if (__cplusplus >= 201703L) // C++17
+		std::list<RasMsg *>::iterator iter = partition(requests.begin(), requests.end(), mem_fn(&RasMsg::IsDone));
+#else
 		std::list<RasMsg *>::iterator iter = partition(requests.begin(), requests.end(), mem_fun(&RasMsg::IsDone));
+#endif
 		DeleteObjects(requests.begin(), iter);
 		requests.erase(requests.begin(), iter);
 	}
@@ -4844,7 +4868,11 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 
 	// find the neighbor this comes from
 	NeighborList::List & neighbors = *RasServer::Instance()->GetNeighbors();
+#if (__cplusplus >= 201703L) // C++17
+	NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind(mem_fn(&Neighbors::Neighbor::IsFrom), std::placeholders::_1, &m_msg->m_peerAddr));
+#else
 	NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind2nd(mem_fun(&Neighbors::Neighbor::IsFrom), &m_msg->m_peerAddr));
+#endif
 	Neighbors::Neighbor * from_neighbor = NULL;
 	bool neighbor_authenticated = true;
 	if (iter != neighbors.end())
@@ -4899,7 +4927,11 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 					&& (request.m_cryptoTokens[0].GetTag() == H225_CryptoH323Token::e_cryptoGKPwdHash)) {
 					H225_CryptoH323Token_cryptoGKPwdHash & token = request.m_cryptoTokens[0];
 					PString gkid = token.m_gatekeeperId;
+#if (__cplusplus >= 201703L) // C++17
+					NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind(mem_fn(&Neighbors::Neighbor::IsTraversalUser), std::placeholders::_1, &gkid));
+#else
 					NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind2nd(mem_fun(&Neighbors::Neighbor::IsTraversalUser), &gkid));
+#endif
 					if (iter != neighbors.end()) {
 						from_neighbor = (*iter);
 						neighbor_authenticated = from_neighbor->Authenticate(this);
@@ -4967,7 +4999,11 @@ template<> bool RasPDU<H225_ServiceControlResponse>::Process()
 #ifdef HAS_H46018
 	// check if it belongs to a neighbor SCI and use the keepAliveInterval
     NeighborList::List & neighbors = *RasServer::Instance()->GetNeighbors();
+#if (__cplusplus >= 201703L) // C++17
+    NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind(mem_fn(&Neighbors::Neighbor::IsFrom), std::placeholders::_1, &m_msg->m_peerAddr));
+#else
     NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind2nd(mem_fun(&Neighbors::Neighbor::IsFrom), &m_msg->m_peerAddr));
+#endif
     if (iter != neighbors.end()) {
         if (request.HasOptionalField(H225_ServiceControlResponse::e_result)) {
             if (request.m_result.GetTag() == H225_ServiceControlResponse_result::e_started) {

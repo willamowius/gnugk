@@ -38,8 +38,6 @@
 #include <curl/curl.h>
 #endif // HAS_LIBCURL
 
-#include <utility>
-
 using std::string;
 using std::vector;
 using std::list;

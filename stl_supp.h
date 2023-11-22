@@ -4,7 +4,7 @@
 //
 // Supplementary of STL
 //
-// Copyright (c) 2001-2018, Jan Willamowius
+// Copyright (c) 2001-2023, Jan Willamowius
 //
 // Part of this code is adapted from the SGI implementation
 //
@@ -23,12 +23,15 @@
 #include <algorithm>
 #include <functional>
 
+
 // Composition adapter is not part of C++ standard
 #if !defined(__GNUC__) || (defined(__GNUC__) && __GNUC__ >= 3)
 template <class _Operation1, class _Operation2>
 class unary_compose
+#if (__cplusplus < 201703L)
 	: public std::unary_function<typename _Operation2::argument_type,
                           typename _Operation1::result_type>
+#endif
 {
 protected:
   _Operation1 __op1;
@@ -55,7 +58,11 @@ using std::compose1;
 
 // since VC6 didn't support partial specialization, use different names
 template <class _Tp>
+#if (__cplusplus >= 201703L) // C++17
+class mem_vfun_t {
+#else
 class mem_vfun_t : public std::unary_function<_Tp*,void> {
+#endif
 public:
   explicit mem_vfun_t(void (_Tp::*__pf)()) : _M_f(__pf) {}
   void operator()(_Tp* __p) const { (__p->*_M_f)(); }
@@ -64,7 +71,11 @@ private:
 };
 
 template <class _Tp>
+#if (__cplusplus >= 201703L) // C++17
+class const_mem_vfun_t {
+#else
 class const_mem_vfun_t : public std::unary_function<const _Tp*,void> {
+#endif
 public:
   explicit const_mem_vfun_t(void (_Tp::*__pf)() const) : _M_f(__pf) {}
   void operator()(const _Tp* __p) const { (__p->*_M_f)(); }
@@ -73,7 +84,11 @@ private:
 };
 
 template <class _Tp>
+#if (__cplusplus >= 201703L) // C++17
+class mem_vfun_ref_t {
+#else
 class mem_vfun_ref_t : public std::unary_function<_Tp,void> {
+#endif
 public:
   explicit mem_vfun_ref_t(void (_Tp::*__pf)()) : _M_f(__pf) {}
   void operator()(_Tp& __r) const { (__r.*_M_f)(); }
@@ -82,7 +97,11 @@ private:
 };
 
 template <class _Tp>
+#if (__cplusplus >= 201703L) // C++17
+class const_mem_vfun_ref_t {
+#else
 class const_mem_vfun_ref_t : public std::unary_function<_Tp,void> {
+#endif
 public:
   explicit const_mem_vfun_ref_t(void (_Tp::*__pf)() const) : _M_f(__pf) {}
   void operator()(const _Tp& __r) const { (__r.*_M_f)(); }
@@ -91,7 +110,11 @@ private:
 };
 
 template <class _Tp, class _Arg>
+#if (__cplusplus >= 201703L) // C++17
+class mem_vfun1_t {
+#else
 class mem_vfun1_t : public std::binary_function<_Tp*,_Arg,void> {
+#endif
 public:
   explicit mem_vfun1_t(void (_Tp::*__pf)(_Arg)) : _M_f(__pf) {}
   void operator()(_Tp* __p, _Arg __x) const { (__p->*_M_f)(__x); }
@@ -100,7 +123,11 @@ private:
 };
 
 template <class _Tp, class _Arg>
+#if (__cplusplus >= 201703L) // C++17
+class const_mem_vfun1_t {
+#else
 class const_mem_vfun1_t : public std::binary_function<const _Tp*,_Arg,void> {
+#endif
 public:
   explicit const_mem_vfun1_t(void (_Tp::*__pf)(_Arg) const) : _M_f(__pf) {}
   void operator()(const _Tp* __p, _Arg __x) const { (__p->*_M_f)(__x); }
@@ -109,7 +136,11 @@ private:
 };
 
 template <class _Tp, class _Arg>
+#if (__cplusplus >= 201703L) // C++17
+class mem_vfun1_ref_t {
+#else
 class mem_vfun1_ref_t : public std::binary_function<_Tp,_Arg,void> {
+#endif
 public:
   explicit mem_vfun1_ref_t(void (_Tp::*__pf)(_Arg)) : _M_f(__pf) {}
   void operator()(_Tp& __r, _Arg __x) const { (__r.*_M_f)(__x); }
@@ -118,7 +149,11 @@ private:
 };
 
 template <class _Tp, class _Arg>
+#if (__cplusplus >= 201703L) // C++17
+class const_mem_vfun1_ref_t {
+#else
 class const_mem_vfun1_ref_t : public std::binary_function<_Tp,_Arg,void> {
+#endif
 public:
   explicit const_mem_vfun1_ref_t(void (_Tp::*__pf)(_Arg) const) : _M_f(__pf) {}
   void operator()(const _Tp& __r, _Arg __x) const { (__r.*_M_f)(__x); }
@@ -157,7 +192,11 @@ inline const_mem_vfun1_ref_t<_Tp,_Arg> mem_vfun_ref(void (_Tp::*__f)(_Arg) const
 // end of partial specialization
 
 
+#if (__cplusplus >= 201703L) // C++17
+struct str_prefix_greater {
+#else
 struct str_prefix_greater : public std::binary_function<std::string, std::string, bool> {
+#endif
 
 	bool operator()(const std::string& s1, const std::string& s2) const
 	{
@@ -168,7 +207,11 @@ struct str_prefix_greater : public std::binary_function<std::string, std::string
 	}
 };
 
+#if (__cplusplus >= 201703L) // C++17
+struct str_prefix_lesser {
+#else
 struct str_prefix_lesser : public std::binary_function<std::string, std::string, bool> {
+#endif
 
 	bool operator()(const std::string& s1, const std::string& s2) const
 	{
@@ -179,7 +222,11 @@ struct str_prefix_lesser : public std::binary_function<std::string, std::string,
 	}
 };
 
+#if (__cplusplus >= 201703L) // C++17
+struct pstr_prefix_lesser {
+#else
 struct pstr_prefix_lesser : public std::binary_function<PString, PString, bool> {
+#endif
 
 	bool operator()(const PString& s1, const PString& s2) const
 	{
