@@ -6,7 +6,7 @@
  * $Id$
  *
  * Copyright (c) 2006, Michal Zygmuntowicz
- * Copyright (c) 2008-2016, Jan Willamowius
+ * Copyright (c) 2008-2023, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -31,8 +31,14 @@
 namespace {
 // greater operators for sorting route lists
 
-// TODO the use of binary_function needs a patch for C++17
+#if (__cplusplus >= 201703L)
+struct IpRule_greater {
+	typedef CapacityControl::IpCallVolume first_argument_type;
+	typedef CapacityControl::IpCallVolume second_argument_type;
+	typedef bool result_type;
+#else
 struct IpRule_greater : public std::binary_function<CapacityControl::IpCallVolume, CapacityControl::IpCallVolume, bool> {
+#endif
 
 	bool operator()(const CapacityControl::IpCallVolume &e1, const CapacityControl::IpCallVolume &e2) const
 	{
@@ -50,8 +56,14 @@ struct IpRule_greater : public std::binary_function<CapacityControl::IpCallVolum
 	}
 };
 
-// TODO the use of binary_function needs a patch for C++17
+#if (__cplusplus >= 201703L)
+struct H323IdRule_greater {
+	typedef CapacityControl::H323IdCallVolume first_argument_type;
+	typedef CapacityControl::H323IdCallVolume second_argument_type;
+	typedef bool result_type;
+#else
 struct H323IdRule_greater : public std::binary_function<CapacityControl::H323IdCallVolume, CapacityControl::H323IdCallVolume, bool> {
+#endif
 
 	bool operator()(const CapacityControl::H323IdCallVolume & e1, const CapacityControl::H323IdCallVolume & e2) const
 	{
@@ -59,8 +71,14 @@ struct H323IdRule_greater : public std::binary_function<CapacityControl::H323IdC
 	}
 };
 
-// TODO the use of binary_function needs a patch for C++17
+#if (__cplusplus >= 201703L)
+struct CLIRule_greater {
+	typedef CapacityControl::CLICallVolume first_argument_type;
+	typedef CapacityControl::CLICallVolume second_argument_type;
+	typedef bool result_type;
+#else
 struct CLIRule_greater : public std::binary_function<CapacityControl::CLICallVolume, CapacityControl::CLICallVolume, bool> {
+#endif
 
 	bool operator()(const CapacityControl::CLICallVolume & e1, const CapacityControl::CLICallVolume & e2) const
 	{

@@ -3,7 +3,7 @@
 // Routing Mechanism for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2003
-// Copyright (c) 2004-2021, Jan Willamowius
+// Copyright (c) 2004-2023, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -42,7 +42,9 @@ using std::string;
 using std::vector;
 using std::list;
 using std::stable_sort;
+#if (__cplusplus < 201703L)
 using std::binary_function;
+#endif
 
 namespace Routing {
 
@@ -1595,8 +1597,14 @@ bool VirtualQueuePolicy::OnRequest(SetupRequest & request)
 	return false;
 }
 
-// TODO the use of binary_function needs a patch for C++17
+#if (__cplusplus >= 201703L) // C++17
+struct PrefixGreater {
+	typedef NumberAnalysisPolicy::PrefixEntry first_argument_type;
+	typedef NumberAnalysisPolicy::PrefixEntry second_argument_type;
+	typedef bool result_type;
+#else
 struct PrefixGreater : public binary_function<NumberAnalysisPolicy::PrefixEntry, NumberAnalysisPolicy::PrefixEntry, bool> {
+#endif
 
 	bool operator()(const NumberAnalysisPolicy::PrefixEntry &e1, const NumberAnalysisPolicy::PrefixEntry &e2) const
 	{

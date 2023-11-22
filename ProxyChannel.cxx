@@ -17818,7 +17818,11 @@ bool H245ProxyHandler::RemoveLogicalChannel(WORD flcn)
 		return false;
 	}
 	LogicalChannel * lc = iter->second;
+#if (__cplusplus >= 201703L) // C++17
+	siterator i = find_if(sessionIDs.begin(), sessionIDs.end(), bind(compare_lc, std::placeholders::_1, lc));
+#else
 	siterator i = find_if(sessionIDs.begin(), sessionIDs.end(), bind2nd(std::ptr_fun(compare_lc), lc));
+#endif
 	if (i != sessionIDs.end())
 		sessionIDs.erase(i);
 	logicalChannels.erase(iter);
