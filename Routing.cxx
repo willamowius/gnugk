@@ -2635,7 +2635,7 @@ void URIServicePolicy::LoadConfig(const PString & instance)
 			PTRACE(4, "ROUTING\tPolicy " << m_name << " " << service << " Could not resolve " << gwDestination);
 			continue;
 		}
-		m_uriServiceRoute.insert(make_pair(service, dest));
+		m_uriServiceRoute.insert(std::make_pair(service, dest));
 	}
 }
 
