@@ -2,35 +2,35 @@
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug (h323plus)</Configuration>
+      <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
-      <Configuration>Debug (h323plus)</Configuration>
+      <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Debug as Service|Win32">
-      <Configuration>Debug as Service (h323plus)</Configuration>
+      <Configuration>Debug as Service</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Debug as Service|x64">
-      <Configuration>Debug as Service (h323plus)</Configuration>
+      <Configuration>Debug as Service</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release (h323plus)</Configuration>
+      <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|x64">
-      <Configuration>Release (h323plus)</Configuration>
+      <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release as Service|Win32">
-      <Configuration>Release as Service (h323plus)</Configuration>
+      <Configuration>Release as Service</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release as Service|x64">
-      <Configuration>Release as Service (h323plus)</Configuration>
+      <Configuration>Release as Service</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
@@ -80,28 +80,28 @@
     <UseOfMfc>false</UseOfMfc>
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release (h323plus)|Win32'">
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release (h323plus)|x64'">
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug as Service (h323plus)|x64'">
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug as Service|x64'">
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug as Service (h323plus)|Win32'">
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug as Service|Win32'">
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release as Service (h323plus)|Win32'">
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release as Service|Win32'">
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release as Service (h323plus)|x64'">
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release as Service|x64'">
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug (h323plus)|Win32'">
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug (h323plus)|x64'">
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -148,8 +148,8 @@
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release as Service|Win32'">false</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release as Service|x64'">false</LinkIncremental>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug as Service|Win32'">$(Configuration)\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug as Service|Win32'">$(Configuration)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug as Service|Win32'">$(SolutionDir)/$(Configuration)_$(PlatformShortName)/</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug as Service|Win32'">$(SolutionDir)/$(Configuration)_$(PlatformShortName)/</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug as Service|Win32'" />
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug as Service|x64'" />
     <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
@@ -196,26 +196,32 @@
     <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release as Service|x64'">$(ProjectDir)..\h323plus\lib;$(ProjectDir)..\ptlib\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/</OutDir>
+    <IntDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/</OutDir>
+    <IntDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)\</OutDir>
-    <IntDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)\</IntDir>
+    <OutDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/</OutDir>
+    <IntDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)\</OutDir>
-    <IntDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)\</IntDir>
+    <OutDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/</OutDir>
+    <IntDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug as Service|x64'">
-    <OutDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)\</OutDir>
-    <IntDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)\</IntDir>
+    <OutDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/</OutDir>
+    <IntDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release as Service|x64'">
-    <OutDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)\</OutDir>
-    <IntDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)\</IntDir>
+    <OutDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/</OutDir>
+    <IntDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release as Service|Win32'">
+    <OutDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/</OutDir>
+    <IntDir>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>
@@ -247,7 +253,7 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>openh323d.lib;ptclibd.lib;ptlibd.lib;snmpapi.lib;Winmm.lib;mpr.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>snmpapi.lib;Winmm.lib;mpr.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>Debug/gnugk.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -288,7 +294,7 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>openh323d.lib;ptclibd.lib;ptlibd.lib;snmpapi.lib;Winmm.lib;mpr.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>snmpapi.lib;Winmm.lib;mpr.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>Debug/gnugk.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -329,7 +335,7 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>h323plus.lib;ptclib.lib;ptlibs.lib;snmpapi.lib;odbc32.lib;odbccp32.lib;wsock32.lib;mpr.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>h323plus.lib;ptlibs.lib;snmpapi.lib;odbc32.lib;odbccp32.lib;wsock32.lib;mpr.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>Release/gnugk.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ProgramDatabaseFile>.\Release/gnugk.pdb</ProgramDatabaseFile>
@@ -370,7 +376,7 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>h323plus.lib;ptclib.lib;ptlibs.lib;snmpapi.lib;odbc32.lib;odbccp32.lib;wsock32.lib;mpr.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>h323plus.lib;ptlibs.lib;snmpapi.lib;odbc32.lib;odbccp32.lib;wsock32.lib;mpr.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>Release/gnugk.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ProgramDatabaseFile>.\Release/gnugk.pdb</ProgramDatabaseFile>
@@ -392,7 +398,7 @@
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <StructMemberAlignment>Default</StructMemberAlignment>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
-      <PrecompiledHeaderOutputFile>.\Debug/gk.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile>.\Debug/gnugk.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>.\Debug/</AssemblerListingLocation>
       <ObjectFileName>.\Debug/</ObjectFileName>
       <ProgramDataBaseFileName>.\Debug/</ProgramDataBaseFileName>
@@ -401,8 +407,8 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
-      <LanguageStandard>
-      </LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -410,7 +416,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>h323plusd.lib;ptlibsd.lib;snmpapi.lib;Winmm.lib;mpr.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>Debug/gnugk.exe</OutputFile>
+      <OutputFile>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/gnugk.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>.\Debug/gnugk.pdb</ProgramDatabaseFile>
@@ -442,8 +448,8 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
-      <LanguageStandard>
-      </LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -451,7 +457,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>h323plus_$(PlatformShortName)_d.lib;ptlibs_$(PlatformShortName)_d.lib;snmpapi.lib;Winmm.lib;mpr.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>Debug_$(PlatformShortName)/gnugk.exe</OutputFile>
+      <OutputFile>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/gnugk.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>.\Debug/gnugk.pdb</ProgramDatabaseFile>
@@ -480,15 +486,15 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <FunctionLevelLinking>false</FunctionLevelLinking>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
-      <PrecompiledHeaderOutputFile>$(TargetDir)gk.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile>$(TargetDir)gnugk.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>$(TargetDir)</AssemblerListingLocation>
       <ObjectFileName>$(TargetDir)</ObjectFileName>
       <ProgramDataBaseFileName>$(TargetDir)</ProgramDataBaseFileName>
       <WarningLevel>Level2</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>Default</CompileAs>
-      <LanguageStandard>
-      </LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -496,7 +502,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>h323plus.lib;ptlibs.lib;snmpapi.lib;odbc32.lib;odbccp32.lib;wsock32.lib;mpr.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(TargetDir)gnugk.exe</OutputFile>
+      <OutputFile>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/gnugk.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ProgramDatabaseFile>$(TargetDir)gnugk.pdb</ProgramDatabaseFile>
       <SubSystem>Console</SubSystem>
@@ -533,8 +539,8 @@
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>Default</CompileAs>
-      <LanguageStandard>
-      </LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -542,7 +548,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>h323plus_$(PlatformShortName).lib;ptlibs_$(PlatformShortName).lib;snmpapi.lib;odbc32.lib;odbccp32.lib;wsock32.lib;mpr.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(TargetDir)gnugk.exe</OutputFile>
+      <OutputFile>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/gnugk.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ProgramDatabaseFile>$(TargetDir)gnugk_$(PlatformShortName).pdb</ProgramDatabaseFile>
       <SubSystem>Console</SubSystem>
@@ -571,15 +577,15 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <FunctionLevelLinking>false</FunctionLevelLinking>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
-      <PrecompiledHeaderOutputFile>$(TargetDir)gk.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile>$(TargetDir)gnugk.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>$(TargetDir)</AssemblerListingLocation>
       <ObjectFileName>$(TargetDir)</ObjectFileName>
       <ProgramDataBaseFileName>$(TargetDir)</ProgramDataBaseFileName>
       <WarningLevel>Level2</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>Default</CompileAs>
-      <LanguageStandard>
-      </LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -587,7 +593,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>h323plus.lib;ptlibs.lib;snmpapi.lib;odbc32.lib;odbccp32.lib;wsock32.lib;mpr.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(TargetDir)gnugk.exe</OutputFile>
+      <OutputFile>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/gnugk.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ProgramDatabaseFile>$(TargetDir)gnugk.pdb</ProgramDatabaseFile>
       <SubSystem>Windows</SubSystem>
@@ -624,8 +630,8 @@
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>Default</CompileAs>
-      <LanguageStandard>
-      </LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -633,7 +639,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>h323plus_$(PlatformShortName).lib;ptlibs_$(PlatformShortName).lib;snmpapi.lib;odbc32.lib;odbccp32.lib;wsock32.lib;mpr.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(TargetDir)gnugk.exe</OutputFile>
+      <OutputFile>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/gnugk.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ProgramDatabaseFile>$(TargetDir)gnugk_$(PlatformShortName).pdb</ProgramDatabaseFile>
       <SubSystem>Windows</SubSystem>
@@ -655,7 +661,7 @@
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <StructMemberAlignment>Default</StructMemberAlignment>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
-      <PrecompiledHeaderOutputFile>.\Debug/gk.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile>.\Debug/gnugk.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>.\Debug/</AssemblerListingLocation>
       <ObjectFileName>.\Debug/</ObjectFileName>
       <ProgramDataBaseFileName>.\Debug/</ProgramDataBaseFileName>
@@ -664,8 +670,8 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
-      <LanguageStandard>
-      </LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -673,7 +679,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>h323plusd.lib;ptlibsd.lib;snmpapi.lib;Winmm.lib;mpr.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>Debug\gnugk.exe</OutputFile>
+      <OutputFile>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/gnugk.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>.\Debug\gnugk.pdb</ProgramDatabaseFile>
@@ -705,8 +711,8 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
-      <LanguageStandard>
-      </LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -714,7 +720,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>h323plus_$(PlatformShortName)_d.lib;ptlibs_$(PlatformShortName)_d.lib;snmpapi.lib;Winmm.lib;mpr.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>Debug_$(PlatformShortName)\gnugk.exe</OutputFile>
+      <OutputFile>$(SolutionDir)/$(Configuration)_$(PlatformShortName)/gnugk.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>.\Debug\gnugk.pdb</ProgramDatabaseFile>

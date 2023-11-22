@@ -40,12 +40,16 @@
 #include <ptclib/pdns.h>
 #endif
 
+#include <functional>
+
 using std::vector;
 using std::multimap;
 using std::make_pair;
 using std::for_each;
+#if (__cplusplus < 201703L) // before C++17
 using std::mem_fun;
 using std::bind1st;
+#endif
 using Routing::Route;
 
 namespace {
@@ -2503,7 +2507,11 @@ void GkClient::Unregister()
 		m_natClient->Stop();
 		m_natClient = NULL;
 	}
+#if (__cplusplus >= 201703L) // C++17
+	for_each(m_handlers, m_handlers + 4, std::bind(std::mem_fn(&RasServer::UnregisterHandler), m_rasSrv, std::placeholders::_1));
+#else
 	for_each(m_handlers, m_handlers + 4, bind1st(mem_fun(&RasServer::UnregisterHandler), m_rasSrv));
+#endif
 	m_registered = false;
 }
 
@@ -2758,7 +2766,11 @@ void GkClient::OnRCF(RasMsg *ras)
 		if (m_useAdditiveRegistration)
 			RegistrationTable::Instance()->UpdateTable();
 
+#if (__cplusplus >= 201703L) // C++17
+		for_each(m_handlers, m_handlers + 4, bind(std::mem_fn(&RasServer::RegisterHandler), m_rasSrv, std::placeholders::_1));
+#else
 		for_each(m_handlers, m_handlers + 4, bind1st(mem_fun(&RasServer::RegisterHandler), m_rasSrv));
+#endif
 	}
 
 	// Not all RCF contain TTL, in that case keep old value

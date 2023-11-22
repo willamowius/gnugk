@@ -20,6 +20,7 @@
 #include "yasocket.h"
 #include "Toolkit.h"
 #include "snmp.h"
+#include "factory.h"
 #include "gk.h"
 #include "gnugkbuildopts.h"
 #include "ptbuildopts.h"	// sets WINVER needed for WSAPoll
@@ -45,8 +46,10 @@
 #endif // LARGE_FDSET
 
 
+#if (__cplusplus < 201703L) // before C++17
 using std::mem_fun;
 using std::bind1st;
+#endif
 using std::partition;
 using std::distance;
 using std::copy;
@@ -1043,7 +1046,11 @@ void SocketsReader::Stop()
 	PWaitAndSignal lock(m_deletionPreventer);
 
 	m_listmutex.StartWrite();
+#if (__cplusplus >= 201703L) // C++17
+	ForEachInContainer(m_sockets, mem_fn(&IPSocket::Close));
+#else
 	ForEachInContainer(m_sockets, mem_fun(&IPSocket::Close));
+#endif
 	m_listmutex.EndWrite();
 
 	RegularJob::Stop();
@@ -1068,7 +1075,11 @@ void SocketsReader::AddSocket(IPSocket * socket)
 bool SocketsReader::BuildSelectList(SocketSelectList & slist)
 {
 	ReadLock lock(m_listmutex);
+#if (__cplusplus >= 201703L) // C++17
+	ForEachInContainer(m_sockets, bind(&SocketSelectList::Append, &slist, std::placeholders::_1));
+#else
 	ForEachInContainer(m_sockets, bind1st(mem_fun(&SocketSelectList::Append), &slist));
+#endif
 	return !slist.IsEmpty();
 }
 
@@ -1099,7 +1110,11 @@ bool SocketsReader::SelectSockets(SocketSelectList & slist)
 void SocketsReader::RemoveClosed(bool bDeleteImmediately)
 {
 	WriteLock listlock(m_listmutex);
+#if (__cplusplus >= 201703L) // C++17
+	iterator iter = partition(m_sockets.begin(), m_sockets.end(), mem_fn(&IPSocket::IsOpen));
+#else
 	iterator iter = partition(m_sockets.begin(), m_sockets.end(), mem_fun(&IPSocket::IsOpen));
+#endif
 	if (ptrdiff_t rmsize = distance(iter, m_sockets.end())) {
 		if (bDeleteImmediately)
 			DeleteObjects(iter, m_sockets.end());
@@ -1214,8 +1229,13 @@ void TCPServer::ReadSocket(IPSocket * socket)
 	if (cps_limit > 0) {
 		time_t now = time(NULL);
 		// clear old values
+#if (__cplusplus >= 201703L) // C++17
+		one_sec.remove_if(bind(std::not_equal_to<time_t>(), std::placeholders::_1, now));
+		many_sec.remove_if(bind(std::less<time_t>(), std::placeholders::_1, now - check_interval));
+#else
 		one_sec.remove_if(bind2nd(not_equal_to<time_t>(), now));
 		many_sec.remove_if(bind2nd(less<time_t>(), now - check_interval));
+#endif
 		PTRACE(4, GetName() << "\tcurrent cps=" << one_sec.size() << " calls in interval=" << many_sec.size());
 		if ((many_sec.size() > (cps_limit * check_interval)) && (one_sec.size() > cps_limit)) {
 			// reject call

@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2022, Jan Willamowius
+// Copyright (c) 2000-2023, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -50,8 +50,10 @@ using std::copy;
 using std::partition;
 using std::back_inserter;
 using std::transform;
+#if (__cplusplus < 201703L) // before C++17
 using std::mem_fun;
 using std::bind2nd;
+#endif
 using std::equal_to;
 using std::find;
 using std::find_if;
@@ -320,7 +322,11 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 		PIPSocket::Address socketAddr;
 		if (GetIPFromTransportAddr(m_rasAddress, socketAddr)) {
 			NeighborList::List & neighbors = *RasServer::Instance()->GetNeighbors();
+#if (__cplusplus >= 201703L) // C++17
+			NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), std::bind(&Neighbors::Neighbor::IsFrom, std::placeholders::_1, &socketAddr));
+#else
 			NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind2nd(mem_fun(&Neighbors::Neighbor::IsFrom), &socketAddr));
+#endif
 			if (iter != neighbors.end()) {
 				if ((*iter)->IsH46018Server()) {
 					m_traversalType = TraversalServer;
@@ -1797,7 +1803,11 @@ RegistrationTable::~RegistrationTable()
 {
 	ClearTable();
 	// since the socket has been deleted, just remove it
+#if (__cplusplus >= 201703L) // C++17
+	ForEachInContainer(RemovedList, mem_fn(&EndpointRec::GetAndRemoveSocket));
+#else
 	ForEachInContainer(RemovedList, mem_fun(&EndpointRec::GetAndRemoveSocket));
+#endif
 	DeleteObjectsInContainer(RemovedList);
 }
 
@@ -1859,8 +1869,13 @@ endptr RegistrationTable::InternalInsertEP(H225_RasMessage & ras_msg)
 	if (!rrq.HasOptionalField(H225_RegistrationRequest::e_endpointIdentifier) ||
 	    !Toolkit::AsBool(GkConfig()->GetString(RRQFeaturesSection, "AcceptEndpointIdentifier", "1"))) {
 		rrq.IncludeOptionalField(H225_RegistrationRequest::e_endpointIdentifier);
+#if (__cplusplus >= 201703L) // C++17
+		endptr e = InternalFind(compose1(std::bind(equal_to<H225_TransportAddress>(), std::placeholders::_1, rrq.m_callSignalAddress[0]),
+			mem_fn(&EndpointRec::GetCallSignalAddress)), &RemovedList);
+#else
 		endptr e = InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), rrq.m_callSignalAddress[0]),
 			mem_fun(&EndpointRec::GetCallSignalAddress)), &RemovedList);
+#endif
 		if (e) // re-use the old endpoint identifier
 			rrq.m_endpointIdentifier = e->GetEndpointIdentifier();
 		else
@@ -2004,8 +2019,13 @@ endptr RegistrationTable::FindByEndpointId(const H225_EndpointIdentifier & epId)
 
 	PString epIdStr;
 	epIdStr = epId;
+#if (__cplusplus >= 201703L) // C++17
+	return InternalFind(compose1(bind(equal_to<PString>(), std::placeholders::_1, epIdStr),
+			mem_fn(&EndpointRec::GetEndpointIdentifier)));
+#else
 	return InternalFind(compose1(bind2nd(equal_to<PString>(), epIdStr),
 			mem_fun(&EndpointRec::GetEndpointIdentifier)));
+#endif
 }
 
 namespace { // anonymous namespace
@@ -2075,13 +2095,22 @@ endptr RegistrationTable::FindBySignalAdrIgnorePort(const H225_TransportAddress 
 
 endptr RegistrationTable::FindOZEPBySignalAdr(const H225_TransportAddress & sigAd) const
 {
+#if (__cplusplus >= 201703L) // C++17
+	return InternalFind(compose1(std::bind(equal_to<H225_TransportAddress>(), std::placeholders::_1, sigAd),
+			mem_fn(&EndpointRec::GetCallSignalAddress)), &OutOfZoneList);
+#else
 	return InternalFind(compose1(bind2nd(equal_to<H225_TransportAddress>(), sigAd),
 			mem_fun(&EndpointRec::GetCallSignalAddress)), &OutOfZoneList);
+#endif
 }
 
 endptr RegistrationTable::FindByAliases(const H225_ArrayOf_AliasAddress & alias) const
 {
+#if (__cplusplus >= 201703L) // C++17
+	return InternalFind(std::bind(&EndpointRec::CompareAlias, std::placeholders::_1, &alias));
+#else
 	return InternalFind(bind2nd(mem_fun(&EndpointRec::CompareAlias), &alias));
+#endif
 }
 
 endptr RegistrationTable::FindFirstEndpoint(const H225_ArrayOf_AliasAddress & alias)
@@ -2114,7 +2143,11 @@ inline bool ComparePriority(const pair<int, GatewayRec*>& x, const pair<int, Gat
 endptr RegistrationTable::InternalFindFirstEP(const H225_ArrayOf_AliasAddress & alias,
 	std::list<EndpointRec *> *List)
 {
+#if (__cplusplus >= 201703L) // C++17
+	endptr ep = InternalFind(std::bind(&EndpointRec::CompareAlias, std::placeholders::_1, &alias), List);
+#else
 	endptr ep = InternalFind(bind2nd(mem_fun(&EndpointRec::CompareAlias), &alias), List);
+#endif
 	if (ep) {
 		PTRACE(4, "Alias match for EP " << AsDotString(ep->GetCallSignalAddress()));
         return ep;
@@ -2160,7 +2193,11 @@ bool RegistrationTable::InternalFindEP(
 	bool leastUsedRouting,
 	list<Route> & routes)
 {
+#if (__cplusplus >= 201703L) // C++17
+	endptr ep = InternalFind(std::bind(&EndpointRec::CompareAlias, std::placeholders::_1, &aliases), endpoints);
+#else
 	endptr ep = InternalFind(bind2nd(mem_fun(&EndpointRec::CompareAlias), &aliases), endpoints);
+#endif
 	if (ep) {
 		PTRACE(4, "Alias match for EP " << AsDotString(ep->GetCallSignalAddress()));
 		if (ep->UsesH46017() && ep->GetActiveCalls() > 0) {
@@ -2377,7 +2414,11 @@ void RegistrationTable::LoadConfig()
 	// Load config for each endpoint
 	if (regSize > 0) {
 		ReadLock lock(listLock);
+#if (__cplusplus >= 201703L) // C++17
+		ForEachInContainer(EndpointList, mem_fn(&EndpointRec::LoadConfig));
+#else
 		ForEachInContainer(EndpointList, mem_fun(&EndpointRec::LoadConfig));
+#endif
 	}
 
 	// Load permanent endpoints
@@ -2512,8 +2553,13 @@ void RegistrationTable::ClearTable()
 	WriteLock lock(listLock);
 	if (Toolkit::AsBool(GkConfig()->GetString("Gatekeeper::Main", "DisconnectCallsOnShutdown", "1"))) {
 		// Unregister all endpoints, and move the records into RemovedList
+#if (__cplusplus >= 201703L) // C++17
+		transform(EndpointList.begin(), EndpointList.end(),
+			back_inserter(RemovedList), mem_fn(&EndpointRec::Unregister));
+#else
 		transform(EndpointList.begin(), EndpointList.end(),
 			back_inserter(RemovedList), mem_fun(&EndpointRec::Unregister));
+#endif
 	}
 	EndpointList.clear();
 	regSize = 0;
@@ -2525,7 +2571,11 @@ void RegistrationTable::UpdateTable()
 {
 	WriteLock lock(listLock);
 
+#if (__cplusplus >= 201703L) // C++17
+	ForEachInContainer(EndpointList, mem_fn(&EndpointRec::Reregister));
+#else
 	ForEachInContainer(EndpointList, mem_fun(&EndpointRec::Reregister));
+#endif
 	EndpointList.clear();
 }
 
@@ -2601,7 +2651,11 @@ void RegistrationTable::CheckEndpoints()
 #endif // HAS_AVAYA_SUPPORT
 	}
 
+#if (__cplusplus >= 201703L) // C++17
+	iterator OOZIter = partition(OutOfZoneList.begin(), OutOfZoneList.end(), std::bind(&EndpointRec::IsUpdated, std::placeholders::_1, &now));
+#else
 	iterator OOZIter = partition(OutOfZoneList.begin(), OutOfZoneList.end(), bind2nd(mem_fun(&EndpointRec::IsUpdated), &now));
+#endif
 	if (ptrdiff_t s = distance(OOZIter, OutOfZoneList.end())) {
 		PTRACE(2, s << " out-of-zone endpoint(s) expired");
 	}
@@ -2609,7 +2663,11 @@ void RegistrationTable::CheckEndpoints()
 	OutOfZoneList.erase(OOZIter, OutOfZoneList.end());
 
 	// Cleanup unused EndpointRec in RemovedList
+#if (__cplusplus >= 201703L) // C++17
+	iterator RemIter = partition(RemovedList.begin(), RemovedList.end(), mem_fn(&EndpointRec::IsUsed));
+#else
 	iterator RemIter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&EndpointRec::IsUsed));
+#endif
 	DeleteObjects(RemIter, RemovedList.end());
 	RemovedList.erase(RemIter, RemovedList.end());
 }
@@ -3131,7 +3189,7 @@ int EndpointRec::GetTimeToLive() const
 
 	if (enableTTLRestrictions && (m_nat || IsTraversalClient() || UsesH46017())) {
 		// force timeToLive to 5 - 30 sec, 19 sec if not set
-		return m_timeToLive == 0 ? m_defaultKeepAliveInterval : max(5, min(30, m_defaultKeepAliveInterval));
+		return m_timeToLive == 0 ? m_defaultKeepAliveInterval : std::max(5, min(30, m_defaultKeepAliveInterval));
 	}
 	return m_timeToLive;
 }
@@ -5616,32 +5674,56 @@ unsigned CallTable::GetTotalAllocatedBandwidth() const // in kbps
 
 callptr CallTable::FindCallRec(const H225_CallIdentifier & CallId) const
 {
+#if (__cplusplus >= 201703L) // C++17
+	return InternalFind(std::bind(&CallRec::CompareCallId, std::placeholders::_1, &CallId));
+#else
 	return InternalFind(bind2nd(mem_fun(&CallRec::CompareCallId), &CallId));
+#endif
 }
 
 callptr CallTable::FindCallRec(const H225_CallReferenceValue & CallRef) const
 {
+#if (__cplusplus >= 201703L) // C++17
+	return InternalFind(std::bind(&CallRec::CompareCRV, std::placeholders::_1, CallRef.GetValue()));
+#else
 	return InternalFind(bind2nd(mem_fun(&CallRec::CompareCRV), CallRef.GetValue()));
+#endif
 }
 
 callptr CallTable::FindCallRec(PINDEX CallNumber) const
 {
+#if (__cplusplus >= 201703L) // C++17
+	return InternalFind(std::bind(&CallRec::CompareCallNumber, std::placeholders::_1, CallNumber));
+#else
 	return InternalFind(bind2nd(mem_fun(&CallRec::CompareCallNumber), CallNumber));
+#endif
 }
 
 callptr CallTable::FindCallRec(const endptr & ep) const
 {
+#if (__cplusplus >= 201703L) // C++17
+	return InternalFind(std::bind(&CallRec::CompareEndpoint, std::placeholders::_1, &ep));
+#else
 	return InternalFind(bind2nd(mem_fun(&CallRec::CompareEndpoint), &ep));
+#endif
 }
 
 callptr CallTable::FindBySignalAdr(const H225_TransportAddress & SignalAdr) const
 {
+#if (__cplusplus >= 201703L) // C++17
+	return InternalFind(std::bind(&CallRec::CompareSigAdr, std::placeholders::_1, &SignalAdr));
+#else
 	return InternalFind(bind2nd(mem_fun(&CallRec::CompareSigAdr), &SignalAdr));
+#endif
 }
 
 callptr CallTable::FindBySignalAdrIgnorePort(const H225_TransportAddress & SignalAdr) const
 {
+#if (__cplusplus >= 201703L) // C++17
+	return InternalFind(std::bind(&CallRec::CompareSigAdrIgnorePort, std::placeholders::_1, &SignalAdr));
+#else
 	return InternalFind(bind2nd(mem_fun(&CallRec::CompareSigAdrIgnorePort), &SignalAdr));
+#endif
 }
 
 void CallTable::ClearTable()
@@ -5679,7 +5761,11 @@ void CallTable::CheckCalls(RasServer * rassrv)
 			++Iter;
 		}
 
+#if (__cplusplus >= 201703L) // C++7
+		iterator RemIter = partition(RemovedList.begin(), RemovedList.end(), mem_fn(&CallRec::IsUsed));
+#else
 		iterator RemIter = partition(RemovedList.begin(), RemovedList.end(), mem_fun(&CallRec::IsUsed));
+#endif
 		DeleteObjects(RemIter, RemovedList.end());
 		RemovedList.erase(RemIter, RemovedList.end());
 	}

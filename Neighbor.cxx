@@ -40,9 +40,11 @@
 using std::multimap;
 using std::make_pair;
 using std::find_if;
-using std::bind2nd;
-using std::equal_to;
+#if (__cplusplus < 201703L) // before C++17
 using std::mem_fun;
+using std::bind2nd;
+#endif
+using std::equal_to;
 using Routing::Route;
 
 namespace Neighbors {
@@ -1719,8 +1721,13 @@ void NeighborList::OnReload()
 			type = "ClarentGK";
 		if (PCaselessString(type) == "GlonetGK")
 			type = "GlonetGK";
+#if (__cplusplus >= 201703L) // C++17
+		iter = find_if(m_neighbors.begin(), m_neighbors.end(),
+				compose1(bind(equal_to<PString>(), std::placeholders::_1, nbid), mem_fn(&Neighbor::GetId)));
+#else
 		iter = find_if(m_neighbors.begin(), m_neighbors.end(),
 				compose1(bind2nd(equal_to<PString>(), nbid), mem_fun(&Neighbor::GetId)));
+#endif
 		bool newnb = (iter == m_neighbors.end());
 		Neighbor *nb = newnb ? Factory<Neighbor>::Create(type) : *iter;
 		if (nb && nb->SetProfile(nbid, type, !newnb)) {
@@ -1749,24 +1756,40 @@ bool NeighborList::CheckLRQ(RasMsg *ras) const
 
 bool NeighborList::CheckIP(const PIPSocket::Address & addr) const
 {
+#if (__cplusplus >= 201703L) // C++17
+	return find_if(m_neighbors.begin(), m_neighbors.end(), bind(mem_fn(&Neighbor::IsFrom), std::placeholders::_1, &addr)) != m_neighbors.end();
+#else
 	return find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsFrom), &addr)) != m_neighbors.end();
+#endif
 }
 
 bool NeighborList::IsTraversalClient(const PIPSocket::Address & addr) const
 {
+#if (__cplusplus >= 201703L) // C++17
+	return find_if(m_neighbors.begin(), m_neighbors.end(), bind(mem_fn(&Neighbor::IsTraversalClient), std::placeholders::_1, &addr)) != m_neighbors.end();
+#else
 	return find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsTraversalClient), &addr)) != m_neighbors.end();
+#endif
 }
 
 bool NeighborList::IsTraversalServer(const PIPSocket::Address & addr) const
 {
+#if (__cplusplus >= 201703L) // C++17
+	return find_if(m_neighbors.begin(), m_neighbors.end(), bind(mem_fn(&Neighbor::IsTraversalServer), std::placeholders::_1, &addr)) != m_neighbors.end();
+#else
 	return find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsTraversalServer), &addr)) != m_neighbors.end();
+#endif
 }
 
 // is IP a neighbor and is it not disabled ?
 bool NeighborList::IsAvailable(const PIPSocket::Address & ip)
 {
 	// Attempt to find the neighbor in the list
+#if (__cplusplus >= 201703L) // C++17
+	List::iterator findNeighbor = find_if(m_neighbors.begin(), m_neighbors.end(), bind(mem_fn(&Neighbor::IsFrom), std::placeholders::_1, &ip));
+#else
 	List::iterator findNeighbor = find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsFrom), &ip));
+#endif
 	if (findNeighbor == m_neighbors.end())
 	{
 		return false;
@@ -1790,7 +1813,11 @@ PString NeighborList::GetNeighborIdBySigAdr(const H225_TransportAddress & sigAd)
 PString NeighborList::GetNeighborIdBySigAdr(const PIPSocket::Address & sigAd)
 {
 	// Attempt to find the neighbor in the list
+#if (__cplusplus >= 201703L) // C++17
+	List::iterator findNeighbor = find_if(m_neighbors.begin(), m_neighbors.end(), bind(mem_fn(&Neighbor::IsFrom), std::placeholders::_1, &sigAd));
+#else
 	List::iterator findNeighbor = find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsFrom), &sigAd));
+#endif
 	if (findNeighbor == m_neighbors.end())
 	{
 		return PString::Empty();
@@ -1801,7 +1828,11 @@ PString NeighborList::GetNeighborIdBySigAdr(const PIPSocket::Address & sigAd)
 PString NeighborList::GetNeighborGkIdBySigAdr(const PIPSocket::Address & sigAd)
 {
 	// Attempt to find the neighbor in the list
+#if (__cplusplus >= 201703L) // C++17
+	List::iterator findNeighbor = find_if(m_neighbors.begin(), m_neighbors.end(), bind(mem_fn(&Neighbor::IsFrom), std::placeholders::_1, &sigAd));
+#else
 	List::iterator findNeighbor = find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsFrom), &sigAd));
+#endif
 
 	if (findNeighbor == m_neighbors.end())
 	{
@@ -1814,7 +1845,11 @@ PString NeighborList::GetNeighborGkIdBySigAdr(const PIPSocket::Address & sigAd)
 bool NeighborList::GetNeighborTLSBySigAdr(const PIPSocket::Address & sigAd)
 {
 	// Attempt to find the neighbor in the list
+#if (__cplusplus >= 201703L) // C++17
+	List::iterator findNeighbor = find_if(m_neighbors.begin(), m_neighbors.end(), bind(mem_fn(&Neighbor::IsFrom), std::placeholders::_1, &sigAd));
+#else
 	List::iterator findNeighbor = find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsFrom), &sigAd));
+#endif
 	if (findNeighbor == m_neighbors.end())
 	{
 		return false;
@@ -2035,7 +2070,11 @@ bool NeighborPolicy::OnRequest(AdmissionRequest & arq_obj)
 bool NeighborPolicy::OnRequest(LocationRequest & lrq_obj)
 {
 	RasMsg * ras = lrq_obj.GetWrapper();
+#if (__cplusplus >= 201703L) // C++17
+	List::iterator iter = find_if(m_neighbors.begin(), m_neighbors.end(), bind(mem_fn(&Neighbor::IsAcceptable), std::placeholders::_1, ras));
+#else
 	List::iterator iter = find_if(m_neighbors.begin(), m_neighbors.end(), bind2nd(mem_fun(&Neighbor::IsAcceptable), ras));
+#endif
 	Neighbor * requester = (iter != m_neighbors.end()) ? *iter : NULL;
 	int hopCount = 0;
 	if (requester) {

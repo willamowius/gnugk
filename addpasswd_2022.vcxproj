@@ -70,12 +70,12 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.21006.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)/$(ProjectName)/$(Configuration)_$(PlatformShortName)/</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)/$(ProjectName)/$(Configuration)_$(PlatformShortName)/</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)/$(ProjectName)/$(Configuration)_$(PlatformShortName)/</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)/$(ProjectName)/$(Configuration)_$(PlatformShortName)/</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
     <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
@@ -98,6 +98,14 @@
     <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)..\h323plus\include;$(ProjectDir)..\ptlib\include;$(IncludePath)</IncludePath>
     <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)..\h323plus\lib;$(ProjectDir)..\ptlib\lib;$(LibraryPath)</LibraryPath>
     <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)..\h323plus\lib;$(ProjectDir)..\ptlib\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)/$(ProjectName)/$(Configuration)_$(PlatformShortName)/</OutDir>
+    <IntDir>$(SolutionDir)/$(ProjectName)/$(Configuration)_$(PlatformShortName)/</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)/$(ProjectName)/$(Configuration)_$(PlatformShortName)/</OutDir>
+    <IntDir>$(SolutionDir)/$(ProjectName)/$(Configuration)_$(PlatformShortName)/</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>
@@ -122,6 +130,8 @@
       <WarningLevel>Level2</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;_AFXDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -129,7 +139,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>ptlibsd.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(TargetDir)addpasswd.exe</OutputFile>
+      <OutputFile>$(SolutionDir)/$(ProjectName)/$(Configuration)_$(PlatformShortName)/addpasswd.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>$(TargetDir)addpasswd.pdb</ProgramDatabaseFile>
@@ -165,6 +175,8 @@
       <WarningLevel>Level2</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;_AFXDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -172,7 +184,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>ptlibs_$(PlatformShortName)_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(TargetDir)addpasswd.exe</OutputFile>
+      <OutputFile>$(SolutionDir)/$(ProjectName)/$(Configuration)_$(PlatformShortName)/addpasswd.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>$(TargetDir)addpasswd_$(PlatformShortName).pdb</ProgramDatabaseFile>
@@ -213,6 +225,8 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>true</WholeProgramOptimization>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;_AFXDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -220,7 +234,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>ptlibs.lib;mpr.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>Release/addpasswd.exe</OutputFile>
+      <OutputFile>$(SolutionDir)/$(ProjectName)/$(Configuration)_$(PlatformShortName)/addpasswd.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ProgramDatabaseFile>Release/addpasswd.pdb</ProgramDatabaseFile>
       <SubSystem>Console</SubSystem>
@@ -261,6 +275,8 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>true</WholeProgramOptimization>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;_AFXDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -268,7 +284,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>ptlibs_$(PlatformShortName).lib;mpr.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>Release_$(PlatformShortName)/addpasswd.exe</OutputFile>
+      <OutputFile>$(SolutionDir)/$(ProjectName)/$(Configuration)_$(PlatformShortName)/addpasswd.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ProgramDatabaseFile>Release_$(PlatformShortName)/addpasswd_$(PlatformShortName).pdb</ProgramDatabaseFile>
       <SubSystem>Console</SubSystem>
