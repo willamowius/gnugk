@@ -1,5 +1,6 @@
 Changes from 5.11 to 5.12
 =========================
+- auto-detect public IP with ExternalIP=STUN and STUNServer=stun.example.com
 - compiler support for VS2022
 - new database driver for Oracle and new timestamp format 'Oracle'
 - new switch [EP::xxx] ForceDirectMode=1 to handle all calls from this endpoint in direct mode

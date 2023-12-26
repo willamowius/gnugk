@@ -283,6 +283,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Gatekeeper::Main", "StatusEventBacklogRegex" },
 	{ "Gatekeeper::Main", "StatusPort" },
 	{ "Gatekeeper::Main", "StatusTraceLevel" },
+	{ "Gatekeeper::Main", "STUNServer" },
 	{ "Gatekeeper::Main", "TimeToLive" },
 	{ "Gatekeeper::Main", "TimestampFormat" },
 	{ "Gatekeeper::Main", "TotalBandwidth" },

@@ -16,6 +16,7 @@
 #include <ptclib/pdns.h>
 #include <ptclib/cypher.h>
 #include <ptclib/http.h>
+#include <ptclib/pstun.h>
 #include <h323pdu.h>
 #include <map>
 #include <vector>
@@ -3909,6 +3910,23 @@ PString Toolkit::GetExternalIP() const
         m_Config->SetString("ExternalIP", ext);
     }
 #endif // P_HTTP
+    if (ext == "STUN") {
+    	PString m_stunConfig = m_Config->GetString("STUNServer", "stun.ekiga.net");
+		PStringArray ip_parts = SplitIPAndPort(m_stunConfig, 3478);
+		PIPSocket::Address m_stunIP;
+		PIPSocket::GetHostAddress(ip_parts[0], m_stunIP);
+		WORD m_stunPort = (WORD)(ip_parts[1].AsUnsigned());
+		PSTUNClient m_stunServer(m_stunIP, m_stunPort);
+		PIPSocket::Address extIP;
+		if (m_stunServer.GetExternalAddress(extIP)) {
+			ext = ::AsString(extIP);
+		} else {
+            ext = "";
+			PTRACE(1, "STUN\tExternal IP can't be detected. Did you set STUNServer= correctly ?");
+		}
+        PTRACE(2, "STUN\tSetting ExternalIP to " << ext);
+        m_Config->SetString("ExternalIP", ext);
+	}
     return ext;
 }
 
