@@ -490,7 +490,7 @@ bool SSHStatusClient::Authenticate()
 							ssh_message_auth_reply_success(m_message, 0);
 							break;
 						}
-						// fall through: not authenticated, send default message
+						// fall through intended: not authenticated, send default message
                     case SSH_AUTH_METHOD_NONE:
                     default:
                         ssh_message_auth_set_methods(m_message, SSH_AUTH_METHOD_PASSWORD);
@@ -748,7 +748,7 @@ int TelnetSocket::ReadChar()
 			m_state = StateNormal;
 			if (currentByte == '\0' || currentByte == '\n')
 				break; // Ignore \0 \n after CR
-			// else fall through for normal processing
+			// else fall through intended for normal processing
 		case StateNormal:
 			if (currentByte == PTelnetSocket::IAC)
 				m_state = StateIAC;
