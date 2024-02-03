@@ -153,6 +153,13 @@ ifeq "$(GCCMAJORGTEQ4)" "1"
 	# solves "Undefined symbol lua_settop" error when lua
 	# script tries to request external library
 	LDFLAGS += -Wl,--export-dynamic
+	# more flags from OpenSSF recommendation 11/2023
+	# https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++
+	STDCCFLAGS += -D_GLIBCXX_ASSERTIONS -fstack-clash-protection -fstack-protector-strong -Wtrampolines -fno-delete-null-pointer-checks -fno-strict-overflow -fno-strict-aliasing
+	LDFLAGS += -Wl,-z,nodlopen -Wl,-z,noexecstack
+	ifeq ($(MACHTYPE),x86_64)
+		STDCCFLAGS += -fcf-protection=full
+	endif
 endif # gcc >= 4.x.x
 endif # linux
 
