@@ -1,5 +1,6 @@
 Changes from 5.11 to 5.12
 =========================
+- enable more runtime hardening flags from OpenSSF recommendation 11/2023
 - fix bug with H.245 address when using ExternalIP= switch without H.460.18/.19
 - auto-detect public IP with ExternalIP=STUN and STUNServer=stun.example.com
 - compiler support for VS2022
