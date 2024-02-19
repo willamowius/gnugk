@@ -27,7 +27,7 @@ html-zh_CN:
 	cd zh_CN ; SP_CHARSET_FIXED=yes SP_ENCODING=xml $(SGML2HTML) --language=en -s 0 -T 2 manual-zh_CN.sgml
 
 pdf:
-	$(SGML2LATEX) --output=dvi --style=gnugk manual.sgml ; $(DVIPDFM) manual.dvi ; rm -f manual.dvi ; pdfunite GnuGkManualTitle.pdf manual.pdf manual-out.pdf ; mf manual-out.pdf manual.pdf
+	$(SGML2LATEX) --output=dvi --style=gnugk manual.sgml ; $(DVIPDFM) manual.dvi ; rm -f manual.dvi ; pdfunite GnuGkManualTitle.pdf manual.pdf manual-out.pdf ; mv manual-out.pdf manual.pdf
 
 pdf-fr:
 	cd fr ; $(SGML2LATEX) --language=fr --style=gnugk manual-fr.sgml ; $(DVIPDFM) manual-fr.dvi ; rm -f manual-fr.dvi
