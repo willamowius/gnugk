@@ -2,7 +2,7 @@
 distro := $(shell lsb_release -i -s 2> /dev/null)
 ifeq ($(distro),Ubuntu)
 	SGML2LATEX = linuxdoc -B latex
-	SGML2HTML = linuxdoc -B html
+	SGML2HTML = linuxdoc -B html -T 2
 	SGML2TXT = linuxdoc -B txt
 else
 	SGML2LATEX = sgml2latex
@@ -15,16 +15,16 @@ DVIPDFM = dvipdfm
 all:	html
 
 html:
-	$(SGML2HTML) -s 0 -T 2 manual.sgml
+	$(SGML2HTML) -s 0 manual.sgml
 
 html-fr:
-	cd fr ; $(SGML2HTML) --language=fr -s 0 -T 2 manual-fr.sgml
+	cd fr ; $(SGML2HTML) --language=fr -s 0 manual-fr.sgml
 
 html-es:
-	cd es ; $(SGML2HTML) --language=es -s 0 -T 2 manual-es.sgml
+	cd es ; $(SGML2HTML) --language=es -s 0 manual-es.sgml
 
 html-zh_CN:
-	cd zh_CN ; SP_CHARSET_FIXED=yes SP_ENCODING=xml $(SGML2HTML) --language=en -s 0 -T 2 manual-zh_CN.sgml
+	cd zh_CN ; SP_CHARSET_FIXED=yes SP_ENCODING=xml $(SGML2HTML) --language=en -s 0 manual-zh_CN.sgml
 
 pdf:
 	$(SGML2LATEX) --output=dvi --style=gnugk manual.sgml ; $(DVIPDFM) manual.dvi ; rm -f manual.dvi ; pdfunite GnuGkManualTitle.pdf manual.pdf manual-out.pdf ; mv manual-out.pdf manual.pdf
