@@ -3,7 +3,7 @@
 // ProxyChannel.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2002
-// Copyright (c) 2002-2023, Jan Willamowius
+// Copyright (c) 2002-2024, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1440,6 +1440,8 @@ protected:
     unsigned m_filterFastUpdatePeriod;
     bool m_matchH239SessionsByType;
     list<NetworkAddress> m_matchH239SessionsByIDOnly;   // never match H.239 reverse channels by type on these networks (by source IP)
+    PIPSocket::Address m_callerSignaledRTCPSrcIP; // save the last originally signaled RTCP source IP from caller, only valid _during_ OLC processing
+    PIPSocket::Address m_calledSignaledRTCPSrcIP; // save the last originally signaled RTCP source IP from called, only valid _during_ OLC processing
 };
 
 
@@ -16362,7 +16364,11 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 
 	if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)
 		&& (addr = GetH245UnicastAddress(h225Params->m_mediaControlChannel)) ) {
-        PIPSocket::Address signaledSrcIP = H245UnicastToSocketAddr(*addr);
+        // at this point the media control channel IP in the message has already been rewritten to the masquerading IP
+        // done by SetAddress() of the H245(Proxy)handler, created with the masquerading IP in SetRemote()
+        // we should use the un-rewritten, really signaled IP here
+        PIPSocket::Address signaledRTCPSrcIP = IsCaller() ? m_callerSignaledRTCPSrcIP : m_calledSignaledRTCPSrcIP;
+        PTRACE(7, "JW RTCP addr signaled=" << AsString(signaledRTCPSrcIP));
 
 		lc->SetMediaControlChannelSource(*addr, sourceIP, isUnidirectional);
 		*addr << GetMasqAddr() << (lc->GetPort() + 1); // define our local RTCP port to be next to RTP port as recommended in RFC 3550
@@ -16373,21 +16379,24 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 		}
 #endif
         if (isUnidirectional) {
-            PTRACE(7, "JW RTP zero check 4: rtcp src=" << AsString(signaledSrcIP) << " # public H239 IPs=" << m_ignorePublicH239IPs.size());
+            PTRACE(7, "JW RTP zero check 4: rtcp src=" << AsString(signaledRTCPSrcIP) << " # public H239 IPs=" << m_ignorePublicH239IPs.size());
             for (list<NetworkAddress>::const_iterator i = m_ignorePublicH239IPs.begin(); i != m_ignorePublicH239IPs.end(); ++i) {
                 PTRACE(7, "JW RTP m_ignorePublicH239IPs: " << AsString(*i));
             }
-            if (m_ignoreSignaledIPs && IsPrivate(signaledSrcIP) && m_ignoreSignaledPrivateH239IPs) {
+            if (m_ignoreSignaledIPs && IsPrivate(signaledRTCPSrcIP) && m_ignoreSignaledPrivateH239IPs) {
+                PTRACE(7, "JW RTP will zero private IP");
                 zeroIP = true;
             }
             if (m_ignoreSignaledIPs && m_ignoreSignaledAllH239IPs) {
+                PTRACE(7, "JW RTP will zero all IPs");
                 zeroIP = true;
             }
-            if (m_ignoreSignaledIPs && IsInNetworks(signaledSrcIP, m_ignorePublicH239IPs)) {
+            if (m_ignoreSignaledIPs && IsInNetworks(signaledRTCPSrcIP, m_ignorePublicH239IPs)) {
+                PTRACE(0, "JW RTP will zero ignore public IP");
                 zeroIP = true;
             }
         }
-        if (IsInNetworks(signaledSrcIP, m_keepSignaledIPs)) {
+        if (IsInNetworks(signaledRTCPSrcIP, m_keepSignaledIPs)) {
             PTRACE(7, "JW RTP don't zero due to m_keepSignaledIPs");
             zeroIP = false;
         }
@@ -16556,6 +16565,24 @@ void GetSessionType(const H245_OpenLogicalChannel & olc, RTPSessionTypes & sessi
 bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, callptr & call, const PIPSocket::Address & sourceIP)
 {
 	bool changed = false;
+
+	// save un-rewritten signaled RTCP source IP here, the address is only valid _during_ processing of this OLC
+	{
+        bool isReverseLC_unused = false;
+        H245_H2250LogicalChannelParameters * h225Params = GetLogicalChannelParameters(olc, isReverseLC_unused);
+        H245_UnicastAddress * addr = NULL;
+        if (h225Params && h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaControlChannel)
+            && (addr = GetH245UnicastAddress(h225Params->m_mediaControlChannel)) ) {
+            if (IsCaller()) {
+                m_callerSignaledRTCPSrcIP = H245UnicastToSocketAddr(*addr);
+                PTRACE(7, "JW RTP saving signaled RTCP addr from caller = " << AsString(m_callerSignaledRTCPSrcIP));
+            } else {
+                m_calledSignaledRTCPSrcIP = H245UnicastToSocketAddr(*addr);
+                PTRACE(7, "JW RTP saving signaled RTCP addr from called = " << AsString(m_calledSignaledRTCPSrcIP));
+            }
+        }
+	}
+
 	if (hnat && !UsesH46019())
 		changed = hnat->HandleOpenLogicalChannel(olc, sourceIP);
 
@@ -17897,7 +17924,7 @@ bool NATHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & olca, 
 
 bool NATHandler::SetAddress(H245_UnicastAddress * addr)
 {
-	if (!ChangeAddress(addr)) {
+	if (!ChangeAddress(addr)) { // NOTE the logic: FALSE means the address needs changing
 	    if (!addr) {
 			return false;
 		} else {
@@ -17910,6 +17937,7 @@ bool NATHandler::SetAddress(H245_UnicastAddress * addr)
 		return true;
 }
 
+// NOTE this method returns FALSE if the address needs to be changed
 bool NATHandler::ChangeAddress(H245_UnicastAddress * addr)
 {
 	if (!addr)

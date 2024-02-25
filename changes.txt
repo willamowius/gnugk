@@ -1,6 +1,6 @@
 Changes from 5.12 to 5.13
 =========================
-
+- BUGFIX(ProxyChannel.cxx) check signaled RTCP source IP when doing port detection for H.239
 
 Changes from 5.11 to 5.12
 =========================
