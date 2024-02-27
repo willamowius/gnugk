@@ -1441,7 +1441,9 @@ protected:
     bool m_matchH239SessionsByType;
     list<NetworkAddress> m_matchH239SessionsByIDOnly;   // never match H.239 reverse channels by type on these networks (by source IP)
     PIPSocket::Address m_callerSignaledRTCPSrcIP; // save the last originally signaled RTCP source IP from caller, only valid _during_ OLC processing
+    PIPSocket::Address m_callerSignaledRTPSrcIP; // save the last originally signaled RTP source IP from caller, only valid _during_ OLC processing
     PIPSocket::Address m_calledSignaledRTCPSrcIP; // save the last originally signaled RTCP source IP from called, only valid _during_ OLC processing
+    PIPSocket::Address m_calledSignaledRTPSrcIP; // save the last originally signaled RTP source IP from called, only valid _during_ OLC processing
 };
 
 
@@ -16412,7 +16414,6 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 	}
 	if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel)
 		&& (addr = GetH245UnicastAddress(h225Params->m_mediaChannel))) {
-        // TODO: check if we need to save the un-rewritten signaled IP here, same as for the mediaControlChannel
 
 		if (GetH245Port(*addr) != 0) {
 			lc->SetMediaChannelSource(*addr);
@@ -16423,25 +16424,27 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 				lc->ZeroMediaChannelSource();
 			}
 #endif
-            PIPSocket::Address ip = H245UnicastToSocketAddr(*addr);
+            // use the saved un-rewritten signaled IP here, same as for the mediaControlChannel
+            PIPSocket::Address signaledRTPSrcIP = IsCaller() ? m_callerSignaledRTPSrcIP : m_calledSignaledRTPSrcIP;
+            PTRACE(7, "JW RTCP addr sourceIP=" << AsString(sourceIP) << " signaledRTPSrcIP=" << AsString(signaledRTPSrcIP));
             if (isUnidirectional) {
-                PTRACE(7, "JW RTP zero check 3: rtp src=" << AsString(ip));
-                if (m_ignoreSignaledIPs && IsPrivate(ip) && m_ignoreSignaledPrivateH239IPs) {
+                PTRACE(7, "JW RTP zero check 3: rtp src=" << AsString(signaledRTPSrcIP));
+                if (m_ignoreSignaledIPs && IsPrivate(signaledRTPSrcIP) && m_ignoreSignaledPrivateH239IPs) {
                     zeroIP = true;
                 }
                 if (m_ignoreSignaledIPs && m_ignoreSignaledAllH239IPs) {
                     zeroIP = true;
                 }
-                if (m_ignoreSignaledIPs && IsInNetworks(ip, m_ignorePublicH239IPs)) {
+                if (m_ignoreSignaledIPs && IsInNetworks(signaledRTPSrcIP, m_ignorePublicH239IPs)) {
                     zeroIP = true;
                 }
             }
-            if (IsInNetworks(ip, m_keepSignaledIPs)) {
+            if (IsInNetworks(signaledRTPSrcIP, m_keepSignaledIPs)) {
                 PTRACE(7, "JW RTP don't zero due to m_keepSignaledIPs");
                 zeroIP = false;
             }
             if (IsInNetworks(sourceIP, m_keepSignaledIPsFrom)) {
-                PTRACE(7, "JW RTP don't zero due to m_keepSignaledIPsFrom");
+                PTRACE(7, "JW RTP don't zero due to m_keepSignaledIPsFrom sourceIP=" << AsString(sourceIP));
                 zeroIP = false;
             }
             if (zeroIP) {
@@ -16580,6 +16583,16 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
             } else {
                 m_calledSignaledRTCPSrcIP = H245UnicastToSocketAddr(*addr);
                 PTRACE(7, "JW RTP saving signaled RTCP addr from called = " << AsString(m_calledSignaledRTCPSrcIP));
+            }
+        }
+        if (h225Params && h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel)
+            && (addr = GetH245UnicastAddress(h225Params->m_mediaChannel)) ) {
+            if (IsCaller()) {
+                m_callerSignaledRTPSrcIP = H245UnicastToSocketAddr(*addr);
+                PTRACE(7, "JW RTP saving signaled RTP addr from caller = " << AsString(m_callerSignaledRTPSrcIP));
+            } else {
+                m_calledSignaledRTPSrcIP = H245UnicastToSocketAddr(*addr);
+                PTRACE(7, "JW RTP saving signaled RTP addr from called = " << AsString(m_calledSignaledRTPSrcIP));
             }
         }
 	}
