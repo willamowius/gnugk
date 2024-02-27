@@ -16368,7 +16368,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
         // done by SetAddress() of the H245(Proxy)handler, created with the masquerading IP in SetRemote()
         // we should use the un-rewritten, really signaled IP here
         PIPSocket::Address signaledRTCPSrcIP = IsCaller() ? m_callerSignaledRTCPSrcIP : m_calledSignaledRTCPSrcIP;
-        PTRACE(7, "JW RTCP addr signaled=" << AsString(signaledRTCPSrcIP));
+        PTRACE(7, "JW RTCP addr sourceIP=" << AsString(sourceIP) << " signaledRTCPSrcIP=" << AsString(signaledRTCPSrcIP));
 
 		lc->SetMediaControlChannelSource(*addr, sourceIP, isUnidirectional);
 		*addr << GetMasqAddr() << (lc->GetPort() + 1); // define our local RTCP port to be next to RTP port as recommended in RFC 3550
@@ -16401,7 +16401,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
             zeroIP = false;
         }
         if (IsInNetworks(sourceIP, m_keepSignaledIPsFrom)) {
-            PTRACE(7, "JW RTP don't zero due to m_keepSignaledIPsFrom");
+            PTRACE(7, "JW RTP don't zero due to m_keepSignaledIPsFrom sourceIP=" << AsString(sourceIP));
             zeroIP = false;
         }
         if (zeroIP) {
