@@ -16412,6 +16412,7 @@ bool H245ProxyHandler::OnLogicalChannelParameters(H245_H2250LogicalChannelParame
 	}
 	if (h225Params->HasOptionalField(H245_H2250LogicalChannelParameters::e_mediaChannel)
 		&& (addr = GetH245UnicastAddress(h225Params->m_mediaChannel))) {
+        // TODO: check if we need to save the un-rewritten signaled IP here, same as for the mediaControlChannel
 
 		if (GetH245Port(*addr) != 0) {
 			lc->SetMediaChannelSource(*addr);
