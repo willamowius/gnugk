@@ -3,7 +3,7 @@
  *
  * unit tests for h323util.cxx
  *
- * Copyright (c) 2011-2021, Jan Willamowius
+ * Copyright (c) 2011-2024, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -314,16 +314,24 @@ TEST_F(H323UtilTest, IsInNetwork) {
 	PIPSocket::Address ip1("4.5.6.7");
 	PIPSocket::Address ip2("4.5.7.1");
 	PIPSocket::Address ip3("5.6.7.1");
+	PIPSocket::Address ip4("192.168.86.48");
+	PIPSocket::Address ip5("172.21.221.144");
     NetworkAddress net("4.5.6.0/24");
     NetworkAddress net2("5.6.7.0/24");
+    NetworkAddress net3("172.21.0.0/16");
     list<NetworkAddress> net_list;
     net_list.push_back(net);
     net_list.push_back(net2);
+    list<NetworkAddress> net_list2;
+    net_list2.push_back(net3);
 	EXPECT_TRUE(IsInNetwork(ip1, net));
 	EXPECT_FALSE(IsInNetwork(ip2, net));
+	EXPECT_TRUE(IsInNetwork(ip5, net3));
 	EXPECT_TRUE(IsInNetworks(ip1, net_list));
 	EXPECT_FALSE(IsInNetworks(ip2, net_list));
 	EXPECT_TRUE(IsInNetworks(ip3, net_list));
+	EXPECT_FALSE(IsInNetworks(ip4, net_list2));
+	EXPECT_TRUE(IsInNetworks(ip5, net_list2));
 }
 
 TEST_F(H323UtilTest, IsSetH225) {
