@@ -14265,6 +14265,7 @@ void UDPProxySocket::DoPortDetection(WORD localport, Address fromIP, WORD fromPo
         PTRACE(7, "JW RTP IN on " << localport << " port detection done");
         m_portDetectionDone = true; // stop using RTP packets for port detection, avoid RTP Bleed
     }
+    PTRACE(7, "JW RTP after DoPortDetection on " << localport << ": fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort) << " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 }
 
 // this method handles either RTP, RTCP or T.38 data
