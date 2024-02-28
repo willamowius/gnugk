@@ -13942,6 +13942,25 @@ void UDPProxySocket::SetRTCPDestination(const H245_UnicastAddress & dstAddr, con
             << " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 }
 
+void UDPProxySocket::ZeroRTCPDestination()
+{
+    if (fDestIP != 0 && rDestIP != 0) {
+        fDestIP = 0;
+        fDestPort = 0;
+    } else {
+        rDestIP = 0;
+        rDestPort = 0;
+    }
+
+    Address localaddr;
+    WORD localport = 0;
+    GetLocalAddress(localaddr, localport);
+    UnmapIPv4Address(localaddr);
+    PTRACE(7, "JW RTP after ZeroRTCPDestination on " << localport
+            << " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
+            << " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
+}
+
 void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call, bool onlySetDest, bool onlySetSrc)
 {
 	Address localaddr;
@@ -15693,6 +15712,10 @@ void RTPLogicalChannel::ZeroMediaControlChannelSource()
 {
 	SrcIP = 0;
 	SrcPort = 0;
+    if (rtcp) {
+        PTRACE(7, "JW RTP zero RTCP port from OLC");
+        rtcp->ZeroRTCPDestination();
+    }
 }
 
 void RTPLogicalChannel::SetMediaChannelSource(const H245_UnicastAddress & addr)
