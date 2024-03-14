@@ -35,7 +35,7 @@ cd ~
 git clone https://github.com/willamowius/h323plus.git
 cd h323plus
 export OPENH323DIR=~/h323plus
-./configure --enable-h235 -enable-h46017 --enable-h46026
+./configure --enable-h235 --enable-h46017 --enable-h46026
 make optnoshared
 </verb>
 
@@ -48,8 +48,8 @@ cd gnugk
 make optnoshared
 </verb>
 
-Once the compile is finished, the binary can be found as
-<verb>~/gnugk/obj_linux_x86_64_s/gnugk</verb> (assuming you use a 64bit system).
+Once the compile is finished, the binary can be found as (on a 64bit Linux system)
+<verb>~/gnugk/obj_linux_x86_64_s/gnugk</verb>
 
 In order to stay up-to-date, run the following:
 
