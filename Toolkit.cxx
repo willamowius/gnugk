@@ -2,7 +2,7 @@
 //
 // Toolkit base class for the GnuGk
 //
-// Copyright (c) 2000-2023, Jan Willamowius
+// Copyright (c) 2000-2024, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -3811,7 +3811,7 @@ void Toolkit::SetGKHome(const PStringArray & home)
 			}
 		}
 		// remove INADDR_ANY
-		for (size_t n = 0; n < m_GKHome.size(); ++n) {
+		for (int n = 0; n < (int)m_GKHome.size(); ++n) {
 			if ((m_GKHome[n] == INADDR_ANY)
 #ifdef hasIPV6
 				|| m_GKHome[n].IsLinkLocal()
@@ -3824,7 +3824,7 @@ void Toolkit::SetGKHome(const PStringArray & home)
 		}
 		// if IPv6 is not enabled, remove _all_ IPv6 addresses
 		if (!IsIPv6Enabled()) {
-			for (size_t n = 0; n < m_GKHome.size(); ++n) {
+			for (int n = 0; n < (int)m_GKHome.size(); ++n) {
 				if (m_GKHome[n].GetVersion() == 6) {
 					m_GKHome.erase(m_GKHome.begin() + n);
 					--n;	// re-test the new element on position n
