@@ -198,9 +198,9 @@ will automatically detect the interfaces of your host, so this setting is not
 usually required, but is available if automatic detection fails. 
 If you are using GnuGk behind a NAT box then you should use the ExternalIP
 setting (described below) which will automatically configure GnuGk to operate as if it was
-on the NAT box.  The ExternalIP setting will take precedence and will override this value.
+on the NAT box. The ExternalIP setting will take precedence and will override this value.
 
-<bf/NOTE:/ If this setting is changed, you must restart the gatekeeper.  A reload from the status port
+<bf/NOTE:/ If this setting is changed, you must restart the gatekeeper. A reload from the status port
 will not cause this value to be re-read.
 
 <item><tt/Bind=192.168.1.1/<newline>
@@ -553,7 +553,7 @@ Same with "GooglePublicIP", "AzurePublicIP" and "AlibabaPublicIP" for Google Clo
 
 If you set this switch to "STUN", GnuGk will try to detect the public IP using a STUN server.
 Use this for deployments in the Oracle Cloud or other cloud environments that don't provice
-the external IP in the metadata. use the STUNServer= switch to set the STUN server to use.
+the external IP in the metadata. The STUNServer= switch configures which STUN server to use.
 
 <item><tt/ExternalIsDynamic=1/<newline>
 Default: <tt/0/<newline>
