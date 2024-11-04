@@ -841,11 +841,15 @@ int Toolkit::ProxyCriterion::SelectRoutingMode(const Address & ip1, const Addres
 		} else {
 			// on different networks, use maximum proxying
 			iter = m_modeselection.find(bestMatchIP1);
-			int mode1 = iter->second.fromExternal;	// no check, must exist
-			iter = m_modeselection.find(bestMatchIP2);
-			int mode2 = iter->second.fromExternal;	// no check, must exist
-			mode = max(mode1, mode2);
-			PTRACE(5, "ModeSelection: Both IPs on different networks: mode1=" << mode1 << " mode2=" << mode2 << " => " << mode);
+			if (iter != m_modeselection.end()) { // must exist
+				int mode1 = iter->second.fromExternal;
+				iter = m_modeselection.find(bestMatchIP2);
+				if (iter != m_modeselection.end()) { // must exist
+					int mode2 = iter->second.fromExternal;
+					mode = max(mode1, mode2);
+					PTRACE(5, "ModeSelection: Both IPs on different networks: mode1=" << mode1 << " mode2=" << mode2 << " => " << mode);
+				}
+			}
 		}
 	} else {
 		// only one rule, use that
