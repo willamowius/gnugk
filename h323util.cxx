@@ -2,7 +2,7 @@
 //
 // H.323 utility functions
 //
-// Copyright (c) 2000-2023, Jan Willamowius
+// Copyright (c) 2000-2024, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -958,8 +958,8 @@ PString RewriteString(
 			PTRACE(1, "GK\tInvalid rewrite rule (dots do not match) - " << prefix << " = " << value);
 			break;
 		}
-		int dotDstOffset = (long)lastDstDot - (long)value;
-		int dotSrcOffset = (long)lastSrcDot - (long)prefix;
+		int dotDstOffset = long(lastDstDot - value);
+		int dotSrcOffset = long(lastSrcDot - prefix);
 		while (*lastDstDot++ == '.' && *lastSrcDot++ == '.') {
 			if (postdialmatch) {
 				postdialdigits += s[dotSrcOffset++];

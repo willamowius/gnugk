@@ -1,5 +1,6 @@
 Changes from 5.13 to 5.14
 =========================
+- BUGFIX(h323utils.cxx) fix numeric overflow
 - BUGFIX(Toolkit.cxx) fix iterator usage (found by Coverity)
 
 Changes from 5.12 to 5.13
