@@ -509,7 +509,7 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddr
 
 		WSABUF wsabuf;
 		wsabuf.buf = (CHAR *)data;
-		wsabuf.len = len;
+		wsabuf.len = (ULONG)len;
 
 		WSAMSG msg;
 		memset(&msg, 0, sizeof(msg));
@@ -519,7 +519,7 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddr
 	if (toIP.GetVersion() == 6)
 		addr_len = sizeof(sockaddr_in6);
 #endif  // hasIPV6
-		msg.namelen = addr_len;
+		msg.namelen = (INT)addr_len;
 		msg.lpBuffers = &wsabuf;
 		msg.dwBufferCount = 1;
 
