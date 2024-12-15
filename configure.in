@@ -1,14 +1,14 @@
-AC_INIT(gk.h)
+AC_INIT
+AC_CONFIG_SRCDIR([gk.h])
 
 AC_PROG_CXX
 
 dnl ########################################################################
 dnl Check if recv call supports MSG_NOSIGNAL flag
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <sys/types.h>
 #include <sys/socket.h>
-],
-[recv(0,NULL,1,MSG_NOSIGNAL);], HAS_MSG_NOSIGNAL=1, HAS_MSG_NOSIGNAL=0)
+]], [[recv(0,NULL,1,MSG_NOSIGNAL);]])],[HAS_MSG_NOSIGNAL=1],[HAS_MSG_NOSIGNAL=0])
 if test "$HAS_MSG_NOSIGNAL" = 0 ; then
   AC_MSG_RESULT(MSG_NOSIGNAL not supported by recv() call)
 else
@@ -424,8 +424,7 @@ AC_ARG_WITH(mysql-include-dir,
 
 AC_ARG_WITH(mysql-dir,
 [  --with-mysql-dir=DIR          base directory where MySQL is installed ],
-[ mysql_include_dir="$withval/include/mysql"
-]
+[ mysql_include_dir="$withval/include/mysql" ]
 )
 
 if test "x${mysql}" != "xno"; then
@@ -434,10 +433,7 @@ if test "x${mysql}" != "xno"; then
 
 	AC_MSG_CHECKING([for mysql.h])
 
-	AC_TRY_COMPILE([#include <mysql.h>], [int a = 1;],
-		MYSQL_INCLUDE=" ",
-		MYSQL_INCLUDE=
-	)
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <mysql.h>]], [[int a = 1;]])],[MYSQL_INCLUDE=" "],[MYSQL_INCLUDE=])
 
 	if test "x$MYSQL_INCLUDE" = "x"; then
 		old_CFLAGS="$CFLAGS"
@@ -445,10 +441,8 @@ if test "x${mysql}" != "xno"; then
 		for try in /usr/include/mysql /usr/local/include/mysql /usr/local/mysql/include/mysql $mysql_include_dir/mysql; do
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
-				AC_TRY_COMPILE([#include <mysql.h>], [int a = 1;],
-					MYSQL_INCLUDE="-I$try",
-					MYSQL_INCLUDE=
-				)
+				AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <mysql.h>]], [[int a = 1;]])],[MYSQL_INCLUDE="-I$try"],[MYSQL_INCLUDE=
+				])
 				if test "x$MYSQL_INCLUDE" != "x"; then
 					break;
 				fi
@@ -507,18 +501,14 @@ AC_ARG_WITH(pgsql-include-dir,
 
 AC_ARG_WITH(pgsql-dir,
 [  --with-pgsql-dir=DIR          base directory where PostgreSQL is installed ],
-[ pgsql_include_dir="$withval/include"
-]
+[ pgsql_include_dir="$withval/include" ]
 )
 
 if test "x${pgsql}" != "xno"; then
 
 	AC_MSG_CHECKING([for libpq-fe.h])
 
-	AC_TRY_COMPILE([#include <libpq-fe.h>], [int a = 1;],
-		PGSQL_INCLUDE=" ",
-		PGSQL_INCLUDE=
-	)
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <libpq-fe.h>]], [[int a = 1;]])],[PGSQL_INCLUDE=" "],[PGSQL_INCLUDE=])
 
 	if test "x$PGSQL_INCLUDE" = "x"; then
 		old_CFLAGS="$CFLAGS"
@@ -526,10 +516,8 @@ if test "x${pgsql}" != "xno"; then
 		for try in /usr/include/postgresql /usr/include/pgsql /usr/local/include /usr/local/include/pgsql /usr/local/pgsql/include $pgsql_include_dir; do
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
-				AC_TRY_COMPILE([#include <libpq-fe.h>], [int a = 1;],
-					PGSQL_INCLUDE="-I$try",
-					PGSQL_INCLUDE=
-				)
+				AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <libpq-fe.h>]], [[int a = 1;]])],[PGSQL_INCLUDE="-I$try"],[PGSQL_INCLUDE=
+				])
 				if test "x$PGSQL_INCLUDE" != "x"; then
 					break;
 				fi
@@ -586,18 +574,14 @@ AC_ARG_WITH(firebird-include-dir,
 
 AC_ARG_WITH(firebird-dir,
 [  --with-firebird-dir=DIR          base directory where Firebird is installed ],
-[ firebird_include_dir="$withval/include"
-]
+[ firebird_include_dir="$withval/include" ]
 )
 
 if test "x${firebird}" != "xno"; then
 
 	AC_MSG_CHECKING([for ibase.h])
 
-	AC_TRY_COMPILE([#include <ibase.h>], [int a = 1;],
-		FIREBIRD_INCLUDE=" ",
-		FIREBIRD_INCLUDE=
-	)
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <ibase.h>]], [[int a = 1;]])],[FIREBIRD_INCLUDE=" "],[FIREBIRD_INCLUDE=])
 
 	if test "x$FIREBIRD_INCLUDE" = "x"; then
 		old_CFLAGS="$CFLAGS"
@@ -605,10 +589,8 @@ if test "x${firebird}" != "xno"; then
 		for try in /usr/include/firebird /usr/local/include /usr/local/include/firebird /usr/local/firebird/include $firebird_include_dir; do
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
-				AC_TRY_COMPILE([#include <ibase.h>], [int a = 1;],
-					FIREBIRD_INCLUDE="-I$try",
-					FIREBIRD_INCLUDE=
-				)
+				AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <ibase.h>]], [[int a = 1;]])],[FIREBIRD_INCLUDE="-I$try"],[FIREBIRD_INCLUDE=
+				])
 				if test "x$FIREBIRD_INCLUDE" != "x"; then
 					break;
 				fi
@@ -672,18 +654,14 @@ AC_ARG_WITH(unixodbc-include-dir,
 AC_ARG_WITH(unixodbc-dir,
 [  --with-unixodbc-dir=DIR          base directory where unixODBC is installed ],
 [ unixodbc_lib_dir="$withval/lib"
-  unixodbc_include_dir="$withval/include"
-]
+  unixodbc_include_dir="$withval/include" ]
 )
 
 if test "x${unixodbc}" != "xno"; then
 
 	AC_MSG_CHECKING([for sqlext.h])
 
-	AC_TRY_COMPILE([#include <sqlext.h>], [int a = 1;],
-		UNIXODBC_INCLUDE=" ",
-		UNIXODBC_INCLUDE=
-	)
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sqlext.h>]], [[int a = 1;]])],[UNIXODBC_INCLUDE=" "],[UNIXODBC_INCLUDE=])
 
 	if test "x$UNIXODBC_INCLUDE" = "x"; then
 		old_CFLAGS="$CFLAGS"
@@ -691,10 +669,8 @@ if test "x${unixodbc}" != "xno"; then
 		for try in /usr/include/unixodbc /usr/local/include /usr/local/include/unixodbc /usr/local/unixodbc/include $unixodbc_include_dir; do
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
-				AC_TRY_COMPILE([#include <sqlext.h>], [int a = 1;],
-					UNIXODBC_INCLUDE="-I$try",
-					UNIXODBC_INCLUDE=
-				)
+				AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sqlext.h>]], [[int a = 1;]])],[UNIXODBC_INCLUDE="-I$try"],[UNIXODBC_INCLUDE=
+				])
 				if test "x$UNIXODBC_INCLUDE" != "x"; then
 					break;
 				fi
@@ -753,18 +729,14 @@ AC_ARG_WITH(sqlite-include-dir,
 
 AC_ARG_WITH(sqlite-dir,
 [  --with-sqlite-dir=DIR          base directory where SQLite is installed ],
-[ sqlite_include_dir="$withval/include"
-]
+[ sqlite_include_dir="$withval/include" ]
 )
 
 if test "x${sqlite}" != "xno"; then
 
 	AC_MSG_CHECKING([for sqlite3.h])
 
-	AC_TRY_COMPILE([#include <sqlite3.h>], [int a = 1;],
-		SQLITE_INCLUDE=" ",
-		SQLITE_INCLUDE=
-	)
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sqlite3.h>]], [[int a = 1;]])],[SQLITE_INCLUDE=" "],[SQLITE_INCLUDE=])
 
 	if test "x$SQLITE_INCLUDE" = "x"; then
 		old_CFLAGS="$CFLAGS"
@@ -772,10 +744,8 @@ if test "x${sqlite}" != "xno"; then
 		for try in /usr/include/sqlite /usr/local/include /usr/local/include/sqlite $sqlite_include_dir; do
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
-				AC_TRY_COMPILE([#include <sqlite3.h>], [int a = 1;],
-					SQLITE_INCLUDE="-I$try",
-					SQLITE_INCLUDE=
-				)
+				AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sqlite3.h>]], [[int a = 1;]])],[SQLITE_INCLUDE="-I$try"],[SQLITE_INCLUDE=
+				])
 				if test "x$SQLITE_INCLUDE" != "x"; then
 					break;
 				fi
@@ -834,18 +804,14 @@ AC_ARG_WITH(redis-include-dir,
 
 AC_ARG_WITH(redis-dir,
 [  --with-redis-dir=DIR           base directory where redis is installed ],
-[ redis_include_dir="$withval/include"
-]
+[ redis_include_dir="$withval/include" ]
 )
 
 if test "x${redis}" != "xno"; then
 
 	AC_MSG_CHECKING([for hiredis.h])
 
-	AC_TRY_COMPILE([#include <hiredis.h>], [int a = 1;],
-		REDIS_INCLUDE=" ",
-		REDIS_INCLUDE=
-	)
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <hiredis.h>]], [[int a = 1;]])],[REDIS_INCLUDE=" "],[REDIS_INCLUDE=])
 
 	if test "x$REDIS_INCLUDE" = "x"; then
 		old_CFLAGS="$CFLAGS"
@@ -853,10 +819,8 @@ if test "x${redis}" != "xno"; then
 		for try in /usr/include/hiredis /usr/local/include /usr/local/include/hiredis $redis_include_dir; do
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
-				AC_TRY_COMPILE([#include <hiredis.h>], [int a = 1;],
-					REDIS_INCLUDE="-I$try",
-					REDIS_INCLUDE=
-				)
+				AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <hiredis.h>]], [[int a = 1;]])],[REDIS_INCLUDE="-I$try"],[REDIS_INCLUDE=
+				])
 				if test "x$REDIS_INCLUDE" != "x"; then
 					break;
 				fi
@@ -916,18 +880,14 @@ AC_ARG_WITH(oracle-include-dir,
 
 AC_ARG_WITH(oracle-dir,
 [  --with-oracle-dir=DIR          base directory where oracle is installed ],
-[ oracle_include_dir="$withval/include"
-]
+[ oracle_include_dir="$withval/include" ]
 )
 
 if test "x${oracle}" != "xno"; then
 
 	AC_MSG_CHECKING([for Oracle ODPI-C header (dpi.h)])
 
-	AC_TRY_COMPILE([#include <dpi.h>], [int a = 1;],
-		ORACLE_INCLUDE=" ",
-		ORACLE_INCLUDE=
-	)
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <dpi.h>]], [[int a = 1;]])],[ORACLE_INCLUDE=" "],[ORACLE_INCLUDE=])
 
 	if test "x$ORACLE_INCLUDE" = "x"; then
 		old_CFLAGS="$CFLAGS"
@@ -935,10 +895,8 @@ if test "x${oracle}" != "xno"; then
 		for try in /usr/local/include/ $oracle_include_dir; do
 			if test -d $try; then
 				CFLAGS="$old_CFLAGS -I$try"
-				AC_TRY_COMPILE([#include <dpi.h>], [int a = 1;],
-					ORACLE_INCLUDE="-I$try",
-					ORACLE_INCLUDE=
-				)
+				AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <dpi.h>]], [[int a = 1;]])],[ORACLE_INCLUDE="-I$try"],[ORACLE_INCLUDE=
+				])
 				if test "x$ORACLE_INCLUDE" != "x"; then
 					break;
 				fi
@@ -965,14 +923,11 @@ if test "x${oracle}" != "xno"; then
 				CFLAGS="$old_CFLAGS $ORACLE_INCLUDE"
 				LIBS="$old_LIBS -lodpic"
 				LDFLAGS="$old_LDFLAGS -L$try"
-				AC_TRY_LINK([#include <stddef.h>
-							#include <dpi.h>],
-					[dpiContext *gContext; dpiErrorInfo errorInfo; dpiContext_createWithParams(DPI_MAJOR_VERSION, DPI_MINOR_VERSION, NULL, &gContext, &errorInfo);],
-					[ ORACLE_LIBS="-lodpic"
+				AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <stddef.h>
+							#include <dpi.h>]], [[dpiContext *gContext; dpiErrorInfo errorInfo; dpiContext_createWithParams(DPI_MAJOR_VERSION, DPI_MINOR_VERSION, NULL, &gContext, &errorInfo);]])],[ ORACLE_LIBS="-lodpic"
 					  ORACLE_LDFLAGS="-L$try"
-					],
-					ORACLE_LDFLAGS=
-				)
+					],[ORACLE_LDFLAGS=
+				])
 				if test "x$ORACLE_LDFLAGS" != "x"; then
 					break;
 				fi
@@ -1052,8 +1007,7 @@ AC_ARG_WITH(libssh-lib-dir,
 AC_ARG_WITH(libssh-dir,
 [  --with-libssh-dir=DIR          base directory where libssh is installed ],
 [ libssh_lib_dir="$withval/lib"
-  libssh_include_dir="$withval/include"
-]
+  libssh_include_dir="$withval/include" ]
 )
 
 if test "x${libssh}" != "xno"; then
@@ -1065,10 +1019,7 @@ if test "x${libssh}" != "xno"; then
 	for try in /usr/include /usr/local/include $libssh_include_dir; do
 		if test -d $try; then
 			CFLAGS="$old_CFLAGS -I$try"
-			AC_TRY_COMPILE([#include <libssh/libssh.h>], [int a = 1;],
-				LIBSSH_INCLUDE="-I$try",
-				LIBSSH_INCLUDE=
-			)
+			AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <libssh/libssh.h>]], [[int a = 1;]])],[LIBSSH_INCLUDE="-I$try"],[LIBSSH_INCLUDE=])
 		fi
 	done
 	CFLAGS="$old_CFLAGS"
@@ -1092,11 +1043,10 @@ if test "x${libssh}" != "xno"; then
 				if test `uname` != "OpenBSD"; then
 					LIBS="$LIBS -lrt"
 				fi
-				AC_TRY_LINK([extern int ssh_handle_key_exchange(); extern int ssh_blocking_flush();], [ssh_handle_key_exchange(); ssh_blocking_flush();],
-					[ LIBSSH_LIBS="-lssh -lcrypto -lz $GSSAPI_LIBS"
+				AC_LINK_IFELSE([AC_LANG_PROGRAM([[extern int ssh_handle_key_exchange(); extern int ssh_blocking_flush();]], [[ssh_handle_key_exchange(); ssh_blocking_flush();]])],[ LIBSSH_LIBS="-lssh -lcrypto -lz $GSSAPI_LIBS"
 					  LIBSSH_LDFLAGS="-L$try"
-					]
-				)
+					
+				],[])
 				if test "x$LIBSSH_LDFLAGS" != "x"; then
 					break;
 				fi
@@ -1164,8 +1114,7 @@ AC_ARG_WITH(netsnmp-lib-dir,
 AC_ARG_WITH(netsnmp-dir,
 [  --with-netsnmp-dir=DIR         base directory where Net-SNMP is installed ],
 [ netsnmp_lib_dir="$withval/lib"
-  netsnmp_include_dir="$withval/include"
-]
+  netsnmp_include_dir="$withval/include" ]
 )
 
 if test "x${netsnmp}" != "xno"; then
@@ -1179,10 +1128,7 @@ if test "x${netsnmp}" != "xno"; then
 		if test -d $try; then
 			CFLAGS="$old_CFLAGS -I$try"
 			LDFLAGS="$old_LDFLAGS -L$try/../lib"
-			AC_TRY_COMPILE([#include <net-snmp/net-snmp-config.h>], [int a = 1;],
-				NETSNMP_INCLUDE="-I$try",
-				NETSNMP_INCLUDE=
-			)
+			AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <net-snmp/net-snmp-config.h>]], [[int a = 1;]])],[NETSNMP_INCLUDE="-I$try"],[NETSNMP_INCLUDE=])
 		fi
 	done
 	CFLAGS="$old_CFLAGS"
@@ -1206,11 +1152,10 @@ if test "x${netsnmp}" != "xno"; then
 		for try in /usr/lib /usr/local/lib $netsnmp_lib_dir; do
 			if test -d $try; then
 				LIBS="$old_LIBS $baseLIBS $externalLIBS $agentLIBS"
-				AC_TRY_LINK([extern netsnmp_enable_subagent();], [netsnmp_enable_subagent();],
-					[ NETSNMP_LIBS="$baseLIBS $externalLIBS $agentLIBS"
+				AC_LINK_IFELSE([AC_LANG_PROGRAM([[extern netsnmp_enable_subagent();]], [[netsnmp_enable_subagent();]])],[ NETSNMP_LIBS="$baseLIBS $externalLIBS $agentLIBS"
 					  NETSNMP_LDFLAGS="-L$try"
-					]
-				)
+					
+				],[])
 				if test "x$NETSNMP_LDFLAGS" != "x"; then
 					break;
 				fi
@@ -1310,8 +1255,7 @@ AC_ARG_WITH(lua-lib-dir,
 AC_ARG_WITH(lua-dir,
 [  --with-lua-dir=DIR             base directory where LUA is installed ],
 [ lua_lib_dir="$withval/lib"
-  lua_include_dir="$withval/include"
-]
+  lua_include_dir="$withval/include" ]
 )
 
 if test "x${lua}" != "xno"; then
@@ -1325,18 +1269,16 @@ if test "x${lua}" != "xno"; then
 		if test -d $try; then
 			CFLAGS="$old_CFLAGS -I$try"
 			LDFLAGS="$old_LDFLAGS -L$try/../lib"
-			AC_TRY_COMPILE([
+			AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 				#include "lua.h"
 				#include "lualib.h"
 				#include "lauxlib.h"
-				], [
+				]], [[
 				static const luaL_Reg mylib[] = { {NULL, NULL} };
 				lua_State * m_lua = luaL_newstate();
 				luaL_newlib(m_lua, mylib);
-				],
-				LUA_INCLUDE="-I$try",
-				LUA_INCLUDE=
-			)
+				]])],[LUA_INCLUDE="-I$try"],[LUA_INCLUDE=
+			])
 			if test "x$LUA_INCLUDE" != "x"; then
 				break;
 			fi
@@ -1363,20 +1305,18 @@ if test "x${lua}" != "xno"; then
 				CFLAGS="$old_CFLAGS $LUA_INCLUDE"
 				LIBS="$old_LIBS -llua -lm"
 				LDFLAGS="$old_LDFLAGS -L$try"
-				AC_TRY_LINK([
+				AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 					#include "lua.h"
 					#include "lualib.h"
 					#include "lauxlib.h"
-					], [
+					]], [[
 					static const luaL_Reg mylib[] = { {NULL, NULL} };
 					lua_State * m_lua = luaL_newstate();
 					luaL_newlib(m_lua, mylib);
-					],
-					[ LUA_LIBS="-llua -lm"
+					]])],[ LUA_LIBS="-llua -lm"
 					  LUA_LDFLAGS="-L$try"
-					],
-					LUA_LDFLAGS=
-				)
+					],[LUA_LDFLAGS=
+				])
 				if test "x$LUA_LDFLAGS" != "x"; then
 					break;
 				fi
@@ -1655,5 +1595,6 @@ dnl Output configured files
 
 AC_CONFIG_HEADERS(gnugkbuildopts.h)
 
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT
 
