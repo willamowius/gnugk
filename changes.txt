@@ -1,6 +1,6 @@
 Changes from 5.13 to 5.14
 =========================
-- BUGFIX(Makefile.in) restore compatibility with GCC 4
+- BUGFIX(Makefile.in) restore compatibility with GCC 4, 5 and 6
 - BUGFIX(Toolkit.cxx) restore compatibility with very old versions of OpenSSL
 - BUGFIX(h323utils.cxx) fix numeric overflow
 - BUGFIX(Toolkit.cxx) fix iterator usage (found by Coverity)

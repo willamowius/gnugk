@@ -157,12 +157,15 @@ ifeq "$(GCCMAJORGTEQ4)" "1"
 	# https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++
 	STDCCFLAGS += -D_GLIBCXX_ASSERTIONS -fno-delete-null-pointer-checks -fno-strict-overflow -fno-strict-aliasing
 	ifeq "$(GCCMAJORGT4)" "1"
-		STDCCFLAGS += -fstack-clash-protection -fstack-protector-strong -Wtrampolines
+		STDCCFLAGS += -Wtrampolines
+	endif
+	ifeq "$(GCCMAJORGT7)" "1"
+		STDCCFLAGS += -fstack-clash-protection -fstack-protector-strong
+		ifeq ($(MACHTYPE),x86_64)
+			STDCCFLAGS += -fcf-protection=full
+		endif
 	endif
 	LDFLAGS += -Wl,-z,nodlopen -Wl,-z,noexecstack
-	ifeq ($(MACHTYPE),x86_64)
-		STDCCFLAGS += -fcf-protection=full
-	endif
 endif # gcc >= 4.x.x
 endif # linux
 
