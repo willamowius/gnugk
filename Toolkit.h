@@ -2,7 +2,7 @@
 //
 // Toolkit class for the GnuGk
 //
-// Copyright (c) 2000-2017, Jan Willamowius
+// Copyright (c) 2000-2024, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -61,6 +61,9 @@ public:
 	NetworkAddress(
 		const PString & str /// an address in a form A.B.C.D, A.B.C.D/24 or A.B.C.D/255.255.255.0 or IPv6 format
 		);
+
+    /// @return IP version (4 or 6)
+    unsigned GetVersion() const { return m_address.GetVersion(); }
 
 	/// @return	Length of the network mask (number of significant bits)
 	unsigned GetNetmaskLen() const;
