@@ -757,10 +757,12 @@ bool IsPrivate(const PIPSocket::Address & ip)
         if (ip.IsLinkLocal())
             result = true;
         // check for 'site local' (fec0::/10, outdated); IsSiteLocal() is not available in PTLib 2.10.x
-        if ((ip[0] == 0xFE) && ((ip[1] & 0xC0) == 0xC0))
+        NetworkAddress siteLocal("fec0::/10");
+        if (IsInNetwork(ip, siteLocal))
             result = true;
         // check for 'unique local' (RFC 4193 - fc00::/7)
-        if ((ip[0] & 0xFC) == 0xFC)
+        NetworkAddress uniqueLocal("fc00::/7");
+        if (IsInNetwork(ip, uniqueLocal))
             result = true;
     }
 #endif
