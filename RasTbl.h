@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2022, Jan Willamowius
+// Copyright (c) 2000-2025, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1472,7 +1472,7 @@ public:
 	void RemoveDynamicPort(const DynamicPort & port);
 
     bool HasNewSetupInternalAliases() const { return (m_newSetupInternalAliases != NULL); }
-    void SetNewSetupInternalAliases(H225_ArrayOf_AliasAddress newSetupInternalAliases) { m_newSetupInternalAliases = new H225_ArrayOf_AliasAddress(newSetupInternalAliases); }
+    void SetNewSetupInternalAliases(H225_ArrayOf_AliasAddress newSetupInternalAliases) { delete m_newSetupInternalAliases; m_newSetupInternalAliases = new H225_ArrayOf_AliasAddress(newSetupInternalAliases); }
     H225_ArrayOf_AliasAddress * GetNewSetupInternalAliases() const { return m_newSetupInternalAliases; }
 
 #ifdef HAS_H46018
