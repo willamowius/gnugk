@@ -278,7 +278,7 @@ protected:
     // Print a list of all filters in the specified vector
     void PrintFilters(
 	// filter vector
-	std::vector<PString> & regexFilters
+	const std::vector<PString> & regexFilters
 	);
 
     // Checks whether the given string is to be include
@@ -2360,7 +2360,7 @@ bool StatusClient::IsIncludeMessage(
 
 void StatusClient::PrintFilters(
     // filter vector
-    std::vector<PString> & regexFilters
+    const std::vector<PString> & regexFilters
     )
 {
 	PString msg;

@@ -481,7 +481,7 @@ bool IsOldH263(const H245_DataType & type)
 // the method is highly OS specific
 
 #if _WIN32 || _WIN64
-ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddress & toAddress, PIPSocket::Address * gkIP)
+ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddress & toAddress, const PIPSocket::Address * gkIP)
 {
 #ifdef hasIPV6
 	struct sockaddr_in6 dest;
@@ -588,7 +588,7 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddr
 
 #else // Unix
 
-ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddress & toAddress, PIPSocket::Address * gkIP)
+ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddress & toAddress, const PIPSocket::Address * gkIP)
 {
 #ifdef hasIPV6
 	struct sockaddr_in6 dest;
@@ -725,7 +725,7 @@ ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddr
 }
 #endif
 
-ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const PIPSocket::Address & ip, WORD port, PIPSocket::Address * gkIP)
+ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const PIPSocket::Address & ip, WORD port, const PIPSocket::Address * gkIP)
 {
 	const IPAndPortAddress to(ip, port);
 	return UDPSendWithSourceIP(fd, data, len, to, gkIP);
@@ -1018,7 +1018,7 @@ public:
 #ifdef HAS_H46018
 	void SendH46018Indication();
 #endif
-	void SendTCS(H245_TerminalCapabilitySet * tcs, unsigned seq);
+	void SendTCS(const H245_TerminalCapabilitySet * tcs, unsigned seq);
 	void SendH245KeepAlive();
 	bool Send(const H245_MultimediaSystemControlMessage & h245msg);
 	bool Send(const PASN_OctetString & h245msg);
@@ -12024,7 +12024,7 @@ void H245Socket::SendH46018Indication()
 }
 #endif
 
-void H245Socket::SendTCS(H245_TerminalCapabilitySet * tcs, unsigned seq)
+void H245Socket::SendTCS(const H245_TerminalCapabilitySet * tcs, unsigned seq)
 {
 	if (!IsConnected()) {
 		return;
@@ -12429,7 +12429,7 @@ ProxySocket::Result MultiplexedH245Socket::ReceiveData()
 
 namespace { // anonymous namespace
 
-inline bool compare_lc(pair<const WORD, RTPLogicalChannel *> p, LogicalChannel * lc)
+inline bool compare_lc(pair<const WORD, RTPLogicalChannel *> p, const LogicalChannel * lc)
 {
 	return p.second == lc;
 }

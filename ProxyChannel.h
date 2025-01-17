@@ -4,7 +4,7 @@
 // ProxyChannel.h
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2002-2023, Jan Willamowius
+// Copyright (c) 2002-2025, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -72,8 +72,8 @@ const WORD DEFAULT_PACKET_BUFFER_SIZE = 2048;
 
 void PrintQ931(int, const char *, const char *, const Q931 *, const H225_H323_UserInformation *);
 
-ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddress & toAddress, PIPSocket::Address * gkIP);
-ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const PIPSocket::Address & ip, WORD port, PIPSocket::Address * gkIP);
+ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const IPAndPortAddress & toAddress, const PIPSocket::Address * gkIP);
+ssize_t UDPSendWithSourceIP(int fd, void * data, size_t len, const PIPSocket::Address & ip, WORD port, const PIPSocket::Address * gkIP);
 
 
 class ProxySocket : public USocket {
@@ -432,11 +432,11 @@ public:
 #endif
 	H245Socket * GetH245Socket() const { return m_h245socket; }
 	void SetH245Socket(H245Socket * sock) { m_h245socket = sock; }
-	bool CompareH245Socket(H245Socket * sock) const { return sock == m_h245socket; }	// intentionally comparing pointers
+	bool CompareH245Socket(const H245Socket * sock) const { return sock == m_h245socket; }	// intentionally comparing pointers
 
 protected:
 	void SetRemote(CallSignalSocket *);
-	bool CreateRemote(H225_Setup_UUIE &setupBody);
+	bool CreateRemote(H225_Setup_UUIE & setupBody);
 
 public:
 #ifdef HAS_H46017
