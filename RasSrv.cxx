@@ -2,7 +2,7 @@
 //
 // RAS Server for GNU Gatekeeper
 //
-// Copyright (c) 2000-2023, Jan Willamowius
+// Copyright (c) 2000-2025, Jan Willamowius
 // Copyright (c) Citron Network Inc. 2001-2003
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
@@ -4690,7 +4690,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 				    }
 					log = "LCF|" + m_msg->m_peerAddr.AsString()
 							+ "|" + (WantedEndPoint ? WantedEndPoint->GetEndpointIdentifier().GetValue() : AsDotString(route.m_destAddr))
-							+ "|" + AsString(request.m_destinationInfo),
+							+ "|" + AsString(request.m_destinationInfo)
 							+ "|" + sourceInfoString
 							+ ";";
 				}
