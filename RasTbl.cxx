@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2023, Jan Willamowius
+// Copyright (c) 2000-2025, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -6305,7 +6305,7 @@ CallLoopTable::~CallLoopTable()
 	std::map<PString, RequestData>::iterator iter = m_knownCalls.begin();
 	while (iter !=  m_knownCalls.end()) {
         delete (*iter).second.m_cachedLCF;
-        iter++;
+        ++iter;
 	}
     m_knownCalls.clear();
 }

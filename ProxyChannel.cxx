@@ -3,7 +3,7 @@
 // ProxyChannel.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2002
-// Copyright (c) 2002-2024, Jan Willamowius
+// Copyright (c) 2002-2025, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -3393,7 +3393,6 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 			changed = HandleH235TCS(tcs);
 		}
 #endif
-        H245_ArrayOf_CapabilityTableEntry & CapabilityTables = tcs.m_capabilityTable;
 
 		// codec filtering
 		if (m_call && m_call->GetCallingParty()) {
@@ -3405,6 +3404,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
             m_call->AddDisabledCodecs(m_call->GetCalledParty()->GetDisabledCodecs());
 		}
         if (m_call && !(m_call->GetDisabledCodecs().IsEmpty())) {
+            H245_ArrayOf_CapabilityTableEntry & CapabilityTables = tcs.m_capabilityTable;
             std::set<unsigned> removedCaps;
 
             // filter capability classes

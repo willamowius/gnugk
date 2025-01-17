@@ -3,7 +3,7 @@
 // GkClient.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2002-2023, Jan Willamowius
+// Copyright (c) 2002-2025, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -2152,8 +2152,8 @@ bool GkClient::SendLRQ(Routing::LocationRequest & lrq_obj)
 			lrq_obj.AddRoute(Route("parent", lcf.m_callSignalAddress));
 			RasMsg *oras = lrq_obj.GetWrapper();
 			(*oras)->m_replyRAS.SetTag(H225_RasMessage::e_locationConfirm);
-			H225_LocationConfirm & nlcf = (*oras)->m_replyRAS;
 			if (lcf.HasOptionalField(H225_LocationConfirm::e_cryptoTokens)) {
+                H225_LocationConfirm & nlcf = (*oras)->m_replyRAS;
 				nlcf.IncludeOptionalField(H225_LocationConfirm::e_cryptoTokens);
 				nlcf.m_cryptoTokens = lcf.m_cryptoTokens;
 			}
@@ -3083,7 +3083,7 @@ bool GkClient::OnBRQ(RasMsg *ras)
 {
 	// lazy implementation, just reply confirm
 	// TODO: integrate into bandwidth management
-	H225_BandwidthRequest & brq = (*ras)->m_recvRAS;
+	const H225_BandwidthRequest & brq = (*ras)->m_recvRAS;
 	(*ras)->m_replyRAS.SetTag(H225_RasMessage::e_bandwidthConfirm);
 	H225_BandwidthConfirm & bcf = (*ras)->m_replyRAS;
 	bcf.m_requestSeqNum = brq.m_requestSeqNum;
@@ -3093,7 +3093,7 @@ bool GkClient::OnBRQ(RasMsg *ras)
 
 bool GkClient::OnIRQ(RasMsg * ras)
 {
-	H225_InfoRequest & irq = (*ras)->m_recvRAS;
+	const H225_InfoRequest & irq = (*ras)->m_recvRAS;
 	(*ras)->m_replyRAS.SetTag(H225_RasMessage::e_infoRequestResponse);
 	H225_InfoRequestResponse & irr = (*ras)->m_replyRAS;
 	irr.m_requestSeqNum = irq.m_requestSeqNum;
