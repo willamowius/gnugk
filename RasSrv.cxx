@@ -4728,8 +4728,8 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 		// Alias not found
 		H225_LocationReject & lrj = BuildReject(reason);
 		log = "LRJ|" + m_msg->m_peerAddr.AsString()
-				+ "|" + AsString(request.m_destinationInfo),
-				+ "|" + sourceInfoString,
+				+ "|" + AsString(request.m_destinationInfo)
+				+ "|" + sourceInfoString
 				+ "|" + lrj.m_rejectReason.GetTagName()
 				+ ";";
 	}
