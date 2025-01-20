@@ -7536,7 +7536,7 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 					for (PINDEX i = 0; i < data.m_frame.GetSize(); i++) {
 						PASN_OctetString & bytes = data.m_frame[i];
 						WORD wlen = bytes.GetSize();
-						bool succesful = false;
+						bool successful = false;
 						unsigned char ivSequence[6];
 						BYTE payloadType = UNDEFINED_PAYLOAD_TYPE;
 						bool rtpPadding = false;
@@ -7555,14 +7555,14 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 						if (encrypting) {
 							if (session.m_encryptingLC) {
 								bytes.SetSize(DEFAULT_PACKET_BUFFER_SIZE);	// data may grow when encrypting
-								succesful = session.m_encryptingLC->ProcessH235Media(bytes.GetPointer(), wlen, true, ivSequence, rtpPadding, payloadType);
+								successful = session.m_encryptingLC->ProcessH235Media(bytes.GetPointer(), wlen, true, ivSequence, rtpPadding, payloadType);
 							}
 						} else {
 							if (session.m_decryptingLC) {
-								succesful = session.m_decryptingLC->ProcessH235Media(bytes.GetPointer(), wlen, false, ivSequence, rtpPadding, payloadType);
+								successful = session.m_decryptingLC->ProcessH235Media(bytes.GetPointer(), wlen, false, ivSequence, rtpPadding, payloadType);
 							}
 						}
-						if (!succesful) {
+						if (!successful) {
 							PTRACE(1, "H235\t" << (encrypting ? "En" : "De") << "crypting H.460.26 packet failed");
 							continue;
 						}
@@ -12891,7 +12891,7 @@ void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddre
 #ifdef HAS_H235_MEDIA
 	if (!isRTCP && call->IsMediaEncryption() && IsSet(m_addrA) && IsSet(m_addrB)) {
 		WORD wlen = len;
-		bool succesful = false;
+		bool successful = false;
 		unsigned char ivSequence[6];
 		BYTE payloadType = UNDEFINED_PAYLOAD_TYPE;
 		bool rtpPadding = false;
@@ -12907,15 +12907,15 @@ void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddre
 
 		if (receivedMultiplexID == m_encryptMultiplexID) {
 			if (m_encryptingLC) {
-				succesful = m_encryptingLC->ProcessH235Media((BYTE*)data, wlen, true, ivSequence, rtpPadding, payloadType);
+				successful = m_encryptingLC->ProcessH235Media((BYTE*)data, wlen, true, ivSequence, rtpPadding, payloadType);
 			}
 		} else {
 			if (m_decryptingLC) {
-				succesful = m_decryptingLC->ProcessH235Media((BYTE*)data, wlen, false, ivSequence, rtpPadding, payloadType);
+				successful = m_decryptingLC->ProcessH235Media((BYTE*)data, wlen, false, ivSequence, rtpPadding, payloadType);
 			}
 		}
 
-		if (!succesful)
+		if (!successful)
 			return;
 
 		// update RTP padding bit
@@ -14626,18 +14626,18 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 			ready = true;
 		}
 
-		bool succesful = false;
+		bool successful = false;
 		if (ready) {
 			if (encrypting) {
-				succesful = m_encryptingLC->ProcessH235Media(wbuffer, buflen, encrypting, ivSequence, rtpPadding, payloadType);
+				successful = m_encryptingLC->ProcessH235Media(wbuffer, buflen, encrypting, ivSequence, rtpPadding, payloadType);
 			} else {
-				succesful = m_decryptingLC->ProcessH235Media(wbuffer, buflen, encrypting, ivSequence, rtpPadding, payloadType);
+				successful = m_decryptingLC->ProcessH235Media(wbuffer, buflen, encrypting, ivSequence, rtpPadding, payloadType);
 			}
 		} else {
 			PTRACE(3, "H235\tCrypto channel not ready");
 		}
 
-		if (!succesful)
+		if (!successful)
 			return NoData;
 
 		// update RTP padding bit
