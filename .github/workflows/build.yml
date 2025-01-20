@@ -23,7 +23,7 @@ jobs:
           cd ~
           git clone https://github.com/willamowius/ptlib && cd ptlib && ./configure --enable-ipv6 --disable-odbc --disable-sdl --disable-lua --disable-expat && make optnoshared
           cd ~
-          git clone https://github.com/willamowius/h323plus && cd h323plus && ./configure --enable-h235 --enable-h46017 --enable-h46026 --enable-h46019m
+          git clone https://github.com/willamowius/h323plus && cd h323plus && ./configure --enable-h235 --enable-h46017 --enable-h46026 --enable-h46019m && make optnoshared
           popd
           ./configure --enable-h46018 --disable-netsnmp --enable-large-fdset
           build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} make optnoshared
