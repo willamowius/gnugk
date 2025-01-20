@@ -19,13 +19,12 @@ jobs:
         uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v4
       - name: Run Build Wrapper
         run: |
-          pwd
+          pushd .
           cd ~
           git clone https://github.com/willamowius/ptlib && cd ptlib && ./configure --enable-ipv6 --disable-odbc --disable-sdl --disable-lua --disable-expat && make optnoshared
           cd ~
           git clone https://github.com/willamowius/h323plus && cd h323plus && ./configure --enable-h235 --enable-h46017 --enable-h46026 --enable-h46019m
-          cd ~
-          pwd
+          popd
           build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} make optnoshared
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v4
