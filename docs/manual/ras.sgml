@@ -230,7 +230,7 @@ Default: <tt/0/<newline>
 <p>
 Send a RequestInProgress (RIP) message with this delay value after receiving an ARQ.
 This switch can be used to extend the duration the caller will wait for an answer.
-No RIP is sent when the delay ist set to 0.
+No RIP is sent when the delay is set to 0.
 
 <item><tt/CheckSenderIP=1/<newline>
 Default: <tt/0/<newline>
@@ -387,7 +387,7 @@ SELECT assignedgatekeeper FROM users WHERE alias = '%u' AND active
 <sect1>Section &lsqb;GnuGkAssignedGatekeepers::SQL&rsqb;
 <p>
 Many endpoints that support alternate gatekeepers will move to the
-alternate once they can't reach their curent gatekeeper, but will
+alternate once they can't reach their current gatekeeper, but will
 never change back, causing uneven distribution of endpoints between
 gatekeepers.
 Many older endpoints don't support the assigned gatekeeper procedures
@@ -494,7 +494,7 @@ Sleep time between updating of H.460 Presence information.
 <item><tt/QueryList=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
 <p>
-Define a SQL query to be used to perform database lookups to retreive 
+Define a SQL query to be used to perform database lookups to retrieve 
 contact information (order is important)
 <itemize>
 <item><tt/%i/ - presence identifier  GUID value create externally.

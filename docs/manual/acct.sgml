@@ -39,7 +39,7 @@ with the given accounting module (if an event type is supported by the module):
 <item><tt/register/ - an endpoint has registered
 <item><tt/unregister/ - an endpoint has unregistered
 <item><tt/stop/ - a call has been disconnected (removed from the gatekeeper call table)
-<item><tt/reject/ - a call has been rejected (ARJ) before becomming a true call by GnuGk's terms
+<item><tt/reject/ - a call has been rejected (ARJ) before becoming a true call in GnuGk's terms
 <item><tt/mediafail/ - port detection in a channel of this has failed
 <item><tt/on/ - the gatekeeper has been started
 <item><tt/off/ - the gatekeeper has been shut down

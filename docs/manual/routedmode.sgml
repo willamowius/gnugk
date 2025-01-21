@@ -746,7 +746,7 @@ but may break H.460.19 on interfaces with multiple IPs.
 Default: <tt>0</tt><newline>
 <p>
 Send a empty TPKT keep-alive on all H.225 and H.245 connections. For calls using H.460.18,
-these keep-alives are enabled automatically, whithout using this switch.
+these keep-alives are enabled automatically, without using this switch.
 
 <item><tt>DisableGnuGkH245TcpKeepAlive=1</tt><newline>
 Default: <tt>0</tt><newline>

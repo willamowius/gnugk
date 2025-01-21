@@ -154,7 +154,7 @@ Default: <tt/0/<newline>
 <p>
 Use TLS (transport layer security) when calling this endpoint. See also <ref id="tls" name="[TLS] section">.
 If the endpoint is able to signal it's capability to use TLS by H.460.22,
-then there is no need to explicitely configure this.
+then there is no need to explicitly configure this.
 
 <item><tt/DisableCallCreditCapabilities/<newline>
 Default: <tt/0/<newline>

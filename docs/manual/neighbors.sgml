@@ -155,7 +155,7 @@ Default: <tt/0/<newline>
 <p>
 Send a RequestInProgress (RIP) message with this delay value after receiving an LRQ.
 This switch can be used to extend the duration the caller will wait for an answer.
-No RIP is sent when the delay ist set to 0.
+No RIP is sent when the delay is set to 0.
 
 <item><tt/EnableLanguageRouting=1/<newline>
 Default: <tt>0</tt><newline>
@@ -265,7 +265,7 @@ You can specify a list of networks with optional netmask.
 You can also put a ! in front of the network for negation.
 Special values are "*" to send all IP calls,
 "private" to send all IPv4 private networks and
-"public" to send all public IPv4 adresses to this neighbor.
+"public" to send all public IPv4 addresses to this neighbor.
 If one of the networks matches the dialed IP, the neighbor is selected.
 
 If the call comes from a registered endpoint, this endpoint must support canMapAlias for ARQs.

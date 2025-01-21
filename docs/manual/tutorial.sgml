@@ -412,7 +412,7 @@ most users.
 
 Another related switch is ExternalIP= which can be used to send
 different IPs inside of your messages than you are actually listening
-on. This can be usefull if you are doing port forwarding, but should
+on. This can be useful if you are doing port forwarding, but should
 also be avoided and you should use one of the firewall traversal
 protocols instead.
 

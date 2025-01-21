@@ -248,7 +248,7 @@ any=reject
 <descrip><tag/Example #3:/
 
 Allow all connects from the local network, but require
-TLS encryption and authentification for everything else.
+TLS encryption and authentication for everything else.
 
 <tscreen><verb>
 [Gatekeeper::Auth]
@@ -308,10 +308,10 @@ Default: <tt/7210/<newline>
 <p>
 Acceptable difference in timestamps inside H.235.1 tokens between endpoint and gatekeeper in seconds.
 
-The default is 2 hours and 10 seconds to accomodate endpoints
+The default is 2 hours and 10 seconds to accommodate endpoints
 with bad clock settings and in different time zones.
 
-It is suggested that you use NTP to syncronize clocks in all your devices
+It is suggested that you use NTP to synchronize clocks in all your devices
 and tighten this grace period accordingly.
 
 </itemize>

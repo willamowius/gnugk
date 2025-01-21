@@ -478,7 +478,7 @@ This switch selects if the 'srv' policy should resolve hostnames in LRQs that do
 Default: <tt>0</tt><newline>
 <p>
 Convert URL_IDs into H323_IDs before sending out an LRQ to an LS service found in an SRV record.
-This is usefull if the called LS service doesn't understand URL_IDs.
+This is useful if the called LS service doesn't understand URL_IDs.
 </itemize>
 
 Additional SRV schemas may be configured by the [Routing::SRV::id] 
@@ -784,7 +784,7 @@ Specifically for this module, you can specify a query to read the forwarding rul
 Default: <tt>N/A</tt><newline>
 <p>
 Define a SQL query to fetch the forwarding rules.
-The query must return 2 colums: First the code for the forwarding type and second the new destination.
+The query must return 2 columns: First the code for the forwarding type and second the new destination.
 It must ensure that the results are ordered ascending by forwarding code.
 
 The query is parameterized - that means parameter

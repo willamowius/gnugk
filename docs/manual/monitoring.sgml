@@ -667,7 +667,7 @@ You can use this command to route calls to out-of-zone gateways or MCUs not regi
 Make sure that the 'vqueue' and 'explicit' policy is in effect for these calls.
 CallingEndpointID and CallRef must be passed back as they are in the corresponding RouteRequest.
 The CallID parameter is optional; if it is given it must be the same format as
-signaled by RouteRequest. As additional parameter you can set the CLI for the caling party.
+signaled by RouteRequest. As additional parameter you can set the CLI for the calling party.
 The alias parameter is required, but if you use a dash ("-") as alias name,
 no alias will be set in the destination, just the IP.
 
@@ -725,7 +725,7 @@ SendProceeding 40-06-dd-98-22-37-52-40-8c-b0-92-0e-18-60-99-07
 <p>
 Transfer an established call from endpoint A to endpoint B. 
 
-The call that shall be transfered is selected by the call ID
+The call that shall be transferred is selected by the call ID
 and the string "caller" or "called" is used to specify the which
 end of the call shall be transferred.
 
@@ -865,7 +865,7 @@ Number of Neighbors: 2
 
 <item><tt/PrintCallInfo, pci/<newline>
 <p>
-Print lots of detailed information about a single call, eg. codecs used, bandwith, IPs etc.
+Print lots of detailed information about a single call, eg. codecs used, bandwidth, IPs etc.
 <descrip>
 <tag/Format:/
 <tscreen><verb>
@@ -886,7 +886,7 @@ All other registered endpoints will be unregistered, no new registrations or cal
 Endpoints in a call will be unregistered as soon as they end the call.
 
 You can optionally set the IP of an alternate gatekeeper where registered endpoints will be directed to.
-This alterate gatekeeper will only be used during maitenance mode.
+This alternate gatekeeper will only be used during maintenance mode.
 <descrip>
 <tag/Format:/
 <tscreen><verb>

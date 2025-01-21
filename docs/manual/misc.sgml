@@ -269,7 +269,7 @@ Default: <tt>H.235.1,MD5,CAT</tt><newline>
 Selects the authenticators to sent be to the parent gatekeeper in GRQ 
 The default options are: H.235.1 (HMAC SHA1 / old H235AnnexD), MD5 (Digest Authentication) and CAT (Cisco Access Tokens ie RADIUS). 
 Setting a value of NONE will disable all authenticators.
-If this setting is omitted, all authenticators are enmabled by default. 
+If this setting is omitted, all authenticators are enabled by default. 
 Note: H.235.1 requires OpenSSL support compiled into GnuGk.
 
 <item><tt/Prefix=188886,188887/<newline>
@@ -855,7 +855,7 @@ Default: <tt>0</tt><newline>
 <p>
 Also throw traps with warnings. If you enable warning traps, make sure you have
 good trap filtering in place in your management application.
-Many warnings can be generated in harmles situations where GnuGk can't decide if its a real error or not.
+Many warnings can be generated in harmless situations where GnuGk can't decide if its a real error or not.
 
 </itemize>
 
@@ -1052,7 +1052,7 @@ going out to another endpoint may be unencrypted.
 <p>
 You have to define manually which endpoints use TLS when we call them, by setting
 a switch in their [EP::...] section. Similar you can enable TLS for neighbor and parent gatekeeper.
-Since not many endpoints support TLS encryption, so this feature can be very usefull to secure
+Since not many endpoints support TLS encryption, so this feature can be very useful to secure
 "trunk" connections or traversal zones to branch offices etc.
 <p>
 Using TLS is also important to avoid man-in-the-middle attacks on H.235.6 media encryption.
@@ -1102,7 +1102,7 @@ Default: <tt>0</tt><newline>
 <p>
 In addition to checking if a peer certificate is signed correctly,
 GnuGk can check if one of the X.509 extensions contains a DNS name or if the commonName in the certificate
-match the IP, the connections actually comming from.
+match the IP, the connections actually coming from.
 <p>
 Not all certificates contain proper DNS names and if your peers are behind a NAT you might not
 be able to see their true IPs. Also DNS lookups may be slow, so this check is disabled by default.
