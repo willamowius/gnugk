@@ -1359,7 +1359,7 @@ bool Gatekeeper::SetUserAndGroup(const PString & username)
 	static const size_t MAX_PASSWORD_BUFSIZE = 1024;
 
 	struct passwd userdata;
-	struct passwd *userptr;
+	struct passwd *userptr = NULL;
 	char buffer[MAX_PASSWORD_BUFSIZE];
 
 #if defined (P_LINUX) || defined (P_AIX) || defined(P_IRIX) || (__GNUC__>=3 && defined(P_SOLARIS)) || defined(P_RTEMS)
