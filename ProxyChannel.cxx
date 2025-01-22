@@ -9302,13 +9302,13 @@ void CallSignalSocket::OnReleaseComplete(SignalingMsg * msg)
 		// TODO: only if call has been rerouted ?
 		// TODO: doesn't cover RP as caller in makeCall being hung up by remote
 #if (H323PLUS_VER >= 1268)
-		if (m_callerSocket != !msg->GetQ931().IsFromDestination()) {
+		if (msg && m_callerSocket != !msg->GetQ931().IsFromDestination()) {
 			msg->GetQ931().SetFromDestination(!m_callerSocket);
 			msg->SetChanged();
 		}
 #endif
 		// cause code rewriting
-		if (msg->GetQ931().HasIE(Q931::CauseIE)) {
+		if (msg && msg->GetQ931().HasIE(Q931::CauseIE)) {
 			cause = msg->GetQ931().GetCause();
 			if (Toolkit::Instance()->IsCauseCodeTranslationActive()) {
 				// translate cause codes
