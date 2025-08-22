@@ -3068,7 +3068,7 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
                 }
                 if (h235data.m_mediaType.GetTag() == H245_H235Media_mediaType::e_videoData) {
                     isVideo = true;
-                    H245_VideoCapability * videoCap = &((H245_VideoCapability&)h235data.m_mediaType);
+                    const H245_VideoCapability * videoCap = &((const H245_VideoCapability&)h235data.m_mediaType);
                     if (videoCap->GetTag() != H245_VideoCapability::e_extendedVideoCapability) {
                         isH239 = true;
                         isVideo = false;
