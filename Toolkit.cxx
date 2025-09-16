@@ -2,7 +2,7 @@
 //
 // Toolkit base class for the GnuGk
 //
-// Copyright (c) 2000-2024, Jan Willamowius
+// Copyright (c) 2000-2025, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -3895,9 +3895,22 @@ PString Toolkit::GetExternalIP() const
         PHTTPClient http;	// TODO: add libcurl version ?
         PString result;
         PMIMEInfo outMIME, replyMIME;
-        PString url = "http://169.254.169.254/latest/meta-data/public-ipv4"; // AWS
-        if (ext == "AlibabaPublicIP")
-            url = "http://100.100.100.200/latest/meta-data/eipv4"; // Alibaba TODO: when use public-ipv4 instead ?
+        PString url = "";
+        if (ext == "AWSPublicIP") {
+            PString token_url = "http://169.254.169.254/latest/api/token"; // needed for IMDSv2
+			PString body = "";
+            outMIME.SetAt("X-aws-ec2-metadata-token-ttl-seconds", "600"); // 10 min
+			PString token;
+            if (http.PutDocument(token_url, outMIME, replyMIME) && http.ReadContentBody(replyMIME, token)) {
+                outMIME.SetAt("X-aws-ec2-metadata-token", token.Trim());
+			} else {
+                PTRACE(1, "Cloud\tAWS PUT for token failed (IMDSv2)");
+			}
+            url = "http://169.254.169.254/latest/meta-data/public-ipv4";
+		}
+        if (ext == "AlibabaPublicIP") {
+            url = "http://100.100.100.200/latest/meta-data/eipv4"; // Alibaba TODO: when to use public-ipv4 instead ?
+		}
         if (ext == "AzurePublicIP") {
             url = "http://169.254.169.254/metadata/instance/network/interface/0/ipv4/ipAddress/0/publicIpAddress?api-version=2017-08-01&format=text"; // Azure
             outMIME.SetAt("Metadata", "true");
@@ -3906,7 +3919,7 @@ PString Toolkit::GetExternalIP() const
             url = "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip"; // Google Cloud
             outMIME.SetAt("Metadata-Flavor", "Google");
         }
-        if (http.GetDocument(url, outMIME, replyMIME) && http.ReadContentBody(replyMIME, result)) {
+        if (url != "" && http.GetDocument(url, outMIME, replyMIME) && http.ReadContentBody(replyMIME, result)) {
             ext = result.Trim();
         } else {
             ext = "";

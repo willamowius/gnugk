@@ -1,5 +1,6 @@
 Changes from 5.13 to 5.14
 =========================
+- update AWS IP detection to IMDSv2
 - BUGFIX(RasTbl.h) fix potential memory leak
 - BUGFIX(h323utils.cxx) fix detection of 'site local' and 'unique local' IPv6 addresses
 - BUGFIX(Makefile.in) restore compatibility with GCC 4, 5 and 6
