@@ -3929,6 +3929,7 @@ PString Toolkit::GetExternalIP() const
         m_Config->SetString("ExternalIP", ext);
     }
 #endif // P_HTTP
+#if defined(P_STUN) && (PTLIB_VER < 2110)
     if (ext == "STUN") {
     	PString m_stunConfig = m_Config->GetString("STUNServer", "stun.ekiga.net");
 		PStringArray ip_parts = SplitIPAndPort(m_stunConfig, 3478);
@@ -3946,6 +3947,7 @@ PString Toolkit::GetExternalIP() const
         PTRACE(2, "STUN\tSetting ExternalIP to " << ext);
         m_Config->SetString("ExternalIP", ext);
 	}
+#endif // P_STUN && PTLib version check
     return ext;
 }
 
