@@ -14,5 +14,3 @@ Support: https://www.willamowius.com/gnugk-support.html
 
 Manual: https://www.gnugk.org/gnugk-manual.html
 
-[![Follow @h323 on Twitter](https://img.shields.io/twitter/follow/h323.svg?style=social)](https://twitter.com/intent/follow?screen_name=h323)
-
