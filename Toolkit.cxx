@@ -2,7 +2,7 @@
 //
 // Toolkit base class for the GnuGk
 //
-// Copyright (c) 2000-2025, Jan Willamowius
+// Copyright (c) 2000-2026, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -462,6 +462,16 @@ void Toolkit::RouteTable::AddInternalNetwork(const NetworkAddress & network)
 {
 	if (find(m_internalnetworks.begin(), m_internalnetworks.end(), network) == m_internalnetworks.end())
 		m_internalnetworks.push_back(network);
+}
+
+bool Toolkit::RouteTable::IsInInternalNetwork(const Address & addr) const
+{
+	for (unsigned j = 0; j < m_internalnetworks.size(); ++j) {
+		if (addr << m_internalnetworks[j]) {
+            return true;
+		}
+	}
+    return false;
 }
 
 PIPSocket::Address Toolkit::RouteTable::GetLocalAddress(unsigned version) const

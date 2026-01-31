@@ -3,7 +3,7 @@
 // ProxyChannel.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2002
-// Copyright (c) 2002-2025, Jan Willamowius
+// Copyright (c) 2002-2026, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -5611,7 +5611,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 
 		if (!rejectCall) {
 			PString extip = Toolkit::Instance()->GetExternalIP();
-			if (extip.IsEmpty()) {
+			if (extip.IsEmpty() || Toolkit::Instance()->GetRouteTable()->IsInInternalNetwork(_peerAddr)) {
 				PTRACE(7, "JW RTP SetEndpointIPMapping " << _peerAddr << " <=> " << _localAddr);
 				m_call->SetEndpointIPMapping(_peerAddr, _localAddr);
 			} else {

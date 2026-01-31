@@ -1,3 +1,7 @@
+Changes from 5.14 to 5.15
+=========================
+- BUGFIX(ProxyChannel.cxx) make sure we respect InternalNetworks= when using ExternalIP=
+
 Changes from 5.13 to 5.14
 =========================
 - update AWS IP detection to IMDSv2

@@ -2,7 +2,7 @@
 //
 // Toolkit class for the GnuGk
 //
-// Copyright (c) 2000-2024, Jan Willamowius
+// Copyright (c) 2000-2026, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -144,6 +144,7 @@ class Toolkit : public Singleton<Toolkit>
 		std::vector<NetworkAddress> GetInternalNetworks() const { return m_internalnetworks; }
 		void ClearInternalNetworks();
 		void AddInternalNetwork(const NetworkAddress & network);
+		bool IsInInternalNetwork(const Address & dest) const;
 
 	    virtual bool IsMasquerade(PIPSocket::Address &) const { return false; }
 	protected:
