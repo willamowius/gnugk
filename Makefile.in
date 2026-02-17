@@ -182,11 +182,11 @@ endif # linux
 # enable more warnings when using gcc >= 4.4
 ifeq "$(GCCMAJOREQ4)" "1"
 ifeq "$(GCCMINORGTEQ4)" "1"
-STDCCFLAGS += -Wtype-limits -Wstrict-overflow=5 -fstrict-overflow -Wsign-compare
+STDCCFLAGS += -Wtype-limits -Wstrict-overflow=5 -Wsign-compare
 endif
 endif
 ifeq "$(GCCMAJORGT4)" "1"
-STDCCFLAGS += -Wtype-limits -Wstrict-overflow=5 -fstrict-overflow -Wsign-compare -Wno-unused-variable
+STDCCFLAGS += -Wtype-limits -Wstrict-overflow=5 -Wsign-compare -Wno-unused-variable
 endif
 ifeq "$(GCCMAJORGT7)" "1"
 STDCCFLAGS += -Wno-misleading-indentation
