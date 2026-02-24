@@ -142,7 +142,7 @@ QoS information is output as an item in the Trace File at trace level 4.
 
 <sect1>Section &lsqb;GkQoSMonitor::SQL&rsqb;
 <p>
-This section allows you to store QoS information in a database.
+This section allows you to store the QoS information collected by <ref id="gkqosmonitor" name="GkQoSMonitor"> in a database.
 You can use the same database parameters as defined in <ref id="sqlpasswordauth" name="[SQLPasswordAuth]">.
 
 <itemize>
