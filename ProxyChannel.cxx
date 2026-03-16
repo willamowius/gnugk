@@ -4810,7 +4810,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 			setupBody.RemoveOptionalField(H225_Setup_UUIE::e_destCallSignalAddress);
 		}
 #endif
-		//  also remove destCallSigAddr if its the ExternalIP
+		//  also remove destCallSigAddr if it's the ExternalIP
 		PString extip = Toolkit::Instance()->GetExternalIP();
 		if (!extip.IsEmpty()) {
 			PIPSocket::Address ext((DWORD)0);
@@ -4974,7 +4974,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		}
 		if (!rejectCall) {
 			PString extip = Toolkit::Instance()->GetExternalIP();
-			if (extip.IsEmpty()) {
+			if (extip.IsEmpty() || Toolkit::Instance()->GetRouteTable()->IsInInternalNetwork(_peerAddr)) {
 				PTRACE(7, "JW RTP SetEndpointIPMapping " << _peerAddr << " <=> " << _localAddr);
 				m_call->SetEndpointIPMapping(_peerAddr, _localAddr);
 			} else {
