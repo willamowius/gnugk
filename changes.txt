@@ -1,5 +1,6 @@
 Changes from 5.14 to 5.15
 =========================
+- BUGFIX(GkStatus.cxx) improve ssh status port authentication
 - BUGFIX(ProxyChannel.cxx) make sure we respect InternalNetworks= when using ExternalIP=
 
 Changes from 5.13 to 5.14
