@@ -482,9 +482,9 @@ bool SSHStatusClient::Authenticate()
 		}
 		switch(ssh_message_type(m_message)) {
             case SSH_REQUEST_AUTH:
+				retries++;
                 switch(ssh_message_subtype(m_message)) {
                     case SSH_AUTH_METHOD_PASSWORD:
-						retries++;
                         if (AuthenticateUser()) {
 							auth = true;
 							ssh_message_auth_reply_success(m_message, 0);
