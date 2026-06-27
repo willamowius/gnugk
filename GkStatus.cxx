@@ -609,7 +609,7 @@ bool SSHStatusClient::AuthenticateUser()
         const PString storedPassword = GetPassword(login);
         if (storedPassword.IsEmpty())
             PTRACE(5, "STATUS\tCould not find password in the config for user " << login);
-        else if (!password && password == storedPassword) {
+        else if (!password.IsEmpty() && password == storedPassword) {
             m_user = login;
             return true;
         } else {
