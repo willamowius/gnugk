@@ -2,7 +2,7 @@
 //
 // GkStatus.cxx
 //
-// Copyright (c) 2000-2023, Jan Willamowius
+// Copyright (c) 2000-2026, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -550,8 +550,10 @@ bool SSHStatusClient::Authenticate()
 							{
 								shell = true;
 								const char * cmd = ssh_message_channel_request_command(m_message);
-								OnCommand(cmd);
-								Flush();
+								if (cmd) {
+									OnCommand(cmd);
+									Flush();
+								}
 			                    ssh_message_channel_request_reply_success(m_message);
 								m_done = true;
 							}
