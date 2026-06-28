@@ -1558,6 +1558,30 @@ else
 fi
 AC_SUBST(HAS_AVAYA_SUPPORT)
 
+dnl #########################################################################
+dnl Enable port notification command execution
+dnl ########################################################################
+
+dnl MSWIN_DISPLAY    port-notification-exec,HAS_PORT_NOTIFICATION_EXEC
+dnl MSWIN_DEFAULT    port-notification-exec,Disabled
+dnl MSWIN_DEFINE     port-notification-exec,HAS_PORT_NOTIFICATION_EXEC=1
+
+AC_ARG_ENABLE(port-notification-exec,
+[  --enable-port-notification-exec    enable command execution on port notifications (SECURITY RISK, default=no)],
+[ portnotificationexec="${enableval}" ], [portnotificationexec="no"]
+)
+
+if test "x${portnotificationexec}" != "xno" ; then
+    HAS_PORT_NOTIFICATION_EXEC=1
+    AC_DEFINE(HAS_PORT_NOTIFICATION_EXEC, 1)
+   	STDCCFLAGS="-DHAS_PORT_NOTIFICATION_EXEC=1 $STDCCFLAGS"
+   	echo "Port notification command execution enabled"
+else
+    HAS_PORT_NOTIFICATION_EXEC=0
+	echo "Port notification command execution disabled"
+fi
+AC_SUBST(HAS_PORT_NOTIFICATION_EXEC)
+
 dnl ########################################################################
 dnl make directives
 

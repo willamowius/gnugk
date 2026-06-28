@@ -747,8 +747,10 @@ GWPrefixesQuery=SELECT gwalias, gwpfx FROM gwprefix WHERE gk = '%1'
 
 </itemize>
 
-<sect1>Section &lsqb;PortNotifications&rsqb;
+<sect1>Section &lsqb;PortNotifications&rsqb; SECURITY RISK, DEPRECATED
 <p>
+Security note: This feature is disabled by default, as it can be a security risk.
+
 GnuGk can execute a system command whenever it opens a new port for listening.
 For example, this can be used to automatically update the firewall configuration.
 <p>

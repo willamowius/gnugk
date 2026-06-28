@@ -470,6 +470,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "MQTTAcct", "UseSSL" },
 	{ "MQTTAcct", "UpdateEvent" },
 #endif // HAS_LIBMOSQUITTO
+#ifdef HAS_PORT_NOTIFICATION_EXEC
 	{ "PortNotifications", "H245PortOpen" },
 	{ "PortNotifications", "H245PortClose" },
 	{ "PortNotifications", "Q931PortOpen" },
@@ -484,6 +485,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "PortNotifications", "StatusPortClose" },
 	{ "PortNotifications", "T120PortOpen" },
 	{ "PortNotifications", "T120PortClose" },
+#endif // HAS_PORT_NOTIFICATION_EXEC
 	{ "Proxy", "AllowAnyRTPSourcePortForH239From" },
 #ifdef HAS_H46018
 	{ "Proxy", "AllowSignaledIPs" },

@@ -662,6 +662,7 @@ GNUGK_BUILD_NUMBER
 GNUGK_MINOR_VERSION
 GNUGK_MAJOR_VERSION
 GNUGK_VERSION
+HAS_PORT_NOTIFICATION_EXEC
 HAS_AVAYA_SUPPORT
 HAS_LIBRABBITMQ
 HAS_LIBMOSQUITTO
@@ -790,6 +791,7 @@ enable_json
 enable_mqtt
 enable_librabbitmq
 enable_avaya
+enable_port_notification_exec
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1440,6 +1442,7 @@ Optional Features:
   --enable-mqtt           enable MQTT support (default=yes)
   --enable-librabbitmq    enable RabbitMQ support (default=yes)
   --enable-avaya          enable Avaya support (default=no)
+  --enable-port-notification-exec    enable command execution on port notifications (SECURITY RISK, default=no)
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -6805,6 +6808,30 @@ if test "x${avaya}" != "xno" ; then
 else
    echo "Avaya support disabled"
    HAS_AVAYA_SUPPORT=0
+fi
+
+
+
+
+# Check whether --enable-port-notification-exec was given.
+if test ${enable_port_notification_exec+y}
+then :
+  enableval=$enable_port_notification_exec;  portnotificationexec="${enableval}"
+else $as_nop
+  portnotificationexec="no"
+
+fi
+
+
+if test "x${portnotificationexec}" != "xno" ; then
+    HAS_PORT_NOTIFICATION_EXEC=1
+    printf "%s\n" "#define HAS_PORT_NOTIFICATION_EXEC 1" >>confdefs.h
+
+   	STDCCFLAGS="-DHAS_PORT_NOTIFICATION_EXEC=1 $STDCCFLAGS"
+   	echo "Port notification command execution enabled"
+else
+    HAS_PORT_NOTIFICATION_EXEC=0
+	echo "Port notification command execution disabled"
 fi
 
 

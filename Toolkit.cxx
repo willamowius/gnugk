@@ -3761,6 +3761,7 @@ void Toolkit::PortNotification(PortType type, PortAction action, const PString &
         }
 	}
 
+#ifdef HAS_PORT_NOTIFICATION_EXEC
 	// execute notification command
 	PString cmd;
 	if (action == PortOpen) {
@@ -3782,6 +3783,7 @@ void Toolkit::PortNotification(PortType type, PortAction action, const PString &
 		PTRACE(1, "Error executing port notification: " << cmd);
 		SNMP_TRAP(6, SNMPError, General, "Error executing port notification: " + cmd);
 	}
+#endif
 }
 
 PString Toolkit::GetGKHome(vector<PIPSocket::Address> & GKHome) const
