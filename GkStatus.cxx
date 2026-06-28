@@ -550,7 +550,7 @@ bool SSHStatusClient::Authenticate()
 							{
 								shell = true;
 								const char * cmd = ssh_message_channel_request_command(m_message);
-								if (cmd) {
+								if (cmd && strlen(cmd) < 2048) {
 									OnCommand(cmd);
 									Flush();
 								}
