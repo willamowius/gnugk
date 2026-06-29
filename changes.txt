@@ -1,5 +1,6 @@
 Changes from 5.14 to 5.15
 =========================
+- BUGFIX(sqlauth.cxx) don't accept empty passwords
 - BUGFIX(gkauth.cxx) fix in Q.931 authentication
 - BUGFIX(gkauth.cxx) fix auth cache expiry
 - disable command execution for port notifications unless the feature is explicitely activated by ./configure --enable-port-notification-exec

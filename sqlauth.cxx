@@ -4,7 +4,7 @@
  * SQL authentication/authorization modules for GNU Gatekeeper
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
- * Copyright (c) 2006-2020, Jan Willamowius
+ * Copyright (c) 2006-2026, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -330,6 +330,11 @@ bool SQLPasswordAuth::GetPassword(const PString & alias, PString & password, std
 	if (!RunQuery("SQLAUTH\t" + GetName() + "('" + alias + "')", m_sqlConn, m_query, params, result, -1))
 		return false;
 
+	if (result.empty() || result[0].first.IsEmpty()) {
+		PTRACE(3, "SQLAUTH\t" << GetName() << " empty password returned from database for alias '" << alias << "'");
+		return false;
+	}
+
 	password = result[0].first;
 	return true;
 }
@@ -416,6 +421,11 @@ bool SQLAliasAuth::GetAuthConditionString(const PString & alias, PString & authC
 
 	if (!RunQuery("SQLAUTH\t" + GetName() + "('" + alias + "')", m_sqlConn, m_query, params, result, -1))
 		return false;
+
+	if (result.empty() || result[0].first.IsEmpty()) {
+		PTRACE(3, "SQLAUTH\t" << GetName() << " empty auth condition returned from database for alias '" << alias << "'");
+		return false;
+	}
 
 	authCond = result[0].first;
 	return true;
