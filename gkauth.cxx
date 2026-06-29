@@ -2,7 +2,7 @@
 //
 // gkauth.cxx
 //
-// Copyright (c) 2001-2021, Jan Willamowius
+// Copyright (c) 2001-2026, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -418,8 +418,8 @@ int GkAuthenticator::Check(
 	Q931AuthData & /*authData*/)
 {
     int code = AuthEnum(msg.GetMessageType());
-    if (code > 0) {
-        return IsMiscCheckEnabled(e_Facility) ? m_defaultStatus : e_next;
+    if (code >= 0) {
+        return IsMiscCheckEnabled(code) ? m_defaultStatus : e_next;
     } else {
         return e_next;
     }
@@ -1084,10 +1084,10 @@ void CacheManager::Save(
 
 void CacheManager::Expire(GkTimer* /* timer */)
 {
-	ReadLock lock(m_rwmutex);
+	WriteLock lock(m_rwmutex);
 
     for (std::map<PString, time_t>::iterator iter = m_ctime.begin(); iter != m_ctime.end() ; /* nothing */ ) {
-		if (iter->second >= m_ttl) {
+		if ((time(NULL) - iter->second) >= m_ttl) {
             m_cache.erase(iter->first);
 			m_ctime.erase(iter++);
 		} else {

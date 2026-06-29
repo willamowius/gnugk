@@ -1,5 +1,7 @@
 Changes from 5.14 to 5.15
 =========================
+- BUGFIX(gkauth.cxx) fix in Q.931 authentication
+- BUGFIX(gkauth.cxx) fix auth cache expiry
 - disable command execution for port notifications unless the feature is explicitely activated by ./configure --enable-port-notification-exec
 - BUGFIX(GkStatus.cxx) improve ssh status port authentication
 - BUGFIX(ProxyChannel.cxx) make sure we respect InternalNetworks= when using ExternalIP=
