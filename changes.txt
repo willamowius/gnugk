@@ -1,5 +1,6 @@
 Changes from 5.14 to 5.15
 =========================
+- BUGFIX(authenticators.cxx) small fixes to H235AuthDesECB and H235AuthDesCTS
 - BUGFIX(ipauth.cxx) fix checking prefixes
 - BUGFIX(sqlauth.cxx) don't accept empty passwords
 - BUGFIX(gkauth.cxx) fix in Q.931 authentication

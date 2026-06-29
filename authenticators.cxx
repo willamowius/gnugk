@@ -2,7 +2,7 @@
 //
 // authenticators.cxx
 //
-// Copyright (c) 2015, Jan Willamowius
+// Copyright (c) 2015-2026, Jan Willamowius
 //
 // additional authentication modules
 //
@@ -111,12 +111,18 @@ H235Authenticator::ValidationResult H235AuthDesECB::ValidateCryptoToken(
   int len = -1;
   if (!cryptoHelper.DecryptUpdateCTS(cipher, decryptedToken.GetPointer(), &len, remoteEncryptedData.GetPointer(), remoteEncryptedData.GetSize())) {
         PTRACE(1, "H235RAS\tEVP_DecryptUpdate_cts failed");
+        EVP_CIPHER_CTX_cleanup(cipher);
+        EVP_CIPHER_CTX_free(cipher);
+        return e_BadPassword;
   }
   int f_len = -1;
   if(!cryptoHelper.DecryptFinalCTS(cipher, decryptedToken.GetPointer() + len, &f_len)) {
     char buf[256];
     ERR_error_string(ERR_get_error(), buf);
     PTRACE(1, "H235RAS\tEVP_DecryptFinal_cts failed: " << buf);
+    EVP_CIPHER_CTX_cleanup(cipher);
+    EVP_CIPHER_CTX_free(cipher);
+    return e_BadPassword;
   }
 
   EVP_CIPHER_CTX_cleanup(cipher);
@@ -127,8 +133,11 @@ H235Authenticator::ValidationResult H235AuthDesECB::ValidateCryptoToken(
   clearToken.Decode(asn);
 
   PString generalID = clearToken.m_generalID;
+  unsigned tokenTime = clearToken.m_timeStamp;
+  unsigned now = (unsigned)time(NULL);
+  const unsigned gracePeriod = 60; // allow 60 seconds clock skew
   if (generalID == Toolkit::GKName()
-	  && clearToken.m_timeStamp == (unsigned)time(NULL))	// TODO: add grace period ?
+	  && (tokenTime >= now - gracePeriod) && (tokenTime <= now + gracePeriod))
 	return e_OK;
 
   PTRACE(1, "H235RAS\tH235AuthDesECB password does not match.");
@@ -252,7 +261,8 @@ H235Authenticator::ValidationResult H235AuthDesCTS::ValidateCryptoToken(
   if (cryptoToken.GetTag() != H225_CryptoH323Token::e_cryptoEPPwdEncr)
     return e_Absent;
 
-  return e_OK;	// TODO: always OK for now
+  PTRACE(1, "H235RAS\tH235AuthDesCTS token validation is not implemented - rejecting");
+  return e_BadPassword;
 }
 
 PBoolean H235AuthDesCTS::IsCapability(const H235_AuthenticationMechanism & mechanism,
