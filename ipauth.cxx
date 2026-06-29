@@ -6,7 +6,7 @@
  * @(#) $Id$
  *
  * Copyright (c) 2005, Michal Zygmuntowicz
- * Copyright (c) 2006-2023, Jan Willamowius
+ * Copyright (c) 2006-2026, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -40,6 +40,11 @@ public:
 
 	IPAuthPrefix& operator=(const IPAuthPrefix&);
 	IPAuthPrefix& operator=(bool);
+
+	// Returns true if the only prefix configured is the wildcard "." (match any number)
+	bool IsWildcardPrefix() const {
+		return Prefixs.empty() || (Prefixs.size() == 1 && Prefixs[0] == ".");
+	}
 
 	typedef std::vector<std::string>::iterator prefix_iterator;
 	typedef std::vector<std::string>::const_iterator const_prefix_iterator;
@@ -316,6 +321,12 @@ int FileIPAuth::CheckAddress(
 					<< (len ? " accepted" : " rejected")
 					<< " for Called " << number);
 				return len ? e_ok : e_fail;
+			}
+			if (entry->second.auth && number.IsEmpty() && !entry->second.IsWildcardPrefix()) {
+				// Prefix-restricted allow entry; no number supplied (non-call message) so it cannot be matched
+				PTRACE(5, GetName() << "\tIP " << addr.AsString() << " skipping prefix-restricted entry for non-call message");
+				++entry;
+				continue;
 			}
 			return entry->second.auth ? e_ok : e_fail;
 		}
