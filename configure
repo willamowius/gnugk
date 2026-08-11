@@ -6026,6 +6026,9 @@ printf %s "checking for ssh_handle_key_exchange()/ssh_blocking_flush() in libssh
 				if test `uname` != "OpenBSD"; then
 					LIBS="$LIBS -lrt"
 				fi
+				if test `uname` = "NetBSD"; then
+					LIBS="$LIBS -lpthread"
+				fi
 				cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 extern int ssh_handle_key_exchange(); extern int ssh_blocking_flush();
@@ -6672,7 +6675,7 @@ ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ex
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
 	SAVE_CPPFLAGS=$CPPFLAGS
-    CPPFLAGS=-fno-exceptions
+    CPPFLAGS="$CPPFLAGS -fno-exceptions"
 
        for ac_header in nlohmann/json.hpp
 do :

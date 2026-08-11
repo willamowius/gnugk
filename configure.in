@@ -1043,6 +1043,9 @@ if test "x${libssh}" != "xno"; then
 				if test `uname` != "OpenBSD"; then
 					LIBS="$LIBS -lrt"
 				fi
+				if test `uname` = "NetBSD"; then
+					LIBS="$LIBS -lpthread"
+				fi
 				AC_LINK_IFELSE([AC_LANG_PROGRAM([[extern int ssh_handle_key_exchange(); extern int ssh_blocking_flush();]], [[ssh_handle_key_exchange(); ssh_blocking_flush();]])],[ LIBSSH_LIBS="-lssh -lcrypto -lz $GSSAPI_LIBS"
 					  LIBSSH_LDFLAGS="-L$try"
 					
@@ -1464,7 +1467,7 @@ AC_ARG_ENABLE(json,
 if test "x${json}" != "xno" ; then
     AC_LANG_PUSH([C++])
 	SAVE_CPPFLAGS=$CPPFLAGS
-    CPPFLAGS=-fno-exceptions
+    CPPFLAGS="$CPPFLAGS -fno-exceptions"
     AC_CHECK_HEADERS([nlohmann/json.hpp], HAS_JSON=1, HAS_JSON=0)
 	CPPFLAGS=$SAVE_CPPFLAGS
     AC_LANG_POP([C++])
