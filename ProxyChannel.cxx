@@ -1675,6 +1675,20 @@ bool TCPProxySocket::ReadTPKT()
                 return false;
 			}
 		}
+		if (PIPSocket::Net2Host(tpkt.length) < sizeof(TPKTV3)) {
+			PTRACE(2, Type() << "\t" << GetName() << " ERROR: TPKT length too small: " << PIPSocket::Net2Host(tpkt.length));
+			tpktlen = 0;
+			if (GkConfig()->GetBoolean(RoutedSec, "AbortOnInvalidTPKT", true)) {
+				errno = EINVAL;
+				ConvertOSError(-1, PSocket::LastReadError);
+				return ErrorHandler(PSocket::LastReadError);
+			} else {
+			    Flush();
+                buflen = 0;
+				PTRACE(2, Type() << "\t" << GetName() << " Trying to continue...");
+                return false;
+			}
+		}
 		buflen = PIPSocket::Net2Host(tpkt.length) - sizeof(TPKTV3);
 		if (buflen < 1) {
 			PTRACE(7, Type() << "\tignoring empty TPKT from " << GetName() << " (keep-alive)");

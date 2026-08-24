@@ -1,5 +1,6 @@
 Changes from 5.15 to 5.16
 =========================
+- BUGFIX(ProxyChannel.cxx) better check for tpkt.length
 
 
 Changes from 5.14 to 5.15
