@@ -1,7 +1,7 @@
 Changes from 5.15 to 5.16
 =========================
 - BUGFIX(ProxyChannel.cxx) better check for tpkt.length
-
+- BUGFIX(GkClient.cxx) better check of H.460.24 probes
 
 Changes from 5.14 to 5.15
 =========================

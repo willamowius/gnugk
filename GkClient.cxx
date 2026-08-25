@@ -3,7 +3,7 @@
 // GkClient.cxx
 //
 // Copyright (c) Citron Network Inc. 2001-2003
-// Copyright (c) 2002-2025, Jan Willamowius
+// Copyright (c) 2002-2026, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -964,7 +964,7 @@ PBoolean H46024Socket::ReceivedProbePacket(const RTP_ControlFrame & frame, bool 
 {
 	success = false;
 
-	//Inspect the probe packet
+	// Inspect the probe packet
 	if (frame.GetPayloadType() != RTP_ControlFrame::e_ApplDefined)
 		return false;
 
@@ -979,16 +979,21 @@ PBoolean H46024Socket::ReceivedProbePacket(const RTP_ControlFrame & frame, bool 
 		return false;
 	}
 
+	if (frame.GetSize() < 32) {
+		PTRACE(3, "H46024A\ts" << m_sessionID << " RTCP Probe too small.");
+		return false;
+	}
+
 	probe = (frame.GetCount() > 0);
 	PTRACE(4, "H46024A\ts:" << m_sessionID << " RTCP Probe " << (probe ? "Reply" : "Request") << " received.");
 
 #ifdef P_SSL
 	BYTE * data = frame.GetPayloadPtr();
 	PBYTEArray bytes(20);
-	memcpy(bytes.GetPointer(),data+12, 20);
+	memcpy(bytes.GetPointer(), data+12, 20);
 	PMessageDigest::Result bin_digest;
 	PMessageDigestSHA1::Encode(OpalGloballyUniqueID(m_callIdentifier.m_guid).AsString() + m_CUIlocal, bin_digest);
-	PBYTEArray val(bin_digest.GetPointer(),bin_digest.GetSize());
+	PBYTEArray val(bin_digest.GetPointer(), bin_digest.GetSize());
 
 	if (bytes == val) {
 		if (probe)  // We have a reply
