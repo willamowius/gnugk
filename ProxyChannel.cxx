@@ -14891,25 +14891,25 @@ void ParseRTCP(const callptr & call, WORD sessionID, PIPSocket::Address fromIP, 
 							if (item->length != 0) {
 								switch (item->type) {
 								case RTP_ControlFrame::e_CNAME:
-									call->SetRTCP_sdes(fromDST, "cname="+((PString)(item->data)).Left(item->length));
+									call->SetRTCP_sdes(fromDST, "cname=" + PString(item->data, item->length));
 									break;
 								case RTP_ControlFrame::e_NAME:
-									call->SetRTCP_sdes(fromDST, "name="+((PString)(item->data)).Left(item->length));
+									call->SetRTCP_sdes(fromDST, "name=" + PString(item->data, item->length));
 									break;
 								case RTP_ControlFrame::e_EMAIL:
-									call->SetRTCP_sdes(fromDST, "email="+((PString)(item->data)).Left(item->length));
+									call->SetRTCP_sdes(fromDST, "email=" + PString(item->data, item->length));
 									break;
 								case RTP_ControlFrame::e_PHONE:
-									call->SetRTCP_sdes(fromDST, "phone="+((PString)(item->data)).Left(item->length));
+									call->SetRTCP_sdes(fromDST, "phone=" + PString(item->data, item->length));
 									break;
 								case RTP_ControlFrame::e_LOC:
-									call->SetRTCP_sdes(fromDST, "loc="+((PString)(item->data)).Left(item->length));
+									call->SetRTCP_sdes(fromDST, "loc=" + PString(item->data, item->length));
 									break;
 								case RTP_ControlFrame::e_TOOL:
-									call->SetRTCP_sdes(fromDST, "tool="+((PString)(item->data)).Left(item->length));
+									call->SetRTCP_sdes(fromDST, "tool=" + PString(item->data, item->length));
 									break;
 								case RTP_ControlFrame::e_NOTE:
-									call->SetRTCP_sdes(fromDST, "note="+((PString)(item->data)).Left(item->length));
+									call->SetRTCP_sdes(fromDST, "note=" + PString(item->data, item->length));
 									break;
 								default:
 									PTRACE(7, "RTCP\tSourceDescription unknown item type " << item->type);
