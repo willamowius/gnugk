@@ -147,7 +147,7 @@ If you do not wish to restrict bandwidth, then use "-1".
 Default: <tt>n/a</tt><newline>
 <p>
 Add an additional alias to all calls going to this endpoint, if its not already present.
-This can be used to add the trunk ID required by Swxy version 6 and up.
+This can be used to add the trunk ID required by Swyx version 6 and up.
 
 <item><tt/UseTLS=1/<newline>
 Default: <tt/0/<newline>

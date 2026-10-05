@@ -255,7 +255,7 @@ parameters are recognized in all call related accounting events:
 <item><tt/%{callee-video-bitrate}/ - video bitrate used by the called for sending (in kbps)
 <item><tt/%{caller-media-ip}/ - media IP (audio) used by the caller
 <item><tt/%{callee-media-ip}/ - media IP (audio) used by the called
-<item><tt/%{encryption}/ - "On" if all audio and video chanels are encrypted, otherwise "Off"
+<item><tt/%{encryption}/ - "On" if all audio and video channels are encrypted, otherwise "Off"
 <item><tt/%{env1}/ - content of environment variable GNUGK_ENV1
 <item><tt/.../
 <item><tt/%{env9}/ - content of environment variable GNUGK_ENV9
@@ -281,7 +281,7 @@ For Register and Unregister events you can use the following parameters:
 <item><tt/%{endpoint-vendor}/ - vendor and version info of the endpoint
 <item><tt/%{epid}/ - the endpoint ID
 <item><tt/%{aliases}/ - the comma separated list of aliases the endpoint has registered with
-<item><tt/%{Calling-Station-Id}/ - the caaling party number of this endpoint
+<item><tt/%{Calling-Station-Id}/ - the calling party number of this endpoint
 <item><tt/%{env1}/ - content of environment variable GNUGK_ENV1
 <item><tt/.../
 <item><tt/%{env9}/ - content of environment variable GNUGK_ENV9

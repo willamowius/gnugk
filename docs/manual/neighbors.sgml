@@ -165,14 +165,14 @@ Whether to compare users language settings in determining routing requests.
 <item><tt/PingAlias=my-ping/<newline>
 Default: <tt>gatekeeper-monitoring-check</tt><newline>
 <p>
-Alias used for LRQ pinging. LRQs received with this alias will be processed a bit faster than reqular requests.
+Alias used for LRQ pinging. LRQs received with this alias will be processed a bit faster than regular requests.
 This feature is also used by VCS in GDS dialing schema. Setting the alias alone will not turn on the sending of pings.
 
 <item><tt/SendLRQPing=1/<newline>
 Default: <tt>0</tt><newline>
 <p>
 When enabled, GnuGk will periodically ping all its neighbors with a LRQ. If the neighbor doesn't respond with
-a LRQ or LRJ withing the NeighborTimeout, the neighbor is disabled and won't be used for routing until the
+a LRQ or LRJ within the NeighborTimeout, the neighbor is disabled and won't be used for routing until the
 next LRQ ping succeeds. Skipping disabled neighbors can speed up routing in some configurations.
 
 You can configure the alias in the LRQ with the PingAlias switch.

@@ -414,7 +414,7 @@ to define your database connection for this module.
 <item><tt/RehomingWait=60/<newline>
 Default: <tt>300</tt><newline>
 <p>
-The number of seconds to wait until GnuGk tries ro send the endpoint back to it's home gatekeeper.
+The number of seconds to wait until GnuGk tries to send the endpoint back to it's home gatekeeper.
 
 <item><tt/Query=SELECT .../<newline>
 Default: <tt>N/A</tt><newline>
