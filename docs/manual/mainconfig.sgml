@@ -121,7 +121,7 @@ Currently only used by the MySQL driver; the other drivers use library defaults.
 Many SQL modules provide a set of placeholders that you can use
 in your queries, like %{CallId} in SqlAcct.
 
-Placeholders allways start with the percent sign. Beware that you must
+Placeholders always start with the percent sign. Beware that you must
 escape the percent sign if you need it for something else in your
 queries (eg. in a LIKE). One way to do so is to use CHAR(37), eg.
 concat(alias,CHAR(37)) instead of concat(alias,'%').
@@ -352,7 +352,7 @@ The last (optional) field specifies the alternate gatekeeper's identifier.
 
 You may specify multiple alternate gatekeepers as a comma separated list.
 
-This global definition can be overriden by a per IP specification in
+This global definition can be overridden by a per IP specification in
 <ref id="rassrvalternategatekeeper" name="[RasSrv::AlternateGatekeeper]">.
 
 <item><tt/SendTo=192.0.2.4:1719/<newline>
