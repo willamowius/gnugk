@@ -2538,7 +2538,11 @@ bool Toolkit::MatchHostCert(SSL * ssl, PIPSocket::Address addr)
 		for (int i = 0; i < sk_GENERAL_NAME_num(altnames); i++) {
 			GENERAL_NAME * gn = sk_GENERAL_NAME_value(altnames, i);
 			if (gn && (gn->type == GEN_DNS)) {
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 				char * dns = (char *)ASN1_STRING_data(gn->d.ia5);
+#else
+				char * dns = (char *)ASN1_STRING_get0_data(gn->d.ia5);
+#endif // OPENSSL_VERSION_NUMBER
 				if (dns) {
 					PTRACE(5, "TLS\tChecking Certificate DNS " << dns);
 					if (::AsString(addr) == dns) {
@@ -2575,7 +2579,7 @@ bool Toolkit::MatchHostCert(SSL * ssl, PIPSocket::Address addr)
 
 	if (!found) {
 		// check commonName, too
-		X509_NAME * subject = X509_get_subject_name(cert);
+		const X509_NAME * subject = X509_get_subject_name(cert);
 		if (subject) {
 			char commonname[256];
 			if (X509_NAME_get_text_by_NID(subject, NID_commonName, commonname, 256) > 0) {
