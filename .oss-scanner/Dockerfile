@@ -1,4 +1,4 @@
-FROM ubuntu:24.04 AS buildstage
+FROM ubuntu:24.04
 
 LABEL maintainer="jan@willamowius.de"
 
@@ -45,32 +45,16 @@ RUN cd ~ && \
 	git clone https://github.com/willamowius/gnugk.git && \
 	cd gnugk && \
 	./configure --enable-h46018 --disable-netsnmp --with-lua-include-dir=/usr/include/lua5.3/ --enable-large-fdset && \
-	make optnoshared
+	make optnoshared && \
+	cp -p obj_linux_x86_64_s/gnugk /usr/local/bin/
 
 RUN cd ~ && \
 	git clone https://github.com/willamowius/check_h323.git && \
 	cd check_h323 && \
-	make optnoshared
+	make optnoshared && \
+	cp -p obj_linux_x86_64_s/check_h323 /usr/local/bin/
 
-FROM ubuntu:24.04 AS workingstage
-
-RUN apt-get update && apt-get install -y \
-	firebird3.0-common \
-	libcurl4t64 \
-	libgeoip1t64 \
-	libldap2 \
-	liblua5.3-0 \
-	libmysqlclient21 \
-	librabbitmq4 \
-	libsqlite3-0 \
-	libssh-4
-
-RUN ln -s /usr/lib/x86_64-linux-gnu/liblua5.3.a /usr/lib/x86_64-linux-gnu/liblua.a
-
-COPY --from=buildstage /root/gnugk/obj_linux_x86_64_s/gnugk /usr/local/bin/
-COPY --from=buildstage /root/check_h323/obj_linux_x86_64_s/check_h323 /usr/local/bin/
-
-COPY gnugk.ini /etc/gnugk.ini
+COPY gnugk.ini /gatekeeper.ini
 
 ENTRYPOINT ["/usr/local/bin/gnugk"]
 
