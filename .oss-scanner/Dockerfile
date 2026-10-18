@@ -46,15 +46,14 @@ RUN cd ~ && \
 	cd gnugk && \
 	./configure --enable-h46018 --disable-netsnmp --with-lua-include-dir=/usr/include/lua5.3/ --enable-large-fdset && \
 	make optnoshared && \
-	cp -p obj_linux_x86_64_s/gnugk /usr/local/bin/
+	cp -p obj_linux_x86_64_s/gnugk /usr/local/bin/ && \
+	cp -p etc/docker.ini /gatekeeper.ini
 
 RUN cd ~ && \
 	git clone https://github.com/willamowius/check_h323.git && \
 	cd check_h323 && \
 	make optnoshared && \
 	cp -p obj_linux_x86_64_s/check_h323 /usr/local/bin/
-
-COPY gnugk.ini /gatekeeper.ini
 
 ENTRYPOINT ["/usr/local/bin/gnugk"]
 
