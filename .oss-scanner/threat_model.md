@@ -8,21 +8,24 @@ GnuGK is a long-running, multi-threaded H.323 gatekeeper. Depending on configura
 - routes or **proxies H.225 call signalling and H.245** over TCP (optionally TLS),
 - **proxies RTP/RTCP media** and T.120, including NAT traversal (H.460.17/18/19/26, RTP multiplexing),
 - exchanges LRQ/LCF with **neighbor and parent gatekeepers**,
-- delegates **authentication, routing and accounting** to files, SQL, LDAP/H.350, RADIUS, HTTP, Lua, Redis, AMQP, syslog,
+- delegates **authentication, routing and accounting** to files, SQL, LDAP/H.350, HTTP, Lua, Redis, AMQP, syslog,
 - exposes an **administrative status port** (telnet-style, optional SSH) and **SNMP**.
 
 It typically runs on a public-facing host, frequently as root or with broad network privileges, and sits in front of PBXs, MCUs and PSTN gateways – so its compromise or misuse translates directly into toll fraud.
 
-### 1.1 Port Allocations
+### 1.1 Port allocations
 
-The H.323 protocol encapsulates port numbers inside the packets. Therefore the Docker image must expose the ports on
-the same ports on the host as the GNU Gatekeeper sees them inside the container and they can't be remapped as
+The H.323 protocol encapsulates port numbers inside the packets. Therefore the Docker image must publish each port under
+the same number on the host as the GNU Gatekeeper uses inside the container; they can't be remapped as
 with other protocols. In addition to that the GNU Gatekeeper must know the IP under which the clients see it,
 because it will embed this IP in the packets to route the traffic through it. The provided configuration uses
 STUN to find the public IP (which may fail in local lab networks).
 
-Run the provided docker container as
+Run the provided Docker container as:
+
+```
 sudo docker run -p 1719:1719/udp -p 1720:1720 -p 20000-20100:20000-20100 -p 30000-30500:30000-30500/udp -d gnugk
+```
 
 ## 2. Assets
 
@@ -30,7 +33,7 @@ sudo docker run -p 1719:1719/udp -p 1720:1720 -p 20000-20100:20000-20100 -p 3000
 |----|-------|----------------|
 | A1 | Call routing / admission decisions | Unauthorized calls → toll fraud, PSTN abuse |
 | A2 | Endpoint registration table (`RasTbl`) | Hijacking an alias redirects calls / intercepts users |
-| A3 | Endpoint credentials (H.235 passwords, SQL/LDAP/RADIUS secrets) | Impersonation, lateral movement into backends |
+| A3 | Endpoint credentials (H.235 passwords, SQL/LDAP secrets) | Impersonation, lateral movement into backends |
 | A4 | Media streams (RTP/RTCP) | Confidentiality of conversations |
 | A5 | Status port control | Full administrative control: disconnect, unregister, reload config, route |
 | A6 | Configuration file (`gatekeeper.ini`) and on-disk secrets | Contains all policy and backend credentials |
@@ -46,7 +49,7 @@ sudo docker run -p 1719:1719/udp -p 1720:1720 -p 20000-20100:20000-20100 -p 3000
 | T1 Registered endpoint | Low | Authenticated only if an authenticator is configured; otherwise identity = claimed alias + source IP |
 | T2 Neighbor / parent gatekeeper | Medium | Trust is configured per neighbor; LRQs may be accepted from IPs only |
 | T3 Traversal client (H.460.17/18) | Low | Behind NAT, keep-alive based, source address changes are expected |
-| T4 Backend services (SQL, LDAP, RADIUS, HTTP, Redis, AMQP) | Medium-high | Their responses drive auth and routing |
+| T4 Backend services (SQL, LDAP, HTTP, Redis, AMQP) | Medium-high | Their responses drive auth and routing |
 | T5 Status-port operator | High | Admin; authenticated via `[GkStatus::Auth]` (default rule `forbid`) |
 | T6 Local OS users | Varies | Access to config, logs, trace files, CDR files |
 | T7 Lua script author | High | Scripts run in-process |
@@ -69,14 +72,13 @@ sudo docker run -p 1719:1719/udp -p 1720:1720 -p 20000-20100:20000-20100 -p 3000
    ───────────────────────────────────────────────── TB3  (backends, outbound)
      SQL drivers                 (gksql*.cxx, sqlauth.cxx, sqlacct.cxx)
      LDAP / H.350                (ldap.cxx, ptlib pldap)
-     RADIUS                      (radproto.cxx, radauth.cxx, radacct.cxx)
      HTTP auth/policy/acct       (gkauth.cxx HttpPasswordAuth, Routing.cxx HttpPolicy, httpacct.cxx)
      Redis, AMQP, syslog, GeoIP
    ───────────────────────────────────────────────── TB4  (local host)
      gatekeeper.ini, CDR/trace files, Lua scripts, external commands (system())
 ```
 
-Every byte crossing TB1 is attacker-controlled ASN.1 PER (RAS/H.245) or Q.931/H.225 with nested ASN.1, plus raw RTP. Values crossing TB1 later flow into TB3 (SQL, LDAP filters, RADIUS attributes, HTTP URLs, Lua) and TB4 (shell commands, log/CDR files) – these second-order flows are where injection bugs live.
+Every byte crossing TB1 is attacker-controlled ASN.1 PER (RAS/H.245) or Q.931/H.225 with nested ASN.1, plus raw RTP. Values crossing TB1 later flow into TB3 (SQL, LDAP filters, HTTP URLs, Lua) and TB4 (shell commands, log/CDR files) – these second-order flows are where injection bugs live.
 
 ## 5. Threats (STRIDE)
 
@@ -86,10 +88,10 @@ Ratings: L = likelihood, I = impact (H/M/L). "Existing" lists mitigations known 
 
 | # | Threat | STRIDE | L/I | Existing | Gaps |
 |---|--------|--------|-----|----------|------|
-| R1 | Unauthenticated RRQ registers another user's alias (alias hijack) | S | H/H | Auth modules (`SimplePasswordAuth`, `AliasAuth`, SQL/LDAP/RADIUS, `FileIPAuth`); `RasSrv::RRQFeatures` overwrite rules | Default config has no authenticator → any host may register any alias. Document a secure baseline config |
+| R1 | Unauthenticated RRQ registers another user's alias (alias hijack) | S | H/H | Auth modules (`SimplePasswordAuth`, `AliasAuth`, SQL/LDAP, `FileIPAuth`); `RasSrv::RRQFeatures` overwrite rules | Default config has no authenticator → any host may register any alias. Document a secure baseline config |
 | R2 | Spoofed source IP in UDP RRQ/ARQ (RAS is UDP, unauthenticated by default) | S | H/H | IP-based checks, `RRQ check` | IP auth alone is spoofable on shared L2 or with asymmetric routing; recommend H.235 |
 | R3 | Replay of H.235 CAT / MD5 / Procedure I tokens | S | M/H | Timestamp check in `gkh235.cxx` | Default `TimestampGracePeriod` ≈ 2 h – large replay window; no nonce/sequence-number cache |
-| R4 | Weak H.235 algorithms (MD5 password hash) | I/S | M/H | – | Offline cracking of captured hashes |
+| R4 | Weak H.235 algorithm (MD5 password hash) | I/S | M/H | – | Offline cracking of captured hashes |
 | R5 | Malformed PER causes OOB read / crash in decoder | D/E | M/H | H323Plus PER decoder, size checks | Continuous fuzzing of RAS PDU decode + `RasPDU<>` handlers |
 | R6 | Registration flood / table exhaustion (unbounded endpoints, aliases per endpoint) | D | H/M | TTL, `TimeToLive`, optional `MaxEndpoints` style limits | Per-source-IP rate limits; caps on alias count and alias length |
 | R7 | Multicast GRQ/LRQ (1718) amplification / discovery | D/I | M/L | Can be disabled | Recommend disabled by default on public interfaces |
@@ -101,7 +103,7 @@ Ratings: L = likelihood, I = impact (H/M/L). "Existing" lists mitigations known 
 |---|--------|--------|-----|----------|------|
 | S1 | Direct Setup from unregistered host bypasses admission (`AcceptUnregisteredCalls`) | E | H/H | Config switches, Setup authenticators | Misconfiguration is the #1 toll-fraud vector – flag in docs and startup log |
 | S2 | Caller-ID / alias spoofing in Setup (`sourceAddress`, calling party number) | S | H/M | `clirw.cxx` CLI rewriting, `TwoAliasAuth`, `CapCtrlAuth` | No binding of presented CLI to authenticated identity unless explicitly configured |
-| S3 | Malformed Q.931 IEs / nested UUIE / tunnelled H.245 → memory corruption | E/D | M/H | Length checks in `sigmsg.cxx`, `ProxyChannel.t.cxx` tests | Fuzz Q.931 + UUIE + fastStart + tunnelled H.245; ASan/UBSan CI |
+| S3 | Malformed Q.931 IEs / nested UUIE / tunneled H.245 → memory corruption | E/D | M/H | Length checks in `sigmsg.cxx`, `ProxyChannel.t.cxx` tests | Fuzz Q.931 + UUIE + fastStart + tunneled H.245; ASan/UBSan CI |
 | S4 | Slowloris / half-open TCP on 1720/1300, thread exhaustion | D | H/M | Listen queue, signalling timeouts | Per-IP connection limit; cap on concurrent pre-Setup sockets |
 | S5 | TLS downgrade / weak cipher config on 1300 | I/T | M/M | OpenSSL context in Toolkit | Enforce TLS ≥ 1.2 by default, sane cipher list, verify peer cert option documented |
 | S6 | Transfer/forwarding (`forwarding.cxx`, Facility, H.450) redirects call to attacker-chosen destination | T/E | M/H | Routing policies | Re-run admission/auth on redirected destination |
@@ -162,5 +164,5 @@ Ratings: L = likelihood, I = impact (H/M/L). "Existing" lists mitigations known 
 
 ## 6. Cross-cutting: memory safety and concurrency
 
-GnuGK is ~75 kLOC of C++ on top of ptlib and H323Plus, all parsing hostile ASN.1 and binary protocols on dozens of threads. The dominant technical risk class is memory corruption reachable pre-authentication (R5, S3, M5, P4) and data races in call/endpoint lifetime (S7).
+GnuGK is ~75 kLOC of C++ on top of ptlib and H323Plus, all parsing hostile ASN.1 and binary protocols on dozens of threads. The dominant technical risk class is memory corruption reachable pre-authentication (R5, S3, M5) and data races in call/endpoint lifetime (S7).
 
