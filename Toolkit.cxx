@@ -2582,7 +2582,7 @@ bool Toolkit::MatchHostCert(SSL * ssl, PIPSocket::Address addr)
 		const X509_NAME * subject = X509_get_subject_name(cert);
 		if (subject) {
 			char commonname[256];
-			if (X509_NAME_get_text_by_NID(subject, NID_commonName, commonname, 256) > 0) {
+			if (X509_NAME_get_text_by_NID(const_cast<X509_NAME *>(subject), NID_commonName, commonname, 256) > 0) {
 				PTRACE(5, "TLS\tChecking Certificate commonName " << commonname);
 				if (::AsString(addr) == commonname) {
 					found = true;	// IP matched
