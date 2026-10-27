@@ -752,7 +752,7 @@ public:
 
 	static bool IsKeepAlive(unsigned len, bool isRTCP) { return isRTCP ? true : (len == 12); }
 
-	void HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddress & fromAddress, void * data, unsigned len, bool isRTCP);
+	void HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddress & fromAddress, void * data, unsigned len, unsigned bufferSize, bool isRTCP);
 	static void Send(DWORD sendMultiplexID, const IPAndPortAddress & toAddress, int ossocket, void * data, unsigned len, bool bufferHasRoomForID, PIPSocket::Address * gkIP, bool isRetry = false);
 
 public:
@@ -822,7 +822,7 @@ public:
 #endif
 	virtual void DumpChannels(const PString & msg = "") const;
 
-	virtual bool HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddress & fromAddress, void * data, unsigned len, bool isRTCP);
+	virtual bool HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddress & fromAddress, void * data, unsigned len, unsigned bufferSize, bool isRTCP);
 #ifdef HAS_H46026
 	virtual bool HandlePacket(PINDEX callno, const H46026_UDPFrame & data);
 #endif

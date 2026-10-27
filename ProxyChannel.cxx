@@ -1193,7 +1193,7 @@ public:
 	bool CreateH235SessionAndKey(H235Authenticators & auth, H245_EncryptionSync & sync, bool encrypting);
 	bool UpdateMediaKey(const H245_EncryptionSync & encryptionSync);
 	bool GenerateNewMediaKey(BYTE newPayloadType, H245_EncryptionSync & encryptionSync);
-	bool ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt, unsigned char * ivsequence, bool & rtpPadding, BYTE & payloadType);
+	bool ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt, unsigned char * ivsequence, bool & rtpPadding, BYTE & payloadType, WORD bufferSize);
 	void SetPlainPayloadType(BYTE pt) { m_plainPayloadType = pt; }
 	BYTE GetPlainPayloadType() const { return m_plainPayloadType; }
 	void SetCipherPayloadType(BYTE pt) { m_cipherPayloadType = pt; }
@@ -7582,12 +7582,12 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 							|| (!m_callerSocket && m_call->GetEncryptDirection() == CallRec::calledParty);
 						if (encrypting) {
 							if (session.m_encryptingLC) {
-								bytes.SetSize(DEFAULT_PACKET_BUFFER_SIZE);	// data may grow when encrypting
-								successful = session.m_encryptingLC->ProcessH235Media(bytes.GetPointer(), wlen, true, ivSequence, rtpPadding, payloadType);
+								bytes.SetSize(DEFAULT_PACKET_BUFFER_SIZE);	// data may grow when encrypting (size may get clamped by ASN.1 constraint)
+								successful = session.m_encryptingLC->ProcessH235Media(bytes.GetPointer(), wlen, true, ivSequence, rtpPadding, payloadType, (WORD)bytes.GetSize());
 							}
 						} else {
 							if (session.m_decryptingLC) {
-								successful = session.m_decryptingLC->ProcessH235Media(bytes.GetPointer(), wlen, false, ivSequence, rtpPadding, payloadType);
+								successful = session.m_decryptingLC->ProcessH235Media(bytes.GetPointer(), wlen, false, ivSequence, rtpPadding, payloadType, (WORD)bytes.GetSize());
 							}
 						}
 						if (!successful) {
@@ -12665,7 +12665,7 @@ void MultiplexRTPListener::ReceiveData()
 		return;
 	}
 
-	MultiplexedRTPHandler::Instance()->HandlePacket(multiplexID, IPAndPortAddress(fromIP, fromPort), wbuffer+4, buflen-4, odd(localPort));
+	MultiplexedRTPHandler::Instance()->HandlePacket(multiplexID, IPAndPortAddress(fromIP, fromPort), wbuffer+4, buflen-4, wbufsize-4, odd(localPort));
 }
 
 H46019Session::H46019Session(PINDEX callno, WORD session, void * openedBy)
@@ -12831,7 +12831,7 @@ void H46019Session::Dump() const
 #endif
 }
 
-void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddress & fromAddress, void * data, unsigned len, bool isRTCP)
+void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddress & fromAddress, void * data, unsigned len, unsigned bufferSize, bool isRTCP)
 {
     if (m_deleted)
         return;
@@ -12935,11 +12935,11 @@ void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddre
 
 		if (receivedMultiplexID == m_encryptMultiplexID) {
 			if (m_encryptingLC) {
-				successful = m_encryptingLC->ProcessH235Media((BYTE*)data, wlen, true, ivSequence, rtpPadding, payloadType);
+				successful = m_encryptingLC->ProcessH235Media((BYTE*)data, wlen, true, ivSequence, rtpPadding, payloadType, (WORD)bufferSize);
 			}
 		} else {
 			if (m_decryptingLC) {
-				successful = m_decryptingLC->ProcessH235Media((BYTE*)data, wlen, false, ivSequence, rtpPadding, payloadType);
+				successful = m_decryptingLC->ProcessH235Media((BYTE*)data, wlen, false, ivSequence, rtpPadding, payloadType, (WORD)bufferSize);
 			}
 		}
 
@@ -13340,7 +13340,7 @@ void MultiplexedRTPHandler::DumpChannels(const PString & msg) const
 	}
 }
 
-bool MultiplexedRTPHandler::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddress & fromAddress, void * data, unsigned len, bool isRTCP)
+bool MultiplexedRTPHandler::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddress & fromAddress, void * data, unsigned len, unsigned bufferSize, bool isRTCP)
 {
 	ReadLock lock(m_listLock);
 	// find the matching channel for the multiplex ID and let it handle the packet
@@ -13350,7 +13350,7 @@ bool MultiplexedRTPHandler::HandlePacket(DWORD receivedMultiplexID, const IPAndP
 			|| (iter->m_multiplexID_fromB == receivedMultiplexID)) {
 			if (!iter->m_deleted) {
                 ReadUnlock unlock(m_listLock); // release read lock to avoid possible dead lock
-                iter->HandlePacket(receivedMultiplexID, fromAddress, data, len, isRTCP);
+                iter->HandlePacket(receivedMultiplexID, fromAddress, data, len, bufferSize, isRTCP);
             }
             return true;
 		}
@@ -14657,9 +14657,9 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		bool successful = false;
 		if (ready) {
 			if (encrypting) {
-				successful = m_encryptingLC->ProcessH235Media(wbuffer, buflen, encrypting, ivSequence, rtpPadding, payloadType);
+				successful = m_encryptingLC->ProcessH235Media(wbuffer, buflen, encrypting, ivSequence, rtpPadding, payloadType, wbufsize);
 			} else {
-				successful = m_decryptingLC->ProcessH235Media(wbuffer, buflen, encrypting, ivSequence, rtpPadding, payloadType);
+				successful = m_decryptingLC->ProcessH235Media(wbuffer, buflen, encrypting, ivSequence, rtpPadding, payloadType, wbufsize);
 			}
 		} else {
 			PTRACE(3, "H235\tCrypto channel not ready");
@@ -15618,7 +15618,7 @@ bool RTPLogicalChannel::GenerateNewMediaKey(BYTE newPayloadType, H245_Encryption
 	return CreateH235SessionAndKey(*m_auth, encryptionSync, m_encrypting);
 }
 
-bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt, unsigned char * ivsequence, bool & rtpPadding, BYTE & payloadType)
+bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt, unsigned char * ivsequence, bool & rtpPadding, BYTE & payloadType, WORD bufferSize)
 {
 	PWaitAndSignal lock(m_cryptoEngineMutex);
 	if (!m_H235CryptoEngine)
@@ -15648,10 +15648,10 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 
 	// check max buffer size
 	len = processed.GetSize() + rtpHeaderLen;
-	if (len > DEFAULT_PACKET_BUFFER_SIZE) {
+	if (len > bufferSize) {
 		PTRACE(1, "H235\tRTP packet too large, truncating");
-		len = DEFAULT_PACKET_BUFFER_SIZE;
-		processed.SetSize(DEFAULT_PACKET_BUFFER_SIZE - rtpHeaderLen);
+		len = bufferSize;
+		processed.SetSize(bufferSize - rtpHeaderLen);
 	}
 	memcpy(buffer + rtpHeaderLen, processed.GetPointer(), processed.GetSize());
 #if (H323PLUS_VER > 1252)
