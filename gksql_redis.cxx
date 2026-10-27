@@ -262,6 +262,7 @@ GkSQLConnection::SQLConnPtr GkRedisConnection::CreateNewConnection(
             }
             if (reply)
                 freeReplyObject(reply);
+            redisFree(conn);
             return NULL;
         }
         freeReplyObject(reply);
@@ -306,6 +307,7 @@ GkSQLResult* GkRedisConnection::ExecuteQuery(
         return new GkRedisResult(1, rows);
 	} else {
 	    // Nothing found
+        freeReplyObject(reply);
         vector<GkSQLResult::ResultRow*> * rows = new vector<GkSQLResult::ResultRow*>(0);
         return new GkRedisResult(0, rows);
 	}

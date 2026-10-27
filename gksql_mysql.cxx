@@ -396,6 +396,7 @@ GkSQLConnection::SQLConnPtr GkMySQLConnection::CreateNewConnection(
 	} else {
 		PTRACE(2, GetName() << "\tMySQL connection to " << m_username << '@' << m_host
 			<< '[' << m_database << "] failed (mysql_real_connect failed): " << (*g_mysql_error)(conn));
+		(*g_mysql_close)(conn);
 		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
 	}
 	return NULL;
