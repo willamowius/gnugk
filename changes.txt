@@ -1,6 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
-
+- BUGFIX(Routing.cxx) never route calls to our own status port
 
 Changes from 5.15 to 5.16
 =========================

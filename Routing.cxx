@@ -3,7 +3,7 @@
 // Routing Mechanism for GNU Gatekeeper
 //
 // Copyright (c) Citron Network Inc. 2003
-// Copyright (c) 2004-2023, Jan Willamowius
+// Copyright (c) 2004-2026, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -154,6 +154,13 @@ bool RoutingRequest::AddRoute(const Route & route)
 	if (!(route.m_destAddr.IsValid() && GetIPAndPortFromTransportAddr(route.m_destAddr, addr, port)
 			&& addr.IsValid() && port != 0)) {
 		PTRACE(1, "ROUTING\tInvalid destination address: " << AsString(route.m_destAddr));
+		return false;
+	}
+	// never route calls to our own status port
+	UnmapIPv4Address(addr);
+	if (port == (WORD)GkConfig()->GetInteger("StatusPort", GK_DEF_STATUS_PORT)
+			&& Toolkit::Instance()->IsGKHome(addr)) {
+		PTRACE(1, "ROUTING\tRefusing route to the gatekeeper's own status port: " << AsString(route.m_destAddr));
 		return false;
 	}
 	list<Route>::const_iterator i = m_failedRoutes.begin();
