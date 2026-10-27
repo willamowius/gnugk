@@ -4,7 +4,7 @@
 //
 // LUA routing, authentication and accounting policies for the GNU Gatekeeper
 //
-// Copyright (c) 2012-2020, Jan Willamowius
+// Copyright (c) 2012-2026, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -843,7 +843,7 @@ bool LuaPasswordAuth::GetPassword(const PString & alias, PString & password, std
 
 	password = GetString(lua, "password");
     ShutdownLua(&lua);
-	return true;
+	return !password.IsEmpty();
 }
 
 namespace { // anonymous namespace

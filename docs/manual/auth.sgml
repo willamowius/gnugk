@@ -1790,7 +1790,7 @@ The script can use the following variables
 </itemize>
 
 The script must store the password for the user in <tt>alias</tt> into the <tt>password</tt> variable
-for GnuGk to process further.
+for GnuGk to process further. To reject the endpoint, return an empty string as password.
 
 
 <sect1>Section &lsqb;HttpPasswordAuth&rsqb;

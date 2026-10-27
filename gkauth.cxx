@@ -1308,10 +1308,12 @@ bool SimplePasswordAuth::InternalGetPassword(
 		return true;
 	}
 	if (GetPassword(id, passwd, params)) {
-		m_cache->Save(id, passwd);
-		return true;
-	} else
-		return false;
+		if (!passwd.IsEmpty()) {
+			m_cache->Save(id, passwd);
+			return true;
+		}
+	}
+	return false;
 }
 
 int SimplePasswordAuth::CheckTokens(
@@ -1563,7 +1565,7 @@ bool H350PasswordAuth::GetPassword(const PString & alias, PString & password, st
 			password = password.Trim();	// server may send newline at end etc.
 			PTRACE(4, "H350\tH235Auth: Password located");
 			session.Close();
-			return true;
+			return !password.IsEmpty();
 		}
 	}
 
@@ -2491,8 +2493,8 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
     if (result.FindRegEx(m_resultRegex, pos, len)) {
         password = result.Mid(pos, len);
         ReplaceRegEx(password, m_deleteRegex, "", true);
-        PTRACE(5, "HttpPasswordAuth\tPassword = " << password);
-        return true;
+        //PTRACE(5, "HttpPasswordAuth\tPassword = " << password);
+        return !password.IsEmpty();
     } else {
         PTRACE(2, "HttpPasswordAuth\tError: No answer found in response from " << host);
         return false;
