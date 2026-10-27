@@ -2,7 +2,7 @@
 //
 // gkh235.cxx
 //
-// Copyright (c) 2016, Jan Willamowius
+// Copyright (c) 2016-2026, Jan Willamowius
 // Copyright (c) 2004-2005, Michal Zygmuntowicz
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
@@ -147,6 +147,11 @@ int GkH235Authenticators::Validate(
 					if (m_authProcedure1 == NULL)
 						m_authProcedure1 = new H235AuthProcedure1;
 					m_authProcedure1->Enable();
+					if (!m_authProcedure1->IsActive()) {
+						// unlike MD5 and CAT, H235AuthProcedure1::ValidateCryptoToken() doesn't check IsActive() itself in H323Plus 1.28.0
+						PTRACE(2, "GKH235\tNo password set to check Procedure I token");
+						return m_authResultProcedure1 = H235Authenticator::e_Disabled;
+					}
 
 					const long deltaTime = (long)(now.GetTimeInSeconds() - cryptoHashedToken.m_hashedVals.m_timeStamp);
 					if (std::abs(deltaTime) > m_timestampGracePeriod) {
@@ -296,6 +301,11 @@ int GkH235Authenticators::Validate(
 					if (m_authProcedure1 == NULL)
 						m_authProcedure1 = new H235AuthProcedure1();
 					m_authProcedure1->Enable();
+					if (!m_authProcedure1->IsActive()) {
+						// unlike MD5 and CAT, H235AuthProcedure1::ValidateCryptoToken() doesn't check IsActive() itself in H323Plus 1.28.0
+						PTRACE(2, "GKH235\tNo password set to check Procedure I token");
+						return m_authResultProcedure1 = H235Authenticator::e_Disabled;
+					}
 
 					const long deltaTime = (long)(now.GetTimeInSeconds() - cryptoHashedToken.m_hashedVals.m_timeStamp);
 					if (std::abs(deltaTime) > m_timestampGracePeriod) {

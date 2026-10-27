@@ -1406,10 +1406,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
 					&& cryptoHashedToken.m_tokenOID != OID_H235_A_V2)
 				continue;
 
-			if (authenticators == NULL && acceptAnySendersID) {
-				authenticators = new GkH235Authenticators;  // allocate a new authenticator, eg. for RRQ and LRQ where we don't have an existing EPRec
-            }
-			if (authenticators == NULL)
+			if (authenticators == NULL && !acceptAnySendersID)
                 continue;   // can't validate this token without authenticator object
 
 			const H235_ClearToken & clearToken = cryptoHashedToken.m_hashedVals;
@@ -1445,6 +1442,9 @@ int SimplePasswordAuth::CheckCryptoTokens(
                 }
             }
 
+			if (authenticators == NULL) {
+				authenticators = new GkH235Authenticators;  // allocate a new authenticator, eg. for RRQ and LRQ where we don't have an existing EPRec
+            }
 			if (authenticators->HasProcedure1Password()) {
                 return e_ok;
 			}
