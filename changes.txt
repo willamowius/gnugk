@@ -1,6 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
-- BUGFIX(gk235.cxx, gkauth.cxx) better guard against empty H.235.1 passwords
+- BUGFIX(gkh235.cxx, gkauth.cxx) better guard against empty H.235.1 passwords
 - BUGFIX(Routing.cxx) never route calls to our own status port
 
 Changes from 5.15 to 5.16
