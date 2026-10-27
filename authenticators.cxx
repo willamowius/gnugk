@@ -105,7 +105,15 @@ H235Authenticator::ValidationResult H235AuthDesECB::ValidateCryptoToken(
   for (PINDEX i = key.GetSize(); i < password.GetLength(); ++i)
 	key[i%key.GetSize()] ^= password[i];
 
-  EVP_CipherInit_ex(cipher, EVP_des_ecb(), NULL, key, NULL, 0);
+  // OpenSSL 3 only provides single DES through the legacy provider, which isn't loaded by default
+  if (!EVP_CipherInit_ex(cipher, EVP_des_ecb(), NULL, key, NULL, 0)) {
+    char buf[256];
+    ERR_error_string(ERR_get_error(), buf);
+    PTRACE(1, "H235RAS\tEVP_CipherInit_ex for DES-ECB failed: " << buf);
+    EVP_CIPHER_CTX_cleanup(cipher);
+    EVP_CIPHER_CTX_free(cipher);
+    return e_Error;
+  }
   H235CryptoHelper cryptoHelper;
 
   int len = -1;
