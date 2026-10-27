@@ -1906,7 +1906,8 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 			if (rasip.m_ip[0] == 0 && rasip.m_ip[1] == 0 && rasip.m_ip[2] == 0 && rasip.m_ip[3] == 0) {
 				gcf.m_rasAddress = SocketToH225TransportAddr(Toolkit::Instance()->GetRouteTable()->GetLocalAddress(m_msg->m_peerAddr), unicastRasPort);
 			}
-            rasip.m_port = unicastRasPort;
+            // don't use rasip here, the assignment above may have replaced the object it refers to
+            SetH225Port(gcf.m_rasAddress, unicastRasPort);
 		} else if (gcf.m_rasAddress.GetTag() == H225_TransportAddress::e_ip6Address) {
             H225_TransportAddress_ip6Address & rasip = gcf.m_rasAddress;
 			unsigned sum = 0;
@@ -1915,7 +1916,8 @@ template<> bool RasPDU<H225_GatekeeperRequest>::Process()
 			if (sum == 0) {
 				gcf.m_rasAddress = SocketToH225TransportAddr(Toolkit::Instance()->GetRouteTable()->GetLocalAddress(m_msg->m_peerAddr), unicastRasPort);
 			}
-            rasip.m_port = unicastRasPort;
+            // don't use rasip here, the assignment above may have replaced the object it refers to
+            SetH225Port(gcf.m_rasAddress, unicastRasPort);
 		}
 		gcf.IncludeOptionalField(H225_GatekeeperConfirm::e_gatekeeperIdentifier);
 		gcf.m_gatekeeperIdentifier = Toolkit::GKName();
