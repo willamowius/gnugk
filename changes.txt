@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(ProxyChannel.cxx) block Connect or CallProceeding without a call
 - BUGFIX(gksql_odbc.cxx) detect if backend needs backslash escaping
 - BUGFIX(gkauth.cxx, Routing.cxx, httpacct.cxx) only accept 2xx HTTP responses as valid
 - BUGFIX(ProxyChannel.*) use correct buffer size when acting as encryption proxy

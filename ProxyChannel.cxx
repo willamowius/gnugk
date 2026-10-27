@@ -6670,6 +6670,11 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 		m_result = Error;
 		return;
 	}
+	if (!m_call) {
+		// CallProceeding without a preceding Setup: nothing to process, Dispatch() will send a ReleaseComplete
+		PTRACE(2, Type() << "\tError: CallProceeding message from " << Name() << " without associated call");
+		return;
+	}
 	m_callerSocket = false;	// update for persistent H.460.17 sockets where this property can change
 
 #ifdef HAS_AVAYA_SUPPORT
@@ -6893,6 +6898,11 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 		PTRACE(2, Type() << "\tError: Connect message from " << Name() << " without associated UUIE");
 		SNMP_TRAP(9, SNMPError, Network, "Connect from " + GetName() + " has no UUIE");
 		m_result = Error;
+		return;
+	}
+	if (!m_call) {
+		// Connect without a preceding Setup: nothing to process, Dispatch() will send a ReleaseComplete
+		PTRACE(2, Type() << "\tError: Connect message from " << Name() << " without associated call");
 		return;
 	}
 	m_callerSocket = false;	// update for persistent H.460.17 sockets where this property can change
