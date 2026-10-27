@@ -208,8 +208,10 @@ protected:
 			/// ODBC connection handle
 			SQLHDBC conn,
 			/// DSN
-			const PString & dsn
-			) : SQLConnWrapper(id, dsn), m_conn(conn) { }
+			const PString & dsn,
+			/// true if the data source treats a backslash inside a string literal as an escape character
+			bool backslashEscapes
+			) : SQLConnWrapper(id, dsn), m_conn(conn), m_backslashEscapes(backslashEscapes) { }
 
 		virtual ~GkODBCConnWrapper();
 
@@ -220,6 +222,7 @@ protected:
 
 	public:
 		SQLHDBC m_conn;
+		bool m_backslashEscapes;
 	};
 
 	/** Create a new SQL connection using parameters stored in this object.
@@ -507,7 +510,36 @@ GkSQLConnection::SQLConnPtr GkODBCConnection::CreateNewConnection(
 
 	PTRACE(5, GetName() << "\tODBC connection to " << m_database << " established successfully");
 
-	return new GkODBCConnWrapper(id, conn, m_database);
+	// MySQL / MariaDB (unless sql_mode contains NO_BACKSLASH_ESCAPES) treat a backslash inside
+	// a string literal as an escape character, so doubling the quotes alone is not enough to
+	// keep a value inside its literal. Ask the session how it reads '\\': a data source with
+	// backslash escapes returns 1 character, one that follows the SQL standard returns 2
+	// (or rejects a SELECT without FROM, which is treated as standard).
+	bool backslashEscapes = false;
+	SQLHSTMT stmt = SQL_NULL_HSTMT;
+	r = (*g_SQLAllocHandle)(SQL_HANDLE_STMT, conn, &stmt);
+	if (SQL_SUCCEEDED(r)) {
+		char data[8];
+		SQLLEN indicator = 0;
+		memset(data, 0, sizeof(data));
+		(*g_SQLSetStmtAttr)(stmt, SQL_ATTR_QUERY_TIMEOUT, reinterpret_cast<SQLPOINTER>(10), 0);
+		r = (*g_SQLExecDirect)(stmt, reinterpret_cast<SQLCHAR*>(const_cast<char*>("SELECT '\\\\'")), SQL_NTS);
+		if (SQL_SUCCEEDED(r))
+			r = (*g_SQLFetch)(stmt);
+		if (SQL_SUCCEEDED(r))
+			r = (*g_SQLGetData)(stmt, 1, SQL_C_CHAR, data, sizeof(data), &indicator);
+		if (SQL_SUCCEEDED(r) && indicator != SQL_NULL_DATA) {
+			backslashEscapes = (strcmp(data, "\\") == 0);
+			PTRACE(5, GetName() << "\tBackslash is " << (backslashEscapes ? "an" : "no") << " escape character in string literals");
+		} else {
+			PTRACE(3, GetName() << "\tCould not determine how the data source handles backslashes, assuming SQL standard: " << GetODBCDiagMsg(r, SQL_HANDLE_STMT, stmt));
+		}
+		(*g_SQLFreeHandle)(SQL_HANDLE_STMT, stmt);
+	} else {
+		PTRACE(1, GetName() << "\tFailed to allocate an ODBC statement handle: " << GetODBCDiagMsg(r, SQL_HANDLE_DBC, conn));
+	}
+
+	return new GkODBCConnWrapper(id, conn, m_database, backslashEscapes);
 }
 
 GkSQLResult* GkODBCConnection::ExecuteQuery(
@@ -635,7 +667,7 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 
 PString GkODBCConnection::EscapeString(
 	/// SQL connection to get escaping parameters from
-	SQLConnPtr /*conn*/,
+	SQLConnPtr conn,
 	/// string to be escaped
 	const char* str
 	)
@@ -650,6 +682,10 @@ PString GkODBCConnection::EscapeString(
 			++i;
 		}
 	}
+	// on a data source with backslash escapes (MySQL / MariaDB) an unescaped backslash would
+	// eat the doubled quote or the closing quote of the literal; must be done before the quotes
+	if (((GkODBCConnWrapper*)conn)->m_backslashEscapes)
+		s.Replace("\\", "\\\\", TRUE);
 	s.Replace("'", "''", TRUE);
 	return s;
 }
