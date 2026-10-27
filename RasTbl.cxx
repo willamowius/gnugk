@@ -2268,8 +2268,12 @@ bool RegistrationTable::InternalFindEP(
 	if (routes.size() > 1 && roundRobin) {
 		PTRACE(3, "Prefix apply round robin");
 		WriteLock lock(listLock);
-		endpoints->remove(routes.front().m_destEndpoint.operator->());
-		endpoints->push_back(routes.front().m_destEndpoint.operator->());
+		// the first route may come from another list (FindEndpoint() searches EndpointList
+		// and OutOfZoneList with the same route list) or may have been removed since the
+		// search above, only move the endpoint to the end if it is still in this list
+		iterator Iter = find(endpoints->begin(), endpoints->end(), routes.front().m_destEndpoint.operator->());
+		if (Iter != endpoints->end())
+			endpoints->splice(endpoints->end(), *endpoints, Iter);
 	}
 
 	if (PTrace::CanTrace(4)) {

@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(RasTbl.cxx) fix round robin routing (crash)
 - BUGFIX(ProxyChannel.cxx) ignore fastStart channel after regular channels have been established
 - BUGFIX(*) safer H.460 parameter handling
 - BUGFIX(ProxyChannel.cxx) drop impossibly large TPKT packets
