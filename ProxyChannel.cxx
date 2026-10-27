@@ -17714,6 +17714,10 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 			LogicalChannel *akalc = FindLogicalChannel(flcn);
 			if (akalc) {
 				lc = static_cast<RTPLogicalChannel *>(akalc);
+			} else if (lc->IsAttached()) {
+				// the RTP session already has a channel in each direction sharing its sockets
+				PTRACE(1, "Proxy\tError: RTP session " << id << " already has 2 logical channels, ignoring fastStart channel " << flcn);
+				lc = NULL;
 			} else {
 				logicalChannels[flcn] = sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != NULL, sessionType);
 				if (!lc->IsOpen()) {
@@ -17734,6 +17738,10 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 			LogicalChannel *akalc = peer->FindLogicalChannel(flcn);
 			if (akalc) {
 				lc = static_cast<RTPLogicalChannel *>(akalc);
+			} else if (lc->IsAttached()) {
+				// the RTP session already has a channel in each direction sharing its sockets
+				PTRACE(1, "Proxy\tError: RTP session " << id << " already has 2 logical channels, ignoring fastStart channel " << flcn);
+				lc = NULL;
 			} else {
 				peer->logicalChannels[flcn] = peer->sessionIDs[id] = lc = new RTPLogicalChannel(lc, flcn, hnat != NULL, sessionType);
 			}
