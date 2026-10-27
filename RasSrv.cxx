@@ -4331,7 +4331,8 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 	}
 
 #ifdef H323_H4609
-	if (request.HasOptionalField(H225_DisengageRequest::e_genericData)) {
+	// only accept QoS reports from registered endpoints that passed authentication
+	if (!bReject && request.HasOptionalField(H225_DisengageRequest::e_genericData)) {
 		H225_ArrayOf_GenericData & data = request.m_genericData;
 		for (PINDEX i = 0; i < data.GetSize(); i++) {
 			H460_Feature & feat = (H460_Feature &)data[i];

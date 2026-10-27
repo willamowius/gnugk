@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(RasSrv.cxx) only accept QoS reports from registered endpoints (H.460.9)
 - BUGFIX(authenticators.cxx) OpenSSL 3 fix for DES-ECB
 - BUGFIX(ProxyChannel.cxx) block Connect or CallProceeding without a call
 - BUGFIX(gksql_odbc.cxx) detect if backend needs backslash escaping
