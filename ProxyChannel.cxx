@@ -2385,7 +2385,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 				}
 				for (PINDEX j = 0; j < std17.GetParameterCount(); ++j) {
 					H460_FeatureParameter p = std17.GetFeatureParameter(j);
-					if (p.ID() == 1 && p.hasContent()) {
+					if (p.ID() == 1 && HasH460Content(p, H225_Content::e_raw)) {
 						PASN_OctetString & data = p;
 						// mark this socket as NAT socket
 						m_isnatsocket = true;
@@ -5121,7 +5121,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 				/// Std 24
 				if (feat.GetFeatureID() == H460_FeatureID(24)) {
 					H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
-					if (std24.Contains(Std24_NATInstruct)) {
+					if (HasH460Parameter(std24, Std24_NATInstruct, H225_Content::e_number8)) {
 						unsigned natstat = std24.Value(Std24_NATInstruct);
 						natoffloadsupport = (CallRec::NatStrategy)natstat;
 					}
@@ -7504,7 +7504,7 @@ PBoolean ReadRTPFrame(const Q931 & q931, H46026_UDPFrame & data)
         (uuie.m_h323_uu_pdu.m_genericData.GetSize() == 0) ||
         (!uuie.m_h323_uu_pdu.m_genericData[0].HasOptionalField(H225_GenericData::e_parameters)) ||
         (uuie.m_h323_uu_pdu.m_genericData[0].m_parameters.GetSize() == 0) ||
-        (!uuie.m_h323_uu_pdu.m_genericData[0].m_parameters[0].HasOptionalField(H225_EnumeratedParameter::e_content))
+        (!HasH460Content(uuie.m_h323_uu_pdu.m_genericData[0].m_parameters[0], H225_Content::e_raw))
         ) {
             //PTRACE(2, "H46026\tERROR Non-Media Frame structure"); // or simply a Information message with a different purpose
             return false;
@@ -7520,7 +7520,7 @@ PBoolean ReadRTPFrame(const Q931 & q931, H46026_UDPFrame & data)
         return false;
     }
     H225_GenericIdentifier & pid = uuie.m_h323_uu_pdu.m_genericData[0].m_parameters[0].m_id;
-    if (id.GetTag() != H225_GenericIdentifier::e_standard) {
+    if (pid.GetTag() != H225_GenericIdentifier::e_standard) {
         PTRACE(2, "H46026\tERROR BAD Media Parameter ID");
         return false;
     }
@@ -16530,6 +16530,10 @@ bool H245ProxyHandler::ParseTraversalParameters(
 {
 	// get the keepalive information (if present)
 	H46019_TraversalParameters params;
+	if (genericInfo.m_messageContent[0].m_parameterValue.GetTag() != H245_ParameterValue::e_octetString) {
+		PTRACE(1, "H46018\tError: TraversalParameters have wrong type");
+		return false;
+	}
 	PASN_OctetString & raw = genericInfo.m_messageContent[0].m_parameterValue;
 	if (raw.DecodeSubType(params)) {
 		PTRACE(5, "H46018\tReceived TraversalParameters = " << params);
@@ -16726,8 +16730,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
                     const PASN_ObjectId & gid = capId;
                     if (olc.m_genericInformation[i].m_messageContent.GetSize() > 0) {
                         const H245_ParameterIdentifier & ident = olc.m_genericInformation[i].m_messageContent[0].m_parameterIdentifier;
-                        const PASN_Integer & n = ident;
-                        if (gid == H46019_OID && n == 1) {
+                        if (gid == H46019_OID && ident.GetTag() == H245_ParameterIdentifier::e_standard && (const PASN_Integer &)ident == 1) {
                             unsigned payloadtype = UNDEFINED_PAYLOAD_TYPE;
                             H225_TransportAddress keepAliveRTPAddr;
                             H245_UnicastAddress keepAliveRTCPAddr;
@@ -17202,8 +17205,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
                     const PASN_ObjectId & gid = capId;
                     if (olca.m_genericInformation[i].m_messageContent.GetSize() > 0) {
                         const H245_ParameterIdentifier & ident = olca.m_genericInformation[i].m_messageContent[0].m_parameterIdentifier;
-                        const PASN_Integer & n = ident;
-                        if (gid == H46019_OID && n == 1) {
+                        if (gid == H46019_OID && ident.GetTag() == H245_ParameterIdentifier::e_standard && (const PASN_Integer &)ident == 1) {
                             unsigned payloadtype = UNDEFINED_PAYLOAD_TYPE;
                             H225_TransportAddress keepAliveRTPAddr;
                             H245_UnicastAddress keepAliveRTCPAddr;

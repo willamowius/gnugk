@@ -2699,8 +2699,9 @@ bool GkClient::WaitForACF(H225_AdmissionRequest & arq, RasRequester & request, R
 									// both support TLS, use it
 									H460_FeatureParameter & tlsparam = acf_h46022->Value(Std22_TLS);
 									H460_FeatureStd settings;
-									settings.SetCurrentTable(tlsparam);
-									if (settings.Contains(Std22_ConnectionAddress)) {
+									if (HasH460Content(tlsparam, H225_Content::e_compound))
+										settings.SetCurrentTable(tlsparam);
+									if (HasH460Parameter(settings, Std22_ConnectionAddress, H225_Content::e_transport)) {
 										H323TransportAddress tlsAddr = settings.Value(Std22_ConnectionAddress);
 										route.m_destAddr = H323ToH225TransportAddress(tlsAddr);
 										route.m_useTLS = true;
@@ -2832,7 +2833,7 @@ void GkClient::RunSTUNTest(const H323TransportAddress & addr)
 
 void GkClient::H46023_RCF(H460_FeatureStd * feat)
 {
-	if (feat->Contains(Std23_DetRASAddr)) {
+	if (HasH460Parameter(*feat, Std23_DetRASAddr, H225_Content::e_transport)) {
 		H323TransportAddress addr = feat->Value(Std23_DetRASAddr);
 		PIPSocket::Address ip;
 		addr.GetIpAddress(ip);
@@ -2845,7 +2846,7 @@ void GkClient::H46023_RCF(H460_FeatureStd * feat)
 	}
 
 	m_registeredH46023 = true;
-	if (feat->Contains(Std23_STUNAddr)) {
+	if (HasH460Parameter(*feat, Std23_STUNAddr, H225_Content::e_transport)) {
 		H323TransportAddress addr = feat->Value(Std23_STUNAddr);
 		RunSTUNTest(addr);
 	}
@@ -2861,7 +2862,7 @@ bool GkClient::H46023_TypeNotify(int & nattype)
 
 void GkClient::H46023_ACF(callptr m_call, H460_FeatureStd * feat)
 {
-    if (feat->Contains(Std24_NATInstruct)) {
+    if (HasH460Parameter(*feat, Std24_NATInstruct, H225_Content::e_number8)) {
 		unsigned NATinst = feat->Value(Std24_NATInstruct);
 
         PTRACE(4, "GKC\tH46024 strategy for call set to " << NATinst);
@@ -3317,7 +3318,7 @@ bool GkClient::HandleSetup(SetupMsg & setup, bool fromInternal)
 			if (m_registeredH46023 && FindH460Descriptor(24, fs, location)) {
 				H460_Feature feat = H460_Feature(fs[location]);
 				H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
-				if (std24.Contains(Std24_NATInstruct)) {
+				if (HasH460Parameter(std24, Std24_NATInstruct, H225_Content::e_number8)) {
 					unsigned natstat = std24.Value(Std24_NATInstruct);
 					H46023_SetNATStategy(setup.GetUUIEBody().m_callIdentifier, natstat);
 				}

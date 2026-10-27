@@ -346,11 +346,11 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 			if (Toolkit::Instance()->IsH46023Enabled()) {
 				if (feat.GetFeatureID() == H460_FeatureID(24)) {
 				   H460_FeatureStd & std24 = (H460_FeatureStd &)data[i];
-				   if (std24.Contains(Std24_RemoteNAT)) {              /// Remote supports remote NAT
+				   if (HasH460Parameter(std24, Std24_RemoteNAT, H225_Content::e_bool)) {              /// Remote supports remote NAT
 					   PBoolean supNAT = std24.Value(Std24_RemoteNAT);
 					   SetH46024(supNAT);
 				   }
-				   if (std24.Contains(Std24_IsNAT)) {                /// Remote EP is Nated
+				   if (HasH460Parameter(std24, Std24_IsNAT, H225_Content::e_bool)) {                /// Remote EP is Nated
 					   PBoolean isnat = std24.Value(Std24_IsNAT);
 					   SetNAT(isnat);
 					   if (isnat) {
@@ -359,29 +359,29 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 						   SetNATAddress(addr);
 						}
 				   }
-				   if (std24.Contains(Std24_NATdet)) {               /// Remote type of NAT
+				   if (HasH460Parameter(std24, Std24_NATdet, H225_Content::e_number8)) {               /// Remote type of NAT
 					   unsigned ntype = std24.Value(Std24_NATdet);
 					   SetEPNATType(ntype);
 				   }
-				   if (std24.Contains(Std24_ProxyNAT)) {                /// Whether the remote GK can proxy
+				   if (HasH460Parameter(std24, Std24_ProxyNAT, H225_Content::e_bool)) {                /// Whether the remote GK can proxy
 					   PBoolean supProxy = std24.Value(Std24_ProxyNAT);
 					   SetNATProxy(supProxy);
 				   }
-				   if (std24.Contains(Std24_SourceAddr)) {               /// ApparentSourceAddress
+				   if (HasH460Parameter(std24, Std24_SourceAddr, H225_Content::e_transport)) {               /// ApparentSourceAddress
 					   H323TransportAddress ta = std24.Value(Std24_SourceAddr);
 					   PIPSocket::Address addr;
 					   ta.GetIpAddress(addr);
 					   SetNATAddress(addr);
 				   }
-				   if (std24.Contains(Std24_MustProxy)) {				/// Whether this EP must proxy through GK
+				   if (HasH460Parameter(std24, Std24_MustProxy, H225_Content::e_bool)) {				/// Whether this EP must proxy through GK
 					   PBoolean mustProxy = std24.Value(Std24_MustProxy);
 					   SetInternal(mustProxy);
 				   }
-				   if (std24.Contains(Std24_AnnexA)) {					/// Whether this EP supports H.460.24 Annex A
+				   if (HasH460Parameter(std24, Std24_AnnexA, H225_Content::e_bool)) {					/// Whether this EP supports H.460.24 Annex A
 					   PBoolean annexA = std24.Value(Std24_AnnexA);
 					   SetH46024A(annexA);
 				   }
-				   if (std24.Contains(Std24_AnnexB)) {					/// Whether this EP supports H.460.24 Annex B
+				   if (HasH460Parameter(std24, Std24_AnnexB, H225_Content::e_bool)) {					/// Whether this EP supports H.460.24 Annex B
 					   PBoolean annexB = std24.Value(Std24_AnnexB);
 					   SetH46024B(annexB);
 				   }
@@ -392,9 +392,12 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 		   /// OID9 Vendor Information
 		   if (feat.GetFeatureID() == H460_FeatureID(OpalOID(OID9))) {
 			   H460_FeatureOID & oid9 = (H460_FeatureOID &)data[i];
-			   PString m_vendor = oid9.Value(PString(VendorProdOID));  // Vendor Information
-               PString m_version = oid9.Value(PString(VendorVerOID));  // Version Information
-			   SetEndpointInfo(m_vendor, m_version);
+			   if (oid9.Contains(PString(VendorProdOID)) && HasH460Content(oid9.Value(PString(VendorProdOID)), H225_Content::e_text)
+				   && oid9.Contains(PString(VendorVerOID)) && HasH460Content(oid9.Value(PString(VendorVerOID)), H225_Content::e_text)) {
+				   PString m_vendor = oid9.Value(PString(VendorProdOID));  // Vendor Information
+				   PString m_version = oid9.Value(PString(VendorVerOID));  // Version Information
+				   SetEndpointInfo(m_vendor, m_version);
+			   }
 		   }
 #endif // HAS_H460VEN
 		}
@@ -1967,7 +1970,9 @@ endptr RegistrationTable::InternalInsertOZEP(const H225_Setup_UUIE & setupBody, 
 		 if (feat.GetFeatureID() == H460_FeatureID(24)) {
 			ep->SetUsesH46023(true);
 			ep->SetH46024(true);
-			unsigned natinst = feat.Value(Std24_NATInstruct);
+			unsigned natinst = CallRec::e_natUnknown;
+			if (HasH460Parameter(feat, Std24_NATInstruct, H225_Content::e_number8))
+				natinst = feat.Value(Std24_NATInstruct);
 			switch (natinst) {
 				case CallRec::e_natAnnexA:
 					ep->SetH46024A(true);

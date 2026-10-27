@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(*) safer H.460 parameter handling
 - BUGFIX(ProxyChannel.cxx) drop impossibly large TPKT packets
 - BUGFIX(RasTbl.*) add copy-ctors for H46019KeepAlive to fix use-after-free
 - BUGFIX(ProxyChannel.cxx) fix use-after-free in call cleanup

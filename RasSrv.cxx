@@ -2265,8 +2265,9 @@ bool RegistrationRequestPDU::Process()
 			if (supportH46022TLS) {
 				H460_FeatureParameter & tlsparam = secfeat->Value(Std22_TLS);
 				H460_FeatureStd settings;
-				settings.SetCurrentTable(tlsparam);
-				if (settings.Contains(Std22_ConnectionAddress)) {
+				if (HasH460Content(tlsparam, H225_Content::e_compound))
+					settings.SetCurrentTable(tlsparam);
+				if (HasH460Parameter(settings, Std22_ConnectionAddress, H225_Content::e_transport)) {
 					tlsAddr = settings.Value(Std22_ConnectionAddress);
 				} else {
 					PTRACE(1, "TLS\tError: H.460.22 TLS address missing");
@@ -2282,16 +2283,16 @@ bool RegistrationRequestPDU::Process()
 			if (supportH46023) {
 				H460_FeatureStd * natfeat = (H460_FeatureStd *)fs.GetFeature(23);
 				// Check whether the endpoint supports Remote Nat directly (NATOffload)
-				if (natfeat->Contains(Std23_RemoteNAT))
+				if (HasH460Parameter(*natfeat, Std23_RemoteNAT, H225_Content::e_bool))
 					supportH46024 = natfeat->Value(Std23_RemoteNAT);
 				// Check whether the endpoint supports SameNAT H.460.24AnnexA
-				if (natfeat->Contains(Std23_AnnexA))
+				if (HasH460Parameter(*natfeat, Std23_AnnexA, H225_Content::e_bool))
 					supportH46024A = natfeat->Value(Std23_AnnexA);
 				// Check whether the endpoint supports offload H.460.24AnnexB
-				if (natfeat->Contains(Std23_AnnexB))
+				if (HasH460Parameter(*natfeat, Std23_AnnexB, H225_Content::e_bool))
 					supportH46024B = natfeat->Value(Std23_AnnexB);
 				// Check if the endpoint is notifying the Gk the type of NAT detected
-				if (natfeat->Contains(Std23_NATdet))
+				if (HasH460Parameter(*natfeat, Std23_NATdet, H225_Content::e_number8))
 					ntype = natfeat->Value(Std23_NATdet);
 			}
 		}
@@ -2302,7 +2303,7 @@ bool RegistrationRequestPDU::Process()
 			presenceSupport = fs.HasFeature(rPreFS);
 			if (presenceSupport) {
 				H460_FeatureOID * feat = (H460_FeatureOID *)fs.GetFeature(rPreFS);
-				presencePDU = feat->Contains(OID3_PDU);
+				presencePDU = feat->Contains(OID3_PDU) && HasH460Content(feat->Value(OID3_PDU), H225_Content::e_raw);
 				if (presencePDU) {
 					PASN_OctetString & prePDU = feat->Value(OID3_PDU);
 					preFeature = prePDU;
@@ -2314,11 +2315,11 @@ bool RegistrationRequestPDU::Process()
 #ifdef HAS_H460PRE
 		if (fs.HasFeature(rPriFS)) {
 			H460_FeatureOID * feat = (H460_FeatureOID *)fs.GetFeature(rPriFS);
-			if (feat->Contains(OID6_Priority)) {
+			if (feat->Contains(OID6_Priority) && HasH460Content(feat->Value(PString(OID6_Priority)), H225_Content::e_number8)) {
 				unsigned prior = feat->Value(PString(OID6_Priority));
 				RegPrior = (int)prior;
 			}
-			if (feat->Contains(OID6_Preempt)) {
+			if (feat->Contains(OID6_Preempt) && HasH460Content(feat->Value(PString(OID6_Preempt)), H225_Content::e_bool)) {
 				preemptsupport = true;
 				preempt = feat->Value(PString(OID6_Preempt));
 			}
@@ -3668,7 +3669,7 @@ bool AdmissionRequestPDU::Process()
 				if (feat.GetFeatureID() == H460_FeatureID(24)) {
 					natsupport = true;
 					H460_FeatureStd & std24 = (H460_FeatureStd &)feat;
-					if (std24.Contains(Std24_NATInstruct)) {
+					if (HasH460Parameter(std24, Std24_NATInstruct, H225_Content::e_number8)) {
 						unsigned natstat = std24.Value(Std24_NATInstruct);
 						natoffloadsupport = (CallRec::NatStrategy)natstat;
 					}
@@ -4337,7 +4338,7 @@ template<> bool RasPDU<H225_DisengageRequest>::Process()
 			/// H.460.9 QoS Feature
 			if (feat.GetFeatureID() == H460_FeatureID(9)) {
 				H460_FeatureStd & qosfeat = (H460_FeatureStd &)feat;
-				if (qosfeat.Contains(1)) {
+				if (HasH460Parameter(qosfeat, 1, H225_Content::e_raw)) {
 					CallTbl->QoSReport(*this, ep, qosfeat.Value(1));
 				}
 			}
@@ -4764,7 +4765,7 @@ template<> bool RasPDU<H225_InfoRequestResponse>::Process()
 				/// H.460.9 QoS Feature
 				if (feat.GetFeatureID() == H460_FeatureID(9)) {
 					H460_FeatureStd & qosfeat = (H460_FeatureStd &)feat;
-					if (qosfeat.Contains(1)) {
+					if (HasH460Parameter(qosfeat, 1, H225_Content::e_raw)) {
 						CallTbl->QoSReport(*this, call, ep , qosfeat.Value(1));
 					}
 				}
@@ -4857,8 +4858,9 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 				if (useTLS) {
 					H460_FeatureParameter & tlsparam = secfeat->Value(Std22_TLS);
 					H460_FeatureStd settings;
-					settings.SetCurrentTable(tlsparam);
-					if (settings.Contains(Std22_ConnectionAddress)) {
+					if (HasH460Content(tlsparam, H225_Content::e_compound))
+						settings.SetCurrentTable(tlsparam);
+					if (HasH460Parameter(settings, Std22_ConnectionAddress, H225_Content::e_transport)) {
 						tlsAddr = settings.Value(Std22_ConnectionAddress);
 					} else {
 						PTRACE(1, "TLS\tError: H.460.22 TLS address missing");
@@ -4889,7 +4891,7 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 		if (fromParent || (from_neighbor && neighbor_authenticated)) {
 			for (PINDEX i = 0; i < request.m_genericData.GetSize(); i++) {
 				H460_FeatureStd & feat = (H460_FeatureStd &)request.m_genericData[i];
-				if (feat.GetFeatureID() == H460_FeatureID(18) && feat.Contains(H460_FeatureID(1))) {
+				if (feat.GetFeatureID() == H460_FeatureID(18) && HasH460Parameter(feat, H460_FeatureID(1), H225_Content::e_raw)) {
 					// incoming call from parent or neighbor
 					PASN_OctetString rawIncomingIndication = feat.Value(H460_FeatureID(1));
 					H46018_IncomingCallIndication incomingIndication;
@@ -4980,7 +4982,7 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 		OpalOID oid3(OID3);
 		if (fs.HasFeature(oid3) && Toolkit::Instance()->IsH460PEnabled()) {
 			H460_FeatureOID * feat = (H460_FeatureOID *)fs.GetFeature(oid3);
-			if (feat->Contains(OID3_PDU)) {
+			if (feat->Contains(OID3_PDU) && HasH460Content(feat->Value(OID3_PDU), H225_Content::e_raw)) {
 				PASN_OctetString & prePDU = feat->Value(OID3_PDU);
 				GkPresence & handler  = Toolkit::Instance()->GetPresenceHandler();
 				handler.ProcessPresenceElement(prePDU);
@@ -5016,7 +5018,7 @@ template<> bool RasPDU<H225_ServiceControlResponse>::Process()
                     if (fs.HasFeature(18) && Toolkit::Instance()->IsH46018Enabled()) {
                         for (PINDEX i = 0; i < request.m_genericData.GetSize(); i++) {
                             H460_FeatureStd & feat = (H460_FeatureStd &)request.m_genericData[i];
-                            if (feat.Contains(H460_FeatureID(2))) {
+                            if (HasH460Parameter(feat, H460_FeatureID(2), H225_Content::e_raw)) {
                                 PASN_OctetString rawKeepAlive = feat.Value(H460_FeatureID(2));
                                 H46018_LRQKeepAliveData lrqKeepAlive;
                                 PPER_Stream raw(rawKeepAlive);

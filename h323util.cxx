@@ -1085,6 +1085,26 @@ void AddH460Feature(H225_ArrayOf_FeatureDescriptor & desc, const H460_Feature & 
     desc.SetSize(lastpos+1);
     desc[lastpos] = newFeat;
 }
+
+static bool IsH460Number(unsigned contentType)
+{
+	return contentType == H225_Content::e_number8
+		|| contentType == H225_Content::e_number16
+		|| contentType == H225_Content::e_number32;
+}
+
+bool HasH460Content(const H225_EnumeratedParameter & param, unsigned contentType)
+{
+	if (!param.HasOptionalField(H225_EnumeratedParameter::e_content))
+		return false;
+	unsigned tag = param.m_content.GetTag();
+	return tag == contentType || (IsH460Number(tag) && IsH460Number(contentType));
+}
+
+bool HasH460Parameter(H460_Feature & feat, const H460_FeatureID & id, unsigned contentType)
+{
+	return feat.Contains(id) && HasH460Content(feat.Value(id), contentType);
+}
 #endif
 
 unsigned ProtocolVersion(const char * protocolIdentifier)

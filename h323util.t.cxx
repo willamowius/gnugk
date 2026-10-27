@@ -17,6 +17,9 @@
 #include "gk_const.h"
 #include "Toolkit.h"
 #include <h323pdu.h>
+#ifdef HAS_H460
+#include <h460/h4601.h>
+#endif
 #include "gtest/gtest.h"
 
 namespace {
@@ -474,5 +477,28 @@ TEST_F(H323UtilTest, OIDCompare) {
     EXPECT_TRUE(OIDCmp(oid1, oid2) < 0);
     EXPECT_TRUE(OIDCmp(oid2, oid1) > 0);
 }
+
+#ifdef HAS_H460
+TEST_F(H323UtilTest, HasH460Parameter) {
+    H460_FeatureStd feat(18);
+    EXPECT_FALSE(HasH460Parameter(feat, 1, H225_Content::e_raw));   // no parameters at all
+    PASN_OctetString raw;
+    feat.Add(1, H460_FeatureContent(raw));
+    feat.Add(2, H460_FeatureContent(5, 16));
+    feat.Add(3);    // parameter without content
+    EXPECT_TRUE(HasH460Parameter(feat, 1, H225_Content::e_raw));
+    EXPECT_FALSE(HasH460Parameter(feat, 1, H225_Content::e_number32));
+    EXPECT_FALSE(HasH460Parameter(feat, 1, H225_Content::e_compound));
+    EXPECT_TRUE(HasH460Parameter(feat, 2, H225_Content::e_number16));
+    EXPECT_TRUE(HasH460Parameter(feat, 2, H225_Content::e_number8));    // all number sizes are PASN_Integer
+    EXPECT_TRUE(HasH460Parameter(feat, 2, H225_Content::e_number32));
+    EXPECT_FALSE(HasH460Parameter(feat, 2, H225_Content::e_raw));
+    EXPECT_FALSE(HasH460Parameter(feat, 2, H225_Content::e_bool));
+    EXPECT_FALSE(HasH460Parameter(feat, 3, H225_Content::e_raw));
+    EXPECT_FALSE(HasH460Parameter(feat, 4, H225_Content::e_raw));   // no such parameter
+    EXPECT_TRUE(HasH460Content(feat.Value(1), H225_Content::e_raw));
+    EXPECT_FALSE(HasH460Content(feat.Value(3), H225_Content::e_raw));
+}
+#endif
 
 }  // namespace

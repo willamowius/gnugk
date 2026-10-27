@@ -33,7 +33,9 @@ class H225_ArrayOf_AliasAddress;
 class H245_TransportAddress;
 class H245_UnicastAddress;
 class PASN_OctetString;
+class H225_EnumeratedParameter;
 class H460_Feature;
+class H460_FeatureID;
 class NetworkAddress;
 class IPAndPortAddress;
 
@@ -304,6 +306,13 @@ void RemoveH460Descriptor(unsigned feat, H225_ArrayOf_FeatureDescriptor & featur
 
 #ifdef HAS_H460
 void AddH460Feature(H225_ArrayOf_FeatureDescriptor & desc, const H460_Feature & newFeat);
+
+// check that a received parameter has content of the expected type (H225_Content::Choices, number8/16/32 are all the same)
+// H323Plus casts H460_FeatureParameter to any type without checking, so this must be done before using a parameter value
+bool HasH460Content(const H225_EnumeratedParameter & param, unsigned contentType);
+
+// check that the feature contains the parameter and that it has content of the expected type
+bool HasH460Parameter(H460_Feature & feat, const H460_FeatureID & id, unsigned contentType);
 #endif
 
 // extract the version digit from H.225 or H.245 prodtocolIdentifier strings
