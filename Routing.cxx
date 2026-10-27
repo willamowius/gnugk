@@ -2352,6 +2352,7 @@ void HttpPolicy::RunPolicy(
 
 #ifdef HAS_LIBCURL
     CURLcode curl_res = CURLE_FAILED_INIT;
+    long http_code = 0;
     CURL * curl = curl_easy_init();
     if (curl) {
         struct curl_slist *headerlist = NULL;
@@ -2379,12 +2380,20 @@ void HttpPolicy::RunPolicy(
             (void)curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
         }
         curl_res = curl_easy_perform(curl);
+        if (curl_res == CURLE_OK) {
+            (void)curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+        }
         curl_slist_free_all(headerlist);
         curl_easy_cleanup(curl);
     }
 
     if (curl_res != CURLE_OK) {
         PTRACE(2, m_name << "\tCould not get routing destination from " << host << " : " << curl_easy_strerror(curl_res));
+        return;
+    }
+    // same as PTLib's PHTTPClient: only a 2xx response counts as success
+    if (http_code / 100 != 2) {
+        PTRACE(2, m_name << "\tCould not get routing destination from " << host << " : HTTP status " << http_code);
         return;
     }
 #else

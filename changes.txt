@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(gkauth.cxx, Routing.cxx, httpacct.cxx) only accept 2xx HTTP responses as valid
 - BUGFIX(ProxyChannel.*) use correct buffer size when acting as encryption proxy
 - BUGFIX(RasTbl.cxx) fix round robin routing (crash)
 - BUGFIX(ProxyChannel.cxx) ignore fastStart channel after regular channels have been established
