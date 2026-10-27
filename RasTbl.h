@@ -720,7 +720,9 @@ class H46019KeepAlive
 {
 public:
 	H46019KeepAlive();
+	H46019KeepAlive(const H46019KeepAlive & other);
 	~H46019KeepAlive();
+	H46019KeepAlive & operator=(const H46019KeepAlive & other);
 
 	void SendKeepAlive(GkTimer* timer);
 	void StopKeepAlive();

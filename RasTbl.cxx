@@ -2,7 +2,7 @@
 //
 // bookkeeping for RAS-Server in H.323 gatekeeper
 //
-// Copyright (c) 2000-2025, Jan Willamowius
+// Copyright (c) 2000-2026, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -2754,9 +2754,35 @@ H46019KeepAlive::H46019KeepAlive()
 	timer = GkTimerManager::INVALID_HANDLE;
 }
 
+H46019KeepAlive::H46019KeepAlive(const H46019KeepAlive & other)
+{
+	ossocket = INVALID_OSSOCKET;
+	timer = GkTimerManager::INVALID_HANDLE;
+	*this = other;
+}
+
 H46019KeepAlive::~H46019KeepAlive()
 {
 	StopKeepAlive();
+}
+
+H46019KeepAlive & H46019KeepAlive::operator=(const H46019KeepAlive & other)
+{
+	if (this == &other)
+		return *this;
+	// the timer is registered on the address of its object, so it must never be copied:
+	// stop our old keepalive (if any), the copy has to be started again with StartRTPKeepAlive()
+	StopKeepAlive();
+	flcn = other.flcn;
+	type = other.type;
+	dest = other.dest;
+	interval = other.interval;
+	seq = other.seq;
+	multiplexID = other.multiplexID;
+	payloadType = other.payloadType;
+	gkIP = other.gkIP;
+	gkIPptr = other.gkIPptr ? &gkIP : NULL;	// must point to our own copy
+	return *this;
 }
 
 void H46019KeepAlive::StopKeepAlive()

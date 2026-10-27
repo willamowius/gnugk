@@ -1729,6 +1729,12 @@ bool TCPProxySocket::ReadTPKT()
 
 bool TCPProxySocket::InternalWrite(const PBYTEArray & buf)
 {
+	// the TPKT length field is only 16 bit and includes the header: a message that
+	// doesn't fit must be dropped here, before the size is truncated to WORD below
+	if (buf.GetSize() > (PINDEX)(65535 - sizeof(TPKTV3))) {
+		PTRACE(1, Type() << "\t" << GetName() << " Error: Message too large for TPKT: " << buf.GetSize());
+		return false;
+	}
 	WORD len = (WORD)buf.GetSize(), tlen = len + sizeof(TPKTV3);
 	PBYTEArray tbuf(tlen);
 	BYTE *bptr = tbuf.GetPointer();
