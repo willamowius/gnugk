@@ -1940,6 +1940,14 @@ void CallSignalSocket::CleanupCall()
 		m_h46026PriorityQueue->BufferRelease(0);	// clear buffers for all calls on this socket
 #endif
 	// clear the call
+	if (m_call) {
+		// take this socket out of the CallRec, the d'tor can't do it anymore once m_call is cleared
+		if (m_call->GetCallSignalSocketCalling() == this) {
+			m_call->SetCallSignalSocketCalling(NULL);
+		} else if (m_call->GetCallSignalSocketCalled() == this) {
+			m_call->SetCallSignalSocketCalled(NULL);
+		}
+	}
 	m_call = callptr(NULL);
 	m_crv = 0;
 

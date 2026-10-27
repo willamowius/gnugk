@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(ProxyChannel.cxx) fix use-after-free in call cleanup
 - BUGFIX(RasSrv.cxx) fix use-after-free
 - BUGFIX(gksql_redis.cxx, gksql_mysql.cxx) fix resource leak
 - BUGFIX(gkh235.cxx, gkauth.cxx, lua.cxx) better guard against empty passwords
