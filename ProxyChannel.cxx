@@ -1420,6 +1420,8 @@ protected:
 	RTPLogicalChannel *CreateFastStartLogicalChannel(WORD sessionId, RTPSessionTypes sessionType);
 	T120LogicalChannel *CreateT120LogicalChannel(WORD sessionId);
 	bool RemoveLogicalChannel(WORD flcn);
+	void ForgetLogicalChannel(const LogicalChannel * lc);
+	void DeleteLogicalChannel(LogicalChannel * lc);
 	void DumpChannels(const PString & msg, bool dumpPeer = true) const;
 
 	std::map<WORD, LogicalChannel *> logicalChannels;
@@ -12489,11 +12491,6 @@ ProxySocket::Result MultiplexedH245Socket::ReceiveData()
 
 namespace { // anonymous namespace
 
-inline bool compare_lc(pair<const WORD, RTPLogicalChannel *> p, const LogicalChannel * lc)
-{
-	return p.second == lc;
-}
-
 bool IsSeparateLANStack(const H245_DataType & data)
 {
 	if (data.GetTag() == H245_DataType::e_data) {
@@ -16370,17 +16367,15 @@ H245ProxyHandler::H245ProxyHandler(const H225_CallIdentifier & id, const PIPSock
 
 H245ProxyHandler::~H245ProxyHandler()
 {
-	// TODO: H.460.19 fastStart handling doesn't seem right and creates a leak
-	if (peer) {
-		if (peer->UsesH46019fc())
-			return;
-		peer->peer = NULL;
-	}
-	if (UsesH46019fc())
-		return;
+	if (peer)
+		peer->peer = NULL;	// always unlink, so the peer isn't left with a pointer to this deleted object
 
-	DeleteObjectsInMap(logicalChannels);
-	DeleteObjectsInMap(fastStartLCs);
+	// with H.460.19 fastStart a channel can be in more than one map and also in the maps of the peer,
+	// DeleteLogicalChannel() removes it from all of them, so it is only deleted once
+	while (!logicalChannels.empty())
+		DeleteLogicalChannel(logicalChannels.begin()->second);
+	while (!fastStartLCs.empty())
+		DeleteLogicalChannel(fastStartLCs.begin()->second);
 }
 
 bool H245ProxyHandler::HandleRequest(H245_RequestMessage & Request, callptr & call, const PIPSocket::Address & sourceIP)
@@ -18008,17 +18003,41 @@ bool H245ProxyHandler::RemoveLogicalChannel(WORD flcn)
 		PTRACE(3, "Proxy\tError: Logical channel " << flcn << " not found for removing");
 		return false;
 	}
-	LogicalChannel * lc = iter->second;
-#if (__cplusplus >= 201703L) // C++17
-	siterator i = find_if(sessionIDs.begin(), sessionIDs.end(), bind(compare_lc, std::placeholders::_1, lc));
-#else
-	siterator i = find_if(sessionIDs.begin(), sessionIDs.end(), bind2nd(std::ptr_fun(compare_lc), lc));
-#endif
-	if (i != sessionIDs.end())
-		sessionIDs.erase(i);
-	logicalChannels.erase(iter);
-	delete lc;
+	DeleteLogicalChannel(iter->second);
 	return true;
+}
+
+// remove all references to a logical channel from the maps of this handler
+void H245ProxyHandler::ForgetLogicalChannel(const LogicalChannel * lc)
+{
+	for (iterator i = logicalChannels.begin(); i != logicalChannels.end(); ) {
+		if (i->second == lc)
+			logicalChannels.erase(i++);
+		else
+			++i;
+	}
+	for (siterator i = sessionIDs.begin(); i != sessionIDs.end(); ) {
+		if (i->second == lc)
+			sessionIDs.erase(i++);
+		else
+			++i;
+	}
+	for (siterator i = fastStartLCs.begin(); i != fastStartLCs.end(); ) {
+		if (i->second == lc)
+			fastStartLCs.erase(i++);
+		else
+			++i;
+	}
+}
+
+// delete a logical channel and remove it from all maps of this handler and its peer,
+// with H.460.19 fastStart the same channel can be in the maps of both handlers
+void H245ProxyHandler::DeleteLogicalChannel(LogicalChannel * lc)
+{
+	ForgetLogicalChannel(lc);
+	if (peer)
+		peer->ForgetLogicalChannel(lc);
+	delete lc;
 }
 
 void H245ProxyHandler::SetRequestRTPMultiplexing(bool epCanTransmitMultiplexed)
