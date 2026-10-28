@@ -778,7 +778,10 @@ bool FixH46024Multiplexing(const H225_ArrayOf_GenericData & data, H225_FeatureSe
 				features.IncludeOptionalField(H225_FeatureSet::e_supportedFeatures);
 				H225_ArrayOf_FeatureDescriptor & supportedFeatures = features.m_supportedFeatures;
 				int sz = supportedFeatures.GetSize();
-				supportedFeatures.SetSize(sz + 1);
+				if (!supportedFeatures.SetSize(sz + 1)) {
+					PTRACE(2, "H46023\tError: Maximum ASN.1 array size reached (" << PASN_Object::GetMaximumArraySize() << ")");
+					return false;
+				}
 				supportedFeatures[sz] = (const H225_FeatureDescriptor &)data[i];
 				PTRACE(4, "H46023\tCorrecting message in generic field");
 				return true;
@@ -3684,8 +3687,11 @@ bool AddH235Capability(unsigned entryNo, const PStringList & capList,
             int ns = alternate.GetSize();
 	        for (PINDEX m = 0; m < ns; m++) {
 		        if (alternate[m].GetValue() == entryNo) {
-                   alternate.SetSize(ns + 1);
-                   alternate[ns] = secCapNo;
+                   if (alternate.SetSize(ns + 1)) {
+                       alternate[ns] = secCapNo;
+                   } else {
+                       PTRACE(2, "H235\tError: Maximum ASN.1 array size reached (" << PASN_Object::GetMaximumArraySize() << ")");
+                   }
                    break;
 		        }
 	        }
@@ -4627,6 +4633,10 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 					PStringArray tokens = sinfo.Tokenise("|", FALSE);
 					for (PINDEX i = 0; i < tokens.GetSize(); ++i) {
 						int sourceAdrSize = setupBody.m_sourceAddress.GetSize();
+						if (sourceAdrSize + 2 > PASN_Object::GetMaximumArraySize()) {
+							PTRACE(1, "Too many aliases in Sorenson source info: Maximum ASN.1 array size reached (" << PASN_Object::GetMaximumArraySize() << ")");
+							break;
+						}
 						if (tokens[i].Left(4) == "0007") {
 							PString e164 = tokens[i].Mid(4);
 							if (IsValidE164(e164)) {
@@ -6569,9 +6579,7 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 					else if (strat == CallRec::e_natLocalProxy)  strat = CallRec::e_natRemoteProxy;
 
 					std24.Add(Std24_NATInstruct,H460_FeatureContent((int)strat, 8));
-					PINDEX lastpos = fsn.GetSize();
-					fsn.SetSize(lastpos + 1);
-					fsn[lastpos] = std24;
+					AddH460Feature(fsn, std24);
 				} else if (!m_calledh46023 && natfound) {  // Remove H460.23 from Supported Features.
 					for (PINDEX j = id; j < fsn.GetSize() - 1; ++j) {
 						fsn[j] = fsn[j + 1];
@@ -17086,9 +17094,12 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
                         }
                     olc.IncludeOptionalField(H245_OpenLogicalChannel::e_genericInformation);
                     int sz = olc.m_genericInformation.GetSize();
-                    olc.m_genericInformation.SetSize(sz + 1);
-                    olc.m_genericInformation[sz] = alt;
-                    changed = true;
+                    if (olc.m_genericInformation.SetSize(sz + 1)) {
+                        olc.m_genericInformation[sz] = alt;
+                        changed = true;
+                    } else {
+                        PTRACE(2, "H46024A\tError: Maximum ASN.1 array size reached (" << PASN_Object::GetMaximumArraySize() << ")");
+                    }
                 }
             }
         }

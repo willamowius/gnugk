@@ -766,7 +766,10 @@ bool EndpointRec::SetAliases(const H225_ArrayOf_AliasAddress & a, PBoolean addit
 					found = true;
 			}
 			if (!found) {
-				m_terminalAliases.SetSize(sz + 1);
+				if (!m_terminalAliases.SetSize(sz + 1)) {
+					PTRACE(2, "RAS\tError: Maximum ASN.1 array size reached (" << PASN_Object::GetMaximumArraySize() << ")");
+					break;
+				}
 				m_terminalAliases[sz] = a[i];
 				added = true;
 			}
@@ -5141,7 +5144,10 @@ void CallRec::BuildH46024AnnexBRequest(bool initiate,H245_MultimediaSystemContro
 			continue;
 		}
 		int sz = addrs.GetSize();
-		addrs.SetSize(sz + 1);
+		if (!addrs.SetSize(sz + 1)) {
+			PTRACE(2, "H46024B\tError: Maximum ASN.1 array size reached (" << PASN_Object::GetMaximumArraySize() << ")");
+			break;
+		}
 		H46024B_AlternateAddress addr;
 		addr.m_sessionID = i->first;
 		addr.IncludeOptionalField(H46024B_AlternateAddress::e_rtpAddress);

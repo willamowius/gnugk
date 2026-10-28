@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(*) check ASN.1 array size when adding
 - BUGFIX(RasTbl.*) protect access to keep-alive maps with a mutex
 - BUGFIX(gkh235.cxx, gkauth.*) fix auth bypass with unknown token OIDs
 - BUGFIX(ProxyChannel.cxx) don't crash on H.460.19 OLC without mediaControlChannel

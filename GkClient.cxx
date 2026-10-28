@@ -3337,10 +3337,7 @@ bool GkClient::HandleSetup(SetupMsg & setup, bool fromInternal)
 			CallRec::NatStrategy natoffload = H46023_GetNATStategy(setupBody.m_callIdentifier);
 			H460_FeatureStd feat = H460_FeatureStd(24);
 			feat.Add(Std24_NATInstruct, H460_FeatureContent((unsigned)natoffload, 8));
-			H225_ArrayOf_FeatureDescriptor & desc = setupBody.m_supportedFeatures;
-			int sz = desc.GetSize();
-			desc.SetSize(sz + 1);
-			desc[sz] = feat;
+			AddH460Feature(setupBody.m_supportedFeatures, feat);
 		}
 #endif
 		if (setupBody.m_supportedFeatures.GetSize() > 0)

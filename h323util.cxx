@@ -1100,7 +1100,10 @@ void RemoveH460Descriptor(unsigned feat, H225_ArrayOf_FeatureDescriptor & featur
 void AddH460Feature(H225_ArrayOf_FeatureDescriptor & desc, const H460_Feature & newFeat)
 {
     PINDEX lastpos = desc.GetSize();
-    desc.SetSize(lastpos+1);
+    if (!desc.SetSize(lastpos+1)) {
+        PTRACE(2, "H460\tError: Maximum ASN.1 array size reached (" << PASN_Object::GetMaximumArraySize() << "), feature not added");
+        return;
+    }
     desc[lastpos] = newFeat;
 }
 
