@@ -4564,17 +4564,6 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 						}
 					}
 #endif
-
-/* The access token should be standardized somehow and use a correct object
-   identifier. As it does not (currently), we disable it to remove interop problems.
-				PINDEX s = 0;
-				if (lcf.HasOptionalField(H225_LocationConfirm::e_cryptoTokens))
-					s = lcf.m_cryptoTokens.GetSize();
-				else
-					lcf.IncludeOptionalField(H225_LocationConfirm::e_cryptoTokens);
-				lcf.m_cryptoTokens.SetSize(s + 1);
-				lcf.m_cryptoTokens[s] = Neighbors::BuildAccessToken(*dest, ipaddr);
-*/
 				} else {
 					// in direct mode
 					lcf.m_callSignalAddress = route.m_destAddr;

@@ -17,7 +17,6 @@
 #include <ptclib/pdns.h>
 #include <ptclib/enum.h>
 #include <h323pdu.h>
-#include <ptclib/cypher.h>
 #include "gk_const.h"
 #include "stl_supp.h"
 #include "GkClient.h"
@@ -32,10 +31,6 @@
 #ifdef HAS_H460
 	#include <h460/h4601.h>
 #endif
-
-#ifdef P_SSL
-#include <openssl/rand.h>
-#endif // P_SSL
 
 using std::multimap;
 using std::make_pair;
@@ -128,9 +123,6 @@ namespace { // anonymous namespace
 	SimpleCreator<CiscoGK> CiscoGKCreator("CiscoGK");
 	SimpleCreator<ClarentGK> ClarentGKCreator("ClarentGK");
 	SimpleCreator<GlonetGK> GlonetGKCreator("GlonetGK");
-
-	int challenge;
-	const char * const OID_T = "0.0.8.235.0.2.5";
 }
 
 // if we put nomatch into anonymous namespace,
@@ -1685,14 +1677,6 @@ NeighborList::~NeighborList()
 
 void NeighborList::OnReload()
 {
-#ifdef P_SSL
-    // if we have OpenSSL, use it for random number generation, fall back on stdlib rand()
-    if(RAND_bytes((unsigned char *)&challenge, sizeof(challenge)) != 1) {
-        challenge = rand();
-    }
-#else
-    challenge = rand();
-#endif
 	PStringToString cfgs(GkConfig()->GetAllKeyValues(NeighborSection));
 	PINDEX i, sz = cfgs.GetSize();
 	List::iterator iter = m_neighbors.begin();
@@ -1881,70 +1865,6 @@ bool NeighborList::GetNeighborTLSBySigAdr(const H225_TransportAddress & sigAd)
 	}
 	return GetNeighborTLSBySigAdr(ipaddr);
 }
-
-/* Not used currently
-H225_CryptoH323Token BuildAccessToken(const H225_TransportAddress & dest, const PIPSocket::Address & addr)
-{
-	H225_CryptoH323Token token;
-	token.SetTag(H225_CryptoH323Token::e_nestedcryptoToken);
-	H235_CryptoToken & nestedCryptoToken = token;
-	nestedCryptoToken.SetTag(H235_CryptoToken::e_cryptoHashedToken);
-
-	H235_CryptoToken_cryptoHashedToken & cryptoHashedToken = nestedCryptoToken;
-	// "T" indicates that the hashed token is used for authentication and integrity
-	cryptoHashedToken.m_tokenOID = OID_T;
-
-	H235_ClearToken & clearToken = cryptoHashedToken.m_hashedVals;
-	clearToken.IncludeOptionalField(H235_ClearToken::e_timeStamp);
-	time_t timeStamp = time(0);
-	clearToken.m_timeStamp = timeStamp;
-
-	DWORD key = (DWORD)(addr ^ timeStamp ^ challenge);
-	PTEACypher::Key cryptokey;
-	memset(&cryptokey, challenge, sizeof(PTEACypher::Key));
-	memcpy(&cryptokey, &key, sizeof(DWORD));
-	PTEACypher cypher(cryptokey);
-
-	PPER_Stream strm;
-	dest.Encode(strm);
-	PString hashed(cypher.Encode(strm));
-
-	cryptoHashedToken.m_token.m_hash.SetData(hashed.GetLength() * 8, hashed);
-	return token;
-}
-*/
-
-bool DecodeAccessToken(const H225_CryptoH323Token & token, const PIPSocket::Address & addr, H225_TransportAddress & dest)
-{
-	if (token.GetTag() != H225_CryptoH323Token::e_nestedcryptoToken)
-		return false;
-	const H235_CryptoToken & nestedCryptoToken = token;
-	if (nestedCryptoToken.GetTag() != H235_CryptoToken::e_cryptoHashedToken)
-		return false;
-	const H235_CryptoToken_cryptoHashedToken & cryptoHashedToken = nestedCryptoToken;
-	if (cryptoHashedToken.m_tokenOID.AsString() != OID_T)
-		return false;
-
-	const H235_ClearToken & clearToken = cryptoHashedToken.m_hashedVals;
-	if (!clearToken.HasOptionalField(H235_ClearToken::e_timeStamp))
-		return false;
-	time_t now = time(0), timeStamp = clearToken.m_timeStamp.GetValue();
-	if (timeStamp > now || (now - timeStamp) > 30)
-		return false;
-
-	const PASN_BitString & bitstring = cryptoHashedToken.m_token.m_hash;
-	PString hashed((const char *)bitstring.GetDataPointer(), bitstring.GetSize() / 8);
-
-	DWORD key = (DWORD)(addr ^ timeStamp ^ challenge);
-	PTEACypher::Key cryptokey;
-	memset(&cryptokey, challenge, sizeof(PTEACypher::Key));
-	memcpy(&cryptokey, &key, sizeof(DWORD));
-	PTEACypher cypher(cryptokey);
-
-	PPER_Stream strm;
-	return cypher.Decode(hashed, strm) && dest.Decode(strm);
-}
-
 
 } // end of namespace Neighbors
 

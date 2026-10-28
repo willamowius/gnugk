@@ -5185,37 +5185,6 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 				request.SetFlag(Routing::RoutingRequest::e_fromParent);
 		}
 
-		if (!rejectCall && !destFound
-				&& setupBody.HasOptionalField(H225_Setup_UUIE::e_cryptoTokens)
-				&& setupBody.m_cryptoTokens.GetSize() > 0) {
-			PINDEX s = setupBody.m_cryptoTokens.GetSize() - 1;
-			// TODO: really check only the last token ?
-			destFound = Neighbors::DecodeAccessToken(setupBody.m_cryptoTokens[s], _peerAddr, calledAddr);
-			if (destFound) {
-				called = RegistrationTable::Instance()->FindBySignalAdr(calledAddr);
-				PTRACE(3, Type() << "\tGot destination " << AsDotString(calledAddr));
-				if (s > 0)
-					setupBody.m_cryptoTokens.SetSize(s);
-				else
-					setupBody.RemoveOptionalField(H225_Setup_UUIE::e_cryptoTokens);
-
-				Route route("nbtoken", calledAddr);
-				route.m_destEndpoint = called;
-				request.AddRoute(route);
-
-				if (!useParent && gkClient) {
-					Address toIP;
-					GetIPFromTransportAddr(calledAddr, toIP);
-					useParent = gkClient->IsRegistered() && gkClient->CheckFrom(toIP);
-					if (useParent && !gkClient->SendARQ(request)) {
-						PTRACE(2, Type() << "\tGot ARJ from parent for " << GetName());
-						authData.m_rejectCause = Q931::CallRejected;
-						rejectCall = true;
-					}
-				}
-			}
-		}
-
         PString statusCallID = callid;
         statusCallID.Replace(" ", "-", true);
 #ifdef HAS_AVAYA_SUPPORT
