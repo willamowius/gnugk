@@ -4714,8 +4714,26 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 			H225_CallReferenceValue crv;
 			crv.SetValue(msg->GetCallReference());
 			m_call = CallTable::Instance()->FindCallRec(crv);
+			// the CRV is only unique per endpoint: only accept the call if it was admitted for the sender of this Setup
+			if (m_call) {
+				endptr caller = m_call->GetCallingParty();
+				if (!caller || (caller->IsNATed() ? caller->GetNATIP() : caller->GetIP()) != _peerAddr) {
+					PTRACE(2, Type() << "\tWarning: ignoring call #" << m_call->GetCallNumber()
+						<< " with same CRV, " << Name() << " is not the calling party");
+					m_call = callptr(NULL);
+				}
+			}
 			H225_CallIdentifier callIdentifier; // empty callIdentifier
 			callid = AsString(callIdentifier);
+		}
+		// a call that already has its signaling channel belongs to that channel: reject this Setup
+		// without keeping a reference to the call, so OnError() can't modify or remove the existing call
+		// (a H.460.18 reverse Setup arrives on a socket that already has m_call set and isn't affected)
+		if (m_call && m_call->IsSocketAttached()) {
+			PTRACE(2, Type() << "\tWarning: socket (" << Name() << ") already attached for callid " << callid);
+			m_call = callptr(NULL);
+			m_result = Error;
+			return;
 		}
 	} else
 		callid = AsString(m_call->GetCallIdentifier());

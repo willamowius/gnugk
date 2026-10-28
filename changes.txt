@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(ProxyChannel.cxx) reject Setup with a guessed CRV
 - BUGFIX(ProxyChannel.cxx, gkauth.cxx) fix type confusion: index into array not the array pointer
 - BUGFIX(capctrl.*) CapacityControl must consider the CompareAliasCase= setting
 - BUGFIX(ProxyChannel.cxx) fix cleanup of H.460.19 fastStart channels
