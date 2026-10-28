@@ -16854,7 +16854,9 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
                                         }
                                     }
                                     call->AddRTPKeepAlive(flcn, keepAliveRTPAddr, keepAliveInterval, multiplexID, gkIP);
-                                    call->AddRTCPKeepAlive(flcn, keepAliveRTCPAddr, keepAliveInterval, multiplexID, gkIP);
+                                    if (control) {  // without mediaControlChannel there is no address to send RTCP keepAlives to
+                                        call->AddRTCPKeepAlive(flcn, keepAliveRTCPAddr, keepAliveInterval, multiplexID, gkIP);
+                                    }
                                 }
                                 m_remoteRequestsRTPMultiplexing = m_isRTPMultiplexingEnabled && (multiplexID != INVALID_MULTIPLEX_ID);
                                 if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing) {

@@ -113,6 +113,8 @@ PString AsString(const H245_UnicastAddress_iP6Address & ipv6)
 
 WORD GetH245Port(const H245_UnicastAddress & addr)
 {
+	if (!addr.IsValid())
+		return 0;
 	if (addr.GetTag() == H245_UnicastAddress::e_iPAddress) {
 		const H245_UnicastAddress_iPAddress & ipv4 = addr;
 		return ipv4.m_tsapIdentifier;
@@ -443,6 +445,8 @@ H225_TransportAddress H323ToH225TransportAddress(const H323TransportAddress & h3
 // convert a H.245 unicast address into a socket address
 PIPSocket::Address H245UnicastToSocketAddr(const H245_UnicastAddress & h245unicast)
 {
+	if (!h245unicast.IsValid())
+		return PIPSocket::Address();
 	if (h245unicast.GetTag() == H245_UnicastAddress::e_iPAddress) {
 		const H245_UnicastAddress_iPAddress & ipv4 = h245unicast;
 		return PIPSocket::Address(ipv4.m_network.GetSize(), ipv4.m_network.GetValue());
