@@ -1106,7 +1106,7 @@ public:
 	PCLASSINFO ( T120ProxySocket, TCPProxySocket )
 #endif
 
-	T120ProxySocket(T120LogicalChannel *);
+	T120ProxySocket(unsigned lcID);
 	T120ProxySocket(T120ProxySocket * = NULL, WORD = 0);
 
 	// override from class ProxySocket
@@ -1120,7 +1120,7 @@ private:
 	virtual void Dispatch();
 
 private:
-	T120LogicalChannel * t120lc;
+	unsigned t120lcID;	// ID, not pointer: the channel may be deleted while we are still connecting
 };
 
 class LogicalChannel {
@@ -1253,7 +1253,8 @@ public:
 	virtual void StartReading(ProxyHandler *);
 	virtual void SetRTPMute(bool /*toMute*/) { }   /// We do not Mute T.120 Channels
 
-	void Create(T120ProxySocket *);
+	// called from the acceptor thread with the channel ID, the channel itself may already be gone
+	static void Create(unsigned lcID, T120ProxySocket *);
 	bool OnSeparateStack(H245_NetworkAccessParameters &, H245Handler *);
 
 private:
@@ -1262,10 +1263,13 @@ private:
 	/* No operator= allowed */
 	T120LogicalChannel & operator=(const T120LogicalChannel &);
 
+	// find a live channel by ID, must be called with m_channelsMutex held
+	static T120LogicalChannel * FindChannel(unsigned lcID);
+
 private:
 	class T120Listener : public TCPListenSocket {
 	public:
-		T120Listener(T120LogicalChannel *lc);
+		T120Listener(unsigned lcID);
 
 	private:
 		// override from class TCPListenSocket
@@ -1278,7 +1282,7 @@ private:
 		T120Listener & operator=(const T120Listener &);
 
 
-		T120LogicalChannel *t120lc;
+		unsigned t120lcID;
 	};
 
 	T120Listener * listener;
@@ -1286,7 +1290,14 @@ private:
 	PIPSocket::Address peerAddr;
 	WORD peerPort;
 	std::list<T120ProxySocket *> sockets;
-	PMutex m_smutex;
+
+	// The listener and its acceptors run in other threads and may outlive the channel
+	// (the signaling thread deletes it on CloseLogicalChannel or when the call ends),
+	// so they only get the channel ID and look the channel up while holding m_channelsMutex.
+	unsigned m_channelID;
+	static unsigned m_lastChannelID;
+	static std::map<unsigned, T120LogicalChannel *> m_channels;
+	static PMutex m_channelsMutex;	// protects m_channels and sockets
 };
 
 class NATHandler {
@@ -15084,13 +15095,13 @@ bool UDPProxySocket::ErrorHandler(PSocket::ErrorGroup group)
 
 
 // class T120ProxySocket
-T120ProxySocket::T120ProxySocket(T120LogicalChannel *lc)
-      : TCPProxySocket("T120s"), t120lc(lc)
+T120ProxySocket::T120ProxySocket(unsigned lcID)
+      : TCPProxySocket("T120s"), t120lcID(lcID)
 {
 }
 
 T120ProxySocket::T120ProxySocket(T120ProxySocket *socket, WORD pt)
-      : TCPProxySocket("T120d", socket, pt), t120lc(NULL)
+      : TCPProxySocket("T120d", socket, pt), t120lcID(0)
 {
 	socket->remote = this;
 }
@@ -15105,7 +15116,7 @@ void T120ProxySocket::Dispatch()
 {
 	ReadLock lock(ConfigReloadMutex);
 	PTRACE(4, "T120\tConnected from " << GetName());
-	t120lc->Create(this);
+	T120LogicalChannel::Create(t120lcID, this);
 }
 
 
@@ -16091,10 +16102,18 @@ WORD RTPLogicalChannel::GetPortNumber()
 
 
 // class T120LogicalChannel
+unsigned T120LogicalChannel::m_lastChannelID = 0;
+std::map<unsigned, T120LogicalChannel *> T120LogicalChannel::m_channels;
+PMutex T120LogicalChannel::m_channelsMutex;
+
 T120LogicalChannel::T120LogicalChannel(WORD flcn) : LogicalChannel(flcn)
 {
 	handler = NULL;
-	listener = new T120Listener(this);
+	m_channelsMutex.Wait();
+	m_channelID = ++m_lastChannelID;
+	m_channels[m_channelID] = this;
+	m_channelsMutex.Signal();
+	listener = new T120Listener(m_channelID);
 	port = listener->GetPort();
 	peerPort = 0;
 	if (listener->IsOpen())
@@ -16107,6 +16126,11 @@ T120LogicalChannel::T120LogicalChannel(WORD flcn) : LogicalChannel(flcn)
 
 T120LogicalChannel::~T120LogicalChannel()
 {
+	// unregister first, so acceptors that are still connecting won't find us any more
+	m_channelsMutex.Wait();
+	m_channels.erase(m_channelID);
+	m_channelsMutex.Signal();
+
 	if (Toolkit::Instance()->IsPortNotificationActive() && listener)
 		Toolkit::Instance()->PortNotification(T120Port, PortClose, "udp", GNUGK_INADDR_ANY, listener->GetPort());
 
@@ -16136,7 +16160,7 @@ void T120LogicalChannel::StartReading(ProxyHandler * h)
 	}
 }
 
-T120LogicalChannel::T120Listener::T120Listener(T120LogicalChannel *lc) : t120lc(lc)
+T120LogicalChannel::T120Listener::T120Listener(unsigned lcID) : t120lcID(lcID)
 {
 	int numPorts = min(T120PortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS);
 	for (int i = 0; i < numPorts; ++i) {
@@ -16158,11 +16182,32 @@ T120LogicalChannel::T120Listener::T120Listener(T120LogicalChannel *lc) : t120lc(
 
 ServerSocket *T120LogicalChannel::T120Listener::CreateAcceptor() const
 {
-	return new T120ProxySocket(t120lc);
+	return new T120ProxySocket(t120lcID);
 }
 
-void T120LogicalChannel::Create(T120ProxySocket *socket)
+T120LogicalChannel * T120LogicalChannel::FindChannel(unsigned lcID)
 {
+	std::map<unsigned, T120LogicalChannel *>::const_iterator iter = m_channels.find(lcID);
+	return (iter != m_channels.end()) ? iter->second : NULL;
+}
+
+void T120LogicalChannel::Create(unsigned lcID, T120ProxySocket *socket)
+{
+	// we run in the acceptor thread and the signaling thread may delete the channel at any time,
+	// so only use it while holding m_channelsMutex and look it up again after the blocking Connect()
+	m_channelsMutex.Wait();
+	T120LogicalChannel * lc = FindChannel(lcID);
+	if (lc == NULL) {
+		m_channelsMutex.Signal();
+		PTRACE(3, "T120\tLogical channel already closed");
+		delete socket;
+		socket = NULL;
+		return;
+	}
+	const PIPSocket::Address peerAddr = lc->peerAddr;
+	const WORD peerPort = lc->peerPort;
+	m_channelsMutex.Signal();
+
 	T120ProxySocket * remote = new T120ProxySocket(socket, peerPort);
 	int numPorts = min(T120PortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS);
 	for (int i = 0; i < numPorts; ++i) {
@@ -16172,10 +16217,20 @@ void T120LogicalChannel::Create(T120ProxySocket *socket)
 				<< " from " << AsString(GNUGK_INADDR_ANY, pt) << " successful");
 			socket->SetConnected(true);
 			remote->SetConnected(true);
+			ProxyHandler * handler = NULL;
+			{
+				PWaitAndSignal lock(m_channelsMutex);
+				lc = FindChannel(lcID);
+				if (lc == NULL) {
+					PTRACE(3, "T120\tLogical channel closed while connecting");
+					break;
+				}
+				handler = lc->handler;
+				lc->sockets.push_back(socket);
+				lc->sockets.push_back(remote);
+			}
+			// if the channel gets deleted now, it marks both sockets deletable and the handler cleans them up
 			handler->Insert(socket, remote);
-			PWaitAndSignal lock(m_smutex);
-			sockets.push_back(socket);
-			sockets.push_back(remote);
 			return;
 		}
 		int errorNumber = remote->GetErrorNumber(PSocket::LastGeneralError);

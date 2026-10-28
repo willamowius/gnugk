@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(ProxyChannel.cxx) fix race condition when opening a T.120 channel
 - BUGFIX(ProxyChannel.cxx) use dynamic_cast in order not to confuse
   T120LogicalChannel with RTPLogicalChannel causing crashes
 - BUGFIX(RasTbl.cxx) fix crash on too long language list
