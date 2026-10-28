@@ -1499,6 +1499,9 @@ H323TransportAddress EndpointRec::GetTLSAddress() const
 #ifdef HAS_LANGUAGE
 bool EndpointRec::SetAssignedLanguage(const H225_RegistrationRequest_language & rrqLang, H225_RegistrationConfirm_language & rcfLang)
 {
+	// a full RRQ replaces the list of languages, don't accumulate them over re-registrations:
+	// H323GetLanguages() only appends and the list would eventually exceed the max. ASN.1 array size of the RCF
+	m_languages.RemoveAll();
 	H323GetLanguages(m_languages, rrqLang);
 
 	PStringArray langs;
