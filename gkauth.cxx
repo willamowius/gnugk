@@ -1542,7 +1542,7 @@ bool H350PasswordAuth::GetPassword(const PString & alias, PString & password, st
 	H225_AliasAddress aliasaddress;
 	H323SetAliasAddress(alias, aliasaddress);
 
-	PString filter = "h235IdentityEndpointID=" + alias;
+	PString filter = "h235IdentityEndpointID=" + EscapeLDAPFilterValue(alias);
 
 	H350_Session session;
 	if (!Toolkit::Instance()->CreateH350Session(&session)) {

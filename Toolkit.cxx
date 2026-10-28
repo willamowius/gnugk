@@ -2291,13 +2291,13 @@ bool Toolkit::AssignedAliases::QueryH350Directory(const PString & alias, PString
 	PString filter;
 	switch (aliasaddress.GetTag()) {
 	  case H225_AliasAddress::e_dialedDigits:
-            filter = "h323IdentitydialedDigits=" + alias;
+            filter = "h323IdentitydialedDigits=" + EscapeLDAPFilterValue(alias);
             break;
 	  case H225_AliasAddress::e_h323_ID:
-            filter = "h323Identityh323-ID=" + alias;
+            filter = "h323Identityh323-ID=" + EscapeLDAPFilterValue(alias);
             break;
 	  case H225_AliasAddress::e_url_ID:
-		    filter = "h323IdentityURL-ID=" + alias;
+		    filter = "h323IdentityURL-ID=" + EscapeLDAPFilterValue(alias);
 		    break;
 	  default:
 		  PTRACE(4, "H350\tAssigned Alias: unhandled alias type " << aliasaddress.GetTagName());
@@ -2927,13 +2927,13 @@ bool Toolkit::AssignedGatekeepers::QueryH350Directory(const PString & alias, con
 	PString filter;
 	switch (aliasaddress.GetTag()) {
 		case H225_AliasAddress::e_dialedDigits:
-            filter = "h323IdentitydialedDigits=" + alias;
+            filter = "h323IdentitydialedDigits=" + EscapeLDAPFilterValue(alias);
 			break;
 		case H225_AliasAddress::e_h323_ID:
-            filter = "h323Identityh323-ID=" + alias;
+            filter = "h323Identityh323-ID=" + EscapeLDAPFilterValue(alias);
 			break;
 		case H225_AliasAddress::e_url_ID:
-		    filter = "h323IdentityURL-ID=" + alias;
+		    filter = "h323IdentityURL-ID=" + EscapeLDAPFilterValue(alias);
 			break;
 		default:
 			PTRACE(4, "H350\tAssigned GK: unhandled alias type " << aliasaddress.GetTagName());

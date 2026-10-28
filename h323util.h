@@ -2,7 +2,7 @@
 //
 // H.323 utility functions
 //
-// Copyright (c) 2000-2022, Jan Willamowius
+// Copyright (c) 2000-2026, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -298,6 +298,14 @@ PString RewriteWildcard(
 PString ReplaceParameters(
 	const PString & queryStr,				/// parametrized query string
 	const std::map<PString, PString> & queryParams	/// parameter values
+	);
+
+/** Escape the characters that have a special meaning in an LDAP search filter (RFC 4515),
+	so the value can only be matched literally.
+	@return	Escaped string.
+*/
+PString EscapeLDAPFilterValue(
+	const PString & value	/// assertion value to insert into a filter
 	);
 
 bool FindH460Descriptor(unsigned feat, H225_ArrayOf_FeatureDescriptor & features, unsigned & location);

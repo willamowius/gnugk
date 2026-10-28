@@ -168,9 +168,9 @@ bool LDAPPasswordAuth::GetPassword(const PString & alias, PString & password, st
 	PLDAPSession * ldapClient = CreateConnection();
 	if (!ldapClient)
 		return false;
-	PList<PStringToString> data = ldapClient->Search(m_IDFilter + alias, m_attribute);
+	PList<PStringToString> data = ldapClient->Search(m_IDFilter + EscapeLDAPFilterValue(alias), m_attribute);
     if (data.IsEmpty()) {
-		data = ldapClient->Search(m_E164Filter + alias, m_attribute);
+		data = ldapClient->Search(m_E164Filter + EscapeLDAPFilterValue(alias), m_attribute);
 		if (data.IsEmpty()) {
 			PTRACE(2, "LDAP\tCan't find password for " << alias << ": " << ldapClient->GetErrorText());
 			DestroyConnection(ldapClient);
@@ -200,9 +200,9 @@ bool LDAPAliasAuth::GetAuthConditionString(const PString & alias, PString & auth
 	PLDAPSession * ldapClient = CreateConnection();
 	if (!ldapClient)
 		return false;
-	PList<PStringToString> data = ldapClient->Search(m_IDFilter + alias, m_attribute);
+	PList<PStringToString> data = ldapClient->Search(m_IDFilter + EscapeLDAPFilterValue(alias), m_attribute);
     if (data.IsEmpty()) {
-		data = ldapClient->Search(m_E164Filter + alias, m_attribute);
+		data = ldapClient->Search(m_E164Filter + EscapeLDAPFilterValue(alias), m_attribute);
 	    if (data.IsEmpty()) {
 			PTRACE(2, "LDAP\tCan't find auth rule for " << alias << ": " << ldapClient->GetErrorText());
 			DestroyConnection(ldapClient);
@@ -249,9 +249,9 @@ bool LDAPPolicy::FindByAliases(Routing::RoutingRequest & request, H225_ArrayOf_A
 		H225_AliasAddress & alias = aliases[i];
 		PList<PStringToString> data;
 		if (alias.GetTag() == H225_AliasAddress::e_dialedDigits) {
-			data = ldapClient->Search(m_E164Filter + AsString(alias, false), m_attribute);
+			data = ldapClient->Search(m_E164Filter + EscapeLDAPFilterValue(AsString(alias, false)), m_attribute);
 		} else {
-			data = ldapClient->Search(m_IDFilter + AsString(alias, false), m_attribute);
+			data = ldapClient->Search(m_IDFilter + EscapeLDAPFilterValue(AsString(alias, false)), m_attribute);
 		}
 		if (!data.IsEmpty()) {
 			if (data.front().Contains(m_attribute)) {

@@ -1,5 +1,7 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(ldap.cxx, gkauth.cxx, Toolkit.cxx) escape LDAP filter characters
+  in aliases for LDAP and H.350 queries
 - BUGFIX(ProxyChannel.cxx) reject Setup with a guessed CRV
 - BUGFIX(ProxyChannel.cxx, gkauth.cxx) fix type confusion: index into array not the array pointer
 - BUGFIX(capctrl.*) CapacityControl must consider the CompareAliasCase= setting

@@ -2,7 +2,7 @@
 //
 // H.323 utility functions
 //
-// Copyright (c) 2000-2024, Jan Willamowius
+// Copyright (c) 2000-2026, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -1045,6 +1045,20 @@ PString ReplaceParameters(const PString & queryStr, const std::map<PString, PStr
 		}
 	}
 	return finalQuery;
+}
+
+PString EscapeLDAPFilterValue(const PString & value)
+{
+	PString escaped;
+	for (PINDEX i = 0; i < value.GetLength(); ++i) {
+		const char c = value[i];
+		// RFC 4515: '*', '(', ')' and '\' must be encoded as \xx inside an assertion value
+		if (c == '*' || c == '(' || c == ')' || c == '\\')
+			escaped += psprintf("\\%02x", (unsigned char)c);
+		else
+			escaped += c;
+	}
+	return escaped;
 }
 
 bool FindH460Descriptor(unsigned feat, H225_ArrayOf_FeatureDescriptor & features, unsigned & location)

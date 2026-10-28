@@ -3,7 +3,7 @@
  *
  * unit tests for h323util.cxx
  *
- * Copyright (c) 2011-2024, Jan Willamowius
+ * Copyright (c) 2011-2026, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -438,6 +438,16 @@ TEST_F(H323UtilTest, RewriteWildcard) {
 	EXPECT_STREQ("12345678@mydomain.com", RewriteWildcard("12345678", "{\\1}@mydomain.com"));
 	EXPECT_STREQ("1234@mydomain.com", RewriteWildcard("12345678", "{^\\d(4)}@mydomain.com"));
 	EXPECT_STREQ("5678@mydomain.com", RewriteWildcard("12345678", "{\\d(4)$}@mydomain.com"));
+}
+
+TEST_F(H323UtilTest, EscapeLDAPFilterValue) {
+	EXPECT_STREQ("", EscapeLDAPFilterValue(""));
+	EXPECT_STREQ("peter.smith@example.com", EscapeLDAPFilterValue("peter.smith@example.com"));
+	EXPECT_STREQ("#1234", EscapeLDAPFilterValue("#1234"));
+	EXPECT_STREQ("\\2a", EscapeLDAPFilterValue("*"));
+	EXPECT_STREQ("\\2a4417", EscapeLDAPFilterValue("*4417"));
+	EXPECT_STREQ("a\\29\\28mail=\\2a", EscapeLDAPFilterValue("a)(mail=*"));
+	EXPECT_STREQ("peter\\5c2esmith", EscapeLDAPFilterValue("peter\\2esmith"));
 }
 
 TEST_F(H323UtilTest, ProtocolVersion) {
