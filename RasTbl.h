@@ -1755,6 +1755,7 @@ private:
 	PBYTEArray m_processedSetup;
 	std::map<unsigned, H46019KeepAlive> m_RTPkeepalives;
 	std::map<unsigned, H46019KeepAlive> m_RTCPkeepalives;
+	PMutex m_keepAliveMutex;	// the keepAlive maps are used by signaling and RAS threads
 	bool m_ignoreSignaledIPs;   // IgnoreSignaledIPs setting for this call; may be switched off during call establishemnt
 #endif
 	PUInt64 m_clientAuthId;

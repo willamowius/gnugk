@@ -5349,6 +5349,9 @@ int CallRec::GetH46019Direction() const
 
 void CallRec::AddRTPKeepAlive(unsigned flcn, const IPAndPortAddress & keepAliveRTPAddr, unsigned keepAliveInterval, DWORD multiplexID, PIPSocket::Address gkIP)
 {
+	PWaitAndSignal lock(m_keepAliveMutex);
+	if (m_disconnectTime != 0)
+		return;	// call has ended, RemoveAllRTPKeepAlives() might already be done
 	H46019KeepAlive ka;
 	ka.type = RTP;
 	ka.flcn = flcn;
@@ -5365,6 +5368,7 @@ void CallRec::AddRTPKeepAlive(unsigned flcn, const IPAndPortAddress & keepAliveR
 
 void CallRec::SetRTPKeepAlivePayloadType(unsigned flcn, BYTE payloadType)
 {
+	PWaitAndSignal lock(m_keepAliveMutex);
 	std::map<unsigned, H46019KeepAlive>::iterator iter = m_RTPkeepalives.find(flcn);
 	if (iter != m_RTPkeepalives.end()) {
 		iter->second.payloadType = payloadType;
@@ -5373,6 +5377,7 @@ void CallRec::SetRTPKeepAlivePayloadType(unsigned flcn, BYTE payloadType)
 
 void CallRec::StartRTPKeepAlive(unsigned flcn, int RTPOSSocket)
 {
+	PWaitAndSignal lock(m_keepAliveMutex);
 	std::map<unsigned, H46019KeepAlive>::iterator iter = m_RTPkeepalives.find(flcn);
 	// only start if it isn't running already
 	if ((iter != m_RTPkeepalives.end()) && (iter->second.timer == GkTimerManager::INVALID_HANDLE)) {
@@ -5388,6 +5393,9 @@ void CallRec::StartRTPKeepAlive(unsigned flcn, int RTPOSSocket)
 
 void CallRec::AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAliveRTCPAddr, unsigned keepAliveInterval, DWORD multiplexID, PIPSocket::Address gkIP)
 {
+	PWaitAndSignal lock(m_keepAliveMutex);
+	if (m_disconnectTime != 0)
+		return;	// call has ended, RemoveAllRTPKeepAlives() might already be done
 	H46019KeepAlive ka;
 	ka.type = RTCP;
 	ka.flcn = flcn;
@@ -5404,6 +5412,7 @@ void CallRec::AddRTCPKeepAlive(unsigned flcn, const H245_UnicastAddress & keepAl
 
 void CallRec::StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket)
 {
+	PWaitAndSignal lock(m_keepAliveMutex);
 	std::map<unsigned, H46019KeepAlive>::iterator iter = m_RTCPkeepalives.find(flcn);
 	// only start if it isn't running already
 	if ((iter != m_RTCPkeepalives.end()) && (iter->second.timer == GkTimerManager::INVALID_HANDLE)) {
@@ -5416,12 +5425,14 @@ void CallRec::StartRTCPKeepAlive(unsigned flcn, int RTCPOSSocket)
 
 void CallRec::RemoveRTPKeepAlives(unsigned flcn)
 {
+	PWaitAndSignal lock(m_keepAliveMutex);
 	m_RTPkeepalives.erase(flcn);
 	m_RTCPkeepalives.erase(flcn);
 }
 
 void CallRec::RemoveAllRTPKeepAlives()
 {
+	PWaitAndSignal lock(m_keepAliveMutex);
 	m_RTPkeepalives.clear();
 	m_RTCPkeepalives.clear();
 }
