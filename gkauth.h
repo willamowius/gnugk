@@ -927,7 +927,7 @@ protected:
 		if (auth == NULL)
 			return GetDefaultStatus();
 
-		int result = auth->Validate((const H225_RasMessage&)req, *tokens, *cryptoTokens, request->m_rasPDU);
+		int result = auth->Validate(request->m_recvRAS, *tokens, *cryptoTokens, request->m_rasPDU);
 		if (result == H235Authenticator::e_OK)
 			return e_ok;
 		else {

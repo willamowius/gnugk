@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(gkh235.cxx, gkauth.*) fix auth bypass with unknown token OIDs
 - BUGFIX(ProxyChannel.cxx) don't crash on H.460.19 OLC without mediaControlChannel
 - BUGFIX(ldap.cxx, gkauth.cxx, Toolkit.cxx) escape LDAP filter characters
   in aliases for LDAP and H.350 queries

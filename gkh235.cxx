@@ -389,6 +389,20 @@ int GkH235Authenticators::Validate(
 		return m_authResultProcedure1;
 #endif // H323_H235
 
+	// never report success unless at least one token has actually been verified
+	// (eg. no tokens at all or only tokens with an unsupported algorithmOID)
+	if (!catFound && !md5Found
+#ifdef HAS_DES_ECB
+		&& !desFound
+#endif
+#ifdef H323_H235
+		&& !procedure1Found
+#endif // H323_H235
+		) {
+		PTRACE(3, "GKH235\tNo supported token found in " << rasmsg.GetTagName());
+		return H235Authenticator::e_Absent;
+	}
+
 	return H235Authenticator::e_OK;
 }
 
