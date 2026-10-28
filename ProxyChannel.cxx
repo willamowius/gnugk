@@ -16793,9 +16793,9 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
                                     }
                                 }
                                 if (payloadtype != UNDEFINED_PAYLOAD_TYPE) {
-                                    LogicalChannel * lc = FindLogicalChannel(flcn);
+                                    RTPLogicalChannel * lc = dynamic_cast<RTPLogicalChannel *>(FindLogicalChannel(flcn));
                                     if (lc) {
-                                        ((RTPLogicalChannel*)lc)->AddLCKeepAlivePT(payloadtype);
+                                        lc->AddLCKeepAlivePT(payloadtype);
                                     } else {
                                         PTRACE(1, "H46019\tError: No logical channel to set keepAlive PT=" << payloadtype);
                                     }
@@ -16827,9 +16827,9 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 		}
 
 		if (isUnidirectional) {
-			LogicalChannel * lc = FindLogicalChannel(flcn);
+			RTPLogicalChannel * lc = dynamic_cast<RTPLogicalChannel *>(FindLogicalChannel(flcn));
 			if (lc) {
-				((RTPLogicalChannel*)lc)->SetUniDirectional(true);
+				lc->SetUniDirectional(true);
 			}
 		}
 
@@ -16865,16 +16865,16 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 			H46019_TraversalParameters params;
 			if (peer->IsTraversalClient()) {
 				params.IncludeOptionalField(H46019_TraversalParameters::e_keepAliveChannel);
-				LogicalChannel * lc;
+				RTPLogicalChannel * lc;
 				if (UsesH46019fc()) {
 					lc = fastStartLCs[sessionID];
 				} else {
-					lc = FindLogicalChannel(flcn);
+					lc = dynamic_cast<RTPLogicalChannel *>(FindLogicalChannel(flcn));
 				}
 				if (lc && h225Params) {
 					params.m_keepAliveChannel = IPToH245TransportAddr(GetMasqAddr(), lc->GetPort()); // use RTP port for keepAlives
-					((RTPLogicalChannel*)lc)->SetUsesH46019fc(UsesH46019fc());
-					((RTPLogicalChannel*)lc)->SetRTPSessionID((WORD)h225Params->m_sessionID);
+					lc->SetUsesH46019fc(UsesH46019fc());
+					lc->SetRTPSessionID((WORD)h225Params->m_sessionID);
 				} else {
 					PTRACE(1, "Can't find RTP port for logical channel " << flcn);
 				}
@@ -17024,7 +17024,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 #endif // HAS_H46018
 
 #ifdef HAS_H235_MEDIA
-		RTPLogicalChannel * rtplc = (RTPLogicalChannel *)FindLogicalChannel(flcn);
+		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(FindLogicalChannel(flcn));
 		if (call->IsMediaEncryption() && rtplc && h225Params) {
 			if ((m_isCaller && call->GetEncryptDirection() == CallRec::callingParty)
 				|| (!m_isCaller && call->GetEncryptDirection() == CallRec::calledParty)) {
@@ -17193,8 +17193,8 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 		if (sessionID > 3) {
 			MultiplexedRTPHandler::Instance()->UpdateChannelSession(call->GetCallNumber(), flcn, peer, sessionID);
 			peer->UpdateLogicalChannelSessionID(flcn, sessionID); // doesn't set if no channel with sessionID 0 found
-			if (((RTPLogicalChannel*)lc)->GetRTPSessionID() == 0) { // don't set blindly, check if the sessionID was zero
-    			((RTPLogicalChannel*)lc)->SetRTPSessionID(sessionID);
+			if (rtplc && rtplc->GetRTPSessionID() == 0) { // don't set blindly, check if the sessionID was zero
+				rtplc->SetRTPSessionID(sessionID);
                 // also remove session 0 from multiplex channel table
                 MultiplexedRTPHandler::Instance()->RemoveChannel(call->GetCallNumber(), (WORD)0);
 			}
@@ -17723,7 +17723,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 		} else if ((lc = peer->FindRTPLogicalChannelBySessionID(id))) {
 			LogicalChannel *akalc = FindLogicalChannel(flcn);
 			if (akalc) {
-				lc = static_cast<RTPLogicalChannel *>(akalc);
+				lc = dynamic_cast<RTPLogicalChannel *>(akalc);
 			} else if (lc->IsAttached()) {
 				// the RTP session already has a channel in each direction sharing its sockets
 				PTRACE(1, "Proxy\tError: RTP session " << id << " already has 2 logical channels, ignoring fastStart channel " << flcn);
@@ -17747,7 +17747,7 @@ bool H245ProxyHandler::HandleFastStartResponse(H245_OpenLogicalChannel & olc, ca
 		} else if ((lc = FindRTPLogicalChannelBySessionID(id))) {
 			LogicalChannel *akalc = peer->FindLogicalChannel(flcn);
 			if (akalc) {
-				lc = static_cast<RTPLogicalChannel *>(akalc);
+				lc = dynamic_cast<RTPLogicalChannel *>(akalc);
 			} else if (lc->IsAttached()) {
 				// the RTP session already has a channel in each direction sharing its sockets
 				PTRACE(1, "Proxy\tError: RTP session " << id << " already has 2 logical channels, ignoring fastStart channel " << flcn);
@@ -17782,8 +17782,11 @@ void H245ProxyHandler::UpdateLogicalChannelSessionID(WORD flcn, WORD id)
 	siterator sessionIter = sessionIDs.find(0);	// update channel with temporary session ID 0
 	if ((flcnIter != logicalChannels.end())
 		&& (sessionIter != sessionIDs.end())) {
+		RTPLogicalChannel * rtplc = dynamic_cast<RTPLogicalChannel *>(flcnIter->second);
+		if (!rtplc)
+			return;	// not a RTP channel (eg. T.120), never put NULL into sessionIDs
 		sessionIDs.erase(sessionIter);		// remove 0 sessionID
-		sessionIDs[id] = dynamic_cast<RTPLogicalChannel *>(flcnIter->second);	// add new session ID
+		sessionIDs[id] = rtplc;	// add new session ID
 	}
 }
 
