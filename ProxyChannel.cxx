@@ -2610,7 +2610,10 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			msg->SetUUIEChanged();
 
         if (suppress) {
-			m_result = NoData;	// don't forward anything
+			// keep DelayedConnecting: OnFacility() has already moved this socket into the ProxyHandler of the calling socket
+			// for H.460.18, if Dispatch() sees NoData it keeps waiting for a Setup and deletes the socket on timeout
+			if (m_result != DelayedConnecting)
+				m_result = NoData;	// don't forward anything
 		    PTRACE(2, "Not forwarding " << msg->GetTagName());
 		    delete msg;
 		    return m_result;
@@ -2629,7 +2632,8 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		}
 	}
 
-	if (m_call && (m_call->GetRerouteState() == RerouteInitiated) && (msg->GetTag() != Q931::SetupMsg) && (msg->GetTag() != Q931::ConnectMsg)) {
+	if (m_call && (m_call->GetRerouteState() == RerouteInitiated) && (msg->GetTag() != Q931::SetupMsg) && (msg->GetTag() != Q931::ConnectMsg)
+		&& (m_result != DelayedConnecting)) {	// H.460.18 Facility isn't forwarded anyway, but Dispatch() must see the result
 		m_result = NoData;	// don't forward anything until reroute is through
 		PTRACE(2, "Call in reroute: won't forward " << msg->GetTagName());
 		delete msg;
