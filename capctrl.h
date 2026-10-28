@@ -1,10 +1,10 @@
 /*
  * capctrl.h
  *
- * Module for accoutning per IP/H.323 ID/CLI/prefix inbound call volume
+ * Module for accounting per IP/H.323 ID/CLI/prefix inbound call volume
  *
  * Copyright (c) 2006, Michal Zygmuntowicz
- * Copyright (c) 2008-2016, Jan Willamowius
+ * Copyright (c) 2008-2026, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -110,7 +110,7 @@ private:
 
 	// helper functions
 	IpCallVolumes::iterator FindByIp(const NetworkAddress & srcIp, const PString & calledStationId);
-	H323IdCallVolumes::iterator FindByH323Id(const PString & h323Id, const PString & calledStationId);
+	H323IdCallVolumes::iterator FindByH323Id(PString h323Id, const PString & calledStationId);
 	CLICallVolumes::iterator FindByCli(const std::string & cli, const PString & calledStationId);
 
 private:

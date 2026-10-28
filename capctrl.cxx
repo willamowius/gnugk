@@ -1,12 +1,12 @@
 /*
  * capctrl.cxx
  *
- * Module for accoutning per IP/H.323 ID/CLI/prefix inbound call volume
+ * Module for accounting per IP/H.323 ID/CLI/prefix inbound call volume
  *
  * $Id$
  *
  * Copyright (c) 2006, Michal Zygmuntowicz
- * Copyright (c) 2008-2023, Jan Willamowius
+ * Copyright (c) 2008-2026, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -67,7 +67,11 @@ struct H323IdRule_greater : public std::binary_function<CapacityControl::H323IdC
 
 	bool operator()(const CapacityControl::H323IdCallVolume & e1, const CapacityControl::H323IdCallVolume & e2) const
 	{
-		return H323GetAliasAddressString(e1.first) > H323GetAliasAddressString(e2.first);
+		if (GkConfig()->GetBoolean("CompareAliasCase", true)) {
+			return H323GetAliasAddressString(e1.first) > H323GetAliasAddressString(e2.first);
+		} else {
+			return PCaselessString(H323GetAliasAddressString(e1.first)) > PCaselessString(H323GetAliasAddressString(e2.first));
+		}
 	}
 };
 
@@ -358,16 +362,21 @@ CapacityControl::IpCallVolumes::iterator CapacityControl::FindByIp(
 }
 
 CapacityControl::H323IdCallVolumes::iterator CapacityControl::FindByH323Id(
-	const PString & h323Id,
+	PString h323Id,
 	const PString & calledStationId)
 {
 	PINDEX matchLen = P_MAX_INDEX;
 	const H323IdCallVolumes::iterator h323IdEnd = m_h323IdCallVolumes.end();
 	H323IdCallVolumes::iterator bestH323IdMatch = h323IdEnd, i = m_h323IdCallVolumes.begin();
+	bool compare_case = GkConfig()->GetBoolean("CompareAliasCase", true);
+	if (!compare_case)
+		h323Id = h323Id.ToLower();
 	while (i != h323IdEnd) {
 		if (h323Id.IsEmpty())
 			break;
 		PString alias = H323GetAliasAddressString(i->first);
+		if (!compare_case)
+			alias = alias.ToLower();
 		if (bestH323IdMatch != h323IdEnd && alias != h323Id)
 			break;
 		if (alias == h323Id) {
