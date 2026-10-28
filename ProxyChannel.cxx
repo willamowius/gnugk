@@ -9656,16 +9656,20 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 
 #ifdef HAS_H46018
 	case H225_FacilityReason::e_undefinedReason:
-		if (Toolkit::Instance()->IsH46018Enabled()
+		// only a new connection without a call may pick up a call waiting for its traversal client,
+		// a socket that already belongs to a call must never be re-assigned
+		if (Toolkit::Instance()->IsH46018Enabled() && !m_call
 			&& facilityBody.HasOptionalField(H225_Facility_UUIE::e_callIdentifier)) {
 			H225_CallIdentifier callIdentifier = facilityBody.m_callIdentifier;
-			m_call = CallTable::Instance()->FindCallRec(callIdentifier);
+			callptr call = CallTable::Instance()->FindCallRec(callIdentifier);
 			// TODO/BUG: call not found if its a call Reroute
-			if (m_call) {
-				m_call->SetCallSignalSocketCalled(this);
-				PBYTEArray rawSetup = m_call->RetrieveSetup();
-				CallSignalSocket * callingSocket = m_call->GetCallSignalSocketCalling();
+			if (call) {
+				PBYTEArray rawSetup = call->RetrieveSetup();
+				CallSignalSocket * callingSocket = call->GetCallSignalSocketCalling();
+				// only attach this socket to the call if the call is actually waiting for the H.460.18 connection
 				if (callingSocket && (rawSetup.GetSize() > 0)) {
+					m_call = call;
+					m_call->SetCallSignalSocketCalled(this);
 					m_callerSocket = false;
 					remote = callingSocket;
 					remote->GetPeerAddress(peerAddr, peerPort);
@@ -9824,8 +9828,11 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					// deleting setup also disposes q931pdu and uuie
 					delete setup;
 					setup = NULL;
+					m_result = DelayedConnecting;	// don't forward, this was just to open the connection
+				} else {
+					PTRACE(1, "H46018\tCall " << AsString(callIdentifier) << " isn't waiting for a traversal client connection, ignoring Facility from " << GetName());
+					m_result = NoData;
 				}
-				m_result = DelayedConnecting;	// don't forward, this was just to open the connection
 			} else {
 				PTRACE(1, "No matching call found for callid " << AsString(facilityBody.m_callIdentifier) << " will forward");
 			}
