@@ -1505,8 +1505,8 @@ int SimplePasswordAuth::CheckCryptoTokens(
 			PString id, passwd;
 			for (PINDEX j = 0; j < aliases->GetSize(); j++) {
                 // check if we have a password for one of the aliases
-                if (InternalGetPassword(AsString(aliases[j], false), passwd, params)) {
-                    id = AsString(aliases[j], false);
+                if (InternalGetPassword(AsString((*aliases)[j], false), passwd, params)) {
+                    id = AsString((*aliases)[j], false);
                     break;
                 }
 			}

@@ -4042,8 +4042,8 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 	if (aliases) {
 		// set called-party to first E.164
 		for (PINDEX n = 0; n < aliases->GetSize(); ++n)
-			if (aliases[n].GetTag() == H225_AliasAddress::e_dialedDigits) {
-				fakeSetup.SetCalledPartyNumber(AsString(aliases[n], FALSE));
+			if ((*aliases)[n].GetTag() == H225_AliasAddress::e_dialedDigits) {
+				fakeSetup.SetCalledPartyNumber(AsString((*aliases)[n], FALSE));
 				break;
 			}
 		setupUUIE.IncludeOptionalField(H225_Setup_UUIE::e_destinationAddress);
