@@ -33,7 +33,7 @@ Changes from 5.14 to 5.15
 - BUGFIX(sqlauth.cxx) don't accept empty passwords
 - BUGFIX(gkauth.cxx) fix in Q.931 authentication
 - BUGFIX(gkauth.cxx) fix auth cache expiry
-- disable command execution for port notifications unless the feature is explicitely activated by ./configure --enable-port-notification-exec
+- disable command execution for port notifications unless the feature is explicitly activated by ./configure --enable-port-notification-exec
 - BUGFIX(GkStatus.cxx) improve ssh status port authentication
 - BUGFIX(ProxyChannel.cxx) make sure we respect InternalNetworks= when using ExternalIP=
 
@@ -105,7 +105,7 @@ Changes from 5.7 to 5.8
 - new switch [Proxy] AllowSignaledIPsFrom= to skip auto-detect for messages received directly
   from certain IPs when IgnoreSignaledIPs=1
 - BUGFIX(snmp.cxx) fix Net-SNMP query for total bandwidth
-- new switch [Routing::Http] JSONResponse=1 to send more flexible routing data in the HTML reponses
+- new switch [Routing::Http] JSONResponse=1 to send more flexible routing data in the HTML responses
 - support for Avaya's non-standard version of H.323 (./configure --enable-avaya) (thanks Konstantin Prokazov)
 - many new status port shortcuts (see manual section)
 - consider RFC 6598 shared network space (100.64.0.0/10) and Zeroconf (169.254.0.0/16) as private IPs
@@ -209,7 +209,7 @@ Changes from 5.1 to 5.2
 Changes from 5.0 to 5.1
 =======================
 - use SCI/SCR between H.460.18 neighbors to update ping status
-- BUGFIX(Neighbor.cxx) allow ommitting Host= switch in Neighbor section for H.460.18 clients
+- BUGFIX(Neighbor.cxx) allow omitting Host= switch in Neighbor section for H.460.18 clients
 - BUGFIX(ProxyChannel.cxx) fix sending of queued H.245 messages
 - BUGFIX(gkauth.cxx) don't check tokens for disabled authenticators (Lifesize Icon interop)
 - BUGFIX(RasTbl.cxx) update RAS port when NAT mapping for H.460.18 endpoint changes
