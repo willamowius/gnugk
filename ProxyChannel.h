@@ -69,6 +69,13 @@ extern const char *TLSSec;
 extern const char *ProxySection;
 
 const WORD DEFAULT_PACKET_BUFFER_SIZE = 2048;
+#ifdef HAS_H46026
+// size of the buffer to read H.460.26 priority queue entries into
+// older H323Plus versions don't check this size in SocketOut(), so larger entries must not be queued
+const PINDEX H46026_MAX_QUEUE_PACKET = 10000;
+// max. size of Q.931 message wrapping a queued RTP frame
+const PINDEX H46026_QUEUE_OVERHEAD = 1024;
+#endif
 
 void PrintQ931(int, const char *, const char *, const Q931 *, const H225_H323_UserInformation *);
 

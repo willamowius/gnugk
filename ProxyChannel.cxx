@@ -9061,8 +9061,12 @@ bool CallSignalSocket::SendH46017Message(H225_RasMessage ras, GkH235Authenticato
 
 		PrintQ931(3, "Send to ", GetName(), &FacilityPDU, &uuie);
 
+		PBYTEArray buf;
+		FacilityPDU.Encode(buf);
+
 #ifdef HAS_H46026
-		if (m_h46026PriorityQueue) {
+		// messages larger than the PollPriorityQueue() buffer are sent directly
+		if (m_h46026PriorityQueue && buf.GetSize() <= H46026_MAX_QUEUE_PACKET) {
 			// put message into priority queue
 			m_h46026PriorityQueue->SignalMsgOut(FacilityPDU);
 			PollPriorityQueue();
@@ -9070,8 +9074,6 @@ bool CallSignalSocket::SendH46017Message(H225_RasMessage ras, GkH235Authenticato
 		}
 #endif
 
-		PBYTEArray buf;
-		FacilityPDU.Encode(buf);
 		return TransmitData(buf);
 	} else {
 		PTRACE(1, "Error: Can't send H.460.17 reply to " << GetName() << " - socket closed");
@@ -9087,7 +9089,8 @@ bool CallSignalSocket::SendH46026RTP(unsigned sessionID, bool isRTP, const void 
 	if ((data == NULL) || (len == 0))
 		return false;
 
-	if (m_call && m_h46026PriorityQueue) {
+	// the queued Q.931 message is larger than the RTP frame, send large frames directly
+	if (m_call && m_h46026PriorityQueue && len <= (unsigned)(H46026_MAX_QUEUE_PACKET - H46026_QUEUE_OVERHEAD)) {
 		// put RTP into priority queue
 		m_h46026PriorityQueue->RTPFrameOut(m_call->GetCallRef(),
 			(sessionID == 1) ? H46026ChannelManager::e_Audio : H46026ChannelManager::e_Video, // guess the content
@@ -9155,8 +9158,8 @@ void CallSignalSocket::PollPriorityQueue()
 {
 	// check if we have something to send
 	// TODO: might have to start a thread that polls all queues
-	PBYTEArray data(10000);
-	PINDEX len;
+	PBYTEArray data(H46026_MAX_QUEUE_PACKET);
+	PINDEX len = data.GetSize();	// capacity for H323Plus versions that check it
 	if (m_h46026PriorityQueue->SocketOut(data, len)) {
 		PTRACE(4, "H46026\tSending from priority queue, len=" << len);
 		data.SetSize(len);
