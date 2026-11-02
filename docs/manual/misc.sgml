@@ -879,9 +879,7 @@ non-standard port if you are using another SNMP agent on your server.
 process, so if SNMP doesn't work ensure that your PTLib <tt>wasn't</tt>
 compiled with <tt>--disable-snmp</tt>
 
-Using PTLib rather than the fully-featured Net-SNMP means that only traps
-and GET / GET-NEXT requests are supported.  See below for the additional switches
-which are required when using PTLib for SNMP.
+See below for the additional switches which are required when using PTLib for SNMP.
 
 <sect2>GNU Gatekeeper Enterprise MIB
 <p>
