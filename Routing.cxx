@@ -1330,7 +1330,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 	unsigned rejectReason = H225_AdmissionRejectReason::e_calledPartyNotRegistered;
 	H225_ArrayOf_AliasAddress * aliases = NULL;
 	PString vq = "";
-	if (aliases = request.GetAliases())
+	if ((aliases = request.GetAliases()))
 		vq = AsString((*aliases)[0], FALSE);
 	if (m_vqueue->IsDestinationVirtualQueue(vq)) {
 		H225_AdmissionRequest & arq = request.GetRequest();
