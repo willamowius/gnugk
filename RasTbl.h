@@ -322,7 +322,7 @@ public:
 	unsigned TranslateReceivedCause(unsigned cause) const;
 	unsigned TranslateSentCause(unsigned cause) const;
 	// adding a fixed alias to all calls _to_ this endpoint
-	PString GetAdditionalDestinationAlias() const { return m_additionalDestAlias; }
+	PString GetAdditionalDestinationAlias() const { PWaitAndSignal lock(m_usedLock); return m_additionalDestAlias; }
 
 	bool IsH46017Disabled() const { return m_h46017disabled; }
 	void SetUsesH46017(bool val) { m_usesH46017 = val; }
@@ -354,7 +354,7 @@ public:
 	PString GetDefaultLanguage();
 
 	bool AddCallingPartyToSourceAddress() const { return m_addCallingPartyToSourceAddress; }
-    PString GetDisabledCodecs() const { return m_disabledcodecs; }
+    PString GetDisabledCodecs() const { PWaitAndSignal lock(m_usedLock); return m_disabledcodecs; }
 
     int GetForceTerminalType() const { return m_forceTerminalType; }
     bool GetForceDirectMode() const { return m_forceDirectMode; }

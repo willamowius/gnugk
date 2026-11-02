@@ -569,6 +569,7 @@ void EndpointRec::AddPrefixCapacities(const PString & prefixes)
 
 bool EndpointRec::HasAvailableCapacity(const H225_ArrayOf_AliasAddress & aliases) const
 {
+	PWaitAndSignal lock(m_usedLock);
 	string matched_prefix = "";
 	int prefix_capacity = -1;
 
@@ -621,6 +622,7 @@ bool EndpointRec::HasAvailableCapacity(const H225_ArrayOf_AliasAddress & aliases
 
 PString EndpointRec::PrintPrefixCapacities() const
 {
+	PWaitAndSignal lock(m_usedLock);
 	PString msg;
 	msg += PString("-- Endpoint: ") + AsString(m_terminalAliases, FALSE) + " (" + AsDotString(GetCallSignalAddress()) + ") --\r\n";
 	msg += "Total calls = " + PString(m_activeCall) + "\r\n";
@@ -644,6 +646,7 @@ PString EndpointRec::PrintPrefixCapacities() const
 
 string EndpointRec::LongestPrefixMatch(const PString & alias, int & capacity) const
 {
+	PWaitAndSignal lock(m_usedLock);
 	int maxlen = 0;	// longest match
 	string matched_prefix;
 	int prefix_capacity = -1;
@@ -672,6 +675,7 @@ string EndpointRec::LongestPrefixMatch(const PString & alias, int & capacity) co
 
 void EndpointRec::UpdatePrefixStats(const PString & dest, int update)
 {
+	PWaitAndSignal lock(m_usedLock);
 	int capacity = -1;
 	string longest_match = LongestPrefixMatch(dest, capacity);
 	if (longest_match.length() > 0) {
@@ -686,6 +690,7 @@ void EndpointRec::UpdatePrefixStats(const PString & dest, int update)
 
 unsigned EndpointRec::TranslateReceivedCause(unsigned cause) const
 {
+	PWaitAndSignal lock(m_usedLock);
 	std::map<unsigned, unsigned>::const_iterator i = m_receivedCauseMap.find(cause);
 	if (i != m_receivedCauseMap.end())
 		return i->second;
@@ -695,6 +700,7 @@ unsigned EndpointRec::TranslateReceivedCause(unsigned cause) const
 
 unsigned EndpointRec::TranslateSentCause(unsigned cause) const
 {
+	PWaitAndSignal lock(m_usedLock);
 	std::map<unsigned, unsigned>::const_iterator i = m_sentCauseMap.find(cause);
 	if (i != m_sentCauseMap.end())
 		return i->second;
@@ -1612,6 +1618,7 @@ void GatewayRec::Update(const H225_RasMessage & ras_msg)
 
 void GatewayRec::AddPrefixes(const H225_ArrayOf_SupportedProtocols & protocols)
 {
+	PWaitAndSignal lock(m_usedLock);
 	for (PINDEX i = 0; i < protocols.GetSize(); ++i) {
 		H225_SupportedProtocols &p = protocols[i];
 		H225_ArrayOf_SupportedPrefix *supportedPrefixes = 0;
@@ -1640,6 +1647,7 @@ void GatewayRec::AddPrefixes(const H225_ArrayOf_SupportedProtocols & protocols)
 
 void GatewayRec::AddPrefixes(const PString & prefixes)
 {
+	PWaitAndSignal lock(m_usedLock);
 	PStringArray prefix(prefixes.Tokenise(" ,;\t\n", false));
 	for (PINDEX i = 0; i < prefix.GetSize(); ++i) {
 		PStringArray p(prefix[i].Tokenise(":=", false));
@@ -1652,6 +1660,7 @@ void GatewayRec::AddPrefixes(const PString & prefixes)
 
 void GatewayRec::SortPrefixes()
 {
+	PWaitAndSignal lock(m_usedLock);
 	// remove duplicate aliases
 //	sort(Prefixes.begin(), Prefixes.end(), str_prefix_greater());
 //	prefix_iterator Iter = std::unique(Prefixes.begin(), Prefixes.end());
@@ -1684,6 +1693,8 @@ int GatewayRec::PrefixMatch(
 	int& priority_out
 	) const
 {
+	// Prefixes are rebuilt by LoadConfig() on every full RRQ
+	PWaitAndSignal lock(m_usedLock);
 	int maxlen = 0;
 	const_prefix_iterator pfxiter = Prefixes.end();
 	const_prefix_iterator eIter = Prefixes.end();
@@ -1753,6 +1764,7 @@ PString GatewayRec::PrintOn(bool verbose) const
 {
 	PString msg = EndpointRec::PrintOn(verbose);
 	if (verbose) {
+		PWaitAndSignal lock(m_usedLock);
 		msg += "Prefixes: ";
 		if (Prefixes.empty()) {
 			msg += "<none>";

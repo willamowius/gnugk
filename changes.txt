@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(RasTbl.cxx) lock gateway record while matching prefixes
 - BUGFIX(ProxyChannel.cxx) fix double-delete in call failover
 - BUGFIX(geoip.cxx) IPs without a database record are now country 'unknown' instead of an empty string
 - BUGFIX(h460presence.cxx) fix crash with too long lists
