@@ -1472,6 +1472,11 @@ bool GkPresence::HandleSubscriptionLocal(const H460P_PresenceSubscription & subs
 
 	H323PresenceStore::iterator itx = localStore.find(subscription.m_subscribe);
 	if (itx != localStore.end()) {
+		// a new subscription must name at least one subscriber alias
+		if (subscription.m_aliases.GetSize() == 0) {
+			PTRACE(2, "PRES\tSubscription " << AsString(subscription.m_identifier.m_guid) << " for " << AsString(subscription.m_subscribe, 0) << " without subscriber alias ignored");
+			return false;
+		}
 		itx->second.m_Authorize.Add((H323PresenceSubscription &)subscription);
 		H323PresenceID id;
 			id.m_subscriber = subscription.m_subscribe;
