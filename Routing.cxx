@@ -841,6 +841,7 @@ bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
                     H323SetAliasAddress(aliasPart, aliases[i]);
                 } else {
                     aliases.RemoveAt(i);
+					--i; // don't skip the item that moved down now
                 }
 				PTRACE(4, "ROUTING\tDNS policy resolves to " << aliasPart << " @ " << AsDotString(dest));
 			}
