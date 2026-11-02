@@ -234,6 +234,7 @@ private:
 private:
     PString m_clientId;
     struct mosquitto * m_mosq;
+	PMutex m_threadMutex;
 };
 
 MQTTAcct::MQTTAcct(const char* moduleName, const char* cfgSecName)
@@ -284,6 +285,8 @@ void MQTTAcct::Disconnect()
 
 GkAcctLogger::Status MQTTAcct::MQLog(const PString & event, const PString & topic)
 {
+    PWaitAndSignal lock(m_threadMutex); // the re-try below replaces m_mosq, don't let other threads use it meanwhile
+
     PTRACE(5, "MQTTAcct\tLogging message=" << event << " topic=" << topic);
     int rc = mosquitto_publish(m_mosq, NULL, (const char *)topic, event.GetLength(), (const char *)event, 0, false);
 
