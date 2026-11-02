@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(Routing.cxx) add NULL check in vqueue policy
 - BUGFIX(Routing.cxx) make sure we don't skip an alias when DNS policy deletes one
 - BUGFIX(RasSrv.cxx) avoid crash when dns policy removes all destination aliases from ARQ
 - BUGFIX(*) remove insecure support for neighbor access tokens, not used since GnuGk 2.2

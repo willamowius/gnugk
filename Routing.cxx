@@ -1330,7 +1330,7 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 	unsigned rejectReason = H225_AdmissionRejectReason::e_calledPartyNotRegistered;
 	H225_ArrayOf_AliasAddress * aliases = NULL;
 	PString vq = "";
-	if ((aliases = request.GetAliases()))
+	if (aliases = request.GetAliases())
 		vq = AsString((*aliases)[0], FALSE);
 	if (m_vqueue->IsDestinationVirtualQueue(vq)) {
 		H225_AdmissionRequest & arq = request.GetRequest();
@@ -1370,7 +1370,9 @@ bool VirtualQueuePolicy::OnRequest(AdmissionRequest & request)
 			if (m_vqueue->SendRouteRequest(source, epid, unsigned(arq.m_callReferenceValue), aliases, callSigAdr, bindIP, callerID, callerDisplayIE, calledDisplayIE, reject, rejectReason, keepRouteInternal,
                 vq, AsString(arq.m_srcInfo), AsString(arq.m_callIdentifier), calledIP, vendorInfo, fromIP, "ARQ")) {
                 if (keepRouteInternal) {
-                    request.SetNewSetupInternalAliases(*request.GetAliases());
+					if (request.GetAliases()) {
+						request.SetNewSetupInternalAliases(*request.GetAliases());
+					}
                 } else {
                     request.SetFlag(RoutingRequest::e_aliasesChanged);
                     request.SetRejectReason(rejectReason);
