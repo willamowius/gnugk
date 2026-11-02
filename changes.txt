@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(ProxyChannel.cxx) fix double-delete in call failover
 - BUGFIX(geoip.cxx) IPs without a database record are now country 'unknown' instead of an empty string
 - BUGFIX(h460presence.cxx) fix crash with too long lists
 - BUGFIX(h460presence.cxx) fix crash on empty subscription list

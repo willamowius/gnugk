@@ -9555,8 +9555,9 @@ void CallSignalSocket::TryNextRoute()
 	} else {
 		PTRACE(3, GetName() << "\tDispatching new call leg to " << newRoute.AsString() << " failed");
 		SNMP_TRAP(7, SNMPError, Network, "Failover failed");
+		// newCall is owned by the call table since Insert(): RemoveCall() moves it
+		// to the removed list and CheckCalls() deletes it later, don't delete it here
 		CallTable::Instance()->RemoveCall(callptr(newCall));
-		delete newCall;
 		m_result = Closing;
 	}
 }
