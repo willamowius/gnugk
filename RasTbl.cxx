@@ -3259,21 +3259,25 @@ void CallRec::SetProxyMode(
 
 H225_TransportAddress CallRec::GetSrcSignalAddr() const
 {
+	PWaitAndSignal lock(m_usedLock);
 	return m_srcSignalAddress;
 }
 
 bool CallRec::GetSrcSignalAddr(PIPSocket::Address & addr, WORD & port) const
 {
+	PWaitAndSignal lock(m_usedLock);
 	return GetIPAndPortFromTransportAddr(m_srcSignalAddress, addr, port);
 }
 
 H225_TransportAddress CallRec::GetDestSignalAddr() const
 {
+	PWaitAndSignal lock(m_usedLock);
 	return m_destSignalAddress;
 }
 
 bool CallRec::GetDestSignalAddr(PIPSocket::Address & addr, WORD & port) const
 {
+	PWaitAndSignal lock(m_usedLock);
 	return GetIPAndPortFromTransportAddr(m_destSignalAddress, addr, port);
 }
 
@@ -3306,6 +3310,8 @@ int CallRec::GetNATType(
 
 void CallRec::SetSrcSignalAddr(const H225_TransportAddress & addr)
 {
+	// lock: may be called from several signaling threads at once (eg. parallel Setups with the same callID)
+	PWaitAndSignal lock(m_usedLock);
 	m_srcSignalAddress = addr;
 	m_callerAddr = AsDotString(addr);
 }
@@ -3319,6 +3325,7 @@ void CallRec::SetSrcNATed(const PIPSocket::Address & natip)
 
 void CallRec::SetDestSignalAddr(const H225_TransportAddress & addr)
 {
+	PWaitAndSignal lock(m_usedLock);
 	m_destSignalAddress = addr;
 	m_calleeAddr = AsDotString(addr);
 }
@@ -3427,6 +3434,7 @@ void CallRec::SetSocket(CallSignalSocket * calling, CallSignalSocket * called)
 	PWaitAndSignal lock(m_sockLock);
 	m_callingSocket = calling, m_calledSocket = called;
 	if (calling) {
+		PWaitAndSignal usedLock(m_usedLock);
 		m_callerAddr = calling->GetName();
 		if (!m_srcSignalAddress.IsValid()) {
 			PIPSocket::Address addr(0);
@@ -3443,6 +3451,7 @@ void CallRec::SetCallSignalSocketCalling(CallSignalSocket * socket)
 	PWaitAndSignal lock(m_sockLock);
 	m_callingSocket = socket;
 	if (m_callingSocket) {
+		PWaitAndSignal usedLock(m_usedLock);
 		m_callerAddr = m_callingSocket->GetName();
 		if (!m_srcSignalAddress.IsValid()) {
 			PIPSocket::Address addr(0);
