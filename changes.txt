@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(RasTbl.*) lock CallRec in more setters and getters
 - BUGFIX(RasSrv.cxx) better check for existing aliases on additive registrations
 - BUGFIX(ProxyChannel.cxx) RTP/RTCP proxy sockets hold own call reference to avoid use-after-free on call cleanup
 - BUGFIX(ProxyChannel.cxx) fix crash in call rerouting

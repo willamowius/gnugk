@@ -4767,8 +4767,8 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 
     // do rewrite initiated by RouteToInternalGateway
     if (m_call && m_call->HasNewSetupInternalAliases()) {
-        PTRACE(2, Type() << "\tSet new internal aliases: " << *(m_call->GetNewSetupInternalAliases()));
-        setupBody.m_destinationAddress = *(m_call->GetNewSetupInternalAliases());
+        setupBody.m_destinationAddress = m_call->GetNewSetupInternalAliases();
+        PTRACE(2, Type() << "\tSet new internal aliases: " << setupBody.m_destinationAddress);
         if (setupBody.m_destinationAddress.GetSize() > 0) {
             q931.SetCalledPartyNumber(AsString(setupBody.m_destinationAddress[0], false));
         }

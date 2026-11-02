@@ -834,9 +834,9 @@ public:
 	endptr GetForwarder() const { return m_Forwarder; }
 	long GetBandwidth() const { return m_bandwidth; }
 
-	bool HasPostDialDigits() const { return !m_postdialdigits.IsEmpty(); }
-	PString GetPostDialDigits() const { return m_postdialdigits; }
-	void SetPostDialDigits(const PString & digits) { m_postdialdigits = digits; }
+	bool HasPostDialDigits() const { PWaitAndSignal lock(m_usedLock); return !m_postdialdigits.IsEmpty(); }
+	PString GetPostDialDigits() const { PWaitAndSignal lock(m_usedLock); return m_postdialdigits; }
+	void SetPostDialDigits(const PString & digits) { PWaitAndSignal lock(m_usedLock); m_postdialdigits = digits; }
 
 	/** @return
 	    A bit mask with NAT flags for calling and called parties.
@@ -1364,8 +1364,8 @@ public:
 	void SetCalledVendor(const PString & vendor, const PString & version);
 	bool GetCalledVendor(PString & vendor, PString & version) const;
 
-    void SetSInfoIP(const PString & ip) { m_sinfoIP = ip; }
-    PString GetSInfoIP() const { return m_sinfoIP; }
+    void SetSInfoIP(const PString & ip) { PWaitAndSignal lock(m_usedLock); m_sinfoIP = ip; }
+    PString GetSInfoIP() const { PWaitAndSignal lock(m_usedLock); return m_sinfoIP; }
 
 	/** @return
 	    Fixed destination address for the call (size 0 if not set).
@@ -1452,31 +1452,32 @@ public:
 	CallLeg GetRerouteDirection() const { return m_rerouteDirection; }
 	PTimedMutex & GetRerouteMutex() { return m_rerouteMutex; }
 
-	void SetBindHint(const PString & ip) { m_bindHint = ip; }
-	PString GetBindHint() const { return m_bindHint; }
+	void SetBindHint(const PString & ip) { PWaitAndSignal lock(m_usedLock); m_bindHint = ip; }
+	PString GetBindHint() const { PWaitAndSignal lock(m_usedLock); return m_bindHint; }
 
 	// if set, the callerID to put into calling party number IE
-	void SetCallerID(const PString & id) { m_callerID = id; }
-	PString GetCallerID() const { return m_callerID; }
+	void SetCallerID(const PString & id) { PWaitAndSignal lock(m_usedLock); m_callerID = id; }
+	PString GetCallerID() const { PWaitAndSignal lock(m_usedLock); return m_callerID; }
 
 	// calling/called party number IE (after rewriting)
-    void SetCallingPartyNumberIE(const PString & ie) { m_callingPartyNumberIE = ie; }
-	PString GetCallingPartyNumberIE() const { return m_callingPartyNumberIE; }
-	void SetCalledPartyNumberIE(const PString & ie) { m_calledPartyNumberIE = ie; }
-	PString GetCalledPartyNumberIE() const { return m_calledPartyNumberIE; }
+    void SetCallingPartyNumberIE(const PString & ie) { PWaitAndSignal lock(m_usedLock); m_callingPartyNumberIE = ie; }
+	PString GetCallingPartyNumberIE() const { PWaitAndSignal lock(m_usedLock); return m_callingPartyNumberIE; }
+	void SetCalledPartyNumberIE(const PString & ie) { PWaitAndSignal lock(m_usedLock); m_calledPartyNumberIE = ie; }
+	PString GetCalledPartyNumberIE() const { PWaitAndSignal lock(m_usedLock); return m_calledPartyNumberIE; }
 
 	// if set, the display IE to set for the caller/called party
-	void SetCallerDisplayIE(const PString & display) { m_callerDisplayIE = display; }
-	PString GetCallerDisplayIE() const { return m_callerDisplayIE; }
-	void SetCalledDisplayIE(const PString & display) { m_calledDisplayIE = display; }
-	PString GetCalledDisplayIE() const { return m_calledDisplayIE; }
+	void SetCallerDisplayIE(const PString & display) { PWaitAndSignal lock(m_usedLock); m_callerDisplayIE = display; }
+	PString GetCallerDisplayIE() const { PWaitAndSignal lock(m_usedLock); return m_callerDisplayIE; }
+	void SetCalledDisplayIE(const PString & display) { PWaitAndSignal lock(m_usedLock); m_calledDisplayIE = display; }
+	PString GetCalledDisplayIE() const { PWaitAndSignal lock(m_usedLock); return m_calledDisplayIE; }
 
 	void AddDynamicPort(const DynamicPort & port);
 	void RemoveDynamicPort(const DynamicPort & port);
 
-    bool HasNewSetupInternalAliases() const { return (m_newSetupInternalAliases != NULL); }
-    void SetNewSetupInternalAliases(H225_ArrayOf_AliasAddress newSetupInternalAliases) { delete m_newSetupInternalAliases; m_newSetupInternalAliases = new H225_ArrayOf_AliasAddress(newSetupInternalAliases); }
-    H225_ArrayOf_AliasAddress * GetNewSetupInternalAliases() const { return m_newSetupInternalAliases; }
+    bool HasNewSetupInternalAliases() const { PWaitAndSignal lock(m_usedLock); return (m_newSetupInternalAliases != NULL); }
+    void SetNewSetupInternalAliases(H225_ArrayOf_AliasAddress newSetupInternalAliases) { PWaitAndSignal lock(m_usedLock); delete m_newSetupInternalAliases; m_newSetupInternalAliases = new H225_ArrayOf_AliasAddress(newSetupInternalAliases); }
+    // returns a copy, the stored list may be replaced by another thread any time
+    H225_ArrayOf_AliasAddress GetNewSetupInternalAliases() const { PWaitAndSignal lock(m_usedLock); return m_newSetupInternalAliases ? *m_newSetupInternalAliases : H225_ArrayOf_AliasAddress(); }
 
 #ifdef HAS_H46018
 	bool IsH46018ReverseSetup() const { return m_h46018ReverseSetup; }
