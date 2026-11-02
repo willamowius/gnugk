@@ -8743,6 +8743,14 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 	CallSignalSocket * droppedSocket = NULL;
 	CallSignalSocket * remainingSocket = NULL;
 
+	// only one reroute per call at a time: a 2nd one would use the sockets the 1st drops or hands to DispatchNextRoute()
+	callptr call = m_call;	// m_call gets replaced by the new call below
+	if (!call->GetRerouteMutex().Wait(0)) {
+		PTRACE(1, "Q931\tError: Call is already being rerouted");
+		return false;
+	}
+	PWaitAndSignal rerouteLock(call->GetRerouteMutex(), false);	// already locked, only unlock on return
+
 	// check if we have access to signaling channel of endpoint to be transferred
 	if (which == Called) {
 		droppedSocket = m_call->GetCallSignalSocketCalling();
@@ -8944,6 +8952,24 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 
 	PThread::Sleep(500);	// wait for all CLCs to be sent
 
+	// from here on this socket belongs to the reroute job: DispatchNextRoute() uses it and may delete it,
+	// so take it away from its handler before anything is changed
+	// if that fails, the call has been terminated in the meantime and the handler has already queued the socket for deletion
+	if (!GetHandler()->Detach(this)) {
+		PTRACE(1, "Q931\tReroute aborted: Failed to detach socket " << GetName() << " from its handler");
+		m_call->SetRerouteState(NoReroute);
+		return false;
+	}
+	PTRACE(1, "Q931\tSocket " << GetName() << " detached from its handler");
+	// the handler thread may still be reading from this socket: wait until it is done with its current select list
+	// and make sure the call is still active after that
+	if (!GetHandler()->WaitForNextSelectList() || !CallTable::Instance()->FindCallRec(call->GetCallNumber())) {
+		PTRACE(1, "Q931\tReroute aborted: Call has been terminated");
+		m_call->SetRerouteState(NoReroute);
+		GetHandler()->Insert(this);	// give the socket back, the handler will clean it up
+		return false;
+	}
+
 	// drop party from call
 	if (which == Called) {
 		m_call->RerouteDropCalling();
@@ -8955,11 +8981,6 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 	droppedSocket->RemoveH245Handler();
 	if (droppedSocket->m_h245socket) {
 		droppedSocket->m_h245socket->RemoveRemoteSocket();
-	}
-	if (droppedSocket->GetHandler()->Detach(this))
-		PTRACE(1, "Q931\tSocket " << droppedSocket->GetName() << " detached from its handler");
-	else {
-		PTRACE(1, "Q931\tFailed to detach socket " << droppedSocket->GetName() << " from its handler");
 	}
 	remote = NULL;
 	if (m_h245socket)
@@ -18584,7 +18605,7 @@ void TLSCallSignalSocket::Dispatch()
 
 // class ProxyHandler
 ProxyHandler::ProxyHandler(const PString & name)
-	: SocketsReader(100), m_socketCleanupTimeout(DEFAULT_SOCKET_CLEANUP_TIMEOUT)
+	: SocketsReader(100), m_socketCleanupTimeout(DEFAULT_SOCKET_CLEANUP_TIMEOUT), m_selectListCount(0)
 {
 	SetName(name);
 #ifdef HAS_H46017
@@ -18668,6 +18689,7 @@ bool ProxyHandler::BuildSelectList(SocketSelectList & slist)
 {
 	FlushSockets();
 	WriteLock lock(m_listmutex);
+	++m_selectListCount;
 	iterator i = m_sockets.begin(), j = m_sockets.end();
 	while (i != j) {
 		iterator k=i++;
@@ -19030,6 +19052,22 @@ bool ProxyHandler::Detach(TCPProxySocket *socket)
 	m_listmutex.EndWrite();
 
 	return detached;
+}
+
+bool ProxyHandler::WaitForNextSelectList()
+{
+	m_listmutex.StartRead();
+	const unsigned current = m_selectListCount;
+	m_listmutex.EndRead();
+	Signal();	// in case the handler is idle
+	for (unsigned i = 0; i < 100; ++i) {
+		PThread::Sleep(10);
+		ReadLock lock(m_listmutex);
+		if (m_selectListCount != current)
+			return true;
+	}
+	PTRACE(1, GetName() << "\tTimeout waiting for the handler to finish its current select list");
+	return false;
 }
 
 void ProxyHandler::DetachSocket(IPSocket *socket)

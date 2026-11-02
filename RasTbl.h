@@ -1450,6 +1450,7 @@ public:
 	RerouteState GetRerouteState() const { return m_rerouteState; }
 	void SetRerouteDirection(CallLeg dir) { m_rerouteDirection = dir; }
 	CallLeg GetRerouteDirection() const { return m_rerouteDirection; }
+	PTimedMutex & GetRerouteMutex() { return m_rerouteMutex; }
 
 	void SetBindHint(const PString & ip) { m_bindHint = ip; }
 	PString GetBindHint() const { return m_bindHint; }
@@ -1765,6 +1766,7 @@ private:
 	bool m_callfromTraversalClient;
 	bool m_callfromTraversalServer;
 	CallLeg m_rerouteDirection;
+	PTimedMutex m_rerouteMutex;	// held by the thread that is rerouting the call
 	PString m_callerID;	// forced caller ID or empty
 	PString m_callerDisplayIE;	// forced Display IE of caller or empty
 	PString m_calledDisplayIE;	// forced Display IE of called party or empty

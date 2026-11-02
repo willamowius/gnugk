@@ -929,6 +929,9 @@ public:
 	bool IsEmpty() const { return m_socksize == 0; }
 	void LoadConfig();
 	bool Detach(TCPProxySocket *);
+	// a socket detached by another thread can still be on the select list the handler thread is working on:
+	// wait until the handler has built a new one, returns false on timeout (don't call from the handler thread)
+	bool WaitForNextSelectList();
 	void Remove(TCPProxySocket *);
 
 private:
@@ -953,6 +956,8 @@ private:
 	std::list<PTime *> m_removedTime;
 	/// time to wait before deleting a closed socket
 	PTimeInterval m_socketCleanupTimeout;
+	/// number of select lists built so far (protected by m_listmutex)
+	unsigned m_selectListCount;
 #ifdef HAS_H46017
 	bool m_h46017Enabled;
 #endif
