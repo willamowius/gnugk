@@ -3732,6 +3732,9 @@ bool AdmissionRequestPDU::Process()
 		connectWithTLS = route.m_useTLS;
 		toParent = route.m_flags & Route::e_toParent;
 		aliasesChanged = aliasesChanged || (arq.GetFlags() & Routing::AdmissionRequest::e_aliasesChanged);
+		// routing policies may have modified destinationInfo (eg. dns policy removes alias when only an IP is left)
+		hasDestInfo = request.HasOptionalField(H225_AdmissionRequest::e_destinationInfo)
+			&& request.m_destinationInfo.GetSize() > 0;
 
 		// record neighbor used for rewriting purposes
 		if (route.m_flags & Route::e_toNeighbor)
