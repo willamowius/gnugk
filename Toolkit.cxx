@@ -1353,6 +1353,8 @@ Toolkit::~Toolkit()
 		delete m_Config;
 		PFile::Remove(m_tmpconfig);
 		PFile::Remove(m_extConfigFilePath);
+		if (!m_tmpConfigDir)
+			PDirectory(m_tmpConfigDir).Remove();
 	}
 	delete m_timerManager;
 	delete m_cliRewrite;
@@ -1450,6 +1452,7 @@ void Toolkit::CreateConfig()
 		PFile::Remove(m_tmpconfig);
 
 	PString tmpdir = GetTempDir();
+	PString oldTmpConfigDir = m_tmpConfigDir;
 
 #if _WIN32 || _WIN64
 	if (tmpdir.IsEmpty())
@@ -1462,6 +1465,18 @@ void Toolkit::CreateConfig()
 #else
 	if (tmpdir.IsEmpty())
 		tmpdir = ".";
+
+	// the temp directory is usually writable by all local users and the file names
+	// below are predictable, so create a private sub-directory (mode 0700) for them
+	m_tmpConfigDir = tmpdir + PDIR_SEPARATOR + "gnugk-XXXXXX";
+	if (mkdtemp(m_tmpConfigDir.GetPointer()) != NULL) {
+		tmpdir = m_tmpConfigDir;
+	} else {
+		PTRACE(0, "CONFIG\tCould not create a private temp directory in " << tmpdir << " - using the config file directory");
+		m_tmpConfigDir = PString::Empty();
+		const PFilePath fpath(m_ConfigFilePath);
+		tmpdir = fpath.GetDirectory();
+	}
 #endif
 
 	// generate a unique name
@@ -1484,6 +1499,14 @@ void Toolkit::CreateConfig()
 				PTRACE(0, "CONFIG\tFailed to read valid config - keeping old config");
 				SNMP_TRAP(6, SNMPError, General, "Failed to read config");
 				GkStatus::Instance()->SignalStatus("Failed to read valid config - keeping old config\r\n", MIN_STATUS_TRACE_LEVEL);
+				if (!oldTmpConfigDir) {
+					// the old config may still write to its directory, so stay there and drop the new one
+					PFile::Remove(m_tmpconfig);
+					if (!m_tmpConfigDir)
+						PDirectory(m_tmpConfigDir).Remove();
+					tmpdir = m_tmpConfigDir = oldTmpConfigDir;
+					oldTmpConfigDir = PString::Empty();
+				}
 			} else {	// startup
 				m_Config = testConfig;	// warning will be printed a bit later
 			}
@@ -1499,6 +1522,8 @@ void Toolkit::CreateConfig()
 
 	if (!m_extConfigFilePath)
 		PFile::Remove(m_extConfigFilePath);
+	if (!oldTmpConfigDir)
+		PDirectory(oldTmpConfigDir).Remove();
 
 	// generate a unique name
 	do {

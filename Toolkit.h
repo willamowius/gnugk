@@ -770,6 +770,8 @@ private:
     bool m_maintenanceMode;
     PString m_maintenanceAlternate;
 	PFilePath m_tmpconfig;
+	/// private directory holding m_tmpconfig and m_extConfigFilePath (Unix only)
+	PString m_tmpConfigDir;
 	/// global manager for time-based events
 	GkTimerManager * m_timerManager;
 	/// a default timestamp format string
