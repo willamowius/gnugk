@@ -3,7 +3,7 @@
 // yasocket.cxx
 //
 // Copyright (c) Citron Network Inc. 2002-2003
-// Copyright (c) 2004-2023, Jan Willamowius
+// Copyright (c) 2004-2026, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -556,7 +556,8 @@ bool YaUDPSocket::Listen(const Address & addr, unsigned, WORD pt, PSocket::Reusa
 #ifdef hasIPV6
 bool YaUDPSocket::DualStackListen(const Address & addr, WORD pt)
 {
-	return Listen(addr, 0, pt, PSocket::CanReuseAddress);
+	// no SO_REUSEADDR: the bind must fail if the port is already in use (by RAS or another call's RTP socket)
+	return Listen(addr, 0, pt, PSocket::AddressIsExclusive);
 }
 #endif
 
