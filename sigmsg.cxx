@@ -4,7 +4,7 @@
  * Structures to hold and process signaling messages
  *
  * Copyright (c) 2005, Michal Zygmuntowicz
- * Copyright (c) 2005-2018, Jan Willamowius
+ * Copyright (c) 2005-2026, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -92,6 +92,25 @@ bool SignalingMsg::Encode(PBYTEArray & buffer)
 		m_uuie->Encode(strm);
 		strm.CompleteEncoding();
 		m_q931->SetIE(Q931::UserUserIE, strm);
+	}
+	// the User-User IE has a 16 bit length field that also counts the protocol discriminator,
+	// a larger UUIE would wrap around; truncating would produce broken ASN.1
+	if (m_q931->HasIE(Q931::UserUserIE) && m_q931->GetIE(Q931::UserUserIE).GetSize() > 65534) {
+		PTRACE(1, "Q931\tUser-User IE in " << GetTagName() << " too large, can't encode message");
+		return false;
+	}
+	// the length field of all IEs except User-User is a single octet,
+	// Q931::Encode() doesn't check, so we have to truncate here
+	for (unsigned ie = 0; ie < 128; ++ie) {
+		const Q931::InformationElementCodes ieCode = (Q931::InformationElementCodes)ie;
+		if (ieCode == Q931::UserUserIE || !m_q931->HasIE(ieCode))
+			continue;
+		PBYTEArray ieData = m_q931->GetIE(ieCode);
+		if (ieData.GetSize() > 255) {
+			PTRACE(1, "Q931\tIE " << ie << " in " << GetTagName() << " too large (" << ieData.GetSize() << " bytes), truncating");
+			ieData.SetSize(255);
+			m_q931->SetIE(ieCode, ieData);
+		}
 	}
 	return m_q931->Encode(buffer);
 }
