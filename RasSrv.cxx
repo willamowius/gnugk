@@ -2468,9 +2468,19 @@ bool RegistrationRequestPDU::Process()
 				}
 
 				// Check for existing aliases
-				const endptr lep = EndpointTbl->FindByAliases(request.m_terminalAlias);
-				if (lep && (lep->GetCallSignalAddress() != ep->GetCallSignalAddress())) {
-					return BuildRRJ(H225_RegistrationRejectReason::e_invalidTerminalAliases);
+				// look up each alias on its own (like for full registrations):
+				// FindByAliases() returns the first endpoint that has _any_ of the aliases,
+				// which might be the requesting endpoint itself when the list also contains
+				// one of its current aliases, while another alias in the list belongs to someone else
+				H225_ArrayOf_AliasAddress alias;
+				alias.SetSize(1);
+				for (int a = 0; a < request.m_terminalAlias.GetSize(); ++a) {
+					alias[0] = request.m_terminalAlias[a];
+					const endptr lep = EndpointTbl->FindByAliases(alias);
+					if (lep && (lep->GetCallSignalAddress() != ep->GetCallSignalAddress())) {
+						PTRACE(1, "RAS\tAdditive registration rejected, alias " << AsString(alias[0], false) << " is already registered by " << lep->GetEndpointIdentifier().GetValue());
+						return BuildRRJ(H225_RegistrationRejectReason::e_invalidTerminalAliases);
+					}
 				}
 			}
 
