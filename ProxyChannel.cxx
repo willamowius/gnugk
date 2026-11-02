@@ -9740,18 +9740,29 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					Q931 *q931pdu = new Q931();
 					if (!q931pdu->Decode(rawSetup)) {
 						PTRACE(1, Type() << "\t" << GetName() << " ERROR DECODING saved Setup!");
-						SNMP_TRAP(9, SNMPError, Network, "Error decoding saved Setup from " + GetName());
 						delete q931pdu;
 						q931pdu = NULL;
 						return;
 					}
 					if (q931pdu->HasIE(Q931::UserUserIE)) {
 						uuie = new H225_H323_UserInformation();
-						GetUUIE(*q931pdu, *uuie);
+						if (!GetUUIE(*q931pdu, *uuie)) {
+							delete uuie;
+							uuie = NULL;
+						}
 					}
 					PIPSocket::Address _localAddr, _peerAddr;
 					WORD _localPort = 0, _peerPort = 0;
-					SetupMsg * setup = (SetupMsg *)SetupMsg::Create(q931pdu, uuie, _localAddr, _localPort, _peerAddr, _peerPort);
+					// Create() picks the message class by the UUIE it finds, so make sure we really got a Setup
+					SignalingMsg * savedMsg = SignalingMsg::Create(q931pdu, uuie, _localAddr, _localPort, _peerAddr, _peerPort);
+					SetupMsg * setup = dynamic_cast<SetupMsg*>(savedMsg);
+					if (setup == NULL) {
+						PTRACE(1, Type() << "\t" << GetName() << " ERROR: saved Setup has no Setup UUIE!");
+						// deleting savedMsg also disposes q931pdu and uuie
+						delete savedMsg;
+						savedMsg = NULL;
+						return;
+					}
 					setup->Decode(rawSetup);
 					H225_Setup_UUIE & setupBody = setup->GetUUIEBody();
 
@@ -9825,7 +9836,7 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 
 					PrintQ931(4, "Send to ", this->GetName(), &setup->GetQ931(), setup->GetUUIE());
 
-					if (q931pdu->Encode(rawSetup))
+					if (setup->Encode(rawSetup))
 						this->TransmitData(rawSetup);
 
 					// deleting setup also disposes q931pdu and uuie
