@@ -4581,6 +4581,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 	}
 
 	// Sorenson specific
+	PString sinfoIP;	// IP from Sorenson source info, saved in the call once we have a CallRec (m_call is usually not set, yet)
 	if (GkConfig()->GetBoolean(RoutedSec, "TranslateSorensonSourceInfo", false)) {
 		// Viable VPAD (Viable firmware, SBN Tech device), remove the CallingPartyNumber information
 		// (its under the Sorenson switch, even though not Sorenson, can be moved later to own switch)
@@ -4662,8 +4663,8 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 							PString ip = tokens[i].Mid(4);
 							// check format of IP to avoid runtime error
 							if (ip.FindRegEx(PRegularExpression("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX) {
-                                m_call->SetSInfoIP(ip);
-                                setupBody.m_sourceAddress.SetSize(sourceAdrSize + 1);
+								sinfoIP = ip;
+								setupBody.m_sourceAddress.SetSize(sourceAdrSize + 1);
 								H323SetAliasAddress(ip, setupBody.m_sourceAddress[sourceAdrSize], H225_AliasAddress::e_transportID);
 							} else {
 								PTRACE(1, "Invalid IP in Sorenson source info: " << ip);
@@ -5071,6 +5072,8 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 			m_call->SetDialedNumber(authData.m_dialedNumber);
 		if (authData.m_clientAuthId > 0)
 			m_call->SetClientAuthId(authData.m_clientAuthId);
+		if (!sinfoIP && !secondSetup)
+			m_call->SetSInfoIP(sinfoIP);
 
 		if (!secondSetup && (m_call->GetFailedRoutes().empty() || !m_call->SingleFailoverCDR())) {
 			// log AcctStart accounting event
@@ -5303,6 +5306,7 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		call->SetCallerDisplayIE(request.GetCallerDisplayIE());
 		call->SetCalledDisplayIE(request.GetCalledDisplayIE());
 		call->SetCallingVendor(callingVendor, callingVersion);
+		call->SetSInfoIP(sinfoIP);
 
 
 #ifdef HAS_H46018
@@ -8764,6 +8768,14 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 		SNMP_TRAP(7, SNMPError, Network, "RerouteCall() called on wrong socket");
 		return false;
 	}
+	// the TCS0 pause needs an H.245 connection for both parties (or H.245 tunneling),
+	// without tunneling the H.245 sockets only exist once the h245Address has been exchanged
+	if (droppedSocket == NULL
+		|| (!droppedSocket->IsH245Tunneling() && droppedSocket->m_h245socket == NULL)
+		|| (!remainingSocket->IsH245Tunneling() && m_h245socket == NULL)) {
+		PTRACE(1, "Q931\tCan't reroute call: H.245 channel not established");
+		return false;
+	}
 
 	// build Setup
 	Q931 q931;
@@ -8923,7 +8935,8 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 	// send TCS0 to dropping party
     PTRACE(1, "Q931\tSending TCS0 to dropped tunneling=" << droppedSocket->IsH245Tunneling());
 	if (!droppedSocket->IsH245Tunneling()) {
-		droppedSocket->m_h245socket->SendTCS(NULL, droppedSocket->GetNextTCSSeq());
+		if (droppedSocket->m_h245socket)	// tunneling may have been switched off since the check above
+			droppedSocket->m_h245socket->SendTCS(NULL, droppedSocket->GetNextTCSSeq());
 	} else {
 		// send tunneled TCS0
         tcs0.m_sequenceNumber = droppedSocket->GetNextTCSSeq();
@@ -8933,11 +8946,13 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 	// send TCS0 to forwarded (remaining) party
     PTRACE(1, "Q931\tSending TCS0 to forwarded tunneling=" << remainingSocket->IsH245Tunneling());
 	if (!remainingSocket->IsH245Tunneling()) {
-		m_h245socket->SendTCS(NULL, GetNextTCSSeq());
-		for (unsigned i = 0; i < flcnList.size(); i++) {
-            PTRACE(2, "Q931\tSending CLC " << flcnList[i] << " to forwarded");
-            clc.m_forwardLogicalChannelNumber = flcnList[i];
-            m_h245socket->Send(h245msg_clc);
+		if (m_h245socket) {
+			m_h245socket->SendTCS(NULL, GetNextTCSSeq());
+			for (unsigned i = 0; i < flcnList.size(); i++) {
+				PTRACE(2, "Q931\tSending CLC " << flcnList[i] << " to forwarded");
+				clc.m_forwardLogicalChannelNumber = flcnList[i];
+				m_h245socket->Send(h245msg_clc);
+			}
 		}
 	} else {
 		// send tunneled TCS0 + CLCs

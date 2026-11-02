@@ -1,5 +1,7 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(ProxyChannel.cxx) fix NULL deref handling Sorensen source-info
+- BUGFIX(ProxyChannel.cxx) better check for H.245 connection when doing TCS0 transfer
 - BUGFIX(Toolkit.cxx) null sql connections to avoid double-delete
 - BUGFIX(RasTbl.cxx) lock gateway record while matching prefixes
 - BUGFIX(ProxyChannel.cxx) fix double-delete in call failover
