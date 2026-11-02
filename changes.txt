@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(ProxyChannel.cxx) RTP/RTCP proxy sockets hold own call reference to avoid use-after-free on call cleanup
 - BUGFIX(ProxyChannel.cxx) fix crash in call rerouting
 - BUGFIX(sigmsg.cxx) check IE size before encoding
 - BUGFIX(ProxyChannel.cxx) make sure the saved H.460.18 message is really a Setup

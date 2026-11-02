@@ -14118,8 +14118,10 @@ void UDPProxySocket::SetForwardDestination(const Address & srcIP, WORD srcPort, 
 	}
 #endif
 
-	if (call)
-		m_call = &call;
+	if (call) {
+		PWaitAndSignal lock(m_callMutex);
+		m_call = call;
+	}
 }
 
 void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call, bool onlySetDest, bool onlySetSrc)
@@ -14181,8 +14183,10 @@ void UDPProxySocket::SetReverseDestination(const Address & srcIP, WORD srcPort, 
 		<< " fSrc=" << AsString(fSrcIP, fSrcPort) << " fDest=" << AsString(fDestIP, fDestPort)
 		<< " rSrc=" << AsString(rSrcIP, rSrcPort) << " rDest=" << AsString(rDestIP, rDestPort));
 
-    if (call)
-        m_call = &call;
+    if (call) {
+        PWaitAndSignal lock(m_callMutex);
+        m_call = call;
+    }
 }
 
 void UDPProxySocket::GetPorts(PIPSocket::Address & _fSrcIP, PIPSocket::Address & _fDestIP, PIPSocket::Address & _rSrcIP, PIPSocket::Address & _rDestIP,
@@ -14265,18 +14269,18 @@ void UDPProxySocket::SetMultiplexSocket(int multiplexSocket, H46019Side side)
 void UDPProxySocket::SetMediaIP(bool isSRC, const Address & ip)
 {
     PWaitAndSignal lock(m_callMutex);
-	if (m_call && *m_call) {
+	if (m_call) {
 		if (m_isRTCPType) {
 			if (isSRC)
-				(*m_call)->SetSRC_media_control_IP(ip.AsString());
+				m_call->SetSRC_media_control_IP(ip.AsString());
 			else
-				(*m_call)->SetDST_media_control_IP(ip.AsString());
+				m_call->SetDST_media_control_IP(ip.AsString());
 		}
 		if (m_isRTPType) {
 			if (isSRC)
-				(*m_call)->SetSRC_media_IP(ip.AsString());
+				m_call->SetSRC_media_IP(ip.AsString());
 			else
-				(*m_call)->SetDST_media_IP(ip.AsString());
+				m_call->SetDST_media_IP(ip.AsString());
 		}
 	}
 }
@@ -14444,8 +14448,8 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 
     // save which destination IP on the gatekeeper is used by remote endpoint and use that to send!
     if (!m_portDetectionDone) {
-        if (m_call && (*m_call)) {
-            (*m_call)->SetEndpointIPMapping(fromIP, localaddr);
+        if (m_call) {
+            m_call->SetEndpointIPMapping(fromIP, localaddr);
         }
     }
     if (m_cachePortDetection) { // cache even when port detection is done, because we expire the entries
@@ -14607,8 +14611,8 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				// note: we don't do port switching at this time, once the ports are set they stay (this also avoid RTPBleed)
 #ifdef HAS_H46024B
 				// If required begin Annex B probing
-				if (isRTPKeepAlive && m_call && (*m_call) && (*m_call)->GetNATStrategy() == CallRec::e_natAnnexB) {
-					(*m_call)->H46024BInitiate(m_sessionID, IPAndPortAddress(fDestIP, fDestPort), IPAndPortAddress(rDestIP, rDestPort));
+				if (isRTPKeepAlive && m_call && m_call->GetNATStrategy() == CallRec::e_natAnnexB) {
+					m_call->H46024BInitiate(m_sessionID, IPAndPortAddress(fDestIP, fDestPort), IPAndPortAddress(rDestIP, rDestPort));
 				}
 #endif	// HAS_H46024B
 			}
@@ -14678,14 +14682,14 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 	}
 
 #ifdef HAS_H235_MEDIA
-    if (isRTP && (!m_call || (m_call && !(*m_call)))) {
+    if (isRTP && !m_call) {
 		if (m_encryptingLC || m_decryptingLC) {
             PTRACE(7, "JW RTP dropping crypto RTP packet (call object already gone)");
             return NoData;
         }
     }
 	// H.235.6 sect 9.3.3 says RTCP encryption is for further study, so we don't encrypt/decrypt RTCP
-	if (m_call && (*m_call) && (*m_call)->IsMediaEncryption() && isRTP) {
+	if (m_call && m_call->IsMediaEncryption() && isRTP) {
 		bool ready = false;
 		bool encrypting = false;
 		if (m_encryptingLC && m_decryptingLC) {
@@ -14697,9 +14701,9 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 				}
 				PIPSocket::Address callerSignalIP;
 				WORD notused;
-				(*m_call)->GetSrcSignalAddr(callerSignalIP, notused);
+				m_call->GetSrcSignalAddr(callerSignalIP, notused);
 				bool fromCaller = (callerSignalIP == fromIP);
-				bool simulateCaller = ((*m_call)->GetEncryptDirection() == CallRec::callingParty);
+				bool simulateCaller = (m_call->GetEncryptDirection() == CallRec::callingParty);
 				encrypting = ((fromCaller && simulateCaller) || (!fromCaller && !simulateCaller));
 			} else {
 				encrypting = (payloadType == m_encryptingLC->GetPlainPayloadType());
@@ -14743,14 +14747,14 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 #ifdef HAS_H46026
 	// send packets to H.460.26 endpoints via TCP
     if (Toolkit::Instance()->IsH46026Enabled()) {
-        if (m_call && (*m_call) && (*m_call)->GetCallingParty() && (*m_call)->GetCallingParty()->UsesH46026()) {
-            if (m_call && (*m_call) && (*m_call)->GetCallingParty()->GetSocket()) {
-                (*m_call)->GetCallingParty()->GetSocket()->SendH46026RTP(m_sessionID, isRTP, wbuffer, buflen);
+        if (m_call && m_call->GetCallingParty() && m_call->GetCallingParty()->UsesH46026()) {
+            if (m_call && m_call->GetCallingParty()->GetSocket()) {
+                m_call->GetCallingParty()->GetSocket()->SendH46026RTP(m_sessionID, isRTP, wbuffer, buflen);
             }
             return NoData;	// already forwarded via TCP
-        } else if (m_call && (*m_call) && (*m_call)->GetCalledParty() && (*m_call)->GetCalledParty()->UsesH46026()) {
-            if (m_call && (*m_call) && (*m_call)->GetCalledParty()->GetSocket()) {
-                (*m_call)->GetCalledParty()->GetSocket()->SendH46026RTP(m_sessionID, isRTP, wbuffer, buflen);
+        } else if (m_call && m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46026()) {
+            if (m_call && m_call->GetCalledParty()->GetSocket()) {
+                m_call->GetCalledParty()->GetSocket()->SendH46026RTP(m_sessionID, isRTP, wbuffer, buflen);
             }
             return NoData;	// already forwarded via TCP
         }
@@ -14759,10 +14763,10 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 
 	// send packets for a multiplexing destination out through multiplexing socket
 	if (IsSet(m_multiplexDestination_A) && (m_multiplexDestination_A != fromAddr)) {
-		if (isRTCP && m_EnableRTCPStats && m_call && (*m_call))
-			ParseRTCP(*m_call, m_sessionID, fromIP, wbuffer, buflen);
+		if (isRTCP && m_EnableRTCPStats && m_call)
+			ParseRTCP(m_call, m_sessionID, fromIP, wbuffer, buflen);
         PIPSocket::Address gkIP;
-        if (m_call && (*m_call) && (*m_call)->GetEndpointIPMapping(m_multiplexDestination_A.GetIP(), gkIP)) {
+        if (m_call && m_call->GetEndpointIPMapping(m_multiplexDestination_A.GetIP(), gkIP)) {
 		    H46019Session::Send(m_multiplexID_A, m_multiplexDestination_A, m_multiplexSocket_A, wbuffer, buflen, false, &gkIP);
         } else {
 		    H46019Session::Send(m_multiplexID_A, m_multiplexDestination_A, m_multiplexSocket_A, wbuffer, buflen, false, NULL);
@@ -14770,10 +14774,10 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		return NoData;	// already forwarded through multiplex socket
 	}
 	if (IsSet(m_multiplexDestination_B) && (m_multiplexDestination_B != fromAddr)) {
-		if (isRTCP && m_EnableRTCPStats && m_call && (*m_call))
-			ParseRTCP(*m_call, m_sessionID, fromIP, wbuffer, buflen);
+		if (isRTCP && m_EnableRTCPStats && m_call)
+			ParseRTCP(m_call, m_sessionID, fromIP, wbuffer, buflen);
         PIPSocket::Address gkIP;
-        if (m_call && (*m_call) && (*m_call)->GetEndpointIPMapping(m_multiplexDestination_B.GetIP(), gkIP)) {
+        if (m_call && m_call->GetEndpointIPMapping(m_multiplexDestination_B.GetIP(), gkIP)) {
     		H46019Session::Send(m_multiplexID_B, m_multiplexDestination_B, m_multiplexSocket_B, wbuffer, buflen, false, &gkIP);
         } else {
     		H46019Session::Send(m_multiplexID_B, m_multiplexDestination_B, m_multiplexSocket_B, wbuffer, buflen, false, NULL);
@@ -14803,11 +14807,11 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
         if (fDestPort) {
             PTRACE(6, Type() << "\tforward " << fromIP << ':' << fromPort << " to " << AsString(fDestIP, fDestPort));
 #ifdef HAS_H46024B
-            if (isRTP && m_call && (*m_call) && (*m_call)->GetNATStrategy() == CallRec::e_natAnnexB) {
+            if (isRTP && m_call && m_call->GetNATStrategy() == CallRec::e_natAnnexB) {
 #ifdef HAS_H46018
                 m_portDetectionDone = true;  // we missed the probe packets but detection is done
 #endif
-			    (*m_call)->H46024BInitiate(m_sessionID, IPAndPortAddress(fDestIP, fDestPort), IPAndPortAddress(fromIP, fromPort));
+			    m_call->H46024BInitiate(m_sessionID, IPAndPortAddress(fDestIP, fDestPort), IPAndPortAddress(fromIP, fromPort));
             }
 #endif
 #ifndef P_LINUX
@@ -14829,8 +14833,8 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
                     PTRACE(1, "RTP\tError: Port detection failed for RTP session " << m_sessionID);
                     m_mediaFailDetected = true;
                     if (m_call) {
-                        (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctMediaFail, *m_call);
-                        (*m_call)->AbortLogicalChannel(m_sessionID);
+                        (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctMediaFail, m_call);
+                        m_call->AbortLogicalChannel(m_sessionID);
                     }
                 }
             }
@@ -14864,8 +14868,10 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
                 if (now - m_firstMedia >= m_portDetectionTimeout) {
                     PTRACE(1, "RTP\tError: Port detection failed for RTP session " << m_sessionID);
                     m_mediaFailDetected = true;
-                    (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctMediaFail, *m_call);
-                    (*m_call)->AbortLogicalChannel(m_sessionID);
+                    if (m_call) {
+                        (void)RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctMediaFail, m_call);
+                        m_call->AbortLogicalChannel(m_sessionID);
+                    }
                 }
             }
 
@@ -14878,14 +14884,14 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
         }
 	}
 
-	if (isRTCP && m_EnableRTCPStats && m_call && (*m_call))
-		ParseRTCP(*m_call, m_sessionID, fromIP, wbuffer, buflen);
+	if (isRTCP && m_EnableRTCPStats && m_call)
+		ParseRTCP(m_call, m_sessionID, fromIP, wbuffer, buflen);
 
 	PIPSocket::Address toIP;
 	WORD toPort = 0;
 	GetSendAddress(toIP, toPort);
 	PIPSocket::Address gkIP;
-	if (m_call && (*m_call) && (*m_call)->GetEndpointIPMapping(toIP, gkIP)
+	if (m_call && m_call->GetEndpointIPMapping(toIP, gkIP)
 		&& Toolkit::Instance()->GetExternalIP().IsEmpty()) { // let OS/firewall handle setting source IP with ExternalIP
 	    UDPSendWithSourceIP(os_handle, wbuffer, buflen, toIP, toPort, &gkIP);
 	} else {

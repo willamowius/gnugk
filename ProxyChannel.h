@@ -213,7 +213,7 @@ public:
 	~UDPProxySocket();
 
 	void UpdateSocketName();
-	void RemoveCallPtr() { PWaitAndSignal lock(m_callMutex); m_call = NULL; }
+	void RemoveCallPtr() { PWaitAndSignal lock(m_callMutex); m_call = callptr(NULL); }
 	void SetRTCPDestination(const H245_UnicastAddress & addr, const PIPSocket::Address & sourceIP, bool isUnidirectional);
     void ZeroRTCPDestination();
 	void SetForwardDestination(const Address & srcIP, WORD srcPort, H245_UnicastAddress * dstAddr, callptr & call, bool onlySetDest, bool onlySetSrc);
@@ -270,7 +270,7 @@ protected:
 	void BuildReceiverReport(const RTP_ControlFrame & frame, PINDEX offset, bool dst);
 
 	PINDEX m_callNo;
-	callptr * m_call;
+	callptr m_call;
 	PMutex m_callMutex;
 
 private:
