@@ -85,12 +85,13 @@ PString XSQLVARToPString(XSQLVAR *sqlvar)
 		return PString(sqlvar->sqldata, sqlvar->sqllen);
 	case SQL_SHORT:
 		return sqlvar->sqlscale < 0
-			? PString(PString::Decimal, *(int*)(sqlvar->sqldata) * pow(10.0, sqlvar->sqlscale), abs(sqlvar->sqlscale))
-			: PString(*(short*)(sqlvar->sqldata));
+			? PString(PString::Decimal, *(ISC_SHORT*)(sqlvar->sqldata) * pow(10.0, sqlvar->sqlscale), abs(sqlvar->sqlscale))
+			: PString(*(ISC_SHORT*)(sqlvar->sqldata));
 	case SQL_LONG:
+		// SQL_LONG is a 32 bit ISC_LONG, not a C long (8 bytes on 64 bit Unix)
 		return sqlvar->sqlscale < 0
-			? PString(PString::Decimal, *(long*)(sqlvar->sqldata) * pow(10.0, sqlvar->sqlscale), abs(sqlvar->sqlscale))
-			: PString(*(long*)(sqlvar->sqldata));
+			? PString(PString::Decimal, *(ISC_LONG*)(sqlvar->sqldata) * pow(10.0, sqlvar->sqlscale), abs(sqlvar->sqlscale))
+			: PString(*(ISC_LONG*)(sqlvar->sqldata));
 	case SQL_DOUBLE:
 		return sqlvar->sqlscale < 0
 			? PString(PString::Decimal, *(double*)(sqlvar->sqldata) * pow(10.0, sqlvar->sqlscale), abs(sqlvar->sqlscale))
