@@ -2120,7 +2120,9 @@ Toolkit::AssignedAliases::~AssignedAliases()
 
 bool Toolkit::AssignedAliases::LoadSQL(PConfig * cfg)
 {
+	m_sqlactive = false;
 	delete m_sqlConn;
+	m_sqlConn = NULL;
 	PString authName = "AssignedAliases::SQL";
 
    if (cfg->GetSections().GetStringsIndex(authName) == P_MAX_INDEX)
@@ -2786,7 +2788,9 @@ Toolkit::AssignedGatekeepers::~AssignedGatekeepers()
 
 bool Toolkit::AssignedGatekeepers::LoadSQL(PConfig * cfg)
 {
+	m_sqlactive = false;
 	delete m_sqlConn;
+	m_sqlConn = NULL;
 	PString authName = "AssignedGatekeepers::SQL";
 
 	if (cfg->GetSections().GetStringsIndex(authName) == P_MAX_INDEX)
@@ -3081,7 +3085,9 @@ Toolkit::AlternateGatekeepers::~AlternateGatekeepers()
 
 void Toolkit::AlternateGatekeepers::LoadConfig(PConfig * cfg)
 {
+	m_sqlactive = false;
 	delete m_sqlConn;
+	m_sqlConn = NULL;
 	const PString authName = "AlternateGatekeepers::SQL";
 
 	if (cfg->GetSections().GetStringsIndex(authName) == P_MAX_INDEX)
@@ -3207,7 +3213,9 @@ Toolkit::GnuGkAssignedGatekeepers::~GnuGkAssignedGatekeepers()
 
 void Toolkit::GnuGkAssignedGatekeepers::LoadConfig(PConfig * cfg)
 {
+	m_sqlactive = false;
 	delete m_sqlConn;
+	m_sqlConn = NULL;
 	const PString authName = "GnuGkAssignedGatekeepers::SQL";
 
 	if (cfg->GetSections().GetStringsIndex(authName) == P_MAX_INDEX)
@@ -3316,7 +3324,9 @@ Toolkit::AssignedLanguage::~AssignedLanguage()
 
 bool Toolkit::AssignedLanguage::LoadSQL(PConfig * cfg)
 {
+	m_sqlactive = false;
 	delete m_sqlConn;
+	m_sqlConn = NULL;
 	PString authName = "AssignedLanguage::SQL";
 
 	if (cfg->GetSections().GetStringsIndex(authName) == P_MAX_INDEX)
@@ -3440,7 +3450,9 @@ Toolkit::QoSMonitor::~QoSMonitor()
 
 void Toolkit::QoSMonitor::LoadConfig(PConfig * cfg)
 {
+	m_sqlactive = false;
 	delete m_sqlConn;
+	m_sqlConn = NULL;
 	PString authName = "GkQoSMonitor::SQL";
 
 	if (cfg->GetSections().GetStringsIndex(authName) == P_MAX_INDEX)

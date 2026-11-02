@@ -474,7 +474,9 @@ void GkPresence::LoadConfig(PConfig * cfg)
 		return;
 
 #if HAS_DATABASE
+	m_sqlactive = false;
 	delete m_sqlConn;
+	m_sqlConn = NULL;
 	PString authName = "GkPresence::SQL";
 
    if (cfg->GetSections().GetStringsIndex(authName) == P_MAX_INDEX)
