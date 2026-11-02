@@ -1,8 +1,8 @@
 //////////////////////////////////////////////////////////////////
 //
-// Call Forwarding Poliy for GNU Gatekeeper
+// Call Forwarding Policy for GNU Gatekeeper
 //
-// Copyright (c) 2012-2019, Jan Willamowius
+// Copyright (c) 2012-2026, Jan Willamowius
 //
 // This work is published under the GNU Public License version 2 (GPLv2)
 // see file COPYING for details.
@@ -229,6 +229,7 @@ bool ForwardingPolicy::FindEPForwardingRules(
 			if (!result->FetchRow(rows[i]) || rows[i].empty()) {
 				PTRACE(2, m_name << ": query failed - could not fetch the result row");
 				SNMP_TRAP(5, SNMPError, Database, PString(m_name) + " query failed");
+				rows.resize(i);	// only look at the rows we could fetch
 				break;
 			}
 		}
