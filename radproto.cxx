@@ -1513,7 +1513,9 @@ bool RadiusSocket::MakeRequest(const RadiusPDU * request, const Address & server
 
 			RadiusPDU* response = new RadiusPDU();
 			result = ReadFrom(response, sizeof(RadiusPDU), remoteAddress, remotePort);
-			if (!result) {
+			// ReadFrom() also returns false for an empty datagram (NoError) - that is not
+			// a read error, just a packet that is too small, so keep waiting for the response
+			if (!result && GetErrorCode(LastReadError) != NoError) {
 				if (GetErrorCode(LastReadError) == Timeout)
 					PTRACE(6, "RADIUS\tTimed out reading socket " << *this);
 				else

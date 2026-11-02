@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(radproto.cxx) don't abort pending RADIUS request on an empty datagram
 - BUGFIX(ProxyChannel.cxx) fix NULL deref handling Sorensen source-info
 - BUGFIX(ProxyChannel.cxx) better check for H.245 connection when doing TCS0 transfer
 - BUGFIX(Toolkit.cxx) null sql connections to avoid double-delete
