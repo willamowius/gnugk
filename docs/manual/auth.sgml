@@ -1875,6 +1875,7 @@ Path to the Maxmind GeoIP database. You can download the latest copy of the GeoI
 Default: <tt>N/A</tt>
 <p>
 Define which countries you want to accept messages from. The special country 'PRIVATE' denotes private IPs.
+IPs that are not found in the database have the country 'unknown'.
 </itemize>
 
 <sect1>Section &lsqb;TwoAliasAuth&rsqb;

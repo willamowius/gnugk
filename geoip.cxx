@@ -137,7 +137,13 @@ GeoIPAuth::GeoIPAuth(const char * name, unsigned supportedRasChecks, unsigned su
 		SNMP_TRAP(4, SNMPError, General, "GeoIPAuth: Can't read database");
 	}
 #endif
-    m_allowedCountries = GkConfig()->GetString("GeoIPAuth", "AllowedCountries", "").Tokenise(", ", false);
+    PStringArray countries = GkConfig()->GetString("GeoIPAuth", "AllowedCountries", "").Tokenise(", ", false);
+    for (PINDEX i = 0; i < countries.GetSize(); i++) {
+        // Tokenise() leaves an empty last entry when the list ends with a separator, that must never match a country
+        if (!countries[i].IsEmpty()) {
+            m_allowedCountries.AppendString(countries[i]);
+        }
+    }
 }
 
 GeoIPAuth::~GeoIPAuth()
@@ -226,7 +232,7 @@ int GeoIPAuth::doGeoCheck(PIPSocket::Address & ip)
         int gai_error, mmdb_error;
         MMDB_lookup_result_s result = MMDB_lookup_string(&m_mmdb, ip.AsString(), &gai_error, &mmdb_error);
         if (gai_error == 0) {
-            if (mmdb_error == MMDB_SUCCESS) {
+            if (mmdb_error == MMDB_SUCCESS && result.found_entry) {
                 MMDB_entry_data_s entry_data;
                 int status = MMDB_get_value(&result.entry, &entry_data, "country", "iso_code", NULL);
                 if (status == MMDB_SUCCESS) {
@@ -239,7 +245,11 @@ int GeoIPAuth::doGeoCheck(PIPSocket::Address & ip)
             PTRACE(3, "GeoIPAuth\tError " << MMDB_strerror(mmdb_error));
         }
 #else
-        country = GeoIP_country_code_by_addr(m_gi, ip.AsString());
+        // returns NULL if the IP isn't in the database (always the case for IPv6), keep "unknown" then
+        const char * code = GeoIP_country_code_by_addr(m_gi, ip.AsString());
+        if (code) {
+            country = code;
+        }
 #endif
     }
     PTRACE(5, "GeoIPAuth\t" << ip.AsString() << " => " << country);
