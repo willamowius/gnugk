@@ -3,7 +3,7 @@
 // Presence in H.323 gatekeeper
 //
 // Copyright (c) 2009-2012, Simon Horne
-// Copyright (c) 2009-2020, Jan Willamowius
+// Copyright (c) 2009-2026, Jan Willamowius
 //
 // This work is published under the GNU Public License (GPL)
 // see file COPYING for details.
@@ -290,6 +290,17 @@ H460P_PresenceIdentifier & BuildIdentifierMsg(const H460P_PresenceIdentifier & i
 	return msg;
 }
 
+// PTLib refuses to grow an ASN.1 array beyond PASN_Object::GetMaximumArraySize() ([Gatekeeper::Main] MaxASNArraySize,
+// default 128): SetSize() fails silently and indexing the element that wasn't added crashes the thread
+template<class Array>
+bool IsArrayFull(const Array & array)
+{
+	if (array.GetSize() < PASN_Object::GetMaximumArraySize())
+		return false;
+	PTRACE(2, "PRES\tMaximum ASN.1 array size reached (" << PASN_Object::GetMaximumArraySize() << ")");
+	return true;
+}
+
 bool RemoveInstruction(const H225_AliasAddress & addr, H323PresenceInstructions & list)
 {
 	bool found = false;
@@ -325,6 +336,8 @@ bool UpdateInstruction(const H460P_PresenceInstruction & addr, H323PresenceInstr
 		}
 	}
 	if (!found) {
+		if (IsArrayFull(inst))
+			return false;
 		int sz = inst.GetSize();
 		inst.SetSize(sz+1);
 		inst[sz] = (const H323PresenceInstruction &)addr;
@@ -684,7 +697,7 @@ bool GkPresence::DatabaseLoad(PBoolean incremental)
 		if (id.m_Active || (id.m_isSubscriber && (id.m_Status == H323PresenceInstruction::e_pending))) {
 			H323PresenceStore::iterator itx = localStore.find(id.m_subscriber);
 			if (itx != localStore.end()) {
-				if (id.m_subscriber != id.m_Alias)
+				if (id.m_subscriber != id.m_Alias && !IsArrayFull(itx->second.m_Instruction))
 					itx->second.m_Instruction.Add(instruct);
 			} else {
 				H323PresenceEndpoint store;
@@ -872,9 +885,8 @@ bool GkPresence::RegisterEndpoint(const H225_EndpointIdentifier & ep, const H225
 				H323PresenceID local;
 				if (GetSubscription(*i,local) && (local.m_subscriber == addr[j]) && !local.m_Active) {
 					H460P_PresenceSubscription & sub = HandleSubscription(false, *i, local);
-					int sz = itx->second.m_Authorize.GetSize();
-					itx->second.m_Authorize.SetSize(sz + 1);
-					itx->second.m_Authorize[sz] = (H323PresenceSubscription &)sub;
+					if (!IsArrayFull(itx->second.m_Authorize))
+						itx->second.m_Authorize.Add((H323PresenceSubscription &)sub);
 				}
 				i++;
 			}
@@ -1112,6 +1124,8 @@ PBoolean GkPresence::BuildSubscription(const H225_EndpointIdentifier & ep, H323P
 						H323PresenceEndpoint pe;
 						pe.m_Authorize.Add((const H323PresenceSubscription &)n);
 						subscription.insert(pair<H225_AliasAddress,H323PresenceEndpoint>(i->first,pe));
+					} else if (IsArrayFull(k->second.m_Authorize)) {
+						break;	// the rest stays queued for the next run
 					} else
 						k->second.m_Authorize.Add((const H323PresenceSubscription &)n);
 
@@ -1160,6 +1174,8 @@ PBoolean GkPresence::BuildNotification(const H225_EndpointIdentifier & ep, H323P
 						H323PresenceEndpoint pe;
 						pe.m_Notify.Add((const H323PresenceNotification &)n);
 						notify.insert(pair<H225_AliasAddress,H323PresenceEndpoint>(i->first, pe));
+					} else if (IsArrayFull(k->second.m_Notify)) {
+						break;	// the rest stays queued for the next run
 					} else
 						k->second.m_Notify.Add((const H323PresenceNotification &)n);
 
@@ -1208,6 +1224,8 @@ PBoolean GkPresence::BuildInstructions(const H225_EndpointIdentifier & ep, H323P
 						H323PresenceEndpoint pe;
 						pe.m_Instruction.Add((const H323PresenceInstruction &)n);
 						instruction.insert(pair<H225_AliasAddress,H323PresenceEndpoint>(i->first, pe));
+					} else if (IsArrayFull(k->second.m_Instruction)) {
+						break;	// the rest stays queued for the next run
 					} else
 						k->second.m_Instruction.Add((const H323PresenceInstruction &)n);
 
@@ -1256,6 +1274,8 @@ PBoolean GkPresence::BuildSubscription(bool request, const H225_TransportAddress
 							H323PresenceEndpoint pe;
 							pe.m_Authorize.Add((const H323PresenceSubscription &)n);
 							subscription.insert(pair<H225_TransportAddress,H323PresenceEndpoint>(ip, pe));
+						} else if (IsArrayFull(k->second.m_Authorize)) {
+							break;	// the rest stays queued for the next run
 						} else
 							k->second.m_Authorize.Add((const H323PresenceSubscription &)n);
 
@@ -1304,6 +1324,8 @@ PBoolean GkPresence::BuildNotification(const H225_TransportAddress & ip, H323Pre
 						H323PresenceEndpoint pe;
 						pe.m_Notify.Add((const H323PresenceNotification &)n);
 						notify.insert(pair<H225_TransportAddress,H323PresenceEndpoint>(ip, pe));
+					} else if (IsArrayFull(k->second.m_Notify)) {
+						break;	// the rest stays queued for the next run
 					} else
 						k->second.m_Notify.Add((const H323PresenceNotification &)n);
 
@@ -1352,6 +1374,8 @@ PBoolean GkPresence::BuildIdentifiers(bool alive, const H225_TransportAddress & 
 							H323PresenceEndpoint pe;
 							pe.m_Identifiers.Add(n.m_guid);
 							identifiers.insert(pair<H225_TransportAddress,H323PresenceEndpoint>(ip, pe));
+						} else if (IsArrayFull(k->second.m_Identifiers)) {
+							break;	// the rest stays queued for the next run
 						} else
 							k->second.m_Identifiers.Add(n.m_guid);
 
@@ -1477,7 +1501,8 @@ bool GkPresence::HandleSubscriptionLocal(const H460P_PresenceSubscription & subs
 			PTRACE(2, "PRES\tSubscription " << AsString(subscription.m_identifier.m_guid) << " for " << AsString(subscription.m_subscribe, 0) << " without subscriber alias ignored");
 			return false;
 		}
-		itx->second.m_Authorize.Add((H323PresenceSubscription &)subscription);
+		if (!IsArrayFull(itx->second.m_Authorize))
+			itx->second.m_Authorize.Add((H323PresenceSubscription &)subscription);
 		H323PresenceID id;
 			id.m_subscriber = subscription.m_subscribe;
 #ifdef HAS_H460P_VER_1
@@ -1597,9 +1622,8 @@ bool GkPresence::HandleNewInstruction(unsigned tag, const H225_AliasAddress & ad
 				idx.m_Alias = a;
 				HandleStatusUpdates(pid, addr, e_block, a, &idx);
 			}
-			int sz = instructions.GetSize();
-			instructions.SetSize(sz+1);
-			instructions[sz] = (const H323PresenceInstruction &)instruction;
+			if (!IsArrayFull(instructions))
+				instructions.Add((const H323PresenceInstruction &)instruction);
 	  }
 	  return true;
 }
