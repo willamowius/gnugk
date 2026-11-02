@@ -1983,8 +1983,8 @@ void CallSignalSocket::CleanupCall()
 	m_h245handler = NULL;
 	m_h245handlerLock.Signal();
 
-	if (remote)
-		rc_remote = remote;	// save remote pointer to forward ReleaseComplete
+	// don't save remote in rc_remote here: DetachRemote() makes it deletable and the pointer would dangle
+	// once ProxyHandler::CleanUp() deletes it; OnReleaseComplete() has already saved it if there is a RC to forward
 	DetachRemote();
 
 	if (m_setupPdu)
@@ -2312,6 +2312,9 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 #endif
 		return IsOpen() ? NoData : Error;
 	}
+#ifdef HAS_H46017
+	rc_remote = NULL;	// only valid from OnReleaseComplete() until ForwardData() for the same message
+#endif
 
 	H225_H323_UserInformation * uuie = NULL;
 	Q931 * q931pdu = new Q931();
