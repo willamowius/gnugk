@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(gksql_firebird.cxx) fix row count returned by Firebird SQL driver
 - BUGFIX(forwarding.cxx) forwarding policy should only look at the number of DB results it could actually fetch
 - BUGFIX(yasocket.cxx) bind UDP socket exclusive, so other calls can detect it is in use
 - BUGFIX(RasTbl.*) lock CallRec in more setters and getters

@@ -58,12 +58,19 @@ static	ISC_STATUS (ISC_EXPORT *g_isc_dsql_prepare)(ISC_STATUS*,
                                        const ISC_SCHAR*,
                                        unsigned short,
                                        XSQLDA*) = NULL;
+static ISC_STATUS (ISC_EXPORT *g_isc_dsql_sql_info)(ISC_STATUS*,
+                                        isc_stmt_handle*,
+                                        short,
+                                        const ISC_SCHAR*,
+                                        short,
+                                        ISC_SCHAR*) = NULL;
 static ISC_STATUS (ISC_EXPORT *g_isc_rollback_transaction)(ISC_STATUS *, isc_tr_handle *) = NULL;
 static ISC_LONG (ISC_EXPORT *g_isc_sqlcode)(const ISC_STATUS*) = NULL;
 static void (ISC_EXPORT *g_isc_sql_interprete)(short, ISC_SCHAR*, short) = NULL;
 static ISC_STATUS (ISC_EXPORT_VARARG *g_isc_start_transaction)(ISC_STATUS *,
                                                    isc_tr_handle *,
                                                    short, ...) = NULL;
+static ISC_LONG (ISC_EXPORT *g_isc_vax_integer)(const ISC_SCHAR*, short) = NULL;
 
 namespace {
 
@@ -166,9 +173,16 @@ private:
 	GkIBSQLResult(const GkIBSQLResult&);
 	GkIBSQLResult& operator=(const GkIBSQLResult&);
 
+	/// fetch all rows of a SELECT type query into m_rows and set m_numRows
+	void FetchAllRows();
+	/// set m_numRows to the number of rows affected by an INSERT, UPDATE or DELETE query
+	void FetchNumRowsAffected();
+
 protected:
 	/// query result for SELECT type queries
 	XSQLDA* m_sqlResult;
+	/// rows fetched from the result set (Firebird doesn't tell the row count in advance)
+	std::vector<ResultRow> m_rows;
 	/// transaction handle
 	isc_tr_handle m_tr;
 	/// statement handle
@@ -274,7 +288,6 @@ GkIBSQLResult::GkIBSQLResult(
 	m_errorCode(0)
 {
 	if (m_sqlResult != NULL) {
-		m_numRows = 100000;
 		m_numFields = m_sqlResult->sqld;
 		for (int i = 0; i < m_sqlResult->sqld; ++i) {
 			m_sqlResult->sqlvar[i].sqlind = new short;
@@ -283,6 +296,10 @@ GkIBSQLResult::GkIBSQLResult(
 			else
 				m_sqlResult->sqlvar[i].sqldata = new char[m_sqlResult->sqlvar[i].sqllen];
 		}
+		if (m_numFields > 0)
+			FetchAllRows();
+		else
+			FetchNumRowsAffected();
 	} else
 		m_queryError = true;
 }
@@ -343,46 +360,89 @@ long GkIBSQLResult::GetErrorCode()
 	return m_errorCode;
 }
 
+void GkIBSQLResult::FetchAllRows()
+{
+	// Firebird doesn't report the size of a result set, so read all rows now
+	// (like the SQLite and ODBC drivers) to know how many there are
+	ISC_STATUS retval;
+	ISC_STATUS status[20];
+	while ((retval = (*g_isc_dsql_fetch)(status, &m_stmt, 1, m_sqlResult)) == 0) {
+		ResultRow row(m_numFields);
+		for (PINDEX i = 0; i < m_numFields; i++) {
+			row[i].first = XSQLVARToPString(&(m_sqlResult->sqlvar[i]));
+			row[i].second = PString(m_sqlResult->sqlvar[i].aliasname, m_sqlResult->sqlvar[i].aliasname_length);
+		}
+		m_rows.push_back(row);
+	}
+	m_numRows = m_rows.size();
+
+	if (retval != 100) {	// 100 = end of cursor, anything else is an error
+		long errcode = (*g_isc_sqlcode)(status);
+		char errormsg[FB_BUFF_SIZE];
+		if (errcode == -999) {
+			errcode = status[1];
+			const ISC_STATUS *pvector = status;
+			(*g_fb_interpret)(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
+		} else {
+			(*g_isc_sql_interprete)(static_cast<short>(errcode), errormsg, FB_BUFF_SIZE);
+		}
+		PTRACE(2, "Firebird\tFailed to fetch query row (" << errcode
+			<< "): SQL:" << errormsg);
+		SNMP_TRAP(5, SNMPError, Database, "Firebird query failed");
+	}
+}
+
+void GkIBSQLResult::FetchNumRowsAffected()
+{
+	ISC_STATUS status[20];
+	const char request[] = { isc_info_sql_records };
+	char info[64];
+
+	memset(info, isc_info_end, sizeof(info));
+	(*g_isc_dsql_sql_info)(status, &m_stmt, sizeof(request), request, sizeof(info), info);
+	if (status[0] == 1 && status[1] != 0) {
+		char errormsg[FB_BUFF_SIZE];
+		const ISC_STATUS *pvector = status;
+		(*g_fb_interpret)(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
+		PTRACE(2, "Firebird\tFailed to get number of affected rows: " << errormsg);
+		SNMP_TRAP(5, SNMPError, Database, "Firebird query failed");
+		return;
+	}
+	if (info[0] != isc_info_sql_records)
+		return;
+
+	// isc_info_sql_records: 2 byte length, then a list of (counter type, 2 byte length, value)
+	// items for the select, insert, update and delete counts, ended by isc_info_end
+	const char * const end = info + sizeof(info);
+	const char * item = info + 3;
+	while (item + 3 <= end && *item != isc_info_end) {
+		const ISC_LONG len = (*g_isc_vax_integer)(item + 1, 2);
+		if (len < 0 || len > end - (item + 3))
+			break;
+		if (*item != isc_info_req_select_count)
+			m_numRows += (*g_isc_vax_integer)(item + 3, static_cast<short>(len));
+		item += 3 + len;
+	}
+}
+
 bool GkIBSQLResult::FetchRow(
 	/// array to be filled with string representations of the row fields
 	PStringArray& result
 	)
 {
-	if (m_sqlResult == NULL || m_numRows <= 0)
+	if (m_sqlResult == NULL || m_rows.empty())
 		return false;
 
 	if (m_sqlRow < 0)
 		m_sqlRow = 0;
 
-	if (m_sqlRow >= m_numRows)
+	if (m_sqlRow >= (int)m_rows.size())
 		return false;
 
-	ISC_STATUS retval;
-	ISC_STATUS status[20];
-	retval = (*g_isc_dsql_fetch)(status, &m_stmt, 1, m_sqlResult);
-	if (status[0] == 1 && status[1] != 0) {
-		m_numRows = m_sqlRow;
-		if (retval != 100) {
-			long errcode = (*g_isc_sqlcode)(status);
-			char errormsg[FB_BUFF_SIZE];
-			if (errcode == -999) {
-				errcode = status[1];
-				const ISC_STATUS *pvector = status;
-				(*g_fb_interpret)(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
-			} else {
-				(*g_isc_sql_interprete)(static_cast<short>(errcode), errormsg, FB_BUFF_SIZE);
-			}
-			PTRACE(2, "Firebird\tFailed to fetch query row (" << errcode
-				<< "): SQL:" << errormsg);
-			SNMP_TRAP(5, SNMPError, Database, "Firebird query failed");
-		}
-		return false;
-	}
+	result.SetSize(m_numFields);
 
-	result.SetSize(m_sqlResult->sqld);
-
-	for (PINDEX i = 0; i < m_sqlResult->sqld; ++i)
-		result[i] = XSQLVARToPString(&(m_sqlResult->sqlvar[i]));
+	for (PINDEX i = 0; i < m_numFields; ++i)
+		result[i] = m_rows[m_sqlRow][i].first;
 
 	m_sqlRow++;
 
@@ -394,42 +454,16 @@ bool GkIBSQLResult::FetchRow(
 	ResultRow& result
 	)
 {
-	if (m_sqlResult == NULL || m_numRows <= 0)
+	if (m_sqlResult == NULL || m_rows.empty())
 		return false;
 
 	if (m_sqlRow < 0)
 		m_sqlRow = 0;
 
-	if (m_sqlRow >= m_numRows)
+	if (m_sqlRow >= (int)m_rows.size())
 		return false;
-	ISC_STATUS retval;
-	ISC_STATUS status[20];
-	retval = (*g_isc_dsql_fetch)(status, &m_stmt, 1, m_sqlResult);
-	if (status[0] == 1 && status[1] != 0) {
-		m_numRows = m_sqlRow;
-		if (retval != 100) {
-			long errcode = (*g_isc_sqlcode)(status);
-			char errormsg[FB_BUFF_SIZE];
-			if (errcode == -999) {
-				errcode = status[1];
-				const ISC_STATUS *pvector = status;
-				(*g_fb_interpret)(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
-			} else {
-				(*g_isc_sql_interprete)(static_cast<short>(errcode), errormsg, FB_BUFF_SIZE);
-			}
-			PTRACE(2, "Firebird\tFailed to fetch query row (" << errcode
-				<< "): SQL:" << errormsg);
-			SNMP_TRAP(5, SNMPError, Database, "Firebird query failed");
-		}
-		return false;
-	}
 
-	result.resize(m_numFields);
-
-	for (PINDEX i = 0; i < m_numFields; i++) {
-		result[i].first = XSQLVARToPString(&(m_sqlResult->sqlvar[i]));
-		result[i].second = PString(m_sqlResult->sqlvar[i].aliasname, m_sqlResult->sqlvar[i].aliasname_length);
-	}
+	result = m_rows[m_sqlRow];
 
 	m_sqlRow++;
 
@@ -483,10 +517,12 @@ GkSQLConnection::SQLConnPtr GkIBSQLConnection::CreateNewConnection(
 			|| !g_sharedLibrary.GetFunction("isc_dsql_fetch", (PDynaLink::Function &)g_isc_dsql_fetch)
 			|| !g_sharedLibrary.GetFunction("isc_dsql_free_statement", (PDynaLink::Function &)g_isc_dsql_free_statement)
 			|| !g_sharedLibrary.GetFunction("isc_dsql_prepare", (PDynaLink::Function &)g_isc_dsql_prepare)
+			|| !g_sharedLibrary.GetFunction("isc_dsql_sql_info", (PDynaLink::Function &)g_isc_dsql_sql_info)
 			|| !g_sharedLibrary.GetFunction("isc_rollback_transaction", (PDynaLink::Function &)g_isc_rollback_transaction)
 			|| !g_sharedLibrary.GetFunction("isc_sqlcode", (PDynaLink::Function &)g_isc_sqlcode)
 			|| !g_sharedLibrary.GetFunction("isc_sql_interprete", (PDynaLink::Function &)g_isc_sql_interprete)
 			|| !g_sharedLibrary.GetFunction("isc_start_transaction", (PDynaLink::Function &)g_isc_start_transaction)
+			|| !g_sharedLibrary.GetFunction("isc_vax_integer", (PDynaLink::Function &)g_isc_vax_integer)
 			) {
 #ifdef hasDynaLinkGetLastError
 			PTRACE (1, GetName() << "\tFailed to load shared database library: " << g_sharedLibrary.GetLastError());
