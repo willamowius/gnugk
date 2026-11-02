@@ -14985,7 +14985,8 @@ void ParseRTCP(const callptr & call, WORD sessionID, PIPSocket::Address fromIP, 
 						const RTP_ControlFrame::SourceDescription::Item * item = sdes->item;
 						while ((item != NULL)
 								&& (((BYTE*)item + sizeof(RTP_ControlFrame::SourceDescription::Item)) <= (payload + size))
-								&& (item->type != RTP_ControlFrame::e_END)) {
+								&& (item->type != RTP_ControlFrame::e_END)
+								&& (((BYTE*)item->data + item->length) <= (payload + size))) {
 							if (item->length != 0) {
 								switch (item->type) {
 								case RTP_ControlFrame::e_CNAME:
@@ -15017,9 +15018,11 @@ void ParseRTCP(const callptr & call, WORD sessionID, PIPSocket::Address fromIP, 
 							item = item->GetNextItem();
 						}
 						/* RTP_ControlFrame::e_END doesn't have a length field, so do NOT call item->GetNextItem()
-						   otherwise it reads over the buffer */
+						   otherwise it reads over the buffer, same for items that don't fit into the payload */
 						if ((item == NULL)
+							|| (((BYTE*)item + sizeof(RTP_ControlFrame::SourceDescription::Item)) > (payload + size))
 							|| (item->type == RTP_ControlFrame::e_END)
+							|| (((BYTE*)item->data + item->length) > (payload + size))
 							|| ((sdes = (const RTP_ControlFrame::SourceDescription *)item->GetNextItem()) == NULL)){
 							break;
 					}

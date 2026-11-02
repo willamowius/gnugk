@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(ProxyChannel.cxx) check RTCP SDES item length against packet size
 - BUGFIX(Toolkit.cxx) keep temporary config files in private directory (mkdtemp) instead of directly in /tmp
 - BUGFIX(radproto.cxx) don't abort pending RADIUS request on an empty datagram
 - BUGFIX(ProxyChannel.cxx) fix NULL deref handling Sorensen source-info
