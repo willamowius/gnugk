@@ -2391,7 +2391,7 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly,
 				PString dom = cs[j].Mid(in+1);
 				if (dom.Left(7) == "0.0.0.0") {
 					PTRACE(1, "ROUTING\tERROR in CS SRV lookup (" << cs[j] << ")");
-					SNMP_TRAP(11, SNMPError, Network, "SRV CS lookup failed: " + cs[i]);
+					SNMP_TRAP(11, SNMPError, Network, "SRV CS lookup failed: " + cs[j]);
 					continue;
 				}
 
