@@ -76,7 +76,8 @@ protected:
 		const PIPSocket::Address & addr, /// IP address the request comes from
 		WORD port, /// port number the request comes from
 		const PString & number,
-		bool overTLS);
+		bool overTLS,
+		bool isCall);
 
 private:
 	FileIPAuth();
@@ -129,7 +130,7 @@ int IPAuthBase::Check(
         number = AsString(arq.m_destinationInfo[0], false);
     }
 
-	return CheckAddress(arqPdu->m_peerAddr, arqPdu->m_peerPort, number);
+	return CheckAddress(arqPdu->m_peerAddr, arqPdu->m_peerPort, number, false, true);
 }
 
 int IPAuthBase::Check(RasPDU<H225_GatekeeperRequest> & pdu, unsigned & /* rejectReason */)
@@ -179,7 +180,7 @@ int IPAuthBase::Check(
 	PString number;
 	setup.GetQ931().GetCalledPartyNumber(number);
 
-	return CheckAddress(addr, port, number, authData.m_overTLS);
+	return CheckAddress(addr, port, number, authData.m_overTLS, true);
 }
 
 int IPAuthBase::Check(
@@ -306,7 +307,7 @@ FileIPAuth::~FileIPAuth()
 int FileIPAuth::CheckAddress(
 	const PIPSocket::Address & addr, /// IP address the request comes from
 	WORD /*port*/, /// port number the request comes from
-	const PString & number, bool overTLS)
+	const PString & number, bool overTLS, bool isCall)
 {
 	IPAuthList::const_iterator entry = m_authList.begin();
 	while (entry != m_authList.end()) {
@@ -322,9 +323,11 @@ int FileIPAuth::CheckAddress(
 					<< " for Called " << number);
 				return len ? e_ok : e_fail;
 			}
-			if (entry->second.auth && number.IsEmpty() && !entry->second.IsWildcardPrefix()) {
-				// Prefix-restricted allow entry; no number supplied (non-call message) so it cannot be matched
-				PTRACE(5, GetName() << "\tIP " << addr.AsString() << " skipping prefix-restricted entry for non-call message");
+			if (entry->second.auth && isCall && number.IsEmpty() && !entry->second.IsWildcardPrefix()) {
+				// Prefix-restricted allow entry and a call without a called number (eg. dialed by IP),
+				// the prefixes can't be matched, so this entry doesn't allow the call
+				// (other messages don't carry a number, the prefixes don't apply to them)
+				PTRACE(5, GetName() << "\tIP " << addr.AsString() << " skipping prefix-restricted entry for call without called number");
 				++entry;
 				continue;
 			}

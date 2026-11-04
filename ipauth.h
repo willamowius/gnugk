@@ -123,7 +123,8 @@ protected:
 		const PIPSocket::Address & addr, /// IP address the request comes from
 		WORD port, /// port number the request comes from
 		const PString & number,
-		bool overTLS = false
+		bool overTLS = false,
+		bool isCall = false /// ARQ or Setup: the destination prefixes apply
 		) = 0;
 
 private:
