@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(gkauth.cxx) match sigaddr rules in AliasAuth/SQLAliasAuth as documented in manual again
 - BUGFIX(ProxyChannel.cxx) ignore H.460.19 RTCP keepAlives when collecting RTCP statistics
 - BUGFIX(amqpacct.cxx) serialize MQLog() with a mutex
 - BUGFIX(ProxyChannel.cxx) check RTCP SDES item length against packet size

@@ -1728,7 +1728,11 @@ bool AliasAuth::CheckAuthRule(
 		if (!checkPort && rule[1].Find("port") != P_MAX_INDEX) {
 			rule[1] = rule[1].Left(rule[1].Find("port"));
 		}
-		return Toolkit::MatchRegex(AsString(sigaddr), rule[1].Trim()) != 0;
+		// match against the PrintOn() representation of the address (as documented),
+		// AsString() gives ip:port
+		PStringStream sigaddrStr;
+		sigaddrStr << sigaddr;
+		return Toolkit::MatchRegex(sigaddrStr, rule[1].Trim()) != 0;
 	} else if (strcasecmp(rName, "sigip") == 0) {
 		// condition 'sigip' example:
 		//   sigip:195.71.129.69:1720
