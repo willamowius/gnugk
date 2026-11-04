@@ -14284,6 +14284,8 @@ void UDPProxySocket::SetMultiplexSocket(int multiplexSocket, H46019Side side)
 
 void UDPProxySocket::SetMediaIP(bool isSRC, const Address & ip)
 {
+	if (!ip.IsValid() || ip.IsAny())
+		return;	// not known yet (eg. H.460.19 before port detection), don't overwrite a known IP
     PWaitAndSignal lock(m_callMutex);
 	if (m_call) {
 		if (m_isRTCPType) {
@@ -14944,6 +14946,12 @@ void ParseRTCP(const callptr & call, WORD sessionID, PIPSocket::Address fromIP, 
 			PTRACE(7, "RTCP\tSenderReport packet");
 			if (size >= (sizeof(RTP_ControlFrame::SenderReport) + frame.GetCount() * sizeof(RTP_ControlFrame::ReceiverReport))) {
 				const RTP_ControlFrame::SenderReport & sr = *(const RTP_ControlFrame::SenderReport *)(payload);
+				if (sr.ntp_sec == 0 && sr.ntp_frac == 0 && sr.psent == 0) {
+					// an empty sender report, eg. a H.460.19 RTCP keepAlive, has no statistics
+					// (a real sender report always has the sender's NTP time)
+					PTRACE(7, "RTCP\tIgnoring empty SenderReport (keepAlive)");
+					break;
+				}
 				if (fromDST) {
 					if (sessionID == RTP_Session::DefaultAudioSessionID) {
 						call->SetRTCP_DST_packet_count(sr.psent);
