@@ -3,7 +3,7 @@
  *
  * native ODBC / unixODBC driver module for GnuGk
  *
- * Copyright (c) 2008-2023, Jan Willamowius
+ * Copyright (c) 2008-2026, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.

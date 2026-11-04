@@ -4,7 +4,7 @@
  * MySQL driver module for GnuGk
  *
  * Copyright (c) 2004, Michal Zygmuntowicz
- * Copyright (c) 2006-2023, Jan Willamowius
+ * Copyright (c) 2006-2026, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.

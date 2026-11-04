@@ -3,7 +3,7 @@
  *
  * accounting module for GNU Gatekeeper that sends it's messages over HTTP
  *
- * Copyright (c) 2018-2022, Jan Willamowius
+ * Copyright (c) 2018-2026, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
