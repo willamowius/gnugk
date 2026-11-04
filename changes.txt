@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- new GnuGk test harness in test/
 - BUGFIX(gkauth.cxx) fix AND (&) in AliasAuth/SQLAliasAuth rules
 - BUGFIX(gkauth.cxx) match sigaddr rules in AliasAuth/SQLAliasAuth as documented in manual
 - BUGFIX(ProxyChannel.cxx) ignore H.460.19 RTCP keepAlives when collecting RTCP statistics
