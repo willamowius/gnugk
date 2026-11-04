@@ -472,7 +472,7 @@ void GkH235Authenticators::PrepareTokens(
 	H225_ArrayOf_ClearToken & clearTokens,
 	H225_ArrayOf_CryptoH323Token & cryptoTokens)
 {
-#ifdef H323_H325
+#ifdef H323_H235
 	PWaitAndSignal lock(m_mutex);
 
 	if (m_authProcedure1 && m_authProcedure1->IsActive()
