@@ -1677,16 +1677,23 @@ bool AliasAuth::doCheck(
 	const PString & condition,
 	bool checkPort)
 {
-	const PStringArray authrules(condition.Tokenise("&|", FALSE));
-	if (authrules.GetSize() < 1) {
+	// alternatives separated by '|', each a list of conditions separated by '&' that must all apply
+	const PStringArray alternatives(condition.Tokenise("|", FALSE));
+	if (alternatives.GetSize() < 1) {
 		PTRACE(2, "GKAUTH\t" << GetName() << " contains an empty auth condition");
 		return false;
 	}
-	for (PINDEX i = 0; i < authrules.GetSize(); ++i) {
+	for (PINDEX i = 0; i < alternatives.GetSize(); ++i) {
+		const PStringArray authrules(alternatives[i].Tokenise("&", FALSE));
+		if (authrules.GetSize() < 1)
+			continue;
 		for (PINDEX j = 0; j < sigaddr.GetSize(); ++j) {
-			if (CheckAuthRule(sigaddr[j], authrules[i], checkPort)) {
+			bool allApply = true;
+			for (PINDEX k = 0; k < authrules.GetSize() && allApply; ++k)
+				allApply = CheckAuthRule(sigaddr[j], authrules[k], checkPort);
+			if (allApply) {
 				PTRACE(5, "GKAUTH\t" << GetName() << " auth rule '"
-					<< authrules[i] << "' applied successfully to RRQ "
+					<< alternatives[i] << "' applied successfully to RRQ "
 					" from " << AsDotString(sigaddr[j]));
 				return true;
 			}
