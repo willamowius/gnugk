@@ -202,12 +202,12 @@ def test_parallel_calls(start_gk, workdir, capture):
     each gets its own proxy ports"""
     count = 5
     gk = start_gk()
-    callees = [Endpoint(workdir, "pub2", "callee%d" % i, instance=i).start(duration=40) for i in range(count)]
+    callees = [Endpoint(workdir, "pub2", "callee%d" % i).start(duration=40) for i in range(count)]
     callers = []
     try:
         for i in range(count):
             assert gk.wait_registered("callee%d" % i)
-        callers = [Endpoint(workdir, "pub1", "caller%d" % i, instance=i).start(call="callee%d" % i, duration=6)
+        callers = [Endpoint(workdir, "pub1", "caller%d" % i).start(call="callee%d" % i, duration=6)
                    for i in range(count)]
         time.sleep(4)
         assert gk.number_of_calls() == count

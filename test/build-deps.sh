@@ -58,7 +58,7 @@ run h323plus-make.log make -j"$JOBS" optnoshared
 
 echo "== building GnuGk"
 cd "$GK_DIR"
-run gnugk-configure.log ./configure --enable-h46018
+run gnugk-configure.log ./configure --enable-h46018 --enable-large-fdset
 # always build from scratch: make doesn't notice when configure changes the compiler flags
 rm -rf "$GK_DIR"/obj_*_s
 run gnugk-make.log make -j"$JOBS" optnoshared

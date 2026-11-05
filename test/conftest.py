@@ -32,6 +32,23 @@ def network():
         topology.teardown()
 
 
+@pytest.fixture(autouse=True)
+def clean_namespaces(request):
+    """after every test (set up first, so torn down last): kill whatever still runs in the test namespaces,
+    so no GnuGk, endpoint or tcpdump of one test holds ports in the next one"""
+    yield
+    if "network" not in request.fixturenames:
+        return
+    killed = topology.kill_leftovers()
+    if killed:
+        name = re.sub(r"[^A-Za-z0-9_.-]+", "_", request.node.name)
+        path = os.path.join(RESULTS, name)
+        if os.path.isdir(path):
+            with open(os.path.join(path, "leftover-processes.txt"), "w") as f:
+                for ns_name, pid, cmd in killed:
+                    f.write("%s %d %s\n" % (ns_name, pid, cmd))
+
+
 @pytest.fixture
 def workdir(request):
     name = re.sub(r"[^A-Za-z0-9_.-]+", "_", request.node.name)
@@ -73,13 +90,14 @@ def start_gk(network, workdir, capture):
     started = []
 
     def start(*overrides, users=None, host="gk", name="gnugk", trace=None):
-        gk = gnugk.GnuGk(workdir, gnugk.merge_config(*overrides), users=users, host=host, name=name,
-                         trace=trace).start()
-        started.append(gk)
-        return gk
+        gk = gnugk.GnuGk(workdir, gnugk.merge_config(*overrides), users=users, host=host, name=name, trace=trace)
+        started.append(gk)	# before start(): stopped after the test even if start() fails
+        return gk.start()
 
     yield start
     for gk in started:
+        if gk.proc is None:
+            continue
         crashed = not gk.alive()
         gk.stop()
         if crashed:

@@ -62,7 +62,7 @@ def test_explicit_ip_dialing(start_gk, workdir, target, config):
     gk = start_gk(config)
     callee_ip = topology.HOST_IPS["pub2"]
     caller, callee = run_call(gk, Endpoint(workdir, "pub1", "caller"), target.format(ip=callee_ip),
-                              callee=Endpoint(workdir, "pub2", "callee", no_gk=True))
+                              callee=Endpoint(workdir, "pub2", "callee", no_gk=True, listen_port=1720))
     assert caller["registered"] and not callee["registered"]
     assert caller["connected"] and callee["connected"], caller["endReason"]
     for side, other in ((caller, callee), (callee, caller)):
@@ -79,7 +79,7 @@ def test_registered_callee_dialed_by_ip(start_gk, workdir, capture):
     callee_ip = topology.HOST_IPS["pub2"]
     # (H323Plus sends "ip:port" as an H.323-ID, so only the plain IP is dialed)
     caller, callee = run_call(gk, Endpoint(workdir, "pub1", "caller"), callee_ip,
-                              callee=Endpoint(workdir, "pub2", "callee"))
+                              callee=Endpoint(workdir, "pub2", "callee", listen_port=1720))
     check_call_ok(caller, callee)
     cdrs = gk.cdrs()
     assert len(cdrs) == 1 and cdrs[0]["cause"] == "16", cdrs
@@ -93,10 +93,10 @@ def test_registered_callee_dialed_by_ip(start_gk, workdir, capture):
 def test_permanent_gateway(start_gk, workdir, dialed):
     """[RasSrv::PermanentEndpoints]: a gateway that never registers, reached by prefix or by alias"""
     gw_ip = topology.HOST_IPS["pub2"]
-    gk = start_gk({"RasSrv::PermanentEndpoints": {gw_ip + ":1720": "pstngw;9"}})
+    gw_ep = Endpoint(workdir, "pub2", "gw", no_gk=True)
+    gk = start_gk({"RasSrv::PermanentEndpoints": {"%s:%d" % (gw_ip, gw_ep.listen_port): "pstngw;9"}})
     assert "pstngw" in gk.registrations(), "permanent endpoint missing"
-    caller, gw = run_call(gk, Endpoint(workdir, "pub1", "caller"), dialed,
-                          callee=Endpoint(workdir, "pub2", "gw", no_gk=True))
+    caller, gw = run_call(gk, Endpoint(workdir, "pub1", "caller"), dialed, callee=gw_ep)
     assert caller["connected"] and gw["connected"], caller["endReason"]
     for side, other in ((caller, gw), (gw, caller)):
         assert side["rtpReceived"] >= 0.8 * other["rtpSent"] > 0, (side, other)
@@ -106,7 +106,7 @@ def test_permanent_gateway(start_gk, workdir, dialed):
 
 
 def gateways(gk, workdir, count, calls=1, duration=40):
-    gws = [Endpoint(workdir, "pub2", "gw%d" % i, instance=i, gateway=True).start(duration=duration, calls=calls)
+    gws = [Endpoint(workdir, "pub2", "gw%d" % i, gateway=True).start(duration=duration, calls=calls)
            for i in range(count)]
     for i in range(count):
         assert gk.wait_registered("gw%d" % i)
@@ -168,7 +168,7 @@ def test_failover(start_gk, workdir, reject, fails_over):
     gk = start_gk({"RasSrv::GWPrefixes": {"gw0": "9:=1", "gw1": "9:=2"},
                    "RoutedMode": {"ActivateFailover": "1"}})
     first = Endpoint(workdir, "pub2", "gw0", gateway=True, reject=reject).start(duration=12)
-    second = Endpoint(workdir, "pub2", "gw1", instance=1, gateway=True).start(duration=12)
+    second = Endpoint(workdir, "pub2", "gw1", gateway=True).start(duration=12)
     try:
         assert gk.wait_registered("gw0") and gk.wait_registered("gw1")
         caller, _ = run_call(gk, Endpoint(workdir, "pub1", "caller"), "9123", duration=2)

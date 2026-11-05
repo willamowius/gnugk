@@ -9,16 +9,16 @@ from harness.calls import run_call
 from harness.endpoint import Endpoint
 
 
-def long_call(gk, workdir, caller_host, caller_alias, callee_host, callee_alias, dialed, instance=0, duration=12):
+def long_call(gk, workdir, caller_host, caller_alias, callee_host, callee_alias, dialed, duration=12):
     """start a call that stays up for duration seconds, returns (caller, callee) endpoints"""
-    callee = Endpoint(workdir, callee_host, callee_alias, instance=instance).start(duration=duration + 20)
+    callee = Endpoint(workdir, callee_host, callee_alias).start(duration=duration + 20)
     assert gk.wait_registered(callee_alias)
-    caller = Endpoint(workdir, caller_host, caller_alias, instance=instance).start(call=dialed, duration=duration)
+    caller = Endpoint(workdir, caller_host, caller_alias).start(call=dialed, duration=duration)
     return caller, callee
 
 
-def second_call(gk, workdir, caller_host, caller_alias, dialed, instance):
-    return Endpoint(workdir, caller_host, caller_alias, instance=instance).start(call=dialed, duration=2).wait()
+def second_call(gk, workdir, caller_host, caller_alias, dialed):
+    return Endpoint(workdir, caller_host, caller_alias).start(call=dialed, duration=2).wait()
 
 
 def test_endpoint_capacity(start_gk, workdir):
@@ -28,7 +28,7 @@ def test_endpoint_capacity(start_gk, workdir):
     try:
         time.sleep(3)
         assert gk.number_of_calls() == 1
-        rejected = second_call(gk, workdir, "pub1", "caller2", "gw", instance=1)
+        rejected = second_call(gk, workdir, "pub1", "caller2", "gw")
         first = caller.wait()
     finally:
         caller.kill()
@@ -41,7 +41,7 @@ def test_endpoint_capacity(start_gk, workdir):
     gw = Endpoint(workdir, "pub2", "gw", name="gw-again").start(duration=20)
     try:
         assert gk.wait_registered("gw")
-        again = second_call(gk, workdir, "pub1", "caller2", "gw", instance=1)
+        again = second_call(gk, workdir, "pub1", "caller2", "gw")
     finally:
         gw.kill()
     assert again["connected"], again
@@ -56,11 +56,11 @@ def test_capacity_control(start_gk, workdir):
     })
     caller, callee = long_call(gk, workdir, "pub1", "caller1", "pub2", "callee1", "callee1")
     try:
-        callee2 = Endpoint(workdir, "pub2", "callee2", instance=1).start(duration=20)
+        callee2 = Endpoint(workdir, "pub2", "callee2").start(duration=20)
         assert gk.wait_registered("callee2")
         time.sleep(3)
         assert gk.number_of_calls() == 1
-        rejected = second_call(gk, workdir, "pub1", "caller2", "callee2", instance=1)
+        rejected = second_call(gk, workdir, "pub1", "caller2", "callee2")
         first = caller.wait()
         callee2.kill()
     finally:
@@ -76,13 +76,13 @@ def test_total_bandwidth(start_gk, workdir):
     gk = start_gk({"Gatekeeper::Main": {"TotalBandwidth": "1500"}})
     caller, callee = long_call(gk, workdir, "pub1", "caller1", "pub2", "callee1", "callee1")
     try:
-        callee2 = Endpoint(workdir, "pub2", "callee2", instance=1).start(duration=30)
+        callee2 = Endpoint(workdir, "pub2", "callee2").start(duration=30)
         assert gk.wait_registered("callee2")
         time.sleep(3)
-        rejected = second_call(gk, workdir, "pub1", "caller2", "callee2", instance=1)
+        rejected = second_call(gk, workdir, "pub1", "caller2", "callee2")
         first = caller.wait()
         time.sleep(1)
-        again = second_call(gk, workdir, "pub1", "caller2", "callee2", instance=1)
+        again = second_call(gk, workdir, "pub1", "caller2", "callee2")
         callee2.kill()
     finally:
         caller.kill()

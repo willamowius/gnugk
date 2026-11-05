@@ -1,5 +1,6 @@
 """Run gktestep (test/endpoint) inside a host namespace."""
 
+import itertools
 import json
 import os
 import signal
@@ -8,11 +9,17 @@ import subprocess
 from . import topology
 from .paths import ENDPOINT
 
+# every endpoint gets its own signaling port (RAS: the next one) and RTP range, away from 1718-1721 and the
+# ports GnuGk uses (Q.931 30000-30999, H.245 31000-31999, RTP 40000-42999, status 7000, H.460.19 mux 3000-3001)
+_endpoint_numbers = itertools.count()
+SIGNAL_PORT_BASE, SIGNAL_PORT_SLOTS = 10000, 2000	# 10000-13999
+RTP_PORT_BASE, RTP_PORT_SLOTS, RTP_PORTS = 14000, 150, 100	# 14000-28999
+
 
 class Endpoint:
     def __init__(self, workdir, host, alias, password=None, h46018=False, faststart=True, h2351=False, full_q931=False,
                  md5_unsigned=None, reject=None, hangup_after=None, tunneling=True, name=None, no_gk=False,
-                 answer_delay=None, instance=0, bandwidth=None, brq=None, add_aliases=None,
+                 answer_delay=None, listen_port=None, bandwidth=None, brq=None, add_aliases=None,
                  gateway=False, ipv6=False, gk="gk", h46019m=False):
         """password: register with MD5 tokens, or H.235.1 tokens with h2351 (also in the call Setup,
         or in all Q.931 messages with full_q931). md5_unsigned: RAS messages to send without MD5 token,
@@ -22,7 +29,8 @@ class Endpoint:
         name: for the result files (default: the first alias), when several endpoints use the same alias.
         no_gk: don't register, call the address given as call target directly.
         answer_delay: callee rings this many seconds before answering.
-        instance: to run several endpoints on one host, shifts the signaling, RAS and RTP ports.
+        listen_port: signaling port (the RAS port is the next one), default: one of its own; 1720 for an
+        endpoint that is called by IP (H323Plus sends "ip:port" as an H.323-ID, so callers can't name a port).
         bandwidth: to ask for in ARQs, brq: caller sends a BRQ for this bandwidth (units of 100 bit/s).
         add_aliases: aliases to add with an additive registration (in the next keep-alive RRQ).
         gateway: register as gateway (prefixes come from the GnuGk config, eg. [RasSrv::GWPrefixes]).
@@ -43,7 +51,6 @@ class Endpoint:
         self.hangup_after = hangup_after
         self.tunneling = tunneling
         self.answer_delay = answer_delay
-        self.instance = instance
         self.bandwidth = bandwidth
         self.brq = brq
         self.add_aliases = add_aliases
@@ -51,7 +58,10 @@ class Endpoint:
         self.ipv6 = ipv6
         self.gk = gk
         self.h46019m = h46019m
-        self.listen_port = 1720 + 10 * instance
+        number = next(_endpoint_numbers)
+        self.listen_port = listen_port or SIGNAL_PORT_BASE + 2 * (number % SIGNAL_PORT_SLOTS)
+        self.ras_port = 1719 if listen_port == 1720 else self.listen_port + 1
+        self.rtp_ports = RTP_PORT_BASE + RTP_PORTS * (number % RTP_PORT_SLOTS)
         name = name or alias.split(",")[0]
         self.result_file = os.path.join(workdir, "ep-%s.json" % name)
         self.trace_file = os.path.join(workdir, "ep-%s.trace" % name)
@@ -73,8 +83,8 @@ class Endpoint:
                 "--duration", str(duration), "--timeout", str(timeout),
                 "--trace", os.environ.get("GKTEST_EP_TRACE", "5"), "--log", self.trace_file]
         args += ["--no-gk"] if self.no_gk else ["--gk", gk_addr]
-        base = 5000 + 100 * self.instance
-        args += ["--ras-port", str(1719 + 10 * self.instance), "--rtp-ports", "%d-%d" % (base, base + 99)]
+        args += ["--ras-port", str(self.ras_port),
+                 "--rtp-ports", "%d-%d" % (self.rtp_ports, self.rtp_ports + RTP_PORTS - 1)]
         if self.password is not None:
             args += ["--password", self.password]
         if self.h46018:

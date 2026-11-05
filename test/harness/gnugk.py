@@ -224,6 +224,7 @@ class GnuGk:
         host: the namespace to run in, name: for the files (a 2nd gatekeeper needs another name),
         trace: at least this trace level (the default is GKTEST_GK_TRACE or 5)"""
         self.workdir = workdir
+        self.name = name
         self.trace_level = max(int(os.environ.get("GKTEST_GK_TRACE", "5")), trace or 0)
         self.host = host
         self.ip = topology.HOST_IPS[host]
@@ -245,7 +246,31 @@ class GnuGk:
                            check=True, capture_output=True)
         self.proc = None
 
+    def ports_in_use(self):
+        """the TCP/UDP ports GnuGk needs on its host that something already listens on"""
+        wanted = {1719, 1720, STATUS_PORT}
+        busy = []
+        for line in topology.sockets(self.host).splitlines()[1:]:
+            fields = line.split()
+            if len(fields) < 5 or fields[1] not in ("UNCONN", "LISTEN"):
+                continue
+            port = fields[4].rsplit(":", 1)[-1]
+            if port.isdigit() and int(port) in wanted:
+                busy.append(line.strip())
+        return busy
+
     def start(self, timeout=10.0):
+        # what's left on the host from earlier tests, for debugging
+        with open(os.path.join(self.workdir, self.name + "-sockets-before.txt"), "w") as f:
+            f.write(topology.sockets(self.host))
+            f.write("\nprocesses: %s\n" % topology.namespace_pids(topology.ns(self.host)))
+        deadline = time.time() + 5
+        while self.ports_in_use() and time.time() < deadline:
+            time.sleep(0.2)
+        busy = self.ports_in_use()
+        if busy:
+            raise RuntimeError("ports GnuGk needs are still in use on %s, see %s-sockets-before.txt:\n%s"
+                               % (self.host, self.name, "\n".join(busy)))
         self._stdout = open(self.stdout_file, "w")
         self.proc = subprocess.Popen(
             ["ip", "netns", "exec", topology.ns(self.host), GNUGK,
@@ -260,7 +285,9 @@ class GnuGk:
                 return self
             except OSError:
                 if time.time() > deadline:
-                    raise
+                    self.stop()	# don't leave it running, it would hold the ports for the next tests
+                    raise RuntimeError("gnugk didn't open its status port within %d seconds, see %s"
+                                       % (timeout, self.trace_file))
                 time.sleep(0.2)
 
     def stop(self):

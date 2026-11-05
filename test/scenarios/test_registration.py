@@ -24,7 +24,8 @@ def test_duplicate_alias(start_gk, workdir):
         first.kill()	# no URQ: GnuGk still has the registration
 
     assert "alice" in gk.registrations()
-    again = Endpoint(workdir, "pub1", "alice", name="alice-again").start(duration=1)
+    # the restarted endpoint comes back on its ports
+    again = Endpoint(workdir, "pub1", "alice", name="alice-again", listen_port=first.listen_port).start(duration=1)
     result = again.wait()
     assert result["registered"], "re-registration from the same IP was rejected"
     assert len(gk.ras_events("RRJ")) == 1

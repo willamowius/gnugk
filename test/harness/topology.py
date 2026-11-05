@@ -69,6 +69,37 @@ def existing_namespaces():
     return [line.split()[0] for line in out.splitlines() if line.startswith(PREFIX)]
 
 
+def namespace_pids(name):
+    """processes running in a test namespace (name with prefix)"""
+    out = ip("netns", "pids", name, check=False).stdout
+    return [int(pid) for pid in out.split() if pid.isdigit()]
+
+
+def kill_leftovers():
+    """kill every process still running in a test namespace, returns [(namespace, pid, command)]"""
+    import signal
+    import time
+    killed = []
+    for name in existing_namespaces():
+        for pid in namespace_pids(name):
+            try:
+                with open("/proc/%d/cmdline" % pid, "rb") as f:
+                    cmd = f.read().replace(b"\0", b" ").decode(errors="replace").strip()
+                os.kill(pid, signal.SIGKILL)
+                killed.append((name, pid, cmd))
+            except (OSError, ProcessLookupError):
+                pass
+    deadline = time.time() + 5
+    while killed and time.time() < deadline and any(namespace_pids(n) for n in {k[0] for k in killed}):
+        time.sleep(0.1)
+    return killed
+
+
+def sockets(host):
+    """TCP and UDP sockets of a host (ss output), with their processes"""
+    return in_ns(host, "ss", "-tuanp", check=False).stdout
+
+
 NETNS_ETC = "/etc/netns"
 
 
@@ -103,6 +134,9 @@ def _add_ns(host):
     _write_name_resolution(host)
     ip("netns", "add", ns(host))
     in_ns(host, "ip", "link", "set", "lo", "up")
+    # keep no TIME-WAIT sockets (IPv4 and IPv6): closed connections of one test would otherwise block
+    # the listeners of the next test for 60 seconds (PTLib sets no SO_REUSEADDR on IPv6 listeners)
+    in_ns(host, "sysctl", "-qw", "net.ipv4.tcp_max_tw_buckets=0")
 
 
 def _attach_to_bridge(host, addr):

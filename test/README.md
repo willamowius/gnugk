@@ -55,7 +55,7 @@ This clones or updates the latest commit of the default branch (GitHub HEAD) of
 [willamowius/h323plus](https://github.com/willamowius/h323plus) into `~/gnugk-test-deps`
 (or the directory given as argument / `$GKTEST_DEPS`), builds them (H323Plus with the
 options from the GnuGk manual: `--enable-h235 --enable-h46017 --enable-h46026`; without H.235
-GnuGk can't verify H.235.1 tokens), then builds GnuGk with `--enable-h46018`, `addpasswd` and
+GnuGk can't verify H.235.1 tokens), then builds GnuGk with `--enable-h46018 --enable-large-fdset`, `addpasswd` and
 the test endpoint. Build logs go to `<deps>/logs/`.
 Run it again after changing GnuGk code (it always rebuilds GnuGk from scratch).
 
@@ -190,8 +190,9 @@ test/
 Scenarios are plain pytest functions. `start_gk(config...)` starts GnuGk with the base config
 from `harness/gnugk.py` merged with the given `{section: {key: value}}` dicts (a value of `None`
 deletes a key) and stops it after the test, failing the test if GnuGk crashed. `Endpoint(...)`
-runs `gktestep` on one of the hosts above (`instance=N` to run several on one host, `gk=` to
-register with another gatekeeper). `harness/calls.py` has `run_call()` for a complete call, the
+runs `gktestep` on one of the hosts above. Every endpoint gets its own signaling port (RAS: the next one)
+and RTP ports, `listen_port=1720` for an endpoint that is called by IP, `gk=` to register with another
+gatekeeper. `harness/calls.py` has `run_call()` for a complete call, the
 GnuGk object has helpers for the status port (`registrations()`, `current_calls()`, `StatusSession`
 for a persistent connection), the trace (`ras_events()`, `trace_count()`), CDRs (`cdrs()`) and
 its resources (`resources()`). A second gatekeeper: `start_gk(config, host="gk2", name="gk2")`.

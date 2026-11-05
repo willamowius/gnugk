@@ -48,13 +48,14 @@ def test_sql_password_auth(start_gk, workdir, password, registers):
 
 def test_sql_alias_auth(start_gk, workdir):
     """SQLAliasAuth: the database gives the address an alias may register from"""
+    alice = Endpoint(workdir, "pub1", "alice")
     db = database(workdir, ["CREATE TABLE rules (alias TEXT, rule TEXT)",
-                            "INSERT INTO rules VALUES ('alice', 'sigip:%s:1720')" % topology.HOST_IPS["pub1"]])
+                            "INSERT INTO rules VALUES ('alice', 'sigip:%s:%d')" % (PUB1, alice.listen_port)])
     gk = start_gk({
         "Gatekeeper::Auth": {"SQLAliasAuth": "required;RRQ"},
         "SQLAliasAuth": sql_section(db, "SELECT rule FROM rules WHERE alias = '%1'"),
     })
-    assert Endpoint(workdir, "pub1", "alice").start(duration=1).wait()["registered"]
+    assert alice.start(duration=1).wait()["registered"]
     wrong_ip = Endpoint(workdir, "pub2", "alice", name="alice-pub2").start(duration=1, timeout=5).wait()
     assert not wrong_ip["registered"]
     unknown = Endpoint(workdir, "pub1", "bob").start(duration=1, timeout=5).wait()
@@ -134,7 +135,7 @@ def test_sql_auth_call(start_gk, workdir, dialed, connects):
     gk = start_gk(sql_auth(db, "ARQ", CallQuery="SELECT allowed FROM calls WHERE caller = '%u' "
                                                 "AND called = '%{Called-Station-Id}' "
                                                 "UNION ALL SELECT 1 WHERE %{answer} = 1"))
-    callees = [Endpoint(workdir, "pub2", "callee"), Endpoint(workdir, "pub2", "other", instance=1)]
+    callees = [Endpoint(workdir, "pub2", "callee"), Endpoint(workdir, "pub2", "other")]
     for ep in callees:
         ep.start(duration=20)
     try:
@@ -205,9 +206,9 @@ def test_sql_auth_redirectnumber(start_gk, workdir):
 def test_sql_auth_redirectip(start_gk, workdir):
     """SQLAuth CallQuery 'redirectip': the call goes to an unregistered endpoint at that address"""
     db = database(workdir, [])
-    gk = start_gk(sql_auth(db, "ARQ", CallQuery="SELECT 1, '%s:1720' AS redirectip" % PUB2))
-    caller, callee = run_call(gk, Endpoint(workdir, "pub1", "caller"), "somewhere",
-                              callee=Endpoint(workdir, "pub2", "callee", no_gk=True))
+    callee_ep = Endpoint(workdir, "pub2", "callee", no_gk=True)
+    gk = start_gk(sql_auth(db, "ARQ", CallQuery="SELECT 1, '%s:%d' AS redirectip" % (PUB2, callee_ep.listen_port)))
+    caller, callee = run_call(gk, Endpoint(workdir, "pub1", "caller"), "somewhere", callee=callee_ep)
     assert caller["connected"] and callee["connected"], caller["endReason"]
     cdrs = gk.cdrs()
     assert len(cdrs) == 1 and cdrs[0]["callee_ip"] == PUB2, cdrs

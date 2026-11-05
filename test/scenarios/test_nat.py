@@ -66,7 +66,7 @@ def test_two_h46018_endpoints_behind_same_nat(start_gk, workdir, capture):
     gk.require("h46018")
     nat_ip = topology.NAT_ROUTERS["nat1"][0]
     caller, callee = run_call(gk, Endpoint(workdir, "priv1", "caller", h46018=True, faststart=False), "callee",
-                              callee=Endpoint(workdir, "priv1", "callee", h46018=True, faststart=False, instance=1),
+                              callee=Endpoint(workdir, "priv1", "callee", h46018=True, faststart=False),
                               duration=5)
     assert caller["registered"] and callee["registered"]
     assert caller["connected"] and callee["connected"], caller["endReason"]

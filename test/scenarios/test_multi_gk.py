@@ -94,7 +94,7 @@ def test_neighbor_h46018_traversal(start_gk, workdir, direction):
     assert gk2.trace_count("SCR Received from " + topology.GK_IP) > 0, "no SCR from GK1"
     time.sleep(0.5)
     alice = Endpoint(workdir, "pub1", "alice", gk="gk", faststart=False)
-    bob = Endpoint(workdir, "priv1", "bob", gk="priv1", instance=1, faststart=False)
+    bob = Endpoint(workdir, "priv1", "bob", gk="priv1", faststart=False)
     if direction == "to-client":
         caller, callee = run_call(gk2, alice, "bob", callee=bob)
     else:

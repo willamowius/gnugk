@@ -276,7 +276,7 @@ def test_reroute_call(start_gk, workdir, faststart):
     30556ce reworked this)"""
     gk = start_gk({"RoutedMode": {"DisableH245Tunneling": "1", "RemoveH235Call": "1"}})
     callee = Endpoint(workdir, "pub2", "callee", faststart=faststart).start(duration=40)
-    third = Endpoint(workdir, "pub2", "third", instance=1, faststart=faststart).start(duration=40)
+    third = Endpoint(workdir, "pub2", "third", faststart=faststart).start(duration=40)
     caller = Endpoint(workdir, "pub1", "caller", faststart=faststart)
     try:
         assert gk.wait_registered("callee") and gk.wait_registered("third")
