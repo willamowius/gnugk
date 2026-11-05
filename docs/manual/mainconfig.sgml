@@ -591,6 +591,11 @@ The order indicates the priority of the authentication mechanism.
 If this setting is omitted, all authenticators are loaded by default. 
 If you are using plugin authenticators, then you may want to disable the default authenticators to provide optimum security.
 Note: H.235.1 requires OpenSSL support compiled into GnuGk.
+<p>
+Endpoints only put CAT tokens into RRQ and ARQ messages and MD5 tokens into RRQ, URQ, ARQ, BRQ, DRQ and Setup.
+If SimplePasswordAuth checks other messages, endpoints using these authenticators are rejected on them
+and GnuGk writes a warning to the trace on startup. Disable the authenticators your endpoints don't use
+(eg. <tt/Authenticators=H.235.1,MD5/) or limit the checked messages.
 
 <item><tt/DisconnectCallsOnShutdown=0/<newline>
 Default: <tt>1</tt><newline>

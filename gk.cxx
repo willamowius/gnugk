@@ -1079,6 +1079,63 @@ void ShutdownHandler()
 	Gatekeeper::CloseLogFile();
 }
 
+// warn when SimplePasswordAuth checks messages that an enabled authenticator can't put a token into:
+// an endpoint using that authenticator is then rejected on these messages
+void CheckPasswordAuthTokens(PConfig * cfg, const PString & mainsection)
+{
+	const PString rule = cfg->GetString("Gatekeeper::Auth", "SimplePasswordAuth", "");
+	if (rule.IsEmpty())
+		return;
+
+	// the messages SimplePasswordAuth can check (with a bare control flag it checks all of them)
+	static const char * const supported[] = {
+		"RRQ", "URQ", "BRQ", "DRQ", "LRQ", "IRQ", "ARQ", "RAI",
+		"SETUP", "SETUPUNREG", "CONNECT", "CALLPROCEEDING", "ALERTING", "INFORMATION", "RELEASECOMPLETE",
+		"FACILITY", "PROGRESS", "EMPTY", "STATUS", "STATUSINQUIRY", "SETUPACK", "NOTIFY", NULL };
+	// the messages endpoints put each kind of token into (H.235.1 tokens can be in all of them)
+	static const struct { const char * name; const char * messages; } tokens[] = {
+		{ "CAT", "RRQ,ARQ" },
+		{ "MD5", "RRQ,URQ,ARQ,BRQ,DRQ,SETUP,SETUPUNREG" },
+		{ NULL, NULL } };
+
+	PStringArray checked;
+	const PStringArray control = rule.Tokenise(";,", FALSE);
+	for (PINDEX i = 1; i < control.GetSize(); ++i)
+		checked.AppendString(control[i].Trim().ToUpper());
+	if (checked.IsEmpty())
+		for (PINDEX i = 0; supported[i]; ++i)
+			checked.AppendString(supported[i]);
+
+	// like Toolkit::IsAuthenticatorEnabled(), but on the config that is being checked
+	const PString enabledList = cfg->GetString(mainsection, "Authenticators", "");
+	const char * const all[] = { "H.235.1", "MD5", "CAT", "DES", NULL };
+	PStringArray enabled;
+	for (PINDEX i = 0; all[i]; ++i)
+		if (enabledList.IsEmpty() || enabledList.Find(all[i]) != P_MAX_INDEX)
+			enabled.AppendString(all[i]);
+
+	for (PINDEX t = 0; tokens[t].name; ++t) {
+		if (enabled.GetStringsIndex(tokens[t].name) == P_MAX_INDEX)
+			continue;
+		const PStringArray carriers = PString(tokens[t].messages).Tokenise(",", FALSE);
+		PString uncovered;
+		for (PINDEX i = 0; i < checked.GetSize(); ++i)
+			if (carriers.GetStringsIndex(checked[i]) == P_MAX_INDEX)
+				uncovered += (uncovered.IsEmpty() ? "" : ",") + checked[i];
+		if (uncovered.IsEmpty())
+			continue;
+		PString others;
+		for (PINDEX i = 0; i < enabled.GetSize(); ++i)
+			if (enabled[i] != tokens[t].name)
+				others += (others.IsEmpty() ? "" : ",") + enabled[i];
+		PTRACE(1, "WARNING: SimplePasswordAuth checks " << uncovered << ", but " << tokens[t].name
+			<< " tokens are only sent in " << tokens[t].messages << ": endpoints that use " << tokens[t].name
+			<< " will be rejected on these messages. If no endpoint uses " << tokens[t].name
+			<< ", disable it with [" << mainsection << "] Authenticators="
+			<< (others.IsEmpty() ? PString("NONE") : others));
+	}
+}
+
 bool CheckConfig(PConfig * cfg, const PString & mainsection)
 {
 	unsigned warnings = 0;
@@ -1160,6 +1217,8 @@ bool CheckConfig(PConfig * cfg, const PString & mainsection)
 		PTRACE(0, "WARNING: This doesn't look like a GNU Gatekeeper configuration file!");
 		SNMP_TRAP(7, SNMPError, Configuration, "No config file");
 	}
+
+	CheckPasswordAuthTokens(cfg, mainsection);
 
 	return (warnings == 0);
 }
