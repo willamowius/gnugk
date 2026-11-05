@@ -14466,7 +14466,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 
     // save which destination IP on the gatekeeper is used by remote endpoint and use that to send!
     if (!m_portDetectionDone) {
-        if (m_call) {
+		if (m_call && localaddr.IsValid() && !localaddr.IsAny()) {	// unknown when bound to any without LARGE_FDSET
             m_call->SetEndpointIPMapping(fromIP, localaddr);
         }
     }

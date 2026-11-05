@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(ProxyChannel.cxx) fix IPv4-IPv6 conversion bug when not compiled with LARGE_FDSET
 - new GnuGk test harness in test/
 - BUGFIX(gkauth.cxx) fix AND (&) in AliasAuth/SQLAliasAuth rules
 - BUGFIX(gkauth.cxx) match sigaddr rules in AliasAuth/SQLAliasAuth as documented in manual
