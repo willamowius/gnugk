@@ -113,8 +113,38 @@ def call_params():
                 yield pytest.param(placement, auth, media, marks=marks, id="%s-%s-%s" % (placement, auth, media))
 
 
+PLACEMENT_TEXT = {
+    "plain": "caller and callee public, media through the RTP proxy",
+    "plain-noproxy": "caller and callee public, RTP proxy off (media direct)",
+    "plain-gk-h46018": "caller and callee public without H.460.18, GnuGk has H.460.18 enabled",
+    "h46018-caller": "caller behind NAT with H.460.18/.19, callee public",
+    "h46018-callee": "caller public, callee behind NAT with H.460.18/.19",
+    "h46018-both": "caller and callee behind NATs with H.460.18/.19",
+}
+AUTH_TEXT = {
+    "noauth": "no authentication",
+    "md5": "MD5 tokens checked on RRQ,URQ,ARQ,BRQ,DRQ",
+    "h2351-setup": "H.235.1 tokens checked on RRQ,URQ,ARQ,BRQ,DRQ and Setup",
+    "h2351-all": "H.235.1 tokens checked on all supported RAS and Q.931 messages",
+}
+MEDIA_TEXT = {
+    "faststart": "media opened with fastStart",
+    "h245": "media opened with H.245 (OpenLogicalChannel)",
+}
+
+
+def describe_params(params):
+    """description of a test_call parameter set, shown by --describe"""
+    if "placement" not in params:
+        return ""
+    return "%s; %s; %s" % (PLACEMENT_TEXT[params["placement"]], AUTH_TEXT[params["auth"]], MEDIA_TEXT[params["media"]])
+
+
 @pytest.mark.parametrize("placement,auth,media", list(call_params()))
 def test_call(start_gk, workdir, capture, placement, auth, media):
+    """a basic call: both endpoints register, the call connects, RTP flows both ways for the whole call
+    (through the RTP proxy unless it's off, checked in the pcap), one CDR with duration and cause 16, no call
+    left over, both endpoints unregister"""
     gk, caller, callee = make_call(start_gk, workdir, placement, auth, media)
     check_call(gk, caller, callee)
     proxy_ports = pcap.ports_used(capture, topology.GK_IP, "UDP", 40000, 41999)

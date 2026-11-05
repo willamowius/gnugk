@@ -11,9 +11,20 @@ pytestmark = pytest.mark.skipif(not topology.IPV6_AVAILABLE, reason="no IPv6 (th
 IPV6_CONFIG = {"Gatekeeper::Main": {"EnableIPv6": "1", "Home": "%s,%s" % (topology.GK_IP, topology.GK_IP6)}}
 
 
+def describe_params(params):
+    """description of the parameters, shown by --describe"""
+    if "caller_v6" not in params:
+        return ""
+    family = {True: "IPv6", False: "IPv4"}
+    return "caller %s, callee %s" % (family[params["caller_v6"]], family[params["callee_v6"]])
+
+
 @pytest.mark.parametrize("caller_v6,callee_v6", [(True, True), (False, True), (True, False)],
                          ids=["v6-to-v6", "v4-to-v6", "v6-to-v4"])
 def test_ipv6_call(start_gk, workdir, caller_v6, callee_v6):
+    """a call with GnuGk on IPv4 and IPv6 (EnableIPv6=1, Home with both addresses): both endpoints register,
+    the call connects, RTP flows both ways (GnuGk proxies calls between IPv4 and IPv6), one CDR with the
+    caller's address, both endpoints unregister"""
     gk = start_gk(IPV6_CONFIG)
     gk.require("ipv6")
     caller, callee = run_call(gk, Endpoint(workdir, "pub1", "caller", ipv6=caller_v6), "callee",

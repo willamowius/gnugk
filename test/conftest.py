@@ -1,6 +1,8 @@
+import inspect
 import os
 import re
 import shutil
+import textwrap
 import subprocess
 import time
 
@@ -10,6 +12,78 @@ from harness import gnugk, topology
 from harness.paths import ADDPASSWD, ENDPOINT, GNUGK
 
 RESULTS = os.environ.get("GKTEST_RESULTS", os.path.join(os.path.dirname(__file__), "results"))
+
+
+def pytest_addoption(parser):
+    parser.addoption("--describe", action="store_true",
+                     help="with -v: show what each test checks below its result (--collect-only always shows it)")
+
+
+def describe(item):
+    """what a test checks: its docstring, plus a description of its parameters if the module has
+    describe_params(params)"""
+    text = inspect.getdoc(getattr(item, "function", None)) or ""
+    text = " ".join(text.split())
+    params = getattr(getattr(item, "callspec", None), "params", None)
+    describe_params = getattr(getattr(item, "module", None), "describe_params", None)
+    if params and describe_params:
+        extra = describe_params(params)
+        if extra:
+            text = (text + " [" + extra + "]") if text else extra
+    return text
+
+
+_config = []
+
+
+@pytest.hookimpl(trylast=True)	# after the terminal reporter is registered
+def pytest_configure(config):
+    _config.append(config)
+    if not config.getoption("collectonly"):
+        return
+    reporter = config.pluginmanager.getplugin("terminalreporter")
+    if reporter is None:
+        return
+    def print_items(items):
+        # --collect-only: each test ID with its description below it
+        for item in items:
+            reporter.write_line(item.nodeid)
+            for line in textwrap.wrap(describe(item), 100):
+                reporter.write_line("    " + line)
+    reporter._printcollecteditems = print_items
+
+
+_descriptions = {}
+
+
+def pytest_collection_modifyitems(config, items):
+    for item in items:
+        _descriptions[item.nodeid] = describe(item)
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    report = outcome.get_result()
+    text = _descriptions.get(item.nodeid)
+    if text and report.when == "call":
+        report.sections.append(("what this test checks", text))	# shown in the failure report
+    if report.when == "call" and report.failed and "network" in item.fixturenames:
+        save_conntrack(item, "after-failure")
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_runtest_logreport(report):
+    # with --describe and -v: the description below each result line
+    config = _config[0] if _config else None
+    if config is None or not config.getoption("describe") or config.option.verbose <= 0 or report.when != "teardown":
+        return
+    reporter = config.pluginmanager.getplugin("terminalreporter")
+    text = _descriptions.get(report.nodeid)
+    if reporter and text:
+        reporter.ensure_newline()
+        for line in textwrap.wrap(text, 100):
+            reporter.write_line("    " + line)
 
 
 def pytest_sessionstart(session):
@@ -49,12 +123,29 @@ def clean_namespaces(request):
                     f.write("%s %d %s\n" % (ns_name, pid, cmd))
 
 
+def result_dir(node):
+    return os.path.join(RESULTS, re.sub(r"[^A-Za-z0-9_.-]+", "_", node.name))
+
+
+def save_conntrack(node, when):
+    """the NAT routers' connection tracking tables, in the test's result directory"""
+    path = result_dir(node)
+    os.makedirs(path, exist_ok=True)
+    for router in topology.NAT_ROUTERS:
+        if topology.ns(router) in topology.existing_namespaces():
+            with open(os.path.join(path, "conntrack-%s-%s.txt" % (when, router)), "w") as f:
+                f.write(topology.conntrack(router))
+
+
 @pytest.fixture
 def workdir(request):
     name = re.sub(r"[^A-Za-z0-9_.-]+", "_", request.node.name)
     path = os.path.join(RESULTS, name)
     shutil.rmtree(path, ignore_errors=True)
     os.makedirs(path)
+    if "network" in request.fixturenames:
+        # the NAT routers' connection tracking tables when the test starts (and after a failure)
+        save_conntrack(request.node, "before")
     return path
 
 

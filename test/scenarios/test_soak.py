@@ -27,6 +27,8 @@ def settled_resources(gk):
 
 
 def test_soak_100_calls(start_gk, workdir):
+    """100 calls one after the other (after 5 warm-up calls): all connect with media and get a CDR, and GnuGk's
+    file descriptors, threads (each at most +10) and memory (at most +20 MB) stay flat"""
     gk = start_gk()
     run_calls(gk, workdir, "warmup", 5)
     before = settled_resources(gk)

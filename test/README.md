@@ -35,7 +35,6 @@ CDR with the right duration and cause, no call was left over and both endpoints 
 | `test_multi_gk.py` | neighbor gatekeepers (also with both proxying, and H.460.18 neighbor traversal), child gatekeeper registered with a parent |
 | `test_soak.py` | 100 calls in a row, GnuGk's memory, file descriptors and threads must stay flat |
 | `test_ipv6.py` | IPv6 calls, also IPv4 to IPv6 (skipped without kernel IPv6 support) |
-| `test_regression_292189d.py` | URQ and DRQ without a token from a registered MD5 endpoint that only signs RRQ and ARQ are rejected since commit 292189d. Asserts the old behaviour, so it fails while the regression is present |
 
 ## Requirements
 
@@ -75,7 +74,8 @@ test/run.sh                          # everything, about 35 minutes
 test/run.sh -k "h46018 and md5"      # a subset
 test/run.sh -k h2351                 # all H.235.1 tests
 test/run.sh -x -k plain-noauth       # stop at the first failure
-test/run.sh --collect-only -q        # list all tests (works without root and without a build)
+test/run.sh --collect-only -q        # list all tests with what they check (works without root and without a build)
+test/run.sh -v --describe -k md5     # run, with what each test checks below its result
 test/run.sh --collect-only -q -k md5 # list the tests a -k expression selects
 ```
 
@@ -106,6 +106,8 @@ endpoints, and `GKTEST_KEEP_NETNS=1`
 to keep the namespaces after the run, eg. to poke around with `ip netns exec gkt-gk ...`.
 
 ## When a test fails
+
+The failure report of a test includes what it checks ("what this test checks", from its docstring).
 
 1. **Which test:** the summary at the end lists each failure as
    `FAILED scenarios/test_calls.py::test_call[plain-md5-h245] - AssertionError: ...`.
@@ -187,7 +189,8 @@ test/
 
 ## Adding a test
 
-Scenarios are plain pytest functions. `start_gk(config...)` starts GnuGk with the base config
+Scenarios are plain pytest functions, with a docstring that says what they check (shown by `--collect-only` and `-v --describe`;
+a module can add a description of the parameters with `describe_params(params)`, see `test_calls.py`). `start_gk(config...)` starts GnuGk with the base config
 from `harness/gnugk.py` merged with the given `{section: {key: value}}` dicts (a value of `None`
 deletes a key) and stops it after the test, failing the test if GnuGk crashed. `Endpoint(...)`
 runs `gktestep` on one of the hosts above. Every endpoint gets its own signaling port (RAS: the next one)
