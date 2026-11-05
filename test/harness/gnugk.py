@@ -260,17 +260,14 @@ class GnuGk:
         return busy
 
     def start(self, timeout=10.0):
-        # what's left on the host from earlier tests, for debugging
-        with open(os.path.join(self.workdir, self.name + "-sockets-before.txt"), "w") as f:
-            f.write(topology.sockets(self.host))
-            f.write("\nprocesses: %s\n" % topology.namespace_pids(topology.ns(self.host)))
+        # GnuGk would start without its listeners if an earlier test still held the ports
         deadline = time.time() + 5
         while self.ports_in_use() and time.time() < deadline:
             time.sleep(0.2)
         busy = self.ports_in_use()
         if busy:
-            raise RuntimeError("ports GnuGk needs are still in use on %s, see %s-sockets-before.txt:\n%s"
-                               % (self.host, self.name, "\n".join(busy)))
+            raise RuntimeError("ports GnuGk needs (RAS, Q.931, status port) are still in use on %s:\n%s"
+                               % (self.host, "\n".join(busy)))
         self._stdout = open(self.stdout_file, "w")
         self.proc = subprocess.Popen(
             ["ip", "netns", "exec", topology.ns(self.host), GNUGK,

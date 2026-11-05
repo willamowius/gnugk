@@ -95,11 +95,6 @@ def kill_leftovers():
     return killed
 
 
-def conntrack(router):
-    """the connection tracking table of a NAT router (nat1, nat2)"""
-    return in_ns(router, "cat", "/proc/net/nf_conntrack", check=False).stdout
-
-
 def sockets(host):
     """TCP and UDP sockets of a host (ss output), with their processes"""
     return in_ns(host, "ss", "-tuanp", check=False).stdout

@@ -56,6 +56,10 @@ This clones or updates the latest commit of the default branch (GitHub HEAD) of
 options from the GnuGk manual: `--enable-h235 --enable-h46017 --enable-h46026`; without H.235
 GnuGk can't verify H.235.1 tokens), then builds GnuGk with `--enable-h46018 --enable-large-fdset`, `addpasswd` and
 the test endpoint. Build logs go to `<deps>/logs/`.
+
+After each update, the patches in `test/patches/<repo>/` are applied to the GitHub checkout (fixes that
+aren't upstream yet). A patch that upstream already has is skipped with a note to remove it; one that
+doesn't apply any more stops the build. Currently there are none.
 Run it again after changing GnuGk code (it always rebuilds GnuGk from scratch).
 
 For a quick rebuild of GnuGk only:

@@ -68,8 +68,6 @@ def pytest_runtest_makereport(item, call):
     text = _descriptions.get(item.nodeid)
     if text and report.when == "call":
         report.sections.append(("what this test checks", text))	# shown in the failure report
-    if report.when == "call" and report.failed and "network" in item.fixturenames:
-        save_conntrack(item, "after-failure")
 
 
 @pytest.hookimpl(trylast=True)
@@ -123,29 +121,12 @@ def clean_namespaces(request):
                     f.write("%s %d %s\n" % (ns_name, pid, cmd))
 
 
-def result_dir(node):
-    return os.path.join(RESULTS, re.sub(r"[^A-Za-z0-9_.-]+", "_", node.name))
-
-
-def save_conntrack(node, when):
-    """the NAT routers' connection tracking tables, in the test's result directory"""
-    path = result_dir(node)
-    os.makedirs(path, exist_ok=True)
-    for router in topology.NAT_ROUTERS:
-        if topology.ns(router) in topology.existing_namespaces():
-            with open(os.path.join(path, "conntrack-%s-%s.txt" % (when, router)), "w") as f:
-                f.write(topology.conntrack(router))
-
-
 @pytest.fixture
 def workdir(request):
     name = re.sub(r"[^A-Za-z0-9_.-]+", "_", request.node.name)
     path = os.path.join(RESULTS, name)
     shutil.rmtree(path, ignore_errors=True)
     os.makedirs(path)
-    if "network" in request.fixturenames:
-        # the NAT routers' connection tracking tables when the test starts (and after a failure)
-        save_conntrack(request.node, "before")
     return path
 
 

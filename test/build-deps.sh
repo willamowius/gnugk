@@ -5,7 +5,8 @@
 # usage: test/build-deps.sh [deps-dir]
 #   deps-dir defaults to $GKTEST_DEPS or ~/gnugk-test-deps
 #
-# The libraries are always updated to the latest commit of their default branch (GitHub HEAD) before building.
+# The libraries are always updated to the latest commit of their default branch (GitHub HEAD) before building,
+# then the patches in test/patches/<repo>/ are applied (fixes not upstream yet; skipped once upstream has them).
 set -euo pipefail
 
 GK_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -29,6 +30,23 @@ update_repo() {
 	echo "   $name at $(git -C "$DEPS/$name" log -1 --format='%h %ad' --date=short)"
 }
 
+# apply test/patches/<name>/*.patch on top of the GitHub checkout
+apply_patches() {
+	local name="$1" patch
+	for patch in "$GK_DIR/test/patches/$name"/*.patch; do
+		[ -e "$patch" ] || continue
+		if git -C "$DEPS/$name" apply --check "$patch" 2>/dev/null; then
+			git -C "$DEPS/$name" apply "$patch"
+			echo "   applied $(basename "$patch")"
+		elif git -C "$DEPS/$name" apply --reverse --check "$patch" 2>/dev/null; then
+			echo "   $(basename "$patch") is already in $name, remove it from test/patches/$name"
+		else
+			echo "FAILED: $(basename "$patch") doesn't apply to $name any more" >&2
+			exit 1
+		fi
+	done
+}
+
 run() {
 	local log="$1"; shift
 	if ! "$@" > "$LOGS/$log" 2>&1; then
@@ -39,7 +57,9 @@ run() {
 }
 
 update_repo ptlib https://github.com/willamowius/ptlib.git
+apply_patches ptlib
 update_repo h323plus https://github.com/willamowius/h323plus.git
+apply_patches h323plus
 
 export PTLIBDIR="$DEPS/ptlib"
 export OPENH323DIR="$DEPS/h323plus"
