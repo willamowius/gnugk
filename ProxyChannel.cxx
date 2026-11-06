@@ -6830,8 +6830,6 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 
 	/* TODO: Investigate this */
 #endif
-	if (callProceeding->GetUUIEBody().GetTag() != H225_H323_UU_PDU_h323_message_body::e_callProceeding)
-        return;
 
 	H225_CallProceeding_UUIE & cpBody = callProceeding->GetUUIEBody();
 
