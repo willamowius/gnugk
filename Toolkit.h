@@ -228,7 +228,7 @@ class Toolkit : public Singleton<Toolkit>
 
 	class RewriteTool {
 	public:
-		RewriteTool() : m_TrailingChar(' '), m_Rewrite(0) {}
+		RewriteTool() : m_TrailingChar(' '), m_Rewrite(0) { }
 		~RewriteTool() { delete m_Rewrite; }
 		void LoadConfig(PConfig *);
 		bool RewritePString(PString & str) const;
@@ -257,7 +257,7 @@ class Toolkit : public Singleton<Toolkit>
 
 	class VendorModeTool {
 	public:
-		VendorModeTool() : m_vendorInfo(0) {}
+		VendorModeTool() : m_vendorInfo(0) { }
 		~VendorModeTool() { delete m_vendorInfo; }
 		void LoadConfig(PConfig *);
 		int ModeSelection(const PString & str) const;
@@ -553,7 +553,7 @@ class Toolkit : public Singleton<Toolkit>
 	/** Accessor and 'Factory' for the global (static) configuration.
 	 * With this we are able to implement out own Config-Loader
 	 * in the same way as #Instance()#. And we can use #Config()#
-	 * in the constructor of #Toolkit# (and its descentants).
+	 * in the constructor of #Toolkit# (and its descendants).
 	 */
 	PConfig* Config();
 	PConfig* Config(const char *);
@@ -597,8 +597,8 @@ class Toolkit : public Singleton<Toolkit>
 	/** you may add more extension codes in descendant classes. This codes will not be transferred
 	 * or something it will be the return code of some methods for handling switches easy. */
 	enum {
-		iecUnknown      = -1,  /// internal extension code for an unknown triple(cntry,ext,manuf)
-		iecFailoverRAS  = 1,   /// i.e.c. for "This RQ is a failover RQ" and must not be answerd.
+		iecUnknown      = -1,  /// internal extension code for an unknown triple(country,ext,manuf)
+		iecFailoverRAS  = 1,   /// i.e.c. for "This RQ is a failover RQ" and must not be answered.
 		iecNeighborId   = 2,   /// i.e.c. for neighbor id sent inside LRQ/LCF nonStandardData parameter
 		iecNATTraversal = 3,   /// i.e.c. for IP=/NAT= parameters sent inside RRQ/RCF nonStandardData
 		iecUserbase     = 1000 /// first guaranteed unused 'iec' by GnuGk Toolkit.
@@ -610,7 +610,7 @@ class Toolkit : public Singleton<Toolkit>
 		t35cUSA = 181
 	};
 	enum T35ManufacturerCodes {
-		t35mOpenOrg = 4242,     /// manufacurers code for the "Open Source Organisation"
+		t35mOpenOrg = 4242,     /// manufacturers code for the "Open Source Organisation"
 		t35mGnuGk = 2,
 		t35mCisco = 18,
 		t35mAvaya = 16726,
@@ -631,7 +631,7 @@ class Toolkit : public Singleton<Toolkit>
 	 *
 	 * Overwriting methods should use a similar scheme and call
 	 * <code>
-	 * if(inherited::GnuGKExtension(country,extension,menufacturer) == iecUnknown) {
+	 * if(inherited::GnuGKExtension(country,extension,manufacturer) == iecUnknown) {
 	 *   ...
 	 *   (handle own cases)
 	 *   ...
