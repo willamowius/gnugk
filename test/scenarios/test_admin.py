@@ -6,7 +6,7 @@ import time
 
 import pytest
 
-from harness import topology
+from harness import gnugk, topology
 from harness.calls import run_call
 from harness.gnugk import StatusSession, pbkdf2_password, status_send
 from harness.endpoint import Endpoint
@@ -300,3 +300,22 @@ def test_reroute_call(start_gk, workdir, faststart):
     assert third_result["rtpReceived"] > 300 and third_result["rtpSent"] > 300, \
         "no media between caller and third after the reroute: %s" % third_result
     assert gk.trace_count("Reroute aborted") == 0
+
+
+def test_h245_to_own_status_port(start_gk, workdir):
+    """a callee that announces the gatekeeper's own status port as its H.245 address (in the CallProceeding): neither
+    the caller nor GnuGk open an H.245 connection to the status port"""
+    gk = start_gk()
+    status = "%s:%d" % (topology.GK_IP, gnugk.STATUS_PORT)
+    run_call(gk, Endpoint(workdir, "pub1", "caller", faststart=False, tunneling=False), "callee",
+             # ring for a while, so the caller opens its H.245 channel before the Connect brings the real address
+             callee=Endpoint(workdir, "pub2", "callee", faststart=False, tunneling=False, h245_address=status,
+                             answer_delay=3),
+             callee_duration=15)
+    # GnuGk puts its own H.245 listener into the CallProceeding for the caller (so the caller isn't sent to the
+    # status port) and refuses to connect from there to the callee's address
+    assert gk.trace_count("STATUS\tNew connection from %s:" % topology.HOST_IPS["pub1"]) == 0, \
+        "the caller was sent to the status port"
+    # (the harness itself uses the status port from ephemeral ports, GnuGk's H.245 connections come from 31000-31999)
+    assert gk.trace_count("STATUS\tNew connection from %s:31" % topology.GK_IP) == 0, "GnuGk connected to its status port"
+    assert gk.trace_count("Refusing H.245 connection to the gatekeeper's own status port") >= 1

@@ -176,3 +176,93 @@ def test_prefix_auth(start_gk, workdir):
     caller, _ = call_result(gk, workdir, "pub2", "callee,2002", "pub1", "caller,1001", "1001")
     assert caller["registered"] and not caller["connected"], caller
     assert [e for e in gk.ras_events("ARJ") if e[5] == "securityDenial"], gk.ras_events("ARJ")
+
+
+CASE_PARAMS = [("1", False), ("0", True)]
+CASE_IDS = ["case-sensitive", "case-insensitive"]
+CONFIG_KEY_CASE = ("the rule is looked up as a config key and PTLib's config keys ignore case (PXConfigValue is a "
+                   "PCaselessString), so the rule for 'alice' also applies to 'Alice' with CompareAliasCase=1")
+
+
+def case_params(sensitive_bug=None, insensitive_bug=None):
+    """CASE_PARAMS, with strict xfails for the known bugs"""
+    return [pytest.param("1", False, id="case-sensitive",
+                         marks=[pytest.mark.xfail(strict=True, reason=sensitive_bug)] if sensitive_bug else []),
+            pytest.param("0", True, id="case-insensitive",
+                         marks=[pytest.mark.xfail(strict=True, reason=insensitive_bug)] if insensitive_bug else [])]
+
+
+@pytest.mark.parametrize("compare_case,matches", case_params(sensitive_bug=CONFIG_KEY_CASE))
+def test_rrq_auth_alias_case(start_gk, workdir, compare_case, matches):
+    """[RasSrv::RRQAuth] alice=...: the rule only applies to an endpoint 'Alice' with CompareAliasCase=0 (without a
+    rule the required AliasAuth rejects it)"""
+    endpoint = Endpoint(workdir, "pub1", "Alice")
+    gk = start_gk({
+        "Gatekeeper::Main": {"CompareAliasCase": compare_case},
+        "Gatekeeper::Auth": {"AliasAuth": "required;RRQ"},
+        "RasSrv::RRQAuth": {"alice": "sigip:%s:%d" % (PUB1, endpoint.listen_port)},
+    })
+    assert endpoint.start(duration=1, timeout=5).wait()["registered"] == matches
+
+
+@pytest.mark.parametrize("aliases,registers", [
+    ("alice,SecretA", True),
+    ("alice,wrong", False),
+    ("alice", False),
+    ("bob,SecretA", False),
+], ids=["right-secret", "wrong-secret", "no-secret", "no-rule"])
+def test_two_alias_auth(start_gk, workdir, aliases, registers):
+    """TwoAliasAuth: an endpoint registers only with the 'secret' second alias configured for its alias"""
+    gk = start_gk({
+        "Gatekeeper::Auth": {"TwoAliasAuth": "required;RRQ"},
+        "TwoAliasAuth": {"alice": "SecretA"},
+    })
+    result = Endpoint(workdir, "pub1", aliases).start(duration=1, timeout=5).wait()
+    assert result["registered"] == registers, result
+
+
+@pytest.mark.parametrize("compare_case,aliases,registers", [
+    pytest.param("1", "Alice,SecretA", False, id="case-sensitive-alias-case",
+                 marks=pytest.mark.xfail(strict=True, reason=CONFIG_KEY_CASE)),
+    pytest.param("0", "Alice,SecretA", True, id="case-insensitive-alias-case"),
+    pytest.param("1", "alice,secreta", False, id="case-sensitive-secret-case"),
+    pytest.param("0", "alice,secreta", True, id="case-insensitive-secret-case",
+                 marks=pytest.mark.xfail(strict=True, reason="TwoAliasAuth::doCheck() compares the secret alias with "
+                                                             "== (case-sensitive), also with CompareAliasCase=0")),
+])
+def test_two_alias_auth_case(start_gk, workdir, aliases, compare_case, registers):
+    """TwoAliasAuth alice=SecretA: the alias and the secret alias only match in another case with CompareAliasCase=0"""
+    gk = start_gk({
+        "Gatekeeper::Main": {"CompareAliasCase": compare_case},
+        "Gatekeeper::Auth": {"TwoAliasAuth": "required;RRQ"},
+        "TwoAliasAuth": {"alice": "SecretA"},
+    })
+    result = Endpoint(workdir, "pub1", aliases).start(duration=1, timeout=5).wait()
+    assert result["registered"] == registers, result
+
+
+def prefix_auth_call(start_gk, workdir, caller_alias, compare_case="1"):
+    gk = start_gk({
+        "Gatekeeper::Main": {"CompareAliasCase": compare_case},
+        "Gatekeeper::Auth": {"PrefixAuth": "required;ARQ"},
+        "PrefixAuth": {"20": "deny alias:^caller:|allow ipv4:0/0", "ALL": "allow ipv4:0/0"},
+    })
+    caller, _ = run_call(gk, Endpoint(workdir, "pub1", caller_alias), "2002",
+                         callee=Endpoint(workdir, "pub2", "callee,2002"), callee_duration=12)
+    return gk, caller
+
+
+def test_prefix_auth_alias_rule(start_gk, workdir):
+    """PrefixAuth 20=deny alias:^caller: (aliases are matched as "alias:type"): 'caller' may not call 2002"""
+    gk, caller = prefix_auth_call(start_gk, workdir, "caller")
+    assert caller["registered"] and not caller["connected"], caller
+    assert [e for e in gk.ras_events("ARJ") if e[5] == "securityDenial"], gk.ras_events("ARJ")
+
+
+@pytest.mark.parametrize("compare_case,denied", case_params(
+    sensitive_bug="AliasAuthRule::Match() uses FindRegEx() with PTLib's default PRegularExpression::IgnoreCase, "
+                  "so alias rules ignore case also with CompareAliasCase=1"))
+def test_prefix_auth_alias_case(start_gk, workdir, compare_case, denied):
+    """PrefixAuth 20=deny alias:^caller: (aliases are matched as "alias:type"): the rule only applies to 'Caller' with CompareAliasCase=0"""
+    gk, caller = prefix_auth_call(start_gk, workdir, "Caller", compare_case)
+    assert caller["connected"] != denied, caller

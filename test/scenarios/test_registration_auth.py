@@ -95,3 +95,19 @@ def test_token_coverage_warning(start_gk, workdir, rule, authenticators, expecte
         assert found, (token, warnings)
         assert found[0].startswith(TOKEN_WARNING + messages), found[0]
         assert "Authenticators=" in found[0], found[0]
+
+
+@pytest.mark.parametrize("tokens", list(TOKENS))
+@pytest.mark.parametrize("compare_case,registers", [
+    pytest.param("1", False, id="case-sensitive"),
+    pytest.param("0", True, id="case-insensitive", marks=pytest.mark.xfail(strict=True, reason=(
+        "the config lookup of the password ignores case and finds 'alice', but SimplePasswordAuth decodes it with the "
+        "alias as sent ('Alice'), which fails ('Failed to decode config password'); with CompareAliasCase=1 'Alice' is "
+        "rejected only because of that"))),
+])
+def test_password_alias_case(start_gk, workdir, tokens, compare_case, registers):
+    """the password configured for 'alice' is only used for an endpoint 'Alice' with CompareAliasCase=0"""
+    auth_config, h2351 = TOKENS[tokens]
+    gk = start_gk(auth_config(), {"Gatekeeper::Main": {"CompareAliasCase": compare_case}}, users={"alice": "secret"})
+    result = Endpoint(workdir, "pub1", "Alice", password="secret", h2351=h2351).start(duration=1, timeout=5).wait()
+    assert result["registered"] == registers, result

@@ -184,11 +184,27 @@ static void SetT120Data(H245_DataApplicationCapability & data)
 	data.m_maxBitRate = 640;
 }
 
+// --h245-address: the H.245 address to announce in the CallProceeding (eg. to test what the gatekeeper connects to)
+static PString announcedH245Address;
+
 class TestConnection : public H323Connection
 {
 	PCLASSINFO(TestConnection, H323Connection)
 public:
 	TestConnection(H323EndPoint & ep, unsigned callReference) : H323Connection(ep, callReference) { }
+
+	virtual PBoolean OnSendCallProceeding(H323SignalPDU & pdu)
+	{
+		if (!announcedH245Address.IsEmpty()) {
+			H225_CallProceeding_UUIE & proceeding = pdu.m_h323_uu_pdu.m_h323_message_body;
+			PIPSocket::Address ip(announcedH245Address.Left(announcedH245Address.Find(':')));
+			WORD port = (WORD)announcedH245Address.Mid(announcedH245Address.Find(':') + 1).AsUnsigned();
+			proceeding.IncludeOptionalField(H225_CallProceeding_UUIE::e_h245Address);
+			H323TransportAddress(ip, port).SetPDU(proceeding.m_h245Address);
+			PTRACE(1, "GKTESTEP\tAnnouncing H.245 address " << announcedH245Address << " in the CallProceeding");
+		}
+		return H323Connection::OnSendCallProceeding(pdu);
+	}
 
 	virtual void OnSendCapabilitySet(H245_TerminalCapabilitySet & pdu)
 	{
@@ -595,6 +611,7 @@ void GkTestEp::Main()
 		"-h46018."
 		"-h46019m."
 		"-t120."
+		"-h245-address:"
 		"-no-faststart."
 		"-h2351."
 		"-full-q931."
@@ -634,6 +651,7 @@ void GkTestEp::Main()
 			"  --h46018             use H.460.18/.19 NAT traversal\n"
 			"  --h46019m            with --h46018: use H.460.19 RTP multiplexing (receive and send)\n"
 			"  --t120               offer T.120 in the capability set and open a T.120 channel when the call is up\n"
+			"  --h245-address ip:port  callee: announce this H.245 address in the CallProceeding\n"
 			"  --no-faststart       open media with H.245 only\n"
 			"  --no-tunneling       use a separate H.245 channel instead of H.245 tunneling\n"
 			"  --call alias         call this alias, otherwise answer one call\n"
@@ -680,6 +698,7 @@ void GkTestEp::Main()
 	if (args.HasOption("bandwidth"))
 		ep->SetInitialBandwidth(args.GetOptionString("bandwidth").AsUnsigned());
 	t120Offer = args.HasOption("t120");
+	announcedH245Address = args.GetOptionString("h245-address");
 	ep->DisableFastStart(args.HasOption("no-faststart"));
 	ep->DisableH245Tunneling(args.HasOption("no-tunneling"));
 	ep->SetSilenceDetectionMode(H323AudioCodec::NoSilenceDetection);

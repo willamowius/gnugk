@@ -262,3 +262,12 @@ def test_virtual_queue(start_gk, workdir, answer):
     else:
         assert not caller_result["connected"], caller_result
         assert gk.ras_events("ARJ"), "no ARJ"
+
+
+@pytest.mark.parametrize("compare_case,connects", [("1", False), ("0", True)], ids=["case-sensitive", "case-insensitive"])
+def test_alias_case(start_gk, workdir, compare_case, connects):
+    """a call to 'CALLEE' only reaches the endpoint registered as 'callee' with CompareAliasCase=0"""
+    gk = start_gk({"Gatekeeper::Main": {"CompareAliasCase": compare_case}})
+    caller, callee = run_call(gk, Endpoint(workdir, "pub1", "caller"), "CALLEE",
+                              callee=Endpoint(workdir, "pub2", "callee"), callee_duration=12)
+    assert caller["connected"] == connects, caller

@@ -20,7 +20,7 @@ class Endpoint:
     def __init__(self, workdir, host, alias, password=None, h46018=False, faststart=True, h2351=False, full_q931=False,
                  md5_unsigned=None, reject=None, hangup_after=None, tunneling=True, name=None, no_gk=False,
                  answer_delay=None, listen_port=None, bandwidth=None, brq=None, add_aliases=None,
-                 gateway=False, ipv6=False, gk="gk", h46019m=False, t120=False):
+                 gateway=False, ipv6=False, gk="gk", h46019m=False, t120=False, h245_address=None):
         """password: register with MD5 tokens, or H.235.1 tokens with h2351 (also in the call Setup,
         or in all Q.931 messages with full_q931). md5_unsigned: RAS messages to send without MD5 token,
         eg. ["URQ", "DRQ"]. reject: refuse incoming calls, "busy" or "denied".
@@ -38,6 +38,7 @@ class Endpoint:
         gk: the host of the gatekeeper to register with
         h46019m: with h46018, use H.460.19 RTP multiplexing
         t120: offer T.120 in the capability set and open a T.120 channel once the call is up
+        h245_address: callee: announce this H.245 address ("ip:port") in the CallProceeding
         """
         self.workdir = workdir
         self.host = host
@@ -60,6 +61,7 @@ class Endpoint:
         self.gk = gk
         self.h46019m = h46019m
         self.t120 = t120
+        self.h245_address = h245_address
         number = next(_endpoint_numbers)
         self.listen_port = listen_port or SIGNAL_PORT_BASE + 2 * (number % SIGNAL_PORT_SLOTS)
         self.ras_port = 1719 if listen_port == 1720 else self.listen_port + 1
@@ -95,6 +97,8 @@ class Endpoint:
             args.append("--h46019m")
         if self.t120:
             args.append("--t120")
+        if self.h245_address:
+            args += ["--h245-address", self.h245_address]
         if not self.faststart:
             args.append("--no-faststart")
         if self.h2351:

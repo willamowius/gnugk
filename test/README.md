@@ -25,10 +25,10 @@ CDR with the right duration and cause, no call was left over and both endpoints 
 | `test_call_handling.py` | unknown alias, callee refuses (busy / rejected), callee hangs up, caller hangs up while ringing, unregistered caller (`AcceptUnregisteredCalls`), endpoint killed mid-call, separate H.245 channel, `H245TunnelingTranslation`, E.164 numbers and several aliases, call duration limit, Q.931 cause translation, 5 parallel calls |
 | `test_registration.py` | duplicate alias, keep-alive RRQs (no auth, MD5, H.235.1), registration expiry (with and without IRQ poll), additive registration |
 | `test_registration_auth.py` | MD5 and H.235.1 registration: right / wrong / missing password, unknown user |
-| `test_routing.py` | direct mode, routed without H.245 routing, explicit IP dialing, registered callee dialed by IP, permanent gateway, gateway prefixes, round robin, failover, `RewriteE164`, `GWRewriteE164`, `RewriteCLI`, virtual queue (status port routing) |
-| `test_auth_modules.py` | `FileIPAuth`, `AliasAuth` / `[RasSrv::RRQAuth]` (sigip, also for E.164 numbers, sigaddr, allow / deny, `&` and `|`, alias order, default rule), `PrefixAuth` |
-| `test_sql.py` | SQLite backed `SQLPasswordAuth`, `SQLAliasAuth`, `SQLAuth` (RegQuery, CallQuery on ARQ / Setup / SetupUnreg with its result columns, NbQuery), SQL routing policy |
-| `test_capacity.py` | `[EP::...] Capacity`, `CapacityControl`, `TotalBandwidth`, `MaximumBandwidthPerCall`, BRQ |
+| `test_routing.py` | direct mode, routed without H.245 routing, explicit IP dialing, registered callee dialed by IP, permanent gateway, gateway prefixes, round robin, failover, `RewriteE164`, `GWRewriteE164`, `RewriteCLI`, virtual queue (status port routing), alias case of the called alias (`CompareAliasCase`) |
+| `test_auth_modules.py` | `FileIPAuth`, `AliasAuth` / `[RasSrv::RRQAuth]` (sigip, also for E.164 numbers, sigaddr, allow / deny, `&` and `|`, alias order, default rule), `TwoAliasAuth`, `PrefixAuth` (IP and alias rules); alias case with `CompareAliasCase` |
+| `test_sql.py` | SQLite backed `SQLPasswordAuth`, `SQLAliasAuth`, `SQLAuth` (RegQuery, CallQuery on ARQ / Setup / SetupUnreg with its result columns, NbQuery), SQL routing policy; alias case with `CompareAliasCase` |
+| `test_capacity.py` | `[EP::...] Capacity`, `CapacityControl` (IP, H.323 ID and CLI rules, called number patterns, rule order, released calls, `CompareAliasCase`), `TotalBandwidth`, `MaximumBandwidthPerCall`, BRQ |
 | `test_admin.py` | config reload during a call, status port commands (`PrintCurrentCalls`, `DisconnectCall`, `UnregisterAlias`, `Statistics`, `PrintEndpointQoS`), status port login rules and event filters, `StatusAcct` / `SQLAcct` events, `RerouteCall` |
 | `test_nat.py` | H.460.18 behind NATs that drop idle UDP mappings after 10 seconds, two H.460.18 endpoints behind the same NAT |
 | `test_codecs.py` | `DisabledCodecs` in `[CallTable]` and `[EP::alias]`, with fastStart and H.245, with and without proxy: the call uses the remaining codec |
@@ -156,6 +156,10 @@ reports XPASS as a failure, then remove the marker. Currently:
   Facility the callee sends to open its signaling channel, and has no authenticator for it yet.
 - `DisconnectCall` sets no release source (CDR `%r` is -1) and no cause.
 - `RerouteCall` with fastStart: no media is opened after the reroute.
+- `CompareAliasCase`: auth rules that are config keys (`[RasSrv::RRQAuth]`, `[TwoAliasAuth]`, the
+  `SimplePasswordAuth` passwords) always ignore case (PTLib config keys are caseless); a password for `alice`
+  can't be decoded for `Alice`; `TwoAliasAuth` compares the secret alias case-sensitively; `PrefixAuth` alias
+  rules always ignore case; SQL modules leave the comparison to the database.
 - `SQLAuth` `NbQuery`: LRQs from configured neighbors skip all authenticators, the query only runs for
   non-neighbor LRQs (`AcceptNonNeighborLRQ=1`).
 - Calls to an H.460.18 traversal client neighbor: the SCI says to connect to 0.0.0.0

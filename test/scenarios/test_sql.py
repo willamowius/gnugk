@@ -273,3 +273,47 @@ def test_sql_auth_lrq(start_gk, workdir, configured, allowed):
     assert bool(gk2.ras_events("LCF")) == allowed, gk2.ras_events("LCF")
     if not allowed:
         assert gk2.ras_events("LRJ"), "no LRJ"
+
+
+SQL_CASE = ("the database compares the alias (SQLite's = is case-sensitive), GnuGk passes the alias as received "
+            "whatever CompareAliasCase says; a query can use eg. COLLATE NOCASE")
+CASE_PARAMS = [pytest.param("1", False, id="case-sensitive"),
+               pytest.param("0", True, id="case-insensitive", marks=pytest.mark.xfail(strict=True, reason=SQL_CASE))]
+
+
+@pytest.mark.parametrize("compare_case,registers", CASE_PARAMS)
+def test_sql_password_auth_alias_case(start_gk, workdir, compare_case, registers):
+    """SQLPasswordAuth: the password of 'alice' is only used for 'Alice' with CompareAliasCase=0"""
+    db = database(workdir, ["CREATE TABLE users (alias TEXT, password TEXT)",
+                            "INSERT INTO users VALUES ('alice', 'secret')"])
+    gk = start_gk({
+        "Gatekeeper::Main": {"CompareAliasCase": compare_case},
+        "Gatekeeper::Auth": {"SQLPasswordAuth": "required;RRQ,URQ,ARQ,BRQ,DRQ"},
+        "SQLPasswordAuth": sql_section(db, "SELECT password FROM users WHERE alias = '%1'"),
+    })
+    result = Endpoint(workdir, "pub1", "Alice", password="secret").start(duration=1, timeout=5).wait()
+    assert result["registered"] == registers, result
+
+
+@pytest.mark.parametrize("compare_case,registers", CASE_PARAMS)
+def test_sql_alias_auth_alias_case(start_gk, workdir, compare_case, registers):
+    """SQLAliasAuth: the rule of 'alice' is only used for 'Alice' with CompareAliasCase=0"""
+    endpoint = Endpoint(workdir, "pub1", "Alice")
+    db = database(workdir, ["CREATE TABLE rules (alias TEXT, rule TEXT)",
+                            "INSERT INTO rules VALUES ('alice', 'sigip:%s:%d')" % (PUB1, endpoint.listen_port)])
+    gk = start_gk({
+        "Gatekeeper::Main": {"CompareAliasCase": compare_case},
+        "Gatekeeper::Auth": {"SQLAliasAuth": "required;RRQ"},
+        "SQLAliasAuth": sql_section(db, "SELECT rule FROM rules WHERE alias = '%1'"),
+    })
+    assert endpoint.start(duration=1, timeout=5).wait()["registered"] == registers
+
+
+@pytest.mark.parametrize("compare_case,registers", CASE_PARAMS)
+def test_sql_auth_registration_alias_case(start_gk, workdir, compare_case, registers):
+    """SQLAuth RegQuery with %u: the row of 'alice' is only used for 'Alice' with CompareAliasCase=0"""
+    db = database(workdir, ["CREATE TABLE users (h323id TEXT, enabled INTEGER)",
+                            "INSERT INTO users VALUES ('alice', 1)"])
+    gk = start_gk({"Gatekeeper::Main": {"CompareAliasCase": compare_case}},
+                  sql_auth(db, "RRQ", RegQuery="SELECT enabled FROM users WHERE h323id = '%u'"))
+    assert Endpoint(workdir, "pub1", "Alice").start(duration=1, timeout=5).wait()["registered"] == registers
