@@ -3055,6 +3055,122 @@ void CallSignalSocket::SendPostDialDigits()
 	}
 }
 
+namespace { // T.120 handling for [RoutedMode] EnableT120=0
+
+bool IsT120Enabled()
+{
+	return Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "EnableT120", "1"));
+}
+
+bool IsT120DataType(const H245_DataType & dataType)
+{
+	if (dataType.GetTag() != H245_DataType::e_data)
+		return false;
+	const H245_DataApplicationCapability & cap = dataType;
+	return cap.m_application.GetTag() == H245_DataApplicationCapability_application::e_t120;
+}
+
+// a T.120 data channel in either direction
+bool IsT120OLC(const H245_OpenLogicalChannel & olc)
+{
+	return IsT120DataType(olc.m_forwardLogicalChannelParameters.m_dataType)
+		|| (olc.HasOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters)
+			&& IsT120DataType(olc.m_reverseLogicalChannelParameters.m_dataType));
+}
+
+bool IsT120Capability(const H245_Capability & cap)
+{
+	switch (cap.GetTag()) {
+		case H245_Capability::e_receiveDataApplicationCapability:
+		case H245_Capability::e_transmitDataApplicationCapability:
+		case H245_Capability::e_receiveAndTransmitDataApplicationCapability: {
+			const H245_DataApplicationCapability & dataCap = cap;
+			return dataCap.m_application.GetTag() == H245_DataApplicationCapability_application::e_t120;
+		}
+		default:
+			return false;
+	}
+}
+
+// remove the T.120 capabilities (and their security capabilities) from a TCS, returns true if it changed
+bool RemoveT120Capabilities(H245_TerminalCapabilitySet & tcs)
+{
+	if (!tcs.HasOptionalField(H245_TerminalCapabilitySet::e_capabilityTable))
+		return false;
+	H245_ArrayOf_CapabilityTableEntry & table = tcs.m_capabilityTable;
+	std::set<unsigned> removed;
+	for (PINDEX i = 0; i < table.GetSize(); i++) {
+		if (table[i].HasOptionalField(H245_CapabilityTableEntry::e_capability) && IsT120Capability(table[i].m_capability)) {
+			removed.insert(table[i].m_capabilityTableEntryNumber.GetValue());
+			table.RemoveAt(i);
+			i--;
+		}
+	}
+	if (removed.empty())
+		return false;
+	for (PINDEX i = 0; i < table.GetSize(); i++) {
+		if (table[i].HasOptionalField(H245_CapabilityTableEntry::e_capability)
+			&& table[i].m_capability.GetTag() == H245_Capability::e_h235SecurityCapability) {
+			const H245_H235SecurityCapability & security = table[i].m_capability;
+			if (removed.count(security.m_mediaCapability.GetValue()) > 0) {
+				removed.insert(table[i].m_capabilityTableEntryNumber.GetValue());
+				table.RemoveAt(i);
+				i--;
+			}
+		}
+	}
+	if (tcs.HasOptionalField(H245_TerminalCapabilitySet::e_capabilityDescriptors)) {
+		H245_ArrayOf_CapabilityDescriptor & descriptors = tcs.m_capabilityDescriptors;
+		for (PINDEX n = 0; n < descriptors.GetSize(); n++) {
+			if (!descriptors[n].HasOptionalField(H245_CapabilityDescriptor::e_simultaneousCapabilities))
+				continue;
+			H245_ArrayOf_AlternativeCapabilitySet & alternatives = descriptors[n].m_simultaneousCapabilities;
+			for (PINDEX j = 0; j < alternatives.GetSize(); j++) {
+				for (PINDEX m = 0; m < alternatives[j].GetSize(); m++) {
+					if (removed.count(alternatives[j][m].GetValue()) > 0) {
+						alternatives[j].RemoveAt(m);
+						m--;
+					}
+				}
+				if (alternatives[j].GetSize() == 0) {
+					alternatives.RemoveAt(j);
+					j--;
+				}
+			}
+		}
+	}
+	PTRACE(3, "H245	Removed " << removed.size() << " T.120 capabilities (EnableT120=0)");
+	return true;
+}
+
+} // end of anonymous namespace
+
+// with EnableT120=0: if h245msg opens a T.120 channel, reject it to the sender (through h245sock, or tunneled
+// when h245sock is NULL) and return true, the OLC must then not be forwarded
+bool CallSignalSocket::RejectT120Channel(const H245_MultimediaSystemControlMessage & h245msg, H245Socket * h245sock)
+{
+	if (h245msg.GetTag() != H245_MultimediaSystemControlMessage::e_request
+		|| ((const H245_RequestMessage &)h245msg).GetTag() != H245_RequestMessage::e_openLogicalChannel)
+		return false;
+	const H245_OpenLogicalChannel & olc = (const H245_RequestMessage &)h245msg;
+	if (!IsT120OLC(olc) || IsT120Enabled())
+		return false;
+
+	PTRACE(2, "H245	Rejecting T.120 channel " << olc.m_forwardLogicalChannelNumber << " from " << GetName() << " (EnableT120=0)");
+	H245_MultimediaSystemControlMessage reply;
+	reply.SetTag(H245_MultimediaSystemControlMessage::e_response);
+	H245_ResponseMessage & response = reply;
+	response.SetTag(H245_ResponseMessage::e_openLogicalChannelReject);
+	H245_OpenLogicalChannelReject & olcr = response;
+	olcr.m_forwardLogicalChannelNumber = olc.m_forwardLogicalChannelNumber;
+	olcr.m_cause.SetTag(H245_OpenLogicalChannelReject_cause::e_dataTypeNotSupported);
+	if (h245sock)
+		h245sock->Send(reply);
+	else
+		SendTunneledH245(reply);
+	return true;
+}
+
 bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245Socket * h245sock)
 {
 	bool changed = false;
@@ -3065,6 +3181,11 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 	}
 
 	PTRACE(4, "H245\tReceived from " << GetName() << " (CallID: " << GetCallIdentifierAsString() << "): " << setprecision(2) << h245msg);
+
+	if (h245sock && RejectT120Channel(h245msg, h245sock)) {
+		suppress = true;	// don't forward the T.120 OLC (EnableT120=0)
+		return false;
+	}
 
 	// remove t38FaxUdpOptions from t38FaxProfile eg. for Avaya Communication Manager
 	if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request
@@ -3430,6 +3551,8 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 		&& ((H245_RequestMessage&)h245msg).GetTag() == H245_RequestMessage::e_terminalCapabilitySet) {
 
 		H245_TerminalCapabilitySet & tcs = (H245_RequestMessage &)h245msg;
+		if (!IsT120Enabled() && RemoveT120Capabilities(tcs))
+			changed = true;
         // update seqNum (needed after we did a TCS0 rerouting)
         m_tcsAckRecSeq = tcs.m_sequenceNumber;  // we'll expect the next TCSAck with this sequenceNum
         if (GetRemote()) {
@@ -9947,6 +10070,15 @@ bool CallSignalSocket::OnTunneledH245(H225_ArrayOf_PASN_OctetString & h245Contro
 	bool changed = false;
 	for (PINDEX i = 0; i < h245Control.GetSize(); ++i) {
 		PPER_Stream strm = h245Control[i].GetValue();
+		// EnableT120=0: remove a tunneled T.120 OLC from the message (and reject it), keep the rest
+		H245_MultimediaSystemControlMessage h245msg;
+		PPER_Stream peek = h245Control[i].GetValue();
+		if (h245msg.Decode(peek) && RejectT120Channel(h245msg, NULL)) {
+			h245Control.RemoveAt(i);
+			i--;
+			changed = true;
+			continue;
+		}
 		if (HandleH245Mesg(strm, suppress)) {
 			h245Control[i].SetValue(strm);
 			changed = true;
@@ -9967,6 +10099,14 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 			return false;
 		}
 		PTRACE(6, "Q931\nfastStart[" << i << "] received: " << setprecision(2) << olc);
+
+		if (IsT120OLC(olc) && !IsT120Enabled()) {
+			PTRACE(3, "Q931\tRemoving T.120 channel from fastStart (EnableT120=0)");
+			fastStart.RemoveAt(i);
+			i--;
+			changed = true;
+			continue;
+		}
 
 		// remove disabled audio codecs
 		if (olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() == H245_DataType::e_audioData && olc.m_forwardLogicalChannelParameters.m_dataType.GetTag() != H245_DataType::e_nullData) {

@@ -424,6 +424,7 @@ public:
 	unsigned GetNextTCSSeq() { return ++m_tcsRecSeq; }
 	bool SendTunneledH245(const PPER_Stream & strm);
 	bool SendTunneledH245(const H245_MultimediaSystemControlMessage & h245msg);
+	bool RejectT120Channel(const H245_MultimediaSystemControlMessage & h245msg, H245Socket * h245sock);
     void SendFacilityKeepAlive();
     void SendInformationKeepAlive();
     void SendNotifyKeepAlive();

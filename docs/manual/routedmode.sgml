@@ -121,6 +121,15 @@ Default: <tt/0/<newline>
 <p>
 Force both sides of a call to disable H.245 tunneling.
 
+<item><tt/EnableT120=0/<newline>
+Default: <tt/1/<newline>
+<p>
+Allow T.120 data channels (eg. for data conferencing). With <tt/EnableT120=0/ GnuGk removes T.120
+capabilities from the TerminalCapabilitySets, removes T.120 channels from fastStart and rejects
+OpenLogicalChannel requests for T.120 channels (with cause dataTypeNotSupported) instead of forwarding them.
+This only works for H.245 messages that pass through GnuGk: tunneled H.245 or a routed H.245 channel
+(<tt/H245Routed=1/).
+
 <item><tt/H245TunnelingTranslation=1/<newline>
 Default: <tt/0/<newline>
 <p>

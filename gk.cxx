@@ -636,6 +636,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "RoutedMode", "AlertingTimeout" },
 	{ "RoutedMode", "AlwaysRewriteSourceCallSignalAddress" },
 	{ "RoutedMode", "AutoProxyIPv4ToIPv6Calls" },
+	{ "RoutedMode", "EnableT120" },
 	{ "RoutedMode", "CallSignalHandlerNumber" },
 	{ "RoutedMode", "CallSignalPort" },
 	{ "RoutedMode", "CalledTypeOfNumber" },
