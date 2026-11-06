@@ -110,10 +110,19 @@ CHILD_CONFIG = {
 }
 
 
-@pytest.mark.parametrize("direction", ["parent-to-child", "child-to-parent"])
+@pytest.mark.parametrize("direction", [
+    "parent-to-child",
+    pytest.param("child-to-parent", marks=pytest.mark.xfail(strict=True, reason="when the caller hangs up, "
+                 "the child sends its DRQ to the parent (CallRec::RemoveAll() from OnReleaseComplete()) before it "
+                 "forwards the ReleaseComplete: the parent removes the call on the DRQ (RemoveCallOnDRQ=1) and "
+                 "never reads the late ReleaseComplete, so the callee isn't released")),
+])
 def test_child_gatekeeper(start_gk, workdir, direction):
     """GK2 registers with GK1 as a gateway for prefix 2 ([Endpoint] section): calls to 2xxx from the parent
-    go to the child, the child sends calls it can't route itself to the parent"""
+    go to the child, the child sends calls it can't route itself to the parent; both gatekeepers release the
+    call on the caller's ReleaseComplete (the child's first short Q.931 segment to the parent, the
+    ReleaseComplete, is dropped once and retransmitted, so it always arrives late if the child sends it after
+    its DRQ)"""
     parent = start_gk({"Gatekeeper::Main": {"Name": "ParentGK"}})
     child = start_gk(CHILD_CONFIG, host="gk2", name="child")
     assert parent.wait_registered("childgk"), "the child didn't register with the parent"
@@ -122,7 +131,11 @@ def test_child_gatekeeper(start_gk, workdir, direction):
     if direction == "parent-to-child":
         caller, callee = run_call(child, alice, "2001", callee=bob)
     else:
-        caller, callee = run_call(parent, bob, "1001", callee=alice)
+        with topology.drop_first_short_tcp("gk2", 1720):
+            caller, callee = run_call(parent, bob, "1001", callee=alice)
+    for result in (caller, callee):
+        assert result["endReason"] not in ("EndedByTransportFail", "EndedByConnectFail"), \
+            "%s wasn't released by a ReleaseComplete: %s" % (result["alias"], result["endReason"])
     check_call(caller, callee)
     parent_cdrs, child_cdrs = parent.cdrs(), child.cdrs()
     assert len(parent_cdrs) == 1 and len(child_cdrs) == 1, (parent_cdrs, child_cdrs)

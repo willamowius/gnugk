@@ -16,6 +16,7 @@ reach a private endpoint is through state its NAT router created when the
 endpoint sent something out (which is what H.460.18/.19 relies on).
 """
 
+import contextlib
 import os
 import shutil
 import subprocess
@@ -98,6 +99,20 @@ def kill_leftovers():
 def sockets(host):
     """TCP and UDP sockets of a host (ss output), with their processes"""
     return in_ns(host, "ss", "-tuanp", check=False).stdout
+
+
+@contextlib.contextmanager
+def drop_first_short_tcp(host, dport, max_len=200):
+    """drop the first TCP segment of at most max_len bytes (IP length) a host sends to a destination port,
+    so it arrives one TCP retransmission timeout (200 ms or more) late; used to force a race"""
+    rule = ["OUTPUT", "-p", "tcp", "--dport", str(dport), "--tcp-flags", "PSH", "PSH",
+            "-m", "length", "--length", "53:%d" % max_len,
+            "-m", "quota", "--quota", str(max_len), "-j", "DROP"]
+    in_ns(host, "iptables", "-A", *rule)
+    try:
+        yield
+    finally:
+        in_ns(host, "iptables", "-D", *rule, check=False)
 
 
 NETNS_ETC = "/etc/netns"
