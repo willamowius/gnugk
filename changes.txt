@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(ProxyChannel.cxx) never open an H.245 connection to our own status port
 - BUGFIX(*) apply DisabledCodecs= switch to fastStart, too, fix setting them with Radius
 - new switch [RoutedMode] EnableT120=0 to remove T.120 capabilities and reject T.120 channels (default is 1)
 - config check: warn when SimplePasswordAuth tries to check messages an enabled authenticator (CAT, MD5) never puts a token into

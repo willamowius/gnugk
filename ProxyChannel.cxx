@@ -12393,6 +12393,15 @@ bool H245Socket::ConnectRemote()
 		PTRACE(3, "H245\tInvalid address");
 		return false;
 	}
+	// never connect to our own status port
+	PIPSocket::Address unmappedPeerAddr = peerAddr;
+	UnmapIPv4Address(unmappedPeerAddr);
+	if (peerPort == (WORD)GkConfig()->GetInteger("StatusPort", GK_DEF_STATUS_PORT)
+			&& Toolkit::Instance()->IsGKHome(unmappedPeerAddr)) {
+		m_signalingSocketMutex.Signal();
+		PTRACE(1, "H245\tRefusing H.245 connection to the gatekeeper's own status port: " << AsString(peerAddr, peerPort));
+		return false;
+	}
 	SetPort(peerPort);
 	if (sigSocket != NULL) {
 		sigSocket->GetLocalAddress(localAddr);
