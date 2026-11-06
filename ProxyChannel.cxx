@@ -18893,6 +18893,11 @@ bool ProxyHandler::BuildSelectList(SocketSelectList & slist)
 		iterator k=i++;
 		ProxySocket *socket = dynamic_cast<ProxySocket *>(*k);
 		if (socket && !socket->IsBlocked()) {
+			if (socket->IsDeletable()) {
+				// don't read from a socket that is queued for deletion
+				Remove(k);
+				continue;
+			}
 			if (socket->IsSocketOpen()) {
 #ifndef LARGE_FDSET
 #if _WIN32 || _WIN64
@@ -18915,9 +18920,6 @@ bool ProxyHandler::BuildSelectList(SocketSelectList & slist)
 				Remove(k);
 				continue;
 			}
-			if (socket && socket->IsDeletable()) {
-				Remove(k);
-			}
 		}
 	}
 	return slist.GetSize() > 0;
@@ -18930,6 +18932,10 @@ void ProxyHandler::ReadSocket(IPSocket * socket)
 	if (psocket == NULL) {
 		PTRACE(1, "Error\tInvalid socket");
 		SNMP_TRAP(10, SNMPWarning, Network, "Invalid socket");
+		return;
+	}
+	if (psocket->IsDeletable()) {
+		// marked for deletion after the select list was built: a new message (eg. Setup) must not revive it
 		return;
 	}
 	switch (psocket->ReceiveData())
@@ -19219,6 +19225,7 @@ void ProxyHandler::Remove(iterator i)
 
 void ProxyHandler::Remove(TCPProxySocket *socket)
 {
+	socket->SetDeletable();	// might still be in the current select list
 	m_listmutex.StartWrite();
 	iterator i = find(m_sockets.begin(), m_sockets.end(), socket);
 	if (i != m_sockets.end()) {
