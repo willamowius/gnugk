@@ -31,6 +31,8 @@ CDR with the right duration and cause, no call was left over and both endpoints 
 | `test_capacity.py` | `[EP::...] Capacity`, `CapacityControl`, `TotalBandwidth`, `MaximumBandwidthPerCall`, BRQ |
 | `test_admin.py` | config reload during a call, status port commands (`PrintCurrentCalls`, `DisconnectCall`, `UnregisterAlias`, `Statistics`, `PrintEndpointQoS`), status port login rules and event filters, `StatusAcct` / `SQLAcct` events, `RerouteCall` |
 | `test_nat.py` | H.460.18 behind NATs that drop idle UDP mappings after 10 seconds, two H.460.18 endpoints behind the same NAT |
+| `test_codecs.py` | `DisabledCodecs` in `[CallTable]` and `[EP::alias]`, with fastStart and H.245, with and without proxy: the call uses the remaining codec |
+| `test_t120.py` | T.120 capabilities and channels pass by default and with `EnableT120=1`, `[RoutedMode] EnableT120=0` removes and rejects them (tunneled and separate H.245, with and without proxy) |
 | `test_media.py` | RTCP through the RTP proxy and `EnableRTCPStats`, H.460.19 RTP multiplexing |
 | `test_multi_gk.py` | neighbor gatekeepers (also with both proxying, and H.460.18 neighbor traversal), child gatekeeper registered with a parent |
 | `test_soak.py` | 100 calls in a row, GnuGk's memory, file descriptors and threads must stay flat |
@@ -220,6 +222,7 @@ gktestep --gk ip[:port]|--no-gk --alias name[,name...] --result file.json [optio
   --md5-unsigned list  send these RAS messages without MD5 token (RRQ,URQ,ARQ,BRQ,DRQ,IRR)
   --h46018             use H.460.18/.19 NAT traversal
   --h46019m            with --h46018: use H.460.19 RTP multiplexing (receive and send)
+  --t120               offer T.120 in the capability set and open a T.120 channel when the call is up
   --no-faststart       open media with H.245 only
   --no-tunneling       use a separate H.245 channel instead of H.245 tunneling
   --call alias         call this alias, otherwise answer one call

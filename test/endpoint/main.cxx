@@ -153,6 +153,137 @@ struct CallStats {
 	DWORD rtpSent;
 	DWORD rtpReceived;
 	PInt64 durationMs;
+	PString txCodec;	// audio codec we send, eg. "G.711-uLaw-64k"
+	PString rxCodec;	// audio codec we receive
+};
+
+// T.120 test support (H323Plus is built without T.120): with --t120 the endpoint puts a T.120 capability into
+// its capability set and opens a T.120 data channel (separate LAN stack) once the call is established.
+// Both sides record what they saw of it.
+static PMutex t120Mutex;
+static bool t120Offer = false;
+static bool t120CapReceived = false;	// the remote capability set had a T.120 capability
+static bool t120OlcReceived = false;	// the remote opened a T.120 channel
+static bool t120OlcRejected = false;	// our T.120 channel was rejected
+static const unsigned T120ChannelNumber = 4000;	// away from the numbers H323Plus uses
+static const unsigned T120CapabilityNumber = 4000;
+
+static bool IsT120Data(const H245_DataType & dataType)
+{
+	if (dataType.GetTag() != H245_DataType::e_data)
+		return false;
+	const H245_DataApplicationCapability & data = dataType;
+	return data.m_application.GetTag() == H245_DataApplicationCapability_application::e_t120;
+}
+
+static void SetT120Data(H245_DataApplicationCapability & data)
+{
+	data.m_application.SetTag(H245_DataApplicationCapability_application::e_t120);
+	H245_DataProtocolCapability & protocol = data.m_application;
+	protocol.SetTag(H245_DataProtocolCapability::e_separateLANStack);
+	data.m_maxBitRate = 640;
+}
+
+class TestConnection : public H323Connection
+{
+	PCLASSINFO(TestConnection, H323Connection)
+public:
+	TestConnection(H323EndPoint & ep, unsigned callReference) : H323Connection(ep, callReference) { }
+
+	virtual void OnSendCapabilitySet(H245_TerminalCapabilitySet & pdu)
+	{
+		H323Connection::OnSendCapabilitySet(pdu);
+		if (!t120Offer)
+			return;
+		pdu.IncludeOptionalField(H245_TerminalCapabilitySet::e_capabilityTable);
+		PINDEX n = pdu.m_capabilityTable.GetSize();
+		pdu.m_capabilityTable.SetSize(n + 1);
+		H245_CapabilityTableEntry & entry = pdu.m_capabilityTable[n];
+		entry.m_capabilityTableEntryNumber = T120CapabilityNumber;
+		entry.IncludeOptionalField(H245_CapabilityTableEntry::e_capability);
+		entry.m_capability.SetTag(H245_Capability::e_receiveAndTransmitDataApplicationCapability);
+		SetT120Data(entry.m_capability);
+		if (pdu.HasOptionalField(H245_TerminalCapabilitySet::e_capabilityDescriptors)
+			&& pdu.m_capabilityDescriptors.GetSize() > 0) {
+			H245_CapabilityDescriptor & descriptor = pdu.m_capabilityDescriptors[0];
+			descriptor.IncludeOptionalField(H245_CapabilityDescriptor::e_simultaneousCapabilities);
+			PINDEX a = descriptor.m_simultaneousCapabilities.GetSize();
+			descriptor.m_simultaneousCapabilities.SetSize(a + 1);
+			descriptor.m_simultaneousCapabilities[a].SetSize(1);
+			descriptor.m_simultaneousCapabilities[a][0] = T120CapabilityNumber;
+		}
+	}
+
+	virtual PBoolean OnH245Request(const H323ControlPDU & pdu)
+	{
+		const H245_RequestMessage & request = pdu;
+		if (request.GetTag() == H245_RequestMessage::e_terminalCapabilitySet) {
+			const H245_TerminalCapabilitySet & tcs = request;
+			for (PINDEX i = 0; i < tcs.m_capabilityTable.GetSize(); ++i) {
+				const H245_CapabilityTableEntry & entry = tcs.m_capabilityTable[i];
+				if (entry.HasOptionalField(H245_CapabilityTableEntry::e_capability)
+					&& entry.m_capability.GetTag() == H245_Capability::e_receiveAndTransmitDataApplicationCapability) {
+					const H245_DataApplicationCapability & data = entry.m_capability;
+					if (data.m_application.GetTag() == H245_DataApplicationCapability_application::e_t120) {
+						PWaitAndSignal lock(t120Mutex);
+						t120CapReceived = true;
+					}
+				}
+			}
+		} else if (request.GetTag() == H245_RequestMessage::e_openLogicalChannel) {
+			const H245_OpenLogicalChannel & olc = request;
+			if (IsT120Data(olc.m_forwardLogicalChannelParameters.m_dataType)) {
+				PTRACE(1, "GKTESTEP\tReceived T.120 OpenLogicalChannel " << olc.m_forwardLogicalChannelNumber);
+				PWaitAndSignal lock(t120Mutex);
+				t120OlcReceived = true;
+			}
+		}
+		return H323Connection::OnH245Request(pdu);
+	}
+
+	virtual PBoolean OnH245Response(const H323ControlPDU & pdu)
+	{
+		const H245_ResponseMessage & response = pdu;
+		// the answer to our own T.120 channel, which H323Plus doesn't know about
+		if (response.GetTag() == H245_ResponseMessage::e_openLogicalChannelReject) {
+			const H245_OpenLogicalChannelReject & olcr = response;
+			if (olcr.m_forwardLogicalChannelNumber == T120ChannelNumber) {
+				PTRACE(1, "GKTESTEP\tT.120 channel rejected");
+				PWaitAndSignal lock(t120Mutex);
+				t120OlcRejected = true;
+				return true;
+			}
+		}
+		if (response.GetTag() == H245_ResponseMessage::e_openLogicalChannelAck) {
+			const H245_OpenLogicalChannelAck & olca = response;
+			if (olca.m_forwardLogicalChannelNumber == T120ChannelNumber)
+				return true;
+		}
+		return H323Connection::OnH245Response(pdu);
+	}
+
+	// open a T.120 data channel (with a separate LAN stack address nobody listens on, no T.120 data is sent)
+	void OpenT120Channel()
+	{
+		H323ControlPDU pdu;
+		H245_OpenLogicalChannel & olc = pdu.BuildOpenLogicalChannel(T120ChannelNumber);
+		olc.m_forwardLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_data);
+		SetT120Data(olc.m_forwardLogicalChannelParameters.m_dataType);
+		olc.m_forwardLogicalChannelParameters.m_multiplexParameters.SetTag(
+			H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters);
+		H245_H2250LogicalChannelParameters & params = olc.m_forwardLogicalChannelParameters.m_multiplexParameters;
+		params.m_sessionID = 3;
+		olc.IncludeOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters);
+		olc.m_reverseLogicalChannelParameters.m_dataType = olc.m_forwardLogicalChannelParameters.m_dataType;
+		olc.IncludeOptionalField(H245_OpenLogicalChannel::e_separateStack);
+		olc.m_separateStack.m_networkAddress.SetTag(H245_NetworkAccessParameters_networkAddress::e_localAreaAddress);
+		PIPSocket::Address ip;
+		WORD port;
+		GetSignallingChannel()->GetLocalAddress().GetIpAndPort(ip, port);
+		H323TransportAddress(ip, 1503).SetPDU((H245_TransportAddress &)olc.m_separateStack.m_networkAddress);
+		PTRACE(1, "GKTESTEP\tOpening T.120 channel " << T120ChannelNumber);
+		WriteControlPDU(pdu);
+	}
 };
 
 class TestEndPoint : public H323EndPoint
@@ -189,6 +320,11 @@ public:
 
 	void UseTokens(TokenType tokens, bool fullQ931) { m_tokens = tokens; m_fullQ931 = fullQ931; }
 	void SetUnsignedRAS(const std::set<unsigned> & unsignedRAS) { m_unsignedRAS = unsignedRAS; }
+
+	virtual H323Connection * CreateConnection(unsigned callReference)
+	{
+		return new TestConnection(*this, callReference);
+	}
 
 	virtual H323Gatekeeper * CreateGatekeeper(H323Transport * transport)
 	{
@@ -304,6 +440,11 @@ public:
 		// without a separate H.245 channel the control channel is the signaling channel
 		m_stats.h245Tunneling = (&connection.GetControlChannel() == connection.GetSignallingChannel());
 		m_connectTime = PTime();
+		if (t120Offer) {
+			TestConnection * testConnection = dynamic_cast<TestConnection *>(&connection);
+			if (testConnection)
+				testConnection->OpenT120Channel();
+		}
 	}
 
 	virtual void OnConnectionCleared(H323Connection & connection, const PString & token)
@@ -347,6 +488,15 @@ public:
 			PWaitAndSignal lock(m_mutex);
 			m_stats.rtpSent = session->GetPacketsSent();
 			m_stats.rtpReceived = session->GetPacketsReceived();
+		}
+		H323Channel * tx = connection->FindChannel(RTP_Session::DefaultAudioSessionID, false);
+		H323Channel * rx = connection->FindChannel(RTP_Session::DefaultAudioSessionID, true);
+		{
+			PWaitAndSignal lock(m_mutex);
+			if (tx != NULL)
+				m_stats.txCodec = tx->GetCapability().GetFormatName();
+			if (rx != NULL)
+				m_stats.rxCodec = rx->GetCapability().GetFormatName();
 		}
 		connection->Unlock();
 	}
@@ -444,6 +594,7 @@ void GkTestEp::Main()
 		"-password:"
 		"-h46018."
 		"-h46019m."
+		"-t120."
 		"-no-faststart."
 		"-h2351."
 		"-full-q931."
@@ -482,6 +633,7 @@ void GkTestEp::Main()
 			"  --md5-unsigned list  send these RAS messages without MD5 token (RRQ,URQ,ARQ,BRQ,DRQ,IRR)\n"
 			"  --h46018             use H.460.18/.19 NAT traversal\n"
 			"  --h46019m            with --h46018: use H.460.19 RTP multiplexing (receive and send)\n"
+			"  --t120               offer T.120 in the capability set and open a T.120 channel when the call is up\n"
 			"  --no-faststart       open media with H.245 only\n"
 			"  --no-tunneling       use a separate H.245 channel instead of H.245 tunneling\n"
 			"  --call alias         call this alias, otherwise answer one call\n"
@@ -527,6 +679,7 @@ void GkTestEp::Main()
 		ep->SetTerminalType(H323EndPoint::e_GatewayOnly);
 	if (args.HasOption("bandwidth"))
 		ep->SetInitialBandwidth(args.GetOptionString("bandwidth").AsUnsigned());
+	t120Offer = args.HasOption("t120");
 	ep->DisableFastStart(args.HasOption("no-faststart"));
 	ep->DisableH245Tunneling(args.HasOption("no-tunneling"));
 	ep->SetSilenceDetectionMode(H323AudioCodec::NoSilenceDetection);
@@ -726,10 +879,15 @@ void GkTestEp::Main()
 			<< "  \"callingNumber\": " << JSONString(stats.callingNumber) << ",\n"
 			<< "  \"rtpSent\": " << stats.rtpSent << ",\n"
 			<< "  \"rtpReceived\": " << stats.rtpReceived << ",\n"
+			<< "  \"txCodec\": " << JSONString(stats.txCodec) << ",\n"
+			<< "  \"rxCodec\": " << JSONString(stats.rxCodec) << ",\n"
 			<< "  \"brqConfirmed\": " << (brqResult < 0 ? "null" : (brqResult ? "true" : "false")) << ",\n"
 			<< "  \"unregistered\": " << (unregistered ? "true" : "false") << ",\n"
 			<< "  \"additiveRRQSent\": " << ((testGk != NULL && testGk->AdditiveRRQSent()) ? "true" : "false") << ",\n"
 			<< "  \"callsConnected\": " << connectedCalls << ",\n"
+			<< "  \"t120CapReceived\": " << (t120CapReceived ? "true" : "false") << ",\n"
+			<< "  \"t120OlcReceived\": " << (t120OlcReceived ? "true" : "false") << ",\n"
+			<< "  \"t120OlcRejected\": " << (t120OlcRejected ? "true" : "false") << ",\n"
 			<< "  \"calls\": [\n";
 		for (size_t i = 0; i < finished.size(); ++i)
 			out << "    {\"connected\": " << (finished[i].connected ? "true" : "false")
