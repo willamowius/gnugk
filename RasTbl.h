@@ -647,6 +647,8 @@ public:
 
 	// handle remote closing of a NAT socket
 	void OnNATSocketClosed(CallSignalSocket * s);
+	// remove all references to a NAT socket that is being deleted
+	void OnNATSocketDeleted(CallSignalSocket * s);
 #ifdef HAS_H46017
 	void UnregisterAllH46017Endpoints();
 #endif

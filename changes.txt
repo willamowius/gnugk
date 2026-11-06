@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(ProxyChannel.cxx, RasTbl.cxx) fix crash for endpoints using old GnuGk NAT method
 - BUGFIX(ProxyChannel.cxx) never select on or read from a signalling socket that is marked deletable
 - BUGFIX(ProxyChannel.cxx) avoid port exhaustion by checking error code
 - BUGFIX(ProxyChannel.cxx) remove incorrect check that prevented CallProceedings from being processed before forwarding

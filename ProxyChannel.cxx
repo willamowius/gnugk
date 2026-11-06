@@ -2173,6 +2173,9 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 
 CallSignalSocket::~CallSignalSocket()
 {
+	// make sure no endpoint keeps a pointer to this socket
+	if (m_isnatsocket)
+		RegistrationTable::Instance()->OnNATSocketDeleted(this);
 #ifdef HAS_H46018
 	if (m_call && Toolkit::AsBool(GkConfig()->GetString(ProxySection, "RTPMultiplexing", "0")) && !m_socketWasForwarded) {
         PTRACE(7, "JW Removing multiplex Channels in CallSignalSocket d'tor: call no=" << m_call->GetCallNumber());
@@ -6699,7 +6702,13 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 	endptr calledep = m_call->GetCalledParty();
 	if (calledep) {
 		// m_call->GetCalledParty() should not be null in the case
-		if (CallSignalSocket *socket = calledep->GetAndRemoveSocket()) {
+		CallSignalSocket *socket = calledep->GetAndRemoveSocket();
+		// a GnuGk NAT socket is closed after the call, so it can only be used for a single call
+		if (socket && !socket->MaintainConnection() && (socket->m_call || socket->IsDeletable())) {
+			PTRACE(2, Type() << "\tNAT socket " << socket->GetName() << " is no longer available");
+			socket = NULL;
+		}
+		if (socket) {
 			PTRACE(3, Type() << "\tUsing NAT socket " << socket->GetName());
 
 			// it's dangerous if the remote socket has

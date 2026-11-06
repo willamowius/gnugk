@@ -2726,6 +2726,22 @@ void RegistrationTable::OnNATSocketClosed(CallSignalSocket * s)
 	}
 }
 
+// remove all references to a NAT socket that is being deleted
+void RegistrationTable::OnNATSocketDeleted(CallSignalSocket * s)
+{
+	ReadLock lock(listLock);
+
+	for (iterator Iter = EndpointList.begin(); Iter != EndpointList.end(); ++Iter) {
+		if ((*Iter)->GetSocket() == s)
+			(*Iter)->NullNATSocket();
+	}
+	// removed endpoints may still be referenced by calls and would close their NAT socket when deleted
+	for (iterator Iter = RemovedList.begin(); Iter != RemovedList.end(); ++Iter) {
+		if ((*Iter)->GetSocket() == s)
+			(*Iter)->NullNATSocket();
+	}
+}
+
 void RegistrationTable::UnregisterAllEndpointsNotInCall()
 {
 	WriteLock lock(listLock);
