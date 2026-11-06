@@ -15925,7 +15925,9 @@ bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt
 				if (call->GetEncryptDirection() == CallRec::callingParty) {
 					dest = call->GetCallSignalSocketCalled();
 				}
-				if (dest->IsH245Master()) {
+				if (!dest) {
+					PTRACE(1, "H235\tError: No signaling socket to request media key update");
+				} else if (dest->IsH245Master()) {
 					dest->SendEncryptionUpdateRequest(channelNumber, m_cipherPayloadType, m_plainPayloadType);
 				} else {
 					dest->SendEncryptionUpdateCommand(channelNumber, m_cipherPayloadType, m_plainPayloadType);
@@ -17793,9 +17795,10 @@ bool H245ProxyHandler::HandleEncryptionUpdateRequest(H245_MiscellaneousCommand &
 			} else {
 				// send tunneled (to slave)
 				CallSignalSocket * css = call->GetCallSignalSocketCalling();
-				if (css->IsH245Master())
+				if (css && css->IsH245Master())
 					css = call->GetCallSignalSocketCalled();
-				css->SendTunneledH245(h245msg);
+				if (css)
+					css->SendTunneledH245(h245msg);
 			}
 		} else {
 			PTRACE(1, "H235\tError: Couldn't find flcn " << flcn << " for EncryptionUpdateRequest");
@@ -17838,9 +17841,10 @@ bool H245ProxyHandler::HandleEncryptionUpdateCommand(H245_MiscellaneousCommand &
 				// send tunneled to master side (only the master issues UpdateCommand, slave would have sent UpdateRequest)
 				// (could also look at encryption direction in call object)
 				CallSignalSocket * css = call->GetCallSignalSocketCalling();
-				if (!css->IsH245Master())
+				if (css && !css->IsH245Master())
 					css = call->GetCallSignalSocketCalled();
-				css->SendTunneledH245(h245msg);
+				if (css)
+					css->SendTunneledH245(h245msg);
 			}
 		} else {
 			PTRACE(1, "H235\tError: Couldn't find flcn " << flcn << " for EncryptionUpdateCommand");
