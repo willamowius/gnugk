@@ -128,6 +128,14 @@ const long DEFAULT_SOCKET_CLEANUP_TIMEOUT = 5000;
 // if socket bind fails, try next DEFAULT_NUM_SEQ_PORTS subsequent port numbers
 const int DEFAULT_NUM_SEQ_PORTS = 500;
 
+// did the connect fail because the local port is taken ?
+// only then does it make sense to retry from the next port,
+// a refused or timed out connection would fail from any port (and once per port)
+inline bool IsLocalPortInUse(int errorNumber)
+{
+	return (errorNumber == EADDRINUSE) || (errorNumber == EADDRNOTAVAIL);
+}
+
 // maximum number of handler threads GnuGk will start (call signaling or RTP)
 const unsigned MAX_HANDLER_NUMBER = 200;
 
@@ -2238,6 +2246,8 @@ PBoolean CallSignalSocket::Connect(const Address & addr)
 			<< errorNumber << ": " << GetErrorText(PSocket::LastGeneralError)
 			<< " remote addr: " << AsString(addr));
 		Close();
+		if (!IsLocalPortInUse(errorNumber))
+			break;	// refused, timeout etc. - don't retry from every port in the range
 	}
 	return false;
 }
@@ -11622,6 +11632,8 @@ bool CallSignalSocket::InternalConnectTo(
 			<< errorNumber << ": " << remote->GetErrorText(PSocket::LastGeneralError)
 			<< " remote addr: " << AsString(peerAddr));
 		remote->Close();
+		if (!IsLocalPortInUse(errorNumber))
+			break;	// refused, timeout etc. - don't retry from every port in the range
 	}
 
 	return false;
@@ -11648,6 +11660,8 @@ bool CallSignalSocket::ForwardCallConnectTo()
 			<< errorNumber << ": " << remote->GetErrorText(PSocket::LastGeneralError)
 			<< " remote addr: " << AsString(peerAddr));
 		remote->Close();
+		if (!IsLocalPortInUse(errorNumber))
+			break;	// refused, timeout etc. - don't retry from every port in the range
 	}
 
 	PTRACE(3, "Q931\t" << AsString(peerAddr, peerPort) << " DIDN'T ACCEPT THE CALL");
@@ -12032,7 +12046,7 @@ void H245Socket::ConnectTo()
 			}
 			return;
 		}
-		if (ConnectRemote()) {
+		if (ConnectRemote() && remote) {
 			ConfigReloadMutex.StartRead();
 			SetConnected(true);
 			remote->SetConnected(true);
@@ -12469,6 +12483,8 @@ bool H245Socket::ConnectRemote()
 		PTRACE(3, "H245\t" << AsString(peerAddr, peerPort) << " DIDN'T ACCEPT THE CALL" << " (CallID: " << GetCallIdentifierAsString() << ")");
 		// don't throw a trap here, was crashing under load with Net-SNMP implementation
 		//SNMP_TRAP(10, SNMPError, Network, "H.245 connection to " + AsString(peerAddr, peerPort) + " failed");
+		if (!IsLocalPortInUse(errorNumber))
+			break;	// refused, timeout etc. - don't retry from every port in the range
 	}
 	return false;
 }
@@ -16460,6 +16476,8 @@ void T120LogicalChannel::Create(unsigned lcID, T120ProxySocket *socket)
 			<< errorNumber << ": " << remote->GetErrorText(PSocket::LastGeneralError));
 		remote->Close();
 		PTRACE(3, "T120\t" << AsString(peerAddr, peerPort) << " DIDN'T ACCEPT THE CALL");
+		if (!IsLocalPortInUse(errorNumber))
+			break;	// refused, timeout etc. - don't retry from every port in the range
 	}
 	delete remote;
 	remote = NULL;

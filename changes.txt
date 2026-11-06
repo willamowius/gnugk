@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(ProxyChannel.cxx) avoid port exhaustion by checking error code
 - BUGFIX(ProxyChannel.cxx) remove incorrect check that prevented CallProceedings from being processed before forwarding
 - BUGFIX(ProxyChannel.cxx) never open an H.245 connection to our own status port
 - BUGFIX(*) apply DisabledCodecs= switch to fastStart, too, fix setting them with Radius
