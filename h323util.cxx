@@ -809,6 +809,36 @@ bool IsSet(const IPAndPortAddress & addr)
 	return addr.IsSet();
 }
 
+void AddToCodecList(PString & list, const PString & codecs)
+{
+	const PStringArray items = codecs.Tokenise(";", false);
+	for (PINDEX i = 0; i < items.GetSize(); ++i) {
+		const PString codec = items[i].Trim();
+		if (codec.IsEmpty() || (";" + list).Find(";" + codec + ";") != P_MAX_INDEX)
+			continue;
+		if (!list.IsEmpty() && list.Right(1) != ";")
+			list += ";";
+		list += codec + ";";
+	}
+}
+
+PString ParseCodecDisable(const PString & ivrIn)
+{
+	const PINDEX index = ivrIn.Find("codec-disable:");
+	if (index == P_MAX_INDEX)
+		return PString::Empty();
+	const PStringArray items = ivrIn.Mid(index + (PINDEX)strlen("codec-disable:")).Tokenise(";", false);
+	PString codecs;
+	for (PINDEX i = 0; i < items.GetSize(); ++i) {
+		const PString item = items[i].Trim();
+		if (item.Find(':') != P_MAX_INDEX)
+			break;	// the next variable
+		if (!item.IsEmpty())
+			codecs += item + ";";
+	}
+	return codecs;
+}
+
 bool IsValidE164(const PString & s)
 {
 	return (!s.IsEmpty() && strspn(s, "1234567890*#+,") == strlen(s));

@@ -2997,6 +2997,7 @@ CallRec::CallRec(
 	m_failoverActive = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ActivateFailover", "0"));
 	m_singleFailoverCDR = ctable->SingleFailoverCDR();
 	m_disabledcodecs = GkConfig()->GetString(CallTableSection, "DisabledCodecs", "");
+	m_disabledCodecsPerCall = false;
 	if (!m_disabledcodecs.IsEmpty() && m_disabledcodecs.Right(1) != ";")
 		m_disabledcodecs += ";";
 
@@ -3068,6 +3069,7 @@ CallRec::CallRec(
 	m_failoverActive = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ActivateFailover", "0"));
 	m_singleFailoverCDR = ctable->SingleFailoverCDR();
 	m_disabledcodecs = GkConfig()->GetString(CallTableSection, "DisabledCodecs", "");
+	m_disabledCodecsPerCall = false;
 	if (!m_disabledcodecs.IsEmpty() && m_disabledcodecs.Right(1) != ";")
 		m_disabledcodecs += ";";
 
@@ -3120,6 +3122,7 @@ CallRec::CallRec(const H225_CallIdentifier & callID, H225_TransportAddress sigAd
 	m_failoverActive = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ActivateFailover", "0"));
 	m_singleFailoverCDR = ctable->SingleFailoverCDR();
 	m_disabledcodecs = GkConfig()->GetString(CallTableSection, "DisabledCodecs", "");
+	m_disabledCodecsPerCall = false;
 	if (!m_disabledcodecs.IsEmpty() && m_disabledcodecs.Right(1) != ";")
 		m_disabledcodecs += ";";
 
@@ -3501,12 +3504,24 @@ void CallRec::SetDurationLimit(long seconds)
 
 void CallRec::SetDisabledCodecs(const PString & codecs)
 {
-	m_disabledcodecs = codecs.Trim();
+	m_disabledcodecs = "";
+	AddToCodecList(m_disabledcodecs, codecs);	// ';' terminated
+	m_disabledCodecsPerCall = true;
 }
 
-void CallRec::AddDisabledCodecs(const PString & codecs)
+void CallRec::ApplyEndpointDisabledCodecs()
 {
-	m_disabledcodecs = m_disabledcodecs + ";" + codecs.Trim();  // TODO: remove duplicates to optimize
+	if (m_disabledCodecsPerCall)
+		return;	// the call's own list wins
+	PString codecs;
+	endptr calling = GetCallingParty();
+	endptr called = GetCalledParty();
+	if (calling)
+		AddToCodecList(codecs, calling->GetDisabledCodecs());
+	if (called)
+		AddToCodecList(codecs, called->GetDisabledCodecs());
+	if (!codecs.IsEmpty())
+		m_disabledcodecs = codecs;	// replaces [CallTable] DisabledCodecs
 }
 
 void CallRec::SetSRC_media_control_IP(const PString & IP)

@@ -167,6 +167,13 @@ bool IsSet(const IPAndPortAddress & addr);
 // check if s only contains characters that are valid for E.164s (1234567890*#+,)
 bool IsValidE164(const PString & s);
 
+// add the codecs of a ';' separated list to a ';' terminated codec list (eg. DisabledCodecs), each codec only once
+void AddToCodecList(PString & list, const PString & codecs);
+
+// the codecs after "codec-disable:" in a RADIUS h323-ivr-in value ("h323-ivr-in=codec-disable:c1;c2;"),
+// up to the end or the next variable ("variable:value"), as a ';' terminated list, empty if there are none
+PString ParseCodecDisable(const PString & ivrIn);
+
 /** Find an alias which tag is of type specified by #primaryTags#.
     If no such aliases are found, #secondaryTags# are examined.
     If still no match is found and #exactMatch# is false, the first

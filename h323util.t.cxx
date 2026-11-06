@@ -511,4 +511,32 @@ TEST_F(H323UtilTest, HasH460Parameter) {
 }
 #endif
 
+TEST_F(H323UtilTest, AddToCodecList) {
+	PString list;
+	AddToCodecList(list, "g711Ulaw64k");
+	EXPECT_STREQ("g711Ulaw64k;", list);
+	AddToCodecList(list, "g729;g711Ulaw64k;");	// g711Ulaw64k only once
+	EXPECT_STREQ("g711Ulaw64k;g729;", list);
+	AddToCodecList(list, " g729AnnexA ; ;");	// not a duplicate of g729, empty items ignored
+	EXPECT_STREQ("g711Ulaw64k;g729;g729AnnexA;", list);
+	AddToCodecList(list, "");
+	EXPECT_STREQ("g711Ulaw64k;g729;g729AnnexA;", list);
+	PString unterminated = "h261VideoCapability";	// eg. set without the trailing ';'
+	AddToCodecList(unterminated, "g711Alaw64k");
+	EXPECT_STREQ("h261VideoCapability;g711Alaw64k;", unterminated);
+	PString leading = ";g729;";	// a list with a leading ';' 
+	AddToCodecList(leading, "g729;g723");
+	EXPECT_STREQ(";g729;g723;", leading);
+}
+
+TEST_F(H323UtilTest, ParseCodecDisable) {
+	EXPECT_STREQ("g711Ulaw64k;g729;g711Alaw64k;g729AnnexA;",
+		ParseCodecDisable("h323-ivr-in=codec-disable:g711Ulaw64k;g729;g711Alaw64k;g729AnnexA;"));	// manual example
+	EXPECT_STREQ("g711Ulaw64k;", ParseCodecDisable("h323-ivr-in=codec-disable:g711Ulaw64k"));	// without ';'
+	EXPECT_STREQ("g729;", ParseCodecDisable("h323-ivr-in=codec-disable:g729;proxy:yes;"));	// stops at the next variable
+	EXPECT_STREQ("g729;", ParseCodecDisable("h323-ivr-in=proxy:no;codec-disable:g729;"));
+	EXPECT_STREQ("", ParseCodecDisable("h323-ivr-in=codec-disable:"));
+	EXPECT_STREQ("", ParseCodecDisable("h323-ivr-in=proxy:yes"));
+}
+
 }  // namespace

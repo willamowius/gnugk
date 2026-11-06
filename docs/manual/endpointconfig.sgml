@@ -170,7 +170,9 @@ Tell GnuGk to add the number from calling party IE to the list of source address
 <item><tt/DisabledCodecs=h261VideoCapability/<newline>
 Default: <tt>n/a</tt><newline>
 <p>
-Filter codecs for this particular endpoint. Similar to the global switch in the <ref id="calltable" name="[CallTable] section">.
+Filter codecs for this particular endpoint (in calls from and to it, also with fastStart). This replaces the global
+switch in the <ref id="calltable" name="[CallTable] section"> for these calls. When both endpoints of a call have
+DisabledCodecs, both lists are used. A per-call list from the Radius attribute 'codec-disable' takes precedence.
 
 <item><tt/ForceTerminalType=190/<newline>
 Default: <tt>n/a</tt><newline>

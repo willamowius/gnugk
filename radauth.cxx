@@ -5,7 +5,7 @@
  * Please see docs/radauth.txt for more details.
  *
  * Copyright (c) 2003, Quarcom FHU, Michal Zygmuntowicz
- * Copyright (c) 2005-2020, Jan Willamowius
+ * Copyright (c) 2005-2026, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -512,13 +512,10 @@ int RadAuthBase::Check(
 	if (result) {
 		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, RadiusAttr::CiscoVSA_AV_Pair);
 		while (attr != NULL) {
-			PINDEX index;
 			value = attr->AsCiscoString();
-			if (value.Find("h323-ivr-in=") == 0 && ((index = value.Find("codec-disable:")) != P_MAX_INDEX)) {
-				index += strlen("codec-disable:");
-				const PINDEX semicolonpos = value.FindLast(';', index);
-				value = value.Mid(index, semicolonpos == P_MAX_INDEX ? P_MAX_INDEX : (semicolonpos-index));
-				PTRACE(4, "RADAUTH\t" << GetName() << " Setup check set codec-disable: " << value);
+			if (value.Find("h323-ivr-in=") == 0 && value.Find("codec-disable:") != P_MAX_INDEX) {
+				value = ParseCodecDisable(value);
+				PTRACE(4, "RADAUTH\t" << GetName() << " ARQ check set codec-disable: " << value);
 				authData.m_disabledcodecs = value;
 				break;
 			}
@@ -862,12 +859,9 @@ int RadAuthBase::Check(
 	if (result) {
 		attr = response->FindVsaAttr(RadiusAttr::CiscoVendorId, RadiusAttr::CiscoVSA_AV_Pair);
 		while (attr != NULL) {
-			PINDEX index;
 			value = attr->AsCiscoString();
-			if (value.Find("h323-ivr-in=") == 0 && ((index = value.Find("codec-disable:")) != P_MAX_INDEX)) {
-				index += strlen("codec-disable:");
-				const PINDEX semicolonpos = value.FindLast(';', index);
-				value = value.Mid(index, semicolonpos == P_MAX_INDEX ? P_MAX_INDEX : (semicolonpos-index));
+			if (value.Find("h323-ivr-in=") == 0 && value.Find("codec-disable:") != P_MAX_INDEX) {
+				value = ParseCodecDisable(value);
 				PTRACE(4, "RADAUTH\t" << GetName() << " Setup check set codec-disable: " << value);
 				authData.m_disabledcodecs = value;
 				break;

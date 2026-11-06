@@ -79,7 +79,9 @@ Default: <tt>N/A</tt><newline>
 <p>
 Filter out certain codecs. Calls must be H.245 routed or proxied for codec filtering to work.
 You can also filter out whole capability sets, eg. "receiveVideoCapability", "receiveAndTransmitDataApplicationCapability" of "nonStandard".
-This setting can be overridden on a per-call basis by using the Radius attribute 'disable-codec' or per endpoint in the <ref id="epconfig" name="[EP::...] section">.
+This setting can be overridden on a per-call basis by using the Radius attribute 'codec-disable' (see <ref id="radauth" name="[RadAuth]">)
+or per endpoint in the <ref id="epconfig" name="[EP::...] section">: a list from Radius replaces this setting for the call,
+otherwise the DisabledCodecs of the calling and the called endpoint (both lists combined) replace it.
 
 </itemize>
 

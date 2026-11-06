@@ -1081,7 +1081,10 @@ inside Access-Accept packets:
 		If present, it is scanned for 'terminal-alias' variable that can contain
 		a list of aliases that should be assigned to the endpoint being registered.
 		All RRQ aliases that do not match this list are removed.
-		The 'disable-codec' variable is also supported to disallow certain codecs for this call.
+		The 'codec-disable' variable is also supported to disallow certain codecs for this call:
+		a ';' separated list of codecs up to the end of the attribute or the next variable, eg.
+		"h323-ivr-in=codec-disable:g711Ulaw64k;g729;proxy:yes;". This list replaces
+		<ref id="calltable" name="[CallTable] DisabledCodecs"> and the endpoints' [EP::...] DisabledCodecs for this call.
 		The 'proxy' variable that can contain 'yes' or 'no' for enabling/disabling proxy mode for this call.
 		The format of these attributes is:
 <p>

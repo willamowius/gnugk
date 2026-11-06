@@ -3569,14 +3569,8 @@ bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245S
 #endif
 
 		// codec filtering
-		if (m_call && m_call->GetCallingParty()) {
-            // add filtered codecs for the calling party
-            m_call->AddDisabledCodecs(m_call->GetCallingParty()->GetDisabledCodecs());
-		}
-		if (m_call && m_call->GetCalledParty()) {
-            // add filtered codecs for the calling party
-            m_call->AddDisabledCodecs(m_call->GetCalledParty()->GetDisabledCodecs());
-		}
+		if (m_call)
+			m_call->ApplyEndpointDisabledCodecs();
         if (m_call && !(m_call->GetDisabledCodecs().IsEmpty())) {
             H245_ArrayOf_CapabilityTableEntry & CapabilityTables = tcs.m_capabilityTable;
             std::set<unsigned> removedCaps;
@@ -10090,6 +10084,8 @@ bool CallSignalSocket::OnTunneledH245(H225_ArrayOf_PASN_OctetString & h245Contro
 bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bool fromCaller)
 {
 	bool changed = false;
+	if (m_call)
+		m_call->ApplyEndpointDisabledCodecs();
 	for (PINDEX i = 0; i < fastStart.GetSize(); ++i) {
 		PPER_Stream strm = fastStart[i].GetValue();
 		H245_OpenLogicalChannel olc;
@@ -10115,6 +10111,7 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 				PTRACE(4, "Delete Audio Forward Logical Channel " << ac.GetTagName());
 				fastStart.RemoveAt(i);
 				i--;
+				changed = true;
 				continue;
 			}
 		}
@@ -10124,6 +10121,7 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 				PTRACE(4, "Delete Audio Reverse Logical Channel "  << ac.GetTagName());
 				fastStart.RemoveAt(i);
 				i--;
+				changed = true;
 				continue;
 			}
 		}
@@ -10135,6 +10133,7 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 				PTRACE(4, "Delete Video Forward Logical Channel " << vc.GetTagName());
 				fastStart.RemoveAt(i);
 				i--;
+				changed = true;
 				continue;
 			}
 		}
@@ -10144,6 +10143,7 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 				PTRACE(4, "Delete Video Reverse Logical Channel "  << vc.GetTagName());
 				fastStart.RemoveAt(i);
 				i--;
+				changed = true;
 				continue;
 			}
 		}

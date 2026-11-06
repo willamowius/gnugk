@@ -1053,7 +1053,7 @@ public:
 
 	/** Set list of codecs to disable for this call */
 	void SetDisabledCodecs(const PString & codecs);
-	void AddDisabledCodecs(const PString & codecs);
+	void ApplyEndpointDisabledCodecs();
 	PString GetDisabledCodecs() const { return m_disabledcodecs; }
 
 	/** @return
@@ -1569,6 +1569,7 @@ private:
 
 	/// list of disabled codes
 	PString m_disabledcodecs;
+	bool m_disabledCodecsPerCall;
 
 	PString m_src_media_control_IP, m_dst_media_control_IP;
 	PString m_src_media_IP, m_dst_media_IP;
