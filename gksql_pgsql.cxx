@@ -399,19 +399,23 @@ GkSQLResult* GkPgSQLConnection::ExecuteQuery(
 		return sqlResult;
 	}
 
+	// every non-NULL PGresult must be PQclear()ed, only the SELECT result is kept (and freed by GkPgSQLResult)
 	ExecStatusType resultInfo = (*g_PQresultStatus)(result);
 	switch (resultInfo)
 	{
 	case PGRES_COMMAND_OK:
-		return new GkPgSQLResult(
-			(*g_PQcmdTuples)(result) ? atoi((*g_PQcmdTuples)(result)) : 0
-			);
+		{
+			long numRowsAffected = (*g_PQcmdTuples)(result) ? atoi((*g_PQcmdTuples)(result)) : 0;
+			(*g_PQclear)(result);
+			return new GkPgSQLResult(numRowsAffected);
+		}
 
 	case PGRES_TUPLES_OK:
 		return new GkPgSQLResult(result);
 
 	default:
 		GkSQLResult * sqlResult = new GkPgSQLResult(resultInfo, (*g_PQresultErrorMessage)(result));
+		(*g_PQclear)(result);
 		Disconnect();
 		return sqlResult;
 	}

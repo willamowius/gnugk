@@ -636,6 +636,8 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 		} else {
 			(*g_isc_sql_interprete)(static_cast<short>(errorcode), errormsg, FB_BUFF_SIZE);
 		}
+		delete [] reinterpret_cast<char*>(result);
+		result = NULL;
 		Disconnect();
 		return new GkIBSQLResult(errorcode, errormsg, tr, stmt);
 	}

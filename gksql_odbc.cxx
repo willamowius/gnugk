@@ -607,8 +607,10 @@ GkSQLResult* GkODBCConnection::ExecuteQuery(
 		}
 	}
 
-	if (nodata)
+	if (nodata) {
+		(*g_SQLFreeHandle)(SQL_HANDLE_STMT, stmt);
 		return new GkODBCResult(0, columns, NULL);
+	}
 
 	std::vector<PString> fieldNames(columns);
 

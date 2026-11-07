@@ -350,6 +350,7 @@ GkSQLResult* GkOracleConnection::ExecuteQuery(
 	if (dpiStmt_execute(stmt, 0, &numQueryColumns) < 0) {
     	PTRACE(2, GetName() << "\tFailed to execute statement: " << queryStr);
 		GkSQLResult * result = new GkOracleResult(DPI_FAILURE, "Failed to execute query");
+		dpiStmt_release(stmt);
 		Disconnect();
 		return result;
 	}

@@ -367,9 +367,14 @@ GkSQLResult* GkSQLiteConnection::ExecuteQuery(
 	char *errormsg = NULL;
 	int rc = (*g_sqlite3_exec)(conn, queryStr, sqlite_callback, resultRows, &errormsg);
 	if (rc != SQLITE_OK) {
+		for(unsigned i = 0; i < resultRows->size(); i++){
+			delete (*resultRows)[i];
+		}
 		delete resultRows;
+		GkSQLResult * sqlResult = new GkSQLiteResult(rc, errormsg);
+		(*g_sqlite3_free)(errormsg);
 		Disconnect();
-		return new GkSQLiteResult(rc, errormsg);
+		return sqlResult;
 	}
 	return new GkSQLiteResult((*g_sqlite3_changes)(conn), resultRows);
 }
