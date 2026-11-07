@@ -2447,11 +2447,25 @@ void HttpPolicy::RunPolicy(
             }
             return;
         }
-        if (json_response.find("reject") != json_response.end() && json_response["reject"]) { // eg. { "reject": true, "reject-reason": 2 }
-            destination.SetRejectCall(true);
-            if (json_response.find("reject-reason") != json_response.end())
-                destination.SetRejectReason(json_response["reject-reason"].get<int>());
-            return;
+        // check the type of every field before accessing it: with exceptions disabled a type mismatch would abort()
+        auto reject = json_response.find("reject");
+        if (reject != json_response.end()) { // eg. { "reject": true, "reject-reason": 2 }
+            if (!reject->is_boolean()) {
+                PTRACE(1, m_name << "\tError: reject in JSON response is not a boolean");
+                return;
+            }
+            if (reject->get<bool>()) {
+                destination.SetRejectCall(true);
+                auto rejectReason = json_response.find("reject-reason");
+                if (rejectReason != json_response.end()) {
+                    if (rejectReason->is_number_integer()) {
+                        destination.SetRejectReason(rejectReason->get<int>());
+                    } else {
+                        PTRACE(1, m_name << "\tError: reject-reason in JSON response is not an integer");
+                    }
+                }
+                return;
+            }
         }
         if (json_response.find("destination") == json_response.end()) {
             PTRACE(3, m_name << "\tNot rejected and no destination in JSON response");
@@ -2496,9 +2510,21 @@ void HttpPolicy::RunPolicy(
 #ifdef HAS_JSON
 void HttpPolicy::ParseJSONRoute(const nlohmann::json & jsonRoute, const PString & language, DestinationRoutes & destination)
 {
-    PString destinationAlias = jsonRoute["destination"].get<std::string>().c_str();
-    if (jsonRoute.find("gateway") != jsonRoute.end()) { // eg. { "destination": "support", "gateway": "1.2.3.4:1720" }
-        PStringArray adr_parts = SplitIPAndPort(jsonRoute["gateway"].get<std::string>().c_str(), GK_DEF_ENDPOINT_SIGNAL_PORT);
+    // find() returns end() if the route isn't an object or the field is missing,
+    // and the type must be checked before get<>(): with exceptions disabled a type mismatch would abort()
+    auto dest = jsonRoute.find("destination");
+    if (dest == jsonRoute.end() || !dest->is_string()) {
+        PTRACE(1, m_name << "\tError: missing or invalid destination in JSON response");
+        return;
+    }
+    PString destinationAlias = dest->get<std::string>().c_str();
+    auto gateway = jsonRoute.find("gateway");
+    if (gateway != jsonRoute.end()) { // eg. { "destination": "support", "gateway": "1.2.3.4:1720" }
+        if (!gateway->is_string()) {
+            PTRACE(1, m_name << "\tError: invalid gateway in JSON response");
+            return;
+        }
+        PStringArray adr_parts = SplitIPAndPort(gateway->get<std::string>().c_str(), GK_DEF_ENDPOINT_SIGNAL_PORT);
         PIPSocket::Address ip(adr_parts[0]);
         WORD port = (WORD)(adr_parts[1].AsInteger());
         Route route(m_name, SocketToH225TransportAddr(ip, port));
