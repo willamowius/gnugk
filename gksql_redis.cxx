@@ -154,7 +154,7 @@ protected:
 		SQLConnPtr conn,
 		/// string to be escaped
 		const char* str
-		) { return str; }
+		);
 
 private:
 	GkRedisConnection(const GkRedisConnection &);
@@ -283,7 +283,35 @@ GkSQLResult* GkRedisConnection::ExecuteQuery(
 {
 	redisContext * conn = ((GkRedisConnWrapper*)con)->m_conn;
 
-	redisReply * reply = (redisReply *)redisCommand(conn, queryStr);
+	// split the query into command arguments ourselves and use redisCommandArgv():
+	// redisCommand() would treat the query, including the parameters
+	// inserted from RAS / Q.931 messages, as a printf-style format string
+	PStringArray args;
+	PString arg;
+	for (const char * p = queryStr; *p != '\0'; ++p) {
+		if (*p == ' ') {
+			if (!arg.IsEmpty())
+				args.AppendString(arg);
+			arg = PString::Empty();
+		} else {
+			if (*p == '\\' && (p[1] == ' ' || p[1] == '\\'))
+				++p;	// escaped by EscapeString(), take the next char literally
+			arg += *p;
+		}
+	}
+	if (!arg.IsEmpty())
+		args.AppendString(arg);
+	if (args.GetSize() == 0)
+		return new GkRedisResult(REDIS_ERR_OTHER, "empty query");
+
+	vector<const char *> argv(args.GetSize());
+	vector<size_t> argvlen(args.GetSize());
+	for (PINDEX i = 0; i < args.GetSize(); ++i) {
+		argv[i] = (const char *)args[i];
+		argvlen[i] = args[i].GetLength();
+	}
+
+	redisReply * reply = (redisReply *)redisCommandArgv(conn, args.GetSize(), &argv[0], &argvlen[0]);
 	if (conn->err || !reply) {
         if (reply) {
             freeReplyObject(reply);
@@ -311,6 +339,20 @@ GkSQLResult* GkRedisConnection::ExecuteQuery(
         vector<GkSQLResult::ResultRow*> * rows = new vector<GkSQLResult::ResultRow*>(0);
         return new GkRedisResult(0, rows);
 	}
+}
+
+PString GkRedisConnection::EscapeString(
+	/// connection to get escaping parameters from
+	SQLConnPtr /*conn*/,
+	/// string to be escaped
+	const char* str
+	)
+{
+	PString s(str);
+	// escape spaces, so the parameter stays a single argument when ExecuteQuery() splits the query
+	s.Replace("\\", "\\\\", TRUE);
+	s.Replace(" ", "\\ ", TRUE);
+	return s;
 }
 
 namespace {

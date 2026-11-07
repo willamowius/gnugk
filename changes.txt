@@ -3,7 +3,7 @@ Changes from 5.16 to 5.17
 - BUGFIX(RasTbl.cxx) fix crash in H.460.9 processing
 - BUGFIX(ProxyChannel.cxx) fix socket leak in H.245 multiplexing
 - BUGFIX(Routing.cxx) check field types in JSON response of Http policy
-- BUGFIX(gksql_oracle.cxx) fix quoting of SQL commands
+- BUGFIX(gksql_*.cxx) fix quoting of SQL commands
 - BUGFIX(gksql_*.cxx) fix memory leaks
 - BUGFIX(ProxyChannel.cxx, RasTbl.cxx) fix crash for endpoints using old GnuGk NAT method
 - BUGFIX(ProxyChannel.cxx) never select on or read from a signalling socket that is marked deletable
