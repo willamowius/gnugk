@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(gksql_redis.cxx) implement GkRedisResult::FetchRow(),report Redis error replies as query errors
 - BUGFIX(GkClient.*) add mutex for aliases
 - BUGFIX(GkStatus.cxx) add mutex for libssh sessions
 - BUGFIX(gkacct.cxx, gkauth.cxx) fix crash when reloading the config

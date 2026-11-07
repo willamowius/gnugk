@@ -56,16 +56,20 @@ public:
 	*/
 	virtual long GetErrorCode();
 
-	/** unused in this driver
+	/** Fetch a single row from the result set. After each row is fetched,
+	    cursor position is moved to a next row.
+
+	    @return
+	    True if the row has been fetched, false if no more rows are available.
 	*/
 	virtual bool FetchRow(
 		/// array to be filled with string representations of the row fields
 		PStringArray & result
-		) { return false; }
+		);
 	virtual bool FetchRow(
 		/// array to be filled with string representations of the row fields
 		ResultRow & result
-		) { return false; }
+		);
 
 private:
 	GkRedisResult();
@@ -214,6 +218,50 @@ long GkRedisResult::GetErrorCode()
 	return m_errorCode;
 }
 
+bool GkRedisResult::FetchRow(
+	/// array to be filled with string representations of the row fields
+	PStringArray & result
+	)
+{
+	if (m_sqlResult == NULL || m_numRows <= 0)
+		return false;
+
+	if (m_sqlRow < 0)
+		m_sqlRow = 0;
+
+	if (m_sqlRow >= m_numRows)
+		return false;
+
+	for (int i = 0; i < m_numFields; i++) {
+		result[i] = (*((*m_sqlResult)[m_sqlRow]))[i].first;
+	}
+
+	m_sqlRow++;
+
+	return true;
+}
+
+bool GkRedisResult::FetchRow(
+	/// array to be filled with string representations of the row fields
+	ResultRow & result
+	)
+{
+	if (m_sqlResult == NULL || m_numRows <= 0)
+		return false;
+
+	if (m_sqlRow < 0)
+		m_sqlRow = 0;
+
+	if (m_sqlRow >= m_numRows)
+		return false;
+
+	result = *((*m_sqlResult)[m_sqlRow]);
+
+	m_sqlRow++;
+
+	return true;
+}
+
 
 GkRedisConnection::GkRedisConnection(
 	/// name to use in the log
@@ -318,6 +366,12 @@ GkSQLResult* GkRedisConnection::ExecuteQuery(
         }
 		GkSQLResult * result = new GkRedisResult(conn->err, conn->errstr);
 		Disconnect();
+		return result;
+	}
+	if (reply->type == REDIS_REPLY_ERROR) {
+		// an error reply also carries text in reply->str, but it is not a value
+		GkSQLResult * result = new GkRedisResult(REDIS_ERR_OTHER, reply->str);
+		freeReplyObject(reply);
 		return result;
 	}
 	if (reply->str) {
