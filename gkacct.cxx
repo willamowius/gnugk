@@ -45,13 +45,13 @@ extern const char* CallTableSection;
 
 GkAcctLogger::GkAcctLogger(const char* moduleName, const char* cfgSecName)
   : NamedObject(moduleName), m_controlFlag(Required), m_defaultStatus(Fail),
-	m_enabledEvents(AcctAll), m_supportedEvents(AcctNone), m_config(GkConfig()),
+	m_enabledEvents(AcctAll), m_supportedEvents(AcctNone),
 	m_configSectionName(cfgSecName)
 {
 	if (m_configSectionName.IsEmpty())
 		m_configSectionName = moduleName;
 
-	const PStringArray control(m_config->GetString(GkAcctSectionName, moduleName, "").Tokenise(";,"));
+	const PStringArray control(GetConfig()->GetString(GkAcctSectionName, moduleName, "").Tokenise(";,"));
 
 	if (control.GetSize() < 1) {
 		PTRACE(1, "GKACCT\tEmpty config entry for module " << moduleName);

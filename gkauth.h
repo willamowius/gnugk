@@ -461,8 +461,9 @@ protected:
 
 	/** @return
 	    Config that contains settings for this authenticator.
+	    Don't store the pointer, the config object is replaced on each reload.
 	*/
-	PConfig* GetConfig() const { return m_config; }
+	PConfig* GetConfig() const { return GkConfig(); }
 
 	/** Should be called only from derived constructor to add supported
 	    H.235 capabilities (if any).
@@ -583,8 +584,6 @@ protected:
 	unsigned m_enabledMiscChecks;
 	/// bit flags with non-RAS checks supported by a given authenticator
 	unsigned m_supportedMiscChecks;
-	/// authenticator config
-	PConfig* m_config;
 };
 
 /** Cache used by some authenticators to remember key-value associations,

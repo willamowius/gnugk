@@ -176,10 +176,9 @@ GkAuthenticator::GkAuthenticator(
 	)
 	: NamedObject(name), m_defaultStatus(e_fail), m_controlFlag(e_Required),
 	m_enabledRasChecks(~0U), m_supportedRasChecks(supportedRasChecks),
-	m_enabledMiscChecks(~0U), m_supportedMiscChecks(supportedMiscChecks),
-	m_config(GkConfig())
+	m_enabledMiscChecks(~0U), m_supportedMiscChecks(supportedMiscChecks)
 {
-	const PStringArray control(m_config->GetString(GkAuthSectionName, name, "").Tokenise(";,"));
+	const PStringArray control(GetConfig()->GetString(GkAuthSectionName, name, "").Tokenise(";,"));
 	if (control.GetSize() > 0) {
 		const PString controlStr = control[0].Trim();
 		if (strcasecmp(name, "default") == 0)
@@ -1436,7 +1435,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
                 }
             }
 
-            PBoolean requireGeneralID = m_config->GetBoolean("H235", "RequireGeneralID", false);
+            PBoolean requireGeneralID = GetConfig()->GetBoolean("H235", "RequireGeneralID", false);
             if (requireGeneralID) {
                 if (!clearToken.HasOptionalField(H235_ClearToken::e_generalID)) {
                     PTRACE(5, "GKAUTH\t" << GetName() << " hashedVals of nested cryptoHashedToken do not contain generalID");

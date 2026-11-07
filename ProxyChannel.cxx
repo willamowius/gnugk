@@ -1202,6 +1202,7 @@ public:
 #ifdef HAS_H235_MEDIA
 	bool CreateH235Session(H235Authenticators & auth, const H245_EncryptionSync & encryptionSync, bool encrypting);
 	bool CreateH235SessionAndKey(H235Authenticators & auth, H245_EncryptionSync & sync, bool encrypting);
+	void AttachH235Session(bool encrypting);
 	bool UpdateMediaKey(const H245_EncryptionSync & encryptionSync);
 	bool GenerateNewMediaKey(BYTE newPayloadType, H245_EncryptionSync & encryptionSync);
 	bool ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt, unsigned char * ivsequence, bool & rtpPadding, BYTE & payloadType, WORD bufferSize);
@@ -2367,6 +2368,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 			SNMP_TRAP(9, SNMPWarning, General, "Error decoding User-User IE message from " + GetName());
 			if (q931pdu->GetMessageType() == Q931::NotifyMsg) {
 				PTRACE(1, "Unknown User-User IE in Notify, continuing");
+				delete uuie;
 				uuie = NULL;
 				m_result = Forwarding;
 			} else {
@@ -7725,6 +7727,7 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 
 #ifdef HAS_H235_MEDIA
 			if (data.m_dataFrame && m_call->IsMediaEncryption()) {
+				ReadLock lockLC(H46026RTPHandler::Instance()->GetListLock());	// logical channels must not be deleted while we use them
 				H46026Session session = H46026RTPHandler::Instance()->FindSession(m_call->GetCallNumber(), data.m_sessionId.GetValue());
 				if (session.IsValid()) {
 					for (PINDEX i = 0; i < data.m_frame.GetSize(); i++) {
@@ -13204,6 +13207,7 @@ void H46019Session::HandlePacket(DWORD receivedMultiplexID, const IPAndPortAddre
 		    return; // no data to en-/decrypt
 		}
 
+		ReadLock lockLC(MultiplexedRTPHandler::Instance()->GetListLock());	// logical channels must not be deleted while we use them
 		if (receivedMultiplexID == m_encryptMultiplexID) {
 			if (m_encryptingLC) {
 				successful = m_encryptingLC->ProcessH235Media((BYTE*)data, wlen, true, ivSequence, rtpPadding, payloadType, (WORD)bufferSize);
@@ -13587,7 +13591,7 @@ void MultiplexedRTPHandler::RemoveChannel(PINDEX callno, RTPLogicalChannel * rtp
 	WriteLock lock(m_listLock);
 	for (list<H46019Session>::iterator iter = m_h46019channels.begin();
 			iter != m_h46019channels.end() ; /* nothing */ ) {
-		if (!iter->m_deleted && iter->m_callno == callno) {
+		if (iter->m_callno == callno) {
 			if (iter->m_encryptingLC == rtplc)
 				iter->m_encryptingLC = NULL;
 			if (iter->m_decryptingLC == rtplc)
@@ -13906,11 +13910,25 @@ void H46026RTPHandler::UpdateChannelDecryptingLC(PINDEX callno, WORD session, RT
 		}
 	}
 }
+
+void H46026RTPHandler::RemoveChannel(PINDEX callno, RTPLogicalChannel * rtplc)
+{
+	WriteLock lock(m_listLock);
+	for (list<H46026Session>::iterator iter = m_h46026channels.begin();
+			iter != m_h46026channels.end() ; ++iter) {
+		if (iter->m_callno == callno) {
+			if (iter->m_encryptingLC == rtplc)
+				iter->m_encryptingLC = NULL;
+			if (iter->m_decryptingLC == rtplc)
+				iter->m_decryptingLC = NULL;
+		}
+	}
+}
 #endif
 
 H46026Session H46026RTPHandler::FindSession(PINDEX callno, WORD session) const
 {
-	WriteLock lock(m_listLock);
+	ReadLock lock(m_listLock);
 	// find the matching channel by callno and sessionID
 	for (list<H46026Session>::const_iterator iter = m_h46026channels.begin();
 			iter != m_h46026channels.end() ; ++iter) {
@@ -14901,6 +14919,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
     }
 	// H.235.6 sect 9.3.3 says RTCP encryption is for further study, so we don't encrypt/decrypt RTCP
 	if (m_call && m_call->IsMediaEncryption() && isRTP) {
+		PWaitAndSignal lockLC(m_cryptoLCMutex);	// logical channels must not be deleted while we use them
 		bool ready = false;
 		bool encrypting = false;
 		if (m_encryptingLC && m_decryptingLC) {
@@ -15607,12 +15626,18 @@ RTPLogicalChannel::~RTPLogicalChannel()
 	if (GkConfig()->GetBoolean(ProxySection, "RTPMultiplexing", false))
 		MultiplexedRTPHandler::Instance()->RemoveChannel(m_callNo, this);
 #endif
+#ifdef HAS_H46026
+	if (Toolkit::Instance()->IsH46026Enabled())
+		H46026RTPHandler::Instance()->RemoveChannel(m_callNo, this);
+#endif
+	// remove crypto engine from the RTP socket
+	// this waits until the RTP thread is done with this channel, so don't hold m_cryptoEngineMutex here
+	if (rtp) {
+		rtp->RemoveEncryptingRTPChannel(this);
+		rtp->RemoveDecryptingRTPChannel(this);
+	}
 	m_cryptoEngineMutex.Wait();
 	if (m_H235CryptoEngine) {
-		if (rtp) {
-			rtp->RemoveEncryptingRTPChannel(this);
-			rtp->RemoveDecryptingRTPChannel(this);
-		}
 		delete m_H235CryptoEngine;
 		m_H235CryptoEngine = NULL;
 	}
@@ -15819,12 +15844,6 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 	// new session with media key after shared key was used to decrypt media key
 	m_H235CryptoEngine = new H235CryptoEngine(algorithmOID, mediaKey);
 	PTRACE(3, "H235\tNew crypto engine created: plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType << " rtplc=" << this << " encrypt=" << m_encrypting);
-
-	if (encrypting) {
-		rtp->SetEncryptingRTPChannel(this);
-	} else {
-		rtp->SetDecryptingRTPChannel(this);
-	}
 	return true;
 }
 
@@ -15878,13 +15897,18 @@ bool RTPLogicalChannel::CreateH235SessionAndKey(H235Authenticators & auth, H245_
 	// new session with media key after shared key was used to encrypt media key for transmission
 	m_H235CryptoEngine = new H235CryptoEngine(algorithmOID, mediaKey);
 	PTRACE(3, "H235\tNew crypto engine created: plainPT=" << (int)m_plainPayloadType << " cipherPT=" << (int)m_cipherPayloadType << " rtplc=" << this << " encrypt=" << m_encrypting);
+	return true;
+}
 
+// tell the RTP socket to use the crypto engine of this channel
+// the RTP thread locks the socket before m_cryptoEngineMutex, so this must not be called while holding m_cryptoEngineMutex
+void RTPLogicalChannel::AttachH235Session(bool encrypting)
+{
 	if (encrypting) {
 		rtp->SetEncryptingRTPChannel(this);
 	} else {
 		rtp->SetDecryptingRTPChannel(this);
 	}
-	return true;
 }
 
 bool RTPLogicalChannel::UpdateMediaKey(const H245_EncryptionSync & encryptionSync)
@@ -15894,7 +15918,10 @@ bool RTPLogicalChannel::UpdateMediaKey(const H245_EncryptionSync & encryptionSyn
 		SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 key update failure");
 		return false;
 	}
-	return CreateH235Session(*m_auth, encryptionSync, m_encrypting);
+	if (!CreateH235Session(*m_auth, encryptionSync, m_encrypting))
+		return false;
+	AttachH235Session(m_encrypting);
+	return true;
 }
 
 bool RTPLogicalChannel::GenerateNewMediaKey(BYTE newPayloadType, H245_EncryptionSync & encryptionSync)
@@ -15905,7 +15932,10 @@ bool RTPLogicalChannel::GenerateNewMediaKey(BYTE newPayloadType, H245_Encryption
 		return false;
 	}
 	SetCipherPayloadType(newPayloadType);
-	return CreateH235SessionAndKey(*m_auth, encryptionSync, m_encrypting);
+	if (!CreateH235SessionAndKey(*m_auth, encryptionSync, m_encrypting))
+		return false;
+	AttachH235Session(m_encrypting);
+	return true;
 }
 
 bool RTPLogicalChannel::ProcessH235Media(BYTE * buffer, WORD & len, bool encrypt, unsigned char * ivsequence, bool & rtpPadding, BYTE & payloadType, WORD bufferSize)
@@ -17424,12 +17454,14 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 							|| (!m_isCaller && call->GetEncryptDirection() == CallRec::calledParty);
 			// use the key sent by the other side
 			if (olc.HasOptionalField(H245_OpenLogicalChannel::e_encryptionSync)) {
-				rtplc->CreateH235Session(call->GetAuthenticators(), olc.m_encryptionSync, encrypting);
+				if (rtplc->CreateH235Session(call->GetAuthenticators(), olc.m_encryptionSync, encrypting))
+					rtplc->AttachH235Session(encrypting);
 				olc.RemoveOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
 			} else if (m_isH245Master) {
 				// the message comes from the master and doesn't have encryptionSync
 				olc.IncludeOptionalField(H245_OpenLogicalChannel::e_encryptionSync);
-				rtplc->CreateH235SessionAndKey(call->GetAuthenticators(), olc.m_encryptionSync, encrypting);
+				if (rtplc->CreateH235SessionAndKey(call->GetAuthenticators(), olc.m_encryptionSync, encrypting))
+					rtplc->AttachH235Session(encrypting);
 			}
 #ifdef HAS_H46018
 			if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing
@@ -17712,12 +17744,14 @@ bool H245ProxyHandler::HandleOpenLogicalChannelAck(H245_OpenLogicalChannelAck & 
 						|| (!m_isCaller && call->GetEncryptDirection() == CallRec::callingParty);
 		// use the key sent by the other side
 		if (olca.HasOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync)) {
-			rtplc->CreateH235Session(call->GetAuthenticators(), olca.m_encryptionSync, encrypting);
+			if (rtplc->CreateH235Session(call->GetAuthenticators(), olca.m_encryptionSync, encrypting))
+				rtplc->AttachH235Session(encrypting);
 			olca.RemoveOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
 		} else if (m_isH245Master) {
 			// the message comes from the master and its in the direction we are simulating
 			olca.IncludeOptionalField(H245_OpenLogicalChannelAck::e_encryptionSync);
-			rtplc->CreateH235SessionAndKey(call->GetAuthenticators(), olca.m_encryptionSync, encrypting);
+			if (rtplc->CreateH235SessionAndKey(call->GetAuthenticators(), olca.m_encryptionSync, encrypting))
+				rtplc->AttachH235Session(encrypting);
 		}
 #ifdef HAS_H46018
 		if (m_requestRTPMultiplexing || m_remoteRequestsRTPMultiplexing

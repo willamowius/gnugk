@@ -229,10 +229,10 @@ public:
 	WORD GetRTPSessionID() const { return m_sessionID; }
 	void SetRTPSessionID(WORD id) { m_sessionID = id; }
 #ifdef HAS_H235_MEDIA
-	void SetEncryptingRTPChannel(RTPLogicalChannel * lc) { m_encryptingLC = lc; }
-	void RemoveEncryptingRTPChannel(RTPLogicalChannel * lc) { if (m_encryptingLC == lc) m_encryptingLC = NULL; }
-	void SetDecryptingRTPChannel(RTPLogicalChannel * lc) { m_decryptingLC = lc; }
-	void RemoveDecryptingRTPChannel(RTPLogicalChannel * lc) { if (m_decryptingLC == lc) m_decryptingLC = NULL; }
+	void SetEncryptingRTPChannel(RTPLogicalChannel * lc) { PWaitAndSignal lock(m_cryptoLCMutex); m_encryptingLC = lc; }
+	void RemoveEncryptingRTPChannel(RTPLogicalChannel * lc) { PWaitAndSignal lock(m_cryptoLCMutex); if (m_encryptingLC == lc) m_encryptingLC = NULL; }
+	void SetDecryptingRTPChannel(RTPLogicalChannel * lc) { PWaitAndSignal lock(m_cryptoLCMutex); m_decryptingLC = lc; }
+	void RemoveDecryptingRTPChannel(RTPLogicalChannel * lc) { PWaitAndSignal lock(m_cryptoLCMutex); if (m_decryptingLC == lc) m_decryptingLC = NULL; }
 #endif
 #ifdef HAS_H46018
 	void SetUsesH46019fc(bool fc) { m_h46019fc = fc; }
@@ -289,6 +289,7 @@ protected:
 	WORD m_sessionID;
 	RTPLogicalChannel * m_encryptingLC;
 	RTPLogicalChannel * m_decryptingLC;
+	PMutex m_cryptoLCMutex;	// protect the 2 channel pointers above, held while the RTP thread uses them so they can't be deleted meanwhile
 #ifdef HAS_H46018
 	bool m_h46019fc;
 	bool m_useH46019;
@@ -828,6 +829,8 @@ public:
 	virtual void RemoveChannel(PINDEX callno, WORD session);
 #ifdef HAS_H235_MEDIA
 	virtual void RemoveChannel(PINDEX callno, RTPLogicalChannel * rtplc);
+	// read lock this while using the RTPLogicalChannels of a session, so they can't be deleted meanwhile
+	PReadWriteMutex & GetListLock() const { return m_listLock; }
 #endif
 	virtual void DumpChannels(const PString & msg = "") const;
 
@@ -906,6 +909,9 @@ public:
 #ifdef HAS_H235_MEDIA
 	virtual void UpdateChannelEncryptingLC(PINDEX callno, WORD session, RTPLogicalChannel * lc);
 	virtual void UpdateChannelDecryptingLC(PINDEX callno, WORD session, RTPLogicalChannel * lc);
+	virtual void RemoveChannel(PINDEX callno, RTPLogicalChannel * rtplc);
+	// read lock this while using the RTPLogicalChannels of a session, so they can't be deleted meanwhile
+	PReadWriteMutex & GetListLock() const { return m_listLock; }
 #endif
 	virtual void DumpChannels(const PString & msg = "") const;
 

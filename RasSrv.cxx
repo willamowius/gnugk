@@ -398,6 +398,9 @@ bool MulticastListener::Filter(GatekeeperMessage * msg) const
 // class RasMsg
 void RasMsg::Exec()
 {
+	// the job runs on its own thread: keep a reload from replacing the config (and the auth/acct modules) while we use it
+	ReadLock lock(ConfigReloadMutex);
+
 	PTRACE(1, "RAS\t" << m_msg->GetTagName() << " Received from " << AsString(m_msg->m_peerAddr, m_msg->m_peerPort));
 	if (Process()) {
 		Reply(m_authenticators);
@@ -1719,6 +1722,8 @@ void RasServer::ReadH46017Message(const PBYTEArray & ras, const PIPSocket::Addre
 		PTRACE(3, "RAS\tH460.17 RAS\n" << setprecision(2) << msg->m_recvRAS);
 		// execute job synchronously, so we don't return to signaling thread before processing is done
 		CreateRasJob(msg, true);
+	} else {
+		delete msg;
 	}
 }
 #endif

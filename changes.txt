@@ -1,5 +1,8 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(gkacct.cxx, gkauth.cxx) fix crash when reloading the config
+- BUGFIX(ProxyChannel.cxx) fix race with H.235.6 encryption
+- BUGFIX(ProxyChannel.cxx,RasSrv.cxx) fix H.460.17 memory leak
 - BUGFIX(*) URL-escaping for HttpAcct, HttpPasswordAuth and HtttRouting
 - BUGFIX(GkClient.cxx) check size of H.460.24 probe before reading it
 - BUGFIX(ProxyChannel.cxx) better check for H.235.6 key size
