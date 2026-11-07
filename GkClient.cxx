@@ -964,8 +964,8 @@ PBoolean H46024Socket::ReceivedProbePacket(const RTP_ControlFrame & frame, bool 
 {
 	success = false;
 
-	// Inspect the probe packet
-	if (frame.GetPayloadType() != RTP_ControlFrame::e_ApplDefined)
+	// Inspect the probe packet (needs at least the RTCP header, an empty packet has no buffer at all)
+	if (frame.GetSize() < 4 || frame.GetPayloadType() != RTP_ControlFrame::e_ApplDefined)
 		return false;
 
 	int cstate = GetProbeState();
@@ -979,7 +979,7 @@ PBoolean H46024Socket::ReceivedProbePacket(const RTP_ControlFrame & frame, bool 
 		return false;
 	}
 
-	if (frame.GetSize() < 32) {
+	if (frame.GetSize() < (PINDEX)(4 + sizeof(probe_packet))) {
 		PTRACE(3, "H46024A\ts" << m_sessionID << " RTCP Probe too small.");
 		return false;
 	}

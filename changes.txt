@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(GkClient.cxx) check size of H.460.24 probe before reading it
 - BUGFIX(ProxyChannel.cxx) better check for H.235.6 key size
 - BUGFIX(RasTbl.cxx) fix crash in H.460.9 processing
 - BUGFIX(ProxyChannel.cxx) fix socket leak in H.245 multiplexing
