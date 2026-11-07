@@ -179,9 +179,13 @@ public:
 
 	template<class RAS> void SetPassword(RAS & rasmsg)
 	{
-		SetPassword(rasmsg, m_h323Id.GetSize() > 0 ? m_h323Id[0] :
-			(m_e164.GetSize() > 0 ? m_e164[0] : PString::Empty())
-			);
+		PString id;
+		{
+			PWaitAndSignal lock(m_aliasMutex);
+			id = m_h323Id.GetSize() > 0 ? m_h323Id[0] :
+				(m_e164.GetSize() > 0 ? m_e164[0] : PString::Empty());
+		}
+		SetPassword(rasmsg, id);
 	}
 
 private:
@@ -280,6 +284,8 @@ private:
 	PStringArray m_h323Id;
 	/// list of E.164 aliases to register with
 	PStringArray m_e164;
+	/// protects m_h323Id and m_e164, additive registrations change them from any RAS thread
+	PMutex m_aliasMutex;
 	/// list of Authenticators
 	H235Authenticators * m_h235Authenticators;
 

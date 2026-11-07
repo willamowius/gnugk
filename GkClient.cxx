@@ -1649,8 +1649,11 @@ void GkClient::OnReload()
 
 	m_discoverParent = Toolkit::AsBool(cfg->GetString(EndpointSection, "Discovery", "1"));
 
-	m_h323Id = cfg->GetString(EndpointSection, "H323ID", (const char *)Toolkit::GKName()).Tokenise(" ,;\t", FALSE);
-	m_e164 = cfg->GetString(EndpointSection, "E164", "").Tokenise(" ,;\t", FALSE);
+	{
+		PWaitAndSignal lock(m_aliasMutex);
+		m_h323Id = cfg->GetString(EndpointSection, "H323ID", (const char *)Toolkit::GKName()).Tokenise(" ,;\t", FALSE);
+		m_e164 = cfg->GetString(EndpointSection, "E164", "").Tokenise(" ,;\t", FALSE);
+	}
     m_enableGnuGkNATTraversal = GkConfig()->GetBoolean(EndpointSection, "EnableGnuGkNATTraversal", false);
 
 #ifdef HAS_H46018
@@ -1756,12 +1759,15 @@ PString GkClient::GetParent() const
 
 bool GkClient::OnSendingGRQ(H225_GatekeeperRequest & grq)
 {
-	if (m_h323Id.GetSize() > 0) {
-		int sz = m_h323Id.GetSize();
-		grq.IncludeOptionalField(H225_GatekeeperRequest::e_endpointAlias);
-		grq.m_endpointAlias.SetSize(sz);
-		for (PINDEX i = 0; i < sz; ++i)
-			H323SetAliasAddress(m_h323Id[i], grq.m_endpointAlias[i]);
+	{
+		PWaitAndSignal lock(m_aliasMutex);
+		if (m_h323Id.GetSize() > 0) {
+			int sz = m_h323Id.GetSize();
+			grq.IncludeOptionalField(H225_GatekeeperRequest::e_endpointAlias);
+			grq.m_endpointAlias.SetSize(sz);
+			for (PINDEX i = 0; i < sz; ++i)
+				H323SetAliasAddress(m_h323Id[i], grq.m_endpointAlias[i]);
+		}
 	}
 
 #ifdef HAS_H46018
@@ -1934,6 +1940,7 @@ bool GkClient::OnSendingLRQ(H225_LocationRequest & lrq, Routing::LocationRequest
 			for (PINDEX i = 0; i < lrq.m_sourceInfo.GetSize(); i++)
 				nonStandardData.m_gatewaySrcInfo[i] = lrq.m_sourceInfo[i];
 		} else {
+			PWaitAndSignal lock(m_aliasMutex);
 			if (m_h323Id.GetSize() > 0) {
 				nonStandardData.IncludeOptionalField(Cisco_LRQnonStandardInfo::e_gatewaySrcInfo);
 				nonStandardData.m_gatewaySrcInfo.SetSize(m_h323Id.GetSize());
@@ -2188,6 +2195,7 @@ bool GkClient::SendARQ(Routing::SetupRequest & setup_obj, bool answer)
 	} else {
 		// no sourceAddress privided in Q.931 Setup?
 		// since srcInfo is mandatory, set my aliases as the srcInfo
+		PWaitAndSignal lock(m_aliasMutex);
 		if (m_h323Id.GetSize() > 0) {
 			arq.m_srcInfo.SetSize(1);
 			H323SetAliasAddress(m_h323Id[0], arq.m_srcInfo[0], H225_AliasAddress::e_h323_ID);
@@ -2278,14 +2286,17 @@ bool GkClient::SendARQ(Routing::FacilityRequest & facility_obj)
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_callIdentifier);
 		arq.m_callIdentifier = facility.m_callIdentifier;
 	}
-	if (m_h323Id.GetSize() > 0) {
-		arq.m_srcInfo.SetSize(1);
-		H323SetAliasAddress(m_h323Id[0], arq.m_srcInfo[0], H225_AliasAddress::e_h323_ID);
-	}
-	if (m_e164.GetSize() > 0) {
-		PINDEX sz = arq.m_srcInfo.GetSize();
-		arq.m_srcInfo.SetSize(sz + 1);
-		H323SetAliasAddress(m_e164[0], arq.m_srcInfo[sz]);
+	{
+		PWaitAndSignal lock(m_aliasMutex);
+		if (m_h323Id.GetSize() > 0) {
+			arq.m_srcInfo.SetSize(1);
+			H323SetAliasAddress(m_h323Id[0], arq.m_srcInfo[0], H225_AliasAddress::e_h323_ID);
+		}
+		if (m_e164.GetSize() > 0) {
+			PINDEX sz = arq.m_srcInfo.GetSize();
+			arq.m_srcInfo.SetSize(sz + 1);
+			H323SetAliasAddress(m_e164[0], arq.m_srcInfo[sz]);
+		}
 	}
 	if (facility.HasOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress)) {
 		arq.IncludeOptionalField(H225_AdmissionRequest::e_destinationInfo);
@@ -2579,15 +2590,18 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 	}
 
 	rrq.IncludeOptionalField(H225_RegistrationRequest::e_terminalAlias);
-	as = m_h323Id.GetSize();
-	rrq.m_terminalAlias.SetSize(as);
-	for (PINDEX p = 0; p < as; ++p)
-		H323SetAliasAddress(m_h323Id[p], rrq.m_terminalAlias[p], H225_AliasAddress::e_h323_ID);
+	{
+		PWaitAndSignal lock(m_aliasMutex);
+		as = m_h323Id.GetSize();
+		rrq.m_terminalAlias.SetSize(as);
+		for (PINDEX p = 0; p < as; ++p)
+			H323SetAliasAddress(m_h323Id[p], rrq.m_terminalAlias[p], H225_AliasAddress::e_h323_ID);
 
-	PINDEX s = m_e164.GetSize() + as;
-	rrq.m_terminalAlias.SetSize(s);
-	for (PINDEX p = as; p < s; ++p)
-		H323SetAliasAddress(m_e164[p-as], rrq.m_terminalAlias[p]);
+		PINDEX s = m_e164.GetSize() + as;
+		rrq.m_terminalAlias.SetSize(s);
+		for (PINDEX p = as; p < s; ++p)
+			H323SetAliasAddress(m_e164[p-as], rrq.m_terminalAlias[p]);
+	}
     // TODO: with additive registrations enabled, the first RRQ should contain all aliases of endpoints registered so far
 
 	int ttl = GkConfig()->GetInteger(EndpointSection, "TimeToLive", DEFAULT_TTL);
@@ -3283,12 +3297,14 @@ bool GkClient::AdditiveUnRegister(const H225_ArrayOf_AliasAddress & aliases)
 
 void GkClient::AppendLocalAlias(const H225_ArrayOf_AliasAddress & aliases)
 {
+	PWaitAndSignal lock(m_aliasMutex);
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i)
 		m_h323Id.AppendString(AsString(aliases[i], false));
 }
 
 void GkClient::RemoveLocalAlias(const H225_ArrayOf_AliasAddress & aliases)
 {
+	PWaitAndSignal lock(m_aliasMutex);
 	PStringArray newAliasList;
 	for (PINDEX j = 0; j < m_h323Id.GetSize(); ++j) {
 		int found = false;
