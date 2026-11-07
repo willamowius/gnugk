@@ -968,7 +968,8 @@ public:
 	void SetCallSignalSocketCalling(CallSignalSocket* socket);
 	void SetCallSignalSocketCalled(CallSignalSocket* socket);
 #ifdef HAS_H46018
-    void SetH245OSSocket(int socket, bool isAnswer, const PString & name);
+    // returns true if the call has taken over the OS socket
+    bool SetH245OSSocket(int socket, bool isAnswer, const PString & name);
 #endif
 	void SetToParent(bool toParent) { m_toParent = toParent; }
 	void SetFromParent(bool fromParent) { m_fromParent = fromParent; }

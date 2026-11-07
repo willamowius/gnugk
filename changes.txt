@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(ProxyChannel.cxx) fix socket leak in H.245 multiplexing
 - BUGFIX(Routing.cxx) check field types in JSON response of Http policy
 - BUGFIX(gksql_oracle.cxx) fix quoting of SQL commands
 - BUGFIX(gksql_*.cxx) fix memory leaks

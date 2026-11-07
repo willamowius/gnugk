@@ -471,7 +471,8 @@ public:
 	bool IsCallToTraversalServer() const { return m_callToTraversalServer; }
 	void SetSessionMultiplexDestination(WORD session, bool isRTCP, const IPAndPortAddress & toAddress, H46019Side side);
 	const H245Handler * GetH245Handler() const { return m_h245handler; }
-	void SetH245OSSocket(int socket, const PString & name);
+	// returns true if the H.245 socket of this call has taken over the OS socket
+	bool SetH245OSSocket(int socket, const PString & name);
 #endif
 	void LockH245Handler() { m_h245handlerLock.Wait(); }
 	void UnlockH245Handler() { m_h245handlerLock.Signal(); }

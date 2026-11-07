@@ -3496,12 +3496,13 @@ void CallRec::SetCallSignalSocketCalled(CallSignalSocket * socket)
 }
 
 #ifdef HAS_H46018
-void CallRec::SetH245OSSocket(int socket, bool isAnswer, const PString & name)
+bool CallRec::SetH245OSSocket(int socket, bool isAnswer, const PString & name)
 {
     if (m_callingSocket && !isAnswer)
-        m_callingSocket->SetH245OSSocket(socket, name);
+        return m_callingSocket->SetH245OSSocket(socket, name);
     if (m_calledSocket && isAnswer)
-        m_calledSocket->SetH245OSSocket(socket, name);
+        return m_calledSocket->SetH245OSSocket(socket, name);
+    return false;
 }
 #endif // HAS_H46018
 

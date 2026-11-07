@@ -4432,12 +4432,12 @@ PString CallSignalSocket::GetDialedNumber(const SetupMsg & setup) const
 }
 
 #ifdef HAS_H46018
-void CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
+bool CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
 {
     if (m_h245socket) {
         if (m_h245socket->IsConnected()) {
             PTRACE(1, "H245M\tH.245 socket is already connected");
-            return;
+            return false;
         }
         ConfigReloadMutex.StartRead();
         ProxyHandler * oldhandler = m_h245socket->GetHandler();
@@ -4488,7 +4488,9 @@ void CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
                 }
             }
         }
+        return true;
     }
+    return false;
 }
 #endif // HAS_H46018
 
@@ -12625,6 +12627,7 @@ void MultiplexedH245Socket::Dispatch()
             case Error:
                 PTRACE(1, "H245M\tError in H.245 multiplex connection");
                 OnError();
+                loopDone = true;
                 break;
             default:
                 PTRACE(1, "H245M\tDefault case in H.245 multiplex dispatch");
@@ -12638,7 +12641,7 @@ void MultiplexedH245Socket::Dispatch()
 
     if (result == NoDataAndDone) {
         SetOSSocket(-99, "removed"); // make sure our socket isn't closed when we delete this object
-    } else {
+    } else if (result != Error) {
         PTRACE(1, "H245M\tTimeout in H.245 multiplex connection");
     }
 
@@ -12692,9 +12695,13 @@ ProxySocket::Result MultiplexedH245Socket::ReceiveData()
                         if (handler)
                             handler->Detach(this);
                         // patch socket into H245Socket pair in call
-                        call->SetH245OSSocket(GetOSSocket(), isAnswer, GetName());
+                        if (!call->SetH245OSSocket(GetOSSocket(), isAnswer, GetName())) {
+                            PTRACE(1, "H245M\tError: Call " << AsString (callIdentifier) << " isn't waiting for a H.245 connection");
+                            return Error; // we still own the socket and must close it
+                        }
                     } else {
                         PTRACE(1, "H245M\tError: Didn't find call " << AsString (callIdentifier));
+                        return Error; // we still own the socket and must close it
                     }
                 }
             }
