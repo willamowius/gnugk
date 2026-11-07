@@ -12518,6 +12518,12 @@ bool H245Socket::SetH245Address(H225_TransportAddress & h245addr, const Address 
 		socket = this;
 	} else {
 		socket = static_cast<H245Socket *>(remote);
+		if (!socket) {
+			// remote socket is removed during a reroute
+			m_signalingSocketMutex.Signal();
+			PTRACE(1, "H245\tError: no remote socket, can't set h245Address (CallID: " << GetCallIdentifierAsString() << ")");
+			return false;
+		}
 		swapped = true;
 		std::swap(this->sigSocket, socket->sigSocket);
 	}
@@ -12536,7 +12542,13 @@ bool H245Socket::Reverting(const H225_TransportAddress & h245addr)
 {
 	PTRACE(3, "H245\tH.245 Reverting detected");
 	PWaitAndSignal lock(m_signalingSocketMutex); // peerH245Address may be accessed from multiple threads
-	TCPSocket *socket = static_cast<H245Socket *>(remote)->listener;
+	H245Socket * ret = static_cast<H245Socket *>(remote);
+	if (!ret) {
+		// remote socket is removed during a reroute
+		PTRACE(1, "H245\tError: no remote socket, ignoring H.245 reverting (CallID: " << GetCallIdentifierAsString() << ")");
+		return false;
+	}
+	TCPSocket *socket = ret->listener;
 	if (socket && socket->IsOpen()) {
 		peerH245Addr = new H225_TransportAddress(h245addr);
 		socket->Close();
