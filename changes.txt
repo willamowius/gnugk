@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(ProxyChannel.cxx) better check for H.235.6 key size
 - BUGFIX(RasTbl.cxx) fix crash in H.460.9 processing
 - BUGFIX(ProxyChannel.cxx) fix socket leak in H.245 multiplexing
 - BUGFIX(Routing.cxx) check field types in JSON response of Http policy

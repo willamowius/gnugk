@@ -15783,7 +15783,8 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 		// this is the _media_key_ in unencrypted form
 		const H235_KeyMaterial & mediaKeyBits = h235key;
 		PTRACE(3, "H235\tPlain key size=" << mediaKeyBits.GetSize() << " data=" << mediaKeyBits);
-		mediaKey = PBYTEArray(mediaKeyBits.GetDataPointer(), mediaKeyBits.GetSize());
+		// KeyMaterial is a BIT STRING, GetSize() is the number of bits
+		mediaKey = PBYTEArray(mediaKeyBits.GetDataPointer(), mediaKeyBits.GetSize() / 8);
 	} else {
 		PTRACE(1, "H235\tUnsupported key type " << h235key.GetTagName());
 		SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure: unsupported key type");
@@ -15791,8 +15792,9 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 	}
 
 	PTRACE(3, "H235\tMedia key decoded:" << endl << hex << mediaKey);
-	if (mediaKey.GetSize() == 0) {
-		PTRACE(1, "H235\tMedia key decode failed");
+	// the crypto engine reads the key size of the algorithm from the media key
+	if (mediaKey.GetSize() == 0 || mediaKey.GetSize() < AlgorithmKeySize(algorithmOID)) {
+		PTRACE(1, "H235\tMedia key decode failed: size=" << mediaKey.GetSize() << " expected=" << AlgorithmKeySize(algorithmOID));
 		SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure: unable to decode media key");
 		return false;
 	}
