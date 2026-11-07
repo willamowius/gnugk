@@ -7507,7 +7507,8 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 #ifdef HAS_AVAYA_SUPPORT
 	/* Avaya hack */
 	/* Seems it can be an outgoing call from Avaya phone */
-	if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsAvaya()) {
+	/* only if the endpoint has a CCMS channel, an Avaya vendor code alone doesn't mean it speaks CCMS */
+	if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsAvaya() && m_call->GetCallingParty()->GetCCMS()) {
 			PTRACE(3, Type() << "\tAvaya: CG=" << m_call->GetCallingParty()->PrintOn(false));
 			PTRACE(3, Type() << "\tAvaya: CD=" << (m_call->GetCalledParty() ? m_call->GetCalledParty()->PrintOn(false) : PString("unregistered")));
 			PTRACE(3, Type() << "\tAvaya: CGSS=" << m_call->GetCallSignalSocketCalling());
@@ -8627,10 +8628,11 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 			PTRACE(3, Type() << "\tAvaya: CDSS=" << m_call->GetCallSignalSocketCalled());
 			if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsAvaya()) {
 				PTRACE(3, Type() << "\tAvaya: Call from Avaya endpoint");
-				if (q931.HasIE(Q931::KeypadIE)) {
+				CallRec* ccms = m_call->GetCallingParty()->GetCCMS();
+				CallSignalSocket *css = ccms ? ccms->GetCallSignalSocketCalling() : NULL;
+				/* only if the endpoint has a CCMS channel, otherwise forward the Information like for any other endpoint */
+				if (css && q931.HasIE(Q931::KeypadIE)) {
 					PTRACE(3, Type() << "\tAvaya: Keypad IE present " + q931.GetKeypad());
-					CallRec* ccms = m_call->GetCallingParty()->GetCCMS();
-					CallSignalSocket *css = ccms->GetCallSignalSocketCalling();
 					Q931 newq931;
 					PBYTEArray newbuf;
 					css->BuildInformationPDU(newq931, true, CCMS_vdtUpdate_displayModuleInspect, sizeof(CCMS_vdtUpdate_displayModuleInspect));
@@ -15793,7 +15795,7 @@ bool RTPLogicalChannel::CreateH235Session(H235Authenticators & auth, const H245_
 
 	PTRACE(3, "H235\tMedia key decoded:" << endl << hex << mediaKey);
 	// the crypto engine reads the key size of the algorithm from the media key
-	if (mediaKey.GetSize() == 0 || mediaKey.GetSize() < AlgorithmKeySize(algorithmOID)) {
+	if (mediaKey.GetSize() == 0 || (unsigned)mediaKey.GetSize() < (unsigned)AlgorithmKeySize(algorithmOID)) {
 		PTRACE(1, "H235\tMedia key decode failed: size=" << mediaKey.GetSize() << " expected=" << AlgorithmKeySize(algorithmOID));
 		SNMP_TRAP(10, SNMPError, Authentication, "H.235.6 failure: unable to decode media key");
 		return false;

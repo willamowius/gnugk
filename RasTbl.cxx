@@ -1121,7 +1121,8 @@ PString EndpointRec::PrintOn(bool verbose) const
 #ifdef HAS_AVAYA_SUPPORT
 		if (IsAvaya()) {
 			msg += " specific:" + GetHookString() + " CCMS:\r\n";
-			msg += m_ccmsCall->PrintOn(false);
+			if (m_ccmsCall)
+				msg += m_ccmsCall->PrintOn(false);
 		} else
 #endif
 			msg += "\r\n";
