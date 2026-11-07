@@ -5950,6 +5950,11 @@ void CallTable::OnQosMonitoringReport(const PString & conference, const endptr &
     if (qosdata.GetTag() == H4609_QosMonitoringReportData::e_periodic) {
         H4609_PeriodicQoSMonReport & rep = qosdata;
 		H4609_ArrayOf_PerCallQoSReport & percall = rep.m_perCallInfo;
+		// perCallInfo is an unconstrained SEQUENCE OF, a report without any entry is valid PER
+		if (percall.GetSize() == 0) {
+			PTRACE(4, "QoS\tPeriodic report without perCallInfo ignored");
+			return;
+		}
         report = percall[0].m_mediaChannelsQoS;
 	} else if (qosdata.GetTag() == H4609_QosMonitoringReportData::e_final) {
         H4609_FinalQosMonReport & rep = qosdata;
