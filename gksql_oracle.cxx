@@ -162,7 +162,7 @@ protected:
 		SQLConnPtr conn,
 		/// string to be escaped
 		const char* str
-		) { return str; } // TODO
+		);
 
 private:
 	GkOracleConnection(const GkOracleConnection &);
@@ -415,6 +415,27 @@ GkSQLResult* GkOracleConnection::ExecuteQuery(
 	} else {
     	return new GkOracleResult(rows);
 	}
+}
+
+PString GkOracleConnection::EscapeString(
+	/// SQL connection to get escaping parameters from
+	SQLConnPtr /*conn*/,
+	/// string to be escaped
+	const char* str
+	)
+{
+	PString s(str);
+	// remove all special characters 0x00-0x1f, except TAB
+	PINDEX i = 0;
+	while (i < s.GetLength()) {
+		if (s.Mid(i, 1) < PString(' ') && s.Mid(i, 1) != PString('\t')) {
+			s.Delete(i, 1);
+		} else {
+			++i;
+		}
+	}
+	s.Replace("'", "''", TRUE);
+	return s;
 }
 
 namespace {
