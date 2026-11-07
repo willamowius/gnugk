@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(GkStatus.cxx) limit status port command lines to 2K
 - BUGFIX(gksql_redis.cxx) implement GkRedisResult::FetchRow(),report Redis error replies as query errors
 - BUGFIX(GkClient.*) add mutex for aliases
 - BUGFIX(GkStatus.cxx) add mutex for libssh sessions

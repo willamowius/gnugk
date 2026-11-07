@@ -53,6 +53,7 @@ void ExitGK() { }; // mockup function for unit testing
 
 static const char *authsec = "GkStatus::Auth";
 static const char *filteringsec = "GkStatus::Filtering";
+static const PINDEX maxCommandLength = 2048;	// commands/lines from status clients must be shorter than this
 
 // a very lightweight implementation of telnet socket
 class TelnetSocket : public ServerSocket {
@@ -556,7 +557,7 @@ bool SSHStatusClient::Authenticate()
 							{
 								shell = true;
 								const char * cmd = ssh_message_channel_request_command(m_message);
-								if (cmd && strlen(cmd) < 2048) {
+								if (cmd && strlen(cmd) < (size_t)maxCommandLength) {
 									OnCommand(cmd);
 									Flush();
 								}
@@ -666,6 +667,11 @@ bool SSHStatusClient::ReadCommand(PString& cmd, bool echo, int readTimeout)
 					m_currentCmd = PString::Empty();
 					return true;
 				default:
+					if (m_currentCmd.GetLength() + 1 >= maxCommandLength) {
+						PTRACE(2, "STATUS\tCommand too long, closing connection to " << GetName());
+						Close();
+						return false;
+					}
 					char byte = char(ch);
 					m_currentCmd += byte;
 					cmd = m_currentCmd.Right(3);
@@ -1359,6 +1365,12 @@ bool StatusClient::ReadCommand(
 				m_currentCmd = PString::Empty();
 				return true;
 			default:
+				if (m_currentCmd.GetLength() + 1 >= maxCommandLength) {
+					// bound the unauthenticated login prompt as well, appending is O(n) per byte
+					PTRACE(2, "STATUS\tCommand too long, closing connection to " << GetName());
+					Close();
+					return false;
+				}
 				byte = char(ch);
 				m_currentCmd += byte;
 				cmd = m_currentCmd.Right(3);
