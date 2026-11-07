@@ -165,15 +165,17 @@ EndpointRec::EndpointRec(
 	LoadEndpointConfig();
 }
 
-const int aliasCount = 6;
+const int aliasCount = 8;
 const static POrdinalToString::Initialiser H225AliasTypes[aliasCount] =
 {
 	{H225_AliasAddress::e_h323_ID,        "h323id"},
 	{H225_AliasAddress::e_dialedDigits,   "dialeddigits"},
 	{H225_AliasAddress::e_url_ID,         "url"},
 	{H225_AliasAddress::e_transportID,    "transport"},
- 	{H225_AliasAddress::e_email_ID,       "email"},
- 	{H225_AliasAddress::e_partyNumber,    "partynumber"}
+	{H225_AliasAddress::e_email_ID,       "email"},
+	{H225_AliasAddress::e_partyNumber,    "partynumber"},
+	{H225_AliasAddress::e_mobileUIM,      "mobileuim"},
+	{H225_AliasAddress::e_isupNumber,     "isupnumber"}
 };
 
 const static POrdinalToString h225aliastypes(aliasCount, H225AliasTypes);
@@ -228,6 +230,11 @@ void EndpointRec::LoadAliases(const H225_ArrayOf_AliasAddress & aliases, const H
 
 				PStringList filterlist = filtertype[1].ToLower().Tokenise(",", false);
 				for (PINDEX i = 0; i< aliases.GetSize(); i++) {
+					// alias types without a filter name (eg. mobileUIM, isupNumber) can't match any filter
+					if (!h225aliastypes.Contains(aliases[i].GetTag())) {
+						PTRACE(5, "AliasTypeFilter - skipping alias of unknown type " << aliases[i].GetTagName());
+						continue;
+					}
 					PString aliasType = h225aliastypes[aliases[i].GetTag()];
 					for (PINDEX j = 0; j < filterlist.GetSize(); j++) {
 						if (aliasType == filterlist[j]) {

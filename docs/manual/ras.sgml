@@ -168,7 +168,7 @@ any given endpoint type. The registrations will keep all alias types listed in t
 filter setting and remove all others.
 You must have separate AliasTypeFilter entries for each endpoint type.
 Valid endpoint types are: gatekeeper, gateway, mcu and terminal.
-Valid filters are: h323id, dialeddigits, url, transport, email and partynumber.
+Valid filters are: h323id, dialeddigits, url, transport, email, partynumber, mobileuim and isupnumber.
 NOTE: If no alias is found that match the filter then all aliases are registered.
 
 <item><tt/GatewayAssignAliases=0/<newline>
