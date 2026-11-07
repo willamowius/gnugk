@@ -315,6 +315,15 @@ PString EscapeLDAPFilterValue(
 	const PString & value	/// assertion value to insert into a filter
 	);
 
+// escape parameter values, so they can't change the structure of the URL they are inserted into
+std::map<PString, PString> UrlEscapeParams(const std::map<PString, PString> & params);
+
+// escape parameter values, so they can't change the structure of the HTTP body they are inserted into (form data and JSON only)
+std::map<PString, PString> HttpBodyEscapeParams(const std::map<PString, PString> & params, const PString & contentType);
+
+// check if the path of a URL has "." or ".." segments (there is no way to escape them)
+bool HasDotSegments(const PString & url);
+
 bool FindH460Descriptor(unsigned feat, H225_ArrayOf_FeatureDescriptor & features, unsigned & location);
 
 void RemoveH460Descriptor(unsigned feat, H225_ArrayOf_FeatureDescriptor & features);

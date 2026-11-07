@@ -2345,12 +2345,16 @@ void HttpPolicy::RunPolicy(
 
     PString result;
 
-    PString url = GkAuthenticator::ReplaceAuthParams(m_url, params);
+    PString url = GkAuthenticator::ReplaceAuthParams(m_url, UrlEscapeParams(params));
     url = Toolkit::Instance()->ReplaceGlobalParams(url);
-    url.Replace(" ", "%20", true);  // TODO: better URL escaping ?
+    url.Replace(" ", "%20", true);
     PTRACE(6, m_iniSection + "\tURL=" << url);
+    if (HasDotSegments(url)) {
+        PTRACE(2, m_name << "\tError: Invalid URL " << url);
+        return;
+    }
     PString host = PURL(url).GetHostName();
-    PString body = GkAuthenticator::ReplaceAuthParams(m_body, params);
+    PString body = GkAuthenticator::ReplaceAuthParams(m_body, HttpBodyEscapeParams(params, m_contentType));
     body = Toolkit::Instance()->ReplaceGlobalParams(body);
 
 #ifdef HAS_LIBCURL

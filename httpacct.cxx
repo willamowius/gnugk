@@ -117,9 +117,9 @@ GkAcctLogger::Status HttpAcct::Log(GkAcctLogger::AcctEvent evt, const callptr & 
 
     std::map<PString, PString> params;
     SetupAcctParams(params, call, m_timestampFormat);
-    PString url = ReplaceAcctParams(eventURL, params);
+    PString url = ReplaceAcctParams(eventURL, UrlEscapeParams(params));
     url = Toolkit::Instance()->ReplaceGlobalParams(url);
-    PString body = ReplaceAcctParams(eventBody, params);
+    PString body = ReplaceAcctParams(eventBody, HttpBodyEscapeParams(params, m_contentType));
     body = Toolkit::Instance()->ReplaceGlobalParams(body);
 
 	return HttpLog(url, body);
@@ -154,9 +154,9 @@ GkAcctLogger::Status HttpAcct::Log(GkAcctLogger::AcctEvent evt, const endptr & e
 
     std::map<PString, PString> params;
     SetupAcctEndpointParams(params, ep, m_timestampFormat);
-    PString url = ReplaceAcctParams(eventURL, params);
+    PString url = ReplaceAcctParams(eventURL, UrlEscapeParams(params));
     url = Toolkit::Instance()->ReplaceGlobalParams(url);
-    PString body = ReplaceAcctParams(eventBody, params);
+    PString body = ReplaceAcctParams(eventBody, HttpBodyEscapeParams(params, m_contentType));
     body = Toolkit::Instance()->ReplaceGlobalParams(body);
 
 	return HttpLog(url, body);
@@ -181,7 +181,11 @@ static int DebugToTrace(CURL *handle, curl_infotype type, char *data, size_t siz
 
 GkAcctLogger::Status HttpAcct::HttpLog(PString url, PString body)
 {
-    url.Replace(" ", "%20", true);  // TODO: better URL escaping ?
+    url.Replace(" ", "%20", true);
+    if (HasDotSegments(url)) {
+        PTRACE(2, "HttpAcct\tError: Invalid URL " << url);
+        return Fail;
+    }
     PString host = PURL(url).GetHostName();
     PString result; // we have to capture the response, but we ignore it for now
     const char lf = (char)10;

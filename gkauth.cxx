@@ -2423,12 +2423,16 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
 {
     PString result;
 
-    PString url = ReplaceAuthParams(m_url, params);
+    PString url = ReplaceAuthParams(m_url, UrlEscapeParams(params));
     url = Toolkit::Instance()->ReplaceGlobalParams(url);
-    url.Replace(" ", "%20", true);  // TODO: better URL escaping ?
+    url.Replace(" ", "%20", true);
     PTRACE(6, "HttpPasswordAuth\tURL=" << url);
+    if (HasDotSegments(url)) {
+        PTRACE(2, "HttpPasswordAuth\tError: Invalid URL " << url);
+        return false;
+    }
     PString host = PURL(url).GetHostName();
-    PString body = ReplaceAuthParams(m_body, params);
+    PString body = ReplaceAuthParams(m_body, HttpBodyEscapeParams(params, m_contentType));
     body = Toolkit::Instance()->ReplaceGlobalParams(body);
 
 #ifdef HAS_LIBCURL

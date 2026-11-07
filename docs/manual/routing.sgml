@@ -645,6 +645,9 @@ HTTP method to use. Currently GET and POST are supported.
 Default: <tt>text/plain</tt><newline>
 <p>
 The content type header to send in POST requests.
+Parameter values are URL escaped when they are inserted into the URL. In the body they are only escaped
+for the content types <tt>application/x-www-form-urlencoded</tt> and <tt>application/json</tt>,
+so use one of those if the body contains values that are set by the endpoints.
 
 <item><tt/ResultRegex=[0-9]+/<newline>
 Default: <tt>.*</tt>

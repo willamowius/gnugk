@@ -13,6 +13,7 @@
 
 #include "config.h"
 #include <ptlib.h>
+#include <ptclib/url.h>
 #include <h323pdu.h>
 #include "gk_const.h"
 #include "h323util.h"
@@ -1093,6 +1094,44 @@ PString EscapeLDAPFilterValue(const PString & value)
 			escaped += c;
 	}
 	return escaped;
+}
+
+std::map<PString, PString> UrlEscapeParams(const std::map<PString, PString> & params)
+{
+	std::map<PString, PString> escaped;
+	for (std::map<PString, PString>::const_iterator it = params.begin(); it != params.end(); ++it)
+		escaped[it->first] = PURL::TranslateString(it->second, PURL::QueryTranslation);
+	return escaped;
+}
+
+std::map<PString, PString> HttpBodyEscapeParams(const std::map<PString, PString> & params, const PString & contentType)
+{
+	const PCaselessString type = contentType;
+	if (type.Find("x-www-form-urlencoded") != P_MAX_INDEX)
+		return UrlEscapeParams(params);
+	if (type.Find("json") == P_MAX_INDEX)
+		return params;	// we don't know how to escape for other content types
+
+	// always use the \uXXXX form, so HttpAcct doesn't find a \n or \r to replace in the escaped values
+	std::map<PString, PString> escaped = params;
+	for (std::map<PString, PString>::iterator it = escaped.begin(); it != escaped.end(); ++it) {
+		PString & value = it->second;
+		for (PINDEX pos = 0; pos < value.GetLength(); ++pos) {
+			if ((BYTE)value[pos] < 0x20 || value[pos] == '"' || value[pos] == '\\')
+				value.Splice(psprintf("\\u%04x", (BYTE)value[pos]), pos, 1);
+		}
+	}
+	return escaped;
+}
+
+bool HasDotSegments(const PString & url)
+{
+	PStringArray segments = url.Left(url.FindOneOf("?#")).Tokenise("/");
+	for (PINDEX i = 0; i < segments.GetSize(); ++i) {
+		if (segments[i] == "." || segments[i] == "..")
+			return true;
+	}
+	return false;
 }
 
 bool FindH460Descriptor(unsigned feat, H225_ArrayOf_FeatureDescriptor & features, unsigned & location)

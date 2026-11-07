@@ -450,6 +450,37 @@ TEST_F(H323UtilTest, EscapeLDAPFilterValue) {
 	EXPECT_STREQ("peter\\5c2esmith", EscapeLDAPFilterValue("peter\\2esmith"));
 }
 
+TEST_F(H323UtilTest, UrlEscapeParams) {
+	std::map<PString, PString> params;
+	params["u"] = "../health";
+	params["g"] = "x&realm=guests#";
+	params["caller-ip"] = "1.2.3.4";
+	params["caller-vendor"] = "%{env1} 100%";
+	params = UrlEscapeParams(params);
+	EXPECT_STREQ("..%2Fhealth", params["u"]);
+	EXPECT_STREQ("x%26realm%3Dguests%23", params["g"]);
+	EXPECT_STREQ("1.2.3.4", params["caller-ip"]);
+	EXPECT_STREQ("%25%7Benv1%7D%20100%25", params["caller-vendor"]);
+}
+
+TEST_F(H323UtilTest, HttpBodyEscapeParams) {
+	std::map<PString, PString> params;
+	params["u"] = "x\"\"a\\n\"\"b&c\n";
+	EXPECT_STREQ("x\\u0022\\u0022a\\u005cn\\u0022\\u0022b&c\\u000a", HttpBodyEscapeParams(params, "application/json; charset=utf-8")["u"]);
+	EXPECT_STREQ("x%22%22a%5Cn%22%22b%26c%0A", HttpBodyEscapeParams(params, "application/x-www-form-urlencoded")["u"]);
+	EXPECT_STREQ(params["u"], HttpBodyEscapeParams(params, "text/plain")["u"]);
+}
+
+TEST_F(H323UtilTest, HasDotSegments) {
+	EXPECT_TRUE(HasDotSegments("http://example.com/passwords/.."));
+	EXPECT_TRUE(HasDotSegments("http://example.com/passwords/../health"));
+	EXPECT_TRUE(HasDotSegments("http://example.com/passwords/.?user=foo"));
+	EXPECT_FALSE(HasDotSegments("http://example.com/passwords/..%2Fhealth"));
+	EXPECT_FALSE(HasDotSegments("http://example.com/passwords/foo..bar/..."));
+	EXPECT_FALSE(HasDotSegments("http://example.com/passwords?user=.."));
+	EXPECT_FALSE(HasDotSegments("http://example.com/passwords?path=/../#/../"));
+}
+
 TEST_F(H323UtilTest, ProtocolVersion) {
 	EXPECT_EQ(0u, ProtocolVersion("invalid"));
 	EXPECT_EQ(2u, ProtocolVersion(H225_ProtocolIDv2));
