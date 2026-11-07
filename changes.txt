@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(GkStatus.cxx) add mutex for libssh sessions
 - BUGFIX(gkacct.cxx, gkauth.cxx) fix crash when reloading the config
 - BUGFIX(ProxyChannel.cxx) fix race with H.235.6 encryption
 - BUGFIX(ProxyChannel.cxx,RasSrv.cxx) fix H.460.17 memory leak

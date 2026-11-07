@@ -371,6 +371,8 @@ protected:
 	ssh_session m_session;
     ssh_message m_message;
     ssh_channel m_chan;
+	/// a libssh session must not be used by more than one thread at a time
+	PMutex m_sessionMutex;
 };
 
 SSHStatusClient::SSHStatusClient(int instanceNo) : StatusClient(instanceNo)
@@ -470,6 +472,10 @@ bool SSHStatusClient::Authenticate()
 	}
 	const time_t now = time(NULL);
 	const int loginTimeout = GkConfig()->GetInteger(authsec, "LoginTimeout", 120);
+
+	// the job started for an exec request must not write before we are done with the session
+	PWaitAndSignal lock(m_sessionMutex);
+
     bool auth = false;
     const int MAX_RETRIES = 3;
     int retries = 0;
@@ -628,8 +634,10 @@ bool SSHStatusClient::ReadCommand(PString& cmd, bool echo, int readTimeout)
 {
     char buf[2048];
     int i = 0;
+	PWaitAndSignal lock(m_sessionMutex);
     do {
-        i = ssh_channel_read(m_chan, buf, sizeof(buf), 0);
+		// never wait for the client while holding the lock, we are called again when there is more to read
+        i = ssh_channel_read_nonblocking(m_chan, buf, sizeof(buf), 0);
 		for (int c = 0; c < i; c++) {
 			char ch = buf[c];
 			switch (ch)
@@ -678,12 +686,14 @@ bool SSHStatusClient::ReadCommand(PString& cmd, bool echo, int readTimeout)
 			}
     } while (i > 0);
 
-	return true;
+	return false;	// no complete command, yet
 }
 
 bool SSHStatusClient::WriteData(const BYTE * msg, int len)
 {
-	if (!m_chan)
+	PWaitAndSignal lock(m_sessionMutex);
+	// after Close() the descriptor is gone (or already reused), don't let libssh write to it
+	if (!m_chan || !IsSocketOpen())
 		return false;
 
 	int written = ssh_channel_write(m_chan, msg, len);
