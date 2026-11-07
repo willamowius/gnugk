@@ -6836,11 +6836,11 @@ void CallSignalSocket::OnCallProceeding(SignalingMsg * msg)
 	/* Avaya hack */
 	/* Seems it can be an outgoing call from Avaya phone */
 	if (m_call) {
-		PTRACE(3, Type() << "\tAvaya: CG=" << m_call->GetCallingParty()->PrintOn(false));
-		PTRACE(3, Type() << "\tAvaya: CD=" << m_call->GetCalledParty()->PrintOn(false));
+		PTRACE(3, Type() << "\tAvaya: CG=" << (m_call->GetCallingParty() ? m_call->GetCallingParty()->PrintOn(false) : PString("unregistered")));
+		PTRACE(3, Type() << "\tAvaya: CD=" << (m_call->GetCalledParty() ? m_call->GetCalledParty()->PrintOn(false) : PString("unregistered")));
 		PTRACE(3, Type() << "\tAvaya: CGSS=" << m_call->GetCallSignalSocketCalling());
 		PTRACE(3, Type() << "\tAvaya: CDSS=" << m_call->GetCallSignalSocketCalled());
-		if (m_call->GetCallingParty()->IsAvaya()) {
+		if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsAvaya()) {
 			PTRACE(3, Type() << "\tAvaya: Call from Avaya endpoint");
 			m_result = NoData;
 			return;
@@ -7104,11 +7104,11 @@ void CallSignalSocket::OnConnect(SignalingMsg *msg)
 	/* Avaya hack */
 	/* Seems it can be an outgoing call from Avaya phone */
 	if (m_call) {
-		PTRACE(3, Type() << "\tAvaya: CG=" << m_call->GetCallingParty()->PrintOn(false));
-		PTRACE(3, Type() << "\tAvaya: CD=" << m_call->GetCalledParty()->PrintOn(false));
+		PTRACE(3, Type() << "\tAvaya: CG=" << (m_call->GetCallingParty() ? m_call->GetCallingParty()->PrintOn(false) : PString("unregistered")));
+		PTRACE(3, Type() << "\tAvaya: CD=" << (m_call->GetCalledParty() ? m_call->GetCalledParty()->PrintOn(false) : PString("unregistered")));
 		PTRACE(3, Type() << "\tAvaya: CGSS=" << m_call->GetCallSignalSocketCalling());
 		PTRACE(3, Type() << "\tAvaya: CDSS=" << m_call->GetCallSignalSocketCalled());
-		if (m_call->GetCallingParty()->IsAvaya()) {
+		if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsAvaya()) {
 			PTRACE(3, Type() << "\tAvaya: Call from Avaya endpoint");
 			CallRec* ccms = m_call->GetCallingParty()->GetCCMS();
 			if (!ccms)
@@ -7505,9 +7505,9 @@ void CallSignalSocket::OnAlerting(SignalingMsg* msg)
 #ifdef HAS_AVAYA_SUPPORT
 	/* Avaya hack */
 	/* Seems it can be an outgoing call from Avaya phone */
-	if (m_call->GetCallingParty()->IsAvaya()) {
+	if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsAvaya()) {
 			PTRACE(3, Type() << "\tAvaya: CG=" << m_call->GetCallingParty()->PrintOn(false));
-			PTRACE(3, Type() << "\tAvaya: CD=" << m_call->GetCalledParty()->PrintOn(false));
+			PTRACE(3, Type() << "\tAvaya: CD=" << (m_call->GetCalledParty() ? m_call->GetCalledParty()->PrintOn(false) : PString("unregistered")));
 			PTRACE(3, Type() << "\tAvaya: CGSS=" << m_call->GetCallSignalSocketCalling());
 			PTRACE(3, Type() << "\tAvaya: CDSS=" << m_call->GetCallSignalSocketCalled());
 			PTRACE(3, Type() << "\tAvaya: Call from Avaya endpoint");
@@ -7858,8 +7858,8 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 							}
 							PTRACE(6, Type() << "\tAvaya: CallRec " << call);
 							if (call) {
-								PTRACE(6, Type() << "\tAvaya: Calling " << calling->PrintOn(false));
-								PTRACE(6, Type() << "\tAvaya: Called " << called->PrintOn(false));
+								PTRACE(6, Type() << "\tAvaya: Calling " << (calling ? calling->PrintOn(false) : PString("unregistered")));
+								PTRACE(6, Type() << "\tAvaya: Called " << (called ? called->PrintOn(false) : PString("unregistered")));
 							}
 
 							/* Checking if this is a DIGITS 1 command */
@@ -8619,11 +8619,11 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 			PTRACE(3, Type() << "\tAvaya: No UUIE in Information");
 	} else {
 		if (m_call) {
-			PTRACE(3, Type() << "\tAvaya: CG=" << m_call->GetCallingParty()->PrintOn(false));
-			PTRACE(3, Type() << "\tAvaya: CD=" << m_call->GetCalledParty()->PrintOn(false));
+			PTRACE(3, Type() << "\tAvaya: CG=" << (m_call->GetCallingParty() ? m_call->GetCallingParty()->PrintOn(false) : PString("unregistered")));
+			PTRACE(3, Type() << "\tAvaya: CD=" << (m_call->GetCalledParty() ? m_call->GetCalledParty()->PrintOn(false) : PString("unregistered")));
 			PTRACE(3, Type() << "\tAvaya: CGSS=" << m_call->GetCallSignalSocketCalling());
 			PTRACE(3, Type() << "\tAvaya: CDSS=" << m_call->GetCallSignalSocketCalled());
-			if (m_call->GetCallingParty()->IsAvaya()) {
+			if (m_call->GetCallingParty() && m_call->GetCallingParty()->IsAvaya()) {
 				PTRACE(3, Type() << "\tAvaya: Call from Avaya endpoint");
 				if (q931.HasIE(Q931::KeypadIE)) {
 					PTRACE(3, Type() << "\tAvaya: Keypad IE present " + q931.GetKeypad());
@@ -10232,7 +10232,7 @@ bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bo
 
 #ifdef HAS_AVAYA_SUPPORT
 	/* Avaya hack ? */
-        if (!fromCaller && m_call->GetCallingParty()->IsAvaya()) {
+        if (!fromCaller && m_call && m_call->GetCallingParty() && m_call->GetCallingParty()->IsAvaya()) {
             H245_OpenLogicalChannel_forwardLogicalChannelParameters & fwdParams = olc.m_forwardLogicalChannelParameters;
             bool isAudio = (fwdParams.m_dataType.GetTag() == H245_DataType::e_audioData);
             bool isVideo = (fwdParams.m_dataType.GetTag() == H245_DataType::e_videoData);
