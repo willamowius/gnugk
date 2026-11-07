@@ -4293,6 +4293,8 @@ void CallSignalSocket::RerouteCall(FacilityMsg * msg)
     }
 
     SoftPBX::RerouteCall(callID, which, destination);
+    delete msg;
+    msg = NULL;
 }
 
 PString CallSignalSocket::GetCallingStationId(
@@ -9017,10 +9019,12 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 	PrintQ931(3, "Setup for Reroute of ", GetName(), &q931, &uuie);
 
 	PIPSocket::Address dummyAddr;
-	SignalingMsg * msg = SignalingMsg::Create(&q931, &uuie, dummyAddr, 0, dummyAddr, 0);
+	// the message takes ownership of the PDU and UUIE and deletes them, so pass copies of the stack objects
+	SignalingMsg * msg = SignalingMsg::Create(new Q931(q931), (H225_H323_UserInformation *)uuie.Clone(), dummyAddr, 0, dummyAddr, 0);
 	SetupMsg * setup = dynamic_cast<SetupMsg*>(msg);
 	if (setup == NULL) {
 		PTRACE(1, "Can't cast Setup");	// should never happen
+		delete msg;
 		return false;
 	}
 	H225_Setup_UUIE & setupBody = setup->GetUUIEBody();
@@ -9037,6 +9041,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 	if (!RasServer::Instance()->ValidatePDU(*setup, authData)) {
 		PTRACE(1, "Q931\tAuthentication of reroute destination failed");
 		SNMP_TRAP(8, SNMPError, Authentication, "Reroute authentication failed");
+		delete msg;
 		return false;
 	}
 	// invoke routing policies for destination
@@ -9045,6 +9050,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 	Route route;
 	if (!request.GetFirstRoute(route)) {
 		PTRACE(1, "Q931\tCan't find reroute destination");
+		delete msg;
 		return false;
 	}
 	PTRACE(1, "Q931\tRerouting route: " << route.AsString());
@@ -9200,7 +9206,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 	// send Setup
 	buffer = m_rawSetup;
 	buffer.MakeUnique();
-	//delete msg;	// TODO: crash or leak
+	delete msg;
 	PTRACE(5, GetName() << "\tRerouting call to " << route.AsString());
 	CreateJob(this, &CallSignalSocket::DispatchNextRoute, "Reroute");
 
