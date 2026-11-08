@@ -195,6 +195,16 @@ void SoftPBX::DisconnectAll()
 	CallTable::Instance()->ClearTable();
 }
 
+// mark the call as released by the gatekeeper before sending the ReleaseCompletes,
+// otherwise the endpoints' answering ReleaseCompletes set release source and cause in the CDR
+static void DisconnectByGatekeeper(const callptr & Call, bool force)
+{
+	Call->SetReleaseSource(CallRec::ReleasedByGatekeeper);
+	if (Call->GetDisconnectCause() == 0)
+		Call->SetDisconnectCause(Q931::NormalCallClearing);
+	Call->Disconnect(force);
+}
+
 // send a DRQ to caller of this call number, causing it to close the H.225 channel
 // this causes the gatekeeper to close the H.225 channel to the called party when
 // it recognises the caller has gone away
@@ -210,7 +220,7 @@ void SoftPBX::DisconnectCall(unsigned CallNumber)
 		return;
 	}
 
-	Call->Disconnect(true);
+	DisconnectByGatekeeper(Call, true);
 	// remove the call directly so we don't have to handle DCF
 	CallTable::Instance()->RemoveCall(Call);
 
@@ -231,7 +241,7 @@ void SoftPBX::DisconnectCallId(const PString & CallId)
 		return;
 	}
 
-	Call->Disconnect(true);
+	DisconnectByGatekeeper(Call, true);
 	// remove the call directly so we don't have to handle DCF
 	CallTable::Instance()->RemoveCall(Call);
 
@@ -254,7 +264,7 @@ void SoftPBX::DisconnectIp(const PString & Ip)
 		// no port specified
 		while ((Call = CallTable::Instance()->FindBySignalAdrIgnorePort(callSignalAddress))) {
 			unsigned CallNumber = Call->GetCallNumber();
-			Call->Disconnect(true);
+			DisconnectByGatekeeper(Call, true);
 			CallTable::Instance()->RemoveCall(Call);
 			PString msg(PString::Printf, "Call number %d disconnected.", CallNumber);
 			PTRACE(2, "GK\tSoftPBX: " << msg);
@@ -264,7 +274,7 @@ void SoftPBX::DisconnectIp(const PString & Ip)
 		// port specify, search for it
 		while ((Call = CallTable::Instance()->FindBySignalAdr(callSignalAddress))) {
 			unsigned CallNumber = Call->GetCallNumber();
-			Call->Disconnect(true);
+			DisconnectByGatekeeper(Call, true);
 			CallTable::Instance()->RemoveCall(Call);
 			PString msg(PString::Printf, "Call number %d disconnected.", CallNumber);
 			PTRACE(2, "GK\tSoftPBX: " << msg);
@@ -305,7 +315,7 @@ void SoftPBX::DisconnectEndpoint(const endptr & ep)
 	callptr Call;
 	// remove all calls of ep
 	while ((Call = CallTable::Instance()->FindCallRec(ep))) {
-		Call->Disconnect();
+		DisconnectByGatekeeper(Call, false);
 		CallTable::Instance()->RemoveCall(Call);
 	}
 }

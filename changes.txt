@@ -1,5 +1,6 @@
 Changes from 5.16 to 5.17
 =========================
+- BUGFIX(SoftPBX.cxx) set release source and cause for calls disconnected by status port commands
 - BUGFIX(ProxyChannel.cxx) fix callSignallingAddress in H.460.18 SCI to traversal client neighbor
 - BUGFIX(ProxyChannel.cxx) fix memory leak in call rerouting
 - BUGFIX(GkStatus.cxx) limit status port command lines to 2K
