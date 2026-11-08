@@ -69,12 +69,7 @@ def test_neighbor_call_both_proxied(start_gk, workdir, capture):
         assert gk.number_of_calls() == 0
 
 
-@pytest.mark.parametrize("direction", [
-    pytest.param("to-client", marks=pytest.mark.xfail(strict=True, reason="the SCI to a traversal client neighbor "
-                 "has callSignallingAddress 0.0.0.0: ProxyChannel.cxx uses GetCalledParty()->GetRasServerIP(), "
-                 "which isn't set for a neighbor (since c53df9f7, also in 945303a)")),
-    "from-client",
-])
+@pytest.mark.parametrize("direction", ["to-client", "from-client"])
 def test_neighbor_h46018_traversal(start_gk, workdir, direction):
     """GK2 sits behind a NAT (in priv1, with bob) and is an H.460.18 traversal client of GK1 (the traversal
     server, which doesn't know GK2's address and recognizes it by its password): calls work in both
