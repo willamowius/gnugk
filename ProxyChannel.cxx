@@ -6547,8 +6547,14 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		H46018_IncomingCallIndication incoming;
 		incoming.m_callID = setupBody.m_callIdentifier;
 
-        WORD signalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "CallSignalPort", GK_DEF_CALL_SIGNAL_PORT);
-		incoming.m_callSignallingAddress = SocketToH225TransportAddr(m_call->GetCalledParty()->GetRasServerIP(), signalPort);
+		// the IP the endpoint registered to, a neighbor doesn't register: use the interface that reaches it
+		const PIPSocket::Address rasServerIP = m_call->GetCalledParty()->GetRasServerIP();
+		if (rasServerIP.IsValid()) {
+			WORD signalPort = (WORD)GkConfig()->GetInteger(RoutedSec, "CallSignalPort", GK_DEF_CALL_SIGNAL_PORT);
+			incoming.m_callSignallingAddress = SocketToH225TransportAddr(rasServerIP, signalPort);
+		} else {
+			incoming.m_callSignallingAddress = RasSrv->GetCallSignalAddress(m_call->GetCalledParty()->GetIP());
+		}
 
 		H460_FeatureStd feat = H460_FeatureStd(18);
 		PASN_OctetString rawIndication;
@@ -6578,7 +6584,10 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 		}
 #endif
 
-		RasSrv->SendRas(sci_ras, m_call->GetCalledParty()->GetRasAddress(), m_call->GetCalledParty()->GetRasServerIP(), m_call->GetCalledParty()->GetH235Authenticators());
+		if (rasServerIP.IsValid())
+			RasSrv->SendRas(sci_ras, m_call->GetCalledParty()->GetRasAddress(), rasServerIP, m_call->GetCalledParty()->GetH235Authenticators());
+		else
+			RasSrv->SendRas(sci_ras, m_call->GetCalledParty()->GetRasAddress(), (RasListener *)NULL, m_call->GetCalledParty()->GetH235Authenticators());
 
 		// store Setup
 		m_call->StoreSetup(msg);
