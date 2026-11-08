@@ -80,13 +80,13 @@ def test_status_port_print_and_disconnect_call(start_gk, workdir):
     assert gk.number_of_calls() == 0
 
 
-@pytest.mark.xfail(strict=True, reason="SoftPBX::DisconnectCall() sets no release source (CDR %r is -1) and no cause")
 def test_status_port_disconnect_call_cdr(start_gk, workdir):
-    """the CDR of a call ended by DisconnectCall says the gatekeeper released it"""
+    """the CDR of a call ended by DisconnectCall says the gatekeeper released it, with normal call clearing
+    (not the release source and cause from the endpoints' answering ReleaseCompletes)"""
     gk = start_gk()
     disconnect_via_status_port(gk, workdir)
     cdrs = gk.cdrs()
-    assert len(cdrs) == 1 and cdrs[0]["released_by"] == "0", cdrs
+    assert len(cdrs) == 1 and cdrs[0]["released_by"] == "0" and cdrs[0]["cause"] == "16", cdrs
 
 
 def test_status_port_unregister_alias(start_gk, workdir):

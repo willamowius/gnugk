@@ -154,8 +154,10 @@ reports XPASS as a failure, then remove the marker. Currently:
 
 - With all Q.931 messages checked (`h2351-all`), calls to an H.460.18 callee fail: GnuGk checks the
   Facility the callee sends to open its signaling channel, and has no authenticator for it yet.
-- `DisconnectCall` sets no release source (CDR `%r` is -1) and no cause.
 - `RerouteCall` with fastStart: no media is opened after the reroute.
+- Child gatekeeper, caller hangs up: the child sends its DRQ to the parent before it forwards the
+  ReleaseComplete; the parent removes the call on the DRQ and doesn't read the late ReleaseComplete, so the
+  callee isn't released (the test forces the race by dropping that ReleaseComplete once).
 - `CompareAliasCase`: auth rules that are config keys (`[RasSrv::RRQAuth]`, `[TwoAliasAuth]`, the
   `SimplePasswordAuth` passwords) always ignore case (PTLib config keys are caseless); a password for `alice`
   can't be decoded for `Alice`; `TwoAliasAuth` compares the secret alias case-sensitively; `PrefixAuth` alias
