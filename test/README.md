@@ -162,8 +162,6 @@ reports XPASS as a failure, then remove the marker. Currently:
   rules always ignore case; SQL modules leave the comparison to the database.
 - `SQLAuth` `NbQuery`: LRQs from configured neighbors skip all authenticators, the query only runs for
   non-neighbor LRQs (`AcceptNonNeighborLRQ=1`).
-- Calls to an H.460.18 traversal client neighbor: the SCI says to connect to 0.0.0.0
-  (`GetRasServerIP()` isn't set for neighbors).
 
 ## Network
 
