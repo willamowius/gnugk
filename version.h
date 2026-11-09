@@ -22,7 +22,7 @@
 
 /* Minor version number of the gatekeeper */
 #ifndef GNUGK_MINOR_VERSION
-# define GNUGK_MINOR_VERSION 17
+# define GNUGK_MINOR_VERSION 18
 #endif
 
 /* Release status for the gatekeeper */

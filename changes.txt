@@ -1,3 +1,7 @@
+Changes from 5.17 to 5.18
+=========================
+
+
 Changes from 5.16 to 5.17
 =========================
 - BUGFIX(SoftPBX.cxx) set release source and cause for calls disconnected by status port commands
