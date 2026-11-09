@@ -3,7 +3,7 @@
  *
  * unit tests for ProxyChannel.cxx
  *
- * Copyright (c) 2021, Jan Willamowius
+ * Copyright (c) 2021-2026, Jan Willamowius
  *
  * This work is published under the GNU Public License version 2 (GPLv2)
  * see file COPYING for details.
@@ -35,7 +35,7 @@ TEST_F(ProxyChannelTest, H46019Session) {
 	s1.m_multiplexID_fromA = 1;
 	s2.m_multiplexID_fromB = 2;
 	s1.Merge(s2);
-	EXPECT_TRUE(s1.m_multiplexID_fromA = 1 && s1.m_multiplexID_fromB == 2);
+	EXPECT_TRUE(s1.m_multiplexID_fromA == 1 && s1.m_multiplexID_fromB == 2);
 }
 
 }  // namespace
