@@ -30,6 +30,7 @@ def test_endpoint_capacity(start_gk, workdir):
         assert gk.number_of_calls() == 1
         rejected = second_call(gk, workdir, "pub1", "caller2", "gw")
         first = caller.wait()
+        gw.wait()	# let it unregister, killed it could still hold the alias when the next gw registers
     finally:
         caller.kill()
         gw.kill()

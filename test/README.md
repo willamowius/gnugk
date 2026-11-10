@@ -35,6 +35,14 @@ CDR with the right duration and cause, no call was left over and both endpoints 
 | `test_t120.py` | T.120 capabilities and channels pass by default and with `EnableT120=1`, `[RoutedMode] EnableT120=0` removes and rejects them (tunneled and separate H.245, with and without proxy) |
 | `test_media.py` | RTCP through the RTP proxy and `EnableRTCPStats`, H.460.19 RTP multiplexing |
 | `test_multi_gk.py` | neighbor gatekeepers (also with both proxying, and H.460.18 neighbor traversal), child gatekeeper registered with a parent |
+| `test_signaling.py` | rewritten IEs (`ScreenDisplayIE` with append/prepend, `ScreenCallingPartyNumberIE`, `ScreenSourceAddress`, called / calling type of number globally and per `[EP::...]`), `DisableFastStart`, `DisableH245Tunneling`, `CpsLimit`, user input (H.245 alphanumeric and signal, Q.931 keypad) both ways, channels closed and reopened during a call (empty capability set) |
+| `test_cdr.py` | `GenerateUCCDR`, `GenerateNBCDR`, `StandardCDRFormat`, `TimestampFormat` (per module and global), CDR file rotation |
+| `test_routing_policies.py` | `numberanalysis` (ARQ and Setup), `[RasSrv::RewriteAlias]`, `catchall` (alias and IP), gateway selection (longest prefix, `!` and `.` prefixes, `GatewayPriority`, prefix priority, `LeastUsedRouting`), `PrefixCapacities`, routing policies per prefix and per message, `dns` with host names and `ResolveNonLocalLRQ`, DRQ in routed mode (`RemoveCallOnDRQ`, `SendReleaseCompleteOnDRQ`), direct mode calls of endpoints that die |
+| `test_neighbors.py` | `SendPrefixes` / `AcceptPrefixes` with three gatekeepers, LRQ forwarding (`ForwardLRQ`, `ForwardHopCount`, `AcceptForwardedLRQ`), LRQ loops (hop count, `LoopDetection`), a neighbor that doesn't answer (`NeighborTimeout`, `SendRetries`), neighbor passwords, parent gatekeeper restart |
+| `test_nat_media.py` | NAT without H.460.18 (`ProxyForNAT`, NATs that change ports, `IgnoreSignaledIPs`, inbound calls), H.460.17, fake RTP from a third host (RTP injection / bleed, `RestrictRTPSources`, `LegacyPortDetection`), `RTPInactivityCheck`, H.235 half-call media, running out of RTP proxy ports |
+| `test_operations.py` | shutdown with a call up (status port and SIGTERM, `DisconnectCallsOnShutdown`), `MaintenanceMode`, the unregister and disconnect commands, `MakeCall`, query commands (`Find`, `PrintCallInfo`, `Who`, `Yell`, ...), status port garbage, `MaxStatusClients`, a status client that doesn't read, SSH status port, broken configs (reload and start), `RotateLog`, `setlog`, trace level |
+| `test_scripting.py` | `HttpPasswordAuth`, `http` routing (plain and JSON), `HttpAcct`, slow / down HTTP servers, `LuaAuth`, `lua` routing, `LuaAcct`, failing Lua scripts |
+| `test_robustness.py` | malformed RAS (random, truncated and bit-flipped RRQs), oversized alias arrays, malformed TPKT / Q.931, idle and half-open signaling connections, RAS messages with another endpoint's IDs from a third host (without protection, with MD5 tokens, with `CheckSenderIP`) |
 | `test_soak.py` | 100 calls in a row, GnuGk's memory, file descriptors and threads must stay flat |
 | `test_ipv6.py` | IPv6 calls, also IPv4 to IPv6 (skipped without kernel IPv6 support) |
 
@@ -44,6 +52,11 @@ CDR with the right duration and cause, no call was left over and both endpoints 
 - `ip` (iproute2), `iptables`, `tcpdump` (optional, for pcaps), Python 3 with `pytest`
 - a C++ toolchain and the usual PTLib build dependencies (bison, flex, OpenSSL headers)
 - for the IPv6 tests a kernel with IPv6 support, they are skipped otherwise
+- for `test_scripting.py`: GnuGk built with libcurl and Lua (`libcurl4-openssl-dev`, `liblua5.3-dev` or
+  `liblua5.4-dev`, `build-deps.sh` finds them); the JSON routing test needs `nlohmann-json3-dev` and is skipped
+  without it
+- for the SSH status port tests: libssh headers for the GnuGk build (`libssh-dev`) and `ssh` / `sshpass` to log
+  in (`openssh-client sshpass`), skipped without the client tools
 
 ## Build
 
@@ -164,6 +177,18 @@ reports XPASS as a failure, then remove the marker. Currently:
   rules always ignore case; SQL modules leave the comparison to the database.
 - `SQLAuth` `NbQuery`: LRQs from configured neighbors skip all authenticators, the query only runs for
   non-neighbor LRQs (`AcceptNonNeighborLRQ=1`).
+- `PrependToDisplayIE` is in the manual and the list of known keys, but nothing reads it.
+- A DRQ for a routed call (default `RemoveCallOnDRQ=1`) removes the call record and writes the CDR, but
+  doesn't close the signaling channels: the call and its proxied media go on without a call record.
+- `CpsLimit` counts (and rejects) status port connections too.
+- `IgnoreSignaledIPs=1` without `RestrictRTPSources`: a third host that sprays the RTP proxy ports gets the
+  call's media (RTP bleed) and the endpoint gets none.
+- H.235 half-call media with an H323Plus endpoint: GnuGk expects cipher payload type 120 (from the OLC), the
+  endpoint sends 96; GnuGk doesn't decrypt and the encrypting side gets no media.
+- URQs are never authenticated (no `ValidatePDU()`): with MD5 tokens required for URQs, an URQ without a
+  token from any IP unregisters the endpoint and disconnects its calls.
+- Without H.235 tokens the endpoint ID is the only credential: URQ, DRQ, BRQ and ARQ with another endpoint's
+  ID are accepted from any IP (`CheckSenderIP` only covers ARQs and is off by default).
 
 ## Network
 
@@ -172,8 +197,10 @@ Every host runs in its own network namespace (prefix `gkt-`):
 ```
 gk     10.99.0.1  --+
 gk2    10.99.0.2  --+     (a 2nd gatekeeper: neighbor, child)
+gk3    10.99.0.3  --+     (a 3rd gatekeeper: LRQ forwarding)
 pub1   10.99.0.11 --+
 pub2   10.99.0.12 --+-- bridge (gkt-core)
+pub3   10.99.0.13 --+     (a third party: attacker, HTTP server)
 nat1   10.99.0.21 --+     nat1 192.168.1.1 -- priv1 192.168.1.10
 nat2   10.99.0.22 --+     nat2 192.168.2.1 -- priv2 192.168.2.10
 ```
@@ -207,8 +234,11 @@ runs `gktestep` on one of the hosts above. Every endpoint gets its own signaling
 and RTP ports, `listen_port=1720` for an endpoint that is called by IP, `gk=` to register with another
 gatekeeper. `harness/calls.py` has `run_call()` for a complete call, the
 GnuGk object has helpers for the status port (`registrations()`, `current_calls()`, `StatusSession`
-for a persistent connection), the trace (`ras_events()`, `trace_count()`), CDRs (`cdrs()`) and
-its resources (`resources()`). A second gatekeeper: `start_gk(config, host="gk2", name="gk2")`.
+for a persistent connection, `endpoints()`, `endpoint_id()`, `call_ids()`, `wait_no_calls()`, `send()`,
+`command()`), the trace (`ras_events()`, `trace_count()`), CDRs (`cdrs()`) and its resources (`resources()`);
+`wait_exit()` for a test that makes GnuGk exit. `harness/rtp.py` sprays fake RTP at the proxy ports,
+`harness/http.py` is an HTTP server for the HTTP modules, `spoof_ras()` in `harness/endpoint.py` sends a single
+crafted RAS message. A second gatekeeper: `start_gk(config, host="gk2", name="gk2")`.
 
 ## gktestep
 
@@ -227,6 +257,18 @@ gktestep --gk ip[:port]|--no-gk --alias name[,name...] --result file.json [optio
   --h46018             use H.460.18/.19 NAT traversal
   --h46019m            with --h46018: use H.460.19 RTP multiplexing (receive and send)
   --t120               offer T.120 in the capability set and open a T.120 channel when the call is up
+  --h245-address ip:port  callee: announce this H.245 address in the CallProceeding
+  --h46017             register and signal over one TCP connection to the gatekeeper (H.460.17)
+  --h235-media         offer H.235.6 media encryption (AES 128)
+  --user-input text    send this user input 1 second into the call
+  --user-input-mode m  how to send it: string (H.245 alphanumeric, default), tone (H.245 signal)
+                       or q931 (keypad IE in a Q.931 Information)
+  --pause-after sec    send an empty capability set this long into the call (the other side closes
+                       its channels), and the full one again 2 seconds later
+  --spoof msg          no endpoint: send one RAS message (URQ, DRQ, BRQ, ARQ, RRQ or IRR) to the gatekeeper
+                       with the endpoint ID of --spoof-epid and report the reply; --spoof-callid and
+                       --spoof-confid (32 hex digits) name the call, --spoof-count: aliases in an RRQ,
+                       --spoof-dump file: also write the encoded message to file
   --no-faststart       open media with H.245 only
   --no-tunneling       use a separate H.245 channel instead of H.245 tunneling
   --call alias         call this alias, otherwise answer one call

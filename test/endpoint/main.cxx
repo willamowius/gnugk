@@ -142,9 +142,16 @@ private:
 };
 
 struct CallStats {
-	CallStats() : connected(false), cleared(false), h245Tunneling(false), rtpSent(0), rtpReceived(0), durationMs(0) { }
+	CallStats() : calledTON(-1), callingTON(-1), connected(false), h245Tunneling(false), cleared(false), q931Cause(0),
+		rtpSent(0), rtpReceived(0), rtpReceivedAtPause(0), rtpReceivedAtResume(0), paused(false), durationMs(0) { }
 	PString calledNumber;	// callee: called party number of the incoming Setup
 	PString callingNumber;	// callee: calling party number of the incoming Setup
+	int calledTON;	// callee: type of number of the called party number IE, -1 without the IE
+	int callingTON;	// callee: type of number of the calling party number IE, -1 without the IE
+	PString display;	// callee: Display IE of the incoming Setup, caller: Display IE of the Connect
+	PString sourceAliases;	// callee: sourceAddress of the Setup-UUIE, comma separated
+	PString userInput;	// user input received from the other side (H.245 UserInputIndication or Q.931 keypad)
+	PString encryption;	// media encryption H323Plus reports for the call, eg. "rx:AES128,tx:AES128"
 	bool connected;
 	bool h245Tunneling;
 	bool cleared;
@@ -152,6 +159,10 @@ struct CallStats {
 	unsigned q931Cause;
 	DWORD rtpSent;
 	DWORD rtpReceived;
+	DWORD rtpReceivedAtPause;	// --pause-after: received when we sent the empty capability set
+	DWORD rtpReceivedAtResume;	// --pause-after: received when we sent the full capability set again
+	bool paused;	// --pause-after: the pause and resume were sent
+	bool fastStart = false;	// the media channels were opened with fastStart
 	PInt64 durationMs;
 	PString txCodec;	// audio codec we send, eg. "G.711-uLaw-64k"
 	PString rxCodec;	// audio codec we receive
@@ -184,6 +195,10 @@ static void SetT120Data(H245_DataApplicationCapability & data)
 	data.m_maxBitRate = 640;
 }
 
+// caller: Display IE of the last Connect
+static PMutex connectDisplayMutex;
+static PString connectDisplay;
+
 // --h245-address: the H.245 address to announce in the CallProceeding (eg. to test what the gatekeeper connects to)
 static PString announcedH245Address;
 
@@ -204,6 +219,19 @@ public:
 			PTRACE(1, "GKTESTEP\tAnnouncing H.245 address " << announcedH245Address << " in the CallProceeding");
 		}
 		return H323Connection::OnSendCallProceeding(pdu);
+	}
+
+	// media was opened with fastStart (and not with H.245 OpenLogicalChannels)
+	bool UsedFastStart() const { return fastStartState == FastStartAcknowledged; }
+
+	// caller: the Display IE the called side (or the gatekeeper) put into the Connect
+	virtual PBoolean OnReceivedSignalConnect(const H323SignalPDU & pdu)
+	{
+		{
+			PWaitAndSignal lock(connectDisplayMutex);
+			connectDisplay = pdu.GetQ931().GetDisplayName();
+		}
+		return H323Connection::OnReceivedSignalConnect(pdu);
 	}
 
 	virtual void OnSendCapabilitySet(H245_TerminalCapabilitySet & pdu)
@@ -308,7 +336,8 @@ class TestEndPoint : public H323EndPoint
 public:
 	enum TokenType { NoTokens, MD5Tokens, H2351Tokens };
 
-	TestEndPoint() : m_rrqConfirmed(false), m_rrqRejected(false), m_tokens(NoTokens), m_fullQ931(false), m_answerDelay(0) { }
+	TestEndPoint() : m_rrqConfirmed(false), m_rrqRejected(false), m_tokens(NoTokens), m_fullQ931(false), m_answerDelay(0),
+		m_mediaEncryption(false) { }
 
 	// how to refuse incoming calls: "busy" (user busy, Q.931 cause 17), "denied" (call rejected, 21) or empty
 	void SetReject(const PString & reject) { m_reject = reject; }
@@ -366,6 +395,8 @@ public:
 	// many seconds generating Diffie-Hellman parameters for each call when H323Plus has H.235 enabled.
 	virtual H235Authenticators CreateEPAuthenticators()
 	{
+		if (m_mediaEncryption)
+			return H323EndPoint::CreateEPAuthenticators();	// the H.235.6 Diffie-Hellman authenticators
 		H235Authenticators auths;
 #ifdef H323_SSL
 		if (m_tokens == H2351Tokens && !m_epPassword.IsEmpty()) {
@@ -405,6 +436,48 @@ public:
 		return true;
 	}
 
+	// user input from the other side, however it was sent (the default tone handler would turn a tone into
+	// a string as well and count it twice)
+	virtual void OnUserInputString(H323Connection &, const PString & value)
+	{
+		PTRACE(1, "GKTESTEP\tUser input string " << value);
+		PWaitAndSignal lock(m_mutex);
+		m_stats.userInput += value;
+	}
+
+	virtual void OnUserInputTone(H323Connection &, char tone, unsigned, unsigned, unsigned)
+	{
+		PTRACE(1, "GKTESTEP\tUser input tone " << tone);
+		PWaitAndSignal lock(m_mutex);
+		m_stats.userInput += tone;
+	}
+
+#ifdef H323_H235
+	virtual void OnMediaEncryption(unsigned session, H323Channel::Directions dir, const PString & cipher)
+	{
+		PTRACE(1, "GKTESTEP\tMedia encryption session " << session << " " << dir << " " << cipher);
+		PWaitAndSignal lock(m_mutex);
+		if (!m_stats.encryption.IsEmpty())
+			m_stats.encryption += ",";
+		m_stats.encryption += PString(dir == H323Channel::IsReceiver ? "rx:" : "tx:") + cipher;
+	}
+#endif
+
+	// --h235-media: offer H.235.6 media encryption in the call signaling
+	void UseMediaEncryption(bool use) { m_mediaEncryption = use; }
+
+	// --pause-after: the RTP counter when the pause / the resume was sent
+	void MarkPause(bool resume)
+	{
+		PWaitAndSignal lock(m_mutex);
+		if (resume) {
+			m_stats.rtpReceivedAtResume = m_stats.rtpReceived;
+			m_stats.paused = true;
+		} else {
+			m_stats.rtpReceivedAtPause = m_stats.rtpReceived;
+		}
+	}
+
 	virtual void OnRegistrationConfirm(const H323TransportAddress & rasAddress)
 	{
 		H323EndPoint::OnRegistrationConfirm(rasAddress);
@@ -424,8 +497,20 @@ public:
 	{
 		{
 			PWaitAndSignal lock(m_mutex);
-			setup.GetQ931().GetCalledPartyNumber(m_stats.calledNumber);
-			setup.GetQ931().GetCallingPartyNumber(m_stats.callingNumber);
+			unsigned plan = 0, type = 0;
+			if (setup.GetQ931().GetCalledPartyNumber(m_stats.calledNumber, &plan, &type))
+				m_stats.calledTON = (int)type;
+			if (setup.GetQ931().GetCallingPartyNumber(m_stats.callingNumber, &plan, &type))
+				m_stats.callingTON = (int)type;
+			m_stats.display = setup.GetQ931().GetDisplayName();
+			if (setup.m_h323_uu_pdu.m_h323_message_body.GetTag() == H225_H323_UU_PDU_h323_message_body::e_setup) {
+				const H225_Setup_UUIE & uuie = setup.m_h323_uu_pdu.m_h323_message_body;
+				if (uuie.HasOptionalField(H225_Setup_UUIE::e_sourceAddress)) {
+					PStringStream names;
+					names << setfill(',') << H323GetAliasAddressStrings(uuie.m_sourceAddress);
+					m_stats.sourceAliases = names;
+				}
+			}
 		}
 		if (m_reject == "busy") {
 			PTRACE(1, "GKTESTEP\tRejecting call from " << caller << " as busy");
@@ -456,11 +541,11 @@ public:
 		// without a separate H.245 channel the control channel is the signaling channel
 		m_stats.h245Tunneling = (&connection.GetControlChannel() == connection.GetSignallingChannel());
 		m_connectTime = PTime();
-		if (t120Offer) {
-			TestConnection * testConnection = dynamic_cast<TestConnection *>(&connection);
-			if (testConnection)
-				testConnection->OpenT120Channel();
-		}
+		TestConnection * testConnection = dynamic_cast<TestConnection *>(&connection);
+		if (testConnection)
+			m_stats.fastStart = testConnection->UsedFastStart();
+		if (t120Offer && testConnection)
+			testConnection->OpenT120Channel();
 	}
 
 	virtual void OnConnectionCleared(H323Connection & connection, const PString & token)
@@ -542,6 +627,7 @@ private:
 	PString m_epPassword;
 	PString m_reject;
 	unsigned m_answerDelay;
+	bool m_mediaEncryption;
 	PString m_pendingAnswer;
 	PTime m_answerAt;
 
@@ -600,6 +686,231 @@ static bool Registered(TestEndPoint & ep) { return ep.IsConfirmed() || ep.IsReje
 static bool Connected(TestEndPoint & ep) { CallStats s = ep.GetStats(); return s.connected || s.cleared; }
 static bool Cleared(TestEndPoint & ep) { return ep.GetStats().cleared; }
 
+// keep an established call up for holdMs (or until it is cleared) and do what was asked for during the call:
+// --user-input after 1 second, --pause-after
+static void HoldCall(TestEndPoint & ep, PArgList & args, unsigned holdMs)
+{
+	const PTime start;
+	const PInt64 pauseAt = args.HasOption("pause-after") ? args.GetOptionString("pause-after").AsUnsigned() * 1000 : -1;
+	bool inputSent = !args.HasOption("user-input"), pauseSent = (pauseAt < 0), resumeSent = (pauseAt < 0);
+	while (!ep.GetStats().cleared) {
+		const PInt64 elapsed = (PTime() - start).GetMilliSeconds();
+		if (elapsed >= holdMs)
+			break;
+		PThread::Sleep(50);
+		ep.Poll();
+		ep.UpdateRTPStats();
+		const bool sendInput = !inputSent && elapsed >= 1000;
+		const bool sendPause = !pauseSent && elapsed >= pauseAt;
+		const bool sendResume = pauseSent && !resumeSent && elapsed >= pauseAt + 2000;
+		if (!sendInput && !sendPause && !sendResume)
+			continue;
+		H323Connection * connection = ep.FindConnectionWithLock(ep.GetToken());
+		if (connection == NULL)
+			continue;
+		if (sendInput) {
+			const PCaselessString mode = args.GetOptionString("user-input-mode", "string");
+			connection->SetSendUserInputMode(mode == "q931" ? H323Connection::SendUserInputAsQ931
+				: mode == "tone" ? H323Connection::SendUserInputAsTone : H323Connection::SendUserInputAsString);
+			connection->SendUserInput(args.GetOptionString("user-input"));
+			inputSent = true;
+		}
+		if (sendPause) {
+			PTRACE(1, "GKTESTEP\tSending an empty capability set");
+			ep.MarkPause(false);
+			connection->SendCapabilitySet(true);
+			pauseSent = true;
+		}
+		if (sendResume) {
+			PTRACE(1, "GKTESTEP\tSending the full capability set again");
+			ep.MarkPause(true);
+			connection->SendCapabilitySet(false);
+			resumeSent = true;
+		}
+		connection->Unlock();
+	}
+}
+
+static bool HexToBytes(const PString & hex, PBYTEArray & bytes)
+{
+	if (hex.GetLength() != 32)
+		return false;
+	bytes.SetSize(16);
+	for (PINDEX i = 0; i < 16; ++i)
+		bytes[i] = (BYTE)hex.Mid(2 * i, 2).AsUnsigned(16);
+	return true;
+}
+
+// --spoof: send a single RAS message with somebody else's endpoint identifier and write the gatekeeper's
+// answer as JSON: {"sent": "URQ", "reply": "unregistrationReject", "rejectReason": "notCurrentlyRegistered"},
+// reply is "none" if nothing came back within 2 seconds
+static void SendSpoofedRAS(PArgList & args)
+{
+	const PCaselessString kind = args.GetOptionString("spoof");
+	const PString epid = args.GetOptionString("spoof-epid");
+	PBYTEArray callID, confID;
+	HexToBytes(args.GetOptionString("spoof-callid"), callID);
+	HexToBytes(args.GetOptionString("spoof-confid"), confID);
+
+	PString listen = args.GetOptionString("listen", "*");
+	PIPSocket::Address localIP(listen.Left(listen.Find(':')));
+	const WORD localPort = (WORD)args.GetOptionString("ras-port", "0").AsUnsigned();
+	PString gk = args.GetOptionString("gk");
+	PIPSocket::Address gkIP(gk.Left(gk.Find(':')));
+	const WORD gkPort = gk.Find(':') != P_MAX_INDEX ? (WORD)gk.Mid(gk.Find(':') + 1).AsUnsigned() : 1719;
+	const PStringArray aliases = args.GetOptionString("alias", "spoofer").Tokenise(",", false);
+
+	PASN_Object::SetMaximumArraySize(100000);	// --spoof-count may ask for more aliases than PTLib's default allows
+	H225_RasMessage ras;
+	const unsigned seqNum = 4711;
+	if (kind == "URQ") {
+		ras.SetTag(H225_RasMessage::e_unregistrationRequest);
+		H225_UnregistrationRequest & urq = ras;
+		urq.m_requestSeqNum = seqNum;
+		urq.m_callSignalAddress.SetSize(1);
+		H323TransportAddress(localIP, 1720).SetPDU(urq.m_callSignalAddress[0]);
+		urq.IncludeOptionalField(H225_UnregistrationRequest::e_endpointIdentifier);
+		urq.m_endpointIdentifier = epid;
+		if (args.HasOption("alias")) {
+			urq.IncludeOptionalField(H225_UnregistrationRequest::e_endpointAlias);
+			H323SetAliasAddresses(aliases, urq.m_endpointAlias);
+		}
+	} else if (kind == "DRQ") {
+		ras.SetTag(H225_RasMessage::e_disengageRequest);
+		H225_DisengageRequest & drq = ras;
+		drq.m_requestSeqNum = seqNum;
+		drq.m_endpointIdentifier = epid;
+		drq.m_conferenceID.SetValue(confID);
+		drq.m_callReferenceValue = 1;
+		drq.m_disengageReason.SetTag(H225_DisengageReason::e_normalDrop);
+		drq.IncludeOptionalField(H225_DisengageRequest::e_callIdentifier);
+		drq.m_callIdentifier.m_guid.SetValue(callID);
+		drq.IncludeOptionalField(H225_DisengageRequest::e_answeredCall);
+		drq.m_answeredCall = false;
+	} else if (kind == "BRQ") {
+		ras.SetTag(H225_RasMessage::e_bandwidthRequest);
+		H225_BandwidthRequest & brq = ras;
+		brq.m_requestSeqNum = seqNum;
+		brq.m_endpointIdentifier = epid;
+		brq.m_conferenceID.SetValue(confID);
+		brq.m_callReferenceValue = 1;
+		brq.m_bandWidth = 1;
+		brq.IncludeOptionalField(H225_BandwidthRequest::e_callIdentifier);
+		brq.m_callIdentifier.m_guid.SetValue(callID);
+	} else if (kind == "ARQ") {
+		ras.SetTag(H225_RasMessage::e_admissionRequest);
+		H225_AdmissionRequest & arq = ras;
+		arq.m_requestSeqNum = seqNum;
+		arq.m_callType.SetTag(H225_CallType::e_pointToPoint);
+		arq.m_endpointIdentifier = epid;
+		arq.IncludeOptionalField(H225_AdmissionRequest::e_destinationInfo);
+		H323SetAliasAddresses(aliases, arq.m_destinationInfo);
+		arq.m_srcInfo.SetSize(1);
+		H323SetAliasAddress(PString("spoofer"), arq.m_srcInfo[0]);
+		arq.m_bandWidth = 1280;
+		arq.m_callReferenceValue = 1;
+		arq.m_conferenceID = OpalGloballyUniqueID();
+		arq.m_activeMC = false;
+		arq.m_answerCall = false;
+		arq.IncludeOptionalField(H225_AdmissionRequest::e_callIdentifier);
+		arq.m_callIdentifier.m_guid = OpalGloballyUniqueID();
+	} else if (kind == "RRQ") {
+		// a registration with --spoof-count aliases (default 1), to test array size limits
+		ras.SetTag(H225_RasMessage::e_registrationRequest);
+		H225_RegistrationRequest & rrq = ras;
+		rrq.m_requestSeqNum = seqNum;
+		rrq.m_protocolIdentifier.SetValue("0.0.8.2250.0.7");
+		rrq.m_discoveryComplete = false;
+		rrq.m_callSignalAddress.SetSize(1);
+		H323TransportAddress(localIP, 1720).SetPDU(rrq.m_callSignalAddress[0]);
+		rrq.m_rasAddress.SetSize(1);
+		H323TransportAddress(localIP, localPort).SetPDU(rrq.m_rasAddress[0]);
+		rrq.m_terminalType.IncludeOptionalField(H225_EndpointType::e_terminal);
+		rrq.m_endpointVendor.m_vendor.m_t35CountryCode = 9;
+		const unsigned count = args.GetOptionString("spoof-count", "1").AsUnsigned();
+		PStringArray names;
+		for (unsigned i = 0; i < count; ++i)
+			names.AppendString(aliases[0] + (i ? PString(i) : PString::Empty()));
+		rrq.IncludeOptionalField(H225_RegistrationRequest::e_terminalAlias);
+		H323SetAliasAddresses(names, rrq.m_terminalAlias);
+		rrq.m_keepAlive = false;
+	} else if (kind == "IRR") {
+		ras.SetTag(H225_RasMessage::e_infoRequestResponse);
+		H225_InfoRequestResponse & irr = ras;
+		irr.m_requestSeqNum = seqNum;
+		irr.m_endpointIdentifier = epid;
+		H323TransportAddress(localIP, localPort).SetPDU(irr.m_rasAddress);
+		irr.m_callSignalAddress.SetSize(1);
+		H323TransportAddress(localIP, 1720).SetPDU(irr.m_callSignalAddress[0]);
+		irr.IncludeOptionalField(H225_InfoRequestResponse::e_needResponse);
+		irr.m_needResponse = true;
+	} else {
+		cerr << "--spoof must be URQ, DRQ, BRQ, ARQ, RRQ or IRR" << endl;
+		PProcess::Current().SetTerminationValue(2);
+		return;
+	}
+
+	PString reply = "none", reason;
+	PUDPSocket socket;
+	if (!socket.Listen(localIP, 1, localPort)) {
+		cerr << "Can't open UDP port " << localPort << " on " << localIP << endl;
+		PProcess::Current().SetTerminationValue(2);
+		return;
+	}
+	PPER_Stream out;
+	ras.Encode(out);
+	out.CompleteEncoding();
+	PTRACE(1, "GKTESTEP\tSending spoofed RAS message\n" << setprecision(2) << ras);
+	if (args.HasOption("spoof-dump")) {	// also write the encoded message (eg. as a fuzzing seed)
+		PFile dump(args.GetOptionString("spoof-dump"), PFile::WriteOnly);
+		dump.Write(out.GetPointer(), out.GetSize());
+	}
+	socket.SetSendAddress(gkIP, gkPort);
+	socket.Write(out.GetPointer(), out.GetSize());
+	socket.SetReadTimeout(2000);
+	BYTE buffer[4096];
+	while (socket.Read(buffer, sizeof(buffer))) {
+		PPER_Stream in(buffer, socket.GetLastReadCount());
+		H225_RasMessage answer;
+		if (!answer.Decode(in))
+			continue;
+		PTRACE(1, "GKTESTEP\tReceived\n" << setprecision(2) << answer);
+		if (answer.GetTag() == H225_RasMessage::e_requestInProgress)
+			continue;
+		reply = answer.GetTagName();
+		switch (answer.GetTag()) {
+			case H225_RasMessage::e_unregistrationReject:
+				reason = ((const H225_UnregistrationReject &)answer).m_rejectReason.GetTagName();
+				break;
+			case H225_RasMessage::e_disengageReject:
+				reason = ((const H225_DisengageReject &)answer).m_rejectReason.GetTagName();
+				break;
+			case H225_RasMessage::e_bandwidthReject:
+				reason = ((const H225_BandwidthReject &)answer).m_rejectReason.GetTagName();
+				break;
+			case H225_RasMessage::e_admissionReject:
+				reason = ((const H225_AdmissionReject &)answer).m_rejectReason.GetTagName();
+				break;
+			case H225_RasMessage::e_registrationReject:
+				reason = ((const H225_RegistrationReject &)answer).m_rejectReason.GetTagName();
+				break;
+			default:
+				break;
+		}
+		break;
+	}
+
+	PTextFile out_file;
+	if (!out_file.Open(args.GetOptionString("result"), PFile::WriteOnly)) {
+		cerr << "Can't write " << args.GetOptionString("result") << endl;
+		PProcess::Current().SetTerminationValue(2);
+		return;
+	}
+	out_file << "{\"sent\": " << JSONString(kind.ToUpper()) << ", \"reply\": " << JSONString(reply)
+		<< ", \"rejectReason\": " << JSONString(reason) << "}\n";
+	out_file.Close();
+}
+
 void GkTestEp::Main()
 {
 	PArgList & args = GetArguments();
@@ -612,6 +923,17 @@ void GkTestEp::Main()
 		"-h46019m."
 		"-t120."
 		"-h245-address:"
+		"-h46017."
+		"-h235-media."
+		"-user-input:"
+		"-user-input-mode:"
+		"-pause-after:"
+		"-spoof:"
+		"-spoof-epid:"
+		"-spoof-callid:"
+		"-spoof-confid:"
+		"-spoof-count:"
+		"-spoof-dump:"
 		"-no-faststart."
 		"-h2351."
 		"-full-q931."
@@ -636,6 +958,11 @@ void GkTestEp::Main()
 		"-log:"
 		"h-help.", false);
 
+	if (!args.HasOption('h') && args.HasOption("spoof") && args.HasOption("gk") && args.HasOption("result")) {
+		SendSpoofedRAS(args);
+		return;
+	}
+
 	if (args.HasOption('h') || !(args.HasOption("gk") || args.HasOption("no-gk")) || !args.HasOption("alias") || !args.HasOption("result")) {
 		cout << "usage: gktestep --gk ip[:port]|--no-gk --alias name[,name...] --result file.json [options]\n"
 			"  --no-gk              don't use a gatekeeper (calls go to the address given with --call)\n"
@@ -652,6 +979,17 @@ void GkTestEp::Main()
 			"  --h46019m            with --h46018: use H.460.19 RTP multiplexing (receive and send)\n"
 			"  --t120               offer T.120 in the capability set and open a T.120 channel when the call is up\n"
 			"  --h245-address ip:port  callee: announce this H.245 address in the CallProceeding\n"
+			"  --h46017             register and signal over one TCP connection to the gatekeeper (H.460.17)\n"
+			"  --h235-media         offer H.235.6 media encryption (AES 128)\n"
+			"  --user-input text    send this user input 1 second into the call\n"
+			"  --user-input-mode m  how to send it: string (H.245 alphanumeric, default), tone (H.245 signal)\n"
+			"                       or q931 (keypad IE in a Q.931 Information)\n"
+			"  --pause-after sec    send an empty capability set this long into the call (the other side closes\n"
+			"                       its channels), and the full one again 2 seconds later\n"
+			"  --spoof msg          no endpoint: send one RAS message (URQ, DRQ, BRQ, ARQ, RRQ or IRR) to the gatekeeper\n"
+			"                       with the endpoint ID of --spoof-epid and report the reply; --spoof-callid and\n"
+			"                       --spoof-confid (32 hex digits) name the call, --spoof-count: aliases in an RRQ,\n"
+			"                       --spoof-dump file: also write the encoded message to file\n"
 			"  --no-faststart       open media with H.245 only\n"
 			"  --no-tunneling       use a separate H.245 channel instead of H.245 tunneling\n"
 			"  --call alias         call this alias, otherwise answer one call\n"
@@ -697,6 +1035,24 @@ void GkTestEp::Main()
 		ep->SetTerminalType(H323EndPoint::e_GatewayOnly);
 	if (args.HasOption("bandwidth"))
 		ep->SetInitialBandwidth(args.GetOptionString("bandwidth").AsUnsigned());
+#ifdef H323_H235
+	if (args.HasOption("h235-media")) {
+		ep->UseMediaEncryption(true);
+		ep->SetH235MediaEncryption(H323EndPoint::encyptRequest, H323EndPoint::encypt128, 1024);
+		ep->EncryptionCacheInitialise();	// make the Diffie-Hellman keys now, not during the call setup
+	}
+#else
+	if (args.HasOption("h235-media")) {
+		cerr << "H323Plus was built without H.235 media encryption" << endl;
+		SetTerminationValue(2);
+		return;
+	}
+#endif
+	if (args.HasOption("pause-after")) {
+		// no jitter buffer: when the receive channel is opened a second time, the jitter buffer thread of the
+		// first one makes PTLib's housekeeping thread crash at the end of the call
+		ep->SetAudioJitterDelay(0, 0);
+	}
 	t120Offer = args.HasOption("t120");
 	announcedH245Address = args.GetOptionString("h245-address");
 	ep->DisableFastStart(args.HasOption("no-faststart"));
@@ -709,8 +1065,8 @@ void GkTestEp::Main()
 	ep->AddAllUserInputCapabilities(0, P_MAX_INDEX);
 
 #ifdef H323_H460
-	if (args.HasOption("h46018")) {
-		ep->H46018Enable(true);
+	if (args.HasOption("h46018") || args.HasOption("h46017")) {
+		ep->H46018Enable(args.HasOption("h46018"));
 #ifdef H323_H46019M
 		ep->H46019MEnable(args.HasOption("h46019m"));
 		ep->H46019MSending(args.HasOption("h46019m"));
@@ -734,7 +1090,7 @@ void GkTestEp::Main()
 		ep->FeatureSetDisable();	// no H.460 features at all
 	}
 #else
-	if (args.HasOption("h46018")) {
+	if (args.HasOption("h46018") || args.HasOption("h46017")) {
 		cerr << "H323Plus was built without H.460 support" << endl;
 		SetTerminationValue(2);
 		return;
@@ -804,8 +1160,19 @@ void GkTestEp::Main()
 		PString localRAS = (listenIP == "*" || listenIP.IsEmpty()) ? PString::Empty() : (ipv6 ? "[" + listenIP + "]" : listenIP);
 		if (!localRAS.IsEmpty() && args.HasOption("ras-port"))
 			localRAS += ":" + args.GetOptionString("ras-port");
-		ep->UseGatekeeper(gk, PString::Empty(), localRAS);	// the result is reported by the RCF/RRJ callbacks
-		registered = WaitFor(Registered, *ep, timeoutMs) && ep->IsConfirmed();
+		if (args.HasOption("h46017")) {
+#ifdef H323_H46017
+			// RAS is tunneled over a TCP connection to the gatekeeper's signaling port
+			registered = ep->H46017CreateConnection(gk.Find(':') != P_MAX_INDEX || ipv6 ? gk : gk + ":1720", false);
+#else
+			cerr << "H323Plus was built without H.460.17" << endl;
+			SetTerminationValue(2);
+			return;
+#endif
+		} else {
+			ep->UseGatekeeper(gk, PString::Empty(), localRAS);	// the result is reported by the RCF/RRJ callbacks
+			registered = WaitFor(Registered, *ep, timeoutMs) && ep->IsConfirmed();
+		}
 	}
 
 	TestGatekeeper * testGk = dynamic_cast<TestGatekeeper *>(ep->GetGatekeeper());
@@ -831,7 +1198,7 @@ void GkTestEp::Main()
 							connection->Unlock();
 						}
 					}
-					WaitFor(Cleared, *ep, durationMs);	// keep the call up (unless the other side hangs up)
+					HoldCall(*ep, args, durationMs);	// keep the call up (unless the other side hangs up)
 					ep->UpdateRTPStats();
 					ep->ClearCall(ep->GetToken());
 				} else if (!ep->GetStats().cleared) {
@@ -851,11 +1218,13 @@ void GkTestEp::Main()
 				callAttempted = true;
 				if (ep->GetStats().connected) {
 					if (args.HasOption("hangup-after")) {
-						WaitFor(Cleared, *ep, args.GetOptionString("hangup-after").AsUnsigned() * 1000);
+						HoldCall(*ep, args, args.GetOptionString("hangup-after").AsUnsigned() * 1000);
 						ep->UpdateRTPStats();
 						ep->ClearCall(ep->GetToken());
+						WaitFor(Cleared, *ep, timeoutMs);
+					} else {
+						HoldCall(*ep, args, durationMs + timeoutMs);
 					}
-					WaitFor(Cleared, *ep, durationMs + timeoutMs);
 				}
 				ep->FinishCall();
 			}
@@ -867,6 +1236,10 @@ void GkTestEp::Main()
 	if (finished.empty())
 		finished.push_back(ep->GetStats());
 	CallStats stats = finished.back();
+	if (stats.display.IsEmpty()) {
+		PWaitAndSignal lock(connectDisplayMutex);
+		stats.display = connectDisplay;
+	}
 	unsigned connectedCalls = 0;
 	for (size_t i = 0; i < finished.size(); ++i)
 		if (finished[i].connected)
@@ -894,8 +1267,18 @@ void GkTestEp::Main()
 			<< "  \"q931Cause\": " << (stats.cleared ? stats.q931Cause : 0) << ",\n"
 			<< "  \"durationMs\": " << stats.durationMs << ",\n"
 			<< "  \"h245Tunneling\": " << (stats.h245Tunneling ? "true" : "false") << ",\n"
+			<< "  \"fastStart\": " << (stats.fastStart ? "true" : "false") << ",\n"
 			<< "  \"calledNumber\": " << JSONString(stats.calledNumber) << ",\n"
 			<< "  \"callingNumber\": " << JSONString(stats.callingNumber) << ",\n"
+			<< "  \"calledTON\": " << stats.calledTON << ",\n"
+			<< "  \"callingTON\": " << stats.callingTON << ",\n"
+			<< "  \"display\": " << JSONString(stats.display) << ",\n"
+			<< "  \"sourceAliases\": " << JSONString(stats.sourceAliases) << ",\n"
+			<< "  \"userInput\": " << JSONString(stats.userInput) << ",\n"
+			<< "  \"encryption\": " << JSONString(stats.encryption) << ",\n"
+			<< "  \"paused\": " << (stats.paused ? "true" : "false") << ",\n"
+			<< "  \"rtpReceivedAtPause\": " << stats.rtpReceivedAtPause << ",\n"
+			<< "  \"rtpReceivedAtResume\": " << stats.rtpReceivedAtResume << ",\n"
 			<< "  \"rtpSent\": " << stats.rtpSent << ",\n"
 			<< "  \"rtpReceived\": " << stats.rtpReceived << ",\n"
 			<< "  \"txCodec\": " << JSONString(stats.txCodec) << ",\n"

@@ -6,8 +6,10 @@ namespace that masquerades their traffic:
 
     gk     10.99.0.1  --+
     gk2    10.99.0.2  --+
+    gk3    10.99.0.3  --+
     pub1   10.99.0.11 --+
     pub2   10.99.0.12 --+-- bridge
+    pub3   10.99.0.13 --+
     nat1   10.99.0.21 --+     nat1 lan 192.168.1.1 -- priv1 192.168.1.10
     nat2   10.99.0.22 --+     nat2 lan 192.168.2.1 -- priv2 192.168.2.10
 
@@ -30,8 +32,10 @@ GK_IP = "10.99.0.1"
 PUBLIC_HOSTS = {
     "gk": GK_IP,
     "gk2": "10.99.0.2",	# a second gatekeeper (neighbor, child)
+    "gk3": "10.99.0.3",	# a third gatekeeper (LRQ forwarding)
     "pub1": "10.99.0.11",
     "pub2": "10.99.0.12",
+    "pub3": "10.99.0.13",	# a third party: attacker, HTTP server, transfer target
 }
 NAT_ROUTERS = {
     "nat1": ("10.99.0.21", "192.168.1", "priv1"),

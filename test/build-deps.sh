@@ -78,7 +78,22 @@ run h323plus-make.log make -j"$JOBS" optnoshared
 
 echo "== building GnuGk"
 cd "$GK_DIR"
-run gnugk-configure.log ./configure --enable-h46018 --enable-large-fdset
+# Lua (for test_scripting.py): GnuGk's configure links -llua, Debian/Ubuntu only ship liblua5.x.so and keep the
+# headers in /usr/include/lua5.x, so point configure at them (no Lua headers: the Lua tests fail with a clear message)
+LUA_OPTS=()
+for v in 5.4 5.3; do
+	if [ -f "/usr/include/lua$v/lua.h" ]; then
+		LUA_OPTS+=("--with-lua-include-dir=/usr/include/lua$v")
+		lib=$(ls /usr/lib/*/liblua$v.so /usr/lib/liblua$v.so 2>/dev/null | head -1)
+		if [ -n "$lib" ]; then
+			mkdir -p "$DEPS/lua-lib"
+			ln -sf "$lib" "$DEPS/lua-lib/liblua.so"
+			LUA_OPTS+=("--with-lua-lib-dir=$DEPS/lua-lib")
+		fi
+		break
+	fi
+done
+run gnugk-configure.log ./configure --enable-h46018 --enable-large-fdset "${LUA_OPTS[@]}"
 # always build from scratch: make doesn't notice when configure changes the compiler flags
 rm -rf "$GK_DIR"/obj_*_s
 run gnugk-make.log make -j"$JOBS" optnoshared

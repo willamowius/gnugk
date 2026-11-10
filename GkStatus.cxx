@@ -1183,6 +1183,7 @@ void GkStatus::OnStart()
 	m_commands["uip"] = e_UnregisterIp;
 	m_commands["unregisteralias"] = e_UnregisterAlias;
 	m_commands["ua"] = e_UnregisterAlias;
+	m_commands["unregisterep"] = e_UnregisterEP;
 	m_commands["transfercall"] = e_TransferCall;
 	m_commands["tc"] = e_TransferCall;
 	m_commands["reroutecall"] = e_RerouteCall;

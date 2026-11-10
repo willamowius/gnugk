@@ -20,7 +20,8 @@ class Endpoint:
     def __init__(self, workdir, host, alias, password=None, h46018=False, faststart=True, h2351=False, full_q931=False,
                  md5_unsigned=None, reject=None, hangup_after=None, tunneling=True, name=None, no_gk=False,
                  answer_delay=None, listen_port=None, bandwidth=None, brq=None, add_aliases=None,
-                 gateway=False, ipv6=False, gk="gk", h46019m=False, t120=False, h245_address=None):
+                 gateway=False, ipv6=False, gk="gk", h46019m=False, t120=False, h245_address=None,
+                 h46017=False, h235_media=False, user_input=None, user_input_mode=None, pause_after=None):
         """password: register with MD5 tokens, or H.235.1 tokens with h2351 (also in the call Setup,
         or in all Q.931 messages with full_q931). md5_unsigned: RAS messages to send without MD5 token,
         eg. ["URQ", "DRQ"]. reject: refuse incoming calls, "busy" or "denied".
@@ -39,6 +40,11 @@ class Endpoint:
         h46019m: with h46018, use H.460.19 RTP multiplexing
         t120: offer T.120 in the capability set and open a T.120 channel once the call is up
         h245_address: callee: announce this H.245 address ("ip:port") in the CallProceeding
+        h46017: register and signal over one TCP connection to the gatekeeper (H.460.17)
+        h235_media: offer H.235.6 media encryption
+        user_input: send this text as user input 1 second into the call, user_input_mode: "string" (H.245
+        alphanumeric, default), "tone" (H.245 signal) or "q931" (keypad IE)
+        pause_after: send an empty capability set this many seconds into the call, the full one 2 seconds later
         """
         self.workdir = workdir
         self.host = host
@@ -62,6 +68,11 @@ class Endpoint:
         self.h46019m = h46019m
         self.t120 = t120
         self.h245_address = h245_address
+        self.h46017 = h46017
+        self.h235_media = h235_media
+        self.user_input = user_input
+        self.user_input_mode = user_input_mode
+        self.pause_after = pause_after
         number = next(_endpoint_numbers)
         self.listen_port = listen_port or SIGNAL_PORT_BASE + 2 * (number % SIGNAL_PORT_SLOTS)
         self.ras_port = 1719 if listen_port == 1720 else self.listen_port + 1
@@ -99,6 +110,16 @@ class Endpoint:
             args.append("--t120")
         if self.h245_address:
             args += ["--h245-address", self.h245_address]
+        if self.h46017:
+            args.append("--h46017")
+        if self.h235_media:
+            args.append("--h235-media")
+        if self.user_input is not None:
+            args += ["--user-input", self.user_input]
+        if self.user_input_mode:
+            args += ["--user-input-mode", self.user_input_mode]
+        if self.pause_after is not None:
+            args += ["--pause-after", str(self.pause_after)]
         if not self.faststart:
             args.append("--no-faststart")
         if self.h2351:
@@ -127,6 +148,8 @@ class Endpoint:
             args += ["--call", call]
         if calls != 1:
             args += ["--calls", str(calls)]
+        if os.environ.get("GKTEST_GDB") and self.alias.startswith(os.environ["GKTEST_GDB"]):
+            args = args[:4] + ["gdb", "-batch", "-ex", "run", "-ex", "bt", "-ex", "info threads", "--args"] + args[4:]
         self._stdout = open(self.stdout_file, "w")
         self.proc = subprocess.Popen(args, stdout=self._stdout, stderr=subprocess.STDOUT)
         return self
@@ -158,3 +181,32 @@ class Endpoint:
         if self.proc and self.proc.poll() is None:
             self.proc.kill()
             self.proc.wait()
+
+
+def spoof_ras(workdir, host, kind, epid="", callid=None, confid=None, alias=None, name=None, gk="gk", count=None,
+              dump=None):
+    """send one RAS message (kind: URQ, DRQ, BRQ, ARQ or IRR) with the endpoint identifier epid from host to the
+    gatekeeper and return gktestep's result: {"sent": kind, "reply": the reply's name or "none", "rejectReason": ...}.
+    callid, confid: 32 hex digits naming a call (DRQ, BRQ). alias: the alias to unregister (URQ), to call (ARQ) or to
+    register (RRQ, with count aliases). dump: a file to also write the encoded message to."""
+    result_file = os.path.join(workdir, "spoof-%s.json" % (name or kind.lower()))
+    port = SIGNAL_PORT_BASE + 2 * (next(_endpoint_numbers) % SIGNAL_PORT_SLOTS)
+    args = ["ip", "netns", "exec", topology.ns(host), ENDPOINT, "--spoof", kind, "--spoof-epid", epid,
+            "--gk", topology.HOST_IPS[gk], "--listen", "%s:%d" % (topology.HOST_IPS[host], port),
+            "--ras-port", str(port + 1), "--result", result_file,
+            "--trace", "4", "--log", result_file.replace(".json", ".trace")]
+    if callid:
+        args += ["--spoof-callid", callid]
+    if confid:
+        args += ["--spoof-confid", confid]
+    if alias:
+        args += ["--alias", alias]
+    if count:
+        args += ["--spoof-count", str(count)]
+    if dump:
+        args += ["--spoof-dump", dump]
+    done = subprocess.run(args, capture_output=True, text=True, timeout=20)
+    if not os.path.exists(result_file):
+        raise RuntimeError("gktestep --spoof wrote no result: %s%s" % (done.stdout, done.stderr))
+    with open(result_file) as f:
+        return json.load(f)

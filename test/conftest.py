@@ -170,7 +170,7 @@ def start_gk(network, workdir, capture):
     for gk in started:
         if gk.proc is None:
             continue
-        crashed = not gk.alive()
+        crashed = not gk.alive() and not gk.stopped	# a test may have stopped it itself
         gk.stop()
         if crashed:
             pytest.fail("gnugk exited during the test (code %s), see %s" % (gk.proc.returncode, gk.stdout_file))

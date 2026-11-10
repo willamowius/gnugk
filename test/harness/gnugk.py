@@ -245,6 +245,7 @@ class GnuGk:
             subprocess.run([ADDPASSWD, self.config_file, "SimplePasswordAuth", alias, password],
                            check=True, capture_output=True)
         self.proc = None
+        self.stopped = False	# stop() ended a running GnuGk
 
     def ports_in_use(self):
         """the TCP/UDP ports GnuGk needs on its host that something already listens on"""
@@ -288,6 +289,8 @@ class GnuGk:
                 time.sleep(0.2)
 
     def stop(self):
+        """stop GnuGk (SIGTERM), returns its exit code; a test may stop it itself, eg. to start another one"""
+        self.stopped = self.stopped or (self.proc is not None and self.proc.poll() is None)	# not: died before
         if self.proc and self.proc.poll() is None:
             self.proc.terminate()
             try:
@@ -298,6 +301,18 @@ class GnuGk:
         if self.proc is not None:
             self._stdout.close()
         return self.proc.returncode if self.proc else None
+
+    def wait_exit(self, timeout=20.0):
+        """wait for GnuGk to exit on its own (eg. after Shutdown or a signal), returns the exit code or None;
+        the test fixture doesn't count this as a crash"""
+        self.stopped = True
+        try:
+            return self.proc.wait(timeout)
+        except subprocess.TimeoutExpired:
+            return None
+
+    def signal(self, sig):
+        self.proc.send_signal(sig)
 
     def alive(self):
         return self.proc is not None and self.proc.poll() is None
@@ -370,6 +385,45 @@ class GnuGk:
                     for alias in re.split(r"[=,]", fields[2]):
                         aliases.add(alias.split(":")[0].strip())
         return aliases
+
+    def endpoints(self):
+        """PrintAllRegistrations as a list of {'address': 'ip:port', 'aliases': [...], 'type': ..., 'epid': ...}"""
+        reply = status_command("PrintAllRegistrations", "Number of Endpoints:", host=self.host)
+        result = []
+        for line in reply.splitlines():
+            fields = line.strip().split("|")
+            if fields[0] == "RCF" and len(fields) >= 5:
+                aliases = [a.split(":")[0].strip() for a in re.split(r"[=,]", fields[2])]
+                result.append({"address": fields[1], "aliases": aliases, "type": fields[3], "epid": fields[4]})
+        return result
+
+    def endpoint_id(self, alias):
+        """the endpoint identifier GnuGk gave the endpoint with this alias"""
+        for endpoint in self.endpoints():
+            if alias in endpoint["aliases"]:
+                return endpoint["epid"]
+        raise KeyError("%s isn't registered" % alias)
+
+    def call_ids(self):
+        """the call identifiers of the current calls, as 32 hex digits"""
+        return [re.sub(r"[^0-9a-f]", "", match.group(1)) for match in
+                re.finditer(r"Call No\. \d+ \| CallID ([0-9a-f -]+?) \|", "".join(self.current_calls().values()))]
+
+    def command(self, cmd, end_marker, timeout=5.0):
+        """send a status port command, returns the reply up to the line starting with end_marker"""
+        return status_command(cmd, end_marker, timeout, host=self.host)
+
+    def send(self, cmd, wait=1.0):
+        """send a status port command, returns what arrives within wait seconds"""
+        return status_send(cmd, wait, host=self.host)
+
+    def wait_no_calls(self, timeout=10.0):
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            if self.number_of_calls() == 0:
+                return True
+            time.sleep(0.3)
+        return False
 
     def wait_registered(self, alias, timeout=10.0):
         deadline = time.time() + timeout

@@ -1,5 +1,6 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(GkStatus.cxx) fix UnregisterEP status port command
 
 
 Changes from 5.16 to 5.17
