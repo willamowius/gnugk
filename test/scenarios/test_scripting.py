@@ -123,12 +123,12 @@ def test_http_routing(start_gk, workdir):
 
 
 def test_http_routing_json(start_gk, workdir):
-    """JSONResponse=1: {"destination": ...}, {"reject": true} and an array of two routes for failover (the first
-    gateway refuses the call with a failover cause)"""
+    """JSONResponse=1: {"destination": alias}, {"reject": true} and, as documented for failover, an array of routes
+    with IP destinations (the first one, gw0, refuses the call with a failover cause, the second one, bob, gets it)"""
     answers = {
         "sales": '{"destination": "bob"}',
         "blocked": '{"reject": true, "reject-reason": 2}',
-        "both": '[{"destination": "gw0"}, {"destination": "bob"}]',
+        # "both" is filled in once the endpoints are registered and their addresses are known
     }
     with HttpServer(responder=route_responder(answers)) as http:
         gk = start_gk({"RoutingPolicy": {"default": "http,internal"}, "RoutedMode": {"ActivateFailover": "1"},
@@ -139,6 +139,8 @@ def test_http_routing_json(start_gk, workdir):
         gw0 = Endpoint(workdir, "pub2", "gw0", reject="denied").start(duration=40)
         try:
             assert gk.wait_registered("bob") and gk.wait_registered("gw0")
+            addresses = {e["aliases"][0]: e["address"] for e in gk.endpoints()}
+            answers["both"] = '[{"destination": "%s"}, {"destination": "%s"}]' % (addresses["gw0"], addresses["bob"])
             sales = dial(gk, workdir, "sales", "sales")
             blocked = dial(gk, workdir, "blocked", "blocked")
             both = dial(gk, workdir, "both", "both")

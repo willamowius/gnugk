@@ -108,10 +108,11 @@ CHILD_CONFIG = {
 @pytest.mark.parametrize("direction", ["parent-to-child", "child-to-parent"])
 def test_child_gatekeeper(start_gk, workdir, direction):
     """GK2 registers with GK1 as a gateway for prefix 2 ([Endpoint] section): calls to 2xxx from the parent
-    go to the child, the child sends calls it can't route itself to the parent; both gatekeepers release the
-    call on the caller's ReleaseComplete (the child's first short Q.931 segment to the parent, the
-    ReleaseComplete, is dropped once and retransmitted, so it always arrives late if the child sends it after
-    its DRQ)"""
+    go to the child, the child sends calls it can't route itself to the parent; when the caller hangs up both
+    gatekeepers release the call right away. Child to parent, the child's first short Q.931 segment to the
+    parent, the ReleaseComplete, is dropped once and retransmitted, so it arrives late if the child sends it after
+    its DRQ: the parent then removes the call on the DRQ and closes the callee's signaling channel
+    (RemoveCallOnDRQ=1), the callee may see the closed channel instead of the ReleaseComplete"""
     parent = start_gk({"Gatekeeper::Main": {"Name": "ParentGK"}})
     child = start_gk(CHILD_CONFIG, host="gk2", name="child")
     assert parent.wait_registered("childgk"), "the child didn't register with the parent"
@@ -122,9 +123,15 @@ def test_child_gatekeeper(start_gk, workdir, direction):
     else:
         with topology.drop_first_short_tcp("gk2", 1720):
             caller, callee = run_call(parent, bob, "1001", callee=alice)
-    for result in (caller, callee):
-        assert result["endReason"] not in ("EndedByTransportFail", "EndedByConnectFail"), \
-            "%s wasn't released by a ReleaseComplete: %s" % (result["alias"], result["endReason"])
+    assert caller["endReason"] == "EndedByLocalUser", caller["endReason"]
+    if direction == "parent-to-child":
+        assert callee["endReason"] == "EndedByRemoteUser", \
+            "%s wasn't released by a ReleaseComplete: %s" % (callee["alias"], callee["endReason"])
+    else:
+        # the ReleaseComplete or, when the DRQ wins the race, the closed channel
+        assert callee["endReason"] in ("EndedByRemoteUser", "EndedByTransportFail"), callee["endReason"]
+    # released when the caller hung up, not when the callee gave up on its own (callee_duration: 28 s)
+    assert abs(callee["durationMs"] - caller["durationMs"]) < 2000, (caller["durationMs"], callee["durationMs"])
     check_call(caller, callee)
     parent_cdrs, child_cdrs = parent.cdrs(), child.cdrs()
     assert len(parent_cdrs) == 1 and len(child_cdrs) == 1, (parent_cdrs, child_cdrs)
