@@ -1044,6 +1044,55 @@ Default: <tt>30</tt><newline>
 <p>
 Duration in seconds how long port detection packets are cached.
 
+<item><tt>RTPInactivityCheck=1</tt><newline>
+Default: <tt>0</tt><newline>
+<p>
+Terminate calls when the RTP of a call has stopped. This detects dead calls where the signaling
+connection is still up, but an endpoint has crashed, lost its network connection or been
+disconnected in some other way that GnuGk doesn't notice, and prevents them from using up call
+capacity and bandwidth until somebody ends them.
+
+Only calls where GnuGk proxies the RTP (see <tt/Enable/ and <tt/ProxyForNAT/ above, also with
+<tt/RTPMultiplexing/) can be checked, GnuGk can't see the RTP of other calls.
+Only the RTP packets of one RTP session are looked at, see <tt/RTPInactivityCheckSession/.
+RTCP packets don't count as activity.
+
+GnuGk watches each direction of the RTP session separately, once it has seen the first RTP packet
+(or knows the source address from the signaling): the call is terminated if either direction has been
+silent for longer than <tt/RTPInactivityTimeout/. GnuGk then sends a ReleaseComplete to both parties
+and the call is logged to the CDR and accounting as usual.
+
+Be careful with endpoints that legitimately stop sending RTP for a while, eg. on hold, muted
+or with silence suppression, or one-way channels: they will be disconnected after the timeout.
+Choose a timeout that is longer than the longest silence you want to allow.
+
+Note: The check only runs once a minute, so a call may stay up for up to a minute
+after the timeout has passed. For H.460.19 multiplexed RTP (<tt/RTPMultiplexing=1/) the check runs
+every 30 seconds.
+
+<item><tt>RTPInactivityTimeout=120</tt><newline>
+Default: <tt>300</tt><newline>
+<p>
+Number of seconds without RTP in one direction after which a call is terminated, if
+<tt/RTPInactivityCheck=1/ is set. The default is 5 minutes. Calls are checked once a minute (see above),
+so values below 60 (30 for multiplexed RTP) don't make the detection faster than that.
+
+The timeout is read when the RTP channel of a call is opened, a changed value only applies to
+channels opened after the config was reloaded. <tt/RTPInactivityCheck/ and <tt/RTPInactivityCheckSession/
+are read again on a config reload. For multiplexed RTP (<tt/RTPMultiplexing=1/) all three
+<tt/RTPInactivity.../ settings are only read when GnuGk's RTP multiplexing handler is created, so changing
+them needs a restart of GnuGk.
+
+<item><tt>RTPInactivityCheckSession=Video</tt><newline>
+Default: <tt>Audio</tt><newline>
+<p>
+Selects which RTP session is checked for inactivity if <tt/RTPInactivityCheck=1/ is set:
+<tt/Audio/ (RTP session 1) or <tt/Video/ (RTP session 2). The setting is not case sensitive.
+Only this one session is checked, activity or inactivity in other sessions (eg. video
+when checking audio, or H.239 content channels) is ignored. A call without a channel in this session
+is never terminated by the check. Other values are logged as an error (trace level 1) and
+<tt/Audio/ is used.
+
 <item><tt>UpdateCalledPartyToH225Destination=1</tt><newline>
 Default: <tt>0</tt><newline>
 <p>
