@@ -168,9 +168,6 @@ reports XPASS as a failure, then remove the marker. Currently:
 - With all Q.931 messages checked (`h2351-all`), calls to an H.460.18 callee fail: GnuGk checks the
   Facility the callee sends to open its signaling channel, and has no authenticator for it yet.
 - `RerouteCall` with fastStart: no media is opened after the reroute.
-- Child gatekeeper, caller hangs up: the child sends its DRQ to the parent before it forwards the
-  ReleaseComplete; the parent removes the call on the DRQ and doesn't read the late ReleaseComplete, so the
-  callee isn't released (the test forces the race by dropping that ReleaseComplete once).
 - `CompareAliasCase`: auth rules that are config keys (`[RasSrv::RRQAuth]`, `[TwoAliasAuth]`, the
   `SimplePasswordAuth` passwords) always ignore case (PTLib config keys are caseless); a password for `alice`
   can't be decoded for `Alice`; `TwoAliasAuth` compares the secret alias case-sensitively; `PrefixAuth` alias
@@ -178,8 +175,6 @@ reports XPASS as a failure, then remove the marker. Currently:
 - `SQLAuth` `NbQuery`: LRQs from configured neighbors skip all authenticators, the query only runs for
   non-neighbor LRQs (`AcceptNonNeighborLRQ=1`).
 - `PrependToDisplayIE` is in the manual and the list of known keys, but nothing reads it.
-- A DRQ for a routed call (default `RemoveCallOnDRQ=1`) removes the call record and writes the CDR, but
-  doesn't close the signaling channels: the call and its proxied media go on without a call record.
 - `CpsLimit` counts (and rejects) status port connections too.
 - `IgnoreSignaledIPs=1` without `RestrictRTPSources`: a third host that sprays the RTP proxy ports gets the
   call's media (RTP bleed) and the endpoint gets none.

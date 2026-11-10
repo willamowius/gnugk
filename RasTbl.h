@@ -982,6 +982,8 @@ public:
 	void Disconnect(bool = false); // send ReleaseComplete ?
 	void RemoveAll();
 	void RemoveSocket();
+	/// close the call signaling channels without a ReleaseComplete (H.460.17 connections get one instead)
+	void CloseSignalingChannels();
 	void SendReleaseComplete(const H225_CallTerminationCause * = NULL);
 	void BuildDRQ(H225_DisengageRequest &, unsigned reason) const;
 

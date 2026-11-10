@@ -3851,6 +3851,23 @@ void CallRec::SendReleaseComplete(const H225_CallTerminationCause * cause)
 	RemoveSocket();
 }
 
+void CallRec::CloseSignalingChannels()
+{
+	PWaitAndSignal lock(m_sockLock);
+	CallSignalSocket * sockets[] = { m_callingSocket, m_calledSocket };
+	for (unsigned i = 0; i < 2; ++i) {
+		if (sockets[i] == NULL)
+			continue;
+		if (sockets[i]->MaintainConnection()) {
+			// a H.460.17 connection also carries RAS, it must stay open
+			sockets[i]->SendReleaseComplete();
+		} else {
+			PTRACE(4, "Closing the call signaling channel " << sockets[i]->GetName());
+			sockets[i]->CloseSocket();
+		}
+	}
+}
+
 void CallRec::BuildDRQ(H225_DisengageRequest & drq, unsigned reason) const
 {
 	drq.m_disengageReason.SetTag(reason);
@@ -6181,6 +6198,10 @@ void CallTable::RemoveCall(const H225_DisengageRequest & obj_drq, const endptr &
 			if (obj_drq.m_disengageReason.GetTag() == H225_DisengageReason::e_normalDrop)
 				call->SetDisconnectCause(Q931::NormalCallClearing);
 			call->SendReleaseComplete(obj_drq.HasOptionalField(H225_DisengageRequest::e_terminationCause) ? &obj_drq.m_terminationCause : NULL);
+		} else {
+			// the call is gone, close its signaling channels (as documented for RemoveCallOnDRQ): otherwise the call
+			// and its proxied media would go on without a call record (no CDR update, no capacity accounting)
+			call->CloseSignalingChannels();
 		}
 		RemoveCall(call);
 	}

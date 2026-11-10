@@ -105,13 +105,7 @@ CHILD_CONFIG = {
 }
 
 
-@pytest.mark.parametrize("direction", [
-    "parent-to-child",
-    pytest.param("child-to-parent", marks=pytest.mark.xfail(strict=True, reason="when the caller hangs up, "
-                 "the child sends its DRQ to the parent (CallRec::RemoveAll() from OnReleaseComplete()) before it "
-                 "forwards the ReleaseComplete: the parent removes the call on the DRQ (RemoveCallOnDRQ=1) and "
-                 "never reads the late ReleaseComplete, so the callee isn't released")),
-])
+@pytest.mark.parametrize("direction", ["parent-to-child", "child-to-parent"])
 def test_child_gatekeeper(start_gk, workdir, direction):
     """GK2 registers with GK1 as a gateway for prefix 2 ([Endpoint] section): calls to 2xxx from the parent
     go to the child, the child sends calls it can't route itself to the parent; both gatekeepers release the
