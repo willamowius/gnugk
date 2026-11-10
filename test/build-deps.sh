@@ -8,6 +8,8 @@
 # The libraries are always updated to the latest commit of their default branch (GitHub HEAD) before building,
 # then the patches in test/patches/<repo>/ are applied (fixes not upstream yet; skipped once upstream has them).
 set -euo pipefail
+# set -e ends the script without a word when a command outside run() fails, say where
+trap 'echo "FAILED: build-deps.sh line $LINENO: $BASH_COMMAND" >&2' ERR
 
 GK_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DEPS="${1:-${GKTEST_DEPS:-$HOME/gnugk-test-deps}}"
@@ -84,7 +86,14 @@ LUA_OPTS=()
 for v in 5.4 5.3; do
 	if [ -f "/usr/include/lua$v/lua.h" ]; then
 		LUA_OPTS+=("--with-lua-include-dir=/usr/include/lua$v")
-		lib=$(ls /usr/lib/*/liblua$v.so /usr/lib/liblua$v.so 2>/dev/null | head -1)
+		# (no ls | head here: with pipefail a missing path would end the script)
+		lib=""
+		for f in /usr/lib/*/liblua$v.so /usr/lib/liblua$v.so; do
+			if [ -e "$f" ]; then
+				lib="$f"
+				break
+			fi
+		done
 		if [ -n "$lib" ]; then
 			mkdir -p "$DEPS/lua-lib"
 			ln -sf "$lib" "$DEPS/lua-lib/liblua.so"

@@ -73,7 +73,7 @@ def test_neighbor_call_cdr(start_gk, workdir, generate, expected):
     assert len(gk2.cdrs()) == 1 and len(gk1.cdrs()) == 1, (gk1.cdrs(), gk2.cdrs())
 
 
-ZONE = r"([+-]\d{4}|[A-Z]+)"	# UTC is written as GMT or Z
+ZONE = r"([+-]\d\d:?\d\d|[A-Z]+)"	# GnuGk writes local time: +01:00, +0100, GMT or Z for UTC
 RFC822 = r"[A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4} \d\d:\d\d:\d\d " + ZONE
 
 
