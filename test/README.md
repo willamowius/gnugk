@@ -185,8 +185,6 @@ reports XPASS as a failure, then remove the marker. Currently:
   call's media (RTP bleed) and the endpoint gets none.
 - H.235 half-call media with an H323Plus endpoint: GnuGk expects cipher payload type 120 (from the OLC), the
   endpoint sends 96; GnuGk doesn't decrypt and the encrypting side gets no media.
-- URQs are never authenticated (no `ValidatePDU()`): with MD5 tokens required for URQs, an URQ without a
-  token from any IP unregisters the endpoint and disconnects its calls.
 - Without H.235 tokens the endpoint ID is the only credential: URQ, DRQ, BRQ and ARQ with another endpoint's
   ID are accepted from any IP (`CheckSenderIP` only covers ARQs and is off by default).
 

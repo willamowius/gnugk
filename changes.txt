@@ -1,5 +1,6 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(RasSrv.cxx) check tokens in URQ when configured
 - BUGFIX(GkStatus.cxx) fix UnregisterEP status port command
 
 

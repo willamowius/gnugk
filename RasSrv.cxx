@@ -3264,6 +3264,20 @@ template<> bool RasPDU<H225_UnregistrationRequest>::Process()
 	endptr ep = request.HasOptionalField(H225_UnregistrationRequest::e_endpointIdentifier) ?
 		EndpointTbl->FindByEndpointId(request.m_endpointIdentifier) :
 		request.m_callSignalAddress.GetSize() ? EndpointTbl->FindBySignalAdr(request.m_callSignalAddress[0], m_msg->m_peerAddr) : endptr(NULL);
+
+	// check the tokens with the authenticators that are configured for URQs, otherwise anybody who knows (or guesses)
+	// an endpoint identifier could unregister the endpoint and disconnect its calls
+	unsigned rsn = H225_UnregRejectReason::e_securityDenial;
+	if (ep && !RasSrv->ValidatePDU(*this, rsn)) {
+		H225_UnregistrationReject & urj = BuildReject(rsn);
+		log = "URJ|" + m_msg->m_peerAddr.AsString()
+				+ "|" + endpointId
+				+ "|" + urj.m_rejectReason.GetTagName()
+				+ ";";
+		PrintStatus(log);
+		return bSendReply;
+	}
+
 	if (ep) {
 		if (RasSrv->ReplyToRasAddress(m_msg->m_peerAddr)) {
 			if (GetIPAndPortFromTransportAddr(ep->GetRasAddress(), m_msg->m_peerAddr, m_msg->m_peerPort)) {
