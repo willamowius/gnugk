@@ -93,6 +93,8 @@ public:
 	bool IsH46018Client() const { return m_H46018Client; }
 	// send a H.460.18 keepAlive (triggered by a timer)
 	void SendH46018GkKeepAlive(GkTimer* timer);
+	// check if this is the seqNum of the H.460.18 keepAlive we are waiting for a reply to (each keepAlive is only answered once)
+	bool CheckH46018GkKeepAliveReply(int seqNum);
 	void SetH46018GkKeepAliveInterval(int interval);
 	// send a LRQ Ping (triggered by a timer)
 	void SendLRQPing(GkTimer* timer);
@@ -145,6 +147,7 @@ protected:
 	PString m_sendAuthUser, m_sendPassword;	// user + password to send to neighbor
 	int m_keepAliveTimerInterval;
 	GkTimerManager::GkTimerHandle m_keepAliveTimer;
+	int m_keepAliveSeqNum;	// seqNum of the last unanswered H.460.18 keepAlive SCI, -1 if none
 	int m_lrqPingInterval;
 	GkTimerManager::GkTimerHandle m_lrqPingTimer;
     NeighborPingThread * m_pingThread;

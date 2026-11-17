@@ -358,6 +358,7 @@ Neighbor::Neighbor()
 	m_externalGK = false;
 	m_keepAliveTimer = GkTimerManager::INVALID_HANDLE;
 	m_keepAliveTimerInterval = 0;
+	m_keepAliveSeqNum = -1;
 	m_lrqPingTimer = GkTimerManager::INVALID_HANDLE;
 	m_lrqPingInterval = 0;
 	m_pingThread = NULL;
@@ -613,8 +614,19 @@ void Neighbor::SendH46018GkKeepAlive(GkTimer* timer)
 		sci.m_cryptoTokens.SetSize(1);
 		SetCryptoGkTokens(sci.m_cryptoTokens, m_sendAuthUser, m_sendPassword);
 	}
+	m_keepAliveSeqNum = sci.m_requestSeqNum;	// remember which SCR to expect
 	m_rasSrv->SendRas(sci_ras, GetIP(), m_port);
 #endif
+}
+
+bool Neighbor::CheckH46018GkKeepAliveReply(int seqNum)
+{
+	if (seqNum != m_keepAliveSeqNum) {
+		PTRACE(3, "NB\tIgnoring SCR with seqNum " << seqNum << " from neighbor " << m_id << ": no matching keepAlive SCI outstanding");
+		return false;
+	}
+	m_keepAliveSeqNum = -1;
+	return true;
 }
 
 void Neighbor::SetH46018GkKeepAliveInterval(int interval)

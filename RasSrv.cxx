@@ -5024,13 +5024,14 @@ template<> bool RasPDU<H225_ServiceControlResponse>::Process()
 	// OnSCR
 #ifdef HAS_H46018
 	// check if it belongs to a neighbor SCI and use the keepAliveInterval
+	// we only send keepAlive SCIs to our traversal servers: ignore SCRs from other neighbors and unsolicited SCRs
     NeighborList::List & neighbors = *RasServer::Instance()->GetNeighbors();
 #if (__cplusplus >= 201703L) // C++17
-    NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind(mem_fn(&Neighbors::Neighbor::IsFrom), std::placeholders::_1, &m_msg->m_peerAddr));
+    NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind(mem_fn(&Neighbors::Neighbor::IsTraversalServer), std::placeholders::_1, &m_msg->m_peerAddr));
 #else
-    NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind2nd(mem_fun(&Neighbors::Neighbor::IsFrom), &m_msg->m_peerAddr));
+    NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind2nd(mem_fun(&Neighbors::Neighbor::IsTraversalServer), &m_msg->m_peerAddr));
 #endif
-    if (iter != neighbors.end()) {
+    if (iter != neighbors.end() && (*iter)->CheckH46018GkKeepAliveReply(request.m_requestSeqNum)) {
         if (request.HasOptionalField(H225_ServiceControlResponse::e_result)) {
             if (request.m_result.GetTag() == H225_ServiceControlResponse_result::e_started) {
                 (*iter)->SetDisabled(false);
