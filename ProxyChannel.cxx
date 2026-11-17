@@ -9272,13 +9272,13 @@ bool CallSignalSocket::SendH46017Message(H225_RasMessage ras, GkH235Authenticato
 		uuie.m_h323_uu_pdu.IncludeOptionalField(H225_H323_UU_PDU::e_genericData);
 		uuie.m_h323_uu_pdu.m_genericData.SetSize(1);
 		H460_FeatureStd feat = H460_FeatureStd(17);
-		PBYTEArray rasbuf(1024); // buffer with initial size 1024
-        PPER_Stream rasstrm(rasbuf);
+		PPER_Stream rasstrm;
 		ras.Encode (rasstrm);
 		rasstrm.CompleteEncoding();
 
-		// make sure buffer gets shrunk to size of encoded message, because we'll write it instead of the PPER_Stream
-        rasbuf.SetSize(rasstrm.GetSize());
+		// copy the complete encoding into a buffer of its own, because we'll use it instead of the PPER_Stream
+		// (a PBYTEArray passed to the PPER_Stream constructor only shares the memory until the stream has to grow)
+		PBYTEArray rasbuf(rasstrm.GetPointer(), rasstrm.GetSize());
         if (authenticators != NULL)
             authenticators->Finalise(ras, rasbuf);
 

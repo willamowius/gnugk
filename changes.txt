@@ -1,5 +1,6 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(ProxyChannel.cxx,RasSrv.cxx) fix encoding some RAS messages > 1024 bytes
 - BUGFIX(Neighbor.*) validate which SCI from a neighbor we accept
 - new switch [Gatekeeper::Main] MaxWorkerThreads= (default: 3000)
 - BUGFIX(GkStatus.cxx) fix counting of status port clients
