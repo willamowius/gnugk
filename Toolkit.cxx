@@ -4365,9 +4365,9 @@ void Toolkit::RewriteSourceAddress(SetupMsg & setup) const
 		setup.GetQ931().GetCallingPartyNumber(source);
 	}
 
-	if (!rewriteChar) {
+	if (!rewriteChar && !source) {
 		PStringArray rewrite  = rewriteChar.Tokenise(";");
-		for (PINDEX j = 0; i < rewrite.GetSize(); ++j) {
+		for (PINDEX j = 0; j < rewrite.GetSize(); ++j) {
 			PStringArray cRule = rewrite[j].Tokenise(",");
 			if (cRule.GetSize() == 2) {
 				source.Replace(cRule[0], cRule[1],true);
