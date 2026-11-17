@@ -29,7 +29,10 @@ public:
     // overrides from H323EndPoint
     virtual H323Connection * CreateConnection(unsigned callReference);
 
+    virtual H323Connection * OnIncomingConnection(H323Transport *, H323SignalPDU &);
     virtual PBoolean OnIncomingCall(H323Connection &, const H323SignalPDU &, H323SignalPDU &);
+    virtual PBoolean OnCallTransferInitiate(H323Connection &, const PString &);
+    virtual PBoolean OnCallTransferIdentify(H323Connection &);
     virtual PBoolean OnConnectionForwarded(H323Connection &, const PString &, const H323SignalPDU &);
     virtual void OnConnectionEstablished(H323Connection & connection, const PString & token);
 #ifdef H323_AUDIO_CODECS

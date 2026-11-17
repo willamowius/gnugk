@@ -142,9 +142,30 @@ PString MakeCallEndPoint::GetRemoveTransferMethod(const PString & token)
 	return method;
 }
 
+// we never accept incoming calls: refuse them here, before H323Plus has processed anything
+// in the Setup (eg. H.450 supplementary services) - OnIncomingCall() is only asked after that
+H323Connection * MakeCallEndPoint::OnIncomingConnection(H323Transport * transport, H323SignalPDU & /*setupPDU*/)
+{
+	PTRACE(2, "MakeCallEndpoint: Incoming call from " << transport->GetRemoteAddress() << " rejected");
+	return NULL;
+}
+
 PBoolean MakeCallEndPoint::OnIncomingCall(H323Connection & connection, const H323SignalPDU &, H323SignalPDU &)
 {
 	PTRACE(2, "MakeCallEndpoint: Incoming call from \"" << connection.GetRemotePartyName() << "\" rejected");
+	return FALSE;
+}
+
+// we transfer the calls we make, the remote party must never be able to transfer us somewhere else
+PBoolean MakeCallEndPoint::OnCallTransferInitiate(H323Connection & connection, const PString & remoteParty)
+{
+	PTRACE(2, "MakeCallEndpoint: H.450.2 transfer of call " << connection.GetCallToken() << " to \"" << remoteParty << "\" rejected");
+	return FALSE;
+}
+
+PBoolean MakeCallEndPoint::OnCallTransferIdentify(H323Connection & connection)
+{
+	PTRACE(2, "MakeCallEndpoint: H.450.2 transfer to call " << connection.GetCallToken() << " rejected");
 	return FALSE;
 }
 

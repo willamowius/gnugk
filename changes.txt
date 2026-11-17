@@ -1,5 +1,6 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(MakeCall.*) veto H.450.2 transfers of the pseudo endpoint and refuse incoming Setups
 - BUGFIX(ProxyChannel.cxx,RasSrv.cxx) fix encoding some RAS messages > 1024 bytes
 - BUGFIX(Neighbor.*) validate which SCI from a neighbor we accept
 - new switch [Gatekeeper::Main] MaxWorkerThreads= (default: 3000)
@@ -16,7 +17,6 @@ Changes from 5.17 to 5.18
 - BUGFIX(RasTbl.*) make sure signalling connection gets terminatd when endpoint only sends DRQ during a call
 - BUGFIX(RasSrv.cxx) check tokens in URQ when configured
 - BUGFIX(GkStatus.cxx) fix UnregisterEP status port command
-
 
 Changes from 5.16 to 5.17
 =========================
