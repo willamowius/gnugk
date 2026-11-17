@@ -6420,7 +6420,8 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 					PThread::Sleep(1);
 				}
 
-				if (setupBody.HasOptionalField(H225_Setup_UUIE::e_fastStart)) {
+				/* the phone gets the first 2 channels, the caller may have sent less */
+				if (setupBody.HasOptionalField(H225_Setup_UUIE::e_fastStart) && setupBody.m_fastStart.GetSize() >= 2) {
 					H225_ArrayOf_PASN_OctetString m_fastStart;
 					m_fastStart.SetSize(2);
 					{
