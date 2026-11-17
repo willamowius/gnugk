@@ -24,6 +24,8 @@
 
 // timeout (seconds) for an idle Worker to be deleted
 long g_workerIdleTimeout = DEFAULT_WORKER_IDLE_TIMEOUT;
+// max. number of Worker threads
+long g_maxWorkerThreads = DEFAULT_MAX_WORKER_THREADS;
 
 /** This class represents a thread that performs jobs. It has two states:
     idle and busy. When it accepts a new Job, it becomes busy. When the job
@@ -88,8 +90,8 @@ private:
 };
 
 /** Agent singleton manages a set of Worker threads. It creates
-    new Workers if required. Idle Workers are deleted automatically
-	after configured idle timeout.
+    new Workers if required, up to g_maxWorkerThreads. Idle Workers are
+	deleted automatically after configured idle timeout.
 */
 class Agent : public Singleton<Agent>
 {
@@ -98,6 +100,8 @@ public:
 	virtual ~Agent();
 
 	/** Execute the job by the first idle Worker or a new Worker.
+		If g_maxWorkerThreads Workers are busy, the job waits for the next
+		Worker that finishes its job.
 		Delete the Job object after it is done.
 	*/
 	void Exec(Job * job);
@@ -107,8 +111,8 @@ public:
 	*/
 	void Remove(Worker * worker);
 
-	/** Move the Worker from the busy list to the idle list.
-		Called by the Worker when it finishes each job.
+	/** Give the Worker the next waiting job or move it from the busy list
+		to the idle list. Called by the Worker when it finishes each job.
 	*/
 	void JobDone(
 		/// the worker to be marked as idle
@@ -126,6 +130,8 @@ private:
 	std::list<Worker*> m_idleWorkers;
 	/// list of Worker threads executing some Jobs
 	std::list<Worker*> m_busyWorkers;
+	/// jobs waiting for a Worker, because g_maxWorkerThreads are busy
+	std::list<Job*> m_waitingJobs;
 	/// flag preventing new workers to be registered during Agent destruction
 	volatile bool m_active;
 };
@@ -281,6 +287,9 @@ Agent::~Agent()
 #endif
 	}
 
+	// no Worker takes waiting jobs anymore once m_active is false
+	DeleteObjectsInContainer(m_waitingJobs);
+
 	PTRACE(5, "JOB\tAgent and its Workers destroyed");
 }
 
@@ -305,6 +314,11 @@ void Agent::Exec(Job * job)
 			m_busyWorkers.push_front(worker);
 			numIdleWorkers = m_idleWorkers.size();
 			numBusyWorkers = m_busyWorkers.size();
+		} else if ((long)m_busyWorkers.size() >= g_maxWorkerThreads) {
+			// don't create more threads, the next Worker that finishes its job takes this one
+			PTRACE(2, "JOB\tAll " << m_busyWorkers.size() << " Worker threads busy, Job " << job->GetName() << " has to wait");
+			m_waitingJobs.push_back(job);
+			return;
 		}
 	} else
 		return;
@@ -369,15 +383,28 @@ void Agent::JobDone(
 	Worker* worker
 	)
 {
+	Job * job = NULL;
 	int numIdleWorkers;
 	int numBusyWorkers;
 	{
 		PWaitAndSignal lock(m_wlistMutex);
-		m_busyWorkers.remove(worker);
-		if (m_active)
-			m_idleWorkers.push_front(worker);
+		if (m_active && !m_waitingJobs.empty()) {
+			// the Worker stays busy with the job that has been waiting longest
+			job = m_waitingJobs.front();
+			m_waitingJobs.pop_front();
+		} else {
+			m_busyWorkers.remove(worker);
+			if (m_active)
+				m_idleWorkers.push_front(worker);
+		}
 		numIdleWorkers = m_idleWorkers.size();
 		numBusyWorkers = m_busyWorkers.size();
+	}
+	if (job && !worker->Exec(job)) {
+		// only happens when the Worker is being destroyed
+		PTRACE(5, "JOB\tAgent did not accept Job " << job->GetName());
+		delete job;
+		job = NULL;
 	}
 	PTRACE_IF(5, m_active, "JOB\tWorker threads: " << (numBusyWorkers+numIdleWorkers)
 		<< " total - " << numBusyWorkers << " busy, " << numIdleWorkers << " idle");

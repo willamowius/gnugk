@@ -268,6 +268,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "Gatekeeper::Main", "MaxASNArraySize" },
 	{ "Gatekeeper::Main", "MaxSocketQueue" },
 	{ "Gatekeeper::Main", "MaxStatusClients" },
+	{ "Gatekeeper::Main", "MaxWorkerThreads" },
 	{ "Gatekeeper::Main", "MaximumBandwidthPerCall" },
 	{ "Gatekeeper::Main", "MinimumBandwidthPerCall" },
 	{ "Gatekeeper::Main", "MinH323Version" },

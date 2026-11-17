@@ -1,5 +1,6 @@
 Changes from 5.17 to 5.18
 =========================
+- new switch [Gatekeeper::Main] MaxWorkerThreads= (default: 3000)
 - BUGFIX(GkStatus.cxx) fix counting of status port clients
 - BUGFIX(ProxyChannel.cxx) fix crash on Avaya Setup
 - drop calls when a configured Auth or Acct rules isn't available, eg. not compiled in

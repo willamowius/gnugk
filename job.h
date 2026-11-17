@@ -22,6 +22,11 @@
 // timeout (seconds) for an idle Worker to be deleted
 #define DEFAULT_WORKER_IDLE_TIMEOUT (60*60)		// 60 minutes
 extern long g_workerIdleTimeout;
+// max. number of Worker threads, further Jobs wait until a Worker is done
+// (keep this well below 4096: libstdc++'s __mt_alloc, which PTLib uses for its containers,
+// only supports 4095 threads per process and corrupts its free lists beyond that)
+#define DEFAULT_MAX_WORKER_THREADS 3000
+extern long g_maxWorkerThreads;
 
 /** The base abstract class that represents job objects.
     This class implements the way to execute the job.

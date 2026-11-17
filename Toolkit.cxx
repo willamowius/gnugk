@@ -1924,6 +1924,9 @@ PConfig* Toolkit::ReloadConfig()
 	PTrace::SetLevel(GkConfig()->GetInteger("TraceLevel", PTrace::GetLevel()));
 
 	g_workerIdleTimeout = GkConfig()->GetInteger("WorkerThreadIdleTimeout", DEFAULT_WORKER_IDLE_TIMEOUT);
+	g_maxWorkerThreads = GkConfig()->GetInteger("MaxWorkerThreads", DEFAULT_MAX_WORKER_THREADS);
+	if (g_maxWorkerThreads < 1)
+		g_maxWorkerThreads = DEFAULT_MAX_WORKER_THREADS;
 
 	int minH323Version = GkConfig()->GetInteger("MinH323Version", 2);
 	if (minH323Version < 1)

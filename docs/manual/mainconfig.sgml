@@ -736,6 +736,15 @@ Default timeout in seconds after which idle worker threads are deleted from thre
 
 Don't set this value too low when using a PTLib version with a memory leak when deleting AutoDelete threads, eg. 2.10.9.
 
+<item><tt/MaxWorkerThreads=2000/<newline>
+Default: <tt/3000/<newline>
+<p>
+Maximum number of worker threads in the thread pool. When all worker threads are busy,
+new jobs (eg. incoming call signaling connections or RAS messages) wait until a worker thread becomes available.
+
+Don't set this value too low or the gatekeeper will not be able to process requests in parallel.
+Don't set it higher than the default: with PTLib's default memory allocator more than about 4000 threads crash the gatekeeper.
+
 </itemize>
 
 <sect1>Section &lsqb;GkStatus::Filtering&rsqb;
