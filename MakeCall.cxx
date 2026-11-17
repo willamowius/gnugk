@@ -128,11 +128,11 @@ PString MakeCallEndPoint::GetRemoveDestination(const PString & token)
 	return dest;
 }
 
-// get and remove the destination for this token ('' if not found)
+// get and remove the transfer method for this token ('' if not found)
 PString MakeCallEndPoint::GetRemoveTransferMethod(const PString & token)
 {
 	PString method;
-	PWaitAndSignal lock(methodMutex);
+	PWaitAndSignal lock(destinationMutex);
 	std::map<PString, PString>::iterator it = methods.find(token);
 	if (it != methods.end()) {
 		method = it->second;

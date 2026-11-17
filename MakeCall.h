@@ -51,11 +51,11 @@ protected:
     PString GetRemoveDestination(const PString & token);
     PString GetRemoveTransferMethod(const PString & token);
 
-    // call destinations
+    // protects destinations and methods (always updated together)
     PMutex destinationMutex;
+    // call destinations
     std::map<PString, PString> destinations;
     // per call transfer methods
-    PMutex methodMutex;
     std::map<PString, PString> methods;
 
 	PCaselessString globalTransferMethod;
