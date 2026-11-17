@@ -1,5 +1,6 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(ProxyChannel.cxx) stop H.460.19 keep-alive timers when a logical channel stops early
 - BUGFIX(ProxyChannel.cxx) reject Setup calling a different destination than the admitted ARQ
 - BUGFIX(sqlauth.cxx) reject calls with an invalid credittime
 - add Timeout= switch to HttpPasswordAuth, Routing::Http and HttpAcct

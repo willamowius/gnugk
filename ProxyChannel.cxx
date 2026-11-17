@@ -4240,6 +4240,10 @@ void CallSignalSocket::ForwardCall(FacilityMsg * msg)
 	delete remoteSocket->m_h245handler;
 	remoteSocket->m_h245handler = NULL;
 	remoteSocket->UnlockH245Handler();
+#ifdef HAS_H46018
+	// the logical channels are gone, don't send keepAlives on their sockets any more
+	m_call->RemoveAllRTPKeepAlives();
+#endif
 
 	if (remoteSocket->CreateRemote(setupUUIE)) {
 		SetUUIE(fakeSetup, suuie);
@@ -17547,6 +17551,9 @@ bool H245ProxyHandler::HandleOpenLogicalChannelReject(H245_OpenLogicalChannelRej
 {
 	WORD flcn = (WORD)olcr.m_forwardLogicalChannelNumber;
 	peer->RemoveLogicalChannel(flcn);
+#ifdef HAS_H46018
+	call->RemoveRTPKeepAlives(flcn);
+#endif
 	return false; // nothing changed
 }
 

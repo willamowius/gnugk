@@ -6324,6 +6324,9 @@ void CallTable::InternalRemoveFailedLeg(iterator Iter)
 		call->GetCalledParty()->RemoveCall(StripAliasType(call->GetDestInfo()));
 
 	call->SetSocket(NULL, NULL);
+#ifdef HAS_H46018
+	call->RemoveAllRTPKeepAlives();
+#endif
 }
 
 void CallTable::InternalStatistics(unsigned & n, unsigned & act, unsigned & nb, unsigned & np, unsigned & npr, PString & msg, bool verbose) const
