@@ -1,5 +1,6 @@
 Changes from 5.17 to 5.18
 =========================
+- new switch [Gatekeeper::Main] MaxRIPDelay=, default 10 s)
 - BUGFIX(MakeCall.*) veto H.450.2 transfers of the pseudo endpoint and refuse incoming Setups
 - BUGFIX(ProxyChannel.cxx,RasSrv.cxx) fix encoding some RAS messages > 1024 bytes
 - BUGFIX(Neighbor.*) validate which SCI from a neighbor we accept

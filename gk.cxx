@@ -266,6 +266,7 @@ const char * KnownConfigEntries[][2] = {
 #endif
 	{ "Gatekeeper::Main", "ListenQueueLength" },
 	{ "Gatekeeper::Main", "MaxASNArraySize" },
+	{ "Gatekeeper::Main", "MaxRIPDelay" },
 	{ "Gatekeeper::Main", "MaxSocketQueue" },
 	{ "Gatekeeper::Main", "MaxStatusClients" },
 	{ "Gatekeeper::Main", "MaxWorkerThreads" },

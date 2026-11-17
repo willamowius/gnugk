@@ -613,6 +613,14 @@ Sets the maximum number of elements in an ASN encoded array, eg. the max. number
 Versions of PTLib through v2.10.10 default to 128 elements. Beware of hitting the limits of other vendors implementations if you
 increase this setting.
 
+<item><tt/MaxRIPDelay=30000/<newline>
+Default: <tt>10000</tt><newline>
+<p>
+Limit how long (in milliseconds) RequestInProgress (RIP) messages can extend the time the gatekeeper waits
+for the answer to one of its own RAS requests (eg. a LRQ sent to a neighbor or an ARQ sent to the parent gatekeeper).
+The limit applies to the sum of all RIPs received for a request, further RIPs are ignored.
+Set to 0 to ignore all RIPs.
+
 <item><tt/MaxSocketQueue=10000/<newline>
 Default: <tt>100</tt><newline>
 <p>

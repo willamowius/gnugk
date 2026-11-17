@@ -355,6 +355,7 @@ protected:
 	WORD m_txPort;
 	PTime m_sentTime;
 	int m_timeout, m_retry;
+	int m_ripBudget;	// time (in ms) RIPs may still add to the wait for this request
 	PSyncPoint m_sync;
 
 private:

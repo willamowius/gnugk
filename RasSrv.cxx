@@ -712,6 +712,7 @@ void RasRequester::Init()
 	m_seqNum = m_rasSrv->GetRequestSeqNum();
 	m_timeout = 0;
 	m_retry = 0;
+	m_ripBudget = GkConfig()->GetInteger("MaxRIPDelay", 10000);
 	m_iterator = m_queue.end();
 	AddFilter(H225_RasMessage::e_requestInProgress);
 }
@@ -734,6 +735,7 @@ bool RasRequester::WaitForResponse(int timeout)
 				break;
 			}
 		}
+		m_timeout = timeout;	// a RIP only extends the try it was sent for, not the retries
 		if (!OnTimeout()) {
 			break;
 		}
@@ -756,8 +758,15 @@ void RasRequester::Process(RasMsg * ras)
 {
 	if (ras->GetTag() == H225_RasMessage::e_requestInProgress) {
 		H225_RequestInProgress & rip = (*ras)->m_recvRAS;
-		m_timeout = rip.m_delay;
-		m_sentTime = PTime();
+		// delay and number of RIPs are chosen by the peer: don't let it block the waiting thread forever
+		int delay = PMIN((int)rip.m_delay, m_ripBudget);
+		if (delay > 0) {
+			m_ripBudget -= delay;
+			m_timeout = delay;
+			m_sentTime = PTime();
+		} else {
+			PTRACE(2, "RAS\tIgnoring RIP from " << AsString(m_txAddr, m_txPort) << ": MaxRIPDelay exceeded");
+		}
 		delete ras;
 		ras = NULL;
 	} else {
