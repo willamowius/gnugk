@@ -154,6 +154,13 @@ H245_H2250LogicalChannelParameters *GetLogicalChannelParameters(H245_OpenLogical
 bool odd(unsigned n) { return (n % 2) != 0; }
 #endif
 
+// check if a destination from a Setup is the one the call was admitted for:
+// the number dialed in the ARQ (before rewriting) or one of the aliases the ARQ has been routed to
+bool IsAdmittedDestination(const callptr & call, const PString & alias)
+{
+	return (alias == call->GetDialedNumber()) || (FindAlias(call->GetDestinationAddress(), alias) != P_MAX_INDEX);
+}
+
 WORD RTP_HeaderSize(const BYTE * buffer, WORD len)
 {
 	WORD header_size = RTP_BASE_HEADER_LEN;
@@ -4902,6 +4909,20 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 	// store dialed number
 	const PString dialedNumber = GetDialedNumber(*setup);
 
+	// the Setup of an admitted call must be for the destination the ARQ was authenticated and routed for:
+	// the number dialed in the ARQ or the destination returned in the ACF (canMapAlias), compared before any rewrite
+	// (not for a reroute, the gatekeeper builds that Setup for the new destination itself)
+	bool destinationChanged = false;
+	if (m_call && m_call->GetRerouteState() == NoReroute) {
+		PString calledNumber;
+		if (q931.GetCalledPartyNumber(calledNumber))
+			destinationChanged = !IsAdmittedDestination(m_call, calledNumber);
+		if (setupBody.HasOptionalField(H225_Setup_UUIE::e_destinationAddress)) {
+			for (PINDEX i = 0; !destinationChanged && i < setupBody.m_destinationAddress.GetSize(); ++i)
+				destinationChanged = !IsAdmittedDestination(m_call, AsString(setupBody.m_destinationAddress[i], false));
+		}
+	}
+
     // do rewrite initiated by RouteToInternalGateway
     if (m_call && m_call->HasNewSetupInternalAliases()) {
         setupBody.m_destinationAddress = m_call->GetNewSetupInternalAliases();
@@ -5139,6 +5160,14 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 			} else {
 				gkClient->HandleSetup(*setup, true);
 			}
+		}
+
+		// the authenticators enabled only for ARQ have decided on the destination of the ARQ, not of this Setup
+		if (!rejectCall && destinationChanged) {
+			PTRACE(2, Type() << "\tDropping call #" << m_call->GetCallNumber() << ": Setup for " << dialedNumber
+				<< " / " << AsString(setupBody.m_destinationAddress) << " doesn't match the admitted destination " << m_call->GetDestInfo());
+			m_call->SetDisconnectCause(Q931::CallRejected);
+			rejectCall = true;
 		}
 
 		const H225_ArrayOf_CryptoH323Token & tokens = m_call->GetAccessTokens();

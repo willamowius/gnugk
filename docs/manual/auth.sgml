@@ -179,6 +179,9 @@ either by means of username/password (RadAuth) or alias/IP (RadAliasAuth).
 Additionally, if the call is from an unregistered endpoint (and therefore
 no RRQ or ARQ authentication has been performed), Setup message authentication
 using RadAliasAuth takes place (SetupUnreg).
+The Setup of an admitted call must be for the destination that has been
+authenticated in the ARQ (or the alias returned in the ACF), otherwise the call
+is rejected.
 
 <descrip>
 <tag/Example 3:/
