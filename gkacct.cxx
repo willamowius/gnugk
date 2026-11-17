@@ -882,6 +882,20 @@ PTextFile* FileAcct::OpenCDRFile(const PFilePath & fn)
 }
 
 
+namespace {
+/// stands in for a misspelled or not compiled-in module (eg. RadAcct without --enable-radius),
+/// so a required or sufficient rule isn't silently dropped, but fails to log all its events
+class UnknownAcct : public GkAcctLogger
+{
+public:
+	UnknownAcct(const char* moduleName) : GkAcctLogger(moduleName)
+	{
+		if (GetControlFlag() == Required || GetControlFlag() == Sufficient)
+			SetSupportedEvents(AcctAll);
+	}
+};
+}
+
 GkAcctLoggerList::GkAcctLoggerList()
 	: m_acctUpdateInterval(GkConfig()->GetInteger(CallTableSection, "AcctUpdateInterval", 0))
 {
@@ -908,9 +922,16 @@ void GkAcctLoggerList::OnReload()
 
 	const PStringArray modules = GkConfig()->GetKeys(GkAcctSectionName);
 	for (PINDEX i = 0; i < modules.GetSize(); i++) {
+		if (modules[i] *= "Comment")	// allowed in all sections
+			continue;
 		GkAcctLogger* logger = Factory<GkAcctLogger>::Create(modules[i]);
-		if (logger)
-			m_loggers.push_back(logger);
+		if (logger == NULL) {
+			PTRACE(0, "GKACCT\tERROR: Unknown [" << GkAcctSectionName << "] module " << modules[i]
+				<< " (misspelled or not compiled in) - a required or sufficient rule will fail");
+			SNMP_TRAP(7, SNMPError, Configuration, "Unknown [" + PString(GkAcctSectionName) + "] module " + modules[i]);
+			logger = new UnknownAcct(modules[i]);
+		}
+		m_loggers.push_back(logger);
 	}
 }
 

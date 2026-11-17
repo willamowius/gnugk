@@ -821,10 +821,20 @@ void GkAuthenticatorList::OnReload()
 
 	const PStringArray authRules = GkConfig()->GetKeys(GkAuthSectionName);
 	for (PINDEX r = 0; r < authRules.GetSize(); r++) {
+		if (authRules[r] *= "Comment")	// allowed in all sections
+			continue;
 		GkAuthenticator * auth = Factory<GkAuthenticator>::Create(authRules[r]);
-		if (auth) {
-			authenticators.push_back(auth);
+		if (auth == NULL) {
+			// don't silently drop a rule for a misspelled or not compiled-in module
+			// (eg. RadAuth without --enable-radius), that would let the remaining rules fail open;
+			// the base class answers all enabled checks with the default status of
+			// the control flag, so a required or sufficient rule rejects
+			PTRACE(0, "GKAUTH\tERROR: Unknown [" << GkAuthSectionName << "] module " << authRules[r]
+				<< " (misspelled or not compiled in) - all its checks will fail");
+			SNMP_TRAP(7, SNMPError, Configuration, "Unknown [" + PString(GkAuthSectionName) + "] module " + authRules[r]);
+			auth = new GkAuthenticator(authRules[r]);
 		}
+		authenticators.push_back(auth);
 	}
 
 	m_authenticators = authenticators;
