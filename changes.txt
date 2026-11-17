@@ -1,5 +1,7 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(gksql_mysql.cxx) check the result of mysql_real_escape_string() and
+  prefer mysql_real_escape_string_quote() so NO_BACKSLASH_ESCAPES sessions are escaped
 - new switch [Gatekeeper::Main] MaxRIPDelay=, default 10 s)
 - BUGFIX(MakeCall.*) veto H.450.2 transfers of the pseudo endpoint and refuse incoming Setups
 - BUGFIX(ProxyChannel.cxx,RasSrv.cxx) fix encoding some RAS messages > 1024 bytes

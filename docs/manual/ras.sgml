@@ -430,7 +430,7 @@ These parameters are defined:
 <p>
 Sample query string:
 <tscreen><verb>
-SELECT home from users where alias = "%u"
+SELECT home from users where alias = '%u'
 </verb></tscreen>
 
 </itemize>

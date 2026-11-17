@@ -25,6 +25,7 @@ static PDynaLink g_sharedLibrary;
 static MYSQL * (STDCALL *g_mysql_init)(MYSQL *mysql) = NULL;
 static void (STDCALL *g_mysql_free_result)(MYSQL_RES *result) = NULL;
 static unsigned long (STDCALL *g_mysql_real_escape_string)(MYSQL *mysql, char *to, const char *from, unsigned long length) = NULL;
+static unsigned long (STDCALL *g_mysql_real_escape_string_quote)(MYSQL *mysql, char *to, const char *from, unsigned long length, char quote) = NULL;
 static my_ulonglong (STDCALL *g_mysql_num_rows)(MYSQL_RES *result) = NULL;
 static unsigned int (STDCALL *g_mysql_num_fields)(MYSQL_RES *result) = NULL;
 static MYSQL_ROW (STDCALL *g_mysql_fetch_row)(MYSQL_RES *result) = NULL;
@@ -363,6 +364,12 @@ GkSQLConnection::SQLConnPtr GkMySQLConnection::CreateNewConnection(
 			SNMP_TRAP(5, SNMPError, Database, GetName() + " DLL load error");
 			return NULL;
 		}
+		// optional, only MySQL >= 5.7.6: there mysql_real_escape_string() refuses to work
+		// (returns -1) when the server runs with sql_mode NO_BACKSLASH_ESCAPES
+		if (!g_sharedLibrary.GetFunction("mysql_real_escape_string_quote", (PDynaLink::Function &)g_mysql_real_escape_string_quote)) {
+			g_mysql_real_escape_string_quote = NULL;
+			PTRACE(4, GetName() << "\tmysql_real_escape_string_quote() not available, using mysql_real_escape_string()");
+		}
 	}
 
 	const unsigned int CONNECT_TIMEOUT = m_connectTimeout; // connect timeout in seconds
@@ -461,8 +468,17 @@ PString GkMySQLConnection::EscapeString(
 	if (numChars) {
 		char * buf = (char *)malloc(numChars * 2 + 1);
 		MYSQL* mysqlconn = ((MySQLConnWrapper*)conn)->m_conn;
-		(*g_mysql_real_escape_string)(mysqlconn, buf, str, numChars);
-		escapedStr = buf;
+		// the values are used inside single quotes in the query templates
+		unsigned long escapedLen = g_mysql_real_escape_string_quote
+			? (*g_mysql_real_escape_string_quote)(mysqlconn, buf, str, numChars, '\'')
+			: (*g_mysql_real_escape_string)(mysqlconn, buf, str, numChars);
+		if (escapedLen <= numChars * 2) {
+			escapedStr = PString(buf, escapedLen);
+		} else {
+			// escaping failed, (unsigned long)-1 is returned and buf is not written
+			PTRACE(1, GetName() << "\tFailed to escape query parameter: " << (*g_mysql_error)(mysqlconn));
+			SNMP_TRAP(5, SNMPError, Database, GetName() + " failed to escape query parameter");
+		}
 		free(buf);
 	}
 	return escapedStr;

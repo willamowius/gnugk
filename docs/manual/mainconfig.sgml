@@ -126,6 +126,11 @@ escape the percent sign if you need it for something else in your
 queries (eg. in a LIKE). One way to do so is to use CHAR(37), eg.
 concat(alias,CHAR(37)) instead of concat(alias,'%').
 
+The values inserted for the placeholders are escaped for use in a string
+literal enclosed in single quotes. Always put string placeholders in single
+quotes (eg. alias = '%u'), double quotes are not safe with all databases
+(eg. MySQL in sql_mode NO_BACKSLASH_ESCAPES).
+
 <sect2>Stored Procedures
 <p>
 Stored procedures work very well when using MySQL.

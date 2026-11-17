@@ -174,7 +174,7 @@ The following parameters are defined:
 <p>
 Sample query string:
 <tscreen><verb>
-INSERT INTO qos SET caller_ip="%{caller-ip}", bandwidth="%{bandwidth}, timestamp=%t
+INSERT INTO qos SET caller_ip='%{caller-ip}', bandwidth='%{bandwidth}', timestamp=%t
 </verb></tscreen>
 
 </itemize>
