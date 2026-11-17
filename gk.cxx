@@ -417,6 +417,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "HttpAcct", "StopURL" },
 	{ "HttpAcct", "UpdateBody" },
 	{ "HttpAcct", "UpdateURL" },
+	{ "HttpAcct", "Timeout" },
 	{ "HttpAcct", "TimestampFormat" },
 	{ "HttpAcct", "UnregisterBody" },
 	{ "HttpAcct", "UnregisterURL" },
@@ -427,6 +428,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "HttpPasswordAuth", "Method" },
 	{ "HttpPasswordAuth", "PasswordTimeout" },
 	{ "HttpPasswordAuth", "ResultRegex" },
+	{ "HttpPasswordAuth", "Timeout" },
 	{ "HttpPasswordAuth", "URL" },
 #endif // P_HTTP
 #ifdef HAS_LUA
@@ -780,6 +782,7 @@ const char * KnownConfigEntries[][2] = {
 #endif
 	{ "Routing::Http", "Method" },
 	{ "Routing::Http", "ResultRegex" },
+	{ "Routing::Http", "Timeout" },
 	{ "Routing::Http", "URL" },
 #endif // P_HTTP
 #ifdef HAS_LUA

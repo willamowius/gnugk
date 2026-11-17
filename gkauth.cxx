@@ -2365,6 +2365,7 @@ protected:
 	PString m_body;
 	PCaselessString m_method;
 	PString m_contentType;
+	long m_timeout;	// in seconds
 	PRegularExpression m_resultRegex;
 	PRegularExpression m_deleteRegex;
 	PRegularExpression m_errorRegex;
@@ -2377,6 +2378,7 @@ HttpPasswordAuth::HttpPasswordAuth(const char* authName)
 	m_body = GkConfig()->GetString("HttpPasswordAuth", "Body", "");
 	m_method = GkConfig()->GetString("HttpPasswordAuth", "Method", "POST");
 	m_contentType = GkConfig()->GetString("HttpPasswordAuth", "ContentType", "text/plain");
+	m_timeout = PMAX(GkConfig()->GetInteger("HttpPasswordAuth", "Timeout", 10), (long)1);
 	PString resultRegex = GkConfig()->GetString("HttpPasswordAuth", "ResultRegex", ".*"); // match everything
 	m_resultRegex = PRegularExpression(resultRegex, PRegularExpression::Extended);
 	m_resultRegex = PRegularExpression(resultRegex);
@@ -2459,6 +2461,9 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
         (void)curl_easy_setopt(curl, CURLOPT_URL, (const char *)url);
         (void)curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
         (void)curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
+        // don't let a stalled server block this thread forever
+        (void)curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);  // no SIGALRM for timeouts, we are multi-threaded
+        (void)curl_easy_setopt(curl, CURLOPT_TIMEOUT, m_timeout);
         if (PTrace::CanTrace(6)) {
             (void)curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, DebugToTrace);
             (void)curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
@@ -2482,6 +2487,7 @@ bool HttpPasswordAuth::GetPassword(const PString & alias, PString & password, st
     }
 #else
     PHTTPClient http;
+    http.SetReadTimeout(PTimeInterval(0, m_timeout));  // PTLib default is 10 min.
     if (m_method == "GET") {
         if (!http.GetTextDocument(url, result)) {
             PTRACE(2, "HttpPasswordAuth\tCould not GET password from " << host);

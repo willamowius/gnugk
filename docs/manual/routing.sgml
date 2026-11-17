@@ -649,6 +649,11 @@ Parameter values are URL escaped when they are inserted into the URL. In the bod
 for the content types <tt>application/x-www-form-urlencoded</tt> and <tt>application/json</tt>,
 so use one of those if the body contains values that are set by the endpoints.
 
+<item><tt/Timeout=5/<newline>
+Default: <tt>10</tt>
+<p>
+Time in seconds to wait for the response of the HTTP server. If it does not respond in time, the policy doesn't return a route.
+
 <item><tt/ResultRegex=[0-9]+/<newline>
 Default: <tt>.*</tt>
 <p>

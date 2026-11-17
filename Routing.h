@@ -602,6 +602,7 @@ protected:
 	PString m_body;
 	PCaselessString m_method;
 	PString m_contentType;
+	long m_timeout;	// in seconds
 	PRegularExpression m_resultRegex;
 	PRegularExpression m_deleteRegex;
 	PRegularExpression m_errorRegex;

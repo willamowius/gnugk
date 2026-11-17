@@ -98,6 +98,8 @@ private:
 	PString m_contentType;
 	// HTTP Authorization header (optional)
 	PString m_authorization;
+	/// HTTP request timeout in seconds
+	long m_timeout;
 	/// timestamp formatting string
 	PString m_timestampFormat;
 };

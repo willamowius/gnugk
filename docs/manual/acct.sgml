@@ -1082,6 +1082,11 @@ Default: <tt>N/A</tt><newline>
 <p>
 The authorization header to send in HTTP requests.
 
+<item><tt/Timeout=5/<newline>
+Default: <tt>10</tt>
+<p>
+Time in seconds to wait for the response of the HTTP server. If it does not respond in time, logging the accounting event fails.
+
 <item><tt/TimestampFormat=MySQL/<newline>
 Default: <tt>N/A</tt><newline>
 <p>

@@ -2259,6 +2259,7 @@ HttpPolicy::HttpPolicy()
 	m_active = false;
 	m_name = "Http";
 	m_iniSection = "Routing::Http";
+	m_timeout = 10;
 	m_JSONResponse = false;
 }
 
@@ -2273,6 +2274,7 @@ void HttpPolicy::LoadConfig(const PString & instance)
 	m_body = GkConfig()->GetString(m_iniSection, "Body", "");
 	m_method = GkConfig()->GetString(m_iniSection, "Method", "POST");
 	m_contentType = GkConfig()->GetString(m_iniSection, "ContentType", "text/plain");
+	m_timeout = PMAX(GkConfig()->GetInteger(m_iniSection, "Timeout", 10), (long)1);
 	PString resultRegex = GkConfig()->GetString(m_iniSection, "ResultRegex", ".*"); // match everything
 	m_resultRegex = PRegularExpression(resultRegex, PRegularExpression::Extended);
 	m_resultRegex = PRegularExpression(resultRegex);
@@ -2382,6 +2384,9 @@ void HttpPolicy::RunPolicy(
         (void)curl_easy_setopt(curl, CURLOPT_URL, (const char *)url);
         (void)curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
         (void)curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
+        // don't let a stalled server block this thread forever
+        (void)curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);  // no SIGALRM for timeouts, we are multi-threaded
+        (void)curl_easy_setopt(curl, CURLOPT_TIMEOUT, m_timeout);
         if (PTrace::CanTrace(6)) {
             (void)curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, DebugToTrace);
             (void)curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
@@ -2405,6 +2410,7 @@ void HttpPolicy::RunPolicy(
     }
 #else
     PHTTPClient http;
+    http.SetReadTimeout(PTimeInterval(0, m_timeout));  // PTLib default is 10 min.
     if (m_method == "GET") {
         if (!http.GetTextDocument(url, result)) {
             PTRACE(2, m_iniSection << "\tCould not GET routing destination from " << host);
