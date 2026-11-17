@@ -105,14 +105,14 @@ Default: <tt/10/<newline>
 <p>
 Timeout for database connects in seconds.
 
-Currently only used by the MySQL driver; the other drivers use library defaults.
+Currently only used by the MySQL and PostgreSQL drivers; the other drivers use library defaults.
 
 <item><tt/ReadTimeout=10/<newline>
 Default: <tt/60/<newline>
 <p>
 Timeout for database reads in seconds.
 
-Currently only used by the MySQL driver; the other drivers use library defaults.
+Currently only used by the MySQL and PostgreSQL drivers; the other drivers use library defaults.
 
 </itemize>
 

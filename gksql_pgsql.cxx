@@ -21,24 +21,32 @@
 #include <libpq-fe.h>
 #include "gksql.h"
 
+#if _WIN32 || _WIN64
+#	include <winsock2.h>
+#	define poll WSAPoll
+#else
+#	include <poll.h>
+#endif // _WIN32
+
 static PDynaLink g_sharedLibrary;
 static void (*g_PQclear)(PGresult *res) = NULL;
 static char * (*g_PQcmdTuples)(PGresult *res) = NULL;
+static PGconn * (*g_PQconnectdbParams)(const char * const *keywords, const char * const *values, int expand_dbname) = NULL;
+static int (*g_PQconsumeInput)(PGconn *conn) = NULL;
 static char * (*g_PQerrorMessage)(const PGconn *conn) = NULL;
 static size_t (*g_PQescapeStringConn)(PGconn *conn, char *to, const char *from, size_t length, int *error) = NULL;
-static PGresult * (*g_PQexec)(PGconn *conn, const char *query) = NULL;
 static void (*g_PQfinish)(PGconn *conn) = NULL;
 static char * (*g_PQfname)(const PGresult *res, int field_num) = NULL;
 static int (*g_PQgetlength)(const PGresult *res, int tup_num, int field_num) = NULL;
+static PGresult * (*g_PQgetResult)(PGconn *conn) = NULL;
 static char * (*g_PQgetvalue)(const PGresult *res, int tup_num, int field_num) = NULL;
+static int (*g_PQisBusy)(PGconn *conn) = NULL;
 static int (*g_PQnfields)(const PGresult *res) = NULL;
 static int (*g_PQntuples)(const PGresult *res) = NULL;
 static char * (*g_PQresultErrorMessage)(const PGresult *res) = NULL;
 static ExecStatusType (*g_PQresultStatus)(const PGresult *res) = NULL;
-static PGconn * (*g_PQsetdbLogin)(const char *pghost, const char *pgport,
-             const char *pgoptions, const char *pgtty,
-             const char *dbName,
-             const char *login, const char *pwd) = NULL;
+static int (*g_PQsendQuery)(PGconn *conn, const char *query) = NULL;
+static int (*g_PQsocket)(const PGconn *conn) = NULL;
 static ConnStatusType (*g_PQstatus)(const PGconn *conn) = NULL;
 
 
@@ -171,8 +179,22 @@ protected:
 		SQLConnPtr conn,
 		/// query string
 		const char* queryStr,
-		/// maximum time (ms) for the query execution, -1 means infinite
+		/// maximum time (ms) for the query execution, -1 means ReadTimeout
 		long timeout = -1
+		);
+
+	/** Wait until PQgetResult() can be called without blocking.
+
+		@return
+		False if the server did not answer in time or the connection is broken.
+	*/
+	bool WaitForResult(
+		/// PostgreSQL connection the query has been sent on
+		PGconn* conn,
+		/// time the query execution has been started
+		const PTime& timeStart,
+		/// maximum time (ms) for the query execution, 0 means infinite
+		PInt64 maxWait
 		);
 
 	/** Escape any special characters in the string, so it can be used in a SQL query.
@@ -334,18 +356,22 @@ GkSQLConnection::SQLConnPtr GkPgSQLConnection::CreateNewConnection(
 
 		if (!g_sharedLibrary.GetFunction("PQclear", (PDynaLink::Function &)g_PQclear)
 			|| !g_sharedLibrary.GetFunction("PQcmdTuples", (PDynaLink::Function &)g_PQcmdTuples)
+			|| !g_sharedLibrary.GetFunction("PQconnectdbParams", (PDynaLink::Function &)g_PQconnectdbParams)
+			|| !g_sharedLibrary.GetFunction("PQconsumeInput", (PDynaLink::Function &)g_PQconsumeInput)
 			|| !g_sharedLibrary.GetFunction("PQerrorMessage", (PDynaLink::Function &)g_PQerrorMessage)
 			|| !g_sharedLibrary.GetFunction("PQescapeStringConn", (PDynaLink::Function &)g_PQescapeStringConn)
-			|| !g_sharedLibrary.GetFunction("PQexec", (PDynaLink::Function &)g_PQexec)
 			|| !g_sharedLibrary.GetFunction("PQfinish", (PDynaLink::Function &)g_PQfinish)
 			|| !g_sharedLibrary.GetFunction("PQfname", (PDynaLink::Function &)g_PQfname)
 			|| !g_sharedLibrary.GetFunction("PQgetlength", (PDynaLink::Function &)g_PQgetlength)
+			|| !g_sharedLibrary.GetFunction("PQgetResult", (PDynaLink::Function &)g_PQgetResult)
 			|| !g_sharedLibrary.GetFunction("PQgetvalue", (PDynaLink::Function &)g_PQgetvalue)
+			|| !g_sharedLibrary.GetFunction("PQisBusy", (PDynaLink::Function &)g_PQisBusy)
 			|| !g_sharedLibrary.GetFunction("PQnfields", (PDynaLink::Function &)g_PQnfields)
 			|| !g_sharedLibrary.GetFunction("PQntuples", (PDynaLink::Function &)g_PQntuples)
 			|| !g_sharedLibrary.GetFunction("PQresultErrorMessage", (PDynaLink::Function &)g_PQresultErrorMessage)
 			|| !g_sharedLibrary.GetFunction("PQresultStatus", (PDynaLink::Function &)g_PQresultStatus)
-			|| !g_sharedLibrary.GetFunction("PQsetdbLogin", (PDynaLink::Function &)g_PQsetdbLogin)
+			|| !g_sharedLibrary.GetFunction("PQsendQuery", (PDynaLink::Function &)g_PQsendQuery)
+			|| !g_sharedLibrary.GetFunction("PQsocket", (PDynaLink::Function &)g_PQsocket)
 			|| !g_sharedLibrary.GetFunction("PQstatus", (PDynaLink::Function &)g_PQstatus)
 			) {
 #ifdef hasDynaLinkGetLastError
@@ -361,19 +387,21 @@ GkSQLConnection::SQLConnPtr GkPgSQLConnection::CreateNewConnection(
 
 	PGconn* conn;
 	const PString portStr(m_port);
-//	const PString optionsStr("connect_timeout=10000");  // TODO: use m_connectTimeout
-	if ((conn = (*g_PQsetdbLogin)(m_host,
+	const PString connectTimeoutStr(m_connectTimeout);
+	// dbname goes first, so the other settings win if it is a connection string (like with PQsetdbLogin)
+	const char * const keywords[] = { "dbname", "host", "port", "user", "password", "connect_timeout", NULL };
+	const char * const values[] = { m_database, m_host,
 			m_port ? (const char*)portStr : (const char*)NULL,
-			NULL /*(const char*)optionsStr*/, NULL,
-			m_database, m_username,
-			m_password.IsEmpty() ? (const char*)NULL : (const char*)m_password
-			)) && (*g_PQstatus)(conn) == CONNECTION_OK) {
+			m_username,
+			m_password.IsEmpty() ? (const char*)NULL : (const char*)m_password,
+			connectTimeoutStr, NULL };
+	if ((conn = (*g_PQconnectdbParams)(keywords, values, 1)) && (*g_PQstatus)(conn) == CONNECTION_OK) {
 		PTRACE(5, GetName() << "\tPgSQL connection to " << m_username << '@' << m_host
 			<< '[' << m_database << "] established successfully");
 		return new PgSQLConnWrapper(id, m_host, conn);
 	} else {
 		PTRACE(2, GetName() << "\tPgSQL connection to " << m_username << '@' << m_host
-			<< '[' << m_database << "] failed (PQsetdbLogin failed): "
+			<< '[' << m_database << "] failed (PQconnectdbParams failed): "
 			<< (conn ? (*g_PQerrorMessage)(conn) : ""));
 		SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed")
 		if (conn)
@@ -382,19 +410,80 @@ GkSQLConnection::SQLConnPtr GkPgSQLConnection::CreateNewConnection(
 	return NULL;
 }
 
+bool GkPgSQLConnection::WaitForResult(
+	/// PostgreSQL connection the query has been sent on
+	PGconn* conn,
+	/// time the query execution has been started
+	const PTime& timeStart,
+	/// maximum time (ms) for the query execution, 0 means infinite
+	PInt64 maxWait
+	)
+{
+	while ((*g_PQisBusy)(conn)) {
+		int timeout = -1;
+		if (maxWait > 0) {
+			const PInt64 remaining = maxWait - (PTime() - timeStart).GetMilliSeconds();
+			if (remaining <= 0) {
+				PTRACE(2, GetName() << "\tNo answer from the database within " << maxWait << " ms");
+				return false;
+			}
+			timeout = (int)PMIN(remaining, (PInt64)INT_MAX);
+		}
+		struct pollfd fds[1];
+		memset(fds, 0, sizeof(fds));
+		fds[0].fd = (*g_PQsocket)(conn);
+		fds[0].events = POLLIN;
+		if (fds[0].fd < 0)
+			return false;	// connection is broken
+		const int r = ::poll(fds, 1, timeout);
+		if (r < 0 && errno != EINTR)
+			return false;
+		if (r > 0 && !(*g_PQconsumeInput)(conn))
+			return false;
+	}
+	return true;
+}
+
 GkSQLResult* GkPgSQLConnection::ExecuteQuery(
 	/// SQL connection to use for query execution
 	GkSQLConnection::SQLConnPtr conn,
 	/// query string
 	const char* queryStr,
-	/// maximum time (ms) for the query execution, -1 means infinite
-	long /*timeout*/
+	/// maximum time (ms) for the query execution, -1 means ReadTimeout
+	long timeout
 	)
 {
 	PGconn * pgsqlconn = ((PgSQLConnWrapper*)conn)->m_conn;
-	PGresult* result = (*g_PQexec)(pgsqlconn, queryStr);
+	// PQexec() would wait forever if the server doesn't answer,
+	// so send the query asynchronously and wait for the result with a deadline
+	const PTime timeStart;
+	const PInt64 maxWait = (timeout > 0) ? timeout : PInt64(m_readTimeout) * 1000;
+	PGresult* result = NULL;
+	bool ok = (*g_PQsendQuery)(pgsqlconn, queryStr) != 0;
+	while (ok) {
+		ok = WaitForResult(pgsqlconn, timeStart, maxWait);
+		PGresult* nextResult = ok ? (*g_PQgetResult)(pgsqlconn) : NULL;
+		if (nextResult == NULL)
+			break;
+		// like PQexec(): return the result of the last command in the query string
+		if (result)
+			(*g_PQclear)(result);
+		result = nextResult;
+		// stop like PQexec() does: PQgetResult() would keep returning the COPY state
+		const ExecStatusType status = (*g_PQresultStatus)(result);
+		if (status == PGRES_COPY_IN || status == PGRES_COPY_OUT || status == PGRES_COPY_BOTH
+			|| (*g_PQstatus)(pgsqlconn) == CONNECTION_BAD)
+			break;
+	}
+	if (!ok && result) {
+		(*g_PQclear)(result);
+		result = NULL;
+	}
 	if (result == NULL) {
-		GkSQLResult * sqlResult = new GkPgSQLResult(PGRES_FATAL_ERROR, (*g_PQerrorMessage)(pgsqlconn));
+		PString errorMsg((*g_PQerrorMessage)(pgsqlconn));
+		if (errorMsg.IsEmpty())
+			errorMsg = "no answer from the database server";
+		GkSQLResult * sqlResult = new GkPgSQLResult(PGRES_FATAL_ERROR, errorMsg);
 		Disconnect();
 		return sqlResult;
 	}
