@@ -1,5 +1,6 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(GkStatus.cxx) fix counting of status port clients
 - BUGFIX(ProxyChannel.cxx) fix crash on Avaya Setup
 - drop calls when a configured Auth or Acct rules isn't available, eg. not compiled in
 - BUGFIX(ProxyChannel.cxx) stop H.460.19 keep-alive timers when a logical channel stops early

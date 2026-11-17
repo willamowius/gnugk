@@ -394,7 +394,6 @@ SSHStatusClient::~SSHStatusClient()
 		ssh_bind_set_fd(m_sshbind, -1);		// make sure StatusListener is not closed
 		ssh_bind_free(m_sshbind);
 	}
-	GkStatus::Instance()->StatusClientDeleted();
 }
 
 #ifdef LARGE_FDSET
@@ -934,7 +933,8 @@ void GkStatus::LoadConfig()
 
 void GkStatus::AuthenticateClient(StatusClient * newClient)
 {
-	if ((m_statusClients++ < m_maxStatusClients) && (newClient->Authenticate())) {
+	// newClient has already been counted in its constructor
+	if ((m_statusClients <= m_maxStatusClients) && (newClient->Authenticate())) {
 		newClient->SetTraceLevel(GkConfig()->GetInteger("StatusTraceLevel", MAX_STATUS_TRACE_LEVEL));
 		PTRACE(1, "STATUS\tNew client authenticated successfully: " << newClient->WhoAmI()
 			<< ", login: " << newClient->GetUser());
@@ -1290,6 +1290,7 @@ StatusClient::StatusClient(
 	m_isFilteringActive(false),
 	m_handlePasswordRule(true)
 {
+	m_gkStatus->StatusClientCreated();
 	PStringToString filters = GkConfig()->GetAllKeyValues(filteringsec);
 	SetWriteTimeout(10);
 

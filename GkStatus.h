@@ -84,6 +84,11 @@ public:
 		);
 
 
+	/** Notification from the status client that it has been created
+		(called exactly once per client, paired with StatusClientDeleted())
+	*/
+	void StatusClientCreated() { ++m_statusClients; }
+
 	/** Notification form the status client that it has been deleted
 	*/
 	void StatusClientDeleted() { if (m_statusClients > 0) --m_statusClients; }
