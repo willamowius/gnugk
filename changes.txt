@@ -1,5 +1,6 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(sqlauth.cxx) reject calls with an invalid credittime
 - add Timeout= switch to HttpPasswordAuth, Routing::Http and HttpAcct
 - BUGFIX(MakeCall.*) fix crash in MakeCall
 - apply ReadTimeout= and ConnectTimeout= to PostgreSQL queries and connects

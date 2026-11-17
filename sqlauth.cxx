@@ -730,6 +730,12 @@ int SQLAuth::Check(
 				authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
 				return e_fail;
 			}
+		} else if (!s) {
+			// eg. a negative or fractional value: don't accept the call without a limit
+			PTRACE(2, traceStr << " - invalid credittime attribute '" << s << '\'');
+			SNMP_TRAP(8, SNMPError, Authentication, GetName() + " ARQ check failed");
+			authData.m_rejectReason = H225_AdmissionRejectReason::e_securityDenial;
+			return e_fail;
 		}
 	}
 
@@ -977,6 +983,12 @@ int SQLAuth::Check(
 				authData.m_rejectCause = Q931::CallRejected;
 				return e_fail;
 			}
+		} else if (!s) {
+			// eg. a negative or fractional value: don't accept the call without a limit
+			PTRACE(2, traceStr << " - invalid credittime attribute '" << s << '\'');
+			SNMP_TRAP(8, SNMPError, Authentication, GetName() + " Setup check failed");
+			authData.m_rejectCause = Q931::CallRejected;
+			return e_fail;
 		}
 	}
 

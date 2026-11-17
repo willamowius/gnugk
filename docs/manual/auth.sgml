@@ -688,7 +688,9 @@ result and to get additional information:
 	<item>If there exists a column called <tt/'creditamount'/, set account balance
 		associated with the endpoint (this is an arbitrary string)
 	<item>If there exists a column called <tt/'credittime'/, use its integer
-          value to set call duration limit
+          value to set call duration limit (in seconds). The call is rejected
+          if the value is 0 or not a non-negative integer (eg. -30 or 119.5),
+          an empty value or NULL sets no limit
 	<item>If there exists a column called <tt/'redirectnumber'/, replace
           the original destination number with this one. You can put multiple
 		  numbers (that correspond to multiple <tt/'redirectip'/ entries) separated
