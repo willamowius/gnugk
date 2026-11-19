@@ -12477,10 +12477,7 @@ bool H245Socket::ConnectRemote()
 		return false;
 	}
 	// never connect to our own status port
-	PIPSocket::Address unmappedPeerAddr = peerAddr;
-	UnmapIPv4Address(unmappedPeerAddr);
-	if (peerPort == (WORD)GkConfig()->GetInteger("StatusPort", GK_DEF_STATUS_PORT)
-			&& Toolkit::Instance()->IsGKHome(unmappedPeerAddr)) {
+	if (Toolkit::Instance()->IsGKStatusPort(peerAddr, peerPort)) {
 		m_signalingSocketMutex.Signal();
 		PTRACE(1, "H245\tRefusing H.245 connection to the gatekeeper's own status port: " << AsString(peerAddr, peerPort));
 		return false;
@@ -16569,6 +16566,14 @@ void T120LogicalChannel::Create(unsigned lcID, T120ProxySocket *socket)
 	const PIPSocket::Address peerAddr = lc->peerAddr;
 	const WORD peerPort = lc->peerPort;
 	m_channelsMutex.Signal();
+
+	// never connect to our own status port
+	if (Toolkit::Instance()->IsGKStatusPort(peerAddr, peerPort)) {
+		PTRACE(1, "T120\tRefusing T.120 connection to the gatekeeper's own status port: " << AsString(peerAddr, peerPort));
+		delete socket;
+		socket = NULL;
+		return;
+	}
 
 	T120ProxySocket * remote = new T120ProxySocket(socket, peerPort);
 	int numPorts = min(T120PortRange.GetNumPorts(), DEFAULT_NUM_SEQ_PORTS);

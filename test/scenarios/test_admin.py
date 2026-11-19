@@ -302,11 +302,13 @@ def test_reroute_call(start_gk, workdir, faststart):
     assert gk.trace_count("Reroute aborted") == 0
 
 
-def test_h245_to_own_status_port(start_gk, workdir):
+@pytest.mark.parametrize("h245_ip", [topology.GK_IP, "0.0.0.0"], ids=["gk-ip", "any-ip"])
+def test_h245_to_own_status_port(start_gk, workdir, h245_ip):
     """a callee that announces the gatekeeper's own status port as its H.245 address (in the CallProceeding): neither
-    the caller nor GnuGk open an H.245 connection to the status port"""
+    the caller nor GnuGk open an H.245 connection to the status port; 0.0.0.0 is the local host, too (GnuGk binds its
+    H.245 socket to its home IP, so a connection to 0.0.0.0 goes to the status listener on that IP)"""
     gk = start_gk()
-    status = "%s:%d" % (topology.GK_IP, gnugk.STATUS_PORT)
+    status = "%s:%d" % (h245_ip, gnugk.STATUS_PORT)
     run_call(gk, Endpoint(workdir, "pub1", "caller", faststart=False, tunneling=False), "callee",
              # ring for a while, so the caller opens its H.245 channel before the Connect brings the real address
              callee=Endpoint(workdir, "pub2", "callee", faststart=False, tunneling=False, h245_address=status,
@@ -319,3 +321,30 @@ def test_h245_to_own_status_port(start_gk, workdir):
     # (the harness itself uses the status port from ephemeral ports, GnuGk's H.245 connections come from 31000-31999)
     assert gk.trace_count("STATUS\tNew connection from %s:31" % topology.GK_IP) == 0, "GnuGk connected to its status port"
     assert gk.trace_count("Refusing H.245 connection to the gatekeeper's own status port") >= 1
+
+
+@pytest.mark.parametrize("t120_ip,home", [(topology.GK_IP, topology.GK_IP),
+                                          ("0.0.0.0", topology.GK_IP + ",127.0.0.1")],
+                         ids=["gk-ip", "any-ip-loopback-home"])
+def test_t120_to_own_status_port(start_gk, workdir, t120_ip, home):
+    """the caller opens a T.120 channel, the callee accepts it with the gatekeeper's own status port as separate stack
+    address in its OLCAck; GnuGk puts its T.120 listener into the OLCAck instead and connects on to the callee's
+    address when the caller connects there: it must refuse to connect to its status port, so the caller's status
+    port command gets no answer. 0.0.0.0 is the local host, too: when GnuGk also listens on 127.0.0.1 (as without
+    Home=), its (unbound) T.120 connection to 0.0.0.0 goes there"""
+    gk = start_gk({"Gatekeeper::Main": {"Home": home}, "Proxy": {"Enable": "1", "T120PortRange": "33000-33099"}})
+    status = "%s:%d" % (t120_ip, gnugk.STATUS_PORT)
+    caller, callee = run_call(gk, Endpoint(workdir, "pub1", "caller", faststart=False, t120=True, t120_connect=True),
+                              "callee", duration=4,
+                              callee=Endpoint(workdir, "pub2", "callee", faststart=False, t120=True, t120_ack=True,
+                                              t120_address=status))
+    assert caller["connected"] and callee["connected"], caller["endReason"]
+    assert callee["t120OlcReceived"], "the T.120 channel didn't reach the callee"
+    assert caller["t120Connected"], "the caller couldn't connect to GnuGk's T.120 listener"
+    assert gk.trace_count("STATUS\tNew connection from %s:" % topology.HOST_IPS["pub1"]) == 0, \
+        "the caller was sent to the status port"
+    # GnuGk's T.120 connections come from 33000-33099, the harness uses the status port from ephemeral ports
+    for ip in (topology.GK_IP, "127.0.0.1"):
+        assert gk.trace_count("STATUS\tNew connection from %s:330" % ip) == 0, "GnuGk connected to its status port"
+    assert caller["t120Reply"] == "", "the status port answered over T.120: %r" % caller["t120Reply"]
+    assert gk.trace_count("Refusing T.120 connection to the gatekeeper's own status port") >= 1

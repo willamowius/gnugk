@@ -492,6 +492,8 @@ class Toolkit : public Singleton<Toolkit>
 	PString GetGKHome(std::vector<PIPSocket::Address> &) const;
 	void SetGKHome(const PStringArray &);
 	bool IsGKHome(const PIPSocket::Address & addr) const;
+	/// would a TCP connection to addr:port reach our own status port ?
+	bool IsGKStatusPort(const PIPSocket::Address & addr, WORD port) const;
 
 	void SetMaintenanceMode(bool val) { m_maintenanceMode = val; }
 	bool IsMaintenanceMode() const { return m_maintenanceMode; }

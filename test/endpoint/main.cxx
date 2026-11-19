@@ -171,8 +171,16 @@ struct CallStats {
 // T.120 test support (H323Plus is built without T.120): with --t120 the endpoint puts a T.120 capability into
 // its capability set and opens a T.120 data channel (separate LAN stack) once the call is established.
 // Both sides record what they saw of it.
+// With --t120-ack the endpoint accepts a T.120 channel it receives with its own OpenLogicalChannelAck,
+// --t120-address is the separate stack address it puts into its OLC or OLCAck, with --t120-connect it connects to
+// the separate stack address in the OLCAck for its own channel, sends "version" and records the answer.
 static PMutex t120Mutex;
 static bool t120Offer = false;
+static PString t120Address;	// separate stack address for our OLC / OLCAck (default: signaling IP, port 1503)
+static bool t120Ack = false;
+static bool t120Connect = false;
+static bool t120Connected = false;	// the connection to the separate stack address in the OLCAck worked
+static PString t120Reply;	// what came back on that connection
 static bool t120CapReceived = false;	// the remote capability set had a T.120 capability
 static bool t120OlcReceived = false;	// the remote opened a T.120 channel
 static bool t120OlcRejected = false;	// our T.120 channel was rejected
@@ -278,8 +286,20 @@ public:
 			const H245_OpenLogicalChannel & olc = request;
 			if (IsT120Data(olc.m_forwardLogicalChannelParameters.m_dataType)) {
 				PTRACE(1, "GKTESTEP\tReceived T.120 OpenLogicalChannel " << olc.m_forwardLogicalChannelNumber);
-				PWaitAndSignal lock(t120Mutex);
-				t120OlcReceived = true;
+				{
+					PWaitAndSignal lock(t120Mutex);
+					t120OlcReceived = true;
+				}
+				if (t120Ack) {
+					// accept it ourselves, H323Plus would reject it
+					H323ControlPDU ack;
+					H245_OpenLogicalChannelAck & olca = ack.BuildOpenLogicalChannelAck(olc.m_forwardLogicalChannelNumber);
+					olca.IncludeOptionalField(H245_OpenLogicalChannelAck::e_separateStack);
+					SetSeparateStack(olca.m_separateStack);
+					PTRACE(1, "GKTESTEP\tAccepting T.120 channel " << olc.m_forwardLogicalChannelNumber);
+					WriteControlPDU(ack);
+					return true;
+				}
 			}
 		}
 		return H323Connection::OnH245Request(pdu);
@@ -300,10 +320,73 @@ public:
 		}
 		if (response.GetTag() == H245_ResponseMessage::e_openLogicalChannelAck) {
 			const H245_OpenLogicalChannelAck & olca = response;
-			if (olca.m_forwardLogicalChannelNumber == T120ChannelNumber)
+			if (olca.m_forwardLogicalChannelNumber == T120ChannelNumber) {
+				PTRACE(1, "GKTESTEP\tT.120 channel accepted");
+				if (t120Connect && olca.HasOptionalField(H245_OpenLogicalChannelAck::e_separateStack))
+					ConnectT120(olca.m_separateStack);
 				return true;
+			}
 		}
 		return H323Connection::OnH245Response(pdu);
+	}
+
+	// separate stack address for our T.120 OLC or OLCAck: --t120-address or the signaling IP, port 1503
+	// (set directly, H323TransportAddress can't do 0.0.0.0)
+	void SetSeparateStack(H245_NetworkAccessParameters & sepStack)
+	{
+		PIPSocket::Address ip;
+		WORD port;
+		GetSignallingChannel()->GetLocalAddress().GetIpAndPort(ip, port);
+		port = 1503;
+		if (!t120Address.IsEmpty()) {
+			ip = PIPSocket::Address(t120Address.Left(t120Address.Find(':')));
+			port = (WORD)t120Address.Mid(t120Address.Find(':') + 1).AsUnsigned();
+		}
+		sepStack.m_networkAddress.SetTag(H245_NetworkAccessParameters_networkAddress::e_localAreaAddress);
+		H245_TransportAddress & addr = (H245_TransportAddress &)sepStack.m_networkAddress;
+		addr.SetTag(H245_TransportAddress::e_unicastAddress);
+		H245_UnicastAddress & unicast = addr;
+		unicast.SetTag(H245_UnicastAddress::e_iPAddress);
+		H245_UnicastAddress_iPAddress & ipv4 = unicast;
+		ipv4.m_network.SetValue((const BYTE *)ip.GetPointer(), 4);
+		ipv4.m_tsapIdentifier = port;
+	}
+
+	// connect to the separate stack address in the OLCAck for our T.120 channel, send a status port command
+	// and keep what comes back within 2 seconds
+	void ConnectT120(const H245_NetworkAccessParameters & sepStack)
+	{
+		if (sepStack.m_networkAddress.GetTag() != H245_NetworkAccessParameters_networkAddress::e_localAreaAddress)
+			return;
+		H323TransportAddress addr((const H245_TransportAddress &)sepStack.m_networkAddress);
+		PIPSocket::Address ip;
+		WORD port;
+		if (!addr.GetIpAndPort(ip, port))
+			return;
+		PTCPSocket socket(port);
+		socket.SetReadTimeout(2000);
+		if (!socket.Connect(ip)) {
+			PTRACE(1, "GKTESTEP\tT.120 connection to " << addr << " failed");
+			return;
+		}
+		PTRACE(1, "GKTESTEP\tT.120 connection to " << addr);
+		{
+			PWaitAndSignal lock(t120Mutex);
+			t120Connected = true;
+		}
+		socket.WriteString("version\r\n");
+		PString reply;
+		char buffer[1024];
+		while (reply.GetLength() < 1000 && socket.Read(buffer, sizeof(buffer))) {
+			// the status port starts with telnet option negotiation, keep the JSON result printable
+			for (PINDEX i = 0; i < socket.GetLastReadCount(); ++i) {
+				const unsigned char c = (unsigned char)buffer[i];
+				reply += (c >= 0x20 && c < 0x7f) || c == '\n' ? (char)c : '.';
+			}
+		}
+		PTRACE(1, "GKTESTEP\tT.120 connection answered: " << reply);
+		PWaitAndSignal lock(t120Mutex);
+		t120Reply = reply;
 	}
 
 	// open a T.120 data channel (with a separate LAN stack address nobody listens on, no T.120 data is sent)
@@ -320,11 +403,7 @@ public:
 		olc.IncludeOptionalField(H245_OpenLogicalChannel::e_reverseLogicalChannelParameters);
 		olc.m_reverseLogicalChannelParameters.m_dataType = olc.m_forwardLogicalChannelParameters.m_dataType;
 		olc.IncludeOptionalField(H245_OpenLogicalChannel::e_separateStack);
-		olc.m_separateStack.m_networkAddress.SetTag(H245_NetworkAccessParameters_networkAddress::e_localAreaAddress);
-		PIPSocket::Address ip;
-		WORD port;
-		GetSignallingChannel()->GetLocalAddress().GetIpAndPort(ip, port);
-		H323TransportAddress(ip, 1503).SetPDU((H245_TransportAddress &)olc.m_separateStack.m_networkAddress);
+		SetSeparateStack(olc.m_separateStack);
 		PTRACE(1, "GKTESTEP\tOpening T.120 channel " << T120ChannelNumber);
 		WriteControlPDU(pdu);
 	}
@@ -977,6 +1056,9 @@ void GkTestEp::Main()
 		"-h46018."
 		"-h46019m."
 		"-t120."
+		"-t120-address:"
+		"-t120-ack."
+		"-t120-connect."
 		"-h245-address:"
 		"-h46017."
 		"-h235-media."
@@ -1036,6 +1118,10 @@ void GkTestEp::Main()
 			"  --h46018             use H.460.18/.19 NAT traversal\n"
 			"  --h46019m            with --h46018: use H.460.19 RTP multiplexing (receive and send)\n"
 			"  --t120               offer T.120 in the capability set and open a T.120 channel when the call is up\n"
+			"  --t120-ack           accept a T.120 channel we receive with our own OpenLogicalChannelAck\n"
+			"  --t120-address ip:port  separate stack address in our T.120 OLC or OLCAck (default: signaling IP:1503)\n"
+			"  --t120-connect       connect to the separate stack address in the OLCAck for our T.120 channel, send\n"
+			"                       \"version\" and report t120Connected and the answer as t120Reply\n"
 			"  --h245-address ip:port  callee: announce this H.245 address in the CallProceeding\n"
 			"  --h46017             register and signal over one TCP connection to the gatekeeper (H.460.17)\n"
 			"  --h235-media         offer H.235.6 media encryption (AES 128)\n"
@@ -1114,6 +1200,9 @@ void GkTestEp::Main()
 		ep->SetAudioJitterDelay(0, 0);
 	}
 	t120Offer = args.HasOption("t120");
+	t120Address = args.GetOptionString("t120-address");
+	t120Ack = args.HasOption("t120-ack");
+	t120Connect = args.HasOption("t120-connect");
 	announcedH245Address = args.GetOptionString("h245-address");
 	ep->DisableFastStart(args.HasOption("no-faststart"));
 	ep->DisableH245Tunneling(args.HasOption("no-tunneling"));
@@ -1350,6 +1439,8 @@ void GkTestEp::Main()
 			<< "  \"t120CapReceived\": " << (t120CapReceived ? "true" : "false") << ",\n"
 			<< "  \"t120OlcReceived\": " << (t120OlcReceived ? "true" : "false") << ",\n"
 			<< "  \"t120OlcRejected\": " << (t120OlcRejected ? "true" : "false") << ",\n"
+			<< "  \"t120Connected\": " << (t120Connected ? "true" : "false") << ",\n"
+			<< "  \"t120Reply\": " << JSONString(t120Reply) << ",\n"
 			<< "  \"calls\": [\n";
 		for (size_t i = 0; i < finished.size(); ++i)
 			out << "    {\"connected\": " << (finished[i].connected ? "true" : "false")

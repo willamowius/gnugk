@@ -21,7 +21,7 @@ class Endpoint:
                  md5_unsigned=None, reject=None, hangup_after=None, tunneling=True, name=None, no_gk=False,
                  answer_delay=None, listen_port=None, bandwidth=None, brq=None, add_aliases=None,
                  gateway=False, ipv6=False, gk="gk", h46019m=False, t120=False, h245_address=None,
-                 h46017=False, h235_media=False, user_input=None, user_input_mode=None, pause_after=None):
+                 t120_address=None, t120_ack=False, t120_connect=False, h46017=False, h235_media=False, user_input=None, user_input_mode=None, pause_after=None):
         """password: register with MD5 tokens, or H.235.1 tokens with h2351 (also in the call Setup,
         or in all Q.931 messages with full_q931). md5_unsigned: RAS messages to send without MD5 token,
         eg. ["URQ", "DRQ"]. reject: refuse incoming calls, "busy" or "denied".
@@ -40,6 +40,10 @@ class Endpoint:
         h46019m: with h46018, use H.460.19 RTP multiplexing
         t120: offer T.120 in the capability set and open a T.120 channel once the call is up
         h245_address: callee: announce this H.245 address ("ip:port") in the CallProceeding
+        t120_ack: accept a T.120 channel we receive with our own OLCAck (instead of rejecting it)
+        t120_address: the separate stack address ("ip:port") in our T.120 OLC or OLCAck
+        t120_connect: connect to the separate stack address in the OLCAck for our T.120 channel, send "version",
+        report t120Connected and the answer as t120Reply
         h46017: register and signal over one TCP connection to the gatekeeper (H.460.17)
         h235_media: offer H.235.6 media encryption
         user_input: send this text as user input 1 second into the call, user_input_mode: "string" (H.245
@@ -68,6 +72,9 @@ class Endpoint:
         self.h46019m = h46019m
         self.t120 = t120
         self.h245_address = h245_address
+        self.t120_address = t120_address
+        self.t120_ack = t120_ack
+        self.t120_connect = t120_connect
         self.h46017 = h46017
         self.h235_media = h235_media
         self.user_input = user_input
@@ -110,6 +117,12 @@ class Endpoint:
             args.append("--t120")
         if self.h245_address:
             args += ["--h245-address", self.h245_address]
+        if self.t120_address:
+            args += ["--t120-address", self.t120_address]
+        if self.t120_ack:
+            args.append("--t120-ack")
+        if self.t120_connect:
+            args.append("--t120-connect")
         if self.h46017:
             args.append("--h46017")
         if self.h235_media:

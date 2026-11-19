@@ -1,5 +1,6 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(ProxyChannel.cxx) never open a H.245 or T.120 connection to our own status port
 - BUGFIX(RasSrv.cxx) only accept the forwarded RAS flag from alternate gatekeepers (SendTo= / SkipForwards=)
 - BUGFIX(RasSrv.cxx) only answer a forwarded RRJ with a full RRQ if the reject reason is fullRegistrationRequired (avoid RRQ/RRJ loop)
 - BUGFIX(Neighbor.cxx) only accept LCF/LRJ/RIP from the neighbor's IP unless AcceptNonNeighborLCF=1 is set

@@ -157,9 +157,7 @@ bool RoutingRequest::AddRoute(const Route & route)
 		return false;
 	}
 	// never route calls to our own status port
-	UnmapIPv4Address(addr);
-	if (port == (WORD)GkConfig()->GetInteger("StatusPort", GK_DEF_STATUS_PORT)
-			&& Toolkit::Instance()->IsGKHome(addr)) {
+	if (Toolkit::Instance()->IsGKStatusPort(addr, port)) {
 		PTRACE(1, "ROUTING\tRefusing route to the gatekeeper's own status port: " << AsString(route.m_destAddr));
 		return false;
 	}

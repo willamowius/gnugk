@@ -3922,6 +3922,16 @@ bool Toolkit::IsGKHome(const PIPSocket::Address & addr) const
 	return false;
 }
 
+bool Toolkit::IsGKStatusPort(const PIPSocket::Address & addr, WORD port) const
+{
+	if (port != (WORD)GkConfig()->GetInteger("StatusPort", GK_DEF_STATUS_PORT))
+		return false;
+	PIPSocket::Address unmappedAddr = addr;
+	UnmapIPv4Address(unmappedAddr);
+	// a connection to 0.0.0.0 or :: goes to the local host (to the source IP or to the loopback interface)
+	return unmappedAddr.IsAny() || IsGKHome(unmappedAddr);
+}
+
 H225_ArrayOf_AlternateGK Toolkit::GetMaintenanceAlternate() const
 {
     H225_ArrayOf_AlternateGK gklist;
