@@ -6751,6 +6751,13 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 	endptr calledep = m_call->GetCalledParty();
 	if (calledep) {
 		// m_call->GetCalledParty() should not be null in the case
+		if (calledep->GetSocket() == this) {
+			// endpoint calling its own alias over its NAT socket (eg. H.460.17): a socket can't be its own remote
+			PTRACE(2, Type() << "\tCall " << m_call->GetCallNumber() << " from " << GetName() << " to its own NAT socket rejected");
+			m_call->SetDisconnectCause(Q931::CallRejected);
+			m_result = Error;
+			return false;
+		}
 		CallSignalSocket *socket = calledep->GetAndRemoveSocket();
 		// a GnuGk NAT socket is closed after the call, so it can only be used for a single call
 		if (socket && !socket->MaintainConnection() && (socket->m_call || socket->IsDeletable())) {
