@@ -2638,6 +2638,8 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
 		bool suppress = false;
 		if (m_h245handler && OnTunneledH245(msg->GetUUIE()->m_h323_uu_pdu.m_h245Control, suppress))
 			msg->SetUUIEChanged();
+		else if (!m_h245handler && RemoveT120FromTunneledH245(msg->GetUUIE()->m_h323_uu_pdu.m_h245Control))
+			msg->SetUUIEChanged();
 
         if (suppress) {
 			// keep DelayedConnecting: OnFacility() has already moved this socket into the ProxyHandler of the calling socket
@@ -3086,6 +3088,14 @@ bool IsT120Enabled()
 
 bool IsT120DataType(const H245_DataType & dataType)
 {
+	if (dataType.GetTag() == H245_DataType::e_h235Media) {
+		// an encrypted T.120 channel
+		const H245_H235Media & media = dataType;
+		if (media.m_mediaType.GetTag() != H245_H235Media_mediaType::e_data)
+			return false;
+		const H245_DataApplicationCapability & cap = media.m_mediaType;
+		return cap.m_application.GetTag() == H245_DataApplicationCapability_application::e_t120;
+	}
 	if (dataType.GetTag() != H245_DataType::e_data)
 		return false;
 	const H245_DataApplicationCapability & cap = dataType;
@@ -3191,6 +3201,55 @@ bool CallSignalSocket::RejectT120Channel(const H245_MultimediaSystemControlMessa
 	else
 		SendTunneledH245(reply);
 	return true;
+}
+
+// with EnableT120=0, for calls without H.245 handler (H.245 not routed): GnuGk still sees tunneled H.245,
+// remove the T.120 capabilities and reject T.120 channels there, returns true if h245Control changed
+bool CallSignalSocket::RemoveT120FromTunneledH245(H225_ArrayOf_PASN_OctetString & h245Control)
+{
+	if (IsT120Enabled())
+		return false;
+	bool changed = false;
+	for (PINDEX i = 0; i < h245Control.GetSize(); ++i) {
+		PPER_Stream strm = h245Control[i].GetValue();
+		H245_MultimediaSystemControlMessage h245msg;
+		if (!h245msg.Decode(strm))
+			continue;
+		if (RejectT120Channel(h245msg, NULL)) {
+			h245Control.RemoveAt(i);
+			i--;
+			changed = true;
+		} else if (h245msg.GetTag() == H245_MultimediaSystemControlMessage::e_request
+			&& ((H245_RequestMessage &)h245msg).GetTag() == H245_RequestMessage::e_terminalCapabilitySet
+			&& RemoveT120Capabilities((H245_TerminalCapabilitySet &)(H245_RequestMessage &)h245msg)) {
+			PPER_Stream out;
+			h245msg.Encode(out);
+			out.CompleteEncoding();
+			h245Control[i].SetValue(out);
+			changed = true;
+		}
+	}
+	return changed;
+}
+
+// with EnableT120=0, for calls without H.245 handler: remove T.120 channels from fastStart,
+// returns true if fastStart changed
+bool CallSignalSocket::RemoveT120FromFastStart(H225_ArrayOf_PASN_OctetString & fastStart)
+{
+	if (IsT120Enabled())
+		return false;
+	bool changed = false;
+	for (PINDEX i = 0; i < fastStart.GetSize(); ++i) {
+		PPER_Stream strm = fastStart[i].GetValue();
+		H245_OpenLogicalChannel olc;
+		if (olc.Decode(strm) && IsT120OLC(olc)) {
+			PTRACE(3, "Q931\tRemoving T.120 channel from fastStart (EnableT120=0)");
+			fastStart.RemoveAt(i);
+			i--;
+			changed = true;
+		}
+	}
+	return changed;
 }
 
 bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245Socket * h245sock)
@@ -6810,6 +6869,8 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 	if (setupBody.HasOptionalField(H225_Setup_UUIE::e_parallelH245Control) && m_h245handler) {
 		bool suppress = false;	// ignore for now
 		OnTunneledH245(setupBody.m_parallelH245Control, suppress);
+	} else if (setupBody.HasOptionalField(H225_Setup_UUIE::e_parallelH245Control)) {
+		RemoveT120FromTunneledH245(setupBody.m_parallelH245Control);
 	}
 #endif
 	return true;
@@ -10062,6 +10123,9 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					bool suppress = false;	// ignore for now
 					if (OnTunneledH245(setupBody.m_parallelH245Control, suppress))
 						setup->SetUUIEChanged();
+				} else if (setupBody.HasOptionalField(H225_Setup_UUIE::e_parallelH245Control)) {
+					if (RemoveT120FromTunneledH245(setupBody.m_parallelH245Control))
+						setup->SetUUIEChanged();
 				}
 #endif
 					// re-encode with changes made here
@@ -11218,10 +11282,11 @@ ProxySocket::Result CallSignalSocket::RetrySetup()
 		return m_result;
 	}
 
-	if (msg->GetUUIE() != NULL && msg->GetUUIE()->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Control)
-			&& m_h245handler) {
+	if (msg->GetUUIE() != NULL && msg->GetUUIE()->m_h323_uu_pdu.HasOptionalField(H225_H323_UU_PDU::e_h245Control)) {
 		bool suppress = false;	// ignore for now
-		if (OnTunneledH245(msg->GetUUIE()->m_h323_uu_pdu.m_h245Control, suppress))
+		if (m_h245handler && OnTunneledH245(msg->GetUUIE()->m_h323_uu_pdu.m_h245Control, suppress))
+			msg->SetUUIEChanged();
+		else if (!m_h245handler && RemoveT120FromTunneledH245(msg->GetUUIE()->m_h323_uu_pdu.m_h245Control))
 			msg->SetUUIEChanged();
 	}
 

@@ -126,7 +126,7 @@ Default: <tt/1/<newline>
 <p>
 Allow T.120 data channels (eg. for data conferencing). With <tt/EnableT120=0/ GnuGk removes T.120
 capabilities from the TerminalCapabilitySets, removes T.120 channels from fastStart and rejects
-OpenLogicalChannel requests for T.120 channels (with cause dataTypeNotSupported) instead of forwarding them.
+OpenLogicalChannel requests for T.120 channels, also encrypted ones (with cause dataTypeNotSupported) instead of forwarding them.
 This only works for H.245 messages that pass through GnuGk: tunneled H.245 or a routed H.245 channel
 (<tt/H245Routed=1/).
 

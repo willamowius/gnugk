@@ -179,6 +179,7 @@ static PMutex t120Mutex;
 static bool t120Offer = false;
 static PString t120Address;	// separate stack address for our OLC / OLCAck (default: signaling IP, port 1503)
 static bool t120Ack = false;
+static bool t120Encrypted = false;	// open the T.120 channel as encrypted (H.235 media) channel
 static bool t120Connect = false;
 static bool t120Connected = false;	// the connection to the separate stack address in the OLC / OLCAck worked
 static PString t120Reply;	// what came back on that connection
@@ -190,6 +191,13 @@ static const unsigned T120CapabilityNumber = 4000;
 
 static bool IsT120Data(const H245_DataType & dataType)
 {
+	if (dataType.GetTag() == H245_DataType::e_h235Media) {	// encrypted (--t120-encrypted)
+		const H245_H235Media & media = dataType;
+		if (media.m_mediaType.GetTag() != H245_H235Media_mediaType::e_data)
+			return false;
+		const H245_DataApplicationCapability & data = media.m_mediaType;
+		return data.m_application.GetTag() == H245_DataApplicationCapability_application::e_t120;
+	}
 	if (dataType.GetTag() != H245_DataType::e_data)
 		return false;
 	const H245_DataApplicationCapability & data = dataType;
@@ -397,8 +405,15 @@ public:
 	{
 		H323ControlPDU pdu;
 		H245_OpenLogicalChannel & olc = pdu.BuildOpenLogicalChannel(T120ChannelNumber);
-		olc.m_forwardLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_data);
-		SetT120Data(olc.m_forwardLogicalChannelParameters.m_dataType);
+		if (t120Encrypted) {
+			olc.m_forwardLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_h235Media);
+			H245_H235Media & media = olc.m_forwardLogicalChannelParameters.m_dataType;
+			media.m_mediaType.SetTag(H245_H235Media_mediaType::e_data);
+			SetT120Data(media.m_mediaType);
+		} else {
+			olc.m_forwardLogicalChannelParameters.m_dataType.SetTag(H245_DataType::e_data);
+			SetT120Data(olc.m_forwardLogicalChannelParameters.m_dataType);
+		}
 		olc.m_forwardLogicalChannelParameters.m_multiplexParameters.SetTag(
 			H245_OpenLogicalChannel_forwardLogicalChannelParameters_multiplexParameters::e_h2250LogicalChannelParameters);
 		H245_H2250LogicalChannelParameters & params = olc.m_forwardLogicalChannelParameters.m_multiplexParameters;
@@ -1061,6 +1076,7 @@ void GkTestEp::Main()
 		"-t120."
 		"-t120-address:"
 		"-t120-ack."
+		"-t120-encrypted."
 		"-t120-connect."
 		"-h245-address:"
 		"-h46017."
@@ -1122,6 +1138,7 @@ void GkTestEp::Main()
 			"  --h46019m            with --h46018: use H.460.19 RTP multiplexing (receive and send)\n"
 			"  --t120               offer T.120 in the capability set and open a T.120 channel when the call is up\n"
 			"  --t120-ack           accept a T.120 channel we receive with our own OpenLogicalChannelAck\n"
+			"  --t120-encrypted     open the T.120 channel as encrypted channel (dataType h235Media)\n"
 			"  --t120-address ip:port  separate stack address in our T.120 OLC or OLCAck (default: signaling IP:1503)\n"
 			"  --t120-connect       connect to the separate stack address in a T.120 OLC we receive or in the OLCAck\n"
 			"                       for our T.120 channel, send \"version\", report t120Connected and the answer as t120Reply\n"
@@ -1205,6 +1222,7 @@ void GkTestEp::Main()
 	t120Offer = args.HasOption("t120");
 	t120Address = args.GetOptionString("t120-address");
 	t120Ack = args.HasOption("t120-ack");
+	t120Encrypted = args.HasOption("t120-encrypted");
 	t120Connect = args.HasOption("t120-connect");
 	announcedH245Address = args.GetOptionString("h245-address");
 	ep->DisableFastStart(args.HasOption("no-faststart"));

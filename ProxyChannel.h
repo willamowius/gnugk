@@ -426,6 +426,9 @@ public:
 	bool SendTunneledH245(const PPER_Stream & strm);
 	bool SendTunneledH245(const H245_MultimediaSystemControlMessage & h245msg);
 	bool RejectT120Channel(const H245_MultimediaSystemControlMessage & h245msg, H245Socket * h245sock);
+	// EnableT120=0 for calls without H.245 handler
+	bool RemoveT120FromTunneledH245(H225_ArrayOf_PASN_OctetString & h245Control);
+	bool RemoveT120FromFastStart(H225_ArrayOf_PASN_OctetString & fastStart);
     void SendFacilityKeepAlive();
     void SendInformationKeepAlive();
     void SendNotifyKeepAlive();
@@ -544,7 +547,7 @@ protected:
 		if (!fromCaller && m_call)
 			m_call->SetFastStartResponseReceived();
 
-		return m_h245handler != NULL ? OnFastStart(uu.m_fastStart, fromCaller) : false;
+		return m_h245handler != NULL ? OnFastStart(uu.m_fastStart, fromCaller) : RemoveT120FromFastStart(uu.m_fastStart);
 	}
 
 private:
