@@ -9,7 +9,7 @@ import pytest
 
 from harness import topology
 from harness.calls import run_call
-from harness.endpoint import Endpoint
+from harness.endpoint import Endpoint, spoof_ras
 
 from scenarios.test_multi_gk import CHILD_CONFIG, check_call, neighbor
 
@@ -165,6 +165,47 @@ def test_neighbor_down(start_gk, workdir, timeout, retries):
     expected = int(timeout) / 10.0 * sends
     assert expected - 0.2 <= waited <= expected + 1.5, "waited %.1f s for the neighbor, expected %.1f s" % (waited, expected)
     assert gk.trace_count("locationRequest {") == sends, "LRQs sent: %d" % gk.trace_count("locationRequest {")
+
+
+# ---- LCFs from strangers
+
+@pytest.mark.parametrize("neighbor_type,nonstd,accept_non_neighbor,redirected", [
+    ("GnuGK", "neighbor:GK2", "0", False),
+    ("CiscoGK", "cisco", "0", False),
+    ("GnuGK", "none", "0", False),
+    ("GnuGK", "neighbor:GK2", "1", True),
+], ids=["gnugk-neighbor-id", "cisco-h221", "no-nonstd", "AcceptNonNeighborLCF"])
+def test_lcf_from_non_neighbor(start_gk, workdir, neighbor_type, nonstd, accept_non_neighbor, redirected):
+    """alice at GK1 calls bob, GK1 asks its neighbor GK2 (which doesn't answer); meanwhile pub3 sends LCFs for the
+    first 200 requestSeqNums (GnuGk counts them up from 1) that point to its own endpoint bob, with the GnuGk
+    neighbor ID of GK2 or Cisco's H.221 code in nonStandardData: neither is a secret, so GK1 only takes an LCF from
+    GK2's IP and the call fails when GK2's timeout is over; only with AcceptNonNeighborLCF=1 it goes to pub3"""
+    gk = start_gk({"Gatekeeper::Main": {"Name": "GK1"},
+                   "RasSrv::LRQFeatures": {"NeighborTimeout": "40", "SendRetries": "0",
+                                           "AcceptNonNeighborLCF": accept_non_neighbor},
+                   "RoutingPolicy": {"default": "explicit,internal,neighbor"}},
+                  neighbor("GK2", GK2), {"RasSrv::Neighbors": {"GK2": neighbor_type}})
+    mallory = Endpoint(workdir, "pub3", "bob", name="mallory", no_gk=True, listen_port=1720).start(duration=20)
+    alice = Endpoint(workdir, "pub1", "alice").start(call="bob", duration=2, timeout=15)
+    try:
+        deadline = time.time() + 5
+        while gk.trace_count("locationRequest {") == 0 and time.time() < deadline:
+            time.sleep(0.1)
+        assert gk.trace_count("locationRequest {") >= 1, "GK1 sent no LRQ to GK2"
+        spoof = spoof_ras(workdir, "pub3", "LCF", alias="bob", seq="1-200", nonstd=nonstd,
+                          target=topology.HOST_IPS["pub3"] + ":1720")
+        caller = alice.wait()
+    finally:
+        alice.kill()
+        mallory.kill()
+    assert spoof["sent"] == "LCF", spoof
+    matched = gk.trace_count("message matched pending LRQ for neighbor GK2")
+    if redirected:
+        assert matched >= 1 and caller["connected"], "the LCF from pub3 wasn't taken: %s" % caller
+    else:
+        assert matched == 0, "GK1 took an LCF from pub3 (%s) as GK2's answer" % nonstd
+        assert caller["registered"] and not caller["connected"], "the call went to pub3: %s" % caller
+    assert gk.number_of_calls() == 0
 
 
 # ---- LRQ passwords

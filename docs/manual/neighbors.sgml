@@ -119,6 +119,8 @@ to receive the LCF response or to let it travel back directly to the LRQ
 originator. Set this option to 1 if the gatekeeper needs to receive LCF
 messages for forwarded LRQs. This setting can be overridden with configuration
 of a particular neighbor.
+Note that the LRQ originator will only accept a LCF that travels back directly
+from a gatekeeper it has not sent the LRQ to if it has <tt/AcceptNonNeighborLCF=1/ set.
 
 <item><tt/ForwardLRQ=always | never | depends/<newline>
 Default: <tt/depends/<newline>

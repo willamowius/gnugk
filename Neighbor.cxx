@@ -97,7 +97,6 @@ public:
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const AdmissionRequest &);
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const LocationRequest &);
 	virtual bool OnSendingLRQ(H225_LocationRequest &, const SetupRequest &);
-	virtual bool CheckReply(RasMsg *msg) const;
 };
 
 // stupid Clarent gatekeeper
@@ -795,25 +794,10 @@ bool Neighbor::OnSendingLRQ(H225_LocationRequest & lrq, const FacilityRequest &)
 
 bool Neighbor::CheckReply(RasMsg *ras) const
 {
-	if( ras->IsFrom(GetIP(), 0) )
-		return true;
-
-	const H225_NonStandardParameter *param = ras->GetNonStandardParam();
-	if (param == NULL)
-		return false;
-
-	int iec = Toolkit::iecUnknown;
-	if (param->m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
-		iec = Toolkit::Instance()->GetInternalExtensionCode((const H225_H221NonStandard&)param->m_nonStandardIdentifier);
-	} else if (param->m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_object) {
-		const PASN_ObjectId &oid = param->m_nonStandardIdentifier;
-		if (oid.GetDataLength() == 0)
-			iec = Toolkit::iecNeighborId;
-	}
-
-	return iec == Toolkit::iecNeighborId
-		? strncmp(m_id, param->m_data.AsString(), m_id.GetLength()) == 0
-		: false;
+	// only accept replies from the neighbor's IP
+	// the neighbor ID in nonStandardData is no secret (we send it in every LRQ),
+	// so it can't replace the IP check; replies from other hosts need AcceptNonNeighborLCF=1
+	return ras->IsFrom(GetIP(), 0);
 }
 
 bool Neighbor::Authenticate(RasMsg *ras) const
@@ -1346,37 +1330,6 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq, const SetupRequest & req)
 
 	lrq.IncludeOptionalField(H225_LocationRequest::e_canMapAlias);
 	lrq.m_canMapAlias = TRUE;
-
-	return true;
-}
-
-bool CiscoGK::CheckReply(RasMsg *msg) const
-{
-	if (msg->IsFrom(GetIP(), 0))
-		return true;
-
-	if (msg->GetTag() != H225_RasMessage::e_locationConfirm
-			&& msg->GetTag() != H225_RasMessage::e_locationReject)
-		return false;
-
-	H225_NonStandardParameter *nonStandardData = msg->GetNonStandardParam();
-	if (nonStandardData == NULL)
-		return false;
-
-	if (nonStandardData->m_nonStandardIdentifier.GetTag() != H225_NonStandardIdentifier::e_h221NonStandard)
-		return false;
-
-	H225_H221NonStandard & h221 = nonStandardData->m_nonStandardIdentifier;
-	if (h221.m_manufacturerCode != Toolkit::t35mCisco || h221.m_t35CountryCode != Toolkit::t35cUSA)
-		return false;
-
-	PPER_Stream strm(nonStandardData->m_data);
-	Cisco_LRQnonStandardInfo ciscoNonStandardData;
-	if (ciscoNonStandardData.Decode(strm)) {
-		// here should go additional checks to match callIdentifier, for example
-	} else {
-		PTRACE(5, "NB\tFailed to decode Cisco nonStandardInfo field");
-	}
 
 	return true;
 }

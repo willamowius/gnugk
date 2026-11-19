@@ -744,6 +744,9 @@ static bool HexToBytes(const PString & hex, PBYTEArray & bytes)
 // --spoof: send a single RAS message with somebody else's endpoint identifier and write the gatekeeper's
 // answer as JSON: {"sent": "URQ", "reply": "unregistrationReject", "rejectReason": "notCurrentlyRegistered"},
 // reply is "none" if nothing came back within 2 seconds
+// --spoof LCF: answer LRQs the gatekeeper sent to one of its neighbors: an LCF for each requestSeqNum in
+// --spoof-seq (GnuGk counts them up from 1), pointing the call to --spoof-target, with the nonStandardData of
+// --spoof-nonstd (neighbor:<id> GnuGk neighbor ID, cisco: Cisco's H.221 code, none); no reply is expected
 static void SendSpoofedRAS(PArgList & args)
 {
 	const PCaselessString kind = args.GetOptionString("spoof");
@@ -844,8 +847,42 @@ static void SendSpoofedRAS(PArgList & args)
 		H323TransportAddress(localIP, 1720).SetPDU(irr.m_callSignalAddress[0]);
 		irr.IncludeOptionalField(H225_InfoRequestResponse::e_needResponse);
 		irr.m_needResponse = true;
+	} else if (kind == "LCF") {
+		ras.SetTag(H225_RasMessage::e_locationConfirm);
+		H225_LocationConfirm & lcf = ras;
+		lcf.m_requestSeqNum = 1;	// set for each message below
+		PString target = args.GetOptionString("spoof-target", localIP.AsString() + ":1720");
+		PIPSocket::Address targetIP(target.Left(target.Find(':')));
+		const WORD targetPort = target.Find(':') != P_MAX_INDEX ? (WORD)target.Mid(target.Find(':') + 1).AsUnsigned() : 1720;
+		H323TransportAddress(targetIP, targetPort).SetPDU(lcf.m_callSignalAddress);
+		H323TransportAddress(localIP, localPort).SetPDU(lcf.m_rasAddress);
+		lcf.IncludeOptionalField(H225_LocationConfirm::e_destinationInfo);
+		H323SetAliasAddresses(aliases, lcf.m_destinationInfo);
+		const PString nonstd = args.GetOptionString("spoof-nonstd", "none");
+		if (nonstd.Left(9) == "neighbor:") {
+			// what GnuGk puts into its LRQs to a GnuGk neighbor: H.221 Poland / GnuGk / neighbor ID, the neighbor's name
+			lcf.IncludeOptionalField(H225_LocationConfirm::e_nonStandardData);
+			lcf.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
+			H225_H221NonStandard & t35 = lcf.m_nonStandardData.m_nonStandardIdentifier;
+			t35.m_t35CountryCode = 138;
+			t35.m_manufacturerCode = 2;
+			t35.m_t35Extension = 1;
+			lcf.m_nonStandardData.m_data.SetValue(nonstd.Mid(9));
+		} else if (nonstd == "cisco") {
+			// Cisco's H.221 code with empty data
+			lcf.IncludeOptionalField(H225_LocationConfirm::e_nonStandardData);
+			lcf.m_nonStandardData.m_nonStandardIdentifier.SetTag(H225_NonStandardIdentifier::e_h221NonStandard);
+			H225_H221NonStandard & t35 = lcf.m_nonStandardData.m_nonStandardIdentifier;
+			t35.m_t35CountryCode = 181;
+			t35.m_manufacturerCode = 18;
+			t35.m_t35Extension = 0;
+		} else if (nonstd != "none") {
+			cerr << "--spoof-nonstd must be neighbor:<id>, cisco or none" << endl;
+			PProcess::Current().SetTerminationValue(2);
+			return;
+		}
 	} else {
-		cerr << "--spoof must be URQ, DRQ, BRQ, ARQ, RRQ or IRR" << endl;
+		cerr << "--spoof must be URQ, DRQ, BRQ, ARQ, RRQ, IRR or LCF" << endl;
 		PProcess::Current().SetTerminationValue(2);
 		return;
 	}
@@ -857,17 +894,35 @@ static void SendSpoofedRAS(PArgList & args)
 		PProcess::Current().SetTerminationValue(2);
 		return;
 	}
-	PPER_Stream out;
-	ras.Encode(out);
-	out.CompleteEncoding();
-	PTRACE(1, "GKTESTEP\tSending spoofed RAS message\n" << setprecision(2) << ras);
-	if (args.HasOption("spoof-dump")) {	// also write the encoded message (eg. as a fuzzing seed)
-		PFile dump(args.GetOptionString("spoof-dump"), PFile::WriteOnly);
-		dump.Write(out.GetPointer(), out.GetSize());
-	}
 	socket.SetSendAddress(gkIP, gkPort);
-	socket.Write(out.GetPointer(), out.GetSize());
-	socket.SetReadTimeout(2000);
+	if (kind == "LCF") {
+		// one LCF per sequence number, nothing comes back
+		PString seqs = args.GetOptionString("spoof-seq", "1-200");
+		const unsigned first = seqs.Left(seqs.Find('-')).AsUnsigned();
+		const unsigned last = seqs.Find('-') != P_MAX_INDEX ? seqs.Mid(seqs.Find('-') + 1).AsUnsigned() : first;
+		H225_LocationConfirm & lcf = ras;
+		for (unsigned n = first; n <= last; ++n) {
+			lcf.m_requestSeqNum = n;
+			if (n == first)
+				PTRACE(1, "GKTESTEP\tSending spoofed LCFs " << seqs << ", the first one\n" << setprecision(2) << ras);
+			PPER_Stream out;
+			ras.Encode(out);
+			out.CompleteEncoding();
+			socket.Write(out.GetPointer(), out.GetSize());
+		}
+		socket.SetReadTimeout(0);
+	} else {
+		PPER_Stream out;
+		ras.Encode(out);
+		out.CompleteEncoding();
+		PTRACE(1, "GKTESTEP\tSending spoofed RAS message\n" << setprecision(2) << ras);
+		if (args.HasOption("spoof-dump")) {	// also write the encoded message (eg. as a fuzzing seed)
+			PFile dump(args.GetOptionString("spoof-dump"), PFile::WriteOnly);
+			dump.Write(out.GetPointer(), out.GetSize());
+		}
+		socket.Write(out.GetPointer(), out.GetSize());
+		socket.SetReadTimeout(2000);
+	}
 	BYTE buffer[4096];
 	while (socket.Read(buffer, sizeof(buffer))) {
 		PPER_Stream in(buffer, socket.GetLastReadCount());
@@ -934,6 +989,9 @@ void GkTestEp::Main()
 		"-spoof-confid:"
 		"-spoof-count:"
 		"-spoof-dump:"
+		"-spoof-seq:"
+		"-spoof-nonstd:"
+		"-spoof-target:"
 		"-no-faststart."
 		"-h2351."
 		"-full-q931."
@@ -990,6 +1048,8 @@ void GkTestEp::Main()
 			"                       with the endpoint ID of --spoof-epid and report the reply; --spoof-callid and\n"
 			"                       --spoof-confid (32 hex digits) name the call, --spoof-count: aliases in an RRQ,\n"
 			"                       --spoof-dump file: also write the encoded message to file\n"
+			"                       LCF: answer the gatekeeper's LRQs to a neighbor, one LCF per --spoof-seq n-m (default\n"
+			"                       1-200) pointing to --spoof-target ip:port, --spoof-nonstd neighbor:<id>|cisco|none\n"
 			"  --no-faststart       open media with H.245 only\n"
 			"  --no-tunneling       use a separate H.245 channel instead of H.245 tunneling\n"
 			"  --call alias         call this alias, otherwise answer one call\n"

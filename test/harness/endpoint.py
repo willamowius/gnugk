@@ -184,11 +184,14 @@ class Endpoint:
 
 
 def spoof_ras(workdir, host, kind, epid="", callid=None, confid=None, alias=None, name=None, gk="gk", count=None,
-              dump=None):
+              dump=None, seq=None, nonstd=None, target=None):
     """send one RAS message (kind: URQ, DRQ, BRQ, ARQ or IRR) with the endpoint identifier epid from host to the
     gatekeeper and return gktestep's result: {"sent": kind, "reply": the reply's name or "none", "rejectReason": ...}.
     callid, confid: 32 hex digits naming a call (DRQ, BRQ). alias: the alias to unregister (URQ), to call (ARQ) or to
-    register (RRQ, with count aliases). dump: a file to also write the encoded message to."""
+    register (RRQ, with count aliases). dump: a file to also write the encoded message to.
+    kind LCF: answer LRQs the gatekeeper sent to a neighbor, one LCF for alias per sequence number in seq ("n-m",
+    default "1-200"), pointing the call to target ("ip:port"), with nonstd: "neighbor:<id>" (GnuGk's neighbor ID),
+    "cisco" (Cisco's H.221 code) or "none"."""
     result_file = os.path.join(workdir, "spoof-%s.json" % (name or kind.lower()))
     port = SIGNAL_PORT_BASE + 2 * (next(_endpoint_numbers) % SIGNAL_PORT_SLOTS)
     args = ["ip", "netns", "exec", topology.ns(host), ENDPOINT, "--spoof", kind, "--spoof-epid", epid,
@@ -205,6 +208,12 @@ def spoof_ras(workdir, host, kind, epid="", callid=None, confid=None, alias=None
         args += ["--spoof-count", str(count)]
     if dump:
         args += ["--spoof-dump", dump]
+    if seq:
+        args += ["--spoof-seq", seq]
+    if nonstd:
+        args += ["--spoof-nonstd", nonstd]
+    if target:
+        args += ["--spoof-target", target]
     done = subprocess.run(args, capture_output=True, text=True, timeout=20)
     if not os.path.exists(result_file):
         raise RuntimeError("gktestep --spoof wrote no result: %s%s" % (done.stdout, done.stderr))
