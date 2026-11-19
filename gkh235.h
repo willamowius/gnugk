@@ -42,6 +42,10 @@ public:
 
 	~GkH235Authenticators();
 
+	// reference counting for SmartPtr, the object is deleted when the last reference is released
+	void Lock() { ++m_usedCount; }
+	void Unlock() { if (--m_usedCount == 0) delete this; }
+
 	/** Validate clear/crypto tokens from the given RAS message
 	    through all active H.235 authenticators.
 
@@ -141,6 +145,7 @@ protected:
 	int m_authResultProcedure1;
 #endif
 	PMutex m_mutex;
+	PAtomicInteger m_usedCount;
 };
 
 #endif // GKH235_H

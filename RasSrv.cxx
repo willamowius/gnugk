@@ -403,7 +403,7 @@ void RasMsg::Exec()
 
 	PTRACE(1, "RAS\t" << m_msg->GetTagName() << " Received from " << AsString(m_msg->m_peerAddr, m_msg->m_peerPort));
 	if (Process()) {
-		Reply(m_authenticators);
+		Reply(m_authenticators.operator->());
 	}
 }
 
@@ -2876,7 +2876,6 @@ bool RegistrationRequestPDU::Process()
 	ep->SetPreemption(preemptsupport);
 
 	ep->SetH235Authenticators(authData.m_authenticator);
-	authData.m_authenticator = NULL; // make sure we don't delete authenticator object when authData gets deleted
 
 	if (bSendReply) {
 		//
@@ -3554,7 +3553,7 @@ bool AdmissionRequestPDU::Process()
 	// send RIP message before doing any real work if configured to do so
 	unsigned ripDelay = GkConfig()->GetInteger("RasSrv::ARQFeatures", "SendRIP", 0);
 	if (ripDelay > 0) {
-		RasSrv->SendRIP(request.m_requestSeqNum, ripDelay, m_msg->m_peerAddr, m_msg->m_peerPort, RequestingEP->GetH235Authenticators());
+		RasSrv->SendRIP(request.m_requestSeqNum, ripDelay, m_msg->m_peerAddr, m_msg->m_peerPort, RequestingEP->GetH235Authenticators().operator->());
 	}
 
 	bool aliasesChanged = false;
@@ -4521,7 +4520,7 @@ template<> bool RasPDU<H225_LocationRequest>::Process()
 	// send RIP message before doing any real work if configured to do so
 	unsigned ripDelay = GkConfig()->GetInteger("RasSrv::LRQFeatures", "SendRIP", 0);
 	if (ripDelay > 0) {
-		RasSrv->SendRIP(request.m_requestSeqNum, ripDelay, m_msg->m_peerAddr, m_msg->m_peerPort, ep ? ep->GetH235Authenticators() : NULL);
+		RasSrv->SendRIP(request.m_requestSeqNum, ripDelay, m_msg->m_peerAddr, m_msg->m_peerPort, ep ? ep->GetH235Authenticators().operator->() : NULL);
 	}
 
     // neighbors do not need validation

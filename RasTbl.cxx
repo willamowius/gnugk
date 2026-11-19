@@ -129,7 +129,7 @@ EndpointRec::EndpointRec(
 	m_H46024a(false), m_H46024b(false), m_natproxy(GkConfig()->GetBoolean(proxysection, "ProxyForNAT", false)),
 	m_internal(false), m_remote(false), m_h46017disabled(false), m_h46018disabled(false), m_usesH460P(false), m_hasH460PData(false),
     m_usesH46017(false), m_usesH46026(false), m_traversalType(None), m_bandwidth(0), m_maxBandwidth(-1), m_useTLS(false),
-    m_useIPSec(false), m_additiveRegistrant(false), m_addCallingPartyToSourceAddress(false), m_forceTerminalType(-1), m_forceDirectMode(false), m_authenticators(NULL),
+    m_useIPSec(false), m_additiveRegistrant(false), m_addCallingPartyToSourceAddress(false), m_forceTerminalType(-1), m_forceDirectMode(false),
     m_hasGnuGkAssignedGk(false)
 {
 	static H225_EndpointType defaultTermType; // nouse
@@ -457,7 +457,6 @@ EndpointRec::~EndpointRec()
 		m_natsocket->SetConnected(false);
 		m_natsocket->SetDeletable();
 	}
-    delete m_authenticators;
 }
 
 bool EndpointRec::LoadConfig()
@@ -950,21 +949,17 @@ bool EndpointRec::CompareAlias(const H225_ArrayOf_AliasAddress *a) const
 	return false;
 }
 
-GkH235Authenticators* EndpointRec::GetH235Authenticators()
+h235authptr EndpointRec::GetH235Authenticators()
 {
     PWaitAndSignal lock(m_usedLock);
     return m_authenticators;
 }
 
-void EndpointRec::SetH235Authenticators(GkH235Authenticators * auth)
+void EndpointRec::SetH235Authenticators(const h235authptr & auth)
 {
     PWaitAndSignal lock(m_usedLock);
-    if (m_authenticators == auth) {
-        // do nothing
-    } else {
-        delete m_authenticators;
-        m_authenticators = auth;
-    };
+    // the old object is deleted when the last thread using it releases its reference
+    m_authenticators = auth;
 }
 
 void EndpointRec::Update(const H225_RasMessage & ras_msg)
@@ -1224,7 +1219,7 @@ bool EndpointRec::SendURQ(H225_UnregRequestReason::Choices reason, int preemptio
 	if (UsesH46017()) {
 		CallSignalSocket * s = GetSocket();
 		if (s) {
-			s->SendH46017Message(ras_msg, GetH235Authenticators());
+			s->SendH46017Message(ras_msg, GetH235Authenticators().operator->());
 // BUG: was intended to avoid double-delete crash, but causing memory leak
 //			if (s->GetHandler()) {
 //				s->GetHandler()->Detach(s);
@@ -1264,10 +1259,10 @@ bool EndpointRec::SendIRQ()
 	if (UsesH46017()) {
 		CallSignalSocket * s = GetSocket();
 		if (s)
-			s->SendH46017Message(ras_msg, GetH235Authenticators());
+			s->SendH46017Message(ras_msg, GetH235Authenticators().operator->());
 	} else
 #endif
-		RasSrv->SendRas(ras_msg, GetRasAddress(), NULL, GetH235Authenticators());
+		RasSrv->SendRas(ras_msg, GetRasAddress(), NULL, GetH235Authenticators().operator->());
 
 	return true;
 }
@@ -3895,10 +3890,10 @@ void CallRec::SendDRQ()
 		if (m_Called->UsesH46017()) {
 			CallSignalSocket * s = m_Called->GetSocket();
 			if (s)
-				s->SendH46017Message(drq_ras, m_Called->GetH235Authenticators());
+				s->SendH46017Message(drq_ras, m_Called->GetH235Authenticators().operator->());
 		} else
 #endif
-			RasSrv->SendRas(drq_ras, m_Called->GetRasAddress(), NULL, m_Called->GetH235Authenticators());
+			RasSrv->SendRas(drq_ras, m_Called->GetRasAddress(), NULL, m_Called->GetH235Authenticators().operator->());
 	}
 	if (m_Calling) {
 		drq.m_endpointIdentifier = m_Calling->GetEndpointIdentifier();
@@ -3907,10 +3902,10 @@ void CallRec::SendDRQ()
 		if (m_Calling->UsesH46017()) {
 			CallSignalSocket * s = m_Calling->GetSocket();
 			if (s)
-				s->SendH46017Message(drq_ras, m_Calling->GetH235Authenticators());
+				s->SendH46017Message(drq_ras, m_Calling->GetH235Authenticators().operator->());
 		} else
 #endif
-			RasSrv->SendRas(drq_ras, m_Calling->GetRasAddress(), NULL, m_Calling->GetH235Authenticators());
+			RasSrv->SendRas(drq_ras, m_Calling->GetRasAddress(), NULL, m_Calling->GetH235Authenticators().operator->());
 	}
 }
 

@@ -97,6 +97,9 @@ private:
 	T *pt;
 };
 
+// the authenticators are used by many threads concurrently, each user must hold a reference
+typedef SmartPtr<GkH235Authenticators> h235authptr;
+
 enum H46019TraversalType { None, TraversalClient, TraversalServer };
 
 class EndpointRec
@@ -181,8 +184,8 @@ public:
 	*/
 	virtual bool LoadConfig();
 
-	GkH235Authenticators * GetH235Authenticators();
-	void SetH235Authenticators(GkH235Authenticators * auth);
+	h235authptr GetH235Authenticators();
+	void SetH235Authenticators(const h235authptr & auth);
 
 	virtual EndpointRec *Unregisterpreempt(int type);
 	virtual EndpointRec *Reregister();
@@ -490,7 +493,7 @@ protected:
 	int m_forceTerminalType; // for endpoint type in master/slave decision to this, -1 leave alone
 	bool m_forceDirectMode; // always use direct mode for this endpoint
 	/// H.235 used to authenticate this endpoint
-	GkH235Authenticators * m_authenticators;
+	h235authptr m_authenticators;
 	bool m_hasGnuGkAssignedGk;
 	PIPSocket::Address m_GnuGkAssignedGk;
 };

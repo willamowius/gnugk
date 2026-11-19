@@ -2448,7 +2448,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
     // need source EP to find H.235.1 authenticator
     callptr tmpCall = m_call;
     endptr fromEP;
-    GkH235Authenticators * auth = NULL;
+    h235authptr auth;
     H225_ArrayOf_AliasAddress aliases;
     if (!tmpCall && (q931pdu->GetMessageType() == Q931::SetupMsg) && uuie
         && (uuie->m_h323_uu_pdu.m_h323_message_body.GetTag() == H225_H323_UU_PDU_h323_message_body::e_setup)) {
@@ -2825,7 +2825,7 @@ ProxySocket::Result CallSignalSocket::ReceiveData()
                 if (auth) {
                     uuie = msg->GetUUIE();  // needed ?
                     if (uuie) {
-                        if (SetupResponseTokens(msg, auth, toEP)) {
+                        if (SetupResponseTokens(msg, auth.operator->(), toEP)) {
                             msg->SetChanged();
                             msg->SetUUIEChanged();
                             if (msg->Encode(buffer)) {
@@ -6619,9 +6619,9 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 #endif
 
 		if (rasServerIP.IsValid())
-			RasSrv->SendRas(sci_ras, m_call->GetCalledParty()->GetRasAddress(), rasServerIP, m_call->GetCalledParty()->GetH235Authenticators());
+			RasSrv->SendRas(sci_ras, m_call->GetCalledParty()->GetRasAddress(), rasServerIP, m_call->GetCalledParty()->GetH235Authenticators().operator->());
 		else
-			RasSrv->SendRas(sci_ras, m_call->GetCalledParty()->GetRasAddress(), (RasListener *)NULL, m_call->GetCalledParty()->GetH235Authenticators());
+			RasSrv->SendRas(sci_ras, m_call->GetCalledParty()->GetRasAddress(), (RasListener *)NULL, m_call->GetCalledParty()->GetH235Authenticators().operator->());
 
 		// store Setup
 		m_call->StoreSetup(msg);

@@ -136,13 +136,13 @@ public:
 
 	static void Initialize();
 protected:
-	RasMsg(GatekeeperMessage * m) : m_msg(m), m_authenticators(NULL) { }
+	RasMsg(GatekeeperMessage * m) : m_msg(m) { }
 	RasMsg(const RasMsg &);
 
 	static bool PrintStatus(const PString &);
 
 	GatekeeperMessage * m_msg;
-	GkH235Authenticators * m_authenticators;
+	h235authptr m_authenticators;
 
 	// just pointers to global singleton objects
 	// cache for faster access
@@ -185,10 +185,10 @@ protected:
 template<class RAS>
 void RasPDU<RAS>::SetupResponseTokens(H225_RasMessage & responsePdu, const endptr & requestingEP)
 {
-	if (m_authenticators == NULL && requestingEP)
+	if (!m_authenticators && requestingEP)
 		m_authenticators = requestingEP->GetH235Authenticators();
 
-	if (m_authenticators == NULL) {
+	if (!m_authenticators) {
 		return;
 	}
 

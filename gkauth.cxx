@@ -1186,7 +1186,7 @@ int SimplePasswordAuth::Check(RasPDU<H225_UnregistrationRequest> & request, unsi
 {
     H225_UnregistrationRequest & urq = request;
     H225_ArrayOf_AliasAddress aliases;
-	GkH235Authenticators * auth = NULL;
+	h235authptr auth;
     if (urq.HasOptionalField(H225_UnregistrationRequest::e_endpointIdentifier)) {
         endptr ep = RegistrationTable::Instance()->FindByEndpointId(urq.m_endpointIdentifier);
         if (ep) {
@@ -1208,7 +1208,7 @@ int SimplePasswordAuth::Check(RasPDU<H225_BandwidthRequest> & request, unsigned 
     endptr ep = RegistrationTable::Instance()->FindByEndpointId(brq.m_endpointIdentifier);
     if (ep) {
         H225_ArrayOf_AliasAddress aliases = ep->GetAliases();
-        GkH235Authenticators * auth = ep->GetH235Authenticators();
+        h235authptr auth = ep->GetH235Authenticators();
         return doCheck(request, &aliases, auth);
     } else {
         return e_fail;
@@ -1221,7 +1221,7 @@ int SimplePasswordAuth::Check(RasPDU<H225_DisengageRequest> & request, unsigned 
     endptr ep = RegistrationTable::Instance()->FindByEndpointId(drq.m_endpointIdentifier);
     if (ep) {
         H225_ArrayOf_AliasAddress aliases = ep->GetAliases();
-        GkH235Authenticators * auth = ep->GetH235Authenticators();
+        h235authptr auth = ep->GetH235Authenticators();
         return doCheck(request, &aliases, auth);
     } else {
         return e_fail;
@@ -1230,13 +1230,13 @@ int SimplePasswordAuth::Check(RasPDU<H225_DisengageRequest> & request, unsigned 
 
 int SimplePasswordAuth::Check(RasPDU<H225_LocationRequest> & request, unsigned &)
 {
-	GkH235Authenticators * auth = NULL;
+	h235authptr auth;
 	return doCheck(request, NULL, auth);
 }
 
 int SimplePasswordAuth::Check(RasPDU<H225_InfoRequest> & request, unsigned &)
 {
-	GkH235Authenticators * auth = NULL;
+	h235authptr auth;
 	return doCheck(request, NULL, auth);
 }
 
@@ -1246,7 +1246,7 @@ int SimplePasswordAuth::Check(RasPDU<H225_ResourcesAvailableIndicate> & request,
     endptr ep = RegistrationTable::Instance()->FindByEndpointId(rai.m_endpointIdentifier);
     if (ep) {
         H225_ArrayOf_AliasAddress aliases = ep->GetAliases();
-        GkH235Authenticators * auth = ep->GetH235Authenticators();
+        h235authptr auth = ep->GetH235Authenticators();
         return doCheck(request, &aliases, auth);
     } else {
         return e_fail;
@@ -1262,7 +1262,7 @@ int SimplePasswordAuth::Check(
 	// use the aliases from the registration; some endpoints (eg. Innovaphone myPBX) send empty srcInfo
 	if (authData.m_requestingEP) {
         H225_ArrayOf_AliasAddress aliases = authData.m_requestingEP->GetAliases();
-        GkH235Authenticators * auth = authData.m_requestingEP->GetH235Authenticators();
+        h235authptr auth = authData.m_requestingEP->GetH235Authenticators();
         int result = doCheck(request, &aliases, auth);
         // save auth in case it has been newly allocated - does nothing if its the same we had before
         authData.m_requestingEP->SetH235Authenticators(auth);
@@ -1326,7 +1326,7 @@ bool SimplePasswordAuth::InternalGetPassword(
 }
 
 int SimplePasswordAuth::CheckTokens(
-	GkH235Authenticators * & authenticators,
+	h235authptr & authenticators,
 	/// an array of tokens to be checked
 	const H225_ArrayOf_ClearToken & tokens,
 	/// aliases for the endpoint that generated the tokens
@@ -1340,8 +1340,8 @@ int SimplePasswordAuth::CheckTokens(
 
 		// check for Cisco Access Token
 		if (token.m_tokenOID == OID_H235_CAT && Toolkit::Instance()->IsAuthenticatorEnabled("CAT")) {
-			if (authenticators == NULL)
-				authenticators = new GkH235Authenticators;
+			if (!authenticators)
+				authenticators = h235authptr(new GkH235Authenticators);
 
 			if (!token.HasOptionalField(H235_ClearToken::e_generalID)) {
 				PTRACE(3, "GKAUTH\t" << GetName() << " generalID field not found inside CAT token");
@@ -1371,7 +1371,7 @@ int SimplePasswordAuth::CheckTokens(
 }
 
 int SimplePasswordAuth::CheckCryptoTokens(
-	GkH235Authenticators * & authenticators,
+	h235authptr & authenticators,
 	/// an array of cryptoTokens to be checked
 	const H225_ArrayOf_CryptoH323Token & tokens,
 	/// aliases for the endpoint that generated the tokens
@@ -1384,8 +1384,8 @@ int SimplePasswordAuth::CheckCryptoTokens(
 {
 	for (PINDEX i = 0; i < tokens.GetSize(); i++) {
 		if (tokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdHash && Toolkit::Instance()->IsAuthenticatorEnabled("MD5")) {
-			if (authenticators == NULL)
-				authenticators = new GkH235Authenticators;
+			if (!authenticators)
+				authenticators = h235authptr(new GkH235Authenticators);
 
 			H225_CryptoH323Token_cryptoEPPwdHash & pwdhash = tokens[i];
 			const PString id = AsString(pwdhash.m_alias, false);
@@ -1417,7 +1417,7 @@ int SimplePasswordAuth::CheckCryptoTokens(
 					&& cryptoHashedToken.m_tokenOID != OID_H235_A_V2)
 				continue;
 
-			if (authenticators == NULL && !acceptAnySendersID)
+			if (!authenticators && !acceptAnySendersID)
                 continue;   // can't validate this token without authenticator object
 
 			const H235_ClearToken & clearToken = cryptoHashedToken.m_hashedVals;
@@ -1453,8 +1453,8 @@ int SimplePasswordAuth::CheckCryptoTokens(
                 }
             }
 
-			if (authenticators == NULL) {
-				authenticators = new GkH235Authenticators;  // allocate a new authenticator, eg. for RRQ and LRQ where we don't have an existing EPRec
+			if (!authenticators) {
+				authenticators = h235authptr(new GkH235Authenticators);  // allocate a new authenticator, eg. for RRQ and LRQ where we don't have an existing EPRec
             }
 			if (authenticators->HasProcedure1Password()) {
                 return e_ok;
@@ -1498,8 +1498,8 @@ int SimplePasswordAuth::CheckCryptoTokens(
 			authenticators->SetProcedure1Data(Toolkit::GKName(), sendersID, passwd, requireGeneralID);
 #endif
 		} else if (tokens[i].GetTag() == H225_CryptoH323Token::e_cryptoEPPwdEncr && Toolkit::Instance()->IsAuthenticatorEnabled("DES")) {
-			if (authenticators == NULL)
-				authenticators = new GkH235Authenticators;
+			if (!authenticators)
+				authenticators = h235authptr(new GkH235Authenticators);
 
 			if (aliases == NULL) {
 				PTRACE(3, "GKAUTH\t" << GetName() << " need a user alias to authenticate");

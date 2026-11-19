@@ -1,5 +1,7 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(*) fix H.235 authenticator crash with concurrent RRQs
+- BUGFIX(RasTbl.cxx) fix use-after-free of H.235 authenticator object when an endpoint re-registers while other RAS messages are being processed
 - BUGFIX(ProxyChannel.cxx) fix crash when H.460.17 endpoint calls itself
 - BUGFIX(ProxyChannel.cxx) fix use-after-free in H.245 channel
 - BUGFIX(Toolkit.cxx) fix infinite loop in RewriteSourceAddress

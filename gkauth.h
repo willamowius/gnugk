@@ -55,6 +55,8 @@ class CallRec;
 template<class> class SmartPtr;
 typedef SmartPtr<EndpointRec> endptr;
 typedef SmartPtr<CallRec> callptr;
+class GkH235Authenticators;
+typedef SmartPtr<GkH235Authenticators> h235authptr;
 
 template<class> class RasPDU;
 template<class> struct RasInfo;
@@ -122,8 +124,7 @@ class H235AuthDesECB : public H235Authenticator
 /// authenticator modules
 struct RRQAuthData
 {
-	RRQAuthData() : m_rejectReason(-1), m_billingMode(-1), m_authenticator(NULL) { }
-	~RRQAuthData() { delete m_authenticator; }
+	RRQAuthData() : m_rejectReason(-1), m_billingMode(-1) { }
 
 	/// -1 if not set, H225_RegistrationRejectReason enum otherwise
 	int m_rejectReason;
@@ -133,7 +134,7 @@ struct RRQAuthData
 	int m_billingMode;
 	/// Authenticated Aliases
 	PStringArray m_authAliases;
-	GkH235Authenticators * m_authenticator;
+	h235authptr m_authenticator;
 };
 
 /// Data read/written during ARQ processing by all configured
@@ -250,7 +251,7 @@ struct Q931AuthData
 {
 	Q931AuthData(const H225_ArrayOf_AliasAddress & aliases,
                 PIPSocket::Address peerAddr, WORD peerPort,
-                bool overTLS, GkH235Authenticators * auth)
+                bool overTLS, const h235authptr & auth)
               : m_aliases(aliases), m_peerAddr(peerAddr), m_peerPort(peerPort),
                 m_overTLS(overTLS), m_allowAnySendersID(false), m_authenticator(auth) { }
 	~Q931AuthData() { }
@@ -266,7 +267,7 @@ struct Q931AuthData
 	// in RRQs we have to accept any sendersID
 	bool m_allowAnySendersID;
 	/// password authenticator
-	GkH235Authenticators * m_authenticator;
+	h235authptr m_authenticator;
 
 private:
 	Q931AuthData();
@@ -760,7 +761,7 @@ protected:
 	*/
 	virtual int CheckTokens(
 		/// authenticators to be used for token validation
-		GkH235Authenticators * & authenticators,
+		h235authptr & authenticators,
 		/// an array of tokens to be checked
 		const H225_ArrayOf_ClearToken & tokens,
 		/// aliases for the endpoint that generated the tokens
@@ -778,7 +779,7 @@ protected:
 	*/
 	virtual int CheckCryptoTokens(
 		/// authenticators to be used for token validation
-		GkH235Authenticators * & authenticators,
+		h235authptr & authenticators,
 		/// an array of cryptoTokens to be checked
 		const H225_ArrayOf_CryptoH323Token & cryptoTokens,
 		/// aliases for the endpoint that generated the tokens
@@ -791,8 +792,8 @@ protected:
 
 
     int doCheck(const Q931 & msg, Q931AuthData & authData) {
-		GkH235Authenticators * auth = authData.m_authenticator;
-		bool authFound = auth != NULL;
+		h235authptr auth = authData.m_authenticator;
+		bool authFound = auth;
 
 		H225_ArrayOf_ClearToken emptyTokens;
 		H225_ArrayOf_CryptoH323Token emptyCryptoTokens;
@@ -876,7 +877,7 @@ protected:
 		/// list of aliases for the endpoint sending the request
 		const H225_ArrayOf_AliasAddress * aliases,
 		/// Registration Auth data
-		GkH235Authenticators * & auth)
+		h235authptr & auth)
 	{
 		H225_ArrayOf_ClearToken emptyTokens;
 		H225_ArrayOf_CryptoH323Token emptyCryptoTokens;
@@ -923,7 +924,7 @@ protected:
 			return e_fail;
 		}
 
-		if (auth == NULL)
+		if (!auth)
 			return GetDefaultStatus();
 
 		int result = auth->Validate(request->m_recvRAS, *tokens, *cryptoTokens, request->m_rasPDU);
