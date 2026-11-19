@@ -1297,14 +1297,26 @@ bool RasServer::IsRedirected(unsigned tag) const
 	return false;
 }
 
+bool RasServer::IsAlternateGKAddress(const Address & addr) const
+{
+	// the gatekeepers we forward RAS messages to (SendTo=) or accept forwarded RAS messages from (SkipForwards=)
+	return find(altGKsAddr.begin(), altGKsAddr.end(), addr) != altGKsAddr.end()
+		|| find(skipAddr.begin(), skipAddr.end(), addr) != skipAddr.end();
+}
+
 bool RasServer::IsForwardedMessage(const H225_NonStandardParameter *nonStandardParam, const Address & rxAddr) const
 {
 	// mechanism 1: forwarding detection per "flag"
+	// only trust the flag when it comes from one of our alternate gatekeepers, otherwise any endpoint
+	// could set it to skip the checks on the sender's address and update another endpoint's registration
 	if (nonStandardParam && nonStandardParam->m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
 		const H225_H221NonStandard & nonStandard = nonStandardParam->m_nonStandardIdentifier;
 		if (Toolkit::Instance()->GetInternalExtensionCode(nonStandard) == Toolkit::iecFailoverRAS) {
-			PTRACE(5, "RAS\tForwarded RAS detected!");
-			return true;
+			if (IsAlternateGKAddress(rxAddr)) {
+				PTRACE(5, "RAS\tForwarded RAS detected!");
+				return true;
+			}
+			PTRACE(3, "RAS\tIgnoring forwarded RAS flag from " << rxAddr << ": not an alternate gatekeeper");
 		}
 	// mechanism 2: forwarding detection per "from"
 	}
@@ -5078,7 +5090,9 @@ template<> bool RasPDU<H225_RegistrationReject>::Process()
 	// OnRRJ
 	if (request.HasOptionalField(H225_RegistrationReject::e_nonStandardData)
 		&& request.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard
-		&& Toolkit::Instance()->GetInternalExtensionCode((const H225_H221NonStandard&)request.m_nonStandardData.m_nonStandardIdentifier) == Toolkit::iecFailoverRAS) {
+		&& Toolkit::Instance()->GetInternalExtensionCode((const H225_H221NonStandard&)request.m_nonStandardData.m_nonStandardIdentifier) == Toolkit::iecFailoverRAS
+		&& RasSrv->IsAlternateGKAddress(m_msg->m_peerAddr)	// only answer our alternate gatekeepers with a full RRQ
+		&& request.m_rejectReason.GetTag() == H225_RegistrationRejectReason::e_fullRegistrationRequired) {	// any other RRJ is final, don't loop
 
 		// RRJ from alternateGKs
 		H225_EndpointIdentifier id;

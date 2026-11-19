@@ -380,6 +380,11 @@ we can increase the overall reliability of the system by specifying it here.
 
 Specify the other gatekeeper's IP in this list.
 
+The flag is only honored when the request is received from a gatekeeper listed in
+SendTo= or SkipForwards=. If the other gatekeeper only receives forwarded requests
+from you, or sends them from an IP other than the one in your SendTo=, add its IP
+to SkipForwards= or its forwarded requests will be treated like regular requests.
+
 <item><tt/StatusPort=7000/<newline>
 Default: <tt/7000/<newline>
 <p>

@@ -112,6 +112,7 @@ public:
 
 	bool IsRedirected(unsigned = 0) const;
 	bool IsForwardedMessage(const H225_NonStandardParameter *, const Address &) const;
+	bool IsAlternateGKAddress(const Address &) const;
 	void ForwardRasMsg(H225_RasMessage &);
 	bool ReplyToRasAddress(const NetworkAddress & ip) const;
 
