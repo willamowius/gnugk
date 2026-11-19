@@ -11596,9 +11596,8 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 			PTRACE(4, "H245\t" << GetName() << " H.245 channel already established");
 			return false;
 		} else {
-			if (m_h245socket->SetH245Address(h245addr, masqAddr)) {
-				std::swap(m_h245socket, ret->m_h245socket);
-			}
+			// swaps our H.245 socket with the one of the other signaling socket, if that one has the listener
+			m_h245socket->SetH245Address(h245addr, masqAddr);
 			if (m_h245TunnelingTranslation && !m_h245Tunneling && GetRemote() && GetRemote()->m_h245Tunneling) {
 				return false;	// remove H245Address from message if it goes to tunneling side
 			}
@@ -12578,6 +12577,12 @@ bool H245Socket::SetH245Address(H225_TransportAddress & h245addr, const Address 
 		}
 		swapped = true;
 		std::swap(this->sigSocket, socket->sigSocket);
+		// let the signaling sockets point back to their new H.245 socket
+		// the other one isn't always the remote of ours: ForwardCall() processes the saved Setup while it is still the forwarder
+		if (this->sigSocket)
+			this->sigSocket->SetH245Socket(this);
+		if (socket->sigSocket)
+			socket->sigSocket->SetH245Socket(socket);
 	}
 	if (socket->peerH245Addr)
 		*socket->peerH245Addr = h245addr;

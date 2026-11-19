@@ -1,5 +1,6 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(ProxyChannel.cxx) fix use-after-free in H.245 channel
 - BUGFIX(Toolkit.cxx) fix infinite loop in RewriteSourceAddress
 - BUGFIX(gksql_mysql.cxx) check the result of mysql_real_escape_string() and
   prefer mysql_real_escape_string_quote() so NO_BACKSLASH_ESCAPES sessions are escaped
