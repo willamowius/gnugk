@@ -173,13 +173,14 @@ struct CallStats {
 // Both sides record what they saw of it.
 // With --t120-ack the endpoint accepts a T.120 channel it receives with its own OpenLogicalChannelAck,
 // --t120-address is the separate stack address it puts into its OLC or OLCAck, with --t120-connect it connects to
-// the separate stack address in the OLCAck for its own channel, sends "version" and records the answer.
+// the separate stack address in a T.120 OLC it receives or in the OLCAck for its own channel, sends "version" and
+// records the answer.
 static PMutex t120Mutex;
 static bool t120Offer = false;
 static PString t120Address;	// separate stack address for our OLC / OLCAck (default: signaling IP, port 1503)
 static bool t120Ack = false;
 static bool t120Connect = false;
-static bool t120Connected = false;	// the connection to the separate stack address in the OLCAck worked
+static bool t120Connected = false;	// the connection to the separate stack address in the OLC / OLCAck worked
 static PString t120Reply;	// what came back on that connection
 static bool t120CapReceived = false;	// the remote capability set had a T.120 capability
 static bool t120OlcReceived = false;	// the remote opened a T.120 channel
@@ -290,6 +291,8 @@ public:
 					PWaitAndSignal lock(t120Mutex);
 					t120OlcReceived = true;
 				}
+				if (t120Connect && olc.HasOptionalField(H245_OpenLogicalChannel::e_separateStack))
+					ConnectT120(olc.m_separateStack);
 				if (t120Ack) {
 					// accept it ourselves, H323Plus would reject it
 					H323ControlPDU ack;
@@ -352,8 +355,8 @@ public:
 		ipv4.m_tsapIdentifier = port;
 	}
 
-	// connect to the separate stack address in the OLCAck for our T.120 channel, send a status port command
-	// and keep what comes back within 2 seconds
+	// connect to the separate stack address in a received T.120 OLC or in the OLCAck for our T.120 channel,
+	// send a status port command and keep what comes back within 2 seconds
 	void ConnectT120(const H245_NetworkAccessParameters & sepStack)
 	{
 		if (sepStack.m_networkAddress.GetTag() != H245_NetworkAccessParameters_networkAddress::e_localAreaAddress)
@@ -1120,8 +1123,8 @@ void GkTestEp::Main()
 			"  --t120               offer T.120 in the capability set and open a T.120 channel when the call is up\n"
 			"  --t120-ack           accept a T.120 channel we receive with our own OpenLogicalChannelAck\n"
 			"  --t120-address ip:port  separate stack address in our T.120 OLC or OLCAck (default: signaling IP:1503)\n"
-			"  --t120-connect       connect to the separate stack address in the OLCAck for our T.120 channel, send\n"
-			"                       \"version\" and report t120Connected and the answer as t120Reply\n"
+			"  --t120-connect       connect to the separate stack address in a T.120 OLC we receive or in the OLCAck\n"
+			"                       for our T.120 channel, send \"version\", report t120Connected and the answer as t120Reply\n"
 			"  --h245-address ip:port  callee: announce this H.245 address in the CallProceeding\n"
 			"  --h46017             register and signal over one TCP connection to the gatekeeper (H.460.17)\n"
 			"  --h235-media         offer H.235.6 media encryption (AES 128)\n"

@@ -17108,7 +17108,7 @@ bool H245ProxyHandler::HandleOpenLogicalChannel(H245_OpenLogicalChannel & olc, c
 		if (olc.HasOptionalField(H245_OpenLogicalChannel::e_separateStack)
 			&& lc && lc->OnSeparateStack(olc.m_separateStack, this)) {
 			lc->StartReading(handler);
-			return changed;
+			return true;	// the separate stack address now points to our T.120 listener
 		}
 		return false;
 	} else {

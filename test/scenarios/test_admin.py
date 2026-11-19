@@ -323,28 +323,35 @@ def test_h245_to_own_status_port(start_gk, workdir, h245_ip):
     assert gk.trace_count("Refusing H.245 connection to the gatekeeper's own status port") >= 1
 
 
+@pytest.mark.parametrize("direction", ["olca", "olc"])
 @pytest.mark.parametrize("t120_ip,home", [(topology.GK_IP, topology.GK_IP),
                                           ("0.0.0.0", topology.GK_IP + ",127.0.0.1")],
                          ids=["gk-ip", "any-ip-loopback-home"])
-def test_t120_to_own_status_port(start_gk, workdir, t120_ip, home):
-    """the caller opens a T.120 channel, the callee accepts it with the gatekeeper's own status port as separate stack
-    address in its OLCAck; GnuGk puts its T.120 listener into the OLCAck instead and connects on to the callee's
-    address when the caller connects there: it must refuse to connect to its status port, so the caller's status
-    port command gets no answer. 0.0.0.0 is the local host, too: when GnuGk also listens on 127.0.0.1 (as without
-    Home=), its (unbound) T.120 connection to 0.0.0.0 goes there"""
+def test_t120_to_own_status_port(start_gk, workdir, t120_ip, home, direction):
+    """one side signals the gatekeeper's own status port as T.120 separate stack address: the callee in the OLCAck
+    for the caller's T.120 channel (olca) or the caller in its OLC (olc). GnuGk puts its T.120 listener into the
+    message instead and connects on to the signaled address when the other side connects there: it must refuse to
+    connect to its status port, so the status port command sent over the T.120 connection gets no answer.
+    0.0.0.0 is the local host, too: when GnuGk also listens on 127.0.0.1 (as without Home=), its (unbound) T.120
+    connection to 0.0.0.0 goes there"""
     gk = start_gk({"Gatekeeper::Main": {"Home": home}, "Proxy": {"Enable": "1", "T120PortRange": "33000-33099"}})
     status = "%s:%d" % (t120_ip, gnugk.STATUS_PORT)
-    caller, callee = run_call(gk, Endpoint(workdir, "pub1", "caller", faststart=False, t120=True, t120_connect=True),
-                              "callee", duration=4,
-                              callee=Endpoint(workdir, "pub2", "callee", faststart=False, t120=True, t120_ack=True,
-                                              t120_address=status))
+    if direction == "olca":
+        caller = Endpoint(workdir, "pub1", "caller", faststart=False, t120=True, t120_connect=True)
+        callee = Endpoint(workdir, "pub2", "callee", faststart=False, t120=True, t120_ack=True, t120_address=status)
+    else:
+        caller = Endpoint(workdir, "pub1", "caller", faststart=False, t120=True, t120_address=status)
+        callee = Endpoint(workdir, "pub2", "callee", faststart=False, t120=True, t120_connect=True)
+    caller, callee = run_call(gk, caller, "callee", duration=4, callee=callee)
+    connecting = caller if direction == "olca" else callee
     assert caller["connected"] and callee["connected"], caller["endReason"]
     assert callee["t120OlcReceived"], "the T.120 channel didn't reach the callee"
-    assert caller["t120Connected"], "the caller couldn't connect to GnuGk's T.120 listener"
-    assert gk.trace_count("STATUS\tNew connection from %s:" % topology.HOST_IPS["pub1"]) == 0, \
-        "the caller was sent to the status port"
+    for ep in ("pub1", "pub2"):
+        assert gk.trace_count("STATUS\tNew connection from %s:" % topology.HOST_IPS[ep]) == 0, \
+            "%s was sent to the status port" % ep
+    assert connecting["t120Connected"], "%s couldn't connect to GnuGk's T.120 listener" % connecting["alias"]
     # GnuGk's T.120 connections come from 33000-33099, the harness uses the status port from ephemeral ports
     for ip in (topology.GK_IP, "127.0.0.1"):
         assert gk.trace_count("STATUS\tNew connection from %s:330" % ip) == 0, "GnuGk connected to its status port"
-    assert caller["t120Reply"] == "", "the status port answered over T.120: %r" % caller["t120Reply"]
+    assert connecting["t120Reply"] == "", "the status port answered over T.120: %r" % connecting["t120Reply"]
     assert gk.trace_count("Refusing T.120 connection to the gatekeeper's own status port") >= 1

@@ -42,8 +42,8 @@ class Endpoint:
         h245_address: callee: announce this H.245 address ("ip:port") in the CallProceeding
         t120_ack: accept a T.120 channel we receive with our own OLCAck (instead of rejecting it)
         t120_address: the separate stack address ("ip:port") in our T.120 OLC or OLCAck
-        t120_connect: connect to the separate stack address in the OLCAck for our T.120 channel, send "version",
-        report t120Connected and the answer as t120Reply
+        t120_connect: connect to the separate stack address in a T.120 OLC we receive or in the OLCAck for our
+        T.120 channel, send "version", report t120Connected and the answer as t120Reply
         h46017: register and signal over one TCP connection to the gatekeeper (H.460.17)
         h235_media: offer H.235.6 media encryption
         user_input: send this text as user input 1 second into the call, user_input_mode: "string" (H.245
