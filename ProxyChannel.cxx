@@ -19222,7 +19222,7 @@ void CallSignalSocket::PerformConnecting()
 	if (InternalConnectTo()) {
 		if (GkConfig()->HasKey(RoutedSec, "TcpKeepAlive"))
 			remote->Self()->SetOption(SO_KEEPALIVE, Toolkit::AsBool(
-				GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "1")) ? 1 : 0,
+				GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "0")) ? 1 : 0,
 				SOL_SOCKET);
 
 		ConfigReloadMutex.EndRead();
