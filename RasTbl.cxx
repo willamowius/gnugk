@@ -5666,6 +5666,7 @@ CallTable::~CallTable()
 
 void CallTable::SupplyEndpointQoS(std::map<PString, EPQoS> & epqos) const
 {
+	ReadLock lock(listLock);
 	for (const_iterator Iter = CallList.begin(); Iter != CallList.end(); ++Iter) {
 		CallRec *call = *Iter;
 		if (call->IsConnected()) {

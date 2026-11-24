@@ -55,6 +55,18 @@ static const char *authsec = "GkStatus::Auth";
 static const char *filteringsec = "GkStatus::Filtering";
 static const PINDEX maxCommandLength = 2048;	// commands/lines from status clients must be shorter than this
 
+// the switches allowed in the [GkStatus::Auth] section share it with the user accounts, but they are not users
+static bool IsAuthSwitch(const PString & name)
+{
+	static const char * const switches[] = { "rule", "default", "regex", "DSAKey", "RSAKey", "Shutdown",
+		"DelayReject", "LoginTimeout", "KeyFilled", "WorkerThreadIdleTimeout", "MaxWorkerThreads" };
+	for (unsigned i = 0; i < sizeof(switches) / sizeof(switches[0]); ++i) {
+		if (name *= switches[i])	// "*=": case insensitive, like the config lookup
+			return true;
+	}
+	return false;
+}
+
 // a very lightweight implementation of telnet socket
 class TelnetSocket : public ServerSocket {
 #ifndef LARGE_FDSET
@@ -599,7 +611,7 @@ bool SSHStatusClient::AuthenticateUser()
 	// PTRACE(1, "User " << login << " wants to authenticate with password " << password);
 
 #ifdef P_SSL
-    PString rawPassword = GkConfig()->GetString(authsec, login, "");
+    PString rawPassword = IsAuthSwitch(login) ? PString::Empty() : GkConfig()->GetString(authsec, login, "");
     if (rawPassword.Left(7) == "PBKDF2:") {
         const PINDEX dashPos = rawPassword.Find("-");
         const PString salt = rawPassword.Mid(7, dashPos - 7);
@@ -1630,7 +1642,7 @@ bool StatusClient::AuthenticateUser()
 		SendWont(PTelnetSocket::EchoOption);
 
 #ifdef P_SSL
-        PString rawPassword = GkConfig()->GetString(authsec, userName, "");
+        PString rawPassword = IsAuthSwitch(userName) ? PString::Empty() : GkConfig()->GetString(authsec, userName, "");
         if (rawPassword.Left(7) == "PBKDF2:") {
             const PINDEX dashPos = rawPassword.Find("-");
             const PString salt = rawPassword.Mid(7, dashPos - 7);
@@ -1694,6 +1706,11 @@ PString StatusClient::PBKDF2_Digest(const PString & salt, const PString & passwo
 // read obfuscated password
 PString StatusClient::GetPassword(const PString & userName) const
 {
+	// make sure the user name is not one of the switches allowed in the GkStatus::Auth section
+	if (IsAuthSwitch(userName)) {
+		PTRACE(2, "STATUS\tTrying to get password for the forbidden user name '" << userName << '\'');
+		return PString::Empty();
+	}
 	return userName.IsEmpty() ? "" : Toolkit::Instance()->ReadPassword(authsec, userName, true);
 }
 

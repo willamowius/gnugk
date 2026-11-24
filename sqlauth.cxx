@@ -622,9 +622,12 @@ int SQLAuth::Check(
 			}
 		}
 		for (PINDEX i = 0; i < aliases.GetSize(); i++) {
-			if (rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias))
-				rrq.m_terminalAlias.SetSize(rrq.m_terminalAlias.GetSize()+1);
-			else {
+			if (rrq.HasOptionalField(H225_RegistrationRequest::e_terminalAlias)) {
+				if (!rrq.m_terminalAlias.SetSize(rrq.m_terminalAlias.GetSize()+1)) {
+					PTRACE(2, traceStr << " - Error: Maximum ASN.1 array size reached (" << PASN_Object::GetMaximumArraySize() << ")");
+					break;
+				}
+			} else {
 				rrq.IncludeOptionalField(H225_RegistrationRequest::e_terminalAlias);
 				rrq.m_terminalAlias.SetSize(1);
 			}
@@ -872,7 +875,10 @@ int SQLAuth::Check(RasPDU<H225_LocationRequest> & lrqPdu, unsigned & rejectReaso
 		}
 		for (PINDEX i = 0; i < aliases.GetSize(); i++) {
 			const PINDEX sz = lrq.m_destinationInfo.GetSize();
-			lrq.m_destinationInfo.SetSize(sz + 1);
+			if (!lrq.m_destinationInfo.SetSize(sz + 1)) {
+				PTRACE(2, traceStr << " - Error: Maximum ASN.1 array size reached (" << PASN_Object::GetMaximumArraySize() << ")");
+				break;
+			}
 			H323SetAliasAddress(aliases[i], lrq.m_destinationInfo[sz]);
 		}
 	}

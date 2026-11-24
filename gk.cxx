@@ -993,6 +993,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "CapacityControl", "*" },
 	{ "Endpoint::RewriteE164", "*" },
 	{ "FileIPAuth", "*" },
+	// NOTE remember to add new switches in GkStatus::Auth to IsAuthSwitch() (GkStatus.cxx)
 	{ "GkStatus::Auth", "*" },
 	{ "H225toQ931", "*" },
 	{ "ModeSelection", "*" },

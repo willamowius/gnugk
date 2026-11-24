@@ -1,5 +1,8 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(GkStatus.cxx) don't accept the names of [GkStatus::Auth] switches (eg. RSAKey) as status port user names
+- BUGFIX(RasTbl.cxx) add missing lock for PrintEndpointQoS (status port command)
+- BUGFIX(sqlauth.cxx,radauth.cxx) fix crash when SQLAuth or RadAuth add more than 128 aliases
 - BUGFIX(ProxyChannel.cxx) fix crash when H.460.17 connection ends while it is being rerouted
 - BUGFIX(gksql_mysql.cxx) set the character set of the MySQL session after connecting (SET NAMES)
 - BUGFIX(lua.cxx) limit the size of the message text LuaAuth passes to the scripts,
