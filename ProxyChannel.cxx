@@ -18755,6 +18755,7 @@ TLSCallSignalSocket::TLSCallSignalSocket(CallSignalSocket * s, WORD port) : Call
 
 TLSCallSignalSocket::~TLSCallSignalSocket()
 {
+	UnregisterKeepAlive();	// the timer thread must be done with m_ssl before we free it
 	if (m_ssl) {
         ::shutdown(GetHandle(), SHUT_WR);
 		// don't call SSL_shutdown here, it will end other connections from the same parent context
@@ -18767,6 +18768,7 @@ TLSCallSignalSocket::~TLSCallSignalSocket()
 
 bool TLSCallSignalSocket::Connect(const Address & addr)
 {
+	UnregisterKeepAlive();	// no keep-alive before the TLS handshake is done, see Dispatch()
 	if (CallSignalSocket::Connect(addr)) {
 		if (!(m_ssl = SSL_new(Toolkit::Instance()->GetTLSContext()))) {
 			PTRACE(1, "TLS\tError creating SSL object");
@@ -18827,6 +18829,7 @@ bool TLSCallSignalSocket::Connect(const Address & addr)
 			return false;
 		}
 
+		RegisterKeepAlive();	// if enabled
 		return true;
 	} else {
 		return false;
@@ -18835,6 +18838,7 @@ bool TLSCallSignalSocket::Connect(const Address & addr)
 
 PBoolean TLSCallSignalSocket::Connect(const Address & iface, WORD localPort, const Address & addr)
 {
+	UnregisterKeepAlive();	// no keep-alive before the TLS handshake is done, see Dispatch()
 	SetName(AsString(addr, GetPort()));
 	SetReadTimeout(PTimeInterval(6000));
 	PBoolean result = TCPProxySocket::Connect(iface, localPort, addr);
@@ -18902,6 +18906,7 @@ PBoolean TLSCallSignalSocket::Connect(const Address & iface, WORD localPort, con
 			return false;
 		}
 
+		RegisterKeepAlive();	// if enabled
 		return true;
 	}
 	return result;
@@ -19028,6 +19033,10 @@ bool TLSCallSignalSocket::Write(const void * buf, int sz)
 
 void TLSCallSignalSocket::Dispatch()
 {
+	// the c'tor of CallSignalSocket has already started the keep-alive, but the timer thread
+	// must not write to the SSL object while this thread is still doing the handshake on it:
+	// stop it (this waits for a running SendKeepAlive()) and start it again after the handshake
+	UnregisterKeepAlive();
 	if (!(m_ssl = SSL_new(Toolkit::Instance()->GetTLSContext()))) {
 		PTRACE(1, "TLS\tError creating SSL object");
 		delete this;
@@ -19093,6 +19102,9 @@ void TLSCallSignalSocket::Dispatch()
 		return;
 	}
 
+	ConfigReloadMutex.StartRead();
+	RegisterKeepAlive();	// if enabled
+	ConfigReloadMutex.EndRead();
 	CallSignalSocket::Dispatch();
 }
 

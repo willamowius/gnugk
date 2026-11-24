@@ -1,5 +1,7 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(ProxyChannel.cxx) Keep the TCP keep-alive timer of a TLSCallSignalSocket stopped until its TLS handshake
+  is done and stop it before SSL_free()
 - BUGFIX(GkStatus.cxx) don't accept the names of [GkStatus::Auth] switches (eg. RSAKey) as status port user names
 - BUGFIX(RasTbl.cxx) add missing lock for PrintEndpointQoS (status port command)
 - BUGFIX(sqlauth.cxx,radauth.cxx) fix crash when SQLAuth or RadAuth add more than 128 aliases
