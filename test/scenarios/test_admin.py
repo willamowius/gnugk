@@ -334,7 +334,8 @@ def test_t120_to_own_status_port(start_gk, workdir, t120_ip, home, direction):
     connect to its status port, so the status port command sent over the T.120 connection gets no answer.
     0.0.0.0 is the local host, too: when GnuGk also listens on 127.0.0.1 (as without Home=), its (unbound) T.120
     connection to 0.0.0.0 goes there"""
-    gk = start_gk({"Gatekeeper::Main": {"Home": home}, "Proxy": {"Enable": "1", "T120PortRange": "33000-33099"}})
+    gk = start_gk({"Gatekeeper::Main": {"Home": home}, "RoutedMode": {"EnableT120": "1"},
+                   "Proxy": {"Enable": "1", "T120PortRange": "33000-33099"}})
     status = "%s:%d" % (t120_ip, gnugk.STATUS_PORT)
     if direction == "olca":
         caller = Endpoint(workdir, "pub1", "caller", faststart=False, t120=True, t120_connect=True)
