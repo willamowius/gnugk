@@ -2602,7 +2602,9 @@ void GkClient::BuildFullRRQ(H225_RegistrationRequest & rrq)
 		for (PINDEX p = as; p < s; ++p)
 			H323SetAliasAddress(m_e164[p-as], rrq.m_terminalAlias[p]);
 	}
-    // TODO: with additive registrations enabled, the first RRQ should contain all aliases of endpoints registered so far
+	// with additive registrations enabled, we only send our own aliases here: the aliases of all endpoints
+	// registered so far can be more than fits into one RAS message and OnRCF() makes the endpoints
+	// register again (UpdateTable()), so the parent gets them with one additive RRQ per endpoint
 
 	int ttl = GkConfig()->GetInteger(EndpointSection, "TimeToLive", DEFAULT_TTL);
 	if (ttl > 0) {
@@ -3258,7 +3260,6 @@ bool GkClient::AdditiveRegister(H225_ArrayOf_AliasAddress & aliases, int & rejec
 			case H225_RasMessage::e_registrationConfirm:
 			{
 				H225_RegistrationConfirm & rcf = (*ras)->m_recvRAS;
-				AppendLocalAlias(rcf.m_terminalAlias);  // this relies on the fact that the parent will only include the added alias in the RCF
 				aliases = rcf.m_terminalAlias;
 				return true;
 			}
@@ -3276,8 +3277,6 @@ bool GkClient::AdditiveRegister(H225_ArrayOf_AliasAddress & aliases, int & rejec
 
 bool GkClient::AdditiveUnRegister(const H225_ArrayOf_AliasAddress & aliases)
 {
-	RemoveLocalAlias(aliases);
-
 	H225_RasMessage urq_ras;
 	urq_ras.SetTag(H225_RasMessage::e_unregistrationRequest);
 	H225_UnregistrationRequest & urq = urq_ras;
@@ -3293,32 +3292,6 @@ bool GkClient::AdditiveUnRegister(const H225_ArrayOf_AliasAddress & aliases)
 
 	m_rasSrv->SendRas(urq_ras, m_gkaddr, m_gkport, m_loaddr, NULL); // TODO235
 	return true;
-}
-
-void GkClient::AppendLocalAlias(const H225_ArrayOf_AliasAddress & aliases)
-{
-	PWaitAndSignal lock(m_aliasMutex);
-	for (PINDEX i = 0; i < aliases.GetSize(); ++i)
-		m_h323Id.AppendString(AsString(aliases[i], false));
-}
-
-void GkClient::RemoveLocalAlias(const H225_ArrayOf_AliasAddress & aliases)
-{
-	PWaitAndSignal lock(m_aliasMutex);
-	PStringArray newAliasList;
-	for (PINDEX j = 0; j < m_h323Id.GetSize(); ++j) {
-		int found = false;
-		for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
-			if (AsString(aliases[i], false) == m_h323Id[j]) {
-				found = true;
-				break;
-			}
-		}
-		if (!found) {
-			newAliasList.AppendString(m_h323Id[j]);
-        }
-	}
-	m_h323Id = newAliasList;
 }
 
 bool GkClient::HandleSetup(SetupMsg & setup, bool fromInternal)

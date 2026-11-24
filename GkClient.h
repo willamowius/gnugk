@@ -103,8 +103,6 @@ public:
 	bool AdditiveRegister(H225_ArrayOf_AliasAddress & aliases, int & rejectReason,
 						H225_ArrayOf_ClearToken * tokens, H225_ArrayOf_CryptoH323Token * cryptotokens);
 	bool AdditiveUnRegister(const H225_ArrayOf_AliasAddress & aliases);
-	void AppendLocalAlias(const H225_ArrayOf_AliasAddress & aliases);
-	void RemoveLocalAlias(const H225_ArrayOf_AliasAddress & aliases);
 
 	bool OnSendingGRQ(H225_GatekeeperRequest & grq);
 	bool OnSendingRRQ(H225_RegistrationRequest & rrq);
@@ -284,7 +282,7 @@ private:
 	PStringArray m_h323Id;
 	/// list of E.164 aliases to register with
 	PStringArray m_e164;
-	/// protects m_h323Id and m_e164, additive registrations change them from any RAS thread
+	/// protects m_h323Id and m_e164, a reload changes them while RAS threads use them
 	PMutex m_aliasMutex;
 	/// list of Authenticators
 	H235Authenticators * m_h235Authenticators;
