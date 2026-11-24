@@ -329,12 +329,15 @@ void SoftPBX::SendProceeding(const PString & CallId)
 	// CallProceeding will be sent during the routing process
 	// at this time the call won't yet be in the CallTable,
 	// thus we look for it in the PreliminaryCallTable
-	PreliminaryCall * call = PreliminaryCallTable::Instance()->Find(cid);
+	// the Setup thread deletes the call and its socket when routing is done,
+	// marking the call as used makes it wait until we release the call
+	PreliminaryCall * call = PreliminaryCallTable::Instance()->Use(cid);
 	CallSignalSocket * lForwardedSocket = NULL;
 
 	if (call) {
 		lForwardedSocket = call->GetCallSignalSocketCalling();
 		if (!lForwardedSocket) {
+			PreliminaryCallTable::Instance()->Release(call);
 			PString msg("Can't find signaling socket (direct mode ?)");
 			PTRACE(1, "GK\tSoftPBX: " + msg);
 			GkStatus::Instance()->SignalStatus(msg + "\r\n");
@@ -353,6 +356,7 @@ void SoftPBX::SendProceeding(const PString & CallId)
 	q931.Encode(lBuffer);
 	lForwardedSocket->TransmitData(lBuffer);
 	call->SetProceedingSent(true);
+	PreliminaryCallTable::Instance()->Release(call);
 }
 
 // used by status port (old)

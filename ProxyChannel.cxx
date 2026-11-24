@@ -5504,8 +5504,9 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 #endif
 				PreliminaryCallTable::Instance()->Insert(tmpCall);
 				request.Process();
+				// waits for a SendProceeding command that is still using the call and this socket
+				PreliminaryCallTable::Instance()->Remove(tmpCall);
 				proceedingSent = tmpCall->IsProceedingSent();
-				PreliminaryCallTable::Instance()->Remove(setupBody.m_callIdentifier);
 				delete tmpCall;
 				// check if destination has changed in the routing process
 				// eg. via canMapAlias in LRQ

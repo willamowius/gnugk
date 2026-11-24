@@ -2390,7 +2390,7 @@ class PreliminaryCall
 {
 public:
 	PreliminaryCall(CallSignalSocket * callerSocket, const H225_CallIdentifier & id, unsigned ref)
-		: m_socket(callerSocket), m_callid(id), m_callref(ref), m_proceedingSent(false) { }
+		: m_socket(callerSocket), m_callid(id), m_callref(ref), m_proceedingSent(false), m_usedCount(0) { }
 	~PreliminaryCall() { }
 
 	CallSignalSocket * GetCallSignalSocketCalling() const { return m_socket; }
@@ -2400,10 +2400,14 @@ public:
 	void SetProceedingSent(bool val) { m_proceedingSent = m_proceedingSent || val; }
 
 private:
+	friend class PreliminaryCallTable;
+
 	CallSignalSocket * m_socket;
 	H225_CallIdentifier m_callid;
 	unsigned m_callref;
 	bool m_proceedingSent;
+	unsigned m_usedCount;	// threads using this call and its socket, protected by the lock of the PreliminaryCallTable
+	PSyncPoint m_unused;	// signaled when m_usedCount drops to 0
 };
 
 // hold data about calls being established, only valid during the routing process before calls are accepted or rejected
@@ -2414,8 +2418,11 @@ public:
 	~PreliminaryCallTable();
 
 	void Insert(PreliminaryCall * call);
-	void Remove(const H225_CallIdentifier & id);
-	PreliminaryCall * Find(const H225_CallIdentifier & id) const;
+	// take the call out of the table and wait until no other thread is using it or its socket
+	void Remove(PreliminaryCall * call);
+	// find a call and mark it as used: the call and its socket stay valid until Release() is called
+	PreliminaryCall * Use(const H225_CallIdentifier & id);
+	void Release(PreliminaryCall * call);
 
 private:
 	PreliminaryCallTable(const PreliminaryCallTable &);

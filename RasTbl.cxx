@@ -6457,17 +6457,37 @@ void PreliminaryCallTable::Insert(PreliminaryCall * call)
 	calls.insert( pair<H225_CallIdentifier, PreliminaryCall*>(call->GetCallIdentifier(), call));
 }
 
-void PreliminaryCallTable::Remove(const H225_CallIdentifier & id)
+void PreliminaryCallTable::Remove(PreliminaryCall * call)
 {
-	WriteLock lock(tableLock);
-	calls.erase(id);
+	tableLock.StartWrite();
+	// a 2nd Setup with the same call ID isn't in the table and must not remove the entry of the 1st
+	std::map<H225_CallIdentifier, PreliminaryCall*>::iterator iter = calls.find(call->GetCallIdentifier());
+	if (iter != calls.end() && iter->second == call)
+		calls.erase(iter);
+	// the call can't be found any more, now wait for those who are still using it
+	while (call->m_usedCount > 0) {
+		tableLock.EndWrite();
+		call->m_unused.Wait();
+		tableLock.StartWrite();
+	}
+	tableLock.EndWrite();
 }
 
-PreliminaryCall * PreliminaryCallTable::Find(const H225_CallIdentifier & id) const
+PreliminaryCall * PreliminaryCallTable::Use(const H225_CallIdentifier & id)
 {
 	WriteLock lock(tableLock);
 	std::map<H225_CallIdentifier, PreliminaryCall*>::const_iterator iter = calls.find(id);
-	return (iter != calls.end()) ? iter->second : NULL;
+	if (iter == calls.end())
+		return NULL;
+	++iter->second->m_usedCount;
+	return iter->second;
+}
+
+void PreliminaryCallTable::Release(PreliminaryCall * call)
+{
+	WriteLock lock(tableLock);
+	if (--call->m_usedCount == 0)
+		call->m_unused.Signal();
 }
 
 CallLoopTable::CallLoopTable() : Singleton<CallLoopTable>("CallLoopTable")

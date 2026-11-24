@@ -9,6 +9,7 @@ Changes from 5.17 to 5.18
 - apply ReadTimeout= and ConnectTimeout= to PostgreSQL queries and connects
 - drop calls when a configured Auth or Acct rules isn't available, eg. not compiled in
 
+- BUGFIX(RasTbl.*,SoftPBX.cxx,ProxyChannel.cxx) fix crash in SendProceeding while routing unregistered call
 - BUGFIX(MakeCall.*,SoftPBX.cxx) fix crash when the registration of the MakeCall endpoint fails
 - BUGFIX(GkClient.cxx) protect the list of alternate gatekeepers of the parent with a mutex
 - BUGFIX(*) make sure user names for [GkStatus::Auth] must use the correct capitalization as entered in addpasswd
