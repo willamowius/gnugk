@@ -129,6 +129,8 @@ WORD GetH245Port(const H245_UnicastAddress & addr)
 
 void SetH245Port(H245_UnicastAddress & addr, WORD port)
 {
+	if (!addr.IsValid())
+		return;
 	if (addr.GetTag() == H245_UnicastAddress::e_iPAddress) {
 		H245_UnicastAddress_iPAddress & ipv4 = addr;
 		ipv4.m_tsapIdentifier = port;
@@ -162,6 +164,8 @@ PString AsDotString(const H225_TransportAddress & addr, bool showPort)
 
 void SetH225Port(H225_TransportAddress & addr, WORD port)
 {
+	if (!addr.IsValid())
+		return;
 	if (addr.GetTag() == H225_TransportAddress::e_ip6Address) {
 		H225_TransportAddress_ip6Address & ipv6 = addr;
 		ipv6.m_port = port;
@@ -173,6 +177,8 @@ void SetH225Port(H225_TransportAddress & addr, WORD port)
 
 WORD GetH225Port(const H225_TransportAddress & addr)
 {
+	if (!addr.IsValid())
+		return 0;
 	if (addr.GetTag() == H225_TransportAddress::e_ip6Address) {
 		const H225_TransportAddress_ip6Address & ipv6 = addr;
 		return ipv6.m_port;

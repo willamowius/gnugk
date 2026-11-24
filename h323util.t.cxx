@@ -84,6 +84,9 @@ TEST_F(H323UtilTest, H245Port) {
 	EXPECT_EQ(555, GetH245Port(h245unicast));
 	SetH245Port(h245unicast, 999);
 	EXPECT_EQ(999, GetH245Port(h245unicast));
+	H245_UnicastAddress unset;	// no address set, must not crash
+	SetH245Port(unset, 999);
+	EXPECT_EQ(0, GetH245Port(unset));
 }
 
 TEST_F(H323UtilTest, H225TransportAddressAsString) {
@@ -106,6 +109,9 @@ TEST_F(H323UtilTest, H225Port) {
 	EXPECT_EQ(1111, GetH225Port(h225transport_withipv6));
 	SetH225Port(h225transport_withipv6, 3333);
 	EXPECT_EQ(3333, GetH225Port(h225transport_withipv6));
+	H225_TransportAddress unset;	// no address set, must not crash
+	SetH225Port(unset, 444);
+	EXPECT_EQ(0, GetH225Port(unset));
 }
 
 TEST_F(H323UtilTest, H323TransportAddressAsString) {

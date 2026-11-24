@@ -10488,9 +10488,10 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 		case H225_FacilityReason::e_transportedInformation:
 			break;
 		case H225_FacilityReason::e_startH245:
-			uuie.IncludeOptionalField(H225_Facility_UUIE::e_h245Address);
+			// only include the h245Address if we have one, the remote party is gone when the call has been released
 			if (CallSignalSocket *ret = dynamic_cast<CallSignalSocket *>(remote)) {
 				if (m_h245socket) {
+					uuie.IncludeOptionalField(H225_Facility_UUIE::e_h245Address);
 					uuie.m_h245Address = m_h245socket->GetH245Address(ret->masqAddr);
 				} else {
     				PTRACE(2, "Error: Don't know H.245 address for startH245");
@@ -10504,7 +10505,8 @@ void CallSignalSocket::BuildFacilityPDU(Q931 & FacilityPDU, int reason, const PO
 			if (m_call && m_call->GetCalledParty() && m_call->H46019Required()
 				&& (m_call->GetCalledParty()->GetTraversalRole() != None) )
 			{
-                if (GkConfig()->GetBoolean(RoutedSec, "EnableH245Multiplexing", false))
+                if (uuie.HasOptionalField(H225_Facility_UUIE::e_h245Address)
+                    && GkConfig()->GetBoolean(RoutedSec, "EnableH245Multiplexing", false))
                     SetH225Port(uuie.m_h245Address, (WORD)GkConfig()->GetInteger(RoutedSec, "H245MultiplexPort", 1722));
 				m_crv = m_call->GetCallRef();	// make sure m_crv is set
 				uuie.m_protocolIdentifier.SetValue(H225_ProtocolID);

@@ -1,5 +1,6 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(ProxyChannel.cxx) fix crash sending startH245 Facility with H.245 multiplexing when the remote party has already hung up
 - BUGFIX(ProxyChannel.cxx) fix crash in OnFacility() when using H.460.18
 - BUGFIX(ProxyChannel.cxx) EnableT120=0 also removes T.120 from tunneled H.245 and fastStart, also reject encrypted T.120
 - BUGFIX(ProxyChannel.cxx) fix rewriting OLCs when proxying T.120
