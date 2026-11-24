@@ -29,7 +29,7 @@ CDR with the right duration and cause, no call was left over and both endpoints 
 | `test_auth_modules.py` | `FileIPAuth`, `AliasAuth` / `[RasSrv::RRQAuth]` (sigip, also for E.164 numbers, sigaddr, allow / deny, `&` and `|`, alias order, default rule), `TwoAliasAuth`, `PrefixAuth` (IP and alias rules); alias case with `CompareAliasCase` |
 | `test_sql.py` | SQLite backed `SQLPasswordAuth`, `SQLAliasAuth`, `SQLAuth` (RegQuery, CallQuery on ARQ / Setup / SetupUnreg with its result columns, NbQuery), SQL routing policy; alias case with `CompareAliasCase` |
 | `test_capacity.py` | `[EP::...] Capacity`, `CapacityControl` (IP, H.323 ID and CLI rules, called number patterns, rule order, released calls, `CompareAliasCase`), `TotalBandwidth`, `MaximumBandwidthPerCall`, BRQ |
-| `test_admin.py` | config reload during a call, status port commands (`PrintCurrentCalls`, `DisconnectCall`, `UnregisterAlias`, `Statistics`, `PrintEndpointQoS`), status port login rules and event filters, `StatusAcct` / `SQLAcct` events, `RerouteCall` |
+| `test_admin.py` | config reload during a call, status port commands (`PrintCurrentCalls`, `DisconnectCall`, `UnregisterAlias`, `Statistics`, `PrintEndpointQoS`), status port login rules (also the case of user names) and event filters, `StatusAcct` / `SQLAcct` events, `RerouteCall` |
 | `test_nat.py` | H.460.18 behind NATs that drop idle UDP mappings after 10 seconds, two H.460.18 endpoints behind the same NAT |
 | `test_codecs.py` | `DisabledCodecs` in `[CallTable]` and `[EP::alias]`, with fastStart and H.245, with and without proxy: the call uses the remaining codec |
 | `test_t120.py` | T.120 capabilities and channels pass with `[RoutedMode] EnableT120=1`, by default and with `EnableT120=0` GnuGk removes and rejects them (tunneled and separate H.245, with and without proxy); with `EnableT120=0` no T.120 connection gets through, also not for OLCAcks, encrypted T.120 channels and tunneled H.245 without `H245Routed` |
@@ -168,9 +168,8 @@ reports XPASS as a failure, then remove the marker. Currently:
 - With all Q.931 messages checked (`h2351-all`), calls to an H.460.18 callee fail: GnuGk checks the
   Facility the callee sends to open its signaling channel, and has no authenticator for it yet.
 - `RerouteCall` with fastStart: no media is opened after the reroute.
-- `CompareAliasCase`: auth rules that are config keys (`[RasSrv::RRQAuth]`, `[TwoAliasAuth]`, the
-  `SimplePasswordAuth` passwords) always ignore case (PTLib config keys are caseless); a password for `alice`
-  can't be decoded for `Alice`; `TwoAliasAuth` compares the secret alias case-sensitively; `PrefixAuth` alias
+- `CompareAliasCase`: auth rules that are config keys (`[RasSrv::RRQAuth]`, `[TwoAliasAuth]`) always ignore
+  case (PTLib config keys are caseless); `TwoAliasAuth` compares the secret alias case-sensitively; `PrefixAuth` alias
   rules always ignore case; SQL modules leave the comparison to the database.
 - `SQLAuth` `NbQuery`: LRQs from configured neighbors skip all authenticators, the query only runs for
   non-neighbor LRQs (`AcceptNonNeighborLRQ=1`).

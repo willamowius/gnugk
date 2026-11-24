@@ -1300,7 +1300,9 @@ bool SimplePasswordAuth::GetPassword(
 		PTRACE(2, "GKAUTH\t" << GetName() << " trying to get password for the forbidden alias '" << id << '\'');
 		return false;
 	}
-	passwd = Toolkit::Instance()->ReadPassword(GetName(), id, true);
+	// the ID is an alias: compare its case like aliases are compared
+	const bool compareAliasCase = GkConfig()->GetBoolean("CompareAliasCase", true);
+	passwd = Toolkit::Instance()->ReadPassword(GetName(), id, true, !compareAliasCase);
 	return true;
 }
 

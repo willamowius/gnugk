@@ -4206,10 +4206,24 @@ PString Toolkit::AsString(
 	return buf;
 }
 
+PString Toolkit::FindConfigKey(
+	const PString & cfgSection,
+	const PString & cfgKey
+	)
+{
+	const PStringArray keys = Config()->GetKeys(cfgSection);
+	// the first key that matches is the one GetString() reads
+	for (PINDEX i = 0; i < keys.GetSize(); ++i)
+		if (strcasecmp(keys[i], cfgKey) == 0)
+			return keys[i];
+	return PString::Empty();
+}
+
 PString Toolkit::ReadPassword(
 	const PString & cfgSection, /// config section to read
 	const PString & cfgKey, /// config key to read an encrypted password from
-	bool forceEncrypted
+	bool forceEncrypted,
+	bool caselessKey
 	)
 {
 	if (cfgSection.IsEmpty() || cfgKey.IsEmpty())
@@ -4219,16 +4233,15 @@ PString Toolkit::ReadPassword(
 	if (!cfg->HasKey(cfgSection, cfgKey))
 		return PString::Empty();
 
+	// the key name is also the decryption key, but the config lookup ignores case:
+	// decrypt with the spelling used in the config, any other spelling
+	// would decrypt the entry to a different (possibly very short) password
+	PString key = cfgKey;
 	if (forceEncrypted) {
-		// the key is a user name sent by the remote side: the config lookup ignores case,
-		// but the key name is also the decryption key, so only accept the spelling
-		// the password has been encrypted with (any other would decrypt to a different password)
-		const PStringArray keys = cfg->GetKeys(cfgSection);
-		PINDEX i = 0;
-		// the first key that matches is the one GetString() reads
-		while (i < keys.GetSize() && strcasecmp(keys[i], cfgKey) != 0)
-			++i;
-		if (i >= keys.GetSize() || strcmp(keys[i], cfgKey) != 0) {
+		key = FindConfigKey(cfgSection, cfgKey);
+		if (key.IsEmpty())
+			return PString::Empty();
+		if (!caselessKey && strcmp(key, cfgKey) != 0) {
 			PTRACE(3, "GK\tNo config password for [" << cfgSection << "] => " << cfgKey << ": spelling differs from the config");
 			return PString::Empty();
 		}
@@ -4250,15 +4263,15 @@ PString Toolkit::ReadPassword(
 	PTEACypher::Key encKey;
 	memset(&encKey, paddingByte, sizeof(encKey));
 
-	const size_t keyLen = cfgKey.GetLength();
+	const size_t keyLen = key.GetLength();
 	if (keyLen > 0) {
-		memcpy(&encKey, (const char*)cfgKey, min(keyLen, sizeof(encKey)));
+		memcpy(&encKey, (const char*)key, min(keyLen, sizeof(encKey)));
 	}
 
 	PTEACypher cypher(encKey);
 	PString s;
-	if (!cypher.Decode(cfg->GetString(cfgSection, cfgKey, ""), s)) {
-		PTRACE(1, "GK\tFailed to decode config password for [" << cfgSection << "] => " << cfgKey);
+	if (!cypher.Decode(cfg->GetString(cfgSection, key, ""), s)) {
+		PTRACE(1, "GK\tFailed to decode config password for [" << cfgSection << "] => " << key);
 		SNMP_TRAP(7, SNMPError, General, "Password decode failed");
 	}
 	return s;

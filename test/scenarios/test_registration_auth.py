@@ -98,13 +98,7 @@ def test_token_coverage_warning(start_gk, workdir, rule, authenticators, expecte
 
 
 @pytest.mark.parametrize("tokens", list(TOKENS))
-@pytest.mark.parametrize("compare_case,registers", [
-    pytest.param("1", False, id="case-sensitive"),
-    pytest.param("0", True, id="case-insensitive", marks=pytest.mark.xfail(strict=True, reason=(
-        "the config lookup of the password ignores case and finds 'alice', but the entry is encrypted with the alias "
-        "as spelled in the config and ReadPassword() only reads it for that spelling; with CompareAliasCase=1 'Alice' is "
-        "rejected only because of that"))),
-])
+@pytest.mark.parametrize("compare_case,registers", [("1", False), ("0", True)], ids=["case-sensitive", "case-insensitive"])
 def test_password_alias_case(start_gk, workdir, tokens, compare_case, registers):
     """the password configured for 'alice' is only used for an endpoint 'Alice' with CompareAliasCase=0"""
     auth_config, h2351 = TOKENS[tokens]

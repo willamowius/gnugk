@@ -9,9 +9,8 @@ Changes from 5.17 to 5.18
 - apply ReadTimeout= and ConnectTimeout= to PostgreSQL queries and connects
 - drop calls when a configured Auth or Acct rules isn't available, eg. not compiled in
 
-- BUGFIX(Toolkit.cxx, addpasswd.cxx) make sure only the capitalization used in addpasswd is accepted,
-  even so the config file is technically read case-insensitive
-  addpasswd stores the name as given when it replaces an entry
+- BUGFIX(*) make sure user names for [GkStatus::Auth] must use the correct capitalization as entered in addpasswd
+  [SimplePasswordAuth] IDs follow CompareAliasCase=
 - BUGFIX(Routing.cxx) ENUM policy used the first alias instead of the converted one to check the gateway destination
 - BUGFIX(ProxyChannel.cxx,GkClient.cxx) let EnableGnuGkNATTraversal=0 ignore all leftovers from old GnuGk NAT traversal
 - BUGFIX(ProxyChannel.cxx) Keep the TCP keep-alive timer of a TLSCallSignalSocket stopped until its TLS handshake

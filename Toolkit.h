@@ -678,14 +678,26 @@ class Toolkit : public Singleton<Toolkit>
 		const PString & formatStr = PString::Empty() /// format string to use
 		) const;
 
+	/** Find a key in the config ignoring case, like the config lookup does.
+
+	    @return
+	    The key as spelled in the config, or an empty string if it is missing.
+	*/
+	PString FindConfigKey(
+		const PString & cfgSection, /// config section to search
+		const PString & cfgKey /// key to find
+		);
+
 	/** Read and decrypt a password from the config. As a decryption key
 	    this function is using the given key name padded with bytes of value
 	    specified by the 'KeyFilled' config variable, if it is found
 	    in the given config section, or a global padding byte.
 
-	    With forceEncrypted the key is a user name sent by the remote side
-	    and must be spelled exactly like in the config (the config lookup
-	    ignores case, the decryption key doesn't).
+	    With forceEncrypted the key is a user name sent by the remote side.
+	    The config lookup ignores case, but the entry is encrypted with the
+	    name as spelled in the config, so it is only read for that spelling,
+	    or for any spelling if caselessKey is set (then decrypted with the
+	    config's spelling).
 
 	    @return
 	    A decrypted password or an empty string, if the given key is missing.
@@ -693,7 +705,8 @@ class Toolkit : public Singleton<Toolkit>
 	PString ReadPassword(
 		const PString & cfgSection, /// config section to read
 		const PString & cfgKey, /// config key to read an encrypted password from
-		bool forceEncrypted = false /// decrypt even if no KeyFilled is present, key is case-sensitive
+		bool forceEncrypted = false, /// decrypt even if no KeyFilled is present, the key is a user name
+		bool caselessKey = false /// with forceEncrypted: accept the user name in any upper/lower case spelling
 		);
 
 	/// Inbound rewrite for ANI/CLI

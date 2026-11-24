@@ -125,6 +125,54 @@ def test_status_port_password_login(start_gk, workdir):
     assert gk.trace_count("Password digest mismatch for user admin") == 1
 
 
+# from the tutorial: user gkadmin, password secret, encrypted by addpasswd (not PBKDF2)
+TUTORIAL_USER, TUTORIAL_ENTRY = "gkadmin", "QC7VyAo5jEw="
+
+
+def status_login_accepted(session, user, password):
+    """one login attempt with raw bytes as password: True if the session is logged in"""
+    session.read_until("login: ")
+    session.send(user)
+    session.read_until("Password: ")
+    session.sock.sendall(password + b"\r\n")
+    try:
+        session.read_until("login: ", timeout=2)	# rejected: asks again
+        return False
+    except TimeoutError:
+        session.send("Statistics")
+        return "-- Endpoint Statistics --" in session.read_until("-- Call Statistics --")
+
+
+@pytest.mark.parametrize("compare_case", ["1", "0"], ids=["case-sensitive", "case-insensitive"])
+def test_status_port_password_user_case(start_gk, workdir, compare_case):
+    """status port user names are case sensitive, CompareAliasCase doesn't apply: decrypted with the key
+    'GkadMin', the entry for 'gkadmin' gives the one byte 0x85, which must not log in, nor 'GKADMIN' with the
+    right password"""
+    gk = start_gk({"GkStatus::Auth": {"rule": "password", TUTORIAL_USER: TUTORIAL_ENTRY, "DelayReject": "0"},
+                   "Gatekeeper::Main": {"CompareAliasCase": compare_case}})
+    session = StatusSession()
+    try:
+        assert not status_login_accepted(session, "GkadMin", b"\x85")
+        assert not status_login_accepted(session, "GKADMIN", b"secret")
+        assert status_login_accepted(session, TUTORIAL_USER, b"secret")
+    finally:
+        session.close()
+    assert gk.trace_count("spelling differs from the config") == 2
+
+
+def test_status_port_pbkdf2_user_case(start_gk, workdir):
+    """status port user names are case sensitive for PBKDF2 entries too: 'ADMIN' with the right password
+    doesn't log in to 'admin'"""
+    gk = start_gk({"GkStatus::Auth": {"rule": "password", "admin": pbkdf2_password("secret"), "DelayReject": "0"}})
+    session = StatusSession()
+    try:
+        assert not status_login_accepted(session, "ADMIN", b"secret")
+        assert status_login_accepted(session, "admin", b"secret")
+    finally:
+        session.close()
+    assert gk.trace_count("spelling differs from the config") == 1
+
+
 def test_status_port_ip_rule(start_gk, workdir):
     """rule=explicit: only the listed IP may use the status port"""
     start_gk({"GkStatus::Auth": {"rule": "explicit", topology.HOST_IPS["pub1"]: "allow", "default": "forbid"}})

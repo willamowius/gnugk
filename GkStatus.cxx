@@ -252,6 +252,12 @@ protected:
 	*/
 	PString GetPassword(const PString & userName) const;
 
+	/** @return
+		The config entry of the specified login as it is stored (eg. a PBKDF2 digest),
+		empty if the user name isn't spelled exactly like in the config.
+	*/
+	PString GetRawPassword(const PString & userName) const;
+
 	/** Parse and execute the given command. The function is called
 		in a separate Worker thread (as a Job).
 	*/
@@ -611,7 +617,7 @@ bool SSHStatusClient::AuthenticateUser()
 	// PTRACE(1, "User " << login << " wants to authenticate with password " << password);
 
 #ifdef P_SSL
-    PString rawPassword = IsAuthSwitch(login) ? PString::Empty() : GkConfig()->GetString(authsec, login, "");
+    PString rawPassword = GetRawPassword(login);
     if (rawPassword.Left(7) == "PBKDF2:") {
         const PINDEX dashPos = rawPassword.Find("-");
         const PString salt = rawPassword.Mid(7, dashPos - 7);
@@ -1642,7 +1648,7 @@ bool StatusClient::AuthenticateUser()
 		SendWont(PTelnetSocket::EchoOption);
 
 #ifdef P_SSL
-        PString rawPassword = IsAuthSwitch(userName) ? PString::Empty() : GkConfig()->GetString(authsec, userName, "");
+        PString rawPassword = GetRawPassword(userName);
         if (rawPassword.Left(7) == "PBKDF2:") {
             const PINDEX dashPos = rawPassword.Find("-");
             const PString salt = rawPassword.Mid(7, dashPos - 7);
@@ -1703,6 +1709,17 @@ PString StatusClient::PBKDF2_Digest(const PString & salt, const PString & passwo
 #endif
 }
 
+// read the config entry of a user, eg. a PBKDF2 digest
+PString StatusClient::GetRawPassword(const PString & userName) const
+{
+	if (userName.IsEmpty() || IsAuthSwitch(userName))
+		return PString::Empty();
+	// user names are case sensitive, the config lookup isn't
+	if (strcmp(Toolkit::Instance()->FindConfigKey(authsec, userName), userName) != 0)
+		return PString::Empty();
+	return GkConfig()->GetString(authsec, userName, "");
+}
+
 // read obfuscated password
 PString StatusClient::GetPassword(const PString & userName) const
 {
@@ -1711,7 +1728,8 @@ PString StatusClient::GetPassword(const PString & userName) const
 		PTRACE(2, "STATUS\tTrying to get password for the forbidden user name '" << userName << '\'');
 		return PString::Empty();
 	}
-	return userName.IsEmpty() ? "" : Toolkit::Instance()->ReadPassword(authsec, userName, true);
+	// user names are case sensitive (CompareAliasCase only applies to aliases)
+	return userName.IsEmpty() ? "" : Toolkit::Instance()->ReadPassword(authsec, userName, true, false);
 }
 
 void StatusClient::CommandError(const PString & msg)

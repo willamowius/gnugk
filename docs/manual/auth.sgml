@@ -367,6 +367,9 @@ Example:
 addpasswd config.ini SimplePasswordAuth frank secret
 </verb></tscreen>
 
+The password for <tt/frank/ is only used for the ID <tt/Frank/ if
+<ref id="gkmain" name="CompareAliasCase=0"> is set.
+
 Options:
 <itemize>
 <item><tt/KeyFilled=123/<newline>

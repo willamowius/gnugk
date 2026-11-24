@@ -277,6 +277,7 @@ to ignore the alias type when performing comparisons.
 Default: <tt/1/<newline>
 <p>
 By default, alias 'jan' won't match alias 'Jan'.  If set to false, the comparison will not be case sensitive.
+This also applies to the IDs in the <ref id="password" name="[SimplePasswordAuth]"> section.
 
 <item><tt/TraceLevel=2/<newline>
 Default: <tt/0/<newline>

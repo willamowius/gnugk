@@ -430,6 +430,22 @@ def test_ssh_status_port(start_gk, workdir, ssh_tools):
     assert gk.alive()
 
 
+def test_ssh_status_port_user_case(start_gk, workdir, ssh_tools):
+    """user names are case sensitive on the SSH status port, for PBKDF2 and traditional entries: 'ADMIN' and
+    'GKADMIN' with the right passwords are refused, 'GkadMin' with the one byte its spelling decrypts the
+    tutorial entry to as well"""
+    gk = start_gk(ssh_config(workdir, gkadmin="QC7VyAo5jEw="))	# tutorial: gkadmin / secret, not PBKDF2
+    gk.require("ssh")
+    for user, password in [("ADMIN", "secret"), ("GKADMIN", "secret"), ("GkadMin", os.fsdecode(b"\x85"))]:
+        code, out = ssh_run(user, password, "Version")
+        assert code != 0 and "Gatekeeper(GNU)" not in out, (user, code, out)
+    for user in ["admin", "gkadmin"]:
+        code, out = ssh_run(user, "secret", "Version")
+        assert "Gatekeeper(GNU)" in out, (user, code, out)
+    # ssh may try more than once per login
+    assert gk.trace_count("spelling differs from the config") >= 3
+
+
 def test_ssh_status_port_ip_rules(start_gk, workdir, ssh_tools):
     """rule=explicit with the client's IP denied: even the right password doesn't get in"""
     gk = start_gk(ssh_config(workdir, rule="explicit", default="allow"), {"GkStatus::Auth": {PUB1: "forbid"}})
