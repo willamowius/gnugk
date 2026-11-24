@@ -3282,8 +3282,10 @@ bool Toolkit::GnuGkAssignedGatekeepers::HasAssignedGk(endptr ep, const PIPSocket
 		return false;
 
 	std::map<PString, PString> params;
-	if (ep->GetAliases().GetSize() > 0) {
-        params["u"] = ::AsString((ep->GetAliases()[0]), false);  // TODO: repeat query for all aliases ???
+	// GetAliases() returns a copy: a concurrent URQ may empty the list between 2 calls
+	H225_ArrayOf_AliasAddress aliases = ep->GetAliases();
+	if (aliases.GetSize() > 0) {
+        params["u"] = ::AsString(aliases[0], false);  // TODO: repeat query for all aliases ???
 	}
 	params["i"] = ip.AsString();
 	params["g"] = GKName();

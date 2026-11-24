@@ -2378,7 +2378,9 @@ void RegistrationTable::PrintPrefixCapacities(USocket *client, PString alias) co
 	PString msg = "PrefixCapacities\r\n";
 	listLock.StartRead();
 	for (const_iterator Iter = EndpointList.begin(); Iter != EndpointList.end(); ++Iter) {
-		if (alias.IsEmpty() || (AsString((*Iter)->GetAliases()[0], FALSE).ToLower() == alias.ToLower()))
+		// the alias list can be empty while an URQ is removing the endpoint
+		H225_ArrayOf_AliasAddress aliases = (*Iter)->GetAliases();
+		if (alias.IsEmpty() || (aliases.GetSize() > 0 && AsString(aliases[0], FALSE).ToLower() == alias.ToLower()))
 			msg += (*Iter)->PrintPrefixCapacities();
 	}
 	listLock.EndRead();

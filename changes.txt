@@ -1,5 +1,6 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(RasSrv.cxx,RasTbl.cxx,Toolkit.cxx) fix crash when an URQ removes all aliases
 - BUGFIX(Toolkit.*) fix crash in the GWRewriteE164
 - BUGFIX(GkClient.cxx) don't send an empty gatekeeperIdentifier in ARQ, DRQ and URQ to the parent
 - BUGFIX(ProxyChannel.*) fix crash in H.245 tunneling translation, when the call is hung up while queued H.245 messages are sent

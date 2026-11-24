@@ -3120,8 +3120,10 @@ bool RegistrationRequestPDU::Process()
 		if (request.HasOptionalField(H225_RegistrationRequest::e_assignedGatekeeper)) {
 			ep->SetAssignedGatekeeper(rcf.m_assignedGatekeeper);
 			PString alias;
-			if (ep->GetAliases().GetSize() > 0) {
-                alias = AsString(ep->GetAliases()[0], false);
+			// GetAliases() returns a copy: a concurrent URQ may empty the list between 2 calls
+			H225_ArrayOf_AliasAddress aliases = ep->GetAliases();
+			if (aliases.GetSize() > 0) {
+                alias = AsString(aliases[0], false);
 			}
             if (RasSrv->HasAssignedGK(alias, m_msg->m_peerAddr, rcf)) {
 			    PTRACE(2, "RCF\t" << alias << " informed of assigned gatekeeper");
