@@ -1,5 +1,6 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(GkClient.cxx) don't send an empty gatekeeperIdentifier in ARQ, DRQ and URQ to the parent
 - BUGFIX(ProxyChannel.*) fix crash in H.245 tunneling translation, when the call is hung up while queued H.245 messages are sent
 - BUGFIX(RasTbl.cxx) fix crash in H.460.24
 - BUGFIX(ProxyChannel.cxx) fix crash sending startH245 Facility with H.245 multiplexing when the remote party has already hung up

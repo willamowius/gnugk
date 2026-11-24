@@ -2342,8 +2342,11 @@ void GkClient::SendDRQ(const callptr & call)
 	Requester<H225_DisengageRequest> request(drq_ras, m_loaddr);
 	H225_DisengageRequest & drq = drq_ras;
 	call->BuildDRQ(drq, H225_DisengageReason::e_normalDrop);
-	drq.IncludeOptionalField(H225_DisengageRequest::e_gatekeeperIdentifier);
-	drq.m_gatekeeperIdentifier = m_gatekeeperId;
+	// an empty gatekeeperIdentifier (parent sent none) can't be encoded as a valid PDU
+	if (!m_gatekeeperId.GetValue()) {
+		drq.IncludeOptionalField(H225_DisengageRequest::e_gatekeeperIdentifier);
+		drq.m_gatekeeperIdentifier = m_gatekeeperId;
+	}
 	drq.m_endpointIdentifier = m_endpointId;
 	drq.m_answeredCall = false;
 	// TODO: the toParent and fromParent flags don't seem to be set correctly in the CallRec on the child
@@ -2370,8 +2373,10 @@ void GkClient::SendURQ()
 	urq_ras.SetTag(H225_RasMessage::e_unregistrationRequest);
 	H225_UnregistrationRequest & urq = urq_ras;
 	urq.m_requestSeqNum = m_rasSrv->GetRequestSeqNum();
-	urq.IncludeOptionalField(H225_UnregistrationRequest::e_gatekeeperIdentifier);
-	urq.m_gatekeeperIdentifier = m_gatekeeperId;
+	if (!m_gatekeeperId.GetValue()) {
+		urq.IncludeOptionalField(H225_UnregistrationRequest::e_gatekeeperIdentifier);
+		urq.m_gatekeeperIdentifier = m_gatekeeperId;
+	}
 	urq.IncludeOptionalField(H225_UnregistrationRequest::e_endpointIdentifier);
 	urq.m_endpointIdentifier = m_endpointId;
 	SetCallSignalAddress(urq.m_callSignalAddress);
@@ -2760,8 +2765,10 @@ H225_AdmissionRequest & GkClient::BuildARQ(H225_AdmissionRequest & arq)
 	arq.IncludeOptionalField(H225_AdmissionRequest::e_canMapAlias);
 	arq.m_canMapAlias = TRUE;
 
-	arq.IncludeOptionalField(H225_AdmissionRequest::e_gatekeeperIdentifier);
-	arq.m_gatekeeperIdentifier = m_gatekeeperId;
+	if (!m_gatekeeperId.GetValue()) {
+		arq.IncludeOptionalField(H225_AdmissionRequest::e_gatekeeperIdentifier);
+		arq.m_gatekeeperIdentifier = m_gatekeeperId;
+	}
 
 	SetPassword(arq);
 
@@ -3281,8 +3288,10 @@ bool GkClient::AdditiveUnRegister(const H225_ArrayOf_AliasAddress & aliases)
 	urq_ras.SetTag(H225_RasMessage::e_unregistrationRequest);
 	H225_UnregistrationRequest & urq = urq_ras;
 	urq.m_requestSeqNum = m_rasSrv->GetRequestSeqNum();
-	urq.IncludeOptionalField(H225_UnregistrationRequest::e_gatekeeperIdentifier);
-	urq.m_gatekeeperIdentifier = m_gatekeeperId;
+	if (!m_gatekeeperId.GetValue()) {
+		urq.IncludeOptionalField(H225_UnregistrationRequest::e_gatekeeperIdentifier);
+		urq.m_gatekeeperIdentifier = m_gatekeeperId;
+	}
 	urq.IncludeOptionalField(H225_UnregistrationRequest::e_endpointIdentifier);
 	urq.m_endpointIdentifier = m_endpointId;
 	SetCallSignalAddress(urq.m_callSignalAddress);
