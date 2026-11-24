@@ -97,11 +97,29 @@ def test_token_coverage_warning(start_gk, workdir, rule, authenticators, expecte
         assert "Authenticators=" in found[0], found[0]
 
 
+PASSWORD_ALIAS_CASES = [
+    # stored ID, alias sent, CompareAliasCase, registers
+    ("alice", "alice", "1", True),
+    ("alice", "alice", "0", True),
+    ("alice", "Alice", "1", False),
+    ("alice", "Alice", "0", True),
+    ("Alice", "Alice", "1", True),
+    ("Alice", "Alice", "0", True),
+    ("Alice", "alice", "1", False),
+    ("Alice", "alice", "0", True),
+]
+
+
 @pytest.mark.parametrize("tokens", list(TOKENS))
-@pytest.mark.parametrize("compare_case,registers", [("1", False), ("0", True)], ids=["case-sensitive", "case-insensitive"])
-def test_password_alias_case(start_gk, workdir, tokens, compare_case, registers):
-    """the password configured for 'alice' is only used for an endpoint 'Alice' with CompareAliasCase=0"""
+@pytest.mark.parametrize("stored,alias,compare_case,registers", PASSWORD_ALIAS_CASES,
+                         ids=["%s-%s-%s" % (s, a, "sensitive" if c == "1" else "insensitive")
+                              for s, a, c, _ in PASSWORD_ALIAS_CASES])
+def test_password_alias_case(start_gk, workdir, tokens, stored, alias, compare_case, registers):
+    """the right password registers the ID as stored by addpasswd (also when it isn't all lower case), another
+    upper/lower case spelling only with CompareAliasCase=0"""
     auth_config, h2351 = TOKENS[tokens]
-    gk = start_gk(auth_config(), {"Gatekeeper::Main": {"CompareAliasCase": compare_case}}, users={"alice": "secret"})
-    result = Endpoint(workdir, "pub1", "Alice", password="secret", h2351=h2351).start(duration=1, timeout=5).wait()
+    gk = start_gk(auth_config(), {"Gatekeeper::Main": {"CompareAliasCase": compare_case}}, users={stored: "secret"})
+    result = Endpoint(workdir, "pub1", alias, password="secret", h2351=h2351).start(duration=1, timeout=5).wait()
     assert result["registered"] == registers, result
+    if not registers:
+        assert gk.rejected_registration(alias) == "securityDenial"

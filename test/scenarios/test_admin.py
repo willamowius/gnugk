@@ -160,6 +160,25 @@ def test_status_port_password_user_case(start_gk, workdir, compare_case):
     assert gk.trace_count("spelling differs from the config") == 2
 
 
+# user GkAdmin, password secret, encrypted like addpasswd does it for this name (not PBKDF2)
+MIXED_CASE_ENTRY = "843gStYyeMs="
+
+
+@pytest.mark.parametrize("entry", ["traditional", "pbkdf2"])
+def test_status_port_mixed_case_user(start_gk, workdir, entry):
+    """the right password logs in a user whose name isn't all lower case, for both kinds of entries,
+    the same password with the name in lower case doesn't"""
+    value = MIXED_CASE_ENTRY if entry == "traditional" else pbkdf2_password("secret")
+    gk = start_gk({"GkStatus::Auth": {"rule": "password", "GkAdmin": value, "DelayReject": "0"}})
+    session = StatusSession()
+    try:
+        assert not status_login_accepted(session, "gkadmin", b"secret")
+        assert status_login_accepted(session, "GkAdmin", b"secret")
+    finally:
+        session.close()
+    assert gk.trace_count("spelling differs from the config") == 1
+
+
 def test_status_port_pbkdf2_user_case(start_gk, workdir):
     """status port user names are case sensitive for PBKDF2 entries too: 'ADMIN' with the right password
     doesn't log in to 'admin'"""
