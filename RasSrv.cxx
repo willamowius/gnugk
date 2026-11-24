@@ -2858,6 +2858,34 @@ bool RegistrationRequestPDU::Process()
 		ep->SetNATAddress(rx_addr, rx_port);
 	}
 	if (supportH46018 && ep->IsH46018Disabled()) {
+		// without H.460.18 this is a regular endpoint: the H.460.18 NAT detection doesn't count
+		// (it would set the NAT flag without a NAT IP) and the callSignalAddr the endpoint has sent
+		// must pass the check that was done with the apparent address in its place above
+		h46018nat = false;
+		validaddress = false;
+		PIPSocket::Address ipaddr;
+		if (GetIPFromTransportAddr(originalCallSigAddress, ipaddr)) {
+			validaddress = ((rx_addr == ipaddr) || IsLoopback(rx_addr));
+			if (!bSendReply) { // don't check forwarded RRQ
+				validaddress = true;
+			} else if (!validaddress && !IsLoopback(ipaddr)) { // do not allow NATed from loopback
+				nated = true;
+				PString featureRequired = GkConfig()->GetString(RoutedSec, "NATStdMin", "");
+				if (featureRequired == "18"
+#ifdef HAS_H46023
+					|| (featureRequired == "23" && !supportH46023)
+#endif
+					) {
+					EndpointTbl->RemoveByEndptr(ep);
+					return BuildRRJ(H225_RegistrationRejectReason::e_neededFeatureNotSupported, nated);
+				}
+				validaddress = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SupportNATedEndpoints", "0"));
+			}
+		}
+		if (!validaddress) {
+			EndpointTbl->RemoveByEndptr(ep);
+			return BuildRRJ(H225_RegistrationRejectReason::e_invalidCallSignalAddress, nated);
+		}
 		// if the endpoint wanted H.460.18, we have overwritten its callSignalAddr above
 		// we have to restore it here if we disable H.460.18 for this endpoint
 		ep->SetCallSignalAddress(originalCallSigAddress);

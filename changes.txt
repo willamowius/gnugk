@@ -1,5 +1,6 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(RasSrv.cxx) make sure all H.460.18 features get disabled when an endpoint is configured as [EP::alias] DisableH46018=1
 - BUGFIX(ProxyChannel.cxx) fix crash on failover
 - BUGFIX(RasTbl.cxx) fix crash in gateway prefix search
 - BUGFIX(RasSrv.cxx) fix crash in ParseRTCP()
