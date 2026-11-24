@@ -1249,8 +1249,12 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq, const AdmissionRequest & 
 	return true;
 }
 
-bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq, const LocationRequest & /*req*/)
+bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq, const LocationRequest & req)
 {
+	// let the base class limit the hopCount to what is left in the original LRQ
+	if (!Neighbor::OnSendingLRQ(lrq, req))
+		return false;
+
 	if (lrq.HasOptionalField(H225_LocationRequest::e_nonStandardData)
 			&& lrq.m_nonStandardData.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
 		const H225_H221NonStandard &h221 = lrq.m_nonStandardData.m_nonStandardIdentifier;
@@ -1262,6 +1266,10 @@ bool CiscoGK::OnSendingLRQ(H225_LocationRequest & lrq, const LocationRequest & /
 
 	Cisco_LRQnonStandardInfo nonStandardData;
 	nonStandardData.m_ttl = m_forwardHopCount >= 1 ? m_forwardHopCount : 5;
+	// a forwarded LRQ must not get a higher Cisco TTL than its remaining hopCount
+	if (lrq.HasOptionalField(H225_LocationRequest::e_hopCount)
+			&& nonStandardData.m_ttl.GetValue() > lrq.m_hopCount.GetValue())
+		nonStandardData.m_ttl = lrq.m_hopCount.GetValue();
 
 	if (lrq.HasOptionalField(H225_LocationRequest::e_sourceInfo)) {
 		nonStandardData.IncludeOptionalField(Cisco_LRQnonStandardInfo::e_gatewaySrcInfo);

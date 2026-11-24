@@ -1,5 +1,6 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(Neighbor.cxx) fix hop count to CiscoGk neighbors
 - new switch [AMQPAcct] Timeout= (default: 5 s)
 - BUGFIX(amqpacct.cxx) don't block GnuGk when the AMQP server stops responding
 - BUGFIX(ProxyChannel.cxx) if a Setup doesn't have callIdentifier, we assign one so we never have loops
