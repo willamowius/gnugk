@@ -6,7 +6,7 @@ Changes from 5.17 to 5.18
 - add Timeout= switch to HttpPasswordAuth, Routing::Http and HttpAcct
 - new switch [Gatekeeper::Main] MaxWorkerThreads= (default: 3000)
 - document the [Proxy] switches RTPInactivityCheck, RTPInactivityTimeout and RTPInactivityCheckSession
-- apply ReadTimeout= and ConnectTimeout= to PostgreSQL queries and connects
+- apply ReadTimeout= and ConnectTimeout= to PostgreSQL and Firebird queries and connects
 - drop calls when a configured Auth or Acct rules isn't available, eg. not compiled in
 - performance improvement in UrlEscapeParams() whith long alias lists
 

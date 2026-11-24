@@ -214,6 +214,11 @@ bool GkSQLConnection::AcquireSQLConnection(
 		if (connptr == NULL && timeout != 0 && !m_destroying)
 			m_connectionAvailable.Wait(min(250L, timeout));
 
+		// the pool has been disconnected after a failed query: the busy connections
+		// get deleted and none of them is passed on to a waiting request anymore
+		if (connptr == NULL && !m_connected)
+			break;
+
 		if (connptr == NULL && timeout >= 0)
 			if ((PTime()-timeStart).GetMilliSeconds() >= timeout)
 				break;

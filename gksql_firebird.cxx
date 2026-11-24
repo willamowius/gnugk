@@ -32,6 +32,7 @@ static ISC_STATUS (ISC_EXPORT *g_isc_attach_database)(ISC_STATUS*,
                                           isc_db_handle*,
                                           short,
                                           const ISC_SCHAR*) = NULL;
+static ISC_STATUS (ISC_EXPORT *g_fb_cancel_operation)(ISC_STATUS *, isc_db_handle *, ISC_USHORT) = NULL;
 static ISC_STATUS (ISC_EXPORT *g_isc_commit_transaction)(ISC_STATUS *, isc_tr_handle *) = NULL;
 static ISC_STATUS (ISC_EXPORT *g_isc_detach_database)(ISC_STATUS *, isc_db_handle *) = NULL;
 static ISC_STATUS (ISC_EXPORT *g_isc_dsql_allocate_statement)(ISC_STATUS *,
@@ -131,6 +132,48 @@ void FinishQuery(isc_tr_handle & tr, isc_stmt_handle & stmt, bool commit)
 	tr = 0L;
 }
 
+/** Closes a connection when the database server doesn't answer in time.
+	The calls of the Firebird client library wait for the server without any limit,
+	they only return early when the connection is closed from another thread.
+*/
+class GkIBSQLQueryTimer : public PTimer
+{
+public:
+	GkIBSQLQueryTimer(
+		/// connection the server is expected to answer on
+		isc_db_handle conn,
+		/// maximum time (ms) to wait for the server, 0 means infinite
+		PInt64 maxWait
+		) : m_conn(conn), m_expired(false)
+	{
+		if (g_fb_cancel_operation && maxWait > 0)
+			SetInterval(maxWait);
+	}
+
+	virtual ~GkIBSQLQueryTimer() { Stop(); }
+
+	/// stop the timer, @return true if it has closed the connection
+	bool HasExpired() { Stop(); return m_expired; }
+
+protected:
+	/// called from the PTLib timer thread
+	virtual void OnTimeout()
+	{
+		PTRACE(2, "Firebird\tNo answer from the database in time, closing the connection");
+		m_expired = true;
+		ISC_STATUS status[20];
+		(*g_fb_cancel_operation)(status, &m_conn, fb_cancel_abort);
+	}
+
+private:
+	GkIBSQLQueryTimer();
+	GkIBSQLQueryTimer(const GkIBSQLQueryTimer&);
+	GkIBSQLQueryTimer& operator=(const GkIBSQLQueryTimer&);
+
+	isc_db_handle m_conn;
+	bool m_expired;
+};
+
 } // end of namespace
 
 /** Class that encapsulates SQL query result for Firebird backend.
@@ -200,6 +243,8 @@ private:
 	void FetchAllRows();
 	/// set m_numRows to the number of rows affected by an INSERT, UPDATE or DELETE query
 	void FetchNumRowsAffected();
+	/// free the statement and end the transaction
+	void Close();
 
 protected:
 	/// query result for SELECT type queries
@@ -240,8 +285,10 @@ protected:
 			/// host:port this connection is made to
 			const PString& host,
 			/// Firebird connection object
-			isc_db_handle conn
-			) : SQLConnWrapper(id, host), m_conn(conn) {}
+			isc_db_handle conn,
+			/// maximum time (ms) to wait for the server when the connection is closed, 0 means infinite
+			PInt64 maxWait
+			) : SQLConnWrapper(id, host), m_conn(conn), m_maxWait(maxWait) {}
 
 		virtual ~IBSQLConnWrapper();
 
@@ -252,6 +299,7 @@ protected:
 
 	public:
 		isc_db_handle m_conn;
+		PInt64 m_maxWait;
 	};
 
 	/** Create a new SQL connection using parameters stored in this object.
@@ -277,7 +325,7 @@ protected:
 		SQLConnPtr conn,
 		/// query string
 		const char* queryStr,
-		/// maximum time (ms) for the query execution, -1 means infinite
+		/// maximum time (ms) for the query execution, -1 means ReadTimeout
 		long timeout = -1
 		);
 
@@ -345,14 +393,12 @@ GkIBSQLResult::GkIBSQLResult(
 	: GkSQLResult(true), m_sqlResult(selectResult), m_tr(tr), m_stmt(stmt), m_sqlRow(-1),
 	m_errorCode(errorCode), m_errorMessage(errorMsg)
 {
+	Close();
 }
 
 GkIBSQLResult::~GkIBSQLResult()
 {
-	ISC_STATUS status[20];
-
-	if (m_stmt != 0L)
-		(*g_isc_dsql_free_statement)(status, &m_stmt, DSQL_drop);
+	Close();
 	if (m_sqlResult != NULL) {
 		for (int i = 0; i < m_sqlResult->sqld; ++i) {
 			if (m_sqlResult->sqlvar[i].sqldata != NULL) {
@@ -367,12 +413,23 @@ GkIBSQLResult::~GkIBSQLResult()
 		delete [] reinterpret_cast<char*>(m_sqlResult);
 		m_sqlResult = NULL;
 	}
+}
+
+void GkIBSQLResult::Close()
+{
+	ISC_STATUS status[20];
+
+	if (m_stmt != 0L) {
+		(*g_isc_dsql_free_statement)(status, &m_stmt, DSQL_drop);
+		m_stmt = 0L;
+	}
 	if (m_tr != 0L) {
 		if (m_queryError) {
 			(*g_isc_rollback_transaction)(status, &m_tr);
 		} else {
 			(*g_isc_commit_transaction)(status, &m_tr);
 		}
+		m_tr = 0L;
 	}
 }
 
@@ -510,6 +567,8 @@ GkIBSQLConnection::~GkIBSQLConnection()
 
 GkIBSQLConnection::IBSQLConnWrapper::~IBSQLConnWrapper()
 {
+	// detaching waits for the server's answer, too
+	GkIBSQLQueryTimer detachTimer(m_conn, m_maxWait);
 	ISC_STATUS status[20];
 	(*g_isc_detach_database)(status, &m_conn);
 }
@@ -559,6 +618,11 @@ GkSQLConnection::SQLConnPtr GkIBSQLConnection::CreateNewConnection(
 			SNMP_TRAP(5, SNMPError, Database, GetName() + " DLL load error");
 			return NULL;
 		}
+		// only available since Firebird 2.5
+		if (!g_sharedLibrary.GetFunction("fb_cancel_operation", (PDynaLink::Function &)g_fb_cancel_operation)) {
+			g_fb_cancel_operation = NULL;
+			PTRACE(1, GetName() << "\tNo fb_cancel_operation() in " << m_library << ": ReadTimeout is not applied");
+		}
 	}
 
 	unsigned dpb_offset = 0;
@@ -580,6 +644,15 @@ GkSQLConnection::SQLConnPtr GkIBSQLConnection::CreateNewConnection(
 		dpb[dpb_offset++] = m_password.GetLength();
 		memcpy(&(dpb[dpb_offset]), (const char*)m_password, m_password.GetLength());
 		dpb_offset += m_password.GetLength();
+	}
+
+	if (m_connectTimeout > 0) {
+		// seconds to wait for the server to accept the connection, the library's default is 180
+		dpb.resize(dpb.size() + 2 + 4);
+		dpb[dpb_offset++] = isc_dpb_connect_timeout;
+		dpb[dpb_offset++] = 4;
+		for (unsigned i = 0; i < 4; ++i)	// least significant byte first
+			dpb[dpb_offset++] = static_cast<char>(m_connectTimeout >> (8 * i));
 	}
 
 	ISC_STATUS status[20];
@@ -605,7 +678,7 @@ GkSQLConnection::SQLConnPtr GkIBSQLConnection::CreateNewConnection(
 	PTRACE(5, GetName() << "\tFirebird connection to " << m_username << '@' << dbname
 		<< " established successfully"
 		);
-	return new IBSQLConnWrapper(id, dbname, conn);
+	return new IBSQLConnWrapper(id, dbname, conn, PInt64(m_readTimeout) * 1000);
 }
 
 GkSQLResult* GkIBSQLConnection::ExecuteQuery(
@@ -613,11 +686,15 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 	GkSQLConnection::SQLConnPtr con,
 	/// query string
 	const char* queryStr,
-	/// maximum time (ms) for the query execution, -1 means infinite
-	long /*timeout*/
+	/// maximum time (ms) for the query execution, -1 means ReadTimeout
+	long timeout
 	)
 {
 	isc_db_handle conn = ((IBSQLConnWrapper*)con)->m_conn;
+	// the calls of the client library would wait forever if the server doesn't answer,
+	// so the connection gets closed when the query takes too long and they fail
+	const PInt64 maxWait = (timeout > 0) ? timeout : PInt64(m_readTimeout) * 1000;
+	GkIBSQLQueryTimer queryTimer(conn, maxWait);
 
 	char errormsg[FB_BUFF_SIZE];
 	ISC_STATUS status[20];
@@ -628,6 +705,7 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 	if (status[0] == 1 && status[1] != 0) {
 		const ISC_STATUS *pvector = status;
 		(*g_fb_interpret)(errormsg, FB_BUFF_SIZE, &pvector);	// fetch first error message only
+		Disconnect();
 		return new GkIBSQLResult(status[1], errormsg);
 	}
 
@@ -712,7 +790,14 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 		return new GkIBSQLResult(errorcode, errormsg);
 	}
 
-	return new GkIBSQLResult(tr, stmt, result);
+	GkIBSQLResult * sqlResult = new GkIBSQLResult(tr, stmt, result);
+	if (queryTimer.HasExpired()) {
+		// the connection has been closed while the rows were read or the transaction was committed
+		delete sqlResult;
+		Disconnect();
+		return new GkIBSQLResult(isc_net_read_err, "no answer from the database server");
+	}
+	return sqlResult;
 }
 
 PString GkIBSQLConnection::EscapeString(
