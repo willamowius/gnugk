@@ -1,5 +1,6 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(ProxyChannel.cxx) fix crash on failover
 - BUGFIX(RasTbl.cxx) fix crash in gateway prefix search
 - BUGFIX(RasSrv.cxx) fix crash in ParseRTCP()
 - BUGFIX(RasSrv.cxx,RasTbl.cxx,Toolkit.cxx) fix crash when an URQ removes all aliases

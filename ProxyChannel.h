@@ -419,6 +419,7 @@ public:
 	// override from class ServerSocket
 	virtual void Dispatch();
 	void DispatchNextRoute();
+	void DispatchFailover();
 	Result RetrySetup();
 	void TryNextRoute();
 	void RemoveH245Handler();

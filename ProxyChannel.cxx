@@ -9862,7 +9862,11 @@ void CallSignalSocket::TryNextRoute()
 
 	if (callingSocket) {
 		PTRACE(5, GetName() << "\tDispatching new call leg to " << newRoute.AsString());
-		CreateJob(callingSocket, &CallSignalSocket::DispatchNextRoute, "Failover");
+		// from here on the calling socket belongs to the failover job: DispatchNextRoute() uses it and may delete it
+		// it is detached from its handler, but can still be on the select list the handler thread is working on,
+		// so make sure it isn't read from any more
+		callingSocket->MarkBlocked(true);
+		CreateJob(callingSocket, &CallSignalSocket::DispatchFailover, "Failover");
 		m_result = NoData;
 	} else {
 		PTRACE(3, GetName() << "\tDispatching new call leg to " << newRoute.AsString() << " failed");
@@ -11366,6 +11370,18 @@ ProxySocket::Result CallSignalSocket::RetrySetup()
 
 	delete msg;
 	return m_result;
+}
+
+// failover job for the calling socket, started by TryNextRoute()
+void CallSignalSocket::DispatchFailover()
+{
+	// TryNextRoute() has detached and blocked this socket, but the handler thread may still have it on the select list
+	// it is working on: wait until it is done with that list before the socket is used (and maybe deleted) here
+	while (!GetHandler()->WaitForNextSelectList() && !IsGatekeeperShutdown()) {
+		// the handler is still busy, keep waiting
+	}
+	MarkBlocked(false);
+	DispatchNextRoute();
 }
 
 void CallSignalSocket::DispatchNextRoute()
@@ -19191,6 +19207,10 @@ void ProxyHandler::ReadSocket(IPSocket * socket)
 	}
 	if (psocket->IsDeletable()) {
 		// marked for deletion after the select list was built: a new message (eg. Setup) must not revive it
+		return;
+	}
+	if (psocket->IsBlocked()) {
+		// handed over to a job after the select list was built (eg. for failover): the handler must not read from it
 		return;
 	}
 	switch (psocket->ReceiveData())
