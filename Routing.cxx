@@ -807,6 +807,7 @@ bool DNSPolicy::DNSLookup(const PString & hostname, PIPSocket::Address & addr) c
 
 bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
+	DNSLookupLimit limit;
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
 		// don't apply DNS to dialedDigits
 		if (aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits)
@@ -825,6 +826,8 @@ bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 		PStringArray parts = SplitIPAndPort(domain, GK_DEF_ENDPOINT_SIGNAL_PORT);
 		domain = parts[0];
 		WORD port = (WORD)parts[1].AsUnsigned();
+		if (!limit.Permit(m_name))
+			break;
 		PIPSocket::Address addr;
 		if (DNSLookup(domain, addr) && addr.IsValid()) {
 			H225_TransportAddress dest;
@@ -879,6 +882,7 @@ bool DNSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 
 bool DNSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
+	DNSLookupLimit limit;
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
 		// don't apply DNS to dialedDigits
 		if (aliases[i].GetTag() == H225_AliasAddress::e_dialedDigits)
@@ -897,6 +901,8 @@ bool DNSPolicy::FindByAliases(LocationRequest & request, H225_ArrayOf_AliasAddre
 		PStringArray parts = SplitIPAndPort(domain, GK_DEF_ENDPOINT_SIGNAL_PORT);
 		domain = parts[0];
 		WORD port = (WORD)parts[1].AsUnsigned();
+		if (!limit.Permit(m_name))
+			break;
 		PIPSocket::Address addr;
 		if (DNSLookup(domain, addr) && addr.IsValid()) {
 			H225_TransportAddress dest = SocketToH225TransportAddr(addr, port);
@@ -1758,7 +1764,7 @@ bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddre
 		PBoolean changed = false;
 		for (PINDEX j = 0; j < aliases.GetSize(); ++j) {
 			if (!FindByAliasesInternal(enum_schema, request, aliases, changed))
-				continue;
+				break;	// it has tried all aliases, don't repeat the same lookups for each of them
 
 			if (!gwDestination && changed) {   // If we have a gateway destination and changed
 				PStringArray parts = SplitIPAndPort(gwDestination, GK_DEF_ENDPOINT_SIGNAL_PORT);
@@ -1800,6 +1806,7 @@ bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddre
 bool ENUMPolicy::FindByAliasesInternal(const PString & schema, RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases, PBoolean & changed)
 {
 #if P_DNS
+	DNSLookupLimit limit;
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
 		PString alias(AsString(aliases[i], FALSE));
 		if (alias.Left(2) *= "00") { // Check if not GDS number
@@ -1819,6 +1826,8 @@ bool ENUMPolicy::FindByAliasesInternal(const PString & schema, RoutingRequest & 
 				break;
 
 		if (j >= alias.GetLength()) {
+			if (!limit.Permit(m_name))
+				break;
 			PString str;
 			if (PDNS::ENUMLookup(alias, schema, str)) {
 				// Remove any + or URI Schema at the front

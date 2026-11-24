@@ -19199,6 +19199,15 @@ bool ProxyHandler::BuildSelectList(SocketSelectList & slist)
 			} else if (socket && !socket->IsConnected()) {
 				Remove(k);
 				continue;
+			} else {
+				// NAT sockets are set connected to keep them while they are idle,
+				// but once they are closed nobody else will delete them
+				CallSignalSocket * css = dynamic_cast<CallSignalSocket *>(socket);
+				if (css && css->IsNATSocket()) {
+					css->SetDeletable();	// make sure CreateRemote() doesn't use it for a new call
+					Remove(k);
+					continue;
+				}
 			}
 		}
 	}

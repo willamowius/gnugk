@@ -462,6 +462,7 @@ public:
 	void PollPriorityQueue();
 #endif
 	bool MaintainConnection() const { return m_maintainConnection; }
+	bool IsNATSocket() const { return m_isnatsocket; }
 	bool IsCaller() const { return m_callerSocket; }
 
 #ifdef HAS_H46018

@@ -2197,6 +2197,7 @@ void SRVPolicy::LoadConfig(const PString & instance)
 
 Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases, bool localonly, const PString & schema)
 {
+	DNSLookupLimit limit;
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
 		// only apply to urlID and h323ID
 		if ((aliases[i].GetTag() != H225_AliasAddress::e_url_ID)
@@ -2218,6 +2219,9 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 		if (IsIPAddress(domain)
 			|| (domain.FindRegEx(PRegularExpression(":[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX))
 			continue;	// don't use SRV record if domain part is IP or has port (Annex O, O.9), let dns policy handle them
+
+		if (!limit.Permit(m_name))
+			break;
 
 		// LS Record lookup
 		PStringList ls;
@@ -2337,6 +2341,7 @@ Route * SRVPolicy::LSLookup(RoutingRequest & request, H225_ArrayOf_AliasAddress 
 
 Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly, const PString & schema, WORD schemaPort, const PString & gateway, PBoolean & changed)
 {
+	DNSLookupLimit limit;
 	for (PINDEX i = 0; i < aliases.GetSize(); ++i) {
 		// only apply to urlID and h323ID
 		if ((aliases[i].GetTag() != H225_AliasAddress::e_url_ID)
@@ -2354,6 +2359,9 @@ Route * SRVPolicy::CSLookup(H225_ArrayOf_AliasAddress & aliases, bool localonly,
 		if (IsIPAddress(domain)
 			|| (domain.FindRegEx(PRegularExpression(":[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX))
 				continue;	// don't use SRV record if domain part is IP or has port (Annex O, O.9), let dns policy handle them
+
+		if (!limit.Permit(m_name))
+			break;
 
 		// CS SRV Lookup
 		PStringList cs;
@@ -2524,6 +2532,7 @@ void RDSPolicy::LoadConfig(const PString & instance)
 
 bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases)
 {
+	DNSLookupLimit limit;
 	for (PINDEX a = 0; a < aliases.GetSize(); ++a) {
 		PString alias(AsString(aliases[a], FALSE));
 	    if (alias.GetLength() == 0)
@@ -2540,6 +2549,9 @@ bool RDSPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddres
 			number = "h323:" + alias;
 			domain = alias.Mid(at+1);
 		}
+
+		if (!limit.Permit(m_name))
+			break;
 
 		// LS Record lookup
 		PStringList ls;

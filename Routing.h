@@ -317,6 +317,36 @@ protected:
 };
 
 
+// Limits the blocking DNS lookups a policy (dns, srv, rds, enum) does for the destination
+// aliases of one request: the sender decides how many aliases a request has and,
+// by the domains named in them, how long each lookup takes.
+class DNSLookupLimit {
+public:
+	enum {
+		MaxLookups = 4,	// aliases looked up per request
+		MaxSeconds = 3	// no lookups for further aliases once the lookups took this long
+	};
+
+	DNSLookupLimit() : m_lookups(0) { }
+
+	// to be called before each lookup, returns false when the remaining aliases must be skipped
+	bool Permit(const PString & policy)
+	{
+		if ((m_lookups < MaxLookups) && ((PTime() - m_start).GetSeconds() < MaxSeconds)) {
+			++m_lookups;
+			return true;
+		}
+		PTRACE(2, "ROUTING\tPolicy " << policy << " ignores the remaining aliases after " << m_lookups
+			<< " DNS lookups in " << (PTime() - m_start).GetMilliSeconds() << " ms");
+		return false;
+	}
+
+private:
+	unsigned m_lookups;
+	PTime m_start;
+};
+
+
 class AliasesPolicy : public Policy {
 public:
 	AliasesPolicy() { m_name = "Aliases"; }
