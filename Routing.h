@@ -495,7 +495,7 @@ protected:
 	virtual bool FindByAliases(RoutingRequest &, H225_ArrayOf_AliasAddress &);
 	virtual bool FindByAliases(LocationRequest &, H225_ArrayOf_AliasAddress &);
 
-	virtual bool FindByAliasesInternal(const PString & schema, RoutingRequest &, H225_ArrayOf_AliasAddress &, PBoolean &);
+	virtual bool FindByAliasesInternal(const PString & schema, RoutingRequest &, H225_ArrayOf_AliasAddress &, PINDEX & changedIdx);
 
 	virtual void LoadConfig(const PString & instance);
 

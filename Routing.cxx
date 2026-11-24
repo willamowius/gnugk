@@ -1761,49 +1761,47 @@ bool ENUMPolicy::FindByAliases(RoutingRequest & request, H225_ArrayOf_AliasAddre
 		PString enum_schema = m_enum_schema.GetKeyAt(i);
 		PString gwDestination = m_enum_schema.GetDataAt(i);
 
-		PBoolean changed = false;
-		for (PINDEX j = 0; j < aliases.GetSize(); ++j) {
-			if (!FindByAliasesInternal(enum_schema, request, aliases, changed))
-				break;	// it has tried all aliases, don't repeat the same lookups for each of them
+		PINDEX changedIdx = P_MAX_INDEX;
+		if (!FindByAliasesInternal(enum_schema, request, aliases, changedIdx))
+			continue;	// all aliases have been tried with this schema, try the next one
 
-			if (!gwDestination && changed) {   // If we have a gateway destination and changed
-				PStringArray parts = SplitIPAndPort(gwDestination, GK_DEF_ENDPOINT_SIGNAL_PORT);
-				PString dom = parts[0];
-				PIPSocket::Address addr;
-				if (PIPSocket::GetHostAddress(dom, addr))
-					dom = addr.AsString();
-				WORD port = (WORD)parts[1].AsUnsigned();
-				H225_TransportAddress dest;
-				if (!GetTransportAddress(dom, port, dest)) {
-					PTRACE(4, "ROUTING\tPolicy " << m_name << " " << enum_schema << " Could not resolve " << gwDestination);
-					return false;
-				}
-
-				PString alias(AsString(aliases[j], FALSE));
-				int at = alias.Find('@');
-				PString domain = alias.Mid(at+1);
-				if (IsIPAddress(domain)
-					|| (domain.FindRegEx(PRegularExpression(":[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX)) {
-					// add a route and stop going any further
-					PTRACE(4, "ROUTING\tPolicy " << m_name << " " << enum_schema << " set destination for " << alias << " to " << AsString(dest));
-					Route * route = new Route(m_name, dest);
-					route->m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
-					request.AddRoute(*route);
-					delete route;
-					return true;
-				}
-				PTRACE(4, "ROUTING\tPolicy " << m_name << " " << enum_schema << " store destination for " << alias << " to " << AsString(dest));
-				request.SetGatewayDestination(dest);
+		if (!gwDestination) {   // If we have a gateway destination
+			PStringArray parts = SplitIPAndPort(gwDestination, GK_DEF_ENDPOINT_SIGNAL_PORT);
+			PString dom = parts[0];
+			PIPSocket::Address addr;
+			if (PIPSocket::GetHostAddress(dom, addr))
+				dom = addr.AsString();
+			WORD port = (WORD)parts[1].AsUnsigned();
+			H225_TransportAddress dest;
+			if (!GetTransportAddress(dom, port, dest)) {
+				PTRACE(4, "ROUTING\tPolicy " << m_name << " " << enum_schema << " Could not resolve " << gwDestination);
+				return false;
 			}
-			return false;
+
+			PString alias(AsString(aliases[changedIdx], FALSE));
+			int at = alias.Find('@');
+			PString domain = alias.Mid(at+1);
+			if (IsIPAddress(domain)
+				|| (domain.FindRegEx(PRegularExpression(":[0-9]+$", PRegularExpression::Extended)) != P_MAX_INDEX)) {
+				// add a route and stop going any further
+				PTRACE(4, "ROUTING\tPolicy " << m_name << " " << enum_schema << " set destination for " << alias << " to " << AsString(dest));
+				Route * route = new Route(m_name, dest);
+				route->m_destEndpoint = RegistrationTable::Instance()->FindBySignalAdr(dest);
+				request.AddRoute(*route);
+				delete route;
+				return true;
+			}
+			PTRACE(4, "ROUTING\tPolicy " << m_name << " " << enum_schema << " store destination for " << alias << " to " << AsString(dest));
+			request.SetGatewayDestination(dest);
 		}
+		return false;
 	}
 #endif
 	return false;
 }
 
 
-bool ENUMPolicy::FindByAliasesInternal(const PString & schema, RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases, PBoolean & changed)
+bool ENUMPolicy::FindByAliasesInternal(const PString & schema, RoutingRequest & request, H225_ArrayOf_AliasAddress & aliases, PINDEX & changedIdx)
 {
 #if P_DNS
 	DNSLookupLimit limit;
@@ -1839,7 +1837,7 @@ bool ENUMPolicy::FindByAliasesInternal(const PString & schema, RoutingRequest & 
 				PTRACE(4, "\t" << m_name << " " << schema << " converted remote party " << alias << " to " << str);
 				request.SetFlag(RoutingRequest::e_aliasesChanged);
 				H323SetAliasAddress(str, aliases[i]);
-				changed = true;
+				changedIdx = i;
 				return true;
 			}
 		}
