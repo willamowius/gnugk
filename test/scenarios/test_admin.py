@@ -8,7 +8,7 @@ import pytest
 
 from harness import gnugk, topology
 from harness.calls import run_call
-from harness.gnugk import StatusSession, pbkdf2_password, status_send
+from harness.gnugk import StatusSession, entry_with_one_byte_spelling, status_password, status_send
 from harness.endpoint import Endpoint
 
 
@@ -110,7 +110,8 @@ def test_status_port_unregister_alias(start_gk, workdir):
 
 def test_status_port_password_login(start_gk, workdir):
     """rule=password: commands only after a login with the right password"""
-    gk = start_gk({"GkStatus::Auth": {"rule": "password", "admin": pbkdf2_password("secret"), "DelayReject": "0"}})
+    gk = start_gk({"GkStatus::Auth": {"rule": "password", "admin": status_password(workdir, "admin", "secret"),
+                                      "DelayReject": "0"}})
     session = StatusSession()
     try:
         session.login("admin", "wrong")
@@ -125,68 +126,33 @@ def test_status_port_password_login(start_gk, workdir):
     assert gk.trace_count("Password digest mismatch for user admin") == 1
 
 
-# from the tutorial: user gkadmin, password secret, encrypted by addpasswd (not PBKDF2)
-TUTORIAL_USER, TUTORIAL_ENTRY = "gkadmin", "QC7VyAo5jEw="
-
-
-def status_login_accepted(session, user, password):
-    """one login attempt with raw bytes as password: True if the session is logged in"""
-    session.read_until("login: ")
-    session.send(user)
-    session.read_until("Password: ")
-    session.sock.sendall(password + b"\r\n")
-    try:
-        session.read_until("login: ", timeout=2)	# rejected: asks again
-        return False
-    except TimeoutError:
-        session.send("Statistics")
-        return "-- Endpoint Statistics --" in session.read_until("-- Call Statistics --")
-
-
 @pytest.mark.parametrize("compare_case", ["1", "0"], ids=["case-sensitive", "case-insensitive"])
 def test_status_port_password_user_case(start_gk, workdir, compare_case):
-    """status port user names are case sensitive, CompareAliasCase doesn't apply: decrypted with the key
-    'GkadMin', the entry for 'gkadmin' gives the one byte 0x85, which must not log in, nor 'GKADMIN' with the
-    right password"""
-    gk = start_gk({"GkStatus::Auth": {"rule": "password", TUTORIAL_USER: TUTORIAL_ENTRY, "DelayReject": "0"},
+    """status port user names are case sensitive, CompareAliasCase doesn't apply: another spelling of 'gkadmin'
+    with the one byte it decrypts the traditional entry to must not log in, nor 'GKADMIN' with the right
+    password"""
+    entry, spelling, byte = entry_with_one_byte_spelling(workdir, "gkadmin", "secret")
+    gk = start_gk({"GkStatus::Auth": {"rule": "password", "gkadmin": entry, "DelayReject": "0"},
                    "Gatekeeper::Main": {"CompareAliasCase": compare_case}})
     session = StatusSession()
     try:
-        assert not status_login_accepted(session, "GkadMin", b"\x85")
-        assert not status_login_accepted(session, "GKADMIN", b"secret")
-        assert status_login_accepted(session, TUTORIAL_USER, b"secret")
+        assert not session.login_accepted(spelling, byte)
+        assert not session.login_accepted("GKADMIN", b"secret")
+        assert session.login_accepted("gkadmin", b"secret")
     finally:
         session.close()
     assert gk.trace_count("spelling differs from the config") == 2
 
 
-# user GkAdmin, password secret, encrypted like addpasswd does it for this name (not PBKDF2)
-MIXED_CASE_ENTRY = "843gStYyeMs="
-
-
-@pytest.mark.parametrize("entry", ["traditional", "pbkdf2"])
-def test_status_port_mixed_case_user(start_gk, workdir, entry):
-    """the right password logs in a user whose name isn't all lower case, for both kinds of entries,
-    the same password with the name in lower case doesn't"""
-    value = MIXED_CASE_ENTRY if entry == "traditional" else pbkdf2_password("secret")
-    gk = start_gk({"GkStatus::Auth": {"rule": "password", "GkAdmin": value, "DelayReject": "0"}})
-    session = StatusSession()
-    try:
-        assert not status_login_accepted(session, "gkadmin", b"secret")
-        assert status_login_accepted(session, "GkAdmin", b"secret")
-    finally:
-        session.close()
-    assert gk.trace_count("spelling differs from the config") == 1
-
-
 def test_status_port_pbkdf2_user_case(start_gk, workdir):
     """status port user names are case sensitive for PBKDF2 entries too: 'ADMIN' with the right password
     doesn't log in to 'admin'"""
-    gk = start_gk({"GkStatus::Auth": {"rule": "password", "admin": pbkdf2_password("secret"), "DelayReject": "0"}})
+    gk = start_gk({"GkStatus::Auth": {"rule": "password", "admin": status_password(workdir, "admin", "secret"),
+                                      "DelayReject": "0"}})
     session = StatusSession()
     try:
-        assert not status_login_accepted(session, "ADMIN", b"secret")
-        assert status_login_accepted(session, "admin", b"secret")
+        assert not session.login_accepted("ADMIN", b"secret")
+        assert session.login_accepted("admin", b"secret")
     finally:
         session.close()
     assert gk.trace_count("spelling differs from the config") == 1

@@ -405,12 +405,12 @@ def ssh_tools():
 
 
 def ssh_config(workdir, **auth):
-    from harness.gnugk import pbkdf2_password
+    from harness.gnugk import status_password
     keyfile = os.path.join(workdir, "ssh_host_rsa_key")
     if not os.path.exists(keyfile):
         subprocess.run(["ssh-keygen", "-q", "-t", "rsa", "-b", "2048", "-m", "PEM", "-N", "", "-f", keyfile], check=True)
     # GnuGk takes RSAKey / DSAKey from [GkStatus::Auth], DSAKey points nowhere so only the test key is used
-    section = {"rule": "password", "admin": pbkdf2_password("secret"), "DelayReject": "0",
+    section = {"rule": "password", "admin": status_password(workdir, "admin", "secret"), "DelayReject": "0",
                "RSAKey": keyfile, "DSAKey": os.path.join(workdir, "no-dsa-key")}
     section.update(auth)
     return {"Gatekeeper::Main": {"SshStatusPort": "1"}, "GkStatus::Auth": section}
@@ -432,11 +432,13 @@ def test_ssh_status_port(start_gk, workdir, ssh_tools):
 
 def test_ssh_status_port_user_case(start_gk, workdir, ssh_tools):
     """user names are case sensitive on the SSH status port, for PBKDF2 and traditional entries: 'ADMIN' and
-    'GKADMIN' with the right passwords are refused, 'GkadMin' with the one byte its spelling decrypts the
-    tutorial entry to as well"""
-    gk = start_gk(ssh_config(workdir, gkadmin="QC7VyAo5jEw="))	# tutorial: gkadmin / secret, not PBKDF2
+    'GKADMIN' with the right passwords are refused, and another spelling of 'gkadmin' with the one byte it
+    decrypts the traditional entry to as well"""
+    from harness.gnugk import entry_with_one_byte_spelling
+    entry, spelling, byte = entry_with_one_byte_spelling(workdir, "gkadmin", "secret")
+    gk = start_gk(ssh_config(workdir, gkadmin=entry))
     gk.require("ssh")
-    for user, password in [("ADMIN", "secret"), ("GKADMIN", "secret"), ("GkadMin", os.fsdecode(b"\x85"))]:
+    for user, password in [("ADMIN", "secret"), ("GKADMIN", "secret"), (spelling, os.fsdecode(byte))]:
         code, out = ssh_run(user, password, "Version")
         assert code != 0 and "Gatekeeper(GNU)" not in out, (user, code, out)
     for user in ["admin", "gkadmin"]:
