@@ -406,18 +406,20 @@ private:
 	EndpointRec & operator= (const EndpointRec &);
 
 protected:
-	/**This field may disappear sometime when GetCompleteRegistrationRequest() can
+	/**The RRQ that created this endpoint, PER encoded (empty if it wasn't created by a RRQ).
+	 * We must not keep the decoded message: it can be 1000 times the size of its encoding.
+	 * This field may disappear sometime when GetCompleteRegistrationRequest() can
 	 * build its return value itself.
 	 * @see GetCompleteRegistrationRequest()
 	 */
-	H225_RasMessage m_RasMsg;
+	PBYTEArray m_encodedRRQ;
 
 	H225_TransportAddress m_rasAddress;
 	H225_TransportAddress m_callSignalAddress;
 	PIPSocket::Address m_rasServerIP;
 	H225_EndpointIdentifier m_endpointIdentifier;
 	H225_ArrayOf_AliasAddress m_terminalAliases;
-	H225_EndpointType *m_terminalType;
+	H225_EndpointType m_terminalType;
 	H225_VendorIdentifier *m_endpointVendor;
 	int m_timeToLive;   // seconds
 	int m_defaultKeepAliveInterval; // for H.460.10 in seconds
@@ -1996,7 +1998,7 @@ inline H225_ArrayOf_AliasAddress EndpointRec::GetAliases() const
 inline H225_EndpointType EndpointRec::GetEndpointType() const
 {
 	PWaitAndSignal lock(m_usedLock);
-	return *m_terminalType;
+	return m_terminalType;
 }
 
 inline bool EndpointRec::GetEndpointInfo(PString & vendor, PString & version ) const
@@ -2169,7 +2171,13 @@ inline PTime EndpointRec::GetRegistrationTime() const
 inline H225_RasMessage EndpointRec::GetCompleteRegistrationRequest() const
 {
 	PWaitAndSignal lock(m_usedLock);
-	return m_RasMsg;
+	H225_RasMessage ras;
+	PPER_Stream strm(m_encodedRRQ);
+	if (m_encodedRRQ.GetSize() == 0 || !ras.Decode(strm) || ras.GetTag() != H225_RasMessage::e_registrationRequest)
+		return H225_RasMessage();	// endpoint wasn't created by a RRQ
+	// the endpoint type may have been updated since
+	((H225_RegistrationRequest &)ras).m_terminalType = m_terminalType;
+	return ras;
 }
 
 inline bool EndpointRec::HasCallCreditCapabilities() const

@@ -112,7 +112,7 @@ EndpointRec::EndpointRec(
 	const H225_RasMessage & ras,
 	/// permanent endpoint flag
 	bool permanent)
-	: m_RasMsg(ras), m_endpointVendor(NULL), m_timeToLive(1),
+	: m_endpointVendor(NULL), m_timeToLive(1),
 	m_defaultKeepAliveInterval(GkConfig()->GetInteger(RoutedSec, "H46018KeepAliveInterval", 19)),
 	m_activeCall(0), m_connectedCall(0), m_totalCall(0),
 	m_pollCount(GkConfig()->GetInteger(RRQFeaturesSection, "IRQPollCount", DEFAULT_IRQ_POLL_COUNT)),
@@ -132,27 +132,35 @@ EndpointRec::EndpointRec(
     m_useIPSec(false), m_additiveRegistrant(false), m_addCallingPartyToSourceAddress(false), m_forceTerminalType(-1), m_forceDirectMode(false),
     m_hasGnuGkAssignedGk(false)
 {
-	static H225_EndpointType defaultTermType; // nouse
-	m_terminalType = &defaultTermType;
     m_registrationTime = PTime();
 
-	switch (m_RasMsg.GetTag())
+	// the copy is only used to initialize this object, we don't keep the decoded message
+	H225_RasMessage rasMsg(ras);
+	switch (rasMsg.GetTag())
 	{
-		case H225_RasMessage::e_registrationRequest:
-			SetEndpointRec((H225_RegistrationRequest &)m_RasMsg);
+		case H225_RasMessage::e_registrationRequest: {
+			// keep the RRQ for GetCompleteRegistrationRequest(), but only PER encoded:
+			// in the decoded message every array element has all its optional fields allocated,
+			// so a RRQ of a few hundred bytes can take MBs of memory for as long as the endpoint is registered
+			PPER_Stream strm;
+			rasMsg.Encode(strm);
+			strm.CompleteEncoding();
+			m_encodedRRQ = PBYTEArray(strm.GetPointer(), strm.GetSize());
+			SetEndpointRec((H225_RegistrationRequest &)rasMsg);
 			PTRACE(1, "New EP|" << PrintOn(false).Trim());
 			break;
+		}
 		case H225_RasMessage::e_admissionRequest:
-			SetEndpointRec((H225_AdmissionRequest &)m_RasMsg);
+			SetEndpointRec((H225_AdmissionRequest &)rasMsg);
 			break;
 		case H225_RasMessage::e_admissionConfirm:
-			SetEndpointRec((H225_AdmissionConfirm &)m_RasMsg);
+			SetEndpointRec((H225_AdmissionConfirm &)rasMsg);
 			break;
 		case H225_RasMessage::e_locationConfirm:
-			SetEndpointRec((H225_LocationConfirm &)m_RasMsg);
+			SetEndpointRec((H225_LocationConfirm &)rasMsg);
 			break;
 		case H225_RasMessage::e_unregistrationRequest:
-			SetEndpointRec((H225_UnregistrationRequest&)m_RasMsg);
+			SetEndpointRec((H225_UnregistrationRequest&)rasMsg);
 			break;
 		default: // should not happen
 			break;
@@ -267,7 +275,7 @@ void EndpointRec::SetEndpointRec(H225_RegistrationRequest & rrq)
 	}
 	m_endpointIdentifier = rrq.m_endpointIdentifier;
     LoadAliases(rrq.m_terminalAlias,rrq.m_terminalType);
-	m_terminalType = &rrq.m_terminalType;
+	m_terminalType = rrq.m_terminalType;
 	m_endpointVendor = new H225_VendorIdentifier(rrq.m_endpointVendor);
 	if (rrq.HasOptionalField(H225_RegistrationRequest::e_timeToLive))
 		SetTimeToLive(rrq.m_timeToLive);
@@ -304,7 +312,7 @@ void EndpointRec::SetEndpointRec(H225_AdmissionConfirm & acf)
 		m_terminalAliases = acf.m_destinationInfo;
 	if (!acf.HasOptionalField(H225_AdmissionConfirm::e_destinationType))
 		acf.IncludeOptionalField(H225_AdmissionConfirm::e_destinationType);
-	m_terminalType = &acf.m_destinationType;
+	m_terminalType = acf.m_destinationType;
 	m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
 	m_fromParent = true;
     m_remote = true;
@@ -318,7 +326,7 @@ void EndpointRec::SetEndpointRec(H225_LocationConfirm & lcf)
 		m_terminalAliases = lcf.m_destinationInfo;
 	if (!lcf.HasOptionalField(H225_LocationConfirm::e_destinationType))
 		lcf.IncludeOptionalField(H225_LocationConfirm::e_destinationType);
-	m_terminalType = &lcf.m_destinationType;
+	m_terminalType = lcf.m_destinationType;
 	m_timeToLive = (SoftPBX::TimeToLive > 0) ? SoftPBX::TimeToLive : 600;
 	m_fromParent = false;
 	m_remote = true;
@@ -889,7 +897,7 @@ void EndpointRec::SetEndpointType(const H225_EndpointType &t)
 {
 	{
 		PWaitAndSignal lock(m_usedLock);
-		*m_terminalType = t;
+		m_terminalType = t;
 	}
 	LoadConfig(); // update settings for the new endpoint type
 }
@@ -1580,15 +1588,15 @@ void GatewayRec::LoadGatewayConfig()
 	if (setDefaults)
 		priority = 1;
 
-	if (m_terminalType->HasOptionalField(H225_EndpointType::e_gateway) &&
+	if (m_terminalType.HasOptionalField(H225_EndpointType::e_gateway) &&
 		Toolkit::AsBool(cfg->GetString(RRQFeaturesSection, "AcceptGatewayPrefixes", "1")))
-		if (m_terminalType->m_gateway.HasOptionalField(H225_GatewayInfo::e_protocol))
-			AddPrefixes(m_terminalType->m_gateway.m_protocol);
+		if (m_terminalType.m_gateway.HasOptionalField(H225_GatewayInfo::e_protocol))
+			AddPrefixes(m_terminalType.m_gateway.m_protocol);
 
-	if (m_terminalType->HasOptionalField(H225_EndpointType::e_mcu) &&
+	if (m_terminalType.HasOptionalField(H225_EndpointType::e_mcu) &&
 		Toolkit::AsBool(cfg->GetString(RRQFeaturesSection, "AcceptMCUPrefixes", "1")))
-		if (m_terminalType->m_mcu.HasOptionalField(H225_McuInfo::e_protocol))
-			AddPrefixes(m_terminalType->m_mcu.m_protocol);
+		if (m_terminalType.m_mcu.HasOptionalField(H225_McuInfo::e_protocol))
+			AddPrefixes(m_terminalType.m_mcu.m_protocol);
 
 	SortPrefixes();
 }

@@ -4982,8 +4982,17 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 					m_call = callptr(NULL);
 				}
 			}
-			H225_CallIdentifier callIdentifier; // empty callIdentifier
-			callid = AsString(callIdentifier);
+			if (m_call) {
+				H225_CallIdentifier callIdentifier; // empty callIdentifier
+				callid = AsString(callIdentifier);
+			} else {
+				// a new call: the CRV can't identify it, so assign a callIdentifier that is forwarded with the Setup,
+				// otherwise a Setup that is routed back to us would create another call on every pass (call loop)
+				setupBody.IncludeOptionalField(H225_Setup_UUIE::e_callIdentifier);
+				setupBody.m_callIdentifier.m_guid = OpalGloballyUniqueID();
+				callid = AsString(setupBody.m_callIdentifier);
+				PTRACE(3, Type() << "\tAssigned CallIdentifier " << callid << " to Setup from " << Name());
+			}
 		}
 		// a call that already has its signaling channel belongs to that channel: reject this Setup
 		// without keeping a reference to the call, so OnError() can't modify or remove the existing call
