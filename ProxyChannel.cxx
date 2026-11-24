@@ -4386,9 +4386,17 @@ void CallSignalSocket::RerouteCall(FacilityMsg * msg)
         return;
     }
 
+    // this runs as a job: a H.460.17 socket has its m_call cleared by CleanupCall() as soon as the call ends
+    callptr call = m_call;
+    if (!call) {
+        PTRACE(1, "Q931\tCan't reroute call: Call has been terminated");
+        delete msg;
+        return;
+    }
+
 	H225_Facility_UUIE & facilityBody = msg->GetUUIEBody();
 
-    PString callID = AsString(m_call->GetCallIdentifier(), true);
+    PString callID = AsString(call->GetCallIdentifier(), true);
     PString which = m_callerSocket ? "CALLED" : "CALLER";
     PString destination;
     if (facilityBody.HasOptionalField(H225_Facility_UUIE::e_alternativeAliasAddress) &&
@@ -9050,7 +9058,13 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 	CallSignalSocket * remainingSocket = NULL;
 
 	// only one reroute per call at a time: a 2nd one would use the sockets the 1st drops or hands to DispatchNextRoute()
-	callptr call = m_call;	// m_call gets replaced by the new call below
+	// use this reference instead of m_call until m_call gets replaced by the new call below:
+	// a H.460.17 socket has its m_call cleared by CleanupCall() as soon as the call ends
+	callptr call = m_call;
+	if (!call) {
+		PTRACE(1, "Q931\tCan't reroute call: Call has been terminated");
+		return false;
+	}
 	if (!call->GetRerouteMutex().Wait(0)) {
 		PTRACE(1, "Q931\tError: Call is already being rerouted");
 		return false;
@@ -9059,11 +9073,11 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 
 	// check if we have access to signaling channel of endpoint to be transferred
 	if (which == Called) {
-		droppedSocket = m_call->GetCallSignalSocketCalling();
-		remainingSocket = m_call->GetCallSignalSocketCalled();
+		droppedSocket = call->GetCallSignalSocketCalling();
+		remainingSocket = call->GetCallSignalSocketCalled();
 	} else {
-		droppedSocket = m_call->GetCallSignalSocketCalled();
-		remainingSocket = m_call->GetCallSignalSocketCalling();
+		droppedSocket = call->GetCallSignalSocketCalled();
+		remainingSocket = call->GetCallSignalSocketCalling();
 	}
 	if (this != remainingSocket) {
 		PTRACE(1, "Error: RerouteCall() called on wrong socket" << this);
@@ -9083,7 +9097,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 	Q931 q931;
 	H225_H323_UserInformation uuie;
 	PBYTEArray perBuffer;
-	bool tunneling = (which == Called) ? m_call->GetCallSignalSocketCalled()->m_h245Tunneling : m_call->GetCallSignalSocketCalling()->m_h245Tunneling;
+	bool tunneling = remainingSocket->m_h245Tunneling;	// the socket of the party selected by 'which', checked above
 	if (which == Caller) {
 		// use saved Setup and just change the destination
 		q931.Decode(m_rawSetup);
@@ -9135,12 +9149,12 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 			}
 		}
 	} else {    // which == Called
-		BuildSetupPDU(q931, m_call->GetCallIdentifier(), m_call->GetCallRef(), destination, tunneling);
+		BuildSetupPDU(q931, call->GetCallIdentifier(), call->GetCallRef(), destination, tunneling);
 		GetUUIE(q931, uuie);
 		H225_Setup_UUIE & setup_uuie = uuie.m_h323_uu_pdu.m_h323_message_body;
 		setup_uuie.IncludeOptionalField(H225_Setup_UUIE::e_sourceAddress);
 		setup_uuie.m_sourceAddress.SetSize(1);
-        H323SetAliasAddress(m_call->GetCalledStationId(), setup_uuie.m_sourceAddress[0]);
+        H323SetAliasAddress(call->GetCalledStationId(), setup_uuie.m_sourceAddress[0]);
         // TODO: set displayIE, bearer capability + vendor from saved Connect
     	Q931 connectQ931;
 	    H225_H323_UserInformation connectUuie;
@@ -9160,7 +9174,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
         if (connectQ931.GetBearerCapabilities(capability, transferRate, &codingStandard, &userInfoLayer1)) {
             q931.SetBearerCapabilities(capability, transferRate, codingStandard, userInfoLayer1);
         } else {
-            transferRate = static_cast<unsigned>(ceil((float)m_call->GetBandwidth() / 640)); // divide by 2 ?
+            transferRate = static_cast<unsigned>(ceil((float)call->GetBandwidth() / 640)); // divide by 2 ?
             if (transferRate > 127)
                 transferRate = 32; // 2 Mbps
             q931.SetBearerCapabilities(capability, transferRate, codingStandard, userInfoLayer1);
@@ -9194,7 +9208,7 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 #ifdef HAS_TLS
 	overTLS = (dynamic_cast<TLSCallSignalSocket *>(this) != NULL);
 #endif
-	SetupAuthData authData(m_call, m_call ? true : false, overTLS, fromNeighbor);
+	SetupAuthData authData(call, true, overTLS, fromNeighbor);
 	authData.m_callingStationId = GetCallingStationId(*setup, authData);
 	authData.m_calledStationId = GetCalledStationId(*setup, authData);
 	if (!RasServer::Instance()->ValidatePDU(*setup, authData)) {
@@ -9214,10 +9228,10 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 	}
 	PTRACE(1, "Q931\tRerouting route: " << route.AsString());
 
-	m_call->SetRerouteState(RerouteInitiated);
-	m_call->SetRerouteDirection(which);
+	call->SetRerouteState(RerouteInitiated);
+	call->SetRerouteDirection(which);
 	if (route.m_useTLS)
-		m_call->SetConnectWithTLS(true);
+		call->SetConnectWithTLS(true);
 
     // build TCS0 for tunneled H.245 connection
     H245_MultimediaSystemControlMessage h245msg_tcs0;
@@ -9235,8 +9249,8 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
     H245_CloseLogicalChannel & clc = h245req_clc;
     clc.m_source.SetTag(H245_CloseLogicalChannel_source::e_user);
 
-    vector<WORD> flcnList = m_call->GetChannelFlcnList();
-    m_call->ClearChannelFlcnList();
+    vector<WORD> flcnList = call->GetChannelFlcnList();
+    call->ClearChannelFlcnList();
 
 	// send TCS0 to dropping party
     PTRACE(1, "Q931\tSending TCS0 to dropped tunneling=" << droppedSocket->IsH245Tunneling());
@@ -9278,24 +9292,26 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 	// if that fails, the call has been terminated in the meantime and the handler has already queued the socket for deletion
 	if (!GetHandler()->Detach(this)) {
 		PTRACE(1, "Q931\tReroute aborted: Failed to detach socket " << GetName() << " from its handler");
-		m_call->SetRerouteState(NoReroute);
+		call->SetRerouteState(NoReroute);
+		delete msg;
 		return false;
 	}
 	PTRACE(1, "Q931\tSocket " << GetName() << " detached from its handler");
 	// the handler thread may still be reading from this socket: wait until it is done with its current select list
-	// and make sure the call is still active after that
-	if (!GetHandler()->WaitForNextSelectList() || !CallTable::Instance()->FindCallRec(call->GetCallNumber())) {
+	// and make sure the call is still active after that (a H.460.17 socket stays in the handler when its call ends)
+	if (!GetHandler()->WaitForNextSelectList() || m_call != call || !CallTable::Instance()->FindCallRec(call->GetCallNumber())) {
 		PTRACE(1, "Q931\tReroute aborted: Call has been terminated");
-		m_call->SetRerouteState(NoReroute);
+		call->SetRerouteState(NoReroute);
+		delete msg;
 		GetHandler()->Insert(this);	// give the socket back, the handler will clean it up
 		return false;
 	}
 
 	// drop party from call
 	if (which == Called) {
-		m_call->RerouteDropCalling();
+		call->RerouteDropCalling();
 	} else {
-		m_call->RerouteDropCalled();
+		call->RerouteDropCalled();
 	}
 
 	droppedSocket->RemoveRemoteSocket();
@@ -9308,16 +9324,16 @@ bool CallSignalSocket::RerouteCall(CallLeg which, const PString & destination)
 		m_h245socket->RemoveRemoteSocket();
 	GetHandler()->Remove(droppedSocket);
 
-	CallRec * newCall = new CallRec(m_call.operator ->());
-	CallTable::Instance()->RemoveFailedLeg(m_call);
+	CallRec * newCall = new CallRec(call.operator ->());
+	CallTable::Instance()->RemoveFailedLeg(call);
 	// set calling and called party
 	if (which == Called) {
-	    newCall->SetCalling(m_call->GetCalledParty());
+	    newCall->SetCalling(call->GetCalledParty());
 	    // now both sides think they are called and we need to fix the Q.931 CallRef flag
 	    newCall->SetCallRefFixup(true);
-	    m_call->SetCallRefFixup(true);
+	    call->SetCallRefFixup(true);
 	} else {
-	    newCall->SetCalling(m_call->GetCallingParty());
+	    newCall->SetCalling(call->GetCallingParty());
 	}
 	newCall->SetCalled(route.m_destEndpoint);
 
