@@ -40,6 +40,8 @@ static int (STDCALL *g_mysql_next_result)(MYSQL *mysql) = NULL;
 static unsigned int (STDCALL *g_mysql_errno)(MYSQL *mysql) = NULL;
 static const char * (STDCALL *g_mysql_error)(MYSQL *mysql) = NULL;
 static my_ulonglong (STDCALL *g_mysql_affected_rows)(MYSQL *mysql) = NULL;
+static const char * (STDCALL *g_mysql_character_set_name)(MYSQL *mysql) = NULL;
+static int (STDCALL *g_mysql_set_character_set)(MYSQL *mysql, const char *csname) = NULL;
 
 
 #ifndef my_bool
@@ -354,6 +356,8 @@ GkSQLConnection::SQLConnPtr GkMySQLConnection::CreateNewConnection(
 			|| !g_sharedLibrary.GetFunction("mysql_errno", (PDynaLink::Function &)g_mysql_errno)
 			|| !g_sharedLibrary.GetFunction("mysql_error", (PDynaLink::Function &)g_mysql_error)
 			|| !g_sharedLibrary.GetFunction("mysql_affected_rows", (PDynaLink::Function &)g_mysql_affected_rows)
+			|| !g_sharedLibrary.GetFunction("mysql_character_set_name", (PDynaLink::Function &)g_mysql_character_set_name)
+			|| !g_sharedLibrary.GetFunction("mysql_set_character_set", (PDynaLink::Function &)g_mysql_set_character_set)
 			) {
 #ifdef hasDynaLinkGetLastError
 			PTRACE (1, GetName() << "\tFailed to load shared database library: " << g_sharedLibrary.GetLastError());
@@ -397,6 +401,19 @@ GkSQLConnection::SQLConnPtr GkMySQLConnection::CreateNewConnection(
 	if ((*g_mysql_real_connect)(conn, m_host, m_username,
 			m_password.IsEmpty() ? (const char*)NULL : (const char*)m_password,
 			m_database, m_port, NULL, CLIENT_MULTI_STATEMENTS)) {
+		// make the server read our queries in the character set the client library escapes for:
+		// the server may ignore the one requested at login (collation it doesn't know or
+		// skip-character-set-client-handshake) and with its own multi-byte character set
+		// (eg. GBK, Big5, SJIS) a character could swallow the backslash added by EscapeString()
+		// (utf8 is the fallback for old servers that don't know the utf8mb4 default of current libraries)
+		if ((*g_mysql_set_character_set)(conn, (*g_mysql_character_set_name)(conn)) != 0
+				&& (*g_mysql_set_character_set)(conn, "utf8") != 0) {
+			PTRACE(1, GetName() << "\tMySQL connection to " << m_username << '@' << m_host
+				<< '[' << m_database << "] failed (mysql_set_character_set failed): " << (*g_mysql_error)(conn));
+			(*g_mysql_close)(conn);
+			SNMP_TRAP(5, SNMPError, Database, GetName() + " connection failed");
+			return NULL;
+		}
 		PTRACE(5, GetName() << "\tMySQL connection to " << m_username << '@' << m_host
 			<< '[' << m_database << "] established successfully");
 		return new MySQLConnWrapper(id, m_host, conn);
