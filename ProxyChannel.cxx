@@ -3103,7 +3103,7 @@ namespace { // T.120 handling for [RoutedMode] EnableT120=0
 
 bool IsT120Enabled()
 {
-	return Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "EnableT120", "1"));
+	return Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "EnableT120", "0"));
 }
 
 bool IsT120DataType(const H245_DataType & dataType)

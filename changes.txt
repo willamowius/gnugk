@@ -1,5 +1,6 @@
 Changes from 5.17 to 5.18
 =========================
+- changed default: [RoutedMode] EnableT120= now defaults off
 - new switch [AMQPAcct] Timeout= (default: 5 s)
 - new switch [Gatekeeper::Main] MaxRIPDelay=, default 10 s)
 - add Timeout= switch to HttpPasswordAuth, Routing::Http and HttpAcct
