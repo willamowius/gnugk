@@ -44,15 +44,6 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 		PTRACE(1, "MakeCallEndpoint: Could not open H.323 listener port on \"" << iface << '"');
 	}
 
-	// Establish link with gatekeeper
-	H323TransportUDP * rasChannel;
-	if (GkConfig()->GetString("CTI::MakeCall", "Interface", "").IsEmpty())
-		rasChannel = new H323TransportUDP(*this, GNUGK_INADDR_ANY, 1722);
-	else {
-		PIPSocket::Address interfaceAddress(GkConfig()->GetString("CTI::MakeCall", "Interface", ""));
-		rasChannel = new H323TransportUDP(*this, interfaceAddress);
-	}
-
     // disable H.460.18 and .23 - not needed for local signaling connection
 #ifdef H323_H46018
 	H46018Enable(PFalse);
@@ -62,7 +53,33 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 #endif
 
 	m_gkAddress = GkConfig()->GetString("CTI::MakeCall", "Gatekeeper", "127.0.0.1");
-	if (SetGatekeeper(m_gkAddress, rasChannel)) {
+}
+
+// register with the gatekeeper, can be called again to retry after a failed registration
+// (the endpoint must not be deleted to retry: H323Plus threads serving connections
+// to our listener and other MakeCall commands may still be using it)
+PBoolean MakeCallEndPoint::RegisterWithGk()
+{
+	PWaitAndSignal lock(m_registrationMutex);
+	if (isRegistered)
+		return TRUE;
+
+	PBoolean registered = FALSE;
+	if (gatekeeper != NULL) {
+		// our last RRQ was rejected and H323Plus won't retry eg. a duplicateAlias by itself
+		registered = gatekeeper->RegistrationRequest();
+	} else {
+		// Establish link with gatekeeper
+		H323TransportUDP * rasChannel;
+		if (GkConfig()->GetString("CTI::MakeCall", "Interface", "").IsEmpty())
+			rasChannel = new H323TransportUDP(*this, GNUGK_INADDR_ANY, 1722);
+		else {
+			PIPSocket::Address interfaceAddress(GkConfig()->GetString("CTI::MakeCall", "Interface", ""));
+			rasChannel = new H323TransportUDP(*this, interfaceAddress);
+		}
+		registered = SetGatekeeper(m_gkAddress, rasChannel);
+	}
+	if (registered) {
 		PTRACE(3, "MakeCallEndpoint: Gatekeeper set: " << *gatekeeper);
 		isRegistered = TRUE;
 	} else {
@@ -70,6 +87,7 @@ MakeCallEndPoint::MakeCallEndPoint() : Singleton<MakeCallEndPoint>("MakeCallEndP
 		SNMP_TRAP(7, SNMPError, Network, "MakeCall endpoint failed to register with gatekeeper " + m_gkAddress);
 		isRegistered = FALSE;
 	}
+	return isRegistered;
 }
 
 MakeCallEndPoint::~MakeCallEndPoint()

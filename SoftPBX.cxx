@@ -528,7 +528,9 @@ void SoftPBX::TransferCall(const PString & CallId, const PCaselessString & which
 void SoftPBX::MakeCall(const PString & SourceAlias, const PString & DestinationAlias, const PString & TransferMethod)
 {
 	PTRACE(3, "GK\tSoftPBX: MakeCall " << SourceAlias << " -> " << DestinationAlias);
-	if (! MakeCallEndPoint::Instance()->IsRegisteredWithGk()) {
+	// register the pseudo-endpoint on first use or retry if the last registration failed
+	if (! MakeCallEndPoint::Instance()->IsRegisteredWithGk()
+		&& ! MakeCallEndPoint::Instance()->RegisterWithGk()) {
 		PThread::Sleep(500);	// give pseudo-endpoint 0.5 sec to register
 	}
 	if (MakeCallEndPoint::Instance()->IsRegisteredWithGk()) {
@@ -536,7 +538,7 @@ void SoftPBX::MakeCall(const PString & SourceAlias, const PString & DestinationA
 	} else {
 		PTRACE(1, "GK\tSoftPBX: MakeCall registration of pseudo-endpoint failed");
 		SNMP_TRAP(7, SNMPError, General, "MakeCall endpoint registration failed");
-		delete MakeCallEndPoint::Instance();	// delete this failed instance, it will never work
+		// don't delete the failed instance, other threads are still using it: the next MakeCall retries the registration
 	}
 }
 

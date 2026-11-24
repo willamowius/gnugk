@@ -43,6 +43,8 @@ public:
 
 	virtual void ThirdPartyMakeCall(const PString & user1, const PString & user2, const PString & transferMethod);
 	virtual PBoolean IsRegisteredWithGk() const;
+	// register with the gatekeeper or retry a failed registration
+	virtual PBoolean RegisterWithGk();
 
 	// get destination from list
     PString GetDestination(const PString & token);
@@ -63,6 +65,8 @@ protected:
 
 	PCaselessString globalTransferMethod;
 	PBoolean isRegistered;
+	// only one thread at a time registers
+	PMutex m_registrationMutex;
 	PString m_gkAddress;
 	long m_bandwidth;
 	BYTE m_rateMultiplier;
