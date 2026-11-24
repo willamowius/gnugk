@@ -2265,42 +2265,54 @@ inline bool CallRec::CompareSigAdr(const H225_TransportAddress *adr) const
 
 inline PString CallRec::GetSRC_media_control_IP() const
 {
+	PWaitAndSignal lock(m_usedLock);
     return m_src_media_control_IP;
 }
 
 inline PString CallRec::GetDST_media_control_IP() const
 {
+	PWaitAndSignal lock(m_usedLock);
     return m_dst_media_control_IP;
 }
 
 inline PString CallRec::GetSRC_media_IP() const
 {
+	PWaitAndSignal lock(m_usedLock);
     return m_src_media_IP;
 }
 
 inline PString CallRec::GetDST_media_IP() const
 {
+	PWaitAndSignal lock(m_usedLock);
     return m_dst_media_IP;
 }
 
 inline bool CallRec::GetRTCP_SRC_sdes_flag() const
 {
+	PWaitAndSignal lock(m_usedLock);
     return m_rtcp_source_sdes_flag;
 }
 
 inline bool CallRec::GetRTCP_DST_sdes_flag() const
 {
+	PWaitAndSignal lock(m_usedLock);
     return m_rtcp_destination_sdes_flag;
 }
 
 inline PStringList CallRec::GetRTCP_SRC_sdes() const
 {
-    return m_rtcp_source_sdes;
+	PWaitAndSignal lock(m_usedLock);
+    PStringList sdes(m_rtcp_source_sdes);
+    sdes.MakeUnique();	// a copy of its own, PStringList copies share their elements
+    return sdes;
 }
 
 inline PStringList CallRec::GetRTCP_DST_sdes() const
 {
-    return m_rtcp_destination_sdes;
+	PWaitAndSignal lock(m_usedLock);
+    PStringList sdes(m_rtcp_destination_sdes);
+    sdes.MakeUnique();	// a copy of its own, PStringList copies share their elements
+    return sdes;
 }
 
 inline time_t CallRec::GetSetupTime() const

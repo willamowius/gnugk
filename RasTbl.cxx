@@ -2160,7 +2160,7 @@ bool RegistrationTable::FindEndpoint(
 
 namespace {
 // a specialized comparison operator to have a gwlist sorted by increasing priority value
-inline bool ComparePriority(const pair<int, GatewayRec*>& x, const pair<int, GatewayRec*>& y)
+inline bool ComparePriority(const pair<int, endptr>& x, const pair<int, endptr>& y)
 {
 	return x.first < y.first;
 }
@@ -2180,7 +2180,8 @@ endptr RegistrationTable::InternalFindFirstEP(const H225_ArrayOf_AliasAddress & 
 	}
 
 	int maxlen = 0;
-	std::list<std::pair<int, GatewayRec*> > GWlist;
+	// collect the gateways as endptr, so they can't be deleted once we release the lock
+	std::list<std::pair<int, endptr> > GWlist;
 	listLock.StartRead();
 	const_iterator Iter = List->begin(), IterLast = List->end();
 	while (Iter != IterLast) {
@@ -2194,7 +2195,7 @@ endptr RegistrationTable::InternalFindFirstEP(const H225_ArrayOf_AliasAddress & 
                     maxlen = len;
                 }
                 if (maxlen == len)
-                    GWlist.push_back(std::pair<int, GatewayRec*>(priority, gw));
+                    GWlist.push_back(std::pair<int, endptr>(priority, endptr(gw)));
             }
 		}
 		++Iter;
@@ -2204,9 +2205,9 @@ endptr RegistrationTable::InternalFindFirstEP(const H225_ArrayOf_AliasAddress & 
 	if (!GWlist.empty()) {
 		GWlist.sort(ComparePriority);
 
-		GatewayRec *e = GWlist.front().second;
+		endptr e = GWlist.front().second;
 		PTRACE(4, "Prefix match for GW " << AsDotString(e->GetCallSignalAddress()));
-		return endptr(e);
+		return e;
 	}
 
 	return endptr(NULL);
@@ -2236,7 +2237,8 @@ bool RegistrationTable::InternalFindEP(
 
 	int maxlen = 0;
 
-	std::list<std::pair<int, GatewayRec*> > GWlist;
+	// collect the gateways as endptr, so they can't be deleted once we release the lock
+	std::list<std::pair<int, endptr> > GWlist;
 	listLock.StartRead();
 	const_iterator Iter = endpoints->begin(), IterLast = endpoints->end();
 	while (Iter != IterLast) {
@@ -2250,7 +2252,7 @@ bool RegistrationTable::InternalFindEP(
                     maxlen = len;
                 }
                 if (maxlen == len)
-                    GWlist.push_back(std::pair<int, GatewayRec*>(priority, gw));
+                    GWlist.push_back(std::pair<int, endptr>(priority, endptr(gw)));
             }
 		}
 		++Iter;
@@ -2262,10 +2264,10 @@ bool RegistrationTable::InternalFindEP(
 
 	GWlist.sort(ComparePriority);
 
-	std::list<std::pair<int, GatewayRec*> >::const_iterator i = GWlist.begin();
+	std::list<std::pair<int, endptr> >::const_iterator i = GWlist.begin();
 	while (i != GWlist.end()) {
 		if (i->second->HasAvailableCapacity(aliases))
-			routes.push_back(Route("internal", endptr(i->second)));
+			routes.push_back(Route("internal", i->second));
 		else
 			PTRACE(5, "Capacity exceeded in GW " << AsDotString(i->second->GetCallSignalAddress()));
 		++i;
@@ -3630,12 +3632,14 @@ void CallRec::SetRTCP_sdes(bool isSRC, const PString & val)
 
 void CallRec::SetRTCP_SRC_sdes(const PString & val)
 {
+	PWaitAndSignal lock(m_usedLock);
     m_rtcp_source_sdes.AppendString(val);
     m_rtcp_source_sdes_flag = true;
 }
 
 void CallRec::SetRTCP_DST_sdes(const PString & val)
 {
+	PWaitAndSignal lock(m_usedLock);
     m_rtcp_destination_sdes.AppendString(val);
     m_rtcp_destination_sdes_flag = true;
 }
