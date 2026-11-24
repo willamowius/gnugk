@@ -1738,12 +1738,14 @@ Registration authentication scripts can use the following variables
 <item><tt/vendor/ - productId and versionId
 <item><tt/messageType/ - always "RRQ" for registrations
 <item><tt/message/ - the full RRQ message as multi-line text block
+(RRQs with more than 256 KB of text are rejected without running the script)
 </itemize>
 
 Call authentication scripts can use the following variables
 <itemize>
 <item><tt/messageType/ - either "ARQ" or "Setup"
 <item><tt/message/ - the full ARQ or Setup message as multi-line text block
+(messages with more than 256 KB of text are rejected without running the script)
 <item><tt/source/ - signaling IP of the calling endpoint
 <item><tt/calledAlias/ - the called alias
 <item><tt/calledIP/ - the called IP

@@ -458,6 +458,23 @@ protected:
 	PString m_callScript;
 };
 
+// max. size of the text version of a message passed to the scripts in the 'message' variable
+// (the printout grows with the square of the nesting depth, which the sender controls)
+static const PINDEX maxMessageTextSize = 256 * 1024;
+
+// print a RAS or Q.931 message for the scripts, returns false if the text would be too long
+static bool PrintMessage(const PASN_Object & pdu, PString & message)
+{
+	PStringStream strm(maxMessageTextSize);	// fixed size buffer: never grows, the stream fails when it is full
+	pdu.PrintOn(strm);
+	if (!strm.good()) {
+		PTRACE(2, "LuaAuth\tMessage text doesn't fit into " << maxMessageTextSize << " bytes, rejecting");
+		return false;
+	}
+	message = (const char *)strm;	// copy only the text, not the whole buffer
+	return true;
+}
+
 LuaAuth::LuaAuth(
 	const char * name,
 	unsigned supportedRasChecks,
@@ -564,9 +581,9 @@ int LuaAuth::Check(
     }
 
 	PString messageType = "RRQ";
-    PStringStream strm;
-    rrq.PrintOn(strm);
-    PString message = strm;
+	PString message;
+	if (!PrintMessage(rrq, message))
+		return e_fail;
 
 	return doRegistrationCheck(username, callingStationId, callerIP, aliases, vendor, messageType, message);
 }
@@ -585,9 +602,9 @@ int LuaAuth::Check(
 	endptr ep = RegistrationTable::Instance()->FindByEndpointId(arq.m_endpointIdentifier);
 	if (ep) {
 		PString messageType = "ARQ";
-        PStringStream strm;
-        arq.PrintOn(strm);
-        PString message = strm;
+		PString message;
+		if (!PrintMessage(arq, message))
+			return e_fail;
 		PString source = AsDotString(ep->GetCallSignalAddress());
 		PString calledAlias = "";
 		if (aliases.GetSize() > 0)
@@ -623,9 +640,9 @@ int LuaAuth::Check(
 	H225_Setup_UUIE & setup_uuie = setup.GetUUIEBody();
 
 	PString messageType = "Setup";
-    PStringStream strm;
-    setup_uuie.PrintOn(strm);
-    PString message = strm;
+	PString message;
+	if (!PrintMessage(setup_uuie, message))
+		return e_fail;
 	PString source = "";
 	if (setup_uuie.HasOptionalField(H225_Setup_UUIE::e_sourceCallSignalAddress) && setup_uuie.m_sourceCallSignalAddress.IsValid())
 		source = AsDotString(setup_uuie.m_sourceCallSignalAddress);

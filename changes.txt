@@ -1,5 +1,7 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(lua.cxx) limit the size of the message text LuaAuth passes to the scripts,
+  reject RRQ, ARQ and Setup messages with a longer text (256 KB)
 - BUGFIX(RasSrv.cxx) use TLS to pick up H.460.18 calls from a traversal zone neighbor with UseTLS=1
   or H.460.22 in the SCI, honor UseTLS=1 for calls from the parent
 - BUGFIX(gksql_firebird.cxx) fix leak in Firebird driver
