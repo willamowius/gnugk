@@ -3252,8 +3252,27 @@ bool CallSignalSocket::RemoveT120FromFastStart(H225_ArrayOf_PASN_OctetString & f
 	return changed;
 }
 
+namespace {
+
+// The H.245 handlers of both sides to each other, only one thread at a time may process H.245 messages.
+// Lock not needed when both parties are handled by the same ProxyHandler but needed with H.460.18.
+class H245Lock {
+public:
+	H245Lock(const callptr & call) : m_call(call) { if (m_call) m_call->GetH245Mutex().Wait(); }
+	~H245Lock() { if (m_call) m_call->GetH245Mutex().Signal(); }
+
+private:
+	H245Lock(const H245Lock &);
+	H245Lock & operator=(const H245Lock &);
+
+	callptr m_call;
+};
+
+} // end of anonymous namespace
+
 bool CallSignalSocket::HandleH245Mesg(PPER_Stream & strm, bool & suppress, H245Socket * h245sock)
 {
+	H245Lock h245lock(m_call);	// the other party may be handled by another thread
 	bool changed = false;
 	H245_MultimediaSystemControlMessage h245msg;
 	if (!h245msg.Decode(strm)) {
@@ -10007,6 +10026,9 @@ void CallSignalSocket::OnFacility(SignalingMsg * msg)
 					// always proxy H.245 for H.460.18/19
 					Address calling = GNUGK_INADDR_ANY, called = GNUGK_INADDR_ANY;
 					m_call->GetNATType(calling, called);
+					// the calling socket is already read by its ProxyHandler thread: it must not use the H.245 handlers
+					// before both are set up and the fastStart and H.245 of the saved Setup have been processed
+					H245Lock h245lock(m_call);
 					// H.245 proxy handler for calling (doesn't have to use H.460.18/.19)
 					H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), callingSocket->localAddr, calling, callingSocket->masqAddr);
 #ifdef HAS_H46026
@@ -10227,6 +10249,7 @@ bool CallSignalSocket::OnTunneledH245(H225_ArrayOf_PASN_OctetString & h245Contro
 
 bool CallSignalSocket::OnFastStart(H225_ArrayOf_PASN_OctetString & fastStart, bool fromCaller)
 {
+	H245Lock h245lock(m_call);	// the other party may be handled by another thread
 	bool changed = false;
 	if (m_call)
 		m_call->ApplyEndpointDisabledCodecs();

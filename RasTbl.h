@@ -1459,6 +1459,8 @@ public:
 	void SetRerouteDirection(CallLeg dir) { m_rerouteDirection = dir; }
 	CallLeg GetRerouteDirection() const { return m_rerouteDirection; }
 	PTimedMutex & GetRerouteMutex() { return m_rerouteMutex; }
+	// held while H.245 messages or fastStart elements of this call are processed
+	PMutex & GetH245Mutex() { return m_h245Mutex; }
 
 	void SetBindHint(const PString & ip) { PWaitAndSignal lock(m_usedLock); m_bindHint = ip; }
 	PString GetBindHint() const { PWaitAndSignal lock(m_usedLock); return m_bindHint; }
@@ -1777,6 +1779,9 @@ private:
 	bool m_callfromTraversalServer;
 	CallLeg m_rerouteDirection;
 	PTimedMutex m_rerouteMutex;	// held by the thread that is rerouting the call
+	// the H.245 handlers of both parties share the logical channels, but the parties aren't always read by
+	// the same thread (eg. H.460.18 Facility): held while a H.245 message or fastStart element is processed
+	PMutex m_h245Mutex;
 	PString m_callerID;	// forced caller ID or empty
 	PString m_callerDisplayIE;	// forced Display IE of caller or empty
 	PString m_calledDisplayIE;	// forced Display IE of called party or empty
