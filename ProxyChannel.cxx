@@ -8830,6 +8830,10 @@ void CallSignalSocket::OnInformation(SignalingMsg * msg)
 
 	m_result = m_call ? Forwarding : NoData;
 
+	// If GnuGk's old NAT traversal method is disabled then ignore the message.
+	if (!GkConfig()->GetBoolean(RoutedSec, "EnableGnuGkNATTraversal", false))
+		return;
+
 	// If NAT support disabled then ignore the message.
 	if (!Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "SupportNATedEndpoints", "0")))
 		return;

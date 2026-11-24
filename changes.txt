@@ -1,5 +1,6 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(ProxyChannel.cxx,GkClient.cxx) let EnableGnuGkNATTraversal=0 ignore all leftovers from old GnuGk NAT traversal
 - BUGFIX(ProxyChannel.cxx) Keep the TCP keep-alive timer of a TLSCallSignalSocket stopped until its TLS handshake
   is done and stop it before SSL_free()
 - BUGFIX(GkStatus.cxx) don't accept the names of [GkStatus::Auth] switches (eg. RSAKey) as status port user names

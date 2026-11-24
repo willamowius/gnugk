@@ -2814,7 +2814,7 @@ void GkClient::OnRCF(RasMsg *ras)
 	m_resend = m_retry;
 
 	// NAT handling
-	if (!m_enableH46018 && rcf.HasOptionalField(H225_RegistrationConfirm::e_nonStandardData)) {
+	if (m_enableGnuGkNATTraversal && !m_enableH46018 && rcf.HasOptionalField(H225_RegistrationConfirm::e_nonStandardData)) {
 		int iec = Toolkit::iecUnknown;
 		if (rcf.m_nonStandardData.m_nonStandardIdentifier.GetTag() == H225_NonStandardIdentifier::e_h221NonStandard) {
 			iec = Toolkit::Instance()->GetInternalExtensionCode((const H225_H221NonStandard&)rcf.m_nonStandardData.m_nonStandardIdentifier);
