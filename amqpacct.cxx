@@ -318,6 +318,13 @@ namespace {
 #include <amqp.h>
 #include <amqp_tcp_socket.h>
 #include <amqp_ssl_socket.h>
+#ifndef _WIN32
+#include <netinet/tcp.h>	// TCP_USER_TIMEOUT
+#endif
+
+namespace {
+const int RECONNECT_WAIT = 30;	// seconds to wait after a failed re-connect before trying again
+}
 
 
 class AMQPAcct : public MQAcct
@@ -352,6 +359,10 @@ private:
     PString m_vhost;
     int m_channelID;
     PString m_contentType;
+    /// timeout in seconds for all network operations with the server
+    int m_timeout;
+    /// no re-connect before this time, set when a re-connect failed
+    time_t m_reconnectTime;
     amqp_socket_t * m_socket;
     amqp_connection_state_t m_conn;
 	PMutex m_threadMutex;
@@ -377,6 +388,8 @@ AMQPAcct::AMQPAcct(const char* moduleName, const char* cfgSecName)
     m_vhost = cfg->GetString(cfgSec, "VHost", "/");
     m_vhost = Toolkit::Instance()->ReplaceGlobalParams(m_vhost);
 	m_contentType = cfg->GetString(cfgSec, "ContentType", "text/plain");
+	m_timeout = PMAX(cfg->GetInteger(cfgSec, "Timeout", 5), (long)1);
+	m_reconnectTime = 0;
 	m_channelID = 1;
 
     Connect();
@@ -394,6 +407,12 @@ void AMQPAcct::Connect()
 	int status = 0;
 	amqp_set_initialize_ssl_library(0); // don't init OpenSSL, GnuGk does it once for all modules
     m_conn = amqp_new_connection();
+    // don't let a stalled server block the calling thread forever
+    struct timeval timeout = { m_timeout, 0 };
+#if AMQP_VERSION >= AMQP_VERSION_CODE(0, 9, 0, 0)
+    (void)amqp_set_handshake_timeout(m_conn, &timeout);
+    (void)amqp_set_rpc_timeout(m_conn, &timeout);
+#endif
     if (m_useSSL) {
         m_socket = amqp_ssl_socket_new(m_conn);
         if (!m_socket) {
@@ -413,10 +432,18 @@ void AMQPAcct::Connect()
         }
     }
     if (m_socket) {
-        status = amqp_socket_open(m_socket, (const char*)m_host, m_port);
+        status = amqp_socket_open_noblock(m_socket, (const char*)m_host, m_port, &timeout);
         if (status) {
             PTRACE(1, "AMQPAcct\tError opening socket to " << m_host << ":" << m_port);
         } else {
+#ifdef TCP_USER_TIMEOUT
+            // amqp_basic_publish() waits without limit until the socket is writable:
+            // let TCP abort the connection when the server stops reading
+            unsigned userTimeout = (unsigned)m_timeout * 1000;	// ms
+            if (::setsockopt(amqp_get_sockfd(m_conn), IPPROTO_TCP, TCP_USER_TIMEOUT, (char *)&userTimeout, sizeof(userTimeout)) != 0) {
+                PTRACE(1, "AMQPAcct\tError setting TCP_USER_TIMEOUT");
+            }
+#endif
             amqp_rpc_reply_t r = amqp_login(m_conn, (const char*)m_vhost, 0, 131072, 0, AMQP_SASL_METHOD_PLAIN, (const char*)m_user, (const char*)m_password);
             if (r.reply_type != AMQP_RESPONSE_NORMAL) {
                 PTRACE(1, "AMQPAcct\Error logging in: vhost=" << m_vhost << " user=" << m_user);
@@ -446,6 +473,12 @@ GkAcctLogger::Status AMQPAcct::MQLog(const PString & event, const PString & rout
 {
     PWaitAndSignal lock(m_threadMutex);
 
+    if (time(NULL) < m_reconnectTime) {
+        // don't make every event wait for a server that just failed to respond
+        PTRACE(1, "AMQPAcct\tError publishing event: not connected");
+        return Fail;
+    }
+
     PTRACE(5, "AMQPAcct\tLogging message=" << event << " routing key=" << routingKey);
     amqp_basic_properties_t props;
     props._flags = AMQP_BASIC_CONTENT_TYPE_FLAG | AMQP_BASIC_DELIVERY_MODE_FLAG;
@@ -463,6 +496,7 @@ GkAcctLogger::Status AMQPAcct::MQLog(const PString & event, const PString & rout
                                     &props, amqp_cstring_bytes((const char *)event));
         if (status) {
             PTRACE(1, "AMQPAcct\tError publishing event: " << amqp_error_string2(status) << " (after re-try)");
+            m_reconnectTime = time(NULL) + RECONNECT_WAIT;
             return Fail;
         } else {
             PTRACE(3, "AMQPAcct\tRe-try to publish event successful");

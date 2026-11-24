@@ -1268,6 +1268,13 @@ Default: <tt>text/plain</tt><newline>
 <p>
 The content type header to send.
 
+<item><tt/Timeout=10/<newline>
+Default: <tt>5</tt><newline>
+<p>
+Time in seconds to wait for the message broker when connecting and (on Linux) when publishing an event.
+If the broker does not respond in time, logging the accounting event fails. If re-connecting fails, too,
+GnuGk waits 30 seconds before it tries to connect again and logging fails immediately meanwhile.
+
 <item><tt>StartEvent=Start Call GK=%g</tt><newline>
 Default: <tt>N/A</tt><newline>
 <p>

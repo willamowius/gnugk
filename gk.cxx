@@ -95,6 +95,7 @@ const char * KnownConfigEntries[][2] = {
 	{ "AMQPAcct", "RoutingKey" },
 	{ "AMQPAcct", "StartEvent" },
 	{ "AMQPAcct", "StopEvent" },
+	{ "AMQPAcct", "Timeout" },
 	{ "AMQPAcct", "TimestampFormat" },
 	{ "AMQPAcct", "UnregisterEvent" },
 	{ "AMQPAcct", "User" },
