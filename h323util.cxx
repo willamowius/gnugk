@@ -13,7 +13,6 @@
 
 #include "config.h"
 #include <ptlib.h>
-#include <ptclib/url.h>
 #include <h323pdu.h>
 #include "gk_const.h"
 #include "h323util.h"
@@ -1104,9 +1103,24 @@ PString EscapeLDAPFilterValue(const PString & value)
 
 std::map<PString, PString> UrlEscapeParams(const std::map<PString, PString> & params)
 {
+	// same result as PURL::TranslateString(value, PURL::QueryTranslation), but in a single pass: TranslateString()
+	// splices every escaped character into the string, which takes seconds for a long value (eg. %{aliases})
+	static const char safeChars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.!~*'()";
+	static const char hexDigits[] = "0123456789ABCDEF";
 	std::map<PString, PString> escaped;
-	for (std::map<PString, PString>::const_iterator it = params.begin(); it != params.end(); ++it)
-		escaped[it->first] = PURL::TranslateString(it->second, PURL::QueryTranslation);
+	for (std::map<PString, PString>::const_iterator it = params.begin(); it != params.end(); ++it) {
+		std::string value;
+		for (const char * c = it->second; *c != '\0'; ++c) {
+			if (strchr(safeChars, *c) != NULL) {
+				value += *c;
+			} else {
+				value += '%';
+				value += hexDigits[(BYTE)*c >> 4];
+				value += hexDigits[(BYTE)*c & 0x0f];
+			}
+		}
+		escaped[it->first] = PString(value.data(), (PINDEX)value.length());
+	}
 	return escaped;
 }
 
@@ -1119,13 +1133,17 @@ std::map<PString, PString> HttpBodyEscapeParams(const std::map<PString, PString>
 		return params;	// we don't know how to escape for other content types
 
 	// always use the \uXXXX form, so HttpAcct doesn't find a \n or \r to replace in the escaped values
-	std::map<PString, PString> escaped = params;
-	for (std::map<PString, PString>::iterator it = escaped.begin(); it != escaped.end(); ++it) {
-		PString & value = it->second;
-		for (PINDEX pos = 0; pos < value.GetLength(); ++pos) {
-			if ((BYTE)value[pos] < 0x20 || value[pos] == '"' || value[pos] == '\\')
-				value.Splice(psprintf("\\u%04x", (BYTE)value[pos]), pos, 1);
+	// (append to a new string instead of splicing into the value, which is just as slow as TranslateString())
+	std::map<PString, PString> escaped;
+	for (std::map<PString, PString>::const_iterator it = params.begin(); it != params.end(); ++it) {
+		std::string value;
+		for (const char * c = it->second; *c != '\0'; ++c) {
+			if ((BYTE)*c < 0x20 || *c == '"' || *c == '\\')
+				value += (const char *)psprintf("\\u%04x", (BYTE)*c);
+			else
+				value += *c;
 		}
+		escaped[it->first] = PString(value.data(), (PINDEX)value.length());
 	}
 	return escaped;
 }

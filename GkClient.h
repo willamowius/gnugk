@@ -258,6 +258,8 @@ private:
 	GkClientHandler *m_handlers[4];
 
 	NATClient *m_natClient;
+	/// protects m_natClient (the job deletes itself after Stop())
+	PMutex m_natClientMutex;
 
 	enum ParentVendors {
 		ParentVendor_Generic,

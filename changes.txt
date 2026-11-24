@@ -8,7 +8,9 @@ Changes from 5.17 to 5.18
 - document the [Proxy] switches RTPInactivityCheck, RTPInactivityTimeout and RTPInactivityCheckSession
 - apply ReadTimeout= and ConnectTimeout= to PostgreSQL queries and connects
 - drop calls when a configured Auth or Acct rules isn't available, eg. not compiled in
+- performance improvement in UrlEscapeParams() whith long alias lists
 
+- BUGFIX(GkClient.*) protect m_natClient with a mutex in GkClient, fix crash
 - BUGFIX(RasTbl.*,SoftPBX.cxx,ProxyChannel.cxx) fix crash in SendProceeding while routing unregistered call
 - BUGFIX(MakeCall.*,SoftPBX.cxx) fix crash when the registration of the MakeCall endpoint fails
 - BUGFIX(GkClient.cxx) protect the list of alternate gatekeepers of the parent with a mutex

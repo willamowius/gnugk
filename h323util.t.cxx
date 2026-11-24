@@ -467,6 +467,10 @@ TEST_F(H323UtilTest, UrlEscapeParams) {
 	EXPECT_STREQ("x%26realm%3Dguests%23", params["g"]);
 	EXPECT_STREQ("1.2.3.4", params["caller-ip"]);
 	EXPECT_STREQ("%25%7Benv1%7D%20100%25", params["caller-vendor"]);
+	// only letters, digits and -_.!~*'() stay as they are, the bytes of a UTF-8 sequence are escaped one by one
+	params.clear();
+	params["u"] = "A-z_0.9!~*'()\xe4\xb8\x80,\x7f+";
+	EXPECT_STREQ("A-z_0.9!~*'()%E4%B8%80%2C%7F%2B", UrlEscapeParams(params)["u"]);
 }
 
 TEST_F(H323UtilTest, HttpBodyEscapeParams) {
@@ -475,6 +479,17 @@ TEST_F(H323UtilTest, HttpBodyEscapeParams) {
 	EXPECT_STREQ("x\\u0022\\u0022a\\u005cn\\u0022\\u0022b&c\\u000a", HttpBodyEscapeParams(params, "application/json; charset=utf-8")["u"]);
 	EXPECT_STREQ("x%22%22a%5Cn%22%22b%26c%0A", HttpBodyEscapeParams(params, "application/x-www-form-urlencoded")["u"]);
 	EXPECT_STREQ(params["u"], HttpBodyEscapeParams(params, "text/plain")["u"]);
+	// a value as long as the alias list of an endpoint (128 aliases of 256 characters) where every character is escaped
+	std::string aliases, urlEscaped, jsonEscaped;
+	for (int i = 0; i < 128 * 256; ++i) {
+		aliases += "\"";
+		urlEscaped += "%22";
+		jsonEscaped += "\\u0022";
+	}
+	params["u"] = aliases.c_str();
+	EXPECT_STREQ(urlEscaped.c_str(), UrlEscapeParams(params)["u"]);
+	EXPECT_STREQ(urlEscaped.c_str(), HttpBodyEscapeParams(params, "application/x-www-form-urlencoded")["u"]);
+	EXPECT_STREQ(jsonEscaped.c_str(), HttpBodyEscapeParams(params, "application/json")["u"]);
 }
 
 TEST_F(H323UtilTest, HasDotSegments) {

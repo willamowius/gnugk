@@ -2529,9 +2529,14 @@ void GkClient::Register()
 
 void GkClient::Unregister()
 {
-	if (m_natClient) {
-		m_natClient->Stop();
-		m_natClient = NULL;
+	{
+		// Unregister() can be called by multiple threads at once (eg. one job per URQ),
+		// but the NATClient job deletes itself once it is stopped, so only one of them may stop it
+		PWaitAndSignal lock(m_natClientMutex);
+		if (m_natClient) {
+			m_natClient->Stop();
+			m_natClient = NULL;
+		}
 	}
 #if (__cplusplus >= 201703L) // C++17
 	for_each(m_handlers, m_handlers + 4, std::bind(std::mem_fn(&RasServer::UnregisterHandler), m_rasSrv, std::placeholders::_1));
@@ -2830,8 +2835,11 @@ void GkClient::OnRCF(RasMsg *ras)
 		}
 		if (iec == Toolkit::iecNATTraversal) {
 			if (rcf.m_nonStandardData.m_data.AsString().Find("NAT=") == 0)
-				if (!m_natClient && rcf.m_callSignalAddress.GetSize() > 0)
-					m_natClient = new NATClient(rcf.m_callSignalAddress[0], m_endpointId);
+				if (rcf.m_callSignalAddress.GetSize() > 0) {
+					PWaitAndSignal lock(m_natClientMutex);
+					if (!m_natClient)
+						m_natClient = new NATClient(rcf.m_callSignalAddress[0], m_endpointId);
+				}
 		}
 	}
 
