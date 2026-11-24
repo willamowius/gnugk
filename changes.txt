@@ -1,5 +1,13 @@
 Changes from 5.17 to 5.18
 =========================
+- new switch [AMQPAcct] Timeout= (default: 5 s)
+- new switch [Gatekeeper::Main] MaxRIPDelay=, default 10 s)
+- add Timeout= switch to HttpPasswordAuth, Routing::Http and HttpAcct
+- new switch [Gatekeeper::Main] MaxWorkerThreads= (default: 3000)
+- document the [Proxy] switches RTPInactivityCheck, RTPInactivityTimeout and RTPInactivityCheckSession
+- apply ReadTimeout= and ConnectTimeout= to PostgreSQL queries and connects
+- drop calls when a configured Auth or Acct rules isn't available, eg. not compiled in
+
 - BUGFIX(Routing.cxx) ENUM policy used the first alias instead of the converted one to check the gateway destination
 - BUGFIX(ProxyChannel.cxx,GkClient.cxx) let EnableGnuGkNATTraversal=0 ignore all leftovers from old GnuGk NAT traversal
 - BUGFIX(ProxyChannel.cxx) Keep the TCP keep-alive timer of a TLSCallSignalSocket stopped until its TLS handshake
@@ -18,7 +26,6 @@ Changes from 5.17 to 5.18
 - BUGFIX(Routing.*,Neighbor.cxx) limit time and number of DNS lookups the dns, srv, rds and enum policies do
 - BUGFIX(ProxyChannel.*) fix H.460.17 socket leak
 - BUGFIX(Neighbor.cxx) fix hop count to CiscoGk neighbors
-- new switch [AMQPAcct] Timeout= (default: 5 s)
 - BUGFIX(amqpacct.cxx) don't block GnuGk when the AMQP server stops responding
 - BUGFIX(ProxyChannel.cxx) if a Setup doesn't have callIdentifier, we assign one so we never have loops
 - BUGFIX(RasTbl.*) conserve memory by storing the encoded RRQ instead of the decoded RRQ in the endpoint record
@@ -46,21 +53,15 @@ Changes from 5.17 to 5.18
 - BUGFIX(Toolkit.cxx) fix infinite loop in RewriteSourceAddress
 - BUGFIX(gksql_mysql.cxx) check the result of mysql_real_escape_string() and
   prefer mysql_real_escape_string_quote() so NO_BACKSLASH_ESCAPES sessions are escaped
-- new switch [Gatekeeper::Main] MaxRIPDelay=, default 10 s)
 - BUGFIX(MakeCall.*) veto H.450.2 transfers of the pseudo endpoint and refuse incoming Setups
 - BUGFIX(ProxyChannel.cxx,RasSrv.cxx) fix encoding some RAS messages > 1024 bytes
 - BUGFIX(Neighbor.*) validate which SCI from a neighbor we accept
-- new switch [Gatekeeper::Main] MaxWorkerThreads= (default: 3000)
 - BUGFIX(GkStatus.cxx) fix counting of status port clients
 - BUGFIX(ProxyChannel.cxx) fix crash on Avaya Setup
-- drop calls when a configured Auth or Acct rules isn't available, eg. not compiled in
 - BUGFIX(ProxyChannel.cxx) stop H.460.19 keep-alive timers when a logical channel stops early
 - BUGFIX(ProxyChannel.cxx) reject Setup calling a different destination than the admitted ARQ
 - BUGFIX(sqlauth.cxx) reject calls with an invalid credittime
-- add Timeout= switch to HttpPasswordAuth, Routing::Http and HttpAcct
 - BUGFIX(MakeCall.*) fix crash in MakeCall
-- apply ReadTimeout= and ConnectTimeout= to PostgreSQL queries and connects
-- document the [Proxy] switches RTPInactivityCheck, RTPInactivityTimeout and RTPInactivityCheckSession
 - BUGFIX(RasTbl.*) make sure signalling connection gets terminatd when endpoint only sends DRQ during a call
 - BUGFIX(RasSrv.cxx) check tokens in URQ when configured
 - BUGFIX(GkStatus.cxx) fix UnregisterEP status port command
