@@ -1053,6 +1053,8 @@ public:
 	virtual bool ConnectRemote();
 
 protected:
+	void SendQueuedH245Messages(H245Socket * dest, bool queuedByRemote);
+
 	// override from class TCPProxySocket
 #ifdef LARGE_FDSET
 	virtual bool Accept(YaTCPSocket &);
@@ -2008,7 +2010,9 @@ void CallSignalSocket::CleanupCall()
 	m_setupPdu = NULL;
 	// std::queue doesn't have a clear() operation, swap in an empty queue instead
 	std::queue<PASN_OctetString> empty;
+	m_h245QueueMutex.Wait();
 	std::swap(m_h245Queue, empty);
+	m_h245QueueMutex.Signal();
 #ifdef HAS_H46018
 	m_callFromTraversalServer = false;
 	m_callToTraversalServer = false;
@@ -2230,7 +2234,11 @@ CallSignalSocket::~CallSignalSocket()
 	m_setupPdu = NULL;
 	// std::queue doesn't have a clear() operation, swap in an empty queue instead
 	std::queue<PASN_OctetString> empty;
+	m_h245QueueMutex.Wait();
 	std::swap(m_h245Queue, empty);
+	// detach before the lock is released, so the remote can't fetch queued messages from this socket once it is deleted
+	DetachRemote();
+	m_h245QueueMutex.Signal();
 #ifdef HAS_H235_MEDIA
 	delete m_setupClearTokens;
 	m_setupClearTokens = NULL;
@@ -3022,14 +3030,26 @@ void CallSignalSocket::SendReleaseComplete(H225_ReleaseCompleteReason::Choices r
 	SendReleaseComplete(&cause);
 }
 
+PMutex CallSignalSocket::m_h245QueueMutex;
+
 // calling code must delete returned pointer
 PASN_OctetString * CallSignalSocket::GetNextQueuedH245Message()
 {
+	PWaitAndSignal lock(m_h245QueueMutex);
 	if (m_h245Queue.empty())
 		return NULL;
 	PASN_OctetString * result = new PASN_OctetString(m_h245Queue.front());
 	m_h245Queue.pop();
 	return result;
+}
+
+// next H.245 message queued on the remote socket, calling code must delete returned pointer
+PASN_OctetString * CallSignalSocket::GetNextH245MessageQueuedByRemote()
+{
+	// the remote socket may be deleted by another thread, but not before it has detached from us under this lock
+	PWaitAndSignal lock(m_h245QueueMutex);
+	CallSignalSocket * ret = GetRemote();
+	return ret ? ret->GetNextQueuedH245Message() : NULL;
 }
 
 void CallSignalSocket::SendPostDialDigits()
@@ -4554,7 +4574,7 @@ bool CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
                     if (GetRemote() && GetRemote()->GetH245MessageQueueSize() > 0) {
                         // send all queued H.245 messages now
                         PTRACE(3, "H245\tSending " << GetRemote()->GetH245MessageQueueSize() << " queued H.245 messages now");
-                        while (PASN_OctetString * h245msg = GetRemote()->GetNextQueuedH245Message()) {
+                        while (PASN_OctetString * h245msg = GetNextH245MessageQueuedByRemote()) {
                             if (!m_h245socket->Send(*h245msg)) {
                                 PTRACE(1, "H245\tError: Sending queued message failed");
                             }
@@ -12187,7 +12207,10 @@ void H245Socket::ConnectTo()
 	if (remote->Accept(*listener)) {
         remote->SetConnected(true);
         GetHandler()->Insert(remote);
-        if (sigSocket && sigSocket->GetH245MessageQueueSize() > 0) {
+        m_signalingSocketMutex.Wait();
+        bool hasQueuedMessages = sigSocket && sigSocket->GetH245MessageQueueSize() > 0;
+        m_signalingSocketMutex.Signal();
+        if (hasQueuedMessages) {
 	    	// H.245 connect for tunneling leg - must be mixed mode
 		    H245Socket * remoteH245Socket = dynamic_cast<H245Socket *>(remote);
 	    	if (remoteH245Socket) {
@@ -12197,13 +12220,7 @@ void H245Socket::ConnectTo()
 		    	GetHandler()->Insert(this, remote);
 			    ConfigReloadMutex.EndRead();
 				// send all queued H.245 messages now
-				PTRACE(3, "H245\tSending " << sigSocket->GetH245MessageQueueSize() << " queued H.245 messages now");
-				while (PASN_OctetString * h245msg = sigSocket->GetNextQueuedH245Message()) {
-					if (!remoteH245Socket->Send(*h245msg)) {
-						PTRACE(1, "H245\tError: Sending queued message failed");
-					}
-					delete h245msg;
-				}
+				SendQueuedH245Messages(remoteH245Socket, false);
 			}
 			return;
 		}
@@ -12532,6 +12549,31 @@ bool H245Socket::Send(const PASN_OctetString & octets)
 	return Send(h245msg);
 }
 
+// send the H.245 messages queued on our signaling socket or on its remote to dest
+void H245Socket::SendQueuedH245Messages(H245Socket * dest, bool queuedByRemote)
+{
+	bool first = true;
+	for (;;) {
+		// sending may take a while and the signaling sockets can be closed and deleted meanwhile,
+		// so fetch every message under the lock and stop when OnSignalingChannelClosed() was called
+		PASN_OctetString * h245msg = NULL;
+		m_signalingSocketMutex.Wait();
+		if (sigSocket)
+			h245msg = queuedByRemote ? sigSocket->GetNextH245MessageQueuedByRemote() : sigSocket->GetNextQueuedH245Message();
+		m_signalingSocketMutex.Signal();
+		if (!h245msg)
+			break;
+		if (first) {
+			PTRACE(3, "H245\tSending queued H.245 messages now");
+			first = false;
+		}
+		if (!dest->Send(*h245msg)) {
+			PTRACE(1, "H245\tError: Sending queued message failed");
+		}
+		delete h245msg;
+	}
+}
+
 #ifdef LARGE_FDSET
 bool H245Socket::Accept(YaTCPSocket & socket)
 #else
@@ -12620,16 +12662,8 @@ bool H245Socket::ConnectRemote()
 			}
 #endif
 
-            if (sigSocket && sigSocket->GetRemote() && sigSocket->GetRemote()->GetH245MessageQueueSize() > 0) {
-				// send all queued H.245 messages now
-				PTRACE(3, "H245\tSending " << sigSocket->GetRemote()->GetH245MessageQueueSize() << " queued H.245 messages now");
-				while (PASN_OctetString * h245msg = sigSocket->GetRemote()->GetNextQueuedH245Message()) {
-					if (!Send(*h245msg)) {
-						PTRACE(1, "H245\tError: Sending queued message failed");
-					}
-					delete h245msg;
-				}
-			}
+			// send all queued H.245 messages now
+			SendQueuedH245Messages(this, true);
 			return true;
 		}
 		int errorNumber = GetErrorNumber(PSocket::LastGeneralError);
@@ -12748,15 +12782,7 @@ bool NATH245Socket::ConnectRemote()
 
     if (result) {
         SetConnected(true); // set socket to connected state so we can send queued messages now
-        if (sigSocket && sigSocket->GetRemote() && sigSocket->GetRemote()->GetH245MessageQueueSize() > 0) {
-            PTRACE(3, "H245\tSending " << sigSocket->GetRemote()->GetH245MessageQueueSize() << " queued H.245 messages now");
-            while (PASN_OctetString * h245msg = sigSocket->GetRemote()->GetNextQueuedH245Message()) {
-                if (!Send(*h245msg)) {
-                    PTRACE(1, "H245\tError: Sending queued message failed");
-                }
-                delete h245msg;
-            }
-        }
+        SendQueuedH245Messages(this, true);
     }
 
 	return result;

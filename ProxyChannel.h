@@ -370,9 +370,10 @@ public:
 
 	bool IsH245Tunneling() const { return m_h245Tunneling; }
 	bool IsH245TunnelingTranslation() const { return m_h245TunnelingTranslation; }
-	void QueueH245Message(PASN_OctetString & msg) { m_h245Queue.push(msg); }
+	void QueueH245Message(PASN_OctetString & msg) { PWaitAndSignal lock(m_h245QueueMutex); m_h245Queue.push(msg); }
 	PASN_OctetString * GetNextQueuedH245Message();
-	unsigned GetH245MessageQueueSize() const { return m_h245Queue.size(); }
+	PASN_OctetString * GetNextH245MessageQueuedByRemote();
+	unsigned GetH245MessageQueueSize() const { PWaitAndSignal lock(m_h245QueueMutex); return m_h245Queue.size(); }
 	bool HandleH245Mesg(PPER_Stream &, bool & suppress, H245Socket * h245sock = NULL);
 	void SendPostDialDigits();
 	void OnH245ChannelClosed() { m_h245socket = NULL; }
@@ -613,6 +614,8 @@ private:
 	bool m_h245Tunneling;
 	bool m_h245TunnelingTranslation;
 	std::queue<PASN_OctetString> m_h245Queue;
+	/// protects the H.245 message queues and keeps the remote socket from being deleted while its queue is read
+	static PMutex m_h245QueueMutex;
 	bool m_isnatsocket;
 	bool m_maintainConnection;	// eg. for H.460.17
 	Result m_result;
