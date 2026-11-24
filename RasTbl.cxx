@@ -5279,7 +5279,7 @@ CallSignalSocket * CallRec::H46024BSignalSocket(bool response)
 
 	// If the calling party is symmetric then the probing
 	// is done in reverse
-	bool callerIsSymmetric = (m_Calling->GetEPNATType() > 5);
+	bool callerIsSymmetric = (m_Calling && m_Calling->GetEPNATType() > 5);
 	if (!response)
 		return (callerIsSymmetric ? GetCallSignalSocketCalled() :  GetCallSignalSocketCalling());
 	else
@@ -5309,12 +5309,20 @@ void CallRec::H46024BInitiate(WORD sessionID, const IPAndPortAddress & fwd, cons
 
 	PTRACE(5, "H46024B\tNAT offload probes S:" << sessionID << " F:" << fwd << " R:" << rev << " mux " << muxID_fwd << " " << muxID_rev);
 
+	// we are called from the RTP thread: the signaling sockets are removed when the call ends (or is rerouted),
+	// but the RTP sockets stay open until SocketCleanupTimeout and may still receive packets
+	CallSignalSocket * calledSocket = GetCallSignalSocketCalled();
+	if (!calledSocket) {
+		PTRACE(4, "H46024B\tSession " << sessionID << " no NAT offload probe: signaling socket is gone");
+		return;
+	}
+
     PIPSocket::Address addr = rev.GetIP();
-    bool revDir = (GetCallSignalSocketCalled()->GetPeerAddr() == addr);
+    bool revDir = (calledSocket->GetPeerAddr() == addr);
 	//PTRACE(1, "H46024B\tNAT offload probe " << GetCallSignalSocketCalled()->GetPeerAddr() << " " << addr << " " << revDir);
 
 	H46024Balternate alt;
-	bool callerIsSymmetric = (m_Calling->GetEPNATType() > 5);
+	bool callerIsSymmetric = (m_Calling && m_Calling->GetEPNATType() > 5);
 	if (!callerIsSymmetric && !revDir) {
 		fwd.SetPDU(alt.reverse);
 		alt.multiplexID_fwd = muxID_rev;
