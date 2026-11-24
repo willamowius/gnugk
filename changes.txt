@@ -1,5 +1,8 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(RasSrv.cxx) use TLS to pick up H.460.18 calls from a traversal zone neighbor with UseTLS=1
+  or H.460.22 in the SCI, honor UseTLS=1 for calls from the parent
+- BUGFIX(gksql_firebird.cxx) fix leak in Firebird driver
 - BUGFIX(RasTbl.*,ProxyChannel.cxx) better clean up and CDR for calls terminated by RTPInactivityCheck
 - BUGFIX(Routing.*,Neighbor.cxx) limit time and number of DNS lookups the dns, srv, rds and enum policies do
 - BUGFIX(ProxyChannel.*) fix H.460.17 socket leak

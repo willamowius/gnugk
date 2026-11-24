@@ -109,6 +109,28 @@ PString XSQLVARToPString(XSQLVAR *sqlvar)
 	}
 }
 
+/** Free the statement and end the transaction of a query. This must be done
+	before the connection is given back to the pool or closed: Firebird refuses
+	to detach from a database with open transactions and the connection would
+	never be closed.
+*/
+void FinishQuery(isc_tr_handle & tr, isc_stmt_handle & stmt, bool commit)
+{
+	ISC_STATUS status[20];
+
+	if (stmt != 0L)
+		(*g_isc_dsql_free_statement)(status, &stmt, DSQL_drop);
+	stmt = 0L;
+	if (tr != 0L) {
+		if (commit)
+			(*g_isc_commit_transaction)(status, &tr);
+		// a transaction that can't be committed stays open
+		if (!commit || (status[0] == 1 && status[1] != 0))
+			(*g_isc_rollback_transaction)(status, &tr);
+	}
+	tr = 0L;
+}
+
 } // end of namespace
 
 /** Class that encapsulates SQL query result for Firebird backend.
@@ -303,6 +325,9 @@ GkIBSQLResult::GkIBSQLResult(
 			FetchNumRowsAffected();
 	} else
 		m_queryError = true;
+	// all rows have been read: don't keep the transaction open until the result is deleted,
+	// the connection may be used or closed by another thread before that
+	FinishQuery(m_tr, m_stmt, !m_queryError);
 }
 
 GkIBSQLResult::GkIBSQLResult(
@@ -616,8 +641,9 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 		} else {
 			(*g_isc_sql_interprete)(static_cast<short>(errorcode), errormsg, FB_BUFF_SIZE);
 		}
+		FinishQuery(tr, stmt, false);
 		Disconnect();
-		return new GkIBSQLResult(errorcode, errormsg, tr);
+		return new GkIBSQLResult(errorcode, errormsg);
 	}
 
 	int numcols = 1;
@@ -638,8 +664,9 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 		}
 		delete [] reinterpret_cast<char*>(result);
 		result = NULL;
+		FinishQuery(tr, stmt, false);
 		Disconnect();
-		return new GkIBSQLResult(errorcode, errormsg, tr, stmt);
+		return new GkIBSQLResult(errorcode, errormsg);
 	}
 
 	if (result->sqld > result->sqln) {
@@ -662,8 +689,9 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 			}
 			delete [] reinterpret_cast<char*>(result);
 			result = NULL;
+			FinishQuery(tr, stmt, false);
 			Disconnect();
-			return new GkIBSQLResult(errorcode, errormsg, tr, stmt);
+			return new GkIBSQLResult(errorcode, errormsg);
 		}
 	}
 
@@ -679,8 +707,9 @@ GkSQLResult* GkIBSQLConnection::ExecuteQuery(
 		}
 		delete [] reinterpret_cast<char*>(result);
 		result = NULL;
+		FinishQuery(tr, stmt, false);
 		Disconnect();
-		return new GkIBSQLResult(errorcode, errormsg, tr, stmt);
+		return new GkIBSQLResult(errorcode, errormsg);
 	}
 
 	return new GkIBSQLResult(tr, stmt, result);

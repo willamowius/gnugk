@@ -4915,13 +4915,28 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 #ifdef HAS_H46018
 	bool incomingCall = false;
 
+	// find the neighbor this comes from
+	NeighborList::List & neighbors = *RasServer::Instance()->GetNeighbors();
+#if (__cplusplus >= 201703L) // C++17
+	NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind(mem_fn(&Neighbors::Neighbor::IsFrom), std::placeholders::_1, &m_msg->m_peerAddr));
+#else
+	NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind2nd(mem_fun(&Neighbors::Neighbor::IsFrom), &m_msg->m_peerAddr));
+#endif
+	Neighbors::Neighbor * from_neighbor = NULL;
+	bool neighbor_authenticated = true;
+	if (iter != neighbors.end())
+		from_neighbor = (*iter);
+	// check the password, if set
+	if (from_neighbor)
+		neighbor_authenticated = from_neighbor->Authenticate(this);
+
 	// check if its from parent
 	GkClient * gkClient = RasServer::Instance()->GetGkClient();
 	bool fromParent = gkClient && gkClient->IsRegistered() && gkClient->UsesH46018() && gkClient->CheckFrom(m_msg->m_peerAddr);
 	bool useTLS = false;
 	H323TransportAddress tlsAddr;
-	if (fromParent) {
-		// check H.460.22 indicator from parent
+	if (fromParent || (from_neighbor && neighbor_authenticated)) {
+		// check H.460.22 indicator from parent or neighbor
 		if (request.HasOptionalField(H225_ServiceControlIndication::e_genericData)) {
 			H460_FeatureSet fs = H460_FeatureSet(request.m_genericData);
 			if (fs.HasFeature(22)) {	// supports H.460.22
@@ -4940,22 +4955,10 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 				}
 			}
 		}
+		// UseTLS=1 for the parent or neighbor forces TLS, even if the SCI comes without H.460.22 indicator
+		if ((fromParent && gkClient->UseTLS()) || (from_neighbor && neighbor_authenticated && from_neighbor->UseTLS()))
+			useTLS = true;
 	}
-
-	// find the neighbor this comes from
-	NeighborList::List & neighbors = *RasServer::Instance()->GetNeighbors();
-#if (__cplusplus >= 201703L) // C++17
-	NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind(mem_fn(&Neighbors::Neighbor::IsFrom), std::placeholders::_1, &m_msg->m_peerAddr));
-#else
-	NeighborList::List::iterator iter = find_if(neighbors.begin(), neighbors.end(), bind2nd(mem_fun(&Neighbors::Neighbor::IsFrom), &m_msg->m_peerAddr));
-#endif
-	Neighbors::Neighbor * from_neighbor = NULL;
-	bool neighbor_authenticated = true;
-	if (iter != neighbors.end())
-		from_neighbor = (*iter);
-	// check the password, if set
-	if (from_neighbor)
-		neighbor_authenticated = from_neighbor->Authenticate(this);
 
 	// accept incomingIndication from neighbor without an entry in supportedFeatures
 	if (request.HasOptionalField(H225_ServiceControlIndication::e_genericData)
@@ -4977,7 +4980,13 @@ template<> bool RasPDU<H225_ServiceControlIndication>::Process()
 #ifdef HAS_TLS
 						if (Toolkit::Instance()->IsTLSEnabled() && useTLS) {
 							outgoingSocket = new TLSCallSignalSocket();
-							sigAddr = H323ToH225TransportAddress(tlsAddr);
+							PIPSocket::Address tlsIP;
+							if (tlsAddr.GetIpAddress(tlsIP) && !tlsIP.IsAny()) {
+								sigAddr = H323ToH225TransportAddress(tlsAddr);
+							} else {
+								// if we didn't get a TLS address via H.460.22 use the well known port
+								SetH225Port(sigAddr, GK_DEF_TLS_CALL_SIGNAL_PORT);
+							}
 						} else
 #endif // HAS_TLS
 						{
