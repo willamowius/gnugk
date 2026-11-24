@@ -124,6 +124,8 @@ void Addpasswd::Main()
         encryptedPassword = Encrypt(key, password, paddingByte);
     }
 	cout << "Setting: " << key << "=" << encryptedPassword << endl;
+	// an existing key would keep its old spelling, but the password is encrypted with the new one
+	config.DeleteKey(key);
 	config.SetString(key, encryptedPassword);
 }
 

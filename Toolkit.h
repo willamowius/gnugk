@@ -683,13 +683,17 @@ class Toolkit : public Singleton<Toolkit>
 	    specified by the 'KeyFilled' config variable, if it is found
 	    in the given config section, or a global padding byte.
 
+	    With forceEncrypted the key is a user name sent by the remote side
+	    and must be spelled exactly like in the config (the config lookup
+	    ignores case, the decryption key doesn't).
+
 	    @return
 	    A decrypted password or an empty string, if the given key is missing.
 	*/
 	PString ReadPassword(
 		const PString & cfgSection, /// config section to read
 		const PString & cfgKey, /// config key to read an encrypted password from
-		bool forceEncrypted = false /// decrypt even if no KeyFilled is present
+		bool forceEncrypted = false /// decrypt even if no KeyFilled is present, key is case-sensitive
 		);
 
 	/// Inbound rewrite for ANI/CLI

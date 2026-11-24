@@ -101,8 +101,8 @@ def test_token_coverage_warning(start_gk, workdir, rule, authenticators, expecte
 @pytest.mark.parametrize("compare_case,registers", [
     pytest.param("1", False, id="case-sensitive"),
     pytest.param("0", True, id="case-insensitive", marks=pytest.mark.xfail(strict=True, reason=(
-        "the config lookup of the password ignores case and finds 'alice', but SimplePasswordAuth decodes it with the "
-        "alias as sent ('Alice'), which fails ('Failed to decode config password'); with CompareAliasCase=1 'Alice' is "
+        "the config lookup of the password ignores case and finds 'alice', but the entry is encrypted with the alias "
+        "as spelled in the config and ReadPassword() only reads it for that spelling; with CompareAliasCase=1 'Alice' is "
         "rejected only because of that"))),
 ])
 def test_password_alias_case(start_gk, workdir, tokens, compare_case, registers):

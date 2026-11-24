@@ -4219,6 +4219,21 @@ PString Toolkit::ReadPassword(
 	if (!cfg->HasKey(cfgSection, cfgKey))
 		return PString::Empty();
 
+	if (forceEncrypted) {
+		// the key is a user name sent by the remote side: the config lookup ignores case,
+		// but the key name is also the decryption key, so only accept the spelling
+		// the password has been encrypted with (any other would decrypt to a different password)
+		const PStringArray keys = cfg->GetKeys(cfgSection);
+		PINDEX i = 0;
+		// the first key that matches is the one GetString() reads
+		while (i < keys.GetSize() && strcasecmp(keys[i], cfgKey) != 0)
+			++i;
+		if (i >= keys.GetSize() || strcmp(keys[i], cfgKey) != 0) {
+			PTRACE(3, "GK\tNo config password for [" << cfgSection << "] => " << cfgKey << ": spelling differs from the config");
+			return PString::Empty();
+		}
+	}
+
 	int paddingByte = m_encKeyPaddingByte;
 	if (cfg->HasKey(cfgSection, paddingByteConfigKey)) {
 		paddingByte = cfg->GetInteger(cfgSection, paddingByteConfigKey, 0);
