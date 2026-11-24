@@ -3007,7 +3007,7 @@ CallRec::CallRec(
 	m_callerAudioIP(GNUGK_INADDR_ANY), m_calledAudioIP(GNUGK_INADDR_ANY), m_callerVideoIP(GNUGK_INADDR_ANY), m_calledVideoIP(GNUGK_INADDR_ANY),
 	m_callerH239IP(GNUGK_INADDR_ANY), m_calledH239IP(GNUGK_INADDR_ANY),
 	m_callerAudioPort(0), m_calledAudioPort(0), m_callerVideoPort(0), m_calledVideoPort(0), m_callerH239Port(0), m_calledH239Port(0),
-	m_H239SessionID(0), m_proceedingSent(false),
+	m_H239SessionID(0), m_proceedingSent(false), m_rtpInactivityDetected(false),
 	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalClient(false), m_callfromTraversalServer(false),
 	m_rerouteDirection(Caller), m_connectWithTLS(false)
 #ifdef HAS_H235_MEDIA
@@ -3076,7 +3076,7 @@ CallRec::CallRec(
 	m_callerAudioIP(GNUGK_INADDR_ANY), m_calledAudioIP(GNUGK_INADDR_ANY), m_callerVideoIP(GNUGK_INADDR_ANY), m_calledVideoIP(GNUGK_INADDR_ANY),
 	m_callerH239IP(GNUGK_INADDR_ANY), m_calledH239IP(GNUGK_INADDR_ANY),
     m_callerAudioPort(0), m_calledAudioPort(0), m_callerVideoPort(0), m_calledVideoPort(0), m_callerH239Port(0), m_calledH239Port(0),
-	m_H239SessionID(0), m_proceedingSent(false),
+	m_H239SessionID(0), m_proceedingSent(false), m_rtpInactivityDetected(false),
 	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(false), m_callfromTraversalClient(false), m_callfromTraversalServer(false),
 	m_rerouteDirection(Caller), m_connectWithTLS(false)
 #ifdef HAS_H235_MEDIA
@@ -3137,7 +3137,7 @@ CallRec::CallRec(const H225_CallIdentifier & callID, H225_TransportAddress sigAd
 	m_callerAudioIP(GNUGK_INADDR_ANY), m_calledAudioIP(GNUGK_INADDR_ANY), m_callerVideoIP(GNUGK_INADDR_ANY), m_calledVideoIP(GNUGK_INADDR_ANY),
 	m_callerH239IP(GNUGK_INADDR_ANY), m_calledH239IP(GNUGK_INADDR_ANY),
     m_callerAudioPort(0), m_calledAudioPort(0), m_callerVideoPort(0), m_calledVideoPort(0), m_callerH239Port(0), m_calledH239Port(0),
-	m_H239SessionID(0), m_proceedingSent(false),
+	m_H239SessionID(0), m_proceedingSent(false), m_rtpInactivityDetected(false),
 	m_clientAuthId(0), m_rerouteState(NoReroute), m_h46018ReverseSetup(true), m_callfromTraversalClient(true), m_callfromTraversalServer(false),
 	m_rerouteDirection(Caller), m_connectWithTLS(false)
 #ifdef HAS_H235_MEDIA
@@ -3208,7 +3208,7 @@ CallRec::CallRec(
     m_callerAudioPort(oldCall->m_callerAudioPort), m_calledAudioPort(oldCall->m_calledAudioPort),
     m_callerVideoPort(oldCall->m_callerVideoPort), m_calledVideoPort(oldCall->m_calledVideoPort),
     m_callerH239Port(oldCall->m_callerH239Port), m_calledH239Port(oldCall->m_calledH239Port),
-	m_H239SessionID(oldCall->m_H239SessionID), m_proceedingSent(oldCall->m_proceedingSent),
+	m_H239SessionID(oldCall->m_H239SessionID), m_proceedingSent(oldCall->m_proceedingSent), m_rtpInactivityDetected(false),
 #if HAS_H46018
 	m_ignoreSignaledIPs(oldCall->m_ignoreSignaledIPs),
 #endif
@@ -5895,6 +5895,7 @@ void CallTable::ClearTable()
 void CallTable::CheckCalls(RasServer * rassrv)
 {
 	std::list<callptr> m_callsToDisconnect;
+	std::list<callptr> m_inactiveCalls;
 	std::list<callptr> m_callsToUpdate;
 	time_t now = time(NULL);
 
@@ -5904,6 +5905,8 @@ void CallTable::CheckCalls(RasServer * rassrv)
 		while (Iter != eIter) {
 			if ((*Iter)->IsTimeout(now))
 				m_callsToDisconnect.push_back(callptr(*Iter));
+			else if ((*Iter)->IsRTPInactivityDetected())
+				m_inactiveCalls.push_back(callptr(*Iter));
 			else if (m_acctUpdateInterval && (*Iter)->IsConnected()) {
 				if ((now - (*Iter)->GetLastAcctUpdateTime()) >= m_acctUpdateInterval)
 					m_callsToUpdate.push_back(callptr(*Iter));
@@ -5941,6 +5944,18 @@ void CallTable::CheckCalls(RasServer * rassrv)
 		++call;
 	}
 
+	// calls marked by the RTP inactivity checks: once their sockets are dropped nothing else removes them,
+	// so remove them here (CDR, accounting stop, endpoint capacity and bandwidth)
+	call = m_inactiveCalls.begin();
+	while (call != m_inactiveCalls.end()) {
+		(*call)->SetReleaseSource(CallRec::ReleasedByGatekeeper);
+		if ((*call)->GetDisconnectCause() == 0)
+			(*call)->SetDisconnectCause(Q931::NormalUnspecified);
+		(*call)->Disconnect(true);	// sends ReleaseComplete to both parties
+		RemoveCall((*call));
+		++call;
+	}
+
 	call = m_callsToUpdate.begin();
 	while (call != m_callsToUpdate.end()) {
 		if ((*call)->IsConnected())
@@ -5955,7 +5970,7 @@ void CallTable::CheckRTPInactive()
     for (iterator iter = CallList.begin(); iter != CallList.end(); ++iter) {
         if (m_inactivityCheck && (*iter)->IsRTPInactive(m_inactivityCheckSession)) {
             PTRACE(1, "CallTable\tTerminating call because of RTP inactivity CallID " << AsString((*iter)->GetCallIdentifier()));
-            (*iter)->Disconnect(true);
+            (*iter)->SetRTPInactivityDetected();    // CheckCalls() disconnects the call and removes it from the table
         }
     }
 }

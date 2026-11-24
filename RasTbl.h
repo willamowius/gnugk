@@ -1529,6 +1529,9 @@ public:
 #endif
 
     bool IsRTPInactive(short session) const;
+    // mark a call with stopped RTP: CallTable::CheckCalls() terminates it and removes it from the call table
+    void SetRTPInactivityDetected() { m_rtpInactivityDetected = true; }
+    bool IsRTPInactivityDetected() const { return m_rtpInactivityDetected; }
     void AbortLogicalChannel(short session);
 
     // which gatekeeper IP to use for sending to endpoint IP
@@ -1765,6 +1768,7 @@ private:
 
 	PBYTEArray m_radiusClass;
 	bool m_proceedingSent;
+	bool m_rtpInactivityDetected;	// set by the RTP inactivity check, the call is terminated by CallTable::CheckCalls()
 #ifdef HAS_H46018
 	/// processed Setup data ready to be sent to the callee (for H.460.18)
 	PBYTEArray m_processedSetup;

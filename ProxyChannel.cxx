@@ -13939,8 +13939,8 @@ void MultiplexedRTPHandler::SessionCleanup(GkTimer* /* timer */)
 		if (iter->m_deleted && (now - iter->m_deleteTime > m_deleteDelay)) {
 			m_h46019channels.erase(iter++);
 		} else {
-            // inactivity check
-            if (m_inactivityCheck && iter->m_session == m_inactivityCheckSession) {
+            // inactivity check (the call of a session marked as deleted is already gone)
+            if (m_inactivityCheck && !iter->m_deleted && iter->m_session == m_inactivityCheckSession) {
                 bool terminate = false;
                 if (iter->m_multiplexID_fromA != INVALID_MULTIPLEX_ID && (now - iter->m_lastPacketFromA > m_inactivityTimeout) ) {
                     PTRACE(1, "RTPM\tTerminating call because of RTP inactivity from " << iter->m_addrA << " CallNo " << iter->m_callno);
@@ -13953,7 +13953,9 @@ void MultiplexedRTPHandler::SessionCleanup(GkTimer* /* timer */)
                 if (terminate) {
                     callptr call = CallTable::Instance()->FindCallRec(iter->m_callno);
                     if (call) {
-                        call->Disconnect(true);
+                        // we are called from within CheckTimers() and must not remove the call here (that would
+                        // unregister its keep-alive timers): CallTable::CheckCalls() disconnects and removes it
+                        call->SetRTPInactivityDetected();
                     } else {
                         PTRACE(1, "RTPM\tError: Can't find call to terminate");
                     }

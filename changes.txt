@@ -1,5 +1,6 @@
 Changes from 5.17 to 5.18
 =========================
+- BUGFIX(RasTbl.*,ProxyChannel.cxx) better clean up and CDR for calls terminated by RTPInactivityCheck
 - BUGFIX(Routing.*,Neighbor.cxx) limit time and number of DNS lookups the dns, srv, rds and enum policies do
 - BUGFIX(ProxyChannel.*) fix H.460.17 socket leak
 - BUGFIX(Neighbor.cxx) fix hop count to CiscoGk neighbors
