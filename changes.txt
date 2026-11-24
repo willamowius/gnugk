@@ -9,6 +9,7 @@ Changes from 5.17 to 5.18
 - apply ReadTimeout= and ConnectTimeout= to PostgreSQL queries and connects
 - drop calls when a configured Auth or Acct rules isn't available, eg. not compiled in
 
+- BUGFIX(GkClient.cxx) protect the list of alternate gatekeepers of the parent with a mutex
 - BUGFIX(*) make sure user names for [GkStatus::Auth] must use the correct capitalization as entered in addpasswd
   [SimplePasswordAuth] IDs follow CompareAliasCase=
 - BUGFIX(Routing.cxx) ENUM policy used the first alias instead of the converted one to check the gateway destination

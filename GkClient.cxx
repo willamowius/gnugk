@@ -93,6 +93,7 @@ private:
 	GKList::iterator index;
 	PIPSocket::Address pgkaddr;
 	WORD pgkport;
+	PMutex listMutex;	// the list is set and read from the threads of all requests to the parent
 };
 
 AlternateGKs::AlternateGKs(const PIPSocket::Address & gkaddr, WORD gkport)
@@ -102,6 +103,7 @@ AlternateGKs::AlternateGKs(const PIPSocket::Address & gkaddr, WORD gkport)
 
 void AlternateGKs::Set(const H225_AlternateGK & agk)
 {
+	PWaitAndSignal lock(listMutex);
 	AltGKs.clear();
 	AltGKs.insert(make_pair(int(agk.m_priority), agk.m_rasAddress));
 	index = AltGKs.begin();
@@ -109,6 +111,7 @@ void AlternateGKs::Set(const H225_AlternateGK & agk)
 
 void AlternateGKs::Set(const H225_ArrayOf_AlternateGK & agk)
 {
+	PWaitAndSignal lock(listMutex);
 	AltGKs.clear();
 	for (PINDEX i = 0; i < agk.GetSize(); ++i) {
 		const H225_AlternateGK & gk = agk[i];
@@ -125,12 +128,14 @@ void AlternateGKs::Set(const PString & addr)
 		H323TransportAddress taddr(gkaddr, gkport);
 		H225_TransportAddress haddr;
 		taddr.SetPDU(haddr);
+		PWaitAndSignal lock(listMutex);
 		AltGKs.insert(make_pair(AltGKs.size()+1, haddr));
 	}
 }
 
 bool AlternateGKs::Get(PIPSocket::Address & gkaddr, WORD & gkport)
 {
+	PWaitAndSignal lock(listMutex);	// recursive, we call ourselves below
 	if (!AltGKs.empty()) {
 		if (index == AltGKs.end()) {
 			index = AltGKs.begin();
