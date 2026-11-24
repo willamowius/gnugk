@@ -459,7 +459,7 @@ class Toolkit : public Singleton<Toolkit>
 
 	bool RewritePString(PString & s) const { return m_Rewrite.RewritePString(s); }
 
-	// Class to allow correct use of STL inside PDictionary type
+	// in (first) and out (second) rewrite rules of one gateway
 	class GWRewriteEntry : public PObject {
 		PCLASSINFO(GWRewriteEntry, PObject);
 		public:
@@ -471,16 +471,16 @@ class Toolkit : public Singleton<Toolkit>
 	class GWRewriteTool {
 		public:
 
-			GWRewriteTool() {
-				m_GWRewrite.AllowDeleteObjects(false);
-			}
+			GWRewriteTool() { }
 			~GWRewriteTool();
 			void LoadConfig(PConfig *);
 			void PrintData();
 			bool RewritePString(const PString & gw, bool direction, PString & data, callptr call);
 
 		private:
-			PDictionary<PString, GWRewriteEntry> m_GWRewrite;
+			// the lookup key comes from the network, so don't use a PDictionary here:
+			// PString::HashFunction() can return a negative bucket index for some strings
+			std::map<PString, GWRewriteEntry> m_GWRewrite;
 
 	};
 

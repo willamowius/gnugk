@@ -1058,24 +1058,21 @@ static const char *GWRewriteSection = "RasSrv::GWRewriteE164";
 
 Toolkit::GWRewriteTool::~GWRewriteTool()
 {
-	for (PINDEX i = 0; i < m_GWRewrite.GetSize(); ++i) {
-		delete &(m_GWRewrite.GetDataAt(i));
-	}
-	m_GWRewrite.RemoveAll();
+	m_GWRewrite.clear();
 }
 
 bool Toolkit::GWRewriteTool::RewritePString(const PString & gw, bool direction, PString & data, callptr call)
 {
-	// First lookup the GW in the dictionary
-	GWRewriteEntry * gw_entry = m_GWRewrite.GetAt(gw);
+	// First lookup the GW in the map
+	std::map<PString, GWRewriteEntry>::iterator gw_entry = m_GWRewrite.find(gw);
 
-	if (gw_entry == NULL)
+	if (gw_entry == m_GWRewrite.end())
 		return false;
 
 	std::vector<pair<PString, PString> >::iterator rule_iterator = direction
-		? gw_entry->m_entry_data.first.begin() : gw_entry->m_entry_data.second.begin();
+		? gw_entry->second.m_entry_data.first.begin() : gw_entry->second.m_entry_data.second.begin();
 	std::vector<pair<PString, PString> >::iterator end_iterator = direction
-		? gw_entry->m_entry_data.first.end() : gw_entry->m_entry_data.second.end();
+		? gw_entry->second.m_entry_data.first.end() : gw_entry->second.m_entry_data.second.end();
 
 	PString key, value;
 	for (; rule_iterator != end_iterator; ++rule_iterator) {
@@ -1123,25 +1120,25 @@ void Toolkit::GWRewriteTool::PrintData()
 
 	PTRACE(2, "GK\tLoaded per GW rewrite data:");
 
-	if (m_GWRewrite.GetSize() == 0) {
+	if (m_GWRewrite.empty()) {
 		PTRACE(2, "GK\tNo per GW data loaded");
 		return;
 	}
 
-	if (PTrace::CanTrace(3) && (m_GWRewrite.GetSize() < 100)) {
-		for (PINDEX i = 0; i < m_GWRewrite.GetSize(); ++i) {
+	if (PTrace::CanTrace(3) && (m_GWRewrite.size() < 100)) {
+		for (std::map<PString, GWRewriteEntry>::iterator gw = m_GWRewrite.begin(); gw != m_GWRewrite.end(); ++gw) {
 			// In
-			for (rule_iterator = m_GWRewrite.GetDataAt(i).m_entry_data.first.begin(); rule_iterator != m_GWRewrite.GetDataAt(i).m_entry_data.first.end(); ++rule_iterator) {
-				PTRACE(3, "GK\t" << m_GWRewrite.GetKeyAt(i) << " (in): " << (*rule_iterator).first << " = " << (*rule_iterator).second);
+			for (rule_iterator = gw->second.m_entry_data.first.begin(); rule_iterator != gw->second.m_entry_data.first.end(); ++rule_iterator) {
+				PTRACE(3, "GK\t" << gw->first << " (in): " << (*rule_iterator).first << " = " << (*rule_iterator).second);
 			}
 
 			// Out
-			for (rule_iterator = m_GWRewrite.GetDataAt(i).m_entry_data.second.begin(); rule_iterator != m_GWRewrite.GetDataAt(i).m_entry_data.second.end(); ++rule_iterator) {
-				PTRACE(3, "GK\t" << m_GWRewrite.GetKeyAt(i) << " (out): " << (*rule_iterator).first << " = " << (*rule_iterator).second);
+			for (rule_iterator = gw->second.m_entry_data.second.begin(); rule_iterator != gw->second.m_entry_data.second.end(); ++rule_iterator) {
+				PTRACE(3, "GK\t" << gw->first << " (out): " << (*rule_iterator).first << " = " << (*rule_iterator).second);
 			}
 		}
 	}
-	PTRACE(2, "GK\tLoaded " << m_GWRewrite.GetSize() << " GW entries with rewrite info");
+	PTRACE(2, "GK\tLoaded " << m_GWRewrite.size() << " GW entries with rewrite info");
 }
 
 
@@ -1155,10 +1152,7 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig * config)
 	PStringToString cfgs(config->GetAllKeyValues(GWRewriteSection));
 
 	// Clear old config
-	for (PINDEX i = 0; i < m_GWRewrite.GetSize(); ++i) {
-		delete &(m_GWRewrite.GetDataAt(i));
-	}
-	m_GWRewrite.RemoveAll();
+	m_GWRewrite.clear();
 
 	PINDEX gw_size = cfgs.GetSize();
 	if (gw_size > 0) {
@@ -1209,13 +1203,10 @@ void Toolkit::GWRewriteTool::LoadConfig(PConfig * config)
 				sorted_out_strings.push_back(rule);
 			}
 
-			// Create the entry
-			GWRewriteEntry * gw_entry = new GWRewriteEntry();
-			gw_entry->m_entry_data.first = sorted_in_strings;
-			gw_entry->m_entry_data.second = sorted_out_strings;
-
-			// Add to PDictionary hash table
-			m_GWRewrite.Insert(key, gw_entry);
+			// Create the entry and add it to the map
+			GWRewriteEntry & gw_entry = m_GWRewrite[key];
+			gw_entry.m_entry_data.first = sorted_in_strings;
+			gw_entry.m_entry_data.second = sorted_out_strings;
 		}
 	}
 
