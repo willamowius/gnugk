@@ -202,12 +202,15 @@ class StatusSession:
 
     def login_accepted(self, user, password):
         """one login attempt, password as raw bytes: True if the session is logged in, False if GnuGk asks again"""
-        self.read_until("login: ")
+        if not getattr(self, "at_login_prompt", False):
+            self.read_until("login: ")
+        self.at_login_prompt = False
         self.send(user)
         self.read_until("Password: ")
         self.sock.sendall(password + b"\r\n")
         try:
             self.read_until("login: ", timeout=2)	# rejected: asks again
+            self.at_login_prompt = True
             return False
         except TimeoutError:
             self.send("Statistics")
