@@ -387,19 +387,49 @@ def test_status_port_slow_reader(start_gk, workdir):
 
 def ssh_run(user, password, command, timeout=15, options=None):
     """log into the SSH status port from pub1 with sshpass + ssh, return (exit code, output);
-    options: extra ssh -o options, they override the defaults (eg. StrictHostKeyChecking)"""
+    password None: no sshpass (for public keys), options: extra ssh -o options, they override the defaults
+    (eg. StrictHostKeyChecking), a list as value repeats the option (eg. several IdentityFiles)"""
     opts = {"StrictHostKeyChecking": "no", "UserKnownHostsFile": "/dev/null", "LogLevel": "ERROR",
             "PubkeyAuthentication": "no", "PreferredAuthentications": "password,keyboard-interactive",
             "NumberOfPasswordPrompts": "1", "ConnectTimeout": "5"}
     opts.update(options or {})
-    args = ["ip", "netns", "exec", topology.ns("pub1"), "sshpass", "-p", password, "ssh", "-p", str(STATUS_PORT)]
-    for name, value in opts.items():
-        args += ["-o", "%s=%s" % (name, value)]
+    args = ["ip", "netns", "exec", topology.ns("pub1")]
+    if password is not None:
+        args += ["sshpass", "-p", password]
+    args += ["ssh", "-p", str(STATUS_PORT)]
+    for name, values in opts.items():
+        for value in (values if isinstance(values, list) else [values]):
+            args += ["-o", "%s=%s" % (name, value)]
     args.append("%s@%s" % (user, GK))
     if command is not None:
         args.append(command)
     done = subprocess.run(args, capture_output=True, text=True, timeout=timeout, input="")
     return done.returncode, done.stdout + done.stderr
+
+
+def ssh_key_run(user, keyfiles, command, timeout=15):
+    """log into the SSH status port with only these private keys (one file name or a list), no password"""
+    return ssh_run(user, None, command, timeout, options={
+        "PubkeyAuthentication": "yes", "PreferredAuthentications": "publickey", "IdentitiesOnly": "yes",
+        "IdentityFile": keyfiles if isinstance(keyfiles, list) else [keyfiles], "BatchMode": "yes",
+        "IdentityAgent": "none"})
+
+
+def ssh_client_key(workdir, name, keytype="ed25519"):
+    """generate (once) a client key pair, return the private key file (the public key is in file.pub)"""
+    keyfile = os.path.join(workdir, name)
+    if not os.path.exists(keyfile):
+        args = ["ssh-keygen", "-q", "-t", keytype, "-N", "", "-C", name + "@test", "-f", keyfile]
+        if keytype == "rsa":
+            args += ["-b", "3072"]
+        subprocess.run(args, check=True)
+    return keyfile
+
+
+def public_key(keyfile):
+    """the authorized_keys line of a key pair: 'type base64 comment'"""
+    with open(keyfile + ".pub") as f:
+        return f.read().strip()
 
 
 @pytest.fixture
@@ -535,6 +565,89 @@ def test_ssh_status_port_broken_ed25519_key(start_gk, workdir, ssh_tools):
     assert code != 0 and "Gatekeeper(GNU)" not in out, (code, out)
     assert gk.trace_count("No usable SSH host key found") >= 1
     assert gk.alive()
+
+
+def test_ssh_status_port_public_key(start_gk, workdir, ssh_tools):
+    """jan=ssh-ed25519 AAAA...: jan logs in with that key and nothing else (another key, a password, another
+    spelling of the name, another user with jan's key); password users still log in with their password, a broken
+    key entry is logged"""
+    jan = ssh_client_key(workdir, "jan")
+    other = ssh_client_key(workdir, "other")
+    gk = start_gk(ssh_config(workdir, jan=public_key(jan), broken="ssh-ed25519 not-base64 broken@test"))
+    gk.require("ssh")
+    code, out = ssh_key_run("jan", jan, "Version")
+    assert "Gatekeeper(GNU)" in out, (code, out)
+    assert gk.trace_count("User jan logged in with SSH public key") == 1
+    for user, keyfile in [("jan", other), ("JAN", jan), ("admin", jan), ("broken", jan), ("nobody", jan)]:
+        code, out = ssh_key_run(user, keyfile, "Version")
+        assert code != 0 and "Gatekeeper(GNU)" not in out, (user, keyfile, code, out)
+    assert gk.trace_count("Invalid SSH public key for user broken") >= 1
+    # a key user has no password: neither the key itself nor anything else works as one
+    for password in [public_key(jan), public_key(jan).split()[1], "secret", ""]:
+        code, out = ssh_run("jan", password, "Version")
+        assert code != 0 and "Gatekeeper(GNU)" not in out, (password, code, out)
+    assert gk.trace_count("User 'jan' has an SSH public key, no password login") >= 1
+    code, out = ssh_run("admin", "secret", "Version")
+    assert "Gatekeeper(GNU)" in out, (code, out)
+    assert gk.alive()
+
+
+def test_ssh_status_port_several_public_keys(start_gk, workdir, ssh_tools):
+    """an entry with several keys of different types, separated by ',': each of them logs in"""
+    keys = [ssh_client_key(workdir, "jan-rsa", "rsa"), ssh_client_key(workdir, "jan-ecdsa", "ecdsa"),
+            ssh_client_key(workdir, "jan-ed25519", "ed25519")]
+    gk = start_gk(ssh_config(workdir, jan=", ".join(public_key(k) for k in keys)))
+    gk.require("ssh")
+    for keyfile in keys:
+        code, out = ssh_key_run("jan", keyfile, "Version")
+        assert "Gatekeeper(GNU)" in out, (keyfile, code, out)
+    assert gk.trace_count("User jan logged in with SSH public key") == len(keys)
+
+
+def test_ssh_status_port_public_key_after_other_keys(start_gk, workdir, ssh_tools):
+    """a client that offers 5 unknown keys before the right one still gets in (like a full ssh-agent)"""
+    jan = ssh_client_key(workdir, "jan")
+    others = [ssh_client_key(workdir, "other%d" % i) for i in range(5)]
+    gk = start_gk(ssh_config(workdir, jan=public_key(jan)))
+    gk.require("ssh")
+    code, out = ssh_key_run("jan", others + [jan], "Version")
+    assert "Gatekeeper(GNU)" in out, (code, out)
+
+
+def test_ssh_status_port_no_public_key_users(start_gk, workdir, ssh_tools):
+    """without key users GnuGk doesn't offer public key authentication: a client with many keys goes straight to
+    the password and logs in, a key-only client is refused"""
+    keys = [ssh_client_key(workdir, "other%d" % i) for i in range(12)]
+    gk = start_gk(ssh_config(workdir))
+    gk.require("ssh")
+    code, out = ssh_run("admin", "secret", "Version", options={
+        "PubkeyAuthentication": "yes", "PreferredAuthentications": "publickey,password", "IdentitiesOnly": "yes",
+        "IdentityFile": keys, "IdentityAgent": "none"})
+    assert "Gatekeeper(GNU)" in out, (code, out)
+    code, out = ssh_key_run("admin", keys[0], "Version")
+    assert code != 0 and "Gatekeeper(GNU)" not in out, (code, out)
+
+
+def test_status_port_public_key_user_no_telnet_login(start_gk, workdir):
+    """on the telnet status port a user with an SSH public key can't log in: the key isn't decrypted and used as
+    a password (neither what it decrypts to nor the key text work)"""
+    from harness.gnugk import tea_decrypt
+    key = public_key(ssh_client_key(workdir, "jan"))
+    gk = start_gk({"GkStatus::Auth": {"rule": "password", "jan": key, "DelayReject": "0"}})
+    candidates = [key.encode(), key.split()[1].encode(), b"x"]
+    try:
+        decrypted = tea_decrypt(key.split()[1], "jan")
+    except Exception:
+        decrypted = None
+    if decrypted:
+        candidates.append(decrypted)
+    for password in candidates:	# one connection each: GnuGk closes it after 3 failed logins
+        session = StatusSession()
+        try:
+            assert not session.login_accepted("jan", password), password
+        finally:
+            session.close()
+    assert gk.trace_count("User 'jan' has an SSH public key, no password login") >= len(candidates)
 
 
 # ---- broken configs

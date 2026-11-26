@@ -67,6 +67,14 @@ static bool IsAuthSwitch(const PString & name)
 	return false;
 }
 
+// a user entry in [GkStatus::Auth] with SSH public keys instead of a password,
+// eg. "ssh-ed25519 AAAAC3Nza... jan@laptop" (several keys separated by ',')
+static bool IsPublicKeyEntry(const PString & entry)
+{
+	const PString e = entry.Trim();
+	return (e.Left(4) == "ssh-" || e.Left(6) == "ecdsa-" || e.Left(3) == "sk-") && e.FindOneOf(" \t") != P_MAX_INDEX;
+}
+
 // a very lightweight implementation of telnet socket
 class TelnetSocket : public ServerSocket {
 #ifndef LARGE_FDSET
@@ -386,6 +394,11 @@ public:
 	virtual bool WriteData(const BYTE * msg, int len);
 
 protected:
+	/** @return
+		true if the [GkStatus::Auth] entry of the user holds this public key.
+	*/
+	bool IsAuthorizedKey(const PString & login, const ssh_key key) const;
+
 	ssh_bind m_sshbind;
 	ssh_session m_session;
     ssh_message m_message;
@@ -412,6 +425,51 @@ SSHStatusClient::~SSHStatusClient()
 		ssh_bind_set_fd(m_sshbind, -1);		// make sure StatusListener is not closed
 		ssh_bind_free(m_sshbind);
 	}
+}
+
+// does any user in [GkStatus::Auth] have an SSH public key ?
+static bool HasPublicKeyUsers()
+{
+	const PStringToString entries = GkConfig()->GetAllKeyValues(authsec);
+	for (PINDEX i = 0; i < entries.GetSize(); ++i) {
+		if (!IsAuthSwitch(entries.GetKeyAt(i)) && IsPublicKeyEntry(entries.GetDataAt(i)))
+			return true;
+	}
+	return false;
+}
+
+bool SSHStatusClient::IsAuthorizedKey(const PString & login, const ssh_key key) const
+{
+	if (!key)
+		return false;
+	const PString entry = GetRawPassword(login);	// empty for switches and other spellings of the user name
+	if (!IsPublicKeyEntry(entry)) {
+		PTRACE(5, "STATUS\tNo SSH public key in the config for user " << login);
+		return false;
+	}
+	const PStringArray keys = entry.Tokenise(",", false);
+	for (PINDEX i = 0; i < keys.GetSize(); ++i) {
+		// "type base64 [comment]", like a line in authorized_keys without options
+		const PStringArray fields = keys[i].Trim().Tokenise(" \t", false);
+		if (fields.GetSize() < 2)
+			continue;
+		const enum ssh_keytypes_e type = ssh_key_type_from_name(fields[0]);
+		if (type == SSH_KEYTYPE_UNKNOWN || type == SSH_KEYTYPE_DSS) {
+			PTRACE(1, "STATUS\tUnsupported SSH key type " << fields[0] << " for user " << login);
+			continue;
+		}
+		ssh_key configured = NULL;
+		if (ssh_pki_import_pubkey_base64(fields[1], type, &configured) != SSH_OK) {
+			PTRACE(1, "STATUS\tInvalid SSH public key for user " << login);
+			continue;
+		}
+		const bool match = (ssh_key_cmp(configured, key, SSH_KEY_CMP_PUBLIC) == 0);
+		ssh_key_free(configured);
+		if (match)
+			return true;
+	}
+	PTRACE(5, "STATUS\tSSH public key not configured for user " << login);
+	return false;
 }
 
 // set a host key for the SSH status port, returns true if the key was loaded
@@ -512,6 +570,12 @@ bool SSHStatusClient::Authenticate()
     bool auth = false;
     const int MAX_RETRIES = 3;
     int retries = 0;
+	// only offer public keys if a user has one: clients try all their keys first and would run out of attempts
+	const bool offerPublicKey = HasPublicKeyUsers();
+	const int methods = SSH_AUTH_METHOD_PASSWORD | (offerPublicKey ? SSH_AUTH_METHOD_PUBLICKEY : 0);
+	const int MAX_KEY_ATTEMPTS = 10;	// a client sends a probe and then a signed request for each key
+	int keyAttempts = 0;
+	const int delay = GkConfig()->GetInteger(authsec, "DelayReject", 0);
     do {
         m_message = ssh_message_get(m_session);
         if (!m_message) {
@@ -521,6 +585,35 @@ bool SSHStatusClient::Authenticate()
 		}
 		switch(ssh_message_type(m_message)) {
             case SSH_REQUEST_AUTH:
+				if (ssh_message_subtype(m_message) == SSH_AUTH_METHOD_PUBLICKEY) {
+					keyAttempts++;
+					if (offerPublicKey) {
+						const PString login = ssh_message_auth_user(m_message);
+						const ssh_key key = ssh_message_auth_pubkey(m_message);
+						const int state = ssh_message_auth_publickey_state(m_message);
+						if (state == SSH_PUBLICKEY_STATE_WRONG) {
+							// libssh verified the signature and it doesn't match
+							PTRACE(1, "STATUS\tInvalid SSH public key signature from user " << login);
+							PThread::Sleep(delay * 1000);
+						} else if (IsAuthorizedKey(login, key)) {
+							if (state == SSH_PUBLICKEY_STATE_NONE) {
+								// the client asks if the key would be accepted, the signed request follows
+								ssh_message_auth_reply_pk_ok_simple(m_message);
+								break;
+							}
+							if (state == SSH_PUBLICKEY_STATE_VALID) {
+								m_user = login;
+								auth = true;
+								PTRACE(3, "STATUS\tUser " << login << " logged in with SSH public key");
+								ssh_message_auth_reply_success(m_message, 0);
+								break;
+							}
+						}
+					}
+					ssh_message_auth_set_methods(m_message, methods);
+					ssh_message_reply_default(m_message);
+					break;
+				}
 				retries++;
                 switch(ssh_message_subtype(m_message)) {
                     case SSH_AUTH_METHOD_PASSWORD:
@@ -532,7 +625,7 @@ bool SSHStatusClient::Authenticate()
 						// fall through intended: not authenticated, send default message
                     case SSH_AUTH_METHOD_NONE:
                     default:
-                        ssh_message_auth_set_methods(m_message, SSH_AUTH_METHOD_PASSWORD);
+                        ssh_message_auth_set_methods(m_message, methods);
                         ssh_message_reply_default(m_message);
                         break;
                 }
@@ -541,7 +634,8 @@ bool SSHStatusClient::Authenticate()
                 ssh_message_reply_default(m_message);
         }
         ssh_message_free(m_message);
-    } while (!auth && (retries < MAX_RETRIES) && ((time(NULL) - now) < loginTimeout));
+    } while (!auth && (retries < MAX_RETRIES) && (keyAttempts < MAX_KEY_ATTEMPTS)
+			&& ((time(NULL) - now) < loginTimeout));
 
     if (!auth) {
         return false;
@@ -1743,8 +1837,15 @@ PString StatusClient::GetPassword(const PString & userName) const
 		PTRACE(2, "STATUS\tTrying to get password for the forbidden user name '" << userName << '\'');
 		return PString::Empty();
 	}
+	if (userName.IsEmpty())
+		return PString::Empty();
+	// users with SSH public keys have no password, the key must not be decrypted and used as one
+	if (IsPublicKeyEntry(GkConfig()->GetString(authsec, userName, ""))) {
+		PTRACE(3, "STATUS\tUser '" << userName << "' has an SSH public key, no password login");
+		return PString::Empty();
+	}
 	// user names are case sensitive (CompareAliasCase only applies to aliases)
-	return userName.IsEmpty() ? "" : Toolkit::Instance()->ReadPassword(authsec, userName, true, false);
+	return Toolkit::Instance()->ReadPassword(authsec, userName, true, false);
 }
 
 void StatusClient::CommandError(const PString & msg)

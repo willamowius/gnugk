@@ -412,7 +412,7 @@ To disable any connections to the status port, set this switch to 0.
 Default: <tt/0/<newline>
 <p>
 Use the SSH protocol for the status port.
-User passwords can be set in the <ref id="gkstatusauth" name="[GkStatus::Auth]"> section.
+User passwords or SSH public keys can be set in the <ref id="gkstatusauth" name="[GkStatus::Auth]"> section.
 
 Example connection command:
 <tscreen><verb>
@@ -693,6 +693,18 @@ To allow client from 195.71.129.0/24 and 195.71.131.0/24:
 <tag/Example:/
 <quote><tt>jan=PBKDF2:460461f264108e03-2fd2cef514844d45ce7180399cd87025153071fa926a0972a3d7e8c558418525</tt></quote>
 </descrip>
+<p>
+For the SSH status port (<tt/SshStatusPort=1/) you can configure SSH public keys for a user instead of a password.
+The entry has the same format as a line in an OpenSSH <tt/authorized_keys/ file (key type, key and an optional comment,
+no options). Several keys are separated by commas, so the comments must not contain commas.
+Supported key types are Ed25519, ECDSA and RSA (RSA keys are used with SHA-2 signatures only), DSA keys are not accepted.
+A user with public keys can't log in with a password, neither on the SSH nor on the telnet status port.
+User names are case sensitive.
+<descrip>
+<tag/Example:/
+<quote><tt>jan=ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... jan@laptop</tt></quote>
+<quote><tt>ops=ssh-ed25519 AAAAC3Nza... ops@host1, ecdsa-sha2-nistp256 AAAAE2Vj... ops@host2</tt></quote>
+</descrip>
 
 </itemize>
 
@@ -705,7 +717,7 @@ The IP of the client must match <tt/explicit/ <bf/or/ <tt/regex/ rule.
 The IP of the client must match <tt/regex/ rule, <bf/and/ the user has to login by username and password.
 </itemize>
 
-Using the SSH protocol for the status port implies that all users are authenticated by password,
+Using the SSH protocol for the status port implies that all users are authenticated by password or public key,
 but you can impose additional IP rules eg. "regex & password".
 
 <item><tt/default=allow/<newline>
