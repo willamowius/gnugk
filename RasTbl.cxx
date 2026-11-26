@@ -3506,6 +3506,10 @@ void CallRec::SetCallSignalSocketCalled(CallSignalSocket * socket)
 #ifdef HAS_H46018
 bool CallRec::SetH245OSSocket(int socket, bool isAnswer, const PString & name)
 {
+    // called from the thread of the multiplexed H.245 socket, not the one that owns the signaling sockets:
+    // hold m_sockLock so a socket can't be deleted while we use it (every deletion takes it out of the
+    // CallRec first, under this lock); CallSignalSocket::SetH245OSSocket() must not call back into this CallRec
+    PWaitAndSignal lock(m_sockLock);
     if (m_callingSocket && !isAnswer)
         return m_callingSocket->SetH245OSSocket(socket, name);
     if (m_calledSocket && isAnswer)

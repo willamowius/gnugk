@@ -1,5 +1,6 @@
 Changes from 5.18 to 5.19
 =========================
+- BUGFIX(ProxyChannel.cxx) fix use-after-free of the signaling sockets when EnableH245Multiplexing=1
 - SSH public key login for the status port: [GkStatus::Auth] jan=ssh-ed25519 AAAA... (several keys separated by ','),
   users with keys can't log in with a password
 - new switch [GkStatus::Auth] Ed25519Key= to use an Ed25519 host key for SSH status port access

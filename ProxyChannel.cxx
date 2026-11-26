@@ -2185,6 +2185,22 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 
 CallSignalSocket::~CallSignalSocket()
 {
+	// take this socket out of the CallRec first: this waits for CallRec::SetH245OSSocket(), which may be
+	// using this socket from a multiplexed H.245 socket's thread, before anything here is torn down
+	if (m_call) {
+		if (m_call->GetCallSignalSocketCalling() == this) {
+			m_call->SetCallSignalSocketCalling(NULL);
+			PTRACE(1, "Q931\tWARNING: Calling socket " << GetName()
+				<< " not removed from CallRec before deletion"
+				);
+		} else if (m_call->GetCallSignalSocketCalled() == this) {
+			m_call->SetCallSignalSocketCalled(NULL);
+			PTRACE(1, "Q931\tWARNING: Called socket " << GetName()
+				<< " not removed from CallRec before deletion"
+				);
+		}
+	}
+
 	// make sure no endpoint keeps a pointer to this socket
 	if (m_isnatsocket)
 		RegistrationTable::Instance()->OnNATSocketDeleted(this);
@@ -2210,20 +2226,6 @@ CallSignalSocket::~CallSignalSocket()
 			}
 		}
 		m_h245socket->OnSignalingChannelClosed();
-	}
-
-	if (m_call) {
-		if (m_call->GetCallSignalSocketCalling() == this) {
-			m_call->SetCallSignalSocketCalling(NULL);
-			PTRACE(1, "Q931\tWARNING: Calling socket " << GetName()
-				<< " not removed from CallRec before deletion"
-				);
-		} else if (m_call->GetCallSignalSocketCalled() == this) {
-			m_call->SetCallSignalSocketCalled(NULL);
-			PTRACE(1, "Q931\tWARNING: Called socket " << GetName()
-				<< " not removed from CallRec before deletion"
-				);
-		}
 	}
 
 	m_h245handlerLock.Wait();
@@ -4563,7 +4565,16 @@ bool CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
         ConfigReloadMutex.StartRead();
         ProxyHandler * oldhandler = m_h245socket->GetHandler();
         if (!oldhandler) {
-            oldhandler = RasServer::Instance()->GetSigProxyHandler();
+            // must be the handler of the signaling sockets: H245Socket::ReceiveData() uses sigSocket without a lock
+            // and relies on running in the thread that also deletes the signaling sockets
+            oldhandler = GetHandler();
+            if (!oldhandler && GetRemote()) {
+                // called socket during Dispatch(): not inserted yet, will go to the handler of the calling socket
+                oldhandler = GetRemote()->GetHandler();
+            }
+            if (!oldhandler) {
+                oldhandler = RasServer::Instance()->GetSigProxyHandler();
+            }
         }
         oldhandler->Detach(m_h245socket);
         m_h245socket->SetHandler(NULL);
@@ -11123,6 +11134,20 @@ void CallSignalSocket::BuildSetupPDU(Q931 & SetupPDU, const H225_CallIdentifier 
 #endif
 }
 
+namespace {
+
+// Dispatch() and DispatchNextRoute() delete the signaling sockets of a call themselves when the call fails
+// before they are given to the proxy handler. Once the call has H.245 sockets (eg. h245Address in Setup)
+// those may already be connected and in the handler's list: the handler thread then uses both signaling sockets
+// for every H.245 message it reads, so only the handler may delete them.
+inline bool HasH245Sockets(const CallSignalSocket * socket)
+{
+	const CallSignalSocket * ret = socket->GetRemote();
+	return socket->GetH245Socket() != NULL || (ret != NULL && ret->GetH245Socket() != NULL);
+}
+
+} // end of anonymous namespace
+
 // handle a new message on a new connection
 void CallSignalSocket::Dispatch()
 {
@@ -11220,7 +11245,10 @@ void CallSignalSocket::Dispatch()
 				m_remoteLock.Wait();
 				if (remote != NULL) {
 					remote->RemoveRemoteSocket();
-					delete remote;
+					if (HasH245Sockets(this))
+						GetHandler()->Remove(remote);	// will delete socket in CleanUp()
+					else
+						delete remote;
 					remote = NULL;
 				}
 				m_remoteLock.Signal();
@@ -11240,8 +11268,13 @@ void CallSignalSocket::Dispatch()
 				}
 				CallTable::Instance()->RemoveCall(m_call);
 				m_remoteLock.Wait();
-				delete remote;
-				remote = NULL;
+				if (remote != NULL && HasH245Sockets(this)) {
+					// stays linked to this socket, which is given to the handler below
+					GetHandler()->Remove(remote);	// will delete socket in CleanUp()
+				} else {
+					delete remote;
+					remote = NULL;
+				}
 				m_remoteLock.Signal();
 				TCPProxySocket::EndSession();
 				timeout = 0;
@@ -11285,6 +11318,12 @@ void CallSignalSocket::Dispatch()
 
 	if (m_call)
 		m_call->SetSocket(NULL, NULL);
+
+	if (HasH245Sockets(this)) {
+		// the handler thread may be using this socket through the H.245 sockets right now
+		GetHandler()->Remove(this);	// will delete socket in CleanUp()
+		return;
+	}
 
 #ifdef HAS_H46017
 	if (m_h46017Enabled) {
@@ -11481,7 +11520,10 @@ void CallSignalSocket::DispatchNextRoute()
 			m_remoteLock.Wait();
 			if (remote != NULL) {
 				remote->RemoveRemoteSocket();
-				delete remote;
+				if (HasH245Sockets(this))
+					GetHandler()->Remove(remote);	// will delete socket in CleanUp()
+				else
+					delete remote;
 				remote = NULL;
 			}
 			m_remoteLock.Signal();
@@ -11501,8 +11543,13 @@ void CallSignalSocket::DispatchNextRoute()
 			}
 			CallTable::Instance()->RemoveCall(m_call);
 			m_remoteLock.Wait();
-			delete remote;
-			remote = NULL;
+			if (remote != NULL && HasH245Sockets(this)) {
+				// stays linked to this socket, which is given to the handler below
+				GetHandler()->Remove(remote);	// will delete socket in CleanUp()
+			} else {
+				delete remote;
+				remote = NULL;
+			}
 			m_remoteLock.Signal();
 			TCPProxySocket::EndSession();
 			break;
@@ -11536,6 +11583,12 @@ void CallSignalSocket::DispatchNextRoute()
 
 	if (m_call)
 		m_call->SetSocket(NULL, NULL);
+
+	if (HasH245Sockets(this)) {
+		// the handler thread may be using this socket through the H.245 sockets right now
+		GetHandler()->Remove(this);	// will delete socket in CleanUp()
+		return;
+	}
 	delete this; // oh!
 }
 
