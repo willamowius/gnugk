@@ -1655,6 +1655,9 @@ private:
 	time_t m_acctUpdateTime;
 	/// duration limit (seconds) for this call, 0 means no limit
 	time_t m_durationLimit;
+	/// timestamp of the first Connect, if this call continues a call that has been connected (reroute):
+	/// the duration limit counts from here, 0 for all other calls
+	time_t m_durationLimitStart;
 	/// Q.931 release complete cause code
 	unsigned m_disconnectCause;
 	/// Q.931 release complete cause code after translation
@@ -2377,6 +2380,9 @@ inline void CallRec::ResetTimeOut()
 inline bool CallRec::IsTimeout(const time_t now) const
 {
 	bool result = (m_timeout > 0) && (now >= m_timer) && ((now - m_timer) >= m_timeout);
+	// the duration limit of a rerouted call, also checked while the new destination hasn't answered, yet
+	if ((m_durationLimit > 0) && (m_durationLimitStart > 0))
+		result |= (now >= m_durationLimitStart) && ((now - m_durationLimitStart) >= m_durationLimit);
 	if (m_irrCheck && (m_irrFrequency > 0)) {
 		if (m_Calling)
 			result |= (now >= m_irrCallerTimer) && ((now - m_irrCallerTimer) >= 2 * m_irrFrequency);

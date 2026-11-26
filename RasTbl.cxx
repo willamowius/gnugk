@@ -3027,6 +3027,7 @@ CallRec::CallRec(
 	CallTable* const ctable = CallTable::Instance();
 	m_timeout = ctable->GetSignalTimeout() / 1000;
 	m_durationLimit = ctable->GetDefaultDurationLimit();
+	m_durationLimitStart = 0;
 	m_failoverActive = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ActivateFailover", "0"));
 	m_singleFailoverCDR = ctable->SingleFailoverCDR();
 	m_disabledcodecs = GkConfig()->GetString(CallTableSection, "DisabledCodecs", "");
@@ -3099,6 +3100,7 @@ CallRec::CallRec(
 	CallTable* const ctable = CallTable::Instance();
 	m_timeout = ctable->GetSignalTimeout() / 1000;
 	m_durationLimit = ctable->GetDefaultDurationLimit();
+	m_durationLimitStart = 0;
 	m_failoverActive = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ActivateFailover", "0"));
 	m_singleFailoverCDR = ctable->SingleFailoverCDR();
 	m_disabledcodecs = GkConfig()->GetString(CallTableSection, "DisabledCodecs", "");
@@ -3152,6 +3154,7 @@ CallRec::CallRec(const H225_CallIdentifier & callID, H225_TransportAddress sigAd
 	CallTable* const ctable = CallTable::Instance();
 	m_timeout = ctable->GetSignalTimeout() / 1000;
 	m_durationLimit = ctable->GetDefaultDurationLimit();
+	m_durationLimitStart = 0;
 	m_failoverActive = Toolkit::AsBool(GkConfig()->GetString(RoutedSec, "ActivateFailover", "0"));
 	m_singleFailoverCDR = ctable->SingleFailoverCDR();
 	m_disabledcodecs = GkConfig()->GetString(CallTableSection, "DisabledCodecs", "");
@@ -3227,6 +3230,9 @@ CallRec::CallRec(
 	CallTable* const ctable = CallTable::Instance();
 	m_timeout = ctable->GetSignalTimeout() / 1000;
 	m_durationLimit = oldCall->m_durationLimit;
+	// a call that has been connected before (reroute) doesn't get a new duration limit:
+	// the limit keeps counting from the first Connect
+	m_durationLimitStart = oldCall->m_durationLimitStart ? oldCall->m_durationLimitStart : oldCall->m_connectTime;
 
 	m_irrFrequency = oldCall->m_irrFrequency;
 	m_irrCheck = oldCall->m_irrCheck;
