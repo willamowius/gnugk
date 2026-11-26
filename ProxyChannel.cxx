@@ -6938,6 +6938,16 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 				return false;
 			}
 		}
+		if (!socket && calledep->UsesH46017()) {
+			// the endpoint can only be reached over its H.460.17 connection (it is unregistered when that closes):
+			// another Setup has taken the socket out for its call right now, so refuse the call,
+			// don't fall back to a direct connection to its signaling address
+			PTRACE(2, Type() << "\tCall " << m_call->GetCallNumber() << " rejected: H.460.17 socket of endpoint "
+				<< calledep->GetEndpointIdentifier().GetValue() << " is in use by another call");
+			m_call->SetDisconnectCause(Q931::UserBusy);
+			m_result = Error;
+			return false;
+		}
 #endif
 		if (socket) {
 			PTRACE(3, Type() << "\tUsing NAT socket " << socket->GetName());
