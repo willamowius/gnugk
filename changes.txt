@@ -2,7 +2,7 @@ Changes from 5.18 to 5.19
 =========================
 - new switch [GkStatus::Auth] Ed25519Key= to use an Ed25519 host key for SSH status port access
   (default: /etc/ssh/ssh_host_ed25519_key, requires libssh >= 0.7.0)
-
+- BUGFIX(configure.in) better LUA detection, now linked dynamically
 
 Changes from 5.17 to 5.18
 =========================

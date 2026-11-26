@@ -1261,85 +1261,133 @@ AC_ARG_WITH(lua-dir,
   lua_include_dir="$withval/include" ]
 )
 
+dnl GNUGK_LUA_TRY(cflags, ldflags, libs, version): sets lua_found=yes if a program using the Lua 5.2+ API
+dnl compiles and links with these flags; version (eg. 504) also requires lua.h to be that version, so the
+dnl headers and the library of different Lua versions don't get mixed (luaL_newlib() aborts on a mismatch)
+m4_define([GNUGK_LUA_TRY], [
+	CFLAGS="$old_CFLAGS $1"
+	LDFLAGS="$old_LDFLAGS $2"
+	LIBS="$old_LIBS $3"
+	lua_want="$4"
+	if test "x$lua_want" = "x"; then
+		lua_want=0
+	fi
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+		#include "lua.h"
+		#include "lualib.h"
+		#include "lauxlib.h"
+		#if LUA_VERSION_NUM < 502
+		#error "need at least Lua 5.2"
+		#endif
+		#if GNUGK_LUA_WANT != 0 && LUA_VERSION_NUM != GNUGK_LUA_WANT
+		#error "wrong Lua version"
+		#endif
+		]], [[
+		static const luaL_Reg mylib[] = { {NULL, NULL} };
+		lua_State * m_lua = luaL_newstate();
+		luaL_newlib(m_lua, mylib);
+		]])],
+		[ lua_found=yes
+		  LUA_INCLUDE="$1"
+		  LUA_LDFLAGS="$2"
+		  LUA_LIBS="$3" ])
+])
+
 if test "x${lua}" != "xno"; then
 
-	AC_MSG_CHECKING([for lua.h])
+	AC_PATH_PROG(PKG_CONFIG, pkg-config)
+	AC_MSG_CHECKING([for Lua (5.2 or later)])
 
 	old_CFLAGS="$CFLAGS"
 	old_LDFLAGS="$LDFLAGS"
+	old_LIBS="$LIBS"
+	lua_found=no
+	LUA_INCLUDE=
+	LUA_LDFLAGS=
+	LUA_LIBS=
+	lua_versions="5.4 5.3 5.2"
 
-	for try in /usr/include /usr/local/include $lua_include_dir; do
-		if test -d $try; then
-			CFLAGS="$old_CFLAGS -I$try"
-			LDFLAGS="$old_LDFLAGS -L$try/../lib"
-			AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-				#include "lua.h"
-				#include "lualib.h"
-				#include "lauxlib.h"
-				]], [[
-				static const luaL_Reg mylib[] = { {NULL, NULL} };
-				lua_State * m_lua = luaL_newstate();
-				luaL_newlib(m_lua, mylib);
-				]])],[LUA_INCLUDE="-I$try"],[LUA_INCLUDE=
-			])
-			if test "x$LUA_INCLUDE" != "x"; then
-				break;
+	dnl 1. pkg-config, unless the directories are given explicitly
+	dnl    Debian/Ubuntu: lua5.4, FreeBSD: lua-5.4, Fedora/Arch: lua54 or lua (unversioned)
+	if test "x$lua_include_dir$lua_lib_dir" = "x" && test "x$PKG_CONFIG" != "x"; then
+		for v in $lua_versions any; do
+			if test "x$v" = "xany"; then
+				modules="lua"
+				want=
+			else
+				nodot=`echo $v | tr -d .`
+				modules="lua$v lua-$v lua$nodot"
+				want=`echo $v | sed 's/\./0/'`
 			fi
-		fi
-	done
-	CFLAGS="$old_CFLAGS"
-	LDFLAGS="$old_LDFLAGS"
-
-	if test "x$LUA_INCLUDE" = "x"; then
-		AC_MSG_RESULT(no)
-		AC_MSG_WARN([LUA headers not found. Use --with-lua-include-dir=<path>])
-		lua="no"
-	else
-		lua_cflags="${lua_cflags} ${LUA_INCLUDE}"
-		AC_MSG_RESULT(yes)
-
-		AC_MSG_CHECKING([for LUA library])
-
-		old_CFLAGS="$CFLAGS"
-		old_LIBS="$LIBS"
-
-		for try in /usr/lib /usr/local/lib $lua_lib_dir; do
-			if test -d $try; then
-				CFLAGS="$old_CFLAGS $LUA_INCLUDE"
-				LIBS="$old_LIBS -llua -lm"
-				LDFLAGS="$old_LDFLAGS -L$try"
-				AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-					#include "lua.h"
-					#include "lualib.h"
-					#include "lauxlib.h"
-					]], [[
-					static const luaL_Reg mylib[] = { {NULL, NULL} };
-					lua_State * m_lua = luaL_newstate();
-					luaL_newlib(m_lua, mylib);
-					]])],[ LUA_LIBS="-llua -lm"
-					  LUA_LDFLAGS="-L$try"
-					],[LUA_LDFLAGS=
-				])
-				if test "x$LUA_LDFLAGS" != "x"; then
-					break;
+			for mod in $modules; do
+				if $PKG_CONFIG --exists $mod 2>/dev/null; then
+					cand_cflags="`$PKG_CONFIG --cflags $mod` -DGNUGK_LUA_WANT=${want:-0}"
+					cand_ldflags="`$PKG_CONFIG --libs-only-L $mod`"
+					cand_libs="`$PKG_CONFIG --libs-only-l --libs-only-other $mod` -lm"
+					GNUGK_LUA_TRY([$cand_cflags], [$cand_ldflags], [$cand_libs], [$want])
+					if test "x$lua_found" = "xyes"; then
+						lua_how="pkg-config $mod"
+						break 2
+					fi
 				fi
-			fi
+			done
 		done
-		CFLAGS="$old_CFLAGS"
-		LIBS="$old_LIBS"
-
-		if test "x$LUA_LDFLAGS" = "x"; then
-			AC_MSG_RESULT(no)
-			LUA_INCLUDE=
-			AC_MSG_WARN([LUA lib not found. Use --with-lua-lib-dir=<path>])
-			lua="no"
-		else
-			AC_MSG_RESULT(yes)
-			lua_ldflags="$lua_ldflags $LUA_LDFLAGS"
-		fi
 	fi
 
-	lua_ldflags="$lua_ldflags $LIBS"
+	dnl 2. search the usual directories (or the ones given) for headers and a library of the same version
+	if test "x$lua_found" = "xno"; then
+		if test "x$lua_lib_dir" != "x"; then
+			lib_dirs="$lua_lib_dir"
+		else
+			lib_dirs="default /usr/local/lib"
+		fi
+		for v in $lua_versions any; do
+			if test "x$v" = "xany"; then
+				names="lua"
+				want=
+				inc_dirs="${lua_include_dir:-/usr/include /usr/local/include}"
+			else
+				nodot=`echo $v | tr -d .`
+				names="lua$v lua-$v lua$nodot lua"
+				want=`echo $v | sed 's/\./0/'`
+				inc_dirs="${lua_include_dir:-/usr/include/lua$v /usr/local/include/lua$v /usr/local/include/lua$nodot /usr/include /usr/local/include}"
+			fi
+			for inc in $inc_dirs; do
+				if test -f "$inc/lua.h"; then
+					for libdir in $lib_dirs; do
+						if test "x$libdir" = "xdefault"; then
+							cand_ldflags=
+						else
+							cand_ldflags="-L$libdir"
+						fi
+						for name in $names; do
+							GNUGK_LUA_TRY([-I$inc -DGNUGK_LUA_WANT=${want:-0}], [$cand_ldflags], [-l$name -lm], [$want])
+							if test "x$lua_found" = "xyes"; then
+								LUA_INCLUDE="-I$inc"
+								lua_how="-I$inc $cand_ldflags -l$name"
+								break 4
+							fi
+						done
+					done
+				fi
+			done
+		done
+	fi
+
+	CFLAGS="$old_CFLAGS"
+	LDFLAGS="$old_LDFLAGS"
+	LIBS="$old_LIBS"
+
+	if test "x$lua_found" = "xyes"; then
+		dnl the version check define is only for the test program
+		LUA_INCLUDE=`echo "$LUA_INCLUDE" | sed 's/ *-DGNUGK_LUA_WANT=[[0-9]]*//'`
+		lua_cflags="$LUA_INCLUDE"
+		AC_MSG_RESULT([yes ($lua_how)])
+	else
+		AC_MSG_RESULT(no)
+		AC_MSG_WARN([Lua 5.2 or later not found. Use --with-lua-include-dir=<path> and --with-lua-lib-dir=<path>])
+		lua="no"
+	fi
 
 	if test "x$lua" = "xno"; then
 		AC_MSG_WARN([LUA disabled])

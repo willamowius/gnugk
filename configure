@@ -672,6 +672,7 @@ CURL_CONFIG
 HAS_GEOIP2
 HAS_GEOIP1
 HAS_LUA
+PKG_CONFIG
 HAS_PTLIBSNMP
 HAS_NETSNMP
 HAS_LIBSSH
@@ -6329,89 +6330,110 @@ then :
 fi
 
 
+
+
 if test "x${lua}" != "xno"; then
 
-	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for lua.h" >&5
-printf %s "checking for lua.h... " >&6; }
+	# Extract the first word of "pkg-config", so it can be a program name with args.
+set dummy pkg-config; ac_word=$2
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+printf %s "checking for $ac_word... " >&6; }
+if test ${ac_cv_path_PKG_CONFIG+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  case $PKG_CONFIG in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_PKG_CONFIG="$PKG_CONFIG" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  case $as_dir in #(((
+    '') as_dir=./ ;;
+    */) ;;
+    *) as_dir=$as_dir/ ;;
+  esac
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
+    ac_cv_path_PKG_CONFIG="$as_dir$ac_word$ac_exec_ext"
+    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+PKG_CONFIG=$ac_cv_path_PKG_CONFIG
+if test -n "$PKG_CONFIG"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $PKG_CONFIG" >&5
+printf "%s\n" "$PKG_CONFIG" >&6; }
+else
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+fi
+
+
+	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for Lua (5.2 or later)" >&5
+printf %s "checking for Lua (5.2 or later)... " >&6; }
 
 	old_CFLAGS="$CFLAGS"
 	old_LDFLAGS="$LDFLAGS"
+	old_LIBS="$LIBS"
+	lua_found=no
+	LUA_INCLUDE=
+	LUA_LDFLAGS=
+	LUA_LIBS=
+	lua_versions="5.4 5.3 5.2"
 
-	for try in /usr/include /usr/local/include $lua_include_dir; do
-		if test -d $try; then
-			CFLAGS="$old_CFLAGS -I$try"
-			LDFLAGS="$old_LDFLAGS -L$try/../lib"
-			cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-				#include "lua.h"
-				#include "lualib.h"
-				#include "lauxlib.h"
-
-int
-main (void)
-{
-
-				static const luaL_Reg mylib[] = { {NULL, NULL} };
-				lua_State * m_lua = luaL_newstate();
-				luaL_newlib(m_lua, mylib);
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"
-then :
-  LUA_INCLUDE="-I$try"
-else $as_nop
-  LUA_INCLUDE=
-
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
-			if test "x$LUA_INCLUDE" != "x"; then
-				break;
+			if test "x$lua_include_dir$lua_lib_dir" = "x" && test "x$PKG_CONFIG" != "x"; then
+		for v in $lua_versions any; do
+			if test "x$v" = "xany"; then
+				modules="lua"
+				want=
+			else
+				nodot=`echo $v | tr -d .`
+				modules="lua$v lua-$v lua$nodot"
+				want=`echo $v | sed 's/\./0/'`
 			fi
-		fi
-	done
-	CFLAGS="$old_CFLAGS"
-	LDFLAGS="$old_LDFLAGS"
+			for mod in $modules; do
+				if $PKG_CONFIG --exists $mod 2>/dev/null; then
+					cand_cflags="`$PKG_CONFIG --cflags $mod` -DGNUGK_LUA_WANT=${want:-0}"
+					cand_ldflags="`$PKG_CONFIG --libs-only-L $mod`"
+					cand_libs="`$PKG_CONFIG --libs-only-l --libs-only-other $mod` -lm"
 
-	if test "x$LUA_INCLUDE" = "x"; then
-		{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-		{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: LUA headers not found. Use --with-lua-include-dir=<path>" >&5
-printf "%s\n" "$as_me: WARNING: LUA headers not found. Use --with-lua-include-dir=<path>" >&2;}
-		lua="no"
-	else
-		lua_cflags="${lua_cflags} ${LUA_INCLUDE}"
-		{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-printf "%s\n" "yes" >&6; }
-
-		{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for LUA library" >&5
-printf %s "checking for LUA library... " >&6; }
-
-		old_CFLAGS="$CFLAGS"
-		old_LIBS="$LIBS"
-
-		for try in /usr/lib /usr/local/lib $lua_lib_dir; do
-			if test -d $try; then
-				CFLAGS="$old_CFLAGS $LUA_INCLUDE"
-				LIBS="$old_LIBS -llua -lm"
-				LDFLAGS="$old_LDFLAGS -L$try"
-				cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+	CFLAGS="$old_CFLAGS $cand_cflags"
+	LDFLAGS="$old_LDFLAGS $cand_ldflags"
+	LIBS="$old_LIBS $cand_libs"
+	lua_want="$want"
+	if test "x$lua_want" = "x"; then
+		lua_want=0
+	fi
+	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-					#include "lua.h"
-					#include "lualib.h"
-					#include "lauxlib.h"
+		#include "lua.h"
+		#include "lualib.h"
+		#include "lauxlib.h"
+		#if LUA_VERSION_NUM < 502
+		#error "need at least Lua 5.2"
+		#endif
+		#if GNUGK_LUA_WANT != 0 && LUA_VERSION_NUM != GNUGK_LUA_WANT
+		#error "wrong Lua version"
+		#endif
 
 int
 main (void)
 {
 
-					static const luaL_Reg mylib[] = { {NULL, NULL} };
-					lua_State * m_lua = luaL_newstate();
-					luaL_newlib(m_lua, mylib);
+		static const luaL_Reg mylib[] = { {NULL, NULL} };
+		lua_State * m_lua = luaL_newstate();
+		luaL_newlib(m_lua, mylib);
 
   ;
   return 0;
@@ -6419,38 +6441,120 @@ main (void)
 _ACEOF
 if ac_fn_c_try_link "$LINENO"
 then :
-   LUA_LIBS="-llua -lm"
-					  LUA_LDFLAGS="-L$try"
-
-else $as_nop
-  LUA_LDFLAGS=
-
+   lua_found=yes
+		  LUA_INCLUDE="$cand_cflags"
+		  LUA_LDFLAGS="$cand_ldflags"
+		  LUA_LIBS="$cand_libs"
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.beam \
     conftest$ac_exeext conftest.$ac_ext
-				if test "x$LUA_LDFLAGS" != "x"; then
-					break;
-				fi
-			fi
-		done
-		CFLAGS="$old_CFLAGS"
-		LIBS="$old_LIBS"
 
-		if test "x$LUA_LDFLAGS" = "x"; then
-			{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-			LUA_INCLUDE=
-			{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: LUA lib not found. Use --with-lua-lib-dir=<path>" >&5
-printf "%s\n" "$as_me: WARNING: LUA lib not found. Use --with-lua-lib-dir=<path>" >&2;}
-			lua="no"
-		else
-			{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-printf "%s\n" "yes" >&6; }
-			lua_ldflags="$lua_ldflags $LUA_LDFLAGS"
-		fi
+					if test "x$lua_found" = "xyes"; then
+						lua_how="pkg-config $mod"
+						break 2
+					fi
+				fi
+			done
+		done
 	fi
 
-	lua_ldflags="$lua_ldflags $LIBS"
+		if test "x$lua_found" = "xno"; then
+		if test "x$lua_lib_dir" != "x"; then
+			lib_dirs="$lua_lib_dir"
+		else
+			lib_dirs="default /usr/local/lib"
+		fi
+		for v in $lua_versions any; do
+			if test "x$v" = "xany"; then
+				names="lua"
+				want=
+				inc_dirs="${lua_include_dir:-/usr/include /usr/local/include}"
+			else
+				nodot=`echo $v | tr -d .`
+				names="lua$v lua-$v lua$nodot lua"
+				want=`echo $v | sed 's/\./0/'`
+				inc_dirs="${lua_include_dir:-/usr/include/lua$v /usr/local/include/lua$v /usr/local/include/lua$nodot /usr/include /usr/local/include}"
+			fi
+			for inc in $inc_dirs; do
+				if test -f "$inc/lua.h"; then
+					for libdir in $lib_dirs; do
+						if test "x$libdir" = "xdefault"; then
+							cand_ldflags=
+						else
+							cand_ldflags="-L$libdir"
+						fi
+						for name in $names; do
+
+	CFLAGS="$old_CFLAGS -I$inc -DGNUGK_LUA_WANT=${want:-0}"
+	LDFLAGS="$old_LDFLAGS $cand_ldflags"
+	LIBS="$old_LIBS -l$name -lm"
+	lua_want="$want"
+	if test "x$lua_want" = "x"; then
+		lua_want=0
+	fi
+	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+		#include "lua.h"
+		#include "lualib.h"
+		#include "lauxlib.h"
+		#if LUA_VERSION_NUM < 502
+		#error "need at least Lua 5.2"
+		#endif
+		#if GNUGK_LUA_WANT != 0 && LUA_VERSION_NUM != GNUGK_LUA_WANT
+		#error "wrong Lua version"
+		#endif
+
+int
+main (void)
+{
+
+		static const luaL_Reg mylib[] = { {NULL, NULL} };
+		lua_State * m_lua = luaL_newstate();
+		luaL_newlib(m_lua, mylib);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"
+then :
+   lua_found=yes
+		  LUA_INCLUDE="-I$inc -DGNUGK_LUA_WANT=${want:-0}"
+		  LUA_LDFLAGS="$cand_ldflags"
+		  LUA_LIBS="-l$name -lm"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+
+							if test "x$lua_found" = "xyes"; then
+								LUA_INCLUDE="-I$inc"
+								lua_how="-I$inc $cand_ldflags -l$name"
+								break 4
+							fi
+						done
+					done
+				fi
+			done
+		done
+	fi
+
+	CFLAGS="$old_CFLAGS"
+	LDFLAGS="$old_LDFLAGS"
+	LIBS="$old_LIBS"
+
+	if test "x$lua_found" = "xyes"; then
+				LUA_INCLUDE=`echo "$LUA_INCLUDE" | sed 's/ *-DGNUGK_LUA_WANT=[0-9]*//'`
+		lua_cflags="$LUA_INCLUDE"
+		{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes ($lua_how)" >&5
+printf "%s\n" "yes ($lua_how)" >&6; }
+	else
+		{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+		{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: Lua 5.2 or later not found. Use --with-lua-include-dir=<path> and --with-lua-lib-dir=<path>" >&5
+printf "%s\n" "$as_me: WARNING: Lua 5.2 or later not found. Use --with-lua-include-dir=<path> and --with-lua-lib-dir=<path>" >&2;}
+		lua="no"
+	fi
 
 	if test "x$lua" = "xno"; then
 		{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: LUA disabled" >&5

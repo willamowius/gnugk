@@ -131,29 +131,9 @@ fi
 
 echo "== building GnuGk"
 cd "$GK_DIR"
-# Lua (for test_scripting.py): GnuGk's configure links -llua, Debian/Ubuntu only ship liblua5.x.so and keep the
-# headers in /usr/include/lua5.x, so point configure at them (no Lua headers: the Lua tests fail with a clear message)
-LUA_OPTS=()
-for v in 5.4 5.3; do
-	if [ -f "/usr/include/lua$v/lua.h" ]; then
-		LUA_OPTS+=("--with-lua-include-dir=/usr/include/lua$v")
-		# (no ls | head here: with pipefail a missing path would end the script)
-		lib=""
-		for f in /usr/lib/*/liblua$v.so /usr/lib/liblua$v.so; do
-			if [ -e "$f" ]; then
-				lib="$f"
-				break
-			fi
-		done
-		if [ -n "$lib" ]; then
-			mkdir -p "$DEPS/lua-lib"
-			ln -sf "$lib" "$DEPS/lua-lib/liblua.so"
-			LUA_OPTS+=("--with-lua-lib-dir=$DEPS/lua-lib")
-		fi
-		break
-	fi
-done
-run gnugk-configure.log ./configure --enable-h46018 --enable-large-fdset "${LUA_OPTS[@]}"
+# Lua (for test_scripting.py): configure finds Lua 5.2+ itself (pkg-config or /usr/include/lua5.x),
+# without Lua headers the Lua tests fail with a clear message
+run gnugk-configure.log ./configure --enable-h46018 --enable-large-fdset
 # always build from scratch: make doesn't notice when configure changes the compiler flags
 rm -rf "$GK_DIR"/obj_*_s
 run gnugk-make.log make -j"$JOBS" optnoshared

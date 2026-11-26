@@ -54,7 +54,7 @@ CDR with the right duration and cause, no call was left over and both endpoints 
 - a C++ toolchain and the usual PTLib build dependencies (bison, flex, OpenSSL headers)
 - for the IPv6 tests a kernel with IPv6 support, they are skipped otherwise
 - for `test_scripting.py`: GnuGk built with libcurl and Lua (`libcurl4-openssl-dev`, `liblua5.3-dev` or
-  `liblua5.4-dev`, `build-deps.sh` finds them); the JSON routing test needs `nlohmann-json3-dev` and is skipped
+  `liblua5.4-dev`, GnuGk's configure finds them); the JSON routing test needs `nlohmann-json3-dev` and is skipped
   without it
 - for the SSH status port tests: libssh headers for the GnuGk build (`libssh-dev`) and `ssh` / `sshpass` to log
   in (`openssh-client sshpass`), skipped without the client tools
