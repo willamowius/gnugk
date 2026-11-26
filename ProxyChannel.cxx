@@ -14596,7 +14596,15 @@ void UDPProxySocket::UpdateSocketName()
 		src = AsString(fSrcIP, fSrcPort);
 	if ((DWORD)fDestIP)
 		dst = AsString(fDestIP, fDestPort);
+	// called by the signaling threads (OLC / OLCAck) and by the RTP thread (H.460.19 port detection)
+	PWaitAndSignal lock(m_nameMutex);
 	SetName(src + "<=>" + AsString(laddr, lport) + "<=>" + dst);
+}
+
+PString UDPProxySocket::Name() const
+{
+	PWaitAndSignal lock(m_nameMutex);
+	return (const char *)GetName();	// a real copy, not a reference to the string that is being replaced
 }
 
 // called on OLC
@@ -14922,6 +14930,9 @@ void UDPProxySocket::ApplyPortDetectionCache()
 {
     PTRACE(7, "JW ApplyPortDetectionCache");
     if (m_cachePortDetection) {
+		// the RTP thread updates the cache (CachePortDetectionData()) and the addresses that DoPortDetection()
+		// sets while it holds m_callMutex in ReceiveData(), we are called from a signaling thread
+		PWaitAndSignal lock(m_callMutex);
 		for (std::map<IPAndPortAddress, time_t>::const_iterator iter = m_portDetectionCache.begin();
 				iter != m_portDetectionCache.end() ; ++iter) {
             if (time(NULL) - iter->second > m_cachePortDetectionDuration) {
@@ -14936,6 +14947,7 @@ void UDPProxySocket::ApplyPortDetectionCache()
 
 void UDPProxySocket::CachePortDetectionData(Address fromIP, WORD fromPort)
 {
+    // called by ReceiveData() with m_callMutex held, see ApplyPortDetectionCache()
     IPAndPortAddress from(fromIP, fromPort);
     PTRACE(7, "JW CachePortDetectionData: " << from);
     m_portDetectionCache[from] = time(NULL);
@@ -15418,6 +15430,7 @@ ProxySocket::Result UDPProxySocket::ReceiveData()
 		WORD lport = 0;
 		GetLocalAddress(laddr, lport);
 		UnmapIPv4Address(laddr);
+		PWaitAndSignal lock(m_nameMutex);
 		SetName(AsString(fSrcIP, fSrcPort) + "=>" + AsString(laddr, lport));
 	}
 

@@ -293,11 +293,8 @@ public:
 	virtual ~USocket() = 0; // abstract class
 
 	const char* Type() const { return type; }
-#ifdef LARGE_FDSET
-	const PString & Name() const { return self->GetName(); }
-#else
-	PString Name() const { return self->GetName(); }
-#endif
+	// returns a real copy; virtual, so a socket that is renamed while in use can make the copy under a lock
+	virtual PString Name() const { return (const char *)self->GetName(); }
 
 	// new virtual function
 	virtual bool TransmitData(const PString &);

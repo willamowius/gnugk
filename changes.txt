@@ -1,5 +1,7 @@
 Changes from 5.18 to 5.19
 =========================
+- BUGFIX(ProxyChannel.*,yasocket.h) fix race conditions between signaling and RTP threads with
+  RTP sockets and port detection cache
 - BUGFIX(ProxyChannel.*) fix early H.245 socket delete with H.460.17 disconnect during connection
 - BUGFIX(ProxyChannel.cxx) reject 2nd call to H.460.17 endpoint
 - BUGFIX(RasTbl.*) don't reset the call duration limit when a connected call is rerouted

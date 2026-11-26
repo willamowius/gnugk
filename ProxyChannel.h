@@ -225,6 +225,9 @@ public:
 	UDPProxySocket(const char * t, PINDEX no);
 	~UDPProxySocket();
 
+	// override from class USocket
+	virtual PString Name() const;	// thread safe, the name changes during the call
+
 	void UpdateSocketName();
 	void RemoveCallPtr() { PWaitAndSignal lock(m_callMutex); m_call = callptr(NULL); }
 	void SetRTCPDestination(const H245_UnicastAddress & addr, const PIPSocket::Address & sourceIP, bool isUnidirectional);
@@ -285,6 +288,7 @@ protected:
 	PINDEX m_callNo;
 	callptr m_call;
 	PMutex m_callMutex;
+	mutable PMutex m_nameMutex;	// the socket name is changed by signaling threads and by the RTP thread
 
 private:
 	UDPProxySocket();
