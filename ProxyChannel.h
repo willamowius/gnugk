@@ -112,6 +112,19 @@ public:
 	void SetConnected(bool c) { connected = c; }
 	bool IsDeletable() const { return deletable; }
 	void SetDeletable() { deletable = true; }
+	// the handler doesn't remove (and delete) a socket while another thread, eg. a connector job, still uses it
+	bool IsInUse() const { return inUse; }
+	void MarkInUse(bool u) { inUse = u; }
+
+	class MarkSocketInUse {
+	public:
+		MarkSocketInUse(ProxySocket * _s) : s(_s) { if (s) s->MarkInUse(true); }
+		~MarkSocketInUse() { if (s) s->MarkInUse(false); }
+
+	private:
+		ProxySocket * s;
+	};
+
 	ProxyHandler * GetHandler() const { return handler; }
 	void SetHandler(ProxyHandler * h) { handler = h; }
 
@@ -125,7 +138,7 @@ protected:
 	WORD wbufsize, buflen;
 
 private:
-	bool connected, deletable;
+	bool connected, deletable, inUse;
 	ProxyHandler *handler;
 };
 

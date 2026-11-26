@@ -1031,6 +1031,8 @@ public:
 	void ConnectTo();
 	void ConnectToRerouteDestination();
 	void ConnectToDirectly();
+	// mark remote as in use until ConnectToRerouteDestination() is done with it
+	void MarkRemoteInUse() { m_remoteInUse = dynamic_cast<ProxySocket *>(remote); if (m_remoteInUse) m_remoteInUse->MarkInUse(true); }
 
 	// override from class ProxySocket
     virtual Result ReceiveData();
@@ -1082,6 +1084,20 @@ protected:
 	/// to avoid race condition inside calls between this socket and its signaling socket
 	PMutex m_signalingSocketMutex;
 	bool m_ignoreAcceptError;
+	ProxySocket * m_remoteInUse;	// the socket MarkRemoteInUse() has marked, released by ConnectToRerouteDestination()
+
+	// releases the socket MarkRemoteInUse() has marked when it goes out of scope
+	class ReleaseRemoteInUse {
+	public:
+		ReleaseRemoteInUse(H245Socket * s) : m_socket(s) { }
+		~ReleaseRemoteInUse() {
+			if (m_socket->m_remoteInUse)
+				m_socket->m_remoteInUse->MarkInUse(false);
+			m_socket->m_remoteInUse = NULL;
+		}
+	private:
+		H245Socket * m_socket;
+	};
 };
 
 class NATH245Socket : public H245Socket {
@@ -1491,7 +1507,7 @@ ProxySocket::ProxySocket(
 	const char *t,
 	WORD buffSize
 	) : USocket(s, t), wbuffer(new BYTE[buffSize]), wbufsize(buffSize), buflen(0),
-	connected(false), deletable(false), handler(NULL)
+	connected(false), deletable(false), inUse(false), handler(NULL)
 {
 }
 
@@ -4620,6 +4636,8 @@ bool CallSignalSocket::SetH245OSSocket(int socket, const PString & name)
                     } else {
                         // connect to or send startH245
                         css->m_h245socket->SetIgnoreAcceptError();
+                        // m_h245socket is in the handler already: don't let it be deleted while ConnectRemote() blocks
+                        MarkSocketInUse h245InUse(m_h245socket);
                         bool result = css->m_h245socket->ConnectRemote();
                         if (result) {
                             ConfigReloadMutex.StartRead();
@@ -11934,6 +11952,8 @@ bool CallSignalSocket::SetH245Address(H225_TransportAddress & h245addr)
 		m_h245socket->SetRemoteSocket(ret->m_h245socket);
 		if (ret->m_h245socket) {
             ret->m_h245socket->SetRemoteSocket(m_h245socket);
+            // the handler already owns this socket: don't let it delete the socket before the job is done with it
+            m_h245socket->MarkRemoteInUse();
         } else {
             PTRACE(1, "Reroute: Error mixed tunneled / non-tunneled call");
         }
@@ -12274,7 +12294,7 @@ bool H245Handler::HandleCommand(H245_CommandMessage & Command, bool & suppress, 
 
 // class H245Socket
 H245Socket::H245Socket(CallSignalSocket *sig)
-      : TCPProxySocket("H245d"), sigSocket(sig), listener(new TCPSocket), m_ignoreAcceptError(false)
+      : TCPProxySocket("H245d"), sigSocket(sig), listener(new TCPSocket), m_ignoreAcceptError(false), m_remoteInUse(NULL)
 {
 	m_port = 0;
 	peerH245Addr = NULL;
@@ -12341,7 +12361,7 @@ H245Socket::H245Socket(CallSignalSocket *sig)
 }
 
 H245Socket::H245Socket(H245Socket *socket, CallSignalSocket *sig)
-      : TCPProxySocket("H245s", socket), sigSocket(sig), listener(NULL), m_ignoreAcceptError(false)
+      : TCPProxySocket("H245s", socket), sigSocket(sig), listener(NULL), m_ignoreAcceptError(false), m_remoteInUse(NULL)
 {
 	m_port = 0;
 	peerH245Addr = NULL;
@@ -12392,6 +12412,9 @@ void H245Socket::OnSignalingChannelClosed()
 
 void H245Socket::ConnectTo()
 {
+	// remote is handed to the handler as soon as it is accepted, but we keep using it after ConnectRemote() has blocked:
+	// make sure the handler doesn't delete it in the meantime when the call ends
+	MarkSocketInUse remoteInUse(remote);
 	if (remote->Accept(*listener)) {
         remote->SetConnected(true);
         GetHandler()->Insert(remote);
@@ -12469,6 +12492,9 @@ void H245Socket::ConnectTo()
 // called when in Reroute, don't listen, but connect directly and re-send TCS
 void H245Socket::ConnectToRerouteDestination()
 {
+	// remote is owned by the handler and was marked as in use by SetH245Address(): release that socket when we are done,
+	// even if remote has been changed meanwhile (eg. RemoveRemoteSocket())
+	ReleaseRemoteInUse releaseRemote(this);
 	if (ConnectRemote()) {
 		ConfigReloadMutex.StartRead();
 		SetConnected(true);
@@ -19351,8 +19377,10 @@ bool ProxyHandler::BuildSelectList(SocketSelectList & slist)
 		ProxySocket *socket = dynamic_cast<ProxySocket *>(*k);
 		if (socket && !socket->IsBlocked()) {
 			if (socket->IsDeletable()) {
-				// don't read from a socket that is queued for deletion
-				Remove(k);
+				// don't read from a socket that is queued for deletion,
+				// but leave it in the list as long as another thread still uses it
+				if (!socket->IsInUse())
+					Remove(k);
 				continue;
 			}
 			if (socket->IsSocketOpen()) {
@@ -19373,7 +19401,7 @@ bool ProxyHandler::BuildSelectList(SocketSelectList & slist)
                 else
 #endif // LARGE_FDSET
 					slist.Append(*k);
-			} else if (socket && !socket->IsConnected()) {
+			} else if (socket && !socket->IsConnected() && !socket->IsInUse()) {
 				Remove(k);
 				continue;
 			} else {
