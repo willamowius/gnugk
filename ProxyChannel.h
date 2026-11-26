@@ -456,6 +456,8 @@ public:
 #ifdef HAS_H46017
 	bool SendH46017Message(H225_RasMessage ras, GkH235Authenticators * authenticators);
 	void CleanupCall();
+	void LockCall() { m_callLock.Wait(); }
+	void UnlockCall() { m_callLock.Signal(); }
 #endif
 #ifdef HAS_H46026
 	bool SendH46026RTP(unsigned sessionID, bool isRTP, const void * data, unsigned len);
@@ -558,6 +560,7 @@ private:
 	CallSignalSocket & operator=(const CallSignalSocket &);
 
 	void InternalInit();
+	void ForwardToNATHandler();
 	void BuildReleasePDU(Q931 &, const H225_CallTerminationCause *) const;
 	// if return false, the h245Address field will be removed
 	bool SetH245Address(H225_TransportAddress &);
@@ -620,6 +623,7 @@ private:
 	static PMutex m_h245QueueMutex;
 	bool m_isnatsocket;
 	bool m_maintainConnection;	// eg. for H.460.17
+	bool m_movedToNATHandler;	// CreateRemote() moved this socket to the handler of a NAT socket, only that handler may delete it
 	Result m_result;
 	/// stored for use by ForwardCall, NULL if ForwardOnFacility is disabled
 	Q931 * m_setupPdu;
@@ -641,6 +645,9 @@ private:
 #ifdef HAS_H46017
 	bool m_h46017Enabled;
 	TCPProxySocket * rc_remote; // copy of the remote pointer that may be only used to send RC on call end
+	// a H.460.17 socket gets its next call from another thread (CreateRemote()) while its handler reads from it:
+	// held by the handler for each message incl. the cleanup when it ends the call and by CreateRemote() for the hand-over
+	PTimedMutex m_callLock;
 #endif
 #ifdef HAS_H46018
 	bool m_callFromTraversalServer; // is this call from a traversal server ?

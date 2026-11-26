@@ -588,6 +588,7 @@ bool EndpointRec::HasAvailableCapacity(const H225_ArrayOf_AliasAddress & aliases
 	int prefix_capacity = -1;
 
 	// we can only send a single call over a H.460.17 connection
+	// TODO the H.460.17 spec allows many, but GnuGk currently can't
 	if (UsesH46017() && m_activeCall > 0)
 		return FALSE;
 
@@ -6314,8 +6315,9 @@ void CallTable::InternalRemove(iterator Iter)
 
 	RasServer::Instance()->LogAcctEvent(GkAcctLogger::AcctStop, call);
 
-	call->RemoveAll();
+	// clean up the sockets before the endpoints are released: a H.460.17 endpoint gets the next call on the same socket
 	call->RemoveSocket();
+	call->RemoveAll();
 #ifdef HAS_H46018
 	call->RemoveAllRTPKeepAlives();
 #endif

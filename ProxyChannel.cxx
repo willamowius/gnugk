@@ -125,6 +125,10 @@ namespace {
 const long DEFAULT_SETUP_TIMEOUT = 8000;
 // time to wait before deleting a closed socket
 const long DEFAULT_SOCKET_CLEANUP_TIMEOUT = 5000;
+#ifdef HAS_H46017
+// max. time (ms) to wait for the handler of a H.460.17 socket before the socket gets a new call
+const long H46017_CALL_LOCK_TIMEOUT = 1000;
+#endif
 // if socket bind fails, try next DEFAULT_NUM_SEQ_PORTS subsequent port numbers
 const int DEFAULT_NUM_SEQ_PORTS = 500;
 
@@ -1933,6 +1937,7 @@ void CallSignalSocket::InternalInit()
 	m_h245TunnelingTranslation = Toolkit::Instance()->Config()->GetBoolean(RoutedSec, "H245TunnelingTranslation", false);
 	m_isnatsocket = false;
 	m_maintainConnection = false;
+	m_movedToNATHandler = false;
 	m_result = NoData;
 	m_setupPdu = NULL;
 #ifdef HAS_H46017
@@ -2049,13 +2054,16 @@ bool CallSignalSocket::ForwardData()
 
 void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 {
+	// for a H.460.17 socket CleanupCall() resets m_call and m_h245handler when the call is ended, also from
+	// other threads (eg. DRQ, timeout): only use our own references to the call and the new H.245 handler here
+	callptr call = socket->m_call;
 	remote = socket;
-	m_call = socket->m_call;
-	m_call->SetSocket(socket, this);
+	m_call = call;
+	call->SetSocket(socket, this);
 #ifdef HAS_H46026
 	// now that we have a call associated with this socket, set the H.460.26 pipe bandwidth
-	if (m_h46026PriorityQueue && m_call && m_call->GetCalledParty()) {
-		m_h46026PriorityQueue->SetPipeBandwidth(m_call->GetCalledParty()->GetH46026BW());
+	if (m_h46026PriorityQueue && call->GetCalledParty()) {
+		m_h46026PriorityQueue->SetPipeBandwidth(call->GetCalledParty()->GetH46026BW());
 	}
 #endif
 	m_crv = (socket->m_crv & 0x7fffu);
@@ -2067,50 +2075,50 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 	UnmapIPv4Address(localAddr);
 	masqAddr = RasServer::Instance()->GetMasqAddress(peerAddr);
 	UnmapIPv4Address(masqAddr);
-    if (m_call->GetEndpointIPMapping(peerAddr, masqAddr)) {
+    if (call->GetEndpointIPMapping(peerAddr, masqAddr)) {
         PTRACE(7, "JW RTP set masqAddr=" << masqAddr << " for " << peerAddr << " from IPMapping");
     }
 
 	SetHandler(socket->GetHandler());
 	// don't rename the existing remote socket of a H.460.17 call
-	if (!(m_call->GetCalledParty() && m_call->GetCalledParty()->UsesH46017())) {
+	if (!(call->GetCalledParty() && call->GetCalledParty()->UsesH46017())) {
 		SetName(AsString(socket->peerAddr, GetPort()));
 	}
 
 	Address calling = GNUGK_INADDR_ANY, called = GNUGK_INADDR_ANY;
-	int nat_type = m_call->GetNATType(calling, called);
+	int nat_type = call->GetNATType(calling, called);
 	if (nat_type & CallRec::calledParty) {
 		socket->peerAddr = called;
 	}
 
-	if (m_call->GetProxyMode() != CallRec::ProxyEnabled
+	if (call->GetProxyMode() != CallRec::ProxyEnabled
 		&& nat_type == CallRec::both && calling == called) {
 		if (!Toolkit::AsBool(GkConfig()->GetString(ProxySection, "ProxyForSameNAT", "1"))) {
-			PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy DISABLED. (Same NAT)");
-			m_call->SetProxyMode(CallRec::ProxyDisabled);
+			PTRACE(3, "GK\tCall " << call->GetCallNumber() << " proxy DISABLED. (Same NAT)");
+			call->SetProxyMode(CallRec::ProxyDisabled);
 			return;
 		}
 	}
 
 	if (GkConfig()->GetBoolean(ProxySection, "ProxyAlways", false)) {
-			PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled. (ProxyAlways)");
-		m_call->SetProxyMode(CallRec::ProxyEnabled);
-		m_call->SetH245Routed(true);
+			PTRACE(3, "GK\tCall " << call->GetCallNumber() << " proxy enabled. (ProxyAlways)");
+		call->SetProxyMode(CallRec::ProxyEnabled);
+		call->SetH245Routed(true);
 	}
 
 	// enable proxy if required, no matter whether H.245 routed
-	if (m_call->GetProxyMode() == CallRec::ProxyDetect) {
+	if (call->GetProxyMode() == CallRec::ProxyDetect) {
 		if ((nat_type != CallRec::none && GkConfig()->GetBoolean(ProxySection, "ProxyForNAT", false)) ) {
 			// must proxy
-			PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled. (ProxyForNAT)");
-			m_call->SetProxyMode(CallRec::ProxyEnabled);
+			PTRACE(3, "GK\tCall " << call->GetCallNumber() << " proxy enabled. (ProxyForNAT)");
+			call->SetProxyMode(CallRec::ProxyEnabled);
 		} else {
 			// check if we have a [ModeSelection] rule matching for this call
 			int mode = Toolkit::Instance()->SelectRoutingMode(peerAddr, socket->peerAddr);
 
 			// check if we have a [ModeVendorSelection] rule matching the calling party
 			PString vendor, version;
-			if ((mode != CallRec::Proxied) && m_call->GetCallingVendor(vendor, version)) {
+			if ((mode != CallRec::Proxied) && call->GetCallingVendor(vendor, version)) {
 				int vendormode = Toolkit::Instance()->SelectRoutingVendorMode(vendor + " " + version);
 				if (vendormode > mode)
                     mode = vendormode;
@@ -2118,35 +2126,35 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 
 			switch (mode) {
 				case CallRec::SignalRouted:
-					m_call->SetProxyMode(CallRec::ProxyDisabled);
-					m_call->SetH245Routed(false);
+					call->SetProxyMode(CallRec::ProxyDisabled);
+					call->SetH245Routed(false);
 					break;
 				case CallRec::H245Routed:
-					m_call->SetProxyMode(CallRec::ProxyDisabled);
-					m_call->SetH245Routed(true);
+					call->SetProxyMode(CallRec::ProxyDisabled);
+					call->SetH245Routed(true);
 					break;
 				case CallRec::Proxied:
-                    PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled. (mode selection or vendor mode)");
-					m_call->SetProxyMode(CallRec::ProxyEnabled);
-					m_call->SetH245Routed(true);
+                    PTRACE(3, "GK\tCall " << call->GetCallNumber() << " proxy enabled. (mode selection or vendor mode)");
+					call->SetProxyMode(CallRec::ProxyEnabled);
+					call->SetH245Routed(true);
 					break;
 				default:
-					m_call->SetProxyMode(CallRec::ProxyDisabled);
+					call->SetProxyMode(CallRec::ProxyDisabled);
 					break;
 			}
 		}
 	}
-	PTRACE(1, "Call " << m_call->GetCallNumber() << ": h245Routed=" << m_call->IsH245Routed() << " proxy=" << ((m_call->GetProxyMode() == CallRec::ProxyEnabled) ? 1 : 0));
+	PTRACE(1, "Call " << call->GetCallNumber() << ": h245Routed=" << call->IsH245Routed() << " proxy=" << ((call->GetProxyMode() == CallRec::ProxyEnabled) ? 1 : 0));
 
-	if (m_call->GetProxyMode() == CallRec::ProxyEnabled) {
-		H245ProxyHandler *proxyhandler = new H245ProxyHandler(m_call->GetCallIdentifier(), socket->localAddr, calling, socket->masqAddr);
+	if (call->GetProxyMode() == CallRec::ProxyEnabled) {
+		H245ProxyHandler *proxyhandler = new H245ProxyHandler(call->GetCallIdentifier(), socket->localAddr, calling, socket->masqAddr);
 #ifdef HAS_H46026
-		if (m_call->GetCallingParty())
-			proxyhandler->SetUsesH46026(m_call->GetCallingParty()->UsesH46026());
+		if (call->GetCallingParty())
+			proxyhandler->SetUsesH46026(call->GetCallingParty()->UsesH46026());
 #endif
 #ifdef HAS_H46018
-		if (m_call->GetCallingParty() && m_call->GetCallingParty()->GetTraversalRole() != None) {
-			proxyhandler->SetTraversalRole(m_call->GetCallingParty()->GetTraversalRole());
+		if (call->GetCallingParty() && call->GetCallingParty()->GetTraversalRole() != None) {
+			proxyhandler->SetTraversalRole(call->GetCallingParty()->GetTraversalRole());
 		}
 		if (RasServer::Instance()->IsCallFromTraversalClient(peerAddr)) {
 			// if we get a Setup from a traversal zone, it must me from a traversal client and we won't have an EPRec for it
@@ -2157,28 +2165,34 @@ void CallSignalSocket::SetRemote(CallSignalSocket * socket)
 			// for a Setup from a parent we won't have an EPRec and if H.460.18 is used it must be the server
 			proxyhandler->SetTraversalRole(TraversalServer);
 		}
-		proxyhandler->SetH46019Direction(m_call->GetH46019Direction());
+		proxyhandler->SetH46019Direction(call->GetH46019Direction());
 		proxyhandler->SetRequestRTPMultiplexing(socket->m_senderSupportsH46019Multiplexing);
 #endif
 		socket->m_h245handler = proxyhandler;
-		m_h245handler = new H245ProxyHandler(m_call->GetCallIdentifier(), localAddr, called, masqAddr, proxyhandler);
+		H245ProxyHandler * calledhandler = new H245ProxyHandler(call->GetCallIdentifier(), localAddr, called, masqAddr, proxyhandler);
 #ifdef HAS_H46026
-		if (m_call->GetCalledParty())
-			((H245ProxyHandler*)m_h245handler)->SetUsesH46026(m_call->GetCalledParty()->UsesH46026());
+		if (call->GetCalledParty())
+			calledhandler->SetUsesH46026(call->GetCalledParty()->UsesH46026());
 #endif
 #ifdef HAS_H46018
-		if (m_call->GetCalledParty() && m_call->GetCalledParty()->GetTraversalRole() != None) {
-			((H245ProxyHandler*)m_h245handler)->SetTraversalRole(m_call->GetCalledParty()->GetTraversalRole());
+		if (call->GetCalledParty() && call->GetCalledParty()->GetTraversalRole() != None) {
+			calledhandler->SetTraversalRole(call->GetCalledParty()->GetTraversalRole());
 		}
-		((H245ProxyHandler*)m_h245handler)->SetH46019Direction(m_call->GetH46019Direction());
-		((H245ProxyHandler*)m_h245handler)->SetRequestRTPMultiplexing(m_senderSupportsH46019Multiplexing);
+		calledhandler->SetH46019Direction(call->GetH46019Direction());
+		calledhandler->SetRequestRTPMultiplexing(m_senderSupportsH46019Multiplexing);
 #endif
 		proxyhandler->SetHandler(GetHandler());
-		PTRACE(3, "GK\tCall " << m_call->GetCallNumber() << " proxy enabled");
+		m_h245handlerLock.Wait();
+		m_h245handler = calledhandler;
+		m_h245handlerLock.Signal();
+		PTRACE(3, "GK\tCall " << call->GetCallNumber() << " proxy enabled");
 	} else {
-		if (m_call->IsH245Routed()) {
+		if (call->IsH245Routed()) {
 			socket->m_h245handler = new H245Handler(socket->localAddr, calling, socket->masqAddr);
-			m_h245handler = new H245Handler(localAddr, called, masqAddr);
+			H245Handler * calledhandler = new H245Handler(localAddr, called, masqAddr);
+			m_h245handlerLock.Wait();
+			m_h245handler = calledhandler;
+			m_h245handlerLock.Signal();
 		}
 	}
 }
@@ -6891,6 +6905,38 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 			PTRACE(2, Type() << "\tNAT socket " << socket->GetName() << " is no longer available");
 			socket = NULL;
 		}
+#ifdef HAS_H46017
+		// a H.460.17 socket is kept for the next call and its handler reads from it all the time:
+		// keep the handler off it (m_callLock) until the new call is set up, and only use it when it has no call
+		bool callLocked = false;
+		if (socket && socket->MaintainConnection()) {
+			// don't wait if the socket has a call: its handler may be waiting for our socket while it routes
+			// a Setup from its own endpoint (both have a call then); the timeout is for a handler that is
+			// held up otherwise, eg. by a RAS request or the end of the previous call
+			callLocked = socket->m_callLock.Wait(socket->m_call ? 0 : H46017_CALL_LOCK_TIMEOUT);
+			if (callLocked && socket->m_call
+				&& !CallTable::Instance()->FindCallRec(socket->m_call->GetCallIdentifier())) {
+				// left over from a call that ended without cleaning up the socket (eg. CallRec::RemoveSocket()
+				// didn't get m_sockLock): the endpoint is only available again after that call was removed
+				PTRACE(2, Type() << "\tH.460.17 socket " << socket->GetName() << " still had a removed call, cleaning up");
+				socket->CleanupCall();
+			}
+			if (callLocked && socket->m_call) {
+				socket->m_callLock.Signal();
+				callLocked = false;
+			}
+			if (!callLocked) {
+				// refuse the call: the endpoint can only be reached over this connection (eg. behind NAT),
+				// so don't fall back to a direct connection to its signaling address
+				PTRACE(2, Type() << "\tCall " << m_call->GetCallNumber() << " rejected: H.460.17 socket "
+					<< socket->GetName() << " is busy with another call");
+				calledep->SetNATSocket(socket);	// it is still the connection of the endpoint
+				m_call->SetDisconnectCause(Q931::UserBusy);
+				m_result = Error;
+				return false;
+			}
+		}
+#endif
 		if (socket) {
 			PTRACE(3, Type() << "\tUsing NAT socket " << socket->GetName());
 
@@ -6898,6 +6944,8 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 			// different handler than this
 			// so we move this socket to other handler
 			GetHandler()->MoveTo(socket->GetHandler(), this);
+			// from now on only that handler may delete this socket, also if Dispatch() fails (see there)
+			m_movedToNATHandler = true;
 
 			// re-add the NAT socket for H.460.17 endpoints
 			if (calledep->UsesH46017())
@@ -6908,6 +6956,10 @@ bool CallSignalSocket::CreateRemote(H225_Setup_UUIE & setupBody)
 			SetConnected(true);
 			socket->SetConnected(true);
 			m_result = Forwarding;
+#ifdef HAS_H46017
+			if (callLocked)
+				socket->m_callLock.Signal();
+#endif
 		}
 	}
 	if (!remote) {
@@ -11148,6 +11200,21 @@ inline bool HasH245Sockets(const CallSignalSocket * socket)
 
 } // end of anonymous namespace
 
+// forward the Setup to a NAT socket CreateRemote() has given this socket to
+void CallSignalSocket::ForwardToNATHandler()
+{
+	// the handler of the NAT socket reads from both sockets now and may already have ended the call
+	// and detached this socket: then there is nothing to forward and only that handler may delete this socket
+	m_remoteLock.Wait();
+	if (remote && GkConfig()->HasKey(RoutedSec, "TcpKeepAlive"))
+		remote->Self()->SetOption(SO_KEEPALIVE, Toolkit::AsBool(
+			GkConfig()->GetString(RoutedSec, "TcpKeepAlive", "0")) ? 1 : 0,
+			SOL_SOCKET
+			);
+	m_remoteLock.Signal();
+	ForwardData();
+}
+
 // handle a new message on a new connection
 void CallSignalSocket::Dispatch()
 {
@@ -11288,6 +11355,10 @@ void CallSignalSocket::Dispatch()
 #endif
 
 		case Forwarding:
+			if (m_movedToNATHandler) {
+				ForwardToNATHandler();
+				return;
+			}
 			if (remote && remote->IsConnected()) { // remote is NAT socket
 				if (GkConfig()->HasKey(RoutedSec, "TcpKeepAlive"))
 					remote->Self()->SetOption(SO_KEEPALIVE, Toolkit::AsBool(
@@ -11319,8 +11390,9 @@ void CallSignalSocket::Dispatch()
 	if (m_call)
 		m_call->SetSocket(NULL, NULL);
 
-	if (HasH245Sockets(this)) {
-		// the handler thread may be using this socket through the H.245 sockets right now
+	if (m_movedToNATHandler || HasH245Sockets(this)) {
+		// the handler thread may be using this socket right now: CreateRemote() has put it in the handler
+		// of a NAT socket or it is used through the H.245 sockets
 		GetHandler()->Remove(this);	// will delete socket in CleanUp()
 		return;
 	}
@@ -11556,6 +11628,10 @@ void CallSignalSocket::DispatchNextRoute()
 		}
 
 	case Forwarding:
+		if (m_movedToNATHandler) {
+			ForwardToNATHandler();
+			return;
+		}
 		if (remote && remote->IsConnected()) { // remote is NAT socket
 			if (GkConfig()->HasKey(RoutedSec, "TcpKeepAlive"))
 				remote->Self()->SetOption(SO_KEEPALIVE, Toolkit::AsBool(
@@ -11584,8 +11660,9 @@ void CallSignalSocket::DispatchNextRoute()
 	if (m_call)
 		m_call->SetSocket(NULL, NULL);
 
-	if (HasH245Sockets(this)) {
-		// the handler thread may be using this socket through the H.245 sockets right now
+	if (m_movedToNATHandler || HasH245Sockets(this)) {
+		// the handler thread may be using this socket right now: CreateRemote() has put it in the handler
+		// of a NAT socket or it is used through the H.245 sockets
 		GetHandler()->Remove(this);	// will delete socket in CleanUp()
 		return;
 	}
@@ -19319,7 +19396,27 @@ void ProxyHandler::ReadSocket(IPSocket * socket)
 		// handed over to a job after the select list was built (eg. for failover): the handler must not read from it
 		return;
 	}
-	switch (psocket->ReceiveData())
+#ifdef HAS_H46017
+	// CreateRemote() gives a H.460.17 socket its next call from another thread: keep it from doing so
+	// while we handle a message from the socket and, if that ends the call, until the socket is cleaned up
+	CallSignalSocket * h46017socket = NULL;
+	if (m_h46017Enabled) {
+		h46017socket = dynamic_cast<CallSignalSocket *>(socket);
+		if (h46017socket && h46017socket->MaintainConnection())
+			h46017socket->LockCall();
+		else
+			h46017socket = NULL;
+	}
+#endif
+	const ProxySocket::Result result = psocket->ReceiveData();
+#ifdef HAS_H46017
+	if (h46017socket && result != ProxySocket::Closing) {
+		// the call isn't ended, nothing to clean up below
+		h46017socket->UnlockCall();
+		h46017socket = NULL;
+	}
+#endif
+	switch (result)
 	{
 		case ProxySocket::Connecting:
 #ifdef HAS_H46018
@@ -19366,7 +19463,11 @@ void ProxyHandler::ReadSocket(IPSocket * socket)
 					css->LockRemote();
 					if (css->GetRemote() && css->GetRemote()->MaintainConnection()) {
 						// if the other side uses H.460.17 clean up that end of the connection
-						css->GetRemote()->CleanupCall();
+						// (keep CreateRemote() from giving it a new call meanwhile)
+						CallSignalSocket * h46017remote = css->GetRemote();
+						h46017remote->LockCall();
+						h46017remote->CleanupCall();
+						h46017remote->UnlockCall();
 					}
 					css->UnlockRemote();
 #endif
@@ -19389,6 +19490,10 @@ void ProxyHandler::ReadSocket(IPSocket * socket)
 		default:
 			break;
 	}
+#ifdef HAS_H46017
+	if (h46017socket)
+		h46017socket->UnlockCall();
+#endif
 }
 
 #ifdef HAS_H46018
