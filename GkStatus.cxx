@@ -58,7 +58,7 @@ static const PINDEX maxCommandLength = 2048;	// commands/lines from status clien
 // the switches allowed in the [GkStatus::Auth] section share it with the user accounts, but they are not users
 static bool IsAuthSwitch(const PString & name)
 {
-	static const char * const switches[] = { "rule", "default", "regex", "DSAKey", "RSAKey", "Shutdown",
+	static const char * const switches[] = { "rule", "default", "regex", "DSAKey", "RSAKey", "Ed25519Key", "Shutdown",
 		"DelayReject", "LoginTimeout", "KeyFilled", "WorkerThreadIdleTimeout", "MaxWorkerThreads" };
 	for (unsigned i = 0; i < sizeof(switches) / sizeof(switches[0]); ++i) {
 		if (name *= switches[i])	// "*=": case insensitive, like the config lookup
@@ -414,6 +414,19 @@ SSHStatusClient::~SSHStatusClient()
 	}
 }
 
+// set a host key for the SSH status port, returns true if the key was loaded
+static bool SetSSHHostKey(ssh_bind sshbind, ssh_bind_options_e option, const char * keyType, const PString & keyFile)
+{
+	if (!PFile::Exists(keyFile) || !PFile::Access(keyFile, PFile::ReadOnly))
+		return false;
+	if (ssh_bind_options_set(sshbind, option, (const char *)keyFile) != SSH_OK) {
+		PTRACE(1, "Error loading " << keyType << " key " << keyFile << ": " << ssh_get_error(sshbind));
+		return false;
+	}
+	PTRACE(3, "Setting " << keyType << " key to " << keyFile);
+	return true;
+}
+
 #ifdef LARGE_FDSET
 bool SSHStatusClient::Accept(YaTCPSocket & socket)
 #else
@@ -429,20 +442,22 @@ PBoolean SSHStatusClient::Accept(PSocket & socket)
 	ssh_options_set(m_session, SSH_OPTIONS_COMPRESSION_S_C, "none");
 
 	bool keyAvailable = false;
-	PString dsakey = GkConfig()->GetString(authsec, "DSAKey", "/etc/ssh/ssh_host_dsa_key");
-	if (PFile::Exists(dsakey) && PFile::Access(dsakey, PFile::ReadOnly)) {
-		keyAvailable = true;
-		ssh_bind_options_set(m_sshbind, SSH_BIND_OPTIONS_DSAKEY, (const char *)dsakey);
-		PTRACE(3, "Setting DSA key to " << dsakey);
-	}
-	PString rsakey = GkConfig()->GetString(authsec, "RSAKey", "/etc/ssh/ssh_host_rsa_key");
-	if (PFile::Exists(rsakey) && PFile::Access(rsakey, PFile::ReadOnly)) {
-		keyAvailable = true;
-		ssh_bind_options_set(m_sshbind, SSH_BIND_OPTIONS_RSAKEY, (const char *)rsakey);
-		PTRACE(3, "Setting RSA key to " << rsakey);
-	}
+#if LIBSSH_VERSION_INT >= SSH_VERSION_INT(0, 7, 0)
+	// SSH_BIND_OPTIONS_HOSTKEY detects the key type from the file, the type specific options are deprecated
+	const ssh_bind_options_e rsaOption = SSH_BIND_OPTIONS_HOSTKEY;
+	const ssh_bind_options_e dsaOption = SSH_BIND_OPTIONS_HOSTKEY;
+	keyAvailable = SetSSHHostKey(m_sshbind, SSH_BIND_OPTIONS_HOSTKEY, "Ed25519",
+		GkConfig()->GetString(authsec, "Ed25519Key", "/etc/ssh/ssh_host_ed25519_key")) || keyAvailable;
+#else
+	const ssh_bind_options_e rsaOption = SSH_BIND_OPTIONS_RSAKEY;
+	const ssh_bind_options_e dsaOption = SSH_BIND_OPTIONS_DSAKEY;
+#endif
+	keyAvailable = SetSSHHostKey(m_sshbind, rsaOption, "RSA",
+		GkConfig()->GetString(authsec, "RSAKey", "/etc/ssh/ssh_host_rsa_key")) || keyAvailable;
+	keyAvailable = SetSSHHostKey(m_sshbind, dsaOption, "DSA",
+		GkConfig()->GetString(authsec, "DSAKey", "/etc/ssh/ssh_host_dsa_key")) || keyAvailable;
 	if (!keyAvailable) {
-		PTRACE(1, "No DSA or RSA key file found");
+		PTRACE(1, "No usable SSH host key found (Ed25519, RSA or DSA)");
 		SNMP_TRAP(7, SNMPError, Network, "No SSH keys");
 		socket.Close();
 		return false;

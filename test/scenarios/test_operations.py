@@ -385,12 +385,17 @@ def test_status_port_slow_reader(start_gk, workdir):
 
 # ---- SSH status port
 
-def ssh_run(user, password, command, timeout=15):
-    """log into the SSH status port from pub1 with sshpass + ssh, return (exit code, output)"""
-    args = ["ip", "netns", "exec", topology.ns("pub1"), "sshpass", "-p", password, "ssh", "-p", str(STATUS_PORT),
-            "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null", "-o", "LogLevel=ERROR",
-            "-o", "PubkeyAuthentication=no", "-o", "PreferredAuthentications=password,keyboard-interactive",
-            "-o", "NumberOfPasswordPrompts=1", "-o", "ConnectTimeout=5", "%s@%s" % (user, GK)]
+def ssh_run(user, password, command, timeout=15, options=None):
+    """log into the SSH status port from pub1 with sshpass + ssh, return (exit code, output);
+    options: extra ssh -o options, they override the defaults (eg. StrictHostKeyChecking)"""
+    opts = {"StrictHostKeyChecking": "no", "UserKnownHostsFile": "/dev/null", "LogLevel": "ERROR",
+            "PubkeyAuthentication": "no", "PreferredAuthentications": "password,keyboard-interactive",
+            "NumberOfPasswordPrompts": "1", "ConnectTimeout": "5"}
+    opts.update(options or {})
+    args = ["ip", "netns", "exec", topology.ns("pub1"), "sshpass", "-p", password, "ssh", "-p", str(STATUS_PORT)]
+    for name, value in opts.items():
+        args += ["-o", "%s=%s" % (name, value)]
+    args.append("%s@%s" % (user, GK))
     if command is not None:
         args.append(command)
     done = subprocess.run(args, capture_output=True, text=True, timeout=timeout, input="")
@@ -404,16 +409,37 @@ def ssh_tools():
         pytest.skip("needs ssh and sshpass (apt-get install openssh-client sshpass)")
 
 
+def ssh_host_key(workdir, keytype):
+    """generate (once) a host key of keytype ('rsa' or 'ed25519') in workdir, return its file name"""
+    keyfile = os.path.join(workdir, "ssh_host_%s_key" % keytype)
+    if not os.path.exists(keyfile):
+        args = ["ssh-keygen", "-q", "-t", keytype, "-N", "", "-f", keyfile]
+        if keytype == "rsa":
+            args += ["-b", "3072", "-m", "PEM"]
+        subprocess.run(args, check=True)
+    return keyfile
+
+
 def ssh_config(workdir, **auth):
     from harness.gnugk import status_password
-    keyfile = os.path.join(workdir, "ssh_host_rsa_key")
-    if not os.path.exists(keyfile):
-        subprocess.run(["ssh-keygen", "-q", "-t", "rsa", "-b", "2048", "-m", "PEM", "-N", "", "-f", keyfile], check=True)
-    # GnuGk takes RSAKey / DSAKey from [GkStatus::Auth], DSAKey points nowhere so only the test key is used
+    # GnuGk takes Ed25519Key / RSAKey / DSAKey from [GkStatus::Auth], the defaults point to /etc/ssh/,
+    # so set all of them: by default only the test RSA key is used
     section = {"rule": "password", "admin": status_password(workdir, "admin", "secret"), "DelayReject": "0",
-               "RSAKey": keyfile, "DSAKey": os.path.join(workdir, "no-dsa-key")}
+               "RSAKey": ssh_host_key(workdir, "rsa"), "DSAKey": os.path.join(workdir, "no-dsa-key"),
+               "Ed25519Key": os.path.join(workdir, "no-ed25519-key")}
     section.update(auth)
     return {"Gatekeeper::Main": {"SshStatusPort": "1"}, "GkStatus::Auth": section}
+
+
+def ssh_pinned(workdir, keyfile, algorithms):
+    """ssh options that only accept the public key of keyfile as host key, offered with one of algorithms"""
+    with open(keyfile + ".pub") as f:
+        keytype, blob = f.read().split()[:2]
+    known_hosts = os.path.join(workdir, "known_hosts_" + os.path.basename(keyfile))
+    with open(known_hosts, "w") as f:
+        f.write("gnugk-status %s %s\n" % (keytype, blob))
+    return {"StrictHostKeyChecking": "yes", "UserKnownHostsFile": known_hosts, "HostKeyAlias": "gnugk-status",
+            "HostKeyAlgorithms": algorithms}
 
 
 def test_ssh_status_port(start_gk, workdir, ssh_tools):
@@ -454,6 +480,60 @@ def test_ssh_status_port_ip_rules(start_gk, workdir, ssh_tools):
     gk.require("ssh")
     code, out = ssh_run("admin", "secret", "Version")
     assert "Gatekeeper(GNU)" not in out, "a denied IP got in: %s" % out
+    assert gk.alive()
+
+
+def test_ssh_status_port_ed25519(start_gk, workdir, ssh_tools):
+    """Ed25519Key= alone (no RSA or DSA key): the client gets exactly that host key, the right password logs
+    in, a wrong one is refused"""
+    keyfile = ssh_host_key(workdir, "ed25519")
+    gk = start_gk(ssh_config(workdir, Ed25519Key=keyfile, RSAKey=os.path.join(workdir, "no-rsa-key")))
+    gk.require("ssh")
+    pinned = ssh_pinned(workdir, keyfile, "ssh-ed25519")
+    code, out = ssh_run("admin", "secret", "Version", options=pinned)
+    assert "Gatekeeper(GNU)" in out, (code, out)
+    code, out = ssh_run("admin", "wrong", "Version", options=pinned)
+    assert code != 0 and "Gatekeeper(GNU)" not in out, (code, out)
+    assert gk.trace_count("Setting Ed25519 key to " + keyfile) >= 1
+    assert gk.trace_count("Setting RSA key") == 0
+    assert gk.alive()
+
+
+def test_ssh_status_port_ed25519_and_rsa(start_gk, workdir, ssh_tools):
+    """Ed25519Key= and RSAKey= together: GnuGk offers both, a client that only takes Ed25519 gets the Ed25519
+    key and one that only takes RSA (SHA-2 signatures) gets the RSA key"""
+    ed25519 = ssh_host_key(workdir, "ed25519")
+    rsa = ssh_host_key(workdir, "rsa")
+    gk = start_gk(ssh_config(workdir, Ed25519Key=ed25519, RSAKey=rsa))
+    gk.require("ssh")
+    for keyfile, algorithms in [(ed25519, "ssh-ed25519"), (rsa, "rsa-sha2-512,rsa-sha2-256")]:
+        code, out = ssh_run("admin", "secret", "Version", options=ssh_pinned(workdir, keyfile, algorithms))
+        assert "Gatekeeper(GNU)" in out, (algorithms, code, out)
+    # pinned to the RSA key, but only accepting Ed25519: the host key doesn't match
+    code, out = ssh_run("admin", "secret", "Version", options=ssh_pinned(workdir, rsa, "ssh-ed25519"))
+    assert code != 0 and "Gatekeeper(GNU)" not in out, (code, out)
+    assert gk.alive()
+
+
+def test_ssh_status_port_broken_ed25519_key(start_gk, workdir, ssh_tools):
+    """an Ed25519Key= file that isn't a key is logged and skipped, the RSA key still works; with only the broken
+    key nobody gets in and GnuGk stays up"""
+    broken = os.path.join(workdir, "broken_ed25519_key")
+    with open(broken, "w") as f:
+        f.write("-----BEGIN OPENSSH PRIVATE KEY-----\nnot a key\n-----END OPENSSH PRIVATE KEY-----\n")
+    os.chmod(broken, 0o600)
+    gk = start_gk(ssh_config(workdir, Ed25519Key=broken))
+    gk.require("ssh")
+    code, out = ssh_run("admin", "secret", "Version")
+    assert "Gatekeeper(GNU)" in out, (code, out)
+    assert gk.trace_count("Error loading Ed25519 key " + broken) >= 1
+    gk.stop()
+
+    gk = start_gk(ssh_config(workdir, Ed25519Key=broken, RSAKey=os.path.join(workdir, "no-rsa-key")),
+                  name="gnugk-nokey")
+    code, out = ssh_run("admin", "secret", "Version")
+    assert code != 0 and "Gatekeeper(GNU)" not in out, (code, out)
+    assert gk.trace_count("No usable SSH host key found") >= 1
     assert gk.alive()
 
 

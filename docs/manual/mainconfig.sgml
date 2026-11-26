@@ -714,11 +714,13 @@ Default: <tt/forbid/<newline>
 Only used when <tt/rule=explicit/.
 
 <item><tt>DSAKey=/etc/ssh/ssh_host_dsa_key</tt><newline>
-Default: <tt/ssh_host_dsa_key (in current working directory)/<newline>
+Default: <tt>/etc/ssh/ssh_host_dsa_key</tt><newline>
 <p>
 Path for the file containing the DSA host key. (only used for SSH)
 
-For SSH access, you must a DSA key or RSA key configured, or both.
+DSA keys are insecure and not supported by libssh 0.11 and later. Use an Ed25519 key instead.
+
+For SSH access, you must have at least one of an Ed25519, RSA or DSA key configured.
 
 To generate a DSA key (press Enter twice to not set a passphrase)
 <tscreen><verb>
@@ -726,15 +728,31 @@ ssh-keygen -t dsa -b 1024 -f ssh_host_dsa_key
 </verb></tscreen>
 
 <item><tt>RSAKey=/etc/ssh/ssh_host_rsa_key</tt><newline>
-Default: <tt/ssh_host_rsa_key (in current working directory)/<newline>
+Default: <tt>/etc/ssh/ssh_host_rsa_key</tt><newline>
 <p>
 Path for the file containing the RSA host key. (only used for SSH)
 
-For SSH access, you must a DSA key or RSA key configured, or both.
+For SSH access, you must have at least one of an Ed25519, RSA or DSA key configured.
 
 To generate a RSA key (press Enter twice to not set a passphrase)
 <tscreen><verb>
-ssh-keygen -t rsa -b 2048 -f ssh_host_rsa_key
+ssh-keygen -t rsa -b 3072 -f ssh_host_rsa_key
+</verb></tscreen>
+
+<item><tt>Ed25519Key=/etc/ssh/ssh_host_ed25519_key</tt><newline>
+Default: <tt>/etc/ssh/ssh_host_ed25519_key</tt><newline>
+<p>
+Path for the file containing the Ed25519 host key. (only used for SSH, requires libssh 0.7.0 or later)
+
+Ed25519 is the recommended host key type. You can configure it together with an RSA key
+to support older SSH clients. DSA keys are considered insecure and are no longer supported
+by current OpenSSH and libssh versions.
+
+For SSH access, you must have at least one of an Ed25519, RSA or DSA key configured.
+
+To generate an Ed25519 key (press Enter twice to not set a passphrase)
+<tscreen><verb>
+ssh-keygen -t ed25519 -f ssh_host_ed25519_key
 </verb></tscreen>
 
 <item><tt/Shutdown=forbid/<newline>
