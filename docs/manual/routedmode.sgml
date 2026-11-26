@@ -99,6 +99,9 @@ With this feature enabled, the gatekeeper will accept calls
 from any unregistered endpoint.
 Make sure you do proper authentication on these calls if you
 don't want to let everybody use your gatekeeper.
+Without this switch, calls from unregistered endpoints are rejected even if an
+authentication module returns a destination for them (eg. <tt/redirectip/ from SQLAuth
+or h323-redirect-ip-address from RadAuth or RadAliasAuth).
 When working with unregistered endpoints, you will probably also want
 to change the CallSignalPort to 1720.
 

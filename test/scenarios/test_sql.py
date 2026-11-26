@@ -214,6 +214,25 @@ def test_sql_auth_redirectip(start_gk, workdir):
     assert len(cdrs) == 1 and cdrs[0]["callee_ip"] == PUB2, cdrs
 
 
+@pytest.mark.parametrize("accept", ["0", "1"], ids=["rejected", "accepted"])
+def test_sql_auth_redirectip_unregistered_caller(start_gk, workdir, accept):
+    """SQLAuth CallQuery 'redirectip' on Setup: a destination from the database doesn't admit the call of an
+    unregistered endpoint, that still takes AcceptUnregisteredCalls=1"""
+    db = database(workdir, [])
+    callee_ep = Endpoint(workdir, "pub2", "callee", no_gk=True)
+    gk = start_gk({"RoutedMode": {"AcceptUnregisteredCalls": accept}},
+                  sql_auth(db, "Setup", CallQuery="SELECT 1, '%s:%d' AS redirectip" % (PUB2, callee_ep.listen_port)))
+    caller, callee = run_call(gk, Endpoint(workdir, "pub1", "caller", no_gk=True), "somewhere@" + topology.GK_IP,
+                              callee=callee_ep, callee_duration=10)
+    if accept == "0":
+        assert not caller["connected"] and caller["cleared"], caller
+        assert not callee["callAttempted"], "the call reached the callee"
+    else:
+        assert caller["connected"] and callee["connected"], caller["endReason"]
+        cdrs = gk.cdrs()
+        assert len(cdrs) == 1 and cdrs[0]["callee_ip"] == PUB2, cdrs
+
+
 @pytest.mark.parametrize("proxy_enabled,column,proxied", [("1", "0", False), ("0", "1", True)],
                          ids=["proxy-off", "proxy-on"])
 def test_sql_auth_proxy(start_gk, workdir, capture, proxy_enabled, column, proxied):

@@ -1,5 +1,7 @@
 Changes from 5.18 to 5.19
 =========================
+- BUGFIX(ProxyChannel.cxx) check AcceptUnregisteredCalls and AcceptNeighborsCalls also when
+  an authenticator sets the destination of a call without admission (eg. redirectip from SQLAuth)
 - BUGFIX(ProxyChannel.cxx,RasTbl.cxx) fix crashes when H.460.17 endpoint gets a new call while still in other call
 - BUGFIX(ProxyChannel.cxx) fix use-after-free of the signaling sockets when EnableH245Multiplexing=1
 - SSH public key login for the status port: [GkStatus::Auth] jan=ssh-ed25519 AAAA... (several keys separated by ','),

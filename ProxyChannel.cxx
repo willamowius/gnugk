@@ -5512,17 +5512,19 @@ void CallSignalSocket::OnSetup(SignalingMsg * msg)
 #ifndef HAS_AVAYA_SUPPORT
 		bool proceedingSent = false;
 #endif
-		if (!rejectCall && !destFound
+		if (!rejectCall
 #ifdef HAS_AVAYA_SUPPORT
 						&& !bAvayaCCMS
 #endif
 								) {
 			// for compatible to old version
+			// calls without admission must be allowed by the config, also when an authenticator
+			// has already set the destination (eg. redirectip from SQLAuth or RadAuth)
 			if (!(useParent || rassrv->AcceptUnregisteredCalls(_peerAddr) || rassrv->AcceptPregrantedCalls(setupBody, _peerAddr))) {
 				PTRACE(3, Type() << "\tReject unregistered call " << callid << " from " << Name());
 				authData.m_rejectCause = Q931::CallRejected;
 				rejectCall = true;
-			} else {
+			} else if (!destFound) {
 				PreliminaryCall * tmpCall = new PreliminaryCall(this, setupBody.m_callIdentifier, m_crv);
 #ifdef HAS_AVAYA_SUPPORT
 				tmpCall->SetProceedingSent(proceedingSent);
