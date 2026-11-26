@@ -589,6 +589,7 @@ bool EndpointRec::HasAvailableCapacity(const H225_ArrayOf_AliasAddress & aliases
 
 	// we can only send a single call over a H.460.17 connection
 	// TODO the H.460.17 spec allows many, but GnuGk currently can't
+	// we would have to move per-call state (m_call, m_h245handler, m_crv) out of the socket
 	if (UsesH46017() && m_activeCall > 0)
 		return FALSE;
 
